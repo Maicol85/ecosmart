@@ -17294,6 +17294,169 @@ caso('TC-217', 'Boton CC: aparece con datos, integra las secciones y no toca los
   })();
 `);
 
+
+/* == TC-218 - VTI en el visor y Qp/Qs, SIN una segunda formula ==============================
+   LA FORMULA DEL PEDIDO ESTABA MAL POR PARTIDA DOBLE: diametro LINEAL en vez de al cuadrado
+   -el flujo es area x VTI- y Qp/Qs INVERTIDO -el TSVI es el sistemico-. Medido sobre TSVI
+   20 mm / VTI 16 cm y TSVD 28 mm / VTI 20 cm, lo correcto da 2,45 «shunt significativo» y la
+   del pedido 0,571 «sin cortocircuito significativo». Un shunt que se opera, informado como
+   ausente. Por eso el panel llama a `eteQpQs()` y a `eteQpQsInterp()`, las del informe.
+   El VTI se verifica contra un TRIANGULO de area analitica: sin figura conocida, «da 19,7» no
+   se distingue de «la integral esta mal por un 1,5 %».
+   NO DEPENDE DEL PENDRIVE: la region Doppler se arma con la forma de las 132 reales.         */
+caso('TC-218', 'VTI en el visor: integral exacta, y el Qp/Qs con la formula del informe', `
+  return (async () => {
+    const R = {};
+    const toastOrig = window.toast, alertOrig = window.alert;
+    const tost = [], dichos = [];
+    window.toast = m => { tost.push(String(m)); };
+    window.alert = m => { dichos.push(String(m)); };
+    const regsOrig = window._medRegs;
+    try {
+      __t.limpiar(); await new Promise(r=>setTimeout(r,250));
+      /* Region Doppler sintetica con la forma de las 132 reales del pendrive: eje X en
+         segundos, eje Y en cm/s, cero en y=300 y dy NEGATIVO (arriba = positivo). */
+      const reg = { tipo:3, x0:0, y0:0, x1:600, y1:400, ux:4, uy:7,
+                    dx:0.004, dy:-0.5, ry0:300, rvy:0 };
+      window._medRegs = () => [reg];
+      /* TRIANGULO de area ANALITICA: base 200 px = 0,8 s; altura 100 px = 50 cm/s.
+         VTI = 1/2 * 0,8 * 50 = 20 cm EXACTO. Sin figura de area conocida, «el VTI da 19,7»
+         no se puede distinguir de «la integral esta mal por un 1,5 %». */
+      const pts = [];
+      for (let x = 100; x <= 200; x += 2) pts.push({ x:x, y: 300 - (x - 100) });
+      for (let x = 200; x <= 300; x += 2) pts.push({ x:x, y: 300 - (300 - x) });
+      const r = _vtiDe(pts);
+      R.ok = r.ok; R.motivo1 = r.motivo || '';
+      R.cm = r.ok ? +r.cm.toFixed(6) : null;
+      R.exacto = r.ok && Math.abs(r.cm - 20) < 1e-9;
+      R.pico = r.ok ? +r.picoCms.toFixed(2) : null;
+      R.ms = r.ok ? Math.round(r.ms) : null;
+      R.picoYms = R.pico === 50 && R.ms === 800;
+
+      /* EL VTI ES UNA MAGNITUD: el mismo trazo por DEBAJO de la base da lo mismo. Sin el valor
+         absoluto saldria negativo, porque dy es negativo en las 132 regiones medidas. */
+      const abajo = pts.map(q => ({ x:q.x, y: 600 - q.y }));
+      const r2 = _vtiDe(abajo);
+      R.espejo = r2.ok ? +r2.cm.toFixed(6) : null;
+      R.espejoIgual = r2.ok && Math.abs(r2.cm - r.cm) < 1e-9;
+
+      /* COMPUERTAS: exige los DOS ejes, y cada rechazo dice su motivo */
+      window._medRegs = () => [{ tipo:3, x0:0, y0:0, x1:600, y1:400, ux:4, uy:3,
+                                 dx:0.004, dy:-0.5, ry0:300, rvy:0 }];          // modo M
+      const rM = _vtiDe(pts);
+      R.rechazaModoM = !rM.ok && rM.motivo.indexOf('modo M') >= 0;
+      window._medRegs = () => [{ tipo:1, x0:0, y0:0, x1:600, y1:400, ux:3, uy:3,
+                                 dx:0.04, dy:0.04, ry0:0, rvy:0 }];              // 2D
+      const r2d = _vtiDe(pts);
+      R.rechaza2D = !r2d.ok && r2d.motivo.indexOf('Doppler') >= 0;
+      R.motivosDistintos = R.rechazaModoM && R.rechaza2D && rM.motivo !== r2d.motivo;
+      /* banda de plausibilidad: un trazo minusculo no publica un numero */
+      window._medRegs = () => [reg];
+      const chico = [{x:100,y:299},{x:101,y:299},{x:102,y:300}];
+      const rC = _vtiDe(chico);
+      R.bandaCorta = !rC.ok;
+
+      /* ── Qp/Qs ── */
+      _medVtis = [];
+      _medVtis.push({ pts:pts,   cm:16, ms:300, picoCms:90, rol:'tsvi' });
+      _medVtis.push({ pts:abajo, cm:20, ms:300, picoCms:80, rol:'tsvd' });
+      document.getElementById('diam_tsvi').value = '20';
+      document.getElementById('tsvd_diametro').value = '28';
+      const q = _vtiQpQs();
+      R.q = q.q != null ? +q.q.toFixed(4) : null;
+      /* NO REIMPLEMENTA LA FORMULA: es la MISMA que calcula el informe firmado */
+      R.igualQueInforme = Math.abs(q.q - eteQpQs({ diam_tsvi:20, itv_tsvi:16,
+                                                   tsvd_diametro:28, vti_tsvd:20 })) < 1e-12;
+      /* CONTROL NEGATIVO. La formula del pedido -diametro lineal y Qp/Qs invertido- da 0,571
+         sobre el mismo paciente: un shunt que se opera, informado como ausente. Sin esta
+         condicion, «2,45» no distingue una formula de la otra en una lectura rapida. */
+      R.delPedido = +((20*16)/(28*20)).toFixed(4);
+      R.difiereDelPedido = Math.abs(R.q - R.delPedido) > 1;
+      /* LA ESCALA TAMPOCO SE REESCRIBE: cuatro bandas, y la que el pedido omitia es la <1 */
+      R.bandaDerIzq = eteQpQsInterp(0.8).indexOf('derecha a izquierda') >= 0;
+      R.bandaPeq    = eteQpQsInterp(1.2).indexOf('pequeño') >= 0;
+      R.bandaMod    = eteQpQsInterp(1.8).indexOf('moderado') >= 0;
+      R.bandaSig    = eteQpQsInterp(2.5).indexOf('significativo') >= 0;
+      R.cuatroBandas = R.bandaDerIzq && R.bandaPeq && R.bandaMod && R.bandaSig;
+      R.interpDelPanel = q.interp === eteQpQsInterp(q.q);
+
+      /* faltantes declarados, no un null mudo */
+      _medVtis[1].rol = null;
+      R.faltan = (_vtiQpQs().faltan || []).join(', ');
+      R.declaraFaltante = R.faltan === 'VTI del TSVD';
+      _medVtis[1].rol = 'tsvd';
+
+      /* el rol es EXCLUSIVO: asignar otro al mismo tracto libera al anterior */
+      medVtiAsignar(0, 'tsvd');
+      R.exclusivo = _medVtis[0].rol === 'tsvd' && _medVtis[1].rol === null;
+      medVtiAsignar(0, 'tsvi'); medVtiAsignar(1, 'tsvd');
+
+      /* ── CARGA AL INFORME: los VTI, NO el cociente ── */
+      tost.length = 0;
+      medVtiCargar();
+      await new Promise(r=>setTimeout(r,250));
+      R.itv = document.getElementById('itv_tsvi').value;
+      R.vtd = document.getElementById('vti_tsvd').value;
+      R.cargoLosVti = R.itv === '16.0' && R.vtd === '20.0';
+      R.toastCarga = tost.filter(t => t.indexOf('VTI cargados') >= 0).length === 1;
+      /* y el INFORME recalcula el mismo numero: es lo que hace que no haya dos Qp/Qs */
+      R.informe = +eteQpQs().toFixed(4);
+      R.informeCoincide = Math.abs(R.informe - R.q) < 1e-9;
+
+      /* el panel lleva el descargo pedido */
+      const pan = _vtiPanel();
+      R.disclaimer = pan.indexOf('Verificar contra medici') >= 0 &&
+                     pan.indexOf('mediciones manuales en el visor') >= 0;
+      R.panelDiceQpQs = pan.indexOf('2.45') >= 0;
+      /* y explica que carga los VTI y no el cociente */
+      R.panelExplica = pan.indexOf('no el cociente') >= 0;
+
+      /* ── las otras herramientas siguen igual ── */
+      R.vtiEnLista = _MED_HERRS.filter(t => t.h === 'vti' && t.g === 'dop').length === 1;
+      R.otrasSiguen = ['dist','area','simpson','vel','tiempo','fc','strain','lars']
+        .every(h => _MED_HERRS.some(t => t.h === h));
+      medHerramienta('vti');   R.eligeVti  = _medHerr === 'vti' && _medGrupo === 'dop';
+      medHerramienta('vel');   R.eligeVel  = _medHerr === 'vel';
+      medHerramienta('dist');  R.eligeDist = _medHerr === 'dist';
+      /* borrar limpia tambien los VTI */
+      _medVtis = [{ pts:pts, cm:20, ms:800, picoCms:50 }];
+      medBorrar();
+      R.borraVtis = (_medVtis || []).length === 0;
+      /* y cambiar de cuadro tambien: una envolvente es de ESE cuadro */
+      _medVtis = [{ pts:pts, cm:20, ms:800, picoCms:50 }];
+      medReset();
+      R.resetBorraVtis = (_medVtis || []).length === 0;
+    } catch (e) { R.excepcion = String(e && e.message || e); }
+    finally {
+      window.toast = toastOrig; window.alert = alertOrig;
+      if (regsOrig) window._medRegs = regsOrig;
+      try { _medVtis = []; } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+    return { extra: [
+      ['VTI EXACTO contra un triangulo de area conocida', R.exacto, R.cm + ' cm (analitico 20)'],
+      ['y devuelve el pico y la duracion',           R.picoYms, R.pico + ' cm/s / ' + R.ms + ' ms'],
+      ['ES UNA MAGNITUD: el trazo espejado da lo mismo', R.espejoIgual, R.espejo],
+      ['rechaza el modo M y el 2D, con motivos DISTINTOS', R.motivosDistintos, R.rechazaModoM + '/' + R.rechaza2D],
+      ['y un trazo que no avanza no publica numero', R.bandaCorta, R.bandaCorta],
+      ['Qp/Qs IDENTICO al que calcula el informe',   R.igualQueInforme, R.q],
+      ['y DISTINTO de la formula del pedido',        R.difiereDelPedido, R.q + ' vs ' + R.delPedido],
+      ['las CUATRO bandas, incluida la de derecha a izquierda', R.cuatroBandas, R.bandaDerIzq],
+      ['el panel usa esa interpretacion, no otra',   R.interpDelPanel, R.interpDelPanel],
+      ['declara QUE falta en vez de un null mudo',   R.declaraFaltante, R.faltan],
+      ['el rol TSVI/TSVD es exclusivo',              R.exclusivo, R.exclusivo],
+      ['CARGA LOS VTI, no el cociente',              R.cargoLosVti && R.toastCarga, R.itv + '/' + R.vtd],
+      ['y el informe recalcula EL MISMO numero',     R.informeCoincide, R.informe + ' vs ' + R.q],
+      ['el panel lleva el descargo pedido',          R.disclaimer, R.disclaimer],
+      ['y explica por que no carga el cociente',     R.panelExplica, R.panelExplica],
+      ['VTI esta en el grupo Doppler/M',             R.vtiEnLista, R.vtiEnLista],
+      ['las otras ocho herramientas siguen',         R.otrasSiguen, R.otrasSiguen],
+      ['y se puede cambiar entre ellas',             R.eligeVti && R.eligeVel && R.eligeDist, R.eligeVti],
+      ['Borrar y cambiar de cuadro limpian los VTI', R.borraVtis && R.resetBorraVtis, R.borraVtis + '/' + R.resetBorraVtis]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

@@ -46462,6 +46462,82 @@ function _dcmImgVelocidadEn(r, y) {
   return (r.rvy || 0) + (y - r.ry0) * r.dy;
 }
 
+/* ¿Se puede medir un VTI acá? EXIGE LOS DOS EJES, y eso lo separa de sus dos vecinas: la
+   velocidad sólo necesita el eje Y en cm/s y el tiempo sólo el eje X en segundos, pero el VTI
+   es la integral de una por el otro. Un modo M tiene el eje X en segundos y el Y en
+   centímetros: ahí «el área bajo la curva» daría cm·s, que no es un VTI — sería una distancia
+   integrada en el tiempo, y saldría un número perfectamente presentable. */
+function _dcmImgRegionVti(r) {
+  return _dcmImgRegionVelocidad(r) && _dcmImgRegionTiempo(r);
+}
+
+/* VTI desde la envolvente trazada, en CENTÍMETROS.
+
+   Es la integral de |v| dt: por trapecios sobre los segmentos del trazo,
+   Σ (|v_i| + |v_{i+1}|)/2 · |Δx_px| · dx_segundos. Las unidades se cancelan solas —(cm/s)·s—
+   y por eso el resultado sale en cm sin ningún factor inventado.
+
+   ⚠️ SE INTEGRA EL VALOR ABSOLUTO, y no es un detalle: un flujo de salida se traza por debajo
+   de la línea de base —velocidades negativas, porque `PhysicalDeltaY` es negativo en las 132
+   regiones medidas— y sin el valor absoluto el VTI saldría negativo. Un VTI es una magnitud;
+   la dirección la da el lado de la base y se informa aparte.
+
+   Y se usa |Δx|: un trazo que vuelve sobre sí mismo sumaría de más, pero exigir monotonía
+   rechazaría un temblor de pulso sobre una envolvente que está bien. Se avisa si el trazo no
+   avanza casi nada en horizontal, que es el caso donde el número no significaría nada. */
+function _vtiDe(pts) {
+  if (!pts || pts.length < 3) {
+    return { ok:false, motivo:'La envolvente necesita al menos tres puntos. Mantené el botón apretado y recorré el contorno del espectro.' };
+  }
+  const regs = _medRegs();
+  const r0 = _dcmImgRegionEn(regs, pts[0].x, pts[0].y);
+  if (!r0) {
+    return { ok:false, motivo:'El trazo arranca fuera de las zonas que el equipo declara, así que no hay escala.' };
+  }
+  for (let i = 1; i < pts.length; i++) {
+    if (_dcmImgRegionEn(regs, pts[i].x, pts[i].y) !== r0) {
+      return { ok:false, motivo:'El trazo cruza zonas de la imagen con escalas distintas. Recorré la envolvente dentro de una sola.' };
+    }
+  }
+  if (!_dcmImgRegionVti(r0)) {
+    /* Tres motivos distintos y tres respuestas distintas: decir «no es Doppler» en los tres
+       sería falso en dos de ellos. */
+    if (_dcmImgRegionMedible(r0)) {
+      return { ok:false, motivo:'Esta herramienta es para Doppler espectral.\n\nAcá los dos ejes son distancia: usá ✏️ Área si querés medir una superficie.' };
+    }
+    if (_dcmImgRegionTiempo(r0) && r0.uy === DCMIMG_UNI_CM) {
+      return { ok:false, motivo:'Este trazo tiene el eje vertical en CENTÍMETROS: es un modo M —distancia contra tiempo—, no un Doppler espectral.\n\nEl área bajo esa curva no sería un VTI.' };
+    }
+    if (_dcmImgRegionVelocidad(r0)) {
+      return { ok:false, motivo:'Esta zona declara la escala de velocidad pero no la del tiempo, y el VTI necesita las dos.' };
+    }
+    return { ok:false, motivo:'Esta zona no declara escala de velocidad, así que no se puede integrar acá.' };
+  }
+  let cm = 0, anchoPx = 0;
+  for (let i = 0; i + 1 < pts.length; i++) {
+    const v1 = Math.abs(_dcmImgVelocidadEn(r0, pts[i].y));
+    const v2 = Math.abs(_dcmImgVelocidadEn(r0, pts[i + 1].y));
+    const dpx = Math.abs(pts[i + 1].x - pts[i].x);
+    anchoPx += dpx;
+    cm += ((v1 + v2) / 2) * dpx * r0.dx;
+  }
+  const ms = anchoPx * r0.dx * 1000;
+  if (!(cm > 0) || !isFinite(cm)) {
+    return { ok:false, motivo:'De ese trazo no sale un VTI: no avanza en el eje del tiempo.' };
+  }
+  /* Banda de plausibilidad. Un VTI de tracto de salida va de unos 5 cm (bajo gasto severo) a
+     unos 60-70 cm (estenosis aórtica severa, o el flujo de entrada de una ET). Fuera de
+     0,5-150 cm no hay VTI fisiológico posible: es un trazo mal hecho o una escala equivocada,
+     y publicar el número sería peor que no medir. Misma regla que la banda de `eteQpQs`. */
+  if (cm < 0.5 || cm > 150) {
+    return { ok:false, motivo:'El VTI sale en ' + cm.toFixed(1) + ' cm, que no es un valor posible.\n\nRevisá que hayas recorrido la envolvente de un solo latido y dentro del trazo espectral.' };
+  }
+  /* El PICO, que es lo que el médico reconoce de un vistazo y sirve para verificar el trazo. */
+  let pico = 0;
+  pts.forEach(q => { const a = Math.abs(_dcmImgVelocidadEn(r0, q.y)); if (a > pico) pico = a; });
+  return { ok:true, cm: cm, ms: ms, picoCms: pico, pts: pts };
+}
+
 /* ── CALIBRACIÓN MANUAL DE VELOCIDAD ─────────────────────────────────────────────────────
 
    ES UN RESPALDO, NO UN REEMPLAZO, y la diferencia importa. Medido sobre los 301 archivos
@@ -46854,7 +46930,7 @@ function _vNueva(pfx, rot) {
     datos: null,           // { loops, i, cuadro, timer }
     gen: 0,                // token anti-carrera del decodificado
     medOn: false, medPuntos: [], medLineas: [], medHerr: 'dist', medAreas: [],
-    medTrazo: null, medVels: [], medTiempos: [], medCalib: null, medCalibrando: false,
+    medTrazo: null, medVels: [], medTiempos: [], medVtis: [], medCalib: null, medCalibrando: false,
     medCalibVel: null, medCalibrandoVel: false, medEtiqueta: '', medGrupo: '2d',
     lars: null, vd: null,
     medUltimoCuadro: '', simp: null, strain: null, obsPuesto: false
@@ -46883,6 +46959,7 @@ const _vBind = (V, fn) => function () { const a = arguments; return _vCon(V, () 
     _cineDatos:'datos', _cineGen:'gen', _simp:'simp', _medObsPuesto:'obsPuesto',
     _medOn:'medOn', _medPuntos:'medPuntos', _medLineas:'medLineas', _medHerr:'medHerr',
     _medAreas:'medAreas', _medTrazo:'medTrazo', _medVels:'medVels', _medTiempos:'medTiempos',
+    _medVtis:'medVtis',
     _medCalib:'medCalib', _medCalibrando:'medCalibrando', _medUltimoCuadro:'medUltimoCuadro',
     _medCalibVel:'medCalibVel', _medCalibrandoVel:'medCalibrandoVel', _strain:'strain',
     _medEtiqueta:'medEtiqueta', _medGrupo:'medGrupo', _lars:'lars', _vd:'vd'
@@ -47418,6 +47495,16 @@ function _medAreaUp() {
   if (_medHerr === 'vd') {
     const motivo = _vdAceptar(pts);
     if (motivo) { alert(motivo); _vd.pendiente = null; }
+    _medPintar(); _medEstado();
+    return;
+  }
+  /* VTI: no es un área ni queda pendiente de confirmación — se mide y se guarda, como una
+     distancia. El trazo NO se cierra: una envolvente es una curva abierta y cerrarla agregaría
+     un tramo por la línea de base que ya está contado en la integral. */
+  if (_medHerr === 'vti') {
+    const r = _vtiDe(pts);
+    if (!r.ok) { alert(r.motivo); _medPintar(); _medEstado(); return; }
+    _medVtis.push({ pts: pts, cm: r.cm, ms: r.ms, picoCms: r.picoCms });
     _medPintar(); _medEstado();
     return;
   }
@@ -49291,7 +49378,7 @@ function _medManejador() {
 
 function medHerramienta(h) {
   _medHerr = (h === 'area' || h === 'simpson' || h === 'strain' || h === 'lars' ||
-              h === 'vd' || h === 'vel' || h === 'tiempo' || h === 'fc') ? h : 'dist';
+              h === 'vd' || h === 'vel' || h === 'tiempo' || h === 'fc' || h === 'vti') ? h : 'dist';
   _medTrazo = null; _medPuntos = [];
   /* Simpson arranca de cero cada vez que se entra: los cuatro trazados son de UNA medición,
      y mezclar dos series daría una FEVI hecha con diástole de un lado y sístole del otro. */
@@ -49385,6 +49472,25 @@ function _medPintar() {
     cx.fillText(txt, ax + 10*esc, ay - 5*esc);
   };
   _medAreas.forEach(a => contorno(a, true, '#22d36a'));
+  /* Las envolventes medidas. Curva ABIERTA —una envolvente no se cierra: el tramo por la línea
+     de base ya está contado dentro de la integral— y el rótulo en el punto más alto del trazo,
+     que es donde el médico está mirando. */
+  (_medVtis || []).forEach(vt => {
+    if (!vt.pts || vt.pts.length < 2) return;
+    cx.strokeStyle = '#34d399'; cx.fillStyle = '#34d399';
+    cx.beginPath();
+    cx.moveTo(vt.pts[0].x, vt.pts[0].y);
+    for (let k = 1; k < vt.pts.length; k++) cx.lineTo(vt.pts[k].x, vt.pts[k].y);
+    cx.stroke();
+    let alto = vt.pts[0];
+    vt.pts.forEach(q => { if (q.y < alto.y) alto = q; });
+    const t = 'VTI ' + vt.cm.toFixed(1) + ' cm';
+    const w = cx.measureText(t).width;
+    cx.fillStyle = 'rgba(0,0,0,.65)';
+    cx.fillRect(alto.x + 6*esc, alto.y - 21*esc, w + 8*esc, 18*esc);
+    cx.fillStyle = '#34d399';
+    cx.fillText(t, alto.x + 10*esc, alto.y - 6*esc);
+  });
   if (_medTrazo && _medTrazo.length > 1) contorno({ pts:_medTrazo, cm2:null }, false, '#fbbf24');
 
   /* ── Simpson: contorno + recta del anillo + eje + discos ──
@@ -49775,6 +49881,8 @@ const _MED_HERRS = [
     tip:'Dos clics sobre el eje temporal: intervalo en ms (TDE, TRIV). Necesita el eje X en segundos — Doppler espectral o modo M.' },
   { h:'fc',      g:'dop', id:'cine-med-fc',   rot:'FC',
     tip:'Dos clics sobre la misma onda de dos latidos: intervalo RR y frecuencia (60.000 / RR).' },
+  { h:'vti',     g:'dop', id:'cine-med-vti',  rot:'VTI',
+    tip:'Mantené apretado y recorré la envolvente del espectro: integral velocidad-tiempo en cm. Necesita los DOS ejes — cm/s y segundos.' },
   { h:'strain',  g:'def', id:'cine-med-str',  rot:'Strain VI',
     tip:'Deformación del VI por dos contornos manuales, en diástole y en sístole.' },
   { h:'lars',    g:'def', id:'cine-med-lars', rot:'LARS',
@@ -49858,6 +49966,156 @@ function _medFijosSync() {
   if (et && et.value !== (_medEtiqueta || '') && document.activeElement !== et) et.value = _medEtiqueta || '';
 }
 
+/* ══ PANEL Qp/Qs DEL VISOR ════════════════════════════════════════════════════════════════════
+   ⚠️ NO IMPLEMENTA LA FÓRMULA. Le pasa los cuatro valores a `eteQpQs()`, que es la que ya
+   calcula el cociente para el informe firmado, y rotula con `eteQpQsInterp()`. Con una segunda
+   copia, el visor y el informe publicarían números distintos del mismo paciente — y acá eso
+   sería especialmente caro, porque el pedido traía la fórmula MAL por partida doble: con el
+   diámetro lineal en vez de al cuadrado y con Qp y Qs invertidos. Medido sobre TSVI 20 mm /
+   VTI 16 cm y TSVD 28 mm / VTI 20 cm, la del código da 2,45 —shunt significativo, se evalúa
+   cierre— y la del pedido 0,571, que se lee como «sin cortocircuito significativo». Un shunt
+   que se opera, informado como ausente.
+   La escala tampoco se reescribe: `eteQpQsInterp` tiene CUATRO bandas, y la que el pedido
+   omitía —`< 1`, flujo neto de derecha a izquierda— es la que más cambia la conducta.
+
+   Los DIÁMETROS salen del informe (`diam_tsvi`, `tsvd_diametro`), que es donde ya viven. Si
+   falta alguno se dice cuál, y se ofrece usar la última distancia medida con 📏 — que es la
+   otra vía que el pedido nombraba. */
+const _VTI_DISC = 'Calculado desde mediciones manuales en el visor. Verificar contra medición ' +
+                  'invasiva cuando sea necesario.';
+
+function _vtiNum(id) {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  const x = (typeof PF === 'function') ? PF(el.value) : parseFloat(String(el.value).replace(',', '.'));
+  return (x != null && isFinite(x) && x > 0) ? x : null;
+}
+function _vtiRol(rol) {
+  const m = (_medVtis || []).filter(v => v.rol === rol);
+  return m.length ? m[m.length - 1] : null;   // el último asignado a ese rol manda
+}
+/* La última distancia medida en pantalla, en mm. Es lo que el médico acaba de trazar con 📏. */
+function _vtiUltimaRegla() {
+  const ls = (_medLineas || []).filter(l => !l.calibracion && l.mm != null && l.mm > 0);
+  return ls.length ? ls[ls.length - 1].mm : null;
+}
+
+/* El cociente, con los cuatro valores que haya. Devuelve qué falta en vez de un `null` mudo. */
+function _vtiQpQs() {
+  const vI = _vtiRol('tsvi'), vD = _vtiRol('tsvd');
+  const dI = _vtiNum('diam_tsvi'), dD = _vtiNum('tsvd_diametro');
+  const faltan = [];
+  if (!vI) faltan.push('VTI del TSVI');
+  if (!vD) faltan.push('VTI del TSVD');
+  if (dI == null) faltan.push('diámetro del TSVI');
+  if (dD == null) faltan.push('diámetro del TSVD');
+  if (faltan.length) return { faltan: faltan };
+  /* `eteQpQs` con un `src`: la MISMA función del informe, sin una segunda fórmula. Los ids son
+     los canónicos y las unidades las que esos campos ya usan — diámetros en mm y VTI en cm. */
+  const q = eteQpQs({ diam_tsvi: dI, itv_tsvi: vI.cm, tsvd_diametro: dD, vti_tsvd: vD.cm });
+  return { q: q, dI: dI, dD: dD, vI: vI.cm, vD: vD.cm,
+           interp: (q == null) ? '' : eteQpQsInterp(q) };
+}
+
+function _vtiPanel() {
+  const vs = _medVtis || [];
+  let h = '<b>📐 VTI — integral velocidad-tiempo.</b> Mantené apretado y recorré la envolvente ' +
+          'del espectro de UN latido. Necesita los dos ejes: cm/s y segundos.';
+  if (!vs.length) {
+    return h + '<div style="font-size:10.5px;color:var(--text2);margin-top:5px;">Todavía no hay ' +
+           'ninguna envolvente trazada.</div>';
+  }
+  h += '<div style="margin-top:6px;display:flex;flex-direction:column;gap:3px;">';
+  vs.forEach((v, i) => {
+    const rot = v.rol === 'tsvi' ? ' · <b style="color:#60a5fa;">TSVI</b>'
+              : v.rol === 'tsvd' ? ' · <b style="color:#34d399;">TSVD</b>' : '';
+    h += '<div style="display:flex;align-items:center;gap:5px;font-size:11px;">' +
+         '<span>VTI <b>' + v.cm.toFixed(1) + ' cm</b> · pico ' + (v.picoCms / 100).toFixed(2) +
+         ' m/s · ' + Math.round(v.ms) + ' ms' + rot + '</span>' +
+         '<button type="button" class="btn btn-ghost" data-vti-rol="tsvi" data-vti-i="' + i +
+         '" style="padding:1px 6px;font-size:10px;margin-left:auto;">→ TSVI</button>' +
+         '<button type="button" class="btn btn-ghost" data-vti-rol="tsvd" data-vti-i="' + i +
+         '" style="padding:1px 6px;font-size:10px;">→ TSVD</button></div>';
+  });
+  h += '</div>';
+
+  const r = _vtiQpQs();
+  if (r.faltan) {
+    h += '<div style="margin-top:6px;font-size:11px;color:var(--text2);">Para el Qp/Qs falta: <b>' +
+         r.faltan.join('</b>, <b>') + '</b>.';
+    const reg = _vtiUltimaRegla();
+    if (reg != null && (_vtiNum('diam_tsvi') == null || _vtiNum('tsvd_diametro') == null)) {
+      h += ' Última distancia medida: <b>' + reg.toFixed(1) + ' mm</b> — ' +
+           '<button type="button" class="btn btn-ghost" data-vti-diam="tsvi" style="padding:1px 6px;font-size:10px;">usar como Ø TSVI</button> ' +
+           '<button type="button" class="btn btn-ghost" data-vti-diam="tsvd" style="padding:1px 6px;font-size:10px;">usar como Ø TSVD</button>';
+    }
+    h += '</div>';
+    return h;
+  }
+  if (r.q == null) {
+    /* `eteQpQs` devuelve null fuera de 0,2-10: es su banda de plausibilidad, y se dice cuál es
+       el sospechoso en vez de dejar el panel mudo. */
+    h += '<div style="margin-top:6px;font-size:11px;color:var(--orange);">Con esos cuatro valores ' +
+         'el cociente no da un número posible. Revisá las unidades: los diámetros van en <b>mm</b> ' +
+         '(TSVI ' + r.dI + ', TSVD ' + r.dD + ') y los VTI en <b>cm</b>.</div>';
+    return h;
+  }
+  h += '<div style="margin-top:7px;padding:7px 9px;background:var(--bg3);border-left:3px solid var(--accent);border-radius:6px;">' +
+       '<div style="font-size:14px;font-weight:700;color:var(--accent2);">Qp/Qs = ' + r.q.toFixed(2) + '</div>' +
+       '<div style="font-size:11px;color:var(--text);margin-top:2px;">' + escHtml(r.interp) + '</div>' +
+       '<div style="font-size:10px;color:var(--text2);margin-top:3px;">TSVD ' + r.dD + ' mm × ' +
+       r.vD.toFixed(1) + ' cm  /  TSVI ' + r.dI + ' mm × ' + r.vI.toFixed(1) + ' cm</div>' +
+       '<button type="button" class="btn btn-primary" id="cine-vti-cargar" style="padding:4px 10px;font-size:11px;margin-top:6px;">→ Cargar los VTI en el informe</button>' +
+       '<div style="font-size:9.5px;color:var(--text2);margin-top:5px;">' + escHtml(_VTI_DISC) + '</div>' +
+       '<div style="font-size:9.5px;color:var(--text2);margin-top:3px;">Se cargan los <b>VTI</b>, no el cociente: ' +
+       'el Qp/Qs del informe lo calcula la app desde los cuatro campos, así que un número copiado ' +
+       'a mano se quedaría viejo en cuanto se corrija cualquiera de ellos.</div></div>';
+  return h;
+}
+
+/* Asignar un VTI a un tracto. El rol es EXCLUSIVO: asignar uno nuevo a TSVI libera al anterior,
+   o dos envolventes reclamarían el mismo lado y `_vtiRol` elegiría por orden de trazado. */
+function medVtiAsignar(i, rol) {
+  const v = (_medVtis || [])[i];
+  if (!v) return;
+  if (v.rol === rol) { v.rol = null; }
+  else { (_medVtis || []).forEach(o => { if (o.rol === rol) o.rol = null; }); v.rol = rol; }
+  _medPintar(); _medEstado();
+}
+/* Usar la última distancia medida como diámetro. Escribe en el campo del INFORME, que es donde
+   ese dato vive: un diámetro que viviera sólo en el visor no llegaría al Qp/Qs del informe. */
+function medVtiDiametro(rol) {
+  const mm = _vtiUltimaRegla();
+  if (mm == null) { toast('⚠️ No hay ninguna distancia medida en pantalla'); return; }
+  const id = rol === 'tsvi' ? 'diam_tsvi' : 'tsvd_diametro';
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.value = mm.toFixed(1);
+  try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+  toast('✅ Ø ' + (rol === 'tsvi' ? 'TSVI' : 'TSVD') + ' = ' + mm.toFixed(1) + ' mm cargado en el informe');
+  _medEstado();
+}
+/* Carga los VTI en sus campos. NO carga el cociente: no hay campo donde ponerlo —el informe lo
+   calcula— y copiarlo a mano sería la fórmula duplicada que este archivo ya pagó tres veces. */
+function medVtiCargar() {
+  const vI = _vtiRol('tsvi'), vD = _vtiRol('tsvd');
+  if (!vI || !vD) { toast('⚠️ Asigná un VTI al TSVI y otro al TSVD'); return; }
+  const poner = (id, val) => {
+    const el = document.getElementById(id);
+    if (!el) return false;
+    el.value = val.toFixed(1);
+    try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+    return true;
+  };
+  const a = poner('itv_tsvi', vI.cm), b = poner('vti_tsvd', vD.cm);
+  if (!a || !b) { toast('❌ No se encontraron los campos de VTI del informe'); return; }
+  toast('✅ VTI cargados: TSVI ' + vI.cm.toFixed(1) + ' cm · TSVD ' + vD.cm.toFixed(1) +
+        ' cm — el informe recalcula el Qp/Qs solo');
+  _medEstado();
+}
+window.medVtiAsignar = medVtiAsignar; window.medVtiCargar = medVtiCargar;
+window.medVtiDiametro = medVtiDiametro;
+
 function _medEstado() {
   const regs = _medRegs();
   const medibles = regs.filter(_dcmImgRegionMedible);
@@ -49889,7 +50147,8 @@ function _medEstado() {
     txt = 'Este archivo <b>no trae la escala</b>. Calibrá a mano: dibujá una línea sobre una ' +
           'referencia conocida y decí cuánto mide.';
   }
-  const n = _medLineas.filter(l => !l.calibracion).length + _medAreas.length + _medVels.length + _medTiempos.length;
+  const n = _medLineas.filter(l => !l.calibracion).length + _medAreas.length + _medVels.length +
+            _medTiempos.length + (_medVtis || []).length;
   if (_medHerr === 'tiempo' || _medHerr === 'fc') {
     const tr = regs.filter(_dcmImgRegionTiempo);
     txt = tr.length
@@ -49928,6 +50187,7 @@ function _medEstado() {
   _medBarra((_medHerr === 'simpson' ? _simpPanel()
              : _medHerr === 'strain' ? _strainPanel()
              : _medHerr === 'lars' ? _larsPanel()
+             : _medHerr === 'vti' ? _vtiPanel()
              : _medHerr === 'vd' ? _vdPanel() : txt + (n ? '  ·  <b>' + n + '</b> medición(es) en pantalla.' : '')) +
             (bot ? '<div style="margin-top:6px;">' + bot + '</div>' : ''));
   /* ⚠️ TODOS los controles de la barra se atan A SU VISTA. Atados pelados corren con la vista
@@ -49960,6 +50220,17 @@ function _medEstado() {
   _on(_medEl('cine-str-m-libre'), () => medStrainModo('libre'));
   _on(_medEl('cine-str-m-3pt'),   () => medStrainModo('3pt'));
   _on(_medEl('cine-str-otro'), medStrainOtroLoop);
+  /* VTI. Por `data-*` y no con el índice interpolado dentro de un `onclick`: ahí el parser
+     decodifica la entidad ANTES de compilar el handler, así que escapar no protegería —es el
+     agujero que documenta la entrada de CardioSalud—. Y atados a SU vista con `_on`. */
+  const _bp = _medEl('cine-med-barra');
+  if (_bp) {
+    _bp.querySelectorAll('[data-vti-rol]').forEach(b2 => _on(b2, () =>
+      medVtiAsignar(parseInt(b2.getAttribute('data-vti-i'), 10), b2.getAttribute('data-vti-rol'))));
+    _bp.querySelectorAll('[data-vti-diam]').forEach(b2 => _on(b2, () =>
+      medVtiDiametro(b2.getAttribute('data-vti-diam'))));
+  }
+  _on(_medEl('cine-vti-cargar'), medVtiCargar);
   /* Miniaturas y botones de vista: por `data-*` y listener delegado, NUNCA con el valor
      interpolado dentro de un `onclick`. Ahí el parser decodifica la entidad ANTES de compilar
      el handler, así que escapar no protege — es el agujero que documenta la entrada de
@@ -50211,7 +50482,7 @@ window.medToggle = medToggle;
 
 function medBorrar() {
   _medLineas = _medLineas.filter(l => l.calibracion);   // la de calibración no es una medición
-  _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = [];
+  _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = []; _medVtis = [];
   _medPuntos = [];
   _medPintar(); _medEstado();
 }
@@ -50242,7 +50513,9 @@ window.medRecalibrar = medRecalibrar;
    Se detecta observando `#cine-num`, que el reproductor actualiza en cada `cineIr`. */
 function medReset() {
   _medPuntos = []; _medLineas = _medLineas.filter(l => l.calibracion);
-  _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = [];
+  /* El VTI SÍ se borra al cambiar de cuadro, a diferencia de Simpson: una envolvente es de ESE
+     cuadro del espectro, y dejarla dibujada sobre otro invita a creer que se trazó ahí. */
+  _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = []; _medVtis = [];
   /* SIMPSON NO SE BORRA AL CAMBIAR DE CUADRO, y es la única medición que no.
      El método EXIGE cambiar de cuadro: la diástole y la sístole están en cuadros distintos,
      así que borrar los trazados confirmados haría imposible completar los cuatro pasos.
@@ -50297,7 +50570,7 @@ window.medReset = medReset;
    Cada trazado lleva la escala de SU imagen, así que mezclar dos loops con profundidades
    distintas sigue dando bien. */
 function medCambioDeImagen() {
-  _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = [];
+  _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = []; _medVtis = [];
   _medCalib = null; _medCalibrando = false;        // la calibración es de la imagen que se deja
   _medCalibVel = null; _medCalibrandoVel = false;  // ídem la de velocidad
   if (_simp) {
@@ -50322,7 +50595,7 @@ function medApagar() {
   _medOn = false; _medCalibrando = false; _medCalib = null;
   _medCalibVel = null; _medCalibrandoVel = false;
   _medGrupo = _MED_GRUPO_DEF;        // los grupos vuelven al estado por omisión
-  _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = []; _medHerr = 'dist';
+  _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null; _medVels = []; _medTiempos = []; _medVtis = []; _medHerr = 'dist';
   _simp = null;                      // otra imagen: los cuatro trazados no aplican
   _strain = null; _lars = null; _vd = null;
   _strainRecs = null; _strainRevocarThumbs();
@@ -67373,8 +67646,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260921-0719';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789985940475;                 /* eco-build-ms */
+const ECO_BUILD    = '20260921-0734';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789986850693;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -67460,7 +67733,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-0719</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-0734</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -11,6 +11,83 @@ ninguna es evidente leyendo el código alrededor.
 
 
 
+## VTI en el visor y Qp/Qs — sin una segunda fórmula (TC-218)
+
+Séptima herramienta del grupo Doppler/M: se recorre la envolvente del espectro y sale la
+integral velocidad-tiempo en cm, más un panel de Qp/Qs.
+
+### ⚠️ LA FÓRMULA DEL PEDIDO ESTABA MAL POR PARTIDA DOBLE
+
+Pedía `Qp/Qs = (TSVI × VTI_TSVI) / (TSVD × VTI_TSVD)`. Dos errores:
+
+1. **Diámetro LINEAL en vez de al cuadrado** — el flujo es *área* × VTI, y el área va con D².
+2. **Qp y Qs invertidos** — el TSVI es el tracto **sistémico**; el pedido lo pone en el numerador.
+
+Medido sobre TSVI 20 mm / VTI 16 cm y TSVD 28 mm / VTI 20 cm:
+
+| | |
+|---|---|
+| `eteQpQs()`, la del informe | **2,45** — «shunt significativo, evaluar cierre» |
+| la del pedido | **0,571** — «sin cortocircuito significativo» |
+
+**Un shunt que se opera, informado como ausente.** Por eso el panel **no implementa la fórmula**:
+le pasa los cuatro valores a `eteQpQs()` con un `src` sintético. Con una segunda copia, el visor
+y el informe publicarían números distintos del mismo paciente. La mutación que restaura la
+fórmula del pedido imprime `0.5714` en tres condiciones.
+
+**Y la escala tampoco se reescribe.** `eteQpQsInterp` tiene **cuatro** bandas y la que el pedido
+omitía es la que más cambia la conducta: **`< 1`, flujo neto de derecha a izquierda** — ahí la
+graduación por magnitud no aplica y hay que descartar Eisenmenger. La mutación que pone las tres
+bandas del pedido cae por «el panel usa esa interpretación, no otra».
+
+### El VTI se verifica contra un TRIÁNGULO de área analítica
+
+Base 200 px × 0,004 s/px = 0,8 s; altura 100 px × 0,5 cm/s/px = 50 cm/s → **VTI = ½·0,8·50 = 20 cm
+exacto**. Medido: **20,000000, error 0 %**. Sin una figura de área conocida, «da 19,7» no se
+distingue de «la integral está mal por un 1,5 %».
+
+**SE INTEGRA EL VALOR ABSOLUTO**, y no es cosmético: `PhysicalDeltaY` es **negativo** en las 132
+regiones de velocidad del pendrive, así que un flujo trazado por debajo de la línea de base daría
+un VTI **negativo**. Un VTI es una magnitud. El caso traza el mismo triángulo espejado y exige el
+mismo número; la mutación que quita el `Math.abs` lo pone en rojo.
+
+### La compuerta exige LOS DOS EJES, y eso la separa de sus vecinas
+
+La velocidad sólo necesita el eje Y en cm/s; el tiempo sólo el eje X en segundos. **El VTI es la
+integral de una por el otro.** Un modo M tiene el eje X en segundos y el Y en **centímetros**: ahí
+«el área bajo la curva» daría cm·s —una distancia integrada en el tiempo— y el número saldría
+perfectamente presentable. La mutación que deja la compuerta en un solo eje hace pasar el modo M.
+
+Cada rechazo dice **su** motivo: el 2D manda a ✏️ Área, el modo M explica que su eje vertical son
+centímetros, y una región con velocidad pero sin tiempo dice que faltan las dos escalas. El caso
+exige que los motivos **difieran** — decir «no es Doppler» en los tres sería falso en dos.
+
+### El botón carga los VTI, NO el cociente
+
+**No hay campo donde poner el cociente**: para CIA/CIV/DAP el Qp/Qs del informe se **calcula** desde
+`diam_tsvi`, `itv_tsvi`, `tsvd_diametro` y `vti_tsvd` (los únicos `*_qp_qs` que existen son los de
+DSAV y CVPA, de sus propias secciones). Copiar el número a un campo derivado sería la fórmula
+duplicada que este archivo ya pagó tres veces: se quedaría viejo en cuanto se corrija cualquiera
+de los cuatro. Se cargan los **VTI** y el informe recalcula — el caso verifica que dé **el mismo
+número**, que es lo que impide que haya dos Qp/Qs.
+
+Los diámetros salen del informe; si falta alguno **se dice cuál**, y se ofrece usar la última
+distancia medida con 📏 —que es la otra vía que el pedido nombraba— escribiéndola en el campo del
+informe, no en una variable del visor.
+
+### Detalles
+
+- **El rol TSVI/TSVD es exclusivo**: asignar una envolvente nueva a un tracto libera la anterior,
+  o dos reclamarían el mismo lado y el desempate quedaría en el orden de trazado.
+- **La curva se dibuja ABIERTA.** Una envolvente no se cierra: el tramo por la línea de base ya
+  está contado dentro de la integral.
+- **El VTI SÍ se borra al cambiar de cuadro**, a diferencia de Simpson —que lo necesita para ir de
+  diástole a sístole—: una envolvente es de ESE cuadro del espectro.
+- **Banda de plausibilidad 0,5–150 cm.** Fuera de ahí no hay VTI de tracto de salida posible: es
+  un trazo mal hecho o una escala equivocada, y publicar el número sería peor que no medir.
+- Los botones del panel van por `data-*` con listener atado a **su vista** (`_vBind`), nunca con el
+  índice interpolado dentro de un `onclick`.
+
 ## Botón 🫀 CC: no es un estilo, es un atajo de integración (TC-217)
 
 ### La premisa: «estilo CC» no encaja en el mecanismo, y las secciones ya bajan al informe
