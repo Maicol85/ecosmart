@@ -47215,7 +47215,7 @@ function _vNueva(pfx, rot) {
     gen: 0,                // token anti-carrera del decodificado
     medOn: false, medPuntos: [], medLineas: [], medHerr: 'dist', medAreas: [],
     medTrazo: null, medVels: [], medTiempos: [], medVtis: [], medCalib: null, medCalibrando: false,
-    medCalibVel: null, medCalibrandoVel: false, medEtiqueta: '', medGrupo: '2d',
+    medCalibVel: null, medCalibrandoVel: false, medEtiqueta: '', medEtiqAuto: '', medGrupo: '2d',
     lars: null, vd: null,
     medUltimoCuadro: '', simp: null, strain: null, obsPuesto: false
   };
@@ -47246,7 +47246,8 @@ const _vBind = (V, fn) => function () { const a = arguments; return _vCon(V, () 
     _medVtis:'medVtis',
     _medCalib:'medCalib', _medCalibrando:'medCalibrando', _medUltimoCuadro:'medUltimoCuadro',
     _medCalibVel:'medCalibVel', _medCalibrandoVel:'medCalibrandoVel', _strain:'strain',
-    _medEtiqueta:'medEtiqueta', _medGrupo:'medGrupo', _lars:'lars', _vd:'vd'
+    _medEtiqueta:'medEtiqueta', _medEtiqAuto:'medEtiqAuto',
+    _medGrupo:'medGrupo', _lars:'lars', _vd:'vd'
   };
   for (const g in MAPA) {
     const k = MAPA[g];
@@ -49707,6 +49708,40 @@ function _medResultadoParaCaptura() {
   return '';
 }
 
+/* Ventana anatomica declarada, para prefijar la etiqueta de la captura.
+
+   Sale de _strVista(...).rot, que es la MISMA tabla que rotula los territorios y que arma la
+   guia del trazado. Con un segundo mapa, el rotulo quemado en el PNG y la pared que se publica
+   podrian dejar de corresponderse.
+
+   ⚠️ GATEADO POR LA HERRAMIENTA ACTIVA, igual que _medResultadoParaCaptura y por el mismo
+   motivo: la ventana declarada SOBREVIVE al cambio de imagen -el flujo la declara ANTES de
+   abrir el cineloop de esa vista- asi que sin este gate una captura de Doppler hecha despues
+   de un strain saldria rotulada A4C. */
+function _medEtiqVista() {
+  try {
+    if (_medHerr !== 'strain' || !_strain || !_strain.vista) return '';
+    const V = (typeof _strVista === 'function') ? _strVista(_strain.vista) : null;
+    return (V && V.rot) ? V.rot : '';
+  } catch (e) { return ''; }
+}
+
+/* Prefija la etiqueta con la ventana. NO pisa lo que el medico escribio.
+
+   ⚠️ LO UNICO QUE PUEDE REEMPLAZAR ES SU PROPIO TEXTO (_medEtiqAuto), y esa distincion es lo
+   que hace usable la regla. Con un simple «no pisar si hay algo», el campo deja de estar vacio
+   en el PRIMER autocompletado y desde ahi es indistinguible de algo tipeado: no se actualiza
+   nunca mas -la captura de A2C saldria rotulada A4C- ni se limpia. */
+function _medEtiqAutoPoner() {
+  const v = _medEtiqVista();
+  if (!v) return;
+  const actual = String(_medEtiqueta || '');
+  if (actual.trim() && actual !== _medEtiqAuto) return;   // lo escribio el medico: intacto
+  _medEtiqueta = v; _medEtiqAuto = v;
+  const et = _medEl('cine-cap-etiq');
+  if (et) et.value = v;
+}
+
 function medCapturarConMedicion() {
   const D = _cineDatos; if (!D) { toast('❌ No hay ningún cineloop abierto'); return; }
   const base = _medEl('cine-cv');
@@ -49714,6 +49749,8 @@ function medCapturarConMedicion() {
   _medPintar();                                   // overlay al día y del mismo tamaño
   const med = _medEl('cine-med');
   const w = base.width, h = base.height;
+  /* Va ANTES de leer la etiqueta: si no, el rótulo aparecería recién en la captura siguiente. */
+  _medEtiqAutoPoner();
   const etiq = String(_medEtiqueta || '').trim().slice(0, _CAP_ETIQ_MAX);
   const esc = Math.max(1, w / 900);
   /* El resultado va en su propio renglón de la franja: hasta ahora la captura llevaba las
@@ -51018,6 +51055,14 @@ function medCambioDeImagen() {
   }
   if (_lars) { _lars.pendiente = null; _lars.ocultar = false; _lars.avisoImagen = true; }
   if (_vd) { _vd.pendiente = null; _vd.ocultar = false; _vd.avisoImagen = true; }
+  /* La etiqueta AUTOMATICA se borra: describe la imagen que se deja, igual que la calibracion.
+     Lo que el medico escribio NO se toca -borrarlo seria destruir texto suyo sin pedirlo-, y
+     por eso la condicion es la igualdad con lo puesto y no «hay algo». */
+  if (_medEtiqAuto && _medEtiqueta === _medEtiqAuto) {
+    _medEtiqueta = ''; _medEtiqAuto = '';
+    const et = _medEl('cine-cap-etiq');
+    if (et) et.value = '';
+  }
   if (_medOn) { _medAutoCalibrar(); _medPintar(); _medEstado(); }
 }
 window.medCambioDeImagen = medCambioDeImagen;
@@ -68159,8 +68204,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260921-1237';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790005047733;                 /* eco-build-ms */
+const ECO_BUILD    = '20260921-1409';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790010573490;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -68246,7 +68291,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-1237</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-1409</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

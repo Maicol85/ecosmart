@@ -4,6 +4,73 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## La ventana anatómica prefija la etiqueta de la captura (TC-228)
+
+Al capturar durante el strain, la etiqueta se completa sola con la ventana que el médico ya
+declaró: `A4C — apical 4 cámaras`. El rótulo sale de **`_strVista(...).rot`**, la misma tabla
+que rotula los territorios y arma la guía del trazado — con un segundo mapa, el texto quemado
+en el PNG y la pared que se publica podrían dejar de corresponderse.
+
+### ⚠️ EL PEDIDO ANTERIOR PEDÍA OTRA COSA Y HABRÍA SIDO UNA REGRESIÓN
+
+Pedía autocompletar la etiqueta con **el resultado** de la herramienta. Medido: eso ya lo hace
+`_medResultadoParaCaptura` desde `e334eea`, y los textos pedidos eran un **subconjunto** de los
+actuales —les faltaban `por trazado manual` y `contornos manuales, no speckle tracking`—, o sea
+que adoptarlos sacaba el descargo de método de la imagen que circula sola. Además el resultado
+habría quedado impreso **dos veces** en la misma franja, en negrita 19 px y en 15 px.
+
+**Y «la etiqueta del slot» no existe.** El esquema del slot es `{dataURL, ampliada, calidad,
+_orig?}` (+`origen`, `videoId`): no hay campo de texto, `imgRender` no dibuja ninguno y el PDF
+no imprime pie por imagen. La etiqueta es `#cine-cap-etiq`, un input **del visor** que se quema
+dentro del JPEG. Lo que sí faltaba —y es esto— era la **ventana anatómica**, que complementa el
+resultado en vez de duplicarlo.
+
+### ⚠️ «NO PISAR SI HAY ALGO» ES UNA TRAMPA: EL RÓTULO SE QUEDA PEGADO
+
+`_medEtiqueta` **no tenía ningún reset** —sus dos únicas escrituras son los `oninput`— y sobrevive
+al cambio de herramienta y de imagen (medido). Con la regla «no pisar» a secas, el campo deja de
+estar vacío en el **primer** autocompletado y desde ahí es indistinguible de texto tipeado:
+
+| | con «no pisar» a secas | hoy |
+|---|---|---|
+| capturo A4C | `A4C — apical 4 cámaras` | ídem |
+| declaro A2C y capturo | **`A4C — apical 4 cámaras`** ← miente | `A2C — apical 2 cámaras` |
+
+Es la misma familia que «quemaría una FEVI vieja en la captura de un strain», por otra puerta.
+Por eso hay **`_medEtiqAuto`**, que guarda el texto exacto que puso la app: lo único que el
+autocompletado puede reemplazar es **lo suyo**. Y por eso el reset de `medCambioDeImagen` compara
+**igualdad** y no «hay algo» — borrar sin esa condición destruiría texto del médico.
+
+**La mutación que lo fija imprime el valor medido**: `condicion: «Y SE ACTUALIZA AL CAMBIAR DE
+VENTANA» · encontrado: A4C — apical 4 cámaras` sobre un escenario que declaró A2C.
+
+### Gateado por la HERRAMIENTA ACTIVA, igual que el resultado
+
+`_strain.vista` **sobrevive al cambio de imagen** —el flujo declara la ventana ANTES de abrir su
+cineloop, y este archivo ya documenta que borrarla ahí puso seis casos en rojo—. Sin el gate
+`_medHerr === 'strain'`, una captura de Doppler hecha después de un strain saldría rotulada A4C:
+el reset limpia el **campo**, no `_strain.vista`. La mutación que saca el gate imprime
+`vista=a4c etiqueta=A4C — apical 4 cámaras`.
+
+### La llamada va ANTES de leer `etiq`, y la tinta sola no lo caza
+
+Si `_medEtiqAutoPoner()` corre después, el rótulo aparece recién en la captura **siguiente**.
+La condición que lo fija es la **altura de la franja** —con ventana hay etiqueta Y resultado, o
+sea dos renglones (456 px); sin ventana, uno solo (434)—. Contar tinta en el renglón de arriba
+**no alcanza**: la mutación imprime `altoSin=434 altoCon=434 tinta=3049`, o sea que hay tinta de
+sobra y es la del **resultado**. Cinco mutaciones, las cinco en su propia condición.
+
+### Una corrida del suite se colgó, y los «70 Chrome huérfanos» eran de otra app
+
+La primera corrida quedó **59 min al 0,0 % de CPU** después de TC-199, con el archivo sin crecer.
+TC-200 aislado pasa en tiempo normal, y el cambio no crea ninguna promesa.
+
+**⚠️ Y `pgrep -f "user-data-dir"` devolvió 70 procesos que NO eran del harness**: son los helpers
+de **ChatGPT y de Claude Desktop**, que usan ese mismo flag. Matarlos habría cerrado las apps del
+usuario. Los del harness se identifican por su bandera propia —`--headless=new
+--remote-debugging-port=0`—, y con ese patrón eran **23**. *Antes de matar por patrón, mirar el
+`command` completo de lo que matcheó.*
+
 ## El resultado en la captura, y la diana borrosa (TC-227)
 
 ### BUG 3: la captura llevaba las LÍNEAS y no el NÚMERO
