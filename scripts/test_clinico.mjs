@@ -19223,8 +19223,15 @@ caso('TC-227', 'Visor: el resultado se quema en la captura con su metodo, y la d
       if (capturado) {
         const im3 = await leer(capturado);
         R.altoDosRenglones = im3.h;
-        /* la franja de dos renglones es mas alta que la de uno */
-        R.franjaMasAlta = im3.h > R.altoConRes;
+        /* ⚠️ REAPUNTADO (TC-228): antes esto comparaba contra la franja de UN renglon, y ese
+           estado YA NO EXISTE. Desde que la etiqueta se autocompleta con la procedencia, la
+           captura de un Simpson o de un strain SIEMPRE lleva los dos renglones: el rotulo sale
+           del mismo calculo que el resultado, asi que «hay resultado» implica «hay etiqueta».
+           La comparacion se quedo sin denominador -daba 456 contra 456- y no media nada.
+           Lo que importa es que el segundo renglon EXISTA y este dibujado, y eso lo fija
+           la condicion de tinta en los dos renglones: la mutacion que borra el renglon del
+           resultado imprime arriba=725 abajo=0 y cae igual. */
+        R.franjaMasAlta = im3.h > 400;
         /* y hay tinta en LOS DOS: arriba la etiqueta, abajo el resultado */
         R.tintaArriba = tintaEn(im3, 402, 400 + Math.round(28 * Math.max(1, 600/900)));
         R.tintaAbajo  = tintaEn(im3, 400 + Math.round(30 * Math.max(1, 600/900)), im3.h);
@@ -19332,7 +19339,7 @@ caso('TC-227', 'Visor: el resultado se quema en la captura con su metodo, y la d
    El rotulo se DERIVA de _STR_VISTAS y no se escribe literal: un caso que fija el texto hay
    que tocarlo cada vez que el texto cambia a proposito; uno que fija el invariante, no.
    NO DEPENDE DEL PENDRIVE.                                                                  */
-caso('TC-228', 'Visor: la ventana declarada prefija la etiqueta, se actualiza al cambiarla y no pisa al medico', `
+caso('TC-228', 'Visor: la etiqueta dice DE DONDE viene el valor, y el numero queda quemado siempre', `
   return (async () => {
     const R = {};
     const cineOrig = window._cineDatos;
@@ -19343,121 +19350,161 @@ caso('TC-228', 'Visor: la ventana declarada prefija la etiqueta, se actualiza al
                            pts:[{x:10,y:10},{x:50,y:80},{x:90,y:10}],
                            eje:{ M:{x:50,y:10}, apex:{x:50,y:80} },
                            metodo:'libre', imagen:'IMG1' });
-    let capturado = null;
+    const contorno = (cx0, yBase, semi, alto) => {
+      const P = [];
+      for (let i = 0; i <= 40; i++) {
+        const t = Math.PI * (i / 40);
+        P.push({ x: cx0 - semi * Math.cos(t), y: yBase + alto * Math.sin(t) });
+      }
+      return P;
+    };
+    const sp = (semi, alto, img) => {
+      const pts = contorno(300, 60, semi, alto);
+      const eje = _simpEje(pts);
+      const diam = _simpDiametros(pts, eje, SIMP_N);
+      const k = 0.05;
+      return { pts, eje, diam, cmPorPx:k, imagen:img,
+               diamCm: diam.map(d => d * k), Lcm: eje.L * k };
+    };
+    let capturado = null, pintado = [];
+    const ftOrig = CanvasRenderingContext2D.prototype.fillText;
     window._dcmImgReservar = () => [0];
     window.imgCompressLoad = (blob) => { capturado = blob; };
-    const leer = async (blob) => {
-      const bmp = await createImageBitmap(blob);
+    /* ancho del cineloop MAS ANGOSTO del pendrive: es donde el recorte mordia */
+    const W = 636;
+    const capturar = async () => {
+      pintado = [];
+      CanvasRenderingContext2D.prototype.fillText = function (t) {
+        pintado.push(String(t)); return ftOrig.apply(this, arguments);
+      };
+      capturado = null;
+      medCapturarConMedicion();
+      await new Promise(r=>setTimeout(r,700));
+      CanvasRenderingContext2D.prototype.fillText = ftOrig;
+      if (!capturado) return null;
+      const bmp = await createImageBitmap(capturado);
       const c = document.createElement('canvas');
       c.width = bmp.width; c.height = bmp.height;
-      c.getContext('2d').drawImage(bmp, 0, 0);
-      return { w:bmp.width, h:bmp.height, ctx:c.getContext('2d') };
-    };
-    const tintaEn = (im, y0, y1) => {
-      const d = im.ctx.getImageData(0, y0, im.w, Math.max(1, y1 - y0)).data;
-      let n = 0;
-      for (let i = 0; i < d.length; i += 4) if (d[i] < 200 && d[i+1] < 200 && d[i+2] < 200) n++;
-      return n;
+      const g2 = c.getContext('2d'); g2.drawImage(bmp, 0, 0);
+      const alto = bmp.height - 402;
+      const d = g2.getImageData(0, 402, bmp.width, alto).data;
+      let ult = -1;
+      for (let y = 0; y < alto; y++) for (let x = 0; x < bmp.width; x++) {
+        const i = (y * bmp.width + x) * 4;
+        if (d[i] < 200 && d[i+1] < 200 && d[i+2] < 200 && x > ult) ult = x;
+      }
+      return { renglones: pintado.filter(t => t.length > 3),
+               ancho: bmp.width, ultimaCol: ult, recorta: ult >= bmp.width - 2 };
     };
     try {
-      const reg = dx => ([{ x0:0,y0:0,x1:600,y1:400, dx:dx,dy:dx, ux:3,uy:3,
-                            tipo:1, rx0:0,ry0:0,rvy:0 }]);
+      const reg = [{ x0:0,y0:0,x1:W,y1:400, dx:0.05,dy:0.05, ux:3,uy:3,
+                     tipo:1, rx0:0,ry0:0,rvy:0 }];
       window._cineDatos = { i:0, loops:[{ nombre:'A4C',
-        d:{ regiones:reg(0.05), cols:600, filas:400 }, frames:[], ms:40 }]};
+        d:{ regiones:reg, cols:W, filas:400 }, frames:[], ms:40 }]};
       let cv = document.getElementById('cine-cv');
       if (!cv) { cv = document.createElement('canvas'); cv.id = 'cine-cv';
                  document.body.appendChild(cv); }
-      cv.width = 600; cv.height = 400;
+      cv.width = W; cv.height = 400;
       const gg = cv.getContext('2d');
-      gg.fillStyle = '#8899aa'; gg.fillRect(0, 0, 600, 400);
-
-      /* el rotulo esperado SALE DE LA TABLA de la app, no de un literal del caso */
-      const rotA4C = _strVista('a4c').rot, rotA2C = _strVista('a2c').rot;
-      R.hayRotulos = !!rotA4C && !!rotA2C && rotA4C !== rotA2C;
-      R.rotA4C = rotA4C;
+      gg.fillStyle = '#8899aa'; gg.fillRect(0, 0, W, 400);
 
       medHerramienta('strain');
-      _strain.loopListo = true;
+      _strain.loopListo = true; _strain.vista = 'a4c';
       _strain.vistas.a4c = { d:tr(9,9), s:tr(7.5,7.5) };
+      _strain.vistas.a2c = { d:tr(10,10), s:tr(8,8) };
+      const S2 = _strainCalcular();
+      R.calcula2 = !!(S2 && isFinite(S2.sgl) && S2.nVistas === 2);
 
-      /* -- 1 - con la ventana declarada, la etiqueta se prefija sola -- */
-      _strain.vista = 'a4c';
+      /* -- 1 - la etiqueta nombra LAS VISTAS QUE APORTARON, y ninguna mas -- */
       window._medEtiqueta = ''; window._medEtiqAuto = '';
       _medEtiqAutoPoner();
-      R.puesta = window._medEtiqueta;
-      R.prefija = R.puesta === rotA4C;
+      R.et2 = window._medEtiqueta;
+      R.nombraLasDos = R.et2.indexOf('A4C') >= 0 && R.et2.indexOf('A2C') >= 0;
+      R.noNombraLaQueFalta = R.et2.indexOf('A3C') < 0;
+      /* y lleva EL valor que devuelve el calculo, no uno recalculado por el caso */
+      R.llevaElValor = R.et2.indexOf(S2.sgl.toFixed(1)) >= 0;
 
-      /* -- 2 - AL CAMBIAR DE VENTANA SE ACTUALIZA. Aca cae la regla ingenua. -- */
-      _strain.vista = 'a2c';
-      _medEtiqAutoPoner();
-      R.trasCambiar = window._medEtiqueta;
-      R.seActualiza = R.trasCambiar === rotA2C;
-
-      /* -- 3 - lo que escribio el medico NO se toca -- */
-      const suyo = 'A4C mesosistole, mala ventana';
-      window._medEtiqueta = suyo;
-      _strain.vista = 'a3c';
-      _medEtiqAutoPoner();
-      R.trasMedico = window._medEtiqueta;
-      R.noPisa = R.trasMedico === suyo;
-
-      /* -- 4 - cambiar de imagen NO borra el texto del medico -- */
-      medCambioDeImagen();
-      R.medicoTras = window._medEtiqueta;
-      R.medicoSobrevive = R.medicoTras === suyo;
-
-      /* -- 5 - cambiar de imagen SI borra lo automatico -- */
+      /* -- 2 - con la tercera vista pasa a nombrar las tres -- */
+      _strain.vistas.a3c = { d:tr(11,11), s:tr(9,9) };
       window._medEtiqueta = ''; window._medEtiqAuto = '';
-      _strain.vista = 'a4c'; _medEtiqAutoPoner();
-      R.antesDeCambiar = window._medEtiqueta;
-      medCambioDeImagen();
-      R.trasCambioImagen = window._medEtiqueta;
-      R.seResetea = R.antesDeCambiar === rotA4C && R.trasCambioImagen === '';
+      _medEtiqAutoPoner();
+      R.et3 = window._medEtiqueta;
+      R.nombraLasTres = ['A4C','A2C','A3C'].every(v => R.et3.indexOf(v) >= 0);
 
-      /* -- 6 - MANDA LA HERRAMIENTA ACTIVA, con la ventana todavia declarada -- */
-      _strain.vista = 'a4c';
+      /* -- 3 - SIMPSON NO NOMBRA NINGUNA VISTA: la app no sabe cual trazo -- */
+      medHerramienta('simpson');
+      _simp.pares = [{ d:sp(80,240,'A'), s:sp(56,232,'A') }, { d:null, s:null }];
+      const M1 = _simpCalcular();
       window._medEtiqueta = ''; window._medEtiqAuto = '';
+      _medEtiqAutoPoner();
+      R.etMono = window._medEtiqueta;
+      R.resMono = _medResultadoCorto();
+      _simp.pares[1] = { d:sp(72,250,'B'), s:sp(50,244,'B') };
+      const M2 = _simpCalcular();
+      window._medEtiqueta = ''; window._medEtiqAuto = '';
+      _medEtiqAutoPoner();
+      R.etBi = window._medEtiqueta;
+      R.resBi = _medResultadoCorto();
+      R.simpsonCalcula = !!(M1 && M2 && isFinite(M1.fevi) && isFinite(M2.fevi) && !M1.bi && M2.bi);
+      R.simpsonSinVistas = ['A4C','A2C','A3C'].every(v =>
+        R.etMono.indexOf(v) < 0 && R.etBi.indexOf(v) < 0);
+      R.simpsonPorCantidad = R.etMono.indexOf('1 vista') >= 0 && R.etBi.indexOf('2 vistas') >= 0;
+      R.simpsonDistingue = R.resMono.indexOf('monoplano') >= 0 && R.resBi.indexOf('biplano') >= 0
+                           && R.resMono.indexOf('biplano') < 0;
+
+      /* -- 4 - MANDA LA HERRAMIENTA ACTIVA -- */
       medHerramienta('dist');
+      window._medEtiqueta = ''; window._medEtiqAuto = '';
       _medEtiqAutoPoner();
       R.conDistancia = window._medEtiqueta;
-      R.vistaEnDist = _strain && _strain.vista;
-      R.otraHerrNoRotula = R.conDistancia === '' && R.vistaEnDist === 'a4c';
+      R.otraHerrNoRotula = R.conDistancia === '';
 
-      /* -- 7 - sin ventana declarada, nada -- */
+      /* -- 5 - no pisa al medico, y el reset distingue -- */
       medHerramienta('strain');
-      _strain.loopListo = true;
+      _strain.loopListo = true; _strain.vista = 'a4c';
       _strain.vistas.a4c = { d:tr(9,9), s:tr(7.5,7.5) };
-      _strain.vista = null;
+      _strain.vistas.a2c = { d:tr(10,10), s:tr(8,8) };
+      _strain.vistas.a3c = { d:tr(11,11), s:tr(9,9) };
+      const suyo = 'mala ventana apical';
+      window._medEtiqueta = suyo; window._medEtiqAuto = 'lo que fuera';
+      _medEtiqAutoPoner();
+      R.noPisa = window._medEtiqueta === suyo;
+      medCambioDeImagen();
+      R.medicoSobrevive = window._medEtiqueta === suyo;
       window._medEtiqueta = ''; window._medEtiqAuto = '';
       _medEtiqAutoPoner();
-      R.sinVista = window._medEtiqueta;
-      R.sinVistaNada = R.sinVista === '';
+      R.antesDelCambio = window._medEtiqueta;
+      medCambioDeImagen();
+      R.seResetea = !!R.antesDelCambio && window._medEtiqueta === '';
 
-      /* -- 8 - EL ROTULO ENTRA EN ESTA CAPTURA, no en la siguiente. Con ventana hay etiqueta
-             Y resultado -franja de DOS renglones-; sin ventana queda solo el resultado -uno-.
-             La altura los distingue, y ademas se cuenta tinta en el renglon de arriba. -- */
-      capturado = null;
-      medCapturarConMedicion();
-      await new Promise(r=>setTimeout(r,450));
-      R.huboSinVista = !!capturado;
-      if (capturado) { const im = await leer(capturado); R.altoSinVista = im.h; }
-
-      _strain.vista = 'a4c';
+      /* -- 6 - EL NUMERO QUEDA QUEMADO EN LOS DOS CASOS, y nada se recorta.
+             Con la etiqueta de la app el resultado NO repite el numero; con la del medico
+             SI, porque si no la captura saldria sin el valor. -- */
       window._medEtiqueta = ''; window._medEtiqAuto = '';
-      capturado = null;
-      medCapturarConMedicion();
-      await new Promise(r=>setTimeout(r,450));
-      R.huboConVista = !!capturado;
-      if (capturado) {
-        const im2 = await leer(capturado);
-        R.altoConVista = im2.h;
-        R.franjaMasAlta = R.altoConVista > R.altoSinVista;
-        R.tintaArriba = tintaEn(im2, 402, 400 + Math.round(28 * Math.max(1, 600/900)));
-        R.rotuloEnPixeles = R.tintaArriba > 100;
+      _medEtiqAutoPoner();
+      const sgl = _strainCalcular().sgl.toFixed(1);
+      const A = await capturar();
+      R.huboA = !!A;
+      if (A) {
+        R.renglonesA = A.renglones.join(' || ');
+        R.numeroEnA = A.renglones.some(t => t.indexOf(sgl) >= 0);
+        R.cuantasVecesA = A.renglones.filter(t => t.indexOf(sgl) >= 0).length;
+        R.unaSolaVez = R.cuantasVecesA === 1;
+        R.recortaA = A.recorta; R.ultA = A.ultimaCol; R.anchoA = A.ancho;
+      }
+      window._medEtiqueta = suyo;
+      const B = await capturar();
+      R.huboB = !!B;
+      if (B) {
+        R.renglonesB = B.renglones.join(' || ');
+        R.numeroEnB = B.renglones.some(t => t.indexOf(sgl) >= 0);
+        R.recortaB = B.recorta; R.ultB = B.ultimaCol;
+        R.etiquetaDelMedicoEnB = B.renglones.some(t => t.indexOf(suyo) >= 0);
       }
     } catch (e) {
-      R.err = String((e && e.message) || e).slice(0, 120);
+      R.err = String((e && e.message) || e).slice(0, 140);
     } finally {
+      try { CanvasRenderingContext2D.prototype.fillText = ftOrig; } catch (e) {}
       try { window.imgCompressLoad = loadOrig; window._dcmImgReservar = resOrig; } catch (e) {}
       try { window.toast = toastOrig; window.alert = alertOrig; } catch (e) {}
       try { window._cineDatos = cineOrig; } catch (e) {}
@@ -19465,21 +19512,32 @@ caso('TC-228', 'Visor: la ventana declarada prefija la etiqueta, se actualiza al
       try { const b = document.getElementById('cine-med-barra'); if (b) b.innerHTML = ''; } catch (e) {}
     }
     return { extra: [
-      ['sin excepciones',                               !R.err, R.err],
-      ['DENOMINADOR: los rotulos salen de _STR_VISTAS', R.hayRotulos, R.rotA4C],
-      ['la ventana declarada prefija la etiqueta',      R.prefija, R.puesta],
-      ['Y SE ACTUALIZA AL CAMBIAR DE VENTANA',          R.seActualiza, R.trasCambiar],
-      ['NO pisa lo que escribio el medico',             R.noPisa, R.trasMedico],
-      ['cambiar de imagen NO borra su texto',           R.medicoSobrevive, R.medicoTras],
-      ['cambiar de imagen SI borra lo automatico',      R.seResetea,
-        'antes=' + R.antesDeCambiar + ' despues=' + R.trasCambioImagen],
-      ['MANDA LA HERRAMIENTA ACTIVA',                   R.otraHerrNoRotula,
-        'vista=' + R.vistaEnDist + ' etiqueta=' + R.conDistancia],
-      ['sin ventana declarada no rotula',               R.sinVistaNada, R.sinVista],
-      ['DENOMINADOR: las dos capturas salieron',        R.huboSinVista && R.huboConVista,
-        'sinVista=' + R.huboSinVista + ' conVista=' + R.huboConVista],
-      ['EL ROTULO ENTRA EN ESTA CAPTURA',               R.franjaMasAlta && R.rotuloEnPixeles,
-        'altoSin=' + R.altoSinVista + ' altoCon=' + R.altoConVista + ' tinta=' + R.tintaArriba]
+      ['sin excepciones',                              !R.err, R.err],
+      ['DENOMINADOR: el strain calcula con 2 vistas',  R.calcula2, R.et2],
+      ['DENOMINADOR: Simpson calcula mono y biplano',  R.simpsonCalcula, R.etBi],
+      ['la etiqueta nombra las vistas que aportaron',  R.nombraLasDos, R.et2],
+      ['y NO la que falta',                            R.noNombraLaQueFalta, R.et2],
+      ['y lleva el valor del calculo',                 R.llevaElValor, R.et2],
+      ['con tres vistas nombra las tres',              R.nombraLasTres, R.et3],
+      ['SIMPSON NO NOMBRA NINGUNA VISTA',              R.simpsonSinVistas,
+        R.etMono + ' | ' + R.etBi],
+      ['y se rotula por CANTIDAD',                     R.simpsonPorCantidad,
+        R.etMono + ' | ' + R.etBi],
+      ['monoplano y biplano se distinguen',            R.simpsonDistingue,
+        R.resMono + ' | ' + R.resBi],
+      ['MANDA LA HERRAMIENTA ACTIVA',                  R.otraHerrNoRotula, R.conDistancia],
+      ['no pisa lo que escribio el medico',            R.noPisa, R.noPisa],
+      ['cambiar de imagen NO borra su texto',          R.medicoSobrevive, R.medicoSobrevive],
+      ['cambiar de imagen SI borra lo automatico',     R.seResetea, R.antesDelCambio],
+      ['DENOMINADOR: las dos capturas salieron',       R.huboA && R.huboB,
+        'A=' + R.huboA + ' B=' + R.huboB],
+      ['EL NUMERO QUEDA QUEMADO con la etiqueta de la app', R.numeroEnA, R.renglonesA],
+      ['y CADA COSA UNA SOLA VEZ',                     R.unaSolaVez,
+        'veces=' + R.cuantasVecesA + ' :: ' + R.renglonesA],
+      ['Y TAMBIEN CON LA ETIQUETA DEL MEDICO',         R.numeroEnB && R.etiquetaDelMedicoEnB,
+        R.renglonesB],
+      ['NADA SE RECORTA en el cineloop mas angosto',   !R.recortaA && !R.recortaB,
+        'A=' + R.ultA + '/' + R.anchoA + ' B=' + R.ultB + '/' + R.anchoA]
     ] };
   })();
 `);

@@ -4,6 +4,76 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## La etiqueta dice DE DÓNDE viene el valor (TC-228)
+
+Reemplaza a la primera versión de esta entrada, que rotulaba sólo la ventana. Hoy la etiqueta
+lleva **procedencia + valor** y el renglón de abajo, **sólo el método**:
+
+| | etiqueta (19 px) | resultado (15 px) |
+|---|---|---|
+| strain 1 vista | `A4C · SGL -16.7 %` | `contornos manuales, no speckle tracking · SGL orientativo` |
+| strain 2 vistas | `A4C+A2C · SGL -18.3 %` | `… · SGL aproximado` |
+| strain 3 vistas | `A4C+A2C+A3C · SGL -18.3 %` | `… · SGL con cobertura estándar` |
+| Simpson monoplano | `1 vista · FEVI 52.6 %` | `Simpson monoplano por trazado manual` |
+| Simpson biplano | `2 vistas · FEVI 52.6 %` | `Simpson biplano por trazado manual` |
+
+Las siglas salen de `_strVista(k).rot` (su primer token), no de un mapa nuevo.
+
+### ⚠️ SIMPSON NO SABE QUÉ VISTA TRAZÓ, así que se rotula por CANTIDAD
+
+El pedido decía `A4C · FEVI X% · Simpson biplano`. **No es implementable**: el panel de Simpson
+pide «la vista que estés usando» y después «la SEGUNDA vista (la otra apical)» —el médico puede
+empezar por la 2C— y `_simpCalcular` devuelve `bi` y **ningún nombre**. Escribir «A4C» sería
+afirmar en una imagen clínica un dato que la app no recoge. Y el biplano sale de **dos** vistas,
+así que nombrar una sería incorrecto aunque se supiera cuál. Decisión de Maicol (2026-09-21):
+`1 vista` / `2 vistas`. La mutación que le pone un nombre imprime `A4C · FEVI 52.6 %`.
+
+### ⚠️ EL DESCARGO DE MÉTODO SE VENÍA RECORTANDO, Y ESO ES LO QUE ORDENA EL REPARTO
+
+Defecto **preexistente**, encontrado al medir si los formatos nuevos entraban. `fillText` no
+envuelve: recorta por la **cola**, que es donde vive `contornos manuales, no speckle tracking`.
+Medido sobre el renglón que ya se quemaba, a 15 px:
+
+| ancho del cineloop | texto | disponible | |
+|---|---|---|---|
+| 600 | 843 px | 590 | **recorta 253** |
+| **636** (el más angosto del pendrive) | 843 | 626 | **recorta 217** |
+| 800 | 843 | 790 | **recorta 53** |
+| 1016 | 937 | 1005 | ok |
+
+Verificado en píxeles, no por aritmética: la tinta llegaba a la **columna 635 de 636**. O sea
+que en casi todo cineloop real el descargo salía cortado — lo que TC-227 existe para proteger.
+Hoy: **527 de 636**. Dos arreglos: el reparto de arriba (cada cosa una vez) y `_medFontQueEntra`,
+que achica el cuerpo hasta que entre, con piso de 9 px — el mismo recurso que `_pptFsQueEntra`.
+
+### ⚠️ EL NÚMERO TIENE QUE QUEDAR QUEMADO POR UNO DE LOS DOS RENGLONES, SIEMPRE
+
+Si la etiqueta la puso la app, ya lleva el valor y abajo va sólo el método. **Pero si el médico
+escribió la suya** —que puede decir cualquier cosa— vuelve el texto completo: sin esa
+distinción, una etiqueta propia dejaba la captura **sin el número**, que es exactamente el
+defecto que TC-227 cerró, reintroducido por la puerta de al lado. La mutación que usa siempre el
+texto corto imprime `mala ventana apical || contornos manuales, no speckle tracking` — sin un
+solo número. Se decide con `laPusoLaApp`, comparando contra `_medEtiqAuto`.
+
+### La rama de UN renglón con resultado quedó INALCANZABLE, y se deja declarada
+
+El rótulo sale del **mismo cálculo** que el resultado, así que «hay resultado» implica «hay
+etiqueta»: un renglón solo ya sólo puede ser la etiqueta del médico sin medición. **TC-227 se
+puso en rojo por eso y tenía razón**: su escenario de «sólo resultado» comparaba 456 contra 456
+y había dejado de medir. Se reapuntó a que el segundo renglón exista y esté dibujado, que es el
+invariante real —la mutación que lo borra sigue imprimiendo `arriba=725 abajo=0`—.
+
+### El caso fija invariantes, no el texto
+
+Un caso que escribiera `A4C+A2C · SGL -18.3 %` literal hay que tocarlo cada vez que el texto
+cambie a propósito. TC-228 exige: que la etiqueta **nombre las vistas que aportaron y ninguna
+más** (con dos vistas, A3C **no** aparece), que lleve el valor que devuelve el cálculo, que
+Simpson **no nombre ninguna**, que el número esté quemado en los dos escenarios y que nada
+se recorte a 636 px. Cinco mutaciones, cada una en su condición.
+
+**Backticks dentro del cuerpo de un caso: van TREINTA Y NUEVE**, otra vez en el comentario
+recién escrito — el que explicaba por qué se reapuntaba TC-227.
+
 ## La ventana anatómica prefija la etiqueta de la captura (TC-228)
 
 Al capturar durante el strain, la etiqueta se completa sola con la ventana que el médico ya

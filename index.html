@@ -49720,10 +49720,65 @@ function _medResultadoParaCaptura() {
    de un strain saldria rotulada A4C. */
 function _medEtiqVista() {
   try {
-    if (_medHerr !== 'strain' || !_strain || !_strain.vista) return '';
-    const V = (typeof _strVista === 'function') ? _strVista(_strain.vista) : null;
-    return (V && V.rot) ? V.rot : '';
-  } catch (e) { return ''; }
+    if (_medHerr === 'strain' && _strain && typeof _strainCalcular === 'function') {
+      const R = _strainCalcular();
+      if (!R || !isFinite(R.sgl) || !R.vistas || !R.vistas.length) return '';
+      /* La sigla sale del rótulo de la tabla, no de un mapa nuevo ni del literal de la clave. */
+      const sig = R.vistas.map(k => {
+        const V = (typeof _strVista === 'function') ? _strVista(k) : null;
+        return (V && V.rot) ? String(V.rot).split(' ')[0] : String(k).toUpperCase();
+      }).join('+');
+      return sig + ' · SGL ' + R.sgl.toFixed(1) + ' %';
+    }
+    /* ⚠️ SIMPSON SE ROTULA POR CANTIDAD, NO POR NOMBRE DE VISTA, y no es una simplificación:
+       la app NO SABE cuál trazó. Su panel pide «la vista que estés usando» y después «la
+       SEGUNDA vista (la otra apical)», o sea que el médico puede empezar por la 2C, y
+       `_simpCalcular` devuelve `bi` y ningún nombre. Escribir «A4C» sería afirmar en una
+       imagen clínica algo que no se recogió. Decisión de Maicol (2026-09-21). */
+    if (_medHerr === 'simpson' && _simp && typeof _simpCalcular === 'function') {
+      const R = _simpCalcular();
+      if (!R || !isFinite(R.fevi)) return '';
+      return (R.bi ? '2 vistas' : '1 vista') + ' · FEVI ' + R.fevi.toFixed(1) + ' %';
+    }
+  } catch (e) {}
+  return '';
+}
+
+/* El MÉTODO solo, sin repetir el número ni las vistas: eso ya lo dice la etiqueta cuando la
+   puso la app. Se usa ÚNICAMENTE en ese caso; si el médico escribió su propia etiqueta, la
+   captura vuelve al texto completo de `_medResultadoParaCaptura` — el número tiene que quedar
+   quemado por uno de los dos renglones, siempre.
+
+   ⚠️ El motivo no es estético. Con el número y las vistas en los DOS renglones, el del
+   resultado medía 843 px sobre los 626 útiles de un cineloop de 636 —el más angosto del
+   pendrive— y `fillText` NO envuelve: recorta por la COLA, que es justo donde vive el descargo
+   de método. Medido en píxeles: la tinta llegaba a la columna 635 de 636. */
+function _medResultadoCorto() {
+  try {
+    if (_medHerr === 'simpson' && _simp && typeof _simpCalcular === 'function') {
+      const R = _simpCalcular();
+      if (R && isFinite(R.fevi))
+        return 'Simpson ' + (R.bi ? 'biplano' : 'monoplano') + ' por trazado manual';
+    }
+    if (_medHerr === 'strain' && _strain && typeof _strainCalcular === 'function') {
+      const R = _strainCalcular();
+      if (R && isFinite(R.sgl))
+        return 'contornos manuales, no speckle tracking · SGL ' + R.nivel;
+    }
+  } catch (e) {}
+  return '';
+}
+
+/* `fillText` no envuelve ni avisa: se achica el cuerpo hasta que entre, con piso. Es el mismo
+   recurso que `_pptFsQueEntra` y el autoajuste A4 del PDF. Por debajo del piso se deja recortar
+   antes que volverlo ilegible — pero con el reparto de arriba ese caso ya no aparece. */
+function _medFontQueEntra(g, txt, maxW, pxIdeal, pxMin) {
+  for (let px = pxIdeal; px > pxMin; px--) {
+    g.font = 'bold ' + px + 'px system-ui, sans-serif';
+    if (g.measureText(txt).width <= maxW) return px;
+  }
+  g.font = 'bold ' + pxMin + 'px system-ui, sans-serif';
+  return pxMin;
 }
 
 /* Prefija la etiqueta con la ventana. NO pisa lo que el medico escribio.
@@ -49755,8 +49810,16 @@ function medCapturarConMedicion() {
   const esc = Math.max(1, w / 900);
   /* El resultado va en su propio renglón de la franja: hasta ahora la captura llevaba las
      líneas de la medición y NO el número, así que el PNG mostraba un trazado sin decir qué
-     dio. */
-  const res = _medResultadoParaCaptura();
+     dio.
+
+     ⚠️ EL NÚMERO TIENE QUE QUEDAR QUEMADO POR UNO DE LOS DOS RENGLONES, SIEMPRE. Si la etiqueta
+     es la que puso la app, ya lo lleva con su procedencia y acá va sólo el método; si el médico
+     escribió la suya —que puede decir cualquier cosa— vuelve el texto completo. Sin esa
+     distinción, una etiqueta propia dejaba la captura SIN el valor: el defecto que TC-227
+     existe para impedir, reintroducido por la puerta de al lado. */
+  const laPusoLaApp = !!etiq &&
+    etiq === String(_medEtiqAuto || '').trim().slice(0, _CAP_ETIQ_MAX);
+  const res = laPusoLaApp ? _medResultadoCorto() : _medResultadoParaCaptura();
   const franja = (etiq || res) ? Math.round((etiq && res ? 56 : 34) * esc) : 0;
 
   const cv = document.createElement('canvas');
@@ -49771,17 +49834,26 @@ function medCapturarConMedicion() {
   if (etiq || res) {
     g.textAlign = 'left'; g.textBaseline = 'middle';
     const x = Math.round(10 * esc);
+    const util = w - 2 * x;                        // margen a los dos lados, no sólo a la izquierda
     if (etiq && res) {
       g.fillStyle = '#111827';
-      g.font = 'bold ' + Math.round(19 * esc) + 'px system-ui, sans-serif';
+      _medFontQueEntra(g, etiq, util, Math.round(19 * esc), Math.round(9 * esc));
       g.fillText(etiq, x, h + Math.round(17 * esc));
       g.fillStyle = '#374151';
-      g.font = 'bold ' + Math.round(15 * esc) + 'px system-ui, sans-serif';
+      _medFontQueEntra(g, res, util, Math.round(15 * esc), Math.round(9 * esc));
       g.fillText(res, x, h + Math.round(40 * esc));
     } else {
+      /* ⚠️ LA MITAD `res` DE ESTA RAMA QUEDÓ INALCANZABLE y se deja a propósito, declarada.
+         El rótulo sale del MISMO cálculo que el resultado —`_strainCalcular` / `_simpCalcular`—
+         así que «hay resultado» implica «hay etiqueta»: un renglón solo ya únicamente puede ser
+         la etiqueta del médico sin medición. Se conserva porque fija el contrato para la
+         herramienta que mañana publique resultado sin procedencia, y porque borrarla sería
+         confiar en una implicación que vive en otras dos funciones. Es el mismo criterio que el
+         rótulo «(pared X)» del bull's eye. */
       g.fillStyle = '#111827';
-      g.font = 'bold ' + Math.round(etiq ? 19 * esc : 15 * esc) + 'px system-ui, sans-serif';
-      g.fillText(etiq || res, x, h + franja / 2);
+      const t = etiq || res;
+      _medFontQueEntra(g, t, util, Math.round((etiq ? 19 : 15) * esc), Math.round(9 * esc));
+      g.fillText(t, x, h + franja / 2);
     }
   }
 
@@ -68204,8 +68276,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260921-1409';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790010573490;                 /* eco-build-ms */
+const ECO_BUILD    = '20260921-1431';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790011905192;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -68291,7 +68363,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-1409</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-1431</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
