@@ -15826,7 +15826,9 @@ caso('TC-210', 'PPT: selector de imagenes, orden, layout de 1/2/3/4 y sin selecc
       R.panelSepara = !!desde && desde.filter(o => o.origen === 'visor').length === 2 &&
                                  desde.filter(o => o.origen === 'estudio').length === 3;
       let elec = null;
-      _pptElegirImagenes(desde, e => { elec = e; });
+      /* Tercer argumento: la lista de VIDEOS. Este caso prueba el camino SIN videos, que es el
+         que tiene que seguir comportandose igual que antes de que existieran. */
+      _pptElegirImagenes(desde, [], e => { elec = e; });
       await new Promise(r=>setTimeout(r,150));
       const modal = document.querySelector('[data-ppt-img-modal]');
       R.hayModal = !!modal;
@@ -16294,6 +16296,274 @@ caso('TC-212', 'Slots: video MP4 para documentacion, con captura de cuadro y sin
       ['el MP4 se guarda en IndexedDB',             R.persistio && R.guardaBytes, R.leidos + ' leido(s)'],
       ['y la marca de video viaja con el slot',     R.marcaPersiste, R.marcaPersiste],
       ['las fotos siguen entrando igual',           R.fotoEntro && R.fotoSinVideoId, R.fotoEntro]
+    ] };
+  })();
+`);
+
+
+/* == TC-213 - Videos en el PPT ===============================================================
+   UN CINELOOP DICOM NO ES UN VIDEO: es una secuencia de JPEG, y PowerPoint no reproduce una
+   secuencia de imagenes. La condicion que separa «se embebio el video» de «se embebio otra
+   cosa» es que los BYTES incrustados sean un MP4 -marca ftyp en 4..7- y NO el JPEG guardado.
+   Un caso que solo contara diapositivas pasa con el cineloop metido como imagen fija.
+   El MP4 se graba con MediaRecorder en la pagina y el cineloop se arma con un canvas: sin
+   binarios en el repo y sin PHI. NO DEPENDE DEL PENDRIVE.
+   OJO: la conversion es EN TIEMPO REAL, asi que este caso tarda sus segundos a proposito.   */
+caso('TC-213', 'PPT: videos del estudio, MP4 embebido y cineloop DICOM convertido a MP4', `
+  return (async () => {
+    const R = {};
+    const confOrig = window.confirm, toastOrig = window.toast, alertOrig = window.alert;
+    const tostadas = [];
+    window.toast = m => { tostadas.push(String(m)); };
+    window.alert = () => {};
+    window.confirm = () => true;
+    let id = null, uuid = null;
+    const b64bytes = d => {
+      const b = atob(String(d).split(',')[1] || '');
+      const u = new Uint8Array(b.length);
+      for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
+      return u;
+    };
+    const marca4 = u => (u && u.length >= 12)
+      ? String.fromCharCode(u[4], u[5], u[6], u[7]) : '(corto)';
+    try {
+      /* Sin soporte de MP4 en MediaRecorder no hay nada que probar y NO se saltea en silencio:
+         un caso que se saltea solo es cobertura que no existe. */
+      R.mime = _cinePptMime();
+      if (!R.mime) {
+        return { extra: [['el navegador puede generar MP4 (sin esto el caso no prueba nada)',
+                          false, 'MediaRecorder sin video/mp4']] };
+      }
+      localStorage.setItem('cfg-guardar-imagenes','1');
+
+      /* -- 1 - fixtures: un MP4 real y un cineloop sintetico -- */
+      const cv = document.createElement('canvas'); cv.width = 160; cv.height = 120;
+      const g = cv.getContext('2d');
+      const mr = new MediaRecorder(cv.captureStream(15), { mimeType: R.mime });
+      const tr = [];
+      mr.ondataavailable = e => { if (e.data && e.data.size) tr.push(e.data); };
+      mr.start();
+      for (let k = 0; k < 10; k++) {
+        g.fillStyle = 'rgb(' + (k * 22) + ',30,80)'; g.fillRect(0,0,160,120);
+        await new Promise(r=>setTimeout(r,45));
+      }
+      await new Promise(res => { mr.onstop = res; mr.stop(); });
+      const mp4 = new Blob(tr, { type: 'video/mp4' });
+      R.mp4Bytes = mp4.size;
+
+      const c2 = document.createElement('canvas'); c2.width = 120; c2.height = 90;
+      const g2 = c2.getContext('2d');
+      const frags = [];
+      for (let k = 0; k < 10; k++) {
+        g2.fillStyle = 'rgb(10,' + (k * 20) + ',40)'; g2.fillRect(0,0,120,90);
+        const b = await new Promise(r => c2.toBlob(r, 'image/jpeg', 0.8));
+        frags.push(new Uint8Array(await b.arrayBuffer()));
+      }
+      let tot = 0; frags.forEach(f => tot += f.length);
+      const datos = new Uint8Array(tot), offs = new Int32Array(frags.length);
+      let p = 0; frags.forEach((f,i) => { offs[i] = p; datos.set(f, p); p += f.length; });
+      const posterCine = c2.toDataURL('image/jpeg', 0.7);
+      R.jpeg0 = frags[0].length;
+
+      /* -- 2 - estudio guardado con imagen, poster de video, MP4 y cineloop -- */
+      __t.limpiar();
+      document.getElementById('nombre').value = 'Paciente Video';
+      document.getElementById('informe_texto').value = 'Informe de prueba para el PPT con videos.';
+      /* El estudio se resuelve por el estudioId que devuelve el helper, NO por
+         lista[length-1]: el borrado del caso anterior es una escritura asincrona y en el suite
+         completo la ultima posicion puede seguir siendo la suya. Con eso, este caso generaba el
+         mazo del paciente de TC-210 y la condicion del titulo daba rojo sobre codigo sano. */
+      const g213 = await __t.guardar();
+      const lista = CeiboStore.getLocal();
+      const est = lista.filter(x => x.estudioId === g213.estudioId)[0] || lista[lista.length - 1];
+      R.estudioPropio = !!est && String(est.nombre || '').indexOf('Paciente Video') >= 0;
+      est.campos = est.campos || {};
+      est.campos.informe_texto = 'Informe de prueba para el PPT con videos.';
+      await CeiboStore.setLocal(lista);
+      id = est.id; uuid = est.uuid;
+      R.hayUuid = !!uuid;
+      if (!R.hayUuid) return { extra: [['el estudio guardado tiene uuid', false, 'sin uuid']] };
+
+      const c3 = document.createElement('canvas'); c3.width = 40; c3.height = 30;
+      const g3 = c3.getContext('2d'); g3.fillStyle = 'rgb(220,10,10)'; g3.fillRect(0,0,40,30);
+      const pngFoto = c3.toDataURL('image/png');
+      R.guardoImgs = await CeiboImg.guardar(uuid, [
+        { dataURL: pngFoto, ampliada:false, calidad:'media', origen:'estudio' },
+        { dataURL: posterCine, ampliada:false, calidad:'media', origen:'estudio',
+          videoId:'vid-t213', videoNombre:'eco_apical.mp4' }
+      ]);
+      const leidas = await CeiboImg.leer(uuid);
+      R.slotsGuardados = leidas ? leidas.length : 0;          // DENOMINADOR: tienen que ser 2
+      R.okVideo = await CeiboVideo.guardar(uuid, [
+        { id:'vid-t213', blob: mp4, nombre:'eco_apical.mp4', tipo:'video/mp4', bytes: mp4.size }
+      ]);
+      const rc = await CeiboCine.guardar({ id:'cine-t213', uuid: uuid, nombre:'A4C_loop.dcm',
+        cuadros: frags.length, tipo:'loop', ms: 50, cols:120, filas:90, regiones:[],
+        poster: posterCine, datos: datos, offs: offs, bytes: tot, ts: new Date().toISOString() });
+      R.okCine = !!(rc && rc.ok);
+
+      /* -- 3 - el POSTER de un video no entra a la grilla de imagenes -- */
+      const inf = getInformes().find(i => i.id === id);
+      const imgs = await _pptImgsDeEstudio(inf);
+      R.nImgs = imgs ? imgs.length : -1;
+      R.posterFuera = R.slotsGuardados === 2 && R.nImgs === 1;
+
+      /* -- 4 - los dos origenes, leidos por uuid -- */
+      const vids = await _pptVideosDeEstudio(inf);
+      R.nVids = vids.length;
+      const vMp4  = vids.filter(v => v.clase === 'mp4')[0]  || null;
+      const vCine = vids.filter(v => v.clase === 'cine')[0] || null;
+      R.dosOrigenes = !!vMp4 && !!vCine;
+      R.cineCuadros = vCine ? vCine.cuadros : 0;
+      R.cineMs = vCine ? vCine.ms : 0;
+      /* La VELOCIDAD sale del archivo: 10 cuadros a 50 ms son 0,5 s, y el clip repite el loop
+         hasta pasar CINE_PPT_MIN_S. Repetir no cambia la velocidad, que es lo que el pedido fija. */
+      R.segEsperados = (10 * 50 / 1000) * Math.ceil(CINE_PPT_MIN_S / (10 * 50 / 1000));
+      R.segCalculados = vCine ? _cinePptSegundos(vCine.rec) : -1;
+      R.velDelArchivo = Math.abs(R.segCalculados - R.segEsperados) < 1e-9 && R.cineMs === 50;
+
+      /* -- 5 - el panel: una fila por video y NINGUNO tildado -- */
+      let elec = null;
+      _pptElegirImagenes(imgs, vids, e => { elec = e; });
+      await new Promise(r=>setTimeout(r,180));
+      let modal = document.querySelector('[data-ppt-img-modal]');
+      R.hayModal = !!modal;
+      R.filasVid = modal ? modal.querySelectorAll('[data-ppt-vid]').length : -1;
+      const chks = modal ? Array.prototype.slice.call(modal.querySelectorAll('[data-ppt-chk-vid]')) : [];
+      R.ningunoTildado = chks.length === 2 && chks.every(c => c.checked === false);
+      R.seccionVideos = !!modal && modal.textContent.indexOf('Videos del estudio') >= 0;
+      chks.forEach(c => { c.checked = true; c.dispatchEvent(new Event('change')); });
+      R.cuentaConVideos = !!modal && modal.textContent.indexOf('2 de 2 video(s)') >= 0;
+      modal.querySelector('[data-ppt-act="generar"]').click();
+      await new Promise(r=>setTimeout(r,120));
+      R.devuelveVids = !!elec && Array.isArray(elec.vids) && elec.vids.length === 2;
+      R.modalCerrado = !document.querySelector('[data-ppt-img-modal]');
+
+      /* -- 6 - AVISO DE TAMANO, por los dos lados del umbral -- */
+      const MB = 1048576;
+      const probarAviso = async (bytes) => {
+        let pregunto = null;
+        window.confirm = m => { pregunto = String(m); return true; };
+        let out = null;
+        _pptElegirImagenes([], [{ k:'x', clase:'mp4', nombre:'grande.mp4', tipo:'video/mp4',
+                                  bytes: bytes, dur: 10, poster: '' }], e => { out = e; });
+        await new Promise(r=>setTimeout(r,140));
+        const m2 = document.querySelector('[data-ppt-img-modal]');
+        if (!m2) return { sinModal: true };
+        const c4 = m2.querySelector('[data-ppt-chk-vid="x"]');
+        c4.checked = true; c4.dispatchEvent(new Event('change'));
+        m2.querySelector('[data-ppt-act="generar"]').click();
+        await new Promise(r=>setTimeout(r,120));
+        window.confirm = () => true;
+        return { pregunto: pregunto, genero: !!out };
+      };
+      const sobre = await probarAviso(Math.round((PPT_VIDEO_AVISO_MB + 5) * MB));
+      const bajo  = await probarAviso(Math.round((PPT_VIDEO_AVISO_MB - 5) * MB));
+      R.avisoSobre = !!sobre.pregunto &&
+        sobre.pregunto.indexOf('El PPT con videos puede ser grande') >= 0 &&
+        sobre.pregunto.indexOf('Quer') >= 0;
+      R.sinAvisoBajo = bajo.pregunto === null && bajo.genero === true;
+      R.umbral = PPT_VIDEO_AVISO_MB;
+
+      /* -- 7 - generar el mazo de verdad e interceptar addMedia -- */
+      const correr = async (sel) => {
+        while (typeof _pdfGuardadoEnCurso !== 'undefined' && _pdfGuardadoEnCurso) {
+          await new Promise(r=>setTimeout(r,120));
+        }
+        /* 'heredada' significa NO TOCAR la variable: si el caso la pusiera en null estaria
+           comprobando un valor que escribio el mismo. Es la leccion de TC-210. */
+        if (sel !== 'heredada') _pptImgSel = sel;
+        const hojas = [];
+        const P0 = PptxGenJS, origAdd = P0.prototype.addSlide;
+        P0.prototype.addSlide = function () {
+          const sl = origAdd.apply(this, arguments);
+          const reg = { txt: [], media: [], imgs: 0 };
+          hojas.push(reg);
+          const at = sl.addText.bind(sl), am = sl.addMedia.bind(sl), ai = sl.addImage.bind(sl);
+          sl.addText  = function (t) { if (typeof t === 'string') reg.txt.push(t); return at.apply(null, arguments); };
+          sl.addImage = function (o) { if (o && o.sizing) reg.imgs++; return ai.apply(null, arguments); };
+          sl.addMedia = function (o) {
+            reg.media.push({ type:o.type, extn:o.extn, data:o.data, cover:o.cover || '' });
+            return am.apply(null, arguments);
+          };
+          return sl;
+        };
+        let listo; const esperar = new Promise(r => { listo = r; });
+        const dl = window._pptxDescargarSaneado;
+        window._pptxDescargarSaneado = function () { listo(true); return Promise.resolve(true); };
+        pdfDeInformeGuardado(id, inf2 => { _pptDesdeFormulario(inf2, 'clasico', 'Dr. Prueba'); }, 'PPT');
+        const llego = await Promise.race([esperar, new Promise(r=>setTimeout(()=>r(false), 40000))]);
+        P0.prototype.addSlide = origAdd;
+        window._pptxDescargarSaneado = dl;
+        return { llego: llego, hojas: hojas };
+      };
+
+      const r1 = await correr({ sel: [0], layout: 2, vids: vids });
+      R.llegoAlFinal = r1.llego;
+      const conMedia = r1.hojas.filter(h => h.media.length);
+      R.hojasConVideo = conMedia.length;
+      /* CADA VIDEO EN SU DIAPOSITIVA: una hoja, un video, y sin imagenes fijas. */
+      R.unaPorVideo = conMedia.length === 2 &&
+                      conMedia.every(h => h.media.length === 1 && h.imgs === 0);
+      R.titulos = conMedia.map(h => h.txt.filter(t => t.indexOf('Video ') === 0)[0] || '(sin titulo)');
+      R.tituloOk = R.titulos.length === 2 &&
+                   R.titulos.every(t => t.indexOf('Video ') === 0 && t.indexOf('Paciente Video') > 0);
+      R.todosMp4 = conMedia.length === 2 &&
+        conMedia.every(h => h.media[0].extn === 'mp4' &&
+                            h.media[0].data.indexOf('data:video/mp4;base64,') === 0);
+      R.coverPng = conMedia.every(h => String(h.media[0].cover).indexOf('data:image/png') === 0);
+      /* EL CINELOOP SE CONVIRTIO: la hoja que lo lleva es la segunda, y sus bytes tienen que
+         ser un MP4 -marca ftyp- y NO el JPEG guardado -marca JFIF/Exif, FFD8 al inicio-. */
+      const hCine = conMedia[1];
+      const bCine = b64bytes(hCine.media[0].data);
+      R.cineFtyp = marca4(bCine);
+      R.cineNoEsJpeg = !(bCine[0] === 255 && bCine[1] === 216);
+      R.cineBytes = bCine.length;
+      R.cineConvertido = R.cineFtyp === 'ftyp' && R.cineNoEsJpeg && bCine.length > 1000;
+      /* el subtitulo declara de donde sale la velocidad */
+      R.subCine = hCine.txt.filter(t => t.indexOf('cineloop DICOM') >= 0)[0] || '';
+      R.subDeclaraVel = R.subCine.indexOf('20 cuadros/s') >= 0 && R.subCine.indexOf('del archivo') >= 0;
+      R.imgsEnMazo = r1.hojas.filter(h => h.imgs).length;
+
+      /* -- 8 - LA SELECCION NO SE HEREDA: sin tocar nada, el PPT siguiente sale sin videos -- */
+      R.selLimpia = _pptImgSel === null;
+      const r2 = await correr('heredada');
+      R.hojasConVideo2 = r2.hojas.filter(h => h.media.length).length;
+      R.sinVideosSinHoja = r2.llego && R.hojasConVideo2 === 0;
+      /* y las imagenes siguen saliendo como siempre: la del estudio, no el poster del video */
+      R.imgsSinSelector = r2.hojas.filter(h => h.imgs).reduce((a,h) => a + h.imgs, 0);
+      R.pptSinVideosIgual = R.imgsSinSelector === 1;
+    } finally {
+      window.confirm = confOrig; window.toast = toastOrig; window.alert = alertOrig;
+      _pptImgSel = null;
+      try { const m3 = document.querySelector('[data-ppt-img-modal]'); if (m3) m3.remove(); } catch (e) {}
+      try { if (uuid && typeof CeiboVideo !== 'undefined') await CeiboVideo.guardar(uuid, []); } catch (e) {}
+      try { if (uuid && typeof CeiboCine !== 'undefined') await CeiboCine.borrar('cine-t213'); } catch (e) {}
+      try { if (id !== null) { const L = CeiboStore.getLocal();
+        await CeiboStore.setLocal(L.filter(x => x.id !== id)); } } catch (e) {}
+      localStorage.setItem('cfg-guardar-imagenes','0');
+    }
+    return { extra: [
+      ['el caso mide sobre SU estudio (denominador)', R.estudioPropio === true, R.estudioPropio],
+      ['los DOS slots se guardaron (denominador)',   R.slotsGuardados === 2, R.slotsGuardados],
+      ['EL POSTER DE UN VIDEO NO ENTRA A LA GRILLA', R.posterFuera, R.nImgs + ' de ' + R.slotsGuardados],
+      ['lista MP4 y cineloop, leidos por uuid',      R.dosOrigenes && R.nVids === 2, R.nVids],
+      ['LA VELOCIDAD SALE DEL ARCHIVO',              R.velDelArchivo, R.segCalculados + ' s / ms=' + R.cineMs],
+      ['una fila por video en el panel',             R.hayModal && R.filasVid === 2 && R.seccionVideos, R.filasVid],
+      ['NINGUN video tildado por defecto',           R.ningunoTildado, R.ningunoTildado],
+      ['la cuenta refleja los videos elegidos',      R.cuentaConVideos, R.cuentaConVideos],
+      ['el panel devuelve los videos elegidos',      R.devuelveVids && R.modalCerrado, R.devuelveVids],
+      ['AVISO DE TAMANO por encima del umbral',      R.avisoSobre, R.umbral + ' MB / ' + String(R.avisoSobre)],
+      ['y NO avisa por debajo',                      R.sinAvisoBajo, R.sinAvisoBajo],
+      ['el mazo se genera de punta a punta',         R.llegoAlFinal, R.llegoAlFinal],
+      ['UNA DIAPOSITIVA POR VIDEO, sin imagenes',    R.unaPorVideo, R.hojasConVideo + ' hoja(s) con video'],
+      ['titulada Video - nombre del estudio',        R.tituloOk, JSON.stringify(R.titulos)],
+      ['los dos se embeben como MP4',                R.todosMp4, R.todosMp4],
+      ['con su poster en PNG',                       R.coverPng, R.coverPng],
+      ['EL CINELOOP SE CONVIRTIO A VIDEO, no es el JPEG', R.cineConvertido, R.cineFtyp + ' / ' + R.cineBytes + ' bytes'],
+      ['y el subtitulo declara la velocidad del archivo', R.subDeclaraVel, R.subCine],
+      ['LA SELECCION NO SE HEREDA al PPT siguiente', R.selLimpia && R.sinVideosSinHoja, R.selLimpia + ' / ' + R.hojasConVideo2],
+      ['sin videos, el PPT sale como siempre',       R.pptSinVideosIgual, R.imgsSinSelector + ' imagen(es)']
     ] };
   })();
 `);

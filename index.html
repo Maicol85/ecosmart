@@ -42281,11 +42281,11 @@ function generarPPT(id){
       /* Y por último QUÉ IMÁGENES. Va al final de la cadena porque es la única de las tres que
          necesita leer de IndexedDB: preguntarla primero haría esperar antes del primer modal.
          Sin imágenes en el estudio no se muestra ningún panel y el mazo sale como siempre. */
-      _pptImgsDeEstudio(inf).then(imgs => {
+      Promise.all([_pptImgsDeEstudio(inf), _pptVideosDeEstudio(inf)]).then(([imgs, vids]) => {
         if (imgs === null && typeof toast === 'function') {
           toast('⚠️ No se pudieron leer las imágenes de este estudio — el PPT sale sin ellas');
         }
-        _pptElegirImagenes(imgs || [], elec => {
+        _pptElegirImagenes(imgs || [], vids || [], elec => {
           _pptImgSel = elec;
           // Se carga el estudio en el formulario y se restaura después: ver la nota de abajo.
           pdfDeInformeGuardado(id, inf2 => _pptDesdeFormulario(inf2, tema, quien), 'PPT');
@@ -42472,6 +42472,23 @@ function _pptElegirTema(cb){
 
 const _PPT_IMG_LAYOUTS = [1, 2, 3, 4];
 const _PPT_IMG_LAYOUT_DEF = 2;
+/* Umbral del aviso de tamaño del mazo. Constante propia y no `VIDEO_AVISO_MB`: aquél es por
+   ARCHIVO al cargarlo en un slot y éste es el TOTAL de video que entra al .pptx. Coinciden hoy
+   en 50 y el día que uno cambie no tiene por qué arrastrar al otro. */
+const PPT_VIDEO_AVISO_MB = 50;
+
+/* ÚNICO filtro de «esto es una imagen fija del estudio», compartido por el selector y por el
+   generador. Que sea uno solo es lo que sostiene la alineación de índices: `_pptImgSel.sel` son
+   posiciones sobre esta lista, así que dos criterios distintos hacen que el médico tilde la
+   imagen 3 y al PPT vaya otra — y nada lo delata, porque las dos son imágenes válidas.
+
+   `!s.videoId` excluye el PÓSTER de un video, que es un slot con `dataURL` como cualquier otro.
+   Es la misma regla que ya aplica el PDF y por el mismo motivo: ese cuadro es el PRIMERO del
+   archivo, no uno que el médico haya elegido. Desde que hay sección de videos, además, sin este
+   filtro el mismo video saldría dos veces — como foto muda en la grilla y como video en su
+   diapositiva. Lo que sí va a la grilla es el cuadro que se captura a mano, que ocupa otro slot
+   y no lleva `videoId`. */
+function _pptEsImagen(s) { return !!(s && s.dataURL && !s.videoId && _imgSrcOK(s.dataURL)); }
 
 /* Lee las imágenes del estudio a exportar. Devuelve `null` si NO se pudieron leer —distinto de
    `[]`, que es «este estudio no tiene»—: con un solo valor, un fallo transitorio de IndexedDB
@@ -42481,18 +42498,72 @@ function _pptImgsDeEstudio(inf) {
   if (typeof CeiboImg === 'undefined' || !inf || !_uuidValido(inf.uuid)) return Promise.resolve([]);
   return CeiboImg.leer(inf.uuid).then(imgs => {
     if (imgs === null) return null;
-    return imgs.filter(s => s && _imgSrcOK(s.dataURL))
+    return imgs.filter(_pptEsImagen)
                .map((s, i) => ({ i: i, dataURL: s.dataURL,
                                  origen: (s.origen === 'visor' ? 'visor' : 'estudio') }));
   }).catch(() => null);
 }
 
+/* ══ VIDEOS DEL ESTUDIO ═══════════════════════════════════════════════════════════════════════
+   Dos orígenes distintos con dos bases distintas: los MP4/MOV de los slots viven en
+   `ceibomed_video` y los cineloops DICOM en `ceibomed_cine`. Se presentan juntos porque para el
+   médico son «videos del estudio», pero no se mezclan en el camino de datos: un MP4 ya ES un
+   video y se embebe tal cual; un cineloop hay que CODIFICARLO (ver `_cineAMp4`).
+
+   LOS DOS SE LEEN POR `uuid`, igual que las imágenes, y por el mismo motivo: `generarPPT(id)` se
+   dispara desde la lista de Guardados sobre CUALQUIER estudio, que puede no ser el que está
+   abierto. Leer `imgSlots` o `_videoBlobs` —que son del estudio EN PANTALLA— pondría en el mazo
+   el video de otro paciente, y nada lo delataría.
+
+   ⚠ Los dos dependen de que «Guardar imágenes con los estudios» haya estado ENCENDIDO al guardar
+   (`imgPersistir` corta antes de `videoPersistir`, y `_cinePuedeGuardar` lo exige). Con el toggle
+   apagado —que es el estado de fábrica— esta sección sale vacía y el panel lo dice, en vez de
+   dejar un título sin nada debajo que se lee como que la lectura falló. */
+function _pptVideosDeEstudio(inf) {
+  if (!inf || typeof _uuidValido !== 'function' || !_uuidValido(inf.uuid)) return Promise.resolve([]);
+  const uuid = inf.uuid;
+  const pMp4 = (typeof CeiboVideo !== 'undefined')
+    ? CeiboVideo.leer(uuid).then(rs => rs || []).catch(() => []) : Promise.resolve([]);
+  const pCine = (typeof CeiboCine !== 'undefined')
+    ? CeiboCine.listar(uuid).then(rs => rs || []).catch(() => []) : Promise.resolve([]);
+  /* Las dos lecturas fallan a vacío POR SEPARADO: que no responda una base no tiene por qué
+     esconder los videos de la otra. Es la misma regla que los contadores de la barra de memoria. */
+  return Promise.all([pMp4, pCine]).then(async ([vids, cines]) => {
+    const out = [];
+    for (let i = 0; i < vids.length; i++) {
+      const v = vids[i];
+      if (!v || !v.blob) continue;
+      /* El póster no se persiste con el video, así que se regenera acá. Si el navegador no puede
+         decodificarlo, el video igual se lista: embeberlo en el .pptx no exige decodificarlo, y
+         quien lo va a reproducir es PowerPoint. Se muestra sin miniatura y se dice. */
+      let pos = null;
+      try { pos = await _videoPoster(v.blob); } catch (e) { pos = null; }
+      out.push({ k: 'mp4:' + v.id, clase: 'mp4', nombre: String(v.nombre || 'video.mp4'),
+                 tipo: String(v.tipo || 'video/mp4'), bytes: v.bytes || (v.blob && v.blob.size) || 0,
+                 dur: (pos && pos.dur) || 0, poster: (pos && pos.poster) || '', blob: v.blob });
+    }
+    cines.forEach(r => {
+      if (!r || !r.datos || !r.offs || !(r.cuadros > 1)) return;   // una fija no es un cineloop
+      out.push({ k: 'cine:' + r.id, clase: 'cine', nombre: String(r.nombre || 'cineloop'),
+                 tipo: 'dicom', bytes: _cinePptBytesEst(r), cuadros: r.cuadros, ms: r.ms || 0,
+                 dur: _cinePptSegundos(r), poster: String(r.poster || ''), rec: r });
+    });
+    return out;
+  }).catch(() => []);
+}
+
 /* El panel. `createElement` + `textContent` para todo lo que no sea marcado fijo, y la imagen
    por `.src`: el dataURL no se interpola nunca dentro de una cadena de HTML. */
-function _pptElegirImagenes(imgs, cb) {
-  /* Sin imágenes no se pregunta nada: se genera como hasta hoy. Es el punto 5, y además un
-     modal vacío obliga a un clic para no elegir nada. */
-  if (!imgs || !imgs.length) { cb({ sel: [], layout: _PPT_IMG_LAYOUT_DEF }); return; }
+function _pptElegirImagenes(imgs, vids, cb) {
+  vids = vids || [];
+  /* Sin imágenes NI videos no se pregunta nada: se genera como hasta hoy. Es el punto 5, y
+     además un modal vacío obliga a un clic para no elegir nada. */
+  if ((!imgs || !imgs.length) && !vids.length) { cb({ sel: [], layout: _PPT_IMG_LAYOUT_DEF, vids: [] }); return; }
+  imgs = imgs || [];
+  /* Los videos arrancan SIN TILDAR, a diferencia de las imágenes. Es el punto 1 del pedido y
+     además lo prudente: un video pesa entre cien y mil veces más que una imagen, así que el
+     default tiene que ser la decisión barata. */
+  const vidMarcados = {};
 
   /* El ORDEN es el del panel, no el de los slots: arrastrar reordena esta lista y el mazo la
      respeta. Se arranca con el orden de los slots y todas tildadas. */
@@ -42587,9 +42658,19 @@ function _pptElegirImagenes(imgs, cb) {
     ['estudio', 'visor'].forEach(k => {
       grillas[k].cont.style.display = cuenta[k] ? '' : 'none';
     });
-    cuentaTxt.textContent = orden.filter(i => marcadas[i]).length + ' de ' + orden.length +
-      ' seleccionada(s) · ' + Math.ceil(orden.filter(i => marcadas[i]).length / layout) +
-      ' diapositiva(s) de imágenes';
+    const nImg = orden.filter(i => marcadas[i]).length;
+    const vSel = vids.filter(v => vidMarcados[v.k]);
+    let txt = nImg + ' de ' + orden.length + ' imagen(es) · ' + Math.ceil(nImg / layout) +
+              ' diapositiva(s) de imágenes';
+    if (vids.length) {
+      txt += ' · ' + vSel.length + ' de ' + vids.length + ' video(s)';
+      /* El tamaño se declara SIEMPRE que haya un video elegido, no sólo al pasar el umbral: el
+         aviso de 50 MB llega al apretar «Generar», y para entonces la decisión ya está tomada.
+         Se rotula «≈» porque el de un cineloop es una estimación por bitrate — el real recién se
+         conoce después de codificar, y codificar tarda lo que dura el clip. */
+      if (vSel.length) txt += ' · ≈' + _cineMB(vSel.reduce((a, v) => a + (v.bytes || 0), 0)) + ' de video';
+    }
+    cuentaTxt.textContent = txt;
   };
 
   /* Layout */
@@ -42616,6 +42697,88 @@ function _pptElegirImagenes(imgs, cb) {
   });
   caja.appendChild(layBtns);
 
+  /* ── 🎬 VIDEOS ────────────────────────────────────────────────────────────────────────────
+     Sección aparte y DEBAJO del layout, porque «imágenes por diapositiva» no los gobierna: cada
+     video ocupa una diapositiva propia. Lista vertical y no grilla arrastrable: el orden entre
+     videos no cambia nada —cada uno va solo— y una fila da lugar para decir cuánto dura, cuánto
+     pesa y de dónde salió, que es lo que decide si se incluye. */
+  if (vids.length) {
+    const cont = document.createElement('div');
+    cont.style.cssText = 'margin:4px 0 10px;';
+    const t = document.createElement('div');
+    t.style.cssText = 'font-size:.74rem;font-weight:700;color:var(--text2);text-transform:uppercase;' +
+                      'letter-spacing:.4px;margin-bottom:6px;';
+    t.textContent = '🎬 Videos del estudio';
+    cont.appendChild(t);
+    /* Si el navegador no puede producir MP4, los cineloops NO se pueden incluir y se dice ACÁ,
+       antes de que el médico los tilde — no en un toast después de esperar la generación. */
+    const sinMp4 = !_cinePptMime();
+    if (sinMp4 && vids.some(v => v.clase === 'cine')) {
+      const w = document.createElement('p');
+      w.style.cssText = 'font-size:11px;color:var(--orange);margin:0 0 6px;';
+      w.textContent = 'Este navegador no puede generar video MP4, así que los cineloops DICOM no ' +
+                      'se pueden incluir en el PPT. Los videos MP4 del estudio sí.';
+      cont.appendChild(w);
+    }
+    vids.forEach(v => {
+      const esCineSinSop = (v.clase === 'cine' && sinMp4);
+      const fila = document.createElement('label');
+      fila.setAttribute('data-ppt-vid', v.k);
+      fila.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px;border-radius:8px;' +
+                           'background:var(--bg3);border:1px solid var(--border);margin-bottom:5px;' +
+                           (esCineSinSop ? 'opacity:.5;' : 'cursor:pointer;');
+      const ch = document.createElement('input');
+      ch.type = 'checkbox'; ch.checked = false; ch.disabled = esCineSinSop;
+      ch.setAttribute('data-ppt-chk-vid', v.k);
+      ch.onchange = () => { vidMarcados[v.k] = ch.checked; pintar(); };
+      fila.appendChild(ch);
+      /* Miniatura por `.src`, nunca interpolada en HTML. Sin póster va un marcador de texto: un
+         hueco del tamaño de una miniatura se lee como que la imagen no cargó. */
+      if (v.poster && _imgSrcOK(v.poster)) {
+        const im = document.createElement('img');
+        im.src = v.poster; im.alt = '';
+        im.style.cssText = 'width:74px;height:50px;object-fit:cover;border-radius:5px;flex:0 0 auto;';
+        fila.appendChild(im);
+      } else {
+        const ph = document.createElement('div');
+        ph.style.cssText = 'width:74px;height:50px;border-radius:5px;flex:0 0 auto;background:var(--bg2);' +
+                           'display:flex;align-items:center;justify-content:center;font-size:18px;';
+        ph.textContent = '🎬';
+        fila.appendChild(ph);
+      }
+      const txt = document.createElement('div');
+      txt.style.cssText = 'min-width:0;flex:1;';
+      const n1 = document.createElement('div');
+      n1.style.cssText = 'font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+      n1.textContent = v.nombre;
+      txt.appendChild(n1);
+      const n2 = document.createElement('div');
+      n2.style.cssText = 'font-size:10.5px;color:var(--text2);';
+      const partes = [];
+      if (v.clase === 'cine') {
+        partes.push('Cineloop DICOM');
+        if (v.cuadros) partes.push(v.cuadros + ' cuadros');
+        if (v.ms) partes.push((1000 / v.ms).toFixed(1).replace('.0', '') + ' cuadros/s');
+        partes.push('~' + _cineMB(v.bytes) + ' estimados');
+      } else {
+        partes.push('Video MP4');
+        if (v.dur) partes.push(v.dur.toFixed(1) + ' s');
+        if (v.bytes) partes.push(_cineMB(v.bytes));
+      }
+      if (esCineSinSop) partes.push('no disponible en este navegador');
+      n2.textContent = partes.join(' · ');
+      txt.appendChild(n2);
+      fila.appendChild(txt);
+      cont.appendChild(fila);
+    });
+    const nota = document.createElement('p');
+    nota.style.cssText = 'font-size:10.5px;color:var(--text2);margin:2px 0 0;';
+    nota.textContent = 'Cada video ocupa una diapositiva propia. Los cineloops se convierten a ' +
+                       'video con la velocidad que declara el archivo, y eso tarda lo que dura el clip.';
+    cont.appendChild(nota);
+    caja.appendChild(cont);
+  }
+
   const cuentaTxt = document.createElement('div');
   cuentaTxt.style.cssText = 'font-size:11px;color:var(--text2);margin-bottom:10px;';
   caja.appendChild(cuentaTxt);
@@ -42631,16 +42794,27 @@ function _pptElegirImagenes(imgs, cb) {
     b.onclick = fn;
     return b;
   };
-  pie.appendChild(mkBtn('Seleccionar todas', 'btn-ghost',
+  /* Los dos botones gobiernan SÓLO las imágenes, y el rótulo lo dice. Que también tildaran los
+     videos anularía el default de «ninguno», que es deliberado: un clic cómodo no puede meter
+     200 MB en el archivo. */
+  pie.appendChild(mkBtn('Todas las imágenes', 'btn-ghost',
     () => { orden.forEach(i => marcadas[i] = true); pintar(); }, 'todas'));
-  pie.appendChild(mkBtn('Deseleccionar todas', 'btn-ghost',
+  pie.appendChild(mkBtn('Ninguna imagen', 'btn-ghost',
     () => { orden.forEach(i => marcadas[i] = false); pintar(); }, 'ninguna'));
   const cerrar = () => { try { document.body.removeChild(ov); } catch (e) {} };
   pie.appendChild(mkBtn('Cancelar', 'btn-ghost', () => { cerrar(); }, 'cancelar'));
   pie.appendChild(mkBtn('Generar PPT', 'btn-primary', () => {
     const sel = orden.filter(i => marcadas[i]);
+    const vSel = vids.filter(v => vidMarcados[v.k]);
+    /* Aviso de tamaño. El umbral se evalúa sobre el peso de los VIDEOS, que es el que hace grande
+       al archivo: el resto del mazo son decenas de KB. Para los MP4 es el tamaño real del blob;
+       para un cineloop, la estimación por bitrate — la única disponible antes de codificar. */
+    const bytes = vSel.reduce((a, v) => a + (v.bytes || 0), 0);
+    if (bytes > PPT_VIDEO_AVISO_MB * 1048576 &&
+        !confirm('El PPT con videos puede ser grande. ¿Querés continuar?\n\n' +
+                 'Los videos elegidos ocupan alrededor de ' + _cineMB(bytes) + '.')) return;
     cerrar();
-    cb({ sel: sel, layout: layout });
+    cb({ sel: sel, layout: layout, vids: vSel });
   }, 'generar'));
   caja.appendChild(pie);
 
@@ -43837,8 +44011,11 @@ function _pptDesdeFormulario(inf, tema, presentador){
        o un base64 truncado, que PptxGenJS no codifica y que revienta en writeFile —o sea lejos
        del try/catch de cada addImage, con el mensaje genérico que culpa a la conexión—. Es la
        misma política que la app ya aplica al logo y al src de la grilla. */
-    const total = (imgs || []).length;
-    let buenas = (imgs || []).filter(s => s && _imgSrcOK(s.dataURL));
+    /* El denominador del aviso excluye los VIDEOS: un slot de video no es una imagen que «no se
+       pudo incluir por formato», es un video que va a su propia diapositiva. Contarlo acá haría
+       que el médico leyera «1 de 4 imágenes no se pudieron incluir» sobre un mazo completo. */
+    const total = (imgs || []).filter(s => s && s.dataURL && !s.videoId).length;
+    let buenas = (imgs || []).filter(_pptEsImagen);
     /* El descarte no puede ser mudo: son imágenes clínicas que el médico cree que van. */
     if (total > buenas.length) {
       _pptAvisos.push('⚠️ ' + (total - buenas.length) + ' de ' + total +
@@ -43890,6 +44067,86 @@ function _pptDesdeFormulario(inf, tema, presentador){
       conPie(s);
     }
     return buenas.length;
+  }
+
+  /* ══ Diapositivas de VIDEO ══════════════════════════════════════════════════════════════════
+     Una por video, nunca mezcladas con imágenes fijas: es el punto 4 del pedido y además el
+     único reparto posible — `addMedia` reserva un rectángulo con su póster y su control de
+     reproducción, y meter dos en una hoja los deja del tamaño de una estampilla.
+
+     UN MP4 SE EMBEBE TAL CUAL; UN CINELOOP HAY QUE CODIFICARLO. Verificado sobre PptxGenJS
+     3.12.0: `addMedia({type:'video', data:'data:video/mp4;base64,…'})` escribe
+     `ppt/media/media-N-M.mp4` y `[Content_Types].xml` ya declara `mp4` por omisión, así que no
+     agrega partes fantasma —no interfiere con la poda de `_pptxDescargarSaneado`, que borra
+     `Override`, no `Default`—.
+
+     El `cover` se convierte a PNG: la librería escribe el póster SIEMPRE como `preencoded.png`,
+     así que un JPEG con ese nombre queda a merced de que PowerPoint lo sniffee. Sin `cover`
+     pondría su botón de play gris de 55 KB, que en una presentación clínica no dice nada. */
+  async function _pptAgregarVideos(vids) {
+    if (!vids || !vids.length) return 0;
+    let n = 0;
+    for (let i = 0; i < vids.length; i++) {
+      const v = vids[i];
+      if (!v) continue;
+      let dataURL = null, extn = 'mp4';
+      if (v.clase === 'cine') {
+        if (typeof toast === 'function') {
+          toast('🎬 Convirtiendo «' + v.nombre + '» a video (' +
+                Math.round(_cinePptSegundos(v.rec)) + ' s)…');
+        }
+        let blob = null;
+        try { blob = await _cineAMp4(v.rec); } catch (e) { blob = null; }
+        if (!blob) {
+          _pptAvisos.push('⚠️ El cineloop «' + v.nombre + '» no se pudo convertir a video — ' +
+                          'este navegador no genera MP4. La diapositiva no se agregó.');
+          continue;
+        }
+        dataURL = await _blobADataURL(blob);
+      } else {
+        dataURL = await _blobADataURL(v.blob);
+        /* Un .mov es ISO-BMFF igual que un .mp4, pero PowerPoint decide por la EXTENSIÓN de la
+           parte embebida: escribirlo como `.mp4` sería mentirle sobre el contenedor. Va con su
+           extensión y con la salvedad, que es lo verificable. */
+        if (String(v.tipo || '').toLowerCase() === 'video/quicktime') {
+          extn = 'mov';
+          _pptAvisos.push('ℹ️ «' + v.nombre + '» es un .mov: se incrusta igual, pero PowerPoint ' +
+                          'en Windows puede no reproducirlo. Convertirlo a MP4 es lo más seguro.');
+        }
+      }
+      if (!dataURL || dataURL.toLowerCase().indexOf('base64,') < 0) {
+        _pptAvisos.push('⚠️ «' + v.nombre + '» no se pudo leer para incluirlo en el PPT');
+        continue;
+      }
+      const s = nueva();
+      titulo(s, 'Video — ' + _pptTxt(inf.nombre));
+      /* El nombre del archivo va de subtítulo y no en el título: con tres videos, tres hojas con
+         el mismo encabezado no se distinguen entre sí. El título es el que pidió el pedido. */
+      const sub = v.clase === 'cine'
+        ? _pptTxt(v.nombre) + '  ·  cineloop DICOM, ' + (v.cuadros || '?') + ' cuadros' +
+          (v.ms ? ', ' + (1000 / v.ms).toFixed(1).replace('.0', '') + ' cuadros/s (del archivo)' : '')
+        : _pptTxt(v.nombre) + '  ·  video MP4' + (v.dur ? ', ' + v.dur.toFixed(1) + ' s' : '');
+      s.addText(sub, { x:0.5, y:0.9, w:W-1, h:0.24, fontSize:11, color:PPT_C.txt2, fontFace:PPT_FONT });
+      /* Marco disponible: desde debajo del subtítulo hasta la banda del pie. El video se centra
+         conservando su relación de aspecto — estirarlo deformaría una imagen con mediciones. */
+      const MX = 0.5, MY = 1.22, MW = W - 1, MH = (H - 0.68) - MY;
+      const ar = (v.poster && v.clase === 'cine' && v.rec && v.rec.cols && v.rec.filas)
+        ? (v.rec.cols / v.rec.filas) : (4 / 3);
+      let vw = MW, vh = MW / ar;
+      if (vh > MH) { vh = MH; vw = MH * ar; }
+      let cover = '';
+      try { cover = await _pptPosterPng(v.poster); } catch (e) { cover = ''; }
+      const op = { type: 'video', data: dataURL, extn: extn,
+                   x: MX + (MW - vw) / 2, y: MY + (MH - vh) / 2, w: vw, h: vh };
+      if (cover) op.cover = cover;
+      try { s.addMedia(op); n++; }
+      catch (e) {
+        console.warn('[PPT] video omitido', e);
+        _pptAvisos.push('⚠️ «' + v.nombre + '» no se pudo incrustar en el PPT');
+      }
+      conPie(s);
+    }
+    return n;
   }
 
   /* NO se gatea por el toggle, igual que el PDF desde la lista. El gate se puso cuando la
@@ -43952,8 +44209,18 @@ function _pptDesdeFormulario(inf, tema, presentador){
        slideMaster por diapositiva en `[Content_Types].xml` y embarca uno solo, y PowerPoint pide
        reparar el archivo. Este exportador arrastraba el mismo defecto desde que tiene más de una
        diapositiva; se descubrió al diagnosticar el del Laboratorio. */
-    .then(imgs => { try { _pptAgregarImagenes(imgs); } finally { _pptImgSel = null; }
-                    _pptEnSuma(); _pptCierre(); return _pptxDescargarSaneado(P, nombreArch); })
+    /* Orden: imágenes → VIDEOS → En Suma → cierre. Los videos van con las imágenes porque son
+       material gráfico del estudio, y el En Suma tiene que quedar después de todo eso.
+       `_pptImgSel` se limpia en el `finally` y SÓLO ahí: si sobreviviera, el PPT siguiente
+       saldría con la selección —y con los videos— del anterior. */
+    .then(async imgs => {
+      try {
+        _pptAgregarImagenes(imgs);
+        await _pptAgregarVideos(_pptImgSel && _pptImgSel.vids);
+      } finally { _pptImgSel = null; }
+      _pptEnSuma(); _pptCierre();
+      return _pptxDescargarSaneado(P, nombreArch);
+    })
     .then(() => {
       if (typeof toast !== 'function') return;
       /* Los avisos ganan sobre el ✅: si algo puede haber quedado fuera del marco, eso es lo
@@ -50236,6 +50503,149 @@ const CeiboCine = (function () {
 window.CeiboCine = CeiboCine;
 
 const CINE_AVISO_MB = 50;          // el umbral del pedido, por archivo
+
+/* ══ CINELOOP → MP4, PARA EL PPT ══════════════════════════════════════════════════════════════
+   UN CINELOOP DICOM ES UNA SECUENCIA DE JPEG, NO UN VIDEO. PowerPoint no reproduce una secuencia
+   de imágenes: para que se vea como video hay que CODIFICARLA, y la única vía sin agregar una
+   dependencia al archivo es `MediaRecorder` sobre un canvas.
+
+   TIENE QUE SER MP4/H.264. PowerPoint no reproduce WebM (VP8/VP9), así que si el navegador no
+   ofrece `video/mp4` NO hay respaldo: se declara y el cineloop no va. Bajar a WebM produciría un
+   .pptx que se abre bien, con una diapositiva donde el video no arranca — el modo de falla que
+   se descubre proyectando.
+
+   Y LA GRABACIÓN ES EN TIEMPO REAL: un loop de 172 cuadros a 56/s tarda sus 3 segundos de reloj.
+   No es un defecto que se pueda optimizar acá; es cómo funciona MediaRecorder. */
+const CINE_PPT_BPS = 2500000;      // bits/s del codificador. También es la base de la estimación
+                                   // de tamaño: se puede estimar porque el bitrate lo fijamos.
+const CINE_PPT_MIN_S = 3;          // duración mínima del clip, por repeticiones ENTERAS del loop
+const _CINE_PPT_MIMES = ['video/mp4;codecs=avc1.42E01E', 'video/mp4;codecs=avc1', 'video/mp4'];
+
+function _cinePptMime() {
+  if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return null;
+  for (let i = 0; i < _CINE_PPT_MIMES.length; i++) {
+    try { if (MediaRecorder.isTypeSupported(_CINE_PPT_MIMES[i])) return _CINE_PPT_MIMES[i]; } catch (e) {}
+  }
+  return null;
+}
+
+/* Cuántas veces se repite el loop para llegar a CINE_PPT_MIN_S. Repetir NO cambia la velocidad
+   —que es lo que el pedido fija— y evita el clip de medio segundo que parpadea y se acabó. */
+function _cinePptReps(cuadros, ms) {
+  const dur = (cuadros * ms) / 1000;
+  if (!(dur > 0)) return 1;
+  return Math.max(1, Math.min(20, Math.ceil(CINE_PPT_MIN_S / dur)));
+}
+function _cinePptMs(rec) { return Math.max(20, (rec && rec.ms) || 40); }
+function _cinePptSegundos(rec) {
+  const ms = _cinePptMs(rec), n = Math.max(1, (rec && rec.cuadros) || 1);
+  return (n * ms / 1000) * _cinePptReps(n, ms);
+}
+/* Estimación del peso del clip, para el aviso de tamaño. Es una ESTIMACIÓN y se rotula como tal:
+   el tamaño real sólo se conoce después de codificar, y codificar tarda lo que dura el clip. */
+function _cinePptBytesEst(rec) { return Math.round(_cinePptSegundos(rec) * CINE_PPT_BPS / 8); }
+
+/* Codifica un registro de `CeiboCine` a un Blob MP4. Devuelve `null` si no se pudo —sin soporte
+   de MP4, sin cuadros, o el codificador falló—, nunca un WebM de consuelo. */
+async function _cineAMp4(rec, onProg) {
+  const mime = _cinePptMime();
+  if (!mime || !rec) return null;
+  let loop;
+  try { loop = _cineDesdeRegistro(rec); } catch (e) { return null; }
+  const frags = loop && loop.d && loop.d.frags;
+  if (!frags || !frags.length) return null;
+  /* H.264 exige dimensiones PARES: un ancho impar hace fallar al codificador con un error que no
+     dice eso. Y el tamaño sale del primer cuadro DECODIFICADO, no de `cols`/`filas` del
+     encabezado: en los 22 archivos del pendrive son el mismo número, pero el que manda para
+     dibujar es el del JPEG. */
+  let bmp0 = null;
+  try { bmp0 = await createImageBitmap(new Blob([frags[0]], { type: 'image/jpeg' })); }
+  catch (e) { return null; }
+  const cv = document.createElement('canvas');
+  cv.width  = Math.max(2, bmp0.width  & ~1);
+  cv.height = Math.max(2, bmp0.height & ~1);
+  const ctx = cv.getContext('2d');
+  ctx.drawImage(bmp0, 0, 0, cv.width, cv.height);
+  try { bmp0.close(); } catch (e) {}
+  /* `captureStream(0)`: los cuadros se capturan SÓLO cuando se pide `requestFrame()`, así que el
+     ritmo lo marca este bucle y no el compositor del navegador. */
+  let stream, track, mr;
+  try {
+    stream = cv.captureStream(0);
+    track = stream.getVideoTracks()[0];
+    if (!track || typeof track.requestFrame !== 'function') return null;
+    mr = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: CINE_PPT_BPS });
+  } catch (e) { return null; }
+  const trozos = [];
+  const fin = new Promise(resolve => {
+    mr.ondataavailable = ev => { if (ev.data && ev.data.size) trozos.push(ev.data); };
+    mr.onstop  = () => resolve(trozos.length ? new Blob(trozos, { type: 'video/mp4' }) : null);
+    mr.onerror = () => resolve(null);
+  });
+  const ms = _cinePptMs({ ms: loop.d.msCuadro });
+  const total = frags.length * _cinePptReps(frags.length, ms);
+  try { mr.start(); } catch (e) { return null; }
+  const t0 = performance.now();
+  try {
+    for (let k = 0; k < total; k++) {
+      const n = k % frags.length;
+      let bmp = null;
+      try { bmp = await createImageBitmap(new Blob([frags[n]], { type: 'image/jpeg' })); } catch (e) {}
+      if (bmp) { ctx.drawImage(bmp, 0, 0, cv.width, cv.height); try { bmp.close(); } catch (e) {} }
+      try { track.requestFrame(); } catch (e) {}
+      if (typeof onProg === 'function' && k % 20 === 0) { try { onProg(k, total); } catch (e) {} }
+      /* Espera contra el reloj ABSOLUTO y no `setTimeout(ms)` a secas: decodificar cuesta ~2 ms y
+         con la espera relativa el clip se alarga y el eco se ve más lento que en el visor — que
+         es justo lo que `_cineFps` vino a evitar. */
+      const espera = t0 + (k + 1) * ms - performance.now();
+      if (espera > 0) await new Promise(r => setTimeout(r, espera));
+    }
+    /* Un cuadro más de cola: sin esto el último queda con duración ~0 y el clip corta antes. */
+    await new Promise(r => setTimeout(r, ms));
+  } catch (e) {}
+  try { mr.stop(); } catch (e) {}
+  try { track.stop(); } catch (e) {}
+  return await fin;
+}
+
+/* Póster → PNG. PptxGenJS escribe el `cover` de un `addMedia` SIEMPRE como `preencoded.png`,
+   con `ContentType="image/png"`: pasarle el JPEG del póster mete bytes JPEG en un archivo .png y
+   deja la miniatura a merced de que PowerPoint sniffee el contenido. Se reencoda a PNG, que es
+   lo que la parte declara ser. Devuelve '' si no se pudo — ahí la librería pone su botón de play
+   gris, que es feo pero no rompe el archivo. */
+function _pptPosterPng(dataURL) {
+  return new Promise(resolve => {
+    if (!dataURL || typeof _imgSrcOK !== 'function' || !_imgSrcOK(dataURL)) return resolve('');
+    try {
+      const im = new Image();
+      let listo = false;
+      const fin = r => { if (!listo) { listo = true; resolve(r); } };
+      im.onload = () => {
+        try {
+          const c = document.createElement('canvas');
+          c.width = im.naturalWidth || 320; c.height = im.naturalHeight || 240;
+          c.getContext('2d').drawImage(im, 0, 0);
+          fin(c.toDataURL('image/png'));
+        } catch (e) { fin(''); }
+      };
+      im.onerror = () => fin('');
+      im.src = dataURL;
+      setTimeout(() => fin(''), 5000);
+    } catch (e) { resolve(''); }
+  });
+}
+
+/* Blob → dataURL. `addMedia` de PptxGenJS exige que el `data` traiga el encabezado base64. */
+function _blobADataURL(blob) {
+  return new Promise(resolve => {
+    try {
+      const fr = new FileReader();
+      fr.onload  = () => resolve(String(fr.result || ''));
+      fr.onerror = () => resolve(null);
+      fr.readAsDataURL(blob);
+    } catch (e) { resolve(null); }
+  });
+}
 
 /* El almacenamiento del navegador es «best-effort»: medido acá, `persisted` arranca en
    false, y con el disco lleno el navegador puede desalojar el origen ENTERO sin avisar.
@@ -66032,8 +66442,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260920-1915';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789942551431;                 /* eco-build-ms */
+const ECO_BUILD    = '20260920-2309';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789956582003;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -66119,7 +66529,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-1915</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260920-2309</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -11,6 +11,119 @@ ninguna es evidente leyendo el código alrededor.
 
 
 
+## Videos en el PPT: el MP4 se embebe, el cineloop hay que CODIFICARLO (TC-213)
+
+Sección «🎬 Videos del estudio» en el selector del PPT, y una diapositiva por video.
+
+### La premisa del pedido tenía un paso de menos, y ése era todo el problema
+
+«El cineloop se convierte a secuencia de frames JPEG y se embebe como video» — **una secuencia de
+JPEG no es un video**. PowerPoint no reproduce una secuencia de imágenes: hay que **codificarla**,
+y la única vía sin agregar una dependencia al archivo es `MediaRecorder` sobre un canvas.
+
+**TIENE QUE SER MP4/H.264. PowerPoint no reproduce WebM**, así que si el navegador no ofrece
+`video/mp4` no hay respaldo: se declara en el panel —antes de que el médico lo tilde— y el
+cineloop no va. Bajar a WebM produciría un `.pptx` que abre perfecto y con una diapositiva donde
+el video no arranca: el modo de falla que se descubre proyectando.
+
+Medido: Chrome 148 soporta `video/mp4;codecs=avc1.42E01E`. **Safari no se verificó** —el navegador
+está concedido a nivel «lectura»—, y ahí `MediaRecorder` tiene su propia historia.
+
+**Y la grabación es EN TIEMPO REAL**: un loop de 172 cuadros a 56/s tarda sus 3 segundos de reloj.
+No se puede optimizar; es cómo funciona `MediaRecorder`. El panel lo dice y hay un toast por
+cineloop con la duración.
+
+### El póster de un video salía como foto muda en la grilla — defecto PREEXISTENTE
+
+El slot de un video lleva su primer cuadro como `dataURL`, y `_pptImgsDeEstudio` sólo filtraba por
+`_imgSrcOK`: **el PPT venía incluyendo ese cuadro como una imagen fija más**, mientras el PDF lo
+excluye desde el día que se agregaron los videos. Con la sección nueva el mismo video habría
+salido **dos veces**, como foto y como video.
+
+Hoy el filtro es **uno solo** —`_pptEsImagen`, con `!s.videoId`— y lo comparten el selector y el
+generador. Que sea uno solo no es prolijidad: `_pptImgSel.sel` son POSICIONES sobre esa lista, así
+que dos criterios hacen que el médico tilde la imagen 3 y al PPT vaya otra. Es la trampa que este
+archivo ya documenta para el selector de imágenes, por la puerta de al lado.
+
+**El denominador del aviso de descarte también tuvo que excluirlos**, o el médico leía «1 de 4
+imágenes no se pudieron incluir por formato» sobre un mazo completo.
+
+### La velocidad sale del archivo, y los videos arrancan SIN TILDAR
+
+- `_cinePptMs` lee `ms` del registro —el `FrameTime` del DICOM— y el clip **repite el loop entero**
+  hasta pasar `CINE_PPT_MIN_S` (3 s). Repetir **no cambia la velocidad**, que es lo que el pedido
+  fija, y evita el clip de medio segundo que parpadea y se acabó. La espera del bucle va contra el
+  reloj **absoluto**: con `setTimeout(ms)` a secas, los ~2 ms de decodificar alargan el clip y el
+  eco se ve más lento que en el visor — justo lo que `_cineFps` vino a evitar.
+- **Ninguno tildado por defecto.** Un video pesa entre cien y mil veces más que una imagen, así que
+  el default tiene que ser la decisión barata. Por lo mismo «Todas las imágenes» **no** toca los
+  videos, y el rótulo lo dice.
+
+### El aviso de tamaño es una ESTIMACIÓN, y se puede estimar porque fijamos el bitrate
+
+El tamaño real de un cineloop sólo se conoce después de codificar, y codificar tarda lo que dura el
+clip. Como `CINE_PPT_BPS` lo fija la app, `duración × bitrate / 8` es una estimación defendible —
+se rotula «≈» y el peso se muestra **siempre** que haya un video elegido, no sólo al cruzar el
+umbral: el `confirm` llega al apretar «Generar», y para entonces la decisión ya está tomada.
+
+`PPT_VIDEO_AVISO_MB` es constante propia y no `VIDEO_AVISO_MB`: aquél es por ARCHIVO al cargarlo en
+un slot, éste es el TOTAL de video que entra al `.pptx`.
+
+Ojo con la estimación: medido sobre un cineloop sintético de 120×90, estimaba 1,0 MB y el real dio
+**99 KB**. Sobreestima, que es el lado correcto para un aviso.
+
+### Detalles de PptxGenJS 3.12 verificados, no supuestos
+
+- **`addMedia({type:'video', data:'data:video/mp4;base64,…'})` funciona**: escribe
+  `ppt/media/media-N-M.mp4` y `[Content_Types].xml` **ya declara `mp4` por omisión**.
+- **No interfiere con `_pptxDescargarSaneado`**: ese saneador poda `<Override>`, y el mp4 entra
+  como `<Default>`. Verificado sobre un paquete real con un MP4 de 43.182 bytes: la poda quita los
+  2 `Override` fantasma de slideMaster y el video sale **byte por byte igual**.
+- **El `cover` se convierte a PNG.** La librería lo escribe SIEMPRE como `preencoded.png` con
+  `ContentType="image/png"`: pasarle el JPEG del póster mete bytes JPEG en un archivo `.png`. Sin
+  `cover` pone su botón de play gris de 55 KB, que en una presentación clínica no dice nada.
+- **Un `.mov` va con `extn:'mov'` y con la salvedad impresa.** MOV y MP4 son los dos ISO-BMFF, pero
+  PowerPoint decide por la extensión de la parte embebida: escribirlo como `.mp4` sería mentirle
+  sobre el contenedor. Que Windows lo reproduzca **no está verificado** y el aviso lo dice.
+
+### ⚠️ VERIFICACIÓN QUE NO SE PUDO HACER: PowerPoint
+
+Este archivo dice que **PowerPoint es el único oráculo** que decide si un `.pptx` abre sin pedir
+reparación, y que está instalado en esta máquina. **No se pudo usar**: la captura de pantalla falló
+en toda la sesión (`SCContentFilter`), PowerPoint dejó de responder a Apple Events —señal de un
+diálogo modal invisible— y no hay forma de leer qué decía. Lo verificado es **estructural**: el
+paquete descomprimido, los `Content_Types`, los rels y los bytes del MP4 intactos tras el saneo.
+**Abrirlo en PowerPoint queda pendiente** y es lo primero a hacer cuando la captura vuelva.
+
+### Y una trampa del entorno que costó media hora
+
+**`P.write()` NO RESUELVE NUNCA en la pestaña del preview headless.** Medido sobre un mazo
+vainilla de la propia librería, sin una línea de esta app y **sin `addMedia`**: un deck de sólo
+texto también se cuelga. Es el estrangulamiento de timers de una página oculta —la misma familia
+que el `requestAnimationFrame` que colgaba `labGenerarPDF`—, y JSZip trocea con `setTimeout`.
+Parece un defecto del cambio que uno acaba de hacer. **Para verificar un `.pptx` hay que usar el
+harness (`scripts/test_clinico.mjs`), que maneja un Chrome de verdad**, no el preview.
+
+### Dos defectos del propio caso, los dos de denominador
+
+- **`lista[lista.length - 1]` no es «el estudio que acabo de guardar».** El borrado del caso
+  anterior es una escritura **asincrona**, así que en el suite completo la última posición puede
+  seguir siendo la suya: TC-213 generaba el mazo del paciente de TC-210 y la condición del título
+  daba rojo **sobre código sano**. Se resuelve por el `estudioId` que devuelve `__t.guardar()`, con
+  una condición propia que lo afirma. Con `--solo` pasaba; sólo el suite completo lo mostró.
+- **La mitad de «la selección no se hereda» era vacua**: el caso ponía `_pptImgSel` en null y
+  después comprobaba que estuviera en null. Es la lección de TC-210 repetida. Hoy la segunda
+  corrida **no toca la variable** y con la mutación salen 2 diapositivas de video heredadas.
+
+**Seis mutaciones, las seis en rojo y cada una en su condición:** el cineloop embebido como el JPEG
+guardado (el diagnóstico imprime `JF / 832 bytes` en vez de `ftyp`), los videos tildados por
+defecto, el póster de vuelta en la grilla, el aviso de tamaño sin disparar, la selección heredada, y
+la velocidad cableada a 25 cuadros/s.
+
+**TC-210 se puso en rojo y era la señal**: `_pptElegirImagenes` pasó a tres argumentos y el caso le
+pasaba el callback donde van los videos. Reapuntado a la firma nueva con `[]`, que además fija que
+el camino sin videos sigue comportándose igual.
+
 ## Video MP4 en los slots — sólo documentación (TC-212)
 
 Videos del celular u otra fuente. Base **aparte** (`ceibomed_video`, `CeiboVideo`), como
