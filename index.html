@@ -25178,11 +25178,17 @@ function imgRestaurar(uuid) {
        tienda de imágenes, pero los bytes viven en `ceibomed_video`. Sin esto el reproductor
        avisa que el video no está en esta sesión sobre un estudio que sí lo tiene guardado. */
     videoRestaurar(uuid);
+    /* Los ORIGINALES DICOM de las fijas se rehidratan por uuid: el slot vuelve con su `_dcmId`
+       desde la tienda de imágenes, pero los píxeles sin recomprimir y las regiones de escala
+       viven en `ceibomed_cine`. Sin esto el slot tiene la llave y no hay cerradura: medir desde
+       ahí rechazaba con «esta imagen no tiene datos de escala DICOM», que es falso. */
+    medFijasRestaurar(uuid);
     buenas.forEach(s => imgSlots.push({ dataURL: s.dataURL, ampliada: !!s.ampliada,
                                         calidad: (typeof s.calidad === 'string' ? s.calidad : 'media'),
                                         /* `videoId` tiene que viajar o el slot vuelve como FOTO:
                                            se imprimiría en el PDF —con un cuadro que nadie
                                            eligió— y el reproductor desaparecería. */
+                                        _dcmId: (s._dcmId || undefined),
                                         videoId: (s.videoId || undefined),
                                         videoNombre: (s.videoNombre || undefined) }));
     while (imgSlots.length < 2) imgSlots.push(null);
@@ -37248,6 +37254,14 @@ const CeiboImg = (function () {
                                                   él vuelve como foto, se imprime en el PDF y el
                                                   reproductor desaparece. Los bytes viven en
                                                   `ceibomed_video`, no acá. */
+                                               /* `_dcmId` enlaza el slot con su ORIGINAL DICOM
+                                                  en `ceibomed_cine`. Sin él, al reabrir el
+                                                  estudio la imagen está en el slot y no se
+                                                  puede medir desde ahí: el médico recibe el
+                                                  rechazo genérico de «esta imagen no tiene
+                                                  escala», que es falso — la escala está, lo
+                                                  que se perdió es el vínculo. Son ~40 bytes. */
+                                               _dcmId: (s._dcmId || undefined),
                                                videoId: (s.videoId || undefined),
                                                videoNombre: (s.videoNombre || undefined) }));
       /* `.then(r => r)` y no `.then(() => true)`: descartar el resultado del borrado hacía que
@@ -45955,6 +45969,10 @@ function imgRender(){
             'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;' +
             'background:rgba(0,0,0,0.30);color:#fff;font-size:11px;font-weight:700;cursor:pointer;">' +
             '<span style="font-size:30px;line-height:1;">▶️</span>VIDEO · no sale en el PDF</span>' : '')
+        /* Guarda de bloque: `_imgAvisoMedir` vive en el bloque del visor y esto se dibuja desde
+           el de imágenes. Sin el `typeof`, un bloque que deje de parsear —ya pasó dos veces en
+           este archivo— se llevaría puesta la grilla ENTERA por un cartel. */
+        + (typeof _imgAvisoMedir === 'function' ? _imgAvisoMedir(slot) : '')
         + '<button type="button" title="Eliminar" onclick="imgRemove(event,'+idx+')" style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>'
         + _imgSelectorCalidad(slot, idx);
     } else {
@@ -46696,7 +46714,7 @@ async function dcmImgImportar(fileList, slotPreferido) {
        persiste (ver la nota del módulo). */
     if (_cinePuedeGuardar().ok) {
       for (const x of listos) {
-        try { await medFijaGuardar(_medFijas[x._medId]); } catch (e) {}
+        try { await medFijaGuardar(_medFijas[x._medId], x._medId); } catch (e) {}
       }
       await cineStripRender();
     }
@@ -50519,9 +50537,55 @@ function _medFlushPendientes() {
   });
 }
 
+/* ⚠️ EL CARTEL SE GATEA POR LO CONTRARIO DE LO QUE PARECE. El pedido decía «sólo en slots con
+   imagen DICOM, los que tienen `_dcmId`» — y ese gate lo mostraría justo cuando NO hace falta:
+   con `_dcmId` resuelto, medir desde el slot FUNCIONA. Lo que el médico ve es el caso inverso:
+   una imagen que salió de un DICOM y perdió el vínculo con su original, que es cuando
+   `medFijaClic` rechaza con «esta imagen no tiene datos de escala» — un mensaje falso, porque
+   la escala existe.
+
+   Desde este commit el vínculo SOBREVIVE al reabrir el estudio, así que el caso queda acotado a
+   dos: los estudios guardados ANTES del cambio, y los que se guardaron con «Guardar imágenes con
+   los estudios» apagado —ahí `medFijaGuardar` nunca escribió el original—. Para ésos el cartel
+   dice dónde está la imagen, en vez de dejar al médico con un rechazo que lo manda a buscar un
+   problema de la imagen que no existe.
+
+   Ni fotos ni videos: una foto nunca tuvo escala y un video tiene su propio badge. */
+function _imgAvisoMedir(slot) {
+  if (!slot || !slot.dataURL || slot.videoId) return '';
+  if (!slot._dcmId) return '';                 // no salió de un DICOM: nada que explicar
+  if (_medFijas[slot._dcmId]) return '';       // el original está: se mide desde el slot
+  return '<span data-img-aviso-medir="1" style="position:absolute;left:0;right:0;bottom:0;' +
+         'background:rgba(0,0,0,0.62);color:#fff;font-size:9.5px;line-height:1.25;padding:3px 5px;' +
+         'text-align:center;pointer-events:none;">📏 Para medir esta imagen, usá la tira DICOM de abajo</span>';
+}
+
 function _medFijaDe(slot) {
   return (slot && slot._dcmId && _medFijas[slot._dcmId]) || null;
 }
+
+/* Repuebla `_medFijas` desde `ceibomed_cine` para un estudio. Es la contraparte de
+   `videoRestaurar`: `_medFijas` es memoria de la SESIÓN, así que sin esto un estudio reabierto
+   —o la misma página recargada— deja los slots con un `_dcmId` que no resuelve a nada.
+
+   ⚠️ SE EMPAREJA POR id, y por eso `medFijaGuardar` tiene que escribir el registro con el MISMO
+   id que lleva el slot. Emparejar por posición u orden sería adivinar: un estudio puede tener
+   varias fijas y los slots se reordenan arrastrando. */
+function medFijasRestaurar(uuid) {
+  if (typeof CeiboCine === 'undefined' || !_uuidValido(uuid)) return Promise.resolve(0);
+  return CeiboCine.listar(uuid).then(recs => {
+    let n = 0;
+    (recs || []).forEach(r => {
+      if (!r || r.tipo !== 'fija' || !r.id || _medFijas[r.id]) return;
+      try { _medFijas[r.id] = _cineDesdeRegistro(r); n++; } catch (e) {}
+    });
+    /* El modo medición pinta el realce leyendo los slots, así que si ya estaba encendido hay
+       que repintarlo: recién ahora esos slots son medibles. */
+    if (n && _medFijaOn && typeof imgRender === 'function') { try { imgRender(); } catch (e) {} }
+    return n;
+  }).catch(() => 0);
+}
+window.medFijasRestaurar = medFijasRestaurar;
 
 /* ── Modo medición sobre los slots ──────────────────────────────────────────────────────
    Ni `imgRender` ni las celdas se tocan. El realce y el cursor salen de una regla CSS
@@ -51394,7 +51458,11 @@ const _cineMB = b => (b / 1048576).toFixed(b < 10485760 ? 1 : 0) + ' MB';
 /* Arma el registro a guardar: los cuadros concatenados en UN solo buffer más la tabla de
    offsets. Guardar 172 objetos sueltos es más lento de leer y de escribir, y la tabla es
    exactamente lo que el formato ya usaba adentro del .dcm. */
-function _cineRegistro(uuid, loop, poster) {
+/* `idFijo` existe para las IMÁGENES FIJAS: el slot lleva su `_dcmId` y el registro de disco
+   tiene que usar ESE mismo id, o al reabrir el estudio no hay forma de emparejarlos. Con dos
+   identificadores distintos, el slot vuelve con una llave que no abre ninguna cerradura. Un
+   cineloop no lo pasa y sigue acuñando el suyo. */
+function _cineRegistro(uuid, loop, poster, idFijo) {
   const frags = loop.d.frags;
   let total = 0; frags.forEach(f => { total += f.length; });
   const datos = new Uint8Array(total);
@@ -51402,7 +51470,7 @@ function _cineRegistro(uuid, loop, poster) {
   let p = 0;
   frags.forEach((f, i) => { offs[i] = p; datos.set(f, p); p += f.length; });
   return {
-    id: (typeof _uuidNuevo === 'function' ? _uuidNuevo() : String(Date.now()) + Math.random()),
+    id: idFijo || (typeof _uuidNuevo === 'function' ? _uuidNuevo() : String(Date.now()) + Math.random()),
     uuid, nombre: loop.nombre, cuadros: loop.cuadros,
     tipo: (loop.cuadros > 1 ? 'loop' : 'fija'),
     ms: loop.d.msCuadro || 0, cols: loop.d.cols || 0, filas: loop.d.filas || 0,
@@ -51498,7 +51566,7 @@ window.cineGuardarActual = cineGuardarActual;
    ni un segundo lugar donde revisar el espacio. Se devuelve false en silencio ante un fallo:
    medir sigue andando en memoria, y llenar la pantalla de avisos por cada imagen de un lote
    sería peor que el problema. */
-async function medFijaGuardar(fija) {
+async function medFijaGuardar(fija, id) {
   if (!fija || !_cinePuedeGuardar().ok) return false;
   const bytes = fija.d.frags.reduce((a, f) => a + f.length, 0);
   try {
@@ -51512,7 +51580,7 @@ async function medFijaGuardar(fija) {
       fr.readAsDataURL(new Blob([fija.d.frags[0]], { type:'image/jpeg' })); });
     if (url) poster = await _imgComprimir(url, 'mini');
   } catch (e) { poster = ''; }
-  const rec = _cineRegistro(_imgUuidActual, fija, poster);
+  const rec = _cineRegistro(_imgUuidActual, fija, poster, id);
   const r = await CeiboCine.guardar(rec);
   if (r.ok) _cinePersistir();
   return r.ok;
@@ -67169,8 +67237,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260921-0653';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789984403026;                 /* eco-build-ms */
+const ECO_BUILD    = '20260921-0708';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789985288461;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -67256,7 +67324,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-0653</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-0708</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

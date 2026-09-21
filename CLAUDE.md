@@ -11,6 +11,51 @@ ninguna es evidente leyendo el código alrededor.
 
 
 
+## Medir desde el slot tras reabrir — y el arreglo «de una palabra» que NO alcanzaba (TC-216)
+
+### La premisa del pedido estaba INVERTIDA
+
+Pedía un cartel «📏 para medir usá la tira de abajo» **en los slots que tienen `_dcmId`**. Con
+`_dcmId` resuelto, medir desde el slot **funciona** — `medFijaClic` → `_medFijaDe` lo exige. O sea
+que ese gate mostraría el cartel justo cuando **no hace falta**, y en el caso que el pedido
+describe —estudio reabierto— **no aparecería nunca**, porque `_dcmId` no viajaba al disco.
+
+El cartel va gateado por lo **contrario**: slot con imagen, **con** `_dcmId`, y **sin** original en
+`_medFijas`. La mutación que restaura el gate del pedido imprime el patrón `false,true,true,false`
+sobre cuatro slots — el cartel apareciendo también en el que sí se puede medir.
+
+### ⚠️ Y el arreglo «de una palabra» que este archivo anotaba ERA FALSO
+
+La entrada de TC-188 decía: *«alcanza con sumar `_dcmId` a esa lista blanca — es una palabra»*.
+**No alcanza**, y verificarlo costó diez minutos:
+
+- **`_medFijas` es memoria pura** (`Object.create(null)`, poblado sólo por `_medFijaRegistrar` en
+  la importación). No sobrevive ni a recargar la página.
+- **`_cineRegistro` acuñaba su propio `id`** con `_uuidNuevo()`, **distinto** del `_dcmId` del
+  slot. Así que aunque el `_dcmId` viajara, el registro de disco no se podía emparejar con él.
+
+O sea que el slot volvía con **la llave y sin cerradura**. Hoy son tres piezas y hacen falta las
+tres: `_dcmId` en la lista blanca de `CeiboImg.guardar`, `_cineRegistro(uuid, loop, poster,
+idFijo)` para que el registro use **el mismo id**, y **`medFijasRestaurar(uuid)`** —contraparte de
+`videoRestaurar`— que rehidrata `_medFijas` desde `ceibomed_cine`. Cada una tiene su mutación y
+las tres ponen en rojo «SE PUEDE MEDIR DESDE EL SLOT».
+
+**Al emparejar, por `id` y nunca por posición**: un estudio puede tener varias fijas y los slots
+se reordenan arrastrando.
+
+### Lo que queda sin poder medirse desde el slot, y por eso el cartel sigue
+
+Dos casos, los dos reales: estudios guardados **antes** de este cambio, y los guardados con
+«Guardar imágenes con los estudios» **apagado** —ahí `medFijaGuardar` corta en
+`_cinePuedeGuardar()` y el original nunca se escribió—. Para ésos el rechazo genérico decía «esta
+imagen no tiene datos de escala DICOM», que es **falso**: la escala existe, lo que se perdió es el
+vínculo. El cartel dice dónde está la imagen en vez de mandar a buscar un problema que no hay.
+
+**El cartel lleva `pointer-events:none`** —si no, tapa el clic del propio slot— y se llama con
+`typeof _imgAvisoMedir === 'function'`: vive en el bloque del visor y se dibuja desde el de
+imágenes, y este archivo ya se quedó sin JavaScript dos veces por un bloque que dejó de parsear.
+Sin la guarda, un cartel se llevaría puesta **la grilla entera**.
+
 ## Backup por niveles, y el techo que lo impone el MOTOR (TC-215)
 
 Tres niveles al exportar: **📄 Solo informes · 🖼️ Informes + imágenes · 💾 Backup completo**, con

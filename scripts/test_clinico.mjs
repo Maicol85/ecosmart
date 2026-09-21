@@ -17016,6 +17016,144 @@ caso('TC-215', 'Backup por niveles: informes / + imagenes / completo, con ida y 
   })();
 `);
 
+
+/* == TC-216 - Medir desde el slot tras reabrir, y el cartel para cuando no se puede ==========
+   LA PREMISA DEL PEDIDO ESTABA INVERTIDA: pedia el cartel «solo en slots con _dcmId», y con
+   _dcmId resuelto medir desde el slot FUNCIONA — el cartel saldria justo cuando no hace falta
+   y faltaria en el caso que el pedido describe.
+   Y el arreglo «de una palabra» que este archivo anotaba NO ALCANZABA: `_medFijas` es memoria
+   de la sesion y `_cineRegistro` acunaba su propio id, distinto del `_dcmId` del slot. Hoy los
+   dos comparten id y `medFijasRestaurar` rehidrata desde `ceibomed_cine`.
+   NO DEPENDE DEL PENDRIVE: el original se arma con un canvas.                                */
+caso('TC-216', 'Slots DICOM: medir tras reabrir el estudio, y el cartel cuando no se puede', `
+  return (async () => {
+    const R = {};
+    const toastOrig = window.toast, alertOrig = window.alert, confOrig = window.confirm;
+    const dichos = [];
+    window.toast = () => {}; window.alert = m => dichos.push(String(m)); window.confirm = () => true;
+    let id = null, uuid = null;
+    try {
+      localStorage.setItem('cfg-guardar-imagenes','1');
+      showTab('imagenes');
+      const c = document.createElement('canvas'); c.width=40; c.height=30;
+      const g=c.getContext('2d'); g.fillStyle='rgb(200,30,30)'; g.fillRect(0,0,40,30);
+      const png = c.toDataURL('image/png');
+      /* un JPEG de verdad para el ORIGINAL: es lo que el visor decodifica al medir */
+      const c2 = document.createElement('canvas'); c2.width=60; c2.height=45;
+      c2.getContext('2d').fillRect(0,0,60,45);
+      const jb = await new Promise(r=>c2.toBlob(r,'image/jpeg',0.8));
+      const jpeg = new Uint8Array(await jb.arrayBuffer());
+
+      /* -- 1 - EL CARTEL: solo en el slot DICOM SIN original -- */
+      __t.limpiar(); imgVaciar();
+      const idOk = _uuidNuevo(), idHuerfano = _uuidNuevo();
+      _medFijas[idOk] = { nombre:'x', cuadros:1,
+        d:{ frags:[jpeg], cols:60, filas:45, msCuadro:0, regiones:[] } };
+      imgSlots.length = 0;
+      imgSlots.push({ dataURL: png, ampliada:false, calidad:'media' });
+      imgSlots.push({ dataURL: png, ampliada:false, calidad:'media', _dcmId: idOk });
+      imgSlots.push({ dataURL: png, ampliada:false, calidad:'media', _dcmId: idHuerfano });
+      imgSlots.push({ dataURL: png, ampliada:false, calidad:'media', videoId:'v1', videoNombre:'v.mp4' });
+      imgSlotCount = imgSlots.length;
+      imgRender();
+      await new Promise(r=>setTimeout(r,200));
+      const cel = document.querySelectorAll('#img-grid > div');
+      R.celdas = cel.length;
+      R.patron = Array.prototype.map.call(cel, x => !!x.querySelector('[data-img-aviso-medir]')).join(',');
+      R.soloHuerfano = R.patron === 'false,false,true,false';
+      const av = cel[2] ? cel[2].querySelector('[data-img-aviso-medir]') : null;
+      R.texto = av ? av.textContent : '(no)';
+      R.textoOk = R.texto.indexOf('Para medir esta imagen') >= 0 &&
+                  R.texto.indexOf('tira DICOM de abajo') >= 0;
+      /* el slot NO se rompe */
+      R.slotIntacto = Array.prototype.every.call(cel, x =>
+        !!x.querySelector('img') && !!x.querySelector('button[title=\\"Eliminar\\"]'));
+      R.videoBadge = !!cel[3].querySelector('[data-video-badge]');
+      R.noTapaClics = !!av && av.style.pointerEvents === 'none';
+
+      /* -- 2 - EL VINCULO SOBREVIVE: guardar, vaciar memoria y reabrir -- */
+      __t.limpiar(); imgVaciar();
+      const idFija = _uuidNuevo();
+      _medFijas[idFija] = { nombre:'A4C · imagen fija', cuadros:1,
+        d:{ frags:[jpeg], cols:60, filas:45, msCuadro:0, fabricante:'GE', modelo:'Vivid',
+            regiones:[{ tipo:1, x0:0, y0:0, x1:59, y1:44, ux:3, uy:3, dx:0.04, dy:0.04 }] } };
+      imgSlots.length = 0;
+      imgSlots.push({ dataURL: png, ampliada:false, calidad:'media', _dcmId: idFija });
+      imgSlots.push(null);
+      imgSlotCount = 2;
+      document.getElementById('nombre').value = 'Paciente DICOM';
+      document.getElementById('informe_texto').value = 'Informe.';
+      const gg = await __t.guardar();
+      await new Promise(r=>setTimeout(r,700));
+      const L = CeiboStore.getLocal();
+      const est = L.filter(x => x.estudioId === gg.estudioId)[0];
+      id = est ? est.id : null; uuid = est ? est.uuid : null;
+      R.tieneUuid = !!uuid;
+      if (!R.tieneUuid) return { extra: [['el estudio guardado tiene uuid', false, 'sin uuid']] };
+      /* el original se persiste con el MISMO id que lleva el slot */
+      _imgUuidActual = uuid;
+      await medFijaGuardar(_medFijas[idFija], idFija);
+      const recs = await CeiboCine.listar(uuid);
+      const fijas = (recs||[]).filter(r => r.tipo === 'fija');
+      R.fijaEnDisco = fijas.length === 1;
+      R.mismoId = R.fijaEnDisco && fijas[0].id === idFija;
+      /* el _dcmId viaja en la tienda de imagenes */
+      const slots = await CeiboImg.leer(uuid);
+      R.dcmIdEnDisco = !!(slots && slots[0] && slots[0]._dcmId === idFija);
+
+      /* VACIAR LA MEMORIA: es lo que pasa al recargar la pagina */
+      delete _medFijas[idFija];
+      __t.limpiar(); imgVaciar();
+      R.memoriaVacia = !_medFijas[idFija];
+      editarInforme(id);
+      await new Promise(r=>setTimeout(r,250));
+      const ok = document.getElementById('edit-ok');
+      R.hayModal = !!ok; if (ok) ok.click();
+      await new Promise(r=>setTimeout(r,1800));
+      R.slotVolvio = !!(imgSlots[0] && imgSlots[0].dataURL);
+      R.dcmIdVolvio = !!(imgSlots[0] && imgSlots[0]._dcmId === idFija);
+      R.originalRehidratado = !!_medFijas[idFija];
+      /* LO QUE IMPORTA: se puede medir DESDE EL SLOT */
+      const fija = _medFijaDe(imgSlots[0]);
+      R.sePuedeMedir = !!(fija && fija.d && fija.d.frags && fija.d.frags.length === 1 &&
+                          fija.d.cols === 60 && (fija.d.regiones||[]).length === 1);
+      imgRender(); await new Promise(r=>setTimeout(r,200));
+      R.sinCartelCuandoSePuede = !document.querySelector('[data-img-aviso-medir]');
+
+      /* -- 3 - y el cartel SI sale cuando el original no esta -- */
+      delete _medFijas[idFija];
+      imgRender(); await new Promise(r=>setTimeout(r,200));
+      R.cartelCuandoFalta = !!document.querySelector('[data-img-aviso-medir]');
+    } catch (e) { R.excepcion = String(e && e.message || e); }
+    finally {
+      window.toast = toastOrig; window.alert = alertOrig; window.confirm = confOrig;
+      try { const m = document.getElementById('edit-ok'); if (m) m.parentNode.parentNode.remove(); } catch (e) {}
+      try { if (uuid) { const rr = await CeiboCine.listar(uuid);
+        for (const r of (rr||[])) await CeiboCine.borrar(r.id);
+        await CeiboImg.guardar(uuid, []); } } catch (e) {}
+      try { if (id !== null) { const L2 = CeiboStore.getLocal();
+        await CeiboStore.setLocal(L2.filter(x => x.id !== id)); } } catch (e) {}
+      try { imgVaciar(); } catch (e) {}
+      localStorage.setItem('cfg-guardar-imagenes','0');
+    }
+    return { extra: [
+      ['cuatro slots dibujados (denominador)',       R.celdas === 4, R.celdas],
+      ['EL CARTEL SALE SOLO en el DICOM sin original', R.soloHuerfano, R.patron],
+      ['con el texto pedido',                        R.textoOk, R.texto],
+      ['no rompe el slot ni el badge de video',      R.slotIntacto && R.videoBadge, R.slotIntacto],
+      ['y no tapa los clics del slot',               R.noTapaClics, R.noTapaClics],
+      ['el original se guarda con EL MISMO id del slot', R.fijaEnDisco && R.mismoId, R.mismoId],
+      ['el _dcmId viaja a la tienda de imagenes',    R.dcmIdEnDisco, R.dcmIdEnDisco],
+      ['la memoria queda vacia (denominador)',       R.memoriaVacia && R.hayModal, R.memoriaVacia],
+      ['AL REABRIR el slot vuelve con su _dcmId',    R.slotVolvio && R.dcmIdVolvio, R.dcmIdVolvio],
+      ['y el ORIGINAL se rehidrata desde disco',     R.originalRehidratado, R.originalRehidratado],
+      ['SE PUEDE MEDIR DESDE EL SLOT, con sus regiones', R.sePuedeMedir, R.sePuedeMedir],
+      ['y ahi el cartel NO aparece',                 R.sinCartelCuandoSePuede, R.sinCartelCuandoSePuede],
+      ['pero SI cuando el original no esta',         R.cartelCuandoFalta, R.cartelCuandoFalta]
+    ] };
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];
