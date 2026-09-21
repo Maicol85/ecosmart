@@ -4,6 +4,110 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Importar un estudio desde Orthanc — y el PatientID que NO es la cédula (TC-223)
+
+Elegir un estudio en el panel baja sus instancias y las mete **por las puertas que ya existen**:
+`dcmImgImportar` para imágenes y cineloops —la misma del botón «Importar DICOM» y del «+» de un
+slot— y `dcmImportarSR` para los informes estructurados. **No hay un segundo lector de DICOM**:
+con dos, el estudio que entra del pendrive y el que entra de Orthanc podrían divergir.
+
+### ⚠️ EL PUNTO 4 DEL PEDIDO REINTRODUCÍA UN DEFECTO YA CERRADO
+
+Pedía cargar «nombre, fecha de nacimiento, **CI**» del DICOM. El **PatientID no es la cédula**:
+en un ecógrafo de hospital es el **número de historia clínica**. El comentario de
+`_dcmPaciente` ya lo documenta, con el daño concreto:
+
+> *«entra en la clave primaria de `_dupKeys` igual que un documento real: un número de historia
+> que coincida con la cédula de otro paciente en la misma fecha hacía que "Actualizar" pisara
+> el nombre y el documento del paciente equivocado y le fusionara adentro las mediciones de
+> este estudio.»*
+
+Acá se respeta: el identificador **se muestra** —con la explicación de por qué no se cargó— y
+**no se escribe en `ci`**. La mutación que lo escribe imprime `ci="HC-88231"` en el diagnóstico.
+
+### Y NO HAY CAMPO DE FECHA DE NACIMIENTO
+
+Los campos de paciente son `nombre`, `ci`, `edad`, `fecha` y `sexo`. La fecha de nacimiento no
+se descarta: se usa con la fecha del estudio para derivar la **EDAD**, que es el campo que
+existe y el que alimenta la superficie corporal.
+
+**⚠️ Y EL PRIMER ESCENARIO DE LA EDAD NO DISCRIMINABA.** Nacido en **marzo** con estudio en
+**septiembre**, el cumpleaños ya pasó, así que con ajuste y sin ajuste da 46 igual: la mutación
+que saca el `a--` **sobrevivió**. El valor que separa las dos implementaciones es un cumpleaños
+que **todavía no llegó** (25/dic → 45, no 46). Es «elegir el valor que distingue el umbral
+correcto del error plausible», otra vez. Se agregó además la banda: sin fecha, o una fecha
+imposible, **no publican un número** — sin ella la mutación devolvía una edad de **−74**.
+
+### Lo demás que se decidió, y por qué
+
+- **Los datos del paciente salen del objeto de Orthanc** (`PatientMainDicomTags`), no de parsear
+  los archivos: es lo que Orthanc ya indexó y evita un tercer parser.
+- **Sólo se escribe lo que está VACÍO.** Pisar lo que el médico tipeó sería peor que no
+  completar: el dato del ecógrafo no es necesariamente el correcto. La mutación que pisa cae.
+- **`sexo` admite sólo `M`/`F`.** DICOM también emite `O`, y asignar un valor que no es opción
+  deja el select **sin selección**, en silencio — lo que este archivo ya documenta con
+  `vab_tipo` y con el centro del encabezado.
+- **`edad` lleva `oninput="calcBSA()"`** y asignar `.value` **no lo dispara**: sin despachar el
+  evento, la superficie corporal queda en blanco con la edad cargada.
+- **El SR NO llena campos solo**, y eso es mejor que lo que pedía el punto 3: `dcmImportarSR`
+  termina en `_dcmRenderPreview()`, o sea una **vista previa que el médico confirma**. El aviso
+  lo dice en vez de prometer un autocompletado que no ocurre.
+- **La clasificación SR vs imagen usa `_dcmImgLeer(buf).sop`**, que expone el SOP Class del
+  meta-grupo **antes** de rechazar por sintaxis de transferencia — o sea que clasifica incluso
+  un archivo que ese lector no sabe dibujar. Sin tercer parser.
+- **Se ordena por `InstanceNumber`**: define en qué orden caen las imágenes en los slots, o sea
+  el orden en que salen en el PDF.
+- **Se cede el hilo en cada vuelta.** Sin eso la pestaña queda congelada y la barra de progreso
+  **no se repinta**: existe y no se ve.
+- **El overlay de progreso es `_bkProgAbrir/_bkProg/_bkProgCerrar`, el del backup**, que ya
+  tiene documentado por qué es overlay y no toast.
+
+### ⚠️ `delete window.<funcion>` NO BORRA NADA, y se lleva puesto el caso siguiente
+
+TC-222 sustituía `orthancImportarEstudio` por un espía y lo «restauraba» con `delete`. **No
+funciona.** Medido en este Chrome sobre esa propiedad:
+
+| | |
+|---|---|
+| `configurable` | **false** |
+| lo que devuelve el `delete` | **false** |
+| qué queda después | **el espía** |
+
+Una **declaración de función en nivel superior** crea una propiedad **no configurable** del
+objeto global, así que borrarla es un **no-op silencioso**. Consecuencia: el espía de TC-222
+sobrevivía, **TC-223 corría contra él** y fallaba entero —`img=-1 sr=-1`— mientras con `--solo`
+daba verde. Es «pasa con --solo y falla en el suite» por **cuarta vez** en este archivo, y la
+primera cuyo culpable es otro caso y no el entorno.
+
+**La forma correcta es guardar y restaurar por ASIGNACIÓN** (la propiedad es `writable: true`),
+y para simular la ausencia, asignar `undefined` en vez de borrar.
+
+**Y lo delató un `assert` del script de parcheo**, no el suite: el comentario que escribí para
+explicar esto contenía la sentencia literal y hacía fallar la guarda final —además de llevar
+**backticks**, que habrían roto el template literal del caso—. El `assert` corre **antes** del
+`write`, así que el archivo no se tocó: es lo que separa «no se aplicó» de «se aplicó mal».
+Backticks dentro del cuerpo de un caso: **van TREINTA Y SEIS**.
+
+### Dos trampas del propio caso
+
+- **Un JPEG hecho a mano no es un JPEG.** El mío tenía tabla de cuantización trucha y ninguna
+  tabla de Huffman: se extraía bien del DICOM y después `imgCompressLoad` **no lo podía abrir**,
+  así que la imagen nunca llegaba al slot y el caso acusaba al importador de un defecto propio.
+  El suite ya tiene un 1×1 decodificable de verdad — hay que usar ése.
+- **Muestrear el DOM con `setInterval(20)` dio CERO.** Con `fetch` sustituido la importación
+  entera dura menos que un tick, así que el overlay nace y muere entre dos muestras. Se
+  **instrumenta la frontera** —envolviendo `_bkProgAbrir`/`_bkProg`— y de paso la condición se
+  vuelve más fuerte: exige «Importando imagen 1/3» **y** «3/3», o sea que la barra avanza.
+
+### Alcance declarado
+
+El camino de la **imagen** se prueba de punta a punta —DICOM sintético que termina en un slot—
+y el del **SR por espía** sobre `dcmImportarSR`: lo que este código decide es **a qué puerta**
+mandar cada archivo, no cómo se lee un SR, que ya cubren TC-143 y los del CHM. **Contra un
+Orthanc real no se probó**: el que hay en la máquina no tiene ningún estudio todavía, y
+subirle uno de prueba para verificar no es algo que deba hacer una verificación.
+
+
 ## Panel de estudios de Orthanc en la tab Imágenes (TC-222)
 
 Botón «🔍 Buscar en Orthanc» junto a «Importar DICOM», visible sólo con Orthanc activado, y un

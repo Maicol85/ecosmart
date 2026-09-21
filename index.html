@@ -67828,8 +67828,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260921-0952';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1789995121861;                 /* eco-build-ms */
+const ECO_BUILD    = '20260921-1011';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1789996310372;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -67915,7 +67915,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-0952</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-1011</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -68926,6 +68926,195 @@ window.orthancElegirEstudio = orthancElegirEstudio;
 /* Al arrancar, por si la preferencia ya venia encendida de una sesion anterior. `showTab`
    lo repinta despues en cada entrada a la tab; esto cubre el primer pintado. */
 if (typeof orthancBotonSync === 'function') { try { orthancBotonSync(); } catch (e) {} }
+
+/* ══ Importar un estudio desde Orthanc ════════════════════════════════════════════════════
+   Baja las instancias y las mete POR LAS PUERTAS QUE YA EXISTEN: `dcmImgImportar` para
+   imágenes y cineloops —la misma del botón «Importar DICOM» y del «+» de un slot— y
+   `dcmImportarSR` para los informes estructurados. No hay un segundo lector de DICOM acá: si
+   lo hubiera, el estudio que entra del pendrive y el que entra de Orthanc podrían divergir.
+
+   ⚠️ EL PUNTO 4 DEL PEDIDO REINTRODUCÍA UN DEFECTO YA CERRADO. Pedía cargar «nombre, fecha de
+   nacimiento, CI» del DICOM. El **PatientID NO es la cédula**: en un ecógrafo de hospital es
+   el número de historia clínica. El comentario de `_dcmPaciente` ya lo documenta y dice el
+   daño concreto —entra en la clave de `_dupKeys` igual que un documento real, así que un
+   número de historia que coincida con la cédula de otro paciente en la misma fecha hacía que
+   «Actualizar» pisara el nombre y el documento del paciente EQUIVOCADO—. Acá se respeta: el
+   id institucional se MUESTRA y no se escribe en `ci`.
+
+   ⚠️ Y NO HAY CAMPO DE FECHA DE NACIMIENTO en esta app: los campos de paciente son `nombre`,
+   `ci`, `edad`, `fecha` y `sexo`. La fecha de nacimiento no se descarta: se usa junto con la
+   fecha del estudio para derivar la EDAD, que es el campo que existe y el que alimenta la
+   superficie corporal.
+
+   Los datos del paciente salen del OBJETO DE ORTHANC (`PatientMainDicomTags`), no de parsear
+   los archivos: es lo que Orthanc ya indexó, y evita un tercer parser.
+
+   NADA SALE DE LA MÁQUINA: todo el tráfico es contra la dirección configurada, que es el
+   Orthanc del propio médico. */
+var _ORTH_MAX_INST = 200;
+var _orthImportando = false;
+
+async function _orthGetJSON(url) {
+  var r = await fetch(url, { cache: 'no-store' });
+  if (!r || !r.ok) throw new Error('HTTP ' + (r ? r.status : '?'));
+  return await r.json();
+}
+
+/* M / F y nada más: el select tiene sólo esas dos opciones más la vacía, y DICOM también
+   emite «O». Asignar un valor que no es opción deja el select SIN SELECCIÓN —silencioso— que
+   es lo que este archivo documenta con `vab_tipo` y con el centro del encabezado. */
+function _orthSexo(v) {
+  var x = String(v == null ? '' : v).trim().toUpperCase();
+  return (x === 'M' || x === 'F') ? x : '';
+}
+
+/* Edad en años a la fecha del estudio. Las dos fechas vienen YYYYMMDD; se comparan como
+   NÚMERO de esa forma, sin `new Date`, que interpreta como UTC y corre el día. */
+function _orthEdad(nac, estudio) {
+  var n = String(nac || '').replace(/[^0-9]/g, '');
+  var e = String(estudio || '').replace(/[^0-9]/g, '');
+  if (!/^[0-9]{8}$/.test(n) || !/^[0-9]{8}$/.test(e)) return null;
+  var a = (+e.slice(0,4)) - (+n.slice(0,4));
+  if ((+e.slice(4,8)) < (+n.slice(4,8))) a--;      // todavía no cumplió este año
+  return (a >= 0 && a <= 130) ? a : null;          // fuera de banda no se publica
+}
+
+/* Escribe un campo SÓLO si está vacío. Pisar lo que el médico tipeó sería peor que no
+   completar: el dato de Orthanc es el del ecógrafo, no necesariamente el correcto. */
+function _orthPonerSiVacio(id, valor, puesto) {
+  if (valor === null || valor === undefined || valor === '') return false;
+  var el = document.getElementById(id);
+  if (!el) return false;
+  if (String(el.value || '').trim() !== '') return false;
+  el.value = String(valor);
+  /* `edad` lleva `oninput="calcBSA()"` y asignar .value NO lo dispara: sin el evento, la
+     superficie corporal queda en blanco con la edad cargada. */
+  try { el.dispatchEvent(new Event('input',  { bubbles: true })); } catch (e) {}
+  try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
+  if (puesto) puesto.push(id);
+  return true;
+}
+
+function _orthArchivo(buf, nombre) {
+  try { return new File([buf], nombre, { type: 'application/dicom' }); }
+  catch (e) {
+    /* Respaldo para navegadores sin constructor de File. Los dos importadores usan sólo
+       `.arrayBuffer()` y `.name`, así que un Blob con nombre alcanza. */
+    var b = new Blob([buf], { type: 'application/dicom' });
+    try { b.name = nombre; } catch (e2) {}
+    return b;
+  }
+}
+
+/* SR = SOP Class bajo 1.2.840.10008.5.1.4.1.1.88. Se lee con `_dcmImgLeer`, que ya expone el
+   `sop` del meta-grupo y lo hace ANTES de rechazar por sintaxis de transferencia — o sea que
+   clasifica incluso un archivo que ese lector no sabe dibujar. Sin tercer parser. */
+function _orthEsSR(buf) {
+  try {
+    var d = _dcmImgLeer(buf);
+    return !!(d && String(d.sop || '').indexOf('1.2.840.10008.5.1.4.1.1.88.') === 0);
+  } catch (e) { return false; }
+}
+
+async function orthancImportarEstudio(idEstudio) {
+  if (_orthImportando) return;
+  if (!idEstudio) return;
+  var base = null;
+  try { base = _orthBase(localStorage.getItem('ett_orthanc_url') || ''); } catch (e) {}
+  if (!base) { if (typeof toast === 'function') toast('⚠️ Falta configurar la dirección de Orthanc en ⚙️ Config.'); return; }
+  _orthImportando = true;
+  var pref = '/studies/' + encodeURIComponent(idEstudio);
+  _bkProgAbrir('📥 Importando estudio desde Orthanc');
+  var imgs = [], srs = [], fallos = [], recortado = 0;
+  try {
+    _bkProg(0, 1, 'Consultando el estudio');
+    var est = null, inst = null;
+    try {
+      est  = await _orthGetJSON(base + pref);
+      inst = await _orthGetJSON(base + pref + '/instances');
+    } catch (e) {
+      _bkProgCerrar();
+      if (typeof toast === 'function') toast('❌ No se pudo leer el estudio de Orthanc. Probá ⚙️ Config → Verificar conexión.');
+      return;
+    }
+    if (!Array.isArray(inst) || !inst.length) {
+      _bkProgCerrar();
+      if (typeof toast === 'function') toast('⚠️ Ese estudio no tiene instancias en Orthanc.');
+      return;
+    }
+    /* Orden por InstanceNumber cuando está: define el orden en que las imágenes caen en los
+       slots, o sea el orden en que salen en el PDF. Sin esto queda el de la base. */
+    inst.sort(function (a, b) {
+      var na = +(((a && a.MainDicomTags) || {}).InstanceNumber || 0);
+      var nb = +(((b && b.MainDicomTags) || {}).InstanceNumber || 0);
+      return na - nb;
+    });
+    if (inst.length > _ORTH_MAX_INST) { recortado = inst.length - _ORTH_MAX_INST; inst = inst.slice(0, _ORTH_MAX_INST); }
+
+    for (var i = 0; i < inst.length; i++) {
+      var iid = (inst[i] && inst[i].ID) ? inst[i].ID : inst[i];
+      _bkProg(i + 1, inst.length, 'Importando imagen');
+      /* Se cede el hilo en CADA vuelta: sin esto la pestaña queda congelada y la barra de
+         progreso no se repinta —o sea que existe y no se ve—. Es lo mismo que hace la
+         exportación del backup entre estudios. */
+      await new Promise(function (r) { setTimeout(r, 0); });
+      var buf = null;
+      try {
+        var rf = await fetch(base + '/instances/' + encodeURIComponent(iid) + '/file', { cache: 'no-store' });
+        if (!rf || !rf.ok) throw new Error('HTTP ' + (rf ? rf.status : '?'));
+        buf = await rf.arrayBuffer();
+      } catch (e) { fallos.push(String(iid).slice(0, 12)); continue; }
+      var nombre = 'orthanc-' + String(iid).slice(0, 12) + '.dcm';
+      if (_orthEsSR(buf)) srs.push(_orthArchivo(buf, nombre));
+      else imgs.push(_orthArchivo(buf, nombre));
+    }
+    _bkProgCerrar();
+
+    /* ── Datos del paciente, del objeto que Orthanc ya indexó ── */
+    var puestos = [];
+    var pm = (est && est.PatientMainDicomTags) || {};
+    var mm = (est && est.MainDicomTags) || {};
+    var nom = (typeof _dcmPNaApp === 'function') ? _dcmPNaApp(pm.PatientName) : '';
+    _orthPonerSiVacio('nombre', nom, puestos);
+    var d8 = String(mm.StudyDate || '');
+    if (/^[0-9]{8}$/.test(d8)) {
+      _orthPonerSiVacio('fecha', d8.slice(0,4) + '-' + d8.slice(4,6) + '-' + d8.slice(6,8), puestos);
+    }
+    _orthPonerSiVacio('sexo', _orthSexo(pm.PatientSex), puestos);
+    var ed = _orthEdad(pm.PatientBirthDate, mm.StudyDate);
+    if (ed !== null) _orthPonerSiVacio('edad', String(ed), puestos);
+
+    /* ── A las puertas de siempre ── */
+    if (imgs.length) { try { await dcmImgImportar(imgs); } catch (e) {} }
+    if (srs.length)  { try { await dcmImportarSR(srs); } catch (e) {} }
+
+    /* ── Resumen ── */
+    var partes = [];
+    if (imgs.length) partes.push(imgs.length + ' archivo(s) de imagen');
+    if (srs.length)  partes.push(srs.length + ' informe(s) estructurado(s)');
+    var msg = partes.length ? ('✅ Estudio importado: ' + partes.join(' y ')) : '⚠️ No se pudo importar nada';
+    if (puestos.length) msg += ' · se completaron ' + puestos.length + ' dato(s) del paciente';
+    if (typeof toast === 'function') toast(msg);
+
+    var notas = [];
+    /* El id institucional se DICE y no se escribe: ver el encabezado de este bloque. */
+    var idi = String(pm.PatientID || '').trim();
+    if (idi) notas.push('El identificador que trae el estudio es «' + idi + '». NO se cargó como ' +
+      'documento: en un ecógrafo suele ser el número de historia clínica de la institución, y ' +
+      'usarlo como cédula puede hacer que un estudio se mezcle con el de otro paciente. ' +
+      'Cargá el documento a mano si corresponde.');
+    if (srs.length) notas.push('📋 El informe del ecógrafo se abre en una vista previa: los ' +
+      'campos NO se completan solos, los confirmás vos. Revisá antes de firmar.');
+    if (recortado) notas.push('El estudio tiene ' + recortado + ' instancia(s) más de las ' +
+      _ORTH_MAX_INST + ' importadas.');
+    if (fallos.length) notas.push('No se pudieron descargar ' + fallos.length + ' instancia(s).');
+    if (notas.length && typeof alert === 'function') alert(notas.join('\n\n'));
+  } finally {
+    _bkProgCerrar();
+    _orthImportando = false;
+  }
+}
+window.orthancImportarEstudio = orthancImportarEstudio;
 
 /* ══ Arranque automático de Orthanc ═══════════════════════════════════════════════════════
    ⚠️ LA PREMISA DE WINDOWS DEL PEDIDO ERA FALSA, y es la que más costaba. Decía «durante la

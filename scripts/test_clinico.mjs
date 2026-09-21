@@ -18073,6 +18073,11 @@ caso('TC-222', 'Orthanc: panel de estudios, nuevos por conjunto de ids y sin inv
     const onOrig = localStorage.getItem('ett_orthanc_on');
     const urlOrig = localStorage.getItem('ett_orthanc_url');
     const vistosOrig = localStorage.getItem('ett_orthanc_vistos');
+    /* SE GUARDA PARA RESTAURAR POR ASIGNACION, NUNCA CON el operador delete. Medido: una
+       declaracion de funcion de nivel superior crea una propiedad NO CONFIGURABLE, asi que
+       borrarla devuelve FALSE y no borra nada — el espia de este caso sobrevivia y TC-223
+       corria contra el, fallando entero mientras con --solo daba verde. */
+    const impOrig = window.orthancImportarEstudio;
     window.toast = () => {};
     const btn   = () => document.getElementById('orth-buscar-btn');
     const filas = () => Array.from(document.querySelectorAll('[data-orth-estudio]'));
@@ -18230,7 +18235,7 @@ caso('TC-222', 'Orthanc: panel de estudios, nuevos por conjunto de ids y sin inv
       await new Promise(r=>setTimeout(r,120));
       R.delegaEnElSeam = recibido === 'id-x';
       R.cierraElPanel = getComputedStyle(document.getElementById('orth-panel-overlay')).display === 'none';
-      delete window.orthancImportarEstudio;
+      window.orthancImportarEstudio = undefined;   // por asignacion: borrarla no funciona
       /* y SIN el seam avisa en vez de quedarse mudo */
       const tost = []; const to2 = window.toast; window.toast = m => tost.push(String(m));
       orthancElegirEstudio('id-x');
@@ -18238,7 +18243,7 @@ caso('TC-222', 'Orthanc: panel de estudios, nuevos por conjunto de ids y sin inv
       R.sinSeamAvisa = tost.join(' ').indexOf('todavía no está implementada') >= 0;
     } finally {
       window.fetch = fetchOrig; window.toast = toastOrig;
-      try { delete window.orthancImportarEstudio; } catch (e) {}
+      try { window.orthancImportarEstudio = impOrig; } catch (e) {}
       try { orthancPanelCerrar(); } catch (e) {}
       try {
         if (onOrig === null) localStorage.removeItem('ett_orthanc_on');
@@ -18279,6 +18284,271 @@ caso('TC-222', 'Orthanc: panel de estudios, nuevos por conjunto de ids y sin inv
     ] };
   })();
 `);
+
+
+/* == TC-223 · Importar un estudio desde Orthanc =============================================
+   LA CONDICION QUE MAS IMPORTA es que el PatientID NO se escriba en `ci`. El pedido lo pedia
+   («los datos del paciente -nombre, fecha de nacimiento, CI- se toman del DICOM») y eso
+   REINTRODUCE UN DEFECTO YA CERRADO: en un ecografo de hospital ese campo es el numero de
+   historia clinica, entra en la clave de _dupKeys igual que un documento real, y un numero
+   que coincida con la cedula de otro paciente en la misma fecha hace que «Actualizar» pise el
+   nombre y el documento del paciente EQUIVOCADO. El comentario de _dcmPaciente ya lo
+   documenta; este caso lo fija para la via de Orthanc.
+
+   Y NO HAY CAMPO DE FECHA DE NACIMIENTO en la app: se deriva la EDAD, que es el que existe.
+
+   ALCANCE DECLARADO: el camino de la IMAGEN se prueba de punta a punta -DICOM sintetico que
+   termina en un slot- y el del SR por ESPIA sobre dcmImportarSR: lo que este codigo decide es
+   A QUE PUERTA mandar cada archivo, no como lee un SR, que ya cubren TC-143 y los del CHM.
+   NO DEPENDE DEL PENDRIVE NI DE UN ORTHANC REAL.                                            */
+caso('TC-223', 'Orthanc: importa el estudio por las puertas de siempre, y el PatientID NO va a ci', `
+  return (async () => {
+    const R = {};
+    const fetchOrig = window.fetch, toastOrig = window.toast, alertOrig = window.alert;
+    const imgOrig = window.dcmImgImportar, srOrig = window.dcmImportarSR;
+    const urlOrig = localStorage.getItem('ett_orthanc_url');
+    window.toast = () => {}; window.alert = () => {};
+    const val = id => { const e = document.getElementById(id); return e ? String(e.value || '') : '(no existe)'; };
+    /* ── constructor de DICOM sintetico, el mismo patron de TC-179 ── */
+    /* El MISMO JPEG 1x1 que usan TC-179 y los demas: es decodificable de verdad. El que
+       arme a mano -tabla de cuantizacion trucha y sin tablas de Huffman- se extraia bien del
+       DICOM y despues imgCompressLoad no lo podia abrir, asi que la imagen nunca llegaba al
+       slot y el caso acusaba al importador de un defecto propio. */
+    const JPG = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,219,0,67,0,8,6,6,7,6,5,8,7,7,7,9,9,8,10,12,20,13,12,11,11,12,25,18,19,15,20,29,26,31,30,29,26,28,28,32,36,46,39,32,34,44,35,28,28,40,55,41,44,48,49,52,52,52,31,39,57,61,56,50,60,46,51,52,50,255,192,0,11,8,0,1,0,1,1,1,17,0,255,196,0,20,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,255,196,0,20,16,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,218,0,8,1,1,0,0,63,0,42,159,255,217]);
+    const B = a => { const o=[]; a.forEach(x=>{ if (typeof x==='number') o.push(x); else x.forEach(y=>o.push(y)); }); return o; };
+    const u16 = n => [n & 255, (n>>8) & 255];
+    const u32 = n => [n & 255, (n>>8)&255, (n>>16)&255, (n>>24)&255];
+    const txt = s => { const a=[]; for (let i=0;i<s.length;i++) a.push(s.charCodeAt(i)); if (a.length%2) a.push(0); return a; };
+    const el  = (g,e,vr,v) => {
+      const L4 = ['OB','OW','SQ','UN','UT'].indexOf(vr) > -1;
+      return B([u16(g),u16(e),txt(vr).slice(0,2), L4 ? B([0,0,u32(v.length)]) : u16(v.length), v]);
+    };
+    const mk = (op) => {
+      const o = op || {};
+      let b = [];
+      for (let i=0;i<128;i++) b.push(0);
+      b = b.concat(txt('DICM'));
+      if (o.sopMeta) b = b.concat(el(0x0002,0x0002,'UI',txt(o.sopMeta)));
+      b = b.concat(el(0x0002,0x0010,'UI',txt('1.2.840.10008.1.2.4.50')));
+      b = b.concat(el(0x0008,0x0070,'LO',txt('GE Vingmed Ultrasound')));
+      b = b.concat(el(0x0008,0x1090,'LO',txt('Vivid iq')));
+      b = b.concat(el(0x0028,0x0004,'CS',txt('YBR_FULL_422')));
+      if (o.frames && o.frames > 1) b = b.concat(el(0x0028,0x0008,'IS',txt(String(o.frames))));
+      b = b.concat(el(0x0028,0x0010,'US',u16(4)));
+      b = b.concat(el(0x0028,0x0011,'US',u16(4)));
+      b = b.concat(B([u16(0x7FE0),u16(0x0010),txt('OB'),0,0,u32(0xFFFFFFFF)]));
+      const nf = o.frames || 1;
+      b = b.concat(B([u16(0xFFFE),u16(0xE000),u32(4*nf),B(new Array(nf).fill(0).map(()=>u32(0)))]));
+      for (let k = 0; k < nf; k++) {
+        const a = Array.from(JPG); if (a.length % 2) a.push(0);
+        b = b.concat(B([u16(0xFFFE),u16(0xE000),u32(a.length),a]));
+      }
+      b = b.concat(B([u16(0xFFFE),u16(0xE0DD),u32(0)]));
+      return new Uint8Array(b).buffer;
+    };
+    const SR_SOP = '1.2.840.10008.5.1.4.1.1.88.33';
+    const US_SOP = '1.2.840.10008.5.1.4.1.1.6.1';
+    /* ── el estudio que devuelve Orthanc ── */
+    const ESTUDIO = {
+      ID:'est-1', Type:'Study',
+      MainDicomTags:{ StudyDate:'20260921', StudyTime:'143012', InstitutionName:'Sanatorio' },
+      PatientMainDicomTags:{ PatientName:'PEREZ^JUAN^^^', PatientID:'HC-88231',
+                             PatientBirthDate:'19800315', PatientSex:'M' },
+      Series:['s1']
+    };
+    const INSTS = [
+      { ID:'i-sr',  MainDicomTags:{ InstanceNumber:'3' } },
+      { ID:'i-img', MainDicomTags:{ InstanceNumber:'1' } },
+      { ID:'i-cin', MainDicomTags:{ InstanceNumber:'2' } }
+    ];
+    const cuerpo = { 'i-img': mk({ sopMeta:US_SOP }),
+                     'i-cin': mk({ sopMeta:US_SOP, frames:3 }),
+                     'i-sr' : mk({ sopMeta:SR_SOP }) };
+    const simular = (estudio) => {
+      window.fetch = (url) => {
+        const u = String(url);
+        if (/\\/instances\\/[^/]+\\/file/.test(u)) {
+          const id = u.split('/instances/')[1].split('/')[0];
+          const buf = cuerpo[id];
+          if (!buf) return Promise.reject(new TypeError('Failed to fetch'));
+          return Promise.resolve({ ok:true, status:200, arrayBuffer:()=>Promise.resolve(buf) });
+        }
+        if (/\\/studies\\/[^/]+\\/instances$/.test(u))
+          return Promise.resolve({ ok:true, status:200, json:()=>Promise.resolve(INSTS) });
+        if (/\\/studies\\/[^/]+$/.test(u))
+          return Promise.resolve({ ok:true, status:200, json:()=>Promise.resolve(estudio || ESTUDIO) });
+        return Promise.reject(new TypeError('Failed to fetch'));
+      };
+    };
+    try {
+      localStorage.setItem('ett_orthanc_url','localhost:8042');
+      __t.limpiar();
+      await new Promise(r=>setTimeout(r,120));
+
+      /* ── 1 · RUTEO: quien va a cada puerta, y el progreso ── */
+      const aImg = [], aSR = [];
+      window.dcmImgImportar = (fl) => { aImg.push([...fl]); return Promise.resolve(); };
+      window.dcmImportarSR  = (fl) => { aSR.push([...fl]);  return Promise.resolve(); };
+      /* SE INSTRUMENTA LA FRONTERA, no se muestrea el DOM. Muestrear con setInterval(20) dio
+         cero: con fetch sustituido la importacion entera dura menos que un tick, asi que el
+         overlay nace y muere entre dos muestras. Envolviendo _bkProgAbrir/_bkProg se captura
+         cada llamada, sin depender de cuanto tarde. */
+      let progresoVisto = 0; const rotulos = [];
+      const abrirOrig = window._bkProgAbrir, progOrig = window._bkProg;
+      window._bkProgAbrir = (t) => { progresoVisto++; return abrirOrig(t); };
+      window._bkProg = (n, tot, rot) => { if (rot) rotulos.push(String(rot) + ' ' + n + '/' + tot);
+                                          return progOrig(n, tot, rot); };
+      simular();
+      await orthancImportarEstudio('est-1');
+      window._bkProgAbrir = abrirOrig; window._bkProg = progOrig;
+      R.imgLote = aImg.length === 1 ? aImg[0].length : -1;
+      R.srLote  = aSR.length  === 1 ? aSR[0].length  : -1;
+      R.ruteaBien = R.imgLote === 2 && R.srLote === 1;
+      R.progresoAparecio = progresoVisto > 0;
+      R.rotulos = rotulos.slice(0,6);
+      /* y se exige que CUENTE: «Importando imagen 1/3» y «3/3», o sea que la barra avanza */
+      R.progresoRotula = rotulos.some(x => x.indexOf('Importando imagen 1/3') >= 0) &&
+                         rotulos.some(x => x.indexOf('Importando imagen 3/3') >= 0);
+      R.progresoSeCerro = !document.querySelector('[data-bk-prog]');
+      /* orden por InstanceNumber: la imagen (1) antes del cineloop (2) */
+      R.ordenado = aImg.length === 1 && aImg[0][0].name.indexOf('i-img') >= 0 &&
+                                        aImg[0][1].name.indexOf('i-cin') >= 0;
+      /* los archivos llegan con arrayBuffer() usable, que es lo que las puertas consumen */
+      let bytesOk = false;
+      try { const b = await aImg[0][0].arrayBuffer(); bytesOk = b.byteLength > 200; } catch (e) {}
+      R.archivosUsables = bytesOk;
+
+      /* ── 2 · PACIENTE: lo que se carga y lo que NO ── */
+      R.nombre = val('nombre');
+      R.fecha  = val('fecha');
+      R.sexo   = val('sexo');
+      R.edad   = val('edad');
+      R.ci     = val('ci');
+      R.cargaNombre = R.nombre === 'PEREZ, JUAN';
+      R.cargaFecha  = R.fecha === '2026-09-21';
+      R.cargaSexo   = R.sexo === 'M';
+      /* nacido 15/03/1980, estudio 21/09/2026 -> 46 (ya cumplio este anio) */
+      R.derivaEdad  = R.edad === '46';
+      /* ⚠️ EL 46 DE ARRIBA NO DISCRIMINA: nacido en marzo y estudio en septiembre, el
+         cumpleanios YA paso, asi que con ajuste y sin ajuste da lo mismo -la mutacion que
+         saca el ajuste sobrevivia-. El valor que separa las dos implementaciones es un
+         cumpleanios que TODAVIA NO llego. Es «elegir el valor que distingue el umbral
+         correcto del error plausible», otra vez. */
+      R.edadDic = _orthEdad('19801225','20260921');   // 25/dic: aun no cumplio -> 45
+      R.edadMar = _orthEdad('19800315','20260921');   // 15/mar: ya cumplio     -> 46
+      R.ajustaCumple = R.edadDic === 45 && R.edadMar === 46;
+      /* y la banda: sin fecha, o una fecha imposible, NO publican un numero */
+      R.edadSinNac  = _orthEdad('', '20260921');
+      R.edadFutura  = _orthEdad('21000101','20260921');   // negativa
+      R.edadAbsurda = _orthEdad('17000101','20260921');   // 326 anios
+      R.bandaEdad = R.edadSinNac === null && R.edadFutura === null && R.edadAbsurda === null;
+      /* LA CONDICION QUE VALE */
+      R.ciVacio     = R.ci === '';
+      R.ciSinElHC   = R.ci.indexOf('HC-88231') < 0;
+
+      /* ── 3 · NO PISA lo que el medico ya tipeo ── */
+      __t.limpiar();
+      await new Promise(r=>setTimeout(r,120));
+      document.getElementById('nombre').value = 'ESCRITO A MANO';
+      document.getElementById('edad').value = '77';
+      aImg.length = 0; aSR.length = 0;
+      simular();
+      await orthancImportarEstudio('est-1');
+      R.respetaNombre = val('nombre') === 'ESCRITO A MANO';
+      R.respetaEdad   = val('edad') === '77';
+      R.completaElResto = val('sexo') === 'M' && val('fecha') === '2026-09-21';
+
+      /* ── 4 · sexo «O» de DICOM no rompe el select ── */
+      __t.limpiar();
+      await new Promise(r=>setTimeout(r,120));
+      const otro = JSON.parse(JSON.stringify(ESTUDIO));
+      otro.PatientMainDicomTags.PatientSex = 'O';
+      otro.PatientMainDicomTags.PatientBirthDate = '';
+      simular(otro);
+      await orthancImportarEstudio('est-1');
+      const selSexo = document.getElementById('sexo');
+      R.sexoOtroVacio = String(selSexo.value || '') === '' && selSexo.selectedIndex >= 0;
+      /* y sin fecha de nacimiento NO se inventa una edad */
+      R.sinNacSinEdad = val('edad') === '';
+
+      /* ── 5 · EXTREMO A EXTREMO por la puerta REAL: la imagen llega a un slot ── */
+      window.dcmImgImportar = imgOrig; window.dcmImportarSR = srOrig;
+      __t.limpiar();
+      if (typeof imgVaciar === 'function') imgVaciar();
+      await new Promise(r=>setTimeout(r,150));
+      const antes = (typeof imgSlots !== 'undefined') ? imgSlots.filter(Boolean).length : -1;
+      const soloImg = [{ ID:'i-img', MainDicomTags:{ InstanceNumber:'1' } }];
+      window.fetch = (url) => {
+        const u = String(url);
+        if (/\\/instances\\/[^/]+\\/file/.test(u))
+          return Promise.resolve({ ok:true, status:200, arrayBuffer:()=>Promise.resolve(cuerpo['i-img']) });
+        if (/\\/studies\\/[^/]+\\/instances$/.test(u))
+          return Promise.resolve({ ok:true, status:200, json:()=>Promise.resolve(soloImg) });
+        return Promise.resolve({ ok:true, status:200, json:()=>Promise.resolve(ESTUDIO) });
+      };
+      await orthancImportarEstudio('est-1');
+      await new Promise(r=>setTimeout(r,700));
+      const despues = (typeof imgSlots !== 'undefined') ? imgSlots.filter(Boolean).length : -1;
+      R.antes = antes; R.despues = despues;
+      R.llegaAlSlot = despues === antes + 1;
+
+      /* ── 6 · sin instancias: se dice, no se finge ── */
+      const tost = []; window.toast = m => tost.push(String(m));
+      window.fetch = (url) => {
+        const u = String(url);
+        if (/\\/studies\\/[^/]+\\/instances$/.test(u))
+          return Promise.resolve({ ok:true, status:200, json:()=>Promise.resolve([]) });
+        return Promise.resolve({ ok:true, status:200, json:()=>Promise.resolve(ESTUDIO) });
+      };
+      await orthancImportarEstudio('est-1');
+      R.vacioAvisa = tost.join(' ').indexOf('no tiene instancias') >= 0;
+      /* ── 7 · Orthanc caido: se dice, y no queda el progreso colgado ── */
+      tost.length = 0;
+      window.fetch = () => Promise.reject(new TypeError('Failed to fetch'));
+      await orthancImportarEstudio('est-1');
+      R.caidoAvisa = tost.join(' ').indexOf('No se pudo leer el estudio') >= 0;
+      R.sinProgresoColgado = !document.querySelector('[data-bk-prog]');
+
+      /* ── 8 · el flujo del pendrive sigue intacto ── */
+      R.botonImportarSigue = Array.from(document.querySelectorAll('#tab-imagenes button'))
+        .filter(b => b.textContent.indexOf('Importar DICOM') >= 0).length === 1;
+      R.puertasIntactas = typeof dcmImgImportar === 'function' && dcmImgImportar === imgOrig &&
+                          typeof dcmImportarSR === 'function' && dcmImportarSR === srOrig;
+    } finally {
+      window.fetch = fetchOrig; window.toast = toastOrig; window.alert = alertOrig;
+      window.dcmImgImportar = imgOrig; window.dcmImportarSR = srOrig;
+      try { if (urlOrig === null) localStorage.removeItem('ett_orthanc_url');
+            else localStorage.setItem('ett_orthanc_url', urlOrig); } catch (e) {}
+      try { _bkProgCerrar(); } catch (e) {}
+      try { if (typeof imgVaciar === 'function') imgVaciar(); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: rutea 2 a imagenes y 1 a SR',  R.ruteaBien, 'img=' + R.imgLote + ' sr=' + R.srLote],
+      ['ordenadas por InstanceNumber',              R.ordenado, R.ordenado],
+      ['los archivos llegan legibles a la puerta',  R.archivosUsables, R.archivosUsables],
+      ['la barra de progreso aparece y rotula',     R.progresoAparecio && R.progresoRotula, JSON.stringify(R.rotulos)],
+      ['y se cierra al terminar',                   R.progresoSeCerro, R.progresoSeCerro],
+      ['carga el nombre del paciente',              R.cargaNombre, R.nombre],
+      ['la fecha del estudio',                      R.cargaFecha, R.fecha],
+      ['y el sexo',                                 R.cargaSexo, R.sexo],
+      ['DERIVA LA EDAD de la fecha de nacimiento',  R.derivaEdad, R.edad],
+      ['y AJUSTA si el cumpleanios todavia no llego', R.ajustaCumple, 'dic=' + R.edadDic + ' mar=' + R.edadMar],
+      ['una edad imposible no se publica',          R.bandaEdad, 'sinNac=' + R.edadSinNac + ' futura=' + R.edadFutura + ' absurda=' + R.edadAbsurda],
+      ['EL PatientID NO SE ESCRIBE EN ci',          R.ciVacio && R.ciSinElHC, 'ci=' + JSON.stringify(R.ci)],
+      ['NO pisa el nombre ni la edad ya tipeados',  R.respetaNombre && R.respetaEdad, R.respetaNombre + '/' + R.respetaEdad],
+      ['pero si completa lo que estaba vacio',      R.completaElResto, R.completaElResto],
+      ['un sexo «O» deja el select sano, no roto',  R.sexoOtroVacio, R.sexoOtroVacio],
+      ['sin fecha de nacimiento NO inventa edad',   R.sinNacSinEdad, R.sinNacSinEdad],
+      ['EXTREMO A EXTREMO: la imagen llega al slot', R.llegaAlSlot, R.antes + ' -> ' + R.despues],
+      ['un estudio sin instancias se declara',      R.vacioAvisa, R.vacioAvisa],
+      ['Orthanc caido se declara',                  R.caidoAvisa, R.caidoAvisa],
+      ['y no deja la barra de progreso colgada',    R.sinProgresoColgado, R.sinProgresoColgado],
+      ['el flujo del pendrive queda intacto',       R.botonImportarSigue && R.puertasIntactas, R.botonImportarSigue]
+    ] };
+  })();
+`);
+
 
 
 
