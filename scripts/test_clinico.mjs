@@ -11810,7 +11810,12 @@ caso('TC-190', 'Simpson biplano: FEVI contra un volumen calculable a mano, y L l
         R.monoCerca = Math.abs(R.feviMono - R.feviMonoEsperada) < 1.5;
         R.panelMono = (document.getElementById('cine-med-barra').textContent || '');
         R.diceMonoplanar = R.panelMono.indexOf('monoplanar') > -1;
-        R.ofreceSegundaVista = !!document.getElementById('cine-simp-2v');
+        /* El boton «Agregar la otra vista (biplano)» se elimino el 2026-09-22: movia el indice
+           dentro de la MISMA vista del visor, asi que las dos apicales terminaban trazadas
+           sobre el mismo cineloop. Lo que este paso fija es el INVARIANTE —que con un
+           monoplano el panel OFREZCA el camino al biplano— y no el boton que lo ofrecia. */
+        R.ofreceSegundaVista = R.panelMono.indexOf('Vista') > -1 &&
+                               R.panelMono.indexOf('biplano') > -1;
         R.noOfreceIntegrarMono = !document.getElementById('cine-simp-integ');
       }
 
@@ -20555,6 +20560,114 @@ caso('TC-236', 'Visor: columna derecha, y la calibracion se explica antes de med
       ['la barra sigue diciendo QUE escala usa',      T2.indexOf('tomada del archivo') >= 0, T2.slice(0,110)],
       ['la velocidad no entra al predicado',          R.velNoEntra === true, R.velNoEntra],
       ['el tiempo tampoco',                           R.tiempoNoEntra === true, R.tiempoNoEntra]
+    ] };
+  })();
+`);
+
+/* == TC-237 - Simpson declara la ventana, y la tabla cierra con el BIPLANO ==================
+   `_simp.vista` era un INDICE —0 y 1— y no una ventana anatomica, y por eso este archivo
+   documentaba que la etiqueta de la captura NO podia decir «A4C»: la app no lo recogia. Los
+   botones [A4C] [A2C] lo declaran, asi que el dato existe y la etiqueta puede nombrarlo.
+
+   Dos condiciones son las que separan esto de una tabla decorativa:
+   · sin declarar, la etiqueta CAE a la cantidad. No es un respaldo cosmetico: es lo que impide
+     afirmar «A4C» sobre un trazado del que nadie dijo de que ventana salio.
+   · la fila de cierre es el BIPLANO y NO el promedio de las monoplanares. El biplano usa el
+     producto cruzado de los diametros y el eje mas largo, asi que difiere — y la que se integra
+     al informe es esa. */
+caso('TC-237', 'Simpson: la ventana declarada nombra la etiqueta, y la tabla cierra con el biplano', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    window.alert = () => {}; window.confirm = () => true; window.toast = () => {};
+    try {
+      const jpeg = await new Promise(res => {
+        const c = document.createElement('canvas'); c.width=400; c.height=400;
+        const x = c.getContext('2d'); x.fillStyle='rgb(40,40,60)'; x.fillRect(0,0,400,400);
+        c.toBlob(b2 => { const fr=new FileReader();
+          fr.onload=()=>res(new Uint8Array(fr.result)); fr.readAsArrayBuffer(b2); }, 'image/jpeg', 0.9);
+      });
+      const loop = { nombre:'apical', cuadros:1,
+        d:{ frags:[jpeg], cols:400, filas:400, msCuadro:0, fabricante:'', modelo:'',
+            regiones:[{ x0:0, y0:0, x1:400, y1:400, ux:3, uy:3, dx:0.05, dy:0.05, tipo:1 }] } };
+      const contorno = (anillo, largo) => { const pts=[];
+        for (let i=0;i<=40;i++){ const t=Math.PI*i/40;
+          pts.push({ x:200-(anillo/2)*Math.cos(t), y:340-largo*Math.sin(t) }); } return pts; };
+      const trazar = (a2, l2) => { const m = _simpAceptar(contorno(a2, l2));
+        if (m) return m; medSimpsonConfirmar(); return null; };
+
+      _cineAbrir([loop]); await esperar(800);
+      if (!_medOn) medToggle();
+      medHerramienta('simpson'); await esperar(400);
+      R.botonViejo = !!document.querySelector('#cine-ov [id$="cine-simp-2v"]');
+      R.nBotones = document.querySelectorAll('#cine-ov [data-simp-vista]').length;
+
+      R.err1 = trazar(90,180); R.err2 = trazar(80,165);
+      R.etiqSinDeclarar = _medEtiqVista();
+      medSimpsonElegirVista('a4c'); await esperar(200);
+      R.etiqA4C = _medEtiqVista();
+      R.nombre0 = (_simp.nombres||[])[0];
+
+      /* El par 1 se visita SIN declararlo: ahi es donde la busqueda del nombre decide. Con el par 1 ya
+         nombrado y trazado, la rama de renombre tambien termina en el par 0 y la mutacion que
+         saca la busqueda es un NO-OP — asi nacio este paso y sobrevivio. */
+      medSimpsonSegundaVista(); await esperar(200);
+      medSimpsonElegirVista('a4c'); await esperar(200);
+      R.vuelveAlPar0 = (_simp.vista === 0);
+      R.sinDuplicar = (_simp.nombres.filter(n => n === 'a4c').length === 1);
+
+      medSimpsonSegundaVista(); await esperar(200);
+      medSimpsonElegirVista('a2c'); await esperar(200);
+      R.vistaTrasA2C = _simp.vista;
+      R.err3 = trazar(70,150); R.err4 = trazar(62,138); await esperar(250);
+      R.bi = !!(_simp.res && _simp.res.bi);
+      R.etiqBi = _medEtiqVista();
+
+      const barra = document.getElementById('cine-med-barra');
+      R.filas = [...barra.querySelectorAll('table tbody tr')].map(tr =>
+        [...tr.children].map(td => (td.textContent||'').trim()).join('|'));
+      R.ths = [...barra.querySelectorAll('table thead th')].map(th => (th.textContent||'').trim()).join('|');
+      const bip = R.filas.filter(f => f.indexOf('Biplano') === 0)[0];
+      const mono = R.filas.filter(f => f.indexOf('A4C')===0 || f.indexOf('A2C')===0).map(f=>f.split('|'));
+      if (bip) { const c = bip.split('|');
+        R.veyecOk = Math.abs((parseFloat(c[1]) - parseFloat(c[2])) - parseFloat(c[3])) < 0.15;
+        R.feviOk  = Math.abs((parseFloat(c[3]) / parseFloat(c[1]) * 100) - parseFloat(c[4])) < 0.3;
+        R.bipVfd  = parseFloat(c[1]); }
+      /* La VEyec se comprueba TAMBIEN en una fila monoplanar: la del biplano sale de _simp.res
+         y no de _simpMonoDe, asi que mutar el monoplano no la tocaba. */
+      if (mono.length) { const c2 = mono[0];
+        R.veyecMonoOk = Math.abs((parseFloat(c2[1]) - parseFloat(c2[2])) - parseFloat(c2[3])) < 0.15; }
+      if (mono.length === 2 && bip) {
+        R.promVfd = (parseFloat(mono[0][1]) + parseFloat(mono[1][1])) / 2;
+        R.noEsPromedio = Math.abs(R.promVfd - R.bipVfd) > 0.5; }
+    } catch (e) {
+      R.err = String(e && e.message || e);
+    } finally {
+      window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+      try { cineCerrar(); } catch (e) {}
+    }
+    const F = R.filas || [];
+    return { extra: [
+      ['sin excepciones',                          !R.err, R.err],
+      ['DENOMINADOR: los cuatro trazados entraron', !R.err1 && !R.err2 && !R.err3 && !R.err4,
+                                                   [R.err1,R.err2,R.err3,R.err4].filter(Boolean).join(' / ')],
+      ['DENOMINADOR: quedo biplano',               R.bi === true, R.bi],
+      ['hay dos botones de ventana',               R.nBotones === 2, 'botones=' + R.nBotones],
+      ['el boton viejo ya no existe',              R.botonViejo === false, R.botonViejo],
+      ['sin declarar, la etiqueta cae a la cantidad', (R.etiqSinDeclarar||'').indexOf('1 vista') === 0,
+                                                   R.etiqSinDeclarar],
+      ['declarada, la etiqueta la NOMBRA',         (R.etiqA4C||'').indexOf('A4C ·') === 0, R.etiqA4C],
+      ['y el biplano nombra las dos',              (R.etiqBi||'').indexOf('A4C+A2C ·') === 0, R.etiqBi],
+      ['declarar una ya asignada va a ESE par',    R.vuelveAlPar0 === true, R.vuelveAlPar0],
+      ['y no la duplica en los dos indices',       R.sinDuplicar === true, R.sinDuplicar],
+      ['la tabla lleva VFD, VFS, VEyec y FEVI',    R.ths === 'Ventana|VFD mL|VFS mL|VEyec mL|FEVI %', R.ths],
+      ['una fila por ventana mas el biplano',      F.length === 3, F.join(' ~ ')],
+      ['VEyec = VFD - VFS en el biplano',          R.veyecOk === true, F.join(' ~ ')],
+      ['y tambien en cada monoplanar',             R.veyecMonoOk === true, F.join(' ~ ')],
+      ['y la FEVI cierra con esos volumenes',      R.feviOk === true, F.join(' ~ ')],
+      ['el cierre es el BIPLANO, no el promedio',  R.noEsPromedio === true,
+                                                   'biplano=' + R.bipVfd + ' promedio=' + R.promVfd]
     ] };
   })();
 `);

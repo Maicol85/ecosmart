@@ -4,6 +4,84 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Simpson declara la ventana, y eso destrabó la etiqueta por nombre (TC-237)
+
+Segunda etapa del rediseño del visor. **El bloqueo de fondo era el modelo de datos.**
+
+### ⚠️ `_simp.vista` ERA UN ÍNDICE, NO UNA VENTANA
+
+Por eso este archivo documentaba, desde el 2026-09-21, que la etiqueta de la captura **no podía
+decir «A4C»**: el panel pedía «la vista que estés usando» y después «la SEGUNDA vista (la otra
+apical)» —el médico podía empezar por la 2C— y `_simpCalcular` devolvía `bi` y **ningún nombre**.
+Escribirlo habría sido afirmar en una imagen clínica un dato que la app no recogía.
+
+Los botones **[A4C] [A2C]** lo declaran, así que el dato existe. `_simp.nombres` es un array
+paralelo a `pares`, y la etiqueta pasó de `1 vista · FEVI 27.6 %` a **`A4C · FEVI 27.6 %`**; con
+las dos, `A4C+A2C`.
+
+**SIGUE CAYENDO A LA CANTIDAD CUANDO NO SE DECLARÓ, y no es un respaldo cosmético:** es lo que
+impide afirmar «A4C» sobre un trazado del que nadie dijo de qué ventana salió. La mutación que
+rellena el nombre por omisión imprime `A4C · FEVI 27.6 %` sobre una sesión sin declarar.
+
+### Los botones son un SELECTOR, no un rótulo
+
+Declarar una ventana que ya está en el **otro** índice **va a ese par** en vez de duplicarla: dos
+pares con el mismo nombre harían que el biplano promediara la misma vista dos veces bajo dos
+nombres. Y si el par en curso ya tiene nombre **y algún contorno**, se pasa al otro en vez de
+renombrarlo — renombrar cambiaría de qué ventana son dos trazados ya confirmados.
+
+**⚠️ LA MUTACIÓN DE ESTO SOBREVIVIÓ A LA PRIMERA VERSIÓN DEL CASO.** El paso declaraba la segunda
+ventana con el par 1 **ya nombrado y trazado**, y ahí la rama de renombre termina también en el
+par 0: el resultado coincide y sacar la búsqueda del nombre es un **no-op**. Hoy el par 1 se
+visita **sin declararlo**, que es donde esa búsqueda es lo único que decide.
+
+### ⚠️ LA FILA DE CIERRE ES EL BIPLANO, NO EL PROMEDIO
+
+El pedido decía «Prom». El biplano **no es una media**: usa el producto cruzado de los diámetros
+de las dos vistas —Σ(a·b)— y el **eje más largo** de las dos, textual de la guía. Medido sobre un
+par real: **VFD biplano 74,1 mL contra 71,7 del promedio** de las monoplanares. Publicar ese
+promedio al lado dejaría **dos FEVI en la misma tabla**, y la que se integra al informe es la del
+biplano.
+
+**Y el comentario que escribí primero afirmaba que promediar «sobrestima de forma sistemática».
+La medición lo desmintió**: acá el promedio salió MÁS BAJO, porque el biplano se queda con el eje
+más largo. Qué lado queda arriba depende de la geometría. Corregido antes de commitear — es
+«un comentario que afirma una invariante no la garantiza», otra vez y sobre lo que acababa de
+medir.
+
+`VEyec = VFD − VFS`. **Se verifica en las dos clases de fila**: la del biplano sale de
+`_simp.res` y las de cada ventana de `_simpMonoDe`, así que comprobarla sólo abajo dejaba viva la
+mutación del monoplano — sobrevivió hasta que se agregó la condición de la fila monoplanar.
+
+### «Agregar la otra vista (biplano)» se ELIMINÓ
+
+Movía el índice dentro de la **misma** vista del visor, así que las dos apicales terminaban
+trazadas sobre el mismo cineloop —que es justo lo que el propio panel avisa como error— salvo que
+el médico cambiara de imagen a mano. Hoy la salida es **«➕ Vista»**, que abre la segunda vista al
+lado y deja elegir su cineloop.
+
+`medSimpsonSegundaVista` **se conserva**: es la transición «ir al par 2» y la usan cinco casos del
+suite. Lo que desapareció es el botón que la ofrecía.
+
+**TC-190 se puso en rojo y ésa es la señal**: pinaba la EXISTENCIA de ese botón. Reapuntado al
+invariante —que con un monoplano el panel **ofrezca** el camino al biplano— y no al control que lo
+ofrecía.
+
+### Lo que queda pendiente
+
+**«Guardar tabla de resultados» NO se hizo.** El camino coherente es el de `strain_manual`: un
+`<input type="hidden">` con el resumen en JSON, que viaja en `campos` por el barrido de
+`guardarInforme` — y que hay que **limpiar a mano** en `limpiarCampos`, porque ese barrido toma
+`input[type=text]` e `input[type=number]` y un `hidden` no entra. Es la fuga de
+`ete_tavi_jet_horas`, y sin esa línea las mediciones de un paciente quedarían dentro del estudio
+del siguiente.
+
+Y sigue pendiente toda la **Tarea 3 (Strain)**: mudar los botones de ventana a la izquierda, el
+selector visual de cineloop para la segunda vista —hoy `_vElegirLoop` es un `prompt()` con un menú
+numerado— y el «Incluir en PDF» del bull's eye, que por decisión de Maicol (2026-09-22) va por
+`medCapturarConMedicion` y **no** escribiendo el campo `sgl`.
+
+
 ## Columna derecha del visor, y la calibración explicada antes de medir (TC-236)
 
 Primera etapa del rediseño de UX del visor. **Lo que sigue pendiente está al final de la entrada.**

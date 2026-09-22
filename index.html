@@ -48261,11 +48261,58 @@ const SIMP_N = 20;                       // discos
    obtenidos con otro método: es una aproximación útil, no una equivalencia. */
 /* `_simp` vive en la vista: cada una lleva SU sesión de Simpson. */
 
+/* ⚠️ `nombres` ES EL BLOQUEO DE FONDO QUE ESTA SESIÓN VINO A RESOLVER. `vista` es un ÍNDICE
+   —0 y 1—, no una ventana anatómica, y por eso este archivo documentaba que la etiqueta de la
+   captura NO podía decir «A4C»: la app no lo recogía. El panel pedía «la vista que estés
+   usando» y después «la SEGUNDA vista (la otra apical)», así que el médico podía empezar por la
+   2C y `_simpCalcular` devolvía `bi` y ningún nombre.
+
+   Desde que los botones [A4C] [A2C] lo declaran, el dato existe y la etiqueta puede nombrarlo.
+   Sigue siendo OPCIONAL: sin declarar, todo se comporta como antes y se rotula por cantidad —
+   los estudios que ya se midieron sin esto no cambian de significado. */
 function _simpIniciar() {
-  _simp = { vista:0, fase:'d', pares:[{d:null,s:null},{d:null,s:null}],
+  _simp = { vista:0, fase:'d', pares:[{d:null,s:null},{d:null,s:null}], nombres:[null,null],
             pendiente:null, res:null, avisoCuadro:false, ocultar:false, integrada:false };
 }
 const _simpParCompleto = i => !!(_simp && _simp.pares[i] && _simp.pares[i].d && _simp.pares[i].s);
+/* Legado: una sesión creada antes de `nombres` (o restaurada) no lo tiene. */
+const _simpNombre = i => (_simp && _simp.nombres && _simp.nombres[i]) || null;
+const _SIMP_VISTAS = [{ k:'a4c', rot:'A4C' }, { k:'a2c', rot:'A2C' }];
+
+/* Declara QUÉ ventana es el par en curso. Es un SELECTOR, no sólo un rótulo: si esa ventana ya
+   está declarada en el otro índice, se va a ese par en vez de duplicarla — dos pares con el
+   mismo nombre harían que el biplano promediara la misma vista dos veces bajo dos nombres. */
+function medSimpsonElegirVista(v) {
+  if (!_simp || !_SIMP_VISTAS.some(x => x.k === v)) return;
+  const ya = _simp.nombres.indexOf(v);
+  if (ya >= 0) {
+    _simp.vista = ya;
+  } else {
+    /* Si el par en curso YA tiene nombre y además tiene algún contorno, se pasa al otro en vez
+       de renombrarlo: renombrar cambiaría de qué ventana son dos trazados ya confirmados, que
+       es afirmar sobre una medición hecha. */
+    const P = _simp.pares[_simp.vista];
+    if (_simpNombre(_simp.vista) && (P.d || P.s)) _simp.vista = (_simp.vista === 0) ? 1 : 0;
+    _simp.nombres[_simp.vista] = v;
+  }
+  const P2 = _simp.pares[_simp.vista];
+  _simp.fase = (P2.d && !P2.s) ? 's' : 'd';
+  _simp.pendiente = null;
+  _medPintar(); _medEstado();
+}
+window.medSimpsonElegirVista = medSimpsonElegirVista;
+
+/* El MONOPLANO de un par, que es lo que va en cada fila de la tabla. El disco se asume
+   CIRCULAR —b_i = a_i—, que es exactamente lo que `_simpCalcular` hace cuando hay una sola
+   vista: se reusa `_simpVolumenML` para que no haya una segunda fórmula del mismo volumen. */
+function _simpMonoDe(i) {
+  if (!_simpParCompleto(i)) return null;
+  const P = _simp.pares[i];
+  const vol = f => _simpVolumenML(P[f].diamCm, P[f].diamCm, P[f].Lcm);
+  const vfd = vol('d'), vfs = vol('s');
+  if (!(vfd > 0)) return null;
+  return { vfd, vfs, vey: vfd - vfs, fevi: (vfd - vfs) / vfd * 100 };
+}
 
 /* Eje largo según la guía: recta que cierra el anillo mitral (primer punto ↔ último),
    su punto medio, y el punto del contorno más lejano a ese medio. */
@@ -50129,15 +50176,22 @@ function _medEtiqVista() {
       }).join('+');
       return sig + ' · SGL ' + R.sgl.toFixed(1) + ' %';
     }
-    /* ⚠️ SIMPSON SE ROTULA POR CANTIDAD, NO POR NOMBRE DE VISTA, y no es una simplificación:
-       la app NO SABE cuál trazó. Su panel pide «la vista que estés usando» y después «la
-       SEGUNDA vista (la otra apical)», o sea que el médico puede empezar por la 2C, y
-       `_simpCalcular` devuelve `bi` y ningún nombre. Escribir «A4C» sería afirmar en una
-       imagen clínica algo que no se recogió. Decisión de Maicol (2026-09-21). */
+    /* ⚠️ SIMPSON SE ROTULABA POR CANTIDAD PORQUE LA APP NO SABÍA QUÉ VISTA ERA. Hoy los
+       botones [A4C] [A2C] lo declaran, así que la etiqueta puede NOMBRARLA — que era el pedido
+       original, archivado el 2026-09-21 por no ser implementable.
+
+       Sigue cayendo a la cantidad cuando NO se declaró, y eso no es un respaldo cosmético: es
+       lo que impide afirmar «A4C» sobre un trazado del que nadie dijo de qué ventana salió. La
+       sigla sale de `_SIMP_VISTAS`, la misma tabla que rotula los botones. */
     if (_medHerr === 'simpson' && _simp && typeof _simpCalcular === 'function') {
       const R = _simpCalcular();
       if (!R || !isFinite(R.fevi)) return '';
-      return (R.bi ? '2 vistas' : '1 vista') + ' · FEVI ' + R.fevi.toFixed(1) + ' %';
+      const usados = R.bi ? [0, 1] : [0];
+      const sig = usados.map(i => _simpNombre(i)).filter(Boolean);
+      const rot = (sig.length === usados.length)
+        ? sig.map(k => _SIMP_VISTAS.filter(x => x.k === k)[0].rot).join('+')
+        : (R.bi ? '2 vistas' : '1 vista');
+      return rot + ' · FEVI ' + R.fevi.toFixed(1) + ' %';
     }
   } catch (e) {}
   return '';
@@ -50706,7 +50760,7 @@ function _simpPanel() {
           'La guía recomienda el biplano, y los valores normales con los que se clasifica salen ' +
           'de biplano — tomalo como una aproximación. Agregá la otra vista para el biplano.') +
       '<br>⚠️ El método supone que el ápex está bien visualizado. Un ápex escorzado subestima ' +
-      'los volúmenes; la guía lo lista como su limitación principal.</div>';
+      'los volúmenes; la guía lo lista como su limitación principal.</div>' + _simpTablaHTML();
   }
 
   /* ── Botones de acción sobre el resultado ── */
@@ -50717,14 +50771,18 @@ function _simpPanel() {
         b('cine-simp-integ', 'btn-ghost', 'Integrar de nuevo', 'margin-left:8px;')
       : b('cine-simp-integ', 'btn-primary', '¿Integrás la FEVI biplano al informe?');
   } else if (R && !R.bi) {
-    acc = b('cine-simp-2v', 'btn-primary', '➕ Agregar la otra vista (biplano)') +
-      /* Sin botón de integrar: el campo «Método» de la app sólo tiene «Simpson biplano»,
-         «Teicholz» y «Visual». Integrar un monoplano lo rotularía como biplano en el informe
-         firmado, que es nombrar mal el método. Se dice, no se esconde. */
-      '<div style="font-size:10px;color:var(--text2);margin-top:5px;">' +
+    /* ⚠️ «Agregar la otra vista (biplano)» SE ELIMINÓ. Movía el índice dentro de la MISMA
+       vista del visor, así que las dos apicales terminaban trazadas sobre el mismo cineloop
+       —que es justo lo que el propio panel avisa como error— salvo que el médico cambiara de
+       imagen a mano. Hoy la salida es «➕ Vista», que abre la segunda vista AL LADO y deja
+       elegir su cineloop: las dos apicales quedan a la vista y cada trazado con la escala de
+       su propia imagen. */
+    acc = '<div style="font-size:10px;color:var(--text2);margin-top:5px;line-height:1.5;">' +
+      '<b>Para el biplano, tocá «➕ Vista» →</b> se abre una segunda vista al lado de ésta y ahí ' +
+      'elegís el cineloop de la otra apical. También podés trazar la segunda ventana acá mismo ' +
+      'cambiando de cineloop: lo confirmado no se pierde.<br>' +
       'El monoplanar no se integra al informe: el campo «Método» sólo tiene Simpson biplano, ' +
-      'Teicholz y Visual, y rotularlo «biplano» sería nombrar mal el método. Si lo querés igual, ' +
-      'cargalo a mano y elegí el método que corresponda.</div>';
+      'Teicholz y Visual, y rotularlo «biplano» sería nombrar mal el método.</div>';
   }
 
   /* ── Paso en curso ── */
@@ -50748,7 +50806,75 @@ function _simpPanel() {
           : '') +
       '</div></div>';
   }
-  return cab + paso + '<div style="margin-top:6px;">' + conf + reset + (acc ? ' ' + acc : '') + '</div>';
+  /* BOTONES DE VENTANA. Declarar cuál apical es cada par es lo que destraba la etiqueta por
+     nombre; van ANTES de confirmar, porque después el trazado ya quedó atribuido. El activo va
+     relleno y el que ya tiene su par completo lleva ✅, que es el mismo idioma que la lista de
+     vistas del strain. Por `data-*` y con el listener atado en `_medEstado`: nunca el valor
+     interpolado dentro de un `onclick`. */
+  const vistasBtn = '<div style="margin-top:7px;display:flex;gap:5px;align-items:center;flex-wrap:wrap;">' +
+    '<span style="font-size:10.5px;color:var(--text2);">Ventana:</span>' +
+    _SIMP_VISTAS.map(V => {
+      const i = _simp.nombres.indexOf(V.k);
+      const act = (i >= 0 && i === _simp.vista);
+      const hecha = (i >= 0 && _simpParCompleto(i));
+      return '<button type="button" class="btn btn-ghost" data-simp-vista="' + V.k + '" ' +
+        'style="padding:3px 9px;font-size:11px;' + (act ? 'background:var(--accent);color:#fff;' : '') + '">' +
+        (hecha ? '✅ ' : '') + V.rot + '</button>';
+    }).join('') +
+    (_simpNombre(_simp.vista) ? ''
+      : '<span style="font-size:10px;color:var(--text2);">sin declarar — se rotula por cantidad</span>') +
+    '</div>';
+  return cab + paso + vistasBtn + '<div style="margin-top:6px;">' + conf + reset + (acc ? ' ' + acc : '') + '</div>';
+}
+
+/* TABLA DE RESULTADOS. Una fila por ventana con SU monoplano, y el cierre con el BIPLANO.
+
+   ⚠️ LA FILA DE CIERRE ES EL BIPLANO Y NO EL PROMEDIO DE LAS DOS MONOPLANARES. El biplano no
+   es una media: usa el producto cruzado de los diámetros de las dos vistas —Σ(a·b)— y el eje
+   MÁS LARGO de las dos, que es textual de la guía. Medido sobre un par real, VFD biplano 74,1
+   mL contra 71,7 del promedio de las monoplanares; qué lado queda más alto depende de la
+   geometría, así que ni siquiera se puede describir como un sesgo con dirección fija.
+   Publicar ese promedio al lado del biplano dejaría DOS FEVI en la misma tabla, y la que se
+   integra al informe es la de abajo. Lo que se muestra es el resultado del método; las filas
+   de arriba son de dónde salió.
+
+   VEyec = VFD − VFS, que es el volumen sistólico. */
+function _simpTablaHTML() {
+  if (!_simp) return '';
+  const filas = [];
+  [0, 1].forEach(i => {
+    const m = _simpMonoDe(i);
+    if (!m) return;
+    const nk = _simpNombre(i);
+    const V = nk ? _SIMP_VISTAS.filter(x => x.k === nk)[0] : null;
+    filas.push({ rot: V ? V.rot : ('Vista ' + (i + 1)), m: m, mono: true });
+  });
+  const R = _simp.res;
+  if (!filas.length) return '';
+  if (R && R.bi) filas.push({ rot:'Biplano', m:{ vfd:R.vfd, vfs:R.vfs, vey:R.vfd - R.vfs, fevi:R.fevi }, mono:false });
+  const num = x => x.toFixed(1);
+  const cel = (t, b2) => '<td style="padding:2px 6px;text-align:right;font-variant-numeric:tabular-nums;' +
+    (b2 ? 'font-weight:700;' : '') + '">' + t + '</td>';
+  const cuerpo = filas.map(f =>
+    '<tr' + (f.mono ? '' : ' style="border-top:1px solid var(--border);"') + '>' +
+      '<td style="padding:2px 6px;' + (f.mono ? '' : 'font-weight:700;') + '">' + f.rot + '</td>' +
+      cel(num(f.m.vfd), !f.mono) + cel(num(f.m.vfs), !f.mono) +
+      cel(num(f.m.vey), !f.mono) + cel(num(f.m.fevi), !f.mono) +
+    '</tr>').join('');
+  return '<div style="margin-top:8px;">' +
+    '<table style="width:100%;border-collapse:collapse;font-size:10.5px;line-height:1.5;">' +
+      '<thead><tr style="color:var(--text2);">' +
+        '<th style="text-align:left;padding:2px 6px;font-weight:600;">Ventana</th>' +
+        '<th style="text-align:right;padding:2px 6px;font-weight:600;">VFD mL</th>' +
+        '<th style="text-align:right;padding:2px 6px;font-weight:600;">VFS mL</th>' +
+        '<th style="text-align:right;padding:2px 6px;font-weight:600;">VEyec mL</th>' +
+        '<th style="text-align:right;padding:2px 6px;font-weight:600;">FEVI %</th>' +
+      '</tr></thead><tbody>' + cuerpo + '</tbody></table>' +
+    '<div style="font-size:9.5px;color:var(--text2);margin-top:4px;line-height:1.45;">' +
+      'Cada ventana muestra SU monoplanar —el disco asumido circular—; el <b>biplano</b> es el ' +
+      'resultado del método y el que se integra. <b>No es el promedio de las dos:</b> usa el ' +
+      'producto cruzado de los diámetros y el eje más largo. VEyec = VFD − VFS.</div>' +
+    '</div>';
 }
 
 /* Tabla y no ternario anidado: con cinco herramientas la cadena ya no se leía, y meter una
@@ -51212,9 +51338,16 @@ function _medEstado() {
   const sc = _medEl('cine-simp-conf'), sr = _medEl('cine-simp-reset');
   _on(sc, medSimpsonConfirmar);
   _on(sr, medSimpsonReiniciar);
-  const s2 = _medEl('cine-simp-2v'), si = _medEl('cine-simp-integ');
-  _on(s2, medSimpsonSegundaVista);
+  const si = _medEl('cine-simp-integ');
   _on(si, medSimpsonIntegrar);
+  /* Botones de ventana de Simpson. Por `data-*` y atados a SU vista, igual que los del strain:
+     el valor NUNCA entra a un atributo de evento, donde el parser decodifica la entidad antes
+     de compilar el handler y escapar no protege. */
+  if (_barra) {
+    _barra.querySelectorAll('[data-simp-vista]').forEach(el => {
+      el.onclick = _vBind(_V0, () => medSimpsonElegirVista(el.getAttribute('data-simp-vista')));
+    });
+  }
 }
 
 /* ── VELOCIDAD SOBRE UN TRAZO ESPECTRAL ──────────────────────────────────────────────────
@@ -68962,8 +69095,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260922-1605';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790103905926;                 /* eco-build-ms */
+const ECO_BUILD    = '20260922-1625';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790105104223;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -69049,7 +69182,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1605</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1625</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
