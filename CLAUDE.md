@@ -4,6 +4,66 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## El visor de documentos se achicaba hasta ser ilegible — y no se estiraba (TC-243)
+
+Tres cosas pedidas sobre «el modal de la tabla Simpson». **La tabla de Simpson no es un
+modal**: `_simpTablaHTML()` se concatena a `cab`, o sea al contenido de `cine-med-barra`, la
+columna izquierda del panel. El modal que existe es **`_docVer`**, el que abre un documento
+guardado en la biblioteca — y ahí sí entra la tabla, guardada con 📋.
+
+De los tres puntos, **uno ya estaba hecho y otro no reproducía**:
+
+| pedido | medido |
+|---|---|
+| Cruz ✕ | **faltaba** |
+| Cerrar al clic fuera, y no al clic dentro | **ya andaba**: `if (ev.target === ov) cerrar()` |
+| «No ocupar todo el ancho» | **no reproduce** — a 1400 px la imagen medía 640, su tamaño natural |
+
+### ⚠️ `max-width` SÓLO ACHICA, NUNCA AGRANDA
+
+De ahí que «ocupa toda la pantalla» no se sostenga: un `<img>` sin `width` se dibuja en su
+tamaño intrínseco y `max-width:100%` lo único que puede hacer es encogerlo. Poner un tope de
+700 px habría sido un no-op —los dos documentos que la app genera miden **640**, la tabla por
+`W = 640` y la diana por `S = 640`— o sea un resguardo que no se puede hacer fallar, que este
+archivo ya documenta como peor que no tenerlo.
+
+### Lo que sí estaba roto era lo contrario, y el pedido no lo nombraba
+
+Medido con `Emulation.setDeviceMetricsOverride`, que es lo único confiable para anchos —
+`window.resizeTo` en headless **no hace nada** y devolvió 756 px para 1400 y para 390:
+
+| | 1400 px | 390 px |
+|---|---|---|
+| ancho de la imagen | 640 | **354** |
+
+O sea la tabla al **55 %**: cinco columnas de texto dibujadas para 640 px, ilegibles. Achicar
+está bien para una foto y es lo peor posible para una tabla, **y este modal muestra las dos**.
+Hoy la imagen conserva su tamaño y la caja se desplaza. Contrapartida declarada: en un celular
+hay que desplazar en horizontal, que es preferible a un documento clínico ilegible.
+
+### La ✕ pasó de cosmética a necesaria
+
+Con la imagen desplazable puede no quedar backdrop visible que tocar, y el único camino que
+quedaba era **Escape**, que en un celular no existe. Área táctil 44 con disco visible de 28,
+por lo mismo que la biblioteca: la regla `button{min-width:44px}` gana sobre cualquier `width`
+en línea.
+
+### El caso no necesita cambiar el viewport, y por eso se puede correr
+
+El harness no lo expone por caso, así que TC-243 **angosta la CAJA**, que es lo que de verdad
+decide: con la regla vieja la imagen se encoge con ella, con la nueva se queda en 640 y aparece
+desplazamiento. El denominador va declarado —el documento mide 640 y la caja se angosta por
+debajo—, porque si no «no se achica» se cumple sin que ninguna regla lo impida.
+
+**Una mutación sobrevive y se declara:** sacarle el `stopPropagation` a la ✕ es un **no-op**.
+El evento burbujea a `ov.onclick`, que exige `ev.target === ov`, y el target es el botón — así
+que no cierra dos veces ni hace nada distinto. Se deja el `stopPropagation` porque fija el
+contrato, no porque el caso lo cace.
+
+**Al anclar la mutación del backdrop apareció que ese patrón está escrito DOS veces** en el
+archivo (hay otro modal con el mismo `if (ev.target === ov)`). No se tocó; queda anotado.
+
+
 ## La biblioteca: un botón por acción, y el `width` que era letra muerta (TC-242)
 
 Cinco tareas. **Dos ya estaban hechas**, una se difirió por decisión, y la que más costó fue

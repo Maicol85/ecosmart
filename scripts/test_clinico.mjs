@@ -21046,6 +21046,105 @@ caso('TC-240', 'Vista B: abre el mismo cineloop que la tira, por la misma ruta d
    El tamano se mide en PIXELES DIBUJADOS y no se lee del fuente: la regla de accesibilidad
    `button{min-width:44px}` GANA sobre el `width` en linea —son propiedades distintas— y por eso
    los ✕ que el codigo declaraba de 22 px se dibujaban de 44. Area tactil 44, disco visible 20. */
+/* == TC-243 - El visor de documentos: se desplaza, no se achica, y tiene por donde salir ==
+   ⚠️ LA IMAGEN SE ACHICABA HASTA SER ILEGIBLE. Los dos documentos que produce la app -la tabla
+   de Simpson y el bull's eye- se dibujan a 640 px de ancho, y con `max-width:100%` a 390 px de
+   pantalla salian en 354, o sea al 55 %: el texto de una tabla de cinco columnas no se lee a
+   esa escala. Achicar esta bien para una foto y es lo peor posible para una tabla, y este
+   modal muestra las dos. Hoy conserva su tamano y la caja se desplaza.
+
+   La condicion NO necesita cambiar el viewport -el harness no lo expone por caso-: se angosta
+   la CAJA, que es lo que de verdad decide. Con la regla vieja la imagen se encoge con ella;
+   con la nueva se queda en 640 y aparece desplazamiento.
+
+   Y la ✕ faltaba. Con la imagen desplazable pasa a ser necesaria: si el documento llena la
+   caja puede no quedar backdrop visible que tocar, y el unico camino era la tecla Escape, que
+   en un celular no existe. Lo que YA andaba -cerrar tocando el fondo y NO cerrar tocando
+   adentro- se fija igual, para que el agregado no lo rompa. */
+caso('TC-243', 'Visor de documentos: la tabla no se achica, y hay una ✕ para salir', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const toastReal = window.toast;
+    window.toast = () => {};
+    const leerReal = CeiboCine.leer;
+    try {
+      /* Un documento de 640 px, que es el ancho con el que la app los genera. */
+      const cv = document.createElement('canvas'); cv.width = 640; cv.height = 260;
+      const g = cv.getContext('2d');
+      g.fillStyle = '#ffffff'; g.fillRect(0, 0, 640, 260);
+      g.fillStyle = '#000000'; g.font = '20px sans-serif'; g.fillText('TABLA SIMPSON', 20, 60);
+      const bytes = await new Promise(res => cv.toBlob(b => { const fr = new FileReader();
+        fr.onload = () => res(new Uint8Array(fr.result)); fr.readAsArrayBuffer(b); }, 'image/jpeg', 0.92));
+      CeiboCine.leer = async () => ({ id:'x', nombre:'Tabla Simpson', datos:bytes, cuadros:1, tipo:'doc' });
+
+      const abrir = async () => {
+        document.querySelectorAll('[data-doc-ver]').forEach(o => o.remove());
+        await _docVer('x'); await esperar(350);
+        return document.querySelector('[data-doc-ver]');
+      };
+      const vivo = () => !!document.querySelector('[data-doc-ver]');
+      const med = el => { const q = el.getBoundingClientRect();
+        return Math.round(q.width) + 'x' + Math.round(q.height); };
+
+      let ov = await abrir();
+      R.abrio = !!ov;
+      const im = ov.querySelector('img');
+      R.natural = im ? im.naturalWidth : -1;
+      R.anchoSuelto = im ? Math.round(im.getBoundingClientRect().width) : -1;
+
+      /* DENOMINADOR: la caja se angosta por DEBAJO del ancho del documento. Sin eso, «no se
+         achica» se cumple sin que ninguna regla lo impida. */
+      const caja = im.parentElement;
+      caja.style.maxWidth = '300px';
+      await esperar(200);
+      R.cajaAngosta = Math.round(caja.getBoundingClientRect().width);
+      R.anchoApretado = Math.round(im.getBoundingClientRect().width);
+      R.seDesplaza = caja.scrollWidth > caja.clientWidth + 2;
+
+      /* La ✕ */
+      const x = ov.querySelector('[data-doc-cerrar]');
+      R.hayX = !!x;
+      if (x) {
+        R.xHit = med(x);
+        R.xDisco = med(x.querySelector('span'));
+        const q = x.getBoundingClientRect(), o = ov.getBoundingClientRect();
+        R.xEsquina = Math.round(o.right - q.right) + '/' + Math.round(q.top - o.top);
+        x.click(); await esperar(250);
+        R.xCierra = !vivo();
+      }
+
+      /* Lo que ya andaba: adentro NO cierra, el fondo SI. */
+      ov = await abrir();
+      ov.querySelector('img').click(); await esperar(200);
+      R.dentroNoCierra = vivo();
+      ov.click(); await esperar(200);
+      R.fueraCierra = !vivo();
+    } catch (e) {
+      R.err = String(e && e.message || e);
+    } finally {
+      CeiboCine.leer = leerReal;
+      window.toast = toastReal;
+      document.querySelectorAll('[data-doc-ver]').forEach(o => { try { o.remove(); } catch (e) {} });
+    }
+    return { extra: [
+      ['sin excepciones',                          !R.err, R.err],
+      ['DENOMINADOR: el documento mide 640 px',    R.natural === 640, R.natural],
+      ['y la caja se angosta por debajo de eso',   R.cajaAngosta > 0 && R.cajaAngosta < 640,
+                                                   R.cajaAngosta],
+      ['la imagen NO se achica con la caja',       R.anchoApretado === 640, R.anchoApretado],
+      ['la caja se desplaza en su lugar',          R.seDesplaza === true, R.seDesplaza],
+      ['hay una ✕ para cerrar',                    R.hayX === true, R.hayX],
+      ['en la esquina superior derecha',           R.xEsquina === '6/6', R.xEsquina],
+      ['con 44 px de area tactil y 28 de disco',   R.xHit === '44x44' && R.xDisco === '28x28',
+                                                   'hit=' + R.xHit + ' disco=' + R.xDisco],
+      ['y cierra al tocarla',                      R.xCierra === true, R.xCierra],
+      ['tocar DENTRO no cierra',                   R.dentroNoCierra === true, R.dentroNoCierra],
+      ['tocar el fondo SI cierra',                 R.fueraCierra === true, R.fueraCierra]
+    ] };
+  })();
+`);
+
 caso('TC-242', 'Biblioteca: ✕ en todas, 📄 solo donde significa algo, y cada uno borra lo suyo', `
   return (async () => {
     const R = {};

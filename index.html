@@ -53689,10 +53689,22 @@ async function _docVer(id) {
   ov.setAttribute('data-doc-ver', '1');
   ov.style.cssText = 'position:fixed;inset:0;z-index:401;background:rgba(0,0,0,.85);display:flex;' +
                      'align-items:center;justify-content:center;padding:18px;flex-direction:column;gap:10px;';
+  /* ⚠️ SE DESPLAZA, NO SE ACHICA. Medido: los dos documentos que produce la app —la tabla de
+     Simpson y el bull's eye— se dibujan a 640 px de ancho, y con `max-width:100%` a 390 px de
+     pantalla la imagen salía en **354 px**, o sea al 55 %: el texto de una tabla de cinco
+     columnas a esa escala no se lee. Achicar es correcto para una foto y es lo peor posible
+     para una tabla, y este modal muestra las dos.
+     Contrapartida declarada: en un celular hay que desplazar en horizontal. Se prefiere eso a
+     un documento clínico ilegible.
+     ⚠️ Y NO SE ESTIRABA: a 1400 px la imagen medía 640, su tamaño natural. `max-width` sólo
+     achica, nunca agranda, así que el modal nunca ocupó todo el ancho. */
+  const caja = document.createElement('div');
+  caja.style.cssText = 'max-width:100%;max-height:80vh;overflow:auto;border-radius:10px;' +
+                       'background:#fff;-webkit-overflow-scrolling:touch;';
   const im = document.createElement('img');
   im.src = url;
   im.alt = r.nombre || 'Documento del estudio';
-  im.style.cssText = 'max-width:100%;max-height:80vh;border-radius:10px;background:#fff;';
+  im.style.cssText = 'display:block;max-width:none;background:#fff;';
   const pie = document.createElement('div');
   pie.style.cssText = 'font-size:11.5px;color:#e5e7eb;text-align:center;';
   pie.textContent = (r.nombre || 'Documento') + ' · guardado con el estudio, no sale en el PDF';
@@ -53700,8 +53712,34 @@ async function _docVer(id) {
     document.removeEventListener('keydown', onEsc);
     try { document.body.removeChild(ov); } catch (e) {} };
   const onEsc = ev => { if (ev.key === 'Escape') { ev.stopPropagation(); cerrar(); } };
+  /* Cerrar al tocar el fondo YA ANDABA —`ev.target === ov` sólo es cierto en el backdrop, así
+     que un toque sobre la imagen o el pie no cierra—. Verificado a 1400 y a 390 px. */
   ov.onclick = ev => { if (ev.target === ov) cerrar(); };
-  ov.appendChild(im); ov.appendChild(pie);
+  /* ⚠️ LA ✕ FALTABA, y con la imagen desplazable pasa a ser necesaria y no cosmética: si el
+     documento llena la caja, tocar «afuera» puede no haber afuera visible, y el único camino
+     que quedaba era la tecla Escape —que en un celular no existe—.
+     Área táctil 44×44 con el disco visible de 28: la regla `button{min-width:44px}` de este
+     archivo gana sobre cualquier `width` en línea, así que «chico» se consigue separando el
+     objetivo del disco pintado, no achicando el botón. */
+  const cx = document.createElement('button');
+  cx.type = 'button';
+  cx.setAttribute('data-doc-cerrar', '1');
+  cx.title = 'Cerrar';
+  cx.setAttribute('aria-label', 'Cerrar');
+  cx.style.cssText = 'position:absolute;top:6px;right:6px;width:44px;height:44px;padding:0;' +
+                     'background:none;border:none;cursor:pointer;display:flex;' +
+                     'align-items:center;justify-content:center;';
+  const disco = document.createElement('span');
+  disco.textContent = '✕';
+  disco.style.cssText = 'width:28px;height:28px;border-radius:50%;background:#374151;color:#fff;' +
+                        'font-size:15px;line-height:28px;text-align:center;font-weight:700;' +
+                        'transition:background .15s;';
+  cx.onmouseenter = () => { disco.style.background = '#111827'; };
+  cx.onmouseleave = () => { disco.style.background = '#374151'; };
+  cx.onclick = ev => { ev.stopPropagation(); cerrar(); };
+  cx.appendChild(disco);
+  caja.appendChild(im);
+  ov.appendChild(caja); ov.appendChild(pie); ov.appendChild(cx);
   document.addEventListener('keydown', onEsc);
   document.body.appendChild(ov);
 }
@@ -69774,8 +69812,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260922-1847';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790113674349;                 /* eco-build-ms */
+const ECO_BUILD    = '20260922-1943';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790116986973;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -69861,7 +69899,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1847</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1943</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
