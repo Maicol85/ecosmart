@@ -4,6 +4,41 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## A4C fija, y la A3C desplaza a la A2C — sólo en la PRESENTACIÓN (2026-09-22)
+
+El panel del strain tiene dos lugares: la vista de referencia y la que se está agregando. Al
+llegar la tercera ventana, la A3C ocupa el segundo. Medido por la posición de la marca de fila
+en el HTML del panel:
+
+| | A4C | A2C | A3C |
+|---|---|---|---|
+| dos vistas | 392 | 616 | 773 |
+| tres vistas | 392 | **766** | **616** |
+
+### ⚠️ LA FILA DE LA A2C NO DESAPARECE, Y ES EL PUNTO
+
+Esconderla diría que dejó de contar, y es al revés: con las tres vistas el SGL promedia **seis
+territorios** y el bull's eye pinta **16 de 17** segmentos; sin la A2C serían cuatro y 10.
+Verificado en la misma corrida: las tres vistas siguen completas y `_strainCalcular` devuelve
+**6 territorios**. La fila baja a una línea secundaria que dice, con todas las letras, que
+**sigue contando**.
+
+**El desplazamiento se dispara con la A3C COMPLETA**, no con la A3C elegida: antes de eso el
+segundo lugar sigue siendo el de la A2C, que es donde se está trabajando.
+
+### Sin caso automático todavía — declarado
+
+Está verificado **por medición**, no por un caso del suite. Es presentación pura y el dato quedó
+comprobado intacto, pero un arreglo sin caso es un arreglo que se deshace sin que nadie se
+entere. El caso natural es seguir el patrón de la sonda: sembrar `_strain.vistas` y ordenar por
+la posición de `<b>A4C</b>` en el HTML del panel.
+
+**Y la sonda tropezó dos veces con lo mismo.** El `\s` de un regex se pierde dentro del template
+literal —la trampa que este archivo documenta nueve veces— y después, buscando «A4C» en el
+`textContent`, el orden salía mezclado porque esa sigla **también aparece en el párrafo
+explicativo**. Se ordena por la marca de fila, que es única.
+
+
 ## La tabla de Simpson viaja con el estudio, y «biblioteca» no es «PDF» (TC-239)
 
 ### ⚠️ «GUARDAR EN BIBLIOTECA» Y «INCLUIR EN PDF» TIENEN QUE HACER COSAS DISTINTAS

@@ -48825,8 +48825,21 @@ function _strainPanel() {
   const VA = _strVista(_strain.vista);
   const listas = _strainVistasListas();
 
-  /* ── Estado de las tres vistas ── */
-  const fila = V => {
+  /* ── Estado de las tres vistas ───────────────────────────────────────────────────────
+     ⚠️ LA A4C ES FIJA Y LA A2C LA DESPLAZA LA A3C, PERO SÓLO EN LA PRESENTACIÓN.
+     Decisión de Maicol (2026-09-22). El panel tiene dos lugares —la vista de referencia y la
+     que se está agregando— y al llegar la tercera ventana la A3C ocupa el segundo.
+
+     ⚠️ EL DATO DE LA A2C NO SE DESCARTA, y por eso la fila NO desaparece: baja a una línea
+     secundaria que dice que SIGUE CONTANDO. Esconderla del todo diría que dejó de contar, y es
+     al revés — con las tres vistas el SGL promedia SEIS territorios y el bull's eye pinta 16 de
+     17 segmentos; sin la A2C serían cuatro territorios y 10 segmentos. La mutación que la
+     esconde cae por esa condición.
+
+     La A4C queda primera SIEMPRE, marcada como referencia: es la vista que el método asume
+     trazada y la que no se reemplaza al agregar las otras. */
+  const _hecha = k => { const P = _strain.vistas[k]; return !!(P && P.d && P.s); };
+  const fila = (V, extra) => {
     const P = _strain.vistas[V.k];
     const hecha = P.d && P.s;
     const marca = hecha ? '✅' : (V.k === _strain.vista ? '▶️' : '⬜');
@@ -48834,10 +48847,23 @@ function _strainPanel() {
       ? ' — ' + P.d.bordeCm.toFixed(1) + ' → ' + P.s.bordeCm.toFixed(1) + ' cm' +
         (P.d.imagen ? ' · <span style="opacity:.75;">' + E(P.d.imagen) + '</span>' : '')
       : (P.d ? ' — diástole trazada' : '');
-    return '<div style="font-size:11px;line-height:1.6;' + (hecha ? '' : 'color:var(--text2);') + '">' +
-           marca + ' <b>' + V.k.toUpperCase() + '</b> ' + V.rot.replace(/^[^—]*— /, '') + det + '</div>';
+    return '<div style="font-size:11px;line-height:1.6;' +
+           ((extra && extra.tenue) ? 'opacity:.72;' : '') +
+           (hecha ? '' : 'color:var(--text2);') + '">' +
+           marca + ' <b>' + V.k.toUpperCase() + '</b> ' + V.rot.replace(/^[^—]*— /, '') + det +
+           ((extra && extra.nota)
+             ? ' <span style="font-size:10px;color:var(--text2);">' + extra.nota + '</span>' : '') +
+           '</div>';
   };
-  let cab = _STR_VISTAS.map(fila).join('');
+  const _vDe = k => _STR_VISTAS.filter(x => x.k === k)[0];
+  /* La A3C desplaza a la A2C del segundo lugar en cuanto EXISTE como medición completa: antes
+     de eso el segundo lugar sigue siendo el de la A2C, que es donde se está trabajando. */
+  const _a3cLista = _hecha('a3c');
+  const _orden = _a3cLista ? ['a4c', 'a3c', 'a2c'] : ['a4c', 'a2c', 'a3c'];
+  let cab = _orden.map(k => fila(_vDe(k),
+    k === 'a4c' ? { nota: '· referencia, no se reemplaza' }
+    : (k === 'a2c' && _a3cLista) ? { tenue: true, nota: '· desplazada del panel por la A3C — SIGUE contando para el SGL y el bull\u2019s eye' }
+    : null)).join('');
 
   /* Selector de método. Va arriba de todo: decide cómo se traza, así que elegirlo después de
      empezar sería rehacer. */
@@ -69495,8 +69521,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260922-1655';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790106910870;                 /* eco-build-ms */
+const ECO_BUILD    = '20260922-1710';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790107850076;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -69582,7 +69608,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1655</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1710</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
