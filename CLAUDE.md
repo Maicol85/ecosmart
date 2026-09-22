@@ -4,6 +4,111 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## La biblioteca: un botón por acción, y el `width` que era letra muerta (TC-242)
+
+Cinco tareas. **Dos ya estaban hechas**, una se difirió por decisión, y la que más costó fue
+descubrir que el tamaño que el código declaraba no era el que se dibujaba.
+
+### ⚠️ `min-width` NO COMPITE CON `width`: los ✕ de 22 px se veían de 44
+
+El pedido decía «pequeño y discreto». Medido en el navegador antes de tocar nada:
+
+| | escrito en el fuente | dibujado |
+|---|---|---|
+| ✕ de la tira | `width:22px;height:22px` | **44×44** |
+| ✕ del slot | `width:22px;height:22px` | **44×44** |
+
+La regla de accesibilidad del archivo —`button{min-height:44px;min-width:44px}`— **gana
+siempre**, porque `min-width` y `width` son propiedades DISTINTAS y no se resuelven por
+especificidad. Ese `22px` no hacía nada desde el día que se escribió, y es casi seguro el
+origen del pedido.
+
+**O sea que «achicar el botón» no es una opción: la regla lo vuelve a inflar.** Lo que se hace
+es **separar el área táctil del disco pintado** — botón de 44×44 transparente, disco de 20 px
+alineado a su esquina con `padding` + `flex`. Es el recurso que `.asoc-info-btn` ya usa al
+revés (márgenes negativos para SUBIR a 44).
+
+**COSTO DECLARADO:** las dos esquinas superiores de la miniatura dejan de abrir el archivo,
+porque ahí hay un botón transparente. Se acepta porque el ✕ pide confirmación y el 📄 dice por
+toast qué hizo; la alternativa era eximir de la regla táctil a un control **destructivo**, que
+es el lado peor.
+
+### El ✕ va en TODAS, y borra cosas distintas según dónde viva el archivo
+
+Salía sólo en las tarjetas con registro en disco, así que **una foto importada con el guardado
+apagado se veía en la biblioteca y no había forma de sacarla de ahí**. Hoy va en las cuatro
+clases y `_bibBorrar` decide qué borra, diciéndolo en el `confirm`:
+
+| la tarjeta es | el ✕ borra | y deja |
+|---|---|---|
+| slot **+** disco (una fija DICOM) | el original → se pierde la escala | la imagen en el PDF |
+| sólo disco (cineloop, doc, fija huérfana) | el registro | los slots |
+| sólo slot (foto sin persistir) | el slot → **sale del informe** | — |
+
+Sin ese reparto, el médico aprieta un ✕ creyendo que libera espacio y lo que hace es sacar una
+ecografía del informe que está por firmar.
+
+### El 📄 es el ÚNICO puente al PDF, y por eso no va en todas
+
+La biblioteca **no sale en el informe por diseño**; el slot sí. El 📄 no aparece en video ni
+cineloop —no son una página del informe— **ni en lo que ya ocupa un slot**: ahí «mandalo al
+PDF» duplicaría la misma ecografía. Es el control que no significa nada del que este archivo
+ya habla.
+
+### ⚠️ LA CAPTURA VA A LA BIBLIOTECA, CON RED — y la red no es opcional
+
+Decisión de Maicol (2026-09-22). `_cinePuedeGuardar()` exige DOS cosas —el toggle «Guardar
+imágenes con los estudios», que viene **apagado de fábrica**, y un estudio ya guardado— y el
+flujo normal es importar y medir mientras se llena el formulario, o sea con las dos sin
+cumplir. Mandando la captura sólo a la biblioteca, en la configuración por defecto el botón
+Capturar **no dejaría el cuadro en ningún lado**: es «el interruptor mentía sobre el disco»
+otra vez, y acá se pierde un cuadro que el médico eligió a mano.
+
+Así que si la biblioteca no puede escribir, el cuadro va al slot y el toast **dice por qué**.
+Medido en los dos escenarios: con el toggle encendido `bib +1, slots +0`; apagado, `slots +1`
+con el motivo impreso. Sin esa segunda mitad, el mismo gesto tendría dos resultados sin
+ninguna señal de cuál ocurrió.
+
+**Efecto colateral en el suite, declarado:** TC-182, TC-187, TC-202, TC-227 y TC-228 siguen en
+verde **porque caen a la red** —ninguno guarda el estudio—, así que esos cinco ya no cubren el
+camino de la biblioteca. Lo cubre TC-242.
+
+### Dos tareas que ya estaban hechas — medidas, no supuestas
+
+- **Selección múltiple:** el input ya lleva `multiple` y `mediosImportar` ya itera. Medido:
+  tres archivos en una sola llamada → tres slots, con el toast «✅ 3 imagen(es) de 3
+  archivo(s)». **No se tocó el importador**, que además estaba fuera de alcance por el pedido.
+- **✕ en los slots:** existía y ya era independiente. Medido: borrar un slot deja la
+  biblioteca en 1→1.
+
+### Tres trampas del propio caso, y las dos mutaciones que sobrevivieron
+
+- **M2 —«el 📄 deja de excluir lo que ya está en un slot»— sobrevivió entera.** En mi
+  escenario ninguna tarjeta estaba en slot **y** en disco a la vez, así que la cláusula que la
+  mutación borra era un **no-op ahí**: las dos reglas daban el mismo resultado. Se agregó una
+  fija con slot **y** registro —el estado que deja importar un DICOM con el guardado
+  encendido— y recién ahí discrimina. *El denominador otra vez, en su forma más cara: la
+  condición estaba bien escrita y no probaba nada.*
+- **M5 —«el botón vuelve a 20×20»— SIGUE SOBREVIVIENDO, y está bien que sobreviva.** Leída
+  como código es un **no-op para el invariante**: con `width:20px` la regla global lo infla a
+  44 igual. La mutación no reintroduce el defecto, lo **demuestra**. Se declara en vez de
+  apretar la condición a un píxel cosmético, que sería el literal 53 otra vez.
+- **M1 mataba el caso en vez de hacerlo fallar** (`null.click` sobre el ✕ que acababa de
+  sacar), arrastrando cuatro condiciones que no le tocaban. Hoy el botón se busca y se
+  **declara** si no está.
+- **Backticks dentro del cuerpo de un caso: van CUARENTA Y OCHO** — otra vez en un comentario
+  recién escrito, el que explicaba por qué el video no se ejerce.
+
+### Lo que NO se hizo, y por qué
+
+**Tarea 5 —autoplay y bucle del video en el PPT— quedó para su propia sesión** (decisión de
+Maicol). PptxGenJS 3.12 no expone ninguna de las dos: hay que inyectar a mano el bloque
+`<p:timing>` post-procesando el paquete con el JSZip que ya usa `_pptxDescargarSaneado`. El
+riesgo está documentado acá mismo: un XML mal formado hace que PowerPoint pida reparar y **al
+reparar borre la diapositiva entera**. PowerPoint está instalado en esta máquina, así que se
+puede verificar de verdad — y sin esa verificación no se commitea.
+
+
 ## La vista B abre midiendo, y la tabla de Simpson es UNA para las dos (TC-241)
 
 Tres bugs reportados. **Uno no se reproduce**, y los otros dos destaparon un tercero.

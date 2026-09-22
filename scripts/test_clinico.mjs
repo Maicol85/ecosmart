@@ -20263,7 +20263,12 @@ caso('TC-234', 'Tira unificada: un icono por tipo, el MP4 no se mide y cada clic
       ['el MP4 lleva el disclaimer',                  R.hayMp4 ? R.disclaimer === true : true, R.disclaimer],
       ['el DICOM con region dice escala del archivo', R.conEscalaArchivo === 1, 'auto=' + R.conEscalaArchivo],
       ['y el que no la trae, calibracion manual',     R.conCalibManual === 2, 'manual=' + R.conCalibManual],
-      ['el ✕ solo donde hay registro en disco',       R.borrar === 2, 'borrar=' + R.borrar],
+      /* Pinaba «el ✕ SOLO donde hay registro en disco», que era el inventario del dia en que
+         se escribio y dejaba sin forma de quitar una foto importada con el guardado apagado.
+         Hoy el invariante es que NINGUNA tarjeta quede sin su ✕; que borre lo que corresponde
+         en cada caso lo fija TC-242. */
+      ['el ✕ va en TODAS las tarjetas',               R.borrar === R.nTarjetas,
+                                                      'borrar=' + R.borrar + ' de ' + R.nTarjetas],
       ['ningun atributo de evento en la tira',        R.sinHandlerInline === true, R.sinHandlerInline],
       ['clic en la imagen abre el visor SIN regiones', R.visorPorImagen === true && R.regionesImagen === 0,
                                                        'visor=' + R.visorPorImagen + ' regiones=' + R.regionesImagen],
@@ -21023,6 +21028,226 @@ caso('TC-240', 'Vista B: abre el mismo cineloop que la tira, por la misma ruta d
       ['loops queda como ARRAY, no como objeto',   R.loopsEsArray === true, R.loopsEsArray],
       ['un registro truncado SI falla',            R.rotoDaNull === true, R.rotoDaNull],
       ['y uno bueno no',                           R.buenoNoDaNull === true, R.buenoNoDaNull]
+    ] };
+  })();
+`);
+
+/* == TC-242 - La biblioteca: un boton por accion, y cada uno borra lo suyo ================
+   El ✕ salia SOLO en las tarjetas con registro en disco, asi que una foto importada con el
+   guardado apagado se veia en la biblioteca y no habia forma de sacarla de ahi.
+
+   Y el 📄 es el UNICO puente de la biblioteca al informe: la biblioteca no sale en el PDF por
+   diseno. Por eso no va en video ni en cineloop —no son una pagina del informe— ni en lo que
+   YA ocupa un slot, porque ahi duplicaria la misma ecografia en el PDF.
+
+   DENOMINADOR: las cuatro clases de tarjeta tienen que existir. Con una sola clase, «el 📄 va
+   donde corresponde» se cumple sin distinguir nada.
+
+   El tamano se mide en PIXELES DIBUJADOS y no se lee del fuente: la regla de accesibilidad
+   `button{min-width:44px}` GANA sobre el `width` en linea —son propiedades distintas— y por eso
+   los ✕ que el codigo declaraba de 22 px se dibujaban de 44. Area tactil 44, disco visible 20. */
+caso('TC-242', 'Biblioteca: ✕ en todas, 📄 solo donde significa algo, y cada uno borra lo suyo', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    let dichos = [];
+    window.alert = m => { dichos.push('alert:' + String(m).slice(0, 150)); };
+    window.confirm = () => true;
+    window.toast = m => { dichos.push(String(m).slice(0, 170)); };
+    let togglePrevio = null;
+    try { togglePrevio = localStorage.getItem('cfg-guardar-imagenes'); } catch (e) {}
+    let estudioId = null;
+    try {
+      localStorage.setItem('cfg-guardar-imagenes', '1');
+      __t.limpiar(); imgVaciar(); await esperar(200);
+      __t.set('nombre','TC242'); __t.set('ci','98960002');
+      const g = await __t.guardar(); estudioId = g.estudioId; await esperar(900);
+      const inf = getInformes().filter(i => i.estudioId === g.estudioId)[0];
+      __t.reabrir(g.estudioId); await esperar(1500);
+      showTab('imagenes'); await esperar(400);
+
+      const jpg = await new Promise(res => {
+        const c = document.createElement('canvas'); c.width = 200; c.height = 160;
+        const x = c.getContext('2d'); x.fillStyle = 'rgb(58,95,159)'; x.fillRect(0,0,200,160);
+        c.toBlob(b => { const fr = new FileReader(); fr.onload = () => res(new Uint8Array(fr.result));
+          fr.readAsArrayBuffer(b); }, 'image/jpeg', 0.9);
+      });
+
+      /* TAREA 3 - seleccion MULTIPLE, verificada y NO reimplementada: se entra por la puerta
+         real (mediosImportar) con tres archivos de una sola llamada. */
+      const inp = document.getElementById('medios-file-input');
+      R.inputMultiple = !!(inp && inp.multiple);
+      const mk = n => new File([jpg], 'foto' + n + '.jpg', { type:'image/jpeg' });
+      await mediosImportar([mk(1), mk(2), mk(3)]);
+      for (let i = 0; i < 70 && imgSlots.filter(s => s && s.dataURL).length < 3; i++) await esperar(100);
+      R.slotsTrasImportar = imgSlots.filter(s => s && s.dataURL).length;
+
+      /* TAREA 2 - borrar del SLOT no toca la biblioteca. */
+      const bibA = (await CeiboCine.listar(inf.uuid)).length;
+      imgRemove(null, 2); await esperar(250);
+      R.slotBorrado = imgSlots.filter(s => s && s.dataURL).length;
+      R.bibTrasBorrarSlot = (await CeiboCine.listar(inf.uuid)).length - bibA;
+
+      /* Las cuatro clases: foto en slot (sin disco), cineloop, fija de disco sin slot, documento */
+      const n = 3, datos = new Uint8Array(jpg.length * n), offs = new Int32Array(n);
+      for (let i = 0; i < n; i++) { offs[i] = i * jpg.length; datos.set(jpg, i * jpg.length); }
+      await CeiboCine.guardar({ id:_uuidNuevo(), uuid:inf.uuid, nombre:'apical4c', cuadros:n, ms:40,
+        cols:200, filas:160, poster:'', datos:datos, offs:offs, bytes:datos.length,
+        regiones:[], ts:new Date().toISOString() });
+      const idFija = _uuidNuevo();
+      await CeiboCine.guardar({ id:idFija, uuid:inf.uuid, nombre:'fija sin slot', cuadros:1, ms:0,
+        cols:200, filas:160, poster:'', datos:jpg, offs:new Int32Array([0]), bytes:jpg.length,
+        regiones:[], ts:new Date().toISOString() });
+      /* ⚠️ Y UNA QUE ESTA EN LOS DOS LADOS A LA VEZ: slot + registro en disco. Es el estado que
+         deja importar un DICOM con el guardado encendido —TC-233 y TC-216 prueban que se
+         alcanza— y es el UNICO que distingue «el 📄 no va en lo que ya ocupa un slot» de «el 📄
+         no va en lo que no tiene disco»: sin esta tarjeta las dos reglas dan el mismo
+         resultado y la mutacion que borra la primera sobrevive entera. */
+      const idEnSlot = _uuidNuevo();
+      await CeiboCine.guardar({ id:idEnSlot, uuid:inf.uuid, nombre:'fija con slot', cuadros:1, ms:0,
+        cols:200, filas:160, poster:'', datos:jpg, offs:new Int32Array([0]), bytes:jpg.length,
+        regiones:[], ts:new Date().toISOString() });
+      const slotVivo = imgSlots.filter(s => s && s.dataURL)[0];
+      if (slotVivo) slotVivo._dcmId = idEnSlot;
+      const cvd = document.createElement('canvas'); cvd.width = 300; cvd.height = 200;
+      const xd = cvd.getContext('2d'); xd.fillStyle = '#fff'; xd.fillRect(0,0,300,200);
+      await _docGuardarEnBiblioteca(cvd, 'Tabla Simpson');
+      await cineStripRender(); await esperar(700);
+
+      const cont = document.getElementById('cine-strip');
+      const cards = () => [...cont.querySelectorAll('[data-strip-i]')];
+      const tx = c => (c.textContent || '').replace(/[ ]+/g, ' ');
+      const clase = c => { const t = tx(c);
+        return t.indexOf('📋') >= 0 ? 'doc' : t.indexOf('▶️') >= 0 ? 'cine'
+             : t.indexOf('📏') >= 0 ? 'dicom' : t.indexOf('🎬') >= 0 ? 'video'
+             : t.indexOf('📷') >= 0 ? 'imagen' : '?'; };
+      const cs = cards();
+      /* Por CLASE distinta y no por tarjeta: quedan dos fotos en slot, y contar el multiconjunto
+         ataria el caso a cuantas se importaron en vez de a que clases existen. */
+      const unicas = l => [...new Set(l)].sort().join(',');
+      R.clases = unicas(cs.map(clase));
+      R.todasConX = cs.length > 0 && cs.every(c => c.querySelector('.cine-borrar'));
+      R.conPdf = unicas(cs.filter(c => c.querySelector('.cine-alpdf')).map(clase));
+      R.sinPdf = unicas(cs.filter(c => !c.querySelector('.cine-alpdf')).map(clase));
+      const med = el => { const r = el.getBoundingClientRect();
+        return Math.round(r.width) + 'x' + Math.round(r.height); };
+      const bx = cont.querySelector('.cine-borrar'), bp = cont.querySelector('.cine-alpdf');
+      R.hitX = bx ? med(bx) : '-';   R.discoX = bx ? med(bx.querySelector('span')) : '-';
+      R.hitPdf = bp ? med(bp) : '-'; R.discoPdf = bp ? med(bp.querySelector('span')) : '-';
+      /* Y EN QUE ESQUINA CAE EL DISCO. El tamano solo no alcanza: con el disco centrado dentro
+         de los 44 px, las dos medidas dan igual y el boton queda en el medio de la miniatura.
+         Se mide contra la caja de la TARJETA, que es la esquina que nombra el pedido. */
+      const esq = (btn, lado) => { if (!btn) return -1;
+        const t = btn.closest('[data-strip-i]').getBoundingClientRect();
+        const d = btn.querySelector('span').getBoundingClientRect();
+        return Math.round(lado === 'der' ? (t.right - d.right) : (d.left - t.left)); };
+      R.esqX = esq(bx, 'der'); R.esqPdf = esq(bp, 'izq');
+      R.topX = bx ? Math.round(bx.querySelector('span').getBoundingClientRect().top -
+                               bx.closest('[data-strip-i]').getBoundingClientRect().top) : -1;
+      R.sinHandlerInline = ![...cont.querySelectorAll('*')].some(el =>
+        [...el.attributes].some(a => a.name.slice(0, 2) === 'on'));
+
+      /* 📄 manda al slot y NO saca de la biblioteca: son independientes. */
+      const sA = imgSlots.filter(s => s && s.dataURL).length;
+      const bB = (await CeiboCine.listar(inf.uuid)).length;
+      const pdfFija = cs.filter(c => c.getAttribute('data-cine-id') === idFija)[0];
+      R.fijaTienePdf = !!(pdfFija && pdfFija.querySelector('.cine-alpdf'));
+      dichos = [];
+      if (pdfFija) pdfFija.querySelector('.cine-alpdf').click();
+      for (let i = 0; i < 70 && imgSlots.filter(s => s && s.dataURL).length <= sA; i++) await esperar(100);
+      R.pdf_slots = imgSlots.filter(s => s && s.dataURL).length - sA;
+      R.pdf_bib = (await CeiboCine.listar(inf.uuid)).length - bB;
+
+      /* ✕ de una tarjeta SOLO-SLOT: saca el slot y deja la biblioteca. */
+      await cineStripRender(); await esperar(500);
+      const soloSlot = cards().filter(c => !c.hasAttribute('data-cine-id'))[0];
+      /* El ✕ se busca y se DECLARA si no esta, en vez de clickear a ciegas: sin esto la
+         mutacion que lo saca mata el caso con «null.click» y se lleva por delante cuatro
+         condiciones que no le tocan — un rojo colateral que no diagnostica nada. */
+      R.haySoloSlot = !!(soloSlot && soloSlot.querySelector('.cine-borrar'));
+      if (R.haySoloSlot) {
+        const s1 = imgSlots.filter(s => s && s.dataURL).length;
+        const b1 = (await CeiboCine.listar(inf.uuid)).length;
+        soloSlot.querySelector('.cine-borrar').click(); await esperar(800);
+        R.ss_slots = imgSlots.filter(s => s && s.dataURL).length - s1;
+        R.ss_bib = (await CeiboCine.listar(inf.uuid)).length - b1;
+      }
+
+      /* TAREA 4 - la captura va a la BIBLIOTECA con el toggle encendido y el estudio guardado. */
+      const REG = [{ x0:0, y0:0, x1:200, y1:160, ux:3, uy:3, dx:0.05, dy:0.05, tipo:1 }];
+      _cineAbrir([{ nombre:'apical4c', cuadros:3,
+        d:{ frags:[jpg,jpg,jpg], cols:200, filas:160, msCuadro:40, fabricante:'', modelo:'', regiones:REG } }]);
+      await esperar(900);
+      await cineIr(1); await esperar(400);
+      const s2 = imgSlots.filter(s => s && s.dataURL).length;
+      const b2 = (await CeiboCine.listar(inf.uuid)).length;
+      dichos = []; cineCapturar(); await esperar(1500);
+      R.capA_slots = imgSlots.filter(s => s && s.dataURL).length - s2;
+      R.capA_bib = (await CeiboCine.listar(inf.uuid)).length - b2;
+      R.capA_toast = dichos.slice(-1)[0] || '';
+      try { cineCerrar(); } catch (e) {}
+      await esperar(300);
+
+      /* Y CAE AL SLOT con el toggle APAGADO, que es el estado de FABRICA, diciendo por que. */
+      localStorage.setItem('cfg-guardar-imagenes', '0');
+      __t.limpiar(); imgVaciar(); await esperar(300);
+      _cineAbrir([{ nombre:'apical4c', cuadros:3,
+        d:{ frags:[jpg,jpg,jpg], cols:200, filas:160, msCuadro:40, fabricante:'', modelo:'', regiones:REG } }]);
+      await esperar(900);
+      await cineIr(2); await esperar(400);
+      const s3 = imgSlots.filter(s => s && s.dataURL).length;
+      dichos = []; cineCapturar(); await esperar(1600);
+      R.capB_slots = imgSlots.filter(s => s && s.dataURL).length - s3;
+      R.capB_toast = dichos.slice(-1)[0] || '';
+      R.capB_diceMotivo = /Config/.test(R.capB_toast);
+      try { cineCerrar(); } catch (e) {}
+    } catch (e) {
+      R.err = String(e && e.message || e);
+    } finally {
+      window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+      try {
+        if (togglePrevio === null) localStorage.removeItem('cfg-guardar-imagenes');
+        else localStorage.setItem('cfg-guardar-imagenes', togglePrevio);
+      } catch (e) {}
+      try { cineCerrar(); } catch (e) {}
+      if (estudioId) { try { await __t.borrar(estudioId); } catch (e) {} }
+      try { imgVaciar(); } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                          !R.err, R.err],
+      ['DENOMINADOR: las cuatro clases de tarjeta', R.clases === 'cine,dicom,doc,imagen', R.clases],
+      ['el ✕ va en TODAS las tarjetas',            R.todasConX === true, R.todasConX],
+      ['el 📄 va en la imagen de disco y el documento', R.conPdf === 'dicom,doc', R.conPdf],
+      /* El video NO se ejerce aca: exige un MP4 real y comparte rama con el cineloop en el
+         predicado alPdf, asi que nombrarlo seria prometer una cobertura que este caso no tiene. */
+      /* «dicom» esta en las DOS listas a proposito, y es la condicion entera: la fija de disco
+         SIN slot lleva 📄 y la que YA ocupa un slot no. Si las dos lo llevaran, el informe
+         saldria con la misma ecografia dos veces. */
+      ['y NO en cineloop ni en lo que ya esta en un slot', R.sinPdf === 'cine,dicom,imagen', R.sinPdf],
+      ['area tactil 44 px en los dos botones',     R.hitX === '44x44' && R.hitPdf === '44x44',
+                                                   'x=' + R.hitX + ' pdf=' + R.hitPdf],
+      ['y el disco que se VE mide 20 px',          R.discoX === '20x20' && R.discoPdf === '20x20',
+                                                   'x=' + R.discoX + ' pdf=' + R.discoPdf],
+      ['el disco cae en SU esquina, no en el medio', R.esqX >= 0 && R.esqX <= 10 &&
+                                                   R.esqPdf >= 0 && R.esqPdf <= 10 &&
+                                                   R.topX >= 0 && R.topX <= 10,
+                                                   'der=' + R.esqX + ' izq=' + R.esqPdf + ' top=' + R.topX],
+      ['el ✕ de la tarjeta que esta en un slot existe', R.haySoloSlot === true, R.haySoloSlot],
+      ['ningun atributo de evento en la tira',     R.sinHandlerInline === true, R.sinHandlerInline],
+      ['el 📄 manda UNA imagen al informe',        R.pdf_slots === 1, R.pdf_slots],
+      ['y NO la saca de la biblioteca',            R.pdf_bib === 0, R.pdf_bib],
+      ['el ✕ de una tarjeta sin disco saca el slot', R.ss_slots === -1, R.ss_slots],
+      ['y no toca la biblioteca',                  R.ss_bib === 0, R.ss_bib],
+      ['TAREA 3: el input acepta varios archivos', R.inputMultiple === true, R.inputMultiple],
+      ['y tres archivos de UNA llamada entran los tres', R.slotsTrasImportar === 3, R.slotsTrasImportar],
+      ['TAREA 2: borrar del slot no toca la biblioteca',
+                                                   R.slotBorrado === 2 && R.bibTrasBorrarSlot === 0,
+                                                   'slots=' + R.slotBorrado + ' bib=' + R.bibTrasBorrarSlot],
+      ['TAREA 4: la captura va a la BIBLIOTECA',   R.capA_bib === 1 && R.capA_slots === 0,
+                                                   'bib=' + R.capA_bib + ' slots=' + R.capA_slots],
+      ['y con el guardado APAGADO cae al slot',    R.capB_slots === 1, R.capB_slots],
+      ['diciendo por que no se guardo',            R.capB_diceMotivo === true, R.capB_toast]
     ] };
   })();
 `);

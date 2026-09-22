@@ -47947,15 +47947,42 @@ function cineToggle() {
    el JPEG del archivo es la fuente: reencodear lo que ya se dibujó agrega una generación de
    pérdida para nada. De acá en adelante es un JPEG igual a cualquier otro y entra por
    `imgCompressLoad`, la misma puerta que una foto elegida a mano. */
+/* ⚠️ LA CAPTURA VA A LA BIBLIOTECA, NO AL SLOT — y CAE AL SLOT SI LA BIBLIOTECA NO PUEDE.
+   Decisión de Maicol (2026-09-22): el médico captura varios cuadros y recién después decide
+   cuáles entran al informe, con el 📄 de cada tarjeta.
+
+   La red de seguridad no es opcional. `_cinePuedeGuardar()` exige DOS cosas —el toggle
+   «Guardar imágenes con los estudios», que viene APAGADO de fábrica, y un estudio ya
+   guardado— y el flujo normal es importar y medir mientras se llena el formulario, o sea con
+   las dos condiciones sin cumplir. Mandando la captura sólo a la biblioteca, en la
+   configuración por defecto el botón Capturar no dejaría el cuadro en NINGÚN lado: es «el
+   interruptor mentía sobre el disco» otra vez, y acá se perdería un cuadro que el médico
+   eligió a mano. Así que si la biblioteca no puede escribir, el cuadro va al slot como
+   siempre y el toast DICE por qué — sin eso, el mismo gesto tendría dos resultados distintos
+   sin ninguna señal de cuál ocurrió. */
+async function _capturaALaBiblioteca(bytes, cols, filas, nombre, posterURL) {
+  const r = await _bibGuardarJpeg(bytes, cols, filas, nombre, posterURL);
+  if (r.ok) { toast('🗂️ ' + nombre + ' → archivos del estudio. Con 📄 lo mandás al PDF');
+              return 'bib'; }
+  const idx = _dcmImgReservar(1)[0];
+  if (typeof idx !== 'number' || idx < 0) { toast('❌ ' + r.motivo); return ''; }
+  imgCompressLoad(new Blob([bytes], { type:'image/jpeg' }), idx, 'visor');
+  toast('✅ ' + nombre + ' → grilla de imágenes (sale en el PDF). No se guardó en los archivos ' +
+        'del estudio: ' + r.motivo);
+  return 'slot';
+}
+window._capturaALaBiblioteca = _capturaALaBiblioteca;
+
 function cineCapturar() {
   const D = _cineDatos; if (!D) return;
   const L = D.loops[D.i];
   const n = D.cuadro;
   const jpeg = L.d.frags[n];
   if (!jpeg || !(jpeg[0] === 0xFF && jpeg[1] === 0xD8)) { toast('❌ Ese cuadro no se pudo leer'); return; }
-  const idx = _dcmImgReservar(1)[0];
-  imgCompressLoad(new Blob([jpeg], { type:'image/jpeg' }), idx, 'visor');
-  toast('✅ Cuadro ' + (n + 1) + ' de ' + L.cuadros + ' agregado a las imágenes del estudio');
+  let posterURL = '';
+  try { const c = _medEl('cine-cv'); if (c) posterURL = c.toDataURL('image/jpeg', 0.8); } catch (e) { posterURL = ''; }
+  _capturaALaBiblioteca(jpeg, L.d.cols || 0, L.d.filas || 0,
+    'Cuadro ' + (n + 1) + ' de ' + L.cuadros, posterURL);
 }
 
 function cineCerrar() {
@@ -50485,13 +50512,17 @@ function medCapturarConMedicion() {
     }
   }
 
-  cv.toBlob(b => {
-    if (!b) { toast('❌ No se pudo generar la imagen'); return; }
-    const idx = _dcmImgReservar(1)[0];
-    imgCompressLoad(b, idx, 'visor');
-    toast('✅ Cuadro con las mediciones agregado' + (etiq ? ' — ' + etiq : '') +
-          (res ? ' · ' + res.split(' · ')[0] : ''));
-  }, 'image/jpeg', 0.92);
+  /* A LA BIBLIOTECA, igual que «Capturar» y con la misma red — ver `_capturaALaBiblioteca`.
+     El nombre lleva la etiqueta que el médico escribió o el resultado medido: con cuatro
+     capturas del mismo estudio, cuatro tarjetas rotuladas «Cuadro con mediciones» no se
+     distinguen entre sí, y la biblioteca existe justamente para elegir entre ellas. */
+  const rotulo = 'Medición' + (etiq ? ' — ' + etiq : (res ? ' · ' + res.split(' · ')[0] : ''));
+  _bibCanvasABytes(cv).then(bytes => {
+    if (!bytes) { toast('❌ No se pudo generar la imagen'); return; }
+    let posterURL = '';
+    try { posterURL = cv.toDataURL('image/jpeg', 0.8); } catch (e) { posterURL = ''; }
+    return _capturaALaBiblioteca(bytes, cv.width, cv.height, rotulo, posterURL);
+  });
 }
 window.medCapturarConMedicion = medCapturarConMedicion;
 
@@ -53564,11 +53595,36 @@ window.medFijaGuardar = medFijaGuardar;
    correcto, no es una imagen medible. Y `_vElegirLoop` listaba «todo lo que no es fija», así
    que sin excluirlo una tabla de resultados habría aparecido como cineloop elegible para la
    segunda vista. Ese filtro se corrigió en el mismo commit. */
-async function _docGuardarEnBiblioteca(cv, nombre) {
-  if (typeof CeiboCine === 'undefined') { toast('❌ No hay almacenamiento para los archivos del estudio'); return false; }
+/* NÚCLEO: una sola definición de qué ES un registro de biblioteca de una imagen suelta.
+   Recibe los BYTES de un JPEG porque los dos productores los tienen en formas distintas —el
+   cuadro crudo de un cineloop ya es un JPEG, la captura con mediciones sale de un canvas— y
+   duplicar el armado del registro es cómo las dos vías terminan guardando cosas distintas.
+   Devuelve `{ok, motivo}`: el motivo es lo que hace que el llamador pueda DECIR por qué no se
+   guardó en vez de fallar mudo. */
+async function _bibGuardarJpeg(bytes, cols, filas, nombre, posterURL) {
+  if (typeof CeiboCine === 'undefined')
+    return { ok:false, motivo:'No hay almacenamiento para los archivos del estudio en este navegador.' };
+  if (!bytes || !bytes.length) return { ok:false, motivo:'No se pudo generar la imagen.' };
   const puede = _cinePuedeGuardar();
-  if (!puede.ok) { alert('Todavía no se puede guardar en el estudio.\n\n' + puede.motivo); return false; }
-  const bytes = await new Promise(r => {
+  if (!puede.ok) return { ok:false, motivo:puede.motivo };
+  let poster = '';
+  try { if (posterURL) poster = await _imgComprimir(posterURL, 'mini'); } catch (e) { poster = ''; }
+  const rec = { id:_uuidNuevo(), uuid:_imgUuidActual, tipo:'doc', nombre:nombre,
+                cuadros:1, ms:0, cols:cols, filas:filas, poster:poster,
+                datos:bytes, offs:new Int32Array([0]), bytes:bytes.length,
+                regiones:[], ts:new Date().toISOString() };
+  let r2;
+  try { r2 = await CeiboCine.guardar(rec); } catch (e) { r2 = { ok:false }; }
+  if (!r2 || !r2.ok)
+    return { ok:false, motivo:'No se pudo escribir en este dispositivo: puede no haber espacio.' };
+  try { await _cinePersistir(); } catch (e) {}
+  try { await cineStripRender(); } catch (e) {}
+  return { ok:true, id:rec.id };
+}
+window._bibGuardarJpeg = _bibGuardarJpeg;
+
+function _bibCanvasABytes(cv) {
+  return new Promise(r => {
     try {
       cv.toBlob(b => {
         if (!b) return r(null);
@@ -53579,22 +53635,48 @@ async function _docGuardarEnBiblioteca(cv, nombre) {
       }, 'image/jpeg', 0.92);
     } catch (e) { r(null); }
   });
-  if (!bytes) { toast('❌ No se pudo generar la imagen'); return false; }
-  let poster = '';
-  try { poster = await _imgComprimir(cv.toDataURL('image/jpeg', 0.9), 'mini'); } catch (e) { poster = ''; }
-  const rec = { id:_uuidNuevo(), uuid:_imgUuidActual, tipo:'doc', nombre:nombre,
-                cuadros:1, ms:0, cols:cv.width, filas:cv.height, poster:poster,
-                datos:bytes, offs:new Int32Array([0]), bytes:bytes.length,
-                regiones:[], ts:new Date().toISOString() };
-  let r2;
-  try { r2 = await CeiboCine.guardar(rec); } catch (e) { r2 = { ok:false }; }
-  if (!r2 || !r2.ok) { toast('❌ No se pudo guardar en los archivos del estudio'); return false; }
-  try { await _cinePersistir(); } catch (e) {}
-  try { await cineStripRender(); } catch (e) {}
-  toast('📋 Guardado en los archivos del estudio — NO sale en el PDF');
+}
+
+async function _docGuardarEnBiblioteca(cv, nombre) {
+  const bytes = await _bibCanvasABytes(cv);
+  let posterURL = '';
+  try { posterURL = cv.toDataURL('image/jpeg', 0.9); } catch (e) { posterURL = ''; }
+  const r = await _bibGuardarJpeg(bytes, cv.width, cv.height, nombre, posterURL);
+  if (!r.ok) {
+    /* El motivo de la compuerta va como `alert` —es accionable: encender el toggle, guardar el
+       estudio— y el resto como toast. Un «no se pudo» sin el motivo manda a adivinar. */
+    if (bytes && bytes.length) alert('Todavía no se puede guardar en el estudio.\n\n' + r.motivo);
+    else toast('❌ No se pudo generar la imagen');
+    return false;
+  }
+  toast('📋 Guardado en los archivos del estudio — con 📄 lo mandás al PDF');
   return true;
 }
 window._docGuardarEnBiblioteca = _docGuardarEnBiblioteca;
+
+/* ── DE LA BIBLIOTECA AL PDF: el botón 📄 ────────────────────────────────────────────────
+   La biblioteca NO sale en el informe por diseño; el slot SÍ. Este es el único puente, y por
+   eso reserva el slot con `_dcmImgReservar` y entra por `imgCompressLoad` —la misma puerta que
+   una foto elegida a mano—: con un segundo camino, lo que llega al PDF desde acá podría
+   comprimirse distinto de todo lo demás. */
+async function _bibAlSlot(id) {
+  if (typeof CeiboCine === 'undefined') { toast('❌ No hay archivos guardados en este dispositivo'); return false; }
+  let r = null;
+  try { r = await CeiboCine.leer(id); } catch (e) { r = null; }
+  if (!r || !r.datos || !r.datos.length) { toast('❌ No se pudo leer ese archivo'); return false; }
+  /* El primer cuadro y no el registro entero: un `fija` y un `doc` tienen uno solo, pero leer
+     `datos` completo sin mirar `offs` mandaría al PDF los N cuadros concatenados el día que
+     alguien le habilite este botón a un cineloop. */
+  const fin = (r.offs && r.offs.length > 1) ? r.offs[1] : r.datos.length;
+  const jpeg = r.datos.subarray(0, fin);
+  if (!(jpeg[0] === 0xFF && jpeg[1] === 0xD8)) { toast('❌ Ese archivo no es una imagen'); return false; }
+  const idx = _dcmImgReservar(1)[0];
+  if (typeof idx !== 'number' || idx < 0) { toast('❌ No hay ningún espacio libre en la grilla de imágenes'); return false; }
+  imgCompressLoad(new Blob([jpeg], { type:'image/jpeg' }), idx, 'visor');
+  toast('📄 Mandado al informe — ahora sale en el PDF');
+  return true;
+}
+window._bibAlSlot = _bibAlSlot;
 
 /* Mirar un documento guardado. No abre el visor de medición: una tabla de resultados no tiene
    escala y ofrecer medirla sería prometer un número que no existe. */
@@ -53666,6 +53748,47 @@ async function cineBorrarGuardado(id) {
   await cineStripRender();
   toast(ok ? '🗑️ Cineloop eliminado' : '❌ No se pudo eliminar');
 }
+
+/* ── EL ✕ DE LA BIBLIOTECA ───────────────────────────────────────────────────────────────
+   ⚠️ UN ARCHIVO PUEDE ESTAR EN LOS DOS LADOS, Y BORRAR NO SIGNIFICA LO MISMO EN CADA UNO.
+   Una fija DICOM vive a la vez en el disco —el original con su escala— y en un slot de la
+   grilla, que es lo que sale en el informe firmado. El ✕ de la biblioteca borra el original
+   y DEJA el slot; el ✕ del slot saca la imagen del informe y DEJA el original. Son
+   independientes, y el `confirm` de cada uno dice cuál de las dos cosas va a pasar: sin eso,
+   el médico aprieta un ✕ creyendo que libera espacio y lo que hace es sacar una ecografía
+   del PDF que está por firmar.
+
+   Y una tarjeta que SÓLO es un slot —una foto importada con el guardado apagado— no tiene
+   copia en disco: ahí el ✕ saca la única que hay, y el texto lo dice con todas las letras
+   en vez de prometer que «se libera espacio». */
+async function _bibBorrar(f) {
+  if (!f) return;
+  if (f.deDisco && f.id) {
+    let r = null;
+    try { r = await CeiboCine.leer(f.id); } catch (e) { r = null; }
+    if (!r) { toast('❌ No se encontró ese archivo'); return; }
+    const qué = r.cuadros > 1 ? ('el cineloop de ' + r.cuadros + ' cuadros')
+              : r.tipo === 'doc' ? ('el documento «' + (r.nombre || 'sin nombre') + '»')
+              : 'la imagen original';
+    const enSlot = (typeof f.idx === 'number');
+    if (!confirm('¿Eliminar ' + qué + ' (' + _cineMB(r.bytes || 0) + ') de los archivos del estudio?\n\n' +
+                 (enSlot
+                   ? 'Se libera ese espacio en este dispositivo. La imagen SIGUE en la grilla y en el PDF; ' +
+                     'lo que se pierde es el original, o sea la escala para medirla.'
+                   : 'Se libera ese espacio en este dispositivo. Lo que ya mandaste al informe NO se toca.'))) return;
+    const ok = await CeiboCine.borrar(f.id);
+    await cineStripRender();
+    toast(ok ? '🗑️ Eliminado de los archivos del estudio' : '❌ No se pudo eliminar');
+    return;
+  }
+  if (typeof f.idx !== 'number') { toast('❌ No se pudo identificar ese archivo'); return; }
+  if (!confirm('Este archivo sólo está en la grilla de imágenes del estudio: no hay copia ' +
+               'guardada en este dispositivo.\n\n¿Eliminarlo? Deja de salir en el informe.')) return;
+  imgRemove(null, f.idx);
+  await cineStripRender();
+  toast('🗑️ Eliminado — ya no sale en el informe');
+}
+window._bibBorrar = _bibBorrar;
 window.cineBorrarGuardado = cineBorrarGuardado;
 
 /* Dibuja la tira. Todo lo que viene del archivo pasa por escHtml; el poster es un dataURL
@@ -53676,6 +53799,33 @@ window.cineBorrarGuardado = cineBorrarGuardado;
    encima de la del actual — la tira mostraría el video de otro paciente, que es peor que no
    mostrar nada. */
 let _cineStripUuid = null, _cineStripGen = 0;
+
+/* ── BOTÓN DE ESQUINA DE UNA TARJETA DE LA BIBLIOTECA ────────────────────────────────────
+   ⚠️ EL OBJETIVO TÁCTIL MIDE 44×44 Y EL DISCO PINTADO 20 px, Y ESO NO ES UN CAPRICHO.
+   La regla de accesibilidad de este archivo —`button{min-height:44px;min-width:44px}`— GANA
+   sobre cualquier `width` en línea, porque `min-width` y `width` son propiedades distintas y
+   no compiten por especificidad. Medido en el navegador: los ✕ que el código declaraba de
+   `width:22px;height:22px` se estaban dibujando de **44×44**. Ese 22 era letra muerta.
+   O sea que «pequeño y discreto» NO se consigue achicando el botón —la regla lo vuelve a
+   inflar— sino separando el área táctil del disco que se ve.
+
+   COSTO DECLARADO: las dos esquinas superiores de la miniatura dejan de abrir el archivo,
+   porque ahí ahora hay un botón transparente de 44 px. Se acepta porque las dos acciones
+   avisan —el ✕ pide confirmación y el 📄 dice por toast qué hizo y cómo deshacerlo—, así que
+   un toque errado se recupera. La alternativa era eximir estos dos de la regla táctil, que
+   sobre un control DESTRUCTIVO es el lado peor. */
+function _bibBtn(clase, lado, color, glifo, titulo) {
+  const E = (typeof escHtml === 'function') ? escHtml : (s => String(s == null ? '' : s));
+  const der = lado === 'der';
+  return '<button type="button" class="' + clase + '" title="' + E(titulo) + '" ' +
+    'style="position:absolute;top:0;' + (der ? 'right:0;' : 'left:0;') +
+    'width:44px;height:44px;padding:6px;background:none;border:none;cursor:pointer;' +
+    'display:flex;align-items:flex-start;justify-content:' + (der ? 'flex-end' : 'flex-start') + ';">' +
+    '<span style="width:20px;height:20px;border-radius:50%;background:' + color + ';color:#fff;' +
+    'font-size:12px;line-height:20px;text-align:center;font-weight:700;' +
+    'box-shadow:0 1px 4px rgba(0,0,0,.55);">' + glifo + '</span></button>';
+}
+window._bibBtn = _bibBtn;
 
 async function cineStripRender() {
   const cont = document.getElementById('cine-strip');
@@ -53747,7 +53897,7 @@ async function cineStripRender() {
        propio ícono y al tocarlo se MIRA, no se abre el visor. */
     if (r.tipo === 'doc') {
       fichas.push({ clase:'doc', id:r.id, poster:r.poster, rot:'documento',
-                    nota:'no sale en el PDF', nombre:r.nombre || '',
+                    nota:'con 📄 sale en el PDF', nombre:r.nombre || '',
                     bytes:r.bytes || 0, deDisco:true });
       return;
     }
@@ -53775,6 +53925,11 @@ async function cineStripRender() {
   const tarjeta = (f, i) => {
     const src = _imgSrcOK(f.poster) ? f.poster : '';
     const medible = f.clase !== 'video';
+    /* ¿Se le puede ofrecer «mandar al PDF»? Hacen falta las tres: que haya bytes en disco para
+       leer, que sea una imagen —un video y un cineloop no son una página del informe— y que no
+       esté YA ocupando un slot, porque ahí la acción duplicaría la ecografía en el informe. */
+    const alPdf = !!(f.deDisco && f.id && f.clase !== 'video' && f.clase !== 'cine' &&
+                     typeof f.idx !== 'number');
     const titulo = f.clase === 'video' ? 'Abrir el reproductor de video'
                  : f.clase === 'cine'  ? 'Abrir el reproductor de cineloop'
                  : f.clase === 'doc'   ? 'Ver el documento en grande'
@@ -53795,11 +53950,18 @@ async function cineStripRender() {
         (f.deDisco && f.bytes ? ' · ' + E(_cineMB(f.bytes)) : '') +
         '<br><span style="color:' + (medible ? 'var(--text2)' : 'var(--red)') + ';">' + E(f.nota) + '</span>' +
         (f.nombre ? '<br>' + E(f.nombre) : '') + '</div>' +
-      (f.deDisco
-        ? '<button type="button" class="cine-borrar" title="Eliminar el original guardado en este dispositivo" ' +
-          'style="position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;border:none;' +
-          'background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>'
-        : '') +
+      /* ⚠️ EL ✕ VA EN TODAS, y antes salía sólo en las que tenían registro en disco. Una foto
+         importada con el guardado apagado no tenía forma de sacarse desde acá: la biblioteca
+         mostraba un archivo que no se podía quitar. Qué borra cada uno lo decide `_bibBorrar`
+         según dónde viva el archivo, y lo dice en el `confirm`. */
+      _bibBtn('cine-borrar', 'der', 'var(--red)', '✕',
+              'Eliminar de los archivos del estudio') +
+      /* El 📄 sólo donde SIGNIFICA algo: manda el archivo al primer slot libre, o sea al PDF.
+         No va en video ni en cineloop —no son una imagen del informe— y TAMPOCO en lo que ya
+         ocupa un slot: ahí «mandalo al PDF» duplicaría la misma ecografía en el informe, que
+         es el control que no significa nada del que ya habla este archivo. */
+      (alPdf ? _bibBtn('cine-alpdf', 'izq', 'var(--green)', '📄',
+                       'Mandar al informe: ocupa un espacio de la grilla y sale en el PDF') : '') +
       '</div>';
   };
   cont.innerHTML =
@@ -53825,6 +53987,7 @@ async function cineStripRender() {
     if (!f) return;
     const abrir = card.querySelector('.cine-abrir');
     const borrar = card.querySelector('.cine-borrar');
+    const alPdfBtn = card.querySelector('.cine-alpdf');
     if (abrir) abrir.onclick = () => {
       if (f.clase === 'video') { videoAbrir(f.idx); return; }
       if (f.clase === 'doc')   { _docVer(f.id); return; }
@@ -53839,7 +54002,10 @@ async function cineStripRender() {
       if (typeof f.idx === 'number') { medImagenAbrir(f.idx); return; }
       toast('❌ No se pudo abrir este archivo');
     };
-    if (borrar) borrar.onclick = () => cineBorrarGuardado(f.id);
+    /* `stopPropagation` en los dos: los botones se superponen a `.cine-abrir`, así que sin
+       frenar el evento un ✕ abriría además el visor detrás del `confirm`. */
+    if (borrar) borrar.onclick = ev => { ev.stopPropagation(); _bibBorrar(f); };
+    if (alPdfBtn) alPdfBtn.onclick = ev => { ev.stopPropagation(); _bibAlSlot(f.id); };
   });
 }
 window.cineStripRender = cineStripRender;
@@ -69608,8 +69774,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260922-1804';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790111054891;                 /* eco-build-ms */
+const ECO_BUILD    = '20260922-1847';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790113674349;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -69695,7 +69861,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1804</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1847</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
