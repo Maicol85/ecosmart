@@ -40,11 +40,78 @@ Config ABIERTO dejaba la tarjeta en pantalla hasta reabrir la pestaña. Son las 
 siempre —el embudo de repintado (`cfgOnShow`) y el borde que no pasa por él—. La mutación que
 saca esa llamada cae **sólo** en «desaparece EN EL ACTO»; la que saca el gate cae en las tres.
 
-### Falla hacia VISIBLE
+### ⚠️ EL MODO VA DENTRO DE `orthancActivo()`, no AND-eado afuera (TC-231)
+
+La primera versión dejaba el invariante «Básico ⇒ cero superficie de Orthanc» sostenido por
+**dos `&& _orthModoAvanzado()` que coincidían** en los dos consumidores, con el predicado
+pelado sin saber nada del modo. El tercer consumidor que apareciera —un auto-buscar al entrar a
+Imágenes, un badge de «hay estudios nuevos», un sondeo— recibía `true` en Modo Básico **por
+defecto** y resucitaba justamente la superficie que el médico no puede apagar desde ninguna
+pantalla. **El camino fácil era el inseguro.**
+
+Hoy `orthancActivo() = _orthEncendido() && _orthModoAvanzado()`, y `_orthEncendido()` es el
+lector CRUDO que sólo usa la casilla. Consecuencia útil: la limpieza de `orthancRender` cuelga
+de `on`, así que **pasa a cubrir las dos compuertas de una** — ver abajo.
+
+### Falla hacia VISIBLE — pero el lado seguro lo fija el MARCADO, no la función
 
 `_orthModoAvanzado()` devuelve `true` si `eeGetMode` no existe. Es el default de la app y el
 lado seguro: esconder la tarjeta deja al médico sin forma de apagar una conexión que sigue
 activa, y la única señal sería su ausencia — indistinguible de «esta app no tiene eso».
+
+**Pero sus dos ramas de escape son inalcanzables**, y el comentario que decía lo contrario
+estaba atribuyendo protección a quien no la ejerce: `eeGetMode` es una declaración de función
+del **mismo bloque `<script>`** —hoisteada, así que el `typeof` nunca da false, y lo que se
+llevara ese bloque se llevaría también a `_orthModoAvanzado` y a `orthancRender`—, y si
+`localStorage` tira, `cfgRenderModulos()` revienta **sin try/catch** antes, porque
+`orthancRender()` es la última sentencia de `cfgOnShow`. En los dos escenarios decide que
+`#cfg-card-orthanc` **nace sin `display:none`**. Es la decisión OPUESTA a la del botón «Buscar
+en Orthanc», que nace `display:none`: aquél promete una búsqueda que no existe, ésta es la
+única forma de apagar la conexión. Las dos son correctas; sólo una está declarada en el marcado.
+
+### ⚠️ EL TRABAJO ASÍNCRONO SOBREVIVE AL GATE si no lleva token (TC-231)
+
+«Verificar conexión» son hasta **6 s de fetch + 4 s de sondeo**, y los botones de modo viven en
+una tarjeta **contigua del mismo panel Config**: apretar «Modo Básico» con eso en vuelo dejaba
+que `_orthPintarDatos` escribiera AE Title, puerto DICOM, host y la receta CORS **dentro de la
+tarjeta ya escondida**, hasta diez segundos después. `orthancBuscar` es la misma forma con otra
+cara: Escape cierra el overlay pero **no aborta el fetch**, y al resolver poblaba
+`_orthEstudios`, que el propio código marca como *«SÓLO en memoria: lleva NOMBRES de paciente»*.
+
+Cerrado con `_orthGen`, el mismo recurso que `_imgGen` y `_cineStripGen`: se incrementa en
+`cfgSetMode` y en `orthancToggle`, se captura **antes del primer `await`** y se compara antes de
+escribir. No hay fuga a disco —lo único persistido son los ids opacos de `_orthGuardarVistos`—;
+el daño es estado obsoleto y una consulta de red que sobrevive a su compuerta.
+
+**HAY DOS TOKENS EN EL CAMINO OK DE `orthancVerificar` Y LA MUTACIÓN NECESITA LOS DOS.** Sacar
+sólo el de después del `fetch` **pasó en verde**: queda el de después de `r.json()`. Es defensa
+en profundidad funcionando, no un hueco del caso — la misma lección que la guarda duplicada de
+la sincronización del visor. *Al mutar un predicado, contar cuántas veces está escrito antes de
+leer el resultado.*
+
+**Y un `assert` del script de parcheo lo frenó a tiempo**, otra vez: el segundo token tiene la
+**misma indentación** que el de `orthancBuscar`, así que el reemplazo matcheaba dos veces y el
+archivo **no se escribió**. Sin esa guarda habría corrido el caso creyendo que había mutado.
+
+### Esconder no es limpiar
+
+La línea `if (!on) { _orthPintarEstado(''); _orthDatosOcultar(); }` estaba gateada por la
+**casilla** y no por el modo, así que volver a Avanzado reponía la salida vieja de «Verificar»
+—sin fecha y sin marca de obsoleta— y, combinada con lo de arriba, esa salida podía ser el
+resultado de una verificación terminada **después** de que el modo la apagara. Desde que el modo
+entró al predicado, `on` cubre las dos compuertas y la línea no cambió una letra.
+
+### Denominadores de TC-231, y son cuatro
+
+Que Orthanc quede **encendido**, que la verificación haya **arrancado** (si no, «no aterrizó» se
+mide sobre nada), que la búsqueda haya **arrancado**, y que la segunda verificación haya salido
+**bien** (si no, no hay nada que pueda resucitar). Las cuatro son condiciones declaradas.
+
+**El doble de `_orthTraerEstudios` se restaura POR ASIGNACIÓN, nunca con `delete`**: es una
+declaración de función de nivel superior, o sea una propiedad **no configurable** del objeto
+global, y el `delete` es un no-op mudo que se lleva puesto el caso siguiente. Ya pasó con
+`orthancImportarEstudio` en TC-222. Que ahí sí se pueda interceptar por `window` —a diferencia
+de lo que vive dentro de un IIFE— es lo que hace innecesario sustituir `fetch`.
 
 ### Dos compuertas distintas, y confundirlas borra el apagado
 

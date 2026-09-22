@@ -68294,8 +68294,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260922-0744';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790073884016;                 /* eco-build-ms */
+const ECO_BUILD    = '20260922-0802';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790074942096;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -68381,7 +68381,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-0744</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-0802</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -68730,7 +68730,7 @@ function applyViewMode(){
    de siempre —el embudo de repintado y el borde que no pasa por él—. El botón «Buscar» de la
    tab Imágenes NO se toca desde acá: lo sincroniza `showTab('imagenes')`, que es el único
    camino por el que ese botón se llega a ver. */
-function cfgSetMode(mode){ localStorage.setItem('ett_view_mode', mode); applyViewMode(); cfgRenderModulos(); if(typeof orthancRender==='function') orthancRender(); }
+function cfgSetMode(mode){ localStorage.setItem('ett_view_mode', mode); applyViewMode(); cfgRenderModulos(); if(typeof _orthGen==='number') _orthGen++; if(typeof orthancRender==='function') orthancRender(); }
 function cfgToggleMod(key,on){ var m=eeGetModules(); m[key]=on; localStorage.setItem('ett_modules', JSON.stringify(m)); applyViewMode(); }
 function cfgRenderModulos(){
   var mode=eeGetMode();
@@ -68848,12 +68848,29 @@ function cfgToggleQr(on){ try { localStorage.setItem('ett_qr_enabled', on ? '1' 
 var _ORTH_ON = 'ett_orthanc_on', _ORTH_URL = 'ett_orthanc_url';
 var _ORTH_DICOM_PORT_DEF = 4242, _ORTH_AET_DEF = 'ORTHANC';
 var _orthVerificando = false;
+/* Token de generación, el mismo recurso que `_imgGen` y `_cineStripGen`. «Verificar conexión»
+   son hasta 6 s de fetch más 4 s de sondeo, y los botones de modo viven en una tarjeta CONTIGUA
+   del mismo panel Config: apretar «Modo Básico» mientras eso está en vuelo dejaba que
+   `_orthPintarDatos` escribiera AE Title, puerto, host y la receta CORS dentro de una tarjeta ya
+   escondida, hasta diez segundos después. `orthancBuscar` es la misma forma con otra cara —
+   Escape cierra el overlay pero NO aborta el fetch, y al resolver poblaba `_orthEstudios`, que
+   lleva NOMBRES de paciente en memoria—. Se incrementa en todo lo que cambia la compuerta. */
+var _orthGen = 0;
 
 function _orthLS(k, v) {
   try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); }
   catch (e) { return null; }
 }
-function orthancActivo() { return _orthLS(_ORTH_ON) === '1'; }
+/* Estado CRUDO de la casilla. Sólo lo usa `orthancToggle` para persistir; para preguntar «¿hay
+   Orthanc alcanzable?» está `orthancActivo()`, que además mira el modo. */
+function _orthEncendido() { return _orthLS(_ORTH_ON) === '1'; }
+/* ⚠️ EL MODO ENTRA ACÁ, y no AND-eado afuera en cada consumidor. La casilla puede quedar en '1'
+   con la tarjeta escondida por Modo Básico: ahí el médico NO tiene forma de apagar la conexión
+   desde ninguna pantalla, así que la única respuesta segura a «¿está activo?» es que no. Con el
+   modo fuera del predicado, el camino fácil —llamar a `orthancActivo()`— es el inseguro, y el
+   tercer consumidor que aparezca (un auto-buscar, un badge de «estudios nuevos», un sondeo)
+   resucita esa superficie por defecto. */
+function orthancActivo() { return _orthEncendido() && _orthModoAvanzado(); }
 
 /* Normaliza lo que el médico tipeó a un origen. Devuelve null para lo que no se puede leer,
    NUNCA una suposición: con una dirección inventada el fetch fallaría y el mensaje culparía a
@@ -68903,6 +68920,7 @@ function _orthHayAlguien(base) {
 
 function orthancToggle(on) {
   _orthLS(_ORTH_ON, on ? '1' : '0');
+  _orthGen++;   // apagar la casilla también invalida lo que esté en vuelo
   orthancRender();
   /* El botón vive en OTRA pestaña, así que no alcanza con repintar Config. */
   if (typeof orthancBotonSync === 'function') orthancBotonSync();
@@ -68928,10 +68946,17 @@ function _orthPintarEstado(txt, color) {
   e.appendChild(d);
 }
 
-/* ⚠️ FALLA HACIA VISIBLE, y es deliberado: sin `eeGetMode` se devuelve `true`. Es el mismo
-   default que la app (`eeGetMode` cae en 'avanzado') y el lado seguro — esconder la tarjeta
-   deja al médico SIN forma de apagar una conexión que sigue activa, y la única señal sería su
-   ausencia, indistinguible de «esta app no tiene eso». Es la regla del botón de indicaciones. */
+/* FALLA HACIA VISIBLE: sin `eeGetMode`, o si `localStorage` tira, se devuelve `true`.
+   ⚠️ PERO EL LADO SEGURO NO LO FIJA ESTA FUNCIÓN, LO FIJA EL MARCADO. Sus dos ramas de escape
+   son inalcanzables: `eeGetMode` es una declaración de función del MISMO bloque `<script>`
+   —hoisteada, así que el `typeof` nunca da false; y lo que se llevara ese bloque se llevaría
+   también a ésta—, y si `localStorage` tira, `cfgRenderModulos()` revienta sin try/catch antes,
+   porque `orthancRender()` es la ÚLTIMA sentencia de `cfgOnShow`. Quien decide en los dos
+   escenarios es que `#cfg-card-orthanc` nace SIN `display:none`, o sea visible.
+   Eso es lo correcto y es la decisión OPUESTA a la del botón «Buscar en Orthanc», que nace
+   `display:none` con su propio comentario: aquél promete una búsqueda que no existe, ésta es la
+   única forma de apagar la conexión. Si se toca el marcado de la tarjeta, es acá donde hay que
+   mirar — no al revés. */
 function _orthModoAvanzado() {
   try { return typeof eeGetMode !== 'function' || eeGetMode() === 'avanzado'; }
   catch (e) { return true; }
@@ -68945,9 +68970,13 @@ function orthancRender() {
   /* La tarjeta entera, no sólo el cuerpo: en Modo Básico no queda ni el título. */
   var card = document.getElementById('cfg-card-orthanc');
   if (card) card.style.display = _orthModoAvanzado() ? '' : 'none';
-  if (chk) chk.checked = on;
+  if (chk) chk.checked = _orthEncendido();   // la casilla refleja lo PERSISTIDO, no el modo
   if (inp) inp.value = _orthLS(_ORTH_URL) || '';
   if (cue) cue.style.display = on ? '' : 'none';
+  /* La limpieza cuelga de `on`, que desde que el modo entró al predicado cubre las DOS
+     compuertas: apagar la casilla Y pasar a Modo Básico. Gateada sólo por la casilla, volver a
+     Avanzado reponía la salida vieja de «Verificar» —sin fecha y sin marca de obsoleta— que
+     además podía ser de una verificación terminada DESPUÉS de que el modo la apagara. */
   if (!on) { _orthPintarEstado(''); _orthDatosOcultar(); }
 }
 window.orthancRender = orthancRender;
@@ -69094,7 +69123,10 @@ var _orthBuscando = false;
 function orthancBotonSync() {
   var b = document.getElementById('orth-buscar-btn');
   if (!b) return;
-  var ok = (typeof orthancActivo === 'function' && orthancActivo()) && _orthModoAvanzado();
+  /* Sin `&& _orthModoAvanzado()`: el modo YA está dentro de `orthancActivo()`. AND-earlo acá
+     además dejaba el invariante «Básico ⇒ cero superficie de Orthanc» sostenido por dos
+     guardas que coinciden, en vez de por el predicado. */
+  var ok = (typeof orthancActivo === 'function' && orthancActivo());
   b.style.display = ok ? '' : 'none';
 }
 window.orthancBotonSync = orthancBotonSync;
@@ -69213,17 +69245,23 @@ async function orthancBuscar(refrescar) {
     return;
   }
   _orthBuscando = true;
+  var gen = _orthGen;   // se captura ANTES del primer await; ver `_orthGen`
   if (f) f.style.display = 'none';
   _orthEstado('⏳ Consultando ' + base + '…');
   var lista = document.getElementById('orth-panel-lista');
   if (lista) lista.textContent = '';
   try {
     var res = await _orthTraerEstudios(base);
+    /* Acá el token no es sólo estética: sin él, una búsqueda que resuelve tarde puebla
+       `_orthEstudios` —que lleva NOMBRES de paciente— con el modo ya diciendo que esta función
+       no existe, y `_orthListaRender` los pinta en un overlay escondido. */
+    if (gen !== _orthGen) return;
     if (!res) {
       /* Mismo criterio que «Verificar conexión»: antes de decir que no hay nada, se mira si
          hay ALGUIEN. Los dos fallos dan el mismo TypeError. */
       var vivo = false;
       try { vivo = await _orthHayAlguien(base); } catch (e) {}
+      if (gen !== _orthGen) return;
       if (vivo) {
         _orthEstado('⚠️ Hay un servidor en ' + base + ' pero el navegador no me deja leerlo.\n' +
                     'Casi siempre es CORS: revisá ⚙️ Config → Verificar conexión, que explica ' +
@@ -69803,6 +69841,7 @@ async function orthancVerificar() {
     _orthDatosOcultar(); return;
   }
   _orthVerificando = true;
+  var gen = _orthGen;   // se captura ANTES del primer await; ver `_orthGen`
   _orthPintarEstado('⏳ Buscando Orthanc en ' + base + '…');
   _orthDatosOcultar();
   try {
@@ -69812,10 +69851,12 @@ async function orthancVerificar() {
                                               signal: ctl ? ctl.signal : undefined }); }
     catch (e) { r = null; }
     if (t) clearTimeout(t);
+    if (gen !== _orthGen) return;   // el modo o la casilla cambiaron: esta lectura ya no aplica
 
     if (r && r.ok) {
       var sys = null;
       try { sys = await r.json(); } catch (e) { sys = null; }
+      if (gen !== _orthGen) return;
       if (!sys || typeof sys !== 'object') {
         _orthPintarEstado('⚠️ Algo respondió en ' + base + ', pero no con la respuesta de ' +
                           'Orthanc. ¿Hay otro programa usando ese puerto?', 'var(--orange)');
@@ -69842,6 +69883,7 @@ async function orthancVerificar() {
     /* No hubo respuesta legible. Antes de acusar a Orthanc de faltar, se mira si hay ALGO. */
     var httpsAloopback = (location.protocol === 'https:') && /^http:/.test(base);
     var vivo = await _orthHayAlguien(base);
+    if (gen !== _orthGen) return;
     if (httpsAloopback) {
       /* Acá el sondeo no discrimina —medido: el bloqueo de red local rechaza las dos vías— así
          que se nombran las dos causas en vez de elegir una y mandar a revisar lo que anda. */

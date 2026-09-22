@@ -19589,6 +19589,137 @@ caso('TC-230', 'La conexion por red (DICOM) solo se ve en Modo Avanzado, en sus 
   })();
 `);
 
+/* == TC-231 - El modo entra al PREDICADO, y el trabajo en vuelo no aterriza ================
+   Tres invariantes que TC-230 no cubre porque mira SUPERFICIES y estas son de mecanismo.
+
+   1) orthancActivo() devuelve false en Modo Basico. Que el invariante lo sostengan dos
+      AND-eados que coinciden en los dos consumidores no se ve desde la pantalla: se ve el dia
+      que aparece un tercero y recibe true por defecto.
+   2) Una verificacion en vuelo no escribe cuando el modo ya cambio. El caso lo fuerza con un
+      fetch controlado, porque con red real la ventana es de milisegundos y el rojo seria
+      intermitente - que es peor que no tener el caso.
+   3) Esconder LIMPIA. Sin eso, volver a Avanzado repone la salida vieja de Verificar sin fecha
+      y sin marca de obsoleta, que ademas puede ser de una lectura terminada DESPUES.
+
+   DENOMINADORES DECLARADOS, y son tres: que la verificacion haya ARRANCADO (si no, medir que
+   no aterrizo es medir sobre nada), que la del punto 3 haya salido BIEN (si no, no hay nada
+   que resucitar) y que Orthanc quede ENCENDIDO. */
+caso('TC-231', 'Orthanc: el modo entra al predicado, el trabajo en vuelo no aterriza, y esconder limpia', `
+  return (async () => {
+    const R = {};
+    const modoOrig  = localStorage.getItem('ett_view_mode');
+    const orthOrig  = localStorage.getItem('ett_orthanc_on');
+    const urlOrig   = localStorage.getItem('ett_orthanc_url');
+    const fetchOrig = window.fetch;
+    const toastOrig = window.toast;
+    window.toast = () => {};
+    const abrirConfig = () => { showTab('config'); if (window.cfgOnShow) cfgOnShow(); };
+    const txtEstado = () => { const e = document.getElementById('cfg-orthanc-estado');
+                              return e ? e.textContent : ''; };
+    const txtDatos  = () => { const e = document.getElementById('cfg-orthanc-datos');
+                              return e ? e.textContent : ''; };
+    const ponerUrl = () => { localStorage.setItem('ett_orthanc_url', 'localhost:8042');
+                             const i = document.getElementById('cfg-orthanc-url');
+                             if (i) i.value = 'localhost:8042'; };
+    try {
+      abrirConfig(); cfgSetMode('avanzado');
+      orthancToggle(true); ponerUrl();
+      R.encendido = localStorage.getItem('ett_orthanc_on') === '1';
+
+      /* -- 1. EL MODO ESTA DENTRO DEL PREDICADO, no AND-eado afuera -- */
+      R.activoAvanzado = orthancActivo();
+      cfgSetMode('basico');
+      R.activoBasico   = orthancActivo();
+      R.discoIntacto   = localStorage.getItem('ett_orthanc_on');
+      cfgSetMode('avanzado');
+      R.activoVuelve   = orthancActivo();
+
+      /* -- 2. LO QUE ESTA EN VUELO NO ESCRIBE SOBRE OTRO MODO -- */
+      abrirConfig(); cfgSetMode('avanzado'); ponerUrl();
+      let soltar = null;
+      window.fetch = () => new Promise(res => { soltar = res; });
+      const pVerif = orthancVerificar();
+      await new Promise(r => setTimeout(r, 0));
+      R.arranco = txtEstado().indexOf('Buscando Orthanc') >= 0;   // DENOMINADOR
+      cfgSetMode('basico');                                        // cambia MIENTRAS espera
+      if (soltar) soltar({ ok: true, status: 200, json: async () => ({
+        Version: '1.12', Name: 'ENVUELO', DicomAet: 'AETVUELO', DicomPort: 11112 }) });
+      await pVerif;
+      R.estadoVuelo = txtEstado();
+      R.datosVuelo  = txtDatos();
+      R.noAterrizo  = R.estadoVuelo.indexOf('Orthanc conectado') < 0 &&
+                      R.datosVuelo.indexOf('AETVUELO') < 0;
+
+      /* -- 2b. LA OTRA RUTA EN VUELO, la que lleva NOMBRES DE PACIENTE --
+            Se sustituye _orthTraerEstudios y no fetch: es una declaracion de funcion de nivel
+            superior, asi que asignar sobre window SI intercepta (a diferencia de lo que vive
+            dentro de un IIFE). Se RESTAURA POR ASIGNACION, nunca con delete: esa propiedad es
+            no configurable y el delete es un no-op mudo que se lleva el caso siguiente. */
+      const traerOrig = window._orthTraerEstudios;
+      let soltar2 = null;
+      window._orthTraerEstudios = () => new Promise(res => { soltar2 = res; });
+      abrirConfig(); cfgSetMode('avanzado'); ponerUrl();
+      window._orthEstudios = [];
+      const pBusca = orthancBuscar();
+      await new Promise(r => setTimeout(r, 0));
+      R.buscoArranco = soltar2 !== null;                          // DENOMINADOR
+      cfgSetMode('basico');
+      if (soltar2) soltar2({ completo: true, lista: [
+        { ID: 'zz-1', MainDicomTags: { StudyDate: '20260101', StudyTime: '090000' },
+          PatientMainDicomTags: { PatientName: 'ENVUELO^PACIENTE' } } ] });
+      await pBusca;
+      R.enMemoria = JSON.stringify(window._orthEstudios || []);
+      R.sinNombres = R.enMemoria.indexOf('ENVUELO') < 0;
+      try { window._orthTraerEstudios = traerOrig; } catch (e) {}
+      if (typeof orthancPanelCerrar === 'function') orthancPanelCerrar();
+
+      /* -- 3. ESCONDER LIMPIA: la salida vieja no resucita al volver -- */
+      window.fetch = () => Promise.resolve({ ok: true, status: 200, json: async () => ({
+        Version: '9.9', Name: 'ORACULO', DicomAet: 'AETVIEJO', DicomPort: 4747 }) });
+      abrirConfig(); cfgSetMode('avanzado'); ponerUrl();
+      await orthancVerificar();
+      R.estadoOk = txtEstado();
+      R.verificoOk = R.estadoOk.indexOf('Orthanc conectado') >= 0;  // DENOMINADOR
+      cfgSetMode('basico');
+      abrirConfig(); cfgSetMode('avanzado');
+      R.estadoVuelta = txtEstado();
+      R.datosVuelta  = txtDatos();
+      R.limpio = R.estadoVuelta.indexOf('Orthanc conectado') < 0 &&
+                 R.datosVuelta.indexOf('AETVIEJO') < 0;
+    } catch (e) {
+      R.err = String((e && e.message) || e).slice(0, 140);
+    } finally {
+      try { window.fetch = fetchOrig; } catch (e) {}
+      try { localStorage.setItem('ett_view_mode', modoOrig || 'avanzado');
+            if (typeof applyViewMode === 'function') applyViewMode();
+            if (typeof cfgRenderModulos === 'function') cfgRenderModulos(); } catch (e) {}
+      try { if (orthOrig === null) localStorage.removeItem('ett_orthanc_on');
+            else localStorage.setItem('ett_orthanc_on', orthOrig);
+            if (urlOrig === null) localStorage.removeItem('ett_orthanc_url');
+            else localStorage.setItem('ett_orthanc_url', urlOrig);
+            if (typeof orthancRender === 'function') orthancRender();
+            if (typeof orthancBotonSync === 'function') orthancBotonSync(); } catch (e) {}
+      try { window.toast = toastOrig; } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                             !R.err, R.err],
+      ['DENOMINADOR: Orthanc quedo ENCENDIDO',        R.encendido, R.encendido],
+      ['AVANZADO: el predicado dice que SI',          R.activoAvanzado === true, R.activoAvanzado],
+      ['BASICO: el predicado dice que NO',            R.activoBasico === false, R.activoBasico],
+      ['y el modo NO toca la casilla del disco',      R.discoIntacto === '1', 'ett_orthanc_on=' + R.discoIntacto],
+      ['es REVERSIBLE: el predicado vuelve a SI',     R.activoVuelve === true, R.activoVuelve],
+      ['DENOMINADOR: la verificacion ARRANCO',        R.arranco, R.arranco],
+      ['lo que estaba EN VUELO no escribio nada',     R.noAterrizo,
+        'estado=' + String(R.estadoVuelo).slice(0, 60) + ' datos=' + String(R.datosVuelo).slice(0, 60)],
+      ['DENOMINADOR: la busqueda ARRANCO',            R.buscoArranco, R.buscoArranco],
+      ['y no quedan NOMBRES de paciente en memoria',  R.sinNombres, R.enMemoria],
+      ['DENOMINADOR: la 2a verificacion salio BIEN',  R.verificoOk, String(R.estadoOk).slice(0, 60)],
+      ['esconder LIMPIA: no resucita al volver',      R.limpio,
+        'estado=' + String(R.estadoVuelta).slice(0, 60) + ' datos=' + String(R.datosVuelta).slice(0, 60)]
+    ] };
+  })();
+`);
+
 caso('TC-228', 'Visor: la etiqueta dice DE DONDE viene el valor, y el numero queda quemado siempre', `
   return (async () => {
     const R = {};
