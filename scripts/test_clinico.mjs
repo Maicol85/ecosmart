@@ -19883,6 +19883,163 @@ caso('TC-232', 'Importar imagenes y videos: reparte por bytes, conserva el orden
   })();
 `);
 
+/* == TC-233 - El viaje completo de lo importado: slot, disco y reapertura ==================
+   Lo que este caso existe para fijar es que el resultado NO dependa del ORDEN en que el medico
+   hace dos cosas que no tienen por que tener orden. Hasta este commit `medFijaGuardar` tenia UN
+   SOLO disparador, dentro de `dcmImgImportar`, gateado por un uuid que en el flujo normal
+   —importar mientras se llena el formulario, guardar al final— TODAVIA NO EXISTE: el original
+   nunca llegaba al disco y no habia segundo intento. El slot volvia con su `_dcmId` y `_medFijas`
+   vacio, o sea la llave sin cerradura, con el cartel mandando a una tira VACIA.
+
+   El denominador es lo que hace util a este caso: si el estudio YA tuviera uuid al importar, el
+   camino viejo tambien lo guardaba y la condicion pasaria sin probar nada. */
+caso('TC-233', 'Importar y guardar: la fija llega al disco aunque se importe ANTES de guardar', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    let dichos = [];
+    window.alert = m => { dichos.push('alert:' + String(m)); };
+    window.confirm = () => true;
+    window.toast = m => { dichos.push(String(m)); };
+    let togglePrevio = null;
+    try { togglePrevio = localStorage.getItem('cfg-guardar-imagenes'); } catch (e) {}
+    let estudioId = null;
+
+    /* -- DICOM Parte 10 sintetico, el mismo constructor que TC-179 -- */
+    const JPG1 = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,219,0,67,0,8,6,6,7,6,5,8,7,7,7,9,9,8,10,12,20,13,12,11,11,12,25,18,19,15,20,29,26,31,30,29,26,28,28,32,36,46,39,32,34,44,35,28,28,40,55,41,44,48,49,52,52,52,31,39,57,61,56,50,60,46,51,52,50,255,192,0,11,8,0,1,0,1,1,1,17,0,255,196,0,20,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,255,196,0,20,16,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,218,0,8,1,1,0,0,63,0,42,159,255,217]);
+    const dicomFile = () => {
+      const B = a => { const o=[]; a.forEach(x=>{ if (typeof x==='number') o.push(x); else x.forEach(y=>o.push(y)); }); return o; };
+      const u16 = n => [n&255,(n>>8)&255];
+      const u32 = n => [n&255,(n>>8)&255,(n>>16)&255,(n>>24)&255];
+      const tx = s => { const a=[]; for (let i=0;i<s.length;i++) a.push(s.charCodeAt(i)); if (a.length%2) a.push(0); return a; };
+      const el = (g,e,vr,val) => { const L4 = ['OB','OW','SQ','UN','UT'].indexOf(vr) > -1;
+        return B([u16(g),u16(e),tx(vr).slice(0,2), L4 ? B([0,0,u32(val.length)]) : u16(val.length), val]); };
+      let b = []; for (let i=0;i<128;i++) b.push(0);
+      b = b.concat(tx('DICM'));
+      b = b.concat(el(0x0002,0x0010,'UI',tx('1.2.840.10008.1.2.4.50')));
+      b = b.concat(el(0x0008,0x0070,'LO',tx('GE Vingmed Ultrasound')));
+      b = b.concat(el(0x0008,0x1090,'LO',tx('Vivid iq')));
+      b = b.concat(el(0x0028,0x0004,'CS',tx('YBR_FULL_422')));
+      b = b.concat(el(0x0028,0x0010,'US',u16(1)));
+      b = b.concat(el(0x0028,0x0011,'US',u16(1)));
+      b = b.concat(B([u16(0x7FE0),u16(0x0010),tx('OB'),0,0,u32(0xFFFFFFFF)]));
+      b = b.concat(B([u16(0xFFFE),u16(0xE000),u32(4),u32(0)]));
+      const a = Array.from(JPG1); if (a.length%2) a.push(0);
+      b = b.concat(B([u16(0xFFFE),u16(0xE000),u32(a.length),a]));
+      b = b.concat(B([u16(0xFFFE),u16(0xE0DD),u32(0)]));
+      return new File([new Uint8Array(b)], 'GEMS_IMG_TC233', { type: '' });
+    };
+    const jpegFile = () => new Promise(res => {
+      const c = document.createElement('canvas'); c.width = 60; c.height = 60;
+      const x = c.getContext('2d'); x.fillStyle = 'rgb(180,40,70)'; x.fillRect(0,0,60,60);
+      c.toBlob(b => res(new File([b], 'foto_tc233', { type: '' })), 'image/jpeg', 0.9);
+    });
+    const medibles = () => imgSlots.filter(s => s && s._dcmId && _medFijas[s._dcmId]).length;
+    const carteles = () => document.querySelectorAll('[data-img-aviso-medir]').length;
+
+    try {
+      localStorage.setItem('cfg-guardar-imagenes', '1');
+      __t.limpiar(); imgVaciar(); await esperar(150);
+      __t.set('nombre', 'TC233 ORDEN'); __t.set('ci', '93300001');
+
+      /* -- DENOMINADOR: el estudio NO tiene uuid al importar. Con uuid, el camino viejo
+            tambien guardaba y todo lo de abajo pasaria sin probar nada. -- */
+      R.sinUuidAlImportar = !(typeof _imgUuidActual !== 'undefined' && _imgUuidActual);
+      R.toggleEncendido = imgGuardadoActivo();
+
+      await dcmImgImportar([dicomFile()]);
+      /* El slot lo crea el compresor DENTRO de su .then() y el id se ata desde el
+         MutationObserver de la grilla, o sea dos saltos asincronos: se SONDEA en vez de esperar
+         un plazo fijo. Con 900 ms fijos este caso fallaba 1 de cada 4 corridas dentro del
+         harness y ninguna aislado — o sea un rojo que no era del codigo. Se registra cuanto
+         tardo de verdad, que es lo que permite distinguir «tardo mas» de «no paso nunca». */
+      let esperoMs = 0;
+      while (esperoMs < 6000 &&
+             !(imgSlots.filter(s => s && s.dataURL).length && _medPendientes.length === 0)) {
+        await esperar(100); esperoMs += 100;
+      }
+      R.esperoMs = esperoMs;
+      R.slotTrasImportar = imgSlots.filter(s => s && s.dataURL).length;
+      R.dcmIdTrasImportar = imgSlots.filter(s => s && s._dcmId).length;
+
+      /* -- una fija HUERFANA en memoria, como la que deja el paciente ANTERIOR: no tiene slot
+            en este estudio y NO se puede escribir bajo este uuid -- */
+      const idAjeno = _uuidNuevo();
+      _medFijas[idAjeno] = { nombre: 'paciente anterior', cuadros: 1,
+        d: { frags: [JPG1], cols: 1, filas: 1, msCuadro: 0, fabricante: '', modelo: '', regiones: [] } };
+
+      const g = await __t.guardar();
+      estudioId = g.estudioId;
+      await esperar(1200);
+      const inf = getInformes().filter(i => i.estudioId === estudioId)[0];
+      const uuid = inf && inf.uuid;
+      R.uuid = !!uuid;
+      const recs = uuid ? (await CeiboCine.listar(uuid)) || [] : [];
+      R.enDisco = recs.length;
+      R.ajenoEscrito = recs.filter(r => r && r.id === idAjeno).length;
+      delete _medFijas[idAjeno];
+
+      /* -- SESION NUEVA: la tabla de fijas es memoria de sesion y no sobrevive a recargar -- */
+      __t.limpiar(); imgVaciar(); await esperar(150);
+      for (const k in _medFijas) delete _medFijas[k];
+      __t.reabrir(estudioId);
+      await esperar(1800);
+      R.slotTrasReabrir = imgSlots.filter(s => s && s.dataURL).length;
+      R.medibleTrasReabrir = medibles();
+      R.cartelObsoleto = carteles();
+
+      /* -- el aviso cuando NO se va a guardar: toggle apagado, que es el de fabrica -- */
+      localStorage.setItem('cfg-guardar-imagenes', '0');
+      __t.limpiar(); imgVaciar(); await esperar(150);
+      dichos = [];
+      await mediosImportar([await jpegFile()]);
+      await esperar(900);
+      const avisa = t => t.filter(s => s.indexOf('NO se va a guardar') >= 0).length > 0;
+      R.avisaBoton = avisa(dichos);
+      R.entroIgual = imgSlots.filter(s => s && s.dataURL).length;
+
+      /* -- PARIDAD: el «+» de un slot avisa lo mismo que el boton -- */
+      __t.limpiar(); imgVaciar(); await esperar(150);
+      dichos = [];
+      const inp = document.getElementById('img-file-input');
+      const dt = new DataTransfer(); dt.items.add(await jpegFile());
+      inp.files = dt.files;
+      window.imgActiveSlot = 0;
+      await imgFileElegido({ target: inp });
+      await esperar(900);
+      R.avisaMas = avisa(dichos);
+    } catch (e) {
+      R.err = String(e && e.message || e);
+    } finally {
+      window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+      try {
+        if (togglePrevio === null) localStorage.removeItem('cfg-guardar-imagenes');
+        else localStorage.setItem('cfg-guardar-imagenes', togglePrevio);
+      } catch (e) {}
+      if (estudioId) { try { await __t.borrar(estudioId); } catch (e) {} }
+      try { imgVaciar(); } catch (e) {}
+    }
+
+    return { extra: [
+      ['sin excepciones',                              !R.err, R.err],
+      ['DENOMINADOR: sin uuid al importar',            R.sinUuidAlImportar === true, R.sinUuidAlImportar],
+      ['DENOMINADOR: el toggle quedo encendido',       R.toggleEncendido === true, R.toggleEncendido],
+      ['la fija entra al slot con su _dcmId',          R.slotTrasImportar === 1 && R.dcmIdTrasImportar === 1,
+                                                       'slots=' + R.slotTrasImportar + ' dcmId=' + R.dcmIdTrasImportar +
+                                                       ' esperoMs=' + R.esperoMs],
+      ['al GUARDAR el original llega al disco',        R.enDisco === 1, 'enDisco=' + R.enDisco + ' uuid=' + R.uuid],
+      ['y NO se escribe la fija de otro paciente',     R.ajenoEscrito === 0, 'ajenas=' + R.ajenoEscrito],
+      ['en sesion NUEVA el slot vuelve MEDIBLE',       R.medibleTrasReabrir === 1,
+                                                       'slots=' + R.slotTrasReabrir + ' medibles=' + R.medibleTrasReabrir],
+      ['y sin el cartel que manda a la tira',          R.cartelObsoleto === 0, 'carteles=' + R.cartelObsoleto],
+      ['con el toggle apagado se AVISA',               R.avisaBoton === true, R.avisaBoton],
+      ['y la imagen entra igual en esta sesion',       R.entroIgual === 1, 'slots=' + R.entroIgual],
+      ['el «+» de un slot avisa lo mismo',             R.avisaMas === true, R.avisaMas]
+    ] };
+  })();
+`);
+
 caso('TC-228', 'Visor: la etiqueta dice DE DONDE viene el valor, y el numero queda quemado siempre', `
   return (async () => {
     const R = {};

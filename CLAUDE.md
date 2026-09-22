@@ -4,6 +4,104 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## El viaje completo de lo importado, medido por formato (TC-233)
+
+Auditoría del ciclo **importar → grilla → guardar → reabrir** para los cinco formatos del botón
+nuevo. Lo que sigue está MEDIDO en Chrome por CDP, no leído.
+
+| | slot | grilla | disco | reabre | tira |
+|---|---|---|---|---|---|
+| JPEG · PNG · BMP | ✓ | ✓ | `ceibomed_img` | ✓ | — |
+| MP4 | ✓ | ✓ | `ceibomed_img` + `ceibomed_video` | ✓ | — |
+| DICOM | ✓ | ✓ | + `ceibomed_cine` | ✓ | ✓ |
+
+**La tira NO es la grilla, y el reporte las confundía.** `#cine-strip` se titula «DICOM guardados
+en este estudio» y lista **originales medibles**; un JPG no tiene escala, así que no puede
+aparecer ahí. Lo que el médico busca para un JPG es la grilla de imágenes, que funciona.
+
+### ⚠️ EL RESULTADO DEPENDÍA DEL ORDEN EN QUE SE HICIERAN DOS COSAS SIN ORDEN
+
+`medFijaGuardar` tenía **un solo disparador** —dentro de `dcmImgImportar`— gateado por
+`_cinePuedeGuardar()`, que exige uuid de estudio. Y el flujo normal del médico es **importar
+mientras llena el formulario y guardar al final**: ahí el uuid todavía no existe, así que el
+original nunca se escribía, y **no había un segundo intento en ninguna parte**. Medido:
+
+| | `ceibomed_cine` | tira | medible al reabrir |
+|---|---|---|---|
+| importar → guardar (el flujo normal) | **0** | **0** | **no** |
+| guardar → importar | 1 | 1 | sí |
+
+El síntoma es peor que perder el archivo. El slot vuelve con su `_dcmId` —viaja en la lista
+blanca de `CeiboImg.guardar` desde TC-216— y `_medFijas` está vacío: **la llave sin cerradura**.
+Ahí `_imgAvisoMedir` pinta «📏 Para medir esta imagen, usá la tira DICOM de abajo» **sobre una
+tira vacía** — un cartel que manda a mirar algo que no existe.
+
+Cerrado con `medFijasPersistir(uuid)`, llamada desde `imgPersistir`, que es el único momento en
+que el uuid ya existe. **Se recorre `imgSlots`, NUNCA `_medFijas`**: esa tabla es memoria de
+SESIÓN y conserva las fijas de los pacientes anteriores, así que escribirlas todas bajo este uuid
+metería la imagen de otro paciente adentro de este estudio. La mutación que la recorre imprime
+`ajenas=1`.
+
+### El cartel sobrevivía al motivo que lo justificaba
+
+`medFijasRestaurar` repintaba con `if (n && _medFijaOn …)`. El realce del modo medición sí
+depende de ese estado, pero **el cartel se pinta siempre** —`imgRender` lo interpola sin mirar el
+modo— y cuelga de `_medFijas`, que es justo lo que esa función acaba de cambiar. Con el modo
+apagado, o sea el caso normal al reabrir, la grilla quedaba diciendo «usá la tira» sobre una
+imagen que YA se podía medir desde el slot. Se sacó `_medFijaOn` de la condición.
+
+### ⚠️ LA IMAGEN ERA EL ÚNICO FORMATO QUE SE PERDÍA EN SILENCIO
+
+Con «Guardar imágenes con los estudios» apagado —**el estado de fábrica**— nada se escribe. El
+video ya avisaba (`_videoAvisarPersistencia`) y el cineloop también (`_cinePuedeGuardar`, que
+distingue cuál de las dos condiciones falta). La imagen no: sacaba **«✅ 1 imagen(es) de 1
+archivo(s) elegido(s)»** —un tilde verde confirmando el éxito— y al reabrir no estaba. Es «el
+interruptor mentía sobre el disco» otra vez.
+
+Hoy `_avisarPersistenciaMedios(que)` es compartida y el video queda con su redacción intacta.
+Recibe **el sujeto ya redactado** («Este video», «Esta imagen», «Las 3 imágenes») porque el género
+y el número cambian la frase entera y una plantilla daría «Este imagen».
+
+**Va en las TRES puertas de importación** —`mediosImportar`, `dcmImgImportar` y `imgFileElegido`—
+y no en `imgCompressLoad`. Poniéndolo en la puerta común avisaría también en cada captura del
+visor y en cada Ctrl+V, que son decenas por estudio. **Consecuencia declarada:** pegar con Ctrl+V
+sigue sin avisar.
+
+### Paridad con el «+» de un slot: verificada, no supuesta
+
+Mismo archivo por las dos puertas da lo mismo en los dos formatos probados:
+
+| | slot | `_dcmId` | medible |
+|---|---|---|---|
+| DICOM por «+» / por botón | 1 / 1 | 1 / 1 | 1 / 1 |
+| JPEG por «+» / por botón | 1 / 1 | 0 / 0 | 0 / 0 |
+
+Por eso el aviso tuvo que ir **también** en `imgFileElegido`: sin eso el mismo JPG entraba
+avisando por una puerta y en silencio por la otra, justo en el caso que se acababa de arreglar.
+
+### Un plazo fijo en un caso no es una condición, es una apuesta
+
+TC-233 nació con `await esperar(900)` y **fallaba 1 de cada 4 corridas dentro del suite y ninguna
+aislado**, con `slots=1 dcmId=0`. El slot lo crea el compresor dentro de su `.then()` y el id lo
+ata el `MutationObserver` de la grilla: son **dos saltos asincrónicos**, y 900 ms no siempre
+alcanzan con el harness cargado. Hoy se **sondea** hasta 6 s y se registra cuánto tardó de verdad,
+que es lo que separa «tardó más» de «no pasó nunca».
+
+**No se da por explicado el mecanismo.** El sondeo hace que el caso mida el invariante en vez de
+un plazo, y 6/6 corridas en verde; pero no se reprodujo por qué a los 900 ms el slot existía con
+el id todavía sin atar. Si vuelve a aparecer, el sospechoso es `imgCompressLoad` eligiendo un
+target distinto del reservado —ahí el pendiente apunta a un slot que nunca se llena— y la señal
+sería que el sondeo agote los 6 s en vez de pasar.
+
+**Y el rojo colateral casi me hace dar por buenas tres mutaciones.** Con el plazo fijo, M1, M2 y
+M5 caían además en «la fija entra al slot con su `_dcmId`», que no les toca: la cascada venía del
+plazo y no de la mutación. Es *«un rojo colateral que no se puede explicar no se da por bueno»*.
+Con el sondeo, cada una cae sólo donde le corresponde.
+
+**Backticks dentro del cuerpo de un caso: van CUARENTA Y TRES** — dos tandas en esta sesión, las
+dos en comentarios recién escritos, y la segunda en el que explicaba el sondeo de arriba.
+
+
 ## Importar imágenes y videos de cualquier ecógrafo (TC-232)
 
 Botón «📥 Importar imágenes y videos» en la tab Imágenes y la misma opción en el menú

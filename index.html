@@ -25394,6 +25394,11 @@ function imgPersistir(uuid) {
      que falle uno no tiene por qué impedir el otro, y `imgPersistir` ya resuelve su booleano
      sobre las imágenes, que es lo que miran sus llamadores. */
   videoPersistir(uuid);
+  /* Los ORIGINALES DICOM de las fijas, por el mismo motivo y en paralelo: ver el comentario
+     largo de `medFijasPersistir`. Éste es el único momento en que el uuid ya existe, y hasta
+     hoy no había ningún segundo intento — la fija importada ANTES de guardar el estudio no
+     llegaba nunca al disco. */
+  medFijasPersistir(uuid);
   return CeiboImg.guardar(uuid, vivas).then(ok => {
     if (!ok && typeof toast === 'function') {
       toast('⚠️ El estudio se guardó, pero no se pudieron guardar las imágenes');
@@ -47041,7 +47046,13 @@ async function imgFileElegido(ev) {
     let cab2 = null;
     try { cab2 = new Uint8Array(await f.slice(0, 16).arrayBuffer()); } catch (e) { cab2 = null; }
     if (_esVideoSoportado(cab2, f)) { ev.target.value = ''; await videoCargarEnSlot(f, destino); return; }
-    imgFileChosen(ev); return;                   // flujo de siempre, intacto
+    imgFileChosen(ev);                           // flujo de siempre, intacto
+    /* El aviso de persistencia va también acá, o el «+» y el botón dejarían de comportarse
+       igual justo en el caso que se acaba de arreglar: el mismo JPG entraría avisando por una
+       puerta y en silencio por la otra. Las otras dos ramas ya avisan por su cuenta —el video
+       dentro de `videoCargarEnSlot` y el DICOM dentro de `dcmImgImportar`—. */
+    _avisarPersistenciaMedios('Esta imagen');
+    return;
   }
   ev.target.value = '';
   await dcmImgImportar([f], destino);
@@ -47179,6 +47190,14 @@ async function dcmImgImportar(fileList, slotPreferido) {
   } else {
     toast('❌ No se importó ninguna imagen');
     alert('No se pudo importar ningún archivo (' + files.length + ' elegido/s).\n\n' + detalle(fallos));
+  }
+  /* Mismo aviso que las demás puertas: con el toggle apagado la imagen DICOM entra al slot, se
+     ve, se puede medir en esta sesión — y al reabrir el estudio no está. Sólo por las fijas: el
+     cineloop lo dice por su cuenta en el botón del reproductor, que además distingue cuál de las
+     dos condiciones falta. Va DESPUÉS del resumen para que no lo tape. */
+  if (listos.length) {
+    _avisarPersistenciaMedios(listos.length === 1 ? 'Esta imagen'
+                                                  : 'Las ' + listos.length + ' imágenes');
   }
   /* El reproductor se abre AL FINAL, después de los avisos: si abriera antes, el alert de
      los rechazos quedaría tapado por el modal y el médico no se enteraría de lo que no entró. */
@@ -47362,6 +47381,14 @@ async function mediosImportar(fileList, slotPreferido) {
     toast('❌ No entró ningún archivo' + deN);
   } else if (!dicoms.length) {
     toast('❌ No entró ningún archivo' + deN);
+  }
+
+  /* Si no se va a guardar, DECIRLO — ver `_avisarPersistenciaMedios`. Sólo por las imágenes:
+     cada video ya avisó lo suyo dentro de `videoCargarEnSlot`, y los DICOM avisan por su propia
+     puerta unas líneas más abajo. Va DESPUÉS del resumen para que no lo tape. */
+  if (imagenes.length) {
+    _avisarPersistenciaMedios(imagenes.length === 1 ? 'Esta imagen'
+                                                   : 'Las ' + imagenes.length + ' imágenes');
   }
 
   /* Los DICOM van AL FINAL y por su puerta: `dcmImgImportar` emite su propio resumen y
@@ -51655,13 +51682,64 @@ function medFijasRestaurar(uuid) {
       if (!r || r.tipo !== 'fija' || !r.id || _medFijas[r.id]) return;
       try { _medFijas[r.id] = _cineDesdeRegistro(r); n++; } catch (e) {}
     });
-    /* El modo medición pinta el realce leyendo los slots, así que si ya estaba encendido hay
-       que repintarlo: recién ahora esos slots son medibles. */
-    if (n && _medFijaOn && typeof imgRender === 'function') { try { imgRender(); } catch (e) {} }
+    /* Recién ahora esos slots son medibles, así que hay que repintar la grilla.
+       ⚠️ LA CONDICIÓN NO PUEDE LLEVAR `_medFijaOn`, y lo llevaba. El realce del modo medición
+       sí depende de ese estado, pero el CARTEL de `_imgAvisoMedir` se pinta SIEMPRE —`imgRender`
+       lo interpola sin mirar el modo—, y ese cartel cuelga de `_medFijas`, que es justo lo que
+       esta función acaba de cambiar. Con el gate puesto y el modo apagado —o sea el caso normal
+       al reabrir un estudio— la grilla quedaba con «📏 Para medir esta imagen, usá la tira DICOM
+       de abajo» sobre una imagen que YA se puede medir desde el slot: el cartel sobreviviendo al
+       motivo que lo justificaba. Medido. */
+    if (n && typeof imgRender === 'function') { try { imgRender(); } catch (e) {} }
     return n;
   }).catch(() => 0);
 }
 window.medFijasRestaurar = medFijasRestaurar;
+
+/* Contraparte de `medFijasRestaurar`, y el reintento que faltaba.
+
+   ⚠️ `medFijaGuardar` TENÍA UN SOLO DISPARADOR —`dcmImgImportar`— gateado por
+   `_cinePuedeGuardar()`, que exige uuid de estudio. Pero el flujo normal del médico es importar
+   las imágenes mientras llena el formulario y guardar AL FINAL: en ese orden el uuid todavía no
+   existe, así que el original nunca se escribía y no había un segundo intento en ninguna parte.
+
+   Medido, y el síntoma es peor que perder el archivo: al reabrir en una sesión nueva el slot
+   vuelve con su `_dcmId` —viaja en la lista blanca de `CeiboImg.guardar`— y `_medFijas` está
+   vacío, o sea LA LLAVE SIN CERRADURA. Ahí `_imgAvisoMedir` pinta «usá la tira DICOM de abajo»
+   sobre una tira que está VACÍA: un cartel que manda a mirar algo que no existe. Importando
+   DESPUÉS de guardar el estudio, en cambio, todo anda — o sea que el resultado dependía del
+   orden en que el médico hiciera dos cosas que no tienen por qué tener orden.
+
+   ⚠️ SE RECORRE `imgSlots`, NUNCA `_medFijas`. Esa tabla es memoria de SESIÓN y conserva las
+   fijas de los pacientes anteriores: escribirlas todas bajo este uuid metería la imagen de otro
+   paciente dentro de este estudio. Los slots son los de ESTE estudio por construcción. */
+async function medFijasPersistir(uuid) {
+  if (typeof CeiboCine === 'undefined' || !_uuidValido(uuid)) return 0;
+  /* `medFijaGuardar` escribe el registro bajo `_imgUuidActual`, no bajo el argumento. Acá se
+     exige que coincidan en vez de confiar: `imgPersistir` lo deja puesto justo antes de llamar,
+     y si algún día deja de hacerlo, esto falla CERRADO en vez de escribir la fija de este
+     estudio bajo el uuid de otro. */
+  if (_imgUuidActual !== uuid) return 0;
+  const ids = [];
+  (typeof imgSlots !== 'undefined' ? imgSlots : []).forEach(s => {
+    if (s && s._dcmId && _medFijas[s._dcmId] && ids.indexOf(s._dcmId) < 0) ids.push(s._dcmId);
+  });
+  if (!ids.length) return 0;
+  /* Si la lista no se puede leer NO se reescribe a ciegas. `CeiboCine.guardar` es un `put`, así
+     que repetir sería idempotente — pero vuelve a comprimir el póster y a mover los bytes de
+     cada fija en CADA guardado del estudio, y guardar es lo que más se repite. */
+  let yaEstan;
+  try { yaEstan = (await CeiboCine.listar(uuid) || []).map(r => r && r.id); }
+  catch (e) { return 0; }
+  let n = 0;
+  for (const id of ids) {
+    if (yaEstan.indexOf(id) >= 0) continue;
+    try { if (await medFijaGuardar(_medFijas[id], id)) n++; } catch (e) {}
+  }
+  if (n && typeof cineStripRender === 'function') { try { await cineStripRender(); } catch (e) {} }
+  return n;
+}
+window.medFijasPersistir = medFijasPersistir;
 
 /* ── Modo medición sobre los slots ──────────────────────────────────────────────────────
    Ni `imgRender` ni las celdas se tocan. El realce y el cursor salen de una regla CSS
@@ -52032,18 +52110,38 @@ async function videoCargarEnSlot(file, destino) {
    accionar. El video del slot no lo hacía: es la misma asimetría que este archivo documenta con
    «el interruptor mentía sobre el disco». Va como toast y no como alert: el archivo SÍ se cargó
    y se puede usar en esta sesión; lo que no va a hacer es sobrevivir. */
-function _videoAvisarPersistencia() {
+/* ⚠️ EL MISMO AVISO PARA LAS IMÁGENES, QUE ES LO QUE FALTABA — y era el defecto reportado.
+   Medido con el toggle apagado, que es el estado de FÁBRICA: un JPG importado saca
+   «✅ 1 imagen(es) de 1 archivo(s) elegido(s)» —un tilde verde confirmando el éxito— y al
+   reabrir el estudio NO ESTÁ. Lo mismo un DICOM. El video ya avisaba y el cineloop también
+   (`_cinePuedeGuardar` distingue los dos motivos); la imagen era la única de los cinco formatos
+   que se perdía EN SILENCIO. Es «el interruptor mentía sobre el disco» otra vez.
+
+   `que` es el sujeto ya redactado («Este video», «Esta imagen», «Las 3 imágenes») porque el
+   género y el número cambian la frase entera, y armarla con plantillas daría «Este imagen».
+
+   Va como toast y no como alert: el archivo SÍ entró y se puede usar en esta sesión —capturar,
+   medir, exportar el PDF—; lo único que no va a hacer es sobrevivir al cierre del estudio. */
+function _avisarPersistenciaMedios(que) {
   if (typeof toast !== 'function') return;
   const hayToggle = typeof imgGuardadoActivo === 'function' && imgGuardadoActivo();
   if (!hayToggle) {
-    toast('⚠️ Este video NO se va a guardar: «Guardar imágenes con los estudios» está apagado ' +
+    toast('⚠️ ' + que + ' NO se va a guardar: «Guardar imágenes con los estudios» está apagado ' +
           'en ⚙️ Config. Se ve en esta sesión y desaparece al reabrir el estudio.');
     return;
   }
   if (typeof _uuidValido === 'function' && !_uuidValido(_imgUuidActual)) {
-    toast('💾 Guardá el estudio para que el video quede guardado: por ahora vive sólo en esta sesión.');
+    toast('💾 Guardá el estudio para que no se pierda: por ahora vive sólo en esta sesión.');
   }
 }
+window._avisarPersistenciaMedios = _avisarPersistenciaMedios;
+
+/* `videoCargarEnSlot` no cambia una letra y la rama del toggle apagado conserva su redacción
+   exacta («Este video NO se va a guardar…»). La SEGUNDA rama —la de «guardá el estudio»— sí se
+   generalizó: decía «para que el video quede guardado» y ahora vale para los tres medios. Queda
+   dicho porque el commit anterior de esta serie casi deja un comentario afirmando que el texto
+   del video no se tocaba, que habría sido falso a dos líneas de distancia del código. */
+function _videoAvisarPersistencia() { _avisarPersistenciaMedios('Este video'); }
 window.videoCargarEnSlot = videoCargarEnSlot;
 
 
@@ -68499,8 +68597,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260922-0828';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790076532032;                 /* eco-build-ms */
+const ECO_BUILD    = '20260922-1246';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790091995769;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -68586,7 +68684,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-0828</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1246</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
