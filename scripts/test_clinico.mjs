@@ -10631,7 +10631,7 @@ caso('TC-184', 'Cineloop guardado: sin cabecera DICOM, gateado por el toggle, y 
          ya no se interpola dentro de un onclick —escapar no protege ahi— sino que va por
          data-cine-id y el manejador se ata desde JS. Buscar el texto en el HTML daria rojo
          sobre la version correcta y verde sobre la insegura. */
-      const card = strip.querySelector('[data-cine-id]');
+      const card = strip.querySelector('[data-strip-i][data-cine-id]');
       R.tiraAbre  = !!(card && card.querySelector('.cine-abrir') && typeof card.querySelector('.cine-abrir').onclick === 'function');
       R.tiraBorra = !!(card && card.querySelector('.cine-borrar') && typeof card.querySelector('.cine-borrar').onclick === 'function');
       R.sinIdEnHandler = R.tira.indexOf('onclick="cineAbrirGuardado') === -1 &&
@@ -10672,7 +10672,10 @@ caso('TC-184', 'Cineloop guardado: sin cabecera DICOM, gateado por el toggle, y 
       await CeiboCine.borrar(rec.id);
       R.borro = (await CeiboCine.listar(uuid)).length === 0;
       await cineStripRender();
-      R.tiraVacia = (document.getElementById('cine-strip').innerHTML || '') === '';
+      /* Desde que la tira tambien lista los SLOTS, «innerHTML vacio» dejo de ser el invariante:
+         con una imagen en la grilla la tira tiene contenido y esta bien que lo tenga. Lo que
+         este paso fija es que el registro BORRADO ya no aparece. */
+      R.tiraVacia = !document.querySelector('#cine-strip [data-cine-id]');
 
       /* ── 9. las imagenes fijas no se vieron afectadas ── */
       imgSlots.length = 0; imgSlots.push(null, null); imgSlotCount = 2;
@@ -17080,8 +17083,14 @@ caso('TC-216', 'Slots DICOM: medir tras reabrir el estudio, y el cartel cuando n
       R.soloHuerfano = R.patron === 'false,false,true,false';
       const av = cel[2] ? cel[2].querySelector('[data-img-aviso-medir]') : null;
       R.texto = av ? av.textContent : '(no)';
-      R.textoOk = R.texto.indexOf('Para medir esta imagen') >= 0 &&
-                  R.texto.indexOf('tira DICOM de abajo') >= 0;
+      /* Se fija el INVARIANTE, no la redaccion. Antes pinaba la frase literal «usá la tira DICOM
+         de abajo» y se puso en rojo cuando esa frase cambio A PROPOSITO: con la tira unificada
+         la imagen se abre igual desde el slot --cae en la calibracion manual-- asi que mandar a
+         la tira habria quedado prometiendo algo que esa tarjeta ya no tiene. Lo que el cartel
+         tiene que hacer es decir QUE SE PERDIO --el original, o sea la escala del archivo-- y
+         que igual se puede medir. Un caso que fija texto hay que tocarlo cada vez que el texto
+         cambia bien; uno que fija el invariante, no. */
+      R.textoOk = /original|escala/i.test(R.texto) && /medir|calibra/i.test(R.texto);
       /* el slot NO se rompe */
       R.slotIntacto = Array.prototype.every.call(cel, x =>
         !!x.querySelector('img') && !!x.querySelector('button[title=\\"Eliminar\\"]'));
@@ -20036,6 +20045,219 @@ caso('TC-233', 'Importar y guardar: la fija llega al disco aunque se importe ANT
       ['con el toggle apagado se AVISA',               R.avisaBoton === true, R.avisaBoton],
       ['y la imagen entra igual en esta sesion',       R.entroIgual === 1, 'slots=' + R.entroIgual],
       ['el «+» de un slot avisa lo mismo',             R.avisaMas === true, R.avisaMas]
+    ] };
+  })();
+`);
+
+/* == TC-234 - La tira lista los ARCHIVOS del estudio, no solo los DICOM =====================
+   Decision de Maicol (2026-09-22). Antes leia UNA sola fuente --CeiboCine-- asi que un JPG o un
+   MP4 no aparecian nunca; eso fue lo que se reporto como que «no quedaban en la tira». Ahora se
+   arma de los SLOTS mas el disco, con un icono por tipo, y el clic abre lo que corresponde.
+
+   Lo que separa este caso de uno decorativo es que NO cuenta tarjetas: cruza el tipo de cada
+   archivo contra lo que la tarjeta dice de el y contra lo que el clic abre. Un conteo pasa igual
+   con los iconos cruzados. */
+caso('TC-234', 'Tira unificada: un icono por tipo, el MP4 no se mide y cada clic abre lo suyo', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    const dichos = [];
+    window.alert = m => { dichos.push('alert:' + String(m)); };
+    window.confirm = () => true;
+    window.toast = m => { dichos.push(String(m)); };
+    let togglePrevio = null;
+    try { togglePrevio = localStorage.getItem('cfg-guardar-imagenes'); } catch (e) {}
+    let estudioId = null;
+
+    const JPG1 = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,219,0,67,0,8,6,6,7,6,5,8,7,7,7,9,9,8,10,12,20,13,12,11,11,12,25,18,19,15,20,29,26,31,30,29,26,28,28,32,36,46,39,32,34,44,35,28,28,40,55,41,44,48,49,52,52,52,31,39,57,61,56,50,60,46,51,52,50,255,192,0,11,8,0,1,0,1,1,1,17,0,255,196,0,20,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,255,196,0,20,16,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,218,0,8,1,1,0,0,63,0,42,159,255,217]);
+    const dicomFile = (conRegion) => {
+      const B = a => { const o=[]; a.forEach(x=>{ if (typeof x==='number') o.push(x); else x.forEach(y=>o.push(y)); }); return o; };
+      const u16 = n => [n&255,(n>>8)&255];
+      const u32 = n => [n&255,(n>>8)&255,(n>>16)&255,(n>>24)&255];
+      const tx = s => { const a=[]; for (let i=0;i<s.length;i++) a.push(s.charCodeAt(i)); if (a.length%2) a.push(0); return a; };
+      const el = (g,e,vr,val) => { const L4 = ['OB','OW','SQ','UN','UT'].indexOf(vr) > -1;
+        return B([u16(g),u16(e),tx(vr).slice(0,2), L4 ? B([0,0,u32(val.length)]) : u16(val.length), val]); };
+      const f64 = v => { const b=new Uint8Array(8); new DataView(b.buffer).setFloat64(0,v,true); return Array.from(b); };
+      let b = []; for (let i=0;i<128;i++) b.push(0);
+      b = b.concat(tx('DICM'));
+      b = b.concat(el(0x0002,0x0010,'UI',tx('1.2.840.10008.1.2.4.50')));
+      b = b.concat(el(0x0008,0x0070,'LO',tx('GE Vingmed Ultrasound')));
+      if (conRegion) {
+        let it = [];
+        it = it.concat(el(0x0018,0x6012,'US',u16(0)));
+        it = it.concat(el(0x0018,0x6018,'UL',u32(0)));
+        it = it.concat(el(0x0018,0x601A,'UL',u32(0)));
+        it = it.concat(el(0x0018,0x601C,'UL',u32(100)));
+        it = it.concat(el(0x0018,0x601E,'UL',u32(100)));
+        it = it.concat(el(0x0018,0x6024,'US',u16(3)));
+        it = it.concat(el(0x0018,0x6026,'US',u16(3)));
+        it = it.concat(el(0x0018,0x602C,'FD',f64(0.05)));
+        it = it.concat(el(0x0018,0x602E,'FD',f64(0.05)));
+        b = b.concat(B([u16(0x0018),u16(0x6011),tx('SQ'),0,0,u32(0xFFFFFFFF)]));
+        b = b.concat(B([u16(0xFFFE),u16(0xE000),u32(it.length),it]));
+        b = b.concat(B([u16(0xFFFE),u16(0xE0DD),u32(0)]));
+      }
+      b = b.concat(el(0x0028,0x0004,'CS',tx('YBR_FULL_422')));
+      b = b.concat(el(0x0028,0x0010,'US',u16(1)));
+      b = b.concat(el(0x0028,0x0011,'US',u16(1)));
+      b = b.concat(B([u16(0x7FE0),u16(0x0010),tx('OB'),0,0,u32(0xFFFFFFFF)]));
+      b = b.concat(B([u16(0xFFFE),u16(0xE000),u32(4),u32(0)]));
+      const a = Array.from(JPG1); if (a.length%2) a.push(0);
+      b = b.concat(B([u16(0xFFFE),u16(0xE000),u32(a.length),a]));
+      b = b.concat(B([u16(0xFFFE),u16(0xE0DD),u32(0)]));
+      return new File([new Uint8Array(b)], conRegion ? 'con_escala' : 'sin_escala', { type: '' });
+    };
+    const imgFile = (mime, n) => new Promise(res => {
+      const c = document.createElement('canvas'); c.width = n; c.height = n;
+      const x = c.getContext('2d'); x.fillStyle = 'rgb(90,150,200)'; x.fillRect(0,0,n,n);
+      c.toBlob(b => res(new File([b], 'archivo', { type: '' })), mime, 0.9);
+    });
+    const mp4File = async () => {
+      const tipo = 'video/mp4;codecs=avc1.42E01E';
+      if (!window.MediaRecorder || !MediaRecorder.isTypeSupported(tipo)) return null;
+      const c = document.createElement('canvas'); c.width=120; c.height=90;
+      const x = c.getContext('2d'); const st = c.captureStream(25);
+      const mr = new MediaRecorder(st, { mimeType: tipo, videoBitsPerSecond: 250000 });
+      const tr = []; mr.ondataavailable = e => { if (e.data && e.data.size) tr.push(e.data); };
+      const fin = new Promise(r => { mr.onstop = r; });
+      mr.start();
+      for (let i=0;i<15;i++){ x.fillStyle='rgb('+(i*15)+',60,140)'; x.fillRect(0,0,120,90); await esperar(40); }
+      mr.stop(); await fin;
+      return new File([new Blob(tr,{type:'video/mp4'})],'clip',{type:''});
+    };
+    const esperarSlots = async (n) => { for (let i=0;i<70;i++) {
+      if (imgSlots.filter(s => s && s.dataURL).length >= n && _medPendientes.length === 0) return true;
+      await esperar(100); } return false; };
+
+    try {
+      localStorage.setItem('cfg-guardar-imagenes', '1');
+      __t.limpiar(); imgVaciar(); await esperar(200);
+      __t.set('nombre','TC234 TIRA'); __t.set('ci','95540001');
+      const g = await __t.guardar();
+      estudioId = g.estudioId;
+      await esperar(900);
+      __t.reabrir(estudioId);
+      await esperar(1500);
+
+      const mp4 = await mp4File();
+      R.hayMp4 = !!mp4;
+      await mediosImportar([await imgFile('image/jpeg', 120)]); await esperarSlots(1);
+      if (mp4) { await mediosImportar([mp4]); await esperarSlots(2); }
+      await mediosImportar([dicomFile(true)]);  await esperarSlots(mp4 ? 3 : 2);
+      await mediosImportar([dicomFile(false)]); await esperarSlots(mp4 ? 4 : 3);
+      await cineStripRender(); await esperar(600);
+
+      const cont = document.getElementById('cine-strip');
+      const txt = cont.textContent || '';
+      R.slots = imgSlots.filter(s => s && s.dataURL).length;
+      R.titulo = txt.indexOf('Archivos del estudio') >= 0;
+      R.tituloViejo = txt.indexOf('DICOM guardados en este estudio') >= 0;
+      R.disclaimer = txt.indexOf('solo para documentaci') >= 0 || txt.indexOf('sólo para documentaci') >= 0;
+
+      const cards = [...cont.querySelectorAll('[data-strip-i]')];
+      const tx = c => (c.textContent || '').replace(/\\s+/g, ' ');
+      R.nTarjetas = cards.length;
+      R.iconoImagen = cards.filter(c => tx(c).indexOf('📷') >= 0).length;
+      R.iconoVideo  = cards.filter(c => tx(c).indexOf('🎬') >= 0).length;
+      R.iconoDicom  = cards.filter(c => tx(c).indexOf('📏') >= 0).length;
+      R.conEscalaArchivo = cards.filter(c => tx(c).indexOf('escala del archivo') >= 0).length;
+      R.conCalibManual   = cards.filter(c => tx(c).indexOf('calibraci') >= 0).length;
+      R.borrar = cards.filter(c => c.querySelector('.cine-borrar')).length;
+
+      /* SEGURIDAD: ningun elemento de la tira lleva atributo de evento. Buscar el texto en el
+         innerHTML da falso positivo --el id viaja escapado dentro de data-cine-id-- asi que se
+         recorre attributes, que es lo que CLAUDE.md fija como invariante. */
+      R.sinHandlerInline = ![...cont.querySelectorAll('*')].some(el =>
+        [...el.attributes].some(a => a.name.slice(0,2) === 'on'));
+
+      /* CLIC EN UNA IMAGEN: abre el visor con CERO regiones, o sea calibracion manual. */
+      const cImg = cards.filter(c => tx(c).indexOf('📷') >= 0)[0];
+      if (cImg) {
+        cImg.querySelector('.cine-abrir').click();
+        await esperar(1400);
+        R.visorPorImagen = !!(typeof _cineDatos !== 'undefined' && _cineDatos && _cineDatos.loops);
+        R.regionesImagen = R.visorPorImagen ? (_cineDatos.loops[0].d.regiones || []).length : -1;
+        try { cineCerrar(); } catch (e) {}
+        await esperar(300);
+      }
+      /* CLIC EN EL VIDEO: reproductor de video, NO el visor de medicion. */
+      const cVid = cards.filter(c => tx(c).indexOf('🎬') >= 0)[0];
+      if (cVid) {
+        cVid.querySelector('.cine-abrir').click();
+        await esperar(900);
+        R.modalVideo = document.querySelectorAll('[data-video-modal]').length;
+        document.querySelectorAll('[data-video-act="cerrar"]').forEach(b => b.click());
+        await esperar(200);
+      }
+
+      /* Y LA GRILLA NO PUEDE CONTRADECIR A LA TIRA: el modo medicion sobre una imagen sin
+         escala abre para calibrar a mano en vez de rechazar; sobre un video sigue rechazando. */
+      /* Se entra por medFijaClic, que es la puerta REAL del modo medicion. Llamar a
+         medImagenAbrir directo probaria el ayudante y no el ruteo: la mutacion que devuelve el
+         rechazo «cualquier numero seria inventado» pasaria en verde. */
+      const celda = i => document.querySelector('#img-grid > div[data-idx="' + i + '"]');
+      const clicMedir = (i) => medFijaClic({ target: celda(i),
+        preventDefault() {}, stopPropagation() {} });
+      const iImg = imgSlots.findIndex(s => s && s.dataURL && !s.videoId && !s._dcmId);
+      if (iImg >= 0 && celda(iImg)) {
+        try { cineCerrar(); } catch (e) {}
+        if (!_medFijaOn) medFijaToggle();
+        dichos.length = 0;
+        clicMedir(iImg);
+        await esperar(1400);
+        R.gridAbreImagen = !!(_cineDatos && _cineDatos.loops &&
+                              (_cineDatos.loops[0].d.regiones || []).length === 0);
+        R.gridNoRechaza = !dichos.some(d => d.indexOf('seria inventado') >= 0 ||
+                                            d.indexOf('sería inventado') >= 0 ||
+                                            d.indexOf('no tiene datos de escala') >= 0);
+        try { cineCerrar(); } catch (e) {}
+      }
+      /* Y el video SIGUE rechazandose desde la grilla, con su motivo propio. */
+      const iVid = imgSlots.findIndex(s => s && s.videoId);
+      if (iVid >= 0 && celda(iVid)) {
+        dichos.length = 0;
+        clicMedir(iVid);
+        await esperar(500);
+        R.videoRechazado = dichos.some(d => d.indexOf('no se puede medir') >= 0);
+        R.videoNoAbrioVisor = !(_cineDatos && _cineDatos.loops);
+      } else { R.videoRechazado = 'sin video'; R.videoNoAbrioVisor = 'sin video'; }
+      if (_medFijaOn) medFijaToggle();
+    } catch (e) {
+      R.err = String(e && e.message || e);
+    } finally {
+      window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+      try {
+        if (togglePrevio === null) localStorage.removeItem('cfg-guardar-imagenes');
+        else localStorage.setItem('cfg-guardar-imagenes', togglePrevio);
+      } catch (e) {}
+      try { cineCerrar(); } catch (e) {}
+      if (estudioId) { try { await __t.borrar(estudioId); } catch (e) {} }
+      try { imgVaciar(); } catch (e) {}
+    }
+
+    const esperado = R.hayMp4 ? 4 : 3;
+    return { extra: [
+      ['sin excepciones',                             !R.err, R.err],
+      ['DENOMINADOR: entraron los archivos',          R.slots === esperado, 'slots=' + R.slots + ' esperado=' + esperado],
+      ['el titulo dice ARCHIVOS del estudio',         R.titulo === true, R.titulo],
+      ['y el titulo viejo no sobrevive',              R.tituloViejo === false, R.tituloViejo],
+      ['una tarjeta por archivo',                     R.nTarjetas === esperado, 'tarjetas=' + R.nTarjetas],
+      ['el JPG va con el icono de imagen',            R.iconoImagen === 1, 'imagen=' + R.iconoImagen],
+      ['el MP4 con el de video',                      R.hayMp4 ? R.iconoVideo === 1 : true, 'video=' + R.iconoVideo],
+      ['los DICOM con el de DICOM',                   R.iconoDicom === 2, 'dicom=' + R.iconoDicom],
+      ['el MP4 lleva el disclaimer',                  R.hayMp4 ? R.disclaimer === true : true, R.disclaimer],
+      ['el DICOM con region dice escala del archivo', R.conEscalaArchivo === 1, 'auto=' + R.conEscalaArchivo],
+      ['y el que no la trae, calibracion manual',     R.conCalibManual === 2, 'manual=' + R.conCalibManual],
+      ['el ✕ solo donde hay registro en disco',       R.borrar === 2, 'borrar=' + R.borrar],
+      ['ningun atributo de evento en la tira',        R.sinHandlerInline === true, R.sinHandlerInline],
+      ['clic en la imagen abre el visor SIN regiones', R.visorPorImagen === true && R.regionesImagen === 0,
+                                                       'visor=' + R.visorPorImagen + ' regiones=' + R.regionesImagen],
+      ['clic en el video abre el reproductor',        R.hayMp4 ? R.modalVideo === 1 : true, 'modal=' + R.modalVideo],
+      ['la grilla abre la imagen para calibrar',      R.gridAbreImagen === true, R.gridAbreImagen],
+      ['y NO la rechaza con el motivo viejo',         R.gridNoRechaza === true, R.gridNoRechaza],
+      ['un video SI se rechaza desde la grilla',      R.videoRechazado === true || R.videoRechazado === 'sin video', R.videoRechazado],
+      ['y no abre el visor de medicion',              R.videoNoAbrioVisor === true || R.videoNoAbrioVisor === 'sin video', R.videoNoAbrioVisor]
     ] };
   })();
 `);

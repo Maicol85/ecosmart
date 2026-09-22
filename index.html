@@ -51658,9 +51658,13 @@ function _imgAvisoMedir(slot) {
   if (!slot || !slot.dataURL || slot.videoId) return '';
   if (!slot._dcmId) return '';                 // no salió de un DICOM: nada que explicar
   if (_medFijas[slot._dcmId]) return '';       // el original está: se mide desde el slot
+  /* El texto cambió con la tira unificada: antes mandaba a la tira, que es donde estaba el
+     original. Hoy la imagen se abre igual desde acá —cae en la calibración manual— así que lo
+     que hay que decir no es DÓNDE ir sino QUÉ se perdió: la escala del archivo. Mandar a la tira
+     seguiría siendo un cartel que promete algo que esa tarjeta ya no tiene. */
   return '<span data-img-aviso-medir="1" style="position:absolute;left:0;right:0;bottom:0;' +
          'background:rgba(0,0,0,0.62);color:#fff;font-size:9.5px;line-height:1.25;padding:3px 5px;' +
-         'text-align:center;pointer-events:none;">📏 Para medir esta imagen, usá la tira DICOM de abajo</span>';
+         'text-align:center;pointer-events:none;">📏 Sin el original: se mide calibrando a mano</span>';
 }
 
 function _medFijaDe(slot) {
@@ -51767,9 +51771,10 @@ function medFijaToggle() {
   if (av) {
     av.style.display = _medFijaOn ? '' : 'none';
     if (_medFijaOn) av.innerHTML =
-      '📏 <b>Modo medición.</b> Tocá una imagen importada de un DICOM y se abre en el visor, ' +
-      'con la escala que trae el archivo. Las fotos comunes no se pueden medir: no tienen escala. ' +
-      'Las mediciones son sólo para ver en pantalla — <b>no salen en el PDF</b>.';
+      '📏 <b>Modo medición.</b> Tocá una imagen y se abre en el visor. El DICOM que declara su ' +
+      'escala calibra solo; una imagen sin escala —JPG, PNG, BMP, o un DICOM que no la trae— se ' +
+      'calibra a mano contra la regla de profundidad del ecógrafo. <b>Los videos MP4 no se ' +
+      'miden.</b> Las mediciones son sólo para ver en pantalla — <b>no salen en el PDF</b>.';
   }
   return _medFijaOn;
 }
@@ -51797,19 +51802,71 @@ function medFijaClic(ev) {
     return;
   }
   const fija = _medFijaDe(slot);
-  if (!fija) {
-    alert('Esta imagen no tiene datos de escala DICOM.\n\n' +
-          'Sólo se puede medir sobre imágenes importadas de un archivo del ecógrafo, que traen ' +
-          'la escala adentro. Una foto o una captura de pantalla no dice cuántos milímetros ' +
-          'mide un píxel, así que cualquier número sería inventado.');
-    return;
-  }
+  /* ⚠️ UNA IMAGEN SIN ESCALA YA NO SE RECHAZA: SE ABRE PARA CALIBRAR A MANO.
+     Antes acá salía «cualquier número sería inventado», y desde que la tira deja medir un JPG
+     esa frase pondría a las dos superficies contestando distinto sobre el MISMO archivo — que es
+     el defecto de las dos escalas que este archivo persigue, con otra cara.
+
+     Lo que sostiene el cambio es que la escala no se inventa: sale de dos clics del médico sobre
+     la regla de profundidad que el ecógrafo quema en los píxeles. Decisión de Maicol
+     (2026-09-22). El visor lo declara: con cero regiones la barra dice que la calibración es
+     manual, que es lo que separa esto de afirmar una escala que no está. */
+  if (!fija) { medImagenAbrir(idx); return; }
   if (!(fija.d.regiones || []).filter(_dcmImgRegionMedible).length) {
     alert('Esta imagen viene de un DICOM pero el archivo no declara la escala.\n\n' +
           'Se abre igual: en el visor podés calibrar a mano con «Recalibrar».');
   }
   _cineAbrir([fija]);
 }
+
+/* ── Medir sobre una imagen SIN escala (JPG, PNG, BMP) ──────────────────────────────────
+   Decisión de Maicol (2026-09-22): una imagen exportada por el ecógrafo es una imagen
+   diagnóstica aunque venga en JPG, así que se puede CALIBRAR A MANO contra la regla de
+   profundidad que el equipo quema en los píxeles, y medir sobre eso.
+
+   No hace falta ningún camino nuevo en el visor: se arma un «loop» de un cuadro con
+   `regiones: []`, y con cero regiones `_medAutoCalibrar` ya abre el modo calibrar — que es
+   exactamente el respaldo que existe para los 15 archivos del pendrive que no declaran escala.
+
+   ⚠️ LA CALIBRACIÓN ES DE ESA IMAGEN Y DE ESA SESIÓN, y no se persiste. Es lo correcto: no hay
+   `PhysicalDelta` que aplicar, la escala sale de dos clics del médico sobre esta imagen, y si la
+   imagen cambia de tamaño —el selector de calidad la re-comprime— la escala vieja dejaría de
+   valer. Que muera con la sesión es lo que impide arrastrar una escala a una imagen que no es.
+
+   Se prefiere `_orig` cuando está: es el dataURL SIN recomprimir ni redimensionar, así que la
+   calibración se hace sobre más píxeles y el error relativo del clic baja. No sobrevive a
+   reabrir el estudio —no se persiste, a propósito, son varios MB— y ahí se cae al del slot, que
+   es self-consistente igual: se calibra y se mide sobre los MISMOS píxeles. */
+function _bytesDeDataURL(u) {
+  const i = String(u || '').indexOf(',');
+  if (i < 0) return null;
+  try {
+    const b = atob(u.slice(i + 1));
+    const a = new Uint8Array(b.length);
+    for (let k = 0; k < b.length; k++) a[k] = b.charCodeAt(k);
+    return a;
+  } catch (e) { return null; }
+}
+
+async function medImagenAbrir(idx) {
+  const slot = imgSlots[idx];
+  if (!slot || !slot.dataURL || slot.videoId) return false;
+  const url = (typeof slot._orig === 'string' && _imgSrcOK(slot._orig)) ? slot._orig : slot.dataURL;
+  const bytes = _bytesDeDataURL(url);
+  if (!bytes) { toast('❌ No se pudo leer esta imagen'); return false; }
+  const dim = await new Promise(r => {
+    const im = new Image();
+    im.onload = () => r({ w: im.naturalWidth || 0, h: im.naturalHeight || 0 });
+    im.onerror = () => r({ w: 0, h: 0 });
+    im.src = url;
+  });
+  if (!dim.w || !dim.h) { toast('❌ Este navegador no pudo abrir la imagen'); return false; }
+  _cineAbrir([{ nombre: 'Imagen del estudio · sin escala DICOM', cuadros: 1,
+                d: { frags: [bytes], cols: dim.w, filas: dim.h, msCuadro: 0,
+                     fabricante: '', modelo: '', regiones: [] } }]);
+  return true;
+}
+window.medImagenAbrir = medImagenAbrir;
 
 /* Abre una fija guardada, desde la tira. */
 async function medFijaAbrirGuardada(id) {
@@ -52795,14 +52852,71 @@ async function cineStripRender() {
   const uuid = _imgUuidActual;
   _cineStripUuid = uuid;
   const E = (typeof escHtml === 'function') ? escHtml : (s => String(s == null ? '' : s));
-  /* Sin estudio abierto no hay tira. Se limpia en vez de dejar lo anterior: un formulario en
-     blanco con el cineloop del paciente previo abajo es exactamente lo que no puede pasar. */
-  if (!_uuidValido(uuid)) { cont.innerHTML = ''; return; }
+  /* ⚠️ LA TIRA DEJÓ DE SER «los DICOM guardados» Y PASÓ A SER «los archivos del estudio».
+     Decisión de Maicol (2026-09-22). Antes leía UNA fuente —`CeiboCine`— así que un JPG o un MP4
+     no aparecían nunca, y eso fue lo que se reportó como que «no quedaban en la tira».
+
+     Ahora se arma de DOS: los SLOTS, que son el contenido del estudio en pantalla, y los
+     registros de disco. El orden importa — los slots primero, porque son lo que el médico acaba
+     de importar y lo que sale en el PDF.
+
+     Los slots se muestran SIN uuid también, y es seguro: `imgSlots` es el formulario que está
+     abierto, o sea el paciente actual por construcción. Lo que sigue exigiendo uuid es la
+     lectura de DISCO, que está indexada por estudio — ahí un formulario en blanco con el
+     cineloop del paciente previo abajo es exactamente lo que no puede pasar. */
   let recs = [];
-  try { recs = await CeiboCine.listar(uuid); } catch (e) { recs = []; }
-  if (gen !== _cineStripGen) return;                  // llegó tarde: ya hay otro estudio abierto
-  recs = recs.filter(r => r && _uuidValido(r.id));    // guarda de borde: ver la nota de `tarjeta`
-  if (!recs.length) { cont.innerHTML = ''; return; }
+  if (_uuidValido(uuid)) {
+    try { recs = await CeiboCine.listar(uuid); } catch (e) { recs = []; }
+    if (gen !== _cineStripGen) return;                // llegó tarde: ya hay otro estudio abierto
+    recs = recs.filter(r => r && _uuidValido(r.id));  // guarda de borde: ver la nota de `tarjeta`
+  }
+
+  /* Un DICOM fijo está en las DOS fuentes —el slot con su `_dcmId` y el registro en disco con el
+     MISMO id— y es UNA sola cosa. Se deduplica por id, quedándose con la tarjeta del slot, que
+     es la que sabe en qué posición del PDF va. */
+  const idsEnSlot = [];
+  const fichas = [];
+  (typeof imgSlots !== 'undefined' ? imgSlots : []).forEach((s, i) => {
+    if (!s || !s.dataURL) return;
+    if (s.videoId) {
+      fichas.push({ clase: 'video', idx: i, poster: s.dataURL,
+                    rot: 'video', nota: 'sólo documentación',
+                    nombre: s.videoNombre || 'Video del estudio' });
+      return;
+    }
+    if (s._dcmId) {
+      idsEnSlot.push(s._dcmId);
+      const orig = _medFijas[s._dcmId];
+      /* «Calibración automática» se afirma sólo si el archivo DECLARA una región medible. Un
+         DICOM sin regiones existe —15 de los 301 del pendrive— y ahí la calibración es manual
+         igual que en un JPG: decir lo contrario sería prometer una escala que no está. */
+      const auto = !!(orig && (orig.d.regiones || []).filter(_dcmImgRegionMedible).length);
+      /* El ✕ borra el ORIGINAL guardado en el dispositivo, así que sólo se ofrece si de verdad
+         hay uno. Sin esta comprobación aparecería también sobre una fija que todavía no se
+         persistió —estudio sin guardar— y el clic no borraría nada, en silencio. */
+      const rec = recs.filter(r => r.id === s._dcmId)[0];
+      fichas.push({ clase: 'dicom', idx: i, id: s._dcmId, poster: s.dataURL,
+                    rot: 'DICOM', nota: auto ? 'escala del archivo' : 'calibración manual',
+                    nombre: (orig && orig.nombre) || 'Imagen DICOM',
+                    deDisco: !!rec, bytes: rec ? (rec.bytes || 0) : 0 });
+      return;
+    }
+    fichas.push({ clase: 'imagen', idx: i, poster: s.dataURL,
+                  rot: 'imagen', nota: 'calibración manual',
+                  nombre: 'Imagen del estudio' });
+  });
+  /* Lo que está en disco y NO tiene slot: los cineloops —que nunca ocupan slot— y las fijas de
+     un slot que el médico borró, que siguen ocupando espacio y por eso se muestran con su ✕. */
+  recs.forEach(r => {
+    if (idsEnSlot.indexOf(r.id) >= 0) return;
+    /* Sin `E` acá: `tarjeta` ya escapa `rot` al pintarlo, y escapar dos veces convierte un «&»
+       en «&amp;amp;» — el doble escape que el test de regresión del store vigila. */
+    fichas.push({ clase: r.cuadros > 1 ? 'cine' : 'dicom', id: r.id, poster: r.poster,
+                  rot: r.cuadros > 1 ? String(r.cuadros) + ' cuadros' : 'DICOM',
+                  nota: r.cuadros > 1 ? 'cineloop guardado' : 'sin slot en la grilla',
+                  nombre: r.nombre || '', bytes: r.bytes || 0, deDisco: true });
+  });
+  if (!fichas.length) { cont.innerHTML = ''; return; }
   const total = recs.reduce((a, r) => a + (r.bytes || 0), 0);
   /* El id va por `data-cine-id` y NO interpolado adentro de un `onclick`.
      Escapar no alcanza ahí: el parser decodifica la entidad ANTES de compilar el handler, así
@@ -52812,41 +52926,78 @@ async function cineStripRender() {
      Hoy el id lo genera `_uuidNuevo()` y sería inofensivo, pero «es seguro por dónde viene»
      es justo el argumento que se cae el día que el registro llegue de otro lado.
      Además se filtra por `_uuidValido` en el borde: un registro con id raro no se dibuja. */
-  const tarjeta = r => {
-    const src = _imgSrcOK(r.poster) ? r.poster : '';
-    return '<div data-cine-id="' + E(r.id) + '" style="position:relative;border:1.5px solid var(--border);' +
+  /* El ícono dice DE QUÉ TIPO es el archivo, que es lo que decide si se puede medir. El
+     cineloop conserva ▶️ —es lo único que se REPRODUCE, y ese afford ya existía— y sigue siendo
+     DICOM a todos los demás efectos. */
+  const ICONO = { imagen: '📷', video: '🎬', dicom: '📏', cine: '▶️' };
+  const hayVideo = fichas.filter(f => f.clase === 'video').length > 0;
+
+  const tarjeta = (f, i) => {
+    const src = _imgSrcOK(f.poster) ? f.poster : '';
+    const medible = f.clase !== 'video';
+    const titulo = f.clase === 'video' ? 'Abrir el reproductor de video'
+                 : f.clase === 'cine'  ? 'Abrir el reproductor de cineloop'
+                 : 'Abrir en el visor para medir';
+    /* `data-cine-id` se CONSERVA en las tarjetas con registro en disco: es el contrato que ya
+       verifican TC-184 y TC-185, y el id es opaco y va escapado. `data-strip-i` es lo que usa el
+       manejador, porque una tarjeta de slot no tiene id de disco. */
+    return '<div data-strip-i="' + i + '"' + (f.id ? ' data-cine-id="' + E(f.id) + '"' : '') +
+      ' style="position:relative;border:1.5px solid var(--border);' +
       'border-radius:10px;background:var(--bg2);overflow:hidden;width:150px;flex:0 0 auto;">' +
-      '<div class="cine-abrir" style="position:relative;cursor:pointer;" title="Abrir el reproductor">' +
-        (src ? '<img src="' + E(src) + '" loading="lazy" alt="' + (r.cuadros > 1 ? 'Cineloop de ' + E(r.cuadros) + ' cuadros' : 'Imagen fija DICOM') + '" style="width:100%;display:block;">'
+      '<div class="cine-abrir" style="position:relative;cursor:pointer;" title="' + E(titulo) + '">' +
+        (src ? '<img src="' + E(src) + '" loading="lazy" alt="' + E(f.rot) + '" style="width:100%;display:block;">'
              : '<div style="height:96px;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:11px;">sin miniatura</div>') +
         '<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;' +
-        'text-shadow:0 1px 6px rgba(0,0,0,.8);pointer-events:none;">' + (r.cuadros > 1 ? '▶️' : '📏') + '</span></div>' +
+        'text-shadow:0 1px 6px rgba(0,0,0,.8);pointer-events:none;">' + ICONO[f.clase] + '</span></div>' +
       '<div style="padding:5px 7px;font-size:10px;color:var(--text2);line-height:1.45;">' +
-        '<b>' + (r.cuadros > 1 ? E(r.cuadros) + ' cuadros' : 'imagen fija') + '</b> · ' +
-        E(_cineMB(r.bytes || 0)) + '<br>' + E(r.nombre || '') + '</div>' +
-      '<button type="button" class="cine-borrar" title="Eliminar este cineloop" ' +
-        'style="position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;border:none;' +
-        'background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>' +
+        '<b>' + ICONO[f.clase] + ' ' + E(f.rot) + '</b>' +
+        (f.deDisco && f.bytes ? ' · ' + E(_cineMB(f.bytes)) : '') +
+        '<br><span style="color:' + (medible ? 'var(--text2)' : 'var(--red)') + ';">' + E(f.nota) + '</span>' +
+        (f.nombre ? '<br>' + E(f.nombre) : '') + '</div>' +
+      (f.deDisco
+        ? '<button type="button" class="cine-borrar" title="Eliminar el original guardado en este dispositivo" ' +
+          'style="position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;border:none;' +
+          'background:var(--red);color:#fff;font-size:12px;cursor:pointer;line-height:1;">✕</button>'
+        : '') +
       '</div>';
   };
   cont.innerHTML =
     '<div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:6px;">' +
-      '🎞️ DICOM guardados en este estudio · ' + E(_cineMB(total)) + '</div>' +
+      '🎞️ Archivos del estudio' + (total ? ' · ' + E(_cineMB(total)) + ' en este dispositivo' : '') + '</div>' +
     '<div style="font-size:11px;color:var(--text2);margin-bottom:8px;line-height:1.5;">' +
-      'Cineloops y las imágenes fijas que se pueden medir. Se guardan en este dispositivo, asociados al ' +
-      'estudio, y <b>no salen en el PDF</b>: lo que sale es el cuadro que captures. Tampoco viajan en el ' +
-      'backup ni en el export. Del archivo se guardan sólo los cuadros — el nombre y el documento que ' +
-      'trae la cabecera DICOM se descartan.</div>' +
-    '<div style="display:flex;gap:10px;flex-wrap:wrap;">' + recs.map(tarjeta).join('') + '</div>';
-  /* Los manejadores se ENGANCHAN acá, contra el `data-cine-id` de la tarjeta. Es el mismo
-     patrón que ya usa la app en `verEvolucionEl(this)`: ningún dato entra al HTML de un
-     atributo de evento. */
-  cont.querySelectorAll('[data-cine-id]').forEach(card => {
-    const id = card.getAttribute('data-cine-id');
+      '📷 imagen · 🎬 video · 📏 DICOM. Las imágenes —DICOM, JPG, PNG y BMP— se abren en el visor y se ' +
+      'pueden medir: el DICOM que declara su escala calibra solo, el resto se calibra a mano contra la ' +
+      'regla del ecógrafo. Lo que se guarda en este dispositivo <b>no sale en el PDF</b>: lo que sale es ' +
+      'el cuadro que captures. Tampoco viaja en el backup ni en el export, y del DICOM se guardan sólo ' +
+      'los cuadros — el nombre y el documento de la cabecera se descartan.</div>' +
+    (hayVideo
+      ? '<div style="font-size:11px;color:var(--red);font-weight:600;margin-bottom:8px;line-height:1.5;">' +
+        '⚠️ Los videos MP4 son sólo para documentación — las mediciones deben realizarse sobre imágenes ' +
+        'del ecógrafo.</div>'
+      : '') +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;">' + fichas.map(tarjeta).join('') + '</div>';
+  /* Los manejadores se ENGANCHAN acá, contra el ÍNDICE de la tarjeta, y nunca interpolando el id
+     adentro de un `onclick`: ahí el escape no protege, porque el parser decodifica la entidad
+     ANTES de compilar el handler. Es el mismo patrón que ya usaba esta tira. */
+  cont.querySelectorAll('[data-strip-i]').forEach(card => {
+    const f = fichas[parseInt(card.getAttribute('data-strip-i'), 10)];
+    if (!f) return;
     const abrir = card.querySelector('.cine-abrir');
     const borrar = card.querySelector('.cine-borrar');
-    if (abrir)  abrir.onclick  = () => cineAbrirGuardado(id);
-    if (borrar) borrar.onclick = () => cineBorrarGuardado(id);
+    if (abrir) abrir.onclick = () => {
+      if (f.clase === 'video') { videoAbrir(f.idx); return; }
+      if (f.clase === 'cine')  { cineAbrirGuardado(f.id); return; }
+      /* DICOM: si el original está en memoria se abre con su escala; si no —estudio viejo,
+         guardado con el toggle apagado— se lee del disco. Y una imagen sin escala se abre para
+         calibrar a mano. */
+      if (f.clase === 'dicom') {
+        if (f.id && _medFijas[f.id]) { _cineAbrir([_medFijas[f.id]]); return; }
+        if (f.id && f.deDisco) { medFijaAbrirGuardada(f.id); return; }
+      }
+      if (typeof f.idx === 'number') { medImagenAbrir(f.idx); return; }
+      toast('❌ No se pudo abrir este archivo');
+    };
+    if (borrar) borrar.onclick = () => cineBorrarGuardado(f.id);
   });
 }
 window.cineStripRender = cineStripRender;
@@ -52891,8 +53042,26 @@ window.cineRecolectarHuerfanos = cineRecolectarHuerfanos;
 
 /* Redibuja SÓLO si cambió el estudio. Se llama seguido —cada vez que se repinta la grilla—
    y volver a leer IndexedDB en cada repintado sería trabajo al pedo. */
+/* ⚠️ LA CONDICIÓN «cambió el uuid» DEJÓ DE ALCANZAR. Servía cuando la tira leía sólo el disco,
+   indexado por estudio; desde que también lista los SLOTS, cualquier import, borrado o
+   reordenamiento dentro del MISMO estudio la deja vieja — y el import es justamente el caso que
+   el médico mira. Se repinta además cuando cambió la huella de los slots.
+
+   La huella es la lista de claves, no un contador: con un conteo, reemplazar una imagen por otra
+   deja el mismo número y la tira sigue mostrando la anterior. */
+function _cineStripHuella() {
+  return (typeof imgSlots !== 'undefined' ? imgSlots : [])
+    .map(s => !s || !s.dataURL ? '-' : (s.videoId || s._dcmId || ('i' + s.dataURL.length)))
+    .join('|');
+}
+let _cineStripFirma = null;
+
 function cineStripSync() {
-  if (_imgUuidActual !== _cineStripUuid) cineStripRender();
+  const h = _cineStripHuella();
+  if (_imgUuidActual !== _cineStripUuid || h !== _cineStripFirma) {
+    _cineStripFirma = h;
+    cineStripRender();
+  }
 }
 window.cineStripSync = cineStripSync;
 
@@ -68597,8 +68766,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260922-1246';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790091995769;                 /* eco-build-ms */
+const ECO_BUILD    = '20260922-1305';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790093128904;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -68684,7 +68853,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1246</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1305</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -4,6 +4,97 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## La tira lista los ARCHIVOS del estudio, no sólo los DICOM (TC-234)
+
+Decisión de Maicol (2026-09-22). `#cine-strip` se titulaba «DICOM guardados en este estudio» y
+leía **una sola fuente** —`CeiboCine`—, así que un JPG o un MP4 no aparecían nunca: eso es lo que
+se reportó como que «no quedaban en la tira». Hoy se arma de **dos**: los SLOTS, que son el
+contenido del estudio en pantalla, y los registros de disco.
+
+| ícono | qué es | se mide |
+|---|---|---|
+| 📷 | JPG · PNG · BMP | sí, **calibrando a mano** |
+| 🎬 | MP4 | **no** — sólo documentación, con su disclaimer en rojo |
+| 📏 | DICOM fijo | sí; **automático si el archivo declara región**, manual si no |
+| ▶️ | cineloop DICOM | se reproduce; conserva su ícono porque es lo único que *suena* a play |
+
+**AVI y TIFF no necesitan regla**: se rechazan en el importador, así que nunca llegan a existir.
+
+### Los slots se muestran SIN uuid, el disco no
+
+`imgSlots` **es** el formulario abierto, o sea el paciente actual por construcción, así que
+listarlo antes de guardar el estudio es seguro y es lo que hace que la tira sirva mientras se
+carga. Lo que sigue exigiendo uuid es la **lectura de disco**, que está indexada por estudio —
+ahí un formulario en blanco con el cineloop del paciente previo abajo es lo que no puede pasar.
+
+**Un DICOM fijo está en las dos fuentes** —el slot con su `_dcmId` y el registro con el MISMO
+id— y es UNA sola cosa: se deduplica por id quedándose con la del slot, que es la que sabe en
+qué posición del PDF va.
+
+### ⚠️ EL ✕ BORRA EL ORIGINAL DE DISCO, NO LA IMAGEN DEL ESTUDIO
+
+Por eso sólo aparece en las tarjetas que **tienen registro en disco**. Sin esa comprobación
+saldría también sobre una fija que todavía no se persistió —estudio sin guardar— y el clic no
+borraría nada, en silencio. Quitar la imagen del estudio es el ✕ **de la grilla**, que es otra
+acción con otras consecuencias; confundirlos sería poner dos botones iguales con dos
+significados.
+
+### «Calibración automática» se AFIRMA sólo si el archivo declara la región
+
+Un DICOM sin regiones existe —15 de los 301 del pendrive— y ahí la calibración es manual igual
+que en un JPG. La mutación que pone `auto = true` imprime `auto=2 manual=1` sobre un escenario
+que tiene uno de cada.
+
+### La grilla no puede contradecir a la tira
+
+`medFijaClic` rechazaba una imagen sin escala con *«cualquier número sería inventado»*. Desde que
+la tira deja medir un JPG, esa frase dejaría a las dos superficies contestando distinto sobre el
+MISMO archivo. Hoy cae en `medImagenAbrir`, que abre un «loop» de un cuadro con `regiones: []` —
+y con cero regiones `_medAutoCalibrar` **ya** abre el modo calibrar, que es el respaldo que
+existía para los archivos sin escala. **No hizo falta ningún camino nuevo en el visor.**
+
+Lo que sostiene el cambio clínico es que la escala no se inventa: sale de dos clics del médico
+sobre la **regla de profundidad que el ecógrafo quema en los píxeles**, y la barra del visor
+declara que la calibración es manual. **El video sigue rechazándose**, con su motivo propio.
+
+### `_orig` cuando está, el del slot cuando no
+
+`_orig` es el dataURL sin recomprimir ni redimensionar: calibrar sobre más píxeles baja el error
+relativo del clic. No sobrevive a reabrir el estudio —no se persiste, a propósito, son varios
+MB— y ahí se cae al del slot, que es **self-consistente igual**: se calibra y se mide sobre los
+MISMOS píxeles. La calibración **no se persiste**, y es lo correcto: si la imagen cambia de
+tamaño —el selector de calidad la re-comprime— una escala guardada dejaría de valer.
+
+### ⚠️ `cineStripSync` YA NO PUEDE MIRAR SÓLO EL uuid
+
+Esa condición servía cuando la tira leía sólo el disco, indexado por estudio. Desde que lista los
+slots, **cualquier import, borrado o reordenamiento dentro del mismo estudio la deja vieja** — y
+el import es justo el caso que el médico mira. Se agregó una **huella de los slots**, que es la
+lista de claves y **no un contador**: con un conteo, reemplazar una imagen por otra deja el mismo
+número y la tira sigue mostrando la anterior.
+
+### Dos casos viejos apuntaban al marcado que cambié, y el suite no me lo iba a decir
+
+TC-184 y TC-185 leen `data-cine-id` y las clases `.cine-abrir`/`.cine-borrar`. **Están en rojo
+por el pendrive desmontado**, así que un renombre los habría dejado inservibles sin que ninguna
+corrida lo mostrara. Se conservaron los dos nombres —`data-cine-id` sigue en las tarjetas con
+registro en disco— y `data-strip-i` se agregó al lado para las de slot, que no tienen id de
+disco. **Al tocar marcado que consume un caso apagado, buscarlo a mano: el verde no lo cubre.**
+
+De TC-184 hubo que reapuntar una condición: `innerHTML === ''` dejó de ser el invariante de «la
+tira quedó vacía», porque con una imagen en la grilla la tira tiene contenido **y está bien que
+lo tenga**. Hoy fija que el registro borrado ya no aparece.
+
+### TC-216 se puso en rojo, y ésa es la señal
+
+Pinaba la frase **literal** del cartel —«usá la tira DICOM de abajo»— que cambió a propósito: con
+la tira unificada la imagen se abre igual desde el slot, así que mandar a la tira quedaría
+prometiendo algo que esa tarjeta ya no tiene. Se reapuntó al **hecho**: que el cartel diga qué se
+perdió —el original, o sea la escala del archivo— y que igual se puede medir. La condición no es
+vacua: sin cartel el texto es `(no)` y falla igual. Es la misma corrección que ya se les hizo a
+TC-123, TC-132 y TC-203.
+
+
 ## El viaje completo de lo importado, medido por formato (TC-233)
 
 Auditoría del ciclo **importar → grilla → guardar → reabrir** para los cinco formatos del botón
