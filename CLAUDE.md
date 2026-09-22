@@ -4,6 +4,99 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Galería y panel de videos en la vista de SÓLO LECTURA (TC-235)
+
+El detalle de un estudio guardado mostraba el texto y nada más: para ver las ecografías había que
+entrar a **Editar**, que carga el estudio en el formulario y pisa lo que el médico tenga abierto.
+Ahora, debajo del informe: **galería de miniaturas** y, si hay, **panel de cineloops/videos**.
+
+### ⚠️ LA GALERÍA TIENE QUE MOSTRAR EXACTAMENTE LO QUE IMPRIME EL PDF
+
+Si no, es una mentira sobre un documento firmado. Tres decisiones salen de ahí:
+
+- **La fuente es `CeiboImg.leer(uuid)`, NO `imgSlots`.** El formulario vivo puede ser de otro
+  paciente: la mutación que lo lee muestra la ecografía de B sobre el detalle de C.
+- **NO se gatea por el toggle de guardado.** Es la misma regla que `pdfDeInformeGuardado` ya
+  declara en su comentario: leer por uuid trae las de ESE estudio, y gatearlo haría que apagar
+  una preferencia escondiera imágenes que el informe sí lleva.
+- **El filtro es `_pptEsImagen`**, el predicado compartido, que excluye el **póster de un video**
+  —un slot con `dataURL` como cualquier otro—. Es justo lo que el PDF excluye; sin eso la galería
+  mostraría como «imagen del informe» un cuadro que el médico nunca eligió. Medido: 3 slots en
+  disco, **2 miniaturas**.
+
+### ⚠️ `CeiboCine` GUARDA DOS COSAS, Y CONTAR LA LISTA ENTERA MIENTE
+
+Ahí viven los cineloops **y** las imágenes fijas DICOM (`tipo:'fija'`, un cuadro). Contar
+`cines.length` diría «2 cineloops» sobre un estudio que tiene uno y una foto — y esa foto **ya
+está arriba, en la galería**. Un cineloop es `cuadros > 1`. La mutación imprime `2 cineloops`.
+
+**Y el MP4 no es un cineloop.** Vive en `ceibomed_video` y **no se puede medir**, así que el texto
+que pedía el prompt —«Para verlos y hacer mediciones»— sería falso sobre él. El panel nombra lo
+que hay: «1 cineloop y 1 video MP4», y la frase de acción cambia según corresponda.
+
+### `null` no es `[]`, otra vez
+
+`CeiboImg.leer` devuelve **null** cuando no se pudo leer y **[]** cuando el estudio no tiene
+imágenes. Colapsarlas haría que un fallo transitorio de IndexedDB se vea igual que un estudio sin
+ecografías — y acá el médico concluiría que **el informe no las tiene**. Se distingue y se dice.
+La mutación que las colapsa imprime `corrio, txt=""`: se calló.
+
+### El detalle sigue siendo SÍNCRONO, y los medios llegan después
+
+`verDetalleInforme` arma una cadena y la asigna de una vez. Hacerla `async` habría dejado la
+pantalla en blanco hasta que resolviera IndexedDB —hasta 3 s en el primer arranque— sobre el
+texto del informe, que es lo que el médico viene a ver. Se pinta un hueco (`ig-det-medios`) y se
+rellena al llegar, con **token de generación** (`_igDetGen`) que `volverAListaInformes` también
+incrementa: sin eso, entrar a un estudio y saltar a otro antes de que la base resuelva dejaba la
+galería del anterior sobre el detalle del nuevo.
+
+**El token se declara ARRIBA, junto a `volverAListaInformes`**, y no al lado de donde se usa: un
+`typeof` sobre un `let` declarado más abajo es la zona muerta temporal que este archivo ya
+documenta —**no devuelve `'undefined'`, LANZA**— y escribir la guarda habría enseñado el patrón
+equivocado.
+
+### Se arma con la API del DOM, y el dataURL va por `.src`
+
+Misma regla que el selector de imágenes del PPT: nada se interpola en HTML. Semgrep no se movió.
+
+### Un escenario mal armado dio rojo sobre código sano
+
+El paso del «estudio vacío» no llamaba a `imgVaciar()` antes de guardar, así que
+`guardarInforme` persistía las imágenes del estudio ANTERIOR dentro del vacío: la galería las
+mostraba **con razón** y la condición acusaba al código. `limpiarCampos` **no vacía las
+imágenes** —lo hace «Nuevo estudio», y este archivo ya lo documenta—. Hoy el paso vacía primero
+y **después** reabre el otro estudio para dejar el formulario cargado, que es lo que vuelve
+discriminante la condición: ahí sí cae la galería que leyera `imgSlots`.
+
+**Backticks dentro del cuerpo de un caso: van CUARENTA Y CINCO** — otra vez en un comentario
+recién escrito, el que explicaba por qué el diagnóstico tenía que distinguir «no corrió» de
+«corrió y salió vacío».
+
+### ⚠️ EL PENDRIVE APARECIÓ, Y DESTAPÓ DOS ROJOS — uno mío YA PUSHEADO
+
+Con `/Volumes/DISK_IMG` montado la suite pasó de 18 fallas a **3**: los 17 casos que reportaban
+«sin verificar» corrieron de verdad. Y ahí se vio lo que el desmontaje tapaba.
+
+- **TC-188 lo rompí yo, en `0fa6de6`, y lo pusheé sin saberlo.** Pinaba que una foto común se
+  RECHAZARA al tocarla en modo medición; ese rechazo se sacó a propósito al unificar la tira. Es
+  exactamente el riesgo que ese commit dejó declarado —«toqué ese camino y el suite no me lo iba
+  a decir»— y ocurrió. Reapuntado al invariante nuevo: la foto **abre con CERO regiones**, o sea
+  sin inventar escala, y ya no sale el motivo viejo. Verificado por mutación: devolver el rechazo
+  pone las dos condiciones en rojo.
+  Y una tercera condición —«un slot vacío se ignora sin avisos»— caía **por cascada**: el paso
+  anterior ahora deja el visor abierto y el siguiente medía sobre ese `_cineDatos`. Se cierra
+  entre pasos. *Un rojo colateral que no se puede explicar no se da por bueno.*
+- **TC-197 NO es mío.** Revienta con `Cannot read properties of null (reading 'click')` sobre
+  `#cine-med-calvel`, y falla **idéntico** en `f7f7fd5`, `1179859` y `35e9aa4` — o sea desde
+  bastante antes de esta sesión. Queda declarado y sin tocar: es el módulo de velocidad, fuera
+  del alcance de este commit.
+
+**La regla que deja: un caso apagado por falta de fixture NO es cobertura.** Mientras el pendrive
+esté desmontado, los 17 no vigilan nada y un cambio puede pasar por encima de ellos y llegar a
+`main`. Antes de tocar el visor, la medición o los importadores, **montar el pendrive y correr la
+suite** — es el único momento en que esos casos dicen algo.
+
+
 ## La tira lista los ARCHIVOS del estudio, no sólo los DICOM (TC-234)
 
 Decisión de Maicol (2026-09-22). `#cine-strip` se titulaba «DICOM guardados en este estudio» y

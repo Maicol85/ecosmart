@@ -11394,12 +11394,21 @@ caso('TC-188', 'Imagen fija: se mide sobre el original, no sobre el JPEG recompr
       const tocar = (i) => { const c = grid.querySelector('[data-idx="' + i + '"]');
         if (c) c.dispatchEvent(new MouseEvent('click', { bubbles:true })); };
 
-      /* slot con FOTO COMUN: mensaje claro, no se abre nada */
+      /* slot con FOTO COMUN: desde el 2026-09-22 YA NO SE RECHAZA, se abre para calibrar a
+         mano. Este paso pinaba el rechazo «esta imagen no tiene datos de escala DICOM», y con
+         la tira unificada midiendo JPG ese mensaje dejaria a la grilla y a la tira contestando
+         distinto sobre el MISMO archivo. Lo que se fija ahora es que NO SE INVENTE ESCALA: el
+         visor abre con CERO regiones, que es lo que manda a la calibracion manual. */
       dichos.length = 0;
       tocar(0);
+      await esperar(() => !!_cineDatos, 60);
+      R.fotoAbre = !!_cineDatos &&
+                   ((_cineDatos.loops[0].d.regiones || []).length === 0);
+      R.fotoNoRechaza = !dichos.some(d => String(d).indexOf('escala DICOM') > -1);
+      /* Se CIERRA antes del paso siguiente: sin esto, el slot vacio mide sobre el _cineDatos
+         que dejo este paso y da rojo por una cascada que no es suya. */
+      cineCerrar();
       await new Promise(r => setTimeout(r, 150));
-      R.fotoAvisa = dichos.length === 1 && dichos[0].indexOf('escala DICOM') > -1;
-      R.fotoNoAbre = !_cineDatos;
 
       /* slot VACIO: se ignora en silencio */
       dichos.length = 0;
@@ -11463,8 +11472,8 @@ caso('TC-188', 'Imagen fija: se mide sobre el original, no sobre el JPEG recompr
       ['el boton activa el modo medicion',                R.modo === true, R.modo],
       ['la grilla queda marcada y hay regla de cursor',   R.gridMarcado && R.hayEstilo, R.gridMarcado + '/' + R.hayEstilo],
       ['se explica que las mediciones no van al PDF',     R.avisoVisible, R.avisoVisible],
-      ['una foto comun avisa que no tiene escala DICOM',  R.fotoAvisa, (R.fotoAvisa ? 'si' : 'no')],
-      ['y no abre el visor',                              R.fotoNoAbre, R.fotoNoAbre],
+      ['una foto comun abre para CALIBRAR, sin regiones', R.fotoAbre, R.fotoAbre],
+      ['y ya no se rechaza con el motivo viejo',           R.fotoNoRechaza, R.fotoNoRechaza],
       ['un slot vacio se ignora sin avisos',              R.vacioIgnora, R.vacioIgnora],
       ['tocar la fija abre el visor',                     R.abrio, R.abrio],
       ['CON EL ORIGINAL, no con el JPEG del slot',        R.visorEnOriginal, R.dimOrig],
@@ -20258,6 +20267,188 @@ caso('TC-234', 'Tira unificada: un icono por tipo, el MP4 no se mide y cada clic
       ['y NO la rechaza con el motivo viejo',         R.gridNoRechaza === true, R.gridNoRechaza],
       ['un video SI se rechaza desde la grilla',      R.videoRechazado === true || R.videoRechazado === 'sin video', R.videoRechazado],
       ['y no abre el visor de medicion',              R.videoNoAbrioVisor === true || R.videoNoAbrioVisor === 'sin video', R.videoNoAbrioVisor]
+    ] };
+  })();
+`);
+
+/* == TC-235 - Galeria y panel de videos en la vista de SOLO LECTURA =========================
+   El detalle mostraba el texto y nada mas: para ver las ecografias habia que entrar a Editar,
+   que carga el estudio en el formulario.
+
+   Las dos condiciones que separan esto de una galeria decorativa:
+     · el POSTER de un video es un slot con dataURL como cualquier otro, y el PDF lo excluye.
+       Mostrarlo diria que es una imagen del informe cuando no lo es.
+     · CeiboCine guarda cineloops Y fijas DICOM; contar la lista entera diria 2 cineloops sobre
+       un estudio que tiene uno y una foto -- y esa foto ya esta arriba, en la galeria. */
+caso('TC-235', 'Detalle del guardado: galeria de lo que va al PDF y panel de videos con su cuenta', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    window.alert = () => {}; window.confirm = () => true; window.toast = () => {};
+    let togglePrevio = null;
+    try { togglePrevio = localStorage.getItem('cfg-guardar-imagenes'); } catch (e) {}
+    const borrables = [];
+    const leerReal = (typeof CeiboImg !== 'undefined') ? CeiboImg.leer : null;
+
+    const JPG1 = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,219,0,67,0,8,6,6,7,6,5,8,7,7,7,9,9,8,10,12,20,13,12,11,11,12,25,18,19,15,20,29,26,31,30,29,26,28,28,32,36,46,39,32,34,44,35,28,28,40,55,41,44,48,49,52,52,52,31,39,57,61,56,50,60,46,51,52,50,255,192,0,11,8,0,1,0,1,1,1,17,0,255,196,0,20,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,255,196,0,20,16,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,218,0,8,1,1,0,0,63,0,42,159,255,217]);
+    const dcm = (nFrames) => {
+      const B = a => { const o=[]; a.forEach(x=>{ if(typeof x==='number') o.push(x); else x.forEach(y=>o.push(y)); }); return o; };
+      const u16=n=>[n&255,(n>>8)&255], u32=n=>[n&255,(n>>8)&255,(n>>16)&255,(n>>24)&255];
+      const tx=s=>{const a=[];for(let i=0;i<s.length;i++)a.push(s.charCodeAt(i));if(a.length%2)a.push(0);return a;};
+      const el=(g,e,vr,val)=>{const L4=['OB','OW','SQ','UN','UT'].indexOf(vr)>-1;
+        return B([u16(g),u16(e),tx(vr).slice(0,2), L4?B([0,0,u32(val.length)]):u16(val.length), val]);};
+      let b=[]; for(let i=0;i<128;i++) b.push(0);
+      b=b.concat(tx('DICM'));
+      b=b.concat(el(0x0002,0x0010,'UI',tx('1.2.840.10008.1.2.4.50')));
+      b=b.concat(el(0x0008,0x0070,'LO',tx('GE Vingmed Ultrasound')));
+      b=b.concat(el(0x0028,0x0004,'CS',tx('YBR_FULL_422')));
+      if (nFrames>1) b=b.concat(el(0x0028,0x0008,'IS',tx(String(nFrames))));
+      b=b.concat(el(0x0018,0x1063,'DS',tx('40')));
+      b=b.concat(el(0x0028,0x0010,'US',u16(1)));
+      b=b.concat(el(0x0028,0x0011,'US',u16(1)));
+      b=b.concat(B([u16(0x7FE0),u16(0x0010),tx('OB'),0,0,u32(0xFFFFFFFF)]));
+      const tabla = B(new Array(nFrames).fill(0).map(()=>u32(0)));
+      b=b.concat(B([u16(0xFFFE),u16(0xE000),u32(tabla.length),tabla]));
+      for(let k=0;k<nFrames;k++){ const a=Array.from(JPG1); if(a.length%2)a.push(0);
+        b=b.concat(B([u16(0xFFFE),u16(0xE000),u32(a.length),a])); }
+      b=b.concat(B([u16(0xFFFE),u16(0xE0DD),u32(0)]));
+      return new File([new Uint8Array(b)], nFrames>1?'loop':'fija', {type:''});
+    };
+    const jpegFile = () => new Promise(res => { const c=document.createElement('canvas');
+      c.width=90;c.height=90; const x=c.getContext('2d'); x.fillStyle='rgb(30,120,190)'; x.fillRect(0,0,90,90);
+      c.toBlob(b=>res(new File([b],'foto',{type:''})),'image/jpeg',0.9); });
+    const mp4File = async () => { const tipo='video/mp4;codecs=avc1.42E01E';
+      if(!window.MediaRecorder || !MediaRecorder.isTypeSupported(tipo)) return null;
+      const c=document.createElement('canvas'); c.width=100;c.height=80;
+      const x=c.getContext('2d'); const mr=new MediaRecorder(c.captureStream(25),{mimeType:tipo,videoBitsPerSecond:200000});
+      const tr=[]; mr.ondataavailable=e=>{if(e.data&&e.data.size)tr.push(e.data);};
+      const fin=new Promise(r=>{mr.onstop=r;}); mr.start();
+      for(let i=0;i<12;i++){x.fillStyle='rgb('+(i*18)+',70,150)';x.fillRect(0,0,100,80);await esperar(40);}
+      mr.stop(); await fin; return new File([new Blob(tr,{type:'video/mp4'})],'clip',{type:''}); };
+    const esperarSlots = async n => { for(let i=0;i<70;i++){
+      if(imgSlots.filter(s=>s&&s.dataURL).length>=n && _medPendientes.length===0) return true;
+      await esperar(100);} return false; };
+    const medir = () => { const c=document.getElementById('ig-det-medios');
+      return { imgs: c ? c.querySelectorAll('img').length : -1,
+               txt: c ? (c.textContent||'').replace(/\\s+/g,' ').trim() : '',
+               cards: c ? c.querySelectorAll('.card').length : -1 }; };
+
+    try {
+      localStorage.setItem('cfg-guardar-imagenes','1');
+
+      /* ── A · jpeg + mp4 + fija DICOM + cineloop DICOM ── */
+      __t.limpiar(); imgVaciar(); await esperar(200);
+      __t.set('nombre','TC235 A'); __t.set('ci','96650001');
+      const gA = await __t.guardar(); borrables.push(gA.estudioId); await esperar(900);
+      const infA0 = getInformes().filter(i => i.estudioId === gA.estudioId)[0];
+      __t.reabrir(gA.estudioId); await esperar(1500);
+      await mediosImportar([await jpegFile()]); await esperarSlots(1);
+      const mp4 = await mp4File(); R.hayMp4 = !!mp4;
+      if (mp4) { await mediosImportar([mp4]); await esperarSlots(2); }
+      await mediosImportar([dcm(1)]); await esperarSlots(mp4?3:2);
+      await dcmImgImportar([dcm(4)]); await esperar(2000);
+      try { cineCerrar(); } catch (e) {}
+      await imgPersistir(infA0.uuid); await esperar(1300);
+
+      R.slotsA    = imgSlots.filter(s=>s&&s.dataURL).length;
+      R.posterA   = imgSlots.filter(s=>s&&s.videoId).length;
+      R.discoImgs = ((await CeiboImg.leer(infA0.uuid))||[]).length;
+      const cines = (await CeiboCine.listar(infA0.uuid))||[];
+      R.loops = cines.filter(r=>r.cuadros>1).length;
+      R.fijas = cines.filter(r=>r.cuadros===1).length;
+      R.mp4Disco = ((await CeiboVideo.leer(infA0.uuid))||[]).length;
+
+      volverAListaInformes(); verDetalleInforme(infA0.id); await esperar(1800);
+      R.A = medir();
+
+      /* ── B · una sola imagen, sin videos ── */
+      volverAListaInformes();
+      __t.limpiar(); imgVaciar(); await esperar(200);
+      __t.set('nombre','TC235 B'); __t.set('ci','96650002');
+      const gB = await __t.guardar(); borrables.push(gB.estudioId); await esperar(900);
+      const infB0 = getInformes().filter(i => i.estudioId === gB.estudioId)[0];
+      __t.reabrir(gB.estudioId); await esperar(1500);
+      await mediosImportar([await jpegFile()]); await esperarSlots(1);
+      await imgPersistir(infB0.uuid); await esperar(1100);
+      volverAListaInformes(); verDetalleInforme(infB0.id); await esperar(1600);
+      R.B = medir();
+
+      /* ── C · estudio SIN NADA, y con el formulario cargado con las imagenes de OTRO ──
+         El orden importa: se guarda C vacio --con imgVaciar, que es lo que hace «Nuevo
+         estudio»-- y recien despues se reabre B, que SI tiene imagen. Asi, al mirar el detalle
+         de C, imgSlots tiene la ecografia de B: ahi cae una galeria que leyera el formulario
+         en vez del disco, que es la fuga entre pacientes que esta app ya pago una vez.
+         La primera version de este paso NO llamaba a imgVaciar y guardaba las imagenes de B
+         DENTRO de C: la condicion daba rojo sobre codigo sano, porque C si las tenia. */
+      volverAListaInformes();
+      __t.limpiar(); imgVaciar(); await esperar(200);
+      __t.set('nombre','TC235 C'); __t.set('ci','96650003');
+      const gC = await __t.guardar(); borrables.push(gC.estudioId); await esperar(900);
+      const infC0 = getInformes().filter(i => i.estudioId === gC.estudioId)[0];
+      __t.reabrir(gB.estudioId); await esperar(1600);
+      R.formConImagen = imgSlots.filter(s=>s&&s.dataURL).length;   // denominador del paso
+      volverAListaInformes(); verDetalleInforme(infC0.id); await esperar(1500);
+      R.C = medir();
+
+      /* ── D · la lectura FALLA: se dice, no se calla ── */
+      if (leerReal) {
+        CeiboImg.leer = () => Promise.resolve(null);
+        volverAListaInformes(); verDetalleInforme(infB0.id); await esperar(1500);
+        R.D = medir();
+        CeiboImg.leer = leerReal;
+      }
+
+      /* ── E · Editar sigue funcionando desde el detalle ── */
+      volverAListaInformes(); verDetalleInforme(infA0.id); await esperar(1200);
+      editarInforme(infA0.id); await esperar(400);
+      const ok = document.getElementById('edit-ok'); if (ok) ok.click();
+      await esperar(1800);
+      R.editNombre = (document.getElementById('nombre')||{}).value;
+      R.editSlots  = imgSlots.filter(s=>s&&s.dataURL).length;
+    } catch (e) {
+      R.err = String(e && e.message || e);
+    } finally {
+      window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+      if (leerReal) CeiboImg.leer = leerReal;
+      try {
+        if (togglePrevio === null) localStorage.removeItem('cfg-guardar-imagenes');
+        else localStorage.setItem('cfg-guardar-imagenes', togglePrevio);
+      } catch (e) {}
+      for (const e2 of borrables) { try { await __t.borrar(e2); } catch (e) {} }
+      try { imgVaciar(); volverAListaInformes(); } catch (e) {}
+    }
+
+    const A = R.A || {}, B = R.B || {}, C = R.C || {}, D = R.D || {};
+    const esperadasA = R.hayMp4 ? 3 : 2;      // jpeg + poster del mp4 + fija
+    const galeriaA   = R.hayMp4 ? 2 : 2;      // el poster NO entra
+    return { extra: [
+      ['sin excepciones',                             !R.err, R.err],
+      ['DENOMINADOR: en disco hay ' + esperadasA + ' slots',  R.discoImgs === esperadasA,
+                                                      'disco=' + R.discoImgs + ' slots=' + R.slotsA],
+      ['DENOMINADOR: uno es el poster de un video',   R.hayMp4 ? R.posterA === 1 : true, 'poster=' + R.posterA],
+      ['DENOMINADOR: 1 cineloop y 1 fija en disco',   R.loops === 1 && R.fijas === 1,
+                                                      'loops=' + R.loops + ' fijas=' + R.fijas],
+      ['la galeria muestra lo que va al PDF',         A.imgs === galeriaA, 'miniaturas=' + A.imgs],
+      ['y NO el poster del video',                    A.imgs === galeriaA && A.imgs < R.discoImgs,
+                                                      'galeria=' + A.imgs + ' disco=' + R.discoImgs],
+      ['el panel cuenta 1 cineloop, no la fija',      A.txt.indexOf('1 cineloop') >= 0 &&
+                                                      A.txt.indexOf('2 cineloop') < 0, A.txt.slice(0,150)],
+      ['y nombra el MP4 aparte',                      R.hayMp4 ? A.txt.indexOf('MP4') >= 0 : true, A.txt.slice(0,150)],
+      ['el panel manda a Editar',                     A.txt.indexOf('Editar') >= 0, A.txt.slice(0,150)],
+      ['con una sola imagen: galeria y SIN panel',    B.imgs === 1 && B.cards === 1,
+                                                      'imgs=' + B.imgs + ' cards=' + B.cards],
+      ['DENOMINADOR: el formulario tiene una imagen', R.formConImagen === 1, 'enForm=' + R.formConImagen],
+      ['estudio sin nada: no aparece NADA extra',     C.imgs === 0 && C.cards === 0 && C.txt === '',
+                                                      'imgs=' + C.imgs + ' cards=' + C.cards + ' txt=' + C.txt.slice(0,60)],
+      /* El diagnostico distingue «no corrio» de «corrio y salio vacio»: con un OR sobre el
+         texto, una cadena vacia imprimia «(sin corrida)» y la mutacion que colapsa null con []
+         parecia no haberse ejecutado, cuando lo que hizo fue exactamente callarse. */
+      ['si la lectura FALLA se dice, no se calla',    (D.txt || '').indexOf('No se pudieron leer') >= 0,
+                                                      R.D ? ('corrio, txt=' + JSON.stringify(D.txt.slice(0,80)))
+                                                          : '(no corrio)'],
+      ['Editar sigue cargando el estudio',            R.editNombre === 'TC235 A', R.editNombre],
+      ['y con sus imagenes',                          R.editSlots === esperadasA, 'slots=' + R.editSlots]
     ] };
   })();
 `);

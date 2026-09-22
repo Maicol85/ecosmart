@@ -42566,9 +42566,21 @@ function limpiarComparacion() {
   else renderGrid();
 })();
 
+/* Token de generación de la lectura de medios del detalle. Se declara ACÁ ARRIBA y no al lado
+   de `_igDetalleMedios`, que es donde se usa: `volverAListaInformes` lo incrementa, y un
+   `typeof` sobre un `let` declarado más abajo es la zona muerta temporal que este archivo ya
+   documenta —no devuelve 'undefined', LANZA—. Declararlo antes del primer lector evita tener
+   que envolverlo en una guarda que además enseñaría el patrón equivocado. */
+let _igDetGen = 0;
+
 function volverAListaInformes() {
   document.getElementById('ig-lista-view').style.display = '';
   document.getElementById('ig-detalle-view').style.display = 'none';
+  /* Invalida la lectura de medios que haya quedado en vuelo: sin esto, volver a la lista y
+     entrar a OTRO estudio antes de que IndexedDB resuelva dejaba la galería del anterior
+     pintada sobre el detalle del nuevo. Es el mismo token que usan `_imgGen` y
+     `_cineStripGen`, y `_igDetalleMedios` explica por qué. */
+  _igDetGen++;
 }
 
 /* Detalle del estudio guardado. Cada `id` es una clave de `inf.campos`, y `campos` se llena
@@ -42929,8 +42941,124 @@ function verDetalleInforme(id) {
     </div>`;
   }
 
+  /* Hueco para los medios. Van DESPUÉS porque viven en IndexedDB y esta función es SÍNCRONA:
+     se pinta el detalle completo y se rellena cuando la lectura llega. Hacer async a
+     `verDetalleInforme` habría dejado la pantalla en blanco hasta que resolviera la base —hasta
+     3 s en el primer arranque— sobre el texto del informe, que es lo que el médico viene a ver. */
+  html += `<div id="ig-det-medios"></div>`;
+
   document.getElementById('ig-detalle-contenido').innerHTML = html;
+  _igDetalleMedios(inf);
 }
+
+/* ── Imágenes y videos en la vista de SÓLO LECTURA ──────────────────────────────────────
+   Hasta hoy el detalle mostraba el texto y nada más: para ver las ecografías había que entrar
+   a Editar, que carga el estudio en el formulario y pisa lo que el médico tenga en pantalla.
+
+   ⚠️ LA GALERÍA TIENE QUE MOSTRAR EXACTAMENTE LO QUE IMPRIME EL PDF, o es una mentira sobre un
+   documento firmado. Por eso:
+     · la fuente es la MISMA —`CeiboImg.leer(uuid)`—, no `imgSlots`, que es el formulario vivo y
+       puede ser de otro paciente;
+     · NO se gatea por el toggle de guardado, por el mismo motivo que `pdfDeInformeGuardado` lo
+       declara en su comentario: leer por uuid trae las de ESE estudio, y gatearlo haría que
+       apagar una preferencia escondiera imágenes que el informe sí lleva;
+     · el filtro es `_pptEsImagen`, que ya es el predicado compartido «esto es una imagen del
+       estudio»: excluye el PÓSTER de un video —un slot con `dataURL` como cualquier otro— que
+       es justo lo que el PDF excluye. Sin eso, la galería mostraría como «imagen del informe»
+       un cuadro que el médico nunca eligió.
+
+   ⚠️ `leer` devuelve **null** cuando NO SE PUDO LEER y **[]** cuando el estudio no tiene
+   imágenes. Colapsar las dos haría que un fallo transitorio de IndexedDB se vea igual que un
+   estudio sin ecografías — y acá el médico concluiría que el informe no las tiene. Se distingue
+   y se dice.
+
+   TOKEN DE GENERACIÓN, el mismo recurso que `_imgGen` y `_cineStripGen`: abrir un detalle y
+   volver a la lista para abrir otro deja lecturas en vuelo, y la del estudio anterior aterrizaría
+   sobre el que se está mirando. El token se declara arriba, junto a `volverAListaInformes`. */
+async function _igDetalleMedios(inf) {
+  const gen = ++_igDetGen;
+  const cont = document.getElementById('ig-det-medios');
+  if (!cont || !inf) return;
+  const uuid = inf.uuid;
+  if (typeof _uuidValido !== 'function' || !_uuidValido(uuid)) return;
+
+  let imgs = [], falloImgs = false, cines = [], vids = [];
+  try {
+    const r = (typeof CeiboImg !== 'undefined') ? await CeiboImg.leer(uuid) : [];
+    if (r === null) falloImgs = true; else imgs = r;
+  } catch (e) { falloImgs = true; }
+  if (gen !== _igDetGen) return;
+  try { cines = (typeof CeiboCine !== 'undefined') ? (await CeiboCine.listar(uuid)) || [] : []; }
+  catch (e) { cines = []; }
+  if (gen !== _igDetGen) return;
+  try { vids = (typeof CeiboVideo !== 'undefined') ? (await CeiboVideo.leer(uuid)) || [] : []; }
+  catch (e) { vids = []; }
+  if (gen !== _igDetGen) return;
+
+  const fotos = (imgs || []).filter(s => (typeof _pptEsImagen === 'function')
+    ? _pptEsImagen(s) : (s && s.dataURL && !s.videoId));
+  /* ⚠️ `CeiboCine` guarda DOS cosas: los cineloops y las imágenes fijas DICOM (`tipo:'fija'`,
+     un cuadro). Contar la lista entera diría «3 cineloops» sobre un estudio que tiene uno y dos
+     fotos — y esas fotos YA están arriba, en la galería. Un cineloop es `cuadros > 1`. */
+  const nCine = cines.filter(r => r && r.cuadros > 1).length;
+  const nMp4  = (vids || []).length;
+
+  /* Se arma con la API del DOM y el dataURL va por `.src`, nunca interpolado en HTML: es la
+     misma regla que ya sigue el selector de imágenes del PPT. */
+  const mk = (tag, css, txt) => { const e = document.createElement(tag);
+    if (css) e.style.cssText = css; if (txt != null) e.textContent = txt; return e; };
+  const card = (titulo) => {
+    const d = mk('div'); d.className = 'card ig-detalle-sec';
+    const h = mk('h2', null, titulo); h.className = 'card-head';
+    const b = mk('div'); b.className = 'card-body';
+    d.appendChild(h); d.appendChild(b);
+    return { d, b };
+  };
+  cont.textContent = '';
+
+  if (falloImgs) {
+    const { d, b } = card('🖼️ Imágenes del estudio');
+    b.appendChild(mk('div', 'font-size:12px;color:var(--red);line-height:1.6;',
+      'No se pudieron leer las imágenes de este estudio en este dispositivo. No quiere decir que ' +
+      'el informe no las tenga: volvé a entrar o probá de nuevo.'));
+    cont.appendChild(d);
+  } else if (fotos.length) {
+    const { d, b } = card('🖼️ Imágenes del estudio (' + fotos.length + ')');
+    const grid = mk('div', 'display:flex;gap:8px;flex-wrap:wrap;');
+    fotos.forEach((s, i) => {
+      const marco = mk('div', 'border:1.5px solid var(--border);border-radius:10px;overflow:hidden;' +
+                              'background:var(--bg2);width:150px;flex:0 0 auto;');
+      const im = document.createElement('img');
+      im.src = s.dataURL;                      // por propiedad, no por HTML
+      im.loading = 'lazy';
+      im.alt = 'Imagen ' + (i + 1) + ' del estudio';
+      im.style.cssText = 'width:100%;display:block;';
+      marco.appendChild(im);
+      grid.appendChild(marco);
+    });
+    b.appendChild(grid);
+    b.appendChild(mk('div', 'font-size:11px;color:var(--text2);margin-top:8px;line-height:1.5;',
+      'Son las imágenes que salen en el PDF de este estudio, en este orden.'));
+    cont.appendChild(d);
+  }
+
+  if (nCine || nMp4) {
+    const { d, b } = card('🎬 Cineloops y videos');
+    /* El texto NOMBRA lo que hay. Decir «cineloop» sobre un MP4 sería falso —y encima el MP4 no
+       se puede medir, así que «para hacer mediciones» tampoco aplicaría—. */
+    const partes = [];
+    if (nCine) partes.push(nCine + ' cineloop' + (nCine === 1 ? '' : 's'));
+    if (nMp4)  partes.push(nMp4 + ' video' + (nMp4 === 1 ? '' : 's') + ' MP4');
+    const acc = nCine ? 'Para verlos y hacer mediciones, tocá Editar.'
+                      : 'Para verlos, tocá Editar. Los videos MP4 son sólo para documentación: ' +
+                        'las mediciones se hacen sobre imágenes del ecógrafo.';
+    b.appendChild(mk('div', 'font-size:12.5px;color:var(--text);line-height:1.6;',
+      '🎬 Este estudio tiene ' + partes.join(' y ') + ' guardado' +
+      (nCine + nMp4 === 1 ? '' : 's') + '. ' + acc));
+    cont.appendChild(d);
+  }
+}
+window._igDetalleMedios = _igDetalleMedios;
 
 function eliminarInformeYVolver(id) {
   if (!confirm('¿Eliminar este informe guardado?')) return;
@@ -68766,8 +68894,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260922-1305';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790093128904;                 /* eco-build-ms */
+const ECO_BUILD    = '20260922-1443';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790098985201;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -68853,7 +68981,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1305</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1443</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
