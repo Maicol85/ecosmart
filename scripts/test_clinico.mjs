@@ -19467,6 +19467,128 @@ caso('TC-229', 'Los controles del visor no se guardan dentro del estudio, ni los
   })();
 `);
 
+/* == TC-230 - La conexion por red (DICOM) solo existe en Modo Avanzado ====================
+   Dos superficies, no una: la TARJETA de Config y el BOTON «Buscar en Orthanc» de la tab
+   Imagenes. Medido antes de tocar nada, en Modo Basico salian las dos -la tarjeta 332 px y el
+   boton 44 px-, y esconder solo la primera deja un control que el medico no puede apagar ni
+   configurar desde ningun lado.
+
+   EL DENOMINADOR ES QUE ORTHANC ESTE ACTIVADO. Con la casilla apagada el boton mide 0 por su
+   OTRA compuerta, asi que un caso que no la encienda mide cero sobre cero y pasa en verde con
+   el arreglo revertido.
+
+   El caso RESTAURA el modo en el finally: Modo Basico esconde las filas de pestanas especiales
+   y de herramientas, o sea que dejarlo puesto se lleva puestos los casos siguientes. */
+caso('TC-230', 'La conexion por red (DICOM) solo se ve en Modo Avanzado, en sus DOS superficies', `
+  return (async () => {
+    const R = {};
+    const modoOrig = localStorage.getItem('ett_view_mode');
+    const orthOrig = localStorage.getItem('ett_orthanc_on');
+    const urlOrig  = localStorage.getItem('ett_orthanc_url');
+    const toastOrig = window.toast;
+    window.toast = () => {};
+    const cardOrthanc = () => document.getElementById('cfg-card-orthanc');
+    const alto = el => el ? Math.round(el.getBoundingClientRect().height) : -1;
+    const abrirConfig = () => { showTab('config'); if (window.cfgOnShow) cfgOnShow(); };
+    /* El boton se sincroniza al ENTRAR a la tab Imagenes, que es el unico camino por el que
+       se llega a ver. Medirlo sin pasar por ahi mide un DOM que nadie repinto. */
+    const altoBoton = () => { showTab('imagenes');
+                              return alto(document.getElementById('orth-buscar-btn')); };
+    try {
+      /* -- DENOMINADOR: Orthanc ACTIVADO, o el boton mide 0 por el otro motivo -- */
+      orthancToggle(true);
+      R.orthancActivo = orthancActivo() === true;
+
+      /* -- MODO AVANZADO: las dos superficies se ven -- */
+      abrirConfig(); cfgSetMode('avanzado');
+      R.cardAvanzado = alto(cardOrthanc());
+      R.btnAvanzado  = altoBoton();
+
+      /* -- el rotulo: el nuevo esta, el viejo no sobrevive en NINGUNA superficie visible -- */
+      abrirConfig();
+      const titulos = Array.from(document.querySelectorAll('#tab-config .cfg-sec-title'))
+                           .map(e => e.textContent.trim());
+      R.titulos = titulos.join(' | ');
+      /* ⚠️ Sobre los TITULOS y no sobre document.body.innerText: medido, ese innerText
+         devuelve 3909 caracteres de TODA la app y no encuentra ni el rotulo que esta
+         visible con su titulo midiendo 31 px. La condicion escrita asi daba false con el
+         rotulo viejo Y con el nuevo -o sea pasaba sin probar nada-. */
+      R.rotuloNuevo  = titulos.some(t => t.indexOf('Conexion por red (DICOM)') >= 0 ||
+                                         t.indexOf('Conexi\\u00f3n por red (DICOM)') >= 0);
+      R.rotuloViejo  = titulos.some(t => t.indexOf('Orthanc') >= 0);
+
+      /* -- MODO BASICO: EN EL ACTO, sin reabrir Config -- */
+      abrirConfig(); cfgSetMode('basico');
+      R.cardEnElActo = alto(cardOrthanc());
+      /* y el TITULO tampoco: esconder el cuerpo y dejar la cabecera no alcanza */
+      const t2 = Array.from(document.querySelectorAll('#tab-config .cfg-sec-title'))
+                      .filter(e => e.getBoundingClientRect().height > 0)
+                      .map(e => e.textContent.trim());
+      R.titulosVisiblesBasico = t2.join(' | ');
+      R.tituloEscondido = !t2.some(t => t.indexOf('DICOM') >= 0);
+      /* y tras REABRIR Config sigue escondida */
+      abrirConfig();
+      R.cardBasico = alto(cardOrthanc());
+      R.btnBasico  = altoBoton();
+
+      /* -- REVERSIBLE -- */
+      abrirConfig(); cfgSetMode('avanzado');
+      R.cardVuelta = alto(cardOrthanc());
+      R.btnVuelta  = altoBoton();
+
+      /* -- esconder NO es borrar: los cuatro controles siguen DENTRO de la tab -- */
+      abrirConfig();
+      const tab = document.getElementById('tab-config');
+      const IDS = ['cfg-orthanc-on','cfg-orthanc-url','cfg-orthanc-estado','cfg-orthanc-datos'];
+      const faltan = IDS.filter(id => { const e = document.getElementById(id);
+                                        return !e || !tab.contains(e); });
+      R.faltan = faltan.join(', ');
+      R.controlesIntactos = faltan.length === 0;
+
+      /* -- CONTROL NEGATIVO: el MODO esconde la TARJETA, la CASILLA esconde el CUERPO.
+            Son dos compuertas distintas y confundirlas borra la forma de apagar Orthanc. -- */
+      orthancToggle(false);
+      const cue = document.getElementById('cfg-orthanc-cuerpo');
+      R.cuerpoApagado  = cue ? getComputedStyle(cue).display : 'sin cuerpo';
+      R.tarjetaApagada = alto(cardOrthanc());
+      orthancToggle(true);
+      R.cuerpoEncendido = cue ? getComputedStyle(cue).display : 'sin cuerpo';
+    } catch (e) {
+      R.err = String((e && e.message) || e).slice(0, 140);
+    } finally {
+      try { localStorage.setItem('ett_view_mode', modoOrig || 'avanzado');
+            if (typeof applyViewMode === 'function') applyViewMode();
+            if (typeof cfgRenderModulos === 'function') cfgRenderModulos();
+            if (typeof orthancRender === 'function') orthancRender(); } catch (e) {}
+      try { if (orthOrig === null) localStorage.removeItem('ett_orthanc_on');
+            else localStorage.setItem('ett_orthanc_on', orthOrig);
+            if (urlOrig === null) localStorage.removeItem('ett_orthanc_url');
+            else localStorage.setItem('ett_orthanc_url', urlOrig);
+            if (typeof orthancRender === 'function') orthancRender();
+            if (typeof orthancBotonSync === 'function') orthancBotonSync(); } catch (e) {}
+      try { window.toast = toastOrig; } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                              !R.err, R.err],
+      ['DENOMINADOR: Orthanc quedo ACTIVADO',          R.orthancActivo, R.orthancActivo],
+      ['AVANZADO: la tarjeta se ve',                   R.cardAvanzado > 0, 'alto=' + R.cardAvanzado],
+      ['AVANZADO: el boton Buscar se ve',              R.btnAvanzado > 0, 'alto=' + R.btnAvanzado],
+      ['lleva el rotulo NUEVO',                        R.rotuloNuevo, R.titulos],
+      ['y NINGUN titulo de seccion dice ya Orthanc',   R.rotuloViejo === false, R.titulos],
+      ['BASICO: la tarjeta desaparece EN EL ACTO',     R.cardEnElActo === 0, 'alto=' + R.cardEnElActo],
+      ['BASICO: ni queda el titulo suelto',            R.tituloEscondido, R.titulosVisiblesBasico],
+      ['BASICO: y sigue escondida al reabrir Config',  R.cardBasico === 0, 'alto=' + R.cardBasico],
+      ['BASICO: el boton Buscar tampoco se ve',        R.btnBasico === 0, 'alto=' + R.btnBasico],
+      ['es REVERSIBLE: la tarjeta vuelve',             R.cardVuelta > 0, 'alto=' + R.cardVuelta],
+      ['y el boton tambien',                           R.btnVuelta > 0, 'alto=' + R.btnVuelta],
+      ['esconder NO es borrar: los 4 controles siguen', R.controlesIntactos, R.faltan],
+      ['la CASILLA sigue gobernando el cuerpo',        R.cuerpoApagado === 'none' && R.cuerpoEncendido !== 'none',
+        'apagado=' + R.cuerpoApagado + ' encendido=' + R.cuerpoEncendido],
+      ['y apagar Orthanc NO esconde la tarjeta',       R.tarjetaApagada > 0, 'alto=' + R.tarjetaApagada]
+    ] };
+  })();
+`);
+
 caso('TC-228', 'Visor: la etiqueta dice DE DONDE viene el valor, y el numero queda quemado siempre', `
   return (async () => {
     const R = {};

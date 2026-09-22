@@ -1983,9 +1983,16 @@ window.cerrarSesion = cerrarSesion;
         <div id="cfg-modulos" style="display:none;"></div>
       </section>
 
-      <!-- ══ Orthanc / DICOM en red ══════════════════════════════════════════════════════
+      <!-- ══ Conexión por red (DICOM) ════════════════════════════════════════════════════
            Orthanc es un servidor DICOM que el médico instala en SU máquina; el ecógrafo le
            envía los estudios y EcoSmart lee su API REST. Los datos no salen de la red local.
+
+           SÓLO SE VE EN MODO AVANZADO, y la visibilidad la gobierna `orthancRender()` —no una
+           regla CSS— porque el modo vive en localStorage y no en una clase del documento. Va
+           ahí y no en `applyViewMode()` para que el módulo se gobierne a sí mismo: aquella
+           función maneja las FILAS DE PESTAÑAS y no sabe nada de las tarjetas de Config.
+           `cfgSetMode()` la llama para que apretar «Modo Básico» con Config abierto la haga
+           desaparecer en el acto, en vez de recién al reabrir la pestaña.
 
            TODOS LOS ids VAN CON PREFIJO `cfg-`, y no es estilo: `guardarInforme` barre
            `input[id]` de TODO el documento y `_noEsDelEstudio()` excluye por prefijo. Sin él,
@@ -2002,8 +2009,8 @@ window.cerrarSesion = cerrarSesion;
            lo que ya le pasa a `firma-nombre`—. La fuente de verdad es localStorage, no el
            campo; y como `limpiarCampos` asigna `.value` sin disparar `input`, vaciarlo NO
            borra lo guardado. -->
-      <section class="cfg-card">
-        <div class="cfg-sec-title">🔌 Orthanc / DICOM en red</div>
+      <section class="cfg-card" id="cfg-card-orthanc">
+        <div class="cfg-sec-title">🔌 Conexión por red (DICOM)</div>
         <p style="font-size:11px;color:var(--text2);margin:0 0 10px;line-height:1.5;">
           <b>Orthanc</b> es un servidor DICOM gratuito que se instala en esta computadora. El
           ecógrafo le envía los estudios y EcoSmart los lee de ahí. Todo ocurre en tu red: los
@@ -68287,8 +68294,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260921-1444';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790012685833;                 /* eco-build-ms */
+const ECO_BUILD    = '20260922-0744';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790073884016;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -68374,7 +68381,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260921-1444</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-0744</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -68718,7 +68725,12 @@ function applyViewMode(){
     if(lab) lab.style.display = ''; // Laboratorio: visible siempre en Modo Avanzado (CORRECCIÓN 2)
   }
 }
-function cfgSetMode(mode){ localStorage.setItem('ett_view_mode', mode); applyViewMode(); cfgRenderModulos(); }
+/* La tarjeta de conexión por red se repinta acá además de en `cfgOnShow`: sin esto, apretar
+   «Modo Básico» con Config ABIERTO la dejaba en pantalla hasta reabrir la pestaña. Es el par
+   de siempre —el embudo de repintado y el borde que no pasa por él—. El botón «Buscar» de la
+   tab Imágenes NO se toca desde acá: lo sincroniza `showTab('imagenes')`, que es el único
+   camino por el que ese botón se llega a ver. */
+function cfgSetMode(mode){ localStorage.setItem('ett_view_mode', mode); applyViewMode(); cfgRenderModulos(); if(typeof orthancRender==='function') orthancRender(); }
 function cfgToggleMod(key,on){ var m=eeGetModules(); m[key]=on; localStorage.setItem('ett_modules', JSON.stringify(m)); applyViewMode(); }
 function cfgRenderModulos(){
   var mode=eeGetMode();
@@ -68805,7 +68817,7 @@ window.cfgSoporteRender = cfgSoporteRender;
 
 function eeQrEnabled(){ return localStorage.getItem('ett_qr_enabled') !== '0'; } // por defecto activado
 function cfgToggleQr(on){ try { localStorage.setItem('ett_qr_enabled', on ? '1' : '0'); } catch(e){} }
-/* ══ Orthanc / DICOM en red ═══════════════════════════════════════════════════════════════
+/* ══ Conexión por red (DICOM) ═════════════════════════════════════════════════════════════
    Orthanc corre en la máquina del médico y expone una API REST. EcoSmart sólo la CONSULTA:
    no se envía un dato a ningún servidor ajeno y la dirección nunca sale de localStorage.
 
@@ -68916,11 +68928,23 @@ function _orthPintarEstado(txt, color) {
   e.appendChild(d);
 }
 
+/* ⚠️ FALLA HACIA VISIBLE, y es deliberado: sin `eeGetMode` se devuelve `true`. Es el mismo
+   default que la app (`eeGetMode` cae en 'avanzado') y el lado seguro — esconder la tarjeta
+   deja al médico SIN forma de apagar una conexión que sigue activa, y la única señal sería su
+   ausencia, indistinguible de «esta app no tiene eso». Es la regla del botón de indicaciones. */
+function _orthModoAvanzado() {
+  try { return typeof eeGetMode !== 'function' || eeGetMode() === 'avanzado'; }
+  catch (e) { return true; }
+}
+
 function orthancRender() {
   var on  = orthancActivo();
   var chk = document.getElementById('cfg-orthanc-on');
   var inp = document.getElementById('cfg-orthanc-url');
   var cue = document.getElementById('cfg-orthanc-cuerpo');
+  /* La tarjeta entera, no sólo el cuerpo: en Modo Básico no queda ni el título. */
+  var card = document.getElementById('cfg-card-orthanc');
+  if (card) card.style.display = _orthModoAvanzado() ? '' : 'none';
   if (chk) chk.checked = on;
   if (inp) inp.value = _orthLS(_ORTH_URL) || '';
   if (cue) cue.style.display = on ? '' : 'none';
@@ -69063,10 +69087,15 @@ var _orthEstudios = [];      // SÓLO en memoria: lleva NOMBRES de paciente
 var _orthNuevos = null;      // Set de ids nuevos respecto de la búsqueda anterior
 var _orthBuscando = false;
 
+/* ⚠️ GATEA TAMBIÉN POR MODO, y no es alcance de más: sin esto, Modo Básico dejaba el botón
+   «🔍 Buscar en Orthanc» en la tab Imágenes con su panel de configuración ESCONDIDO — o sea un
+   control que el médico no puede apagar ni configurar desde ningún lado. Medido antes de
+   tocar nada: en Básico la tarjeta salía 332 px y el botón 44 px, las dos superficies visibles. */
 function orthancBotonSync() {
   var b = document.getElementById('orth-buscar-btn');
   if (!b) return;
-  b.style.display = (typeof orthancActivo === 'function' && orthancActivo()) ? '' : 'none';
+  var ok = (typeof orthancActivo === 'function' && orthancActivo()) && _orthModoAvanzado();
+  b.style.display = ok ? '' : 'none';
 }
 window.orthancBotonSync = orthancBotonSync;
 

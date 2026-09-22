@@ -4,6 +4,84 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## «Conexión por red (DICOM)» sólo en Modo Avanzado — y son DOS superficies (TC-230)
+
+La tarjeta de Config se renombró («🔌 Orthanc / DICOM en red» → «🔌 Conexión por red (DICOM)»)
+y pasó a verse **sólo en Modo Avanzado**.
+
+### ⚠️ ESCONDER SÓLO LA TARJETA DEJA UN CONTROL HUÉRFANO
+
+Orthanc tiene **dos** superficies, y la segunda vive en otra pestaña: el botón
+**«🔍 Buscar en Orthanc»** de la tab Imágenes, que gobierna `orthancBotonSync()`. Medido antes
+de tocar nada, con Orthanc activado:
+
+| | tarjeta de Config | botón de Imágenes |
+|---|---|---|
+| Modo Básico, antes | **332 px** | **44 px** |
+| Modo Básico, hoy | 0 | 0 |
+
+Con sólo el arreglo de Config, Modo Básico dejaba el botón visible **y su panel de
+configuración escondido**: un control que el médico no puede ni apagar ni configurar desde
+ningún lado. Por eso `orthancBotonSync` gatea también por modo, aunque viva en la tab Imágenes
+— es el mismo módulo, no otro.
+
+**El botón NO se sincroniza desde `cfgSetMode`**, y es deliberado: `showTab('imagenes')` ya lo
+llama y es el único camino por el que ese botón se llega a ver. Agregarlo ahí sería un
+resguardo que no se puede hacer fallar.
+
+### La visibilidad la gobierna `orthancRender()`, no una regla CSS
+
+El modo vive en `localStorage`, no en una clase del documento, así que no hay selector que
+escribir. Va en `orthancRender` —el módulo se gobierna a sí mismo— y **no** en
+`applyViewMode()`, que maneja las FILAS DE PESTAÑAS y no sabe nada de las tarjetas de Config.
+
+**Y `cfgSetMode` la llama, que es la mitad que se olvida:** sin eso, apretar «Modo Básico» con
+Config ABIERTO dejaba la tarjeta en pantalla hasta reabrir la pestaña. Son las dos columnas de
+siempre —el embudo de repintado (`cfgOnShow`) y el borde que no pasa por él—. La mutación que
+saca esa llamada cae **sólo** en «desaparece EN EL ACTO»; la que saca el gate cae en las tres.
+
+### Falla hacia VISIBLE
+
+`_orthModoAvanzado()` devuelve `true` si `eeGetMode` no existe. Es el default de la app y el
+lado seguro: esconder la tarjeta deja al médico sin forma de apagar una conexión que sigue
+activa, y la única señal sería su ausencia — indistinguible de «esta app no tiene eso».
+
+### Dos compuertas distintas, y confundirlas borra el apagado
+
+El **MODO** esconde la tarjeta entera; la **CASILLA** esconde el cuerpo (dirección, verificar,
+estado). Con Orthanc apagado la tarjeta sigue midiendo 237 px, que es lo que permite volver a
+encenderlo. La mutación del arreglo a medias —esconder el cuerpo en vez de la tarjeta— deja el
+**título suelto** en Modo Básico y cae por su condición.
+
+### El denominador es que Orthanc esté ACTIVADO
+
+Con la casilla apagada el botón mide 0 por su **otra** compuerta, así que un caso que no la
+encienda mide cero sobre cero y pasa en verde con el arreglo revertido. TC-230 lo enciende y lo
+declara como condición.
+
+**Y restaura el modo en el `finally`**: Modo Básico esconde las filas de pestañas especiales y
+de herramientas, o sea que dejarlo puesto se lleva por delante los casos siguientes.
+
+### ⚠️ `document.body.innerText` NO SIRVE PARA BUSCAR TEXTO EN ESTA APP
+
+Medido: devuelve **3909 caracteres de toda la app** y **no encuentra ni el rótulo que está
+visible**, con su título midiendo 31 px. La condición «el rótulo viejo no sobrevive» escrita
+así daba `false` con el rótulo viejo **y** con el nuevo — o sea pasaba sin probar nada, y la
+mutación que revierte el renombre la dejaba en verde. Se reapuntó a los `.cfg-sec-title`.
+`textContent` sí lo encuentra, pero incluye el contenido de los `<script>`, así que un
+comentario del código con el rótulo viejo daría un falso positivo.
+
+### Lo que NO cambió, y se verificó
+
+- **El manual (`ECO_AYUDA`) no menciona Orthanc** — cero ocurrencias, así que el renombre no
+  tiene la cuarta superficie que este archivo documenta para los rótulos de pestaña.
+- **TC-161 no se rompe**: su lista `YA_ESTABAN` no incluye Orthanc y compara
+  `cards.length >= YA_ESTABAN.length`.
+- **Ningún id de control cambió.** El `id="cfg-card-orthanc"` nuevo es de una `<section>`, y
+  `guardarInforme` barre `input/select/textarea`, así que no viaja al estudio — y además lleva
+  el prefijo `cfg-`, que `_noEsDelEstudio` ya excluye.
+
+
 ## Los controles del visor no viajan dentro del estudio (TC-229)
 
 `cine-cap-etiq` (la etiqueta de la captura) y `cine-slider` (el índice de cuadro) entraban en
