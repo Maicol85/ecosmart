@@ -20672,6 +20672,112 @@ caso('TC-237', 'Simpson: la ventana declarada nombra la etiqueta, y la tabla cie
   })();
 `);
 
+/* == TC-238 - Elegir el cineloop de la segunda vista POR LA MINIATURA ======================
+   Era un cuadro de texto del navegador con un menu numerado, y elegir asi es elegir a ciegas:
+   el nombre del registro es el del archivo del ecografo --un UID casi siempre-- de modo que el
+   medico tenia que acordarse de cual era cual para escribir un numero.
+
+   Las TRES salidas se prueban --elegir, Cancelar y Escape-- porque es lo que separa un selector
+   de una trampa: un medico que no quiere ninguno de los cineloops tiene que poder salir. */
+caso('TC-238', 'Segunda vista: el cineloop se elige por la miniatura, con sus tres salidas', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const alertReal = window.alert, confirmReal = window.confirm;
+    window.alert = () => {}; window.confirm = () => true;
+    try {
+      const lista = [
+        { id:'a', nombre:'1.2.840.x.1', cuadros:42, poster:'' },
+        { id:'b', nombre:'1.2.840.x.2', cuadros:60, poster:'' },
+        { id:'c', nombre:'1.2.840.x.3', cuadros:31, poster:'' }
+      ];
+      R.existe = typeof _vPickerLoop === 'function';
+      /* Ni un cuadro de texto del navegador en el camino: se intercepta y se exige que NO se
+         llame. Buscar el nombre en el fuente da falso positivo por los comentarios. */
+      const promptReal = window.prompt;
+      let usoPrompt = false;
+      window.prompt = function () { usoPrompt = true; return null; };
+
+      const p1 = _vPickerLoop({ rot:'B' }, lista);
+      await esperar(300);
+      const ov = document.querySelector('[data-vpicker]');
+      R.overlay = !!ov;
+      R.tarjetas = ov ? ov.querySelectorAll('[data-vpick-i]').length : -1;
+      R.diceCuadros = ov ? (ov.textContent || '').indexOf('60 cuadros') >= 0 : false;
+      /* SEGURIDAD: ningun elemento del selector lleva atributo de evento. */
+      R.sinHandlerInline = ov ? ![...ov.querySelectorAll('*')].some(el =>
+        [...el.attributes].some(a => a.name.slice(0, 2) === 'on')) : false;
+      ov.querySelector('[data-vpick-i="1"]').click();
+      R.elegido = await p1;
+      await esperar(200);
+      R.cerroTrasElegir = !document.querySelector('[data-vpicker]');
+
+      const p2 = _vPickerLoop({ rot:'B' }, lista);
+      await esperar(250);
+      document.querySelector('[data-vpick-cancelar]').click();
+      R.cancelado = await p2;
+
+      const p3 = _vPickerLoop({ rot:'B' }, lista);
+      await esperar(250);
+      document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+      R.escape = await p3;
+      await esperar(200);
+      R.sinOverlay = !document.querySelector('[data-vpicker]');
+      /* ⚠️ Y AHORA POR LA PUERTA REAL. Lo de arriba prueba el ayudante: la mutacion que
+         devuelve el menu numerado DENTRO de _vElegirLoop sobrevivia entera, porque el caso
+         nunca pasaba por ahi. Es la misma leccion que medFijaClic. */
+      const listarReal = CeiboCine.listar;
+      const uuidPrevio = _imgUuidActual;
+      try {
+        _imgUuidActual = _uuidNuevo();
+        CeiboCine.listar = () => Promise.resolve(lista);
+        const pr = _vElegirLoop(_vistaA);        // sin await: el clic llega despues
+        await esperar(400);
+        R.puertaAbreSelector = !!document.querySelector('[data-vpicker]');
+        const c = document.querySelector('[data-vpick-cancelar]');
+        if (c) c.click();
+        await pr;
+      } finally {
+        CeiboCine.listar = listarReal;
+        _imgUuidActual = uuidPrevio;
+      }
+      R.usoPrompt = usoPrompt;
+      window.prompt = promptReal;
+
+      /* El boton de la diana promete el PDF y aclara que no toca el campo SGL. */
+      R.rotuloDiana = String(_strainPanel).indexOf('Incluir en el PDF') > -1;
+      R.aclaraSgl = String(_strainPanel).indexOf('No escribe el campo SGL') > -1;
+      /* Y sigue entrando por la captura, que QUEMA el descargo de metodo en la imagen. */
+      R.quemaDescargo = String(medStrainCapturar).indexOf('speckle tracking') > -1 &&
+                        String(medStrainCapturar).indexOf('imgCompressLoad') > -1;
+      R.noEscribeSgl = String(medStrainCapturar).indexOf("getElementById('sgl')") < 0;
+    } catch (e) {
+      R.err = String(e && e.message || e);
+    } finally {
+      window.alert = alertReal; window.confirm = confirmReal;
+      document.querySelectorAll('[data-vpicker]').forEach(o => { try { o.remove(); } catch (e) {} });
+    }
+    return { extra: [
+      ['sin excepciones',                        !R.err, R.err],
+      ['el selector visual existe',              R.existe === true, R.existe],
+      ['una tarjeta por cineloop',               R.tarjetas === 3, 'tarjetas=' + R.tarjetas],
+      ['y cada una dice cuantos cuadros trae',   R.diceCuadros === true, R.diceCuadros],
+      ['sin atributos de evento',                R.sinHandlerInline === true, R.sinHandlerInline],
+      ['elegir devuelve ESE cineloop',           R.elegido === 1, 'elegido=' + R.elegido],
+      ['y cierra el selector',                   R.cerroTrasElegir === true, R.cerroTrasElegir],
+      ['Cancelar devuelve null',                 R.cancelado === null, String(R.cancelado)],
+      ['Escape tambien',                         R.escape === null, String(R.escape)],
+      ['no queda overlay colgado',               R.sinOverlay === true, R.sinOverlay],
+      ['la PUERTA REAL abre el selector visual',  R.puertaAbreSelector === true, R.puertaAbreSelector],
+      ['NO se usa el cuadro de texto del navegador', R.usoPrompt === false, R.usoPrompt],
+      ['la diana promete el PDF',                R.rotuloDiana === true, R.rotuloDiana],
+      ['y aclara que no toca el SGL',            R.aclaraSgl === true, R.aclaraSgl],
+      ['la captura QUEMA el descargo de metodo', R.quemaDescargo === true, R.quemaDescargo],
+      ['y no escribe el campo sgl',              R.noEscribeSgl === true, R.noEscribeSgl]
+    ] };
+  })();
+`);
+
 caso('TC-228', 'Visor: la etiqueta dice DE DONDE viene el valor, y el numero queda quemado siempre', `
   return (async () => {
     const R = {};

@@ -4,6 +4,71 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## El cineloop de la segunda vista se elige POR LA MINIATURA (TC-238)
+
+Tercera etapa del rediseño del visor. **Buena parte de la Tarea 3 ya existía** y lo que valió fue
+medirlo antes de reconstruirlo:
+
+| pedido | estado real |
+|---|---|
+| botones [A4C] [A2C] [A3C] | **ya existían** (`data-str-vista`) |
+| confirmar diástole y sístole | ya existían |
+| bull's eye progresivo | **ya lo era** — 4 segmentos con una vista, 10 con dos, 16 con tres |
+| «Incluir en PDF» | `medStrainCapturar` **ya hacía exactamente eso**; le faltaba el rótulo |
+| elegir el cineloop de la 2ª vista | era un **cuadro de texto con menú numerado** |
+
+### «Incluir en PDF» ERA UN BOTÓN QUE YA ESTABA, MAL ROTULADO
+
+`medStrainCapturar` dibuja la diana a 640 px, **quema el descargo de método** —«NO equivalente al
+speckle tracking automático» y «Orientativo, requiere correlación clínica»— y la manda a un slot
+por `imgCompressLoad`, que es lo que sale en el PDF. Decía «📸 Capturar diagrama», que describe el
+gesto y no la consecuencia.
+
+Hoy dice **«📄 Incluir en el PDF»** con la aclaración de que va como imagen y **no escribe el campo
+`sgl`**. Esa segunda mitad no es adorno: ese campo alimenta el marco HFA-ICOS y las decisiones de
+cardio-oncología, y el único corte vivo del SGL (−16 %) está definido para speckle tracking.
+Decisión de Maicol (2026-09-22).
+
+### Elegir por un número es elegir a ciegas
+
+El nombre del registro es el del archivo del ecógrafo —**un UID casi siempre**— así que el menú
+numerado obligaba al médico a acordarse de cuál era cuál. `_vPickerLoop` muestra las miniaturas,
+como la tira y como el selector del strain. Se arma con la API del DOM y el póster va por `.src`,
+nunca interpolado en HTML.
+
+**LAS TRES SALIDAS se prueban** —elegir, Cancelar y Escape—: es lo que separa un selector de una
+trampa. Un médico que no quiere ninguno de los cineloops tiene que poder salir.
+
+### ⚠️ EL CASO PROBABA EL AYUDANTE Y NO LA PUERTA
+
+La mutación que devuelve el menú numerado **dentro de `_vElegirLoop`** sobrevivió entera: el caso
+llamaba a `_vPickerLoop` directo y nunca pasaba por ahí. Es la misma lección que `medFijaClic`.
+Hoy hay una condición que llama a `_vElegirLoop` de verdad —con `CeiboCine.listar` sustituido y
+`_imgUuidActual` puesto— y exige que aparezca el selector visual.
+
+**Y no alcanza con buscar el nombre de la función en el fuente**: el comentario que explica qué se
+reemplazó contenía el literal, así que la comprobación daba falso positivo sobre código correcto.
+Se intercepta la función y se exige que NO se llame. *En los comentarios, describir* — otra vez, y
+ahora con un chequeo tropezando.
+
+### ⚠️ UNA MUTACIÓN QUEDÓ SIN EXPLICAR, y se declara
+
+La que rompe la salida por **Escape** —cambiar la tecla que escucha el manejador— **pasa en
+verde**, y no se pudo reproducir por qué: con el manejador mutado la promesa no debería
+resolverse, y el caso termina igual. No se da por buena la condición de Escape: está escrita y
+verificada a mano, **no por mutación**. Si alguien retoma esto, el sospechoso es otro oyente de
+`keydown` del documento resolviendo el cierre por un camino que no es el del selector.
+
+### Lo que sigue pendiente de la Tarea 3
+
+- **«A4C queda fijo, A2C se reemplaza por A3C»** no se implementó. Hoy las dos vistas del visor
+  —A y B— son independientes y el médico elige qué cineloop va en cada una; la regla pedida es
+  una política de QUÉ ventana ocupa el panel derecho, y encima de un sistema donde el panel no
+  sabe de ventanas. Decidido que el dato de la A2C **no se descarta** (2026-09-22), así que lo
+  que falta es sólo la parte de presentación.
+- **«Guardar tabla de resultados» de Simpson**, que sigue de la etapa anterior.
+
+
 ## Simpson declara la ventana, y eso destrabó la etiqueta por nombre (TC-237)
 
 Segunda etapa del rediseño del visor. **El bloqueo de fondo era el modelo de datos.**

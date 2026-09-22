@@ -48831,7 +48831,16 @@ function _strainPanel() {
         '<div style="font-size:11px;color:var(--text2);margin-bottom:3px;">Strain por territorios (método manual)</div>' +
         '<canvas id="' + _V.pfx + 'cine-str-be" width="300" height="300" ' +
           'style="max-width:100%;border-radius:8px;"></canvas><br>' +
-        b('cine-str-cap', 'btn-ghost', '📸 Capturar diagrama', 'margin-top:5px;') +
+        /* ⚠️ «Incluir en PDF» ES ESTE BOTÓN, y no una vía nueva. Decisión de Maicol
+           (2026-09-22): la diana entra al informe como IMAGEN, por `medStrainCapturar`, que la
+           dibuja a 640 px y le QUEMA el descargo de método —«NO equivalente al speckle tracking
+           automático»— antes de mandarla a un slot. Lo que NO hace es escribir el campo `sgl`:
+           ese número alimenta el marco HFA-ICOS y las decisiones de cardio-oncología, y el
+           único corte vivo del SGL está definido para speckle. */
+        b('cine-str-cap', 'btn-primary', '📄 Incluir en el PDF', 'margin-top:5px;') +
+        '<div style="font-size:9.5px;color:var(--text2);margin-top:4px;line-height:1.45;">' +
+          'Va como IMAGEN a las del estudio, con el descargo de método quemado encima. ' +
+          'No escribe el campo SGL del informe.</div>' +
       '</div>' +
       _STR_DISCLAIMER +
       '</div>';
@@ -51754,6 +51763,82 @@ let _vSync = false;
 
 /* Elegir qué cineloop va en una vista: se listan los DICOM guardados del estudio, que es la
    misma fuente de la tira. */
+/* Devuelve el ÍNDICE elegido dentro de `lista`, o null si se cancela. Promesa: el llamador es
+   `async` y el clic llega mucho después.
+
+   El overlay va por ENCIMA del visor (z-index 401 contra 400) y se cierra con Escape, con el
+   botón y con el clic afuera — las tres salidas que ya tiene el resto de los modales de la app.
+   Sin alguna de ellas, un médico que no quiere ninguno de los cineloops queda atrapado. */
+function _vPickerLoop(V, lista) {
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.setAttribute('data-vpicker', '1');
+    ov.style.cssText = 'position:fixed;inset:0;z-index:401;background:rgba(0,0,0,.78);display:flex;' +
+                       'align-items:center;justify-content:center;padding:16px;';
+    const caja = document.createElement('div');
+    caja.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:12px;' +
+                         'max-width:760px;width:100%;max-height:88vh;overflow:auto;padding:14px;';
+    const h = document.createElement('div');
+    h.style.cssText = 'font-size:13px;font-weight:600;margin-bottom:4px;';
+    h.textContent = '¿Qué cineloop va en la vista ' + V.rot + '?';
+    const sub = document.createElement('div');
+    sub.style.cssText = 'font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.5;';
+    sub.textContent = 'Tocá la miniatura. Son los cineloops guardados en este estudio.';
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;';
+    let cerrado = false;
+    const cerrar = (val) => {
+      if (cerrado) return;
+      cerrado = true;
+      document.removeEventListener('keydown', onEsc);
+      try { document.body.removeChild(ov); } catch (e) {}
+      resolve(val);
+    };
+    const onEsc = ev => { if (ev.key === 'Escape') { ev.stopPropagation(); cerrar(null); } };
+    lista.forEach((r, i) => {
+      const card = document.createElement('div');
+      card.setAttribute('data-vpick-i', String(i));
+      card.style.cssText = 'width:150px;flex:0 0 auto;border:1.5px solid var(--border);' +
+                           'border-radius:10px;overflow:hidden;background:var(--bg3);cursor:pointer;';
+      if (typeof _imgSrcOK === 'function' && _imgSrcOK(r.poster)) {
+        const im = document.createElement('img');
+        im.src = r.poster;                       // por propiedad, no por HTML
+        im.loading = 'lazy';
+        im.alt = 'Cineloop de ' + (r.cuadros || '?') + ' cuadros';
+        im.style.cssText = 'width:100%;display:block;';
+        card.appendChild(im);
+      } else {
+        const hueco = document.createElement('div');
+        hueco.style.cssText = 'height:96px;display:flex;align-items:center;justify-content:center;' +
+                              'color:var(--text2);font-size:11px;';
+        hueco.textContent = 'sin miniatura';
+        card.appendChild(hueco);
+      }
+      const pie = document.createElement('div');
+      pie.style.cssText = 'padding:5px 7px;font-size:10px;color:var(--text2);line-height:1.45;';
+      pie.textContent = (r.cuadros || '?') + ' cuadros · ' + (r.nombre || 'Cineloop');
+      card.appendChild(pie);
+      card.onclick = () => cerrar(i);
+      grid.appendChild(card);
+    });
+    const pie2 = document.createElement('div');
+    pie2.style.cssText = 'margin-top:12px;display:flex;justify-content:flex-end;';
+    const bc = document.createElement('button');
+    bc.type = 'button'; bc.className = 'btn btn-ghost';
+    bc.setAttribute('data-vpick-cancelar', '1');
+    bc.style.cssText = 'padding:5px 12px;';
+    bc.textContent = 'Cancelar';
+    bc.onclick = () => cerrar(null);
+    pie2.appendChild(bc);
+    caja.appendChild(h); caja.appendChild(sub); caja.appendChild(grid); caja.appendChild(pie2);
+    ov.appendChild(caja);
+    ov.onclick = ev => { if (ev.target === ov) cerrar(null); };
+    document.addEventListener('keydown', onEsc);
+    document.body.appendChild(ov);
+  });
+}
+window._vPickerLoop = _vPickerLoop;
+
 async function _vElegirLoop(V) {
   const uuid = (typeof _imgUuidActual !== 'undefined' && _imgUuidActual) || null;
   if (!uuid) { alert('Guardá el estudio antes de abrir una segunda vista: los cineloops se listan por estudio.'); return false; }
@@ -51761,12 +51846,17 @@ async function _vElegirLoop(V) {
   try { lista = await CeiboCine.listar(uuid); } catch (e) { lista = []; }
   lista = (lista || []).filter(r => r && r.tipo !== 'fija');
   if (!lista.length) { alert('Este estudio no tiene cineloops guardados para abrir en la segunda vista.'); return false; }
-  const menu = lista.map((r, i) => (i + 1) + ') ' + (r.nombre || 'Cineloop') + ' — ' + (r.cuadros || '?') + ' cuadros').join('\n');
-  const eleg = prompt('¿Qué cineloop va en la vista ' + V.rot + '?\n\n' + menu + '\n\nEscribí el número:', '1');
-  if (eleg === null) return false;
-  const k = parseInt(eleg, 10);
-  if (!(k >= 1 && k <= lista.length)) { alert('Ese número no está en la lista.'); return false; }
-  const loops = _cineDesdeRegistro(lista[k - 1]);
+  /* ⚠️ ERA UN CUADRO DE TEXTO DEL NAVEGADOR CON UN MENÚ NUMERADO, y elegir un cineloop así
+     es elegir a ciegas:
+     el nombre que trae el registro es el del archivo del ecógrafo —un UID, casi siempre— así
+     que el médico tenía que acordarse de cuál era cuál para escribir un número. Hoy se eligen
+     por la MINIATURA, que es como se eligen en la tira y en el selector del strain.
+
+     Se arma con la API del DOM y el póster va por `.src`, nunca interpolado en HTML: es la
+     misma regla que ya siguen la tira y el selector de imágenes del PPT. */
+  const elegido = await _vPickerLoop(V, lista);
+  if (elegido == null) return false;
+  const loops = _cineDesdeRegistro(lista[elegido]);
   if (!loops || !loops.length) { alert('Ese cineloop no se pudo leer del disco.'); return false; }
   _vCon(V, () => {
     V.datos = { loops, i: 0, cuadro: 0, timer: null };
@@ -69095,8 +69185,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260922-1625';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790105104223;                 /* eco-build-ms */
+const ECO_BUILD    = '20260922-1637';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790105863948;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -69182,7 +69272,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1625</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1637</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
