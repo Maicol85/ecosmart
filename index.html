@@ -11924,6 +11924,13 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <button type="button" class="btn btn-ghost" style="padding:5px 12px;"
                 title="Importar imágenes del ecógrafo. Los archivos del pendrive del GE Vivid no tienen extensión (carpeta GEMS_IMG): elegilos igual, el formato se reconoce por el contenido."
                 onclick="dcmImgPick()">🩻 Importar DICOM</button>
+        <!-- El rótulo NO nombra TIFF ni AVI, y es deliberado: medido contra este Chrome, no
+             los abre (ver el comentario de `mediosImportar`). Se detectan y se rechazan con
+             el motivo; prometerlos acá mandaría al médico a descubrirlo recién con el archivo
+             del ecógrafo en la mano. -->
+        <button type="button" class="btn btn-ghost" style="padding:5px 12px;"
+                title="Para ecógrafos que no exportan DICOM: JPG, PNG, BMP, MP4/MOV. El formato se reconoce por el contenido, así que los archivos sin extensión también sirven. Un .dcm elegido acá entra igual, por el importador DICOM."
+                onclick="mediosPick()">📥 Importar imágenes y videos</button>
         <!-- Sólo aparece con Orthanc activado en ⚙️ Config. Nace OCULTO y lo enciende
              `orthancBotonSync()`: al revés —naciendo visible y ocultándose por JS— un bloque
              que deje de parsear lo dejaría prendido, prometiendo una búsqueda que no existe. -->
@@ -11987,6 +11994,13 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
            realmente dice si un archivo es DICOM. -->
       <input type="file" id="dcmimg-file-input" multiple style="display:none"
              onchange="if(this.files&&this.files.length){dcmImgImportar(this.files);}this.value='';">
+      <!-- SIN `accept` por el mismo motivo que los dos de arriba, y acá pesa más: este input
+           existe para los ecógrafos que NO son el GE, y no se sabe con qué extensión —o sin
+           ninguna— escribe cada uno. El formato lo decide `_firmaArchivo` por los bytes.
+           Lo comparten el botón de esta pestaña y la opción del menú de Guardados: un solo
+           input y un solo clasificador, para que las dos entradas no puedan divergir. -->
+      <input type="file" id="medios-file-input" multiple style="display:none"
+             onchange="if(this.files&&this.files.length){mediosImportar(this.files);}this.value='';">
     </div>
   </div>
 </div>
@@ -13347,7 +13361,18 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
               <div class="igio-menu" id="igio-menu-imp" role="menu">
                 <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();document.getElementById('ig-import-file').click()">📋 JSON<small>Backup exportado por EcoSmart</small></button>
                 <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();document.getElementById('lab-import-xlsx').click()">📊 Excel<small>Planilla con las columnas de la plantilla</small></button>
-                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();document.getElementById('ig-import-dcm').click()">🏥 DICOM SR<small>Archivos .dcm del ecógrafo</small></button>
+                <!-- RENOMBRADA, no duplicada. Esta opción ya routeaba CHM del GE y DICOM SR por
+                     los BYTES desde que existe el lector de CHM (su input acepta .chm), pero el
+                     rótulo decía sólo «.dcm del ecógrafo» y prometía de menos. Agregar una
+                     segunda entrada que llamara al mismo `dcmImportarSR` habría dejado dos
+                     opciones del mismo menú haciendo exactamente lo mismo.
+                     TXT y HTML NO se nombran: no hay parser y no hay archivo de muestra con qué
+                     escribirlo — prometer un formato que se «intenta parsear» sobre texto de
+                     vendor desconocido es cómo entra una medición equivocada a un informe
+                     firmado, que es justo lo que `dcmImportarSR` evita al rechazar con el motivo
+                     en vez de arrastrar un parser sobre basura. -->
+                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();document.getElementById('ig-import-dcm').click()">📋 Importar mediciones<small>CHM del GE Vivid · DICOM SR (.dcm) — se reconoce por el contenido, no por la extensión</small></button>
+                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();mediosPick()">📥 Importar imágenes y videos<small>JPG, PNG, BMP, MP4/MOV y DICOM — van a los slots del estudio abierto en el formulario, pestaña 🖼️ Imágenes</small></button>
                 <div class="igio-sep"></div>
                 <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();labPlantillaXLSX()">📋 Descargar plantilla Excel<small>Columnas correctas, una fila de ejemplo con el formato de cada celda en un comentario, y las hojas «Bloques» e «Instrucciones»</small></button>
                 <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();labPlantillaXLSX(true)">📋 Exportar plantilla virgen<small>La misma estructura pero SIN la fila de ejemplo: sólo los encabezados, lista para llenar e importar</small></button>
@@ -47176,6 +47201,186 @@ async function dcmImgImportar(fileList, slotPreferido) {
 window.dcmImgImportar = dcmImgImportar;
 
 /* ══════════════════════════════════════════════════════════════════════════════════════
+   IMPORTAR IMÁGENES Y VIDEOS DE CUALQUIER ECÓGRAFO (GE, Philips, Sonoscape, Mindray…)
+   ══════════════════════════════════════════════════════════════════════════════════════
+
+   Un clasificador por CONTENIDO que reparte cada archivo a la puerta que YA EXISTE: los
+   DICOM a `dcmImgImportar`, los MP4/MOV a `videoCargarEnSlot` y los JPEG/PNG/BMP a
+   `imgCompressLoad` —la misma por la que entra una foto elegida a mano o pegada con
+   Ctrl+V—. No se escribe un segundo lector de nada: con dos, la imagen que entra por este
+   botón y la que entra por el «+» de un slot pueden terminar distintas en el PDF firmado.
+
+   ⚠️ DOS DE LOS FORMATOS PEDIDOS NO LOS ABRE EL NAVEGADOR. Medido contra este Chrome por
+   el camino exacto de la app, no supuesto:
+
+     TIFF — `new Image()` no decodifica ni un TIFF de 1×1 bien formado, y `_imgComprimir`
+            rechaza con «imagen ilegible». Es del navegador y no del archivo: Chrome y
+            Firefox nunca soportaron TIFF en <img>; Safari sí. Un BMP armado igual, en
+            cambio, decodifica.
+     AVI  — `canPlayType` devuelve la cadena VACÍA para video/avi, video/x-msvideo y
+            video/msvideo —o sea «no puedo»—, contra «maybe» de video/mp4.
+
+   Se detectan igual y se rechazan DICIENDO EL MOTIVO y qué hacer. Sin eso, hoy un AVI cae
+   al flujo de foto y muere con «No se pudo procesar la imagen», que manda a revisar el
+   archivo cuando el problema es el navegador. El rótulo del botón no los promete.  */
+
+/* Sin `trim()` ni saneo, a diferencia de `_dcmImgAscii`: acá el subtipo de un RIFF es
+   literalmente «AVI » CON el espacio final, y recortarlo lo volvería indistinguible. */
+function _asciiDe(u8, o, n) {
+  let s = '';
+  for (let i = 0; i < n; i++) s += String.fromCharCode(u8[o + i] || 0);
+  return s;
+}
+
+/* Devuelve la clave del formato o null. Recibe los primeros 132 bytes, que es lo que hace
+   falta para el magic del DICOM —vive en el byte 128— y sobra para todos los demás.
+
+   ⚠️ RECONOCER DE MÁS ES PEOR QUE NO RECONOCER: manda un archivo ajeno a un decodificador
+   que lo va a dibujar a medias en vez de rechazarlo. Por eso tres firmas se endurecieron
+   respecto de la tabla del pedido:
+     · «RIFF» NO identifica un AVI — WAV y WEBP empiezan con los mismos cuatro bytes. El
+       subtipo está en los bytes 8-11 y en un AVI es «AVI » con espacio.
+     · «II»/«MM» son DOS bytes que matchean cualquier cosa. El TIFF real son cuatro:
+       49 49 2A 00 (little-endian) o 4D 4D 00 2A (big-endian).
+     · «BM» también son dos. Se cruza además contra el tamaño de la cabecera DIB del byte
+       14, que sólo toma valores de una lista corta y conocida.
+   El JPEG va con FF D8 FF y no con FF D8: después del SOI viene siempre un marcador y todo
+   marcador arranca con FF, así que el tercer byte no rechaza ningún JPEG real. */
+const _BMP_DIB = [12, 40, 52, 56, 64, 108, 124];
+function _firmaArchivo(cab) {
+  if (!cab || !cab.length) return null;
+  if (cab.length >= 132 && _dcmImgAscii(cab, 128, 4) === 'DICM') return 'dicom';
+  /* ISO-BMFF: MP4 y MOV. Es la MISMA prueba que ya usa `_esVideoSoportado`. */
+  if (cab.length >= 12 && _asciiDe(cab, 4, 4) === 'ftyp') return 'video';
+  if (cab.length >= 3 && cab[0] === 0xFF && cab[1] === 0xD8 && cab[2] === 0xFF) return 'jpeg';
+  if (cab.length >= 8 && cab[0] === 0x89 && _asciiDe(cab, 1, 3) === 'PNG' &&
+      cab[4] === 0x0D && cab[5] === 0x0A && cab[6] === 0x1A && cab[7] === 0x0A) return 'png';
+  if (cab.length >= 18 && cab[0] === 0x42 && cab[1] === 0x4D) {
+    const dib = cab[14] | (cab[15] << 8) | (cab[16] << 16) | (cab[17] << 24);
+    if (_BMP_DIB.indexOf(dib) >= 0) return 'bmp';
+  }
+  if (cab.length >= 4 && ((cab[0] === 0x49 && cab[1] === 0x49 && cab[2] === 0x2A && cab[3] === 0x00) ||
+                          (cab[0] === 0x4D && cab[1] === 0x4D && cab[2] === 0x00 && cab[3] === 0x2A)))
+    return 'tiff';
+  if (cab.length >= 12 && _asciiDe(cab, 0, 4) === 'RIFF') {
+    const sub = _asciiDe(cab, 8, 4);
+    return sub === 'AVI ' ? 'avi' : 'riff:' + sub.replace(/[^\x20-\x7E]/g, '?');
+  }
+  return null;
+}
+window._firmaArchivo = _firmaArchivo;
+
+/* Los tres formatos de imagen que este navegador SÍ decodifica, con el MIME que les
+   corresponde. Ser esta tabla la que decide —y no `File.type`— es lo que hace que un
+   archivo sin extensión entre igual. */
+const _MEDIO_MIME = { jpeg: 'image/jpeg', png: 'image/png', bmp: 'image/bmp' };
+
+/* El motivo NOMBRA la limitación y da la salida. «No se pudo abrir» manda a revisar un
+   archivo que está perfecto. */
+const _MEDIO_RECHAZO = {
+  tiff: 'es un TIFF, y este navegador no lo puede abrir (Chrome y Firefox nunca soportaron ' +
+        'TIFF; Safari sí). Exportalo como JPG o PNG desde el ecógrafo.',
+  avi:  'es un AVI, y ningún navegador lo reproduce. Exportá el clip como MP4 (H.264) desde ' +
+        'el ecógrafo, o convertilo.'
+};
+
+/* `slotPreferido` sólo tiene sentido desde el «+» de un slot puntual; el botón importa un
+   lote y no lo pasa. */
+async function mediosImportar(fileList, slotPreferido) {
+  const files = [...fileList];
+  if (!files.length) return;
+  const dicoms = [], imagenes = [], videos = [], rechazos = [];
+
+  for (const f of files) {
+    /* 132 bytes y no el archivo entero, por lo mismo que `dcmImgImportar`: el input no
+       lleva `accept`, así que se puede marcar una carpeta con un video de varios GB
+       adentro y un `arrayBuffer()` entero entraría a memoria antes de poder rechazarlo. */
+    let cab;
+    try { cab = new Uint8Array(await f.slice(0, 132).arrayBuffer()); }
+    catch (e) { rechazos.push(f.name + ': no se pudo leer el archivo'); continue; }
+    const t = _firmaArchivo(cab);
+    if (t === 'dicom') { dicoms.push(f); continue; }
+    if (t === 'video') { videos.push(f); continue; }
+    if (_MEDIO_MIME[t]) { imagenes.push({ f, mime: _MEDIO_MIME[t] }); continue; }
+    if (_MEDIO_RECHAZO[t]) { rechazos.push(f.name + ': ' + _MEDIO_RECHAZO[t]); continue; }
+    if (t && t.indexOf('riff:') === 0) {
+      rechazos.push(f.name + ': es un contenedor RIFF de tipo «' + t.slice(5) + '», no un AVI ' +
+                    'ni una imagen. Este botón importa JPG, PNG, BMP, MP4/MOV y DICOM.');
+      continue;
+    }
+    const firma = _asciiDe(cab, 0, 4).replace(/[^\x20-\x7E]/g, '.');
+    rechazos.push(f.name + ': no se reconoce el formato. Los primeros bytes son «' + firma +
+                  '». Este botón importa JPG, PNG, BMP, MP4/MOV y DICOM.');
+  }
+
+  /* LOS SLOTS SE RESERVAN DE FORMA SINCRÓNICA Y ANTES DE COMPRIMIR. `imgCompressLoad`
+     elige slot DENTRO de su `.then()`, así que sin reservar, el orden de las imágenes
+     depende de cuál termine de comprimirse primero — y ése es el orden en que salen en el
+     PDF. Es exactamente para lo que existe `_dcmImgReservar`. */
+  if (imagenes.length) {
+    const idxs = _dcmImgReservar(imagenes.length, slotPreferido);
+    /* El Blob va CON SU TIPO, igual que en `dcmImgImportar` y por el mismo motivo: un
+       archivo de ecógrafo suele venir SIN extensión, así que `File.type` es cadena vacía y
+       el `data:` que arma FileReader sale como `application/octet-stream`. Hoy Chrome lo
+       olfatea igual —medido, las tres imágenes entraron— pero eso es una tolerancia del
+       navegador y no una garantía, y `_orig` es lo que re-comprime el selector de calidad.
+       El tipo lo pone `_firmaArchivo` a partir de los BYTES, nunca del nombre. */
+    imagenes.forEach((x, i) => imgCompressLoad(new Blob([x.f], { type: x.mime }), idxs[i]));
+  }
+  /* Secuencial y NO en paralelo: `videoCargarEnSlot` puede abrir un confirm por tamaño y
+     un alert por códec, y en paralelo se apilarían los diálogos sobre el mismo médico. */
+  let videosOk = 0;
+  for (const f of videos) {
+    try { if ((await videoCargarEnSlot(f)) >= 0) videosOk++; }
+    catch (e) { rechazos.push(f.name + ': ' + ((e && e.message) || 'no se pudo cargar el video')); }
+  }
+  const videosNo = videos.length - videosOk;
+
+  const partes = [];
+  if (imagenes.length) partes.push(imagenes.length + ' imagen(es)');
+  if (videosOk) partes.push(videosOk + ' video(s)');
+  const entraron = imagenes.length + videosOk;
+
+  const TOPE = 12;
+  const detalle = (l) => l.slice(0, TOPE).map(s => '· ' + s).join('\n\n') +
+    (l.length > TOPE ? '\n\n… y ' + (l.length - TOPE) + ' archivo(s) más con problemas parecidos.' : '');
+
+  /* EL DENOMINADOR SIEMPRE A LA VISTA: «entraron 3» sin decir que se eligieron 7 deja creer
+     que entraron todos. Y los DICOM se declaran acá aunque los informe `dcmImgImportar` con
+     su propio resumen: sin nombrarlos, la cuenta no cierra y parece que se perdieron. */
+  const deN = ' de ' + files.length + ' archivo(s) elegido(s)' +
+              (dicoms.length ? ' · ' + dicoms.length + ' DICOM, se informan aparte' : '');
+
+  if (rechazos.length) {
+    toast('⚠️ ' + (partes.length ? partes.join(' y ') : 'Ninguno') + deN + ' — mirá el detalle');
+    alert('Entraron ' + (partes.length ? partes.join(' y ') : 'CERO archivos') + deN + '.' +
+          (videosNo ? '\n\n' + videosNo + ' video(s) no entraron; el aviso de cada uno ya se mostró.' : '') +
+          '\n\nNo se pudieron importar ' + rechazos.length + ':\n\n' + detalle(rechazos));
+  } else if (entraron) {
+    toast('✅ ' + partes.join(' y ') + deN);
+  } else if (videosNo) {
+    toast('❌ No entró ningún archivo' + deN);
+  } else if (!dicoms.length) {
+    toast('❌ No entró ningún archivo' + deN);
+  }
+
+  /* Los DICOM van AL FINAL y por su puerta: `dcmImgImportar` emite su propio resumen y
+     puede abrir el reproductor de cineloop, que es un modal — corriendo antes, taparía el
+     alert de los rechazos de acá y el médico no se enteraría de lo que no entró. Es el
+     mismo orden que esa función aplica internamente. */
+  if (dicoms.length) {
+    await dcmImgImportar(dicoms, (imagenes.length || videos.length) ? undefined : slotPreferido);
+  }
+}
+window.mediosImportar = mediosImportar;
+
+/* Mismo patrón que `imgPick` y `dcmImgPick`, y no un getElementById dentro del onclick:
+   así el id queda nombrado desde el JavaScript y `detectar_huerfanos.py` —que no mira los
+   manejadores inline— no lo reporta como campo sin destino. */
+function mediosPick(){ const inp = document.getElementById('medios-file-input'); if (inp) { inp.value=''; inp.click(); } }
+window.mediosPick = mediosPick;
+
+/* ══════════════════════════════════════════════════════════════════════════════════════
    REPRODUCTOR DE CINELOOP
    ══════════════════════════════════════════════════════════════════════════════════════
 
@@ -68294,8 +68499,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260922-0802';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790074942096;                 /* eco-build-ms */
+const ECO_BUILD    = '20260922-0828';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790076532032;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -68381,7 +68586,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-0802</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-0828</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

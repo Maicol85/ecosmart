@@ -19720,6 +19720,169 @@ caso('TC-231', 'Orthanc: el modo entra al predicado, el trabajo en vuelo no ater
   })();
 `);
 
+/* == TC-232 - Importar imagenes y videos de cualquier ecografo =============================
+   El clasificador reparte por BYTES a las puertas que ya existen. Tres cosas que el caso
+   existe para fijar, y ninguna se ve mirando la pantalla:
+
+   1) EL ORDEN DE LOS SLOTS. imgCompressLoad elige slot DENTRO de su .then(), asi que sin
+      reservar sincronicamente con _dcmImgReservar el orden depende de cual termine de
+      comprimirse primero - y ese es el orden en que salen en el PDF. El denominador es que
+      las tres imagenes sean DISTINTAS entre si: con tres iguales, cualquier orden pasa.
+   2) TIFF Y AVI SE RECHAZAN CON SU MOTIVO. Medido: este Chrome no decodifica TIFF en <img>
+      y canPlayType devuelve la cadena vacia para las tres variantes MIME de AVI. Sin el
+      motivo, un AVI cae al flujo de foto y muere con "No se pudo procesar la imagen", que
+      manda a revisar un archivo que esta perfecto.
+   3) LAS FIRMAS ENDURECIDAS. RIFF no identifica un AVI -WAV y WEBP empiezan igual- y dos
+      bytes de BMP o de TIFF matchean cualquier cosa. Reconocer de mas manda un archivo
+      ajeno a un decodificador que lo dibuja a medias en vez de rechazarlo.
+
+   El espia de dcmImgImportar se restaura POR ASIGNACION y nunca con delete: es una
+   declaracion de funcion de nivel superior, o sea una propiedad no configurable, y el
+   delete es un no-op mudo que se lleva puesto el caso siguiente. */
+caso('TC-232', 'Importar imagenes y videos: reparte por bytes, conserva el orden y dice por que rechaza', `
+  return (async () => {
+    const R = {};
+    const alertas = [], toasts = [];
+    const alertOrig = window.alert, toastOrig = window.toast, dcmOrig = window.dcmImgImportar;
+    let dcmRecibio = null;
+    const F = (u8, n) => new File([u8], n, { type: '' });
+    try {
+      /* -- fixtures armados byte a byte: el caso no depende de ningun archivo del disco -- */
+      const bmp = new Uint8Array(58), bv = new DataView(bmp.buffer);
+      bmp[0]=0x42; bmp[1]=0x4D; bv.setUint32(2,58,true); bv.setUint32(10,54,true);
+      bv.setUint32(14,40,true); bv.setInt32(18,1,true); bv.setInt32(22,1,true);
+      bv.setUint16(26,1,true); bv.setUint16(28,24,true); bv.setUint32(34,4,true); bmp[56]=0xFF;
+
+      const PIX=110, tif = new Uint8Array(111), tv = new DataView(tif.buffer);
+      tif[0]=0x49; tif[1]=0x49; tv.setUint16(2,42,true); tv.setUint32(4,8,true); tv.setUint16(8,8,true);
+      const ent=(i,tag,tipo,val)=>{const o=10+i*12; tv.setUint16(o,tag,true); tv.setUint16(o+2,tipo,true);
+        tv.setUint32(o+4,1,true); if(tipo===3) tv.setUint16(o+8,val,true); else tv.setUint32(o+8,val,true);};
+      ent(0,0x0100,3,1); ent(1,0x0101,3,1); ent(2,0x0102,3,8); ent(3,0x0103,3,1);
+      ent(4,0x0106,3,1); ent(5,0x0111,4,PIX); ent(6,0x0115,3,1); ent(7,0x0117,4,1); tif[PIX]=0x80;
+
+      const riff=(sub)=>{const u=new Uint8Array(32); u.set([0x52,0x49,0x46,0x46,24,0,0,0]);
+        for(let i=0;i<4;i++) u[8+i]=sub.charCodeAt(i); return u;};
+      const avi = riff('AVI '), wav = riff('WAVE');
+      const mp4 = new Uint8Array(32); mp4.set([0,0,0,24,0x66,0x74,0x79,0x70,0x69,0x73,0x6F,0x6D]);
+      const dcm = new Uint8Array(160); dcm.set([0x44,0x49,0x43,0x4D],128);
+      const png = new Uint8Array(16); png.set([0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A]);
+      const zip = new Uint8Array(64); zip.set([0x50,0x4B,0x03,0x04]);
+
+      /* ⚠️ LA PRIMERA VA GRANDE Y CON RUIDO, Y ES LO QUE HACE AL CASO DISCRIMINANTE. Con tres
+         JPEG de 4x4, 5x5 y 6x6 la mutacion que saca la reserva de slots SOBREVIVE: se
+         comprimen tan rapido que terminan en orden igual, o sea que el caso medía sobre una
+         carrera que nunca ocurria. Una imagen de 1200x1200 con ruido -incompresible, asi que
+         el encoder trabaja de verdad- tarda lo suficiente para que las dos chicas la pasen si
+         nadie reservo el lugar. Medido: con la mutacion puesta, el orden sale 3,1,2. */
+      const jpegDe = (n, ruido) => new Promise(res => {
+        const c = document.createElement('canvas'); c.width = n; c.height = n;
+        const x = c.getContext('2d');
+        if (ruido) {
+          const d = x.createImageData(n, n);
+          /* Generador determinista: Math.random haria que dos corridas no sean comparables */
+          let s = 12345;
+          for (let i = 0; i < d.data.length; i += 4) {
+            s = (s * 1103515245 + 12345) & 0x7fffffff;
+            d.data[i] = s & 255; d.data[i+1] = (s >> 8) & 255; d.data[i+2] = (s >> 16) & 255;
+            d.data[i+3] = 255;
+          }
+          x.putImageData(d, 0, 0);
+        } else { x.fillStyle = 'rgb(' + (n*40) + ',10,10)'; x.fillRect(0,0,n,n); }
+        c.toBlob(b => res(b), 'image/jpeg', 0.92);
+      });
+      const bytesDe = async (b) => new Uint8Array(await b.arrayBuffer());
+      const j1 = await jpegDe(1200, true), j2 = await jpegDe(5), j3 = await jpegDe(6);
+
+      /* -- 1. CLASIFICACION, incluidos los negativos que separan una firma fuerte de una debil -- */
+      R.firmas = [_firmaArchivo(await bytesDe(j1)), _firmaArchivo(png), _firmaArchivo(bmp),
+                  _firmaArchivo(tif), _firmaArchivo(avi), _firmaArchivo(wav),
+                  _firmaArchivo(mp4), _firmaArchivo(dcm), _firmaArchivo(zip)].join(',');
+      R.clasificaBien = R.firmas === 'jpeg,png,bmp,tiff,avi,riff:WAVE,video,dicom,';
+      const bmpFalso = new Uint8Array(58); bmpFalso.set(bmp);
+      new DataView(bmpFalso.buffer).setUint32(14, 999, true);   // cabecera DIB imposible
+      const tifFalso = new Uint8Array(32); tifFalso.set([0x49,0x49,0x00,0x00]);   // II sin 2A 00
+      R.bmpFalso = _firmaArchivo(bmpFalso);
+      R.tifFalso = _firmaArchivo(tifFalso);
+      R.firmasFuertes = R.bmpFalso === null && R.tifFalso === null;
+
+      /* -- 2. LOTE MIXTO por la funcion real -- */
+      window.alert = (m) => alertas.push(String(m));
+      window.toast = (m) => toasts.push(String(m));
+      window.dcmImgImportar = async (fl) => { dcmRecibio = [...fl].map(f => f.name).join(','); };
+      imgSlots.length = 0; imgSlots.push(null, null); imgSlotCount = 2; imgRender();
+      await mediosImportar([ F(await bytesDe(j1),'uno'), F(await bytesDe(j2),'dos'),
+                             F(await bytesDe(j3),'tres'), F(tif,'eco.tif'), F(avi,'clip.avi'),
+                             F(wav,'sonido.wav'), F(dcm,'estudio.dcm'), F(zip,'cosa.zip') ]);
+      const t0 = Date.now();
+      while (Date.now() - t0 < 5000) {
+        if (imgSlots.filter(s => s && s.dataURL).length >= 3) break;
+        await new Promise(r => setTimeout(r, 50));
+      }
+      R.slots = imgSlots.filter(s => s && s.dataURL).length;
+
+      const leer = (b) => new Promise(r => { const f = new FileReader();
+                                             f.onload = () => r(f.result); f.readAsDataURL(b); });
+      const carga = (s) => String(s || '').split(',')[1] || '';
+      const o1 = carga(await leer(j1)), o2 = carga(await leer(j2)), o3 = carga(await leer(j3));
+      R.tresDistintas = (o1 !== o2) && (o2 !== o3) && (o1 !== o3);   // DENOMINADOR del orden
+      R.orden = [imgSlots[0] && carga(imgSlots[0]._orig) === o1,
+                 imgSlots[1] && carga(imgSlots[1]._orig) === o2,
+                 imgSlots[2] && carga(imgSlots[2]._orig) === o3].join(',');
+      R.ordenOk = R.orden === 'true,true,true';
+      /* El Blob va tipado: sin eso el data: del original sale application/octet-stream */
+      R.mimeOrig = String(imgSlots[0] && imgSlots[0]._orig).slice(0, 22);
+      R.dcmRecibio = dcmRecibio;
+    } catch (e) {
+      R.err = String((e && e.message) || e).slice(0, 160);
+    } finally {
+      window.alert = alertOrig; window.toast = toastOrig; window.dcmImgImportar = dcmOrig;
+    }
+
+    const txt = alertas.join(' ');
+    R.txt = txt.slice(0, 200);
+    R.motivoTiff = txt.indexOf('es un TIFF') >= 0 && txt.indexOf('JPG o PNG') >= 0;
+    R.motivoAvi  = txt.indexOf('es un AVI') >= 0 && txt.indexOf('MP4') >= 0;
+    R.motivoWav  = txt.indexOf('RIFF de tipo') >= 0 && txt.indexOf('WAVE') >= 0;
+    R.motivoZip  = txt.indexOf('no se reconoce el formato') >= 0;
+    R.denominador = txt.indexOf('de 8 archivo(s) elegido(s)') >= 0 &&
+                    txt.indexOf('1 DICOM, se informan aparte') >= 0;
+
+    const btn = [].slice.call(document.querySelectorAll('#tab-imagenes button'))
+      .filter(b => b.textContent.indexOf('Importar imagenes y videos') >= 0 ||
+                   b.textContent.indexOf('Importar im\\u00e1genes y videos') >= 0)[0];
+    const ops = [].slice.call(document.querySelectorAll('#igio-menu-imp .igio-op'));
+    const opMed = ops.filter(b => b.textContent.indexOf('Importar mediciones') >= 0)[0];
+    const opImg = ops.filter(b => b.textContent.indexOf('genes y videos') >= 0)[0];
+    R.entradas = !!btn && !!opImg &&
+                 (btn.getAttribute('onclick') || '').indexOf('mediosPick') >= 0 &&
+                 (opImg.getAttribute('onclick') || '').indexOf('mediosPick') >= 0;
+    /* El rotulo NO promete lo que el navegador no puede abrir */
+    R.rotulo = !!btn && btn.textContent.indexOf('TIF') < 0 && btn.textContent.indexOf('AVI') < 0;
+    /* Una sola puerta a dcmImportarSR: la opcion se RENOMBRO, no se duplico */
+    R.unaPuerta = !!opMed && (opMed.getAttribute('onclick') || '').indexOf('ig-import-dcm') >= 0 &&
+                  ops.filter(b => (b.getAttribute('onclick') || '').indexOf('ig-import-dcm') >= 0).length === 1;
+
+    return { extra: [
+      ['sin excepciones',                             !R.err, R.err],
+      ['clasifica las nueve firmas por bytes',        R.clasificaBien, R.firmas],
+      ['y las firmas debiles NO pasan',               R.firmasFuertes, 'bmp=' + R.bmpFalso + ' tiff=' + R.tifFalso],
+      ['DENOMINADOR: las tres imagenes difieren',     R.tresDistintas, R.tresDistintas],
+      ['entraron las TRES imagenes',                  R.slots === 3, 'slots=' + R.slots],
+      ['y EN EL ORDEN en que se eligieron',           R.ordenOk, R.orden],
+      ['el original lleva su MIME, no octet-stream',  R.mimeOrig === 'data:image/jpeg;base64', R.mimeOrig],
+      ['el DICOM se delega a dcmImgImportar',         R.dcmRecibio === 'estudio.dcm', R.dcmRecibio],
+      ['el TIFF se rechaza DICIENDO por que',         R.motivoTiff, R.txt],
+      ['el AVI tambien, y manda a MP4',               R.motivoAvi, R.txt],
+      ['un RIFF que no es AVI se nombra',             R.motivoWav, R.txt],
+      ['lo no reconocido dice los primeros bytes',    R.motivoZip, R.txt],
+      ['el denominador va en el aviso',               R.denominador, R.txt],
+      ['las dos entradas llaman a mediosPick',        R.entradas, R.entradas],
+      ['el rotulo NO promete TIFF ni AVI',            R.rotulo, btn ? btn.textContent.trim() : 'sin boton'],
+      ['una sola puerta a dcmImportarSR',             R.unaPuerta, R.unaPuerta]
+    ] };
+  })();
+`);
+
 caso('TC-228', 'Visor: la etiqueta dice DE DONDE viene el valor, y el numero queda quemado siempre', `
   return (async () => {
     const R = {};

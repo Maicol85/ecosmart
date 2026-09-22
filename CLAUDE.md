@@ -4,6 +4,115 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Importar imágenes y videos de cualquier ecógrafo (TC-232)
+
+Botón «📥 Importar imágenes y videos» en la tab Imágenes y la misma opción en el menú
+Importar de Guardados. Un clasificador por bytes (`_firmaArchivo`) que reparte a las puertas
+que YA EXISTEN: DICOM a `dcmImgImportar`, MP4/MOV a `videoCargarEnSlot`, JPEG/PNG/BMP a
+`imgCompressLoad`. **No hay un segundo lector de nada.**
+
+### ⚠️ DOS FORMATOS DEL PEDIDO NO LOS ABRE EL NAVEGADOR, y está medido
+
+| | medido contra este Chrome |
+|---|---|
+| BMP 1×1 bien formado | `new Image()` → **DECODIFICA 1x1** |
+| **TIFF** 1×1 bien formado | `new Image()` → **NO DECODIFICA**; `_imgComprimir` rechaza «imagen ilegible» |
+| **AVI** | `canPlayType` devuelve la **cadena vacía** en `video/avi`, `video/x-msvideo` y `video/msvideo` |
+| MP4 | `canPlayType` → `maybe` |
+
+Chrome y Firefox nunca soportaron TIFF en `<img>`; Safari sí. Y ningún navegador reproduce
+AVI. Se detectan igual y se rechazan **diciendo el motivo y la salida** («exportalo como JPG
+o PNG», «exportá el clip como MP4 H.264»). **El rótulo del botón no los promete**: decisión
+de Maicol (2026-09-22), porque prometerlos manda al médico a descubrirlo recién con el
+archivo del ecógrafo en la mano.
+
+Sin ese motivo propio, hoy un AVI cae al flujo de foto y muere con «No se pudo procesar la
+imagen», que manda a revisar un archivo que está perfecto.
+
+### Tres firmas se ENDURECIERON respecto de la tabla del pedido
+
+**Reconocer de más es peor que no reconocer**: manda un archivo ajeno a un decodificador que
+lo dibuja a medias en vez de rechazarlo.
+
+- **`52 49 46 46` NO identifica un AVI.** WAV y WEBP empiezan con los mismos cuatro bytes; el
+  subtipo está en los **bytes 8-11** y en un AVI es `AVI ` **con el espacio final** — por eso
+  `_asciiDe` no hace `trim()`, a diferencia de `_dcmImgAscii`. La mutación que devuelve `avi`
+  para todo RIFF cae por dos condiciones.
+- **`49 49`/`4D 4D` son dos bytes.** El TIFF real son cuatro: `49 49 2A 00` o `4D 4D 00 2A`.
+- **`42 4D` también son dos.** Se cruza contra el tamaño de la cabecera DIB del byte 14, que
+  sólo toma valores de una lista corta. Un «BM» con DIB 999 ya no pasa.
+- **JPEG va con `FF D8 FF`** y no con `FF D8`: después del SOI viene siempre un marcador y
+  todo marcador arranca con FF, así que el tercer byte no rechaza ningún JPEG real.
+
+**MP4 estaba en la lista de «acepta» del pedido y NO en su tabla de magic bytes.** Lo cubre
+la detección por `ftyp` que ya usaba `_esVideoSoportado` — la misma prueba, no una copia.
+
+### ⚠️ LOS SLOTS SE RESERVAN SINCRÓNICAMENTE, Y ES LA CONDICIÓN QUE MÁS CUESTA PROBAR
+
+`imgCompressLoad` elige slot **dentro de su `.then()`**, así que sin `_dcmImgReservar` el
+orden de las imágenes depende de cuál termine de comprimirse primero — y ése es el orden en
+que salen en el PDF.
+
+**La mutación que saca la reserva SOBREVIVIÓ a la primera versión del caso.** Con tres JPEG
+de 4×4, 5×5 y 6×6 se comprimen tan rápido que terminan en orden igual: el caso medía una
+carrera que nunca ocurría. Hoy la primera imagen es de **1200×1200 con ruido determinista**
+—incompresible, así que el encoder trabaja de verdad— y las otras dos chicas la pasan si
+nadie reservó el lugar. Con la mutación puesta el orden sale `false,false,false`.
+*Un fixture cómodo no prueba el caso incómodo*, otra vez.
+
+Y el denominador va declarado: **las tres imágenes tienen que diferir entre sí**. Con tres
+iguales, cualquier orden pasa.
+
+### El Blob va CON SU TIPO, y el tipo sale de los bytes
+
+Un archivo de ecógrafo suele venir **sin extensión**, así que `File.type` es cadena vacía y
+el `data:` que arma FileReader sale `application/octet-stream`. Medido: hoy Chrome lo olfatea
+igual y la imagen entra — pero eso es una tolerancia del navegador, no una garantía, y
+`_orig` es lo que re-comprime el selector de calidad. Se envuelve en un Blob con el MIME que
+decide `_firmaArchivo`, que es la misma razón por la que `dcmImgImportar` ya lo hacía.
+
+### Los DICOM van AL FINAL, y el denominador nombra las dos cuentas
+
+`dcmImgImportar` emite **su propio resumen** y puede abrir el reproductor de cineloop, que es
+un modal: corriendo antes, taparía el alert de los rechazos y el médico no se enteraría de lo
+que no entró. Por eso el aviso de `mediosImportar` dice «… de 8 archivo(s) elegido(s) · 1
+DICOM, se informan aparte»: sin nombrarlos, la cuenta no cierra y parece que se perdieron.
+
+### Lo que NO se hizo, y por qué
+
+- **TXT y HTML quedaron fuera.** No existe ningún parser —cero `DOMParser` con `text/html` en
+  el archivo; el CHM sólo extrae `patient_exam_data.xml`— y **no hay un solo archivo de
+  muestra** con qué escribirlo. «Intentar parsear» texto de vendor desconocido es cómo entra
+  una medición equivocada a un informe firmado, que es justo lo que `dcmImportarSR` evita al
+  rechazar con el motivo en vez de arrastrar un parser sobre basura. Decisión de Maicol: se
+  retoma cuando haya un TXT o un HTML real. **El rótulo no los nombra.**
+- **La opción de mediciones se RENOMBRÓ, no se duplicó.** «🏥 DICOM SR» ya routeaba CHM del
+  GE y DICOM SR por los bytes desde que existe el lector de CHM —su input acepta `.chm`— pero
+  el rótulo decía sólo «.dcm del ecógrafo» y prometía de menos. Hoy es «📋 Importar
+  mediciones — CHM del GE Vivid · DICOM SR». Agregar una segunda entrada al mismo
+  `dcmImportarSR` habría dejado dos opciones del mismo menú haciendo exactamente lo mismo, y
+  hay una condición que fija que sólo una apunte a `ig-import-dcm`.
+- **WEBP no se acepta**, aunque Chrome lo decodifique: no está en el pedido y no tiene caso.
+  Se rechaza **nombrando el subtipo RIFF**, que es accionable, en vez de con un genérico.
+
+### Asimetría declarada: el «+» de un slot sigue con su propio ruteo
+
+`imgFileElegido` —el «+» de cada slot— tiene su ruteo inline desde antes: DICOM por el magic
+del byte 128, video por `ftyp`, y **todo lo demás al flujo de foto**. O sea que un TIFF o un
+AVI soltados ahí siguen muriendo con «No se pudo procesar la imagen», mientras por el botón
+nuevo dan el motivo exacto. **No se unificó a propósito**: era «sólo agregar botones» y
+cambiar el «+» es tocar un control que nadie pidió mover. Si alguna vez se unifica, el
+reemplazo es directo —`_firmaArchivo` contesta lo mismo y más— y hay que acordarse de que
+ese camino sí pasa `slotPreferido`.
+
+### El input no lleva `accept`, y acá pesa más que en los otros dos
+
+Los dos inputs que ya existían lo omiten porque el GE Vivid escribe sin extensión. Éste
+existe justamente para los ecógrafos que **no** son el GE, y no se sabe con qué extensión
+—o sin ninguna— escribe cada uno. Por eso también se leen **132 bytes y no el archivo
+entero** antes de clasificar: con el selector mostrando todo, alcanza con marcar una carpeta
+con un video de varios GB para que un `arrayBuffer()` entero entre a memoria.
+
 ## «Conexión por red (DICOM)» sólo en Modo Avanzado — y son DOS superficies (TC-230)
 
 La tarjeta de Config se renombró («🔌 Orthanc / DICOM en red» → «🔌 Conexión por red (DICOM)»)
