@@ -4,6 +4,64 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## La vista B abre midiendo, y la tabla de Simpson es UNA para las dos (TC-241)
+
+Tres bugs reportados. **Uno no se reproduce**, y los otros dos destaparon un tercero.
+
+### 1 · La vista B nacía muda
+
+Abría con el canvas de medición oculto y sin herramienta elegida, así que el médico tenía que
+descubrir que había que encender algo — en una vista que se abre **exactamente para medir la
+segunda apical**. Hoy `vistaBAbrir` entra en modo medición con 2D Distancia.
+
+**⚠️ NO SE FUERZA LA CALIBRACIÓN, y es una desviación deliberada del pedido.** `medToggle` ya
+entra solo en modo calibrar cuando el archivo no declara escala, que es el respaldo que existe
+para los 15 sin región. Forzarlo sobre un DICOM que **sí** la trae pisaría la escala del archivo
+con dos clics a mano — la escala 2D del pendrive va de 0,046 a 0,926 mm/píxel y calibrar a ojo
+son ~5 %. Medido: con un loop sin escala el aviso dice «Antes de medir, calibrá la escala…»; con
+uno que la declara, `bCalibrando: false`.
+
+### 2 · Los botones YA estaban a la derecha — no se reprodujo
+
+Medido antes de tocar nada: `recalB` termina en 725 y `panelB` también en 725, y en las **dos**
+vistas el botón arranca después de que termina la barra guía. No se cambió una línea. La
+condición queda igual, con su denominador declarado —que los dos paneles estén en posiciones
+distintas—, porque sin eso «los dos a la derecha» se cumple midiendo dos veces el mismo panel.
+
+### ⚠️ 3 · CADA VISTA LLEVA SU SESIÓN DE SIMPSON, así que había DOS TABLAS
+
+La A mostraba su tabla con la A4C y la B otra con la A2C: dos tablas del mismo ventrículo,
+**ninguna con el biplano que el médico acababa de medir lado a lado**. `_simpFilasVivas()`
+recorre las dos sesiones, deduplica por rótulo y cierra con el biplano de `_vBiplanoDatos()`.
+`_simpResumen` se reescribió para consumirla, así que **lo que se guarda es lo que se muestra**.
+
+**Y confirmar en una dejaba la OTRA vieja.** La tabla compartida se arma en cada repintado de
+panel y `medSimpsonConfirmar` sólo repintaba el suyo: con la A2C recién confirmada en la vista B,
+el panel de la A seguía mostrando una tabla de una sola fila. Lo cerró `_simpRepintarOtraVista()`,
+que repinta **sólo el panel** de la otra vista, atado a ella con `_vCon` para que `_medEstado` lea
+los accesores correctos. **Esto no estaba en el reporte: lo encontró medir los dos paneles.**
+
+Medición final, los dos paneles con las mismas tres filas:
+`A4C|95.3|69.0|26.3|27.6 · A2C|48.0|34.7|13.4|27.8 · Biplano|74.1|53.5|20.6|27.8`.
+
+### Una condición VACUA, declarada
+
+«y 2D Distancia elegida» pasa con la activación sacada: `dist` y `2d` son los valores de fábrica
+de `_vNueva`. Queda porque fija la intención, y al lado hay dos que sí caen —«abre MIDIENDO» y
+«con la capa de medición ya dibujada»—. Escrita sola habría sido cobertura que no existe.
+
+### El mutante corría contra un suite VIEJO
+
+`shutil.copytree` sólo copia si el destino no existe, así que `/tmp/mut241/scripts` quedó con la
+versión previa a agregar la condición nueva: la mutación «no» la cazaba porque **esa condición no
+estaba en el archivo que corría**. Media hora buscando por qué el canvas seguía visible con
+`medToggle` sin correr. **El runner de mutación tiene que re-copiar el suite en cada corrida**, no
+sólo la primera. Lo delató un `assert` del script de parcheo, no el resultado.
+
+**Control negativo, contra HEAD:** dos tablas de una fila cada una y la de A quedándose vieja.
+Con el arreglo, `tablaA` y `tablaB` idénticas y con las tres filas.
+
+
 ## «No se pudo leer del disco» era un ARRAY QUE NO ERA ARRAY (TC-240)
 
 Reportado como que la vista B no podía abrir cineloops **que la tira abría perfectamente**, y

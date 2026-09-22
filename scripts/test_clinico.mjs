@@ -21027,6 +21027,132 @@ caso('TC-240', 'Vista B: abre el mismo cineloop que la tira, por la misma ruta d
   })();
 `);
 
+/* == TC-241 - La vista B abre lista para medir, y la tabla es UNA para las dos ============
+   Cada vista del visor lleva SU sesion de Simpson, asi que antes la A mostraba su tabla con la
+   A4C y la B otra con la A2C: dos tablas del mismo ventriculo, ninguna con el biplano que el
+   medico acababa de medir lado a lado.
+
+   Y confirmar en una dejaba la OTRA vieja: la tabla compartida se arma en cada repintado de
+   panel, y `medSimpsonConfirmar` solo repintaba el suyo.
+
+   DECLARADO: la condicion «y 2D Distancia elegida» es VACUA — 'dist' y '2d' son los valores de
+   fabrica de `_vNueva`, asi que pasa con la activacion sacada. Queda porque fija la intencion;
+   lo que cae por mutacion son «abre MIDIENDO» y «con la capa de medicion ya dibujada». */
+caso('TC-241', 'Vista B: abre midiendo, y la tabla cruza las dos vistas en los dos paneles', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    window.alert = () => {}; window.confirm = () => true; window.toast = () => {};
+    let togglePrevio = null;
+    try { togglePrevio = localStorage.getItem('cfg-guardar-imagenes'); } catch (e) {}
+    let estudioId = null;
+    try {
+      localStorage.setItem('cfg-guardar-imagenes', '1');
+      __t.limpiar(); imgVaciar(); await esperar(200);
+      __t.set('nombre','TC241 A'); __t.set('ci','98950001');
+      const g = await __t.guardar(); estudioId = g.estudioId; await esperar(900);
+      const inf = getInformes().filter(i => i.estudioId === g.estudioId)[0];
+      __t.reabrir(g.estudioId); await esperar(1500);
+
+      const jpg = await new Promise(res => {
+        const c = document.createElement('canvas'); c.width=400; c.height=400;
+        const x = c.getContext('2d'); x.fillStyle='rgb(50,70,110)'; x.fillRect(0,0,400,400);
+        c.toBlob(b2 => { const fr=new FileReader(); fr.onload=()=>res(new Uint8Array(fr.result));
+          fr.readAsArrayBuffer(b2); }, 'image/jpeg', 0.9);
+      });
+      const REG = [{ x0:0, y0:0, x1:400, y1:400, ux:3, uy:3, dx:0.05, dy:0.05, tipo:1 }];
+      const guardarLoop = nom => { const n=2, datos=new Uint8Array(jpg.length*n), offs=new Int32Array(n);
+        for (let i=0;i<n;i++){ offs[i]=i*jpg.length; datos.set(jpg, i*jpg.length); }
+        return CeiboCine.guardar({ id:_uuidNuevo(), uuid:inf.uuid, nombre:nom, cuadros:n, ms:40,
+          cols:400, filas:400, poster:'', datos:datos, offs:offs, bytes:datos.length,
+          regiones:REG, ts:new Date().toISOString() }); };
+      await guardarLoop('apical4c'); await guardarLoop('apical2c');
+
+      const loopA = { nombre:'apical4c', cuadros:1,
+        d:{ frags:[jpg], cols:400, filas:400, msCuadro:0, fabricante:'', modelo:'', regiones:REG } };
+      const cont = (an, la) => { const pts=[];
+        for (let i=0;i<=40;i++){ const t=Math.PI*i/40;
+          pts.push({ x:200-(an/2)*Math.cos(t), y:340-la*Math.sin(t) }); } return pts; };
+      const trazar = (an, la) => { const m=_simpAceptar(cont(an,la)); if (m) return m;
+        medSimpsonConfirmar(); return null; };
+
+      /* VISTA A: la A4C */
+      _cineAbrir([loopA]); await esperar(800);
+      if (!_medOn) medToggle();
+      medHerramienta('simpson'); await esperar(400);
+      R.eA = [trazar(90,180), trazar(80,165)].filter(Boolean).join(' / ');
+      medSimpsonElegirVista('a4c'); await esperar(250);
+
+      /* VISTA B */
+      const pr = vistaBAbrir(); await esperar(900);
+      const card = document.querySelector('[data-vpicker] [data-vpick-i="1"]');
+      R.pickerAbrio = !!card;
+      if (card) card.click();
+      await pr; await esperar(1400);
+      R.bMedicionOn = !!(_vistaB && _vistaB.medOn);
+      R.bHerr  = _vistaB ? _vistaB.medHerr : null;
+      R.bGrupo = _vistaB ? _vistaB.medGrupo : null;
+      /* La CAPA de medicion tiene que estar dibujada: 'dist' y '2d' son los valores de fabrica
+         de _vNueva, asi que mirar solo esos dos pasa con la activacion sacada. */
+      const cvB = document.getElementById('b-cine-med');
+      R.bCapaVisible = !!(cvB && getComputedStyle(cvB).display !== 'none');
+
+      /* LAYOUT: en las DOS vistas los botones arrancan despues de la barra guia */
+      const rc = id => { const e=document.getElementById(id); if (!e) return null;
+        const r2=e.getBoundingClientRect(); return { l:r2.left, r:r2.right }; };
+      const bA=rc('cine-med-recal'), barA=rc('cine-med-barra');
+      const bB=rc('b-cine-med-recal'), barB=rc('b-cine-med-barra');
+      R.aDerechaA = !!(bA && barA && bA.l >= barA.r - 2);
+      R.aDerechaB = !!(bB && barB && bB.l >= barB.r - 2);
+      R.panelesDistintos = !!(barA && barB && Math.abs(barA.l - barB.l) > 10);
+
+      /* La A2C, en la vista B */
+      _vCon(_vistaB, () => medHerramienta('simpson'));
+      await esperar(400);
+      R.eB = _vCon(_vistaB, () => [trazar(70,150), trazar(62,138)].filter(Boolean).join(' / '));
+      _vCon(_vistaB, () => medSimpsonElegirVista('a2c'));
+      await esperar(600);
+      const filas = id => { const e=document.getElementById(id);
+        return e ? [...e.querySelectorAll('table tbody tr')].map(tr =>
+          [...tr.children].map(td => (td.textContent||'').trim()).join('|')) : []; };
+      R.tablaB = filas('b-cine-med-barra');
+      R.tablaA = filas('cine-med-barra');
+      const rot = f => f.map(x => x.split('|')[0]).join(',');
+      R.rotB = rot(R.tablaB); R.rotA = rot(R.tablaA);
+      const bip = R.tablaB.filter(f => f.indexOf('Biplano') === 0)[0];
+      if (bip) { const c2 = bip.split('|');
+        R.veyecOk = Math.abs((parseFloat(c2[1]) - parseFloat(c2[2])) - parseFloat(c2[3])) < 0.15; }
+    } catch (e) {
+      R.err = String(e && e.message || e);
+    } finally {
+      window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+      try {
+        if (togglePrevio === null) localStorage.removeItem('cfg-guardar-imagenes');
+        else localStorage.setItem('cfg-guardar-imagenes', togglePrevio);
+      } catch (e) {}
+      try { cineCerrar(); } catch (e) {}
+      document.querySelectorAll('[data-vpicker]').forEach(o => { try { o.remove(); } catch (e) {} });
+      if (estudioId) { try { await __t.borrar(estudioId); } catch (e) {} }
+      try { imgVaciar(); } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                        !R.err, R.err],
+      ['DENOMINADOR: los cuatro trazados entraron', !R.eA && !R.eB, (R.eA||'') + ' ' + (R.eB||'')],
+      ['DENOMINADOR: hay dos paneles distintos', R.panelesDistintos === true, R.panelesDistintos],
+      ['la vista B abre MIDIENDO',               R.bMedicionOn === true, R.bMedicionOn],
+      ['con la capa de medicion ya dibujada',    R.bCapaVisible === true, R.bCapaVisible],
+      ['y 2D Distancia elegida',                 R.bHerr === 'dist' && R.bGrupo === '2d',
+                                                 'herr=' + R.bHerr + ' grupo=' + R.bGrupo],
+      ['los botones de A van a la derecha',      R.aDerechaA === true, R.aDerechaA],
+      ['y los de B tambien',                     R.aDerechaB === true, R.aDerechaB],
+      ['la tabla de B trae las TRES filas',      R.rotB === 'A4C,A2C,Biplano', R.rotB],
+      ['y la de A tambien, sin quedar vieja',    R.rotA === 'A4C,A2C,Biplano', R.rotA],
+      ['VEyec = VFD - VFS en el biplano',        R.veyecOk === true, R.tablaB.join(' ~ ')]
+    ] };
+  })();
+`);
+
 caso('TC-228', 'Visor: la etiqueta dice DE DONDE viene el valor, y el numero queda quemado siempre', `
   return (async () => {
     const R = {};

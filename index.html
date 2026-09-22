@@ -48306,6 +48306,9 @@ function medSimpsonElegirVista(v) {
   _simp.fase = (P2.d && !P2.s) ? 's' : 'd';
   _simp.pendiente = null;
   _medPintar(); _medEstado();
+  /* Declarar la ventana cambia el RÓTULO de una fila de la tabla compartida, así que la otra
+     vista también queda vieja: sin esto, la A seguía diciendo «Vista B» donde ya dice «A2C». */
+  _simpRepintarOtraVista();
 }
 window.medSimpsonElegirVista = medSimpsonElegirVista;
 
@@ -48322,22 +48325,25 @@ window.medSimpsonElegirVista = medSimpsonElegirVista;
    integrar, que ademas exige biplano. */
 const _SIMP_PERSIST_VER = 1;
 
+/* Se guarda LO MISMO que se muestra: `_simpFilasVivas` es el único armador, así que la tabla
+   que vuelve al reabrir el estudio no puede diferir de la que el médico vio. */
 function _simpResumen() {
-  if (!_simp) return null;
-  const vistas = [];
-  [0, 1].forEach(i => {
-    const m = _simpMonoDe(i);
-    if (!m) return;
-    vistas.push({ k: _simpNombre(i) || null, idx: i,
-                  vfd:+m.vfd.toFixed(2), vfs:+m.vfs.toFixed(2),
-                  vey:+m.vey.toFixed(2), fevi:+m.fevi.toFixed(2) });
+  const filas = _simpFilasVivas();
+  if (!filas.length) return null;
+  const num = x => +Number(x).toFixed(2);
+  const R = { v:_SIMP_PERSIST_VER, ts:new Date().toISOString(), vistas: [] };
+  filas.forEach(f => {
+    const fila = { k:null, rot:f.rot, vfd:num(f.m.vfd), vfs:num(f.m.vfs),
+                   vey:num(f.m.vey), fevi:num(f.m.fevi) };
+    if (f.mono) {
+      const V = _SIMP_VISTAS.filter(x => x.rot === f.rot)[0];
+      fila.k = V ? V.k : null;
+      R.vistas.push(fila);
+    } else {
+      R.biplano = { vfd:fila.vfd, vfs:fila.vfs, vey:fila.vey, fevi:fila.fevi };
+    }
   });
-  if (!vistas.length) return null;
-  const R = { v:_SIMP_PERSIST_VER, ts:new Date().toISOString(), vistas: vistas };
-  const B = _simp.res;
-  if (B && B.bi) R.biplano = { vfd:+B.vfd.toFixed(2), vfs:+B.vfs.toFixed(2),
-                               vey:+(B.vfd - B.vfs).toFixed(2), fevi:+B.fevi.toFixed(2) };
-  return R;
+  return R.vistas.length ? R : null;
 }
 window._simpResumen = _simpResumen;
 
@@ -48384,14 +48390,15 @@ window.medSimpsonLimpiarTabla = medSimpsonLimpiarTabla;
 /* El MONOPLANO de un par, que es lo que va en cada fila de la tabla. El disco se asume
    CIRCULAR —b_i = a_i—, que es exactamente lo que `_simpCalcular` hace cuando hay una sola
    vista: se reusa `_simpVolumenML` para que no haya una segunda fórmula del mismo volumen. */
-function _simpMonoDe(i) {
-  if (!_simpParCompleto(i)) return null;
-  const P = _simp.pares[i];
+function _simpMonoDeS(S, i) {
+  const P = S && S.pares && S.pares[i];
+  if (!P || !P.d || !P.s) return null;
   const vol = f => _simpVolumenML(P[f].diamCm, P[f].diamCm, P[f].Lcm);
   const vfd = vol('d'), vfs = vol('s');
   if (!(vfd > 0)) return null;
   return { vfd, vfs, vey: vfd - vfs, fevi: (vfd - vfs) / vfd * 100 };
 }
+function _simpMonoDe(i) { return _simpMonoDeS(_simp, i); }
 
 /* Eje largo según la guía: recta que cierra el anillo mitral (primer punto ↔ último),
    su punto medio, y el punto del contorno más lejano a ese medio. */
@@ -48504,6 +48511,20 @@ function medSimpsonConfirmar() {
   if (_simp.res && _simp.res.bi) _simp.integrada = false;
   _medPintar(); _medEstado();
   _vBiplanoPintar();          // el par de esta vista puede haber completado el cruce A × B
+  _simpRepintarOtraVista();
+}
+
+/* ⚠️ LA TABLA ES UNA SOLA Y CRUZA LAS DOS VISTAS, así que confirmar en una deja la OTRA vieja.
+   Medido: con la A2C recién confirmada en la vista B, el panel de la A seguía mostrando una
+   tabla de una sola fila. Se repinta el panel de la otra vista —sólo el panel; ni el canvas ni
+   el estado se tocan—, atándolo a SU vista con `_vCon` para que `_medEstado` lea los accesores
+   correctos. */
+function _simpRepintarOtraVista() {
+  const actual = _V;
+  _vTodas().forEach(V2 => {
+    if (V2 === actual) return;
+    _vCon(V2, () => { try { _medEstado(); } catch (e) {} });
+  });
 }
 
 function medSimpsonSegundaVista() {
@@ -51060,26 +51081,54 @@ window.medSimpsonTablaPDF = medSimpsonTablaPDF;
    armados, lo que se guarda y lo que se ve podrían dejar de coincidir.
    Si no hay sesión en curso cae a lo GUARDADO con el estudio, que es lo que hace que la tabla
    vuelva al reabrirlo — los contornos no se guardan, sólo los números. */
-function _simpFilasTabla() {
-  const filas = [];
-  if (_simp) {
+/* ⚠️ LA TABLA ES UNA SOLA Y CRUZA LAS DOS VISTAS. Cada vista del visor lleva SU sesión de
+   Simpson, así que antes la A mostraba su tabla con la A4C y la B otra con la A2C: dos tablas
+   del mismo ventrículo, ninguna con el biplano que el médico acababa de medir lado a lado.
+
+   Se deduplica por RÓTULO: si la A ya declaró la A4C y la B también, es la misma ventana y no
+   puede aparecer dos veces — el biplano promediaría la misma vista bajo dos nombres.
+
+   La fila de cierre prefiere el biplano A×B, que es el que sale de las dos imágenes que el
+   médico tiene abiertas; sólo si no hay dos vistas cae al biplano interno de una sesión. */
+function _simpFilasVivas() {
+  const filas = [], vistos = [];
+  const _agregar = (S, rotVista) => {
+    if (!S) return;
     [0, 1].forEach(i => {
-      const m = _simpMonoDe(i);
+      const m = _simpMonoDeS(S, i);
       if (!m) return;
-      const nk = _simpNombre(i);
+      const nk = S.nombres && S.nombres[i];
       const V = nk ? _SIMP_VISTAS.filter(x => x.k === nk)[0] : null;
-      filas.push({ rot: V ? V.rot : ('Vista ' + (i + 1)), m: m, mono: true });
+      const rot = V ? V.rot : (rotVista + (i ? ' · 2' : ''));
+      if (vistos.indexOf(rot) >= 0) return;
+      vistos.push(rot);
+      filas.push({ rot: rot, m: m, mono: true });
     });
-    const R = _simp.res;
-    if (filas.length && R && R.bi)
+  };
+  _agregar(_vistaA && _vistaA.simp, 'Vista A');
+  _agregar(_vistaB && _vistaB.simp, 'Vista B');
+  if (!filas.length) return filas;
+  const AB = (typeof _vBiplanoDatos === 'function') ? _vBiplanoDatos() : null;
+  if (AB) {
+    filas.push({ rot:'Biplano', m:{ vfd:AB.vfd, vfs:AB.vfs, vey:AB.vfd - AB.vfs, fevi:AB.fevi }, mono:false });
+  } else {
+    const R = _simp && _simp.res;
+    if (R && R.bi)
       filas.push({ rot:'Biplano', m:{ vfd:R.vfd, vfs:R.vfs, vey:R.vfd - R.vfs, fevi:R.fevi }, mono:false });
   }
+  return filas;
+}
+window._simpFilasVivas = _simpFilasVivas;
+
+function _simpFilasTabla() {
+  const filas = _simpFilasVivas();
   if (filas.length) return filas;
   const G = (typeof _simpGuardado === 'function') ? _simpGuardado() : null;
   if (!G) return [];
   G.vistas.forEach(v => {
     const V = v.k ? _SIMP_VISTAS.filter(x => x.k === v.k)[0] : null;
-    filas.push({ rot: V ? V.rot : ('Vista ' + ((v.idx || 0) + 1)), m: v, mono: true, guardada: true });
+    filas.push({ rot: V ? V.rot : (v.rot || ('Vista ' + ((v.idx || 0) + 1))),
+                 m: v, mono: true, guardada: true });
   });
   if (G.biplano) filas.push({ rot:'Biplano', m:G.biplano, mono:false, guardada:true });
   return filas;
@@ -52131,6 +52180,18 @@ async function vistaBAbrir() {
   _vCablear(V);
   const ok = await _vElegirLoop(V);
   if (!ok) { vistaBCerrar(); return; }
+  /* ⚠️ LA VISTA B ABRE LISTA PARA MEDIR. Sin esto nacía muda: el canvas de medición oculto y
+     ninguna herramienta elegida, así que el médico tenía que descubrir que había que encender
+     algo — y la vista B se abre EXACTAMENTE para medir la segunda apical.
+     `medToggle` ya entra solo en modo calibrar cuando la imagen no declara escala, así que
+     acá no se fuerza: forzarlo sobre un DICOM que SÍ la trae pisaría la escala del archivo
+     con dos clics a mano, que es peor que la que se descarta. */
+  _vCon(V, () => {
+    _medGrupo = '2d';
+    _medHerr = 'dist';
+    if (!_medOn) medToggle();
+    _medEstado();
+  });
   const sy = document.getElementById('cine-sync');
   if (sy) sy.style.display = '';
   _vBiplanoPintar();
@@ -69547,8 +69608,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260922-1730';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790109037134;                 /* eco-build-ms */
+const ECO_BUILD    = '20260922-1804';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790111054891;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -69634,7 +69695,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1730</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1804</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
