@@ -143,6 +143,17 @@ const PRELUDIO = `
     /* El strain del VI pasa por elegir cineloop y vista antes de trazar. Los casos que no
        prueban el SELECTOR usan esto, que es lo que hace la interfaz despues de tocar una
        miniatura: marca el loop como elegido y fija la vista. */
+    /* El harness corre en una ventana de ~756 px, o sea DENTRO del rango donde el visor
+       muestra UNA sola vista. Los casos que comparan las DOS necesitan el layout ancho.
+       Se fuerza con setProperty(...,'important'): un estilo en linea con !important es lo
+       unico que le gana al !important de la hoja. */
+    anchoDesktop() {
+      const c = document.getElementById('cine-paneles');
+      if (!c) return 'no hay #cine-paneles';
+      c.style.setProperty('flex-direction', 'row', 'important');
+      [...c.children].forEach(p2 => p2.style.setProperty('display', 'flex', 'important'));
+      return 1;
+    },
     strVista(k) {
       if (typeof _strain === 'undefined' || !_strain) return 'sin sesion de strain';
       _strain.loopListo = true;
@@ -12777,6 +12788,7 @@ caso('TC-195', 'Dos vistas: reproductores independientes y sincronizacion por po
       _vistaB = _vNueva('b-', 'B');
       _vMontarPanel(document.getElementById('cine-paneles'), 'b-');
       _vCablear(_vistaB);
+      __t.anchoDesktop();
       _vCon(_vistaB, () => { _vistaB.datos = { loops:[ mkLoop('vista-B', mitad) ], i:0, cuadro:0, timer:null };
                              _cineCargarLoop(); });
       document.getElementById('cine-sync').style.display = '';
@@ -12924,6 +12936,7 @@ caso('TC-196', 'Dos vistas: seis herramientas por vista, estados ajenos y Simpso
       _vistaB = _vNueva('b-', 'B');
       _vMontarPanel(document.getElementById('cine-paneles'), 'b-');
       _vCablear(_vistaB);
+      __t.anchoDesktop();
       _vCon(_vistaB, () => { _vistaB.datos = { loops:[ loopCon('apical-2c.dcm', 2) ], i:0, cuadro:0, timer:null };
                              _cineCargarLoop(); });
       await new Promise(r => setTimeout(r, 250));
@@ -13349,6 +13362,7 @@ caso('TC-198', 'Sincronizacion: la guarda corta la reentrada y A -> B sigue anda
       _vistaB = _vNueva('b-', 'B');
       _vMontarPanel(document.getElementById('cine-paneles'), 'b-');
       _vCablear(_vistaB);
+      __t.anchoDesktop();
       _vCon(_vistaB, () => { _vistaB.datos = { loops:[ mkLoop('vista-B', NB) ], i:0, cuadro:0, timer:null };
                              _cineCargarLoop(); });
       document.getElementById('cine-sync').style.display = '';
@@ -13618,6 +13632,7 @@ caso('TC-199', 'Strain: trazado guiado, eje largo compartido con Simpson, y el b
       _vistaB = _vNueva('b-', 'B');
       _vMontarPanel(document.getElementById('cine-paneles'), 'b-');
       _vCablear(_vistaB);
+      __t.anchoDesktop();
       _vCon(_vistaB, () => { _vistaB.datos = { loops:[ mkLoop('vistaB-2d.dcm', [reg2d]) ], i:0, cuadro:0, timer:null };
                              _cineCargarLoop(); });
       await new Promise(r => setTimeout(r, 220));
@@ -14302,6 +14317,7 @@ caso('TC-202', 'Capturar con mediciones: la capa se compone, la etiqueta va en s
       _vistaB = _vNueva('b-', 'B');
       _vMontarPanel(document.getElementById('cine-paneles'), 'b-');
       _vCablear(_vistaB);
+      __t.anchoDesktop();
       _vCon(_vistaB, () => { _vistaB.datos = { loops:[ mkLoop('b.dcm') ], i:0, cuadro:0, timer:null };
                              _cineCargarLoop(); });
       await new Promise(r => setTimeout(r, 220));
@@ -21046,6 +21062,149 @@ caso('TC-240', 'Vista B: abre el mismo cineloop que la tira, por la misma ruta d
    El tamano se mide en PIXELES DIBUJADOS y no se lee del fuente: la regla de accesibilidad
    `button{min-width:44px}` GANA sobre el `width` en linea —son propiedades distintas— y por eso
    los ✕ que el codigo declaraba de 22 px se dibujaban de 44. Area tactil 44, disco visible 20. */
+/* == TC-244 - El visor se recalza al cambiar el ancho, y en angosto va UNA vista ==========
+   ⚠️ EL DESCALCE DE LAS MEDICIONES NO ERA UN DEFECTO DE MOBILE: pasaba en cualquier pantalla.
+   `_medPintar` calza el canvas de medicion sobre la imagen leyendo getBoundingClientRect EN EL
+   MOMENTO DE PINTAR, y nadie lo volvia a llamar si despues cambiaba el ancho. Medido a 1400 px
+   con las dos vistas abiertas: el overlay quedaba 67 px mas arriba y 363 px mas ancho que la
+   imagen. O sea una regla dibujada sobre una estructura y mostrada sobre otra.
+
+   El caso NO necesita cambiar el viewport -el harness no lo expone-: angosta el CONTENEDOR y
+   DESPACHA el evento a mano, que es lo que de verdad ejerce el oyente. Cambiar un estilo no
+   emite `resize` por si solo, que es la trampa que este archivo ya documenta con scrollTo.
+
+   Y el alternador de vista angosta se prueba por la FUNCION y por la CLASE, no por el ancho:
+   que la regla exista en la hoja se verifica aparte, como TC-219 hace con :hover. */
+caso('TC-244', 'Visor: el overlay se recalza al cambiar el ancho, y en angosto va una vista', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const toastReal = window.toast, alertReal = window.alert;
+    window.toast = () => {}; window.alert = () => {};
+    try {
+      const mkJpeg = () => { const c = document.createElement('canvas'); c.width = 600; c.height = 500;
+        const g = c.getContext('2d'); g.fillStyle = '#223344'; g.fillRect(0, 0, 600, 500);
+        const b64 = c.toDataURL('image/jpeg').split(',')[1]; const bin = atob(b64);
+        const u = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; };
+      const jpeg = mkJpeg();
+      const reg = { tipo:1, x0:20, y0:20, x1:580, y1:480, ux:3, uy:3, dx:0.05, dy:0.05,
+                    rx0:20, ry0:20, rvx:0, rvy:0 };
+      /* ⚠️ DENOMINADOR: los casos que comparan las dos vistas fuerzan el layout ancho con
+         __t.anchoDesktop(), y eso deja estilos EN LINEA con !important sobre #cine-paneles
+         que sobreviven al caso. Sin limpiarlos, este caso mide row a 756 px y acusa a la
+         media query de no aplicar. Pasaba con --solo y fallaba en el suite. */
+      const limpiarForzado = () => { const c = document.getElementById('cine-paneles');
+        if (!c) return;
+        c.style.removeProperty('flex-direction');
+        [...c.children].forEach(p2 => p2.style.removeProperty('display')); };
+      limpiarForzado();
+      _cineAbrir([{ nombre:'apical', cuadros:4,
+        d:{ frags:[jpeg,jpeg,jpeg,jpeg], cols:600, filas:500, msCuadro:40, regiones:[reg] } }]);
+      await esperar(700);
+      limpiarForzado();
+      if (!_medOn) medToggle();
+      await esperar(300);
+
+      const calce = () => { const b = document.getElementById('cine-cv'),
+                                  m = document.getElementById('cine-med');
+        if (!b || !m) return 'faltan';
+        const q = b.getBoundingClientRect(), p = m.getBoundingClientRect();
+        return Math.round(p.left - q.left) + ',' + Math.round(p.top - q.top) + ' ' +
+               Math.round(p.width - q.width) + 'x' + Math.round(p.height - q.height); };
+      R.calceInicial = calce();
+
+      /* DENOMINADOR: angostar tiene que CAMBIAR el ancho de la imagen. Si no cambia, «sigue
+         calzado» se cumple sin que ninguna regla lo sostenga. */
+      const cont = document.getElementById('cine-paneles');
+      const base = document.getElementById('cine-cv');
+      const antes = Math.round(base.getBoundingClientRect().width);
+      cont.style.maxWidth = '380px';
+      await esperar(120);
+      R.anchoCambio = Math.round(base.getBoundingClientRect().width) !== antes;
+      /* Sin despachar, el oyente no corre: cambiar un estilo no emite resize. */
+      R.calceSinAviso = calce();
+      window.dispatchEvent(new Event('resize'));
+      await esperar(400);
+      R.calceTrasResize = calce();
+      cont.style.maxWidth = '';
+      window.dispatchEvent(new Event('resize'));
+      await esperar(300);
+
+      /* El alternador: cambia la clase y el rotulo, y NO destruye la vista escondida. */
+      R.claseInicial = cont.className.indexOf('cine-ver-b') >= 0;
+      const tg = document.getElementById('cine-vtoggle');
+      R.hayToggle = !!tg;
+      R.rot0 = tg ? tg.textContent.trim() : '';
+      /* SIN SEGUNDA VISTA EL ALTERNADOR NO CAMBIA NADA, y esa es la condicion que importa:
+         sin la guarda, tocarlo esconde el panel A y muestra un panel que no existe, o sea una
+         pantalla en blanco. Este caso corre con UNA sola vista, que es donde la guarda decide. */
+      R.hayB = !!_vistaB;
+      if (tg) {
+        vistaAlternarMobil(); await esperar(200);
+        R.claseSinB = cont.className.indexOf('cine-ver-b') >= 0;
+        R.rot1 = tg.textContent.trim();
+      }
+      /* Las reglas de ancho angosto EXISTEN en la hoja, con el !important que hace falta para
+         ganarle al display:flex en linea del panel. */
+      const css = [...document.styleSheets].map(h => { try { return [...h.cssRules]; }
+        catch (e) { return []; } }).reduce((a, b) => a.concat(b), []);
+      const medias = css.filter(r => r.media && /767px/.test(r.conditionText || r.media.mediaText || ''));
+      const txt = medias.map(r => [...r.cssRules].map(x => x.cssText).join(' ')).join(' ');
+      R.hayReglaAngosta = txt.indexOf('cine-paneles') >= 0;
+      /* ⚠️ LA REGLA QUE IMPORTA ES LA BASE -#cine-paneles > div- Y NO CUALQUIERA. Buscar
+         display:none !important suelto en la hoja pasa con la base degradada, porque las
+         otras tres conservan el suyo: la mutacion que se lo saca sobrevivia entera. */
+      const reglas = medias.map(r => [...r.cssRules]).reduce((a2, b2) => a2.concat(b2), []);
+      const base1 = reglas.filter(x => (x.selectorText || '').split('  ').join(' ').trim() ===
+                                       '#cine-paneles > div')[0];
+      R.selBase = base1 ? base1.cssText : '(no esta)';
+      R.usaImportant = !!base1 && base1.cssText.indexOf('!important') >= 0;
+      const m1023 = css.filter(r => r.media && /1023px/.test(r.conditionText || r.media.mediaText || ''));
+      R.hayApilado = m1023.map(r => [...r.cssRules].map(x => x.cssText).join(' ')).join(' ')
+                       .indexOf('cine-paneles') >= 0;
+      R.condApilado = m1023.map(r => r.conditionText || r.media.mediaText).join(' | ');
+      /* indexOf y NO regex: el template literal del caso se come una barra invertida, asi
+         que el s de espacio llega pelado y el patron deja de matchear. Van diez veces. */
+      R.tope1023 = R.condApilado.indexOf('1023px') >= 0 &&
+                   R.condApilado.indexOf('max-width') >= 0 &&
+                   R.condApilado.indexOf('min-width') < 0;
+      /* DESKTOP NO SE TOCA: a este ancho el contenedor sigue en fila. */
+      R.dirAncho = getComputedStyle(cont).flexDirection;
+      R.anchoVentana = window.innerWidth;
+    } catch (e) {
+      R.err = String(e && e.message || e);
+    } finally {
+      window.toast = toastReal; window.alert = alertReal;
+      const c = document.getElementById('cine-paneles');
+      if (c) { c.style.maxWidth = ''; c.classList.remove('cine-ver-b'); }
+      try { cineCerrar(); } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                          !R.err, R.err],
+      ['el overlay arranca calzado',               R.calceInicial === '0,0 0x0', R.calceInicial],
+      ['DENOMINADOR: angostar cambia la imagen',   R.anchoCambio === true, R.anchoCambio],
+      ['y sin el evento queda DESCALZADO',         R.calceSinAviso !== '0,0 0x0', R.calceSinAviso],
+      ['el resize lo vuelve a calzar',             R.calceTrasResize === '0,0 0x0', R.calceTrasResize],
+      ['hay alternador de vista',                  R.hayToggle === true, R.hayToggle],
+      ['DENOMINADOR: este caso corre con UNA vista', R.hayB === false, R.hayB],
+      ['sin segunda vista el alternador NO cambia de panel',
+                                                   R.claseSinB === false, R.claseSinB],
+      ['y el rotulo sigue ofreciendo la B',        /B/.test(R.rot1 || ''), R.rot1],
+      ['la regla de una sola vista existe',        R.hayReglaAngosta === true, R.hayReglaAngosta],
+      ['con !important en la regla BASE, que es la que le gana al display en linea',
+                                                   R.usaImportant === true, R.selBase],
+      ['y la de apilado en tablet tambien',        R.hayApilado === true, R.hayApilado],
+      /* El harness corre a ~756 px, o sea DENTRO del rango apilado, asi que «sigue en fila»
+         no se puede afirmar midiendo aca. Lo que se fija es el BORDE de la regla: acotada en
+         1023, cualquier pantalla de 1024 para arriba queda sin tocar. */
+      ['el apilado esta acotado en 1023 px',       R.tope1023 === true, R.condApilado],
+      ['y a este ancho ya apila, que es lo esperado', R.dirAncho === 'column',
+                                                   R.dirAncho + ' a ' + R.anchoVentana + 'px']
+    ] };
+  })();
+`);
+
 /* == TC-243 - El visor de documentos: se desplaza, no se achica, y tiene por donde salir ==
    ⚠️ LA IMAGEN SE ACHICABA HASTA SER ILEGIBLE. Los dos documentos que produce la app -la tabla
    de Simpson y el bull's eye- se dibujan a 640 px de ancho, y con `max-width:100%` a 390 px de

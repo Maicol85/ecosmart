@@ -4,6 +4,89 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## El visor no tenía UNA regla responsive — y el descalce no era de mobile (TC-244)
+
+Medido con las dos vistas abiertas, antes de tocar nada:
+
+| | 1400 px | 900 px | 390 px |
+|---|---|---|---|
+| layout | A 127‥694 · B 706‥1273 | side by side + scroll horizontal | paneles de **158 px** |
+| botones fuera del viewport | 0 | 0 | **4** |
+| **calce del overlay tras resize** | **0,−67 · 363×303** | **0,−67 · 209×174** | — |
+
+**Las vistas NO se superponen: se aplastan.** `superpuestos: false` en los tres anchos. Lo que
+pasa es que `#cine-paneles` era `display:flex` fijo y las dos se repartían el ancho que hubiera.
+
+### ⚠️ EL DESCALCE DE LAS MEDICIONES PASA TAMBIÉN EN DESKTOP
+
+Se reportó como problema de pantallas chicas y no lo es. `_medPintar` calza el canvas de
+medición sobre la imagen leyendo `getBoundingClientRect()` **en el momento de pintar**, y nadie
+lo volvía a llamar si después cambiaba el ancho: la imagen se reacomoda —lleva `max-width:100%`—
+y las líneas se quedan donde estaban. A 1400 px el overlay quedaba **67 px más arriba y 363 px
+más ancho** que la imagen. Una regla dibujada sobre una estructura y mostrada sobre otra.
+
+Cerrado con un oyente de `resize` con debounce que repinta **las dos vistas**, cada una en su
+contexto, y registrado de forma perezosa como `_medObservar` — colgarlo a nivel de módulo ataría
+un oyente al documento aunque el visor no se abra nunca.
+
+**Y el alternador tiene el mismo problema por otra puerta:** el panel que aparece venía de
+`display:none`, o sea que su canvas medía CERO. Sin repintar, alternar deja las mediciones de la
+vista que vuelve fuera de lugar.
+
+### ⚠️ `!important` NO ES PEREZA ACÁ: el panel trae `display:flex` EN LÍNEA
+
+`_vPanelHTML` emite `style="flex:1;min-width:0;display:flex;..."`, y un estilo en línea le gana
+a la hoja sin importar la especificidad del selector. La primera versión de la media query
+aplicaba y **las dos vistas seguían a la vista**: medido, `visA:true, visB:true` a 390 px. Es el
+defecto que este archivo ya documenta con `[hidden]` y el banner de versión.
+
+### El corte de tablet es 1023 y no 768
+
+A 900 px las dos vistas todavía entran «a lo ancho» y el resultado es scroll horizontal, que es
+**peor** que apilarlas: con dos paneles de 413 px ninguna imagen se lee bien y encima hay que
+desplazar. Por eso el apilado empieza antes del breakpoint de 768 que usa el resto de la app.
+
+**El scroll horizontal a 900 px NO se cerró y es PREEXISTENTE** — está en la medición sobre HEAD,
+antes de este cambio. Queda anotado, no arreglado.
+
+### El alternador se niega a cambiar si no hay vista B
+
+Sin esa guarda, tocarlo esconde el panel A y muestra uno que no existe: **pantalla en blanco**.
+La primera versión del caso esperaba lo contrario y dio rojo sobre código correcto.
+
+### ⚠️ EL HARNESS CORRE EN UNA VENTANA DE ~756 px, o sea EN RANGO ANGOSTO
+
+Así que desde este commit el panel B está oculto ahí, y los casos que comparan las dos vistas
+medían `undefined` sobre un canvas de tamaño cero: TC-196 y TC-199 se pusieron en rojo. Se
+agregó `__t.anchoDesktop()`, que fuerza el layout ancho con
+`setProperty(..., 'important')` — **un estilo en línea con `!important` es lo único que le gana
+al `!important` de la hoja**.
+
+**Y eso creó el defecto siguiente: TC-244 pasaba con `--solo` y fallaba en el suite.** Esos
+estilos en línea sobreviven al caso que los puso, así que TC-244 medía `row` a 756 px y acusaba
+a la media query de no aplicar. Hoy limpia lo forzado antes de medir. Es «pasa con --solo y
+falla en el suite» por séptima vez, y otra vez el denominador.
+
+### Dos trampas del propio caso, las dos ya documentadas
+
+- **El `\s` dentro del template literal**, décima vez: `/max-width:\s*1023px/` llegó como
+  `max-width:s*1023px` y no matcheó nunca. Se resolvió con `indexOf`, que es lo que este archivo
+  recomienda desde la quinta.
+- **Backticks dentro del cuerpo de un caso: van CUARENTA Y NUEVE**, dos en el mismo comentario
+  recién escrito — el que explicaba justamente la trampa del denominador de arriba.
+
+### Una mutación que sobrevivía porque la condición era floja
+
+«Sacar el `!important`» pasaba en verde: la condición buscaba `display: none !important` suelto
+en la hoja, y las **otras tres** reglas conservan el suyo. Hoy busca la regla BASE
+—`#cine-paneles > div`— y exige que sea ella la que lo tenga.
+
+### Cambiar un estilo NO emite `resize`
+
+La sonda angostaba el contenedor y esperaba que el oyente corriera solo. Hay que despachar el
+evento a mano, igual que `scrollTo` con el suyo.
+
+
 ## El visor de documentos se achicaba hasta ser ilegible — y no se estiraba (TC-243)
 
 Tres cosas pedidas sobre «el modal de la tabla Simpson». **La tabla de Simpson no es un

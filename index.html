@@ -941,6 +941,42 @@
      la celda da ~135 px y la miniatura la llena. */
   @media (max-width: 768px) { .cfg-grid { grid-template-columns: 1fr; gap: 12px; } }
 
+  /* ══ VISOR DE CINELOOP — LAYOUT POR ANCHO ════════════════════════════════════════════════
+     El visor no tenía NI UNA regla responsive: `#cine-paneles` era `display:flex` fijo, así
+     que las dos vistas se repartían el ancho que hubiera. Medido con las dos abiertas:
+
+        1400 px → A 127..694 · B 706..1273   correcto
+         900 px → A  31..444 · B 456..869    + scroll horizontal
+         390 px → A  31..189 · B 201..359    paneles de 158 px, y 4 botones fuera del viewport
+
+     No se SUPERPONEN —eso no reproduce— se aplastan: una ecografía en 158 px no se mira.
+
+     ⚠️ EL CORTE DE TABLET ES 1023 Y NO 768. A 900 px las dos vistas todavía entran «a lo
+     ancho» y el resultado es scroll horizontal, que es peor que apilarlas: con dos paneles de
+     413 px ninguna de las dos imágenes se lee bien y encima hay que desplazar. Por eso el
+     apilado empieza antes del breakpoint de 768 que usa el resto de la app. */
+  @media (max-width: 1023px) {
+    #cine-paneles { flex-direction: column; }
+  }
+  /* Por debajo de 768: UNA vista a la vez. Apilar dos paneles completos —imagen, barra
+     lateral de nueve herramientas y panel de resultados— deja la segunda fuera de la pantalla
+     y obliga a desplazar para comparar, que es lo contrario de para qué existe la doble vista. */
+  #cine-vtoggle { display: none; }
+  @media (max-width: 767px) {
+    /* ⚠️ `!important` NO ES PEREZA: `_vPanelHTML` emite el panel con `display:flex` EN LINEA,
+       y un estilo en línea le gana a la hoja sin importar la especificidad del selector. Es
+       exactamente el defecto que este archivo ya documenta con `[hidden]` y el banner de
+       versión, y acá se veía igual: la media query aplicaba y las dos vistas seguían a la
+       vista. Medido: `visA:true, visB:true` a 390 px. */
+    #cine-paneles > div { display: none !important; }
+    #cine-paneles > div:first-child { display: flex !important; }
+    #cine-paneles.cine-ver-b > div:first-child { display: none !important; }
+    #cine-paneles.cine-ver-b > div:nth-child(2) { display: flex !important; }
+    /* El alternador sólo existe si hay una segunda vista que alternar. La clase la pone
+       `_vToggleSync`; la VISIBILIDAD la decide el ancho, que es de CSS. */
+    #cine-ov.cine-con-b #cine-vtoggle { display: inline-flex; }
+  }
+
   #pltz-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   #pltz-grid > button { padding: 6px; border-radius: 8px; }
   /* El SVG se acota por ALTO y no por ancho: con `width:100%` crecía con la card —259 px en un
@@ -47817,6 +47853,76 @@ function _vCablear(V) {
   _vCon(V, _medSideRender);
 }
 
+/* ══ EL OVERLAY DE MEDICIÓN SE RECALZA AL CAMBIAR EL ANCHO ═══════════════════════════════
+   ⚠️ ESTO NO ES UN DEFECTO DE MOBILE: pasa en cualquier pantalla. `_medPintar` calza el canvas
+   de medición sobre la imagen leyendo `getBoundingClientRect()` EN EL MOMENTO DE PINTAR, y
+   nadie lo volvía a llamar si después cambiaba el ancho. La imagen se reacomoda —lleva
+   `max-width:100%`— y las líneas se quedan donde estaban.
+
+   Medido, con las dos vistas abiertas y angostando el contenedor:
+
+       1400 px → el overlay queda 67 px más arriba y 363 px más ancho que la imagen
+        900 px → 67 px más arriba y 209 px más ancho
+
+   O sea una regla dibujada sobre una estructura y mostrada sobre otra. Se repintan las DOS
+   vistas, cada una en su contexto.
+
+   Se registra UNA vez y de forma perezosa, como `_medObservar`: colgarlo a nivel de módulo
+   ataría un oyente de `resize` al documento aunque el visor no se abra nunca. */
+let _vResizeT = null, _vResizePuesto = false;
+function _vRepintarOverlays() {
+  _vTodas().forEach(V => _vCon(V, () => {
+    /* Sólo si esta vista está midiendo: `_medPintar` sobre una vista sin canvas visible es
+       trabajo al pedo, y sobre una sin `_cineDatos` puede tocar un base que no está. */
+    try { if (_medOn && _cineDatos) _medPintar(); } catch (e) {}
+  }));
+}
+window._vRepintarOverlays = _vRepintarOverlays;
+
+function _vObservarAncho() {
+  if (_vResizePuesto) return;
+  _vResizePuesto = true;
+  window.addEventListener('resize', () => {
+    const ov = document.getElementById('cine-ov');
+    if (!ov || ov.style.display === 'none') return;   // el visor cerrado no tiene nada que recalzar
+    clearTimeout(_vResizeT);
+    /* Con debounce: un arrastre de ventana dispara decenas de eventos y cada `_medPintar`
+       redibuja todas las mediciones de la vista. */
+    _vResizeT = setTimeout(_vRepintarOverlays, 80);
+  });
+}
+
+/* Alterna qué vista se ve por debajo de 768 px. NO destruye nada: es `display`, así que los
+   trazados, la calibración y el panel de la vista escondida quedan intactos. */
+function vistaAlternarMobil() {
+  const c = document.getElementById('cine-paneles');
+  if (!c) return;
+  c.classList.toggle('cine-ver-b');
+  _vToggleSync();
+  /* ⚠️ EL PANEL QUE APARECE VENÍA DE `display:none`, o sea que su canvas medía CERO y su
+     overlay quedó calzado sobre esa nada. Sin este repintado, alternar deja las mediciones
+     de la vista que vuelve fuera de lugar — el mismo defecto que el resize, por otra puerta. */
+  setTimeout(_vRepintarOverlays, 30);
+}
+window.vistaAlternarMobil = vistaAlternarMobil;
+
+/* Rótulo del alternador y marca de «hay segunda vista» en el overlay, que es de lo que cuelga
+   la regla CSS que lo muestra. */
+function _vToggleSync() {
+  const ov = document.getElementById('cine-ov');
+  const c = document.getElementById('cine-paneles');
+  const b = document.getElementById('cine-vtoggle');
+  if (ov) ov.classList.toggle('cine-con-b', !!_vistaB);
+  if (!b || !c) return;
+  const enB = c.classList.contains('cine-ver-b');
+  b.textContent = enB ? '◀ Ver vista A' : 'Ver vista B ▶';
+  b.title = enB ? 'Volver a la primera vista' : 'Ver la segunda vista';
+  /* Si la B se cerró estando visible, se vuelve a la A: si no, queda la clase puesta sobre un
+     panel que ya no existe y la pantalla sale en blanco. */
+  if (enB && !_vistaB) { c.classList.remove('cine-ver-b'); _vToggleSync(); }
+}
+window._vToggleSync = _vToggleSync;
+
 function _cineAbrir(loops) {
   _V = _vistaA;
   _cineDetener();
@@ -47831,8 +47937,14 @@ function _cineAbrir(loops) {
        textContent. Nada del DICOM se interpola como HTML. */
     ov.innerHTML =
       '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:1180px;width:100%;max-height:94vh;overflow:auto;padding:16px;">' +
-        '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px;">' +
-          '<h3 style="margin:0;font-size:15px;">🎞️ Cineloop</h3></div>' +
+        '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">' +
+          '<h3 style="margin:0;font-size:15px;">🎞️ Cineloop</h3>' +
+          /* Alternador de vista para pantallas angostas. Nace sin `display` en línea: quién lo
+             muestra es la media query, porque depende del ANCHO y no del estado. */
+          '<button type="button" class="btn btn-ghost" id="cine-vtoggle" ' +
+            'style="margin-left:auto;padding:5px 12px;font-size:12px;align-items:center;">' +
+            'Ver vista B ▶</button>' +
+        '</div>' +
         '<div id="cine-paneles" style="display:flex;gap:12px;align-items:flex-start;">' +
           _vPanelHTML('', false) +
         '</div>' +
@@ -47853,9 +47965,12 @@ function _cineAbrir(loops) {
     ov.querySelector('#cine-cerrar').onclick = cineCerrar;
     ov.querySelector('#cine-add-b').onclick  = vistaBAbrir;
     ov.querySelector('#cine-sync').onclick   = vistaSyncToggle;
+    ov.querySelector('#cine-vtoggle').onclick = vistaAlternarMobil;
     _vCablear(_vistaA);
   }
   ov.style.display = 'flex';
+  _vObservarAncho();
+  _vToggleSync();
   _cineCargarLoop();
 }
 
@@ -52225,6 +52340,7 @@ async function vistaBAbrir() {
   });
   const sy = document.getElementById('cine-sync');
   if (sy) sy.style.display = '';
+  _vToggleSync();
   _vBiplanoPintar();
 }
 window.vistaBAbrir = vistaBAbrir;
@@ -52242,6 +52358,7 @@ function vistaBCerrar() {
   if (_V !== _vistaA) _V = _vistaA;
   const sy = document.getElementById('cine-sync');
   if (sy) { sy.style.display = 'none'; sy.textContent = '🔗 Sincronizar'; }
+  _vToggleSync();
   _vBiplanoPintar();
 }
 window.vistaBCerrar = vistaBCerrar;
@@ -69812,8 +69929,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260922-1943';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790116986973;                 /* eco-build-ms */
+const ECO_BUILD    = '20260922-2022';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790119327883;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -69899,7 +70016,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1943</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-2022</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
