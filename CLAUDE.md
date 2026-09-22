@@ -4,6 +4,73 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## La tabla de Simpson viaja con el estudio, y «biblioteca» no es «PDF» (TC-239)
+
+### ⚠️ «GUARDAR EN BIBLIOTECA» Y «INCLUIR EN PDF» TIENEN QUE HACER COSAS DISTINTAS
+
+O son dos botones iguales. Decisión de Maicol (2026-09-22):
+
+| | dónde va | ¿sale en el informe? |
+|---|---|---|
+| 📋 Guardar en biblioteca | `ceibomed_cine`, tipo `doc` → **tira de archivos** | **no** |
+| 📄 Incluir en PDF | un **slot** de imagen | sí |
+| 🗑️ Limpiar | borra lo guardado **y** la sesión | — |
+
+**`tipo:'doc'` no es cosmético: hay dos filtros que ya existían y que un tipo nuevo rompe.**
+`medFijasRestaurar` sólo rehidrata `tipo === 'fija'` —correcto, un documento no es medible— y
+**`_vElegirLoop` listaba «todo lo que no es fija»**, así que sin excluirlo una tabla de resultados
+aparecía como **cineloop elegible para la segunda vista**. Se corrigió en el mismo commit.
+
+### El resumen vive en un `hidden`, o sea que hay que limpiarlo A MANO
+
+`simpson_manual`, espejo exacto de `strain_manual`. Viaja en `campos` por el barrido de
+`guardarInforme`, **pero ese barrido toma `input[type=text]` e `input[type=number]`** y un
+`hidden` no entra. Sin la línea en `limpiarCampos`, la FEVI biplano de un paciente queda dentro
+del estudio del siguiente — es la fuga de `ete_tavi_jet_horas`. La mutación que la saca imprime
+`largo=248` sobre un formulario recién limpiado.
+
+**Se guardan SÓLO LOS NÚMEROS**, no los contornos: son decenas de KB de anatomía del paciente en
+el registro y en cada backup para redibujar algo que ya se decidió no reabrir. Consecuencia
+declarada: al reabrir, la tabla vuelve **rotulada como guardada** y no se puede seguir midiendo
+sobre ella.
+
+**Y la tabla se dibuja FUERA del `if (R)`**: con el estudio reabierto no hay sesión viva y el
+resultado es `null`, pero los números guardados sí están. `_simpFilasTabla` cae a lo persistido —
+y es **un solo armador** para la tabla en pantalla y la del canvas: con dos, lo que se ve y lo que
+se guarda podrían dejar de coincidir.
+
+### Un dibujante por artefacto, no dos
+
+`_strBullsCanvas` se extrajo de `medStrainCapturar` para que **biblioteca y PDF usen el mismo**:
+con dos copias, la diana del informe y la guardada podrían dejar de llevar el mismo descargo de
+método. Lo mismo `_simpTablaCanvas` con `_simpFilasTabla`.
+
+### Tres tropiezos del caso, los tres conocidos
+
+- **La mutación del filtro del selector SOBREVIVIÓ.** La condición recalculaba el filtro dentro
+  del caso, o sea probaba **su propia copia** de la regla. Hoy llama a `_vElegirLoop` de verdad:
+  el estudio tiene un documento y **cero** cineloops, así que con el filtro bien no se abre ningún
+  selector y con el filtro roto aparece una tarjeta.
+- **TC-238 se puso en rojo por un texto que yo mismo reescribí** al agregar los botones de la
+  diana. Reapuntado al invariante.
+- **Y el regex de reemplazo no matcheaba**: en el FUENTE la frase está partida por la
+  concatenación —«…el campo `' + '`SGL.»— así que entre las dos palabras no hay un espacio sino
+  un operador. *Buscar en el fuente de una función lo que la función CONCATENA es buscar algo que
+  no está escrito así.*
+
+### La sonda también se equivocó, y del mismo modo de siempre
+
+El paso de «vuelve al reabrir» daba `false` sobre código sano: re-guardaba con `_ettEditandoId`
+en `null`, o sea **creaba un estudio NUEVO**, y después reabría el original —que nunca había visto
+la tabla—. El denominador otra vez.
+
+### Lo que ya estaba y no hubo que hacer
+
+Los **botones de ventana del strain ya están en la columna izquierda**: `_strainPanel` se pinta
+dentro de `cine-med-barra`, que *es* la columna izquierda de la ZONA 4. Y el selector visual de
+cineloop se hizo en el commit anterior.
+
+
 ## El cineloop de la segunda vista se elige POR LA MINIATURA (TC-238)
 
 Tercera etapa del rediseño del visor. **Buena parte de la Tarea 3 ya existía** y lo que valió fue

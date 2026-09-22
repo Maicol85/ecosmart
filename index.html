@@ -11976,6 +11976,10 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
            `guardarInforme` barre `input[id]`. NO es el informe: el strain manual sigue sin
            integrarse al documento firmado, y este campo no alimenta `sgl`. -->
       <input type="hidden" id="strain_manual" value="">
+      <!-- La tabla de Simpson del visor. Mismo patron que strain_manual: viaja en campos por
+           el barrido de guardarInforme y hay que LIMPIARLO A MANO, porque ese barrido toma
+           input[type=text] e input[type=number] y un hidden no entra. -->
+      <input type="hidden" id="simpson_manual" value="">
       <!-- Los cineloops van en su PROPIA tira y no adentro de la grilla. Dos razones: la grilla
            la reconstruye imgRender() en cada redibujo —que este trabajo no toca— y, sobre todo,
            un slot es «lo que sale en el PDF». El cineloop NO sale; sale el cuadro que se captura.
@@ -35456,6 +35460,9 @@ function eteShuntTaviReset(){
      —lo dice la entrada de este archivo sobre `ete_tavi_jet_horas`— y sin esta línea las
      mediciones del paciente anterior quedarían DENTRO del estudio del siguiente. */
   const stm=document.getElementById('strain_manual'); if(stm) stm.value='';
+  /* Y la tabla de Simpson, por lo MISMO. Sin esta linea la FEVI biplano del paciente
+     anterior queda dentro del estudio del siguiente y vuelve a dibujarse al abrir el visor. */
+  const spm=document.getElementById('simpson_manual'); if(spm) spm.value='';
   /* Y la CÁPSULA de la calculadora HFA-ICOS: sus filas las escribe `calcHFAICOS` sin `id` en los
      spans y su banda es un `.badge` sin `id`, así que no la alcanza ni el barrido de
      `.calc-row span[id]` ni el de `[id$="-badge"]`. Sin esto el paciente nuevo arrancaba viendo
@@ -48302,6 +48309,78 @@ function medSimpsonElegirVista(v) {
 }
 window.medSimpsonElegirVista = medSimpsonElegirVista;
 
+/* ── PERSISTENCIA DE LA TABLA ───────────────────────────────────────────────────────────
+   Se guardan SOLO LOS NUMEROS —una docena—, no los contornos: son decenas de KB de anatomia
+   del paciente en el registro y en cada backup, para redibujar algo que ya se decidio no
+   reabrir. Es la misma decision que `strain_manual`.
+
+   ⚠️ VIVE EN UN `<input type="hidden">`, ASI QUE HAY QUE LIMPIARLO A MANO en `limpiarCampos`:
+   ese barrido toma `input[type=text]` e `input[type=number]`. Sin esa linea la FEVI biplano de
+   un paciente queda DENTRO del estudio del siguiente — es la fuga de `ete_tavi_jet_horas`.
+
+   GUARDAR NO ES INTEGRAR: esto no toca el campo `fevi` del informe. Para eso esta el boton de
+   integrar, que ademas exige biplano. */
+const _SIMP_PERSIST_VER = 1;
+
+function _simpResumen() {
+  if (!_simp) return null;
+  const vistas = [];
+  [0, 1].forEach(i => {
+    const m = _simpMonoDe(i);
+    if (!m) return;
+    vistas.push({ k: _simpNombre(i) || null, idx: i,
+                  vfd:+m.vfd.toFixed(2), vfs:+m.vfs.toFixed(2),
+                  vey:+m.vey.toFixed(2), fevi:+m.fevi.toFixed(2) });
+  });
+  if (!vistas.length) return null;
+  const R = { v:_SIMP_PERSIST_VER, ts:new Date().toISOString(), vistas: vistas };
+  const B = _simp.res;
+  if (B && B.bi) R.biplano = { vfd:+B.vfd.toFixed(2), vfs:+B.vfs.toFixed(2),
+                               vey:+(B.vfd - B.vfs).toFixed(2), fevi:+B.fevi.toFixed(2) };
+  return R;
+}
+window._simpResumen = _simpResumen;
+
+/* Se llama en cada repintado del panel, como el del strain: es barato y evita el modo de falla
+   de «guardar al cerrar», que pierde todo si el medico cierra el visor con la cruz. */
+function _simpPersistir() {
+  const el = document.getElementById('simpson_manual');
+  if (!el) return;
+  let R = null;
+  try { R = _simpResumen(); } catch (e) { R = null; }
+  /* Sin mediciones NO se pisa lo guardado: el estudio puede traer una tabla de otra sesion y
+     abrir el visor sin trazar nada no puede borrarla. */
+  if (!R) return;
+  el.value = JSON.stringify(R);
+}
+window._simpPersistir = _simpPersistir;
+
+/* Lo guardado con el estudio, para que la tabla VUELVA al reabrirlo. Los contornos no vuelven
+   —no se guardan— asi que la tabla se muestra rotulada como guardada y no se puede seguir
+   midiendo sobre ella. */
+function _simpGuardado() {
+  const el = document.getElementById('simpson_manual');
+  if (!el || !String(el.value || '').trim()) return null;
+  try {
+    const R = JSON.parse(el.value);
+    return (R && Array.isArray(R.vistas) && R.vistas.length) ? R : null;
+  } catch (e) { return null; }
+}
+window._simpGuardado = _simpGuardado;
+
+/* Borra la tabla: lo guardado con el estudio Y la sesion en curso. Pide confirmacion porque lo
+   guardado puede venir de otra sesion y no se puede deshacer. */
+function medSimpsonLimpiarTabla() {
+  if (!confirm('¿Borrar la tabla de resultados de Simpson?\n\nSe borra la que está guardada con el estudio y también los trazados de esta sesión. No se puede deshacer.')) return;
+  const el = document.getElementById('simpson_manual');
+  if (el) el.value = '';
+  if (typeof _simpIniciar === 'function') _simpIniciar();
+  if (typeof _medPintar === 'function') _medPintar();
+  if (typeof _medEstado === 'function') _medEstado();
+  if (typeof toast === 'function') toast('🗑️ Tabla de Simpson borrada');
+}
+window.medSimpsonLimpiarTabla = medSimpsonLimpiarTabla;
+
 /* El MONOPLANO de un par, que es lo que va en cada fila de la tabla. El disco se asume
    CIRCULAR —b_i = a_i—, que es exactamente lo que `_simpCalcular` hace cuando hay una sola
    vista: se reusa `_simpVolumenML` para que no haya una segunda fórmula del mismo volumen. */
@@ -48837,10 +48916,20 @@ function _strainPanel() {
            automático»— antes de mandarla a un slot. Lo que NO hace es escribir el campo `sgl`:
            ese número alimenta el marco HFA-ICOS y las decisiones de cardio-oncología, y el
            único corte vivo del SGL está definido para speckle. */
-        b('cine-str-cap', 'btn-primary', '📄 Incluir en el PDF', 'margin-top:5px;') +
+        /* Las TRES salidas de la diana, el mismo reparto que la tabla de Simpson:
+           «Biblioteca» la deja en los archivos del estudio —que NO salen en el informe— y
+           «PDF» la manda a un slot, que es lo que sí sale. Las dos usan `_strBullsCanvas`,
+           o sea el MISMO dibujante: con dos copias, la diana del informe y la guardada
+           podrían dejar de llevar el mismo descargo. */
+        '<div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap;justify-content:center;">' +
+          b('cine-str-limpiar', 'btn-ghost', '🗑️ Limpiar') +
+          b('cine-str-bib', 'btn-ghost', '📋 Guardar en biblioteca') +
+          b('cine-str-cap', 'btn-primary', '📄 Incluir en el PDF') +
+        '</div>' +
         '<div style="font-size:9.5px;color:var(--text2);margin-top:4px;line-height:1.45;">' +
-          'Va como IMAGEN a las del estudio, con el descargo de método quemado encima. ' +
-          'No escribe el campo SGL del informe.</div>' +
+          'Al PDF va como IMAGEN, con el descargo de método quemado encima. La biblioteca la ' +
+          'guarda con el estudio y NO sale en el informe. Ninguna de las dos escribe el campo ' +
+          'SGL.</div>' +
       '</div>' +
       _STR_DISCLAIMER +
       '</div>';
@@ -49584,9 +49673,11 @@ function _strBullsRepintar() {
    imagen. Sin eso, el PNG que llega al PDF es un bull's eye indistinguible del validado —el
    del informe— y nadie que lo mire después sabe con qué método salió. Entra por
    `imgCompressLoad`, la misma puerta que una foto. */
-function medStrainCapturar() {
+/* UN dibujante para las DOS salidas —el PDF y la biblioteca—. Con dos copias, la diana que
+   sale en el informe y la que queda guardada podrían dejar de llevar el mismo descargo. */
+function _strBullsCanvas() {
   const R = _strainCalcular();
-  if (!R) { toast('❌ Todavía no hay territorios para dibujar'); return; }
+  if (!R) return null;
   const S = 640;
   const cv = document.createElement('canvas');
   cv.width = S; cv.height = S;
@@ -49600,12 +49691,40 @@ function medStrainCapturar() {
   c2.fillStyle = '#4b5563';
   c2.font = Math.round(9 * e) + 'px system-ui, sans-serif';
   c2.fillText('Orientativo, requiere correlación clínica. ' + R.etiqueta + '.', S / 2, fin.ly + 28 * e);
+  return cv;
+}
+window._strBullsCanvas = _strBullsCanvas;
+
+/* La diana a los ARCHIVOS del estudio. No al slot: eso es «Incluir en PDF». */
+async function medStrainBullsBiblioteca() {
+  const cv = _strBullsCanvas();
+  if (!cv) { toast('❌ Todavía no hay territorios para dibujar'); return; }
+  await _docGuardarEnBiblioteca(cv, 'Bull\u2019s eye · strain por territorios');
+}
+window.medStrainBullsBiblioteca = medStrainBullsBiblioteca;
+
+/* Borra el strain: lo guardado con el estudio y la sesión en curso. */
+function medStrainLimpiar() {
+  if (!confirm('¿Borrar el bull\u2019s eye y las mediciones de strain?\n\nSe borra lo guardado con el estudio y también los trazados de esta sesión. No se puede deshacer.')) return;
+  const el = document.getElementById('strain_manual');
+  if (el) el.value = '';
+  if (typeof medStrainReiniciar === 'function') { try { medStrainReiniciar(); } catch (e) {} }
+  if (typeof _medEstado === 'function') _medEstado();
+  if (typeof toast === 'function') toast('🗑️ Strain borrado');
+}
+window.medStrainLimpiar = medStrainLimpiar;
+
+function medStrainCapturar() {
+  const cv = _strBullsCanvas();
+  if (!cv) { toast('❌ Todavía no hay territorios para dibujar'); return; }
+  {
   cv.toBlob(b => {
     if (!b) { toast('❌ No se pudo generar la imagen'); return; }
     const idx = _dcmImgReservar(1)[0];
     imgCompressLoad(b, idx, 'visor');
-    toast('✅ Diagrama de territorios agregado a las imágenes del estudio');
+    toast('✅ Diagrama agregado a las imágenes del estudio — sale en el PDF');
   }, 'image/jpeg', 0.92);
+  }
 }
 window.medStrainCapturar = medStrainCapturar;
 /* ══ LARS — STRAIN AURICULAR IZQUIERDO ═══════════════════════════════════════════════════════
@@ -50769,8 +50888,11 @@ function _simpPanel() {
           'La guía recomienda el biplano, y los valores normales con los que se clasifica salen ' +
           'de biplano — tomalo como una aproximación. Agregá la otra vista para el biplano.') +
       '<br>⚠️ El método supone que el ápex está bien visualizado. Un ápex escorzado subestima ' +
-      'los volúmenes; la guía lo lista como su limitación principal.</div>' + _simpTablaHTML();
+      'los volúmenes; la guía lo lista como su limitación principal.</div>';
   }
+  /* La tabla va FUERA del `if (R)`: con el estudio reabierto no hay sesión viva y el
+     resultado es null, pero los números guardados sí están y tienen que volver. */
+  cab += _simpTablaHTML();
 
   /* ── Botones de acción sobre el resultado ── */
   let acc = '';
@@ -50848,19 +50970,99 @@ function _simpPanel() {
    de arriba son de dónde salió.
 
    VEyec = VFD − VFS, que es el volumen sistólico. */
-function _simpTablaHTML() {
-  if (!_simp) return '';
-  const filas = [];
-  [0, 1].forEach(i => {
-    const m = _simpMonoDe(i);
-    if (!m) return;
-    const nk = _simpNombre(i);
-    const V = nk ? _SIMP_VISTAS.filter(x => x.k === nk)[0] : null;
-    filas.push({ rot: V ? V.rot : ('Vista ' + (i + 1)), m: m, mono: true });
+/* La tabla a CANVAS, para las dos salidas. `fillText` no envuelve ni avisa, así que las
+   columnas se posicionan a mano y el titulo lleva el mismo descargo que el resto del visor. */
+function _simpTablaCanvas() {
+  const D = _simpFilasTabla();
+  if (!D.length) return null;
+  const W = 640, filaH = 30, top = 92;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = top + filaH * (D.length + 1) + 56;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, cv.width, cv.height);
+  g.fillStyle = '#111827'; g.textAlign = 'left';
+  g.font = 'bold 20px system-ui, sans-serif';
+  g.fillText('Simpson — volúmenes y fracción de eyección', 24, 38);
+  g.fillStyle = '#4b5563'; g.font = '12px system-ui, sans-serif';
+  g.fillText('Método de discos sobre contornos manuales en el visor.', 24, 60);
+  const col = [24, 250, 350, 452, 566];
+  const cab = ['Ventana', 'VFD mL', 'VFS mL', 'VEyec mL', 'FEVI %'];
+  g.fillStyle = '#6b7280'; g.font = 'bold 13px system-ui, sans-serif';
+  cab.forEach((t, i) => { g.textAlign = i ? 'right' : 'left'; g.fillText(t, col[i], top); });
+  g.strokeStyle = '#d1d5db'; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(24, top + 8); g.lineTo(W - 24, top + 8); g.stroke();
+  D.forEach((f, k) => {
+    const y = top + 8 + filaH * (k + 1);
+    if (!f.mono) { g.beginPath(); g.moveTo(24, y - filaH + 10); g.lineTo(W - 24, y - filaH + 10); g.stroke(); }
+    g.fillStyle = '#111827';
+    g.font = (f.mono ? '' : 'bold ') + '14px system-ui, sans-serif';
+    g.textAlign = 'left'; g.fillText(f.rot, col[0], y);
+    g.textAlign = 'right';
+    [f.m.vfd, f.m.vfs, f.m.vey, f.m.fevi].forEach((v, i) => g.fillText(v.toFixed(1), col[i + 1], y));
   });
-  const R = _simp.res;
+  g.fillStyle = '#92400e'; g.textAlign = 'center';
+  g.font = 'bold 11px system-ui, sans-serif';
+  g.fillText('Medición manual en el visor — orientativa, requiere correlación clínica.',
+             W / 2, cv.height - 30);
+  g.fillStyle = '#4b5563'; g.font = '11px system-ui, sans-serif';
+  g.fillText('El biplano no es el promedio: usa el producto cruzado de los diámetros y el eje más largo.',
+             W / 2, cv.height - 14);
+  return cv;
+}
+window._simpTablaCanvas = _simpTablaCanvas;
+
+async function medSimpsonTablaBiblioteca() {
+  const cv = _simpTablaCanvas();
+  if (!cv) { toast('❌ Todavía no hay tabla para guardar'); return; }
+  await _docGuardarEnBiblioteca(cv, 'Simpson · tabla de resultados');
+}
+window.medSimpsonTablaBiblioteca = medSimpsonTablaBiblioteca;
+
+function medSimpsonTablaPDF() {
+  const cv = _simpTablaCanvas();
+  if (!cv) { toast('❌ Todavía no hay tabla para incluir'); return; }
+  cv.toBlob(b => {
+    if (!b) { toast('❌ No se pudo generar la imagen'); return; }
+    const idx = _dcmImgReservar(1)[0];
+    imgCompressLoad(b, idx, 'visor');
+    toast('✅ Tabla agregada a las imágenes del estudio — sale en el PDF');
+  }, 'image/jpeg', 0.92);
+}
+window.medSimpsonTablaPDF = medSimpsonTablaPDF;
+
+/* Las filas, en UN solo lugar: las consumen la tabla en pantalla y la del canvas. Con dos
+   armados, lo que se guarda y lo que se ve podrían dejar de coincidir.
+   Si no hay sesión en curso cae a lo GUARDADO con el estudio, que es lo que hace que la tabla
+   vuelva al reabrirlo — los contornos no se guardan, sólo los números. */
+function _simpFilasTabla() {
+  const filas = [];
+  if (_simp) {
+    [0, 1].forEach(i => {
+      const m = _simpMonoDe(i);
+      if (!m) return;
+      const nk = _simpNombre(i);
+      const V = nk ? _SIMP_VISTAS.filter(x => x.k === nk)[0] : null;
+      filas.push({ rot: V ? V.rot : ('Vista ' + (i + 1)), m: m, mono: true });
+    });
+    const R = _simp.res;
+    if (filas.length && R && R.bi)
+      filas.push({ rot:'Biplano', m:{ vfd:R.vfd, vfs:R.vfs, vey:R.vfd - R.vfs, fevi:R.fevi }, mono:false });
+  }
+  if (filas.length) return filas;
+  const G = (typeof _simpGuardado === 'function') ? _simpGuardado() : null;
+  if (!G) return [];
+  G.vistas.forEach(v => {
+    const V = v.k ? _SIMP_VISTAS.filter(x => x.k === v.k)[0] : null;
+    filas.push({ rot: V ? V.rot : ('Vista ' + ((v.idx || 0) + 1)), m: v, mono: true, guardada: true });
+  });
+  if (G.biplano) filas.push({ rot:'Biplano', m:G.biplano, mono:false, guardada:true });
+  return filas;
+}
+
+function _simpTablaHTML() {
+  const filas = _simpFilasTabla();
   if (!filas.length) return '';
-  if (R && R.bi) filas.push({ rot:'Biplano', m:{ vfd:R.vfd, vfs:R.vfs, vey:R.vfd - R.vfs, fevi:R.fevi }, mono:false });
+  const guardada = filas.some(f => f.guardada);
   const num = x => x.toFixed(1);
   const cel = (t, b2) => '<td style="padding:2px 6px;text-align:right;font-variant-numeric:tabular-nums;' +
     (b2 ? 'font-weight:700;' : '') + '">' + t + '</td>';
@@ -50880,9 +51082,27 @@ function _simpTablaHTML() {
         '<th style="text-align:right;padding:2px 6px;font-weight:600;">FEVI %</th>' +
       '</tr></thead><tbody>' + cuerpo + '</tbody></table>' +
     '<div style="font-size:9.5px;color:var(--text2);margin-top:4px;line-height:1.45;">' +
+      (guardada
+        ? '<b>Tabla guardada con el estudio.</b> Los contornos no se guardan, así que no se ' +
+          'puede seguir midiendo sobre ella: para eso hay que volver a trazar.<br>'
+        : '') +
       'Cada ventana muestra SU monoplanar —el disco asumido circular—; el <b>biplano</b> es el ' +
       'resultado del método y el que se integra. <b>No es el promedio de las dos:</b> usa el ' +
       'producto cruzado de los diámetros y el eje más largo. VEyec = VFD − VFS.</div>' +
+    /* Las TRES salidas de la tabla. «Biblioteca» y «PDF» no son lo mismo: la primera la deja
+       en los archivos del estudio, que por diseño NO salen en el informe; la segunda la manda
+       a un slot, que es lo que sí sale. Sin esa diferencia serían dos botones iguales. */
+    '<div style="margin-top:7px;display:flex;gap:5px;flex-wrap:wrap;">' +
+      '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-simp-limpiar" ' +
+        'style="padding:3px 9px;font-size:10.5px;" ' +
+        'title="Borra la tabla guardada con el estudio y los trazados de esta sesión.">🗑️ Limpiar</button>' +
+      '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-simp-bib" ' +
+        'style="padding:3px 9px;font-size:10.5px;" ' +
+        'title="Guarda la tabla como archivo del estudio. NO sale en el PDF.">📋 Guardar en biblioteca</button>' +
+      '<button type="button" class="btn btn-primary" id="' + _V.pfx + 'cine-simp-pdf" ' +
+        'style="padding:3px 9px;font-size:10.5px;" ' +
+        'title="Agrega la tabla como imagen a las del estudio, que son las que salen en el PDF.">📄 Incluir en PDF</button>' +
+    '</div>' +
     '</div>';
 }
 
@@ -51273,6 +51493,7 @@ function _medEstado() {
       'El gradiente no depende del signo (ΔP = 4·V²).</div>';
   }
   _strainPersistir();                    // el resumen viaja con el estudio
+  _simpPersistir();                      // y la tabla de Simpson, por el mismo camino
   _medSideRender();                      // ZONA 2 — barra lateral
   _medFijosSync();                       // rótulos de los botones fijos
   _medBarra((_medHerr === 'simpson' ? _simpPanel()
@@ -51341,6 +51562,8 @@ function _medEstado() {
   _on(sxr, medStrainReiniciar);
   _on(sxm, medStrainVistaSiguiente);
   _on(sxb, medStrainCapturar);
+  _on(_medEl('cine-str-limpiar'), medStrainLimpiar);
+  _on(_medEl('cine-str-bib'),     medStrainBullsBiblioteca);
   /* El canvas del diagrama se repinta DESPUÉS de reconstruida la barra: el elemento es nuevo
      en cada pasada y nace en blanco. */
   if (_medHerr === 'strain') _strBullsRepintar();
@@ -51349,6 +51572,9 @@ function _medEstado() {
   _on(sr, medSimpsonReiniciar);
   const si = _medEl('cine-simp-integ');
   _on(si, medSimpsonIntegrar);
+  _on(_medEl('cine-simp-limpiar'), medSimpsonLimpiarTabla);
+  _on(_medEl('cine-simp-bib'),     medSimpsonTablaBiblioteca);
+  _on(_medEl('cine-simp-pdf'),     medSimpsonTablaPDF);
   /* Botones de ventana de Simpson. Por `data-*` y atados a SU vista, igual que los del strain:
      el valor NUNCA entra a un atributo de evento, donde el parser decodifica la entidad antes
      de compilar el handler y escapar no protege. */
@@ -51844,7 +52070,10 @@ async function _vElegirLoop(V) {
   if (!uuid) { alert('Guardá el estudio antes de abrir una segunda vista: los cineloops se listan por estudio.'); return false; }
   let lista = [];
   try { lista = await CeiboCine.listar(uuid); } catch (e) { lista = []; }
-  lista = (lista || []).filter(r => r && r.tipo !== 'fija');
+  /* Se excluyen las fijas Y los documentos: la segunda vista abre un CINELOOP, y ofrecer
+     una tabla de resultados como si lo fuera es un elemento que al elegirlo no reproduce
+     nada. El tipo 'doc' lo acuña `_docGuardarEnBiblioteca`. */
+  lista = (lista || []).filter(r => r && r.tipo !== 'fija' && r.tipo !== 'doc');
   if (!lista.length) { alert('Este estudio no tiene cineloops guardados para abrir en la segunda vista.'); return false; }
   /* ⚠️ ERA UN CUADRO DE TEXTO DEL NAVEGADOR CON UN MENÚ NUMERADO, y elegir un cineloop así
      es elegir a ciegas:
@@ -53237,6 +53466,77 @@ async function medFijaGuardar(fija, id) {
 }
 window.medFijaGuardar = medFijaGuardar;
 
+/* ── GUARDAR UN DOCUMENTO EN LOS ARCHIVOS DEL ESTUDIO ────────────────────────────────────
+   «Guardar en biblioteca» y «Incluir en PDF» tienen que hacer cosas DISTINTAS o son dos botones
+   iguales. Decisión de Maicol (2026-09-22): la biblioteca es `ceibomed_cine` —lo que aparece en
+   la tira de archivos del estudio y que POR DISEÑO no sale en el informe—; el PDF es el slot.
+
+   ⚠️ `tipo:'doc'` NO ES COSMÉTICO: hay dos filtros que ya existen y que un tipo nuevo rompería.
+   `medFijasRestaurar` sólo rehidrata `tipo === 'fija'`, así que un doc no entra a `_medFijas` —
+   correcto, no es una imagen medible. Y `_vElegirLoop` listaba «todo lo que no es fija», así
+   que sin excluirlo una tabla de resultados habría aparecido como cineloop elegible para la
+   segunda vista. Ese filtro se corrigió en el mismo commit. */
+async function _docGuardarEnBiblioteca(cv, nombre) {
+  if (typeof CeiboCine === 'undefined') { toast('❌ No hay almacenamiento para los archivos del estudio'); return false; }
+  const puede = _cinePuedeGuardar();
+  if (!puede.ok) { alert('Todavía no se puede guardar en el estudio.\n\n' + puede.motivo); return false; }
+  const bytes = await new Promise(r => {
+    try {
+      cv.toBlob(b => {
+        if (!b) return r(null);
+        const fr = new FileReader();
+        fr.onload = () => r(new Uint8Array(fr.result));
+        fr.onerror = () => r(null);
+        fr.readAsArrayBuffer(b);
+      }, 'image/jpeg', 0.92);
+    } catch (e) { r(null); }
+  });
+  if (!bytes) { toast('❌ No se pudo generar la imagen'); return false; }
+  let poster = '';
+  try { poster = await _imgComprimir(cv.toDataURL('image/jpeg', 0.9), 'mini'); } catch (e) { poster = ''; }
+  const rec = { id:_uuidNuevo(), uuid:_imgUuidActual, tipo:'doc', nombre:nombre,
+                cuadros:1, ms:0, cols:cv.width, filas:cv.height, poster:poster,
+                datos:bytes, offs:new Int32Array([0]), bytes:bytes.length,
+                regiones:[], ts:new Date().toISOString() };
+  let r2;
+  try { r2 = await CeiboCine.guardar(rec); } catch (e) { r2 = { ok:false }; }
+  if (!r2 || !r2.ok) { toast('❌ No se pudo guardar en los archivos del estudio'); return false; }
+  try { await _cinePersistir(); } catch (e) {}
+  try { await cineStripRender(); } catch (e) {}
+  toast('📋 Guardado en los archivos del estudio — NO sale en el PDF');
+  return true;
+}
+window._docGuardarEnBiblioteca = _docGuardarEnBiblioteca;
+
+/* Mirar un documento guardado. No abre el visor de medición: una tabla de resultados no tiene
+   escala y ofrecer medirla sería prometer un número que no existe. */
+async function _docVer(id) {
+  let r = null;
+  try { r = await CeiboCine.leer(id); } catch (e) { r = null; }
+  if (!r || !r.datos) { toast('❌ No se pudo leer ese documento'); return; }
+  const url = URL.createObjectURL(new Blob([r.datos], { type:'image/jpeg' }));
+  const ov = document.createElement('div');
+  ov.setAttribute('data-doc-ver', '1');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:401;background:rgba(0,0,0,.85);display:flex;' +
+                     'align-items:center;justify-content:center;padding:18px;flex-direction:column;gap:10px;';
+  const im = document.createElement('img');
+  im.src = url;
+  im.alt = r.nombre || 'Documento del estudio';
+  im.style.cssText = 'max-width:100%;max-height:80vh;border-radius:10px;background:#fff;';
+  const pie = document.createElement('div');
+  pie.style.cssText = 'font-size:11.5px;color:#e5e7eb;text-align:center;';
+  pie.textContent = (r.nombre || 'Documento') + ' · guardado con el estudio, no sale en el PDF';
+  const cerrar = () => { try { URL.revokeObjectURL(url); } catch (e) {}
+    document.removeEventListener('keydown', onEsc);
+    try { document.body.removeChild(ov); } catch (e) {} };
+  const onEsc = ev => { if (ev.key === 'Escape') { ev.stopPropagation(); cerrar(); } };
+  ov.onclick = ev => { if (ev.target === ov) cerrar(); };
+  ov.appendChild(im); ov.appendChild(pie);
+  document.addEventListener('keydown', onEsc);
+  document.body.appendChild(ov);
+}
+window._docVer = _docVer;
+
 async function cineAbrirGuardado(id) {
   const r = await CeiboCine.leer(id);
   if (!r) { toast('❌ No se pudo leer el cineloop guardado'); return; }
@@ -53330,6 +53630,14 @@ async function cineStripRender() {
     if (idsEnSlot.indexOf(r.id) >= 0) return;
     /* Sin `E` acá: `tarjeta` ya escapa `rot` al pintarlo, y escapar dos veces convierte un «&»
        en «&amp;amp;» — el doble escape que el test de regresión del store vigila. */
+    /* Un DOCUMENTO —tabla de resultados, bull's eye— no es una imagen medible: lleva su
+       propio ícono y al tocarlo se MIRA, no se abre el visor. */
+    if (r.tipo === 'doc') {
+      fichas.push({ clase:'doc', id:r.id, poster:r.poster, rot:'documento',
+                    nota:'no sale en el PDF', nombre:r.nombre || '',
+                    bytes:r.bytes || 0, deDisco:true });
+      return;
+    }
     fichas.push({ clase: r.cuadros > 1 ? 'cine' : 'dicom', id: r.id, poster: r.poster,
                   rot: r.cuadros > 1 ? String(r.cuadros) + ' cuadros' : 'DICOM',
                   nota: r.cuadros > 1 ? 'cineloop guardado' : 'sin slot en la grilla',
@@ -53348,7 +53656,7 @@ async function cineStripRender() {
   /* El ícono dice DE QUÉ TIPO es el archivo, que es lo que decide si se puede medir. El
      cineloop conserva ▶️ —es lo único que se REPRODUCE, y ese afford ya existía— y sigue siendo
      DICOM a todos los demás efectos. */
-  const ICONO = { imagen: '📷', video: '🎬', dicom: '📏', cine: '▶️' };
+  const ICONO = { imagen: '📷', video: '🎬', dicom: '📏', cine: '▶️', doc: '📋' };
   const hayVideo = fichas.filter(f => f.clase === 'video').length > 0;
 
   const tarjeta = (f, i) => {
@@ -53356,6 +53664,7 @@ async function cineStripRender() {
     const medible = f.clase !== 'video';
     const titulo = f.clase === 'video' ? 'Abrir el reproductor de video'
                  : f.clase === 'cine'  ? 'Abrir el reproductor de cineloop'
+                 : f.clase === 'doc'   ? 'Ver el documento en grande'
                  : 'Abrir en el visor para medir';
     /* `data-cine-id` se CONSERVA en las tarjetas con registro en disco: es el contrato que ya
        verifican TC-184 y TC-185, y el id es opaco y va escapado. `data-strip-i` es lo que usa el
@@ -53405,6 +53714,7 @@ async function cineStripRender() {
     const borrar = card.querySelector('.cine-borrar');
     if (abrir) abrir.onclick = () => {
       if (f.clase === 'video') { videoAbrir(f.idx); return; }
+      if (f.clase === 'doc')   { _docVer(f.id); return; }
       if (f.clase === 'cine')  { cineAbrirGuardado(f.id); return; }
       /* DICOM: si el original está en memoria se abre con su escala; si no —estudio viejo,
          guardado con el toggle apagado— se lee del disco. Y una imagen sin escala se abre para
@@ -69185,8 +69495,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260922-1637';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790105863948;                 /* eco-build-ms */
+const ECO_BUILD    = '20260922-1655';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790106910870;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -69272,7 +69582,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1637</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1655</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

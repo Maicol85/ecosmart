@@ -20746,11 +20746,20 @@ caso('TC-238', 'Segunda vista: el cineloop se elige por la miniatura, con sus tr
 
       /* El boton de la diana promete el PDF y aclara que no toca el campo SGL. */
       R.rotuloDiana = String(_strainPanel).indexOf('Incluir en el PDF') > -1;
-      R.aclaraSgl = String(_strainPanel).indexOf('No escribe el campo SGL') > -1;
-      /* Y sigue entrando por la captura, que QUEMA el descargo de metodo en la imagen. */
-      R.quemaDescargo = String(medStrainCapturar).indexOf('speckle tracking') > -1 &&
+      /* Se fija el INVARIANTE, no la redaccion: el panel tiene que decir que esto NO escribe
+         el campo SGL. La frase exacta cambio al agregar los botones de la diana y este paso se
+         puso en rojo --la senal, no el problema--. */
+      /* ⚠️ Y NO con un regex sobre «campo SGL»: en el FUENTE esa frase esta partida por la
+         concatenacion --«...el campo ' + 'SGL.»-- asi que no hay espacio entre las dos
+         palabras sino un operador. Se busca el fragmento que sobrevive al corte. */
+      R.aclaraSgl = String(_strainPanel).indexOf('escribe el campo') > -1;
+      /* Y el DIBUJANTE quema el descargo. Se mira _strBullsCanvas y no medStrainCapturar:
+         desde que biblioteca y PDF comparten un solo dibujante, el descargo vive ahi. */
+      R.quemaDescargo = String(_strBullsCanvas).indexOf('speckle tracking') > -1 &&
                         String(medStrainCapturar).indexOf('imgCompressLoad') > -1;
-      R.noEscribeSgl = String(medStrainCapturar).indexOf("getElementById('sgl')") < 0;
+      R.noEscribeSgl = String(medStrainCapturar).indexOf("getElementById('sgl')") < 0 &&
+                       String(_strBullsCanvas).indexOf("getElementById('sgl')") < 0 &&
+                       String(medStrainBullsBiblioteca).indexOf("getElementById('sgl')") < 0;
     } catch (e) {
       R.err = String(e && e.message || e);
     } finally {
@@ -20774,6 +20783,140 @@ caso('TC-238', 'Segunda vista: el cineloop se elige por la miniatura, con sus tr
       ['y aclara que no toca el SGL',            R.aclaraSgl === true, R.aclaraSgl],
       ['la captura QUEMA el descargo de metodo', R.quemaDescargo === true, R.quemaDescargo],
       ['y no escribe el campo sgl',              R.noEscribeSgl === true, R.noEscribeSgl]
+    ] };
+  })();
+`);
+
+/* == TC-239 - La tabla de Simpson se guarda, vuelve y no contamina ==========================
+   Tres salidas que tienen que ser DISTINTAS o son tres botones iguales:
+   · Limpiar  -> borra lo guardado con el estudio y la sesion.
+   · Biblioteca -> imagen a `ceibomed_cine`, que aparece en la tira y NO sale en el informe.
+   · PDF -> imagen a un SLOT, que es lo unico que sale en el informe.
+
+   Y la trampa de siempre: el resumen vive en un `input type=hidden`, asi que el barrido de
+   limpiarCampos --que toma text y number-- NO lo alcanza. Sin la linea a mano, la FEVI biplano
+   de un paciente queda dentro del estudio del siguiente. */
+caso('TC-239', 'Simpson: la tabla viaja con el estudio, vuelve al reabrirlo y no pasa al siguiente', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    window.alert = () => {}; window.confirm = () => true; window.toast = () => {};
+    let togglePrevio = null;
+    try { togglePrevio = localStorage.getItem('cfg-guardar-imagenes'); } catch (e) {}
+    const borrables = [];
+    try {
+      localStorage.setItem('cfg-guardar-imagenes', '1');
+      const jpeg = await new Promise(res => {
+        const c = document.createElement('canvas'); c.width=400; c.height=400;
+        const x = c.getContext('2d'); x.fillStyle='rgb(40,40,60)'; x.fillRect(0,0,400,400);
+        c.toBlob(b2 => { const fr=new FileReader();
+          fr.onload=()=>res(new Uint8Array(fr.result)); fr.readAsArrayBuffer(b2); }, 'image/jpeg', 0.9);
+      });
+      const loop = { nombre:'apical', cuadros:1,
+        d:{ frags:[jpeg], cols:400, filas:400, msCuadro:0, fabricante:'', modelo:'',
+            regiones:[{ x0:0, y0:0, x1:400, y1:400, ux:3, uy:3, dx:0.05, dy:0.05, tipo:1 }] } };
+      const contorno = (an, la) => { const pts=[];
+        for (let i=0;i<=40;i++){ const t=Math.PI*i/40;
+          pts.push({ x:200-(an/2)*Math.cos(t), y:340-la*Math.sin(t) }); } return pts; };
+      const trazar = (a2, l2) => { const m = _simpAceptar(contorno(a2, l2));
+        if (m) return m; medSimpsonConfirmar(); return null; };
+
+      __t.limpiar(); imgVaciar(); await esperar(200);
+      __t.set('nombre','TC239 A'); __t.set('ci','97750001');
+      const g0 = await __t.guardar(); borrables.push(g0.estudioId); await esperar(900);
+      const inf0 = getInformes().filter(i => i.estudioId === g0.estudioId)[0];
+      __t.reabrir(g0.estudioId); await esperar(1500);
+
+      _cineAbrir([loop]); await esperar(800);
+      if (!_medOn) medToggle();
+      medHerramienta('simpson'); await esperar(400);
+      R.e = [trazar(90,180), trazar(80,165)].filter(Boolean).join(' / ');
+      medSimpsonElegirVista('a4c'); await esperar(200);
+      medSimpsonSegundaVista(); await esperar(200);
+      medSimpsonElegirVista('a2c'); await esperar(200);
+      R.e2 = [trazar(70,150), trazar(62,138)].filter(Boolean).join(' / ');
+      await esperar(300);
+
+      R.persistido = String((document.getElementById('simpson_manual')||{}).value || '').length > 0;
+      let J = null; try { J = JSON.parse(document.getElementById('simpson_manual').value); } catch (e) {}
+      R.vistasGuardadas = J ? J.vistas.length : -1;
+      R.biplanoGuardado = !!(J && J.biplano);
+      R.btnLimpiar = !!document.querySelector('#cine-ov [id$="cine-simp-limpiar"]');
+      R.btnBib     = !!document.querySelector('#cine-ov [id$="cine-simp-bib"]');
+      R.btnPdf     = !!document.querySelector('#cine-ov [id$="cine-simp-pdf"]');
+
+      /* BIBLIOTECA: a ceibomed_cine, y NI UN slot de mas */
+      const slots0 = imgSlots.filter(x => x && x.dataURL).length;
+      await medSimpsonTablaBiblioteca(); await esperar(1300);
+      const recs = (await CeiboCine.listar(inf0.uuid)) || [];
+      R.docs = recs.filter(r => r.tipo === 'doc').length;
+      R.bibNoTocaSlots = imgSlots.filter(x => x && x.dataURL).length === slots0;
+      /* ⚠️ POR LA PUERTA REAL. La primera version recalculaba el filtro dentro del caso, o sea
+         probaba SU PROPIA COPIA de la regla, y la mutacion que vuelve a ofrecer documentos
+         sobrevivia entera. El estudio tiene un doc y CERO cineloops, asi que con el filtro bien
+         la lista queda vacia y no se abre ningun selector; con el filtro roto, el doc aparece
+         como cineloop elegible. */
+      const pElegir = _vElegirLoop(_vistaA);
+      await esperar(500);
+      R.tarjetasOfrecidas = document.querySelectorAll('[data-vpicker] [data-vpick-i]').length;
+      const cx = document.querySelector('[data-vpick-cancelar]');
+      if (cx) cx.click();
+      await pElegir;
+      await esperar(200);
+
+      /* PDF: al slot */
+      medSimpsonTablaPDF(); await esperar(1500);
+      R.pdfSumaSlot = imgSlots.filter(x => x && x.dataURL).length === slots0 + 1;
+
+      await cineStripRender(); await esperar(500);
+      R.tiraDoc = ((document.getElementById('cine-strip')||{}).textContent || '').indexOf('documento') >= 0;
+
+      /* VIAJA con el estudio, VUELVE al reabrirlo y NO pasa al siguiente */
+      try { cineCerrar(); } catch (e) {}
+      const g2 = await __t.guardar(); borrables.push(g2.estudioId); await esperar(1300);
+      const inf2 = getInformes().filter(i => i.estudioId === g2.estudioId)[0];
+      R.enCampos = !!(inf2 && inf2.campos && inf2.campos['simpson_manual']);
+      __t.limpiar(); imgVaciar(); await esperar(300);
+      R.trasLimpiar = String((document.getElementById('simpson_manual')||{}).value || '').length;
+      __t.reabrir(g2.estudioId); await esperar(1800);
+      R.trasReabrir = String((document.getElementById('simpson_manual')||{}).value || '').length > 0;
+      _cineAbrir([loop]); await esperar(800);
+      if (!_medOn) medToggle();
+      medHerramienta('simpson'); await esperar(600);
+      const b3 = document.getElementById('cine-med-barra');
+      R.filasVuelven = b3 ? b3.querySelectorAll('table tbody tr').length : -1;
+      R.diceGuardada = b3 ? (b3.textContent || '').indexOf('guardada con el estudio') >= 0 : false;
+    } catch (e) {
+      R.err = String(e && e.message || e);
+    } finally {
+      window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+      try {
+        if (togglePrevio === null) localStorage.removeItem('cfg-guardar-imagenes');
+        else localStorage.setItem('cfg-guardar-imagenes', togglePrevio);
+      } catch (e) {}
+      try { cineCerrar(); } catch (e) {}
+      for (const b4 of borrables) { try { await __t.borrar(b4); } catch (e) {} }
+      try { imgVaciar(); } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                          !R.err, R.err],
+      ['DENOMINADOR: los cuatro trazados entraron', !R.e && !R.e2, (R.e || '') + ' ' + (R.e2 || '')],
+      ['la tabla se persiste sola',                R.persistido === true, R.persistido],
+      ['con las dos ventanas y el biplano',        R.vistasGuardadas === 2 && R.biplanoGuardado === true,
+                                                   'vistas=' + R.vistasGuardadas + ' bip=' + R.biplanoGuardado],
+      ['estan los tres botones',                   R.btnLimpiar && R.btnBib && R.btnPdf,
+                                                   [R.btnLimpiar,R.btnBib,R.btnPdf].join(',')],
+      ['biblioteca guarda un documento',           R.docs === 1, 'docs=' + R.docs],
+      ['y NO manda nada al PDF',                   R.bibNoTocaSlots === true, R.bibNoTocaSlots],
+      ['el selector de cineloop no ofrece docs',   R.tarjetasOfrecidas === 0, 'ofrecidas=' + R.tarjetasOfrecidas],
+      ['PDF si agrega un slot',                    R.pdfSumaSlot === true, R.pdfSumaSlot],
+      ['la tira lo muestra como documento',        R.tiraDoc === true, R.tiraDoc],
+      ['viaja dentro de campos',                   R.enCampos === true, R.enCampos],
+      ['limpiarCampos lo vacia',                   R.trasLimpiar === 0, 'largo=' + R.trasLimpiar],
+      ['y vuelve al reabrir el estudio',           R.trasReabrir === true, R.trasReabrir],
+      ['la tabla se redibuja sin sesion viva',     R.filasVuelven === 3, 'filas=' + R.filasVuelven],
+      ['y se rotula como guardada',                R.diceGuardada === true, R.diceGuardada]
     ] };
   })();
 `);
