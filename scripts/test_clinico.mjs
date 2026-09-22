@@ -20921,6 +20921,112 @@ caso('TC-239', 'Simpson: la tabla viaja con el estudio, vuelve al reabrirlo y no
   })();
 `);
 
+/* == TC-240 - La vista B lee del disco por la MISMA ruta que la tira =======================
+   Defecto reportado: «Ese cineloop no se pudo leer del disco» al elegirlo para la vista B,
+   sobre cineloops que la tira abre perfectamente.
+
+   ⚠️ `_cineDesdeRegistro` DEVUELVE UN OBJETO, NO UN ARRAY. La tira lo envolvia --
+   `_cineAbrir([...])`-- y el selector trataba el retorno como si ya fuera una lista, asi que
+   `!loops.length` daba `undefined` y la guarda disparaba SIEMPRE. No era un problema de lectura:
+   los bytes estaban --`listar` usa getAll y trae el registro entero-- y el mensaje culpaba al
+   disco.
+
+   EL DENOMINADOR ES LA TIRA: si el caso no comprueba primero que esa ruta SI abre el mismo
+   cineloop, «la vista B falla» no distingue un selector roto de un registro ilegible. */
+caso('TC-240', 'Vista B: abre el mismo cineloop que la tira, por la misma ruta de lectura', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    const dichos = [];
+    window.alert = m => { dichos.push('alert:' + String(m)); };
+    window.confirm = () => true;
+    window.toast = m => { dichos.push(String(m)); };
+    let togglePrevio = null;
+    try { togglePrevio = localStorage.getItem('cfg-guardar-imagenes'); } catch (e) {}
+    let estudioId = null;
+    try {
+      localStorage.setItem('cfg-guardar-imagenes', '1');
+      __t.limpiar(); imgVaciar(); await esperar(200);
+      __t.set('nombre','TC240 A'); __t.set('ci','98850001');
+      const g = await __t.guardar(); estudioId = g.estudioId; await esperar(900);
+      const inf = getInformes().filter(i => i.estudioId === g.estudioId)[0];
+      __t.reabrir(g.estudioId); await esperar(1500);
+
+      /* Un cineloop de TRES cuadros, como el que deja el importador. */
+      const jpg = await new Promise(res => {
+        const c = document.createElement('canvas'); c.width=200; c.height=200;
+        const x = c.getContext('2d'); x.fillStyle='rgb(60,90,140)'; x.fillRect(0,0,200,200);
+        c.toBlob(b2 => { const fr=new FileReader(); fr.onload=()=>res(new Uint8Array(fr.result));
+          fr.readAsArrayBuffer(b2); }, 'image/jpeg', 0.9);
+      });
+      const n = 3;
+      const datos = new Uint8Array(jpg.length * n);
+      const offs = new Int32Array(n);
+      for (let i=0;i<n;i++){ offs[i]=i*jpg.length; datos.set(jpg, i*jpg.length); }
+      const idLoop = _uuidNuevo();
+      await CeiboCine.guardar({ id:idLoop, uuid:inf.uuid, nombre:'1.2.840.apical4c', cuadros:n,
+        ms:40, cols:200, filas:200, poster:'', datos:datos, offs:offs, bytes:datos.length,
+        regiones:[], ts:new Date().toISOString() });
+      R.enDisco = ((await CeiboCine.listar(inf.uuid)) || []).length;
+
+      /* DENOMINADOR: la tira abre ESE cineloop */
+      dichos.length = 0;
+      await cineAbrirGuardado(idLoop);
+      await esperar(1100);
+      R.tiraAbre = !!(_cineDatos && _cineDatos.loops && _cineDatos.loops.length === 1);
+      R.tiraCuadros = (_cineDatos && _cineDatos.loops) ? _cineDatos.loops[0].d.frags.length : -1;
+      R.tiraSinQueja = !dichos.some(d => String(d).indexOf('no se pudo leer') >= 0);
+
+      /* Y la vista B, el MISMO cineloop por el selector */
+      dichos.length = 0;
+      const pr = vistaBAbrir();
+      await esperar(1000);
+      const card = document.querySelector('[data-vpicker] [data-vpick-i="0"]');
+      R.pickerAbrio = !!card;
+      if (card) card.click();
+      await pr;
+      await esperar(1300);
+      R.quejas = dichos.filter(d => String(d).indexOf('no se pudo leer del disco') >= 0).length;
+      R.loopsEsArray = !!(_vistaB && _vistaB.datos && Array.isArray(_vistaB.datos.loops));
+      R.vistaBCuadros = (_vistaB && _vistaB.datos && Array.isArray(_vistaB.datos.loops) &&
+                         _vistaB.datos.loops[0]) ? _vistaB.datos.loops[0].d.frags.length : -1;
+      /* Un registro TRUNCADO --sin cuadros-- tiene que fallar, no abrir un reproductor vacio. */
+      const idRoto = _uuidNuevo();
+      await CeiboCine.guardar({ id:idRoto, uuid:inf.uuid, nombre:'roto', cuadros:1, ms:40,
+        cols:10, filas:10, poster:'', datos:new Uint8Array(0), offs:new Int32Array(0),
+        bytes:0, regiones:[], ts:'' });
+      R.rotoDaNull = (await _cineLoopDeDisco(idRoto)) === null;
+      R.buenoNoDaNull = (await _cineLoopDeDisco(idLoop)) !== null;
+    } catch (e) {
+      R.err = String(e && e.message || e);
+    } finally {
+      window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+      try {
+        if (togglePrevio === null) localStorage.removeItem('cfg-guardar-imagenes');
+        else localStorage.setItem('cfg-guardar-imagenes', togglePrevio);
+      } catch (e) {}
+      try { cineCerrar(); } catch (e) {}
+      document.querySelectorAll('[data-vpicker]').forEach(o => { try { o.remove(); } catch (e) {} });
+      if (estudioId) { try { await __t.borrar(estudioId); } catch (e) {} }
+      try { imgVaciar(); } catch (e) {}
+    }
+    return { extra: [
+      ['sin excepciones',                          !R.err, R.err],
+      ['DENOMINADOR: el cineloop esta en disco',   R.enDisco === 1, 'recs=' + R.enDisco],
+      ['DENOMINADOR: la tira lo abre',             R.tiraAbre === true && R.tiraCuadros === 3,
+                                                   'abre=' + R.tiraAbre + ' cuadros=' + R.tiraCuadros],
+      ['y sin quejarse del disco',                 R.tiraSinQueja === true, R.tiraSinQueja],
+      ['el selector de la vista B se abre',        R.pickerAbrio === true, R.pickerAbrio],
+      ['la vista B NO se queja del disco',         R.quejas === 0, 'quejas=' + R.quejas],
+      ['y carga el cineloop con sus cuadros',      R.vistaBCuadros === 3, 'cuadros=' + R.vistaBCuadros],
+      ['loops queda como ARRAY, no como objeto',   R.loopsEsArray === true, R.loopsEsArray],
+      ['un registro truncado SI falla',            R.rotoDaNull === true, R.rotoDaNull],
+      ['y uno bueno no',                           R.buenoNoDaNull === true, R.buenoNoDaNull]
+    ] };
+  })();
+`);
+
 caso('TC-228', 'Visor: la etiqueta dice DE DONDE viene el valor, y el numero queda quemado siempre', `
   return (async () => {
     const R = {};

@@ -52111,10 +52111,11 @@ async function _vElegirLoop(V) {
      misma regla que ya siguen la tira y el selector de imágenes del PPT. */
   const elegido = await _vPickerLoop(V, lista);
   if (elegido == null) return false;
-  const loops = _cineDesdeRegistro(lista[elegido]);
-  if (!loops || !loops.length) { alert('Ese cineloop no se pudo leer del disco.'); return false; }
+  /* MISMA ruta que la tira: `_cineLoopDeDisco`. Lo único que cambia es dónde se abre. */
+  const loop = await _cineLoopDeDisco(lista[elegido].id);
+  if (!loop) { alert('Ese cineloop no se pudo leer del disco.'); return false; }
   _vCon(V, () => {
-    V.datos = { loops, i: 0, cuadro: 0, timer: null };
+    V.datos = { loops: [loop], i: 0, cuadro: 0, timer: null };
     _cineCargarLoop();
   });
   return true;
@@ -53563,10 +53564,35 @@ async function _docVer(id) {
 }
 window._docVer = _docVer;
 
+/* UNA sola ruta de lectura desde el disco, y la comparten la tira y el selector de la vista B.
+   Antes eran dos y divergieron: la tira leía con `CeiboCine.leer(id)` y envolvía el resultado en
+   un ARRAY —`_cineAbrir([...])`— mientras el selector se quedaba con el registro de `listar` y
+   trataba el retorno como si YA fuera un array.
+
+   ⚠️ `_cineDesdeRegistro` DEVUELVE UN OBJETO, NO UN ARRAY. Por eso el selector hacía
+   `!loops.length` sobre un objeto —`undefined`— y la guarda daba verdadero SIEMPRE: el médico
+   veía «Ese cineloop no se pudo leer del disco» en el 100 % de los casos, sobre cineloops que la
+   tira abría perfectamente. Y si la guarda no hubiera estado, `V.datos.loops` habría quedado con
+   un objeto donde el reproductor espera una lista, así que `D.loops[D.i]` daba `undefined`.
+
+   Devuelve el loop o null. El llamador decide DÓNDE abrirlo, que es lo único que los distingue. */
+async function _cineLoopDeDisco(id) {
+  let r = null;
+  try { r = await CeiboCine.leer(id); } catch (e) { r = null; }
+  if (!r || !r.datos || !r.offs) return null;
+  let loop = null;
+  try { loop = _cineDesdeRegistro(r); } catch (e) { loop = null; }
+  /* Se comprueba que haya CUADROS, no que el objeto exista: un registro truncado produce un
+     loop con cero fragmentos, y eso abre un reproductor vacío en vez de fallar. */
+  if (!loop || !loop.d || !loop.d.frags || !loop.d.frags.length) return null;
+  return loop;
+}
+window._cineLoopDeDisco = _cineLoopDeDisco;
+
 async function cineAbrirGuardado(id) {
-  const r = await CeiboCine.leer(id);
-  if (!r) { toast('❌ No se pudo leer el cineloop guardado'); return; }
-  _cineAbrir([_cineDesdeRegistro(r)]);
+  const loop = await _cineLoopDeDisco(id);
+  if (!loop) { toast('❌ No se pudo leer el cineloop guardado'); return; }
+  _cineAbrir([loop]);
 }
 window.cineAbrirGuardado = cineAbrirGuardado;
 
@@ -69521,8 +69547,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260922-1710';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790107850076;                 /* eco-build-ms */
+const ECO_BUILD    = '20260922-1730';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790109037134;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -69608,7 +69634,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1710</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1730</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

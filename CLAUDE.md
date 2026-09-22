@@ -4,6 +4,49 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## «No se pudo leer del disco» era un ARRAY QUE NO ERA ARRAY (TC-240)
+
+Reportado como que la vista B no podía abrir cineloops **que la tira abría perfectamente**, y
+leído —razonablemente— como «usa otra ruta de lectura». **El disco no tenía nada que ver.**
+
+### ⚠️ `_cineDesdeRegistro` DEVUELVE UN OBJETO, NO UN ARRAY
+
+La tira lo envolvía —`_cineAbrir([_cineDesdeRegistro(r)])`— y el selector de la vista B se
+quedaba con el retorno pelado y lo trataba como lista:
+
+```
+const loops = _cineDesdeRegistro(lista[elegido]);
+if (!loops || !loops.length) { alert('Ese cineloop no se pudo leer del disco.'); ... }
+```
+
+`loops.length` sobre un objeto es **`undefined`**, así que la guarda daba verdadero **siempre**:
+el mensaje salía en el 100 % de los casos. Y si no hubiera estado, `V.datos.loops` habría quedado
+con un objeto donde el reproductor espera una lista y `D.loops[D.i]` daba `undefined`.
+
+**Los bytes estaban.** `CeiboCine.listar` usa `getAll`, así que trae el registro entero con
+`datos` y `offs` — el mensaje culpaba al disco de un error de tipo. *Un mensaje de error que
+nombra la causa equivocada manda a revisar lo que está sano.*
+
+### El arreglo es UNA ruta, no dos arregladas
+
+`_cineLoopDeDisco(id)` lee y construye, y la comparten la tira y el selector; lo único que los
+distingue es **dónde** abren el loop. Con dos caminos, esto vuelve a divergir — ya divergió una
+vez y el síntoma fue un botón que no funcionaba nunca.
+
+**Y la guarda pasó a mirar los CUADROS, no el objeto**: un registro truncado produce un loop con
+cero fragmentos, y eso abre un reproductor **vacío** en vez de fallar. La mutación que la
+devuelve a `if (!loop)` cae por su condición.
+
+### El denominador del caso es la TIRA
+
+TC-240 comprueba primero que la tira abre ESE mismo cineloop con sus tres cuadros. Sin eso, «la
+vista B falla» no distingue un selector roto de un registro ilegible — que es exactamente la
+lectura equivocada con la que llegó el reporte.
+
+**Control negativo, contra HEAD:** `tiraAbre: true` con 3 cuadros y `quejaVistaB: 1`,
+`loopsEsArray: false`. Con el arreglo: `quejas: 0`, `vistaBCuadros: 3`, `loopsEsArray: true`.
+
+
 ## A4C fija, y la A3C desplaza a la A2C — sólo en la PRESENTACIÓN (2026-09-22)
 
 El panel del strain tiene dos lugares: la vista de referencia y la que se está agregando. Al
