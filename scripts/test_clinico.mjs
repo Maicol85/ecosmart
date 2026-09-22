@@ -11098,7 +11098,7 @@ caso('TC-187', 'Regla: escala del archivo, aritmetica exacta y las zonas donde N
       await esperar(() => !!_cineDatos, 80);
       R.abrio = !!_cineDatos;
 
-      medToggle();
+      if (!_medOn) medToggle();
       R.modoActivo = _medOn;
       R.pausoAlMedir = !!_cineDatos && !_cineDatos.timer;
       const cv = document.getElementById('cine-med');
@@ -11209,7 +11209,7 @@ caso('TC-187', 'Regla: escala del archivo, aritmetica exacta y las zonas donde N
           d: { frags: dd.frags.length ? dd.frags : [new Uint8Array([255,216])], cols: dd.cols, filas: dd.filas,
                msCuadro: 0, regiones: dd.regiones } }]);
         await new Promise(r => setTimeout(r, 250));
-        medToggle();
+        if (!_medOn) medToggle();
         const cv2 = document.getElementById('cine-med');
         const clic2 = (x, y) => { const r = cv2.getBoundingClientRect();
           cv2.dispatchEvent(new MouseEvent('click', { bubbles:true,
@@ -11245,7 +11245,7 @@ caso('TC-187', 'Regla: escala del archivo, aritmetica exacta y las zonas donde N
 
         montar([mitad, otra]);
         await new Promise(r => setTimeout(r, 250));
-        medToggle();
+        if (!_medOn) medToggle();
         const cv3 = document.getElementById('cine-med');
         const clic3 = (x, y) => { const r = cv3.getBoundingClientRect();
           cv3.dispatchEvent(new MouseEvent('click', { bubbles:true,
@@ -11260,7 +11260,7 @@ caso('TC-187', 'Regla: escala del archivo, aritmetica exacta y las zonas donde N
 
         montar([mitad, igual]);
         await new Promise(r => setTimeout(r, 250));
-        medToggle();
+        if (!_medOn) medToggle();
         const cv4 = document.getElementById('cine-med');
         const clic4 = (x, y) => { const r = cv4.getBoundingClientRect();
           cv4.dispatchEvent(new MouseEvent('click', { bubbles:true,
@@ -11280,7 +11280,7 @@ caso('TC-187', 'Regla: escala del archivo, aritmetica exacta y las zonas donde N
       imgSlots.length = 0; imgSlots.push(null, null); imgSlotCount = 2;
       await dcmImgImportar([new File([u], P.loop.nombre)]);
       await esperar(() => !!_cineDatos, 80);
-      medToggle();
+      if (!_medOn) medToggle();
       cineCapturar();
       await esperar(() => imgSlots.some(s => s && s.dataURL), 90);
       R.capturaSigue = imgSlots.some(s => s && s.dataURL && _imgSrcOK(s.dataURL));
@@ -11439,7 +11439,7 @@ caso('TC-188', 'Imagen fija: se mide sobre el original, no sobre el JPEG recompr
       R.unSoloCuadro = _cineDatos.loops[0].cuadros === 1;
 
       /* ── la regla mide con la escala DEL ARCHIVO ── */
-      medToggle();
+      if (!_medOn) medToggle();
       const reg = (dEleg.regiones || []).filter(_dcmImgRegionMedible)[0];
       const med = document.getElementById('cine-med');
       const clic = (x, y) => { const r = med.getBoundingClientRect();
@@ -11530,7 +11530,7 @@ caso('TC-189', 'Area: Shoelace exacto sobre figura conocida, y las zonas donde n
       localStorage.setItem('cfg-guardar-imagenes','0');
       await dcmImgImportar([new File([u], P.loop.nombre)]);
       await esperar(() => !!_cineDatos, 80);
-      medToggle();
+      if (!_medOn) medToggle();
       const cv = document.getElementById('cine-med');
 
       /* Arrastre real: mousedown en el canvas, mousemove, mouseup en el documento. */
@@ -11651,7 +11651,7 @@ caso('TC-189', 'Area: Shoelace exacto sobre figura conocida, y las zonas donde n
       _cineAbrir([{ nombre:'anisotropico', cuadros:1,
         d:{ frags:d0.frags.slice(0,1), cols:d0.cols, filas:d0.filas, msCuadro:0, regiones:[anis] } }]);
       await new Promise(r => setTimeout(r, 250));
-      medToggle();
+      if (!_medOn) medToggle();
       __t.herr('cine-med-area');
       const cv2 = document.getElementById('cine-med');
       const aCliente2 = (x, y) => { const r = cv2.getBoundingClientRect();
@@ -11681,7 +11681,7 @@ caso('TC-189', 'Area: Shoelace exacto sobre figura conocida, y las zonas donde n
       _cineAbrir([{ nombre:'mixto', cuadros:1,
         d:{ frags:d0.frags.slice(0,1), cols:d0.cols, filas:d0.filas, msCuadro:0, regiones:[noMed, siMed] } }]);
       await new Promise(r => setTimeout(r, 250));
-      medToggle();
+      if (!_medOn) medToggle();
       __t.herr('cine-med-area');
       const cv3 = document.getElementById('cine-med');
       const trazar3 = async (pts) => { const ac = (x,y) => { const r = cv3.getBoundingClientRect();
@@ -11766,7 +11766,7 @@ caso('TC-190', 'Simpson biplano: FEVI contra un volumen calculable a mano, y L l
       localStorage.setItem('cfg-guardar-imagenes','0');
       await dcmImgImportar([new File([u], P.loop.nombre)]);
       await esperar(() => !!_cineDatos, 80);
-      medToggle();
+      if (!_medOn) medToggle();
       const cv = document.getElementById('cine-med');
       const ac = (x, y) => { const r = cv.getBoundingClientRect();
         return { clientX: r.left + x * (r.width / cv.width), clientY: r.top + y * (r.height / cv.height) }; };
@@ -12027,7 +12027,7 @@ caso('TC-191', 'Simpson: integra al informe solo el biplano, y el trazado se ocu
       localStorage.setItem('cfg-guardar-imagenes','0');
       await dcmImgImportar([new File([u], P.loop.nombre)]);
       await esperar(() => !!_cineDatos, 80);
-      medToggle();
+      if (!_medOn) medToggle();
       const cv = document.getElementById('cine-med');
       const ac = (x, y) => { const r = cv.getBoundingClientRect();
         return { clientX: r.left + x * (r.width / cv.width), clientY: r.top + y * (r.height / cv.height) }; };
@@ -12188,7 +12188,7 @@ caso('TC-192', 'Simpson cruzando dos imagenes: la sesion sobrevive y cada trazad
       };
       montar('vista-A.dcm', 1);
       await new Promise(r => setTimeout(r, 250));
-      medToggle();
+      if (!_medOn) medToggle();
       const cv = () => document.getElementById('cine-med');
       const ac = (x, y) => { const c = cv(), r = c.getBoundingClientRect();
         return { clientX: r.left + x * (r.width / c.width), clientY: r.top + y * (r.height / c.height) }; };
@@ -12409,7 +12409,7 @@ caso('TC-193', 'Velocidad: cero en el pixel de referencia, 4V2, y no mide sobre 
         d: { frags: d0.frags.length ? d0.frags : [new Uint8Array([255,216])],
              cols: d0.cols, filas: d0.filas, msCuadro: 0, regiones: d0.regiones } }]);
       await new Promise(r => setTimeout(r, 250));
-      medToggle();
+      if (!_medOn) medToggle();
       __t.herr('cine-med-vel');
       await new Promise(r => setTimeout(r, 90));
       R.herrVel = _medHerr === 'vel';
@@ -12477,7 +12477,7 @@ caso('TC-193', 'Velocidad: cero en el pixel de referencia, 4V2, y no mide sobre 
         d: { frags: d0.frags.length ? d0.frags : [new Uint8Array([255,216])],
              cols: d0.cols, filas: d0.filas, msCuadro:0, regiones:[mm] } }]);
       await new Promise(r => setTimeout(r, 250));
-      medToggle();
+      if (!_medOn) medToggle();
       __t.herr('cine-med-vel');
       await new Promise(r => setTimeout(r, 90));
       R.mmNoEsVelocidad = !_dcmImgRegionVelocidad(mm);
@@ -12497,7 +12497,7 @@ caso('TC-193', 'Velocidad: cero en el pixel de referencia, 4V2, y no mide sobre 
         d: { frags: d0.frags.length ? d0.frags : [new Uint8Array([255,216])],
              cols: d0.cols, filas: d0.filas, msCuadro: 0, regiones: d0.regiones } }]);
       await new Promise(r => setTimeout(r, 250));
-      medToggle();
+      if (!_medOn) medToggle();
       if (r2d) {
         medHerramienta('dist');
         const cv3 = document.getElementById('cine-med');
@@ -12588,7 +12588,7 @@ caso('TC-194', 'Tiempo y FC: ms desde el eje X, 60.000/RR, y el modo M SI cuenta
         d: { frags: d0.frags.length ? d0.frags : [new Uint8Array([255,216])],
              cols: d0.cols, filas: d0.filas, msCuadro: 0, regiones: d0.regiones } }]);
       await new Promise(r => setTimeout(r, 250));
-      medToggle();
+      if (!_medOn) medToggle();
       const cv = () => document.getElementById('cine-med');
       const clic = (x, y) => { const c = cv(), r = c.getBoundingClientRect();
         c.dispatchEvent(new MouseEvent('click', { bubbles:true,

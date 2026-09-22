@@ -47923,6 +47923,12 @@ function _vToggleSync() {
 }
 window._vToggleSync = _vToggleSync;
 
+/* Contexto del ultimo estudio que abrio el visor. ⚠️ SE DECLARA ARRIBA DE SU USO: un `let`
+   leido antes de su linea NO devuelve undefined, LANZA -zona muerta temporal- y como esto es
+   nivel superior se lleva puesto el bloque <script> entero. Este archivo ya se quedo sin
+   JavaScript dos veces por exactamente esto. */
+let _vCtxUltimo = null;
+
 function _cineAbrir(loops) {
   _V = _vistaA;
   _cineDetener();
@@ -47944,6 +47950,23 @@ function _cineAbrir(loops) {
           '<button type="button" class="btn btn-ghost" id="cine-vtoggle" ' +
             'style="margin-left:auto;padding:5px 12px;font-size:12px;align-items:center;">' +
             'Ver vista B ▶</button>' +
+          /* ⚠️ CIERRA TODO Y NO PIDE CONFIRMACIÓN, y puede no pedirla porque NO SE PIERDE NADA:
+             desde este commit cerrar el visor conserva los trazados, la tabla y la diana. Sin
+             esa mitad, un ✕ sin confirmación al lado de un trabajo de varios minutos sería una
+             trampa. Complementa a «Cerrar» y a «✕ Cerrar vista» —no los reemplaza— y hace lo
+             mismo que aquél: con dos botones de cerrar que se comporten distinto, cuál se
+             apretó decidiría si el trabajo sobrevive.
+             ⚠️ LLEVA `margin-left:auto` AUNQUE EL ALTERNADOR YA LO TENGA, y no es redundante: ese
+             alternador nace `display:none` y sólo lo muestra la media query de pantalla angosta,
+             así que en escritorio esta ✕ es la única que puede empujarse al borde derecho. En
+             angosto el primer `auto` se come el hueco y esta ✕ queda pegada al alternador, que es
+             lo que corresponde — las dos al final de la fila. */
+          '<button type="button" id="cine-cerrar-todo" title="Cerrar el visor — lo medido se conserva" ' +
+            'style="margin-left:auto;width:44px;height:44px;padding:0;background:none;border:none;' +
+            'cursor:pointer;display:flex;align-items:center;justify-content:center;">' +
+            '<span style="width:26px;height:26px;border-radius:50%;background:var(--bg3);' +
+            'border:1px solid var(--border);color:var(--text);font-size:14px;line-height:24px;' +
+            'text-align:center;">✕</span></button>' +
         '</div>' +
         '<div id="cine-paneles" style="display:flex;gap:12px;align-items:flex-start;">' +
           _vPanelHTML('', false) +
@@ -47963,16 +47986,74 @@ function _cineAbrir(loops) {
       '</div>';
     document.body.appendChild(ov);
     ov.querySelector('#cine-cerrar').onclick = cineCerrar;
+    ov.querySelector('#cine-cerrar-todo').onclick = cineCerrar;
     ov.querySelector('#cine-add-b').onclick  = vistaBAbrir;
     ov.querySelector('#cine-sync').onclick   = vistaSyncToggle;
     ov.querySelector('#cine-vtoggle').onclick = vistaAlternarMobil;
     _vCablear(_vistaA);
   }
+  /* ⚠️ LAS SESIONES SOBREVIVEN AL CIERRE, ASÍ QUE ACÁ HAY QUE MIRAR DE QUÉ PACIENTE SON.
+     Hasta este commit la fuga era imposible por accidente: el observador del overlay llamaba a
+     `medApagar` y se llevaba puesto todo. Desde que se conserva, un strain trazado sobre el
+     paciente A podría pintarse sobre el cineloop del B — la fuga entre pacientes que este
+     archivo persigue desde `gradoGamma`.
+     La clave incluye nombre y documento además del uuid porque un estudio SIN GUARDAR no tiene
+     uuid: con la clave sólo en uuid, dos pacientes nuevos seguidos son los dos `null` y la
+     comparación no distingue nada. Falla CERRADO: ante cualquier duda se descarta. */
+  const ctx = _vCtxEstudio();
+  if (!_vMismoEstudio(_vCtxUltimo, ctx)) _vTodas().forEach(V => _vCon(V, _medSoltarSesiones));
+  _vCtxUltimo = ctx;
   ov.style.display = 'flex';
   _vObservarAncho();
   _vToggleSync();
   _cineCargarLoop();
+  /* TAREA 2: el visor abre LISTO PARA MEDIR, igual que la vista B. `medToggle` ya entra solo
+     en modo calibrar cuando el archivo no declara ninguna región medible, así que la rama
+     «sin escala → calibración» no se escribe acá: se hereda. */
+  _vActivarMedicion(_vistaA);
 }
+
+/* Identidad del estudio abierto, para no mezclar pacientes. Se lee del formulario igual que
+   `_vdSexo`, que es la práctica que este módulo ya tiene para los datos del estudio. */
+function _vCtxEstudio() {
+  const g = id => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
+  return { uuid: String(_imgUuidActual || ''), nom: g('nombre'), ci: g('ci') };
+}
+
+/* ⚠️ EL uuid APARECE A MITAD DEL TRABAJO, y comparar la clave entera perdía los trazados.
+   El flujo normal es medir mientras se llena el formulario y guardar al final: ahí
+   `_imgUuidActual` pasa de vacío a real SIN que cambie el paciente, y una comparación cruda
+   soltaba las sesiones justo después de guardar — medido, el resultado integrado salía `null`
+   al reabrir. Un uuid vacío de cualquiera de los dos lados NO desempata.
+   Sin contexto previo (`null`) es la primera apertura y no hay nada que soltar. */
+function _vMismoEstudio(ant, act) {
+  if (!ant) return true;
+  if (ant.nom !== act.nom || ant.ci !== act.ci) return false;
+  if (!ant.uuid || !act.uuid) return true;
+  return ant.uuid === act.uuid;
+}
+window._vMismoEstudio = _vMismoEstudio;
+
+/* Deja la vista sin sesiones de medición. Es lo que `medApagar` hacía SIEMPRE y ahora sólo
+   ocurre al cambiar de paciente. */
+function _medSoltarSesiones() {
+  _simp = null; _strain = null; _lars = null; _vd = null;
+  _strainRecs = null; _strainRevocarThumbs();
+}
+
+/* Enciende la medición de una vista. Una sola definición para las dos: con una copia por
+   vista, agregar una regla nueva a una y olvidarse de la otra deja los dos paneles abriendo
+   distinto, que es justo lo que este pedido vino a corregir. */
+function _vActivarMedicion(V) {
+  _vCon(V, () => {
+    if (!_cineDatos) return;
+    _medGrupo = '2d';
+    _medHerr = 'dist';
+    if (!_medOn) medToggle();
+    _medEstado();
+  });
+}
+window._vActivarMedicion = _vActivarMedicion;
 
 function _cineCargarLoop() {
   const V = _V, D = V.datos; if (!D) return;
@@ -48103,12 +48184,16 @@ function cineCapturar() {
 function cineCerrar() {
   /* Las DOS vistas se detienen, cada una en su contexto. */
   _vTodas().forEach(V => _vCon(V, _cineDetener));
-  try { vistaBCerrar(); } catch (e) {}
+  /* ⚠️ LA VISTA B YA NO SE DESTRUYE AL CERRAR EL VISOR, y era la otra mitad de «lo medido se
+     conserva»: `vistaBCerrar` llama a `medApagar`, así que cerrar todo se llevaba puesta la
+     segunda apical —justo la que hace falta para que el bull's eye tenga las dos ventanas—.
+     Se sigue destruyendo desde su propio «✕ Cerrar vista», que es cuando el médico dice que
+     no la quiere más; cerrar el visor no es eso.
+     Lo que SÍ se suelta en las dos son los fragmentos: son vistas sobre el ArrayBuffer del
+     archivo entero, así que mientras `datos` viva, los 17 MB del cineloop viven con él. */
   const ov = document.getElementById('cine-ov');
   if (ov) ov.style.display = 'none';
-  /* Se suelta la referencia a los fragmentos. Son vistas sobre el ArrayBuffer del archivo
-     entero, así que mientras `datos` viva, los 17 MB del cineloop viven con él. */
-  _vistaA.datos = null;
+  _vTodas().forEach(V => { V.datos = null; });
   _V = _vistaA;
 }
 window.cineToggle = cineToggle; window.cineCapturar = cineCapturar;
@@ -48869,6 +48954,35 @@ function _strainAceptar(pts) {
    un hallazgo extremo: es casi siempre que los dos contornos no recorren la misma extensión
    —uno llegó al anillo y el otro no—, que es el modo de falla propio del método manual, como
    el ápex escorzado lo es del de discos. Se declara y no se esconde. */
+/* ── AGREGACIÓN DE TERRITORIOS → RESULTADO ───────────────────────────────────────────────
+   Se extrajo de `_strainCalcular` SIN cambiar una sola operación, y no es prolijidad: desde que
+   el bull's eye integra las dos vistas del visor hay DOS productores de listas de territorios
+   —la sesión de una vista y la mezcla de las dos— y con la fórmula escrita dos veces, la diana
+   y el panel podrían publicar dos SGL distintos del mismo paciente.
+
+   SGL = promedio de los territorios, cada uno pesando igual, que es como se define el GLS sobre
+   los segmentos. NO es el cociente de las longitudes sumadas: con paredes de largo distinto los
+   dos números difieren, y el que corresponde es el promedio.
+
+   Las ventanas salen de los territorios y se ordenan por `_STR_VISTAS`, no por el orden en que
+   se trazaron: con la A2C medida en la vista B antes que la A4C en la A, la etiqueta diría
+   «A2C + A4C» sobre el mismo estudio según en qué panel arrancó el médico. */
+function _strAgregar(terr) {
+  if (!terr || !terr.length) return null;
+  const ks = _STR_VISTAS.map(v => v.k).filter(k => terr.some(t => t.vista === k));
+  const sgl = terr.reduce((a, t) => a + t.pct, 0) / terr.length;
+  const NIV = { 1:{ rot:'orientativo', det:'1 vista' },
+                2:{ rot:'aproximado',  det:'2 vistas' },
+                3:{ rot:'con cobertura estándar', det:'3 vistas' } }[ks.length];
+  return {
+    sgl, terr, vistas: ks, nVistas: ks.length,
+    nivel: NIV.rot, nivelDet: NIV.det,
+    etiqueta: 'SGL ' + NIV.rot + ' — ' + NIV.det + ' (' +
+              ks.map(k => k.toUpperCase()).join(' + ') + ')'
+  };
+}
+window._strAgregar = _strAgregar;
+
 function _strainCalcular() {
   if (!_strain) return null;
   const listas = _strainVistasListas();
@@ -48887,18 +49001,7 @@ function _strainCalcular() {
     });
   });
   if (!terr.length) return null;
-  /* SGL = promedio de los territorios disponibles, cada uno pesando igual — que es como se
-     define el GLS sobre los segmentos. NO es el cociente de las longitudes sumadas: con
-     paredes de largo distinto los dos números difieren, y el que corresponde es el promedio. */
-  const sgl = terr.reduce((a, t) => a + t.pct, 0) / terr.length;
-  const NIV = { 1:{ rot:'orientativo', det:'1 vista' },
-                2:{ rot:'aproximado',  det:'2 vistas' },
-                3:{ rot:'con cobertura estándar', det:'3 vistas' } }[listas.length];
-  return {
-    sgl, terr, vistas: listas.map(v => v.k), nVistas: listas.length,
-    nivel: NIV.rot, nivelDet: NIV.det,
-    etiqueta: 'SGL ' + NIV.rot + ' — ' + NIV.det + ' (' +
-              listas.map(v => v.k.toUpperCase()).join(' + ') + ')',
+  return Object.assign(_strAgregar(terr), {
     mismaImagen,
     /* ¿Alguna vista tiene sus dos fases trazadas con métodos DISTINTOS? Medido: mezclar
        trazado libre con 3 puntos mete ±3,7 a ±4,4 pp, veinte veces el sesgo de usar el mismo
@@ -48910,9 +49013,70 @@ function _strainCalcular() {
     }),
     invertido: terr.some(t => t.invertido),
     plausible: terr.every(t => t.plausible)
-  };
+  });
 }
 window._strainCalcular = _strainCalcular;
+
+/* ── EL STRAIN ES UNO SOLO, AUNQUE SE MIDA EN DOS PANELES ────────────────────────────────
+   ⚠️ CADA VISTA DEL VISOR LLEVA SU PROPIA SESIÓN, así que antes había DOS bull's eye: el
+   panel A pintaba los territorios de la A4C y el B los de la A2C, cada uno con su SGL y
+   ninguno con el estudio completo. Medido: dos dianas, SGL −20,8 y −19,7 sobre el mismo
+   ventrículo. Las tres ventanas apicales son UN strain del MISMO paciente.
+
+   Se deduplica por ventana+pared y NO por posición: el mismo territorio medido en los dos
+   paneles es una medición repetida, no dos, y contarla dos veces la haría pesar doble en el
+   promedio. Gana la primera vista que lo tenga —A antes que B— igual que la tabla de Simpson. */
+function _strTerrVivos() {
+  const terr = [], vistos = [];
+  _vTodas().forEach(V => {
+    const R = _vCon(V, () => { try { return _strainCalcular(); } catch (e) { return null; } });
+    if (!R) return;
+    R.terr.forEach(t => {
+      const k = t.vista + '|' + t.pared;
+      if (vistos.indexOf(k) >= 0) return;
+      vistos.push(k); terr.push(t);
+    });
+  });
+  return terr;
+}
+window._strTerrVivos = _strTerrVivos;
+
+/* El resultado INTEGRADO de las dos vistas. Es lo que pinta la diana, lo que rotula la
+   captura y lo que se guarda: con tres fuentes distintas, lo que se ve, lo que se imprime y
+   lo que viaja con el estudio podrían dejar de coincidir. */
+function _strResultadoVivo() {
+  const R = _strAgregar(_strTerrVivos());
+  if (!R) return null;
+  /* Las salvedades se arrastran de CUALQUIERA de las vistas: si una sola mezcló métodos o
+     trazó las dos fases sobre imágenes distintas, el resultado integrado lo hereda. Callarlo
+     porque la otra vista está limpia sería publicar un número sin su reparo. */
+  let mismaImagen = true, mezclaMetodo = false;
+  _vTodas().forEach(V => {
+    const r = _vCon(V, () => { try { return _strainCalcular(); } catch (e) { return null; } });
+    if (!r) return;
+    if (!r.mismaImagen) mismaImagen = false;
+    if (r.mezclaMetodo) mezclaMetodo = true;
+  });
+  R.mismaImagen = mismaImagen;
+  R.mezclaMetodo = mezclaMetodo;
+  R.invertido = R.terr.some(t => t.invertido);
+  R.plausible = R.terr.every(t => t.plausible);
+  return R;
+}
+window._strResultadoVivo = _strResultadoVivo;
+
+/* Repinta el panel de la OTRA vista. La diana es compartida, así que confirmar un trazado en
+   una dejaba la otra mostrando el estudio incompleto — es exactamente lo que le pasó a la
+   tabla de Simpson y se cierra igual: sólo el panel, atado a SU vista con `_vCon` para que
+   `_medEstado` lea los accesores correctos. */
+function _strRepintarOtraVista() {
+  const actual = _V;
+  _vTodas().forEach(V2 => {
+    if (V2 === actual) return;
+    _vCon(V2, () => { try { _medEstado(); } catch (e) {} });
+  });
+}
+window._strRepintarOtraVista = _strRepintarOtraVista;
 
 function medStrainConfirmar() {
   /* Ya NO se exige vista: sin ella el trazado se guarda en `sinVista` y se muda al declararla.
@@ -48933,6 +49097,7 @@ function medStrainConfirmar() {
   _strain.avisoCuadro = false; _strain.ocultar = false;
   _strain.fase = (_strain.fase === 'd') ? 's' : 'd';
   _medPintar(); _medEstado();
+  _strRepintarOtraVista();   // la diana es compartida: sin esto la otra queda incompleta
 }
 window.medStrainConfirmar = medStrainConfirmar;
 
@@ -48940,6 +49105,7 @@ function medStrainReiniciar() {
   _strainIniciar();
   _strainRecs = null; _strainCargarRecs();
   _medPintar(); _medEstado();
+  _strRepintarOtraVista();
 }
 window.medStrainReiniciar = medStrainReiniciar;
 
@@ -49042,7 +49208,10 @@ function _strainPanel() {
      Se arma ARRIBA porque los pasos de selección también lo muestran: el médico tiene que
      poder ver lo que ya midió mientras elige el cineloop siguiente. */
   let res = '';
-  const R = listas.length ? _strainCalcular() : null;
+  /* EL RESULTADO INTEGRADO de las dos vistas, no el de esta. `listas` sigue gobernando el
+     ESTADO DE LAS TRES VENTANAS de arriba —eso sí es de esta sesión— pero el número que se
+     publica y la diana son del estudio entero. */
+  const R = _strResultadoVivo();
   if (R) {
     const col = R.plausible ? '#22d36a' : '#fbbf24';
     const lista = R.terr.map(t =>
@@ -49855,7 +50024,7 @@ function _strBullsRepintar() {
   cv.style.width = S + 'px'; cv.style.height = S + 'px';
   const c2 = cv.getContext('2d');
   c2.setTransform(dpr, 0, 0, dpr, 0, 0);
-  _strBullsDibujar(c2, S, _strainCalcular(), false);
+  _strBullsDibujar(c2, S, _strResultadoVivo(), false);
 }
 
 /* Captura: MISMO dibujante, al doble de tamaño, con el título y el descargo QUEMADOS en la
@@ -49865,7 +50034,7 @@ function _strBullsRepintar() {
 /* UN dibujante para las DOS salidas —el PDF y la biblioteca—. Con dos copias, la diana que
    sale en el informe y la que queda guardada podrían dejar de llevar el mismo descargo. */
 function _strBullsCanvas() {
-  const R = _strainCalcular();
+  const R = _strResultadoVivo();
   if (!R) return null;
   const S = 640;
   const cv = document.createElement('canvas');
@@ -50460,8 +50629,11 @@ function _medResultadoParaCaptura() {
                ' por trazado manual';
       }
     }
-    if (_medHerr === 'strain' && typeof _strainCalcular === 'function' && _strain) {
-      const R = _strainCalcular();
+    /* EL RESULTADO INTEGRADO, no el de esta vista: la diana de al lado publica el SGL de las
+       DOS ventanas, y quemar aca el de una sola dejaria dos SGL del mismo paciente en el mismo
+       PDF. La etiqueta declara que ventanas aportaron. */
+    if (_medHerr === 'strain' && typeof _strResultadoVivo === 'function' && _strain) {
+      const R = _strResultadoVivo();
       if (R && isFinite(R.sgl)) {
         return 'SGL ' + R.sgl.toFixed(1) + ' % · ' + R.etiqueta +
                ' · contornos manuales, no speckle tracking';
@@ -50483,8 +50655,8 @@ function _medResultadoParaCaptura() {
    de un strain saldria rotulada A4C. */
 function _medEtiqVista() {
   try {
-    if (_medHerr === 'strain' && _strain && typeof _strainCalcular === 'function') {
-      const R = _strainCalcular();
+    if (_medHerr === 'strain' && _strain && typeof _strResultadoVivo === 'function') {
+      const R = _strResultadoVivo();
       if (!R || !isFinite(R.sgl) || !R.vistas || !R.vistas.length) return '';
       /* La sigla sale del rótulo de la tabla, no de un mapa nuevo ni del literal de la clave. */
       const sig = R.vistas.map(k => {
@@ -50530,8 +50702,8 @@ function _medResultadoCorto() {
       if (R && isFinite(R.fevi))
         return 'Simpson ' + (R.bi ? 'biplano' : 'monoplano') + ' por trazado manual';
     }
-    if (_medHerr === 'strain' && _strain && typeof _strainCalcular === 'function') {
-      const R = _strainCalcular();
+    if (_medHerr === 'strain' && _strain && typeof _strResultadoVivo === 'function') {
+      const R = _strResultadoVivo();
       if (R && isFinite(R.sgl))
         return 'contornos manuales, no speckle tracking · SGL ' + R.nivel;
     }
@@ -51986,7 +52158,7 @@ function _medObservar() {
   new MutationObserver(() => _vCon(V, medCambioDeImagen))
     .observe(cual, { childList:true, characterData:true, subtree:true });
   /* El overlay es compartido: al cerrarlo se apagan las dos. */
-  new MutationObserver(() => { if (ov.style.display === 'none') _vCon(V, medApagar); })
+  new MutationObserver(() => { if (ov.style.display === 'none') _vCon(V, medCerrarVisor); })
     .observe(ov, { attributes:true, attributeFilter:['style'] });
   _medObsPuesto = true;
 }
@@ -52175,6 +52347,33 @@ function medCambioDeImagen() {
 window.medCambioDeImagen = medCambioDeImagen;
 
 /* Al CERRAR el visor se va todo, Simpson incluido: se terminó la medición. */
+/* ⚠️ CERRAR EL VISOR YA NO BORRA LO MEDIDO — y esto NO es sólo del botón ✕ nuevo.
+   Hasta este commit el observador del `display` de `#cine-ov` llamaba a `medApagar`, así que
+   CUALQUIER camino de cierre destruía los trazados, la tabla de Simpson y el bull's eye.
+   Medido: con strain en las dos vistas, `cineCerrar()` dejaba las dos sesiones en `null`.
+
+   Lo que se suelta es lo que cuelga de la IMAGEN —reglas, áreas, calibración manual— y las
+   miniaturas, que son blob URLs y hay que revocar. Lo que se conserva son las SESIONES, que
+   son números y contornos: no retienen los 17 MB del cineloop, y son el trabajo del médico.
+
+   La contrapartida está cubierta en `_cineAbrir`: al reabrir se compara el estudio y, si es
+   otro paciente, se sueltan. Sin esa mitad, conservar sería una fuga entre pacientes. */
+function medCerrarVisor() {
+  _medOn = false; _medCalibrando = false; _medCalib = null;
+  _medCalibVel = null; _medCalibrandoVel = false;
+  _medGrupo = _MED_GRUPO_DEF;
+  _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null;
+  _medVels = []; _medTiempos = []; _medVtis = []; _medHerr = 'dist';
+  _strainRecs = null; _strainRevocarThumbs();
+  const cv = _medEl('cine-med'), b = _medEl('cine-medir');
+  if (cv) { cv.style.display = 'none'; cv.onclick = null; cv.onmousedown = null; cv.onmousemove = null; }
+  if (_vArrastre === _V) _vArrastre = null;
+  if (b) b.textContent = '📏 Medir';
+  _medSideRender();
+  _medBarra('');
+}
+window.medCerrarVisor = medCerrarVisor;
+
 function medApagar() {
   _medOn = false; _medCalibrando = false; _medCalib = null;
   _medCalibVel = null; _medCalibrandoVel = false;
@@ -52332,12 +52531,7 @@ async function vistaBAbrir() {
      `medToggle` ya entra solo en modo calibrar cuando la imagen no declara escala, así que
      acá no se fuerza: forzarlo sobre un DICOM que SÍ la trae pisaría la escala del archivo
      con dos clics a mano, que es peor que la que se descarta. */
-  _vCon(V, () => {
-    _medGrupo = '2d';
-    _medHerr = 'dist';
-    if (!_medOn) medToggle();
-    _medEstado();
-  });
+  _vActivarMedicion(V);
   const sy = document.getElementById('cine-sync');
   if (sy) sy.style.display = '';
   _vToggleSync();
