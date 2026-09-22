@@ -4,6 +4,82 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Columna derecha del visor, y la calibración explicada antes de medir (TC-236)
+
+Primera etapa del rediseño de UX del visor. **Lo que sigue pendiente está al final de la entrada.**
+
+### «Medir» dejó de ser una compuerta, y por eso cambió de rótulo
+
+Elegir una herramienta ya encendía la medición, así que ese botón sólo servía para **apagarla**:
+un control rotulado «Medir» que en la práctica significaba lo contrario. Hoy **nace oculto** y
+aparece, ya rotulado **«✕ Salir de medición»**, sólo con la medición encendida.
+
+**No se borró**, y es deliberado: sin él no habría forma de salir del modo medición sin cerrar el
+visor — el overlay se queda capturando los clics sobre la imagen.
+
+**⚠️ La visibilidad se decide en `medToggle`, no en `_medFijosSync`.** La rama de apagado **no
+pasa** por `_medEstado`, así que puesto sólo en el sync el botón quedaba visible con la medición
+ya apagada (medido). Y el rótulo se sacó de `medToggle`: escribirlo desde dos lados dejaba a las
+dos funciones peleando, y ganaba la última en correr.
+
+### ⚠️ «➕ Vista» y «Cerrar» SE MUDARON, Y LOS IDS SON LOS MISMOS
+
+Estaban en el pie del modal y pasaron a la columna derecha del panel **A** —conservando
+`cine-add-b` y `cine-cerrar`, así que el cableado del modal los sigue encontrando—. Se emiten
+**sólo en la vista A**: son controles del modal y no de la vista, y duplicarlos en la B daría dos
+botones «Cerrar» cerrando lo mismo. La B tiene su «✕ Cerrar vista», que es otra cosa.
+
+**Dejarlos también en el pie habría dejado ids DUPLICADOS**, y ahí `getElementById` devuelve el
+primero y el otro se dibuja **sin responder** — el defecto que la barra de la vista B ya pagó. Hay
+una condición que cuenta las apariciones dentro del overlay y exige **una** de cada.
+
+### La columna va en TRES grupos con filete: medir · capturar · vista
+
+Sin separadores los ocho botones se leen como una sola lista y **«Borrar» queda al lado de
+«Guardar»**, que hacen cosas opuestas.
+
+### Sin calibrar: la instrucción primero, y sólo «Recalibrar»
+
+| | antes | hoy |
+|---|---|---|
+| imagen sin escala | «Este archivo **no trae la escala**. Calibrá a mano…» | «**Antes de medir, calibrá la escala.** Trazá una distancia conocida del ecógrafo…» |
+| calibrada | la escala y nada más | la escala **+** «Si necesitás recalibrar, tocá **Recalibrar →**» |
+
+Lo primero era un **diagnóstico sobre el archivo** cuando lo que el médico necesita es el paso
+siguiente. Y de los controles de medición queda sólo **Recalibrar**: no hay nada medido que
+borrar, y ofrecerlo al lado del único botón que sirve compite con él.
+
+**⚠️ EL TEXTO VA EN LA RAMA DE `_medCalibrando`, y ésa es la que se ve.** Con cero regiones
+`_medAutoCalibrar` entra **sola** en modo calibrar, así que la rama `else` —la que uno escribe
+primero— sólo se alcanza si el médico canceló. Poner la instrucción sólo ahí la vuelve casi
+inalcanzable; lo cazó medirlo, no leerlo.
+
+**Lo que NO se sacó es la línea que dice QUÉ escala se está usando.** Es lo único que permite
+auditar una medición cuando conviven la del archivo y la manual, y este archivo ya lo fija.
+
+### ⚠️ `_medSinCalibrar` NO alcanza a velocidad ni a tiempo
+
+Tienen su **propia** escala —el eje Y en cm/s, el eje X en segundos— y sus propios avisos, que ya
+distinguen los tres casos. Meterlas haría que un Doppler espectral perfectamente medible saliera
+rotulado «sin calibrar», porque su eje horizontal no está en centímetros: el pendrive declara
+**157 regiones así contra 281 de tejido 2D, sin un solo solapamiento**.
+
+**Y la condición que lo fija nació VACUA.** La medía sobre la imagen que **sí** trae escala, donde
+el predicado da `false` de todos modos: la mutación que saca la salida temprana **sobrevivió**.
+Hoy se mide sobre la imagen SIN escala, que es donde esa salida es lo único que puede devolver
+`false`. *El denominador otra vez.*
+
+### Lo que queda pendiente de este rediseño
+
+Esta etapa es la base compartida. **No se hicieron todavía**: los botones de ventana de Simpson
+—que son el enabler para que la etiqueta pueda decir «A4C», hoy imposible porque `_simp.vista` es
+un ÍNDICE y no un nombre—, la tabla biplano con VEyec y promedio, el reemplazo de «Agregar la otra
+vista» por «+ Vista», el selector visual de cineloop para la segunda vista —hoy es un `prompt()`
+con un menú numerado— y el «Incluir en PDF» del bull's eye, que por decisión de Maicol
+(2026-09-22) va por `medCapturarConMedicion`, el camino que quema el descargo de método en el PNG,
+y **no** escribiendo el campo `sgl`.
+
+
 ## Galería y panel de videos en la vista de SÓLO LECTURA (TC-235)
 
 El detalle de un estudio guardado mostraba el texto y nada más: para ver las ecografías había que

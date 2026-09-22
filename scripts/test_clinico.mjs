@@ -20453,6 +20453,112 @@ caso('TC-235', 'Detalle del guardado: galeria de lo que va al PDF y panel de vid
   })();
 `);
 
+/* == TC-236 - Columna derecha del visor y el estado de calibracion =========================
+   Dos cosas que este caso existe para fijar, y ninguna es cosmetica:
+
+   · «Medir» dejo de ser una COMPUERTA. Elegir una herramienta ya encendia la medicion, asi que
+     ese boton solo servia para APAGARLA: un control rotulado «Medir» que significaba lo
+     contrario. Hoy nace oculto y aparece, ya rotulado como salida, solo con la medicion
+     encendida. No se borro: sin el no habria forma de salir sin cerrar el visor.
+   · «+ Vista» y «Cerrar» SE MUDARON del pie del modal a la columna derecha del panel A,
+     CONSERVANDO sus ids. Dejarlos tambien en el pie habria dejado ids DUPLICADOS, y ahi
+     getElementById devuelve el primero y el otro se dibuja sin responder — el defecto que la
+     barra de la vista B ya pago una vez. Por eso hay una condicion que cuenta las apariciones.
+
+   Y la barra sigue diciendo QUE escala usa: es lo unico que permite auditar una medicion
+   cuando conviven la del archivo y la manual. */
+caso('TC-236', 'Visor: columna derecha, y la calibracion se explica antes de medir', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    window.alert = () => {}; window.confirm = () => true; window.toast = () => {};
+    const vis = id => { const e = document.getElementById(id);
+      return !e ? 'NO EXISTE' : (getComputedStyle(e).display !== 'none'); };
+    const barra = () => { const b = document.getElementById('cine-med-barra');
+      return b ? (b.textContent || '').replace(/[ ]+/g, ' ').trim() : '(sin barra)'; };
+    const JPG1 = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,219,0,67,0,8,6,6,7,6,5,8,7,7,7,9,9,8,10,12,20,13,12,11,11,12,25,18,19,15,20,29,26,31,30,29,26,28,28,32,36,46,39,32,34,44,35,28,28,40,55,41,44,48,49,52,52,52,31,39,57,61,56,50,60,46,51,52,50,255,192,0,11,8,0,1,0,1,1,1,17,0,255,196,0,20,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,255,196,0,20,16,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,218,0,8,1,1,0,0,63,0,42,159,255,217]);
+    const loop = regiones => ({ nombre:'tc236', cuadros:1,
+      d:{ frags:[JPG1], cols:1, filas:1, msCuadro:0, fabricante:'', modelo:'', regiones:regiones } });
+    const conEscala = [{ x0:0, y0:0, x1:100, y1:100, ux:3, uy:3, dx:0.05, dy:0.05, tipo:1 }];
+
+    try {
+      /* ── SIN escala declarada ── */
+      _cineAbrir([loop([])]);
+      await esperar(800);
+      R.modal = !!document.getElementById('cine-ov');
+      R.addB = vis('cine-add-b');
+      R.cerrar = vis('cine-cerrar');
+      R.seps = document.querySelectorAll('#cine-ov .cine-sep').length;
+      /* IDS UNICOS: si quedaran los del pie, estos contarian 2 y el segundo estaria muerto. */
+      R.nAddB = document.querySelectorAll('#cine-ov [id="cine-add-b"]').length;
+      R.nCerrar = document.querySelectorAll('#cine-ov [id="cine-cerrar"]').length;
+
+      if (!_medOn) medToggle();
+      await esperar(300);
+      medHerramienta('dist');
+      await esperar(400);
+      R.sinCalPred = _medSinCalibrar();
+      /* ⚠️ ESTO SE MIDE ACÁ, sobre la imagen SIN escala, y no sobre la de abajo. Con regiones
+         medibles el predicado da false igual, asi que alla la condicion era VACUA: la mutacion
+         que saca la salida temprana de velocidad/tiempo sobrevivia. Sobre esta imagen, la
+         salida temprana es lo UNICO que puede devolver false. */
+      R.velNoEntra = (() => { const h = _medHerr; _medHerr = 'vel';
+        const v = _medSinCalibrar(); _medHerr = h; return v === false; })();
+      R.tiempoNoEntra = (() => { const h = _medHerr; _medHerr = 'tiempo';
+        const v = _medSinCalibrar(); _medHerr = h; return v === false; })();
+      R.sinCalTxt = barra();
+      R.sinCalRecal = vis('cine-med-recal');
+      R.sinCalBorrar = vis('cine-med-borrar');
+      R.salidaConMedicionOn = vis('cine-medir');
+      if (_medOn) medToggle();
+      await esperar(300);
+      R.salidaConMedicionOff = vis('cine-medir');
+
+      /* ── CON escala del archivo ── */
+      _cineAbrir([loop(conEscala)]);
+      await esperar(800);
+      if (!_medOn) medToggle();
+      medHerramienta('dist');
+      await esperar(450);
+      R.conCalPred = _medSinCalibrar();
+      R.conCalTxt = barra();
+      R.conCalBorrar = vis('cine-med-borrar');
+
+    } catch (e) {
+      R.err = String(e && e.message || e);
+    } finally {
+      window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+      try { cineCerrar(); } catch (e) {}
+    }
+
+    const T1 = R.sinCalTxt || '', T2 = R.conCalTxt || '';
+    return { extra: [
+      ['sin excepciones',                            !R.err, R.err],
+      ['DENOMINADOR: el visor abrio',                R.modal === true, R.modal],
+      ['+ Vista y Cerrar estan en el panel',         R.addB === true && R.cerrar === true,
+                                                     'addB=' + R.addB + ' cerrar=' + R.cerrar],
+      ['y NO quedaron duplicados en el pie',         R.nAddB === 1 && R.nCerrar === 1,
+                                                     'addB=' + R.nAddB + ' cerrar=' + R.nCerrar],
+      ['la columna va en grupos separados',          R.seps >= 2, 'separadores=' + R.seps],
+      ['DENOMINADOR: la imagen no trae escala',      R.sinCalPred === true, R.sinCalPred],
+      ['sin calibrar, el aviso dice QUE HACER',      T1.indexOf('Antes de medir') >= 0 &&
+                                                     T1.indexOf('distancia conocida') >= 0, T1.slice(0,110)],
+      ['y de los de medicion queda solo Recalibrar', R.sinCalRecal === true && R.sinCalBorrar === false,
+                                                     'recal=' + R.sinCalRecal + ' borrar=' + R.sinCalBorrar],
+      ['la salida aparece con la medicion ENCENDIDA', R.salidaConMedicionOn === true, R.salidaConMedicionOn],
+      ['y desaparece al apagarla',                    R.salidaConMedicionOff === false, R.salidaConMedicionOff],
+      ['DENOMINADOR: la otra imagen SI trae escala',  R.conCalPred === false, R.conCalPred],
+      ['calibrado, la instruccion desaparece',        T2.indexOf('Antes de medir') < 0, T2.slice(0,110)],
+      ['y dice donde recalibrar',                     T2.indexOf('Si necesitas recalibrar') >= 0 ||
+                                                      T2.indexOf('Si necesitás recalibrar') >= 0, T2.slice(0,140)],
+      ['la barra sigue diciendo QUE escala usa',      T2.indexOf('tomada del archivo') >= 0, T2.slice(0,110)],
+      ['la velocidad no entra al predicado',          R.velNoEntra === true, R.velNoEntra],
+      ['el tiempo tampoco',                           R.tiempoNoEntra === true, R.tiempoNoEntra]
+    ] };
+  })();
+`);
+
 caso('TC-228', 'Visor: la etiqueta dice DE DONDE viene el valor, y el numero queda quemado siempre', `
   return (async () => {
     const R = {};

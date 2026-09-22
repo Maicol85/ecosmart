@@ -47686,12 +47686,24 @@ function _vPanelHTML(p, esB) {
         '<div id="' + p + 'cine-med-barra" style="display:none;flex:1;min-width:0;font-size:10.5px;' +
           'line-height:1.5;padding:7px 9px;border-radius:7px;border:1px solid var(--border);' +
           'background:var(--bg2);"></div>' +
+        /* COLUMNA DERECHA en TRES grupos separados por filete: medir · capturar · vista.
+           Los separadores no son adorno: sin ellos los ocho botones se leen como una sola
+           lista y «Borrar» queda al lado de «Guardar», que hacen cosas opuestas.
+
+           ⚠️ «➕ Vista» y «Cerrar» SE MUDARON ACÁ desde el pie del modal, conservando sus ids
+           —`cine-add-b` y `cine-cerrar`—, así que el cableado del modal los sigue encontrando.
+           Se emiten SÓLO en la vista A: son controles del modal, no de la vista, y duplicarlos
+           en la B daría dos botones «Cerrar» cerrando lo mismo. La B tiene su «✕ Cerrar vista»
+           en el encabezado, que es otra cosa. */
         '<div style="flex:0 0 auto;display:flex;flex-direction:column;gap:4px;align-items:flex-end;">' +
-          '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">' +
-            btn('cine-medir', 'btn-ghost', '📏 Medir', '', 'Enciende o apaga el modo medición sobre esta vista.') +
-            btn('cine-med-recal', 'btn-ghost', 'Recalibrar', '', 'Vuelve a fijar la escala a mano sobre una referencia conocida.') +
+          '<div id="' + p + 'cine-grp-med" style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">' +
+            /* Nace OCULTO: ver `_medFijosSync`. Sin calibrar no hay nada que medir, y con la
+               medición encendida su trabajo es SALIR, no entrar. */
+            btn('cine-medir', 'btn-ghost', '✕ Salir de medición', 'display:none;', 'Apaga el modo medición sobre esta vista.') +
+            btn('cine-med-recal', 'btn-ghost', 'Recalibrar', '', 'Fija la escala a mano sobre una referencia conocida de la imagen.') +
             btn('cine-med-borrar', 'btn-ghost', 'Borrar', '', 'Borra las mediciones de esta vista. La calibración manual se conserva.') +
           '</div>' +
+          '<div class="cine-sep" style="width:100%;height:1px;background:var(--border);margin:2px 0;"></div>' +
           '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">' +
             btn('cine-guardar', 'btn-ghost', '💾 Guardar', '', 'Guarda este cineloop en el estudio.') +
             btn('cine-cap', 'btn-ghost', '📸 Capturar', '', 'Captura el cuadro, a resolución plena y SIN las mediciones.') +
@@ -47705,6 +47717,14 @@ function _vPanelHTML(p, esB) {
               'style="font-size:10.5px;padding:3px 6px;width:150px;border-radius:5px;' +
               'border:1px solid var(--border);background:var(--bg3);color:var(--text);">' +
           '</div>' +
+          (esB ? '' :
+            '<div class="cine-sep" style="width:100%;height:1px;background:var(--border);margin:2px 0;"></div>' +
+            '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">' +
+              '<button type="button" class="btn btn-ghost" id="cine-add-b" style="padding:3px 9px;font-size:10.5px;" ' +
+                'title="Abre una segunda vista al lado de ésta, sin cerrar la actual.">➕ Vista</button>' +
+              '<button type="button" class="btn btn-ghost" id="cine-cerrar" style="padding:3px 9px;font-size:10.5px;" ' +
+                'title="Cierra el visor.">Cerrar</button>' +
+            '</div>') +
         '</div>' +
       '</div>' +
     '</div>';
@@ -47813,12 +47833,13 @@ function _cineAbrir(loops) {
            colgarlo de la A sugeriría que es de la A. */
         '<div id="cine-biplano" style="display:none;margin-top:10px;padding:9px 11px;border-radius:9px;' +
           'border:1px solid var(--border);background:var(--bg3);font-size:12px;line-height:1.6;"></div>' +
-        '<div style="display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:12px;flex-wrap:wrap;">' +
-          '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
-            '<button type="button" class="btn btn-ghost" id="cine-add-b" style="padding:5px 12px;">➕ Vista</button>' +
-            '<button type="button" class="btn btn-ghost" id="cine-sync" style="padding:5px 12px;display:none;">🔗 Sincronizar</button>' +
-          '</div>' +
-          '<button type="button" class="btn btn-ghost" id="cine-cerrar" style="padding:5px 12px;">Cerrar</button>' +
+        /* ⚠️ «➕ Vista» y «Cerrar» YA NO VIVEN ACÁ: se mudaron a la columna derecha del panel A
+           (ver `_vPanelHTML`). Dejarlos también acá habría dejado el documento con ids
+           DUPLICADOS, y entonces `getElementById` devuelve el primero y el otro se dibuja sin
+           responder — que es exactamente el defecto que la barra de la vista B ya pagó una vez.
+           Queda sólo «Sincronizar», que es del par de vistas y no de ninguna de las dos. */
+        '<div style="display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap;">' +
+          '<button type="button" class="btn btn-ghost" id="cine-sync" style="padding:5px 12px;display:none;">🔗 Sincronizar</button>' +
         '</div>' +
       '</div>';
     document.body.appendChild(ov);
@@ -50843,6 +50864,21 @@ window.medGrupoToggle = medGrupoToggle;
 
 /* Rótulos de los botones fijos que dependen del estado. Se cambia el TEXTO, no se regenera el
    botón: así el foco y los manejadores sobreviven. */
+/* ¿Hay escala para medir DISTANCIAS en esta imagen? Dos fuentes, y basta una: la que declara el
+   archivo (regiones medibles) y la calibración manual.
+
+   ⚠️ LAS HERRAMIENTAS DE VELOCIDAD Y DE TIEMPO NO ENTRAN. Tienen su PROPIA escala —el eje Y en
+   cm/s y el eje X en segundos— y sus propios avisos, que ya distinguen los tres casos. Meterlas
+   acá haría que un Doppler espectral perfectamente medible saliera rotulado «sin calibrar»,
+   porque su eje horizontal no está en centímetros: el archivo declara 157 regiones así, contra
+   281 de tejido 2D, y ninguna se solapa. */
+function _medSinCalibrar() {
+  if (_medHerr === 'vel' || _medHerr === 'tiempo' || _medHerr === 'fc') return false;
+  if (_medCalib) return false;
+  return !_medRegs().filter(_dcmImgRegionMedible).length;
+}
+window._medSinCalibrar = _medSinCalibrar;
+
 function _medFijosSync() {
   const rc = _medEl('cine-med-recal');
   if (rc) {
@@ -50853,8 +50889,19 @@ function _medFijosSync() {
       ? 'Fija a mano la escala de VELOCIDAD, marcando la línea de base y una marca conocida.'
       : 'Vuelve a fijar la escala de distancia sobre una referencia conocida.';
   }
+  /* ⚠️ «Medir» DEJÓ DE SER UNA COMPUERTA. Antes había que apretarlo antes de poder medir, y
+     desde que elegir una herramienta enciende la medición sola ese botón sólo servía para
+     APAGARLA — un control rotulado «Medir» que en la práctica significaba lo contrario.
+     Hoy nace oculto y aparece, ya rotulado como salida, sólo con la medición encendida.
+     No se borró: sin él no habría forma de salir del modo medición sin cerrar el visor. */
   const b2 = _medEl('cine-medir');
-  if (b2) b2.textContent = _medOn ? '📏 Medir (on)' : '📏 Medir';
+  if (b2) b2.style.display = _medOn ? '' : 'none';
+  /* SIN CALIBRAR, de los controles de medición queda SÓLO «Recalibrar»: no hay nada medido que
+     borrar, y ofrecerlo al lado del único botón que sirve compite con él. Los grupos de captura
+     y de vista no se tocan — guardar el cineloop o cerrar el visor no dependen de la escala. */
+  const sinCal = _medSinCalibrar();
+  const bb2 = _medEl('cine-med-borrar');
+  if (bb2) bb2.style.display = sinCal ? 'none' : '';
   const et = _medEl('cine-cap-etiq');
   if (et && et.value !== (_medEtiqueta || '') && document.activeElement !== et) et.value = _medEtiqueta || '';
 }
@@ -51026,8 +51073,11 @@ function _medEstado() {
   const bot = '';
   let txt;
   if (_medCalibrando) {
-    txt = '<b>Calibración:</b> dibujá una línea sobre una referencia conocida de la imagen ' +
-          '(por ejemplo 1 cm de la escala lateral) y después escribí cuánto mide.';
+    /* Es LA rama que el médico ve cuando la imagen no trae escala: `_medAutoCalibrar` entra
+       sola en modo calibrar con cero regiones, así que la instrucción del paso tiene que estar
+       acá y no sólo en la rama de abajo, que se alcanza únicamente si canceló la calibración. */
+    txt = '<b>Antes de medir, calibrá la escala.</b> Trazá una distancia conocida del ecógrafo ' +
+          '—por ejemplo 1 cm de la regla de profundidad del lateral— y después escribí cuánto mide.';
   } else if (_medCalib) {
     txt = 'Escala <b>calibrada a mano</b>: ' + (_medCalib.mmPorPx).toFixed(4) + ' mm por píxel. ' + _medComo();
   } else if (medibles.length) {
@@ -51037,8 +51087,21 @@ function _medEstado() {
           '. ' + _medComo() +
           (regs.length > medibles.length ? ' Las zonas de Doppler no se pueden medir: ahí el eje horizontal es tiempo.' : '');
   } else {
-    txt = 'Este archivo <b>no trae la escala</b>. Calibrá a mano: dibujá una línea sobre una ' +
-          'referencia conocida y decí cuánto mide.';
+    /* ⚠️ SIN ESCALA, LA INSTRUCCIÓN VA PRIMERA Y SOLA. Antes esta rama describía el archivo
+       —«no trae la escala»— y recién después decía qué hacer; el médico leía un diagnóstico
+       sobre el archivo cuando lo que necesitaba era el paso siguiente. */
+    txt = '<b>Antes de medir, calibrá la escala.</b> Trazá una distancia conocida del ecógrafo ' +
+          '—la regla de profundidad del lateral— y escribí cuánto mide.' +
+          '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
+          'Este archivo no declara la escala, así que cualquier número sin calibrar sería ' +
+          'inventado. Tocá <b>Recalibrar →</b> para empezar.</div>';
+  }
+  /* CALIBRADO: la instrucción desaparece y queda la línea que dice QUÉ escala se está usando
+     —eso no se saca: es lo único que permite auditar una medición cuando conviven dos fuentes—
+     más dónde está la salida si hace falta rehacerla. */
+  if (!_medCalibrando && !_medSinCalibrar() && _medHerr !== 'vel' && _medHerr !== 'tiempo' && _medHerr !== 'fc') {
+    txt += '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
+           'Si necesitás recalibrar, tocá <b>Recalibrar →</b></div>';
   }
   const n = _medLineas.filter(l => !l.calibracion).length + _medAreas.length + _medVels.length +
             _medTiempos.length + (_medVtis || []).length;
@@ -51346,7 +51409,12 @@ function medToggle() {
   const cv = _medEl('cine-med'), b = _medEl('cine-medir');
   if (!cv) return;
   cv.style.display = _medOn ? '' : 'none';
-  if (b) b.textContent = _medOn ? '📏 Medir (activo)' : '📏 Medir';
+  /* ⚠️ ACÁ SE DECIDE LA VISIBILIDAD, NO EL RÓTULO. El rótulo es estático —«✕ Salir de
+     medición»— desde que el botón dejó de ser la compuerta de entrada: escribirlo desde dos
+     lados dejaba a `_medFijosSync` peleando con esta línea, y ganaba la última en correr.
+     La rama de apagado NO pasa por `_medEstado`, así que sin esto el botón de salida quedaba
+     visible con la medición ya apagada — medido. */
+  if (b) b.style.display = _medOn ? '' : 'none';
   if (_medOn) {
     /* Se pausa: medir sobre un cineloop corriendo es marcar un punto en un cuadro y el otro
        en el siguiente. */
@@ -68894,8 +68962,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260922-1443';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790098985201;                 /* eco-build-ms */
+const ECO_BUILD    = '20260922-1605';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790103905926;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -68981,7 +69049,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1443</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-1605</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
