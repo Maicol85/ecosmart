@@ -22634,6 +22634,360 @@ caso('TC-248', 'Deformacion: la casilla de Config gobierna el grupo del visor, c
   })();
 `);
 
+/* ══ TC-249 · Cajon Doppler: acumula entre imagenes y no reimplementa ningun calculo ═════════
+   TRES COSAS QUE ESTE CASO FIJA, y las tres son de arquitectura, no de presentacion:
+
+   1. EL CAJON VIVE EN LA APP, NO EN EL VISOR, y es lo unico que hace posible acumular. Las
+      listas del visor —_medVels, _medTiempos, _medVtis— son de la VISTA y medCambioDeImagen
+      las VACIA al cambiar de cineloop. Por eso el cajon CAPTURA en el momento de medir en vez
+      de leerlas despues. La condicion que lo separa de un cajon decorativo es que los valores
+      sigan estando DESPUES de cerrar el visor y abrir otra imagen, MIENTRAS las listas del
+      visor estan vacias: sin esa segunda mitad, «persiste» se cumpliria leyendo del visor.
+
+   2. LA AVA NO SE REIMPLEMENTA. La app ya calcula la ecuacion de continuidad en calcAo, y dos
+      implementaciones del mismo cociente en el mismo estudio es lo que este archivo persigue
+      desde el THP —la AVA decide si una estenosis aortica es severa—. Se extrajo
+      _avaContinuidad y la usan las dos.
+
+   3. ⚠️ Y LA FORMULA DEL PEDIDO ESTABA EN OTRAS UNIDADES. Decia 0.785 x Diam^2 x VTI_TSVI /
+      VTI_VAo, que es correcta con el diametro en CENTIMETROS; el campo de esta app esta en
+      MILIMETROS, asi que aplicada tal cual da un AVA CIEN VECES MAYOR. Hay una condicion que
+      lo mide: con los mismos insumos, la forma ingenua da exactamente 100x.
+
+   El cajon NO escribe ningun campo del informe: su salida es una imagen a la biblioteca.
+   NO DEPENDE DEL PENDRIVE.                                                                  */
+caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA ni el gradiente', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const alertReal = window.alert, promptReal = window.prompt, toastReal = window.toast;
+    const dichos = [];
+    window.alert = () => {}; window.toast = m => dichos.push(String(m));
+    let togglePrevio = null, idEst = null;
+    try { togglePrevio = localStorage.getItem('cfg-guardar-imagenes'); } catch (e) {}
+    const pesoEl = document.getElementById('peso'), tallaEl = document.getElementById('talla');
+    const pesoPrev = pesoEl ? pesoEl.value : '', tallaPrev = tallaEl ? tallaEl.value : '';
+    try {
+      const JPG = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,219,0,67,0,8,6,6,7,6,5,8,7,7,7,9,9,8,10,12,20,13,12,11,11,12,25,18,19,15,20,29,26,31,30,29,26,28,28,32,36,46,39,32,34,44,35,28,28,40,55,41,44,48,49,52,52,52,31,39,57,61,56,50,60,46,51,52,50,255,192,0,11,8,0,1,0,1,1,1,17,0,255,196,0,20,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,255,196,0,20,16,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,218,0,8,1,1,0,0,63,0,42,159,255,217]);
+      const REG = [{ tipo:3, x0:0, y0:0, x1:1000, y1:800, ux:4, uy:7, dx:0.004, dy:-0.5,
+                     rx0:0, ry0:400, rvx:0, rvy:0 }];
+      const abrir = () => _cineAbrir([{ nombre:'esp', cuadros:1,
+        d:{ frags:[JPG], cols:1, filas:1, msCuadro:0, fabricante:'', modelo:'', regiones:REG } }]);
+      const clic = (x, y) => { const cv = _medEl('cine-med'), rc = cv.getBoundingClientRect(),
+        e = cv.width / rc.width;
+        cv.dispatchEvent(new MouseEvent('click', { bubbles:true, clientX: rc.left + x/e, clientY: rc.top + y/e })); };
+      const arrastre = async () => { const cv = _medEl('cine-med'), rc = cv.getBoundingClientRect(),
+        e = cv.width / rc.width;
+        const ev = (t,x,y) => cv.dispatchEvent(new MouseEvent(t, { bubbles:true, cancelable:true,
+          clientX: rc.left + x/e, clientY: rc.top + y/e }));
+        ev('mousedown', 200, 400);
+        for (let x = 202; x <= 300; x += 2) ev('mousemove', x, 400 - (x - 200));
+        for (let x = 302; x <= 400; x += 2) ev('mousemove', x, 400 - (400 - x));
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true })); await esperar(330); };
+
+      /* ── 1 · EL CAJON ESTA EN LA APP, FUERA DEL MODAL DEL VISOR ── */
+      showTab('imagenes'); await esperar(200);
+      const cajon = document.getElementById('dop-cajon');
+      const ov = document.getElementById('cine-ov');
+      R.hayCajon = !!cajon;
+      /* El invariante es «NO esta adentro del modal», que se cumple tambien si el overlay
+         todavia no existe —el visor no se abrio nunca en esta corrida—. Escrito como
+         «existe ov Y no contiene al cajon» daba false por el denominador, sobre un cajon
+         perfectamente bien ubicado. */
+      R.fueraDelVisor = !!cajon && !(ov && ov.contains(cajon));
+      R.ovExiste = !!ov;
+      R.hayBoton = !!document.getElementById('dop-btn');
+
+      /* ── 2 · SIN VISOR, LOS GENERICOS NO SE PUEDEN APRETAR ── */
+      _dopLimpiar();
+      if (!_dop.abierto) dopToggle();
+      await esperar(120);
+      const bot = () => [].slice.call(cajon.querySelectorAll('button'));
+      R.genDeshabilitados = bot().slice(0,4).every(b => b.disabled);
+      R.tresValvulasNo = bot().slice(5,8).every(b => b.disabled);
+      R.aorticaSi = bot()[4] && !bot()[4].disabled;
+
+      /* ── 2bis · LOS BOTONES ANDAN POR CLIC, no solo llamando a la funcion ──
+         Todo lo de abajo llama a dopArmar/dopHerr/dopCorregir DIRECTO, que prueba la logica y
+         NO el cableado. Es el hueco por el que paso el defecto del VTI: ahi la herramienta
+         nunca estuvo en la lista de arrastre y el caso no lo vio porque llamaba a _vtiDe a
+         mano. Desde que los controles del cajon van por data-* con oyente DELEGADO —el
+         innerHTML se reescribe en cada repintado— hay que clickear uno de verdad. */
+      const clkDop = (sel) => { const b = cajon.querySelector(sel); if (!b) return 'NO EXISTE ' + sel;
+                                b.click(); return 1; };
+      R.clicModo = clkDop('[data-dop-modo="ao"]');
+      await esperar(140);
+      R.clicCambioModo = _dop.modo === 'ao';
+
+      /* ── 3 · ARMAR UN CAMPO ELIGE LA HERRAMIENTA Y EL DESTINO ── */
+      /* dopModo ALTERNA —como medToggle—, asi que llamarlo con el modo ya puesto lo APAGA.
+         La comprobacion por clic de arriba ya dejo el cajon en aortica, y una segunda llamada
+         lo mandaba a generico: la tabla pasaba a las filas genericas y el boton «medir» de la
+         fila del VTI dejaba de existir. Se fija el modo, no se alterna. */
+      if (_dop.modo !== 'ao') dopModo('ao');
+      abrir(); await esperar(480);
+      if (!_medOn) medToggle(); await esperar(150);
+      R.hayVisorAhora = _dopHayVisor();
+      dopArmar('ao.vmax'); await esperar(120);
+      R.armoHerramienta = _medHerr === 'vel';
+      R.armoDestino = _dop.destino === 'ao.vmax';
+      /* ⚠️ SE MIDE A OTRA ALTURA QUE EL VERTICE DEL TRIANGULO DEL VTI, y es lo unico que hace
+         discriminante la condicion de mas abajo. Con el clic en y=300 —el mismo vertice— la
+         Vmax medida y el pico de la envolvente dan LO MISMO (0,5 m/s), asi que pisarla no se
+         nota: la mutacion que la sobrescribe SOBREVIVIA. Acá 150 px sobre el cero dan 0,75. */
+      clic(300, 250); await esperar(200);
+      R.cayoEnVmax = _dop.ao.vmax != null && Math.abs(_dop.ao.vmax - 0.75) < 0.03;
+      R.destinoSeLibera = _dop.destino === null;
+
+      /* El boton «medir» de la fila tambien, por clic: es el que lleva el data-dop-armar. */
+      _dop.destino = null; _dopRender(); await esperar(120);
+      R.clicMedir = clkDop('[data-dop-armar="ao.vtiAo"]');
+      await esperar(140);
+      R.clicArmoDestino = _dop.destino === 'ao.vtiAo' && _medHerr === 'vti';
+      _dop.destino = null; _dopRender(); await esperar(100);
+
+      /* ── 4 · GRAD MAX SALE DE 4V2, Y DE LA MISMA FUNCION QUE EL VISOR ── */
+      const D1 = _dopDerivados();
+      R.gradMaxIgualQueVisor = D1.gradMax != null &&
+        Math.abs(D1.gradMax - _medGradMmHg(_dop.ao.vmax)) < 1e-12;
+
+      /* ── 5 · LOS DOS VTI ── */
+      dopArmar('ao.vtiAo'); await esperar(120);
+      R.armoVti = _medHerr === 'vti';
+      await arrastre();
+      R.vtiAo = _dop.ao.vtiAo != null;
+      R.gradMedioDelTrazado = _dop.ao.gradMedio != null;
+      /* La Vmax medida a proposito NO se pisa con el pico de la envolvente. */
+      /* El pico del triangulo es ~0,5: si el VTI pisara, la Vmax bajaria de 0,75 a 0,5. */
+      R.vmaxNoSePiso = Math.abs(_dop.ao.vmax - 0.75) < 0.03;
+      R.vmaxTrasVti = +Number(_dop.ao.vmax).toFixed(3);
+      dopArmar('ao.vtiTsvi'); await esperar(120); await arrastre();
+      R.vtiTsvi = _dop.ao.vtiTsvi != null;
+
+      /* ── 6 · AVA: APARECE SOLA, Y ES LA DE LA APP ── */
+      R.avaAntesDelDiam = _dopDerivados().ava === null;     // faltaba el diametro
+      window.prompt = () => '20';
+      dopCorregir('ao.diam'); await esperar(140);
+      const D2 = _dopDerivados();
+      R.avaAparece = D2.ava != null;
+      R.avaEsLaDeLaApp = D2.ava != null &&
+        Math.abs(D2.ava - _avaContinuidad(20, _dop.ao.vtiTsvi, _dop.ao.vtiAo)) < 1e-12;
+      /* ⚠️ LA FORMULA DEL PEDIDO, con el diametro en mm, da CIEN VECES mas. */
+      const ingenua = 0.785 * Math.pow(20, 2) * _dop.ao.vtiTsvi / _dop.ao.vtiAo;
+      R.ingenuaEsCienVeces = D2.ava != null && Math.abs(ingenua / D2.ava - 100) < 1.5;
+      R.ingenua = +ingenua.toFixed(1);
+
+      /* ── 7 · AVAi: SOLO CON PESO Y TALLA ── */
+      R.avaiSinBSA = D2.avai === null;
+      if (pesoEl) pesoEl.value = '80';
+      if (tallaEl) tallaEl.value = '180';
+      if (typeof calcBSA === 'function') calcBSA();
+      await esperar(120);
+      const D3 = _dopDerivados();
+      R.bsaDos = D3.bsa != null && Math.abs(D3.bsa - 2) < 1e-9;   // 80/180 da 2,00 exacta
+      R.avaiAparece = D3.avai != null;
+      R.avaiEsAvaSobreBsa = D3.avai != null && Math.abs(D3.avai - D3.ava / D3.bsa) < 1e-12;
+
+      /* ── 8 · PHT: SEVERIDAD CON LOS CORTES QUE LA APP YA APLICA ── */
+      R.sevAntes = _dopDerivados().sev === null;
+      window.prompt = () => '150'; dopCorregir('ao.pht'); await esperar(110);
+      R.sev150 = (_dopDerivados().sev || {}).txt;
+      window.prompt = () => '300'; dopCorregir('ao.pht'); await esperar(110);
+      R.sev300 = (_dopDerivados().sev || {}).txt;
+      window.prompt = () => '600'; dopCorregir('ao.pht'); await esperar(110);
+      R.sev600 = (_dopDerivados().sev || {}).txt;
+      /* Los bordes, por los dos lados: el operador es > 500 y >= 200. */
+      window.prompt = () => '500'; dopCorregir('ao.pht'); await esperar(90);
+      R.sev500 = (_dopDerivados().sev || {}).txt;
+      window.prompt = () => '200'; dopCorregir('ao.pht'); await esperar(90);
+      R.sev200 = (_dopDerivados().sev || {}).txt;
+      window.prompt = () => '199'; dopCorregir('ao.pht'); await esperar(90);
+      R.sev199 = (_dopDerivados().sev || {}).txt;
+
+      /* ── 8bis · NO ESCRIBE NINGUN CAMPO DEL INFORME ──
+         ⚠️ VA ACA Y NO AL FINAL, y es la diferencia entre una condicion y un adorno: al final
+         ya corrieron limpiarCampos y cerrarSesionReal, asi que esos campos estan vacios pase lo
+         que pase y la comprobacion se cumple sola. La mutacion que hace que el cajon escriba
+         vmax_ao SOBREVIVIA por eso. Acá el cajon tiene Vmax, los dos VTI, el diametro y el PHT
+         cargados: si escribiera alguno, se ve.
+         El denominador va al lado: que el cajon SI tenga esos valores. */
+      R.cajonCargado = _dop.ao.vmax != null && _dop.ao.vtiAo != null &&
+                       _dop.ao.vtiTsvi != null && _dop.ao.diam != null && _dop.ao.pht != null;
+      const _campInf = ['vmax_ao','itv_ao','itv_tsvi','diam_tsvi','ava_cont','ia_pht'];
+      R.informeIntacto = _campInf.every(id => {
+        const el = document.getElementById(id); return !el || !el.value;
+      });
+      R.informeSucio = _campInf.filter(id => {
+        const el = document.getElementById(id); return el && el.value;
+      }).join(',');
+
+      /* ── 9 · PERSISTE AL CERRAR EL VISOR Y ABRIR OTRA IMAGEN ──
+         La segunda mitad es la que vale: las listas del VISOR quedan vacias. Sin ella,
+         «persiste» se cumpliria leyendo del visor, que es justo lo que no se puede hacer. */
+      const antes = JSON.stringify(_dop.ao);
+      cineCerrar(); await esperar(220);
+      R.persisteAlCerrar = JSON.stringify(_dop.ao) === antes;
+      abrir(); await esperar(450);
+      R.persisteAlAbrirOtra = JSON.stringify(_dop.ao) === antes;
+      R.visorSeVacio = (_medVels || []).length === 0 && (_medVtis || []).length === 0;
+
+      /* ── 10 · MODO GENERICO: sin armar, cae en la fila generica y no pisa la aortica ── */
+      dopModo('gen'); await esperar(110);
+      if (!_medOn) medToggle();
+      dopHerr('vel'); await esperar(120);
+      clic(300, 300); await esperar(200);
+      R.genVel = _dop.gen.vel != null;
+      R.genGrad = _dop.gen.grad != null;
+      R.aorticaIntacta = JSON.stringify(_dop.ao) === antes;
+
+      /* ── 11 · LA IMAGEN LLEVA LOS DESCARGOS QUEMADOS ──
+         Una tabla de gradientes y AVA que circula sola —va a la biblioteca y desde ahi puede
+         ir al PDF— sin decir que la severidad por PHT es orientativa es «un numero sin su
+         reparo». Se intercepta fillText, que es como este archivo cuenta lo dibujado. */
+      dopModo('ao'); await esperar(110);
+      const proto = CanvasRenderingContext2D.prototype, realFT = proto.fillText;
+      const pintado = [];
+      proto.fillText = function (t) { pintado.push(String(t)); return realFT.apply(this, arguments); };
+      const cvTabla = _dopCanvas();
+      proto.fillText = realFT;
+      const txtImg = pintado.join(' ');
+      R.imgTitulo = txtImg.indexOf('Mediciones Doppler') > -1;
+      R.imgDescPHT = txtImg.indexOf('orientativo') > -1;
+      R.imgDescAVA = txtImg.indexOf('continuidad') > -1;
+      R.imgCita = txtImg.indexOf('ASE/EACVI 2017') > -1;
+      R.imgLlevaAVA = txtImg.indexOf('AVA') > -1;
+      /* fillText NO envuelve: recorta por la cola en silencio, y lo que se perderia es el
+         descargo. Ninguna linea dibujada puede ser larga. */
+      R.imgNadaLargo = pintado.every(t => t.length < 90);
+
+      /* ── 12 · GUARDAR EN BIBLIOTECA ENTRA UN REGISTRO ── */
+      localStorage.setItem('cfg-guardar-imagenes','1');
+      __t.set('nombre','TC249 DOPPLER'); __t.set('ci','94900001');
+      const g = await __t.guardar(); idEst = g && g.estudioId; await esperar(800);
+      __t.reabrir(idEst); await esperar(1100);
+      R.uuidListo = !!String(_imgUuidActual || '');
+      let regsAntes = [];
+      try { regsAntes = (await CeiboCine.listar(_imgUuidActual)) || []; } catch (e) { regsAntes = []; }
+      window.prompt = () => '0.8'; dopCorregir('ao.vmax'); await esperar(110);
+      dichos.length = 0;
+      await dopGuardarBiblioteca(); await esperar(900);
+      let regsDesp = [];
+      try { regsDesp = (await CeiboCine.listar(_imgUuidActual)) || []; } catch (e) { regsDesp = []; }
+      R.entroUnRegistro = regsDesp.length === regsAntes.length + 1;
+      R.avisoGuardado = dichos.some(m => m.indexOf('biblioteca') > -1);
+
+      /* Con la tabla VACIA no se guarda nada: una imagen de guiones ocupa lugar y no dice nada. */
+      _dopLimpiar(); await esperar(120);
+      dichos.length = 0;
+      await dopGuardarBiblioteca(); await esperar(500);
+      let regsVacia = [];
+      try { regsVacia = (await CeiboCine.listar(_imgUuidActual)) || []; } catch (e) { regsVacia = []; }
+      R.vaciaNoGuarda = regsVacia.length === regsDesp.length;
+      R.vaciaAvisa = dichos.some(m => m.indexOf('ninguna medicion') > -1 ||
+                                      m.indexOf('ninguna medición') > -1);
+
+      /* ── 13 · LIMPIAR deja el cajon ABIERTO: borra los datos, no esconde el panel ── */
+      R.limpiarBorra = _dop.ao.vmax === null && _dop.gen.vel === null;
+      R.limpiarNoCierra = _dop.abierto === true;
+
+      /* ── 14 · NUEVO ESTUDIO Y CERRAR SESION LO LIMPIAN ──
+         Es estado de modulo: sin estas dos puertas, las mediciones del paciente A quedan en el
+         cajon del paciente B. */
+      window.prompt = () => '1.2'; dopCorregir('ao.vmax'); await esperar(110);
+      R.habiaAntesDeLimpiarCampos = _dop.ao.vmax === 1.2;
+      limpiarCampos(true); await esperar(220);
+      R.nuevoEstudioLimpia = _dop.ao.vmax === null;
+
+      window.prompt = () => '1.4'; dopCorregir('ao.vmax'); await esperar(110);
+      R.habiaAntesDeCerrarSesion = _dop.ao.vmax === 1.4;
+      cerrarSesionReal(); await esperar(220);
+      R.cerrarSesionLimpia = _dop.ao.vmax === null;
+      try { document.getElementById('login-overlay').style.display = 'none'; } catch (e) {}
+
+
+    } catch (e) {
+      R.err = String(e && e.message || e);
+    } finally {
+      window.alert = alertReal; window.prompt = promptReal; window.toast = toastReal;
+      try { if (pesoEl) pesoEl.value = pesoPrev; if (tallaEl) tallaEl.value = tallaPrev;
+            if (typeof calcBSA === 'function') calcBSA(); } catch (e) {}
+      try { if (togglePrevio === null) localStorage.removeItem('cfg-guardar-imagenes');
+            else localStorage.setItem('cfg-guardar-imagenes', togglePrevio); } catch (e) {}
+      try { if (idEst) await __t.borrar(idEst); } catch (e) {}
+      try { _dopLimpiar(); if (_dop.abierto) dopToggle(); } catch (e) {}
+      try { cineCerrar(); } catch (e) {}
+      /* ⚠️ imgVaciar ADEMAS de __t.limpiar, y no es redundante: este caso guarda un estudio y
+         lo reabre para probar el guardado en biblioteca, y limpiarCampos NO suelta
+         _imgUuidActual ni vacia los slots —lo dice el comentario de imgVaciar y lo documenta
+         TC-246—. Sin esto, TC-228 pasaba con --solo y fallaba en el suite: su conteo de «cada
+         cosa una sola vez» intercepta fillText en el PROTOTIPO, asi que cuenta lo que pinte
+         CUALQUIER canvas durante su ventana, y el estudio reabierto dejaba repintandose de mas.
+         Es «pasa con --solo y falla en el suite» por octava vez, y otra vez el estado que un
+         caso le deja al siguiente. */
+      try { if (typeof imgVaciar === 'function') imgVaciar(); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: sin excepcion',                  !R.err, R.err || 'ok'],
+      ['el cajon existe',                             R.hayCajon, R.hayCajon],
+      ['y vive FUERA del modal del visor',            R.fueraDelVisor, 'ov=' + R.ovExiste],
+      ['con su boton en la app',                      R.hayBoton, R.hayBoton],
+      ['sin visor, los genericos no se pueden apretar', R.genDeshabilitados, R.genDeshabilitados],
+      ['Mitral, Tricuspide y Pulmonar deshabilitadas', R.tresValvulasNo, R.tresValvulasNo],
+      ['y Aortica si',                                R.aorticaSi, R.aorticaSi],
+      ['DENOMINADOR: con el visor abierto se habilita', R.hayVisorAhora, R.hayVisorAhora],
+      ['EL CLIC sobre el boton de valvula funciona',  R.clicModo === 1 && R.clicCambioModo, R.clicModo],
+      ['y el clic sobre «medir» arma el destino',     R.clicMedir === 1 && R.clicArmoDestino, R.clicMedir],
+      ['tocar un campo ELIGE LA HERRAMIENTA',         R.armoHerramienta, R.armoHerramienta],
+      ['y arma el destino',                           R.armoDestino, R.armoDestino],
+      ['la medicion CAE en ese campo',                R.cayoEnVmax, R.cayoEnVmax],
+      ['y el destino se libera',                      R.destinoSeLibera, R.destinoSeLibera],
+      ['Grad max sale de la MISMA funcion que el visor', R.gradMaxIgualQueVisor, R.gradMaxIgualQueVisor],
+      ['VTI VAo elige la herramienta VTI',            R.armoVti, R.armoVti],
+      ['y trae su VTI y su gradiente medio',          R.vtiAo && R.gradMedioDelTrazado, R.vtiAo],
+      ['la Vmax medida a proposito NO se pisa',       R.vmaxNoSePiso, R.vmaxTrasVti],
+      ['DENOMINADOR: y hay VTI del TSVI',             R.vtiTsvi, R.vtiTsvi],
+      ['sin el diametro, la AVA no se muestra',       R.avaAntesDelDiam, R.avaAntesDelDiam],
+      ['con los tres insumos APARECE SOLA',           R.avaAparece, R.avaAparece],
+      ['Y ES LA MISMA QUE CALCULA LA APP',            R.avaEsLaDeLaApp, R.avaEsLaDeLaApp],
+      ['la formula del pedido daria CIEN VECES mas',  R.ingenuaEsCienVeces, R.ingenua],
+      ['sin peso ni talla no hay AVAi',               R.avaiSinBSA, R.avaiSinBSA],
+      ['DENOMINADOR: 80 kg y 180 cm dan SC 2,00',     R.bsaDos, R.bsaDos],
+      ['con SC, la AVAi aparece',                     R.avaiAparece, R.avaiAparece],
+      ['y es AVA sobre superficie corporal',          R.avaiEsAvaSobreBsa, R.avaiEsAvaSobreBsa],
+      ['sin PHT no se publica severidad',             R.sevAntes, R.sevAntes],
+      ['PHT 150 da Severa',                           R.sev150 === 'Severa', R.sev150],
+      ['300 da Moderada',                             R.sev300 === 'Moderada', R.sev300],
+      ['600 da Leve',                                 R.sev600 === 'Leve', R.sev600],
+      ['el borde 500 es Moderada (el corte es > 500)', R.sev500 === 'Moderada', R.sev500],
+      ['200 es Moderada y 199 Severa',                R.sev200 === 'Moderada' && R.sev199 === 'Severa',
+                                                      R.sev200 + '/' + R.sev199],
+      ['PERSISTE al cerrar el visor',                 R.persisteAlCerrar, R.persisteAlCerrar],
+      ['y al abrir OTRA imagen',                      R.persisteAlAbrirOtra, R.persisteAlAbrirOtra],
+      ['MIENTRAS las listas del visor se vaciaron',   R.visorSeVacio, R.visorSeVacio],
+      ['el modo generico captura sin armar',          R.genVel && R.genGrad, R.genVel],
+      ['y no pisa lo de la aortica',                  R.aorticaIntacta, R.aorticaIntacta],
+      ['la imagen lleva titulo y la AVA',             R.imgTitulo && R.imgLlevaAVA, R.imgTitulo],
+      ['y los DOS descargos quemados',                R.imgDescPHT && R.imgDescAVA, R.imgDescPHT + '/' + R.imgDescAVA],
+      ['con la guia que los sostiene',                R.imgCita, R.imgCita],
+      ['y nada se recorta',                           R.imgNadaLargo, R.imgNadaLargo],
+      ['DENOMINADOR: el estudio tiene uuid',          R.uuidListo, R.uuidListo],
+      ['guardar en biblioteca ENTRA UN REGISTRO',     R.entroUnRegistro, R.entroUnRegistro],
+      ['y lo dice',                                   R.avisoGuardado, R.avisoGuardado],
+      ['con la tabla vacia no guarda nada',           R.vaciaNoGuarda && R.vaciaAvisa, R.vaciaNoGuarda],
+      ['Limpiar borra los datos',                     R.limpiarBorra, R.limpiarBorra],
+      ['y NO cierra el cajon',                        R.limpiarNoCierra, R.limpiarNoCierra],
+      ['DENOMINADOR: habia algo antes de nuevo estudio', R.habiaAntesDeLimpiarCampos, R.habiaAntesDeLimpiarCampos],
+      ['NUEVO ESTUDIO lo limpia',                     R.nuevoEstudioLimpia, R.nuevoEstudioLimpia],
+      ['DENOMINADOR: habia algo antes de cerrar sesion', R.habiaAntesDeCerrarSesion, R.habiaAntesDeCerrarSesion],
+      ['CERRAR SESION lo limpia',                     R.cerrarSesionLimpia, R.cerrarSesionLimpia],
+      ['DENOMINADOR: el cajon tiene los cinco valores', R.cajonCargado, R.cajonCargado],
+      ['y NO escribe ningun campo del informe',       R.informeIntacto, R.informeSucio || 'todos vacios']
+    ] };
+  })();
+`);
+
+
 
 
 

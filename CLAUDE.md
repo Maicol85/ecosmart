@@ -4,6 +4,147 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Cajón Doppler: acumula entre imágenes, y por eso NO puede leer el visor (TC-249)
+
+Mediciones Doppler que se van juntando mientras el estudio está abierto, con acordeón de la
+válvula aórtica. **Vive en la app —tab Imágenes— y no dentro del modal del visor.**
+
+### ⚠️ ACUMULAR OBLIGA A CAPTURAR EN EL MOMENTO DE MEDIR
+
+`_medVels`, `_medTiempos` y `_medVtis` son de la **vista** y **`medCambioDeImagen` las vacía**:
+están para dibujar sobre la imagen que se está mirando, no para guardar nada. Así que el cajón
+no puede leerlas después — tiene que capturar cuando la medición se completa, que es lo que hace
+`_dopCapturar` desde los cuatro sitios donde el visor guarda (VTI, las dos ramas de velocidad, y
+tiempo/FC).
+
+**La condición que separa esto de un cajón decorativo** es que los valores sigan estando después
+de cerrar el visor y abrir otra imagen **mientras las listas del visor están vacías**. Sin esa
+segunda mitad, «persiste» se cumpliría leyendo del visor, que es justo lo que no se puede hacer.
+
+### ⚠️ LA FÓRMULA DEL PEDIDO ESTABA EN OTRAS UNIDADES — CIEN VECES
+
+Decía `AVA = 0,785 × Diam² × VTI_TSVI / VTI_VAo`. Es correcta con el diámetro en **centímetros**;
+el campo de esta app está en **milímetros**, así que aplicada tal cual da un AVA **cien veces
+mayor**. Hay una condición que lo mide con los mismos insumos. Es la misma clase de error que ya
+se pagó en el área tricuspídea y en el gasto cardíaco por eco del módulo POP — y el número sale
+plausible: 313 cm² es absurdo, pero basta otro factor equivocado para caer en un valor normal.
+
+**Lo que se hizo es no escribir ninguna fórmula.** `calcAo` ya calculaba la continuidad; se
+extrajo `_avaContinuidad(dtsviMm, vtiTsvi, vtiAo)` **sin cambiarle una operación** y la usan las
+dos. La AVA decide si una estenosis aórtica es severa: dos implementaciones del mismo cociente en
+el mismo estudio es el defecto que este archivo persigue desde el THP. Lo mismo el gradiente, que
+sale de `_medGradMmHg` —la misma del visor—, y la superficie corporal, de `getBSA()`.
+
+**Es la única línea que se tocó del tab Válvulas**, y es una extracción pura: `calcAo` conserva su
+`toFixed(2)` y cae a la expresión anterior si el helper devolviera `null`, para que la extracción
+no pueda cambiar lo que se publica.
+
+### La severidad por PHT usa los cortes QUE LA APP YA APLICA
+
+`calcIA_ESC` gradúa con **>500 leve, 200-500 moderada, <200 severa**, y los mismos tres números
+están en la referencia del PDF, en el resumen y en el Laboratorio. El pedido traía exactamente
+ésos, así que no hubo conflicto — pero conviene saber que **ya hay cuatro copias del corte** y el
+cajón es la quinta, declarada en su comentario. Unificarlas exige tocar Válvulas, el informe y el
+Laboratorio: fuera del alcance de este cambio.
+
+**Y es un VOTO, no un veredicto.** Allá el PHT es uno de tres parámetros que se integran; acá va
+solo. Por eso se rotula «orientativo» y lleva el descargo debajo de la tabla **y quemado en la
+imagen** — una tabla de gradientes y AVA que circula sola, y que desde la biblioteca puede llegar
+al PDF, sin decir eso es «un número sin su reparo».
+
+### No escribe NINGÚN campo del informe, y esa es toda la arquitectura
+
+Convive con `vmax_ao`, `itv_ao`, `diam_tsvi`, `ava_cont` e `ia_pht` sin tocarlos: los de allá son
+el informe firmado y los de acá lo que se está midiendo ahora. **Su salida es una imagen a la
+biblioteca**, y desde ahí el médico decide si va al PDF — el mismo camino que cualquier otra
+imagen. Hay una condición que verifica que esos seis campos sigan vacíos después de haber medido
+de todo.
+
+**Ningún control del cajón lleva `id`**, por lo mismo que los paneles de referencia de Marfan:
+`guardarInforme` barre `input[id]` de todo el documento y un campo con id se guardaría en
+`campos` de cada estudio. El único id es el del contenedor, que no es un input.
+
+### ⚠️ ES ESTADO DE MÓDULO: tres puertas de limpieza, y la tercera es explícita a propósito
+
+Sin limpiar, las mediciones del paciente A quedan en el cajón del paciente B — la fuga de
+`ete_tavi_jet_horas` con otra cara. Se limpia en **«Limpiar»**, en **`limpiarCampos`** (nuevo
+estudio y reabrir) y en **`cerrarSesionReal`**. La tercera es redundante hoy —`limpiarCampos`
+llega hasta ahí por dos de los tres caminos— y **se pone igual**: el invariante del cierre de
+sesión no puede depender en silencio de una línea enterrada veinte mil líneas más abajo, que es
+lo que este archivo ya dejó escrito al declarar la mutación superviviente del `_autosaveDescartar`.
+
+**Limpiar borra los DATOS y no cierra el panel:** cerrarlo sería esconder el cajón a mitad de
+trabajo.
+
+### El VTI completa la Vmax sólo si está VACÍA
+
+El pico de la envolvente aórtica **es** la Vmax, así que se aprovecha. Pero pisar una Vmax que el
+médico midió aparte —con un clic sobre el pico que él eligió— sería el campo «auto» que
+sobrescribe lo tipeado, que es el defecto de `vp_gmax`. Regla de `_syncSiVacio` y del importador
+DICOM: sólo se completa lo que está en blanco.
+
+### Los derivados no se guardan: se recalculan al pintar
+
+AVA, AVAi, Grad Máx y la severidad salen de `_dopDerivados()` en cada render. Un derivado
+almacenado es el campo que se calcula una vez y se queda viejo. Y **aparecen solos** cuando hay
+con qué: si falta un insumo la fila no se muestra, en vez de un guion, que al lado de una unidad
+se lee como «medido y dio cero».
+
+### Ningún control va en un `onclick` inline: `data-*` con oyente DELEGADO
+
+Semgrep subió **de 126 a 129** con los `onclick="dopArmar('…')"`. Hoy lo interpolado son claves
+literales del propio archivo, así que no hay dato de paciente — pero la regla vale igual, porque
+en un atributo de evento **el escape no protege**: el parser decodifica la entidad ANTES de
+compilar el handler. Es el agujero que este archivo documenta para CardioSalud y el que ya obligó
+a convertir el donut de la CIA y la tira de la biblioteca. El oyente va en el **contenedor** y se
+registra **una sola vez**: `_dopRender` reescribe el `innerHTML` en cada repintado, así que
+enganchar por botón acumularía un oyente por pintada. De vuelta en 126.
+
+**Y al convertirlo, el caso tuvo que empezar a CLICKEAR.** Llamaba a `dopArmar`/`dopHerr`
+directo, que prueba la lógica y no el cableado — el hueco exacto por el que pasó el defecto del
+VTI en la sesión anterior.
+
+### ⚠️ `dopModo` ALTERNA, como `medToggle`
+
+Llamarlo con el modo ya puesto lo **apaga**. La comprobación por clic dejaba el cajón en aórtica
+y el `dopModo('ao')` siguiente lo mandaba a genérico: la tabla pasaba a las filas genéricas y el
+botón «medir» de la fila del VTI **dejaba de existir**. En los casos, fijar el modo (`if (modo
+!== 'ao')`), no alternarlo. Es la misma trampa que `medToggle` ya costó en TC-196.
+
+### ⚠️ TC-228 PASABA CON `--solo` Y FALLABA EN EL SUITE — octava vez, y la causa no era obvia
+
+TC-249 corre justo antes, y le rompía la condición «cada cosa una sola vez» con `veces=2`. Lo que
+lo hace instructivo es **cómo se encontró y cuántas hipótesis fallaron**: no era el `fillText` que
+TC-249 envuelve, ni `cerrarSesionReal`, ni `limpiarCampos` — las tres se probaron quitándolas una
+por una y las tres siguieron en rojo. Lo resolvió **truncar el cuerpo de TC-249 por mitades** hasta
+ver en qué paso aparecía: el **paso 12**, que guarda un estudio y lo reabre para probar el guardado
+en biblioteca.
+
+La causa: el `finally` hacía `__t.limpiar()` y **no** `imgVaciar()`. `limpiarCampos` **no suelta
+`_imgUuidActual` ni vacía los slots** —lo dice el comentario de `imgVaciar` y lo documenta TC-246
+con todas las letras—, así que el estudio reabierto sobrevivía al caso. Y TC-228 intercepta
+`fillText` **en el PROTOTIPO**, o sea que cuenta lo que pinte **cualquier** canvas durante su
+ventana de 700 ms.
+
+**Dos reglas que deja:** al usar `__t.guardar` + `__t.reabrir` en un caso, el `finally` va con
+`imgVaciar()` además de `__t.limpiar()`. Y una condición que cuenta interceptando el prototipo
+mide todo lo que pinte la página, no sólo lo suyo — es robusta contra el defecto que vigila y
+frágil contra el estado que le dejó el caso anterior.
+
+### Tres condiciones nacieron SIN DENOMINADOR, las tres en el mismo caso
+
+Y las tres las delató una mutación que sobrevivía, no la lectura:
+
+- **«vive fuera del visor»** se escribió como *«existe `#cine-ov` Y no contiene al cajón»* y daba
+  **false** sobre un cajón bien ubicado: el visor no se había abierto nunca, así que el overlay
+  no existía. El invariante es **«no está adentro»**, que se cumple también sin overlay.
+- **«la Vmax medida no se pisa»** medía la Vmax en el MISMO punto que el vértice del triángulo
+  del VTI, así que pisarla daba **el mismo número**. Hay que medirla a otra altura.
+- **«no escribe campos del informe»** corría **al final**, después de `limpiarCampos` y
+  `cerrarSesionReal`: esos campos están vacíos pase lo que pase. Movida a donde el cajón tiene
+  los cinco valores cargados, con el denominador al lado.
+
+
 ## El VTI no se podía medir: la herramienta nunca estuvo en la lista de arrastre (TC-218)
 
 **La envolvente no se podía trazar. Nunca.** `_medAreaDown` gateaba por herramienta con una
