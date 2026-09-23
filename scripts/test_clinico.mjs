@@ -11850,7 +11850,11 @@ caso('TC-190', 'Simpson biplano: FEVI contra un volumen calculable a mano, y L l
         R.feviMono = _simp.res.fevi;
         R.feviMonoEsperada = (1 - (W4s*W4s)/(W4d*W4d)) * 100;
         R.monoCerca = Math.abs(R.feviMono - R.feviMonoEsperada) < 1.5;
-        R.panelMono = (document.getElementById('cine-med-barra').textContent || '');
+        /* ⚠️ EL RESULTADO Y SUS SALVEDADES SE LEEN DEL PANEL UNICO, no de la barra de la
+           vista: desde el 2026-09-22 el panel de Simpson es UNO para las dos vistas y la barra
+           conserva solo la guia del trazado. El invariante no cambio —que el panel diga que es
+           monoplanar— cambio donde lo dice. */
+        R.panelMono = (document.getElementById('cine-simp-uni').textContent || '');
         R.diceMonoplanar = R.panelMono.indexOf('monoplanar') > -1;
         /* El boton «Agregar la otra vista (biplano)» se elimino el 2026-09-22: movia el indice
            dentro de la MISMA vista del visor, asi que las dos apicales terminaban trazadas
@@ -11858,7 +11862,10 @@ caso('TC-190', 'Simpson biplano: FEVI contra un volumen calculable a mano, y L l
            monoplano el panel OFREZCA el camino al biplano— y no el boton que lo ofrecia. */
         R.ofreceSegundaVista = R.panelMono.indexOf('Vista') > -1 &&
                                R.panelMono.indexOf('biplano') > -1;
-        R.noOfreceIntegrarMono = !document.getElementById('cine-simp-integ');
+        /* El id cambio con la mudanza: el boton de integrar es unico y vive en el panel
+           compartido. Buscar el viejo daria SIEMPRE verdadero, o sea una condicion vacua que
+           pasa sin probar nada. */
+        R.noOfreceIntegrarMono = !document.getElementById('cine-simp-integ-u');
       }
 
       /* ── segunda vista: biplano ── */
@@ -11894,7 +11901,7 @@ caso('TC-190', 'Simpson biplano: FEVI contra un volumen calculable a mano, y L l
         /* Y que el biplano NO sea el monoplano: si dieran lo mismo, nada distinguiria los
            dos caminos y las dos condiciones de arriba serian una sola. */
         R.biDistintoDeMono = Math.abs(R.fevi - R.feviMono) > 3;
-        R.panelBi = (document.getElementById('cine-med-barra').textContent || '');
+        R.panelBi = (document.getElementById('cine-simp-uni').textContent || '');
         R.diceBiplano = R.panelBi.indexOf('biplano') > -1;
         /* (d) la clasificacion es LA DE LA APP, no la de la guia */
         const c = _simpClasificar(_simp.res.fevi);
@@ -11902,7 +11909,7 @@ caso('TC-190', 'Simpson biplano: FEVI contra un volumen calculable a mano, y L l
         R.clasifCoincide = c.txt === (_simp.res.fevi >= UMBRAL_FEVI_NORMAL ? 'normal'
           : _simp.res.fevi >= 40 ? 'levemente reducida'
           : _simp.res.fevi >= 30 ? 'moderadamente reducida' : 'severamente reducida');
-        R.panelRes = (document.getElementById('cine-med-barra').textContent || '');
+        R.panelRes = (document.getElementById('cine-simp-uni').textContent || '');
         /* Ya no dice "no va al PDF" a secas, porque el biplano SI se puede integrar. Lo que
            tiene que decir es que todavia NO esta en el informe. */
         R.panelDiceNoPDF = R.panelRes.indexOf('NO está en el informe') > -1;
@@ -12090,7 +12097,9 @@ caso('TC-191', 'Simpson: integra al informe solo el biplano, y el trazado se ocu
       medSimpsonIntegrar();
       await new Promise(r => setTimeout(r, 120));
       R.monoNoIntegra = String(feviEl.value || '') === '';
-      R.monoExplicaPorQue = (document.getElementById('cine-med-barra').textContent || '').indexOf('Método') > -1;
+      /* La explicacion del monoplanar se mudo al panel unico junto con el resto del resultado.
+         El invariante no cambio: el panel tiene que decir POR QUE no se integra. */
+      R.monoExplicaPorQue = (document.getElementById('cine-simp-uni').textContent || '').indexOf('Método') > -1;
 
       /* ── EL BORRADO VISUAL AL REPRODUCIR ──
          Se compara el canvas: con el trazado dibujado hay pixeles pintados; al mover de cuadro
@@ -12135,7 +12144,11 @@ caso('TC-191', 'Simpson: integra al informe solo el biplano, y el trazado se ocu
       R.metodo = met ? met.value : '';
       R.metodoBiplano = R.metodo === 'Simpson biplano';
       R.marcada = !!_simp.integrada;
-      R.panelDiceIntegrada = (document.getElementById('cine-med-barra').textContent || '').indexOf('Ya está en el campo FEVI') > -1;
+      /* Se busca 'campo FEVI' y no la oracion entera: la redaccion cambio al unificar el panel
+         y lo que este caso fija es que el panel DIGA que ya esta integrada, no con que palabras
+         exactas lo dice. Un caso que pina el texto hay que tocarlo cada vez que el texto cambia
+         a proposito. */
+      R.panelDiceIntegrada = (document.getElementById('cine-simp-uni').textContent || '').indexOf('campo FEVI') > -1;
 
       /* ── NO pisa un valor cargado sin preguntar ── */
       feviEl.value = '38'; feviEl.dispatchEvent(new Event('input',{bubbles:true}));
@@ -12290,7 +12303,9 @@ caso('TC-192', 'Simpson cruzando dos imagenes: la sesion sobrevive y cada trazad
         R.usaEscalaPorTrazado = Math.abs(R.vfd - R.vfdBien) < 1e-9;
         R.noUsaUnaSola = Math.abs(R.vfd - R.vfdMal) > 1;
         R.dosImagenes = (_simp.res.imgs || []).length === 2;
-        R.panelNombra = (document.getElementById('cine-med-barra').textContent || '').indexOf('vista-B.dcm') > -1;
+        /* De que imagen salio cada par lo dice el panel UNICO desde el 2026-09-22: es una
+           salvedad del RESULTADO, y el resultado es uno solo. */
+        R.panelNombra = (document.getElementById('cine-simp-uni').textContent || '').indexOf('vista-B.dcm') > -1;
       }
 
       /* ── los cuatro de la MISMA imagen: se avisa ── */
@@ -12301,7 +12316,7 @@ caso('TC-192', 'Simpson cruzando dos imagenes: la sesion sobrevive y cada trazad
       await trazar(tri(cx0, yb, 180, 300)); medSimpsonConfirmar();
       await trazar(tri(cx0, yb, 126, 300)); medSimpsonConfirmar();
       R.mismaImagen = (_simp.res.imgs || []).length === 1;
-      R.avisaMismaImagen = (document.getElementById('cine-med-barra').textContent || '').indexOf('MISMA imagen') > -1;
+      R.avisaMismaImagen = (document.getElementById('cine-simp-uni').textContent || '').indexOf('MISMA imagen') > -1;
 
       /* ── CERRAR conserva lo medido, y lo deja con dueño ──
          ⚠️ CAMBIO DE SIGNO A PROPOSITO. Antes decia «cerrar el visor SI borra la sesion» y esa
@@ -20721,7 +20736,10 @@ caso('TC-237', 'Simpson: la ventana declarada nombra la etiqueta, y la tabla cie
       if (!_medOn) medToggle();
       medHerramienta('simpson'); await esperar(400);
       R.botonViejo = !!document.querySelector('#cine-ov [id$="cine-simp-2v"]');
-      R.nBotones = document.querySelectorAll('#cine-ov [data-simp-vista]').length;
+      /* El atributo cambio con la mudanza al panel unico: los botones de ventana dejaron de
+         ser de la vista. El invariante es el mismo —dos botones, uno por apical— y ahora ademas
+         significa DOS EN TODO EL MODAL, no dos por panel. */
+      R.nBotones = document.querySelectorAll('#cine-ov [data-simpuni-vista]').length;
 
       R.err1 = trazar(90,180); R.err2 = trazar(80,165);
       R.etiqSinDeclarar = _medEtiqVista();
@@ -20744,7 +20762,10 @@ caso('TC-237', 'Simpson: la ventana declarada nombra la etiqueta, y la tabla cie
       R.bi = !!(_simp.res && _simp.res.bi);
       R.etiqBi = _medEtiqVista();
 
-      const barra = document.getElementById('cine-med-barra');
+      /* La tabla vive en el panel UNICO desde el 2026-09-22: se dibuja una sola vez para las
+         dos vistas, no una por barra. El invariante de este caso —las filas, los encabezados y
+         que el cierre sea el biplano y no el promedio— no cambio. */
+      const barra = document.getElementById('cine-simp-uni');
       R.filas = [...barra.querySelectorAll('table tbody tr')].map(tr =>
         [...tr.children].map(td => (td.textContent||'').trim()).join('|'));
       R.ths = [...barra.querySelectorAll('table thead th')].map(th => (th.textContent||'').trim()).join('|');
@@ -20962,9 +20983,12 @@ caso('TC-239', 'Simpson: la tabla viaja con el estudio, vuelve al reabrirlo y no
       let J = null; try { J = JSON.parse(document.getElementById('simpson_manual').value); } catch (e) {}
       R.vistasGuardadas = J ? J.vistas.length : -1;
       R.biplanoGuardado = !!(J && J.biplano);
-      R.btnLimpiar = !!document.querySelector('#cine-ov [id$="cine-simp-limpiar"]');
-      R.btnBib     = !!document.querySelector('#cine-ov [id$="cine-simp-bib"]');
-      R.btnPdf     = !!document.querySelector('#cine-ov [id$="cine-simp-pdf"]');
+      /* Ids sin prefijo y con sufijo -u: hay UNO de cada uno para las dos vistas. El selector
+         por terminacion era lo correcto cuando el id llevaba el prefijo de la vista; hoy se
+         piden por id exacto, y de paso se exige que no haya mas de uno. */
+      R.btnLimpiar = document.querySelectorAll('#cine-ov #cine-simp-limpiar-u').length;
+      R.btnBib     = document.querySelectorAll('#cine-ov #cine-simp-bib-u').length;
+      R.btnPdf     = document.querySelectorAll('#cine-ov #cine-simp-pdf-u').length;
 
       /* BIBLIOTECA: a ceibomed_cine, y NI UN slot de mas */
       const slots0 = imgSlots.filter(x => x && x.dataURL).length;
@@ -21004,7 +21028,8 @@ caso('TC-239', 'Simpson: la tabla viaja con el estudio, vuelve al reabrirlo y no
       _cineAbrir([loop]); await esperar(800);
       if (!_medOn) medToggle();
       medHerramienta('simpson'); await esperar(600);
-      const b3 = document.getElementById('cine-med-barra');
+      /* Idem: la tabla que vuelve al reabrir el estudio se redibuja en el panel unico. */
+      const b3 = document.getElementById('cine-simp-uni');
       R.filasVuelven = b3 ? b3.querySelectorAll('table tbody tr').length : -1;
       R.diceGuardada = b3 ? (b3.textContent || '').indexOf('guardada con el estudio') >= 0 : false;
     } catch (e) {
@@ -21025,7 +21050,7 @@ caso('TC-239', 'Simpson: la tabla viaja con el estudio, vuelve al reabrirlo y no
       ['la tabla se persiste sola',                R.persistido === true, R.persistido],
       ['con las dos ventanas y el biplano',        R.vistasGuardadas === 2 && R.biplanoGuardado === true,
                                                    'vistas=' + R.vistasGuardadas + ' bip=' + R.biplanoGuardado],
-      ['estan los tres botones',                   R.btnLimpiar && R.btnBib && R.btnPdf,
+      ['estan los tres botones, UNO de cada uno',  R.btnLimpiar === 1 && R.btnBib === 1 && R.btnPdf === 1,
                                                    [R.btnLimpiar,R.btnBib,R.btnPdf].join(',')],
       ['biblioteca guarda un documento',           R.docs === 1, 'docs=' + R.docs],
       ['y NO manda nada al PDF',                   R.bibNoTocaSlots === true, R.bibNoTocaSlots],
@@ -21698,11 +21723,17 @@ caso('TC-241', 'Vista B: abre midiendo, y la tabla cruza las dos vistas en los d
       const filas = id => { const e=document.getElementById(id);
         return e ? [...e.querySelectorAll('table tbody tr')].map(tr =>
           [...tr.children].map(td => (td.textContent||'').trim()).join('|')) : []; };
-      R.tablaB = filas('b-cine-med-barra');
-      R.tablaA = filas('cine-med-barra');
+      /* ⚠️ LA TABLA SE MUDO AL PANEL UNICO. Antes se dibujaba una vez POR VISTA y este caso
+         comprobaba que las dos coincidieran —que era la forma de cazar que una quedara vieja—.
+         Desde el 2026-09-22 hay UNA sola tabla, asi que el invariante cambio de forma: ya no se
+         comparan dos copias, se exige que exista una y que NO haya ninguna en las barras de las
+         vistas. Es mas fuerte: que no queden viejas es imposible si no hay dos. */
+      R.tablaUni = filas('cine-simp-uni');
+      R.tablasEnBarras = filas('b-cine-med-barra').length + filas('cine-med-barra').length;
+      R.panelesSimpson = document.querySelectorAll('#cine-ov #cine-simp-uni').length;
       const rot = f => f.map(x => x.split('|')[0]).join(',');
-      R.rotB = rot(R.tablaB); R.rotA = rot(R.tablaA);
-      const bip = R.tablaB.filter(f => f.indexOf('Biplano') === 0)[0];
+      R.rotUni = rot(R.tablaUni);
+      const bip = R.tablaUni.filter(f => f.indexOf('Biplano') === 0)[0];
       if (bip) { const c2 = bip.split('|');
         R.veyecOk = Math.abs((parseFloat(c2[1]) - parseFloat(c2[2])) - parseFloat(c2[3])) < 0.15; }
     } catch (e) {
@@ -21728,12 +21759,149 @@ caso('TC-241', 'Vista B: abre midiendo, y la tabla cruza las dos vistas en los d
                                                  'herr=' + R.bHerr + ' grupo=' + R.bGrupo],
       ['los botones de A van a la derecha',      R.aDerechaA === true, R.aDerechaA],
       ['y los de B tambien',                     R.aDerechaB === true, R.aDerechaB],
-      ['la tabla de B trae las TRES filas',      R.rotB === 'A4C,A2C,Biplano', R.rotB],
-      ['y la de A tambien, sin quedar vieja',    R.rotA === 'A4C,A2C,Biplano', R.rotA],
-      ['VEyec = VFD - VFS en el biplano',        R.veyecOk === true, R.tablaB.join(' ~ ')]
+      ['la tabla UNICA trae las TRES filas',     R.rotUni === 'A4C,A2C,Biplano', R.rotUni],
+      ['y se dibuja UNA sola vez',               R.panelesSimpson === 1, R.panelesSimpson],
+      ['sin ninguna tabla en las barras de vista', R.tablasEnBarras === 0, R.tablasEnBarras],
+      ['VEyec = VFD - VFS en el biplano',        R.veyecOk === true, R.tablaUni.join(' ~ ')]
     ] };
   })();
 `);
+
+/* ══ TC-245 · El panel unico de Simpson, y QUIEN manda al confirmar ═══════════════════════════
+   LO QUE ESTE CASO EXISTE PARA IMPEDIR es que el SELECTOR le gane al TRAZADO. Con un solo boton
+   "Confirmar trazado" para las dos vistas hay dos candidatos a destino: la ventana que marca el
+   selector y la vista donde el medico acaba de trazar. Si ganara el selector, un contorno
+   trazado en la vista B se atribuiria a la ventana de la vista A — un trazado bajo un rotulo que
+   no es el suyo, que es la misma clase de daño que las paredes intercambiadas del strain. Y en
+   el mejor caso no haria nada, que desde la pantalla se ve igual que un boton roto.
+
+   Manda el trazado. El selector sigue, y sigue declarando la ventana cuando no hay nada
+   pendiente. Decision de Maicol (2026-09-22).
+   NO DEPENDE DEL PENDRIVE.                                                                    */
+caso('TC-245', 'Simpson: panel unico, y el TRAZADO manda sobre el selector al confirmar', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    window.alert = () => {}; window.confirm = () => true; window.toast = () => {};
+    try {
+      __t.limpiar(); imgVaciar(); await esperar(150);
+      localStorage.setItem('cfg-guardar-imagenes','0');
+
+      const jpg = await new Promise(res => {
+        const c = document.createElement('canvas'); c.width=400; c.height=400;
+        const x = c.getContext('2d'); x.fillStyle='rgb(50,70,110)'; x.fillRect(0,0,400,400);
+        c.toBlob(b2 => { const fr=new FileReader(); fr.onload=()=>res(new Uint8Array(fr.result));
+          fr.readAsArrayBuffer(b2); }, 'image/jpeg', 0.9);
+      });
+      const REG = [{ x0:0, y0:0, x1:400, y1:400, ux:3, uy:3, dx:0.05, dy:0.05, tipo:1 }];
+      const loopCon = nom => ({ nombre:nom, cuadros:1,
+        d:{ frags:[jpg], cols:400, filas:400, msCuadro:0, fabricante:'', modelo:'', regiones:REG } });
+      /* Medio elipse de anillo a anillo: es el contorno que _simpAceptar espera. */
+      const cont = (an, la) => { const pts=[];
+        for (let i=0;i<=40;i++){ const t=Math.PI*i/40;
+          pts.push({ x:200-(an/2)*Math.cos(t), y:340-la*Math.sin(t) }); } return pts; };
+
+      /* ── VISTA A con la A4C completa ── */
+      _cineAbrir([ loopCon('apical4c') ]); await esperar(700);
+      if (!_medOn) medToggle();
+      medHerramienta('simpson'); await esperar(300);
+      R.eA1 = _simpAceptar(cont(90,180)); medSimpsonConfirmar();
+      R.eA2 = _simpAceptar(cont(80,165)); medSimpsonConfirmar();
+      medSimpsonElegirVista('a4c'); await esperar(200);
+
+      /* ── VISTA B a mano, como TC-196: sin selector de cineloop, que no es lo que se prueba ── */
+      _vistaB = _vNueva('b-', 'B');
+      _vMontarPanel(document.getElementById('cine-paneles'), 'b-');
+      _vCablear(_vistaB);
+      __t.anchoDesktop();
+      _vCon(_vistaB, () => { _vistaB.datos = { loops:[ loopCon('apical2c') ], i:0, cuadro:0, timer:null };
+                             _cineCargarLoop(); });
+      await esperar(500);
+      _vCon(_vistaB, () => { if (!_medOn) medToggle(); medHerramienta('simpson'); });
+      await esperar(300);
+      _vCon(_vistaB, () => { _simpAceptar(cont(70,150)); medSimpsonConfirmar(); });
+      _vCon(_vistaB, () => medSimpsonElegirVista('a2c'));
+      await esperar(400);
+
+      /* ── DENOMINADOR: dos vistas, cada una con SU ventana declarada ── */
+      R.hayDos = !!(_vistaA.simp && _vistaB && _vistaB.simp);
+      R.ventA = _vCon(_vistaA, () => _simpNombre(_vistaA.simp.vista));
+      R.ventB = _vCon(_vistaB, () => _simpNombre(_vistaB.simp.vista));
+      R.ventanasDistintas = R.ventA === 'a4c' && R.ventB === 'a2c';
+
+      /* ── EL PANEL SE DIBUJA UNA SOLA VEZ ── */
+      R.nPanel = document.querySelectorAll('#cine-ov #cine-simp-uni').length;
+      const tablasEn = id => { const e=document.getElementById(id);
+        return e ? e.querySelectorAll('table').length : 0; };
+      R.tablasEnBarras = tablasEn('cine-med-barra') + tablasEn('b-cine-med-barra');
+      R.tablaEnPanel = tablasEn('cine-simp-uni');
+      /* Un solo juego de botones: ni uno de mas en todo el modal. */
+      const nId = id => document.querySelectorAll('#cine-ov #' + id).length;
+      R.nConf = nId('cine-simp-conf-u'); R.nReset = nId('cine-simp-reset-u');
+      R.nBib  = nId('cine-simp-bib-u');  R.nPdf   = nId('cine-simp-pdf-u');
+      R.unJuego = R.nConf === 1 && R.nReset === 1 && R.nBib === 1 && R.nPdf === 1;
+
+      /* ── EL CASO: pendiente en B, selector apuntando a la A4C (vista A) ── */
+      _simpSel = 'a4c';                                   // el selector dice A4C
+      /* _medPintar + _medEstado detras de _simpAceptar: es lo que hace el mouseup del canvas.
+         Sin eso el panel queda con el dibujo ANTERIOR y el caso mide una pantalla vieja — la
+         condicion del aviso daba rojo sobre codigo sano. */
+      _vCon(_vistaB, () => { _simpAceptar(cont(62,138)); _medPintar(); _medEstado(); });
+      await esperar(250);
+      const d = _simpDestino();
+      R.destinoEsB = !!(d && d.V === _vistaB);
+      R.selectorSigue = (document.getElementById('cine-simp-uni').textContent || '')
+        .indexOf('sin confirmar') > -1;
+
+      /* Confirmar tiene que escribir en B, no en A. Se cuentan los contornos ANTES y DESPUES. */
+      const nCont = V => _vCon(V, () => { const S=V.simp; if (!S) return -1;
+        return S.pares.reduce((n,p)=>n+(p.d?1:0)+(p.s?1:0), 0); });
+      const a0 = nCont(_vistaA), b0 = nCont(_vistaB);
+      const btn = document.getElementById('cine-simp-conf-u');
+      R.hayBoton = !!btn;
+      if (btn) btn.click();
+      await esperar(300);
+      R.aIgual = nCont(_vistaA) === a0;
+      R.bSubio = nCont(_vistaB) === b0 + 1;
+
+      /* ── SIN pendiente, ahi si manda el selector ── */
+      _vCon(_vistaA, () => { if (_simp) _simp.pendiente = null; });
+      _vCon(_vistaB, () => { if (_simp) _simp.pendiente = null; });
+      _simpSel = 'a4c';
+      const d2 = _simpDestino();
+      R.sinPendienteVaAlSelector = !!(d2 && d2.V === _vistaA);
+      _simpSel = 'a2c';
+      const d3 = _simpDestino();
+      R.selectorMueveElDestino = !!(d3 && d3.V === _vistaB);
+    } catch (e) {
+      R.err = String(e && e.message || e);
+    } finally {
+      window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+      try { _simpSel = null; } catch (e) {}
+      try { vistaBCerrar(); } catch (e) {}
+      try { cineCerrar(); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: sin excepcion',                 !R.err, R.err || 'ok'],
+      ['DENOMINADOR: dos vistas con su ventana',     R.hayDos && R.ventanasDistintas,
+                                                     R.ventA + ' / ' + R.ventB],
+      ['el panel de Simpson se dibuja UNA vez',      R.nPanel === 1, R.nPanel],
+      ['con la tabla adentro',                       R.tablaEnPanel === 1, R.tablaEnPanel],
+      ['y CERO tablas en las barras de vista',       R.tablasEnBarras === 0, R.tablasEnBarras],
+      ['un solo juego de botones en todo el modal',  R.unJuego,
+                                                     [R.nConf,R.nReset,R.nBib,R.nPdf].join(',')],
+      ['MANDA EL TRAZADO: el destino es la vista B', R.destinoEsB, R.destinoEsB],
+      ['y el panel avisa que hay algo sin confirmar', R.selectorSigue, R.selectorSigue],
+      ['Confirmar escribe en B...',                  R.hayBoton && R.bSubio, R.bSubio],
+      ['...y NO toca la vista A',                    R.aIgual, R.aIgual],
+      ['sin pendiente manda el selector',            R.sinPendienteVaAlSelector, R.sinPendienteVaAlSelector],
+      ['y moverlo mueve el destino',                 R.selectorMueveElDestino, R.selectorMueveElDestino]
+    ] };
+  })();
+`);
+
 
 caso('TC-228', 'Visor: la etiqueta dice DE DONDE viene el valor, y el numero queda quemado siempre', `
   return (async () => {

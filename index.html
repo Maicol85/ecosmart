@@ -48043,6 +48043,18 @@ function _cineAbrir(loops) {
            colgarlo de la A sugeriría que es de la A. */
         '<div id="cine-biplano" style="display:none;margin-top:10px;padding:9px 11px;border-radius:9px;' +
           'border:1px solid var(--border);background:var(--bg3);font-size:12px;line-height:1.6;"></div>' +
+        /* ⚠️ PANEL DE SIMPSON, UNO SOLO PARA LAS DOS VISTAS. La tabla, el texto y los botones
+           vivían dentro de `cine-med-barra`, que es de CADA vista: con las dos midiendo Simpson
+           el mismo contenido se dibujaba dos veces —lo medía TC-241 comparando `tablaA` contra
+           `tablaB`—. Acá se dibuja una vez.
+           Va pegado debajo de `cine-biplano` a propósito: aquél ya publica el titular del
+           biplano A × B y los dos leen del MISMO cálculo, así que juntos se leen como un solo
+           panel. No se fusionaron para no tocar `_vBiplanoPintar`, que es lo único que decide
+           si el cruce A × B existe.
+           Lo que NO se movió acá es la guía del trazado: esa sigue en el panel de cada vista,
+           al lado del canvas que se está trazando. Decisión de Maicol (2026-09-22). */
+        '<div id="cine-simp-uni" style="display:none;margin-top:8px;padding:9px 11px;border-radius:9px;' +
+          'border:1px solid var(--border);background:var(--bg2);font-size:11px;line-height:1.55;"></div>' +
         /* ⚠️ «➕ Vista» y «Cerrar» YA NO VIVEN ACÁ: se mudaron a la columna derecha del panel A
            (ver `_vPanelHTML`). Dejarlos también acá habría dejado el documento con ids
            DUPLICADOS, y entonces `getElementById` devuelve el primero y el otro se dibuja sin
@@ -48304,7 +48316,11 @@ window.cineCerrar = cineCerrar; window.cineIr = cineIr; window.cineLoop = cineLo
    Un id nuevo que sea del modal y no esté acá se busca con el prefijo de la vista B y
    devuelve null — sin error, sólo un botón que deja de responder. */
 const _CINE_COMPARTIDOS = { 'cine-ov':1, 'cine-paneles':1, 'cine-cerrar':1,
-  'cine-add-b':1, 'cine-sync':1, 'cine-strip':1, 'cine-biplano':1 };
+  'cine-add-b':1, 'cine-sync':1, 'cine-strip':1, 'cine-biplano':1,
+  /* El panel de Simpson es UNO para las dos vistas, así que su id no se prefija. Sin esta
+     entrada, `_medEl` lo buscaría como `b-cine-simp-uni` desde la vista B y devolvería null —
+     sin error, sólo un panel que deja de repintarse. */
+  'cine-simp-uni':1 };
 const _medEl = id => document.getElementById(_CINE_COMPARTIDOS[id] ? id : _V.pfx + id);
 
 /* Píxeles de la IMAGEN a partir de un clic. El canvas se muestra escalado por CSS
@@ -51290,123 +51306,104 @@ function _medBarra(html) {
 
 /* Panel de Simpson. Todo lo que se muestra lo escribe la app; los únicos números que vienen
    del archivo son la escala y las coordenadas, y salen por toFixed. */
+/* ⚠️ ESTE PANEL YA NO LLEVA NI RESULTADO NI TABLA NI BOTONES. Todo eso se dibujaba una vez POR
+   VISTA —con las dos midiendo Simpson, el mismo contenido dos veces— y se mudó al panel único
+   de abajo (`_simpUniPintar`), que se dibuja una sola vez para las dos.
+
+   Lo que SÍ se queda acá es la guía del paso en curso, y es una decisión, no un resto: el texto
+   dice qué fase trazar y cómo, y tiene que estar al lado del canvas que se está trazando. En el
+   panel de abajo quedaría a media pantalla de la imagen a la que se refiere. Decisión de Maicol
+   (2026-09-22). */
 function _simpPanel() {
   if (!_simp) return '';
-  const E = (typeof escHtml === 'function') ? escHtml : (x => String(x == null ? '' : x));
-  /* El id SE PREFIJA ACA, que es el único sitio por el que salen los botones de este panel.
-     Sin prefijo, la barra de la vista B emite los MISMOS ids que la de la A: el documento
-     queda con ids duplicados, `getElementById` devuelve siempre el de A, y los botones de B
-     se dibujan y no responden. Se veían perfectos. */
-  const b = (id, cls, txt, extra) => '<button type="button" class="btn ' + cls + '" id="' + _V.pfx + id +
-    '" style="padding:3px 10px;font-size:11px;' + (extra || '') + '">' + txt + '</button>';
-  const conf  = b('cine-simp-conf', 'btn-primary', 'Confirmar trazado');
-  const reset = b('cine-simp-reset', 'btn-ghost', 'Empezar de nuevo', 'margin-left:6px;');
   const R = _simp.res;
 
-  /* ── Resultado ── */
-  let cab = '';
-  if (R) {
-    const c = _simpClasificar(R.fevi);
-    const modo = R.bi ? 'biplano' : 'monoplanar';
-    cab = '<div style="font-size:13px;line-height:1.7;">' +
-      '<b>Simpson ' + modo + '</b> · 20 discos' + (R.bi ? ' · dos vistas' : ' · una vista') + '<br>' +
-      'VFD <b>' + R.vfd.toFixed(1) + ' mL</b> · VFS <b>' + R.vfs.toFixed(1) + ' mL</b><br>' +
-      'FEVI <b style="font-size:17px;color:' + c.col + ';">' + R.fevi.toFixed(1) + ' %</b> — ' +
-      '<b style="color:' + c.col + ';">' + c.txt + '</b></div>' +
-      '<div style="font-size:10px;color:var(--text2);margin-top:5px;line-height:1.5;">' +
-      'Eje largo: ' + R.Ld.toFixed(1) + ' cm en diástole y ' + R.Ls.toFixed(1) + ' cm en sístole' +
-      (R.bi ? ' (el más largo de las dos vistas, ASE/EACVI 2015)' : '') + '. ' +
-      /* De qué imagen salió cada par. La app no sabe distinguir una 4C de una 2C —eso lo sabe
-         el médico—, pero sí sabe si los dos pares salieron del MISMO archivo, y eso es casi
-         siempre un error: serían dos trazados de la misma vista, no un biplano. */
-      (R.bi && R.imgs.length === 1
-        ? '<b style="color:#fbbf24;">⚠️ Los cuatro trazados salieron de la MISMA imagen.</b> Un biplano necesita dos vistas distintas (apical 4C y 2C); si no, esto es un monoplanar trazado dos veces. '
-        : (R.bi && R.imgs.length > 1 ? 'Vistas: ' + R.imgs.map(E).join(' y ') + '. ' : '')) +
-      'La clasificación es la misma que usa el informe. ' +
-      /* Que el numero exista no significa que este en el informe. Antes el panel decia
-         «NO va al PDF» y era cierto siempre; ahora el biplano SI se puede integrar, asi que
-         lo que hay que decir es que no esta hasta que se integre. */
-      (R.bi
-        ? (_simp.integrada
-            ? '<b>Ya está en el campo FEVI del informe.</b>'
-            : '<b>Todavía NO está en el informe:</b> se integra con el botón de abajo.')
-        : '<b>No está en el informe</b> ni va al PDF.') +
-      (R.bi
-        ? ''
-        : /* El monoplano no es lo mismo, y decirlo no es un detalle: la guía recomienda el
-             biplano para el VI y los valores normales se midieron con biplano. */
-          ' <b>Es monoplanar:</b> asume que el ventrículo es circular en el corte transversal. ' +
-          'La guía recomienda el biplano, y los valores normales con los que se clasifica salen ' +
-          'de biplano — tomalo como una aproximación. Agregá la otra vista para el biplano.') +
-      '<br>⚠️ El método supone que el ápex está bien visualizado. Un ápex escorzado subestima ' +
-      'los volúmenes; la guía lo lista como su limitación principal.</div>';
-  }
-  /* La tabla va FUERA del `if (R)`: con el estudio reabierto no hay sesión viva y el
-     resultado es null, pero los números guardados sí están y tienen que volver. */
-  cab += _simpTablaHTML();
-
-  /* ── Botones de acción sobre el resultado ── */
-  let acc = '';
-  if (R && R.bi) {
-    acc = _simp.integrada
-      ? '<span style="font-size:11px;color:#22d36a;">✅ Integrada al campo FEVI del informe.</span>' +
-        b('cine-simp-integ', 'btn-ghost', 'Integrar de nuevo', 'margin-left:8px;')
-      : b('cine-simp-integ', 'btn-primary', '¿Integrás la FEVI biplano al informe?');
-  } else if (R && !R.bi) {
-    /* ⚠️ «Agregar la otra vista (biplano)» SE ELIMINÓ. Movía el índice dentro de la MISMA
-       vista del visor, así que las dos apicales terminaban trazadas sobre el mismo cineloop
-       —que es justo lo que el propio panel avisa como error— salvo que el médico cambiara de
-       imagen a mano. Hoy la salida es «➕ Vista», que abre la segunda vista AL LADO y deja
-       elegir su cineloop: las dos apicales quedan a la vista y cada trazado con la escala de
-       su propia imagen. */
-    acc = '<div style="font-size:10px;color:var(--text2);margin-top:5px;line-height:1.5;">' +
-      '<b>Para el biplano, tocá «➕ Vista» →</b> se abre una segunda vista al lado de ésta y ahí ' +
-      'elegís el cineloop de la otra apical. También podés trazar la segunda ventana acá mismo ' +
-      'cambiando de cineloop: lo confirmado no se pierde.<br>' +
-      'El monoplanar no se integra al informe: el campo «Método» sólo tiene Simpson biplano, ' +
-      'Teicholz y Visual, y rotularlo «biplano» sería nombrar mal el método.</div>';
-  }
-
-  /* ── Paso en curso ── */
+  /* ── Paso en curso: lo ÚNICO que queda en el panel de la vista ── */
   const faseTxt = (_simp.fase === 'd') ? 'DIÁSTOLE' : 'SÍSTOLE';
-  const vistaTxt = (_simp.vista === 0) ? 'la vista que estés usando' : 'la SEGUNDA vista (la otra apical)';
+  const vistaTxt = (_simp.vista === 0) ? 'esta vista' : 'la SEGUNDA ventana (la otra apical)';
   const falta = !_simpParCompleto(_simp.vista) || (_simp.vista === 1 && !_simpParCompleto(1));
-  let paso = '';
-  if (falta) {
-    paso = '<div style="font-size:12px;line-height:1.6;' + (R ? 'margin-top:8px;' : '') + '">' +
-      '<b>Trazá ' + faseTxt + '</b> en ' + vistaTxt + '.' +
+  if (!falta) {
+    /* Con el par completo no hay nada que guiar, y repetir acá el resultado sería devolver la
+       duplicación por la puerta de al lado. Se remite al panel de abajo, que es donde está. */
+    return '<div style="font-size:11px;line-height:1.55;">' +
+      '<b>Par completo en esta vista.</b>' +
       '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
-        'Empezá en un lado del anillo mitral y terminá en el otro: esa recta define el eje largo. ' +
-        (_simp.pendiente
-          ? '<b style="color:#fbbf24;">Trazado listo — apretá «Confirmar trazado».</b>'
-          : 'Mantené apretado y recorré el borde del ventrículo.') +
-        (_simp.avisoCuadro
-          ? '<br><b style="color:#fbbf24;">Cambiaste de cuadro.</b> Lo que confirmaste sigue valiendo y sigue contando para el cálculo; se dejó de dibujar para no confundirlo con este cuadro. El trazado sin confirmar se descartó.'
-          : '') +
-        (_simp.avisoImagen
-          ? '<br><b style="color:#22d36a;">Cambiaste de imagen y los trazados confirmados siguen ahí.</b> Es lo que hace falta para el biplano: la 4C y la 2C son adquisiciones distintas. Cada trazado guarda la escala de su propia imagen.'
-          : '') +
-      '</div></div>';
+      'El resultado, la tabla y los botones están en el panel de Simpson, debajo de las dos ' +
+      'vistas.</div></div>';
   }
-  /* BOTONES DE VENTANA. Declarar cuál apical es cada par es lo que destraba la etiqueta por
-     nombre; van ANTES de confirmar, porque después el trazado ya quedó atribuido. El activo va
-     relleno y el que ya tiene su par completo lleva ✅, que es el mismo idioma que la lista de
-     vistas del strain. Por `data-*` y con el listener atado en `_medEstado`: nunca el valor
-     interpolado dentro de un `onclick`. */
-  const vistasBtn = '<div style="margin-top:7px;display:flex;gap:5px;align-items:center;flex-wrap:wrap;">' +
-    '<span style="font-size:10.5px;color:var(--text2);">Ventana:</span>' +
-    _SIMP_VISTAS.map(V => {
-      const i = _simp.nombres.indexOf(V.k);
-      const act = (i >= 0 && i === _simp.vista);
-      const hecha = (i >= 0 && _simpParCompleto(i));
-      return '<button type="button" class="btn btn-ghost" data-simp-vista="' + V.k + '" ' +
-        'style="padding:3px 9px;font-size:11px;' + (act ? 'background:var(--accent);color:#fff;' : '') + '">' +
-        (hecha ? '✅ ' : '') + V.rot + '</button>';
-    }).join('') +
-    (_simpNombre(_simp.vista) ? ''
-      : '<span style="font-size:10px;color:var(--text2);">sin declarar — se rotula por cantidad</span>') +
-    '</div>';
-  return cab + paso + vistasBtn + '<div style="margin-top:6px;">' + conf + reset + (acc ? ' ' + acc : '') + '</div>';
+  const nom = _simpNombre(_simp.vista);
+  return '<div style="font-size:12px;line-height:1.6;">' +
+    '<b>Trazá ' + faseTxt + '</b> en ' + vistaTxt +
+    (nom ? ' <span style="color:var(--text2);">(' + _SIMP_VISTAS.filter(x => x.k === nom)[0].rot + ')</span>' : '') + '.' +
+    '<div style="font-size:10px;color:var(--text2);margin-top:3px;">' +
+      'Empezá en un lado del anillo mitral y terminá en el otro: esa recta define el eje largo. ' +
+      (_simp.pendiente
+        ? '<b style="color:#fbbf24;">Trazado listo — «Confirmar trazado» está en el panel de abajo.</b>'
+        : 'Mantené apretado y recorré el borde del ventrículo.') +
+      (_simp.avisoCuadro
+        ? '<br><b style="color:#fbbf24;">Cambiaste de cuadro.</b> Lo que confirmaste sigue valiendo y sigue contando para el cálculo; se dejó de dibujar para no confundirlo con este cuadro. El trazado sin confirmar se descartó.'
+        : '') +
+      (_simp.avisoImagen
+        ? '<br><b style="color:#22d36a;">Cambiaste de imagen y los trazados confirmados siguen ahí.</b> Es lo que hace falta para el biplano: la 4C y la 2C son adquisiciones distintas. Cada trazado guarda la escala de su propia imagen.'
+        : '') +
+    '</div></div>';
+}
+
+/* ── EL PANEL ÚNICO DE SIMPSON ───────────────────────────────────────────────────────────
+   Un solo juego de tabla, texto y botones para las dos vistas. Lo que decide sobre QUÉ vista
+   actúa cada botón es `_simpDestino()`, y esa decisión es lo único delicado de todo el panel.
+
+   ⚠️ MANDA EL TRAZADO, NO EL SELECTOR. Decisión de Maicol (2026-09-22). El médico traza sobre
+   el canvas de una vista y el contorno pendiente queda EN ESA VISTA; si «Confirmar» obedeciera
+   al selector, un selector apuntando a la otra ventana confirmaría en el lugar equivocado —o no
+   haría nada, que desde la pantalla se ve igual que un botón roto—. Peor: atribuiría un
+   contorno a una ventana que no es la suya, que es la clase de daño que este archivo persigue
+   desde las paredes intercambiadas del strain.
+   Así que el pendiente gana siempre, y el selector se mueve solo a la ventana donde se está
+   trazando. El selector conserva su trabajo de SIEMPRE —declarar qué apical es el par— y
+   además fija el destino cuando no hay nada pendiente. */
+let _simpSel = null;              // ventana elegida en el panel único ('a4c' | 'a2c' | null)
+
+/* Dónde vive una ventana ya declarada: {V, i} o null. Recorre las dos vistas porque el biplano
+   puede estar cruzado (A tiene la 4C, B la 2C) o dentro de una sola vista (pares 0 y 1). */
+function _simpUbicarVentana(k) {
+  const vistas = _vTodas();
+  for (let n = 0; n < vistas.length; n++) {
+    const V = vistas[n], S = V && V.simp;
+    if (!S || !S.nombres) continue;
+    const i = S.nombres.indexOf(k);
+    if (i >= 0) return { V: V, i: i };
+  }
+  return null;
+}
+
+/* La vista que tiene un trazado sin confirmar. La ACTIVA tiene prioridad: si las dos tuvieran
+   uno pendiente —posible trazando en las dos antes de confirmar— el que el médico acaba de
+   soltar es el de la vista sobre la que está. */
+function _simpVistaPendiente() {
+  if (_V && _V.simp && _V.simp.pendiente) return _V;
+  const otras = _vTodas().filter(V => V !== _V && V.simp && V.simp.pendiente);
+  return otras.length ? otras[0] : null;
+}
+
+/* {V, i} donde actúan los botones del panel único. El orden es la regla de arriba. */
+function _simpDestino() {
+  const P = _simpVistaPendiente();
+  if (P) return { V: P, i: P.simp.vista };
+  if (_simpSel) { const u = _simpUbicarVentana(_simpSel); if (u) return u; }
+  if (_V && _V.simp) return { V: _V, i: _V.simp.vista };
+  const con = _vTodas().filter(V => V.simp)[0];
+  return con ? { V: con, i: con.simp.vista } : null;
+}
+window._simpDestino = _simpDestino;
+
+/* Corre `fn` en la vista destino, dejándola además con SU par en curso seleccionado. Sin mover
+   `vista`, «Confirmar» sobre una vista cuyo par en curso es otro escribiría en el par que no
+   corresponde. */
+function _simpEnDestino(fn) {
+  const d = _simpDestino();
+  if (!d) return;
+  _vCon(d.V, () => { if (_simp && _simp.vista !== d.i) _simp.vista = d.i; fn(); });
 }
 
 /* TABLA DE RESULTADOS. Una fila por ventana con SU monoplano, y el cierre con el BIPLANO.
@@ -51465,7 +51462,12 @@ window._simpTablaCanvas = _simpTablaCanvas;
 async function medSimpsonTablaBiblioteca() {
   const cv = _simpTablaCanvas();
   if (!cv) { toast('❌ Todavía no hay tabla para guardar'); return; }
-  await _docGuardarEnBiblioteca(cv, 'Simpson · tabla de resultados');
+  const r = await _docGuardarEnBiblioteca(cv, 'Simpson · tabla de resultados');
+  /* Guardado con éxito → el panel ofrece las dos salidas de ESE archivo: borrarlo o mandarlo
+     al PDF. Sin esto, el gesto termina en un toast y la única forma de deshacerlo es ir a
+     buscar la tarjeta a la tira. */
+  _simpUniDocId = (r && r.ok && r.id) ? r.id : null;
+  if (typeof _simpUniPintar === 'function') _simpUniPintar();
 }
 window.medSimpsonTablaBiblioteca = medSimpsonTablaBiblioteca;
 
@@ -51572,22 +51574,223 @@ function _simpTablaHTML() {
       'Cada ventana muestra SU monoplanar —el disco asumido circular—; el <b>biplano</b> es el ' +
       'resultado del método y el que se integra. <b>No es el promedio de las dos:</b> usa el ' +
       'producto cruzado de los diámetros y el eje más largo. VEyec = VFD − VFS.</div>' +
-    /* Las TRES salidas de la tabla. «Biblioteca» y «PDF» no son lo mismo: la primera la deja
-       en los archivos del estudio, que por diseño NO salen en el informe; la segunda la manda
-       a un slot, que es lo que sí sale. Sin esa diferencia serían dos botones iguales. */
-    '<div style="margin-top:7px;display:flex;gap:5px;flex-wrap:wrap;">' +
-      '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-simp-limpiar" ' +
-        'style="padding:3px 9px;font-size:10.5px;" ' +
-        'title="Borra la tabla guardada con el estudio y los trazados de esta sesión.">🗑️ Limpiar</button>' +
-      '<button type="button" class="btn btn-ghost" id="' + _V.pfx + 'cine-simp-bib" ' +
-        'style="padding:3px 9px;font-size:10.5px;" ' +
-        'title="Guarda la tabla como archivo del estudio. NO sale en el PDF.">📋 Guardar en biblioteca</button>' +
-      '<button type="button" class="btn btn-primary" id="' + _V.pfx + 'cine-simp-pdf" ' +
-        'style="padding:3px 9px;font-size:10.5px;" ' +
-        'title="Agrega la tabla como imagen a las del estudio, que son las que salen en el PDF.">📄 Incluir en PDF</button>' +
-    '</div>' +
+    /* ⚠️ LOS BOTONES YA NO SALEN DE ACÁ: se mudaron al panel único (`_simpUniPintar`). Esta
+       función la llamaba el panel de CADA vista, así que con las dos midiendo Simpson emitía
+       dos juegos de «Limpiar / Biblioteca / PDF» sobre la MISMA tabla — y encima con ids
+       prefijados, o sea dos controles distintos para una sola acción compartida. */
     '</div>';
 }
+
+/* ── EL PANEL ÚNICO: se dibuja UNA vez, debajo de las dos vistas ──────────────────────────
+   Lo que hay acá es presentación y ruteo de botones. NINGÚN número se calcula en esta función:
+   la tabla sale de `_simpFilasTabla`, el biplano de `_vBiplanoDatos` y la clasificación de
+   `_simpClasificar`, que son las mismas fuentes de siempre. Con un segundo cálculo, el panel y
+   el informe podrían publicar dos FEVI del mismo paciente. */
+/* Id del documento recién guardado en la biblioteca, para ofrecer «Eliminar». Es de SESIÓN: no
+   se persiste ni viaja con el estudio — lo único que hace es darle salida al gesto que el
+   médico acaba de hacer.
+   ⚠️ SE DECLARA ARRIBA DE SU USO: un `let` leído antes de su línea NO devuelve undefined, LANZA
+   —zona muerta temporal— y como esto es nivel superior se lleva puesto el bloque <script>
+   entero. Este archivo ya se quedó sin JavaScript dos veces por exactamente esto. */
+let _simpUniDocId = null;
+
+function _simpUniHay() {
+  if (_vTodas().some(V => V.simp)) return true;
+  return _simpFilasTabla().length > 0;
+}
+
+/* El resultado que encabeza el panel. Si el cruce A × B existe, el titular ya lo publica
+   `cine-biplano` justo arriba y acá NO se repite: serían dos veces el mismo número, que es
+   exactamente el ruido que este cambio vino a sacar. Sin cruce se muestra el monoplanar. */
+function _simpUniCabecera() {
+  if (_vBiplanoDatos()) return '';
+  const d = _simpDestino();
+  const R = d ? _vCon(d.V, () => { try { return _simpCalcular(); } catch (e) { return null; } }) : null;
+  if (!R || !isFinite(R.fevi)) return '';
+  const c = _simpClasificar(R.fevi);
+  /* ⚠️ LA INTEGRACIÓN DEL BIPLANO DE UNA SOLA VISTA VIVE ACÁ, y no es un adorno: el botón
+     estaba en el panel por vista que este cambio recortó, y `cine-biplano` sólo aparece con el
+     cruce A × B. Sin esto, un biplano trazado con las dos ventanas dentro de UNA vista —cambiar
+     de cineloop y trazar la otra apical, que el propio panel recomienda— se quedaba sin ninguna
+     forma de llegar al campo FEVI del informe. */
+  /* `d.V` y NO `_simpDestino().V`: llamarlo de nuevo acá era un deref sin guarda sobre una
+     función que devuelve null cuando no hay ninguna sesión. Hoy no es alcanzable —si `R` existe,
+     `d` existía— pero es la forma de que deje de serlo el día que alguien mueva una línea. */
+  const integ = R.bi
+    ? (_vCon(d.V, () => _simp && _simp.integrada)
+        ? '<div style="margin-top:5px;"><span style="font-size:10.5px;color:#22d36a;">✅ Integrada al campo FEVI del informe.</span>' +
+          '<button type="button" class="btn btn-ghost" id="cine-simp-integ-u" style="margin-left:8px;padding:3px 10px;font-size:11px;">Integrar de nuevo</button></div>'
+        : '<div style="margin-top:5px;"><button type="button" class="btn btn-primary" id="cine-simp-integ-u" ' +
+          'style="padding:3px 10px;font-size:11px;">¿Integrás la FEVI biplano al informe?</button></div>')
+    : '';
+  return '<div style="font-size:12px;line-height:1.7;">' +
+      '<b>Simpson ' + (R.bi ? 'biplano' : 'monoplanar') + '</b> · ' + SIMP_N + ' discos · ' +
+      (R.bi ? 'dos ventanas' : 'una ventana') + '<br>' +
+      'VFD <b>' + R.vfd.toFixed(1) + ' mL</b> · VFS <b>' + R.vfs.toFixed(1) + ' mL</b> · ' +
+      'FEVI <b style="font-size:16px;color:' + c.col + ';">' + R.fevi.toFixed(1) + ' %</b> — ' +
+      '<b style="color:' + c.col + ';">' + c.txt + '</b></div>' + integ +
+    '';
+}
+
+/* ⚠️ LAS SALVEDADES, UNA SOLA VEZ — y ninguna es prescindible. Al recortar el panel por vista
+   estas frases se perdieron y lo cazó TC-190, no la lectura: son las que dicen que el número
+   de arriba puede estar mal (ápex escorzado), que TODAVÍA no está en el informe, y que un
+   monoplanar no es el método que la guía recomienda. Publicar la FEVI sin ellas es el defecto
+   que este archivo persigue desde «un número sin su reparo».
+   Se dibujan acá y no en el panel de cada vista: son del RESULTADO, que es uno solo. */
+function _simpUniTexto() {
+  const d = _simpDestino();
+  const R = d ? _vCon(d.V, () => { try { return _simpCalcular(); } catch (e) { return null; } }) : null;
+  const AB = _vBiplanoDatos();
+  if (!R && !AB) return '';
+  const bi = !!(AB || (R && R.bi));
+  const E = (typeof escHtml === 'function') ? escHtml : (x => String(x == null ? '' : x));
+  let t = '';
+  /* Los cuatro trazados de la MISMA imagen son casi siempre un monoplanar trazado dos veces.
+     Sólo aplica al biplano de una sola vista: con el cruce A × B son dos archivos por
+     construcción. */
+  if (!AB && R && R.bi && R.imgs && R.imgs.length === 1)
+    t += '<b style="color:#fbbf24;">⚠️ Los cuatro trazados salieron de la MISMA imagen.</b> ' +
+         'Un biplano necesita dos ventanas distintas (apical 4C y 2C); si no, esto es un ' +
+         'monoplanar trazado dos veces. ';
+  else if (!AB && R && R.bi && R.imgs && R.imgs.length > 1)
+    t += 'Ventanas: ' + R.imgs.map(E).join(' y ') + '. ';
+  if (!bi)
+    t += '<b>Es monoplanar:</b> asume el ventrículo circular en el corte transversal. La guía ' +
+         'recomienda el biplano y los valores normales con los que se clasifica salen de ' +
+         'biplano. <b>No se integra al informe</b> ni va al PDF: el campo «Método» sólo tiene ' +
+         'Simpson biplano, Teicholz y Visual, y rotularlo «biplano» sería nombrar mal el ' +
+         'método. <b>Para el biplano</b>, tocá «➕ Vista» y elegí el cineloop de la otra ' +
+         'apical, o trazá la otra ventana en esta misma vista cambiando de cineloop: lo ' +
+         'confirmado no se pierde. ';
+  else if (!_vCon(d ? d.V : _V, () => _simp && _simp.integrada) && !AB)
+    t += '<b>Todavía NO está en el informe:</b> se integra con el botón de arriba. ';
+  t += '<b>⚠️ El método supone que el ápex está bien visualizado.</b> Un ápex escorzado ' +
+       'subestima los volúmenes; la guía lo lista como su limitación principal.';
+  return '<div style="font-size:9.5px;color:var(--text2);margin-top:4px;line-height:1.45;">' + t + '</div>';
+}
+
+/* El selector de ventana. El activo sale del DESTINO, no de una variable propia: así el toggle
+   SIGUE al trazado en vez de contradecirlo — si el médico está trazando en la vista de la A2C,
+   el que se ve encendido es el de la A2C aunque haya tocado el otro hace un rato. */
+function _simpUniSelector() {
+  const d = _simpDestino();
+  const actual = d ? _vCon(d.V, () => _simpNombre(d.i)) : null;
+  const pend = !!_simpVistaPendiente();
+  return '<div style="margin-top:7px;display:flex;gap:5px;align-items:center;flex-wrap:wrap;">' +
+    '<span style="font-size:10.5px;color:var(--text2);">Ventana:</span>' +
+    _SIMP_VISTAS.map(V => {
+      const u = _simpUbicarVentana(V.k);
+      const act = (actual === V.k);
+      const hecha = !!(u && _vCon(u.V, () => _simpParCompleto(u.i)));
+      return '<button type="button" class="btn btn-ghost" data-simpuni-vista="' + V.k + '" ' +
+        'style="padding:3px 9px;font-size:11px;' + (act ? 'background:var(--accent);color:#fff;' : '') + '">' +
+        (hecha ? '✅ ' : '') + V.rot + '</button>';
+    }).join('') +
+    (actual ? '' : '<span style="font-size:10px;color:var(--text2);">sin declarar — se rotula por cantidad</span>') +
+    (pend ? '<span style="font-size:10px;color:#fbbf24;">trazado sin confirmar — los botones actúan ahí</span>' : '') +
+    '</div>';
+}
+
+/* Los botones. Ids SIN prefijo: hay UNO de cada uno para las dos vistas. */
+function _simpUniBotones() {
+  const b = (id, cls, txt, tip) => '<button type="button" class="btn ' + cls + '" id="' + id +
+    '" style="padding:3px 10px;font-size:11px;"' + (tip ? ' title="' + escHtml(tip) + '"' : '') +
+    '>' + txt + '</button>';
+  const hayTabla = _simpFilasTabla().length > 0;
+  /* Tras guardar en la biblioteca aparecen las dos salidas de ESE archivo. «Incluir en PDF» va
+     por `_bibAlSlot`, o sea desde lo YA guardado y no regenerando el canvas: con dos caminos,
+     lo que queda en los archivos del estudio y lo que sale en el informe podrían comprimirse
+     distinto. */
+  const guardado = _simpUniDocId
+    ? '<div style="margin-top:6px;display:flex;gap:5px;align-items:center;flex-wrap:wrap;">' +
+        '<span style="font-size:10.5px;color:#22d36a;">📋 Guardada en los archivos del estudio.</span>' +
+        b('cine-simp-del', 'btn-ghost', '🗑️ Eliminar', 'Borra de los archivos del estudio la tabla que se acaba de guardar.') +
+        b('cine-simp-pdf2', 'btn-primary', '📄 Incluir en PDF', 'Manda al informe la tabla ya guardada.') +
+      '</div>'
+    : '';
+  return '<div style="margin-top:7px;display:flex;gap:5px;flex-wrap:wrap;align-items:center;">' +
+      b('cine-simp-conf-u',  'btn-primary', 'Confirmar trazado', 'Confirma el contorno pendiente. Actúa sobre la vista donde se trazó.') +
+      b('cine-simp-reset-u', 'btn-ghost',   'Empezar de nuevo', 'Descarta los trazados de la ventana seleccionada y vuelve a empezar.') +
+      (hayTabla ? b('cine-simp-bib-u', 'btn-ghost', '💾 Guardar en biblioteca', 'Guarda la tabla como archivo del estudio. NO sale en el PDF.') : '') +
+      (hayTabla ? b('cine-simp-limpiar-u', 'btn-ghost', '🗑️ Limpiar', 'Borra la tabla guardada con el estudio y los trazados de esta sesión.') : '') +
+      (hayTabla ? b('cine-simp-pdf-u', 'btn-ghost', '📄 Incluir en PDF', 'Agrega la tabla como imagen a las del estudio, que son las que salen en el PDF.') : '') +
+    '</div>' + guardado;
+}
+
+function _simpUniPintar() {
+  const c = document.getElementById('cine-simp-uni');
+  if (!c) return;
+  if (!_simpUniHay()) { c.style.display = 'none'; c.innerHTML = ''; _simpUniDocId = null; return; }
+  c.style.display = '';
+  /* Se arma y se asigna en UN paso: `innerHTML = a + b + c` es lo que matchea
+     `ceibo-xss-innerhtml-concat`, y la regla de la casa es no sumar warnings. */
+  const html = _simpUniCabecera() + _simpUniTexto() + _simpTablaHTML() +
+               _simpUniSelector() + _simpUniBotones();
+  c.innerHTML = html;
+  _simpUniCablear();
+}
+window._simpUniPintar = _simpUniPintar;
+
+/* Cableado. Por `data-*` y `onclick` asignado desde JS, NUNCA con el valor interpolado dentro
+   de un atributo de evento: ahí el parser decodifica la entidad ANTES de compilar el handler y
+   escapar no protege — es el agujero que documenta la entrada de CardioSalud. */
+function _simpUniCablear() {
+  const c = document.getElementById('cine-simp-uni');
+  if (!c) return;
+  const el = id => document.getElementById(id);
+  const on = (id, fn) => { const e = el(id); if (e) e.onclick = fn; };
+
+  on('cine-simp-conf-u',  () => _simpEnDestino(medSimpsonConfirmar));
+  on('cine-simp-reset-u', () => _simpEnDestino(medSimpsonReiniciar));
+  on('cine-simp-limpiar-u', () => _simpEnDestino(medSimpsonLimpiarTabla));
+  on('cine-simp-bib-u',   medSimpsonTablaBiblioteca);
+  on('cine-simp-pdf-u',   medSimpsonTablaPDF);
+  on('cine-simp-del',     medSimpsonDocBorrar);
+  on('cine-simp-pdf2',    medSimpsonDocAlPDF);
+  on('cine-simp-integ-u', () => _simpEnDestino(medSimpsonIntegrar));
+
+  c.querySelectorAll('[data-simpuni-vista]').forEach(b2 => {
+    b2.onclick = () => medSimpsonUniVentana(b2.getAttribute('data-simpuni-vista'));
+  });
+}
+
+/* Elegir ventana desde el panel único. Si esa ventana ya existe en alguna vista, se pasa a
+   ella; si no, se DECLARA sobre el destino actual, que es exactamente lo que hace el selector
+   de siempre (`medSimpsonElegirVista`) y por eso se reusa en vez de reescribir su regla —la de
+   no renombrar un par que ya tiene contornos, que es afirmar sobre una medición hecha. */
+function medSimpsonUniVentana(k) {
+  if (!_SIMP_VISTAS.some(x => x.k === k)) return;
+  _simpSel = k;
+  const u = _simpUbicarVentana(k);
+  if (u) { _vCon(u.V, () => { if (_simp) { _simp.vista = u.i; _simp.pendiente = null; } _medPintar(); _medEstado(); }); }
+  else   { _simpEnDestino(() => medSimpsonElegirVista(k)); }
+  _simpUniPintar();
+}
+window.medSimpsonUniVentana = medSimpsonUniVentana;
+
+/* Las dos salidas del archivo recién guardado. */
+async function medSimpsonDocBorrar() {
+  const id = _simpUniDocId;
+  if (!id) return;
+  if (typeof CeiboCine === 'undefined') { toast('❌ No hay almacenamiento en este dispositivo'); return; }
+  let ok = false;
+  try { ok = await CeiboCine.borrar(id); } catch (e) { ok = false; }
+  if (!ok) { toast('❌ No se pudo borrar'); return; }
+  _simpUniDocId = null;
+  try { await cineStripRender(); } catch (e) {}
+  toast('🗑️ Tabla borrada de los archivos del estudio');
+  _simpUniPintar();
+}
+window.medSimpsonDocBorrar = medSimpsonDocBorrar;
+
+async function medSimpsonDocAlPDF() {
+  const id = _simpUniDocId;
+  if (!id) return;
+  const ok = await _bibAlSlot(id);
+  if (ok) toast('✅ Tabla agregada a las imágenes del estudio — sale en el PDF');
+}
+window.medSimpsonDocAlPDF = medSimpsonDocAlPDF;
 
 /* Tabla y no ternario anidado: con cinco herramientas la cadena ya no se leía, y meter una
    sexta en el lugar equivocado del anidamiento es un error que no da error. */
@@ -51977,6 +52180,11 @@ function _medEstado() {
   }
   _strainPersistir();                    // el resumen viaja con el estudio
   _simpPersistir();                      // y la tabla de Simpson, por el mismo camino
+  /* El panel único de Simpson se repinta con CADA repintado de barra, no sólo cuando cambia el
+     cruce A × B: el trazado pendiente, la ventana declarada y el par completo salen de la
+     sesión de una vista y tienen que verse abajo en el acto. Va en un try porque un panel que
+     no se pudo dibujar no puede llevarse puesta la barra de medición. */
+  try { if (typeof _simpUniPintar === 'function') _simpUniPintar(); } catch (e) {}
   _medSideRender();                      // ZONA 2 — barra lateral
   _medFijosSync();                       // rótulos de los botones fijos
   _medBarra((_medHerr === 'simpson' ? _simpPanel()
@@ -52050,22 +52258,12 @@ function _medEstado() {
   /* El canvas del diagrama se repinta DESPUÉS de reconstruida la barra: el elemento es nuevo
      en cada pasada y nace en blanco. */
   if (_medHerr === 'strain') _strBullsRepintar();
-  const sc = _medEl('cine-simp-conf'), sr = _medEl('cine-simp-reset');
-  _on(sc, medSimpsonConfirmar);
-  _on(sr, medSimpsonReiniciar);
-  const si = _medEl('cine-simp-integ');
-  _on(si, medSimpsonIntegrar);
-  _on(_medEl('cine-simp-limpiar'), medSimpsonLimpiarTabla);
-  _on(_medEl('cine-simp-bib'),     medSimpsonTablaBiblioteca);
-  _on(_medEl('cine-simp-pdf'),     medSimpsonTablaPDF);
-  /* Botones de ventana de Simpson. Por `data-*` y atados a SU vista, igual que los del strain:
-     el valor NUNCA entra a un atributo de evento, donde el parser decodifica la entidad antes
-     de compilar el handler y escapar no protege. */
-  if (_barra) {
-    _barra.querySelectorAll('[data-simp-vista]').forEach(el => {
-      el.onclick = _vBind(_V0, () => medSimpsonElegirVista(el.getAttribute('data-simp-vista')));
-    });
-  }
+  /* ⚠️ ACÁ NO SE CABLEA NADA DE SIMPSON, y el hueco es deliberado. Sus controles —confirmar,
+     empezar de nuevo, integrar, limpiar, biblioteca, PDF y los botones de ventana— dejaron de
+     ser de la vista y viven en el PANEL ÚNICO, que se cablea solo en `_simpUniCablear` con ids
+     SIN prefijo. Dejar acá los `_on` viejos no daba error —`_medEl` devuelve null y `_on` no
+     hace nada— pero se leía como que los botones de la vista siguen atados, que es justo la
+     duplicación que este cambio sacó. */
 }
 
 /* ── VELOCIDAD SOBRE UN TRAZO ESPECTRAL ──────────────────────────────────────────────────
@@ -52729,6 +52927,10 @@ function _vBiplanoDatos() {
 }
 
 function _vBiplanoPintar() {
+  /* El panel unico va PEGADO a este: los dos leen del mismo calculo y se repintan en los
+     mismos eventos. Colgarlo de aca es lo que evita tener que acordarse de llamarlo en
+     cada sitio que ya llama a este — son seis. */
+  try { if (typeof _simpUniPintar === 'function') _simpUniPintar(); } catch (e) {}
   const c = document.getElementById('cine-biplano');
   if (!c) return;
   const R = _vBiplanoDatos();
@@ -54060,7 +54262,11 @@ async function _docGuardarEnBiblioteca(cv, nombre) {
     return false;
   }
   toast('📋 Guardado en los archivos del estudio — con 📄 lo mandás al PDF');
-  return true;
+  /* Devuelve el REGISTRO y no `true`: el panel de Simpson necesita el id para ofrecer
+     «Eliminar» sobre el archivo que se acaba de guardar. Es un ensanche compatible —los dos
+     llamadores que había sólo miraban la verdad del retorno, y un objeto es truthy—, no un
+     cambio de contrato. */
+  return r;
 }
 window._docGuardarEnBiblioteca = _docGuardarEnBiblioteca;
 
@@ -70222,8 +70428,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260922-2130';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790123404195;                 /* eco-build-ms */
+const ECO_BUILD    = '20260922-2211';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790125872959;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -70309,7 +70515,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-2130</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-2211</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

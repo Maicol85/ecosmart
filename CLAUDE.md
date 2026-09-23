@@ -4,6 +4,126 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## El panel de Simpson es UNO para las dos vistas — y quién manda al confirmar
+
+Con las dos vistas midiendo Simpson, el resultado, la tabla, el texto y los botones se
+dibujaban **una vez por vista**. No era un descuido: `_simpPanel()` se pinta dentro de
+`cine-med-barra`, que es de cada vista, y la tabla ya cruzaba las dos desde TC-241 — lo que se
+duplicaba era el continente, no el dato. Hoy todo eso vive en **`#cine-simp-uni`**, un nodo
+compartido debajo de las dos vistas.
+
+### ⚠️ MANDA EL TRAZADO, NO EL SELECTOR
+
+Es la decisión que sostiene todo el panel. Con un solo «Confirmar trazado» hay dos candidatos a
+destino —la ventana que marca el selector y la vista donde el médico acaba de trazar— y **no
+pueden ser el selector**: el contorno pendiente vive en la vista cuyo canvas se usó, así que un
+selector apuntando a la otra ventana confirmaría en el lugar equivocado, o no haría nada, que
+desde la pantalla se ve igual que un botón roto. Y lo primero es peor que lo segundo: atribuye
+un contorno a una ventana que no es la suya, que es la misma clase de daño que las paredes
+intercambiadas del strain.
+
+`_simpDestino()` resuelve en este orden: **1)** la vista con trazado pendiente —la activa
+primero, si las dos tuvieran uno—; **2)** la ventana elegida en el selector, esté donde esté;
+**3)** la vista activa. El selector se dibuja marcando la ventana del DESTINO, así que **sigue**
+al trazado en vez de contradecirlo, y mientras hay algo sin confirmar el panel lo dice.
+Decisión de Maicol (2026-09-22).
+
+### El selector NO es «vista A / vista B», y por eso hay `_simpUbicarVentana`
+
+Es `A4C / A2C`, o sea la ventana anatómica, y eso es lo que hace que el panel único sirva para
+los **dos** flujos: el biplano cruzado (la 4C en la vista A y la 2C en la B) y el biplano dentro
+de UNA vista (trazar, cambiar de cineloop, trazar — que es lo que el propio panel recomienda y
+lo que ejercen cinco casos con `medSimpsonSegundaVista`). Un toggle que eligiera la vista del
+visor rompía el segundo.
+
+Por eso hay un resolutor `ventana → {V, i}` que recorre las dos vistas. Y al declarar una
+ventana que todavía no existe se reusa **`medSimpsonElegirVista`** en vez de reescribir su
+regla: la de no renombrar un par que ya tiene contornos, que es afirmar sobre una medición ya
+hecha.
+
+### ⚠️ LA GUÍA DEL TRAZADO SE QUEDA EN CADA VISTA, y es una decisión
+
+El panel por vista no quedó vacío: conserva la línea de **paso en curso** —qué fase trazar y
+cómo—. Mudarla abajo la dejaba a media pantalla de la imagen a la que se refiere. Lo que sí se
+sacó de ahí es todo lo que no depende de qué canvas se está mirando. Decisión de Maicol
+(2026-09-22).
+
+### El botón de integrar del biplano de UNA vista se habría perdido en silencio
+
+`cine-simp-integ` vivía en el panel por vista, y `cine-biplano` —que es el titular del cruce
+A × B— **sólo aparece con las dos vistas**. Al recortar el panel por vista, un biplano trazado
+con las dos ventanas dentro de una sola vista se quedaba sin ninguna forma de llegar al campo
+FEVI del informe. Hoy el botón sale en `_simpUniCabecera`, que es la rama que se dibuja
+justamente cuando no hay cruce. **Al mover un panel, enumerar los botones que se llevaban una
+acción que nadie más ofrece.**
+
+### `_docGuardarEnBiblioteca` devuelve el REGISTRO, no `true`
+
+Hacía falta el id para ofrecer «Eliminar» sobre el archivo recién guardado. Es un ensanche
+compatible —los dos llamadores sólo miraban la verdad del retorno y un objeto es truthy— y no
+un cambio de contrato. El «📄 Incluir en PDF» de ese bloque va por **`_bibAlSlot(id)`**, o sea
+desde lo ya guardado y no regenerando el canvas: con dos caminos, lo que queda en los archivos
+del estudio y lo que sale en el informe podrían comprimirse distinto.
+
+`_simpUniDocId` es de **sesión** y no se persiste: sólo le da salida al gesto que el médico
+acaba de hacer.
+
+### El id del panel va en `_CINE_COMPARTIDOS`
+
+Es del modal, no de una vista. Sin esa entrada `_medEl` lo buscaría como `b-cine-simp-uni`
+desde la vista B y devolvería null — sin error, sólo un panel que deja de repintarse.
+
+### Se repinta desde DOS embudos, y hacen falta los dos
+
+`_vBiplanoPintar` (donde cambia el cruce A × B) y `_medEstado` (cada repintado de barra). El
+segundo no es redundante: el trazado pendiente, la ventana declarada y el par completo salen de
+la sesión de UNA vista y tienen que verse abajo en el acto, y eso no pasa por el biplano.
+
+### ⚠️ AL RECORTAR EL PANEL POR VISTA SE PERDIERON LAS SALVEDADES CLÍNICAS
+
+Y no lo vio la lectura: lo cazó **TC-190 poniéndose en rojo**. Se fueron con el recorte el aviso
+del **ápex escorzado** —que la guía lista como la limitación principal del método—, el
+«**todavía NO está en el informe**» y la guía de cómo llegar al biplano desde un monoplanar.
+Publicar la FEVI sin ellas es «un número sin su reparo», que es lo que este archivo persigue
+desde la nota del NT-proBNP.
+
+Están repuestas en `_simpUniTexto`, **una sola vez**. La lección general: al mover un panel, lo
+que se enumera no son los controles sino **las afirmaciones que ese panel hacía** — un botón que
+falta se ve; una salvedad que falta, no.
+
+### Los seis casos reapuntados, y por qué ninguno cambió de invariante
+
+| caso | leía | lee |
+|---|---|---|
+| TC-190 | resultado y salvedades en `cine-med-barra` | en `cine-simp-uni` |
+| TC-191 | «Método» y «campo FEVI» en la barra | en el panel único |
+| TC-192 | nombres de imagen y «MISMA imagen» en la barra | en el panel único |
+| TC-237 | `[data-simp-vista]`, tabla en la barra | `[data-simpuni-vista]`, tabla única |
+| TC-239 | `[id$="cine-simp-limpiar"]`… | `#cine-simp-limpiar-u`, y exige **uno** de cada |
+| TC-241 | comparaba `tablaA` contra `tablaB` | **una** tabla y **cero** en las barras |
+
+**TC-241 es el que más cambia y el que queda más fuerte.** Comparar las dos copias era la forma
+de cazar que una quedara vieja; con una sola tabla eso es imposible por construcción, así que la
+condición pasó a exigir que no haya dos. Y TC-191 dejó de pinar la oración entera («Ya está en
+el campo FEVI») para buscar `campo FEVI`: un caso que fija el texto hay que tocarlo cada vez que
+el texto cambia a propósito.
+
+**TC-239 tenía un `[id$="…"]` que se volvía vacuo.** Con los ids sin prefijo, la terminación
+seguía matcheando otra cosa o nada; pasó a id exacto **y a contar**, porque «existe» no distingue
+uno de dos y dos es justamente el defecto que este cambio saca.
+
+### TC-245 fija la decisión de ruteo, que es lo único sin cobertura previa
+
+Verificado por mutación: invertir el orden de `_simpDestino` —que el selector le gane al
+trazado— y hacer que `_simpEnDestino` corra en la vista activa ignorando el destino. Sin ese
+caso, las dos pasaban en verde y el contorno terminaba atribuido a la ventana equivocada.
+
+**Una trampa del propio caso:** `_simpAceptar` deja el trazado pendiente y **no repinta** — en la
+app el repintado lo dispara el `mouseup` del canvas, que hace `_medPintar(); _medEstado();`. La
+primera versión leía el panel sin eso y la condición del aviso daba rojo **sobre código sano**.
+Al fabricar un trazado a mano, correr también lo que el manejador corre después.
+
+
 ## La sesión de medición sobrevive al visor, así que necesita dueño (TC-206)
 
 Desbloquea `wip/visor-strain-integrado`, que quedó parkeada con doce rojos porque conservar lo
