@@ -25012,6 +25012,30 @@ function _recalcModulos(etiqueta) {
 }
 window.RECALC_MODULOS = RECALC_MODULOS; window._recalcModulos = _recalcModulos;
 
+/* ══ ÉPOCA DEL ESTUDIO ═══════════════════════════════════════════════════════════════════
+   Un contador que sube UNA vez cada vez que el formulario pasa a describir OTRO estudio.
+
+   ⚠️ EXISTE PORQUE LAS SESIONES DE MEDICIÓN DEL VISOR SOBREVIVEN AL CIERRE. Desde que cerrar
+   el visor conserva los trazados, la sesión vive más que la pantalla que la creó — y el
+   estudio de abajo puede cambiar sin que el visor se entere, porque «Nuevo estudio» y
+   «reabrir» no lo tocan. Sin una marca de a QUÉ estudio pertenece, `_strainPersistir` escribe
+   el strain del paciente anterior sobre el campo del siguiente. Medido, y es TC-206.
+
+   POR QUÉ UN CONTADOR Y NO LA IDENTIDAD DEL PACIENTE. Comparar nombre + documento + uuid fue
+   el primer intento y NO alcanza: el flujo real es medir mientras se llena el formulario, así
+   que en el momento en que el visor se abre esos tres campos están VACÍOS. Dos pacientes
+   nuevos seguidos dan la misma clave `{'','',''}` y la comparación no distingue nada — por eso
+   desactivar aquella guarda daba el mismo resultado que dejarla. El contador no depende de lo
+   que haya escrito el médico: depende del EVENTO «cambió el estudio», que es lo que de verdad
+   invalida una medición.
+
+   ⚠️ SE DECLARA ARRIBA DE SU USO: un `let` leído antes de su línea NO devuelve undefined,
+   LANZA —zona muerta temporal— y como esto es nivel superior se lleva puesto el bloque
+   <script> entero. Este archivo ya se quedó sin JavaScript dos veces por exactamente esto. */
+let _estudioEpoca = 1;
+function _estEpoca() { return _estudioEpoca; }
+window._estEpoca = _estEpoca;
+
 // ══ LIMPIAR ══
 /* `silencioso`: el toast «Formulario limpiado» es correcto cuando el médico aprieta «Nuevo
    estudio», y es ruido cuando la limpieza es un paso interno de cargar otro estudio — ahí el
@@ -25186,6 +25210,22 @@ function limpiarCampos(silencioso) {
      canvas EPC, el hidden con las horas del jet, los dos checkboxes de inclusión y los
      sub-tabs viven fuera de él y quedaban con lo del paciente anterior. */
   if (typeof eteShuntTaviReset === 'function') { try { eteShuntTaviReset(); } catch (e) {} }
+  /* ⚠️ ACÁ CAMBIA EL ESTUDIO, ASÍ QUE LA ÉPOCA SUBE — y va SUELTA, fuera de todo try/catch.
+     Estuvo un rato dentro de `eteShuntTaviReset`, pegada al vaciado de `strain_manual`, que es
+     donde se lee natural. Está mal: esa función se llama envuelta en `try { } catch (e) {}`, así
+     que cualquier excepción de las líneas de arriba —un id que cambie, un canvas que no esté—
+     se come el `++` EN SILENCIO y la fuga entre pacientes vuelve, con el suite en verde. Un
+     resguardo que puede saltearse sin ruido no es un resguardo.
+     Vaciar los dos `hidden` es la MITAD del trabajo: lo que los vuelve a llenar es
+     `_strainPersistir`/`_simpPersistir`, que corren en cada repintado del panel del visor
+     leyendo la SESIÓN EN MEMORIA — y esa sesión sobrevive al cierre del visor, así que sigue
+     siendo la del paciente anterior. Sin esta línea, abrir el visor sin medir nada repone el
+     strain del estudio previo sobre el campo recién vaciado. Es TC-206.
+     Ésta es la única llamada y no hace falta más: `limpiarCampos` es el embudo por el que pasan
+     los cuatro caminos que cambian de estudio —«Nuevo estudio» con y sin guardar, `editarInforme`
+     y `cargarEstudioPorId`—. Verificado por `grep` de sus llamadores; si mañana aparece un quinto
+     que NO pase por acá, la época no sube y la fuga vuelve. */
+  _estudioEpoca++;
   /* Pericardio: el barrido de arriba vacía los inputs y los selects, pero los paneles de
      conclusión (#dpt-concl, #cvr-concl, #cvr-tabla) son divs sueltos que no alcanza ningún
      selector, y los espejos de solo lectura tampoco. Sin repintar, el paciente nuevo arrancaba
@@ -35499,6 +35539,10 @@ function eteShuntTaviReset(){
   /* Y la tabla de Simpson, por lo MISMO. Sin esta linea la FEVI biplano del paciente
      anterior queda dentro del estudio del siguiente y vuelve a dibujarse al abrir el visor. */
   const spm=document.getElementById('simpson_manual'); if(spm) spm.value='';
+  /* ⚠️ Vaciar estos dos `hidden` es sólo la MITAD: quien los vuelve a llenar es la sesión en
+     memoria del visor, que sobrevive al cierre. La otra mitad es `_estudioEpoca++`, y vive en
+     `limpiarCampos` —fuera del try/catch que envuelve a esta función— por el motivo que está
+     explicado allá. */
   /* Y la CÁPSULA de la calculadora HFA-ICOS: sus filas las escribe `calcHFAICOS` sin `id` en los
      spans y su banda es un `.badge` sin `id`, así que no la alcanza ni el barrido de
      `.calc-row span[id]` ni el de `[id$="-badge"]`. Sin esto el paciente nuevo arrancaba viendo
@@ -47638,9 +47682,38 @@ function _vNueva(pfx, rot) {
     medTrazo: null, medVels: [], medTiempos: [], medVtis: [], medCalib: null, medCalibrando: false,
     medCalibVel: null, medCalibrandoVel: false, medEtiqueta: '', medEtiqAuto: '', medGrupo: '2d',
     lars: null, vd: null,
-    medUltimoCuadro: '', simp: null, strain: null, obsPuesto: false
+    medUltimoCuadro: '', simp: null, strain: null, obsPuesto: false,
+    /* De QUÉ estudio son las sesiones de arriba. `null` = no hay ninguna. Ver `_estEpoca`. */
+    epoca: null
   };
 }
+
+/* Marca que las sesiones de la vista activa son del estudio que está abierto AHORA. La llaman
+   los cuatro constructores de sesión —Simpson, strain del VI, LARS y strain del VD—, que es el
+   único momento en que una medición nace y por lo tanto el único en que se puede saber a qué
+   estudio pertenece.
+   ⚠️ SI APARECE UN QUINTO TIPO DE MEDICIÓN, SU `_xIniciar` TIENE QUE LLAMAR A ESTO. Olvidarlo
+   no da error: deja `epoca` en la del tipo anterior —o en `null`— y esa medición queda sin
+   dueño, que es exactamente el estado que produjo TC-206. */
+function _vSellarEpoca() { _V.epoca = _estEpoca(); }
+window._vSellarEpoca = _vSellarEpoca;
+
+/* ¿Las sesiones de esta vista son del estudio abierto? Sin sesiones (`epoca === null`) no hay
+   nada que contradecir y la respuesta es que sí.
+
+   ⚠️ LA RAMA DEL `typeof` ES INALCANZABLE HOY, y se declara en vez de dejar creer que protege:
+   `_estEpoca` es una declaración de función del MISMO bloque `<script>`, así que está hoisteada
+   y lo que se llevara ese bloque se llevaría también a esta función. No se puede hacer fallar —
+   es el caso de `_orthModoAvanzado`, que este archivo ya documenta.
+   Queda porque fija de qué lado se cae el día que la época se mude a otro bloque o llegue por
+   `window`: sin saber en qué estudio estamos, la respuesta es que la sesión NO es de éste, o
+   sea que no se publica nada. Mejor perder una medición que escribirla en el estudio de otro. */
+function _vEpocaVigente(V) {
+  if (!V || V.epoca === null) return true;
+  if (typeof _estEpoca !== 'function') return false;
+  return V.epoca === _estEpoca();
+}
+window._vEpocaVigente = _vEpocaVigente;
 
 let _vistaA = _vNueva('', 'A');
 let _vistaB = null;
@@ -47923,11 +47996,6 @@ function _vToggleSync() {
 }
 window._vToggleSync = _vToggleSync;
 
-/* Contexto del ultimo estudio que abrio el visor. ⚠️ SE DECLARA ARRIBA DE SU USO: un `let`
-   leido antes de su linea NO devuelve undefined, LANZA -zona muerta temporal- y como esto es
-   nivel superior se lleva puesto el bloque <script> entero. Este archivo ya se quedo sin
-   JavaScript dos veces por exactamente esto. */
-let _vCtxUltimo = null;
 
 function _cineAbrir(loops) {
   _V = _vistaA;
@@ -47992,17 +48060,25 @@ function _cineAbrir(loops) {
     ov.querySelector('#cine-vtoggle').onclick = vistaAlternarMobil;
     _vCablear(_vistaA);
   }
-  /* ⚠️ LAS SESIONES SOBREVIVEN AL CIERRE, ASÍ QUE ACÁ HAY QUE MIRAR DE QUÉ PACIENTE SON.
-     Hasta este commit la fuga era imposible por accidente: el observador del overlay llamaba a
-     `medApagar` y se llevaba puesto todo. Desde que se conserva, un strain trazado sobre el
-     paciente A podría pintarse sobre el cineloop del B — la fuga entre pacientes que este
-     archivo persigue desde `gradoGamma`.
-     La clave incluye nombre y documento además del uuid porque un estudio SIN GUARDAR no tiene
-     uuid: con la clave sólo en uuid, dos pacientes nuevos seguidos son los dos `null` y la
-     comparación no distingue nada. Falla CERRADO: ante cualquier duda se descarta. */
-  const ctx = _vCtxEstudio();
-  if (!_vMismoEstudio(_vCtxUltimo, ctx)) _vTodas().forEach(V => _vCon(V, _medSoltarSesiones));
-  _vCtxUltimo = ctx;
+  /* ⚠️ LAS SESIONES SOBREVIVEN AL CIERRE, ASÍ QUE ACÁ HAY QUE MIRAR DE QUÉ ESTUDIO SON.
+     Hasta que el ✕ conservó lo medido, la fuga era imposible por accidente: el observador del
+     overlay llamaba a `medApagar` y se llevaba puesto todo. Desde que se conserva, un strain
+     trazado sobre el paciente A podría pintarse sobre el cineloop del B — la fuga entre
+     pacientes que este archivo persigue desde `gradoGamma`.
+
+     ⚠️ ESTO NO ES LA COMPUERTA, ES LA LIMPIEZA. Lo que impide que el strain de un estudio entre
+     al campo de otro es `_vEpocaVigente` en `_strainResumenDeVista` y en `_simpFilasVivas`, o
+     sea el borde por donde la medición se ESCRIBE. Acá se sueltan las sesiones caducas para que
+     el médico no vea un panel y una diana del paciente anterior mientras mide al siguiente.
+     Las dos mitades hacen falta y ninguna reemplaza a la otra: sin la de abajo hay fuga, sin
+     ésta hay una diana que miente en pantalla.
+
+     LA COMPARACIÓN POR NOMBRE + DOCUMENTO + uuid QUE HABÍA ACÁ SE SACÓ, no se complementó. No
+     cerraba nada: en el flujo real el visor se abre ANTES de llenar el formulario, así que dos
+     estudios seguidos daban la misma clave `{'','',''}` y esta línea nunca disparaba. Medido —
+     apagarla daba el mismo resultado que dejarla puesta, que es cómo un resguardo se lee como
+     protección sin serlo. */
+  _vTodas().forEach(V => { if (!_vEpocaVigente(V)) _vCon(V, _medSoltarSesiones); });
   ov.style.display = 'flex';
   _vObservarAncho();
   _vToggleSync();
@@ -48013,32 +48089,15 @@ function _cineAbrir(loops) {
   _vActivarMedicion(_vistaA);
 }
 
-/* Identidad del estudio abierto, para no mezclar pacientes. Se lee del formulario igual que
-   `_vdSexo`, que es la práctica que este módulo ya tiene para los datos del estudio. */
-function _vCtxEstudio() {
-  const g = id => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
-  return { uuid: String(_imgUuidActual || ''), nom: g('nombre'), ci: g('ci') };
-}
-
-/* ⚠️ EL uuid APARECE A MITAD DEL TRABAJO, y comparar la clave entera perdía los trazados.
-   El flujo normal es medir mientras se llena el formulario y guardar al final: ahí
-   `_imgUuidActual` pasa de vacío a real SIN que cambie el paciente, y una comparación cruda
-   soltaba las sesiones justo después de guardar — medido, el resultado integrado salía `null`
-   al reabrir. Un uuid vacío de cualquiera de los dos lados NO desempata.
-   Sin contexto previo (`null`) es la primera apertura y no hay nada que soltar. */
-function _vMismoEstudio(ant, act) {
-  if (!ant) return true;
-  if (ant.nom !== act.nom || ant.ci !== act.ci) return false;
-  if (!ant.uuid || !act.uuid) return true;
-  return ant.uuid === act.uuid;
-}
-window._vMismoEstudio = _vMismoEstudio;
-
 /* Deja la vista sin sesiones de medición. Es lo que `medApagar` hacía SIEMPRE y ahora sólo
-   ocurre al cambiar de paciente. */
+   ocurre al cambiar de estudio.
+   ⚠️ `epoca` vuelve a `null` EN LA MISMA LÍNEA que las sesiones. Dejarla con el número viejo
+   sobre una vista ya vacía haría que el primer trazado del paciente siguiente naciera marcado
+   como del anterior — la fuga otra vez, por la puerta de la limpieza. */
 function _medSoltarSesiones() {
   _simp = null; _strain = null; _lars = null; _vd = null;
   _strainRecs = null; _strainRevocarThumbs();
+  _V.epoca = null;
 }
 
 /* Enciende la medición de una vista. Una sola definición para las dos: con una copia por
@@ -48047,9 +48106,19 @@ function _medSoltarSesiones() {
 function _vActivarMedicion(V) {
   _vCon(V, () => {
     if (!_cineDatos) return;
+    /* ⚠️ SI YA ESTÁ MIDIENDO NO SE LE TOCA LA HERRAMIENTA, y ésta es la mitad que faltaba.
+       «Abrir listo para medir» significa encender la medición cuando está apagada; NO significa
+       volver a Distancia cada vez que se abre un cineloop. `_cineAbrir` es la puerta por la que
+       la TIRA abre otro archivo, así que con el `_medHerr = 'dist'` incondicional el médico que
+       está haciendo un Simpson biplano —trazar la 4C, cambiar a la 2C, trazar— volvía a
+       Distancia al cambiar de imagen, en silencio: los contornos siguientes no entraban al
+       Simpson y el par quedaba a medias. Lo mismo el strain, que trabaja igual sobre dos o tres
+       ventanas.
+       No es sólo del suite: es el flujo normal de las dos mediciones que cruzan imágenes. */
+    if (_medOn) { _medEstado(); return; }
     _medGrupo = '2d';
     _medHerr = 'dist';
-    if (!_medOn) medToggle();
+    medToggle();
     _medEstado();
   });
 }
@@ -48507,6 +48576,7 @@ const SIMP_N = 20;                       // discos
 function _simpIniciar() {
   _simp = { vista:0, fase:'d', pares:[{d:null,s:null},{d:null,s:null}], nombres:[null,null],
             pendiente:null, res:null, avisoCuadro:false, ocultar:false, integrada:false };
+  _vSellarEpoca();
 }
 const _simpParCompleto = i => !!(_simp && _simp.pares[i] && _simp.pares[i].d && _simp.pares[i].s);
 /* Legado: una sesión creada antes de `nombres` (o restaurada) no lo tiene. */
@@ -48873,6 +48943,7 @@ function _strainIniciar() {
        lo muda a la vista que elija. */
     get() { return this.vistas[this.vista] || this.sinVista; }, configurable:true
   });
+  _vSellarEpoca();
 }
 
 const _strainCompleto = () => !!(_strain && _strain.pares.d && _strain.pares.s);
@@ -49029,6 +49100,11 @@ window._strainCalcular = _strainCalcular;
 function _strTerrVivos() {
   const terr = [], vistos = [];
   _vTodas().forEach(V => {
+    /* Misma compuerta que en la persistencia: la diana publica el SGL del estudio abierto, así
+       que una sesión de otro estudio no aporta territorios. Sin esto, el bull's eye seguiría
+       pintando al paciente anterior aunque el campo guardado ya no lo tuviera — y ahí el número
+       que se ve y el que viaja dejarían de coincidir, que es lo que esta función vino a cerrar. */
+    if (!_vEpocaVigente(V)) return;
     const R = _vCon(V, () => { try { return _strainCalcular(); } catch (e) { return null; } });
     if (!R) return;
     R.terr.forEach(t => {
@@ -49052,6 +49128,7 @@ function _strResultadoVivo() {
      porque la otra vista está limpia sería publicar un número sin su reparo. */
   let mismaImagen = true, mezclaMetodo = false;
   _vTodas().forEach(V => {
+    if (!_vEpocaVigente(V)) return;   // misma compuerta que `_strTerrVivos`, o la salvedad sería de otro estudio
     const r = _vCon(V, () => { try { return _strainCalcular(); } catch (e) { return null; } });
     if (!r) return;
     if (!r.mismaImagen) mismaImagen = false;
@@ -50124,6 +50201,7 @@ const _LARS_PASOS = [
 function _larsIniciar() {
   _lars = { paso:0, trazos:{ min:null, max:null, preA:null }, pendiente:null,
             ocultar:false, avisoCuadro:false, avisoImagen:false };
+  _vSellarEpoca();
 }
 const _larsCompleto = () => !!(_lars && _lars.trazos.min && _lars.trazos.max && _lars.trazos.preA);
 
@@ -50198,6 +50276,7 @@ const VD_STRAIN_NORMAL = { M: -20, F: -21 };     // % — ASE 2025, pared libre
 function _vdIniciar() {
   _vd = { fase:'d', trazos:{ d:null, s:null }, pendiente:null,
           ocultar:false, avisoCuadro:false, avisoImagen:false };
+  _vSellarEpoca();
 }
 const _vdCompleto = () => !!(_vd && _vd.trazos.d && _vd.trazos.s);
 
@@ -50252,6 +50331,13 @@ window.medVdReiniciar = medVdReiniciar;
 const _STRAIN_PERSIST_VER = 1;
 
 function _strainResumenDeVista(V) {
+  /* ⚠️ LA COMPUERTA QUE CIERRA TC-206, Y VA ACÁ Y NO EN EL VISOR. Esto corre en CADA repintado
+     del panel, así que es el borde por el que una medición llega al estudio: si la sesión es de
+     otro estudio —el visor se cerró, el médico apretó «Nuevo estudio» y volvió a abrirlo sin
+     medir— no se publica nada, y `_strainPersistir` deja intacto lo que el estudio ya tenía.
+     Es la mitad que no se puede olvidar: aunque alguien agregue mañana un camino nuevo al
+     visor, el strain de un paciente no puede entrar al campo de otro. */
+  if (!_vEpocaVigente(V)) return null;
   return _vCon(V, () => {
     const out = {};
     /* VI: el SGL y sus territorios, con el método de cada trazado — mezclar métodos entre
@@ -51410,8 +51496,12 @@ window.medSimpsonTablaPDF = medSimpsonTablaPDF;
    médico tiene abiertas; sólo si no hay dos vistas cae al biplano interno de una sesión. */
 function _simpFilasVivas() {
   const filas = [], vistos = [];
-  const _agregar = (S, rotVista) => {
-    if (!S) return;
+  /* Recibe la VISTA y no su sesión, porque la época vive en la vista: la tabla de Simpson tiene
+     la misma fuga que el strain —`_simpPersistir` también corre en cada repintado— y se cierra
+     en el mismo borde. Una sesión de otro estudio no se muestra ni se guarda. */
+  const _agregar = (V, rotVista) => {
+    const S = V && V.simp;
+    if (!S || !_vEpocaVigente(V)) return;
     [0, 1].forEach(i => {
       const m = _simpMonoDeS(S, i);
       if (!m) return;
@@ -51423,8 +51513,8 @@ function _simpFilasVivas() {
       filas.push({ rot: rot, m: m, mono: true });
     });
   };
-  _agregar(_vistaA && _vistaA.simp, 'Vista A');
-  _agregar(_vistaB && _vistaB.simp, 'Vista B');
+  _agregar(_vistaA, 'Vista A');
+  _agregar(_vistaB, 'Vista B');
   if (!filas.length) return filas;
   const AB = (typeof _vBiplanoDatos === 'function') ? _vBiplanoDatos() : null;
   if (AB) {
@@ -52615,6 +52705,15 @@ function _vSyncAplicar() {
    `_simpClasificar`, las mismas que usa una sola vista. */
 function _vBiplanoDatos() {
   if (!_vistaB) return null;
+  /* ⚠️ LAS DOS VISTAS TIENEN QUE SER DEL MISMO ESTUDIO, Y ACÁ SE COMPRUEBA UNA POR UNA.
+     Éste es el único sitio que cruza las sesiones de las dos vistas, así que es el único donde
+     una vista recién medida puede combinarse con otra que quedó de un paciente anterior — el
+     caso mixto, que las compuertas de `_simpFilasVivas` no alcanzan porque aquéllas filtran
+     cada fila por separado y ésta MULTIPLICA los diámetros de una por los de la otra.
+     Lo que saldría no es una fila de más: es UNA FEVI biplano calculada con la 4C de un
+     paciente y la 2C de otro, y esa FEVI la ofrece `_simpEscribirFEVI` para integrarla al
+     informe firmado. Un número perfectamente presentable y de nadie. */
+  if (!_vEpocaVigente(_vistaA) || !_vEpocaVigente(_vistaB)) return null;
   const sa = _vistaA.simp, sb = _vistaB.simp;
   if (!sa || !sb) return null;
   /* La estructura real es `pares[vista][fase]` — la de la sesión de UNA vista, que ya
@@ -70123,8 +70222,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260922-2022';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790119327883;                 /* eco-build-ms */
+const ECO_BUILD    = '20260922-2130';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790123404195;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -70210,7 +70309,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-2022</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-2130</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

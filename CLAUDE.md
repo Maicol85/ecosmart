@@ -4,6 +4,195 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## La sesión de medición sobrevive al visor, así que necesita dueño (TC-206)
+
+Desbloquea `wip/visor-strain-integrado`, que quedó parkeada con doce rojos porque conservar lo
+medido al cerrar el visor abrió una fuga entre pacientes. Las tres tareas de aquella rama
+—diana integrada, la vista A que abre midiendo y el ✕ que cierra todo sin perder nada— quedan
+como estaban; lo que cambia es **de quién es** una medición.
+
+### ⚠️ EL DEFECTO: `_strainPersistir` CORRE EN CADA REPINTADO Y LEE LA SESIÓN EN MEMORIA
+
+Hasta que el ✕ conservó los trazados, la fuga era imposible por accidente: el observador del
+overlay llamaba a `medApagar` y se llevaba puesto todo. Desde que se conserva, la sesión vive
+**más que la pantalla que la creó**, y el estudio de abajo puede cambiar sin que el visor se
+entere — «Nuevo estudio» y «reabrir» no lo tocan.
+
+Medido con una sonda que imprime el estado en cada paso, que es lo que lo resolvió:
+
+| | sesión de la vista A | campo `strain_manual` |
+|---|---|---|
+| medido el paciente A | VIVO | el resumen de A |
+| `cineCerrar()` | **VIVO** | el resumen de A |
+| tras «Nuevo estudio» | **VIVO** | vacío |
+| se siembra otro estudio | VIVO | `-19.5` |
+| se abre el visor **sin medir** | VIVO | **el resumen de A otra vez** |
+
+El último paso es el defecto: abrir el visor dispara `_medEstado` → `_strainPersistir`, que
+publica la sesión que quedó viva sobre el campo del estudio nuevo. Se ve en el `ts` del JSON,
+que pasa de la fecha sembrada a una nueva.
+
+### LA GUARDA DE CONTEXTO NO FALLABA: NO DISPARABA NUNCA
+
+La rama traía una comparación por nombre + documento + uuid al reabrir el visor, y desactivarla
+daba el mismo resultado que dejarla. El motivo no es que estuviera mal escrita: **en el flujo
+real el visor se abre ANTES de llenar el formulario**, así que los tres campos están vacíos y
+dos estudios seguidos dan la misma clave `{'','',''}`. Se sacó, no se complementó — un resguardo
+que no se puede hacer fallar se lee como protección sin serlo.
+
+**La lección general: una identidad que se lee del formulario no sirve para marcar algo que nace
+antes que el formulario.** Lo que invalida una medición no es «cambió el nombre del paciente»,
+es el EVENTO «cambió el estudio».
+
+### La época: un contador, no una identidad
+
+`_estudioEpoca` sube **una vez** en `limpiarCampos`, que es el embudo por el que pasan los cuatro
+caminos que cambian de estudio —«Nuevo estudio» con y sin guardar, `editarInforme` y
+`cargarEstudioPorId`, verificado por `grep` de sus llamadores—. Cada vista guarda en `epoca` la
+del estudio que midió, y `_vEpocaVigente(V)` responde si esa sesión todavía tiene dueño.
+
+**No depende de lo que el médico haya escrito**, así que no tiene el agujero de la guarda
+anterior. Y de paso arregla el caso que aquélla tenía que tratar aparte: el uuid aparece a mitad
+del trabajo —medir y guardar al final es el flujo normal— y con la época eso no es un cambio de
+estudio, así que los trazados no se sueltan al guardar.
+
+### ⚠️ SON DOS MITADES Y NINGUNA REEMPLAZA A LA OTRA
+
+- **El borde de ESCRITURA** —`_vEpocaVigente` en `_strainResumenDeVista`, en `_simpFilasVivas` y
+  en `_vBiplanoDatos`— es lo que impide que la medición de un estudio entre al campo de otro.
+- **La limpieza al abrir** —en `_cineAbrir`— es lo que evita que el médico vea el panel y la
+  diana del paciente anterior mientras mide al siguiente.
+
+Sin la primera hay fuga; sin la segunda hay una diana que miente en pantalla.
+
+**Y la de escritura NO la ejercía ninguna condición.** La mutación que la borra **sobrevivió** a
+la primera versión del caso, porque en el escenario de TC-206 la limpieza de `_cineAbrir` corre
+antes que cualquier persistencia y tapa el agujero. Se agregó una condición que llama a
+`_strainPersistir()` **directo**, con la sesión caduca viva y un centinela en el campo. *Defensa
+en profundidad sin una condición por capa es una capa que nadie sabe si existe.*
+
+### El caso mixto: una vista fresca y la otra caduca
+
+`_vBiplanoDatos` es **el único sitio que cruza las sesiones de las dos vistas**, y las compuertas
+de `_simpFilasVivas` no lo alcanzan: aquéllas filtran cada fila por separado y ésta **multiplica**
+los diámetros de una vista por los de la otra. Lo que salía no era una fila de más sino **una
+FEVI biplano con la 4C de un paciente y la 2C de otro** — y esa FEVI la ofrece `_simpEscribirFEVI`
+para integrarla al informe firmado. Un número presentable y de nadie.
+
+Lo encontró auditar los lectores directos de `V.simp` / `V.strain`, no el suite: **son sólo dos
+en todo el archivo**, y el otro ya estaba cubierto. **Queda verificado por razonamiento y por la
+compuerta, no por un caso**: montar dos vistas de dos estudios distintos exige un escenario que
+hoy ningún caso arma. Declarado, no resuelto.
+
+### ⚠️ EL `++` VA FUERA DEL `try/catch`, Y ESTUVO ADENTRO UN RATO
+
+La tentación es ponerlo pegado al vaciado de `strain_manual`, que es donde se lee natural. Ahí
+está mal: esas dos líneas viven en **`eteShuntTaviReset`**, que `limpiarCampos` llama envuelta en
+`try { } catch (e) {}`. Cualquier excepción de las líneas de arriba —un id que cambie, un canvas
+que no esté— se come el `++` **en silencio** y la fuga vuelve con el suite en verde.
+
+Hay una mutación que lo fija: con `eteShuntTaviReset` lanzando, TC-206 cae por «NO SE FILTRA AL
+PACIENTE SIGUIENTE» —el vaciado del campo sí se pierde— y **NO** por las condiciones de la época,
+que siguen en verde. Eso es exactamente lo que se quería: las dos protecciones son independientes.
+
+### Una condición del caso CAMBIÓ DE SIGNO a propósito
+
+TC-206 decía «cerrar el visor limpia la sesión» y pinaba el comportamiento anterior. El ✕ ahora
+conserva, así que esa condición daba rojo sobre el código que se vino a escribir. **No se borró:
+se reapuntó a un invariante más fuerte** —la sesión sobrevive (si no, el ✕ perdería varios minutos
+de trabajo sin avisar) Y sigue atada a su estudio—, más dos condiciones nuevas que separan «sigue
+viva en memoria» de «ya no puede publicarse». Con una sola, «sigue viva» se leería como la fuga y
+«no pertenece» se cumpliría sobre una sesión que no existe.
+
+### Si aparece un quinto tipo de medición
+
+Su `_xIniciar` tiene que llamar a `_vSellarEpoca()`, como ya hacen los cuatro que hay —Simpson,
+strain del VI, LARS y strain del VD—. Olvidarlo **no da error**: deja `epoca` en la del tipo
+anterior o en `null`, y esa medición queda sin dueño, que es el estado exacto que produjo TC-206.
+Y `_medSoltarSesiones` devuelve `epoca` a `null` **en la misma línea** que las sesiones: dejarla
+con el número viejo sobre una vista ya vacía haría que el primer trazado del paciente siguiente
+naciera marcado como del anterior.
+
+### ⚠️ «ABRIR LISTO PARA MEDIR» NO PUEDE PISAR LA HERRAMIENTA ACTIVA
+
+Defecto **de producto**, encontrado persiguiendo los rojos del suite y **no** reportado por
+nadie. `_cineAbrir` forzaba `_medHerr = 'dist'` en cada apertura, y `_cineAbrir` es la puerta por
+la que **la tira abre otro cineloop**. O sea que el médico que hace un Simpson biplano —traza la
+4C, cambia a la 2C, traza— volvía a Distancia al cambiar de imagen, **en silencio**: los
+contornos siguientes no entraban al Simpson y el par quedaba a medias. Lo mismo el strain, que
+trabaja igual sobre dos o tres ventanas apicales.
+
+Las dos mediciones que CRUZAN imágenes son justo las que el visor rompía. Hoy, si ya está
+midiendo, no se le toca nada: «abrir listo para medir» significa encender la medición cuando
+está apagada.
+
+**Se llevó por delante el fallo REAL de cuatro casos** —TC-192, TC-200, TC-201 y TC-228—, y eso
+es lo que lo delata como defecto de producto y no como una expectativa vieja del suite: un
+cambio de contrato rompe condiciones que *afirman lo contrario*; esto rompía **resultados
+clínicos**. TC-200 imprimía «2 vistas dan 4 territorios — encontrado: **2**», TC-201 y TC-192
+reventaban con `TypeError` sobre un canvas y un trazado que nunca se completaban.
+
+Precisión, porque la diferencia importa al leer el diff: a TC-192 este arreglo le sacó el
+`TypeError`, y **después** siguió necesitando el reapuntado del contrato de cierre. Son dos
+causas distintas en el mismo caso, y sólo una era del suite.
+
+### Los casos que usaban el cierre como reset, y cómo se reapuntaron
+
+**Seis** casos fijaban «cerrar el visor limpia / borra la sesión», que es la premisa que el ✕
+vino a cambiar — los cinco de la tabla más el propio TC-206, que está descrito arriba.
+**Ninguno se borró**: en los seis la condición se partió en las dos que ahora corresponden, y la
+segunda es la que no existía antes.
+
+| caso | decía | dice |
+|---|---|---|
+| TC-192 | `_simp === null` | conserva la sesión **y** sigue atada a su estudio |
+| TC-196 | `!medOn && simp === null` | apaga la medición (pantalla) **y** conserva el Simpson (trabajo) |
+| TC-199 | `strain === null` | conserva **y** mantiene dueño |
+| TC-204 | `medGrupo==='2d' && lars===null` | el grupo vuelve al defecto **y** el LARS se conserva |
+| TC-205 | `vd === null` | conserva **y** mantiene dueño |
+
+**El patrón que se repite en los cinco: mezclaban ESTADO DE PANTALLA con TRABAJO DEL MÉDICO en
+una sola condición.** `_medOn` y `_medGrupo` son de la pantalla y siguen reseteándose; las
+sesiones son el trabajo y sobreviven. Mientras cerrar destruía las dos cosas a la vez, la
+distinción no se notaba.
+
+**Y TC-196 tenía además un `medToggle` pelado.** Hoy el suite tiene **cuarenta** sitios con la
+guarda `if (!_medOn) medToggle()` y éste se escapó porque usa la forma `_vCon(V, medToggle)`:
+**un `grep` del patrón con paréntesis no lo encuentra**. `medToggle` ALTERNA, así que con el
+visor abriendo ya encendido el toggle lo **apagaba** y el caso medía lo contrario de lo que dice
+medir. Al alinear una llamada que cambió de contrato, buscar también las formas que la pasan
+**por referencia** — es la misma lección que «`grep` de la llamada no encuentra lo que se pasa
+como callback», que este archivo ya documenta para `medCambioDeImagen`.
+
+### ⚠️ EL SUITE CORRE LOS 259 CASOS EN UNA SOLA PÁGINA, y el reset del visor salía GRATIS
+
+No hay recarga entre casos: el runner evalúa uno tras otro sobre el mismo documento. Hasta
+ahora el aislamiento del visor lo daba el propio defecto que esta sesión vino a arreglar —
+`cineCerrar()` llamaba a `vistaBCerrar()` y el observador del overlay a `medApagar()`, así que
+cualquier caso que terminara cerrando dejaba la pizarra limpia para el siguiente.
+
+Desde que cerrar **conserva**, la vista B y las sesiones sobreviven al caso que las creó.
+Resultado medido: **TC-228, TC-239, TC-241 y TC-244 verdes con `--solo` y rojos en el suite**, y
+los cuatro con diagnósticos que no apuntaban a su causa —TC-244 acusaba a su propio denominador
+(«este caso corre con UNA vista») cuando lo que pasaba es que el caso anterior le dejó dos—.
+
+**El reset va en el RUNNER, no en cada caso** (`__t.resetVisor`, llamado antes de cada uno). Con
+una línea por caso, el que se olvide hereda el estado del anterior; y son los casos que todavía
+no existen los que más van a olvidarse. Cada paso va en su propio `try`: si uno falla, los demás
+tienen que correr igual.
+
+**Es aislamiento del suite, no comportamiento de la app.** En la app, conservar entre aperturas
+es lo correcto y quien decide de quién es una medición es la época. Confundir las dos cosas
+llevaría a «arreglar» el producto para que el suite quede verde, que es exactamente al revés.
+
+### Backticks dentro del cuerpo de un caso: van CINCUENTA Y DOS
+
+Tres tandas en la misma sesión, las tres en comentarios recién escritos — y la última explicando
+por qué `medToggle` alterna. `node --check` las caza, apuntando a la línea del `caso(`, decenas
+de líneas antes del culpable. **El barrido que conviene** es recorrer cada cuerpo de caso
+contando backticks no escapados: encuentra las cuatro de un saque en vez de una por corrida.
+
+
 ## El visor no tenía UNA regla responsive — y el descalce no era de mobile (TC-244)
 
 Medido con las dos vistas abiertas, antes de tocar nada:

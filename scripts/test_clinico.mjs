@@ -126,6 +126,37 @@ const casoAbierto = (id, nombre, motivo, fn) => CASOS.push({ id, nombre, fn, abi
    dispara ningun evento, que es la trampa numero uno de esta app. */
 const PRELUDIO = `
   window.__t = {
+    /* ⚠️ DEVUELVE EL VISOR AL ESTADO DE ARRANQUE. Lo llama el RUNNER entre casos, no los casos.
+
+       Hasta que el ✕ conservo lo medido, este reset salia gratis: cineCerrar() llamaba a
+       vistaBCerrar() y el observador del overlay a medApagar(), asi que cualquier caso que
+       terminara cerrando el visor dejaba la pizarra limpia para el siguiente. Desde que cerrar
+       CONSERVA —que es el pedido— la vista B y las sesiones sobreviven al caso que las creo, y
+       el siguiente arranca con dos paneles y trazados que no son suyos.
+
+       Eso no es un defecto del producto: en la app, conservar entre estudios es lo correcto y
+       lo gobierna la epoca (ver TC-206). Es un defecto de AISLAMIENTO del suite, que corre los
+       259 casos en UNA sola pagina. Por eso el reset vive en el harness y no en cada caso: con
+       una linea por caso, el que se olvide hereda el estado del anterior y falla con un
+       diagnostico que no apunta a su propia causa — que es justo lo que acaba de pasar con
+       TC-228, TC-239, TC-241 y TC-244, los cuatro verdes con --solo y rojos en el suite.
+
+       Cada paso va en su try: si uno falla, los demas tienen que correr igual. */
+    resetVisor() {
+      try { if (typeof vistaBCerrar === 'function' && _vistaB) vistaBCerrar(); } catch (e) {}
+      try { if (typeof cineCerrar === 'function') cineCerrar(); } catch (e) {}
+      /* Y las sesiones a mano: cerrar ya no se las lleva. Se recorre _vTodas por si vistaBCerrar
+         fallo y la B sigue montada. */
+      try {
+        _vTodas().forEach(V => _vCon(V, () => {
+          _simp = null; _strain = null; _lars = null; _vd = null;
+          try { _strainRecs = null; _strainRevocarThumbs(); } catch (e) {}
+          V.epoca = null;
+        }));
+      } catch (e) {}
+      try { if (typeof medApagar === 'function') _vTodas().forEach(V => _vCon(V, medApagar)); } catch (e) {}
+      return 1;
+    },
     /* Los botones de herramienta del visor viven en GRUPOS COLAPSABLES: los de Doppler y los
        de Deformacion no estan en el DOM si su grupo esta cerrado. Este helper abre el grupo
        que corresponde y despues clickea, que es lo que hace el medico. Sin el, un caso que
@@ -12272,10 +12303,16 @@ caso('TC-192', 'Simpson cruzando dos imagenes: la sesion sobrevive y cada trazad
       R.mismaImagen = (_simp.res.imgs || []).length === 1;
       R.avisaMismaImagen = (document.getElementById('cine-med-barra').textContent || '').indexOf('MISMA imagen') > -1;
 
-      /* ── CERRAR sí borra todo ── */
+      /* ── CERRAR conserva lo medido, y lo deja con dueño ──
+         ⚠️ CAMBIO DE SIGNO A PROPOSITO. Antes decia «cerrar el visor SI borra la sesion» y esa
+         era la premisa que hacia imposible la fuga entre pacientes por accidente. Desde el ✕
+         que conserva, la sesion sobrevive —que es el punto: un Simpson biplano son cuatro
+         trazados sobre dos imagenes y cerrar no puede perderlos— y lo que impide la fuga es que
+         siga atada a SU estudio. Las dos mitades se comprueban juntas. */
       cineCerrar();
       await new Promise(r => setTimeout(r, 200));
-      R.cerrarBorra = _simp === null;
+      R.cerrarConserva = _simp !== null;
+      R.cerrarMantieneDueno = _vistaA.epoca === _estEpoca();
     } finally {
       window.alert = alertOrig;
       try { medApagar(); cineCerrar(); } catch (e) {}
@@ -12296,7 +12333,8 @@ caso('TC-192', 'Simpson cruzando dos imagenes: la sesion sobrevive y cada trazad
       ['y el panel las nombra',                          R.panelNombra, R.panelNombra],
       ['cuatro trazados de la misma imagen se detectan', R.mismaImagen, R.mismaImagen],
       ['y se avisa de que eso no es un biplano',         R.avisaMismaImagen, R.avisaMismaImagen],
-      ['cerrar el visor SI borra la sesion',             R.cerrarBorra, R.cerrarBorra]
+      ['cerrar el visor CONSERVA la sesion',             R.cerrarConserva, R.cerrarConserva],
+      ['y sigue atada al estudio que la midio',          R.cerrarMantieneDueno, R.cerrarMantieneDueno]
     ] };
   })();
 `);
@@ -12944,8 +12982,13 @@ caso('TC-196', 'Dos vistas: seis herramientas por vista, estados ajenos y Simpso
       R.dosCanvas = !!document.getElementById('cine-med') && !!document.getElementById('b-cine-med');
       R.canvasDistintos = document.getElementById('cine-med') !== document.getElementById('b-cine-med');
 
-      /* ── Medir se enciende en CADA vista por separado ── */
-      _vCon(_vistaA, medToggle);
+      /* ── Medir se enciende en CADA vista por separado ──
+         ⚠️ medToggle ALTERNA, y desde que el visor abre listo para medir la vista A ya viene
+         encendida: un toggle pelado la APAGA y el caso mide lo contrario de lo que dice medir.
+         Es el mismo alineamiento que ya llevan los otros cuarenta sitios del suite; este se
+         escapo porque usa la forma _vCon(V, medToggle) y no medToggle() suelto, asi que un grep
+         del patron con parentesis no lo encuentra. */
+      _vCon(_vistaA, () => { if (!_medOn) medToggle(); });
       await new Promise(r => setTimeout(r, 120));
       R.aMide = _vistaA.medOn;
       R.bNoMideTodavia = !_vistaB.medOn;                       // denominador del de abajo
@@ -13058,7 +13101,12 @@ caso('TC-196', 'Dos vistas: seis herramientas por vista, estados ajenos y Simpso
 
       cineCerrar();
       await new Promise(r => setTimeout(r, 120));
-      R.cerrarApagaA = !_vistaA.medOn && _vistaA.simp === null;
+      /* ⚠️ CERRAR APAGA LA MEDICION PERO NO BORRA LO MEDIDO — son dos cosas y antes esta
+         condicion las mezclaba. _medOn es estado de PANTALLA (el canvas deja de capturar
+         clics); la sesion de Simpson es el TRABAJO, y desde el ✕ que conserva sobrevive al
+         cierre. Antes exigia simp === null, o sea el comportamiento anterior. */
+      R.cerrarApagaA = !_vistaA.medOn;
+      R.cerrarConservaSimpA = _vistaA.simp !== null;
     } finally { window.alert = alertOrig; }
 
     return { extra: [
@@ -13082,7 +13130,8 @@ caso('TC-196', 'Dos vistas: seis herramientas por vista, estados ajenos y Simpso
       ['y lo rotula Simpson biplano',                   R.metodo === 'Simpson biplano', R.metodo],
       ['cerrar la vista B deja viva la medicion de A',  R.aSigueMidiendo && R.simpDeASigue, R.aSigueMidiendo],
       ['y retira el resultado biplano',                 R.biplanoSeFue, R.biplanoSeFue],
-      ['cerrar el visor apaga la medicion de A',        R.cerrarApagaA, R.cerrarApagaA]
+      ['cerrar el visor apaga la medicion de A',        R.cerrarApagaA, R.cerrarApagaA],
+      ['pero CONSERVA su Simpson',                      R.cerrarConservaSimpA, R.cerrarConservaSimpA]
     ] };
   })();
 `);
@@ -13657,7 +13706,14 @@ caso('TC-199', 'Strain: trazado guiado, eje largo compartido con Simpson, y el b
       vistaBCerrar();
       cineCerrar();
       await new Promise(r => setTimeout(r, 120));
-      R.cerrarLimpia = _vistaA.strain === null;
+      /* ⚠️ CAMBIO DE SIGNO A PROPOSITO: el ✕ cierra el visor CONSERVANDO lo medido, asi que la
+         sesion ya no queda en null. Antes esta condicion decia «cerrar el visor limpia la
+         sesion» y pinaba el comportamiento anterior.
+         El invariante nuevo es mas fuerte, no mas debil: la sesion sobrevive —si no, cerrar
+         perderia varios minutos de trazado sin avisar— Y sigue atada a SU estudio, que es lo
+         unico que impide que se filtre al paciente siguiente (ver TC-206). */
+      R.cerrarConserva = _vistaA.strain !== null;
+      R.cerrarMantieneDueno = _vistaA.epoca === _estEpoca();
     } finally { window.alert = alertOrig; }
 
     return { extra: [
@@ -13684,7 +13740,8 @@ caso('TC-199', 'Strain: trazado guiado, eje largo compartido con Simpson, y el b
       ['trazar en A no escribe en B',                  R.aTrazo && R.bVacia, 'A:' + R.aTrazo + ' B vacia:' + R.bVacia],
       ['cada vista guarda SU trazado',                 R.bTrazo && R.ajenos, 'A=' + R.cuerdaA + ' B=' + R.cuerdaB],
       ['confirmar en A no confirma en B',              R.confirmarAnoTocaB, R.confirmarAnoTocaB],
-      ['cerrar el visor limpia la sesion',             R.cerrarLimpia, R.cerrarLimpia]
+      ['cerrar el visor CONSERVA la sesion',           R.cerrarConserva, R.cerrarConserva],
+      ['y sigue atada al estudio que la midio',        R.cerrarMantieneDueno, R.cerrarMantieneDueno]
     ] };
   })();
 `);
@@ -14830,7 +14887,13 @@ caso('TC-204', 'Visor: grupos colapsables, guia del momento del ciclo y LARS por
 
       cineCerrar();
       await new Promise(r=>setTimeout(r,120));
-      R.cerrarVuelveGrupo = _vistaA.medGrupo === '2d' && _vistaA.lars === null;
+      /* ⚠️ EL GRUPO VUELVE AL DEFECTO Y EL LARS NO SE BORRA, y son dos cosas distintas que
+         antes esta condicion mezclaba en una. medCerrarVisor repone _medGrupo —es estado
+         de la PANTALLA, la barra tiene que reabrir como siempre— pero conserva las SESIONES,
+         que son el trabajo del medico. Antes exigia lars === null, o sea el comportamiento
+         anterior al ✕. */
+      R.cerrarVuelveGrupo = _vistaA.medGrupo === '2d';
+      R.cerrarConservaLars = _vistaA.lars !== null;
     } finally { window.alert = alertOrig; }
 
     return { extra: [
@@ -14862,7 +14925,8 @@ caso('TC-204', 'Visor: grupos colapsables, guia del momento del ciclo y LARS por
       ['y el disclaimer sigue ahi',                  R.xDisc, R.xDisc],
       ['sobre Doppler no se traza',                  R.dopRechaza && R.dopAvisa, R.dopRechaza],
       ['el strain del VI sigue funcionando',         R.strainSigue, R.strainSigue],
-      ['cerrar el visor repone el grupo y limpia LARS', R.cerrarVuelveGrupo, R.cerrarVuelveGrupo]
+      ['cerrar el visor repone el grupo de la barra',  R.cerrarVuelveGrupo, R.cerrarVuelveGrupo],
+      ['pero CONSERVA el LARS medido',                 R.cerrarConservaLars, R.cerrarConservaLars]
     ] };
   })();
 `);
@@ -15050,7 +15114,12 @@ caso('TC-205', 'Strain VD pared libre: calculo, clasificacion por sexo y la fran
 
       cineCerrar();
       await new Promise(r=>setTimeout(r,120));
-      R.cerrarLimpia = _vistaA.vd === null;
+      /* ⚠️ CAMBIO DE SIGNO A PROPOSITO, igual que en TC-199 y TC-206: el ✕ conserva lo medido.
+         La condicion vieja —vd === null— pinaba el comportamiento anterior. Lo que la
+         reemplaza exige las dos mitades: que el trazado del VD sobreviva al cierre, y que siga
+         perteneciendo a este estudio. */
+      R.cerrarConserva = _vistaA.vd !== null;
+      R.cerrarMantieneDueno = _vistaA.epoca === _estEpoca();
       setSexo('');
     } finally { window.alert = alertOrig; }
 
@@ -15080,7 +15149,8 @@ caso('TC-205', 'Strain VD pared libre: calculo, clasificacion por sexo y la fran
       ['sobre Doppler no se traza',                 R.dopRechaza && R.dopAvisa, R.dopRechaza],
       ['el strain del VI sigue funcionando',        R.viSigue, R.viSigue],
       ['y el LARS tambien',                         R.larsSigue, R.larsSigue],
-      ['cerrar el visor limpia la sesion',          R.cerrarLimpia, R.cerrarLimpia]
+      ['cerrar el visor CONSERVA la sesion',        R.cerrarConserva, R.cerrarConserva],
+      ['y sigue atada al estudio que la midio',     R.cerrarMantieneDueno, R.cerrarMantieneDueno]
     ] };
   })();
 `);
@@ -15179,12 +15249,37 @@ caso('TC-206', 'El strain manual viaja con el estudio, no toca el informe y no s
       const idEst = g && g.estudioId;
       cineCerrar();
       await new Promise(r=>setTimeout(r,140));
-      /* cerrar el visor limpia la sesion en memoria, pero el campo YA tiene el resumen */
-      R.sesionLimpia = _vistaA.strain === null;
+      /* ⚠️ ESTA CONDICION CAMBIO DE SIGNO A PROPOSITO, y es el pedido de esta sesion: el ✕
+         cierra el visor CONSERVANDO lo medido, asi que la sesion ya NO queda en null. Antes
+         decia «cerrar el visor limpia la sesion» y pinaba el comportamiento anterior.
+         Lo que reemplaza a esa condicion es mas fuerte, no mas debil: la sesion sobrevive
+         (si no, el ✕ perderia varios minutos de trabajo sin avisar) Y sigue atada a SU
+         estudio, que es lo unico que impide que se filtre al paciente siguiente. */
+      R.sesionViva = _vistaA.strain !== null;
+      R.epocaAtada = _vistaA.epoca === _estEpoca();
       R.campoSobrevive = campo().value !== '';
 
       __t.limpiar();
       await new Promise(r=>setTimeout(r,120));
+      /* ── Y TRAS «Nuevo estudio» esa MISMA sesion queda CADUCA ──
+         Es la mitad que faltaba: la sesion sigue viva en memoria —nadie la borro— pero ya no
+         pertenece al estudio abierto, asi que no puede publicarse. La condicion mira las dos
+         cosas juntas; con una sola, «sigue viva» se leeria como la fuga y «no pertenece» se
+         cumpliria sobre una sesion que no existe. */
+      R.sobreviveALimpiar = _vistaA.strain !== null;
+      R.caducaTrasLimpiar  = !_vEpocaVigente(_vistaA);
+      /* ── EL BORDE DE ESCRITURA, ejercido SIN pasar por el visor ──
+         _strainPersistir corre en cada repintado del panel y es por donde una medicion entra
+         al estudio. Se lo llama directo, con la sesion del paciente anterior VIVA en memoria y
+         el campo recien vaciado: tiene que dejarlo como esta.
+         Va aparte de la condicion de «abrir el visor no pisa lo guardado» porque aquella la
+         cierra la limpieza de _cineAbrir, que corre ANTES de cualquier persistencia — o sea
+         que sin esta condicion la compuerta de _strainResumenDeVista quedaria sin ejercer y
+         se leeria como proteccion sin serlo. Verificado: sacandola, esta condicion cae sola. */
+      campo().value = 'CENTINELA-NO-PISAR';
+      try { _strainPersistir(); } catch (e) {}
+      R.persistirNoPisa = campo().value === 'CENTINELA-NO-PISAR';
+      campo().value = '';
       /* ── ⚠️ LA FUGA: tras «Nuevo estudio» el campo tiene que estar VACIO ── */
       R.limpiaAlNuevoEstudio = campo().value === '';
 
@@ -15236,8 +15331,12 @@ caso('TC-206', 'El strain manual viaja con el estudio, no toca el informe y no s
       ['NO guarda los contornos',                R.sinContornos, R.sinContornos],
       ['y pesa poco',                            R.liviano, R.pesoBytes + ' bytes'],
       ['NO toca el campo sgl del informe',       R.sglIntacto, R.sglIntacto],
-      ['cerrar el visor limpia la sesion',       R.sesionLimpia, R.sesionLimpia],
-      ['pero el resumen sobrevive al cierre',    R.campoSobrevive, R.campoSobrevive],
+      ['cerrar el visor CONSERVA la sesion',     R.sesionViva, R.sesionViva],
+      ['atada al estudio que la midio',          R.epocaAtada, R.epocaAtada],
+      ['y el resumen sobrevive al cierre',       R.campoSobrevive, R.campoSobrevive],
+      ['tras «Nuevo estudio» la sesion SIGUE en memoria', R.sobreviveALimpiar, R.sobreviveALimpiar],
+      ['pero queda CADUCA y no puede publicarse',        R.caducaTrasLimpiar, R.caducaTrasLimpiar],
+      ['una sesion caduca NO escribe el campo',          R.persistirNoPisa, R.persistirNoPisa],
       ['«Nuevo estudio» LIMPIA el campo',        R.limpiaAlNuevoEstudio, R.limpiaAlNuevoEstudio],
       ['reabrir el estudio devuelve el resumen', R.volvio && R.vuelveIgual, R.vuelveIgual],
       ['y el sgl del informe tambien',           R.sglVuelve, R.sglVuelve],
@@ -21941,6 +22040,11 @@ try {
   let ok = 0; const rotos = [], abiertos = [], arreglados = [];
   for (const c of CASOS) {
     if (SOLO && c.id !== SOLO) continue;
+    /* El visor vuelve al estado de arranque ANTES de cada caso. Ver `__t.resetVisor`: desde que
+       cerrar conserva lo medido, la vista B y las sesiones sobreviven al caso que las creo. Va
+       acá y no dentro de los casos para que ninguno pueda olvidarse — un caso que hereda estado
+       falla con un diagnóstico que no apunta a su causa. */
+    try { await ev('return __t.resetVisor();'); } catch (e) {}
     let fallos;
     try { fallos = evaluar(await ev(c.fn)); }
     catch (e) { fallos = [['excepcion', e.message, '']]; }
