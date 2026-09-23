@@ -4,6 +4,67 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## «El CHM importa 0 campos» NO era el lector: era el ORDEN del mensaje (TC-178)
+
+Reportado como regresión del día: *«0 campos importados · 31 campos no reconocidos · 1 omitido
+por duplicado»*, sobre el mismo archivo que el día anterior andaba.
+
+**Medido antes de tocar una línea, y en dos pasos que conviene repetir:**
+
+1. **`git show` de los cinco commits del día contra el camino del CHM: CERO líneas tocadas.**
+   Ni `_chm*`, ni `CHM_MAPA`, ni `dcmImportarSR`, ni `_dcmRenderPreview`, ni el contador. Una
+   regresión exige que algo haya cambiado; si el `grep` no encuentra nada, la hipótesis ya está
+   en problemas.
+2. **Reproducido importando el MISMO CHM dos veces:**
+
+| | toast |
+|---|---|
+| 1ª | `✅ 34 campos importados … · 112 campos no reconocidos · 1 estudio(s) nuevo(s)` |
+| 2ª | `✅ 0 campos importados … · 0 nuevos · 1 omitido(s) por duplicado` |
+
+O sea: **la deduplicación funcionando** sobre un estudio ya importado. El «31» del reporte
+contra el «112» de acá es porque el pendrive tiene DOS CHM distintos.
+
+### ⚠️ LO QUE SÍ ERA UN DEFECTO: el mensaje arrancaba con un tilde verde y un cero
+
+`✅ 0 campos importados` al frente, y el motivo —«1 omitido por duplicado»— al final de una
+frase larga, detrás del equipo, la fecha y el conteo de no reconocidos. **Se lee como que el
+lector se rompió**, y así se reportó.
+
+El comentario de esa misma función ya había anticipado la mitad del problema —*«el que lee el
+toast se queda con la primera cifra»*— y arreglado el **conteo**; lo que faltaba era el **orden**.
+Hoy, cuando no entró nada porque ya estaba, el aviso lidera con eso, sin tilde verde, y nombra la
+salida («elegí Actualizar»). Si además entró algo, el mensaje de siempre sigue siendo el correcto.
+
+### Dos trampas al cubrirlo con un caso
+
+- **El modo del duplicado se FIJA, no se hereda.** Los radios `dcm-dup` traen «Omitir» por
+  defecto, pero dejarlo librado hacía que el caso midiera a veces «Actualizar», que fusiona y
+  anuncia «34 campos» — un mensaje **correcto para otra cosa**.
+- **⚠️ El toast de la PRIMERA importación llega dentro de la ventana de la segunda.** Se emite
+  después del `await` de su guardado, así que limpiar el array de toasts antes de clickear
+  capturaba el anterior y la condición daba rojo sobre un mensaje correcto. Se toma el **último**.
+
+
+## «El visor abre con medidas de otro paciente»: era el cajón Doppler, y avisa
+
+El visor **sí se limpia**: medido en los tres caminos de apertura que se pudieron ejercer
+—`_cineAbrir` con el visor cerrado, con el visor abierto, y dos imágenes con el MISMO rótulo—,
+`_medVels`, `_medTiempos` y `_medVtis` quedan en cero. Lo que conserva mediciones del paciente
+anterior es el **cajón Doppler**, y lo hace **a propósito**: acumular entre imágenes es su razón
+de ser.
+
+**El riesgo real es el caso en que las imágenes nuevas son de otro paciente y nadie apretó
+«Nuevo estudio»:** ahí la tabla sigue mostrando los números del anterior. Decisión de Maicol
+(2026-09-23): **se avisa, no se limpia** — limpiar al importar rompería la acumulación que se
+pidió expresamente.
+
+El aviso sale **arriba de la tabla** —lo que se lee primero son los números; un reparo al pie
+llega tarde— y **no dispara con el cajón vacío**: un aviso que salta cuando no hay riesgo
+entrena a ignorarlo. Se engancha en las tres puertas de importación y **no borra nada**;
+«Entendido» lo saca y los datos quedan.
+
+
 ## Cajón Doppler: acumula entre imágenes, y por eso NO puede leer el visor (TC-249)
 
 Mediciones Doppler que se van juntando mientras el estudio está abierto, con acordeón de la

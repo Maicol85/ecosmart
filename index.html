@@ -47592,6 +47592,11 @@ window.dcmImgPick = dcmImgPick;
 async function imgFileElegido(ev) {
   const f = ev.target && ev.target.files && ev.target.files[0];
   if (!f) return;
+  /* El cajón Doppler acumula entre imágenes a propósito: se le avisa de que entraron
+     nuevas para que, si son de otro paciente, sus números no se lean como del actual.
+     No limpia nada — ver `_dopImagenesNuevas`. */
+  try { if (typeof _dopImagenesNuevas === 'function') _dopImagenesNuevas(); } catch (e) {}
+
   const destino = imgActiveSlot;          // el «+» que se apretó, antes de cualquier await
   let esDicom = false;
   try {
@@ -47622,6 +47627,11 @@ window.imgFileElegido = imgFileElegido;
    importa un lote y no tiene un destino elegido, así que lo deja sin pasar. */
 async function dcmImgImportar(fileList, slotPreferido) {
   const files = [...fileList];
+  /* El cajón Doppler acumula entre imágenes a propósito: se le avisa de que entraron
+     nuevas para que, si son de otro paciente, sus números no se lean como del actual.
+     No limpia nada — ver `_dopImagenesNuevas`. */
+  try { if (typeof _dopImagenesNuevas === 'function') _dopImagenesNuevas(); } catch (e) {}
+
   const listos = [], fallos = [], loops = [];
   for (const f of files) {
     /* ── LA MARCA PRIMERO, EL ARCHIVO DESPUÉS ──────────────────────────────────────────
@@ -47867,6 +47877,11 @@ const _MEDIO_RECHAZO = {
 async function mediosImportar(fileList, slotPreferido) {
   const files = [...fileList];
   if (!files.length) return;
+  /* El cajón Doppler acumula entre imágenes a propósito: se le avisa de que entraron
+     nuevas para que, si son de otro paciente, sus números no se lean como del actual.
+     No limpia nada — ver `_dopImagenesNuevas`. */
+  try { if (typeof _dopImagenesNuevas === 'function') _dopImagenesNuevas(); } catch (e) {}
+
   const dicoms = [], imagenes = [], videos = [], rechazos = [];
 
   for (const f of files) {
@@ -54879,7 +54894,8 @@ function _dopNuevo() {
     ao:  { vmax:null, gradMedio:null, vtiAo:null, vtiTsvi:null, diam:null, pht:null },
     modo: 'gen',        // 'gen' | 'ao'
     destino: null,      // campo armado por el médico, p.ej. 'ao.vmax'
-    abierto: false
+    abierto: false,
+    avisoImg: false     // entraron imágenes nuevas con el cajón ya cargado
   };
 }
 function _dopEstado() { if (!_dop) _dop = _dopNuevo(); return _dop; }
@@ -54891,6 +54907,36 @@ function _dopLimpiar() {
   _dopRender();
 }
 window._dopLimpiar = _dopLimpiar;
+
+/* ¿El cajón tiene algo medido? Lo usan el aviso de imágenes nuevas y el guardado a imagen. */
+function _dopHayValores() {
+  const E = _dopEstado();
+  return Object.keys(E.gen).some(k => E.gen[k] != null) ||
+         Object.keys(E.ao).some(k => E.ao[k] != null);
+}
+
+/* ⚠️ ENTRARON IMÁGENES NUEVAS Y EL CAJÓN YA TENÍA VALORES.
+   El cajón acumula entre imágenes A PROPÓSITO —es lo que se pidió: medir en una, abrir otra y
+   seguir sumando—. El riesgo es el caso en que las imágenes nuevas son de OTRO paciente y nadie
+   apretó «Nuevo estudio»: ahí la tabla sigue mostrando los números del anterior, y se reportó
+   exactamente así («el visor abre con medidas de otro paciente»). Medido: el visor SÍ se limpia
+   en los tres caminos de apertura; lo que persiste es esto.
+
+   Se avisa en vez de limpiar, que fue la decisión (2026-09-23): limpiar al importar rompería el
+   flujo de acumular, que es la razón de ser del cajón. El aviso se va al limpiar o al cambiar
+   de estudio, porque ahí deja de haber nada que confundir.
+
+   No dispara con el cajón vacío: un aviso que aparece cuando no hay riesgo entrena a ignorarlo. */
+function _dopImagenesNuevas() {
+  try {
+    if (!_dopHayValores()) return;
+    _dopEstado().avisoImg = true;
+    _dopRender();
+  } catch (e) {}
+}
+window._dopImagenesNuevas = _dopImagenesNuevas;
+function dopAvisoOk() { _dopEstado().avisoImg = false; _dopRender(); }
+window.dopAvisoOk = dopAvisoOk;
 
 /* ¿Hay un visor abierto? Es lo que decide si los botones de herramienta se pueden apretar: sin
    visor no hay nada que activar, y un botón que no hace nada es el control muerto que este
@@ -55102,6 +55148,17 @@ function _dopRender() {
       'title="Todavía no implementada">' + x + '</button>').join('') +
     '</div>';
 
+  /* El aviso va ARRIBA de la tabla y no al pie: lo que se lee primero son los números, y un
+     reparo debajo llega tarde. Misma razón por la que el descargo del strain va pegado al
+     resultado. */
+  if (E.avisoImg && _dopHayValores()) {
+    h += '<div style="margin-bottom:8px;padding:7px 9px;border-radius:7px;border-left:3px solid var(--orange,#f59e0b);' +
+         'background:var(--bg3);font-size:11.5px;line-height:1.45;">' +
+         '<b>Entraron imágenes nuevas y la tabla ya tenía mediciones.</b><br>' +
+         'Si son de otro paciente, tocá 🗑️ Limpiar — el cajón no se vacía solo al importar. ' +
+         '<button type="button" class="btn btn-ghost" style="padding:1px 8px;font-size:10.5px;margin-left:4px;" ' +
+         'data-dop-acc="avisook">Entendido</button></div>';
+  }
   const F = _dopFilas();
   h += '<table style="width:100%;border-collapse:collapse;font-size:12.5px;">';
   F.forEach(f => {
@@ -55162,6 +55219,7 @@ function _dopObservar() {
     const acc = b.getAttribute('data-dop-acc');
     if (acc === 'limpiar') { _dopLimpiar(); return; }
     if (acc === 'guardar') { dopGuardarBiblioteca(); return; }
+    if (acc === 'avisook') { dopAvisoOk(); return; }
   });
 }
 
@@ -62621,11 +62679,27 @@ async function dcmImpEjecutar() {
   const _fuentes = [...new Set(d.estudios.map(e => e.fuente).filter(Boolean))].join(' + ');
   const _equipos = [...new Set(d.estudios.map(e => e.pac.equipo).filter(Boolean))].join(' · ');
   const _fechas  = [...new Set(d.estudios.map(e => e.pac.fecha_estudio).filter(Boolean))].join(' · ');
-  toast('✅ ' + campos + ' campos importados desde ' + (_fuentes || 'el archivo') +
-        (_equipos ? ' · Equipo: ' + _equipos : '') +
-        (_fechas ? ' · Estudio del ' + _fechas : '') +
-        ' · ' + noReconocidos + ' campos no reconocidos · ' +
-        nuevos + ' estudio(s) nuevo(s)' +
+  /* ⚠️ CUANDO NO ENTRÓ NADA PORQUE YA ESTABA, EL MOTIVO VA PRIMERO.
+     El mensaje único arrancaba con «✅ 0 campos importados» y dejaba «1 omitido por duplicado»
+     al final, detrás del equipo, la fecha y el conteo de no reconocidos. Un tilde verde y un
+     cero al frente se leen como «el lector se rompió» — y se reportó exactamente así, sobre una
+     deduplicación funcionando. El comentario de más arriba ya había anticipado la mitad del
+     problema («el que lee el toast se queda con la primera cifra») y arreglado el CONTEO; lo
+     que faltaba era el ORDEN.
+     Se distingue por el estado, no por el modo: nada escrito y algo omitido. Si además entró
+     algo, el mensaje de siempre sigue siendo el correcto. */
+  const _nadaEntro = (nuevos === 0 && actualizados === 0 && omitidos > 0);
+  const _detalle = (_equipos ? ' · Equipo: ' + _equipos : '') +
+                   (_fechas ? ' · Estudio del ' + _fechas : '') +
+                   ' · ' + noReconocidos + ' campos no reconocidos';
+  if (_nadaEntro) {
+    toast('⚠️ Nada que importar: ' + omitidos + ' estudio(s) ya estaban guardados' +
+          ' — se omitieron por duplicado. Para actualizarlos, elegí «Actualizar» al importar.' +
+          ' (Origen: ' + (_fuentes || 'el archivo') + _detalle + ')');
+    return;
+  }
+  toast('✅ ' + campos + ' campos importados desde ' + (_fuentes || 'el archivo') + _detalle +
+        ' · ' + nuevos + ' estudio(s) nuevo(s)' +
         (actualizados ? ' · ' + actualizados + ' actualizado(s)' : '') +
         (omitidos ? ' · ' + omitidos + ' omitido(s) por duplicado' : ''));
 }
@@ -71433,8 +71507,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260923-0217';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790140652169;                 /* eco-build-ms */
+const ECO_BUILD    = '20260923-0633';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790155983004;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -71520,7 +71594,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260923-0217</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260923-0633</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

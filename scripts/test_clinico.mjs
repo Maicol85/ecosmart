@@ -9788,6 +9788,43 @@ caso('TC-178', 'UI de punta a punta: File real por dcmImportarSR, vista previa y
     const lista = getInformes(); const nuevo = lista[lista.length-1];
     const c = (nuevo && nuevo.campos) || {};
     const cerrado = !document.getElementById('dcm-imp-ov') || document.getElementById('dcm-imp-ov').style.display === 'none';
+
+    /* ── EL MISMO ARCHIVO OTRA VEZ: se omite por duplicado, y el toast LIDERA CON EL MOTIVO ──
+       Se reporto como «el CHM importa 0 campos» y no era un defecto del lector: era la
+       deduplicacion funcionando sobre un estudio ya importado. Lo que confundia era el ORDEN
+       del mensaje —arrancaba con «✅ 0 campos importados» y dejaba «1 omitido por duplicado»
+       al final, detras del equipo, la fecha y los no reconocidos—. Un tilde verde y un cero
+       al frente se leen como que el lector se rompio.
+       La condicion fija las dos mitades: que NO entre un estudio nuevo, y que el aviso diga
+       primero por que. */
+    const toastReal = window.toast; const dichos = [];
+    window.toast = m => dichos.push(String(m));
+    let antes2 = getInformes().length, dup = {};
+    try {
+      const f2 = new File([u8], 'estudio.chm', { type:'application/octet-stream' });
+      await dcmImportarSR([f2]);
+      const ov2 = document.getElementById('dcm-imp-ov');
+      dup.abrio = !!ov2 && ov2.style.display !== 'none';
+      /* EL MODO SE FIJA, no se hereda del default: la rama que el medico vio es «Omitir», y
+         dejarlo librado al radio que venga marcado hace que el caso mida a veces la otra
+         —«Actualizar» fusiona y anuncia 34 campos, que es un mensaje correcto para OTRA cosa—. */
+      const _rOmitir = document.querySelector('input[name="dcm-dup"][value="omitir"]');
+      dup.hayRadios = !!_rOmitir;
+      if (_rOmitir) _rOmitir.checked = true;
+      dup.modo = (document.querySelector('input[name="dcm-dup"]:checked') || {}).value || '(ninguno)';
+      /* ⚠️ SE TOMA EL ULTIMO TOAST, no se limpia el array antes. El aviso de la PRIMERA
+         importacion llega despues del await de su guardado, o sea DENTRO de la ventana de la
+         segunda: limpiando antes de clickear, lo que quedaba capturado era el de la primera
+         —«34 campos importados»— y la condicion daba rojo sobre un mensaje correcto. */
+      if (ov2) ov2.querySelector('#dcm-imp-ok').click();
+      await new Promise(r=>setTimeout(r,1400));
+      dup.toast = dichos.length ? dichos[dichos.length - 1] : '';
+      dup.todos = dichos.length;
+      dup.nuevos = getInformes().length - antes2;
+    } catch (e) { dup.err = String(e && e.message || e); }
+    finally { window.toast = toastReal; }
+    const _dupIni = (dup.toast || '').slice(0, 30);
+
     return { extra: [
       ['la vista previa abre desde un File real', abierto, abierto],
       ['muestra filas tildadas', filas > 25 && tildadas > 20, filas + ' filas / ' + tildadas + ' tildadas'],
@@ -9807,7 +9844,13 @@ caso('TC-178', 'UI de punta a punta: File real por dcmImportarSR, vista previa y
       ['NO trae el FAC (lo calcula la app)', c.vd_fac === undefined, c.vd_fac],
       ['NO trae cedula', !nuevo.ci, nuevo.ci],
       ['la fecha viaja en el estudio', /^\\d{4}-\\d{2}-\\d{2}$/.test(nuevo.fecha_estudio||''), nuevo.fecha_estudio],
-      ['el modal se cerro', cerrado, cerrado]
+      ['el modal se cerro', cerrado, cerrado],
+      ['DENOMINADOR: la segunda importacion abrio', dup.abrio, dup.err || dup.abrio],
+      ['DENOMINADOR: ofrece elegir que hacer con el duplicado', dup.hayRadios, dup.modo],
+      ['el MISMO archivo no entra dos veces',      dup.nuevos === 0, dup.nuevos],
+      ['y el aviso DICE PRIMERO por que',          _dupIni.indexOf('Nada que importar') > -1, _dupIni],
+      ['sin el tilde verde que se lee como exito', (dup.toast||'').indexOf('✅') === -1, _dupIni],
+      ['y nombra la salida: Actualizar',           (dup.toast||'').indexOf('Actualizar') > -1, (dup.toast||'').slice(0,120)]
     ] };
   })();
 `);
@@ -22886,6 +22929,36 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       R.vaciaAvisa = dichos.some(m => m.indexOf('ninguna medicion') > -1 ||
                                       m.indexOf('ninguna medición') > -1);
 
+      /* ── 12bis · AVISA CUANDO ENTRAN IMAGENES NUEVAS Y YA HABIA MEDICIONES ──
+         El cajon acumula entre imagenes A PROPOSITO. El riesgo es el caso en que las imagenes
+         nuevas son de OTRO paciente y nadie apreto «Nuevo estudio»: la tabla sigue mostrando
+         los numeros del anterior, y se reporto exactamente asi. Decision (2026-09-23): se
+         AVISA, no se limpia — limpiar al importar romperia la acumulacion, que es la razon de
+         ser del cajon.
+         La condicion que lo separa de un aviso decorativo es que con el cajon VACIO no aparezca:
+         un aviso que salta cuando no hay riesgo entrena a ignorarlo. */
+      _dopLimpiar(); await esperar(120);
+      const _avHay = () => cajon.textContent.indexOf('Entraron imágenes nuevas') > -1;
+      _dopImagenesNuevas(); await esperar(110);
+      R.avisoVacioNo = !_avHay();
+      window.prompt = () => '0.9';
+      if (_dop.modo !== 'ao') dopModo('ao');
+      await esperar(110);
+      clkDop('[data-dop-corr="ao.vmax"]'); await esperar(130);
+      R.avisoAunNo = !_avHay();
+      /* Por la PUERTA REAL del importador, no llamando al helper: es lo que prueba el enganche. */
+      const _basura = new File([new Uint8Array([1,2,3,4])], 'x.bin', { type:'application/octet-stream' });
+      try { await mediosImportar([_basura]); } catch (e) {}
+      await esperar(400);
+      R.avisoTrasImportar = _avHay();
+      R.avisoNoBorraNada = _dop.ao.vmax === 0.9;
+      clkDop('[data-dop-acc="avisook"]'); await esperar(130);
+      R.avisoSeSaca = !_avHay();
+      R.avisoSacarNoBorra = _dop.ao.vmax === 0.9;
+      /* Y se limpia ANTES del paso 13, que afirma que Limpiar borro: este bloque acaba de
+         cargar un valor, asi que sin esto el paso siguiente medía sobre lo que puse yo. */
+      _dopLimpiar(); await esperar(130);
+
       /* ── 13 · LIMPIAR deja el cajon ABIERTO: borra los datos, no esconde el panel ── */
       R.limpiarBorra = _dop.ao.vmax === null && _dop.gen.vel === null;
       R.limpiarNoCierra = _dop.abierto === true;
@@ -22975,6 +23048,12 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       ['guardar en biblioteca ENTRA UN REGISTRO',     R.entroUnRegistro, R.entroUnRegistro],
       ['y lo dice',                                   R.avisoGuardado, R.avisoGuardado],
       ['con la tabla vacia no guarda nada',           R.vaciaNoGuarda && R.vaciaAvisa, R.vaciaNoGuarda],
+      ['con el cajon VACIO no avisa',                 R.avisoVacioNo, R.avisoVacioNo],
+      ['ni antes de que entren imagenes',             R.avisoAunNo, R.avisoAunNo],
+      ['AVISA al importar con mediciones cargadas',   R.avisoTrasImportar, R.avisoTrasImportar],
+      ['y NO borra nada',                             R.avisoNoBorraNada, R.avisoNoBorraNada],
+      ['«Entendido» lo saca',                         R.avisoSeSaca, R.avisoSeSaca],
+      ['y tampoco borra',                             R.avisoSacarNoBorra, R.avisoSacarNoBorra],
       ['Limpiar borra los datos',                     R.limpiarBorra, R.limpiarBorra],
       ['y NO cierra el cajon',                        R.limpiarNoCierra, R.limpiarNoCierra],
       ['DENOMINADOR: habia algo antes de nuevo estudio', R.habiaAntesDeLimpiarCampos, R.habiaAntesDeLimpiarCampos],
