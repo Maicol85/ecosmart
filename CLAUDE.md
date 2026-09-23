@@ -4,6 +4,127 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## El arrastre de la biblioteca NO estaba roto: estaba FINGIDO (TC-247)
+
+El pedido decía «el drag & drop de biblioteca → slot no funciona, corregirlo». Medido antes de
+tocar nada: `cineStripRender` son 180 líneas con **cero** `draggable`, **cero** `dragstart`,
+**cero** `dataTransfer`. Nunca existió.
+
+**Pero el reporte era exacto como experiencia**, y ahí está lo interesante. La miniatura de la
+tarjeta es un `<img>`, y **un `<img>` es arrastrable por omisión en todo navegador**: el gesto
+arrancaba, la imagen se despegaba y seguía al puntero, y al soltarla sobre un espacio de la
+grilla el manejador hacía
+
+```js
+const from = parseInt(e.dataTransfer.getData('text/plain'));   // el dataURL de la miniatura
+if (!isNaN(from)) imgSwap(from, idx);                          // NaN → no hace nada
+```
+
+O sea que el arrastre nativo llenaba `text/plain` con el `data:` URL, `parseInt` daba `NaN` y el
+drop lo descartaba **sin una palabra**. **Un gesto que parece funcionar y no hace nada es peor
+que uno que no existe, porque no hay nada que mirar.**
+
+### ⚠️ POR ESO LO QUE NO SE PUEDE ARRASTRAR LLEVA `draggable="false"` EXPLÍCITO
+
+Es la mitad que se olvida. Poner `draggable="true"` en las tarjetas que sí van al informe deja
+la falsa promesa viva en las demás —un video, un cineloop, algo que ya ocupa un slot—, que
+siguen arrastrándose solas por el `<img>` y siguen sin hacer nada. Hay una condición que exige
+que **todas** declaren, y otra que exige que alguna diga que no.
+
+### Una mutación que ROMPE EL ARCHIVO no es una mutación
+
+La primera versión de la que saca `draggable` borraba el tramo `' draggable="' + (alPdf ? … ) +
+'"' +`. Ese texto **empieza adentro del literal**, después de la comilla que lo abre, así que el
+resultado era `'      ' style="position:...` — sintaxis rota, el bloque entero sin parsear y la
+app sin cargar. El caso no dio ni verde ni rojo: **no imprimió resultado**, y en una tanda de seis
+eso se lee igual que una corrida lenta.
+
+La mutación correcta cambia `(alPdf ? 'true' : 'false')` por `('false')`: la tarjeta deja de ser
+arrastrable **sin tocar la estructura**. Cae en «la tarjeta SE PUEDE arrastrar», que es su
+condición.
+
+**Al mutar dentro de una concatenación de cadenas, mutar el VALOR y no el tramo de texto.** Y si
+un mutante no imprime `RESULTADO`, el sospechoso es la sintaxis, no el caso.
+
+### El payload va en un TIPO PROPIO, no en `text/plain`
+
+`text/plain` es el carril de la grilla para **reordenar slots** y lleva un índice. Meter ahí un
+id lo manda a `parseInt` → `NaN`, que es el defecto de arriba con otra cara. Con
+`application/x-ceibomed-bib` los dos arrastres conviven sin pisarse, y hay una condición que
+suelta un arrastre **nativo** —sólo `text/plain`— y exige que **no caiga nada**.
+
+### Se hizo SIN TOCAR el módulo de imágenes, y por el patrón que este archivo ya usa
+
+El oyente va **en el contenedor** (`#img-grid`) y registrado una sola vez, no en cada celda:
+`imgRender` las reconstruye en cada repintado, así que un oyente por celda muere en el primero.
+Es la misma delegación que ya usan el clic de la grilla y la tira.
+
+Y es lo que permitió no tocar `_imgAttach`: el `drop` de la celda corre primero, no encuentra un
+índice en `text/plain`, no hace nada, y el evento **burbujea** hasta el contenedor. El
+reordenamiento de slots queda intacto.
+
+### ⚠️ SIN `preventDefault()` EN `dragover` EL `drop` NO LLEGA — y la mutación SOBREVIVIÓ
+
+Es la regla de HTML5 que más se olvida, y su síntoma es **idéntico** al de un manejador que no se
+registró: no pasa nada y no hay error. Pero sacarla **no ponía el caso en rojo**, y el motivo
+importa por partida doble:
+
+1. **Un `drop` despachado con `dispatchEvent` llega igual.** La regla «sin `preventDefault` no hay
+   `drop`» la aplica el **motor de arrastre** del navegador, no el despacho sintético. O sea que
+   ninguna condición que suelte a mano puede ver ese defecto.
+2. **Y para un drop sobre una CELDA la línea es redundante hoy**, que es lo que la primera lectura
+   no vio: `_imgAttach` ya le pone a cada celda un `dragover` que previene **siempre**, para
+   reordenar slots. El navegador dispara el `drop` igual. Donde la línea **sí** hace falta es en el
+   **hueco entre celdas** —ahí el drop cae al primer espacio libre y ningún manejador de celda
+   corre—, que es un caso que el arrastre real ejerce y el sintético no distingue.
+
+Lo que sí la caza: despachar el `dragover` **sobre el contenedor**, no sobre una celda. Los
+oyentes de `_imgAttach` viven en los descendientes, así que sobre `#img-grid` el único que corre
+es el delegado y `defaultPrevented` lo refleja **sólo a él**. Con eso la mutación cae, y la
+condición gemela —que un `text/plain` **no** quede prevenido— fija que el carril de reordenar
+sigue siendo ajeno.
+
+**La lección general: antes de declarar que una mutación sobrevive por un hueco del caso, buscar
+si el invariante ya lo sostiene OTRO código.** Acá lo sostenía una línea escrita para otra cosa, a
+8.000 líneas de distancia, y eso cambia qué condición hay que escribir.
+
+### `_bibVaAlSlot` es UNA definición para las dos puertas
+
+El botón 📄 y el arrastre contestan la misma pregunta —¿este archivo puede ocupar un espacio del
+informe?—. Estuvo un rato dentro del closure de la tarjeta y el cableado no la veía
+(`alPdf is not defined`, **lo cazó el caso, no la lectura**). Copiarla habría sido la lista
+paralela de siempre: el arrastre ofreciendo lo que el botón no ofrece en cuanto una se afine.
+
+### Soltar sobre un espacio OCUPADO no pisa nada, y lo dice
+
+`_dcmImgReservar(n, preferido)` ya respetaba el preferido **sólo si está vacío**, así que la
+caída al primer libre sale gratis. Lo que se agregó es que el aviso **nombre el destino real**:
+un archivo que aterriza en otro lado del que el médico señaló, en silencio, se lee como que la
+app hizo otra cosa.
+
+## `beforeunload`: la tercera puerta, y la única que no puede ofrecer «Guardar»
+
+«Nuevo estudio» y «Cerrar sesión» ya preguntaban; cerrar la pestaña no avisaba nada — y es la
+salida que el médico usa sin pensarla (⌘W).
+
+**El navegador pone SU diálogo y no se puede personalizar** desde Chrome 51 y Firefox 44: no hay
+texto propio ni botones propios. Lo único que se decide desde la app es **si aparece**. Por eso
+acá no hay tres opciones como en las otras dos puertas.
+
+**Se marca con `preventDefault()` Y con `returnValue`, y hacen falta los dos**: el primero es lo
+que dice el estándar, el segundo es lo que Chrome sigue mirando. Devolver la cadena es la tercera
+forma histórica y se deja por los navegadores viejos.
+
+**FALLA HACIA DEJAR CERRAR.** Si el predicado no está, no se bloquea la salida: un diálogo sobre
+un formulario vacío entrena a cerrarlo sin leer, y el que se cierra sin leer es el que no protege
+el día que importa. Ojo con la asimetría: `_hayAlgoSinGuardar` falla **cerrado** por su lado, así
+que un error de verdad **sí** pregunta; lo que no pregunta es la *ausencia* del predicado.
+
+**Se extrajo con nombre (`_beforeUnloadAviso`) para poder probarlo.** Un caso no puede cerrar la
+pestaña, pero sí llamar a la función con un evento de mentira y mirar si la marcó — que es el
+invariante. Sin extraerlo, esto se quedaba sin cobertura.
+
+
 ## «No deja importar sin guardar» NO REPRODUCE — y lo que sí faltaba era el cineloop (TC-246)
 
 El pedido del 2026-09-23 decía que EcoSmart no permite importar si el estudio no está guardado.

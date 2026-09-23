@@ -26092,6 +26092,38 @@ function _hayAlgoSinGuardar() {
   } catch (e) { return true; }
 }
 window._hayAlgoSinGuardar = _hayAlgoSinGuardar;
+
+/* ── CERRAR LA PESTAÑA: la tercera puerta ────────────────────────────────────────────────
+   «Nuevo estudio» y «Cerrar sesión» ya preguntaban; cerrar la pestaña o la ventana no avisaba
+   NADA. Es la salida que el médico usa sin pensarla —⌘W— y la única de las tres donde la app
+   no puede ofrecer «Guardar»: el navegador muestra SU diálogo genérico y no se puede
+   personalizar ni agregarle botones. Lo único que se decide desde acá es SI aparece.
+
+   ⚠️ SE PIDE CON `preventDefault()` Y CON `returnValue`, y hacen falta los dos: el primero es
+   lo que dice el estándar desde hace años, el segundo es lo que Chrome sigue mirando. Devolver
+   una cadena es la tercera forma histórica y se deja por los navegadores viejos. Ninguna de las
+   tres permite elegir el texto: desde Chrome 51 y Firefox 44 el mensaje lo pone el navegador.
+
+   ⚠️ FALLA HACIA DEJAR CERRAR. Si el predicado no está —esta función vive con él, pero por si
+   alguien la muda— no se bloquea la salida: un diálogo que aparece sobre un formulario vacío
+   entrena a cerrarlo sin leer, y el que se cierra sin leer es el que no protege el día que sí
+   importa. `_hayAlgoSinGuardar` ya falla CERRADO por su lado, así que un error de verdad SÍ
+   pregunta; lo que no pregunta es la ausencia del predicado.
+
+   Se extrae con nombre para poder probarlo: un caso no puede cerrar la pestaña, pero sí
+   llamar a esta función con un evento de mentira y mirar si la marcó. */
+function _beforeUnloadAviso(ev) {
+  let hay = false;
+  try { hay = (typeof _hayAlgoSinGuardar === 'function') ? _hayAlgoSinGuardar() : false; }
+  catch (e) { hay = false; }
+  if (!hay) return undefined;
+  try { ev.preventDefault(); } catch (e) {}
+  try { ev.returnValue = ''; } catch (e) {}
+  return '';
+}
+window._beforeUnloadAviso = _beforeUnloadAviso;
+window.addEventListener('beforeunload', _beforeUnloadAviso);
+
 function _autosaveRestore(){
   var raw; try{ raw = localStorage.getItem(AUTOSAVE_KEY); }catch(e){ return; }
   if (!raw) return;
@@ -54518,7 +54550,68 @@ window._docGuardarEnBiblioteca = _docGuardarEnBiblioteca;
    eso reserva el slot con `_dcmImgReservar` y entra por `imgCompressLoad` —la misma puerta que
    una foto elegida a mano—: con un segundo camino, lo que llega al PDF desde acá podría
    comprimirse distinto de todo lo demás. */
-async function _bibAlSlot(id) {
+/* ── ARRASTRAR DE LA BIBLIOTECA A UN ESPACIO DE LA GRILLA ────────────────────────────────
+   Tipo propio y NO `text/plain`: ese lo usa la grilla para reordenar slots —lleva un índice— y
+   un id ahí entra a `parseInt` como NaN y se ignora sin decir nada. Era exactamente lo que
+   pasaba: el `<img>` de la miniatura es arrastrable por omisión, así que el gesto arrancaba,
+   soltaba el dataURL en `text/plain` y la grilla lo descartaba. **Un gesto que parece funcionar
+   y no hace nada es peor que uno que no existe**, porque no hay nada que mirar. */
+const _BIB_DND = 'application/x-ceibomed-bib';
+
+/* El oyente va EN EL CONTENEDOR, no en cada celda, y registrado UNA sola vez. `imgRender`
+   reconstruye las celdas en cada repintado —agregar, borrar, reordenar, cambiar la calidad—,
+   así que un oyente por celda muere en el primer repintado. Es el patrón que esta app ya usa
+   para el clic de la grilla y para la tira, y por el mismo motivo.
+   Y es lo que permite hacer esto SIN TOCAR `_imgAttach`: el `drop` de la celda corre primero,
+   no encuentra un índice en `text/plain`, no hace nada, y el evento burbujea hasta acá. */
+let _bibDndPuesto = false;
+function _bibDndObservar() {
+  if (_bibDndPuesto) return;
+  const grid = document.getElementById('img-grid');
+  if (!grid) return;
+  _bibDndPuesto = true;
+  const traeArchivo = ev => {
+    try { return !!(ev.dataTransfer && Array.prototype.indexOf.call(ev.dataTransfer.types || [], _BIB_DND) >= 0); }
+    catch (e) { return false; }
+  };
+  /* Sin `preventDefault` en `dragover` el `drop` NO LLEGA — es la regla del HTML5 que más se
+     olvida, y su síntoma es idéntico al de un manejador que no se registró. */
+  grid.addEventListener('dragover', ev => {
+    if (!traeArchivo(ev)) return;
+    ev.preventDefault();
+    try { ev.dataTransfer.dropEffect = 'copy'; } catch (e) {}
+  });
+  grid.addEventListener('drop', ev => {
+    if (!traeArchivo(ev)) return;      // un reordenamiento de slots no es asunto de acá
+    let id = '';
+    try { id = String(ev.dataTransfer.getData(_BIB_DND) || ''); } catch (e) { id = ''; }
+    if (!id) return;
+    ev.preventDefault();
+    /* En qué espacio se soltó. `closest` porque el blanco real puede ser la miniatura o el
+       botón de adentro; se exige que la celda esté DENTRO de la grilla para no aceptar un
+       `data-idx` de otro módulo que algún día quede debajo del puntero. */
+    let idx;
+    try {
+      const celda = ev.target && ev.target.closest ? ev.target.closest('[data-idx]') : null;
+      if (celda && grid.contains(celda)) {
+        const n = parseInt(celda.getAttribute('data-idx'), 10);
+        if (!isNaN(n)) idx = n;
+      }
+    } catch (e) {}
+    /* Sin celda debajo —el hueco entre dos— se cae al primer espacio libre, que es lo que hace
+       el botón 📄. Mandar el archivo a ningún lado porque el dedo cayó dos píxeles al costado
+       sería perder el gesto sin decirlo. */
+    _bibAlSlot(id, idx);
+  });
+}
+window._bibDndObservar = _bibDndObservar;
+
+/* `slotPreferido` es OPCIONAL y sólo lo usa el arrastre: el botón 📄 sigue mandando al primer
+   espacio libre, que es lo que siempre hizo. `_dcmImgReservar` ya sabía recibirlo y sólo lo
+   respeta si ese espacio está VACÍO — o sea que soltar sobre un slot ocupado no pisa nada.
+   Cuando cae en otro lado, el aviso lo DICE: un destino distinto del que el médico señaló, en
+   silencio, se lee como que la app hizo otra cosa. */
+async function _bibAlSlot(id, slotPreferido) {
   if (typeof CeiboCine === 'undefined') { toast('❌ No hay archivos guardados en este dispositivo'); return false; }
   let r = null;
   try { r = await CeiboCine.leer(id); } catch (e) { r = null; }
@@ -54529,10 +54622,13 @@ async function _bibAlSlot(id) {
   const fin = (r.offs && r.offs.length > 1) ? r.offs[1] : r.datos.length;
   const jpeg = r.datos.subarray(0, fin);
   if (!(jpeg[0] === 0xFF && jpeg[1] === 0xD8)) { toast('❌ Ese archivo no es una imagen'); return false; }
-  const idx = _dcmImgReservar(1)[0];
+  const idx = _dcmImgReservar(1, slotPreferido)[0];
   if (typeof idx !== 'number' || idx < 0) { toast('❌ No hay ningún espacio libre en la grilla de imágenes'); return false; }
   imgCompressLoad(new Blob([jpeg], { type:'image/jpeg' }), idx, 'visor');
-  toast('📄 Mandado al informe — ahora sale en el PDF');
+  const desviado = (typeof slotPreferido === 'number' && idx !== slotPreferido);
+  toast(desviado
+    ? '📄 Ese espacio estaba ocupado — fue al ' + (idx + 1) + '. Ahora sale en el PDF'
+    : '📄 Mandado al informe — ahora sale en el PDF');
   return true;
 }
 window._bibAlSlot = _bibAlSlot;
@@ -54724,6 +54820,19 @@ function _bibBtn(clase, lado, color, glifo, titulo) {
 }
 window._bibBtn = _bibBtn;
 
+/* ¿Este archivo puede ocupar un espacio de la grilla, o sea salir en el informe? Hacen falta
+   las tres: bytes en disco para leer, que sea una IMAGEN —un video y un cineloop no son una
+   página del informe— y que no esté YA en un slot, porque ahí duplicaría la ecografía.
+
+   ⚠️ UNA SOLA DEFINICIÓN PARA LAS DOS PUERTAS: el botón 📄 y el ARRASTRE. Estuvo un rato dentro
+   del closure de la tarjeta y el cableado de abajo no la veía —`alPdf is not defined`, lo cazó
+   el caso—; copiarla habría sido la lista paralela de siempre, con el arrastre ofreciendo lo que
+   el botón no ofrece en cuanto una de las dos se afine. */
+function _bibVaAlSlot(f) {
+  return !!(f && f.deDisco && f.id && f.clase !== 'video' && f.clase !== 'cine' &&
+            typeof f.idx !== 'number');
+}
+
 async function cineStripRender() {
   const cont = document.getElementById('cine-strip');
   if (!cont || typeof CeiboCine === 'undefined') return;
@@ -54822,11 +54931,7 @@ async function cineStripRender() {
   const tarjeta = (f, i) => {
     const src = _imgSrcOK(f.poster) ? f.poster : '';
     const medible = f.clase !== 'video';
-    /* ¿Se le puede ofrecer «mandar al PDF»? Hacen falta las tres: que haya bytes en disco para
-       leer, que sea una imagen —un video y un cineloop no son una página del informe— y que no
-       esté YA ocupando un slot, porque ahí la acción duplicaría la ecografía en el informe. */
-    const alPdf = !!(f.deDisco && f.id && f.clase !== 'video' && f.clase !== 'cine' &&
-                     typeof f.idx !== 'number');
+    const alPdf = _bibVaAlSlot(f);
     const titulo = f.clase === 'video' ? 'Abrir el reproductor de video'
                  : f.clase === 'cine'  ? 'Abrir el reproductor de cineloop'
                  : f.clase === 'doc'   ? 'Ver el documento en grande'
@@ -54834,7 +54939,16 @@ async function cineStripRender() {
     /* `data-cine-id` se CONSERVA en las tarjetas con registro en disco: es el contrato que ya
        verifican TC-184 y TC-185, y el id es opaco y va escapado. `data-strip-i` es lo que usa el
        manejador, porque una tarjeta de slot no tiene id de disco. */
+    /* ⚠️ ARRASTRABLE CON LA MISMA REGLA QUE EL 📄, y no con una copia: `alPdf` ya contesta
+       «¿este archivo puede ocupar un espacio del informe?» —hacen falta bytes en disco, que sea
+       una imagen y que no esté YA en un slot—. Con dos predicados, el día que uno se afine el
+       otro deja arrastrar lo que el botón no ofrece.
+       Y lo que NO se puede arrastrar lleva `draggable="false"` EXPLÍCITO: un `<img>` es
+       arrastrable por omisión en todo navegador, así que sin esto el médico arrastra la
+       miniatura de un video —que no es una página del informe— y no pasa nada. Ese gesto que
+       parece funcionar y no hace nada es justo el defecto que este cambio vino a cerrar. */
     return '<div data-strip-i="' + i + '"' + (f.id ? ' data-cine-id="' + E(f.id) + '"' : '') +
+      ' draggable="' + (alPdf ? 'true' : 'false') + '"' +
       ' style="position:relative;border:1.5px solid var(--border);' +
       'border-radius:10px;background:var(--bg2);overflow:hidden;width:150px;flex:0 0 auto;">' +
       '<div class="cine-abrir" style="position:relative;cursor:pointer;" title="' + E(titulo) + '">' +
@@ -54876,6 +54990,9 @@ async function cineStripRender() {
         'del ecógrafo.</div>'
       : '') +
     '<div style="display:flex;gap:10px;flex-wrap:wrap;">' + fichas.map(tarjeta).join('') + '</div>';
+  /* El oyente de la grilla se registra acá: el arrastre sólo puede empezar en esta tira, así que
+     si la tira no se dibujó tampoco hay nada que soltar. Es idempotente. */
+  _bibDndObservar();
   /* Los manejadores se ENGANCHAN acá, contra el ÍNDICE de la tarjeta, y nunca interpolando el id
      adentro de un `onclick`: ahí el escape no protege, porque el parser decodifica la entidad
      ANTES de compilar el handler. Es el mismo patrón que ya usaba esta tira. */
@@ -54903,6 +55020,22 @@ async function cineStripRender() {
        frenar el evento un ✕ abriría además el visor detrás del `confirm`. */
     if (borrar) borrar.onclick = ev => { ev.stopPropagation(); _bibBorrar(f); };
     if (alPdfBtn) alPdfBtn.onclick = ev => { ev.stopPropagation(); _bibAlSlot(f.id); };
+    /* ⚠️ EL PAYLOAD VA EN UN TIPO PROPIO, no en `text/plain`. La grilla de imágenes usa
+       `text/plain` para REORDENAR slots —un índice— y un id ahí entraría a `parseInt` como NaN
+       y se ignoraría en silencio, que es exactamente lo que pasaba hasta hoy con el arrastre
+       nativo del `<img>`: el gesto arrancaba, el `text/plain` llevaba el dataURL de la
+       miniatura, y el drop no hacía nada.
+       Con un tipo propio los dos arrastres conviven sin pisarse y ninguno puede confundirse con
+       el del otro. Se pone TAMBIÉN `text/plain` con un prefijo legible por si algo lo suelta
+       fuera de la app —ahí el contenido es lo que el sistema muestre— pero lo que la grilla lee
+       es el tipo propio. */
+    if (_bibVaAlSlot(f)) card.ondragstart = ev => {
+      try {
+        ev.dataTransfer.setData(_BIB_DND, String(f.id));
+        ev.dataTransfer.setData('text/plain', 'ceibomed:archivo');
+        ev.dataTransfer.effectAllowed = 'copy';
+      } catch (e) {}
+    };
   });
 }
 window.cineStripRender = cineStripRender;
@@ -70671,8 +70804,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260922-2252';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790128366214;                 /* eco-build-ms */
+const ECO_BUILD    = '20260922-2335';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790130907277;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -70758,7 +70891,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-2252</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-2335</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -22097,6 +22097,177 @@ caso('TC-246', 'Importar en estudio virgen, y el cineloop encolado se escribe al
   })();
 `);
 
+/* ══ TC-247 · Arrastrar de la biblioteca a un espacio, y el aviso al cerrar la pestaña ════════
+   EL DEFECTO QUE ESTE CASO CIERRA no era que faltara el arrastre: era que PARECIA haber uno.
+   La miniatura de la tarjeta es un <img>, y un <img> es arrastrable por omision en todo
+   navegador. Asi que el gesto arrancaba —la imagen se despegaba y seguia al puntero— soltaba el
+   dataURL en text/plain, y el drop de la grilla hacia parseInt de eso, daba NaN y lo descartaba
+   sin una palabra. Un gesto que parece funcionar y no hace nada es peor que uno que no existe,
+   porque no hay nada que mirar.
+
+   Por eso hay DOS condiciones y no una: que lo arrastrable llegue al espacio, y que lo que NO
+   se puede mandar al informe —un video— lleve draggable="false" EXPLICITO. Sin la segunda, la
+   falsa promesa sigue viva en las tarjetas que no se arreglaron.
+
+   Y el payload va en un TIPO PROPIO: text/plain es de la grilla para reordenar slots. Hay una
+   condicion que lo fija soltando un arrastre nativo —solo text/plain— y exigiendo que NO caiga
+   nada, que es lo que impide que los dos arrastres se pisen.
+   NO DEPENDE DEL PENDRIVE.                                                                    */
+caso('TC-247', 'Biblioteca: arrastrar al espacio de la grilla, y el aviso al cerrar la pestaña', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    const dichos = [];
+    window.alert = () => {}; window.confirm = () => true;
+    window.toast = m => dichos.push(String(m));
+    let togglePrevio = null;
+    try { togglePrevio = localStorage.getItem('cfg-guardar-imagenes'); } catch (e) {}
+    let idEst = null;
+    try {
+      localStorage.setItem('cfg-guardar-imagenes','1');
+      __t.limpiar(); imgVaciar(); await esperar(200);
+      __t.set('nombre','TC247 DND'); __t.set('ci','94700001');
+      const g = await __t.guardar(); idEst = g && g.estudioId; await esperar(800);
+      __t.reabrir(idEst); await esperar(1200);
+
+      /* ── Un documento en la biblioteca ── */
+      const cv = document.createElement('canvas'); cv.width = 80; cv.height = 60;
+      const gx = cv.getContext('2d'); gx.fillStyle = '#3a6ea5'; gx.fillRect(0,0,80,60);
+      const rDoc = await _docGuardarEnBiblioteca(cv, 'TC247 documento');
+      R.docGuardado = !!(rDoc && rDoc.ok && rDoc.id);
+      const docId = rDoc && rDoc.id;
+      await cineStripRender(); await esperar(500);
+
+      /* ── DENOMINADOR: la tarjeta existe y la grilla esta vacia ── */
+      const strip = document.getElementById('cine-strip');
+      const card = strip ? strip.querySelector('[data-cine-id]') : null;
+      R.hayTarjeta = !!card;
+      R.slots0 = imgSlots.filter(x => x && x.dataURL).length;
+      R.grillaVacia = R.slots0 === 0;
+
+      /* ── 1 · LA TARJETA SE PUEDE ARRASTRAR ── */
+      R.arrastrable = !!card && card.getAttribute('draggable') === 'true';
+
+      /* ── 2 · EL dragstart PONE EL TIPO PROPIO ── */
+      const dt1 = new DataTransfer();
+      const evDs = new DragEvent('dragstart', { bubbles:true, cancelable:true, dataTransfer:dt1 });
+      if (card) card.dispatchEvent(evDs);
+      R.tipoPropio = Array.prototype.indexOf.call(dt1.types || [], 'application/x-ceibomed-bib') >= 0;
+      R.llevaElId = dt1.getData('application/x-ceibomed-bib') === String(docId);
+      /* text/plain NO lleva el id: ese carril es de la grilla */
+      R.planoNoEsElId = dt1.getData('text/plain') !== String(docId);
+
+      /* ── 3 · UN ARRASTRE NATIVO (solo text/plain) NO DEJA NADA ──
+         Es el estado anterior: el <img> arrastrandose solo. Tiene que seguir sin hacer nada,
+         porque si cayera cualquier cosa que traiga text/plain se romperia el reordenamiento. */
+      const grid = document.getElementById('img-grid');
+      const celdaDe = i => grid ? grid.querySelector('[data-idx="' + i + '"]') : null;
+      const soltar = (i, tipos) => {
+        const dt = new DataTransfer();
+        Object.keys(tipos).forEach(k => dt.setData(k, tipos[k]));
+        const c = celdaDe(i);
+        if (!c) return false;
+        c.dispatchEvent(new DragEvent('dragover', { bubbles:true, cancelable:true, dataTransfer:dt }));
+        c.dispatchEvent(new DragEvent('drop',     { bubbles:true, cancelable:true, dataTransfer:dt }));
+        return true;
+      };
+      R.soltoNativo = soltar(1, { 'text/plain':'data:image/jpeg;base64,AAAA' });
+      await esperar(700);
+      R.nativoNoCae = imgSlots.filter(x => x && x.dataURL).length === R.slots0;
+
+      /* ── 3bis · EL dragover DEL CONTENEDOR MARCA EL EVENTO ──
+         Sin preventDefault en dragover el drop NO LLEGA. Sobre una CELDA esta condicion no
+         probaria nada: _imgAttach ya le pone a cada celda un dragover que previene SIEMPRE,
+         para reordenar slots, asi que el navegador dispararia el drop igual y la linea seria
+         redundante ahi. Donde SI hace falta es en el HUECO entre celdas -el drop cae al primer
+         espacio libre- y ahi ningun manejador de celda corre.
+         Por eso se despacha sobre el CONTENEDOR: los oyentes de _imgAttach viven en los
+         descendientes, no en el, asi que defaultPrevented refleja unicamente al manejador
+         delegado. Es lo unico que puede cazar que se le saque el preventDefault -el drop
+         sintetico no sirve: la regla la aplica el motor de arrastre, no dispatchEvent-. */
+      const sobreGrid = tipos => {
+        const dt = new DataTransfer();
+        Object.keys(tipos).forEach(k => dt.setData(k, tipos[k]));
+        const ev = new DragEvent('dragover', { bubbles:true, cancelable:true, dataTransfer:dt });
+        if (!grid) return null;
+        grid.dispatchEvent(ev);
+        return ev.defaultPrevented;
+      };
+      R.overPrevenido = sobreGrid({ 'application/x-ceibomed-bib': String(docId) }) === true;
+      /* Y el carril ajeno NO se toca: text/plain es de la grilla para reordenar. */
+      R.overAjenoLibre = sobreGrid({ 'text/plain':'3' }) === false;
+
+      /* ── 4 · EL ARRASTRE DE VERDAD CAE EN EL ESPACIO QUE SE SEÑALO ── */
+      R.solto = soltar(1, { 'application/x-ceibomed-bib': String(docId) });
+      for (let i=0;i<80 && !(imgSlots[1] && imgSlots[1].dataURL); i++) await esperar(100);
+      R.cayoEnEl1 = !!(imgSlots[1] && imgSlots[1].dataURL);
+      R.noCayoEnOtro = !(imgSlots[0] && imgSlots[0].dataURL);
+
+      /* ── 5 · LO QUE NO VA AL INFORME NO SE PUEDE ARRASTRAR ──
+         La tarjeta que YA ocupa un slot no se manda al informe —duplicaria la ecografia— asi
+         que tampoco se arrastra, y lo dice con draggable="false" explicito: sin eso el <img>
+         se arrastra solo y el gesto vuelve a prometer algo que no pasa. */
+      await cineStripRender(); await esperar(600);
+      const strip2 = document.getElementById('cine-strip');
+      const tarjetas = strip2 ? [...strip2.querySelectorAll('[data-strip-i]')] : [];
+      R.nTarjetas = tarjetas.length;
+      R.ningunaSinDeclarar = tarjetas.every(t => t.getAttribute('draggable') !== null);
+      R.algunaNoArrastrable = tarjetas.some(t => t.getAttribute('draggable') === 'false');
+
+      /* ── 6 · BEFOREUNLOAD: con datos avisa ── */
+      const ev1 = { returnValue: undefined, defaultPrevented:false,
+                    preventDefault(){ this.defaultPrevented = true; } };
+      R.hayDatosAhora = _hayAlgoSinGuardar() === true;
+      const ret1 = _beforeUnloadAviso(ev1);
+      R.avisaConDatos = ev1.returnValue === '' && ev1.defaultPrevented === true && ret1 === '';
+
+      /* ── 7 · sin nada que perder, NO avisa ── */
+      imgVaciar(); __t.limpiar(); await esperar(300);
+      R.sinDatos = _hayAlgoSinGuardar() === false;
+      const ev2 = { returnValue: undefined, defaultPrevented:false,
+                    preventDefault(){ this.defaultPrevented = true; } };
+      const ret2 = _beforeUnloadAviso(ev2);
+      R.noAvisaSinDatos = ev2.returnValue === undefined && ev2.defaultPrevented === false &&
+                          ret2 === undefined;
+    } catch (e) {
+      R.err = String(e && e.message || e);
+    } finally {
+      window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+      try { if (togglePrevio === null) localStorage.removeItem('cfg-guardar-imagenes');
+            else localStorage.setItem('cfg-guardar-imagenes', togglePrevio); } catch (e) {}
+      try { if (idEst) await __t.borrar(idEst); } catch (e) {}
+      try { imgVaciar(); __t.limpiar(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: sin excepcion',                  !R.err, R.err || 'ok'],
+      ['DENOMINADOR: hay documento en la biblioteca', R.docGuardado && R.hayTarjeta,
+                                                      R.docGuardado + '/' + R.hayTarjeta],
+      ['DENOMINADOR: la grilla arranca vacia',        R.grillaVacia, R.slots0],
+      ['la tarjeta SE PUEDE arrastrar',               R.arrastrable, R.arrastrable],
+      ['el arrastre lleva un tipo propio',            R.tipoPropio, R.tipoPropio],
+      ['con el id del archivo',                       R.llevaElId, R.llevaElId],
+      ['y NO lo mete en text/plain',                  R.planoNoEsElId, R.planoNoEsElId],
+      ['DENOMINADOR: el arrastre nativo se solto',    R.soltoNativo, R.soltoNativo],
+      ['un arrastre nativo NO deja nada',             R.nativoNoCae, R.nativoNoCae],
+      ['el dragover del CONTENEDOR marca el evento',  R.overPrevenido, R.overPrevenido],
+      ['y NO toca el carril de reordenar',            R.overAjenoLibre, R.overAjenoLibre],
+      ['DENOMINADOR: el arrastre de verdad se solto', R.solto, R.solto],
+      ['LLEGA AL ESPACIO QUE SE SEÑALO',              R.cayoEnEl1, R.cayoEnEl1],
+      ['y no a otro',                                 R.noCayoEnOtro, R.noCayoEnOtro],
+      ['DENOMINADOR: hay mas de una tarjeta',         R.nTarjetas >= 2, R.nTarjetas],
+      ['todas declaran si se arrastran o no',         R.ningunaSinDeclarar, R.ningunaSinDeclarar],
+      ['y lo que no va al informe dice que NO',       R.algunaNoArrastrable, R.algunaNoArrastrable],
+      ['DENOMINADOR: hay datos sin guardar',          R.hayDatosAhora, R.hayDatosAhora],
+      ['CERRAR LA PESTAÑA avisa con datos',           R.avisaConDatos, R.avisaConDatos],
+      ['DENOMINADOR: despues no queda nada',          R.sinDatos, R.sinDatos],
+      ['y sin datos NO avisa',                        R.noAvisaSinDatos, R.noAvisaSinDatos]
+    ] };
+  })();
+`);
+
+
+
 
 
 
