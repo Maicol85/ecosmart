@@ -4,6 +4,119 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## El VTI no se podía medir: la herramienta nunca estuvo en la lista de arrastre (TC-218)
+
+**La envolvente no se podía trazar. Nunca.** `_medAreaDown` gateaba por herramienta con una
+cadena de `!==` y **`'vti'` no estaba** —verificado con `git log -S`: cero commits, no es que se
+haya caído, es que nunca entró—. El `mousedown` salía de inmediato, `_medTrazo` no se poblaba, y
+la rama de VTI de `_medAreaUp` —que existe desde el primer día— era **código muerto**: nunca
+había un trazo que soltar.
+
+### ⚠️ POR QUÉ NINGÚN CASO LO VIO: TC-218 probaba el ayudante, no la puerta
+
+`_vtiDe(pts)` se llamaba **directo**, con los puntos armados a mano, y el caso ni siquiera abría
+el visor. Probaba la integral —que estaba perfecta: 20 cm exactos contra un triángulo analítico—
+y no el camino que la alimenta. Es la lección de TC-238 palabra por palabra, y la más cara de
+esta serie: *un caso que le pasa los datos a la función no prueba el camino que los arma.*
+Desde este commit TC-218 **arrastra de verdad**: abre el visor, aprieta, recorre y suelta.
+
+### Y son DOS mitades: la lista y la calibración de distancia
+
+Agregar `'vti'` a la lista **no alcanzaba**. La misma guarda lleva `|| _medCalibrando`, y
+`_medCalibrando` es la calibración de **distancia**, que se enciende sola cuando el archivo no
+trae ninguna región 2D medible — o sea en **todo Doppler espectral puro**, que es exactamente
+donde se mide un VTI. Así que el arrastre seguía saliendo por la segunda mitad.
+
+La compuerta correcta es *«frená a las que CONSUMEN la escala de distancia»*, no *«frená a
+todas»*: el VTI vive de la escala de velocidad y la del tiempo. Eso lo emparenta con Velocidad,
+Tiempo y FC, a las que `_medManejador` rutea **sin mirar `_medCalibrando`** — o sea que el VTI
+era el único Doppler bloqueado, y sólo por compartir el manejador de arrastre con las cuatro
+herramientas de distancia. Hoy `_MED_HERR_ARRASTRE` mapea cada una a la escala de la que vive.
+
+### El otro defecto, y era MUDO: el VTI ignoraba la calibración manual
+
+`_vtiDe` leía la escala de velocidad **sólo de la región del archivo** y no sabía que existe
+`_medCalibVel`, mientras `_medVelClic` le da precedencia —su propio comentario lo dice: «la
+calibración manual MANDA cuando existe»—. Las dos son alcanzables en la misma sesión sobre la
+misma imagen. Medido, con el archivo declarando 0,5 cm/s por píxel y el médico recalibrando a 1:
+
+| | escala | pico del mismo trazo |
+|---|---|---|
+| herramienta **Velocidad** | manual | **60 cm/s** |
+| panel **VTI** | la del archivo | **30 cm/s** |
+
+Un factor 2 —la razón entre las dos escalas— presentado como dos mediciones, sin nada que dijera
+cuál era cuál. Y el VTI **viaja**: alimenta el Qp/Qs y se puede cargar al informe. El invariante
+que lo fija no es «el número cambia» sino que **el pico del VTI sea idénticamente lo que devuelve
+`_medVelCalEn`**, o sea la misma función que usa la herramienta de al lado.
+
+**Y el panel lo DECLARA por fila, no una vez al pie:** las envolventes trazadas antes y después
+de recalibrar conviven en la misma lista, y sin la marca por fila dos números de escalas
+distintas se leen como dos mediciones comparables.
+
+### ⚠️ EL GRADIENTE MEDIO NO ES 4×(v media)²
+
+Es el promedio de `4v²` **en el tiempo**, así que se integra a la par del VTI y se divide por el
+tiempo total. Por Jensen —función convexa— la forma ingenua **subestima siempre**, y más cuanto
+más picuda es la envolvente: o sea más en la estenosis severa, que es donde el número decide la
+conducta. Sobre el triángulo del caso el valor analítico es `gradMax/3` = 0,333 mmHg y la ingenua
+da 0,25. **La condición exige las dos cosas** —que dé el analítico Y que difiera de la ingenua—:
+sin la segunda, una implementación equivocada que casualmente se acercara pasaría igual.
+
+### El sitio de guardado copiaba TRES de los SEIS campos
+
+`_medVtis.push` se quedaba con `cm`, `ms` y `picoCms`. Al agregar los gradientes, el panel leía
+`v.gradMax.toFixed` sobre `undefined` y **tiraba la barra de medición entera**. Lo cazó el caso,
+no la lectura. Se guarda la medición completa —`velManual` ni siquiera se podría reconstruir
+después, porque la calibración puede haber cambiado entre que se trazó y que se lee el panel— y
+el panel **omite** lo que falte en vez de romper: un throw ahí no deja el panel a medias, se
+lleva las nueve herramientas.
+
+### ⚠️ EL ARREGLO ESTUVO A PUNTO DE ENSANCHAR LO QUE EL VTI ACEPTA
+
+Al partir la compuerta en dos ejes, con `_medCalibVel` puesta el `velOK` se cumple por la vía
+manual y un **modo M** declara el eje de tiempo: pasaba y publicaba un «VTI» con unidades
+correctas y **sin ningún significado**. La calibración manual reemplaza una escala **ausente**;
+no pisa una presente que dice que el eje vertical es DISTANCIA. Hoy el modo M se rechaza
+**siempre**, y su comprobación va **antes** de la de velocidad — puesta después queda
+inalcanzable, porque con calibración manual la de velocidad ni se evalúa.
+
+**Asimetría declarada:** la herramienta Velocidad **sí** dejaría medir ahí, porque da precedencia
+a la calibración manual antes de mirar la región. Es deliberado: allá el médico ve un número
+suelto; acá lo integra y el resultado alimenta el Qp/Qs y el informe.
+
+### ⚠️ TC-218 ATRAPABA SU EXCEPCIÓN Y NO LA AFIRMABA
+
+Tenía `catch (e) { R.excepcion = ... }` y **ninguna condición la miraba**. Un throw a mitad
+dejaba las `R` de abajo en `undefined` y el caso reportaba *seis condiciones vagas* en vez de la
+causa. Hoy el denominador va primero. Al escribir un caso con `try/catch`, la primera condición
+es que no haya excepción.
+
+### El `\` dentro del template literal, tres veces en una sesión y una cara NUEVA
+
+La trampa que este archivo documenta diez veces volvió tres veces seguidas al escribir este caso,
+y una de las tres no estaba descrita:
+
+- **`/Vmax\s*[\d.]+\s*m\/s/`** → el literal se come la barra y llega **`/Vmaxs*[d.]+s*m/s/`**: el
+  `\/` quedó como `/` y **cerró el regex antes de tiempo**, dejando `s/` suelto. `SyntaxError`, y
+  el caso entero muerto por una condición cosmética. Las otras nueve veces el `\s` sólo dejaba de
+  matchear; ésta rompe el parseo.
+- **`.replace(/\s+/g, ' ')`** → `/s+/g`, que reemplazó **todas las eses por espacios**. El
+  diagnóstico decía «el e pectro», que es lo que lo delató.
+- Y el de siempre en `[\d.]`.
+
+**La regla sigue siendo la misma y ahora con más razón: dentro del cuerpo de un caso, `indexOf`.**
+
+### Dos comprobadores que daban rojo sobre código correcto
+
+Los dos del mismo tipo —el denominador—, y los dos costaron una corrida:
+
+- **`indexOf('VTI ')` enganchaba el ENCABEZADO del panel** («VTI — integral velocidad-tiempo»),
+  donde no hay número. Hay que buscar **desde la fila**, no desde el principio.
+- **`indexOf('CENTIMETROS')` sin tilde** sobre un mensaje que la lleva. Se busca `modo M`, que no
+  tiene acentos.
+
+
 ## Deformación: una casilla de Config que gobierna un GRUPO DEL VISOR (TC-248)
 
 El grupo **Deformación** del visor —Strain VI, LARS y Strain VD— queda detrás de una casilla en
@@ -1482,6 +1595,17 @@ Con `/Volumes/DISK_IMG` montado la suite pasó de 18 fallas a **3**: los 17 caso
   `#cine-med-calvel`, y falla **idéntico** en `f7f7fd5`, `1179859` y `35e9aa4` — o sea desde
   bastante antes de esta sesión. Queda declarado y sin tocar: es el módulo de velocidad, fuera
   del alcance de este commit.
+
+  > **⚠️ CORRECCIÓN (2026-09-23): «preexistente» era FALSO, y el método para concluirlo también.**
+  > `#cine-med-calvel` existió entre `543f4cb` y **`429244f`** —el rediseño del visor en cinco
+  > zonas, de esa misma jornada— que lo fusionó con el de recalibrar distancia en un control
+  > único (`cine-med-recal`) que cambia de rótulo según la herramienta activa. El caso no se
+  > reapuntó y murió desde ahí.
+  > Los tres commits que se citaron como prueba son **todos posteriores** a `429244f`
+  > (21 y 22 de septiembre contra el 20): **tres puntos de muestreo del mismo lado de la rotura
+  > no prueban que venga de antes**, sólo que ya estaba rota en los tres. Para afirmar
+  > «preexistente» hay que encontrar un commit donde el caso **pase**, o bisecar hasta el que
+  > lo rompe. Reparado y en verde el 2026-09-23.
 
 **La regla que deja: un caso apagado por falta de fixture NO es cobertura.** Mientras el pendrive
 esté desmontado, los 17 no vigilan nada y un cambio puede pasar por encima de ellos y llegar a

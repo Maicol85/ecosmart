@@ -47244,6 +47244,30 @@ function _dcmImgRegionVti(r) {
   return _dcmImgRegionVelocidad(r) && _dcmImgRegionTiempo(r);
 }
 
+/* La velocidad de un punto de la envolvente, con LA MISMA PRECEDENCIA QUE `_medVelClic`: la
+   calibración manual MANDA cuando existe.
+
+   ⚠️ ESTE ERA EL DEFECTO DE TC-197, y era MUDO. `_vtiDe` leía la escala de velocidad sólo de la
+   región del archivo y no sabía que existe `_medCalibVel`, mientras la herramienta Velocidad sí
+   le da precedencia — y las dos son alcanzables en la misma sesión sobre la misma imagen.
+   Medido antes de tocar nada, con el archivo declarando 0,5 cm/s por píxel y el médico
+   recalibrando a 1: el mismo trazo daba **pico 60 cm/s** en Velocidad y **pico 30 cm/s** en el
+   panel del VTI. Un factor 2 —la razón entre las dos escalas— presentado como dos mediciones,
+   sin nada que dijera cuál era cuál. Y el VTI viaja: alimenta el Qp/Qs y se puede cargar al
+   informe.
+
+   Recalibrar es una decisión explícita del médico sobre una escala que no le merece confianza;
+   que una herramienta la respete y la de al lado la ignore es la peor de las dos opciones. */
+function _vtiVelCmsEn(r0, y) {
+  return _medCalibVel ? _medVelCalEn(_medCalibVel, y) : _dcmImgVelocidadEn(r0, y);
+}
+
+/* Bernoulli simplificada, con v en m/s. DEUDA DECLARADA: la misma expresión está escrita en las
+   dos ramas de `_medVelClic` (la manual y la del archivo). No se unificaron acá porque el pedido
+   acotaba a no tocar el módulo de velocidad; queda anotado para que la próxima que mueva esta
+   fórmula las busque a las tres y no a una. */
+function _medGradMmHg(vms) { return 4 * vms * vms; }
+
 /* VTI desde la envolvente trazada, en CENTÍMETROS.
 
    Es la integral de |v| dt: por trapecios sobre los segmentos del trazo,
@@ -47264,35 +47288,67 @@ function _vtiDe(pts) {
   }
   const regs = _medRegs();
   const r0 = _dcmImgRegionEn(regs, pts[0].x, pts[0].y);
+  /* EL EJE DEL TIEMPO SALE SIEMPRE DE LA REGIÓN, y no hay respaldo manual para él —a diferencia
+     de la velocidad—. Por eso sin región no se puede integrar ni siquiera con la velocidad
+     calibrada a mano: faltaría el `dt`, y un VTI es cm/s × s. El mensaje nombra lo que falta de
+     verdad en cada caso, en vez de decir «no hay escala» cuando la mitad sí está. */
   if (!r0) {
-    return { ok:false, motivo:'El trazo arranca fuera de las zonas que el equipo declara, así que no hay escala.' };
+    return { ok:false, motivo: _medCalibVel
+      ? 'La velocidad está calibrada a mano, pero para el VTI falta la ESCALA DE TIEMPO y ésta no se puede calibrar: la tiene que declarar el archivo.\n\nEn esta imagen se pueden medir velocidades, no VTI.'
+      : 'El trazo arranca fuera de las zonas que el equipo declara, así que no hay escala.' };
   }
   for (let i = 1; i < pts.length; i++) {
     if (_dcmImgRegionEn(regs, pts[i].x, pts[i].y) !== r0) {
       return { ok:false, motivo:'El trazo cruza zonas de la imagen con escalas distintas. Recorré la envolvente dentro de una sola.' };
     }
   }
-  if (!_dcmImgRegionVti(r0)) {
-    /* Tres motivos distintos y tres respuestas distintas: decir «no es Doppler» en los tres
-       sería falso en dos de ellos. */
+  /* La compuerta pasó a pedir los dos ejes POR SEPARADO porque la velocidad ahora tiene dos
+     orígenes posibles: `_dcmImgRegionVti` exige que la REGIÓN declare las dos, y eso dejaba
+     afuera el caso que TC-197 reporta —archivo que declara el tiempo y una velocidad que el
+     médico recalibró—. El tiempo sigue saliendo sólo de la región. */
+  const tiempoOK = _dcmImgRegionTiempo(r0);
+
+  /* ⚠️ EL MODO M SE RECHAZA SIEMPRE, TAMBIÉN CON CALIBRACIÓN MANUAL PUESTA, y va ANTES de la
+     compuerta de velocidad porque si no queda inalcanzable: con `_medCalibVel` la velocidad se
+     da por buena y la condición de abajo ni se evalúa.
+
+     El motivo no es simetría sino la diferencia entre las dos cosas que hace la calibración
+     manual. Ahí el archivo NO tiene la escala ausente: la declara, y declara que el eje vertical
+     es DISTANCIA. La calibración manual es un reemplazo de una escala que falta, no un override
+     de una que dice otra cosa — un «VTI» sobre un modo M saldría con unidades correctas y sin
+     ningún significado, que es la clase de número plausible y equivocado que este archivo
+     persigue. La herramienta Velocidad sí lo permitiría, y es una asimetría DECLARADA: ahí el
+     médico ve un número suelto, acá lo integra y el resultado alimenta el Qp/Qs y el informe. */
+  if (tiempoOK && r0.uy === DCMIMG_UNI_CM) {
+    return { ok:false, motivo:'Este trazo tiene el eje vertical en CENTÍMETROS: es un modo M —distancia contra tiempo—, no un Doppler espectral.\n\nEl área bajo esa curva no sería un VTI.' };
+  }
+
+  const velOK = !!_medCalibVel || _dcmImgRegionVelocidad(r0);
+  if (!velOK || !tiempoOK) {
+    /* Tres motivos distintos y tres respuestas distintas: decir «no es Doppler» en todos
+       sería falso en dos de ellos. El del modo M ya salió arriba. */
     if (_dcmImgRegionMedible(r0)) {
       return { ok:false, motivo:'Esta herramienta es para Doppler espectral.\n\nAcá los dos ejes son distancia: usá ✏️ Área si querés medir una superficie.' };
     }
-    if (_dcmImgRegionTiempo(r0) && r0.uy === DCMIMG_UNI_CM) {
-      return { ok:false, motivo:'Este trazo tiene el eje vertical en CENTÍMETROS: es un modo M —distancia contra tiempo—, no un Doppler espectral.\n\nEl área bajo esa curva no sería un VTI.' };
+    if (!tiempoOK) {
+      return { ok:false, motivo:'Esta zona declara la escala de velocidad pero no la del tiempo, y el VTI necesita las dos.\n\nLa del tiempo no se puede calibrar a mano: la tiene que traer el archivo.' };
     }
-    if (_dcmImgRegionVelocidad(r0)) {
-      return { ok:false, motivo:'Esta zona declara la escala de velocidad pero no la del tiempo, y el VTI necesita las dos.' };
-    }
-    return { ok:false, motivo:'Esta zona no declara escala de velocidad, así que no se puede integrar acá.' };
+    return { ok:false, motivo:'Esta zona no declara escala de velocidad, así que no se puede integrar acá.\n\nSi el archivo no la trae, calibrala con «Calibrar vel.» y volvé a trazar.' };
   }
-  let cm = 0, anchoPx = 0;
+  /* ⚠️ EL GRADIENTE MEDIO ES EL PROMEDIO DE 4v² EN EL TIEMPO, NO 4×(v media)². No es lo mismo y
+     la diferencia no es chica: por la desigualdad de Jensen sobre una función convexa, la
+     segunda forma SUBESTIMA siempre, y más cuanto más picuda es la envolvente — o sea más
+     justamente en la estenosis severa, que es donde el número decide. Por eso se integra 4v² a
+     la par del VTI y se divide por el tiempo total, en vez de derivarlo del VTI ya calculado. */
+  let cm = 0, anchoPx = 0, gradSeg = 0;
   for (let i = 0; i + 1 < pts.length; i++) {
-    const v1 = Math.abs(_dcmImgVelocidadEn(r0, pts[i].y));
-    const v2 = Math.abs(_dcmImgVelocidadEn(r0, pts[i + 1].y));
+    const v1 = Math.abs(_vtiVelCmsEn(r0, pts[i].y));
+    const v2 = Math.abs(_vtiVelCmsEn(r0, pts[i + 1].y));
     const dpx = Math.abs(pts[i + 1].x - pts[i].x);
+    const dt = dpx * r0.dx;                       // segundos de este segmento
     anchoPx += dpx;
-    cm += ((v1 + v2) / 2) * dpx * r0.dx;
+    cm += ((v1 + v2) / 2) * dt;
+    gradSeg += ((_medGradMmHg(v1 / 100) + _medGradMmHg(v2 / 100)) / 2) * dt;
   }
   const ms = anchoPx * r0.dx * 1000;
   if (!(cm > 0) || !isFinite(cm)) {
@@ -47307,8 +47363,17 @@ function _vtiDe(pts) {
   }
   /* El PICO, que es lo que el médico reconoce de un vistazo y sirve para verificar el trazo. */
   let pico = 0;
-  pts.forEach(q => { const a = Math.abs(_dcmImgVelocidadEn(r0, q.y)); if (a > pico) pico = a; });
-  return { ok:true, cm: cm, ms: ms, picoCms: pico, pts: pts };
+  pts.forEach(q => { const a = Math.abs(_vtiVelCmsEn(r0, q.y)); if (a > pico) pico = a; });
+  const segundos = anchoPx * r0.dx;
+  return { ok:true, cm: cm, ms: ms, picoCms: pico, pts: pts,
+           gradMax: _medGradMmHg(pico / 100),
+           /* `segundos > 0` está garantizado por la guarda de `cm > 0` de arriba —si el trazo no
+              avanza en horizontal, `cm` da 0 y ya salió— pero se comprueba igual: una división
+              por cero acá publicaría `Infinity` como gradiente medio. */
+           gradMedio: segundos > 0 ? gradSeg / segundos : null,
+           /* DE DÓNDE SALIÓ LA ESCALA. Conviven dos fuentes y el panel tiene que poder decirlo:
+              «un número de velocidad sin saber de dónde salió la escala no se puede auditar». */
+           velManual: !!_medCalibVel };
 }
 
 /* ── CALIBRACIÓN MANUAL DE VELOCIDAD ─────────────────────────────────────────────────────
@@ -48673,9 +48738,40 @@ function _vMontarUp() {
   _vUpPuesto = true;
 }
 
+/* ⚠️ LAS HERRAMIENTAS QUE SE MIDEN ARRASTRANDO, en una lista con nombre y no en una cadena de
+   `!==` dentro de la guarda. Las otras cuatro —distancia, velocidad, tiempo y FC— se miden a
+   CLIC, así que no entran.
+
+   ESTO ERA EL DEFECTO DE FONDO DEL VTI, y era total: `'vti'` NUNCA estuvo en esa cadena
+   —verificado con `git log -S`, cero commits—, así que el `mousedown` salía de inmediato y la
+   envolvente NO SE PODÍA TRAZAR. La rama de VTI de `_medAreaUp` existe desde el primer día y
+   era CÓDIGO MUERTO: nunca había un `_medTrazo` que soltar.
+
+   Por qué no lo vio nadie: TC-218 llama a `_vtiDe(pts)` DIRECTO, con los puntos armados a mano.
+   Probaba la integral —que está bien, exacta contra un triángulo analítico— y no la puerta que
+   la alimenta. Es la lección de TC-238 otra vez: *un caso que le pasa los datos a la función no
+   prueba el camino que los arma*. Desde este commit TC-218 arrastra de verdad.
+
+   Con la lista nombrada, agregar una herramienta de arrastre y olvidarla acá deja de ser un
+   `!==` de más en una cadena que ya tenía cinco.
+
+   El valor dice DE QUÉ ESCALA vive cada una, y eso gobierna la segunda mitad de la guarda:
+   `_medCalibrando` es la calibración de DISTANCIA, y tiene que frenar a las que la consumen,
+   no a todas. El VTI vive de la escala de VELOCIDAD y la del TIEMPO; la distancia no le entra
+   en la fórmula. Eso lo emparenta con Velocidad, Tiempo y FC, que se miden a clic y a las que
+   `_medManejador` rutea SIN mirar `_medCalibrando`.
+
+   ⚠️ Y ERA LA OTRA MITAD DEL MISMO DEFECTO, la que importa en producción: `_medCalibrando` se
+   enciende sola cuando el archivo no trae ninguna región 2D medible —o sea en TODO Doppler
+   espectral puro, que es exactamente donde se mide un VTI—. Así que aun con `'vti'` en la lista,
+   el arrastre seguía saliendo por la guarda y la envolvente seguía sin poder trazarse. */
+const _MED_HERR_ARRASTRE = { area:'dist', simpson:'dist', strain:'dist', lars:'dist',
+                             vd:'dist', vti:'dop' };
+
 function _medAreaDown(ev) {
-  if ((_medHerr !== 'area' && _medHerr !== 'simpson' && _medHerr !== 'strain' &&
-       _medHerr !== 'lars' && _medHerr !== 'vd') || _medCalibrando) return;
+  const usa = _MED_HERR_ARRASTRE[_medHerr];
+  if (!usa) return;
+  if (usa === 'dist' && _medCalibrando) return;
   /* En modo 3 puntos el arrastre mueve un punto de CONTROL, no dibuja un contorno nuevo. */
   if (_medHerr === 'strain' && _strain && _strain.modo === '3pt') {
     const q = _medPuntoCanvas(ev);
@@ -48750,7 +48846,12 @@ function _medAreaUp() {
   if (_medHerr === 'vti') {
     const r = _vtiDe(pts);
     if (!r.ok) { alert(r.motivo); _medPintar(); _medEstado(); return; }
-    _medVtis.push({ pts: pts, cm: r.cm, ms: r.ms, picoCms: r.picoCms });
+    /* SE GUARDA LA MEDICIÓN ENTERA, no tres de sus seis campos. El gradiente y la marca de
+       escala salen del MISMO trazo que el VTI, así que recalcularlos después sería una segunda
+       derivación del mismo hecho — y `velManual` ni siquiera se podría reconstruir, porque la
+       calibración puede haber cambiado entre que se trazó y que se lee el panel. */
+    _medVtis.push({ pts: pts, cm: r.cm, ms: r.ms, picoCms: r.picoCms,
+                    gradMax: r.gradMax, gradMedio: r.gradMedio, velManual: r.velManual });
     _medPintar(); _medEstado();
     return;
   }
@@ -52278,9 +52379,27 @@ function _vtiPanel() {
   vs.forEach((v, i) => {
     const rot = v.rol === 'tsvi' ? ' · <b style="color:#60a5fa;">TSVI</b>'
               : v.rol === 'tsvd' ? ' · <b style="color:#34d399;">TSVD</b>' : '';
+    /* Los cuatro salen del MISMO trazo, así que van juntos: leer el VTI sin el gradiente al lado
+       obliga a volver a trazar para obtenerlo. El gradiente medio puede ser null si el trazo no
+       avanzó en el tiempo —ahí se omite en vez de imprimir un guion que se lee como un cero—. */
+    /* Los dos gradientes se omiten si no están, en vez de romper. Una entrada puede venir sin
+       ellos —una sesión anterior a este cambio, o un sitio de guardado nuevo que se olvide de
+       copiarlos— y `_vtiPanel` se dibuja DENTRO de la barra de medición: un throw acá no deja
+       el panel a medias, se lleva puesta la barra entera con sus nueve herramientas. Es la
+       misma razón por la que el panel único de Simpson se pinta dentro de un try.
+       Omitir y no imprimir un guion: un «—» al lado de «Grad medio» se lee como un cero. */
+    const gx = (typeof v.gradMax === 'number' && isFinite(v.gradMax))
+      ? ' · Grad máx <b>' + v.gradMax.toFixed(1) + ' mmHg</b>' : '';
+    const gm = (typeof v.gradMedio === 'number' && isFinite(v.gradMedio))
+      ? ' · Grad medio <b>' + v.gradMedio.toFixed(1) + ' mmHg</b>' : '';
+    /* La escala manual se DECLARA en cada fila y no una vez al pie: las envolventes trazadas
+       antes y después de recalibrar conviven en la misma lista, y sin la marca por fila dos
+       números de escalas distintas se leen como dos mediciones comparables. */
+    const esc = v.velManual ? ' <span style="color:var(--orange);" title="La escala de velocidad la calibró el médico a mano; el eje del tiempo sale del archivo.">· escala vel. manual</span>' : '';
     h += '<div style="display:flex;align-items:center;gap:5px;font-size:11px;">' +
-         '<span>VTI <b>' + v.cm.toFixed(1) + ' cm</b> · pico ' + (v.picoCms / 100).toFixed(2) +
-         ' m/s · ' + Math.round(v.ms) + ' ms' + rot + '</span>' +
+         '<span>VTI <b>' + v.cm.toFixed(1) + ' cm</b> · Vmax <b>' + (v.picoCms / 100).toFixed(2) +
+         ' m/s</b>' + gx + gm +
+         ' · ' + Math.round(v.ms) + ' ms' + rot + esc + '</span>' +
          '<button type="button" class="btn btn-ghost" data-vti-rol="tsvi" data-vti-i="' + i +
          '" style="padding:1px 6px;font-size:10px;margin-left:auto;">→ TSVI</button>' +
          '<button type="button" class="btn btn-ghost" data-vti-rol="tsvd" data-vti-i="' + i +
@@ -70870,8 +70989,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260923-0001';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790132468709;                 /* eco-build-ms */
+const ECO_BUILD    = '20260923-0111';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790136700164;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -70957,7 +71076,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260923-0001</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260923-0111</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

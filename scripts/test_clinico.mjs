@@ -13353,17 +13353,26 @@ caso('TC-197', 'Velocidad: el signo del archivo es correcto, se muestra magnitud
       await new Promise(r => setTimeout(r, 140));
       R.calibVelLimpiaAlCambiar = !_medCalibVel;          // cambiar de imagen la borra
       R.sigueSinOfrecerse = !_medCalibrandoVel;
-      const bcal = document.getElementById('cine-med-calvel');
+      /* ⚠️ EL ID ES cine-med-recal, NO cine-med-calvel. Este caso pinaba el segundo, que
+         existio entre 543f4cb y 429244f: el rediseno del visor en cinco zonas fusiono el boton
+         de calibrar velocidad con el de recalibrar distancia en un control unico que cambia de
+         rotulo segun la herramienta activa. El caso no se reapunto y desde entonces MORIA con
+         "null.click" — una excepcion, no una condicion, asi que las tres condiciones de abajo
+         nunca llegaban a evaluarse. Es la leccion de TC-207: un caso que se muere no diagnostica.
+         Y se dio por "preexistente" comparando contra tres commits que eran TODOS posteriores
+         al renombre: tres puntos del mismo lado de la rotura no prueban que venga de antes. */
+      const bcal = document.getElementById('cine-med-recal');
       R.hayBotonCalibrar = !!bcal;
-      R.botonDice = bcal && bcal.textContent;
-      bcal.click();
+      R.botonDice = bcal ? bcal.textContent : '(no existe cine-med-recal)';
+      /* Se clickea con guarda: sin ella un boton ausente mata el caso en vez de reportarlo. */
+      if (bcal) bcal.click();
       await new Promise(r => setTimeout(r, 140));
       R.forzoCalibrar = _medCalibrandoVel;
       window.prompt = () => '50';
       clic(cxm, 400); await new Promise(r => setTimeout(r, 110));
       clic(cxm, 300); await new Promise(r => setTimeout(r, 160));
       R.avisaQuePisa = /pisando la escala que trae el archivo/.test(document.getElementById('cine-med-barra').innerHTML);
-      R.botonRecalibrar = (document.getElementById('cine-med-calvel')||{}).textContent;
+      R.botonRecalibrar = (document.getElementById('cine-med-recal')||{}).textContent;
 
       cineCerrar();
     } finally { window.alert = alertOrig; window.prompt = promptOrig; }
@@ -13392,8 +13401,13 @@ caso('TC-197', 'Velocidad: el signo del archivo es correcto, se muestra magnitud
       ['cambiar de imagen borra la calibracion manual', R.calibVelLimpiaAlCambiar, R.calibVelLimpiaAlCambiar],
       ['con escala del archivo sigue sin ofrecerse',    R.sigueSinOfrecerse, R.sigueSinOfrecerse],
       ['pero hay boton para forzarla',                  R.hayBotonCalibrar && R.forzoCalibrar, R.botonDice],
+      /* El rotulo se pina por el INVARIANTE y no por la oracion exacta: que el boton hable de
+         VELOCIDAD y no de la recalibracion generica de distancia, que es lo que distingue las
+         dos cosas que ese control unico hace segun la herramienta activa. Pinar el texto entero
+         es lo que rompio este caso cuando el rediseno lo acorto a «Calibrar vel.». */
+      ['y el boton habla de VELOCIDAD, no de distancia', /vel/i.test(R.botonDice||''), R.botonDice],
       ['y al pisarla la barra lo DECLARA',              R.avisaQuePisa, R.avisaQuePisa],
-      ['el boton pasa a decir Recalibrar velocidad',    /Recalibrar velocidad/.test(R.botonRecalibrar||''), R.botonRecalibrar]
+      ['despues de pisarla ofrece RE-calibrarla',       /recalib/i.test(R.botonRecalibrar||'') && /vel/i.test(R.botonRecalibrar||''), R.botonRecalibrar]
     ] };
   })();
 `);
@@ -17527,6 +17541,60 @@ caso('TC-218', 'VTI en el visor: integral exacta, y el Qp/Qs con la formula del 
       R.ms = r.ok ? Math.round(r.ms) : null;
       R.picoYms = R.pico === 50 && R.ms === 800;
 
+      /* ── LOS CUATRO VALORES SALEN DEL MISMO TRAZO ──
+         Grad max = 4 x Vmax^2, con Vmax en m/s: el pico es 50 cm/s = 0,5 m/s -> 1 mmHg exacto.
+
+         ⚠️ Y EL GRADIENTE MEDIO NO ES 4 x (v media)^2. Sobre este triangulo la media de 4v^2 es
+         analitica y vale gradMax/3 = 0,3333 mmHg, mientras la forma ingenua —derivarlo del VTI,
+         o sea de la velocidad media, que es Vmax/2— daria 0,25. La condicion exige las DOS
+         cosas: que de el valor analitico Y que DIFIERA de la ingenua. Sin la segunda, una
+         implementacion equivocada que casualmente se acercara pasaria igual.
+         Por Jensen la ingenua SUBESTIMA siempre, y mas cuanto mas picuda es la envolvente: o
+         sea mas en la estenosis severa, que es donde el numero decide la conducta. */
+      R.gradMax = r.ok ? +r.gradMax.toFixed(6) : null;
+      R.gradMaxExacto = r.ok && Math.abs(r.gradMax - 1) < 1e-9;
+      R.gradMedio = r.ok ? +r.gradMedio.toFixed(6) : null;
+      R.gradMedioAnalitico = r.ok && Math.abs(r.gradMedio - 1/3) < 2e-3;
+      R.gradMedioNoEsIngenuo = r.ok && Math.abs(r.gradMedio - 0.25) > 1e-2;
+
+      /* ── LA CALIBRACION MANUAL MANDA, IGUAL QUE EN LA HERRAMIENTA VELOCIDAD (TC-197) ──
+         Este era el defecto, y era MUDO: _vtiDe leia la escala solo de la region y no sabia que
+         existe _medCalibVel, mientras _medVelClic le da precedencia. Las dos son alcanzables en
+         la misma sesion sobre la misma imagen, asi que el mismo trazo daba dos picos distintos
+         —60 y 30 cm/s medidos, un factor 2— sin nada que dijera cual era cual.
+         El invariante no es "el numero cambia": es que el pico del VTI sea EXACTAMENTE lo que
+         devuelve _medVelCalEn, o sea la misma funcion que usa la herramienta de al lado. */
+      const calPrevia = _medCalibVel;
+      _medCalibVel = { y0: 300, cmsPorPx: 1 };        // el doble de la del archivo (0,5)
+      const rMan = _vtiDe(pts);
+      R.manOk = rMan.ok;
+      R.manPico = rMan.ok ? +rMan.picoCms.toFixed(6) : null;
+      R.manVti = rMan.ok ? +rMan.cm.toFixed(6) : null;
+      R.manDeclara = rMan.ok ? rMan.velManual === true : null;
+      R.picoIgualQueVelocidad = rMan.ok &&
+        Math.abs(rMan.picoCms - _medVelCalEn(_medCalibVel, 200)) < 1e-12;
+      R.vtiEsElDoble = rMan.ok && Math.abs(rMan.cm - 2 * r.cm) < 1e-9;
+      R.archivoNoDeclara = r.ok && r.velManual === false;
+
+      /* ⚠️ Y LA CALIBRACION MANUAL NO CONVIERTE UN MODO M EN UN DOPPLER. Es el ensanche que el
+         arreglo estuvo a punto de meter: con _medCalibVel puesta, velOK se cumple por la via
+         manual y el modo M declara el eje de tiempo, asi que pasaba la compuerta y publicaba un
+         "VTI" con unidades correctas y sin significado. La calibracion manual reemplaza una
+         escala AUSENTE, no pisa una presente que dice que el eje vertical es DISTANCIA.
+         La condicion va con el modulo calibrado a mano a proposito: sin eso rechaza por la via
+         vieja y no prueba nada. */
+      const regModoM = { tipo:1, x0:0, y0:0, x1:600, y1:400, ux:4, uy:3, dx:0.004, dy:0.05, ry0:300, rvy:0 };
+      const regsOrig2 = window._medRegs;
+      window._medRegs = () => [regModoM];
+      const rMm = _vtiDe(pts);
+      R.modoMRechazado = rMm.ok === false;
+      /* Se busca 'modo M', que no lleva acentos: la primera version pinaba CENTIMETROS sin
+         tilde y el mensaje la tiene, asi que daba false sobre un rechazo correcto. */
+      R.modoMDiceCm = !!rMm.motivo && rMm.motivo.indexOf('modo M') > -1;
+      window._medRegs = regsOrig2;
+
+      _medCalibVel = calPrevia;
+
       /* EL VTI ES UNA MAGNITUD: el mismo trazo por DEBAJO de la base da lo mismo. Sin el valor
          absoluto saldria negativo, porque dy es negativo en las 132 regiones medidas. */
       const abajo = pts.map(q => ({ x:q.x, y: 600 - q.y }));
@@ -17620,6 +17688,79 @@ caso('TC-218', 'VTI en el visor: integral exacta, y el Qp/Qs con la formula del 
       _medVtis = [{ pts:pts, cm:20, ms:800, picoCms:50 }];
       medReset();
       R.resetBorraVtis = (_medVtis || []).length === 0;
+
+      /* ══ LA PUERTA, NO EL AYUDANTE ═════════════════════════════════════════════════════
+         Todo lo de arriba llama a _vtiDe(pts) DIRECTO, con los puntos armados a mano. Eso
+         prueba la integral —que estaba bien— y NO el camino que la alimenta, y por ese hueco
+         paso el defecto de fondo: la herramienta VTI nunca estuvo en la lista de las que se
+         miden ARRASTRANDO, asi que el mousedown salia de inmediato y la envolvente no se podia
+         trazar. La rama de VTI de _medAreaUp era codigo muerto desde el primer dia.
+         Verificado con git log -S: 'vti' no aparece en ese gate en ningun commit.
+         Desde aca el caso ARRASTRA de verdad: abre el visor, aprieta, recorre la envolvente y
+         suelta, que es lo que hace el medico. */
+      const JPG1 = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,219,0,67,0,8,6,6,7,6,5,8,7,7,7,9,9,8,10,12,20,13,12,11,11,12,25,18,19,15,20,29,26,31,30,29,26,28,28,32,36,46,39,32,34,44,35,28,28,40,55,41,44,48,49,52,52,52,31,39,57,61,56,50,60,46,51,52,50,255,192,0,11,8,0,1,0,1,1,1,17,0,255,196,0,20,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,255,196,0,20,16,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,218,0,8,1,1,0,0,63,0,42,159,255,217]);
+      _cineAbrir([{ nombre:'esp-vti', cuadros:1,
+        d:{ frags:[JPG1], cols:1, filas:1, msCuadro:0, fabricante:'', modelo:'', regiones:[reg] } }]);
+      await new Promise(r => setTimeout(r, 500));
+      if (!_medOn) medToggle();
+      medHerramienta('vti'); _medEstado();
+      await new Promise(r => setTimeout(r, 200));
+      _medVtis = [];
+      R.herrEsVti = _medHerr === 'vti';
+      const cvA = _medEl('cine-med');
+      R.hayCanvas = !!cvA;
+      if (cvA) {
+        const rcA = cvA.getBoundingClientRect();
+        const escA = cvA.width / rcA.width;
+        const evA = (t, x, y) => cvA.dispatchEvent(new MouseEvent(t,
+          { bubbles:true, cancelable:true, clientX: rcA.left + x/escA, clientY: rcA.top + y/escA }));
+        R.diagArrastre = 'medOn=' + _medOn + ' down=' + (typeof cvA.onmousedown) +
+                         ' calibrando=' + _medCalibrando + ' herr=' + _medHerr +
+                         ' rect=' + Math.round(rcA.width) + 'x' + Math.round(rcA.height) +
+                         ' cv=' + cvA.width + 'x' + cvA.height;
+        evA('mousedown', 100, 300);
+        R.arrastreArranco = !!_medTrazo;                 // <- lo que el defecto impedia
+        for (let x = 102; x <= 200; x += 2) evA('mousemove', x, 300 - (x - 100));
+        for (let x = 202; x <= 300; x += 2) evA('mousemove', x, 300 - (300 - x));
+        R.puntosDelTrazo = _medTrazo ? _medTrazo.length : 0;
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true }));
+        await new Promise(r => setTimeout(r, 350));
+      }
+      R.vtiPorArrastre = (_medVtis || []).length === 1;
+      const vA = (_medVtis || [])[0];
+      /* El triangulo es el mismo de arriba, pero trazado a pulso: la cuantizacion del clic mueve
+         el resultado ~1 %, asi que se compara contra el analitico con esa tolerancia y no con
+         la exactitud que si se le exige a la llamada directa. */
+      R.vtiArrastreCerca = !!vA && Math.abs(vA.cm - 20) < 0.5;
+      R.arrastreTraeTodo = !!vA &&
+        ['cm','ms','picoCms','gradMax','gradMedio','velManual'].every(k => k in vA);
+      /* ⚠️ SIN REGEX ACA, Y NO ES ESTILO. El cuerpo de un caso es un TEMPLATE LITERAL, asi que
+         se come las barras invertidas: la primera version usaba /Vmax\\s*[\\d.]+\\s*m\\/s/ y lo
+         que llegaba a la pagina era /Vmaxs*[d.]+s*m/s/ — el \\/ quedo como / y CERRO el regex
+         antes de tiempo, dejando s/ suelto: SyntaxError, y el caso entero muerto por una
+         condicion cosmetica. Es la trampa del \\s que este archivo documenta diez veces, con
+         una cara nueva. indexOf no tiene escapes que perder. */
+      /* NI SIQUIERA PARA NORMALIZAR: la primera version hacia .replace(/\\s+/g,' ') y el template
+         literal dejo /s+/g, o sea que reemplazo TODAS LAS ESES por espacios — el diagnostico
+         decia «el e pectro». El textContent del panel ya viene con espacios simples. */
+      const barraA = ((_medEl('cine-med-barra') || {}).textContent || '');
+      /* 'VTI ' aparece tambien en el encabezado del panel, asi que se busca la FILA: la que
+         lleva el numero con su unidad. Sin esto el denominador matchea el texto de ayuda. */
+      const iVTI = barraA.indexOf('VTI ', barraA.indexOf('latido'));
+      /* Se busca DESDE la fila, no desde el principio: 'VTI ' aparece antes en el encabezado
+         —«VTI — integral velocidad-tiempo»— y ahi no hay numero, asi que buscando desde 0 la
+         comprobacion daba false sobre un panel perfectamente correcto. */
+      const tieneNum = (etq) => {
+        const k = barraA.indexOf(etq, iVTI < 0 ? 0 : iVTI);
+        if (k < 0) return false;
+        const resto = barraA.slice(k + etq.length, k + etq.length + 14);
+        return /[0-9]/.test(resto);            // sin barras invertidas: clase explicita
+      };
+      R.panelCuatro = iVTI >= 0 && tieneNum('VTI ') && tieneNum('Vmax ') &&
+                      tieneNum('Grad máx ') && tieneNum('Grad medio ') &&
+                      barraA.indexOf('mmHg') > -1 && barraA.indexOf('m/s') > -1;
+      R.filaPanel = iVTI >= 0 ? barraA.slice(iVTI, iVTI + 95).trim() : '(sin fila)';
+      try { cineCerrar(); } catch (e) {}
     } catch (e) { R.excepcion = String(e && e.message || e); }
     finally {
       window.toast = toastOrig; window.alert = alertOrig;
@@ -17628,8 +17769,21 @@ caso('TC-218', 'VTI en el visor: integral exacta, y el Qp/Qs con la formula del 
       try { __t.limpiar(); } catch (e) {}
     }
     return { extra: [
+      /* El cuerpo atrapa en R.excepcion y hasta hoy NADIE lo afirmaba: un throw a mitad dejaba
+         las R de abajo en undefined y el caso reportaba seis condiciones vagas en vez de la
+         causa. El denominador va primero. */
+      ['DENOMINADOR: sin excepcion',                 !R.excepcion, R.excepcion || 'ok'],
       ['VTI EXACTO contra un triangulo de area conocida', R.exacto, R.cm + ' cm (analitico 20)'],
       ['y devuelve el pico y la duracion',           R.picoYms, R.pico + ' cm/s / ' + R.ms + ' ms'],
+      ['Grad max es 4V2 del mismo trazo',            R.gradMaxExacto, R.gradMax + ' mmHg (analitico 1)'],
+      ['Grad medio es el promedio de 4v2 en el TIEMPO', R.gradMedioAnalitico, R.gradMedio + ' mmHg (analitico 0.3333)'],
+      ['y NO 4x(v media)2, que daria 0.25',          R.gradMedioNoEsIngenuo, R.gradMedio],
+      ['DENOMINADOR: con escala del archivo lo declara asi', R.archivoNoDeclara, R.archivoNoDeclara],
+      ['LA CALIBRACION MANUAL MANDA sobre la del archivo', R.manOk && R.vtiEsElDoble, R.manVti + ' vs ' + R.cm],
+      ['y el pico del VTI es EL MISMO que mide Velocidad', R.picoIgualQueVelocidad, R.manPico],
+      ['y el panel puede decir que la escala es manual', R.manDeclara, R.manDeclara],
+      ['pero NO convierte un modo M en Doppler',      R.modoMRechazado, R.modoMRechazado],
+      ['y lo rechaza por el eje en CENTIMETROS',      R.modoMDiceCm, R.modoMDiceCm],
       ['ES UNA MAGNITUD: el trazo espejado da lo mismo', R.espejoIgual, R.espejo],
       ['rechaza el modo M y el 2D, con motivos DISTINTOS', R.motivosDistintos, R.rechazaModoM + '/' + R.rechaza2D],
       ['y un trazo que no avanza no publica numero', R.bandaCorta, R.bandaCorta],
@@ -17646,7 +17800,14 @@ caso('TC-218', 'VTI en el visor: integral exacta, y el Qp/Qs con la formula del 
       ['VTI esta en el grupo Doppler/M',             R.vtiEnLista, R.vtiEnLista],
       ['las otras ocho herramientas siguen',         R.otrasSiguen, R.otrasSiguen],
       ['y se puede cambiar entre ellas',             R.eligeVti && R.eligeVel && R.eligeDist, R.eligeVti],
-      ['Borrar y cambiar de cuadro limpian los VTI', R.borraVtis && R.resetBorraVtis, R.borraVtis + '/' + R.resetBorraVtis]
+      ['Borrar y cambiar de cuadro limpian los VTI', R.borraVtis && R.resetBorraVtis, R.borraVtis + '/' + R.resetBorraVtis],
+      ['DENOMINADOR: el visor abrio con VTI elegido', R.hayCanvas && R.herrEsVti, R.hayCanvas + '/' + R.herrEsVti],
+      ['EL ARRASTRE ARRANCA EL TRAZO (el defecto)',  R.arrastreArranco, R.diagArrastre],
+      ['y recorre la envolvente',                    R.puntosDelTrazo > 50, R.puntosDelTrazo],
+      ['SOLTAR GUARDA UNA MEDICION',                 R.vtiPorArrastre, R.vtiPorArrastre],
+      ['con el VTI del triangulo analitico',         R.vtiArrastreCerca, (R.filaPanel||'').slice(0,40)],
+      ['y los seis campos, no tres',                 R.arrastreTraeTodo, R.arrastreTraeTodo],
+      ['el panel muestra VTI, Vmax, Grad max y Grad medio', R.panelCuatro, R.filaPanel]
     ] };
   })();
 `);
