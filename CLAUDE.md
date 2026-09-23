@@ -4,6 +4,192 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## «No deja importar sin guardar» NO REPRODUCE — y lo que sí faltaba era el cineloop (TC-246)
+
+El pedido del 2026-09-23 decía que EcoSmart no permite importar si el estudio no está guardado.
+**Medido antes de tocar una línea**, en un estudio sin nombre, sin cédula y sin guardar:
+
+| | |
+|---|---|
+| DICOM fijo por `dcmImgImportar` | **entra** — slot +1 |
+| JPEG por `mediosImportar` | **entra** — slot +1 |
+| CHM por `dcmImportarSR` | **abre su vista previa con 35 filas**, y los slots anteriores siguen |
+| excepciones | **cero** |
+
+Ninguna de las cuatro puertas de importación mira el uuid ni `_cinePuedeGuardar`. Lo que el
+médico ve es un **toast** que avisa que la imagen no se va a escribir en disco porque «Guardar
+imágenes con los estudios» está **apagado de fábrica** — y eso no es una restricción para
+importar: es el aviso que se agregó a propósito para que *el interruptor deje de mentir sobre el
+disco*. **Sacarlo reintroduce un defecto cerrado**, y hay una condición de TC-246 que lo fija.
+
+### Lo que SÍ faltaba, y es una asimetría vieja
+
+`_cinePuedeGuardar()` exige toggle **y** estudio guardado, y gobierna **escribir en disco**, no
+importar. Para las **fijas** existe la contrapartida desde TC-233 —`medFijasPersistir(uuid)`,
+disparada desde `imgPersistir`, que es el único momento en que el uuid existe—. Para los
+**cineloops no existía**: el 💾 del visor sobre un estudio sin guardar decía «guardá el estudio
+primero» y **no dejaba nada anotado**. Había que acordarse de volver al visor y apretarlo otra
+vez, y nadie se acuerda.
+
+Hoy `_cineEncolar` lo anota y `_cinePendientesPersistir(uuid)` lo escribe al guardar.
+
+### ⚠️ SE ENCOLA SÓLO SI LO QUE FALTA ES EL uuid
+
+Por eso `_cinePuedeGuardar` devuelve `falta:'toggle'|'uuid'` y no sólo `ok`. Con el toggle
+apagado, encolar sería prometer un guardado que **no va a ocurrir nunca**: ahí el médico tiene
+que ir a encenderlo, y el `alert` de siempre es la respuesta correcta.
+
+### ⚠️ LA LLAMADA VA ARRIBA DEL `return` TEMPRANO DE `imgPersistir`
+
+Ese return corta cuando **no hay imágenes** (`!vivas.length && !_imgEditado`), y un estudio puede
+tener **sólo cineloops**: el médico que importó un cineloop, apretó 💾 y no guardó todavía no
+tiene ningún slot lleno. Puesta debajo, la cola no se vaciaba nunca y el 💾 volvía a ser el botón
+que no anota nada. Es el modo de falla de TC-233 con la variante de que **lo que corta es la
+ausencia de otra cosa**.
+
+### La cola se vacía al cambiar de estudio, o es una fuga entre pacientes
+
+Es memoria de sesión y sobrevive al cambio de estudio igual que la época. Sin la línea en
+`limpiarCampos`, un cineloop que el médico pidió guardar sobre el paciente A —y que nunca se
+escribió porque no guardó ese estudio— se escribiría **dentro del estudio del paciente B**. Es la
+fuga de `ete_tavi_jet_horas` con los píxeles de otro paciente.
+
+**La asignación va pelada, sin `typeof` ni try/catch.** `_cinePendientes` es un `let` del mismo
+bloque declarado más abajo: a la hora en que `limpiarCampos` corre ya está inicializado, y un
+`typeof` sobre zona muerta **lanza** en vez de devolver `'undefined'` — envuelto en un catch
+dejaría la cola sin limpiar **en silencio**, que es el fallo abierto que la línea viene a cerrar.
+
+### Encolar RETIENE MEMORIA, y se declara
+
+Los fragmentos son vistas sobre el ArrayBuffer del archivo entero, así que mientras la cola viva
+esos megas viven con ella — es el mismo motivo por el que `cineCerrar` suelta `V.datos`, y el más
+grande del pendrive son 17 MB. Se acepta porque la cola **sólo tiene lo que el médico pidió
+guardar** y se vacía al guardar o al cambiar de estudio. Encolar «todos los cineloops abiertos por
+las dudas» habrían sido decenas de MB que nadie pidió.
+
+## «Cerrar» no existe como una sola cosa, y el modal de tres opciones YA ESTABA
+
+El pedido pedía un aviso «al cerrar» con tres opciones. En esta app **cerrar son tres cosas
+distintas** y sólo una tenía dueño:
+
+| | qué hacía |
+|---|---|
+| cerrar la pestaña | **no hay ningún `beforeunload`** — no avisa nada |
+| «Cerrar sesión» | no avisa, y deja formulario e imágenes intactos detrás del overlay |
+| **«Nuevo estudio»** | **ya tenía el modal con las tres opciones exactas** |
+
+Decisión de Maicol (2026-09-23): el aviso es el de **«Nuevo estudio»**. Lo que cambió es el texto
+—nombra las **imágenes**, no sólo «los datos»— y que **sólo aparece si hay algo que perder**.
+
+### El título nombra las imágenes a propósito
+
+El caso que este aviso protege es el del médico que importó del pendrive y **todavía no puso el
+nombre**: formulario vacío y slots llenos. Decir sólo «datos» describe la mitad de lo que se
+pierde, y es justo la mitad que no se ve mirando el formulario.
+
+### ⚠️ «HAY ALGO QUE PERDER» SON TRES COSAS, NO UNA
+
+`_hayAlgoSinGuardar` mira formulario, **imágenes de los slots** y **cineloops encolados**. Mirar
+sólo el formulario dejaba fuera exactamente el caso de arriba. Y **falla CERRADO**: ante cualquier
+error responde que sí hay. Preguntar de más cuesta un clic; preguntar de menos cuesta el estudio.
+
+### El predicado de «formulario vacío» se EXTRAJO, no se copió
+
+`_formTieneDatos` es ahora una sola definición para las dos preguntas que son la misma vista desde
+los dos lados: `_autosaveRestore` pregunta «¿está vacío?» y `nuevoEstudio` «¿hay algo que perder?».
+Esa heurística **ya se afinó dos veces** —primero por los `readonly`, después por `firma-esp`— y
+cada vez estuvo a punto de dejar la restauración del borrador muerta; con dos copias, la próxima
+afinada deja una vieja. **«Con datos» es distinto de su `defaultValue`, no distinto de cadena
+vacía**: cuatro campos traen texto del HTML o los llena la configuración del médico.
+
+### Al pedir el paciente, se lleva AL CAMPO
+
+`guardarInforme` avisaba «ingresá nombre o documento» y dejaba al médico donde estuviera — y desde
+«Nuevo estudio» el modal ya se cerró, así que podía quedar mirando otra pestaña. Ahora hace foco
+en `#nombre` y va a la pestaña Paciente. Va **donde vive la regla** y no en el llamador: con una
+copia por camino de guardado, el día que la regla cambie una se queda vieja.
+
+### ⚠️ «CERRAR SESIÓN» AHORA PREGUNTA Y LIMPIA — y con eso se cierra un pendiente viejo
+
+Hasta hoy `cerrarSesion()` sólo tapaba la app con el overlay del login: detrás quedaban
+**intactos el formulario, las imágenes y el borrador del autosave**. En un hospital eso es una
+computadora compartida con el estudio del paciente anterior a la vista del siguiente. Este
+archivo ya lo tenía anotado en «Deuda conocida» —«`cerrarSesion()` no es un borde de sesión»— y
+lo dejaba ahí porque cerrarlo exigía **una decisión de producto**:
+
+> *«limpiarlo pierde trabajo en curso, conservarlo mantiene la fuga»*
+
+**El modal ES la decisión.** No se descarta nada sin haberle ofrecido guardarlo primero, así que
+el dilema deja de existir: se pregunta con las mismas tres opciones y recién después se limpia.
+Decisión de Maicol (2026-09-23).
+
+**El borrador del autosave también se descarta, y sin eso el resto no sirve de nada.**
+`_autosaveRestore` corre en `DOMContentLoaded` **sin mirar `ett_auth`**, así que el formulario del
+paciente anterior volvería solo detrás del login en cuanto alguien recargue. Limpiar la pantalla
+y dejar el borrador es tapar la fuga por el lado que se ve.
+
+**Un solo modal para las dos salidas.** «Nuevo estudio» y «Cerrar sesión» hacen la misma pregunta
+y tienen las mismas tres respuestas; lo único que cambia es el texto y a dónde se va después
+(`_neModo` / `_neSalir`). Con dos modales, el día que se agregue una opción una de las dos salidas
+se queda vieja.
+
+**FALLA HACIA EL COMPORTAMIENTO VIEJO, no hacia limpiar.** `cerrarSesion` vive en el bloque 3 y
+todo lo demás en el 12 — ya usaba `typeof` para lo de allá. Si el bloque 12 no está, se cierra la
+sesión **sin** limpiar, que es lo que hacía antes: perder el estudio en curso por un bloque que
+dejó de parsear sería peor que la fuga que esto viene a cerrar. Por eso el predicado se lee a
+`null` y se compara contra `true`/`false` explícitos, no por truthiness.
+
+**Contrapartida declarada:** un estudio ya GUARDADO y sin tocar también dispara la pregunta — el
+predicado mira si hay datos en pantalla, no si difieren de lo guardado. Se acepta: ahí «Cerrar sin
+guardar» es la respuesta correcta y no se pierde nada, y el lado alternativo —no preguntar— es el
+que deja el estudio a la vista del próximo.
+
+### ⚠️ UNA MUTACIÓN SOBREVIVE, Y ESTÁ DECLARADA: el `_autosaveDescartar` de `_neSalir`
+
+Sacarlo deja TC-246 **en verde**. No es un hueco del caso: es que `limpiarCampos` **ya hace ese
+`removeItem`**, y los dos caminos que llegan a `_neSalir` —«Guardar y continuar» y «Continuar sin
+guardar»— pasan antes por ahí. O sea que la línea es redundante hoy.
+
+**Queda igual, y por un motivo concreto:** el invariante del cierre de sesión no puede depender
+*en silencio* de una línea enterrada a veinte mil líneas, dentro de una función cuyo trabajo es
+otro. El día que alguien separe «limpiar el formulario» de «descartar el borrador» —que es una
+separación razonable— la fuga vuelve sin que nada la nombre. Lo que **sí** cubre el caso es el
+invariante, no la implementación: *tras cerrar sesión no queda borrador*, venga de donde venga.
+
+Es el mismo criterio con el que este archivo conserva los extremos redundantes del contorno de 3
+puntos y el `classList.toggle` del render: **se declara que la mutación sobrevive en vez de
+apretar la condición a un detalle que la cace**.
+
+### ⚠️ TC-184 SE PUSO EN ROJO, Y POR DOS MOTIVOS DISTINTOS — sólo uno era esperado
+
+El esperado: fijaba que sin uuid **sale un `alert`** que manda a guardar el estudio. Eso es
+exactamente lo que este cambio saca — ahora hay un toast que dice que **espera**, no que falta.
+El `alert` se conserva para la otra compuerta, la del **toggle apagado**, que es donde el médico
+sí tiene que ir a hacer algo; esa condición sigue verde y es la que separa las dos.
+
+**El segundo no era esperado y es la lección:** el paso siguiente del caso hace
+`imgPersistir(uuid)` y después cuenta **un** registro para medir *«con las dos condiciones,
+guarda solo al importar»*. Con la cola viva, ese `imgPersistir` **escribía además el cineloop
+encolado dos pasos antes**, así que el conteo daba 2 y caían tres condiciones que no tienen nada
+que ver con el cambio.
+
+No es un defecto del producto: en el flujo real el médico no importa dos veces el mismo archivo,
+y la cola se vacía al escribirse. Es que **una cola que sobrevive al `cineCerrar` cruza los pasos
+de un caso**, y el caso contaba registros suponiendo que nadie más escribía. Hoy TC-184 la vacía
+explícitamente antes de ese paso, con el motivo escrito.
+
+**La regla que deja: al agregar algo que ESCRIBE en el guardado del estudio, buscar los casos que
+CUENTAN registros.** El `grep` útil no es por el nombre de lo nuevo —no lo mencionan— sino por
+`CeiboCine.listar` y por los conteos de la tira.
+
+### Una trampa del propio caso: `__t.limpiar()` NO es «Nuevo estudio»
+
+`__t.limpiar()` llama a `limpiarCampos`, que **no vacía las imágenes ni suelta `_imgUuidActual`**
+—lo dice el comentario de `imgVaciar`—. El camino real es `neContinuarSinGuardar()`, que llama a
+las dos. La primera versión de TC-246 usaba el primero, así que el estudio seguía teniendo uuid y
+el 💾 **guardaba en vez de encolar**: el caso medía una ruta que el médico no recorre.
+
+
 ## El panel de Simpson es UNO para las dos vistas — y quién manda al confirmar
 
 Con las dos vistas midiendo Simpson, el resultado, la tabla, el texto y los botones se
@@ -12807,14 +12993,16 @@ A2: Flail · A3: Flail»** sobre un formulario en blanco. Ver la entrada de la f
   acepta claves arbitrarias y `'constructor'` devolvería la función en vez del fallback. No es
   XSS (`String(Object)` no trae `<`). El helper `_lblDe(mapa, k)` ya existe y resuelve esto;
   el bloque entero de `_labExcelRow` merece una pasada, no un parche por caso.
-- **`cerrarSesion()` no es un borde de sesión.** No recarga ni llama a `limpiarCampos` /
-  `imgVaciar`: detrás del overlay quedan intactos el formulario, las imágenes y todo el
-  estado de módulo. Y los listeners de autosave siguen enganchados, así que un input con la
-  sesión «cerrada» sigue escribiendo el formulario del paciente anterior en `localStorage`.
-  El arreglo obvio —terminar en `location.reload()`— **no alcanza solo**: `_autosaveRestore`
-  corre en `DOMContentLoaded` sin mirar `ett_auth`, así que repondría ese formulario detrás
-  del login. Cerrarlo de verdad exige decidir qué pasa con el borrador: limpiarlo pierde
-  trabajo en curso, conservarlo mantiene la fuga. Es una decisión de producto, no técnica.
+- ~~**`cerrarSesion()` no es un borde de sesión**~~ — **CERRADO 2026-09-23.** Decía que detrás
+  del overlay quedaban intactos el formulario, las imágenes y el borrador, y que cerrarlo exigía
+  «decidir qué pasa con el borrador: limpiarlo pierde trabajo en curso, conservarlo mantiene la
+  fuga — una decisión de producto». **La decisión fue el modal**: se pregunta con las mismas tres
+  opciones de «Nuevo estudio» y recién después se limpia, así que no se descarta nada sin haber
+  ofrecido guardarlo. Se limpian formulario, imágenes **y el borrador del autosave** —sin esto
+  último `_autosaveRestore` lo repone detrás del login en la próxima recarga, que es la mitad que
+  el párrafo viejo daba por insalvable—. Ver la entrada del panel de cierre, arriba. Lo que SIGUE
+  abierto de aquel párrafo: los listeners de autosave siguen enganchados con la sesión cerrada,
+  aunque ya no tienen formulario del que copiar.
 - **Si vuelve la UI de Eco Estrés, `eeResetAll` necesita vaciar `eeImg` y `eeEcg`.** Hoy sólo
   barre `#tab-ee input/select/textarea` y `eeBull`. No fuga porque no hay UI que las pueble y
   el PDF está gateado por `#ee-incluir-pdf`; las dos ausencias se tapan mutuamente y

@@ -10590,11 +10590,24 @@ caso('TC-184', 'Cineloop guardado: sin cabecera DICOM, gateado por el toggle, y 
       await imgRestaurar('');                   // deja _imgUuidActual en null
       await dcmImgImportar([new File([u], P.loop.nombre)]);
       dichos.length = 0;
+      const toastReal184 = window.toast; const toasts184 = [];
+      window.toast = m => { toasts184.push(String(m)); };
       const guardoSinUuid = await cineGuardarActual();
+      window.toast = toastReal184;
       R.noGuardaSinEstudio = guardoSinUuid === false;
-
-      R.motivoEstudio = dichos.join(' ');
+      /* ⚠️ CAMBIO DE COMPORTAMIENTO A PROPOSITO (2026-09-23): sin uuid ya NO sale un alert que
+         manda a guardar el estudio y se pierde el gesto — el cineloop queda ENCOLADO y se
+         escribe al guardar. Por eso el aviso ahora es un toast y dice que espera, no que falta.
+         El alert se conserva para la otra compuerta, la del toggle apagado, que es donde el
+         medico si tiene que ir a hacer algo: eso lo fija la condicion de arriba. */
+      R.motivoEstudio = toasts184.join(' ');
+      R.encolo = _cinePendientes.length === 1;
       cineCerrar();
+      /* Y se VACIA la cola antes del paso siguiente: ese cineloop encolado es legitimo, pero
+         imgPersistir lo escribiria y el paso 3 cuenta registros para medir OTRA cosa —que al
+         importar con las dos condiciones se guarda solo—. Sin esto el denominador de ese paso
+         lleva un registro que no es suyo. */
+      _cinePendientes = [];
 
       /* ── 3. las dos condiciones: guarda ── */
       const uuid = _uuidNuevo();
@@ -10735,7 +10748,8 @@ caso('TC-184', 'Cineloop guardado: sin cabecera DICOM, gateado por el toggle, y 
       ['con el toggle APAGADO no se guarda nada',        R.noGuardaSinToggle, R.noGuardaSinToggle],
       ['y el aviso dice que falta el toggle',            R.motivoToggle.indexOf('Config') > -1, R.motivoToggle.slice(0,110)],
       ['sin estudio guardado tampoco',                   R.noGuardaSinEstudio, R.noGuardaSinEstudio],
-      ['y el aviso dice que hay que guardar el estudio', R.motivoEstudio.indexOf('estudio') > -1, R.motivoEstudio.slice(0,110)],
+      ['y avisa que se guarda al guardar el estudio',    R.motivoEstudio.indexOf('al guardar el estudio') > -1, R.motivoEstudio.slice(0,110)],
+      ['dejandolo ENCOLADO, no perdido',                 R.encolo, R.encolo],
       ['con las dos condiciones, guarda solo al importar', R.autoGuardo, R.autoGuardo],
       ['queda un registro con sus cuadros',              R.hayRec && R.cuadros > 1, R.cuadros],
       ['y con la velocidad del archivo',                 R.ms > 0, R.ms],
@@ -21901,6 +21915,189 @@ caso('TC-245', 'Simpson: panel unico, y el TRAZADO manda sobre el selector al co
     ] };
   })();
 `);
+
+/* ══ TC-246 · Importar en estudio VIRGEN, y el cineloop que espera al uuid ════════════════════
+   LO QUE ESTE CASO FIJA son dos cosas que el pedido del 2026-09-23 daba por rotas y por hacer, y
+   resultaron ser una de cada:
+
+   1. IMPORTAR EN VIRGEN YA FUNCIONABA. Medido antes de tocar nada: en un estudio sin nombre, sin
+      cedula y sin guardar, el DICOM entra y el JPEG entra. Lo que hay es un AVISO de que la
+      imagen no se va a escribir en disco porque el toggle de Config esta apagado —el estado de
+      fabrica— y eso no es una restriccion para importar: es el aviso que se agrego a proposito
+      para que el interruptor deje de mentir sobre el disco. La condicion esta para que nadie
+      "arregle" esto sacando el aviso.
+
+   2. LO QUE SI FALTABA es el guardado retroactivo del CINELOOP. Las fijas lo tienen desde
+      TC-233 (medFijasPersistir, disparada desde imgPersistir, que es el unico momento en que el
+      uuid existe); los cineloops no, asi que el 💾 del visor sobre un estudio sin guardar decia
+      "guarda el estudio primero" y NO DEJABA NADA ANOTADO. Habia que acordarse de volver y
+      apretarlo otra vez.
+
+   Y la contrapartida, que es lo que hace que esto no sea una fuga: la cola se vacia al cambiar
+   de estudio. Sin eso, el cineloop que el medico pidio guardar sobre el paciente A se escribiria
+   DENTRO del estudio del paciente B.
+   NO DEPENDE DEL PENDRIVE.                                                                    */
+caso('TC-246', 'Importar en estudio virgen, y el cineloop encolado se escribe al guardar', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const alertReal = window.alert, confirmReal = window.confirm, toastReal = window.toast;
+    const dichos = [];
+    window.alert = m => dichos.push('ALERT:' + String(m));
+    window.confirm = () => true;
+    window.toast = m => dichos.push(String(m));
+    let togglePrevio = null;
+    try { togglePrevio = localStorage.getItem('cfg-guardar-imagenes'); } catch (e) {}
+    let idA = null, idB = null;
+    try {
+      const JPG1 = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,219,0,67,0,8,6,6,7,6,5,8,7,7,7,9,9,8,10,12,20,13,12,11,11,12,25,18,19,15,20,29,26,31,30,29,26,28,28,32,36,46,39,32,34,44,35,28,28,40,55,41,44,48,49,52,52,52,31,39,57,61,56,50,60,46,51,52,50,255,192,0,11,8,0,1,0,1,1,1,17,0,255,196,0,20,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,255,196,0,20,16,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,218,0,8,1,1,0,0,63,0,42,159,255,217]);
+      const REG = [{ x0:0, y0:0, x1:1, y1:1, ux:3, uy:3, dx:0.05, dy:0.05, tipo:1 }];
+      const loopSint = nom => ({ nombre:nom, cuadros:2,
+        d:{ frags:[JPG1, JPG1], cols:1, filas:1, msCuadro:40, fabricante:'', modelo:'', regiones:REG } });
+
+      /* ── 1 · IMPORTAR EN VIRGEN, con el toggle APAGADO (el estado de fabrica) ── */
+      localStorage.setItem('cfg-guardar-imagenes','0');
+      __t.limpiar(); imgVaciar(); await esperar(250);
+      R.virgen = !(document.getElementById('nombre')||{}).value &&
+                 !(document.getElementById('ci')||{}).value &&
+                 !String(_imgUuidActual || '');
+      const s0 = imgSlots.filter(x => x && x.dataURL).length;
+      dichos.length = 0;
+      await mediosImportar([ new File([JPG1], 'foto.jpg', { type:'image/jpeg' }) ]);
+      for (let i=0;i<60 && imgSlots.filter(x=>x&&x.dataURL).length===s0; i++) await esperar(100);
+      R.entraEnVirgen = imgSlots.filter(x => x && x.dataURL).length === s0 + 1;
+      /* El aviso del toggle apagado NO es una restriccion para importar: es la mitad que evita
+         que el interruptor mienta sobre el disco. Si alguien lo saca, esta condicion cae. */
+      R.avisaQueNoSeGuarda = dichos.some(m => m.indexOf('NO se va a guardar') > -1);
+
+      /* ── 2 · «Nuevo estudio» PREGUNTA porque hay una imagen, aunque no haya nombre ── */
+      R.preguntaConImagen = _hayAlgoSinGuardar() === true;
+
+      /* ── 3 · EL CINELOOP: con el toggle ENCENDIDO y sin uuid, se ENCOLA ── */
+      localStorage.setItem('cfg-guardar-imagenes','1');
+      _cineAbrir([ loopSint('apical4c') ]); await esperar(500);
+      R.sinUuid = !String(_imgUuidActual || '');
+      dichos.length = 0;
+      R.guardoAhora = await cineGuardarActual();
+      R.noGuardoTodavia = R.guardoAhora === false;
+      R.encolado = _cinePendientes.length === 1;
+      R.avisaQueEspera = dichos.some(m => m.indexOf('al guardar el estudio') > -1);
+      /* Y NO abre el alert de «guarda el estudio primero»: eso seria el boton que no anota nada */
+      R.sinAlert = !dichos.some(m => m.indexOf('ALERT:') === 0);
+      cineCerrar(); await esperar(200);
+
+      /* ── 4 · AL GUARDAR EL ESTUDIO, el cineloop encolado SE ESCRIBE ── */
+      __t.set('nombre', 'TC246 VIRGEN'); __t.set('ci', '94600001');
+      const g = await __t.guardar(); idA = g && g.estudioId;
+      for (let i=0;i<70 && _cinePendientes.length; i++) await esperar(100);
+      await esperar(700);
+      const inf = getInformes().filter(i => i.estudioId === idA)[0];
+      R.uuidA = inf ? inf.uuid : null;
+      let regs = [];
+      try { regs = (await CeiboCine.listar(R.uuidA)) || []; } catch (e) { regs = []; }
+      R.cineEnDisco = regs.filter(r => r && r.nombre === 'apical4c').length;
+      R.colaVacia = _cinePendientes.length === 0;
+
+      /* ── 5 · LA COLA NO SE FILTRA AL PACIENTE SIGUIENTE ── */
+      _cineAbrir([ loopSint('nose-guarda') ]); await esperar(400);
+      __t.limpiar(); await esperar(150);          // «Nuevo estudio» limpia la cola
+      R.colaTrasLimpiar = _cinePendientes.length;
+      /* ⚠️ SE USA «Nuevo estudio» DE VERDAD (neContinuarSinGuardar), no __t.limpiar(). Aquel
+         llama solo a limpiarCampos, que NO vacia las imagenes ni suelta _imgUuidActual —lo dice
+         el comentario de imgVaciar— asi que el estudio seguia teniendo uuid y el 💾 GUARDABA
+         en vez de encolar. El caso medía una ruta que el medico no recorre. */
+      neContinuarSinGuardar(); await esperar(250);
+      R.uuidSueltoTrasNuevo = !String(_imgUuidActual || '');
+      /* Se encola uno sobre el paciente A... */
+      _cineAbrir([ loopSint('del-paciente-A') ]); await esperar(400);
+      await cineGuardarActual();
+      R.encoladoA = _cinePendientes.length === 1;
+      /* ...y se cambia de paciente SIN guardar A */
+      neContinuarSinGuardar(); await esperar(250);
+      R.colaLimpiaAlCambiar = _cinePendientes.length === 0;
+      __t.set('nombre', 'TC246 SIGUIENTE'); __t.set('ci', '94600002');
+      const g2 = await __t.guardar(); idB = g2 && g2.estudioId;
+      await esperar(900);
+      const inf2 = getInformes().filter(i => i.estudioId === idB)[0];
+      let regs2 = [];
+      try { regs2 = (await CeiboCine.listar(inf2 ? inf2.uuid : '')) || []; } catch (e) { regs2 = []; }
+      R.nadaDelAnterior = regs2.filter(r => r && r.nombre === 'del-paciente-A').length;
+
+      /* ── 6 · SIN NADA QUE PERDER, «Nuevo estudio» NO pregunta ── */
+      imgVaciar(); __t.limpiar(); await esperar(250);
+      R.limpioNoPregunta = _hayAlgoSinGuardar() === false;
+      const modal = document.getElementById('modal-nuevo-estudio');
+      if (modal) modal.style.display = 'none';
+      nuevoEstudio(); await esperar(200);
+      R.modalNoAbre = !modal || modal.style.display === 'none';
+
+      /* ── 7 · CERRAR SESION: pregunta si hay algo, y LIMPIA LA PANTALLA ──
+         Es el riesgo de la maquina compartida del hospital: hasta hoy cerrar sesion solo tapaba
+         la app con el overlay y detras quedaba el estudio del paciente anterior. */
+      __t.set('nombre', 'TC246 SESION'); await esperar(200);
+      localStorage.setItem('ecosmart_autosave', JSON.stringify({ nombre:'TC246 SESION' }));
+      if (modal) modal.style.display = 'none';
+      cerrarSesion(); await esperar(250);
+      R.sesionPregunta = !!modal && modal.style.display !== 'none';
+      R.textoNombraSesion = ((document.getElementById('ne-modal-txt')||{}).textContent || '')
+        .indexOf('sesión') > -1;
+      /* Cancelar vuelve al estudio y NO cierra nada */
+      _neCerrar(); await esperar(150);
+      R.cancelaNoCierra = (document.getElementById('nombre')||{}).value === 'TC246 SESION' &&
+        (document.getElementById('login-overlay')||{}).style.display !== 'flex';
+      /* Cerrar sin guardar: limpia formulario, imagenes y BORRADOR, y tapa con el login */
+      cerrarSesion(); await esperar(200);
+      neContinuarSinGuardar(); await esperar(400);
+      R.sesionLimpiaForm = !(document.getElementById('nombre')||{}).value;
+      R.sesionTapaLogin = (document.getElementById('login-overlay')||{}).style.display === 'flex';
+      R.sesionBorraBorrador = !localStorage.getItem('ecosmart_autosave');
+      /* Se repone la sesion para no dejar el overlay puesto sobre los casos siguientes */
+      try { sessionStorage.setItem('ett_auth','1');
+            const ov = document.getElementById('login-overlay');
+            if (ov) ov.style.display = 'none'; } catch (e) {}
+    } catch (e) {
+      R.err = String(e && e.message || e);
+    } finally {
+      window.alert = alertReal; window.confirm = confirmReal; window.toast = toastReal;
+      try { if (togglePrevio === null) localStorage.removeItem('cfg-guardar-imagenes');
+            else localStorage.setItem('cfg-guardar-imagenes', togglePrevio); } catch (e) {}
+      try { _cinePendientes = []; } catch (e) {}
+      try { cineCerrar(); } catch (e) {}
+      try { if (idA) await __t.borrar(idA); } catch (e) {}
+      try { if (idB) await __t.borrar(idB); } catch (e) {}
+      try { imgVaciar(); __t.limpiar(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: sin excepcion',                  !R.err, R.err || 'ok'],
+      ['DENOMINADOR: el estudio arranca virgen',      R.virgen, R.virgen],
+      ['IMPORTAR EN VIRGEN FUNCIONA',                 R.entraEnVirgen, R.entraEnVirgen],
+      ['y avisa que con el toggle apagado no se guarda', R.avisaQueNoSeGuarda, R.avisaQueNoSeGuarda],
+      ['con una imagen cargada SI hay algo que perder', R.preguntaConImagen, R.preguntaConImagen],
+      ['DENOMINADOR: el estudio todavia no tiene uuid', R.sinUuid, R.sinUuid],
+      ['el 💾 del cineloop no guarda todavia...',      R.noGuardoTodavia, R.guardoAhora],
+      ['...pero lo DEJA ANOTADO',                     R.encolado, _cinePendientes ? 'ok' : 'sin cola'],
+      ['y lo dice, sin el alert de antes',            R.avisaQueEspera && R.sinAlert,
+                                                      R.avisaQueEspera + '/' + R.sinAlert],
+      ['al guardar el estudio, el cineloop se escribe', R.cineEnDisco === 1, R.cineEnDisco],
+      ['y la cola queda vacia',                       R.colaVacia, R.colaVacia],
+      ['«Nuevo estudio» vacia la cola',               R.colaTrasLimpiar === 0, R.colaTrasLimpiar],
+      ['«Nuevo estudio» suelta el uuid del anterior', R.uuidSueltoTrasNuevo, R.uuidSueltoTrasNuevo],
+      ['DENOMINADOR: se encolo uno del paciente A',   R.encoladoA, R.encoladoA],
+      ['cambiar de paciente la limpia',               R.colaLimpiaAlCambiar, R.colaLimpiaAlCambiar],
+      ['NO SE FILTRA AL PACIENTE SIGUIENTE',          R.nadaDelAnterior === 0, R.nadaDelAnterior],
+      ['sin nada que perder no hay que preguntar',    R.limpioNoPregunta, R.limpioNoPregunta],
+      ['y el modal NO se abre',                       R.modalNoAbre, R.modalNoAbre],
+      ['CERRAR SESION pregunta si hay algo',          R.sesionPregunta, R.sesionPregunta],
+      ['y el texto nombra la sesion',                 R.textoNombraSesion, R.textoNombraSesion],
+      ['Cancelar vuelve al estudio sin cerrar',       R.cancelaNoCierra, R.cancelaNoCierra],
+      ['cerrar sin guardar LIMPIA el formulario',     R.sesionLimpiaForm, R.sesionLimpiaForm],
+      ['tapa con el login',                           R.sesionTapaLogin, R.sesionTapaLogin],
+      ['y DESCARTA el borrador del autosave',         R.sesionBorraBorrador, R.sesionBorraBorrador]
+    ] };
+  })();
+`);
+
+
 
 
 caso('TC-228', 'Visor: la etiqueta dice DE DONDE viene el valor, y el numero queda quemado siempre', `

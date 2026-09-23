@@ -1590,7 +1590,39 @@ function doLogin() {
     document.getElementById('login-pwd').focus();
   }
 }
+/* ⚠️ CERRAR SESIÓN PREGUNTA ANTES, Y ADEMÁS LIMPIA LA PANTALLA.
+   Hasta hoy esta función sólo tapaba la app con el overlay del login: detrás quedaban intactos
+   el formulario, las imágenes y el borrador del autosave, o sea el estudio del paciente anterior
+   a la vista del siguiente que use la máquina. En un hospital eso es una computadora compartida.
+   Decisión de Maicol (2026-09-23).
+
+   Se pregunta con el MISMO modal de «Nuevo estudio» —misma pregunta, mismas tres respuestas— y
+   recién después se limpia. Ése es el punto: este archivo documentaba el dilema de «limpiarlo
+   pierde trabajo en curso, conservarlo mantiene la fuga» como decisión de producto pendiente, y
+   el modal ES la decisión — no se descarta nada sin haber ofrecido guardarlo.
+
+   ⚠️ FALLA HACIA EL COMPORTAMIENTO VIEJO, no hacia limpiar. Si el bloque 12 no está —esta
+   función vive en el 3 y ya usa `typeof` para todo lo de allá— se cierra la sesión SIN limpiar,
+   que es lo que hacía antes: perder el estudio en curso por un bloque que dejó de parsear sería
+   peor que la fuga que esto viene a cerrar. */
 function cerrarSesion() {
+  const hay = (typeof _hayAlgoSinGuardar === 'function') ? _hayAlgoSinGuardar() : null;
+  if (hay === true && typeof _neAbrir === 'function') { _neAbrir('sesion'); return; }
+  /* Sin nada que perder no se pregunta, pero igual se limpia: el borrador del autosave puede
+     traer al paciente anterior en la próxima recarga aunque la pantalla se vea vacía.
+     La tercera línea es redundante hoy —`limpiarCampos` ya hace ese `removeItem`— y queda por
+     el mismo motivo que la de `_neSalir`: está declarado allá. */
+  if (hay === false) {
+    try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+    try { if (typeof imgVaciar === 'function') imgVaciar(); } catch (e) {}
+    try { if (typeof _autosaveDescartar === 'function') _autosaveDescartar(); } catch (e) {}
+  }
+  cerrarSesionReal();
+}
+window.cerrarSesion = cerrarSesion;
+
+/* El cierre de verdad, sin preguntar. Lo llaman `cerrarSesion` y `_neSalir` en modo sesión. */
+function cerrarSesionReal() {
   /* La cohorte del Laboratorio es estado de MÓDULO y sobrevivía al cierre de sesión: el médico
      siguiente heredaba los filtros del anterior. En el Laboratorio se ve (badge y aviso), pero
      el Excel se exporta desde Guardados, donde ese aviso no llega. `typeof` porque esta función
@@ -1608,7 +1640,7 @@ function cerrarSesion() {
   document.getElementById('login-err').textContent = '';
   document.getElementById('login-overlay').style.display = 'flex';
 }
-window.cerrarSesion = cerrarSesion;
+window.cerrarSesionReal = cerrarSesionReal;
 </script>
 
 <!-- HEADER -->
@@ -15506,8 +15538,13 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:700;align-items:center;justify-content:center;padding:20px;"
      onclick="if(event.target===this)_neCerrar()">
   <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:440px;width:100%;padding:22px 24px;box-shadow:0 18px 48px rgba(0,0,0,.5);">
-    <h3 id="ne-modal-title" style="margin:0 0 10px;font-size:17px;color:var(--text);">¿Iniciar nuevo estudio?</h3>
-    <p style="margin:0 0 20px;font-size:13.5px;line-height:1.55;color:var(--text2,#94A3B8);">Los datos no guardados se perderán. ¿Deseás guardar el estudio actual antes de continuar?</p>
+    <h3 id="ne-modal-title" style="margin:0 0 10px;font-size:17px;color:var(--text);">Hay imágenes y datos sin guardar</h3>
+    <!-- El título nombra las IMÁGENES además de los datos, y no es adorno: el caso que este
+         aviso protege es el del médico que importó del pendrive y todavía no puso el nombre,
+         o sea FORMULARIO VACÍO y slots llenos. Decir sólo «datos» describe la mitad de lo que
+         se pierde, y es justo la mitad que no se ve mirando el formulario.
+         El modal sólo se abre si hay algo que perder: ver `nuevoEstudio`. -->
+    <p id="ne-modal-txt" style="margin:0 0 20px;font-size:13.5px;line-height:1.55;color:var(--text2,#94A3B8);">¿Querés guardar antes de cerrar? Lo que no esté guardado —imágenes incluidas— se pierde.</p>
     <div style="display:flex;flex-direction:column;gap:9px;">
       <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="neGuardarYContinuar()">💾 Guardar y continuar</button>
       <button class="btn btn-ghost" style="width:100%;justify-content:center;" onclick="neContinuarSinGuardar()">🗑 Continuar sin guardar</button>
@@ -25226,6 +25263,18 @@ function limpiarCampos(silencioso) {
      y `cargarEstudioPorId`—. Verificado por `grep` de sus llamadores; si mañana aparece un quinto
      que NO pase por acá, la época no sube y la fuga vuelve. */
   _estudioEpoca++;
+  /* ⚠️ Y LA COLA DE CINELOOPS PENDIENTES, por el MISMO motivo que la época: es memoria de
+     sesión que sobrevive al cambio de estudio. Sin esta línea, un cineloop que el médico pidió
+     guardar sobre el paciente A y que nunca llegó a escribirse —porque no guardó ese estudio—
+     se escribiría DENTRO del estudio del paciente B al guardarlo. Es la fuga de
+     `ete_tavi_jet_horas` con otra cara, y acá lo que viaja son los píxeles de otro paciente.
+
+     ⚠️ ASIGNACIÓN PELADA, SIN `typeof` NI try/catch. `_cinePendientes` es un `let` del MISMO
+     bloque declarado más abajo: a la hora en que esta función corre ya está inicializado, y un
+     `typeof` sobre una zona muerta LANZA en vez de devolver 'undefined' —lo que envuelto en un
+     catch dejaría la cola sin limpiar EN SILENCIO, que es el fallo abierto que esta línea viene
+     a cerrar—. */
+  _cinePendientes = [];
   /* Pericardio: el barrido de arriba vacía los inputs y los selects, pero los paneles de
      conclusión (#dpt-concl, #cvr-concl, #cvr-tabla) son divs sueltos que no alcanza ningún
      selector, y los espejos de solo lectura tampoco. Sin repintar, el paciente nuevo arrancaba
@@ -25353,9 +25402,73 @@ function limpiarCampos(silencioso) {
 }
 
 // ══ Modal "Nuevo estudio" — confirmación propia (reemplaza el confirm nativo) ══
-function nuevoEstudio() {
+/* ── EL MISMO MODAL PARA LAS DOS SALIDAS ──────────────────────────────────────────────────
+   «Nuevo estudio» y «Cerrar sesión» hacen la misma pregunta —¿guardás antes de perder esto?—
+   y tienen las mismas tres respuestas. Un segundo modal sería dos marcados que se desincronizan:
+   el día que se agregue una opción, una de las dos salidas se queda vieja.
+   Lo único que cambia entre modos es el texto y QUÉ SE HACE DESPUÉS de limpiar. */
+let _neModo = 'nuevo';
+
+function _neAbrir(modo) {
+  _neModo = (modo === 'sesion') ? 'sesion' : 'nuevo';
+  const t = document.getElementById('ne-modal-title');
+  const p = document.getElementById('ne-modal-txt');
+  if (t) t.textContent = 'Hay imágenes y datos sin guardar';
+  if (p) p.textContent = (_neModo === 'sesion')
+    ? '¿Querés guardar antes de cerrar la sesión? Lo que no esté guardado —imágenes incluidas— se pierde, y la pantalla queda limpia para el próximo que use esta computadora.'
+    : '¿Querés guardar antes de cerrar? Lo que no esté guardado —imágenes incluidas— se pierde.';
   const m = document.getElementById('modal-nuevo-estudio');
   if (m) m.style.display = 'flex';
+}
+window._neAbrir = _neAbrir;
+
+/* A dónde se va DESPUÉS de limpiar. Es lo único que distingue los dos modos. */
+function _neSalir() {
+  const modo = _neModo;
+  _neModo = 'nuevo';
+  if (modo === 'sesion') {
+    /* EL BORRADOR TAMBIÉN SE DESCARTA. Sin eso el resto no sirve: `_autosaveRestore` corre en
+       `DOMContentLoaded` SIN mirar `ett_auth`, así que el formulario del paciente anterior
+       volvería solo detrás del login en la próxima recarga. Este archivo documentaba el dilema
+       —limpiarlo pierde trabajo en curso, conservarlo mantiene la fuga— como decisión de
+       producto pendiente; el modal ES la decisión: se descarta después de ofrecer guardar.
+
+       ⚠️ ESTA LÍNEA ES REDUNDANTE HOY Y SE DECLARA, en vez de dejar creer que una mutación la
+       caza: los DOS caminos que llegan acá —`neGuardarYContinuar` y `neContinuarSinGuardar`—
+       pasan antes por `limpiarCampos`, que ya hace el `removeItem` del borrador. Medido: sacarla
+       deja TC-246 en verde.
+       Queda porque el invariante de este cierre NO puede depender en silencio de una línea
+       enterrada a veinte mil líneas de acá, en una función cuyo trabajo es otro: el día que
+       alguien separe «limpiar el formulario» de «descartar el borrador» —que es una separación
+       razonable— la fuga volvería sin que nada la nombre. Lo que sí cubre el caso es el
+       INVARIANTE: tras cerrar sesión no queda borrador, venga de donde venga. */
+    try { _autosaveDescartar(); } catch (e) {}
+    /* Respaldo: para cuando llega acá el formulario YA se limpió, así que quedarse sin cerrar
+       dejaría al médico con la sesión abierta sobre una pantalla vacía y sin entender por qué.
+       Si el cierre de verdad no está, al menos se tapa con el login, que es lo que el gesto
+       pedía. */
+    try { cerrarSesionReal(); }
+    catch (e) {
+      try {
+        sessionStorage.removeItem('ett_auth');
+        const ov = document.getElementById('login-overlay');
+        if (ov) ov.style.display = 'flex';
+      } catch (e2) {}
+    }
+    return;
+  }
+  irATabPaciente();
+}
+
+function nuevoEstudio() {
+  /* ⚠️ SIN NADA QUE PERDER NO SE PREGUNTA. El modal existe para no borrar trabajo sin avisar;
+     sobre un formulario virgen y sin imágenes no hay trabajo, y preguntar ahí es el cuadro de
+     diálogo que se aprende a cerrar sin leer — y el que se aprende a cerrar sin leer es el que
+     no protege el día que sí importa.
+     `_hayAlgoSinGuardar` mira las TRES cosas que se pierden: formulario, imágenes de los slots
+     y cineloops encolados. Falla CERRADO. */
+  if (!_hayAlgoSinGuardar()) { neContinuarSinGuardar(); return; }
+  _neAbrir('nuevo');
 }
 // Alias retrocompatible: cualquier llamada a limpiar() ahora abre el modal de confirmación
 function limpiar() { nuevoEstudio(); }
@@ -25397,13 +25510,13 @@ function neGuardarYContinuar() {
   // Vía callback: el guardado puede quedar esperando la card de severidades, y en ese caso
   // el valor de retorno todavía es false. Sólo se limpia cuando el guardado fue efectivo
   // (evita perder datos si falta el paciente o si se cancela la card).
-  guardarInforme(ok => { if (ok) { limpiarCampos(); imgVaciar(); irATabPaciente(); } });
+  guardarInforme(ok => { if (ok) { limpiarCampos(); imgVaciar(); _neSalir(); } });
 }
 function neContinuarSinGuardar() {
   _neCerrar();
   limpiarCampos();
   imgVaciar();
-  irATabPaciente();
+  _neSalir();
 }
 /* Vacía las imágenes adjuntas. Va en los DOS caminos de «Nuevo estudio» y NO dentro de
    limpiarCampos, que también corre al abrir un estudio con «Editar» — ahí borrarlas sería
@@ -25469,6 +25582,13 @@ function imgPersistir(uuid) {
      borrar está el botón explícito de Config. */
   if (!imgGuardadoActivo()) return Promise.resolve(false);
   _imgUuidActual = uuid;   // el estudio en pantalla es éste
+  /* ⚠️ LOS CINELOOPS ENCOLADOS VAN ARRIBA DEL RETURN TEMPRANO, y no es un detalle de orden.
+     Ese return corta cuando no hay IMÁGENES, y un estudio puede tener sólo cineloops: el médico
+     que importó un cineloop del pendrive, apretó 💾 y todavía no guardó el estudio no tiene
+     ningún slot lleno, así que abajo de esta línea la cola no se vaciaría NUNCA y el 💾 volvería
+     a ser el botón que no deja nada anotado. Es el mismo modo de falla que TC-233 cerró para las
+     fijas, con la variante de que acá lo que corta es la ausencia de otra cosa. */
+  _cinePendientesPersistir(uuid);
   if (!vivas.length && !_imgEditado) return Promise.resolve(false);   // ver _imgEditado
   /* Los videos van a su propia base, en paralelo. No se encadena al `then` de las imágenes:
      que falle uno no tiene por qué impedir el otro, y `imgPersistir` ya resuelve su booleano
@@ -25926,6 +26046,52 @@ function _autoSaveDebounced(){ clearTimeout(_autosaveTimer); _autosaveTimer = se
    y `_autosaveRestore` para decidir qué NO cuenta como evidencia de formulario empezado.
    Los dos están en el bloque 8, así que se comparte por referencia y no por `window`. */
 var _CAMPOS_FUERA_DEL_ESTUDIO = /^(cfg-|firma-|lab-|ig-|med-|logo|lgal-|tema|pdf-|filtro-|adv-|asoc-|exp-|alg-|ett-|rwt-|ee-|ap-|rev-|login-|fcg-|centro_tipo$|ecoAdvSelect$)/;
+
+/* ¿El formulario tiene algo del ESTUDIO cargado? Una sola definición para las DOS preguntas que
+   la necesitan, que son la misma vista desde los dos lados:
+     · `_autosaveRestore` — «¿está vacío?», para no pisar un formulario ya empezado.
+     · `nuevoEstudio`     — «¿hay algo que perder?», para no preguntar sobre la nada.
+   Escribirla dos veces es la lista paralela de siempre: el día que una se afine —y ésta ya se
+   afinó DOS veces, primero por los readonly y después por `firma-esp`— la otra se queda vieja
+   y nadie se entera.
+
+   ⚠️ «CON DATOS» NO ES «distinto de cadena vacía», es DISTINTO DE SU VALOR POR DEFECTO. Cuatro
+   campos traen texto en el HTML o los llena la configuración del médico al arrancar, y con la
+   comparación contra '' bastaba uno para que la respuesta fuera siempre «tiene datos». Eso es
+   lo que tuvo la restauración del borrador MUERTA desde siempre. */
+function _formTieneDatos() {
+  var hay = false;
+  document.querySelectorAll('input[type=text], input[type=number], textarea').forEach(function (el) {
+    if (!el.id || el.readOnly || el.disabled) return;
+    if (_CAMPOS_FUERA_DEL_ESTUDIO.test(el.id)) return;
+    if (el.value !== el.defaultValue) hay = true;
+  });
+  return hay;
+}
+window._formTieneDatos = _formTieneDatos;
+
+/* ¿Hay algo que se pierda si el médico no guarda? Es lo que decide si «Nuevo estudio» pregunta.
+   Son TRES cosas distintas y las tres se pierden por caminos distintos:
+     · el formulario, que lo vacía `limpiarCampos`;
+     · las imágenes de los slots, que las vacía `imgVaciar` — y que NO se persisten solas;
+     · los cineloops que el médico pidió guardar y todavía esperan al uuid.
+   Mirar sólo el formulario dejaría fuera justo lo que este pedido vino a proteger: el médico que
+   importó del pendrive y todavía no puso el nombre tiene el formulario VACÍO y las imágenes
+   cargadas. */
+/* ⚠️ FALLA CERRADO: ante cualquier error responde QUE SÍ HAY. Este predicado decide si se
+   pregunta antes de BORRAR el formulario y las imágenes; un `catch` que devolviera `false`
+   convertiría un fallo en pérdida de dato clínico sin una palabra. Preguntar de más cuesta un
+   clic; preguntar de menos cuesta el estudio. */
+function _hayAlgoSinGuardar() {
+  try {
+    if (_formTieneDatos()) return true;
+    if (typeof imgSlots !== 'undefined' &&
+        imgSlots.some(function (s) { return s && s.dataURL; })) return true;
+    if (_cinePendientes.length) return true;
+    return false;
+  } catch (e) { return true; }
+}
+window._hayAlgoSinGuardar = _hayAlgoSinGuardar;
 function _autosaveRestore(){
   var raw; try{ raw = localStorage.getItem(AUTOSAVE_KEY); }catch(e){ return; }
   if (!raw) return;
@@ -25961,13 +26127,7 @@ function _autosaveRestore(){
      dos campos que la exclusión de readonly no cubre. Medido: con especialidad el borrador no
      vuelve nunca; sin especialidad vuelve. La condición correcta no es «no es readonly» sino
      «es un campo del estudio», que es lo que contesta `_CAMPOS_FUERA_DEL_ESTUDIO`. */
-  var empty = true;
-  document.querySelectorAll('input[type=text], input[type=number], textarea').forEach(function(el){
-    if (!el.id || el.readOnly || el.disabled) return;
-    if (_CAMPOS_FUERA_DEL_ESTUDIO.test(el.id)) return;
-    if (el.value !== el.defaultValue) empty = false;
-  });
-  if (!empty) return;
+  if (_formTieneDatos()) return;
   var data; try{ data = JSON.parse(raw); }catch(e){ return; }
   Object.keys(data).forEach(function(id){
     var el = document.getElementById(id); if (!el) return;
@@ -38350,6 +38510,16 @@ function guardarInforme(onDone) {
   const fecha  = document.getElementById('fecha')?.value || '';
   if (!nombre && !ci) {
     toast('⚠️ Ingresá nombre o documento del paciente antes de guardar');
+    /* Y SE LLEVA AL CAMPO. El aviso solo dice qué falta y no dónde está: desde «Nuevo estudio»
+       el modal ya se cerró y el médico queda mirando la pestaña en la que estaba, que puede no
+       ser la del paciente. Va acá —donde vive la regla— y no en el llamador: con una copia en
+       cada camino de guardado, el día que la regla cambie una se queda vieja.
+       Todo en try: un foco que falla no puede impedir que el aviso ya dado valga. */
+    try {
+      if (typeof irATabPaciente === 'function') irATabPaciente();
+      const n = document.getElementById('nombre');
+      if (n) n.focus();
+    } catch (e) {}
     return false;
   }
   // Gate de severidades valvulares, una sola vez por estudio.
@@ -54112,11 +54282,74 @@ function _cineDesdeRegistro(r) {
    cuál de las dos le falta. */
 function _cinePuedeGuardar() {
   if (!imgGuardadoActivo())
-    return { ok:false, motivo:'Activá «Guardar imágenes con los estudios» en ⚙️ Config. Está apagado, así que nada se escribe en este dispositivo.' };
+    return { ok:false, motivo:'Activá «Guardar imágenes con los estudios» en ⚙️ Config. Está apagado, así que nada se escribe en este dispositivo.', falta:'toggle' };
   if (!_uuidValido(_imgUuidActual))
-    return { ok:false, motivo:'Guardá el estudio primero: el cineloop se guarda asociado a un estudio, y este todavía no tiene uno.' };
+    return { ok:false, motivo:'Guardá el estudio primero: el cineloop se guarda asociado a un estudio, y este todavía no tiene uno.', falta:'uuid' };
   return { ok:true };
 }
+
+/* ── CINELOOPS QUE ESPERAN AL uuid ────────────────────────────────────────────────────────
+   ⚠️ EL FLUJO NORMAL ES IMPORTAR PRIMERO Y GUARDAR AL FINAL, así que cuando el médico aprieta
+   💾 sobre un cineloop el estudio todavía no tiene uuid y `_cinePuedeGuardar` lo rechaza. Las
+   IMÁGENES ya tenían la contrapartida desde TC-233 —`medFijasPersistir(uuid)`, disparada desde
+   `imgPersistir`, que es el único momento en que el uuid existe—; los cineloops no la tenían,
+   así que ese 💾 era un botón que decía «guardá el estudio primero» y no dejaba nada anotado:
+   había que acordarse de volver al visor y apretarlo otra vez. Nadie se acuerda.
+
+   Se encola SÓLO lo que el médico pidió explícitamente. Guardar todos los cineloops abiertos
+   «por las dudas» al guardar el estudio serían decenas de MB que nadie pidió — el más grande
+   del pendrive son 17 MB.
+
+   ⚠️ Y ENCOLAR RETIENE MEMORIA: los fragmentos son vistas sobre el ArrayBuffer del archivo
+   entero, así que mientras la cola viva, esos megas viven con ella. Es el mismo motivo por el
+   que `cineCerrar` suelta `V.datos`. Se acepta porque la cola sólo tiene lo que se pidió
+   guardar y se vacía al guardar el estudio; por eso también se vacía en `limpiarCampos`, o la
+   cola del paciente anterior se escribiría dentro del estudio del siguiente. */
+let _cinePendientes = [];
+
+/* Deja anotado un cineloop para escribirlo cuando el estudio tenga uuid. Devuelve false si ya
+   estaba: el médico puede apretar 💾 dos veces y no tiene por qué encolarse dos veces. */
+function _cineEncolar(loop) {
+  if (!loop || !loop.d) return false;
+  if (_cinePendientes.some(p => p.loop === loop)) return false;
+  _cinePendientes.push({ loop: loop, nombre: String(loop.nombre || '') });
+  return true;
+}
+
+/* La contrapartida de `medFijasPersistir`, y se llama desde el MISMO sitio y por el mismo
+   motivo: `imgPersistir` es el único momento en que el uuid ya existe. */
+async function _cinePendientesPersistir(uuid) {
+  if (typeof CeiboCine === 'undefined' || !_uuidValido(uuid)) return 0;
+  /* Falla CERRADO si el uuid del argumento y el de pantalla no coinciden, igual que
+     `medFijasPersistir`: antes que escribir el cineloop de este estudio bajo el uuid de otro,
+     no se escribe nada. */
+  if (_imgUuidActual !== uuid) return 0;
+  if (!_cinePendientes.length) return 0;
+  const cola = _cinePendientes.slice();
+  _cinePendientes = [];          // se vacía ANTES de escribir: un fallo no deja reintentos infinitos
+  let n = 0;
+  for (const p of cola) {
+    try {
+      let poster = '';
+      try {
+        const url = await new Promise(r => { const fr = new FileReader();
+          fr.onload = () => r(fr.result); fr.onerror = () => r('');
+          fr.readAsDataURL(new Blob([p.loop.d.frags[0]], { type:'image/jpeg' })); });
+        if (url) poster = await _imgComprimir(url, 'mini');
+      } catch (e) { poster = ''; }
+      const r2 = await CeiboCine.guardar(_cineRegistro(uuid, p.loop, poster));
+      if (r2 && r2.ok) n++;
+    } catch (e) {}
+  }
+  if (n) {
+    try { await _cinePersistir(); } catch (e) {}
+    try { await cineStripRender(); } catch (e) {}
+    if (typeof toast === 'function')
+      toast('✅ ' + n + ' cineloop(s) guardado(s) con el estudio');
+  }
+  return n;
+}
+window._cinePendientesPersistir = _cinePendientesPersistir;
 
 /* Guarda el cineloop que está abierto en el reproductor. */
 async function cineGuardarActual() {
@@ -54124,7 +54357,17 @@ async function cineGuardarActual() {
   if (!D) { toast('⚠️ No hay ningún cineloop abierto'); return false; }
   const loop = D.loops[D.i];
   const puede = _cinePuedeGuardar();
-  if (!puede.ok) { alert('El cineloop no se puede guardar todavía.\n\n' + puede.motivo); return false; }
+  if (!puede.ok) {
+    /* ⚠️ SI LO ÚNICO QUE FALTA ES EL uuid, SE ANOTA EN VEZ DE PERDERSE. El toggle apagado es
+       otra cosa: ahí el médico tiene que ir a encenderlo y encolar sería prometer un guardado
+       que no va a ocurrir nunca. Por eso se mira `falta` y no sólo `ok`. */
+    if (puede.falta === 'uuid' && _cineEncolar(loop)) {
+      toast('📌 Se guarda al guardar el estudio — todavía no tiene uno');
+      return false;
+    }
+    alert('El cineloop no se puede guardar todavía.\n\n' + puede.motivo);
+    return false;
+  }
 
   const bytes = loop.d.frags.reduce((a, f) => a + f.length, 0);
   if (bytes > CINE_AVISO_MB * 1048576) {
@@ -70428,8 +70671,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260922-2211';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790125872959;                 /* eco-build-ms */
+const ECO_BUILD    = '20260922-2252';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790128366214;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -70515,7 +70758,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-2211</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-2252</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
