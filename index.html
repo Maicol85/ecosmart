@@ -12023,8 +12023,14 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
            de TODO el documento, así que un campo con id se guardaría en `campos` de cada
            estudio —el cajón NO es dato del informe, es un anotador—. El único id es el del
            contenedor, que no es un input. -->
-      <div id="dop-cajon" style="display:none;margin-bottom:10px;padding:10px 12px;border-radius:9px;
-           border:1px solid var(--border);background:var(--bg2);"></div>
+      <!-- `#dop-casa` es el ANCLA: el cajón se muda a la ranura del visor mientras éste está
+           abierto y vuelve acá al cerrarlo. Con un ancla vacía la vuelta es un `appendChild` y
+           no hay que recordar entre qué hermanos iba — reinsertarlo por posición es cómo el
+           nodo termina un día arriba de la grilla. Ver `_dopUbicar`. -->
+      <div id="dop-casa">
+        <div id="dop-cajon" style="display:none;margin-bottom:10px;padding:10px 12px;border-radius:9px;
+             border:1px solid var(--border);background:var(--bg2);"></div>
+      </div>
       <div id="med-fija-aviso" style="display:none;font-size:11px;line-height:1.5;margin-bottom:10px;
            padding:8px 10px;border-radius:8px;border:1px solid var(--accent);background:var(--bg2);"></div>
       <div id="img-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"></div>
@@ -19354,7 +19360,10 @@ function calcTHP() {
   const disp = document.getElementById('em_thp_display');
   if (disp) disp.value = thp ? thp + ' ms' : '';
   if (!thp) { setv('avm_thp',''); return; }
-  const avm = (220 / thp).toFixed(2);
+  /* Extracción pura: el `toFixed(2)` se conserva y se cae a la expresión anterior si el helper
+     devolviera `null`, para que sacar la fórmula de acá no pueda cambiar lo que se publica. */
+  const _a = (typeof _avmPorPHT === 'function') ? _avmPorPHT(thp) : null;
+  const avm = (_a != null ? _a : (220 / thp)).toFixed(2);
   setv('avm_thp', avm);
   calcEM();
 }
@@ -19964,6 +19973,25 @@ function _avaContinuidad(dtsviMm, vtiTsvi, vtiAo) {
   return (isFinite(ava) && ava > 0) ? ava : null;
 }
 window._avaContinuidad = _avaContinuidad;
+
+/* ⚠️ ÁREA MITRAL POR PHT (Hatle) — UNA SOLA DEFINICIÓN DE LA CONSTANTE 220.
+   El AVm por THP **es** 220/THP: no son dos mediciones, son la misma con dos caras, y este
+   archivo ya pagó el costo de tratarlas como independientes —el THP votaba aparte en el score
+   de estenosis mitral, o sea la misma medición contada dos veces y en contra de sí misma—.
+   Se extrae ahora porque el cajón Doppler la necesita y escribirla de nuevo sería la quinta
+   copia del 220: hoy está en `calcTHP`, en `calcEM`, en `cxAVT` y en dos tablas de referencia.
+   Se rewirea `calcTHP`, que es la canónica; las otras quedan declaradas acá para el día que
+   alguien mueva el número.
+
+   Devuelve `null` con un PHT no usable en vez de `Infinity`: `220/0` es `Infinity`, que
+   `toFixed(2)` imprime como «Infinity» dentro de la celda de un área valvular. */
+function _avmPorPHT(phtMs) {
+  const t = Number(phtMs);
+  if (!(t > 0)) return null;
+  const a = 220 / t;
+  return isFinite(a) ? a : null;
+}
+window._avmPorPHT = _avmPorPHT;
 
 function calcAo() {
   const vmax = v('vmax_ao'), gmedio = v('gmedio_ao'), itvao = v('itv_ao');
@@ -48431,6 +48459,18 @@ function _cineAbrir(loops) {
            al lado del canvas que se está trazando. Decisión de Maicol (2026-09-22). */
         '<div id="cine-simp-uni" style="display:none;margin-top:8px;padding:9px 11px;border-radius:9px;' +
           'border:1px solid var(--border);background:var(--bg2);font-size:11px;line-height:1.55;"></div>' +
+        /* ⚠️ RANURA DEL CAJÓN DOPPLER — ACÁ VIVE MIENTRAS EL VISOR ESTÁ ABIERTO, y no es una
+           preferencia de diseño: `#cine-ov` es `position:fixed;inset:0`, o sea que TAPA la
+           pestaña Imágenes por completo. Con el cajón sólo allá, sus botones «medir» —los que
+           arman un campo del acordeón— eran inalcanzables: había que tener el visor abierto
+           para que sirvieran y el visor los escondía. Es el control muerto que este archivo
+           documenta con los siete acordeones de Congénitas, con la particularidad de que acá
+           el control se veía perfecto en la pestaña de al lado.
+           NO hay dos cajones: `_dopUbicar` MUEVE el único nodo entre esta ranura y su casa de
+           la pestaña Imágenes. Con dos contenedores habría dos oyentes delegados y dos pintados
+           del mismo estado, que es como lo que el médico ve y lo que se guarda dejan de
+           coincidir — el defecto que este archivo ya cerró con la tabla de Simpson. */
+        '<div id="cine-dop-slot"></div>' +
         /* ⚠️ «➕ Vista» y «Cerrar» YA NO VIVEN ACÁ: se mudaron a la columna derecha del panel A
            (ver `_vPanelHTML`). Dejarlos también acá habría dejado el documento con ids
            DUPLICADOS, y entonces `getElementById` devuelve el primero y el otro se dibuja sin
@@ -48475,6 +48515,11 @@ function _cineAbrir(loops) {
      en modo calibrar cuando el archivo no declara ninguna región medible, así que la rama
      «sin escala → calibración» no se escribe acá: se hereda. */
   _vActivarMedicion(_vistaA);
+  /* El cajón Doppler se muda a la ranura del visor. `_vActivarMedicion` ya dispara `_medEstado`,
+     que repinta el cajón — esta línea cubre el caso en que la medición NO se encienda (sin
+     `_cineDatos` esa función sale por su guarda): sin ella el cajón se quedaría en la pestaña
+     Imágenes, o sea detrás del overlay, y sus botones «medir» volverían a ser inalcanzables. */
+  try { if (typeof _dopRender === 'function') _dopRender(); } catch (e) {}
 }
 
 /* Deja la vista sin sesiones de medición. Es lo que `medApagar` hacía SIEMPRE y ahora sólo
@@ -48652,6 +48697,19 @@ function cineCerrar() {
   if (ov) ov.style.display = 'none';
   _vTodas().forEach(V => { V.datos = null; });
   _V = _vistaA;
+  /* El cajón Doppler VUELVE A LA PESTAÑA IMÁGENES y se esconde: su ranura acaba de quedar
+     dentro de un overlay oculto, y un nodo ahí adentro es inalcanzable aunque exista.
+     `abierto = false` es lo que hace que «se cierra el visor → se oculta» valga también del
+     lado de la app: sin eso el cajón reaparecía solo en la pestaña Imágenes por el botón 📊 que
+     alguien dejó apretado hace media hora.
+     ⚠️ LO QUE NO PASA ES QUE SE BORRE NADA. Esconder no es limpiar: `_dop` queda intacto y la
+     tabla vuelve entera con el botón 📊, que es lo que permite guardarla en la biblioteca
+     después de cerrar. Un cierre de pantalla que destruya el acceso a lo medido sería peor que
+     el cajón siempre visible que esto vino a corregir. */
+  try {
+    if (_dop) _dop.abierto = false;
+    if (typeof _dopRender === 'function') _dopRender();
+  } catch (e) {}
 }
 window.cineToggle = cineToggle; window.cineCapturar = cineCapturar;
 window.cineCerrar = cineCerrar; window.cineIr = cineIr; window.cineLoop = cineLoop;
@@ -48696,7 +48754,10 @@ const _CINE_COMPARTIDOS = { 'cine-ov':1, 'cine-paneles':1, 'cine-cerrar':1,
   /* El panel de Simpson es UNO para las dos vistas, así que su id no se prefija. Sin esta
      entrada, `_medEl` lo buscaría como `b-cine-simp-uni` desde la vista B y devolvería null —
      sin error, sólo un panel que deja de repintarse. */
-  'cine-simp-uni':1 };
+  'cine-simp-uni':1,
+  /* La ranura del cajón Doppler es del modal: el cajón es UNO y acumula entre imágenes, así que
+     prefijarlo daría dos ranuras y el nodo terminaría en la de la vista que se pintó última. */
+  'cine-dop-slot':1 };
 const _medEl = id => document.getElementById(_CINE_COMPARTIDOS[id] ? id : _V.pfx + id);
 
 /* Píxeles de la IMAGEN a partir de un clic. El canvas se muestra escalado por CSS
@@ -52723,6 +52784,14 @@ function _medEstado() {
      SIN prefijo. Dejar acá los `_on` viejos no daba error —`_medEl` devuelve null y `_on` no
      hace nada— pero se leía como que los botones de la vista siguen atados, que es justo la
      duplicación que este cambio sacó. */
+  /* ⚠️ EL CAJÓN DOPPLER SE REPINTA ACÁ, que es el embudo por el que pasa TODO cambio de estado
+     de la barra — incluido el de grupo, que es lo que decide si el cajón se ve. Colgarlo sólo
+     de `medGrupoToggle` dejaría fuera los otros caminos que mueven el grupo: elegir una
+     herramienta abre su grupo, y `medApagar` lo devuelve al de fábrica.
+     Guarda `typeof` porque el cajón vive en OTRO bloque `<script>`: un `ReferenceError` acá se
+     llevaría puesta la barra entera —las nueve herramientas—, no sólo el cajón. Es la misma
+     razón por la que `_medDefOn` está envuelta. */
+  try { if (typeof _dopRender === 'function') _dopRender(); } catch (e) {}
 }
 
 /* ── VELOCIDAD SOBRE UN TRAZO ESPECTRAL ──────────────────────────────────────────────────
@@ -54892,11 +54961,44 @@ function _dopNuevo() {
   return {
     gen: { vel:null, grad:null, tiempo:null, fc:null, vti:null },
     ao:  { vmax:null, gradMedio:null, vtiAo:null, vtiTsvi:null, diam:null, pht:null },
-    modo: 'gen',        // 'gen' | 'ao'
+    /* ⚠️ LAS UNIDADES NO SON UNIFORMES, Y SIGUEN A LAS DEL INFORME, no a las del visor.
+       La herramienta de velocidad entrega SIEMPRE m/s; el informe guarda las ondas E y A y
+       las e' del anillo en cm/s (`onda_e`, `e_sep`, `e_lat`) y los jets de regurgitación en
+       m/s (`vmax_it`, `vmax_ao`). Uniformar el cajón a m/s haría que el médico lea 0,85 acá
+       y 85 en el campo de al lado sobre la MISMA medición. La conversión va en `_dopCapturar`,
+       que es el único borde por donde entra un número. */
+    mit: { ondaE:null, ondaA:null, ePrimaSept:null, ePrimaLat:null, vmaxIm:null,
+           vtiVm:null, vtiIm:null, gradMedioVm:null, pht:null },
+    tri: { vmaxIt:null, vmaxEt:null, pvc:10 },
+    pul: { vmaxIp:null, vmaxEp:null, tap:null, vp:null },
+    modo: 'gen',        // 'gen' | 'ao' | 'mit' | 'tri' | 'pul'
     destino: null,      // campo armado por el médico, p.ej. 'ao.vmax'
     abierto: false,
     avisoImg: false     // entraron imágenes nuevas con el cajón ya cargado
   };
+}
+/* Los cuatro acordeones de válvula. Es UNA lista y la consumen los botones, el rótulo del
+   encabezado y el nombre con que la tabla se guarda en la biblioteca: con tres copias, agregar
+   una válvula deja un botón sin rótulo o una imagen guardada con el nombre de otra. */
+const _DOP_VALVULAS = [
+  { m:'ao',  rot:'🔴 Aórtica' },
+  { m:'mit', rot:'🫀 Mitral' },
+  { m:'tri', rot:'🔵 Tricúspide' },
+  { m:'pul', rot:'🟡 Pulmonar' }
+];
+/* Las claves de los sub-objetos de medición. `_dopHayValores` y `_dopLimpiar` las recorren, así
+   que una válvula nueva entra sola en el aviso de imágenes y en el limpiado — que son justo las
+   dos cosas que se olvidan. `pvc` NO está: es una preferencia del médico, no una medición, y
+   contarla haría que el cajón se declare «con valores» recién abierto. */
+const _DOP_GRUPOS_DATO = ['gen', 'ao', 'mit', 'tri', 'pul'];
+/* El sufijo que nombra la válvula en el TÍTULO de la imagen y en el NOMBRE con que se guarda en
+   la biblioteca. Sale de `_DOP_VALVULAS` —la misma lista que rotula los botones— así que una
+   tabla guardada no puede decir una válvula distinta de la que el médico tenía abierta.
+   El emoji se saca: el rótulo del botón lo necesita para distinguirse de un vistazo y el título
+   de un documento clínico no. */
+function _dopSufijoModo() {
+  const V = _DOP_VALVULAS.filter(x => x.m === _dopEstado().modo)[0];
+  return V ? ' — ' + V.rot.replace(/^\S+\s*/, '') : '';
 }
 function _dopEstado() { if (!_dop) _dop = _dopNuevo(); return _dop; }
 function _dopLimpiar() {
@@ -54911,8 +55013,8 @@ window._dopLimpiar = _dopLimpiar;
 /* ¿El cajón tiene algo medido? Lo usan el aviso de imágenes nuevas y el guardado a imagen. */
 function _dopHayValores() {
   const E = _dopEstado();
-  return Object.keys(E.gen).some(k => E.gen[k] != null) ||
-         Object.keys(E.ao).some(k => E.ao[k] != null);
+  return _DOP_GRUPOS_DATO.some(g =>
+    E[g] && Object.keys(E[g]).some(k => k !== 'pvc' && E[g][k] != null));
 }
 
 /* ⚠️ ENTRARON IMÁGENES NUEVAS Y EL CAJÓN YA TENÍA VALORES.
@@ -54935,7 +55037,18 @@ function _dopImagenesNuevas() {
   } catch (e) {}
 }
 window._dopImagenesNuevas = _dopImagenesNuevas;
-function dopAvisoOk() { _dopEstado().avisoImg = false; _dopRender(); }
+/* ⚠️ EL AVISO OFRECE LAS DOS SALIDAS, Y «CONSERVAR» ES LA QUE NO BORRA.
+   Antes el único botón decía «Entendido» y sólo sacaba el cartel: correcto y a medias, porque
+   la acción que el aviso recomienda —limpiar, si las imágenes son de otro paciente— quedaba a
+   tres controles de distancia, abajo de la tabla. Un aviso que nombra una conducta y no la
+   ofrece se lee dos veces y se ignora a la tercera.
+   Las dos son explícitas: `dopAvisoConservar` cierra el cartel y NO toca un solo dato, y
+   `_dopLimpiar` borra —y de paso apaga el aviso, porque ya no hay nada que confundir—. */
+function dopAvisoConservar() { _dopEstado().avisoImg = false; _dopRender(); }
+window.dopAvisoConservar = dopAvisoConservar;
+/* Nombre viejo, conservado: lo llamaba el oyente delegado y puede quedar en una pestaña que no
+   se recargó. Es un alias, no una segunda implementación. */
+function dopAvisoOk() { dopAvisoConservar(); }
 window.dopAvisoOk = dopAvisoOk;
 
 /* ¿Hay un visor abierto? Es lo que decide si los botones de herramienta se pueden apretar: sin
@@ -54954,30 +55067,52 @@ function _dopHayVisor() {
 
    Falla HACIA NO GUARDAR: cualquier excepción acá no puede llevarse puesta la medición del
    visor, que es lo que el médico acaba de hacer. Por eso los llamadores la envuelven. */
+/* Los destinos de VELOCIDAD que el informe guarda en cm/s (ondas del llenado mitral y e' del
+   anillo). Todo lo demás queda en m/s, que es lo que entrega la herramienta. Derivado como
+   lista y no con un `if` por campo para que agregar una onda nueva no dependa de acordarse. */
+const _DOP_VEL_CMS = { 'mit.ondaE':1, 'mit.ondaA':1, 'mit.ePrimaSept':1, 'mit.ePrimaLat':1 };
+/* Los destinos de VTI que además traen el gradiente medio de la envolvente. El visor lo calcula
+   integrando `4v²` en el tiempo —no es `4·(v media)²`, que por Jensen subestima siempre— así
+   que se toma el que viene y no se recalcula. */
+const _DOP_VTI_GRADMEDIO = { 'ao.vtiAo':'ao.gradMedio', 'mit.vtiVm':'mit.gradMedioVm' };
+
 function _dopCapturar(tipo, d) {
   const E = _dopEstado();
   const dest = E.destino;
   E.destino = null;
+  /* Escribe en el destino armado, sea de la válvula que sea. Antes era una cadena de `if` por
+     campo aórtico; con cuatro acordeones eso son veinte ramas y la que se olvide manda la
+     medición a la fila genérica EN SILENCIO — el médico armó el campo, midió, y el número
+     aparece en otro lado. */
+  const poner = (campo, val) => {
+    const p = campo.split('.');
+    if (E[p[0]] && Object.prototype.hasOwnProperty.call(E[p[0]], p[1])) { E[p[0]][p[1]] = val; return true; }
+    return false;
+  };
   if (tipo === 'vel') {
-    /* cms viene en cm/s y mmHg ya calculado por el visor: no se recalcula acá. */
-    if (dest === 'ao.vmax') { E.ao.vmax = d.ms; }
-    else { E.gen.vel = d.ms; E.gen.grad = d.mmHg; }
+    /* `ms` viene en m/s y `mmHg` ya calculado por el visor: no se recalcula acá. */
+    const ok = dest && _DOP_HERR[dest] === 'vel' &&
+               poner(dest, _DOP_VEL_CMS[dest] ? d.ms * 100 : d.ms);
+    if (!ok) { E.gen.vel = d.ms; E.gen.grad = d.mmHg; }
   } else if (tipo === 'tiempo') {
-    if (dest === 'ao.pht') { E.ao.pht = d.ms; }
-    else { E.gen.tiempo = d.ms; }
+    const ok = dest && _DOP_HERR[dest] === 'tiempo' && poner(dest, d.ms);
+    if (!ok) E.gen.tiempo = d.ms;
   } else if (tipo === 'fc') {
     E.gen.fc = d.lpm;
   } else if (tipo === 'vti') {
-    if (dest === 'ao.vtiAo') {
-      E.ao.vtiAo = d.cm; E.ao.gradMedio = d.gradMedio;
+    const ok = dest && _DOP_HERR[dest] === 'vti' && poner(dest, d.cm);
+    if (ok) {
+      const gm = _DOP_VTI_GRADMEDIO[dest];
+      if (gm) poner(gm, d.gradMedio);
       /* El pico de la envolvente aórtica ES la Vmax, así que se aprovecha — pero SÓLO SI ESTÁ
          VACÍA. Pisar una Vmax que el médico midió aparte, con un clic sobre el pico que él
          eligió, sería el campo «auto» que sobrescribe lo tipeado: la regla de `_syncSiVacio` y
-         la del importador DICOM, que sólo completa lo que está en blanco. */
-      if (E.ao.vmax == null && d.picoCms != null) E.ao.vmax = d.picoCms / 100;
-    }
-    else if (dest === 'ao.vtiTsvi') { E.ao.vtiTsvi = d.cm; }
-    else { E.gen.vti = d.cm; }
+         la del importador DICOM, que sólo completa lo que está en blanco.
+         NO se hace para el VTI mitral: el pico de la envolvente de LLENADO es la onda E, no una
+         Vmax de regurgitación, y escribirlo en `mit.vmaxIm` publicaría la onda E como si fuera
+         el jet de la insuficiencia — dos hallazgos distintos bajo el mismo rótulo. */
+      if (dest === 'ao.vtiAo' && E.ao.vmax == null && d.picoCms != null) E.ao.vmax = d.picoCms / 100;
+    } else { E.gen.vti = d.cm; }
   }
   _dopRender();
 }
@@ -54989,14 +55124,60 @@ window._dopCapturar = _dopCapturar;
    reimplementa: el gradiente sale de `_medGradMmHg` y la AVA de `_avaContinuidad`, las mismas
    que usan el visor y el tab Válvulas. */
 function _dopDerivados() {
-  const A = _dopEstado().ao, R = {};
-  R.gradMax = (A.vmax != null && typeof _medGradMmHg === 'function') ? _medGradMmHg(A.vmax) : null;
+  const E = _dopEstado(), A = E.ao, M = E.mit, T = E.tri, P = E.pul, R = {};
+  /* Un solo gradiente en todo el cajón: `_medGradMmHg`, la misma del visor. Cinco velocidades
+     × `4v²` escrito a mano son cinco lugares donde olvidarse del cuadrado, y el número sale
+     plausible — es el defecto de `vp_gmax` («con Vmax 4 m/s el gradiente da 16»). */
+  const G = v => (v != null && typeof _medGradMmHg === 'function') ? _medGradMmHg(v) : null;
+  R.gradMax = G(A.vmax);
   R.ava = (typeof _avaContinuidad === 'function')
     ? _avaContinuidad(A.diam, A.vtiTsvi, A.vtiAo) : null;
   R.bsa = null;
   try { R.bsa = (typeof getBSA === 'function') ? getBSA() : null; } catch (e) { R.bsa = null; }
   R.avai = (R.ava != null && R.bsa > 0) ? (R.ava / R.bsa) : null;
   R.sev = _dopSevPHT(A.pht);
+
+  /* ── MITRAL ───────────────────────────────────────────────────────────────────────────── */
+  R.ea = (M.ondaE > 0 && M.ondaA > 0) ? (M.ondaE / M.ondaA) : null;
+  /* ⚠️ E/e' SE PROMEDIA CUANDO ESTÁN LAS DOS, Y SE DECLARA CUÁL SE USÓ.
+     El e' septal y el lateral no son intercambiables —el septal corre más bajo— así que un
+     E/e' calculado con uno solo NO es el mismo número que el promediado, y la diferencia cae
+     justo en la banda que decide presiones de llenado. Publicarlo sin decir de dónde salió
+     sería un cociente que no se puede auditar. */
+  const eps = [];
+  if (M.ePrimaSept > 0) eps.push(['sept', M.ePrimaSept]);
+  if (M.ePrimaLat > 0)  eps.push(['lat',  M.ePrimaLat]);
+  R.eprom = eps.length ? eps.reduce((s, x) => s + x[1], 0) / eps.length : null;
+  R.epromCual = eps.length === 2 ? 'prom' : (eps.length === 1 ? eps[0][0] : null);
+  R.ee = (M.ondaE > 0 && R.eprom > 0) ? (M.ondaE / R.eprom) : null;
+  R.gradMaxIm = G(M.vmaxIm);
+  R.avmPht = (typeof _avmPorPHT === 'function') ? _avmPorPHT(M.pht) : null;
+  /* ⚠️ AVM POR CONTINUIDAD = LA MISMA ECUACIÓN QUE LA AVA, con el VTI mitral en el denominador.
+     `_avaContinuidad(diam, vtiTsvi, X)` es `π·(d/20)²·vtiTsvi / X`: con X = VTI aórtico da el
+     área aórtica y con X = VTI mitral, la mitral. No se escribe una segunda fórmula — y con
+     ella vendría de regalo el error de escala del diámetro en milímetros, que este archivo ya
+     pagó tres veces.
+     LOS INSUMOS SALEN DEL ACORDEÓN AÓRTICO (`ao.vtiTsvi`, `ao.diam`), que es donde ya viven.
+     Un par de campos propios acá sería la segunda entrada del mismo TSVI: el patrón del espesor
+     parietal, que este archivo documenta con tres copias. La fila lo DICE, porque si no un AVM
+     que depende de dos campos de otra pestaña del cajón se lee como autónomo. */
+  R.avmCont = (typeof _avaContinuidad === 'function')
+    ? _avaContinuidad(A.diam, A.vtiTsvi, M.vtiVm) : null;
+
+  /* ── TRICÚSPIDE ───────────────────────────────────────────────────────────────────────── */
+  R.gradIt = G(T.vmaxIt);
+  /* PSAP = gradiente IT + PVC. Es la misma suma que hace `calcPSAP` para el informe, con una
+     diferencia que hay que conocer: allá la presión de aurícula derecha se ESTIMA desde la VCI
+     (`pmad`) y acá la elige el médico en el selector. O sea que los dos números pueden diferir
+     sobre el mismo paciente. Se acepta —el cajón mide antes de que la VCI esté cargada, que es
+     su razón de ser— y por eso la FILA LLEVA LA PVC ADENTRO y el descargo lo declara: una PSAP
+     sin decir con qué PVC salió no se puede auditar contra la del informe. */
+  R.psap = (R.gradIt != null && T.pvc > 0) ? (R.gradIt + T.pvc) : null;
+  R.gradEt = G(T.vmaxEt);
+
+  /* ── PULMONAR ─────────────────────────────────────────────────────────────────────────── */
+  R.gradIp = G(P.vmaxIp);
+  R.gradEp = G(P.vmaxEp);
   return R;
 }
 
@@ -55025,7 +55206,17 @@ function _dopSevPHT(pht) {
    el destino, así que la medición siguiente cae en ese campo. Sin visor abierto no se arma
    nada y se dice por qué — armar un destino que nunca se va a llenar deja al médico esperando
    un número que no llega. */
-const _DOP_HERR = { 'ao.vmax':'vel', 'ao.vtiAo':'vti', 'ao.vtiTsvi':'vti', 'ao.pht':'tiempo' };
+const _DOP_HERR = {
+  'ao.vmax':'vel', 'ao.vtiAo':'vti', 'ao.vtiTsvi':'vti', 'ao.pht':'tiempo',
+  'mit.ondaE':'vel', 'mit.ondaA':'vel', 'mit.ePrimaSept':'vel', 'mit.ePrimaLat':'vel',
+  'mit.vmaxIm':'vel', 'mit.vtiVm':'vti', 'mit.vtiIm':'vti', 'mit.pht':'tiempo',
+  'tri.vmaxIt':'vel', 'tri.vmaxEt':'vel',
+  /* El TAP es un TIEMPO de aceleración y la VP una VELOCIDAD: son dos herramientas distintas
+     sobre el mismo trazo pulmonar, y el pedido las nombraba así. Cruzarlas daría un número con
+     unidades correctas y sin significado — que es el modo de falla que el propio VTI ya pagó
+     al aceptar un modo M. */
+  'pul.tap':'tiempo', 'pul.vp':'vel', 'pul.vmaxIp':'vel', 'pul.vmaxEp':'vel'
+};
 function dopArmar(campo) {
   const E = _dopEstado();
   if (!_dopHayVisor()) {
@@ -55057,6 +55248,15 @@ window.dopHerr = dopHerr;
 
 function dopModo(m) { const E = _dopEstado(); E.modo = (E.modo === m) ? 'gen' : m; E.destino = null; _dopRender(); }
 window.dopModo = dopModo;
+/* La PVC sólo admite los tres valores del selector. Un número arbitrario entraría a la suma de
+   la PSAP y saldría impreso dentro del rótulo de la fila —«PSAP (PVC 999)»— como si alguien lo
+   hubiera estimado. */
+function dopPVC(p) {
+  if (p !== 5 && p !== 10 && p !== 15) return;
+  _dopEstado().tri.pvc = p;
+  _dopRender();
+}
+window.dopPVC = dopPVC;
 function dopToggle() { const E = _dopEstado(); E.abierto = !E.abierto; _dopRender(); }
 window.dopToggle = dopToggle;
 
@@ -55067,7 +55267,15 @@ window.dopToggle = dopToggle;
 function dopCorregir(campo) {
   const E = _dopEstado();
   const p = campo.split('.');
-  const obj = p[0] === 'ao' ? E.ao : E.gen;
+  /* ⚠️ EL GRUPO SE RESUELVE POR SU NOMBRE, NUNCA CON UN TERNARIO `p[0] === 'ao' ? E.ao : E.gen`.
+     Esa era la forma anterior, y con los cuatro acordeones mandaba a `E.gen` todo lo que no
+     fuera aórtico: corregir el PHT mitral escribía `E.gen.pht`, una propiedad que no existe,
+     así que el valor se perdía SIN ERROR y la fila seguía mostrando un guion. Lo cazó TC-250 —
+     el AVM por PHT salía `null` con el PHT recién tipeado— y no la lectura.
+     El `hasOwnProperty` es lo que impide que un campo mal escrito acuñe una propiedad nueva:
+     ahí el valor se guardaría, no lo leería ningún derivado, y la fila tampoco cambiaría. */
+  const obj = (E[p[0]] && Object.prototype.hasOwnProperty.call(E[p[0]], p[1])) ? E[p[0]] : null;
+  if (!obj) return;
   const actual = obj[p[1]];
   const txt = prompt('Valor para ' + (_DOP_ROT[campo] || p[1]) + ' (vacío borra):',
                      actual == null ? '' : String(actual));
@@ -55085,12 +55293,44 @@ const _DOP_ROT = {
   'gen.vel':'Velocidad', 'gen.grad':'Gradiente', 'gen.tiempo':'Tiempo', 'gen.fc':'FC',
   'gen.vti':'VTI',
   'ao.vmax':'Vmax VAo', 'ao.gradMedio':'Grad Medio', 'ao.vtiAo':'VTI VAo',
-  'ao.vtiTsvi':'VTI TSVI', 'ao.diam':'Diam TSVI', 'ao.pht':'PHT IAo'
+  'ao.vtiTsvi':'VTI TSVI', 'ao.diam':'Diam TSVI', 'ao.pht':'PHT IAo',
+  'mit.ondaE':'Onda E', 'mit.ondaA':'Onda A', 'mit.ePrimaSept':"e' septal",
+  'mit.ePrimaLat':"e' lateral", 'mit.vmaxIm':'Vmax IM', 'mit.vtiVm':'VTI VM',
+  'mit.vtiIm':'VTI IM', 'mit.gradMedioVm':'Grad Medio VM', 'mit.pht':'PHT VM',
+  'tri.vmaxIt':'Vmax IT', 'tri.vmaxEt':'Vmax ET',
+  'pul.vmaxIp':'Vmax IP', 'pul.vmaxEp':'Vmax EP', 'pul.tap':'TAP', 'pul.vp':'VP'
 };
-const _DOP_DISC = [
-  'PHT para severidad de IAo: orientativo. Requiere correlación clínica. No usar como único criterio. (ASE/EACVI 2017)',
-  'AVA por ecuación de continuidad: requiere TSVI correctamente medido.'
-];
+/* ⚠️ LOS DESCARGOS SON POR VÁLVULA, y eso NO es cosmético: van QUEMADOS en la imagen que se
+   guarda en la biblioteca, y desde ahí pueden llegar al PDF. Una tabla de PSAP que circula sola
+   sin decir que la PVC es estimada es «un número sin su reparo», que es lo que este archivo
+   persigue desde la nota del NT-proBNP. Con una lista única, la tabla de la mitral saldría
+   declarando una salvedad sobre la aorta y callando la suya.
+   La línea base va en TODOS los modos: lo que separa este cajón de un informe es justamente que
+   no escribe ningún campo, y la imagen tiene que decirlo cuando se la mire fuera de la app. */
+const _DOP_DISC_BASE =
+  'Anotador del visor: mediciones manuales, NO escribe ningún campo del informe. Verificar antes de usar.';
+const _DOP_DISC = {
+  gen: [],
+  ao: [
+    'PHT para severidad de IAo: orientativo. Requiere correlación clínica. No usar como único criterio. (ASE/EACVI 2017)',
+    'AVA por ecuación de continuidad: requiere TSVI correctamente medido.'
+  ],
+  mit: [
+    'PHT puede subestimar AVM en IAo severa o post-valvuloplastia. En esos casos preferir AVM por continuidad. (ASE/EACVI 2021)',
+    'AVM por continuidad: usa el VTI del TSVI y el diámetro del TSVI cargados en el acordeón Aórtica.'
+  ],
+  tri: [
+    'PSAP estimada por gradiente IT. Requiere ausencia de obstrucción pulmonar y PVC estimada. (ESC/ERS 2022)',
+    'La PVC de esta tabla la elige el médico; la del informe se estima desde la VCI. Pueden no coincidir.'
+  ],
+  pul: [
+    'Gradientes por Bernoulli simplificada. El TAP es un tiempo de aceleración, no una velocidad.'
+  ]
+};
+function _dopDisc() {
+  const l = _DOP_DISC[_dopEstado().modo] || [];
+  return l.concat([_DOP_DISC_BASE]);
+}
 
 /* Las filas que se muestran. Es UNA lista y la consumen el panel y la captura a imagen: con dos
    armadores, lo que el médico ve y lo que queda guardado podrían dejar de coincidir — que es lo
@@ -55112,6 +55352,48 @@ function _dopFilas() {
     if (D.avai != null) F.push(['AVAi', n(D.avai, 2), 'cm²/m²',  null, false]);
     F.push(['PHT IAo',    n(E.ao.pht, 0),       'ms',     'ao.pht',    true]);
     if (D.sev) F.push(['Severidad IAo', D.sev.txt + ' (orientativo)', '', null, false]);
+  } else if (E.modo === 'mit') {
+    const M = E.mit;
+    F.push(['Onda E',     n(M.ondaE, 0),        'cm/s',   'mit.ondaE', true]);
+    F.push(['Onda A',     n(M.ondaA, 0),        'cm/s',   'mit.ondaA', true]);
+    /* E/A y E/e' APARECEN SOLOS cuando hay con qué. Sin insumo no se muestra la fila en vez de
+       un guion, que al lado de una unidad se lee como «medido y dio cero» — misma regla que la
+       AVA del acordeón aórtico. Y NO SE GRADÚAN: esta app borró a propósito la graduación del
+       SGL porque convivían tres escalas, y una banda inventada acá sería la misma historia
+       sobre el llenado mitral. */
+    if (D.ea != null) F.push(['E/A', n(D.ea, 2), '', null, false]);
+    F.push(["e' septal",  n(M.ePrimaSept, 1),   'cm/s',   'mit.ePrimaSept', true]);
+    F.push(["e' lateral", n(M.ePrimaLat, 1),    'cm/s',   'mit.ePrimaLat',  true]);
+    if (D.ee != null) {
+      const cual = D.epromCual === 'prom' ? 'prom' : (D.epromCual === 'sept' ? 'septal' : 'lateral');
+      F.push(["E/e' (" + cual + ')', n(D.ee, 1), '', null, false]);
+    }
+    F.push(['Vmax IM',    n(M.vmaxIm, 2),       'm/s',    'mit.vmaxIm', true]);
+    if (D.gradMaxIm != null) F.push(['Grad Máx IM', n(D.gradMaxIm, 1), 'mmHg', null, false]);
+    F.push(['VTI VM',     n(M.vtiVm, 1),        'cm',     'mit.vtiVm', true]);
+    F.push(['VTI IM',     n(M.vtiIm, 1),        'cm',     'mit.vtiIm', true]);
+    F.push(['Grad Medio VM', n(M.gradMedioVm, 1), 'mmHg',  'mit.gradMedioVm', false]);
+    F.push(['PHT VM',     n(M.pht, 0),          'ms',     'mit.pht',   true]);
+    if (D.avmPht != null)  F.push(['AVM por PHT',  n(D.avmPht, 2),  'cm²', null, false]);
+    if (D.avmCont != null) F.push(['AVM por continuidad', n(D.avmCont, 2), 'cm²', null, false]);
+  } else if (E.modo === 'tri') {
+    const T = E.tri;
+    F.push(['Vmax IT',    n(T.vmaxIt, 2),       'm/s',    'tri.vmaxIt', true]);
+    if (D.gradIt != null) F.push(['Grad Máx IT', n(D.gradIt, 1), 'mmHg', null, false]);
+    /* La PVC lleva su valor DENTRO del rótulo y no en una nota al pie: la PSAP de esta tabla
+       puede no coincidir con la del informe —allá la PVC se estima desde la VCI— y sin el número
+       a la vista no hay forma de saber cuál de las dos se está mirando. */
+    if (D.psap != null) F.push(['PSAP (PVC ' + T.pvc + ')', n(D.psap, 0), 'mmHg', null, false]);
+    F.push(['Vmax ET',    n(T.vmaxEt, 2),       'm/s',    'tri.vmaxEt', true]);
+    if (D.gradEt != null) F.push(['Grad Máx ET', n(D.gradEt, 1), 'mmHg', null, false]);
+  } else if (E.modo === 'pul') {
+    const P = E.pul;
+    F.push(['Vmax IP',    n(P.vmaxIp, 2),       'm/s',    'pul.vmaxIp', true]);
+    if (D.gradIp != null) F.push(['Grad Máx IP', n(D.gradIp, 1), 'mmHg', null, false]);
+    F.push(['Vmax EP',    n(P.vmaxEp, 2),       'm/s',    'pul.vmaxEp', true]);
+    if (D.gradEp != null) F.push(['Grad Máx EP', n(D.gradEp, 1), 'mmHg', null, false]);
+    F.push(['TAP',        n(P.tap, 0),          'ms',     'pul.tap',   true]);
+    F.push(['VP',         n(P.vp, 2),           'm/s',    'pul.vp',    true]);
   } else {
     F.push(['Velocidad', n(E.gen.vel, 2),    'm/s',  'gen.vel',    false]);
     F.push(['Gradiente', n(E.gen.grad, 1),   'mmHg', 'gen.grad',   false]);
@@ -55122,13 +55404,53 @@ function _dopFilas() {
   return F;
 }
 
+/* ⚠️ DÓNDE SE VE EL CAJÓN — DOS REGLAS, según haya visor o no, y son distintas a propósito.
+
+   CON EL VISOR ABIERTO manda el GRUPO de la barra lateral: el cajón sale con «Doppler / M»
+   abierto y se va al pasar a 2D o al cerrar el visor. No lo gobierna el botón 📊 porque ahí el
+   botón está detrás del overlay: sería una compuerta que el médico no puede tocar.
+
+   SIN VISOR manda el botón 📊, que es lo que permite volver a mirar la tabla acumulada y
+   guardarla en la biblioteca después de cerrar. Sin esta segunda mitad, «ocultarlo al cerrar el
+   visor» dejaría las mediciones adentro de un cajón inalcanzable — cerrar una pantalla no puede
+   destruir el acceso a lo que se midió.
+
+   LOS VALORES NO SE TOCAN NUNCA ACÁ: `_dop` es estado de módulo y esconder el cajón es
+   `display:none`, no un reseteo. Esconder no es limpiar, que es la distinción que este archivo
+   ya tuvo que escribir para Orthanc. */
+function _dopVisible() {
+  const E = _dopEstado();
+  if (_dopHayVisor()) {
+    try { return typeof _medGrupoAbierto === 'function' && _medGrupoAbierto() === 'dop'; }
+    catch (e) { return false; }
+  }
+  return E.abierto === true;
+}
+
+/* Mueve el ÚNICO nodo del cajón entre la ranura del visor y su ancla de la pestaña Imágenes.
+   `appendChild` sobre un nodo que ya tiene padre lo MUEVE —no lo copia— así que el estado del
+   DOM, el oyente delegado y el `innerHTML` recién pintado viajan con él.
+   Se comprueba el padre antes de mover: reinsertarlo en cada repintado obligaría al navegador a
+   rehacer el layout del panel entero varias veces por segundo mientras se arrastra el slider. */
+function _dopUbicar() {
+  const cont = document.getElementById('dop-cajon');
+  if (!cont) return;
+  const destino = _dopHayVisor()
+    ? document.getElementById('cine-dop-slot')
+    : document.getElementById('dop-casa');
+  if (destino && cont.parentNode !== destino) destino.appendChild(cont);
+}
+
 function _dopRender() {
   const cont = document.getElementById('dop-cajon');
   const btn = document.getElementById('dop-btn');
   if (!cont) return;
+  _dopUbicar();
   const E = _dopEstado(), hay = _dopHayVisor();
-  if (btn) btn.className = 'btn ' + (E.abierto ? 'btn-primary' : 'btn-ghost');
-  if (!E.abierto) { cont.style.display = 'none'; cont.innerHTML = ''; return; }
+  /* El botón 📊 se apaga mientras el visor manda: encendido diría que él gobierna el cajón, y
+     ahí el que gobierna es el grupo de la barra lateral. */
+  if (btn) btn.className = 'btn ' + (!hay && E.abierto ? 'btn-primary' : 'btn-ghost');
+  if (!_dopVisible()) { cont.style.display = 'none'; cont.innerHTML = ''; return; }
   cont.style.display = 'block';
 
   const dis = hay ? '' : ' disabled title="Abrí una imagen en el visor"';
@@ -55137,16 +55459,24 @@ function _dopRender() {
       '<button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:12px;"' +
       dis + ' data-dop-herr="' + x[1] + '">' + x[0] + '</button>').join('') +
     '</div>';
-  /* Las tres válvulas que no son de esta sesión salen DESHABILITADAS y no ocultas: que estén a
-     la vista dice que el cajón las va a tener, y esconderlas haría creer que el cajón es sólo
-     para la aórtica. */
+  /* Las cuatro válvulas, derivadas de `_DOP_VALVULAS`. Tocar la abierta la CIERRA y vuelve a
+     las filas genéricas — `dopModo` alterna, igual que `medToggle`. */
   h += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">' +
-    '<button type="button" class="btn ' + (E.modo === 'ao' ? 'btn-primary' : 'btn-ghost') +
-      '" style="padding:4px 10px;font-size:12px;" data-dop-modo="ao">🔴 Aórtica</button>' +
-    ['🫀 Mitral','🔵 Tricúspide','🟡 Pulmonar'].map(x =>
-      '<button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" disabled ' +
-      'title="Todavía no implementada">' + x + '</button>').join('') +
+    _DOP_VALVULAS.map(V =>
+      '<button type="button" class="btn ' + (E.modo === V.m ? 'btn-primary' : 'btn-ghost') +
+      '" style="padding:4px 10px;font-size:12px;" data-dop-modo="' + V.m + '">' +
+      escHtml(V.rot) + '</button>').join('') +
     '</div>';
+  /* El selector de PVC vive ARRIBA de la tabla y sólo en tricúspide: es un insumo de la PSAP,
+     no una medición, así que una fila más lo haría leer como algo que se midió. */
+  if (E.modo === 'tri') {
+    h += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:9px;font-size:11.5px;color:var(--text2);">' +
+      '<span>PVC estimada:</span>' +
+      [5, 10, 15].map(p =>
+        '<button type="button" class="btn ' + (E.tri.pvc === p ? 'btn-primary' : 'btn-ghost') +
+        '" style="padding:2px 9px;font-size:11px;" data-dop-pvc="' + p + '">' + p + '</button>').join('') +
+      '<span>mmHg</span></div>';
+  }
 
   /* El aviso va ARRIBA de la tabla y no al pie: lo que se lee primero son los números, y un
      reparo debajo llega tarde. Misma razón por la que el descargo del strain va pegado al
@@ -55154,10 +55484,13 @@ function _dopRender() {
   if (E.avisoImg && _dopHayValores()) {
     h += '<div style="margin-bottom:8px;padding:7px 9px;border-radius:7px;border-left:3px solid var(--orange,#f59e0b);' +
          'background:var(--bg3);font-size:11.5px;line-height:1.45;">' +
-         '<b>Entraron imágenes nuevas y la tabla ya tenía mediciones.</b><br>' +
-         'Si son de otro paciente, tocá 🗑️ Limpiar — el cajón no se vacía solo al importar. ' +
+         '<b>Hay mediciones Doppler del estudio anterior. ¿Limpiar o conservar?</b><br>' +
+         'Entraron imágenes nuevas y el cajón no se vacía solo al importar: acumular entre ' +
+         'imágenes es lo que hace. ' +
          '<button type="button" class="btn btn-ghost" style="padding:1px 8px;font-size:10.5px;margin-left:4px;" ' +
-         'data-dop-acc="avisook">Entendido</button></div>';
+         'data-dop-acc="avisolimpiar">🗑️ Limpiar</button> ' +
+         '<button type="button" class="btn btn-ghost" style="padding:1px 8px;font-size:10.5px;" ' +
+         'data-dop-acc="avisook">Conservar</button></div>';
   }
   const F = _dopFilas();
   h += '<table style="width:100%;border-collapse:collapse;font-size:12.5px;">';
@@ -55183,7 +55516,7 @@ function _dopRender() {
     '<button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" data-dop-acc="guardar">📷 Guardar en biblioteca</button>' +
     '</div>';
   h += '<div style="margin-top:8px;font-size:10px;color:var(--text2);line-height:1.45;">' +
-    _DOP_DISC.map(t => escHtml(t)).join('<br>') + '</div>';
+    _dopDisc().map(t => escHtml(t)).join('<br>') + '</div>';
   cont.innerHTML = h;
   _dopObservar();
 }
@@ -55206,12 +55539,14 @@ function _dopObservar() {
   if (!cont) return;
   _dopObsPuesto = true;
   cont.addEventListener('click', ev => {
-    const b = ev.target && ev.target.closest ? ev.target.closest('[data-dop-herr],[data-dop-modo],[data-dop-armar],[data-dop-corr],[data-dop-acc]') : null;
+    const b = ev.target && ev.target.closest ? ev.target.closest('[data-dop-herr],[data-dop-modo],[data-dop-pvc],[data-dop-armar],[data-dop-corr],[data-dop-acc]') : null;
     if (!b || !cont.contains(b) || b.disabled) return;
     const g = b.getAttribute('data-dop-herr');
     if (g) { dopHerr(g); return; }
     const m = b.getAttribute('data-dop-modo');
     if (m) { dopModo(m); return; }
+    const pv = b.getAttribute('data-dop-pvc');
+    if (pv) { dopPVC(Number(pv)); return; }
     const a = b.getAttribute('data-dop-armar');
     if (a) { dopArmar(a); return; }
     const c = b.getAttribute('data-dop-corr');
@@ -55219,7 +55554,8 @@ function _dopObservar() {
     const acc = b.getAttribute('data-dop-acc');
     if (acc === 'limpiar') { _dopLimpiar(); return; }
     if (acc === 'guardar') { dopGuardarBiblioteca(); return; }
-    if (acc === 'avisook') { dopAvisoOk(); return; }
+    if (acc === 'avisook') { dopAvisoConservar(); return; }
+    if (acc === 'avisolimpiar') { _dopLimpiar(); return; }
   });
 }
 
@@ -55236,7 +55572,7 @@ function _dopCanvas() {
   const F = _dopFilas(), E = _dopEstado();
   const W = 640, pad = 22, filaH = 30, cabH = 46;
   const discLineas = [];
-  _DOP_DISC.forEach(t => {
+  _dopDisc().forEach(t => {
     /* Partido a mano: `fillText` NO envuelve, recorta por la cola en silencio — y lo que se
        perdería es justamente el descargo. */
     let linea = '', pal = t.split(' ');
@@ -55253,7 +55589,7 @@ function _dopCanvas() {
   c.fillStyle = '#ffffff'; c.fillRect(0, 0, W, H);
   c.fillStyle = '#111827'; c.textAlign = 'left';
   c.font = 'bold 17px system-ui, sans-serif';
-  c.fillText('Mediciones Doppler' + (E.modo === 'ao' ? ' — Válvula aórtica' : ''), pad, 28);
+  c.fillText('Mediciones Doppler' + _dopSufijoModo(), pad, 28);
   let y = cabH;
   c.font = '14px system-ui, sans-serif';
   F.forEach((f, i) => {
@@ -55284,7 +55620,7 @@ async function dopGuardarBiblioteca() {
   }
   try {
     const cv = _dopCanvas();
-    const nom = 'Doppler' + (_dopEstado().modo === 'ao' ? ' — aórtica' : '');
+    const nom = 'Doppler' + _dopSufijoModo();
     const r = await _docGuardarEnBiblioteca(cv, nom);
     if (r && r.ok && typeof toast === 'function') toast('📷 Tabla guardada en la biblioteca.');
   } catch (e) {
@@ -71507,8 +71843,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260923-0633';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790155983004;                 /* eco-build-ms */
+const ECO_BUILD    = '20260923-0719';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790158786494;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -71594,7 +71930,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260923-0633</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260923-0719</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

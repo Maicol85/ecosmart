@@ -4,6 +4,123 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## El cajón Doppler vivía DETRÁS del overlay del visor — y sus botones eran inalcanzables (TC-249/250)
+
+El pedido decía «corregir la UX: que el cajón se muestre sólo con un visor abierto y el modo
+Doppler activo». Medido antes de tocar nada, eso era **imposible de implementar literal** — y al
+medirlo apareció por qué: **`#cine-ov` es `position:fixed;inset:0`, o sea que TAPA la pestaña
+Imágenes entera.** El cajón vivía sólo allá, así que mientras el visor estaba abierto no se veía.
+
+**Lo que eso significaba en la práctica: los botones «medir» del acordeón NUNCA se podían
+apretar.** `dopArmar` exige `_dopHayVisor()` —sin visor avisa «Abrí una imagen en el visor»— y
+con visor el cajón estaba detrás del overlay. La compuerta y el control eran mutuamente
+excluyentes: el acordeón aórtico que se había construido la sesión anterior tenía todos sus
+campos armables y **ninguno alcanzable**. Es el control muerto que este archivo documenta con los
+siete acordeones de Congénitas, con el agravante de que acá se veía perfecto en la pestaña de al
+lado. El «UX» del pedido era esto.
+
+### El nodo se MUEVE, no se duplica
+
+`_dopUbicar` hace `appendChild` del **único** `#dop-cajon` entre `#cine-dop-slot` (dentro del
+visor) y `#dop-casa` (la pestaña Imágenes). `appendChild` sobre un nodo que ya tiene padre lo
+mueve, así que el oyente delegado, el `innerHTML` recién pintado y el estado del DOM viajan con
+él. **Con dos contenedores habría dos oyentes y dos pintados del mismo estado**, que es como lo
+que el médico ve y lo que se guarda dejan de coincidir — el defecto que este archivo ya cerró con
+la tabla de Simpson. Se comprueba el padre antes de mover: reinsertar en cada repintado rehace el
+layout del panel mientras se arrastra el slider.
+
+### Dos reglas de visibilidad, y son distintas a propósito
+
+| | quién decide |
+|---|---|
+| **con visor abierto** | el GRUPO de la barra lateral (`_medGrupoAbierto() === 'dop'`) |
+| **sin visor** | el botón 📊 (`E.abierto`) |
+
+Con el visor abierto **no puede mandar el botón 📊**: está detrás del overlay, o sea una compuerta
+que el médico no puede tocar. Y sin visor **tiene que haber una forma de volver a ver la tabla**,
+porque es desde donde se guarda en la biblioteca: `cineCerrar` pone `abierto = false` —eso es
+«ocultarlo al cerrar el visor»— y el 📊 la reabre entera. **Esconder no es limpiar**: `_dop` no se
+toca, y hay una condición que exige que la tabla vuelva con sus valores. Un cierre de pantalla que
+destruya el acceso a lo medido sería peor que el cajón siempre visible que esto vino a corregir.
+
+`_dopRender` se engancha en **`_medEstado`**, que es el embudo por el que pasa todo cambio de
+estado de la barra. Colgarlo de `medGrupoToggle` dejaría fuera los otros caminos que mueven el
+grupo: **elegir una herramienta abre su grupo** (`medHerramienta` escribe `_medGrupo`) y
+`medApagar` lo devuelve al de fábrica.
+
+### ⚠️ LAS UNIDADES NO SON UNIFORMES, Y SIGUEN A LAS DEL INFORME
+
+La herramienta de velocidad entrega **siempre m/s**. El informe guarda las ondas del llenado
+mitral y las e' del anillo en **cm/s** (`onda_e`, `e_sep`, `e_lat`) y los jets de regurgitación en
+**m/s** (`vmax_it`, `vmax_ao`). Uniformar el cajón haría que el médico lea 0,85 acá y 85 en el
+campo de al lado sobre la misma medición; uniformar al revés deja la Vmax IM en 150 y su gradiente
+en **90.000 mmHg**. La conversión va en `_dopCapturar`, que es el único borde por donde entra un
+número, y hay una condición por cada lado.
+
+### Lo que NO se reimplementó, que es casi todo
+
+- **Los gradientes** salen de `_medGradMmHg`, la del visor. Cinco velocidades × `4v²` escrito a
+  mano son cinco lugares donde olvidarse del cuadrado — es `vp_gmax` («con Vmax 4 m/s el gradiente
+  da 16»).
+- **El AVM por continuidad ES `_avaContinuidad` con el VTI mitral en el denominador.**
+  `π·(d/20)²·vtiTsvi / X`: con X = VTI aórtico da el área aórtica, con X = VTI mitral la mitral.
+  No hay una segunda fórmula — y con ella vendría de regalo el error de escala del diámetro en
+  milímetros, que este archivo ya pagó tres veces. **Sus insumos salen del acordeón AÓRTICO**
+  (`ao.vtiTsvi`, `ao.diam`): campos propios habrían sido la segunda entrada del mismo TSVI, el
+  patrón del espesor parietal. La fila lo dice, porque si no se lee como autónoma.
+- **El AVM por PHT** obligó a extraer **`_avmPorPHT`**: el 220 estaba escrito en `calcTHP`, en
+  `calcEM`, en `cxAVT` y en dos tablas de referencia, y ésta habría sido la quinta copia. Se
+  rewireó `calcTHP` como extracción pura —conserva su `toFixed(2)` y cae a la expresión anterior
+  si el helper devolviera `null`—. Hay una condición que compara el número del cajón contra el que
+  publica `avm_thp`.
+- **E/A, E/e' y los AVM no se gradúan.** Esta app borró a propósito la graduación del SGL porque
+  convivían tres escalas; una banda inventada acá sería la misma historia sobre el llenado mitral.
+
+### La PSAP del cajón puede NO coincidir con la del informe, y por eso la fila lleva la PVC adentro
+
+`calcPSAP` suma el gradiente IT y la `pmad` **estimada desde la VCI**; el cajón suma la PVC que el
+médico elige en el selector (5/10/15). Los dos números son correctos y pueden diferir sobre el
+mismo paciente — el cajón mide **antes** de que la VCI esté cargada, que es su razón de ser. Por
+eso el rótulo es `PSAP (PVC 10)` y no `PSAP`: una PSAP sin decir con qué PVC salió no se puede
+auditar contra la del informe. El descargo lo declara.
+
+### ⚠️ LOS DESCARGOS SON POR VÁLVULA, y eso no es cosmético
+
+Van **quemados en la imagen** que se guarda en la biblioteca, y desde ahí pueden llegar al PDF.
+Con una lista única, la tabla de la mitral saldría declarando la salvedad de la aorta y callando
+la suya. `_dopDisc()` concatena los de la válvula abierta con una línea base que dice que el cajón
+no escribe ningún campo del informe — que es lo único que separa esa imagen de un informe cuando
+se la mira fuera de la app.
+
+### El defecto que destapó TC-250: `dopCorregir` mandaba todo a `E.gen`
+
+Era `const obj = p[0] === 'ao' ? E.ao : E.gen`. Con cuatro acordeones eso escribe el PHT mitral en
+`E.gen.pht`, **una propiedad que no existe**: el valor se perdía sin error y la fila seguía
+mostrando un guion. Lo cazó el caso —el AVM por PHT salía `null` con el PHT recién tipeado— y no
+la lectura. Hoy el grupo se resuelve por su nombre con `hasOwnProperty`, que además impide que un
+campo mal escrito acuñe una propiedad nueva que ningún derivado lee. **Lo mismo `_dopCapturar`**:
+la cadena de `if` por campo aórtico habrían sido veinte ramas, y la que se olvide manda la
+medición a la fila genérica en silencio.
+
+### Verificación
+
+Doce mutaciones, cada una en su condición: las unidades a m/s, el AVM por continuidad con el VTI
+aórtico, la PSAP sin PVC, el TAP medido con Velocidad, un solo descargo para las cuatro válvulas,
+`dopCorregir` de vuelta al ternario, el E/e' quedándose con el septal, el cajón visible con
+cualquier grupo, `cineCerrar` sin devolverlo ni esconderlo, «Conservar» borrando, «Limpiar» sin
+borrar, y el nodo sin mudarse.
+
+**Dos condiciones necesitaron su denominador y sin él no probaban nada.** «El cajón se muda a la
+ranura» leía el `ov` capturado en el paso 1, o sea **antes** de que el visor existiera: `null`, y
+la condición daba false sobre un cajón bien mudado. Y «el AVM por continuidad no es la AVA» exige
+que los dos VTI **difieran** — con el mismo valor las dos cuentas coinciden y cualquier mutación
+sobrevive.
+
+**Backticks dentro del cuerpo de un caso: van CINCUENTA Y OCHO**, dos tandas en esta sesión y las
+dos en comentarios recién escritos — una de ellas explicando justamente la trampa del denominador
+de arriba.
+
+
 ## «El CHM importa 0 campos» NO era el lector: era el ORDEN del mensaje (TC-178)
 
 Reportado como regresión del día: *«0 campos importados · 31 campos no reconocidos · 1 omitido

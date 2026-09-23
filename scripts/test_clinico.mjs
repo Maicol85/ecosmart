@@ -22747,7 +22747,10 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       await esperar(120);
       const bot = () => [].slice.call(cajon.querySelectorAll('button'));
       R.genDeshabilitados = bot().slice(0,4).every(b => b.disabled);
-      R.tresValvulasNo = bot().slice(5,8).every(b => b.disabled);
+      /* Las CUATRO valvulas se pueden apretar sin visor: elegir la valvula es decidir que se
+         va a mirar, no medir. Lo que exige visor es «medir», que es otro boton. */
+      R.cuatroValvulas = bot().slice(4,8).length === 4 && bot().slice(4,8).every(b => !b.disabled);
+      R.rotulosValvula = bot().slice(4,8).map(b => b.textContent.trim()).join('|');
       R.aorticaSi = bot()[4] && !bot()[4].disabled;
 
       /* ── 2bis · LOS BOTONES ANDAN POR CLIC, no solo llamando a la funcion ──
@@ -22771,7 +22774,28 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       abrir(); await esperar(480);
       if (!_medOn) medToggle(); await esperar(150);
       R.hayVisorAhora = _dopHayVisor();
+
+      /* ── 3bis · EL CAJON SE MUDA AL VISOR, Y CON EL VISOR MANDA EL GRUPO ──
+         ⚠️ El overlay del visor es position fixed e inset 0: TAPA la pestaña Imagenes entera. Con el
+         cajon solo alla, sus botones «medir» —los que arman un campo del acordeon— exigian
+         visor abierto para servir y el visor los escondia: un control muerto que ademas se
+         veia perfecto en la pestaña de al lado. Por eso el nodo se MUEVE a la ranura del
+         visor, y por eso quien decide si se ve es el GRUPO de la barra lateral y no el boton
+         📊, que ahi esta detras del overlay.
+         El denominador de la primera mitad es que el grupo NO sea Doppler: medToggle abre en
+         Distancia, o sea grupo 2D. Sin declararlo, «esta oculto» se cumpliria tambien con la
+         visibilidad rota del todo. */
+      /* ⚠️ EL OVERLAY SE RE-CONSULTA. El ov del paso 1 se leyo ANTES de abrir el visor, asi
+         que en una corrida limpia es null —lo declara R.ovExiste— y ov.contains daria false
+         sobre un cajon perfectamente mudado. */
+      const ovAhora = document.getElementById('cine-ov');
+      R.grupoAlAbrir = _medGrupoAbierto();
+      R.mudadoAlVisor = !!(ovAhora && ovAhora.contains(cajon));
+      R.ocultoEn2D = cajon.style.display === 'none';
       dopArmar('ao.vmax'); await esperar(120);
+      /* Elegir una herramienta Doppler abre su grupo, y ahi el cajon aparece. */
+      R.grupoTrasArmar = _medGrupoAbierto();
+      R.visibleEnDoppler = cajon.style.display !== 'none';
       R.armoHerramienta = _medHerr === 'vel';
       R.armoDestino = _dop.destino === 'ao.vmax';
       /* ⚠️ SE MIDE A OTRA ALTURA QUE EL VERTICE DEL TRIANGULO DEL VTI, y es lo unico que hace
@@ -22870,6 +22894,16 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       const antes = JSON.stringify(_dop.ao);
       cineCerrar(); await esperar(220);
       R.persisteAlCerrar = JSON.stringify(_dop.ao) === antes;
+      /* Cerrar el visor devuelve el nodo a su casa y lo esconde — y NO borra: la tabla vuelve
+         entera con el boton 📊. Las tres cosas son una sola decision y se miden juntas, porque
+         «se oculta» sin «no se pierde» seria destruir el acceso a lo medido. */
+      R.vueltoACasa = !!(document.getElementById('dop-casa') || {}).contains &&
+                      document.getElementById('dop-casa').contains(cajon);
+      R.ocultoAlCerrar = cajon.style.display === 'none';
+      dopToggle(); await esperar(140);
+      R.reabreConLosDatos = cajon.style.display !== 'none' &&
+                            cajon.textContent.indexOf('Vmax VAo') > -1;
+      R.datosTrasReabrir = JSON.stringify(_dop.ao) === antes;
       abrir(); await esperar(450);
       R.persisteAlAbrirOtra = JSON.stringify(_dop.ao) === antes;
       R.visorSeVacio = (_medVels || []).length === 0 && (_medVtis || []).length === 0;
@@ -22938,7 +22972,7 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
          La condicion que lo separa de un aviso decorativo es que con el cajon VACIO no aparezca:
          un aviso que salta cuando no hay riesgo entrena a ignorarlo. */
       _dopLimpiar(); await esperar(120);
-      const _avHay = () => cajon.textContent.indexOf('Entraron imágenes nuevas') > -1;
+      const _avHay = () => cajon.textContent.indexOf('mediciones Doppler del estudio anterior') > -1;
       _dopImagenesNuevas(); await esperar(110);
       R.avisoVacioNo = !_avHay();
       window.prompt = () => '0.9';
@@ -22952,9 +22986,22 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       await esperar(400);
       R.avisoTrasImportar = _avHay();
       R.avisoNoBorraNada = _dop.ao.vmax === 0.9;
+      /* ⚠️ EL AVISO OFRECE LAS DOS SALIDAS Y HAY QUE PROBAR LAS DOS, porque son la pregunta que
+         el propio cartel hace («¿Limpiar o conservar?»). Con una sola condicion, la mutacion
+         que hace que «Conservar» BORRE pasa en verde — y esa es la peor de las dos, porque
+         destruye mediciones al apretar el boton que promete no tocarlas. */
+      R.avisoOfreceLimpiar = !!cajon.querySelector('[data-dop-acc="avisolimpiar"]');
+      R.avisoOfreceConservar = !!cajon.querySelector('[data-dop-acc="avisook"]');
       clkDop('[data-dop-acc="avisook"]'); await esperar(130);
       R.avisoSeSaca = !_avHay();
       R.avisoSacarNoBorra = _dop.ao.vmax === 0.9;
+      /* Y la otra salida SI borra. Se vuelve a disparar el aviso para tener denominador: sin
+         el cartel en pantalla el boton no existe y la condicion se cumpliria sola. */
+      _dopImagenesNuevas(); await esperar(120);
+      R.avisoVuelve = _avHay();
+      clkDop('[data-dop-acc="avisolimpiar"]'); await esperar(140);
+      R.avisoLimpiarBorra = _dop.ao.vmax === null;
+      R.avisoLimpiarSacaElCartel = !_avHay();
       /* Y se limpia ANTES del paso 13, que afirma que Limpiar borro: este bloque acaba de
          cargar un valor, asi que sin esto el paso siguiente medía sobre lo que puse yo. */
       _dopLimpiar(); await esperar(130);
@@ -23006,9 +23053,13 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       ['y vive FUERA del modal del visor',            R.fueraDelVisor, 'ov=' + R.ovExiste],
       ['con su boton en la app',                      R.hayBoton, R.hayBoton],
       ['sin visor, los genericos no se pueden apretar', R.genDeshabilitados, R.genDeshabilitados],
-      ['Mitral, Tricuspide y Pulmonar deshabilitadas', R.tresValvulasNo, R.tresValvulasNo],
+      ['las CUATRO valvulas estan y se pueden apretar', R.cuatroValvulas, R.rotulosValvula],
       ['y Aortica si',                                R.aorticaSi, R.aorticaSi],
       ['DENOMINADOR: con el visor abierto se habilita', R.hayVisorAhora, R.hayVisorAhora],
+      ['el cajon SE MUDA a la ranura del visor',      R.mudadoAlVisor, R.mudadoAlVisor],
+      ['DENOMINADOR: el visor abre en grupo 2D',      R.grupoAlAbrir === '2d', R.grupoAlAbrir],
+      ['y en 2D el cajon NO se ve',                   R.ocultoEn2D, R.ocultoEn2D],
+      ['con el grupo Doppler abierto, SI',            R.visibleEnDoppler, R.grupoTrasArmar],
       ['EL CLIC sobre el boton de valvula funciona',  R.clicModo === 1 && R.clicCambioModo, R.clicModo],
       ['y el clic sobre «medir» arma el destino',     R.clicMedir === 1 && R.clicArmoDestino, R.clicMedir],
       ['tocar un campo ELIGE LA HERRAMIENTA',         R.armoHerramienta, R.armoHerramienta],
@@ -23036,6 +23087,10 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       ['200 es Moderada y 199 Severa',                R.sev200 === 'Moderada' && R.sev199 === 'Severa',
                                                       R.sev200 + '/' + R.sev199],
       ['PERSISTE al cerrar el visor',                 R.persisteAlCerrar, R.persisteAlCerrar],
+      ['cerrar el visor lo DEVUELVE a la app',        R.vueltoACasa, R.vueltoACasa],
+      ['y lo esconde',                                R.ocultoAlCerrar, R.ocultoAlCerrar],
+      ['el boton 📊 lo reabre CON LA TABLA',          R.reabreConLosDatos, R.reabreConLosDatos],
+      ['sin haber perdido un solo valor',             R.datosTrasReabrir, R.datosTrasReabrir],
       ['y al abrir OTRA imagen',                      R.persisteAlAbrirOtra, R.persisteAlAbrirOtra],
       ['MIENTRAS las listas del visor se vaciaron',   R.visorSeVacio, R.visorSeVacio],
       ['el modo generico captura sin armar',          R.genVel && R.genGrad, R.genVel],
@@ -23052,8 +23107,13 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       ['ni antes de que entren imagenes',             R.avisoAunNo, R.avisoAunNo],
       ['AVISA al importar con mediciones cargadas',   R.avisoTrasImportar, R.avisoTrasImportar],
       ['y NO borra nada',                             R.avisoNoBorraNada, R.avisoNoBorraNada],
-      ['«Entendido» lo saca',                         R.avisoSeSaca, R.avisoSeSaca],
+      ['y ofrece LAS DOS salidas que nombra',         R.avisoOfreceLimpiar && R.avisoOfreceConservar,
+                                                      'limpiar=' + R.avisoOfreceLimpiar + ' conservar=' + R.avisoOfreceConservar],
+      ['«Conservar» lo saca',                         R.avisoSeSaca, R.avisoSeSaca],
       ['y tampoco borra',                             R.avisoSacarNoBorra, R.avisoSacarNoBorra],
+      ['DENOMINADOR: el aviso vuelve a aparecer',     R.avisoVuelve, R.avisoVuelve],
+      ['«Limpiar» del aviso SI borra',                R.avisoLimpiarBorra, R.avisoLimpiarBorra],
+      ['y saca el cartel',                            R.avisoLimpiarSacaElCartel, R.avisoLimpiarSacaElCartel],
       ['Limpiar borra los datos',                     R.limpiarBorra, R.limpiarBorra],
       ['y NO cierra el cajon',                        R.limpiarNoCierra, R.limpiarNoCierra],
       ['DENOMINADOR: habia algo antes de nuevo estudio', R.habiaAntesDeLimpiarCampos, R.habiaAntesDeLimpiarCampos],
@@ -23062,6 +23122,331 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       ['CERRAR SESION lo limpia',                     R.cerrarSesionLimpia, R.cerrarSesionLimpia],
       ['DENOMINADOR: el cajon tiene los cinco valores', R.cajonCargado, R.cajonCargado],
       ['y NO escribe ningun campo del informe',       R.informeIntacto, R.informeSucio || 'todos vacios']
+    ] };
+  })();
+`);
+
+/* ══ TC-250 · Cajon Doppler: Mitral, Tricuspide y Pulmonar ═══════════════════════════════════
+   Los tres acordeones que faltaban. Lo que este caso existe para fijar no son los numeros
+   —eso lo fijan las condiciones de aritmetica cerrada— sino las tres decisiones que un mutante
+   plausible se lleva puestas sin que nada chille:
+
+   1 · LAS UNIDADES NO SON UNIFORMES. La herramienta de velocidad entrega SIEMPRE m/s, y el
+       cajon guarda las ondas del llenado mitral y las e' del anillo en cm/s —que es como las
+       guarda el informe (onda_e, e_sep, e_lat)— y los jets de regurgitacion en m/s (vmax_it,
+       vmax_ao). Un mutante que uniforme todo a m/s deja la onda E en 0,75 al lado de un campo
+       del informe que dice 75, sobre la MISMA medicion; uno que uniforme a cm/s deja la Vmax IM
+       en 150 y su gradiente en 90.000 mmHg. Hay una condicion por cada lado.
+   2 · EL AVM POR CONTINUIDAD REUSA EL TSVI DEL ACORDEON AORTICO, y es la MISMA ecuacion que la
+       AVA con el VTI mitral en el denominador. Sin el cruce, la fila no aparece; con la
+       ecuacion escrita de nuevo vendria de regalo el error de escala del diametro en
+       milimetros, que este archivo ya pago tres veces. La condicion exige que el numero
+       DIFIERA de la AVA aortica: con los dos VTI iguales las dos implementaciones coinciden y
+       cualquier mutacion sobrevive.
+   3 · LA PSAP SE MUEVE CON LA PVC. Es lo unico que separa «PSAP = gradiente + PVC» de «PSAP =
+       gradiente», y la diferencia son 10 mmHg entre los dos extremos del selector.
+
+   El fixture es un trazo espectral sintetico: eje X en segundos (0,004 s/px) y eje Y en cm/s
+   (0,5 cm/s por px) con la linea de base en y=400. Asi cada clic da un numero cerrado y las
+   condiciones comparan contra aritmetica exacta, no contra una tolerancia elegida a dedo. */
+caso('TC-250', 'Cajon Doppler: Mitral, Tricuspide y Pulmonar, con sus unidades y sus derivados', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const alertReal = window.alert, promptReal = window.prompt, toastReal = window.toast;
+    window.alert = () => {}; window.toast = () => {};
+    const thpEl = document.getElementById('thp');
+    const thpPrev = thpEl ? thpEl.value : '';
+    try {
+      const JPG = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,219,0,67,0,8,6,6,7,6,5,8,7,7,7,9,9,8,10,12,20,13,12,11,11,12,25,18,19,15,20,29,26,31,30,29,26,28,28,32,36,46,39,32,34,44,35,28,28,40,55,41,44,48,49,52,52,52,31,39,57,61,56,50,60,46,51,52,50,255,192,0,11,8,0,1,0,1,1,1,17,0,255,196,0,20,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,255,196,0,20,16,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,218,0,8,1,1,0,0,63,0,42,159,255,217]);
+      const REG = [{ tipo:3, x0:0, y0:0, x1:1000, y1:800, ux:4, uy:7, dx:0.004, dy:-0.5,
+                     rx0:0, ry0:400, rvx:0, rvy:0 }];
+      const abrir = () => _cineAbrir([{ nombre:'esp', cuadros:1,
+        d:{ frags:[JPG], cols:1, filas:1, msCuadro:0, fabricante:'', modelo:'', regiones:REG } }]);
+      const clic = (x, y) => { const cv = _medEl('cine-med'), rc = cv.getBoundingClientRect(),
+        e = cv.width / rc.width;
+        cv.dispatchEvent(new MouseEvent('click', { bubbles:true, clientX: rc.left + x/e, clientY: rc.top + y/e })); };
+      const arrastre = async () => { const cv = _medEl('cine-med'), rc = cv.getBoundingClientRect(),
+        e = cv.width / rc.width;
+        const ev = (t,x,y) => cv.dispatchEvent(new MouseEvent(t, { bubbles:true, cancelable:true,
+          clientX: rc.left + x/e, clientY: rc.top + y/e }));
+        ev('mousedown', 200, 400);
+        for (let x = 202; x <= 300; x += 2) ev('mousemove', x, 400 - (x - 200));
+        for (let x = 302; x <= 400; x += 2) ev('mousemove', x, 400 - (400 - x));
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true })); await esperar(330); };
+      const modo = m => { if (_dop.modo !== m) dopModo(m); };
+      const poner = (campo, val) => { window.prompt = () => String(val); dopCorregir(campo); };
+
+      showTab('imagenes'); await esperar(180);
+      const cajon = document.getElementById('dop-cajon');
+      _dopLimpiar();
+      abrir(); await esperar(480);
+      if (!_medOn) medToggle(); await esperar(150);
+      R.hayVisor = _dopHayVisor();
+
+      /* ══ MITRAL ══════════════════════════════════════════════════════════════════════════ */
+      modo('mit'); await esperar(130);
+      R.modoMit = _dop.modo === 'mit';
+
+      /* La onda E se mide con Velocidad y se guarda en cm/s: 150 px sobre la linea de base son
+         75 cm/s, o sea 0,75 m/s. Si el cajon guardara m/s, aca habria un 0,75. */
+      dopArmar('mit.ondaE'); await esperar(120);
+      R.ondaEHerr = _medHerr === 'vel';
+      clic(300, 250); await esperar(200);
+      R.ondaECms = _dop.mit.ondaE;
+      R.ondaEEnCms = Math.abs(_dop.mit.ondaE - 75) < 0.5;
+
+      dopArmar('mit.ondaA'); await esperar(110);
+      clic(300, 300); await esperar(200);
+      R.ondaAEnCms = Math.abs(_dop.mit.ondaA - 50) < 0.5;
+      R.ea = _dopDerivados().ea;
+      R.eaEsElCociente = R.ea != null && Math.abs(R.ea - _dop.mit.ondaE / _dop.mit.ondaA) < 1e-12;
+      R.eaVale15 = R.ea != null && Math.abs(R.ea - 1.5) < 0.02;
+
+      /* Con UNA sola e' el cociente sale de esa; con las DOS, del promedio — y el numero
+         cambia. Sin la segunda mitad, la mutacion que se queda con el septal pasa en verde. */
+      dopArmar('mit.ePrimaSept'); await esperar(110);
+      clic(300, 380); await esperar(200);
+      const Dsept = _dopDerivados();
+      R.ePSept = _dop.mit.ePrimaSept;
+      R.eeSoloSept = Dsept.ee;
+      R.eeCualSept = Dsept.epromCual;
+      dopArmar('mit.ePrimaLat'); await esperar(110);
+      clic(300, 360); await esperar(200);
+      const Dprom = _dopDerivados();
+      R.ePLat = _dop.mit.ePrimaLat;
+      R.eeProm = Dprom.ee;
+      R.eeCualProm = Dprom.epromCual;
+      R.eePromedia = Dprom.ee != null &&
+        Math.abs(Dprom.ee - _dop.mit.ondaE / ((_dop.mit.ePrimaSept + _dop.mit.ePrimaLat) / 2)) < 1e-12;
+      R.eeCambioConLaSegunda = Dsept.ee != null && Dprom.ee != null &&
+        Math.abs(Dsept.ee - Dprom.ee) > 1;
+
+      /* La Vmax de la insuficiencia mitral es un JET: queda en m/s, como vmax_it y vmax_ao. */
+      dopArmar('mit.vmaxIm'); await esperar(110);
+      clic(300, 100); await esperar(200);
+      R.vmaxIm = _dop.mit.vmaxIm;
+      R.vmaxImEnMs = Math.abs(_dop.mit.vmaxIm - 1.5) < 0.02;
+      const Dim = _dopDerivados();
+      R.gradIm = Dim.gradMaxIm;
+      R.gradImEsCuatroVCuadrado = Dim.gradMaxIm != null &&
+        Math.abs(Dim.gradMaxIm - _medGradMmHg(_dop.mit.vmaxIm)) < 1e-12;
+      R.gradImVale9 = Dim.gradMaxIm != null && Math.abs(Dim.gradMaxIm - 9) < 0.15;
+
+      /* El VTI mitral trae su gradiente medio del trazado, igual que el aortico. */
+      dopArmar('mit.vtiVm'); await esperar(110);
+      R.vtiVmHerr = _medHerr === 'vti';
+      await arrastre();
+      R.vtiVmMedido = _dop.mit.vtiVm != null;
+      R.gradMedioVmDelTrazado = _dop.mit.gradMedioVm != null;
+      /* ⚠️ Y el pico de la envolvente de LLENADO no se aprovecha como Vmax IM: la onda E no es
+         el jet de la insuficiencia. La Vmax medida a proposito tiene que seguir en 1,5. */
+      R.vmaxImNoSePiso = Math.abs(_dop.mit.vmaxIm - 1.5) < 0.02;
+
+      /* AVM por PHT: 220 / PHT. Con 220 ms da 1,00 cm² exacto. */
+      R.avmPhtAntes = _dopDerivados().avmPht === null;
+      poner('mit.pht', 220); await esperar(140);
+      const Dpht = _dopDerivados();
+      R.avmPht = Dpht.avmPht;
+      R.avmPhtVale1 = Dpht.avmPht != null && Math.abs(Dpht.avmPht - 1) < 1e-9;
+
+      /* AVM por continuidad: sin el TSVI del acordeon AORTICO no hay fila. */
+      R.avmContAntes = _dopDerivados().avmCont === null;
+      modo('ao'); await esperar(120);
+      R.volvioAAortica = _dop.modo === 'ao';
+      poner('ao.diam', 20); await esperar(110);
+      poner('ao.vtiTsvi', 20); await esperar(110);
+      poner('ao.vtiAo', 40); await esperar(110);
+      poner('mit.vtiVm', 10); await esperar(110);
+      modo('mit'); await esperar(120);
+      const Dc = _dopDerivados();
+      R.avmCont = Dc.avmCont;
+      R.avmContAparece = Dc.avmCont != null;
+      R.avmContEsLaDeLaApp = Dc.avmCont != null &&
+        Math.abs(Dc.avmCont - _avaContinuidad(20, 20, 10)) < 1e-12;
+      /* ⚠️ Y NO es la AVA: el denominador es el VTI MITRAL, no el aortico. Con los dos VTI
+         iguales las dos cuentas coinciden y la condicion no probaria nada — por eso 10 y 40. */
+      R.ava = Dc.ava;
+      R.avmContNoEsLaAva = Dc.ava != null && Dc.avmCont != null &&
+        Math.abs(Dc.avmCont - Dc.ava) > 1;
+      /* La formula del pedido con el diametro en mm daria CIEN VECES mas, igual que en la AVA. */
+      const ingenuaM = 0.785 * Math.pow(20, 2) * 20 / 10;
+      R.ingenuaMCienVeces = Dc.avmCont != null && Math.abs(ingenuaM / Dc.avmCont - 100) < 1.5;
+
+      /* Las catorce filas del acordeon mitral estan en la tabla. */
+      const txtMit = cajon.textContent;
+      R.filasMit = ['Onda E','Onda A','E/A','e\\u0027 septal','e\\u0027 lateral','Vmax IM',
+                    'Grad Máx IM','VTI VM','VTI IM','Grad Medio VM','PHT VM',
+                    'AVM por PHT','AVM por continuidad'].filter(t => txtMit.indexOf(t) < 0).join(',');
+      R.mitCompleta = R.filasMit === '';
+
+      /* ══ TRICUSPIDE ══════════════════════════════════════════════════════════════════════ */
+      modo('tri'); await esperar(130);
+      R.modoTri = _dop.modo === 'tri';
+      dopArmar('tri.vmaxIt'); await esperar(110);
+      R.vmaxItHerr = _medHerr === 'vel';
+      clic(300, 200); await esperar(200);
+      R.vmaxIt = _dop.tri.vmaxIt;
+      R.vmaxItEnMs = Math.abs(_dop.tri.vmaxIt - 1) < 0.02;
+      const Dt = _dopDerivados();
+      R.gradItEsCuatroVCuadrado = Dt.gradIt != null &&
+        Math.abs(Dt.gradIt - _medGradMmHg(_dop.tri.vmaxIt)) < 1e-12;
+      R.gradItVale4 = Dt.gradIt != null && Math.abs(Dt.gradIt - 4) < 0.1;
+      /* PSAP = gradiente IT + PVC. La PVC de fabrica es 10. */
+      R.pvcDefecto = _dop.tri.pvc;
+      R.psap10 = _dopDerivados().psap;
+      /* ⚠️ POR CLIC, no llamando a dopPVC: el selector va por data-* con oyente delegado y el
+         innerHTML se reescribe en cada repintado — es el hueco por el que paso el defecto del
+         VTI. Y el numero tiene que MOVERSE: sin eso, «PSAP = gradiente» pasa en verde. */
+      const clkDop = sel => { const b = cajon.querySelector(sel); if (!b) return 'NO EXISTE ' + sel;
+                              b.click(); return 1; };
+      R.clicPvc5 = clkDop('[data-dop-pvc="5"]'); await esperar(130);
+      R.pvcTras5 = _dop.tri.pvc;
+      R.psap5 = _dopDerivados().psap;
+      R.clicPvc15 = clkDop('[data-dop-pvc="15"]'); await esperar(130);
+      R.psap15 = _dopDerivados().psap;
+      R.psapSigueALaPvc = R.psap5 != null && R.psap15 != null && (R.psap15 - R.psap5) === 10;
+      R.psapEsSuma = R.psap15 != null && Dt.gradIt != null &&
+        Math.abs(R.psap15 - (Dt.gradIt + 15)) < 1e-12;
+      /* Y la fila DICE con que PVC salio: sin eso no se puede auditar contra la del informe,
+         donde la PVC se estima desde la VCI y puede no coincidir. */
+      R.filaDicePvc = cajon.textContent.indexOf('PSAP (PVC 15)') > -1;
+
+      dopArmar('tri.vmaxEt'); await esperar(110);
+      clic(300, 100); await esperar(200);
+      const Dt2 = _dopDerivados();
+      R.gradEtVale9 = Dt2.gradEt != null && Math.abs(Dt2.gradEt - 9) < 0.15;
+
+      /* ══ PULMONAR ════════════════════════════════════════════════════════════════════════ */
+      modo('pul'); await esperar(130);
+      R.modoPul = _dop.modo === 'pul';
+      dopArmar('pul.vmaxIp'); await esperar(110);
+      clic(300, 300); await esperar(200);
+      dopArmar('pul.vmaxEp'); await esperar(110);
+      clic(300, 200); await esperar(200);
+      const Dp = _dopDerivados();
+      R.gradIpVale1 = Dp.gradIp != null && Math.abs(Dp.gradIp - 1) < 0.05;
+      R.gradEpVale4 = Dp.gradEp != null && Math.abs(Dp.gradEp - 4) < 0.1;
+      /* ⚠️ EL TAP ES UN TIEMPO, NO UNA VELOCIDAD. Armarlo tiene que elegir la herramienta
+         Tiempo: cruzadas, el numero sale con unidades correctas y sin significado — que es el
+         modo de falla que el propio VTI ya pago al aceptar un modo M. */
+      dopArmar('pul.tap'); await esperar(110);
+      R.tapHerr = _medHerr;
+      clic(200, 300); await esperar(120);
+      clic(250, 300); await esperar(220);
+      R.tap = _dop.pul.tap;
+      R.tapVale200 = _dop.pul.tap != null && Math.abs(_dop.pul.tap - 200) < 1;
+      dopArmar('pul.vp'); await esperar(110);
+      R.vpHerr = _medHerr;
+      clic(300, 250); await esperar(200);
+      R.vpVale075 = _dop.pul.vp != null && Math.abs(_dop.pul.vp - 0.75) < 0.02;
+
+      /* ══ LOS DESCARGOS SON POR VALVULA, Y VAN QUEMADOS ═══════════════════════════════════
+         Van en la IMAGEN que se guarda en la biblioteca y desde ahi pueden llegar al PDF. Con
+         una lista unica, la tabla de la mitral saldria declarando la salvedad de la aorta y
+         callando la suya. */
+      const proto = CanvasRenderingContext2D.prototype, realFT = proto.fillText;
+      const quemado = m => { modo(m); const p = []; proto.fillText = function (t) { p.push(String(t)); return realFT.apply(this, arguments); };
+                             _dopCanvas(); proto.fillText = realFT; return p.join(' '); };
+      const qMit = quemado('mit'), qTri = quemado('tri'), qPul = quemado('pul'), qAo = quemado('ao');
+      R.discMit = qMit.indexOf('subestimar AVM') > -1 && qMit.indexOf('ASE/EACVI 2021') > -1;
+      R.discTri = qTri.indexOf('PSAP estimada por gradiente IT') > -1 && qTri.indexOf('ESC/ERS 2022') > -1;
+      R.discBase = [qMit, qTri, qPul, qAo].every(t => t.indexOf('NO escribe ningún campo') > -1);
+      /* Y cada una lleva SOLO la suya: la mitral no puede traer la cita de la aortica. */
+      R.discNoSeMezcla = qMit.indexOf('ASE/EACVI 2017') < 0 && qTri.indexOf('subestimar AVM') < 0;
+      R.tituloMit = quemado('mit').indexOf('Mitral') > -1;
+      R.tituloTri = quemado('tri').indexOf('Tricúspide') > -1;
+
+      /* ══ NO ESCRIBE NINGUN CAMPO DEL INFORME ═════════════════════════════════════════════
+         El denominador va al lado: el cajon tiene cargadas las tres valvulas. */
+      modo('mit'); await esperar(110);
+      R.cajonCargado = _dop.mit.ondaE != null && _dop.tri.vmaxIt != null && _dop.pul.tap != null;
+      const _campInf = ['onda_e','e_sep','e_lat','vmax_it','thp','avm_thp'];
+      R.idsExisten = _campInf.filter(id => !document.getElementById(id)).join(',');
+      R.informeIntacto = _campInf.every(id => {
+        const el = document.getElementById(id); return !el || !el.value;
+      });
+      R.informeSucio = _campInf.filter(id => {
+        const el = document.getElementById(id); return el && el.value;
+      }).join(',');
+
+      /* ══ EL AVM POR PHT ES EL MISMO QUE PUBLICA EL INFORME ═══════════════════════════════
+         Va DESPUES de la condicion de arriba a proposito: esto SI escribe el campo del informe,
+         porque es la unica forma de comparar contra lo que la app publica. Con 260 ms el numero
+         no es redondo, que es lo que hace discriminante la comparacion. */
+      poner('mit.pht', 260); await esperar(120);
+      if (thpEl) { thpEl.value = '260'; if (typeof calcTHP === 'function') calcTHP(); }
+      await esperar(160);
+      const avmInforme = (document.getElementById('avm_thp') || {}).value;
+      R.avmInforme = avmInforme;
+      R.avmDelCajon = _dopDerivados().avmPht;
+      R.avmMismaFuncion = avmInforme && R.avmDelCajon != null &&
+        Math.abs(Number(avmInforme) - Number(R.avmDelCajon.toFixed(2))) < 1e-9;
+
+    } catch (e) {
+      R.err = String(e && e.message || e);
+    } finally {
+      window.alert = alertReal; window.prompt = promptReal; window.toast = toastReal;
+      try { if (thpEl) { thpEl.value = thpPrev; if (typeof calcTHP === 'function') calcTHP(); } } catch (e) {}
+      try { _dopLimpiar(); if (_dop.abierto) dopToggle(); } catch (e) {}
+      try { cineCerrar(); } catch (e) {}
+      try { if (typeof imgVaciar === 'function') imgVaciar(); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: sin excepcion',                  !R.err, R.err || 'ok'],
+      ['DENOMINADOR: el visor esta abierto',          R.hayVisor, R.hayVisor],
+      ['el acordeon Mitral se abre',                  R.modoMit, R.modoMit],
+      ['y trae sus catorce filas',                    R.mitCompleta, R.filasMit || 'todas'],
+      ['la onda E se mide con Velocidad',             R.ondaEHerr, R.ondaEHerr],
+      ['Y SE GUARDA EN cm/s, como el informe',        R.ondaEEnCms, R.ondaECms],
+      ['la onda A tambien',                           R.ondaAEnCms, R.ondaAEnCms],
+      ['E/A es el cociente de las dos',               R.eaEsElCociente && R.eaVale15, R.ea],
+      ['con una sola e\\u0027, E/e\\u0027 sale de esa',         R.eeCualSept === 'sept', R.eeCualSept],
+      ['con las dos, del PROMEDIO',                   R.eePromedia && R.eeCualProm === 'prom', R.eeCualProm],
+      ['y el numero CAMBIA al sumar la segunda',      R.eeCambioConLaSegunda,
+                                                      'sept=' + R.eeSoloSept + ' prom=' + R.eeProm],
+      ['la Vmax IM queda en m/s, como vmax_it',       R.vmaxImEnMs, R.vmaxIm],
+      ['su gradiente sale de la MISMA funcion del visor', R.gradImEsCuatroVCuadrado, R.gradIm],
+      ['y vale 4V² = 9 mmHg',                         R.gradImVale9, R.gradIm],
+      ['VTI VM elige la herramienta VTI',             R.vtiVmHerr, R.vtiVmHerr],
+      ['y trae su VTI y su gradiente medio',          R.vtiVmMedido && R.gradMedioVmDelTrazado, R.vtiVmMedido],
+      ['sin pisar la Vmax IM con el pico del llenado', R.vmaxImNoSePiso, R.vmaxImNoSePiso],
+      ['sin PHT no hay AVM por PHT',                  R.avmPhtAntes, R.avmPhtAntes],
+      ['con 220 ms da 1,00 cm²',                      R.avmPhtVale1, R.avmPht],
+      ['sin el TSVI del acordeon AORTICO no hay AVM por continuidad', R.avmContAntes, R.avmContAntes],
+      ['DENOMINADOR: se vuelve al acordeon Aortica',  R.volvioAAortica, R.volvioAAortica],
+      ['con el TSVI cargado alla, la fila APARECE',   R.avmContAparece, R.avmCont],
+      ['Y ES LA MISMA ECUACION QUE LA AVA',           R.avmContEsLaDeLaApp, R.avmContEsLaDeLaApp],
+      ['pero NO es la AVA: el denominador es el VTI mitral', R.avmContNoEsLaAva,
+                                                      'avmCont=' + R.avmCont + ' ava=' + R.ava],
+      ['la formula del pedido daria CIEN VECES mas',  R.ingenuaMCienVeces, R.ingenuaMCienVeces],
+      ['el acordeon Tricuspide se abre',              R.modoTri, R.modoTri],
+      ['Vmax IT se mide con Velocidad y queda en m/s', R.vmaxItHerr && R.vmaxItEnMs, R.vmaxIt],
+      ['Grad Max IT sale de la misma funcion del visor', R.gradItEsCuatroVCuadrado, R.gradItVale4],
+      ['y vale 4 mmHg',                               R.gradItVale4, R.gradItVale4],
+      ['la PVC de fabrica es 10',                     R.pvcDefecto === 10, R.pvcDefecto],
+      ['EL CLIC sobre el selector de PVC funciona',   R.clicPvc5 === 1 && R.pvcTras5 === 5, R.clicPvc5],
+      ['y la PSAP SE MUEVE con la PVC',               R.psapSigueALaPvc, 'pvc5=' + R.psap5 + ' pvc15=' + R.psap15],
+      ['PSAP = gradiente IT + PVC',                   R.psapEsSuma, R.psap15],
+      ['y la fila DICE con que PVC salio',            R.filaDicePvc, R.filaDicePvc],
+      ['Grad Max ET vale 9 mmHg',                     R.gradEtVale9, R.gradEtVale9],
+      ['el acordeon Pulmonar se abre',                R.modoPul, R.modoPul],
+      ['Grad Max IP y EP salen de 4V²',               R.gradIpVale1 && R.gradEpVale4, R.gradIpVale1],
+      ['EL TAP ELIGE LA HERRAMIENTA TIEMPO',          R.tapHerr === 'tiempo', R.tapHerr],
+      ['y mide 200 ms',                               R.tapVale200, R.tap],
+      ['la VP elige Velocidad',                       R.vpHerr === 'vel', R.vpHerr],
+      ['y mide 0,75 m/s',                             R.vpVale075, R.vpVale075],
+      ['la imagen de la mitral lleva SU descargo',    R.discMit, R.discMit],
+      ['la de la tricuspide, el de la PSAP',          R.discTri, R.discTri],
+      ['ninguna lleva el de otra valvula',            R.discNoSeMezcla, R.discNoSeMezcla],
+      ['y las cuatro dicen que no escriben el informe', R.discBase, R.discBase],
+      ['el titulo nombra la valvula abierta',         R.tituloMit && R.tituloTri, R.tituloMit],
+      ['DENOMINADOR: los campos del informe existen', R.idsExisten === '', R.idsExisten || 'los seis'],
+      ['DENOMINADOR: el cajon tiene las tres valvulas', R.cajonCargado, R.cajonCargado],
+      ['y NO escribe ningun campo del informe',       R.informeIntacto, R.informeSucio || 'todos vacios'],
+      ['el AVM por PHT es el MISMO que publica el informe', R.avmMismaFuncion,
+                                                      'cajon=' + R.avmDelCajon + ' informe=' + R.avmInforme]
     ] };
   })();
 `);
