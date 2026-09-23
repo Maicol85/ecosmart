@@ -155,6 +155,16 @@ const PRELUDIO = `
         }));
       } catch (e) {}
       try { if (typeof medApagar === 'function') _vTodas().forEach(V => _vCon(V, medApagar)); } catch (e) {}
+      /* DEFORMACION ENCENDIDA, y va aca por el mismo motivo que todo lo de arriba. Desde que ese
+         grupo esta detras de una casilla de Config —apagada de fabrica— sus tres herramientas no
+         estan en el DOM, asi que los seis casos que las clickean (TC-199, 204, 205, 206, 207 y
+         208) caerian con "NO EXISTE cine-med-str" y un diagnostico que no apunta a su causa.
+         Encenderla aca deja a esos casos midiendo lo que ya median: el modulo EXISTIENDO es el
+         comportamiento previo a este cambio.
+         Y corre antes de CADA caso, asi que TC-248 puede apagarla para probar el gate sin
+         llevarse puesto al siguiente — que es lo que pasaria con una restauracion en su finally
+         si ese finally no llegara a correr. */
+      try { localStorage.setItem('ett_deformacion', '1'); } catch (e) {}
       return 1;
     },
     /* Los botones de herramienta del visor viven en GRUPOS COLAPSABLES: los de Doppler y los
@@ -22262,6 +22272,203 @@ caso('TC-247', 'Biblioteca: arrastrar al espacio de la grilla, y el aviso al cer
       ['CERRAR LA PESTAÑA avisa con datos',           R.avisaConDatos, R.avisaConDatos],
       ['DENOMINADOR: despues no queda nada',          R.sinDatos, R.sinDatos],
       ['y sin datos NO avisa',                        R.noAvisaSinDatos, R.noAvisaSinDatos]
+    ] };
+  })();
+`);
+
+
+/* ══ TC-248 · Deformacion: una casilla en Config gobierna un GRUPO DEL VISOR ══════════════════
+   EL GATE TIENE TRES CAPAS Y CADA UNA TIENE SU CONDICION ACA. Este archivo ya documenta que
+   "defensa en profundidad sin una condicion por capa es una capa que nadie sabe si existe" —y lo
+   documenta porque una mutacion sobrevivio por eso mismo en TC-206—, asi que:
+
+     1. `_medSideRender` filtra el grupo   → los tres botones no estan en el DOM
+     2. `medHerramienta` se niega          → pedir 'strain' con el modulo apagado deja 'dist'
+     3. `_medSoltarDef`                    → apagar MIDIENDO devuelve la herramienta al defecto
+
+   La tercera es la que menos se ve y la que mas importa: `_medHerr` es estado de la VISTA y
+   sobrevive al cambio de Config, asi que sin ella queda en 'strain' con su grupo ya fuera de la
+   barra — el panel dibujandose debajo de una barra que no ofrece esa herramienta.
+
+   ⚠️ EL DENOMINADOR DE ESTE CASO ES QUE EL MODULO EXISTA CUANDO SE LO ENCIENDE. Medir "no esta"
+   con el visor cerrado, o sobre una barra que no se pinto, da cero y se lee igual que un gate
+   que funciona. Por eso cada mitad apagada tiene su mitad encendida al lado.
+
+   Y la contrasena: lo que se fija es que la correcta abra y una incorrecta NO, no su fuerza. El
+   gate real es la bandera de localStorage —esta a un setItem de distancia— y eso esta declarado
+   en el codigo, no disimulado.
+   NO DEPENDE DEL PENDRIVE.                                                                    */
+caso('TC-248', 'Deformacion: la casilla de Config gobierna el grupo del visor, con clave', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const toastReal = window.toast; window.toast = () => {};
+    const $ = id => document.getElementById(id);
+    const grupos = () => [...document.querySelectorAll('[id^="cine-g-"]')].map(b => b.id.replace('cine-g-',''));
+    const botonesDef = () => ['cine-med-str','cine-med-lars','cine-med-vd'].filter(id => $(id)).length;
+    const barra = () => (($('cine-med-barra')||{}).textContent || '').replace(/\\s+/g,' ');
+    const modoPrevio = localStorage.getItem('ett_view_mode');
+    try {
+      /* ── 1 · EL DEFECTO ES APAGADO, y falla CERRADO ── */
+      localStorage.removeItem('ett_deformacion');
+      R.defaultApagado = eeDefOn() === false;
+
+      /* ── 2 · LA CASILLA ESTA EN CONFIG, Y NO EN EE_MODULES ──
+         Lo segundo no es un detalle de implementacion: EE_MODULES es la lista de modulos con
+         PESTANA y hay una guarda de arranque que avisa por consola si diverge de los data-mod.
+         Una entrada ahi haria gritar ese aviso en cada arranque sobre una app sana. */
+      localStorage.setItem('ett_view_mode','avanzado');
+      cfgRenderModulos();
+      const box = $('cfg-modulos');
+      R.hayCasilla = !!$('cfg-mod-def');
+      R.casillaDestildada = $('cfg-mod-def') ? $('cfg-mod-def').checked === false : false;
+      R.nCasillas = box ? box.querySelectorAll('label.cfg-mod-item').length : 0;
+      R.diezCasillas = R.nCasillas === EE_MODULES.length + 1;
+      R.fueraDeEEModules = !EE_MODULES.some(m => /deform/i.test(m.key) || /Deformaci/.test(m.label));
+
+      /* ── 3 · TILDAR PIDE LA CLAVE Y NO ENCIENDE NADA TODAVIA ── */
+      cfgToggleDef(true);
+      R.modalAbre = getComputedStyle($('modal-def-pwd')).display !== 'none';
+      R.noEncendioAunSinClave = eeDefOn() === false;
+      R.casillaVuelveAtras = $('cfg-mod-def').checked === false;
+
+      /* ── 4 · UNA CLAVE INCORRECTA NO ABRE, Y LO DICE ── */
+      $('cfg-def-pwd').value = 'sgl2025';
+      defPwdAceptar();
+      R.dijoIncorrecta = ($('cfg-def-err').textContent || '').indexOf('incorrecta') > -1;
+      R.sigueApagado = eeDefOn() === false;
+      R.campoSeLimpia = $('cfg-def-pwd').value === '';
+
+      /* ── 5 · LA CORRECTA SI ── */
+      $('cfg-def-pwd').value = 'sgl2026';
+      defPwdAceptar();
+      R.encendio = eeDefOn() === true;
+      R.modalCerro = getComputedStyle($('modal-def-pwd')).display === 'none';
+      R.noQuedaEnElDOM = $('cfg-def-pwd').value === '';
+
+      /* ── 6 · CON EL MODULO ENCENDIDO, EL GRUPO ESTA (denominador de todo lo de abajo) ── */
+      const JPG1 = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,219,0,67,0,8,6,6,7,6,5,8,7,7,7,9,9,8,10,12,20,13,12,11,11,12,25,18,19,15,20,29,26,31,30,29,26,28,28,32,36,46,39,32,34,44,35,28,28,40,55,41,44,48,49,52,52,52,31,39,57,61,56,50,60,46,51,52,50,255,192,0,11,8,0,1,0,1,1,1,17,0,255,196,0,20,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,255,196,0,20,16,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,218,0,8,1,1,0,0,63,0,42,159,255,217]);
+      const REG = [{ x0:0, y0:0, x1:1, y1:1, ux:3, uy:3, dx:0.05, dy:0.05, tipo:1 }];
+      const loop = { nombre:'a4c', cuadros:2,
+        d:{ frags:[JPG1, JPG1], cols:1, filas:1, msCuadro:40, fabricante:'', modelo:'', regiones:REG } };
+      _cineAbrir([loop]); await esperar(500);
+      if (!_medOn) medToggle();
+      _medEstado(); await esperar(200);
+      R.grupoDefEncendido = grupos().indexOf('def') > -1;
+      medGrupoToggle('def'); await esperar(150);
+      R.tresBotones = botonesDef() === 3;
+      medHerramienta('strain'); _medEstado(); await esperar(200);
+      R.herrEncendida = _medHerr === 'strain';
+      /* El panel del strain se dibuja: su primer paso ofrece elegir la ventana apical. */
+      R.panelEncendido = barra().indexOf('apical 4 camaras') > -1 ||
+                         barra().indexOf('apical 4 c') > -1;
+
+      /* ── 7 · APAGAR MIDIENDO: la herramienta vuelve al defecto (TERCERA CAPA) ── */
+      cfgToggleDef(false); await esperar(250);
+      R.apagoSinPedirClave = eeDefOn() === false;
+      R.modalNoReabre = getComputedStyle($('modal-def-pwd')).display === 'none';
+      R.herrVolvioADist = _medHerr === 'dist';
+      R.grupoVolvioA2d = _medGrupo === '2d';
+      _medEstado(); await esperar(200);
+      R.grupoDefSeFue = grupos().indexOf('def') === -1;
+      R.sinBotones = botonesDef() === 0;
+      R.panelStrainSeFue = barra().indexOf('apical 4 c') === -1;
+      /* Y los otros dos grupos NO se tocan: "nada mas cambia". */
+      R.otrosGruposIntactos = grupos().indexOf('2d') > -1 && grupos().indexOf('dop') > -1;
+
+      /* ── 8 · SEGUNDA CAPA: pedir la herramienta a mano tampoco la da ──
+         Sus botones ya no estan, pero la funcion sigue siendo alcanzable, y un _medHerr en
+         'strain' con el grupo oculto es el estado que la tercera capa existe para deshacer. */
+      medHerramienta('strain');
+      R.negoStrain = _medHerr === 'dist';
+      medHerramienta('lars');
+      R.negoLars = _medHerr === 'dist';
+      medHerramienta('vd');
+      R.negoVd = _medHerr === 'dist';
+      /* Control negativo: una herramienta de OTRO grupo sigue andando. Sin esto, "quedo en dist"
+         se cumpliria igual con un medHerramienta roto del todo. */
+      medHerramienta('area');
+      R.areaSigueAndando = _medHerr === 'area';
+
+      /* ── 9 · LA CONTRASENA NO VIAJA DENTRO DEL ESTUDIO ──
+         guardarInforme barre input[id] de TODO el documento; lo unico que deja afuera a este
+         campo es el prefijo cfg- de _noEsDelEstudio. Sin el, la contrasena terminaria en campos
+         de CADA estudio guardado y saldria en el backup JSON que el medico manda por correo — el
+         defecto que el comentario de doLogin documenta haber cerrado. Un renombre del id lo
+         reabre EN SILENCIO, asi que se prueba el barrido de verdad y no la regex.
+         El control negativo es lo que lo vuelve discriminante: si la FEVI tampoco viajara, «no
+         aparece» se cumpliria con un barrido roto del todo. */
+      const pwd = $('cfg-def-pwd'), fevi = $('fevi');
+      const feviPrevio = fevi ? fevi.value : null;
+      if (pwd) pwd.value = 'SECRETO-DE-PRUEBA-TC248';
+      if ($('cfg-mod-def')) $('cfg-mod-def').checked = true;
+      if (fevi) fevi.value = '55';
+      const barridos = {};
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
+        if (_noEsDelEstudio(el.id)) return;
+        barridos[el.id] = (el.type === 'checkbox') ? (el.checked ? '1' : '0') : el.value;
+      });
+      R.nBarridos = Object.keys(barridos).length;
+      R.claveNoViaja = JSON.stringify(barridos).indexOf('SECRETO-DE-PRUEBA-TC248') === -1;
+      R.casillaNoViaja = !('cfg-mod-def' in barridos);
+      R.feviSiViaja = barridos['fevi'] === '55';
+      if (pwd) pwd.value = '';
+      if (fevi) fevi.value = (feviPrevio === null ? '' : feviPrevio);
+
+      /* ── 10 · LA PREFERENCIA PERSISTE ── */
+      localStorage.setItem('ett_deformacion','1');
+      R.persisteEncendida = eeDefOn() === true;
+      localStorage.setItem('ett_deformacion','0');
+      R.persisteApagada = eeDefOn() === false;
+    } catch (e) {
+      R.err = String(e && e.message || e);
+    } finally {
+      window.toast = toastReal;
+      try { cineCerrar(); } catch (e) {}
+      try { _defPwdCerrar(); } catch (e) {}
+      try { localStorage.setItem('ett_deformacion','1'); } catch (e) {}
+      try { if (modoPrevio === null) localStorage.removeItem('ett_view_mode');
+            else localStorage.setItem('ett_view_mode', modoPrevio); } catch (e) {}
+      try { cfgRenderModulos(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: sin excepcion',                   !R.err, R.err || 'ok'],
+      ['de fabrica viene APAGADA',                     R.defaultApagado, R.defaultApagado],
+      ['la casilla esta en Config',                    R.hayCasilla, R.hayCasilla],
+      ['y nace destildada',                            R.casillaDestildada, R.casillaDestildada],
+      ['es una mas al lado de las de EE_MODULES',      R.diezCasillas, R.nCasillas],
+      ['pero NO entra a EE_MODULES',                   R.fueraDeEEModules, R.fueraDeEEModules],
+      ['tildar PIDE la clave',                         R.modalAbre, R.modalAbre],
+      ['y no enciende nada hasta que sea correcta',    R.noEncendioAunSinClave, R.noEncendioAunSinClave],
+      ['la casilla no afirma lo que todavia no pasa',  R.casillaVuelveAtras, R.casillaVuelveAtras],
+      ['una clave incorrecta lo DICE',                 R.dijoIncorrecta, R.dijoIncorrecta],
+      ['y no enciende',                                R.sigueApagado, R.sigueApagado],
+      ['el campo no queda con el secreto puesto',      R.campoSeLimpia, R.campoSeLimpia],
+      ['LA CORRECTA ENCIENDE',                         R.encendio, R.encendio],
+      ['cierra el modal',                              R.modalCerro, R.modalCerro],
+      ['y tampoco deja el secreto en el DOM',          R.noQuedaEnElDOM, R.noQuedaEnElDOM],
+      ['DENOMINADOR: encendida, el grupo ESTA',        R.grupoDefEncendido, R.grupoDefEncendido],
+      ['DENOMINADOR: con sus tres herramientas',       R.tresBotones, R.tresBotones],
+      ['DENOMINADOR: y se puede elegir Strain',        R.herrEncendida, R.herrEncendida],
+      ['DENOMINADOR: con su panel dibujado',           R.panelEncendido, R.panelEncendido],
+      ['apagar NO pide clave',                         R.apagoSinPedirClave, R.apagoSinPedirClave],
+      ['y no reabre el modal',                         R.modalNoReabre, R.modalNoReabre],
+      ['APAGAR MIDIENDO devuelve la herramienta',      R.herrVolvioADist, R.herrVolvioADist],
+      ['y el grupo abierto al de 2D',                  R.grupoVolvioA2d, R.grupoVolvioA2d],
+      ['EL GRUPO DESAPARECE DE LA BARRA',              R.grupoDefSeFue, R.grupoDefSeFue],
+      ['y sus tres botones con el',                    R.sinBotones, R.sinBotones],
+      ['y el panel del strain deja de dibujarse',      R.panelStrainSeFue, R.panelStrainSeFue],
+      ['NADA MAS CAMBIA: 2D y Doppler siguen',         R.otrosGruposIntactos, R.otrosGruposIntactos],
+      ['pedir Strain a mano tampoco la da',            R.negoStrain, R.negoStrain],
+      ['ni LARS',                                      R.negoLars, R.negoLars],
+      ['ni Strain VD',                                 R.negoVd, R.negoVd],
+      ['CONTROL NEGATIVO: Area sigue andando',         R.areaSigueAndando, R.areaSigueAndando],
+      ['DENOMINADOR: el barrido tomo campos',          R.nBarridos > 100, R.nBarridos],
+      ['CONTROL NEGATIVO: la FEVI si viaja',           R.feviSiViaja, R.feviSiViaja],
+      ['LA CONTRASENA NO VIAJA EN EL ESTUDIO',         R.claveNoViaja, R.claveNoViaja],
+      ['ni la casilla de Config',                      R.casillaNoViaja, R.casillaNoViaja],
+      ['la preferencia persiste encendida',            R.persisteEncendida, R.persisteEncendida],
+      ['y apagada',                                    R.persisteApagada, R.persisteApagada]
     ] };
   })();
 `);

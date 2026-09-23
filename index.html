@@ -15566,6 +15566,30 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   </div>
 </div>
 
+<!-- ═══ Modal: contraseña del módulo Deformación ═══
+     El input lleva prefijo `cfg-` a propósito: `guardarInforme` barre `input[id]` de TODO el
+     documento y `_noEsDelEstudio()` excluye ese prefijo. Sin él, la contraseña terminaría dentro
+     de `campos` de CADA estudio guardado y saldría en el backup JSON que el médico manda por
+     correo — que es exactamente el defecto que el comentario de `doLogin` documenta haber
+     cerrado. Y `autocomplete="off"` para que el gestor del navegador no la ofrezca guardar,
+     por lo mismo que la clave de CeiboAnalytics. -->
+<div id="modal-def-pwd" role="dialog" aria-modal="true" aria-labelledby="def-pwd-title"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:700;align-items:center;justify-content:center;padding:20px;"
+     onclick="if(event.target===this)_defPwdCerrar()">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:400px;width:100%;padding:22px 24px;box-shadow:0 18px 48px rgba(0,0,0,.5);">
+    <h3 id="def-pwd-title" style="margin:0 0 10px;font-size:17px;color:var(--text);">📐 Activar Deformación</h3>
+    <p style="margin:0 0 16px;font-size:13.5px;line-height:1.55;color:var(--text2,#94A3B8);">Este módulo agrega las herramientas de strain al visor de imágenes. Ingresá la contraseña para activarlo.</p>
+    <input id="cfg-def-pwd" type="password" placeholder="Contraseña" autocomplete="off"
+      onkeydown="if(event.key==='Enter')defPwdAceptar(); if(event.key==='Escape')_defPwdCerrar();"
+      style="width:100%;box-sizing:border-box;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;margin-bottom:8px;">
+    <div id="cfg-def-err" role="alert" style="min-height:18px;margin-bottom:12px;font-size:12.5px;color:var(--red,#ef4444);"></div>
+    <div style="display:flex;flex-direction:column;gap:9px;">
+      <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="defPwdAceptar()">Activar</button>
+      <button class="btn btn-ghost" style="width:100%;justify-content:center;" onclick="_defPwdCerrar()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script>
@@ -48048,6 +48072,18 @@ function _vPanelHTML(p, esB) {
     '</div>';
 }
 
+/* `eeDefOn` vive en OTRO bloque `<script>` —el de Config, el 53; esto es el 37— así que se llama
+   con guarda y no pelada: este archivo ya se quedó sin JavaScript dos veces por un bloque que
+   dejó de parsear, y ahí un `ReferenceError` acá se llevaría puesta la barra lateral entera, o
+   sea las NUEVE herramientas y no sólo las tres de Deformación.
+
+   FALLA CERRADO, igual que `eeDefOn`. Sin el bloque de Config no hay forma de saber si el médico
+   lo activó, y mostrarlo sería exhibir un módulo que se pidió esconder; además ese escenario ya
+   dejó a Config inalcanzable, así que tampoco habría dónde apagarlo. */
+function _medDefOn() {
+  try { return typeof eeDefOn === 'function' ? eeDefOn() === true : false; } catch (e) { return false; }
+}
+
 /* La barra lateral: tres grupos, uno abierto, y el submenú debajo del suyo. Se pinta aparte
    del panel guía porque son dos zonas distintas y el guía se reescribe en cada medición. */
 function _medSideRender() {
@@ -48055,7 +48091,12 @@ function _medSideRender() {
   if (!cont) return;
   const ab = _medGrupoAbierto();
   let html = '';
-  _MED_GRUPOS.forEach(G => {
+  /* PRIMERA CAPA del gate de Deformación: con el módulo apagado su grupo no se dibuja, así que
+     sus tres herramientas —Strain VI, LARS y Strain VD— no están en el DOM. La segunda capa vive
+     en `medHerramienta`, que se niega a seleccionarlas; y la tercera en `_medSoltarDef`, para el
+     caso de apagar el módulo con el visor midiendo. Cada una tiene su condición en TC-248: una
+     capa sin condición propia es una capa que nadie sabe si existe. */
+  _MED_GRUPOS.filter(G => G.g !== 'def' || _medDefOn()).forEach(G => {
     const abierto = ab === G.g;
     const cv = 'var(' + G.col + ')';
     /* El grupo abierto va RELLENO con su color; el cerrado lleva el mismo color sólo en el
@@ -51141,7 +51182,32 @@ function _medManejador() {
   return null;
 }
 
+/* Las tres herramientas del grupo Deformación. Sale de `_MED_HERRS`, que ya declara el grupo de
+   cada una: con una lista escrita al lado, agregar una cuarta la dejaría fuera del gate y
+   visible con el módulo apagado — y eso no daría error, sólo una herramienta que no debería
+   estar ahí. */
+function _medEsDef(h) {
+  for (var i = 0; i < _MED_HERRS.length; i++) if (_MED_HERRS[i].h === h) return _MED_HERRS[i].g === 'def';
+  return false;
+}
+/* TERCERA CAPA: apagar el módulo con el visor midiendo. `_medHerr` es estado de la vista y
+   sobrevive al cambio de Config, así que sin esto quedaría en 'strain' con su grupo ya fuera de
+   la barra: el panel se seguiría dibujando debajo de una barra que no ofrece esa herramienta.
+   Vuelve al defecto de fábrica, no apaga la medición: el médico estaba midiendo. */
+function _medSoltarDef() {
+  if (!_medEsDef(_medHerr)) return;
+  _medHerr = 'dist';
+  _medGrupo = '2d';
+  _medTrazo = null; _medPuntos = [];
+}
+window._medSoltarDef = _medSoltarDef;
+
 function medHerramienta(h) {
+  /* SEGUNDA CAPA: con el módulo apagado, una herramienta de Deformación cae al defecto. Sus
+     botones no están en el DOM —los saca `_medSideRender`— pero la función es alcanzable desde
+     el harness y desde cualquier llamador futuro, y un `_medHerr` en 'strain' con el grupo
+     oculto es justo el estado que la tercera capa existe para deshacer. */
+  if (_medEsDef(h) && !_medDefOn()) h = 'dist';
   _medHerr = (h === 'area' || h === 'simpson' || h === 'strain' || h === 'lars' ||
               h === 'vd' || h === 'vel' || h === 'tiempo' || h === 'fc' || h === 'vti') ? h : 'dist';
   _medTrazo = null; _medPuntos = [];
@@ -70804,8 +70870,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260922-2335';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790130907277;                 /* eco-build-ms */
+const ECO_BUILD    = '20260923-0001';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790132468709;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -70891,7 +70957,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260922-2335</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260923-0001</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -71217,6 +71283,100 @@ document.addEventListener('DOMContentLoaded', function(){
 function eeGetMode(){ return localStorage.getItem('ett_view_mode') || 'avanzado'; }
 function eeGetModules(){ try { return JSON.parse(localStorage.getItem('ett_modules') || '{}'); } catch(e){ return {}; } }
 function eeModOn(k){ var m=eeGetModules(); return m[k] !== false; } // por defecto visible
+
+/* ══ DEFORMACIÓN — un GRUPO DEL VISOR detrás de una casilla de Config ════════════════════════
+   NO va en `EE_MODULES`, y no es una elección de estilo: esa lista es de módulos con PESTAÑA
+   —cada entrada tiene su botón `data-mod` y la guarda de `DOMContentLoaded` de más arriba avisa
+   por consola si las dos listas divergen—. Deformación no es una pestaña: es uno de los tres
+   GRUPOS de herramientas del visor (`_MED_GRUPOS`, junto a 2D y Doppler/M). Metido ahí, cada
+   arranque imprimiría «[modulos] EE_MODULES y data-mod no coinciden — sin botón: ['deformacion']»
+   sobre una app perfectamente sana, y un aviso que grita sin motivo deja de leerse.
+
+   Y NO usa `eeModOn`, que falla ABIERTO —`m[k] !== false`, o sea VISIBLE por omisión—. Acá el
+   default es el contrario: apagado hasta que alguien escriba la clave. Por eso clave propia, y
+   por eso `eeDefOn` falla CERRADO: si `localStorage` tira, el módulo queda oculto, que es el
+   estado «nada más cambia».
+
+   ⚠️ LA CONTRASEÑA ES UNA BARRERA DE CORTESÍA, NO UN CONTROL DE ACCESO, y conviene que esté
+   dicho acá antes de que alguien la lea como una protección. El gate real es la bandera de
+   `localStorage`: se pone a mano desde la consola en cinco segundos. Y un hash de siete
+   caracteres se rompe por fuerza bruta al instante — el hash cumple «que la clave no esté en
+   texto plano en el fuente», que es lo que se pidió, y nada más. Sirve para que el módulo no se
+   encienda sin querer; no protege de nadie que quiera entrar. (Para dimensionarlo: la clave del
+   login de esta misma app está comparada contra un literal, o sea en texto plano.) */
+var EE_DEF_KEY = 'ett_deformacion';
+function eeDefOn() {
+  try { return localStorage.getItem(EE_DEF_KEY) === '1'; } catch (e) { return false; }
+}
+window.eeDefOn = eeDefOn;
+
+/* Hash SÍNCRONO a propósito. `crypto.subtle` sólo existe en contexto seguro, y este archivo
+   documenta que la app se usa en `http://192.168.x.x` —la LAN del sanatorio—: ahí un SHA-256
+   dejaría al médico sin poder activar el módulo, que es el peor lugar para descubrirlo. La
+   fuerza criptográfica no aporta nada dado el párrafo de arriba; lo que aporta es que el literal
+   no esté escrito. Se recorta el texto: un espacio pegado al pegar la clave da otro hash y el
+   «Contraseña incorrecta» resultante sería inexplicable. */
+var _EE_DEF_SAL = 'ceibomed-deformacion-v1:';
+var _EE_DEF_HASH = '2g4as8iye26';
+function _eeDefHash(txt) {
+  var s = _EE_DEF_SAL + String(txt == null ? '' : txt).trim();
+  var h1 = 0xdeadbeef ^ 0x5eed, h2 = 0x41c6ce57 ^ 0x5eed;
+  for (var i = 0; i < s.length; i++) {
+    var ch = s.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+
+/* APAGAR NO PIDE CLAVE, y es deliberado: la dirección segura sale gratis. Exigirla para apagar
+   dejaría al médico que la olvidó con un módulo que no puede sacar de la pantalla. */
+function _eeDefGuardar(on) {
+  try { localStorage.setItem(EE_DEF_KEY, on ? '1' : '0'); } catch (e) {}
+  /* Si estaba midiendo con una herramienta de Deformación, se vuelve al defecto: apagar el
+     módulo con el visor abierto dejaría `_medHerr` en 'strain' y el panel se seguiría dibujando
+     debajo de una barra que ya no ofrece esa herramienta. */
+  try { if (!on && typeof _medSoltarDef === 'function') _medSoltarDef(); } catch (e) {}
+  try { if (typeof _medEstado === 'function' && typeof _medOn !== 'undefined' && _medOn) _medEstado(); } catch (e) {}
+  cfgRenderModulos();
+}
+function cfgToggleDef(on) {
+  if (!on) { _eeDefGuardar(false); return; }
+  /* La casilla vuelve a su lugar hasta que la clave sea correcta: dejarla tildada mientras el
+     modal está abierto afirma un estado que todavía no existe. */
+  var c = document.getElementById('cfg-mod-def'); if (c) c.checked = false;
+  _defPwdAbrir();
+}
+function _defPwdAbrir() {
+  var m = document.getElementById('modal-def-pwd'); if (!m) return;
+  var e = document.getElementById('cfg-def-err'); if (e) e.textContent = '';
+  var i = document.getElementById('cfg-def-pwd'); if (i) i.value = '';
+  m.style.display = 'flex';
+  if (i) setTimeout(function(){ i.focus(); }, 30);
+}
+function _defPwdCerrar() {
+  var m = document.getElementById('modal-def-pwd'); if (m) m.style.display = 'none';
+  /* Se limpia el campo al salir por los dos caminos, no sólo en el error: un secreto no queda
+     suelto en el DOM el resto de la sesión. Es lo que `doLogin` ya hace por este mismo motivo. */
+  var i = document.getElementById('cfg-def-pwd'); if (i) i.value = '';
+}
+function defPwdAceptar() {
+  var i = document.getElementById('cfg-def-pwd');
+  var e = document.getElementById('cfg-def-err');
+  if (_eeDefHash(i ? i.value : '') !== _EE_DEF_HASH) {
+    if (e) e.textContent = 'Contraseña incorrecta';
+    if (i) { i.value = ''; i.focus(); }
+    return;
+  }
+  _defPwdCerrar();
+  _eeDefGuardar(true);
+  if (typeof toast === 'function') toast('📐 Deformación activada');
+}
+window.cfgToggleDef = cfgToggleDef;
+window.defPwdAceptar = defPwdAceptar;
+window._defPwdCerrar = _defPwdCerrar;
 function applyViewMode(){
   var mode=eeGetMode();
   // Tab "Avanzado" del Laboratorio: solo visible en modo avanzado
@@ -71254,7 +71414,14 @@ function cfgRenderModulos(){
     '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">'+
     EE_MODULES.map(function(m){
       return '<label class="cfg-mod-item"><input type="checkbox" '+(eeModOn(m.key)?'checked':'')+' onchange="cfgToggleMod(\''+m.key+'\',this.checked)"> '+m.label+'</label>';
-    }).join('')+'</div>';
+    }).join('')+
+    /* Deformación va SUELTA y no dentro del `.map`: no es una entrada de `EE_MODULES` —ver el
+       comentario de `eeDefOn`— así que ni se lee de esa lista ni se escribe con `cfgToggleMod`,
+       que persiste en `ett_modules`. Comparte la grilla porque para el médico es una casilla más.
+       `onchange` y NUNCA `onclick`: la regla táctil global matchea por el ATRIBUTO `[onclick]` e
+       inflaría la casilla a 44×44, tres veces el alto de las otras nueve. */
+    '<label class="cfg-mod-item" title="Herramientas de strain del visor de imágenes. Pide contraseña."><input type="checkbox" id="cfg-mod-def" '+(eeDefOn()?'checked':'')+' onchange="cfgToggleDef(this.checked)"> 📐 Deformación</label>'+
+    '</div>';
 }
 /* cfgSaveMed() se eliminó junto con los campos sueltos "Nombre del médico" y
    "Matrícula" de Config: era la segunda fuente de verdad que competía con la lista

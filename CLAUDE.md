@@ -4,6 +4,112 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Deformación: una casilla de Config que gobierna un GRUPO DEL VISOR (TC-248)
+
+El grupo **Deformación** del visor —Strain VI, LARS y Strain VD— queda detrás de una casilla en
+⚙️ Config, **apagada de fábrica** y protegida por contraseña.
+
+### ⚠️ NO VA EN `EE_MODULES`, y el motivo lo grita la propia app
+
+Esa lista es de módulos con **pestaña**: cada entrada tiene su botón `data-mod` y hay una guarda
+en `DOMContentLoaded` que compara las dos listas. Deformación **no es una pestaña**: es uno de los
+tres grupos de `_MED_GRUPOS`, junto a 2D y Doppler/M. Metido ahí, cada arranque imprimiría
+`[modulos] EE_MODULES y data-mod no coinciden — sin botón: ['deformacion']` sobre una app
+perfectamente sana, y un aviso que grita sin motivo deja de leerse. La casilla se dibuja **suelta**
+al lado de las nueve, no dentro del `.map`.
+
+### ⚠️ `eeModOn` FALLA ABIERTO — acá hace falta lo contrario
+
+`eeModOn` es `m[k] !== false`, o sea **visible por omisión**. El default pedido es el opuesto:
+apagado hasta que alguien escriba la clave. Por eso clave propia (`ett_deformacion`) y por eso
+`eeDefOn` **falla CERRADO**: si `localStorage` tira, el módulo queda oculto, que es el estado
+«nada más cambia». Reusar `eeModOn` habría dado un módulo encendido de fábrica.
+
+### Son TRES capas, y cada una tiene su condición
+
+Este archivo ya documenta que *«defensa en profundidad sin una condición por capa es una capa que
+nadie sabe si existe»* —lo documenta porque una mutación sobrevivió por eso en TC-206—, así que:
+
+| capa | dónde | qué impide |
+|---|---|---|
+| 1 | filtro en `_medSideRender` | los tres botones no están en el DOM |
+| 2 | `medHerramienta` | pedir `'strain'` con el módulo apagado deja `'dist'` |
+| 3 | `_medSoltarDef` | apagar **midiendo** devuelve la herramienta al defecto |
+
+**La tercera es la que menos se ve y la que más importa.** `_medHerr` es estado de la **vista** y
+sobrevive al cambio de Config, así que sin ella queda en `'strain'` con su grupo ya fuera de la
+barra: el panel se sigue dibujando debajo de una barra que no ofrece esa herramienta. La mutación
+que la anula cae por tres condiciones.
+
+**`_medEsDef` deriva de `_MED_HERRS`, no de una lista escrita al lado.** Esa tabla ya declara el
+grupo de cada herramienta; con una copia, agregar una cuarta la dejaría fuera del gate y visible
+con el módulo apagado — y eso no da error, sólo una herramienta que no debería estar.
+
+### `_medDefOn` cruza de bloque, así que va con guarda
+
+`eeDefOn` vive en el bloque **53** (Config) y `_medSideRender` en el **37** (visor). Una llamada
+pelada funciona —las declaraciones de nivel superior quedan en `window`— pero este archivo ya se
+quedó sin JavaScript dos veces por un bloque que dejó de parsear, y ahí un `ReferenceError`
+adentro de `_medSideRender` se llevaría puesta **la barra entera**: las nueve herramientas, no las
+tres del módulo. Falla **cerrado**, igual que `eeDefOn`.
+
+### ⚠️ LA CONTRASEÑA ES UNA BARRERA DE CORTESÍA, NO UN CONTROL DE ACCESO
+
+Queda dicho en el código y se repite acá porque es lo que más fácil se lee al revés. **El gate real
+es la bandera de `localStorage`**, que se pone a mano desde la consola en cinco segundos; y un hash
+de siete caracteres se rompe por fuerza bruta al instante. Lo que el hash cumple es que el literal
+**no esté escrito en el fuente**, que es lo que se pidió. Sirve para que el módulo no se encienda
+sin querer; no protege de nadie que quiera entrar. Para dimensionarlo: la clave del **login** de
+esta misma app está comparada contra un literal, o sea en texto plano.
+
+**El hash es SÍNCRONO a propósito.** `crypto.subtle` sólo existe en contexto seguro, y este archivo
+documenta que la app se usa en `http://192.168.x.x` —la LAN del sanatorio—: ahí un SHA-256 dejaría
+al médico **sin poder activar el módulo**, que es el peor lugar para descubrirlo. Se recorta el
+texto porque un espacio pegado al pegar la clave da otro hash y el «Contraseña incorrecta»
+resultante sería inexplicable.
+
+**El input lleva prefijo `cfg-`**, que `_noEsDelEstudio` excluye. Sin él, `guardarInforme` —que
+barre `input[id]` de TODO el documento— metería la contraseña dentro de `campos` de **cada estudio
+guardado** y saldría en el backup JSON que el médico manda por correo. Es exactamente el defecto
+que el comentario de `doLogin` documenta haber cerrado.
+
+**APAGAR NO PIDE CLAVE, y es deliberado**: la dirección segura sale gratis. Exigirla para apagar
+dejaría al médico que la olvidó con un módulo que no puede sacar de la pantalla.
+
+### ⚠️ ENCENDERLO VA EN EL RUNNER, Y ES PORTANTE — medido, no supuesto
+
+Seis casos clickean las herramientas de ese grupo (TC-199, 204, 205, 206, 207, 208). Con el módulo
+apagado de fábrica, sus botones **no están en el DOM** y `__t.herr` devuelve
+`NO EXISTE cine-med-str` — un diagnóstico que no apunta a su causa. El encendido va en
+`__t.resetVisor()`, que corre **antes de cada caso**, por el mismo motivo que el reset del visor:
+con una línea por caso, el que se olvide hereda el estado del anterior. Y así TC-248 puede apagarlo
+para probar el gate sin llevarse puesto al siguiente, aunque su `finally` no llegue a correr.
+
+**Verificado por mutación del HARNESS**, no por lectura: sacando esa línea, TC-199 y TC-206 caen.
+Sin esa comprobación, «estos seis se romperían» habría sido una suposición.
+
+### Dos trampas del propio caso, las dos de denominador
+
+- **La diana NO se dibuja con sólo elegir la herramienta.** `cine-str-be` sale recién cuando hay
+  algo trazado, así que mi primera comprobación —«la diana no está con el módulo apagado»— daba
+  `false` **en los dos estados** y se leía como un gate que funciona. Lo que sí se dibuja siempre
+  es el **panel**, con su selector de ventana apical; ése es el marcador.
+- **Y el primer marcador que elegí tampoco servía**: `dos contornos manuales` vive en una rama
+  posterior del panel, no en el primer paso. Hubo que **leer la barra** en los dos estados antes de
+  elegir qué buscar, en vez de suponerlo.
+
+**El control negativo es lo que separa este caso de uno decorativo:** después de apagar, Área
+**sigue andando**. Sin esa condición, «quedó en `dist`» se cumpliría igual con un `medHerramienta`
+roto del todo. Lo mismo del otro lado: la condición de que la contraseña no viaje va con un
+control negativo —que la FEVI **sí** viaje—, porque «no aparece» se cumple igual con un barrido
+roto del todo.
+
+**Backticks dentro del cuerpo de un caso: van CINCUENTA Y CUATRO**, otra vez en un comentario
+recién escrito — el que explicaba por qué la contraseña no puede entrar a `campos`, y que estaba
+lleno de nombres de función entre acentos graves. `node --check` lo caza, apuntando a la línea del
+`caso(`, doscientas líneas antes del culpable.
+
+
 ## El arrastre de la biblioteca NO estaba roto: estaba FINGIDO (TC-247)
 
 El pedido decía «el drag & drop de biblioteca → slot no funciona, corregirlo». Medido antes de
