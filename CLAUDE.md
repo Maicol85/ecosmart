@@ -4,6 +4,227 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## El botón 🫀 CC se escondía justo donde tenía algo que hacer (2026-09-24)
+
+Reportado como tres cosas —ubicación, diseño y «no genera nada»—. Las dos primeras son decisión
+de Maicol; la tercera era un defecto real, y el diagnóstico del reporte apuntaba al lugar
+equivocado: la función andaba perfecto, lo que fallaba era **la compuerta que decide si el botón
+aparece**.
+
+### ⚠️ `_CC_SECS.pred` CONTESTA OTRA PREGUNTA, y por eso no alcanza sola
+
+Esa lista dice **«¿este estudio cuenta como CIA para la estadística?»** y es estricta a propósito:
+`cia` exige `ete_cia_tipo`, o sea el TIPO consignado. La pregunta del botón es otra —**«¿tildar
+esta casilla va a producir texto en el informe?»**— y el emisor la contesta con el tamaño, el
+borde o la dirección **solos** (`if(cTipo||cMax!=null||cMin!=null||bm||cDir)`).
+
+Medido con el caso exacto del reporte, una CIA de 18 × 4 mm con borde VCI de 6 mm y sin tipo:
+
+| | |
+|---|---|
+| `ccSeccionesConDatos()` | **`[]`** — botón **oculto** |
+| tildando `ete_shunt_incluir_chk` a mano | «CIA. Tamaño 18 × 4 mm. Borde mínimo 6 mm (VCI).» |
+
+**`_CC_SECS` NO se tocó**, y ésa es la mitad que importa: es la clasificación que comparten el
+Laboratorio, el filtro de cohorte, el PDF de auditoría y el PPT, y ensancharla metería en el
+denominador de «Estudios con CIA» a pacientes a los que nadie les consignó el tipo. Lo que se
+agrega es la **unión** con un predicado que contesta la pregunta del botón.
+
+### ⚠️ EL `/sharp-edges` ENCONTRÓ CUATRO, Y EL PRIMERO ERA PEOR QUE EL DEFECTO ORIGINAL
+
+Ninguno lo vio la lectura, y el primero lo introduje yo **en este mismo commit**, copiando la
+regla de `secAutoOpen` sin preguntarme qué significa cada control.
+
+- **UN HALLAZGO NEGATIVO ENCENDÍA LA SECCIÓN Y PUBLICABA UNA AFIRMACIÓN.** `secAutoOpen` cuenta
+  `selectedIndex > 0`, y con esa regla acá, contestar **«Aneurisma del septum: No»** —o sea la
+  AUSENCIA de un aneurisma— encendía el foramen, tildaba su casilla y el informe firmado decía
+  **«Foramen oval permeable.»** más una línea en el EN SUMA, sobre un paciente en el que nadie
+  dijo que hubiera un foramen. Reproducido con `fop_asa='no'` y el resto del formulario en
+  blanco; idem con `fop_contraste='no'`. Es «un default tranquilizador es una afirmación»
+  entrando por una **acción masiva**, que hereda la guarda más débil de cada una de las
+  diecinueve secciones. **Hoy el barrido cuenta sólo campos de TIPEO**: una medición no puede ser
+  una negación, y lo que un select aporta ya lo cubre `pred`, que está escrito sobre esos mismos
+  selects descriptivos. Las casillas quedan fuera por lo mismo — `fontan_comp_ninguna` es
+  literalmente «sin complicaciones».
+  **Y el aviso nuevo era ciego a esto**: ahí el texto SÍ cambia. La comparación caza el modo de
+  falla benigno —«tildé y no salió nada»— y no el peligroso.
+- **EL BOTÓN BORRABA LAS EDICIONES A MANO, y es PREEXISTENTE.** Llamaba a `generarInforme()`
+  pelado, o sea la regeneración **explícita**, donde `_infEscribir` hace `lineasNuevas.slice()` y
+  descarta lo que el médico tipeó o insertó con «💬 Frases». El «📎 Integrar» de cada sección no
+  hace eso —sólo tilda, y el refresco lo trae el oyente con debounce, que es silencioso—, así que
+  **el mismo acto destruía ediciones por un camino y no por el otro**. Medido en los dos
+  sentidos: con la regeneración explícita la frase se pierde; con `{silencioso:true}` sobrevive y
+  la CIA aparece igual. Con el informe todavía en blanco sí va la generación completa: no hay
+  nada que preservar. **Y es lo que vuelve honesta la comparación del aviso**: antes el texto
+  podía cambiar sólo porque se borró lo del médico, y el aviso se callaba justo cuando tenía que
+  hablar.
+- **El `try/catch` mudo hacía que el aviso culpara al dato clínico.** Si `generarInforme` lanza
+  —o no existe porque su bloque `<script>` dejó de parsear, cosa que este archivo documenta haber
+  pagado dos veces— las casillas quedan tildadas, el texto igual, y el toast mandaba al médico a
+  revisar campos clínicos por una falla de código. Hoy se distingue «el emisor no corrió» de «el
+  emisor no emitió». **La mutación que saca esa guarda SOBREVIVE y está declarada**: hoy
+  `generarInforme` no lanza, así que la rama es defensa en profundidad y no hay condición que la
+  pueda ejercer sin romper el bloque a propósito.
+- **El comentario prometía una dirección de falla para dos bloques y describía uno.** «Falla hacia
+  INCLUIR» encabezaba `p` y `d`, y `d` caía a `false`. No era alcanzable —nada dentro de
+  `_ccTieneDatosEnPantalla` puede lanzar— pero dejaba un fail-closed silencioso bajo un comentario
+  que promete lo contrario.
+
+Y dos de presentación: el rótulo decía «CIA/CIV» sobre un estudio con sólo una CIV —hoy `pred`
+distingue cuál matcheó y el barrido cae al grupo entero, que es lo honesto—, y con sólo
+`sinCasilla` el toast salía `🫀 0 sección(es) … :  · ⚠️ sin casilla: X`, con la lista vacía y los
+dos puntos colgando.
+
+**`_ccAssertChks` vigila ahora DOS cosas**: que la casilla exista y que esté **dentro de un
+`.sacc`**. Desde que el contenedor se deriva de la casilla, una que viva fuera de un acordeón deja
+esa sección invisible al barrido para siempre y sin un solo error — el `if (!acc) return false` se
+la traga.
+
+### Lo que queda DECLARADO y sin cerrar
+
+- **En Modo Básico el botón integra y el médico no puede des-integrar.** Vive en la pestaña
+  Informe, que siempre se ve; las dos pestañas de CC son `.tab-special data-mod="congenitas"` y
+  ahí se esconden, así que la salida que el comentario nombra —«un clic en 📎 Integrar de esa
+  sección»— es inalcanzable. Es **preexistente** —el botón siempre pudo integrar en Modo Básico—
+  y este cambio lo agrava porque ensancha cuándo aparece.
+- **El botón no da estado.** Después de integrar queda idéntico, a diferencia del «📎 Integrar» →
+  «✓ Integrado» de cada sección. La segunda pulsación es inocua desde que la regeneración es
+  silenciosa, pero no hay señal de que el gesto ya se hizo.
+- **El tilde se persiste y se exporta.** Va a `<id>__chk`, que consumen el Excel, `_labIntegrado`
+  y el filtro de cohorte: un tilde de más no agrega sólo un párrafo, hace que el estudio cuente
+  como sección integrada en la estadística y en el PDF de auditoría.
+
+### El segundo predicado se DERIVA del DOM, no es una lista paralela
+
+Es el mismo criterio de `secAutoOpen` —«¿este acordeón tiene datos?»— y el contenedor sale de la
+**casilla** (`closest('.sacc')`), no de un mapa escrito aparte: si una sección cambia de acordeón,
+su casilla se muda con ella y el barrido la sigue. Con un mapa propio mediría el acordeón viejo y
+**no daría ningún error**.
+
+Las exclusiones y su motivo:
+
+- **Sólo campos de TIPEO** — ver el hallazgo de arriba. Y **no se filtra por `[type=number]`**: el
+  script de arranque convierte esos inputs a `type=text` con `inputmode=decimal`, así que ese
+  selector devuelve **cero**. Se excluye por lo que no sirve (`hidden`, `checkbox`, `radio`).
+- **`[readonly]` y `[data-espejo]`** — un espejo es dato de OTRA sección mostrado acá por
+  comodidad; la sección de CIA/CIV muestra seis que se llenan con el TSVI, el TSVD, el DDVI y la
+  ASC. **La mutación que las saca es la que más enseña**: un estudio **sin ninguna cardiopatía
+  congénita** —FEVI, DSVI, VD basal, sexo, septum, TSVI, aorta y «TV documentada: no»— enciende
+  **siete** secciones y las tilda: `CIA/CIV, CoAo, VAB, MCH, TdF, DSAV, CVPA`.
+- **La propia casilla de integración** — contarla haría el predicado auto-cumplido desde el primer
+  tilde. Hoy queda fuera además por no ser un campo de tipeo; la comprobación explícita se
+  conserva porque es la que fija el contrato.
+
+Control negativo medido: con el formulario vacío, y con ese estudio sin CC, **cero** secciones.
+
+**Barrido de las 18 casillas, por las dos vías:** con su campo numérico cargado entran **18/18**;
+con su select descriptivo, **16/18**. Los dos que no son `fop_mov` y `ebs_func_vd`, que son
+selects secundarios y no el hallazgo — correcto y conservador.
+
+### La unidad es la CASILLA, no la sección
+
+CIA y CIV comparten casilla **y viven en el mismo acordeón** (`sacc-cc-shunt`), así que ninguna
+medición del DOM las puede distinguir. `_ccGruposDeSecciones()` agrupa por casilla y el rótulo se
+arma con las etiquetas de `_CC_SECS` → **«CIA/CIV»**. Eso arregla de paso un defecto del dedupe
+anterior, que se quedaba con la primera y decía **«CIA» sobre un estudio con sólo una CIV**.
+
+### El toast compara el TEXTO, no cuenta tildes
+
+«Se tildaron N casillas» describe el **gesto**, no la consecuencia — y el defecto que se reportó
+fue literalmente «toqué el botón y no produjo ningún texto», con el toast saliendo verde igual.
+Desde que la compuerta es ancha, el caso es alcanzable y **está medido**: con sólo
+`tdf_vol_fuente` cargado, el botón aparece, tilda la casilla de Fallot y **el informe queda
+idéntico**. Ahí el aviso lo dice en vez de confirmar un éxito que el informe desmiente dos
+centímetros más abajo.
+
+**No es un resguardo que no se pueda hacer fallar**, y se midió en vez de suponerlo: barrido de
+los **80 campos de tipeo** de las 18 casillas → **26 tildan y dejan el informe idéntico**. Uno de
+ellos es `ete_cia_vel`, del mismo acordeón que el caso del reporte: el emisor de CIA no lo incluye
+en su compuerta. Es AGREGADO y no por sección a propósito: atribuirlo exigiría instrumentar los
+catorce emisores, y **`cc-txt-<k>` no sirve como señal** porque `CC_HOJA_ORDEN` tiene catorce de
+las diecinueve — las cinco que faltan darían un «no emitió» falso.
+
+### La ubicación: pedida dos veces, y el comentario que la resistía tenía razón a medias
+
+El botón vuelve a estar **pegado a las tres pastillas** y con el mismo `btn-ghost` que Frases e
+Indicaciones. El comentario anterior lo había puesto en el grupo de acciones citando que mezclar
+una acción con el selector de estado ya hizo que «Frases» se leyera como un cuarto estilo. Lo que
+ese razonamiento no vio es que el `margin-left:auto` de ese grupo **baja el grupo entero a un
+segundo renglón** en pantalla angosta, y ahí el botón quedaba lejos de todo: eso es lo que se
+reportó como «está en otro lugar». Medido a 390 px, hoy CC queda **primero del segundo renglón**,
+justo debajo de Narrativo, y a 1280 px contiguo a él.
+
+**El riesgo sigue en pie y está declarado**: con `btn-ghost` se ve idéntico a «Conciso». Tres cosas
+lo separan y **conviene no borrar ninguna** — no lleva `estilo-pill` ni `data-estilo`, así que
+`setEstiloInforme` nunca le pone el `btn-primary` de «activo»; y **nace oculto**, o sea que en la
+enorme mayoría de los estudios la fila tiene tres botones y no cuatro. Una opción de estilo está
+siempre; ésta aparece sólo cuando hay una cardiopatía congénita cargada.
+
+**`.btn-purple` se eliminó**: su único usuario era este botón. Se borra en vez de dejarla huérfana
+porque una clase de color sin usuarios invita a «restaurarle el color», que es justo lo que se
+revirtió. La mutación que le pone `btn-primary` cae por dos condiciones, y la segunda es la que
+vale: **3,21 : 1 en el tema oscuro**, el mismo defecto de `--purple` con otra cara.
+
+### «Que combine varias CC» NO reproducía
+
+Medido con cinco condiciones cargadas a la vez —CIA, CIV, DAP, CoAo y MCH, las tres primeras sin
+tipo—: el cuerpo emite los cinco párrafos y el EN SUMA las cinco líneas. Cada sección empuja su
+propia entrada a `etePars`; no hay ninguna que pise a la anterior. Lo que el reporte leyó como
+«sólo refleja la última» es el mismo defecto de la compuerta: **las que no aparecían eran las que
+el botón no llegaba a tildar**.
+
+### ⏳ PENDIENTE SEPARADO: el template de cavidades y conexiones
+
+Pedido como punto 5 y **no se improvisó**. Tres razones, la primera medible:
+
+1. **La app no recoge análisis segmentario: «situs» tiene CERO apariciones en todo el archivo.**
+   No hay campo de situs, ni de conexión veno-atrial, ni atrio-ventricular, ni ventrículo-arterial.
+2. **Un template que afirme «situs solitus, concordancia AV y VA» sobre un estudio donde nadie lo
+   miró es un default tranquilizador**, o sea la afirmación que este archivo persigue desde los
+   tres selects del TEER — y acá va al informe **firmado**.
+3. **El punto pide que salga «cuando no hay datos de CC cargados aún», que es justo cuando el
+   botón está OCULTO.** Ofrecerlo ahí exige mostrarlo siempre, lo que revierte la compuerta que
+   este mismo commit acaba de arreglar, y le da dos significados al mismo botón: «integrar lo
+   cargado» y «escribir texto que no sale de ningún campo».
+
+El camino correcto es una **sección de análisis segmentario** con sus cuatro selects de opción 0
+vacía, su casilla de integración, su entrada en `_CC_SECS`, sus columnas de Excel y su emisor —o
+sea el mismo trabajo que cualquiera de las diecinueve—. Sesión propia.
+
+### Diez mutaciones, nueve en su condición y una declarada
+
+Sin la unión (cae la CIA sin tipo y el denominador del aviso), sin las exclusiones del barrido
+(cae el control negativo, con las siete secciones impresas), el botón de vuelta al grupo de
+acciones (cae sólo la adyacencia), `btn-primary` en vez de `btn-ghost` (cae el aspecto y el
+contraste, **3,21 : 1 en oscuro**), sin agrupar por casilla (cae el rótulo y el toast imprime «1
+ya estaban» sobre un estudio recién limpiado), sin el aviso del informe que no cambia, el barrido
+contando selects y casillas (cae el hallazgo negativo, con `asa=FOP contraste=FOP` impreso), la
+regeneración de vuelta a explícita (cae «las ediciones a mano sobreviven», con `frase=false`) y el
+rótulo tomando siempre el grupo entero.
+
+**La que sobrevive está declarada**: sacarle al aviso la guarda de `regenero`. Hoy `generarInforme`
+no lanza, así que esa rama es defensa en profundidad y no hay condición que la pueda ejercer sin
+romper el bloque a propósito.
+
+**Y dos condiciones nacieron sin el escenario que discrimina.** «No cuenta doble» pasaba con el
+rótulo del grupo entero, porque en su escenario CIA **y** CIV tienen datos y las dos
+implementaciones dan «CIA/CIV»; el caso que separa es **una sola de las dos**. Y el aviso del
+informe mudo se probaba con `tdf_vol_fuente`, que es un select y dejó de encender la sección con
+el arreglo del hallazgo negativo — hubo que buscar un campo de tipeo que de verdad no publique.
+
+### Y mi propio script de reemplazo se comió el backtick de cierre del caso
+
+Para sacar los **backticks que volví a escribir dentro del cuerpo de TC-217** —van SETENTA, y las
+siete de esta tanda otra vez en comentarios recién escritos— hice un reemplazo entre `index('`')`
+y `rindex('`')` sobre el rango «de TC-217 a TC-218». El `rindex` encontró un backtick del
+**comentario de cabecera de TC-218**, así que el rango se pasó de largo: convirtió el `` ` `` que
+CIERRA el template literal de TC-217 y de paso rompió una línea del comentario de TC-218.
+`node --check` lo cazó las dos veces, pero apuntando a la línea del `caso(`. Es la entrada «los
+reemplazos por rango son peligrosos» aplicada a mi propia herramienta: **el ancla de fin tiene que
+ser única y verificada, no el último carácter que aparezca en un rango estimado.** Y después,
+contar los casos: 266, igual que HEAD.
+
+
 ## «Guardar tabla»: UNA SOLA CAPTURA CON TODAS LAS VÁLVULAS MEDIDAS (2026-09-24)
 
 Tercera decisión de Maicol sobre el cajón Doppler en la misma jornada, y **cierra la duda que la
