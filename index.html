@@ -12862,7 +12862,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       Esta calculadora recoge los factores disponibles en el ecocardiograma. El marco HFA-ICOS
       completo incluye factores adicionales clinicos y de laboratorio que deben evaluarse por separado.<br>
       <b>Esta es la UNICA calculadora de riesgo basal de la app</b> desde el 2026-09-15. El bloque
-      «Datos basales» de arriba tenia un segundo score con otra escala, y las dos bandas podian
+      «Datos basales» de esta pestaña tenia un segundo score con otra escala, y las dos bandas podian
       terminar en el mismo informe firmado por caminos distintos; se elimino. Su clasificacion
       —la que sale en la capsula de aquel bloque, en la hoja del PDF, en el PPT y en el texto del
       modulo integrado— es la que se calcula ACA. Si ademas se integra, el mismo resultado entra
@@ -12956,9 +12956,14 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
          una herramienta validada, y eso baja al PDF firmado. -->
     <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">📊 Datos basales del tratamiento</div>
     <div style="font-size:11px;color:var(--text2);background:var(--section-head);border-left:3px solid var(--accent2);padding:8px 10px;border-radius:0 6px 6px 0;margin-bottom:10px;">
+      <!-- SIN PUNTERO POSICIONAL: se nombra la sección, no dónde está. Decía «más abajo en esta
+           misma pestaña» y al subir la calculadora al primer lugar (2026-09-24) quedó mandando al
+           médico a buscar hacia abajo el bloque que tiene encima. Es el aviso que desambigua las
+           dos escalas de riesgo, así que una referencia rota acá cuesta más que en otro lado —y
+           es la cuarta vez que este archivo paga una cadena que decía «el de arriba». -->
       Estos campos describen el tratamiento y las mediciones basales. La <b>clasificación de riesgo</b>
-      que aparece abajo —y la que baja al informe— sale de la <b>Calculadora de Riesgo CV</b> (marco
-      HFA-ICOS), más abajo en esta misma pestaña. Acá ya no se calcula un score aparte.
+      —y la que baja al informe— sale de la sección <b>🧮 Calculadora de Riesgo CV</b> (marco
+      HFA-ICOS) de esta misma pestaña. Acá ya no se calcula un score aparte.
     </div>
     <div class="grid-3" style="margin-bottom:10px;">
       <div class="fg"><label>Farmaco oncologico</label>
@@ -14457,7 +14462,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
       <div style="margin-top:16px;">
         <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Tiempo de espera solicitud → estudio — distribución</div>
-        <!-- El promedio de la MISMA población que la tabla de abajo. Lo escribe `labRenderDash`
+        <!-- El promedio de la MISMA población que la tabla de abajo. Lo escribe `labInit`
              desde `promEspera`, la única variable del promedio — ver su comentario: es el mismo
              número que «Tiempo solicitud → estudio» de Actividad, no un segundo cálculo. El
              rótulo dice «los mismos N» para que se lea como el resumen de esta tabla y no como
@@ -57393,7 +57398,14 @@ function labInit() {
       if (el) el.innerHTML = '<div class="lab-empty">Sin datos</div>';
     });
     { const _d = document.getElementById('lab-fevi-dispositivos'); if (_d) _d.textContent = ''; }
-    ['lab-contr-tabla','lab-contr-be','lab-contr-leyenda','lab-espera-tabla','lab-espera-dist','lab-espera-nota'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
+    /* `lab-espera-prom` va con sus tres vecinos del mismo bloque. Esta rama termina en `return`,
+       así que el código que lo escribe no corre: sin limpiarlo, filtrar a una cohorte de cero
+       dejaba la tabla, las barras y la nota vacías y ARRIBA DE TODO sobrevivía «Promedio de
+       espera 12,4 días (n=37)» del corte anterior — un número viejo presidiendo una tabla vacía,
+       que es peor que no mostrarlo porque el rótulo lo presenta como el resumen de ESA tabla. Es
+       el mismo modo de falla que el catch de `labAsocARender` documenta treinta líneas más
+       arriba: los números viejos quedándose mientras el encabezado ya se mudó de cohorte. */
+    ['lab-contr-tabla','lab-contr-be','lab-contr-leyenda','lab-espera-tabla','lab-espera-dist','lab-espera-nota','lab-espera-prom'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
     document.getElementById('lab-indicadores-body').innerHTML =
       '<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:20px;">Sin datos</td></tr>';
     document.getElementById('lab-docencia-lista').innerHTML =
