@@ -4,6 +4,55 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Auditoría de la barra de Imágenes — y el cajón Doppler NO está duplicado (2026-09-24)
+
+El pedido decía «el panel Doppler aparece duplicado: una instancia a nivel general de la tab
+Imágenes y otra dentro del visor; la de nivel general no debería existir». **Medido antes de
+tocar nada: no hay duplicación, y borrar la de "nivel general" rompería la app.**
+
+### Hay UN nodo, y lo que se ve son sus dos domicilios
+
+`document.querySelectorAll('#dop-cajon').length` devuelve **1** en los dos estados. `_dopUbicar`
+hace `appendChild` del único nodo entre `#dop-casa` (tab Imágenes) y `#cine-dop-slot` (visor), y
+`appendChild` sobre un nodo que ya tiene padre lo **mueve**. Medido con el visor abierto:
+`padre === 'cine-dop-slot'` y **`#dop-casa` queda vacía** — o sea que en ningún momento hay dos.
+
+Lo que el pedido llama «dos instancias» es el mismo panel visto en dos momentos distintos.
+
+### `#dop-casa` es el ÚNICO acceso a lo medido cuando no hay visor
+
+Es lo que hace que borrarla no sea una limpieza sino una pérdida de datos. Medido: se mide algo
+dentro del visor (`E.gen.vel = 2.75`), se cierra con `cineCerrar()` → el cajón vuelve a
+`#dop-casa` con `display:none` **y el valor intacto**; el botón 📊 lo reabre y la tabla vuelve
+con el 2,75. Sin la casa, ese número no se puede volver a ver por ningún camino — y es desde esa
+tabla que se guarda en la biblioteca. La sección de abajo ya lo dice con todas las letras: *«un
+cierre de pantalla que destruya el acceso a lo medido sería peor que el cajón siempre visible que
+esto vino a corregir»*.
+
+**No se tocó nada.** El cambio pedido habría reintroducido, por la otra punta, el defecto que
+TC-249/250 cerró.
+
+### La auditoría de los cuatro botones: los cuatro son de nivel de página
+
+| botón | qué hace | nivel | por qué |
+|---|---|---|---|
+| **📏 Medir** | `medFijaToggle` pone `#img-grid` en clase `med-on` | **página** | Es la compuerta que LLEVA al visor: con el modo apagado, tocar una miniatura no abre nada. No puede vivir adentro del visor porque es lo que hace que el visor se abra. |
+| **🩻 Importar DICOM** | `dcmImgPick` | **página** | Trae archivos a los slots del estudio. No hay «la imagen actual» al momento de importar. |
+| **📥 Importar imágenes y videos** | `mediosPick` | **página** | Igual que el anterior. |
+| **📊 Doppler** | `dopToggle` alterna `E.abierto` | **página, y es deliberado** | Es la compuerta del cajón **sólo cuando no hay visor**. Con el visor abierto manda el grupo de la barra lateral y el botón se apaga solo (`_dopRender` le saca el `btn-primary`), porque `#cine-ov` es `position:fixed;inset:0` y taparía al botón. Ver la tabla «Dos reglas de visibilidad» de abajo. |
+
+**Conclusión: no hay nada que mover ni ningún botón huérfano.** Verificado en el navegador el
+flujo completo: cargar imagen por `imgCompressLoad` → 📏 Medir → clic en la miniatura abre el
+visor → el cajón se muda al slot → grupo Doppler activo desde adentro → cerrar → vuelve a la casa
+con sus valores.
+
+**La trampa de este pedido, para la próxima:** «lo veo en dos lugares» y «hay dos nodos» no son
+lo mismo, y la diferencia se mide con una línea (`querySelectorAll(...).length`). Contar antes de
+borrar cuesta treinta segundos; borrar el ancla de un nodo que se muda no da ningún error — deja
+un `appendChild` sobre `null` que `_dopUbicar` se traga con su `if (destino && ...)`, así que el
+cajón simplemente **no vuelve nunca** y nadie se entera hasta que un médico busca lo que midió.
+
+
 ## El cajón Doppler vivía DETRÁS del overlay del visor — y sus botones eran inalcanzables (TC-249/250)
 
 El pedido decía «corregir la UX: que el cajón se muestre sólo con un visor abierto y el modo
