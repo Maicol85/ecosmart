@@ -14457,6 +14457,12 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
       <div style="margin-top:16px;">
         <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Tiempo de espera solicitud → estudio — distribución</div>
+        <!-- El promedio de la MISMA población que la tabla de abajo. Lo escribe `labRenderDash`
+             desde `promEspera`, la única variable del promedio — ver su comentario: es el mismo
+             número que «Tiempo solicitud → estudio» de Actividad, no un segundo cálculo. El
+             rótulo dice «los mismos N» para que se lea como el resumen de esta tabla y no como
+             un dato suelto que podría estar sobre otra población. -->
+        <div id="lab-espera-prom" class="lab-stat" style="margin-bottom:10px;"></div>
         <div class="lab-grid">
           <div id="lab-espera-tabla"></div>
           <div class="lab-bar-wrap" id="lab-espera-dist"></div>
@@ -57438,10 +57444,16 @@ function labInit() {
   const tiempos = infs.filter(i => i.fecha_estudio && i.campos?.fecha_solicitud)
     .map(i => (new Date(i.fecha_estudio) - new Date(i.campos.fecha_solicitud)) / 86400000)
     .filter(d => d >= 0 && d < 365);
+  /* `promEspera` sale del MISMO array `tiempos` que alimenta la distribución de abajo, y por eso
+     se declara acá afuera en vez de dentro del `if`: es el mismo número que publica «Tiempo
+     solicitud → estudio» en Actividad del Laboratorio. Recalcularlo en el bloque de la
+     distribución habría sido una segunda implementación del mismo promedio —dos cuentas que
+     pueden divergir en cuanto alguien toque un filtro— y el modo de falla sería el peor: dos
+     numeros distintos para lo mismo en la MISMA pantalla, sin nada que diga cuál vale. */
+  const promEspera = tiempos.length ? tiempos.reduce((a,b) => a+b, 0) / tiempos.length : null;
   if (tiempos.length) {
-    const prom = tiempos.reduce((a,b) => a+b, 0) / tiempos.length;
     document.getElementById('lab-tiempo-sol').textContent =
-      prom.toFixed(1) + ' días (n=' + tiempos.length + ')';
+      promEspera.toFixed(1) + ' días (n=' + tiempos.length + ')';
   } else {
     document.getElementById('lab-tiempo-sol').textContent = '— (sin fecha solicitud)';
   }
@@ -57454,6 +57466,12 @@ function labInit() {
       ? `<table class="lab-table"><thead><tr><th>Rango</th><th>n</th><th>%</th></tr></thead><tbody>${espData.map(d => `<tr><td>${d.lbl}</td><td style="font-weight:700;">${d.n}</td><td>${Ne>0?Math.round(d.n/Ne*100):0}%</td></tr>`).join('')}</tbody></table>`
       : '<div class="lab-empty">Sin datos de tiempo de espera</div>';
     labBarras('lab-espera-dist', Ne ? espData : []);
+    /* Mismo `promEspera` y mismo `Ne` que la tabla: por construcción no pueden discrepar. */
+    const promEl = document.getElementById('lab-espera-prom');
+    if (promEl) promEl.innerHTML = Ne
+      ? '<span class="lab-stat-lbl">Promedio de espera</span>' +
+        '<span class="lab-stat-val">' + promEspera.toFixed(1) + ' días (n=' + Ne + ')</span>'
+      : '';
     const notaEl = document.getElementById('lab-espera-nota');
     if (notaEl) notaEl.textContent = Ne
       ? `Calculado sobre ${Ne} estudios con fecha de solicitud y fecha de estudio registradas. ${infs.length - Ne} estudios excluidos por falta de alguna de las fechas.`
@@ -68710,8 +68728,17 @@ function labMedTricValvRender(infs, n) {
     /* Los cinco patrones que devuelve `dtDiastEstado`. `indeterminado` tiene barra PROPIA: es la
        banda E/A 0,8-2,1 sin E/e', que la guía deja sin resolver y que PUEDE ser normal — meterla
        con los normales afirmaría lo que no se estableció, y con los anormales, lo contrario. */
+    /* APÓSTROFE REAL, no `&#39;`. Estas etiquetas van a `_labBarrasDe` → `labBarras`, que pinta
+       el rótulo con `escHtml(d.lbl)`: la entidad se volvía a escapar —el `&` pasaba a `&amp;`—
+       y en pantalla salía literalmente «Indeterminado (falta E/e&#39;)». Doble escape.
+       Ojo con la asimetría, que es lo que hace que esto no se vea leyendo de corrido: el `stat()`
+       de doce líneas más abajo NO escapa —interpola crudo en un template— así que ahí `&#39;` sí
+       se renderiza bien, y lo mismo el texto de `setHtml`, que es HTML literal. O sea que en este
+       mismo bloque conviven tres destinos con reglas distintas, y sólo el de las barras escapa.
+       La regla: si el texto pasa por `labBarras`, va el carácter; si va crudo a innerHTML, va la
+       entidad. */
     const PAT_L = { normal:'Llenado normal', relajacion:'Relajación anormal', pseudonormal:'Pseudonormal',
-                    restrictivo:'Restrictivo', indeterminado:'Indeterminado (falta E/e&#39;)' };
+                    restrictivo:'Restrictivo', indeterminado: "Indeterminado (falta E/e')" };
     const pat = _labDistribDe(dt, x => x.dd ? x.dd.patron : null, PAT_L);
     const conPat = _labCuenta(pat);
     const anormal = dt.filter(x => !!(x.dd && x.dd.anormal)).length;
