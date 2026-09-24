@@ -13349,19 +13349,19 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                (grupo de acciones, a la derecha, con `btn-purple` propio): con el `margin-left:auto`
                de ese grupo, en pantalla angosta bajaba a un segundo renglón y quedaba lejos de
                todo, que es lo que se reportó como «está en otro lugar».
-               RIESGO DECLARADO, y es el que documenta el comentario de arriba: pegado al selector
-               de estado, un botón con el mismo aspecto que «Conciso» puede leerse como un cuarto
-               ESTILO, y esto no cambia la redacción — integra secciones. Tres cosas lo separan y
-               conviene no borrar ninguna: no lleva `estilo-pill` ni `data-estilo` (TC-217 lo fija),
+               ⚠️ SIN `hidden` desde el 2026-09-24: el botón está SIEMPRE visible. Ya no lee datos
+               ni decide si mostrarse — inserta un texto fijo. La compuerta condicional, su
+               `ccIntegrarSync` y las dos columnas de repintado se eliminaron; ver el bloque de
+               `CC_TEMPLATE_SEGMENTARIO`.
+               RIESGO DECLARADO, y ahora pesa MÁS que antes: pegado al selector de estado, un botón
+               con el mismo aspecto que «Conciso» puede leerse como un cuarto ESTILO, y esto no
+               cambia la redacción — inserta un párrafo. Antes lo compensaba nacer oculto; hoy lo
+               único que lo separa es que no lleva `estilo-pill` ni `data-estilo` (TC-217 lo fija),
                así que `setEstiloInforme` nunca le pone el `btn-primary` de «activo» que las tres
-               pastillas sí se pasan entre ellas; y **nace oculto**, o sea que en la enorme mayoría
-               de los estudios la fila tiene tres botones y no cuatro. Una opción de estilo está
-               siempre; ésta aparece sólo cuando el estudio trae alguna medición o algún hallazgo
-               de cardiopatía congénita — la compuerta exacta está en `ccSeccionesConDatos`.
-               `hidden` y no `display:none` inline, por el mismo motivo que el de Indicaciones. -->
-          <button type="button" class="btn btn-ghost" id="cc-integrar-btn" hidden
-                  onclick="ccIntegrarTodas()"
-                  title="Integra al informe todas las secciones de cardiopatía congénita que tengan datos">🫀 CC</button>
+               pastillas sí se pasan entre ellas. **No borrar esas dos ausencias.** -->
+          <button type="button" class="btn btn-ghost" id="cc-integrar-btn"
+                  onclick="ccInsertarTemplate()"
+                  title="Inserta en el informe el template de análisis segmentario secuencial con situs y conexiones normales">🫀 CC</button>
           <span style="display:inline-flex;gap:8px;flex-wrap:wrap;margin-left:auto;">
             <button type="button" class="btn btn-ghost" id="frases-btn" onclick="frasesToggle()" aria-expanded="false" aria-controls="frases-panel">💬 Frases</button>
             <!-- Arranca oculto y lo enciende `indicSyncBoton()` sólo si el estudio tiene alguna
@@ -25268,7 +25268,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccIntegrarSync','vpSync','popSync','sglOrigenSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','vpSync','popSync','sglOrigenSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -25629,11 +25629,11 @@ function limpiarCampos(silencioso) {
      anterior, y abrirlo mostraba el mensaje de «sin criterios» sobre un botón que afirmaba que
      los había. Es el patrón `gradoGamma`/`protMonoc` — la columna que falta es siempre ésta. */
   if (typeof indicSyncBoton === 'function') { try { indicSyncBoton(); } catch (e) {} }
-  /* Las DOS columnas, como manda este archivo: `RECALC_MODULOS` cubre las rutas de restauración
-     —que reponen asignando `.value` y no disparan `input`— y `limpiarCampos` NO pasa por ese
-     embudo. Sin esta línea, «Nuevo estudio» dejaba el botón 🫀 CC visible con los datos del
-     paciente anterior. */
-  if (typeof ccIntegrarSync === 'function') { try { ccIntegrarSync(); } catch (e) {} }
+  /* Acá vivía la segunda columna del botón 🫀 CC (`ccIntegrarSync`), y se eliminó el 2026-09-24
+     junto con su compuerta: el botón ya no se muestra ni se esconde según los datos, así que no
+     hay nada que repintar. La regla de las DOS columnas sigue valiendo para todo lo demás —
+     `RECALC_MODULOS` cubre las rutas de restauración, que reponen asignando `.value` y no
+     disparan `input`, y `limpiarCampos` NO pasa por ese embudo. */
   if (!silencioso) toast('🗑 Formulario limpiado');
 }
 
@@ -34277,14 +34277,13 @@ function indicSyncBoton(){
    sobre el documento, como ya hace el autoguardado: así alcanza a los campos que se pueblan por
    código y despachan el evento a mano (las frases rápidas, sin ir más lejos). */
 var _indBtnTimer = null;
-/* El mismo debounce enciende los DOS botones condicionales de esa fila. Uno solo y no dos
-   listeners: recorrer `_CC_SECS` es barato, pero dos pares de listeners sobre el documento con
-   `capture` es exactamente como se duplican los manejadores en esta app. */
+/* Enciende el ÚNICO botón condicional de esa fila. Hasta el 2026-09-24 encendía dos: el 🫀 CC
+   también se mostraba u ocultaba según los datos de cardiopatía congénita, y esa compuerta se
+   eliminó —hoy el botón está siempre visible e inserta un texto fijo—. Queda `indicSyncBoton`. */
 function _indSyncDebounced(){
   clearTimeout(_indBtnTimer);
   _indBtnTimer = setTimeout(() => {
     try { indicSyncBoton(); } catch (e) {}
-    if (typeof ccIntegrarSync === 'function') { try { ccIntegrarSync(); } catch (e) {} }
   }, 400);
 }
 
@@ -66926,259 +66925,181 @@ const _CC_SEC_POR_K = Object.create(null);
 _CC_SECS.forEach(s => { _CC_SEC_POR_K[s.k] = s; });
 function _ccSecPred(k) { const s = _CC_SEC_POR_K[k]; return s ? s.pred : null; }
 
-/* ══ BOTÓN 🫀 CC — atajo para integrar las secciones de cardiopatía congénita ═════════════════
-   NO es un cuarto estilo de informe, y eso se decidió midiendo: `estiloPick(c, e, n)` elige
-   entre tres REDACCIONES de la misma frase en 21 sitios, no reordena ni agrega secciones. Y las
-   secciones de CC **ya bajan al informe** con su anatomía, su hemodinámica y su conclusión —lo
-   que falta no es un generador, es tildar diecinueve casillas una por una—. Lo que este botón
-   hace es ese gesto: tilda de una vez las secciones de CC QUE TIENEN DATOS.
-   Decisión de Maicol (2026-09-21).
+/* ══ BOTÓN 🫀 CC — inserta el template de análisis segmentario secuencial ════════════════════
+   ⚠️ SIMPLIFICADO EL 2026-09-24, y REVIERTE casi todo lo que hacía. Decisión de Maicol.
 
-   LOS PREDICADOS SON LOS DE `_CC_SECS`, no una copia. Esa lista ya define «este estudio tiene
-   una CIA» para el Laboratorio y para el panel de cohorte; una segunda definición haría que el
-   botón aparezca sobre un estudio que el Laboratorio no cuenta, y nada lo delataría. Como los
-   predicados reciben un ESTUDIO GUARDADO (`_labCampoRaw(inf, id)`) y acá hay que mirar el
-   FORMULARIO, se les pasa un estudio cuyo `campos` lee del DOM. */
-function _ccFormComoEstudio() {
-  return { campos: new Proxy({}, {
-    has() { return true; },
-    get(_t, id) {
-      if (typeof id !== 'string') return undefined;
-      /* En `campos`, un checkbox vive como `<id>__chk` con '1'/'0'. Se replica para que un
-         predicado que mire una casilla funcione igual sobre el formulario. */
-      const chk = id.length > 5 && id.slice(-5) === '__chk';
-      const el = document.getElementById(chk ? id.slice(0, -5) : id);
-      if (!el) return undefined;
-      if (el.type === 'checkbox') return el.checked ? '1' : '0';
-      return el.value;
-    }
-  }) };
-}
+   Hasta el commit `70771b1` este botón LEÍA los módulos de cardiopatía congénita, decidía si
+   mostrarse según qué hubiera cargado y tildaba de una vez las casillas de integración. Hoy no
+   hace nada de eso: **inserta un texto fijo y nada más**. Está SIEMPRE visible, no lee ningún
+   dato, no combina nada, no calcula nada y no toca ninguna casilla.
 
-/* La casilla de integración de cada sección. Dieciséis de las diecinueve siguen `<k>_incluir_chk`;
-   las excepciones son reales y están acá en vez de desperdigadas: el ductus y la coartación
-   nombran su casilla con el nombre largo, y CIA y CIV **comparten una sola** —son un bloque. */
-const _CC_CHK_EXCEP = { cia:'ete_shunt_incluir_chk', civ:'ete_shunt_incluir_chk',
-                        dap:'ductus_incluir_chk',    coa:'coart_incluir_chk' };
-const _ccChkId = k => _CC_CHK_EXCEP[k] || (k + '_incluir_chk');
+   Lo que se eliminó, para que nadie lo reconstruya sin saber que existió: `_ccFormComoEstudio`
+   (el Proxy que hacía pasar el formulario por un estudio guardado), `_CC_CHK_EXCEP`/`_ccChkId`,
+   `_ccAssertChks`, `_ccTieneDatosEnPantalla`, `_ccGruposDeSecciones`, `ccSeccionesConDatos`,
+   `ccIntegrarSync` —con sus dos columnas de repintado, `RECALC_MODULOS` y `limpiarCampos`— y
+   `ccIntegrarTodas`. **`_CC_SECS` NO se toca**: es la clasificación del Laboratorio, del filtro
+   de cohorte, del PDF de auditoría y del PPT, y nunca fue de este botón.
 
-/* Un id de casilla que no exista no da error: da una sección que el botón dice integrar y que
-   nunca se integra — la casilla muda de siempre. Corre al arrancar, como `_labXlsAssertVocab`.
-   Vigila DOS cosas, y la segunda se agregó el 2026-09-24: que la casilla EXISTA y que esté
-   dentro de un `.sacc`. Desde que `_ccTieneDatosEnPantalla` deriva el acordeón de la casilla,
-   una que viva fuera de uno deja esa sección invisible al barrido PARA SIEMPRE y sin un solo
-   error — el `if (!acc) return false` se la traga. Es el modo de falla que este archivo
-   documenta con «un id inventado no falla, calla», movido una capa más arriba. */
-function _ccAssertChks() {
-  const faltan = _CC_SECS.map(s => s.k).filter(k => !document.getElementById(_ccChkId(k)));
-  if (faltan.length) console.error('[cc] casillas de integración inexistentes:', faltan.join(', '));
-  const sueltas = _CC_SECS.map(s => s.k).filter(k => {
-    const c = document.getElementById(_ccChkId(k));
-    return c && !c.closest('.sacc');
+   CONSECUENCIA DECLARADA: el atajo para tildar varias secciones de una vez DESAPARECE. Integrar
+   una sección de CC al informe vuelve a ser el «📎 Integrar» de cada sección, que es como
+   funcionaba antes del 2026-09-21. No es un olvido: el botón pasó a contestar otra pregunta.
+
+   ══ ⚠️ EL ORDEN IMPORTA, Y ESTÁ MEDIDO ══
+   «Generar Informe» es la regeneración EXPLÍCITA: `_infEscribir` con `silencioso=false` hace
+   `lineasNuevas.slice()`, o sea reescribe el informe entero. Medido el 2026-09-24:
+
+     insertar el template y DESPUÉS «Generar Informe»  →  el template SE PIERDE
+     «Generar Informe» y DESPUÉS insertar el template  →  sobrevive
+
+   El pedido describe el primer orden. No se corrigió del lado de `generarInforme` —está fuera de
+   alcance por pedido explícito, y tocarlo es cambiar cómo se comporta el botón que usa todo el
+   mundo— así que el botón lo DICE en su toast en vez de dejar que el médico lo descubra con el
+   informe ya escrito. DUDA DECLARADA: si molesta, la salida limpia es que el template viaje como
+   una sección más del informe (un campo propio que `generarInforme` reemita), no que este botón
+   aprenda a defenderse.
+
+   ══ EL TEXTO: cotejado, no redactado de memoria ══
+   Fuente: Corbett L, Forster J, Gamlin W, et al. «A practical guideline for performing a
+   comprehensive transthoracic echocardiogram in the congenital heart disease patient: consensus
+   recommendations from the British Society of Echocardiography». Echo Res Pract 2022;9:10
+   (doi:10.1186/s44156-022-00006-5), cuya Tabla 4 es un INFORME DE EJEMPLO con la redacción de
+   cada segmento normal. La ESC 2020 de congénitas del adulto (Baumgartner, EHJ 2021;42:563)
+   recomienda el análisis segmentario secuencial como parte integral de la evaluación; la
+   nomenclatura de «conexiones concordantes» es la de Anderson.
+
+   Frase por frase, contra la Tabla 4 de la BSE:
+   · «Situs solitus, left-sided, leftward apex (levocardia)»
+   · «IVC and RSVC and non-dilated CS drain into non-dilated right atrium»
+   · «At least 3 pulmonary veins seen returning to non-dilated left atrium»
+   · «Concordant AV/VA connections»
+   · «Normal spatially orientated great arteries» · «Left sided aortic arch»
+   · «Atrial septum intact» · «Interventricular septum intact» · «No PDA»
+
+   ⚠️ «AL MENOS TRES VENAS PULMONARES» NO ES UNA TIBIEZA: es lo que dice la guía, porque en un
+   transtorácico de adulto las cuatro rara vez se demuestran. Escribir «las cuatro venas
+   pulmonares» afirmaría una demostración que el estudio no suele tener — y este archivo persigue
+   esa clase de afirmación desde los tres selects del TEER.
+
+   REGISTRO: «aurícula» y «auriculoventricular», que es lo que usa el resto del archivo —73 contra
+   2, y 26 contra 0—. La literatura en español admite «atrio»/«atrioventricular»; lo que un
+   informe firmado no puede es usar las dos.
+
+   ⚠️ ES UNA AFIRMACIÓN DEL MÉDICO, NO DE LA APP, y por eso puede ser un texto fijo. Un template
+   que se insertara SOLO sería «un default tranquilizador es una afirmación»: describiría un
+   análisis segmentario completo que nadie hizo. Acá lo inserta un gesto deliberado sobre un
+   paciente que el médico ya sabe que no tiene TGA corregida ni conexión venosa pulmonar anómala,
+   que son las dos condiciones de la app que alteran conexiones de verdad.
+
+   ⚠️ SÓLO SITUS Y CONEXIONES — y hubo que SACAR tres cosas que la Tabla 4 sí trae.
+   Ese ejemplo de la BSE es un informe COMPLETO de un paciente normal, así que sus frases se
+   sostienen entre ellas. Acá el texto es fijo y el botón no lee un solo dato, o sea que nada
+   impide que el informe se contradiga a sí mismo. Lo cazó `/sharp-edges` y está reproducido:
+
+     · «aurícula derecha / izquierda NO DILATADA» ← la app emite «Aurícula izquierda severamente
+       dilatada (Vol Index 52,0 ml/m²)» en el mismo informe. Y la dilatación auricular es el
+       hallazgo más frecuente del eco de rutina, no un caso raro. Además «no dilatada» es una
+       afirmación de MEDICIÓN metida en un texto fijo: este archivo exige que el número viaje con
+       la afirmación que lo sostiene. El tamaño de las cámaras ya tiene sus propias líneas.
+     · «Septum interauricular e interventricular íntegros» ← el emisor de CIA/CIV publica
+       «CIA. Tamaño 18 × 4 mm…», y el del foramen «Foramen oval permeable».
+     · «Sin ductus arterioso permeable» ← el emisor del DAP publica «Ductus arterioso permeable…».
+
+   Las tres quedan fuera, y además **NINGUNA estaba en lo que se pidió**: el pedido enumera situs,
+   conexión veno-atrial, conexión atrio-ventricular y conexión ventrículo-arterial. Lo que queda
+   son esos cuatro más la relación de las grandes arterias y la lateralidad del arco, que son
+   parte de cómo se describe la conexión ventriculoarterial y que ningún emisor contradice. */
+const CC_TEMPLATE_SEGMENTARIO =
+  'Análisis segmentario secuencial: situs visceroauricular solitus, levocardia con ápex ' +
+  'orientado a la izquierda. Conexión venosa sistémica normal, con venas cavas superior e ' +
+  'inferior y seno coronario a la aurícula derecha. Conexión venosa pulmonar normal, con al ' +
+  'menos tres venas pulmonares a la aurícula izquierda. Conexiones auriculoventricular y ' +
+  'ventriculoarterial concordantes. Grandes arterias normalmente relacionadas, con tronco ' +
+  'pulmonar anterior y a la izquierda de la aorta. Arco aórtico izquierdo.';
+
+/* Último textarea del informe que tuvo foco DEL MÉDICO. Es la misma idea que `FRASES_TAS` usa
+   para saber dónde insertar una frase rápida, reducida a un solo campo: al apretar el botón el
+   foco ya se movió al botón, así que `document.activeElement` solo no alcanza.
+
+   ⚠️ `var` Y NO `let`, y no es estilo. `ccInsertarTemplate` es una DECLARACIÓN de función, o sea
+   que queda hoisteada y llamable desde su `onclick` aunque este bloque `<script>` —que va de la
+   línea ~15729 a la ~72700— muera en una sentencia de nivel superior anterior a esta línea. Con
+   `let`, en ese escenario la lectura de abajo tira `ReferenceError` por zona muerta y el botón no
+   hace NADA, ni siquiera el toast de fallback; con `var` vale `undefined`, la comparación da
+   false y el template se inserta al final, que es el comportamiento correcto. Este archivo ya se
+   quedó sin JavaScript dos veces por un bloque que dejó de parsear, y el `var` es lo que usan por
+   este mismo motivo `_indBtnTimer` y los demás centinelas de nivel superior.
+
+   ⚠️ Y `_ccInsertando` NO ES REDUNDANTE: sin él, el `ta.focus()` con el que esta misma función
+   deja el cursor al final DISPARA este oyente, y desde el primer clic de la sesión
+   `_ccUltimoFoco === ta` PARA SIEMPRE —nada lo devuelve a null, ni «Nuevo estudio» ni reabrir un
+   estudio—. O sea que la guarda se auto-anulaba: pasaba a usar el cursor aunque el médico nunca
+   hubiera tocado el informe, que es exactamente el estado que existe para cubrir. */
+var _ccUltimoFoco = null;
+var _ccInsertando = false;
+try {
+  document.addEventListener('DOMContentLoaded', function () {
+    const ta = document.getElementById('informe_texto');
+    if (ta) ta.addEventListener('focus', function () { if (!_ccInsertando) _ccUltimoFoco = ta; });
   });
-  if (sueltas.length) console.error('[cc] casillas fuera de un acordeón .sacc — el barrido de datos no las ve:', sueltas.join(', '));
-  return faltan.concat(sueltas);
-}
+} catch (e) {}
 
-/* ⚠️ `_CC_SECS.pred` CONTESTA OTRA PREGUNTA, y por eso no alcanza sola.
-   Esa lista dice «¿este estudio cuenta como CIA para la estadística?», y es estricta a propósito:
-   `cia` exige `ete_cia_tipo`, o sea el TIPO consignado. La pregunta del botón es otra —«¿tildar
-   esta casilla va a producir texto en el informe?»— y el emisor la contesta con el tamaño, el
-   borde o la dirección SOLOS. Medido el 2026-09-24 con el caso que se reportó, una CIA de
-   18 × 4 mm con borde VCI de 6 mm y sin tipo: `pred` daba false y el botón quedaba OCULTO,
-   mientras tildar la casilla a mano publicaba «CIA. Tamaño 18 × 4 mm. Borde mínimo 6 mm (VCI).».
-   El botón se escondía justo en el estudio donde tenía algo que hacer.
+/* Inserta en el CURSOR si el médico dejó uno en el informe, y si no al final. Nada más: no
+   detecta si el texto ya está, no borra y no reordena. Tocarlo dos veces inserta dos veces —
+   es un inserto de texto, y sacarlo es una edición como cualquier otra.
 
-   NO se tocó `_CC_SECS`: es la clasificación que comparten el Laboratorio, el filtro de cohorte,
-   el PDF de auditoría y el PPT, y ensancharla metería en el denominador de «Estudios con CIA»
-   pacientes a los que nadie les consignó el tipo. Lo que se agrega es la UNIÓN con un predicado
-   que contesta la pregunta del botón, y que NO es una lista paralela: se DERIVA del DOM, igual
-   que `secAutoOpen` decide qué acordeón se abre solo.
+   El cursor se lee de `selectionStart`, que un `<textarea>` CONSERVA aunque haya perdido el
+   foco: es lo que hace que «en el cursor» signifique algo después de que el médico tocó el
+   botón. Con el textarea nunca tocado, `selectionStart` vale 0 —que es «al principio», no «al
+   final»— así que insertar ahí metería el template ARRIBA de un informe ya escrito, delante de
+   la función sistólica. Por eso el cursor sólo manda si el textarea fue el último elemento con
+   foco DEL MÉDICO; si no, va al final, que es lo que el pedido pide por omisión.
 
-   El contenedor sale de la CASILLA (`closest('.sacc')`), no de un mapa escrito aparte: si una
-   sección cambia de acordeón, su casilla se muda con ella y el barrido la sigue. Con un mapa
-   propio mediría el acordeón viejo y no daría ningún error.
-
-   ⚠️ SÓLO CUENTAN LOS CAMPOS QUE EL MÉDICO TIPEA — ni `select` ni casilla, y no es prolijidad.
-   Un select puede decir que NO: `secAutoOpen` cuenta `selectedIndex > 0`, y con esa regla acá,
-   contestar «Aneurisma del septum: No» —o sea la AUSENCIA de un aneurisma— encendía la sección
-   del foramen, tildaba su casilla y el informe firmado publicaba «Foramen oval permeable.» más
-   una línea en el EN SUMA, sobre un paciente en el que nadie dijo que hubiera un foramen.
-   Reproducido el 2026-09-24 con `fop_asa='no'` y el resto del formulario en blanco. Es «un
-   default tranquilizador es una afirmación» entrando por una acción MASIVA, que hereda la guarda
-   más débil de cada una de las diecinueve secciones — y es peor que el defecto que este cambio
-   vino a cerrar. Las casillas quedan fuera por lo mismo: `fontan_comp_ninguna` es literalmente
-   «sin complicaciones».
-   Un NÚMERO no tiene ese problema: **una medición no puede ser una negación**. Si el médico
-   escribió 6 mm en el borde VCI, midió algo — y ése es exactamente el caso del reporte.
-   Lo que un select aporta lo sigue cubriendo `pred`, que está escrito sobre esos mismos selects
-   descriptivos (`ete_cia_tipo`, `dap_tipo`, `coa_loc`…): las dos mitades se reparten el trabajo
-   en vez de pisarse.
-
-   NO se filtra por `[type=number]`: el script de arranque convierte esos inputs a `type=text`
-   con `inputmode=decimal`, así que ese selector devuelve CERO. Se excluye por lo que no sirve.
-
-   Las otras exclusiones son las de `secAutoOpen` y por el mismo motivo: un `[readonly]` o un
-   `[data-espejo]` es dato de OTRA sección mostrado acá por comodidad —la sección de CIA/CIV
-   muestra seis espejos que se llenan con el TSVI, el TSVD, el DDVI y la ASC del estudio— y sin
-   ellas el botón aparecería en casi todo paciente. Verificado como control negativo: un estudio
-   con FEVI, DSVI, VD basal, sexo, septum, TSVI, aorta y «TV documentada: no» enciende CERO
-   secciones. Y la PROPIA casilla de integración: contarla haría el predicado auto-cumplido
-   desde el primer tilde (hoy además queda fuera por no ser un campo de tipeo, y se conserva la
-   comprobación explícita porque es la que fija el contrato). */
-function _ccTieneDatosEnPantalla(chk) {
-  const c = document.getElementById(chk);
-  const acc = c ? c.closest('.sacc') : null;
-  if (!acc) return false;
-  const sel = '.sacc-body input:not([readonly]):not([data-espejo]):not([type=hidden])' +
-              ':not([type=checkbox]):not([type=radio]), ' +
-              '.sacc-body textarea:not([readonly]):not([data-espejo])';
-  return Array.from(acc.querySelectorAll(sel)).some(el => {
-    if (el.id === chk) return false;
-    return String(el.value || '').trim() !== '';
-  });
-}
-
-/* La unidad real del botón es la CASILLA, no la sección: CIA y CIV comparten una y viven en el
-   MISMO acordeón, así que ninguna medición del DOM las puede distinguir. Agrupar acá es lo que
-   hace que el rótulo del toast diga «CIA/CIV» en vez de nombrar sólo la primera —que es lo que
-   pasaba con el dedupe por `vistas[s.chk]`, y decía «CIA» sobre un estudio con sólo una CIV—.
-   El rótulo se arma con las etiquetas de `_CC_SECS`, no con un mapa nuevo. */
-function _ccGruposDeSecciones() {
-  const por = Object.create(null), orden = [];
-  _CC_SECS.forEach(s => {
-    const chk = _ccChkId(s.k);
-    if (!por[chk]) { por[chk] = { chk: chk, ks: [], lbls: [] }; orden.push(por[chk]); }
-    por[chk].ks.push(s.k);
-    por[chk].lbls.push(s.lbl);
-  });
-  return orden;
-}
-
-/* Las secciones de CC con datos EN EL FORMULARIO. Devuelve una entrada por CASILLA; `k` es la
-   clave de la primera sección del grupo, que es lo que esperaban los consumidores de antes. */
-function ccSeccionesConDatos() {
-  const inf = _ccFormComoEstudio();
-  return _ccGruposDeSecciones().filter(g => {
-    /* LAS DOS MITADES FALLAN HACIA INCLUIR, y hace falta decirlo de las dos: un comentario que
-       promete una dirección de falla describiendo sólo el primer bloque deja el segundo fallando
-       en silencio hacia el otro lado. Ofrecer una sección de más se deshace con un clic en
-       «📎 Integrar» de esa sección; no ofrecerla no se ve — es la misma asimetría de
-       `indicSyncBoton`. */
-    let p = false;
-    try { p = g.ks.some(k => !!_ccSecPred(k)(inf)); } catch (e) { p = true; }
-    let d = false;
-    try { d = _ccTieneDatosEnPantalla(g.chk); } catch (e) { d = true; }
-    return p || d;
-  }).map(g => {
-    /* El rótulo nombra lo que se PUEDE distinguir. `pred` sabe cuál de las claves del grupo
-       matcheó, así que con sólo una CIV cargada dice «CIV» y no «CIA/CIV»; el barrido del DOM
-       no las distingue —comparten acordeón— y ahí cae al grupo entero, que es lo honesto. */
-    let porPred = [];
-    try { porPred = g.ks.filter(k => !!_ccSecPred(k)(inf)); } catch (e) { porPred = []; }
-    const lbls = porPred.length ? porPred.map(k => g.lbls[g.ks.indexOf(k)]) : g.lbls;
-    return { k: g.ks[0], ks: g.ks, lbl: lbls.join('/'), chk: g.chk };
-  });
-}
-
-/* El botón aparece SÓLO si hay datos de CC. Falla hacia VISIBLE: si un predicado lanza, es
-   preferible un botón de más que esconder el atajo justo en el estudio que lo necesita — es el
-   mismo criterio que `indicSyncBoton`. */
-function ccIntegrarSync() {
-  const b = document.getElementById('cc-integrar-btn');
-  if (!b) return;
-  let hay = true;
-  try { hay = ccSeccionesConDatos().length > 0; } catch (e) { hay = true; }
-  b.hidden = !hay;
-}
-window.ccIntegrarSync = ccIntegrarSync;
-
-/* Tilda las casillas y REGENERA. No se toca ninguna otra cosa del informe: lo que cambia es
-   qué secciones se emiten, que es exactamente lo que esas casillas deciden. */
-function ccIntegrarTodas() {
-  const secs = ccSeccionesConDatos();
-  if (!secs.length) { if (typeof toast === 'function') toast('⚠️ No hay secciones de cardiopatía congénita con datos'); return; }
-  const puestas = [], yaEstaban = [], sinCasilla = [];
-  /* Se guarda el texto ANTES de tildar para poder decir si el gesto produjo algo. Ver abajo. */
-  const _txt = () => { const a = document.getElementById('informe_texto'), b = document.getElementById('en_suma');
-                       return ((a && a.value) || '') + ' ' + ((b && b.value) || ''); };
-  const antes = _txt();
-  /* Ya NO hace falta deduplicar por casilla: `ccSeccionesConDatos` devuelve una entrada por
-     CASILLA, así que CIA y CIV llegan acá como un solo grupo rotulado «CIA/CIV». El dedupe que
-     estaba escrito acá se sacó en vez de dejarlo: no se podía hacer fallar, y un resguardo que
-     no se puede hacer fallar se lee como protección sin serlo. */
-  secs.forEach(s => {
-    const c = document.getElementById(s.chk);
-    if (!c) { sinCasilla.push(s.lbl); return; }
-    if (c.checked) { yaEstaban.push(s.lbl); return; }
-    c.checked = true;
-    /* ⚠️ HOY NINGUNA CASILLA TIENE MANEJADOR PROPIO —son `input` ocultos que mueve el botón
-       «📎 Integrar» de cada sección— así que este `change` es REDUNDANTE, y se dice en vez de
-       dejarlo pareciendo una protección: es lo que este archivo ya documenta con el «deshacer»
-       de `calcET`. Se conserva porque fija el CONTRATO para la sección que mañana le cuelgue un
-       manejador, y el contrato está PROBADO: TC-217 engancha un listener de prueba y exige que
-       el botón lo dispare, así que la mutación que lo quita cae. */
-    try { c.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
-    puestas.push(s.lbl);
-  });
-  if (typeof eteInclSync === 'function') { try { eteInclSync(); } catch (e) {} }
-  /* ⚠️ SILENCIOSO SI YA HAY INFORME, y esto CORRIGE un defecto preexistente de este botón.
-     `generarInforme()` pelado es la regeneración EXPLÍCITA: `_infEscribir` con `silencioso=false`
-     hace `lineasNuevas.slice()`, o sea DESCARTA lo que el médico haya tipeado o insertado con
-     «💬 Frases». El «📎 Integrar» de cada sección no hace eso —sólo tilda, y el refresco lo trae
-     el oyente con debounce, que es silencioso—, así que el mismo acto destruía ediciones por un
-     camino y no por el otro. Con el informe todavía en blanco sí va la generación completa: no
-     hay nada que preservar y es la primera.
-     Y ES LO QUE HACE HONESTA A LA COMPARACIÓN DE ABAJO: con la regeneración destructiva, el
-     texto podía cambiar sólo porque se borró lo del médico, y el aviso se callaba justo cuando
-     tenía que hablar. */
-  let regenero = false;
-  if (typeof generarInforme === 'function') {
-    try {
-      const ta = document.getElementById('informe_texto');
-      if (ta && String(ta.value || '').trim()) generarInforme({ silencioso: true });
-      else generarInforme();
-      regenero = true;
-    } catch (e) { regenero = false; }
-  }
-  ccIntegrarSync();
-  if (typeof toast !== 'function') return;
-  if (!puestas.length && yaEstaban.length) {
-    toast('✓ Las ' + yaEstaban.length + ' sección(es) de CC con datos ya estaban integradas');
-  } else if (!puestas.length && sinCasilla.length) {
-    /* Sin esta rama salía «🫀 0 sección(es) de CC integradas al informe:  · ⚠️ sin casilla: X»,
-       con la lista vacía y los dos puntos colgando. Un mensaje malformado sobre un fallo de
-       cableado se lee como un fallo de la app, que es lo contrario de lo que informa. */
-    toast('⚠️ Ninguna sección de CC se pudo integrar — sin casilla: ' + sinCasilla.join(', '));
-  } else {
-    let m = '🫀 ' + puestas.length + ' sección(es) de CC integradas al informe: ' + puestas.join(', ');
-    if (yaEstaban.length) m += ' · ' + yaEstaban.length + ' ya estaban';
-    if (sinCasilla.length) m += ' · ⚠️ sin casilla: ' + sinCasilla.join(', ');
-    /* ⚠️ SE COMPARA EL TEXTO, y ésta es la mitad que faltaba. «Se tildaron N casillas» describe
-       el GESTO, no la consecuencia: el defecto que se reportó fue «toqué el botón y no produjo
-       ningún texto», y con un tilde exitoso el toast salía verde igual. Desde que la compuerta
-       incluye «hay algún campo cargado en el acordeón», el caso alcanzable es una sección cuyo
-       emisor pide algo que ese campo no aporta — ahí lo honesto es decirlo y nombrar la salida,
-       no confirmar un éxito que el informe desmiente dos centímetros más abajo.
-       Es AGREGADO y no por sección a propósito: atribuirlo exigiría instrumentar los catorce
-       emisores, y `cc-txt-<k>` no sirve como señal porque `CC_HOJA_ORDEN` tiene catorce de las
-       diecinueve —las cinco que faltan darían un «no emitió» falso—. */
-    /* ⚠️ EL AVISO EXIGE QUE EL EMISOR HAYA CORRIDO. Sin `regenero`, un `generarInforme` que
-       lanza —o que no existe porque su bloque <script> dejó de parsear, cosa que este archivo
-       documenta haber pagado dos veces— deja las casillas tildadas, el texto igual, y el toast
-       mandando al médico a revisar campos clínicos por una falla de código. Un mensaje de error
-       que nombra la causa equivocada manda a revisar lo que está sano. */
-    if (puestas.length && !regenero) {
-      m += ' · ⚠️ no se pudo regenerar el informe — tocá «Generar Informe»';
-    } else if (puestas.length && _txt() === antes) {
-      m += ' · ⚠️ el informe no cambió: revisá que las secciones tengan los campos que el texto necesita';
-    }
-    toast(m);
+   ⚠️ LA SELECCIÓN SE COLAPSA, NO SE REEMPLAZA. Escrito con `selectionStart`/`selectionEnd` como
+   par —que es el idioma de «insertar en un textarea»— el rango seleccionado DESAPARECE, y el
+   comentario de acá arriba dice «no borra». Reproducido: seleccionar la primera línea del informe
+   y tocar el botón se llevaba «Función sistólica normal, FEVI 58% por Simpson biplano.». Y no es
+   un gesto raro —doble clic sobre una palabra, triple sobre un párrafo, arrastrar para releer una
+   frase— ni recuperable: asignar `.value` por código NO deja entrada en la pila de deshacer del
+   textarea, así que Ctrl+Z no lo trae. Se inserta DESPUÉS de la selección y no se toca nada. */
+function ccInsertarTemplate() {
+  const ta = document.getElementById('informe_texto');
+  if (!ta) { if (typeof toast === 'function') toast('⚠️ No se encontró el campo del informe'); return; }
+  const txt = String(ta.value || '');
+  const usaCursor = (document.activeElement === ta) || (ta === _ccUltimoFoco);
+  let ini = usaCursor ? ta.selectionEnd : txt.length;
+  if (!(ini >= 0 && ini <= txt.length)) ini = txt.length;
+  const NL = String.fromCharCode(10);
+  /* Salto ANTES si lo que precede no termina en uno, y DESPUÉS si lo que sigue no empieza con
+     uno: sin esto el template se pega a la línea anterior y el informe publica
+     «…Sin masas intracardíacas.Análisis segmentario secuencial: …». */
+  const antes = txt.slice(0, ini), despues = txt.slice(ini);
+  const pre  = (antes && antes.slice(-1) !== NL) ? NL : '';
+  const post = (despues && despues.charAt(0) !== NL) ? NL : '';
+  const bloque = pre + CC_TEMPLATE_SEGMENTARIO + post;
+  ta.value = antes + bloque + despues;
+  /* El cursor queda al final de lo insertado, que es donde el médico va a seguir escribiendo.
+     `_ccInsertando` evita que este foco se registre como foco del médico — ver arriba. */
+  _ccInsertando = true;
+  try { ta.focus(); ta.setSelectionRange(ini + bloque.length, ini + bloque.length); } catch (e) {}
+  _ccInsertando = false;
+  /* `input` y no `change`: es lo que escuchan el autoguardado y el resto de los oyentes del
+     informe. Sin esto, el texto queda en pantalla y el borrador no se entera. */
+  try { ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+  if (typeof toast === 'function') {
+    /* ⚠️ EL AVISO NOMBRA LO QUE PASA, NO UN SOLO BOTÓN. La primera versión decía «Generar
+       Informe», y son TRES los caminos que reescriben el informe entero —medidos—: «Generar
+       Informe», las tres pastillas de estilo (`setEstiloInforme` regenera explícito) y, una vez
+       reabierto el estudio, cualquier refresco silencioso de VEXUS o Pericardio. Nombrar uno solo
+       prometía que los otros dos eran seguros.
+       NO ES DEL TEMPLATE: medido, le pasa igual a una frase escrita a mano o insertada con
+       «💬 Frases». Es cómo se comportan `_infBase`/`_infMerge` desde antes, y por eso el aviso
+       habla de «lo que escribas» y no del template. Arranca con ⚠️ para que `toast` lo clasifique
+       como alerta —su heurística mira el ícono— y el lector de pantalla lo anuncie. */
+    toast('⚠️ Template de conexiones normales insertado. Regenerar el informe o cambiar de estilo reescribe todo y se lleva lo que escribas — dejalo para el final');
   }
 }
-window.ccIntegrarTodas = ccIntegrarTodas;
-window.ccSeccionesConDatos = ccSeccionesConDatos;
-setTimeout(() => { try { _ccAssertChks(); ccIntegrarSync(); } catch (e) {} }, 400);
+window.ccInsertarTemplate = ccInsertarTemplate;
+window.CC_TEMPLATE_SEGMENTARIO = CC_TEMPLATE_SEGMENTARIO;
 
 /* ── ETE: los tres predicados que el panel de filtros necesita ──
    `_labEsEte` es la casilla «Es un ETE» que el médico DECLARA; labEteRender ya la usa como
@@ -72822,8 +72743,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260924-1602';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790276536179;                 /* eco-build-ms */
+const ECO_BUILD    = '20260924-1649';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790279388086;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -72909,7 +72830,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260924-1602</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260924-1649</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

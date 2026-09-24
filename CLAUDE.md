@@ -4,7 +4,155 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
-## El botón 🫀 CC se escondía justo donde tenía algo que hacer (2026-09-24)
+## El botón 🫀 CC es un INSERTO DE TEXTO FIJO (2026-09-24, tercera decisión de la jornada)
+
+Simplificación decidida por Maicol, y **revierte casi todo lo que la entrada de abajo describe**.
+El botón no lee datos, no decide si mostrarse, no combina hallazgos y no tilda ninguna casilla:
+**inserta `CC_TEMPLATE_SEGMENTARIO` y nada más**, y está SIEMPRE visible.
+
+Se eliminaron `_ccFormComoEstudio` —el Proxy que hacía pasar el formulario por un estudio
+guardado—, `_CC_CHK_EXCEP`/`_ccChkId`, `_ccAssertChks`, `_ccTieneDatosEnPantalla`,
+`_ccGruposDeSecciones`, `ccSeccionesConDatos`, `ccIntegrarSync` —con sus dos columnas,
+`RECALC_MODULOS` y `limpiarCampos`— y `ccIntegrarTodas`. **`_CC_SECS` NO se tocó**: es la
+clasificación del Laboratorio, del filtro de cohorte, del PDF de auditoría y del PPT, y nunca fue
+de este botón. Hay una condición de TC-217 que lo vigila —19 claves y `_ccSecPred` viva—, porque
+borrarla «de paso» es el riesgo de esta simplificación.
+
+### CONSECUENCIA DECLARADA: el atajo para tildar varias secciones DESAPARECE
+
+Integrar una sección de CC al informe vuelve a ser el «📎 Integrar» de cada sección, como antes
+del 2026-09-21. No es un olvido: el botón pasó a contestar otra pregunta.
+
+### ⚠️ EL ORDEN IMPORTA, Y ESTÁ MEDIDO — el pedido describe el que pierde el template
+
+| | |
+|---|---|
+| insertar el template y DESPUÉS «Generar Informe» | **el template SE PIERDE** |
+| «Generar Informe» y DESPUÉS insertar el template | sobrevive |
+
+«Generar Informe» es la regeneración **explícita**: `_infEscribir` con `silencioso=false` hace
+`lineasNuevas.slice()`, o sea reescribe el informe entero. **Ojo con la premisa del pedido**: dice
+que eso «ya se corrigió en el commit anterior». No es así — lo que se corrigió fue la llamada del
+BOTÓN a `generarInforme`, no `generarInforme`. Esa corrección vivía dentro de `ccIntegrarTodas` y
+se fue con él; `generarInforme` explícito siempre fue destructivo y sigue siéndolo, a propósito.
+
+No se tocó, por pedido explícito. **El botón lo DICE en su toast** en vez de dejar que el médico
+lo descubra con el informe ya escrito, y TC-217 fija el comportamiento como CONOCIDO —no como
+deseable— para que el día que alguien lo cambie se entere de que este caso lo daba por cierto.
+**DUDA DECLARADA**: si molesta, la salida limpia es que el template viaje como una sección más
+—un campo propio que `generarInforme` reemita—, no que el botón aprenda a defenderse.
+
+### El texto se cotejó, no se redactó de memoria
+
+Fuente: **Corbett L, Forster J, Gamlin W, et al. «A practical guideline for performing a
+comprehensive transthoracic echocardiogram in the congenital heart disease patient: consensus
+recommendations from the British Society of Echocardiography». Echo Res Pract 2022;9:10**
+(doi:10.1186/s44156-022-00006-5), cuya **Tabla 4 es un informe de ejemplo** con la redacción de
+cada segmento normal. La ESC 2020 de congénitas del adulto (Baumgartner, EHJ 2021;42:563)
+recomienda el análisis segmentario secuencial como parte integral de la evaluación; «conexiones
+concordantes» es la nomenclatura de Anderson, y las fuentes en español la usan igual.
+
+**⚠️ «AL MENOS TRES VENAS PULMONARES» NO ES UNA TIBIEZA**: es lo que dice la guía, porque en un
+transtorácico de adulto las cuatro rara vez se demuestran. Escribir «las cuatro venas pulmonares»
+afirmaría una demostración que el estudio no suele tener. Hay una condición que lo fija por los
+dos lados, y la mutación que lo cambia cae por dos.
+
+**Registro: «aurícula» y «auriculoventricular»**, que es lo que usa el resto del archivo —73
+contra 2, y 26 contra 0—. La literatura en español admite «atrio»/«atrioventricular»; lo que un
+informe firmado no puede es usar las dos.
+
+**Y es una afirmación DEL MÉDICO, no de la app**, que es lo único que hace aceptable un texto
+fijo. Un template que se insertara solo sería «un default tranquilizador es una afirmación»:
+describiría un análisis segmentario completo que nadie hizo. Acá lo inserta un gesto deliberado
+sobre un paciente que el médico ya sabe que no tiene TGA corregida ni conexión venosa pulmonar
+anómala, que son las dos condiciones de la app que alteran conexiones de verdad.
+
+### ⚠️ EL `/sharp-edges` ENCONTRÓ CUATRO, Y EL PRIMERO BORRABA TEXTO DEL MÉDICO
+
+- **LA INSERCIÓN SE COMÍA LA SELECCIÓN.** Escrito con `selectionStart`/`selectionEnd` como par
+  —que es el idioma de «insertar en un textarea»— el rango seleccionado **desaparece**, bajo un
+  comentario que decía «no borra». Reproducido: seleccionar la primera línea y tocar el botón se
+  llevaba «Función sistólica normal, FEVI 58% por Simpson biplano.». No es un gesto raro —doble
+  clic sobre una palabra, triple sobre un párrafo, arrastrar para releer una frase— **ni
+  recuperable**: asignar `.value` por código NO deja entrada en la pila de deshacer del textarea,
+  así que Ctrl+Z no lo trae. Hoy se colapsa a `selectionEnd`.
+- **EL TEXTO AFIRMABA TRES COSAS QUE LA APP PUEDE CONTRADECIR EN EL MISMO INFORME.** La Tabla 4
+  de la BSE es un informe **completo** de un paciente normal, así que sus frases se sostienen
+  entre ellas; acá el texto es fijo y el botón no lee un solo dato. Ver la lista arriba.
+- **El foco del propio botón latcheaba la guarda del cursor.** `ta.focus()` —el que deja el
+  cursor al final de lo insertado— dispara el oyente, así que desde el primer clic de la sesión
+  `_ccUltimoFoco === ta` **para siempre**, y nada lo devuelve a null, ni «Nuevo estudio». La
+  guarda se auto-anulaba: pasaba a usar el cursor aunque el médico nunca hubiera tocado el
+  informe, que es exactamente el estado que existe para cubrir. Hoy hay `_ccInsertando`.
+- **`let` → `var`.** `ccInsertarTemplate` es una **declaración** de función, o sea hoisteada y
+  llamable desde su `onclick` aunque el bloque `<script>` —de la línea ~15729 a la ~72700— muera
+  en una sentencia anterior. Con `let`, ahí la lectura tira `ReferenceError` por zona muerta y el
+  botón no hace **nada**, ni siquiera el toast de fallback; con `var` vale `undefined` y el
+  template se inserta al final. **Y el comentario que escribí primero afirmaba que declararlo
+  arriba protegía: no protege**, la posición es irrelevante para un manejador de clic.
+
+### ⚠️ SON TRES CAMINOS QUE REESCRIBEN EL INFORME, NO UNO — y es PREEXISTENTE
+
+El toast decía «Generar Informe». Medido, son tres:
+
+| | |
+|---|---|
+| «Generar Informe» | reescribe todo |
+| las tres pastillas de estilo | `setEstiloInforme` regenera **explícito** — y están pegadas al botón CC |
+| con el estudio REABIERTO, cualquier refresco silencioso | `infBaseDesdeDOM` adopta el texto como base y el merge lo descarta |
+
+El tercero es el que más engaña: se dispara con un `onchange` de VEXUS o de Pericardio, **sin
+toast**, y el párrafo desaparece del informe firmado.
+
+**NO ES DEL TEMPLATE, y eso se midió antes de intentar arreglarlo**: le pasa idéntico a una frase
+escrita a mano y a una insertada con «💬 Frases». Es cómo se comportan `_infBase`/`_infMerge`
+desde antes, así que arreglarlo es tocar el motor de procedencia del informe —fuera de alcance por
+pedido explícito—. Lo que se hizo es que el aviso hable de **«lo que escribas»** y nombre los dos
+caminos que el médico controla, en vez de prometer que los otros eran seguros.
+
+### La guarda del cursor es REDUNDANTE con el navegador de hoy, y se declara
+
+Medido: **Chrome deja `selectionStart` AL FINAL cuando se asigna `.value`** —519 de 519 tras
+`generarInforme`, 33 de 33 tras una asignación directa—, así que en el flujo real las dos ramas de
+`usaCursor` aterrizan en el mismo lugar y **la mutación que lo fuerza a `true` sobrevivía**. El
+estado que la guarda cubre es un cursor en 0 sin que el médico haya tocado el textarea —otro
+navegador, o un `setSelectionRange` de código—, y ahí insertar «en el cursor» mete el template
+ARRIBA de todo, delante de la función sistólica. El caso lo **sintetiza** en vez de esperarlo, y
+lo declara.
+
+### ⚠️ LA PESTAÑA INFORME ESTÁ EN `display:none` EN EL HARNESS, Y AHÍ `focus()` ES UN NO-OP
+
+Medido tras `__t.limpiar()`: `tab-informe` queda oculto, `ta.focus()` dispara **cero** eventos y
+`document.activeElement` no se mueve. Con eso, **la mutación que hace que el foco propio latchee
+la guarda SOBREVIVÍA**: no se puede latchear lo que nunca se enfoca. El caso medía en un estado
+donde el defecto es imposible. Hoy TC-217 llama `showTab('informe')` y **declara** que el foco
+real anda antes de medir nada — y después deshace ese foco, porque para el oyente es
+legítimamente «foco del médico» y sin eso la condición mediría el que puso el propio caso.
+
+### Once mutaciones, cada una en su condición
+
+El botón de vuelta a `hidden`, `usaCursor` siempre falso, `usaCursor` siempre verdadero, sin el
+salto de línea antes del template —que publicaba «…Sin masas intracardíacas.Análisis segmentario
+secuencial: …»—, «las cuatro venas pulmonares», una guarda de «ya existe» que impide el segundo
+inserto, el toast sin el aviso, la inserción borrando la selección, el foco propio latcheando la
+guarda, «no dilatada» de vuelta en el texto, y el toast nombrando un solo camino.
+
+**La condición que separa «inserta un fijo» de «combina» no es que el texto aparezca**: es que sea
+**el mismo** con el formulario vacío y con tres cardiopatías cargadas, y que **ninguna casilla de
+integración quede tildada**. Y la que impide que la maquinaria vuelva por la puerta de atrás no es
+ninguna de las anteriores —insertar texto y leer datos conviven sin contradecirse— sino que las
+**ocho funciones no existan**.
+
+
+## ~~El botón 🫀 CC se escondía justo donde tenía algo que hacer~~ (2026-09-24) — SUPERADA
+
+> **⚠️ SUPERADA POR LA ENTRADA DE ARRIBA, el mismo día.** Todo lo que sigue describe la compuerta
+> por datos y el tilde masivo, que **ya no existen**. Se conserva por tres cosas que siguen
+> valiendo: el hallazgo clínico del foramen —que hoy es inalcanzable porque no hay lectura de
+> datos, no porque se haya arreglado dos veces—, la corrección de la regeneración destructiva
+> —que se fue con `ccIntegrarTodas` y por eso el orden del template importa— y el argumento de
+> por qué `_CC_SECS` no se puede ensanchar, que hay que no olvidar si alguien vuelve a intentar
+> que el botón lea datos.
 
 Reportado como tres cosas —ubicación, diseño y «no genera nada»—. Las dos primeras son decisión
 de Maicol; la tercera era un defecto real, y el diagnóstico del reporte apuntaba al lugar
@@ -4114,7 +4262,16 @@ informe, no en una variable del visor.
 - Los botones del panel van por `data-*` con listener atado a **su vista** (`_vBind`), nunca con el
   índice interpolado dentro de un `onclick`.
 
-## Botón 🫀 CC: no es un estilo, es un atajo de integración (TC-217)
+## ~~Botón 🫀 CC: no es un estilo, es un atajo de integración~~ (TC-217) — SUPERADA 2026-09-24
+
+> **⚠️ SUPERADA. NO SEGUIR LAS INSTRUCCIONES DE ESTA ENTRADA.** Desde el 2026-09-24 el botón no
+> integra nada: inserta un texto fijo. Todo lo que sigue describe maquinaria ELIMINADA —el Proxy
+> `_ccFormComoEstudio`, `_ccAssertChks`, el contrato del `dispatchEvent('change')`, `.btn-purple`—
+> y, lo que la vuelve peligrosa, **da una instrucción directa para reponerla**: «las dos columnas
+> de siempre: `ccIntegrarSync` va en `RECALC_MODULOS` y al final de `limpiarCampos`». Esas dos
+> líneas se sacaron a propósito. Ver la entrada del botón CC al principio del archivo.
+> Lo que sigue valiendo: por qué el botón no lleva `estilo-pill` ni `data-estilo`, y por qué los
+> predicados de pertenencia son los de `_CC_SECS` si alguna vez vuelve a leer datos.
 
 ### La premisa: «estilo CC» no encaja en el mecanismo, y las secciones ya bajan al informe
 

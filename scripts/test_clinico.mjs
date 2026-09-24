@@ -17406,27 +17406,25 @@ caso('TC-216', 'Slots DICOM: medir tras reabrir el estudio, y el cartel cuando n
 `);
 
 
-/* == TC-217 - Boton CC: atajo para integrar las secciones de cardiopatia congenita ===========
-   NO ES UN CUARTO ESTILO, y se decidio midiendo: `estiloPick(c,e,n)` elige entre tres
-   REDACCIONES de la misma frase en 21 sitios, no reordena ni agrega secciones — y las secciones
-   de CC ya bajan al informe con su anatomia, su hemodinamica y su conclusion. Lo que falta es
-   tildar diecinueve casillas una por una, y eso es lo que el boton hace.
-   REAPUNTADO el 2026-09-24, y las dos condiciones que cambiaron son la senal:
-   1) el boton se mudo PEGADO a las tres pastillas y con el mismo `btn-ghost` que Frases e
-      Indicaciones (decision de Maicol, pedida dos veces). Las condiciones del color propio
-      -«tiene relleno propio» y «los dos temas difieren»- fijaban la decision ANTERIOR y daban
-      rojo sobre el codigo que se vino a escribir. Lo que sobrevive es el invariante que sigue
-      valiendo: el texto CONTRASTA en los dos temas. Y se agrega el que separa un boton mudado
-      de uno movido a cualquier lado: que se vea IGUAL que sus vecinos y que sea contiguo a
-      Narrativo en el DOM.
-   2) la compuerta ya no es solo `_CC_SECS.pred`. Esa lista contesta «cuenta como CIA para la
-      estadistica» y exige el TIPO; el emisor del informe publica con el tamano o el borde
-      SOLOS. Medido: una CIA de 18x4 mm con borde VCI de 6 mm y sin tipo dejaba el boton OCULTO
-      y tildar la casilla a mano publicaba el parrafo. `_CC_SECS` NO se toco -es la
-      clasificacion compartida con el Laboratorio y la cohorte-: se une con un predicado
-      derivado del DOM, el mismo criterio de `secAutoOpen`.
+/* == TC-217 - Boton CC: inserta un template FIJO, y no lee ni un dato ========================
+   REESCRITO el 2026-09-24. El caso anterior fijaba el contrato del 70771b1 -compuerta por datos,
+   agrupacion por casilla, tilde masivo- y daba rojo sobre el codigo que se vino a escribir. Se
+   reescribe entero en vez de parchearlo: lo que cambio no son los detalles sino la PREGUNTA que
+   el boton contesta. Decision de Maicol.
+
+   Hoy el boton inserta CC_TEMPLATE_SEGMENTARIO y nada mas: esta SIEMPRE visible, no lee ningun
+   modulo de CC, no tilda ninguna casilla, no combina hallazgos y no tiene logica de "ya existe".
+   Lo que el caso vigila es justamente eso -que NO haga de mas-, que es lo unico que puede volver
+   sin que nadie lo note: la maquinaria vieja tenia diez funciones y un Proxy.
+
+   EL TEXTO esta cotejado con la Tabla 4 -informe de ejemplo- de Corbett L, Forster J, Gamlin W,
+   et al, "A practical guideline for performing a comprehensive transthoracic echocardiogram in
+   the congenital heart disease patient", Echo Res Pract 2022;9:10. El caso NO pina la oracion
+   entera: fija los CINCO segmentos que el analisis segmentario secuencial tiene que nombrar, mas
+   el "al menos tres venas pulmonares" de la guia, que es lo que impide que alguien lo "mejore"
+   afirmando las cuatro -en un transtoracico de adulto rara vez se demuestran-.
    NO DEPENDE DEL PENDRIVE.                                                                   */
-caso('TC-217', 'Boton CC: aparece con datos, integra las secciones y no toca los estilos', `
+caso('TC-217', 'Boton CC: inserta el template segmentario fijo, sin leer ni tildar nada', `
   return (async () => {
     const R = {};
     const toastOrig = window.toast; const tost = [];
@@ -17434,288 +17432,281 @@ caso('TC-217', 'Boton CC: aparece con datos, integra las secciones y no toca los
     try {
       __t.limpiar();
       await new Promise(r=>setTimeout(r,300));
-      /* -- 1 - el boton existe, arranca OCULTO y todas sus casillas existen -- */
       const b = document.getElementById('cc-integrar-btn');
-      R.existe = !!b;
-      if (!b) return { extra: [['el boton existe', false, 'no esta en el DOM']] };
-      R.faltanChks = _ccAssertChks().join(',');
-      R.chksExisten = R.faltanChks === '';
-      R.ocultoSinDatos = b.hidden === true && ccSeccionesConDatos().length === 0;
-      /* y no lleva "estilo-pill" ni "data-estilo": eso es lo que impide que "setEstiloInforme"
-         le ponga el "btn-primary" de «activo» que las tres pastillas se pasan entre ellas. */
-      R.noEsPastilla = !b.classList.contains('estilo-pill') && !b.getAttribute('data-estilo');
+      const ta = document.getElementById('informe_texto');
+      R.existe = !!b && !!ta;
+      if (!b || !ta) return { extra: [['el boton y el informe existen', false, 'falta ' + (b ? 'informe_texto' : 'cc-integrar-btn')]] };
 
-      /* -- 2 - UBICACION Y ESTILO: pegado a las pastillas y con el ASPECTO de sus vecinos --
-         «esta en la fila» no distingue nada: antes tambien lo estaba, empujado a la derecha por
-         el "margin-left:auto" del grupo de acciones. El invariante es la ADYACENCIA en el DOM
-         con el boton Narrativo, que es lo que el "margin-left:auto" rompia en pantalla angosta
-         bajando el grupo entero a un segundo renglon. */
+      /* ⚠️ DENOMINADOR: LA PESTANA INFORME TIENE QUE ESTAR VISIBLE.
+         Medido: tras __t.limpiar() el harness deja tab-informe en display:none, y ahi ta.focus()
+         es un NO-OP -cero eventos de foco, document.activeElement no se mueve-. Con eso, la
+         mutacion que hace que el foco programatico del propio boton latchee _ccUltimoFoco
+         SOBREVIVIA: no puede latchear lo que nunca se enfoca. El caso medía en un estado donde
+         el defecto es imposible, que es el denominador de siempre con otra cara. */
+      if (typeof showTab === 'function') showTab('informe');
+      await new Promise(r=>setTimeout(r,200));
+      let disparoFoco = 0;
+      const espiaFoco = () => { disparoFoco++; };
+      ta.addEventListener('focus', espiaFoco);
+      ta.blur(); ta.focus();
+      ta.removeEventListener('focus', espiaFoco);
+      R.focoRealAnda = disparoFoco === 1 && document.activeElement === ta;
+      ta.blur();
+      /* y se deshace lo que la sonda dejo: ese focus es legitimamente "foco del medico" para el
+         oyente, asi que sin esto la condicion de mas abajo mediria el foco que puso el caso.
+         _ccUltimoFoco es un var de nivel superior, o sea propiedad del objeto global. */
+      try { _ccUltimoFoco = null; } catch (e) {}
+
+      /* -- 1 - SIEMPRE VISIBLE. Con el formulario recien limpiado -cero datos de CC- el boton
+         tiene que estar. Es la inversion exacta del contrato anterior, donde nacia oculto. */
+      R.visibleSinDatos = b.hidden === false && getComputedStyle(b).display !== 'none';
+      /* y no es una pastilla de estilo: eso es lo que impide que setEstiloInforme le ponga el
+         btn-primary de "activo" que las tres se pasan entre ellas. */
+      R.noEsPastilla = !b.classList.contains('estilo-pill') && !b.getAttribute('data-estilo');
       const nar = document.querySelector('[data-estilo="narrativo"]');
-      R.hayNarrativo = !!nar;
       R.pegadoALasPastillas = !!nar && nar.nextElementSibling === b;
-      /* Y se ve IGUAL que Frases: comparar contra el vecino y no contra literales hace que la
-         condicion siga valiendo el dia que se retoque ".btn-ghost". */
       const fr = document.getElementById('frases-btn');
       const pinta = el => { const cs = getComputedStyle(el);
         return [cs.backgroundColor, cs.color, cs.borderTopWidth, cs.borderTopColor,
                 cs.fontSize, cs.fontWeight, cs.borderRadius].join('|'); };
       R.pintaCC = pinta(b); R.pintaFrases = fr ? pinta(fr) : '(sin frases)';
       R.mismoEstiloQueFrases = !!fr && R.pintaCC === R.pintaFrases;
-      /* El texto tiene que contrastar en los DOS temas, y eso sobrevive al cambio de clase. */
-      const lum = css => { const m = css.match(/[0-9.]+/g) || [0,0,0];
-        const f = c => { c = +c/255; return c <= 0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4); };
-        return 0.2126*f(m[0]) + 0.7152*f(m[1]) + 0.0722*f(m[2]); };
-      const contraste = () => { const cs = getComputedStyle(b);
-        const a = lum(cs.backgroundColor), c2 = lum(cs.color);
-        return { bg: cs.backgroundColor, r: (Math.max(a,c2)+0.05)/(Math.min(a,c2)+0.05) }; };
-      const eraClaro = document.documentElement.classList.contains('light-mode');
-      document.documentElement.classList.remove('light-mode');
-      const cOsc = contraste();
-      document.documentElement.classList.add('light-mode');
-      const cCla = contraste();
-      if (!eraClaro) document.documentElement.classList.remove('light-mode');
-      R.contrastes = cOsc.r.toFixed(2) + ' / ' + cCla.r.toFixed(2);
-      /* Que DIFIERAN entre temas es el denominador: sin eso estaria midiendo dos veces el mismo
-         tema, que es la trampa de TC-114. */
-      R.temasDifieren = cOsc.bg !== cCla.bg;
-      R.legibleEnAmbos = cOsc.r >= 4.5 && cCla.r >= 4.5;
 
-      /* -- 2b - EL CASO QUE SE REPORTO: CIA sin TIPO, con tamano y borde --
-         "_CC_SECS.pred" exige "ete_cia_tipo" y el emisor publica con el tamano o el borde solos.
-         Sin la union con el barrido del DOM, el boton queda OCULTO justo aca. */
+      /* -- 1b - LA MAQUINARIA VIEJA NO PUEDE VOLVER POR LA PUERTA DE ATRAS --
+         Que el boton inserte texto no prueba que haya dejado de leer datos: las dos cosas
+         conviven sin contradecirse. Lo que lo fija es que las diez funciones no existan. */
+      R.restos = ['ccIntegrarTodas','ccIntegrarSync','ccSeccionesConDatos','_ccGruposDeSecciones',
+                  '_ccTieneDatosEnPantalla','_ccFormComoEstudio','_ccChkId','_ccAssertChks']
+                 .filter(f => typeof window[f] !== 'undefined').join(',');
+      R.sinMaquinariaVieja = R.restos === '';
+      /* _CC_SECS NO se toca: es la clasificacion del Laboratorio y del filtro de cohorte, y
+         nunca fue de este boton. Borrarla "de paso" es el riesgo de esta simplificacion.
+         ⚠️ Se lee POR NOMBRE y no por window: es un const de nivel superior, y esos NO crean
+         propiedad del objeto global -solo function y var lo hacen-. Escrito window._CC_SECS la
+         condicion daba false sobre un archivo perfectamente sano. */
+      R.ccSecsIntacto = (typeof _CC_SECS !== 'undefined') && Array.isArray(_CC_SECS) &&
+                        _CC_SECS.length === 19 && typeof _ccSecPred === 'function';
+      R.ccSecsDiag = (typeof _CC_SECS === 'undefined') ? 'no existe' : ('n=' + _CC_SECS.length);
+
+      /* -- 2 - INFORME VACIO: inserta el texto fijo -- */
+      R.antesDeTocar = ta.value.trim();
+      b.click();
+      await new Promise(r=>setTimeout(r,200));
+      const t1 = ta.value;
+      R.insertoEnVacio = R.antesDeTocar === '' && t1.trim() !== '';
+      /* los CINCO segmentos del analisis secuencial, mas el matiz de la guia */
+      const tiene = s => t1.indexOf(s) >= 0;
+      R.segmentos = {
+        situs:   tiene('situs visceroauricular solitus'),
+        venoso:  tiene('Conexion venosa sistemica normal') || tiene('Conexión venosa sistémica normal'),
+        pulmon:  tiene('al menos tres venas pulmonares'),
+        av:      tiene('auriculoventricular') && tiene('concordantes'),
+        va:      tiene('ventriculoarterial'),
+        arterias:tiene('Grandes arterias normalmente relacionadas'),
+        arco:    tiene('Arco aortico izquierdo') || tiene('Arco aórtico izquierdo')
+      };
+      R.faltan = Object.keys(R.segmentos).filter(k => !R.segmentos[k]).join(',');
+      R.textoCompleto = R.faltan === '';
+      /* «al menos tres» y NO «las cuatro»: es lo que dice la guia, porque en un transtoracico de
+         adulto las cuatro rara vez se demuestran. Afirmar cuatro seria afirmar una demostracion
+         que el estudio no tiene. */
+      R.noAfirmaCuatro = t1.indexOf('cuatro venas pulmonares') < 0;
+      /* ⚠️ NI UNA AFIRMACION QUE LA APP PUEDA CONTRADECIR EN EL MISMO INFORME.
+         La Tabla 4 de la BSE trae tres que aca hubo que sacar, porque alla son parte de un
+         informe COMPLETO de un paciente normal y aca es un texto fijo que no lee un solo dato:
+         · «auricula no dilatada» ← la app emite «Auricula izquierda severamente dilatada
+           (Vol Index 52,0 ml/m2)», y la dilatacion auricular es el hallazgo mas frecuente del eco
+           de rutina. Ademas es una afirmacion de MEDICION dentro de un texto fijo.
+         · «septum interauricular e interventricular integros» ← el emisor de CIA/CIV publica
+           «CIA. Tamano 18 x 4 mm...» y el del foramen «Foramen oval permeable».
+         · «sin ductus arterioso permeable» ← el emisor del DAP publica «Ductus arterioso...».
+         Ninguna de las tres estaba, ademas, en lo que se pidio: situs y las tres conexiones. */
+      const prohibidas = ['no dilatad', 'ntegro', 'ductus', 'eptum'];
+      R.afirmaDeMas = prohibidas.filter(w => t1.toLowerCase().indexOf(w.toLowerCase()) >= 0).join(',');
+      R.sinAfirmacionesContradecibles = R.afirmaDeMas === '';
+
+      /* -- 3 - NO LEE NI UN DATO: el texto es el MISMO con el formulario vacio y con tres
+         cardiopatias cargadas. Es la condicion que separa "inserta un fijo" de "combina". -- */
+      __t.limpiar();
+      await new Promise(r=>setTimeout(r,300));
       const setN = (id, val) => { const e2 = document.getElementById(id); if (!e2) return 'NO ' + id;
         e2.value = val; e2.dispatchEvent(new Event('input', { bubbles:true }));
         e2.dispatchEvent(new Event('change', { bubbles:true })); return e2.value; };
-      setN('nombre', 'Prueba CC');
-      setN('ete_cia_tam_max', '18'); setN('ete_cia_tam_min', '4'); setN('ete_cia_borde_vci', '6');
-      ccIntegrarSync();
-      R.sinTipoVisible = b.hidden === false;
-      R.sinTipoGrupo = ccSeccionesConDatos().map(x => x.lbl).join(',');
-      /* y el gesto PRODUCE TEXTO: «el boton aparece» no alcanza — el reporte decia justamente
-         que tocarlo no generaba nada. */
-      ccIntegrarTodas();
-      await new Promise(r=>setTimeout(r,500));
-      R.lineaSinTipo = document.getElementById('informe_texto').value
-        .split(String.fromCharCode(10)).filter(l => l.indexOf('CIA') >= 0).join(' | ');
-      R.sinTipoEmite = R.lineaSinTipo.indexOf('18') >= 0 && R.lineaSinTipo.indexOf('VCI') >= 0;
-
-      /* -- 2c - CONTROL NEGATIVO: un estudio SIN ninguna CC no puede encender el boton --
-         Los acordeones de CC muestran espejos que se llenan con el TSVI, el DDVI, la ASC, el
-         sexo y la TV del estudio. Sin las exclusiones "[readonly]" y "[data-espejo]" el barrido
-         los contaria y el boton apareceria en casi todo paciente. */
-      __t.limpiar();
-      await new Promise(r=>setTimeout(r,300));
-      ['fevi','dsfvi','vd_bas','siv','ppvi','diam_tsvi','itv_tsvi','ao_sin','ao_tub','peso','talla']
-        .forEach((id, i) => setN(id, String([55,32,38,11,10,21,20,36,34,80,180][i])));
-      setN('sexo', 'M'); setN('tv_documentada', 'no');
-      ['tvSync','eteShuntSync','mchSync','vabSync'].forEach(f => {
-        if (typeof window[f] === 'function') { try { window[f](); } catch (e) {} } });
-      ccIntegrarSync();
-      R.negControl = ccSeccionesConDatos().map(x => x.lbl).join(',');
-      R.sinCCNoAparece = R.negControl === '' && b.hidden === true;
-
-      /* -- 2d - UN HALLAZGO NEGATIVO NO PUEDE ENCENDER LA SECCION --
-         Lo encontro /sharp-edges, no la lectura, y era peor que el defecto que este cambio vino
-         a cerrar. Con la regla de secAutoOpen -contar selectedIndex > 0- contestar «Aneurisma
-         del septum: No», o sea la AUSENCIA de un aneurisma, encendia el foramen, tildaba su
-         casilla y el informe FIRMADO publicaba «Foramen oval permeable.» mas una linea en el EN
-         SUMA. Por eso el barrido cuenta SOLO campos de tipeo: una medicion no puede ser una
-         negacion. Reproducido, y por eso hay dos escenarios: el select y la casilla. */
-      __t.limpiar();
-      await new Promise(r=>setTimeout(r,300));
-      setN('nombre', 'Prueba CC');
-      setN('fop_asa', 'no');
-      ccIntegrarSync();
-      R.negFopAsa = ccSeccionesConDatos().map(x => x.lbl).join(',');
-      setN('fop_asa', '');
-      setN('fop_contraste', 'no');
-      ccIntegrarSync();
-      R.negFopContraste = ccSeccionesConDatos().map(x => x.lbl).join(',');
-      R.negativoNoEnciende = R.negFopAsa === '' && R.negFopContraste === '' && b.hidden === true;
-
-      /* -- 2d-bis - EL ROTULO NOMBRA LO QUE SE PUEDE DISTINGUIR --
-         Con CIA y CIV cargadas las dos, «CIA/CIV» sale con cualquier implementacion: el escenario
-         que discrimina es UNA SOLA de las dos. pred sabe cual matcheo; el barrido del DOM no
-         -comparten acordeon- y ahi cae al grupo entero, que es lo honesto. */
-      __t.limpiar();
-      await new Promise(r=>setTimeout(r,300));
-      setN('nombre', 'Prueba CC');
-      const selCiv = document.getElementById('ete_civ_tipo');
-      selCiv.value = selCiv.options[1].value;
-      selCiv.dispatchEvent(new Event('change', { bubbles:true }));
-      ccIntegrarSync();
-      R.rotSoloCiv = ccSeccionesConDatos().map(x => x.lbl).join(',');
-      /* y por el barrido -una medicion de CIA, que no distingue- cae al grupo entero */
-      __t.limpiar();
-      await new Promise(r=>setTimeout(r,300));
-      setN('nombre', 'Prueba CC'); setN('ete_cia_borde_vci', '6');
-      ccIntegrarSync();
-      R.rotPorBarrido = ccSeccionesConDatos().map(x => x.lbl).join(',');
-      R.rotuloCorrecto = R.rotSoloCiv === 'CIV' && R.rotPorBarrido === 'CIA/CIV';
-
-      /* -- 2e - LAS EDICIONES A MANO SOBREVIVEN. Defecto PREEXISTENTE de este boton: llamaba a
-         generarInforme() pelado, o sea la regeneracion EXPLICITA, que hace lineasNuevas.slice()
-         y DESCARTA lo que el medico haya tipeado o insertado con «Frases». El «Integrar» de cada
-         seccion no hace eso -solo tilda-, asi que el mismo acto destruia ediciones por un camino
-         y no por el otro. Control negativo medido: con la regeneracion explicita la frase se
-         pierde. -- */
-      __t.limpiar();
-      await new Promise(r=>setTimeout(r,300));
-      setN('nombre', 'Prueba CC'); setN('fevi', '55');
-      if (typeof generarInforme === 'function') generarInforme();
-      const taEd = document.getElementById('informe_texto');
-      const MARCA = 'FRASE DEL MEDICO QUE NO DEBE PERDERSE';
-      taEd.value = taEd.value + String.fromCharCode(10) + MARCA + '.';
-      taEd.dispatchEvent(new Event('input', { bubbles:true }));
-      setN('ete_cia_tam_max', '18'); setN('ete_cia_borde_vci', '6');
-      ccIntegrarSync();
-      R.edVisible = b.hidden === false;
-      ccIntegrarTodas();
-      await new Promise(r=>setTimeout(r,500));
-      R.edSobrevive = taEd.value.indexOf(MARCA) >= 0;
-      R.edSalioLaCia = taEd.value.indexOf('Borde') >= 0;
-      R.edicionesIntactas = R.edVisible && R.edSobrevive && R.edSalioLaCia;
-
-      /* -- 2f - EL AVISO DE «no cambio nada» ES ALCANZABLE, y se prueba en vez de suponerlo.
-         La compuerta ofrece la seccion con cualquier MEDICION de su acordeon cargada, y hay
-         campos que el emisor no publica: barrido de los 80 campos de tipeo de las 18 casillas,
-         26 tildan y dejan el informe IDENTICO. Uno de ellos es "ete_cia_vel", que es del mismo
-         acordeon que el caso del reporte: el emisor de CIA no lo incluye en su compuerta.
-         Ahi el toast verde de siempre seria el defecto que se reporto -«toque el boton y no
-         genero nada»- con la app confirmando un exito que el informe desmiente dos centimetros
-         mas abajo. */
-      __t.limpiar();
-      await new Promise(r=>setTimeout(r,300));
-      setN('nombre', 'Prueba CC');
-      setN('ete_cia_vel', '2.4');
-      if (typeof generarInforme === 'function') generarInforme();
-      const txtAntes = document.getElementById('informe_texto').value + ' ' +
-                       document.getElementById('en_suma').value;
-      ccIntegrarSync();
-      R.avisoVisible = b.hidden === false;
-      tost.length = 0;
-      ccIntegrarTodas();
-      await new Promise(r=>setTimeout(r,500));
-      const txtDesp = document.getElementById('informe_texto').value + ' ' +
-                      document.getElementById('en_suma').value;
-      R.avisoTildo = document.getElementById('ete_shunt_incluir_chk').checked === true;
-      R.avisoSinCambio = txtDesp === txtAntes;
-      R.avisoToast = tost.filter(t => t.indexOf('el informe no cambio') >= 0 ||
-                                      t.indexOf('el informe no cambió') >= 0).length === 1;
-      R.avisoDenominador = R.avisoVisible && R.avisoTildo && R.avisoSinCambio;
-
-      /* -- 3 - aparece con datos de CC. LOS TOKENS SALEN DEL <option> REAL -- */
-      __t.limpiar();
-      await new Promise(r=>setTimeout(r,300));
       const selVal = (id, i) => { const e2 = document.getElementById(id);
         if (!e2 || !e2.options || e2.options.length <= i) return false;
-        e2.value = e2.options[i].value; return e2.value !== ''; };
+        e2.value = e2.options[i].value;
+        e2.dispatchEvent(new Event('change', { bubbles:true }));
+        return e2.value !== ''; };
       R.tokenCia = selVal('ete_cia_tipo', 1);
-      R.tokenCiv = selVal('ete_civ_tipo', 1);
-      document.getElementById('coa_istmo').value = '8';
-      document.getElementById('mch_espesor').value = '18';
-      ccIntegrarSync();
-      R.visible = b.hidden === false;
-      const secs = ccSeccionesConDatos();
-      /* La unidad es la CASILLA: CIA y CIV comparten una y viven en el mismo acordeon, asi que
-         con las cuatro secciones cargadas salen TRES grupos y el primero se rotula «CIA/CIV».
-         Antes se devolvian cuatro entradas y el dedupe posterior se quedaba con la primera, que
-         es lo que hacia que el toast dijera «CIA» sobre un estudio con solo una CIV. */
-      R.claves = secs.map(x => x.k).join(',');
-      R.rotulos = secs.map(x => x.lbl).join(',');
-      R.detectaTresGrupos = R.claves === 'cia,coa,mch' && R.rotulos === 'CIA/CIV,CoAo,MCH';
-      /* las EXCEPCIONES de nombre resueltas: ductus/coart y la casilla COMPARTIDA de cia/civ */
-      R.mapa = secs.map(x => x.k + '->' + x.chk).join(' ');
-      R.excepciones = _ccChkId('dap') === 'ductus_incluir_chk' &&
-                      _ccChkId('coa') === 'coart_incluir_chk' &&
-                      _ccChkId('cia') === _ccChkId('civ') &&
-                      _ccChkId('mch') === 'mch_incluir_chk';
+      setN('ete_cia_tam_max', '18'); setN('coa_istmo', '8'); setN('mch_espesor', '18');
+      R.sembroDatos = R.tokenCia && document.getElementById('mch_espesor').value === '18';
+      b.click();
+      await new Promise(r=>setTimeout(r,200));
+      R.textoConDatos = ta.value.trim();
+      R.mismoTextoSiempre = R.textoConDatos === t1.trim();
+      /* y NO tilda ninguna casilla de integracion: eso lo hace el boton "Integrar" de cada
+         seccion, que es lo que este boton dejo de hacer. */
+      R.tildadas = Array.from(document.querySelectorAll('input[type=checkbox][id$="_incluir_chk"]'))
+                        .filter(c => c.checked).map(c => c.id).join(',');
+      R.noTildaNada = R.tildadas === '';
 
-      /* -- 4 - INTEGRA: tilda las de las secciones CON datos y no las otras -- */
-      const conDatos = ['ete_shunt_incluir_chk','coart_incluir_chk','mch_incluir_chk'];
-      const sinDatos = ['tga_incluir_chk','fop_incluir_chk','vab_incluir_chk'];
-      R.antes = conDatos.map(i => document.getElementById(i).checked).join(',');
-      /* EL CONTRATO DEL change: hoy ninguna casilla tiene manejador propio, asi que sin esto
-         la mutacion que quita el dispatchEvent sobrevive —y el resguardo se leeria como
-         proteccion sin serlo-. Se engancha uno de prueba y se exige que el boton lo dispare. */
-      let disparo = 0;
-      const espia = () => { disparo++; };
-      document.getElementById('mch_incluir_chk').addEventListener('change', espia);
-      tost.length = 0;
-      ccIntegrarTodas();
-      await new Promise(r=>setTimeout(r,600));
-      R.despues = conDatos.map(i => document.getElementById(i).checked).join(',');
-      document.getElementById('mch_incluir_chk').removeEventListener('change', espia);
-      R.despachoChange = disparo === 1;
-      R.tildoLasConDatos = R.despues === 'true,true,true' && R.antes === 'false,false,false';
-      R.noTocoLasOtras = sinDatos.every(i => document.getElementById(i).checked === false);
-      /* CIA y CIV COMPARTEN casilla: el resumen no puede contar dos secciones por un tilde */
-      R.resumen = tost.filter(t => t.indexOf('CC integradas') >= 0)[0] || '(sin toast)';
-      /* Contar «3 secciones» NO distingue: con la CIV llegando como entrada propia, encuentra la
-         casilla ya tildada por la CIA y cae en «ya estaban» — el conteo sigue dando 3 y la
-         mutacion sobrevive. Lo que delata la doble cuenta es que el resumen mencione «ya
-         estaban» en la PRIMERA pasada, sobre un estudio recien limpiado donde nada estaba
-         integrado; y que el grupo compartido se NOMBRE como tal, que es lo que evita el otro
-         error del dedupe viejo: decir «CIA» sobre un estudio con solo una CIV. */
-      R.noCuentaDoble = R.resumen.indexOf('3 secci') >= 0 && R.resumen.indexOf('ya estaban') < 0 &&
-                        R.resumen.indexOf('CIA/CIV') >= 0;
-      R.informeSalio = document.getElementById('informe_texto').value.length > 0;
-
-      /* -- 5 - segunda pasada: ya estaban, y no vuelve a anunciar -- */
-      tost.length = 0;
-      ccIntegrarTodas();
-      await new Promise(r=>setTimeout(r,400));
-      R.segunda = tost.filter(t => t.indexOf('ya estaban integradas') >= 0).length === 1 &&
-                  tost.filter(t => t.indexOf('CC integradas') >= 0).length === 0;
-
-      /* -- 6 - los tres botones de ESTILO siguen andando -- */
-      setEstiloInforme('conciso');
-      const act = e2 => document.querySelector('[data-estilo=\\"' + e2 + '\\"]').classList.contains('btn-primary');
-      R.estiloConciso = act('conciso') && !act('estandar') && !act('narrativo');
-      setEstiloInforme('narrativo');
-      R.estiloNarrativo = act('narrativo') && !act('conciso');
-      setEstiloInforme('estandar');
-      R.estiloVuelve = act('estandar');
-
-      /* -- 7 - NUEVO ESTUDIO esconde el boton -- */
+      /* -- 4 - DOS VECES INSERTA DOS VECES. Sin logica de "ya existe" que lo bloquee o lo saque. */
       __t.limpiar();
-      await new Promise(r=>setTimeout(r,350));
-      R.ocultoTrasLimpiar = document.getElementById('cc-integrar-btn').hidden === true;
+      await new Promise(r=>setTimeout(r,300));
+      b.click(); b.click(); b.click();
+      await new Promise(r=>setTimeout(r,200));
+      R.repeticiones = ta.value.split('Analisis segmentario secuencial').length - 1 +
+                       (ta.value.split('Análisis segmentario secuencial').length - 1);
+      R.insertaCadaVez = R.repeticiones === 3;
+      /* -- 4b - EL FOCO PROGRAMATICO NO SE REGISTRA COMO FOCO DEL MEDICO --
+         Se mide ACA y no mas abajo: hasta este punto el textarea NUNCA recibio un foco del
+         medico -solo los tres clicks del boton, que hacen ta.focus() para dejar el cursor al
+         final-. Los escenarios 5b y 5c si enfocan a proposito, asi que medirlo despues daria
+         false sobre un codigo sano: seria medir el foco que el propio caso puso.
+         Sin la guarda, ese focus propio latchea _ccUltimoFoco PARA SIEMPRE -nada lo devuelve a
+         null, ni «Nuevo estudio»- y desde el primer clic de la sesion la rama del cursor gana
+         aunque el medico nunca haya tocado el informe, que es el estado que la guarda cubre. */
+      R.focoLimpioTrasClics = (typeof _ccUltimoFoco === 'undefined') || _ccUltimoFoco === null;
+
+      /* -- 5 - AL FINAL sin cursor, EN EL CURSOR con cursor --
+         El denominador es que el informe tenga varias lineas: sobre un informe vacio las dos
+         implementaciones aterrizan en el mismo lugar y la condicion no distingue nada. */
+      __t.limpiar();
+      await new Promise(r=>setTimeout(r,300));
+      setN('nombre', 'Prueba CC'); setN('fevi', '58');
+      if (typeof generarInforme === 'function') generarInforme();
+      const NL = String.fromCharCode(10);
+      R.lineasBase = ta.value.split(NL).length;
+      /* ⚠️ EL CURSOR SE FUERZA A 0, y hay que declarar por que. Medido: Chrome deja
+         selectionStart AL FINAL cuando se asigna .value -519 de 519 tras generarInforme, 33 de
+         33 tras una asignacion directa-, asi que en el flujo real las dos ramas de "usaCursor"
+         aterrizan en el mismo lugar y la condicion no distingue nada: la mutacion que hace
+         usaCursor siempre verdadero SOBREVIVIA. El estado que la guarda existe para cubrir es
+         un cursor en 0 sin que el medico haya tocado el textarea -otro navegador, o un
+         setSelectionRange de codigo-, y ahi insertar "en el cursor" mete el template ARRIBA de
+         todo, delante de la funcion sistolica. Se sintetiza en vez de esperarlo. */
+      ta.blur();
+      ta.setSelectionRange(0, 0);
+      R.cursorForzado = ta.selectionStart === 0;
+      b.click();
+      await new Promise(r=>setTimeout(r,200));
+      const lf = ta.value.split(NL);
+      R.alFinal = lf[lf.length - 1].indexOf('lisis segmentario') >= 0 &&
+                  lf[0].indexOf('lisis segmentario') < 0;
+
+      __t.limpiar();
+      await new Promise(r=>setTimeout(r,300));
+      setN('nombre', 'Prueba CC'); setN('fevi', '58');
+      if (typeof generarInforme === 'function') generarInforme();
+      ta.focus(); ta.dispatchEvent(new Event('focus', { bubbles:true }));
+      const corte = ta.value.indexOf(NL);
+      ta.setSelectionRange(corte, corte);
+      b.click();
+      await new Promise(r=>setTimeout(r,200));
+      const lc = ta.value.split(NL);
+      R.enCursor = lc[1].indexOf('lisis segmentario') >= 0 && lc[0].indexOf('lisis segmentario') < 0;
+      /* y no se pega a la linea anterior: sin el salto, el informe publicaba
+         "...Sin masas intracardiacas.Analisis segmentario secuencial: ..." */
+      R.sinPegarse = ta.value.indexOf('.An') < 0 && ta.value.indexOf('.Aná') < 0;
+      R.posicionCorrecta = R.lineasBase > 3 && R.cursorForzado && R.alFinal && R.enCursor && R.sinPegarse;
+
+      /* -- 5c - NO BORRA LA SELECCION DEL MEDICO --
+         Lo encontro /sharp-edges. Escrito con selectionStart/selectionEnd como par -que es el
+         idioma de "insertar en un textarea"- el rango seleccionado DESAPARECE, y el comentario
+         decia "no borra". Reproducido: seleccionar la primera linea y tocar el boton se llevaba
+         "Funcion sistolica normal, FEVI 58% por Simpson biplano.". No es un gesto raro -doble
+         clic sobre una palabra, triple sobre un parrafo- ni recuperable: asignar .value por
+         codigo NO deja entrada en la pila de deshacer, asi que Ctrl+Z no lo trae. */
+      __t.limpiar();
+      await new Promise(r=>setTimeout(r,300));
+      setN('nombre', 'Prueba CC'); setN('fevi', '58');
+      if (typeof generarInforme === 'function') generarInforme();
+      const primera = ta.value.split(NL)[0];
+      ta.focus(); ta.dispatchEvent(new Event('focus', { bubbles:true }));
+      ta.setSelectionRange(0, primera.length);
+      R.selDenominador = primera.length > 10 && ta.selectionEnd > ta.selectionStart;
+      b.click();
+      await new Promise(r=>setTimeout(r,200));
+      R.seleccionIntacta = ta.value.indexOf(primera) >= 0;
+      R.selDiag = R.seleccionIntacta ? 'conservada' : ('se perdio: ' + primera.slice(0, 40));
+      /* y el template va DESPUES de lo seleccionado, no antes */
+      R.trasLaSeleccion = ta.value.indexOf(primera) < ta.value.indexOf('lisis segmentario');
+
+
+      /* -- 6 - "GENERAR INFORME" SIGUE IGUAL, con o sin haber tocado CC antes --
+         Es el invariante del pedido, y se mide comparando los DOS textos byte por byte. */
+      __t.limpiar();
+      await new Promise(r=>setTimeout(r,300));
+      const sembrar = () => { setN('nombre', 'Prueba CC'); setN('fevi', '58');
+        setN('ete_cia_tam_max', '18');
+        const c = document.getElementById('ete_shunt_incluir_chk'); if (c) c.checked = true; };
+      sembrar();
+      if (typeof generarInforme === 'function') generarInforme();
+      const sinTocar = ta.value;
+      __t.limpiar();
+      await new Promise(r=>setTimeout(r,300));
+      sembrar();
+      b.click();
+      if (typeof generarInforme === 'function') generarInforme();
+      const tocandoAntes = ta.value;
+      R.generarIgual = sinTocar === tocandoAntes && sinTocar.indexOf('CIA') >= 0;
+      R.generarDiag = 'largos ' + sinTocar.length + ' vs ' + tocandoAntes.length;
+      /* ⚠️ Y ASI SE PIERDE EL TEMPLATE, que es la consecuencia declarada del orden: "Generar
+         Informe" es la regeneracion EXPLICITA y reescribe el informe entero. Se fija como
+         COMPORTAMIENTO CONOCIDO -no como algo deseable- para que el dia que alguien lo cambie se
+         entere de que este caso lo daba por cierto. */
+      R.generarPisaElTemplate = tocandoAntes.indexOf('lisis segmentario') < 0;
+      /* al reves SI sobrevive, y es el orden que el toast recomienda */
+      __t.limpiar();
+      await new Promise(r=>setTimeout(r,300));
+      sembrar();
+      if (typeof generarInforme === 'function') generarInforme();
+      ta.blur(); b.click();
+      await new Promise(r=>setTimeout(r,200));
+      R.ordenBueno = ta.value.indexOf('lisis segmentario') >= 0 && ta.value.indexOf('CIA') >= 0;
+      /* y el toast DICE que el informe se reescribe, en vez de dejar que se descubra con el
+         informe ya escrito. NOMBRA LOS DOS CAMINOS y no uno: medido, tambien lo pisa
+         setEstiloInforme -las tres pastillas de al lado- y, con el estudio reabierto, cualquier
+         refresco silencioso. Nombrar solo «Generar Informe» prometia que el resto era seguro. */
+      R.toastAvisa = tost.filter(t => t.indexOf('Regenerar el informe') >= 0 &&
+                                      t.indexOf('cambiar de estilo') >= 0).length > 0;
+      /* y arranca con ⚠️ para que la funcion toast lo clasifique como alerta: su heuristica mira
+         el icono, y sin el sale "polite" y el lector de pantalla no interrumpe. */
+      R.toastEsAlerta = tost.filter(t => t.indexOf('Template de conexiones') >= 0 &&
+                                         t.indexOf('⚠') === 0).length > 0;
     } catch (e) { R.excepcion = String(e && e.message || e); }
     finally {
       window.toast = toastOrig;
       try { __t.limpiar(); } catch (e) {}
     }
     return { extra: [
-      ['el boton existe y NO es una pastilla de estilo', R.existe && R.noEsPastilla, R.noEsPastilla],
-      ['todas las casillas de integracion existen',  R.chksExisten, R.faltanChks || 'ninguna falta'],
-      ['arranca OCULTO sin datos de CC',             R.ocultoSinDatos, R.ocultoSinDatos],
-      ['esta PEGADO al boton Narrativo (denominador: existe)', R.hayNarrativo && R.pegadoALasPastillas, R.pegadoALasPastillas],
-      ['y se ve IGUAL que Frases',                   R.mismoEstiloQueFrases, R.pintaCC + ' vs ' + R.pintaFrases],
-      ['el texto CONTRASTA en los dos temas',        R.legibleEnAmbos && R.temasDifieren, R.contrastes],
-      ['CIA sin TIPO, con tamano y borde: APARECE',  R.sinTipoVisible, R.sinTipoGrupo],
-      ['y al tocarlo el informe PUBLICA la CIA',     R.sinTipoEmite, R.lineaSinTipo || '(sin linea de CIA)'],
-      ['un estudio SIN ninguna CC no lo enciende',   R.sinCCNoAparece, R.negControl || '(ninguna)'],
-      ['un hallazgo NEGATIVO tampoco lo enciende',   R.negativoNoEnciende,
-        'asa=' + (R.negFopAsa || '(ninguna)') + ' contraste=' + (R.negFopContraste || '(ninguna)')],
-      ['con SOLO una CIV el rotulo dice CIV, no CIA/CIV', R.rotuloCorrecto,
-        'soloCiv=' + R.rotSoloCiv + ' porBarrido=' + R.rotPorBarrido],
-      ['las ediciones a mano SOBREVIVEN al boton',   R.edicionesIntactas,
-        'visible=' + R.edVisible + ' frase=' + R.edSobrevive + ' cia=' + R.edSalioLaCia],
-      ['denominador: tilda CIA y el informe NO cambia', R.avisoDenominador,
-        'visible=' + R.avisoVisible + ' tildo=' + R.avisoTildo + ' sinCambio=' + R.avisoSinCambio],
-      ['y el toast AVISA que el informe no cambio',  R.avisoToast, R.avisoToast],
-      ['los tokens de los select son los reales (denominador)', R.tokenCia && R.tokenCiv, R.tokenCia + '/' + R.tokenCiv],
-      ['APARECE con datos de CC y agrupa por casilla', R.visible && R.detectaTresGrupos, R.claves + ' / ' + R.rotulos],
-      ['resuelve las casillas con nombre distinto',  R.excepciones, R.mapa],
-      ['INTEGRA las secciones con datos',            R.tildoLasConDatos, R.antes + ' -> ' + R.despues],
-      ['y no toca las que no tienen datos',          R.noTocoLasOtras, R.noTocoLasOtras],
-      ['despacha change en la casilla que tilda',  R.despachoChange, R.despachoChange],
-      ['CIA y CIV comparten casilla: no cuenta doble', R.noCuentaDoble, R.resumen],
-      ['el informe se regenera',                     R.informeSalio, R.informeSalio],
-      ['la segunda pasada dice «ya estaban»',        R.segunda, R.segunda],
-      ['los tres botones de ESTILO siguen andando',  R.estiloConciso && R.estiloNarrativo && R.estiloVuelve, R.estiloConciso],
-      ['«Nuevo estudio» lo esconde',                 R.ocultoTrasLimpiar, R.ocultoTrasLimpiar]
+      ['sin excepcion (denominador)',                 !R.excepcion, R.excepcion || 'ninguna'],
+      ['denominador: el foco real anda en la pestana', R.focoRealAnda, R.focoRealAnda],
+      ['el boton esta SIEMPRE visible, sin datos',    R.visibleSinDatos, R.visibleSinDatos],
+      ['y NO es una pastilla de estilo',              R.noEsPastilla, R.noEsPastilla],
+      ['esta PEGADO al boton Narrativo',              R.pegadoALasPastillas, R.pegadoALasPastillas],
+      ['y se ve IGUAL que Frases',                    R.mismoEstiloQueFrases, R.pintaCC + ' vs ' + R.pintaFrases],
+      ['la maquinaria de lectura de datos NO existe', R.sinMaquinariaVieja, R.restos || 'ninguna'],
+      ['_CC_SECS sigue intacto para el Laboratorio',  R.ccSecsIntacto, R.ccSecsDiag],
+      ['sobre un informe VACIO inserta el texto',     R.insertoEnVacio, R.insertoEnVacio],
+      ['con los cinco segmentos del analisis',        R.textoCompleto, R.faltan || 'ninguno falta'],
+      ['«al menos tres» venas y no «las cuatro»',     R.noAfirmaCuatro && R.segmentos.pulmon, R.noAfirmaCuatro],
+      ['ni una afirmacion que la app pueda contradecir', R.sinAfirmacionesContradecibles, R.afirmaDeMas || 'ninguna'],
+      ['denominador: se sembraron datos de CC',       R.sembroDatos, R.sembroDatos],
+      ['el texto es el MISMO con datos cargados',     R.mismoTextoSiempre, R.mismoTextoSiempre],
+      ['y NO tilda ninguna casilla de integracion',   R.noTildaNada, R.tildadas || 'ninguna'],
+      ['tres clics insertan TRES veces',              R.insertaCadaVez, R.repeticiones],
+      ['al final sin cursor, en el cursor con cursor', R.posicionCorrecta,
+        'lineas=' + R.lineasBase + ' forzado=' + R.cursorForzado + ' final=' + R.alFinal +
+        ' cursor=' + R.enCursor + ' sep=' + R.sinPegarse],
+      ['denominador: hay una seleccion no vacia',     R.selDenominador, R.selDenominador],
+      ['NO borra la seleccion del medico',            R.seleccionIntacta && R.trasLaSeleccion, R.selDiag],
+      ['el foco del propio boton no latchea el cursor', R.focoLimpioTrasClics, R.focoLimpioTrasClics],
+      ['«Generar Informe» da lo MISMO con o sin CC',  R.generarIgual, R.generarDiag],
+      ['declarado: generar DESPUES pisa el template', R.generarPisaElTemplate, R.generarPisaElTemplate],
+      ['y en el orden inverso conviven los dos',      R.ordenBueno, R.ordenBueno],
+      ['el toast nombra los DOS caminos que reescriben', R.toastAvisa, R.toastAvisa],
+      ['y arranca con ⚠️ para que sea alerta',        R.toastEsAlerta, R.toastEsAlerta]
     ] };
   })();
 `);
