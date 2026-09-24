@@ -194,7 +194,26 @@
   .igio-btn[aria-expanded="true"]{border-color:var(--accent);color:var(--text)}
   .igio-chev{font-size:.6rem;transition:transform .15s}
   .igio-btn[aria-expanded="true"] .igio-chev{transform:rotate(180deg)}
-  .igio-menu{display:none;position:absolute;top:calc(100% + 5px);right:0;z-index:120;width:250px;max-width:calc(100vw - 24px);
+  /* `fixed` y NO `absolute`, y el top/left los pone `igIOEncuadrar` midiendo el botón.
+     Con `absolute` el panel es descendiente de `.card`, que lleva `overflow:hidden` para que
+     el contenido respete el borde redondeado — así que el menú se RECORTABA contra el borde
+     inferior de la tarjeta. Con los meses colapsados la tarjeta mide ~275 px y el panel ~250:
+     asomaban las dos primeras opciones y las otras tres quedaban cortadas Y NO CLICKEABLES
+     (el clic caía en `#igio-ov`, que es fixed y por eso sí llegaba hasta ahí). Desplegar un
+     mes lo "arreglaba" porque estiraba la tarjeta hasta que el panel entraba de nuevo: por eso
+     parecía un problema de capas y no lo era — subir el z-index no habría cambiado nada, un
+     recorte por overflow no se gana con z-index.
+     `fixed` sale del flujo respecto del viewport y `overflow:hidden` no recorta descendientes
+     fijos, que es exactamente por lo que `#igio-ov` acá abajo nunca sufrió el problema. */
+  /* `max-height` + scroll PROPIO, y no es decorativo: fijo al viewport, lo que no entra en la
+     ventana no se alcanza con el scroll de la página —un elemento `fixed` no se mueve con él—,
+     así que sin esto las opciones de abajo quedaban visibles a medias y NO clickeables: el mismo
+     defecto que se acaba de cerrar, mudado del `overflow:hidden` de `.card` al borde de la
+     pantalla. Y apretaba justo acá: el menú Exportar pasó de 4 a 6 opciones con subtítulos de
+     varios renglones, y las dos últimas son las plantillas recién mudadas. En un celular
+     acostado (~340 px de alto) no entra ni de casualidad. */
+  .igio-menu{display:none;position:fixed;top:0;left:0;z-index:120;width:250px;max-width:calc(100vw - 24px);
+    max-height:calc(100vh - 16px);overflow-y:auto;overscroll-behavior:contain;
     background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:5px;
     box-shadow:0 10px 28px rgba(0,0,0,.42)}
   .igio-menu.open{display:block}
@@ -1786,10 +1805,23 @@ window.cerrarSesionReal = cerrarSesionReal;
         <span><b>Datos básicos</b> — siempre incluidos: paciente, fecha, indicación, antecedentes, médico y centro; FEVI, geometría, diastólica; TAPSE, PSAP y clasificación de HTP; valvulopatías; informe narrativo y EN SUMA.</span>
       </label>
       <div id="lab-exp-mods" style="display:flex;flex-direction:column;gap:1px;margin-top:4px;"></div>
+      <!-- QUÉ ESTUDIOS. Este modal se abre SÓLO desde 📤 Exportar ▾ de Guardados, y hasta hoy
+           exportaba en silencio `labGetInformes()`: el período y la cohorte del LABORATORIO,
+           que es otra pantalla con otros selectores. Filtrando Guardados a 89 de 115 salía un
+           Excel de otros 89, y «Limpiar filtros» de Guardados no lo cambiaba porque no toca
+           los del Laboratorio. El subtítulo del menú lo avisaba, pero un aviso no es un
+           control. Ahora se elige acá, y por omisión es LO QUE SE VE. -->
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">Qué estudios exportar</div>
+      <label style="display:flex;align-items:flex-start;gap:8px;padding:5px 6px;font-size:11.5px;cursor:pointer;">
+        <input type="radio" name="lab-exp-origen" value="guardados" onchange="labExpRefrescar()" style="width:15px;height:15px;flex:0 0 auto;margin-top:1px;">
+        <span id="lab-exp-org-guardados">Los que estás viendo en Guardados</span></label>
+      <label style="display:flex;align-items:flex-start;gap:8px;padding:5px 6px;font-size:11.5px;cursor:pointer;">
+        <input type="radio" name="lab-exp-origen" value="lab" onchange="labExpRefrescar()" style="width:15px;height:15px;flex:0 0 auto;margin-top:1px;">
+        <span id="lab-exp-org-lab">Los del período del Laboratorio</span></label>
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">Filas a incluir</div>
       <label style="display:flex;align-items:center;gap:8px;padding:5px 6px;font-size:11.5px;cursor:pointer;">
         <input type="radio" name="lab-exp-filas" value="todos" onchange="labExpRefrescar()" style="width:15px;height:15px;">
-        <span>Todos los estudios del período</span></label>
+        <span>Todos los del origen elegido</span></label>
       <label style="display:flex;align-items:center;gap:8px;padding:5px 6px;font-size:11.5px;cursor:pointer;">
         <input type="radio" name="lab-exp-filas" value="solo" onchange="labExpRefrescar()" style="width:15px;height:15px;">
         <span>Sólo los que tienen datos en los módulos elegidos</span></label>
@@ -13450,6 +13482,15 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                 <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();dcmExportarSR()">🏥 DICOM SR<small id="igio-exp-dcm-sub">Estudio del formulario, para PACS</small></button>
                 <div class="igio-sep"></div>
                 <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();exportarEcoAnalytics()">📈 Para Analytics<small>Abrir después en CeiboAnalytics</small></button>
+                <!-- LAS DOS PLANTILLAS VIVÍAN EN «📥 Importar», porque el fin último es llenarlas
+                     y reimportarlas. Pero el menú no clasifica por intención sino por lo que hace
+                     el botón que se aprieta, que es lo único que el médico puede predecir antes de
+                     apretarlo: estas dos DESCARGAN un archivo, igual que las cuatro de arriba, y
+                     ninguna toca la base. Puestas entre JSON y Excel de entrada, eran las dos
+                     únicas opciones de «Importar» que no importaban nada. -->
+                <div class="igio-sep"></div>
+                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();labPlantillaXLSX()">📋 Descargar plantilla Excel<small>Columnas correctas, una fila de ejemplo con el formato de cada celda en un comentario, y las hojas «Bloques» e «Instrucciones»</small></button>
+                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();labPlantillaXLSX(true)">📋 Exportar plantilla virgen<small>La misma estructura pero SIN la fila de ejemplo: sólo los encabezados, lista para llenar e importar</small></button>
               </div>
             </div>
             <div class="igio-wrap">
@@ -13470,9 +13511,6 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                      en vez de arrastrar un parser sobre basura. -->
                 <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();document.getElementById('ig-import-dcm').click()">📋 Importar mediciones<small>CHM del GE Vivid · DICOM SR (.dcm) — se reconoce por el contenido, no por la extensión</small></button>
                 <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();mediosPick()">📥 Importar imágenes y videos<small>JPG, PNG, BMP, MP4/MOV y DICOM — van a los slots del estudio abierto en el formulario, pestaña 🖼️ Imágenes</small></button>
-                <div class="igio-sep"></div>
-                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();labPlantillaXLSX()">📋 Descargar plantilla Excel<small>Columnas correctas, una fila de ejemplo con el formato de cada celda en un comentario, y las hojas «Bloques» e «Instrucciones»</small></button>
-                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();labPlantillaXLSX(true)">📋 Exportar plantilla virgen<small>La misma estructura pero SIN la fila de ejemplo: sólo los encabezados, lista para llenar e importar</small></button>
               </div>
             </div>
           </div>
@@ -38891,11 +38929,55 @@ function igCmpFecha(a,b){
   return ga===gb ? 0 : (ga<gb ? 1 : -1);
 }
 
+/* Los id de lo ÚLTIMO que se pintó en la lista de Guardados. Existe para que el exportador a
+   Excel pueda pedir exactamente el conjunto que el médico tiene delante, sin rearmar la cadena
+   de filtros por su cuenta.
+
+   Se graba acá y no en una función de filtrado porque no hay UNA: `aplicarFiltros` encadena los
+   clínicos, los numéricos y «casos de interés» con `igFiltrar`, mientras que
+   `renderInformesGuardados` llama a `igFiltrar(null)` a secas. Dos cadenas distintas, y una
+   tercera implementación en el exportador habría sido una tercera forma de discrepar. `igPintar`
+   es el único punto por el que pasan las dos, y es el mismo que escribe «Mostrando N de M»: por
+   construcción el Excel y el contador no pueden decir cosas distintas, que es el defecto que se
+   está corrigiendo.
+
+   Se guardan los ID y no los objetos: entre pintar y exportar el médico puede editar un estudio,
+   y las referencias viejas exportarían el dato anterior. `igListaEnPantalla` los vuelve a
+   resolver contra la base viva. */
+let _igPintadosIds = null;
+/* `null` (nunca se pintó) NO es lo mismo que `[]` (se pintó y no coincidió ninguno): con `[]`
+   hay que exportar cero, no caer al respaldo y exportar de más.
+
+   Devuelve `{lista, faltan, ok}` y no sólo la lista porque hay dos cosas que el exportador tiene
+   que poder DECIR, no sólo sufrir:
+   · `faltan` — ids que se pintaron y ya no resuelven contra la base. `filter(Boolean)` los tira
+     callado, y el Excel saldría con menos filas que «Mostrando N» sin que nada lo declare. Pasa
+     si entre pintar y exportar se reasigna un `id` (`_sanearIds` sobre duplicados, o un import).
+   · `ok:false` — no se pudo determinar qué hay en pantalla. Ver `_labExpBase`: eso tiene que
+     FRENAR el export, no degradarlo a «la base entera». */
+function _igEnPantallaDetalle(){
+  if (!_igPintadosIds) {
+    try { return { lista: igFiltrar(null) || [], faltan: 0, ok: true }; }
+    catch (e) { return { lista: [], faltan: 0, ok: false }; }
+  }
+  let vivos;
+  try { vivos = new Map(getInformes().map(i => [i.id, i])); }
+  catch (e) { return { lista: [], faltan: _igPintadosIds.length, ok: false }; }
+  const lista = _igPintadosIds.map(id => vivos.get(id)).filter(Boolean);
+  return { lista, faltan: _igPintadosIds.length - lista.length, ok: true };
+}
+function igListaEnPantalla(){ return _igEnPantallaDetalle().lista; }
+window.igListaEnPantalla = igListaEnPantalla;
+window._igEnPantallaDetalle = _igEnPantallaDetalle;
+
 function igPintar(filtrados){
   const lista = document.getElementById('ig-lista');
   const vacio = document.getElementById('ig-vacio');
   const cont  = document.getElementById('ig-contador');
   if (!lista) return;
+  /* Después de la guarda: si no hay dónde pintar, la pantalla no cambió y registrar acá dejaría
+     el exportador apuntando a una lista que nadie llegó a ver. */
+  _igPintadosIds = (Array.isArray(filtrados) ? filtrados : []).map(i => i && i.id).filter(id => id != null);
   /* La lista se rehace ENTERA con innerHTML: buscar, filtrar, borrar, importar o plegar
      un mes. El popover de la nota cuelga del <body> y la fila desplegada vive en el
      markup que se está por tirar, así que sin esto el popover quedaba flotando en
@@ -58805,10 +58887,49 @@ function _labExpGuardarPref(sel, solo){
   try { localStorage.setItem(_LAB_EXP_PREF, JSON.stringify({ sel, solo })); } catch (e) {}
 }
 
+/* ══ ORIGEN DE LAS FILAS ═════════════════════════════════════════════════════════════════════
+   De dónde sale la población que se exporta. Ver el comentario del bloque de radios en el HTML
+   del modal: hasta hoy era siempre `labGetInformes()` —período + cohorte del LABORATORIO— sobre
+   un modal que se abre desde GUARDADOS.
+
+   NO se persiste en `_LAB_EXP_PREF`, a diferencia de las columnas y del filtro de filas. Ésos
+   son preferencias de formato y repetirlas ahorra trabajo; el origen es el RECORTE CLÍNICO, y
+   recordarlo reintroduciría el defecto por otra puerta: el médico que una vez eligió el
+   Laboratorio heredaría ese recorte en silencio la próxima vez, que es exactamente lo que se
+   viene a eliminar. Cada apertura arranca en «lo que ves». */
+function _labExpOrigen(){
+  const r = document.querySelector('input[name="lab-exp-origen"]:checked');
+  return (r && r.value === 'lab') ? 'lab' : 'guardados';
+}
+function _labExpBase(){
+  if (_labExpOrigen() === 'lab') return labGetInformes();
+  /* `_igEnPantallaDetalle` resuelve los id de lo último que pintó `igPintar`, que es la misma
+     función que escribe «Mostrando N de M». No se rearma la cadena de filtros acá: dos
+     implementaciones del mismo filtro es cómo el número del modal y el de la lista terminan
+     discrepando sin que nada lo avise.
+
+     FALLA CERRADO — devuelve `[]`, no `getInformes()`. El respaldo anterior era la base ENTERA,
+     y esa combinación era la peor posible: el rótulo del radio calcula su número por otro camino
+     y ahí el respaldo es 0, así que el modal decía «Los que estás viendo — 0 estudios» mientras
+     `labExpConfirmar` se llevaba los 149 pacientes; la guarda `if (!infs.length)` no salta
+     porque la lista está llena, y con origen «guardados» el archivo sale además sin hoja
+     «Cohorte» y sin sufijo, o sea sin una sola señal. Es alcanzable: las dos funciones viven en
+     bloques <script> distintos —de ahí la guarda `typeof`— y este archivo ya se quedó dos veces
+     sin la mitad del JavaScript porque un bloque dejó de parsear. Ante la duda sobre qué está en
+     pantalla, un export vacío que se nota es infinitamente mejor que uno completo que no. */
+  if (typeof igListaEnPantalla !== 'function') return [];
+  try { const d = _igEnPantallaDetalle(); return d.ok ? d.lista : []; }
+  catch (e) { return []; }
+}
+
 /* ══ MODAL DEL EXPORTADOR ════════════════════════════════════════════════════════════════════ */
 function labExpAbrir(){
-  const infs = labGetInformes();
-  if (!infs.length) { toast('⚠️ Sin estudios para exportar'); return; }
+  /* La guarda mira la BASE COMPLETA y no un origen en particular: con «Último mes» en el
+     Laboratorio y la pantalla filtrada a otro rango, cualquiera de los dos orígenes puede dar
+     cero mientras el otro tiene estudios. Negar la apertura por el que da cero dejaría al
+     médico sin poder llegar al selector que arregla justo eso. Si el origen elegido queda
+     vacío lo dice el contador del modal, y `labExpConfirmar` no deja exportar. */
+  if (!getInformes().length) { toast('⚠️ Sin estudios para exportar'); return; }
   if (typeof XLSX === 'undefined') { toast('❌ Librería Excel (XLSX) no disponible'); return; }
   const pref = _labExpLeerPref();
   const cont = document.getElementById('lab-exp-mods');
@@ -58830,6 +58951,9 @@ function labExpAbrir(){
   }
   const r = document.querySelector('input[name="lab-exp-filas"][value="' + (pref.solo ? 'solo' : 'todos') + '"]');
   if (r) r.checked = true;
+  /* Cada apertura arranca en «lo que ves» — el origen no se hereda, ver `_labExpOrigen`. */
+  const ro = document.querySelector('input[name="lab-exp-origen"][value="guardados"]');
+  if (ro) ro.checked = true;
   const ov = document.getElementById('lab-exp-overlay'); if (ov) ov.style.display = 'block';
   labExpRefrescar();
 }
@@ -58849,23 +58973,64 @@ function labExpSoloConDatos(){
    el archivo que sale, sería peor que no mostrarla. */
 function labExpRefrescar(){
   const sel = labExpSeleccion(), solo = labExpSoloConDatos();
-  const infs = labGetInformes();
+  const infs = _labExpBase();
   const cols = _labColsFiltradas(_labOrdenarCols(Object.keys(_labExcelRow({ id:0, campos:{} }))), sel);
   const filas = _labFilasFiltradas(infs, sel, solo);
   const el = document.getElementById('lab-exp-cuenta');
   if (el) el.textContent = cols.length + ' columnas · ' + filas.length +
     (filas.length === 1 ? ' estudio' : ' estudios') +
     (solo && !sel.length ? ' — sin módulos elegidos, el filtro de filas no se aplica' : '');
+  /* Cada opción lleva SU número al lado, para que se elija comparando y no a ciegas. Es el
+     mismo cálculo de los dos lados —`igListaEnPantalla` y `labGetInformes`—, así que el rótulo
+     no puede prometer una población y el export entregar otra. */
+  const _n = n => n + (n === 1 ? ' estudio' : ' estudios');
+  const eg = document.getElementById('lab-exp-org-guardados');
+  if (eg) {
+    /* El MISMO `_igEnPantallaDetalle` que usa `_labExpBase`, y se respetan sus dos señales. Antes
+       este rótulo calculaba por su cuenta y con el respaldo contrario al del export: ante un
+       fallo decía 0 mientras el export se llevaba todo. Un rótulo y una población que se
+       calculan por caminos distintos terminan diciendo cosas distintas — es el defecto que este
+       cambio vino a cerrar, reintroducido en la etiqueta que lo anuncia. */
+    let d = { lista: [], faltan: 0, ok: false };
+    try { if (typeof _igEnPantallaDetalle === 'function') d = _igEnPantallaDetalle(); } catch (e) {}
+    if (!d.ok) {
+      eg.textContent = 'Los que estás viendo en Guardados — ⚠️ no se pudo determinar la lista en pantalla, no se exporta nada por esta opción';
+      eg.style.color = 'var(--orange,#f0a500)';
+    } else {
+      eg.textContent = 'Los que estás viendo en Guardados — ' + _n(d.lista.length) +
+        (d.faltan ? ' (⚠️ ' + d.faltan + ' de los que se listaron ya no están en la base)' : '');
+      eg.style.color = d.faltan ? 'var(--orange,#f0a500)' : '';
+    }
+  }
+  const elab = document.getElementById('lab-exp-org-lab');
+  if (elab) {
+    let nLab = 0;
+    try { nLab = labGetInformes().length; } catch (e) { nLab = 0; }
+    const per = document.getElementById('lab-periodo');
+    const periodo = per && per.selectedOptions[0] ? per.selectedOptions[0].text : '';
+    /* La cohorte del Laboratorio recorta esta opción igual que el período, y el aviso amarillo
+       de `_labCohortePintar` no llega hasta acá —itera `#tab-lab .lab-subpanel`—. Sin nombrarla,
+       el rótulo atribuiría al PERÍODO unas exclusiones que hizo un filtro clínico. */
+    const coh = (typeof _labCohorteDesc === 'function') ? (_labCohorteDesc() || '') : '';
+    elab.textContent = 'Los del período del Laboratorio' + (periodo ? ' (' + periodo + ')' : '') +
+      (coh ? ' + cohorte filtrada (' + coh + ')' : '') + ' — ' + _n(nLab);
+    elab.style.color = coh ? 'var(--orange,#f0a500)' : '';
+  }
   _labExpGuardarPref(sel, solo);
 }
 window.labExpRefrescar = labExpRefrescar;
 
 function labExpConfirmar(){
   const sel = labExpSeleccion(), solo = labExpSoloConDatos();
-  const infs = _labFilasFiltradas(labGetInformes(), sel, solo);
+  /* El origen se LEE ACÁ, junto con las filas que produjo, y se arrastra hasta el export. Leerlo
+     dentro del callback lo dejaría dependiendo del estado del DOM después de cerrar el modal y
+     de que pase el diálogo de anonimización: `infs` y la procedencia que se estampa en el
+     archivo tienen que salir del mismo instante, o el archivo declara una cosa y contiene otra. */
+  const origen = _labExpOrigen();
+  const infs = _labFilasFiltradas(_labExpBase(), sel, solo);
   if (!infs.length) { toast('⚠️ Ningún estudio cumple el filtro'); return; }
   labExpCerrar();
-  _labPreguntarAnonimo(anon => _labExportarXLSXReal(infs, anon, sel));
+  _labPreguntarAnonimo(anon => _labExportarXLSXReal(infs, anon, sel, origen));
 }
 window.labExpConfirmar = labExpConfirmar;
 
@@ -58884,7 +59049,12 @@ function labExportarXLSX() {
   if (typeof XLSX === 'undefined') { toast('❌ Librería Excel (XLSX) no disponible'); return; }
   // Se pregunta SIEMPRE y no se guarda la elección: la decisión depende de a dónde va el
   // archivo esta vez, no de a dónde fue la anterior.
-  _labPreguntarAnonimo(anon => _labExportarXLSXReal(infs, anon));
+  /* `'lab'` explícito, y `null` en `sel` para saltear el 3.er argumento sin cambiar lo que hacía:
+     `infs` sale de `labGetInformes()`, así que la cohorte SÍ produjo estas filas y el archivo
+     tiene que declararlo. Antes se omitía y funcionaba por el valor por omisión; nada ataba ese
+     argumento posicional a de dónde venían las filas, que es cómo se cuela una procedencia
+     equivocada al agregar el próximo camino de exportación. */
+  _labPreguntarAnonimo(anon => _labExportarXLSXReal(infs, anon, null, 'lab'));
 }
 
 /* Sustitución del nombre. Se aplica sobre la fila YA construida y sobre TODAS: si se
@@ -59093,9 +59263,18 @@ function _labXlsComentarEncabezados(ws, headers) {
   });
 }
 
-function _labExportarXLSXReal(infs, anon, sel) {
+function _labExportarXLSXReal(infs, anon, sel, origen) {
   /* `sel` es la lista de módulos elegidos; sin ella se exporta TODO, que es el comportamiento
-     histórico y el que usa el round-trip de TC-131. */
+     histórico y el que usa el round-trip de TC-131.
+
+     `origen` dice QUIÉN recortó `infs`, y su único efecto es la hoja «Cohorte» y el sufijo
+     `_cohorte_filtrada` del final. Hace falta desde que el modal puede exportar la lista de
+     GUARDADOS: la cohorte se lee de `_LAB_COHORTE`, que es estado global del Laboratorio y
+     sigue puesto aunque no haya filtrado nada acá. Sin este parámetro, exportar lo que se ve
+     en Guardados con una cohorte activa en la otra pantalla producía un archivo llamado
+     `_cohorte_filtrada` y una hoja declarando unos criterios que NO son los que produjeron
+     esas filas — una procedencia falsa estampada dentro del dato clínico, que es peor que no
+     declarar nada. Por omisión `'lab'`, que es lo que eran los dos llamadores anteriores. */
   const rows = infs.map(_labExcelRow).map(r => {
     if (!anon) return r;
     r['Nombre'] = 'Paciente anónimo';
@@ -59172,7 +59351,18 @@ function _labExportarXLSXReal(infs, anon, sel) {
      archivo que se reimporta y el que va a CeiboAnalytics, o sea otra frontera de confianza,
      donde se convertiría en la prevalencia basal de otra app. El aviso amarillo de la pantalla
      no viaja con el archivo; la hoja sí. Y el nombre lo dice antes de abrirlo. */
-  const _cohDesc = (typeof _labCohorteDesc === 'function') ? _labCohorteDesc() : '';
+  /* Sólo cuando las filas SALIERON de la cohorte. Ver el comentario de la firma.
+     Se NORMALIZA contra una lista cerrada en vez de preguntar `origen !== 'guardados'`: con esa
+     comparación, cualquier cosa que no fuera el literal exacto —`undefined`, `''`, un typo,
+     `'Guardados'` con mayúscula— caía en la rama de la cohorte, o sea que el valor por omisión
+     de un parámetro olvidado era justamente la procedencia FALSA que este parámetro existe para
+     impedir. Ahora lo desconocido se avisa por consola y los dos llamadores lo pasan explícito. */
+  let _org = origen;
+  if (_org !== 'guardados' && _org !== 'lab') {
+    if (_org !== undefined) console.warn('[export] origen desconocido:', _org, '— se asume «lab»');
+    _org = 'lab';
+  }
+  const _cohDesc = (_org === 'lab' && typeof _labCohorteDesc === 'function') ? _labCohorteDesc() : '';
   if (_cohDesc) {
     const wsCoh = XLSX.utils.aoa_to_sheet([
       ['COHORTE FILTRADA — los totales NO son los del laboratorio completo'],
@@ -60708,7 +60898,17 @@ function _labXlsLista(campo, v) {
 /* `vacia` = plantilla VIRGEN, sin la fila de ejemplo. Es un parámetro y no una segunda función
    porque la estructura tiene que ser la misma: dos generadores de plantilla divergen en cuanto
    se agrega una columna, y el que se pudre es el que se usa menos. */
-function labPlantillaXLSX(vacia) {
+/* `sel` FALTABA EN LA FIRMA y el cuerpo lo usa (ver el `const cols` de más abajo), así que las
+   TRES entradas a la plantilla tiraban `ReferenceError: sel is not defined` y no descargaban
+   nada: las dos del menú de Guardados y el «📋 Descargar plantilla vacía» del modal de
+   exportación —que encima ya pasaba el argumento, `labPlantillaXLSX(true, sel)`, contra una
+   función que declaraba uno solo—. Defecto preexistente, encontrado al verificar que las dos
+   opciones siguieran funcionando después de mudarlas de menú.
+   No se ve leyendo alrededor: `sel` parece una variable del módulo, el `sel ? … : base` se lee
+   como una compuerta deliberada, y el error es en tiempo de EJECUCIÓN y sale por la consola —
+   el botón simplemente no hace nada, que es indistinguible de un archivo que el navegador
+   descargó sin avisar. */
+function labPlantillaXLSX(vacia, sel) {
   if (typeof XLSX === 'undefined') { toast('❌ Librería Excel (XLSX) no disponible'); return; }
   /* Las binarias se intercalan DESPUÉS de su columna de texto, igual que en el Excel del
      Laboratorio: la plantilla y el export tienen que verse iguales o el médico que copia
@@ -60972,7 +61172,10 @@ function labImportarXLSX(file) {
     const conocidas = _presentes.filter(m => !_labXlsEsCalculado(m[1]))
       .map(m => [_cabsDe(m), m[1], m[2], m[0]]);
     if (!conocidas.length) {
-      toast('❌ Ninguna columna reconocida — usá «📥 Importar» > «📋 Descargar plantilla Excel»'); return;
+      /* La ruta que se nombra acá tiene que seguir a la opción cuando se muda de menú: este
+         mensaje sale JUSTO cuando el médico no encuentra el camino, así que mandarlo al menú
+         equivocado es peor que no dar ruta. Las dos plantillas viven ahora en 📤 Exportar. */
+      toast('❌ Ninguna columna reconocida — usá «📤 Exportar» > «📋 Descargar plantilla Excel»'); return;
     }
     const existentes = getInformes();
     /* Índice por TODAS las claves de cada estudio guardado, no sólo por la suya fuerte:
@@ -71526,6 +71729,9 @@ function igToggleAcc(id, btn) {
 window.igToggleAcc = igToggleAcc;
 
 /* ══════════ Desplegables 📤 Exportar ▾ / 📥 Importar ▾ de Guardados ══════════ */
+/* Cuál de los dos está abierto ('exp' | 'imp'), o null. Es la salida temprana del oyente de
+   scroll de más abajo; la clase `.open` del DOM sigue siendo la verdad para el resto. */
+let _igIOAbierto = null;
 function igIOCerrar() {
   ['exp','imp'].forEach(k => {
     const m = document.getElementById('igio-menu-' + k);
@@ -71533,6 +71739,7 @@ function igIOCerrar() {
     if (m) m.classList.remove('open');
     if (b) b.setAttribute('aria-expanded','false');
   });
+  _igIOAbierto = null;
   const ov = document.getElementById('igio-ov');
   if (ov) ov.classList.remove('open');
 }
@@ -71544,11 +71751,13 @@ function igIOToggle(cual) {
   if (!abrir) return;
   if (cual === 'exp') { igIOSubXLSX(); igIOSubDCM(); }
   m.classList.add('open');
+  m.scrollTop = 0;                    // reabrir no hereda el desplazamiento interno anterior
+  _igIOAbierto = cual;
   const b = document.getElementById('igio-btn-' + cual);
   if (b) b.setAttribute('aria-expanded','true');
   const ov = document.getElementById('igio-ov');
   if (ov) ov.classList.add('open');
-  igIOEncuadrar(m);
+  igIOEncuadrar(m, b);
 }
 /* El menú cuelga alineado a la DERECHA del botón, que es lo correcto mientras la fila
    del contador no se parte. En celular sí se parte: los dos botones caen a un renglón
@@ -71559,69 +71768,101 @@ function igIOToggle(cual) {
    Y se corrige DESPLAZANDO, no cambiando de ancla: a 375 px el menú de Importar no entra
    ni anclado a la derecha (se iba a x=-31) ni a la izquierda (llegaba a 378). Deslizarlo
    lo justo siempre tiene solución mientras el panel sea más angosto que la pantalla, que
-   es lo que garantiza el max-width del CSS. */
-function igIOEncuadrar(m) {
-  m.style.transform = '';
+   es lo que garantiza el max-width del CSS.
+
+   Desde que el panel es `position:fixed` (ver el CSS, que explica el recorte contra
+   `.card`) acá se calcula la posición ENTERA, no sólo la corrección horizontal: sin
+   ancla de CSS, `top`/`left` salen del rectángulo del botón. Y se agrega el eje
+   VERTICAL, que antes no existía porque el recorte de la tarjeta tapaba el síntoma:
+   con el botón cerca del pie de la ventana el panel se iba abajo del viewport, así que
+   si no entra hacia abajo se despliega hacia ARRIBA del botón. */
+function igIOEncuadrar(m, btn) {
   const M = 8;
-  /* clientWidth y no innerWidth: innerWidth incluye la barra de desplazamiento y el
-     layout no, así que en escritorio el borde derecho quedaba unos 7 px por debajo de
-     ella. */
-  const W = document.documentElement.clientWidth || window.innerWidth;
-  const r = m.getBoundingClientRect();
-  let dx = 0;
-  if (r.left < M) dx = M - r.left;
-  else if (r.right > W - M) dx = (W - M) - r.right;
-  if (dx) m.style.transform = 'translateX(' + Math.round(dx) + 'px)';
+  /* clientWidth/clientHeight y no innerWidth/innerHeight: innerWidth incluye la barra de
+     desplazamiento y el layout no, así que en escritorio el borde derecho quedaba unos
+     7 px por debajo de ella. */
+  const W = document.documentElement.clientWidth  || window.innerWidth;
+  const H = document.documentElement.clientHeight || window.innerHeight;
+  /* `offsetWidth/offsetHeight` y NO `getBoundingClientRect`: son el tamaño del borde exterior y
+     no dependen de dónde esté puesto el panel, así que se leen sin tener que resetear top/left
+     primero. La versión anterior hacía escritura → lectura → escritura de layout, o sea un
+     reflujo sincrónico forzado, y esto corre en cada evento de scroll mientras el menú está
+     abierto: en un documento de este tamaño con cientos de filas en la lista, se veía como
+     tirones al desplazar. Ya vienen recortados por el `max-height` del CSS, que es lo que hay
+     que usar para decidir dónde entra. */
+  const mw = m.offsetWidth, mh = m.offsetHeight;
+  const rb = btn ? btn.getBoundingClientRect() : { left:M, right:M + mw, top:M, bottom:M };
+
+  let left = rb.right - mw;                      // mismo ancla a la derecha de siempre
+  if (left < M) left = M;
+  else if (left + mw > W - M) left = W - M - mw;
+
+  let top = rb.bottom + 5;
+  if (top + mh > H - M) {
+    const arriba = rb.top - 5 - mh;
+    /* Si tampoco entra arriba se apoya en el borde superior. Antes esta rama decía que el
+       recorte «lo alcanza el scroll de la página», y era FALSO: un elemento `position:fixed` no
+       se mueve con ese scroll, así que lo que quedaba afuera era inalcanzable. Quien resuelve
+       hoy es el `max-height` + `overflow-y:auto` del CSS: el panel nunca es más alto que la
+       ventana, y si su contenido no entra se desplaza por dentro. */
+    top = (arriba >= M) ? arriba : M;
+  }
+
+  m.style.left = Math.round(left) + 'px';
+  m.style.top  = Math.round(top)  + 'px';
 }
-/* Rotar el celular con el menú abierto cambia si la fila se parte o no, y el translateX
-   calculado para el ancho anterior deja el panel corrido o medio afuera. Se cierra, que
+/* Rotar el celular con el menú abierto cambia si la fila se parte o no, y la posición
+   calculada para el ancho anterior deja el panel corrido o medio afuera. Se cierra, que
    es lo mismo que hace el menú ⋮ del encabezado por la misma razón. */
 window.addEventListener('resize', () => { if (document.querySelector('.igio-menu.open')) igIOCerrar(); });
-/* El "Excel — datos del laboratorio" NO exporta lo que se está viendo: exporta lo que
-   pasa los filtros del LABORATORIO (labGetInformes), cuyo período arranca en "Último
-   año". Mientras el botón vivía dentro del Laboratorio ese recorte estaba a la vista, al
-   lado de los selectores que lo producen. Acá no.
+/* El scroll sí necesita atención, y con `absolute` no la necesitaba: el panel era hijo del
+   botón y viajaba con él. Fijo al viewport se queda quieto mientras la lista se desplaza por
+   debajo, así que quedaría flotando lejos de su botón y encima de las filas de estudios.
 
-   La comparación se hace contra igFiltrar(null) —lo que muestra el contador que está a
-   20 cm a la izquierda, en la misma fila— y NO contra getInformes(). Comparar contra el
-   total era peor que no avisar: filtrando Guardados a 14 estudios de 2023, labGetInformes
-   devolvía los 120 del último año, 120 === 120 daba "sin diferencias" y el subtítulo
-   salía en gris diciendo "120 estudios". El médico se llevaba un Excel de 120 sin
-   NINGUNO de los 14 que tenía en pantalla, con un cartel que lo tranquilizaba. */
+   Se REUBICA, no se cierra. Cerrar fue el primer intento y era demasiado: cualquier
+   desplazamiento mínimo con el menú abierto lo hacía desaparecer —incluso uno que no lo pide
+   el dedo, como el que provoca el navegador al enfocar—, y sobre todo cambiaba un
+   comportamiento que antes funcionaba bien. El arreglo del recorte no tiene por qué costar
+   eso. Reubicar reproduce exactamente lo de antes: el panel sigue pegado a su botón.
+
+   Se cierra SÓLO si el botón se fue de la pantalla, que es cuando «pegado a su botón» deja de
+   querer decir algo y el panel quedaría señalando a un control que no está.
+   `capture` porque el scroll de un contenedor interno no burbujea hasta window. */
+window.addEventListener('scroll', (e) => {
+  /* Salida temprana por una variable y no por `document.querySelector`: con `capture` esto corre
+     ante el scroll de CUALQUIER elemento del documento, y el 99,9 % del tiempo no hay ningún
+     menú abierto. Buscar en un DOM de este tamaño en cada evento de scroll se paga siempre para
+     un caso que casi nunca ocurre. */
+  if (!_igIOAbierto) return;
+  const m = document.getElementById('igio-menu-' + _igIOAbierto);
+  if (!m) { _igIOAbierto = null; return; }
+  /* El panel tiene scroll propio desde que lleva `max-height`: desplazarse DENTRO del menú no
+     mueve el botón, así que reubicar sería trabajo al pedo en el único momento en que el médico
+     está leyendo las opciones. */
+  if (e.target && e.target !== document && e.target.nodeType === 1 && m.contains(e.target)) return;
+  const b = document.getElementById('igio-btn-' + _igIOAbierto);
+  const r = b && b.getBoundingClientRect();
+  const H = document.documentElement.clientHeight || window.innerHeight;
+  if (!r || r.bottom < 0 || r.top > H) { igIOCerrar(); return; }
+  igIOEncuadrar(m, b);
+}, { capture: true, passive: true });
+/* Este subtítulo era un AVISO: decía cuántos estudios se llevaba el Excel con los filtros del
+   LABORATORIO y cuántos de los que había en pantalla quedaban afuera, porque el botón exportaba
+   `labGetInformes()` y no había forma de pedir otra cosa. Advertir era todo lo que se podía
+   hacer sin un control.
+
+   Ahora hay control —el bloque «Qué estudios exportar» del modal— y por omisión es la pantalla,
+   así que el aviso dejó de tener objeto: describir una discrepancia que ya no ocurre sería
+   mentir al revés. Queda el número, que es lo que de verdad se quería saber antes de abrir.
+   La advertencia sobre el período y la cohorte del Laboratorio no se perdió: se mudó al rótulo
+   de la opción que las usa, en `labExpRefrescar`, que es donde se decide. */
 function igIOSubXLSX() {
   const sub = document.getElementById('igio-exp-xlsx-sub');
   if (!sub) return;
-  let pantalla = [], excel = [];
-  try { pantalla = igFiltrar(null) || []; } catch (e) { pantalla = []; }
-  try { excel = labGetInformes() || []; } catch (e) { excel = []; }
-  const idsExcel = new Set(excel.map(i => i.id));
-  const faltan = pantalla.filter(i => !idsExcel.has(i.id)).length;
-  const plural = n => n + ' estudio' + (n === 1 ? '' : 's');
-
-  /* La cohorte del Laboratorio recorta este Excel igual que el período, y este subtítulo es el
-     ÚNICO cartel que el médico ve antes de exportar: esta pantalla es Guardados, o sea la única
-     desde la que se puede exportar y a la que el aviso amarillo de `_labCohortePintar` no llega
-     —itera `#tab-lab .lab-subpanel`—. Sin esto, el subtítulo atribuía al PERÍODO unas
-     exclusiones que había hecho la cohorte, y la rama de «sin diferencias» decía «Datos del
-     laboratorio» en gris tranquilizador sobre un recorte clínico. */
-  const _cohDesc = (typeof _labCohorteDesc === 'function') ? _labCohorteDesc() : '';
-  if (_cohDesc) {
-    sub.textContent = plural(excel.length) + ' — ⚠️ cohorte filtrada en el Laboratorio (' +
-      _cohDesc + '), no son los datos completos del laboratorio';
-    sub.style.color = 'var(--orange)';
-    return;
-  }
-  if (faltan === 0 && excel.length === pantalla.length) {
-    sub.textContent = 'Datos del laboratorio — ' + plural(excel.length);
-    sub.style.color = '';
-    return;
-  }
-  const per = document.getElementById('lab-periodo');
-  const periodo = per && per.selectedOptions[0] ? per.selectedOptions[0].text : '';
-  sub.textContent = plural(excel.length) + ' — usa los filtros del Laboratorio' +
-    (periodo ? ' (' + periodo + ')' : '') + ', no los de esta pantalla' +
-    (faltan ? '. Quedan afuera ' + faltan + ' de los ' + pantalla.length + ' que ves' : '');
-  sub.style.color = 'var(--amber, #f59e0b)';
+  let n = 0;
+  try { n = (typeof igListaEnPantalla === 'function' ? igListaEnPantalla() : []).length; } catch (e) { n = 0; }
+  sub.textContent = n + ' estudio' + (n === 1 ? '' : 's') + ' — los que ves en esta pantalla';
+  sub.style.color = '';
 }
 /* Las otras tres opciones de Exportar leen la BASE de estudios; DICOM SR lee el
    FORMULARIO que está cargado. Parado en Guardados con la lista filtrada por un paciente
@@ -73896,11 +74137,11 @@ const ECO_AYUDA = [
 <div class="mSub">📊 Excel del Laboratorio</div>
 <p class="mP"><b>429 columnas</b> en 17 bloques temáticos. Antes de exportar se abre un selector con <b>siete módulos opcionales</b> (pericardio avanzado, ETE, cardio-oncología, congénitas, amiloidosis, eco pulmonar, hemodinámica): destildándolos todos el archivo baja a <b>129 columnas</b> básicas. También se puede limitar a los estudios que tengan datos de los módulos elegidos.</p>
 <div class="mBox mAviso"><b>El Excel NO es un backup.</b> Se lleva las 429 columnas pero vuelve a entrar con menos: los campos calculados no se reimportan —los recalcula la app— y varios módulos no tienen columna. <b>Sólo el JSON es un backup completo.</b></div>
-<div class="mBox mAviso"><b>El Excel usa los filtros del Laboratorio, no lo que ves en Guardados</b>, y el período por defecto del Laboratorio es de un año. Si hay una cohorte filtrada activa, el archivo sale con el sufijo <span class="mKbd">_cohorte_filtrada</span> y una hoja que declara los filtros.</div>
+<div class="mBox mTip"><b>El Excel exporta lo que ves en Guardados</b> — los mismos estudios que cuenta «Mostrando N de M», con los filtros de esa pantalla ya aplicados. El selector <b>«Qué estudios exportar»</b> permite cambiarlo por el período y la cohorte del Laboratorio, con el número de cada opción al lado; arranca siempre en la pantalla, no recuerda la elección anterior. Sólo si se elige el Laboratorio <b>con una cohorte activa</b> el archivo sale con el sufijo <span class="mKbd">_cohorte_filtrada</span> y una hoja que declara los filtros.</div>
 <div class="mBox mAviso"><b>El documento del paciente no se importa.</b> En un ecógrafo de hospital ese campo suele ser el número de historia clínica y no la cédula, así que la app lo ignora al importar para no mezclar identidades.</div>
 
 <div class="mSub">Plantilla vacía</div>
-<p class="mP">Desde el mismo menú se descarga una plantilla con las columnas y una hoja de instrucciones con los valores que acepta cada campo. Los valores válidos <b>se derivan del propio vocabulario del importador</b>, así que la plantilla no puede enseñar un formato que después se rechace.</p>
+<p class="mP">Desde <b>📤 Exportar ▾</b> de Guardados se descarga una plantilla con las columnas y una hoja de instrucciones con los valores que acepta cada campo — está en Exportar y no en Importar porque descarga un archivo, aunque el fin sea llenarlo y volver a entrarlo por <b>📥 Importar ▾ &gt; Excel</b>. Los valores válidos <b>se derivan del propio vocabulario del importador</b>, así que la plantilla no puede enseñar un formato que después se rechace.</p>
 <div class="mBox mAviso"><b>Borrá la fila de ejemplo antes de importar.</b> Viene marcada con «*** FILA DE EJEMPLO — BORRAR ANTES DE IMPORTAR ***». La app la saltea sola, pero es más seguro sacarla.</div>
 <div class="mBox mAviso"><b>Un valor fuera del vocabulario descarta la FILA ENTERA</b>, no la celda: se pierden nombre, documento, FEVI y el informe de ese estudio. El preview de importación muestra qué filas entran y cuáles no antes de confirmar.</div>
 
