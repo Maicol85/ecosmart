@@ -22716,6 +22716,10 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
                      rx0:0, ry0:400, rvx:0, rvy:0 }];
       const abrir = () => _cineAbrir([{ nombre:'esp', cuadros:1,
         d:{ frags:[JPG], cols:1, filas:1, msCuadro:0, fabricante:'', modelo:'', regiones:REG } }]);
+      /* OTRO cineloop, con OTRO nombre: es lo unico que distingue «se midio sobre esta imagen»
+         de «se acumulo entre imagenes». Con el mismo nombre las dos ramas colapsan. */
+      const abrirOtra = () => _cineAbrir([{ nombre:'esp-B', cuadros:1,
+        d:{ frags:[JPG], cols:1, filas:1, msCuadro:0, fabricante:'', modelo:'', regiones:REG } }]);
       const clic = (x, y) => { const cv = _medEl('cine-med'), rc = cv.getBoundingClientRect(),
         e = cv.width / rc.width;
         cv.dispatchEvent(new MouseEvent('click', { bubbles:true, clientX: rc.left + x/e, clientY: rc.top + y/e })); };
@@ -22728,74 +22732,97 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
         for (let x = 302; x <= 400; x += 2) ev('mousemove', x, 400 - (400 - x));
         document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true })); await esperar(330); };
 
-      /* ── 1 · EL CAJON ESTA EN LA APP, FUERA DEL MODAL DEL VISOR ── */
+      /* ── 1 · EL CAJON VIVE DENTRO DEL VISOR, Y EN NINGUN OTRO LADO ──
+         Antes vivia en la pestana Imagenes y el nodo se MUDABA entre las dos casas. Desde el
+         2026-09-24 nace dentro de #cine-dop-slot, asi que se eliminaron el ancla #dop-casa y el
+         boton que lo gobernaba alla: estas condiciones cambiaron de signo A PROPOSITO.
+         El invariante se escribe «si existe, esta adentro» y no «existe y esta adentro»: en una
+         corrida limpia el overlay todavia no se creo y el nodo tampoco existe, que tambien lo
+         cumple. Al reves daria false por el denominador, que es el error que este mismo caso ya
+         pago una vez con ov.contains. */
       showTab('imagenes'); await esperar(200);
-      const cajon = document.getElementById('dop-cajon');
-      const ov = document.getElementById('cine-ov');
-      R.hayCajon = !!cajon;
-      /* El invariante es «NO esta adentro del modal», que se cumple tambien si el overlay
-         todavia no existe —el visor no se abrio nunca en esta corrida—. Escrito como
-         «existe ov Y no contiene al cajon» daba false por el denominador, sobre un cajon
-         perfectamente bien ubicado. */
-      R.fueraDelVisor = !!cajon && !(ov && ov.contains(cajon));
-      R.ovExiste = !!ov;
-      R.hayBoton = !!document.getElementById('dop-btn');
+      let cajon = null;
+      R.noHayCasa = !document.getElementById('dop-casa');
+      R.noHayBoton = !document.getElementById('dop-btn');
+      R.noHayToggle = typeof window.dopToggle !== 'function';
+      const cajon0 = document.getElementById('dop-cajon');
+      const ov0 = document.getElementById('cine-ov');
+      R.soloEnElVisor = !cajon0 || !!(ov0 && ov0.contains(cajon0));
+      R.cajonPrevio = !!cajon0;
+      /* Y hay UNO solo: con dos contenedores habria dos oyentes delegados y dos pintados del
+         mismo estado, que es como lo que el medico ve y lo que se guarda dejan de coincidir. */
+      R.unSoloCajon = document.querySelectorAll('#dop-cajon').length <= 1;
 
-      /* ── 2 · SIN VISOR, LOS GENERICOS NO SE PUEDEN APRETAR ── */
+      /* ── 2 · SIN VISOR NO SE VE POR NINGUN CAMINO ──
+         Es lo que reemplaza a «sin visor manda el boton». Se cierra el visor a proposito —otro
+         caso pudo dejarlo abierto— para que la condicion mida lo que dice. */
       _dopLimpiar();
-      if (!_dop.abierto) dopToggle();
-      await esperar(120);
-      const bot = () => [].slice.call(cajon.querySelectorAll('button'));
-      R.genDeshabilitados = bot().slice(0,4).every(b => b.disabled);
-      /* Las CUATRO valvulas se pueden apretar sin visor: elegir la valvula es decidir que se
-         va a mirar, no medir. Lo que exige visor es «medir», que es otro boton. */
-      R.cuatroValvulas = bot().slice(4,8).length === 4 && bot().slice(4,8).every(b => !b.disabled);
-      R.rotulosValvula = bot().slice(4,8).map(b => b.textContent.trim()).join('|');
-      R.aorticaSi = bot()[4] && !bot()[4].disabled;
+      cineCerrar(); await esperar(180);
+      const cSin = document.getElementById('dop-cajon');
+      R.sinVisorOculto = !cSin || cSin.style.display === 'none';
+      R.sinVisorSinTabla = !cSin || cSin.textContent.indexOf('Vmax VAo') < 0;
 
-      /* ── 2bis · LOS BOTONES ANDAN POR CLIC, no solo llamando a la funcion ──
-         Todo lo de abajo llama a dopArmar/dopHerr/dopCorregir DIRECTO, que prueba la logica y
-         NO el cableado. Es el hueco por el que paso el defecto del VTI: ahi la herramienta
-         nunca estuvo en la lista de arrastre y el caso no lo vio porque llamaba a _vtiDe a
-         mano. Desde que los controles del cajon van por data-* con oyente DELEGADO —el
-         innerHTML se reescribe en cada repintado— hay que clickear uno de verdad. */
+      /* ── 3 · CON VISOR Y GRUPO DOPPLER: PRIMERO EL SELECTOR, SIN NINGUNA TABLA ──
+         La seleccion progresiva es lo que se pidio (2026-09-24): al abrir el grupo Doppler
+         aparecen las CUATRO valvulas y nada mas; la tabla sale recien al elegir una.
+         El denominador de la segunda mitad es que el cajon SI este visible: «no hay tabla» se
+         cumpliria igual con el panel escondido. */
+      abrir(); await esperar(480);
+      if (!_medOn) medToggle(); await esperar(150);
+      R.hayVisorAhora = _dopHayVisor();
+      cajon = document.getElementById('dop-cajon');
+      R.hayCajon = !!cajon;
+      const ovAhora = document.getElementById('cine-ov');
+      R.dentroDelVisor = !!(ovAhora && cajon && ovAhora.contains(cajon));
+      /* El visor abre en grupo 2D —medToggle entra en Distancia— asi que el cajon esta oculto.
+         Sin declararlo, «esta oculto» se cumpliria tambien con la visibilidad rota del todo. */
+      R.grupoAlAbrir = _medGrupoAbierto();
+      R.ocultoEn2D = cajon.style.display === 'none';
+      medGrupoToggle('dop'); await esperar(140);
+      R.visibleEnDoppler = cajon.style.display !== 'none';
+      /* ⚠️ EL ESTADO DE FABRICA SE LEE SOBRE UN CAJON RECIEN NACIDO, NO SOBRE UNO LIMPIADO.
+         _dopLimpiar CONSERVA la valvula elegida a proposito, asi que arranca del estado
+         anterior y no del de fabrica. Medido: con la version que leia despues de _dopLimpiar,
+         la mutacion que hace nacer el cajon con la aortica ya abierta —o sea la que anula la
+         seleccion progresiva entera— PASABA EN VERDE. Se suelta el estado y se repinta. */
+      _dop = null; _dopRender(); await esperar(140);
+      R.modoInicialNull = _dopEstado().modo === null;
+      const bot = () => [].slice.call(cajon.querySelectorAll('button'));
+      R.cuatroValvulas = bot().slice(0,4).length === 4 && bot().slice(0,4).every(b => !b.disabled);
+      R.rotulosValvula = bot().slice(0,4).map(b => b.textContent.trim()).join('|');
+      /* Sin valvula elegida NO hay tabla: ni la de la aortica ni las cinco filas genericas que
+         antes salian de entrada. */
+      R.selectorSinTabla = cajon.querySelectorAll('table').length === 0;
+      R.selectorSinGenericos = cajon.textContent.indexOf('Gradiente') < 0;
+      /* Y tampoco estan los cuatro botones genericos, que se eliminaron con esa tabla: elegian
+         herramienta sin armar destino, y lo medido caia donde ya no se dibuja. */
+      R.sinBotonesGenericos = !cajon.querySelector('[data-dop-herr]');
+
+      /* ── 3bis · LOS BOTONES ANDAN POR CLIC, no solo llamando a la funcion ──
+         Todo lo de abajo llama a dopArmar/dopCorregir DIRECTO, que prueba la logica y NO el
+         cableado. Es el hueco por el que paso el defecto del VTI: ahi la herramienta nunca
+         estuvo en la lista de arrastre y el caso no lo vio porque llamaba a _vtiDe a mano.
+         Desde que los controles del cajon van por data-* con oyente DELEGADO —el innerHTML se
+         reescribe en cada repintado— hay que clickear uno de verdad. */
       const clkDop = (sel) => { const b = cajon.querySelector(sel); if (!b) return 'NO EXISTE ' + sel;
                                 b.click(); return 1; };
       R.clicModo = clkDop('[data-dop-modo="ao"]');
       await esperar(140);
       R.clicCambioModo = _dop.modo === 'ao';
+      R.valvulaTraeTabla = cajon.querySelectorAll('table').length === 1 &&
+                           cajon.textContent.indexOf('Vmax VAo') > -1;
+      /* Y SOLO la suya: los campos de las otras tres valvulas no aparecen. */
+      R.soloEsaValvula = cajon.textContent.indexOf('Onda E') < 0 &&
+                         cajon.textContent.indexOf('Vmax IT') < 0 &&
+                         cajon.textContent.indexOf('TAP') < 0;
 
-      /* ── 3 · ARMAR UN CAMPO ELIGE LA HERRAMIENTA Y EL DESTINO ── */
-      /* dopModo ALTERNA —como medToggle—, asi que llamarlo con el modo ya puesto lo APAGA.
-         La comprobacion por clic de arriba ya dejo el cajon en aortica, y una segunda llamada
-         lo mandaba a generico: la tabla pasaba a las filas genericas y el boton «medir» de la
-         fila del VTI dejaba de existir. Se fija el modo, no se alterna. */
+      /* ── 4 · ARMAR UN CAMPO ELIGE LA HERRAMIENTA Y EL DESTINO ── */
+      /* dopModo ALTERNA —como medToggle—, asi que llamarlo con el modo ya puesto lo APAGA y
+         vuelve al selector: la tabla desaparece y el boton «medir» del VTI deja de existir. Se
+         fija el modo, no se alterna. */
       if (_dop.modo !== 'ao') dopModo('ao');
-      abrir(); await esperar(480);
-      if (!_medOn) medToggle(); await esperar(150);
-      R.hayVisorAhora = _dopHayVisor();
-
-      /* ── 3bis · EL CAJON SE MUDA AL VISOR, Y CON EL VISOR MANDA EL GRUPO ──
-         ⚠️ El overlay del visor es position fixed e inset 0: TAPA la pestaña Imagenes entera. Con el
-         cajon solo alla, sus botones «medir» —los que arman un campo del acordeon— exigian
-         visor abierto para servir y el visor los escondia: un control muerto que ademas se
-         veia perfecto en la pestaña de al lado. Por eso el nodo se MUEVE a la ranura del
-         visor, y por eso quien decide si se ve es el GRUPO de la barra lateral y no el boton
-         📊, que ahi esta detras del overlay.
-         El denominador de la primera mitad es que el grupo NO sea Doppler: medToggle abre en
-         Distancia, o sea grupo 2D. Sin declararlo, «esta oculto» se cumpliria tambien con la
-         visibilidad rota del todo. */
-      /* ⚠️ EL OVERLAY SE RE-CONSULTA. El ov del paso 1 se leyo ANTES de abrir el visor, asi
-         que en una corrida limpia es null —lo declara R.ovExiste— y ov.contains daria false
-         sobre un cajon perfectamente mudado. */
-      const ovAhora = document.getElementById('cine-ov');
-      R.grupoAlAbrir = _medGrupoAbierto();
-      R.mudadoAlVisor = !!(ovAhora && ovAhora.contains(cajon));
-      R.ocultoEn2D = cajon.style.display === 'none';
       dopArmar('ao.vmax'); await esperar(120);
-      /* Elegir una herramienta Doppler abre su grupo, y ahi el cajon aparece. */
       R.grupoTrasArmar = _medGrupoAbierto();
-      R.visibleEnDoppler = cajon.style.display !== 'none';
       R.armoHerramienta = _medHerr === 'vel';
       R.armoDestino = _dop.destino === 'ao.vmax';
       /* ⚠️ SE MIDE A OTRA ALTURA QUE EL VERTICE DEL TRIANGULO DEL VTI, y es lo unico que hace
@@ -22805,6 +22832,11 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       clic(300, 250); await esperar(200);
       R.cayoEnVmax = _dop.ao.vmax != null && Math.abs(_dop.ao.vmax - 0.75) < 0.03;
       R.destinoSeLibera = _dop.destino === null;
+      /* ⚠️ CON UNA SOLA IMAGEN MEDIDA —y siendo la que se ve— el aviso de acumulacion NO sale.
+         Es la mitad que lo separa de un cartel decorativo, y va ACA y no mas abajo: cada
+         abrir() construye un loop NUEVO, y medir sobre dos aperturas distintas ya es
+         acumulacion legitima. Medido: puesto en el paso 10 daba rojo sobre codigo correcto. */
+      R.avisoUnaSolaImg = _dopAvisoOtrasImgs() === '';
 
       /* El boton «medir» de la fila tambien, por clic: es el que lleva el data-dop-armar. */
       _dop.destino = null; _dopRender(); await esperar(120);
@@ -22894,34 +22926,64 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       const antes = JSON.stringify(_dop.ao);
       cineCerrar(); await esperar(220);
       R.persisteAlCerrar = JSON.stringify(_dop.ao) === antes;
-      /* Cerrar el visor devuelve el nodo a su casa y lo esconde — y NO borra: la tabla vuelve
-         entera con el boton 📊. Las tres cosas son una sola decision y se miden juntas, porque
-         «se oculta» sin «no se pierde» seria destruir el acceso a lo medido. */
-      R.vueltoACasa = !!(document.getElementById('dop-casa') || {}).contains &&
-                      document.getElementById('dop-casa').contains(cajon);
+      /* Cerrar el visor lo esconde y NO borra. Las dos cosas se miden juntas: «se oculta» sin
+         «no se pierde» seria destruir el acceso a lo medido, y «no se pierde» sin «se oculta»
+         seria el panel sobreviviendo a la pantalla que lo contiene.
+         Ya no hay «vuelve a su casa»: el nodo no se muda, asi que se verifica lo mas fuerte —
+         que sigue DENTRO del overlay, que es lo unico que puede contenerlo. */
+      R.sigueEnElVisor = !!(document.getElementById('cine-ov') || {}).contains &&
+                         document.getElementById('cine-ov').contains(cajon);
       R.ocultoAlCerrar = cajon.style.display === 'none';
-      dopToggle(); await esperar(140);
+      /* Y reabrir el visor con el grupo Doppler lo trae ENTERO, con su valvula y sus valores:
+         ese es el camino que reemplazo al boton que lo reabria desde la pestana Imagenes. */
+      abrir(); await esperar(450);
+      if (!_medOn) medToggle(); await esperar(140);
+      medGrupoToggle('dop'); await esperar(140);
       R.reabreConLosDatos = cajon.style.display !== 'none' &&
                             cajon.textContent.indexOf('Vmax VAo') > -1;
       R.datosTrasReabrir = JSON.stringify(_dop.ao) === antes;
-      abrir(); await esperar(450);
       R.persisteAlAbrirOtra = JSON.stringify(_dop.ao) === antes;
       R.visorSeVacio = (_medVels || []).length === 0 && (_medVtis || []).length === 0;
 
-      /* ── 10 · MODO GENERICO: sin armar, cae en la fila generica y no pisa la aortica ── */
-      dopModo('gen'); await esperar(110);
+      /* ── 10 · MEDIR SIN ARMAR UN CAMPO: cae en las genericas, Y SE VE ──
+         ⚠️ Esta es la mitad que la seleccion progresiva podia romper. Los cuatro botones
+         genericos del cajon se eliminaron, pero las herramientas siguen estando en la barra
+         lateral del visor: medir desde alla sin armar destino sigue cayendo en las filas genericas de _dop.gen, y
+         sin el bloque «sin asignar» ese numero existiria en el estado y NO se veria por ningun
+         camino — el medico mide y el valor desaparece.
+         La segunda mitad es que no pise la aortica, que es lo que separa «cae en la generica»
+         de «cae en cualquier lado». */
       if (!_medOn) medToggle();
-      dopHerr('vel'); await esperar(120);
+      medHerramienta('vel'); await esperar(120);
+      _dop.destino = null;
       clic(300, 300); await esperar(200);
       R.genVel = _dop.gen.vel != null;
       R.genGrad = _dop.gen.grad != null;
       R.aorticaIntacta = JSON.stringify(_dop.ao) === antes;
+      R.sueltasSeVen = cajon.textContent.indexOf('sin asignar') > -1 &&
+                       cajon.querySelectorAll('table').length === 2;
+
+      /* ── 10bis · LA TABLA ACUMULA ENTRE IMAGENES, Y LO GUARDADO LO DICE ──
+         Desde que «Guardar» compone la tabla CON EL CUADRO QUE SE ESTA MIRANDO, esa imagen
+         atribuye por yuxtaposicion —y sin decir una palabra— numeros que pueden haberse medido
+         sobre otro cineloop. El cajon acumula entre imagenes a proposito, asi que el caso
+         existe siempre.
+         Las DOS mitades: la de «no sale cuando no hay riesgo» se mide en el paso 4, que es el
+         unico momento en que hay una sola imagen abierta. */
+      abrirOtra(); await esperar(480);
+      if (!_medOn) medToggle(); await esperar(150);
+      R.imgActualB = _dopImgActual();
+      R.avisoOtraImg = _dopAvisoOtrasImgs() !== '';
 
       /* ── 11 · LA IMAGEN LLEVA LOS DESCARGOS QUEMADOS ──
          Una tabla de gradientes y AVA que circula sola —va a la biblioteca y desde ahi puede
          ir al PDF— sin decir que la severidad por PHT es orientativa es «un numero sin su
          reparo». Se intercepta fillText, que es como este archivo cuenta lo dibujado. */
-      dopModo('ao'); await esperar(110);
+      /* Se FIJA el modo, no se alterna: dopModo con la valvula ya abierta la CIERRA, y con el
+         selector vacio _dopCanvas sale sin una sola fila — las seis condiciones de abajo
+         darian false sobre un dibujante perfectamente sano. */
+      if (_dop.modo !== 'ao') dopModo('ao');
+      await esperar(110);
       const proto = CanvasRenderingContext2D.prototype, realFT = proto.fillText;
       const pintado = [];
       proto.fillText = function (t) { pintado.push(String(t)); return realFT.apply(this, arguments); };
@@ -22936,6 +22998,9 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       /* fillText NO envuelve: recorta por la cola en silencio, y lo que se perderia es el
          descargo. Ninguna linea dibujada puede ser larga. */
       R.imgNadaLargo = pintado.every(t => t.length < 90);
+      /* Y el aviso de acumulacion queda QUEMADO en la imagen, no solo en la pantalla: es la
+         unica superficie que sobrevive a que la imagen circule fuera de la app. */
+      R.imgAvisoAcumulado = txtImg.indexOf('acumularon') > -1;
 
       /* ── 12 · GUARDAR EN BIBLIOTECA ENTRA UN REGISTRO ── */
       localStorage.setItem('cfg-guardar-imagenes','1');
@@ -22946,12 +23011,40 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       let regsAntes = [];
       try { regsAntes = (await CeiboCine.listar(_imgUuidActual)) || []; } catch (e) { regsAntes = []; }
       window.prompt = () => '0.8'; dopCorregir('ao.vmax'); await esperar(110);
+      /* ⚠️ LO QUE SE GUARDA ES LA IMAGEN DEL VISOR CON LA TABLA DEBAJO, no la tabla sola.
+         Se compara el alto del compuesto contra el de la tabla: si el compositor devolviera
+         _dopCanvas() —que es lo que guardaba antes— los dos coincidirian y no habria nada que
+         mirar. El denominador es que el canvas del visor TENGA alto propio: con el visor
+         cerrado el compositor cae a la tabla sola a proposito, y la condicion se cumpliria
+         sobre un caso que no prueba nada. */
+      const cvSola = _dopCanvas(), cvComp = _dopCanvasConImagen();
+      const baseCv = _medEl('cine-cv');
+      R.baseAlto = baseCv ? baseCv.height : 0;
+      R.compLlevaImagen = R.baseAlto > 0 && cvComp.height === cvSola.height + R.baseAlto;
       dichos.length = 0;
       await dopGuardarBiblioteca(); await esperar(900);
       let regsDesp = [];
       try { regsDesp = (await CeiboCine.listar(_imgUuidActual)) || []; } catch (e) { regsDesp = []; }
       R.entroUnRegistro = regsDesp.length === regsAntes.length + 1;
       R.avisoGuardado = dichos.some(m => m.indexOf('biblioteca') > -1);
+      /* Y las mediciones viajan ADEMAS como dato, no solo quemadas en los pixeles: eso es lo
+         que las deja recuperables desde la app. */
+      const idsAntes = regsAntes.map(r => r.id);
+      const regNuevo = regsDesp.filter(r => idsAntes.indexOf(r.id) < 0)[0];
+      R.metaValvula = !!(regNuevo && regNuevo.meta && regNuevo.meta.valvula === 'ao');
+      R.metaValores = !!(regNuevo && regNuevo.meta && regNuevo.meta.valores &&
+                         String(regNuevo.meta.valores['Vmax VAo'] || '').indexOf('0.80') === 0);
+      /* ── 12ter · EN LA BIBLIOTECA TIENE LOS MISMOS DOS CONTROLES QUE CUALQUIER IMAGEN ──
+         Izquierda 📄 para mandarla al PDF, derecha ✕ para borrarla. Sin esto, «se suma a la
+         biblioteca» seria una tarjeta que se ve y no se puede usar. */
+      try { await cineStripRender(); } catch (e) {}
+      await esperar(350);
+      const tira = document.getElementById('cine-strip');
+      const tarj = (tira && regNuevo)
+        ? tira.querySelector('[data-cine-id="' + regNuevo.id + '"]') : null;
+      R.tarjetaEnTira = !!tarj;
+      R.tarjetaBorrar = !!(tarj && tarj.querySelector('.cine-borrar'));
+      R.tarjetaPdf = !!(tarj && tarj.querySelector('.cine-alpdf'));
 
       /* Con la tabla VACIA no se guarda nada: una imagen de guiones ocupa lugar y no dice nada. */
       _dopLimpiar(); await esperar(120);
@@ -22963,6 +23056,37 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       R.vaciaAvisa = dichos.some(m => m.indexOf('ninguna medicion') > -1 ||
                                       m.indexOf('ninguna medición') > -1);
 
+      /* ── 12ter · LO QUE LA PANTALLA MUESTRA ES LO QUE SE GUARDA ──
+         Desde la seleccion progresiva el panel pinta DOS tablas. Si la imagen y la meta salieran
+         solo de la de la valvula, una medicion hecha sin armar campo se veria en pantalla y NO
+         viajaria: ni en los pixeles ni en el dato. Paso exactamente eso y lo caza esto. */
+      _dopLimpiar(); await esperar(120);
+      if (_dop.modo !== 'ao') dopModo('ao');
+      window.prompt = () => '1.1'; dopCorregir('ao.vmax'); await esperar(110);
+      window.prompt = () => '0.6'; dopCorregir('gen.vel'); await esperar(150);
+      R.sueltaEnPanel = cajon.textContent.indexOf('sin asignar') > -1;
+      const pint2 = [];
+      proto.fillText = function (t) { pint2.push(String(t)); return realFT.apply(this, arguments); };
+      _dopCanvas();
+      proto.fillText = realFT;
+      const txt2 = pint2.join(' ');
+      R.imgLlevaSueltas = txt2.indexOf('sin asignar') > -1 && txt2.indexOf('0.60 m/s') > -1;
+      const meta2 = _dopMetaGuardado();
+      R.metaLlevaSueltas = !!meta2.valores['Sin asignar · Velocidad'];
+      R.metaLlevaDescargos = Array.isArray(meta2.descargos) && meta2.descargos.length > 0;
+      /* ⚠️ Y UNA TABLA CARGADA ENTERA A MANO NO TIENE NINGUNA PROCEDENCIA: dopCorregir no anota
+         imagen, asi que la de arriba no sostiene un solo numero. El aviso falla CERRADO. */
+      R.avisoSinProcedencia = _dopAvisoOtrasImgs() !== '';
+      /* Y sin valvula elegida, con solo sueltas, «Guardar» SIGUE ESTANDO: si no, esos valores se
+         ven en pantalla y ningun control los saca — y desde que el panel vive solo dentro del
+         visor, la biblioteca es la unica salida. */
+      dopModo('ao'); await esperar(150);   // alterna: vuelve al selector
+      R.sinValvulaModo = _dop.modo;
+      R.sinValvulaHaySueltas = cajon.textContent.indexOf('sin asignar') > -1;
+      R.sinValvulaHayGuardar = !!cajon.querySelector('[data-dop-acc="guardar"]');
+      if (_dop.modo !== 'ao') dopModo('ao');
+      await esperar(120);
+
       /* ── 12bis · AVISA CUANDO ENTRAN IMAGENES NUEVAS Y YA HABIA MEDICIONES ──
          El cajon acumula entre imagenes A PROPOSITO. El riesgo es el caso en que las imagenes
          nuevas son de OTRO paciente y nadie apreto «Nuevo estudio»: la tabla sigue mostrando
@@ -22972,6 +23096,15 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
          La condicion que lo separa de un aviso decorativo es que con el cajon VACIO no aparezca:
          un aviso que salta cuando no hay riesgo entrena a ignorarlo. */
       _dopLimpiar(); await esperar(120);
+      /* ⚠️ DENOMINADOR: el aviso se pinta DENTRO del cajon, y el cajon solo se dibuja con el
+         visor abierto y el grupo Doppler. Reabrir el estudio pudo cerrar cualquiera de los dos,
+         y entonces las siete condiciones de abajo medirian sobre un contenedor vacio: «el aviso
+         no aparece» se cumpliria sola. Se repone y se declara. */
+      if (!_dopHayVisor()) { abrir(); await esperar(450); }
+      if (!_medOn) medToggle(); await esperar(130);
+      if (_medGrupoAbierto() !== 'dop') medGrupoToggle('dop');
+      await esperar(140);
+      R.cajonVisible12b = _dopVisible();
       const _avHay = () => cajon.textContent.indexOf('mediciones Doppler del estudio anterior') > -1;
       _dopImagenesNuevas(); await esperar(110);
       R.avisoVacioNo = !_avHay();
@@ -23006,9 +23139,11 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
          cargar un valor, asi que sin esto el paso siguiente medía sobre lo que puse yo. */
       _dopLimpiar(); await esperar(130);
 
-      /* ── 13 · LIMPIAR deja el cajon ABIERTO: borra los datos, no esconde el panel ── */
+      /* ── 13 · LIMPIAR borra los DATOS y conserva la valvula que se estaba mirando ──
+         Cerrar el selector a mitad de trabajo obligaria a volver a elegir la valvula despues de
+         cada limpiada. Se fija sobre 'ao', que es donde lo dejo el paso anterior. */
       R.limpiarBorra = _dop.ao.vmax === null && _dop.gen.vel === null;
-      R.limpiarNoCierra = _dop.abierto === true;
+      R.limpiarConservaValvula = _dop.modo === 'ao';
 
       /* ── 14 · NUEVO ESTUDIO Y CERRAR SESION LO LIMPIAN ──
          Es estado de modulo: sin estas dos puertas, las mediciones del paciente A quedan en el
@@ -23034,7 +23169,7 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       try { if (togglePrevio === null) localStorage.removeItem('cfg-guardar-imagenes');
             else localStorage.setItem('cfg-guardar-imagenes', togglePrevio); } catch (e) {}
       try { if (idEst) await __t.borrar(idEst); } catch (e) {}
-      try { _dopLimpiar(); if (_dop.abierto) dopToggle(); } catch (e) {}
+      try { _dopLimpiar(); _dop.modo = null; } catch (e) {}
       try { cineCerrar(); } catch (e) {}
       /* ⚠️ imgVaciar ADEMAS de __t.limpiar, y no es redundante: este caso guarda un estudio y
          lo reabre para probar el guardado en biblioteca, y limpiarCampos NO suelta
@@ -23049,18 +23184,26 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
     }
     return { extra: [
       ['DENOMINADOR: sin excepcion',                  !R.err, R.err || 'ok'],
-      ['el cajon existe',                             R.hayCajon, R.hayCajon],
-      ['y vive FUERA del modal del visor',            R.fueraDelVisor, 'ov=' + R.ovExiste],
-      ['con su boton en la app',                      R.hayBoton, R.hayBoton],
-      ['sin visor, los genericos no se pueden apretar', R.genDeshabilitados, R.genDeshabilitados],
-      ['las CUATRO valvulas estan y se pueden apretar', R.cuatroValvulas, R.rotulosValvula],
-      ['y Aortica si',                                R.aorticaSi, R.aorticaSi],
+      ['el ancla #dop-casa YA NO EXISTE',             R.noHayCasa, R.noHayCasa],
+      ['ni el boton que la gobernaba',                R.noHayBoton && R.noHayToggle,
+                                                      'btn=' + R.noHayBoton + ' toggle=' + R.noHayToggle],
+      ['si el cajon existe, esta DENTRO del visor',   R.soloEnElVisor, 'previo=' + R.cajonPrevio],
+      ['y hay UNO solo',                              R.unSoloCajon, R.unSoloCajon],
+      ['sin visor no se ve por ningun camino',        R.sinVisorOculto && R.sinVisorSinTabla,
+                                                      'oculto=' + R.sinVisorOculto + ' tabla=' + R.sinVisorSinTabla],
       ['DENOMINADOR: con el visor abierto se habilita', R.hayVisorAhora, R.hayVisorAhora],
-      ['el cajon SE MUDA a la ranura del visor',      R.mudadoAlVisor, R.mudadoAlVisor],
+      ['el cajon existe y vive en la ranura del visor', R.hayCajon && R.dentroDelVisor, R.dentroDelVisor],
       ['DENOMINADOR: el visor abre en grupo 2D',      R.grupoAlAbrir === '2d', R.grupoAlAbrir],
       ['y en 2D el cajon NO se ve',                   R.ocultoEn2D, R.ocultoEn2D],
       ['con el grupo Doppler abierto, SI',            R.visibleEnDoppler, R.grupoTrasArmar],
+      ['y abre SIN valvula elegida',                  R.modoInicialNull, R.modoInicialNull],
+      ['las CUATRO valvulas estan y se pueden apretar', R.cuatroValvulas, R.rotulosValvula],
+      ['SIN TABLA hasta elegir una',                  R.selectorSinTabla, R.selectorSinTabla],
+      ['ni las cinco filas genericas de antes',       R.selectorSinGenericos, R.selectorSinGenericos],
+      ['ni los cuatro botones genericos',             R.sinBotonesGenericos, R.sinBotonesGenericos],
       ['EL CLIC sobre el boton de valvula funciona',  R.clicModo === 1 && R.clicCambioModo, R.clicModo],
+      ['y TRAE SU TABLA',                             R.valvulaTraeTabla, R.valvulaTraeTabla],
+      ['SOLO la suya, no las de las otras tres',      R.soloEsaValvula, R.soloEsaValvula],
       ['y el clic sobre «medir» arma el destino',     R.clicMedir === 1 && R.clicArmoDestino, R.clicMedir],
       ['tocar un campo ELIGE LA HERRAMIENTA',         R.armoHerramienta, R.armoHerramienta],
       ['y arma el destino',                           R.armoDestino, R.armoDestino],
@@ -23087,22 +23230,42 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       ['200 es Moderada y 199 Severa',                R.sev200 === 'Moderada' && R.sev199 === 'Severa',
                                                       R.sev200 + '/' + R.sev199],
       ['PERSISTE al cerrar el visor',                 R.persisteAlCerrar, R.persisteAlCerrar],
-      ['cerrar el visor lo DEVUELVE a la app',        R.vueltoACasa, R.vueltoACasa],
-      ['y lo esconde',                                R.ocultoAlCerrar, R.ocultoAlCerrar],
-      ['el boton 📊 lo reabre CON LA TABLA',          R.reabreConLosDatos, R.reabreConLosDatos],
+      ['cerrar el visor lo ESCONDE',                  R.ocultoAlCerrar, R.ocultoAlCerrar],
+      ['sin sacarlo del visor: no se muda a ningun lado', R.sigueEnElVisor, R.sigueEnElVisor],
+      ['reabrir el visor lo trae CON LA TABLA',       R.reabreConLosDatos, R.reabreConLosDatos],
       ['sin haber perdido un solo valor',             R.datosTrasReabrir, R.datosTrasReabrir],
       ['y al abrir OTRA imagen',                      R.persisteAlAbrirOtra, R.persisteAlAbrirOtra],
       ['MIENTRAS las listas del visor se vaciaron',   R.visorSeVacio, R.visorSeVacio],
-      ['el modo generico captura sin armar',          R.genVel && R.genGrad, R.genVel],
+      ['medir sin armar campo captura igual',         R.genVel && R.genGrad, R.genVel],
+      ['y ESO SE VE, en «sin asignar»',               R.sueltasSeVen, R.sueltasSeVen],
       ['y no pisa lo de la aortica',                  R.aorticaIntacta, R.aorticaIntacta],
+      ['con UNA sola imagen medida no hay aviso',     R.avisoUnaSolaImg, R.avisoUnaSolaImg],
+      ['al cambiar de imagen SI lo hay',              R.avisoOtraImg, 'actual=' + R.imgActualB],
       ['la imagen lleva titulo y la AVA',             R.imgTitulo && R.imgLlevaAVA, R.imgTitulo],
       ['y los DOS descargos quemados',                R.imgDescPHT && R.imgDescAVA, R.imgDescPHT + '/' + R.imgDescAVA],
       ['con la guia que los sostiene',                R.imgCita, R.imgCita],
       ['y nada se recorta',                           R.imgNadaLargo, R.imgNadaLargo],
+      ['y el aviso de acumulacion va QUEMADO',        R.imgAvisoAcumulado, R.imgAvisoAcumulado],
       ['DENOMINADOR: el estudio tiene uuid',          R.uuidListo, R.uuidListo],
+      ['DENOMINADOR: el canvas del visor tiene alto', R.baseAlto > 0, R.baseAlto],
+      ['lo guardado es LA IMAGEN + la tabla, no la tabla sola', R.compLlevaImagen, R.compLlevaImagen],
       ['guardar en biblioteca ENTRA UN REGISTRO',     R.entroUnRegistro, R.entroUnRegistro],
+      ['con la valvula adjunta como DATO',            R.metaValvula, R.metaValvula],
+      ['y sus valores',                               R.metaValores, R.metaValores],
+      ['DENOMINADOR: la tarjeta esta en la tira',     R.tarjetaEnTira, R.tarjetaEnTira],
+      ['con 📄 a la izquierda y ✕ a la derecha',      R.tarjetaPdf && R.tarjetaBorrar,
+                                                      'pdf=' + R.tarjetaPdf + ' borrar=' + R.tarjetaBorrar],
       ['y lo dice',                                   R.avisoGuardado, R.avisoGuardado],
       ['con la tabla vacia no guarda nada',           R.vaciaNoGuarda && R.vaciaAvisa, R.vaciaNoGuarda],
+      ['DENOMINADOR: la suelta se ve en el panel',    R.sueltaEnPanel, R.sueltaEnPanel],
+      ['la IMAGEN lleva tambien las sin asignar',     R.imgLlevaSueltas, R.imgLlevaSueltas],
+      ['y la meta tambien',                           R.metaLlevaSueltas, R.metaLlevaSueltas],
+      ['con sus descargos como dato',                 R.metaLlevaDescargos, R.metaLlevaDescargos],
+      ['una tabla sin procedencia SI avisa',          R.avisoSinProcedencia, R.avisoSinProcedencia],
+      ['DENOMINADOR: sin valvula quedan las sueltas', R.sinValvulaModo === null && R.sinValvulaHaySueltas,
+                                                      'modo=' + R.sinValvulaModo],
+      ['y «Guardar» sigue ofreciendose',              R.sinValvulaHayGuardar, R.sinValvulaHayGuardar],
+      ['DENOMINADOR: el cajon esta visible para el aviso', R.cajonVisible12b, R.cajonVisible12b],
       ['con el cajon VACIO no avisa',                 R.avisoVacioNo, R.avisoVacioNo],
       ['ni antes de que entren imagenes',             R.avisoAunNo, R.avisoAunNo],
       ['AVISA al importar con mediciones cargadas',   R.avisoTrasImportar, R.avisoTrasImportar],
@@ -23115,7 +23278,7 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       ['«Limpiar» del aviso SI borra',                R.avisoLimpiarBorra, R.avisoLimpiarBorra],
       ['y saca el cartel',                            R.avisoLimpiarSacaElCartel, R.avisoLimpiarSacaElCartel],
       ['Limpiar borra los datos',                     R.limpiarBorra, R.limpiarBorra],
-      ['y NO cierra el cajon',                        R.limpiarNoCierra, R.limpiarNoCierra],
+      ['y CONSERVA la valvula abierta',               R.limpiarConservaValvula, R.limpiarConservaValvula],
       ['DENOMINADOR: habia algo antes de nuevo estudio', R.habiaAntesDeLimpiarCampos, R.habiaAntesDeLimpiarCampos],
       ['NUEVO ESTUDIO lo limpia',                     R.nuevoEstudioLimpia, R.nuevoEstudioLimpia],
       ['DENOMINADOR: habia algo antes de cerrar sesion', R.habiaAntesDeCerrarSesion, R.habiaAntesDeCerrarSesion],
@@ -23178,11 +23341,18 @@ caso('TC-250', 'Cajon Doppler: Mitral, Tricuspide y Pulmonar, con sus unidades y
       const poner = (campo, val) => { window.prompt = () => String(val); dopCorregir(campo); };
 
       showTab('imagenes'); await esperar(180);
-      const cajon = document.getElementById('dop-cajon');
       _dopLimpiar();
+      /* ⚠️ EL CAJON SE BUSCA DESPUES DE ABRIR EL VISOR. Desde 2026-09-24 el nodo NACE dentro del
+         overlay, asi que antes de la primera apertura no existe: leerlo arriba daba null con
+         --solo y el nodo de una corrida anterior dentro del suite. Es «pasa con --solo y falla
+         en el suite» al reves, que es la variante que no se nota. */
       abrir(); await esperar(480);
       if (!_medOn) medToggle(); await esperar(150);
+      if (_medGrupoAbierto() !== 'dop') medGrupoToggle('dop');
+      await esperar(140);
+      const cajon = document.getElementById('dop-cajon');
       R.hayVisor = _dopHayVisor();
+      R.cajonVisible = !!cajon && _dopVisible();
 
       /* ══ MITRAL ══════════════════════════════════════════════════════════════════════════ */
       modo('mit'); await esperar(130);
@@ -23279,6 +23449,10 @@ caso('TC-250', 'Cajon Doppler: Mitral, Tricuspide y Pulmonar, con sus unidades y
                     'Grad Máx IM','VTI VM','VTI IM','Grad Medio VM','PHT VM',
                     'AVM por PHT','AVM por continuidad'].filter(t => txtMit.indexOf(t) < 0).join(',');
       R.mitCompleta = R.filasMit === '';
+      /* ⚠️ Y SOLO LAS SUYAS: la seleccion progresiva (2026-09-24) muestra la tabla de UNA
+         valvula por vez. Se busca el marcador de la aortica —la unica valvula que el caso deja
+         cargada antes de este bloque— en el panel abierto en Mitral. */
+      R.mitSinAortica = txtMit.indexOf('Vmax VAo') < 0 && txtMit.indexOf('Diam TSVI') < 0;
 
       /* ══ TRICUSPIDE ══════════════════════════════════════════════════════════════════════ */
       modo('tri'); await esperar(130);
@@ -23388,7 +23562,7 @@ caso('TC-250', 'Cajon Doppler: Mitral, Tricuspide y Pulmonar, con sus unidades y
     } finally {
       window.alert = alertReal; window.prompt = promptReal; window.toast = toastReal;
       try { if (thpEl) { thpEl.value = thpPrev; if (typeof calcTHP === 'function') calcTHP(); } } catch (e) {}
-      try { _dopLimpiar(); if (_dop.abierto) dopToggle(); } catch (e) {}
+      try { _dopLimpiar(); _dop.modo = null; } catch (e) {}
       try { cineCerrar(); } catch (e) {}
       try { if (typeof imgVaciar === 'function') imgVaciar(); } catch (e) {}
       try { __t.limpiar(); } catch (e) {}
@@ -23396,8 +23570,10 @@ caso('TC-250', 'Cajon Doppler: Mitral, Tricuspide y Pulmonar, con sus unidades y
     return { extra: [
       ['DENOMINADOR: sin excepcion',                  !R.err, R.err || 'ok'],
       ['DENOMINADOR: el visor esta abierto',          R.hayVisor, R.hayVisor],
+      ['DENOMINADOR: y el cajon se esta dibujando',   R.cajonVisible, R.cajonVisible],
       ['el acordeon Mitral se abre',                  R.modoMit, R.modoMit],
       ['y trae sus catorce filas',                    R.mitCompleta, R.filasMit || 'todas'],
+      ['y NINGUNA de otra valvula',                   R.mitSinAortica, R.mitSinAortica],
       ['la onda E se mide con Velocidad',             R.ondaEHerr, R.ondaEHerr],
       ['Y SE GUARDA EN cm/s, como el informe',        R.ondaEEnCms, R.ondaECms],
       ['la onda A tambien',                           R.ondaAEnCms, R.ondaAEnCms],

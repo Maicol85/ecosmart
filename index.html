@@ -12077,11 +12077,12 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <button type="button" class="btn btn-ghost" style="padding:5px 12px;"
                 title="Para ecógrafos que no exportan DICOM: JPG, PNG, BMP, MP4/MOV. El formato se reconoce por el contenido, así que los archivos sin extensión también sirven. Un .dcm elegido acá entra igual, por el importador DICOM."
                 onclick="mediosPick()">📥 Importar imágenes y videos</button>
-        <!-- El cajón Doppler vive ACÁ, en la app, y no dentro del modal del visor: es lo que le
-             permite acumular entre imágenes. Ver el comentario de `_dop`. -->
-        <button type="button" class="btn btn-ghost" id="dop-btn" style="padding:5px 12px;"
-                title="Mediciones Doppler que se acumulan entre imágenes"
-                onclick="dopToggle()">📊 Doppler</button>
+        <!-- ⚠️ ACÁ VIVÍA EL BOTÓN «📊 Doppler», Y SE ELIMINÓ (2026-09-24). Gobernaba `E.abierto`,
+             que era la compuerta del cajón SÓLO cuando no había visor: desde que el cajón existe
+             únicamente dentro del visor, ese botón no podía mostrar nada — un control que se ve
+             perfecto y no hace nada es el defecto que este archivo documenta con los siete
+             acordeones de Congénitas. Quien gobierna el cajón hoy es el grupo «Doppler / M» de la
+             barra lateral del visor, que es el único lugar desde donde se lo puede ver. -->
         <!-- Sólo aparece con Orthanc activado en ⚙️ Config. Nace OCULTO y lo enciende
              `orthancBotonSync()`: al revés —naciendo visible y ocultándose por JS— un bloque
              que deje de parsear lo dejaría prendido, prometiendo una búsqueda que no existe. -->
@@ -12089,19 +12090,12 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                 title="Listar los estudios que el ecógrafo envió a Orthanc"
                 onclick="orthancBuscar()">🔍 Buscar en Orthanc</button>
       </div>
-      <!-- Cajón Doppler. Nace OCULTO y lo pinta `_dopRender`; el contenido se arma por JS.
-           Ningún control de acá lleva `id`, y no es estilo: `guardarInforme` barre `input[id]`
-           de TODO el documento, así que un campo con id se guardaría en `campos` de cada
-           estudio —el cajón NO es dato del informe, es un anotador—. El único id es el del
-           contenedor, que no es un input. -->
-      <!-- `#dop-casa` es el ANCLA: el cajón se muda a la ranura del visor mientras éste está
-           abierto y vuelve acá al cerrarlo. Con un ancla vacía la vuelta es un `appendChild` y
-           no hay que recordar entre qué hermanos iba — reinsertarlo por posición es cómo el
-           nodo termina un día arriba de la grilla. Ver `_dopUbicar`. -->
-      <div id="dop-casa">
-        <div id="dop-cajon" style="display:none;margin-bottom:10px;padding:10px 12px;border-radius:9px;
-             border:1px solid var(--border);background:var(--bg2);"></div>
-      </div>
+      <!-- ⚠️ ACÁ VIVÍA `#dop-casa`, EL ANCLA DEL CAJÓN DOPPLER, Y SE ELIMINÓ (2026-09-24).
+           El cajón ya no se muda: NACE Y MUERE dentro de `#cine-dop-slot`, o sea del visor.
+           Lo reemplaza «Guardar», que manda la imagen medida a la BIBLIOTECA del estudio — el
+           acceso a lo medido después de cerrar el visor es esa imagen, no un panel que vuelve.
+           Decisión de Maicol (2026-09-24). Con esto `_dopUbicar` desapareció: el nodo no tiene
+           ningún destino fuera del visor, así que «se olvidó de volver» dejó de ser posible. -->
       <div id="med-fija-aviso" style="display:none;font-size:11px;line-height:1.5;margin-bottom:10px;
            padding:8px 10px;border-radius:8px;border:1px solid var(--accent);background:var(--bg2);"></div>
       <div id="img-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"></div>
@@ -15754,9 +15748,8 @@ function showTab(id) {
      haber movido en OTRA pestaña del navegador, donde este documento no se entera. Se repinta
      al entrar, que es el único momento en que importa. */
   if (id === 'imagenes' && typeof orthancBotonSync === 'function') orthancBotonSync();
-  /* El cajon se repinta al entrar a la tab: su estado de «hay visor abierto» pudo cambiar
-     mientras el medico estaba en otra pestana, y con el que botones se pueden apretar. */
-  if (id === 'imagenes' && typeof _dopRender === 'function') { try { _dopRender(); } catch (e) {} }
+  /* ACA SE REPINTABA EL CAJON DOPPLER AL ENTRAR A LA TAB, y se saco (2026-09-24): el cajon vive
+     dentro del overlay del visor, asi que ninguna pestana puede mostrarlo ni esconderlo. */
   /* El seguimiento de Cardio-Oncología está indexado por paciente, así que hay que
      repintarlo cada vez que se entra: dibujado una sola vez al arrancar, al cambiar de
      paciente seguía mostrando los controles del anterior. */
@@ -25505,8 +25498,9 @@ function limpiarCampos(silencioso) {
   _cinePendientes = [];
   /* EL CAJON DOPPLER ES ESTADO DE MODULO y sobrevive al cambio de estudio si nadie lo limpia:
      sin esta linea las mediciones del paciente A quedarian en el cajon del paciente B — la
-     fuga de `ete_tavi_jet_horas` con otra cara. `_dopLimpiar` borra los DATOS y deja el panel
-     abierto si lo estaba: cerrarlo seria esconder el cajon a mitad de trabajo. */
+     fuga de `ete_tavi_jet_horas` con otra cara. `_dopLimpiar` borra los DATOS y conserva la
+     valvula elegida: cerrarla seria esconder la tabla a mitad de trabajo. Qué valvula se estaba
+     mirando no es dato del paciente, asi que conservarla no es una fuga. */
   try { if (typeof _dopLimpiar === 'function') _dopLimpiar(); } catch (e) {}
   /* Pericardio: el barrido de arriba vacía los inputs y los selects, pero los paneles de
      conclusión (#dpt-concl, #cvr-concl, #cvr-tabla) son divs sueltos que no alcanza ningún
@@ -48675,18 +48669,24 @@ function _cineAbrir(loops) {
            al lado del canvas que se está trazando. Decisión de Maicol (2026-09-22). */
         '<div id="cine-simp-uni" style="display:none;margin-top:8px;padding:9px 11px;border-radius:9px;' +
           'border:1px solid var(--border);background:var(--bg2);font-size:11px;line-height:1.55;"></div>' +
-        /* ⚠️ RANURA DEL CAJÓN DOPPLER — ACÁ VIVE MIENTRAS EL VISOR ESTÁ ABIERTO, y no es una
-           preferencia de diseño: `#cine-ov` es `position:fixed;inset:0`, o sea que TAPA la
-           pestaña Imágenes por completo. Con el cajón sólo allá, sus botones «medir» —los que
-           arman un campo del acordeón— eran inalcanzables: había que tener el visor abierto
-           para que sirvieran y el visor los escondía. Es el control muerto que este archivo
-           documenta con los siete acordeones de Congénitas, con la particularidad de que acá
-           el control se veía perfecto en la pestaña de al lado.
-           NO hay dos cajones: `_dopUbicar` MUEVE el único nodo entre esta ranura y su casa de
-           la pestaña Imágenes. Con dos contenedores habría dos oyentes delegados y dos pintados
-           del mismo estado, que es como lo que el médico ve y lo que se guarda dejan de
-           coincidir — el defecto que este archivo ya cerró con la tabla de Simpson. */
-        '<div id="cine-dop-slot"></div>' +
+        /* ⚠️ EL CAJÓN DOPPLER NACE ACÁ Y NO EXISTE EN NINGÚN OTRO LADO (2026-09-24). Antes se
+           MUDABA entre esta ranura y un ancla de la pestaña Imágenes; hoy el marcado está acá
+           adentro, o sea dentro de `#cine-ov`, que es `position:fixed;inset:0` y se esconde
+           entero al cerrar el visor. Con eso «el panel desaparece al cerrar» no depende de que
+           alguien se acuerde de esconderlo: es una consecuencia del árbol.
+           Lo que esto reemplaza es el acceso a lo medido sin visor. Hoy ese acceso es la IMAGEN
+           que «Guardar» manda a la biblioteca del estudio — que además sobrevive al cierre de la
+           app, cosa que el panel nunca hizo.
+           ⚠️ NINGÚN CONTROL DE ADENTRO LLEVA `id`, y no es estilo: `guardarInforme` barre
+           `input[id]` de TODO el documento, así que un campo con id se guardaría en `campos` de
+           cada estudio — el cajón NO es dato del informe, es un anotador. El único id es el del
+           contenedor, que no es un input.
+           El overlay se construye UNA sola vez (`if (!ov)`), así que este nodo es único y el
+           oyente delegado de `_dopObservar` se registra una sola vez sobre él. */
+        '<div id="cine-dop-slot">' +
+          '<div id="dop-cajon" style="display:none;margin-bottom:10px;padding:10px 12px;' +
+            'border-radius:9px;border:1px solid var(--border);background:var(--bg2);"></div>' +
+        '</div>' +
         /* ⚠️ «➕ Vista» y «Cerrar» YA NO VIVEN ACÁ: se mudaron a la columna derecha del panel A
            (ver `_vPanelHTML`). Dejarlos también acá habría dejado el documento con ids
            DUPLICADOS, y entonces `getElementById` devuelve el primero y el otro se dibuja sin
@@ -48913,19 +48913,14 @@ function cineCerrar() {
   if (ov) ov.style.display = 'none';
   _vTodas().forEach(V => { V.datos = null; });
   _V = _vistaA;
-  /* El cajón Doppler VUELVE A LA PESTAÑA IMÁGENES y se esconde: su ranura acaba de quedar
-     dentro de un overlay oculto, y un nodo ahí adentro es inalcanzable aunque exista.
-     `abierto = false` es lo que hace que «se cierra el visor → se oculta» valga también del
-     lado de la app: sin eso el cajón reaparecía solo en la pestaña Imágenes por el botón 📊 que
-     alguien dejó apretado hace media hora.
-     ⚠️ LO QUE NO PASA ES QUE SE BORRE NADA. Esconder no es limpiar: `_dop` queda intacto y la
-     tabla vuelve entera con el botón 📊, que es lo que permite guardarla en la biblioteca
-     después de cerrar. Un cierre de pantalla que destruya el acceso a lo medido sería peor que
-     el cajón siempre visible que esto vino a corregir. */
-  try {
-    if (_dop) _dop.abierto = false;
-    if (typeof _dopRender === 'function') _dopRender();
-  } catch (e) {}
+  /* El cajón Doppler DESAPARECE CON EL OVERLAY, porque vive adentro: la línea de abajo lo pone
+     además en `display:none`, que es redundante hoy —el overlay ya está oculto— y se deja porque
+     fija el contrato y es lo que mantiene el estado del panel coherente con el del visor.
+     ⚠️ LO QUE NO PASA ES QUE SE BORRE NADA. Esconder no es limpiar: `_dop` queda intacto, así
+     que reabrir el visor y volver al grupo Doppler trae la tabla entera. Lo que SÍ sobrevive al
+     cierre sin depender de nada de esto es la imagen que se haya mandado a la biblioteca con
+     «Guardar» — que es el acceso a lo medido que reemplazó al panel de la pestaña Imágenes. */
+  try { if (typeof _dopRender === 'function') _dopRender(); } catch (e) {}
 }
 window.cineToggle = cineToggle; window.cineCapturar = cineCapturar;
 window.cineCerrar = cineCerrar; window.cineIr = cineIr; window.cineLoop = cineLoop;
@@ -55036,7 +55031,13 @@ window.medFijaGuardar = medFijaGuardar;
    duplicar el armado del registro es cómo las dos vías terminan guardando cosas distintas.
    Devuelve `{ok, motivo}`: el motivo es lo que hace que el llamador pueda DECIR por qué no se
    guardó en vez de fallar mudo. */
-async function _bibGuardarJpeg(bytes, cols, filas, nombre, posterURL) {
+/* `meta` es OPCIONAL y entra bajo UNA clave fija (`rec.meta`), nunca con un spread: mezclarlo a
+   nivel del registro dejaría que un llamador pisara `id`, `uuid` o `tipo` sin darse cuenta, y
+   `tipo` es lo que decide si `medFijasRestaurar` y `_vElegirLoop` tocan este registro. Lo usa hoy
+   el cajón Doppler para adjuntar los valores de la válvula que se guardó; son unas decenas de
+   bytes al lado de un JPEG, y hacen que las mediciones queden recuperables como DATO y no sólo
+   como píxeles quemados en la imagen. */
+async function _bibGuardarJpeg(bytes, cols, filas, nombre, posterURL, meta) {
   if (typeof CeiboCine === 'undefined')
     return { ok:false, motivo:'No hay almacenamiento para los archivos del estudio en este navegador.' };
   if (!bytes || !bytes.length) return { ok:false, motivo:'No se pudo generar la imagen.' };
@@ -55048,6 +55049,7 @@ async function _bibGuardarJpeg(bytes, cols, filas, nombre, posterURL) {
                 cuadros:1, ms:0, cols:cols, filas:filas, poster:poster,
                 datos:bytes, offs:new Int32Array([0]), bytes:bytes.length,
                 regiones:[], ts:new Date().toISOString() };
+  if (meta && typeof meta === 'object') rec.meta = meta;
   let r2;
   try { r2 = await CeiboCine.guardar(rec); } catch (e) { r2 = { ok:false }; }
   if (!r2 || !r2.ok)
@@ -55072,11 +55074,11 @@ function _bibCanvasABytes(cv) {
   });
 }
 
-async function _docGuardarEnBiblioteca(cv, nombre) {
+async function _docGuardarEnBiblioteca(cv, nombre, meta) {
   const bytes = await _bibCanvasABytes(cv);
   let posterURL = '';
   try { posterURL = cv.toDataURL('image/jpeg', 0.9); } catch (e) { posterURL = ''; }
-  const r = await _bibGuardarJpeg(bytes, cv.width, cv.height, nombre, posterURL);
+  const r = await _bibGuardarJpeg(bytes, cv.width, cv.height, nombre, posterURL, meta);
   if (!r.ok) {
     /* El motivo de la compuerta va como `alert` —es accionable: encender el toggle, guardar el
        estudio— y el resto como toast. Un «no se pudo» sin el motivo manda a adivinar. */
@@ -55187,10 +55189,22 @@ function _dopNuevo() {
            vtiVm:null, vtiIm:null, gradMedioVm:null, pht:null },
     tri: { vmaxIt:null, vmaxEt:null, pvc:10 },
     pul: { vmaxIp:null, vmaxEp:null, tap:null, vp:null },
-    modo: 'gen',        // 'gen' | 'ao' | 'mit' | 'tri' | 'pul'
+    /* `null` = ninguna válvula elegida, que es el estado INICIAL y el que dibuja sólo el
+       selector. Antes era `'gen'` y pintaba las cinco filas genéricas de entrada. */
+    modo: null,         // null | 'ao' | 'mit' | 'tri' | 'pul'
     destino: null,      // campo armado por el médico, p.ej. 'ao.vmax'
-    abierto: false,
-    avisoImg: false     // entraron imágenes nuevas con el cajón ya cargado
+    avisoImg: false,    // entraron imágenes nuevas con el cajón ya cargado
+    /* ⚠️ DE QUÉ IMÁGENES SALIÓ LO QUE HAY EN LA TABLA. Nombre del cineloop → 1, anotado en
+       `_dopCapturar`. Existe desde que «Guardar» compone la tabla CON LA IMAGEN ACTUAL: el
+       cajón acumula entre imágenes a propósito, así que el cuadro que se guarda puede no ser
+       aquel sobre el que se midió la mitad de las filas. Sin esta marca, esa imagen afirma
+       —por yuxtaposición y sin decir una palabra— que los números salieron de ella.
+       ⚠️ SE INDEXA POR UN SERIAL DEL LOOP, NO POR SU NOMBRE. `medImagenAbrir` le pone a TODA
+       foto de un slot el mismo rótulo literal («Imagen del estudio · sin escala DICOM»), y el
+       import de backup normaliza a «cineloop» todo lo que venga sin nombre: con el nombre como
+       clave, dos imágenes distintas colapsan en una y el aviso se apaga justo en las que más lo
+       necesitan. Y prototipo nulo porque la clave sale de un dato. */
+    imgs: Object.create(null)
   };
 }
 /* Los cuatro acordeones de válvula. Es UNA lista y la consumen los botones, el rótulo del
@@ -55218,10 +55232,9 @@ function _dopSufijoModo() {
 }
 function _dopEstado() { if (!_dop) _dop = _dopNuevo(); return _dop; }
 function _dopLimpiar() {
-  const ab = _dop ? _dop.abierto : false;
-  const md = _dop ? _dop.modo : 'gen';
+  const md = _dop ? _dop.modo : null;
   _dop = _dopNuevo();
-  _dop.abierto = ab; _dop.modo = md;   // limpiar borra los DATOS, no cierra el cajón
+  _dop.modo = md;   // limpiar borra los DATOS, no cierra la válvula que se estaba mirando
   _dopRender();
 }
 window._dopLimpiar = _dopLimpiar;
@@ -55292,10 +55305,36 @@ const _DOP_VEL_CMS = { 'mit.ondaE':1, 'mit.ondaA':1, 'mit.ePrimaSept':1, 'mit.eP
    que se toma el que viene y no se recalcula. */
 const _DOP_VTI_GRADMEDIO = { 'ao.vtiAo':'ao.gradMedio', 'mit.vtiVm':'mit.gradMedioVm' };
 
+/* IDENTIDAD DEL CINELOOP ABIERTO, o '' si no se puede saber. Es un serial que se estampa sobre
+   el propio objeto la primera vez que se lo consulta: identidad exacta, sin colisiones de
+   rótulo y sin retener nada —se guarda el número, no el loop, que carga los fragmentos y llega
+   a 17 MB; `cineCerrar` los suelta a propósito y no se lo puede estorbar—.
+   `_cineDatos` es un accesor que resuelve contra la vista activa, así que con dos vistas
+   devuelve la que se está mirando.
+   ⚠️ CONTRAPARTIDA DECLARADA: reabrir el MISMO archivo da un serial nuevo, así que medir, cerrar
+   el visor, reabrir esa imagen y guardar dispara el aviso sobre una tabla que sí corresponde. Se
+   elige ese lado: es la dirección segura —no poder verificar la correspondencia no es haberla
+   verificado— y el caso contrario, dos fotos de slot distintas compartiendo rótulo, atribuiría
+   en silencio. */
+let _dopSerieN = 0;
+function _dopImgActual() {
+  try {
+    const D = (typeof _cineDatos !== 'undefined') ? _cineDatos : null;
+    const L = D && D.loops ? D.loops[D.i] : null;
+    if (!L) return '';
+    if (L.__dopSerie == null) L.__dopSerie = 'L' + (++_dopSerieN);
+    return L.__dopSerie;
+  } catch (e) { return ''; }
+}
+
 function _dopCapturar(tipo, d) {
   const E = _dopEstado();
   const dest = E.destino;
   E.destino = null;
+  /* Se anota ACÁ y no al guardar: en el momento de guardar ya no se sabe de dónde salió cada
+     fila. Es el mismo motivo por el que el cajón captura al medir en vez de leer las listas del
+     visor después — aquéllas se vacían al cambiar de imagen. */
+  try { const nm = _dopImgActual(); if (nm) E.imgs[nm] = 1; } catch (e) {}
   /* Escribe en el destino armado, sea de la válvula que sea. Antes era una cadena de `if` por
      campo aórtico; con cuatro acordeones eso son veinte ramas y la que se olvide manda la
      medición a la fila genérica EN SILENCIO — el médico armó el campo, midió, y el número
@@ -55448,21 +55487,15 @@ function dopArmar(campo) {
 }
 window.dopArmar = dopArmar;
 
-/* Los genéricos sólo eligen herramienta: no arman destino, así que lo medido cae en la fila
-   genérica. Es la diferencia entre «medir algo» y «medir ESTE campo de la aórtica». */
-function dopHerr(h) {
-  if (!_dopHayVisor()) {
-    if (typeof toast === 'function') toast('Abrí una imagen en el visor para medir.');
-    return;
-  }
-  _dopEstado().destino = null;
-  try { if (typeof medHerramienta === 'function') medHerramienta(h); } catch (e) {}
-  try { if (typeof _medEstado === 'function') _medEstado(); } catch (e) {}
-  _dopRender();
-}
-window.dopHerr = dopHerr;
+/* ⚠️ ACÁ VIVÍA `dopHerr`, LOS CUATRO BOTONES GENÉRICOS DEL CAJÓN, Y SE ELIMINARON (2026-09-24).
+   Elegían herramienta SIN armar destino, así que lo medido caía en las filas genéricas — que con
+   la selección progresiva ya no se dibujan como tabla fija. Un botón cuyo resultado va a un lugar
+   que la pantalla no muestra es peor que no tenerlo.
+   Las mismas cuatro herramientas siguen estando en la barra lateral del visor, que es donde
+   viven; y lo que se mida desde allá sin armar un campo aparece en «Mediciones sin asignar». */
 
-function dopModo(m) { const E = _dopEstado(); E.modo = (E.modo === m) ? 'gen' : m; E.destino = null; _dopRender(); }
+/* Alterna, igual que `medToggle`: tocar la válvula abierta vuelve al selector (`null`). */
+function dopModo(m) { const E = _dopEstado(); E.modo = (E.modo === m) ? null : m; E.destino = null; _dopRender(); }
 window.dopModo = dopModo;
 /* La PVC sólo admite los tres valores del selector. Un número arbitrario entraría a la suma de
    la PSAP y saldría impreso dentro del rótulo de la fila —«PSAP (PVC 999)»— como si alguien lo
@@ -55473,8 +55506,8 @@ function dopPVC(p) {
   _dopRender();
 }
 window.dopPVC = dopPVC;
-function dopToggle() { const E = _dopEstado(); E.abierto = !E.abierto; _dopRender(); }
-window.dopToggle = dopToggle;
+/* `dopToggle` se eliminó con el botón 📊 (2026-09-24): era la compuerta del cajón sin visor y
+   ya no hay «sin visor» que gobernar. */
 
 /* ── CORREGIR A MANO ──────────────────────────────────────────────────────────────────────
    Un valor medido se puede pisar: el médico ve la imagen y la app no. Se valida que sea un
@@ -55543,9 +55576,42 @@ const _DOP_DISC = {
     'Gradientes por Bernoulli simplificada. El TAP es un tiempo de aceleración, no una velocidad.'
   ]
 };
+/* ⚠️ «ESTA TABLA NO SALIÓ TODA DE ESTA IMAGEN». Va PRIMERO, arriba de las salvedades de la
+   válvula, porque es la que califica todo lo demás: «Guardar» compone la tabla con el cuadro que
+   se está mirando, y el cajón acumula entre imágenes a propósito — así que una imagen guardada
+   puede llevar debajo números medidos sobre otro cineloop. Sin esta línea, la yuxtaposición los
+   atribuye a ese cuadro sin decirlo, que es «un número sin su reparo» por la puerta del layout.
+
+   NO SE DISPARA CUANDO NO HAY RIESGO, que es lo que la separa de un adorno: con una sola imagen
+   medida —el caso normal— y siendo ésa la que se está mirando, no sale nada. Un aviso que
+   aparece siempre entrena a ignorarlo, y este archivo ya lo pagó con el cartel de importación.
+
+   ⚠️ FALLA CERRADO POR LAS DOS PUNTAS, y la segunda estuvo mal escrita un rato. Sin poder saber
+   cuál es la imagen actual —visor cerrado— se declara; y SIN NINGUNA PROCEDENCIA REGISTRADA
+   pero con valores en la tabla, TAMBIÉN: ése es el caso de una tabla cargada entera a mano con
+   ✏️, que `dopCorregir` no anota en ningún lado. Ahí la imagen de arriba no sostiene un solo
+   número. Ausencia de marca es «no verificable», no «verificado».
+
+   ⚠️ LA GRANULARIDAD ES EL CINELOOP, NO EL CUADRO, y es una decisión. Medir la envolvente
+   aórtica en un latido y el TSVI en otro es el flujo NORMAL de un Doppler, así que un aviso por
+   cuadro saldría en casi todas las tablas de un cineloop y dejaría de leerse a la tercera —que
+   es la forma de fallar de un cartel—. El descargo base ya dice que esto es un anotador de
+   mediciones manuales. Queda declarado, no resuelto. */
+function _dopAvisoOtrasImgs() {
+  const E = _dopEstado();
+  const hayValores = _dopHayValores();
+  if (!hayValores) return '';
+  const ids = Object.keys(E.imgs || {});
+  const act = _dopImgActual();
+  if (act && ids.length === 1 && ids[0] === act) return '';
+  return 'Las mediciones de esta tabla se acumularon entre imágenes: pueden no corresponder ' +
+         'todas al cuadro que se ve arriba.';
+}
+
 function _dopDisc() {
   const l = _DOP_DISC[_dopEstado().modo] || [];
-  return l.concat([_DOP_DISC_BASE]);
+  const av = _dopAvisoOtrasImgs();
+  return (av ? [av] : []).concat(l, [_DOP_DISC_BASE]);
 }
 
 /* Las filas que se muestran. Es UNA lista y la consumen el panel y la captura a imagen: con dos
@@ -55610,73 +55676,65 @@ function _dopFilas() {
     if (D.gradEp != null) F.push(['Grad Máx EP', n(D.gradEp, 1), 'mmHg', null, false]);
     F.push(['TAP',        n(P.tap, 0),          'ms',     'pul.tap',   true]);
     F.push(['VP',         n(P.vp, 2),           'm/s',    'pul.vp',    true]);
-  } else {
-    F.push(['Velocidad', n(E.gen.vel, 2),    'm/s',  'gen.vel',    false]);
-    F.push(['Gradiente', n(E.gen.grad, 1),   'mmHg', 'gen.grad',   false]);
-    F.push(['Tiempo',    n(E.gen.tiempo, 0), 'ms',   'gen.tiempo', false]);
-    F.push(['FC',        n(E.gen.fc, 0),     'lpm',  'gen.fc',     false]);
-    F.push(['VTI',       n(E.gen.vti, 1),    'cm',   'gen.vti',    false]);
   }
+  /* Sin válvula elegida la lista va VACÍA, y eso es lo que produce el selector solo. Las filas
+     genéricas ya no viven acá: salen por `_dopFilasSueltas`, que sólo muestra las que TIENEN
+     valor. Mezcladas, la tabla de una válvula arrastraba cinco campos que no son de ninguna. */
   return F;
 }
 
-/* ⚠️ DÓNDE SE VE EL CAJÓN — DOS REGLAS, según haya visor o no, y son distintas a propósito.
+/* Las mediciones que cayeron en las filas genéricas —o sea las que se hicieron sin armar un
+   campo—. Se devuelven SÓLO las que tienen valor: es un bloque de rescate, no una tabla fija.
+   Es la misma forma de `_dopFilas` (rótulo, valor, unidad, clave, ¿armable?) para que las
+   consuma el mismo armador; `armable` va en false porque estas filas no son un destino, se
+   llenan por descarte. */
+function _dopFilasSueltas() {
+  const E = _dopEstado(), F = [];
+  const n = (x, d) => (x == null || !isFinite(x)) ? null : Number(x).toFixed(d);
+  [['Velocidad', 'vel', 2, 'm/s'], ['Gradiente', 'grad', 1, 'mmHg'],
+   ['Tiempo', 'tiempo', 0, 'ms'], ['FC', 'fc', 0, 'lpm'], ['VTI', 'vti', 1, 'cm']]
+    .forEach(x => {
+      if (E.gen[x[1]] == null) return;
+      F.push([x[0], n(E.gen[x[1]], x[2]), x[3], 'gen.' + x[1], false]);
+    });
+  return F;
+}
 
-   CON EL VISOR ABIERTO manda el GRUPO de la barra lateral: el cajón sale con «Doppler / M»
-   abierto y se va al pasar a 2D o al cerrar el visor. No lo gobierna el botón 📊 porque ahí el
-   botón está detrás del overlay: sería una compuerta que el médico no puede tocar.
+/* ⚠️ DÓNDE SE VE EL CAJÓN — UNA sola regla desde 2026-09-24: visor abierto Y grupo «Doppler / M».
 
-   SIN VISOR manda el botón 📊, que es lo que permite volver a mirar la tabla acumulada y
-   guardarla en la biblioteca después de cerrar. Sin esta segunda mitad, «ocultarlo al cerrar el
-   visor» dejaría las mediciones adentro de un cajón inalcanzable — cerrar una pantalla no puede
-   destruir el acceso a lo que se midió.
+   Antes eran dos, porque el cajón también vivía en la pestaña Imágenes y allá lo gobernaba el
+   botón 📊. Ese botón se eliminó con el ancla: el panel existe únicamente dentro del visor.
+
+   FALLA CERRADO en las dos mitades. Sin visor no hay nada que mostrar; y si `_medGrupoAbierto`
+   no estuviera —vive en otro bloque `<script>`, y este archivo ya se quedó sin JavaScript dos
+   veces por un bloque que dejó de parsear— el cajón queda oculto, que es el estado «nada más
+   cambia». Encendido por omisión mostraría un panel que ningún control puede apagar.
 
    LOS VALORES NO SE TOCAN NUNCA ACÁ: `_dop` es estado de módulo y esconder el cajón es
    `display:none`, no un reseteo. Esconder no es limpiar, que es la distinción que este archivo
-   ya tuvo que escribir para Orthanc. */
+   ya tuvo que escribir para Orthanc. Lo que cambió es a dónde se va el acceso a lo medido cuando
+   el panel se esconde: a la biblioteca, por «Guardar», no a un botón que lo reabre. */
 function _dopVisible() {
-  const E = _dopEstado();
-  if (_dopHayVisor()) {
-    try { return typeof _medGrupoAbierto === 'function' && _medGrupoAbierto() === 'dop'; }
-    catch (e) { return false; }
-  }
-  return E.abierto === true;
-}
-
-/* Mueve el ÚNICO nodo del cajón entre la ranura del visor y su ancla de la pestaña Imágenes.
-   `appendChild` sobre un nodo que ya tiene padre lo MUEVE —no lo copia— así que el estado del
-   DOM, el oyente delegado y el `innerHTML` recién pintado viajan con él.
-   Se comprueba el padre antes de mover: reinsertarlo en cada repintado obligaría al navegador a
-   rehacer el layout del panel entero varias veces por segundo mientras se arrastra el slider. */
-function _dopUbicar() {
-  const cont = document.getElementById('dop-cajon');
-  if (!cont) return;
-  const destino = _dopHayVisor()
-    ? document.getElementById('cine-dop-slot')
-    : document.getElementById('dop-casa');
-  if (destino && cont.parentNode !== destino) destino.appendChild(cont);
+  if (!_dopHayVisor()) return false;
+  try { return typeof _medGrupoAbierto === 'function' && _medGrupoAbierto() === 'dop'; }
+  catch (e) { return false; }
 }
 
 function _dopRender() {
   const cont = document.getElementById('dop-cajon');
-  const btn = document.getElementById('dop-btn');
   if (!cont) return;
-  _dopUbicar();
   const E = _dopEstado(), hay = _dopHayVisor();
-  /* El botón 📊 se apaga mientras el visor manda: encendido diría que él gobierna el cajón, y
-     ahí el que gobierna es el grupo de la barra lateral. */
-  if (btn) btn.className = 'btn ' + (!hay && E.abierto ? 'btn-primary' : 'btn-ghost');
   if (!_dopVisible()) { cont.style.display = 'none'; cont.innerHTML = ''; return; }
   cont.style.display = 'block';
 
-  const dis = hay ? '' : ' disabled title="Abrí una imagen en el visor"';
-  let h = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">' +
-    [['Velocidad','vel'],['Tiempo','tiempo'],['FC','fc'],['VTI','vti']].map(x =>
-      '<button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:12px;"' +
-      dis + ' data-dop-herr="' + x[1] + '">' + x[0] + '</button>').join('') +
-    '</div>';
-  /* Las cuatro válvulas, derivadas de `_DOP_VALVULAS`. Tocar la abierta la CIERRA y vuelve a
-     las filas genéricas — `dopModo` alterna, igual que `medToggle`. */
+  let h = '';
+  /* ⚠️ SELECCIÓN PROGRESIVA: primero la válvula, después su tabla. Con `modo` en null no se
+     dibuja NINGUNA tabla — sólo los cuatro botones y la línea que dice qué hacer. Es lo que se
+     pidió (2026-09-24) y de paso saca de la pantalla los cinco campos genéricos, que no son de
+     ninguna válvula.
+     Tocar la válvula abierta la CIERRA y vuelve al selector: `dopModo` alterna, igual que
+     `medToggle`. Las cuatro salen de `_DOP_VALVULAS`, la misma lista que rotula la imagen
+     guardada, así que una tabla no puede decir una válvula distinta de la que estaba abierta. */
   h += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">' +
     _DOP_VALVULAS.map(V =>
       '<button type="button" class="btn ' + (E.modo === V.m ? 'btn-primary' : 'btn-ghost') +
@@ -55708,28 +55766,59 @@ function _dopRender() {
          '<button type="button" class="btn btn-ghost" style="padding:1px 8px;font-size:10.5px;" ' +
          'data-dop-acc="avisook">Conservar</button></div>';
   }
-  const F = _dopFilas();
-  h += '<table style="width:100%;border-collapse:collapse;font-size:12.5px;">';
-  F.forEach(f => {
-    const val = f[1] == null ? '—' : escHtml(f[1] + (f[2] ? ' ' + f[2] : ''));
-    const arm = f[4] && hay
-      ? ' <button type="button" class="btn btn-ghost" style="padding:0 6px;font-size:10px;" data-dop-armar="' + escHtml(f[3]) + '">medir</button>' : '';
-    const cor = f[3]
-      ? ' <button type="button" class="btn btn-ghost" style="padding:0 6px;font-size:10px;" data-dop-corr="' + escHtml(f[3]) + '">✏️</button>' : '';
-    const marcado = (E.destino && E.destino === f[3]) ? 'background:var(--bg3);' : '';
-    h += '<tr style="border-bottom:1px solid var(--border);' + marcado + '">' +
-         '<td style="padding:4px 6px;color:var(--text2);">' + escHtml(f[0]) + '</td>' +
-         '<td style="padding:4px 6px;font-weight:600;text-align:right;white-space:nowrap;">' + val + arm + cor + '</td></tr>';
-  });
-  h += '</table>';
+  /* Una tabla, un armador: el de arriba lo consumen la tabla de la válvula y la de las sueltas,
+     así que no pueden pintar distinto el mismo valor. */
+  const tabla = (filas) => {
+    let t = '<table style="width:100%;border-collapse:collapse;font-size:12.5px;">';
+    filas.forEach(f => {
+      const val = f[1] == null ? '—' : escHtml(f[1] + (f[2] ? ' ' + f[2] : ''));
+      const arm = f[4] && hay
+        ? ' <button type="button" class="btn btn-ghost" style="padding:0 6px;font-size:10px;" data-dop-armar="' + escHtml(f[3]) + '">medir</button>' : '';
+      const cor = f[3]
+        ? ' <button type="button" class="btn btn-ghost" style="padding:0 6px;font-size:10px;" data-dop-corr="' + escHtml(f[3]) + '">✏️</button>' : '';
+      const marcado = (E.destino && E.destino === f[3]) ? 'background:var(--bg3);' : '';
+      t += '<tr style="border-bottom:1px solid var(--border);' + marcado + '">' +
+           '<td style="padding:4px 6px;color:var(--text2);">' + escHtml(f[0]) + '</td>' +
+           '<td style="padding:4px 6px;font-weight:600;text-align:right;white-space:nowrap;">' + val + arm + cor + '</td></tr>';
+    });
+    return t + '</table>';
+  };
 
-  if (E.destino) {
-    h += '<div style="margin-top:6px;font-size:11px;color:var(--accent2);">Midiendo para <b>' +
-         escHtml(_DOP_ROT[E.destino] || E.destino) + '</b> — la próxima medición cae ahí.</div>';
+  const F = _dopFilas();
+  if (F.length) {
+    h += tabla(F);
+    if (E.destino) {
+      h += '<div style="margin-top:6px;font-size:11px;color:var(--accent2);">Midiendo para <b>' +
+           escHtml(_DOP_ROT[E.destino] || E.destino) + '</b> — la próxima medición cae ahí.</div>';
+    }
+  } else {
+    h += '<div style="font-size:11.5px;color:var(--text2);line-height:1.5;">' +
+         'Elegí una válvula para ver sus campos y medir sobre esta imagen.</div>';
   }
+
+  /* ⚠️ LAS MEDICIONES SIN CAMPO ARMADO SE MUESTRAN IGUAL, y esta mitad no es opcional.
+     `_dopCapturar` cae en las filas genéricas cuando nadie armó un destino, y eso sigue siendo
+     alcanzable: las herramientas del visor se pueden elegir desde la barra lateral sin tocar el
+     cajón. Sin este bloque esas mediciones existirían en el estado y NO se verían por ningún
+     camino — el médico mide y el número desaparece. Sólo aparece cuando hay algo: una tabla de
+     guiones bajo el rótulo «sin asignar» entrena a ignorarla. */
+  const S = _dopFilasSueltas();
+  if (S.length) {
+    h += '<div style="margin-top:10px;font-size:10.5px;color:var(--text2);">' +
+         'Mediciones sin asignar a un campo' + (F.length ? ' — armá una fila con «medir» para que caigan ahí' : '') +
+         '</div>' + tabla(S);
+  }
+
   h += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;">' +
     '<button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" data-dop-acc="limpiar">🗑️ Limpiar</button>' +
-    '<button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" data-dop-acc="guardar">📷 Guardar en biblioteca</button>' +
+    /* ⚠️ LA COMPUERTA MIRA LAS DOS TABLAS. Escrita sólo sobre la de la válvula, un estudio con
+       mediciones sin asignar y sin válvula elegida mostraba los valores en pantalla y NO ofrecía
+       ningún control para guardarlos — y desde que el panel vive sólo dentro del visor, la
+       biblioteca es la única salida: esas filas se perdían al cerrar. Es el defecto que este
+       mismo cambio enuncia al eliminar los botones genéricos, dado vuelta. */
+    (F.length || S.length
+      ? '<button type="button" class="btn btn-primary" style="padding:4px 10px;font-size:12px;" data-dop-acc="guardar">💾 Guardar</button>'
+      : '') +
     '</div>';
   h += '<div style="margin-top:8px;font-size:10px;color:var(--text2);line-height:1.45;">' +
     _dopDisc().map(t => escHtml(t)).join('<br>') + '</div>';
@@ -55748,17 +55837,17 @@ window._dopRender = _dopRender;
    El oyente va EN EL CONTENEDOR y se registra UNA sola vez: `_dopRender` reescribe el
    `innerHTML` en cada repintado, así que enganchar por botón acumularía un oyente por pintada.
    Es la misma delegación que usan la grilla de imágenes y la tira. */
-let _dopObsPuesto = false;
+/* Se recuerda EL NODO al que se ató, no un booleano: el cajón ya no se muda, pero un booleano
+   deja el oyente sin reponer si algún día el nodo se recrea —y eso no daría error, sólo un panel
+   que deja de responder—. Guardando el nodo, la comparación se vuelve verdadera sola. */
+let _dopObsNodo = null;
 function _dopObservar() {
-  if (_dopObsPuesto) return;
   const cont = document.getElementById('dop-cajon');
-  if (!cont) return;
-  _dopObsPuesto = true;
+  if (!cont || _dopObsNodo === cont) return;
+  _dopObsNodo = cont;
   cont.addEventListener('click', ev => {
-    const b = ev.target && ev.target.closest ? ev.target.closest('[data-dop-herr],[data-dop-modo],[data-dop-pvc],[data-dop-armar],[data-dop-corr],[data-dop-acc]') : null;
+    const b = ev.target && ev.target.closest ? ev.target.closest('[data-dop-modo],[data-dop-pvc],[data-dop-armar],[data-dop-corr],[data-dop-acc]') : null;
     if (!b || !cont.contains(b) || b.disabled) return;
-    const g = b.getAttribute('data-dop-herr');
-    if (g) { dopHerr(g); return; }
     const m = b.getAttribute('data-dop-modo');
     if (m) { dopModo(m); return; }
     const pv = b.getAttribute('data-dop-pvc');
@@ -55784,8 +55873,24 @@ function _dopObservar() {
    la biblioteca y desde ahí puede ir al PDF— sin decir que la severidad por PHT es orientativa
    es «un número sin su reparo», que es lo que este archivo persigue desde la nota del NT-proBNP.
    Es la misma decisión que la diana del strain, que quema su método en el PNG. */
+/* ⚠️ LA IMAGEN LLEVA LAS DOS TABLAS, la de la válvula Y las «sin asignar». Estuvo un rato
+   llevando sólo la primera, con un comentario acá mismo que afirmaba «sale de `_dopFilas`, la
+   misma lista que pinta el panel, así que lo guardado no puede decir otra cosa que lo que el
+   médico vio». Desde la selección progresiva el panel pinta DOS listas, así que ese invariante
+   se rompió en el mismo commit que dejó escrito el comentario: la pantalla mostraba una
+   Velocidad medida sin armar campo y la imagen que va a la biblioteca —y de ahí al PDF— no la
+   llevaba, ni en los píxeles ni en el dato. `_dopFilasTodas` es ahora la única lista y la
+   consumen el panel, la imagen y la meta. */
+function _dopFilasTodas() {
+  const F = _dopFilas(), S = _dopFilasSueltas();
+  if (!S.length) return F;
+  /* El separador se dibuja como rótulo suelto —sin valor— para que no se lea como una fila
+     medida que dio guion. La clave `__sep` es lo que lo distingue en los dos dibujantes. */
+  return F.concat([['Mediciones sin asignar a un campo', null, '', '__sep', false]], S);
+}
+
 function _dopCanvas() {
-  const F = _dopFilas(), E = _dopEstado();
+  const F = _dopFilasTodas(), E = _dopEstado();
   const W = 640, pad = 22, filaH = 30, cabH = 46;
   const discLineas = [];
   _dopDisc().forEach(t => {
@@ -55809,6 +55914,14 @@ function _dopCanvas() {
   let y = cabH;
   c.font = '14px system-ui, sans-serif';
   F.forEach((f, i) => {
+    if (f[3] === '__sep') {
+      c.fillStyle = '#6b7280'; c.textAlign = 'left';
+      c.font = 'bold 11.5px system-ui, sans-serif';
+      c.fillText(f[0], pad, y + 3);
+      c.font = '14px system-ui, sans-serif';
+      y += filaH;
+      return;
+    }
     if (i % 2 === 0) { c.fillStyle = '#f3f4f6'; c.fillRect(pad - 6, y - 16, W - 2 * (pad - 6), filaH - 4); }
     c.fillStyle = '#374151'; c.textAlign = 'left';
     c.fillText(f[0], pad, y + 3);
@@ -55826,21 +55939,89 @@ function _dopCanvas() {
 }
 window._dopCanvas = _dopCanvas;
 
+/* ── LA IMAGEN ACTUAL CON SU TABLA DEBAJO ─────────────────────────────────────────────────
+   Lo que «Guardar» manda a la biblioteca es el CUADRO QUE SE ESTÁ MIRANDO —con las líneas de
+   medición encima— y, pegada abajo, la tabla de la válvula abierta. Decisión de Maicol
+   (2026-09-24): la asociación entre la imagen y sus números queda QUEMADA, así que sobrevive al
+   PDF, al backup y a mirarla fuera de la app, que es donde una referencia por id no sirve.
+
+   Se compone desde el CANVAS, no desde el JPEG del archivo, por lo mismo que
+   `medCapturarConMedicion`: hay que superponer dos capas. Y no cuesta calidad — `cineIr` dibuja
+   el bitmap 1:1 en un canvas del tamaño exacto del bitmap, así que copiarlo es copia de píxeles.
+
+   El overlay se compone SÓLO si mide exactamente lo mismo que la base: escalarlo movería cada
+   medición respecto de la anatomía que describe.
+
+   FALLA HACIA LA TABLA SOLA. Sin visor —o con el canvas en cero— se guarda `_dopCanvas()`, que
+   es lo que esta función guardaba antes: perder la imagen es peor que perder la medición. */
+function _dopCanvasConImagen() {
+  const cvTabla = _dopCanvas();
+  let base = null, med = null;
+  try {
+    if (typeof _medPintar === 'function') _medPintar();   // overlay al día, como en la captura
+    base = (typeof _medEl === 'function') ? _medEl('cine-cv') : null;
+    med  = (typeof _medEl === 'function') ? _medEl('cine-med') : null;
+  } catch (e) { base = null; med = null; }
+  if (!base || !base.width || !base.height) { cvTabla._dopSinImagen = true; return cvTabla; }
+
+  const W = Math.max(base.width, cvTabla.width);
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = base.height + cvTabla.height;
+  const c = cv.getContext('2d');
+  c.fillStyle = '#ffffff'; c.fillRect(0, 0, cv.width, cv.height);
+  c.drawImage(base, Math.round((W - base.width) / 2), 0);
+  if (med && med.width === base.width && med.height === base.height) {
+    c.drawImage(med, Math.round((W - base.width) / 2), 0);
+  }
+  c.drawImage(cvTabla, Math.round((W - cvTabla.width) / 2), base.height);
+  return cv;
+}
+window._dopCanvasConImagen = _dopCanvasConImagen;
+
+/* Los valores de la válvula abierta, como DATO, para adjuntarlos al registro. Sale de
+   `_dopFilas` —la misma lista que pinta el panel y que se quema en la imagen— así que lo
+   adjuntado no puede decir otra cosa que lo que el médico vio. */
+function _dopMetaGuardado() {
+  const E = _dopEstado();
+  const vals = {};
+  let sueltas = false;
+  _dopFilasTodas().forEach(f => {
+    if (f[3] === '__sep') { sueltas = true; return; }
+    if (f[1] == null) return;
+    vals[(sueltas ? 'Sin asignar · ' : '') + f[0]] = f[1] + (f[2] ? ' ' + f[2] : '');
+  });
+  /* ⚠️ LOS DESCARGOS VIAJAN CON EL DATO, no sólo quemados en los píxeles. Si estos números son
+     recuperables como dato —que es la razón de que `meta` exista— tienen que llevar su reparo
+     como dato: `meta` se persiste íntegra, entra al backup y puede leerse sin ver la imagen.
+     Un «Severidad IAo: Moderada (orientativo)» sin la guía que lo sostiene, ni la línea que
+     dice que esto no escribe ningún campo del informe, es «un número sin su reparo» otra vez. */
+  const m = { modulo:'doppler', valvula:E.modo, valores:vals, descargos:_dopDisc() };
+  if (E.modo === 'tri') m.pvc = E.tri.pvc;
+  return m;
+}
+
 async function dopGuardarBiblioteca() {
-  const F = _dopFilas();
   /* Con la tabla vacía no se guarda nada: una imagen con cinco guiones ocupa lugar en la
-     biblioteca y no dice nada. Se cuenta lo MEDIDO, no las filas. */
-  if (!F.some(f => f[1] != null)) {
+     biblioteca y no dice nada. Se cuenta lo MEDIDO, no las filas — y se cuentan LAS DOS tablas:
+     mirando sólo la de la válvula, un panel con mediciones sin asignar a la vista respondía
+     «No hay ninguna medición todavía», que es un mensaje falso sobre lo que la pantalla muestra. */
+  if (!_dopFilasTodas().some(f => f[3] !== '__sep' && f[1] != null)) {
     if (typeof toast === 'function') toast('No hay ninguna medición todavía.');
     return;
   }
   try {
-    const cv = _dopCanvas();
+    const cv = _dopCanvasConImagen();
     const nom = 'Doppler' + _dopSufijoModo();
-    const r = await _docGuardarEnBiblioteca(cv, nom);
-    if (r && r.ok && typeof toast === 'function') toast('📷 Tabla guardada en la biblioteca.');
+    const r = await _docGuardarEnBiblioteca(cv, nom, _dopMetaGuardado());
+    /* El aviso DICE si la imagen entró: el compositor cae a la tabla sola cuando no hay cuadro
+       que componer, y afirmar «imagen y mediciones» sobre una tabla pelada sería el mismo gesto
+       con dos resultados distintos y ninguna señal de cuál ocurrió. */
+    if (r && r.ok && typeof toast === 'function')
+      toast(cv._dopSinImagen
+        ? '💾 Mediciones guardadas en la biblioteca — sin la imagen: no había cuadro abierto.'
+        : '💾 Imagen y mediciones guardadas en la biblioteca.');
   } catch (e) {
-    if (typeof toast === 'function') toast('No se pudo guardar la tabla.');
+    if (typeof toast === 'function') toast('No se pudo guardar la imagen.');
   }
 }
 window.dopGuardarBiblioteca = dopGuardarBiblioteca;
@@ -72246,8 +72427,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260923-0719';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790158786494;                 /* eco-build-ms */
+const ECO_BUILD    = '20260924-0805';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790247937219;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -72333,7 +72514,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260923-0719</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260924-0805</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

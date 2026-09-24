@@ -4,7 +4,125 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## El cajón Doppler vive SÓLO dentro del visor, y «Guardar» reemplazó al ancla (2026-09-24)
+
+Rediseño deliberado, decidido por Maicol, que **revierte la conclusión de la entrada siguiente**:
+allá se midió que `#dop-casa` era el único acceso a lo medido sin visor y por eso no se tocó.
+Lo que cambió no es la medición sino el **requisito**: ese acceso ya no se quiere, y lo reemplaza
+una imagen en la biblioteca.
+
+| | antes | hoy |
+|---|---|---|
+| dónde vive el nodo | se **mudaba** entre `#dop-casa` y `#cine-dop-slot` | **nace** en `#cine-dop-slot` |
+| quién lo muestra sin visor | el botón 📊 (`E.abierto`) | **nadie** — no existe «sin visor» |
+| acceso a lo medido tras cerrar | reabrir el panel con 📊 | la **imagen guardada** en la biblioteca |
+| al abrir el grupo Doppler | tabla genérica de cinco filas | **sólo** los cuatro botones de válvula |
+
+Eliminados: `#dop-casa`, `#dop-btn`, `dopToggle`, `_dopUbicar`, `dopHerr` y el campo `abierto`.
+
+### Que el panel desaparezca al cerrar dejó de ser una línea de código
+
+`#cine-ov` es `position:fixed;inset:0` y se esconde entero: con el cajón adentro, «se cierra el
+visor → desaparece» es una **consecuencia del árbol**, no algo que alguien tenga que acordarse de
+hacer. Verificado tras `cineCerrar()`: el nodo existe, mide 0×0 y no queda un solo rastro en la
+pestaña Imágenes — y `_dop` intacto, porque esconder no es limpiar.
+
+### Sacar la tabla genérica de la pantalla la volvía invisible, no inexistente
+
+`_dopCapturar` cae en `E.gen.*` cuando nadie armó un campo, y ese camino **sigue vivo**: las
+herramientas de Doppler están en la barra lateral del visor y se pueden elegir sin tocar el cajón.
+Con la tabla genérica fuera de la pantalla, esos números existirían en el estado y no se verían
+por ningún camino. Por eso hay `_dopFilasSueltas()`, que muestra **sólo las que tienen valor**
+bajo «Mediciones sin asignar» — una tabla de guiones bajo ese rótulo entrena a ignorarla.
+
+### ⚠️ EL PANEL PINTA DOS TABLAS, Y LO GUARDADO SE LLEVABA UNA
+
+Lo cazó `/sharp-edges`, no la lectura, y el detalle importa: `_dopCanvas` y `_dopMetaGuardado`
+seguían saliendo de `_dopFilas()` **con un comentario recién escrito que afirmaba** «sale de
+`_dopFilas`, la misma lista que pinta el panel, así que lo guardado no puede decir otra cosa que
+lo que el médico vio». Ese invariante se rompió en el mismo commit que dejó escrito el comentario.
+Hoy la lista única es **`_dopFilasTodas()`** —válvula + separador + sueltas— y la consumen la
+imagen y la meta. Y la compuerta del botón mira las dos: escrita sólo sobre la válvula, un panel
+con sueltas y sin válvula elegida **mostraba valores que ningún control podía guardar**, y desde
+que no hay `#dop-casa` la biblioteca es la única salida.
+
+### «Guardar» compone el CUADRO ACTUAL con la tabla debajo
+
+`_dopCanvasConImagen`: `#cine-cv` + el overlay `#cine-med` —sólo si mide exactamente lo mismo,
+escalarlo movería cada medición respecto de la anatomía— y `_dopCanvas()` pegado abajo. No cuesta
+calidad: `cineIr` dibuja el bitmap 1:1, así que componerlo es copia de píxeles. Falla hacia la
+tabla sola, **y el toast lo dice**: el mismo gesto con dos resultados y ninguna señal de cuál
+ocurrió es el defecto que este archivo ya documenta para la captura del visor.
+
+Las mediciones viajan además como **dato** en `rec.meta` (parámetro nuevo de `_bibGuardarJpeg`,
+bajo clave fija y nunca por spread, que pisaría `id`/`uuid`/`tipo`). **Con sus descargos
+adentro**: si son recuperables como dato, su reparo tiene que serlo también — un «Severidad IAo:
+Moderada (orientativo)» en un backup, sin la guía que lo sostiene, es un número sin su reparo.
+
+### ⚠️ LA IMAGEN GUARDADA PUEDE NO SOSTENER LA TABLA QUE LLEVA DEBAJO
+
+El cajón **acumula entre imágenes a propósito** —es su razón de ser— así que el cuadro que se
+guarda puede no ser aquel sobre el que se midió la mitad de las filas. Antes no importaba: lo
+guardado era una tabla sola, que no afirmaba nada sobre ninguna imagen. Desde que van juntas, la
+yuxtaposición atribuye **sin decir una palabra**. `_dopAvisoOtrasImgs()` lo declara, en la
+pantalla y quemado en la imagen.
+
+- **Se indexa por un SERIAL del loop, no por su nombre.** `medImagenAbrir` le pone a **toda** foto
+  de un slot el mismo rótulo literal, y el import de backup normaliza a «cineloop» lo que venga
+  sin nombre: con el nombre como clave, dos imágenes distintas colapsan en una y el aviso se
+  apaga justo en las que más lo necesitan. El serial se estampa perezosamente sobre el objeto del
+  loop y se guarda **el número, no el loop** — retenerlo mantendría vivos los 17 MB de fragmentos
+  que `cineCerrar` suelta a propósito.
+- **Falla cerrado por las dos puntas**, y la segunda estuvo mal escrita un rato: sin saber cuál es
+  la imagen actual se declara, y **sin ninguna procedencia registrada pero con valores en la
+  tabla, también** — ése es el caso de una tabla cargada entera a mano con ✏️, que `dopCorregir`
+  no anota en ningún lado.
+- **La granularidad es el CINELOOP, no el cuadro, y es una decisión declarada.** Medir la
+  envolvente aórtica en un latido y el TSVI en otro es el flujo **normal**, así que un aviso por
+  cuadro saldría en casi todas las tablas y dejaría de leerse a la tercera.
+- **Contrapartida asumida:** reabrir el mismo archivo da un serial nuevo, así que medir, cerrar,
+  reabrir esa imagen y guardar dispara el aviso sobre una tabla que sí corresponde. Es la
+  dirección segura.
+
+### Al reescribir los casos: dos trampas propias, las dos de denominador
+
+- **`_dopLimpiar` CONSERVA la válvula elegida**, así que leer el estado de fábrica después de
+  llamarlo mide otra cosa. Medido: con esa versión, la mutación que hace nacer el cajón con la
+  aórtica ya abierta —o sea la que anula la selección progresiva entera— **pasaba en verde**. Hay
+  que soltar `_dop = null` y repintar.
+- **Cada `abrir()` construye un loop NUEVO**, aunque el fixture se llame igual. La condición «con
+  una sola imagen medida no hay aviso» puesta después de la segunda apertura daba rojo sobre
+  código correcto: medir sobre dos aperturas distintas **ya es** acumulación. Va en el paso donde
+  hay una sola imagen abierta.
+
+Y **el cajón se busca DESPUÉS de abrir el visor**: antes de la primera apertura el nodo no existe,
+así que leerlo arriba daba `null` con `--solo` y el nodo de una corrida anterior dentro del suite.
+
+**Once mutaciones, cada una en su condición**: el cajón naciendo con válvula, `_dopFilasSueltas`
+vacía, `_dopVisible` sin exigir visor, el compositor devolviendo la tabla sola, la meta sin viajar,
+el aviso de acumulación anulado, `_dopCanvas` y `_dopMetaGuardado` de vuelta a una sola lista, la
+compuerta del botón mirando sólo la válvula, el aviso fallando abierto con `imgs` vacío, y la meta
+sin descargos.
+
+**Backticks dentro del cuerpo de un caso: van SESENTA Y TRES**, tres en esta sesión y las tres en
+comentarios recién escritos.
+
+### Queda declarado y sin resolver
+
+**Con dos vistas abiertas, la visibilidad del cajón la decide el grupo de la vista ACTIVA.**
+`_dop` es estado de módulo y `medGrupo` es por vista, así que activar la vista B en 2D esconde el
+panel aunque la A —donde se está midiendo— tenga el grupo Doppler abierto. No se pierde nada
+(`_dop` persiste) pero el panel aparece y desaparece por una razón que no está a la vista. Es
+preexistente —el slot ya era compartido— y ahora pesa más, porque el cajón es el único acceso.
+
+
 ## Auditoría de la barra de Imágenes — y el cajón Doppler NO está duplicado (2026-09-24)
+
+> **⚠️ SUPERADA por la entrada de arriba, el mismo día.** Lo que midió sigue siendo cierto —no
+> había duplicación y `#dop-casa` era el único acceso sin visor— y por eso no se tocó nada
+> entonces. Lo que cambió después es el **requisito**: Maicol decidió que ese acceso no se quiere,
+> y el reemplazo es la imagen en la biblioteca. Se conserva porque la medición del conteo de nodos
+> y la auditoría de los cuatro botones siguen valiendo.
 
 El pedido decía «el panel Doppler aparece duplicado: una instancia a nivel general de la tab
 Imágenes y otra dentro del visor; la de nivel general no debería existir». **Medido antes de
@@ -54,6 +172,12 @@ cajón simplemente **no vuelve nunca** y nadie se entera hasta que un médico bu
 
 
 ## El cajón Doppler vivía DETRÁS del overlay del visor — y sus botones eran inalcanzables (TC-249/250)
+
+> **⚠️ PARCIALMENTE SUPERADA (2026-09-24).** El diagnóstico —los botones «medir» eran inalcanzables
+> porque `#cine-ov` tapa la pestaña— sigue siendo la razón por la que el cajón vive dentro del
+> visor. Lo que ya NO aplica es la mudanza (`_dopUbicar` no existe) ni la tabla «Dos reglas de
+> visibilidad»: hoy hay **una** regla, el grupo de la barra lateral, y el botón 📊 se eliminó. Ver
+> la entrada «El cajón Doppler vive SÓLO dentro del visor», arriba.
 
 El pedido decía «corregir la UX: que el cajón se muestre sólo con un visor abierto y el modo
 Doppler activo». Medido antes de tocar nada, eso era **imposible de implementar literal** — y al
