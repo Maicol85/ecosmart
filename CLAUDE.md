@@ -4,7 +4,133 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
-## El botón 🫀 CC es un INSERTO DE TEXTO FIJO (2026-09-24, tercera decisión de la jornada)
+## El botón 🫀 CC abre un CUADRO PROPIO (2026-09-24, cuarta decisión de la jornada)
+
+Decisión de Maicol, y **resuelve de raíz lo que las dos versiones anteriores parchaban**. El
+template ya no vive dentro de `informe_texto`: vive en `#cc_segmentario`, un `<textarea>` propio
+dentro de `#cc-seg-wrap`, arriba del informe. El botón es un **toggle**: primer toque abre con el
+template cargado, segundo cierra y **descarta** sin preguntar.
+
+### Por qué cambió, y por qué NO hubo que tocar `generarInforme`
+
+«Generar Informe» y las tres pastillas de estilo son regeneraciones **explícitas** —`_infEscribir`
+con `silencioso=false` hace `lineasNuevas.slice()`— así que reescriben `informe_texto` entero y se
+llevaban el template. En un campo propio eso es **imposible por construcción**: no comparten
+textarea. Medido el aislamiento por los tres caminos, incluido el que la versión anterior no podía
+cerrar —con el estudio reabierto, un refresco silencioso de VEXUS o Pericardio hacía que
+`_infMerge` descartara el párrafo sin una palabra—.
+
+### El `id` es lo que da las tres columnas gratis
+
+`guardarInforme` barre `textarea[id]` y lo guarda en `campos`; `limpiarCampos` barre `textarea` y
+lo vacía; las rutas de restauración lo reponen con el barrido genérico. El prefijo `cc_` no está
+en `_CAMPOS_FUERA_DEL_ESTUDIO`. Por eso es un `<textarea>` con id y no un div editable.
+
+### ⚠️ LA VISIBILIDAD SE DERIVA DEL CONTENIDO, y por eso cerrar DESCARTA
+
+Con una bandera persistida aparte, «cerrado» y «tiene texto» pueden discrepar, y la discrepancia
+es muda en las dos direcciones: un campo oculto CON TEXTO que `guardarInforme` guarda y el PDF
+imprime es la fuga de los `input[type=hidden]` que este archivo documenta tres veces. Derivada no
+puede pasar. **No existe el estado «cerrado con contenido».**
+
+`ccSegSync` corre en **cuatro** momentos y los cuatro hacen falta: `RECALC_MODULOS` (restauración),
+el final de `limpiarCampos` (que no pasa por ese embudo), el `onchange` del textarea, y el
+**arranque** —`_autosaveRestore` tiene tres salidas tempranas, así que en un recargar donde el
+navegador restaura el formulario solo, nadie repintaba—.
+
+**`onchange` y NUNCA `oninput`**: colgado del `input`, un Ctrl+A + Supr esconde el cuadro con el
+cursor adentro, a mitad de la edición. Es la misma razón por la que `_refrescarInformeSiGenerado`
+va en `onchange`.
+
+### ⚠️ `[hidden]` NO ESCONDÍA NADA — tercera vez, y la primera que un caso lo dejó pasar
+
+`.fg { display:flex }` vive en la hoja del **autor** y `[hidden]{display:none}` en la del
+**navegador**, que pierde siempre. Medido: `hidden === true`, `display: flex` y **156 px de alto
+real** — el cuadro se dibujaba en todos los estudios, con su label y su placeholder, y
+`ccToggleSegmentario` decía por toast «cerrado» sobre algo que seguía en pantalla.
+
+**Y TC-217 pasaba EN VERDE**, porque medía `w.hidden === true` en vez de
+`getComputedStyle(w).display`. Este archivo ya tenía escrita la regla —«en los casos, medir
+`getComputedStyle(...).display`, no el atributo»— desde el banner de versión, y aun así. Hoy hay
+`.fg[hidden]{display:none}` junto a las otras tres reglas de rescate, el caso mide las dos cosas
+—el estilo **y** el atributo, porque de ése cuelga el lector de pantalla— y la mutación que borra
+la regla cae por **cuatro** condiciones.
+
+### ⚠️ `sv()` NO TRIMEA Y `ccSegSync` SÍ: dos predicados sobre el mismo campo
+
+Con `cc_segmentario` en `"\n   "` —un Enter que quedó al borrar a mano, un pegado desde Word— el
+cuadro se escondía en pantalla, el detalle de Guardados y el PPT lo omitían, y **el PDF firmado
+imprimía la barra «ANALISIS SEGMENTARIO» con un párrafo vacío debajo**. Es el campo oculto que el
+PDF igual imprime, entrando por la diferencia entre dos maneras de preguntar lo mismo. Un solo
+predicado: `sv('cc_segmentario').trim()`. La mutación imprime `escondido=true barraEnPDF=true`.
+
+### El PDF: bloque propio, no concatenado
+
+Se dibuja con `drawBar('Analisis segmentario')` justo **antes** del bloque `15-16. INFORME`, con el
+mismo estilo de párrafo. Bloque propio y no pegado al narrativo porque internamente son dos campos
+y fundirlos haría que el documento diga una cosa y el formulario otra.
+
+- **El título no se agrega a las ocho plantillas de `_TBL`**: se pasa literal y `drawBar` resuelve
+  el resto —`barUpper` lo pone en mayúsculas donde la plantilla lo pide—. Una clave nueva serían
+  ocho ediciones para un texto que ninguna plantilla necesita variar.
+- **Va sin acento a propósito.** `drawBar` dibuja con `doc.text` **directo**, la única ruta sin
+  saneador — es cómo los umbrales de severidad valvular salieron ilegibles en todos los PDF
+  firmados. El papel dice «ANALISIS SEGMENTARIO» y la app «Análisis segmentario», igual que
+  `drawBar('TECNICA Y SEDACION')`.
+- **Está del lado correcto del `if (_AJ.medir) return`**: cuenta como cuerpo y lo comprime la
+  escalera A4, igual que el informe.
+- **En el PDF los placeholders salen `Septum interauricular:.....`, sin el espacio.** `amiloSanPDF`
+  tiene `.replace(/\s+([.,;:)])/g, '$1')` —quita el espacio delante de un signo— y estos empiezan
+  con punto. Se declara en vez de special-casear un saneador del que dependen 70.000 líneas.
+
+### Dos superficies más, y se agregaron aunque el pedido hablara sólo del PDF
+
+`verDetalleInforme` y la diapositiva del informe del PPT. Sin eso, la app mostraría un estudio
+guardado **sin** la sección que el PDF de ese mismo estudio imprime — una superficie que esconde lo
+que otra firma. En el PPT va rotulada y separada por un renglón, no fundida.
+
+### El texto: cuatro segmentos y DOS placeholders que no afirman nada
+
+Fuente: **Corbett L, Forster J, Gamlin W, et al. Echo Res Pract 2022;9:10** (BSE), Tabla 4 —un
+informe de ejemplo con la redacción de cada segmento normal—.
+
+**Los dos septum van con puntos suspensivos y SIN estado.** La Tabla 4 dice «Atrial septum intact»,
+y acá eso sería una afirmación que la app **contradice en el mismo informe firmado**: el emisor de
+CIA/CIV publica «CIA. Tamaño 18 × 4 mm…» y el del foramen «Foramen oval permeable». Como
+placeholder no afirma nada. **Y el ductus se sacó por completo** —ni afirmación ni placeholder—
+porque su emisor publica «Ductus arterioso permeable…». Por lo mismo se fueron los «no dilatada»:
+el tamaño de las cámaras tiene sus propias líneas, que llevan el número que las sostiene.
+
+«Al menos tres venas pulmonares» es lo que dice la guía: en un transtorácico de adulto las cuatro
+rara vez se demuestran.
+
+### Once mutaciones, diez en su condición y una declarada
+
+Volver a insertar en `informe_texto`, cerrar sin descartar, el PDF sin el bloque, el bloque
+**después** del informe (`seg=34 informe=23`), ductus de vuelta en el texto, «íntegro» de vuelta en
+los septum, sin la columna de `limpiarCampos`, sin la de `RECALC_MODULOS`, sin la regla
+`.fg[hidden]` y el PDF sin `.trim()`.
+
+**La que sobrevive está declarada**: sacar el `ccSegSync` del arranque. El harness recarga la
+página y el caso llama a `__t.limpiar()`, que sincroniza; el escenario que esa línea cubre —el
+navegador restaurando el formulario solo en un recargar— no se puede producir desde el harness.
+
+### Lo que queda declarado y sin hacer
+
+- **`cc_segmentario` no está en `LAB_XLS_MAP`**, así que no viaja al Excel del Laboratorio ni
+  vuelve de una reimportación. Es consistente con pericardio y POP; queda como decisión, no olvido.
+- **Cerrar no pide confirmación aunque el médico haya editado**, y no hay deshacer: asignar
+  `.value` por código no deja entrada en la pila del textarea. Es decisión explícita de Maicol
+  —campo aislado, bajo riesgo— y se aparta del patrón de `resetETTConfirmar`.
+
+
+## ~~El botón 🫀 CC es un INSERTO DE TEXTO FIJO~~ (2026-09-24) — SUPERADA el mismo día
+
+> **⚠️ SUPERADA POR LA ENTRADA DE ARRIBA.** El template ya no se inserta en `informe_texto`: vive
+> en un campo propio. Lo que sigue vale para entender **por qué** se cambió —los tres caminos que
+> reescriben el informe, medidos— y para el texto, que es el mismo salvo los dos septum. Todo lo
+> que habla de insertar en el cursor, de `_ccUltimoFoco` o de la selección describe código
+> ELIMINADO.
 
 Simplificación decidida por Maicol, y **revierte casi todo lo que la entrada de abajo describe**.
 El botón no lee datos, no decide si mostrarse, no combina hallazgos y no tilda ninguna casilla:

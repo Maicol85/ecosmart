@@ -17406,25 +17406,25 @@ caso('TC-216', 'Slots DICOM: medir tras reabrir el estudio, y el cartel cuando n
 `);
 
 
-/* == TC-217 - Boton CC: inserta un template FIJO, y no lee ni un dato ========================
-   REESCRITO el 2026-09-24. El caso anterior fijaba el contrato del 70771b1 -compuerta por datos,
-   agrupacion por casilla, tilde masivo- y daba rojo sobre el codigo que se vino a escribir. Se
-   reescribe entero en vez de parchearlo: lo que cambio no son los detalles sino la PREGUNTA que
-   el boton contesta. Decision de Maicol.
+/* == TC-217 - Boton CC: un CUADRO APARTE, aislado del informe narrativo =====================
+   TERCERA reescritura del mismo dia, y las tres veces la senal fue que el caso se pusiera rojo
+   sobre el codigo que se venia a escribir: lo que cambia no son los detalles sino la PREGUNTA
+   que el boton contesta. Hoy es un toggle que abre un campo PROPIO (#cc_segmentario) con el
+   template adentro, y que al tocarlo de nuevo lo cierra DESCARTANDO lo que tenga.
 
-   Hoy el boton inserta CC_TEMPLATE_SEGMENTARIO y nada mas: esta SIEMPRE visible, no lee ningun
-   modulo de CC, no tilda ninguna casilla, no combina hallazgos y no tiene logica de "ya existe".
-   Lo que el caso vigila es justamente eso -que NO haga de mas-, que es lo unico que puede volver
-   sin que nadie lo note: la maquinaria vieja tenia diez funciones y un Proxy.
+   LO QUE ESTE CASO EXISTE PARA FIJAR ES EL AISLAMIENTO. «Generar Informe» y las tres pastillas
+   de estilo son regeneraciones EXPLICITAS -_infEscribir con silencioso=false hace
+   lineasNuevas.slice()- y se llevaban el template cuando vivia dentro de informe_texto. En un
+   campo propio eso es imposible por construccion, y por eso NO se toco ninguno de esos caminos.
+   Se prueban los TRES: generar, las tres pastillas, y el refresco silencioso con el estudio
+   reabierto, que era el que se disparaba sin aviso desde un onchange de VEXUS o Pericardio.
 
-   EL TEXTO esta cotejado con la Tabla 4 -informe de ejemplo- de Corbett L, Forster J, Gamlin W,
-   et al, "A practical guideline for performing a comprehensive transthoracic echocardiogram in
-   the congenital heart disease patient", Echo Res Pract 2022;9:10. El caso NO pina la oracion
-   entera: fija los CINCO segmentos que el analisis segmentario secuencial tiene que nombrar, mas
-   el "al menos tres venas pulmonares" de la guia, que es lo que impide que alguien lo "mejore"
-   afirmando las cuatro -en un transtoracico de adulto rara vez se demuestran-.
+   Y fija el texto: los cuatro segmentos, las DOS lineas de septum con puntos suspensivos -sin
+   estado, porque «integro» seria una afirmacion que el emisor de CIA/CIV contradice en el mismo
+   informe- y la AUSENCIA de ductus y de «no dilatada».
+   Fuente del texto: Corbett L, Forster J, Gamlin W, et al, Echo Res Pract 2022;9:10, Tabla 4.
    NO DEPENDE DEL PENDRIVE.                                                                   */
-caso('TC-217', 'Boton CC: inserta el template segmentario fijo, sin leer ni tildar nada', `
+caso('TC-217', 'Boton CC: cuadro aparte, aislado de Generar Informe y de los estilos', `
   return (async () => {
     const R = {};
     const toastOrig = window.toast; const tost = [];
@@ -17432,281 +17432,247 @@ caso('TC-217', 'Boton CC: inserta el template segmentario fijo, sin leer ni tild
     try {
       __t.limpiar();
       await new Promise(r=>setTimeout(r,300));
-      const b = document.getElementById('cc-integrar-btn');
-      const ta = document.getElementById('informe_texto');
-      R.existe = !!b && !!ta;
-      if (!b || !ta) return { extra: [['el boton y el informe existen', false, 'falta ' + (b ? 'informe_texto' : 'cc-integrar-btn')]] };
-
-      /* ⚠️ DENOMINADOR: LA PESTANA INFORME TIENE QUE ESTAR VISIBLE.
-         Medido: tras __t.limpiar() el harness deja tab-informe en display:none, y ahi ta.focus()
-         es un NO-OP -cero eventos de foco, document.activeElement no se mueve-. Con eso, la
-         mutacion que hace que el foco programatico del propio boton latchee _ccUltimoFoco
-         SOBREVIVIA: no puede latchear lo que nunca se enfoca. El caso medía en un estado donde
-         el defecto es imposible, que es el denominador de siempre con otra cara. */
       if (typeof showTab === 'function') showTab('informe');
-      await new Promise(r=>setTimeout(r,200));
-      let disparoFoco = 0;
-      const espiaFoco = () => { disparoFoco++; };
-      ta.addEventListener('focus', espiaFoco);
-      ta.blur(); ta.focus();
-      ta.removeEventListener('focus', espiaFoco);
-      R.focoRealAnda = disparoFoco === 1 && document.activeElement === ta;
-      ta.blur();
-      /* y se deshace lo que la sonda dejo: ese focus es legitimamente "foco del medico" para el
-         oyente, asi que sin esto la condicion de mas abajo mediria el foco que puso el caso.
-         _ccUltimoFoco es un var de nivel superior, o sea propiedad del objeto global. */
-      try { _ccUltimoFoco = null; } catch (e) {}
+      const b  = document.getElementById('cc-integrar-btn');
+      const w  = document.getElementById('cc-seg-wrap');
+      const ta = document.getElementById('cc_segmentario');
+      const inf = document.getElementById('informe_texto');
+      R.existe = !!b && !!w && !!ta && !!inf;
+      if (!R.existe) return { extra: [['boton, cuadro e informe existen', false,
+        'falta ' + [['cc-integrar-btn',b],['cc-seg-wrap',w],['cc_segmentario',ta],['informe_texto',inf]]
+          .filter(x => !x[1]).map(x => x[0]).join(',')]] };
 
-      /* -- 1 - SIEMPRE VISIBLE. Con el formulario recien limpiado -cero datos de CC- el boton
-         tiene que estar. Es la inversion exacta del contrato anterior, donde nacia oculto. */
-      R.visibleSinDatos = b.hidden === false && getComputedStyle(b).display !== 'none';
-      /* y no es una pastilla de estilo: eso es lo que impide que setEstiloInforme le ponga el
-         btn-primary de "activo" que las tres se pasan entre ellas. */
+      /* -- 1 - EL CUADRO ES OTRO CAMPO, no una parte del informe --
+         Es lo que hace imposible por construccion que las regeneraciones lo pisen, asi que se
+         afirma antes de probar nada: son dos textarea distintos y el de CC esta ARRIBA. */
+      R.sonDistintos = ta !== inf && ta.id !== inf.id;
+      R.arribaDelInforme = (w.compareDocumentPosition(document.getElementById('inf-wrap')) &
+                            Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+      /* ⚠️ SE MIDE EL ESTILO COMPUTADO, NO EL ATRIBUTO. La version anterior de este caso usaba
+         w.hidden === true y pasaba EN VERDE sobre un cuadro de 156 px de alto: la clase .fg trae
+         display:flex desde la hoja del AUTOR, y la regla [hidden]{display:none} vive en la del
+         NAVEGADOR, que pierde siempre. Este archivo ya lo documenta dos veces, con su regla:
+         medir getComputedStyle().display. El atributo se mira ADEMAS, porque de el cuelga el
+         lector de pantalla. */
+      const vis = () => getComputedStyle(w).display !== 'none';
+      R.cerradoAlArrancar = w.hidden === true && !vis() && ta.value === '';
+      R.botonSiempreVisible = b.hidden === false && getComputedStyle(b).display !== 'none';
       R.noEsPastilla = !b.classList.contains('estilo-pill') && !b.getAttribute('data-estilo');
-      const nar = document.querySelector('[data-estilo="narrativo"]');
-      R.pegadoALasPastillas = !!nar && nar.nextElementSibling === b;
-      const fr = document.getElementById('frases-btn');
-      const pinta = el => { const cs = getComputedStyle(el);
-        return [cs.backgroundColor, cs.color, cs.borderTopWidth, cs.borderTopColor,
-                cs.fontSize, cs.fontWeight, cs.borderRadius].join('|'); };
-      R.pintaCC = pinta(b); R.pintaFrases = fr ? pinta(fr) : '(sin frases)';
-      R.mismoEstiloQueFrases = !!fr && R.pintaCC === R.pintaFrases;
 
-      /* -- 1b - LA MAQUINARIA VIEJA NO PUEDE VOLVER POR LA PUERTA DE ATRAS --
-         Que el boton inserte texto no prueba que haya dejado de leer datos: las dos cosas
-         conviven sin contradecirse. Lo que lo fija es que las diez funciones no existan. */
-      R.restos = ['ccIntegrarTodas','ccIntegrarSync','ccSeccionesConDatos','_ccGruposDeSecciones',
-                  '_ccTieneDatosEnPantalla','_ccFormComoEstudio','_ccChkId','_ccAssertChks']
-                 .filter(f => typeof window[f] !== 'undefined').join(',');
-      R.sinMaquinariaVieja = R.restos === '';
-      /* _CC_SECS NO se toca: es la clasificacion del Laboratorio y del filtro de cohorte, y
-         nunca fue de este boton. Borrarla "de paso" es el riesgo de esta simplificacion.
-         ⚠️ Se lee POR NOMBRE y no por window: es un const de nivel superior, y esos NO crean
-         propiedad del objeto global -solo function y var lo hacen-. Escrito window._CC_SECS la
-         condicion daba false sobre un archivo perfectamente sano. */
-      R.ccSecsIntacto = (typeof _CC_SECS !== 'undefined') && Array.isArray(_CC_SECS) &&
-                        _CC_SECS.length === 19 && typeof _ccSecPred === 'function';
-      R.ccSecsDiag = (typeof _CC_SECS === 'undefined') ? 'no existe' : ('n=' + _CC_SECS.length);
-
-      /* -- 2 - INFORME VACIO: inserta el texto fijo -- */
-      R.antesDeTocar = ta.value.trim();
+      /* -- 2 - PRIMER TOQUE: abre con el template -- */
       b.click();
       await new Promise(r=>setTimeout(r,200));
+      R.abre = w.hidden === false && vis() && ta.value.trim() !== '';
+      R.aria = b.getAttribute('aria-expanded');
+      const NL = String.fromCharCode(10);
+      const lineas = ta.value.split(NL);
       const t1 = ta.value;
-      R.insertoEnVacio = R.antesDeTocar === '' && t1.trim() !== '';
-      /* los CINCO segmentos del analisis secuencial, mas el matiz de la guia */
       const tiene = s => t1.indexOf(s) >= 0;
       R.segmentos = {
-        situs:   tiene('situs visceroauricular solitus'),
-        venoso:  tiene('Conexion venosa sistemica normal') || tiene('Conexión venosa sistémica normal'),
-        pulmon:  tiene('al menos tres venas pulmonares'),
-        av:      tiene('auriculoventricular') && tiene('concordantes'),
-        va:      tiene('ventriculoarterial'),
-        arterias:tiene('Grandes arterias normalmente relacionadas'),
-        arco:    tiene('Arco aortico izquierdo') || tiene('Arco aórtico izquierdo')
+        situs:    tiene('situs visceroauricular solitus'),
+        venoso:   tiene('Conexion venosa sistemica normal') || tiene('Conexión venosa sistémica normal'),
+        pulmonar: tiene('al menos tres venas pulmonares'),
+        av:       tiene('auriculoventricular'),
+        va:       tiene('ventriculoarterial'),
+        conc:     tiene('concordantes')
       };
       R.faltan = Object.keys(R.segmentos).filter(k => !R.segmentos[k]).join(',');
-      R.textoCompleto = R.faltan === '';
-      /* «al menos tres» y NO «las cuatro»: es lo que dice la guia, porque en un transtoracico de
-         adulto las cuatro rara vez se demuestran. Afirmar cuatro seria afirmar una demostracion
-         que el estudio no tiene. */
+      R.cuatroSegmentos = R.faltan === '';
+      /* LAS DOS LINEAS DE SEPTUM: una por renglon, con puntos suspensivos y SIN estado. */
+      R.septumIA = lineas.some(l => l.indexOf('Septum interauricular') === 0 && l.indexOf('...') > 0);
+      R.septumIV = lineas.some(l => l.indexOf('Septum interventricular') === 0 && l.indexOf('...') > 0);
+      R.septumSinEstado = !/Septum.*(ntegro|normal|sin defecto)/i.test(t1);
+      R.placeholders = R.septumIA && R.septumIV && R.septumSinEstado;
+      /* NI DUCTUS NI «no dilatada»: las dos las contradice la propia app en el mismo informe. */
+      R.prohibidas = ['ductus', 'no dilatad', 'ntegro'].filter(x => t1.toLowerCase().indexOf(x) >= 0).join(',');
+      R.sinProhibidas = R.prohibidas === '';
+      /* «al menos tres» y no «las cuatro»: en un transtoracico de adulto rara vez se demuestran */
       R.noAfirmaCuatro = t1.indexOf('cuatro venas pulmonares') < 0;
-      /* ⚠️ NI UNA AFIRMACION QUE LA APP PUEDA CONTRADECIR EN EL MISMO INFORME.
-         La Tabla 4 de la BSE trae tres que aca hubo que sacar, porque alla son parte de un
-         informe COMPLETO de un paciente normal y aca es un texto fijo que no lee un solo dato:
-         · «auricula no dilatada» ← la app emite «Auricula izquierda severamente dilatada
-           (Vol Index 52,0 ml/m2)», y la dilatacion auricular es el hallazgo mas frecuente del eco
-           de rutina. Ademas es una afirmacion de MEDICION dentro de un texto fijo.
-         · «septum interauricular e interventricular integros» ← el emisor de CIA/CIV publica
-           «CIA. Tamano 18 x 4 mm...» y el del foramen «Foramen oval permeable».
-         · «sin ductus arterioso permeable» ← el emisor del DAP publica «Ductus arterioso...».
-         Ninguna de las tres estaba, ademas, en lo que se pidio: situs y las tres conexiones. */
-      const prohibidas = ['no dilatad', 'ntegro', 'ductus', 'eptum'];
-      R.afirmaDeMas = prohibidas.filter(w => t1.toLowerCase().indexOf(w.toLowerCase()) >= 0).join(',');
-      R.sinAfirmacionesContradecibles = R.afirmaDeMas === '';
+      /* y NO toco el informe narrativo */
+      R.noTocoElInforme = inf.value.indexOf('segmentario') < 0;
 
-      /* -- 3 - NO LEE NI UN DATO: el texto es el MISMO con el formulario vacio y con tres
-         cardiopatias cargadas. Es la condicion que separa "inserta un fijo" de "combina". -- */
-      __t.limpiar();
-      await new Promise(r=>setTimeout(r,300));
+      /* -- 3 - EL AISLAMIENTO, que es para lo que existe este caso --
+         Denominador: tiene que haber informe generado Y cuadro con contenido editado a mano, o
+         «no cambio» se cumpliria sobre dos campos vacios. */
       const setN = (id, val) => { const e2 = document.getElementById(id); if (!e2) return 'NO ' + id;
         e2.value = val; e2.dispatchEvent(new Event('input', { bubbles:true }));
         e2.dispatchEvent(new Event('change', { bubbles:true })); return e2.value; };
-      const selVal = (id, i) => { const e2 = document.getElementById(id);
-        if (!e2 || !e2.options || e2.options.length <= i) return false;
-        e2.value = e2.options[i].value;
-        e2.dispatchEvent(new Event('change', { bubbles:true }));
-        return e2.value !== ''; };
-      R.tokenCia = selVal('ete_cia_tipo', 1);
-      setN('ete_cia_tam_max', '18'); setN('coa_istmo', '8'); setN('mch_espesor', '18');
-      R.sembroDatos = R.tokenCia && document.getElementById('mch_espesor').value === '18';
-      b.click();
-      await new Promise(r=>setTimeout(r,200));
-      R.textoConDatos = ta.value.trim();
-      R.mismoTextoSiempre = R.textoConDatos === t1.trim();
-      /* y NO tilda ninguna casilla de integracion: eso lo hace el boton "Integrar" de cada
-         seccion, que es lo que este boton dejo de hacer. */
-      R.tildadas = Array.from(document.querySelectorAll('input[type=checkbox][id$="_incluir_chk"]'))
-                        .filter(c => c.checked).map(c => c.id).join(',');
-      R.noTildaNada = R.tildadas === '';
-
-      /* -- 4 - DOS VECES INSERTA DOS VECES. Sin logica de "ya existe" que lo bloquee o lo saque. */
-      __t.limpiar();
-      await new Promise(r=>setTimeout(r,300));
-      b.click(); b.click(); b.click();
-      await new Promise(r=>setTimeout(r,200));
-      R.repeticiones = ta.value.split('Analisis segmentario secuencial').length - 1 +
-                       (ta.value.split('Análisis segmentario secuencial').length - 1);
-      R.insertaCadaVez = R.repeticiones === 3;
-      /* -- 4b - EL FOCO PROGRAMATICO NO SE REGISTRA COMO FOCO DEL MEDICO --
-         Se mide ACA y no mas abajo: hasta este punto el textarea NUNCA recibio un foco del
-         medico -solo los tres clicks del boton, que hacen ta.focus() para dejar el cursor al
-         final-. Los escenarios 5b y 5c si enfocan a proposito, asi que medirlo despues daria
-         false sobre un codigo sano: seria medir el foco que el propio caso puso.
-         Sin la guarda, ese focus propio latchea _ccUltimoFoco PARA SIEMPRE -nada lo devuelve a
-         null, ni «Nuevo estudio»- y desde el primer clic de la sesion la rama del cursor gana
-         aunque el medico nunca haya tocado el informe, que es el estado que la guarda cubre. */
-      R.focoLimpioTrasClics = (typeof _ccUltimoFoco === 'undefined') || _ccUltimoFoco === null;
-
-      /* -- 5 - AL FINAL sin cursor, EN EL CURSOR con cursor --
-         El denominador es que el informe tenga varias lineas: sobre un informe vacio las dos
-         implementaciones aterrizan en el mismo lugar y la condicion no distingue nada. */
-      __t.limpiar();
-      await new Promise(r=>setTimeout(r,300));
       setN('nombre', 'Prueba CC'); setN('fevi', '58');
       if (typeof generarInforme === 'function') generarInforme();
-      const NL = String.fromCharCode(10);
-      R.lineasBase = ta.value.split(NL).length;
-      /* ⚠️ EL CURSOR SE FUERZA A 0, y hay que declarar por que. Medido: Chrome deja
-         selectionStart AL FINAL cuando se asigna .value -519 de 519 tras generarInforme, 33 de
-         33 tras una asignacion directa-, asi que en el flujo real las dos ramas de "usaCursor"
-         aterrizan en el mismo lugar y la condicion no distingue nada: la mutacion que hace
-         usaCursor siempre verdadero SOBREVIVIA. El estado que la guarda existe para cubrir es
-         un cursor en 0 sin que el medico haya tocado el textarea -otro navegador, o un
-         setSelectionRange de codigo-, y ahi insertar "en el cursor" mete el template ARRIBA de
-         todo, delante de la funcion sistolica. Se sintetiza en vez de esperarlo. */
-      ta.blur();
-      ta.setSelectionRange(0, 0);
-      R.cursorForzado = ta.selectionStart === 0;
+      const MARCA = 'EDITADO A MANO EN EL CUADRO';
+      ta.value = ta.value + NL + MARCA + '.';
+      ta.dispatchEvent(new Event('input', { bubbles:true }));
+      const antes = ta.value;
+      R.denominador = antes.indexOf(MARCA) >= 0 && inf.value.split(NL).length > 3;
+
+      if (typeof generarInforme === 'function') generarInforme();
+      R.trasGenerar = ta.value === antes;
+      setEstiloInforme('conciso');   R.trasConciso   = ta.value === antes;
+      setEstiloInforme('narrativo'); R.trasNarrativo = ta.value === antes;
+      setEstiloInforme('estandar');  R.trasEstandar  = ta.value === antes;
+      /* El TERCER camino, el que no avisaba: con el estudio reabierto, infBaseDesdeDOM adopta el
+         texto del informe como base y el merge silencioso -un onchange de VEXUS o Pericardio- lo
+         descarta. Sobre informe_texto sigue pasando y es preexistente; lo que este caso fija es
+         que el cuadro de CC quede afuera. */
+      if (typeof infBaseDesdeDOM === 'function') infBaseDesdeDOM();
+      if (typeof generarInforme === 'function') generarInforme({ silencioso: true });
+      R.trasRefrescoSilencioso = ta.value === antes;
+      R.aislado = R.denominador && R.trasGenerar && R.trasConciso && R.trasNarrativo &&
+                  R.trasEstandar && R.trasRefrescoSilencioso;
+      R.aisladoDiag = 'gen=' + R.trasGenerar + ' con=' + R.trasConciso + ' nar=' + R.trasNarrativo +
+                      ' est=' + R.trasEstandar + ' sil=' + R.trasRefrescoSilencioso;
+
+      /* -- 4 - SEGUNDO TOQUE: cierra y DESCARTA, sin preguntar -- */
+      tost.length = 0;
       b.click();
       await new Promise(r=>setTimeout(r,200));
-      const lf = ta.value.split(NL);
-      R.alFinal = lf[lf.length - 1].indexOf('lisis segmentario') >= 0 &&
-                  lf[0].indexOf('lisis segmentario') < 0;
+      R.cierraYDescarta = w.hidden === true && !vis() && ta.value === '';
+      R.ariaCerrado = b.getAttribute('aria-expanded') === 'false';
+      /* y no pidio confirmacion: decision explicita, el cuadro es un campo aislado */
+      R.sinConfirmar = R.cierraYDescarta;
 
+      /* -- 5 - LA VISIBILIDAD SE DERIVA DEL CONTENIDO, no de una bandera aparte --
+         Sin esto podria quedar un campo OCULTO CON TEXTO, que guardarInforme guarda y el PDF
+         imprime: la fuga de los input[type=hidden] que este archivo documenta tres veces. */
+      ta.value = 'texto puesto por fuera del boton';
+      ccSegSync();
+      R.syncMuestra = w.hidden === false && vis();
+      ta.value = '';
+      ccSegSync();
+      R.syncEsconde = w.hidden === true && !vis();
+      R.derivada = R.syncMuestra && R.syncEsconde;
+
+      /* -- 6 - VIAJA CON EL ESTUDIO Y VUELVE, y «Nuevo estudio» lo limpia --
+         El id es lo que le da las tres columnas: guardarInforme barre textarea[id],
+         limpiarCampos barre textarea, y las rutas de restauracion lo reponen. */
       __t.limpiar();
       await new Promise(r=>setTimeout(r,300));
-      setN('nombre', 'Prueba CC'); setN('fevi', '58');
-      if (typeof generarInforme === 'function') generarInforme();
-      ta.focus(); ta.dispatchEvent(new Event('focus', { bubbles:true }));
-      const corte = ta.value.indexOf(NL);
-      ta.setSelectionRange(corte, corte);
+      setN('nombre', 'Prueba CC cuadro'); setN('fevi', '58');
       b.click();
       await new Promise(r=>setTimeout(r,200));
-      const lc = ta.value.split(NL);
-      R.enCursor = lc[1].indexOf('lisis segmentario') >= 0 && lc[0].indexOf('lisis segmentario') < 0;
-      /* y no se pega a la linea anterior: sin el salto, el informe publicaba
-         "...Sin masas intracardiacas.Analisis segmentario secuencial: ..." */
-      R.sinPegarse = ta.value.indexOf('.An') < 0 && ta.value.indexOf('.Aná') < 0;
-      R.posicionCorrecta = R.lineasBase > 3 && R.cursorForzado && R.alFinal && R.enCursor && R.sinPegarse;
+      if (typeof generarInforme === 'function') generarInforme();
+      const g = await __t.guardar();
+      R.guardo = !!(g && g.ok);
+      const est = (typeof getInformes === 'function' ? getInformes() : [])
+                  .filter(i => i.nombre === 'Prueba CC cuadro').pop();
+      R.viajaEnCampos = !!(est && est.campos && String(est.campos.cc_segmentario || '').indexOf('situs') >= 0);
+      __t.limpiar();
+      await new Promise(r=>setTimeout(r,300));
+      R.limpiarLoEsconde = !vis() && document.getElementById('cc-seg-wrap').hidden === true &&
+                           document.getElementById('cc_segmentario').value === '';
+      if (est) { await __t.reabrir(est.estudioId || est.id); await new Promise(r=>setTimeout(r,700)); }
+      R.vuelveAlReabrir = vis() && document.getElementById('cc-seg-wrap').hidden === false &&
+                          document.getElementById('cc_segmentario').value.indexOf('situs') >= 0;
+      R.cicloOk = R.guardo && R.viajaEnCampos && R.limpiarLoEsconde && R.vuelveAlReabrir;
+      R.cicloDiag = 'guardo=' + R.guardo + ' campos=' + R.viajaEnCampos +
+                    ' limpio=' + R.limpiarLoEsconde + ' volvio=' + R.vuelveAlReabrir;
+      if (est) { try { await __t.borrar(est.id); } catch (e) {} }
 
-      /* -- 5c - NO BORRA LA SELECCION DEL MEDICO --
-         Lo encontro /sharp-edges. Escrito con selectionStart/selectionEnd como par -que es el
-         idioma de "insertar en un textarea"- el rango seleccionado DESAPARECE, y el comentario
-         decia "no borra". Reproducido: seleccionar la primera linea y tocar el boton se llevaba
-         "Funcion sistolica normal, FEVI 58% por Simpson biplano.". No es un gesto raro -doble
-         clic sobre una palabra, triple sobre un parrafo- ni recuperable: asignar .value por
-         codigo NO deja entrada en la pila de deshacer, asi que Ctrl+Z no lo trae. */
-      __t.limpiar();
-      await new Promise(r=>setTimeout(r,300));
-      setN('nombre', 'Prueba CC'); setN('fevi', '58');
-      if (typeof generarInforme === 'function') generarInforme();
-      const primera = ta.value.split(NL)[0];
-      ta.focus(); ta.dispatchEvent(new Event('focus', { bubbles:true }));
-      ta.setSelectionRange(0, primera.length);
-      R.selDenominador = primera.length > 10 && ta.selectionEnd > ta.selectionStart;
-      b.click();
-      await new Promise(r=>setTimeout(r,200));
-      R.seleccionIntacta = ta.value.indexOf(primera) >= 0;
-      R.selDiag = R.seleccionIntacta ? 'conservada' : ('se perdio: ' + primera.slice(0, 40));
-      /* y el template va DESPUES de lo seleccionado, no antes */
-      R.trasLaSeleccion = ta.value.indexOf(primera) < ta.value.indexOf('lisis segmentario');
+      /* -- 7 - LLEGA AL PDF, Y ARRIBA DEL CUERPO NARRATIVO --
+         Sin esto la mutacion que borra el bloque del PDF SOBREVIVE, y es justo el punto del
+         pedido: el cuadro puede estar perfecto en pantalla y no salir en el papel. Se lee el
+         CONTENT STREAM del PDF real, que es el unico oraculo -verificar que la funcion no lanza
+         no prueba nada-, y se compara la POSICION de la barra del segmentario contra la de
+         INFORME: que aparezca no alcanza, tiene que aparecer ANTES.
+         jsPDF llega por CDN: se espera, porque un rojo intermitente de red es peor que no tener
+         el caso. Y save() es propiedad de la INSTANCIA, asi que se envuelve el CONSTRUCTOR o el
+         caso deja una descarga por cada PDF. */
+      for (let i = 0; i < 80 && (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF); i++) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+      if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) {
+        R.pdfLibre = false; R.pdfDiag = 'jsPDF no cargo en 8 s';
+      } else {
+        const OrigPDF = window.jspdf.jsPDF;
+        let ultimo = null;
+        function EnvueltoPDF() {
+          const d = new OrigPDF(...arguments);
+          d.save = function () { return Promise.resolve(); };
+          ultimo = d; return d;
+        }
+        EnvueltoPDF.prototype = OrigPDF.prototype;
+        window.jspdf.jsPDF = EnvueltoPDF;
+        try {
+          __t.limpiar();
+          await new Promise(r=>setTimeout(r,300));
+          setN('nombre', 'Prueba CC pdf'); setN('ci', '5555555-5'); setN('fevi', '58');
+          b.click();
+          await new Promise(r=>setTimeout(r,200));
+          if (typeof generarInforme === 'function') generarInforme();
+          ultimo = null;
+          await generarPDFReal({});
+          await new Promise(r=>setTimeout(r,800));
+          if (!ultimo) { R.pdfLibre = false; R.pdfDiag = 'no se capturo el documento'; }
+          else {
+            const bin = atob(ultimo.output('datauristring').split(',')[1]);
+            const re = /\\(((?:\\\\[\\s\\S]|[^()\\\\])*)\\)\\s?Tj/g;
+            const out = []; let mm;
+            while ((mm = re.exec(bin))) out.push(mm[1].replace(/\\\\([()\\\\])/g, '$1'));
+            /* La barra del bloque, ANCLADA: «Informe Ecocardiograma Doppler Color» del
+               encabezado tambien empieza con «Informe», y sin anclar el indice daba 0. */
+            const iSeg = out.findIndex(t => /^Analisis segmentario$|^ANALISIS SEGMENTARIO$/.test(t));
+            const iInf = out.findIndex(t => /^INFORME$|^Informe clinico$|^Informe narrativo$/.test(t));
+            R.pdfTj = out.length;
+            R.pdfTieneSitus = out.some(t => t.indexOf('situs') >= 0);
+            R.pdfSeptum = out.filter(t => t.indexOf('Septum inter') >= 0).length;
+            R.pdfSinDuctus = !out.some(t => /ductus/i.test(t));
+            R.pdfLibre = iSeg >= 0 && iInf >= 0 && iSeg < iInf && R.pdfTieneSitus &&
+                         R.pdfSeptum === 2 && R.pdfSinDuctus;
+            R.pdfDiag = 'seg=' + iSeg + ' informe=' + iInf + ' situs=' + R.pdfTieneSitus +
+                        ' septum=' + R.pdfSeptum + ' sinDuctus=' + R.pdfSinDuctus;
+          }
 
-
-      /* -- 6 - "GENERAR INFORME" SIGUE IGUAL, con o sin haber tocado CC antes --
-         Es el invariante del pedido, y se mide comparando los DOS textos byte por byte. */
-      __t.limpiar();
-      await new Promise(r=>setTimeout(r,300));
-      const sembrar = () => { setN('nombre', 'Prueba CC'); setN('fevi', '58');
-        setN('ete_cia_tam_max', '18');
-        const c = document.getElementById('ete_shunt_incluir_chk'); if (c) c.checked = true; };
-      sembrar();
-      if (typeof generarInforme === 'function') generarInforme();
-      const sinTocar = ta.value;
-      __t.limpiar();
-      await new Promise(r=>setTimeout(r,300));
-      sembrar();
-      b.click();
-      if (typeof generarInforme === 'function') generarInforme();
-      const tocandoAntes = ta.value;
-      R.generarIgual = sinTocar === tocandoAntes && sinTocar.indexOf('CIA') >= 0;
-      R.generarDiag = 'largos ' + sinTocar.length + ' vs ' + tocandoAntes.length;
-      /* ⚠️ Y ASI SE PIERDE EL TEMPLATE, que es la consecuencia declarada del orden: "Generar
-         Informe" es la regeneracion EXPLICITA y reescribe el informe entero. Se fija como
-         COMPORTAMIENTO CONOCIDO -no como algo deseable- para que el dia que alguien lo cambie se
-         entere de que este caso lo daba por cierto. */
-      R.generarPisaElTemplate = tocandoAntes.indexOf('lisis segmentario') < 0;
-      /* al reves SI sobrevive, y es el orden que el toast recomienda */
-      __t.limpiar();
-      await new Promise(r=>setTimeout(r,300));
-      sembrar();
-      if (typeof generarInforme === 'function') generarInforme();
-      ta.blur(); b.click();
-      await new Promise(r=>setTimeout(r,200));
-      R.ordenBueno = ta.value.indexOf('lisis segmentario') >= 0 && ta.value.indexOf('CIA') >= 0;
-      /* y el toast DICE que el informe se reescribe, en vez de dejar que se descubra con el
-         informe ya escrito. NOMBRA LOS DOS CAMINOS y no uno: medido, tambien lo pisa
-         setEstiloInforme -las tres pastillas de al lado- y, con el estudio reabierto, cualquier
-         refresco silencioso. Nombrar solo «Generar Informe» prometia que el resto era seguro. */
-      R.toastAvisa = tost.filter(t => t.indexOf('Regenerar el informe') >= 0 &&
-                                      t.indexOf('cambiar de estilo') >= 0).length > 0;
-      /* y arranca con ⚠️ para que la funcion toast lo clasifique como alerta: su heuristica mira
-         el icono, y sin el sale "polite" y el lector de pantalla no interrumpe. */
-      R.toastEsAlerta = tost.filter(t => t.indexOf('Template de conexiones') >= 0 &&
-                                         t.indexOf('⚠') === 0).length > 0;
+          /* -- 7b - UN CONTENIDO EN BLANCO NO IMPRIME LA BARRA --
+             sv() no trimea y ccSegSync si: con dos predicados sobre el mismo campo, un Enter que
+             quedo al borrar a mano escondia el cuadro en pantalla y el PDF FIRMADO imprimia la
+             barra «ANALISIS SEGMENTARIO» con un parrafo vacio debajo. Es el «campo oculto que el
+             PDF igual imprime» entrando por la diferencia entre dos maneras de preguntar lo
+             mismo. El denominador es que el cuadro este EFECTIVAMENTE escondido. */
+          const taB = document.getElementById('cc_segmentario');
+          taB.value = String.fromCharCode(10) + '   ';
+          ccSegSync();
+          R.blancoEscondido = getComputedStyle(document.getElementById('cc-seg-wrap')).display === 'none';
+          ultimo = null;
+          await generarPDFReal({});
+          await new Promise(r=>setTimeout(r,800));
+          if (!ultimo) { R.blancoSinBarra = false; R.blancoDiag = 'no se capturo'; }
+          else {
+            const bin2 = atob(ultimo.output('datauristring').split(',')[1]);
+            const re2 = /\\(((?:\\\\[\\s\\S]|[^()\\\\])*)\\)\\s?Tj/g;
+            const out2 = []; let m2;
+            while ((m2 = re2.exec(bin2))) out2.push(m2[1].replace(/\\\\([()\\\\])/g, '$1'));
+            R.blancoSinBarra = !out2.some(t => /^Analisis segmentario$|^ANALISIS SEGMENTARIO$/.test(t));
+            R.blancoDiag = 'escondido=' + R.blancoEscondido + ' barraEnPDF=' + !R.blancoSinBarra;
+          }
+          R.blancoOk = R.blancoEscondido && R.blancoSinBarra;
+        } finally { window.jspdf.jsPDF = OrigPDF; }
+      }
     } catch (e) { R.excepcion = String(e && e.message || e); }
     finally {
       window.toast = toastOrig;
+      try { setEstiloInforme('estandar'); } catch (e) {}
       try { __t.limpiar(); } catch (e) {}
     }
     return { extra: [
-      ['sin excepcion (denominador)',                 !R.excepcion, R.excepcion || 'ninguna'],
-      ['denominador: el foco real anda en la pestana', R.focoRealAnda, R.focoRealAnda],
-      ['el boton esta SIEMPRE visible, sin datos',    R.visibleSinDatos, R.visibleSinDatos],
-      ['y NO es una pastilla de estilo',              R.noEsPastilla, R.noEsPastilla],
-      ['esta PEGADO al boton Narrativo',              R.pegadoALasPastillas, R.pegadoALasPastillas],
-      ['y se ve IGUAL que Frases',                    R.mismoEstiloQueFrases, R.pintaCC + ' vs ' + R.pintaFrases],
-      ['la maquinaria de lectura de datos NO existe', R.sinMaquinariaVieja, R.restos || 'ninguna'],
-      ['_CC_SECS sigue intacto para el Laboratorio',  R.ccSecsIntacto, R.ccSecsDiag],
-      ['sobre un informe VACIO inserta el texto',     R.insertoEnVacio, R.insertoEnVacio],
-      ['con los cinco segmentos del analisis',        R.textoCompleto, R.faltan || 'ninguno falta'],
-      ['«al menos tres» venas y no «las cuatro»',     R.noAfirmaCuatro && R.segmentos.pulmon, R.noAfirmaCuatro],
-      ['ni una afirmacion que la app pueda contradecir', R.sinAfirmacionesContradecibles, R.afirmaDeMas || 'ninguna'],
-      ['denominador: se sembraron datos de CC',       R.sembroDatos, R.sembroDatos],
-      ['el texto es el MISMO con datos cargados',     R.mismoTextoSiempre, R.mismoTextoSiempre],
-      ['y NO tilda ninguna casilla de integracion',   R.noTildaNada, R.tildadas || 'ninguna'],
-      ['tres clics insertan TRES veces',              R.insertaCadaVez, R.repeticiones],
-      ['al final sin cursor, en el cursor con cursor', R.posicionCorrecta,
-        'lineas=' + R.lineasBase + ' forzado=' + R.cursorForzado + ' final=' + R.alFinal +
-        ' cursor=' + R.enCursor + ' sep=' + R.sinPegarse],
-      ['denominador: hay una seleccion no vacia',     R.selDenominador, R.selDenominador],
-      ['NO borra la seleccion del medico',            R.seleccionIntacta && R.trasLaSeleccion, R.selDiag],
-      ['el foco del propio boton no latchea el cursor', R.focoLimpioTrasClics, R.focoLimpioTrasClics],
-      ['«Generar Informe» da lo MISMO con o sin CC',  R.generarIgual, R.generarDiag],
-      ['declarado: generar DESPUES pisa el template', R.generarPisaElTemplate, R.generarPisaElTemplate],
-      ['y en el orden inverso conviven los dos',      R.ordenBueno, R.ordenBueno],
-      ['el toast nombra los DOS caminos que reescriben', R.toastAvisa, R.toastAvisa],
-      ['y arranca con ⚠️ para que sea alerta',        R.toastEsAlerta, R.toastEsAlerta]
+      ['sin excepcion (denominador)',                  !R.excepcion, R.excepcion || 'ninguna'],
+      ['el cuadro es OTRO campo y va ARRIBA del informe', R.sonDistintos && R.arribaDelInforme, R.arribaDelInforme],
+      ['arranca CERRADO y el boton SIEMPRE visible',   R.cerradoAlArrancar && R.botonSiempreVisible, R.cerradoAlArrancar],
+      ['y no es una pastilla de estilo',               R.noEsPastilla, R.noEsPastilla],
+      ['primer toque ABRE con el template',            R.abre, R.aria],
+      ['con los cuatro segmentos y concordantes',      R.cuatroSegmentos, R.faltan || 'ninguno falta'],
+      ['dos lineas de septum, con puntos y SIN estado', R.placeholders,
+        'ia=' + R.septumIA + ' iv=' + R.septumIV + ' sinEstado=' + R.septumSinEstado],
+      ['ni ductus, ni «integro», ni «no dilatada»',    R.sinProhibidas, R.prohibidas || 'ninguna'],
+      ['«al menos tres» venas y no «las cuatro»',      R.noAfirmaCuatro, R.noAfirmaCuatro],
+      ['NO toca el informe narrativo',                 R.noTocoElInforme, R.noTocoElInforme],
+      ['denominador: informe generado y cuadro editado', R.denominador, R.denominador],
+      ['AISLADO de Generar Informe, los 3 estilos y el refresco', R.aislado, R.aisladoDiag],
+      ['segundo toque CIERRA y descarta, sin preguntar', R.cierraYDescarta && R.sinConfirmar, R.cierraYDescarta],
+      ['y el aria-expanded lo acompana',               R.ariaCerrado, R.ariaCerrado],
+      ['la visibilidad se DERIVA del contenido',       R.derivada, 'muestra=' + R.syncMuestra + ' esconde=' + R.syncEsconde],
+      ['viaja con el estudio, se limpia y vuelve',     R.cicloOk, R.cicloDiag],
+      ['SALE EN EL PDF, y ANTES de la barra INFORME',  R.pdfLibre, R.pdfDiag],
+      ['un contenido EN BLANCO no imprime la barra',   R.blancoOk, R.blancoDiag]
     ] };
   })();
 `);

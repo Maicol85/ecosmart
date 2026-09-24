@@ -551,6 +551,16 @@
   .cfg-mod-item input { width:auto; }
   /* ══ FORM FIELDS ══ */
   .fg { display: flex; flex-direction: column; gap: 3px; }
+  /* ⚠️ `[hidden]` PIERDE CONTRA ESTE `display:flex`, y no por especificidad: la regla
+     `[hidden]{display:none}` vive en la hoja del NAVEGADOR y ésta en la del AUTOR, que gana
+     siempre. Sin esta línea, un contenedor con clase `fg` y atributo `hidden` se dibuja igual
+     —el marcado va descrito y no transcrito: un `div` literal acá le desvía para siempre el
+     conteo de balance de etiquetas, que es el control que detecta un desbalance real—. Medido
+     sobre `#cc-seg-wrap`: `hidden === true`, `display: flex` y **156 px de alto real**. Es la
+     tercera vez que este archivo lo paga —ya está escrito para `.frases-panel` y para el banner
+     de versión— y la primera en que un caso lo dejó pasar en verde, por medir la PROPIEDAD y no
+     el estilo computado. Al esconder un `.fg` por atributo, esta regla es la que lo hace. */
+  .fg[hidden] { display: none; }
   label { font-size: 11px; color: var(--text2); font-weight: 500; }
   input[type=text], input[type=number], input[type=date], select, textarea {
     background: var(--bg3);
@@ -13360,8 +13370,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                así que `setEstiloInforme` nunca le pone el `btn-primary` de «activo» que las tres
                pastillas sí se pasan entre ellas. **No borrar esas dos ausencias.** -->
           <button type="button" class="btn btn-ghost" id="cc-integrar-btn"
-                  onclick="ccInsertarTemplate()"
-                  title="Inserta en el informe el template de análisis segmentario secuencial con situs y conexiones normales">🫀 CC</button>
+                  onclick="ccToggleSegmentario()" aria-expanded="false" aria-controls="cc-seg-wrap"
+                  title="Abre un cuadro aparte con el análisis segmentario (situs y conexiones). Tocarlo de nuevo lo cierra y descarta su contenido">🫀 CC</button>
           <span style="display:inline-flex;gap:8px;flex-wrap:wrap;margin-left:auto;">
             <button type="button" class="btn btn-ghost" id="frases-btn" onclick="frasesToggle()" aria-expanded="false" aria-controls="frases-panel">💬 Frases</button>
             <!-- Arranca oculto y lo enciende `indicSyncBoton()` sólo si el estudio tiene alguna
@@ -13373,6 +13383,42 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                     title="Indicaciones según guías — sólo pantalla, no va al informe">📋 Indicaciones</button>
           </span>
         </div>
+      </div>
+      <!-- 🫀 CUADRO DE ANÁLISIS SEGMENTARIO — CAMPO PROPIO, NO parte del informe narrativo.
+           Ésta es la arquitectura del 2026-09-24 y REEMPLAZA a la del commit anterior, que
+           insertaba el template dentro de `informe_texto`. El motivo es medido, no estético:
+           «Generar Informe» y las tres pastillas de estilo son regeneraciones EXPLÍCITAS
+           (`_infEscribir` con `silencioso=false` hace `lineasNuevas.slice()`), así que reescriben
+           ese textarea entero y se llevaban el template. En un campo propio eso es imposible por
+           construcción — no comparten textarea— y no hubo que tocar ninguno de esos caminos.
+
+           El `id` es lo que le da las tres columnas GRATIS, y por eso el campo es un `<textarea>`
+           con id y no un div editable: `guardarInforme` barre `textarea[id]` y lo guarda en
+           `campos`; `limpiarCampos` barre `textarea` y lo vacía; y las rutas de restauración lo
+           reponen con el barrido genérico. El prefijo `cc_` no está en
+           `_CAMPOS_FUERA_DEL_ESTUDIO`, así que viaja con el estudio — verificado.
+
+           ⚠️ LA VISIBILIDAD SE DERIVA DEL CONTENIDO (`ccSegSync`), no de una bandera aparte.
+           Con una bandera persistida, cerrar el cuadro dejando texto adentro —o al revés— daría
+           un campo oculto que el PDF igual imprime, que es la fuga que este archivo documenta
+           para los `input[type=hidden]`. Con la derivación no pueden discrepar: si hay texto, el
+           cuadro está; si no, no está. Y por eso cerrar DESCARTA el contenido en vez de sólo
+           esconderlo. -->
+      <div class="fg" id="cc-seg-wrap" hidden>
+        <label for="cc_segmentario">🫀 Análisis segmentario — situs y conexiones</label>
+        <!-- `onchange` y NUNCA `oninput`: `ccSegSync` esconde el cuadro cuando queda vacío, así
+             que colgado del `input` un Ctrl+A + Supr lo haría DESAPARECER con el cursor adentro,
+             a mitad de la edición y sin forma de seguir escribiendo salvo volviendo a tocar el
+             botón. Es la misma razón por la que `_refrescarInformeSiGenerado` va en `onchange`.
+             Con `change` el cuadro se cierra al salir del campo, que es antes de cualquier
+             guardado o PDF —los dos desenfocan el textarea primero—. -->
+        <textarea id="cc_segmentario" style="min-height:92px;" onchange="ccSegSync()"
+                  placeholder="Situs y conexiones…"></textarea>
+        <p style="font-size:10px;color:var(--text2);margin:4px 0 0;">
+          Campo independiente del informe: «Generar Informe» y los estilos no lo tocan.
+          Sale en el PDF <b>arriba</b> del cuerpo narrativo. El botón 🫀 CC lo cierra y
+          <b>descarta</b> lo que tenga escrito.
+        </p>
       </div>
       <div class="fg">
         <label>Informe (autogenerado — editable)</label>
@@ -25268,7 +25314,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','vpSync','popSync','sglOrigenSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -25629,11 +25675,11 @@ function limpiarCampos(silencioso) {
      anterior, y abrirlo mostraba el mensaje de «sin criterios» sobre un botón que afirmaba que
      los había. Es el patrón `gradoGamma`/`protMonoc` — la columna que falta es siempre ésta. */
   if (typeof indicSyncBoton === 'function') { try { indicSyncBoton(); } catch (e) {} }
-  /* Acá vivía la segunda columna del botón 🫀 CC (`ccIntegrarSync`), y se eliminó el 2026-09-24
-     junto con su compuerta: el botón ya no se muestra ni se esconde según los datos, así que no
-     hay nada que repintar. La regla de las DOS columnas sigue valiendo para todo lo demás —
-     `RECALC_MODULOS` cubre las rutas de restauración, que reponen asignando `.value` y no
-     disparan `input`, y `limpiarCampos` NO pasa por ese embudo. */
+  /* Las DOS columnas del cuadro de análisis segmentario. `RECALC_MODULOS` cubre las rutas de
+     restauración —que reponen asignando `.value` y no disparan `input`— y `limpiarCampos` NO
+     pasa por ese embudo. Sin esta línea, «Nuevo estudio» vacía el textarea con el barrido
+     genérico de textareas y el cuadro queda VISIBLE y vacío sobre el paciente siguiente. */
+  if (typeof ccSegSync === 'function') { try { ccSegSync(); } catch (e) {} }
   if (!silencioso) toast('🗑 Formulario limpiado');
 }
 
@@ -28281,6 +28327,49 @@ function generarPDFReal(_aj) {
     fn(8); tc(13,13,13);
     doc.splitTextToSize(_etSan, pgW-4).forEach(l => { checkPage(_IL+0.5); doc.text(l, mL+2, y); y += _IL; });
     y += _aire(3);
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // 14b. ANÁLISIS SEGMENTARIO — va ARRIBA del cuerpo narrativo
+  // ════════════════════════════════════════════════════════════
+  /* En la app es un campo APARTE (`#cc_segmentario`, el cuadro del botón 🫀 CC) y en el papel
+     tiene que salir arriba del informe. Bloque propio con su barra y no concatenado al
+     narrativo: internamente son dos campos, y fundirlos en el PDF haría que el documento diga
+     una cosa y el formulario otra — además de que la próxima regeneración del informe borraría
+     lo fundido si alguien reintrodujera esa concatenación en `generarInforme`.
+
+     El título NO se agrega a las ocho plantillas de `_TBL`: se pasa literal y `drawBar` resuelve
+     el resto —`barUpper` lo pone en mayúsculas donde la plantilla lo pide, y respeta el
+     sentence-case de Académico—. Una clave nueva serían ocho ediciones para un texto que ninguna
+     plantilla necesita variar.
+     Y va en Latin-1 a propósito: `drawBar` dibuja con `doc.text` DIRECTO, que es la única ruta
+     sin saneador —es cómo los umbrales de severidad valvular salieron ilegibles en todos los PDF
+     firmados—. La «á» está en WinAnsi; un «≥» o una raya larga acá romperían la línea entera.
+
+     El cuerpo reusa `_sanML` y el mismo estilo de párrafo que el informe, para que en el papel se
+     lean como dos bloques del mismo documento y no como dos documentos. */
+  /* ⚠️ `.trim()` Y NO `sv()` PELADO, porque `sv` no trimea y `ccSegSync` sí. Con dos predicados
+     sobre el mismo campo, un contenido en blanco —un Enter que quedó al borrar a mano, un pegado
+     desde Word— escondía el cuadro en pantalla, lo omitía del detalle y del PPT, y el PDF FIRMADO
+     imprimía la barra «ANALISIS SEGMENTARIO» con un párrafo vacío debajo. Es el «campo oculto que
+     el PDF igual imprime» que el comentario del marcado declara imposible, entrando por la
+     diferencia entre dos maneras de preguntar lo mismo. Un solo predicado. */
+  const ccSegTxt = sv('cc_segmentario').trim();
+  if (ccSegTxt) {
+    drawBar('Analisis segmentario');
+    y += _aire(2);
+    if (_TBL.infSerif) { doc.setFont('times','normal'); doc.setFontSize(8 * _FS); } else fn(8);
+    { const sc = _C(_TBL.infCol); tc(sc[0],sc[1],sc[2]); }
+    const _segTop = 1.2 + _aire(2);
+    doc.splitTextToSize(_sanML(ccSegTxt), pgW-4).forEach(l => {
+      /* Por LÍNEA y no un rect único, por lo mismo que el informe: el bloque puede saltar de
+         página a mitad y un rectángulo de alto total quedaría dibujado en la hoja donde empezó. */
+      checkPage(_IL+0.5);
+      { const sf = _C(_TBL.infFondo); if (sf) { fc(sf[0],sf[1],sf[2]); doc.rect(mL, y - _segTop, pgW, _IL, 'F'); } }
+      { const sb = _C(_TBL.infBorde); if (sb) { fc(sb[0],sb[1],sb[2]); doc.rect(mL, y - _segTop, 0.7, _IL, 'F'); } }
+      { const sc2 = _C(_TBL.infCol); tc(sc2[0],sc2[1],sc2[2]); }
+      doc.text(l, _TBL.infBorde ? mL+3.5 : mL+2, y); y += _IL;
+    });
   }
 
   // ════════════════════════════════════════════════════════════
@@ -43531,6 +43620,21 @@ function verDetalleInforme(id) {
     html += `</div></div></div>`;
   });
 
+  /* Análisis segmentario — ARRIBA del narrativo, igual que en el PDF.
+     Va acá aunque el pedido hablara sólo del PDF: sin esto, «Ver detalle» de un estudio
+     guardado muestra el informe y NO la sección que el PDF de ese mismo estudio imprime, o sea
+     una superficie que esconde lo que otra firma. Es el defecto que este archivo documenta con
+     «el rótulo vive en cuatro superficies». Mismo marcado que los dos bloques de abajo. */
+  const ccSegDet = c['cc_segmentario'];
+  if (ccSegDet && ccSegDet.trim()) {
+    html += `<div class="card ig-detalle-sec">
+      <h2 class="card-head">🫀 Análisis segmentario</h2>
+      <div class="card-body">
+        <div style="white-space:pre-wrap;line-height:1.7;color:var(--text);font-size:12.5px;">${escHtml(ccSegDet)}</div>
+      </div>
+    </div>`;
+  }
+
   // Informe narrativo
   const informeTxt = c['informe_texto'];
   if (informeTxt && informeTxt.trim()) {
@@ -45438,7 +45542,16 @@ function _pptDesdeFormulario(inf, tema, presentador){
 
   // ══ Informe narrativo (se parte si no entra) ══
   {
-    const texto = _pptTxt(c.informe_texto || '');
+    /* El análisis segmentario abre la diapositiva, igual que abre el bloque del PDF. Va
+       ROTULADO y separado por un renglón en blanco, no fundido: en la app son dos campos, y un
+       párrafo pegado sin rótulo se leería como la primera oración del informe.
+       Se agrega aunque el pedido hablara sólo del PDF, por la misma razón que el detalle de
+       Guardados: una superficie que omite lo que otra firma es el defecto de los rótulos en
+       cuatro superficies. Entra en el presupuesto de líneas que parte la diapositiva, así que
+       no puede desbordar sin que el partidor se entere. */
+    const _ccSeg = _pptTxt(c.cc_segmentario || '');
+    const texto = (_ccSeg ? 'Análisis segmentario — ' + _ccSeg + '\n\n' : '') +
+                  _pptTxt(c.informe_texto || '');
     if (texto) {
       /* El presupuesto se cuenta en LÍNEAS, no en caracteres. Con un tope de caracteres la
          cuenta ignora que cada párrafo empieza en línea nueva: ocho párrafos cortos ocupan
@@ -66925,180 +67038,139 @@ const _CC_SEC_POR_K = Object.create(null);
 _CC_SECS.forEach(s => { _CC_SEC_POR_K[s.k] = s; });
 function _ccSecPred(k) { const s = _CC_SEC_POR_K[k]; return s ? s.pred : null; }
 
-/* ══ BOTÓN 🫀 CC — inserta el template de análisis segmentario secuencial ════════════════════
-   ⚠️ SIMPLIFICADO EL 2026-09-24, y REVIERTE casi todo lo que hacía. Decisión de Maicol.
+/* ══ BOTÓN 🫀 CC — abre y cierra el cuadro de análisis segmentario ═══════════════════════════
+   ⚠️ TERCERA ARQUITECTURA DEL MISMO DÍA, y ésta resuelve de raíz lo que las dos anteriores
+   parchaban. Decisión de Maicol. La historia importa porque las tres siguen escritas en
+   CLAUDE.md y sólo una vale:
 
-   Hasta el commit `70771b1` este botón LEÍA los módulos de cardiopatía congénita, decidía si
-   mostrarse según qué hubiera cargado y tildaba de una vez las casillas de integración. Hoy no
-   hace nada de eso: **inserta un texto fijo y nada más**. Está SIEMPRE visible, no lee ningún
-   dato, no combina nada, no calcula nada y no toca ninguna casilla.
+     1) leía los módulos de CC, decidía si mostrarse y tildaba casillas de integración;
+     2) insertaba un texto fijo DENTRO de `informe_texto`;
+     3) hoy: abre un CUADRO PROPIO (`#cc_segmentario`) con el template adentro, y tocarlo de
+        nuevo lo cierra descartando lo que tenga.
 
-   Lo que se eliminó, para que nadie lo reconstruya sin saber que existió: `_ccFormComoEstudio`
-   (el Proxy que hacía pasar el formulario por un estudio guardado), `_CC_CHK_EXCEP`/`_ccChkId`,
-   `_ccAssertChks`, `_ccTieneDatosEnPantalla`, `_ccGruposDeSecciones`, `ccSeccionesConDatos`,
-   `ccIntegrarSync` —con sus dos columnas de repintado, `RECALC_MODULOS` y `limpiarCampos`— y
-   `ccIntegrarTodas`. **`_CC_SECS` NO se toca**: es la clasificación del Laboratorio, del filtro
-   de cohorte, del PDF de auditoría y del PPT, y nunca fue de este botón.
+   POR QUÉ CAMBIÓ: «Generar Informe» y las tres pastillas de estilo son regeneraciones
+   EXPLÍCITAS —`_infEscribir` con `silencioso=false` hace `lineasNuevas.slice()`— así que
+   reescriben `informe_texto` entero y se llevaban el template. Medido en los dos sentidos. En un
+   campo propio eso es **imposible por construcción**: no comparten textarea. Y por eso NO hubo
+   que tocar `generarInforme` ni `setEstiloInforme`, que era la restricción del pedido.
 
-   CONSECUENCIA DECLARADA: el atajo para tildar varias secciones de una vez DESAPARECE. Integrar
-   una sección de CC al informe vuelve a ser el «📎 Integrar» de cada sección, que es como
-   funcionaba antes del 2026-09-21. No es un olvido: el botón pasó a contestar otra pregunta.
+   Queda un tercer camino que la arquitectura 2 también sufría y que éste **sí** cierra de paso:
+   con el estudio reabierto, un refresco silencioso de VEXUS o Pericardio hacía que `_infMerge`
+   descartara el párrafo sin una palabra. Ese camino sólo toca `informe_texto`.
 
-   ══ ⚠️ EL ORDEN IMPORTA, Y ESTÁ MEDIDO ══
-   «Generar Informe» es la regeneración EXPLÍCITA: `_infEscribir` con `silencioso=false` hace
-   `lineasNuevas.slice()`, o sea reescribe el informe entero. Medido el 2026-09-24:
+   ⚠️ CERRAR DESCARTA, Y NO PREGUNTA. Es decisión explícita de Maicol: el cuadro es un campo
+   aislado y de bajo riesgo, no el informe. Y es lo que sostiene el invariante de abajo — si
+   cerrar sólo escondiera, quedaría un campo oculto CON TEXTO que `guardarInforme` guarda y el
+   PDF imprime, o sea la fuga de los `input[type=hidden]` que este archivo documenta tres veces.
+   No hay estado «cerrado con contenido».
 
-     insertar el template y DESPUÉS «Generar Informe»  →  el template SE PIERDE
-     «Generar Informe» y DESPUÉS insertar el template  →  sobrevive
+   ⚠️ LA VISIBILIDAD SE DERIVA DEL CONTENIDO, no de una bandera persistida aparte. Con dos
+   fuentes —una clave `cc_seg_abierto__chk` y el texto— pueden discrepar, y la discrepancia es
+   muda en las dos direcciones. Derivada, no. `ccSegSync` corre en CUATRO momentos —las dos
+   columnas de siempre más otras dos que aparecieron al revisarlo—: están enumeradas arriba de la
+   función, con el motivo de cada una. Si se toca alguna, leer esa lista primero.
 
-   El pedido describe el primer orden. No se corrigió del lado de `generarInforme` —está fuera de
-   alcance por pedido explícito, y tocarlo es cambiar cómo se comporta el botón que usa todo el
-   mundo— así que el botón lo DICE en su toast en vez de dejar que el médico lo descubra con el
-   informe ya escrito. DUDA DECLARADA: si molesta, la salida limpia es que el template viaje como
-   una sección más del informe (un campo propio que `generarInforme` reemita), no que este botón
-   aprenda a defenderse.
-
-   ══ EL TEXTO: cotejado, no redactado de memoria ══
+   ══ EL TEXTO: cotejado, y con DOS placeholders que a propósito no afirman nada ══
    Fuente: Corbett L, Forster J, Gamlin W, et al. «A practical guideline for performing a
    comprehensive transthoracic echocardiogram in the congenital heart disease patient: consensus
    recommendations from the British Society of Echocardiography». Echo Res Pract 2022;9:10
    (doi:10.1186/s44156-022-00006-5), cuya Tabla 4 es un INFORME DE EJEMPLO con la redacción de
    cada segmento normal. La ESC 2020 de congénitas del adulto (Baumgartner, EHJ 2021;42:563)
-   recomienda el análisis segmentario secuencial como parte integral de la evaluación; la
-   nomenclatura de «conexiones concordantes» es la de Anderson.
-
-   Frase por frase, contra la Tabla 4 de la BSE:
-   · «Situs solitus, left-sided, leftward apex (levocardia)»
-   · «IVC and RSVC and non-dilated CS drain into non-dilated right atrium»
-   · «At least 3 pulmonary veins seen returning to non-dilated left atrium»
-   · «Concordant AV/VA connections»
-   · «Normal spatially orientated great arteries» · «Left sided aortic arch»
-   · «Atrial septum intact» · «Interventricular septum intact» · «No PDA»
+   recomienda el análisis segmentario secuencial; «conexiones concordantes» es la nomenclatura de
+   Anderson, y las fuentes en español la usan igual.
 
    ⚠️ «AL MENOS TRES VENAS PULMONARES» NO ES UNA TIBIEZA: es lo que dice la guía, porque en un
-   transtorácico de adulto las cuatro rara vez se demuestran. Escribir «las cuatro venas
-   pulmonares» afirmaría una demostración que el estudio no suele tener — y este archivo persigue
-   esa clase de afirmación desde los tres selects del TEER.
+   transtorácico de adulto las cuatro rara vez se demuestran. «Las cuatro» afirmaría una
+   demostración que el estudio no suele tener.
 
-   REGISTRO: «aurícula» y «auriculoventricular», que es lo que usa el resto del archivo —73 contra
-   2, y 26 contra 0—. La literatura en español admite «atrio»/«atrioventricular»; lo que un
-   informe firmado no puede es usar las dos.
+   ⚠️ EN EL PDF SALEN COMO «Septum interauricular:.....», SIN EL ESPACIO. Medido, y se declara
+   en vez de tocar nada: `amiloSanPDF` —el saneador por el que pasa TODO texto del PDF— tiene
+   `.replace(/\s+([.,;:)])/g, '$1')`, que quita el espacio delante de un signo de puntuación, y
+   estos placeholders empiezan con punto. Esa regla existe para limpiar los espacios que dejan
+   las transliteraciones y la usan las 70.000 líneas del archivo; special-casearla por dos
+   renglones sería peor que la diferencia de un espacio. La alternativa —escribirlo sin espacio
+   también en pantalla— empeora la pantalla para igualar al papel. El significado no cambia.
 
-   ⚠️ ES UNA AFIRMACIÓN DEL MÉDICO, NO DE LA APP, y por eso puede ser un texto fijo. Un template
-   que se insertara SOLO sería «un default tranquilizador es una afirmación»: describiría un
-   análisis segmentario completo que nadie hizo. Acá lo inserta un gesto deliberado sobre un
+   ⚠️ LOS DOS SEPTUM VAN CON PUNTOS SUSPENSIVOS Y SIN ESTADO. Decisión de Maicol. La Tabla 4 de
+   la BSE dice «Atrial septum intact» / «Interventricular septum intact», y acá eso sería una
+   afirmación que la app puede CONTRADECIR en el mismo informe firmado: el emisor de CIA/CIV
+   publica «CIA. Tamaño 18 × 4 mm…» y el del foramen «Foramen oval permeable». Como placeholder
+   no afirma nada: el médico lo completa si quiere dejar constancia, o borra la línea.
+   **Y el ductus se sacó por completo** —ni afirmación ni placeholder—, porque su emisor publica
+   «Ductus arterioso permeable…» y porque no estaba entre los cuatro segmentos que se pidieron.
+   Por lo mismo se fueron los «aurícula no dilatada»: el tamaño de las cámaras tiene sus propias
+   líneas, que son las que llevan el número que sostiene la afirmación.
+
+   ⚠️ ES UNA AFIRMACIÓN DEL MÉDICO, NO DE LA APP, y eso es lo único que hace aceptable un texto
+   fijo. Un template que se cargara SOLO sería «un default tranquilizador es una afirmación»:
+   describiría un análisis segmentario que nadie hizo. Acá lo abre un gesto deliberado sobre un
    paciente que el médico ya sabe que no tiene TGA corregida ni conexión venosa pulmonar anómala,
-   que son las dos condiciones de la app que alteran conexiones de verdad.
-
-   ⚠️ SÓLO SITUS Y CONEXIONES — y hubo que SACAR tres cosas que la Tabla 4 sí trae.
-   Ese ejemplo de la BSE es un informe COMPLETO de un paciente normal, así que sus frases se
-   sostienen entre ellas. Acá el texto es fijo y el botón no lee un solo dato, o sea que nada
-   impide que el informe se contradiga a sí mismo. Lo cazó `/sharp-edges` y está reproducido:
-
-     · «aurícula derecha / izquierda NO DILATADA» ← la app emite «Aurícula izquierda severamente
-       dilatada (Vol Index 52,0 ml/m²)» en el mismo informe. Y la dilatación auricular es el
-       hallazgo más frecuente del eco de rutina, no un caso raro. Además «no dilatada» es una
-       afirmación de MEDICIÓN metida en un texto fijo: este archivo exige que el número viaje con
-       la afirmación que lo sostiene. El tamaño de las cámaras ya tiene sus propias líneas.
-     · «Septum interauricular e interventricular íntegros» ← el emisor de CIA/CIV publica
-       «CIA. Tamaño 18 × 4 mm…», y el del foramen «Foramen oval permeable».
-     · «Sin ductus arterioso permeable» ← el emisor del DAP publica «Ductus arterioso permeable…».
-
-   Las tres quedan fuera, y además **NINGUNA estaba en lo que se pidió**: el pedido enumera situs,
-   conexión veno-atrial, conexión atrio-ventricular y conexión ventrículo-arterial. Lo que queda
-   son esos cuatro más la relación de las grandes arterias y la lateralidad del arco, que son
-   parte de cómo se describe la conexión ventriculoarterial y que ningún emisor contradice. */
-const CC_TEMPLATE_SEGMENTARIO =
+   que son las dos condiciones de la app que alteran conexiones de verdad. */
+const CC_TEMPLATE_SEGMENTARIO = [
   'Análisis segmentario secuencial: situs visceroauricular solitus, levocardia con ápex ' +
   'orientado a la izquierda. Conexión venosa sistémica normal, con venas cavas superior e ' +
   'inferior y seno coronario a la aurícula derecha. Conexión venosa pulmonar normal, con al ' +
   'menos tres venas pulmonares a la aurícula izquierda. Conexiones auriculoventricular y ' +
   'ventriculoarterial concordantes. Grandes arterias normalmente relacionadas, con tronco ' +
-  'pulmonar anterior y a la izquierda de la aorta. Arco aórtico izquierdo.';
+  'pulmonar anterior y a la izquierda de la aorta. Arco aórtico izquierdo.',
+  'Septum interauricular: .....',
+  'Septum interventricular: .....'
+].join(String.fromCharCode(10));
 
-/* Último textarea del informe que tuvo foco DEL MÉDICO. Es la misma idea que `FRASES_TAS` usa
-   para saber dónde insertar una frase rápida, reducida a un solo campo: al apretar el botón el
-   foco ya se movió al botón, así que `document.activeElement` solo no alcanza.
+/* Muestra u oculta el cuadro según TENGA TEXTO. No decide nada más: quien abre y cierra es el
+   botón. Sin el textarea esconde, y es la dirección correcta aunque parezca la insegura: el PDF
+   lee ESE MISMO elemento, así que si no existe tampoco hay nada que imprimir — esconder no puede
+   ocultar contenido que no se puede leer.
 
-   ⚠️ `var` Y NO `let`, y no es estilo. `ccInsertarTemplate` es una DECLARACIÓN de función, o sea
-   que queda hoisteada y llamable desde su `onclick` aunque este bloque `<script>` —que va de la
-   línea ~15729 a la ~72700— muera en una sentencia de nivel superior anterior a esta línea. Con
-   `let`, en ese escenario la lectura de abajo tira `ReferenceError` por zona muerta y el botón no
-   hace NADA, ni siquiera el toast de fallback; con `var` vale `undefined`, la comparación da
-   false y el template se inserta al final, que es el comportamiento correcto. Este archivo ya se
-   quedó sin JavaScript dos veces por un bloque que dejó de parsear, y el `var` es lo que usan por
-   este mismo motivo `_indBtnTimer` y los demás centinelas de nivel superior.
-
-   ⚠️ Y `_ccInsertando` NO ES REDUNDANTE: sin él, el `ta.focus()` con el que esta misma función
-   deja el cursor al final DISPARA este oyente, y desde el primer clic de la sesión
-   `_ccUltimoFoco === ta` PARA SIEMPRE —nada lo devuelve a null, ni «Nuevo estudio» ni reabrir un
-   estudio—. O sea que la guarda se auto-anulaba: pasaba a usar el cursor aunque el médico nunca
-   hubiera tocado el informe, que es exactamente el estado que existe para cubrir. */
-var _ccUltimoFoco = null;
-var _ccInsertando = false;
+   ⚠️ CORRE EN CUATRO MOMENTOS, y los cuatro hacen falta:
+     · `RECALC_MODULOS` — las rutas de restauración, que reponen asignando `.value` sin disparar
+       `input`: reabrir un estudio, `editarInforme`, el borrador del autosave y las dos rutas de
+       reimpresión.
+     · el final de `limpiarCampos`, que NO pasa por ese embudo.
+     · el `onchange` del propio textarea, para que borrar el texto A MANO cierre el cuadro dentro
+       de la sesión y no sólo en los puntos de recálculo. **`change` y no `input`** — ver el
+       comentario del marcado: con `input`, un Ctrl+A + Supr esconde el cuadro con el cursor
+       adentro.
+     · el ARRANQUE. `_autosaveRestore` tiene tres salidas tempranas —sin borrador, con
+       `?estudio=`, y `_formTieneDatos()`—, así que en un RECARGAR donde el navegador restaura el
+       formulario solo, el textarea vuelve con texto y nadie repinta: quedaba el `hidden` del HTML
+       sobre un campo con contenido, que es justo el estado que no puede existir. */
+function ccSegSync() {
+  const wrap = document.getElementById('cc-seg-wrap');
+  const ta = document.getElementById('cc_segmentario');
+  if (!wrap) return;
+  const hay = !!(ta && String(ta.value || '').trim());
+  wrap.hidden = !hay;
+  const b = document.getElementById('cc-integrar-btn');
+  if (b) b.setAttribute('aria-expanded', hay ? 'true' : 'false');
+}
+window.ccSegSync = ccSegSync;
+/* Idempotente y con la guarda de `readyState`, como `frasesCursorArranque` y `_autosaveInit`:
+   este bloque es un script clásico y corre antes del evento, pero el idioma completo es lo que
+   hace que siga andando el día que alguien lo difiera. */
 try {
-  document.addEventListener('DOMContentLoaded', function () {
-    const ta = document.getElementById('informe_texto');
-    if (ta) ta.addEventListener('focus', function () { if (!_ccInsertando) _ccUltimoFoco = ta; });
-  });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ccSegSync, { once:true });
+  else ccSegSync();
 } catch (e) {}
 
-/* Inserta en el CURSOR si el médico dejó uno en el informe, y si no al final. Nada más: no
-   detecta si el texto ya está, no borra y no reordena. Tocarlo dos veces inserta dos veces —
-   es un inserto de texto, y sacarlo es una edición como cualquier otra.
-
-   El cursor se lee de `selectionStart`, que un `<textarea>` CONSERVA aunque haya perdido el
-   foco: es lo que hace que «en el cursor» signifique algo después de que el médico tocó el
-   botón. Con el textarea nunca tocado, `selectionStart` vale 0 —que es «al principio», no «al
-   final»— así que insertar ahí metería el template ARRIBA de un informe ya escrito, delante de
-   la función sistólica. Por eso el cursor sólo manda si el textarea fue el último elemento con
-   foco DEL MÉDICO; si no, va al final, que es lo que el pedido pide por omisión.
-
-   ⚠️ LA SELECCIÓN SE COLAPSA, NO SE REEMPLAZA. Escrito con `selectionStart`/`selectionEnd` como
-   par —que es el idioma de «insertar en un textarea»— el rango seleccionado DESAPARECE, y el
-   comentario de acá arriba dice «no borra». Reproducido: seleccionar la primera línea del informe
-   y tocar el botón se llevaba «Función sistólica normal, FEVI 58% por Simpson biplano.». Y no es
-   un gesto raro —doble clic sobre una palabra, triple sobre un párrafo, arrastrar para releer una
-   frase— ni recuperable: asignar `.value` por código NO deja entrada en la pila de deshacer del
-   textarea, así que Ctrl+Z no lo trae. Se inserta DESPUÉS de la selección y no se toca nada. */
-function ccInsertarTemplate() {
-  const ta = document.getElementById('informe_texto');
-  if (!ta) { if (typeof toast === 'function') toast('⚠️ No se encontró el campo del informe'); return; }
-  const txt = String(ta.value || '');
-  const usaCursor = (document.activeElement === ta) || (ta === _ccUltimoFoco);
-  let ini = usaCursor ? ta.selectionEnd : txt.length;
-  if (!(ini >= 0 && ini <= txt.length)) ini = txt.length;
-  const NL = String.fromCharCode(10);
-  /* Salto ANTES si lo que precede no termina en uno, y DESPUÉS si lo que sigue no empieza con
-     uno: sin esto el template se pega a la línea anterior y el informe publica
-     «…Sin masas intracardíacas.Análisis segmentario secuencial: …». */
-  const antes = txt.slice(0, ini), despues = txt.slice(ini);
-  const pre  = (antes && antes.slice(-1) !== NL) ? NL : '';
-  const post = (despues && despues.charAt(0) !== NL) ? NL : '';
-  const bloque = pre + CC_TEMPLATE_SEGMENTARIO + post;
-  ta.value = antes + bloque + despues;
-  /* El cursor queda al final de lo insertado, que es donde el médico va a seguir escribiendo.
-     `_ccInsertando` evita que este foco se registre como foco del médico — ver arriba. */
-  _ccInsertando = true;
-  try { ta.focus(); ta.setSelectionRange(ini + bloque.length, ini + bloque.length); } catch (e) {}
-  _ccInsertando = false;
-  /* `input` y no `change`: es lo que escuchan el autoguardado y el resto de los oyentes del
-     informe. Sin esto, el texto queda en pantalla y el borrador no se entera. */
+/* Primer toque: abre con el template. Segundo: cierra y DESCARTA, sin preguntar.
+   El `input` se despacha a mano porque asignar `.value` no lo dispara, y de ese evento cuelgan
+   el autoguardado y el resto de los oyentes del formulario: sin él, el cuadro se ve en pantalla
+   y el borrador no se entera — que es cómo se pierde lo escrito al cerrar la pestaña. */
+function ccToggleSegmentario() {
+  const ta = document.getElementById('cc_segmentario');
+  if (!ta) { if (typeof toast === 'function') toast('⚠️ No se encontró el cuadro de análisis segmentario'); return; }
+  const abierto = !!String(ta.value || '').trim();
+  ta.value = abierto ? '' : CC_TEMPLATE_SEGMENTARIO;
+  ccSegSync();
   try { ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
-  if (typeof toast === 'function') {
-    /* ⚠️ EL AVISO NOMBRA LO QUE PASA, NO UN SOLO BOTÓN. La primera versión decía «Generar
-       Informe», y son TRES los caminos que reescriben el informe entero —medidos—: «Generar
-       Informe», las tres pastillas de estilo (`setEstiloInforme` regenera explícito) y, una vez
-       reabierto el estudio, cualquier refresco silencioso de VEXUS o Pericardio. Nombrar uno solo
-       prometía que los otros dos eran seguros.
-       NO ES DEL TEMPLATE: medido, le pasa igual a una frase escrita a mano o insertada con
-       «💬 Frases». Es cómo se comportan `_infBase`/`_infMerge` desde antes, y por eso el aviso
-       habla de «lo que escribas» y no del template. Arranca con ⚠️ para que `toast` lo clasifique
-       como alerta —su heurística mira el ícono— y el lector de pantalla lo anuncie. */
-    toast('⚠️ Template de conexiones normales insertado. Regenerar el informe o cambiar de estilo reescribe todo y se lleva lo que escribas — dejalo para el final');
-  }
+  if (!abierto) { try { ta.focus(); } catch (e) {} }
+  if (typeof toast !== 'function') return;
+  toast(abierto
+    ? '🫀 Cuadro de análisis segmentario cerrado — su contenido se descartó'
+    : '🫀 Análisis segmentario abierto. Es un campo aparte: «Generar Informe» y los estilos no lo tocan, y sale en el PDF arriba del informe');
 }
-window.ccInsertarTemplate = ccInsertarTemplate;
+window.ccToggleSegmentario = ccToggleSegmentario;
 window.CC_TEMPLATE_SEGMENTARIO = CC_TEMPLATE_SEGMENTARIO;
 
 /* ── ETE: los tres predicados que el panel de filtros necesita ──
@@ -72743,8 +72815,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260924-1649';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790279388086;                 /* eco-build-ms */
+const ECO_BUILD    = '20260924-1945';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790289911409;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -72830,7 +72902,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260924-1649</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260924-1945</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
