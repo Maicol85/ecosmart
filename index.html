@@ -624,10 +624,22 @@
      de la altura, con el textarea visible arriba. */
   .inf-wrap { display: flex; gap: 10px; align-items: stretch; }
   .inf-wrap > textarea { flex: 1 1 auto; min-width: 0; }   /* min-width:0 o el textarea no se achica */
+  /* EL PANEL NO DEFINE LA ALTURA DE LA FILA, LA TOMA. Antes era un flex item con `max-height:420px`
+     y nada más: su altura intrínseca es la de la lista de frases, así que con unas pocas frases
+     pedía los 420 y ESTIRABA la fila. Medido con 14 frases: `.inf-wrap` pasaba de 200 a 420 px,
+     el textarea se iba con ella por el `align-items:stretch`, y todo lo que sigue —EN SUMA y el
+     resto de la tab— bajaba 220 px. El scroll interno YA funcionaba (scrollHeight 1139 sobre
+     clientHeight 418); lo que faltaba era que el panel no mandara sobre el layout.
+     `.frases-slot` es el que ocupa la columna, y el panel va `absolute` adentro: así hereda la
+     altura de la fila —la del textarea, sea la de arranque o la que el médico arrastró con el
+     `resize:vertical`— y su contenido scrollea dentro, sin mover un pixel de lo de abajo. */
+  .frases-slot { flex: 0 0 250px; position: relative; }
+  .frases-slot[hidden] { display: none; }
   .frases-panel {
-    flex: 0 0 250px; width: 250px; display: flex; flex-direction: column; gap: 8px;
+    position: absolute; inset: 0;                          /* la media query de móvil lo reposiciona */
+    display: flex; flex-direction: column; gap: 8px;
     background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
-    padding: 10px; max-height: 420px; overflow-y: auto;
+    padding: 10px; overflow-y: auto;
   }
   .frases-panel[hidden] { display: none; }                 /* [hidden] pierde contra display:flex */
   .frases-grip { display: none; }
@@ -2703,7 +2715,13 @@ window.cerrarSesionReal = cerrarSesionReal;
       <span style="flex:1;">〰️ Doppler Mitral — Función Diastólica</span>
       <button type="button" class="btn btn-ghost" style="font-size:11px;padding:3px 9px;font-weight:600;flex:none;"
               onclick="event.stopPropagation();diastAlgoAbrir();" title="Ver el algoritmo diastólico con los valores del paciente">🧭 Algoritmo</button>
-      <span id="dop-mitral-arrow" style="transition:transform 0.2s;flex:none;">▼</span>
+      <!-- `▶` y no `▼`, y con el rotate ya puesto: la convención de `toggleCard` es «sin rotar =
+           colapsado, rotate(90deg) = expandido», que es la que usan Doppler Aórtico y Tricuspídeo
+           acá al lado. Con `▼` la flecha expandida apuntaba a la IZQUIERDA. No se notaba porque
+           el transform nunca le llegaba —se lo llevaba el título, ver `toggleCard`—, así que al
+           arreglar eso el glifo viejo pasaba a ser un bug visible. Esta sección arranca abierta
+           (`display:block`), de ahí el rotate inicial. -->
+      <span id="dop-mitral-arrow" style="transition:transform 0.2s;flex:none;transform:rotate(90deg);">▶</span>
     </h2>
   </div>
   <div id="dop-mitral" style="display:block;">
@@ -10698,6 +10716,13 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
           <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--text2);margin-top:8px;">
             <span>🟩 ≥5 mm adecuado</span><span>🟧 3–4 mm borderline</span><span>🟥 &lt;3 mm deficiente</span>
           </div>
+          <!-- Mismo rótulo, mismo emoji y misma clase que el «🧹 Limpiar» del bull's eye de
+               Contractilidad, que es la referencia de diseño del pedido. Va DEBAJO del panel y no
+               al lado del donut para no competir con los segmentos, que son la zona táctil. -->
+          <div style="margin-top:10px;">
+            <button type="button" class="btn btn-ghost" onclick="ciaBordesReset()"
+                    title="Borra las cinco medidas de borde del diagrama">🧹 Limpiar</button>
+          </div>
         </div><!-- /columna derecha: panel + leyenda -->
       </div><!-- /fila donut + panel -->
     </div>
@@ -13327,7 +13352,12 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <textarea id="informe_texto" style="min-height:200px;" placeholder="Presione 'Generar Informe' para autocompletar..."></textarea>
           <!-- El panel es hermano del textarea, no lo envuelve: envolverlo habría cambiado el
                selector de guardarInforme, que recorre `input[id], select[id], textarea[id]` de
-               todo el documento y depende de que el textarea siga siendo alcanzable por id. -->
+               todo el documento y depende de que el textarea siga siendo alcanzable por id.
+               El `.frases-slot` envuelve SÓLO al panel —el textarea sigue siendo hijo directo de
+               `.inf-wrap`, así que ese selector no se entera—. Es la columna que ocupa el lugar;
+               el panel se posiciona absoluto adentro para no imponerle su altura a la fila. Ver
+               el CSS de `.frases-slot`. -->
+          <div class="frases-slot" id="frases-slot" hidden>
           <aside class="frases-panel" id="frases-panel" hidden aria-label="Mis frases">
             <div class="frases-grip" id="frases-grip" title="Deslizá hacia abajo para cerrar"></div>
             <div class="frases-head">
@@ -13349,6 +13379,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             </div>
             <div class="frases-lista" id="frases-lista"></div>
           </aside>
+          </div><!-- /.frases-slot -->
         </div>
       </div>
     </div>
@@ -16837,7 +16868,19 @@ function toggleCard(sectionId, headEl) {
   if (!sec) return;
   const visible = sec.style.display !== 'none';
   sec.style.display = visible ? 'none' : 'block';
-  const arrow = headEl ? headEl.querySelector('span') : null;
+  /* La flecha se busca POR ID y `querySelector('span')` queda sólo de respaldo. Ese respaldo
+     devuelve el PRIMER <span> de la cabecera, que es la flecha en 22 de los 23 acordeones
+     —tienen el título como texto suelto— pero NO en «Doppler Mitral — Función Diastólica»:
+     ése envolvió su título en un <span style="flex:1"> para poder poner el botón «Algoritmo»
+     a la derecha, así que el primer span es el TÍTULO y se le aplicaba el rotate.
+     Medido: al expandir, el título pasaba de 946×15 px a 15×946 con top -267, o sea una barra
+     vertical que se sale de la cabecera; la `.card` lleva `overflow:hidden`, así que quedaba
+     recortada y el rótulo DESAPARECÍA — quedaba flotando el botón «Algoritmo» sin nada que
+     dijera en qué sección estaba el médico. Y la flecha no giraba nunca, porque el transform
+     se lo llevaba otro elemento.
+     Los 5 acordeones sin `<id>-arrow` caen al respaldo y se comportan igual que antes. */
+  const arrow = document.getElementById(sectionId + '-arrow') ||
+                (headEl ? headEl.querySelector('span') : null);
   if (arrow) arrow.style.transform = visible ? 'rotate(0deg)' : 'rotate(90deg)';
 }
 window.toggleCard = toggleCard;
@@ -22100,6 +22143,11 @@ function frasesToggle() {
   if (!pan) return;
   const abierto = !pan.hidden;
   if (abierto) { frasesCerrar(); return; }
+  /* El slot se abre y se cierra CON el panel. Es su columna en la fila: si quedara visible con
+     el panel oculto reservaría 250 px vacíos al lado del textarea, y si quedara oculto con el
+     panel visible el `display:none` del padre se llevaría al panel entero. Ver el CSS. */
+  const slot = document.getElementById('frases-slot');
+  if (slot) slot.hidden = false;
   pan.hidden = false;
   pan.style.transform = '';                  // por si un gesto cancelado dejó uno pegado
   if (btn) btn.setAttribute('aria-expanded', 'true');
@@ -22127,6 +22175,11 @@ function frasesToggle() {
 function frasesCerrar() {
   const pan = document.getElementById('frases-panel');
   const btn = document.getElementById('frases-btn');
+  /* El slot se cierra ANTES del `return` por panel ausente: si el panel desapareciera del DOM
+     con el slot abierto, salir acá dejaría una columna vacía de 250 px al lado del textarea para
+     siempre. Hoy nada borra el panel, pero cerrar la columna no depende de que el panel exista. */
+  const slot = document.getElementById('frases-slot');
+  if (slot) slot.hidden = true;              // la columna se va con el panel — ver frasesToggle
   if (!pan) return;
   pan.hidden = true;
   pan.style.transform = '';                  // ver el touchcancel de abajo
@@ -30152,6 +30205,44 @@ function selBordeCIA(id){
   ciaDonutRender();
 }
 window.selBordeCIA = selBordeCIA;
+
+/* «🧹 Limpiar» del donut, el equivalente del `contrReset()` del bull's eye.
+   Borra SÓLO las cinco medidas de borde —los `campo` de CIA_DONUT_SEGS, o sea lo que el donut
+   dibuja— y no el tipo, el tamaño ni la dirección del shunt: ésos son el centro del diagrama y
+   viven en sus propios controles, igual que `contrReset` limpia los 17 segmentos y no toca los
+   datos del paciente. Un botón rotulado «Limpiar» al lado del dibujo que además borrara la
+   caracterización de la CIA sería una pérdida de datos que nadie pidió.
+   Se recorre CIA_DONUT_SEGS y no una lista escrita a mano: si mañana se agrega un borde, ESTE
+   BOTÓN lo limpia solo. Ojo con el alcance: los mismos cinco ids siguen escritos a mano en
+   `_CIA_BORDES` (borde mínimo y el gate del donut del PDF), en el bloque del Excel, en
+   `_IG_SECTIONS` y en `LAB_XLS_MAP`, así que un sexto borde agregado sólo acá se dibujaría y se
+   limpiaría pero no contaría para el mínimo. El recorrido evita una lista paralela MÁS, no las
+   que ya existen. */
+function ciaBordesReset(){
+  CIA_DONUT_SEGS.forEach(function(seg){
+    if (!seg.campo) return;
+    const el = document.getElementById(seg.campo);
+    if (!el) return;
+    el.value = '';
+    /* `input` a mano: asignar `.value` por código NO dispara ningún evento, y el autoguardado
+       escucha `input`/`change` en el documento. Sin esto, el médico borraba los bordes con el
+       botón, cerraba sin guardar, y el borrador restaurado en la sesión siguiente reponía las
+       cinco medidas que acababa de borrar — con el cartel «Se restauró un borrador sin guardar»
+       tranquilizándolo. Borrar a mano sí avisaba, así que el botón era MENOS seguro que el
+       teclado. Es el mismo motivo por el que `frasesInsertar` despacha su propio `input`.
+       Burbujea porque el oyente del autoguardado está en `document`. */
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  _ciaSegSel = 'ao';                      // mismo valor inicial de la declaración
+  /* `eteShuntSync` y no `ciaDonutRender` a secas: los cinco inputs llaman a esa función en su
+     `oninput`, y es la que recalcula el borde mínimo y su caja (`ete-cia-borde-min-box`) además
+     de repintar el donut. Repintar sólo el dibujo dejaba «Borde mínimo: 2 mm» debajo de un
+     diagrama ya vacío. */
+  if (typeof eteShuntSync === 'function') { try { eteShuntSync(); } catch (e) {} }
+  else ciaDonutRender();
+  if (typeof toast === 'function') toast('🧹 Bordes de la CIA limpiados');
+}
+window.ciaBordesReset = ciaBordesReset;
 
 function ciaDonutRender(){
   const svg = document.getElementById('cia-donut-svg');
@@ -38591,8 +38682,14 @@ function cardAutoOpen(tabId) {
     sec.style.display = 'block';
     /* La flecha se repinta con la sección: `toggleCard` la rota desde el header, y abrir por
        código sin tocarla deja el afford diciendo «cerrado» sobre una sección abierta. */
+    /* Mismo lookup por id que `toggleCard`, y por el mismo motivo: `querySelector('span')`
+       devuelve el primer <span>, que en una cabecera con el título envuelto —como la de Doppler
+       Mitral— es el TÍTULO, y rotarlo 90° lo vuelve una barra vertical que la `.card` recorta
+       hasta hacerlo desaparecer. Hoy `[data-autoopen]` sólo está en las tres secciones de
+       Cardio-Oncología, donde el primer span ya es la flecha; queda igualado para que el defecto
+       no vuelva por acá, que además es el camino que abre secciones SIN que nadie haya clickeado. */
     const h = document.querySelector('h2.card-head[onclick*="' + sec.id + '"]');
-    const fl = h ? h.querySelector('span') : null;
+    const fl = document.getElementById(sec.id + '-arrow') || (h ? h.querySelector('span') : null);
     if (fl) fl.style.transform = 'rotate(90deg)';
   });
 }
