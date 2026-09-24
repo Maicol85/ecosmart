@@ -89,6 +89,82 @@ y fundirlos haría que el documento diga una cosa y el formulario otra.
 guardado **sin** la sección que el PDF de ese mismo estudio imprime — una superficie que esconde lo
 que otra firma. En el PPT va rotulada y separada por un renglón, no fundida.
 
+### El formato: UNA LÍNEA POR ORACIÓN, con guion (2026-09-24, quinta decisión de la jornada)
+
+Decisión de Maicol. Era un párrafo corrido con puntos seguidos; hoy el encabezado va solo y cada
+segmento en su renglón con «- ». **Ninguna oración cambió una palabra**: sólo dónde cortan y la
+mayúscula inicial del situs.
+
+**LOS SALTOS SON `\n` REALES Y LAS TRES SUPERFICIES LOS CONSERVAN POR MOTIVOS DISTINTOS**, así
+que no hay una sola pieza a la que mirar si alguna vuelve a salir corrida:
+
+| | qué lo sostiene | qué pasa si se toca |
+|---|---|---|
+| **PDF** | `amiloSanPDFml` sanea línea por línea y `splitTextToSize` parte por salto | `amiloSanPDF` a secas los BORRA —su catch-all `[^\x20-\xFF]` incluye el `\n`— y el bloque sale completo, legible y en un párrafo |
+| **detalle de Guardados** | `white-space:pre-wrap` en el contenedor | el HTML los colapsa a un espacio, sin ningún error |
+| **PPT** | `_pptTxt` deja pasar el 0x0A… | …**pero la pieza que decide ahí es otra** — ver abajo |
+
+**⚠️ EN EL PPT EL SOSPECHOSO NO ES `_pptTxt`, ES EL PARTIDOR.** La diapositiva del informe hace
+`texto.split(/\n+/)` y reensambla con **un solo** `\n`, así que el renglón en blanco que separa el
+bloque del narrativo **no llega nunca** y cada ítem pasa a ser un párrafo propio para el
+acumulador. Dos consecuencias: la primera línea del informe queda pegada debajo de
+«- Septum interventricular: .....» y se lee como un **noveno ítem** de la lista, y la lista se
+puede cortar entre diapositivas por cualquier bullet. **Las dos son PREEXISTENTES** —ese partidor
+no se tocó— y la primera se **agravó** con este cambio, porque antes el segmentario era prosa.
+**Declarado y no corregido**: tocar ese partidor mueve la paginación de todas las diapositivas de
+informe. Lo encontró `/sharp-edges`, no la lectura.
+
+### ⚠️ EL `focus()` HACÍA QUE EL CUADRO ABRIERA MOSTRANDO SU ÚLTIMA LÍNEA
+
+`focus()` deja el cursor al final y el navegador arrastra el scroll hasta él. Con el párrafo de
+antes no se notaba; con nueve renglones el contenido mide 141 px en una caja de 90 y **lo primero
+que veía el médico era «- Arco aórtico izquierdo.»**, con el encabezado fuera de vista: se lee como
+si el template empezara a la mitad. Se fija `setSelectionRange(0,0)` **antes** de enfocar, que es
+lo único que cubre todos los anchos —a 375 px las líneas envuelven a 242 px y el scroll vuelve
+igual—. El caso mide la **selección** y no el `scrollTop`: aquélla la fija el código
+explícitamente, mientras que el desplazamiento lo decide el navegador y en un harness sin pintar
+puede dar 0 por casualidad, o sea una condición que pasa sin probar nada.
+
+### ⚠️ UN `min-height` SE MIDE EN EL BREAKPOINT MÁS ANCHO, NO EN LA VENTANA QUE UNO TIENE DELANTE
+
+Hay dos media queries que **suben** el cuerpo del textarea —13,5 px desde 1400 y 14 px desde
+1920—, así que los mismos nueve renglones miden **141, 161 y 165 px** según el monitor. Puse 150
+midiendo en la ventana angosta del preview, y **en un escritorio de verdad la caja volvía a nacer
+con scroll sobre su propio texto de fábrica**. Lo cazó `/sharp-edges` leyendo las media queries y
+se confirmó midiendo a 1500 y a 1920. Hoy son **170**. Al tocar el texto o esas media queries,
+medir a 1920.
+
+### El «- » inicial es seguro HOY porque el campo no sale a ninguna tabla
+
+Auditado, no supuesto: `cc_segmentario` no está en `LAB_XLS_MAP`, ni en `_IG_SECTIONS`, ni en el
+exportador DICOM, y los dos parsers por marcador del archivo —`amiloPreview` y
+`amiloDibujarSecciones`, que reconocen `##` y `!!`— operan sobre `am-txt-*`. **El día que entre a
+un export CSV, un renglón que empieza con `-` es una FÓRMULA para Excel**, y `_csvCell` —lo único
+que neutraliza `^[=+\-@]`— **no tiene un solo llamador**: no hay red puesta.
+
+### La condición del PDF contaba guiones en TODO el documento
+
+`R.pdfConGuion` sobre la lista entera de objetos de texto **se pondría en rojo con el bloque
+perfectamente impreso** el día que el estudio de prueba integre HFA-PEFF o cardio-oncología: los
+dos emiten renglones con `'- '`. Y `amiloSanPDF` normaliza las rayas largas a `-`, así que
+cualquier renglón que hoy empiece con raya también contaría. Se cuenta **entre la barra del bloque
+y la del INFORME**, que es lo que el caso ya tenía calculado. Lo encontró `/sharp-edges`.
+
+**Y el backtick dentro del cuerpo de un caso volvió a entrar** —van SETENTA Y NUEVE—, otra vez en
+el comentario que acababa de escribir, el que explica justamente esto. `node --check` lo caza
+apuntando a la línea del `caso(`.
+
+### Tres mutaciones, cada una en su condición
+
+Volver al párrafo corrido (cae por cuatro, con el párrafo entero en el diagnóstico), el PDF
+saneando con `amiloSanPDF` en vez de `amiloSanPDFml` —que es la que importa: **la pantalla queda
+perfecta y sólo el papel colapsa**— y quitar el `setSelectionRange`, que imprime
+`selectionStart=581`.
+
+**Medido en el PDF real**: el bloque imprime nueve objetos de texto, ninguno envuelve —el ítem más
+largo entra en una línea— y el documento sigue en **una hoja** con y sin el cuadro, así que el
+cambio no empuja la escalera A4.
+
 ### El texto: cuatro segmentos y DOS placeholders que no afirman nada
 
 Fuente: **Corbett L, Forster J, Gamlin W, et al. Echo Res Pract 2022;9:10** (BSE), Tabla 4 —un

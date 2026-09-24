@@ -17464,12 +17464,21 @@ caso('TC-217', 'Boton CC: cuadro aparte, aislado de Generar Informe y de los est
       await new Promise(r=>setTimeout(r,200));
       R.abre = w.hidden === false && vis() && ta.value.trim() !== '';
       R.aria = b.getAttribute('aria-expanded');
+      /* EL CURSOR ARRANCA EN 0. Se mide la SELECCION y no el scrollTop: aquella la fija el codigo
+         explicitamente y no depende del layout, mientras que el desplazamiento real lo decide el
+         navegador al enfocar y en un harness sin pintar puede dar 0 por casualidad — o sea una
+         condicion que pasa sin probar nada. Sin esto el cuadro abre mostrando su ULTIMA linea. */
+      R.selStart = ta.selectionStart;
+      R.cursorAlPrincipio = ta.selectionStart === 0 && ta.selectionEnd === 0;
       const NL = String.fromCharCode(10);
       const lineas = ta.value.split(NL);
       const t1 = ta.value;
+      /* Insensible a mayusculas para el situs: al pasar a lista quedo al principio de su renglon
+         y se escribe «Situs». Buscar la forma en minuscula daba rojo sobre un texto correcto. */
+      const t1l = t1.toLowerCase();
       const tiene = s => t1.indexOf(s) >= 0;
       R.segmentos = {
-        situs:    tiene('situs visceroauricular solitus'),
+        situs:    t1l.indexOf('situs visceroauricular solitus') >= 0,
         venoso:   tiene('Conexion venosa sistemica normal') || tiene('Conexión venosa sistémica normal'),
         pulmonar: tiene('al menos tres venas pulmonares'),
         av:       tiene('auriculoventricular'),
@@ -17478,9 +17487,18 @@ caso('TC-217', 'Boton CC: cuadro aparte, aislado de Generar Informe y de los est
       };
       R.faltan = Object.keys(R.segmentos).filter(k => !R.segmentos[k]).join(',');
       R.cuatroSegmentos = R.faltan === '';
-      /* LAS DOS LINEAS DE SEPTUM: una por renglon, con puntos suspensivos y SIN estado. */
-      R.septumIA = lineas.some(l => l.indexOf('Septum interauricular') === 0 && l.indexOf('...') > 0);
-      R.septumIV = lineas.some(l => l.indexOf('Septum interventricular') === 0 && l.indexOf('...') > 0);
+      /* EL FORMATO ES UNA LISTA, no un parrafo corrido: encabezado solo en el primer renglon y
+         una oracion por linea precedida por «- ». Se exige el CONTEO ademas de los prefijos:
+         sin el, un template que uniera dos items en una sola linea seguiria pasando. */
+      R.nLineas = lineas.length;
+      R.encabezadoSolo = lineas[0] === 'Análisis segmentario secuencial:';
+      R.conGuion = lineas.slice(1).filter(l => l.indexOf('- ') === 0).length;
+      R.formatoLista = R.nLineas === 9 && R.encabezadoSolo && R.conGuion === 8;
+      R.fmtDiag = 'lineas=' + R.nLineas + ' conGuion=' + R.conGuion +
+                  ' encabezado=' + JSON.stringify(lineas[0]);
+      /* LAS DOS LINEAS DE SEPTUM: una por renglon, con su guion, puntos suspensivos y SIN estado. */
+      R.septumIA = lineas.some(l => l.indexOf('- Septum interauricular') === 0 && l.indexOf('...') > 0);
+      R.septumIV = lineas.some(l => l.indexOf('- Septum interventricular') === 0 && l.indexOf('...') > 0);
       R.septumSinEstado = !/Septum.*(ntegro|normal|sin defecto)/i.test(t1);
       R.placeholders = R.septumIA && R.septumIV && R.septumSinEstado;
       /* NI DUCTUS NI «no dilatada»: las dos las contradice la propia app en el mismo informe. */
@@ -17555,14 +17573,16 @@ caso('TC-217', 'Boton CC: cuadro aparte, aislado de Generar Informe y de los est
       R.guardo = !!(g && g.ok);
       const est = (typeof getInformes === 'function' ? getInformes() : [])
                   .filter(i => i.nombre === 'Prueba CC cuadro').pop();
-      R.viajaEnCampos = !!(est && est.campos && String(est.campos.cc_segmentario || '').indexOf('situs') >= 0);
+      /* Marcador insensible a mayusculas: «Situs» abre su renglon desde que el texto es lista. */
+      const marcaSeg = s => String(s || '').toLowerCase().indexOf('situs viscero') >= 0;
+      R.viajaEnCampos = !!(est && est.campos && marcaSeg(est.campos.cc_segmentario));
       __t.limpiar();
       await new Promise(r=>setTimeout(r,300));
       R.limpiarLoEsconde = !vis() && document.getElementById('cc-seg-wrap').hidden === true &&
                            document.getElementById('cc_segmentario').value === '';
       if (est) { await __t.reabrir(est.estudioId || est.id); await new Promise(r=>setTimeout(r,700)); }
       R.vuelveAlReabrir = vis() && document.getElementById('cc-seg-wrap').hidden === false &&
-                          document.getElementById('cc_segmentario').value.indexOf('situs') >= 0;
+                          marcaSeg(document.getElementById('cc_segmentario').value);
       R.cicloOk = R.guardo && R.viajaEnCampos && R.limpiarLoEsconde && R.vuelveAlReabrir;
       R.cicloDiag = 'guardo=' + R.guardo + ' campos=' + R.viajaEnCampos +
                     ' limpio=' + R.limpiarLoEsconde + ' volvio=' + R.vuelveAlReabrir;
@@ -17581,7 +17601,8 @@ caso('TC-217', 'Boton CC: cuadro aparte, aislado de Generar Informe y de los est
         await new Promise(r => setTimeout(r, 100));
       }
       if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) {
-        R.pdfLibre = false; R.pdfDiag = 'jsPDF no cargo en 8 s';
+        R.pdfLibre = false; R.pdfEsLista = false; R.pdfConGuion = -1;
+        R.pdfDiag = 'jsPDF no cargo en 8 s';
       } else {
         const OrigPDF = window.jspdf.jsPDF;
         let ultimo = null;
@@ -17602,7 +17623,8 @@ caso('TC-217', 'Boton CC: cuadro aparte, aislado de Generar Informe y de los est
           ultimo = null;
           await generarPDFReal({});
           await new Promise(r=>setTimeout(r,800));
-          if (!ultimo) { R.pdfLibre = false; R.pdfDiag = 'no se capturo el documento'; }
+          if (!ultimo) { R.pdfLibre = false; R.pdfEsLista = false; R.pdfConGuion = -1;
+                         R.pdfDiag = 'no se capturo el documento'; }
           else {
             const bin = atob(ultimo.output('datauristring').split(',')[1]);
             const re = /\\(((?:\\\\[\\s\\S]|[^()\\\\])*)\\)\\s?Tj/g;
@@ -17613,9 +17635,25 @@ caso('TC-217', 'Boton CC: cuadro aparte, aislado de Generar Informe y de los est
             const iSeg = out.findIndex(t => /^Analisis segmentario$|^ANALISIS SEGMENTARIO$/.test(t));
             const iInf = out.findIndex(t => /^INFORME$|^Informe clinico$|^Informe narrativo$/.test(t));
             R.pdfTj = out.length;
-            R.pdfTieneSitus = out.some(t => t.indexOf('situs') >= 0);
+            R.pdfTieneSitus = out.some(t => t.toLowerCase().indexOf('situs viscero') >= 0);
             R.pdfSeptum = out.filter(t => t.indexOf('Septum inter') >= 0).length;
             R.pdfSinDuctus = !out.some(t => /ductus/i.test(t));
+            /* ⚠️ EL PDF NO PUEDE COLAPSAR LOS SALTOS. Es lo unico que distingue la lista del
+               parrafo corrido en el papel, y falla MUDO: si amiloSanPDFml o splitTextToSize se
+               comieran los \\n, el bloque saldria completo, legible y en un solo parrafo — o sea
+               identico a lo que este cambio vino a sacar. Cada item arranca su propia linea, asi
+               que tienen que ser OCHO los objetos de texto que empiezan con guion; las lineas de
+               continuacion de un item largo no llevan ninguno. Colapsado, el numero se desploma.
+
+               ⚠️ SE CUENTA DENTRO DEL BLOQUE, entre su barra y la del INFORME, y NO en todo el
+               documento. Hay otros dos emisores de renglones con guion —HFA-PEFF y la lista de
+               criterios de cardio-oncologia— y ademas amiloSanPDF normaliza las rayas largas a
+               «-», asi que cualquier renglon que hoy empiece con raya tambien contaria. Contado
+               sobre la lista ENTERA, este caso se pondria ROJO el dia que el estudio de prueba
+               integre uno de esos modulos, con el bloque segmentario perfectamente impreso. */
+            R.pdfConGuion = (iSeg >= 0 && iInf > iSeg)
+              ? out.slice(iSeg, iInf).filter(t => t.indexOf('- ') === 0).length : -1;
+            R.pdfEsLista = R.pdfConGuion === 8;
             R.pdfLibre = iSeg >= 0 && iInf >= 0 && iSeg < iInf && R.pdfTieneSitus &&
                          R.pdfSeptum === 2 && R.pdfSinDuctus;
             R.pdfDiag = 'seg=' + iSeg + ' informe=' + iInf + ' situs=' + R.pdfTieneSitus +
@@ -17660,6 +17698,9 @@ caso('TC-217', 'Boton CC: cuadro aparte, aislado de Generar Informe y de los est
       ['y no es una pastilla de estilo',               R.noEsPastilla, R.noEsPastilla],
       ['primer toque ABRE con el template',            R.abre, R.aria],
       ['con los cuatro segmentos y concordantes',      R.cuatroSegmentos, R.faltan || 'ninguno falta'],
+      ['en LISTA: encabezado solo y una oracion por renglon', R.formatoLista, R.fmtDiag],
+      ['y abre con el cursor en la PRIMERA linea',     R.cursorAlPrincipio,
+        'selectionStart=' + R.selStart],
       ['dos lineas de septum, con puntos y SIN estado', R.placeholders,
         'ia=' + R.septumIA + ' iv=' + R.septumIV + ' sinEstado=' + R.septumSinEstado],
       ['ni ductus, ni «integro», ni «no dilatada»',    R.sinProhibidas, R.prohibidas || 'ninguna'],
@@ -17672,6 +17713,8 @@ caso('TC-217', 'Boton CC: cuadro aparte, aislado de Generar Informe y de los est
       ['la visibilidad se DERIVA del contenido',       R.derivada, 'muestra=' + R.syncMuestra + ' esconde=' + R.syncEsconde],
       ['viaja con el estudio, se limpia y vuelve',     R.cicloOk, R.cicloDiag],
       ['SALE EN EL PDF, y ANTES de la barra INFORME',  R.pdfLibre, R.pdfDiag],
+      ['y el PDF NO colapsa los saltos: 8 items con guion', R.pdfEsLista,
+        'lineas del PDF que empiezan con guion: ' + R.pdfConGuion],
       ['un contenido EN BLANCO no imprime la barra',   R.blancoOk, R.blancoDiag]
     ] };
   })();

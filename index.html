@@ -13412,7 +13412,18 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
              botón. Es la misma razón por la que `_refrescarInformeSiGenerado` va en `onchange`.
              Con `change` el cuadro se cierra al salir del campo, que es antes de cualquier
              guardado o PDF —los dos desenfocan el textarea primero—. -->
-        <textarea id="cc_segmentario" style="min-height:92px;" onchange="ccSegSync()"
+        <!-- 170 px y no 92: el template pasó a ser una lista de NUEVE renglones y con la altura
+             anterior la caja nacía con scroll sobre su propio texto de fábrica.
+             ⚠️ EL NÚMERO SALE DEL BREAKPOINT MÁS ANCHO, NO DEL QUE UNO TIENE DELANTE. Hay dos
+             media queries que SUBEN el cuerpo del textarea —13,5 px desde 1400 y 14 px desde
+             1920— así que los mismos nueve renglones miden 141, 161 y 165 px según el monitor.
+             Medido en los tres: con 150 entraba en la ventana angosta del preview y volvía a
+             tener scroll en un escritorio de verdad, que es donde se usa. Al tocar el texto o
+             esas media queries, medir a 1920.
+             No es un tope —el textarea sigue creciendo al arrastrar— y en pantalla angosta las
+             líneas envuelven y vuelve a haber scroll igual: de eso se ocupa el cursor en 0 de
+             `ccToggleSegmentario`, no esta altura. -->
+        <textarea id="cc_segmentario" style="min-height:170px;" onchange="ccSegSync()"
                   placeholder="Situs y conexiones…"></textarea>
         <p style="font-size:10px;color:var(--text2);margin:4px 0 0;">
           Campo independiente del informe: «Generar Informe» y los estilos no lo tocan.
@@ -67083,7 +67094,42 @@ function _ccSecPred(k) { const s = _CC_SEC_POR_K[k]; return s ? s.pred : null; }
    transtorácico de adulto las cuatro rara vez se demuestran. «Las cuatro» afirmaría una
    demostración que el estudio no suele tener.
 
-   ⚠️ EN EL PDF SALEN COMO «Septum interauricular:.....», SIN EL ESPACIO. Medido, y se declara
+   ══ EL FORMATO: una línea por oración, con guion ══
+   Decisión de Maicol (2026-09-24). Antes era un párrafo corrido con puntos seguidos; hoy el
+   encabezado va solo y cada segmento en su renglón precedido por «- ». El contenido de las
+   oraciones no cambió una palabra: sólo dónde cortan.
+
+   ⚠️ LOS SALTOS SON `\n` REALES Y LAS TRES SUPERFICIES LOS RESPETAN — verificado, no supuesto,
+   porque cada una los conserva por un motivo DISTINTO y ninguno es obvio:
+     · PDF — `doc.splitTextToSize` parte por salto antes de ajustar al ancho, y `amiloSanPDFml`
+       sanea LÍNEA POR LÍNEA justamente para no comérselos (`amiloSanPDF` a secas los borra: su
+       catch-all es `[^\x20-\xFF]`, que incluye el `\n`). Es la misma ruta por la que el informe
+       narrativo ya imprime sus párrafos.
+     · Detalle de Guardados — el contenedor lleva `white-space:pre-wrap`; sin eso el HTML los
+       colapsaría a un espacio y volvería al párrafo corrido SIN ningún error.
+     · PPT — `_pptTxt` conserva el `\n` (0x0A queda fuera de sus dos ventanas de control), pero
+       **la pieza que decide ahí NO es ésa**: es el partidor de la diapositiva del informe, que
+       hace `texto.split(/\n+/)` y reensambla con UN solo `\n`. O sea que el renglón en blanco que
+       separa el bloque del informe narrativo no llega, y cada ítem pasa a ser un párrafo propio
+       para el acumulador, así que la lista se puede cortar entre diapositivas por cualquier
+       bullet. Las dos cosas son PREEXISTENTES —el partidor no se tocó— y la primera se agravó con
+       este cambio: antes el segmentario era prosa corrida y ahora la primera línea del informe
+       queda pegada debajo de «- Septum interventricular: .....», donde se lee como un noveno ítem.
+       Declarado, no corregido: tocar ese partidor mueve la paginación de TODAS las diapositivas
+       de informe, que es otra tarea.
+   Si alguna vez el texto vuelve a salir corrido en UNA sola de las tres, el sospechoso es la
+   pieza de esa superficie y no el template — y en el PPT es el partidor, no `_pptTxt`.
+
+   ⚠️ EL «- » INICIAL ES SEGURO HOY PORQUE ESTE CAMPO NO SALE A NINGUNA TABLA, y eso hay que
+   re-verificarlo si alguna vez sale. Auditado: `cc_segmentario` no está en `LAB_XLS_MAP`, ni en
+   `_IG_SECTIONS`, ni en el exportador DICOM; sus únicos lectores son el PDF, el detalle de
+   Guardados y el PPT. Y los dos parsers por marcador del archivo —`amiloPreview` y
+   `amiloDibujarSecciones`, que reconocen `##` y `!!`— operan sobre `am-txt-*`, no sobre este
+   bloque, así que ningún marcador colisiona. El día que entre a un export CSV, un renglón que
+   empieza con `-` es una FÓRMULA para Excel: `_csvCell` es lo que neutraliza `^[=+\-@]` y hoy
+   **no tiene un solo llamador**, o sea que no hay red puesta.
+
+   ⚠️ EN EL PDF SALEN COMO «- Septum interauricular:.....», SIN EL ESPACIO. Medido, y se declara
    en vez de tocar nada: `amiloSanPDF` —el saneador por el que pasa TODO texto del PDF— tiene
    `.replace(/\s+([.,;:)])/g, '$1')`, que quita el espacio delante de un signo de puntuación, y
    estos placeholders empiezan con punto. Esa regla existe para limpiar los espacios que dejan
@@ -67107,14 +67153,17 @@ function _ccSecPred(k) { const s = _CC_SEC_POR_K[k]; return s ? s.pred : null; }
    paciente que el médico ya sabe que no tiene TGA corregida ni conexión venosa pulmonar anómala,
    que son las dos condiciones de la app que alteran conexiones de verdad. */
 const CC_TEMPLATE_SEGMENTARIO = [
-  'Análisis segmentario secuencial: situs visceroauricular solitus, levocardia con ápex ' +
-  'orientado a la izquierda. Conexión venosa sistémica normal, con venas cavas superior e ' +
-  'inferior y seno coronario a la aurícula derecha. Conexión venosa pulmonar normal, con al ' +
-  'menos tres venas pulmonares a la aurícula izquierda. Conexiones auriculoventricular y ' +
-  'ventriculoarterial concordantes. Grandes arterias normalmente relacionadas, con tronco ' +
-  'pulmonar anterior y a la izquierda de la aorta. Arco aórtico izquierdo.',
-  'Septum interauricular: .....',
-  'Septum interventricular: .....'
+  'Análisis segmentario secuencial:',
+  '- Situs visceroauricular solitus, levocardia con ápex orientado a la izquierda.',
+  '- Conexión venosa sistémica normal, con venas cavas superior e inferior y seno coronario a ' +
+  'la aurícula derecha.',
+  '- Conexión venosa pulmonar normal, con al menos tres venas pulmonares a la aurícula izquierda.',
+  '- Conexiones auriculoventricular y ventriculoarterial concordantes.',
+  '- Grandes arterias normalmente relacionadas, con tronco pulmonar anterior y a la izquierda ' +
+  'de la aorta.',
+  '- Arco aórtico izquierdo.',
+  '- Septum interauricular: .....',
+  '- Septum interventricular: .....'
 ].join(String.fromCharCode(10));
 
 /* Muestra u oculta el cuadro según TENGA TEXTO. No decide nada más: quien abre y cierra es el
@@ -67164,7 +67213,19 @@ function ccToggleSegmentario() {
   ta.value = abierto ? '' : CC_TEMPLATE_SEGMENTARIO;
   ccSegSync();
   try { ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
-  if (!abierto) { try { ta.focus(); } catch (e) {} }
+  /* ⚠️ EL CURSOR VA AL PRINCIPIO, Y NO ES COSMÉTICO DESDE QUE EL TEXTO ES UNA LISTA.
+     `focus()` deja el cursor al final y el navegador arrastra el scroll hasta él. Con el párrafo
+     corrido de antes eso no se notaba; con nueve renglones, el contenido mide 141 px en una caja
+     de 90 y el cuadro ABRÍA MOSTRANDO EL FINAL —medido—: la primera línea que veía el médico era
+     «- Arco aórtico izquierdo.» y el encabezado quedaba fuera de vista. Se ve como si el template
+     empezara a la mitad. Se fija el cursor en 0 ANTES de enfocar, y ES LO ÚNICO QUE CUBRE TODOS
+     LOS ANCHOS: el `min-height` del marcado alcanza en escritorio, pero en un celular las líneas
+     envuelven —medido, 242 px de contenido en 148 a 375 px— y el scroll vuelve igual. */
+  if (!abierto) {
+    try { ta.setSelectionRange(0, 0); } catch (e) {}
+    try { ta.focus(); } catch (e) {}
+    try { ta.scrollTop = 0; } catch (e) {}
+  }
   if (typeof toast !== 'function') return;
   toast(abierto
     ? '🫀 Cuadro de análisis segmentario cerrado — su contenido se descartó'
@@ -72815,8 +72876,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260924-1945';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790289911409;                 /* eco-build-ms */
+const ECO_BUILD    = '20260924-2025';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790292341991;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -72902,7 +72963,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260924-1945</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260924-2025</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
