@@ -4,6 +4,93 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## «Guardar tabla»: UNA SOLA CAPTURA CON TODAS LAS VÁLVULAS MEDIDAS (2026-09-24)
+
+Tercera decisión de Maicol sobre el cajón Doppler en la misma jornada, y **cierra la duda que la
+segunda dejó declarada**. «Guardar tabla» pasó de emitir la válvula ABIERTA a emitir una sección
+por cada válvula con mediciones, en un solo archivo. Las que no se midieron **se omiten enteras**.
+
+### La razón clínica no es la comodidad: es la ecuación de continuidad
+
+La fila `AVM por continuidad` de la **mitral** se calcula con `ao.diam` y `ao.vtiTsvi`, o sea
+**insumos aórticos**. Con una tabla por válvula, esa tabla publicaba un área valvular apoyada en
+dos valores que ella no llevaba: un número que no se puede auditar desde el documento donde está
+impreso. Combinadas, el número y sus insumos viajan juntos. **Si alguna vez se vuelve a partir en
+una entrada por válvula, ésta es la fila que hay que resolver primero.**
+
+### Las cuatro reglas que sostienen la composición
+
+| | |
+|---|---|
+| **qué entra** | `_dopSeccionesGuardado()` — una sección por válvula con `_dopValvConDatos`, más «sin asignar». Es el MISMO predicado que pinta el punto en el botón, así que no pueden discrepar |
+| **qué filas** | sólo las **medidas**. En el panel un «—» es un afford con su botón «medir»; en un PNG estático se lee como «se miró y dio normal» |
+| **qué descargos** | los de las filas **publicadas** (`_DOP_DISC[].si`), no los de la válvula |
+| **cómo se llama** | el sufijo se **deriva de las secciones**, nunca de un predicado escrito aparte |
+
+### ⚠️ EL `/sharp-edges` ENCONTRÓ CUATRO, Y TRES ERAN AFIRMACIONES CLÍNICAS
+
+Ninguna la vio la lectura, y dos vivían dentro de comentarios que yo acababa de escribir
+afirmando lo contrario — que es el patrón que este archivo persigue desde el `_dupKey`.
+
+- **`AVAi` publicaba un cociente cuyo denominador no viaja.** La BSA sale de `getBSA()`, que lee
+  peso y talla **del formulario**, mientras el cajón es estado de módulo que sobrevive al cambio
+  de estudio **a propósito** (hay un aviso entero, `avisoImg`, para eso). O sea que una AVA medida
+  con un paciente podía dividirse por la BSA del siguiente y publicarse como «AVAi 0,42 cm²/m²»
+  —estenosis crítica indexada— sin una traza de con qué superficie salió. Hoy la fila es
+  **`AVAi (BSA 2.00)`**, el mismo patrón que `PSAP (PVC 10)` ya resolvía bien dos filas más abajo.
+  **Es PREEXISTENTE**: la tabla combinada lo agrava porque circula con más contexto, no lo crea.
+- **Los descargos se indexaban por VÁLVULA y el invariante estaba escrito por MEDICIÓN.** Medir
+  sólo la Vmax de la estenosis tricuspídea —sin tocar la IT, o sea sin PSAP posible— quemaba igual
+  la cita ESC/ERS 2022 sobre estimación de PSAP al pie de una tabla que no la lleva. Una cita de
+  guía sobre presión pulmonar en un PDF firmado se lee como que la presión pulmonar se valoró.
+  Hoy cada entrada declara qué fila la dispara, y **matchea por PREFIJO** porque dos rótulos llevan
+  su parámetro adentro (`PSAP (PVC 10)`, `AVAi (BSA 2.00)`).
+- **Una válvula con un solo campo medido salía como seis guiones y una severidad al pie** — o sea
+  exactamente el modo de falla que el comentario de al lado decía evitar omitiendo la válvula
+  entera. La compuerta era todo-o-nada por válvula y las filas base de `_dopFilas` son
+  incondicionales, así que el defecto entraba por la puerta de al lado. Y había una contradicción
+  interna que lo sellaba: **`_dopMetaGuardado` ya descartaba los nulos**, así que la imagen y el
+  dato del MISMO registro publicaban listas distintas.
+- **El sufijo del nombre no contaba las mediciones «sin asignar».** Bajo un comentario que
+  afirmaba derivarse del «MISMO predicado que decide qué secciones entran» — y `_dopSeccionesGuardado`
+  tiene una segunda rama. Con sólo sueltas cargadas el archivo salía «Doppler · 14:32» y dos
+  guardados del mismo minuto quedaban indistinguibles en la tira, que es justo lo que ese sufijo
+  existe para evitar.
+
+### El filete de sección no se dibujaba, y sólo se vio MIRANDO la imagen
+
+Escribí `secH = 28` y la cebra de la primera fila —que se pinta desde `y - 16`— tapaba la línea
+divisoria. Sintaxis correcta, ninguna condición en rojo, y la única señal era que dos bloques de
+filas se leían como una sola tabla. Hoy son 34 y el caso lo mide **por píxel** (`#d1d5db` en la
+fila del filete), no por inspección. **Al tocar `secH`, `filaH` o el `y` del filete: mirar la
+captura, no el código.**
+
+### El título se achica, y el resguardo NO se alcanza con los rótulos de hoy
+
+Medido: con las cuatro válvulas el título mide **511 px de los 596 útiles** a 17 px, así que entra
+y el achique nunca dispara. Un resguardo que no se puede hacer fallar se lee como protección sin
+serlo —es por lo que este archivo borró el «deshacer» de `calcET`— así que el caso lo **ejerce
+alargando un rótulo de válvula**, que es el cambio futuro contra el que existe. Se conserva porque
+`fillText` recorta por la cola **en silencio** y lo que desaparecería es justo la lista de válvulas
+que el archivo contiene. **Declarado: el piso es 11 px; un rótulo disparatado se recorta igual, y
+eso es el límite del recurso, no un defecto del dibujante.**
+
+### Al escribir los casos, tres veces el mismo error: medir el carácter en el papel equivocado
+
+- **Buscar «Aórtica» en todo lo dibujado para probar el TÍTULO** daba rojo sobre una tabla mitral
+  perfecta: el descargo de la mitral NOMBRA el acordeón Aórtica, porque de ahí saca los insumos del
+  AVM. El título es el **primer** `fillText`, y se mide aparte.
+- **Buscar «—» para probar que no hay celdas vacías** daba rojo por el separador del propio título
+  (`Mediciones Doppler — Tricúspide`). Una celda vacía es una **pieza dibujada** que vale
+  exactamente «—», no una subcadena.
+- **Sembrar una onda E para que apareciera la cita del AVM**: desde que el descargo cuelga de la
+  fila publicada, hay que sembrar el **PHT**, que es lo que produce `AVM por PHT`.
+
+**Diez mutaciones, cada una en su condición**, entre ellas las cuatro de los hallazgos de arriba.
+**Backticks dentro del cuerpo de un caso: van SESENTA Y NUEVE**, tres en esta iteración y las tres
+en comentarios recién escritos.
+
+
 ## El cajón Doppler vive SÓLO dentro del visor, con un cajón por válvula (2026-09-24)
 
 Rediseño deliberado, decidido por Maicol, que **revierte la conclusión de la entrada siguiente**:
@@ -62,10 +149,12 @@ Lo cazó `/sharp-edges`, no la lectura, y el detalle importa: `_dopCanvas` y `_d
 seguían saliendo de `_dopFilas()` **con un comentario recién escrito que afirmaba** «sale de
 `_dopFilas`, la misma lista que pinta el panel, así que lo guardado no puede decir otra cosa que
 lo que el médico vio». Ese invariante se rompió en el mismo commit que dejó escrito el comentario.
-Hoy la lista única es **`_dopFilasTodas()`** —válvula + separador + sueltas— y la consumen el
-panel, la captura de la tabla y la meta. Y la compuerta del botón mira las dos: escrita sólo sobre la válvula, un panel
-con sueltas y sin válvula elegida **mostraba valores que ningún control podía guardar**, y desde
-que no hay `#dop-casa` la biblioteca es la única salida.
+La lista única fue un rato `_dopFilasTodas()` —válvula + separador + sueltas—; desde la tabla
+combinada (ver la entrada de arriba) es **`_dopSeccionesGuardado()`**, que arma una sección por
+válvula con datos y la consumen la captura, la meta, los descargos y el nombre del registro. Y la
+compuerta del botón mira el cajón entero: escrita sólo sobre la válvula, un panel con sueltas y sin
+válvula elegida **mostraba valores que ningún control podía guardar**, y desde que no hay
+`#dop-casa` la biblioteca es la única salida.
 
 ### DOS GUARDADOS INDEPENDIENTES, y el compuesto se eliminó el mismo día
 
@@ -154,10 +243,16 @@ condición ejerce.
 
 ### Lo que el panel muestra es lo que se guarda, y «Limpiar» dice qué borra
 
-`_dopFilasTodas()` —válvula + separador + «sin asignar»— es **la única lista** y la consumen el
-panel, la captura y la meta. Estuvo un rato saliendo de `_dopFilas()` con un comentario recién
-escrito que afirmaba lo contrario: desde la selección progresiva el panel pinta **dos** listas,
-así que el invariante se rompió en el mismo commit que dejó escrita la frase.
+El panel arma con `_dopFilas(m)` + `_dopFilasSueltas()` y el archivo con
+`_dopSeccionesGuardado()`, que es **los mismos dos armadores** aplicados a las cuatro válvulas. Lo
+que cambió con la tabla combinada es el ALCANCE, no la fuente: ninguna fila puede decir en el
+archivo algo distinto de lo que dice en pantalla. Estuvo un rato saliendo de `_dopFilas()` con un
+comentario recién escrito que afirmaba lo contrario: desde la selección progresiva el panel pinta
+**dos** listas, así que el invariante se rompió en el mismo commit que dejó escrita la frase.
+
+**La única diferencia deliberada: el archivo NO lleva las filas sin valor.** En el panel un «—» es
+un afford —tiene su botón «medir» al lado— y en un PNG estático, al lado de otra sección con
+números completos, seis guiones se leen como «se miró y dio normal».
 
 Dos mitigaciones más, que salieron del `/sharp-edges` y son del mismo problema —el panel muestra
 UNA válvula y el estado tiene cuatro—:
@@ -170,15 +265,18 @@ UNA válvula y el estado tiene cuatro—:
   una ruta automática — es la forma de `resetETTConfirmar` del módulo de amiloidosis. Con el
   cajón vacío no pregunta.
 
-### ⚠️ DUDA DECLARADA: «Guardar tabla» guarda la válvula ABIERTA, no las cuatro
+### ~~DUDA DECLARADA: «Guardar tabla» guarda la válvula ABIERTA~~ — CERRADA el mismo día
 
-El pedido dice «captura SOLO la tabla del cajón», y con un cajón por válvula eso es la abierta.
-Consecuencia: al final del flujo de cuatro imágenes, el médico tiene la mitral en pantalla y las
-otras tres quedan sin artefacto. El punto en los botones lo hace visible y el nombre del registro
-nombra la válvula, pero **la decisión de si «Guardar tabla» debería emitir una entrada por cada
-válvula con datos queda abierta.** Pesa más de lo que parece: la fila `AVM por continuidad` de la
-**mitral** se calcula con `ao.diam` y `ao.vtiTsvi`, o sea insumos **aórticos**, así que esa tabla
-publica un número que depende de dos valores que ella no lleva.
+> **RESUELTA (2026-09-24, tercera decisión de la jornada).** Ver la entrada «UNA SOLA CAPTURA
+> CON TODAS LAS VÁLVULAS» arriba. Se conserva el enunciado porque el argumento que lo cerró es el
+> que hay que no olvidar al tocar esto.
+
+Decía: con un cajón por válvula, «captura SÓLO la tabla del cajón» es la abierta, así que al final
+del flujo de cuatro imágenes el médico tiene la mitral en pantalla y las otras tres quedan sin
+artefacto. **Y pesaba más de lo que parecía: la fila `AVM por continuidad` de la mitral se calcula
+con `ao.diam` y `ao.vtiTsvi`, o sea insumos AÓRTICOS**, así que esa tabla publicaba un área
+apoyada en dos valores que ella no llevaba. Hoy el número y sus insumos viajan en el mismo archivo,
+y hay una condición de TC-251 que lo fija comparando la fila contra `_dopDerivados().avmCont`.
 
 
 ### Al reescribir los casos: dos trampas propias, las dos de denominador

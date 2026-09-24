@@ -23029,9 +23029,14 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
          que las deja recuperables desde la app. */
       const idsAntes = regsAntes.map(r => r.id);
       const regNuevo = regsDesp.filter(r => idsAntes.indexOf(r.id) < 0)[0];
-      R.metaValvula = !!(regNuevo && regNuevo.meta && regNuevo.meta.valvula === 'ao');
-      R.metaValores = !!(regNuevo && regNuevo.meta && regNuevo.meta.valores &&
-                         String(regNuevo.meta.valores['Vmax VAo'] || '').indexOf('0.80') === 0);
+      /* ⚠️ LA META VA POR SECCIONES desde que la tabla combina las cuatro valvulas: un mapa
+         plano perderia de que valvula es cada numero —y colisionaria, porque «PHT» existe en la
+         aortica y en la mitral—, que es lo unico que hace recuperable el dato. */
+      const metaSec = (mt, v) => ((mt && mt.secciones) || []).filter(s => s.valvula === v)[0] || null;
+      const secAo = metaSec(regNuevo && regNuevo.meta, 'ao');
+      R.metaValvula = !!(regNuevo && regNuevo.meta &&
+                         (regNuevo.meta.valvulas || []).indexOf('ao') >= 0);
+      R.metaValores = !!(secAo && String(secAo.valores['Vmax VAo'] || '').indexOf('0.80') === 0);
       /* ── 12ter · EN LA BIBLIOTECA TIENE LOS MISMOS DOS CONTROLES QUE CUALQUIER IMAGEN ──
          Izquierda 📄 para mandarla al PDF, derecha ✕ para borrarla. Sin esto, «se suma a la
          biblioteca» seria una tarjeta que se ve y no se puede usar. */
@@ -23070,7 +23075,8 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       const txt2 = pint2.join(' ');
       R.imgLlevaSueltas = txt2.indexOf('sin asignar') > -1 && txt2.indexOf('0.60 m/s') > -1;
       const meta2 = _dopMetaGuardado();
-      R.metaLlevaSueltas = !!meta2.valores['Sin asignar · Velocidad'];
+      const secGen = metaSec(meta2, 'gen');
+      R.metaLlevaSueltas = !!(secGen && String(secGen.valores['Velocidad'] || '').indexOf('0.60') === 0);
       R.metaLlevaDescargos = Array.isArray(meta2.descargos) && meta2.descargos.length > 0;
       /* Y sin valvula elegida, con solo sueltas, «Guardar» SIGUE ESTANDO: si no, esos valores se
          ven en pantalla y ningun control los saca — y desde que el panel vive solo dentro del
@@ -23512,21 +23518,153 @@ caso('TC-250', 'Cajon Doppler: Mitral, Tricuspide y Pulmonar, con sus unidades y
       clic(300, 250); await esperar(200);
       R.vpVale075 = _dop.pul.vp != null && Math.abs(_dop.pul.vp - 0.75) < 0.02;
 
-      /* ══ LOS DESCARGOS SON POR VALVULA, Y VAN QUEMADOS ═══════════════════════════════════
-         Van en la IMAGEN que se guarda en la biblioteca y desde ahi pueden llegar al PDF. Con
-         una lista unica, la tabla de la mitral saldria declarando la salvedad de la aorta y
-         callando la suya. */
+      /* ══ LOS DESCARGOS SON DE LAS VALVULAS QUE LA TABLA LLEVA, Y VAN QUEMADOS ════════════
+         Van en la IMAGEN que se guarda en la biblioteca y desde ahi pueden llegar al PDF.
+         ⚠️ EL INVARIANTE NO SE RELAJO AL COMBINAR, CAMBIO DE SUJETO (2026-09-24): antes era «la
+         tabla de la mitral no trae la cita de la aorta» y hoy es «la tabla no trae la cita de una
+         valvula que OMITIO». Las dos mitades importan por motivos distintos: de menos, un AVM por
+         PHT circula sin decir que subestima en IAo severa; de mas, la imagen declara una salvedad
+         sobre una medicion que no lleva, y eso se lee como que esa valvula se valoro.
+         ⚠️ DENOMINADOR: se arma un cajon de laboratorio con UNA sola valvula. Con las tres
+         cargadas —que es como llega el caso a esta altura— la tabla combinada sale identica para
+         cualquier modo y las cuatro comparaciones dejarian de distinguir nada. */
       const proto = CanvasRenderingContext2D.prototype, realFT = proto.fillText;
-      const quemado = m => { modo(m); const p = []; proto.fillText = function (t) { p.push(String(t)); return realFT.apply(this, arguments); };
-                             _dopCanvas(); proto.fillText = realFT; return p.join(' '); };
-      const qMit = quemado('mit'), qTri = quemado('tri'), qPul = quemado('pul'), qAo = quemado('ao');
+      const guardadoDop = JSON.stringify(_dop);
+      /* ⚠️ EL TITULO SE MIDE APARTE, NO SOBRE EL TEXTO ENTERO. La primera version buscaba
+         «Aórtica» en todo lo dibujado y daba rojo sobre una tabla mitral perfecta: el descargo de
+         la mitral NOMBRA el acordeon Aortica, porque de ahi saca los insumos del AVM por
+         continuidad. Estaba midiendo el descargo creyendo que media el rotulo. El titulo es el
+         PRIMER fillText del dibujante. */
+      const dibujar = () => { const p = [], fs = [];
+        proto.fillText = function (t) { p.push(String(t)); fs.push(this.font);
+                                        return realFT.apply(this, arguments); };
+        _dopCanvas(); proto.fillText = realFT;
+        return { tit: String(p[0] || ''), font: String(fs[0] || ''), txt: p.join(' '), piezas: p }; };
+      const soloUna = (campo, val) => { _dop = _dopNuevo();
+        const pp = campo.split('.'); _dop[pp[0]][pp[1]] = val; return dibujar(); };
+      /* ⚠️ EL VALOR SEMBRADO TIENE QUE PRODUCIR LA FILA QUE DISPARA EL DESCARGO. Desde que los
+         descargos se atan a lo PUBLICADO y no a la valvula, sembrar una onda E no alcanza para que
+         aparezca la cita del AVM: la primera version lo hacia y daba rojo sobre el arreglo. Se
+         siembra el PHT en las dos, que es lo que publica «AVM por PHT» y «Severidad IAo». */
+      const dMit = soloUna('mit.pht', 120), qMit = dMit.txt;
+      const dTri = soloUna('tri.vmaxIt', 2.8), qTri = dTri.txt;
+      const qPul = soloUna('pul.vmaxIp', 1.2).txt;
+      const qAo  = soloUna('ao.pht', 480).txt;
+      /* ⚠️ Y LA OTRA MITAD, que es el defecto que /sharp-edges encontro: una valvula INCLUIDA
+         cuya PSAP no se puede calcular —Vmax de la estenosis tricuspidea, sin tocar la IT— no
+         puede quemar la cita ESC/ERS 2022 sobre estimacion de PSAP. Esa frase al pie de una tabla
+         sin PSAP se lee como que la presion pulmonar se valoro. */
+      const dTriSinPsap = soloUna('tri.vmaxEt', 2.0);
+      R.triSinPsapFilas = dTriSinPsap.txt;
+      R.triSinPsapNoCita = dTriSinPsap.txt.indexOf('ESC/ERS 2022') < 0 &&
+                           dTriSinPsap.txt.indexOf('PSAP') < 0;
+      /* Y esa seccion no puede salir llena de guiones: en el panel un «—» es un afford con su
+         boton «medir» al lado; en un PNG estatico, al lado de otra seccion con numeros, se lee
+         como «se miro y dio normal». */
+      /* ⚠️ LA CELDA VACIA SE BUSCA COMO PIEZA DIBUJADA, NO COMO SUBCADENA. La raya larga tambien
+         es el SEPARADOR del titulo («Mediciones Doppler — Tricúspide»), asi que buscarla en el
+         texto entero daba rojo sobre una tabla sin una sola celda vacia. Una celda sin valor es un
+         fillText que vale exactamente «—». */
+      R.triSinPsapSinGuiones = dTriSinPsap.piezas.every(t => t !== '—') &&
+                               dTriSinPsap.txt.indexOf('Vmax ET') > -1;
+      /* Y la COMBINADA, que es el artefacto nuevo: aortica + mitral, el par que produce el flujo
+         real de la ecuacion de continuidad. */
+      _dop = _dopNuevo(); _dop.ao.pht = 480; _dop.mit.pht = 120;
+      const dComb = dibujar(), qComb = dComb.txt;
+      /* ⚠️ Y LAS CUATRO, que es donde el TITULO se pasa de ancho. fillText no envuelve: recorta
+         por la cola EN SILENCIO, asi que lo que desapareceria es justo la lista de valvulas que el
+         archivo contiene. Se mide el cuerpo de letra con el que se DIBUJO —capturado del contexto
+         en la llamada— contra el ancho util, y al lado va el denominador: que a 17 px NO entraria.
+         Sin esa segunda mitad, «entra» se cumple sobre cualquier titulo corto. */
+      _dop = _dopNuevo();
+      _dop.ao.vmax = 3.4; _dop.mit.ondaE = 80; _dop.tri.vmaxIt = 2.8; _dop.pul.vmaxIp = 1.2;
+      const d4 = dibujar();
+      const reglaTxt = document.createElement('canvas').getContext('2d');
+      R.tit4 = d4.tit; R.font4 = d4.font;
+      R.titulo4Completo = ['Aórtica','Mitral','Tricúspide','Pulmonar']
+        .every(v => d4.tit.indexOf(v) > -1);
+      reglaTxt.font = 'bold 17px system-ui, sans-serif';
+      R.anchoHoy = Math.round(reglaTxt.measureText(d4.tit).width);
+      /* ⚠️ CON LOS ROTULOS DE HOY EL ACHIQUE NO SE ALCANZA — medido: 511 px de los 596 utiles con
+         las cuatro valvulas, asi que el titulo entra a 17 px y la condicion «entra» pasaria con el
+         achique borrado. Un resguardo que no se puede hacer fallar se lee como proteccion sin
+         serlo, que es por lo que este archivo borro el «deshacer» de calcET.
+         Se EJERCE alargando un rotulo, que es el cambio futuro contra el que el resguardo existe
+         —renombrar una valvula, o agregar una quinta— y de paso el unico escenario donde recortar
+         se llevaria justo la lista de valvulas que el archivo contiene. El rotulo se repone en la
+         misma vuelta sincronica.
+         El rotulo de prueba es uno PLAUSIBLE —un nombre de valvula un poco mas largo—, no uno
+         absurdo: medido, a 17 px da 626 px sobre 596 utiles y a 15 ya entra con 563. Con un rotulo
+         disparatado se pasaria del PISO de 11 px y el titulo se recortaria igual, que es el limite
+         real del recurso y no un defecto del dibujante. */
+      const rotReal = _DOP_VALVULAS[0].rot;
+      _DOP_VALVULAS[0].rot = '🔴 Aórtica supravalvular';
+      const dLargo = dibujar();
+      _DOP_VALVULAS[0].rot = rotReal;
+      R.titLargo = dLargo.tit; R.fontLargo = dLargo.font;
+      reglaTxt.font = 'bold 17px system-ui, sans-serif';
+      R.largoNoEntraA17 = reglaTxt.measureText(dLargo.tit).width > 640 - 44;
+      reglaTxt.font = dLargo.font;
+      R.largoEntraAchicado = reglaTxt.measureText(dLargo.tit).width <= 640 - 44;
+      R.largoNoSeRecorto = dLargo.tit.indexOf('Pulmonar') > -1 && dLargo.tit.indexOf('Mitral') > -1;
+      R.rotRepuesto = _DOP_VALVULAS[0].rot === rotReal;
+      /* La PVC viaja si la TRICUSPIDE entro, no si es la abierta: es el insumo de la PSAP que esa
+         seccion publica, y sin el ese numero no se puede auditar contra el del informe. */
+      _dop.modo = 'ao';
+      const meta4 = _dopMetaGuardado();
+      R.pvcViajaConLaTri = meta4.pvc === _dop.tri.pvc && _dop.tri.pvc > 0;
+      R.metaCuatroSecciones = (meta4.secciones || []).length === 4;
+      /* ⚠️ EL AVAi LLEVA SU BSA ADENTRO DEL ROTULO, como la PSAP lleva su PVC. La superficie
+         corporal sale de getBSA(), que lee peso y talla DEL FORMULARIO, mientras el cajon es
+         estado de modulo que sobrevive al cambio de estudio: una AVA medida con un paciente puede
+         dividirse por la BSA del siguiente. Con el numero a la vista el cociente se puede auditar;
+         sin el, no. Peso 80 / talla 180 da BSA 2,00 exacta, que es lo que hace comprobable el
+         cociente sin arrastrar decimales. */
+      const pesoEl = document.getElementById('peso'), tallaEl = document.getElementById('talla');
+      const pesoPrev = pesoEl ? pesoEl.value : '', tallaPrev = tallaEl ? tallaEl.value : '';
+      if (pesoEl) pesoEl.value = '80';
+      if (tallaEl) tallaEl.value = '180';
+      _dop = _dopNuevo();
+      Object.assign(_dop.ao, { diam:22, vtiTsvi:21, vtiAo:95 });
+      const secAo4 = _dopSeccionesGuardado()[0];
+      const filaAvai = (secAo4 ? secAo4.filas : []).filter(f => String(f[0]).indexOf('AVAi') === 0)[0];
+      R.bsaReal = getBSA();
+      R.avaiRotulo = filaAvai ? filaAvai[0] : '(sin fila AVAi)';
+      R.avaiLlevaBsa = !!filaAvai && filaAvai[0].indexOf('BSA') > -1 &&
+                       filaAvai[0].indexOf(Number(getBSA()).toFixed(2)) > -1;
+      if (pesoEl) pesoEl.value = pesoPrev;
+      if (tallaEl) tallaEl.value = tallaPrev;
+      /* ⚠️ Y EL SUFIJO CUENTA LAS SUELTAS. Se derivaba de las valvulas con datos bajo un
+         comentario que afirmaba ser «el MISMO predicado que decide que secciones entran», y era
+         falso: con solo mediciones sin asignar el nombre salia «Doppler · 14:32» y dos guardados
+         del mismo minuto quedaban indistinguibles en la tira, que es justo lo que ese sufijo
+         existe para evitar. */
+      _dop = _dopNuevo(); _dop.gen.vel = 0.62;
+      R.sufijoSoloSueltas = _dopSufijoGuardado();
+      R.sufijoCuentaSueltas = R.sufijoSoloSueltas.indexOf('sin asignar') > -1;
+      _dop = JSON.parse(guardadoDop);
       R.discMit = qMit.indexOf('subestimar AVM') > -1 && qMit.indexOf('ASE/EACVI 2021') > -1;
       R.discTri = qTri.indexOf('PSAP estimada por gradiente IT') > -1 && qTri.indexOf('ESC/ERS 2022') > -1;
       R.discBase = [qMit, qTri, qPul, qAo].every(t => t.indexOf('NO escribe ningún campo') > -1);
-      /* Y cada una lleva SOLO la suya: la mitral no puede traer la cita de la aortica. */
+      /* Una sola valvula lleva SOLO la suya: la mitral no puede traer la cita de la aortica. */
       R.discNoSeMezcla = qMit.indexOf('ASE/EACVI 2017') < 0 && qTri.indexOf('subestimar AVM') < 0;
-      R.tituloMit = quemado('mit').indexOf('Mitral') > -1;
-      R.tituloTri = quemado('tri').indexOf('Tricúspide') > -1;
+      /* Y el titulo nombra la que lleva Y NINGUNA OTRA: sin la segunda mitad, un titulo que las
+         nombrara siempre a las cuatro pasaria esta condicion. */
+      R.titMit = dMit.tit; R.titTri = dTri.tit; R.titComb = dComb.tit;
+      R.tituloMit = dMit.tit.indexOf('Mitral') > -1 && dMit.tit.indexOf('Tricúspide') < 0 &&
+                    dMit.tit.indexOf('Aórtica') < 0;
+      R.tituloTri = dTri.tit.indexOf('Tricúspide') > -1 && dTri.tit.indexOf('Mitral') < 0;
+      /* La combinada nombra LAS DOS en el titulo y lleva LOS DOS descargos... */
+      R.tituloComb = dComb.tit.indexOf('Aórtica') > -1 && dComb.tit.indexOf('Mitral') > -1;
+      R.discCombLosDos = qComb.indexOf('ASE/EACVI 2017') > -1 && qComb.indexOf('ASE/EACVI 2021') > -1;
+      /* ...y NINGUNO de las dos que omitio, que es la mitad que separa «suma los descargos» de
+         «los pone todos». */
+      R.discCombNiUnoMas = qComb.indexOf('ESC/ERS 2022') < 0 && qComb.indexOf('Bernoulli') < 0;
+      R.discCombSinTriPul = qComb.indexOf('Tricúspide') < 0 && qComb.indexOf('Pulmonar') < 0 &&
+                            qComb.indexOf('Vmax IT') < 0 && qComb.indexOf('TAP') < 0;
+      /* La linea base UNA sola vez: repetida por seccion, el bloque se vuelve ruido y deja de
+         leerse — que es exactamente como un descargo termina no cumpliendo su funcion. */
+      R.discBaseUnaVez = qComb.split('NO escribe ningún campo').length === 2;
 
       /* ══ NO ESCRIBE NINGUN CAMPO DEL INFORME ═════════════════════════════════════════════
          El denominador va al lado: el cajon tiene cargadas las tres valvulas. */
@@ -23615,7 +23753,27 @@ caso('TC-250', 'Cajon Doppler: Mitral, Tricuspide y Pulmonar, con sus unidades y
       ['la de la tricuspide, el de la PSAP',          R.discTri, R.discTri],
       ['ninguna lleva el de otra valvula',            R.discNoSeMezcla, R.discNoSeMezcla],
       ['y las cuatro dicen que no escriben el informe', R.discBase, R.discBase],
-      ['el titulo nombra la valvula abierta',         R.tituloMit && R.tituloTri, R.tituloMit],
+      ['el titulo nombra la que lleva Y NINGUNA OTRA', R.tituloMit && R.tituloTri,
+                                                      'mit=[' + R.titMit + '] tri=[' + R.titTri + ']'],
+      ['la tabla COMBINADA nombra las dos valvulas',  R.tituloComb, R.titComb],
+      ['y lleva LOS DOS descargos',                  R.discCombLosDos, R.discCombLosDos],
+      ['Y NINGUNO de las dos que omitio',            R.discCombNiUnoMas, R.discCombNiUnoMas],
+      ['ni una sola fila de las omitidas',           R.discCombSinTriPul, R.discCombSinTriPul],
+      ['la linea base va UNA sola vez, no por seccion', R.discBaseUnaVez, R.discBaseUnaVez],
+      ['una tricuspide SIN PSAP no quema la cita de la PSAP', R.triSinPsapNoCita, R.triSinPsapFilas],
+      ['ni sale llena de guiones',                    R.triSinPsapSinGuiones, R.triSinPsapFilas],
+      ['el AVAi publica la BSA con que se calculo',   R.avaiLlevaBsa,
+                                                      R.avaiRotulo + ' · BSA=' + R.bsaReal],
+      ['con solo sueltas el nombre igual las nombra', R.sufijoCuentaSueltas, R.sufijoSoloSueltas],
+      ['con las CUATRO el titulo las nombra a las cuatro', R.titulo4Completo, R.tit4],
+      ['DECLARADO: con los rotulos de hoy entra a 17 px', R.anchoHoy <= 640 - 44,
+                                                      R.anchoHoy + ' px de ' + (640 - 44)],
+      ['DENOMINADOR: con un rotulo mas largo NO entra', R.largoNoEntraA17, R.titLargo],
+      ['ahi el titulo se achica hasta entrar',        R.largoEntraAchicado, R.fontLargo],
+      ['sin perder ninguna valvula por el recorte',   R.largoNoSeRecorto, R.titLargo],
+      ['DENOMINADOR: el rotulo se repuso',            R.rotRepuesto, R.rotRepuesto],
+      ['la meta lleva una seccion por valvula',       R.metaCuatroSecciones, R.metaCuatroSecciones],
+      ['y la PVC viaja porque la tricuspide ENTRO',   R.pvcViajaConLaTri, R.pvcViajaConLaTri],
       ['DENOMINADOR: los campos del informe existen', R.idsExisten === '', R.idsExisten || 'los seis'],
       ['DENOMINADOR: el cajon tiene las tres valvulas', R.cajonCargado, R.cajonCargado],
       ['y NO escribe ningun campo del informe',       R.informeIntacto, R.informeSucio || 'todos vacios'],
@@ -23856,8 +24014,31 @@ caso('TC-251', 'Cajon Doppler: una valvula por cajon, persistente entre imagenes
       /* Reabrir limpia el cajon —es la regla de fuga entre pacientes— asi que se vuelve a
          cargar lo minimo para tener algo que guardar, y se repone el visor. */
       await prep('ao-3');
+      /* DOS valvulas en la misma sesion del visor: es lo que hace discriminante todo lo de abajo.
+         Con una sola, «la tabla combina» y «la tabla emite la abierta» producen el MISMO archivo
+         y ninguna condicion los separa. */
       valv('ao'); await esperar(130);
       poner('ao.vmax', 3.2); await esperar(140);
+      poner('ao.diam', 22); await esperar(130);
+      poner('ao.vtiTsvi', 21); await esperar(130);
+      valv('mit'); await esperar(130);
+      poner('mit.ondaE', 90); await esperar(130);
+      poner('mit.vtiVm', 14); await esperar(140);
+      /* La MITRAL queda abierta a proposito: es el final del flujo de cuatro imagenes que dejaba
+         a la aortica sin artefacto, o sea el defecto que este cambio cierra. */
+      R.abiertaAlGuardar = _dop.modo;
+      R.sinTriPul = !_dopValvConDatos('tri') && !_dopValvConDatos('pul');
+      /* ⚠️ CON EL SELECTOR CERRADO EL BOTON SIGUE ESTANDO. Es el caso que el cambio destapa:
+         cuatro imagenes medidas, ninguna valvula abierta, y una compuerta escrita sobre las filas
+         de la abierta esconderia el unico control que saca todo eso del visor — mientras el propio
+         panel marca cada valvula con un punto. Y la linea que dice QUE incluye nombra las dos, que
+         es lo que impide que el medico crea que guardo solo la que tenia en pantalla. */
+      dopModo('mit'); await esperar(150);
+      R.cerradoModo = _dop.modo;
+      R.cerradoHayGuardar = !!cajon.querySelector('[data-dop-acc="guardar"]');
+      R.cerradoDiceQueIncluye = cajon.textContent.indexOf('incluye') > -1 &&
+        cajon.textContent.indexOf('Aórtica') > -1 && cajon.textContent.indexOf('Mitral') > -1;
+      valv('mit'); await esperar(150);
       let regs0 = [];
       try { regs0 = (await CeiboCine.listar(_imgUuidActual)) || []; } catch (e) { regs0 = []; }
       /* 1) la ECOGRAFIA, por el boton de la barra del visor. */
@@ -23886,6 +24067,32 @@ caso('TC-251', 'Cajon Doppler: una valvula por cajon, persistente entre imagenes
          la de la tabla trae la meta del cajon y la de la ecografia NO. */
       R.tablaTraeMeta = !!(recTab && recTab.meta && recTab.meta.modulo === 'doppler');
       R.imagenSinMeta = !!recImg && !recImg.meta;
+      /* ⚠️ UNA SOLA CAPTURA CON LAS DOS VALVULAS (2026-09-24, tercera decision del mismo dia).
+         La condicion que separa esto de «emite la abierta» no es que la mitral este —lo estaria
+         igual, porque es la abierta— sino que la AORTICA tambien, con el selector cerrado sobre
+         ella. Y la que lo separa de «emite una entrada por valvula» es que sea UNA sola. */
+      const mtTab = (recTab && recTab.meta) || null;
+      const secsTab = (mtTab && mtTab.secciones) || [];
+      const secDe = v => secsTab.filter(x => x.valvula === v)[0] || null;
+      R.valvulasTab = (mtTab && mtTab.valvulas || []).join('+');
+      R.tablaLlevaLasDos = !!(secDe('ao') && secDe('mit'));
+      R.tablaLlevaLaCerrada = !!(secDe('ao') &&
+        String(secDe('ao').valores['Vmax VAo'] || '').indexOf('3.20') === 0);
+      /* La MITRAL publica «AVM por continuidad», que se calcula con ao.diam y ao.vtiTsvi, o
+         sea INSUMOS AORTICOS. Que esa fila y los dos numeros que la sostienen viajen en el mismo
+         archivo es la razon clinica del cambio: por separado, esa tabla publicaba un area apoyada
+         en dos valores que no llevaba. */
+      const avmEsperada = _dopDerivados().avmCont;
+      R.avmCruzada = avmEsperada != null && !!(secDe('mit') &&
+        secDe('mit').valores['AVM por continuidad'] === avmEsperada.toFixed(2) + ' cm²');
+      R.avmValor = avmEsperada;
+      R.insumosConLaAvm = !!(secDe('ao') && secDe('ao').valores['Diam TSVI'] &&
+                             secDe('ao').valores['VTI TSVI']);
+      /* Las valvulas SIN datos no aparecen ni como seccion vacia: una «Tricuspide» de guiones al
+         lado de dos secciones con numeros se lee como una valvula valorada y normal. */
+      R.tablaOmiteVacias = !secDe('tri') && !secDe('pul') && secsTab.length === 2;
+      /* Y es UNA entrada, no una por valvula. */
+      R.unaSolaEntrada = regs2.length === regs1.length + 1;
       R.avisoNombraTabla = dichos.some(m => m.toLowerCase().indexOf('tabla') > -1);
       /* Y las DOS tarjetas traen sus dos controles. */
       try { await cineStripRender(); } catch (e) {}
@@ -23950,6 +24157,17 @@ caso('TC-251', 'Cajon Doppler: una valvula por cajon, persistente entre imagenes
                                                       'img=' + R.nombreImg + ' tabla=' + R.nombreTab],
       ['solo la de la tabla trae la meta del cajon',  R.tablaTraeMeta && R.imagenSinMeta,
                                                       'tabla=' + R.tablaTraeMeta + ' img=' + R.imagenSinMeta],
+      ['DENOMINADOR: dos valvulas medidas, la mitral abierta', R.abiertaAlGuardar === 'mit' && R.sinTriPul,
+                                                      'abierta=' + R.abiertaAlGuardar + ' tri/pul vacias=' + R.sinTriPul],
+      ['DENOMINADOR: con el selector cerrado no hay valvula', R.cerradoModo === null, R.cerradoModo],
+      ['y AUN ASI el boton de guardar esta',          R.cerradoHayGuardar, R.cerradoHayGuardar],
+      ['y el panel dice QUE valvulas incluye',        R.cerradoDiceQueIncluye, R.cerradoDiceQueIncluye],
+      ['la tabla combina LAS DOS valvulas',           R.tablaLlevaLasDos, R.valvulasTab],
+      ['incluida la que NO estaba abierta',           R.tablaLlevaLaCerrada, R.tablaLlevaLaCerrada],
+      ['y es UNA sola entrada, no una por valvula',   R.unaSolaEntrada, R.valvulasTab],
+      ['las valvulas sin datos se OMITEN enteras',    R.tablaOmiteVacias, R.valvulasTab],
+      ['el AVM por continuidad de la mitral viaja...', R.avmCruzada, R.avmValor],
+      ['...junto a los insumos AORTICOS que lo sostienen', R.insumosConLaAvm, R.insumosConLaAvm],
       ['y el aviso del cajon NOMBRA LA TABLA',        R.avisoNombraTabla, R.avisoNombraTabla],
       ['el nombre de la tabla lleva la HORA',         R.tablaLlevaHora, R.nombreTab],
       ['las DOS tarjetas traen 📄 y ✕',               R.ctrlImg && R.ctrlTab,
