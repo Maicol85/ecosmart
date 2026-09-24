@@ -22704,8 +22704,12 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
     const R = {};
     const esperar = ms => new Promise(r => setTimeout(r, ms));
     const alertReal = window.alert, promptReal = window.prompt, toastReal = window.toast;
+    const confirmReal = window.confirm;
     const dichos = [];
     window.alert = () => {}; window.toast = m => dichos.push(String(m));
+    /* ⚠️ «Limpiar» pide confirmacion desde 2026-09-24 (borra LAS CUATRO valvulas y la pantalla
+       muestra una). Sin este doble, el confirm real BLOQUEA la pagina y el caso no vuelve. */
+    window.confirm = () => true;
     let togglePrevio = null, idEst = null;
     try { togglePrevio = localStorage.getItem('cfg-guardar-imagenes'); } catch (e) {}
     const pesoEl = document.getElementById('peso'), tallaEl = document.getElementById('talla');
@@ -22715,10 +22719,6 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       const REG = [{ tipo:3, x0:0, y0:0, x1:1000, y1:800, ux:4, uy:7, dx:0.004, dy:-0.5,
                      rx0:0, ry0:400, rvx:0, rvy:0 }];
       const abrir = () => _cineAbrir([{ nombre:'esp', cuadros:1,
-        d:{ frags:[JPG], cols:1, filas:1, msCuadro:0, fabricante:'', modelo:'', regiones:REG } }]);
-      /* OTRO cineloop, con OTRO nombre: es lo unico que distingue «se midio sobre esta imagen»
-         de «se acumulo entre imagenes». Con el mismo nombre las dos ramas colapsan. */
-      const abrirOtra = () => _cineAbrir([{ nombre:'esp-B', cuadros:1,
         d:{ frags:[JPG], cols:1, filas:1, msCuadro:0, fabricante:'', modelo:'', regiones:REG } }]);
       const clic = (x, y) => { const cv = _medEl('cine-med'), rc = cv.getBoundingClientRect(),
         e = cv.width / rc.width;
@@ -22832,11 +22832,6 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       clic(300, 250); await esperar(200);
       R.cayoEnVmax = _dop.ao.vmax != null && Math.abs(_dop.ao.vmax - 0.75) < 0.03;
       R.destinoSeLibera = _dop.destino === null;
-      /* ⚠️ CON UNA SOLA IMAGEN MEDIDA —y siendo la que se ve— el aviso de acumulacion NO sale.
-         Es la mitad que lo separa de un cartel decorativo, y va ACA y no mas abajo: cada
-         abrir() construye un loop NUEVO, y medir sobre dos aperturas distintas ya es
-         acumulacion legitima. Medido: puesto en el paso 10 daba rojo sobre codigo correcto. */
-      R.avisoUnaSolaImg = _dopAvisoOtrasImgs() === '';
 
       /* El boton «medir» de la fila tambien, por clic: es el que lleva el data-dop-armar. */
       _dop.destino = null; _dopRender(); await esperar(120);
@@ -22903,6 +22898,29 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       window.prompt = () => '199'; dopCorregir('ao.pht'); await esperar(90);
       R.sev199 = (_dopDerivados().sev || {}).txt;
 
+      /* ── 8ter · LA BANDA DE PLAUSIBILIDAD RECHAZA, Y LO DICE ──
+         El cajon aceptaba lo que el importador de la MISMA app rechaza: un «2» tipeado por «20»
+         en el diametro del TSVI publicaba una AVA de 0,03 cm² —estenosis critica— sin ninguna
+         senal. La banda sale de DCM_RANGO, la tabla que la app ya aplica a ese mismo campo. */
+      const diamAntes = _dop.ao.diam, avaAntesB = _dopDerivados().ava;
+      window.prompt = () => '2'; dopCorregir('ao.diam'); await esperar(150);
+      R.bandaRechaza = _dop.ao.diam === diamAntes;
+      R.bandaNoMueveDerivado = avaAntesB != null && _dopDerivados().ava != null &&
+                               Math.abs(_dopDerivados().ava - avaAntesB) < 1e-12;
+      R.bandaAvisa = dichos.some(m => m.indexOf('fuera de lo posible') > -1);
+      /* ⚠️ Y LA CASCADA DE SEVERIDAD NO PUEDE CAER EN LA BANDA MAS GRAVE POR DESCARTE. Era un
+         return mudo: 8 ms —dos clics pegados sobre un trazo de 0,004 s/px— publicaba
+         «Severidad IAo: Severa (orientativo)» en una tabla que va a la biblioteca. Son DOS
+         capas y se prueban las dos: la banda impide que el 8 se guarde, y el clasificador se
+         niega igual si el valor le llega por otro lado. */
+      R.phtImposibleRechazado = (() => { const p0 = _dop.ao.pht;
+        window.prompt = () => '8'; dopCorregir('ao.pht'); return _dop.ao.pht === p0; })();
+      await esperar(120);
+      R.sevNoCaeEnSevera = _dopSevPHT(8) === null && _dopSevPHT(20000) === null;
+      /* DENOMINADOR: el clasificador SIGUE clasificando lo que si es plausible. */
+      R.sevSigueAndando = (_dopSevPHT(150) || {}).txt === 'Severa' &&
+                          (_dopSevPHT(600) || {}).txt === 'Leve';
+
       /* ── 8bis · NO ESCRIBE NINGUN CAMPO DEL INFORME ──
          ⚠️ VA ACA Y NO AL FINAL, y es la diferencia entre una condicion y un adorno: al final
          ya corrieron limpiarCampos y cerrarSesionReal, asi que esos campos estan vacios pase lo
@@ -22963,18 +22981,6 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       R.sueltasSeVen = cajon.textContent.indexOf('sin asignar') > -1 &&
                        cajon.querySelectorAll('table').length === 2;
 
-      /* ── 10bis · LA TABLA ACUMULA ENTRE IMAGENES, Y LO GUARDADO LO DICE ──
-         Desde que «Guardar» compone la tabla CON EL CUADRO QUE SE ESTA MIRANDO, esa imagen
-         atribuye por yuxtaposicion —y sin decir una palabra— numeros que pueden haberse medido
-         sobre otro cineloop. El cajon acumula entre imagenes a proposito, asi que el caso
-         existe siempre.
-         Las DOS mitades: la de «no sale cuando no hay riesgo» se mide en el paso 4, que es el
-         unico momento en que hay una sola imagen abierta. */
-      abrirOtra(); await esperar(480);
-      if (!_medOn) medToggle(); await esperar(150);
-      R.imgActualB = _dopImgActual();
-      R.avisoOtraImg = _dopAvisoOtrasImgs() !== '';
-
       /* ── 11 · LA IMAGEN LLEVA LOS DESCARGOS QUEMADOS ──
          Una tabla de gradientes y AVA que circula sola —va a la biblioteca y desde ahi puede
          ir al PDF— sin decir que la severidad por PHT es orientativa es «un numero sin su
@@ -22998,9 +23004,6 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       /* fillText NO envuelve: recorta por la cola en silencio, y lo que se perderia es el
          descargo. Ninguna linea dibujada puede ser larga. */
       R.imgNadaLargo = pintado.every(t => t.length < 90);
-      /* Y el aviso de acumulacion queda QUEMADO en la imagen, no solo en la pantalla: es la
-         unica superficie que sobrevive a que la imagen circule fuera de la app. */
-      R.imgAvisoAcumulado = txtImg.indexOf('acumularon') > -1;
 
       /* ── 12 · GUARDAR EN BIBLIOTECA ENTRA UN REGISTRO ── */
       localStorage.setItem('cfg-guardar-imagenes','1');
@@ -23011,22 +23014,17 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       let regsAntes = [];
       try { regsAntes = (await CeiboCine.listar(_imgUuidActual)) || []; } catch (e) { regsAntes = []; }
       window.prompt = () => '0.8'; dopCorregir('ao.vmax'); await esperar(110);
-      /* ⚠️ LO QUE SE GUARDA ES LA IMAGEN DEL VISOR CON LA TABLA DEBAJO, no la tabla sola.
-         Se compara el alto del compuesto contra el de la tabla: si el compositor devolviera
-         _dopCanvas() —que es lo que guardaba antes— los dos coincidirian y no habria nada que
-         mirar. El denominador es que el canvas del visor TENGA alto propio: con el visor
-         cerrado el compositor cae a la tabla sola a proposito, y la condicion se cumpliria
-         sobre un caso que no prueba nada. */
-      const cvSola = _dopCanvas(), cvComp = _dopCanvasConImagen();
-      const baseCv = _medEl('cine-cv');
-      R.baseAlto = baseCv ? baseCv.height : 0;
-      R.compLlevaImagen = R.baseAlto > 0 && cvComp.height === cvSola.height + R.baseAlto;
       dichos.length = 0;
       await dopGuardarBiblioteca(); await esperar(900);
       let regsDesp = [];
       try { regsDesp = (await CeiboCine.listar(_imgUuidActual)) || []; } catch (e) { regsDesp = []; }
       R.entroUnRegistro = regsDesp.length === regsAntes.length + 1;
-      R.avisoGuardado = dichos.some(m => m.indexOf('biblioteca') > -1);
+      /* ⚠️ EL AVISO TIENE QUE NOMBRAR LA TABLA, no decir «guardado» a secas: a dos centimetros
+         esta «📸 Capturar+Med», que guarda la ECOGRAFIA, y son dos entradas distintas de la
+         biblioteca. Con un mensaje generico, dos gestos que producen cosas distintas se
+         confirmarian igual. La condicion pinaba la palabra «biblioteca», que es texto y no
+         invariante: se reapunto al hecho. */
+      R.avisoGuardado = dichos.some(m => m.toLowerCase().indexOf('tabla') > -1);
       /* Y las mediciones viajan ADEMAS como dato, no solo quemadas en los pixeles: eso es lo
          que las deja recuperables desde la app. */
       const idsAntes = regsAntes.map(r => r.id);
@@ -23074,9 +23072,6 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       const meta2 = _dopMetaGuardado();
       R.metaLlevaSueltas = !!meta2.valores['Sin asignar · Velocidad'];
       R.metaLlevaDescargos = Array.isArray(meta2.descargos) && meta2.descargos.length > 0;
-      /* ⚠️ Y UNA TABLA CARGADA ENTERA A MANO NO TIENE NINGUNA PROCEDENCIA: dopCorregir no anota
-         imagen, asi que la de arriba no sostiene un solo numero. El aviso falla CERRADO. */
-      R.avisoSinProcedencia = _dopAvisoOtrasImgs() !== '';
       /* Y sin valvula elegida, con solo sueltas, «Guardar» SIGUE ESTANDO: si no, esos valores se
          ven en pantalla y ningun control los saca — y desde que el panel vive solo dentro del
          visor, la biblioteca es la unica salida. */
@@ -23164,6 +23159,7 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       R.err = String(e && e.message || e);
     } finally {
       window.alert = alertReal; window.prompt = promptReal; window.toast = toastReal;
+      window.confirm = confirmReal;
       try { if (pesoEl) pesoEl.value = pesoPrev; if (tallaEl) tallaEl.value = tallaPrev;
             if (typeof calcBSA === 'function') calcBSA(); } catch (e) {}
       try { if (togglePrevio === null) localStorage.removeItem('cfg-guardar-imagenes');
@@ -23229,6 +23225,12 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       ['el borde 500 es Moderada (el corte es > 500)', R.sev500 === 'Moderada', R.sev500],
       ['200 es Moderada y 199 Severa',                R.sev200 === 'Moderada' && R.sev199 === 'Severa',
                                                       R.sev200 + '/' + R.sev199],
+      ['un diametro fuera de banda NO se guarda',     R.bandaRechaza, R.bandaRechaza],
+      ['ni mueve el derivado',                        R.bandaNoMueveDerivado, R.bandaNoMueveDerivado],
+      ['y se AVISA con la banda',                     R.bandaAvisa, R.bandaAvisa],
+      ['un PHT imposible tampoco entra',              R.phtImposibleRechazado, R.phtImposibleRechazado],
+      ['y NO se clasifica como Severa por descarte',  R.sevNoCaeEnSevera, R.sevNoCaeEnSevera],
+      ['DENOMINADOR: la cascada sigue clasificando',  R.sevSigueAndando, R.sevSigueAndando],
       ['PERSISTE al cerrar el visor',                 R.persisteAlCerrar, R.persisteAlCerrar],
       ['cerrar el visor lo ESCONDE',                  R.ocultoAlCerrar, R.ocultoAlCerrar],
       ['sin sacarlo del visor: no se muda a ningun lado', R.sigueEnElVisor, R.sigueEnElVisor],
@@ -23239,29 +23241,23 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       ['medir sin armar campo captura igual',         R.genVel && R.genGrad, R.genVel],
       ['y ESO SE VE, en «sin asignar»',               R.sueltasSeVen, R.sueltasSeVen],
       ['y no pisa lo de la aortica',                  R.aorticaIntacta, R.aorticaIntacta],
-      ['con UNA sola imagen medida no hay aviso',     R.avisoUnaSolaImg, R.avisoUnaSolaImg],
-      ['al cambiar de imagen SI lo hay',              R.avisoOtraImg, 'actual=' + R.imgActualB],
       ['la imagen lleva titulo y la AVA',             R.imgTitulo && R.imgLlevaAVA, R.imgTitulo],
       ['y los DOS descargos quemados',                R.imgDescPHT && R.imgDescAVA, R.imgDescPHT + '/' + R.imgDescAVA],
       ['con la guia que los sostiene',                R.imgCita, R.imgCita],
       ['y nada se recorta',                           R.imgNadaLargo, R.imgNadaLargo],
-      ['y el aviso de acumulacion va QUEMADO',        R.imgAvisoAcumulado, R.imgAvisoAcumulado],
       ['DENOMINADOR: el estudio tiene uuid',          R.uuidListo, R.uuidListo],
-      ['DENOMINADOR: el canvas del visor tiene alto', R.baseAlto > 0, R.baseAlto],
-      ['lo guardado es LA IMAGEN + la tabla, no la tabla sola', R.compLlevaImagen, R.compLlevaImagen],
       ['guardar en biblioteca ENTRA UN REGISTRO',     R.entroUnRegistro, R.entroUnRegistro],
       ['con la valvula adjunta como DATO',            R.metaValvula, R.metaValvula],
       ['y sus valores',                               R.metaValores, R.metaValores],
       ['DENOMINADOR: la tarjeta esta en la tira',     R.tarjetaEnTira, R.tarjetaEnTira],
       ['con 📄 a la izquierda y ✕ a la derecha',      R.tarjetaPdf && R.tarjetaBorrar,
                                                       'pdf=' + R.tarjetaPdf + ' borrar=' + R.tarjetaBorrar],
-      ['y lo dice',                                   R.avisoGuardado, R.avisoGuardado],
+      ['y el aviso NOMBRA LA TABLA',                  R.avisoGuardado, R.avisoGuardado],
       ['con la tabla vacia no guarda nada',           R.vaciaNoGuarda && R.vaciaAvisa, R.vaciaNoGuarda],
       ['DENOMINADOR: la suelta se ve en el panel',    R.sueltaEnPanel, R.sueltaEnPanel],
       ['la IMAGEN lleva tambien las sin asignar',     R.imgLlevaSueltas, R.imgLlevaSueltas],
       ['y la meta tambien',                           R.metaLlevaSueltas, R.metaLlevaSueltas],
       ['con sus descargos como dato',                 R.metaLlevaDescargos, R.metaLlevaDescargos],
-      ['una tabla sin procedencia SI avisa',          R.avisoSinProcedencia, R.avisoSinProcedencia],
       ['DENOMINADOR: sin valvula quedan las sueltas', R.sinValvulaModo === null && R.sinValvulaHaySueltas,
                                                       'modo=' + R.sinValvulaModo],
       ['y «Guardar» sigue ofreciendose',              R.sinValvulaHayGuardar, R.sinValvulaHayGuardar],
@@ -23317,7 +23313,8 @@ caso('TC-250', 'Cajon Doppler: Mitral, Tricuspide y Pulmonar, con sus unidades y
     const R = {};
     const esperar = ms => new Promise(r => setTimeout(r, ms));
     const alertReal = window.alert, promptReal = window.prompt, toastReal = window.toast;
-    window.alert = () => {}; window.toast = () => {};
+    const confirmReal = window.confirm;
+    window.alert = () => {}; window.toast = () => {}; window.confirm = () => true;
     const thpEl = document.getElementById('thp');
     const thpPrev = thpEl ? thpEl.value : '';
     try {
@@ -23561,6 +23558,7 @@ caso('TC-250', 'Cajon Doppler: Mitral, Tricuspide y Pulmonar, con sus unidades y
       R.err = String(e && e.message || e);
     } finally {
       window.alert = alertReal; window.prompt = promptReal; window.toast = toastReal;
+      window.confirm = confirmReal;
       try { if (thpEl) { thpEl.value = thpPrev; if (typeof calcTHP === 'function') calcTHP(); } } catch (e) {}
       try { _dopLimpiar(); _dop.modo = null; } catch (e) {}
       try { cineCerrar(); } catch (e) {}
@@ -23631,6 +23629,345 @@ caso('TC-250', 'Cajon Doppler: Mitral, Tricuspide y Pulmonar, con sus unidades y
 
 
 
+
+
+/* == TC-251 . Cada valvula es un cajon propio que SOBREVIVE al cambio de imagen =============
+   Es el flujo que Maicol describio y el que la seleccion progresiva podia romper: cada valvula
+   guarda lo suyo y el cajon se completa a lo largo de VARIAS imagenes del visor, que es lo que
+   la ecuacion de continuidad EXIGE — el VTI del TSVI y el de la valvula aortica se miden en
+   planos distintos, asi que «acumular entre imagenes» no es una tolerancia, es el metodo.
+
+   Las cuatro cosas que un mutante plausible se lleva puestas sin que nada chille:
+   1 . El estado por valvula se pierde al cambiar de imagen. Los cuatro sub-objetos viven en
+       `_dop`, que es estado de MODULO; cualquier limpieza colgada de `_cineAbrir` o de
+       `medCambioDeImagen` los borraria y el cajon Aortica reabriria vacio justo cuando el
+       medico vuelve a completarlo.
+   2 . Los derivados NO se recalculan al editar a mano. `_dopDerivados` corre en cada pintado,
+       asi que editar un insumo tiene que mover la AVA; si alguien cacheara el valor, quedaria
+       el de la primera vez — que es `vp_gmax` otra vez.
+   3 . Volver a medir un campo con valor PIDE confirmacion o no pisa. Se espia `confirm`.
+   4 . Los DOS guardados se confunden en uno. La ecografia y la tabla son dos entradas distintas
+       de la biblioteca desde 2026-09-24; componerlas era el flujo anterior.
+
+   El fixture es el trazo espectral sintetico de TC-249/250: eje X en segundos (0,004 s/px) y
+   eje Y en cm/s (0,5 cm/s por px) con la linea de base en y=400. Cada clic y cada arrastre dan
+   un numero cerrado.                                                                        */
+caso('TC-251', 'Cajon Doppler: una valvula por cajon, persistente entre imagenes, y dos guardados', `
+  return (async () => {
+    const R = {};
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    const alertReal = window.alert, promptReal = window.prompt, toastReal = window.toast;
+    const confirmReal = window.confirm;
+    const dichos = [];
+    window.alert = () => {}; window.toast = m => dichos.push(String(m));
+    let confirms = 0;
+    window.confirm = () => { confirms++; return true; };
+    let idEst = null;
+    try {
+      const JPG = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,219,0,67,0,8,6,6,7,6,5,8,7,7,7,9,9,8,10,12,20,13,12,11,11,12,25,18,19,15,20,29,26,31,30,29,26,28,28,32,36,46,39,32,34,44,35,28,28,40,55,41,44,48,49,52,52,52,31,39,57,61,56,50,60,46,51,52,50,255,192,0,11,8,0,1,0,1,1,1,17,0,255,196,0,20,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,255,196,0,20,16,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,218,0,8,1,1,0,0,63,0,42,159,255,217]);
+      const REG = [{ tipo:3, x0:0, y0:0, x1:1000, y1:800, ux:4, uy:7, dx:0.004, dy:-0.5,
+                     rx0:0, ry0:400, rvx:0, rvy:0 }];
+      /* Cada imagen con SU nombre: es lo unico que hace visible, al leer el diagnostico, que se
+         cambio de cineloop de verdad y no se repinto el mismo. */
+      const abrir = nom => _cineAbrir([{ nombre:nom, cuadros:1,
+        d:{ frags:[JPG], cols:1, filas:1, msCuadro:0, fabricante:'', modelo:'', regiones:REG } }]);
+      const clic = (x, y) => { const cv = _medEl('cine-med'), rc = cv.getBoundingClientRect(),
+        e = cv.width / rc.width;
+        cv.dispatchEvent(new MouseEvent('click', { bubbles:true, clientX: rc.left + x/e, clientY: rc.top + y/e })); };
+      /* Triangulo de base 200 px (0,8 s) y altura h px: VTI = 0,5 . 0,8 . (h . 0,5) = 0,2 . h cm.
+         Con h=100 da 20 cm y con h=150 da 30 — dos valores distintos, que es lo que hace
+         discriminante la AVA y la sobrescritura. */
+      const arrastre = async (h) => { const cv = _medEl('cine-med'), rc = cv.getBoundingClientRect(),
+        e = cv.width / rc.width;
+        const ev = (t,x,y) => cv.dispatchEvent(new MouseEvent(t, { bubbles:true, cancelable:true,
+          clientX: rc.left + x/e, clientY: rc.top + y/e }));
+        ev('mousedown', 200, 400);
+        for (let x = 202; x <= 300; x += 2) ev('mousemove', x, 400 - (x - 200) * (h / 100));
+        for (let x = 302; x <= 400; x += 2) ev('mousemove', x, 400 - (400 - x) * (h / 100));
+        document.dispatchEvent(new MouseEvent('mouseup', { bubbles:true })); await esperar(330); };
+      const valv = m => { if (_dop.modo !== m) dopModo(m); };
+      const poner = (campo, val) => { window.prompt = () => String(val); dopCorregir(campo); };
+      const prep = async (nom) => {
+        abrir(nom); await esperar(480);
+        if (!_medOn) medToggle(); await esperar(150);
+        if (_medGrupoAbierto() !== 'dop') medGrupoToggle('dop');
+        await esperar(140);
+      };
+
+      showTab('imagenes'); await esperar(180);
+      _dopLimpiar(); _dop.modo = null;
+
+      /* == IMAGEN 1 . cajon AORTICA: diametro del TSVI y su VTI ========================== */
+      await prep('ao-1');
+      const cajon = document.getElementById('dop-cajon');
+      R.hayCajon = !!cajon && _dopVisible();
+      valv('ao'); await esperar(130);
+      poner('ao.diam', 20); await esperar(130);
+      dopArmar('ao.vtiTsvi'); await esperar(120);
+      await arrastre(100);
+      R.img1Diam = _dop.ao.diam;
+      R.img1VtiTsvi = _dop.ao.vtiTsvi;
+      /* Con dos de los tres insumos la AVA todavia NO se publica: es la regla de «si falta un
+         insumo la fila no se muestra, en vez de un guion». */
+      R.avaIncompleta = _dopDerivados().ava === null;
+
+      /* == IMAGEN 2 . cajon MITRAL: arranca VACIO y no toca lo de la aortica ============= */
+      await prep('mit-1');
+      valv('mit'); await esperar(130);
+      R.mitArrancaVacio = _dop.mit.ondaE === null && _dop.mit.ondaA === null;
+      dopArmar('mit.ondaE'); await esperar(120); clic(300, 250); await esperar(200);
+      dopArmar('mit.ondaA'); await esperar(120); clic(300, 300); await esperar(200);
+      R.img2OndaE = _dop.mit.ondaE;
+      R.img2OndaA = _dop.mit.ondaA;
+      R.img2Ea = _dopDerivados().ea;
+      /* Y la aortica sigue intacta MIENTRAS se trabaja en la mitral: son cajones distintos. */
+      R.aorticaIntactaEnMit = _dop.ao.diam === 20 && _dop.ao.vtiTsvi === R.img1VtiTsvi;
+
+      /* == IMAGEN 3 . vuelve a AORTICA: reabre CON lo de la imagen 1 y se completa ======= */
+      await prep('ao-2');
+      valv('ao'); await esperar(140);
+      R.img3ReabreConDatos = _dop.ao.diam === 20 && _dop.ao.vtiTsvi === R.img1VtiTsvi;
+      /* Y lo reabre EN PANTALLA, no solo en el estado: es lo que el medico ve. */
+      R.img3TablaConDatos = cajon.textContent.indexOf('20.0') > -1;
+      dopArmar('ao.vtiAo'); await esperar(120);
+      await arrastre(150);
+      R.img3VtiAo = _dop.ao.vtiAo;
+      const D3 = _dopDerivados();
+      R.avaAparece = D3.ava != null;
+      R.avaEsLaDeLaApp = D3.ava != null &&
+        Math.abs(D3.ava - _avaContinuidad(_dop.ao.diam, _dop.ao.vtiTsvi, _dop.ao.vtiAo)) < 1e-12;
+      R.avaEnPantalla = cajon.textContent.indexOf('AVA') > -1;
+
+      /* == IMAGEN 4 . vuelve a MITRAL: reabre con E/A y se completa con las dos e' ======= */
+      await prep('mit-2');
+      valv('mit'); await esperar(140);
+      R.img4ReabreConDatos = _dop.mit.ondaE === R.img2OndaE && _dop.mit.ondaA === R.img2OndaA;
+      /* ⚠️ LAS e' SE MIDEN POR DEBAJO DE LA LINEA DE BASE —y=400 en este fixture—, que es donde
+         estan de verdad: en apical el anillo mitral SE ALEJA del transductor en diastole. El
+         visor entrega la velocidad CON SIGNO, asi que ahi llegan negativas.
+         Medido antes del arreglo: septal −10,0 y lateral −15,0, y como _dopDerivados exige
+         positivo para promediarlas, las filas «e' promedio» y «E/e'» NO SE DIBUJABAN — sin una
+         palabra, en el bloque que decide presiones de llenado. El caso mide donde el medico
+         mide; con los clics por ARRIBA la mutacion sobrevivia. */
+      dopArmar('mit.ePrimaSept'); await esperar(120); clic(300, 420); await esperar(200);
+      dopArmar('mit.ePrimaLat');  await esperar(120); clic(300, 430); await esperar(200);
+      const D4 = _dopDerivados();
+      R.eSept = _dop.mit.ePrimaSept;
+      R.eLat = _dop.mit.ePrimaLat;
+      /* El cajon guarda MAGNITUD: los campos del informe (e_sep, e_lat) son positivos y el visor
+         ya muestra el modulo con una flecha al lado. Sin esto, un solo clic producia dos
+         artefactos que se contradicen — la ecografia con «↓» y la tabla con el menos. */
+      R.eSonPositivas = R.eSept > 0 && R.eLat > 0;
+      /* ⚠️ SE AFIRMA LA RELACION, NO EL LITERAL. Los clics se marcan a y=380 y y=370, o sea
+         10 y 15 cm/s sobre el papel — pero clientY es ENTERO por especificacion y el fixture es
+         un canvas de 1x1 escalado, asi que el viaje imagen -> pantalla -> imagen deja 10,28 y
+         15,28. Medido. Escrito contra «12,5 +-0,2» el caso daba rojo sobre un promedio
+         perfectamente calculado; lo que importa es que sea LA MEDIA de las dos medidas y que
+         quede ENTRE ellas —si fuera una sola, no seria un promedio—. */
+      R.epromEsMedia = D4.eprom != null &&
+        Math.abs(D4.eprom - (_dop.mit.ePrimaSept + _dop.mit.ePrimaLat) / 2) < 1e-9;
+      R.epromEntreLasDos = D4.eprom != null &&
+        D4.eprom > Math.min(_dop.mit.ePrimaSept, _dop.mit.ePrimaLat) &&
+        D4.eprom < Math.max(_dop.mit.ePrimaSept, _dop.mit.ePrimaLat);
+      R.epromEsProm = D4.epromCual === 'prom';
+      R.eeEsCociente = D4.ee != null && Math.abs(D4.ee - _dop.mit.ondaE / D4.eprom) < 1e-9;
+      /* ⚠️ Y EL PROMEDIO SE MUESTRA COMO FILA. Se calculaba y no se dibujaba: el pedido lo
+         nombra como derivado, y un numero que la app tiene y no publica no existe para el
+         medico. La condicion busca el rotulo Y el valor, porque el rotulo solo aparece tambien
+         dentro de la etiqueta del E/e'. */
+      const txtMit = cajon.textContent;
+      /* ⚠️ El valor esperado se DERIVA del calculo, no se escribe: el clic se cuantiza a pixel
+         entero, asi que el promedio puede salir 12,4 o 12,6 y buscar el literal «12.5» daba
+         rojo sobre una fila perfectamente dibujada. Lo que se afirma es que la fila muestra lo
+         que el derivado calculo, y que su rotulo es «promedio» —«E/e' (prom)» no matchea—. */
+      R.epromTexto = D4.eprom != null ? Number(D4.eprom).toFixed(1) : '';
+      R.epromEnPantalla = txtMit.indexOf('promedio') > -1 &&
+                          !!R.epromTexto && txtMit.indexOf(R.epromTexto) > -1;
+
+      /* == EDICION A MANO: recalcula, sin confirmacion ================================== */
+      valv('ao'); await esperar(140);
+      const avaAntes = _dopDerivados().ava;
+      confirms = 0;
+      poner('ao.diam', 24); await esperar(150);
+      const avaDesp = _dopDerivados().ava;
+      R.editaSinConfirmar = confirms === 0;
+      R.editaCambiaElInsumo = _dop.ao.diam === 24;
+      R.editaRecalculaAva = avaAntes != null && avaDesp != null && Math.abs(avaDesp - avaAntes) > 0.2;
+      R.avaTrasEditar = avaDesp != null &&
+        Math.abs(avaDesp - _avaContinuidad(24, _dop.ao.vtiTsvi, _dop.ao.vtiAo)) < 1e-12;
+      /* ⚠️ Y EL PANEL SE REPINTA. Leer _dopDerivados() desde el caso no prueba que el medico vea
+         el numero nuevo: esa funcion recalcula siempre. Lo que puede fallar es que dopCorregir
+         deje de llamar a _dopRender, y entonces la pantalla se queda con la AVA vieja mientras
+         el estado ya cambio — dos respuestas al mismo dato en la misma tarjeta. */
+      R.avaNuevaEnPantalla = avaDesp != null &&
+        cajon.textContent.indexOf(Number(avaDesp).toFixed(2)) > -1;
+
+      /* == VOLVER A MEDIR UN CAMPO CON VALOR: pisa sin preguntar y recalcula ============ */
+      const vtiAntes = _dop.ao.vtiTsvi;
+      confirms = 0;
+      dopArmar('ao.vtiTsvi'); await esperar(120);
+      await arrastre(150);
+      R.remideSinConfirmar = confirms === 0;
+      R.remidePisa = _dop.ao.vtiTsvi != null && Math.abs(_dop.ao.vtiTsvi - vtiAntes) > 5;
+      R.vtiAntes = vtiAntes; R.vtiDesp = _dop.ao.vtiTsvi;
+      R.remideRecalcula = Math.abs(_dopDerivados().ava -
+        _avaContinuidad(24, _dop.ao.vtiTsvi, _dop.ao.vtiAo)) < 1e-12;
+
+      /* == LAS OTRAS VALVULAS NO SON INVISIBLES ========================================
+         El panel muestra UNA valvula por vez, asi que desde la aortica una mitral cargada era
+         indistinguible de una vacia — y «Limpiar» borra LAS CUATRO. El punto en el boton es lo
+         unico que lo hace visible. */
+      R.mitConDatos = _dopValvConDatos('mit');
+      R.triSinDatos = !_dopValvConDatos('tri');
+      const rotBtn = m => { const b = cajon.querySelector('[data-dop-modo="' + m + '"]');
+                            return b ? b.textContent : ''; };
+      R.puntoEnMitral = rotBtn('mit').indexOf('•') > -1;
+      R.sinPuntoEnTri = rotBtn('tri').indexOf('•') < 0;
+
+      /* == LIMPIAR PREGUNTA, Y NOMBRA LO QUE VA A BORRAR ===============================
+         La confirmacion va en un ENVOLTORIO: _dopLimpiar la llaman limpiarCampos y
+         cerrarSesionReal, y el dialogo no puede aparecer en una ruta automatica. */
+      let textoConfirm = '';
+      window.confirm = (m) => { textoConfirm = String(m || ''); confirms++; return false; };
+      confirms = 0;
+      cajon.querySelector('[data-dop-acc="limpiar"]').click(); await esperar(160);
+      R.limpiarPregunta = confirms === 1;
+      /* ⚠️ NADA DE SALTOS ESCAPADOS EN UN REGEX DENTRO DEL CUERPO DE UN CASO: el template literal se come
+         la barra y el salto entra CRUDO en el literal de regex, que deja de parsear. Es la
+         trampa que este archivo documenta diez veces, hoy con la cara del salto de linea. */
+      R.textoConfirm = textoConfirm.split(String.fromCharCode(10)).join(' ').slice(0, 70);
+      R.limpiarNombraLasValvulas = textoConfirm.indexOf('Mitral') > -1 && textoConfirm.indexOf('rtica') > -1;
+      R.limpiarCancelaNoBorra = _dop.ao.diam === 24 && _dop.mit.ondaE === R.img2OndaE;
+      window.confirm = () => { confirms++; return true; };
+      confirms = 0;
+      cajon.querySelector('[data-dop-acc="limpiar"]').click(); await esperar(160);
+      R.limpiarAceptaBorra = _dop.ao.diam === null && _dop.mit.ondaE === null;
+      /* Y con el cajon vacio NO pregunta: un dialogo sobre nada entrena a contestar que si. */
+      confirms = 0;
+      cajon.querySelector('[data-dop-acc="limpiar"]').click(); await esperar(160);
+      R.vacioNoPregunta = confirms === 0;
+
+      /* == DOS GUARDADOS INDEPENDIENTES ================================================ */
+      localStorage.setItem('cfg-guardar-imagenes','1');
+      __t.set('nombre','TC251 DOPPLER'); __t.set('ci','94900251');
+      const g = await __t.guardar(); idEst = g && g.estudioId; await esperar(800);
+      __t.reabrir(idEst); await esperar(1100);
+      R.uuidListo = !!String(_imgUuidActual || '');
+      /* Reabrir limpia el cajon —es la regla de fuga entre pacientes— asi que se vuelve a
+         cargar lo minimo para tener algo que guardar, y se repone el visor. */
+      await prep('ao-3');
+      valv('ao'); await esperar(130);
+      poner('ao.vmax', 3.2); await esperar(140);
+      let regs0 = [];
+      try { regs0 = (await CeiboCine.listar(_imgUuidActual)) || []; } catch (e) { regs0 = []; }
+      /* 1) la ECOGRAFIA, por el boton de la barra del visor. */
+      medCapturarConMedicion(); await esperar(1100);
+      let regs1 = [];
+      try { regs1 = (await CeiboCine.listar(_imgUuidActual)) || []; } catch (e) { regs1 = []; }
+      /* 2) la TABLA, por el boton del cajon. */
+      dichos.length = 0;
+      cajon.querySelector('[data-dop-acc="guardar"]').click(); await esperar(1200);
+      let regs2 = [];
+      try { regs2 = (await CeiboCine.listar(_imgUuidActual)) || []; } catch (e) { regs2 = []; }
+      R.entroLaImagen = regs1.length === regs0.length + 1;
+      R.entroLaTabla = regs2.length === regs1.length + 1;
+      R.dosEntradas = regs2.length === regs0.length + 2;
+      const ids0 = regs0.map(r => r.id), ids1 = regs1.map(r => r.id);
+      const recImg = regs1.filter(r => ids0.indexOf(r.id) < 0)[0];
+      const recTab = regs2.filter(r => ids1.indexOf(r.id) < 0)[0];
+      R.nombreImg = recImg ? recImg.nombre : null;
+      R.nombreTab = recTab ? recTab.nombre : null;
+      /* ⚠️ EL NOMBRE DE LA TABLA LLEVA LA HORA. El cajon acumula, asi que guardar parcial y
+         volver a guardar es el flujo natural: sin la hora, dos tarjetas «Doppler — Aortica» con
+         miniaturas de 150 px son indistinguibles, y la biblioteca existe para elegir entre
+         ellas. Se busca el patron hh:mm, no una hora concreta. */
+      R.tablaLlevaHora = !!R.nombreTab && /[0-9][0-9]:[0-9][0-9]/.test(R.nombreTab);
+      /* ⚠️ SON DOS COSAS DISTINTAS, y esto es lo que lo separa de guardar dos veces lo mismo:
+         la de la tabla trae la meta del cajon y la de la ecografia NO. */
+      R.tablaTraeMeta = !!(recTab && recTab.meta && recTab.meta.modulo === 'doppler');
+      R.imagenSinMeta = !!recImg && !recImg.meta;
+      R.avisoNombraTabla = dichos.some(m => m.toLowerCase().indexOf('tabla') > -1);
+      /* Y las DOS tarjetas traen sus dos controles. */
+      try { await cineStripRender(); } catch (e) {}
+      await esperar(400);
+      const tira = document.getElementById('cine-strip');
+      const tj = id => (tira && id) ? tira.querySelector('[data-cine-id="' + id + '"]') : null;
+      const ctrl = t => !!(t && t.querySelector('.cine-borrar') && t.querySelector('.cine-alpdf'));
+      R.ctrlImg = ctrl(tj(recImg && recImg.id));
+      R.ctrlTab = ctrl(tj(recTab && recTab.id));
+
+      /* == CERRAR EL VISOR NO DEJA RASTRO (no regresionar el commit anterior) =========== */
+      cineCerrar(); await esperar(250);
+      R.cerradoOculto = cajon.style.display === 'none';
+      R.cerradoSinRastro = [].slice.call(document.querySelectorAll('#tab-imagenes *'))
+        .filter(el => (el.textContent || '').indexOf('Vmax VAo') > -1).length === 0;
+
+    } catch (e) {
+      R.err = String(e && e.message || e);
+    } finally {
+      window.alert = alertReal; window.prompt = promptReal; window.toast = toastReal;
+      window.confirm = confirmReal;
+      try { if (idEst) await __t.borrar(idEst); } catch (e) {}
+      try { _dopLimpiar(); _dop.modo = null; } catch (e) {}
+      try { cineCerrar(); } catch (e) {}
+      try { if (typeof imgVaciar === 'function') imgVaciar(); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+    return { extra: [
+      ['DENOMINADOR: sin excepcion',                  !R.err, R.err || 'ok'],
+      ['DENOMINADOR: el cajon se esta dibujando',     R.hayCajon, R.hayCajon],
+      ['imagen 1: el diametro del TSVI entra a mano', R.img1Diam === 20, R.img1Diam],
+      ['y el VTI del TSVI se mide',                   R.img1VtiTsvi != null, R.img1VtiTsvi],
+      ['con dos insumos la AVA todavia NO se publica', R.avaIncompleta, R.avaIncompleta],
+      ['imagen 2: el cajon Mitral arranca VACIO',     R.mitArrancaVacio, R.mitArrancaVacio],
+      ['sus ondas E y A se miden',                    R.img2OndaE != null && R.img2OndaA != null,
+                                                      'E=' + R.img2OndaE + ' A=' + R.img2OndaA],
+      ['y el cajon Aortica NO se toca mientras tanto', R.aorticaIntactaEnMit, R.aorticaIntactaEnMit],
+      ['imagen 3: el cajon Aortica REABRE con lo de la 1', R.img3ReabreConDatos, R.img3ReabreConDatos],
+      ['y lo muestra en pantalla, no solo en el estado', R.img3TablaConDatos, R.img3TablaConDatos],
+      ['con el tercer insumo la AVA APARECE SOLA',    R.avaAparece && R.avaEnPantalla, R.avaAparece],
+      ['Y ES LA MISMA QUE CALCULA LA APP',            R.avaEsLaDeLaApp, R.avaEsLaDeLaApp],
+      ['imagen 4: el cajon Mitral REABRE con su E/A', R.img4ReabreConDatos, R.img4ReabreConDatos],
+      ['las dos e\\u0027 se miden POR DEBAJO de la base',  R.eSept != null && R.eLat != null,
+                                                      'sept=' + R.eSept + ' lat=' + R.eLat],
+      ['y se guardan en MAGNITUD, no con signo',      R.eSonPositivas, R.eSonPositivas],
+      ['e\\u0027 promedio es LA MEDIA de las dos',        R.epromEsMedia && R.epromEntreLasDos && R.epromEsProm,
+                                                      'sept=' + R.eSept + ' lat=' + R.eLat + ' prom=' + R.epromTexto],
+      ['Y SE MUESTRA COMO FILA',                      R.epromEnPantalla, R.epromTexto],
+      ['E/e\\u0027 es la onda E sobre ese promedio',      R.eeEsCociente, R.eeEsCociente],
+      ['editar a mano NO pide confirmacion',          R.editaSinConfirmar, R.editaSinConfirmar],
+      ['cambia el insumo',                            R.editaCambiaElInsumo, R.editaCambiaElInsumo],
+      ['y RECALCULA la AVA',                          R.editaRecalculaAva, R.editaRecalculaAva],
+      ['con la formula de la app',                    R.avaTrasEditar, R.avaTrasEditar],
+      ['y el PANEL muestra la AVA nueva',             R.avaNuevaEnPantalla, R.avaNuevaEnPantalla],
+      ['volver a medir NO pide confirmacion',         R.remideSinConfirmar, R.remideSinConfirmar],
+      ['PISA el valor anterior',                      R.remidePisa, R.vtiAntes + ' -> ' + R.vtiDesp],
+      ['y recalcula',                                 R.remideRecalcula, R.remideRecalcula],
+      ['DENOMINADOR: el estudio tiene uuid',          R.uuidListo, R.uuidListo],
+      ['la ecografia entra como UNA entrada',         R.entroLaImagen, R.entroLaImagen],
+      ['la tabla del cajon como OTRA',                R.entroLaTabla, R.entroLaTabla],
+      ['DOS entradas distintas, no una compuesta',    R.dosEntradas,
+                                                      'img=' + R.nombreImg + ' tabla=' + R.nombreTab],
+      ['solo la de la tabla trae la meta del cajon',  R.tablaTraeMeta && R.imagenSinMeta,
+                                                      'tabla=' + R.tablaTraeMeta + ' img=' + R.imagenSinMeta],
+      ['y el aviso del cajon NOMBRA LA TABLA',        R.avisoNombraTabla, R.avisoNombraTabla],
+      ['el nombre de la tabla lleva la HORA',         R.tablaLlevaHora, R.nombreTab],
+      ['las DOS tarjetas traen 📄 y ✕',               R.ctrlImg && R.ctrlTab,
+                                                      'img=' + R.ctrlImg + ' tabla=' + R.ctrlTab],
+      ['DENOMINADOR: la mitral tiene datos y la tricuspide no', R.mitConDatos && R.triSinDatos,
+                                                      'mit=' + R.mitConDatos + ' tri=' + R.triSinDatos],
+      ['el boton de la valvula cargada lleva punto',  R.puntoEnMitral && R.sinPuntoEnTri,
+                                                      'mit=' + R.puntoEnMitral + ' tri=' + R.sinPuntoEnTri],
+      ['Limpiar PREGUNTA antes de borrar',            R.limpiarPregunta, R.limpiarPregunta],
+      ['y nombra las valvulas que va a borrar',       R.limpiarNombraLasValvulas, R.textoConfirm],
+      ['cancelar NO borra',                           R.limpiarCancelaNoBorra, R.limpiarCancelaNoBorra],
+      ['aceptar SI borra',                            R.limpiarAceptaBorra, R.limpiarAceptaBorra],
+      ['y con el cajon vacio no pregunta',            R.vacioNoPregunta, R.vacioNoPregunta],
+      ['cerrar el visor esconde el cajon',            R.cerradoOculto, R.cerradoOculto],
+      ['y no deja rastro en la tab Imagenes',         R.cerradoSinRastro, R.cerradoSinRastro]
+    ] };
+  })();
+`);
 
 
 caso('TC-228', 'Visor: la etiqueta dice DE DONDE viene el valor, y el numero queda quemado siempre', `

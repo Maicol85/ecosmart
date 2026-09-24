@@ -4,18 +4,22 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
-## El cajón Doppler vive SÓLO dentro del visor, y «Guardar» reemplazó al ancla (2026-09-24)
+## El cajón Doppler vive SÓLO dentro del visor, con un cajón por válvula (2026-09-24)
 
 Rediseño deliberado, decidido por Maicol, que **revierte la conclusión de la entrada siguiente**:
 allá se midió que `#dop-casa` era el único acceso a lo medido sin visor y por eso no se tocó.
 Lo que cambió no es la medición sino el **requisito**: ese acceso ya no se quiere, y lo reemplaza
-una imagen en la biblioteca.
+una captura de la tabla en la biblioteca del estudio.
+
+**Son DOS iteraciones del mismo día.** La primera movió el cajón adentro del visor y compuso
+imagen+tabla en una sola captura; la segunda separó los dos guardados. Lo que sigue describe el
+estado final — si algo de más abajo menciona el compuesto, es un resto y hay que corregirlo.
 
 | | antes | hoy |
 |---|---|---|
 | dónde vive el nodo | se **mudaba** entre `#dop-casa` y `#cine-dop-slot` | **nace** en `#cine-dop-slot` |
 | quién lo muestra sin visor | el botón 📊 (`E.abierto`) | **nadie** — no existe «sin visor» |
-| acceso a lo medido tras cerrar | reabrir el panel con 📊 | la **imagen guardada** en la biblioteca |
+| acceso a lo medido tras cerrar | reabrir el panel con 📊 | la **tabla guardada** en la biblioteca |
 | al abrir el grupo Doppler | tabla genérica de cinco filas | **sólo** los cuatro botones de válvula |
 
 Eliminados: `#dop-casa`, `#dop-btn`, `dopToggle`, `_dopUbicar`, `dopHerr` y el campo `abierto`.
@@ -35,54 +39,147 @@ Con la tabla genérica fuera de la pantalla, esos números existirían en el est
 por ningún camino. Por eso hay `_dopFilasSueltas()`, que muestra **sólo las que tienen valor**
 bajo «Mediciones sin asignar» — una tabla de guiones bajo ese rótulo entrena a ignorarla.
 
+### UN CAJÓN POR VÁLVULA, Y SOBREVIVE AL CAMBIO DE IMAGEN — que es el método, no una tolerancia
+
+Los cuatro sub-objetos (`ao`/`mit`/`tri`/`pul`) viven en `_dop`, que es estado de **módulo**:
+ninguna función del visor los toca al cambiar de cineloop. Verificado leyendo los tres únicos
+escritores —`_dopEstado`, `_dopLimpiar` y el botón— y reproducido en el navegador con el flujo
+exacto que pidió Maicol: diámetro y VTI del TSVI en la imagen 1, ondas E y A en la 2, VTI aórtico
+en la 3 —y ahí el cajón aórtico **reabre con lo de la 1** y la AVA aparece sola—, las dos e' en la
+4 —y el mitral reabre con su E/A—.
+
+**Esto no es una comodidad: la ecuación de continuidad lo EXIGE.** El VTI del TSVI y el de la
+válvula aórtica se miden en planos distintos, así que un cajón que se vaciara al cambiar de imagen
+no podría calcular una AVA nunca. Por eso la mutación que hace que `_cineAbrir` llame a
+`_dopLimpiar` tira **diez condiciones** de TC-251.
+
+Lo que sí se limpia son las tres puertas de siempre —el botón, `limpiarCampos` y
+`cerrarSesionReal`—, que es la fuga entre pacientes.
+
 ### ⚠️ EL PANEL PINTA DOS TABLAS, Y LO GUARDADO SE LLEVABA UNA
 
 Lo cazó `/sharp-edges`, no la lectura, y el detalle importa: `_dopCanvas` y `_dopMetaGuardado`
 seguían saliendo de `_dopFilas()` **con un comentario recién escrito que afirmaba** «sale de
 `_dopFilas`, la misma lista que pinta el panel, así que lo guardado no puede decir otra cosa que
 lo que el médico vio». Ese invariante se rompió en el mismo commit que dejó escrito el comentario.
-Hoy la lista única es **`_dopFilasTodas()`** —válvula + separador + sueltas— y la consumen la
-imagen y la meta. Y la compuerta del botón mira las dos: escrita sólo sobre la válvula, un panel
+Hoy la lista única es **`_dopFilasTodas()`** —válvula + separador + sueltas— y la consumen el
+panel, la captura de la tabla y la meta. Y la compuerta del botón mira las dos: escrita sólo sobre la válvula, un panel
 con sueltas y sin válvula elegida **mostraba valores que ningún control podía guardar**, y desde
 que no hay `#dop-casa` la biblioteca es la única salida.
 
-### «Guardar» compone el CUADRO ACTUAL con la tabla debajo
+### DOS GUARDADOS INDEPENDIENTES, y el compuesto se eliminó el mismo día
 
-`_dopCanvasConImagen`: `#cine-cv` + el overlay `#cine-med` —sólo si mide exactamente lo mismo,
-escalarlo movería cada medición respecto de la anatomía— y `_dopCanvas()` pegado abajo. No cuesta
-calidad: `cineIr` dibuja el bitmap 1:1, así que componerlo es copia de píxeles. Falla hacia la
-tabla sola, **y el toast lo dice**: el mismo gesto con dos resultados y ninguna señal de cuál
-ocurrió es el defecto que este archivo ya documenta para la captura del visor.
+La primera versión componía el cuadro del visor con la tabla debajo en una sola captura.
+**Segunda decisión de Maicol (2026-09-24): son dos acciones distintas y dos entradas distintas
+de la biblioteca**, y `_dopCanvasConImagen` se borró.
 
-Las mediciones viajan además como **dato** en `rec.meta` (parámetro nuevo de `_bibGuardarJpeg`,
-bajo clave fija y nunca por spread, que pisaría `id`/`uuid`/`tipo`). **Con sus descargos
-adentro**: si son recuperables como dato, su reparo tiene que serlo también — un «Severidad IAo:
-Moderada (orientativo)» en un backup, sin la guía que lo sostiene, es un número sin su reparo.
+| gesto | qué guarda | dónde está el botón |
+|---|---|---|
+| **📸 Capturar+Med** | la ecografía con sus calipers (`medCapturarConMedicion`) | barra fija del visor |
+| **💾 Guardar tabla** | sólo la tabla del cajón (`dopGuardarBiblioteca` → `_dopCanvas()`) | pie del cajón |
 
-### ⚠️ LA IMAGEN GUARDADA PUEDE NO SOSTENER LA TABLA QUE LLEVA DEBAJO
+El rótulo dice **«tabla»** y el toast también: los dos botones están a dos centímetros, y un
+«Guardar» pelado al lado del otro no dice cuál es cuál — el médico aprieta el que tiene más
+cerca y descubre qué guardó al abrir la tira. **Y el nombre del registro lleva la hora**, porque
+el cajón acumula y guardar parcial y volver a guardar es el flujo natural: sin ella, dos tarjetas
+«Doppler — Aórtica» con miniaturas de 150 px son indistinguibles.
 
-El cajón **acumula entre imágenes a propósito** —es su razón de ser— así que el cuadro que se
-guarda puede no ser aquel sobre el que se midió la mitad de las filas. Antes no importaba: lo
-guardado era una tabla sola, que no afirmaba nada sobre ninguna imagen. Desde que van juntas, la
-yuxtaposición atribuye **sin decir una palabra**. `_dopAvisoOtrasImgs()` lo declara, en la
-pantalla y quemado en la imagen.
+Las mediciones viajan además como **dato** en `rec.meta` (parámetro opcional de
+`_bibGuardarJpeg`, bajo clave fija y nunca por spread, que pisaría `id`/`uuid`/`tipo`), **con sus
+descargos adentro**: si son recuperables como dato, su reparo tiene que serlo también.
 
-- **Se indexa por un SERIAL del loop, no por su nombre.** `medImagenAbrir` le pone a **toda** foto
-  de un slot el mismo rótulo literal, y el import de backup normaliza a «cineloop» lo que venga
-  sin nombre: con el nombre como clave, dos imágenes distintas colapsan en una y el aviso se
-  apaga justo en las que más lo necesitan. El serial se estampa perezosamente sobre el objeto del
-  loop y se guarda **el número, no el loop** — retenerlo mantendría vivos los 17 MB de fragmentos
-  que `cineCerrar` suelta a propósito.
-- **Falla cerrado por las dos puntas**, y la segunda estuvo mal escrita un rato: sin saber cuál es
-  la imagen actual se declara, y **sin ninguna procedencia registrada pero con valores en la
-  tabla, también** — ése es el caso de una tabla cargada entera a mano con ✏️, que `dopCorregir`
-  no anota en ningún lado.
-- **La granularidad es el CINELOOP, no el cuadro, y es una decisión declarada.** Medir la
-  envolvente aórtica en un latido y el TSVI en otro es el flujo **normal**, así que un aviso por
-  cuadro saldría en casi todas las tablas y dejaría de leerse a la tercera.
-- **Contrapartida asumida:** reabrir el mismo archivo da un serial nuevo, así que medir, cerrar,
-  reabrir esa imagen y guardar dispara el aviso sobre una tabla que sí corresponde. Es la
-  dirección segura.
+**Con el compuesto se fue `_dopAvisoOtrasImgs`**, que existía sólo por él: avisaba que la tabla
+podía no corresponder al cuadro de arriba. Sin cuadro arriba esa frase sería falsa — y acumular
+entre imágenes no es una tolerancia, es lo que **la ecuación de continuidad exige**: el VTI del
+TSVI y el de la válvula aórtica se miden en planos distintos. Un aviso ahí sería ruido sobre el
+flujo correcto.
+
+### ⚠️ EL SIGNO DE LA VELOCIDAD DEJABA DOS FILAS SIN DIBUJAR — el defecto más caro de la serie
+
+`_medVelClic` entrega la velocidad **con signo**, y en apical el anillo mitral **se aleja** del
+transductor en diástole: la e' se mide **por debajo de la línea de base**, o sea negativa.
+`_dopDerivados` exige `> 0` para promediarlas —y hace bien, un e' negativo no es un e'— así que
+medir la e' donde de verdad está dejaba **`e' promedio` y `E/e'` sin dibujarse, sin una palabra**,
+en el bloque que decide presiones de llenado. Reproducido en el navegador antes y después:
+
+| | antes | hoy |
+|---|---|---|
+| e' septal / lateral (clic bajo la base) | **−10,0 / −15,0** | 10,0 / 15,0 |
+| fila `e' promedio` | **ausente** | 12,5 cm/s |
+| fila `E/e'` | **ausente** | 3,6 |
+
+Y la fila de `e' promedio` la había agregado yo en ese mismo turno: **nació inalcanzable por la
+vía de medición**, sólo llegable tipeando a mano. Dos formas de cargar el mismo dato que no se
+comportaban igual, que es justo lo que el pedido pedía que no pasara.
+
+**Se normaliza en `_dopCapturar` y en `dopCorregir`**, que son los dos únicos bordes por donde
+entra un número. Ninguna magnitud del cajón admite negativo —velocidades pico, VTI, tiempos,
+diámetros, gradientes— y **el visor ya muestra módulo con una flecha al lado** por esta misma
+razón. Sin normalizar, un solo clic producía dos artefactos que se contradicen: la ecografía con
+«4.03 m/s ↓» quemado y la tabla con «−4.03 m/s». La dirección no se pierde: sigue dibujada sobre
+la imagen, que es donde significa algo.
+
+### ⚠️ BANDAS DE PLAUSIBILIDAD: sólo los campos con contrapartida EXACTA, y tuve que sacar tres
+
+El cajón aceptaba lo que el importador de la misma app rechaza: un «2» tipeado por «20» en el
+diámetro del TSVI publicaba una **AVA de 0,03 cm²** —estenosis crítica— sin ninguna señal. Las
+bandas salen de `DCM_RANGO` y `CHM_RANGO`, leídas con guarda porque viven en otro bloque
+`<script>`; sin ellas no hay banda y el cajón se comporta como antes, que es el lado que no
+destruye una medición.
+
+**Prestar la banda de un campo que contesta OTRA pregunta es peor que no tener banda**: rechaza
+mediciones legítimas y lo hace en silencio. Tres que escribí y tuve que sacar:
+
+- **`ao.gradMedio` con `em_gmedio` [1–60]** — ése es el gradiente medio de una *estenosis mitral
+  informada*; el cajón mide cualquier válvula, y una aórtica normal da 0,3 mmHg. **Lo cazó TC-249
+  poniéndose en rojo sobre un trazado correcto.**
+- **`ao.vtiAo` y los VTI mitrales con [2–60]** — en una estenosis aórtica severa el VTI aórtico
+  pasa de 100 cm: la banda rechazaba justamente la patología que se está midiendo.
+- **`mit.pht` con la banda del PHT aórtico [50–1500]** — una válvula mitral normal tiene un tiempo
+  de hemipresión de 30 a 60 ms.
+
+Quedan nueve, todas «mismo campo, misma pregunta», y cubren los tres errores que de verdad
+ocurren: el diámetro en centímetros, el PHT con dos clics pegados y la onda E en m/s.
+
+### `_dopSevPHT` caía en «Severa» por descarte
+
+Era `if (>500) Leve; if (>=200) Moderada; return Severa;` — el `else` mudo que este archivo
+documenta para `epGradoPorGmax`. Un PHT de **8 ms** publicaba «Severidad IAo: Severa
+(orientativo)» en una tabla que va a la biblioteca y desde ahí al PDF. Hoy la última rama es
+explícita y hay además una guarda de banda.
+**Declarado: la rama explícita es REDUNDANTE por construcción** —todo valor dentro de la banda
+clasifica en alguna de las tres— y se conserva porque fija el contrato. La mutación que la
+revierte **sobrevive**; la que cae es la que saca la guarda de banda, que es la capa que la
+condición ejerce.
+
+### Lo que el panel muestra es lo que se guarda, y «Limpiar» dice qué borra
+
+`_dopFilasTodas()` —válvula + separador + «sin asignar»— es **la única lista** y la consumen el
+panel, la captura y la meta. Estuvo un rato saliendo de `_dopFilas()` con un comentario recién
+escrito que afirmaba lo contrario: desde la selección progresiva el panel pinta **dos** listas,
+así que el invariante se rompió en el mismo commit que dejó escrita la frase.
+
+Dos mitigaciones más, que salieron del `/sharp-edges` y son del mismo problema —el panel muestra
+UNA válvula y el estado tiene cuatro—:
+
+- **El botón de cada válvula lleva un punto si esa válvula tiene datos.** Sin él, desde la mitral
+  una aórtica cargada es indistinguible de una vacía.
+- **«🗑️ Limpiar» pregunta y NOMBRA las válvulas que va a borrar**, porque borra las cuatro y la
+  pantalla muestra una. La confirmación va en un **envoltorio** (`_dopLimpiarConfirmar`): a
+  `_dopLimpiar` la llaman `limpiarCampos` y `cerrarSesionReal`, y el diálogo no puede aparecer en
+  una ruta automática — es la forma de `resetETTConfirmar` del módulo de amiloidosis. Con el
+  cajón vacío no pregunta.
+
+### ⚠️ DUDA DECLARADA: «Guardar tabla» guarda la válvula ABIERTA, no las cuatro
+
+El pedido dice «captura SOLO la tabla del cajón», y con un cajón por válvula eso es la abierta.
+Consecuencia: al final del flujo de cuatro imágenes, el médico tiene la mitral en pantalla y las
+otras tres quedan sin artefacto. El punto en los botones lo hace visible y el nombre del registro
+nombra la válvula, pero **la decisión de si «Guardar tabla» debería emitir una entrada por cada
+válvula con datos queda abierta.** Pesa más de lo que parece: la fila `AVM por continuidad` de la
+**mitral** se calcula con `ao.diam` y `ao.vtiTsvi`, o sea insumos **aórticos**, así que esa tabla
+publica un número que depende de dos valores que ella no lleva.
+
 
 ### Al reescribir los casos: dos trampas propias, las dos de denominador
 
@@ -90,22 +187,26 @@ pantalla y quemado en la imagen.
   llamarlo mide otra cosa. Medido: con esa versión, la mutación que hace nacer el cajón con la
   aórtica ya abierta —o sea la que anula la selección progresiva entera— **pasaba en verde**. Hay
   que soltar `_dop = null` y repintar.
-- **Cada `abrir()` construye un loop NUEVO**, aunque el fixture se llame igual. La condición «con
-  una sola imagen medida no hay aviso» puesta después de la segunda apertura daba rojo sobre
-  código correcto: medir sobre dos aperturas distintas **ya es** acumulación. Va en el paso donde
-  hay una sola imagen abierta.
+- **Las e' hay que clickearlas DONDE ESTÁN, o sea bajo la línea de base.** Con los clics por
+  arriba salen positivas de casualidad y la mutación que saca el `Math.abs` **sobrevive**. El caso
+  mide donde el médico mide.
+- **El valor esperado se DERIVA del cálculo, no se escribe.** `clientY` es entero por
+  especificación y el fixture es un canvas escalado, así que el promedio sale 12,78 y no 12,5:
+  buscar el literal daba rojo sobre una fila perfectamente dibujada. Se afirma la RELACIÓN —que
+  sea la media de las dos medidas y quede entre ellas— que además es más fuerte.
 
 Y **el cajón se busca DESPUÉS de abrir el visor**: antes de la primera apertura el nodo no existe,
 así que leerlo arriba daba `null` con `--solo` y el nodo de una corrida anterior dentro del suite.
 
-**Once mutaciones, cada una en su condición**: el cajón naciendo con válvula, `_dopFilasSueltas`
-vacía, `_dopVisible` sin exigir visor, el compositor devolviendo la tabla sola, la meta sin viajar,
-el aviso de acumulación anulado, `_dopCanvas` y `_dopMetaGuardado` de vuelta a una sola lista, la
-compuerta del botón mirando sólo la válvula, el aviso fallando abierto con `imgs` vacío, y la meta
-sin descargos.
+**Diecisiete mutaciones entre las dos iteraciones, cada una en su condición.** Las que más
+enseñan: el cajón naciendo con válvula elegida (anulaba la selección progresiva entera y pasaba en
+verde hasta corregir el denominador), `_dopNormalizar` sin el `Math.abs` (cae por cinco
+condiciones, las dos filas invisibles incluidas), `_cineAbrir` limpiando `_dop` (cae por diez), y
+`_dopCanvas`/`_dopMetaGuardado` de vuelta a una sola lista.
 
-**Backticks dentro del cuerpo de un caso: van SESENTA Y TRES**, tres en esta sesión y las tres en
-comentarios recién escritos.
+**Backticks dentro del cuerpo de un caso: van SESENTA Y SEIS**, seis en las dos iteraciones y las
+seis en comentarios recién escritos. Y el `\n` de un regex volvió a entrar crudo: `/\n/g` dentro
+del cuerpo de un caso deja de parsear — se resuelve con `String.fromCharCode(10)`.
 
 ### Queda declarado y sin resolver
 
