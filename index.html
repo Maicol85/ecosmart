@@ -693,6 +693,15 @@
       touch-action: none;                                  /* si no, el navegador se queda el gesto */
     }
   }
+  /* ══ ORIGEN DEL SGL — los dos botones 🤖 Automático / ✋ Manual ══
+     El `display:flex` vive ACÁ y no en el `style=` del div a propósito: `eeDefAplicarUI` lo
+     oculta y lo vuelve a mostrar según la casilla «Deformación» de Config, y restaurar es
+     `style.display = ''`. Con el flex inline, ese `''` no podía devolverlo —borra la propiedad
+     inline y el div cae al `display:block` de la hoja—, así que al reactivar el módulo los dos
+     botones volvían sin el `gap` ni el `flex-wrap`. Es la misma clase de conflicto que ya
+     documenta `.frases-panel[hidden]` unas líneas más arriba: un `display` inline le gana a la
+     regla, y quien lo toca después se queda sin forma de deshacerlo. */
+  #sgl-origen-btns { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
   /* ══ BADGE ══ */
   .badge {
     display: inline-block; padding: 2px 8px; border-radius: 20px;
@@ -2509,7 +2518,12 @@ window.cerrarSesionReal = cerrarSesionReal;
             <option value="auto">Automático</option>
             <option value="manual">Manual</option>
           </select>
-          <div id="sgl-origen-btns" style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;">
+          <!-- Sin `display` inline: lo pone la regla `#sgl-origen-btns` de la hoja, para que
+               `eeDefAplicarUI` pueda ocultarlo y restaurarlo. Ver el comentario de esa regla.
+               El <select id="sgl_origen"> de arriba NO se toca: es el campo persistido que barre
+               `guardarInforme`, ya está oculto, y esconderlo más no cambia nada — mientras que
+               sacarlo perdería el dato de los estudios que ya lo traen cargado. -->
+          <div id="sgl-origen-btns">
             <button type="button" class="btn btn-ghost" data-sgl-origen="auto"
                     style="padding:4px 10px;font-size:11px;"
                     title="El valor lo calculó el equipo por speckle tracking">🤖 Automático</button>
@@ -14871,7 +14885,13 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
        `.lab-card`, y una tarjeta sin ninguno no da error — da una casilla que el médico tilda
        y no produce nada. Es el mismo motivo por el que los dos exportadores de la subtab
        Informe lo llevan. -->
-  <div class="lab-card" data-ppt-no="tabla de investigación con su propio exportador, no una diapositiva">
+  <!-- `id` para que `eeDefAplicarUI` la oculte con la casilla «Deformación» de Config: esta
+       tabla es la lectura de lo que produce ese módulo, así que con el módulo apagado sólo puede
+       estar vacía o mostrar datos de una herramienta que no está en la barra del visor.
+       Se oculta la TARJETA entera y no su cuerpo: dejar el encabezado «💚 Strain Manual» sobre
+       un cuerpo vacío es peor que no mostrar nada, y `#tab-lab .lab-card` trae `margin-bottom:16px`
+       —con `display:none` ese margen no se aplica, así que no queda hueco entre las vecinas—. -->
+  <div class="lab-card" id="lab-card-strain" data-ppt-no="tabla de investigación con su propio exportador, no una diapositiva">
     <div class="lab-card-hdr">💚 Strain Manual</div>
     <div class="lab-card-body">
       <div style="font-size:.78rem;color:var(--text2);margin-bottom:10px;line-height:1.55;">
@@ -72621,6 +72641,67 @@ function eeDefOn() {
 }
 window.eeDefOn = eeDefOn;
 
+/* CUARTA CAPA del gate de Deformación, la de las DOS PIEZAS QUE VIVEN FUERA DEL VISOR:
+   · `#sgl-origen-btns` — los botones 🤖 Automático / ✋ Manual del campo SGL, en AI/VI.
+   · `#lab-card-strain` — la tabla «💚 Strain Manual» del Laboratorio.
+   Las tres capas que ya documenta CLAUDE.md gobiernan el GRUPO DEL VISOR (la barra, la
+   herramienta y el soltado al apagar midiendo); estas dos se mostraban siempre, así que el
+   módulo estaba a medio esconder: sin poder medir strain, el médico igual veía la tabla que
+   lo resume y los botones que declaran de dónde salió.
+
+   Va acá y no en `applyViewMode()` por el mismo motivo que `orthancRender()`: aquella función
+   maneja las FILAS DE PESTAÑAS y no sabe nada de tarjetas ni de campos. El módulo se gobierna
+   a sí mismo.
+
+   FALLA CERRADO, igual que `eeDefOn` y `_medDefOn`: ante cualquier problema, oculto. Es el
+   estado «nada más cambia» y el default de fábrica del módulo.
+
+   ⚠️ NOTA DE DISEÑO — LO QUE ESTA FUNCIÓN NO HACE, Y ES DELIBERADO.
+   Apagar Deformación OCULTA, no borra: un estudio que ya trae `sgl_origen` cargado —propio o
+   importado— lo conserva. Se decidió así porque el pedido dice que al reactivar el módulo los
+   elementos vuelvan «con los datos que ya tuvieran cargados», y porque una casilla de
+   presentación que borre una medición registrada es la peor sorpresa posible.
+
+   Y el dato NO se filtra a ningún lado mientras tanto — medido, no supuesto. `sgl_origen`
+   aparece cuatro veces en el archivo: el `<select>`, `sglOrigenValor`/`sglOrigenElegir` y
+   `_labStrOrigen`. NO está en `LAB_XLS_MAP`, no lo lee `generarInforme` y no lo dibuja ningún
+   emisor del PDF. Su único consumidor real es `_labStrainFilas`, que alimenta la tabla, el
+   Bland-Altman y la columna «Origen SGL informe» del Excel de investigación — las tres viven
+   DENTRO de `#lab-card-strain`, y su botón de exportar también. O sea que con el módulo apagado
+   el valor queda inerte: persiste en `campos` y su único lector es la tarjeta recién oculta.
+   (La primera versión de esta nota decía que «sigue viajando al informe, al PDF y al Excel».
+   Era falso, y lo cazó el /sharp-edges del commit. Queda escrito porque un comentario que
+   exagera un riesgo manda a arreglar una fuga que no existe, que es lo que ya pasó acá con S3
+   y S4 reabiertos por número de línea.)
+
+   Con eso, la duda que quedaba —si apagar debería además LIMPIAR `sgl_origen`— se achica a una
+   preferencia: no hace falta por contaminación, porque no contamina nada. Si aun así se quiere,
+   es decisión clínica de Maicol y va con aviso explícito antes de borrar, no en silencio acá. */
+function eeDefAplicarUI() {
+  var on = false;
+  try { on = eeDefOn() === true; } catch (e) { on = false; }
+  /* `''` y no `'flex'`/`'block'`: el display de los dos vive en la hoja de estilos
+     —`#sgl-origen-btns` es flex, la `.lab-card` es block—, así que borrar la propiedad inline
+     devuelve a cada uno el suyo. Escribir el valor a mano acá los ataría a este renglón. */
+  ['sgl-origen-btns', 'lab-card-strain'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = on ? '' : 'none';
+  });
+}
+window.eeDefAplicarUI = eeDefAplicarUI;
+
+/* Las OTRAS TRES capas del gate leen `eeDefOn()` EN VIVO —`_medSideRender` filtra en cada
+   repintado y `medHerramienta` consulta en cada llamada—, así que se enteran solas. Ésta es la
+   única que depende de un evento, y `localStorage` es compartido entre pestañas del mismo
+   origen: con dos abiertas —lo habitual en esta app— apagar Deformación en una dejaba a la otra
+   con los botones y la tarjeta visibles hasta recargar. Cuatro capas del mismo gate discrepando
+   en la misma máquina, y la que quedaba abierta era la nueva.
+   `storage` dispara justamente en la OTRA pestaña, que es la que no se entera por `_eeDefGuardar`.
+   Se acepta `!e` porque algún navegador emite el evento sin `key` al hacer `clear()`. */
+window.addEventListener('storage', function (e) {
+  if (!e || e.key === EE_DEF_KEY) { try { eeDefAplicarUI(); } catch (ex) {} }
+});
+
 /* Hash SÍNCRONO a propósito. `crypto.subtle` sólo existe en contexto seguro, y este archivo
    documenta que la app se usa en `http://192.168.x.x` —la LAN del sanatorio—: ahí un SHA-256
    dejaría al médico sin poder activar el módulo, que es el peor lugar para descubrirlo. La
@@ -72651,6 +72732,11 @@ function _eeDefGuardar(on) {
      debajo de una barra que ya no ofrece esa herramienta. */
   try { if (!on && typeof _medSoltarDef === 'function') _medSoltarDef(); } catch (e) {}
   try { if (typeof _medEstado === 'function' && typeof _medOn !== 'undefined' && _medOn) _medEstado(); } catch (e) {}
+  /* Las dos piezas de fuera del visor, en el acto y en las dos direcciones. Va en
+     `_eeDefGuardar` y no en `cfgToggleDef`/`defPwdAceptar` porque ésta es la ÚNICA función por
+     la que pasan encender y apagar: colgarlo de los dos llamadores habría dejado el gate
+     dependiendo de que nadie agregue un tercero. */
+  try { eeDefAplicarUI(); } catch (e) {}
   cfgRenderModulos();
 }
 function cfgToggleDef(on) {
@@ -73929,7 +74015,26 @@ function cfgToggleModoInstitucional(on){
 }
 window.cfgToggleModoInstitucional=cfgToggleModoInstitucional;
 // Aplicar modo guardado al cargar
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', applyViewMode); else applyViewMode();
+/* `eeDefAplicarUI` se engancha JUNTO a `applyViewMode` y no dentro de ella: son dos gates
+   independientes —uno es el modo básico/avanzado, el otro la casilla de Deformación— y meterlo
+   adentro los ataría, de modo que cambiar el modo repintaría el de Deformación y viceversa.
+   Comparten el disparador de arranque porque el problema es el mismo: sin esto, las dos piezas
+   quedan visibles hasta que alguien toque la casilla, o sea SIEMPRE para el médico que nunca
+   abrió Config — que es justo el caso del módulo apagado de fábrica. */
+/* LOS DOS EN SU PROPIO try. El `try` estaba sólo alrededor del segundo, que es el que menos lo
+   necesita —`eeDefAplicarUI` vive en ESTE bloque, así que no puede faltar por cruce—. La que sí
+   puede lanzar es `applyViewMode`: llama a `eeGetMode()`, que lee `localStorage` SIN guarda. Y
+   con `localStorage` tirando —el mismo escenario para el que se endureció `eeDefOn`— pasaba lo
+   peor posible: `eeDefOn()` devolvía false (módulo apagado), `applyViewMode` lanzaba, y
+   `eeDefAplicarUI` no llegaba a correr nunca, dejando las dos piezas VISIBLES con el módulo
+   apagado. O sea que el gate fallaba ABIERTO justo en el único escenario donde importa, al
+   revés de lo que promete su propio comentario. Un gate que falla cerrado no puede depender de
+   que la función de al lado no lance. */
+function _eeArranqueGates(){
+  try { applyViewMode(); } catch (e) {}
+  try { eeDefAplicarUI(); } catch (e) {}
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', _eeArranqueGates); else _eeArranqueGates();
 </script>
 <!-- El modal "Aviso importante" (clave ecosmart_aviso_datos_visto) se eliminó: se construía
      por JS al cargar, o sea ANTES del login, y decía lo mismo que el punto 🔒 del aviso legal
