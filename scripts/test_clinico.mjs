@@ -10093,7 +10093,7 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
   })();
 `);
 
-caso('TC-259', 'Laboratorio: las OCHO subtabs son acordeones, con el mismo patron, y los graficos se recuperan solos', `
+caso('TC-259', 'Laboratorio: SEIS subtabs con acordeon y DOS sin el, con el mismo patron, y los graficos se recuperan solos', `
   return (async () => {
     if (typeof labAccToggle !== 'function' || typeof labAccCerrarTodos !== 'function')
       return { extra:[['existen los acordeones', false, 'faltan labAccToggle o labAccCerrarTodos']] };
@@ -10128,10 +10128,34 @@ caso('TC-259', 'Laboratorio: las OCHO subtabs son acordeones, con el mismo patro
       const cuerpos = sel => Array.from(document.querySelectorAll(sel + ' .lab-acc-body'));
 
       /* ── CENSO: las OCHO subtabs tienen acordeones y arrancan cerradas ── */
-      const TABS = ['filtros','general','mediciones','asociaciones','avanzado','cc','ete','informe'];
-      const censo = TABS.map(t => { const c = cuerpos('#lab-sub-' + t);
-        return t + '=' + c.length; });
+      /* ⚠️ SEIS CON ACORDEON Y DOS SIN EL. Filtros e Informe se revirtieron a contenido siempre
+         visible el mismo dia (decision de Maicol, mirado con el medico), asi que el caso fija las
+         DOS mitades: que las seis lo tengan y que las dos NO — sin la segunda, borrar el acordeon
+         de una tab cualquiera pasaria inadvertido, y sin la primera, volver a ponerselo a Filtros
+         tambien. */
+      const TABS = ['general','mediciones','asociaciones','avanzado','cc','ete'];
+      const SIN_ACORDEON = ['filtros','informe'];
+      const censo = TABS.concat(SIN_ACORDEON).map(t => t + '=' + cuerpos('#lab-sub-' + t).length);
       const todasTienen = TABS.every(t => cuerpos('#lab-sub-' + t).length > 0);
+      const lasDosSinAcordeon = SIN_ACORDEON.every(t => {
+        const p = document.getElementById('lab-sub-' + t);
+        return p && p.querySelectorAll('.lab-acc-body').length === 0 &&
+                    p.querySelectorAll('.lab-acc-hdr').length === 0 &&
+                    p.querySelectorAll('[id$="-arrow"]').length === 0;
+      });
+      /* Y que su contenido este VISIBLE de verdad, no sólo sin marcado: un panel con los controles
+         escondidos por otra via se veria igual de roto.
+         ⚠️ SE MIDE CON EL PANEL ACTIVO. En un .lab-subpanel sin la clase active TODO da cero,
+         asi que medido desde General las dos daban 'false' sobre un marcado perfectamente sano —
+         el mismo denominador que ya mordio en TC-254 y en TC-258. */
+      await ir('filtros');
+      const filtrosVisible = (() => { const x = document.querySelector('#lab-sub-filtros select');
+        return !!x && x.getBoundingClientRect().height > 0; })();
+      const aplicarAlto = (() => { const b = document.getElementById('coh-btn-aplicar');
+        return b ? Math.round(b.getBoundingClientRect().height) : 0; })();
+      await ir('informe');
+      const informeVisible = (() => { const x = document.querySelector('#lab-sub-informe .lab-card-body');
+        return !!x && x.getBoundingClientRect().height > 0; })();
       const totalCuerpos = cuerpos('#tab-lab').length;
       const totalHdrs = document.querySelectorAll('#tab-lab .lab-acc-hdr').length;
       const parejo = totalCuerpos === totalHdrs;
@@ -10143,11 +10167,10 @@ caso('TC-259', 'Laboratorio: las OCHO subtabs son acordeones, con el mismo patro
          nacido abierto de uno que cerro 'labAccCerrarTodos'. */
       const fuente = await (await fetch(location.href)).text();
       const cuerposEnFuente = (fuente.match(/class="(?:lab-card-body|card-body) lab-acc-body" id="lab-acc-[a-z0-9-]+" style="display:none;"/g) || []).length;
-      const totalEnFuente = (fuente.match(/lab-acc-body/g) || []).length;
 
       /* ── ABRIR Y CERRAR EN CADA UNA DE LAS SIETE NUEVAS ── */
       const porTab = {};
-      for (const t of ['mediciones','avanzado','ete','cc','filtros','asociaciones','informe']) {
+      for (const t of ['mediciones','avanzado','ete','cc','asociaciones']) {
         await ir(t === 'mediciones' ? 'medici' : (t === 'asociaciones' ? 'asociac' : t));
         const c = cuerpos('#lab-sub-' + t)[0];
         if (!c) { porTab[t] = 'sin bloques'; continue; }
@@ -10198,8 +10221,8 @@ caso('TC-259', 'Laboratorio: las OCHO subtabs son acordeones, con el mismo patro
         return m && Number(m[2]) > 0 && Number(m[1]) >= Number(m[2]);
       });
 
-      /* ── VOLVER CIERRA TODO, POR LAS DOS PUERTAS ── y ahora tiene que alcanzar a los OCHO
-         paneles, no solo al activo: los de las otras siete quedaban abiertos e invisibles. */
+      /* ── VOLVER CIERRA TODO, POR LAS DOS PUERTAS ── y tiene que alcanzar a los SEIS paneles con
+         acordeon, no solo al activo: los de los otros cinco quedaban abiertos e invisibles. */
       /* ⚠️ SE ABREN A MANO EN DOS PANELES, sin navegar entre ellos. Navegando NO se puede llegar a
          ese estado —cambiar de subtab ya cierra todo—, asi que el escenario que el barrido
          '#tab-lab' viene a cubrir no es alcanzable por la interfaz: es la red por si alguna vez
@@ -10267,46 +10290,74 @@ caso('TC-259', 'Laboratorio: las OCHO subtabs son acordeones, con el mismo patro
       await new Promise(r => setTimeout(r, 200));
       const infoNoCierraElBloque = !!bAsoc && bAsoc.style.display === displayTrasInfo;
 
-      /* ── FILTROS: UN CRITERIO CARGADO SE DECLARA AUNQUE EL GRUPO ESTE CERRADO ── colapsar un
-         filtro no lo desactiva, y ese criterio define la cohorte de las ocho subtabs y del PDF. */
-      await ir('filtros');
-      const grupoValv = document.getElementById('lab-acc-filt-valvulopatias');
-      const selValv = grupoValv ? grupoValv.querySelector('select') : null;
-      const badgeDe = id => { const b = document.getElementById(id);
-        const x = b && b.previousElementSibling ? b.previousElementSibling.querySelector('[data-filt-n]') : null;
-        return x ? (x.textContent || '').trim() : 'SIN BADGE'; };
-      const badgeVacio = badgeDe('lab-acc-filt-valvulopatias') === '';
-      if (selValv) { selValv.selectedIndex = 1; selValv.dispatchEvent(new Event('change', { bubbles:true })); }
-      await new Promise(r => setTimeout(r, 250));
-      const badgeConUno = badgeDe('lab-acc-filt-valvulopatias');
-      await ir('medici');
-      await ir('filtros');
-      const grupoCerradoTrasVolver = !!grupoValv && grupoValv.style.display === 'none';
-      const badgeSobrevive = badgeDe('lab-acc-filt-valvulopatias') === badgeConUno;
-      if (selValv) { selValv.selectedIndex = 0; selValv.dispatchEvent(new Event('change', { bubbles:true })); }
-      await new Promise(r => setTimeout(r, 200));
-      const badgeVuelveAVaciarse = badgeDe('lab-acc-filt-valvulopatias') === '';
+      /* ⚠️ ACA SE MEDIA EL CONTADOR POR GRUPO DE FILTROS («Valvulopatias ● 1») Y SE SACO CON EL
+         ACORDEON. Existia porque colapsar un filtro NO lo desactiva: el criterio seguia definiendo
+         la cohorte sin verse. Con Filtros de vuelta a contenido siempre visible, los controles son
+         otra vez la declaracion y el contador no tiene que decir nada. Lo que SI se sigue fijando
+         —abajo— es que nada de ese panel quede atrapado. */
+      /* ── EL RESULTADO DE FILTROS NO ES UNA FOTO ── lo escribian solo los dos botones, asi que
+         aplicar una cohorte, cambiar el periodo y volver dejaba el n viejo publicado mientras el
+         badge de la propia solapa, a un centimetro, mostraba el nuevo. Con Filtros de vuelta a
+         siempre visible es el UNICO lugar del panel que declara sobre que poblacion se aplico. */
+      const selCoh = document.getElementById('coh-sexo');
+      /* ⚠️ '\\s' Y NO '\s': el cuerpo del caso es un literal de plantilla, asi que una sola barra
+         se la come el parser y el regex quedaba borrando las «s» del texto. Se veia clarisimo en
+         el diagnostico: «Filtro  limpiado ». */
+      const resTxt = () => { const e = document.getElementById('coh-resultado');
+        return e ? e.textContent.replace(/\\s+/g,' ').trim() : ''; };
+      let repintaConLaCohorte = null, sinCohorteNoPisa = null, resFoto = '';
+      if (selCoh && typeof labCohorteAplicar === 'function') {
+        selCoh.selectedIndex = 1; selCoh.dispatchEvent(new Event('change', { bubbles:true }));
+        labCohorteAplicar();
+        await new Promise(r => setTimeout(r, 300));
+        /* Se repinta con OTRO n, que es exactamente lo que hace 'labInit' al cambiar el periodo. */
+        _labCohortePintar(7);
+        resFoto = resTxt();                       // se guarda ACA: el diagnostico se lee al final,
+        repintaConLaCohorte = resFoto.indexOf('7 estudio') === 0;   // cuando ya se limpio
+        labCohorteLimpiar(true);
+        await new Promise(r => setTimeout(r, 250));
+        const trasLimpiar = resTxt();
+        _labCohortePintar(5);
+        /* Sin cohorte NO lo pisa: el mensaje de los botones tiene que sobrevivir. */
+        sinCohorteNoPisa = resTxt() === trasLimpiar && trasLimpiar.indexOf('5 estudio') !== 0;
+      }
+
+      /* ── INFORME RECUPERO SU ESPACIADO ── la regla de 6 px nacio con los acordeones y sus dos
+         tarjetas son '.lab-card', asi que al revertirlas quedaban con el margen de bloque cerrado. */
+      await ir('informe');
+      const margenInforme = (() => { const c = document.querySelector('#lab-sub-informe .lab-card');
+        return c ? getComputedStyle(c).marginBottom : 'no hay'; })();
+      await ir('ete');
+      const margenConAcordeon = (() => { const c = document.querySelector('#lab-sub-ete .lab-card');
+        return c ? getComputedStyle(c).marginBottom : 'no hay'; })();
 
       const btnAplicar = document.getElementById('coh-btn-aplicar');
       const resultado = document.getElementById('coh-resultado');
       const pendiente = document.getElementById('coh-pendiente');
+      /* Ninguno de los tres puede quedar dentro de un cuerpo colapsado. Con Filtros revertida no
+         hay ninguno, asi que hoy la condicion es trivialmente cierta — y por eso mismo se deja:
+         es la que se pondria roja si alguien vuelve a colapsar ese panel sin sacar de adentro el
+         boton que aplica la cohorte y el aviso de cambios sin aplicar. */
       const fueraDelColapso = el => !!el && el.closest('.lab-acc-body') === null;
       const filtrosAlcanzable = fueraDelColapso(btnAplicar) && fueraDelColapso(resultado) &&
-                                fueraDelColapso(pendiente);
+                                fueraDelColapso(pendiente) && aplicarAlto > 0;
 
       return { extra: [
-        ['las OCHO subtabs tienen acordeones', todasTienen, censo.join(' ')],
+        ['las SEIS subtabs con acordeon lo tienen', todasTienen, censo.join(' ')],
+        ['FILTROS e INFORME no tienen NINGUNO', lasDosSinAcordeon, censo.join(' ')],
+        ['  y su contenido esta visible', filtrosVisible && informeVisible,
+          'filtros=' + filtrosVisible + ' informe=' + informeVisible],
         ['  cabeceras y cuerpos van parejos', parejo, 'hdrs=' + totalHdrs + ' cuerpos=' + totalCuerpos],
         ['  todos arrancan CERRADOS', todosCerrados,
           'abiertos=' + cuerpos('#tab-lab').filter(c => c.style.display !== 'none').length],
         /* Se compara contra el conteo del DOM, no contra las menciones del fuente: 'lab-acc-body'
            aparece tambien en el CSS y en el JS —cuatro veces—, asi que restar un numero fijo era
            una constante magica que se rompe al tocar cualquiera de esas lineas. */
-        ['  y tambien en el MARCADO', cuerposEnFuente === totalCuerpos && totalCuerpos >= 60,
+        ['  y tambien en el MARCADO', cuerposEnFuente === totalCuerpos && totalCuerpos >= 50,
           'conDisplayNone=' + cuerposEnFuente + ' cuerposEnDOM=' + totalCuerpos],
         ['  todos tienen flecha', todosConFlecha, ''],
         ['el assert de cabecera/cuerpo/flecha no reporta nada', assert.length === 0, assert.join(' · ')],
-        ['las SIETE tabs nuevas abren y cierran', todasAbrenYcierran, JSON.stringify(porTab)],
+        ['las CINCO tabs con acordeon abren y cierran', todasAbrenYcierran, JSON.stringify(porTab)],
         /* Se exige que al menos DOS de los tres declarados hayan llegado a tener instancia: con
            «> 0» la condicion pasaba midiendo UNO y nada decia que los otros dos no se habian
            podido evaluar — el denominador otra vez. */
@@ -10318,17 +10369,19 @@ caso('TC-259', 'Laboratorio: las OCHO subtabs son acordeones, con el mismo patro
         ['DENOMINADOR: se reabrieron antes de la segunda puerta', reabiertos > 0, 'n=' + reabiertos],
         ['volver a la tab Laboratorio tambien', trasVolverALaTab === 0, 'n=' + trasVolverALaTab],
         ['no se persiste NADA', sinPersistir.length === 0, sinPersistir.join(',')],
-        ['CERO drift de estilo contra Hemodinamica en las ocho', drift.length === 0, drift.join(' | ')],
+        ['CERO drift de estilo contra Hemodinamica en las SEIS', drift.length === 0, drift.join(' | ')],
         ['DENOMINADOR: el bloque de Asociaciones estaba cerrado', cerradoAntesDelInfo, ''],
         ['el boton ℹ️ ABRE el bloque en vez de quedar mudo', infoAbreElBloque, ''],
         ['  y el segundo toque NO lo cierra', infoNoCierraElBloque, ''],
-        ['DENOMINADOR: el grupo de Filtros arranca sin criterios', badgeVacio, ''],
-        ['un criterio cargado se DECLARA en la cabecera', badgeConUno === '● 1', 'badge=«' + badgeConUno + '»'],
-        ['  y sobrevive al colapso al volver a la subtab', grupoCerradoTrasVolver && badgeSobrevive,
-          'cerrado=' + grupoCerradoTrasVolver + ' badge=«' + badgeDe('lab-acc-filt-valvulopatias') + '»'],
-        ['  y se vacia al sacar el criterio', badgeVuelveAVaciarse, ''],
-        ['en Filtros, «Aplicar» y el resumen NO quedan colapsados', filtrosAlcanzable,
-          'aplicar=' + fueraDelColapso(btnAplicar) + ' resultado=' + fueraDelColapso(resultado)]
+        ['el resultado de Filtros se REPINTA con la cohorte, no es una foto', repintaConLaCohorte === true,
+          'resultado=«' + resFoto.slice(0,50) + '»'],
+        ['  y sin cohorte NO pisa el mensaje de los botones', sinCohorteNoPisa === true, ''],
+        ['INFORME recupero su espaciado de 16 px', margenInforme === '16px',
+          'informe=' + margenInforme + ' conAcordeon=' + margenConAcordeon],
+        ['  y las que SI tienen acordeon siguen en 6 px', margenConAcordeon === '6px', ''],
+        ['en Filtros, «Aplicar» y el resumen estan alcanzables', filtrosAlcanzable,
+          'aplicar=' + fueraDelColapso(btnAplicar) + ' resultado=' + fueraDelColapso(resultado) +
+          ' alto=' + aplicarAlto]
       ] };
     } finally {
       try { await CeiboStore.setLocal(_cohortePrevia); } catch (e) {}

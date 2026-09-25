@@ -14277,12 +14277,16 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
      color rgb(126,200,227) = var(--accent2) · 11px/700 · uppercase · letter-spacing 0,88px
      (= .08em a 11px) · padding 8px 14px · border-bottom 1px var(--border) · alto 44 px.
      ⚠️ LA COMPUERTA ES UNA CLASE (`.lab-acc-hdr`), NO EL PANEL. La primera versión —sólo General—
-     iba scopeada a `#lab-sub-general`; al extenderlo a las otras siete, repetir esa regla por
-     panel habría dejado OCHO selectores describiendo la misma cabecera, que es la forma segura de
-     que se separen. Con la clase, una tab nueva entra poniéndola y nada más.
+     iba scopeada a `#lab-sub-general`; al extenderlo, repetir esa regla por panel habría dejado un
+     selector por subtab describiendo la misma cabecera, que es la forma segura de que se separen.
+     Con la clase, una tab entra poniéndola y sale sacándola — que es literalmente lo que pasó con
+     Filtros e Informe, revertidas horas después: la reversión no tocó una línea de CSS.
+     ⚠️ HOY LLEVAN ACORDEÓN SEIS DE LAS OCHO SUBTABS: General, Mediciones, Avanzado, ETE, CC y
+     Asociaciones. Filtros e Informe volvieron a contenido siempre visible (decisión de Maicol,
+     2026-09-25, después de mirarlo con el médico), así que su marcado NO tiene nada de esto.
      ⚠️ `.lab-card-hdr` SE CONSERVA EN EL MARCADO junto a la clase nueva, y no es decorativo:
      `_labPptChkInyectar` busca `card.querySelector('.lab-card-hdr')` para colgar la casilla «PPT».
-     Sacándola, las 57 tarjetas con `data-ppt` pierden su casilla sin ningún error.
+     Sacándola, las tarjetas con `data-ppt` pierden su casilla sin ningún error.
      Y `.lab-acc-hdr` va DESPUÉS de `#tab-lab .lab-card-hdr` en el fuente: las dos tienen
      especificidad (0,2,0), así que el orden es lo único que decide.
      El alto de 44 px no lo pone esta regla: lo pone la regla táctil global `[onclick]`, y por eso
@@ -14305,10 +14309,14 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
      `margin-bottom:6px` y `.lab-card` traía 16, que con diez acordeones cerrados se lee como
      diez secciones sueltas en vez de una lista. Radio, borde y `overflow:hidden` ya coincidían. */
   #tab-lab .lab-card{margin-bottom:6px;}
-  /* Filtros no usa `.lab-card` sino `.card`, así que sus diez grupos llevan el espaciado acá.
-     Se apunta a los que TIENEN cabecera de acordeón para no tocar la tarjeta de introducción ni
-     la del botón «Aplicar», que quedan siempre visibles. */
-  #lab-sub-filtros .card.lab-acc-card{margin-bottom:6px;}
+  /* ⚠️ INFORME VUELVE A LOS 16 px, y esto es el residuo que dejó la reversión. La regla de arriba
+     nació con los acordeones —«con diez bloques cerrados, 16 px se lee como diez secciones sueltas
+     en vez de una lista»— y sus dos tarjetas son `.lab-card`, así que al revertirlas a contenido
+     siempre visible quedaron con el espaciado pensado para bloques cerrados. Filtros se salvó de
+     casualidad: sus tarjetas son `.card` con el margen en línea.
+     O sea que «la reversión no tocó una línea de CSS» era cierto y por eso mismo estaba
+     incompleta. Lo cazó `/sharp-edges`. */
+  #lab-sub-informe .lab-card{margin-bottom:16px;}
   /* ⚠️ LA FLECHA VA PEGADA AL TÍTULO, Y NO ES UN DESCUIDO — es lo que hace Hemodinámica.
      Su `float:right` NO HACE NADA: `.card-head` es `display:flex` y en un contenedor flex el
      float se ignora, así que el span queda como segundo ítem, justo detrás del texto. Medido:
@@ -14436,9 +14444,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
     </div>
 
-    <div class="card lab-acc-card" style="margin-bottom:6px;">
-      <div class="lab-acc-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-filt-demograficos" onclick="labAccToggle('lab-acc-filt-demograficos',this,event)" onkeydown="labAccTecla(event,'lab-acc-filt-demograficos',this)">Demográficos<span id="lab-acc-filt-demograficos-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
-      <div class="card-body lab-acc-body" id="lab-acc-filt-demograficos" style="display:none;">
+    <div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Demográficos</div>
       <div class="lab-filtros">
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Edad mínima (años)</label>
           <input type="number" id="coh-edad-min" min="0" max="120" placeholder="—"></div>
@@ -14449,9 +14456,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
     </div></div>
 
-    <div class="card lab-acc-card" style="margin-bottom:6px;">
-      <div class="lab-acc-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-filt-pericardio" onclick="labAccToggle('lab-acc-filt-pericardio',this,event)" onkeydown="labAccTecla(event,'lab-acc-filt-pericardio',this)">Pericardio<span id="lab-acc-filt-pericardio-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
-      <div class="card-body lab-acc-body" id="lab-acc-filt-pericardio" style="display:none;">
+    <div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Pericardio</div>
       <div class="lab-filtros">
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Tamaño del derrame</label>
           <select id="coh-dpt-tam"><option value="">Todos</option><option value="hay">Con derrame (cualquier tamaño)</option>
@@ -14486,9 +14492,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
     </div></div>
 
-    <div class="card lab-acc-card" style="margin-bottom:6px;">
-      <div class="lab-acc-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-filt-funcion-ventricular" onclick="labAccToggle('lab-acc-filt-funcion-ventricular',this,event)" onkeydown="labAccTecla(event,'lab-acc-filt-funcion-ventricular',this)">Función ventricular<span id="lab-acc-filt-funcion-ventricular-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
-      <div class="card-body lab-acc-body" id="lab-acc-filt-funcion-ventricular" style="display:none;">
+    <div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Función ventricular</div>
       <div class="lab-filtros">
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">FEVI</label>
           <select id="coh-fevi"><option value="">Todas</option><option value="baja">&lt; 40 %</option><option value="media">40–49 %</option><option value="alta">≥ 50 %</option></select></div>
@@ -14503,9 +14508,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
     </div></div>
 
-    <div class="card lab-acc-card" style="margin-bottom:6px;">
-      <div class="lab-acc-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-filt-valvulopatias" onclick="labAccToggle('lab-acc-filt-valvulopatias',this,event)" onkeydown="labAccTecla(event,'lab-acc-filt-valvulopatias',this)">Valvulopatías<span id="lab-acc-filt-valvulopatias-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
-      <div class="card-body lab-acc-body" id="lab-acc-filt-valvulopatias" style="display:none;">
+    <div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Valvulopatías</div>
       <div class="lab-filtros">
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Insuficiencia mitral</label>
           <select id="coh-im"><option value="">Todas</option><option value="Leve">Leve</option><option value="Moderada">Moderada</option><option value="Severa">Severa</option></select></div>
@@ -14524,9 +14528,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
     </div></div>
 
-    <div class="card lab-acc-card" style="margin-bottom:6px;">
-      <div class="lab-acc-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-filt-insuficiencia-cardiaca" onclick="labAccToggle('lab-acc-filt-insuficiencia-cardiaca',this,event)" onkeydown="labAccTecla(event,'lab-acc-filt-insuficiencia-cardiaca',this)">Insuficiencia cardíaca<span id="lab-acc-filt-insuficiencia-cardiaca-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
-      <div class="card-body lab-acc-body" id="lab-acc-filt-insuficiencia-cardiaca" style="display:none;">
+    <div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Insuficiencia cardíaca</div>
       <div class="lab-filtros">
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">HFA-PEFF</label>
           <select id="coh-hfpeff"><option value="">Todos</option><option value="bajo">Bajo (0–1)</option><option value="inter">Intermedio (2–4)</option><option value="alto">Alto (≥5)</option></select></div>
@@ -14541,9 +14544,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
     </div></div>
 
-    <div class="card lab-acc-card" style="margin-bottom:6px;">
-      <div class="lab-acc-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-filt-htp-y-tep" onclick="labAccToggle('lab-acc-filt-htp-y-tep',this,event)" onkeydown="labAccTecla(event,'lab-acc-filt-htp-y-tep',this)">HTP y TEP<span id="lab-acc-filt-htp-y-tep-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
-      <div class="card-body lab-acc-body" id="lab-acc-filt-htp-y-tep" style="display:none;">
+    <div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">HTP y TEP</div>
       <div class="lab-filtros">
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Probabilidad de HTP (ESC/ERS 2022)</label>
           <select id="coh-htp"><option value="">Todos</option><option value="BAJA">Baja</option><option value="INTERMEDIA">Intermedia</option><option value="ALTA">Alta</option></select></div>
@@ -14559,9 +14561,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
     </div></div>
 
-    <div class="card lab-acc-card" style="margin-bottom:6px;">
-      <div class="lab-acc-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-filt-amiloidosis" onclick="labAccToggle('lab-acc-filt-amiloidosis',this,event)" onkeydown="labAccTecla(event,'lab-acc-filt-amiloidosis',this)">Amiloidosis<span id="lab-acc-filt-amiloidosis-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
-      <div class="card-body lab-acc-body" id="lab-acc-filt-amiloidosis" style="display:none;">
+    <div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Amiloidosis</div>
       <div class="lab-filtros">
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Score ETT</label>
           <select id="coh-amil"><option value="">Todos</option><option value="baja">Baja (&lt; 6)</option><option value="inter">Intermedio (6–7)</option><option value="alta">Probable (≥ 8)</option></select></div>
@@ -14570,9 +14571,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
     </div></div>
 
-    <div class="card lab-acc-card" style="margin-bottom:6px;">
-      <div class="lab-acc-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-filt-cardio-oncologia" onclick="labAccToggle('lab-acc-filt-cardio-oncologia',this,event)" onkeydown="labAccTecla(event,'lab-acc-filt-cardio-oncologia',this)">Cardio-oncología<span id="lab-acc-filt-cardio-oncologia-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
-      <div class="card-body lab-acc-body" id="lab-acc-filt-cardio-oncologia" style="display:none;">
+    <div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Cardio-oncología</div>
       <div class="lab-filtros">
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Fármaco</label>
           <select id="coh-co-farmaco"><option value="">Todos</option><option value="antracicline">Antraciclinas</option><option value="otros">Otros</option></select></div>
@@ -14591,9 +14591,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
     </div></div>
 
-    <div class="card lab-acc-card" style="margin-bottom:6px;">
-      <div class="lab-acc-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-filt-congenitas" onclick="labAccToggle('lab-acc-filt-congenitas',this,event)" onkeydown="labAccTecla(event,'lab-acc-filt-congenitas',this)">Cardiopatías congénitas y miocardiopatías genéticas<span id="lab-acc-filt-congenitas-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
-      <div class="card-body lab-acc-body" id="lab-acc-filt-congenitas" style="display:none;">
+    <div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Cardiopatías congénitas y miocardiopatías genéticas</div>
       <div id="coh-cc-box" style="display:flex;flex-wrap:wrap;gap:6px 18px;"></div>
       <div style="font-size:.72rem;color:var(--text2);margin-top:8px;line-height:1.5;">
         Marcar varias es <b>«cualquiera de ellas»</b>, no «todas a la vez». El criterio de pertenencia es el
@@ -14601,9 +14600,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
       </div>
     </div></div>
 
-    <div class="card lab-acc-card" style="margin-bottom:6px;">
-      <div class="lab-acc-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-filt-ete" onclick="labAccToggle('lab-acc-filt-ete',this,event)" onkeydown="labAccTecla(event,'lab-acc-filt-ete',this)">Ecocardiograma transesofágico<span id="lab-acc-filt-ete-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
-      <div class="card-body lab-acc-body" id="lab-acc-filt-ete" style="display:none;">
+    <div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Ecocardiograma transesofágico</div>
       <div class="lab-filtros">
         <div class="fg" style="margin:0;"><label style="font-size:.75rem;">Estudios</label>
           <select id="coh-ete"><option value="">Todos</option><option value="si">Solo ETEs marcados</option></select></div>
@@ -15744,8 +15742,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
 <div id="lab-sub-informe" class="lab-subpanel">
   <div class="lab-card" data-ppt-no="es el exportador del PDF, no una tarjeta de datos">
-    <div class="lab-card-hdr lab-acc-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-informe-pdf" onclick="labAccToggle('lab-acc-informe-pdf',this,event)" onkeydown="labAccTecla(event,'lab-acc-informe-pdf',this)">📄 Informe de Auditoría — Export PDF<span id="lab-acc-informe-pdf-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
-    <div class="lab-card-body lab-acc-body" id="lab-acc-informe-pdf" style="display:none;">
+    <div class="lab-card-hdr">📄 Informe de Auditoría — Export PDF</div>
+    <div class="lab-card-body">
       <div class="lab-grid" style="margin-bottom:16px;">
         <div class="fg">
           <label>Título del informe</label>
@@ -15813,8 +15811,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
        individual: aquél cuenta UN paciente, éste la casuística. Comparten las paletas, el
        saneador de texto y el logo — nada más. -->
   <div class="lab-card" data-ppt-no="es el exportador del propio PPT">
-    <div class="lab-card-hdr lab-acc-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-informe-ppt" onclick="labAccToggle('lab-acc-informe-ppt',this,event)" onkeydown="labAccTecla(event,'lab-acc-informe-ppt',this)">📊 Presentación estadística — Export PPT<span id="lab-acc-informe-ppt-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
-    <div class="lab-card-body lab-acc-body" id="lab-acc-informe-ppt" style="display:none;">
+    <div class="lab-card-hdr">📊 Presentación estadística — Export PPT</div>
+    <div class="lab-card-body">
       <p style="font-size:.82rem;color:var(--text2);margin:0 0 14px;line-height:1.55;">
         Genera un PowerPoint de <b>9 diapositivas</b> con la estadística de los estudios del
         período y los filtros activos: resumen ejecutivo, perfil demográfico, función sistólica,
@@ -58514,8 +58512,33 @@ function _labCohorteCCBox() {
 /* Badge en la pestaña Filtros + aviso amarillo en TODAS las demás.
    El aviso se inyecta como primer hijo de cada `.lab-subpanel`, generado acá y no escrito once
    veces en el HTML: la pestaña que se olvidara mostraría números de una cohorte sin decirlo. */
+/* ⚠️ EL RESULTADO DE FILTROS SE REPINTA CON LA COHORTE, no sólo al apretar «Aplicar».
+   Lo escribían SÓLO `labCohorteAplicar` y `labCohorteLimpiar`, o sea que era una FOTO del momento
+   del clic. Con los filtros a la vista otra vez, `#coh-resultado` es la única superficie de ese
+   panel que dice sobre qué POBLACIÓN se aplicó la cohorte — y se pudría: aplicar «IM severa»
+   (n=12), ir a General, cambiar el período, y volver dejaba «12 estudios encontrados» mientras el
+   badge de la propia solapa —que sí se repinta y está a un centímetro— decía «3 — filtros
+   activos», y el resto del Laboratorio, «Mostrando 3». El peor caso es con el período dejando la
+   cohorte en 0: Filtros afirma que hay 12 mientras todo lo demás dice que no hay ninguno, y el
+   médico concluye que lo roto es todo lo demás.
+   NO lo dispara sólo el período: `labInit` corre también al cambiar los centros y al mover la
+   base. Lo cazó `/sharp-edges`.
+   Es PRESENTACIÓN: reusa el `n` que `_labCohortePintar` ya tiene en la mano y no toca `_LAB_COHORTE`
+   ni el filtrado. Y va en UNA función porque el texto se armaba en dos lugares. */
+function _labCohorteResultado(n) {
+  const res = document.getElementById('coh-resultado');
+  if (!res || !_LAB_COHORTE) return;
+  const desc = _labCohorteDesc();
+  res.innerHTML = '<b>' + n + '</b> estudio' + (n === 1 ? '' : 's') + ' encontrado' + (n === 1 ? '' : 's') +
+    (desc ? '<div style="color:var(--text2);font-size:.78rem;margin-top:4px;">' + escHtml(desc) + '</div>' : '') +
+    (n === 0 ? '<div style="color:var(--orange,#f0a500);font-size:.78rem;margin-top:6px;">Ninguna pestaña va a tener datos con esta cohorte. Recordá que un estudio en el que un criterio no se puede evaluar queda fuera.</div>' : '');
+}
+
 function _labCohortePintar(n) {
   const desc = _labCohorteDesc();
+  /* Va junto al badge y a `coh-btn-pdf`, o sea ANTES del bucle de paneles: el `return` de Filtros
+     que hay más abajo saltea el banner, no esto. */
+  try { _labCohorteResultado(n); } catch (e) { console.error('[lab] resultado de cohorte', e); }
   /* Los dos subtítulos que declaran su denominador en HTML estático («sobre el total de estudios
      del período») se reescriben acá: con cohorte activa esa frase nombra una población que no es
      la que dibujan las barras de al lado. El rótulo va en `data-lab-pob` para no reconstruirlo
@@ -58536,11 +58559,15 @@ function _labCohortePintar(n) {
   }
   const paneles = document.querySelectorAll('#tab-lab .lab-subpanel');
   Array.prototype.forEach.call(paneles, pan => {
-    /* ⚠️ FILTROS YA NO SE SALTEA. El `return` estaba bien mientras sus controles estaban a la
-       vista: eran ELLOS la declaración de la cohorte. Desde que los diez grupos se colapsan al
-       entrar, este panel era el único de los ocho sin decir sobre qué población está mirando el
-       Laboratorio — y el `#coh-resultado` del pie no se repinta con `labInit`, así que tras
-       cambiar el período seguía publicando el n anterior. Lo señaló `/sharp-edges`. */
+    /* ⚠️ FILTROS SE SALTEA, y vuelve a ser correcto: sus controles están a la vista otra vez, así
+       que son ELLOS la declaración de la cohorte y un banner encima sería decir dos veces lo
+       mismo. Durante la ronda de acordeones este `return` se había quitado —ahí el panel era el
+       único de los ocho que no declaraba nada—, y se repone con la reversión.
+       ⚠️ Y ESTE `return` NO deja a Filtros sin declarar su población: `_labCohorteResultado` corre
+       ARRIBA, fuera de este bucle, así que `#coh-resultado` se repinta con cada `labInit`. Lo que
+       este `return` saltea es el BANNER amarillo, que al lado de los controles visibles sería
+       decir dos veces lo mismo. */
+    if (pan.id === 'lab-sub-filtros') return;
     let av = pan.querySelector(':scope > .lab-coh-aviso');
     if (!_LAB_COHORTE) { if (av) av.remove(); return; }
     if (!av) {
@@ -58566,50 +58593,17 @@ function _labCohortePintar(n) {
    Va como `onchange` en el CONTENEDOR y no en cada control: la hoja de estilos matchea por el
    atributo `[onclick]` e infla el elemento a 44×44 —acá sería cada casilla de CC—, y `change`
    burbujea, así que un solo manejador alcanza para los 25 controles. */
-/* ══ FILTROS: CADA GRUPO DICE CUÁNTOS CRITERIOS TIENE CARGADOS ════════════════════════════
-   ⚠️ COLAPSAR UN FILTRO NO LO DESACTIVA, y ése es el riesgo clínico de esta ronda: el criterio
-   sigue definiendo la COHORTE sobre la que se recalculan las ocho subtabs, el PDF de auditoría y
-   el Excel — pero deja de verse. `/sharp-edges` lo marcó por partida doble: un criterio APLICADO
-   que no se sabe en qué grupo está, y —peor— un cambio SIN APLICAR que se vuelve invisible al
-   cambiar de subtab, con el botón «Aplicar» resaltado invitando a commitear algo que el médico ya
-   no puede leer.
-   El contador es PRESENTACIÓN PURA: cuenta los controles con valor dentro de cada cuerpo y lo
-   escribe en su cabecera. No lee ni escribe `_LAB_COHORTE`, así que no toca la lógica de filtrado
-   —lo que se cuenta es lo que hay en pantalla, que es justamente lo que el médico no puede ver—.
-   Con esto, «Valvulopatías ●1» dice dónde mirar sin abrir los diez grupos uno por uno, y el único
-   todo-o-nada que existía («Limpiar filtros») deja de ser la única salida. */
-function labFiltrosContar() {
-  document.querySelectorAll('#lab-sub-filtros .lab-acc-body').forEach(body => {
-    let n = 0;
-    body.querySelectorAll('select, input').forEach(el => {
-      if (el.disabled) return;
-      if (el.type === 'checkbox' || el.type === 'radio') { if (el.checked) n++; return; }
-      /* El `select` cuenta desde el índice 1: el 0 es «(sin filtro)» en los treinta y pico de este
-         panel, igual que asume `cardAutoOpen` para el resto de la app. */
-      if (el.tagName === 'SELECT') { if (el.selectedIndex > 0) n++; return; }
-      if (String(el.value || '').trim() !== '') n++;
-    });
-    const hdr = body.previousElementSibling;
-    if (!hdr) return;
-    let b = hdr.querySelector('[data-filt-n]');
-    if (!b) {
-      /* Se construye con la API del DOM y no concatenando `innerHTML`: reescribir la cabecera
-         entera se llevaría puesta la flecha y su id, que es de donde `toggleCard` la busca. */
-      b = document.createElement('span');
-      b.setAttribute('data-filt-n', '1');
-      b.style.cssText = 'margin-left:auto;flex-shrink:0;font-size:10px;font-weight:700;' +
-        'color:var(--accent);background:var(--bg3);border-radius:10px;padding:1px 7px;';
-      hdr.appendChild(b);
-    }
-    b.textContent = n ? ('● ' + n) : '';
-    b.style.display = n ? 'inline-block' : 'none';
-    b.title = n ? (n + ' criterio(s) cargado(s) en este grupo') : '';
-  });
-}
-window.labFiltrosContar = labFiltrosContar;
-
+/* ⚠️ ACÁ VIVÍA `labFiltrosContar`, EL CONTADOR POR GRUPO DE FILTROS, Y SE ELIMINÓ CON EL
+   ACORDEÓN (2026-09-25, misma tarde). No era un adorno: existía porque colapsar un filtro NO lo
+   desactiva, así que un criterio seguía definiendo la cohorte de las seis subtabs y del PDF de
+   auditoría sin que se viera en ninguna parte, y «Valvulopatías ● 1» era lo único que decía dónde
+   mirar. Con Filtros de vuelta a contenido siempre visible, los propios controles son otra vez la
+   declaración —que es el argumento original de este panel— y el contador pasa a decir, al lado de
+   un `<select>` que ya se lee, lo mismo que ese `<select>`.
+   Se BORRA en vez de dejarse: un contador cuyo comentario declara que evita una fuga que ya no
+   existe es exactamente la clase de comentario que este archivo persigue —el que afirma una
+   invariante que no garantiza—. Si Filtros vuelve a colapsar, esto vuelve con él. */
 function labCohortePendiente() {
-  try { labFiltrosContar(); } catch (e) { console.error('[lab] contador de filtros', e); }
   const el = document.getElementById('coh-pendiente');
   if (!el) return;
   let dif = false;
@@ -58626,16 +58620,11 @@ function labCohorteAplicar() {
   const n = labGetInformes().length;
   _labCohortePintar(n);
   const res = document.getElementById('coh-resultado');
-  if (res) {
-    if (!_LAB_COHORTE) {
-      res.innerHTML = '<span style="color:var(--text2);">Ningún filtro seleccionado — el Laboratorio muestra todos los estudios del período.</span>';
-    } else {
-      const desc = _labCohorteDesc();
-      res.innerHTML = '<b>' + n + '</b> estudio' + (n === 1 ? '' : 's') + ' encontrado' + (n === 1 ? '' : 's') +
-        (desc ? '<div style="color:var(--text2);font-size:.78rem;margin-top:4px;">' + escHtml(desc) + '</div>' : '') +
-        (n === 0 ? '<div style="color:var(--orange,#f0a500);font-size:.78rem;margin-top:6px;">Ninguna pestaña va a tener datos con esta cohorte. Recordá que un estudio en el que un criterio no se puede evaluar queda fuera.</div>' : '');
-    }
+  if (res && !_LAB_COHORTE) {
+    res.innerHTML = '<span style="color:var(--text2);">Ningún filtro seleccionado — el Laboratorio muestra todos los estudios del período.</span>';
   }
+  /* La rama con cohorte la escribe `_labCohorteResultado`, que ya corrió dentro de
+     `_labCohortePintar`: con una copia acá, el mismo texto se armaba en dos lugares. */
   labCohortePendiente();
   toast(_LAB_COHORTE ? ('Cohorte aplicada — ' + n + ' estudio' + (n === 1 ? '' : 's')) : 'Sin filtros activos');
 }
@@ -65773,10 +65762,11 @@ window.labAccTecla = labAccTecla;
    «abierto» sobre un bloque que no lo está — es el mismo cuidado que `cardAutoOpen` documenta
    para el camino contrario. */
 function labAccCerrarTodos() {
-  /* ⚠️ BARRE TODO `#tab-lab`, no un panel. Desde que las OCHO subtabs son acordeones, cerrar
-     sólo el panel activo dejaría abiertos los de los otros siete — invisibles en ese momento y
-     abiertos al volver, que es exactamente el estado que esta función existe para impedir. Es
-     barato: son 70 nodos y el selector no toca nada más. */
+  /* ⚠️ BARRE TODO `#tab-lab`, no un panel. Con acordeones en seis subtabs, cerrar sólo el panel
+     activo dejaría abiertos los de las otras cinco — invisibles en ese momento y abiertos al
+     volver, que es exactamente el estado que esta función existe para impedir. Es barato: son 58
+     nodos y el selector no toca nada más. Filtros e Informe no tienen ninguno, así que el mismo
+     selector las ignora sin necesitar una excepción. */
   document.querySelectorAll('#tab-lab .lab-acc-body').forEach(sec => {
     sec.style.display = 'none';
     const hdr = sec.previousElementSibling;
@@ -65790,9 +65780,6 @@ function labAccCerrarTodos() {
     if (fl) fl.style.transform = 'rotate(0deg)';
     if (hdr && hdr.setAttribute) hdr.setAttribute('aria-expanded', 'false');
   });
-  /* El contador de Filtros se repinta JUSTO CUANDO los grupos se esconden, que es el momento en
-     que pasa a ser la única señal de qué hay cargado ahí adentro. */
-  try { if (typeof labFiltrosContar === 'function') labFiltrosContar(); } catch (e) {}
 }
 window.labAccCerrarTodos = labAccCerrarTodos;
 
@@ -65863,13 +65850,15 @@ function labSubTab(id, el) {
      VACÍOS: el selector de médicos sin opciones y el comparador sin fechas, que se ve igual que
      «este laboratorio no tiene médicos cargados». Es la asimetría de `labAsociacionesInit`, que
      el propio archivo declara — si hay una segunda entrada a la pestaña, el bloque queda mudo. */
-  /* ⚠️ EL CIERRE SALE DEL `if (id === 'general')` Y VALE PARA LAS OCHO. Mientras sólo General
-     tenía acordeones alcanzaba con cerrarlos ahí; con las ocho convertidas, dejarlo adentro
-     significaba que ir a Mediciones y volver NO cerraba los suyos. Va antes de cualquier init por
-     el mismo motivo de siempre: lo que se dibuje después nace en un bloque ya cerrado. */
+  /* ⚠️ EL CIERRE VA FUERA DEL `if (id === 'general')`. Mientras sólo General tenía acordeones
+     alcanzaba con cerrarlos ahí; desde que también los tienen Mediciones, Avanzado, ETE, CC y
+     Asociaciones, dejarlo adentro significaba que ir a Mediciones y volver NO cerraba los suyos.
+     Corre para TODA subtab —incluidas Filtros e Informe, que no tienen ninguno y donde por eso no
+     hace nada— porque una lista de cuáles sí es una segunda lista que se separa de la primera.
+     Va antes de cualquier init: lo que se dibuje después nace en un bloque ya cerrado. */
   labAccCerrarTodos();
   if (id === 'general') {
-    /* El cierre ya corrió arriba, para las ocho subtabs. `labMedicoInit` termina llamando a
+    /* El cierre ya corrió arriba, para cualquier subtab. `labMedicoInit` termina llamando a
        `labMedicoRender`, que dibuja sus dos Chart.js con el bloque ya cerrado: nacen en 0×0 y
        Chart.js los redimensiona solo al abrirse (medido en Chrome real; ver la nota de
        `labAccToggle`). */
@@ -74990,8 +74979,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260925-1435';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790357708743;                 /* eco-build-ms */
+const ECO_BUILD    = '20260925-1516';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790360171217;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -75077,7 +75066,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-1435</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-1516</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

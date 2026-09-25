@@ -4,9 +4,38 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
-## Laboratorio · el acordeón se extiende a las OCHO subtabs (2026-09-25)
+## Laboratorio · el acordeón quedó en SEIS subtabs, no en ocho (2026-09-25)
 
-Segunda ronda: las siete que faltaban. **70 bloques** en total — Filtros 10, General 10,
+> **⚠️ ESTADO FINAL, y la entrada de abajo hay que leerla con esto puesto.** El acordeón se
+> extendió a las ocho y el mismo día se **revirtió en Filtros e Informe**, después de mirarlo con
+> el médico. Hoy son **58 bloques en seis subtabs**: General 10, Mediciones 12, Asociaciones 3,
+> Avanzado 10, CC 18, ETE 5. **Filtros e Informe tienen su contenido siempre visible** y su marcado
+> NO tiene una sola línea del mecanismo — se restauró VERBATIM del commit previo a la conversión,
+> verificado byte a byte, y no se dejó «un acordeón abierto», que era lo que el pedido pedía evitar.
+>
+> Lo que la reversión demostró: la compuerta es una CLASE, así que **no hizo falta tocar una línea
+> de CSS ni del mecanismo**. Una tab entra poniendo `.lab-acc-hdr` y sale sacándola.
+>
+> Dos cosas se fueron con el acordeón, y las dos a propósito:
+> - **`labFiltrosContar`** —el contador «Valvulopatías ● 1»— existía porque colapsar un filtro no
+>   lo desactiva: el criterio seguía definiendo la cohorte sin verse. Con los controles otra vez a
+>   la vista son ellos la declaración, y dejarlo habría sido un comentario afirmando que evita una
+>   fuga que ya no existe.
+> - **El banner de cohorte en Filtros**: se repuso el `return` de `_labCohortePintar`. Mismo
+>   argumento — con los controles visibles, el banner diría dos veces lo mismo.
+>
+> **Queda abierto** lo que `/sharp-edges` encontró de paso y es PREEXISTENTE: `#coh-resultado` sólo
+> lo escriben `labCohorteAplicar` y `labCohorteLimpiar`, así que tras cambiar el período sigue
+> publicando el n anterior.
+>
+> Y la razón de la vuelta atrás, que es la que sirve para la próxima: **un acordeón cuesta un clic
+> por bloque, y eso se paga distinto según qué haya adentro.** En un panel de resultados que se
+> lee de arriba abajo, colapsar ordena. En un panel de CONTROLES —Filtros— esconde el estado que
+> gobierna todo lo demás; y en uno que contiene SÓLO acciones —Informe, dos exportadores— deja la
+> pantalla vacía y pone un clic delante de lo único que hay. La asimetría con Informe ya estaba
+> declarada en la entrada de abajo antes de que se revirtiera.
+
+Segunda ronda: las siete que faltaban. **70 bloques** en su momento — Filtros 10, General 10,
 Mediciones 12, Asociaciones 3, Avanzado 10, CC 18, ETE 5, Informe 2. Todo lo de la entrada de
 abajo sigue valiendo; acá va sólo lo que apareció al generalizar.
 
@@ -28,6 +57,10 @@ poder probarlo; escrito con navegación, el denominador daba 2 en vez de 5.
 
 ### ⚠️ FILTROS ES OTRA COSA, y es donde estaba el riesgo clínico
 
+> **Esta sección describe algo que YA NO ESTÁ**: Filtros se revirtió. Se deja porque el análisis
+> sigue siendo el que hay que hacer si algún día vuelve a colapsar, y porque explica por qué
+> volvió atrás.
+
 No usa `.lab-card` sino `.card` con el título **adentro** del cuerpo. Sus 10 grupos se
 reestructuraron sacando el título afuera. Quedaron **fuera del colapso a propósito** la tarjeta de
 introducción y la del botón «Aplicar filtros» con `#coh-resultado` y «● Cambios sin aplicar»: son
@@ -39,14 +72,22 @@ marcó por partida doble: un criterio aplicado que no se sabe en qué grupo est�
 **sin aplicar** que se vuelve invisible al cambiar de subtab, con «Aplicar» resaltado invitando a
 confirmar algo que el médico ya no puede leer.
 
-Dos correcciones:
-- **Contador por grupo** (`labFiltrosContar`): «Valvulopatías ● 1». Es presentación pura —cuenta
-  controles con valor, no lee ni escribe `_LAB_COHORTE`—, se repinta al colapsar y sobrevive a la
-  navegación. Da además una salida que no existía: hasta ahora lo único era «Limpiar filtros»,
-  todo-o-nada.
-- **Filtros dejó de saltearse el aviso de cohorte.** Era el único de los ocho paneles con
-  `if (pan.id === 'lab-sub-filtros') return;` en `_labCohortePintar` — correcto mientras los
-  controles estaban a la vista, porque eran ellos la declaración.
+Se hicieron dos correcciones y **las dos se deshicieron con la reversión, el mismo día**. Se
+dejan escritas porque son lo que hay que volver a hacer si Filtros vuelve a colapsar, pero **hoy
+NINGUNA de las dos está en el código**:
+- ~~**Contador por grupo** (`labFiltrosContar`): «Valvulopatías ● 1»~~ — **BORRADO**. La función
+  no existe. ⚠️ No dar por cubierta la fuga que mitigaba: hoy no hace falta porque los controles
+  están a la vista, no porque haya un contador.
+- ~~**Filtros dejó de saltearse el aviso de cohorte**~~ — **REPUESTO** el
+  `if (pan.id === 'lab-sub-filtros') return;` de `_labCohortePintar`. Con los controles visibles el
+  banner diría dos veces lo mismo.
+
+**Lo que SÍ quedó de todo esto**, y es la parte que sobrevive a la reversión: `#coh-resultado` se
+repinta ahora con cada `labInit` a través de `_labCohorteResultado(n)`. Lo escribían sólo
+`labCohorteAplicar` y `labCohorteLimpiar`, o sea que era una FOTO: aplicar una cohorte, cambiar el
+período y volver dejaba «12 estudios encontrados» mientras el badge de la propia solapa —a un
+centímetro— decía «3 — filtros activos». Con Filtros de vuelta a siempre visible, ése es el único
+lugar del panel que declara sobre qué población se aplicó la cohorte.
 
 ### ⚠️ EL BOTÓN ℹ️ DE ASOCIACIONES QUEDÓ MUERTO
 
@@ -89,17 +130,16 @@ fallas que cambia de caso en cada corrida es aislamiento, no una regresión.
 
 ### Declarado y NO corregido
 
-- **La subtab «Informe» quedó con dos barras y nada más**: contiene *exclusivamente* las dos
-  tarjetas de exportación, así que entrar ahí muestra dos cabeceras grises y cero contenido, con
-  los formularios y los botones «Generar» detrás de un clic. En Filtros se decidió lo contrario
-  para la tarjeta de «Aplicar». Se dejó colapsada porque la consigna fue explícita —«TODOS
-  arrancan cerrados, sin excepción», y nombró a Informe entre las siete—, pero la asimetría es
-  real: si molesta, Informe es la excepción natural.
+- ~~**La subtab «Informe» quedó con dos barras y nada más**~~ — **CORREGIDO ese mismo día**: se
+  revirtió. Queda anotado porque la predicción se cumplió tal cual estaba escrita: «la asimetría es
+  real; si molesta, Informe es la excepción natural». Cuando un hallazgo se declara y se deja
+  pasar porque la consigna era explícita, conviene dejarlo escrito así — fue lo primero que el
+  médico marcó.
 - **`coh-edad-min = 0` activa la cohorte sin filtrar nada.** `_labCohorteLeer` acepta el `0` y
   `_LAB_COHORTE` deja de ser `null`, pero `_labCohorteOk` y `_labCohorteDesc` aplican piso `> 0`:
   badge «filtros activos» y descripción vacía. Es preexistente y el arreglo es de una línea, pero
-  vive en la lógica de cohorte y esta ronda era presentación. Lo nuevo es que ese `0` queda dentro
-  de un grupo cerrado.
+  vive en la lógica de cohorte y esta ronda era presentación. (La coletilla «lo nuevo es que ese
+  `0` queda dentro de un grupo cerrado» ya no aplica: Filtros se revirtió.)
 
 
 ## Laboratorio · tab General: los diez bloques son acordeones (2026-09-25)
