@@ -4,6 +4,73 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Severidad valvular: la AVA de 1,00 y el piso de la mitral (2026-09-25)
+
+### ⚠️ AVA ≤ 1,0 — EL BORDE SE MOVIÓ, Y CAMBIA INFORMES YA FIRMADOS
+
+La guía define el criterio de área como **«AVA ≤ 1,0 cm²»** y la app clasificaba con `< 1,0`, que
+excluye el borde: un área de exactamente 1,00 —alcanzable, el AVA se guarda con `toFixed(2)`—
+alcanzaba el criterio de la guía y salía **moderada**. El propio panel de Indicaciones lo tenía
+declarado como hallazgo abierto («no se cambió el clasificador desde este panel porque gobierna el
+informe firmado»); este commit lo cierra donde vive. **El mismo estudio reimpreso puede decir
+«severa» donde decía «moderada».**
+
+**Las dos bandas se mueven JUNTAS.** `avaEsSevera` pasó a `<=` y `avaEsModerada` a `>`. Si se mueve
+una sola, el 1,00 cae en las dos a la vez — el defecto que este archivo ya pagó, con los rótulos
+contradiciéndose en la misma pantalla.
+
+**⚠️ Y EL CORTE ESTABA EN CINCO SITIOS, NO EN CUATRO** como decía el comentario: los dos
+predicados, la banda inline de la discordancia AVA/Vmax, la **AVA proyectada de `cxTango`** y los
+rótulos. Los cinco derivan hoy de `AVA_SEVERA_MAX`. Lo contó `/sharp-edges`.
+
+**⚠️ LOS RÓTULOS SE MUEVEN CON EL PREDICADO O EL PDF SE CONTRADICE SOLO.** Las **dos tablas del PDF
+firmado** seguían imprimiendo `(>1.5 / 1.0–1.5 / <1.0)`: con AVA 1,00 la misma hoja decía
+«moderada» en la referencia y «Severa» en el narrativo. También quedaron viejos el panel de
+Indicaciones —«menor que 1,0 cm²» sobre un 1,00—, la tabla de referencia y el aviso de bajo
+gradiente. Todos derivan ahora de la constante.
+
+### ⚠️ ESTENOSIS MITRAL: LA CASCADA NO TENÍA TECHO
+
+Su **primera** rama —`avm > 2.5`— era el cajón de sastre de todo lo grande, así que un área SANA
+caía en «leve». Reproducido con el caso reportado: onda E 70,4 · onda A 80 · **THP 53 ms → AVm
+4,15 cm²** por Hatle, una válvula normal, y el badge decía «Estenosis mitral leve». Medido también
+el extremo: **6,00 cm² también daba «leve»**.
+
+Es el defecto de `epGradoPorGmax` y `_dopSevPHT` —cadena `if/else if/else` sin predicado final—
+pero **con la rama abierta al principio y no al final**: en vez de exagerar la gravedad, inventa
+una enfermedad leve donde no hay ninguna.
+
+**`AVM_NORMAL_MIN = 4.0`, con `>=`: 4,00 exactos ya es normal.** Aplicado en tres lugares
+—el `<select>`, el voto del score y la escalera final— y **sin tocar los cortes internos** (1,5 y
+2,5 quedan donde estaban, por pedido explícito).
+
+**⚠️ EL DEFECTO VOLVÍA ENTERO POR EL GRADIENTE.** La escala del gradiente medio tiene la MISMA
+primera rama abierta (`gm < 5` → leve), así que un gradiente mitral **normal** de 3 mmHg votaba
+«leve» y ganaba en la escalera: `em_grado` volvía a «leve» sobre la válvula que el piso acababa de
+declarar normal. Medido. **No se le inventó un piso al gradiente** —sería un umbral nuevo y el
+pedido lo prohíbe—: se leyó el pedido al pie («con área ≥4 el RESULTADO debe ser normal») y un voto
+de *leve* no alcanza para contradecir un área normal. Uno de **moderada o severa sí gana**, que es
+el caso clínicamente importante y quedó intacto.
+
+**⚠️ Y EL NARRATIVO FIRMADO SEGUÍA AFIRMANDO LA ENFERMEDAD.** Con el grado en `'sin'` y la píldora
+«Estenosis» encendida, el cuerpo publicaba «Válvula mitral, con estenosis» y el EN SUMA «Estenosis
+mitral.». Esa rama era casi inalcanzable antes —con cualquier medición el grado caía en algún
+grado— y **el piso la volvió alcanzable justo en el caso que vino a arreglar**; además es el flujo
+obligatorio al reabrir un estudio, porque `limpiarCampos` borra las píldoras. `'sin'` es una
+respuesta, no un hueco.
+
+### Declarado y NO corregido
+
+- **La banda 2,5–4,0 sigue rotulándose «leve»**, y ahí hay válvulas sanas: un THP normal de 60 ms
+  da AVm 3,67 cm². El propio comentario de `cxAVT` lo dice a nueve líneas del clasificador. **No se
+  tocó porque el pedido prohibió explícitamente mover los cortes internos** y el piso quedó fijado
+  en 4,0. Si el criterio es que un THP normal no produzca «estenosis leve», el corte que separa
+  «sin» de «leve» es lo que hay que revisar — y es una decisión clínica, no técnica.
+- **`cxAVT` (la calculadora de AVm por THP) no usa el piso.** Su rótulo «sin estenosis / leve» para
+  todo >2,5 es ambiguo pero no falso, así que no contradice al clasificador de forma directa. Queda
+  como la única superficie que clasifica AVm sin llamar al predicado compartido.
+
+
 ## Vena pulmonar y criterio Ar−A en Doppler Mitral (2026-09-25)
 
 ASE/EACVI 2016 (Nagueh, JASE 2016;29:277-314): Ar−A **≥30 ms** o velocidad de Ar **>35 cm/s**

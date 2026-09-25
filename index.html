@@ -3152,7 +3152,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div id="bloque-esten-mitral" style="display:none;">
         <div class="fg"><label>Estenosis mitral — grado final</label>
-          <select id="em_grado"><option value="sin">Sin estenosis</option><option value="leve">Leve (AVm &gt;2.5 cm²)</option><option value="moderada">Moderada (1.5–2.5 cm²)</option><option value="severa">Severa (&le;1.5 cm²)</option></select>
+          <select id="em_grado"><option value="sin">Sin estenosis (AVm &ge;4 cm²)</option><option value="leve">Leve (AVm 2.51–3.99 cm²)</option><option value="moderada">Moderada (1.5–2.5 cm²)</option><option value="severa">Severa (&le;1.5 cm²)</option></select>
           <div id="em-thp-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
         </div>
         </div>
@@ -12426,7 +12426,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Leve</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Moderada</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Severa</th></tr>
             <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Vmax (m/s)</td><td style="padding:5px 8px;text-align:center;">2.0–2.9</td><td style="padding:5px 8px;text-align:center;">3.0–3.9</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≥4.0</td></tr>
             <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Gmedio (mmHg)</td><td style="padding:5px 8px;text-align:center;">&lt;20</td><td style="padding:5px 8px;text-align:center;">20–39</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≥40</td></tr>
-            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">AVA (cm²)</td><td style="padding:5px 8px;text-align:center;">&gt;1.5</td><td style="padding:5px 8px;text-align:center;">1.0–1.5</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&lt;1.0</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">AVA (cm²)</td><td style="padding:5px 8px;text-align:center;">&gt;1.5</td><td style="padding:5px 8px;text-align:center;">&gt;1.0–1.49</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&le;1.0</td></tr>
             <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">AVAi (cm²/m²)</td><td style="padding:5px 8px;text-align:center;"></td><td style="padding:5px 8px;text-align:center;"></td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&lt;0.6</td></tr>
             <tr><td style="padding:5px 8px;color:var(--text2);">DVI</td><td style="padding:5px 8px;text-align:center;"></td><td style="padding:5px 8px;text-align:center;"></td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&lt;0.25</td></tr>
           </table>
@@ -16082,19 +16082,27 @@ window.UMBRAL_PSAP_ELEVADA = UMBRAL_PSAP_ELEVADA;
    El texto de la fórmula y el disclaimer viven acá para que las etiquetas no se separen del
    cálculo: es lo que pasó con los umbrales de HTP, que terminaron en cinco lugares con tres
    juegos de números. */
-/* Área valvular aórtica: severa es AVA < 1.0 cm² (ESC/EACVI). El corte estaba escrito en
-   cuatro lugares y uno usaba `<= 1.0`, así que un AVA de 1.00 exacto caía de los dos lados a
-   la vez: la pantalla mostraba «Moderada (1.0-1.49cm²)» y «AVA 1.00 cm² (severa)» al mismo
-   tiempo, y el informe firmado decía severa. El AVA se guarda con toFixed(2), o sea que
-   «1.00» es un valor alcanzable, no teórico. */
-const AVA_SEVERA_MAX = 1.0;   // AVA < 1.0 → severa;  1.0 ≤ AVA < 1.5 → moderada
+/* Área valvular aórtica: severa es AVA **≤ 1.0 cm²** (ESC/EACVI).
+   ⚠️ EL 1,00 EXACTO ENTRA EN SEVERA, y hasta el 2026-09-25 no entraba. La unificación anterior
+   dejó los cuatro sitios en `< 1.0` —eligió una de las dos convenciones que convivían— y ésa
+   excluye el borde: la guía define el criterio de área como «AVA ≤ 1,0 cm²», así que un área de
+   exactamente 1,00 alcanza el criterio y la app la rotulaba MODERADA. El propio panel de
+   Indicaciones ya lo tenía declarado como hallazgo abierto —«no se cambió el clasificador desde
+   este panel porque gobierna el informe firmado»—; este commit lo cierra donde vive.
+   El AVA se guarda con `toFixed(2)`, o sea que «1.00» es un valor alcanzable, no teórico.
+   ⚠️ SON CINCO SITIOS, no cuatro como decía este comentario: los dos predicados, la banda inline
+   de la discordancia AVA/Vmax, la AVA proyectada de `cxTango` y los rótulos. `/sharp-edges` contó
+   la quinta. Todos derivan hoy de esta constante.
+   ⚠️ CAMBIA LO QUE IMPRIME UN INFORME: el mismo estudio reimpreso antes y después de este commit
+   puede decir «severa» donde decía «moderada». Es intencional y coincide con la guía. */
+const AVA_SEVERA_MAX = 1.0;   // AVA ≤ 1.0 → severa;  1.0 < AVA < 1.5 → moderada
 /* Mismo endurecimiento que pcpNagueh, y por el mismo motivo: `isNaN('')` es false, así que
    la versión anterior devolvía TRUE —severa— ante un campo vacío. Y `isNaN('0,95')` es true,
    o sea que con coma decimal devolvía false. Fallaba abierta con vacío y cerrada con coma:
    exactamente al revés de lo seguro. */
 function avaEsSevera(ava) {
   const n = _avaNum(ava);
-  return n !== null && n < AVA_SEVERA_MAX;
+  return n !== null && n <= AVA_SEVERA_MAX;
 }
 /* `!avaEsSevera(x)` NO es «moderada». avaEsSevera falla CERRADO a propósito —devuelve false
    ante null, NaN, 0 y negativos— y al negarlo ese fail-closed se volvía fail-open con salida
@@ -16108,7 +16116,10 @@ function _avaNum(ava) {
 }
 function avaEsModerada(ava) {
   const n = _avaNum(ava);
-  return n !== null && n >= AVA_SEVERA_MAX && n < 1.5;
+  /* `>` y no `>=`: las dos bandas se mueven JUNTAS o el 1,00 cae en las dos a la vez —que es
+     exactamente el defecto que la unificación anterior vino a cerrar, con los rótulos
+     contradiciéndose en la misma pantalla—. */
+  return n !== null && n > AVA_SEVERA_MAX && n < 1.5;
 }
 function avaEsValida(ava) { return _avaNum(ava) !== null; }
 window.avaEsModerada = avaEsModerada; window.avaEsValida = avaEsValida;
@@ -16148,6 +16159,35 @@ window.AVA_SEVERA_MAX = AVA_SEVERA_MAX; window.avaEsSevera = avaEsSevera;
    publica los valores derivados y lo dice. */
 const AVM_SEVERA_MAX    = 1.5;   // cm² — AVm ≤1.5 → severa (ESC/EACTS 2021 y 2025, ASE 2023)
 const AVM_MODERADA_MAX  = 2.5;   // cm² — 1.5 < AVm ≤2.5 → moderada;  >2.5 → sin estenosis / leve
+/* ⚠️ PISO DE NORMALIDAD (2026-09-25). La cascada de EM no tenía techo: su PRIMERA rama —«mayor
+   que 2,5»— era el cajón de sastre de TODO lo grande, así que un área SANA caía en «leve».
+   Reproducido con el caso del pedido: onda E 70,4 · onda A 80 · THP 53 ms → AVm 4,15 cm² por
+   Hatle, que es una válvula mitral normal (rango sano 4–6 cm²), y el badge decía «Leve». Medido
+   además el extremo: 6,00 cm² también daba «leve».
+   Es el mismo defecto que este archivo documenta para `epGradoPorGmax` y para `_dopSevPHT` —una
+   cadena `if/else if/else` sin predicado final manda lo no clasificable a una banda— sólo que acá
+   la rama abierta es la PRIMERA y no la última, así que en vez de exagerar la gravedad inventa
+   una enfermedad leve donde no hay ninguna.
+   ⚠️ EL PISO NO TOCA LOS CORTES INTERNOS: 1,5 y 2,5 quedan exactamente donde estaban, y eso lo
+   pidió el pedido de forma explícita. Esto se agrega ARRIBA de los tres.
+   El valor es 4,0 cm² y el operador `>=`: un AVm de 4,00 exactos ya es normal. */
+const AVM_NORMAL_MIN    = 4.0;   // cm² — AVm >=4 → sin estenosis (válvula mitral sana: 4–6 cm²)
+window.AVM_NORMAL_MIN = AVM_NORMAL_MIN;
+/* Un solo predicado para las superficies que clasifican AVm. Con la comparación escrita en cada
+   una, mover el piso mañana deja alguna atrás — que es literalmente lo que acaba de pasar con la
+   banda de la AVA, copiada en cuatro lugares. */
+function avmEsNormal(avm) {
+  /* ⚠️ MISMO ENDURECIMIENTO QUE `_avaNum`, y no por simetría: con `Number()` pelado un `'4,15'`
+     con COMA decimal daba NaN → «no normal» → y la cascada de abajo lo mandaba a **SEVERA**,
+     porque `'4,15' > 2.5` también es falso. Un negativo terminaba igual. Es exactamente la
+     asimetría que el lado aórtico documenta haber cerrado —«fallaba abierta con vacío y cerrada
+     con coma: al revés de lo seguro»—, y este helper está exportado en `window`, así que la
+     próxima superficie que lo use hereda el borde. Lo cazó `/sharp-edges`. */
+  const n = (typeof avm === 'number') ? avm
+          : parseFloat(String(avm == null ? '' : avm).replace(',', '.'));
+  return isFinite(n) && n > 0 && n >= AVM_NORMAL_MIN;
+}
+window.avmEsNormal = avmEsNormal;
 const GMED_MITRAL_SEVERO_MIN = 10;  // mmHg — gradiente medio ≥10 → severa (ASE 2023)
 window.AVM_SEVERA_MAX = AVM_SEVERA_MAX; window.AVM_MODERADA_MAX = AVM_MODERADA_MAX;
 window.GMED_MITRAL_SEVERO_MIN = GMED_MITRAL_SEVERO_MIN;
@@ -16834,8 +16874,15 @@ function cxTango() {
   if (vsnEl) vsnEl.textContent = vsn.toFixed(0) + ' ml';
   if (ava === null || vs === null || vs <= 0) { el.textContent = '— (requiere AVA y VS actual)'; return; }
   const proj = ava * (vsn / vs);
-  const cls = proj < 1.0 ? 'red' : 'yellow';
-  const sev = proj < 1.0 ? 'EA severa (proyectada <1.0)' : 'EA no severa (≥1.0)';
+  /* ⚠️ QUINTA COPIA DEL CORTE, y se mueve con las otras cuatro. Es la AVA PROYECTADA a flujo
+     normal —otra magnitud— pero el número y la guía que lo define son los mismos, y ésta es
+     justamente la calculadora que se usa para resolver la discordancia de bajo flujo / bajo
+     gradiente: con `proj` de 1,00 decía «EA NO severa» mientras el resto de la app decía severa.
+     El comentario del bloque de `AVA_SEVERA_MAX` decía «cuatro lugares» y eran cinco. */
+  const cls = proj <= AVA_SEVERA_MAX ? 'red' : 'yellow';
+  const sev = proj <= AVA_SEVERA_MAX
+    ? 'EA severa (proyectada ≤' + AVA_SEVERA_MAX.toFixed(1) + ')'
+    : 'EA no severa (>' + AVA_SEVERA_MAX.toFixed(1) + ')';
   el.innerHTML = proj.toFixed(2) + ' cm² ' + badge(cls, sev);
 }
 
@@ -16894,8 +16941,8 @@ function cxCont() {
   const ava = (Math.PI * ((d / 10 / 2) ** 2) * vtitsvi) / vtiao;   // DTSVI mm → cm
   let cls, txt;
   if (ava >= 1.5) { cls = 'green'; txt = 'Sin/leve (≥1.5)'; }
-  else if (avaEsModerada(ava)) { cls = 'yellow'; txt = 'Moderada (' + AVA_SEVERA_MAX.toFixed(1) + '–1.49)'; }
-  else if (avaEsSevera(ava)) { cls = 'red'; txt = 'Severa (<' + AVA_SEVERA_MAX.toFixed(1) + ')'; }
+  else if (avaEsModerada(ava)) { cls = 'yellow'; txt = 'Moderada (>' + AVA_SEVERA_MAX.toFixed(1) + '–1.49)'; }
+  else if (avaEsSevera(ava)) { cls = 'red'; txt = 'Severa (≤' + AVA_SEVERA_MAX.toFixed(1) + ')'; }
   else { cls = 'gray'; txt = 'no valuable — revisá los insumos'; }   // ver nota en calcAo
   el.innerHTML = ava.toFixed(2) + ' cm² ' + badge(cls, txt);
 }
@@ -19970,11 +20017,17 @@ function sugerirSeveridadEM(avm) {
      si las dos escalas divergen el <select> y el score integrado discrepan sobre el mismo
      campo — que es el defecto que este bloque cierra. */
   let opcion;
-  if (avm > AVM_MODERADA_MAX) opcion = 'leve';
+  /* ⚠️ EL PISO VA PRIMERO. Debajo de él la cascada es la de siempre —1,5 y 2,5 sin tocar—; lo
+     único nuevo es que un área sana ya no entra a la escalera de estenosis. El `<select>` ya
+     tenía la opción «Sin estenosis», así que no hace falta inventar un grado. */
+  if (avmEsNormal(avm)) opcion = 'sin';
+  else if (avm > AVM_MODERADA_MAX) opcion = 'leve';
   else if (avm > AVM_SEVERA_MAX) opcion = 'moderada';
   else opcion = 'severa';
   sel.value = opcion;
-  if (badgeEl) badgeEl.textContent = `Sugerido por THP (AVm ${avm.toFixed(2)} cm²) — editable manualmente.`;
+  if (badgeEl) badgeEl.textContent = avmEsNormal(avm)
+    ? `AVm ${avm.toFixed(2)} cm² por THP — dentro del rango normal (>=${AVM_NORMAL_MIN} cm²). Sin estenosis.`
+    : `Sugerido por THP (AVm ${avm.toFixed(2)} cm²) — editable manualmente.`;
 }
 window.sugerirSeveridadEM = sugerirSeveridadEM;
 
@@ -20076,11 +20129,16 @@ function calcEM() {
      misma medición expresada de dos formas. Votando las dos, un THP de 180 ms sumaba a la vez
      «severa» (por AVm = 1,22) y «moderada» (por el umbral viejo de ≥220), o sea que una sola
      medición se contaba dos veces y en contra de sí misma. Ver el bloque de AVM_SEVERA_MAX. */
-  let scores = { leve:0, moderada:0, severa:0 };
+  let scores = { sin:0, leve:0, moderada:0, severa:0 };
   let params = [];
 
   const clasificarAVm = (avm, fuente) => {
     if (!avm) return;
+    /* ⚠️ UN ÁREA NORMAL NO VOTA UN GRADO DE ESTENOSIS, PERO SÍ SE REGISTRA. Si no se registrara,
+       desaparecería de la línea de discordancia y el médico perdería de vista que hay un área
+       sana conviviendo con, por ejemplo, un gradiente medio alto — que es justo el caso donde la
+       discordancia importa. Vota a `sin`, que NO está en la escalera de severidad. */
+    if (avmEsNormal(avm))          { scores.sin++;      params.push({p:`AVm(${fuente})`, sev:'sin'}); return; }
     if (avm > AVM_MODERADA_MAX)    { scores.leve++;     params.push({p:`AVm(${fuente})`, sev:'leve'}); }
     else if (avm > AVM_SEVERA_MAX) { scores.moderada++; params.push({p:`AVm(${fuente})`, sev:'moderada'}); }
     else                           { scores.severa++;   params.push({p:`AVm(${fuente})`, sev:'severa'}); }
@@ -20113,12 +20171,33 @@ function calcEM() {
   }
 
   let sev, color, gradoStr;
+  /* ⚠️ LA ÚLTIMA RAMA ES EXPLÍCITA, y antes el `else` mudo era «Leve»: con el piso puesto, un
+     estudio cuyo único parámetro es un AVm normal no tiene ningún voto de leve/moderada/severa y
+     ese `else` lo habría rotulado «Leve» igual — el defecto entrando por la puerta de atrás.
+     Es la misma corrección que este archivo ya hizo en `epGradoPorGmax`: lo no clasificable no
+     cae en ninguna banda. */
   if (scores.severa >= 1) {
     sev = 'Severa'; color = 'var(--red)'; gradoStr = 'severa';
   } else if (scores.moderada >= 1) {
     sev = 'Moderada'; color = '#f59e0b'; gradoStr = 'moderada';
-  } else {
+  } else if (scores.leve >= 1 && scores.sin === 0) {
     sev = 'Leve'; color = '#3ecf8e'; gradoStr = 'leve';
+  } else if (scores.leve >= 1) {
+    /* ⚠️ UN ÁREA EXPLÍCITAMENTE NORMAL NO SE VUELVE «LEVE» POR EL GRADIENTE. La escala del
+       gradiente medio tiene la MISMA primera rama abierta que tenía la del área —`gm < 5` es el
+       cajón de sastre de todo lo chico—, así que un gradiente mitral NORMAL de 3 mmHg vota «leve»
+       y, al ganar en esta escalera, devolvía el informe a «estenosis leve» sobre la misma válvula
+       sana que el piso acababa de declarar normal. Medido: THP 53 (AVm 4,15 → sin) + Gmedio 3 →
+       `em_grado = 'leve'`. O sea: el defecto del pedido volvía entero por el parámetro de al lado.
+       Lo cazó `/sharp-edges`.
+       ⚠️ NO SE LE INVENTA UN PISO AL GRADIENTE: eso sería un umbral clínico nuevo y el pedido lo
+       prohíbe. Lo que se hace es leer el pedido al pie —«con área ≥4 cm² el RESULTADO debe ser
+       normal»—: un voto de «leve» no alcanza para contradecir un área normal. Un voto de moderada
+       o severa SÍ la contradice y gana, que es el caso clínicamente importante y sigue intacto:
+       las dos ramas de arriba corren primero. */
+    sev = 'Sin estenosis'; color = '#3ecf8e'; gradoStr = 'sin';
+  } else {
+    sev = 'Sin estenosis'; color = '#3ecf8e'; gradoStr = 'sin';
   }
 
   if (sevEl)  sevEl.innerHTML = `<span style="color:${color};font-weight:700;">${sev}</span> <span style="font-weight:400;color:var(--text2);font-size:10px;">${params.map(p=>p.p+':'+p.sev).join(' · ')}</span>`;
@@ -20133,7 +20212,13 @@ function calcEM() {
   if (discEl) discEl.textContent = sevs.length > 1 ? '⚠️ Parámetros discordantes — revisar integración clínica: ' + params.map(p=>`${p.p}:${p.sev}`).join(', ') : '';
 
   const badgeEl = document.getElementById('em-thp-badge');
-  if (badgeEl && params.length > 0) badgeEl.textContent = `Clasificación integrada sugerida: ${sev}. El grado final es editable.`;
+  /* ⚠️ ESTE BADGE PISA AL DE `sugerirSeveridadEM`, que corre 130 líneas antes sobre el MISMO
+     nodo: el mensaje que explicaba el rango normal no se veía NUNCA, porque con THP cargado
+     `params` nunca está vacío. Era justo la superficie que le explica al médico por qué un área
+     de 4,15 dejó de decir «leve». Se dice acá, que es el único badge que sobrevive. */
+  if (badgeEl && params.length > 0) badgeEl.textContent = (gradoStr === 'sin')
+    ? `AVm dentro del rango normal (>=${AVM_NORMAL_MIN} cm²) — sin estenosis. El grado final es editable.`
+    : `Clasificación integrada sugerida: ${sev}. El grado final es editable.`;
 }
 function usarTSVIenEM(val) {
   setv('em_dtsvi', val);
@@ -20453,7 +20538,7 @@ function calcEADetalle() {
          Vmax <3,0. Dos predicados distintos para la misma pregunta clínica siempre terminan
          discrepando en la banda que nadie probó. */
       if (avaEsSevera(ava) && vmax < 4.0 && gradNoSevero) {
-        eaAdvBajoGrad = '⚠️ Posible estenosis aórtica de bajo gradiente: AVA <1.0 cm² con Vmax/gradiente ' +
+        eaAdvBajoGrad = '⚠️ Posible estenosis aórtica de bajo gradiente: AVA ≤' + AVA_SEVERA_MAX.toFixed(1) + ' cm² con Vmax/gradiente ' +
           'en rango moderado. Considerar flujo, AVAi, DVI y contexto clínico para clasificación definitiva.';
         sev = 'Severa por AVA ⚠️ bajo gradiente';
         color = 'var(--red)';
@@ -20605,8 +20690,8 @@ function calcAo() {
     setv('ava_cont', ava);
     let sev;
     if (PF(ava) >= 1.5) sev = badge('green', 'Sin estenosis / leve (≥1.5cm²)');
-    else if (avaEsModerada(PF(ava))) sev = badge('yellow', 'Moderada (' + AVA_SEVERA_MAX.toFixed(1) + '-1.49cm²)');
-    else if (avaEsSevera(PF(ava))) sev = badge('red', 'Severa (<' + AVA_SEVERA_MAX.toFixed(1) + 'cm²)');
+    else if (avaEsModerada(PF(ava))) sev = badge('yellow', 'Moderada (>' + AVA_SEVERA_MAX.toFixed(1) + '-1.49cm²)');
+    else if (avaEsSevera(PF(ava))) sev = badge('red', 'Severa (≤' + AVA_SEVERA_MAX.toFixed(1) + 'cm²)');
     /* El `else` incondicional mandaba a «Severa» todo AVA <= 0: con un TSVI tipeado 0,5 el
        badge salía rojo «Severa» al lado de un AVA de 0.00, mientras sugerirSeveridadEA —dos
        líneas más abajo— se abstenía correctamente. Las dos mitades del mismo cálculo,
@@ -20690,7 +20775,11 @@ function clasificarEA_Vmax() {
 
   // Con AVA disponible, sólo asignar grado por Vmax si AVA y Vmax son concordantes.
   if (ava !== null) {
-    const avaModerada  = ava >= AVA_SEVERA_MAX && ava < 1.5;
+    /* ⚠️ POR EL PREDICADO COMPARTIDO Y NO POR UNA COPIA DE LA BANDA. Era la CUARTA escritura del
+       mismo corte —`>= AVA_SEVERA_MAX`— y al mover el borde a `≤` se quedaba atrás: un AVA de
+       1,00 pasaba a ser severa arriba y seguía contando como moderada acá, o sea que la
+       concordancia AVA/Vmax se evaluaba contra una banda que ya no existía. */
+    const avaModerada  = avaEsModerada(ava);
     const avaLeveMenos = ava >= 1.5;
     const velModerada  = vmax >= 3.0 && vmax < 4.0;
     const velLeveMenos = vmax < 3.0;
@@ -23426,9 +23515,20 @@ function generarInforme(opts) {
        cambiarles el comportamiento tocaría informes existentes — queda declarado, no hecho. */
     if (Object.prototype.hasOwnProperty.call(VALV_MORF_ETIOL, String(vmMorf).trim())) ccMarcarParrafo();
     const emDesc = emG && emG !== 'sin' ? emG.toLowerCase() : null;
-    const estE = emDesc ? `estenosis ${emDesc}` : (pillOn('mitral','esten') ? 'estenosis' : null);
+    /* ⚠️ `'sin'` ES UNA RESPUESTA, NO UN HUECO. La píldora sólo aporta la palabra «estenosis»
+       cuando el campo NO dice nada; con `em_grado = 'sin'` el cuerpo publicaba «Válvula mitral,
+       con estenosis» y el EN SUMA «Estenosis mitral.» sobre una válvula que el propio clasificador
+       acababa de declarar normal.
+       Esta rama era casi inalcanzable antes del piso —con cualquier medición el grado caía en
+       leve/moderada/severa— y el piso la volvió alcanzable JUSTO en el caso que vino a arreglar. Y
+       es el flujo obligatorio al reabrir un estudio, porque `limpiarCampos` borra las píldoras y
+       el médico las vuelve a abrir. Lo cazó `/sharp-edges`.
+       De paso desmiente al comentario de `toggleValvPill` —«el informe se arma desde el campo, no
+       desde el botón»—, que era falso exactamente por estas líneas. */
+    const emSinExplicito = emG === 'sin';
+    const estE = emDesc ? `estenosis ${emDesc}` : ((!emSinExplicito && pillOn('mitral','esten')) ? 'estenosis' : null);
     const insE = (imG > 0) ? `insuficiencia ${imTxt[imG]}` : (pillOn('mitral','insuf') ? 'insuficiencia' : null);
-    const estC = emDesc ? `EM ${emDesc}` : (pillOn('mitral','esten') ? 'estenosis' : null);
+    const estC = emDesc ? `EM ${emDesc}` : ((!emSinExplicito && pillOn('mitral','esten')) ? 'estenosis' : null);
     const insC = (imG > 0) ? `IM ${imTxt[imG]}` : (pillOn('mitral','insuf') ? 'insuficiencia' : null);
     if (emDesc) suma.push(`EM ${emDesc}.`); else if (estE) suma.push('Estenosis mitral.');
     if (imG > 0) suma.push(`IM ${imTxt[imG]}.`); else if (insE) suma.push('Insuficiencia mitral.');
@@ -28828,7 +28928,7 @@ function generarPDFReal(_aj) {
       {lbl:'Ø TSVI',    ref:'', val:v('diam_tsvi')?v('diam_tsvi')+' mm':null},
     ]},
     {titulo:'AVA / GC / IC', items:[
-      {lbl:'AVA',         ref:'(>1.5 / 1.0–1.5 / <1.0) cm²', val:avaC?avaC+' cm2':null},
+      {lbl:'AVA',         ref:'(>1.5 / >' + AVA_SEVERA_MAX.toFixed(1) + '–1.49 / ≤' + AVA_SEVERA_MAX.toFixed(1) + ') cm²', val:avaC?avaC+' cm2':null},
       {lbl:'AVA idx',     ref:'<0.6 cm2/m2', val:avaIdx},
       {lbl:'Vol. sistól.',ref:'55-100 ml',    val:v('vs_calc')?v('vs_calc')+' ml':null},
       /* VLI: el informe lo cita para decidir entre «paradojal» y «flujo normal», así que el
@@ -28886,7 +28986,7 @@ function generarPDFReal(_aj) {
     {titulo:'Válvula Aórtica', items:[
       {lbl:'Morf.',         ref:'', val:sv('va_morf')||null},
       {lbl:'EA grado',      ref:'', val:eaReal?_cap(sv('ea_grado')):null},
-      {lbl:'AVA',           ref:'(>1.5 / 1.0–1.5 / <1.0) cm²', val:eaReal&&avaC?avaC+' cm2':null},
+      {lbl:'AVA',           ref:'(>1.5 / >' + AVA_SEVERA_MAX.toFixed(1) + '–1.49 / ≤' + AVA_SEVERA_MAX.toFixed(1) + ') cm²', val:eaReal&&avaC?avaC+' cm2':null},
       {lbl:'V. max',        ref:'(<3 / 3–4 / >4) m/s', val:eaReal&&v('vmax_ao')?v('vmax_ao')+' m/s':null},
       {lbl:'G. medio',      ref:'(<20 / 20–40 / >40) mmHg', val:eaReal&&v('gmedio_ao')?v('gmedio_ao')+' mmHg':null},
       {lbl:'IAo',           ref:'', val:iaG?GT[iaG]:null},
@@ -34533,8 +34633,12 @@ function _indEA(){
   filas.push(UA == null ? _indSinUmbral('AVA por continuidad')
     : _indFila('AVA por continuidad', _indNum(ava, 2, 'cm²'),
         avaSev ? 'ok' : (avaMod ? 'warn' : (ava != null ? 'none' : 'ask')),
-        avaSev ? 'menor que ' + _indNum(UA, 1) + ' cm² — criterio de estenosis severa'
-        : avaMod ? _indNum(UA, 1) + '–1,49 cm² — moderada'
+        /* ⚠️ «≤» Y NO «menor que»: el predicado es `avaEsSevera`, que desde el 2026-09-25 incluye el
+       1,00 exacto. Con el texto viejo la fila imprimía «menor que 1,0 cm²» sobre un AVA de
+       exactamente 1,00 — y la nota de este mismo panel dice que ese valor se clasifica severa.
+       Se imprime el operador que aplica el código, no uno aproximado. */
+    avaSev ? '≤ ' + _indNum(UA, 1) + ' cm² — criterio de estenosis severa'
+        : avaMod ? '> ' + _indNum(UA, 1) + ' y < 1,5 cm² — moderada'
         : ava != null ? 'no alcanza el criterio de severidad'
         : 'no calculada — requiere Ø y VTI del TSVI y VTI aórtico'));
   filas.push(_indFila('Gradiente medio', _indNum(gm, 0, 'mmHg'),
@@ -34561,7 +34665,7 @@ function _indEA(){
     guia: 'ESC/EACTS 2021 — La INTERVENCIÓN es Clase I B en el paciente sintomático con estenosis aórtica severa de alto gradiente (gradiente medio ≥ 40 mmHg, Vmax ≥ 4,0 m/s y AVA ≤ 1,0 cm² o ≤ 0,6 cm²/m²).',
     notas: [
       'La MODALIDAD es una decisión aparte y no es intercambiable: SAVR Clase I B en menores de 75 años con riesgo quirúrgico bajo (STS-PROM/EuroSCORE II < 4 %); TAVI Clase I A desde los 75 años, o con riesgo alto (> 8 %) o no operables.',
-      'La guía define el criterio de área como AVA ≤ 1,0 cm² y esta app la clasifica con < 1,0 (constante AVA_SEVERA_MAX): un AVA de exactamente 1,00 cm² alcanza el criterio de la guía y la app lo rotula moderado. No se cambió el clasificador desde este panel porque gobierna el informe firmado.',
+      'El criterio de área de la guía —AVA ≤ 1,0 cm²— y el de la app coinciden desde el 2026-09-25: un AVA de exactamente 1,00 cm² se clasifica SEVERA (constante AVA_SEVERA_MAX). Hasta esa fecha la app usaba < 1,0 y lo rotulaba moderado; un informe anterior reimpreso hoy puede cambiar de grado en ese borde.',
       'Los tres criterios pueden discordar, y el patrón de bajo flujo y bajo gradiente no se cierra con estos tres números. La app señala la discordancia en la propia tarjeta de estenosis aórtica.',
       'La ESC/EACTS 2025 reemplaza a la de 2021 y mueve el corte de edad de la modalidad de 75 a 70 años.'
     ] };
@@ -75337,8 +75441,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260925-1628';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790364495625;                 /* eco-build-ms */
+const ECO_BUILD    = '20260925-1706';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790366763793;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -75424,7 +75528,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-1628</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-1706</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

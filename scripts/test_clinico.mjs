@@ -10093,6 +10093,150 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
   })();
 `);
 
+caso('TC-261', 'Severidad valvular: la AVA de 1,00 es SEVERA, y un AVm sano deja de ser «estenosis leve»', `
+  return (async () => {
+    if (typeof avaEsSevera !== 'function' || typeof sugerirSeveridadEM !== 'function')
+      return { extra:[['existen los clasificadores', false, 'faltan avaEsSevera o sugerirSeveridadEM']] };
+    const _manualPrev = window.esqSevManual;
+    try {
+      showTab('doppler');
+      await new Promise(r => setTimeout(r, 200));
+      window.esqSevManual = {};      // el grado fijado a mano gana; acá se mide el AUTOCALCULO
+
+      /* ══ TAREA 1 — EL BORDE DE LA ESTENOSIS AORTICA ══
+         La guia define el criterio de area como «AVA <= 1,0 cm²». La app clasificaba con «< 1,0»,
+         que EXCLUYE el borde: un area de exactamente 1,00 —alcanzable, el AVA se guarda con
+         toFixed(2)— alcanzaba el criterio de la guia y salia rotulada MODERADA en el informe
+         firmado. El propio panel de Indicaciones lo tenia declarado como hallazgo abierto. */
+      const ea = a => avaEsSevera(a) ? 'severa' : (avaEsModerada(a) ? 'moderada' : 'otra');
+      const ea099 = ea(0.99), ea100 = ea(1.0), ea101 = ea(1.01), ea149 = ea(1.49), ea150 = ea(1.5);
+      /* Las dos bandas se mueven JUNTAS o el 1,00 cae en las DOS a la vez — que es el defecto que
+         este archivo ya pago una vez, con los rotulos contradiciendose en la misma pantalla. */
+      const sinSolape = [0.5, 0.99, 1.0, 1.01, 1.2, 1.49, 1.5, 2.0]
+        .every(a => !(avaEsSevera(a) && avaEsModerada(a)));
+      /* Y sigue fallando CERRADO: un AVA no positivo no cae en ninguna banda. */
+      const fallaCerrado = [null, '', 0, -1, 'abc', NaN]
+        .every(a => !avaEsSevera(a) && !avaEsModerada(a));
+
+      /* ══ TAREA 2 — EL PISO DE NORMALIDAD DE LA ESTENOSIS MITRAL ══
+         Caso EXACTO del pedido: onda E 70,4 · onda A 80 · THP 53 ms. Hatle da 220/53 = 4,15 cm²,
+         que es una valvula mitral SANA (rango 4–6), y el badge decia «Estenosis mitral leve». */
+      const set = (id, val) => { const e = document.getElementById(id); if (e) e.value = val; };
+      ['em_vmax','em_gmedio','avm_plan','avm_ete','em_dtsvi','em_vtitsvi','em_vtimit']
+        .forEach(id => set(id, ''));
+      set('onda_e', 70.4); set('onda_a', 80); set('thp', 53);
+      if (typeof calcTHP === 'function') calcTHP();
+      const avmCaso = document.getElementById('avm_thp').value;
+      const gradoCaso = document.getElementById('em_grado').value;
+      const badgeCaso = document.getElementById('em-thp-badge').textContent;
+      const integradaCaso = document.getElementById('em-sev-integrada').textContent;
+
+      /* El piso y sus bordes. El pedido pide declarar con que valor EXACTO arranca: es 4,00. */
+      const em = a => { sugerirSeveridadEM(a); return document.getElementById('em_grado').value; };
+      const p398 = em(3.98), p399 = em(3.99), p400 = em(4.0), p415 = em(4.15), p600 = em(6.0);
+
+      /* ⚠️ LOS CORTES INTERNOS NO SE TOCARON, y el pedido lo pidio explicito. Esta condicion es la
+         que se pone roja si alguien «aprovecha» para moverlos. */
+      const c14 = em(1.4), c15 = em(1.5), c151 = em(1.51), c24 = em(2.4), c25 = em(2.5),
+            c251 = em(2.51), c390 = em(3.9);
+      const cortesIntactos = c14 === 'severa' && c15 === 'severa' && c151 === 'moderada' &&
+                             c24 === 'moderada' && c25 === 'moderada' && c251 === 'leve' &&
+                             c390 === 'leve';
+
+      /* ── LA ESCALERA FINAL DEL SCORE INTEGRADO ── con el piso puesto, un estudio cuyo unico
+         parametro es un AVm normal no tiene ningun voto de leve/moderada/severa. El 'else' mudo
+         que habia lo habria rotulado «Leve» igual: el defecto entrando por la puerta de atras. */
+      ['em_vmax','em_gmedio','avm_plan','avm_ete','em_dtsvi','em_vtitsvi','em_vtimit']
+        .forEach(id => set(id, ''));
+      set('thp', 53);
+      if (typeof calcEM === 'function') calcEM();
+      const soloAreaNormal = document.getElementById('em-sev-integrada').textContent;
+
+      /* ── UN AREA NORMAL NO BORRA UN GRADIENTE SEVERO ── el area no vota, pero el gradiente si,
+         y la discordancia tiene que seguir viendose: es el caso donde mas importa. */
+      set('em_gmedio', 12);
+      if (typeof calcEM === 'function') calcEM();
+      const conGradSevero = document.getElementById('em-sev-integrada').textContent;
+      const discord = document.getElementById('em-discordancia').textContent;
+      set('em_gmedio', '');
+
+      /* ⚠️ EL DEFECTO VOLVIA ENTERO POR EL GRADIENTE. La escala del gradiente medio tiene la MISMA
+         primera rama abierta que tenia la del area —'gm < 5' es el cajon de sastre de todo lo
+         chico—, asi que un gradiente mitral NORMAL de 3 mmHg vota 'leve' y ganaba en la escalera:
+         el informe volvia a decir «estenosis leve» sobre la valvula sana que el piso acababa de
+         declarar normal. Un voto de leve no alcanza para contradecir un area explicitamente
+         normal; uno de moderada o severa SI, y ese caso tiene que seguir intacto. */
+      set('em_gmedio', 3);
+      if (typeof calcEM === 'function') calcEM();
+      const gradNormal = document.getElementById('em_grado').value;
+      set('em_gmedio', 7);
+      if (typeof calcEM === 'function') calcEM();
+      const gradModerado = document.getElementById('em_grado').value;
+      set('em_gmedio', 12);
+      if (typeof calcEM === 'function') calcEM();
+      const gradSevero = document.getElementById('em_grado').value;
+      set('em_gmedio', '');
+      if (typeof calcEM === 'function') calcEM();
+      /* El badge tiene que EXPLICAR por que no hay grado: el mensaje vivia en una funcion cuyo
+         texto pisaba 'calcEM' 130 lineas despues, asi que no se veia nunca. */
+      const badgeFinal = document.getElementById('em-thp-badge').textContent;
+      /* Y el predicado del AVm tiene que tener el mismo endurecimiento que el de la AVA: con
+         'Number()' pelado, un '4,15' con COMA daba NaN y la cascada lo mandaba a SEVERA. */
+      const parserOk = avmEsNormal('4,15') === true && avmEsNormal(-5) === false &&
+                       avmEsNormal('') === false && avmEsNormal(4) === true;
+
+      /* El valor que escribe el <select> tiene que EXISTIR en el <select>. */
+      const opciones = Array.from(document.getElementById('em_grado').options).map(o => o.value);
+      const sinEsOpcion = opciones.indexOf('sin') >= 0;
+
+      return { extra: [
+        ['un AVA de 0,99 es severa', ea099 === 'severa', ea099],
+        ['UN AVA DE 1,00 EXACTO ES SEVERA', ea100 === 'severa', '1.00 → ' + ea100],
+        ['  y 1,01 es moderada', ea101 === 'moderada', '1.01 → ' + ea101],
+        ['  y 1,49 sigue moderada', ea149 === 'moderada', '1.49 → ' + ea149],
+        ['  y 1,50 ya no es moderada', ea150 === 'otra', '1.50 → ' + ea150],
+        ['las dos bandas NO se solapan en ningun valor', sinSolape, ''],
+        ['y siguen fallando CERRADO ante vacio, cero y negativo', fallaCerrado, ''],
+        ['DENOMINADOR: el caso del pedido da 4,15 cm² por Hatle', avmCaso === '4.15', 'avm=' + avmCaso],
+        ['ESE CASO YA NO DICE «LEVE»', gradoCaso === 'sin', 'grado=' + gradoCaso],
+        ['  y el badge lo dice con palabras', badgeCaso.indexOf('Sin estenosis') >= 0 ||
+          badgeCaso.indexOf('normal') >= 0, badgeCaso.slice(0, 80)],
+        ['  y la clasificacion integrada tambien', integradaCaso.indexOf('Sin estenosis') >= 0,
+          integradaCaso.slice(0, 60)],
+        ['el piso arranca en 4,00 EXACTOS', p399 === 'leve' && p400 === 'sin',
+          '3.99 → ' + p399 + ' · 4.00 → ' + p400],
+        ['  3,98 sigue dando un grado', p398 === 'leve', '3.98 → ' + p398],
+        ['  y todo lo mayor es normal', p415 === 'sin' && p600 === 'sin',
+          '4.15 → ' + p415 + ' · 6.00 → ' + p600],
+        ['LOS CORTES INTERNOS NO SE MOVIERON', cortesIntactos,
+          '1.4=' + c14 + ' 1.5=' + c15 + ' 1.51=' + c151 + ' 2.4=' + c24 + ' 2.5=' + c25 +
+          ' 2.51=' + c251 + ' 3.9=' + c390],
+        ['con SOLO un area normal, el score no cae en «Leve»', soloAreaNormal.indexOf('Sin estenosis') >= 0,
+          soloAreaNormal.slice(0, 60)],
+        ['un gradiente severo SIGUE pesando aunque el area sea normal',
+          conGradSevero.indexOf('Severa') >= 0, conGradSevero.slice(0, 60)],
+        ['  y la discordancia se declara', discord.length > 0, discord.slice(0, 70)],
+        ['«sin» es una opcion real del selector', sinEsOpcion, opciones.join(',')],
+        ['un gradiente NORMAL no devuelve el informe a «leve»', gradNormal === 'sin', 'grado=' + gradNormal],
+        ['  pero uno MODERADO si contradice al area', gradModerado === 'moderada', 'grado=' + gradModerado],
+        ['  y uno SEVERO tambien', gradSevero === 'severa', 'grado=' + gradSevero],
+        ['el badge EXPLICA por que no hay grado', badgeFinal.indexOf('rango normal') >= 0,
+          badgeFinal.slice(0, 60)],
+        ['el predicado del AVm acepta coma y rechaza negativo', parserOk,
+          'coma=' + avmEsNormal('4,15') + ' neg=' + avmEsNormal(-5)]
+      ] };
+    } finally {
+      window.esqSevManual = _manualPrev;
+      try { ['onda_e','onda_a','thp','em_vmax','em_gmedio','avm_plan','avm_ete',
+             'em_dtsvi','em_vtitsvi','em_vtimit'].forEach(id => {
+        const e = document.getElementById(id); if (e) e.value = ''; }); } catch (e) {}
+      try { if (typeof calcTHP === 'function') calcTHP(); } catch (e) {}
+      try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+  })();
+`);
+
 caso('TC-260', 'Vena pulmonar: los cuatro campos en la grilla, los tres cortes exactos, y el rojo SOLO en el valor', `
   return (async () => {
     if (typeof venpArA !== 'function' || typeof calcVenaPulm !== 'function')
