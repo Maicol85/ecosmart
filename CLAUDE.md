@@ -112,7 +112,26 @@ en su comentario. Las proyecciones **no van al PDF por ningún camino** —verif
   el fondo. Antes fallaba en los dos temas; ahora falla en uno solo, que es **más difícil de
   notar**. Un `@media print` sobre `--ete-traza` arregla las cuatro proyecciones y deja la vista
   quirúrgica igual de invisible, porque aquélla dibuja con `var(--text)`: el arreglo entero es otra
-  tarea. La salida real de la app es jsPDF, que no pasa por ahí.
+  tarea.
+
+  **⚠️ NO TOCA AL INFORME CLÍNICO, y está MEDIDO, no razonado.** Es exclusivo del Ctrl+P del
+  navegador sobre la página cruda — que además nunca fue una forma de emitir un informe: el
+  comentario de `generarPDFReal` dice que `window.print()` se descartó porque «capturaba la
+  interfaz entera», y la única aparición de `window.print` en el archivo **es ese comentario**.
+  Lo verificado, con el estudio cargado y tres lesiones sembradas:
+
+  | | |
+  |---|---|
+  | las cuatro proyecciones en el PDF | **no entran por ningún camino**: fuera de su declaración, lo único que las nombra es la regla `.ete-proy` — cero lectores en JS |
+  | el único diagrama del ETE que llega al papel | la **vista quirúrgica**, por `eteQxDataURL` |
+  | ese PNG en los dos temas | **byte por byte idéntico** (huella `48aad5e2`, 67.734 caracteres) — lo dibuja un canvas con fondo `#ffffff` y tinta `#1f2937` cableados, y los colores de lesión salen de `ETE_FILL`/`ETE_STROKE`, que son hex fijos |
+  | el PDF entero en los dos temas | **2.429.400 bytes idénticos**; lo único que difiere es el `/ID` del trailer |
+  | control | **dos PDF del MISMO tema también difieren en ese `/ID`** — o sea que la diferencia es del identificador de archivo, no del tema |
+
+  **Ojo al repetir esta medición:** buscar los bytes del PNG dentro del PDF da **falso negativo**,
+  porque jsPDF re-comprime la imagen. Con eso salía `qxDentroDelPDF: false` sobre un PDF que sí la
+  llevaba, y «los dos temas dan igual» habría sido igualdad de ausencia. Lo que sirve es
+  interceptar `addImage` y comparar el dataURL que recibe.
 - **`currentColor` no sobrevive a serializar el SVG suelto.** Hoy nadie lo hace, pero `_svgToPng`
   es el patrón que alguien copiaría para meter las proyecciones en el PDF. Y ojo: las cuatro
   comparten ids de glifo, así que extraer **una sola** pierde las letras, que viven en la de 4
