@@ -17711,7 +17711,15 @@ function vexusRefrescarInforme() {
        declara que sin base los refrescos silenciosos quedan inertes hasta que el médico apriete
        «Generar Informe», que es exactamente lo que «cancelar» quiere decir — «este texto es mío».
 */
-function _refrescarInformeSiGenerado() {
+/* ⚠️ UN SOLO DUEÑO DE LA GUARDA. La comparten los TRES refrescos silenciosos de la app —VEXUS,
+   los dos de Pericardio y amiloidosis—, y no es una abstracción de más: `amiloRefrescarInforme`
+   era una copia byte por byte de esta función, así que el arreglo se aplicó a dos de los tres y
+   el tercero siguió pisando el texto sin avisar hasta que alguien lo notó. Duplicar el cuerpo es
+   exactamente cómo se pierde un invariante en este archivo.
+   `motivo` es lo único que cambia: VEXUS y Pericardio cuelgan de un `onchange` —«cambió un
+   dato»— y amiloidosis de los botones Integrar/Retirar, que son un gesto del médico. Decirle
+   «cambió un dato» a quien acaba de apretar un botón describe mal lo que pasó. */
+function _infRefrescarConAviso(motivo) {
   const ta = document.getElementById('informe_texto');
   if (!(ta && String(ta.value || '').trim() && typeof generarInforme === 'function')) return;
   if (!_infBaseAjena()) { generarInforme({ silencioso: true }); return; }
@@ -17727,8 +17735,8 @@ function _refrescarInformeSiGenerado() {
      y el informe no cambie— a cambio de no tocar nada antes de tener la respuesta. */
   const ok = (typeof confirm === 'function')
     ? confirm('Este informe se guardó con una versión anterior de la app, así que no se puede ' +
-              'distinguir qué líneas escribiste a mano.\n\nCambió un dato que el informe ' +
-              'menciona. Rehacerlo REEMPLAZA el texto actual.\n\n¿Rehacer el informe?')
+              'distinguir qué líneas escribiste a mano.\n\n' + motivo +
+              ' Rehacerlo REEMPLAZA el texto actual.\n\n¿Rehacer el informe?')
     : false;   /* sin `confirm` el default es el CONSERVADOR: no pisar. */
   _infBaseDelDOM = null;                      // se preguntó: la base deja de ser «ajena»
   if (ok) { generarInforme({ silencioso: true }); return; }
@@ -17739,6 +17747,11 @@ function _refrescarInformeSiGenerado() {
   if (typeof toast === 'function')
     toast('El informe no se actualizará solo — usá «Generar Informe» cuando quieras rehacerlo');
 }
+
+function _refrescarInformeSiGenerado() {
+  _infRefrescarConAviso('Cambió un dato que el informe menciona.');
+}
+window._infRefrescarConAviso = _infRefrescarConAviso;
 window._refrescarInformeSiGenerado = _refrescarInformeSiGenerado;
 window.vexusRefrescarInforme = vexusRefrescarInforme;
 
@@ -42711,9 +42724,13 @@ window.amiloToggle = amiloToggle;
 // Integrar o retirar cambia lo que corresponde escribir en el informe (por
 // ejemplo la exclusión mutua de Eco Pulmonar, o las conclusiones de HTP y TEP).
 // Si el informe ya estaba generado hay que rehacerlo, si no queda el texto viejo.
+/* ⚠️ ERA UNA COPIA BYTE POR BYTE de `_refrescarInformeSiGenerado`, y por eso se quedó afuera
+   cuando ese camino aprendió a no pisar el texto escrito a mano de un estudio reabierto: el
+   arreglo entró por VEXUS y Pericardio y amiloidosis siguió borrándolo callada. Medido. Ahora
+   comparten la guarda; lo único propio es el motivo, porque acá el disparador es un botón que el
+   médico apretó y no un campo que cambió. */
 function amiloRefrescarInforme() {
-  const ta = document.getElementById('informe_texto');
-  if (ta && String(ta.value || '').trim() && typeof generarInforme === 'function') generarInforme({silencioso:true});
+  _infRefrescarConAviso('Integrar o retirar una sección cambia lo que corresponde escribir.');
 }
 window.amiloRefrescarInforme = amiloRefrescarInforme;
 
@@ -76110,8 +76127,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260925-2012';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790377953236;                 /* eco-build-ms */
+const ECO_BUILD    = '20260925-2029';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790378954405;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -76197,7 +76214,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-2012</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-2029</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

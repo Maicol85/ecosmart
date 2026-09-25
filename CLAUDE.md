@@ -6,7 +6,7 @@ ninguna es evidente leyendo el código alrededor.
 
 ## El refresco silencioso pisaba el texto de un estudio reabierto (2026-09-25)
 
-VEXUS y los dos módulos de Pericardio rehacen el informe cuando cambia un dato que el informe
+VEXUS, los dos módulos de Pericardio y amiloidosis rehacen el informe cuando cambia un dato que él
 menciona. Sobre un estudio **reabierto**, eso borraba sin una palabra lo que el médico había
 escrito a mano en la sesión anterior. Cubierto por **TC-265** (13 condiciones, 3 mutaciones).
 
@@ -90,14 +90,20 @@ el informe del paciente anterior.
   toast**, porque un automatismo apagado es indistinguible de uno sano.
 - Sin `confirm` disponible el default es **no pisar**. Estaba al revés.
 
-### Censo de los otros refrescos silenciosos
+### Los TRES refrescos silenciosos comparten UNA guarda
 
-Los disparadores de `generarInforme({silencioso:true})` son **dos**:
+`_infRefrescarConAviso(motivo)` es el único dueño. La llaman:
 
-- **`_refrescarInformeSiGenerado`** — VEXUS + los dos de Pericardio. Corregido acá.
-- **`amiloRefrescarInforme`** — amiloidosis, disparado por «Integrar» y «Retirar». **Tiene la
-  misma ruta destructiva y tampoco pregunta — medido**: sobre un estudio reabierto con texto
-  manual, lo borra callado. Fuera de alcance por pedido explícito; queda declarado.
+- **`_refrescarInformeSiGenerado`** — VEXUS + los dos de Pericardio, colgados de `onchange`.
+  Motivo: «Cambió un dato que el informe menciona.»
+- **`amiloRefrescarInforme`** — amiloidosis, disparado por los botones «Integrar» y «Retirar».
+  Motivo: «Integrar o retirar una sección cambia lo que corresponde escribir.» — decirle «cambió
+  un dato» a quien acaba de apretar un botón describe mal lo que pasó.
+
+**⚠️ AMILOIDOSIS ERA UNA COPIA BYTE POR BYTE, y por eso se quedó afuera del arreglo.** El cambio
+entró por VEXUS y Pericardio, y la tercera puerta siguió borrando el texto callada hasta que
+alguien la nombró. Medido antes y después. **Duplicar el cuerpo de una función es exactamente
+cómo se pierde un invariante en este archivo**: el que arregla toca las copias que conoce.
 
 `amiloRefrescarSiIntacto` **no** es el mismo patrón: sólo toca su propio `am-txt-<k>` y ya tiene
 su guarda (`_amiloUltimo[k]`, que sólo existe si ese texto lo generó la app en esta sesión).

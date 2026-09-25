@@ -10239,6 +10239,37 @@ caso('TC-265', 'La base del informe viaja con el estudio: el texto escrito a man
         if (!(typeof _infBaseAjena === 'function' && _infBaseAjena() === true)) corruptaOk = false;
       }
 
+      /* ══ 7ter · AMILOIDOSIS: la TERCERA puerta, que era una copia byte por byte ══
+         'amiloRefrescarInforme' tenia el cuerpo duplicado de '_refrescarInformeSiGenerado', asi
+         que el arreglo entro por VEXUS y Pericardio y esta se quedo afuera borrando el texto
+         callada. Ahora comparten la guarda, y esto lo fija. */
+      preparar(); await new Promise(r => setTimeout(r, 200));
+      T().value = T().value + NL + 'LINEA AMILO';
+      const g7 = await __t.guardar();
+      let amiloConserva = false, amiloNoPregunta = false, amiloRefresco = false;
+      if (g7.ok && g7.estudioId) {
+        __t.nuevoEstudio(); await new Promise(r => setTimeout(r, 150));
+        __t.reabrir(g7.estudioId); await new Promise(r => setTimeout(r, 400));
+        const antes7t = T().value;
+        window.confirm = (m) => { preguntas.push(String(m)); return true; };
+        preguntas = []; moverVexus(19); amiloRefrescarInforme();
+        await new Promise(r => setTimeout(r, 150));
+        amiloConserva = T().value.indexOf('LINEA AMILO') > -1;
+        amiloNoPregunta = preguntas.length === 0;
+        amiloRefresco = T().value !== antes7t;
+      }
+      /* Y sobre un estudio SIN base guardada tambien pregunta —con SU motivo, no el de un
+         campo que cambio: aca el disparador es un boton que el medico apreto—. */
+      preparar(); await new Promise(r => setTimeout(r, 200));
+      T().value = T().value + NL + 'LINEA AMILO VIEJA';
+      infBaseDesdeDOM();
+      window.confirm = (m) => { preguntas.push(String(m)); return false; };
+      preguntas = []; amiloRefrescarInforme();
+      await new Promise(r => setTimeout(r, 150));
+      const amiloViejoPregunta = preguntas.length === 1;
+      const amiloMotivoPropio = (preguntas[0] || '').indexOf('Integrar o retirar') > -1;
+      const amiloCancelaPreserva = T().value.indexOf('LINEA AMILO VIEJA') > -1;
+
       /* ══ 8 · EL REFRESCO NORMAL —base propia— sigue corriendo solo ══ */
       preparar(); await new Promise(r => setTimeout(r, 200));
       const antes8 = T().value;
@@ -10266,7 +10297,14 @@ caso('TC-265', 'La base del informe viaja con el estudio: el texto escrito a man
           victima ? (victima.id + ' = «' + String(victima.value).slice(0, 34) + '»') : 'no hay cc-txt'],
         ['un informe VACIO no cuenta como base ajena', vaciaNoEsAjena, ''],
         ['una base guardada CORRUPTA se ignora y se cae al DOM', corruptaOk,
-          'probadas=' + corruptas.length]
+          'probadas=' + corruptas.length],
+        ['AMILOIDOSIS: con la base guardada tampoco pisa', amiloConserva && amiloNoPregunta,
+          'conserva=' + amiloConserva + ' preguntas=' + (amiloNoPregunta ? 0 : 1)],
+        ['  DENOMINADOR: y el refresco igual corrio', amiloRefresco, ''],
+        ['  sin base guardada pregunta, y cancelar preserva',
+          amiloViejoPregunta && amiloCancelaPreserva, ''],
+        ['  con SU motivo, no el de un campo que cambio', amiloMotivoPropio,
+          (preguntas[0] || '').slice(0, 90)]
       ] };
     } finally {
       window.confirm = _cf;
