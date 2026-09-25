@@ -9,6 +9,44 @@ ninguna es evidente leyendo el código alrededor.
 ASE/EACVI 2016 (Nagueh, JASE 2016;29:277-314): Ar−A **≥30 ms** o velocidad de Ar **>35 cm/s**
 marcan presión de fin de diástole del VI elevada. Sirven para destapar una pseudonormalización.
 
+> **⚠️ SEGUNDA PASADA, EL MISMO DÍA — el diseño de pantalla se simplificó.** La primera versión
+> puso los cuatro campos en un panel lateral con título, botón ✕ y un enlace «+ Vena pulmonar»
+> para descubrirlo, con las alertas como oraciones rojas. Quedó más aparato del que la medición
+> justifica. **Hoy:** los cuatro campos son cuatro `.fg` más dentro de la misma `.grid-4` que TDE,
+> TRIV y THP —siempre visibles, sin contenedor propio— y los criterios viven como dos filas del
+> `.calc-box` gris que ya existía, con **rojo sólo en el valor y ninguna oración**. Se fueron
+> `venpAbrir`, `venpCerrar`, `venpSync` y `venpAlertas`. Las dos filas **nacen ocultas** y aparecen
+> con el dato, así que sin vena pulmonar el cuadro gris se ve como siempre.
+>
+> **Y se sumó E/e′ al mismo criterio de color.** El corte no es nuevo: la app ya clasifica con
+> `> 14`. **14,0 exactos NO se marcan.**
+>
+> **⚠️ PERO 14 NO ES EL ÚNICO CORTE DE E/e′ DEL ARCHIVO.** La rama de **fibrilación auricular** del
+> BSE 2024 vota con **`> 11`** —y el score de amiloidosis también—. Con `BSE 2024` + `FA`, dos
+> selects de este mismo bloque, un E/e′ de 12,5 cuenta como criterio POSITIVO y el 14 lo habría
+> dejado en negro: el color contradiciendo al veredicto que está dos renglones más abajo, en el
+> mismo cuadro. **Decisión: en esa rama no se pinta** —`eeCorteEs14()`—; ahí el badge ya publica la
+> conclusión integrada. Mi primer comentario decía «seis lugares usan > 14» y era falso: son
+> cuatro, más dos que usan 11. Lo cazó `/sharp-edges`.
+>
+> **⚠️ Y `calcDiastol` NO CORRÍA EN NINGUNA RUTA DE RESTAURACIÓN.** `#ee-val` lo escribe sólo esa
+> función, así que reabrir un estudio por «Editar» o por el QR dejaba el E/e′ en «—» mientras el
+> informe del mismo estudio publica 18,2. Es la cuarta instancia del defecto que TC-GR-13 ya
+> documentó para `psap-interp`, `sgl-interp` y `bsa-val` — **se destapó con el rojo**, porque la
+> fila de Ar−A, que lee los inputs, sí se pintaba al lado. Hoy `calcDiastol` está en las dos
+> listas, y el envoltorio arrastra el color solo.
+>
+> **En el PDF se conservó el título condicional «VM — Transmitral / Vena pulmonar»** (la decisión
+> que el pedido dejó a criterio). El motivo nunca fue espejar la pantalla: es que `Veloc. Ar` y
+> `Ar-A` salían bajo un encabezado que dice «Flujo transmitral». Y el argumento se **refuerza**:
+> en pantalla los rótulos dicen «Veloc. Ar pulmonar» completo, y el PDF los abrevia para entrar en
+> media columna — es justamente la superficie donde el encabezado hace más falta.
+>
+> **Queda declarado y sin corregir:** pantalla y PDF derivan el E/e′ distinto —el PDF redondea el
+> e′ promedio *antes* de dividir—, así que con `e_sep 7,0` / `e_lat 7,3` / `onda_e 100` la pantalla
+> da 13,99 y el papel 14,1. Es preexistente y tocarlo cambia lo que imprime un documento firmado;
+> lo señaló `/sharp-edges` y es el próximo a resolver si este marcador gana peso.
+
 ### ⚠️ `venp_`, NO `vp_` — SON DOS ESTRUCTURAS DISTINTAS
 
 `vp_vmax`, `vp_gmax` y `vp_morf` ya existían en esta misma pestaña y son la **válvula** pulmonar.
@@ -22,6 +60,7 @@ guía: **30 ms exactos SÍ alertan; 35 cm/s exactos NO.** Unificarlos mueve un b
 El **S/D pulmonar no dispara nada** — es informativo y se guarda como token (ver abajo).
 
 ### ⚠️ EL CERO NO ES UNA DURACIÓN, Y FALLABA HACIA AFIRMAR
+> (Sigue vigente con el layout nuevo: la guarda está en `venpArA`, no en el panel que se fue.)
 
 Con `venp_dur_a` en 0 —un campo empezado y no terminado— la resta daba la duración de Ar entera:
 una alerta roja «sugiere presión de fin de diástole del VI elevada» fabricada de la nada. Y en el
@@ -81,10 +120,10 @@ campo es nuevo y no hay un solo estudio guardado con el valor viejo.
   del Laboratorio borra los cuatro campos**. No es un olvido, es el alcance — pero conviene
   decidirlo, porque hoy la alerta roja que la pantalla pinta no existe en el informe firmado salvo
   como cinco números en una celda.
-- **La affordance «+ Vena pulmonar».** El pedido pide que la sub-columna aparezca sólo con datos
-  y que sin datos el bloque quede idéntico a hoy; las dos cosas juntas la hacen inalcanzable. Se
-  eligió el acceso más chico posible —un enlace de 11 px que no agrega ninguna fila—, pero es una
-  diferencia visual respecto de hoy. Si se quería otra cosa, es un ajuste de una línea.
+- ~~**La affordance «+ Vena pulmonar»**~~ — **RESUELTO en la segunda pasada del mismo día**: el
+  panel se eliminó y los campos son siempre visibles, así que la tensión entre «que aparezca sólo
+  con datos» y «que sea alcanzable» desapareció con él. Queda anotado porque la duda estaba bien
+  planteada y la resolución fue sacar la premisa, no elegir un lado.
 
 
 ## Laboratorio · el acordeón quedó en SEIS subtabs, no en ocho (2026-09-25)

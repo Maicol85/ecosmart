@@ -2854,16 +2854,13 @@ window.cerrarSesionReal = cerrarSesionReal;
           </select>
         </div>
       </div>
-      <!-- ⚠️ EL GRID DE SIEMPRE Y LA VENA PULMONAR VAN LADO A LADO, NO APILADOS (2026-09-25).
-           El pedido lo dice y la razón es la altura: en el PDF esta columna comparte fila con
-           «DTI mitral» (4 filas) y «Tricúspide / PSAP» (10), y en pantalla el bloque ya es el más
-           alto de la pestaña. Cinco campos más debajo lo estiraban otro tanto; al costado, el
-           bloque crece 0 px mientras la sub-columna esté oculta, que es el caso por defecto.
-           `flex` y no un `grid` de dos: con la sub-columna escondida el primer hijo ocupa el
-           100 % solo, sin una columna fantasma reservada — que es lo que hace que «sin datos, el
-           bloque queda idéntico a hoy» sea cierto y no aproximado. -->
-      <div style="display:flex;gap:14px;align-items:flex-start;">
-      <div class="grid-4" style="flex:1;min-width:0;">
+      <!-- ⚠️ LA VENA PULMONAR VIVE EN ESTA MISMA GRILLA, sin contenedor propio (2026-09-25,
+           segunda pasada). La primera versión la puso en un panel lateral con título, botón de
+           cerrar y un enlace «+ Vena pulmonar» para descubrirla; quedó más aparato del que la
+           medición justifica. Hoy son cuatro campos más, siempre visibles, con el mismo estilo
+           que TDE, TRIV y THP. Lo que se conserva de aquella ronda es todo lo que NO era diseño:
+           el prefijo `venp_`, el token del S/D y la guarda del cero. -->
+      <div class="grid-4">
         <div class="fg">
           <label>Onda E (cm/s)</label>
           <input type="number" id="onda_e" placeholder="cm/s" oninput="calcDiastol();cvrSync();" onchange="cvrCambio()">
@@ -2896,78 +2893,55 @@ window.cerrarSesionReal = cerrarSesionReal;
           <label>AVm por THP (cm²)</label>
           <input type="number" id="avm_thp" readonly>
         </div>
-      </div>
-
-      <!-- ⚠️ VENA PULMONAR — `venp_`, NO `vp_`. `vp_vmax`, `vp_gmax` y `vp_morf` ya existen en
-           esta misma pestaña y son la VÁLVULA pulmonar, otra estructura y otro Doppler. Dos
-           prefijos a un carácter de distancia para dos cosas distintas es cómo un valor termina
-           impreso bajo el rótulo del otro; acá se separan desde el nombre.
-           Los cuatro llevan `id`, y eso es a propósito: `guardarInforme` barre
-           `input[id], select[id], textarea[id]`, así que viajan con el estudio y `limpiarCampos`
-           los resetea al cambiar de paciente por el mismo camino. Ninguno matchea
-           `_noEsDelEstudio`, que es la única lista de exclusión. -->
-      <div id="venp-col" style="display:none;flex:0 0 190px;min-width:0;border-left:1px solid var(--border);padding-left:14px;">
-        <div style="font-size:.72rem;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
-          <span style="flex:1;">Vena pulmonar</span>
-          <button type="button" class="btn btn-ghost" style="padding:0 7px;font-size:10px;font-weight:600;"
-                  onclick="venpCerrar()" title="Ocultar esta sub-columna. Sólo se puede si no hay ningún dato cargado.">✕</button>
-        </div>
-        <div class="fg" style="margin-bottom:8px;">
+        <!-- ⚠️ VENA PULMONAR — `venp_`, NO `vp_`. `vp_vmax`, `vp_gmax` y `vp_morf` ya existen en
+             esta misma pestaña y son la VÁLVULA pulmonar, otra estructura y otro Doppler. Dos
+             prefijos a un carácter de distancia para dos cosas distintas es cómo un valor termina
+             impreso bajo el rótulo del otro; acá se separan desde el nombre.
+             Los cuatro llevan `id` a propósito: `guardarInforme` barre
+             `input[id], select[id], textarea[id]`, así que viajan con el estudio y `limpiarCampos`
+             los resetea por el mismo camino. Ninguno matchea `_noEsDelEstudio`. -->
+        <div class="fg">
           <label>Dur. onda A mitral (ms)</label>
           <input type="number" id="venp_dur_a" placeholder="ms" oninput="calcVenaPulm()">
         </div>
-        <div class="fg" style="margin-bottom:8px;">
-          <!-- ⚠️ S/D ES UN SELECTOR, NO UN NÚMERO, y lo pidió así el pedido. Es «informativo, sin
-               ninguna alerta asociada»: no entra en ningún cálculo ni dispara nada. Con un campo
-               numérico habría que decidir qué hacer con un 1,0 exacto, y eso sería inventar un
-               umbral que nadie pidió. -->
+        <div class="fg">
+          <!-- ⚠️ S/D ES UN SELECTOR, NO UN NÚMERO. Es informativo y no entra en ningún cálculo:
+               con un campo numérico habría que decidir qué hacer con un 1,0 exacto, y eso sería
+               inventar un umbral que nadie pidió.
+               ⚠️ Y EL VALUE ES UN TOKEN, NO «<1». Lo que se guarda en `campos.venp_sd` viaja con
+               el estudio, y un valor almacenado que EMPIEZA CON `<` en este archivo es una bomba
+               de tiempo: la primera superficie que lo renderice concatenando `innerHTML` —o el
+               primer CSV— lo toca sin que nadie se acuerde, y el historial de XSS de esta suite
+               está en CLAUDE.md. La etiqueta legible sale de `VENP_SD_TXT`. -->
           <label>S/D pulmonar</label>
-          <!-- ⚠️ EL VALUE ES UN TOKEN, NO «<1». Lo que se guarda en `campos.venp_sd` viaja al
-               estudio, y un valor almacenado que EMPIEZA CON `<` en este archivo es una bomba de
-               tiempo: la primera superficie que lo renderice concatenando `innerHTML` —o el primer
-               CSV— lo toca sin que nadie se acuerde, y el historial de XSS de esta suite está
-               escrito en CLAUDE.md. Hoy no llega a ninguna superficie HTML, y justamente por eso
-               conviene arreglarlo AHORA que el campo es nuevo y no hay un solo estudio guardado
-               con el valor viejo. Es el mismo patrón de `vab_tipo` y `ep_etiologia`.
-               Lo cazó `/sharp-edges`. La etiqueta legible sale de `VENP_SD_TXT`. -->
           <select id="venp_sd" onchange="calcVenaPulm()">
             <option value="">—</option>
             <option value="menor1">&lt;1</option>
             <option value="mayor1">&gt;1</option>
           </select>
         </div>
-        <div class="fg" style="margin-bottom:8px;">
+        <div class="fg">
           <label>Dur. onda Ar pulmonar (ms)</label>
           <input type="number" id="venp_dur_ar" placeholder="ms" oninput="calcVenaPulm()">
         </div>
-        <div class="fg" style="margin-bottom:8px;">
+        <div class="fg">
           <label>Veloc. Ar pulmonar (cm/s)</label>
           <input type="number" id="venp_vel_ar" placeholder="cm/s" oninput="calcVenaPulm()">
         </div>
-        <div class="calc-row" style="padding:4px 0;"><span class="calc-lbl">Diferencia Ar−A</span><span class="calc-val" id="venp-ara">—</span></div>
-        <!-- Las dos alertas van en SU PROPIO div, uno abajo del otro: pueden cumplirse las dos a
-             la vez y el pedido pide que no se superpongan. Texto rojo pelado, sin badge ni caja:
-             el «4/4 HFpEF probable» de este mismo bloque sí es un badge, y confundirlos haría que
-             un marcador de un solo criterio se lea con el peso de un score integrado. -->
-        <div id="venp-alertas" style="margin-top:6px;font-size:11px;line-height:1.45;"></div>
       </div>
-      </div>
-      <!-- El acceso cuando todavía no hay nada cargado. ⚠️ DUDA DECLARADA: el pedido dice que la
-           sub-columna aparezca «SOLO si el médico cargó al menos uno de sus campos» y que sin
-           datos el bloque quede «visualmente idéntico a como está hoy». Las dos cosas juntas la
-           harían inalcanzable —no hay forma de cargar el primer campo si el campo no existe—, así
-           que hace falta UNA affordance. Se eligió la más chica que se pudo: un enlace de 11 px
-           alineado a la derecha, que no agrega ninguna fila al grid y desaparece al abrirse. Si
-           lo que se quería era otra cosa —por ejemplo que la columna salga siempre—, es un ajuste
-           de una línea. -->
-      <div id="venp-abrir-wrap" style="text-align:right;margin-top:6px;">
-        <button type="button" class="btn btn-ghost" style="padding:2px 9px;font-size:11px;"
-                onclick="venpAbrir()" title="Agregar los datos de vena pulmonar (Ar−A, S/D)">+ Vena pulmonar</button>
-      </div>
+
       <div class="calc-box">
         <div class="calc-row"><span class="calc-lbl">E/A</span><span class="calc-val" id="ea-val">—</span></div>
         <div class="calc-row"><span class="calc-lbl">e' promedio</span><span class="calc-val" id="eprom-val">—</span></div>
         <div class="calc-row"><span class="calc-lbl">E/e' promedio</span><span class="calc-val" id="ee-val">—</span></div>
+        <!-- ⚠️ LAS DOS NACEN OCULTAS Y SE MUESTRAN CON EL DATO. Fijas, el cuadro gris arrancaría
+             con dos renglones en «—» para todo paciente al que nadie le midió la vena pulmonar —
+             y el pedido pide que sin datos se vea exactamente como hoy.
+             El rojo va SÓLO EN EL VALOR, sin ninguna oración al lado: el «4/4 HFpEF probable» de
+             este mismo bloque es un score integrado y estos son marcadores sueltos; darles texto
+             los haría leer con el mismo peso. -->
+        <div class="calc-row" id="venp-ara-row" style="display:none;"><span class="calc-lbl">Diferencia Ar−A</span><span class="calc-val" id="venp-ara">—</span></div>
+        <div class="calc-row" id="venp-vel-row" style="display:none;"><span class="calc-lbl">Veloc. Ar pulmonar</span><span class="calc-val" id="venp-vel">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Función diastólica</span><span id="dd-interp">—</span></div>
         <!-- Sólo aparece si los dos dominios de eco tienen datos y suman >= 2 -->
         <div class="calc-row" id="hfapeff-eco-row" style="display:none;"><span class="calc-lbl">HFA-PEFF (eco)</span><span id="hfapeff-eco">—</span></div>
@@ -19703,6 +19677,27 @@ window.calcDiastol = function() {
   calcDiastolBSE2024();
 };
 
+/* ⚠️ EL COLOR DE E/e' SE APLICA DESPUÉS DE `calcDiastol`, SIEMPRE. Quien escribe ese span es
+   `calcDiastol`, que tiene CUATRO caminos de salida —ASE 2025, ASE 2016, la rama de FA y BSE
+   2024— y tres `return` tempranos: colgar el pintado de uno solo dejaba el resto sin color, y
+   colgarlo de los cuatro son cuatro copias que se separan. Envolver es el mismo recurso que este
+   archivo ya usa con `labInit`.
+   Va acá y no dentro de `calcVenaPulm`: aquélla también lo pinta —porque corre al restaurar un
+   estudio y al tipear en los campos de vena pulmonar, cuando `calcDiastol` no corre—, así que las
+   dos puertas quedan cubiertas y el pintado vive en UNA función (`calcVenaPulm`). */
+(function () {
+  const _orig = window.calcDiastol;
+  window.calcDiastol = function () {
+    const r = _orig.apply(this, arguments);
+    /* Con el catch mudo, un fallo acá apagaba los TRES marcadores nuevos —las dos filas y el rojo
+       de E/e'— sin una línea en consola, y «no hay nada que mirar» es indistinguible de «este
+       paciente no tiene el hallazgo». */
+    try { if (typeof calcVenaPulm === 'function') calcVenaPulm(); }
+    catch (e) { console.error('[venp] calcVenaPulm tras calcDiastol', e); }
+    return r;
+  };
+})();
+
 function calcularBSE2024(alterada, marcadores, totalEvaluables, ee, ea, lavi) {
   if (alterada === null) {
     return {
@@ -19845,86 +19840,109 @@ function venpArA() {
 }
 window.venpArA = venpArA;
 
-/* Las alertas, como LISTA de textos. Devolverlas así —y no un string armado— es lo que permite
-   que las dos convivan sin superponerse: cada una es un renglón, y el pedido pide exactamente
-   eso. Vacía si no se cumple ninguna. */
-function venpAlertas() {
-  const a = [], d = venpArA(), vel = v('venp_vel_ar');
-  if (d != null && d >= VENP_AR_A_MS)
-    a.push('Ar−A ' + d + ' ms (≥' + VENP_AR_A_MS + ') — sugiere presión de fin de diástole del VI elevada.');
-  if (vel != null && isFinite(vel) && vel > VENP_AR_VEL_CMS)
-    a.push('Ar ' + vel + ' cm/s (>' + VENP_AR_VEL_CMS + ') — sugiere presión de fin de diástole del VI elevada.');
-  return a;
-}
-window.venpAlertas = venpAlertas;
+/* ⚠️ ACÁ HUBO TEXTO Y SE FUE (2026-09-25, segunda pasada). Las alertas eran dos oraciones rojas
+   —«Ar−A 42 ms (≥30) — sugiere presión de fin de diástole del VI elevada.»— y hoy son SÓLO EL
+   VALOR en rojo dentro del cuadro gris. El motivo es de lectura: el «4/4 HFpEF probable» que vive
+   en ese mismo bloque es un score integrado de cuatro dominios, y estos son marcadores sueltos.
+   Con una oración cada uno pesaban lo mismo en la pantalla. El valor en rojo dice «mirá esto» sin
+   afirmar una conclusión.
+   ⚠️ Y SE FUERON `venpAbrir`, `venpCerrar` y `venpSync`: los cuatro campos ya no viven en un panel
+   que se abre y se cierra, sino en la grilla, siempre visibles. Lo único que quedaba de aquellas
+   tres era repintar, y eso lo hace `calcVenaPulm`, que es la que ahora está en `RECALC_MODULOS`.
 
-function venpAbrir() {
-  const c = document.getElementById('venp-col');
-  if (c) c.style.display = 'block';
-  const w = document.getElementById('venp-abrir-wrap');
-  if (w) w.style.display = 'none';
-  /* ⚠️ ABRIR ES TAMBIÉN REPINTAR. Sin esto, abrir la columna sobre campos YA poblados —el caso
-     de un estudio restaurado por una ruta que no repintó— mostraba los cuatro valores con
-     «Diferencia Ar−A: —» y CERO alertas sobre un paciente con Ar−A de 35 ms: la alerta roja
-     aparecía recién al tocar un campo. Es la regla que este archivo ya fija en otros módulos —
-     una carga que no repinta no está completa—. Lo cazó `/sharp-edges`. */
-  calcVenaPulm();
-}
-window.venpAbrir = venpAbrir;
+   Los PREDICADOS quedan separados del pintado a propósito: los consumen el render y el caso de
+   prueba, y tenerlos como función evita que el umbral se escriba una segunda vez en el `if` del
+   `style.color`. */
+function venpArAAlta() { const d = venpArA(); return d != null && d >= VENP_AR_A_MS; }
+function venpVelArAlta() { const x = v('venp_vel_ar'); return x != null && isFinite(x) && x > VENP_AR_VEL_CMS; }
+window.venpArAAlta = venpArAAlta;
+window.venpVelArAlta = venpVelArAlta;
 
-/* ⚠️ CERRAR SÓLO SI ESTÁ VACÍA. Con datos cargados, esconder la columna los dejaría viajando
-   con el estudio y saliendo en el PDF sin que la pantalla los muestre — un dato que se imprime
-   y no se ve es peor que uno que estorba. Si hay algo, se dice por qué en vez de no hacer nada:
-   un botón que no responde se lee como roto. */
-function venpCerrar() {
-  if (venpHay()) {
-    if (typeof toast === 'function') toast('Hay datos de vena pulmonar cargados. Borralos primero para ocultar la columna.');
-    return;
-  }
-  const c = document.getElementById('venp-col');
-  if (c) c.style.display = 'none';
-  const w = document.getElementById('venp-abrir-wrap');
-  if (w) w.style.display = '';
+/* ⚠️ EL CORTE DE E/e' NO ES NUEVO: la app ya clasifica con `> 14` en CUATRO lugares —el BSE 2024
+   en ritmo sinusal (dos), el ASE 2016 y el Laboratorio— y hasta lo rotula «E/e' promedio > 14».
+   Se reusa ESE, con su operador: **14,0 exactos NO se marcan**.
+   ⚠️ PERO NO ES EL ÚNICO CORTE DE E/e' DEL ARCHIVO, y la primera versión de este comentario decía
+   «seis lugares» y era falso. La rama de FIBRILACIÓN AURICULAR del BSE 2024 vota con **`> 11`**, y
+   el score de amiloidosis también. O sea que con `diast_algoritmo = BSE 2024` + `diast_ritmo = FA`
+   —dos selects de este mismo bloque— un E/e' de 12,5 cuenta como criterio POSITIVO de presión de
+   llenado elevada y el 14 lo dejaría en negro: el color contradiciendo al veredicto que está dos
+   renglones más abajo, en el mismo cuadro gris. Lo cazó `/sharp-edges`.
+   DECISIÓN: en esa rama NO se pinta. No se inventa un segundo umbral de color —el pedido fijó
+   tres y éste sería un cuarto— y no se contradice nada: en FA el veredicto ya lo publica el badge
+   «FA — Presión de llenado elevada (BSE 2024)», que integra los cuatro criterios. El color existe
+   para señalar un marcador suelto donde no hay veredicto que lo diga.
+   DEUDA DECLARADA: los otros cuatro `> 14` siguen siendo literales; unificarlos toca tres
+   algoritmos diastólicos y el Laboratorio, que es lógica clínica y no el pintado de una celda. */
+const UMBRAL_EE_ELEVADA = 14;
+function eeElevada(ee) { return ee != null && isFinite(ee) && ee > UMBRAL_EE_ELEVADA; }
+window.eeElevada = eeElevada;
+/* ¿El algoritmo EN VIGOR clasifica el E/e' con 14? Se lee de los dos selects, que son la misma
+   fuente que usa `calcDiastol` para elegir su rama. */
+function eeCorteEs14() {
+  try { return !((sv('diast_algoritmo') || 'ase2025') === 'bse2024' &&
+                 (sv('diast_ritmo') || 'sinusal') === 'fa'); } catch (e) { return true; }
 }
-window.venpCerrar = venpCerrar;
 
-/* Repinta la sub-columna. La llaman los cuatro campos al tipear y `venpSync`, que es la que
-   corre al abrir un estudio guardado. */
+/* ⚠️ EL ROJO VA SÓLO EN EL VALOR, y se apaga explícitamente cuando no corresponde. Sin el `else`
+   el color sobrevivía al cambio de paciente: el `<span>` es el mismo nodo y `limpiarCampos` vacía
+   los inputs pero no los estilos en línea. Es el defecto que este archivo documenta para los
+   paneles de conclusión de Pericardio —un reseteo que no repinta no es un reseteo—, aplicado al
+   color en vez de al texto. */
+function _venpPintarValor(id, txt, alta) {
+  const e = document.getElementById(id);
+  if (!e) return;
+  e.textContent = txt;
+  e.style.color = alta ? '#ef4444' : '';
+  e.style.fontWeight = alta ? '700' : '';
+}
+
+/* Repinta las dos filas del cuadro gris. La llaman los cuatro campos al tipear, `RECALC_MODULOS`
+   al restaurar un estudio y `limpiarCampos` al cambiar de paciente. */
 function calcVenaPulm() {
-  const out = document.getElementById('venp-ara');
-  if (out) { const d = venpArA(); out.textContent = (d == null) ? '—' : (d + ' ms'); }
-  const box = document.getElementById('venp-alertas');
-  if (box) {
-    /* Se arma con la API del DOM y no con `innerHTML`: los textos son literales de este archivo,
-       pero un contenedor poblado por concatenación es el patrón que marca el ruleset y acá no
-       hay nada que ganar escribiéndolo así. */
-    box.textContent = '';
-    venpAlertas().forEach(t => {
-      const d = document.createElement('div');
-      d.style.cssText = 'color:#ef4444;font-weight:600;margin-top:3px;';
-      d.textContent = t;
-      box.appendChild(d);
-    });
+  /* ⚠️ LAS FILAS SE ESCONDEN SIN DATO. Fijas, el cuadro gris arrancaría con dos renglones en «—»
+     para todo paciente al que nadie le midió la vena pulmonar, y el pedido pide que sin datos se
+     vea exactamente como hoy. */
+  const d = venpArA();
+  const fa = document.getElementById('venp-ara-row');
+  if (fa) fa.style.display = (d == null) ? 'none' : '';
+  _venpPintarValor('venp-ara', d == null ? '—' : (d + ' ms'), venpArAAlta());
+
+  const vel = v('venp_vel_ar');
+  const fv = document.getElementById('venp-vel-row');
+  /* ⚠️ `> 0`, EL MISMO PREDICADO QUE EL PDF. Con `!= null`, un `0` dejaba la fila VISIBLE en
+     pantalla —«0 cm/s»— y el PDF la descartaba por truthiness: un renglón que el papel no lleva.
+     La ronda anterior cerró esta asimetría para las dos duraciones y dejó la velocidad afuera; la
+     fila nueva la volvió visible. Lo cazó `/sharp-edges`. */
+  const hayVel = vel != null && isFinite(vel) && vel > 0;
+  if (fv) fv.style.display = hayVel ? '' : 'none';
+  _venpPintarValor('venp-vel', hayVel ? (vel + ' cm/s') : '—', venpVelArAlta());
+
+  /* E/e' lo ESCRIBE `calcDiastol`, así que acá sólo se le pone el color: reescribir su texto
+     desde dos funciones sería la segunda copia de un valor que ya tiene dueño. Se lee del propio
+     span y no se recalcula, por la misma razón. */
+  const ee = document.getElementById('ee-val');
+  if (ee) {
+    const n = parseFloat(String(ee.textContent).replace(',', '.'));
+    const alta = eeCorteEs14() && eeElevada(isFinite(n) ? n : null);
+    ee.style.color = alta ? '#ef4444' : '';
+    ee.style.fontWeight = alta ? '700' : '';
   }
 }
 window.calcVenaPulm = calcVenaPulm;
 
-/* ⚠️ AL ABRIR UN ESTUDIO GUARDADO, LA COLUMNA TIENE QUE APARECER SOLA. El barrido de carga
-   escribe los `value` pero no toca `display`, así que sin esto un estudio con Ar−A medido se
-   reabría con los datos en el DOM, invisibles, y saliendo igual en el PDF. Es la asimetría que
-   este archivo documenta para los paneles de conclusión de Pericardio: un reseteo —o una carga—
-   que no repinta no está completo. */
-function venpSync() {
-  if (venpHay()) venpAbrir();
-  else {
-    const c = document.getElementById('venp-col');
-    if (c) c.style.display = 'none';
-    const w = document.getElementById('venp-abrir-wrap');
-    if (w) w.style.display = '';
-  }
-  calcVenaPulm();
-}
-window.venpSync = venpSync;
+/* ⚠️ ENGANCHE DE ARRANQUE, el mismo patrón que `ccSegSync` y por el mismo motivo. Al RECARGAR la
+   página el navegador repone los `value` de los inputs por su cuenta, y `_autosaveRestore` tiene
+   cuatro salidas tempranas —sin borrador, con `?estudio=` en la URL, con el formulario ya con
+   datos, o con el JSON ilegible—, así que hay recargas donde nadie repinta.
+   Con el layout nuevo eso pesa MÁS que antes, porque las dos filas NACEN OCULTAS: los cuatro
+   campos quedaban repuestos, Ar−A invisible en pantalla, y el PDF imprimiéndolo igual —`venpArA`
+   lee los inputs y `venpHay` hasta le cambia el título a la sección—. Un dato que se imprime y no
+   se ve. Lo cazó `/sharp-edges`. */
+try {
+  if (document.readyState === 'loading')
+    document.addEventListener('DOMContentLoaded', calcVenaPulm, { once:true });
+  else calcVenaPulm();
+} catch (e) {}
 
 function calcTHP() {
   const thp = v('thp');
@@ -25828,7 +25846,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','venpSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -26198,12 +26216,12 @@ function limpiarCampos(silencioso) {
      genérico de textareas y el cuadro queda VISIBLE y vacío sobre el paciente siguiente. */
   if (typeof ccSegSync === 'function') { try { ccSegSync(); } catch (e) {} }
   /* ⚠️ VENA PULMONAR, POR EL MISMO MOTIVO QUE `ccSegSync` Y AL FINAL COMO ÉL. El barrido de
-     arriba vacía los cuatro `value`, pero la sub-columna se esconde por `display` y eso no lo
-     toca nadie: el paciente siguiente arrancaba con la columna ABIERTA y vacía. No es una fuga
-     —los datos sí se borraron— pero contradice «sin datos, el bloque queda idéntico a hoy».
-     Va acá y no arriba porque `venpSync` LEE los campos para decidir: corriendo antes del
-     vaciado vería los del paciente anterior y la dejaría abierta. */
-  if (typeof venpSync === 'function') { try { venpSync(); } catch (e) {} }
+     arriba vacía los cuatro `value`, pero las dos filas del cuadro gris se esconden por `display`
+     y el color va en `style` en línea: sin esto el paciente siguiente arrancaba con los renglones
+     de Ar−A y Veloc. Ar publicados —y en rojo— sobre un formulario ya vacío.
+     Va acá y no arriba porque LEE los campos para decidir si esconde las dos filas: corriendo
+     antes del vaciado vería los del paciente anterior y las dejaría publicadas. */
+  if (typeof calcVenaPulm === 'function') { try { calcVenaPulm(); } catch (e) {} }
   if (!silencioso) toast('🗑 Formulario limpiado');
 }
 
@@ -28710,13 +28728,19 @@ function generarPDFReal(_aj) {
   // BLOQUE 3 (3 col): Flujo Transmitral | DTI Mitral | Tricúspide / PSAP
   // ════════════════════════════════════════════════════════════
   drawTablaCompacta([
-    /* ⚠️ EL TÍTULO NOMBRA LA VENA PULMONAR CUANDO LA HAY. Sin esto, `Veloc. Ar: 42 cm/s` y
-       `Ar-A: 35 ms` salían impresos bajo un encabezado que dice «Flujo transmitral», sin divisor
-       vertical y con la misma tipografía que las filas mitrales: en el papel firmado se leen como
-       un Doppler mitral. La cadena «vena pulmonar» no aparecía NI UNA VEZ en el PDF. Lo cazó
-       `/sharp-edges`.
-       Es condicional para que se cumpla lo otro que pide el pedido: sin datos de vena pulmonar el
-       título es exactamente el de siempre y el PDF sale idéntico. */
+    /* ⚠️ EL TÍTULO NOMBRA LA VENA PULMONAR CUANDO LA HAY, Y SE CONSERVA AUNQUE LA PANTALLA YA NO
+       TENGA PANEL (decisión de esta segunda pasada, que el pedido dejó a criterio).
+       El motivo nunca fue espejar la pantalla: es que `Veloc. Ar: 42 cm/s` y `Ar-A: 35 ms` salían
+       bajo un encabezado que dice «Flujo transmitral», sin divisor vertical y con la misma
+       tipografía que las filas mitrales — en el papel firmado se leen como un Doppler mitral, y
+       «vena pulmonar» no aparecía ni una vez en todo el PDF.
+       Y el argumento se REFUERZA con el cambio: en pantalla los rótulos dicen «Dur. onda Ar
+       pulmonar» y «Veloc. Ar pulmonar» completos, así que ahí se entiende de qué estructura son.
+       El PDF los abrevia a «Dur. Ar» y «Veloc. Ar» para entrar en media columna, o sea que es
+       JUSTAMENTE la superficie donde el encabezado hace más falta, no menos. Un documento firmado
+       que circula sin la app al lado no tiene dónde desambiguar.
+       Sigue siendo condicional: sin datos de vena pulmonar el título es el de siempre y el PDF
+       sale idéntico. */
     {titulo: (typeof venpHay === 'function' && venpHay())
                ? 'VM — Transmitral / Vena pulmonar' : 'VM — Flujo transmitral', items:[
       {lbl:'Onda E',    ref:'',  val:v('onda_e')?v('onda_e')+' cm/s':null},
@@ -28752,7 +28776,7 @@ function generarPDFReal(_aj) {
          Salen de las CONSTANTES, así que no son una tercera escritura del umbral: es lo mismo que
          esta tabla ya hace con `UMBRAL_TAPSE_NORMAL` y `UMBRAL_PSAP_ELEVADA`. Y son los dos del
          pedido, ninguno más. */
-      {lbl:'Veloc. Ar',   ref:'>' + VENP_AR_VEL_CMS + ' cm/s', val:v('venp_vel_ar')?v('venp_vel_ar')+' cm/s':null},
+      {lbl:'Veloc. Ar',   ref:'>' + VENP_AR_VEL_CMS + ' cm/s', val:v('venp_vel_ar')>0?v('venp_vel_ar')+' cm/s':null},
       {lbl:'Ar-A',        ref:'>=' + VENP_AR_A_MS + ' ms', val:(()=>{ const d=(typeof venpArA==='function')?venpArA():null;
                                              return d==null?null:(d+' ms'); })()},
     ]},
@@ -28760,7 +28784,10 @@ function generarPDFReal(_aj) {
       {lbl:"e' septal",  ref:'>7 cm/s',  val:eSep ?eSep +' cm/s':null},
       {lbl:"e' lateral", ref:'>10 cm/s', val:eLat ?eLat +' cm/s':null},
       {lbl:"e' prom.",   ref:'',         val:eProm?eProm+' cm/s':null},
-      {lbl:"E/e'",       ref:'<14',      val:ee},
+      /* ⚠️ `<=14` Y DERIVADO DE LA CONSTANTE. Decía `<14`, que EXCLUYE el 14,0 exacto — y la app
+         clasifica con `> 14`, así que ese mismo valor salía en negro en pantalla y fuera de rango
+         en el documento firmado. Es el borde que el pintado nuevo destapó. Lo cazó `/sharp-edges`. */
+      {lbl:"E/e'",       ref:'<=' + UMBRAL_EE_ELEVADA,      val:ee},
     ]},
     {titulo:'Tricúspide / PSAP', items:[
       {lbl:'V. máx IT',  ref:'',                    val:v('vmax_it')  ?v('vmax_it')  +' m/s' :null},
@@ -39186,16 +39213,17 @@ function editarInforme(id) {
        firmó, aunque lo firmado estuviera mal. Editar y regenerar lo corrige, que es el momento
        en que el médico está mirando. */
     if (typeof calcVP === 'function') calcVP();
-    /* ⚠️ `venpSync` YA NO SE LLAMA ACÁ: se mudó a `RECALC_MODULOS`. Colgada de esta función sola
-       cubría UNA de las cinco rutas de restauración; las otras —abrir por `?estudio=` desde el QR
-       del PDF firmado, el autosave y la vuelta de la reimpresión— pasan por el embudo y NO por
-       acá, así que un estudio con Ar−A medido se reabría por el QR con los cuatro campos
-       poblados, INVISIBLES, y el botón «+ Vena pulmonar» ofreciendo agregar lo que ya estaba.
-       Lo cazó `/sharp-edges`: el comentario que había acá declaraba cerrado exactamente ese
-       defecto, cerrado para una ruta y abierto para las otras tres. */
+    /* ⚠️ LA VENA PULMONAR NO SE REPINTA ACÁ: va en `RECALC_MODULOS` (hoy, `calcVenaPulm`).
+       Colgada de esta función sola cubría UNA de las cinco rutas de restauración; las otras
+       —abrir por `?estudio=` desde el QR del PDF firmado, el autosave y la vuelta de la
+       reimpresión— pasan por el embudo y no por acá. Lo cazó `/sharp-edges`, y sigue valiendo con
+       el layout nuevo: lo que se repinta cambió, el embudo no. */
     /* VEXUS: sin esto el acordeón queda mostrando el score del estudio anterior, porque el
        badge y la interpretación viven en spans que nada reescribe al cargar los campos. */
     if (typeof calcVEXUS === 'function') calcVEXUS();
+    /* ⚠️ `calcDiastol`: mismo motivo que en `cargarEstudioPorId` —ver la nota larga de allá—.
+       `#ee-val` lo escribe sólo esta función, que no corría en ninguna de las dos rutas. */
+    if (typeof calcDiastol === 'function') calcDiastol();
     /* calcContIM: los estudios guardados antes de que se quitara la «EROA por continuidad»
        traen `campos.im_eroa_cont` con el número fabricado (483 mm²), y editarInforme lo repone
        tal cual con `el.value = val`. Sin recalcular, el médico reabre un estudio viejo y sigue
@@ -39290,7 +39318,15 @@ function cargarEstudioPorId(id) {
      PANTALLA, diciendo «—» mientras el informe del mismo estudio decía «PSAP estimada de 37
      mmHg», en la ruta que usa el QR del PDF: la que abre un colega. Lo encontró TC-GR-13.
      `calcBSA` va PRIMERA: `calcSGL` y varios derivados indexan por superficie corporal. */
-  ['calcBSA','calcVI','calcAI','calcAorta','calcVD','calcPSAP','calcSGL','calcVEXUS'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
+  /* ⚠️ `calcDiastol` SE SUMA A LA LISTA, y es la cuarta instancia del defecto que TC-GR-13 ya
+     documentó para `psap-interp`, `sgl-interp` y `bsa-val`: ese span lo escribe SÓLO `calcDiastol`,
+     que no corría en ninguna de las dos rutas de restauración. Reabrir un estudio por «Editar» o
+     por el QR dejaba `E/e'` en «—» mientras el informe del mismo estudio publica 18,2.
+     Se destapó con el rojo nuevo: el cuadro gris mostraba Ar−A en rojo —esa fila sí lee los
+     inputs— y `E/e'` en «—» al lado, dos renglones que se contradicen. Lo cazó `/sharp-edges`.
+     Va DESPUÉS de `calcSGL` y antes de `calcVEXUS` sin ningún requisito de orden propio; con el
+     envoltorio puesto, arrastra el pintado del color solo. */
+  ['calcBSA','calcVI','calcAI','calcAorta','calcVD','calcPSAP','calcSGL','calcDiastol','calcVEXUS'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
   _recalcModulos('cargarEstudioPorId');
   window._ettEditandoId = inf.id;
   infBaseDesdeDOM();   // ver nota en editarInforme: base = lo que quedó tras los recálculos
@@ -46885,9 +46921,12 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      `venpArA()`, que lee los INPUTS —ya repuestos por el barrido—, no el `<span>`: la tabla salía
      bien con esta línea y sin ella. Lo que sí hace es dejar la PANTALLA coherente durante la
      reimpresión, que dura lo que tarda el PDF. La vuelta al paciente que estaba la cubre
-     `RECALC_MODULOS`, donde ahora está `venpSync`. Un comentario que atribuye una protección
+     `RECALC_MODULOS`, donde está `calcVenaPulm`. Un comentario que atribuye una protección
      inexistente es peor que no tenerlo: el próximo lector la da por cubierta. Lo cazó
-     `/sharp-edges`. */
+     `/sharp-edges`.
+     ⚠️ Y HOY ES ADEMÁS REDUNDANTE: el `calcDiastol()` de arriba arrastra `calcVenaPulm` por su
+     envoltorio. Se conserva porque es idempotente y porque no depende de que ese envoltorio siga
+     existiendo — pero si alguien la ve dos veces, es esto. */
   if (typeof calcVenaPulm === 'function') calcVenaPulm();
   if (typeof calcIM_ESC === 'function') calcIM_ESC();
   if (typeof calcIA_ESC === 'function') calcIA_ESC();
@@ -75298,8 +75337,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260925-1548';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790362109644;                 /* eco-build-ms */
+const ECO_BUILD    = '20260925-1628';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790364495625;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -75385,7 +75424,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-1548</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-1628</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

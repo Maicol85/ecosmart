@@ -10093,7 +10093,7 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
   })();
 `);
 
-caso('TC-260', 'Vena pulmonar: Ar-A con sus dos cortes exactos, la sub-columna que nace oculta, y el PDF que no crece', `
+caso('TC-260', 'Vena pulmonar: los cuatro campos en la grilla, los tres cortes exactos, y el rojo SOLO en el valor', `
   return (async () => {
     if (typeof venpArA !== 'function' || typeof calcVenaPulm !== 'function')
       return { extra:[['existe el modulo de vena pulmonar', false, 'faltan venpArA o calcVenaPulm']] };
@@ -10102,132 +10102,131 @@ caso('TC-260', 'Vena pulmonar: Ar-A con sus dos cortes exactos, la sub-columna q
     const _sevPrev = window.valvSevConfirmada;
     try {
       showTab('doppler');
-      await new Promise(r => setTimeout(r, 200));
-      const col  = document.getElementById('venp-col');
-      const abr  = document.getElementById('venp-abrir-wrap');
-      const set  = (id, val) => { const e = document.getElementById(id); if (e) e.value = val; };
+      await new Promise(r => setTimeout(r, 250));
       const CAMPOS = ['venp_dur_a','venp_sd','venp_dur_ar','venp_vel_ar'];
-      const limpiar = () => { CAMPOS.forEach(id => set(id, '')); venpSync(); };
+      const set = (id, val) => { const e = document.getElementById(id); if (e) e.value = val; };
+      const limpiar = () => { CAMPOS.forEach(id => set(id, '')); calcVenaPulm(); };
 
-      /* ── NACE OCULTA, Y EL BLOQUE NO CRECE ── el pedido dice que sin datos tiene que quedar
-         "visualmente identico a como esta hoy". */
-      limpiar();
-      const grid = document.querySelector('#dop-mitral .grid-4');
-      const fila = grid ? grid.parentElement : null;
-      const ocultaAlInicio = !!col && col.style.display === 'none';
-      const gridOcupaTodo = !!fila &&
-        Math.abs(grid.getBoundingClientRect().width - fila.getBoundingClientRect().width) < 2;
-      const accesoVisible = !!abr && abr.style.display !== 'none';
-      /* ⚠️ Y EL DEFAULT DEL MARCADO, leido del FUENTE. En runtime no se distingue: el
-         'display:none' se lo pone tanto el marcado como 'venpSync', asi que una columna que
-         naciera ABIERTA quedaba tapada por el 'limpiar()' de arriba y la condicion pasaba igual
-         —medido: la mutacion que le saca el display:none sobrevivia en verde—. El marcado es la
-         segunda linea de defensa: si alguien saca la llamada a venpSync, es lo unico que queda. */
+      /* ── EL PANEL LATERAL YA NO EXISTE ── esta ronda lo simplifico: los campos viven en la
+         grilla y no en un contenedor propio con titulo, boton de cerrar y enlace de entrada. */
+      const sinPanel = !document.getElementById('venp-col') &&
+                       !document.getElementById('venp-abrir-wrap') &&
+                       !document.getElementById('venp-alertas') &&
+                       typeof window.venpAbrir === 'undefined' &&
+                       typeof window.venpCerrar === 'undefined' &&
+                       typeof window.venpSync === 'undefined';
+      /* Y tampoco en el MARCADO: en runtime un id borrado y uno nunca escrito se ven igual.
+         ⚠️ Se buscan los ATRIBUTOS, no la cadena suelta: los comentarios del archivo NOMBRAN el
+         panel eliminado para explicar por qué se fue, y eso es exactamente lo que este proyecto
+         pide que quede escrito. Buscar 'venp-col' a secas ponía el caso en rojo por un comentario
+         correcto. */
       const fuente = await (await fetch(location.href)).text();
-      const naceOcultaEnElFuente = /<div id="venp-col" style="display:none;/.test(fuente);
+      const sinPanelEnElFuente = fuente.indexOf('id="venp-col"') < 0 &&
+                                 fuente.indexOf('id="venp-abrir-wrap"') < 0 &&
+                                 fuente.indexOf('onclick="venpAbrir()"') < 0 &&
+                                 fuente.indexOf('id="venp-alertas"') < 0;
 
-      /* ── LOS CUATRO CAMPOS VIAJAN CON EL ESTUDIO ── llevan id y no matchean la lista de
-         exclusion, asi que 'guardarInforme' los barre. Sin esto la medicion se pierde al guardar. */
-      const viajan = CAMPOS.every(id => {
-        const e = document.getElementById(id);
-        return !!e && !(typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(id));
-      });
-      /* Y NO se pisan con la VALVULA pulmonar, que ya usa 'vp_'. */
-      const sinColisionConValvula = CAMPOS.every(id => !document.querySelector('[id="vp_' + id.slice(5) + '"]'))
-        && !!document.getElementById('vp_vmax');
+      /* ── LOS CUATRO EN LA MISMA GRILLA QUE TDE/TRIV/THP ── */
+      const grid = document.querySelector('#dop-mitral .grid-4');
+      const enLaGrilla = !!grid && CAMPOS.every(id => {
+        const e = document.getElementById(id); return !!e && e.closest('.grid-4') === grid; });
+      const tdeEnLaMisma = (() => { const e = document.getElementById('tde');
+        return !!e && e.closest('.grid-4') === grid; })();
 
-      venpAbrir();
-      const abreConElBoton = col.style.display !== 'none' && abr.style.display === 'none';
+      /* ── VIAJAN CON EL ESTUDIO, Y NO CHOCAN CON LA VALVULA PULMONAR ── */
+      const viajan = CAMPOS.every(id => !(typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(id)));
+      const sinColisionConValvula = !!document.getElementById('vp_vmax') &&
+                                    !document.getElementById('vp_dur_a');
 
-      /* ── LOS DOS CORTES, CON LOS VALORES LIMITE EXACTOS ── son operadores DISTINTOS: la
-         diferencia alerta con >=30 y la velocidad con >35. Unificarlos mueve un borde clinico. */
-      const probar = (dA, dAr, vel) => {
-        set('venp_dur_a', dA); set('venp_dur_ar', dAr); set('venp_vel_ar', vel);
-        calcVenaPulm();
-        const box = document.getElementById('venp-alertas');
-        return { ara: document.getElementById('venp-ara').textContent,
-                 n: box ? box.children.length : -1,
-                 txt: box ? Array.from(box.children).map(d => d.textContent).join(' || ') : '' };
-      };
-      const d29 = probar(120, 149, '');      // 29 ms  -> NO
-      const d30 = probar(120, 150, '');      // 30 ms  -> SI (es >=)
-      const d31 = probar(120, 151, '');
-      const dNeg = probar(150, 120, '');     // Ar mas corta que A
-      const v34 = probar('', '', 34);
-      const v35 = probar('', '', 35);        // 35 exactos -> NO (es >)
-      const v36 = probar('', '', 36);
-      const ambas = probar(120, 160, 40);
-      /* ⚠️ LA GEOMETRIA SE MIDE ACA, con las dos alertas EN PANTALLA. Medida despues del siguiente
-         'probar' —que deja una sola condicion cumplida— daba cero renglones y la condicion
-         reportaba "[]" y "sin alerta" sobre un producto correcto: el denominador otra vez. */
-      const box = document.getElementById('venp-alertas');
-      const rects = Array.from(box.children).map(d => d.getBoundingClientRect());
-      /* ⚠️ SE COPIAN LOS VALORES, no se guarda el objeto. 'getComputedStyle' devuelve una vista
-         VIVA: 'calcVenaPulm' vacia el contenedor en cada repintado, el nodo queda DESPRENDIDO y
-         esa vista pasa a devolver cadenas vacias. La condicion reportaba " fondo= borde=" sobre un
-         estilo correcto. Es la misma trampa del subarbol desprendido que ya mordio en TC-254. */
-      const estAlerta = box.children[0] ? (function (c) {
-        return { color: c.color, backgroundColor: c.backgroundColor, borderTopWidth: c.borderTopWidth };
-      })(getComputedStyle(box.children[0])) : null;
-      const soloUno = probar(120, '', '');   // sin el otro insumo no hay diferencia
-      const noSeSuperponen = rects.length === 2 && rects[0].bottom <= rects[1].top + 0.5;
-      /* Y son texto rojo PELADO, sin badge: el '4/4 HFpEF probable' de este mismo bloque si es un
-         badge, y confundirlos haria leer un marcador suelto con el peso de un score integrado. */
-      const est = estAlerta;
-      const sinBadge = !!est && est.backgroundColor === 'rgba(0, 0, 0, 0)' &&
-                       parseFloat(est.borderTopWidth) === 0 && est.color === 'rgb(239, 68, 68)';
-
-      /* ── EL S/D NO DISPARA NADA ── es informativo y el pedido lo pide explicito. */
-      limpiar(); venpAbrir();
-      document.getElementById('venp_sd').value = 'menor1';
-      calcVenaPulm();
-      const sdMudo = document.getElementById('venp-alertas').children.length === 0;
-      const sdOpciones = Array.from(document.getElementById('venp_sd').options).map(o => o.value).join(',');
-
-      /* ── EL CERO NO ES UNA DURACION ── con 'venp_dur_a' en 0, la resta daba la duracion de Ar
-         entera: una alerta roja fabricada de la nada. Y en el PDF era peor, porque la fila del
-         operando se descartaba por truthiness y el derivado se imprimia igual. */
-      limpiar(); venpAbrir();
-      const cero = probar(0, 120, '');
-      /* ── SE REDONDEA DONDE SE CALCULA ── los tres consumidores tienen que publicar el MISMO
-         numero que se clasifico: 130,3 - 100,2 da 30.099999999999994 en JS. */
-      const dec = probar(100.2, 130.3, '');
-      /* ── EL S/D GUARDA UN TOKEN, NO «<1» ── un valor almacenado que empieza con '<' es lo que
-         este archivo persigue desde su historial de XSS. */
-      limpiar(); venpAbrir();
-      document.getElementById('venp_sd').value = 'menor1';
-      const sdToken = document.getElementById('venp_sd').value;
-      const sdLegible = (typeof venpSDTxt === 'function') ? venpSDTxt() : null;
-      const sdOpcionesSinAngulo = Array.from(document.getElementById('venp_sd').options)
-        .every(o => o.value.indexOf('<') < 0 && o.value.indexOf('>') < 0);
-      /* ── LA RESTAURACION PASA POR EL EMBUDO ── colgado solo de 'editarInforme' cubria UNA de las
-         cinco rutas: abrir por ?estudio= desde el QR del PDF firmado dejaba la columna ESCONDIDA
-         con los datos adentro, saliendo igual en el papel. */
-      const enElEmbudo = (typeof RECALC_MODULOS === 'function') &&
-                         RECALC_MODULOS().indexOf('venpSync') >= 0;
-      /* ── ABRIR ES TAMBIEN REPINTAR ── sobre campos ya poblados, abrir sin repintar mostraba
-         «Diferencia Ar−A: —» y cero alertas sobre un Ar−A de 40 ms. */
-      limpiar(); venpAbrir();
-      set('venp_dur_a', 120); set('venp_dur_ar', 160);
-      document.getElementById('venp-ara').textContent = 'VIEJO';
-      document.getElementById('venp-alertas').textContent = '';
-      venpAbrir();
-      const abrirRepinta = document.getElementById('venp-ara').textContent === '40 ms' &&
-                           document.getElementById('venp-alertas').children.length === 1;
-
-      /* ── LA COLUMNA NO SE PUEDE CERRAR CON DATOS ADENTRO ── si se pudiera, quedarian viajando
-         al PDF sin verse en pantalla. */
-      set('venp_dur_ar', 160); set('venp_dur_a', 120); calcVenaPulm();
-      const opPrev = window.toast; window.toast = function(){};
-      venpCerrar();
-      const noCierraConDatos = col.style.display !== 'none';
+      /* ── EL CUADRO GRIS SIN DATOS SE VE COMO SIEMPRE ── sin filas vacias. */
       limpiar();
-      venpAbrir(); venpCerrar();
-      const cierraVacia = col.style.display === 'none';
-      window.toast = opPrev;
+      const filasVisibles = () => Array.from(document.querySelectorAll('#dop-mitral .calc-box .calc-row'))
+        .filter(f => f.style.display !== 'none')
+        .map(f => { const l = f.querySelector('.calc-lbl'); return l ? l.textContent.trim() : '?'; });
+      const grisSinDatos = filasVisibles();
+      const grisLimpio = grisSinDatos.indexOf('Diferencia Ar−A') < 0 &&
+                         grisSinDatos.indexOf('Veloc. Ar pulmonar') < 0;
+      set('venp_dur_a', 120); set('venp_dur_ar', 160); set('venp_vel_ar', 40);
+      calcVenaPulm();
+      const grisConDatos = filasVisibles();
+      const grisCrece = grisConDatos.indexOf('Diferencia Ar−A') >= 0 &&
+                        grisConDatos.indexOf('Veloc. Ar pulmonar') >= 0;
 
-      /* ── EL PDF ── con la columna izquierda COMPLETA, que es el caso que describe el pedido,
-         agregar los cinco campos no puede desplazar NADA de lo que viene despues. */
+      /* ── LOS TRES CORTES, CON LOS VALORES LIMITE EXACTOS ── tres operadores y NO son el mismo:
+         Ar-A alerta con >=30, la velocidad con >35 y E/e' con >14. El de E/e' NO es nuevo: la app
+         ya clasifica asi en seis lugares y lo rotula «E/e' promedio > 14». */
+      const leer = id => { const e = document.getElementById(id);
+        return { txt: e.textContent, rojo: e.style.color === 'rgb(239, 68, 68)' }; };
+      const probar = (dA, dAr, vel) => { set('venp_dur_a', dA); set('venp_dur_ar', dAr);
+        set('venp_vel_ar', vel); calcVenaPulm();
+        return { ara: leer('venp-ara'), vel: leer('venp-vel') }; };
+      const a29 = probar(120, 149, ''), a30 = probar(120, 150, ''), a31 = probar(120, 151, '');
+      const v34 = probar('', '', 34), v35 = probar('', '', 35), v36 = probar('', '', 36);
+      /* E/e' lo escribe 'calcDiastol'; acá se lo pone a mano para fijar el borde sin depender de
+         que la cohorte de prueba de justo 13,9. */
+      const ee = n => { const e = document.getElementById('ee-val'); e.textContent = String(n);
+        calcVenaPulm(); return leer('ee-val'); };
+      const e139 = ee(13.9), e140 = ee(14), e141 = ee(14.1), eVacio = ee('—');
+
+      /* ── EN FIBRILACION AURICULAR EL ALGORITMO VOTA CON 11, NO CON 14 ── pintar el 14 ahi
+         contradiria al veredicto que esta dos renglones mas abajo en el MISMO cuadro gris: un
+         E/e' de 12,5 cuenta como criterio positivo en la rama FA del BSE 2024 y quedaria en
+         negro. En esa rama no se pinta; el badge ya publica la conclusion integrada. */
+      const selAlg = document.getElementById('diast_algoritmo');
+      const selRit = document.getElementById('diast_ritmo');
+      const algPrev = selAlg.value, ritPrev = selRit.value;
+      selAlg.value = 'bse2024'; selRit.value = 'fa';
+      const eeFA = ee(18);
+      selAlg.value = algPrev; selRit.value = ritPrev;
+      const eeSinusal = ee(18);
+
+      /* ── EL CERO DE LA VELOCIDAD: MISMO PREDICADO QUE EL PDF ── con != null la fila se veia en
+         pantalla («0 cm/s») y el PDF la descartaba por truthiness. */
+      set('venp_vel_ar', 0); calcVenaPulm();
+      const velCeroOculta = document.getElementById('venp-vel-row').style.display === 'none';
+
+      /* ── LAS DOS PUEDEN COEXISTIR, Y NO HAY NI UNA ORACION ── el pedido saco el texto largo. */
+      const ambas = probar(120, 160, 40);
+      const lasDosEnRojo = ambas.ara.rojo && ambas.vel.rojo;
+      const textoDeLasFilas = ['venp-ara','venp-vel']
+        .map(id => document.getElementById(id).textContent).join(' ');
+      const sinOraciones = textoDeLasFilas.indexOf('sugiere') < 0 &&
+                           textoDeLasFilas.indexOf('diástole') < 0 &&
+                           textoDeLasFilas.indexOf('(') < 0;
+
+      /* ── EL ROJO SE APAGA AL CAMBIAR DE PACIENTE ── el span es el MISMO nodo y el color va en
+         linea: sin el 'else' explicito sobrevivia al vaciado. */
+      document.getElementById('ee-val').textContent = '18';
+      calcVenaPulm();
+      const antesDeLimpiar = leer('venp-ara').rojo && leer('ee-val').rojo;
+      if (typeof limpiarCampos === 'function') limpiarCampos(true);
+      const trasLimpiar = !leer('venp-ara').rojo && !leer('venp-vel').rojo && !leer('ee-val').rojo &&
+                          document.getElementById('venp-ara-row').style.display === 'none';
+
+      /* ── LO QUE NO SE REVIRTIO DEL PROMPT ANTERIOR ── */
+      set('venp_dur_a', 0); set('venp_dur_ar', 120); calcVenaPulm();
+      const ceroNoAlerta = leer('venp-ara').txt === '—' &&
+                           document.getElementById('venp-ara-row').style.display === 'none';
+      set('venp_dur_a', 100.2); set('venp_dur_ar', 130.3); calcVenaPulm();
+      const redondeo = leer('venp-ara').txt === '30.1 ms';
+      const tokenSD = Array.from(document.getElementById('venp_sd').options)
+        .every(o => o.value.indexOf('<') < 0 && o.value.indexOf('>') < 0) &&
+        !!document.querySelector('#venp_sd option[value="menor1"]');
+      const enElEmbudo = (typeof RECALC_MODULOS === 'function') &&
+                         RECALC_MODULOS().indexOf('calcVenaPulm') >= 0;
+      /* El envoltorio de 'calcDiastol' es lo que pinta E/e' por los CUATRO caminos de salida de
+         esa funcion; sin el, tres de ellos dejaban el span sin color. */
+      const envuelta = /calcVenaPulm/.test(String(window.calcDiastol));
+      /* ⚠️ '#ee-val' lo escribe SOLO 'calcDiastol', y esa funcion no corria en NINGUNA de las dos
+         rutas de restauracion: reabrir un estudio por «Editar» o por el QR dejaba el E/e' en «—»
+         mientras el informe del mismo estudio publica 18,2. Se destapo con el rojo nuevo, porque
+         la fila de Ar−A —que lee los inputs— si se pintaba al lado. Se lee del FUENTE porque son
+         dos listas de nombres, no un estado observable en runtime. */
+      const rutasConDiastol = (fuente.match(/calcDiastol/g) || []).length;
+      const restauraDiastol = fuente.indexOf("'calcSGL','calcDiastol','calcVEXUS'") >= 0 &&
+                              fuente.indexOf("if (typeof calcDiastol === 'function') calcDiastol();") >= 0;
+
+      /* ── EL PDF ── se conserva el titulo condicional y las dos sub-columnas. */
       const Orig = window.jspdf.jsPDF;
       const cap = {};
       const engancha = clave => { const W = function(){
@@ -10243,7 +10242,6 @@ caso('TC-260', 'Vena pulmonar: Ar-A con sus dos cortes exactos, la sub-columna q
         W.prototype = Orig.prototype;
         Object.keys(Orig).forEach(k => { try { W[k] = Orig[k]; } catch (e) {} });
         window.jspdf.jsPDF = W; };
-      let sinDesplazar = null, nuevosEnPDF = [], transmitralIntacta = null;
       try {
         window.valvSevConfirmada = true;
         set('nombre', 'Prueba Vena Pulmonar');
@@ -10252,83 +10250,68 @@ caso('TC-260', 'Vena pulmonar: Ar-A con sus dos cortes exactos, la sub-columna q
         if (typeof calcDiastol === 'function') calcDiastol();
         limpiar();
         engancha('sin'); _pdfAjustarA4(); await new Promise(r => setTimeout(r, 2600));
-        venpAbrir();
         set('venp_dur_a', 120); set('venp_dur_ar', 160); set('venp_vel_ar', 40);
         document.getElementById('venp_sd').value = 'mayor1';
         calcVenaPulm();
         engancha('con'); _pdfAjustarA4(); await new Promise(r => setTimeout(r, 2600));
       } finally { window.jspdf.jsPDF = Orig; }
       const cSin = cap.sin || [], cCon = cap.con || [];
-      /* Lo que estaba SIN vena pulmonar tiene que seguir en la MISMA y: si el bloque crecio, todo
-         lo de abajo baja y aparece acá. */
-      /* El TITULO se excluye de la comparacion: cambia a proposito cuando hay vena pulmonar, y su
-         'y' es la misma (750.3), asi que no es un desplazamiento. Lo que se fija acá es que NADA
-         MAS se haya movido. */
-      sinDesplazar = cSin.length > 0 &&
+      const _tit = arr => (arr.filter(x => x.indexOf('VM - ') === 0)[0] || '').split('@')[0];
+      const tituloSin = _tit(cSin), tituloCon = _tit(cCon);
+      const nuevosEnPDF = cCon.filter(x => cSin.indexOf(x) < 0)
+        .filter(x => x.indexOf('Dur.') >= 0 || x.indexOf('S/D') >= 0 ||
+                     x.indexOf('Veloc') >= 0 || x.indexOf('Ar-A') >= 0);
+      const sinDesplazar = cSin.length > 0 &&
         cSin.filter(x => x.indexOf('VM - ') !== 0).every(x => cCon.indexOf(x) >= 0);
-      nuevosEnPDF = cCon.filter(x => cSin.indexOf(x) < 0)
-                        .filter(x => /Dur\\.|S\\/D|Veloc|Ar-A/.test(x));
-      transmitralIntacta = cSin.filter(x => /Onda E|Onda A|TDA|TRIV|THP/.test(x)).length;
-      const _tit = arr => (arr.filter(x => /^VM - /.test(x))[0] || '').split('@')[0];
-      var tituloSin = _tit(cSin), tituloCon = _tit(cCon);
-      /* Los dos umbrales tienen que llegar al papel: en esta tabla la columna 'ref' es la de
-         cortes, y un Ar-A de 35 ms impreso sin el suyo deja la unica interpretacion en pantalla. */
-      /* Sin regex a proposito: el cuerpo del caso es un literal de plantilla y se come las barras
-         de escape, asi que '\\(' quedaba como '(' y el grupo salia sin cerrar. indexOf alcanza. */
-      /* ⚠️ SIN LOS PARENTESIS: el content stream de un PDF los ESCAPA —la celda sale como
-         ' \\(>35 cm/s\\): 40 cm/s'—, asi que buscarlos literales daba cero coincidencias sobre un
-         PDF correcto. Es la misma trampa del escape de parentesis que ya esta anotada para
-         verificar textos en jsPDF. */
-      var cortesEnPDF = cCon.filter(x => x.indexOf('>=30 ms') >= 0 || x.indexOf('>35 cm/s') >= 0);
+      const cortesEnPDF = cCon.filter(x => x.indexOf('>=30 ms') >= 0 || x.indexOf('>35 cm/s') >= 0);
+      const transmitralIntacta = cSin.filter(x => x.indexOf('Onda E') >= 0 || x.indexOf('TRIV') >= 0).length;
 
       return { extra: [
-        ['la sub-columna NACE OCULTA', ocultaAlInicio, 'display=' + (col ? col.style.display : 'no existe')],
-        ['  y tambien en el MARCADO', naceOcultaEnElFuente, ''],
-        ['  y el grid de siempre ocupa el bloque entero', gridOcupaTodo,
-          Math.round(grid.getBoundingClientRect().width) + ' de ' + Math.round(fila.getBoundingClientRect().width)],
-        ['  con un acceso para cargarla la primera vez', accesoVisible, ''],
-        ['  que la abre', abreConElBoton, ''],
-        ['los cuatro campos VIAJAN con el estudio', viajan, CAMPOS.join(',')],
-        ['  y no colisionan con la VALVULA pulmonar (vp_)', sinColisionConValvula, ''],
-        ['Ar-A de 29 ms NO alerta', d29.n === 0, 'ara=' + d29.ara + ' n=' + d29.n],
-        ['Ar-A de 30 ms SI alerta (el corte es >=)', d30.n === 1, 'ara=' + d30.ara + ' n=' + d30.n],
-        ['  y 31 tambien', d31.n === 1, 'n=' + d31.n],
-        ['una diferencia NEGATIVA no alerta', dNeg.n === 0, 'ara=' + dNeg.ara + ' n=' + dNeg.n],
-        ['Ar de 34 cm/s NO alerta', v34.n === 0, 'n=' + v34.n],
-        ['Ar de 35 cm/s NO alerta (el corte es >)', v35.n === 0, 'n=' + v35.n],
-        ['  y 36 SI', v36.n === 1, 'n=' + v36.n],
-        ['LAS DOS ALERTAS CONVIVEN', ambas.n === 2, ambas.txt.slice(0, 90)],
-        ['  sin superponerse', noSeSuperponen, JSON.stringify(rects.map(r => Math.round(r.top) + '-' + Math.round(r.bottom)))],
-        ['  y son texto rojo PELADO, sin badge', sinBadge,
-          est ? (est.color + ' fondo=' + est.backgroundColor + ' borde=' + est.borderTopWidth) : 'sin alerta'],
-        ['sin los dos insumos no hay diferencia', soloUno.ara === '—', 'ara=' + soloUno.ara],
-        ['el S/D es informativo y NO dispara nada', sdMudo, 'opciones=' + sdOpciones],
-        ['un CERO en la duracion de A no fabrica una alerta', cero.n === 0 && cero.ara === '—',
-          'ara=' + cero.ara + ' n=' + cero.n],
-        ['la diferencia se REDONDEA donde se calcula', dec.ara === '30.1 ms', 'ara=' + dec.ara],
-        ['el S/D guarda un TOKEN, no «<1»', sdToken === 'menor1' && sdLegible === '<1' && sdOpcionesSinAngulo,
-          'guardado=' + sdToken + ' legible=' + sdLegible],
-        ['venpSync esta en el EMBUDO de restauracion', enElEmbudo, ''],
-        ['abrir la columna TAMBIEN repinta', abrirRepinta,
-          'ara=' + document.getElementById('venp-ara').textContent],
-        ['la columna NO se cierra con datos adentro', noCierraConDatos, ''],
-        ['  y si se cierra vacia', cierraVacia, ''],
-        ['DENOMINADOR: el PDF sin vena pulmonar trae el flujo transmitral', transmitralIntacta >= 4,
+        ['el PANEL LATERAL ya no existe', sinPanel, ''],
+        ['  ni en el marcado', sinPanelEnElFuente, ''],
+        ['los cuatro campos viven en la MISMA grilla que TDE', enLaGrilla && tdeEnLaMisma,
+          'campos=' + grid.querySelectorAll('.fg').length],
+        ['y siguen viajando con el estudio', viajan, CAMPOS.join(',')],
+        ['  sin chocar con la VALVULA pulmonar (vp_)', sinColisionConValvula, ''],
+        ['DENOMINADOR: el cuadro gris trae sus filas de siempre', grisSinDatos.length >= 4, grisSinDatos.join(' | ')],
+        ['SIN datos, el cuadro gris NO agrega filas', grisLimpio, grisSinDatos.join(' | ')],
+        ['  y con datos aparecen las dos', grisCrece, grisConDatos.join(' | ')],
+        ['Ar-A 29 ms NO se marca', !a29.ara.rojo, a29.ara.txt],
+        ['Ar-A 30 ms SI (el corte es >=)', a30.ara.rojo, a30.ara.txt],
+        ['  y 31 tambien', a31.ara.rojo, a31.ara.txt],
+        ['Ar 34 cm/s NO se marca', !v34.vel.rojo, v34.vel.txt],
+        ['Ar 35 cm/s NO se marca (el corte es >)', !v35.vel.rojo, v35.vel.txt],
+        ['  y 36 SI', v36.vel.rojo, v36.vel.txt],
+        ["E/e' 13,9 NO se marca", !e139.rojo, e139.txt],
+        ["E/e' 14,0 NO se marca (el corte es > 14, como en el resto de la app)", !e140.rojo, e140.txt],
+        ["  y 14,1 SI", e141.rojo, e141.txt],
+        ["  y el placeholder «—» no se marca", !eVacio.rojo, eVacio.txt],
+        ['las dos se marcan a la vez', lasDosEnRojo, ambas.ara.txt + ' / ' + ambas.vel.txt],
+        ['  y NO hay ninguna oracion', sinOraciones, textoDeLasFilas],
+        ['DENOMINADOR: estaban en rojo antes de limpiar', antesDeLimpiar, ''],
+        ['el rojo SE APAGA al cambiar de paciente', trasLimpiar, ''],
+        ['sigue sin alertar con un CERO en la duracion de A', ceroNoAlerta, ''],
+        ['sigue redondeando donde calcula', redondeo, ''],
+        ['el S/D sigue guardando un TOKEN', tokenSD, ''],
+        ['la restauracion sigue pasando por el EMBUDO', enElEmbudo, ''],
+        ["en FA (BSE 2024) el E/e' NO se pinta: ahi el algoritmo vota con 11", !eeFA.rojo, eeFA.txt],
+        ['  DENOMINADOR: el mismo valor SI se pinta en ritmo sinusal', eeSinusal.rojo, eeSinusal.txt],
+        ['una velocidad de Ar en CERO no publica fila', velCeroOculta, ''],
+        ['calcDiastol entra a las dos rutas de restauracion', restauraDiastol,
+          'rutas=' + rutasConDiastol],
+        ['calcDiastol esta envuelta para pintar por sus cuatro salidas', envuelta, ''],
+        ['DENOMINADOR: el PDF sin vena pulmonar trae el transmitral', transmitralIntacta >= 2,
           'filas=' + transmitralIntacta],
-        ['EL PDF NO DESPLAZA NADA al agregar la sub-columna', sinDesplazar === true,
-          'sin=' + cSin.length + ' con=' + cCon.length],
-        ['  y los cinco campos nuevos SI salen', nuevosEnPDF.length === 5, nuevosEnPDF.join(' | ')],
-        ['el PDF NOMBRA la vena pulmonar cuando la hay', tituloCon.indexOf('Vena pulmonar') >= 0,
-          'con=«' + tituloCon + '»'],
-        ['  y sin datos el titulo es el de SIEMPRE', tituloSin === 'VM - Flujo transmitral',
-          'sin=«' + tituloSin + '»'],
-        ['los dos cortes salen impresos con su fila', cortesEnPDF.length === 2,
-          cortesEnPDF.join(' | ')]
+        ['el PDF NO desplaza nada al agregar la sub-columna', sinDesplazar, 'sin=' + cSin.length + ' con=' + cCon.length],
+        ['  y los cinco campos salen', nuevosEnPDF.length === 5, nuevosEnPDF.join(' | ')],
+        ['el PDF SIGUE nombrando la vena pulmonar', tituloCon.indexOf('Vena pulmonar') >= 0, tituloCon],
+        ['  y sin datos el titulo es el de siempre', tituloSin === 'VM - Flujo transmitral', tituloSin],
+        ['los dos cortes salen impresos', cortesEnPDF.length === 2, cortesEnPDF.join(' | ')]
       ] };
     } finally {
       window.valvSevConfirmada = _sevPrev;
       try { ['venp_dur_a','venp_sd','venp_dur_ar','venp_vel_ar'].forEach(id => {
-        const e = document.getElementById(id); if (e) e.value = ''; }); venpSync(); } catch (e) {}
+        const e = document.getElementById(id); if (e) e.value = ''; }); calcVenaPulm(); } catch (e) {}
       try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
       try { __t.limpiar(); } catch (e) {}
     }
