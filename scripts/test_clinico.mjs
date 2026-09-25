@@ -145,6 +145,13 @@ const PRELUDIO = `
     resetVisor() {
       try { if (typeof vistaBCerrar === 'function' && _vistaB) vistaBCerrar(); } catch (e) {}
       try { if (typeof cineCerrar === 'function') cineCerrar(); } catch (e) {}
+      /* Los dos overlays position:fixed que NO son del visor y que igual tapan el documento
+         entero para el caso siguiente: el modal de vista previa del import de Excel y el aviso
+         medico-legal. Van aca por el mismo argumento que todo lo demas —con una linea por caso,
+         el que se olvide hereda el estado del anterior—, y el que se olvido fue TC-131: dejaba
+         #lab-imp-modal abierto y TC-252 media los trece segmentos del ETE debajo de el. */
+      try { if (typeof labImpCerrar === 'function') labImpCerrar(); } catch (e) {}
+      try { if (typeof cerrarAvisoEco === 'function') cerrarAvisoEco(); } catch (e) {}
       /* Y las sesiones a mano: cerrar ya no se las lleva. Se recorre _vTodas por si vistaBCerrar
          fallo y la B sigue montada. */
       try {
@@ -4003,6 +4010,12 @@ caso('TC-131', 'Excel: un estudio de congenitas vuelve entero de su propio archi
     labImportarXLSX(file);
     for (let i = 0; i < 100 && !_labImpDatos; i++) await new Promise(function(r){ setTimeout(r, 50); });
     const d = _labImpDatos;
+    /* ⚠️ EL MODAL DE VISTA PREVIA QUEDA ABIERTO, Y ES position:fixed SOBRE TODO EL DOCUMENTO.
+       Sin cerrarlo, los ~130 casos que corren despues trabajan debajo de el: cualquiera que mida
+       geometria o use elementFromPoint mide el modal. Lo delato TC-252, que daba verde con --solo
+       y rojo en el suite con los trece segmentos del ETE «robados» por #lab-imp-modal. Se cierra
+       aca, que es donde se abrio, y con su cerrador real. */
+    labImpCerrar();
     __t.borrar(g.estudioId);
     if (!d) return { extra:[['el import produjo resultado', false, 'timeout de 5 s']] };
     if (!d.filas.length) return { extra:[['la fila se importo', false,
@@ -7874,6 +7887,238 @@ caso('TC-158', 'Los segmentos del ETE no dejan rastro en localStorage y viajan c
       ['  con su resumen de hallazgos',                    resumenTrasReabrir.indexOf('Hallazgos') > -1, resumenTrasReabrir.trim()],
       ['el boton Limpiar deja el diagrama en cero',        espTrasLimpiarBoton === '0,0,0,0,0,0', espTrasLimpiarBoton],
       ['  sin escribir en localStorage',                   discoTrasLimpiarBoton.length === 0, discoTrasLimpiarBoton.join(',')]
+    ] };
+  })();
+`);
+
+
+/* Las cuatro proyecciones superiores se tocaban una sola vez: el PRIMER toque andaba y de ahi en
+   mas el segmento quedaba inalcanzable. No era el oyente —nunca se quita— era la ZONA DE TOQUE.
+   Cada segmento tiene dos trazos: la linea de la valva y un clon invisible de 22 unidades de
+   ancho que existe para poder apretarlo con el dedo; eteClick pintaba los DOS y le escribia al
+   clon stroke-width 4 —o se lo sacaba entero en «Normal», o sea 1—, asi que la superficie
+   clickeable colapsaba a ~3,5 px en el primer toque. La vista quirurgica no lo sufria porque sus
+   segmentos son poligonos con relleno: su superficie no depende del grosor del trazo.
+   Y habia un segundo robo: el clon heredaba stroke-linecap square, que estira el trazo media
+   anchura MAS ALLA de cada extremo —once unidades dentro del vecino, sobre segmentos que miden
+   21 a 26—, asi que apuntarle al medio de A3 activaba A2.
+   Tercera mitad: el color de fabrica vivia en el MISMO style en linea que eteClick escribe, asi
+   que su removeProperty lo borraba y la linea quedaba en stroke none. */
+caso('TC-252', 'ETE mitral: cada toque en las proyecciones sincroniza, y la traza se ve en los dos temas', `
+  return (async () => {
+    __t.limpiar();
+    showTab('ete');
+    const sec = document.getElementById('ete-seccion-mitral');
+    if (sec && getComputedStyle(sec).display === 'none') toggleEteSeccion('mitral');
+    eteLimpiarSegmentos();
+
+    const grupos = [].slice.call(document.querySelectorAll('.ete-valve-seg'));
+    /* Las zonas de toque las agrega un setTimeout de 500 ms del arranque. Se SONDEA en vez de
+       esperar un plazo fijo —un plazo fijo en un caso es una apuesta, no una condicion— y se
+       registra cuanto tardo, que es lo que separa «tardo mas» de «no aparecieron nunca». */
+    let esperaClones = 0;
+    while (document.querySelectorAll('.ete-hit').length < grupos.length && esperaClones < 4000) {
+      await new Promise(function (r) { setTimeout(r, 100); });
+      esperaClones += 100;
+    }
+    /* ⚠️ EL AVISO MEDICO-LEGAL ES position:fixed Y TAPA EL DIAGRAMA ENTERO: sin cerrarlo,
+       elementFromPoint devuelve el modal y las cuatro condiciones de toque dan rojo sobre un
+       diagrama perfectamente sano. Va DESPUES del sondeo, porque el arranque lo muestra. */
+    if (typeof cerrarAvisoEco === 'function') cerrarAvisoEco();
+    const proys = ['ete-svg-4ch', 'ete-svg-bc', 'ete-svg-2ch', 'ete-svg-3ch'];
+    const conAlto = proys.filter(function (k) {
+      const e = document.getElementById(k); return e && e.getBoundingClientRect().height > 0;
+    });
+    const base = function (g) { return g.querySelector('path:not(.ete-hit)'); };
+    const clon = function (g) { return g.querySelector('.ete-hit'); };
+    const anchosClon = function () {
+      return grupos.map(function (g) { const c = clon(g); return c ? getComputedStyle(c).strokeWidth : 'SIN CLON'; });
+    };
+    const segDe = function (gid) {
+      return gid.replace('valve-', '').replace('-4ch', '').replace('-bc', '').replace('-2ch', '').replace('-3ch', '');
+    };
+    const qxDe = function (s) { const e = document.getElementById('ete-qx-' + s); return (e && e.style.fill) || '-'; };
+    const medio = function (g) {
+      const p = base(g);
+      return p.getPointAtLength(p.getTotalLength() * 0.5).matrixTransform(g.ownerSVGElement.getScreenCTM());
+    };
+    const duenoDelMedio = function (g) {
+      g.scrollIntoView({ block: 'center' });
+      const pt = medio(g);
+      if (pt.x < 1 || pt.y < 1 || pt.x > innerWidth - 1 || pt.y > innerHeight - 1) return 'FUERA DE PANTALLA';
+      const el = document.elementFromPoint(pt.x, pt.y);
+      if (!el) return 'NADA';
+      const due = el.closest ? el.closest('.ete-valve-seg') : null;
+      if (due) return due.id;
+      /* Si lo tapa algo AJENO, nombrar la cadena: un diagnostico que dice DONDE esta el
+         intruso cuesta una corrida; una hipotesis cuesta varias. Ya paso con #ig-lista-view. */
+      let n = el, cadena = [];
+      while (n && n.tagName !== 'HTML' && cadena.length < 6) {
+        cadena.push(n.tagName + (n.id ? '#' + n.id : '') + '[' + getComputedStyle(n).position + ']');
+        n = n.parentElement;
+      }
+      return cadena.join('<');
+    };
+    /* ⚠️ EL TOQUE VA 7 UNIDADES AL COSTADO DE LA LINEA, Y ESO ES TODO EL PUNTO.
+       Un clic sintetico cae en el punto geometrico EXACTO, asi que acierta aun sobre una linea
+       de 2,5 px: con el dedo puesto en el medio matematico, el defecto no se reproduce. Lo que
+       el medico hace es apuntarle al segmento, no a su eje. Siete unidades entran holgadas en la
+       banda de 22 —que llega a once de cada lado— y quedan MUY afuera de los 4 px a los que el
+       defecto la encogia. Asi el caso ejerce el sintoma reportado y no solo el ancho medido. */
+    const tocar = function (g) {
+      g.scrollIntoView({ block: 'center' });
+      const p = base(g), L = p.getTotalLength();
+      const a = p.getPointAtLength(L * 0.45), b = p.getPointAtLength(L * 0.55);
+      const dx = b.x - a.x, dy = b.y - a.y, n = Math.sqrt(dx * dx + dy * dy) || 1;
+      const m = p.getPointAtLength(L * 0.5);
+      m.x = m.x + (-dy / n) * 7;
+      m.y = m.y + (dx / n) * 7;
+      const pt = m.matrixTransform(g.ownerSVGElement.getScreenCTM());
+      if (pt.x < 1 || pt.y < 1 || pt.x > innerWidth - 1 || pt.y > innerHeight - 1) return false;
+      const el = document.elementFromPoint(pt.x, pt.y);
+      if (!el || !el.closest || el.closest('.ete-valve-seg') !== g) return false;
+      el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      return true;
+    };
+
+    /* DENOMINADOR — sin geometria, «nadie roba el punto medio» se cumple sobre la nada. Y con un
+       modal ajeno encima, las cuatro condiciones de toque dan rojo sobre un diagrama sano: eso
+       ocurrio de verdad, con #lab-imp-modal que TC-131 dejaba abierto. Un intruso position:fixed
+       cae ACA, con su nombre, en vez de disfrazarse de defecto del diagrama. */
+    const geom = grupos.length === 13 && conAlto.length === 4;
+
+    /* 1) La zona de toque EXISTE y sobrevive al pintado: es lo que separa «se pinto» de
+          «se puede volver a tocar». */
+    const anchoVirgen = anchosClon();
+    grupos.forEach(function (g) { eteClick(segDe(g.id)); });
+    const anchoPintado = anchosClon();
+    eteLimpiarSegmentos();
+    const anchoTrasLimpiar = anchosClon();
+    const veintidos = function (a) { return a.filter(function (w) { return w === '22px'; }).length; };
+
+    /* 2) El punto medio de cada segmento pertenece a SU segmento: cero robados. */
+    const duenos = grupos.map(function (g) { return g.id + '->' + duenoDelMedio(g); });
+    const intrusos = duenos.filter(function (d) { return d.indexOf('[fixed]') > 0 || d.indexOf('->NADA') > 0 || d.indexOf('FUERA DE PANTALLA') > 0; });
+    const denom = geom && intrusos.length === 0;
+    const robados = duenos.filter(function (d) {
+      return d.split('->')[0] !== d.split('->')[1] && intrusos.indexOf(d) < 0;
+    });
+
+    /* 3) EL SINTOMA REPORTADO: tres toques seguidos en la MISMA proyeccion, y los tres tienen
+          que mover la vista quirurgica. Con la zona de toque colapsada, del segundo en adelante
+          el clic cae fuera y el qx no se entera. */
+    eteLimpiarSegmentos();
+    const gA3 = document.getElementById('valve-A3');
+    const seguidos = [];
+    for (let i = 0; i < 3; i++) { const ok = tocar(gA3); seguidos.push((ok ? '' : 'NO LLEGO ') + qxDe('A3')); }
+    /* Los tres LLEGARON y los tres dieron distinto. Sin la primera mitad la condicion miente:
+       el prefijo NO LLEGO se funde con el color, asi que fallo/ok/fallo da tres cadenas
+       distintas y la condicion pasaba con DOS de los tres toques muertos. */
+    const tresLlegaron = seguidos.every(function (s) { return s.indexOf('NO LLEGO') < 0; });
+    const tresDistintos = tresLlegaron && seguidos[0] !== seguidos[1] && seguidos[1] !== seguidos[2] && seguidos[0] !== seguidos[2];
+    const espejoTras3 = (document.getElementById('ete_seg_A3') || {}).value;
+
+    /* 4) Un toque en cada una de las CUATRO proyecciones sincroniza el qx. */
+    eteLimpiarSegmentos();
+    const unoPorProy = [['valve-A3', 'A3'], ['valve-A2-bc', 'A2'], ['valve-A1', 'A1'], ['valve-P2-3ch', 'P2']].map(function (par) {
+      const g = document.getElementById(par[0]);
+      const antes = qxDe(par[1]);
+      const ok = tocar(g);
+      return par[0] + '=' + (ok && qxDe(par[1]) !== antes ? 'ok' : 'NO SINCRONIZO');
+    });
+    const cuatroProys = unoPorProy.filter(function (x) { return x.indexOf('=ok') > 0; }).length;
+
+    /* 5) El color de fabrica sobrevive al ciclo completo. Si volviera al style en linea que
+          eteClick escribe, el sexto toque lo dejaria en stroke none. */
+    eteLimpiarSegmentos();
+    for (let i = 0; i < 6; i++) eteClick('A3');
+    const trazoTrasCiclo = getComputedStyle(base(gA3)).stroke;
+    const anchoTrasCiclo = getComputedStyle(base(gA3)).strokeWidth;
+    const espejoTrasCiclo = (document.getElementById('ete_seg_A3') || {}).value;
+
+    /* 6) La traza sigue al TEMA y la lesion NO: un color de lesion es el mismo en los dos. */
+    const lum = function (c) {
+      const n = String(c).match(/[0-9]+/g);
+      if (!n || n.length < 3) return null;
+      const v = n.slice(0, 3).map(function (x) {
+        const u = x / 255; return u <= 0.03928 ? u / 12.92 : Math.pow((u + 0.055) / 1.055, 2.4);
+      });
+      return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+    };
+    const contraste = function (a, b) {
+      const l1 = lum(a), l2 = lum(b);
+      if (l1 == null || l2 == null) return 0;
+      return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+    };
+    const fondo = function () {
+      let n = document.getElementById('ete-svg-4ch');
+      while (n && n.tagName !== 'HTML') {
+        const b = getComputedStyle(n).backgroundColor;
+        if (b && b !== 'rgba(0, 0, 0, 0)' && b !== 'transparent') return b;
+        n = n.parentElement;
+      }
+      return getComputedStyle(document.body).backgroundColor;
+    };
+    eteLimpiarSegmentos();
+    const gP1 = document.getElementById('valve-P1');
+    eteClick('P1');                                        // P1 con lesion, A3 virgen
+    /* Se miden TRES cosas por tema y no solo el trazo de la valva: los 13 paths de valva toman el
+       color de un ATRIBUTO y los otros 76 —contornos del ventriculo y las LETRAS A1/A2/P1…— de un
+       style en linea. Con una sola testigo, revertir las letras a #e2e8f0 deja el diagrama sin
+       decir que segmento es cual sobre la tarjeta blanca, y el caso pasaba en verde. */
+    const rotulo = document.querySelector('#ete-svg-4ch g[id^="text_"] path');
+    const otraLinea = document.querySelector('#ete-svg-4ch g[id^="line2d_"] path');
+    const eraDia = document.documentElement.classList.contains('light-mode');
+    let noche = null, dia = null;
+    /* ⚠️ EL TEMA SE RESTAURA EN UN finally. 267 casos comparten UNA pagina: un throw entre el
+       add y el remove deja a todos los que siguen corriendo en el tema equivocado, con el runner
+       tragandose la excepcion caso por caso. Es la contaminacion cruzada que este mismo commit
+       acaba de pagar con #lab-imp-modal. */
+    try {
+      const leer = function () {
+        return { traza: getComputedStyle(base(gA3)).stroke,
+                 lesion: getComputedStyle(base(gP1)).stroke,
+                 rotulo: rotulo ? getComputedStyle(rotulo).fill : 'SIN ROTULO',
+                 linea: otraLinea ? getComputedStyle(otraLinea).stroke : 'SIN LINEA',
+                 fondo: fondo() };
+      };
+      document.documentElement.classList.remove('light-mode');
+      noche = leer();
+      document.documentElement.classList.add('light-mode');
+      dia = leer();
+    } finally {
+      if (!eraDia) { try { document.documentElement.classList.remove('light-mode'); } catch (e) {} }
+    }
+    eteLimpiarSegmentos();
+    __t.limpiar();
+
+    /* Cero color cableado en las cuatro proyecciones: es lo unico que cubre los 76 trazos que
+       no se miden uno por uno. */
+    const cableado = proys.filter(function (k) {
+      const e = document.getElementById(k);
+      return !e || e.outerHTML.indexOf('e2e8f0') >= 0;
+    });
+    /* La funcion de luminancia supone que el fondo devuelve un rgb() OPACO — con un rgba
+       translucido leeria la tarjeta como opaca y sobrestimaria el contraste. Hoy lo es en ambos. */
+    const cNoche = contraste(noche.traza, noche.fondo), cDia = contraste(dia.traza, dia.fondo);
+    const cRotDia = contraste(dia.rotulo, dia.fondo), cLinDia = contraste(dia.linea, dia.fondo);
+
+    return { extra: [
+      ['DENOMINADOR: 13 segmentos, 4 proyecciones dibujadas y nada ajeno encima', denom, grupos.length + ' segmentos, ' + conAlto.length + ' proyecciones con alto' + (intrusos.length ? ' — TAPADO POR: ' + intrusos[0] : '')],
+      ['cada segmento nace con su zona de toque de 22 unidades',   veintidos(anchoVirgen) === 13, anchoVirgen.join(' ') + '  (aparecieron a los ' + esperaClones + ' ms)'],
+      ['PINTAR NO LA ENCOGE',                                      veintidos(anchoPintado) === 13, anchoPintado.join(' ')],
+      ['  ni «Limpiar», que tambien saca overrides',               veintidos(anchoTrasLimpiar) === 13, anchoTrasLimpiar.join(' ')],
+      ['el punto medio de cada segmento es SUYO: nadie lo roba',   robados.length === 0, robados.length ? robados.join(' | ') : duenos.join(' | ')],
+      ['TRES toques seguidos mueven el qx las tres veces',         tresDistintos, seguidos.join('  ->  ')],
+      ['  y el espejo queda en el tercer estado',                  espejoTras3 === '3', 'ete_seg_A3=' + espejoTras3],
+      ['un toque en CADA una de las cuatro proyecciones sincroniza', cuatroProys === 4, unoPorProy.join(' | ')],
+      ['el ciclo completo vuelve al color de fabrica, no a «none»', trazoTrasCiclo !== 'none' && anchoTrasCiclo === '2.5px' && espejoTrasCiclo === '0', trazoTrasCiclo + ' ' + anchoTrasCiclo + ' espejo=' + espejoTrasCiclo],
+      ['  y las 13 zonas de toque son 13, no 26',                 document.querySelectorAll('.ete-hit').length === 13, document.querySelectorAll('.ete-hit').length + ' clones'],
+      ['la traza CAMBIA con el tema',                              noche.traza !== dia.traza, noche.traza + ' vs ' + dia.traza],
+      ['  y contrasta en los DOS (>= 4.5:1)',                      cNoche >= 4.5 && cDia >= 4.5, 'noche ' + cNoche.toFixed(2) + ':1  dia ' + cDia.toFixed(2) + ':1'],
+      ['los ROTULOS y los contornos tambien se leen de dia',       cRotDia >= 4.5 && cLinDia >= 4.5, 'rotulo ' + cRotDia.toFixed(2) + ':1  contorno ' + cLinDia.toFixed(2) + ':1  (' + dia.rotulo + ' / ' + dia.linea + ')'],
+      ['  y ninguna proyeccion conserva el color cableado',        cableado.length === 0, cableado.join(', ')],
+      ['el color de la LESION es el mismo en los dos temas',       noche.lesion === dia.lesion && noche.lesion !== noche.traza, noche.lesion + ' vs ' + dia.lesion]
     ] };
   })();
 `);

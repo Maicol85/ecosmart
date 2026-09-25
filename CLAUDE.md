@@ -4,6 +4,172 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## El diagrama del ETE mitral: EL PINTOR SE COMÍA LA ZONA DE TOQUE (2026-09-25)
+
+Reportado como dos cosas —«en las proyecciones de arriba sólo se activa un segmento, los toques
+siguientes no hacen nada» y «en modo Día las líneas de las valvas casi no se ven»—. Son **tres
+defectos**, y ninguno estaba donde el reporte apuntaba: el oyente nunca se quita, y el problema de
+contraste no era del tema.
+
+### ⚠️ NO ERA EL OYENTE: ERA LA SUPERFICIE CLICKEABLE, QUE LA DESTRUÍA `eteClick`
+
+Cada segmento de las cuatro proyecciones tiene **dos** trazos: la línea de la valva y un **clon
+invisible de 22 unidades de ancho** que un `setTimeout(500)` agrega para poder apretarlo con el
+dedo. `eteClick` pintaba `el.querySelectorAll("path,line")`, o sea **los dos**, y le escribía al
+clon `stroke-width: 4` —o se lo sacaba entero en la rama «Normal», que deja el 1 de fábrica—.
+
+| | ancho de la zona de toque |
+|---|---|
+| al abrir la app | 22 unidades ≈ **20 px** |
+| tras el primer toque | 4 ≈ **3,5 px** |
+| tras «Limpiar» | 1 ≈ **0,9 px** |
+
+Primer toque perfecto, y de ahí en más el segmento es inalcanzable con un dedo. **La vista
+quirúrgica no lo sufre porque sus segmentos son POLÍGONOS con relleno**: su superficie de toque no
+depende del grosor del trazo, y por eso ahí «sí funciona bien y se pueden activar varios seguidos»,
+que es exactamente lo que decía el reporte.
+
+Hoy hay **`ETE_SEL_TRAZO = "path:not(.ete-hit),line:not(.ete-hit)"`**, una constante, y la usan las
+tres funciones que recorren un grupo. **El pintor no puede tocar lo que hace clickeable al
+segmento.**
+
+### ⚠️ Y LA TAPA `square` DEL CLON LE ROBABA EL PUNTO MEDIO AL VECINO
+
+Segundo robo, encontrado midiendo y no leyendo. El clon heredaba `stroke-linecap: square` del
+dibujo, y esa tapa **estira el trazo media anchura MÁS ALLÁ de cada extremo**: con 22 de ancho son
+**once unidades dentro del segmento contiguo**, que en estas proyecciones mide entre 21 y 26. O sea
+que la banda del vecino llega siempre más allá de la mitad del otro.
+
+Medido punto por punto sobre los trece segmentos, muestreando del 5 % al 95 % del trazo:
+
+| | con `square` | con `butt` |
+|---|---|---|
+| `valve-A3` | **11/19** — A2 se come siete, el centro incluido | 19/19 |
+| `valve-P1` | **11/19** | 19/19 |
+| `valve-P3-bc` · `valve-P1-bc` | 15/19 cada uno | 19/19 |
+| `valve-A1` | **9/18**, y A1 sólo existe en la 2 cámaras | 18/18 |
+
+Apuntarle al medio de A3 activaba A2. Hoy el clon lleva `butt` —y `stroke-linejoin: round`, que
+hoy no cambia nada porque los trece son un `M…L…` de dos puntos, pero el día que uno tenga un
+vértice el `miter` de fábrica dispara la misma punta por la otra puerta—.
+
+**Contrapartida declarada:** `butt` abre una zona muerta donde dos segmentos **no comparten
+vértice**. En la bicomisural, `valve-P3-bc` termina en `(71,85 · 95,14)` y `valve-A2-bc` arranca en
+`(75,71 · 95,14)`: **3,86 unidades** que la tapa cuadrada cubría, mientras le robaba la punta a P3.
+Ahí un toque ahora no hace nada en vez de activar el segmento equivocado. Es la dirección correcta
+—falla cerrado— y nadie lo va a reportar como defecto.
+
+### ⚠️ LAS LÍNEAS DE VALVA NO ESTABAN «POCO CONTRASTADAS»: NO TENÍAN COLOR, EN LOS DOS TEMAS
+
+Tercer defecto, y el reporte lo leyó como un problema de modo Día porque ahí es donde se nota.
+El color de fábrica vivía en el `style` **en línea** del path —`stroke: #e2e8f0; stroke-width: 2.5`—
+que es **el mismo bloque de declaración que `eteClick` escribe al pintar la lesión**. Así que su
+rama «Normal», que es un `removeProperty`, no sacaba un override: **borraba el color de fábrica**.
+Y el arranque llama a `eteSegSync` → `eteClick` con v = 0 para los seis, o sea que los trece
+segmentos quedaban en **`stroke: none` en cada carga de la app**.
+
+Medido: `computed stroke: none` en modo Noche y en modo Día. Las líneas de las valvas no se veían
+**nunca**; de noche el resto del dibujo —`#e2e8f0` sobre la tarjeta oscura— sí, y eso hacía que
+pareciera un problema de contraste de una sola parte.
+
+Hoy en los trece el color base va como **ATRIBUTO de presentación** (`stroke="currentColor"
+stroke-width="2.5"`), que pierde contra el estilo en línea mientras hay lesión y **reaparece solo**
+cuando `eteClick` lo saca. Es la única forma de que `removeProperty` signifique «sacá el override»
+y no «borrá todo».
+
+**Hay un assert de arranque que lo vigila**, porque si no la regla vivía sólo en un comentario: la
+salida de matplotlib —que es de donde vienen estas cuatro proyecciones— usa la forma contraria, así
+que pegar un segmento nuevo se ve **perfecto** y falla al sexto toque, cuando el ciclo vuelve a
+«Normal» y el segmento desaparece del diagrama para siempre, sin error y sin consola. El assert
+mira el **atributo** y no el `style`: es el invariante, y además es inmune al momento en que corra
+—con un estudio restaurado los segmentos con lesión sí tienen `style.stroke` escrito—.
+
+### El contraste: `currentColor` + una variable por tema
+
+Las cuatro proyecciones son SVG de matplotlib con **89 trazos** de color cableado en `#e2e8f0`, un
+gris casi blanco: sobre el fondo de la tarjeta en modo Día —blanco puro— eso es **1,2:1**. No sólo
+las valvas: los contornos del ventrículo y **las letras A1/A2/P1…**, que es lo que dice qué segmento
+es cuál. Hoy todos dicen `currentColor` y el color lo pone `.ete-proy { color: var(--ete-traza) }`.
+
+Medido: **13,8:1 de noche y 10,35:1 de día**. Los dos valores están elegidos para que la traza pese
+lo mismo en los dos temas; `var(--text)` habría dado 15,5:1 en claro y el dibujo se vería más
+cargado de día que de noche.
+
+**El color de la LESIÓN no sigue al tema, y hay una condición que lo fija:** ámbar, rojo, azul,
+violeta y verde son los mismos en los dos, porque los pone `eteClick` inline.
+
+### ⚠️ LA VISTA QUIRÚRGICA TIENE LA CONVENCIÓN CONTRARIA, A PROPÓSITO
+
+`eteQxDataURL` —el único camino por el que un diagrama del ETE mitral llega al PDF firmado— decide
+qué imprime con `el.style.fill` / `el.style.stroke`. Los `ete-qx-*` ya llevan `fill="transparent"`
+y `stroke="none"` como **atributos**, así que «hacer lo mismo que arriba» haría que la hoja firmada
+saliera con **la válvula en blanco** mientras la pantalla se ve perfecta. Los dos bloques lo dicen
+en su comentario. Las proyecciones **no van al PDF por ningún camino** —verificado—.
+
+### Declarado y sin hacer
+
+- **Ctrl+P en modo Noche imprime el diagrama en blanco.** El navegador conserva el color y descarta
+  el fondo. Antes fallaba en los dos temas; ahora falla en uno solo, que es **más difícil de
+  notar**. Un `@media print` sobre `--ete-traza` arregla las cuatro proyecciones y deja la vista
+  quirúrgica igual de invisible, porque aquélla dibuja con `var(--text)`: el arreglo entero es otra
+  tarea. La salida real de la app es jsPDF, que no pasa por ahí.
+- **`currentColor` no sobrevive a serializar el SVG suelto.** Hoy nadie lo hace, pero `_svgToPng`
+  es el patrón que alguien copiaría para meter las proyecciones en el PDF. Y ojo: las cuatro
+  comparten ids de glifo, así que extraer **una sola** pierde las letras, que viven en la de 4
+  cámaras.
+- **Las proyecciones y la vista quirúrgica tienen dos grises distintos en modo Día** (`#334155`
+  contra el `var(--text)` de la qx). De noche son indistinguibles.
+
+### TC-252, y las cinco mutaciones
+
+**El clic sintético cae en el punto geométrico EXACTO, así que acierta aun sobre una línea de
+2,5 px: con el dedo puesto en el medio matemático el defecto NO se reproduce.** Por eso el caso
+toca **7 unidades al costado** de la línea — holgado dentro de la banda de 22, que llega a once de
+cada lado, y muy afuera de los 4 px a los que el defecto la encogía. Sin eso, la condición de los
+tres toques seguidos pasaba con el defecto puesto y lo único que lo cazaba era el ancho medido.
+
+Las cinco, cada una en su condición: el selector de vuelta a `path,line` (cae por cinco, con
+«NO LLEGO» en los tres toques), la tapa cuadrada de vuelta (imprime `valve-A1 lo toma
+valve-A2-2ch`), el color base de vuelta al `style` en línea (`none 1px`), el modo Día con el color
+de noche (**1,23:1**) y los rótulos de vuelta al gris cableado (1,23:1, con la proyección nombrada).
+
+**Y el caso mide TRES testigos por tema, no uno.** Con sólo el path de la valva —que toma el color
+de un atributo— revertir los 76 trazos del `style` en línea, **rótulos incluidos**, dejaba el caso
+en verde: el diagrama sin decir qué segmento es cuál sobre la tarjeta blanca, que es la parte
+clínicamente portante de la figura.
+
+### ⚠️ TC-252 PASABA CON `--solo` Y FALLABA EN EL SUITE — y el culpable era otro caso
+
+Los trece segmentos aparecían «robados» por `B[static]<SPAN<DIV<DIV<`**`DIV#lab-imp-modal[fixed]`**.
+TC-131 abre la vista previa del import de Excel con `labImportarXLSX(file)` y **nunca la cerraba**:
+es `position:fixed` sobre todo el documento, así que los ~130 casos siguientes venían corriendo
+debajo de él. Ninguno lo notaba porque ninguno medía geometría.
+
+Se cerró en los dos lados: `labImpCerrar()` en TC-131, que es donde se abre, y en **`__t.resetVisor()`**
+junto con `cerrarAvisoEco()`, por el mismo argumento que todo lo demás —con una línea por caso, el
+que se olvide hereda el estado del anterior—.
+
+**Lo resolvió una corrida, porque el diagnóstico nombra la CADENA de ancestros con su
+`position`.** Es la lección de `#ig-lista-view` aplicada: un diagnóstico que dice dónde está el
+intruso cuesta una corrida; una hipótesis cuesta varias. Y desde ahora un intruso `position:fixed`
+cae en el **DENOMINADOR** de TC-252, con su nombre, en vez de disfrazarse de defecto del diagrama.
+
+### Dos trampas propias, las dos ya escritas en este archivo
+
+- **El backtick dentro del cuerpo de un caso: van OCHENTA**, otra vez en un comentario recién
+  escrito —el que explica la suposición de la función de luminancia—.
+- **Y un comentario mío volvió a romper el bloque `<script>` entero**: al reemplazar el bloque del
+  assert, el párrafo nuevo quedó **después** del `*/` y el bloque 8 —donde vive `CeiboStore`— dejó
+  de parsear con `Unexpected identifier 'mira'`. El chequeo comparado contra HEAD lo caza en
+  segundos; leer el diff, no.
+
+### `tresDistintos` podía pasar con dos de los tres toques muertos
+
+El prefijo `NO LLEGO` se fundía con el color, así que fallo/ok/fallo daba tres cadenas distintas.
+Hoy la condición exige primero que **los tres hayan llegado**. Lo encontró `/sharp-edges`; el caso
+funcionaba hoy y estaba a un refactor de mentir.
+
+
 ## El botón 🫀 CC abre un CUADRO PROPIO (2026-09-24, cuarta decisión de la jornada)
 
 Decisión de Maicol, y **resuelve de raíz lo que las dos versiones anteriores parchaban**. El

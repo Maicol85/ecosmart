@@ -68,6 +68,7 @@
     --orange: #f59e42;
     --purple: #9b7fe8;
     --section-head: #232840;
+    --ete-traza: #e2e8f0;
   }
   html.light-mode {
     --bg: #f4f6f9;
@@ -84,7 +85,33 @@
     --orange: #d97b1f;
     --purple: #7457c9;
     --section-head: #e4e9f2;
+    --ete-traza: #334155;
   }
+  /* ⚠️ LAS CUATRO PROYECCIONES DEL ETE MITRAL SON SVG DE MATPLOTLIB Y NACIERON CON EL COLOR
+     CABLEADO en `#e2e8f0`, o sea un gris casi blanco: sobre el fondo de la tarjeta en modo Día
+     —blanco puro— eso es 1,2:1, invisible. Hoy todos esos trazos dicen `currentColor` y el color
+     lo pone esta regla, así que siguen a la variable y no al tema en que se dibujaron.
+     Los valores están elegidos para que la traza PESE LO MISMO en los dos temas: 13,9:1 en
+     oscuro y 10,3:1 en claro. `var(--text)` habría dado 15,5:1 en claro y el dibujo se vería
+     más cargado de día que de noche.
+     ⚠️ Y en los SEGMENTOS DE VALVA el color base NO puede vivir en el `style` en línea: es el
+     MISMO bloque de declaración que `eteClick` escribe al pintar la lesión, así que su rama
+     «Normal» —un `removeProperty`— se llevaba puesto el color de fábrica y la línea quedaba en
+     `stroke: none`. Ahí va como ATRIBUTO de presentación, que pierde contra el estilo en línea
+     mientras hay lesión y reaparece solo cuando `eteClick` lo saca.
+     DECLARADO Y SIN HACER, los dos del `/sharp-edges` del 2026-09-25:
+     · **Ctrl+P en modo Noche imprime el diagrama en blanco.** El navegador conserva el color y
+       descarta el fondo, así que la traza sale casi blanca sobre papel. Antes fallaba en los dos
+       temas; ahora falla en uno solo, que es MÁS difícil de notar. Un `@media print` sobre esta
+       variable arregla las cuatro proyecciones y deja la vista quirúrgica igual de invisible
+       —aquélla dibuja con `var(--text)`, no con `currentColor`—, o sea que el arreglo entero es
+       otra tarea. La salida real de la app es jsPDF, que no pasa por acá.
+     · **`currentColor` NO sobrevive a serializar el SVG suelto.** Hoy nadie lo hace, pero
+       `_svgToPng` es el patrón que alguien copiaría para meter las proyecciones en el PDF: fuera
+       del documento esta regla no viaja y todo cae al negro inicial. Si se hace, hay que estampar
+       `style="color:…"` en la raíz clonada — y ojo, las cuatro comparten ids de glifo, así que
+       extraer UNA sola pierde las letras, que viven en la de 4 cámaras. */
+  .ete-proy { color: var(--ete-traza); }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     background: var(--bg);
@@ -5207,7 +5234,7 @@ window.cerrarSesionReal = cerrarSesionReal;
 
         <div style="flex:1;min-width:145px;max-width:210px;text-align:center;">
           <div style="font-size:9px;font-weight:700;color:var(--accent2);margin-bottom:3px;">0° — 4 Cámaras</div>
-          <svg viewBox="0 0 178.18177 238.798594" style="width:100%;height:auto;display:block;" id="ete-svg-4ch">
+          <svg viewBox="0 0 178.18177 238.798594" style="width:100%;height:auto;display:block;" class="ete-proy" id="ete-svg-4ch">
             
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
@@ -5269,7 +5296,7 @@ L 34.680185 78.042149
 L 34.33736 69.08353 
 L 34.223308 60.12491 
 L 34.223308 60.12491 
-" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_2">
     <path d="M 90.88177 208.937541 
@@ -5303,17 +5330,17 @@ L 147.083355 78.042149
 L 147.42618 69.08353 
 L 147.540232 60.12491 
 L 147.540232 60.12491 
-" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_3">
     <path d="M 34.223308 60.12491 
 L 34.223308 46.119015 
-" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_4">
     <path d="M 147.540232 60.12491 
 L 147.540232 46.119015 
-" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_5">
     <path d="M 90.88177 166.336278 
@@ -5342,7 +5369,7 @@ L 54.495174 73.268122
 L 54.233833 65.453239 
 L 54.182539 60.12491 
 L 54.182539 60.12491 
-" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_6">
     <path d="M 90.88177 166.336278 
@@ -5371,37 +5398,37 @@ L 127.268366 73.268122
 L 127.529707 65.453239 
 L 127.581001 60.12491 
 L 127.581001 60.12491 
-" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_7">
     <path d="M 54.182539 60.12491 
 L 54.182539 48.453331 
-" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_8">
     <path d="M 127.581001 60.12491 
 L 127.581001 48.453331 
-" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="valve-A3" onclick="eteClick('A3')" style="cursor:pointer;" class="ete-valve-seg">
     <path d="M 54.182539 48.453331 
 L 66.737539 71.21291 
-" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: #e2e8f0; stroke-width: 2.5; stroke-linecap: square"/>
+" clip-path="url(#p97029d9b9d)" stroke="currentColor" stroke-width="2.5" style="fill: none; stroke-linecap: square"/>
    </g>
    <g id="valve-A2-4ch" onclick="eteClick('A2')" style="cursor:pointer;" class="ete-valve-seg">
     <path d="M 66.737539 71.21291 
 L 79.292539 93.972488 
-" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: #e2e8f0; stroke-width: 2.5; stroke-linecap: square"/>
+" clip-path="url(#p97029d9b9d)" stroke="currentColor" stroke-width="2.5" style="fill: none; stroke-linecap: square"/>
    </g>
    <g id="valve-P1" onclick="eteClick('P1')" style="cursor:pointer;" class="ete-valve-seg">
     <path d="M 127.581001 48.453331 
 L 115.026001 71.21291 
-" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: #e2e8f0; stroke-width: 2.5; stroke-linecap: square"/>
+" clip-path="url(#p97029d9b9d)" stroke="currentColor" stroke-width="2.5" style="fill: none; stroke-linecap: square"/>
    </g>
    <g id="valve-P2-4ch" onclick="eteClick('P2')" style="cursor:pointer;" class="ete-valve-seg">
     <path d="M 115.026001 71.21291 
 L 102.471001 93.972488 
-" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: #e2e8f0; stroke-width: 2.5; stroke-linecap: square"/>
+" clip-path="url(#p97029d9b9d)" stroke="currentColor" stroke-width="2.5" style="fill: none; stroke-linecap: square"/>
    </g>
    <g id="line2d_9">
     <defs>
@@ -5415,15 +5442,15 @@ C -1.118292 -0.649475 -1.25 -0.331504 -1.25 0
 C -1.25 0.331504 -1.118292 0.649475 -0.883883 0.883883 
 C -0.649475 1.118292 -0.331504 1.25 0 1.25 
 z
-" style="stroke: #e2e8f0"/>
+" style="stroke: currentColor"/>
     </defs>
     <g clip-path="url(#p97029d9b9d)">
-     <use xlink:href="#meee61a3dbc" x="66.737539" y="71.21291" style="fill: #e2e8f0; stroke: #e2e8f0"/>
+     <use xlink:href="#meee61a3dbc" x="66.737539" y="71.21291" style="fill: currentColor; stroke: currentColor"/>
     </g>
    </g>
    <g id="line2d_10">
     <g clip-path="url(#p97029d9b9d)">
-     <use xlink:href="#meee61a3dbc" x="115.026001" y="71.21291" style="fill: #e2e8f0; stroke: #e2e8f0"/>
+     <use xlink:href="#meee61a3dbc" x="115.026001" y="71.21291" style="fill: currentColor; stroke: currentColor"/>
     </g>
    </g>
    <g id="line2d_11">
@@ -5461,16 +5488,16 @@ L 12.847093 85.405374
 L 13.617197 83.245256 
 L 13.901538 82.592699 
 L 13.901538 82.592699 
-" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#p97029d9b9d)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_12">
     <g clip-path="url(#p97029d9b9d)">
-     <use xlink:href="#meee61a3dbc" x="68.628462" y="197.032531" style="fill: #e2e8f0; stroke: #e2e8f0"/>
+     <use xlink:href="#meee61a3dbc" x="68.628462" y="197.032531" style="fill: currentColor; stroke: currentColor"/>
     </g>
    </g>
    <g id="text_1">
     <!-- A3 -->
-    <g style="fill: #e2e8f0" transform="translate(62.276096 58.524807) scale(0.085 -0.085)">
+    <g style="fill: currentColor" transform="translate(62.276096 58.524807) scale(0.085 -0.085)">
      <defs>
       <path id="DejaVuSans-Bold-41" d="M 3419 850 
 L 1538 850 
@@ -5527,7 +5554,7 @@ z
    </g>
    <g id="text_2">
     <!-- A2 -->
-    <g style="fill: #e2e8f0" transform="translate(74.831096 81.284386) scale(0.085 -0.085)">
+    <g style="fill: currentColor" transform="translate(74.831096 81.284386) scale(0.085 -0.085)">
      <defs>
       <path id="DejaVuSans-Bold-32" d="M 1844 884 
 L 3897 884 
@@ -5558,7 +5585,7 @@ z
    </g>
    <g id="text_3">
     <!-- P1 -->
-    <g style="fill: #e2e8f0" transform="translate(107.169084 58.524807) scale(0.085 -0.085)">
+    <g style="fill: currentColor" transform="translate(107.169084 58.524807) scale(0.085 -0.085)">
      <defs>
       <path id="DejaVuSans-Bold-50" d="M 588 4666 
 L 2584 4666 
@@ -5602,14 +5629,14 @@ z
    </g>
    <g id="text_4">
     <!-- P2 -->
-    <g style="fill: #e2e8f0" transform="translate(94.614084 81.284386) scale(0.085 -0.085)">
+    <g style="fill: currentColor" transform="translate(94.614084 81.284386) scale(0.085 -0.085)">
      <use xlink:href="#DejaVuSans-Bold-50"/>
      <use xlink:href="#DejaVuSans-Bold-32" transform="translate(73.291016 0)"/>
     </g>
    </g>
    <g id="text_5">
     <!-- VD -->
-    <g style="fill: #e2e8f0" transform="translate(3.6 82.592699) scale(0.07 -0.07)">
+    <g style="fill: currentColor" transform="translate(3.6 82.592699) scale(0.07 -0.07)">
      <defs>
       <path id="DejaVuSans-Oblique-56" d="M 1319 0 
 L 500 4666 
@@ -5649,7 +5676,7 @@ z
    </g>
    <g id="text_6">
     <!-- VI -->
-    <g style="fill: #e2e8f0" transform="translate(87.210286 131.321541) scale(0.075 -0.075)">
+    <g style="fill: currentColor" transform="translate(87.210286 131.321541) scale(0.075 -0.075)">
      <defs>
       <path id="DejaVuSans-Oblique-49" d="M 1081 4666 
 L 1716 4666 
@@ -5665,7 +5692,7 @@ z
    </g>
    <g id="text_7">
     <!-- 0° — 4 Cámaras -->
-    <g style="fill: #e2e8f0" transform="translate(51.170676 10.438594) scale(0.09 -0.09)">
+    <g style="fill: currentColor" transform="translate(51.170676 10.438594) scale(0.09 -0.09)">
      <defs>
       <path id="DejaVuSans-Bold-30" d="M 2944 2338 
 Q 2944 3213 2780 3570 
@@ -5943,7 +5970,7 @@ z
 
         <div style="flex:1;min-width:145px;max-width:210px;text-align:center;">
           <div style="font-size:9px;font-weight:700;color:var(--accent2);margin-bottom:3px;">45–60° — Bicomisural</div>
-          <svg viewBox="0 0 174.6 238.798594" style="width:100%;height:auto;display:block;" id="ete-svg-bc">
+          <svg viewBox="0 0 174.6 238.798594" style="width:100%;height:auto;display:block;" class="ete-proy" id="ete-svg-bc">
             
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
@@ -6005,7 +6032,7 @@ L 31.098415 78.042149
 L 30.75559 69.08353 
 L 30.641538 60.12491 
 L 30.641538 60.12491 
-" clip-path="url(#pb1a58a9c7b)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#pb1a58a9c7b)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_2">
     <path d="M 87.3 208.937541 
@@ -6039,17 +6066,17 @@ L 143.501585 78.042149
 L 143.84441 69.08353 
 L 143.958462 60.12491 
 L 143.958462 60.12491 
-" clip-path="url(#pb1a58a9c7b)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#pb1a58a9c7b)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_3">
     <path d="M 30.641538 60.12491 
 L 30.641538 46.119015 
-" clip-path="url(#pb1a58a9c7b)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#pb1a58a9c7b)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_4">
     <path d="M 143.958462 60.12491 
 L 143.958462 46.119015 
-" clip-path="url(#pb1a58a9c7b)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#pb1a58a9c7b)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_5">
     <path d="M 87.3 166.336278 
@@ -6078,7 +6105,7 @@ L 50.913404 73.268122
 L 50.652063 65.453239 
 L 50.600769 60.12491 
 L 50.600769 60.12491 
-" clip-path="url(#pb1a58a9c7b)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#pb1a58a9c7b)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_6">
     <path d="M 87.3 166.336278 
@@ -6107,36 +6134,36 @@ L 123.686596 73.268122
 L 123.947937 65.453239 
 L 123.999231 60.12491 
 L 123.999231 60.12491 
-" clip-path="url(#pb1a58a9c7b)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#pb1a58a9c7b)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_7">
     <path d="M 50.600769 60.12491 
 L 50.600769 48.453331 
-" clip-path="url(#pb1a58a9c7b)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#pb1a58a9c7b)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_8">
     <path d="M 123.999231 60.12491 
 L 123.999231 48.453331 
-" clip-path="url(#pb1a58a9c7b)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#pb1a58a9c7b)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="valve-P3-bc" onclick="eteClick('P3')" style="cursor:pointer;" class="ete-valve-seg">
     <path d="M 50.600769 48.453331 
 L 71.847692 95.139646 
-" clip-path="url(#pb1a58a9c7b)" style="fill: none; stroke: #e2e8f0; stroke-width: 2.5; stroke-linecap: square"/>
+" clip-path="url(#pb1a58a9c7b)" stroke="currentColor" stroke-width="2.5" style="fill: none; stroke-linecap: square"/>
    </g>
    <g id="valve-P1-bc" onclick="eteClick('P1')" style="cursor:pointer;" class="ete-valve-seg">
     <path d="M 123.999231 48.453331 
 L 102.752308 95.139646 
-" clip-path="url(#pb1a58a9c7b)" style="fill: none; stroke: #e2e8f0; stroke-width: 2.5; stroke-linecap: square"/>
+" clip-path="url(#pb1a58a9c7b)" stroke="currentColor" stroke-width="2.5" style="fill: none; stroke-linecap: square"/>
    </g>
    <g id="valve-A2-bc" onclick="eteClick('A2')" style="cursor:pointer;" class="ete-valve-seg">
     <path d="M 75.710769 95.139646 
 L 98.889231 95.139646 
-" clip-path="url(#pb1a58a9c7b)" style="fill: none; stroke: #e2e8f0; stroke-width: 2.5; stroke-linecap: square"/>
+" clip-path="url(#pb1a58a9c7b)" stroke="currentColor" stroke-width="2.5" style="fill: none; stroke-linecap: square"/>
    </g>
    <g id="text_1">
     <!-- P3 -->
-    <g style="fill: #e2e8f0" transform="translate(63.484791 71.026443) scale(0.085 -0.085)">
+    <g style="fill: currentColor" transform="translate(63.484791 71.026443) scale(0.085 -0.085)">
      <defs>
       <path id="DejaVuSans-Bold-50" d="M 588 4666 
 L 2584 4666 
@@ -6198,7 +6225,7 @@ z
    </g>
    <g id="text_2">
     <!-- P1 -->
-    <g style="fill: #e2e8f0" transform="translate(98.970834 71.026443) scale(0.085 -0.085)">
+    <g style="fill: currentColor" transform="translate(98.970834 71.026443) scale(0.085 -0.085)">
      <defs>
       <path id="DejaVuSans-Bold-31" d="M 750 831 
 L 1813 831 
@@ -6221,7 +6248,7 @@ z
    </g>
    <g id="text_3">
     <!-- A2 -->
-    <g style="fill: #e2e8f0" transform="translate(81.053828 86.969541) scale(0.085 -0.085)">
+    <g style="fill: currentColor" transform="translate(81.053828 86.969541) scale(0.085 -0.085)">
      <defs>
       <path id="DejaVuSans-Bold-41" d="M 3419 850 
 L 1538 850 
@@ -6268,7 +6295,7 @@ z
    </g>
    <g id="text_4">
     <!-- VI -->
-    <g style="fill: #e2e8f0" transform="translate(83.628516 131.321541) scale(0.075 -0.075)">
+    <g style="fill: currentColor" transform="translate(83.628516 131.321541) scale(0.075 -0.075)">
      <defs>
       <path id="DejaVuSans-Oblique-56" d="M 1319 0 
 L 500 4666 
@@ -6294,7 +6321,7 @@ z
    </g>
    <g id="text_5">
     <!-- 45–60° — Bicomisural -->
-    <g style="fill: #e2e8f0" transform="translate(32.999063 10.438594) scale(0.09 -0.09)">
+    <g style="fill: currentColor" transform="translate(32.999063 10.438594) scale(0.09 -0.09)">
      <defs>
       <path id="DejaVuSans-Bold-34" d="M 2356 3675 
 L 1038 1722 
@@ -6697,7 +6724,7 @@ z
 
         <div style="flex:1;min-width:145px;max-width:210px;text-align:center;">
           <div style="font-size:9px;font-weight:700;color:var(--accent2);margin-bottom:3px;">60–90° — 2 Cámaras</div>
-          <svg viewBox="0 0 174.6 238.798594" style="width:100%;height:auto;display:block;" id="ete-svg-2ch">
+          <svg viewBox="0 0 174.6 238.798594" style="width:100%;height:auto;display:block;" class="ete-proy" id="ete-svg-2ch">
             
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
@@ -6759,7 +6786,7 @@ L 31.098415 78.042149
 L 30.75559 69.08353 
 L 30.641538 60.12491 
 L 30.641538 60.12491 
-" clip-path="url(#pc62ce34b76)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#pc62ce34b76)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_2">
     <path d="M 87.3 208.937541 
@@ -6793,17 +6820,17 @@ L 143.501585 78.042149
 L 143.84441 69.08353 
 L 143.958462 60.12491 
 L 143.958462 60.12491 
-" clip-path="url(#pc62ce34b76)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#pc62ce34b76)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_3">
     <path d="M 30.641538 60.12491 
 L 30.641538 46.119015 
-" clip-path="url(#pc62ce34b76)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#pc62ce34b76)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_4">
     <path d="M 143.958462 60.12491 
 L 143.958462 46.119015 
-" clip-path="url(#pc62ce34b76)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#pc62ce34b76)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_5">
     <path d="M 87.3 166.336278 
@@ -6832,7 +6859,7 @@ L 50.913404 73.268122
 L 50.652063 65.453239 
 L 50.600769 60.12491 
 L 50.600769 60.12491 
-" clip-path="url(#pc62ce34b76)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#pc62ce34b76)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_6">
     <path d="M 87.3 166.336278 
@@ -6861,37 +6888,37 @@ L 123.686596 73.268122
 L 123.947937 65.453239 
 L 123.999231 60.12491 
 L 123.999231 60.12491 
-" clip-path="url(#pc62ce34b76)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#pc62ce34b76)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_7">
     <path d="M 50.600769 60.12491 
 L 50.600769 48.453331 
-" clip-path="url(#pc62ce34b76)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#pc62ce34b76)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_8">
     <path d="M 123.999231 60.12491 
 L 123.999231 48.453331 
-" clip-path="url(#pc62ce34b76)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#pc62ce34b76)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="valve-P3-2ch" onclick="eteClick('P3')" style="cursor:pointer;" class="ete-valve-seg">
     <path d="M 50.600769 48.453331 
 L 65.409231 89.303857 
-" clip-path="url(#pc62ce34b76)" style="fill: none; stroke: #e2e8f0; stroke-width: 2.5; stroke-linecap: square"/>
+" clip-path="url(#pc62ce34b76)" stroke="currentColor" stroke-width="2.5" style="fill: none; stroke-linecap: square"/>
    </g>
    <g id="valve-A1" onclick="eteClick('A1')" style="cursor:pointer;" class="ete-valve-seg">
     <path d="M 123.999231 48.453331 
 L 115.2 67.51691 
-" clip-path="url(#pc62ce34b76)" style="fill: none; stroke: #e2e8f0; stroke-width: 2.5; stroke-linecap: square"/>
+" clip-path="url(#pc62ce34b76)" stroke="currentColor" stroke-width="2.5" style="fill: none; stroke-linecap: square"/>
    </g>
    <g id="valve-A2-2ch" onclick="eteClick('A2')" style="cursor:pointer;" class="ete-valve-seg">
     <path d="M 115.2 67.51691 
 L 106.400769 86.580488 
-" clip-path="url(#pc62ce34b76)" style="fill: none; stroke: #e2e8f0; stroke-width: 2.5; stroke-linecap: square"/>
+" clip-path="url(#pc62ce34b76)" stroke="currentColor" stroke-width="2.5" style="fill: none; stroke-linecap: square"/>
    </g>
    <g id="valve-A3-2ch" onclick="eteClick('A3')" style="cursor:pointer;" class="ete-valve-seg">
     <path d="M 106.400769 86.580488 
 L 97.601538 105.644067 
-" clip-path="url(#pc62ce34b76)" style="fill: none; stroke: #e2e8f0; stroke-width: 2.5; stroke-linecap: square"/>
+" clip-path="url(#pc62ce34b76)" stroke="currentColor" stroke-width="2.5" style="fill: none; stroke-linecap: square"/>
    </g>
    <g id="line2d_9">
     <defs>
@@ -6905,20 +6932,20 @@ C -1.118292 -0.649475 -1.25 -0.331504 -1.25 0
 C -1.25 0.331504 -1.118292 0.649475 -0.883883 0.883883 
 C -0.649475 1.118292 -0.331504 1.25 0 1.25 
 z
-" style="stroke: #e2e8f0"/>
+" style="stroke: currentColor"/>
     </defs>
     <g clip-path="url(#pc62ce34b76)">
-     <use xlink:href="#m3943159ea1" x="115.2" y="67.51691" style="fill: #e2e8f0; stroke: #e2e8f0"/>
+     <use xlink:href="#m3943159ea1" x="115.2" y="67.51691" style="fill: currentColor; stroke: currentColor"/>
     </g>
    </g>
    <g id="line2d_10">
     <g clip-path="url(#pc62ce34b76)">
-     <use xlink:href="#m3943159ea1" x="106.400769" y="86.580488" style="fill: #e2e8f0; stroke: #e2e8f0"/>
+     <use xlink:href="#m3943159ea1" x="106.400769" y="86.580488" style="fill: currentColor; stroke: currentColor"/>
     </g>
    </g>
    <g id="text_1">
     <!-- P3 -->
-    <g style="fill: #e2e8f0" transform="translate(60.496253 68.673737) scale(0.085 -0.085)">
+    <g style="fill: currentColor" transform="translate(60.496253 68.673737) scale(0.085 -0.085)">
      <defs>
       <path id="DejaVuSans-Bold-50" d="M 588 4666 
 L 2584 4666 
@@ -6980,7 +7007,7 @@ z
    </g>
    <g id="text_2">
     <!-- A1 -->
-    <g style="fill: #e2e8f0" transform="translate(105.63196 57.402555) scale(0.085 -0.085)">
+    <g style="fill: currentColor" transform="translate(105.63196 57.402555) scale(0.085 -0.085)">
      <defs>
       <path id="DejaVuSans-Bold-41" d="M 3419 850 
 L 1538 850 
@@ -7019,7 +7046,7 @@ z
    </g>
    <g id="text_3">
     <!-- A2 -->
-    <g style="fill: #e2e8f0" transform="translate(96.832729 76.466134) scale(0.085 -0.085)">
+    <g style="fill: currentColor" transform="translate(96.832729 76.466134) scale(0.085 -0.085)">
      <defs>
       <path id="DejaVuSans-Bold-32" d="M 1844 884 
 L 3897 884 
@@ -7050,14 +7077,14 @@ z
    </g>
    <g id="text_4">
     <!-- A3 -->
-    <g style="fill: #e2e8f0" transform="translate(88.033498 95.529713) scale(0.085 -0.085)">
+    <g style="fill: currentColor" transform="translate(88.033498 95.529713) scale(0.085 -0.085)">
      <use xlink:href="#DejaVuSans-Bold-41"/>
      <use xlink:href="#DejaVuSans-Bold-33" transform="translate(77.392578 0)"/>
     </g>
    </g>
    <g id="text_5">
     <!-- VI -->
-    <g style="fill: #e2e8f0" transform="translate(83.628516 131.321541) scale(0.075 -0.075)">
+    <g style="fill: currentColor" transform="translate(83.628516 131.321541) scale(0.075 -0.075)">
      <defs>
       <path id="DejaVuSans-Oblique-56" d="M 1319 0 
 L 500 4666 
@@ -7083,7 +7110,7 @@ z
    </g>
    <g id="text_6">
     <!-- 60–90° — 2 Cámaras -->
-    <g style="fill: #e2e8f0" transform="translate(35.945859 10.438594) scale(0.09 -0.09)">
+    <g style="fill: currentColor" transform="translate(35.945859 10.438594) scale(0.09 -0.09)">
      <defs>
       <path id="DejaVuSans-Bold-36" d="M 2316 2303 
 Q 2000 2303 1842 2098 
@@ -7413,7 +7440,7 @@ z
 
         <div style="flex:1;min-width:145px;max-width:210px;text-align:center;">
           <div style="font-size:9px;font-weight:700;color:var(--accent2);margin-bottom:3px;">125° — 3 Cámaras</div>
-          <svg viewBox="0 0 185.76 253.713276" style="width:100%;height:auto;display:block;" id="ete-svg-3ch">
+          <svg viewBox="0 0 185.76 253.713276" style="width:100%;height:auto;display:block;" class="ete-proy" id="ete-svg-3ch">
             
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
@@ -7475,7 +7502,7 @@ L 22.416803 90.966028
 L 22.137692 82.007408 
 L 22.071724 75.039592 
 L 22.071724 75.039592 
-" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_2">
     <path d="M 76.255448 223.852224 
@@ -7509,17 +7536,17 @@ L 130.094094 90.966028
 L 130.373205 82.007408 
 L 130.439172 75.039592 
 L 130.439172 75.039592 
-" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_3">
     <path d="M 22.071724 75.039592 
 L 22.071724 61.033697 
-" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_4">
     <path d="M 130.439172 75.039592 
 L 130.439172 61.033697 
-" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_5">
     <path d="M 76.255448 181.250961 
@@ -7548,7 +7575,7 @@ L 41.411553 87.117139
 L 41.185548 78.947034 
 L 41.159172 75.039592 
 L 41.159172 75.039592 
-" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_6">
     <path d="M 76.255448 181.250961 
@@ -7577,27 +7604,27 @@ L 111.099344 87.117139
 L 111.325348 78.947034 
 L 111.351724 75.039592 
 L 111.351724 75.039592 
-" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_7">
     <path d="M 41.159172 75.039592 
 L 41.159172 63.368013 
-" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_8">
     <path d="M 111.351724 75.039592 
 L 111.351724 63.368013 
-" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="valve-P2-3ch" onclick="eteClick('P2')" style="cursor:pointer;" class="ete-valve-seg">
     <path d="M 41.159172 63.368013 
 L 65.172414 108.887171 
-" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: #e2e8f0; stroke-width: 2.5; stroke-linecap: square"/>
+" clip-path="url(#p2fbe5f2833)" stroke="currentColor" stroke-width="2.5" style="fill: none; stroke-linecap: square"/>
    </g>
    <g id="valve-A2-3ch" onclick="eteClick('A2')" style="cursor:pointer;" class="ete-valve-seg">
     <path d="M 111.351724 63.368013 
 L 87.338483 108.887171 
-" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: #e2e8f0; stroke-width: 2.5; stroke-linecap: square"/>
+" clip-path="url(#p2fbe5f2833)" stroke="currentColor" stroke-width="2.5" style="fill: none; stroke-linecap: square"/>
    </g>
    <g id="line2d_9">
     <path d="M 111.351724 63.368013 
@@ -7700,7 +7727,7 @@ L 153.689119 15.078329
 L 154.34951 14.638844 
 L 155.014425 14.200668 
 L 155.683862 13.763803 
-" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: #e2e8f0; stroke-width: 2; stroke-linecap: square"/>
+" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: square"/>
    </g>
    <g id="line2d_10">
     <path d="M 130.439172 61.033697 
@@ -7803,12 +7830,12 @@ L 165.756521 22.415669
 L 166.295036 22.059603 
 L 166.837069 21.70449 
 L 167.382621 21.350329 
-" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: #e2e8f0; stroke-width: 2; stroke-linecap: square"/>
+" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: square"/>
    </g>
    <g id="line2d_11">
     <path d="M 155.683862 13.763803 
 L 167.382621 21.350329 
-" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: #e2e8f0; stroke-width: 2; stroke-linecap: square"/>
+" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: square"/>
    </g>
    <g id="line2d_12">
     <path d="M 98.688094 210.459087 
@@ -7840,7 +7867,7 @@ L 131.901296 150.861617
 L 131.028132 151.950295 
 L 130.70575 152.422161 
 L 130.70575 152.422161 
-" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: #e2e8f0; stroke-width: 1.8; stroke-linecap: square"/>
+" clip-path="url(#p2fbe5f2833)" style="fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
    <g id="line2d_13">
     <defs>
@@ -7854,15 +7881,15 @@ C -1.118292 -0.649475 -1.25 -0.331504 -1.25 0
 C -1.25 0.331504 -1.118292 0.649475 -0.883883 0.883883 
 C -0.649475 1.118292 -0.331504 1.25 0 1.25 
 z
-" style="stroke: #e2e8f0"/>
+" style="stroke: currentColor"/>
     </defs>
     <g clip-path="url(#p2fbe5f2833)">
-     <use xlink:href="#m6734846c45" x="98.688094" y="210.459087" style="fill: #e2e8f0; stroke: #e2e8f0"/>
+     <use xlink:href="#m6734846c45" x="98.688094" y="210.459087" style="fill: currentColor; stroke: currentColor"/>
     </g>
    </g>
    <g id="text_1">
     <!-- P2 -->
-    <g style="fill: #e2e8f0" transform="translate(54.803691 84.819279) scale(0.085 -0.085)">
+    <g style="fill: currentColor" transform="translate(54.803691 84.819279) scale(0.085 -0.085)">
      <defs>
       <path id="DejaVuSans-Bold-50" d="M 588 4666 
 L 2584 4666 
@@ -7914,7 +7941,7 @@ z
    </g>
    <g id="text_2">
     <!-- A2 -->
-    <g style="fill: #e2e8f0" transform="translate(85.388846 84.819279) scale(0.085 -0.085)">
+    <g style="fill: currentColor" transform="translate(85.388846 84.819279) scale(0.085 -0.085)">
      <defs>
       <path id="DejaVuSans-Bold-41" d="M 3419 850 
 L 1538 850 
@@ -7939,7 +7966,7 @@ z
    </g>
    <g id="text_3">
     <!-- Ao -->
-    <g style="fill: #e2e8f0" transform="translate(164.611862 9.67875) scale(0.08 -0.08)">
+    <g style="fill: currentColor" transform="translate(164.611862 9.67875) scale(0.08 -0.08)">
      <defs>
       <path id="DejaVuSans-Oblique-41" d="M 2356 4666 
 L 3072 4666 
@@ -7991,7 +8018,7 @@ z
    </g>
    <g id="text_4">
     <!-- VD -->
-    <g style="fill: #e2e8f0" transform="translate(134.400094 152.422161) scale(0.07 -0.07)">
+    <g style="fill: currentColor" transform="translate(134.400094 152.422161) scale(0.07 -0.07)">
      <defs>
       <path id="DejaVuSans-Oblique-56" d="M 1319 0 
 L 500 4666 
@@ -8031,7 +8058,7 @@ z
    </g>
    <g id="text_5">
     <!-- VI -->
-    <g style="fill: #e2e8f0" transform="translate(72.583964 146.236224) scale(0.075 -0.075)">
+    <g style="fill: currentColor" transform="translate(72.583964 146.236224) scale(0.075 -0.075)">
      <defs>
       <path id="DejaVuSans-Oblique-49" d="M 1081 4666 
 L 1716 4666 
@@ -8047,7 +8074,7 @@ z
    </g>
    <g id="text_6">
     <!-- 125° — 3 Cámaras -->
-    <g style="fill: #e2e8f0" transform="translate(46.906875 25.353276) scale(0.09 -0.09)">
+    <g style="fill: currentColor" transform="translate(46.906875 25.353276) scale(0.09 -0.09)">
      <defs>
       <path id="DejaVuSans-Bold-31" d="M 750 831 
 L 1813 831 
@@ -30037,10 +30064,42 @@ function toggleRef(id, headEl) {
     P3:["valve-P3-bc","valve-P3-2ch"],
   };
   const ETE_QX_MAP = {A1:"ete-qx-A1",A2:"ete-qx-A2",A3:"ete-qx-A3",P1:"ete-qx-P1",P2:"ete-qx-P2",P3:"ete-qx-P3"};
+
+  /* ⚠️ EL PINTOR NO PUEDE TOCAR LAS ZONAS DE TOQUE, Y ÉSE ERA EL DEFECTO.
+     Cada segmento de las cuatro proyecciones tiene DOS trazos: la línea de la valva y un clon
+     invisible de 22 unidades de ancho que el bloque de abajo agrega para que se pueda apretar con
+     el dedo. Sin este selector, `eteClick` pintaba los dos y le escribía al clon
+     `stroke-width: 4` —o se lo sacaba entero en «Normal», o sea 1—: la zona de toque colapsaba de
+     ~20 px a ~3,5 px en el primer toque y el segmento quedaba prácticamente inalcanzable. Eso es
+     lo que se reportó como «sólo se activa un segmento y los toques siguientes no hacen nada».
+     La vista quirúrgica no lo sufre porque sus segmentos son POLÍGONOS con relleno: su superficie
+     de toque no depende del grosor del trazo. */
+  const ETE_SEL_TRAZO = "path:not(.ete-hit),line:not(.ete-hit)";
+
   ETE_ESTADOS.forEach(function(e){
     if (!(e in ETE_FILL) || !(e in ETE_STROKE))
       console.error('[ETE_ESTADOS] «' + e + '» no tiene color: el segmento queda con el color del estado anterior mientras el texto dice el nuevo');
   });
+
+  /* ⚠️ EL COLOR BASE DE UN SEGMENTO VA EN ATRIBUTOS, NUNCA EN EL `style` EN LÍNEA, y sin este
+     assert la regla vive sólo en un comentario. El resto del dibujo —y toda salida de matplotlib,
+     que es de donde vienen estas cuatro proyecciones— usa la forma contraria:
+     `style="stroke: currentColor; stroke-width: 1.8"`. Pegar un segmento nuevo con esa forma se ve
+     PERFECTO y falla al sexto toque: ahí el ciclo vuelve a «Normal», `eteClick` hace
+     `removeProperty` sobre ese mismo bloque y el segmento se va a `stroke: none` — desaparece del
+     diagrama para siempre, sin error y sin consola. Es el defecto que se cerró el 2026-09-25
+     volviendo a entrar por la única puerta que queda.
+     Se mira el ATRIBUTO y no el `style`: ése es el invariante —con el atributo puesto, el
+     `removeProperty` aterriza bien venga como venga— y además es inmune al momento en que corra,
+     porque con un estudio restaurado los segmentos con lesión SÍ tienen `style.stroke` escrito. */
+  setTimeout(function(){
+    document.querySelectorAll('.ete-valve-seg').forEach(function(g){
+      g.querySelectorAll(ETE_SEL_TRAZO).forEach(function(p){
+        if (!p.getAttribute('stroke') || !p.getAttribute('stroke-width'))
+          console.error('[ETE] «' + g.id + '» no tiene el color base en atributos: al volver a «Normal» queda en stroke:none y el segmento desaparece');
+      });
+    });
+  }, 700);
 
   /* ⚠️ CONTRATO: esta función CICLA +1 mod N sobre el estado actual. DOS llamadores dependen de
      eso para aterrizar en un estado concreto sin duplicar el pintado: `eteSegSync` (restaura el
@@ -30058,9 +30117,10 @@ function toggleRef(id, headEl) {
     (ETE_GID_MAP[seg]||[]).forEach(function(gid) {
       const el = document.getElementById(gid);
       if (!el) return;
-      el.querySelectorAll("path,line").forEach(function(p) {
+      el.querySelectorAll(ETE_SEL_TRAZO).forEach(function(p) {
         if (e === "Normal") {
-          // Normal evaluado = idéntico a virgen (color base del esquema): sin overrides
+          /* Normal evaluado = idéntico a virgen. Sacar el override alcanza porque el color y el
+             grosor de fábrica viven en ATRIBUTOS de presentación, no en este mismo `style`. */
           p.style.removeProperty("stroke");
           p.style.removeProperty("stroke-width");
         } else {
@@ -30108,7 +30168,7 @@ function toggleRef(id, headEl) {
       (ETE_GID_MAP[seg]||[]).forEach(function(gid) {
         const el = document.getElementById(gid);
         if (!el) return;
-        el.querySelectorAll("path,line").forEach(function(p) {
+        el.querySelectorAll(ETE_SEL_TRAZO).forEach(function(p) {
           p.style.removeProperty("stroke");
           p.style.removeProperty("stroke-width");
         });
@@ -30165,12 +30225,28 @@ function toggleRef(id, headEl) {
     window.eteSegSync();
   }, 300);
 
-  // Agregar zonas de toque anchas sobre cada segmento de valva (líneas finas = difícil clickear)
+  /* Agregar zonas de toque anchas sobre cada segmento de valva (líneas finas = difícil clickear).
+     Cada clon se marca con `ete-hit` y por eso `ETE_SEL_TRAZO` lo excluye: el pintor no puede
+     tocar la superficie que hace clickeable al segmento — ver el comentario de esa constante.
+     El clon se busca con el MISMO selector, así que un segundo pase no clonaría los clones. */
   setTimeout(function() {
     document.querySelectorAll('.ete-valve-seg').forEach(function(g) {
-      g.querySelectorAll('path,line').forEach(function(p) {
+      g.querySelectorAll(ETE_SEL_TRAZO).forEach(function(p) {
         var hit = p.cloneNode(true);
+        hit.classList.add('ete-hit');
         hit.style.strokeWidth = '22px';
+        /* ⚠️ TAPA A RAS, Y NO ES COSMÉTICO: el clon hereda `stroke-linecap: square` del dibujo, y
+           esa tapa ESTIRA el trazo media anchura MÁS ALLÁ de cada extremo — con 22 de ancho, once
+           unidades dentro del segmento vecino, que en estas proyecciones mide entre 21 y 26. Medido
+           punto por punto sobre los trece segmentos: la zona de A2 se comía SIETE de los diecinueve
+           puntos de A3 y de P1 —incluido el centro— y otros cuatro de P3 y P1 en la bicomisural, así
+           que apuntarle al medio de A3 activaba A2. Con `butt` no queda un solo punto robado. */
+        hit.style.strokeLinecap = 'butt';
+        /* Y la unión REDONDA por lo mismo, aunque hoy no haya ninguna: los trece segmentos son un
+           `M…L…` de dos puntos, o sea sin vértice intermedio. El día que uno tenga uno, el `miter`
+           de fábrica dispara una punta muy por fuera de la geometría sobre una banda de 22 y roba
+           el punto del vecino — el mismo defecto que la tapa cuadrada, por la otra puerta. */
+        hit.style.strokeLinejoin = 'round';
         hit.style.stroke = 'rgba(0,0,0,0.01)';
         hit.style.fill = 'none';
         hit.style.pointerEvents = 'all';
@@ -30178,9 +30254,12 @@ function toggleRef(id, headEl) {
         g.appendChild(hit);
       });
     });
-    // También hacer que los paths originales tengan pointer-events
-    document.querySelectorAll('.ete-valve-seg path, .ete-valve-seg line').forEach(function(p) {
-      p.style.pointerEvents = 'all';
+    /* También hacer que los paths originales tengan pointer-events. Va con `ETE_SEL_TRAZO` —los
+       clones ya lo traen puesto arriba— para que el archivo tenga UNA sola forma de alcanzar el
+       trazo de una valva: el selector crudo es el idioma que causó el defecto y es lo primero que
+       alguien copia al agregarle una línea a este bucle. */
+    document.querySelectorAll('.ete-valve-seg').forEach(function(g) {
+      g.querySelectorAll(ETE_SEL_TRAZO).forEach(function(p) { p.style.pointerEvents = 'all'; });
     });
   }, 500);
 
@@ -47072,7 +47151,14 @@ function eePdfSyncUI(){
 function eeBullPdfTog(phase){ var map={basal:'bullBasal',pico:'bullPico',recup:'bullRecup'}; var k=map[phase]; eePdfSet(k, !eePdfOn(k)); if(typeof toast==='function') toast(eePdfOn(k)?('📄 Bull\'s eye '+phase+' se incluirá en el PDF'):('Bull\'s eye '+phase+' excluido del PDF')); }
 window.eeProtoMode=eeProtoMode; window.eeProtoBuild=eeProtoBuild; window.eePdfPanelRender=eePdfPanelRender; window.eePdfSyncUI=eePdfSyncUI; window.eeBullPdfTog=eeBullPdfTog;
 
-// Render de la vista quirúrgica mitral (ETE) a PNG para el PDF — lee los colores actuales de los segmentos del DOM
+/* Render de la vista quirúrgica mitral (ETE) a PNG para el PDF — lee los colores actuales de los
+   segmentos del DOM.
+   ⚠️ ACÁ EL COLOR VA EN EL `style` EN LÍNEA Y TIENE QUE SEGUIR AHÍ, aunque las proyecciones de
+   arriba hayan pasado a atributos de presentación el 2026-09-25. Este render decide qué imprime
+   con `el.style.fill` / `el.style.stroke`: los `ete-qx-*` ya llevan `fill="transparent"` y
+   `stroke="none"` como ATRIBUTOS, así que mover el color de la lesión allá haría que la hoja
+   firmada saliera con la válvula EN BLANCO mientras la pantalla se ve perfecta. Los dos bloques
+   tienen convenciones opuestas a propósito y cada uno lo dice. */
 function eteQxDataURL(){
   const W=520,H=290,k=2;
   const cv=document.createElement('canvas'); cv.width=W*k; cv.height=H*k;
@@ -72876,8 +72962,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260924-2025';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790292341991;                 /* eco-build-ms */
+const ECO_BUILD    = '20260924-2255';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790301339820;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -72963,7 +73049,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260924-2025</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260924-2255</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
