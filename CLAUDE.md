@@ -4,6 +4,89 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Vena pulmonar y criterio Ar−A en Doppler Mitral (2026-09-25)
+
+ASE/EACVI 2016 (Nagueh, JASE 2016;29:277-314): Ar−A **≥30 ms** o velocidad de Ar **>35 cm/s**
+marcan presión de fin de diástole del VI elevada. Sirven para destapar una pseudonormalización.
+
+### ⚠️ `venp_`, NO `vp_` — SON DOS ESTRUCTURAS DISTINTAS
+
+`vp_vmax`, `vp_gmax` y `vp_morf` ya existían en esta misma pestaña y son la **válvula** pulmonar.
+La vena pulmonar usa `venp_`. Dos prefijos a un carácter de distancia para dos Doppler distintos
+es cómo un valor termina impreso bajo el rótulo del otro.
+
+### ⚠️ LOS DOS OPERADORES SON DISTINTOS, Y ESO NO SE «PROLIJEA»
+
+`>= VENP_AR_A_MS` para la diferencia y `> VENP_AR_VEL_CMS` para la velocidad. Así los publica la
+guía: **30 ms exactos SÍ alertan; 35 cm/s exactos NO.** Unificarlos mueve un borde clínico.
+El **S/D pulmonar no dispara nada** — es informativo y se guarda como token (ver abajo).
+
+### ⚠️ EL CERO NO ES UNA DURACIÓN, Y FALLABA HACIA AFIRMAR
+
+Con `venp_dur_a` en 0 —un campo empezado y no terminado— la resta daba la duración de Ar entera:
+una alerta roja «sugiere presión de fin de diástole del VI elevada» fabricada de la nada. Y en el
+PDF era peor: la fila del operando se descartaba por *truthiness* (`v(x) ? … : null`) mientras el
+derivado sí se imprimía — **`Ar-A: 120 ms` sin el operando que lo sostiene**. Hoy `venpArA` exige
+`> 0` en los dos, y el PDF usa el mismo predicado. Lo cazó `/sharp-edges`.
+
+### ⚠️ LA RESTAURACIÓN VA EN `RECALC_MODULOS`, NO COLGADA DE `editarInforme`
+
+Éste es el que más caro habría salido. Colgada de esa función sola, `venpSync` cubría **una de las
+cinco** rutas: abrir por `?estudio=` —el QR del PDF firmado—, el autosave y la vuelta de la
+reimpresión pasan por el embudo y no por ahí. Un estudio con Ar−A medido se reabría por el QR con
+los cuatro campos poblados, **invisibles**, el botón «+ Vena pulmonar» ofreciendo agregar lo que ya
+estaba, y el PDF imprimiéndolo igual. El comentario que había ahí declaraba cerrado exactamente ese
+defecto — cerrado para una ruta y abierto para tres.
+
+Y **`venpAbrir` repinta**: sin eso, abrir la columna sobre campos ya poblados mostraba los valores
+con «Diferencia Ar−A: —» y cero alertas sobre un paciente con Ar−A de 35 ms.
+
+### El PDF: sub-columnas DENTRO de la sección, no una cuarta columna
+
+`drawTablaCompacta` reparte el ancho con `cW = pgW / n`, así que una sección más habría angostado
+también a «DTI mitral» y «Tricúspide / PSAP». Se agregó `items2`: la sección se parte por dentro.
+Eso es además lo que mantiene la **altura**, que sale de `maxR`: cinco campos apilados debajo de
+los siete daban doce filas —el bloque al doble—; al costado, `max(7, 5) = 7`.
+
+**Salvedad medida:** el bloque conserva la altura mientras la columna izquierda tenga ≥5 filas, que
+es el caso normal. Con menos campos transmitrales cargados que de vena pulmonar, crece — y no hay
+forma de que no lo haga: cinco valores no entran en tres renglones.
+
+**⚠️ Y EL TÍTULO NOMBRA LA VENA PULMONAR CUANDO LA HAY.** Sin eso, `Veloc. Ar: 42 cm/s` salía bajo
+un encabezado que dice «Flujo transmitral», sin divisor y con la misma tipografía: en el papel
+firmado se lee como un Doppler mitral. La cadena «vena pulmonar» no aparecía ni una vez en el PDF.
+El título cambia **sólo con datos**, así que sin ellos el PDF sigue saliendo idéntico.
+
+Las dos filas con umbral llevan su `ref`, **derivada de las constantes**. En esta tabla `ref` es la
+columna de cortes: imprimir un Ar−A de 35 ms sin el suyo, al lado de filas que sí lo llevan, dejaba
+la única interpretación en la pantalla y fuera del documento firmado.
+
+### El S/D se guarda como TOKEN
+
+`menor1` / `mayor1`, con `VENP_SD_TXT` para la etiqueta. El `value` viaja a `campos` y **un valor
+almacenado que empieza con `<`** en este archivo es una bomba de tiempo: la primera superficie que
+lo renderice concatenando `innerHTML` lo toca sin que nadie se acuerde. Se arregló ahora que el
+campo es nuevo y no hay un solo estudio guardado con el valor viejo.
+
+### Declarado y NO corregido
+
+- **Sin banda de plausibilidad.** Los dos errores reales de este bloque fallan hacia **no alertar**:
+  la velocidad tipeada en m/s (`0.35` por `35`) y las duraciones en segundos (`0.155`) dan
+  diferencias que no llegan al corte. No se agregaron bandas porque el pedido dijo «no inventar
+  ningún umbral adicional a los dos especificados» y una banda es un juicio. Queda nombrado: si
+  alguna vez se agregan, van en el `min`/`max` del input **y** en `venpArA`, y un valor fuera de
+  banda no vota y se declara.
+- **El hallazgo no llega al Excel, al PPT, a «Ver detalle» ni al informe narrativo.** El pedido
+  pidió pantalla y PDF, y eso es lo que hay. Consecuencia concreta: **un round-trip por el Excel
+  del Laboratorio borra los cuatro campos**. No es un olvido, es el alcance — pero conviene
+  decidirlo, porque hoy la alerta roja que la pantalla pinta no existe en el informe firmado salvo
+  como cinco números en una celda.
+- **La affordance «+ Vena pulmonar».** El pedido pide que la sub-columna aparezca sólo con datos
+  y que sin datos el bloque quede idéntico a hoy; las dos cosas juntas la hacen inalcanzable. Se
+  eligió el acceso más chico posible —un enlace de 11 px que no agrega ninguna fila—, pero es una
+  diferencia visual respecto de hoy. Si se quería otra cosa, es un ajuste de una línea.
+
+
 ## Laboratorio · el acordeón quedó en SEIS subtabs, no en ocho (2026-09-25)
 
 > **⚠️ ESTADO FINAL, y la entrada de abajo hay que leerla con esto puesto.** El acordeón se

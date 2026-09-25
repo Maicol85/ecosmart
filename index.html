@@ -2854,7 +2854,16 @@ window.cerrarSesionReal = cerrarSesionReal;
           </select>
         </div>
       </div>
-      <div class="grid-4">
+      <!-- ⚠️ EL GRID DE SIEMPRE Y LA VENA PULMONAR VAN LADO A LADO, NO APILADOS (2026-09-25).
+           El pedido lo dice y la razón es la altura: en el PDF esta columna comparte fila con
+           «DTI mitral» (4 filas) y «Tricúspide / PSAP» (10), y en pantalla el bloque ya es el más
+           alto de la pestaña. Cinco campos más debajo lo estiraban otro tanto; al costado, el
+           bloque crece 0 px mientras la sub-columna esté oculta, que es el caso por defecto.
+           `flex` y no un `grid` de dos: con la sub-columna escondida el primer hijo ocupa el
+           100 % solo, sin una columna fantasma reservada — que es lo que hace que «sin datos, el
+           bloque queda idéntico a hoy» sea cierto y no aproximado. -->
+      <div style="display:flex;gap:14px;align-items:flex-start;">
+      <div class="grid-4" style="flex:1;min-width:0;">
         <div class="fg">
           <label>Onda E (cm/s)</label>
           <input type="number" id="onda_e" placeholder="cm/s" oninput="calcDiastol();cvrSync();" onchange="cvrCambio()">
@@ -2887,6 +2896,73 @@ window.cerrarSesionReal = cerrarSesionReal;
           <label>AVm por THP (cm²)</label>
           <input type="number" id="avm_thp" readonly>
         </div>
+      </div>
+
+      <!-- ⚠️ VENA PULMONAR — `venp_`, NO `vp_`. `vp_vmax`, `vp_gmax` y `vp_morf` ya existen en
+           esta misma pestaña y son la VÁLVULA pulmonar, otra estructura y otro Doppler. Dos
+           prefijos a un carácter de distancia para dos cosas distintas es cómo un valor termina
+           impreso bajo el rótulo del otro; acá se separan desde el nombre.
+           Los cuatro llevan `id`, y eso es a propósito: `guardarInforme` barre
+           `input[id], select[id], textarea[id]`, así que viajan con el estudio y `limpiarCampos`
+           los resetea al cambiar de paciente por el mismo camino. Ninguno matchea
+           `_noEsDelEstudio`, que es la única lista de exclusión. -->
+      <div id="venp-col" style="display:none;flex:0 0 190px;min-width:0;border-left:1px solid var(--border);padding-left:14px;">
+        <div style="font-size:.72rem;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+          <span style="flex:1;">Vena pulmonar</span>
+          <button type="button" class="btn btn-ghost" style="padding:0 7px;font-size:10px;font-weight:600;"
+                  onclick="venpCerrar()" title="Ocultar esta sub-columna. Sólo se puede si no hay ningún dato cargado.">✕</button>
+        </div>
+        <div class="fg" style="margin-bottom:8px;">
+          <label>Dur. onda A mitral (ms)</label>
+          <input type="number" id="venp_dur_a" placeholder="ms" oninput="calcVenaPulm()">
+        </div>
+        <div class="fg" style="margin-bottom:8px;">
+          <!-- ⚠️ S/D ES UN SELECTOR, NO UN NÚMERO, y lo pidió así el pedido. Es «informativo, sin
+               ninguna alerta asociada»: no entra en ningún cálculo ni dispara nada. Con un campo
+               numérico habría que decidir qué hacer con un 1,0 exacto, y eso sería inventar un
+               umbral que nadie pidió. -->
+          <label>S/D pulmonar</label>
+          <!-- ⚠️ EL VALUE ES UN TOKEN, NO «<1». Lo que se guarda en `campos.venp_sd` viaja al
+               estudio, y un valor almacenado que EMPIEZA CON `<` en este archivo es una bomba de
+               tiempo: la primera superficie que lo renderice concatenando `innerHTML` —o el primer
+               CSV— lo toca sin que nadie se acuerde, y el historial de XSS de esta suite está
+               escrito en CLAUDE.md. Hoy no llega a ninguna superficie HTML, y justamente por eso
+               conviene arreglarlo AHORA que el campo es nuevo y no hay un solo estudio guardado
+               con el valor viejo. Es el mismo patrón de `vab_tipo` y `ep_etiologia`.
+               Lo cazó `/sharp-edges`. La etiqueta legible sale de `VENP_SD_TXT`. -->
+          <select id="venp_sd" onchange="calcVenaPulm()">
+            <option value="">—</option>
+            <option value="menor1">&lt;1</option>
+            <option value="mayor1">&gt;1</option>
+          </select>
+        </div>
+        <div class="fg" style="margin-bottom:8px;">
+          <label>Dur. onda Ar pulmonar (ms)</label>
+          <input type="number" id="venp_dur_ar" placeholder="ms" oninput="calcVenaPulm()">
+        </div>
+        <div class="fg" style="margin-bottom:8px;">
+          <label>Veloc. Ar pulmonar (cm/s)</label>
+          <input type="number" id="venp_vel_ar" placeholder="cm/s" oninput="calcVenaPulm()">
+        </div>
+        <div class="calc-row" style="padding:4px 0;"><span class="calc-lbl">Diferencia Ar−A</span><span class="calc-val" id="venp-ara">—</span></div>
+        <!-- Las dos alertas van en SU PROPIO div, uno abajo del otro: pueden cumplirse las dos a
+             la vez y el pedido pide que no se superpongan. Texto rojo pelado, sin badge ni caja:
+             el «4/4 HFpEF probable» de este mismo bloque sí es un badge, y confundirlos haría que
+             un marcador de un solo criterio se lea con el peso de un score integrado. -->
+        <div id="venp-alertas" style="margin-top:6px;font-size:11px;line-height:1.45;"></div>
+      </div>
+      </div>
+      <!-- El acceso cuando todavía no hay nada cargado. ⚠️ DUDA DECLARADA: el pedido dice que la
+           sub-columna aparezca «SOLO si el médico cargó al menos uno de sus campos» y que sin
+           datos el bloque quede «visualmente idéntico a como está hoy». Las dos cosas juntas la
+           harían inalcanzable —no hay forma de cargar el primer campo si el campo no existe—, así
+           que hace falta UNA affordance. Se eligió la más chica que se pudo: un enlace de 11 px
+           alineado a la derecha, que no agrega ninguna fila al grid y desaparece al abrirse. Si
+           lo que se quería era otra cosa —por ejemplo que la columna salga siempre—, es un ajuste
+           de una línea. -->
+      <div id="venp-abrir-wrap" style="text-align:right;margin-top:6px;">
+        <button type="button" class="btn btn-ghost" style="padding:2px 9px;font-size:11px;"
+                onclick="venpAbrir()" title="Agregar los datos de vena pulmonar (Ar−A, S/D)">+ Vena pulmonar</button>
       </div>
       <div class="calc-box">
         <div class="calc-row"><span class="calc-lbl">E/A</span><span class="calc-val" id="ea-val">—</span></div>
@@ -19705,6 +19781,151 @@ function calcularBSE2024_FEVIreducida(marcadores, totalEvaluables, ee, trv, lavi
 window.calcularBSE2024_FEVIreducida = calcularBSE2024_FEVIreducida;
 
 // ══ THP ══
+/* ══ VENA PULMONAR — CRITERIO Ar−A ═══════════════════════════════════════════════════════
+   ASE/EACVI 2016 (Nagueh, JASE 2016;29:277-314), retomado por BSE y ESC: una duración de la
+   onda Ar pulmonar que supera a la de la onda A mitral en ≥30 ms, o una velocidad de Ar
+   >35 cm/s, marcan presión de fin de diástole del VI elevada. Sirven sobre todo para destapar
+   una PSEUDONORMALIZACIÓN: un patrón transmitral que se lee normal y no lo es.
+
+   ⚠️ LOS DOS CORTES SON LOS DEL PEDIDO Y NO HAY UN TERCERO. En particular el S/D pulmonar NO
+   dispara nada: entra como selector «<1» / «>1» y es informativo. Agregarle un umbral sería
+   inventar una graduación que nadie pidió — que es justo lo que este archivo persigue desde
+   `epGradoPorGmax`.
+   ⚠️ Y LOS OPERADORES SON DISTINTOS ENTRE SÍ, a propósito: la diferencia es `>= 30` y la
+   velocidad `> 35`. Así los publica la guía y así están escritos; unificarlos «por prolijidad»
+   mueve un borde clínico. 30 ms exactos SÍ alertan; 35 cm/s exactos NO. */
+const VENP_AR_A_MS   = 30;    // diferencia Ar−A: alerta con >=
+const VENP_AR_VEL_CMS = 35;   // velocidad de Ar:  alerta con >
+
+/* Los cuatro campos, en UNA lista: la consumen el predicado «¿hay algo cargado?», el render y
+   el PDF. Con tres copias, agregar un campo mañana deja una de las tres sin enterarse — y la
+   que se olvide sería la que decide si la sub-columna existe. */
+const VENP_CAMPOS = ['venp_dur_a', 'venp_sd', 'venp_dur_ar', 'venp_vel_ar'];
+
+/* El token del S/D y su etiqueta, en UN solo mapa: lo consumen el PDF y cualquier superficie que
+   lo muestre mañana. Con la etiqueta quemada en el `value` del `<option>`, el dato guardado y lo
+   que se lee serían la misma cadena — que es cómo un `<` termina en un `innerHTML`. */
+const VENP_SD_TXT = Object.assign(Object.create(null), { menor1: '<1', mayor1: '>1' });
+function venpSDTxt() {
+  const t = (typeof sv === 'function') ? sv('venp_sd') : '';
+  return VENP_SD_TXT[t] || null;
+}
+window.venpSDTxt = venpSDTxt;
+
+/* ¿El médico cargó ALGO de vena pulmonar? Es la compuerta de la sub-columna en pantalla y de la
+   del PDF, y por eso es UNA sola función: con dos predicados, el papel y la pantalla podrían
+   discrepar sobre si esta medición existe. */
+function venpHay() {
+  return VENP_CAMPOS.some(id => {
+    const e = document.getElementById(id);
+    return !!e && String(e.value == null ? '' : e.value).trim() !== '';
+  });
+}
+window.venpHay = venpHay;
+
+/* La diferencia, en UN solo lugar. ⚠️ NO SE GUARDA EN UN CAMPO: un derivado almacenado es el
+   «campo auto que se calcula una vez y se queda viejo» que este archivo documenta con
+   `vp_gmax`. Se recalcula desde sus dos insumos cada vez que se lo pide, y el PDF llama a ESTA
+   función en vez de rehacer la resta — que es la trampa de «fórmula duplicada: pantalla vs
+   informe» que ya costó una sesión. */
+function venpArA() {
+  const dAr = v('venp_dur_ar'), dA = v('venp_dur_a');
+  /* ⚠️ `> 0` Y NO `!= null`: EL CERO NO ES UNA DURACIÓN. Con `venp_dur_a` en 0 —un campo
+     empezado y no terminado— la resta daba la duración de Ar entera, o sea una alerta roja
+     «sugiere presión de fin de diástole del VI elevada» fabricada de la nada. Y en el PDF era
+     peor: el `v(...) ? ... : null` de la fila `Dur. A mit.` descarta el 0 por truthiness, así
+     que se imprimía `Ar-A: 120 ms` SIN el operando que lo sostiene. Falla hacia AFIRMAR, que es
+     el lado que este archivo no acepta. Lo cazó `/sharp-edges`. */
+  if (!(dAr > 0) || !(dA > 0)) return null;
+  /* ⚠️ SE REDONDEA ACÁ, no en cada consumidor: los tres —el span, el texto de la alerta y la
+     celda del PDF— tienen que publicar EL MISMO número que se clasificó. Los `input type=number`
+     de esta app se vuelven `text` en runtime, así que un decimal entra: 130,3 − 100,2 da
+     30.099999999999994 en JS, y ése es el literal que llegaba al PDF firmado. */
+  return Math.round((dAr - dA) * 10) / 10;
+}
+window.venpArA = venpArA;
+
+/* Las alertas, como LISTA de textos. Devolverlas así —y no un string armado— es lo que permite
+   que las dos convivan sin superponerse: cada una es un renglón, y el pedido pide exactamente
+   eso. Vacía si no se cumple ninguna. */
+function venpAlertas() {
+  const a = [], d = venpArA(), vel = v('venp_vel_ar');
+  if (d != null && d >= VENP_AR_A_MS)
+    a.push('Ar−A ' + d + ' ms (≥' + VENP_AR_A_MS + ') — sugiere presión de fin de diástole del VI elevada.');
+  if (vel != null && isFinite(vel) && vel > VENP_AR_VEL_CMS)
+    a.push('Ar ' + vel + ' cm/s (>' + VENP_AR_VEL_CMS + ') — sugiere presión de fin de diástole del VI elevada.');
+  return a;
+}
+window.venpAlertas = venpAlertas;
+
+function venpAbrir() {
+  const c = document.getElementById('venp-col');
+  if (c) c.style.display = 'block';
+  const w = document.getElementById('venp-abrir-wrap');
+  if (w) w.style.display = 'none';
+  /* ⚠️ ABRIR ES TAMBIÉN REPINTAR. Sin esto, abrir la columna sobre campos YA poblados —el caso
+     de un estudio restaurado por una ruta que no repintó— mostraba los cuatro valores con
+     «Diferencia Ar−A: —» y CERO alertas sobre un paciente con Ar−A de 35 ms: la alerta roja
+     aparecía recién al tocar un campo. Es la regla que este archivo ya fija en otros módulos —
+     una carga que no repinta no está completa—. Lo cazó `/sharp-edges`. */
+  calcVenaPulm();
+}
+window.venpAbrir = venpAbrir;
+
+/* ⚠️ CERRAR SÓLO SI ESTÁ VACÍA. Con datos cargados, esconder la columna los dejaría viajando
+   con el estudio y saliendo en el PDF sin que la pantalla los muestre — un dato que se imprime
+   y no se ve es peor que uno que estorba. Si hay algo, se dice por qué en vez de no hacer nada:
+   un botón que no responde se lee como roto. */
+function venpCerrar() {
+  if (venpHay()) {
+    if (typeof toast === 'function') toast('Hay datos de vena pulmonar cargados. Borralos primero para ocultar la columna.');
+    return;
+  }
+  const c = document.getElementById('venp-col');
+  if (c) c.style.display = 'none';
+  const w = document.getElementById('venp-abrir-wrap');
+  if (w) w.style.display = '';
+}
+window.venpCerrar = venpCerrar;
+
+/* Repinta la sub-columna. La llaman los cuatro campos al tipear y `venpSync`, que es la que
+   corre al abrir un estudio guardado. */
+function calcVenaPulm() {
+  const out = document.getElementById('venp-ara');
+  if (out) { const d = venpArA(); out.textContent = (d == null) ? '—' : (d + ' ms'); }
+  const box = document.getElementById('venp-alertas');
+  if (box) {
+    /* Se arma con la API del DOM y no con `innerHTML`: los textos son literales de este archivo,
+       pero un contenedor poblado por concatenación es el patrón que marca el ruleset y acá no
+       hay nada que ganar escribiéndolo así. */
+    box.textContent = '';
+    venpAlertas().forEach(t => {
+      const d = document.createElement('div');
+      d.style.cssText = 'color:#ef4444;font-weight:600;margin-top:3px;';
+      d.textContent = t;
+      box.appendChild(d);
+    });
+  }
+}
+window.calcVenaPulm = calcVenaPulm;
+
+/* ⚠️ AL ABRIR UN ESTUDIO GUARDADO, LA COLUMNA TIENE QUE APARECER SOLA. El barrido de carga
+   escribe los `value` pero no toca `display`, así que sin esto un estudio con Ar−A medido se
+   reabría con los datos en el DOM, invisibles, y saliendo igual en el PDF. Es la asimetría que
+   este archivo documenta para los paneles de conclusión de Pericardio: un reseteo —o una carga—
+   que no repinta no está completo. */
+function venpSync() {
+  if (venpHay()) venpAbrir();
+  else {
+    const c = document.getElementById('venp-col');
+    if (c) c.style.display = 'none';
+    const w = document.getElementById('venp-abrir-wrap');
+    if (w) w.style.display = '';
+  }
+  calcVenaPulm();
+}
+window.venpSync = venpSync;
+
 function calcTHP() {
   const thp = v('thp');
   // Sincronizar display en bloque EM
@@ -25607,7 +25828,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','venpSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -25976,6 +26197,13 @@ function limpiarCampos(silencioso) {
      pasa por ese embudo. Sin esta línea, «Nuevo estudio» vacía el textarea con el barrido
      genérico de textareas y el cuadro queda VISIBLE y vacío sobre el paciente siguiente. */
   if (typeof ccSegSync === 'function') { try { ccSegSync(); } catch (e) {} }
+  /* ⚠️ VENA PULMONAR, POR EL MISMO MOTIVO QUE `ccSegSync` Y AL FINAL COMO ÉL. El barrido de
+     arriba vacía los cuatro `value`, pero la sub-columna se esconde por `display` y eso no lo
+     toca nadie: el paciente siguiente arrancaba con la columna ABIERTA y vacía. No es una fuga
+     —los datos sí se borraron— pero contradice «sin datos, el bloque queda idéntico a hoy».
+     Va acá y no arriba porque `venpSync` LEE los campos para decidir: corriendo antes del
+     vaciado vería los del paciente anterior y la dejaría abierta. */
+  if (typeof venpSync === 'function') { try { venpSync(); } catch (e) {} }
   if (!silencioso) toast('🗑 Formulario limpiado');
 }
 
@@ -27481,21 +27709,44 @@ function generarPDFReal(_aj) {
   //  secciones = [{titulo, items:[{lbl,ref,val}]}]
   //  items/sections with empty val are omitted automatically
   function drawTablaCompacta(secciones) {
+    /* ⚠️ UNA SECCIÓN PUEDE PARTIRSE EN DOS SUB-COLUMNAS (`items2`), y esto NO es una cuarta
+       columna. `cW = pgW / n` reparte el ancho entre SECCIONES, así que agregar una habría
+       angostado también a «DTI mitral» y a «Tricúspide / PSAP» —las vecinas de esa fila, que el
+       pedido dice no desnivelar—. Partiendo por dentro, las tres columnas de arriba conservan su
+       ancho y sólo la de flujo transmitral se divide.
+       Y es lo que mantiene la ALTURA: el alto del bloque sale de `maxR`, el máximo de filas entre
+       secciones. Los cinco campos de vena pulmonar apilados debajo de los siete existentes daban
+       doce filas —el bloque al doble—; al costado, la sección sigue midiendo `max(7, 5) = 7`.
+       Sin `items2`, o con todos sus ítems vacíos, esta rama no existe y la tabla se dibuja
+       EXACTAMENTE como antes: es lo que hace que «sin datos, el PDF sale idéntico» sea cierto. */
     const secs = secciones
       .map(s => ({ titulo: s.titulo,
+                   items2: (s.items2||[]).filter(i => i.val != null && String(i.val).trim() !== ''),
                    /* .trim() en el PREDICADO: antes se comparaba contra '' sobre el valor crudo,
                       así que un <textarea> con sólo un Enter o espacios pasaba el filtro y la celda
                       salía como «Notas: » —etiqueta y dos puntos sin nada—, y una sección cuyo
                       único ítem fuera blanco generaba una columna entera con sólo el rótulo. */
                    items: (s.items||[]).filter(i => i.val != null && String(i.val).trim() !== '') }))
-      .filter(s => s.items.length > 0);
+      /* ⚠️ `items2` TAMBIÉN CUENTA. Con el filtro mirando sólo `items`, un estudio con las cinco
+         mediciones de vena pulmonar y ninguna transmitral perdía la columna ENTERA del PDF, las
+         cinco filas incluidas, sin ningún aviso — y es alcanzable: el criterio de velocidad de Ar
+         no necesita ningún campo transmitral. Lo cazó `/sharp-edges`. */
+      .filter(s => s.items.length > 0 || s.items2.length > 0);
     if (!secs.length) return;
 
     const n    = secs.length;
     const cW   = pgW / n;
     // Espaciado compacto A4: header 4.4 mm; filas con altura dinámica (envuelven texto largo sin desbordar)
     const hH = 5.1, lineH = 3.5;   // rowPad viene de _TBL (varía por plantilla)
-    const maxR = Math.max(...secs.map(s => s.items.length));
+    const maxR = Math.max(...secs.map(s => Math.max(s.items.length, s.items2.length)));
+    /* Ancho útil de CADA sub-columna. Sin `items2` es la columna entera, así que las secciones
+       que no se parten miden y se dibujan igual que siempre. */
+    /* Con `items` vacío no hay nada a la izquierda que separar, así que `items2` pasa a ser la
+       columna entera: partir en dos dejaría la mitad izquierda en blanco y los valores apretados
+       en 31 mm sin necesidad. `_subX` da el origen de cada mitad y colapsa igual. */
+    const _parte = sec => sec.items2.length > 0 && sec.items.length > 0;
+    const _subW = sec => _parte(sec) ? (cW / 2) : cW;
+    const _subX = (sec, sub) => _parte(sec) ? sub * (cW / 2) : 0;
 
     /* SANEADO en el borde. Las referencias de severidad llevan «≥», «≤» y la raya corta
        («(<3 / 3–7 / ≥7) mm») y esta tabla dibuja con doc.text directo: un solo carácter
@@ -27522,7 +27773,13 @@ function generarPDFReal(_aj) {
       return (typeof amiloSanPDF === 'function') ? amiloSanPDF(plano) : plano;
     };
     secs.forEach(sec => { sec.titulo = _tSan(sec.titulo);
-      sec.items.forEach(it => { it.lbl = _tSan(it.lbl); it.ref = _tSan(it.ref); it.val = _tSan(it.val); }); });
+      /* Los dos arreglos por el MISMO borde: `items2` sin sanear repetiría el defecto que este
+         comentario documenta —un solo carácter fuera de WinAnsi pasa la cadena entera a UTF-16 y
+         la celda sale ilegible en un PDF firmado—, y la sub-columna nueva trae «Ar−A», con una
+         raya larga. */
+      [sec.items, sec.items2].forEach(arr => arr.forEach(it => {
+        it.lbl = _tSan(it.lbl); it.ref = _tSan(it.ref); it.val = _tSan(it.val); }));
+    });
     /* Fuente de ESTA tabla. Envuelve a fb/fn para respetar `_TBL.serif`; con serif:false es
        exactamente lo mismo que fb/fn, así que Clásico no cambia. Se usa para medir Y para
        dibujar: medir con Helvetica y estampar con Times daría anchos equivocados y el valor se
@@ -27533,16 +27790,23 @@ function generarPDFReal(_aj) {
     const _cs = v => { if (doc.setCharSpace) doc.setCharSpace(v || 0); };
 
     // Pre-cálculo: envolver cada valor y medir cuántas líneas ocupa
-    secs.forEach(sec => sec.items.forEach(it => {
-      _tb(7); it._lw = doc.getTextWidth(it.lbl);
-      it._suf = it.ref ? ' ('+it.ref+'): '+it.val : ': '+it.val;
-      _tn(7); it._lines = doc.splitTextToSize(it._suf, Math.max(6, cW - 4 - it._lw));
-    }));
+    secs.forEach(sec => { const w = _subW(sec);
+      [sec.items, sec.items2].forEach(arr => arr.forEach(it => {
+        _tb(7); it._lw = doc.getTextWidth(it.lbl);
+        it._suf = it.ref ? ' ('+it.ref+'): '+it.val : ': '+it.val;
+        /* `w` y no `cW`: medir con el ancho entero y dibujar en la mitad es exactamente cómo el
+           valor se sale de su celda — el defecto que este archivo ya pagó en el bloque de firma
+           midiendo con Helvetica y estampando con Times. */
+        _tn(7); it._lines = doc.splitTextToSize(it._suf, Math.max(6, w - 4 - it._lw));
+      }));
+    });
     // Altura de cada fila = máx. de líneas entre las columnas de esa fila
     const rowH = [];
     for (let ri = 0; ri < maxR; ri++) {
       let ml = 1;
-      secs.forEach(sec => { const it = sec.items[ri]; if (it) ml = Math.max(ml, it._lines.length); });
+      secs.forEach(sec => {
+        [sec.items[ri], sec.items2[ri]].forEach(it => { if (it) ml = Math.max(ml, it._lines.length); });
+      });
       rowH[ri] = _TBL.rowPad + ml * lineH;
     }
     const rowY = []; let acc = 0;
@@ -27584,17 +27848,20 @@ function generarPDFReal(_aj) {
       const _bg = (_TBL.zebra && ri % 2 === 1) ? _C(_TBL.zebra) : [255,255,255];
       fc(_bg[0],_bg[1],_bg[2]); doc.rect(mL, ry, pgW, rowH[ri], 'F');
       secs.forEach((sec, si) => {
-        const sx = mL + si * cW;
-        const it = sec.items[ri];
-        if (!it) return;
-        const cx = sx + 2;
-        // bold label
-        _tb(7); { const lc = _C(_TBL.lblCol); tc(lc[0],lc[1],lc[2]); }
-        doc.text(it.lbl, cx, ry + 2.6);
-        // normal (ref): val — línea 0 tras el label; continuación bajo el label
-        _tn(7); { const vc = _C(_TBL.valCol); tc(vc[0],vc[1],vc[2]); }
-        it._lines.forEach((ln, li) => {
-          doc.text(ln, li === 0 ? cx + it._lw : cx, ry + 3.0 + li * lineH);
+        const sx = mL + si * cW, w = _subW(sec);
+        /* Las dos sub-columnas se dibujan con el MISMO código y sólo cambia el origen en x: con
+           dos bloques copiados, el día que se toque el interlineado se toca uno solo. */
+        [sec.items[ri], sec.items2[ri]].forEach((it, sub) => {
+          if (!it) return;
+          const cx = sx + 2 + _subX(sec, sub);
+          // bold label
+          _tb(7); { const lc = _C(_TBL.lblCol); tc(lc[0],lc[1],lc[2]); }
+          doc.text(it.lbl, cx, ry + 2.6);
+          // normal (ref): val — línea 0 tras el label; continuación bajo el label
+          _tn(7); { const vc = _C(_TBL.valCol); tc(vc[0],vc[1],vc[2]); }
+          it._lines.forEach((ln, li) => {
+            doc.text(ln, li === 0 ? cx + it._lw : cx, ry + 3.0 + li * lineH);
+          });
         });
       });
     }
@@ -28443,7 +28710,15 @@ function generarPDFReal(_aj) {
   // BLOQUE 3 (3 col): Flujo Transmitral | DTI Mitral | Tricúspide / PSAP
   // ════════════════════════════════════════════════════════════
   drawTablaCompacta([
-    {titulo:'VM — Flujo transmitral', items:[
+    /* ⚠️ EL TÍTULO NOMBRA LA VENA PULMONAR CUANDO LA HAY. Sin esto, `Veloc. Ar: 42 cm/s` y
+       `Ar-A: 35 ms` salían impresos bajo un encabezado que dice «Flujo transmitral», sin divisor
+       vertical y con la misma tipografía que las filas mitrales: en el papel firmado se leen como
+       un Doppler mitral. La cadena «vena pulmonar» no aparecía NI UNA VEZ en el PDF. Lo cazó
+       `/sharp-edges`.
+       Es condicional para que se cumpla lo otro que pide el pedido: sin datos de vena pulmonar el
+       título es exactamente el de siempre y el PDF sale idéntico. */
+    {titulo: (typeof venpHay === 'function' && venpHay())
+               ? 'VM — Transmitral / Vena pulmonar' : 'VM — Flujo transmitral', items:[
       {lbl:'Onda E',    ref:'',  val:v('onda_e')?v('onda_e')+' cm/s':null},
       {lbl:'Onda A',    ref:'',  val:v('onda_a')?v('onda_a')+' cm/s':null},
       {lbl:'E/A',       ref:'',  val:ea},
@@ -28451,6 +28726,35 @@ function generarPDFReal(_aj) {
       {lbl:'TRIV',      ref:'',  val:v('triv')?v('triv')+' ms':null},
       {lbl:'THP',       ref:'',  val:v('thp') ?v('thp') +' ms':null},
       {lbl:'AVm THP',   ref:'',  val:v('avm_thp')?v('avm_thp')+' cm2':null},
+    ],
+    /* ⚠️ SUB-COLUMNA DERECHA: VENA PULMONAR. Va como `items2` de ESTA sección y no como una
+       cuarta columna — ver la nota larga en `drawTablaCompacta`—: así «DTI mitral» y
+       «Tricúspide / PSAP» conservan su ancho y el bloque conserva su altura.
+       Si el médico no midió vena pulmonar, los cinco ítems salen `null`, el filtro los descarta,
+       `items2` queda vacío y la tabla se dibuja exactamente como antes.
+       ⚠️ LA DIFERENCIA LA CALCULA `venpArA()`, LA MISMA QUE LA PANTALLA. Rehacer la resta acá
+       sería la segunda copia de una fórmula cuya versión impresa se pudre sin que se note desde
+       la app — la trampa que este archivo documenta con `vp_gmax` y con la fórmula duplicada
+       pantalla/informe. Si `venpArA` no existe, la fila no sale: mejor sin el derivado que con
+       uno calculado por otro camino.
+       Sin referencias en la columna `ref`: los dos cortes de la guía viven en las alertas de la
+       pantalla, y ponerlos acá sería una tercera escritura del mismo umbral. */
+    items2:[
+      /* `> 0` y no truthiness, igual que `venpArA`: con el predicado viejo un 0 desaparecía de la
+         tabla mientras el derivado que lo usa sí se imprimía. Los dos bordes, el mismo criterio. */
+      {lbl:'Dur. A mit.', ref:'', val:v('venp_dur_a') >0?v('venp_dur_a') +' ms':null},
+      {lbl:'S/D pulm.',   ref:'', val:(typeof venpSDTxt==='function')?venpSDTxt():null},
+      {lbl:'Dur. Ar',     ref:'', val:v('venp_dur_ar')>0?v('venp_dur_ar')+' ms':null},
+      /* ⚠️ ESTAS DOS SÍ LLEVAN `ref`, y las otras tres no. En esta tabla la columna `ref` es la de
+         UMBRALES, y son las únicas dos filas que tienen uno: imprimir un Ar−A de 35 ms sin su
+         corte, al lado de filas que sí lo llevan (`E/e' <14`, `PSAP <=35 mmHg`), deja el único
+         criterio interpretado en la pantalla y fuera del documento firmado.
+         Salen de las CONSTANTES, así que no son una tercera escritura del umbral: es lo mismo que
+         esta tabla ya hace con `UMBRAL_TAPSE_NORMAL` y `UMBRAL_PSAP_ELEVADA`. Y son los dos del
+         pedido, ninguno más. */
+      {lbl:'Veloc. Ar',   ref:'>' + VENP_AR_VEL_CMS + ' cm/s', val:v('venp_vel_ar')?v('venp_vel_ar')+' cm/s':null},
+      {lbl:'Ar-A',        ref:'>=' + VENP_AR_A_MS + ' ms', val:(()=>{ const d=(typeof venpArA==='function')?venpArA():null;
+                                             return d==null?null:(d+' ms'); })()},
     ]},
     {titulo:'DTI mitral', items:[
       {lbl:"e' septal",  ref:'>7 cm/s',  val:eSep ?eSep +' cm/s':null},
@@ -38882,6 +39186,13 @@ function editarInforme(id) {
        firmó, aunque lo firmado estuviera mal. Editar y regenerar lo corrige, que es el momento
        en que el médico está mirando. */
     if (typeof calcVP === 'function') calcVP();
+    /* ⚠️ `venpSync` YA NO SE LLAMA ACÁ: se mudó a `RECALC_MODULOS`. Colgada de esta función sola
+       cubría UNA de las cinco rutas de restauración; las otras —abrir por `?estudio=` desde el QR
+       del PDF firmado, el autosave y la vuelta de la reimpresión— pasan por el embudo y NO por
+       acá, así que un estudio con Ar−A medido se reabría por el QR con los cuatro campos
+       poblados, INVISIBLES, y el botón «+ Vena pulmonar» ofreciendo agregar lo que ya estaba.
+       Lo cazó `/sharp-edges`: el comentario que había acá declaraba cerrado exactamente ese
+       defecto, cerrado para una ruta y abierto para las otras tres. */
     /* VEXUS: sin esto el acordeón queda mostrando el score del estudio anterior, porque el
        badge y la interpretación viven en spans que nada reescribe al cargar los campos. */
     if (typeof calcVEXUS === 'function') calcVEXUS();
@@ -46570,6 +46881,14 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
   if (typeof calcAD     === 'function') calcAD();
   if (typeof calcPSAP   === 'function') calcPSAP();
   if (typeof calcDiastol=== 'function') calcDiastol();
+  /* ⚠️ ESTA LÍNEA NO PROTEGE AL PDF, y el comentario que había acá decía que sí. El PDF llama a
+     `venpArA()`, que lee los INPUTS —ya repuestos por el barrido—, no el `<span>`: la tabla salía
+     bien con esta línea y sin ella. Lo que sí hace es dejar la PANTALLA coherente durante la
+     reimpresión, que dura lo que tarda el PDF. La vuelta al paciente que estaba la cubre
+     `RECALC_MODULOS`, donde ahora está `venpSync`. Un comentario que atribuye una protección
+     inexistente es peor que no tenerlo: el próximo lector la da por cubierta. Lo cazó
+     `/sharp-edges`. */
+  if (typeof calcVenaPulm === 'function') calcVenaPulm();
   if (typeof calcIM_ESC === 'function') calcIM_ESC();
   if (typeof calcIA_ESC === 'function') calcIA_ESC();
   if (typeof calcIT_ESC === 'function') calcIT_ESC();
@@ -74979,8 +75298,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260925-1516';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790360171217;                 /* eco-build-ms */
+const ECO_BUILD    = '20260925-1548';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790362109644;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -75066,7 +75385,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-1516</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-1548</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
