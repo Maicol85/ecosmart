@@ -4,6 +4,117 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Cajón Doppler en dos columnas, y el Vol Eyectivo VD (2026-09-25)
+
+Cada válvula reparte sus filas en dos columnas, en pantalla **y** en la captura que va a la
+biblioteca. Tres campos nuevos en la pulmonar: `Diam TSVD`, `VTI Pulmonar (TSVD)` y el
+`Vol Eyectivo VD` que sale de los dos. Cubierto por **TC-262** (27 condiciones, 12 mutaciones).
+
+### La columna es `f[6]`, el SÉPTIMO elemento del array plano
+
+`_dopFilas` empuja `[rótulo, valor, unidad, campo, armable, insumos, columna]` — `0` izquierda,
+`1` derecha. Va al final y no como una estructura nueva a propósito: `_dopFilasSueltas`,
+`_dopMetaGuardado`, `_dopDiscDe`, `_dopSufOrigen` y el marcado de origen consumen el array **por
+índice**, así que un elemento más los deja intactos. `_dopFilasSueltas` emite seis y su `f[6]`
+queda `undefined` → `!== 1` → cae a la izquierda y se dibuja a ancho completo, igual que siempre.
+
+**⚠️ `_d2Filas` (cajón 2D) sigue emitiendo SEIS.** El comentario que decía «formato IDÉNTICO al
+del cajón Doppler para que el armador sea el mismo» ya no vale, y era peor que inútil: *autorizaba*
+a compartir el armador prometiendo una compatibilidad que no existe. `_d2Render` tiene además su
+propia copia inline del constructor de tabla, sin `tablaCols`. Antes de unificar hay que decidir el
+`f[6]` de esas filas.
+
+### ⚠️ EL REPARTO NO ES «LOS DERIVADOS CON SUS INSUMOS» — ese comentario era falso
+
+Se escribió esa regla y el código la contradice en tres filas. El eje **cambia según la válvula**:
+
+- **aórtica y pulmonar** → izquierda velocidad/gradiente, derecha distancia/VTI. Ahí sí los
+  derivados van con sus insumos: cada `Grad Máx` con su Vmax, la AVA y la AVAi con el diámetro.
+- **mitral** → izquierda **estenosis y llenado** (incluido `VTI VM`, que es un VTI y **no** va a la
+  derecha), derecha **insuficiencia y cocientes**. Por eso `E/A` y `E/e'` están a la derecha aunque
+  sus insumos estén a la izquierda, y `AVM por continuidad` a la izquierda aunque dos de sus tres
+  insumos sean aórticos.
+
+### El alto del canvas sale de la columna MÁS LARGA — y las dos mitades de ese error duelen
+
+`nFilas += Math.max(izq, der)`. Sumar las dos reservaba el doble y la imagen salía con media hoja
+en blanco. Contar sólo la izquierda **recortaba la derecha por abajo en silencio**: `fillText` no
+avisa, dibuja en el vacío.
+
+**⚠️ Ese recorte no se puede ver con las cuatro válvulas llenas.** Ahí `izq > der` en las cuatro
+secciones, así que `max(izq,der) === izq` y la mutación produce un canvas byte por byte idéntico.
+Hay que construir el estado: `pul` con **una sola** velocidad más los dos insumos nuevos da
+`izq=2 < der=3`. Y ni siquiera alcanza con «ningún trazo cae fuera del canvas»: el margen inferior
+de 41 px **absorbe** las 30 px que se pierden, y la mutación sobrevive en verde. Lo que sí la mata
+es comparar el **margen al pie** entre un estado con `izq ≥ der` y otro con `der > izq` — tiene que
+ser el mismo número (41 px contra 11 px con la mutación puesta). Recalcular la fórmula del alto
+dentro del caso sería un espejo y no probaría nada.
+
+### La guarda de una sola columna es SIMÉTRICA, y la mitad que falta es la de la izquierda
+
+`tablaCols` y `_cols` caen a una tabla de ancho completo cuando **cualquiera** de las dos mitades
+queda vacía. La primera versión sólo contemplaba `der` vacía; con la izquierda vacía, `tabla([])`
+dentro de un `flex:1` empujaba todo a la mitad derecha con media hoja en blanco al lado — el mismo
+defecto que el reparto vino a corregir, espejado. El estado que lo produce es el flujo de la
+ecuación de continuidad: medir sólo diámetro y los dos VTI, sin ninguna velocidad.
+
+**Ese estado es alcanzable SÓLO en el canvas.** `_dopFilas` emite las filas sin valor con un guion;
+el filtro `f[1] != null` vive únicamente en `_dopSeccionesGuardado`. En pantalla la izquierda nunca
+queda vacía, y eso está medido en TC-262, no supuesto. Ojo con el efecto secundario: con la guarda
+simétrica puesta, `_cols` pasa las filas de la derecha al campo `izq`, así que contar `izq.length`
+vuelve a dar el número correcto — por eso la mutación del alto necesita `der > izq > 0` y no sirve
+`izq = 0`.
+
+### El canal entre columnas mide 14 px y el canvas no tiene líneas de fila
+
+Con `W=640`: el valor izquierdo termina en `x=313` y el rótulo derecho arranca en `x=327`. Dos
+caracteres. En el PNG quedaba `4.00 m/s Diam TSVI` y se lee como una unidad. En pantalla no pasa
+—son dos `<table>` con `border-bottom` y `gap`— pero el PNG es el que circula solo y puede terminar
+en un PDF. Se agregó un filete de 1 px **centrado en el canal**, no un rect por lado: eso último
+reintroduce la junta clara que la cebra a todo lo ancho existe para evitar.
+
+### `Vol Eyectivo VD` = π·(d/20)²·VTI
+
+`d` en mm (`/20` = radio en cm), VTI en cm → cm³ = mL. Se recalcula en cada `_dopDerivados()`, no
+se persiste. Con `> 0` en los dos insumos: sin uno, o con un cero, **la fila no se dibuja** en vez
+de publicar «0 mL», que se lee como medido.
+
+**Lleva descargo propio**, y es la mitad «de menos» del invariante que el módulo declara: el PNG no
+puede publicar un volumen del VD sin decir que asume un TSVD circular. Pesa más que en la aórtica
+—el TSVD es bastante menos circular que el TSVI, el diámetro entra al cuadrado— y su gemelo
+estructural sí lo llevaba: `volVd` es literalmente el numerador de la AVA por continuidad.
+
+### El rótulo dice `(TSVD)` aunque el pedido decía «VTI Pulmonar»
+
+La fórmula y la banda prestada (`vti_tsvd`, la misma de `ao.vtiTsvi`) exigen el VTI del **flujo**
+del tracto de salida, medido donde el diámetro. Con el rótulo pelado, y viviendo entre `Vmax IP` y
+`Vmax EP` —dos jets—, todo el contexto empuja a trazar un jet: la herramienta VTI acepta cualquier
+envolvente, un jet de IP da un número plausible dentro de banda `[2,60]` y el volumen sale
+**sobreestimado sin ninguna señal**. Los dos insumos son la misma medición anatómica, así que
+llevan el mismo apellido.
+
+### ⚠️ `pul.diamTsvd` y `vd.tsvd` son DOS campos con el mismo rótulo
+
+El cajón 2D ya tenía un «Diam TSVD», y es el único de los dos que ofrece **medirlo** (es una
+distancia sobre 2D; el del cajón Doppler es `armable:false`, sólo ✏️). El que alimenta el volumen
+es el del cajón Doppler. O sea que el camino natural —medir con la regla en 2D— **no llega**, y sin
+aviso el médico ve los dos números en dos cajones del mismo visor y ninguna fila de volumen.
+
+La corrección de fondo es aliasarlo, como `vi.tsvi → ao.diam`: el mecanismo ya existe (`_D2_ALIAS`,
+`_d2Ref`, `_d2OrigenMapa`). **No se hizo por ALCANCE, no por diseño** — el pedido dice explícitamente
+no tocar el cajón de Distancia 2D y el alias se cablea de los dos lados. Mientras tanto, cuando hay
+un insumo y falta el otro, el cajón **lo dice y nombra el cajón 2D**. Queda anotado como deuda.
+
+### Lo que el pedido nombraba y NO existe en la app — no se inventó
+
+El pedido listaba «Grad max VM» y trece campos tricuspídeos (`VTI IT`, `VCI`, `PmAD`, `PSAP`,
+`Onda S'`, `TRIV`, `E`, `A`, `E/A`, `e' lateral`, `E/e'`, `VTI VT`, `Grad Máx VT`, `Grad Medio VT`).
+Ninguno existe hoy en el cajón. **No se crearon**: SEGURIDAD autorizaba el reparto en columnas y el
+cálculo del Vol Eyectivo VD, nada más. Campos nuevos son mediciones nuevas, no presentación. La
+tricúspide quedó repartida con los cinco que tiene (3 izquierda / 2 derecha).
+
+---
+
 ## Severidad valvular: la AVA de 1,00 y el piso de la mitral (2026-09-25)
 
 ### ⚠️ AVA ≤ 1,0 — EL BORDE SE MOVIÓ, Y CAMBIA INFORMES YA FIRMADOS

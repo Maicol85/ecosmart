@@ -56263,7 +56263,14 @@ function _dopNuevo() {
     mit: { ondaE:null, ondaA:null, ePrimaSept:null, ePrimaLat:null, vmaxIm:null,
            vtiVm:null, vtiIm:null, gradMedioVm:null, pht:null },
     tri: { vmaxIt:null, vmaxEt:null, pvc:10 },
-    pul: { vmaxIp:null, vmaxEp:null, tap:null, vp:null },
+    /* `diamTsvd` y `vtiPul` (2026-09-25): los insumos del volumen eyectivo del VD.
+       ⚠️ DUPLICACIÓN DECLARADA: el cajón 2D ya tiene un «Diam TSVD» (`vd.tsvd`). Son la MISMA
+       medición en dos cajones, que es el patrón que este archivo persigue —y por el que el Diam
+       TSVI del cajón 2D es un ALIAS de `ao.diam` en vez de un campo propio—. Acá no se alió
+       porque el pedido dice explícitamente no tocar el cajón de Distancia 2D, y el alias hay que
+       cablearlo en los dos lados. Queda nombrado: si los dos se cargan con valores distintos, el
+       volumen eyectivo sale del de ESTE cajón. */
+    pul: { vmaxIp:null, vmaxEp:null, tap:null, vp:null, diamTsvd:null, vtiPul:null },
     /* `null` = ninguna válvula elegida, que es el estado INICIAL y el que dibuja sólo el
        selector. Antes era `'gen'` y pintaba las cinco filas genéricas de entrada. */
     modo: null,         // null | 'ao' | 'mit' | 'tri' | 'pul'
@@ -56533,7 +56540,12 @@ const _DOP_BANDA_DE = {
   'mit.ondaA':'onda_a',         // ídem
   'mit.ePrimaSept':'e_sep',     // ídem
   'mit.ePrimaLat':'e_lat',      // ídem
-  'tri.vmaxIt':'vmax_it'        // ídem — Vmax del jet de insuficiencia tricuspídea
+  'tri.vmaxIt':'vmax_it',       // ídem — Vmax del jet de insuficiencia tricuspídea
+  /* Los dos insumos del volumen eyectivo del VD toman la banda que la app ya aplica a ESAS
+     mismas mediciones en el formulario: es la regla de la casa —prestar sólo donde la pregunta
+     es la misma— y acá lo es, campo por campo. */
+  'pul.diamTsvd':'tsvd_diametro',
+  'pul.vtiPul':'vti_tsvd'
 };
 function _dopBanda(campo) {
   const k = _DOP_BANDA_DE[campo];
@@ -56635,6 +56647,15 @@ function _dopDerivados() {
   R.avai = (R.ava != null && R.bsa > 0) ? (R.ava / R.bsa) : null;
   R.sev = _dopSevPHT(A.pht);
 
+  /* ⚠️ VOLUMEN EYECTIVO DEL VD (2026-09-25). Área del TSVD por su VTI, que es la MISMA forma que
+     el numerador de `_avaContinuidad`: π·(d/20)²·VTI, con el diámetro en MILÍMETROS —d/20 es el
+     radio en cm— y el VTI en cm, así que el resultado sale en cm³ = mL. Se escribe acá y no en la
+     fila para que el número que se publica y el que se podría auditar sean el mismo.
+     Sin alguno de los dos insumos devuelve `null` y la fila no se dibuja: un volumen de 0 mL al
+     lado de una unidad se lee como «medido y dio cero». */
+  R.volVd = (P.diamTsvd > 0 && P.vtiPul > 0)
+    ? Math.PI * Math.pow(P.diamTsvd / 20, 2) * P.vtiPul : null;
+
   /* ── MITRAL ───────────────────────────────────────────────────────────────────────────── */
   R.ea = (M.ondaE > 0 && M.ondaA > 0) ? (M.ondaE / M.ondaA) : null;
   /* ⚠️ E/e' SE PROMEDIA CUANDO ESTÁN LAS DOS, Y SE DECLARA CUÁL SE USÓ.
@@ -56724,7 +56745,11 @@ const _DOP_HERR = {
      sobre el mismo trazo pulmonar, y el pedido las nombraba así. Cruzarlas daría un número con
      unidades correctas y sin significado — que es el modo de falla que el propio VTI ya pagó
      al aceptar un modo M. */
-  'pul.tap':'tiempo', 'pul.vp':'vel', 'pul.vmaxIp':'vel', 'pul.vmaxEp':'vel'
+  'pul.tap':'tiempo', 'pul.vp':'vel', 'pul.vmaxIp':'vel', 'pul.vmaxEp':'vel',
+  /* El VTI pulmonar se mide con la herramienta VTI, igual que los dos aórticos. El diámetro del
+     TSVD NO entra acá: es una DISTANCIA sobre la imagen 2D y esa herramienta no alimenta este
+     cajón — se escribe con el ✏️, como ya hace `ao.diam`. */
+  'pul.vtiPul':'vti'
 };
 function dopArmar(campo) {
   const E = _dopEstado();
@@ -56809,7 +56834,8 @@ const _DOP_ROT = {
   'mit.ePrimaLat':"e' lateral", 'mit.vmaxIm':'Vmax IM', 'mit.vtiVm':'VTI VM',
   'mit.vtiIm':'VTI IM', 'mit.gradMedioVm':'Grad Medio VM', 'mit.pht':'PHT VM',
   'tri.vmaxIt':'Vmax IT', 'tri.vmaxEt':'Vmax ET',
-  'pul.vmaxIp':'Vmax IP', 'pul.vmaxEp':'Vmax EP', 'pul.tap':'TAP', 'pul.vp':'VP'
+  'pul.vmaxIp':'Vmax IP', 'pul.vmaxEp':'Vmax EP', 'pul.tap':'TAP', 'pul.vp':'VP',
+  'pul.diamTsvd':'Diam TSVD', 'pul.vtiPul':'VTI Pulmonar (TSVD)'
 };
 /* ⚠️ CADA DESCARGO DECLARA QUÉ FILA LO DISPARA (`si`), y eso NO es organización: van QUEMADOS en
    la imagen que se guarda en la biblioteca, y desde ahí pueden llegar al PDF. Una tabla de PSAP
@@ -56854,7 +56880,15 @@ const _DOP_DISC = {
   ],
   pul: [
     { txt:'Gradientes por Bernoulli simplificada.', si:['Grad Máx IP', 'Grad Máx EP'] },
-    { txt:'El TAP es un tiempo de aceleración, no una velocidad.', si:['TAP'] }
+    { txt:'El TAP es un tiempo de aceleración, no una velocidad.', si:['TAP'] },
+    /* ⚠️ SIN ESTE DESCARGO, EL VOLUMEN CIRCULA PELADO. Es la mitad «de menos» del invariante que
+       este módulo declara doce líneas más abajo, y acá pesa MÁS que en la aórtica: el TSVD es
+       bastante menos circular que el TSVI, el diámetro entra al cuadrado —o sea que un error
+       relativo se duplica— y los dos insumos tienen que medirse al MISMO nivel o el cociente no
+       corresponde a ninguna sección real. Su gemelo estructural, la AVA por continuidad, sí lo
+       lleva: `volVd` es literalmente su numerador. */
+    { txt:'Volumen eyectivo del VD: asume un TSVD circular y exige que el diámetro y el VTI se midan al MISMO nivel. El diámetro va al cuadrado, así que un error se duplica.',
+      si:['Vol Eyectivo VD'] }
   ]
 };
 /* ⚠️ EL PANEL LLEVA TODOS LOS DE SU VÁLVULA, Y LA IMAGEN SÓLO LOS DISPARADOS. No es una
@@ -56927,90 +56961,116 @@ function _dopFilas(modo) {
   const E = _dopEstado(), D = _dopDerivados(), F = [];
   const md = (modo === undefined) ? E.modo : modo;
   const n = (x, d) => (x == null || !isFinite(x)) ? null : Number(x).toFixed(d);
+  /* ⚠️ CADA FILA DECLARA SU COLUMNA EN `f[6]`: 0 = izquierda (velocidad / gradiente), 1 = derecha
+     (distancia / VTI y sus derivados). Diseño confirmado por Maicol (2026-09-25).
+     Va como SÉPTIMO elemento y no como una estructura nueva a propósito: `_dopFilasSueltas`,
+     `_dopMetaGuardado`, el marcado de origen y los casos consumen el array plano por índice, así
+     que un campo más al final los deja intactos — quien no lo mira sigue viendo la lista entera.
+     ⚠️ EL REPARTO ES DEL PEDIDO PARA LOS CAMPOS QUE NOMBRA, y el resto sigue el EJE de su columna
+     — que no es el mismo eje en las cuatro válvulas, así que la etiqueta de arriba es un resumen
+     y no una regla:
+       · aórtica y pulmonar → izquierda VELOCIDAD/GRADIENTE, derecha DISTANCIA/VTI. Ahí los
+         derivados sí caen con sus insumos: cada `Grad Máx` al lado de su Vmax, la AVA y la AVAi
+         al lado del diámetro y los VTI de los que salen.
+       · mitral → izquierda ESTENOSIS Y LLENADO (incluido `VTI VM`, que es un VTI y NO va a la
+         derecha), derecha INSUFICIENCIA Y COCIENTES. Por eso `E/A` y `E/e'` están a la derecha
+         aunque sus insumos estén a la izquierda: son cocientes. Y `AVM por continuidad` está a
+         la izquierda —con la estenosis— aunque dos de sus tres insumos sean aórticos.
+     Escrito así porque la versión anterior decía «los derivados van con la columna de sus
+     insumos» y el código la contradice en tres filas: un comentario que afirma lo contrario del
+     código es el patrón que este archivo persigue desde el `_dupKey`. */
+  const L = (rot, val, uni, campo, armable, src) => { F.push([rot, val, uni, campo, armable, src || null, 0]); };
+  const R = (rot, val, uni, campo, armable, src) => { F.push([rot, val, uni, campo, armable, src || null, 1]); };
   if (md === 'ao') {
-    F.push(['Vmax VAo',   n(E.ao.vmax, 2),      'm/s',    'ao.vmax',   true]);
-    F.push(['Grad Máx',   n(D.gradMax, 1),      'mmHg',   null,        false, ['ao.vmax']]);
-    F.push(['Grad Medio', n(E.ao.gradMedio, 1), 'mmHg',   'ao.gradMedio', false]);
-    F.push(['VTI VAo',    n(E.ao.vtiAo, 1),     'cm',     'ao.vtiAo',  true]);
-    F.push(['VTI TSVI',   n(E.ao.vtiTsvi, 1),   'cm',     'ao.vtiTsvi', true]);
-    F.push(['Diam TSVI',  n(E.ao.diam, 1),      'mm',     'ao.diam',   false]);
+    L('Vmax VAo',   n(E.ao.vmax, 2),      'm/s',  'ao.vmax',   true);
+    L('Grad Máx',   n(D.gradMax, 1),      'mmHg', null,        false, ['ao.vmax']);
+    L('Grad Medio', n(E.ao.gradMedio, 1), 'mmHg', 'ao.gradMedio', false);
+    /* El PHT y su severidad quedan a la IZQUIERDA: son el par de la insuficiencia aórtica, que es
+       la lectura de gravedad de esta válvula — la misma familia que la Vmax y los gradientes. */
+    L('PHT IAo',    n(E.ao.pht, 0),       'ms',   'ao.pht',    true);
+    if (D.sev) L('Severidad IAo', D.sev.txt + ' (orientativo)', '', null, false, ['ao.pht']);
+    R('Diam TSVI',  n(E.ao.diam, 1),      'mm',   'ao.diam',   false);
+    R('VTI TSVI',   n(E.ao.vtiTsvi, 1),   'cm',   'ao.vtiTsvi', true);
+    R('VTI VAo',    n(E.ao.vtiAo, 1),     'cm',   'ao.vtiAo',  true);
     /* AVA, AVAi y Severidad APARECEN SOLAS cuando hay con qué: el pedido es que el médico no
        tenga que hacer nada extra. Si falta un insumo no se muestra la fila en vez de un guion,
        que al lado de una unidad se lee como «medido y dio cero». */
-    if (D.ava != null)  F.push(['AVA',  n(D.ava, 2),  'cm²',     null, false, ['ao.diam','ao.vtiTsvi','ao.vtiAo']]);
+    if (D.ava != null)  R('AVA',  n(D.ava, 2),  'cm²', null, false, ['ao.diam','ao.vtiTsvi','ao.vtiAo']);
     /* ⚠️ EL AVAi LLEVA SU BSA ADENTRO DEL RÓTULO, igual que `PSAP (PVC 10)` y por el mismo
        motivo. La superficie corporal sale de `getBSA()`, que lee peso y talla DEL FORMULARIO —no
-       del cajón—, y el cajón es estado de módulo que sobrevive al cambio de estudio a propósito:
-       hay un aviso entero (`avisoImg`) para eso. O sea que una AVA medida con un paciente puede
-       dividirse por la BSA del siguiente y publicarse como «AVAi 0.42 cm²/m²» —estenosis crítica
-       indexada— en un PNG que va a la biblioteca y de ahí al PDF, sin una traza de con qué
-       superficie salió. Con el número a la vista, el cociente se puede auditar; sin él, no.
-       Lo encontró `/sharp-edges`, y es PREEXISTENTE: la tabla combinada lo agrava porque circula
-       con más contexto, no lo introduce. */
-    if (D.avai != null) F.push(['AVAi (BSA ' + n(D.bsa, 2) + ')', n(D.avai, 2), 'cm²/m²', null, false, ['ao.diam','ao.vtiTsvi','ao.vtiAo']]);
-    F.push(['PHT IAo',    n(E.ao.pht, 0),       'ms',     'ao.pht',    true]);
-    if (D.sev) F.push(['Severidad IAo', D.sev.txt + ' (orientativo)', '', null, false, ['ao.pht']]);
+       del cajón—, y el cajón es estado de módulo que sobrevive al cambio de estudio a propósito.
+       Con el número a la vista, el cociente se puede auditar; sin él, no. */
+    if (D.avai != null) R('AVAi (BSA ' + n(D.bsa, 2) + ')', n(D.avai, 2), 'cm²/m²', null, false, ['ao.diam','ao.vtiTsvi','ao.vtiAo']);
   } else if (md === 'mit') {
     const M = E.mit;
-    F.push(['Onda E',     n(M.ondaE, 0),        'cm/s',   'mit.ondaE', true]);
-    F.push(['Onda A',     n(M.ondaA, 0),        'cm/s',   'mit.ondaA', true]);
-    /* E/A y E/e' APARECEN SOLOS cuando hay con qué. Sin insumo no se muestra la fila en vez de
-       un guion, que al lado de una unidad se lee como «medido y dio cero» — misma regla que la
-       AVA del acordeón aórtico. Y NO SE GRADÚAN: esta app borró a propósito la graduación del
-       SGL porque convivían tres escalas, y una banda inventada acá sería la misma historia
-       sobre el llenado mitral. */
-    if (D.ea != null) F.push(['E/A', n(D.ea, 2), '', null, false, ['mit.ondaE','mit.ondaA']]);
-    F.push(["e' septal",  n(M.ePrimaSept, 1),   'cm/s',   'mit.ePrimaSept', true]);
-    F.push(["e' lateral", n(M.ePrimaLat, 1),    'cm/s',   'mit.ePrimaLat',  true]);
-    /* ⚠️ EL PROMEDIO SE MUESTRA SÓLO CON LAS DOS e' CARGADAS, y no es una restricción cosmética:
-       «e' promedio» sobre un único valor no es un promedio, y el septal y el lateral no son
-       intercambiables —el septal corre más bajo—. Con una sola, la fila del E/e' ya declara
-       cuál se usó, que es la información que hace falta para auditarlo. */
-    if (D.epromCual === 'prom') F.push(["e' promedio", n(D.eprom, 1), 'cm/s', null, false, ['mit.ePrimaSept','mit.ePrimaLat']]);
+    L('Onda E',     n(M.ondaE, 0),        'cm/s', 'mit.ondaE', true);
+    L('Onda A',     n(M.ondaA, 0),        'cm/s', 'mit.ondaA', true);
+    L("e' septal",  n(M.ePrimaSept, 1),   'cm/s', 'mit.ePrimaSept', true);
+    L("e' lateral", n(M.ePrimaLat, 1),    'cm/s', 'mit.ePrimaLat',  true);
+    /* ⚠️ EL PROMEDIO SE MUESTRA SÓLO CON LAS DOS e' CARGADAS: «e' promedio» sobre un único valor
+       no es un promedio, y el septal y el lateral no son intercambiables —el septal corre más
+       bajo—. Con una sola, la fila del E/e' ya declara cuál se usó. */
+    if (D.epromCual === 'prom') L("e' promedio", n(D.eprom, 1), 'cm/s', null, false, ['mit.ePrimaSept','mit.ePrimaLat']);
+    L('VTI VM',     n(M.vtiVm, 1),        'cm',   'mit.vtiVm', true);
+    L('Grad Medio VM', n(M.gradMedioVm, 1), 'mmHg', 'mit.gradMedioVm', false);
+    L('PHT VM',     n(M.pht, 0),          'ms',   'mit.pht',   true);
+    if (D.avmPht != null)  L('AVM por PHT',  n(D.avmPht, 2),  'cm²', null, false, ['mit.pht']);
+    if (D.avmCont != null) L('AVM por continuidad', n(D.avmCont, 2), 'cm²', null, false, ['ao.diam','ao.vtiTsvi','mit.vtiVm']);
+    /* E/A y E/e' APARECEN SOLOS cuando hay con qué, y NO SE GRADÚAN: esta app borró a propósito
+       la graduación del SGL porque convivían tres escalas, y una banda inventada acá sería la
+       misma historia sobre el llenado mitral. */
+    if (D.ea != null) R('E/A', n(D.ea, 2), '', null, false, ['mit.ondaE','mit.ondaA']);
     if (D.ee != null) {
       const cual = D.epromCual === 'prom' ? 'prom' : (D.epromCual === 'sept' ? 'septal' : 'lateral');
-      F.push(["E/e' (" + cual + ')', n(D.ee, 1), '', null, false, ['mit.ondaE','mit.ePrimaSept','mit.ePrimaLat']]);
+      R("E/e' (" + cual + ')', n(D.ee, 1), '', null, false, ['mit.ondaE','mit.ePrimaSept','mit.ePrimaLat']);
     }
-    F.push(['Vmax IM',    n(M.vmaxIm, 2),       'm/s',    'mit.vmaxIm', true]);
-    if (D.gradMaxIm != null) F.push(['Grad Máx IM', n(D.gradMaxIm, 1), 'mmHg', null, false, ['mit.vmaxIm']]);
-    F.push(['VTI VM',     n(M.vtiVm, 1),        'cm',     'mit.vtiVm', true]);
-    F.push(['VTI IM',     n(M.vtiIm, 1),        'cm',     'mit.vtiIm', true]);
-    F.push(['Grad Medio VM', n(M.gradMedioVm, 1), 'mmHg',  'mit.gradMedioVm', false]);
-    F.push(['PHT VM',     n(M.pht, 0),          'ms',     'mit.pht',   true]);
-    if (D.avmPht != null)  F.push(['AVM por PHT',  n(D.avmPht, 2),  'cm²', null, false, ['mit.pht']]);
-    if (D.avmCont != null) F.push(['AVM por continuidad', n(D.avmCont, 2), 'cm²', null, false, ['ao.diam','ao.vtiTsvi','mit.vtiVm']]);
+    R('Vmax IM',    n(M.vmaxIm, 2),       'm/s',  'mit.vmaxIm', true);
+    if (D.gradMaxIm != null) R('Grad Máx IM', n(D.gradMaxIm, 1), 'mmHg', null, false, ['mit.vmaxIm']);
+    R('VTI IM',     n(M.vtiIm, 1),        'cm',   'mit.vtiIm', true);
   } else if (md === 'tri') {
     const T = E.tri;
-    F.push(['Vmax IT',    n(T.vmaxIt, 2),       'm/s',    'tri.vmaxIt', true]);
-    if (D.gradIt != null) F.push(['Grad Máx IT', n(D.gradIt, 1), 'mmHg', null, false, ['tri.vmaxIt']]);
+    L('Vmax IT',    n(T.vmaxIt, 2),       'm/s',  'tri.vmaxIt', true);
+    if (D.gradIt != null) L('Grad Máx IT', n(D.gradIt, 1), 'mmHg', null, false, ['tri.vmaxIt']);
     /* La PVC lleva su valor DENTRO del rótulo y no en una nota al pie: la PSAP de esta tabla
        puede no coincidir con la del informe —allá la PVC se estima desde la VCI— y sin el número
        a la vista no hay forma de saber cuál de las dos se está mirando. */
-    if (D.psap != null) F.push(['PSAP (PVC ' + T.pvc + ')', n(D.psap, 0), 'mmHg', null, false, ['tri.vmaxIt']]);
-    F.push(['Vmax ET',    n(T.vmaxEt, 2),       'm/s',    'tri.vmaxEt', true]);
-    if (D.gradEt != null) F.push(['Grad Máx ET', n(D.gradEt, 1), 'mmHg', null, false, ['tri.vmaxEt']]);
+    if (D.psap != null) L('PSAP (PVC ' + T.pvc + ')', n(D.psap, 0), 'mmHg', null, false, ['tri.vmaxIt']);
+    R('Vmax ET',    n(T.vmaxEt, 2),       'm/s',  'tri.vmaxEt', true);
+    if (D.gradEt != null) R('Grad Máx ET', n(D.gradEt, 1), 'mmHg', null, false, ['tri.vmaxEt']);
   } else if (md === 'pul') {
     const P = E.pul;
-    F.push(['Vmax IP',    n(P.vmaxIp, 2),       'm/s',    'pul.vmaxIp', true]);
-    if (D.gradIp != null) F.push(['Grad Máx IP', n(D.gradIp, 1), 'mmHg', null, false, ['pul.vmaxIp']]);
-    F.push(['Vmax EP',    n(P.vmaxEp, 2),       'm/s',    'pul.vmaxEp', true]);
-    if (D.gradEp != null) F.push(['Grad Máx EP', n(D.gradEp, 1), 'mmHg', null, false, ['pul.vmaxEp']]);
-    F.push(['TAP',        n(P.tap, 0),          'ms',     'pul.tap',   true]);
-    F.push(['VP',         n(P.vp, 2),           'm/s',    'pul.vp',    true]);
+    L('Vmax IP',    n(P.vmaxIp, 2),       'm/s',  'pul.vmaxIp', true);
+    if (D.gradIp != null) L('Grad Máx IP', n(D.gradIp, 1), 'mmHg', null, false, ['pul.vmaxIp']);
+    L('Vmax EP',    n(P.vmaxEp, 2),       'm/s',  'pul.vmaxEp', true);
+    if (D.gradEp != null) L('Grad Máx EP', n(D.gradEp, 1), 'mmHg', null, false, ['pul.vmaxEp']);
+    L('TAP',        n(P.tap, 0),          'ms',   'pul.tap',   true);
+    L('VP',         n(P.vp, 2),           'm/s',  'pul.vp',    true);
+    R('Diam TSVD',  n(P.diamTsvd, 1),     'mm',   'pul.diamTsvd', false);
+    /* ⚠️ EL RÓTULO NOMBRA EL SITIO, NO SÓLO LA VÁLVULA. El pedido lo llamó «VTI Pulmonar», pero
+       la fórmula de abajo y la banda que presta (`vti_tsvd`, la misma de `ao.vtiTsvi`) exigen el
+       VTI del FLUJO del tracto de salida, medido donde el diámetro. Con el rótulo pelado, y
+       viviendo entre `Vmax IP` y `Vmax EP` —dos jets—, todo el contexto empuja a trazar un jet:
+       la herramienta VTI acepta cualquier envolvente, un jet de IP da un número plausible dentro
+       de banda y el volumen sale sobreestimado SIN ninguna señal. Los dos insumos son la misma
+       medición anatómica, así que llevan el mismo apellido. */
+    R('VTI Pulmonar (TSVD)', n(P.vtiPul, 1), 'cm',  'pul.vtiPul', true);
+    /* Aparece sola cuando hay con qué, igual que la AVA: sin uno de los dos insumos no se dibuja
+       la fila en vez de publicar un cero. */
+    if (D.volVd != null) R('Vol Eyectivo VD', n(D.volVd, 1), 'mL', null, false, ['pul.diamTsvd','pul.vtiPul']);
   }
   /* Sin válvula elegida la lista va VACÍA, y eso es lo que produce el selector solo. Las filas
      genéricas ya no viven acá: salen por `_dopFilasSueltas`, que sólo muestra las que TIENEN
-     valor. Mezcladas, la tabla de una válvula arrastraba cinco campos que no son de ninguna. */
+     valor. */
   /* CADA FILA DECLARA DE QUÉ VISTA SALIÓ SU NÚMERO, y sólo cuando hay más de un origen. Las
-     medidas lo toman de su propio campo; las DERIVADAS del conjunto de sus insumos, que es de
-     donde sale el número — y ahí está el caso que más importa: `AVM por continuidad` se calcula
-     con `ao.diam` y `ao.vtiTsvi`, o sea insumos AÓRTICOS dentro de la tabla mitral, y con dos
-     vistas abiertas esos dos planos pueden ser dos pantallas distintas. */
+     medidas lo toman de su propio campo; las DERIVADAS del conjunto de sus insumos — y ahí está
+     el caso que más importa: `AVM por continuidad` se calcula con insumos AÓRTICOS dentro de la
+     tabla mitral, y con dos vistas abiertas esos dos planos pueden ser dos pantallas distintas. */
   F.forEach(f => {
     const src = f[5] || (f[3] ? [f[3]] : null);
     if (src) { const suf = _dopSufOrigen(src); if (suf) f[0] = f[0] + suf; }
   });
   return F;
+
 }
 
 /* Las mediciones que cayeron en las filas genéricas —o sea las que se hicieron sin armar un
@@ -57168,10 +57228,52 @@ function _dopRender() {
     });
     return t + '</table>';
   };
+  /* ⚠️ DOS COLUMNAS, Y LA MÁS LARGA MANDA EL ALTO. Se reparte por `f[6]` y se dibujan dos tablas
+     lado a lado: con una sola tabla de cuatro celdas por fila, una columna con menos filas dejaba
+     huecos alineados con la otra y el ojo los leía como valores faltantes.
+     ⚠️ LA GUARDA ES SIMÉTRICA, y la mitad que falta es la que se olvida. Con una sola columna
+     poblada hay que caer a UNA tabla al ancho completo, en los dos sentidos: el flujo de la
+     ecuación de continuidad —medir sólo diámetro y los dos VTI, sin ninguna velocidad— deja la
+     IZQUIERDA vacía, y `tabla([])` con `flex:1` empujaba las cuatro filas de la AVA a la mitad
+     derecha con media pantalla en blanco al lado. Es el mismo defecto que este reparto vino a
+     corregir, espejado.
+     Va DESPUÉS de `tabla` a propósito: es un `const` que la referencia, y declararlo antes deja
+     una zona muerta temporal entre las dos líneas — este archivo ya documenta dos veces que un
+     TDZ en un `<script>` de nivel superior se lleva el bloque entero. */
+  const tablaCols = (filas) => {
+    const izq = filas.filter(f => f[6] !== 1), der = filas.filter(f => f[6] === 1);
+    if (!der.length) return tabla(izq);
+    if (!izq.length) return tabla(der);
+    return '<div style="display:flex;gap:10px;align-items:flex-start;">' +
+           '<div style="flex:1;min-width:0;">' + tabla(izq) + '</div>' +
+           '<div style="flex:1;min-width:0;">' + tabla(der) + '</div>' +
+           '</div>';
+  };
 
   const F = _dopFilas();
   if (F.length) {
-    h += tabla(F);
+    h += tablaCols(F);
+    /* ⚠️ «NO APARECE Y NADA DICE POR QUÉ» ES PEOR QUE NO ESTAR. El Vol Eyectivo VD se dibuja sólo
+       con sus dos insumos, y el caso de un insumo solo es el NORMAL, no el raro: el Diam TSVD es
+       una distancia sobre 2D, así que el médico lo va a medir en el cajón de Distancia 2D —que es
+       el único que ofrece medirlo— y ESE valor no llega acá: son dos campos distintos con el
+       mismo rótulo (duplicación declarada en `_dopNuevo`). Sin esta línea, el médico ve los dos
+       números a la vista en dos cajones del mismo visor y ninguna fila de volumen, sin ninguna
+       pista. Es el recurso de `eteQpQsMotivo`: distinguir «falta el dato» de «el número no da».
+       No aliasar `vd.tsvd` fue decisión de ALCANCE, no de diseño — el pedido dice explícitamente
+       no tocar el cajón de Distancia 2D, y el alias se cablea en los dos lados. Queda anotado
+       como la corrección de fondo. */
+    if (E.modo === 'pul') {
+      const _P = E.pul, _falta = (_P.vtiPul != null && _P.diamTsvd == null) ? 'diam'
+                               : (_P.diamTsvd != null && _P.vtiPul == null) ? 'vti' : null;
+      if (_falta) {
+        h += '<div style="margin-top:6px;font-size:11px;color:var(--text2);line-height:1.45;">' +
+             'Para el <b>Vol Eyectivo VD</b> falta ' + (_falta === 'diam'
+               ? 'el <b>Diam TSVD</b>. El del cajón de Distancia 2D es otro campo: cargalo acá con ✏️.'
+               : 'el <b>VTI Pulmonar (TSVD)</b>, trazado en el mismo nivel que el diámetro.') +
+             '</div>';
+      }
+    }
     if (E.destino) {
       h += '<div style="margin-top:6px;font-size:11px;color:var(--accent2);">Midiendo para <b>' +
            escHtml(_DOP_ROT[E.destino] || E.destino) + '</b> — la próxima medición cae ahí.</div>';
@@ -57365,8 +57467,20 @@ function _dopCanvas() {
     });
     if (linea) discLineas.push(linea);
   });
+  /* ⚠️ EL ALTO SALE DE LA COLUMNA MÁS LARGA, NO DE LA SUMA DE FILAS. Con las dos columnas, sumar
+     `filas.length` reservaba el doble de alto del necesario y la imagen salía con media hoja en
+     blanco debajo del descargo. Y al revés —contar sólo la izquierda— recortaba la derecha por
+     abajo EN SILENCIO, que es el modo de falla que importa: `fillText` no avisa. */
+  const _cols = s => {
+    const izq = s.filas.filter(f => f[6] !== 1), der = s.filas.filter(f => f[6] === 1);
+    /* Simétrica, igual que `tablaCols`: con una sola columna poblada se dibuja a ancho completo
+       venga de donde venga. Sin la segunda rama, medir sólo el diámetro y los dos VTI —el flujo
+       de la AVA— dibujaba las cuatro filas en `x0 = 327` con la mitad izquierda en blanco. */
+    return (izq.length && der.length) ? { izq: izq, der: der }
+                                      : { izq: izq.length ? izq : der, der: [] };
+  };
   let nFilas = 0;
-  S.forEach(s => { nFilas += s.filas.length; });
+  S.forEach(s => { const c2 = _cols(s); nFilas += Math.max(c2.izq.length, c2.der.length); });
   const H = cabH + S.length * secH + nFilas * filaH + 16 + discLineas.length * 15 + pad;
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
@@ -57399,16 +57513,54 @@ function _dopCanvas() {
     /* La cebra se cuenta DENTRO de la sección: arrastrando el índice global, la primera fila de
        una sección sale sombreada o no según cuántas filas trajo la anterior, y eso se ve como un
        error de dibujo sobre una tabla correcta. */
-    s.filas.forEach((f, i) => {
+    /* ⚠️ MISMO LAYOUT DE DOS COLUMNAS QUE LA PANTALLA, y esto es la mitad que se suele olvidar:
+       la tabla que va a la biblioteca es la que circula sola —puede terminar en un PDF— así que
+       si las dos superficies se separan, la que el médico revisó y la que firmó son distintas.
+       La cebra se pinta a lo ANCHO de las dos columnas, no por columna: con un rect por lado, la
+       junta del medio se ve como una línea vertical clara.
+       El texto se dibuja dentro de su mitad y el valor se alinea a la derecha DE SU MITAD: sin
+       eso, el de la izquierda cruzaba al otro lado. `fillText` no envuelve ni acota, así que un
+       rótulo largo se superpondría con su valor en silencio — por eso el ancho útil de cada mitad
+       se calcula y el rótulo se achica si no entra. */
+    const C2 = _cols(s);
+    const colW = C2.der.length ? (W - 2 * pad - 14) / 2 : (W - 2 * pad);
+    const nF = Math.max(C2.izq.length, C2.der.length);
+    for (let i = 0; i < nF; i++) {
       if (i % 2 === 0) { c.fillStyle = '#f3f4f6'; c.fillRect(pad - 6, y - 16, W - 2 * (pad - 6), filaH - 4); }
-      c.fillStyle = '#374151'; c.textAlign = 'left';
-      c.fillText(f[0], pad, y + 3);
-      c.fillStyle = '#111827'; c.textAlign = 'right';
-      c.font = 'bold 14px system-ui, sans-serif';
-      c.fillText(f[1] == null ? '—' : (f[1] + (f[2] ? ' ' + f[2] : '')), W - pad, y + 3);
+      /* ⚠️ UN FILETE EN EL CANAL, PORQUE LA CEBRA SOLA NO ALCANZA. El canal entre el valor de la
+         izquierda y el rótulo de la derecha mide 14 px —dos caracteres— y el canvas nunca tuvo
+         líneas de fila, así que en el PNG quedaba `4.00 m/s Diam TSVI` y un lector que no conoce
+         el layout lo lee como una unidad. En pantalla no pasa: son dos `<table>` con
+         `border-bottom` y `gap`. Es un filete de 1 px CENTRADO en el canal, no un rect por lado:
+         eso último es lo que el comentario de abajo descarta, porque la junta se ve como una
+         línea clara. */
+      if (C2.der.length) { c.fillStyle = '#d1d5db'; c.fillRect(pad + colW + 6, y - 16, 1, filaH - 4); }
+      [C2.izq[i], C2.der[i]].forEach((f, col) => {
+        if (!f) return;
+        const x0 = pad + col * (colW + 14);
+        const val = f[1] == null ? '—' : (f[1] + (f[2] ? ' ' + f[2] : ''));
+        c.font = 'bold 14px system-ui, sans-serif';
+        const wVal = c.measureText(val).width;
+        /* El rótulo se achica hasta que entra en lo que deja el valor. Es el mismo recurso que el
+           título de arriba, y hace falta por lo mismo: la columna mide la mitad que antes.
+           Declarado, igual que el título: el piso es 9 px y ahí se detiene — por debajo quedaría
+           ilegible, así que un rótulo disparatado se superpone con su valor igual. Medido contra
+           los de hoy no es alcanzable: el peor caso es `Severidad IAo` con `Moderada
+           (orientativo)`, que entra a ~13 px. */
+        let fs = 14;
+        c.font = fs + 'px system-ui, sans-serif';
+        while (fs > 9 && c.measureText(f[0]).width > colW - wVal - 8) {
+          fs -= 0.5; c.font = fs + 'px system-ui, sans-serif';
+        }
+        c.fillStyle = '#374151'; c.textAlign = 'left';
+        c.fillText(f[0], x0, y + 3);
+        c.fillStyle = '#111827'; c.textAlign = 'right';
+        c.font = 'bold 14px system-ui, sans-serif';
+        c.fillText(val, x0 + colW, y + 3);
+      });
       c.font = '14px system-ui, sans-serif';
       y += filaH;
-    });
+    }
   });
   c.textAlign = 'left'; c.fillStyle = '#6b7280';
   c.font = '10.5px system-ui, sans-serif';
@@ -57521,9 +57673,12 @@ window.dopGuardarBiblioteca = dopGuardarBiblioteca;
    pedido con esas palabras y además es lo único que hace que las dos superficies se comporten
    igual: dos anotadores del mismo visor con dos gestos distintos es peor que no tener el segundo.
 
-   ⚠️ UNA SOLA COLUMNA. Ningún grupo pasa de siete filas —la AI tiene UNA— y dos columnas sobre
-   cuatro valores dejan media tabla vacía. El cajón Doppler ya es de una columna; esto no es una
-   variante, es el mismo patrón.
+   ⚠️ UNA SOLA COLUMNA, Y DESDE EL 2026-09-25 ESO YA NO ES «LO MISMO QUE EL DOPPLER». El cajón
+   Doppler pasó a dos columnas; acá sigue siendo una, y el motivo es el de siempre, no la
+   simetría: ningún grupo pasa de siete filas —la AI tiene UNA— y dos columnas sobre cuatro
+   valores dejan media tabla vacía. La justificación original decía «el cajón Doppler ya es de
+   una columna», y esa premisa caducó: queda dicho para que nadie la tome por vigente ni
+   «empareje» los dos cajones creyendo que se separaron por descuido.
 
    ⚠️ NO SINCRONIZA CON EL INFORME, igual que el Doppler. Es un anotador: el médico lee el número
    y lo escribe en el campo si quiere. La línea al pie lo dice, porque la imagen que se guarda en
@@ -57856,8 +58011,14 @@ function _d2Derivados() {
   };
 }
 
-/* Las filas del grupo abierto. Formato IDÉNTICO al del cajón Doppler para que el armador de
-   tabla sea el mismo: [rótulo, valor, unidad, campo, armable, insumos]. */
+/* Las filas del grupo abierto: [rótulo, valor, unidad, campo, armable, insumos] — SEIS elementos.
+   ⚠️ YA NO ES EL MISMO FORMATO QUE EL CAJÓN DOPPLER, que desde el 2026-09-25 emite SIETE: el
+   séptimo es `f[6]`, la columna. Y el armador tampoco es el mismo: `_d2Render` tiene su propia
+   copia inline del constructor de tabla, sin `tablaCols`. Hoy compartirlo sería inocuo por
+   accidente —`f[6]` indefinido cae a la izquierda— pero el comentario anterior decía «formato
+   IDÉNTICO … para que el armador sea el mismo», o sea que AUTORIZABA a compartirlo prometiendo
+   una compatibilidad que no existe. Antes de unificar nada hay que decidir el `f[6]` de estas
+   filas. */
 function _d2Filas(modo) {
   const E = _d2Estado();
   const m = modo || E.modo;
@@ -64561,8 +64722,10 @@ const DCM_DERIV_MEDIA = '373098007';    // (373098007, SCT) "Mean"
    es un rango por franja etaria usando el campo `edad` que ya está en el mapa de Excel, no
    ensanchar la ventana única.
 
-   OJO ADEMÁS: los tamaños de CIA/CIV (ete_cia_tam_max, ete_cia_tam_min, ete_civ_tam) y los
-   diámetros de TSVD/TSVI NO tienen rango en ninguna de las dos tablas. Esa sección se movió a
+   OJO ADEMÁS: los tamaños de CIA/CIV (ete_cia_tam_max, ete_cia_tam_min, ete_civ_tam) NO tienen
+   rango en ninguna de las dos tablas. (Los diámetros de TSVD/TSVI SÍ lo tienen desde el
+   2026-09-14, unas líneas más abajo; el texto anterior decía que no y contradecía al código a
+   ocho mil líneas de distancia.) Esa sección se movió a
    la tab Hemodinámica el 2026-09-08 y quedó más a mano, así que es el lugar más probable
    donde vaya a entrar un dato pediátrico — y ahí no hay validación de rango que lo rechace,
    ni bien ni mal. Si se agrega, agregarla con franja etaria desde el principio. */
@@ -75441,8 +75604,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260925-1706';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790366763793;                 /* eco-build-ms */
+const ECO_BUILD    = '20260925-1814';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790370879607;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -75528,7 +75691,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-1706</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-1814</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

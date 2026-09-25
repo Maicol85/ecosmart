@@ -10093,6 +10093,294 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
   })();
 `);
 
+caso('TC-262', 'Cajon Doppler en dos columnas: nada se pierde ni se duplica, y el Vol Eyectivo VD sale de sus dos insumos', `
+  return (async () => {
+    if (typeof _dopFilas !== 'function' || typeof _dopCanvas !== 'function')
+      return { extra:[['existe el cajon Doppler', false, 'faltan _dopFilas o _dopCanvas']] };
+    try {
+      const jpg = new Uint8Array([255,216,255,217]);
+      const mk = n => ({ nombre:n, cuadros:1, d:{ frags:[jpg], cols:200, filas:150, msCuadro:0,
+        regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:200, y1:150, tipo:1 }] } });
+      _cineAbrir([mk('A')]);
+      await new Promise(r => setTimeout(r, 350));
+      if (!_medOn) medToggle();
+      for (let i=0;i<3 && _vistaA.medGrupo!=='dop';i++) document.getElementById('cine-g-dop').click();
+
+      /* Se cargan TODOS los campos para que aparezcan tambien las filas derivadas condicionales
+         —AVA, E/A, E/e', AVM por PHT y por continuidad, los cuatro Grad Max—: medir el reparto
+         sobre una tabla a medio llenar no probaria nada de lo que el pedido pide cuidar. */
+      _dopLimpiar();
+      const E = _dopEstado();
+      Object.assign(E.ao,  { vmax:4, gradMedio:40, vtiAo:100, vtiTsvi:20, diam:20, pht:300 });
+      Object.assign(E.mit, { ondaE:80, ondaA:60, ePrimaSept:6, ePrimaLat:8, vmaxIm:5, vtiVm:15,
+                             vtiIm:60, gradMedioVm:6, pht:150 });
+      Object.assign(E.tri, { vmaxIt:3, vmaxEt:1.5 });
+      Object.assign(E.pul, { vmaxIp:2, vmaxEp:1.5, tap:100, vp:1.2, diamTsvd:25, vtiPul:18 });
+
+      const porValv = {};
+      ['ao','mit','tri','pul'].forEach(v => {
+        const F = _dopFilas(v);
+        const rot = F.map(f => String(f[0]).split(' \\u00b7 ')[0]);
+        porValv[v] = { filas: F, rot: rot,
+          izq: F.filter(f => f[6] !== 1).map(f => String(f[0]).split(' \\u00b7 ')[0]),
+          der: F.filter(f => f[6] === 1).map(f => String(f[0]).split(' \\u00b7 ')[0]),
+          dup: rot.filter((x,i,a) => a.indexOf(x) !== i) };
+      });
+
+      /* ── NADA SE DUPLICA, Y NADA SE PIERDE ── el inventario es el del estado ANTERIOR al cambio,
+         escrito a mano: si el reparto se come una fila, la cuenta no cierra. */
+      const sinDuplicados = ['ao','mit','tri','pul'].every(v => porValv[v].dup.length === 0);
+      const ESPERADO = {
+        ao:  ['Vmax VAo','Grad Máx','Grad Medio','PHT IAo','Severidad IAo','Diam TSVI','VTI TSVI','VTI VAo','AVA'],
+        mit: ['Onda E','Onda A',"e' septal","e' lateral","e' promedio",'VTI VM','Grad Medio VM','PHT VM',
+              'AVM por PHT','AVM por continuidad','E/A',"E/e' (prom)",'Vmax IM','Grad Máx IM','VTI IM'],
+        tri: ['Vmax IT','Grad Máx IT','PSAP (PVC 10)','Vmax ET','Grad Máx ET'],
+        pul: ['Vmax IP','Grad Máx IP','Vmax EP','Grad Máx EP','TAP','VP','Diam TSVD','VTI Pulmonar (TSVD)','Vol Eyectivo VD']
+      };
+      const faltan = [], sobran = [];
+      ['ao','mit','tri','pul'].forEach(v => {
+        ESPERADO[v].forEach(r => { if (porValv[v].rot.indexOf(r) < 0) faltan.push(v + ':' + r); });
+        porValv[v].rot.forEach(r => { if (ESPERADO[v].indexOf(r) < 0) sobran.push(v + ':' + r); });
+      });
+
+      /* ── EL REPARTO DEL PEDIDO ── se fijan los campos que el pedido NOMBRA, no el orden entero:
+         los derivados que el pedido no lista van con la columna de sus insumos, que es la
+         decision declarada. */
+      const aoOk = porValv.ao.izq.indexOf('Vmax VAo') >= 0 && porValv.ao.izq.indexOf('Grad Medio') >= 0 &&
+                   porValv.ao.der.indexOf('Diam TSVI') >= 0 && porValv.ao.der.indexOf('VTI TSVI') >= 0 &&
+                   porValv.ao.der.indexOf('VTI VAo') >= 0;
+      const pulOk = porValv.pul.izq.indexOf('Vmax IP') >= 0 && porValv.pul.izq.indexOf('Vmax EP') >= 0 &&
+                    porValv.pul.der.indexOf('Diam TSVD') >= 0 && porValv.pul.der.indexOf('VTI Pulmonar (TSVD)') >= 0;
+      const mitIzqOk = ['Onda E','Onda A',"e' septal","e' lateral",'VTI VM','Grad Medio VM']
+        .every(r => porValv.mit.izq.indexOf(r) >= 0);
+      const mitDerOk = ['E/A','Vmax IM','Grad Máx IM','VTI IM']
+        .every(r => porValv.mit.der.indexOf(r) >= 0) &&
+        porValv.mit.der.some(r => r.indexOf("E/e'") === 0);
+      /* Ninguna fila puede estar en las DOS columnas. */
+      const sinCruce = ['ao','mit','tri','pul'].every(v =>
+        porValv[v].izq.every(r => porValv[v].der.indexOf(r) < 0));
+
+      /* ── EL CALCULO NUEVO ── area del TSVD por su VTI: pi*(d/20)^2*VTI, con el diametro en mm
+         (d/20 = radio en cm) y el VTI en cm, o sea el resultado en cm3 = mL. */
+      const D = _dopDerivados();
+      const esperado = Math.PI * Math.pow(25/20, 2) * 18;
+      const volOk = D.volVd != null && Math.abs(D.volVd - esperado) < 1e-9;
+      /* Y EN VIVO: cambiar un insumo tiene que mover el numero, sin recargar nada. */
+      E.pul.diamTsvd = 30;
+      const volTrasCambiar = _dopDerivados().volVd;
+      const enVivo = Math.abs(volTrasCambiar - Math.PI * Math.pow(30/20, 2) * 18) < 1e-9;
+      E.pul.diamTsvd = 25;
+      /* Sin uno de los dos insumos NO se publica la fila: un volumen de 0 mL al lado de una
+         unidad se lee como «medido y dio cero». */
+      E.pul.vtiPul = null;
+      const sinInsumo = _dopDerivados().volVd === null &&
+        _dopFilas('pul').every(f => String(f[0]).indexOf('Vol Eyectivo') < 0);
+      E.pul.vtiPul = 0;
+      const conCero = _dopDerivados().volVd === null;
+      E.pul.vtiPul = 18;
+
+      /* ── LA TABLA QUE SE GUARDA EN BIBLIOTECA TIENE EL MISMO LAYOUT ── es la mitad que se suele
+         olvidar: esa imagen circula sola y puede terminar en un PDF, asi que si las dos
+         superficies se separan, la que el medico reviso y la que firmo son distintas. */
+      /* ⚠️ SE INTERCEPTA 'fillText', NO SE MIRAN PIXELES. Contar tinta en la mitad derecha —y
+         despues en una franja angosta— dejaba pasar la mutacion que vuelve el canvas a UNA
+         columna: con una sola, los VALORES se alinean a la derecha y caen ahi igual, y ademas el
+         titulo y las lineas del descargo cruzan el centro en los dos layouts. La unica señal que
+         distingue los dos casos es DONDE se dibuja el ROTULO de la columna derecha. */
+      const _ft = CanvasRenderingContext2D.prototype.fillText;
+      const trazos = [];
+      CanvasRenderingContext2D.prototype.fillText = function (t, x, y) {
+        trazos.push({ t: String(t), x: x, y: y });
+        return _ft.apply(this, arguments);
+      };
+      let cv;
+      try { cv = _dopCanvas(); } finally { CanvasRenderingContext2D.prototype.fillText = _ft; }
+      const ctx = cv.getContext('2d');
+      const px = ctx.getImageData(0, 0, cv.width, cv.height).data;
+      /* Los rotulos de la derecha tienen que estar dibujados PASADO el centro. */
+      const _xDe = rot => { const h = trazos.filter(z => z.t.indexOf(rot) === 0)[0]; return h ? h.x : -1; };
+      const xDiamTsvd = _xDe('Diam TSVD'), xVtiVao = _xDe('VTI VAo'), xVmaxIp = _xDe('Vmax IP');
+      /* ⚠️ EL FILETE DEL CANAL. Entre el valor de la izquierda y el rotulo de la derecha hay 14 px
+         —dos caracteres— y el canvas no tiene lineas de fila, asi que sin divisoria el PNG dice
+         '4.00 m/s Diam TSVI' y se lee como una unidad. La x se DERIVA del trazo medido
+         (x0 derecha menos 8, que es el centro del canal), no de recalcular 'colW': repetir la
+         formula seria un espejo. Color exacto, no «tinta»: la cebra y el filete de seccion
+         tambien son claros y contarlos daria verde sin divisoria. */
+      const xFilete = Math.round(xDiamTsvd) - 8;
+      let filete = 0;
+      for (let y = 0; y < cv.height; y++) {
+        const i = (y * cv.width + xFilete) * 4;
+        if (px[i] === 209 && px[i+1] === 213 && px[i+2] === 219) filete++;
+      }
+      /* ⚠️ SE MIRA UNA FRANJA JUSTO A LA DERECHA DEL CENTRO, no la mitad entera. Contando toda la
+         mitad derecha, la mutacion que vuelve el canvas a UNA columna sobrevivia en verde: los
+         VALORES de una columna unica se alinean a la derecha y caen ahi igual. La franja
+         x = centro+6 … centro+70 es donde arranca el ROTULO de la columna derecha, y con una sola
+         columna queda en blanco — ese es el unico pixel que distingue los dos layouts. */
+      const mitad = Math.floor(cv.width / 2);
+      let tintaDer = 0, ultima = 0;
+      for (let y = 0; y < cv.height; y++) for (let x = mitad; x < cv.width; x++) {
+        const i = (y * cv.width + x) * 4;
+        if (px[i] < 200 && px[i+1] < 200 && px[i+2] < 200) { if (y > ultima) ultima = y; }
+      }
+      for (let y = 0; y < cv.height; y++) for (let x = mitad + 6; x < mitad + 70; x++) {
+        const i = (y * cv.width + x) * 4;
+        if (px[i] < 200 && px[i+1] < 200 && px[i+2] < 200) tintaDer++;
+      }
+      /* El alto sale de la columna MAS LARGA: sumando las dos, la imagen salia con media hoja en
+         blanco; contando solo la izquierda, la derecha se recortaba EN SILENCIO. */
+      const blancoAlPie = cv.height - ultima;
+      const S = _dopSeccionesGuardado();
+      const filasEsperadas = S.reduce((acc, s) => {
+        const iz = s.filas.filter(f => f[6] !== 1).length, de = s.filas.filter(f => f[6] === 1).length;
+        return acc + (de ? Math.max(iz, de) : iz); }, 0);
+      /* El alto de ANTES habria sido la SUMA de las dos columnas. Se compara contra eso en vez de
+         replicar la formula entera —que ademas lleva las lineas del descargo, envueltas a mano—:
+         el invariante que importa es que compacto y que no quedo media hoja en blanco. */
+      const filasSumadas = S.reduce((acc, s) => acc + s.filas.length, 0);
+      const compacto = filasEsperadas < filasSumadas &&
+                       cv.height < 46 + S.length * 34 + filasSumadas * 30;
+
+      /* ── EL DATO ADJUNTO SIGUE SALIENDO ── 'f[6]' es un elemento mas del array plano, asi que
+         los consumidores que lo leen por indice no se enteran. */
+      const meta = _dopMetaGuardado();
+      const metaOk = !!meta && Array.isArray(meta.secciones) && meta.secciones.length === 4 &&
+        Object.keys(meta.secciones[0].valores).length > 0;
+      const metaSinColumna = Object.keys(meta.secciones[0].valores).every(k => k.indexOf('undefined') < 0);
+
+      /* ⚠️ EL DESCARGO DEL VOLUMEN VIAJA CON LA FILA, y sólo con ella. Es la mitad «de menos» del
+         invariante del modulo: el PNG que va a la biblioteca —y de ahi al PDF— no puede publicar
+         un volumen del VD sin decir que asume un TSVD circular. */
+      const discCon = _dopDiscDe(_dopSeccionesGuardado()).join(' || ');
+      const volTieneDisc = discCon.indexOf('TSVD circular') >= 0;
+      E.pul.vtiPul = null;
+      E.modo = 'pul';     // el render dibuja la valvula ABIERTA, y el caso nunca abrio ninguna
+      const discSin = _dopDiscDe(_dopSeccionesGuardado()).join(' || ');
+      const discNoSobra = discSin.indexOf('TSVD circular') < 0;
+      /* ── Y CON UN SOLO INSUMO, LA PANTALLA DICE CUAL FALTA ── el caso NORMAL, no el raro: el
+         Diam TSVD se mide en el cajon 2D, que es OTRO campo con el mismo rotulo. */
+      _dopRender();
+      const panel = document.getElementById('dop-cajon');
+      const avisaFaltaVti = !!panel && panel.textContent.indexOf('falta el VTI Pulmonar') >= 0;
+      E.pul.diamTsvd = null; E.pul.vtiPul = 18;
+      _dopRender();
+      const avisaFaltaDiam = !!panel && panel.textContent.indexOf('falta el Diam TSVD') >= 0 &&
+        panel.textContent.indexOf('Distancia 2D') >= 0;
+      E.pul.diamTsvd = 25;
+      _dopRender();
+      const sinAvisoConLosDos = !!panel && panel.textContent.indexOf('Para el Vol Eyectivo VD falta') < 0;
+
+      /* ══ SEGUNDA PASADA — LA COLUMNA IZQUIERDA VACIA ══
+         El flujo de la ecuacion de continuidad: medir SOLO el diametro y los dos VTI, sin ninguna
+         velocidad. Deja la seccion aortica con izq=0 y der=4, que es el unico estado donde se
+         distinguen «el alto sale de la mas larga» y «el alto sale de la izquierda» — con las
+         cuatro valvulas llenas izq>der en TODAS, asi que el canvas sale byte por byte identico y
+         la condicion de arriba pasa en verde sobre un recorte que SI puede ocurrir. */
+      _dopLimpiar();
+      const E2 = _dopEstado();
+      Object.assign(E2.ao, { diam:20, vtiTsvi:20, vtiAo:100 });
+      /* Y la pulmonar con UNA sola velocidad mas los dos insumos nuevos: izq=2 (Vmax IP, Grad Max
+         IP) contra der=3 (Diam TSVD, VTI, Vol Eyectivo). Hace falta ADEMAS de la aortica, y por un
+         motivo que costo encontrar: con la izquierda VACIA la guarda simetrica de '_cols' pasa las
+         filas de la derecha AL campo 'izq', asi que contar solo 'izq' vuelve a dar el numero
+         correcto y la mutacion sobrevive. El unico estado que separa 'max(izq,der)' de 'izq' es
+         der > izq > 0. */
+      Object.assign(E2.pul, { vmaxIp:2, diamTsvd:25, vtiPul:18 });
+      const S2 = _dopSeccionesGuardado();
+      const sec2 = S2[0] || { filas: [] };
+      const izq2 = sec2.filas.filter(f => f[6] !== 1).length, der2 = sec2.filas.filter(f => f[6] === 1).length;
+      const secP = S2.filter(x => x.rot && x.rot.indexOf('Pulmonar') >= 0)[0] || { filas: [] };
+      const izqP = secP.filas.filter(f => f[6] !== 1).length, derP = secP.filas.filter(f => f[6] === 1).length;
+      const trazos2 = [];
+      CanvasRenderingContext2D.prototype.fillText = function (t, x, y) {
+        trazos2.push({ t: String(t), x: x, y: y });
+        return _ft.apply(this, arguments);
+      };
+      let cv2;
+      try { cv2 = _dopCanvas(); } finally { CanvasRenderingContext2D.prototype.fillText = _ft; }
+      /* NINGUN trazo puede caer por debajo del borde: 'fillText' no avisa, dibuja en el vacio. */
+      const fuera = trazos2.filter(z => z.y > cv2.height);
+      /* Y con la izquierda vacia, las cuatro filas se dibujan A ANCHO COMPLETO desde el margen,
+         no empujadas a la mitad derecha con media hoja en blanco al lado. */
+      const xDiamTsvi = (trazos2.filter(z => z.t.indexOf('Diam TSVI') === 0)[0] || {}).x;
+      /* ⚠️ EL MARGEN AL PIE NO PUEDE DEPENDER DEL REPARTO DE COLUMNAS. Es la unica forma honesta
+         que encontre de fijar «el alto sale de la columna MAS LARGA»: recalcular la formula en el
+         caso seria un espejo —si las dos copias se equivocan igual, el caso no prueba nada— y
+         «ningun trazo cae fuera» NO alcanza, porque el margen inferior de 42 px absorbe las 30 px
+         que se pierden al contar una fila de menos y la mutacion sobrevive en verde.
+         Se compara el margen de la pasada 1 (izq >= der en las cuatro secciones, o sea inmune)
+         contra el de la 2 (la pulmonar tiene der > izq): contar solo la izquierda encoge SOLO el
+         segundo, y la igualdad se rompe. */
+      const _margen = (cvx, tz) => cvx.height - Math.max.apply(null, tz.map(z => z.y));
+      const margen1 = _margen(cv, trazos), margen2 = _margen(cv2, trazos2);
+      /* ⚠️ EN PANTALLA ESTE ESTADO NO EXISTE, Y ESO SE MIDE — no se supone. '_dopFilas' emite las
+         filas SIN valor con un guion; el filtro 'f[1] != null' vive solo en
+         '_dopSeccionesGuardado'. O sea que la mitad vacia es alcanzable UNICAMENTE en el canvas, y
+         la guarda simetrica de 'tablaCols' es defensa en profundidad, no un camino en uso. Se
+         verifica la afirmacion: con el mismo estado, ninguna valvula deja una columna vacia. */
+      E2.modo = 'ao'; _dopRender();
+      const enFlex = panel ? panel.querySelectorAll('div[style*="display:flex"] table').length : -1;
+      const pantallaNuncaVacia = ['ao','mit','tri','pul'].every(v => {
+        const Fv = _dopFilas(v);
+        return Fv.filter(f => f[6] !== 1).length > 0 && Fv.filter(f => f[6] === 1).length > 0;
+      });
+
+      return { extra: [
+        ['ninguna fila esta DUPLICADA', sinDuplicados,
+          ['ao','mit','tri','pul'].map(v => v + ':' + porValv[v].dup.join('/')).join(' ')],
+        ['no FALTA ninguna fila del inventario anterior', faltan.length === 0, faltan.join(', ')],
+        ['ni aparecio ninguna de mas', sobran.length === 0, sobran.join(', ')],
+        ['ninguna fila esta en las DOS columnas', sinCruce, ''],
+        ['AORTICA: el reparto del pedido', aoOk, 'izq=' + porValv.ao.izq.join('|') + ' der=' + porValv.ao.der.join('|')],
+        ['PULMONAR: el reparto del pedido', pulOk, 'izq=' + porValv.pul.izq.join('|') + ' der=' + porValv.pul.der.join('|')],
+        ['MITRAL: la izquierda lleva los medidos', mitIzqOk, porValv.mit.izq.join('|')],
+        ['  y la derecha los cocientes y la IM', mitDerOk, porValv.mit.der.join('|')],
+        ['TRICUSPIDE: se reparte en dos', porValv.tri.izq.length > 0 && porValv.tri.der.length > 0,
+          'izq=' + porValv.tri.izq.join('|') + ' der=' + porValv.tri.der.join('|')],
+        ['VOL EYECTIVO VD sale de sus dos insumos', volOk,
+          'vol=' + (D.volVd == null ? 'null' : D.volVd.toFixed(3)) + ' esperado=' + esperado.toFixed(3)],
+        ['  y se actualiza EN VIVO al cambiar el diametro', enVivo,
+          'tras 25→30: ' + (volTrasCambiar == null ? 'null' : volTrasCambiar.toFixed(2))],
+        ['  sin uno de los dos insumos NO publica fila', sinInsumo, ''],
+        ['  y un cero tampoco', conCero, ''],
+        ['DENOMINADOR: la captura de biblioteca se genero', cv.width === 640 && cv.height > 200,
+          cv.width + 'x' + cv.height],
+        ['la TABLA GUARDADA tambien es de dos columnas', xDiamTsvd > cv.width / 2 && xVtiVao > cv.width / 2,
+          'Diam TSVD@x=' + xDiamTsvd + ' · VTI VAo@x=' + xVtiVao + ' · ancho=' + cv.width],
+        ['  y la izquierda sigue pegada al margen', xVmaxIp > 0 && xVmaxIp < 60, 'Vmax IP@x=' + xVmaxIp],
+        ['  con un FILETE que separa las dos mitades', filete > 30,
+          'pixelesDeFilete@x=' + xFilete + ': ' + filete],
+        ['  y su alto sale de la columna mas larga, no de la suma', compacto && blancoAlPie < 120,
+          'alto=' + cv.height + ' filas=' + filasEsperadas + '/' + filasSumadas +
+          ' blancoAlPie=' + blancoAlPie],
+        ['el dato adjunto sigue saliendo entero', metaOk && metaSinColumna,
+          'secciones=' + (meta.secciones || []).map(x => x.valvula).join(',')],
+        ['EL VOL EYECTIVO VD LLEVA SU DESCARGO', volTieneDisc, discCon.slice(0, 120)],
+        ['  y no sobra cuando la fila no esta', discNoSobra, discSin.slice(0, 90)],
+        ['con un solo insumo, la pantalla dice cual falta (VTI)', avisaFaltaVti, ''],
+        ['  y cuando falta el diametro, nombra el cajon 2D', avisaFaltaDiam, ''],
+        ['  y con los dos cargados no avisa nada', sinAvisoConLosDos, ''],
+        ['DENOMINADOR: el flujo de la AVA deja la IZQUIERDA vacia', izq2 === 0 && der2 > 0,
+          'ao izq=' + izq2 + ' der=' + der2],
+        ['DENOMINADOR: y la pulmonar queda con der > izq > 0', derP > izqP && izqP > 0,
+          'pul izq=' + izqP + ' der=' + derP],
+        ['EL MARGEN AL PIE NO DEPENDE DEL REPARTO DE COLUMNAS', margen1 === margen2,
+          'conIzqMayor=' + margen1 + 'px · conDerMayor=' + margen2 + 'px'],
+        ['NINGUN TRAZO CAE FUERA DEL CANVAS', fuera.length === 0,
+          'alto=' + cv2.height + ' fuera=' + fuera.map(z => z.t + '@y' + z.y).join(', ').slice(0, 90)],
+        ['  y esas filas se dibujan a ANCHO COMPLETO desde el margen', xDiamTsvi === 22,
+          'Diam TSVI@x=' + xDiamTsvi],
+        ['  en pantalla ese estado NO es alcanzable: las filas vacias salen con guion',
+          pantallaNuncaVacia && enFlex === 2, 'tablasDentroDelFlex=' + enFlex]
+      ] };
+    } finally {
+      try { _dopLimpiar(); } catch (e) {}
+      try { cineCerrar(); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+  })();
+`);
+
 caso('TC-261', 'Severidad valvular: la AVA de 1,00 es SEVERA, y un AVm sano deja de ser «estenosis leve»', `
   return (async () => {
     if (typeof avaEsSevera !== 'function' || typeof sugerirSeveridadEM !== 'function')
@@ -25318,7 +25606,13 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       R.clicModo = clkDop('[data-dop-modo="ao"]');
       await esperar(140);
       R.clicCambioModo = _dop.modo === 'ao';
-      R.valvulaTraeTabla = cajon.querySelectorAll('table').length === 1 &&
+      /* ⚠️ DOS <table>, NO UNA (2026-09-25): desde el reparto en dos columnas cada valvula se
+         dibuja como dos tablas lado a lado dentro de un envoltorio flex. Contar tablas crudas
+         quedo acoplado al layout, asi que se mide lo que la condicion QUIERE decir: que la
+         aortica trae su tabla, y que son las DOS mitades del mismo envoltorio y no dos bloques
+         sueltos. */
+      R.valvulaTraeTabla = cajon.querySelectorAll('div[style*="display:flex"] > div > table').length === 2 &&
+                           cajon.querySelectorAll('table').length === 2 &&
                            cajon.textContent.indexOf('Vmax VAo') > -1;
       /* Y SOLO la suya: los campos de las otras tres valvulas no aparecen. */
       R.soloEsaValvula = cajon.textContent.indexOf('Onda E') < 0 &&
@@ -25487,8 +25781,12 @@ caso('TC-249', 'Cajon Doppler: acumula entre imagenes, y no reimplementa la AVA 
       R.genVel = _dop.gen.vel != null;
       R.genGrad = _dop.gen.grad != null;
       R.aorticaIntacta = JSON.stringify(_dop.ao) === antes;
+      /* Las sueltas NO tienen columnas —f[6] indefinido— asi que agregan UNA sola tabla a las
+         dos de la valvula: 3 en total. El numero subio con el reparto en columnas; lo que no
+         cambio es que el bloque «sin asignar» sea su propia tabla y no se mezcle con la aortica. */
       R.sueltasSeVen = cajon.textContent.indexOf('sin asignar') > -1 &&
-                       cajon.querySelectorAll('table').length === 2;
+                       cajon.querySelectorAll('table').length === 3 &&
+                       cajon.querySelectorAll('div[style*="display:flex"] > div > table').length === 2;
 
       /* ── 11 · LA IMAGEN LLEVA LOS DESCARGOS QUEMADOS ──
          Una tabla de gradientes y AVA que circula sola —va a la biblioteca y desde ahi puede
