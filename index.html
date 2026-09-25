@@ -49324,10 +49324,23 @@ function _vPanelHTML(p, esB) {
       '<div class="cine-fila" style="display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;">' +
         '<div id="' + p + 'cine-side" style="flex:0 0 118px;min-width:0;display:flex;flex-direction:column;gap:3px;"></div>' +
         '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;">' +
+          /* ⚠️ LOS DOS CANVAS VIVEN DENTRO DE `cine-recorte`, Y AHÍ ESTÁ TODO EL RECORTE.
+             El envoltorio lleva `overflow:hidden` y el canvas se escala y se corre con
+             PORCENTAJES (ver `_cineRecorteAplicar`): el margen negro queda fuera de la caja y no
+             se dibuja. El canvas NO cambia de tamaño en píxeles —sigue siendo `cols × filas`, el
+             espacio de la imagen original— así que `_medPunto`, que divide por `cv.width/r.width`,
+             devuelve las MISMAS coordenadas de imagen que antes y la calibración ni se entera.
+             El overlay tiene que ser HERMANO del canvas acá adentro: `_medPintar` lo posiciona
+             contra `base.parentElement`, así que compartiendo envoltorio se recorta igual y las
+             reglas siguen calzando sobre la imagen.
+             Sin recorte el envoltorio no lleva estilos propios y el canvas conserva su
+             `max-width:100%;max-height:56vh`, o sea exactamente el layout de antes. */
           '<div id="' + p + 'cine-lienzo" style="position:relative;background:#000;border-radius:8px;' +
             'display:flex;align-items:center;justify-content:center;min-height:200px;">' +
-            '<canvas id="' + p + 'cine-cv" style="max-width:100%;max-height:56vh;display:block;"></canvas>' +
-            '<canvas id="' + p + 'cine-med" style="position:absolute;display:none;cursor:crosshair;"></canvas>' +
+            '<div id="' + p + 'cine-recorte" style="position:relative;overflow:hidden;line-height:0;">' +
+              '<canvas id="' + p + 'cine-cv" style="max-width:100%;max-height:56vh;display:block;"></canvas>' +
+              '<canvas id="' + p + 'cine-med" style="position:absolute;display:none;cursor:crosshair;"></canvas>' +
+            '</div>' +
           '</div>' +
           '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
             btn('cine-play', 'btn-ghost', '▶ Reproducir', 'min-width:88px;', 'Reproduce el cineloop a la velocidad que declara el archivo.') +
@@ -49742,6 +49755,299 @@ function _vActivarMedicion(V) {
 }
 window._vActivarMedicion = _vActivarMedicion;
 
+/* ══ RECORTE DEL MARGEN NEGRO DEL CINELOOP ════════════════════════════════════════════════
+   El cuadro que exporta el ecógrafo es un lienzo más grande que la imagen: alrededor sobra
+   negro que no lleva nada y que en el layout de dos columnas se come ancho útil. Se recorta.
+
+   ⚠️ NO SE ESTIRA NADA, Y ESA ES LA REGLA QUE GOBIERNA EL DISEÑO ENTERO. Recortar y reescalar
+   para «rellenar» invalidaría la calibración: las mediciones salen de `PhysicalDeltaX/Y` del
+   archivo, que son mm POR PÍXEL DE LA IMAGEN ORIGINAL. Por eso el recorte NO toca los píxeles:
+   el canvas conserva su tamaño (`cols × filas`) y el recorte se hace clipeando con CSS, con un
+   ÚNICO factor de escala para los dos ejes. `_medPunto` ya divide por `cv.width / r.width`, así
+   que es inmune a cualquier escala uniforme — la coordenada de imagen que devuelve es la misma
+   con recorte y sin él, y `_dcmImgRegionEn` sigue encontrando la región correcta.
+   El corolario práctico: NADA de la cadena de medición, captura, PDF o biblioteca se modificó.
+   La captura sigue saliendo del JPEG original a resolución plena, con el lienzo entero.
+
+   ⚠️ SE RECORTA HASTA EL BORDE DEL CONTENIDO, NO HASTA LA REGIÓN QUE DECLARA EL DICOM.
+   La región de ultrasonido (0018,6018-601E) es mucho más chica y recortar ahí gana bastante
+   más —medido en el pendrive: ×1,71 en GE y ×1,44 en Sonoscape—, pero TIRA contenido real:
+   en el GE Vivid iq la barra de ECG del pie (y 658..707), la barra de color (x 865..994) y
+   parte de la escala de profundidad, que queda cortada por la mitad porque los números 5/10/15
+   caen a caballo del borde x0=151; en el Sonoscape, el panel de parámetros de adquisición y la
+   franja superior. Decisión de Maicol (2026-09-25): no se recorta a la región en ningún caso.
+   Lo que se gana con el criterio elegido, medido sobre cineloops reales de los dos equipos:
+     · GE Vivid iq  1016×708, 161 cuadros → contenido en x 46..994, y 42..707 → ×1,14
+     · Sonoscape PAD 1392×944, 463 cuadros → contenido en x 0..1391, y 0..935 → ×1,01
+   O sea que en Sonoscape casi no hay nada que recortar: su lienzo ya está lleno de borde a
+   borde. Es el resultado correcto, no un fallo de la medición, y NO hace falta lógica distinta
+   por fabricante — el mismo criterio contesta bien en los dos.
+
+   ⚠️ UN SOLO RECORTE PARA TODO EL CINELOOP, Y MEDIDO SOBRE VARIOS CUADROS. Lo primero es del
+   pedido: un recorte por cuadro haría «saltar» la imagen durante la reproducción. Lo segundo
+   es lo que obliga el dato: en el Sonoscape medido, el cuadro 1 da `y1 = 917` y los otros 462
+   dan 935, así que calcularlo con el primer cuadro —como decía el pedido— se comía 18 px de
+   imagen real durante el resto del loop, sin ningún aviso. Se muestrean nueve cuadros
+   repartidos por todo el loop y se toma la UNIÓN, que sigue siendo un recorte fijo. */
+const CINE_REC_MUESTRAS = 9;
+const CINE_REC_UMBRAL   = 24;   // por encima de esto un píxel deja de ser «negro de lienzo»
+const CINE_REC_MARGEN   = 2;    // px de holgura: ante la duda se recorta de menos
+
+/* Recuadro del contenido no negro de un cuadro ya decodificado. Se mira el canal MÁS ALTO y no
+   la luminancia: la barra de ECG del GE es un verde azulado y el marcador es rojo; con luma
+   pesada por coeficientes, un rojo saturado queda por debajo del umbral y el recorte se lo
+   come. Ante la duda, recortar de menos.
+
+   ⚠️ CUATRO BARRIDOS DIRECCIONALES CON SALIDA TEMPRANA, NO UNO COMPLETO. La versión anterior
+   recorría los 1,31 M de píxeles de cada cuadro del Sonoscape —11,8 M de iteraciones por
+   medición— compitiendo con el `setInterval` de reproducción, que en el loop más rápido del
+   pendrive corre a 17,9 ms. Acá sólo se recorre el MARGEN: se busca el primer renglón con algo
+   desde arriba y desde abajo, y después la primera columna desde cada lado, cortando en cuanto
+   aparece un píxel. En el GE son ~90 k lecturas en vez de 719 k; en el Sonoscape, que no tiene
+   margen, cuatro barridos que cortan en el primer píxel.
+   ⚠️ NO se submuestrea la grilla, que sería lo obvio para acelerar: saltear de a 4 puede
+   perderse una línea de 1 px —la barra de ECG lo es— y ESE error recorta contenido, que es la
+   dirección equivocada. Esto es exacto, no aproximado. */
+function _cineBBoxCuadro(px, w, h, acc) {
+  const claro = i => px[i] > CINE_REC_UMBRAL || px[i + 1] > CINE_REC_UMBRAL || px[i + 2] > CINE_REC_UMBRAL;
+  let y0 = 0, y1 = h - 1, x0 = 0, x1 = w - 1, hay = false;
+  for (; y0 < h && !hay; y0++) {
+    const f = y0 * w * 4;
+    for (let x = 0; x < w; x++) if (claro(f + x * 4)) { hay = true; break; }
+  }
+  if (!hay) return;                       // cuadro entero por debajo del umbral: no aporta nada
+  y0--;
+  for (; y1 > y0; y1--) {
+    const f = y1 * w * 4; let v = false;
+    for (let x = 0; x < w; x++) if (claro(f + x * 4)) { v = true; break; }
+    if (v) break;
+  }
+  for (; x0 < w; x0++) {
+    let v = false;
+    for (let y = y0; y <= y1; y++) if (claro((y * w + x0) * 4)) { v = true; break; }
+    if (v) break;
+  }
+  for (; x1 > x0; x1--) {
+    let v = false;
+    for (let y = y0; y <= y1; y++) if (claro((y * w + x1) * 4)) { v = true; break; }
+    if (v) break;
+  }
+  if (x0 < acc.x0) acc.x0 = x0;
+  if (x1 > acc.x1) acc.x1 = x1;
+  if (y0 < acc.y0) acc.y0 = y0;
+  if (y1 > acc.y1) acc.y1 = y1;
+}
+
+/* Calcula el recorte del loop y lo deja cacheado en `L.recorte`. Devuelve el recorte o null.
+   `null` significa EXPLÍCITAMENTE «sin recorte» y es el valor a prueba de fallos: cualquier
+   decodificado que falle, cualquier recuadro degenerado y cualquier caso donde no haya margen
+   que sacar terminan acá, y la imagen se ve como siempre. Un recorte mal calculado sería peor
+   que no recortar, así que todas las salidas de error caen del mismo lado. */
+/* ⚠️ SE CACHEA LA PROMESA, NO SÓLO EL RESULTADO, y el motivo es que `null` quiere decir DOS
+   cosas distintas. Antes, la primera línea marcaba `L.recorte = null` como «estoy midiendo», y
+   un segundo llamador que entrara durante la medición recibía ese `null` y lo trataba como
+   resultado final: ir y volver rápido entre dos cineloops dejaba al primero SIN recorte hasta
+   recargarlo. Peor: un fallo transitorio —`getImageData` con el navegador ajustado de memoria—
+   quedaba cacheado como «este loop no tiene margen» para siempre, sin ninguna vía de reintento.
+   Con la promesa en vuelo hay tres estados de verdad: midiendo, medido, y sin medir. Lo cazó
+   `/sharp-edges`.
+   Y hace falta ADEMÁS para lo que viene: hoy las vistas A y B obtienen objetos `L` distintos
+   —`_vElegirLoop` relee del disco— así que no se desincronizan; el día que se comparta el
+   objeto para no leer dos veces, esto es lo que impide que una vista salga recortada y la otra
+   no sobre el mismo cineloop. */
+let _cineRecGen = 0;   // se incrementa al cerrar el visor y al cambiar de loop: corta lo en vuelo
+
+function _cineRecorteDe(L) {
+  if (L._recProm) return L._recProm;
+  if (L.recorte !== undefined) return Promise.resolve(L.recorte);
+  L._recProm = _cineRecorteCalc(L).then(
+    r => { L._recProm = null; return r; },
+    e => { L._recProm = null; L.recorte = undefined; console.error('recorte', e); return null; });
+  return L._recProm;
+}
+
+async function _cineRecorteCalc(L) {
+  const gen = _cineRecGen;
+  /* ⚠️ SE ABORTA SI EL LOOP DEJA DE ESTAR A LA VISTA, y la pregunta es ESA y no un contador
+     global. Primera versión: `_cineCargarLoop` incrementaba `_cineRecGen` para cortar lo del
+     loop anterior — y de paso abortaba la medición del loop que estaba cargando, porque
+     recargar el MISMO cineloop vuelve a pasar por ahí y `_cineRecorteDe` devuelve la promesa
+     en vuelo, que ya venía condenada. El recorte no aparecía nunca.
+     `atado` distingue además el caso de los tests y de cualquier llamador que mida un loop que
+     no está montado en ninguna vista: si nunca estuvo a la vista, no hay nada que abortar. */
+  const vigente = () => _vTodas().some(V => V.datos && V.datos.loops[V.datos.i] === L);
+  const atado = vigente();
+  const abortar = () => gen !== _cineRecGen || (atado && !vigente());
+  const n = (L.d.frags || []).length;
+  const w = L.d.cols || 0, h = L.d.filas || 0;
+  if (!n || !w || !h) return (L.recorte = null);
+  /* ⚠️ LA MUESTRA ESTÁ ACOTADA DE VERDAD. Con `paso = floor(n/9)`, un loop de 9 a 17 cuadros
+     daba `paso = 1` y se decodificaban TODOS — la constante prometía nueve y podían ser
+     diecisiete. Se arma la lista de índices, que nunca pasa de `CINE_REC_MUESTRAS` e incluye
+     siempre el primero y el último. */
+  const idx = [];
+  const m = Math.min(CINE_REC_MUESTRAS, n);
+  for (let j = 0; j < m; j++) {
+    const k = m === 1 ? 0 : Math.round(j * (n - 1) / (m - 1));
+    if (idx[idx.length - 1] !== k) idx.push(k);
+  }
+  const acc = { x0: w, y0: h, x1: -1, y1: -1 };
+  const off = document.createElement('canvas');
+  off.width = w; off.height = h;
+  const g = off.getContext('2d', { willReadFrequently: true });
+  if (!g) return (L.recorte = null);
+  let leidos = 0;
+  for (const k of idx) {
+    /* Se cede el hilo entre cuadros: esto compite con el `setInterval` de reproducción, que en
+       el loop más rápido del pendrive corre a 17,9 ms. Y se corta si el visor se cerró o cambió
+       de cineloop — sin esto la medición retiene el `L` y con él los 17 MB del archivo, que es
+       justamente la invariante de memoria que `cineCerrar` declara. */
+    await new Promise(r => setTimeout(r, 0));
+    if (abortar()) { L.recorte = undefined; return null; }
+    let bmp;
+    try { bmp = await createImageBitmap(new Blob([L.d.frags[k]], { type: 'image/jpeg' })); }
+    catch (e) { continue; }
+    try {
+      g.clearRect(0, 0, w, h);
+      g.drawImage(bmp, 0, 0);
+      _cineBBoxCuadro(g.getImageData(0, 0, w, h).data, w, h, acc);
+      leidos++;
+    } catch (e) { /* canvas manchado o memoria: se sigue con los que se puedan */ }
+    bmp.close();
+    /* Si el recuadro ya cubre el cuadro entero no hay nada que recortar y los que faltan no
+       pueden cambiarlo: es el caso del Sonoscape, y se sale al primer cuadro. */
+    if (acc.x0 === 0 && acc.y0 === 0 && acc.x1 === w - 1 && acc.y1 === h - 1) break;
+  }
+  /* DENOMINADOR: sin al menos un cuadro leído, el recuadro «vacío» daría un recorte de todo. */
+  if (!leidos || acc.x1 < acc.x0 || acc.y1 < acc.y0) return (L.recorte = null);
+  const x0 = Math.max(0, acc.x0 - CINE_REC_MARGEN), y0 = Math.max(0, acc.y0 - CINE_REC_MARGEN);
+  const x1 = Math.min(w - 1, acc.x1 + CINE_REC_MARGEN), y1 = Math.min(h - 1, acc.y1 + CINE_REC_MARGEN);
+  if (x0 === 0 && y0 === 0 && x1 === w - 1 && y1 === h - 1) return (L.recorte = null);  // no sobra nada
+  return (L.recorte = { x0: x0, y0: y0, cw: x1 - x0 + 1, ch: y1 - y0 + 1, w: w, h: h, cuadros: leidos });
+}
+
+/* Aplica —o saca— el recorte de la vista. Todo en PORCENTAJES para que sobreviva a cualquier
+   cambio de tamaño de la ventana sin recalcular nada.
+   La cuenta: el envoltorio toma la proporción del recorte, y el canvas se dibuja `w/cw` veces
+   más ancho y corrido `-x0/cw`. Como el alto va en `auto`, la escala vertical la deriva el
+   navegador de la proporción intrínseca del canvas — o sea que es LA MISMA que la horizontal:
+   no hay forma de que esto estire la imagen, ni siquiera por error de redondeo.
+   El `max-width` con `calc()` es lo que impide que `max-height:56vh` rompa la proporción: sin
+   él, el envoltorio con `width:100%` se aplasta contra el tope de alto y la imagen SÍ saldría
+   deformada. Es la única parte de esto que puede distorsionar, y por eso está declarada.
+
+   ⚠️ ESTA FUNCIÓN MUEVE EL LAYOUT, ASÍ QUE RECALZA LAS MEDICIONES ELLA MISMA. La regla ya está
+   escrita en `_vAccionesSync`: «si el layout se movió, hay que recalzar las mediciones», y
+   nombra a las tres funciones que lo hacen. Ésta es la cuarta. Antes funcionaba por accidente:
+   la llamada de `_cineRecorteMedir` repintaba a mano, y la de `_cineCargarLoop` quedaba cubierta
+   porque cuatro líneas más abajo se escribe `cual.textContent` y eso dispara el `MutationObserver`
+   que llama a `medCambioDeImagen`. O sea que los calipers quedaban calzados gracias a un
+   observador ajeno. Un solo dueño del invariante: acá. Lo cazó `/sharp-edges`. */
+function _cineRecorteAplicar(V) {
+  const env = document.getElementById(V.pfx + 'cine-recorte');
+  const cv  = document.getElementById(V.pfx + 'cine-cv');
+  if (!env || !cv) return;
+  const recalzar = () => { try { _vCon(V, () => { if (_medOn) _medPintar(); }); } catch (e) { console.error('recorte/recalzar', e); } };
+  const D = V.datos, L = D && D.loops[D.i];
+  const R = L && L.recorte;
+  if (!R || cv.width !== R.w || cv.height !== R.h) {
+    /* Sin recorte —o con un canvas que todavía no es el del loop medido— se vuelve al layout
+       de siempre: el envoltorio se desarma y el canvas manda de nuevo. */
+    env.style.aspectRatio = ''; env.style.width = '';
+    env.style.maxWidth = ''; env.style.maxHeight = ''; env.style.minHeight = '';
+    cv.style.position = ''; cv.style.left = ''; cv.style.top = '';
+    cv.style.width = ''; cv.style.height = '';
+    cv.style.maxWidth = '100%'; cv.style.maxHeight = '56vh';
+    recalzar();
+    return;
+  }
+  env.style.aspectRatio = R.cw + ' / ' + R.ch;
+  env.style.width = '100%';
+  env.style.maxWidth = 'calc(56vh * ' + (R.cw / R.ch).toFixed(6) + ')';
+  env.style.maxHeight = '56vh';
+  /* ⚠️ DECLARADO: LA ALTURA DEL ENVOLTORIO DEPENDE POR COMPLETO DE `aspect-ratio`. Con el
+     recorte puesto el canvas es `position:absolute`, así que el envoltorio se queda sin hijos en
+     flujo. Si `aspect-ratio` no aplicara, la altura sería 0 y la imagen desaparecería ENTERA —
+     caja en blanco, no degradación: es el único camino de error del módulo que no cae del lado
+     seguro. Se deja declarado y NO se pone una red: el piso de la app es Safari 15.4 y
+     `aspect-ratio` entró en Safari 15, y un `min-height` en porcentaje resolvería contra un
+     padre de altura indefinida —o sea, a cero— y sería una red que no sostiene nada. Si alguna
+     vez baja el piso de navegador, la red va con `@supports` en la hoja de estilos, no acá. */
+  cv.style.position = 'absolute';
+  cv.style.maxWidth = 'none'; cv.style.maxHeight = 'none';
+  cv.style.width  = (R.w / R.cw * 100) + '%';
+  cv.style.height = 'auto';
+  cv.style.left = (-R.x0 / R.cw * 100) + '%';
+  cv.style.top  = (-R.y0 / R.ch * 100) + '%';
+  recalzar();
+}
+
+/* Mide el loop en segundo plano y aplica cuando termina. La IDENTIDAD DEL LOOP se revalida
+   después del await por el motivo de siempre: con dos vistas, y con el médico pasando de
+   cineloop, la medición de uno puede volver cuando ya se está mirando otro.
+   ⚠️ NO se usa `V.gen` como guarda, aunque sea el patrón de al lado: `cineIr` lo incrementa en
+   CADA cuadro, así que con el cineloop reproduciéndose —o con el slider movido una vez— la
+   comparación no coincidiría nunca y el recorte no se aplicaría jamás. Acá la pregunta es
+   «¿sigue siendo este loop?», no «¿sigue siendo este cuadro?». */
+/* ⚠️ EL PRIMER CUADRO ESPERA AL RECORTE, PERO CON PLAZO. Sin esto la imagen SALTA al abrir: el
+   primer cuadro se pinta tras UNA decodificación (~5 ms) y el recorte necesita las diez de la
+   muestra (~72 ms medidos sobre el formato más grande del pendrive, 1392×944), así que el
+   médico ve la imagen y 70 ms después la ve crecer un 6 %. Se retrasa el primer pintado hasta
+   que el recorte esté.
+   El PLAZO no es opcional: en una máquina lenta, o con un cineloop enorme, esperar sin tope
+   dejaría el visor en negro por tiempo indefinido. Pasado el plazo se pinta sin recorte y el
+   recorte entra cuando llegue —con el salto—, que es exactamente el comportamiento anterior.
+   Vale decir cuál es el caso peor: un salto tardío, nunca un visor que no pinta. */
+const CINE_REC_PLAZO_MS = 450;
+
+function _cineRecorteMedir(V) {
+  const D = V.datos; if (!D) return;
+  const L = D.loops[D.i]; if (!L) return;
+  /* Ya medido —se volvió a este loop— se aplica en el acto y no hay nada que esperar. */
+  if (L.recorte !== undefined) { _cineRecorteAplicar(V); cineIr(0); return; }
+  /* ⚠️ SI EL MÉDICO YA NAVEGÓ, EL PINTADO DIFERIDO NO LO TRAE DE VUELTA AL CUADRO 0.
+     Esto rompió TC-182 y no era un defecto del caso: mover el slider —o apretar ▶— dentro de los
+     450 ms de espera dejaba al médico mirando el cuadro que eligió y, cuando la medición
+     terminaba, `cineIr(0)` lo devolvía al principio. Con un cineloop de 41 cuadros y una espera
+     de medio segundo, es alcanzable con sólo ser rápido.
+     Acá `V.gen` SÍ es la guarda correcta —al revés que en el `.then()` de abajo—: `cineIr` lo
+     incrementa en cada cuadro, así que un `gen` distinto significa exactamente «ya se pidió
+     dibujar algo», que es la pregunta que hay que hacerse antes de forzar el cuadro 0. */
+  const gen0 = V.gen;
+  let pintado = false;
+  const pintar = () => {
+    if (pintado) return;
+    pintado = true;
+    if (V.gen !== gen0) return;          // ya hay un cuadro pedido: no se pisa
+    /* ⚠️ Y TAMPOCO SI YA NO ES ESTE CINELOOP. Con sólo el `gen` alcanzaba para el caso de TC-182
+       —el médico navega dentro de la espera— pero no para el de cambiar de cineloop: pasar al
+       siguiente dispara otro `_cineRecorteMedir` que difiere su propio pintado SIN tocar `V.gen`,
+       así que el closure del loop viejo se despertaba, veía el `gen` intacto y pintaba el cuadro 0
+       DEL LOOP NUEVO sin recorte — consumiendo el turno del pintado bueno y devolviendo el salto
+       que el plazo existe para evitar. La imagen era la correcta y la calibración no se tocaba:
+       degradación del propio arreglo. Lo cazó `/sharp-edges`. */
+    if (!V.datos || V.datos.loops[V.datos.i] !== L) return;
+    _vCon(V, () => cineIr(0));
+  };
+  const plazo = setTimeout(pintar, CINE_REC_PLAZO_MS);
+  _cineRecorteDe(L).then(() => {
+    clearTimeout(plazo);
+    /* La IDENTIDAD DEL LOOP se revalida después del await por el motivo de siempre: con dos
+       vistas, y con el médico pasando de cineloop, la medición de uno puede volver cuando ya se
+       está mirando otro.
+       ⚠️ NO se usa `V.gen` como guarda, aunque sea el patrón de al lado: `cineIr` lo incrementa
+       en CADA cuadro, así que con el cineloop reproduciéndose —o con el slider movido una vez—
+       la comparación no coincidiría nunca y el recorte no se aplicaría jamás. Acá la pregunta es
+       «¿sigue siendo este loop?», no «¿sigue siendo este cuadro?». */
+    if (!V.datos || V.datos.loops[V.datos.i] !== L) { pintar(); return; }
+    /* Sin `_medPintar()` acá: `_cineRecorteAplicar` recalza por su cuenta. Dos dueños del mismo
+       invariante es como se pierde: el día que alguien llame a `aplicar` desde otro lado, se
+       olvida de repintar y los calipers quedan corridos sobre la anatomía sin ningún error. */
+    _vCon(V, () => _cineRecorteAplicar(V));
+    pintar();
+  }).catch(e => { console.error('recorte', e); clearTimeout(plazo); pintar(); });
+}
+
 function _cineCargarLoop() {
   const V = _V, D = V.datos; if (!D) return;
   const L = D.loops[D.i];
@@ -49750,6 +50056,10 @@ function _cineCargarLoop() {
   const q = id => document.getElementById(V.pfx + id);
   const cv = q('cine-cv'); if (!cv) return;
   cv.width = L.d.cols || 640; cv.height = L.d.filas || 480;
+  /* El recorte del loop ANTERIOR se saca acá, antes de pintar nada: si el loop nuevo todavía
+     no está medido, el envoltorio tiene que estar desarmado o la imagen saldría corrida con el
+     recorte del otro. `_cineRecorteAplicar` ya cae del lado seguro si no hay recorte todavía. */
+  _cineRecorteAplicar(V);
   const sl = q('cine-slider');
   if (sl) { sl.max = String(L.cuadros - 1); sl.value = '0'; }
   const cual = q('cine-cual');
@@ -49763,7 +50073,10 @@ function _cineCargarLoop() {
   const pv = q('cine-prev'), nx = q('cine-next');
   if (pv) pv.style.display = D.loops.length > 1 ? '' : 'none';
   if (nx) nx.style.display = D.loops.length > 1 ? '' : 'none';
-  cineIr(0);
+  /* ⚠️ EL `cineIr(0)` VIVE ADENTRO DE `_cineRecorteMedir`, y no acá. Es quien decide CUÁNDO se
+     pinta el primer cuadro: en cuanto el recorte esté, o al vencer el plazo. Dejar además uno
+     acá pintaría dos veces —una sin recorte y otra con— que es justo el salto que esto evita. */
+  _cineRecorteMedir(V);
 }
 
 function cineLoop(paso) {
@@ -49799,7 +50112,16 @@ async function cineIr(n) {
   if (gen !== V.gen || !V.datos) { bmp.close(); return; }
   const cv = document.getElementById(V.pfx + 'cine-cv');
   if (!cv) { bmp.close(); return; }
-  if (cv.width !== bmp.width || cv.height !== bmp.height) { cv.width = bmp.width; cv.height = bmp.height; }
+  if (cv.width !== bmp.width || cv.height !== bmp.height) {
+    cv.width = bmp.width; cv.height = bmp.height;
+    /* ⚠️ EL CANVAS CAMBIÓ DE TAMAÑO, ASÍ QUE HAY QUE VOLVER A EJERCER LA GUARDA DEL RECORTE. Un
+       cuadro que decodifique a un tamaño distinto de `cols × filas` cambia la proporción
+       intrínseca: `height:auto` deriva otra altura y `top:-y0/ch%` deja de caer en la fila que
+       corresponde — la ventana muestra la parte equivocada del cuadro, EN SILENCIO.
+       `_cineRecorteAplicar` ya compara contra `R.w/R.h` y cae del lado seguro; sólo faltaba
+       llamarlo. Poco probable con DICOM consistente, mudo si pasa. */
+    _cineRecorteAplicar(V);
+  }
   cv.getContext('2d').drawImage(bmp, 0, 0);
   bmp.close();
 }
@@ -49871,6 +50193,10 @@ function cineCapturar() {
 function cineCerrar() {
   /* Las DOS vistas se detienen, cada una en su contexto. */
   _vTodas().forEach(V => _vCon(V, _cineDetener));
+  /* Y se corta cualquier medición de recorte en vuelo: retiene el `L` del loop —o sea los 17 MB
+     del archivo que esta función se ocupa de soltar cuatro líneas más abajo— y sigue
+     decodificando cuadros de un visor que ya no está a la vista. */
+  _cineRecGen++;
   /* ⚠️ LA VISTA B YA NO SE DESTRUYE AL CERRAR EL VISOR, y era la otra mitad de «lo medido se
      conserva»: `vistaBCerrar` llama a `medApagar`, así que cerrar todo se llevaba puesta la
      segunda apical —justo la que hace falta para que el bull's eye tenga las dos ventanas—.
@@ -56264,12 +56590,11 @@ function _dopNuevo() {
            vtiVm:null, vtiIm:null, gradMedioVm:null, pht:null },
     tri: { vmaxIt:null, vmaxEt:null, pvc:10 },
     /* `diamTsvd` y `vtiPul` (2026-09-25): los insumos del volumen eyectivo del VD.
-       ⚠️ DUPLICACIÓN DECLARADA: el cajón 2D ya tiene un «Diam TSVD» (`vd.tsvd`). Son la MISMA
-       medición en dos cajones, que es el patrón que este archivo persigue —y por el que el Diam
-       TSVI del cajón 2D es un ALIAS de `ao.diam` en vez de un campo propio—. Acá no se alió
-       porque el pedido dice explícitamente no tocar el cajón de Distancia 2D, y el alias hay que
-       cablearlo en los dos lados. Queda nombrado: si los dos se cargan con valores distintos, el
-       volumen eyectivo sale del de ESTE cajón. */
+       ⚠️ ES UN SOLO VALOR EN TODO EL VISOR (2026-09-25): el «Diam TSVD» del cajón 2D (`vd.tsvd`)
+       es un ALIAS de ESTE campo, igual que `vi.tsvi` lo es de `ao.diam` (ver `_D2_ALIAS`). Nació
+       duplicado —el pedido que lo creó prohibía tocar el cajón 2D— y el costo no era teórico: el
+       Diam TSVD es una distancia sobre 2D, así que el médico lo mide allá, que es el único de los
+       dos cajones que ofrece medirlo, y el volumen eyectivo no aparecía nunca. */
     pul: { vmaxIp:null, vmaxEp:null, tap:null, vp:null, diamTsvd:null, vtiPul:null },
     /* `null` = ninguna válvula elegida, que es el estado INICIAL y el que dibuja sólo el
        selector. Antes era `'gen'` y pintaba las cinco filas genéricas de entrada. */
@@ -56387,7 +56712,8 @@ function _dopLimpiar() {
   _dop = _dopNuevo();
   _dop.modo = md;   // limpiar borra los DATOS, no cierra la válvula que se estaba mirando
   _dopRender();
-  /* ⚠️ Y EL CAJÓN 2D, porque `ao.diam` es el Diam TSVI que ESE cajón muestra como propio (ver
+  /* ⚠️ Y EL CAJÓN 2D, porque `ao.diam` y `pul.diamTsvd` son el Diam TSVI y el Diam TSVD que ESE
+     cajón muestra como propios (ver
      `_D2_ALIAS`). `_d2Poner` ya repinta en la dirección contraria; sin esta línea la simetría
      faltaba y los dos cajones visibles a la vez —alcanzable: `medGrupoToggle` cambia el grupo sin
      tocar la herramienta— dejaban el 2D publicando «Diam TSVI 22.0 mm» sobre un valor que ya es
@@ -56408,12 +56734,24 @@ function _dopLimpiarConfirmar() {
   const con = _DOP_VALVULAS.filter(V => _dopValvConDatos(V.m)).map(V => _dopRotValv(V.m));
   if (_dopValvConDatos('gen')) con.push('mediciones sin asignar');
   if (!con.length) { _dopLimpiar(); return; }
-  /* ⚠️ NOMBRA EL DIAM TSVI APARTE cuando lo hay: ese valor se muestra también en el cajón 2D,
-     así que «Limpiar» acá se lo saca a la otra pantalla. Es la simétrica de la salvedad que
-     `_d2LimpiarConfirmar` ya declaraba en su dirección; sin ella, el borrado alcanzaba un cajón
-     que el diálogo no menciona. */
-  const extra = (_dopEstado().ao.diam != null)
-    ? '\n\nIncluye el Diam TSVI, que el cajón 2D muestra como propio.' : '';
+  /* ⚠️ NOMBRA APARTE LOS VALORES QUE EL CAJÓN 2D MUESTRA COMO PROPIOS, y se DERIVA de
+     `_D2_ALIAS` en vez de nombrarlos a mano. La versión anterior tenía el Diam TSVI escrito
+     literal, y cuando el Diam TSVD pasó a ser el segundo alias (2026-09-25) el diálogo siguió
+     nombrando sólo uno mientras `_dopNuevo()` recreaba `pul` entero y se lo llevaba igual. Y el
+     flujo es el NORMAL, no el raro: el médico mide el TSVD con la regla en el cajón 2D —el único
+     que ofrece medirlo—, abre el grupo Doppler para trazar el VTI y toca «Limpiar» creyendo que
+     limpia el Doppler. El comentario de antes, además, afirmaba una simetría con
+     `_d2LimpiarConfirmar` que había dejado de existir. Lo cazó `/sharp-edges`. */
+  const ajenos = [];
+  try {
+    Object.keys(_D2_ALIAS).forEach(c2 => {
+      const q = _D2_ALIAS[c2].split('.');
+      const o = _dopEstado()[q[0]];
+      if (o && o[q[1]] != null) ajenos.push(_D2_ROT[c2] || q[1]);
+    });
+  } catch (e) {}
+  const extra = ajenos.length
+    ? '\n\nIncluye ' + ajenos.join(' y ') + ', que el cajón 2D muestra como propios.' : '';
   const ok = (typeof confirm === 'function')
     ? confirm('Se borran las mediciones de: ' + con.join(', ') + '.' + extra + '\n\n' +
               'Esto no se puede deshacer. ¿Limpiar el cajón?')
@@ -56811,7 +57149,7 @@ function dopCorregir(campo) {
                      actual == null ? '' : String(actual));
   if (txt === null) return;
   const t = String(txt).trim().replace(',', '.');
-  if (t === '') { obj[p[1]] = null; delete E.origen[campo]; _dopRender(); return; }
+  if (t === '') { obj[p[1]] = null; delete E.origen[campo]; _dopRender(); _dopRepintarAjeno(campo); return; }
   /* ⚠️ MISMO BORDE QUE LA MEDICIÓN: módulo y banda. Sin esto, escribir un valor y medirlo daban
      resultados distintos sobre el mismo campo — dos formas de cargar el mismo dato que no se
      comportan igual es exactamente lo que el pedido pide que NO pase. */
@@ -56822,8 +57160,23 @@ function dopCorregir(campo) {
      marca de la vista que estuviera activa, la tabla afirmaría que se midió sobre una imagen. */
   _dopMarcarOrigen(campo, 'mano');
   _dopRender();
+  _dopRepintarAjeno(campo);
 }
 window.dopCorregir = dopCorregir;
+
+/* ⚠️ SI EL CAMPO ES DESTINO DE UN ALIAS, EL CAJÓN 2D TAMBIÉN TIENE QUE REPINTARSE. `_dopLimpiar`
+   ya lo hacía para el borrado masivo y declara por qué: con los dos cajones visibles a la vez
+   —alcanzable, `medGrupoToggle` cambia el grupo sin tocar la herramienta— el 2D seguía publicando
+   el número viejo hasta el próximo `_medEstado`. Faltaba en `dopCorregir`, y ahí pesa más: el
+   Diam TSVD es `armable:false` en el Doppler, así que ✏️ es la ÚNICA vía de entrada por ese lado.
+   La dirección contraria ya estaba cubierta —`_d2Poner` llama a `_dopRender` cuando el destino es
+   ajeno—. Guarda `typeof` porque `_D2_ALIAS` vive más abajo en el archivo. */
+function _dopRepintarAjeno(campo) {
+  try {
+    if (typeof _D2_ALIAS !== 'object' || typeof _d2Render !== 'function') return;
+    if (Object.keys(_D2_ALIAS).some(c2 => _D2_ALIAS[c2] === campo)) _d2Render();
+  } catch (e) {}
+}
 
 const _DOP_ROT = {
   'gen.vel':'Velocidad', 'gen.grad':'Gradiente', 'gen.tiempo':'Tiempo', 'gen.fc':'FC',
@@ -56937,12 +57290,22 @@ function _dopDiscDe(secciones) {
                'escribió a mano. No indican en qué IMAGEN: el cajón acumula entre cineloops de ' +
                'una misma vista a propósito, así que dos valores marcados igual pueden salir de ' +
                'dos adquisiciones distintas.');
-      const deriv = (secciones || []).some(s2 => (s2.filas || []).some(f =>
-        String(f[0]).indexOf('AVA') === 0 || String(f[0]).indexOf('AVM por continuidad') === 0));
-      if (deriv)
-        out.push('Un derivado lleva las marcas de TODOS sus insumos: la AVA y el AVM por ' +
-                 'continuidad se calculan con el diámetro y el VTI del TSVI, que pueden venir de ' +
-                 'la otra vista.');
+      /* ⚠️ EL VOL EYECTIVO VD ES EL MÁS PROPENSO DE LOS TRES A MEZCLAR PROCEDENCIAS, y estaba
+         afuera de esta lista. Desde que el Diam TSVD es un alias del cajón 2D, sus dos insumos
+         salen de gestos distintos por diseño —la regla en 2D y el trazo en Doppler— y con dos
+         vistas abiertas, de dos pantallas distintas. La fila puede salir «Vol Eyectivo VD · A+B»
+         en el PNG que va a la biblioteca —y de ahí al PDF— con una leyenda que enumera sólo la
+         AVA y el AVM. Lo cazó `/sharp-edges`. */
+      const rot = (secciones || []).reduce((a, s2) => a.concat((s2.filas || []).map(f => String(f[0]))), []);
+      const hay = pref => rot.some(r => r.indexOf(pref) === 0);
+      const cruzan = [];
+      if (hay('AVA')) cruzan.push('la AVA');
+      if (hay('AVM por continuidad')) cruzan.push('el AVM por continuidad');
+      if (hay('Vol Eyectivo VD')) cruzan.push('el volumen eyectivo del VD');
+      if (cruzan.length)
+        out.push('Un derivado lleva las marcas de TODOS sus insumos: ' +
+                 (cruzan.length > 1 ? cruzan.slice(0, -1).join(', ') + ' y ' + cruzan[cruzan.length - 1] : cruzan[0]) +
+                 ' se calculan con un diámetro y un VTI que pueden venir de vistas distintas.');
     }
   } catch (e) {}
   out.push(_DOP_DISC_BASE);
@@ -57255,21 +57618,20 @@ function _dopRender() {
     h += tablaCols(F);
     /* ⚠️ «NO APARECE Y NADA DICE POR QUÉ» ES PEOR QUE NO ESTAR. El Vol Eyectivo VD se dibuja sólo
        con sus dos insumos, y el caso de un insumo solo es el NORMAL, no el raro: el Diam TSVD es
-       una distancia sobre 2D, así que el médico lo va a medir en el cajón de Distancia 2D —que es
-       el único que ofrece medirlo— y ESE valor no llega acá: son dos campos distintos con el
-       mismo rótulo (duplicación declarada en `_dopNuevo`). Sin esta línea, el médico ve los dos
-       números a la vista en dos cajones del mismo visor y ninguna fila de volumen, sin ninguna
-       pista. Es el recurso de `eteQpQsMotivo`: distinguir «falta el dato» de «el número no da».
-       No aliasar `vd.tsvd` fue decisión de ALCANCE, no de diseño — el pedido dice explícitamente
-       no tocar el cajón de Distancia 2D, y el alias se cablea en los dos lados. Queda anotado
-       como la corrección de fondo. */
+       una distancia sobre 2D, así que el médico lo mide en el cajón de Distancia 2D —el único de
+       los dos que ofrece medirlo— y el VTI lo traza acá. Es el recurso de `eteQpQsMotivo`:
+       distinguir «falta el dato» de «el número no da».
+       Desde el 2026-09-25 es UN SOLO CAMPO —`vd.tsvd` es alias de `pul.diamTsvd`— así que el
+       aviso nombra dónde medirlo, no otro campo. El texto anterior decía «son dos campos
+       distintos con el mismo rótulo» y remataba con la instrucción de aliasarlo «como corrección
+       de fondo»: dos afirmaciones que el código ya contradecía. */
     if (E.modo === 'pul') {
       const _P = E.pul, _falta = (_P.vtiPul != null && _P.diamTsvd == null) ? 'diam'
                                : (_P.diamTsvd != null && _P.vtiPul == null) ? 'vti' : null;
       if (_falta) {
         h += '<div style="margin-top:6px;font-size:11px;color:var(--text2);line-height:1.45;">' +
              'Para el <b>Vol Eyectivo VD</b> falta ' + (_falta === 'diam'
-               ? 'el <b>Diam TSVD</b>. El del cajón de Distancia 2D es otro campo: cargalo acá con ✏️.'
+               ? 'el <b>Diam TSVD</b>, que se mide con la regla en el cajón de Distancia 2D (grupo VD) — es el MISMO campo — o se carga acá con ✏️.'
                : 'el <b>VTI Pulmonar (TSVD)</b>, trazado en el mismo nivel que el diámetro.') +
              '</div>';
       }
@@ -57691,7 +58053,9 @@ function _d2Nuevo() {
     origen: Object.create(null),
     /* ⚠️ `tsvi` NO ESTÁ ACÁ: es un ALIAS del `ao.diam` del cajón Doppler (ver `_D2_ALIAS`). */
     vi:  { sivd:null, ppd:null, sivs:null, pps:null, ddvi:null, dsvi:null },
-    vd:  { basal:null, medio:null, longit:null, tapse:null, tsvd:null },
+    /* ⚠️ `tsvd` NO ESTÁ ACÁ: es un ALIAS del `pul.diamTsvd` del cajón Doppler, igual que
+       `vi.tsvi` lo es de `ao.diam` (ver `_D2_ALIAS`). */
+    vd:  { basal:null, medio:null, longit:null, tapse:null },
     ao:  { sinusal:null, sinotub:null, tubular:null, cayado:null, descend:null, abdominal:null },
     ai:  { dap:null },
     vci: { vci:null },
@@ -57721,8 +58085,17 @@ const _D2_GRUPOS_DATO = ['vi', 'vd', 'ao', 'ai', 'vci'];
    de «fórmula duplicada» que este archivo ya documenta tres veces, y acá el valor duplicado
    alimentaría un área valvular.
    Por eso `vi.tsvi` no existe en el estado: lee y escribe `_dop.ao.diam`. La fila lo DICE, y al
-   escribirlo se repinta también el cajón Doppler para que el AVA aparezca en el acto. */
-const _D2_ALIAS = Object.assign(Object.create(null), { 'vi.tsvi': 'ao.diam' });
+   escribirlo se repinta también el cajón Doppler para que el AVA aparezca en el acto.
+
+   ⚠️ Y LO MISMO PARA EL DIAM TSVD (2026-09-25). Nació duplicado —`vd.tsvd` acá y `pul.diamTsvd`
+   en el cajón Doppler, mismo rótulo, misma banda— porque el pedido de las dos columnas prohibía
+   tocar este cajón. La consecuencia operativa era peor que la duplicación: el Diam TSVD es una
+   DISTANCIA sobre 2D, así que el médico lo mide acá —es el único de los dos que ofrece medirlo,
+   el del cajón Doppler es `armable:false`— y ese valor no llegaba al Vol Eyectivo VD. Los dos
+   números a la vista en dos cajones del mismo visor y ninguna fila de volumen. Ahora es un solo
+   valor, y el mecanismo es el que ya existía. */
+const _D2_ALIAS = Object.assign(Object.create(null),
+  { 'vi.tsvi': 'ao.diam', 'vd.tsvd': 'pul.diamTsvd' });
 function _d2Ref(campo) {
   const a = _D2_ALIAS[campo];
   if (a) {
@@ -58055,13 +58428,13 @@ function _d2Filas(modo) {
 window._d2Filas = _d2Filas;
 
 function _d2GrupoConDatos(m) {
-  if (m === 'vi') {
-    const V = _d2Estado().vi;
-    if (Object.keys(V).some(k => V[k] != null)) return true;
-    return _d2Valor('vi.tsvi') != null;      // el alias no vive en `E.vi`
-  }
   const G = _d2Estado()[m];
-  return !!G && Object.keys(G).some(k => G[k] != null);
+  if (G && Object.keys(G).some(k => G[k] != null)) return true;
+  /* ⚠️ LOS ALIAS NO VIVEN EN `E[m]`, así que hay que preguntarles aparte. Va derivado de
+     `_D2_ALIAS` y no con un `if (m === 'vi')` como estaba: con el segundo alias —el Diam TSVD—
+     esa rama habría dejado al grupo VD diciendo «sin datos» con el valor cargado, y de ahí sale
+     tanto el aviso de «Limpiar» como la compuerta de guardado. */
+  return Object.keys(_D2_ALIAS).some(c => c.indexOf(m + '.') === 0 && _d2Valor(c) != null);
 }
 function _d2HayValores() { return _D2_GRUPOS_DATO.some(_d2GrupoConDatos); }
 window._d2HayValores = _d2HayValores;
@@ -58092,8 +58465,18 @@ function _d2Disc() {
      Doppler, que sí tiene «💾 Guardar tabla» hacia la biblioteca. Acá no se agregó —no estaba en
      el pedido— así que estos valores viven sólo en memoria y se pierden al recargar. El hermano
      tiene artefacto y éste no: callarlo dejaría al médico suponiendo la misma salida. */
+  /* ⚠️ LA SALVEDAD NO ES ADORNO: DOS DE ESTAS FILAS SÍ SOBREVIVEN. `vi.tsvi` y `vd.tsvd` son
+     alias que viven en el cajón Doppler, así que entran en su «💾 Guardar tabla» y viajan a la
+     biblioteca con su marca de origen. Decir «ninguna se guarda» a secas es la misma clase de
+     afirmación que este archivo ya pagó al revés —el interruptor que mentía sobre el disco—,
+     sólo que declarando de menos. Se deriva de `_D2_ALIAS`, no se escribe a mano. */
+  const guardables = (() => {
+    try { return Object.keys(_D2_ALIAS).map(c => _D2_ROT[c]).filter(Boolean); } catch (e) { return []; }
+  })();
   const d = [_D2_DISC_BASE, 'Estas mediciones NO se guardan: viven sólo mientras la pestaña está ' +
-             'abierta. Anotá lo que necesites antes de cerrar.'];
+             'abierta. Anotá lo que necesites antes de cerrar.' +
+             (guardables.length ? ' La excepción son ' + guardables.join(' y ') +
+              ', que viven en el cajón Doppler y entran en su «Guardar tabla».' : '')];
   const F = _d2Filas();
   if (F.some(f => String(f[0]).indexOf('Engrosamiento') === 0)) {
     d.push('Engrosamiento parietal = (sistólico − diastólico) / diastólico. NO es la FEVI: ' +
@@ -58111,6 +58494,10 @@ function _d2Disc() {
   if (_d2Valor('vi.tsvi') != null && F.some(f => String(f[0]).indexOf('Diam TSVI') === 0)) {
     d.push('El Diam TSVI es el MISMO valor que usa el cajón Doppler para el AVA por continuidad: ' +
            'medirlo acá lo completa allá.');
+  }
+  if (_d2Valor('vd.tsvd') != null && F.some(f => String(f[0]).indexOf('Diam TSVD') === 0)) {
+    d.push('El Diam TSVD es el MISMO valor que usa el cajón Doppler para el volumen eyectivo del ' +
+           'VD: medirlo acá lo completa allá. El VTI tiene que trazarse al MISMO nivel.');
   }
   if (_d2MarcarOrigenes()) {
     d.push('· A y · B indican en qué VISTA del visor se midió cada valor; · mano, que se escribió ' +
@@ -58195,13 +58582,14 @@ window._d2Render = _d2Render;
    `_dopLimpiar`, para que estén a la vista una al lado de la otra.
    El `modo` sobrevive: qué grupo se estaba mirando no es dato del paciente, y cerrarlo sería
    esconder la tabla a mitad de trabajo. Mismo criterio que `_dopLimpiar`.
-   ⚠️ BORRA TAMBIÉN EL ALIAS. `_d2Nuevo` no puede: el Diam TSVI no vive acá. Hoy `_dopLimpiar`
+   ⚠️ BORRA TAMBIÉN LOS ALIAS —hoy son DOS, el Diam TSVI y el Diam TSVD—. `_d2Nuevo` no puede:
+   esos valores no viven acá. Hoy `_dopLimpiar`
    corre en las mismas dos puertas y lo cubriría, pero depender de eso ata la ausencia de una
    fuga al ORDEN de dos líneas en otra función — y ésa es la clase de invariante que este archivo
    ya documentó como «no puede depender en silencio de una línea enterrada más abajo». */
 function _d2Limpiar() {
   const md = _d2 ? _d2.modo : null;
-  if (_d2Valor('vi.tsvi') != null) _d2Poner('vi.tsvi', null);
+  Object.keys(_D2_ALIAS).forEach(c => { if (_d2Valor(c) != null) _d2Poner(c, null); });
   _d2 = _d2Nuevo();
   _d2.modo = md;      // el aviso queda apagado por `_d2Nuevo`: ya no hay nada que confundir
   _d2Render();
@@ -58234,8 +58622,10 @@ function _d2LimpiarConfirmar() {
   const con = _D2_GRUPOS.filter(G => _d2GrupoConDatos(G.m)).map(G => G.rot.replace(/^\S+\s*/, ''));
   /* ⚠️ NOMBRA LO QUE BORRA, y el Diam TSVI aparte: vive en el cajón Doppler, así que «Limpiar»
      acá se lo saca al AVA de allá. Un borrado que alcanza otra pantalla tiene que decirlo. */
-  const extra = (_d2Valor('vi.tsvi') != null)
-    ? '\n\nTambién borra el Diam TSVI, que es el que usa el cajón Doppler para el AVA.' : '';
+  const ajenos = [];
+  if (_d2Valor('vi.tsvi') != null) ajenos.push('el Diam TSVI, que el cajón Doppler usa para el AVA');
+  if (_d2Valor('vd.tsvd') != null) ajenos.push('el Diam TSVD, que usa para el volumen eyectivo del VD');
+  const extra = ajenos.length ? '\n\nTambién borra ' + ajenos.join(' y ') + '.' : '';
   if (!confirm('¿Borrar las mediciones 2D de ' + con.join(', ') + '?' + extra)) return;
   _d2Limpiar();
 }
@@ -75604,8 +75994,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260925-1814';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790370879607;                 /* eco-build-ms */
+const ECO_BUILD    = '20260925-1928';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790375288754;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -75691,7 +76081,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-1814</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-1928</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -10093,6 +10093,380 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
   })();
 `);
 
+
+
+caso('TC-264', 'Diam TSVD: UN solo valor en el visor — medido en el cajon 2D alimenta el Vol Eyectivo VD', `
+  return (async () => {
+    if (typeof _d2Poner !== 'function' || typeof _D2_ALIAS === 'undefined')
+      return { extra:[['existe el cajon 2D con alias', false, 'faltan _d2Poner o _D2_ALIAS']] };
+    try {
+      const jpg = new Uint8Array([255,216,255,217]);
+      _cineAbrir([{ nombre:'A', cuadros:1, d:{ frags:[jpg], cols:200, filas:150, msCuadro:0,
+        regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:200, y1:150, tipo:1 }] } }]);
+      await new Promise(r => setTimeout(r, 400));
+      /* El cajon Doppler solo se DIBUJA con el grupo abierto en alguna vista: sin esto, la
+         condicion de «la fila se ve» mide un contenedor vacio y da cero inyecciones sobre nada.
+         Es el error de denominador que este archivo persigue. */
+      if (!_medOn) medToggle();
+      for (let i=0;i<3 && _vistaA.medGrupo!=='dop';i++) document.getElementById('cine-g-dop').click();
+      await new Promise(r => setTimeout(r, 150));
+      _dopLimpiar(); _d2Limpiar();
+      const E = _dopEstado();
+
+      /* ── NO HAY DOS CAMPOS ── el estado del cajon 2D no puede tener uno propio, o serian dos
+         valores con el mismo rotulo y el volumen saldria del que no se midio. */
+      const sinCampoPropio = !Object.prototype.hasOwnProperty.call(_d2Estado().vd, 'tsvd');
+      const esAlias = _D2_ALIAS['vd.tsvd'] === 'pul.diamTsvd';
+      /* Y el rotulo es el MISMO en los dos cajones: si difirieran, la pantalla diria que son
+         mediciones distintas justo cuando pasaron a ser una sola. */
+      const mismoRotulo = _D2_ROT['vd.tsvd'] === _DOP_ROT['pul.diamTsvd'].replace(/ \\(TSVD\\)$/, '');
+
+      /* ══ DE PUNTA A PUNTA ══ el medico mide el Diam TSVD en el cajon 2D y traza el VTI en el
+         Doppler. El volumen tiene que aparecer sin tocar nada mas. */
+      _d2Poner('vd.tsvd', 25);
+      const llegaAlDoppler = E.pul.diamTsvd === 25;
+      const volSinVti = _dopDerivados().volVd;          // falta el otro insumo: no se publica
+      E.pul.vtiPul = 18;
+      const D = _dopDerivados();
+      const esperado = Math.PI * Math.pow(25/20, 2) * 18;
+      const volOk = D.volVd != null && Math.abs(D.volVd - esperado) < 1e-9;
+      /* Y la fila sale en la tabla del cajon Doppler, no solo en el estado. */
+      E.modo = 'pul'; _dopRender();
+      const cajon = document.getElementById('dop-cajon');
+      const filaEnPantalla = !!cajon && cajon.textContent.indexOf('Vol Eyectivo VD') > -1;
+
+      /* ── EN VIVO EN LA DIRECCION 2D → DOPPLER ── volver a medir en el cajon 2D mueve el numero. */
+      _d2Poner('vd.tsvd', 30);
+      const volTras30 = _dopDerivados().volVd;
+      const enVivo = Math.abs(volTras30 - Math.PI * Math.pow(30/20, 2) * 18) < 1e-9;
+
+      /* ── Y EN LA DIRECCION CONTRARIA ── corregirlo desde el cajon Doppler tiene que verse en el
+         2D: es un solo valor, no dos que se sincronizan a veces. */
+      const _p = window.prompt; window.prompt = () => '22';
+      dopCorregir('pul.diamTsvd');
+      window.prompt = _p;
+      const vuelveAl2D = _d2Valor('vd.tsvd') === 22;
+      const filas2D = _d2Filas('vd').filter(f => String(f[0]).indexOf('Diam TSVD') === 0);
+      const seVeEnEl2D = filas2D.length === 1 && String(filas2D[0][1]) === '22.0';
+
+      /* ── EL ORIGEN CRUZA EL ALIAS ── es el defecto que ya pago el Diam TSVI: el valor iba al
+         cajon Doppler y su marca de procedencia se quedaba en el 2D, asi que el derivado se
+         publicaba SIN la procedencia de uno de sus insumos. */
+      const marcaDesde2D = (() => { _d2Poner('vd.tsvd', 26); return _d2Origen('vd.tsvd') === _dop.origen['pul.diamTsvd']; })();
+
+      /* ── EL GRUPO VD SE DECLARA CON DATOS ── de esto salen el aviso de «Limpiar» y la compuerta
+         de guardado; con la rama vieja, atada a 'vi', el grupo VD decia «sin datos» con el valor
+         cargado. */
+      _d2Limpiar(); _dopLimpiar();
+      _d2Poner('vd.tsvd', 24);
+      const grupoVdConDatos = _d2GrupoConDatos('vd') === true;
+      const hayValores = _d2HayValores() === true;
+
+      /* ── LIMPIAR DE UN LADO LIMPIA EL VALOR, NO DEJA UNA COPIA ── */
+      _d2Limpiar();
+      const limpiaLosDos = _dopEstado().pul.diamTsvd == null && _d2Valor('vd.tsvd') == null;
+      _d2Poner('vd.tsvd', 28);
+      _dopLimpiar();
+      const dopLimpiaTambien = _d2Valor('vd.tsvd') == null;
+
+      /* ── «LIMPIAR» DEL DOPPLER NOMBRA LO QUE SE LLEVA DEL OTRO CAJON ──
+         El flujo es el NORMAL: se mide el TSVD con la regla en 2D, se abre el grupo Doppler para
+         el VTI y se toca «Limpiar» creyendo que limpia el Doppler. */
+      _dopLimpiar(); _d2Limpiar();
+      _d2Poner('vd.tsvd', 25); _dopEstado().pul.vtiPul = 18;
+      const _cf = window.confirm; let dicho = '';
+      window.confirm = (m) => { dicho = String(m); return false; };
+      _dopLimpiarConfirmar();
+      const avisaTsvd = dicho.indexOf('Diam TSVD') > -1 && dicho.indexOf('cajón 2D') > -1;
+      const noBorroAlCancelar = _d2Valor('vd.tsvd') === 25;
+      /* Y con el TSVI tambien cargado los nombra a los DOS, no a uno. */
+      _d2Poner('vi.tsvi', 20);
+      dicho = ''; _dopLimpiarConfirmar();
+      const avisaLosDos = dicho.indexOf('Diam TSVI') > -1 && dicho.indexOf('Diam TSVD') > -1;
+      window.confirm = _cf;
+
+      /* ── CORREGIR DESDE EL DOPPLER REPINTA EL CAJON 2D ──
+         Con los dos cajones visibles a la vez, el 2D publicaba el numero viejo hasta el proximo
+         '_medEstado'. Y aca pesa mas que en el TSVI: el TSVD es 'armable:false' en el Doppler,
+         asi que ✏️ es la UNICA via de entrada por ese lado. Se espia la llamada, que es la
+         pregunta exacta —¿se repinto?— y no depende de que el panel este montado. */
+      const _r2 = window._d2Render; let repintes = 0;
+      window._d2Render = function () { repintes++; return _r2.apply(this, arguments); };
+      const _p2 = window.prompt; window.prompt = () => '27';
+      dopCorregir('pul.diamTsvd');
+      const repintaAlEscribir = repintes > 0;
+      window.prompt = () => '';
+      repintes = 0; dopCorregir('pul.diamTsvd');
+      const repintaAlBorrar = repintes > 0;
+      window.prompt = _p2; window._d2Render = _r2;
+
+      /* ── LA LEYENDA DE LA TABLA GUARDADA NOMBRA EL VOLUMEN ──
+         Es el derivado MAS propenso a mezclar procedencias: diametro medido en 2D, VTI trazado en
+         el Doppler. El PNG circula solo y puede terminar en un PDF. */
+      _dopLimpiar(); _d2Limpiar();
+      _d2Poner('vd.tsvd', 25); _dopEstado().pul.vtiPul = 18;
+      _dop.origen['pul.diamTsvd'] = 'A'; _dop.origen['pul.vtiPul'] = 'B';
+      const leyenda = _dopDiscDe(_dopSeccionesGuardado()).join(' || ');
+      const leyendaNombraVol = leyenda.indexOf('volumen eyectivo del VD') > -1;
+
+      /* ── EL DESCARGO LO DICE ── la imagen que se guarda circula sola. */
+      _d2Poner('vd.tsvd', 25);
+      _d2Estado().modo = 'vd';        // '_d2Disc' lee las filas del grupo ABIERTO
+      const disc = _d2Disc ? _d2Disc().join(' || ') : '';
+      const discLoDice = disc.indexOf('MISMO valor que usa el cajón Doppler') > -1 &&
+                         disc.indexOf('volumen eyectivo') > -1;
+
+      return { extra: [
+        ['NO hay un segundo campo en el estado del cajon 2D', sinCampoPropio,
+          'claves vd=' + Object.keys(_d2Estado().vd).join(',')],
+        ['  y vd.tsvd es un ALIAS de pul.diamTsvd', esAlias, String(_D2_ALIAS['vd.tsvd'])],
+        ['  con el mismo rotulo en los dos cajones', mismoRotulo,
+          _D2_ROT['vd.tsvd'] + ' vs ' + _DOP_ROT['pul.diamTsvd']],
+        ['DE PUNTA A PUNTA: medido en 2D, llega al cajon Doppler', llegaAlDoppler,
+          'pul.diamTsvd=' + E.pul.diamTsvd],
+        ['  sin el VTI todavia NO publica volumen', volSinVti === null, String(volSinVti)],
+        ['  y con el VTI da el valor correcto', volOk,
+          'vol=' + (D.volVd == null ? 'null' : D.volVd.toFixed(4)) + ' esperado=' + esperado.toFixed(4)],
+        ['  y la fila se ve en el cajon Doppler', filaEnPantalla, ''],
+        ['EN VIVO: remedir en 2D mueve el volumen', enVivo,
+          '25→30: ' + (volTras30 == null ? 'null' : volTras30.toFixed(2))],
+        ['EN LA DIRECCION CONTRARIA: corregir en Doppler se ve en el 2D', vuelveAl2D && seVeEnEl2D,
+          'vd.tsvd=' + _d2Valor('vd.tsvd') + ' fila=' + (filas2D[0] ? filas2D[0][1] : 'no hay')],
+        ['el ORIGEN cruza el alias, como el del Diam TSVI', marcaDesde2D,
+          'd2=' + _d2Origen('vd.tsvd') + ' dop=' + _dop.origen['pul.diamTsvd']],
+        ['el grupo VD se declara CON DATOS', grupoVdConDatos && hayValores,
+          'grupo=' + grupoVdConDatos + ' hayValores=' + hayValores],
+        ['«Limpiar» del 2D borra el valor de verdad', limpiaLosDos, ''],
+        ['  y «Limpiar» del Doppler tambien', dopLimpiaTambien, ''],
+        ['el descargo del 2D dice que alimenta el volumen del VD', discLoDice, disc.slice(0, 140)],
+        ['  y declara que ESE valor SI sobrevive al guardado',
+          disc.indexOf('excepción') > -1 && disc.indexOf('Diam TSVD') > -1, ''],
+        ['«LIMPIAR» DEL DOPPLER AVISA QUE SE LLEVA EL TSVD DEL 2D', avisaTsvd, dicho.slice(0, 120)],
+        ['  y con los dos cargados nombra a los DOS', avisaLosDos, ''],
+        ['  y cancelar no borra nada', noBorroAlCancelar, ''],
+        ['CORREGIR desde el Doppler repinta el cajon 2D', repintaAlEscribir, ''],
+        ['  y vaciarlo tambien', repintaAlBorrar, ''],
+        ['la leyenda de la tabla guardada nombra el VOLUMEN EYECTIVO VD', leyendaNombraVol,
+          leyenda.slice(-170)]
+      ] };
+    } finally {
+      try { _dopLimpiar(); } catch (e) {}
+      try { _d2Limpiar(); } catch (e) {}
+      try { cineCerrar(); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+  })();
+`);
+
+caso('TC-263', 'Recorte del margen negro del cineloop: un solo recorte, sin estirar, y la calibracion intacta', `
+  return (async () => {
+    if (typeof _cineRecorteDe !== 'function' || typeof _cineRecorteAplicar !== 'function')
+      return { extra:[['existe el recorte', false, 'faltan _cineRecorteDe o _cineRecorteAplicar']] };
+    try {
+      /* ⚠️ CUADROS SINTETICOS, Y NO ES POR COMODIDAD. La verificacion contra los archivos
+         REALES del pendrive (GE Vivid iq 1016x708 de 161 cuadros y Sonoscape PAD 1392x944 de
+         463) se hizo aparte y esta anotada en CLAUDE.md con sus numeros. Esos cuadros NO pueden
+         vivir en el repo: el Sonoscape trae NOMBRE, CEDULA y FECHA DE NACIMIENTO quemados en la
+         franja superior, y este repo publica en GitHub Pages. Aca se reproducen las propiedades,
+         no los pixeles del paciente. */
+      /* ⚠️ TAMAÑO REAL, NO DE JUGUETE. Con 400x300 la medicion del recorte tardaba menos que
+         la resolucion del sondeo de abajo, asi que la condicion «sin salto» no distinguia el
+         antes del despues: la mutacion que pinta ANTES de medir pasaba en verde. Se usa el
+         formato mas grande del pendrive (Sonoscape 1392x944), donde la medicion cuesta ~70 ms
+         y el orden se ve. */
+      const W = 1392, H = 944;
+      const jpegDe = (dibujar) => new Promise(res => {
+        const c = document.createElement('canvas'); c.width = W; c.height = H;
+        const g = c.getContext('2d');
+        g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+        dibujar(g);
+        c.toBlob(b => b.arrayBuffer().then(a => res(new Uint8Array(a))), 'image/jpeg', 0.92);
+      });
+      /* El «sector»: un bloque claro con margen negro alrededor. */
+      const sector = g => { g.fillStyle = '#c8c8c8'; g.fillRect(200, 100, 1000, 700); };
+      /* ⚠️ EL CUADRO 0 ES EL MAS CHICO A PROPOSITO. Es el caso que el pedido pedia usar —medir
+         el primer cuadro— y el que el Sonoscape real desmiente: alli el cuadro 1 daba y1=917 y
+         los otros 462 daban 935. Aca la barra de abajo aparece recien en los cuadros 4 y 5, asi
+         que medir solo el primero se comeria contenido durante el resto del loop. */
+      const frames = [];
+      for (let k = 0; k < 10; k++) {
+        frames.push(await jpegDe(g => { sector(g);
+          if (k === 4 || k === 5) { g.fillStyle = '#7ad1c4'; g.fillRect(240, 930, 900, 6); } }));
+      }
+      const soloPrimero = [frames[0]];
+      /* Y un loop a sangre: claro de borde a borde, sin nada que recortar. */
+      const lleno = [await jpegDe(g => { g.fillStyle = '#b4b4b4'; g.fillRect(0, 0, W, H); })];
+
+      const REG = { tipo:1, x0:200, y0:100, x1:1199, y1:799, dx:0.05, dy:0.05,
+                    ux:DCMIMG_UNI_CM, uy:DCMIMG_UNI_CM };
+      const armar = (fr) => ({ frags: fr, cols: W, filas: H, msCuadro: 40,
+                               fabricante:'Sintetico', modelo:'', regiones:[REG] });
+
+      /* ── EL RECORTE SALE DE LA UNION, NO DEL PRIMER CUADRO ── se comparan los dos calculos
+         sobre los MISMOS datos: mismo loop, una vez entero y otra con un solo cuadro. */
+      const recUnion   = await _cineRecorteDe({ d: armar(frames) });
+      const recPrimero = await _cineRecorteDe({ d: armar(soloPrimero) });
+      const recLleno   = await _cineRecorteDe({ d: armar(lleno) });
+      const recVacio   = await _cineRecorteDe({ d: { frags: [], cols: W, filas: H, regiones: [] } });
+
+      /* ── AHORA EN EL VISOR, CON GEOMETRIA DE VERDAD ── */
+      /* ── SIN SALTO AL ABRIR ── el recorte tiene que estar puesto ANTES del primer pintado.
+         Antes no: el primer cuadro salia tras UNA decodificacion y el recorte llegaba tras las
+         diez de la muestra, asi que la imagen se veia crecer un 6% a los ~70 ms. Se sondea cada
+         10 ms y se anota en que momento aparece cada cosa. No es una carrera: '_cineRecorteMedir'
+         aplica y RECIEN despues llama a 'cineIr(0)', que ademas espera su propia decodificacion,
+         asi que el recorte precede al pintado por construccion — el sondeo lo comprueba. */
+      const t0 = performance.now();
+      _cineAbrir([{ nombre:'sint.dcm', cuadros: frames.length, d: armar(frames) }]);
+      const cv = document.getElementById('cine-cv');
+      const env = document.getElementById('cine-recorte');
+      let pintadoEn = -1, recorteEn = -1, recortadoAlPintar = false;
+      for (let i = 0; i < 120 && (pintadoEn < 0 || recorteEn < 0); i++) {
+        await new Promise(r => setTimeout(r, 10));
+        if (recorteEn < 0) { const r = cv.getBoundingClientRect(), e = env.getBoundingClientRect();
+          if (r.width > e.width + 0.5 || r.height > e.height + 0.5) recorteEn = performance.now() - t0; }
+        if (pintadoEn < 0) {
+          try { const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+            for (let k = 0; k < d.length; k += 4000) {
+              if (d[k] > 24 || d[k+1] > 24 || d[k+2] > 24) {
+                pintadoEn = performance.now() - t0;
+                /* ⚠️ SE PREGUNTA EN EL MISMO TICK: «cuando la imagen aparecio, ¿ya estaba
+                   recortada?». Comparar dos marcas de tiempo tomadas en sondeos distintos mide
+                   la granularidad del sondeo, no el orden de las operaciones. */
+                const r2 = cv.getBoundingClientRect(), e2 = env.getBoundingClientRect();
+                recortadoAlPintar = r2.width > e2.width + 0.5 || r2.height > e2.height + 0.5;
+                break; } }
+          } catch (e) {}
+        }
+      }
+      const L = _cineDatos.loops[0];
+      if (!_medOn) medToggle();
+      await new Promise(r => setTimeout(r, 150));
+
+      /* ⚠️ SE APAGA EL RECORTE A MANO PARA LA LINEA BASE. '_cineCargarLoop' lo mide en segundo
+         plano y a los 400 ms YA ESTA PUESTO: sin esto, la «base» se toma con el recorte
+         aplicado y el caso compara despues contra despues. Paso exactamente eso al escribirlo. */
+      L.recorte = null; _cineRecorteAplicar(_vistaA);
+      await new Promise(r => setTimeout(r, 120));
+      const baseLimpia = (() => { const c = cv.getBoundingClientRect(), e = env.getBoundingClientRect();
+        return Math.abs(c.width - e.width) < 1 && Math.abs(c.height - e.height) < 1; })();
+
+      /* La sonda: se clickea el pixel de imagen p y se deja que la app haga todo el camino.
+         Las coordenadas de 'MouseEvent' son ENTERAS, asi que se compara contra lo que
+         corresponde al entero clickeado —exacto— y no contra p —cuantizado—. */
+      const sonda = (p) => {
+        const r = cv.getBoundingClientRect();
+        const cx = Math.round(r.left + (p.x + 0.5) * (r.width / cv.width));
+        const cy = Math.round(r.top  + (p.y + 0.5) * (r.height / cv.height));
+        const esp = { x: (cx - r.left) * (cv.width / r.width), y: (cy - r.top) * (cv.height / r.height) };
+        const got = _medPunto({ clientX: cx, clientY: cy }, cv);
+        const e = _medEscalaEn(esp);
+        return { esp:esp, got:got, mm: e && e.mmPorPx, mmY: e && e.mmPorPxY, ok: !!(e && e.ok),
+                 region: !!(e && e.region), escX: r.width / cv.width, escY: r.height / cv.height };
+      };
+      const pA = { x: 400, y: 300 }, pB = { x: 1000, y: 700 };
+      const sinA = sonda(pA), sinB = sonda(pB);
+
+      L.recorte = undefined;
+      const rec = await _cineRecorteDe(L);
+      _cineRecorteAplicar(_vistaA); _medPintar();
+      await new Promise(r => setTimeout(r, 200));
+      const conA = sonda(pA), conB = sonda(pB);
+
+      /* ── EL RECORTE NO CAMBIA ENTRE CUADROS ── se recorre el loop y se vuelve al principio. */
+      const cajas = [];
+      for (const k of [0, 3, 5, frames.length - 1, 0]) {
+        await cineIr(k); await new Promise(r => setTimeout(r, 90));
+        const e = env.getBoundingClientRect(), c = cv.getBoundingClientRect();
+        cajas.push([e.width, e.height, c.width, c.height, c.left - e.left, c.top - e.top]
+          .map(v => Math.round(v * 100) / 100).join(','));
+      }
+      /* ── NAVEGAR DURANTE LA ESPERA NO SE PIERDE ── el primer pintado esta diferido hasta que
+         el recorte este (o hasta el plazo), asi que si el medico mueve el slider en esa ventana
+         el 'cineIr(0)' diferido lo devolvia al principio. Con 41 cuadros y medio segundo de
+         espera es alcanzable con solo ser rapido. Lo rompio TC-182 y no era del caso. */
+      try { cineCerrar(); } catch (e) {}
+      await new Promise(r => setTimeout(r, 120));
+      _cineAbrir([{ nombre:'sint2.dcm', cuadros: frames.length, d: armar(frames) }]);
+      cineIr(5);
+      await new Promise(r => setTimeout(r, 900));
+      const cuadroTrasEsperar = _cineDatos ? _cineDatos.cuadro : -1;
+      const contador = (document.getElementById('cine-num') || {}).textContent || '';
+      const recorte2 = _cineDatos && _cineDatos.loops[0].recorte;
+
+      const rc = cv.getBoundingClientRect(), re = env.getBoundingClientRect();
+      const rm = document.getElementById('cine-med').getBoundingClientRect();
+      /* ⚠️ LA VENTANA TIENE QUE MOSTRAR EL TROZO CORRECTO, y esto NO lo ve la sonda: la sonda
+         invierte el mismo rect del canvas que uso para clickear, asi que da exacta aunque el
+         canvas este corrido hacia el lado equivocado. Con el signo del corrimiento cambiado el
+         mapeo sigue siendo perfecto y lo que se ve es el margen negro en vez de la imagen. Se
+         comprueba donde CAE la esquina del recorte: tiene que coincidir con la esquina del
+         envoltorio. Lo encontro una mutacion que este caso dejaba pasar y el de archivos reales
+         no. */
+      const escX = rc.width / cv.width, escY = rc.height / cv.height;
+      const ventana = rec ? { x: rc.left + rec.x0 * escX - re.left,
+                              y: rc.top  + rec.y0 * escY - re.top,
+                              x2: rc.left + (rec.x0 + rec.cw) * escX - re.right,
+                              y2: rc.top  + (rec.y0 + rec.ch) * escY - re.bottom } : null;
+
+      return { extra: [
+        ['DENOMINADOR: los dos puntos caen DENTRO de la region declarada',
+          sinA.ok && sinB.ok && sinA.region && sinB.region && conA.ok && conB.ok,
+          'sinA=' + sinA.ok + ' conA=' + conA.ok],
+        ['hay recorte, y saca margen por los cuatro lados',
+          !!rec && rec.x0 > 0 && rec.y0 > 0 && rec.cw < W && rec.ch < H,
+          rec ? (rec.x0 + ',' + rec.y0 + ' ' + rec.cw + 'x' + rec.ch + ' de ' + W + 'x' + H) : 'null'],
+        ['EL RECORTE SALE DE LA UNION Y NO DEL PRIMER CUADRO',
+          !!recUnion && !!recPrimero && recUnion.ch > recPrimero.ch,
+          'union ch=' + (recUnion && recUnion.ch) + ' vs solo-el-primero ch=' + (recPrimero && recPrimero.ch)],
+        ['  y el recorte del visor es el de la union', !!rec && rec.ch === recUnion.ch && rec.cw === recUnion.cw,
+          'visor=' + (rec && rec.ch) + ' union=' + (recUnion && recUnion.ch)],
+        ['  y se muestrearon varios cuadros, no uno', !!rec && rec.cuadros > 1, 'cuadros=' + (rec && rec.cuadros)],
+        ['DENOMINADOR: el visor pinto el primer cuadro y aplico el recorte',
+          pintadoEn >= 0 && recorteEn >= 0, 'pintado@' + Math.round(pintadoEn) + 'ms · recorte@' + Math.round(recorteEn) + 'ms'],
+        ['SIN SALTO: cuando la imagen APARECIO ya estaba recortada', recortadoAlPintar,
+          'pintado@' + Math.round(pintadoEn) + 'ms · recorte@' + Math.round(recorteEn) + 'ms'],
+        ['DENOMINADOR: la linea base se tomo SIN recorte', baseLimpia, ''],
+        ['LA CALIBRACION NO SE MOVIO: mismo mm/px en los dos puntos',
+          sinA.mm === conA.mm && sinA.mmY === conA.mmY && sinB.mm === conB.mm && sinB.mmY === conB.mmY,
+          'A sin=' + sinA.mm + ' con=' + conA.mm + ' · B sin=' + sinB.mm + ' con=' + conB.mm],
+        ['y el mapeo pantalla→imagen es EXACTO con y sin recorte',
+          [sinA, sinB, conA, conB].every(z => z.got &&
+            Math.abs(z.got.x - z.esp.x) < 1e-9 && Math.abs(z.got.y - z.esp.y) < 1e-9), ''],
+        ['NO SE ESTIRO: una sola escala para los dos ejes',
+          Math.abs(conA.escX - conA.escY) / conA.escX < 1e-4,
+          'escX=' + conA.escX.toFixed(9) + ' escY=' + conA.escY.toFixed(9) +
+          ' rel=' + (Math.abs(conA.escX - conA.escY) / conA.escX).toExponential(2)],
+        ['el recorte AGRANDA la imagen en pantalla', conA.escX > sinA.escX * 1.02,
+          'sin=' + sinA.escX.toFixed(4) + ' con=' + conA.escX.toFixed(4) +
+          ' (x' + (conA.escX / sinA.escX).toFixed(3) + ')'],
+        ['  y el envoltorio RECORTA de verdad', rc.width > re.width + 0.5 || rc.height > re.height + 0.5,
+          'canvas ' + rc.width.toFixed(1) + 'x' + rc.height.toFixed(1) +
+          ' en envoltorio ' + re.width.toFixed(1) + 'x' + re.height.toFixed(1)],
+        ['EL RECORTE ES EL MISMO EN TODOS LOS CUADROS', new Set(cajas).size === 1, cajas.join('  |  ')],
+        ['LA VENTANA MUESTRA EL TROZO RECORTADO, no el margen',
+          !!ventana && Math.abs(ventana.x) < 1.5 && Math.abs(ventana.y) < 1.5 &&
+          Math.abs(ventana.x2) < 1.5 && Math.abs(ventana.y2) < 1.5,
+          ventana ? ('desvio esquinas: ' + ventana.x.toFixed(2) + ',' + ventana.y.toFixed(2) +
+                     ' / ' + ventana.x2.toFixed(2) + ',' + ventana.y2.toFixed(2) + ' px') : 'sin recorte'],
+        ['el overlay de medicion sigue calzado sobre la imagen',
+          Math.abs(rc.left - rm.left) < 1 && Math.abs(rc.top - rm.top) < 1 &&
+          Math.abs(rc.width - rm.width) < 1 && Math.abs(rc.height - rm.height) < 1, ''],
+        ['NAVEGAR durante la espera NO se pierde', cuadroTrasEsperar === 5,
+          'cuadro=' + cuadroTrasEsperar + ' contador=' + contador.trim()],
+        ['  y el recorte igual se aplico', !!recorte2, recorte2 ? (recorte2.cw + 'x' + recorte2.ch) : 'null'],
+        ['FAIL-SAFE: un cuadro a sangre NO se recorta', recLleno === null,
+          recLleno ? JSON.stringify(recLleno) : 'null'],
+        ['FAIL-SAFE: sin cuadros que leer tampoco', recVacio === null,
+          recVacio ? JSON.stringify(recVacio) : 'null']
+      ] };
+    } finally {
+      try { cineCerrar(); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+  })();
+`);
+
 caso('TC-262', 'Cajon Doppler en dos columnas: nada se pierde ni se duplica, y el Vol Eyectivo VD sale de sus dos insumos', `
   return (async () => {
     if (typeof _dopFilas !== 'function' || typeof _dopCanvas !== 'function')

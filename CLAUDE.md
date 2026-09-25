@@ -4,6 +4,275 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## El Diam TSVD es UNO solo, y el censo de los campos que el pedido inventó (2026-09-25)
+
+### El alias: `vd.tsvd` → `pul.diamTsvd`
+
+Nació duplicado —mismo rótulo, misma banda, dos campos— porque el pedido que creó el
+`Vol Eyectivo VD` prohibía tocar el cajón de Distancia 2D. **La consecuencia operativa era peor
+que la duplicación**: el Diam TSVD es una *distancia sobre 2D*, así que el médico lo mide en el
+cajón 2D —el único de los dos que ofrece medirlo, el del Doppler es `armable:false`— y ese valor
+no llegaba al cálculo. Los dos números a la vista en dos cajones del mismo visor y ninguna fila
+de volumen.
+
+Ahora es un alias, con el mecanismo que ya existía para `vi.tsvi → ao.diam`: `_d2Ref` lee y
+escribe el objeto ajeno y `_d2OrigenMapa` hace que la marca de procedencia A/B/mano cruce el
+alias. Cubierto por **TC-264** (14 condiciones, 5 mutaciones).
+
+**⚠️ DOS LUGARES ESTABAN ATADOS A `vi` Y HABRÍAN FALLADO EN SILENCIO con el segundo alias:**
+- `_d2GrupoConDatos` tenía un `if (m === 'vi')` con el resto genérico. Como el alias **no vive
+  en `E[m]`**, el grupo VD habría dicho «sin datos» con el valor cargado — y de ahí salen el
+  aviso de «Limpiar» y la compuerta de guardado. Ahora deriva los alias de `_D2_ALIAS` por grupo.
+- `_d2Limpiar` borraba sólo `vi.tsvi`. Ahora recorre `_D2_ALIAS`.
+
+Al agregar un tercer alias, buscar esos dos patrones primero: cualquier cosa que nombre
+`'vi.tsvi'` a mano es candidata.
+
+### Lo que encontró `/sharp-edges` sobre el alias
+
+- **«Limpiar» del cajón Doppler se llevaba el Diam TSVD del 2D sin decirlo.** El diff había
+  actualizado el lado 2D y dejado el Doppler nombrando sólo el TSVI — y el comentario de arriba
+  afirmaba una simetría que había dejado de existir. El flujo es el **normal**: medir el TSVD con
+  la regla en 2D, abrir el grupo Doppler para el VTI, tocar «Limpiar» creyendo que limpia el
+  Doppler. Ahora los dos diálogos derivan la lista de `_D2_ALIAS`.
+- **`dopCorregir` no repintaba el cajón 2D.** `_dopLimpiar` sí lo hacía y declara por qué; faltaba
+  en la corrección puntual, donde pesa **más**: el Diam TSVD es `armable:false` en el Doppler, así
+  que ✏️ es la única vía de entrada por ese lado.
+- **El `Vol Eyectivo VD` no entraba en la leyenda de derivados que cruzan insumos** de la tabla
+  guardada. Es el **más** propenso de los tres: su diámetro se mide en 2D y su VTI se traza en el
+  Doppler, así que por diseño salen de dos gestos, y con dos vistas abiertas de dos pantallas. El
+  PNG circula solo y puede terminar en un PDF.
+- **El descargo del cajón 2D dice que nada se guarda, y dos de sus filas sí**: los alias viven en
+  el cajón Doppler y entran en su «Guardar tabla». Preexistente para el TSVI; el alias lo
+  duplicaba.
+- **Un `plazo` viejo del recorte podía pintar el cuadro 0 del cineloop NUEVO.** Cambiar de loop
+  dentro de la ventana de espera dispara otro `_cineRecorteMedir` que difiere su pintado **sin
+  tocar `V.gen`**, así que el closure del loop viejo veía el `gen` intacto, pintaba sin recorte y
+  consumía el turno del pintado bueno. Ahora `pintar()` comprueba también la identidad del loop.
+
+**Queda declarado, no corregido:** el cajón Doppler sólo dice que el Diam TSVD es compartido
+*dentro* del aviso de insumo faltante, mientras el 2D lo declara siempre. Con los dos insumos
+cargados, la fila aparece sin una palabra de que el mismo número se puede borrar desde el otro
+cajón. Es idéntico a cómo está el TSVI hoy, así que es asimetría de diseño preexistente.
+
+### Censo de los campos que el pedido de las dos columnas nombraba y «no existían»
+
+El pedido listaba «Grad max VM» y trece campos tricuspídeos. No se inventaron entonces, y este
+censo dice qué hay realmente. **Cruzado contra el código, no de memoria** — y eso importa,
+porque la primera pasada adivinó los ids y produjo **ocho «no existe» falsos**: los campos
+tricuspídeos sí están, con otros nombres (`dt_onda_e`, `dt_eprime_lat`, `et_vti_diast`…).
+Buscar por id inventado es grepear el literal, no leer la función.
+
+**No existe en ninguna parte: UNO.**
+- **Grad máx VT.** El bloque de estenosis tricuspídea tiene `et_grado`, `et_gmedio`, `et_thp`,
+  `et_vti_diast` y `et_avt`, y ningún gradiente máximo. **Probablemente correcto**: la estenosis
+  tricuspídea se gradúa por gradiente MEDIO, no por pico. Antes de agregarlo, confirmar que no
+  es una omisión deliberada.
+
+**Existen en el informe pero en NINGÚN cajón: doce.**
+
+| campo | id | nota |
+|---|---|---|
+| Grad máx VM | `em_gmax` | |
+| VTI IT | `it_vti` | |
+| PmAD | `pmad` | **readonly**, se deriva de la VCI — no puede ser un campo medible |
+| Onda S′ | `s_prime` | |
+| TRIV del VD | `dt_triv` | ⚠️ `triv` a secas es el del **VI**: son dos campos distintos |
+| E (VT) · A (VT) | `dt_onda_e` · `dt_onda_a` | |
+| e′ lateral VD | `dt_eprime_lat` | |
+| VTI VT | `et_vti_diast` | |
+| Grad medio VT | `et_gmedio` | |
+| E/A (VT) · E/e′ (VT) | — | derivados en `dopTricEstado` / `dtDiastEstado`, sin input propio |
+
+Los quince restantes ya están en un cajón; el único que vive en el 2D y no en el Doppler es la
+**VCI**.
+
+**La lectura:** el diseño original no estaba mal especificado — pedía mediciones que la app
+tiene. Lo que estaba mal es *dónde* las buscaba: pedía para el cajón del visor campos que hoy
+sólo se cargan a mano en el informe. La pregunta para el médico no es «¿agregamos campos
+nuevos?» sino **«¿cuáles de estos doce se miden de verdad sobre la imagen?»** — los que sí, se
+cablean al cajón como se acaba de hacer con el Diam TSVD.
+
+---
+
+## Recorte del margen negro del cineloop (2026-09-25)
+
+El cuadro que exporta el ecógrafo es un lienzo más grande que la imagen. Se recorta el negro
+sobrante para que el sector ocupe más pantalla. Cubierto por **TC-263** (15 condiciones,
+6 mutaciones) y verificado aparte contra archivos reales de los dos equipos.
+
+### Lo que hay que medir ANTES de creerle al pedido
+
+| | GE Vivid iq | Sonoscape PAD |
+|---|---|---|
+| lienzo · cuadros | 1016×708 · 161 | 1392×944 · 463 |
+| contenido no negro | x 46..999 · y 42..707 | x 0..1391 · y 0..943 |
+| recorte resultante | (44,40) 958×668 | **ninguno** |
+| ganancia de área | ×1,12 | ×1,00 |
+| en pantalla | ×1,06 de escala lineal | sin cambio |
+
+**El Sonoscape no tiene margen negro.** Su lienzo está lleno de borde a borde: la franja
+superior con los datos, el panel de parámetros a la izquierda, la escala de profundidad a la
+derecha y el `***bpm` abajo llegan al último píxel. El recorte se abstiene, correctamente. No
+hace falta lógica distinta por fabricante — el mismo criterio contesta bien en los dos.
+
+### ⚠️ LA REGIÓN QUE DECLARA EL DICOM **NO** ES EL BORDE DEL NEGRO
+
+Tentación obvia: `RegionLocation*` (0018,6018-601E) está ahí y da mucho más — ×1,71 en GE y
+×1,44 en Sonoscape. **Medido: hay contenido real fuera de la región en las CUATRO direcciones,
+en los dos equipos.** Recortar ahí tira, en GE, la barra de ECG del pie (y 658..707), la barra
+de color (x 865..994) y parte de la escala de profundidad —los números 5/10/15 quedan
+**cortados por la mitad**, porque caen a caballo de x0=151—; y en Sonoscape, el panel de
+parámetros de adquisición y la franja superior. Decisión de Maicol (2026-09-25): **no se
+recorta a la región en ningún caso**, el costo clínico no se justifica por el tamaño.
+
+### ⚠️ UN CUADRO NO ALCANZA PARA MEDIR EL RECORTE
+
+El pedido decía medir el primer cuadro. En el Sonoscape real, el cuadro 1 da `y1 = 917` y los
+otros 462 dan `935`: calcularlo así se comía **18 px de imagen real durante todo el resto del
+loop**, sin ningún aviso. Se muestrean nueve cuadros repartidos y se toma la **unión** — sigue
+siendo un recorte fijo, que es lo que el pedido quiere evitar que «salte» entre cuadros.
+
+### ⚠️ EL UMBRAL MIRA EL CANAL MÁS ALTO, NO LA LUMINANCIA — y eso cambió la respuesta
+
+Primera medición con luma: Sonoscape parecía tener 8 px de margen abajo. Con el canal máximo
+no tiene **ninguno**. La barra de ECG del GE es un verde azulado y sus marcadores son rojos; la
+luma los pondera hacia abajo y un rojo saturado cae por debajo del umbral, así que el recorte
+se los come. Ante la duda, recortar de menos: umbral 24 sobre cualquier canal, más 2 px de
+holgura.
+
+### El recorte NO toca un solo píxel, y por eso la calibración no se entera
+
+Las mediciones salen de `PhysicalDeltaX/Y`, que son mm **por píxel de la imagen original**.
+Recortar el bitmap obligaría a corregir el origen en las cinco llamadas a `_dcmImgRegionEn` y
+en el overlay; reescalar para «rellenar» invalidaría la escala directamente. En vez de eso el
+canvas conserva su tamaño (`cols × filas`) y el recorte se hace **clipeando con CSS**: un
+envoltorio `cine-recorte` con `overflow:hidden` y el canvas dentro, escalado y corrido con
+porcentajes. `_medPunto` ya divide por `cv.width / r.width`, así que es inmune a cualquier
+escala uniforme. **Corolario: nada de la cadena de medición, captura, PDF o biblioteca se
+modificó.** La captura sigue saliendo del JPEG original, con el lienzo entero.
+
+El overlay tiene que ser **hermano** del canvas dentro del envoltorio: `_medPintar` lo posiciona
+contra `base.parentElement`, así que compartiendo envoltorio se recorta igual y las reglas
+siguen calzando. Ese es el único motivo por el que el envoltorio existe y no un `clip-path`.
+
+**El `max-width: calc(56vh * cw/ch)` no es decorativo: es lo único que impide el estirado.**
+Con `width:100%` y `aspect-ratio`, el `max-height:56vh` aplasta la caja y la proporción se
+rompe. Es la única línea de todo esto que puede distorsionar.
+
+**La anisotropía no es cero, y conviene saber el piso: ~5·10⁻⁵ relativo.** El alto va en `auto`,
+así que el navegador lo deriva de la proporción intrínseca y lo redondea a su unidad de layout.
+Sobre una medición de 200 px son 0,01 px ≈ 0,0003 mm. Y **no toca el número ni así**: `_medPunto`
+convierte cada eje con su propia relación, de modo que la anisotropía de pantalla se cancela al
+pasar a coordenadas de imagen. Por eso el mm da idéntico mientras la escala visual difiere en
+10⁻⁵ — no confundir las dos cosas al escribir un aserto.
+
+### ⚠️ LOS CUADROS DEL SONOSCAPE TRAEN DATOS DEL PACIENTE QUEMADOS
+
+La franja superior lleva **nombre, cédula, fecha de nacimiento, edad, sexo e institución** en los
+píxeles. Consecuencias que conviene tener a mano:
+- Ningún cuadro de ese equipo puede entrar al repo como fixture de test — esto publica en
+  GitHub Pages. El caso permanente usa cuadros sintéticos por eso, no por comodidad.
+- **Toda captura de un cineloop Sonoscape que va al PDF, a la biblioteca o al PPT lleva esa
+  franja.** Dentro del informe del propio paciente es esperable; para material de docencia o
+  para compartir un caso, no. Queda declarado como pendiente, no se tocó en esta ronda.
+
+### Tres errores de verificación de esta ronda, que valen más que el código
+
+1. **El caso comparaba «después contra después».** `_cineCargarLoop` mide en segundo plano y a
+   los 400 ms de abrir el cineloop el recorte **ya está aplicado**: la «línea base» se tomaba con
+   el recorte puesto y el caso daba verde sin probar nada. Hay que apagarlo a mano y **verificar
+   que está apagado** antes de medir — TC-263 lo hace con la condición `baseLimpia`.
+2. **Cinco mutaciones «mataron» el caso y no probaban nada.** Al sacar unos diagnósticos con un
+   corte por índice me llevé puesto el cierre del caso —y de paso **TC-262 entero**—, así que
+   fallaba por `SyntaxError` con y sin mutación. **Correr siempre la base sin mutar en la misma
+   tanda**, y no leer un rojo como una señal.
+3. **`MouseEvent.clientX/Y` son enteros.** Un clic sintético sobre el píxel de imagen P cae en el
+   entero de pantalla más cercano, y eso son ~2,7 px de imagen sin recorte contra ~2,5 con él.
+   Comparar el mm de punta a punta entre los dos estados mide **esa cuantización**, no la
+   calibración: la primera versión reportó 81,164 contra 81,002 mm y parecía que el recorte movía
+   la escala. Se parte en dos afirmaciones que sí son exactas — la escala en un punto y el mapeo
+   pantalla→imagen contra el entero clickeado— y el mm de punta a punta se acota por la
+   cuantización, declarándola.
+
+### Lo que encontró `/sharp-edges` y se corrigió en el mismo commit
+
+- **`_cineRecorteAplicar` mueve el layout y no recalzaba las mediciones.** La regla ya está
+  escrita en `_vAccionesSync` —«si el layout se movió, hay que recalzar»— y nombra a las tres
+  funciones que lo hacen; ésta era la cuarta. Funcionaba **por accidente**: una llamada repintaba
+  a mano y la otra quedaba cubierta porque cuatro líneas más abajo se escribe `cual.textContent`
+  y eso dispara el `MutationObserver` que llama a `medCambioDeImagen`. Los calipers quedaban
+  calzados gracias a un observador ajeno. Ahora recalza ella misma y es el único dueño.
+- **`L.recorte = null` significaba dos cosas: «midiendo» y «no hay recorte».** Un segundo
+  llamador durante la medición recibía ese `null` como resultado final, y un fallo transitorio
+  quedaba cacheado como «este loop no tiene margen» **para siempre**. Se cachea la promesa, que
+  da tres estados de verdad.
+- **La muestra no estaba acotada.** `paso = floor(n/9)` daba `paso = 1` para loops de 9 a 17
+  cuadros: la constante prometía nueve y podían ser diecisiete. Ahora la lista de índices se
+  arma explícita, incluye el primero y el último, y nunca pasa de nueve.
+- **El barrido era de cuadro entero.** 1,31 M de píxeles por cuadro del Sonoscape, 11,8 M de
+  iteraciones por medición, sin ceder el hilo, compitiendo con un `setInterval` de reproducción
+  que corre a 17,9 ms en el loop más rápido del pendrive. Ahora son **cuatro barridos
+  direccionales con salida temprana**: sólo se recorre el margen. En GE, ~90 k lecturas en vez
+  de 719 k; en Sonoscape, que no tiene margen, corta en el primer píxel de cada lado.
+  **No se submuestrea la grilla**, que sería lo obvio: saltear de a 4 puede perderse una línea de
+  1 px —la barra de ECG lo es— y ese error recorta contenido, que es la dirección equivocada.
+- **Nada abortaba una medición en vuelo.** Retenía el `L` del loop, o sea los 17 MB del archivo
+  que `cineCerrar` se ocupa de soltar, y seguía decodificando. Ahora aborta al cerrar el visor o
+  cuando el loop deja de estar a la vista.
+  **⚠️ La primera versión de ese corte usaba un contador global incrementado en
+  `_cineCargarLoop`, y se abortaba a sí misma**: recargar el mismo cineloop pasa por ahí y
+  `_cineRecorteDe` devuelve la promesa en vuelo, que ya venía condenada — el recorte no aparecía
+  nunca. La pregunta correcta es «¿sigue este loop a la vista?», no un contador.
+- **`cineIr` puede redimensionar el canvas después de aplicado el recorte.** Un cuadro que
+  decodifique a un tamaño distinto de `cols × filas` cambia la proporción intrínseca y
+  `top:-y0/ch%` deja de caer en la fila que corresponde: la ventana muestra la parte equivocada,
+  en silencio. Ahora `cineIr` vuelve a ejercer la guarda al redimensionar.
+
+### Lo que sharp-edges encontró y NO se corrigió — declarado
+
+- **`overflow:hidden` puede recortar la ETIQUETA de una medición, y la captura no.** `_medPintar`
+  dibuja el número fuera del punto medido (~15-23 px arriba). Antes esa caja se derramaba sobre
+  el margen negro y se veía; ahora, con 2 px de holgura, una medición anclada cerca del borde del
+  contenido pierde su número **en pantalla pero no en el PNG**. El caso más probable es el VTI,
+  cuyo rótulo va por encima del pico de la envolvente. En la práctica el sector está lejos del
+  borde del recorte —el recuadro de contenido incluye la escala de profundidad y la barra de
+  color, que están más afuera que el sector—, así que es estrecho. El arreglo es acotar la caja
+  del rótulo al rectángulo de recorte, que es el mismo recurso que `_labBoxCanvas` ya usa.
+- **El recorte es sólo de pantalla: la captura sale con el lienzo entero.** Y hay un motivo
+  fuerte para que siga así, que conviene tener escrito: `_cineRegistro` guarda `regiones` en
+  coordenadas de la imagen ORIGINAL, así que recortar los píxeles capturados desalinearía la
+  escala DICOM al reabrir esa imagen desde la tira. **Si alguna vez se recorta la captura, hay
+  que trasladar `x0/y0` a `regiones` en el mismo commit.**
+- **Contenido que sólo aparece en un cuadro no muestreado se pierde mudo.** La unión es sobre
+  nueve de hasta 463, y la premisa «los cuadros son iguales» ya está desmentida por el dato que
+  motivó el muestreo. Un marcador que se enciende a mitad del loop cae fuera. La corrección
+  barata y auto-correctiva: `cineIr` ya decodifica cada cuadro que el médico mira, así que
+  comprobar sólo las cuatro franjas recortadas y **ensanchar** la caja cierra el agujero por
+  construcción.
+- **`L.recorte` no se persiste**, así que reabrir un estudio vuelve a medir, por loop y por
+  vista. Son seis números sin dato del paciente, del mismo tipo que `regiones`, que sí viajan.
+
+### ⚠️ EL PINTADO DIFERIDO DEVOLVÍA AL MÉDICO AL CUADRO 0 — regresión propia, la cazó TC-182
+
+Al diferir el primer pintado hasta que el recorte esté, el `cineIr(0)` diferido pisaba lo que el
+médico hubiera elegido mientras tanto: mover el slider —o apretar ▶— dentro de los 450 ms de
+espera y volver al principio. Con 41 cuadros y medio segundo, es alcanzable con sólo ser rápido.
+**No era un defecto del caso.** Se guarda `V.gen` antes de diferir y no se fuerza el cuadro 0 si
+cambió — y acá `V.gen` **sí** es la guarda correcta, al revés que en el `.then()` de la medición:
+`cineIr` lo incrementa en cada cuadro, así que un `gen` distinto significa exactamente «ya se
+pidió dibujar algo», que es la pregunta que hay que hacerse antes de pisar.
+
+### Una mutación que el caso sintético no veía
+
+Cambiarle el signo al corrimiento (`left: +x0` en vez de `-x0`) deja el mapeo **perfecto** y
+muestra el trozo equivocado: la sonda invierte el mismo rect que usó para clickear, así que da
+exacta igual. Lo cazó el caso de archivos reales. Se agregó a TC-263 la condición que faltaba —
+dónde cae la esquina del recorte respecto de la esquina del envoltorio (con la mutación puesta,
+99,66 px de desvío).
+
+---
+
 ## Cajón Doppler en dos columnas, y el Vol Eyectivo VD (2026-09-25)
 
 Cada válvula reparte sus filas en dos columnas, en pantalla **y** en la captura que va a la
@@ -93,25 +362,31 @@ envolvente, un jet de IP da un número plausible dentro de banda `[2,60]` y el v
 **sobreestimado sin ninguna señal**. Los dos insumos son la misma medición anatómica, así que
 llevan el mismo apellido.
 
-### ⚠️ `pul.diamTsvd` y `vd.tsvd` son DOS campos con el mismo rótulo
+### ~~⚠️ `pul.diamTsvd` y `vd.tsvd` son DOS campos con el mismo rótulo~~ — CERRADO el mismo día
 
-El cajón 2D ya tenía un «Diam TSVD», y es el único de los dos que ofrece **medirlo** (es una
-distancia sobre 2D; el del cajón Doppler es `armable:false`, sólo ✏️). El que alimenta el volumen
-es el del cajón Doppler. O sea que el camino natural —medir con la regla en 2D— **no llega**, y sin
-aviso el médico ve los dos números en dos cajones del mismo visor y ninguna fila de volumen.
+Nació duplicado: el cajón 2D ya tenía un «Diam TSVD», y es el único de los dos que ofrece
+**medirlo** (es una distancia sobre 2D; el del cajón Doppler es `armable:false`, sólo ✏️). El que
+alimentaba el volumen era el del cajón Doppler, así que el camino natural —medir con la regla en
+2D— **no llegaba**: el médico veía los dos números en dos cajones del mismo visor y ninguna fila
+de volumen. No se alió en su momento por ALCANCE, no por diseño — ese pedido prohibía tocar el
+cajón de Distancia 2D.
 
-La corrección de fondo es aliasarlo, como `vi.tsvi → ao.diam`: el mecanismo ya existe (`_D2_ALIAS`,
-`_d2Ref`, `_d2OrigenMapa`). **No se hizo por ALCANCE, no por diseño** — el pedido dice explícitamente
-no tocar el cajón de Distancia 2D y el alias se cablea de los dos lados. Mientras tanto, cuando hay
-un insumo y falta el otro, el cajón **lo dice y nombra el cajón 2D**. Queda anotado como deuda.
+**Cerrado el 2026-09-25**: `vd.tsvd` es un alias de `pul.diamTsvd`. Ver la entrada «El Diam TSVD
+es UNO solo» al principio de este archivo, que además documenta los dos lugares que estaban
+atados a `vi` y habrían fallado en silencio.
 
-### Lo que el pedido nombraba y NO existe en la app — no se inventó
+### Lo que el pedido nombraba y no está EN EL CAJÓN — no se inventó
 
 El pedido listaba «Grad max VM» y trece campos tricuspídeos (`VTI IT`, `VCI`, `PmAD`, `PSAP`,
 `Onda S'`, `TRIV`, `E`, `A`, `E/A`, `e' lateral`, `E/e'`, `VTI VT`, `Grad Máx VT`, `Grad Medio VT`).
-Ninguno existe hoy en el cajón. **No se crearon**: SEGURIDAD autorizaba el reparto en columnas y el
-cálculo del Vol Eyectivo VD, nada más. Campos nuevos son mediciones nuevas, no presentación. La
-tricúspide quedó repartida con los cinco que tiene (3 izquierda / 2 derecha).
+Ninguno existe hoy **en el cajón**. **No se crearon**: SEGURIDAD autorizaba el reparto en columnas
+y el cálculo del Vol Eyectivo VD, nada más. Campos nuevos son mediciones nuevas, no presentación.
+La tricúspide quedó repartida con los cinco que tiene (3 izquierda / 2 derecha).
+
+**⚠️ «No existe en el cajón» ≠ «no existe en la app», y esta entrada decía lo segundo.** El censo
+del 2026-09-25 —ver «El Diam TSVD es UNO solo» al principio— encontró que **doce de esos catorce
+SÍ existen como campos del informe**, con otros nombres (`dt_onda_e`, `dt_eprime_lat`,
+`et_vti_diast`…), y que el único ausente de toda la app es `Grad máx VT`.
 
 ---
 
