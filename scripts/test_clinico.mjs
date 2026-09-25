@@ -10095,6 +10095,187 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
 
 
 
+
+
+
+caso('TC-265', 'La base del informe viaja con el estudio: el texto escrito a mano sobrevive a una reapertura', `
+  return (async () => {
+    if (typeof _refrescarInformeSiGenerado !== 'function' || typeof infBaseDesdeDOM !== 'function')
+      return { extra:[['existe el punto de entrada', false, 'faltan _refrescarInformeSiGenerado o infBaseDesdeDOM']] };
+    const _cf = window.confirm;
+    try {
+      const T  = () => document.getElementById('informe_texto');
+      const NL = String.fromCharCode(10);
+      const set = (id, v2) => { const e = document.getElementById(id); if (e) e.value = v2; };
+      const preparar = () => {
+        set('nombre','Prueba Refresco'); set('fevi','60'); set('ddfvi','48'); set('vci_diam','24');
+        const vcol = document.getElementById('vci_col'); if (vcol) vcol.selectedIndex = 1;
+        if (typeof calcPmAD === 'function') calcPmAD();
+        if (typeof calcVEXUS === 'function') calcVEXUS();
+        const per = document.getElementById('pericardio'); if (per) per.selectedIndex = 3;
+        if (typeof dptSync === 'function') dptSync();
+        generarInforme();
+      };
+      const moverVexus = (mm) => { set('vci_diam', mm);
+        if (typeof calcPmAD === 'function') calcPmAD();
+        if (typeof calcVEXUS === 'function') calcVEXUS(); };
+      const moverPericardio = (i2) => { const per = document.getElementById('pericardio');
+        if (per) per.selectedIndex = i2; if (typeof dptSync === 'function') dptSync(); };
+      /* Reapertura FIEL: se escribe a mano, se toma la foto de lo que 'guardarInforme' guardaria
+         —la base de ESE momento— y se llama a 'infBaseDesdeDOM(campos)', que es literalmente lo
+         que hacen 'editarInforme' y 'cargarEstudioPorId'. */
+      const guardarYReabrir = (marca, conBase) => {
+        const campos = { informe_base: JSON.stringify(_infBase || null),
+                         suma_base:    JSON.stringify(_sumaBase || null) };
+        T().value = T().value + NL + marca;
+        infBaseDesdeDOM(conBase ? campos : undefined);
+        return campos;
+      };
+      let preguntas = [];
+      window.confirm = (m) => { preguntas.push(String(m)); return true; };
+
+      /* ══ 1 · SIN REABRIR: '_infMerge' ya protege, y no se pregunta ══ */
+      preparar(); await new Promise(r => setTimeout(r, 200));
+      T().value = T().value + NL + 'LINEA SIN REABRIR';
+      preguntas = []; moverVexus(19); vexusRefrescarInforme();
+      await new Promise(r => setTimeout(r, 150));
+      const sinReabrir = T().value.indexOf('LINEA SIN REABRIR') > -1 && preguntas.length === 0;
+
+      /* ══ 2 · EL VIAJE REAL: GUARDAR Y REABRIR DE VERDAD ══
+         ⚠️ NO se fabrican los 'campos' a mano. La primera version de este caso los armaba en el
+         propio test y por eso NO detectaba la mutacion que hace que 'guardarInforme' deje de
+         guardar la base: probaba el lado que CONSUME el dato y no el que lo PRODUCE. Aca se
+         guarda y se reabre por las funciones reales, que es donde vivieron los bugs caros de
+         esta app. */
+      preparar(); await new Promise(r => setTimeout(r, 200));
+      T().value = T().value + NL + 'LINEA VEXUS';
+      const g2 = await __t.guardar();
+      if (!g2.ok || !g2.estudioId) return { extra:[['DENOMINADOR: el estudio se guardo', false, JSON.stringify(g2)]] };
+      __t.nuevoEstudio(); await new Promise(r => setTimeout(r, 150));
+      __t.reabrir(g2.estudioId); await new Promise(r => setTimeout(r, 400));
+      const traeBase = (() => { const i2 = getInformes().find(x => x.estudioId === g2.estudioId);
+        try { return Array.isArray(JSON.parse(i2.campos.informe_base)); } catch (e) { return false; } })();
+      const reabrioConLaLinea = T().value.indexOf('LINEA VEXUS') > -1;
+      const antes2 = T().value;
+      preguntas = []; moverVexus(19); vexusRefrescarInforme();
+      await new Promise(r => setTimeout(r, 150));
+      const vexusConserva = T().value.indexOf('LINEA VEXUS') > -1;
+      const vexusNoPregunta = preguntas.length === 0;
+      /* DENOMINADOR: y el refresco de verdad corrio — si no, «conserva» seria trivial. */
+      const vexusRefresco = T().value !== antes2;
+
+      /* ══ 3 · IDEM PERICARDIO, verificado POR SEPARADO ══ */
+      preparar(); await new Promise(r => setTimeout(r, 200));
+      guardarYReabrir('LINEA PERICARDIO', true);
+      const antes3 = T().value;
+      preguntas = []; moverPericardio(4); dptCambio();
+      await new Promise(r => setTimeout(r, 150));
+      const periConserva = T().value.indexOf('LINEA PERICARDIO') > -1;
+      const periNoPregunta = preguntas.length === 0;
+      const periRefresco = T().value !== antes3;
+
+      /* ══ 4 · ESTUDIO VIEJO, SIN BASE GUARDADA: ahi si se pregunta ══ */
+      preparar(); await new Promise(r => setTimeout(r, 200));
+      guardarYReabrir('LINEA VIEJA', false);
+      preguntas = []; moverVexus(19); vexusRefrescarInforme();
+      await new Promise(r => setTimeout(r, 150));
+      const viejoPregunta = preguntas.length === 1;
+      const viejoTexto = (preguntas[0] || '').indexOf('versión anterior') > -1;
+      const viejoAceptarPisa = T().value.indexOf('LINEA VIEJA') < 0;
+
+      /* ══ 5 · CANCELAR PRESERVA, y no reitera ══ */
+      window.confirm = (m) => { preguntas.push(String(m)); return false; };
+      preparar(); await new Promise(r => setTimeout(r, 200));
+      guardarYReabrir('LINEA CANCELAR', false);
+      preguntas = []; moverVexus(19); vexusRefrescarInforme();
+      await new Promise(r => setTimeout(r, 150));
+      const cancelaPreserva = T().value.indexOf('LINEA CANCELAR') > -1 && preguntas.length === 1;
+      preguntas = []; moverVexus(30); vexusRefrescarInforme();
+      await new Promise(r => setTimeout(r, 150));
+      const cancelaNoReitera = preguntas.length === 0 && T().value.indexOf('LINEA CANCELAR') > -1;
+
+      /* ══ 6 · NADA SE TOCA ANTES DE LA RESPUESTA ══
+         ⚠️ ESTE ES EL DEFECTO QUE TUVO LA PRIMERA VERSION DE ESTE ARREGLO. Para saber si el
+         refresco cambiaba algo, se ejecutaba y se deshacia; pero 'generarInforme' escribe 16
+         superficies —'ccHojaReset' vacia las catorce 'cc-txt-*', que son las hojas de CC del
+         PDF— y el deshacer restituia dos. Medido: al CANCELAR, una hoja de CC guardada quedaba
+         VACIA. La condicion vive aca para que no vuelva por la puerta de al lado. */
+      preparar(); await new Promise(r => setTimeout(r, 200));
+      if (typeof ccHojaInit === 'function') ccHojaInit();
+      const hojas = Array.from(document.querySelectorAll('textarea[id^="cc-txt-"]'));
+      const victima = hojas[0] || null;
+      if (victima) victima.value = 'HOJA GUARDADA DE OTRA VERSION';
+      guardarYReabrir('LINEA HOJAS', false);
+      window.confirm = (m) => { preguntas.push(String(m)); return false; };
+      preguntas = []; moverVexus(19); vexusRefrescarInforme();
+      await new Promise(r => setTimeout(r, 200));
+      const hojaIntacta = !!victima && victima.value === 'HOJA GUARDADA DE OTRA VERSION';
+
+      /* ══ 7 · UN INFORME VACIO NO CUENTA COMO «AJENO» ══
+         'infBaseDesdeDOM' deja [''] —que no es null— y el aviso saltaba sobre un texto escrito
+         ENTERO en esta sesion afirmando que venia de otra. */
+      if (typeof limpiarCampos === 'function') limpiarCampos(true);
+      await new Promise(r => setTimeout(r, 150));
+      infBaseDesdeDOM();                       // informe vacio
+      const vaciaNoEsAjena = (typeof _infBaseAjena === 'function') ? _infBaseAjena() === false : true;
+
+      /* ══ 7bis · UNA BASE GUARDADA CORRUPTA SE IGNORA ══
+         'campos' viaja en el respaldo JSON que el medico puede editar, y los importados de PDF
+         arman la clave por su cuenta. Una base que no sea un array de strings haria que el merge
+         compare contra basura —peor que no tener base—, asi que se cae al DOM, que es el camino
+         conocido y el que pregunta. */
+      const corruptas = [
+        { informe_base: '{no es json' },
+        { informe_base: '{"a":1}' },
+        { informe_base: '[1,2,3]' },
+        { informe_base: '"una cadena"' }
+      ];
+      let corruptaOk = true;
+      for (const c of corruptas) {
+        preparar(); await new Promise(r => setTimeout(r, 200));
+        T().value = T().value + NL + 'LINEA CORRUPTA';
+        infBaseDesdeDOM(c);
+        /* Se cayo al DOM: la base es el texto de la pantalla, y por lo tanto AJENA. */
+        if (!(typeof _infBaseAjena === 'function' && _infBaseAjena() === true)) corruptaOk = false;
+      }
+
+      /* ══ 8 · EL REFRESCO NORMAL —base propia— sigue corriendo solo ══ */
+      preparar(); await new Promise(r => setTimeout(r, 200));
+      const antes8 = T().value;
+      window.confirm = (m) => { preguntas.push(String(m)); return true; };
+      preguntas = []; moverVexus(19); vexusRefrescarInforme();
+      await new Promise(r => setTimeout(r, 150));
+      const normalOk = preguntas.length === 0 && T().value !== antes8 && T().value.trim().length > 0;
+
+      return { extra: [
+        ['DENOMINADOR: el refresco de verdad reescribe el texto', normalOk, ''],
+        ['escribir SIN reabrir no corre peligro, y no se pregunta', sinReabrir, ''],
+        ['DENOMINADOR: el estudio guardado TRAE la base en campos', traeBase, ''],
+        ['  y reabre con la linea escrita a mano', reabrioConLaLinea, ''],
+        ['CON LA BASE GUARDADA, VEXUS ya NO pisa lo escrito a mano', vexusConserva, ''],
+        ['  y no pregunta nada', vexusNoPregunta, 'preguntas=' + (vexusNoPregunta ? 0 : 1)],
+        ['  DENOMINADOR: y el refresco igual corrio', vexusRefresco, ''],
+        ['PERICARDIO: idem, verificado aparte', periConserva && periNoPregunta, ''],
+        ['  DENOMINADOR: y el refresco igual corrio', periRefresco, ''],
+        ['un estudio SIN base guardada si pregunta', viejoPregunta, 'preguntas=' + preguntas.length],
+        ['  y el aviso dice que es de una version anterior', viejoTexto, (preguntas[0] || '').slice(0, 70)],
+        ['  y aceptar rehace', viejoAceptarPisa, ''],
+        ['CANCELAR preserva el texto', cancelaPreserva, ''],
+        ['  y no vuelve a preguntar', cancelaNoReitera, ''],
+        ['NO SE TOCA NINGUNA HOJA DE CC ANTES DE LA RESPUESTA', hojaIntacta,
+          victima ? (victima.id + ' = «' + String(victima.value).slice(0, 34) + '»') : 'no hay cc-txt'],
+        ['un informe VACIO no cuenta como base ajena', vaciaNoEsAjena, ''],
+        ['una base guardada CORRUPTA se ignora y se cae al DOM', corruptaOk,
+          'probadas=' + corruptas.length]
+      ] };
+    } finally {
+      window.confirm = _cf;
+      try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+  })();
+`);
+
 caso('TC-264', 'Diam TSVD: UN solo valor en el visor — medido en el cajon 2D alimenta el Vol Eyectivo VD', `
   return (async () => {
     if (typeof _d2Poner !== 'function' || typeof _D2_ALIAS === 'undefined')

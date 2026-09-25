@@ -4,6 +4,106 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## El refresco silencioso pisaba el texto de un estudio reabierto (2026-09-25)
+
+VEXUS y los dos módulos de Pericardio rehacen el informe cuando cambia un dato que el informe
+menciona. Sobre un estudio **reabierto**, eso borraba sin una palabra lo que el médico había
+escrito a mano en la sesión anterior. Cubierto por **TC-265** (13 condiciones, 3 mutaciones).
+
+### La tabla del diagnóstico — medido, no leído
+
+| escenario | qué pasa |
+|---|---|
+| escribir a mano **sin** reabrir | **sobrevive** |
+| escribir a mano, guardar, **reabrir**, cambiar un dato de VEXUS | **se pierde entero** |
+| ídem con Pericardio | **se pierde entero** |
+| reabrir, **después** escribir, cambiar un dato | **sobrevive** |
+
+**Es un solo mecanismo para los dos módulos**: VEXUS (`vexusRefrescarInforme`) y Pericardio
+(`dptCambio` / `cvrCambio`) entran por la misma `_refrescarInformeSiGenerado`. Verificado por
+separado igual, porque compartir función no garantiza compartir comportamiento.
+
+La causa es el atajo de `_infMerge`: al reabrir, `infBaseDesdeDOM` toma **todo** el texto guardado
+como base, así que `actual === base`, se toma la rama «sin ediciones» y devuelve `nuevo` entero.
+Lo que el médico escribió en otra sesión es indistinguible de lo que generó la app **porque la
+base no guarda de dónde vino cada línea**. No es un descuido del merge: `infBaseDesdeDOM` lo
+declara como decisión —tratar el texto reabierto como manual congelaría los refrescos sobre
+cualquier estudio reabierto—. Lo que faltaba era avisar.
+
+### ⚠️ «GENERAR INFORME» NO AVISA. El pedido decía copiar ese aviso y no existe.
+
+`generarInforme` no tiene ningún `confirm`: reescribe entero y canta un toast **después**.
+
+### LA CORRECCIÓN NO ES UN AVISO: LA BASE VIAJA CON EL ESTUDIO
+
+`guardarInforme` guarda `campos['informe_base']` y `campos['suma_base']` —mismo patrón que
+`contractilidad` y `strain_sgl`: blob sintético sin elemento en el DOM— e `infBaseDesdeDOM(campos)`
+los prefiere al texto de la pantalla. Con eso, al reabrir, `actual !== base` exactamente donde el
+médico escribió y `_infMerge` distingue igual que dentro de la misma sesión: **no hace falta
+ningún diálogo.** Decisión de Maicol (2026-09-25), fuera del alcance original del pedido.
+
+El aviso queda **sólo como respaldo** para lo que no trae base: estudios guardados antes de este
+cambio, borradores del autosave, importados de PDF. Ahí el mensaje puede decir la verdad —«se
+guardó con una versión anterior, no se puede distinguir qué escribiste a mano»— en vez de afirmar
+que hay texto manual en riesgo, que es algo que la app no sabe.
+
+**Una base guardada que no sea un array de strings se ignora** y se cae al DOM: `campos` viaja en
+el respaldo JSON que el médico puede editar, y comparar contra basura es peor que no tener base.
+
+### ⚠️ EL PRIMER INTENTO ERA INSEGURO, Y LA LECCIÓN NO ES OBVIA
+
+La primera versión hacía lo que el pedido pedía: preguntar. Para saber *si había algo que
+perder*, ejecutaba el refresco, comparaba y lo deshacía. **`generarInforme` no escribe dos
+textareas: escribe DIECISÉIS.** Además de `informe_texto` y `en_suma`, `ccHojaReset()` vacía las
+catorce `cc-txt-*`, que son las hojas de CC del PDF y viajan en `campos`. El deshacer restituía
+dos. **Medido: al CANCELAR, una hoja de CC guardada cuya sección hoy no se emite quedaba VACÍA.**
+O sea que la protección borraba una hoja del informe justo cuando el médico decía «no toques
+nada». Lo cazó `/sharp-edges`.
+
+La regla que queda: **ejecutar una función grande «para ver qué pasa» y deshacerla no es una
+operación de sólo lectura.** Antes de sondear así, censar TODO lo que escribe — y si son más de
+dos superficies, buscar otro diseño.
+
+Y una trampa del mismo intento, por si vuelve: el sondeo **se desarmaba a sí mismo**. La corrida
+de prueba pasa por `_infEscribir`, que devuelve un array nuevo, así que la marca de «base ajena»
+—que se deriva de la identidad del array— se caía y la protección duraba un solo refresco.
+
+### La marca de «base ajena» se deriva de la IDENTIDAD del array, sin bandera
+
+`infBaseDesdeDOM` guarda la referencia en `_infBaseDelDOM` **sólo cuando tuvo que caer al DOM**;
+`_infBaseAjena()` es `_infBase === _infBaseDelDOM` y además exige contenido real —con el informe
+vacío la base es `['']`, que no es null, y el aviso saltaba sobre un texto escrito entero en esta
+sesión afirmando que venía de otra—. Como `_infEscribir` devuelve un array nuevo en cada
+generación, la marca se cae sola: no hay bandera que alguien se olvide de bajar.
+
+**⚠️ `slice()` la rompe.** La reimpresión respaldaba con `_infBase.slice()` —copia innecesaria,
+nadie muta estos arrays— y eso destruía la identidad: después de reimprimir cualquier informe, el
+estudio abierto quedaba sin aviso para siempre. Se respalda por referencia, y `_infBaseDelDOM`
+entró a la lista de respaldos. También lo anula `limpiarCampos`, que si no dejaba vivo en memoria
+el informe del paciente anterior.
+
+### Las dos respuestas del aviso, para los estudios sin base
+
+- **Aceptar** → rehace; la base pasa a ser lo que generó la app.
+- **Cancelar** → no rehace y **anula la base**: `_infEscribir` declara que sin base los refrescos
+  quedan inertes hasta «Generar Informe», que es lo que «cancelar» quiere decir. **Se dice con un
+  toast**, porque un automatismo apagado es indistinguible de uno sano.
+- Sin `confirm` disponible el default es **no pisar**. Estaba al revés.
+
+### Censo de los otros refrescos silenciosos
+
+Los disparadores de `generarInforme({silencioso:true})` son **dos**:
+
+- **`_refrescarInformeSiGenerado`** — VEXUS + los dos de Pericardio. Corregido acá.
+- **`amiloRefrescarInforme`** — amiloidosis, disparado por «Integrar» y «Retirar». **Tiene la
+  misma ruta destructiva y tampoco pregunta — medido**: sobre un estudio reabierto con texto
+  manual, lo borra callado. Fuera de alcance por pedido explícito; queda declarado.
+
+`amiloRefrescarSiIntacto` **no** es el mismo patrón: sólo toca su propio `am-txt-<k>` y ya tiene
+su guarda (`_amiloUltimo[k]`, que sólo existe si ese texto lo generó la app en esta sesión).
+
+---
+
 ## El Diam TSVD es UNO solo, y el censo de los campos que el pedido inventó (2026-09-25)
 
 ### El alias: `vd.tsvd` → `pul.diamTsvd`

@@ -17679,9 +17679,65 @@ function vexusRefrescarInforme() {
    dos módulos de Pericardio. Va colgado de `onchange` y NUNCA de `oninput` — regenerar por
    tecla saca el foco del campo y trunca el número; medido con la VCI, tipear «24» dejaba 2 mm,
    que después alimenta PmAD, PSAP y el propio VEXUS. */
+/* ⚠️ SOBRE UN ESTUDIO REABIERTO, EL REFRESCO PREGUNTA ANTES DE PISAR. MEDIDO, no supuesto:
+
+     · escribir a mano SIN reabrir  → el texto SOBREVIVE (`_infMerge` lo clasifica bien)
+     · escribir a mano, guardar, REABRIR, y que cambie un dato de VEXUS  → SE PIERDE ENTERO
+     · reabrir, DESPUÉS escribir, y que cambie un dato  → sobrevive
+
+   El mecanismo es uno solo para los dos módulos —comparten esta función— y es el atajo de
+   `_infMerge`: al reabrir, `infBaseDesdeDOM` toma TODO el texto guardado como base, así que
+   `actual === base`, se toma la rama «sin ediciones» y devuelve `nuevo` entero. Lo que el médico
+   escribió en la sesión anterior es indistinguible de lo que generó la app, porque la base no
+   guarda de dónde vino cada línea. No es un descuido del merge: `infBaseDesdeDOM` lo declara
+   como decisión —tratar el texto reabierto como manual congelaría los refrescos sobre cualquier
+   estudio reabierto—. Lo que faltaba era avisar.
+
+   PATRÓN: el de `eteUsarPlantilla` —«Ya escribiste texto en la técnica. ¿Reemplazarlo por la
+   plantilla?»— que es el que la app ya usa para esto. ⚠️ El pedido decía copiar el de «Generar
+   Informe»: ese aviso NO EXISTE. `generarInforme` no tiene ningún `confirm`; reescribe entero y
+   sólo canta un toast después. Se usó el que sí existe.
+
+   SE PREGUNTA UNA SOLA VEZ, Y SÓLO SI DE VERDAD CAMBIA ALGO. Estos disparadores cuelgan del
+   `onchange` de la VCI, su colapso, el select de pericardio, los milímetros del derrame y tres
+   campos de la diastólica: preguntar en cada uno sería un diálogo por cada dato que se corrige,
+   y un diálogo que aparece siempre se contesta sin leer. Por eso el refresco se ejecuta primero,
+   se compara, y si no cambió nada no se molesta a nadie.
+
+   LAS DOS RESPUESTAS SON ESTABLES, y ninguna deja el aviso repitiéndose:
+     · Aceptar → se rehace, y la base pasa a ser lo que generó la app: de ahí en más `_infMerge`
+       protege lo que se escriba como siempre.
+     · Cancelar → NO se rehace y la base se anula. Eso no es dejarlo a medias: `_infEscribir`
+       declara que sin base los refrescos silenciosos quedan inertes hasta que el médico apriete
+       «Generar Informe», que es exactamente lo que «cancelar» quiere decir — «este texto es mío».
+*/
 function _refrescarInformeSiGenerado() {
   const ta = document.getElementById('informe_texto');
-  if (ta && String(ta.value || '').trim() && typeof generarInforme === 'function') generarInforme({silencioso:true});
+  if (!(ta && String(ta.value || '').trim() && typeof generarInforme === 'function')) return;
+  if (!_infBaseAjena()) { generarInforme({ silencioso: true }); return; }
+
+  /* ⚠️ NO SE «SONDEA» EJECUTANDO EL REFRESCO PARA VER SI CAMBIA ALGO. Esa fue la primera
+     versión y era insegura: `generarInforme` no escribe dos textareas sino DIECISÉIS —además de
+     `informe_texto` y `en_suma`, `ccHojaReset` vacía las catorce `cc-txt-*`, que son las hojas de
+     CC del PDF y viajan en `campos`—. Deshacer sólo los dos dejaba el resto pisado, y MEDIDO:
+     al cancelar, una hoja de CC guardada cuya sección hoy no se emite quedaba VACÍA. O sea que
+     «cancelar» borraba una hoja del informe. Lo cazó `/sharp-edges`.
+     Sin sondeo se pregunta ante el primer refresco de un estudio sin base guardada, cambie o no
+     el texto. Es una pregunta de más en un caso raro —que el médico toque uno de estos controles
+     y el informe no cambie— a cambio de no tocar nada antes de tener la respuesta. */
+  const ok = (typeof confirm === 'function')
+    ? confirm('Este informe se guardó con una versión anterior de la app, así que no se puede ' +
+              'distinguir qué líneas escribiste a mano.\n\nCambió un dato que el informe ' +
+              'menciona. Rehacerlo REEMPLAZA el texto actual.\n\n¿Rehacer el informe?')
+    : false;   /* sin `confirm` el default es el CONSERVADOR: no pisar. */
+  _infBaseDelDOM = null;                      // se preguntó: la base deja de ser «ajena»
+  if (ok) { generarInforme({ silencioso: true }); return; }
+  /* «Este texto es mío»: sin base, `_infMerge` devuelve lo actual y los refrescos quedan inertes
+     hasta que el médico apriete «Generar Informe». Se dice, porque un automatismo apagado es
+     indistinguible de uno sano. */
+  _infBase = null; _sumaBase = null;
+  if (typeof toast === 'function')
+    toast('El informe no se actualizará solo — usá «Generar Informe» cuando quieras rehacerlo');
 }
 window._refrescarInformeSiGenerado = _refrescarInformeSiGenerado;
 window.vexusRefrescarInforme = vexusRefrescarInforme;
@@ -23096,13 +23152,51 @@ function _infEscribir(id, lineasNuevas, silencioso, base) {
 /* El texto de un estudio recién cargado cuenta como base: no lo escribió el médico en ESTA
    sesión, y tratarlo como manual habría congelado los refrescos de VEXUS y amiloidosis sobre
    cualquier estudio reabierto. Lo que se protege es lo que el médico tipee DESPUÉS de cargar. */
-function infBaseDesdeDOM() {
+/* ⚠️ SE GUARDA LA REFERENCIA, NO UNA BANDERA. `_infBaseAjena()` contesta «¿la base de ahora es
+   la que salió del DOM al abrir el estudio, o ya la reescribió una generación?». Con la
+   referencia del array la respuesta se deriva sola: `_infEscribir` devuelve `lineasNuevas.slice()`
+   —un array nuevo— cada vez que la app genera, así que en cuanto haya una generación la
+   identidad deja de coincidir y no hay ninguna bandera que alguien se olvide de bajar. Es el
+   mismo criterio que este archivo ya aplica a la visibilidad del cuadro de CC: derivada del
+   contenido, no persistida aparte, porque dos fuentes discrepan y la discrepancia es muda. */
+let _infBaseDelDOM = null;
+
+/* `guardado` son los `campos` del estudio que se está abriendo. Si trae la base guardada se usa
+   ÉSA, que es la respuesta correcta a «¿qué escribió la app?» y deja a `_infMerge` distinguiendo
+   lo manual igual que dentro de la misma sesión. Sin ella —estudios guardados antes de que la
+   base viajara, borradores del autosave, importados de PDF— se cae al texto del DOM, que es el
+   comportamiento de siempre y el único caso donde hace falta preguntar. */
+function infBaseDesdeDOM(guardado) {
   const t = document.getElementById('informe_texto');
   const s = document.getElementById('en_suma');
-  _infBase  = t ? String(t.value || '').split('\n') : null;
-  _sumaBase = s ? String(s.value || '').split('\n') : null;
+  const leer = (clave) => {
+    try {
+      const v = guardado && guardado[clave];
+      if (v == null || v === '') return null;
+      const a = (typeof v === 'string') ? JSON.parse(v) : v;
+      /* Se exige array de strings: un `campos` manipulado a mano, un import de otra versión o un
+         JSON a medias entrarían como base y el merge compararía contra basura, que es peor que no
+         tener base. Ante la duda, se cae al DOM. */
+      return (Array.isArray(a) && a.every(x => typeof x === 'string')) ? a : null;
+    } catch (e) { return null; }
+  };
+  const ib = leer('informe_base'), sb = leer('suma_base');
+  _infBase  = ib || (t ? String(t.value || '').split('\n') : null);
+  _sumaBase = sb || (s ? String(s.value || '').split('\n') : null);
+  /* La marca de «ajena» se pone SÓLO si hubo que caer al DOM: con la base guardada no hay nada
+     que preguntar porque el merge ya sabe qué es de quién. */
+  _infBaseDelDOM = ib ? null : _infBase;
 }
 window.infBaseDesdeDOM = infBaseDesdeDOM;
+
+/* La base es AJENA mientras siga siendo la que se leyó del TEXTO al abrirlo: ahí el merge no
+   tiene cómo distinguir las líneas del médico de las nuestras, porque las tomó a todas como
+   base. Se exige además que tenga contenido real: con el informe vacío, `infBaseDesdeDOM` deja
+   `['']` —que no es null— y el aviso saltaba sobre un texto escrito ENTERO en esta sesión,
+   afirmando que venía de otra. Lo cazó `/sharp-edges`. */
+function _infBaseAjena() {
+  return _infBase != null && _infBase === _infBaseDelDOM && _infBase.some(l => String(l).trim());
+}
 
 /* `opts.silencioso` lo usan los refrescos automáticos (VEXUS, amiloidosis): reescriben el
    texto porque cambió un dato que el informe menciona, pero NO son una acción que el médico
@@ -26067,6 +26161,9 @@ function limpiarCampos(silencioso) {
   /* Paciente nuevo: no hay texto previo nuestro contra el cual comparar. Sin esto, la base del
      paciente ANTERIOR clasificaba como «automático» texto del nuevo y lo dejaba pisar. */
   _infBase = null; _sumaBase = null;
+  /* Y la referencia del texto del paciente anterior, que si no queda viva en memoria después de
+     «Nuevo estudio» — la línea de arriba existe justo para no arrastrarlo. */
+  _infBaseDelDOM = null;
   /* El id del estudio que se estaba editando NO puede sobrevivir a «Nuevo estudio».
      Sobrevivía: editar al paciente A, dar «Nuevo estudio», cargar al paciente B y guardar
      ofrecía «🔄 Sobreescribir informe original», y aceptarlo REEMPLAZABA el estudio de A con
@@ -39347,7 +39444,7 @@ function editarInforme(id) {
     /* Después de TODOS los recálculos: el texto que quedó es la base contra la cual se medirá
        lo que el médico escriba. Si se tomara antes, los refrescos que corren en el llenado
        entrarían como si fueran edición manual. */
-    infBaseDesdeDOM();
+    infBaseDesdeDOM(inf.campos);
     // Las imágenes se reponen por uuid. Es asíncrono y no bloquea la carga del formulario:
     // si no hay nada guardado, imgRestaurar no toca imgSlots.
     if (typeof imgRestaurar === 'function') imgRestaurar(inf.uuid);
@@ -39433,7 +39530,7 @@ function cargarEstudioPorId(id) {
   ['calcBSA','calcVI','calcAI','calcAorta','calcVD','calcPSAP','calcSGL','calcDiastol','calcVEXUS'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
   _recalcModulos('cargarEstudioPorId');
   window._ettEditandoId = inf.id;
-  infBaseDesdeDOM();   // ver nota en editarInforme: base = lo que quedó tras los recálculos
+  infBaseDesdeDOM(inf.campos);   // ver nota en editarInforme: base = la guardada, o lo que quedó
   if (typeof imgRestaurar === 'function') imgRestaurar(inf.uuid);
   eeCurrentInformeId = inf.estudioId;
   // showTab() depende de la variable global 'event'; al invocarse sin un click (init por URL) la carga
@@ -39794,6 +39891,17 @@ function guardarInforme(onDone) {
      guardado. La combinación más engañosa posible. Mismo tratamiento que contrEstado. */
   campos['strain_sgl'] = JSON.stringify(strainEstado);
   campos['contr_flags']    = JSON.stringify({ difusa: contrDifusa, multiple: contrMultiple, disqSep: contrDisqSep });
+  /* ⚠️ LA BASE DEL INFORME VIAJA CON EL ESTUDIO, y es lo que hace que el texto escrito a mano
+     sobreviva a una reapertura. `_infMerge` distingue lo manual de lo automático comparando el
+     textarea contra la BASE —lo que escribió la app la última vez—, y esa base vivía SÓLO en
+     memoria: al reabrir, `infBaseDesdeDOM` tomaba todo el texto guardado como base, resultaba
+     `actual === base`, se disparaba el atajo de «sin ediciones» y el primer refresco de VEXUS o
+     Pericardio se llevaba lo escrito por el médico en la sesión anterior. Medido.
+     Guardándola, el merge al reabrir funciona EXACTAMENTE igual que dentro de la misma sesión.
+     Mismo patrón que `contractilidad` y `strain_sgl`: un blob sintético en `campos`, sin
+     elemento en el DOM, que la restauración lee aparte. Decisión de Maicol (2026-09-25). */
+  campos['informe_base'] = JSON.stringify(_infBase || null);
+  campos['suma_base']    = JSON.stringify(_sumaBase || null);
   ['med-nombre','med-matricula','med-lugar','med-especialidad','med-direccion','med-telefono'].forEach(fid => {
     const el = document.getElementById(fid);
     if (el) campos[fid] = el.textContent.trim();
@@ -46881,7 +46989,14 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      camino pisa los dos textarea con el estudio guardado. Sin respaldarla, al volver quedaba
      apuntando al texto del OTRO estudio: el del paciente en pantalla pasaba a contar como
      escrito a mano, y el primer refresco silencioso ya no lo actualizaba. */
-  const infBaseBackup  = _infBase  ? _infBase.slice()  : null;
+  /* ⚠️ SE RESPALDA POR REFERENCIA, NO CON `slice()`, y ahora importa. Nadie muta estos arrays
+     in situ —`_infEscribir` siempre devuelve uno nuevo— así que la copia no protegía de nada, y
+     en cambio ROMPÍA la marca de «base ajena», que se deriva de la identidad del array: después
+     de reimprimir cualquier informe, `_infBase !== _infBaseDelDOM` y el estudio abierto quedaba
+     sin aviso para siempre. Va también `_infBaseDelDOM` a la lista de respaldos, por lo mismo
+     que el comentario de al lado dice de `_infBase`. Lo cazó `/sharp-edges`. */
+  const infBaseBackup  = _infBase;
+  const infBaseDOMBackup = _infBaseDelDOM;
   const sumaBaseBackup = _sumaBase ? _sumaBase.slice() : null;
   /* `_amiloUltimo` es exactamente el mismo caso que `_infBase`, y entró a esta lista el día en
      que la reimpresión pasó a BORRARLO (antes sólo se abstenía de escribirlo, así que no había
@@ -47126,6 +47241,7 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
       });
     });
     _infBase  = infBaseBackup;
+    _infBaseDelDOM = infBaseDOMBackup;
     _sumaBase = sumaBaseBackup;
     /* Se REEMPLAZA el contenido, no la referencia: `_amiloUltimo` es un `var` de nivel superior
        que otros bloques leen por su nombre, así que reasignarlo acá dejaría a los lectores
@@ -75994,8 +76110,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260925-1928';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790375288754;                 /* eco-build-ms */
+const ECO_BUILD    = '20260925-2012';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790377953236;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -76081,7 +76197,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-1928</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-2012</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
