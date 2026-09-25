@@ -54017,6 +54017,14 @@ function vistaBCerrar() {
     if (p && p.parentNode) p.parentNode.removeChild(p);
   }
   _vistaB = null;
+  /* ⚠️ Y SE REPINTA EL CAJÓN. `medApagar` devuelve el grupo al de fábrica pero NO llama a
+     `_medEstado`, que es lo único que dispara `_dopRender`: cerrando la vista B con el grupo
+     Doppler abierto SÓLO en ella, ninguna vista queda con `dop`, el predicado devuelve `false`
+     y el panel seguía en `display:block`. Medido. Es el defecto simétrico del que este commit
+     corrige —el cajón pegado, en vez de escondido— y con el mismo costo: dos clics en A para
+     sacarlo, por una razón que no está en la pantalla.
+     Guarda `typeof` porque el cajón vive en otro bloque `<script>`. */
+  try { if (typeof _dopRender === 'function') _dopRender(); } catch (e) {}
   _vAccionesSync();
   _vSync = false;
   _vSincronizando = false;
@@ -55615,6 +55623,15 @@ window._bibDndObservar = _bibDndObservar;
 let _dop = null;
 function _dopNuevo() {
   return {
+    /* ⚠️ DE QUÉ VISTA SALIÓ CADA VALOR. Mapa plano `valvula.campo -> 'A' | 'B' | 'mano'`, y NO un
+       objeto `{v, vista}` por campo: eso obligaría a tocar los ~40 lectores de `E.ao.diam` y
+       compañía, y el que se olvide lee un objeto donde espera un número.
+       Existe porque el cajón acumula entre imágenes A PROPÓSITO —la ecuación de continuidad lo
+       exige: el VTI del TSVI y el de la válvula aórtica se miden en planos distintos— y con DOS
+       vistas abiertas esos dos planos pueden ser dos pantallas. Sin la marca, una AVA sale de
+       insumos de dos vistas y el artefacto no dice de cuál vino cada uno. Es el criterio de
+       `AVAi (BSA 2.00)` y `PSAP (PVC 10)`: el documento declara el insumo que no viaja con él. */
+    origen: Object.create(null),
     gen: { vel:null, grad:null, tiempo:null, fc:null, vti:null },
     ao:  { vmax:null, gradMedio:null, vtiAo:null, vtiTsvi:null, diam:null, pht:null },
     /* ⚠️ LAS UNIDADES NO SON UNIFORMES, Y SIGUEN A LAS DEL INFORME, no a las del visor.
@@ -55672,6 +55689,72 @@ function _dopSufijoGuardado() {
   return v.length ? ' — ' + v.join(' + ') : '';
 }
 function _dopEstado() { if (!_dop) _dop = _dopNuevo(); return _dop; }
+
+/* ── DE QUÉ VISTA SALIÓ CADA VALOR ────────────────────────────────────────────────────────
+   La marca la pone el ÚNICO borde por donde entra cada número: `poner` dentro de `_dopCapturar`
+   para lo medido, y `dopCorregir` para lo tipeado. Con dos sitios de escritura, el que se olvide
+   deja un valor sin origen y la tabla lo publica como si fuera de la otra vista. */
+function _dopMarcarOrigen(campo, quien) {
+  try {
+    const E = _dopEstado();
+    if (!E.origen) E.origen = Object.create(null);
+    /* `_V.rot` es 'A' o 'B'. Los manejadores del visor corren envueltos en `_vBind`, así que
+       durante una medición `_V` ES la vista que midió — que es exactamente el motivo por el que
+       la visibilidad no podía colgar de él, y acá es justamente lo que se quiere. */
+    E.origen[campo] = quien || ((typeof _V !== 'undefined' && _V && _V.rot) ? _V.rot : null);
+  } catch (e) {
+    /* Un valor escrito SIN origen sale sin sufijo mientras sus vecinas lo llevan, y en una tabla
+       con marcas eso se lee como «éste no salió de ninguna vista» y no como «no se pudo
+       registrar». Es la convención que el propio módulo usa en `_dopAssertSueltas`. */
+    console.error('[doppler] no se pudo registrar el origen de ' + campo, e);
+  }
+}
+window._dopMarcarOrigen = _dopMarcarOrigen;
+
+/* ⚠️ LA MARCA SE MUESTRA SÓLO SI HAY MÁS DE UN ORIGEN, y es una decisión, no una omisión.
+   Con una sola vista y sin correcciones a mano, TODO sale del mismo lado: rotular cada fila «A»
+   sería ruido en el caso común, y este archivo ya documenta que un aviso que salta cuando no hay
+   riesgo entrena a ignorarlo —es el argumento de `avisoImg`—. La ambigüedad que la marca existe
+   para resolver aparece recién cuando los valores publicados vienen de lados distintos.
+   Se cuenta sobre los campos CON VALOR: un origen que quedó de un campo ya borrado no es un
+   origen del que haya que advertir. */
+function _dopOrigenesEnUso() {
+  const E = _dopEstado(), o = E.origen || {}, vis = Object.create(null);
+  for (const campo in o) {
+    const p = campo.split('.');
+    const v = E[p[0]] ? E[p[0]][p[1]] : undefined;
+    if (v != null && o[campo]) vis[o[campo]] = true;
+  }
+  return Object.keys(vis);
+}
+function _dopMarcarOrigenes() { return _dopOrigenesEnUso().length > 1; }
+/* Sufijo para una fila: '' si no hay ambigüedad. `campos` puede ser uno o varios —un derivado
+   declara el conjunto de vistas de SUS insumos, que es de donde sale el número—. */
+function _dopSufOrigen(campos) {
+  if (!_dopMarcarOrigenes()) return '';
+  const E = _dopEstado(), o = E.origen || {};
+  const cs = Array.isArray(campos) ? campos : [campos];
+  const vistos = [];
+  /* ⚠️ MISMO FILTRO POR VALOR que `_dopOrigenesEnUso`, y no por simetría: sin él, la marca cuelga
+     de que `dopCorregir` haga su `delete` al vaciar un campo — un solo camino remoto. Cualquier
+     otro que ponga un campo en `null` dejaría publicando «Grad Máx · B —», una procedencia sobre
+     un valor que ya no está, y esa fila se emite INCONDICIONALMENTE. */
+  cs.forEach(c => {
+    const pc = c.split('.');
+    const val = E[pc[0]] ? E[pc[0]][pc[1]] : undefined;
+    const q = o[c];
+    if (q && val != null && vistos.indexOf(q) < 0) vistos.push(q);
+  });
+  if (!vistos.length) return '';
+  /* ⚠️ LA MARCA ES CORTA, Y NO ES ESTILO. En la tabla que se guarda el rótulo se dibuja a la
+     izquierda y el valor a la derecha con `fillText`, que NO envuelve NI acota a un ancho: con
+     «[vista A+vista B]» los dos textos se PISAN sobre el lienzo de 640 px, y encima en silencio.
+     La marca queda en «· A», «· A+B», «· mano» y lo que significa va al pie, que es donde este
+     cajón ya pone sus salvedades — el mismo reparto que el descargo de la PSAP. */
+  return ' · ' + vistos.join('+');
+}
+window._dopSufOrigen = _dopSufOrigen;
+window._dopOrigenesEnUso = _dopOrigenesEnUso;
 function _dopLimpiar() {
   const md = _dop ? _dop.modo : null;
   _dop = _dopNuevo();
@@ -55865,6 +55948,7 @@ function _dopCapturar(tipo, d) {
     const v = _dopNormalizar(campo, val);
     if (v == null) { _dopFueraDeBanda(campo, val); return false; }
     E[p[0]][p[1]] = v;
+    _dopMarcarOrigen(campo);
     return true;
   };
   /* Las genéricas pasan por el mismo módulo: el visor muestra la velocidad en módulo con su
@@ -55874,12 +55958,13 @@ function _dopCapturar(tipo, d) {
     /* `ms` viene en m/s y `mmHg` ya calculado por el visor: no se recalcula acá. */
     const ok = dest && _DOP_HERR[dest] === 'vel' &&
                poner(dest, _DOP_VEL_CMS[dest] ? d.ms * 100 : d.ms);
-    if (!ok) { E.gen.vel = abs(d.ms); E.gen.grad = d.mmHg; }
+    if (!ok) { E.gen.vel = abs(d.ms); E.gen.grad = d.mmHg;
+               _dopMarcarOrigen('gen.vel'); _dopMarcarOrigen('gen.grad'); }
   } else if (tipo === 'tiempo') {
     const ok = dest && _DOP_HERR[dest] === 'tiempo' && poner(dest, d.ms);
-    if (!ok) E.gen.tiempo = abs(d.ms);
+    if (!ok) { E.gen.tiempo = abs(d.ms); _dopMarcarOrigen('gen.tiempo'); }
   } else if (tipo === 'fc') {
-    E.gen.fc = abs(d.lpm);
+    E.gen.fc = abs(d.lpm); _dopMarcarOrigen('gen.fc');
   } else if (tipo === 'vti') {
     const ok = dest && _DOP_HERR[dest] === 'vti' && poner(dest, d.cm);
     if (ok) {
@@ -55893,7 +55978,7 @@ function _dopCapturar(tipo, d) {
          Vmax de regurgitación, y escribirlo en `mit.vmaxIm` publicaría la onda E como si fuera
          el jet de la insuficiencia — dos hallazgos distintos bajo el mismo rótulo. */
       if (dest === 'ao.vtiAo' && E.ao.vmax == null && d.picoCms != null) poner('ao.vmax', d.picoCms / 100);
-    } else { E.gen.vti = abs(d.cm); }
+    } else { E.gen.vti = abs(d.cm); _dopMarcarOrigen('gen.vti'); }
   }
   _dopRender();
 }
@@ -56069,13 +56154,16 @@ function dopCorregir(campo) {
                      actual == null ? '' : String(actual));
   if (txt === null) return;
   const t = String(txt).trim().replace(',', '.');
-  if (t === '') { obj[p[1]] = null; _dopRender(); return; }
+  if (t === '') { obj[p[1]] = null; delete E.origen[campo]; _dopRender(); return; }
   /* ⚠️ MISMO BORDE QUE LA MEDICIÓN: módulo y banda. Sin esto, escribir un valor y medirlo daban
      resultados distintos sobre el mismo campo — dos formas de cargar el mismo dato que no se
      comportan igual es exactamente lo que el pedido pide que NO pase. */
   const v = _dopNormalizar(campo, t);
   if (v == null) { _dopFueraDeBanda(campo, t); return; }
   obj[p[1]] = v;
+  /* Un valor TIPEADO no salió de ninguna vista, y eso también hay que poder distinguirlo: con la
+     marca de la vista que estuviera activa, la tabla afirmaría que se midió sobre una imagen. */
+  _dopMarcarOrigen(campo, 'mano');
   _dopRender();
 }
 window.dopCorregir = dopCorregir;
@@ -56158,9 +56246,39 @@ function _dopDisc(modo) {
 function _dopDiscDe(secciones) {
   const out = [];
   (secciones || []).forEach(s => (_DOP_DISC[s.m] || []).forEach(d => {
+    /* Matchea por PREFIJO, así que la marca de origen —que va al FINAL del rótulo— no lo rompe.
+       El prefijo existe porque dos rótulos llevan su parámetro adentro (`PSAP (PVC 10)`,
+       `AVAi (BSA 2.00)`); verificado que sigue valiendo con el sufijo puesto. */
     const hay = (d.si || []).some(r => s.filas.some(f => String(f[0]).indexOf(r) === 0));
     if (hay && out.indexOf(d.txt) < 0) out.push(d.txt);
   }));
+  /* QUÉ SIGNIFICA LA MARCA, y sólo cuando hay marcas. La tabla circula sola —se guarda en la
+     biblioteca y de ahí puede llegar al PDF—, así que «· A+B» sin explicación es un jeroglífico
+     en un documento clínico. Es el reparto de siempre: la marca corta en la fila, el significado
+     en el pie. */
+  /* ⚠️ LA LEYENDA TIENE SU PROPIO DISPARADOR, como todos los descargos de este bloque. Empujada
+     incondicionalmente, una tabla SÓLO tricuspídea salía nombrando «la AVA y el AVM por
+     continuidad» —que esa tabla no publica—, que es exactamente el defecto que el `si:[...]` de
+     arriba cerró: la imagen declara una salvedad sobre una medición que no lleva, y eso se lee
+     como que esa válvula se valoró. Medido sobre una tabla de tricúspide antes de partirlo.
+     ⚠️ Y LA FRASE NO PROMETE PROCEDENCIA COMÚN. El cajón acumula entre IMÁGENES a propósito —la
+     ecuación de continuidad lo exige—, así que dos filas marcadas «· A» pueden venir de dos
+     cineloops distintos de la misma vista. La marca contesta de qué VISTA, no de qué imagen; que
+     lo diga es lo que impide leerla como más de lo que es. */
+  try {
+    if (typeof _dopMarcarOrigenes === 'function' && _dopMarcarOrigenes()) {
+      out.push('· A y · B indican en qué VISTA del visor se midió cada valor; · mano, que se ' +
+               'escribió a mano. No indican en qué IMAGEN: el cajón acumula entre cineloops de ' +
+               'una misma vista a propósito, así que dos valores marcados igual pueden salir de ' +
+               'dos adquisiciones distintas.');
+      const deriv = (secciones || []).some(s2 => (s2.filas || []).some(f =>
+        String(f[0]).indexOf('AVA') === 0 || String(f[0]).indexOf('AVM por continuidad') === 0));
+      if (deriv)
+        out.push('Un derivado lleva las marcas de TODOS sus insumos: la AVA y el AVM por ' +
+                 'continuidad se calculan con el diámetro y el VTI del TSVI, que pueden venir de ' +
+                 'la otra vista.');
+    }
+  } catch (e) {}
   out.push(_DOP_DISC_BASE);
   return out;
 }
@@ -56179,7 +56297,7 @@ function _dopFilas(modo) {
   const n = (x, d) => (x == null || !isFinite(x)) ? null : Number(x).toFixed(d);
   if (md === 'ao') {
     F.push(['Vmax VAo',   n(E.ao.vmax, 2),      'm/s',    'ao.vmax',   true]);
-    F.push(['Grad Máx',   n(D.gradMax, 1),      'mmHg',   null,        false]);
+    F.push(['Grad Máx',   n(D.gradMax, 1),      'mmHg',   null,        false, ['ao.vmax']]);
     F.push(['Grad Medio', n(E.ao.gradMedio, 1), 'mmHg',   'ao.gradMedio', false]);
     F.push(['VTI VAo',    n(E.ao.vtiAo, 1),     'cm',     'ao.vtiAo',  true]);
     F.push(['VTI TSVI',   n(E.ao.vtiTsvi, 1),   'cm',     'ao.vtiTsvi', true]);
@@ -56187,7 +56305,7 @@ function _dopFilas(modo) {
     /* AVA, AVAi y Severidad APARECEN SOLAS cuando hay con qué: el pedido es que el médico no
        tenga que hacer nada extra. Si falta un insumo no se muestra la fila en vez de un guion,
        que al lado de una unidad se lee como «medido y dio cero». */
-    if (D.ava != null)  F.push(['AVA',  n(D.ava, 2),  'cm²',     null, false]);
+    if (D.ava != null)  F.push(['AVA',  n(D.ava, 2),  'cm²',     null, false, ['ao.diam','ao.vtiTsvi','ao.vtiAo']]);
     /* ⚠️ EL AVAi LLEVA SU BSA ADENTRO DEL RÓTULO, igual que `PSAP (PVC 10)` y por el mismo
        motivo. La superficie corporal sale de `getBSA()`, que lee peso y talla DEL FORMULARIO —no
        del cajón—, y el cajón es estado de módulo que sobrevive al cambio de estudio a propósito:
@@ -56197,9 +56315,9 @@ function _dopFilas(modo) {
        superficie salió. Con el número a la vista, el cociente se puede auditar; sin él, no.
        Lo encontró `/sharp-edges`, y es PREEXISTENTE: la tabla combinada lo agrava porque circula
        con más contexto, no lo introduce. */
-    if (D.avai != null) F.push(['AVAi (BSA ' + n(D.bsa, 2) + ')', n(D.avai, 2), 'cm²/m²', null, false]);
+    if (D.avai != null) F.push(['AVAi (BSA ' + n(D.bsa, 2) + ')', n(D.avai, 2), 'cm²/m²', null, false, ['ao.diam','ao.vtiTsvi','ao.vtiAo']]);
     F.push(['PHT IAo',    n(E.ao.pht, 0),       'ms',     'ao.pht',    true]);
-    if (D.sev) F.push(['Severidad IAo', D.sev.txt + ' (orientativo)', '', null, false]);
+    if (D.sev) F.push(['Severidad IAo', D.sev.txt + ' (orientativo)', '', null, false, ['ao.pht']]);
   } else if (md === 'mit') {
     const M = E.mit;
     F.push(['Onda E',     n(M.ondaE, 0),        'cm/s',   'mit.ondaE', true]);
@@ -56209,48 +56327,57 @@ function _dopFilas(modo) {
        AVA del acordeón aórtico. Y NO SE GRADÚAN: esta app borró a propósito la graduación del
        SGL porque convivían tres escalas, y una banda inventada acá sería la misma historia
        sobre el llenado mitral. */
-    if (D.ea != null) F.push(['E/A', n(D.ea, 2), '', null, false]);
+    if (D.ea != null) F.push(['E/A', n(D.ea, 2), '', null, false, ['mit.ondaE','mit.ondaA']]);
     F.push(["e' septal",  n(M.ePrimaSept, 1),   'cm/s',   'mit.ePrimaSept', true]);
     F.push(["e' lateral", n(M.ePrimaLat, 1),    'cm/s',   'mit.ePrimaLat',  true]);
     /* ⚠️ EL PROMEDIO SE MUESTRA SÓLO CON LAS DOS e' CARGADAS, y no es una restricción cosmética:
        «e' promedio» sobre un único valor no es un promedio, y el septal y el lateral no son
        intercambiables —el septal corre más bajo—. Con una sola, la fila del E/e' ya declara
        cuál se usó, que es la información que hace falta para auditarlo. */
-    if (D.epromCual === 'prom') F.push(["e' promedio", n(D.eprom, 1), 'cm/s', null, false]);
+    if (D.epromCual === 'prom') F.push(["e' promedio", n(D.eprom, 1), 'cm/s', null, false, ['mit.ePrimaSept','mit.ePrimaLat']]);
     if (D.ee != null) {
       const cual = D.epromCual === 'prom' ? 'prom' : (D.epromCual === 'sept' ? 'septal' : 'lateral');
-      F.push(["E/e' (" + cual + ')', n(D.ee, 1), '', null, false]);
+      F.push(["E/e' (" + cual + ')', n(D.ee, 1), '', null, false, ['mit.ondaE','mit.ePrimaSept','mit.ePrimaLat']]);
     }
     F.push(['Vmax IM',    n(M.vmaxIm, 2),       'm/s',    'mit.vmaxIm', true]);
-    if (D.gradMaxIm != null) F.push(['Grad Máx IM', n(D.gradMaxIm, 1), 'mmHg', null, false]);
+    if (D.gradMaxIm != null) F.push(['Grad Máx IM', n(D.gradMaxIm, 1), 'mmHg', null, false, ['mit.vmaxIm']]);
     F.push(['VTI VM',     n(M.vtiVm, 1),        'cm',     'mit.vtiVm', true]);
     F.push(['VTI IM',     n(M.vtiIm, 1),        'cm',     'mit.vtiIm', true]);
     F.push(['Grad Medio VM', n(M.gradMedioVm, 1), 'mmHg',  'mit.gradMedioVm', false]);
     F.push(['PHT VM',     n(M.pht, 0),          'ms',     'mit.pht',   true]);
-    if (D.avmPht != null)  F.push(['AVM por PHT',  n(D.avmPht, 2),  'cm²', null, false]);
-    if (D.avmCont != null) F.push(['AVM por continuidad', n(D.avmCont, 2), 'cm²', null, false]);
+    if (D.avmPht != null)  F.push(['AVM por PHT',  n(D.avmPht, 2),  'cm²', null, false, ['mit.pht']]);
+    if (D.avmCont != null) F.push(['AVM por continuidad', n(D.avmCont, 2), 'cm²', null, false, ['ao.diam','ao.vtiTsvi','mit.vtiVm']]);
   } else if (md === 'tri') {
     const T = E.tri;
     F.push(['Vmax IT',    n(T.vmaxIt, 2),       'm/s',    'tri.vmaxIt', true]);
-    if (D.gradIt != null) F.push(['Grad Máx IT', n(D.gradIt, 1), 'mmHg', null, false]);
+    if (D.gradIt != null) F.push(['Grad Máx IT', n(D.gradIt, 1), 'mmHg', null, false, ['tri.vmaxIt']]);
     /* La PVC lleva su valor DENTRO del rótulo y no en una nota al pie: la PSAP de esta tabla
        puede no coincidir con la del informe —allá la PVC se estima desde la VCI— y sin el número
        a la vista no hay forma de saber cuál de las dos se está mirando. */
-    if (D.psap != null) F.push(['PSAP (PVC ' + T.pvc + ')', n(D.psap, 0), 'mmHg', null, false]);
+    if (D.psap != null) F.push(['PSAP (PVC ' + T.pvc + ')', n(D.psap, 0), 'mmHg', null, false, ['tri.vmaxIt']]);
     F.push(['Vmax ET',    n(T.vmaxEt, 2),       'm/s',    'tri.vmaxEt', true]);
-    if (D.gradEt != null) F.push(['Grad Máx ET', n(D.gradEt, 1), 'mmHg', null, false]);
+    if (D.gradEt != null) F.push(['Grad Máx ET', n(D.gradEt, 1), 'mmHg', null, false, ['tri.vmaxEt']]);
   } else if (md === 'pul') {
     const P = E.pul;
     F.push(['Vmax IP',    n(P.vmaxIp, 2),       'm/s',    'pul.vmaxIp', true]);
-    if (D.gradIp != null) F.push(['Grad Máx IP', n(D.gradIp, 1), 'mmHg', null, false]);
+    if (D.gradIp != null) F.push(['Grad Máx IP', n(D.gradIp, 1), 'mmHg', null, false, ['pul.vmaxIp']]);
     F.push(['Vmax EP',    n(P.vmaxEp, 2),       'm/s',    'pul.vmaxEp', true]);
-    if (D.gradEp != null) F.push(['Grad Máx EP', n(D.gradEp, 1), 'mmHg', null, false]);
+    if (D.gradEp != null) F.push(['Grad Máx EP', n(D.gradEp, 1), 'mmHg', null, false, ['pul.vmaxEp']]);
     F.push(['TAP',        n(P.tap, 0),          'ms',     'pul.tap',   true]);
     F.push(['VP',         n(P.vp, 2),           'm/s',    'pul.vp',    true]);
   }
   /* Sin válvula elegida la lista va VACÍA, y eso es lo que produce el selector solo. Las filas
      genéricas ya no viven acá: salen por `_dopFilasSueltas`, que sólo muestra las que TIENEN
      valor. Mezcladas, la tabla de una válvula arrastraba cinco campos que no son de ninguna. */
+  /* CADA FILA DECLARA DE QUÉ VISTA SALIÓ SU NÚMERO, y sólo cuando hay más de un origen. Las
+     medidas lo toman de su propio campo; las DERIVADAS del conjunto de sus insumos, que es de
+     donde sale el número — y ahí está el caso que más importa: `AVM por continuidad` se calcula
+     con `ao.diam` y `ao.vtiTsvi`, o sea insumos AÓRTICOS dentro de la tabla mitral, y con dos
+     vistas abiertas esos dos planos pueden ser dos pantallas distintas. */
+  F.forEach(f => {
+    const src = f[5] || (f[3] ? [f[3]] : null);
+    if (src) { const suf = _dopSufOrigen(src); if (suf) f[0] = f[0] + suf; }
+  });
   return F;
 }
 
@@ -56285,29 +56412,58 @@ function _dopFilasSueltas() {
   const n = (x, d) => (x == null || !isFinite(x)) ? null : Number(x).toFixed(d);
   _DOP_SUELTAS.forEach(x => {
     if (E.gen[x[1]] == null) return;
-    F.push([x[0], n(E.gen[x[1]], x[2]), x[3], 'gen.' + x[1], false]);
+    F.push([x[0] + _dopSufOrigen('gen.' + x[1]), n(E.gen[x[1]], x[2]), x[3], 'gen.' + x[1], false]);
   });
   return F;
 }
 
-/* ⚠️ DÓNDE SE VE EL CAJÓN — UNA sola regla desde 2026-09-24: visor abierto Y grupo «Doppler / M».
+/* ⚠️ DÓNDE SE VE EL CAJÓN — visor abierto y el grupo «Doppler / M» abierto en ALGUNA vista.
 
-   Antes eran dos, porque el cajón también vivía en la pestaña Imágenes y allá lo gobernaba el
-   botón 📊. Ese botón se eliminó con el ancla: el panel existe únicamente dentro del visor.
-
-   FALLA CERRADO en las dos mitades. Sin visor no hay nada que mostrar; y si `_medGrupoAbierto`
-   no estuviera —vive en otro bloque `<script>`, y este archivo ya se quedó sin JavaScript dos
-   veces por un bloque que dejó de parsear— el cajón queda oculto, que es el estado «nada más
-   cambia». Encendido por omisión mostraría un panel que ningún control puede apagar.
+   Antes de 2026-09-24 eran dos reglas, porque el cajón también vivía en la pestaña Imágenes y
+   allá lo gobernaba el botón 📊. Ese botón se eliminó con el ancla: el panel existe únicamente
+   dentro del visor. Y desde 2026-09-25 la segunda mitad mira TODAS las vistas y no el accesor de
+   la activa — ver el comentario de `_dopGrupoAbiertoEnAlguna`, que explica por qué.
 
    LOS VALORES NO SE TOCAN NUNCA ACÁ: `_dop` es estado de módulo y esconder el cajón es
    `display:none`, no un reseteo. Esconder no es limpiar, que es la distinción que este archivo
    ya tuvo que escribir para Orthanc. Lo que cambió es a dónde se va el acceso a lo medido cuando
    el panel se esconde: a la biblioteca, por «Guardar», no a un botón que lo reabre. */
+/* ⚠️ «ALGUNA VISTA», NO «LA ACTIVA» — y el diagnóstico de la nota vieja estaba equivocado.
+   Decía que con dos vistas la visibilidad la decidía el grupo de la vista ACTIVA. Medido, `_V`
+   casi siempre es la A: sólo es la B DENTRO de un manejador envuelto en `_vBind`, que la repone
+   al salir. Lo que gobernaba de verdad es que `_medGrupoAbierto` lee el accesor `_medGrupo`
+   —que resuelve contra `_V`— y que `_dopRender` sólo corre desde `_medEstado`: el `display` del
+   cajón quedaba siendo **lo que dejó la última llamada a `_medEstado`**, con el grupo de la vista
+   cuyo manejador estaba corriendo, y después nadie lo reevaluaba.
+
+   El disparador es el peor posible: **abrir la vista B**, que es el gesto cuyo propósito es medir
+   la segunda imagen. Nace midiendo en 2D Distancia, su `_medEstado` corre, y el cajón desaparece
+   aunque la A lo tenga abierto con datos. Reproducido:
+
+       1 · el medico mide el TSVI en la vista A ....... A=dop B=2d → cajon visible
+       2 · abre la vista B para la otra imagen ....... A=dop B=2d → cajon OCULTO
+
+   No se pierde nada —`_dop` es estado de módulo y persiste, medido— pero desde que el botón 📊 se
+   eliminó **el cajón es el único acceso a lo medido**, y para recuperarlo había que colapsar y
+   reabrir el grupo en A: dos clics, por una razón que no está en la pantalla.
+
+   Hoy se pregunta por TODAS las vistas. Es independiente de cuál está activa y de cuál se tocó
+   último, es monótona —se ve mientras alguna lo tenga abierto— y **con una sola vista es
+   idénticamente el comportamiento anterior**, así que el caso común no cambia.
+
+   FALLA CERRADO en las tres mitades, como antes: sin visor, sin `_vTodas` o si algo lanza, el
+   cajón queda oculto, que es el estado «nada más cambia». Encendido por omisión mostraría un
+   panel que ningún control puede apagar. */
+function _dopGrupoAbiertoEnAlguna() {
+  try {
+    if (typeof _vTodas === 'function')
+      return _vTodas().some(V => V && V.medGrupo === 'dop');
+    return typeof _medGrupoAbierto === 'function' && _medGrupoAbierto() === 'dop';
+  } catch (e) { return false; }
+}
 function _dopVisible() {
   if (!_dopHayVisor()) return false;
-  try { return typeof _medGrupoAbierto === 'function' && _medGrupoAbierto() === 'dop'; }
-  catch (e) { return false; }
+  return _dopGrupoAbiertoEnAlguna();
 }
 
 function _dopRender() {
@@ -56453,7 +56609,16 @@ function _dopRender() {
       'Los derivados se recalculan solos y no se editan.</div>';
   }
   h += '<div style="margin-top:8px;font-size:10px;color:var(--text2);line-height:1.45;">' +
-    _dopDisc().map(t => escHtml(t)).join('<br>') + '</div>';
+    /* ⚠️ LA LEYENDA DE ORIGEN TAMBIÉN ACÁ. Vivía sólo en `_dopDiscDe`, que consumen el lienzo y la
+       meta — o sea que la PRIMERA superficie donde el médico se encuentra con «VTI TSVI · A+B» es
+       este panel, y ahí no había una palabra que lo explicara. El reparto que dice el comentario
+       del sufijo —marca corta arriba, significado al pie— sólo se cumplía en el papel.
+       NO se cambia `_dopDisc()` por `_dopDiscDe()`: el panel muestra a propósito los descargos de
+       toda la válvula, incluidas las filas vacías. */
+    _dopDisc().concat(_dopMarcarOrigenes()
+      ? ['· A y · B indican en qué VISTA del visor se midió cada valor; · mano, que se escribió a ' +
+         'mano. No indican en qué IMAGEN: el cajón acumula entre cineloops de una misma vista.']
+      : []).map(t => escHtml(t)).join('<br>') + '</div>';
   cont.innerHTML = h;
   _dopObservar();
 }
@@ -56649,8 +56814,19 @@ function _dopMetaGuardado() {
     /* Sin guarda de nulos: `_dopSeccionesGuardado` ya filtra las filas sin valor, y tenerla acá
        dejaba la imagen y el dato del mismo registro publicando listas distintas — que es el
        defecto que esa guarda escondía en vez de evitar. */
-    s.filas.forEach(f => { vals[f[0]] = f[1] + (f[2] ? ' ' + f[2] : ''); });
-    return { valvula:s.m, rotulo:s.rot, valores:vals };
+    /* ⚠️ LA CLAVE VA SIN LA MARCA DE ORIGEN. El sufijo es PRESENTACIÓN y depende de una compuerta
+       global —si hay más de un origen en todo el cajón—, así que la MISMA medición tendría dos
+       claves distintas en dos registros del mismo paciente, y ninguna canónica para quien lea
+       `meta` después. El origen viaja como DATO, en su propio mapa: es la misma razón por la que
+       los descargos viajan en `meta` y no sólo quemados en los píxeles. */
+    const orig = {};
+    s.filas.forEach(f => {
+      const rot = String(f[0]).split(' \u00b7 ')[0];
+      vals[rot] = f[1] + (f[2] ? ' ' + f[2] : '');
+      const q = _dopSufOrigen(f[5] || (f[3] ? [f[3]] : []));
+      if (q) orig[rot] = q.replace(' \u00b7 ', '');
+    });
+    return { valvula:s.m, rotulo:s.rot, valores:vals, origenes:orig };
   });
   /* ⚠️ LOS DESCARGOS VIAJAN CON EL DATO, no sólo quemados en los píxeles. Si estos números son
      recuperables como dato —que es la razón de que `meta` exista— tienen que llevar su reparo
@@ -73824,8 +74000,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260925-1003';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790341428046;                 /* eco-build-ms */
+const ECO_BUILD    = '20260925-1103';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790344993636;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -73911,7 +74087,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-1003</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-1103</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

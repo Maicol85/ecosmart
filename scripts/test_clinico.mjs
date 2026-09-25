@@ -9598,6 +9598,240 @@ caso('TC-253', 'POP: el indice del PiCCO clasifica, el mensaje nombra lo que fal
   })();
 `);
 
+caso('TC-256', 'Cajon Doppler con dos vistas: se ve si ALGUNA lo tiene abierto, y cada valor dice de que vista salio', `
+  return (async () => {
+    if (typeof _dopVisible !== 'function' || typeof _vNueva !== 'function')
+      return { extra:[['existen el cajon y el modelo de vistas', false, 'faltan _dopVisible o _vNueva']] };
+    const op = window.prompt;
+    try {
+      /* Cineloop SINTETICO: este caso no necesita el pendrive. Lo que se prueba es una regla de
+         visibilidad y un mapa de origen, no la lectura de un DICOM. */
+      const jpg = new Uint8Array([255,216,255,217]);
+      const mk = n => ({ nombre:n, cuadros:1, d:{ frags:[jpg], cols:200, filas:150, msCuadro:0,
+        regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:200, y1:150, tipo:1 }] } });
+      _cineAbrir([mk('A')]);
+      await new Promise(r => setTimeout(r, 300));
+      const cajon = () => { const c = document.getElementById('dop-cajon');
+        return !!(c && c.style.display !== 'none'); };
+      const grupoAOn = () => { for (let i=0;i<3 && _vistaA.medGrupo!=='dop';i++) document.getElementById('cine-g-dop').click(); };
+      const grupoAOff = () => { for (let i=0;i<3 && _vistaA.medGrupo==='dop';i++) document.getElementById('cine-g-dop').click(); };
+
+      if (!_medOn) medToggle();
+      grupoAOn();
+      const denom = _vistaA.medGrupo === 'dop' && cajon();
+
+      /* EL DEFECTO: abrir la vista B escondia el cajon. '_V' vuelve a la A al salir del
+         manejador, asi que NO era "la vista activa" quien decidia: era que '_dopRender' solo
+         corre desde '_medEstado' y quedaba el display de la ultima que lo llamo. */
+      const cont = document.getElementById('cine-paneles');
+      const VB = _vNueva('b-','B'); _vMontarPanel(cont,'b-'); _vistaB = VB; _vCablear(VB);
+      VB.datos = _vistaA.datos;
+      _vActivarMedicion(VB);
+      const abrirBnoEsconde = cajon();
+      const vActivaSigueEnA = (_V === _vistaA);
+      const grupos1 = 'A=' + _vistaA.medGrupo + ' B=' + _vistaB.medGrupo;
+
+      document.getElementById('b-cine-g-2d').click();
+      const tocar2dEnBnoEsconde = cajon();
+
+      /* Se esconde SOLO cuando NINGUNA lo tiene abierto — la otra mitad de la regla. Sin esta
+         condicion, "siempre visible" pasaria igual. */
+      grupoAOff();
+      for (let i=0;i<3 && _vistaB.medGrupo==='dop';i++) document.getElementById('b-cine-g-dop').click();
+      const sinNingunaSeEsconde = !cajon();
+      for (let i=0;i<3 && _vistaB.medGrupo!=='dop';i++) document.getElementById('b-cine-g-dop').click();
+      const soloEnBseVe = cajon() && _vistaA.medGrupo !== 'dop';
+      const grupos2 = 'A=' + _vistaA.medGrupo + ' B=' + _vistaB.medGrupo;
+
+      /* ── ORIGEN POR VISTA ── */
+      _dopLimpiar();
+      const E = _dopEstado();
+      /* Peso y talla para que getBSA() devuelva algo y la fila del AVAi ENTRE a la tabla: es el
+         rotulo mas largo del cajon —lleva su BSA adentro— y con la marca de origen es el peor
+         caso de ancho. Sin esto, la condicion de que el rotulo y el valor no se pisen media sobre
+         una tabla que no contiene la fila mas apretada. */
+      const _pz = document.getElementById('peso'), _tl = document.getElementById('talla');
+      if (_pz) _pz.value = '80';
+      if (_tl) _tl.value = '180';
+      /* CASO COMUN PRIMERO: todo medido en la MISMA vista, no tiene que haber NINGUNA marca.
+         Sin esta condicion, marcar siempre pasaria igual — y rotular cada fila "A" cuando no hay
+         nada de que advertir es el aviso que entrena a ignorarlo, que es el argumento de avisoImg. */
+      _vCon(_vistaA, () => { E.destino = 'ao.vtiTsvi'; _dopCapturar('vti', { cm:20, gradMedio:3, picoCms:120 }); });
+      _vCon(_vistaA, () => { E.destino = 'ao.vtiAo';   _dopCapturar('vti', { cm:24, gradMedio:18, picoCms:400 }); });
+      const unSolo = _dopOrigenesEnUso();
+      const sinMarcaConUnOrigen = !_dopMarcarOrigenes() &&
+        _dopFilas('ao').every(f => String(f[0]).indexOf(' · ') < 0);
+      const pieLimpio = _dopDiscDe(_dopSeccionesGuardado()).every(t => String(t).indexOf('en que vista') < 0 &&
+                                                                       String(t).indexOf('en qué vista') < 0);
+
+      /* Ahora el escenario de dos vistas: el VTI aortico se remide en B y el diametro se TIPEA
+         —no esta en _DOP_HERR, entra por dopCorregir—, asi que la AVA cruza TRES origenes. */
+      _vCon(_vistaB, () => { E.destino = 'ao.vtiAo'; _dopCapturar('vti', { cm:24, gradMedio:18, picoCms:400 }); });
+      window.prompt = () => '21';
+      dopCorregir('ao.diam');
+      window.prompt = op;
+      const orig = JSON.parse(JSON.stringify(E.origen || {}));
+      const filas = _dopFilas('ao').map(f => String(f[0]));
+      const rot = t => filas.filter(f => f.indexOf(t) === 0)[0] || '(sin fila ' + t + ')';
+      const marcaA = rot('VTI TSVI').indexOf(' · A') > 0;
+      const marcaB = rot('VTI VAo').indexOf(' · B') > 0;
+      const marcaMano = rot('Diam TSVI').indexOf(' · mano') > 0;
+      /* EL DERIVADO DECLARA TODOS SUS INSUMOS. Es el caso que el pedido nombra: la AVA se calcula
+         con el diametro y los dos VTI, que con dos vistas pueden venir de dos pantallas. */
+      const filaAva = rot('AVA');
+      /* ⚠️ SE MIDE SOBRE EL SUFIJO, NO SOBRE EL ROTULO ENTERO. indexOf('A') encuentra la A de
+         "AVA" en la posicion 0, asi que la condicion daba false sobre "AVA · mano+A+B", que es
+         exactamente lo que se queria. Colision de substring, otra vez. */
+      const sufAva = (filaAva.split(' \u00b7 ')[1] || '').split('+');
+      const derivadoDeclaraTodo = ['mano','A','B'].every(q => sufAva.indexOf(q) >= 0);
+
+      /* ── VIAJA A LA TABLA GUARDADA ── */
+      const S = _dopSeccionesGuardado();
+      const filasGuardadas = S.reduce((a, x) => a.concat(x.filas.map(f => String(f[0]))), []);
+      const marcaEnLoGuardado = filasGuardadas.some(f => f.indexOf(' · A') > 0) &&
+                                filasGuardadas.some(f => f.indexOf(' · B') > 0);
+      const disc = _dopDiscDe(S);
+      /* La leyenda son DOS mensajes desde que se partio: el general —que sale siempre que haya
+         marcas— y el de los derivados, que tiene su propio disparador y sale solo si la tabla
+         publica una AVA o un AVM por continuidad. Se exigen los dos por separado: con la
+         condicion vieja, que los buscaba en la MISMA cadena, partirlos la dejaba en rojo sobre un
+         pie correcto. */
+      const pieExplica = disc.some(t => String(t).indexOf('· A') >= 0) &&
+                         disc.some(t => String(t).indexOf('insumos') > 0);
+      /* Los descargos matchean por PREFIJO y la marca va al final: tiene que seguir saliendo el
+         de la AVA por continuidad, que lo dispara la fila cuyo rotulo ahora lleva sufijo. */
+      const discAvaSigue = disc.some(t => String(t).indexOf('continuidad') >= 0);
+
+      /* ── NO SE PISAN EN EL LIENZO ── 'fillText' no envuelve NI acota: el rotulo va a la
+         izquierda y el valor a la derecha, asi que una marca larga los superpone en silencio. */
+      const cx = document.createElement('canvas').getContext('2d');
+      let libreMin = 1e9, peor = '';
+      S.forEach(sec => sec.filas.forEach(f => {
+        cx.font = '14px system-ui, sans-serif';
+        const wr = cx.measureText(String(f[0])).width;
+        cx.font = 'bold 14px system-ui, sans-serif';
+        const wv = cx.measureText(f[1] == null ? '—' : (f[1] + (f[2] ? ' ' + f[2] : ''))).width;
+        const libre = (640 - 44) - wr - wv;
+        if (libre < libreMin) { libreMin = libre; peor = String(f[0]); }
+      }));
+
+      /* ── CERRAR LA VISTA B NO DEJA EL CAJON PEGADO ── el defecto SIMETRICO. 'medApagar' devuelve
+         el grupo al de fabrica pero NO llama a '_medEstado', que es lo unico que dispara
+         '_dopRender': con Doppler abierto SOLO en B, cerrarla dejaba ninguna vista con 'dop', el
+         predicado en false y el panel en display:block. */
+      for (let i=0;i<3 && _vistaA.medGrupo==='dop';i++) document.getElementById('cine-g-dop').click();
+      for (let i=0;i<3 && _vistaB.medGrupo!=='dop';i++) document.getElementById('b-cine-g-dop').click();
+      const soloBabierto = cajon() && _vistaA.medGrupo !== 'dop';
+      vistaBCerrar();
+      const cerrarBnoDejaPegado = !cajon() && _dopVisible() === false;
+      /* se repone la vista B para lo que sigue */
+      const VB2 = _vNueva('b-','B'); _vMontarPanel(document.getElementById('cine-paneles'),'b-');
+      _vistaB = VB2; _vCablear(VB2); VB2.datos = _vistaA.datos; _vActivarMedicion(VB2);
+
+      /* ── EL PIE NO AFIRMA SOBRE FILAS QUE LA TABLA NO PUBLICA ── una tabla SOLO tricuspide no
+         puede nombrar la AVA: es el defecto que el 'si:[...]' de _dopDiscDe ya habia cerrado. */
+      /* ⚠️ '_dopLimpiar' CREA UN OBJETO NUEVO ('_dop = _dopNuevo()'), asi que la referencia 'E' de
+         arriba queda APUNTANDO AL VIEJO: escribirle 'destino' no afecta al cajon vivo y las
+         capturas caian todas en la fila generica. El caso se acuso a si mismo con «secciones=gen».
+         Despues de limpiar, se vuelve a pedir el estado. */
+      _dopLimpiar();
+      const E2 = _dopEstado();
+      _vCon(_vistaA, () => { E2.destino = 'tri.vmaxIt'; _dopCapturar('vel', { ms:3.0, mmHg:36 }); });
+      _vCon(_vistaB, () => { E2.destino = 'tri.vmaxEt'; _dopCapturar('vel', { ms:1.8, mmHg:13 }); });
+      const Stri = _dopSeccionesGuardado();
+      const pieTri = _dopDiscDe(Stri).map(t => String(t));
+      const soloTri = Stri.length === 1 && Stri[0].m === 'tri';
+      const pieNoNombraAva = !pieTri.some(t => t.indexOf('AVA') >= 0 || t.indexOf('AVM por continuidad') >= 0);
+      const pieAclaraImagen = pieTri.some(t => t.indexOf('IMAGEN') >= 0);
+      /* ── LA CLAVE DEL DATO PERSISTIDO VA SIN LA MARCA ── el sufijo es presentacion y depende de
+         una compuerta global: metido en la clave, la MISMA medicion tendria dos nombres distintos
+         en dos registros del mismo paciente. */
+      const meta = _dopMetaGuardado();
+      const clavesLimpias = Object.keys(meta.secciones[0].valores).every(k => k.indexOf(' \u00b7 ') < 0);
+      const origenComoDato = (meta.secciones[0].origenes || {})['Vmax IT'] === 'A' &&
+                             (meta.secciones[0].origenes || {})['Vmax ET'] === 'B';
+      /* ── EL PANEL TAMBIEN EXPLICA LA MARCA ── era la primera superficie donde el medico la ve. */
+      for (let i=0;i<3 && _vistaA.medGrupo!=='dop';i++) document.getElementById('cine-g-dop').click();
+      dopModo('tri');
+      const panelExplica = (document.getElementById('dop-cajon').innerText || '').indexOf('VISTA') > -1;
+
+      /* ── UNA PROCEDENCIA SOBRE UN VALOR QUE YA NO ESTA ── la guarda por valor de
+         '_dopSufOrigen' no tenia quien la ejerciera: sacarla dejaba el caso en VERDE. El unico
+         camino que borra el origen al vaciar un campo es 'dopCorregir'; cualquier otro que ponga
+         el valor en null deja el mapa con una entrada huerfana, y las filas derivadas se emiten
+         INCONDICIONALMENTE, asi que publicarian «... · B» sobre la nada.
+         Se deja un tercer origen CON valor para que la compuerta global siga ABIERTA: sin el,
+         vaciar la unica medicion de B apaga las marcas por otro motivo y la condicion pasaria
+         sin haber probado la guarda. */
+      const E3 = _dopEstado();
+      E3.gen = E3.gen || {}; E3.gen.vel = 2.0; E3.origen['gen.vel'] = 'mano';
+      const _vmaxEtPrevio = E3.tri.vmaxEt;
+      E3.tri.vmaxEt = null;               // se vacia el valor SIN tocar el origen
+      const sufHuerfano = _dopSufOrigen(['tri.vmaxEt']);
+      const sufVivo     = _dopSufOrigen(['tri.vmaxIt']);
+      E3.tri.vmaxEt = _vmaxEtPrevio; delete E3.gen.vel; delete E3.origen['gen.vel'];
+
+      /* ── PERSISTENCIA POR VALVULA, que es la razon de ser del cajon ── */
+      /* La aortica se remide porque el _dopLimpiar de arriba vacio el cajon: sin esto, «persistencia
+         por valvula» se medina sobre una sola valvula y la condicion pasaba sin probar las dos. */
+      _vCon(_vistaA, () => { E2.destino = 'ao.vtiTsvi'; _dopCapturar('vti', { cm:20, gradMedio:3, picoCms:120 }); });
+      _vCon(_vistaB, () => { E2.destino = 'mit.ondaE'; _dopCapturar('vel', { ms:0.9, mmHg:3 }); });
+      dopModo('ao'); const enAo = _dopFilas().some(f => String(f[0]).indexOf('VTI TSVI') === 0);
+      dopModo('mit'); const enMit = _dopFilas().some(f => String(f[0]).indexOf('Onda E') === 0);
+      const puntos = _DOP_VALVULAS.filter(V => _dopValvConDatos(V.m)).map(V => V.m).join(',');
+      _cineAbrir([mk('otra')]);
+      await new Promise(r => setTimeout(r, 250));
+      const sobreviveAlCambio = _dopEstado().ao.vtiTsvi === 20 && _dopEstado().mit.ondaE === 90 &&
+                                (_dopEstado().origen || {})['ao.vtiTsvi'] === 'A' &&
+                                (_dopEstado().origen || {})['mit.ondaE'] === 'B';
+
+      return { extra: [
+        ['DENOMINADOR: con una vista y Doppler abierto, el cajon se ve', denom, 'A=' + _vistaA.medGrupo],
+        ['ABRIR LA VISTA B YA NO ESCONDE EL CAJON', abrirBnoEsconde, grupos1 + ' visible=' + abrirBnoEsconde],
+        ['  y no es "la vista activa": _V siguio en la A', vActivaSigueEnA, ''],
+        ['  tocar 2D en B tampoco lo esconde', tocar2dEnBnoEsconde, ''],
+        ['se esconde SOLO si ninguna vista lo tiene abierto', sinNingunaSeEsconde, grupos2],
+        ['  y abrirlo en la B sola lo muestra', soloEnBseVe, grupos2],
+        ['CON UN SOLO ORIGEN no se marca nada', sinMarcaConUnOrigen, 'origenes=' + unSolo.join(',')],
+        ['  y el pie tampoco explica una marca que no hay', pieLimpio, ''],
+        ['el valor medido en A dice · A', marcaA, rot('VTI TSVI')],
+        ['el medido en B dice · B', marcaB, rot('VTI VAo')],
+        ['el tipeado dice · mano', marcaMano, rot('Diam TSVI')],
+        ['EL DERIVADO declara TODOS sus insumos', derivadoDeclaraTodo, filaAva],
+        ['la marca VIAJA a la tabla que se guarda', marcaEnLoGuardado, filasGuardadas.slice(0,4).join(' | ')],
+        ['  y el pie de esa tabla explica que significa', pieExplica, ''],
+        ['  sin romper el descargo de la AVA, que matchea por prefijo', discAvaSigue, ''],
+        ['el rotulo y el valor NO se pisan en el lienzo', libreMin > 0, 'libre=' + Math.round(libreMin) + ' en «' + peor + '»'],
+        ['con Doppler abierto SOLO en B el cajon se ve', soloBabierto, ''],
+        ['  y CERRAR la vista B no lo deja pegado abierto', cerrarBnoDejaPegado, ''],
+        ['una tabla solo tricuspide no nombra la AVA en su pie', soloTri && pieNoNombraAva,
+          'secciones=' + Stri.map(x => x.m).join(',')],
+        ['  y el pie aclara que la marca es la VISTA, no la imagen', pieAclaraImagen, ''],
+        ['la clave del dato persistido va SIN la marca', clavesLimpias, Object.keys(meta.secciones[0].valores).join(' | ')],
+        ['  y el origen viaja como DATO, en su propio campo', origenComoDato, JSON.stringify(meta.secciones[0].origenes || {})],
+        ['el PANEL tambien explica que significa la marca', panelExplica, ''],
+        ['NO se marca la procedencia de un valor que ya no esta', sufHuerfano === '',
+          'huerfano=«' + sufHuerfano + '»'],
+        ['  DENOMINADOR: con la compuerta abierta, el que SI tiene valor se marca',
+          sufVivo === ' · A', 'vivo=«' + sufVivo + '»'],
+        /* Se exige que las DOS valvulas conserven lo suyo, no una cadena exacta: el escenario del
+           pie agrego datos tricuspideos, y pinar «ao,mit» ponia el caso en rojo por una valvula
+           de mas — que es justamente lo que la persistencia tiene que hacer. */
+        ['la persistencia por valvula sigue', enAo && enMit && puntos.indexOf('ao') >= 0 && puntos.indexOf('mit') >= 0,
+          'puntos=' + puntos],
+        ['  y todo sobrevive al cambio de imagen, origen incluido', sobreviveAlCambio,
+          JSON.stringify(_dopEstado().origen || {})]
+      ] };
+    } finally {
+      window.prompt = op;
+      try { if (typeof vistaBCerrar === 'function') vistaBCerrar(); } catch (e) {}
+      try { _dopLimpiar(); } catch (e) {}
+      try { cineCerrar(); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+  })();
+`);
+
 caso('TC-255', 'Asociaciones: el boton elige que grafico va al PDF y al PPT, y las clinicas nacen dentro', `
   return (async () => {
     for (let i=0;i<80 && (typeof window.jspdf==='undefined'||!window.jspdf.jsPDF);i++) await new Promise(r=>setTimeout(r,100));

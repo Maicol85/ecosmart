@@ -4,6 +4,78 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Cajón Doppler con dos vistas: no era «la vista activa», y el valor no decía de dónde salía (2026-09-25)
+
+### ⚠️ EL DIAGNÓSTICO CON EL QUE LLEGÓ EL PEDIDO ERA FALSO
+
+El pedido venía con la explicación ya hecha: que el cajón se escondía porque seguía **la vista
+activa**. Medido, no:
+`_dopVisible` llamaba a `_medGrupoAbierto()`, que resuelve contra `_V`, y **`_V` es `_vistaB` sólo
+dentro de un handler envuelto en `_vBind`**. Fuera de ahí es siempre `_vistaA`. Así que el problema
+no era «mira la activa» sino que **preguntaba por UNA vista y había DOS**: con `A=dop` y `B=2d`,
+abrir la B repintaba el cajón y lo escondía, aunque el grupo Doppler siguiera abierto en la A.
+
+Medido antes de tocar nada: `A=dop B=2d → OCULTO`. Después: `visible`.
+
+**La confusión es entendible y ya está documentada más abajo:** `medGrupo` **sí** es por vista (ver
+«Grupos colapsables»), así que «el grupo abierto depende de la vista» es cierto — lo que no es cierto
+es que `_dopVisible` mirara la vista *activa*. Miraba **una sola**, siempre la A.
+
+### La regla es «alguna», no «la activa»
+
+```js
+function _dopGrupoAbiertoEnAlguna() {
+  if (typeof _vTodas === 'function') return _vTodas().some(V => V && V.medGrupo === 'dop');
+  return typeof _medGrupoAbierto === 'function' && _medGrupoAbierto() === 'dop';
+}
+```
+
+El fallback no es decorativo: `_vTodas` no existe en los primeros arranques del visor y sin él la
+función tira y el cajón desaparece entero.
+
+### ⚠️ EL DEFECTO SIMÉTRICO: `vistaBCerrar` no repintaba
+
+`_dopRender` sólo corre desde `_medEstado`, `_cineAbrir`, `cineCerrar` y las funciones del propio
+cajón. **`vistaBCerrar` no estaba en la lista**, así que con el Doppler abierto SÓLO en la B, cerrar
+la B dejaba el cajón **pegado abierto** sobre un visor que ya no tenía Doppler en ninguna vista.
+Con el predicado viejo esto no se notaba porque el cajón ya estaba oculto por otro motivo: **ampliar
+la condición de visibilidad destapó un agujero preexistente**. Hoy `vistaBCerrar` llama a
+`_dopRender()` y TC-256 lo fija con su mutación.
+
+### La marca de origen es LA VISTA, no la imagen — y va al pie, no al rótulo largo
+
+Decisión de Maicol: mismo criterio que el AVAi mostrando explícito el BSA de origen. Cada valor
+lleva `· A`, `· B` o `· mano`, y lo que significa va **al pie del cajón y de la tabla guardada**.
+
+- **La marca es corta a propósito.** En la tabla que se guarda el rótulo va a la izquierda y el valor
+  a la derecha con `fillText`, que **no envuelve ni acota a un ancho**: con «[vista A+vista B]» los
+  dos textos **se pisan en silencio** sobre el lienzo de 640 px. TC-256 mide el espacio libre.
+- **Sólo se marca si hay MÁS DE UN origen en uso.** Con una sola vista, marcar todo es ruido.
+- **`_dopSufOrigen` filtra por VALOR, no sólo por entrada en el mapa.** El único camino que borra el
+  origen al vaciar un campo es `dopCorregir`; cualquier otro que ponga el valor en `null` deja una
+  entrada huérfana, y las filas derivadas se emiten **incondicionalmente** — publicaría «· B» sobre
+  la nada. Esa guarda **no tenía quien la ejerciera**: sacarla dejaba TC-256 en verde hasta que se
+  le agregó la condición que la ejerce.
+- **Los derivados declaran TODOS sus insumos.** 15 filas ganaron un sexto elemento con sus campos de
+  entrada; la AVA por continuidad cruza tres, y puede salir `AVA · mano+A+B`. Cuidado al testear:
+  `indexOf('A')` matchea la «A» de «AVA» — hay que partir por el separador.
+
+### ⚠️ EN EL DATO PERSISTIDO LA CLAVE VA LIMPIA Y EL ORIGEN ES UN CAMPO APARTE
+
+`_dopMetaGuardado` emite `valores` con el rótulo **sin** sufijo y un mapa paralelo `origenes`. El
+sufijo es presentación y depende de una compuerta **global**: metido en la clave, la misma medición
+tendría dos nombres distintos en dos registros del mismo paciente y ninguno canónico para quien lea
+`meta` después.
+
+### Declarado y NO corregido
+
+El cajón puede estar visible **por la vista B** mientras sus botones «medir» se arman sobre **la A**.
+Es coherente con cómo funciona hoy el resto del visor —la herramienta pertenece a la vista donde se
+la activa— pero es una discordancia real entre lo que se ve y dónde va a actuar el próximo toque.
+No se tocó porque tocarlo es cambiar el modelo de herramienta por vista, fuera del alcance del
+pedido. Si aparece como «bug» en una auditoría, es esto y está declarado.
+
+
 ## Asociaciones: el botón elige qué gráfico va al papel, y el mismo par salía DOS veces (2026-09-25)
 
 Pedido como «un botón PDF dentro de cada gráfico, inactivo por defecto». Dos premisas del pedido
