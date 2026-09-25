@@ -9419,6 +9419,185 @@ caso('TC-169', 'POP-4: el patron sale de los seams y el EN SUMA no invierte el h
   })();
 `);
 
+
+/* El boton «Integrar al informe» de POP no respondia y la conclusion decia «Datos insuficientes»
+   con el modulo cargado. Eran TRES defectos, y el boton no tenia ninguno propio: su disabled
+   cuelga de popPatron().suficiente, o sea de que haya indice cardiaco, que es la decision
+   deliberada de POP-4 —una hoja PostCEC sobre un modulo en blanco describiria una evaluacion que
+   no se hizo—. Lo que fallaba era el calculo del indice y lo que el panel decia de el:
+
+   1) EL PiCCO PUBLICA EL INDICE DIRECTO Y EL CLASIFICADOR NO LO MIRABA. El bloque 3 lo grada con
+      _icBanda y pinta «IC 1,62 bajo»; la conclusion, dos centimetros mas abajo, decia «Datos
+      insuficientes». Dos superficies del mismo panel contestando distinto sobre el mismo numero.
+   2) EL MENSAJE NOMBRABA LA CAUSA EQUIVOCADA. Decia «completar los bloques 3 y 4» siempre, y la
+      causa mas comun es el PESO y la TALLA, que estan en la pestaña Paciente y no son ninguno de
+      los dos bloques: con el Swan entero cargado mandaba a revisar lo que ya estaba hecho.
+   3) UN PARRAFO «Pendiente.» DE POP-1 SOBREVIVIA A POP-4, hermano de #pop-concl-box y no su
+      contenido, asi que se dibujaba siempre debajo de la tabla ya calculada.
+
+   Y el IC del PiCCO se tipea como indice, o sea con coma: una coma corrida publica un patron
+   sobre un numero que no es una medicion, asi que hay banda de PLAUSIBILIDAD —no de severidad—. */
+caso('TC-253', 'POP: el indice del PiCCO clasifica, el mensaje nombra lo que falta, y el boton integra', `
+  return (async () => {
+    /* try/finally: 268 casos comparten UNA pagina y este deja nombre, cedula, POP integrado e
+       informe generado. Un throw a mitad se los hereda el siguiente con un diagnostico que no
+       apunta a su causa — ya paso cuatro veces en este suite. */
+    try {
+    __t.limpiar();
+    const btn = () => document.getElementById('pop_integrar');
+    const leer = () => { popSync(); const r = popPatron(); const b = btn();
+      return { pat: r.pat.lbl, k: r.pat.k, ic: r.ic, fuente: r.icFuente, fuera: r.icFuera,
+               motivo: r.motivo, suf: r.suficiente, rvs: r.rvs, rvsFuente: r.rvsFuente,
+               hayBoton: !!b, deshab: !!b && b.disabled === true, title: (b || {}).title || '' }; };
+    const ctx = () => { __t.set('pop_cx_tipo','cabg'); __t.set('pop_cx_horas','6');
+      __t.chk('pop_nor_activa', true); __t.set('pop_nor_dosis','0.15');
+      __t.set('pop_asist_tipo','bcia'); __t.set('pop_pleura_der','moderado');
+      __t.set('pop_pulmon_lineasb','difusas');
+      __t.set('tapse','14'); __t.set('vd_bas','45'); __t.set('ddfvi','48'); };
+
+    /* DENOMINADOR: los campos del PiCCO y EL BOTON existen. Sin el boton, «se habilita» se
+       cumpliria con el control borrado —el predicado del boton da false— y el defecto
+       reportado era justamente del boton. Un id inventado en esta app no falla: calla. */
+    const hayCampos = !!document.getElementById('pop_picco_ic') && !!document.getElementById('pop_picco_svri');
+    const hayBoton = !!document.getElementById('pop_integrar');
+
+    /* A · SOLO drogas y POCUS: «Datos insuficientes» es la respuesta CORRECTA y tiene que seguir
+       siendolo. No se fuerza una clasificacion sin gasto cardiaco medido en ningun lado. */
+    ctx();
+    const A = leer();
+
+    /* B · PiCCO con el indice MEDIDO y SIN peso ni talla: es un dato directo, no necesita
+       superficie corporal. Antes daba «Datos insuficientes» con el bloque 3 diciendo «bajo». */
+    __t.limpiar(); ctx();
+    __t.set('pop_monitor','picco'); __t.set('pop_picco_ic','1.62');
+    const B = leer();
+
+    /* C · Swan COMPLETO y sin peso ni talla: el motivo nombra peso y talla, no los bloques que el
+       medico acaba de llenar. */
+    __t.limpiar(); ctx();
+    __t.set('pop_monitor','swan'); __t.set('pop_sw_gc','3.2'); __t.set('pop_sw_pam','80');
+    __t.set('pop_sw_pad','12'); __t.set('pop_sw_pcp','24');
+    const C = leer();
+
+    /* D · el mismo Swan con peso y talla: clasifica, habilita, y el motivo se apaga. */
+    __t.set('peso','80'); __t.set('talla','180');
+    const D = leer();
+
+    /* E · SVRI / SC es la DEFINICION del indexado, no un corte nuevo: con SC 2,00 un SVRI de
+       1400 da exactamente 700. El valor esta elegido para que DISCRIMINE: con los cortes viejos
+       del bloque 3 —1700/2400 sobre el crudo— un SVRI de 1750 con SC 2,20 salia «normal» arriba y
+       «vasoplejia» abajo, asi que la condicion compara las DOS superficies en ese punto. */
+    __t.limpiar();
+    __t.set('peso','80'); __t.set('talla','180');
+    __t.set('pop_monitor','picco'); __t.set('pop_picco_ic','3.4'); __t.set('pop_picco_svri','1400');
+    const E = leer();
+    const scE = (typeof getBSA === 'function') ? getBSA() : null;
+
+    /* E2 · el punto donde las dos bandas divergian. SC 2,20 (100 kg / 176 cm) y SVRI 1750. */
+    __t.limpiar();
+    __t.set('peso','100'); __t.set('talla','176');
+    __t.set('pop_monitor','picco'); __t.set('pop_picco_ic','3.4'); __t.set('pop_picco_svri','1750');
+    const E2 = leer();
+    const scE2 = (typeof getBSA === 'function') ? getBSA() : null;
+    const cajaE2 = ((document.getElementById('pop-picco-box') || {}).textContent || '');
+    const bandaRvsE2 = (typeof _rvsBanda === 'function' && scE2) ? _rvsBanda(1750 / scE2).txt : '(sin banda)';
+
+    /* E3 · sin peso ni talla el SVRI NO se desindexa: la app no tiene banda indexada e inventarle
+       una es lo que este bloque tiene prohibido. */
+    __t.limpiar();
+    __t.set('pop_monitor','picco'); __t.set('pop_picco_ic','3.4'); __t.set('pop_picco_svri','1400');
+    const E3 = leer();
+
+    /* F · la coma corrida: 16,2 por 1,62. No vota, se dice por que y se NOMBRA la fuente. */
+    __t.limpiar(); ctx();
+    __t.set('pop_monitor','picco'); __t.set('pop_picco_ic','16.2');
+    const F = leer();
+
+    /* F2 · los BORDES de la banda, que es donde se distingue el umbral correcto del error
+       plausible: 10,1 se rechaza y 9,9 entra; 0,49 se rechaza y 0,51 entra. */
+    const borde = (val) => { __t.set('pop_picco_ic', val); return leer(); };
+    const b101 = borde('10.1'), b99 = borde('9.9'), b049 = borde('0.49'), b051 = borde('0.51');
+
+    /* G · la vía GC del PiCCO / SC, que es la OTRA que agrega el cambio. */
+    __t.limpiar(); ctx();
+    __t.set('peso','80'); __t.set('talla','180');
+    __t.set('pop_monitor','picco'); __t.set('pop_picco_gc','3.2');
+    const G = leer();
+
+    /* H · PRECEDENCIA: con el Swan elegido, un PiCCO cargado antes no puede ganarle. Y, lo que
+       importa mas, los datos del bloque OCULTO no clasifican: popHemoSync solo cambia el
+       display, asi que sin compuerta la conclusion publicaria un IC de PiCCO sobre un panel donde
+       no hay un solo dato de PiCCO a la vista. */
+    __t.limpiar(); ctx();
+    __t.set('peso','80'); __t.set('talla','180');
+    __t.set('pop_monitor','picco'); __t.set('pop_picco_ic','3.4');
+    const Hantes = leer();
+    __t.set('pop_monitor','swan'); __t.set('pop_sw_gc','3.2'); __t.set('pop_sw_pam','80'); __t.set('pop_sw_pad','12');
+    const Hswan = leer();
+    __t.set('pop_monitor','vigileo');
+    const Hoculto = leer();
+
+    /* I · de punta a punta por el BOTON REAL, no por amiloIntegrar: lo que se reporto es que el
+       boton no responde, y llamar a la funcion prueba la logica y no el cableado. Con peso y
+       talla, para que el SVRI llegue de verdad a la hoja y al EN SUMA. */
+    __t.limpiar(); ctx();
+    __t.set('nombre','POP PICCO'); __t.set('ci','7654321-0');
+    __t.set('peso','80'); __t.set('talla','180');
+    __t.set('pop_monitor','picco'); __t.set('pop_picco_ic','1.62'); __t.set('pop_picco_svri','2600');
+    popSync();
+    const antesDeClic = !!btn() && btn().disabled === false;
+    if (btn()) btn().click();
+    const integrado = (typeof amiloIntegrado === 'function') ? amiloIntegrado('pop') : false;
+    generarInforme();
+    const NL = String.fromCharCode(10);
+    const suma = (__t.val('en_suma') || '');
+    const linea = suma.split(NL).filter(function (l) { return l.indexOf('PostCEC') > -1; })[0] || '';
+    const hoja = (__t.val('am-txt-pop') || '');
+
+    /* J · el parrafo de espera de POP-1 no puede seguir colgado debajo de la conclusion. */
+    const sec = document.querySelector('[data-pop="pop-concl"]');
+    const textoSec = sec ? sec.textContent.replace(/\\s+/g, ' ') : '(sin seccion)';
+    const sinEspera = !!sec && textoSec.indexOf('Pendiente.') === -1;
+
+    return { extra: [
+      ['DENOMINADOR: los campos del PiCCO y el boton existen', hayCampos && hayBoton, 'campos=' + hayCampos + ' boton=' + hayBoton],
+      ['sin gasto cardiaco sigue diciendo datos insuficientes', A.k === 'insuficiente' && A.deshab, A.pat],
+      ['  y el motivo nombra el GASTO, que es lo que falta', (A.motivo || '').indexOf('falta el gasto') > -1, A.motivo],
+      ['el INDICE MEDIDO del PiCCO clasifica sin peso ni talla', B.k !== 'insuficiente' && B.hayBoton && B.deshab === false, B.pat],
+      ['  declara de donde salio y no hay valor rechazado', B.fuente === 'PiCCO (índice medido)' && B.ic === 1.62 && B.fuera === null, B.fuente + ' / IC ' + B.ic + ' / fuera=' + B.fuera],
+      ['con el Swan completo y sin peso, el motivo nombra PESO y TALLA',
+        C.k === 'insuficiente' && (C.motivo || '').indexOf('PESO') > -1 && (C.motivo || '').indexOf('TALLA') > -1, C.motivo],
+      ['  y el title del boton dice el mismo motivo', C.title.indexOf('PESO') > -1, C.title],
+      ['con peso y talla, el Swan clasifica y apaga el motivo', D.k !== 'insuficiente' && D.deshab === false && D.motivo === null && D.suf === true, D.pat + ' motivo=' + D.motivo],
+      ['el SVRI del PiCCO se desindexa por la SC, exacto',
+        scE === 2 && E.rvs === 700 && E.rvsFuente === 'SVRI del PiCCO / SC', 'SC ' + scE + ' · RVS ' + E.rvs + ' · ' + E.rvsFuente],
+      ['  y con eso la vasoplejia se clasifica', E.k === 'vasoplejia', E.pat],
+      ['el bloque 3 y la conclusion coinciden donde las bandas divergian',
+        cajaE2.indexOf(bandaRvsE2) > -1 && E2.rvsFuente === 'SVRI del PiCCO / SC',
+        'SC ' + (scE2 === null ? '?' : scE2.toFixed(2)) + ' · banda «' + bandaRvsE2 + '» · bloque 3: ' + cajaE2.slice(0, 80)],
+      ['sin peso ni talla el SVRI NO se desindexa', E3.rvs === null && E3.k !== 'insuficiente', 'rvs=' + E3.rvs + ' patron=' + E3.pat],
+      ['un IC fuera de lo medible NO vota', F.k === 'insuficiente' && F.deshab && F.ic === null && F.fuera === 16.2, F.pat + ' fuera=' + F.fuera],
+      ['  y el motivo nombra el valor Y LA FUENTE',
+        (F.motivo || '').indexOf('16.20') > -1 && (F.motivo || '').indexOf('PiCCO') > -1, F.motivo],
+      ['los BORDES de la banda distinguen: 10,1 no y 9,9 si',
+        b101.ic === null && b99.ic === 9.9, '10.1 -> ' + b101.ic + ' · 9.9 -> ' + b99.ic],
+      ['  y por abajo: 0,49 no y 0,51 si', b049.ic === null && b051.ic === 0.51, '0.49 -> ' + b049.ic + ' · 0.51 -> ' + b051.ic],
+      ['la via GC del PiCCO / SC tambien clasifica', G.k !== 'insuficiente' && G.fuente === 'PiCCO (GC / SC)' && G.ic === 1.6, G.fuente + ' / IC ' + G.ic],
+      ['el Swan le gana al PiCCO en precedencia', Hantes.fuente === 'PiCCO (índice medido)' && Hswan.fuente === 'termodilución', Hantes.fuente + ' -> ' + Hswan.fuente],
+      ['LO QUE NO SE VE NO CLASIFICA: con otro monitoreo, el PiCCO oculto no vota',
+        Hoculto.k === 'insuficiente' && Hoculto.ic === null, Hoculto.pat + ' ic=' + Hoculto.ic],
+      ['EL BOTON REAL integra', antesDeClic && integrado === true, 'habilitado=' + antesDeClic + ' integrado=' + integrado],
+      ['  y el EN SUMA lleva la linea PostCEC con su patron y su IC',
+        linea.indexOf('PostCEC') > -1 && linea.indexOf('CABG') > -1 && linea.indexOf('Patrón:') > -1 && linea.indexOf('1.62') > -1, linea],
+      ['  y la hoja lleva la tabla con el indice, su fuente y la RVS',
+        hoja.indexOf('Índice cardíaco | 1.62') > -1 && hoja.indexOf('PiCCO (índice medido)') > -1 && hoja.indexOf('SVRI del PiCCO / SC') > -1,
+        hoja.split(NL).filter(function (l) { return l.indexOf('Índice') > -1 || l.indexOf('RVS') > -1; }).join(' | ')],
+      ['la conclusion ya no arrastra el cartel de espera de POP-1', sinEspera, textoSec.slice(0, 90)]
+    ] };
+    } finally { try { __t.limpiar(); } catch (e) {} }
+  })();
+`);
+
 caso('TC-173', 'VAP y FOP: cascadas, denominadores propios y la fila que NO existe', `
   return (async () => {
     /* Estudios sinteticos con los ids reales, como TC-170. Lo que se prueba es el clasificador

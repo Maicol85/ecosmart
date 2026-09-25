@@ -4,6 +4,137 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## POP: el botón no tenía ningún defecto propio — no había índice cardíaco (2026-09-25)
+
+Reportado como «el botón *Integrar al informe* no responde» y «la conclusión queda en Pendiente y
+en Datos insuficientes pese a haber datos cargados». **El botón está bien**: su `disabled` cuelga
+de `popPatron().suficiente`, o sea de que haya IC, y eso es la decisión deliberada de POP-4 —una
+hoja PostCEC sobre un módulo en blanco describiría una evaluación que no se hizo—. Lo que fallaba
+era el cálculo del índice y lo que el panel decía de él. **Tres defectos, ninguno en el botón.**
+
+### ⚠️ EL PiCCO PUBLICA EL ÍNDICE DIRECTO Y EL CLASIFICADOR NO LO MIRABA
+
+`popPatron` leía el GC del Swan y el del eco, y nada del PiCCO — que es **una de las cuatro
+opciones del selector de monitoreo**, o sea un caso de todos los días. El bloque 3, mientras
+tanto, ya lo gradúa: lo pasa por `_icBanda` y pinta «IC 1,62 **bajo**». Medido:
+
+| | |
+|---|---|
+| bloque 3, con `pop_picco_ic = 1.62` | «IC 1.62 L/min/m² **bajo**» |
+| conclusión, dos centímetros más abajo | «**Datos insuficientes para clasificar**» |
+
+Dos superficies del MISMO panel contestando distinto sobre el MISMO número. Hoy hay dos vías más
+—el índice directo y `GC del PiCCO / SC`— **detrás** de la del Swan: la precedencia existente no se
+tocó, para que ningún estudio ya clasificado cambie de fuente. `icFuente` se declara en pantalla.
+
+**El SVRI entra por lo mismo, y `SVRI / SC` NO es un corte nuevo**: es la definición del indexado.
+La banda la sigue poniendo `_rvsBanda`. Sin peso y talla no se puede desindexar y queda en null —
+la app no tiene banda indexada e inventarle una es lo que este bloque tiene prohibido.
+
+### ⚠️ EL MENSAJE MANDABA A REVISAR EL BLOQUE QUE YA ESTABA LLENO
+
+Decía **siempre** «completar los bloques 3 y 4». La causa más común es otra: falta el **peso y la
+talla**, que viven en la pestaña Paciente y no son ninguno de los dos bloques. Con el Swan entero
+cargado —GC, PAM, PAD, PCP— el médico leía que le faltaba completar lo que acababa de llenar. Es
+«un mensaje de error que nombra la causa equivocada manda a revisar lo que está sano». Hoy son tres
+causas distintas y cada una se nombra, incluida **cuál de las cuatro fuentes** produjo un valor
+rechazado — con cuatro posibles, no nombrar ninguna es el mismo defecto en su versión muda.
+
+### ⚠️ EL «Pendiente.» ERA MARCADO MUERTO DE POP-1
+
+Un párrafo de la versión de estructura que sobrevivió a POP-4. Era **hermano** de `#pop-concl-box`,
+no su contenido, así que `popConclSync` nunca lo pisaba: se dibujaba siempre, debajo de la tabla ya
+calculada. El módulo funcionaba y el cartel de la versión anterior seguía colgado abajo.
+**Al agregarle contenido a una sección con placeholder, el placeholder es lo primero que se borra.**
+
+### La banda de plausibilidad del IC: NO es una graduación
+
+`POP_IC_PLAUSIBLE_MIN/MAX` (0,5–10) no dice qué es bajo ni normal —eso sigue siendo `_icBanda` y
+nadie más—: rechaza lo que no puede ser una medición. El disparador lo abre esta misma corrección,
+porque el IC del PiCCO **se tipea como índice**: un 16,2 por 1,62 sale «elevado» y puede publicar
+«vasoplejia» —IC no bajo + SVRI baja— sobre un paciente en shock. Se aplica a las cuatro fuentes
+por igual; privilegiar una dejaría la puerta abierta en las otras tres.
+
+**Con ECMO el piso no significa lo mismo.** En VA-ECMO el gasto **nativo** medido puede estar
+legítimamente por debajo: se sigue rechazando —el valor no vota— y el texto cambia, porque decirle
+«revisar la unidad» al médico del paciente más grave del módulo es nombrar la causa equivocada
+otra vez.
+
+### ⚠️ LO QUE NO SE VE NO CLASIFICA — y ésta la encontró `/sharp-edges`
+
+`popHemoSync` sólo cambia el `display` de los bloques de monitoreo: los valores del PiCCO
+sobreviven a pasar el selector a «Vigileo». Sin compuerta, la conclusión seguiría publicando «IC
+1,62 — bajo (PiCCO)» sobre un panel donde **no hay un solo dato de PiCCO a la vista** —el bloque 3
+también está oculto—, o sea sin ninguna superficie donde ver de dónde salió el número. Hoy
+`popPatron` lee Swan y PiCCO **gateados por `pop_monitor`**; el eco no, y es correcto: su bloque se
+ve siempre. Se resolvió leyendo con compuerta y no borrando, que no destruye nada de un estudio
+guardado.
+
+### ⚠️ EL BLOQUE 3 TENÍA SU PROPIA BANDA DE SVRI, Y ERA LA SEGUNDA COPIA DEL CORTE DE RVS
+
+El comentario del propio bloque de conclusión lo prohíbe con todas las letras y aun así estaba:
+cortes 1700/2400 sobre el SVRI **crudo**, mientras la conclusión gradúa el **desindexado** con
+`_rvsBanda` (800/1200/1400). Las dos escalas equivalen a SVRI = 800·SC, 1200·SC y 1400·SC, así que
+**no pueden coincidir para más de una superficie corporal**:
+
+| SC | SVRI | bloque 3 | conclusión |
+|---|---|---|---|
+| 2,00 | 1650 | bajo | normal |
+| **2,20** | **1750** | **normal** | **baja → «Vasoplejia»** |
+
+La segunda fila es alcanzable con 100 kg / 176 cm. Hoy las dos preguntan a `_rvsBanda` sobre el
+mismo número desindexado, y el caso lo fija **en ese punto**: con el 1400 que usé primero las dos
+bandas coinciden y la condición pasaba sin poder ver la divergencia.
+
+### El rótulo del patrón es VOCABULARIO CERRADO
+
+El Laboratorio agrupa la distribución de patrones por el **texto** de `## Patrón hemodinámico`.
+Meterle el motivo al rótulo lo habría partido en tres frases —una con un número distinto por
+estudio— y cada variante sería una fila propia del gráfico, del PPT y del PDF de auditoría. El
+motivo va en su propia línea del panel y en el `title` del botón.
+
+**Y la declaración de la RVS no puede colgar del IC.** Colgaba: con un IC rechazado por banda
+—que anula `icFuente`— desaparecía también la fuente de una RVS que **sí** está calculada y
+publicada dos filas más arriba. Un número sin decir de dónde salió es lo que esas dos líneas
+existen para evitar.
+
+### Siete mutaciones, cada una en su condición
+
+El clasificador ignorando el IC del PiCCO (cae por seis), sin la vía `GC / SC`, el PiCCO oculto
+volviendo a votar, sin desindexar el SVRI, el bloque 3 con su banda propia, sin banda de
+plausibilidad (cae por cuatro, incluidos los dos bordes) y el motivo sin nombrar la fuente.
+
+**Los bordes se prueban donde distinguen**: 10,1 se rechaza y 9,9 entra, 0,49 se rechaza y 0,51
+entra. Con el 16,2 del primer escenario —lejísimos de 10— una banda corrida pasaba igual.
+
+### Declarado y sin hacer
+
+- **Con el IC y el GC del PiCCO cargados a la vez no hay chequeo de coherencia.** Gana el índice y
+  nunca se lo compara contra `GC / SC`: un GC volcado en el campo IC produce un valor plausible que
+  la banda no puede cazar. El módulo ya tiene el precedente correcto —el bloque «Concordancia Swan
+  vs eco»— pero cerrarlo exige una tolerancia, o sea un número inventado. Lo mismo para un SVRI
+  donde se tipeó una RVS no indexada.
+- **POP no llama a `amiloRefrescarSiIntacto`**, a diferencia de `hfpeff`, `vexus`, `dpt`, `cvr`,
+  `teer`, `wilk`, `oai` y `pulm`. La hoja queda congelada en `am-txt-pop` mientras el EN SUMA y el
+  PPT se apagan con `suficiente`, así que un informe reabierto puede imprimir la hoja PostCEC con
+  su patrón y no mencionarlo en el resumen. Es mecánica **preexistente**; la banda la vuelve
+  alcanzable.
+- **La banda rechaza y no reintenta la fuente siguiente.** Un GC de Swan mal tipeado descarta el
+  estudio aunque haya un IC de PiCCO válido. Falla cerrado y hoy el motivo nombra la fuente, así
+  que el médico sabe cuál corregir.
+
+### La trampa de la medición: el autosave restauró el formulario
+
+Los cuatro escenarios del primer barrido dieron **idéntico** — `fuente: termodilución` en los
+cuatro, incluido el que no tenía que tener nada—. No era el código: `_autosaveRestore` repuso el
+Swan y el peso de la corrida anterior. **Antes de sembrar un escenario hay que borrar el borrador
+y `limpiarCampos`, y declarar el estado de partida.** Sin eso «los cuatro clasifican» se cumple
+sobre un formulario que nunca se vació.
+
+**Y el backtick dentro del cuerpo de un caso: van OCHENTA Y DOS**, dos más, las dos en comentarios
+recién escritos.
+
+
 ## El diagrama del ETE mitral: EL PINTOR SE COMÍA LA ZONA DE TOQUE (2026-09-25)
 
 Reportado como dos cosas —«en las proyecciones de arriba sólo se activa un segmento, los toques

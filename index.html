@@ -4799,8 +4799,19 @@ window.cerrarSesionReal = cerrarSesionReal;
                · RVP           -> `RVP_ELEVADA_UW` (una unidad de corte, dos de presentación)
                · TAPSE, VD/VI  -> `UMBRAL_TAPSE_NORMAL` y el 0,9 de la cápsula de TEP
              Lo único propio de POP-4 es cómo se COMBINAN esas bandas en un patrón, y el texto
-             orientativo que sale de ahí. -->
-        <p style="font-size:12px;color:var(--text2);margin:0;">Pendiente.</p>
+             orientativo que sale de ahí.
+
+             ⚠️ ACÁ VIVÍA EL PÁRRAFO DE ESPERA DE POP-1, QUE SOBREVIVIÓ A POP-4. No se transcribe
+             su texto: este comentario vive DENTRO de la sección que TC-253 mide para comprobar
+             que ese cartel ya no está, y un centinela escrito acá pondría el caso en rojo el día
+             que alguien lo mida con `innerHTML` o recorriendo los hijos — que es el patrón que
+             este archivo documenta para TC-132. Tampoco se transcribe la etiqueta, que
+             descuadraría el conteo de balance. Era
+             HERMANO de `#pop-concl-box`, no su contenido, así que `popConclSync` nunca lo pisaba:
+             se dibujaba SIEMPRE, debajo de la tabla ya calculada. Eso es lo que se reportó como
+             «la conclusión queda en Pendiente» — el módulo funcionaba y el cartel de la versión
+             anterior seguía colgado abajo. Al agregar contenido a una sección con placeholder,
+             el placeholder es lo primero que hay que borrar. -->
     </section>
 
     </div><!-- /.pop-grid -->
@@ -24946,7 +24957,15 @@ function popHemoSync() {
     ['IC', v('pop_picco_ic'), 'L/min/m²', x => _icBanda(x)],
     ['ITBVI', v('pop_picco_itbvi'), 'ml/m²', x => x < 850 ? {cls:'orange',txt:'bajo'} : x <= 1000 ? {cls:'green',txt:'normal'} : {cls:'yellow',txt:'elevado'}],
     ['EVLWI', v('pop_picco_evlwi'), 'ml/kg', x => x < 10 ? {cls:'green',txt:'normal'} : {cls:'red',txt:'agua extravascular elevada'}],
-    ['SVRI', v('pop_picco_svri'), 'dyn·s·cm⁻⁵·m²', x => x < 1700 ? {cls:'orange',txt:'bajo'} : x <= 2400 ? {cls:'green',txt:'normal'} : {cls:'red',txt:'elevado'}]
+    /* ⚠️ EL SVRI PIDE LA BANDA, NO LA ESCRIBE — y acá había una segunda copia del corte de RVS,
+       que es exactamente lo que el comentario del bloque de conclusión prohíbe con todas las
+       letras. Tenía cortes propios (1700/2400) sobre el SVRI CRUDO mientras la conclusión gradúa
+       el DESINDEXADO con `_rvsBanda` (800/1200/1400). Las dos escalas equivalen a SVRI = 800·SC,
+       1200·SC y 1400·SC, así que **no pueden coincidir para más de una superficie corporal**: con
+       SC 2,20 un SVRI de 1750 salía «normal» acá y «vasoplejia» en la conclusión, dos centímetros
+       más abajo. Hoy las dos preguntan a `_rvsBanda` sobre el mismo número desindexado.
+       Sin peso ni talla no se puede desindexar y se dice, igual que hace el IC en este array. */
+    ['SVRI', v('pop_picco_svri'), 'dyn·s·cm⁻⁵·m²', x => asc ? _rvsBanda(x / asc) : {cls:'yellow',txt:'requiere peso y talla'}]
   ].filter(r => r[1] !== null)
    .map(r => { const b = r[3](r[1]); return '<div class="calc-row"><span class="calc-lbl">' + r[0] +
      '</span><span>' + r[1] + ' ' + r[2] + ' ' + (b ? badge(b.cls, b.txt) : '') + '</span></div>'; }).join('');
@@ -25095,15 +25114,65 @@ window.popPocusSync = popPocusSync;
    se cae a la estimada por Nagueh, que es la que la app ya publica, y SE DECLARA cuál se usó.
    Mezclarlas sin decirlo publicaría un patrón sostenido en una estimación como si fuera medición.
    Los cortes 12/18 de precarga son los del pedido y no colisionan con nada que la app publique. */
+/* ⚠️ ESTOS DOS NÚMEROS NO SON UNA GRADUACIÓN Y NO DEBEN USARSE COMO TAL. Son el piso y el techo
+   de lo que puede ser un índice cardíaco MEDIDO en un ser humano: por debajo de 0,5 no hay
+   circulación y por encima de 10 no hay medición, hay un error de carga. Quién es bajo, límite,
+   normal o elevado lo sigue diciendo `_icBanda` y nadie más. Se separan de ella a propósito:
+   `_icBanda` la comparten la cápsula de Hemodinámica y el bloque 3, y meterle una banda de
+   plausibilidad cambiaría lo que publican esas dos superficies, que no es lo que se vino a tocar. */
+const POP_IC_PLAUSIBLE_MIN = 0.5, POP_IC_PLAUSIBLE_MAX = 10;
 function popPatron() {
-  const swGc = v('pop_sw_gc'), swPcp = v('pop_sw_pcp'), swPam = v('pop_sw_pam'), swPad = v('pop_sw_pad');
   const asc = (typeof getBSA === 'function') ? getBSA() : null;
 
-  let ic = null, icFuente = null;
+  /* ⚠️ LO QUE NO SE VE NO CLASIFICA. `popHemoSync` sólo cambia el `display` de los bloques de
+     monitoreo: los valores del PiCCO sobreviven a pasar el selector a «Vigileo» o a «Swan», y sin
+     esta compuerta la conclusión seguiría publicando «IC 1,62 — bajo (PiCCO)» sobre un panel donde
+     no hay un solo dato de PiCCO a la vista, ni en el bloque 3 —que también está oculto—. El
+     médico no tendría NINGUNA superficie donde ver de dónde salió el número. Es la misma regla que
+     `popSync` ya aplica borrando la dosis al apagar una droga; acá se resuelve leyendo con
+     compuerta en vez de borrando, que no destruye nada de un estudio guardado.
+     El eco NO se gatea, y es correcto: su bloque se ve SIEMPRE, con cualquier monitoreo. */
+  const mon = (document.getElementById('pop_monitor') || {}).value || '';
+  const esPic = mon === 'picco', esSw = mon === 'swan';
+  const picIc = esPic ? v('pop_picco_ic') : null;
+  const picGc = esPic ? v('pop_picco_gc') : null;
+  const picSvri = esPic ? v('pop_picco_svri') : null;
+  const swGc = esSw ? v('pop_sw_gc') : null, swPcp = esSw ? v('pop_sw_pcp') : null;
+  const swPam = esSw ? v('pop_sw_pam') : null, swPad = esSw ? v('pop_sw_pad') : null;
+  const gcEco = _hemoGCEco(v('diam_tsvi'), v('itv_tsvi'), v('hemo_fc'));
+
+  /* ⚠️ EL PiCCO PUBLICA EL ÍNDICE DIRECTO Y ESTE CLASIFICADOR NO LO MIRABA. El bloque 3 ya lo
+     grada —lo pasa por `_icBanda` y pinta «IC 1,62 bajo»— y la conclusión, dos centímetros más
+     abajo, decía «Datos insuficientes para clasificar». Dos superficies del MISMO panel
+     contestando distinto sobre el MISMO número, que es el defecto que este archivo persigue desde
+     el `_dupKey`. Y el PiCCO es una de las cuatro opciones del selector de monitoreo, o sea un
+     caso de todos los días, no un borde.
+     El orden es el de siempre —lo más directo primero— y NO se toca la precedencia existente:
+     Swan primero, para que ningún estudio ya clasificado cambie de fuente, y las dos vías del
+     PiCCO se AGREGAN detrás. `icFuente` se declara en pantalla, así que si un estudio trajera las
+     dos el médico ve con cuál salió. */
+  let ic = null, icFuente = null, icFuera = null;
   if (swGc !== null && swGc > 0 && asc) { ic = swGc / asc; icFuente = 'termodilución'; }
-  else {
-    const gcE = _hemoGCEco(v('diam_tsvi'), v('itv_tsvi'), v('hemo_fc'));
-    if (gcE !== null && asc) { ic = gcE / asc; icFuente = 'ecocardiografía'; }
+  else if (picIc !== null && picIc > 0) { ic = picIc; icFuente = 'PiCCO (índice medido)'; }
+  else if (picGc !== null && picGc > 0 && asc) { ic = picGc / asc; icFuente = 'PiCCO (GC / SC)'; }
+  else if (gcEco !== null && asc) { ic = gcEco / asc; icFuente = 'ecocardiografía'; }
+
+  /* ⚠️ BANDA DE PLAUSIBILIDAD, NO DE SEVERIDAD — y la diferencia importa, porque la regla de la
+     casa es no inventar cortes clínicos. Esto no gradúa nada: `_icBanda` sigue siendo la única
+     que dice qué es bajo, límite, normal o elevado. Lo que hace es rechazar lo que NO PUEDE SER
+     UNA MEDICIÓN. El disparador concreto lo abre esta misma corrección: el IC del PiCCO se tipea
+     como índice, o sea con coma, y un 16,2 por 1,62 sale «elevado» y puede publicar «vasoplejia»
+     —IC no bajo + SVRI baja— sobre un paciente en shock. Es «el diámetro del TSVI en centímetros»
+     con otra cara, y el archivo ya lo resuelve así en seis campos. Un valor fuera de banda se
+     DECLARA y no vota, como la saturación de Eisenmenger.
+     Se aplica a las CUATRO fuentes por igual: privilegiar una sería dejar la puerta abierta en
+     las otras tres. */
+  let icFueraFuente = null;
+  if (ic !== null && (ic < POP_IC_PLAUSIBLE_MIN || ic > POP_IC_PLAUSIBLE_MAX)) {
+    /* La FUENTE se conserva: con cuatro posibles, «revisar la unidad del valor cargado» sin decir
+       cuál manda al médico a mirar los cuatro bloques — el mismo defecto que este commit vino a
+       cerrar, en su versión «no nombra ninguna». */
+    icFuera = ic; icFueraFuente = icFuente; ic = null; icFuente = null;
   }
   const icB = _icBanda(ic);
 
@@ -25114,13 +25183,19 @@ function popPatron() {
     if (e && es && el && typeof pcpNagueh === 'function') { pcp = pcpNagueh(e / ((es + el) / 2)); pcpFuente = 'estimada (Nagueh)'; }
   }
 
+  /* El SVRI del PiCCO entra por el mismo motivo que su IC, y `SVRI / SC` NO es un corte nuevo:
+     es la DEFINICIÓN del indexado (SVRI = RVS × SC), o sea una conversión de unidad. La banda la
+     sigue poniendo `_rvsBanda`, que es la de la cápsula «Perfil hemodinámico». Sin peso y talla no
+     se puede desindexar y queda en null: la app no tiene banda indexada, e inventarle una sería
+     exactamente lo que este bloque tiene prohibido. Va DETRÁS del Swan, que mide la PAD directo. */
   let rvs = null, rvsFuente = null;
   if (swGc !== null && swGc > 0 && swPam !== null && swPad !== null) {
     rvs = (swPam - swPad) / swGc * 80; rvsFuente = 'PAD medida';
+  } else if (picSvri !== null && picSvri > 0 && asc) {
+    rvs = picSvri / asc; rvsFuente = 'SVRI del PiCCO / SC';
   } else {
     const pam = v('hemo_pam'), pvc = v('pmad');
-    const gcE = _hemoGCEco(v('diam_tsvi'), v('itv_tsvi'), v('hemo_fc'));
-    if (pam !== null && pvc !== null && gcE !== null && gcE > 0) { rvs = (pam - pvc) / gcE * 80; rvsFuente = 'PVC estimada por VCI'; }
+    if (pam !== null && pvc !== null && gcEco !== null && gcEco > 0) { rvs = (pam - pvc) / gcEco * 80; rvsFuente = 'PVC estimada por VCI'; }
   }
   const rvsB = _rvsBanda(rvs);
 
@@ -25145,7 +25220,9 @@ function popPatron() {
      documenta, en el campo que más se lee y se copia. */
   preg.push({ q:'¿Gasto cardíaco adecuado?', cls: icB ? (icB.cls === 'green' ? 'green' : icB.cls) : 'yellow',
               hallazgo:'bajo gasto',
-              r: icB ? ('IC ' + ic.toFixed(2) + ' L/min/m² — ' + icB.txt) : 'sin IC calculable' });
+              r: icB ? ('IC ' + ic.toFixed(2) + ' L/min/m² — ' + icB.txt + ', por ' + icFuente)
+                     : (icFuera !== null ? 'IC ' + icFuera.toFixed(2) + ' fuera de rango — no vota'
+                                         : 'sin IC calculable') });
   preg.push({ q:'¿Precarga adecuada?',
               hallazgo: pcp === null ? '' : (pcp < 12 ? 'precarga baja' : pcp > 18 ? 'congestión' : ''),
               cls: pcp === null ? 'yellow' : (pcp >= 12 && pcp <= 18) ? 'green' : 'yellow',
@@ -25177,14 +25254,44 @@ function popPatron() {
   /* «Datos insuficientes» NO es lo mismo que «sin patrón»: sin IC no se clasifica nada, y decir
      «sin alteraciones» sobre una evaluación que no se hizo es la afirmación tranquilizadora que
      este archivo persigue desde el TEER. */
+  /* ⚠️ Y EL MENSAJE NOMBRA LO QUE DE VERDAD FALTA. Decía «completar los bloques 3 y 4» siempre, y
+     la causa más común es el **peso y la talla**, que viven en la pestaña Paciente y no son
+     ninguno de los dos bloques: con el Swan entero cargado —GC, PAM, PAD, PCP— el médico leía que
+     le faltaba completar el bloque que acababa de llenar. Es «un mensaje de error que nombra la
+     causa equivocada manda a revisar lo que está sano», que este archivo ya documenta para el
+     lector de CHM. Las tres causas son distintas y se distinguen. */
+  const ecmo = mon !== '' && String((document.getElementById('pop_asist_tipo') || {}).value || '').indexOf('ecmo') === 0;
+  let motivo;
+  if (icFuera !== null) {
+    /* ⚠️ CON ECMO EL PISO NO ES UN ERROR DE CARGA. En VA-ECMO el gasto NATIVO medido puede estar
+       legítimamente por debajo del piso, porque el circuito lleva la mayor parte del flujo: decirle
+       «revisar la unidad» al médico del paciente más grave del módulo sería nombrar la causa
+       equivocada otra vez. Se sigue rechazando —el valor no vota— y cambia lo que se dice. */
+    motivo = 'el índice cardíaco da ' + icFuera.toFixed(2) + ' L/min/m²' +
+             (icFueraFuente ? ' por ' + icFueraFuente : '') + ', fuera de lo medible (' +
+             POP_IC_PLAUSIBLE_MIN + '–' + POP_IC_PLAUSIBLE_MAX + ') — ' +
+             (ecmo && icFuera < POP_IC_PLAUSIBLE_MIN
+                ? 'con asistencia circulatoria puede ser el gasto NATIVO: consignarlo aparte'
+                : 'revisar la unidad del valor cargado');
+  } else if (!asc && ((swGc !== null && swGc > 0) || (picGc !== null && picGc > 0) || gcEco !== null)) {
+    motivo = 'falta el PESO y la TALLA del paciente (pestaña Paciente): sin superficie corporal no hay índice';
+  } else {
+    motivo = 'falta el gasto cardíaco — Swan, PiCCO, o TSVI + VTI + FC en Hemodinámica';
+  }
+
+  /* ⚠️ EL RÓTULO DEL PATRÓN ES UN VOCABULARIO CERRADO Y EL MOTIVO VA APARTE. El Laboratorio
+     agrupa la distribución de patrones por el TEXTO de esta etiqueta (`## Patrón hemodinámico`),
+     así que meterle el motivo la habría partido en tres frases —una con un número distinto por
+     estudio— y cada variante sería una fila propia del gráfico, del PPT y del PDF de auditoría.
+     El motivo se publica en su propia línea del panel y en el `title` del botón. */
   let pat;
-  if (!icB && !tapo) pat = { k:'insuficiente', lbl:'Datos insuficientes para clasificar — completar los bloques 3 y 4', cls:'yellow' };
+  if (!icB && !tapo) pat = { k:'insuficiente', lbl:'Datos insuficientes para clasificar', cls:'yellow' };
   else if (!pats.length) pat = { k:'sin_patron', lbl:'Sin patrón de bajo gasto ni vasoplejia por los datos cargados', cls:'green' };
   else if (pats.length === 1) pat = pats[0];
   else pat = { k:'mixto', lbl:'Mixto — ' + pats.map(x => x.lbl.toLowerCase()).join(' + '), cls:'red' };
 
-  return { pat: pat, patrones: pats, preguntas: preg,
-           ic: ic, icBanda: icB, icFuente: icFuente,
+  return { pat: pat, patrones: pats, preguntas: preg, motivo: icB || tapo ? null : motivo,
+           ic: ic, icBanda: icB, icFuente: icFuente, icFuera: icFuera,
            pcp: pcp, pcpFuente: pcpFuente, rvs: rvs, rvsBanda: rvsB, rvsFuente: rvsFuente,
            tapse: tapse, vdvi: vdvi, taponamiento: tapo,
            suficiente: !!icB || tapo };
@@ -25204,8 +25311,18 @@ function popConclSync() {
   const _h =
     fila('Patrón hemodinámico', badge(r.pat.cls, r.pat.lbl)) +
     r.preguntas.map(q => fila(q.q, badge(q.cls, q.r))).join('') +
-    (r.icFuente ? '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">IC por ' + r.icFuente +
-      (r.rvsFuente ? ' · RVS con ' + r.rvsFuente : '') + '. Las bandas son las que la app ya aplica en esta pestaña.</div>' : '') +
+    /* El MOTIVO va en su propia línea y no dentro del rótulo del patrón: aquél es vocabulario
+       cerrado para el Laboratorio. Ver el comentario de `popPatron`. */
+    (r.motivo ? '<div style="font-size:11px;color:var(--text2);margin-top:6px;line-height:1.5;">Falta: ' +
+      escHtml(r.motivo) + '</div>' : '') +
+    /* ⚠️ LA DECLARACIÓN DE LA RVS NO PUEDE COLGAR DEL IC. Colgaba, y con un IC rechazado por
+       banda —que anula `icFuente`— desaparecía también la fuente de una RVS que SÍ está calculada
+       y publicada dos filas más arriba: un número sin decir de dónde salió, que es lo que estas
+       dos líneas existen para evitar. */
+    (r.icFuente || r.rvsFuente
+      ? '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;">' +
+        [r.icFuente ? 'IC por ' + r.icFuente : null, r.rvsFuente ? 'RVS con ' + r.rvsFuente : null]
+          .filter(Boolean).join(' · ') + '. Las bandas son las que la app ya aplica en esta pestaña.</div>' : '') +
     '<div style="font-size:10px;color:var(--text2);margin-top:6px;line-height:1.5;"><b>' + POP_DISCLAIMER + '</b></div>';
   e.innerHTML = _h;
   const btn = document.getElementById('pop_integrar');
@@ -25213,8 +25330,10 @@ function popConclSync() {
     btn.disabled = !r.suficiente;
     btn.style.opacity = r.suficiente ? '' : '.55';
     btn.style.cursor = r.suficiente ? '' : 'not-allowed';
+    /* El title dice POR QUÉ está deshabilitado, no sólo que lo está: un botón en gris con el
+       cursor de prohibido y un motivo genérico es lo que se reportó como «no responde». */
     btn.title = r.suficiente ? 'Agrega la hoja PostCEC al PDF y la línea al EN SUMA'
-                             : 'Sin índice cardíaco calculable no hay patrón que integrar';
+                             : 'Sin patrón que integrar: ' + (r.motivo || 'faltan datos');
   }
 }
 window.popConclSync = popConclSync;
@@ -72962,8 +73081,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260924-2255';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790301339820;                 /* eco-build-ms */
+const ECO_BUILD    = '20260925-0011';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790305897990;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -73049,7 +73168,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260924-2255</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-0011</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
