@@ -10089,6 +10089,254 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
   })();
 `);
 
+caso('TC-258', 'Laboratorio General: los diez bloques son acordeones, nacen cerrados, y los graficos sobreviven al colapso', `
+  return (async () => {
+    if (typeof labAccToggle !== 'function' || typeof labAccCerrarTodos !== 'function')
+      return { extra:[['existen los acordeones de General', false, 'faltan labAccToggle o labAccCerrarTodos']] };
+    /* Chart.js llega por CDN y este caso lo NECESITA: sin el, 'labInit' revienta en
+       'labDestroyChart' —'Chart.getChart' sobre un undefined— y la mitad de las condiciones
+       mediria sobre una tab a medio pintar. Se espera y, si no llega, se dice: un caso que pasa
+       porque la libreria no estaba no prueba nada. */
+    for (let i=0;i<80 && typeof Chart==='undefined';i++) await new Promise(r=>setTimeout(r,100));
+    if (typeof Chart === 'undefined')
+      return { extra:[['Chart.js cargo por CDN', false, 'la libreria no llego: sin ella no se puede medir el repintado']] };
+    /* ⚠️ SIN COHORTE NO HAY GRAFICO, Y LA CONDICION PASABA IGUAL. El suite corre con el store
+       vacio, asi que 'labInit' sale por su rama 'n === 0' y NO crea ninguna instancia de
+       Chart.js: el canvas queda en su default de HTML, 300x150. Medido —'hayInstanciaChart=false'—
+       y por eso la mutacion que sacaba el repintado sobrevivia en verde sobre un canvas que nadie
+       habia tocado. Es el denominador cero que este archivo ya documenta dos veces. */
+    const _cohortePrevia = await CeiboStore.getLocal();
+    /* ⚠️ SE NAVEGA CLICKEANDO EL BOTON, no llamando a 'showTab' pelado. 'showTab' lee el global
+       'event' —'event.target.classList.add(active)'— y despues de un 'await' ese global es el
+       evento VIEJO que quedo dando vueltas: 'event.target' existe pero no es un elemento, y la
+       llamada revienta con "Cannot read properties of undefined (reading 'add')". Es fragilidad
+       preexistente de 'showTab' y no de este cambio —en la app siempre la llama un onclick—, pero
+       el caso tiene que navegar como navega el medico. */
+    const irA = function (id) {
+      /* Se buscan TODOS los botones y no solo '.tab-btn': el de Laboratorio vive en
+         '.foot-actions' y no lleva esa clase, asi que el selector angosto no lo encontraba y
+         caia al 'showTab' pelado — o sea al mismo error que esto viene a evitar. */
+      const b = Array.from(document.querySelectorAll('button[onclick]'))
+        .filter(x => (x.getAttribute('onclick') || '').indexOf("showTab('" + id + "')") >= 0)[0];
+      if (b) { b.click(); return true; }
+      throw new Error('no se encontro el boton de la tab ' + id);
+    };
+    try {
+      const hoy = new Date();
+      const fecha = d => { const x = new Date(hoy); x.setDate(x.getDate() - d);
+        return x.toISOString().slice(0,10); };
+      await CeiboStore.setLocal([0,1,2,3,4,5].map(function (k) {
+        return { id:'acc'+k, estudioId:'acc'+k, nombre:'Paciente '+k, ci:'100'+k,
+                 fecha_estudio: fecha(k * 12), medico:'Dr. Prueba',
+                 campos:{ fevi:'60', edad:'55', sexo:'M' } };
+      }));
+      irA('lab');
+      if (typeof labInit === 'function') labInit();
+      await new Promise(r => setTimeout(r, 500));
+
+      const cuerpos = () => Array.from(document.querySelectorAll('#lab-sub-general .lab-acc-body'));
+      const abiertos = () => cuerpos().filter(c => c.style.display !== 'none');
+      const hdr = k => document.getElementById('lab-acc-' + k).previousElementSibling;
+      const body = k => document.getElementById('lab-acc-' + k);
+      const flecha = k => { const f = document.getElementById('lab-acc-' + k + '-arrow');
+        return f ? (f.style.transform || 'rotate(0deg)') : 'sin flecha'; };
+
+      /* ── LOS DIEZ BLOQUES, Y TODOS CERRADOS AL ENTRAR ── */
+      const ids = cuerpos().map(c => c.id.replace('lab-acc-', ''));
+      const sonDiez = ids.length === 10;
+      const todosCerradosAlEntrar = abiertos().length === 0;
+      /* ⚠️ Y EL MARCADO TAMBIEN, leido del FUENTE. En runtime no se puede distinguir: 'display:none'
+         se lo pone tanto el marcado como 'labAccCerrarTodos', asi que un bloque que naciera ABIERTO
+         quedaba tapado por el cierre al entrar y la condicion de arriba pasaba igual —medido: la
+         mutacion que le saca el 'display:none' a un bloque sobrevivia en verde—. El default del
+         marcado es la SEGUNDA linea de defensa: si alguien saca el cierre, es lo unico que queda. */
+      const fuente = await (await fetch(location.href)).text();
+      const panel = fuente.slice(fuente.indexOf('id="lab-sub-general"'), fuente.indexOf('/lab-sub-general'));
+      const cuerposEnFuente = (panel.match(/class="lab-card-body lab-acc-body"/g) || []).length;
+      const cerradosEnFuente = (panel.match(/class="lab-card-body lab-acc-body" id="lab-acc-[a-z]+" style="display:none;"/g) || []).length;
+      const todosConFlecha = ids.every(k => document.getElementById('lab-acc-' + k + '-arrow'));
+      /* El assert de arranque: una tarjeta con un grafico que no declara su repintado se veria
+         igual que una bien declarada, y el sintoma seria un grafico en blanco. */
+      const assert = (typeof _labAccAssertRepintado === 'function') ? _labAccAssertRepintado() : ['no existe'];
+
+      /* ── ALCANZABLE SIN MOUSE ── el contenido paso a vivir detras de un control, asi que si ese
+         control no es enfocable los diez bloques quedan inalcanzables por teclado. Antes del
+         cambio el contenido estaba siempre visible: es una funcionalidad que se puede perder. */
+      const hCal = hdr('calidad'), bCal = body('calidad');
+      const enfocable = hCal.getAttribute('tabindex') === '0' && hCal.getAttribute('role') === 'button' &&
+                        hCal.getAttribute('aria-controls') === 'lab-acc-calidad';
+      const ariaInicial = hCal.getAttribute('aria-expanded');
+      hCal.focus();
+      const recibeFoco = document.activeElement === hCal;
+      hCal.dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true }));
+      const enterAbre = bCal.style.display !== 'none' && hCal.getAttribute('aria-expanded') === 'true';
+      hCal.dispatchEvent(new KeyboardEvent('keydown', { key:' ', bubbles:true }));
+      const espacioCierra = bCal.style.display === 'none' && hCal.getAttribute('aria-expanded') === 'false';
+      /* Y con el foco en la casilla PPT, Espacio la tilda y NO alterna ademas el acordeon. */
+      const chkCal = hCal.querySelector('.lab-ppt-chk input');
+      const antesTecla = bCal.style.display;
+      if (chkCal) chkCal.dispatchEvent(new KeyboardEvent('keydown', { key:' ', bubbles:true }));
+      const espacioEnLaCasilla = bCal.style.display === antesTecla;
+
+      /* ── ABRIR Y CERRAR, CON LA FLECHA ── */
+      hdr('calidad').click();
+      const abre = body('calidad').style.display !== 'none' && flecha('calidad') === 'rotate(90deg)';
+      hdr('calidad').click();
+      const cierra = body('calidad').style.display === 'none' && flecha('calidad') === 'rotate(0deg)';
+
+      /* ── LA CASILLA «PPT» NO ALTERNA EL ACORDEON ── la cabecera la contiene, y su area tactil
+         es de 44x44 por la regla de accesibilidad: el choque no es un caso de borde. */
+      const lab = hdr('calidad').querySelector('.lab-ppt-chk');
+      const chk = lab ? lab.querySelector('input') : null;
+      const rl = lab ? lab.getBoundingClientRect() : null;
+      const areaCasilla = rl ? Math.round(rl.width) + 'x' + Math.round(rl.height) : 'sin casilla';
+      const antes1 = body('calidad').style.display;
+      if (chk) chk.click();
+      const marcaSinAbrir = !!chk && chk.checked && body('calidad').style.display === antes1;
+      if (chk) chk.click();
+      const antes2 = body('calidad').style.display;
+      if (lab) lab.click();
+      const labelTampocoAbre = body('calidad').style.display === antes2;
+
+      /* ── LOS GRAFICOS SOBREVIVEN AL COLAPSO ── el defecto que esto previene: un Chart.js que
+         nace en un contenedor oculto queda 0x0 y NI SIQUIERA abrir el acordeon lo recupera
+         —'resize()' tampoco—, asi que el grafico quedaria en blanco para siempre. */
+      const cv = id => document.getElementById(id);
+      const dim = id => { const c = cv(id); return c ? (c.width + 'x' + c.height) : 'no existe'; };
+      /* Se compara el canvas contra SU CONTENEDOR, no contra cero: 'width > 0' lo cumple el
+         default de 300x150 de cualquier canvas, o sea que pasaba sin que existiera el grafico.
+         Chart.js con 'responsive:true' lleva el backing store al tamano del contenedor por el
+         devicePixelRatio, asi que la prueba es que el ancho del canvas sea >= el del contenedor.
+         Y se exige que la INSTANCIA exista, que es lo que de verdad prueba que hay grafico. */
+      const cont = id => cv(id) ? cv(id).parentElement.getBoundingClientRect().width : 0;
+      const dibujado = id => !!cv(id) && !!Chart.getChart(cv(id)) &&
+                             cont(id) > 0 && cv(id).width >= Math.floor(cont(id));
+      const hayCohorte = labGetInformes().length;
+      /* ⚠️ SE TOCA LA SUBTAB «General» ANTES DE MEDIR LOS GRAFICOS DEL MEDICO, y no es un rodeo:
+         'labMedicoInit' —lo unico que crea esos dos Chart.js— cuelga de 'labSubTab', que NO corre
+         al entrar a la tab Laboratorio porque el panel General ya viene 'active'. Sin este paso el
+         caso medía dos canvas que nunca habian tenido grafico: cero instancias, y la condicion
+         reportaba «0x0 cont=0» culpando al acordeon de algo que es preexistente y de otro modulo.
+         El comentario de 'labSubTab' ya declara esa asimetria. */
+      const subGen = Array.from(document.querySelectorAll('#tab-lab .lab-subtab'))
+        .filter(b => b.textContent.trim().toLowerCase().indexOf('general') >= 0)[0];
+      if (subGen) subGen.click();
+      await new Promise(r => setTimeout(r, 600));
+      hdr('actividad').click();
+      await new Promise(r => setTimeout(r, 900));
+      const mesesOk = dibujado('chart-meses');
+      hdr('medicos').click();
+      await new Promise(r => setTimeout(r, 900));
+      const medOk = ['chart-med-meses','chart-med-comparativa'].every(dibujado);
+
+      /* ── VOLVER A LA TAB CIERRA TODO — LAS DOS PUERTAS ── */
+      const nAbiertosAntes = abiertos().length;
+      const sub = t => Array.from(document.querySelectorAll('#tab-lab .lab-subtab'))
+        .filter(b => b.textContent.trim().toLowerCase().indexOf(t) >= 0)[0];
+      const otra = sub('filtros') || sub('medici');
+      if (otra) otra.click();
+      await new Promise(r => setTimeout(r, 250));
+      const gen = sub('general');
+      if (gen) gen.click();
+      await new Promise(r => setTimeout(r, 500));
+      const puertaSubtab = abiertos().length === 0 &&
+        ids.every(k => flecha(k) === 'rotate(0deg)');
+
+      hdr('docencia').click(); hdr('calidad').click();
+      const reabiertos = abiertos().length;
+      irA('hemodinamica');
+      await new Promise(r => setTimeout(r, 200));
+      irA('lab');
+      if (typeof labInit === 'function') labInit();
+      await new Promise(r => setTimeout(r, 500));
+      const puertaTab = abiertos().length === 0;
+
+      /* ── NADA SE PERSISTE ── */
+      const enDisco = Object.keys(localStorage).filter(k => /lab.*acc|acorde/i.test(k));
+
+      /* ── EL ESTILO ES EL DE HEMODINAMICA, MEDIDO ── no se compara contra literales: se compara
+         contra la cabecera que manda, que es la unica forma de que no se separen. */
+      const props = ['backgroundColor','color','fontSize','fontWeight','letterSpacing',
+                     'textTransform','paddingTop','paddingLeft','borderBottomWidth'];
+      const leer = el => { const c = getComputedStyle(el); const o = {};
+        props.forEach(p => o[p] = c[p]); return o; };
+      irA('hemodinamica');
+      const hHemo = document.querySelector('h2.card-head[onclick*="hemo-vi"]');
+      const estHemo = hHemo ? leer(hHemo) : null;
+      const mbHemo = hHemo ? getComputedStyle(hHemo.closest('.card')).marginBottom : null;
+      irA('lab');
+      await new Promise(r => setTimeout(r, 250));
+      const hGen = document.querySelector('#lab-sub-general .lab-card-hdr');
+      const estGen = leer(hGen);
+      const mbGen = getComputedStyle(hGen.closest('.lab-card')).marginBottom;
+      const difs = estHemo ? props.filter(p => estHemo[p] !== estGen[p])
+        .map(p => p + ':' + estHemo[p] + '/' + estGen[p]) : ['no se encontro la cabecera de Hemodinamica'];
+
+      /* ── EL CSS NO SE FILTRA A LAS OTRAS SUBTABS ── esta ronda es SOLO General. */
+      const ajena = document.querySelector('#lab-sub-mediciones .lab-card-hdr') ||
+                    document.querySelector('#lab-sub-avanzado .lab-card-hdr');
+      const ajenaIntacta = ajena ? (getComputedStyle(ajena).textTransform !== 'uppercase') : null;
+
+      /* ── EL PDF NO DEPENDE DEL ESTADO DEL ACORDEON ── el corazon se rasteriza serializando el
+         SVG, que no depende del layout: con el bloque cerrado tiene que dar LO MISMO. */
+      let pngCerrado = null, pngAbierto = null;
+      if (typeof _labHeartPng === 'function') {
+        if (body('anatomico').style.display !== 'none') hdr('anatomico').click();
+        pngCerrado = await _labHeartPng();
+        hdr('anatomico').click();
+        await new Promise(r => setTimeout(r, 300));
+        pngAbierto = await _labHeartPng();
+        hdr('anatomico').click();
+      }
+      const heartIgual = !!pngCerrado && !!pngAbierto && String(pngCerrado) === String(pngAbierto);
+
+      return { extra: [
+        ['los DIEZ bloques son acordeones', sonDiez, ids.join(',')],
+        ['TODOS nacen cerrados, sin excepcion', todosCerradosAlEntrar,
+          'abiertos=' + abiertos().map(c => c.id).join(',')],
+        ['  y NACEN cerrados tambien en el marcado', cuerposEnFuente === 10 && cerradosEnFuente === 10,
+          'cuerpos=' + cuerposEnFuente + ' conDisplayNone=' + cerradosEnFuente],
+        ['  y todos tienen su flecha', todosConFlecha, ''],
+        ['el assert de cabecera/cuerpo/flecha no reporta nada', assert.length === 0, assert.join(' · ')],
+        ['la cabecera es ALCANZABLE POR TECLADO', enfocable && recibeFoco,
+          'tabindex=' + hCal.getAttribute('tabindex') + ' role=' + hCal.getAttribute('role')],
+        ['  y declara su estado (aria-expanded)', ariaInicial === 'false', 'inicial=' + ariaInicial],
+        ['  Enter abre', enterAbre, ''],
+        ['  Espacio cierra', espacioCierra, ''],
+        ['  Espacio sobre la casilla PPT no alterna el acordeon', espacioEnLaCasilla, ''],
+        ['abrir muestra el bloque y gira la flecha', abre, flecha('calidad')],
+        ['cerrar lo esconde y la repone', cierra, flecha('calidad')],
+        ['DENOMINADOR: la casilla PPT ocupa 44x44 en la cabecera', areaCasilla === '44x44', areaCasilla],
+        ['tildar la casilla NO alterna el acordeon', marcaSinAbrir, 'display=' + body('calidad').style.display],
+        ['  ni tocar su area tactil', labelTampocoAbre, ''],
+        ['DENOMINADOR: hay cohorte, o sea que hay grafico que medir', hayCohorte > 0, 'n=' + hayCohorte],
+        ['el grafico de meses SOBREVIVE al colapso', mesesOk,
+          dim('chart-meses') + ' cont=' + Math.round(cont('chart-meses')) +
+          ' instancia=' + !!(cv('chart-meses') && Chart.getChart(cv('chart-meses')))],
+        ['  y los dos del analisis por medico', medOk,
+          dim('chart-med-meses') + ' cont=' + Math.round(cont('chart-med-meses')) + ' / ' +
+          dim('chart-med-comparativa') + ' cont=' + Math.round(cont('chart-med-comparativa'))],
+        ['DENOMINADOR: habia bloques abiertos antes de salir', nAbiertosAntes > 0, 'n=' + nAbiertosAntes],
+        ['volver a la SUBTAB General cierra todo', puertaSubtab, ''],
+        ['DENOMINADOR: se reabrieron antes de la segunda prueba', reabiertos > 0, 'n=' + reabiertos],
+        ['volver a la TAB Laboratorio tambien', puertaTab, ''],
+        ['no se persiste NADA', enDisco.length === 0, enDisco.join(',')],
+        ['el estilo coincide con Hemodinamica en las nueve propiedades', difs.length === 0, difs.join(' | ')],
+        ['  y el espaciado entre bloques', mbHemo === mbGen, 'hemo=' + mbHemo + ' general=' + mbGen],
+        ['el CSS NO se filtra a las otras subtabs', ajenaIntacta === true, 'ajenaIntacta=' + ajenaIntacta],
+        ['el PDF del corazon NO depende del acordeon', heartIgual,
+          'cerrado=' + (pngCerrado ? String(pngCerrado).length : 'null') +
+          ' abierto=' + (pngAbierto ? String(pngAbierto).length : 'null')]
+      ] };
+    } finally {
+      try { await CeiboStore.setLocal(_cohortePrevia); } catch (e) {}
+      try { labAccCerrarTodos(); } catch (e) {}
+      try { if (typeof labInit === 'function') labInit(); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+  })();
+`);
+
 caso('TC-255', 'Asociaciones: el boton elige que grafico va al PDF y al PPT, y las clinicas nacen dentro', `
   return (async () => {
     for (let i=0;i<80 && (typeof window.jspdf==='undefined'||!window.jspdf.jsPDF);i++) await new Promise(r=>setTimeout(r,100));

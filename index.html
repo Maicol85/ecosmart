@@ -14268,6 +14268,48 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
     #tab-lab .lab-2col > .lab-card{width:100%;}
   }
   #tab-lab .lab-card-hdr{background:var(--bg3);color:var(--accent2);padding:10px 16px;font-size:.84rem;font-weight:700;display:flex;align-items:center;gap:8px;}
+  /* ── Tab GENERAL: los 10 bloques son acordeones y se ven como los de Hemodinámica ─────────
+     ⚠️ LOS VALORES SALEN DE MEDIR `h2.card-head` EN HEMODINÁMICA, no de copiar la regla a ojo.
+     Es el mismo procedimiento —y la misma tabla de valores— que ya usó la tab de Congénitas, y
+     por la misma razón: `.card-head` y `.lab-card-hdr` son dos reglas distintas que describen
+     dos cabeceras que tienen que verse iguales, así que la única forma de saber si coinciden es
+     medir la que manda. Medido en `#hemo-vi`: background rgb(35,40,64) = var(--section-head) ·
+     color rgb(126,200,227) = var(--accent2) · 11px/700 · uppercase · letter-spacing 0,88px
+     (= .08em a 11px) · padding 8px 14px · border-bottom 1px var(--border) · alto 44 px.
+     ⚠️ NO SE TOCA `.lab-card-hdr` PELADO: lo usan las OTRAS ocho subtabs del Laboratorio con 44
+     tarjetas más, y esta ronda es sólo General. Por eso todo va scopeado a `#lab-sub-general`.
+     El alto de 44 px no lo pone esta regla: lo pone la regla táctil global `[onclick]`, y por eso
+     la cabecera de Hemodinámica también mide 44 — las dos llevan `onclick`. Coinciden solas. */
+  /* ⚠️ REDECLARA `display:flex` AUNQUE SEA REDUNDANTE HOY. Esta regla y `#tab-lab .lab-card-hdr`
+     tienen la MISMA especificidad (1,1,0), así que cuál gana lo decide sólo el orden en el fuente;
+     y el `margin-left:auto` que ancla la casilla «☐ PPT» al borde derecho depende de ese contexto
+     flex. Sin repetirlo acá, mover este bloque arriba del otro manda las diez casillas al lado del
+     título, sin ningún error. Lo señaló `/sharp-edges`. */
+  #lab-sub-general .lab-card-hdr{background:var(--section-head);color:var(--accent2);
+    padding:8px 14px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    border-bottom:1px solid var(--border);cursor:pointer;user-select:none;
+    /* gap 7px y no los 8 que traia `.lab-card-hdr`: `.card-head` usa 7 y la comparacion medida
+       lo marcaba como la unica diferencia que quedaba de las dieciseis propiedades. */
+    display:flex;align-items:center;gap:7px;}
+  /* El foco tiene que VERSE: la cabecera entra al orden de tabulación (ver el marcado), y un
+     control enfocable sin indicador es igual de inalcanzable para quien no usa mouse. */
+  #lab-sub-general .lab-card-hdr:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+  /* El espaciado entre bloques también sale de la medición: la `.card` de Hemodinámica lleva
+     `margin-bottom:6px` y `.lab-card` traía 16, que con diez acordeones cerrados se lee como
+     diez secciones sueltas en vez de una lista. Radio, borde y `overflow:hidden` ya coincidían. */
+  #lab-sub-general .lab-card{margin-bottom:6px;}
+  /* ⚠️ LA FLECHA VA PEGADA AL TÍTULO, Y NO ES UN DESCUIDO — es lo que hace Hemodinámica.
+     Su `float:right` NO HACE NADA: `.card-head` es `display:flex` y en un contenedor flex el
+     float se ignora, así que el span queda como segundo ítem, justo detrás del texto. Medido:
+     la flecha de `#hemo-vi` cae a 721 px del borde derecho de su cabecera, no sobre él.
+     ⚠️ DUDA DECLARADA: el pedido dice «misma flecha ▶ a la derecha» Y «visualmente
+     indistinguible de un acordeón de Hemodinámica», y las dos cosas no pueden pasar a la vez.
+     Se eligió parecerse a Hemodinámica, que es el objetivo enunciado y además lo que dice
+     «reutilizá el mecanismo tal cual está». De paso evita un choque real: acá el borde derecho
+     ya está ocupado por la casilla «☐ PPT», que se ancla con `margin-left:auto`. Si lo que se
+     quería era la flecha pegada al borde, hay que moverla en Hemodinámica también — si no, la
+     tab General dejaría de ser indistinguible por el otro lado. */
+  #lab-sub-general .lab-card-hdr > span[id$="-arrow"]{font-size:11px;flex-shrink:0;}
   /* Casilla «☐ PPT» de cada tarjeta. Mismo idioma visual que el `.chk-inline` de InfectSmart,
      adaptado a este header: allá el label va con `float:right` sobre un `<h4>`, y acá el header
      es un contenedor FLEX, donde el float no hace nada — empuja con `margin-left:auto`.
@@ -14601,8 +14643,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
   <!-- PILAR 1: ACTIVIDAD -->
   <div class="lab-card" data-ppt="actividad">
-    <div class="lab-card-hdr">📈 Actividad del Laboratorio</div>
-    <div class="lab-card-body">
+    <div class="lab-card-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-actividad" onclick="labAccToggle('lab-acc-actividad',this,event)" onkeydown="labAccTecla(event,'lab-acc-actividad',this)">📈 Actividad del Laboratorio<span id="lab-acc-actividad-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <div class="lab-card-body lab-acc-body" id="lab-acc-actividad" style="display:none;">
       <div class="lab-grid">
         <div>
           <div class="lab-stat"><span class="lab-stat-lbl">Total de estudios</span><span class="lab-stat-val" id="lab-total">—</span></div>
@@ -14638,8 +14680,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
   <!-- SECCIÓN A: PERFIL DE POBLACIÓN (demografía + hallazgos) -->
   <div class="lab-card" data-ppt="demografia">
-    <div class="lab-card-hdr">👥 Perfil de la Población</div>
-    <div class="lab-card-body">
+    <div class="lab-card-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-demografia" onclick="labAccToggle('lab-acc-demografia',this,event)" onkeydown="labAccTecla(event,'lab-acc-demografia',this)">👥 Perfil de la Población<span id="lab-acc-demografia-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <div class="lab-card-body lab-acc-body" id="lab-acc-demografia" style="display:none;">
       <div class="lab-grid">
         <div>
           <div style="font-size:.78rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">Datos demográficos y promedios</div>
@@ -14659,8 +14701,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
   <!-- SECCIÓN A-bis: CORAZÓN ANATÓMICO CON DATOS SUPERPUESTOS -->
   <div class="lab-card" data-ppt="anatomico">
-    <div class="lab-card-hdr">🫀 Corazón anatómico — promedios del período</div>
-    <div class="lab-card-body">
+    <div class="lab-card-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-anatomico" onclick="labAccToggle('lab-acc-anatomico',this,event)" onkeydown="labAccTecla(event,'lab-acc-anatomico',this)">🫀 Corazón anatómico — promedios del período<span id="lab-acc-anatomico-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <div class="lab-card-body lab-acc-body" id="lab-acc-anatomico" style="display:none;">
       <div class="heart-lab-grid">
         <div class="heart-wrap">
           <svg width="340" height="458" viewBox="0 0 1502 2024" xmlns="http://www.w3.org/2000/svg" aria-label="Corazón anatómico">
@@ -14765,16 +14807,16 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
   <!-- SECCIONES E y F: INDICACIONES | ANTECEDENTES (en paralelo; se apilan en móvil) -->
   <div class="lab-2col">
     <div class="lab-card" data-ppt="indicaciones">
-      <div class="lab-card-hdr">📋 Indicaciones del estudio</div>
-      <div class="lab-card-body">
+      <div class="lab-card-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-indicaciones" onclick="labAccToggle('lab-acc-indicaciones',this,event)" onkeydown="labAccTecla(event,'lab-acc-indicaciones',this)">📋 Indicaciones del estudio<span id="lab-acc-indicaciones-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+      <div class="lab-card-body lab-acc-body" id="lab-acc-indicaciones" style="display:none;">
         <div class="lab-pob-sub" data-lab-pob="Frecuencia por indicación" style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Frecuencia por indicación (sobre el total de estudios del período).</div>
         <div class="lab-bar-wrap" id="lab-indicaciones-freq"></div>
       </div>
     </div>
 
     <div class="lab-card" data-ppt="antecedentes">
-      <div class="lab-card-hdr">🩺 Antecedentes</div>
-      <div class="lab-card-body">
+      <div class="lab-card-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-antecedentes" onclick="labAccToggle('lab-acc-antecedentes',this,event)" onkeydown="labAccTecla(event,'lab-acc-antecedentes',this)">🩺 Antecedentes<span id="lab-acc-antecedentes-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+      <div class="lab-card-body lab-acc-body" id="lab-acc-antecedentes" style="display:none;">
         <div class="lab-pob-sub" data-lab-pob="Frecuencia por antecedente" style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Frecuencia por antecedente (sobre el total de estudios del período).</div>
         <div class="lab-bar-wrap" id="lab-antecedentes-freq"></div>
       </div>
@@ -14784,8 +14826,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
   <!-- ══ COMPARAR PERIODOS — plegado desde su propia subtab el 2026-09-16 ══ -->
   <div class="lab-card" data-ppt="comparar">
-    <div class="lab-card-hdr">🔀 Comparar Períodos</div>
-    <div class="lab-card-body">
+    <div class="lab-card-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-comparar" onclick="labAccToggle('lab-acc-comparar',this,event)" onkeydown="labAccTecla(event,'lab-acc-comparar',this)">🔀 Comparar Períodos<span id="lab-acc-comparar-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <div class="lab-card-body lab-acc-body" id="lab-acc-comparar" style="display:none;">
       <div class="lab-grid" style="margin-bottom:16px;">
         <div>
           <div style="font-size:.78rem;font-weight:700;color:var(--accent2);margin-bottom:8px;">Período A</div>
@@ -14824,8 +14866,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
   <!-- PILAR 3: CALIDAD DEL LABORATORIO -->
   <div class="lab-card" data-ppt="calidad">
-    <div class="lab-card-hdr">✅ Calidad del Laboratorio</div>
-    <div class="lab-card-body">
+    <div class="lab-card-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-calidad" onclick="labAccToggle('lab-acc-calidad',this,event)" onkeydown="labAccTecla(event,'lab-acc-calidad',this)">✅ Calidad del Laboratorio<span id="lab-acc-calidad-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <div class="lab-card-body lab-acc-body" id="lab-acc-calidad" style="display:none;">
       <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">
         % de estudios en que cada parámetro fue medido (sobre estudios donde aplica).
       </div>
@@ -14835,8 +14877,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
   <!-- PILAR 4: INDICADORES AUTOMÁTICOS -->
   <div class="lab-card" data-ppt="indicadores">
-    <div class="lab-card-hdr">⚠️ Indicadores Automáticos — Oportunidades clínicas</div>
-    <div class="lab-card-body">
+    <div class="lab-card-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-indicadores" onclick="labAccToggle('lab-acc-indicadores',this,event)" onkeydown="labAccTecla(event,'lab-acc-indicadores',this)">⚠️ Indicadores Automáticos — Oportunidades clínicas<span id="lab-acc-indicadores-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <div class="lab-card-body lab-acc-body" id="lab-acc-indicadores" style="display:none;">
       <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">
         Estudios donde podrían existir brechas asistenciales o datos faltantes clave.
       </div>
@@ -14856,8 +14898,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
   <!-- PILAR 5: DOCENCIA -->
   <div class="lab-card" data-ppt="docencia">
-    <div class="lab-card-hdr">🎓 Docencia — Casos de interés</div>
-    <div class="lab-card-body">
+    <div class="lab-card-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-docencia" onclick="labAccToggle('lab-acc-docencia',this,event)" onkeydown="labAccTecla(event,'lab-acc-docencia',this)">🎓 Docencia — Casos de interés<span id="lab-acc-docencia-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <div class="lab-card-body lab-acc-body" id="lab-acc-docencia" style="display:none;">
       <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">
         Estudios marcados como "caso de interés" — para ateneo, residentes o publicación.
       </div>
@@ -14867,8 +14909,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
   <!-- ══ COMPARAR MEDICOS ══ -->
   <div class="lab-card" data-ppt="medicos">
-    <div class="lab-card-hdr">👨‍⚕️ Análisis por Médico</div>
-    <div class="lab-card-body">
+    <div class="lab-card-hdr" role="button" tabindex="0" aria-expanded="false" aria-controls="lab-acc-medicos" onclick="labAccToggle('lab-acc-medicos',this,event)" onkeydown="labAccTecla(event,'lab-acc-medicos',this)">👨‍⚕️ Análisis por Médico<span id="lab-acc-medicos-arrow" style="float:right;transition:transform 0.2s;">▶</span></div>
+    <div class="lab-card-body lab-acc-body" id="lab-acc-medicos" style="display:none;">
       <div class="fg" style="margin-bottom:16px;">
         <label>Seleccionar médico</label>
         <select id="lab-med-select" onchange="labMedicoRender()">
@@ -15916,6 +15958,14 @@ function showTab(id) {
      haber movido en OTRA pestaña del navegador, donde este documento no se entera. Se repinta
      al entrar, que es el único momento en que importa. */
   if (id === 'imagenes' && typeof orthancBotonSync === 'function') orthancBotonSync();
+  /* ⚠️ LA OTRA PUERTA DE ENTRADA. `labSubTab('general')` cubre volver desde otra SUBtab, pero no
+     volver desde otra TAB principal: ahí el panel General ya está `active` y nadie llama a
+     `labSubTab`, así que los acordeones que hayan quedado abiertos seguían abiertos. Con las dos
+     puertas, «se entra o se vuelve a la tab General» se cumple por los dos caminos.
+     NO va colgado de `labInit`, que es lo que primero parece: `labInit` corre también al cambiar
+     el período o el centro, y ahí cerrarle el bloque al médico que está leyendo sería un reseteo
+     sin causa visible. Esto es navegación, aquello es refresco de datos. */
+  if (id === 'lab' && typeof labAccCerrarTodos === 'function') labAccCerrarTodos();
   /* ACA SE REPINTABA EL CAJON DOPPLER AL ENTRAR A LA TAB, y se saco (2026-09-24): el cajon vive
      dentro del overlay del visor, asi que ninguna pestana puede mostrarlo ni esconderlo. */
   /* El seguimiento de Cardio-Oncología está indexado por paciente, así que hay que
@@ -65556,6 +65606,138 @@ if (document.readyState === 'loading')
   });
 else { try { _labPptChkInyectar(); _labPptAssertClaves(); _labPptAssertGrupos(); } catch (e) { console.error('[LAB_PPT] init:', e); } }
 
+/* ══ ACORDEONES DE LA TAB GENERAL ═════════════════════════════════════════════════════════
+   Los 10 bloques de General se colapsan reusando `toggleCard`, el MISMO mecanismo de las tabs
+   avanzadas (Hemodinámica, ETE, Cardio-Oncología, Amiloidosis). Esta función no lo reemplaza:
+   lo envuelve, porque acá la cabecera tiene algo que aquéllas no tienen.
+
+   ⚠️ LA CASILLA «☐ PPT» VIVE DENTRO DE LA CABECERA, así que sin esta guarda tildarla ALTERNARÍA
+   el acordeón: el médico marca la tarjeta para la presentación y el bloque se le cierra —o se
+   le abre— en la cara. Es exactamente el defecto que la tabla de Estadística descriptiva ya pagó
+   hace dos días con su casilla por variable, y la lección de allá fue que el área táctil de la
+   casilla es MÁS GRANDE que la casilla (`min-height:44px` con márgenes negativos), o sea que el
+   choque no es un caso de borde: es la mitad derecha del renglón.
+   Se filtra por ORIGEN DEL CLIC y no por `stopPropagation` en la casilla: el `onchange` de la
+   casilla es de otro módulo (`_labPptChkInyectar`) y colgarle ahí una defensa de este módulo
+   pone la razón lejos del motivo. También cubre el botón ℹ️ de las cabeceras que lo tienen. */
+function labAccToggle(id, headEl, ev) {
+  const t = ev && ev.target;
+  if (t && t.closest && t.closest('.lab-ppt-chk, .asoc-info-btn, button, input, select, textarea, a')) return;
+  toggleCard(id, headEl);
+  const sec = document.getElementById(id);
+  if (sec && headEl) headEl.setAttribute('aria-expanded', sec.style.display !== 'none' ? 'true' : 'false');
+}
+window.labAccToggle = labAccToggle;
+
+/* ⚠️ SIN ESTO LOS DIEZ BLOQUES QUEDABAN INALCANZABLES SIN MOUSE, y eso no es un detalle de
+   estilo: antes del cambio el contenido estaba SIEMPRE visible, y ahora vive detrás de un control
+   que —siendo un `<div onclick>`— no entra al orden de tabulación ni se anuncia como plegable.
+   Un usuario de teclado podía tabular hasta la casilla «☐ PPT» de una tarjeta —ésa sí es un
+   `<input>`— y no tener forma de abrir su contenido. Lo encontró `/sharp-edges`.
+   Enter y Espacio, que es lo que un `role="button"` promete; Espacio además cancela el scroll.
+   ⚠️ SALVEDAD DECLARADA: `role="button"` con un `<input>` adentro (la casilla PPT) es un
+   antipatrón ARIA. Se eligió igual porque la alternativa correcta —meter el título en un
+   `<button>` hermano de la casilla— reestructura las diez cabeceras y las aleja del marcado de
+   Hemodinámica, que es el patrón que este pedido manda replicar. Contenido inalcanzable es peor
+   que un rol imperfecto.
+   ⚠️ Y HEMODINÁMICA, ETE Y CARDIO-ONCOLOGÍA TIENEN EL MISMO HUECO: sus `h2.card-head[onclick]`
+   tampoco son enfocables. No se tocaron —esta ronda es sólo General— pero queda anotado: si esto
+   se extiende al resto del Laboratorio, conviene arreglarlo de una vez en las dos familias. */
+function labAccTecla(ev, id, headEl) {
+  if (!ev) return;
+  if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') return;
+  /* El mismo filtro que el clic: con el foco en la casilla PPT, Espacio la tilda y NO tiene que
+     alternar además el acordeón. */
+  const t = ev.target;
+  if (t && t.closest && t.closest('.lab-ppt-chk, .asoc-info-btn, button, input, select, textarea, a')) return;
+  ev.preventDefault();
+  labAccToggle(id, headEl, null);
+}
+window.labAccTecla = labAccTecla;
+
+/* ⚠️ ACÁ HUBO UN MECANISMO DE REPINTADO Y SE ELIMINÓ: LO JUSTIFICABA UNA MEDICIÓN FALSA.
+   La preocupación era legítima —un Chart.js con `responsive:true` mide su contenedor, y dentro de
+   un `display:none` ese contenedor mide 0—, así que los tres gráficos de esta tab podían quedar
+   en blanco de forma permanente. Llegué a escribir `labAccRepintar`, un atributo
+   `data-acc-repintar` por tarjeta y su assert de arranque.
+   Medido en el navegador del PREVIEW: el canvas nacía 0×0, seguía 0×0 a 1500 ms de abrir el
+   acordeón, y `chart.resize()` tampoco lo recuperaba. Con eso el mecanismo parecía obligatorio.
+   ⚠️ Medido después en CHROME REAL —el del suite, por CDP, y con cohorte sembrada—: el canvas
+   nace 0×0 con el bloque cerrado y pasa a 694×220 **a los 100 ms de abrirlo, sin repintar nada**.
+   Chart.js trae su propio `ResizeObserver` y se recupera solo.
+   La diferencia es el preview: ahí `ResizeObserver` EXISTE pero NUNCA DISPARA —medido, cero
+   notificaciones con el contenedor pasando de 0 a 521 px—. Es el mismo tipo de artefacto que ya
+   está anotado para las transiciones CSS, que tampoco avanzan en ese navegador.
+   O sea que el mecanismo resolvía un problema del banco de pruebas, no del producto, y traía
+   `window[nombreSacadoDelDOM]()` —donde `print`, `stop` y `close` pasan cualquier assert de
+   «¿existe la función?»—, un atributo que apuntaba a `labInit` cuando la función que importa es
+   el envoltorio de quince mil líneas más abajo, y un `catch` que dejaba el gráfico en blanco en
+   silencio. Los cuatro los encontró `/sharp-edges`; los cuatro desaparecen al sacar el mecanismo.
+   LO QUE QUEDA EN SU LUGAR es la CONDICIÓN en TC-258: el gráfico tiene que estar dibujado y con
+   el ancho de su contenedor después de abrir el acordeón. Eso fija el comportamiento sin fijar
+   una implementación — si mañana un gráfico nuevo no se recupera solo, el caso se pone rojo y ahí
+   se decide qué hacer. Antes de volver a escribir un repintado: medir en Chrome real, no acá. */
+/* ⚠️ TODOS CERRADOS AL ENTRAR, SIEMPRE, y NADA se persiste. No hay `localStorage` acá a
+   propósito: el pedido lo pide explícito y además el estado de un acordeón no es dato del
+   estudio. La única fuente del estado inicial es el `display:none` del marcado.
+   Se repone también la flecha: dejarla girada sobre una sección cerrada hace que el afford diga
+   «abierto» sobre un bloque que no lo está — es el mismo cuidado que `cardAutoOpen` documenta
+   para el camino contrario. */
+function labAccCerrarTodos() {
+  document.querySelectorAll('#lab-sub-general .lab-acc-body').forEach(sec => {
+    sec.style.display = 'none';
+    const hdr = sec.previousElementSibling;
+    /* Mismo lookup CON RESPALDO que `toggleCard`, y no sólo por id: aquélla cae a
+       `headEl.querySelector('span')` cuando el id de la flecha no resuelve, así que con un id mal
+       escrito el clic SÍ giraba la flecha y este cierre masivo NO la reponía — flecha apuntando
+       «abierto» sobre una sección cerrada, que es justo el afford que miente y que esta función
+       dice estar evitando. Lo señaló `/sharp-edges`. */
+    const fl = document.getElementById(sec.id + '-arrow') ||
+               (hdr && hdr.querySelector ? hdr.querySelector('span') : null);
+    if (fl) fl.style.transform = 'rotate(0deg)';
+    if (hdr && hdr.setAttribute) hdr.setAttribute('aria-expanded', 'false');
+  });
+}
+window.labAccCerrarTodos = labAccCerrarTodos;
+
+/* Assert de arranque, con el mismo espíritu que `_labPptAssertClaves`. Ya no mira el repintado
+   —ese mecanismo no existe—: mira lo que de verdad falla en SILENCIO, que es la correspondencia
+   cabecera → cuerpo → flecha. `toggleCard` hace `if (!sec) return;` sin log, así que un id mal
+   escrito en el `onclick` da una cabecera visible, clicable y sin ningún efecto, sin una línea en
+   consola. Este archivo ya lo pagó con los siete acordeones de Congénitas —`secToggle` recibiendo
+   `fontan` en vez de `cc-fontan`— y la lección de entonces fue que un id inventado no falla,
+   calla. Lo señaló `/sharp-edges`. */
+function _labAccAssertRepintado() {
+  const malas = [];
+  const hdrs = document.querySelectorAll('#lab-sub-general .lab-card-hdr[onclick]');
+  const cuerpos = document.querySelectorAll('#lab-sub-general .lab-acc-body');
+  hdrs.forEach(h => {
+    const m = /labAccToggle\('([^']+)'/.exec(h.getAttribute('onclick') || '');
+    if (!m) { malas.push('una cabecera con onclick que no llama a labAccToggle'); return; }
+    const id = m[1];
+    const sec = document.getElementById(id);
+    if (!sec) { malas.push(id + ': la cabecera apunta a un cuerpo que no existe'); return; }
+    if (!sec.classList.contains('lab-acc-body')) malas.push(id + ': el cuerpo no lleva la clase lab-acc-body, así que «cerrar todo» no lo alcanza');
+    if (!document.getElementById(id + '-arrow')) malas.push(id + ': no tiene flecha');
+  });
+  if (hdrs.length !== cuerpos.length)
+    malas.push('hay ' + hdrs.length + ' cabeceras y ' + cuerpos.length + ' cuerpos');
+  if (malas.length) console.error('[lab-acc] ' + malas.join(' · '));
+  return malas;
+}
+window._labAccAssertRepintado = _labAccAssertRepintado;
+/* Se corre DIFERIDO en las dos ramas, y no sólo en la de `DOMContentLoaded`: `window.labInit` se
+   asigna nueve mil líneas más abajo, así que un assert inmediato lo encontraría `undefined` y
+   reportaría como rota una declaración correcta — un assert que da falsos positivos se apaga y
+   deja de proteger, que es peor que no tenerlo. */
+if (document.readyState === 'loading')
+  document.addEventListener('DOMContentLoaded', function () {
+    try { _labAccAssertRepintado(); } catch (e) { console.error('[lab-acc] assert:', e); }
+  });
+else setTimeout(function () {
+  try { _labAccAssertRepintado(); } catch (e) { console.error('[lab-acc] assert:', e); }
+}, 0);
+
 function labSubTab(id, el) {
   document.querySelectorAll('#tab-lab .lab-subtab')
     .forEach(b => b.classList.remove('active'));
@@ -65575,6 +65757,11 @@ function labSubTab(id, el) {
      «este laboratorio no tiene médicos cargados». Es la asimetría de `labAsociacionesInit`, que
      el propio archivo declara — si hay una segunda entrada a la pestaña, el bloque queda mudo. */
   if (id === 'general') {
+    /* Todos los acordeones vuelven a CERRARSE al entrar, sin importar como quedaron. Va ANTES de
+       los init: `labMedicoInit` termina llamando a `labMedicoRender`, que dibuja sus dos Chart.js,
+       y hacerlo con el bloque ya cerrado es lo correcto — nacen en 0×0 y Chart.js los redimensiona
+       solo al abrirse (medido en Chrome real; ver la nota larga de `labAccToggle`). */
+    labAccCerrarTodos();
     if (typeof labMedicoInit === 'function') labMedicoInit();
     if (typeof labCompararInit === 'function') labCompararInit();
   }
@@ -74692,8 +74879,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260925-1149';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790347761484;                 /* eco-build-ms */
+const ECO_BUILD    = '20260925-1301';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790352086262;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -74779,7 +74966,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-1149</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-1301</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

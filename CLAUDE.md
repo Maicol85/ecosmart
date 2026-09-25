@@ -4,6 +4,119 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Laboratorio · tab General: los diez bloques son acordeones (2026-09-25)
+
+Ronda de prueba: **sólo la tab General**. Las otras ocho subtabs no se tocaron, y el CSS va
+scopeado a `#lab-sub-general` justamente para eso — verificado midiendo que Mediciones, Avanzado y
+ETE siguen en `text-transform:none`, 13,44 px y `cursor:auto`.
+
+### ⚠️ EL PREVIEW ME HIZO ESCRIBIR UN MECANISMO ENTERO QUE NO HACÍA FALTA
+
+Es el hallazgo más caro de esta sesión y el que más conviene recordar.
+
+La preocupación era correcta: un Chart.js con `responsive:true` mide su contenedor, y dentro de un
+`display:none` ese contenedor mide 0. Medido **en el preview**: el canvas nacía 0×0, seguía 0×0 a
+1500 ms de abrir el acordeón, y `chart.resize()` tampoco lo recuperaba. Con esa medición el
+mecanismo parecía obligatorio, y escribí `labAccRepintar`, un `data-acc-repintar` por tarjeta y su
+assert de arranque.
+
+Medido después **en Chrome real** —el del suite, por CDP, con cohorte sembrada—: el canvas nace 0×0
+con el bloque cerrado y pasa a **694×220 a los 100 ms de abrirlo, sin repintar nada**. Chart.js trae
+su propio `ResizeObserver` y se recupera solo.
+
+**La diferencia es el preview: ahí `ResizeObserver` EXISTE pero NUNCA DISPARA.** Medido: cero
+notificaciones con el contenedor pasando de 0 a 521 px. Es el mismo tipo de artefacto que ya estaba
+anotado para las transiciones CSS, que tampoco avanzan en ese navegador.
+
+**Regla: cualquier cosa que dependa de layout, observers o tiempo se mide en Chrome real, no en el
+preview.** El preview sirve para leer estado y DOM; para *cuándo* el navegador reacciona, no.
+
+El mecanismo se eliminó. De paso se llevó cuatro hallazgos de `/sharp-edges` que sólo existían por
+él: `window[nombreSacadoDelDOM]()` —donde `print`, `stop` y `close` pasan cualquier assert de
+«¿existe la función?»—, un atributo que decía `labInit` cuando la función que importa es el
+envoltorio de quince mil líneas más abajo, riesgo de recursión, y un `catch` que dejaba el gráfico
+en blanco en silencio. Lo que quedó en su lugar es la **condición** en TC-258: el gráfico tiene que
+estar dibujado y con el ancho de su contenedor después de abrir. Fija el comportamiento sin fijar
+una implementación.
+
+### ⚠️ LA CASILLA «☐ PPT» VIVE DENTRO DE LA CABECERA
+
+`_labPptChkInyectar` le cuelga una casilla a cada `.lab-card-hdr`, con área táctil de 44×44 por la
+regla de accesibilidad — o sea **la mitad derecha del renglón**. Sin guarda, tildarla alternaba el
+acordeón. Es el mismo defecto que la tabla de Estadística descriptiva pagó tres días antes con su
+casilla por variable. Se filtra por ORIGEN DEL CLIC en `labAccToggle`, no con `stopPropagation` en
+la casilla: ésa es de otro módulo y colgarle ahí una defensa de éste pone la razón lejos del motivo.
+
+### ⚠️ COLAPSAR CONTENIDO LO SACA DEL ALCANCE DEL TECLADO
+
+Antes del cambio el contenido estaba **siempre visible**. Detrás de un `<div onclick>` —que no entra
+al orden de tabulación ni se anuncia como plegable— los diez bloques quedaban inalcanzables sin
+mouse: se podía tabular hasta la casilla PPT de una tarjeta (ésa sí es un `<input>`) y no tener
+forma de abrir su contenido. Lo encontró `/sharp-edges`. Hoy llevan `role="button"`, `tabindex="0"`,
+`aria-expanded`, `aria-controls` y Enter/Espacio.
+
+**Salvedad declarada:** `role="button"` con un `<input>` adentro es un antipatrón ARIA. Se eligió
+igual porque la alternativa correcta —el título en un `<button>` hermano de la casilla—
+reestructura las diez cabeceras y las aleja del marcado de Hemodinámica, que es el patrón que el
+pedido manda replicar. Contenido inalcanzable es peor que un rol imperfecto.
+**Y Hemodinámica, ETE y Cardio-Oncología tienen el mismo hueco**: sus `h2.card-head[onclick]`
+tampoco son enfocables. Si esto se extiende al resto, conviene arreglarlo en las dos familias.
+
+### El estilo se MIDIÓ contra Hemodinámica, no se copió
+
+Mismo procedimiento que usó Congénitas. Las 17 propiedades computadas coinciden: `--section-head`,
+`--accent2`, 11px/700, versalitas, interletra 0,88 px, padding 8×14, borde inferior, `gap:7px`
+—los 8 px que traía `.lab-card-hdr` eran la única diferencia que quedaba— y alto 44 px, que no lo
+pone esta regla sino la regla táctil global `[onclick]`: Hemodinámica también mide 44 por lo mismo.
+Espaciado entre bloques a 6 px, como la `.card`.
+
+**⚠️ DUDA DECLARADA — la flecha.** El pedido decía «misma flecha ▶ a la derecha» *y* «visualmente
+indistinguible de Hemodinámica», y las dos cosas no pueden pasar a la vez: el `float:right` de
+Hemodinámica **no hace nada**, porque `.card-head` es `display:flex` y ahí el float se ignora.
+Medido: su flecha cae a 721 px del borde derecho, pegada al título. Se eligió parecerse a
+Hemodinámica. De paso evita un choque real: acá el borde derecho ya lo ocupa la casilla PPT.
+Si lo que se quería era la flecha sobre el borde, hay que moverla **en Hemodinámica también**.
+
+### Lo que NO se rompe al colapsar, verificado
+
+- **El PDF es idéntico byte a byte** con los diez bloques abiertos o cerrados: 6 páginas y la misma
+  longitud de salida. `html2canvas` **no existe** en este proyecto, así que ningún export rasteriza
+  la pantalla: `_labChartImg` crea su propio canvas fuera de pantalla y `_labHeartPng` serializa el
+  SVG con `XMLSerializer` y lee los badges con `textContent` — las dos cosas funcionan bajo
+  `display:none`. El PNG del corazón sale idéntico con el bloque cerrado.
+- **Cero lecturas de layout** (`offsetWidth`, `getBoundingClientRect`…) en todo el camino de render
+  del Laboratorio.
+
+### Cerrar al entrar: DOS puertas, y ninguna es `labInit`
+
+`labSubTab('general')` cubre volver desde otra subtab; `showTab('lab')` cubre volver desde otra tab
+principal, donde el panel General ya está `active` y nadie llama a `labSubTab`. **No cuelga de
+`labInit`**, que es lo que primero parece: `labInit` corre también al cambiar el período o el
+centro, y ahí cerrarle el bloque al médico que está leyendo sería un reseteo sin causa visible.
+Navegación y refresco de datos son cosas distintas.
+
+`cardAutoOpen` y `secAutoOpen` —que corren en `showTab`— no los tocan: la primera sólo mira
+`[data-autoopen]` (tres secciones de Cardio-Oncología) y la segunda sólo `.sacc`. **No agregarles
+`data-autoopen`**, o dejarían de arrancar cerrados.
+
+### El assert mira la correspondencia, no el repintado
+
+`toggleCard` hace `if (!sec) return;` **sin log**, así que un id mal escrito en el `onclick` da una
+cabecera visible, clicable y sin ningún efecto, sin una línea en consola. Es lo que pagaron los
+siete acordeones de Congénitas. `_labAccAssertRepintado` verifica cabecera → cuerpo → flecha y que
+los conteos coincidan.
+
+### Lo declarado y no corregido
+
+El contenido de General pasó a depender del bloque `<script>` único de 59.000 líneas: si deja de
+parsear, los `onclick` no existen y los diez bloques quedan cerrados. `/sharp-edges` propuso emitir
+los cuerpos abiertos y cerrarlos por JS, para fallar hacia VISIBLE. **No se hizo**, y la razón es
+que ese escenario no se parece al del botón de Orthanc: si ese bloque muere, el Laboratorio no tiene
+ningún cálculo —todos los números salen de ahí—, así que fallar hacia visible mostraría diez bloques
+vacíos en vez de ninguno. El costo sería un parpadeo de diez bloques expandidos en **cada** carga
+sana. Si algún día el arranque se parte en bloques chicos, reconsiderar.
+
+
 ## Cajón 2D de Distancia, y el cuadro de ventana que quedaba pegado (2026-09-25)
 
 ### ⚠️ EL DIAGNÓSTICO DEL CUADRO PEGADO ERA CASI CORRECTO, Y LA PARTE FALSA ERA LA ACCIONABLE
