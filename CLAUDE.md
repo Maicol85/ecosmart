@@ -4,6 +4,104 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Laboratorio · el acordeón se extiende a las OCHO subtabs (2026-09-25)
+
+Segunda ronda: las siete que faltaban. **70 bloques** en total — Filtros 10, General 10,
+Mediciones 12, Asociaciones 3, Avanzado 10, CC 18, ETE 5, Informe 2. Todo lo de la entrada de
+abajo sigue valiendo; acá va sólo lo que apareció al generalizar.
+
+### La compuerta pasó a ser una CLASE, no el panel
+
+`#lab-sub-general .lab-card-hdr` → `#tab-lab .lab-acc-hdr`. Repetir la regla por panel habría
+dejado **ocho selectores describiendo la misma cabecera**, que es la forma segura de que se
+separen. Con la clase, una tab nueva entra poniéndola.
+
+**⚠️ `.lab-card-hdr` SE CONSERVA junto a la clase nueva**, y no es decorativo: `_labPptChkInyectar`
+busca `card.querySelector('.lab-card-hdr')` para colgar la casilla «PPT». Sacándola, las 57
+tarjetas con `data-ppt` pierden su casilla sin ningún error. TC-258 lo fija.
+
+`labAccCerrarTodos` barre `#tab-lab` entero y corre en **todo** cambio de subtab, no sólo al entrar
+a General. Dato medido que conviene saber: por navegación **no se puede** llegar a tener bloques
+abiertos en dos paneles —cambiar de subtab ya cierra todo—, así que el barrido global es la red por
+si alguna vez se abre un bloque sin pasar por `labSubTab`. El caso tuvo que abrirlos a mano para
+poder probarlo; escrito con navegación, el denominador daba 2 en vez de 5.
+
+### ⚠️ FILTROS ES OTRA COSA, y es donde estaba el riesgo clínico
+
+No usa `.lab-card` sino `.card` con el título **adentro** del cuerpo. Sus 10 grupos se
+reestructuraron sacando el título afuera. Quedaron **fuera del colapso a propósito** la tarjeta de
+introducción y la del botón «Aplicar filtros» con `#coh-resultado` y «● Cambios sin aplicar»: son
+la acción y el resultado, no un criterio.
+
+**Colapsar un filtro NO lo desactiva.** El criterio sigue definiendo la cohorte sobre la que se
+recalculan las ocho subtabs, el PDF de auditoría y el Excel — pero deja de verse. `/sharp-edges` lo
+marcó por partida doble: un criterio aplicado que no se sabe en qué grupo está, y —peor— un cambio
+**sin aplicar** que se vuelve invisible al cambiar de subtab, con «Aplicar» resaltado invitando a
+confirmar algo que el médico ya no puede leer.
+
+Dos correcciones:
+- **Contador por grupo** (`labFiltrosContar`): «Valvulopatías ● 1». Es presentación pura —cuenta
+  controles con valor, no lee ni escribe `_LAB_COHORTE`—, se repinta al colapsar y sobrevive a la
+  navegación. Da además una salida que no existía: hasta ahora lo único era «Limpiar filtros»,
+  todo-o-nada.
+- **Filtros dejó de saltearse el aviso de cohorte.** Era el único de los ocho paneles con
+  `if (pan.id === 'lab-sub-filtros') return;` en `_labCohortePintar` — correcto mientras los
+  controles estaban a la vista, porque eran ellos la declaración.
+
+### ⚠️ EL BOTÓN ℹ️ DE ASOCIACIONES QUEDÓ MUERTO
+
+Es el único control de una cabecera cuyo panel vive **dentro** del cuerpo colapsado (`#asoc-info`
+está adentro de `#lab-acc-asoc`), y `asocInfoToggle` sólo alterna una clase: con el bloque cerrado,
+apretar «ℹ️ ¿Cómo leer esta tabla?» no hacía **nada**, y encima `aria-expanded` quedaba en `true`
+sobre una región que no se renderiza. La guarda de `labAccToggle` —que existe para que la casilla
+PPT no alterne el acordeón— era justamente lo que impedía que se abriera.
+
+Pesa porque ese panel es el que distingue `—` (la prueba no se pudo correr) de `⚫` (se corrió y no
+fue significativa). Hoy ese clic **abre el bloque** antes de devolverle el control al botón, y el
+segundo toque no lo cierra. Lo cazó `/sharp-edges`; la guarda que yo había escrito con cuidado
+resultó ser la causa.
+
+**Regla que queda:** antes de excluir un control de la guarda, mirar **dónde vive lo que ese control
+muestra**. Si está dentro del cuerpo, excluirlo lo mata.
+
+### El slug truncado, y el assert que no lo veía
+
+Los ids salen de un slug del título recortado a 28 caracteres, **sin desduplicar**: dos títulos que
+difieran después del corte dan el mismo id, y ahí `getElementById` devuelve el primero, `toggleCard`
+hace `if (!sec) return` sin log sobre el segundo, y los conteos siguen cuadrando 70/70. El assert
+ahora compara ids duplicados. Y los cuatro ids que habían quedado con guion final
+(`lab-acc-informe-de-auditoria-export-`) se renombraron a mano.
+
+### Lo que rompió en la suite, y por qué no era el producto
+
+Tres casos se pusieron rojos y ninguno era una regresión:
+- **TC-164** comparaba el texto de las cabeceras de Avanzado; el orden salía **exacto**, lo que
+  cambió es que el `<span>▶</span>` vive dentro y entra en el `textContent`.
+- **TC-254** medía el área táctil de 44 px de una casilla que ahora nace dentro de un bloque
+  colapsado: `0x0`. El caso ya abría la subtab —y su comentario lo explicaba—; faltaba una capa.
+- **TC-258** era verde con `--solo` y rojo en la suite. **TC-259 recorre las ocho subtabs y
+  terminaba en otra**, así que TC-258 heredaba un panel inactivo y toda su geometría daba cero.
+  Lo paga el que ensucia: hoy TC-259 devuelve «General» en su `finally`, y TC-258 además se pone
+  su propia precondición.
+
+**Un caso que mide geometría necesita su panel ACTIVO, no sólo su pestaña.** Y una tanda de
+fallas que cambia de caso en cada corrida es aislamiento, no una regresión.
+
+### Declarado y NO corregido
+
+- **La subtab «Informe» quedó con dos barras y nada más**: contiene *exclusivamente* las dos
+  tarjetas de exportación, así que entrar ahí muestra dos cabeceras grises y cero contenido, con
+  los formularios y los botones «Generar» detrás de un clic. En Filtros se decidió lo contrario
+  para la tarjeta de «Aplicar». Se dejó colapsada porque la consigna fue explícita —«TODOS
+  arrancan cerrados, sin excepción», y nombró a Informe entre las siete—, pero la asimetría es
+  real: si molesta, Informe es la excepción natural.
+- **`coh-edad-min = 0` activa la cohorte sin filtrar nada.** `_labCohorteLeer` acepta el `0` y
+  `_LAB_COHORTE` deja de ser `null`, pero `_labCohorteOk` y `_labCohorteDesc` aplican piso `> 0`:
+  badge «filtros activos» y descripción vacía. Es preexistente y el arreglo es de una línea, pero
+  vive en la lógica de cohorte y esta ronda era presentación. Lo nuevo es que ese `0` queda dentro
+  de un grupo cerrado.
+
+
 ## Laboratorio · tab General: los diez bloques son acordeones (2026-09-25)
 
 Ronda de prueba: **sólo la tab General**. Las otras ocho subtabs no se tocaron, y el CSS va

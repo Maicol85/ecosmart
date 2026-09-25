@@ -8529,7 +8529,11 @@ caso('TC-164', 'Laboratorio: orden de subtabs y de Avanzado, y el contador cuent
     const rail = [].slice.call(document.querySelectorAll('.lab-subtab'))
       .map(x => (x.textContent || '').trim());
     const av = document.getElementById('lab-sub-avanzado');
-    const cards = av ? [].slice.call(av.querySelectorAll('.lab-card-hdr')).map(x => (x.textContent || '').replace('PPT','').trim()) : [];
+    /* Se saca tambien la flecha: desde que estos bloques son acordeones, el '<span>▶</span>' vive
+       DENTRO de la cabecera y entra en su 'textContent'. El orden que este caso fija no cambio
+       —el diagnostico lo mostraba exacto—, cambio el adorno que lo acompania. */
+    const cards = av ? [].slice.call(av.querySelectorAll('.lab-card-hdr'))
+      .map(x => (x.textContent || '').replace('PPT','').replace(/\u25b6/g,'').trim()) : [];
     const ag = (typeof _labPptAssertGrupos === 'function') ? _labPptAssertGrupos() : null;
     const txt = id => { const e = document.getElementById(id); return e ? (e.textContent || '').replace(/\\s+/g, ' ') : ''; };
     const res = txt('lab-adv-resumen');
@@ -10089,6 +10093,262 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
   })();
 `);
 
+caso('TC-259', 'Laboratorio: las OCHO subtabs son acordeones, con el mismo patron, y los graficos se recuperan solos', `
+  return (async () => {
+    if (typeof labAccToggle !== 'function' || typeof labAccCerrarTodos !== 'function')
+      return { extra:[['existen los acordeones', false, 'faltan labAccToggle o labAccCerrarTodos']] };
+    for (let i=0;i<80 && typeof Chart==='undefined';i++) await new Promise(r=>setTimeout(r,100));
+    if (typeof Chart === 'undefined')
+      return { extra:[['Chart.js cargo por CDN', false, 'sin la libreria no se puede medir el repintado']] };
+    const _cohortePrevia = await CeiboStore.getLocal();
+    /* Se navega clickeando el boton, no llamando a showTab: esa funcion lee el global 'event' y
+       despues de un await ese global es el evento viejo. Misma razon que en TC-258. */
+    const irALab = () => { const b = Array.from(document.querySelectorAll('button[onclick]'))
+      .filter(x => (x.getAttribute('onclick')||'').indexOf("showTab('lab')") >= 0)[0];
+      if (!b) throw new Error('no se encontro el boton de Laboratorio'); b.click(); };
+    try {
+      /* Cohorte con datos en los modulos que dibujan: sin ella los canvas no llegan a existir y
+         las condiciones medirian un canvas intacto — el denominador cero de TC-258. */
+      const hoy = new Date();
+      const f = d => { const x = new Date(hoy); x.setDate(x.getDate()-d); return x.toISOString().slice(0,10); };
+      await CeiboStore.setLocal([0,1,2,3,4,5,6,7].map(function (k) {
+        return { id:'acc9'+k, estudioId:'acc9'+k, nombre:'Paciente '+k, ci:'200'+k,
+                 fecha_estudio: f(k*10), medico:'Dr. Prueba',
+                 campos:{ fevi:'60', edad:'55', sexo:'M', im_grado:'1', ea_grado:'1',
+                          ete_realizado:'si', cc_cia:'si' } };
+      }));
+      irALab();
+      if (typeof labInit === 'function') labInit();
+      await new Promise(r => setTimeout(r, 600));
+
+      const sub = t => Array.from(document.querySelectorAll('#tab-lab .lab-subtab'))
+        .filter(b => b.textContent.trim().toLowerCase().indexOf(t) >= 0)[0];
+      const ir = async t => { const b = sub(t); if (b) b.click(); await new Promise(r=>setTimeout(r,350)); return !!b; };
+      const panel = () => document.querySelector('#tab-lab .lab-subpanel.active');
+      const cuerpos = sel => Array.from(document.querySelectorAll(sel + ' .lab-acc-body'));
+
+      /* ── CENSO: las OCHO subtabs tienen acordeones y arrancan cerradas ── */
+      const TABS = ['filtros','general','mediciones','asociaciones','avanzado','cc','ete','informe'];
+      const censo = TABS.map(t => { const c = cuerpos('#lab-sub-' + t);
+        return t + '=' + c.length; });
+      const todasTienen = TABS.every(t => cuerpos('#lab-sub-' + t).length > 0);
+      const totalCuerpos = cuerpos('#tab-lab').length;
+      const totalHdrs = document.querySelectorAll('#tab-lab .lab-acc-hdr').length;
+      const parejo = totalCuerpos === totalHdrs;
+      const todosCerrados = cuerpos('#tab-lab').every(c => c.style.display === 'none');
+      const todosConFlecha = cuerpos('#tab-lab').every(c => document.getElementById(c.id + '-arrow'));
+      const assert = (typeof _labAccAssertRepintado === 'function') ? _labAccAssertRepintado() : ['no existe'];
+
+      /* Y en el MARCADO, que es la segunda linea de defensa: en runtime no se distingue un bloque
+         nacido abierto de uno que cerro 'labAccCerrarTodos'. */
+      const fuente = await (await fetch(location.href)).text();
+      const cuerposEnFuente = (fuente.match(/class="(?:lab-card-body|card-body) lab-acc-body" id="lab-acc-[a-z0-9-]+" style="display:none;"/g) || []).length;
+      const totalEnFuente = (fuente.match(/lab-acc-body/g) || []).length;
+
+      /* ── ABRIR Y CERRAR EN CADA UNA DE LAS SIETE NUEVAS ── */
+      const porTab = {};
+      for (const t of ['mediciones','avanzado','ete','cc','filtros','asociaciones','informe']) {
+        await ir(t === 'mediciones' ? 'medici' : (t === 'asociaciones' ? 'asociac' : t));
+        const c = cuerpos('#lab-sub-' + t)[0];
+        if (!c) { porTab[t] = 'sin bloques'; continue; }
+        const h = c.previousElementSibling;
+        h.click();
+        const abrio = c.style.display !== 'none' &&
+                      document.getElementById(c.id + '-arrow').style.transform === 'rotate(90deg)' &&
+                      h.getAttribute('aria-expanded') === 'true';
+        h.click();
+        const cerro = c.style.display === 'none' &&
+                      document.getElementById(c.id + '-arrow').style.transform === 'rotate(0deg)';
+        porTab[t] = (abrio && cerro) ? 'ok' : ('abrio=' + abrio + ' cerro=' + cerro);
+      }
+      const todasAbrenYcierran = Object.keys(porTab).every(k => porTab[k] === 'ok');
+
+      /* ── LOS CINCO GRAFICOS DE ESTAS TABS ── se mide si el canvas llega al ancho de su
+         contenedor DESPUES de abrir el acordeon, SIN ningun mecanismo de repintado. En General se
+         verifico que Chart.js se recupera solo con su ResizeObserver; si alguna de estas no lo
+         hiciera, esta condicion se pone roja y ahi se decide. NO se agrego repintado a ciegas. */
+      /* ⚠️ 'chart-evolucion' NO ESTA ACA, y estuvo: vive dentro de '#modal-evolucion', que cierra
+         FUERA de '#tab-lab'. Como no cae en ningun '.lab-acc-body', la entrada se descartaba sola
+         y el comentario decia «los cinco graficos» sobre una lista de cuatro que medía tres. Es un
+         modal, no un bloque del Laboratorio: queda fuera con razon, no por omision. */
+      const CANVAS = [
+        ['medici',       'lab-valv-chart'],
+        ['cc',           'lab-cc-meses-chart'],
+        ['ete',          'lab-ete-meses-chart']
+      ];
+      const graf = [];
+      for (const par of CANVAS) {
+        await ir(par[0]);
+        const cv = document.getElementById(par[1]);
+        if (!cv) { graf.push(par[1] + '=NO EXISTE'); continue; }
+        const body = cv.closest('.lab-acc-body');
+        if (!body) { graf.push(par[1] + '=fuera de acordeon'); continue; }
+        if (body.style.display === 'none') body.previousElementSibling.click();
+        await new Promise(r => setTimeout(r, 900));
+        const cont = Math.round(cv.parentElement.getBoundingClientRect().width);
+        const inst = !!Chart.getChart(cv);
+        graf.push(par[1] + ' inst=' + inst + ' canvas=' + cv.width + 'x' + cv.height + ' cont=' + cont);
+        body.previousElementSibling.click();
+      }
+      /* Un canvas SIN instancia de Chart.js no prueba nada —ese modulo no dibujo nada con esta
+         cohorte—, asi que la condicion exige el ancho SOLO donde hay grafico de verdad. */
+      const conGrafico = graf.filter(g => g.indexOf('inst=true') >= 0);
+      const graficosBien = conGrafico.every(g => {
+        const m = /canvas=(\\d+)x\\d+ cont=(\\d+)/.exec(g);
+        return m && Number(m[2]) > 0 && Number(m[1]) >= Number(m[2]);
+      });
+
+      /* ── VOLVER CIERRA TODO, POR LAS DOS PUERTAS ── y ahora tiene que alcanzar a los OCHO
+         paneles, no solo al activo: los de las otras siete quedaban abiertos e invisibles. */
+      /* ⚠️ SE ABREN A MANO EN DOS PANELES, sin navegar entre ellos. Navegando NO se puede llegar a
+         ese estado —cambiar de subtab ya cierra todo—, asi que el escenario que el barrido
+         '#tab-lab' viene a cubrir no es alcanzable por la interfaz: es la red por si alguna vez
+         alguien abre un bloque sin pasar por 'labSubTab'. Escrito con navegacion, el denominador
+         daba 2 en vez de 5 y la condicion se ponia roja sobre un producto correcto. */
+      await ir('cc');
+      const abrirDirecto = sel => cuerpos(sel).slice(0,3).forEach(c => {
+        c.style.display = 'block';
+        const fl = document.getElementById(c.id + '-arrow'); if (fl) fl.style.transform = 'rotate(90deg)';
+      });
+      abrirDirecto('#lab-sub-cc');
+      abrirDirecto('#lab-sub-mediciones');
+      const abiertosEnDos = cuerpos('#tab-lab').filter(c => c.style.display !== 'none').length;
+      await ir('ete');
+      const trasCambiarDeSubtab = cuerpos('#tab-lab').filter(c => c.style.display !== 'none').length;
+      /* Y la puerta de la tab principal. */
+      cuerpos('#lab-sub-ete').slice(0,2).forEach(c => c.previousElementSibling.click());
+      const reabiertos = cuerpos('#tab-lab').filter(c => c.style.display !== 'none').length;
+      const btnHemo = Array.from(document.querySelectorAll('button[onclick]'))
+        .filter(x => (x.getAttribute('onclick')||'').indexOf("showTab('hemodinamica')") >= 0)[0];
+      if (btnHemo) btnHemo.click();
+      await new Promise(r => setTimeout(r, 200));
+      irALab();
+      await new Promise(r => setTimeout(r, 400));
+      const trasVolverALaTab = cuerpos('#tab-lab').filter(c => c.style.display !== 'none').length;
+      const sinPersistir = Object.keys(localStorage).filter(k => /lab.*acc|acorde/i.test(k));
+
+      /* ── EL ESTILO NO SE FUE A LA DERIVA EN NINGUNA ── se compara contra Hemodinamica, que es la
+         cabecera que manda, y no contra literales. */
+      const props = ['backgroundColor','color','fontSize','fontWeight','letterSpacing','textTransform',
+                     'paddingTop','paddingLeft','borderBottomWidth','gap'];
+      const leer = el => { const c = getComputedStyle(el); const o = {}; props.forEach(p => o[p] = c[p]); return o; };
+      if (btnHemo) btnHemo.click();
+      await new Promise(r => setTimeout(r, 200));
+      const hh = document.querySelector('h2.card-head[onclick*="hemo-vi"]');
+      const hemo = hh ? leer(hh) : null;
+      irALab();
+      await new Promise(r => setTimeout(r, 300));
+      const drift = [];
+      for (const t of TABS) {
+        const h = document.querySelector('#lab-sub-' + t + ' .lab-acc-hdr');
+        if (!h || !hemo) { drift.push(t + ': sin cabecera'); continue; }
+        const g = leer(h);
+        const d = props.filter(p => hemo[p] !== g[p]);
+        if (d.length) drift.push(t + ': ' + d.map(p => p + ' ' + hemo[p] + '/' + g[p]).join(', '));
+      }
+
+      /* ── FILTROS: lo que NO se colapsa tiene que seguir alcanzable ── el boton «Aplicar» y el
+         resumen de la cohorte. Un filtro colapsado sigue vigente, asi que si ademas se escondiera
+         el control de aplicar, el medico no tendria como saber ni cambiar sobre que poblacion
+         esta mirando todo el Laboratorio. */
+      /* ── EL BOTON ℹ️ DE ASOCIACIONES NO PUEDE QUEDAR MUDO ── su panel vive DENTRO del cuerpo
+         colapsado, asi que con el bloque cerrado apretarlo no hacia absolutamente nada. */
+      await ir('asociac');
+      const bAsoc = document.getElementById('lab-acc-asoc');
+      const btnInfo = document.getElementById('asoc-info-btn');
+      const cerradoAntesDelInfo = !!bAsoc && bAsoc.style.display === 'none';
+      if (btnInfo) btnInfo.click();
+      await new Promise(r => setTimeout(r, 300));
+      const panelInfo = document.getElementById('asoc-info');
+      const infoAbreElBloque = !!bAsoc && bAsoc.style.display !== 'none' &&
+        !!panelInfo && panelInfo.getBoundingClientRect().height > 0;
+      const displayTrasInfo = bAsoc ? bAsoc.style.display : null;
+      if (btnInfo) btnInfo.click();
+      await new Promise(r => setTimeout(r, 200));
+      const infoNoCierraElBloque = !!bAsoc && bAsoc.style.display === displayTrasInfo;
+
+      /* ── FILTROS: UN CRITERIO CARGADO SE DECLARA AUNQUE EL GRUPO ESTE CERRADO ── colapsar un
+         filtro no lo desactiva, y ese criterio define la cohorte de las ocho subtabs y del PDF. */
+      await ir('filtros');
+      const grupoValv = document.getElementById('lab-acc-filt-valvulopatias');
+      const selValv = grupoValv ? grupoValv.querySelector('select') : null;
+      const badgeDe = id => { const b = document.getElementById(id);
+        const x = b && b.previousElementSibling ? b.previousElementSibling.querySelector('[data-filt-n]') : null;
+        return x ? (x.textContent || '').trim() : 'SIN BADGE'; };
+      const badgeVacio = badgeDe('lab-acc-filt-valvulopatias') === '';
+      if (selValv) { selValv.selectedIndex = 1; selValv.dispatchEvent(new Event('change', { bubbles:true })); }
+      await new Promise(r => setTimeout(r, 250));
+      const badgeConUno = badgeDe('lab-acc-filt-valvulopatias');
+      await ir('medici');
+      await ir('filtros');
+      const grupoCerradoTrasVolver = !!grupoValv && grupoValv.style.display === 'none';
+      const badgeSobrevive = badgeDe('lab-acc-filt-valvulopatias') === badgeConUno;
+      if (selValv) { selValv.selectedIndex = 0; selValv.dispatchEvent(new Event('change', { bubbles:true })); }
+      await new Promise(r => setTimeout(r, 200));
+      const badgeVuelveAVaciarse = badgeDe('lab-acc-filt-valvulopatias') === '';
+
+      const btnAplicar = document.getElementById('coh-btn-aplicar');
+      const resultado = document.getElementById('coh-resultado');
+      const pendiente = document.getElementById('coh-pendiente');
+      const fueraDelColapso = el => !!el && el.closest('.lab-acc-body') === null;
+      const filtrosAlcanzable = fueraDelColapso(btnAplicar) && fueraDelColapso(resultado) &&
+                                fueraDelColapso(pendiente);
+
+      return { extra: [
+        ['las OCHO subtabs tienen acordeones', todasTienen, censo.join(' ')],
+        ['  cabeceras y cuerpos van parejos', parejo, 'hdrs=' + totalHdrs + ' cuerpos=' + totalCuerpos],
+        ['  todos arrancan CERRADOS', todosCerrados,
+          'abiertos=' + cuerpos('#tab-lab').filter(c => c.style.display !== 'none').length],
+        /* Se compara contra el conteo del DOM, no contra las menciones del fuente: 'lab-acc-body'
+           aparece tambien en el CSS y en el JS —cuatro veces—, asi que restar un numero fijo era
+           una constante magica que se rompe al tocar cualquiera de esas lineas. */
+        ['  y tambien en el MARCADO', cuerposEnFuente === totalCuerpos && totalCuerpos >= 60,
+          'conDisplayNone=' + cuerposEnFuente + ' cuerposEnDOM=' + totalCuerpos],
+        ['  todos tienen flecha', todosConFlecha, ''],
+        ['el assert de cabecera/cuerpo/flecha no reporta nada', assert.length === 0, assert.join(' · ')],
+        ['las SIETE tabs nuevas abren y cierran', todasAbrenYcierran, JSON.stringify(porTab)],
+        /* Se exige que al menos DOS de los tres declarados hayan llegado a tener instancia: con
+           «> 0» la condicion pasaba midiendo UNO y nada decia que los otros dos no se habian
+           podido evaluar — el denominador otra vez. */
+        ['DENOMINADOR: al menos dos de los tres graficos existen de verdad', conGrafico.length >= 2,
+          conGrafico.length + '/' + CANVAS.length + ' · ' + graf.join(' | ')],
+        ['los graficos se recuperan SOLOS al abrir, sin repintado', graficosBien, graf.join(' | ')],
+        ['DENOMINADOR: quedaron bloques abiertos en DOS paneles', abiertosEnDos >= 5, 'n=' + abiertosEnDos],
+        ['cambiar de subtab cierra los de TODOS los paneles', trasCambiarDeSubtab === 0, 'n=' + trasCambiarDeSubtab],
+        ['DENOMINADOR: se reabrieron antes de la segunda puerta', reabiertos > 0, 'n=' + reabiertos],
+        ['volver a la tab Laboratorio tambien', trasVolverALaTab === 0, 'n=' + trasVolverALaTab],
+        ['no se persiste NADA', sinPersistir.length === 0, sinPersistir.join(',')],
+        ['CERO drift de estilo contra Hemodinamica en las ocho', drift.length === 0, drift.join(' | ')],
+        ['DENOMINADOR: el bloque de Asociaciones estaba cerrado', cerradoAntesDelInfo, ''],
+        ['el boton ℹ️ ABRE el bloque en vez de quedar mudo', infoAbreElBloque, ''],
+        ['  y el segundo toque NO lo cierra', infoNoCierraElBloque, ''],
+        ['DENOMINADOR: el grupo de Filtros arranca sin criterios', badgeVacio, ''],
+        ['un criterio cargado se DECLARA en la cabecera', badgeConUno === '● 1', 'badge=«' + badgeConUno + '»'],
+        ['  y sobrevive al colapso al volver a la subtab', grupoCerradoTrasVolver && badgeSobrevive,
+          'cerrado=' + grupoCerradoTrasVolver + ' badge=«' + badgeDe('lab-acc-filt-valvulopatias') + '»'],
+        ['  y se vacia al sacar el criterio', badgeVuelveAVaciarse, ''],
+        ['en Filtros, «Aplicar» y el resumen NO quedan colapsados', filtrosAlcanzable,
+          'aplicar=' + fueraDelColapso(btnAplicar) + ' resultado=' + fueraDelColapso(resultado)]
+      ] };
+    } finally {
+      try { await CeiboStore.setLocal(_cohortePrevia); } catch (e) {}
+      try { labAccCerrarTodos(); } catch (e) {}
+      /* ⚠️ SE DEVUELVE LA SUBTAB «General», que es como viene de fabrica. Este caso recorre LAS
+         OCHO y termina en la ultima que toco: el siguiente hereda un panel ajeno y, si mide
+         geometria, todo le da cero —panel inactivo—. Es el mismo aislamiento que el harness ya
+         documenta para el visor, y lo que hace que un caso sea verde con --solo y rojo en el
+         suite. Lo paga el que ensucia, no el que sigue. */
+      try {
+        const g = Array.from(document.querySelectorAll('#tab-lab .lab-subtab'))
+          .filter(b => b.textContent.trim().toLowerCase().indexOf('general') >= 0)[0];
+        if (g) g.click();
+      } catch (e) {}
+      try { if (typeof labInit === 'function') labInit(); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+  })();
+`);
+
 caso('TC-258', 'Laboratorio General: los diez bloques son acordeones, nacen cerrados, y los graficos sobreviven al colapso', `
   return (async () => {
     if (typeof labAccToggle !== 'function' || typeof labAccCerrarTodos !== 'function')
@@ -10133,6 +10393,16 @@ caso('TC-258', 'Laboratorio General: los diez bloques son acordeones, nacen cerr
       irA('lab');
       if (typeof labInit === 'function') labInit();
       await new Promise(r => setTimeout(r, 500));
+      /* ⚠️ SE PONE «General» ACTIVA A PROPOSITO. Este caso mide GEOMETRIA —el area tactil de 44 px
+         de la casilla PPT— y en un panel INACTIVO todo mide cero. Antes alcanzaba con entrar a la
+         tab, porque General viene 'active' de fabrica; desde que TC-259 recorre las ocho subtabs y
+         termina en otra, este caso heredaba ese panel y daba 0x0 sobre un marcado sano: verde con
+         --solo y rojo en el suite, que es el sintoma de aislamiento que el harness ya documenta
+         para el visor. La precondicion se la pone el caso. */
+      const subGeneral = Array.from(document.querySelectorAll('#tab-lab .lab-subtab'))
+        .filter(b => b.textContent.trim().toLowerCase().indexOf('general') >= 0)[0];
+      if (subGeneral) subGeneral.click();
+      await new Promise(r => setTimeout(r, 400));
 
       const cuerpos = () => Array.from(document.querySelectorAll('#lab-sub-general .lab-acc-body'));
       const abiertos = () => cuerpos().filter(c => c.style.display !== 'none');
@@ -10272,10 +10542,16 @@ caso('TC-258', 'Laboratorio General: los diez bloques son acordeones, nacen cerr
       const difs = estHemo ? props.filter(p => estHemo[p] !== estGen[p])
         .map(p => p + ':' + estHemo[p] + '/' + estGen[p]) : ['no se encontro la cabecera de Hemodinamica'];
 
-      /* ── EL CSS NO SE FILTRA A LAS OTRAS SUBTABS ── esta ronda es SOLO General. */
-      const ajena = document.querySelector('#lab-sub-mediciones .lab-card-hdr') ||
-                    document.querySelector('#lab-sub-avanzado .lab-card-hdr');
-      const ajenaIntacta = ajena ? (getComputedStyle(ajena).textTransform !== 'uppercase') : null;
+      /* ── LAS DOS CLASES CONVIVEN EN LA CABECERA ── reemplaza a la condicion de aislamiento por
+         panel, que quedo obsoleta POR DISENO: el mecanismo se extendio a las ocho subtabs y hoy la
+         compuerta es la clase '.lab-acc-hdr', no el id del panel. Lo que SI hay que seguir
+         fijando es que la cabecera conserve ADEMAS 'lab-card-hdr': '_labPptChkInyectar' la busca
+         por esa clase para colgar la casilla «PPT», y sacarla dejaria a las 57 tarjetas sin
+         casilla y sin ningun error. */
+      const hdrsGen = Array.from(document.querySelectorAll('#lab-sub-general .lab-acc-hdr'));
+      const ajenaIntacta = hdrsGen.length === 10 &&
+        hdrsGen.every(h => h.classList.contains('lab-card-hdr')) &&
+        document.querySelectorAll('#lab-sub-general .lab-ppt-chk').length === 10;
 
       /* ── EL PDF NO DEPENDE DEL ESTADO DEL ACORDEON ── el corazon se rasteriza serializando el
          SVG, que no depende del layout: con el bloque cerrado tiene que dar LO MISMO. */
@@ -10323,7 +10599,8 @@ caso('TC-258', 'Laboratorio General: los diez bloques son acordeones, nacen cerr
         ['no se persiste NADA', enDisco.length === 0, enDisco.join(',')],
         ['el estilo coincide con Hemodinamica en las nueve propiedades', difs.length === 0, difs.join(' | ')],
         ['  y el espaciado entre bloques', mbHemo === mbGen, 'hemo=' + mbHemo + ' general=' + mbGen],
-        ['el CSS NO se filtra a las otras subtabs', ajenaIntacta === true, 'ajenaIntacta=' + ajenaIntacta],
+        ['la cabecera conserva lab-card-hdr, que es de donde cuelga la casilla PPT', ajenaIntacta === true,
+          'hdrs=' + hdrsGen.length + ' casillas=' + document.querySelectorAll('#lab-sub-general .lab-ppt-chk').length],
         ['el PDF del corazon NO depende del acordeon', heartIgual,
           'cerrado=' + (pngCerrado ? String(pngCerrado).length : 'null') +
           ' abierto=' + (pngAbierto ? String(pngAbierto).length : 'null')]
@@ -10589,6 +10866,12 @@ caso('TC-254', 'Estadistica descriptiva: caja por variable, casilla sin id, y la
       const btnMed = [].slice.call(document.querySelectorAll('[onclick*="labSubTab"]'))
         .filter(function (b2) { return /[Mm]edicion/.test(b2.textContent); })[0];
       if (btnMed) btnMed.click();
+      /* Y AHORA TAMBIEN EL ACORDEON. Desde que los bloques del Laboratorio colapsan, abrir la
+         subtab ya no alcanza: la tabla vive dentro de un '.lab-acc-body' que nace cerrado, asi que
+         el area tactil del label volvia a medir 0x0 —el MISMO sintoma que el comentario de arriba
+         documenta, una capa mas abajo—. Se abre por el gesto real, clickeando la cabecera. */
+      const accDesc = document.getElementById('lab-acc-descriptiva');
+      if (accDesc && accDesc.style.display === 'none') accDesc.previousElementSibling.click();
       labRenderDesc();
 
       const claves = [].slice.call(host.querySelectorAll('tr[data-desc-k]')).map(function (t) { return t.getAttribute('data-desc-k'); });
