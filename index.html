@@ -58199,9 +58199,18 @@ function labInit() {
      recalcularlas cuando cambia; si no, quedaban mostrando el corte anterior. */
   if (typeof labAsociacionesRender === 'function' &&
       document.getElementById('lab-sub-asociaciones')) {
-    try { labAsociacionesRender(); if (typeof labRenderDesc === 'function') labRenderDesc();
-           if (typeof labStrainRender === 'function') labStrainRender(); }
+    /* CADA RENDER EN SU PROPIO try, que es la regla que el comentario de abajo ya fija para el
+       bloque A y el libre y que estos tres compartían. Con uno solo, una excepción de
+       `labAsociacionesRender` dejaba la DESCRIPTIVA sin repintar: el encabezado y el N ya se
+       habían movido a la cohorte nueva y la tabla seguía describiendo la anterior. Es preexistente
+       y ahora pesa más, porque además de diez filas de números puede quedar viejo un diagrama de
+       caja desplegado — y una figura se lee con mucha más confianza que una celda. */
+    try { labAsociacionesRender(); }
     catch (e) { console.error('[lab] no se pudieron recalcular las asociaciones', e); }
+    try { if (typeof labRenderDesc === 'function') labRenderDesc(); }
+    catch (e) { console.error('[lab] no se pudo repintar la estadistica descriptiva', e); }
+    try { if (typeof labStrainRender === 'function') labStrainRender(); }
+    catch (e) { console.error('[lab] no se pudo repintar el strain', e); }
     /* Bloque A y bloque libre, en su PROPIO try: si uno lanza no puede llevarse el otro ni la
        tabla general, que ya se dibujó arriba. El bloque libre se repinta acá porque sus pares se
        recalculan sobre la cohorte vigente — al aplicar un filtro, la tabla de la sesión tiene
@@ -64977,20 +64986,237 @@ function labSubTab(id, el) {
   const desc = arr => { arr=arr.filter(v=>v!=null&&!isNaN(v)).sort((a,b)=>a-b); const n=arr.length; if(!n)return {n:0}; const mean=arr.reduce((a,b)=>a+b,0)/n; const q=p=>{ const idx=(n-1)*p, lo=Math.floor(idx), hi=Math.ceil(idx); return lo===hi?arr[lo]:arr[lo]+(arr[hi]-arr[lo])*(idx-lo); }; const sd=n>1?Math.sqrt(arr.reduce((a,b)=>a+(b-mean)*(b-mean),0)/(n-1)):0; return {n, mean, median:q(0.5), sd, p25:q(0.25), p75:q(0.75), min:arr[0], max:arr[n-1]}; };
   const f1 = v => (v==null?'—':(Math.round(v*10)/10).toString());
 
+  /* ══ BOXPLOT DE UNA VARIABLE — UN SOLO DIBUJANTE PARA LA PANTALLA Y PARA EL PDF ══════════
+     ⚠️ ES BOXPLOT Y NO HISTOGRAMA, Y LA RAZÓN SE MIDIÓ: `desc()` filtra, ordena y devuelve
+     `{n, mean, median, sd, p25, p75, min, max}` — **descarta el array**. Un histograma exigiría
+     los valores crudos, o sea volver a recorrer la cohorte con una segunda implementación al
+     lado de la que llena la tabla, que es el defecto que este archivo persigue desde el `_dupKey`.
+     El boxplot, en cambio, ES exactamente esos cinco números: se dibuja lo ya calculado, sin
+     recalcular nada y sin poder discrepar con la fila de arriba.
+
+     LA PALETA SE INYECTA, como en `_labForrSVG`: la pantalla pasa las variables del tema ya
+     resueltas y el PDF una paleta clara fija. Con `var(--x)` adentro, el PNG saldría sin color
+     —eso ya está documentado— y con dos dibujantes, la caja de la pantalla y la del papel podrían
+     dejar de coincidir.
+
+     LA MEDIA VA COMO ROMBO Y LA MEDIANA COMO LÍNEA: son dos estadísticos distintos y en una
+     distribución sesgada se separan, que es justamente lo que un boxplot sirve para mostrar.
+     Sin distinguirlas, dos marcas iguales se leen como una sola medida repetida. */
+  const _LAB_BOX_PDF = { fondo:'#ffffff', tinta:'#1f2937', tinta2:'#6b7280',
+                         caja:'#dbeafe', borde:'#2563eb', mediana:'#dc2626', media:'#0f766e' };
+  window._LAB_BOX_PDF = _LAB_BOX_PDF;
+  window._labBoxCanvas = function (d, pal, W, H) {
+    if (!d || !d.n || d.n < 1 || d.min == null || d.max == null) return null;
+    const k = 2;                                    // los rótulos a 10 px rasterizan lavados a 1x
+    const cv = document.createElement('canvas');
+    cv.width = W * k; cv.height = H * k;
+    const c = cv.getContext('2d'); c.scale(k, k);
+    c.fillStyle = pal.fondo; c.fillRect(0, 0, W, H);
+
+    const L = 46, R = W - 16, yb = 62, alto = 30;   // yb = borde superior de la caja
+    /* ⚠️ RANGO DEGENERADO: con todos los valores iguales —alcanzable con n chico— `max - min` es
+       cero y la escala divide por cero, o sea `Infinity` y nada dibujado. Se abre una ventana
+       mínima alrededor del valor: la caja sale plana, que es lo que de verdad pasa. */
+    let lo = d.min, hi = d.max;
+    if (!(hi > lo)) { const eps = Math.abs(lo) > 0 ? Math.abs(lo) * 0.05 : 0.5; lo -= eps; hi += eps; }
+    const x = v => L + (v - lo) / (hi - lo) * (R - L);
+    const f1 = v => (v == null ? '—' : (Math.round(v * 10) / 10).toString());
+
+    c.fillStyle = pal.tinta; c.font = 'bold 13px sans-serif'; c.textBaseline = 'alphabetic';
+    c.fillText(d.lbl + '  (n = ' + d.n + ')', L - 30, 22);
+
+    // bigotes
+    c.strokeStyle = pal.borde; c.lineWidth = 1.4;
+    c.beginPath();
+    c.moveTo(x(d.min), yb + alto / 2); c.lineTo(x(d.p25), yb + alto / 2);
+    c.moveTo(x(d.p75), yb + alto / 2); c.lineTo(x(d.max), yb + alto / 2);
+    c.moveTo(x(d.min), yb + 6); c.lineTo(x(d.min), yb + alto - 6);
+    c.moveTo(x(d.max), yb + 6); c.lineTo(x(d.max), yb + alto - 6);
+    c.stroke();
+
+    // caja P25–P75
+    const bx = x(d.p25), bw = Math.max(1, x(d.p75) - x(d.p25));
+    c.fillStyle = pal.caja; c.fillRect(bx, yb, bw, alto);
+    c.strokeStyle = pal.borde; c.lineWidth = 1.4; c.strokeRect(bx, yb, bw, alto);
+
+    // mediana
+    c.strokeStyle = pal.mediana; c.lineWidth = 2.4;
+    c.beginPath(); c.moveTo(x(d.median), yb); c.lineTo(x(d.median), yb + alto); c.stroke();
+
+    // media: rombo
+    const mx = x(d.mean), my = yb + alto / 2;
+    c.fillStyle = pal.media; c.beginPath();
+    c.moveTo(mx, my - 5); c.lineTo(mx + 5, my); c.lineTo(mx, my + 5); c.lineTo(mx - 5, my);
+    c.closePath(); c.fill();
+
+    /* RÓTULOS EN TRES RENGLONES, y la mediana va sola en el suyo. Con los cinco alternados sólo
+       entre arriba y abajo, mín y mediana comparten renglón y se dibujan UNO ENCIMA DEL OTRO en
+       cuanto la mediana se pega al mínimo — que es lo habitual en toda variable con efecto piso
+       (TAPSE, PSAP en una cohorte sana, cualquiera donde más de la mitad comparta el valor más
+       bajo). `fillText` no envuelve ni avisa: superpone.
+       Y los extremos se ACOTAN al ancho del lienzo: centrados en x(min) y x(max), que están a 46 y
+       a 16 px de los bordes, un valor de cinco o seis cifras se recorta en silencio. */
+    c.font = '10px sans-serif'; c.textAlign = 'center';
+    const rot = (txt, xc, yy) => {
+      const w2 = c.measureText(txt).width / 2;
+      c.fillText(txt, Math.min(W - 2 - w2, Math.max(2 + w2, xc)), yy);
+    };
+    c.fillStyle = pal.tinta2;
+    rot(f1(d.min), x(d.min), yb - 6);
+    rot(f1(d.max), x(d.max), yb - 6);
+    rot(f1(d.p25), x(d.p25), yb + alto + 13);
+    rot(f1(d.p75), x(d.p75), yb + alto + 13);
+    c.fillStyle = pal.mediana;
+    rot(f1(d.median), x(d.median), yb - 18);
+
+    // leyenda
+    c.textAlign = 'left'; c.fillStyle = pal.tinta2; c.font = '9.5px sans-serif';
+    c.fillText('caja P25–P75 · línea mediana · rombo media · bigotes mín–máx', L - 30, H - 8);
+    c.textAlign = 'left';
+    return cv;
+  };
+  /* Estado de la tabla: qué variables están marcadas para el PDF y cuál está desplegada.
+     ⚠️ NO VIVE EN EL DOM Y NINGÚN CONTROL NUEVO LLEVA `id`. `guardarInforme` barre
+     `input[id]` de TODO el documento, así que una casilla con id se guardaría en `campos` de
+     CADA estudio como `<id>__chk`, viajaría al Excel y la contaría `detectar_huerfanos`,
+     indistinguible de un dato del paciente. Es la misma regla que los paneles de referencia de
+     Marfan y que las casillas «☐ PPT» de las tarjetas.
+     Desmarcado por defecto y SIN persistir, que es lo que pidió el pedido: la selección
+     describe un PDF que se está por generar, no una preferencia del médico. */
+  const _labDescSel = new Set();
+  let _labDescAbierta = null;
+  const _labDescCache = Object.create(null);
+  /* UNA sola lista de variables para la tabla de pantalla y para la sección del PDF. Con dos, el
+     papel podría ordenarlas distinto que la pantalla desde la que se las eligió —o peor, incluir
+     una que la tabla no ofrece—, y el médico no tendría cómo cotejar una contra la otra.
+     ⚠️ NO es la misma lista que `_labEstDescriptiva`, que agrega `edad`: la tabla del PDF tiene
+     once filas y la de pantalla diez. Es PREEXISTENTE y se declara en vez de emparejarlo acá —la
+     consecuencia concreta es que `edad` nunca puede quedar marcada, porque no tiene fila que
+     tocar—. */
+  const _LAB_DESC_ORDEN = ['fevi','ee','lavi','psap','tapse','masa','ddvi','siv','pp','sprime'];
+  window._labDescSeleccionadas = function (pobl) {
+    const infs = pobl || informes();
+    return _LAB_DESC_ORDEN
+      .filter(k => _labDescSel.has(k))
+      .map(k => Object.assign({ k: k, lbl: VARS[k].lbl }, desc(infs.map(VARS[k].get))))
+      .filter(d => d.n >= 5);
+  };
+  window._labDescSelKeys = function () { return [..._labDescSel]; };
+  /* Rótulo de una variable por su clave. Existe porque `VARS` es un `const` de ESTE IIFE y el PDF
+     del análisis vive afuera: allá `VARS` no está en el ámbito —verificado, `typeof` da
+     'undefined'— así que nombrar las marcadas que no se graficaron imprimiría la clave cruda
+     («fevi») en vez de la etiqueta de la tabla («FEVI (%)»). Cae a la clave si no la reconoce. */
+  window._labDescLbl = function (k) { return (VARS[k] && VARS[k].lbl) || k; };
+
   window.labRenderDesc = function(){
+
     const host=document.getElementById('lab-desc-stats'); if(!host)return;
     const infs=informes();
-    const order=['fevi','ee','lavi','psap','tapse','masa','ddvi','siv','pp','sprime'];
+    const order=_LAB_DESC_ORDEN;
     let rows='';
+    /* El resumen de cada variable se calcula UNA vez y se guarda: la fila y el gráfico salen del
+       MISMO objeto, así que no pueden decir cosas distintas. Con dos cuentas —una para las celdas
+       y otra para la caja— el día que una se afine, la otra queda vieja sin que nada lo diga. */
+    Object.keys(_labDescCache).forEach(k => { delete _labDescCache[k]; });
     order.forEach(k=>{ const g=VARS[k].get; const d=desc(infs.map(g));
-      if(d.n<5){ rows+='<tr><td style="padding:5px 8px;font-weight:600;">'+VARS[k].lbl+'</td><td style="padding:5px 8px;text-align:center;">'+d.n+'</td><td colspan="7" style="padding:5px 8px;color:var(--text2);font-style:italic;">Datos insuficientes (N&lt;5)</td></tr>'; }
-      else { rows+='<tr><td style="padding:5px 8px;font-weight:600;white-space:nowrap;">'+VARS[k].lbl+'</td><td style="padding:5px 8px;text-align:center;">'+d.n+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.mean)+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.median)+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.sd)+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.p25)+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.p75)+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.min)+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.max)+'</td></tr>'; }
+      d.lbl = VARS[k].lbl; _labDescCache[k] = d;
+      /* La casilla NO lleva `id` —ver el comentario del estado— y su estado lo lleva un oyente de
+         `change`, NO de `click`: un `onclick` inline además la inflaría a 44×44 por la regla táctil
+         global y rompería la fila. El `<label>` es el que da el área de toque.
+
+         ⚠️ LA CELDA ENTERA LLEVA `data-desc-chkcell`, Y ESO NO ES DECORACIÓN. El `<label>` mide
+         44×44 y el cuadrito 13×13, así que quedan ~15 px de label alrededor del control — que es
+         exactamente para lo que la regla táctil existe. Un toque ahí tiene `ev.target` = el label,
+         y `closest('[data-desc-chk]')` sube, no baja: devolvía null, el manejador caía a la rama
+         de la fila y **desplegaba el gráfico en vez de marcar**. En celular, que es donde ese
+         blanco de 44 px existe, la casilla del PDF era inusable: el médico tocaba, veía la caja
+         abrirse, y el PDF salía sin la sección. Reproducido antes de arreglarlo. */
+      const chk = '<td data-desc-chkcell style="padding:5px 4px;text-align:center;">' +
+        (d.n >= 5 ? '<label class="chk-toque" title="Incluir esta variable y su gráfico en el PDF del Laboratorio">' +
+          '<input type="checkbox" data-desc-chk="' + escHtml(k) + '"' + (_labDescSel.has(k) ? ' checked' : '') + '></label>'
+                  : '') + '</td>';
+      const cursor = d.n >= 5 ? 'cursor:pointer;' : '';
+      const flecha = d.n >= 5 ? '<span style="color:var(--text2);font-size:9px;margin-right:4px;">' +
+        (_labDescAbierta === k ? '▼' : '▶') + '</span>' : '';
+      /* El borde va en el `style` de CADA `<tr>`. Estaba puesto con un `.replace(/<tr>/g, ...)`
+         sobre la cadena ya armada, y desde que todas las filas salen con `data-desc-k` ese regex
+         --que exige el `<tr>` cerrado de inmediato-- dejo de matchear una sola vez: las diez filas
+         perdieron su separador, y el codigo seguia ahi leyendose como si funcionara. */
+      const BORDE = 'border-bottom:1px solid var(--border);';
+      if(d.n<5){ rows+='<tr data-desc-k="'+escHtml(k)+'" style="'+BORDE+'">'+chk+'<td style="padding:5px 8px;font-weight:600;">'+VARS[k].lbl+'</td><td style="padding:5px 8px;text-align:center;">'+d.n+'</td><td colspan="7" style="padding:5px 8px;color:var(--text2);font-style:italic;">Datos insuficientes (N&lt;5)</td></tr>'; }
+      else { rows+='<tr data-desc-k="'+escHtml(k)+'" style="'+cursor+BORDE+'"><td data-desc-chkcell style="padding:5px 4px;text-align:center;">'+chk.replace(/^<td[^>]*>|<\/td>$/g,'')+'</td><td style="padding:5px 8px;font-weight:600;white-space:nowrap;">'+flecha+VARS[k].lbl+'</td><td style="padding:5px 8px;text-align:center;">'+d.n+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.mean)+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.median)+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.sd)+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.p25)+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.p75)+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.min)+'</td><td style="padding:5px 8px;text-align:right;">'+f1(d.max)+'</td></tr>';
+        if (_labDescAbierta === k) rows += '<tr data-desc-graf="'+escHtml(k)+'"><td colspan="10" style="padding:0 8px 10px;"></td></tr>';
+      }
     });
     host.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px;">'+
       '<thead><tr style="font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);border-bottom:1px solid var(--border);">'+
+      '<th style="padding:5px 4px;" title="Incluir en el PDF">PDF</th>'+
       '<th style="padding:5px 8px;text-align:left;">Variable</th><th style="padding:5px 8px;">N</th><th style="padding:5px 8px;text-align:right;">Media</th><th style="padding:5px 8px;text-align:right;">Mediana</th><th style="padding:5px 8px;text-align:right;">DS</th><th style="padding:5px 8px;text-align:right;">P25</th><th style="padding:5px 8px;text-align:right;">P75</th><th style="padding:5px 8px;text-align:right;">Mín</th><th style="padding:5px 8px;text-align:right;">Máx</th></tr></thead>'+
-      '<tbody>'+rows.replace(/<tr>/g,'<tr style="border-bottom:1px solid var(--border);">')+'</tbody></table>';
+      '<tbody>'+rows+'</tbody></table>'+
+      '<div style="font-size:10.5px;color:var(--text2);margin-top:8px;line-height:1.5;">Tocá una variable para ver su distribución. La casilla la suma al PDF del Laboratorio con su gráfico.</div>';
+    /* El canvas se INSERTA, no se interpola: el dibujante devuelve un elemento y acá se cuelga.
+       Así no hay una sola cadena de datos entrando a `innerHTML`. */
+    if (_labDescAbierta && _labDescCache[_labDescAbierta]) {
+      const celda = host.querySelector('[data-desc-graf] td');
+      if (celda) {
+        const cs = getComputedStyle(document.documentElement);
+        const vv = n2 => (cs.getPropertyValue(n2) || '').trim();
+        /* EL RELLENO DE LA CAJA SE TIÑE, no se toma de `--bg2`. Aquél da ~1,1:1 contra `--bg3` en
+           los DOS temas, así que en pantalla el recorrido intercuartílico lo marcaba sólo el borde
+           de 1,4 px mientras en el papel lleva además un relleno azul: la figura que el médico
+           aprueba no era la que circula. Se arma un rgba del acento —no `color-mix`, que este
+           archivo ya sacó una vez por romper el piso de Safari 15.4 que declara—. */
+        const _rgba = (hex, a) => {
+          const h = String(hex || '').trim().replace('#', '');
+          const t = h.length === 3 ? h.split('').map(x => x + x).join('') : h;
+          return /^[0-9a-f]{6}$/i.test(t)
+            ? 'rgba(' + parseInt(t.slice(0,2),16) + ',' + parseInt(t.slice(2,4),16) + ',' + parseInt(t.slice(4,6),16) + ',' + a + ')'
+            : null;
+        };
+        const _acc = vv('--accent') || '#4f8ef7';
+        const cvx = _labBoxCanvas(_labDescCache[_labDescAbierta],
+          { fondo: vv('--bg3') || '#1e2333', tinta: vv('--text') || '#e8ecf4',
+            tinta2: vv('--text2') || '#9aa3bc', caja: _rgba(_acc, 0.22) || vv('--bg2') || '#181c27',
+            borde: _acc, mediana: vv('--red') || '#f05454',
+            media: vv('--green') || '#3ecf8e' }, 560, 140);
+        if (cvx) { cvx.style.width = '100%'; cvx.style.maxWidth = '560px'; cvx.style.display = 'block';
+                   cvx.style.borderRadius = '6px'; celda.appendChild(cvx); }
+      }
+    }
   };
+  /* Delegación sobre el contenedor y registrada UNA sola vez: `labRenderDesc` reescribe el
+     `innerHTML` en cada repintado, así que enganchar por fila acumularía un oyente por pintada.
+     Es la misma guarda de idempotencia que el donut de la CIA y la tira de cineloops. */
+  if (!window._labDescDeleg) {
+    window._labDescDeleg = true;
+    /* EL ESTADO DE LA CASILLA VA POR `change`, NO POR `click`. El navegador dispara `change` sobre
+       el INPUT tanto si el dedo cayó en el cuadrito como si cayó en el resto del label, así que es
+       el único evento que ve las dos mitades del área táctil. Con `click` + `closest` hacia
+       arriba, un toque en el label no encontraba la casilla y se iba a la rama de la fila. */
+    document.addEventListener('change', function (ev) {
+      const chk = ev.target && ev.target.closest && ev.target.closest('[data-desc-chk]');
+      if (!chk) return;
+      const k = chk.getAttribute('data-desc-chk');
+      if (chk.checked) _labDescSel.add(k); else _labDescSel.delete(k);
+    });
+    document.addEventListener('click', function (ev) {
+      const t = ev.target;
+      if (!t || !t.closest) return;
+      /* La celda de la casilla NO despliega: es territorio del control, y ahí el `<label>` tiene
+         15 px de blanco alrededor del cuadrito. Sin esta salida, tocar ese blanco abría el
+         gráfico —y encima `labRenderDesc` reescribe el `innerHTML` en el mismo despacho, así que
+         el input quedaba desprendido y su `change` no llegaba nunca—. */
+      if (t.closest('[data-desc-chkcell]')) return;
+      const fila = t.closest('tr[data-desc-k]');
+      if (!fila || !document.getElementById('lab-desc-stats') ||
+          !document.getElementById('lab-desc-stats').contains(fila)) return;
+      const k = fila.getAttribute('data-desc-k');
+      const d = _labDescCache[k];
+      if (!d || d.n < 5) return;                  // sin datos no hay nada que desplegar
+      _labDescAbierta = (_labDescAbierta === k) ? null : k;
+      labRenderDesc();
+    });
+  }
 
   // ── Asociaciones: render + filtros ──
   function filtered(){
@@ -72382,6 +72608,65 @@ async function _labAnalisisPDFReal(infs) {
          'los estadísticos.');
   }
 
+  /* ══════════ 1b · CAJAS DE LAS VARIABLES MARCADAS ══════════
+     Sólo las que el médico tildó en la tabla de pantalla, y NADA se recalcula acá:
+     `_labDescSeleccionadas` corre `desc()` —la misma función que llena la fila de arriba— sobre
+     `infs`, que es la población YA congelada al entrar. Misma cuenta y misma muestra, así que la
+     caja y su fila no pueden describir cosas distintas del mismo estudio.
+
+     EL DIBUJANTE ES EL DE LA PANTALLA (`_labBoxCanvas`) con la paleta inyectada: acá va
+     `_LAB_BOX_PDF`, clara y fija. Con `var(--x)` adentro el PNG saldría sin color —el tema vive en
+     el documento, no en el canvas— y con dos dibujantes la caja del papel y la de la pantalla
+     podrían dejar de coincidir el día que se afine una. */
+  if (typeof _labDescSeleccionadas === 'function' && typeof _labBoxCanvas === 'function') {
+    /* `marcadas` se lee PRIMERO y FUERA del try. Adentro y en segundo lugar, una excepción de
+       `_labDescSeleccionadas` —que es la que recorre la cohorte y llama a los getters— la dejaba
+       en `[]`, la compuerta de abajo no entraba, y el PDF salía sin sección y sin una palabra:
+       idéntico al de no haber marcado nada. La única traza era un `console.error` que nadie mira.
+       `_labDescSelKeys` no puede lanzar: devuelve las claves de un Set. */
+    const marcadas = (typeof _labDescSelKeys === 'function' ? _labDescSelKeys() : []) || [];
+    let sel = [], falloElCalculo = false;
+    try { sel = _labDescSeleccionadas(infs) || []; }
+    catch (e) { falloElCalculo = true; console.error('[lab] cajas de descriptivas', e); }
+    /* La sección se dibuja si el médico marcó ALGO, no si algo sobrevivió al piso de N. Gateada
+       por `sel.length`, una cohorte donde las marcadas quedan todas por debajo de 5 producía un
+       PDF sin la sección y sin una palabra: idéntico al de no haber marcado nada. */
+    if (marcadas.length) {
+      sectionTitle('Distribución de las variables marcadas');
+      const BW = 560, BH = 140, iw = CW, ih = iw * BH / BW;
+      const fallaron = [];
+      for (const d of sel) {
+        let url = null;
+        try { const cv = _labBoxCanvas(d, _LAB_BOX_PDF, BW, BH); if (cv) url = cv.toDataURL('image/png'); }
+        catch (e) { console.error('[lab] caja ' + d.k, e); }
+        if (!url) { fallaron.push(d.lbl); continue; }
+        ensure(ih + 4);
+        try { doc.addImage(url, 'PNG', M, y, iw, ih); y += ih + 4; }
+        catch (e) { fallaron.push(d.lbl); }
+      }
+      /* Lo que NO entró se NOMBRA, con su etiqueta y no con un número. Una variable marcada que
+         desaparece del papel sin dejar rastro se lee como si nunca se hubiera marcado — y decir
+         «2 variables» tampoco alcanza: el PDF no registra en ninguna parte CUÁLES se marcaron, así
+         que la tabla de arriba, que lista las once por igual, no permite reconstruir cuáles dos
+         fueron. Los rótulos salen del mismo `VARS` que titula la fila. */
+      const sinN = marcadas.filter(k => !sel.some(d => d.k === k))
+                           .map(k => (typeof _labDescLbl === 'function') ? _labDescLbl(k) : k);
+      if (sinN.length)
+        nota('Marcadas y NO graficadas por tener menos de 5 mediciones en esta cohorte: ' +
+             sinN.join(', ') + '. Se listan igual en la tabla de arriba, con su N.');
+      if (falloElCalculo)
+        nota('No se pudieron calcular las distribuciones de las variables marcadas en esta corrida.');
+      if (fallaron.length)
+        nota('No se pudo dibujar la caja de: ' + fallaron.join(', ') + '.');
+      nota('Diagrama de caja de las variables que se marcaron en la tabla de Estadística ' +
+           'descriptiva del Laboratorio. La caja va del percentil 25 al 75, la línea vertical es ' +
+           'la mediana, el rombo la media y los bigotes llegan al mínimo y al máximo observados. ' +
+           'Se dibuja sobre los MISMOS valores de la tabla de arriba: no hay una segunda cuenta. ' +
+           'No describe la forma de la distribución entre esos cinco puntos ni identifica ' +
+           'valores atípicos.');
+    }
+  }
+
   // ══════════ 2 · DISTRIBUCIONES ══════════
   const distros = [];
   const feviV = infs.map(_labFevi).filter(v => v !== null);
@@ -73179,8 +73464,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260925-0757';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790333858533;                 /* eco-build-ms */
+const ECO_BUILD    = '20260925-0849';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790336994176;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -73266,7 +73551,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-0757</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-0849</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

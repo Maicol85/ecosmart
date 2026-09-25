@@ -9598,6 +9598,238 @@ caso('TC-253', 'POP: el indice del PiCCO clasifica, el mensaje nombra lo que fal
   })();
 `);
 
+caso('TC-254', 'Estadistica descriptiva: caja por variable, casilla sin id, y la seccion del PDF con lo que NO entro', `
+  return (async () => {
+    for (let i=0;i<80 && (typeof window.jspdf==='undefined'||!window.jspdf.jsPDF);i++) await new Promise(r=>setTimeout(r,100));
+    if (typeof window.jspdf==='undefined') return { extra:[['jsPDF cargo', false, 'no cargo']] };
+    if (typeof window._labDescSeleccionadas !== 'function' || typeof window._labBoxCanvas !== 'function')
+      return { extra:[['existen los seams de la tabla descriptiva', false, 'faltan _labDescSeleccionadas o _labBoxCanvas']] };
+    const host = document.getElementById('lab-desc-stats');
+    if (!host) return { extra:[['existe la tabla de estadistica descriptiva', false, 'no hay #lab-desc-stats']] };
+
+    const hoy = new Date();
+    const f = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
+    /* fecha_estudio y NO fecha: _labFiltrarBase filtra por ese campo. Con el otro la cohorte
+       llega VACIA al Laboratorio y todo da false sobre cero filas -- el denominador otra vez. */
+    /* FEVI SESGADA a proposito: con una serie simetrica la media y la mediana caen a 6 px una de
+       la otra y la condicion de la mediana deja de discriminar --la mutacion que dibuja una en
+       lugar de la otra queda al borde de la tolerancia--. Asi difieren ~113 px, y de paso es la
+       distribucion para la que un diagrama de caja sirve. */
+    const FEVI = [29,31,33,35,62,70], PSAP = [30,34,38,42,46,52];
+    const mk = (i, conPsap) => ({ id:i+1, fecha:f, fecha_estudio:f, nombre:'P'+(i+1),
+      campos: Object.assign({ sexo:'M', edad:'44', peso:'70', talla:'170', fevi:String(FEVI[i]) },
+                            conPsap ? { psap_calc:String(PSAP[i]) } : {}) });
+    const todos = [0,1,2,3,4,5].map(function (i) { return mk(i, true); });
+    /* Cohorte de TRES, aplicada DESPUES de marcar. Es el unico camino real por el que una marcada
+       cae bajo el piso de 5: la casilla no existe con n<5, asi que no se puede marcar algo que ya
+       este por debajo.
+       ⚠️ TIENEN QUE CAER LAS DOS, y eso es lo que hace discriminante a la condicion de abajo. Con
+       una cohorte donde UNA sobrevive, la mutacion que gatea la seccion por "sobrevivio alguna"
+       en vez de por "el medico marco algo" SOBREVIVE: la seccion se dibuja igual por la que quedo.
+       El escenario que separa las dos implementaciones es aquel en que NINGUNA llega al piso. */
+    const chica = [0,1,2].map(function (i) { return mk(i, true); });
+
+    const origGet = window.getInformes;
+    const Orig = window.jspdf.jsPDF;
+    try {
+      window.getInformes = function(){ return todos; };
+      /* LA PESTAÑA SE ABRE ANTES DE MEDIR. En display:none TODO mide cero, asi que el area tactil
+         del label daba 0x0 y la condicion de los 44 px fallaba sobre un marcado perfectamente
+         sano. Es la regla que este archivo ya fija para la barra de memoria y para TC-219. */
+      if (typeof showTab === 'function') showTab('lab');
+      const btnMed = [].slice.call(document.querySelectorAll('[onclick*="labSubTab"]'))
+        .filter(function (b2) { return /[Mm]edicion/.test(b2.textContent); })[0];
+      if (btnMed) btnMed.click();
+      labRenderDesc();
+
+      const claves = [].slice.call(host.querySelectorAll('tr[data-desc-k]')).map(function (t) { return t.getAttribute('data-desc-k'); });
+      const casillas = [].slice.call(host.querySelectorAll('[data-desc-chk]'));
+      /* ⚠️ LAS CASILLAS SE RE-CONSULTAN CADA VEZ. labRenderDesc reescribe el innerHTML del
+         contenedor en CADA despliegue, asi que cualquier nodo capturado antes queda DESPRENDIDO:
+         clickearlo alterna su .checked y el oyente delegado no se entera nunca, porque el nodo ya
+         no esta en el documento. Con la lista de arriba reusada para desmarcar, la ultima
+         condicion daba "titulo=true cajas=1" sobre cero casillas marcadas -- o sea acusaba al
+         codigo de un defecto del propio caso. */
+      const vivas = () => [].slice.call(host.querySelectorAll('[data-desc-chk]'));
+      const chk = k => host.querySelector('[data-desc-chk="' + k + '"]');
+      const fila = k => host.querySelector('tr[data-desc-k="' + k + '"]');
+      const abierta = () => { const e = host.querySelector('[data-desc-graf]'); return e ? e.getAttribute('data-desc-graf') : null; };
+
+      /* NINGUN control nuevo lleva id: guardarInforme barre input[id] de TODO el documento y una
+         casilla con id se guardaria en campos de CADA estudio como <id>__chk, viajaria al Excel y
+         la contaria detectar_huerfanos, indistinguible de un dato del paciente. */
+      const sinId = casillas.every(function (c) { return !c.id; });
+
+      // estado de partida declarado: nada marcado y nada desplegado
+      vivas().forEach(function (c) { if (c.checked) c.click(); });
+      if (abierta()) fila(abierta()).click();
+      const arranqueLimpio = abierta() === null && _labDescSelKeys().length === 0;
+
+      // 1 - tocar la fila despliega, volver a tocarla cierra, y solo hay una a la vez
+      fila('fevi').click();
+      const abre = abierta() === 'fevi';
+      const cv1 = host.querySelector('[data-desc-graf] canvas');
+      fila('fevi').click();
+      const cierra = abierta() === null;
+      fila('fevi').click(); fila('psap').click();
+      const cambia = abierta() === 'psap' && host.querySelectorAll('[data-desc-graf]').length === 1;
+
+      // 2 - marcar NO despliega ni cierra lo desplegado
+      const antesDeMarcar = abierta();
+      chk('fevi').click();
+      const marcarNoDespliega = abierta() === antesDeMarcar && _labDescSelKeys().indexOf('fevi') > -1;
+
+      /* 2b - EL BLANCO DEL LABEL, que es la mitad del area tactil que el dedo toca de verdad.
+         El label mide 44x44 y el cuadrito 13x13, asi que quedan ~15 px alrededor. Un toque ahi
+         tiene ev.target = label, y closest('[data-desc-chk]') SUBE, no baja: devolvia null, el
+         manejador caia a la rama de la fila y DESPLEGABA EL GRAFICO en vez de marcar. En celular
+         --que es donde ese blanco existe-- la casilla del PDF era inusable. Por eso la segunda
+         variable se marca por el label y no por el cuadrito: si alguna vez se vuelve al oyente de
+         click con closest hacia arriba, esta condicion cae y la de abajo cuenta una sola marcada. */
+      const lbl = chk('psap').closest('label');
+      const rl = lbl.getBoundingClientRect();
+      const abiertaAntesDelBlanco = abierta();
+      lbl.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: rl.left + 3, clientY: rl.top + 3 }));
+      const blancoMarca = _labDescSelKeys().indexOf('psap') > -1;
+      const blancoNoDespliega = abierta() === abiertaAntesDelBlanco;
+      const areaTactil = Math.round(rl.width) + 'x' + Math.round(rl.height);
+      const marcadas = _labDescSelKeys().slice();
+
+      // 3 - la caja sale del MISMO objeto que la fila de la tabla
+      const pobl = labGetInformes();
+      const tabla = _labEstDescriptiva(pobl), cajas = _labDescSeleccionadas(pobl);
+      const campos = ['n','mean','median','sd','p25','p75','min','max'];
+      const mismaCuenta = cajas.length === 2 && cajas.every(function (c) {
+        const t = tabla.filter(function (x) { return x.lbl === c.lbl; })[0];
+        return t && campos.every(function (k) { return t[k] === c[k]; });
+      });
+
+      /* 4 - GEOMETRIA del dibujo. Sin esto, un dibujante equivocado produce una caja
+         perfectamente presentable y ninguna otra condicion la ve: las cinco marcas caen donde las
+         pone la escala lineal entre el minimo y el maximo, o el diagrama miente. */
+      const d = cajas.filter(function (c) { return c.k === 'fevi'; })[0];
+      const BW = 560, BH = 140, L = 46, R = BW - 16, yb = 62, kk = 2;
+      const xd = v => L + (v - d.min) / (d.max - d.min) * (R - L);
+      const cvBox = d ? _labBoxCanvas(d, _LAB_BOX_PDF, BW, BH) : null;
+      let cajaOk = false, medianaOk = false, geo = 'sin canvas';
+      if (cvBox) {
+        const row = cvBox.getContext('2d').getImageData(0, Math.round((yb + 3) * kk), cvBox.width, 1).data;
+        const px = i => [row[i*4], row[i*4+1], row[i*4+2]];
+        const fondo = px(0);
+        let ini = -1, fin = -1;
+        for (let i = 0; i < cvBox.width; i++) {
+          const p = px(i);
+          if (Math.abs(p[0]-fondo[0]) + Math.abs(p[1]-fondo[1]) + Math.abs(p[2]-fondo[2]) > 12) { if (ini < 0) ini = i; fin = i; }
+        }
+        /* El relleno de referencia se toma BIEN ADENTRO de la caja: tomandolo al lado del borde,
+           el borde gana por diferencia de color y la mediana se "encuentra" en el extremo
+           izquierdo. Paso de verdad al escribir esta sonda. */
+        const ref = px(Math.round(xd(d.p25 + (d.median - d.p25) / 2) * kk));
+        let col = -1, mx = 0;
+        for (let i = Math.round((xd(d.p25) + 4) * kk); i <= Math.round((xd(d.p75) - 4) * kk); i++) {
+          const p = px(i), v = Math.abs(p[0]-ref[0]) + Math.abs(p[1]-ref[1]) + Math.abs(p[2]-ref[2]);
+          if (v > mx) { mx = v; col = i; }
+        }
+        // la tolerancia es el ancho del trazo (1,4 la caja y 2,4 la mediana), no un numero a dedo
+        cajaOk = Math.abs(ini/kk - xd(d.p25)) <= 2 && Math.abs(fin/kk - xd(d.p75)) <= 2;
+        medianaOk = col > 0 && Math.abs(col/kk - xd(d.median)) <= 2;
+        geo = 'caja ' + (ini/kk).toFixed(1) + '-' + (fin/kk).toFixed(1) + ' esperada ' + xd(d.p25).toFixed(1) + '-' + xd(d.p75).toFixed(1) +
+              ' | mediana ' + (col/kk).toFixed(1) + ' esperada ' + xd(d.median).toFixed(1);
+      }
+
+      // 5 - el PDF con la cohorte ya achicada: una caja entra y la otra se declara
+      const correr = async () => {
+        const imgs = []; const texto = [];
+        function Wr(){ const doc = new Orig(...arguments);
+          const ai = doc.addImage.bind(doc);
+          doc.addImage = function (u, fm, x, y, w, h) { imgs.push(Math.round(w) + 'x' + Math.round(h)); return ai.apply(null, arguments); };
+          doc.save = function () {
+            const raw = atob(doc.output('datauristring').split(',')[1]);
+            const re = /\\(((?:\\\\[\\s\\S]|[^()\\\\])*)\\)\\s?Tj/g; let m;
+            while ((m = re.exec(raw))) texto.push(m[1]);
+            return Promise.resolve();
+          };
+          return doc; }
+        Wr.prototype = Orig.prototype; window.jspdf.jsPDF = Wr;
+        try { await labAnalisisPDF(); } finally { window.jspdf.jsPDF = Orig; }
+        const t = texto.join(' | ');
+        /* El texto tambien se une SIN separador para buscar dentro de una nota: el emisor de notas
+           parte con splitTextToSize, asi que la frase llega repartida en varias lineas y un
+           separador se mete en el medio de lo que se busca. */
+        const tp = texto.join(' ');
+        const iOm = tp.indexOf('NO graficadas por tener menos de 5');
+        return { cajas: imgs.filter(function (s) { return s === '180x45'; }).length,
+                 titulo: t.indexOf('Distribucion de las variables marcadas') > -1,
+                 leyenda: t.indexOf('percentil 25 al 75') > -1,
+                 omitidas: iOm > -1,
+                 /* NOMBRA las omitidas, no las cuenta: el PDF no registra en ninguna parte cuales
+                    se marcaron, asi que un conteo pelado no se puede cotejar contra nada. */
+                 omitidasNombradas: iOm > -1 && tp.slice(iOm, iOm + 220).indexOf('FEVI') > -1
+                                             && tp.slice(iOm, iOm + 220).indexOf('PSAP') > -1 };
+      };
+
+      // 5a - cohorte entera: las dos marcadas superan el piso y se grafican las dos
+      const conDatos = await correr();
+
+      // 5b - cohorte de tres: NINGUNA llega al piso, y la seccion tiene que salir igual
+      window.getInformes = function(){ return chica; };
+      const bajoPiso = _labEstDescriptiva(labGetInformes()).filter(function (x) {
+        return x.lbl.indexOf('FEVI') > -1 || x.lbl.indexOf('PSAP') > -1; }).map(function (x) { return x.n; });
+      const todasBajoPiso = bajoPiso.length === 2 && bajoPiso.every(function (n) { return n === 3; });
+      const conFiltro = await correr();
+
+      // 6 - sin ninguna marcada, la seccion NO existe
+      vivas().forEach(function (c) { if (c.checked) c.click(); });
+      const sinMarcar = await correr();
+
+      return { extra: [
+        ['la tabla lista las diez variables', claves.length === 10, claves.join(',')],
+        ['ninguna casilla lleva id: no viaja dentro de los estudios', sinId, casillas.length + ' casillas'],
+        ['estado de partida: nada marcado y nada desplegado', arranqueLimpio, ''],
+        ['tocar la variable despliega su grafico', abre && !!cv1, 'abierta=' + abre + ' canvas=' + !!cv1],
+        ['  y volver a tocarla lo cierra', cierra, ''],
+        ['  y solo queda una desplegada a la vez', cambia, String(abierta())],
+        ['marcar la casilla NO despliega ni cierra lo desplegado', marcarNoDespliega, 'abierta=' + abierta()],
+        ['el area tactil de la casilla es de 44 px', areaTactil === '44x44', areaTactil],
+        ['  y tocar su BLANCO marca, no despliega el grafico', blancoMarca, _labDescSelKeys().join(',')],
+        ['  sin cerrar lo que estuviera desplegado', blancoNoDespliega, 'abierta=' + abierta()],
+        ['se marcan las dos variables', marcadas.length === 2, marcadas.join(',')],
+        ['la caja sale del MISMO objeto que la fila de la tabla', mismaCuenta, cajas.map(function (c) { return c.lbl + ' n=' + c.n; }).join(' | ')],
+        ['la caja abarca P25-P75 donde dice la escala', cajaOk, geo],
+        ['  y la mediana cae en su valor, no en la media', medianaOk, geo],
+        ['el PDF trae UNA caja por variable marcada', conDatos.cajas === 2, 'cajas=' + conDatos.cajas],
+        ['  con su seccion y su leyenda de lectura', conDatos.titulo && conDatos.leyenda, 'titulo=' + conDatos.titulo + ' leyenda=' + conDatos.leyenda],
+        ['  y NO declara omisiones que no hubo', !conDatos.omitidas, 'omitidas=' + conDatos.omitidas],
+        /* Las tres de abajo separan esta seccion de una decorativa, y la del piso es la que mas
+           enseña: gateada por "sobrevivio alguna" en vez de por "el medico marco algo", una
+           cohorte donde las marcadas caen TODAS bajo 5 producia un PDF sin seccion y sin una
+           palabra -- identico al de no haber marcado nada, y el medico sin nada contra que
+           cotejar. Por eso el escenario tumba a las DOS: con una sobreviviente, esa mutacion pasa
+           en verde porque la seccion se dibuja igual por la que quedo. */
+        ['el denominador: con la cohorte chica caen las DOS bajo el piso', todasBajoPiso, 'n=' + bajoPiso.join(',')],
+        ['  y aun asi la seccion se dibuja, sin ninguna caja', conFiltro.titulo && conFiltro.cajas === 0,
+          'titulo=' + conFiltro.titulo + ' cajas=' + conFiltro.cajas],
+        ['  y NOMBRA las marcadas que no se graficaron', conFiltro.omitidas && conFiltro.omitidasNombradas,
+          'aviso=' + conFiltro.omitidas + ' con sus rotulos=' + conFiltro.omitidasNombradas],
+        ['sin ninguna marcada, la seccion no se dibuja', !sinMarcar.titulo && sinMarcar.cajas === 0, 'titulo=' + sinMarcar.titulo + ' cajas=' + sinMarcar.cajas]
+      ] };
+    } finally {
+      /* El estado es de MODULO y sobrevive al caso: sin esto el siguiente hereda las marcas y una
+         desplegada. Es la misma regla que el reset del visor en el runner. */
+      window.jspdf.jsPDF = Orig;
+      window.getInformes = origGet;
+      try {
+        const h = document.getElementById('lab-desc-stats');
+        h.querySelectorAll('[data-desc-chk]').forEach(function (c) { if (c.checked) c.click(); });
+        const g = h.querySelector('[data-desc-graf]');
+        if (g) h.querySelector('tr[data-desc-k="' + g.getAttribute('data-desc-graf') + '"]').click();
+      } catch (e) {}
+      try { if (typeof showTab === 'function') showTab('datos'); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+  })();
+`);
+
 caso('TC-173', 'VAP y FOP: cascadas, denominadores propios y la fila que NO existe', `
   return (async () => {
     /* Estudios sinteticos con los ids reales, como TC-170. Lo que se prueba es el clasificador

@@ -4,6 +4,171 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Estadística descriptiva: LA CASILLA NO SE PODÍA MARCAR CON EL DEDO (2026-09-25)
+
+Se pidió tres cosas sobre la tabla de Estadística descriptiva del Laboratorio: desplegar un
+gráfico de distribución al tocar una variable, una casilla por variable y una sección del PDF con
+las marcadas. Lo que más costó no fue ninguna de las tres: fue que la casilla **funcionaba con el
+mouse y no con el dedo**, y que el diagrama del PDF podía omitir sin decirlo.
+
+### ⚠️ EL BLANCO DEL LABEL DESPLEGABA EL GRÁFICO EN VEZ DE MARCAR
+
+La casilla va envuelta en `.chk-toque`, que es 44×44 por la regla táctil global. El `<input>` mide
+**13×13**, así que quedan ~15 px de label alrededor del control — que es exactamente para lo que
+esa regla existe. El oyente resolvía la casilla con `closest('[data-desc-chk]')`, y **`closest`
+sube, no baja**: con el dedo en ese blanco, `ev.target` es el `<label>`, `closest` devolvía `null`,
+el manejador caía a la rama de la fila y **abría el diagrama**.
+
+| dónde cae el dedo | qué pasaba |
+|---|---|
+| sobre el cuadrito (13×13) | marcaba ✔ |
+| **el resto del blanco táctil (44×44)** | **desplegaba el gráfico, sin marcar** |
+
+Y se realimentaba: la rama de la fila llama a `labRenderDesc()`, que reescribe el `innerHTML`
+**durante el mismo despacho**, así que cuando el navegador ejecuta después la acción por defecto
+del `<label>` el input ya está desprendido y su evento no llega a `document`. O sea que en celular
+—que es donde ese blanco existe— **la casilla del PDF era inusable**: el médico tocaba, veía la
+caja abrirse y cerrarse, y el PDF salía sin la sección. Reproducido antes de arreglarlo.
+
+Hoy son **dos oyentes**: el estado va por **`change`** —el único evento que ve las dos mitades del
+área táctil, porque el navegador lo dispara sobre el input caiga el dedo donde caiga— y el `click`
+**sale temprano si el toque cayó en `[data-desc-chkcell]`**, la celda entera de la casilla. El
+`stopPropagation` que había se borró: el oyente está en `document`, no hay ancestros por encima, y
+lo que impedía desplegar era el `return` de la línea siguiente — atribuía protección a quien no la
+ejercía. **Lo encontró `/sharp-edges`, no la lectura, y lo confirmó una medición.**
+
+### ⚠️ EL `.replace(/<tr>/g, …)` QUEDÓ MUERTO Y LAS FILAS PERDIERON EL BORDE
+
+El separador de filas se ponía con un `replace` sobre la cadena ya armada. Desde que **todas** las
+filas salen con `data-desc-k`, ese regex —que exige el `<tr>` cerrado de inmediato— dejó de
+matchear una sola vez: las diez filas se quedaron sin `border-bottom` y **el código siguió ahí,
+leyéndose como si funcionara**. Hoy el borde va en el `style` de cada `<tr>`.
+Es la clase de superficie que se rompe sin dar error, y la que más engaña al que lea después.
+
+### El PDF: la sección se dibuja si el médico MARCÓ algo, no si algo sobrevivió al piso
+
+`_labDescSeleccionadas` filtra `n >= 5`. Gatear la sección por «sobrevivió alguna» hacía que una
+cohorte donde **todas** las marcadas caen por debajo produjera un PDF **sin sección y sin una
+palabra** — idéntico al de no haber marcado nada, y el médico sin nada contra qué cotejar. La
+compuerta es `marcadas.length`, y lo que no entró **se nombra**.
+
+**Y se nombra con su ETIQUETA, no con un número.** «2 variable(s)» no se puede cotejar contra
+nada: el PDF no registra en ninguna parte cuáles se marcaron, y la tabla de la sección 1 lista las
+once por igual. Para eso existe **`window._labDescLbl(k)`**: `VARS` es un `const` del IIFE del
+Laboratorio y `_labAnalisisPDFReal` vive **afuera** —verificado, ahí `typeof VARS` da
+`'undefined'`—, así que sin ese accesor el aviso imprimiría la clave cruda (`fevi`) en vez de
+`FEVI (%)`.
+
+**`marcadas` se lee PRIMERO y FUERA del `try`.** Adentro y en segundo lugar, una excepción de
+`_labDescSeleccionadas` la dejaba en `[]`, la compuerta no entraba, y el PDF salía sin sección: la
+única traza era un `console.error` que nadie mira. Hoy el fallo del cálculo **se declara en el
+papel**.
+
+### Un solo dibujante, con la paleta INYECTADA — y las dos paletas tienen que DECIR lo mismo
+
+`_labBoxCanvas(d, pal, W, H)` lo comparten la pantalla y el PDF. Con `var(--x)` adentro el PNG
+saldría sin color (el tema vive en el documento, no en el canvas) y con dos dibujantes la caja del
+papel y la de la pantalla podrían dejar de coincidir.
+
+Pero compartir el dibujante no alcanza si las paletas no dicen lo mismo: el relleno de la caja
+salía de `--bg2` sobre `--bg3`, que da **~1,1:1 en los DOS temas**, mientras en el papel lleva un
+azul claro. En pantalla el recorrido intercuartílico lo marcaba **sólo el borde de 1,4 px**: la
+figura que el médico aprueba no era la que circula. Hoy se tiñe el acento a `rgba(…, 0.22)` —medido
+**1,39:1**— y **no con `color-mix`**, que este archivo ya sacó una vez por romper el piso de Safari
+15.4 que declara.
+
+### ⚠️ LOS RÓTULOS SE PISABAN CUANDO LA MEDIANA SE PEGA AL MÍNIMO
+
+Mín, máx y mediana iban los tres en el mismo renglón. `fillText` no envuelve ni avisa: **superpone**.
+Con cualquier variable de efecto piso —TAPSE, PSAP en una cohorte sana, cualquiera donde más de la
+mitad comparta el valor más bajo— `x(mediana) ≈ x(mín)` y los dos números se dibujan uno encima del
+otro. Hoy la mediana va en su propio renglón y los extremos se **acotan** al ancho del lienzo: con
+`textAlign:'center'` sobre `x(max) = W-16`, un valor de cinco cifras se recortaba en silencio.
+
+### ES BOXPLOT Y NO HISTOGRAMA, Y LA RAZÓN SE MIDIÓ
+
+`desc()` devuelve `{n, mean, median, sd, p25, p75, min, max}` y **descarta el array ordenado**. Un
+histograma exigiría volver a recorrer la cohorte con una segunda implementación al lado de la que
+llena la tabla; el boxplot **ES** exactamente esos cinco números. Eso resuelve el «a tu criterio
+técnico» del pedido por medición y no por gusto. La media va como **rombo** y la mediana como
+**línea**: en una distribución sesgada se separan, que es justamente lo que un boxplot muestra, y
+dos marcas iguales se leerían como una sola medida repetida.
+
+### `_LAB_DESC_ORDEN` es UNA lista para la pantalla y para el PDF
+
+Con dos, el papel podía ordenar las cajas distinto de la tabla desde la que se las eligió.
+**⚠️ NO es la misma lista que `_labEstDescriptiva`**, que agrega `edad`: la tabla del PDF tiene
+**once** filas y la de pantalla **diez**. Es preexistente y se declara en vez de emparejarlo —la
+consecuencia concreta es que `edad` **nunca puede quedar marcada**, porque no tiene fila que tocar.
+
+### Cada render del Laboratorio en su PROPIO `try`
+
+`labAsociacionesRender`, `labRenderDesc` y `labStrainRender` compartían uno. Si la primera lanzaba,
+la descriptiva **no se repintaba**: el encabezado y el N ya se habían movido a la cohorte nueva y la
+tabla seguía describiendo la anterior. Es preexistente y ahora pesa más, porque además de diez filas
+de números puede quedar viejo **un diagrama desplegado** — y una figura se lee con mucha más
+confianza que una celda. El comentario de nueve líneas más abajo ya fijaba esta regla para el bloque
+A y el libre.
+
+### Ocho mutaciones, cada una en su condición
+
+La casilla con `id` (que la metería en `campos` de cada estudio), la mediana dibujada en la media
+(el diagnóstico imprime `mediana 219.0 esperada 106.7`), el piso de N anulado, el aviso de omitidas
+apagado, el aviso **contando** en vez de nombrando (`aviso=true con sus rotulos=false`), la sección
+gateada por sobrevivientes, el estado de vuelta a un oyente de `click`, y la celda de la casilla
+volviendo a desplegar.
+
+**Y el fixture de FEVI va SESGADO a propósito.** Con una serie simétrica la media y la mediana caen
+a **6 px** una de la otra y la mutación que dibuja una en lugar de la otra queda al borde de la
+tolerancia; sesgada difieren **113 px**. De paso es la distribución para la que un diagrama de caja
+sirve.
+
+### Cuatro trampas del propio caso, las cuatro ya escritas en este archivo
+
+- **Los nodos capturados no sobreviven.** `labRenderDesc` reescribe el `innerHTML` en **cada**
+  despliegue, así que la lista de casillas tomada al principio queda **desprendida**: clickearla
+  alterna su `checked` y el oyente delegado no se entera nunca. La condición final daba
+  «titulo=true cajas=1» sobre cero marcadas, o sea **acusaba al código de un defecto del caso**.
+  Se re-consultan con un helper en cada uso.
+- **En `display:none` todo mide cero.** El área táctil del label daba **0×0** y la condición de los
+  44 px fallaba sobre un marcado sano. El caso abre la pestaña y la subtab antes de medir.
+- **El escenario tiene que tumbar a las DOS variables.** Con una sobreviviente, la mutación que
+  gatea la sección por «sobrevivió alguna» **pasa en verde**, porque la sección se dibuja igual por
+  la que quedó.
+- **El backtick dentro del cuerpo de un caso: van OCHENTA Y CUATRO**, otra vez en el comentario
+  recién escrito — el que explicaba por qué el texto del PDF se une sin separador.
+
+### Al medir el dibujo, cuidado con el papel equivocado
+
+La sonda que buscaba la línea de la mediana por «máxima diferencia contra el relleno» devolvió
+**182,5 en vez de 343,6**: se quedaba con el **borde izquierdo de la caja**, que difiere del relleno
+más que la propia línea. Hay que tomar el relleno de referencia **bien adentro** y excluir unos
+píxeles a cada lado. Y el **screenshot del preview headless sale negro** —ya está documentado—, así
+que lo visual se verifica leyendo píxeles del canvas, no mirando una imagen.
+
+### El PDF del preview se cuelga si se generan varios seguidos
+
+Tres generaciones encadenadas en una sola sonda no vuelven: es el estrangulamiento de timers que
+Chrome aplica a una pestaña oculta, que este archivo ya documenta. Una generación por sonda, y para
+acortar se pueden apagar `_labChartImg`, `_labValvChartPng` y `_labScatterPng`, que son los lentos y
+no los usa esta sección. **En el harness no pasa**: ahí el Chrome es real y TC-254 genera tres PDF.
+
+### Declarado y sin hacer
+
+- **`_labDescSel` NO se limpia en las tres puertas**, y es correcto: son nombres de variable, no
+  dato de paciente, y las casillas reflejan el estado en cada repintado, así que pantalla y estado
+  no pueden divergir.
+- **La guarda `window._labDescDeleg` es redundante hoy**: el IIFE del Laboratorio es de nivel
+  superior y corre una sola vez. Queda porque fija la idempotencia — pero si alguien lo envolviera
+  en una función llamable dos veces, el oyente se quedaría con el `Set` viejo mientras
+  `labRenderDesc` usa el nuevo, y las casillas no marcarían nunca.
+- **TC-223 está en ROJO y NO es de este cambio.** Falla idéntico en HEAD. La causa: fija
+  `StudyDate:'20260921'` y espera que `fecha` valga `2026-09-21`, pero **`#fecha` nace con la fecha
+  de hoy** y el importador —correctamente— no pisa un campo ya poblado. O sea que esa condición
+  **pasaba por coincidencia del calendario** el día que se escribió, y está roja desde el día
+  siguiente. Es la familia del denominador, y merece su propia tarea.
+
+
 ## El visor: las dos columnas flanquean la imagen, y el corte NO es por vistas (2026-09-25)
 
 Pedido como «mover la fila de botones de abajo a una columna derecha y hacerlos más chicos».
