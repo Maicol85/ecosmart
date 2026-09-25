@@ -9832,6 +9832,263 @@ caso('TC-256', 'Cajon Doppler con dos vistas: se ve si ALGUNA lo tiene abierto, 
   })();
 `);
 
+caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AVA, y el cuadro de ventana deja de quedarse pegado', `
+  return (async () => {
+    if (typeof _d2Render !== 'function' || typeof _simpUniHerrActiva !== 'function')
+      return { extra:[['existen el cajon 2D y la compuerta del cuadro', false, 'faltan _d2Render o _simpUniHerrActiva']] };
+    try {
+      /* Cineloop SINTETICO con escala declarada: 0.05 cm/px = 0.5 mm/px, asi que N px de
+         separacion entre los dos clics dan N/2 milimetros. Sin el pendrive: lo que se prueba es
+         una compuerta de visibilidad, un alias y una banda, no la lectura de un DICOM. */
+      const jpg = new Uint8Array([255,216,255,217]);
+      const mk = n => ({ nombre:n, cuadros:1, d:{ frags:[jpg], cols:200, filas:150, msCuadro:0,
+        regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:200, y1:150, tipo:1 }] } });
+      _cineAbrir([mk('A')]);
+      await new Promise(r => setTimeout(r, 350));
+      if (!_medOn) medToggle();
+
+      const clic = id => { const e = document.getElementById(id); if (!e) return false; e.click(); return true; };
+      const grupo = g => { for (let i=0;i<3 && _medGrupo!==g;i++) clic('cine-g-'+g); return _medGrupo; };
+      const C = () => document.getElementById('d2-cajon');
+      const vis = () => { const c = C(); return !!(c && c.style.display !== 'none'); };
+      const abrir = m => { if (_d2Estado().modo !== m) { const b = C().querySelector('[data-d2-modo="'+m+'"]'); if (b) b.click(); } };
+      const rots = () => Array.from(C().querySelectorAll('table tr')).map(tr => tr.children[0].textContent.trim());
+      const valorDe = rot => { const tr = Array.from(C().querySelectorAll('table tr'))
+          .filter(t => t.children[0].textContent.trim().indexOf(rot) === 0)[0];
+        return tr ? tr.children[1].textContent.trim() : null; };
+      const cv = document.getElementById('cine-med');
+      const rc = cv ? cv.getBoundingClientRect() : null;
+      const clicCv = (x,y) => cv.dispatchEvent(new MouseEvent('click',{bubbles:true,clientX:rc.left+x,clientY:rc.top+y}));
+      /* Se mide por el CAMINO REAL —dos clics sobre el canvas— y no llamando a '_d2Capturar':
+         lo que hay que fijar es que '_medClic' siga entregandole los milimetros al cajon. */
+      const medir = px => { clicCv(10,10); clicCv(10+px,10); };
+      const armar = campo => { const b = C().querySelector('[data-d2-armar="'+campo+'"]'); if (b) b.click(); return !!b; };
+
+      _d2Limpiar();
+      grupo('2d'); clic('cine-med-dist');
+      const denomVisible = vis();
+      const botones = Array.from(C().querySelectorAll('[data-d2-modo]')).map(b => b.getAttribute('data-d2-modo'));
+      const sinGrupoNoHayTabla = C().querySelectorAll('table').length === 0;
+
+      /* ── LOS GRUPOS, Y QUE TOCAR OTRO OCULTA EL ANTERIOR ── la mitad que el pedido pide
+         verificar explicitamente: "mostrar al tocar" NO implica "ocultar al salir". */
+      abrir('vi');
+      const viRots = rots();
+      const unaColumna = C().querySelector('table tr').children.length === 2;
+      abrir('ao');
+      const aoRots = rots();
+      const ocultaElAnterior = aoRots.indexOf('DDVI') < 0 && aoRots.indexOf('SIVd') < 0;
+      abrir('ai');
+      const aiSolaFila = rots().length === 1 && rots()[0] === 'DAP';
+      C().querySelector('[data-d2-modo="ai"]').click();       // tocar el abierto lo cierra
+      const tocarElAbiertoCierra = C().querySelectorAll('table').length === 0;
+
+      /* ── SE ESCONDE AL SALIR DE DISTANCIA, en los cinco destinos posibles ── */
+      const donde = {};
+      abrir('vi');
+      donde.area = (clic('cine-med-area'), vis());
+      donde.simpson = (clic('cine-med-simp'), vis());
+      grupo('dop');
+      donde.vel = (clic('cine-med-vel'), vis());
+      donde.tiempo = (clic('cine-med-t'), vis());
+      donde.vti = (clic('cine-med-vti'), vis());
+      const seEscondeSiempre = !donde.area && !donde.simpson && !donde.vel && !donde.tiempo && !donde.vti;
+      grupo('2d'); clic('cine-med-dist');
+      const vuelveConDistancia = vis();
+
+      /* ── MEDIR POR EL CAMINO REAL, Y EL ENGROSAMIENTO ── */
+      abrir('vi');
+      const hayBotonMedir = armar('vi.sivd');
+      const destinoArmado = _d2Estado().destino;
+      medir(20);                                   // 20 px = 10.0 mm
+      const sivd = _d2Estado().vi.sivd;
+      armar('vi.sivs'); medir(30);                 // 15.0 mm
+      const fepTxt = valorDe('Engrosamiento SIV');
+      /* (15-10)/10 = 50 %. Numero exacto y no "existe la fila": una fila de engrosamiento con la
+         cuenta al reves tambien existiria. */
+      const fepBien = fepTxt !== null && fepTxt.indexOf('50') === 0;
+      const sinPPnoHayFilaPP = valorDe('Engrosamiento PP') === null;
+      /* NO SE PUBLICA TEICHHOLZ: DDVI y DSVI estan en la tabla pero no producen una FEVI. */
+      const noHayFEVI = rots().every(r => r.toUpperCase().indexOf('FEVI') < 0 &&
+                                          r.toUpperCase().indexOf('TEICHHOLZ') < 0);
+
+      /* ── EL ESPESOR SISTOLICO DE UNA HIPERTROFICA ENTRA ── la banda prestada del diastolico
+         [3-35] lo rechazaba, y el rechazo borraba la fila derivada entera sin decir por que. */
+      _d2Limpiar(); abrir('vi');
+      armar('vi.sivd'); medir(56);                 // 28.0 mm
+      armar('vi.sivs'); medir(78);                 // 39.0 mm
+      const sistolicoEntra = _d2Estado().vi.sivs === 39;
+      const fepDeLaHipertrofica = valorDe('Engrosamiento SIV');
+
+      /* ── EL FEP SE CALCULA CON LOS NUMEROS QUE SE IMPRIMEN ── hacen falta valores que
+         DISCRIMINEN: con 28.0 y 39.0 las dos cuentas coinciden y la condicion pasaria sin probar
+         nada. 10.04 se imprime "10.0" y 13.09 se imprime "13.1": sobre lo impreso da 31 %, sobre
+         el crudo 30,38 % que se publica como "30". Un punto de diferencia, y el corte que el
+         descargo nombra como pared normal esta en 30. */
+      _d2Estado().vi.sivd = 10.04; _d2Estado().vi.sivs = 13.09; _d2Render();
+      const fepSobreLoImpreso = valorDe('Engrosamiento SIV');
+      const sivdImpreso = valorDe('SIVd'), sivsImpreso = valorDe('SIVs');
+      const fepCoherente = fepSobreLoImpreso !== null && fepSobreLoImpreso.indexOf('31') === 0 &&
+                           String(sivdImpreso).indexOf('10.0') === 0 && String(sivsImpreso).indexOf('13.1') === 0;
+      /* Y un engrosamiento NEGATIVO se declara: adelgazamiento real y fases invertidas son dos
+         lecturas opuestas del mismo signo. */
+      _d2Estado().vi.sivd = 14; _d2Estado().vi.sivs = 11; _d2Render();
+      const negativoSeDeclara = _d2Disc().some(t => t.indexOf('NEGATIVO') >= 0);
+      _d2Estado().vi.sivd = 28; _d2Estado().vi.sivs = 39; _d2Render();
+
+      /* ── LA BANDA RECHAZA, Y EL DESTINO SOBREVIVE AL RECHAZO ── */
+      armar('vi.ddvi'); medir(10);                 // 5 mm, banda ddfvi [20,100]
+      const ddviRechazado = _d2Estado().vi.ddvi === null;
+      const destinoSobrevive = _d2Estado().destino === 'vi.ddvi';
+      const lineaSeDibujoIgual = _medLineas.length > 0;
+
+      /* ── EL DIAM TSVI ES UNO SOLO Y ALIMENTA EL AVA ── el motivo declarado del pedido. */
+      _d2Limpiar();
+      const D = _dopEstado();
+      D.ao.diam = null; D.ao.vtiTsvi = null; D.ao.vtiAo = null;
+      if (D.origen) Object.keys(D.origen).forEach(k => delete D.origen[k]);
+      D.ao.vtiTsvi = 20; D.ao.vtiAo = 100;
+      const avaAntes = _dopDerivados().ava;
+      abrir('vi'); armar('vi.tsvi'); medir(40);    // 20.0 mm
+      const sinCampoPropio = !('tsvi' in _d2Estado().vi);
+      const escribioEnDoppler = _dopEstado().ao.diam === 20;
+      const ava = _dopDerivados().ava;
+      /* pi*(20/20)^2*20/100 = 0.6283. Se compara contra la cuenta, no contra un literal. */
+      const avaEsperada = Math.PI * Math.pow(20/20, 2) * 20 / 100;
+      const avaBien = ava != null && Math.abs(ava - avaEsperada) < 1e-9;
+
+      /* ── Y EL ORIGEN CRUZA EL ALIAS ── sin esto el AVA se publicaba SIN la procedencia de uno
+         de sus tres insumos, y con los dos VTI en A y el diametro en B la compuerta global daba
+         false: cero marcas, o sea el AVA afirmando que sus tres insumos son de la misma pantalla. */
+      let cruzaElAlias = null, filaAvaDosVistas = null;
+      if (typeof _vNueva === 'function') {
+        const cont = document.getElementById('cine-paneles');
+        if (!_vistaB) { const VB = _vNueva('b-','B'); _vMontarPanel(cont,'b-'); _vistaB = VB; _vCablear(VB);
+          VB.datos = _vistaA.datos; _vActivarMedicion(VB); await new Promise(r=>setTimeout(r,200)); }
+        D.ao.diam = null;
+        if (D.origen) Object.keys(D.origen).forEach(k => delete D.origen[k]);
+        _vCon(_vistaA, () => { D.destino='ao.vtiTsvi'; _dopCapturar('vti',{cm:20,gradMedio:3,picoCms:120}); });
+        _vCon(_vistaA, () => { D.destino='ao.vtiAo';   _dopCapturar('vti',{cm:100,gradMedio:3,picoCms:120}); });
+        _vCon(_vistaB, () => { _d2Estado().destino='vi.tsvi'; _d2Capturar(20); });
+        cruzaElAlias = (_dopEstado().origen || {})['ao.diam'] === 'B' &&
+                       (_d2Estado().origen || {})['vi.tsvi'] === undefined;
+        if (_dopEstado().modo !== 'ao') dopModo('ao');
+        filaAvaDosVistas = (_dopFilas().filter(f => String(f[0]).indexOf('AVA') === 0)[0] || [''])[0];
+      }
+      /* Se parte por el separador: indexOf('B') matchearia dentro de cualquier rotulo. */
+      const marcas = String(filaAvaDosVistas).split(' \\u00b7 ')[1] || '';
+      const avaDeclaraLasDos = marcas.indexOf('A') >= 0 && marcas.indexOf('B') >= 0;
+
+      /* ── IMAGENES NUEVAS SIN "NUEVO ESTUDIO" ── importar NO es una de las tres puertas, asi
+         que sin este aviso las mediciones del paciente anterior seguian ahi, mudas. */
+      grupo('2d'); clic('cine-med-dist'); abrir('vi');
+      _d2Estado().vi.ddvi = 62;
+      const antesDelAviso = C().innerText.indexOf('estudio anterior') < 0;
+      _d2ImagenesNuevas();
+      const avisa = C().innerText.indexOf('Hay mediciones 2D del estudio anterior') >= 0;
+      const ofreceLasDos = !!C().querySelector('[data-d2-acc="avisolimpiar"]') &&
+                           !!C().querySelector('[data-d2-acc="avisook"]');
+      C().querySelector('[data-d2-acc="avisook"]').click();
+      const conservarApagaYnoBorra = C().innerText.indexOf('estudio anterior') < 0 && _d2Estado().vi.ddvi === 62;
+      _d2Limpiar(); _d2ImagenesNuevas();
+      const vacioNoAvisa = C().innerText.indexOf('estudio anterior') < 0;
+
+      /* ── LIMPIAR DEL CAJON DOPPLER REPINTA ESTE ── porque le borra el Diam TSVI. */
+      abrir('vi'); _d2Estado().destino='vi.tsvi'; _d2Capturar(22);
+      const mostraba22 = C().innerText.indexOf('22.0 mm') >= 0;
+      _dopLimpiar();
+      const yaNoMuestra22 = C().innerText.indexOf('22.0 mm') < 0 && _dopEstado().ao.diam == null;
+
+      /* ── EL DESCARGO DICE LO QUE HAY QUE DECIR ── */
+      const disc = _d2Disc();
+      const diceQueNoEscribe = disc.some(t => t.indexOf('NO escribe ningún campo') >= 0);
+      const diceQueNoSeGuarda = disc.some(t => t.indexOf('NO se guardan') >= 0);
+
+      /* ── EL CUADRO DE VENTANA DE SIMPSON ── los cuatro contextos del pedido, por separado. */
+      const cajaVis = () => { const c = document.getElementById('cine-simp-uni');
+        return !!(c && c.style.display !== 'none'); };
+      const confAlcanzable = () => { const c = document.getElementById('cine-simp-uni');
+        return !!(c && c.style.display !== 'none' && c.querySelector('#cine-simp-conf-u')); };
+      grupo('2d'); clic('cine-med-simp');
+      const cuadroConSimpson = cajaVis();
+      const cuadroConDistancia = (clic('cine-med-dist'), cajaVis());
+      const cuadroConArea = (clic('cine-med-area'), cajaVis());
+      grupo('dop');
+      const cuadroConVel = (clic('cine-med-vel'), cajaVis());
+      const cuadroConVti = (clic('cine-med-vti'), cajaVis());
+
+      /* Y el escape: con un trazado SIN CONFIRMAR el cuadro NO se esconde, porque "Confirmar
+         trazado" vive adentro y el aviso de respaldo tampoco se dibuja fuera de Simpson. */
+      grupo('2d'); clic('cine-med-simp');
+      let pendMantiene = null, sinPendSeEsconde = null;
+      if (_vistaA.simp) {
+        _vistaA.simp.pendiente = { pts:[{x:1,y:1},{x:2,y:2}], i:0 };
+        _simpUniPintar();
+        const conSimp = confAlcanzable();
+        clic('cine-med-dist');
+        pendMantiene = conSimp && confAlcanzable();
+        _vistaA.simp.pendiente = null; _simpUniPintar();
+        sinPendSeEsconde = !confAlcanzable();
+      }
+
+      return { extra: [
+        ['DENOMINADOR: con Distancia activa el cajon 2D se ve', denomVisible, 'herr=' + _medHerr],
+        ['los CINCO grupos, en orden', botones.join(',') === 'vi,vd,ao,ai,vci', botones.join(',')],
+        ['sin grupo elegido NO se dibuja ninguna tabla', sinGrupoNoHayTabla, ''],
+        ['el VI trae sus siete campos', viRots.join(',') === 'SIVd,PPd,SIVs,PPs,DDVI,DSVI,Diam TSVI', viRots.join(',')],
+        ['UNA sola columna de valores', unaColumna, ''],
+        ['TOCAR OTRO GRUPO OCULTA EL ANTERIOR', ocultaElAnterior, aoRots.join(',')],
+        ['  la AI tiene una sola fila', aiSolaFila, rots().join(',')],
+        ['  y tocar el abierto lo cierra', tocarElAbiertoCierra, ''],
+        ['SE ESCONDE AL SALIR DE DISTANCIA, en los cinco destinos', seEscondeSiempre, JSON.stringify(donde)],
+        ['  y vuelve al elegir Distancia', vuelveConDistancia, ''],
+        ['el boton «medir» arma el destino', hayBotonMedir && destinoArmado === 'vi.sivd', 'destino=' + destinoArmado],
+        ['DOS CLICS EN EL CANVAS CARGAN EL CAMPO', sivd === 10, 'sivd=' + sivd],
+        ['el ENGROSAMIENTO sale de los espesores y da la cuenta', fepBien, 'fep=' + fepTxt],
+        ['  sin sus dos insumos la fila NO existe', sinPPnoHayFilaPP, ''],
+        ['  y NO se publica ninguna FEVI por Teichholz', noHayFEVI, rots().join(',')],
+        ['EL SISTOLICO DE UNA HIPERTROFICA ENTRA (39 mm)', sistolicoEntra, 'sivs=' + _d2Estado().vi.sivs],
+        ['  y su engrosamiento se dibuja', fepDeLaHipertrofica !== null, 'fep=' + fepDeLaHipertrofica],
+        ['el FEP se calcula con lo que IMPRIME, no con el crudo', fepCoherente,
+          'fep=' + fepSobreLoImpreso + ' sobre ' + sivdImpreso + ' y ' + sivsImpreso],
+        ['  y un engrosamiento NEGATIVO se declara', negativoSeDeclara, ''],
+        ['un DDVI de 5 mm NO entra', ddviRechazado, 'ddvi=' + _d2Estado().vi.ddvi],
+        ['  el destino SOBREVIVE al rechazo', destinoSobrevive, 'destino=' + _d2Estado().destino],
+        ['  y la linea se dibujo igual sobre la imagen', lineaSeDibujoIgual, ''],
+        ['DENOMINADOR: sin Diam TSVI no hay AVA', avaAntes == null, 'ava=' + avaAntes],
+        ['el Diam TSVI NO tiene campo propio en el cajon 2D', sinCampoPropio, ''],
+        ['  se escribe en el cajon Doppler', escribioEnDoppler, 'ao.diam=' + _dopEstado().ao.diam],
+        ['  y COMPLETA EL AVA', avaBien, 'ava=' + (ava == null ? 'null' : ava.toFixed(4)) +
+          ' esperada=' + avaEsperada.toFixed(4)],
+        ['el ORIGEN cruza el alias', cruzaElAlias === true, JSON.stringify(_dopEstado().origen || {})],
+        ['  y el AVA declara LAS DOS vistas', avaDeclaraLasDos, 'fila=' + filaAvaDosVistas],
+        ['DENOMINADOR: sin aviso disparado el cajon no lo nombra', antesDelAviso, ''],
+        ['IMAGENES NUEVAS avisan en vez de borrar', avisa, ''],
+        ['  con las dos salidas', ofreceLasDos, ''],
+        ['  «Conservar» apaga el aviso y NO borra', conservarApagaYnoBorra, 'ddvi=' + _d2Estado().vi.ddvi],
+        ['  y con el cajon vacio no avisa nada', vacioNoAvisa, ''],
+        ['DENOMINADOR: el cajon 2D mostraba el Diam TSVI', mostraba22, ''],
+        ['«Limpiar» del Doppler REPINTA el cajon 2D', yaNoMuestra22, ''],
+        ['el pie dice que no escribe el informe', diceQueNoEscribe, disc.join(' | ').slice(0,120)],
+        ['  y que NO se guarda en ningun lado', diceQueNoSeGuarda, ''],
+        ['DENOMINADOR: el cuadro de ventana se ve con Simpson', cuadroConSimpson, ''],
+        ['EL CUADRO YA NO QUEDA PEGADO: Distancia lo esconde', !cuadroConDistancia, ''],
+        ['  Area lo muestra (hay ventana que declarar)', cuadroConArea, ''],
+        ['  Velocidad lo esconde', !cuadroConVel, ''],
+        ['  VTI lo esconde', !cuadroConVti, ''],
+        ['UN TRAZADO SIN CONFIRMAR lo mantiene alcanzable', pendMantiene === true, 'pend=' + pendMantiene],
+        ['  y sin pendiente vuelve a esconderse', sinPendSeEsconde === true, 'sin=' + sinPendSeEsconde]
+      ] };
+    } finally {
+      try { if (typeof vistaBCerrar === 'function') vistaBCerrar(); } catch (e) {}
+      try { _d2Limpiar(); } catch (e) {}
+      try { _dopLimpiar(); } catch (e) {}
+      try { cineCerrar(); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+  })();
+`);
+
 caso('TC-255', 'Asociaciones: el boton elige que grafico va al PDF y al PPT, y las clinicas nacen dentro', `
   return (async () => {
     for (let i=0;i<80 && (typeof window.jspdf==='undefined'||!window.jspdf.jsPDF);i++) await new Promise(r=>setTimeout(r,100));

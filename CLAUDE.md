@@ -4,6 +4,106 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Cajón 2D de Distancia, y el cuadro de ventana que quedaba pegado (2026-09-25)
+
+### ⚠️ EL DIAGNÓSTICO DEL CUADRO PEGADO ERA CASI CORRECTO, Y LA PARTE FALSA ERA LA ACCIONABLE
+
+El pedido traía la hipótesis: «tiene la lógica para MOSTRAR al entrar en Área/Simpson y le falta
+la de OCULTAR al salir». Medido, no: `_medEstado` **ya** llama a `_simpUniPintar` en cada cambio de
+herramienta. Lo que faltaba era que el predicado mirara la herramienta — `_simpUniHay()` sólo
+pregunta si hay sesión de Simpson o filas en la tabla, y eso queda cierto **para siempre** desde
+que alguien tocó Simpson una vez. Medido: `herr:'dist' → VISIBLE`, y hasta con el grupo en `dop`.
+
+Buscar el «ocultar» que falta habría sido buscar algo que ya estaba.
+
+**Y ÁREA NO MOSTRABA EL CUADRO.** El pedido decía «al tocar Área o Simpson una sola vez, aparece».
+Medido: elegir Área no crea sesión de Simpson (`simpEnAlguna:[false,false]`), así que en Área el
+cuadro sale sólo si YA hay un trazado o una tabla — o sea cuando hay una ventana que declarar.
+**Duda declarada y no resuelta:** que la ventana A4C/A2C se pueda declarar para una medición de
+ÁREA es una función que no existe (las áreas no guardan ventana en ningún lado); construirla es
+cambiar el modelo de la herramienta Área, no la visibilidad de este cuadro. Si era eso lo que se
+pedía, es un pedido aparte.
+
+### ⚠️ LA COMPUERTA ESTRECHA PERDÍA UN TRAZADO — lo cazó `/sharp-edges`, no mi verificación
+
+Con el contorno de diástole trazado y **sin confirmar**, tocar «medir» en el cajón 2D pasa la vista
+a Distancia, el cuadro se escondía **con «Confirmar trazado» adentro**, y el aviso de respaldo
+—`_simpPasoTexto`— tampoco se dibuja fuera de Simpson. El médico cambiaba de cuadro para medir la
+sístole, `medReset` mataba el pendiente, y las dos superficies que lo habrían declarado estaban
+ocultas. Medido: `pendienteSIGUEvivo:true` con `confirmarAlcanzable:false`.
+
+Yo había verificado los cuatro contextos que pedía el prompt y **ninguno tenía trabajo a medio
+hacer**. Hoy la compuerta tiene dos escapes de ESTADO —`V.simp.pendiente` y `_simpUniDocId`— que se
+apagan solos. El segundo es porque «🗑️ Eliminar» y «📄 Incluir en PDF» del documento recién
+guardado viven ahí adentro: esconderlos los volvía inalcanzables.
+
+### El cajón 2D espeja al Doppler a propósito, y hereda sus lecciones
+
+`_d2*` / `#d2-cajon`: cinco grupos (VI, VD, Aorta, AI, VCI), una columna, `modo` en `null` como
+estado inicial. **Dos grupos abiertos a la vez son imposibles por construcción** —`modo` es un
+campo— así que no hay un «ocultar el anterior» que alguien pueda olvidarse de escribir, que es
+justo el defecto del cuadro de ventana.
+
+Visibilidad: `_vTodas().some(V => V.medHerr === 'dist')`. **No `_medHerr`**, por la misma razón que
+el cajón Doppler: `_medHerr` resuelve contra `_V`, que fuera de un handler envuelto en `_vBind` es
+siempre `_vistaA`.
+
+### ⚠️ EL DIAM TSVI ES UNO SOLO, Y VIVE EN EL CAJÓN DOPPLER
+
+Es el motivo declarado del pedido: medirlo en 2D «para combinarse con VTI TSVI y VTI VAo y calcular
+el AVA». `_D2_ALIAS` hace que `vi.tsvi` **no exista** en `_d2` y lea/escriba `_dop.ao.diam`. Un
+campo propio habría sido un segundo Diam TSVI alimentando un área valvular, sin que ninguna de las
+dos pantallas dijera que hay dos. Verificado extremo a extremo: 40 px → 20,0 mm → `ao.diam = 20` →
+**AVA 0,628 cm²**, idéntico a `π·(20/20)²·20/100`.
+
+El alias obliga a dos simetrías que se olvidan sola cada una:
+- **El origen cruza el alias.** Primera versión: el valor iba al otro cajón y su marca de vista se
+  quedaba acá, así que con los dos VTI en A y el diámetro en B `_dopOrigenesEnUso()` devolvía
+  `['A']`, la compuerta daba `false` y **el AVA salía sin una sola marca** — afirmando que sus tres
+  insumos son de la misma pantalla, que es el modo de falla que la marca existe para impedir. Hoy
+  el AVA publica `· B+A`.
+- **`_dopLimpiar` repinta el cajón 2D**, porque le borra el Diam TSVI que ese cajón muestra como
+  propio. Y los dos `confirm` lo nombran.
+
+### ⚠️ IMPORTAR IMÁGENES NO ES UNA DE LAS TRES PUERTAS
+
+`_d2Limpiar` cubre «Limpiar», `limpiarCampos` y `cerrarSesion`. Ninguna corre cuando entra el
+pendrive del paciente siguiente **sin** apretar «Nuevo estudio», que es un flujo real: el DDVI y
+los espesores del anterior seguían ahí, mudos, mientras el cajón Doppler de al lado sí avisaba.
+`_d2ImagenesNuevas` pregunta —no borra— en las mismas tres puertas de importación que su hermano.
+
+### ⚠️ EL TECHO DEL ESPESOR SISTÓLICO NO ES EL DEL DIASTÓLICO
+
+Les presté `siv`/`ppvi` `[3–35]` mm **con un comentario que afirmaba haber verificado los dos
+extremos**, y no se sostiene con la definición del propio derivado: una hipertrófica con SIVd 28 mm
+que engrosa un 40 % —normal— da SIVs 39 mm. El rechazo no avisaba nada útil: el valor no se
+guardaba, y **la fila «Engrosamiento SIV» desaparecía entera**, justo en la patología que el
+engrosamiento vino a medir. Es la enésima vez en este archivo que un comentario afirma una
+invariante que no garantiza. Hoy los sistólicos llevan banda propia `[3–60]`.
+
+`vd.basal` **conserva** el techo de 70 mm de la app aunque un Ebstein pueda pasarlo: es la banda que
+la propia app aplica a esa misma medición, y ensancharla sólo acá dejaría el anotador aceptando lo
+que el importador rechaza. Si el techo está bajo, está bajo en los dos lados y se corrige en
+`DCM_RANGO`. Declarado, no corregido.
+
+### Fracción de engrosamiento parietal — y por qué NO hay Teichholz
+
+`(sistólico − diastólico) / diastólico × 100`, **dos filas** (septum y posterior): promediarlas
+escondería la asimetría que se busca. DDVI y DSVI están en la tabla porque se miden igual, pero
+**no producen una FEVI**: sería un segundo número de función ventricular al lado del Simpson del
+propio visor, con otro método y sin decirlo.
+
+Se calcula sobre los valores **redondeados que se imprimen**. Con el crudo, SIVd 10,04 («10.0») y
+SIVs 13,09 («13.1») publicaban 30 % mientras la tabla mostraba los números que dan 31 — y 30 es
+justo el corte que el descargo nombra. Clasificar un valor y publicar otro.
+
+### Lo que NO tiene y está declarado
+
+No hay «💾 Guardar tabla»: no estaba en el pedido, así que estos valores viven sólo en memoria. El
+hermano sí tiene artefacto hacia la biblioteca, y callarlo dejaría al médico suponiendo la misma
+salida — por eso el pie lo dice con todas las letras.
+
+
 ## Cajón Doppler con dos vistas: no era «la vista activa», y el valor no decía de dónde salía (2026-09-25)
 
 ### ⚠️ EL DIAGNÓSTICO CON EL QUE LLEGÓ EL PEDIDO ERA FALSO

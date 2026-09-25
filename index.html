@@ -1770,6 +1770,9 @@ function cerrarSesionReal() {
      enterrada veinte mil líneas más abajo, que es la lección que este archivo dejó escrita al
      declarar la mutación superviviente del `_autosaveDescartar`. */
   if (typeof _dopLimpiar === 'function') { try { _dopLimpiar(); } catch (e) {} }
+  /* Y el cajón 2D, por el MISMO motivo y en la misma puerta: DDVI, espesores y diámetros de
+     aorta son mediciones del paciente y viven en estado de módulo. */
+  if (typeof _d2Limpiar === 'function') { try { _d2Limpiar(); } catch (e) {} }
   /* Y la sesión de asociaciones libres, por el MISMO motivo y en la misma función: `_libreSesion`
      es estado de módulo y `cerrarSesion` no recarga. El médico siguiente veía una tabla titulada
      «Pares probados en esta sesión (7)» con pares que nunca corrió, y —peor— su primer
@@ -25775,6 +25778,9 @@ function limpiarCampos(silencioso) {
      valvula elegida: cerrarla seria esconder la tabla a mitad de trabajo. Qué valvula se estaba
      mirando no es dato del paciente, asi que conservarla no es una fuga. */
   try { if (typeof _dopLimpiar === 'function') _dopLimpiar(); } catch (e) {}
+  /* Y el cajón 2D, por el MISMO motivo: sin esta línea los espesores y diámetros del paciente
+     A quedan en el cajón del paciente B. */
+  try { if (typeof _d2Limpiar === 'function') _d2Limpiar(); } catch (e) {}
   /* Pericardio: el barrido de arriba vacía los inputs y los selects, pero los paneles de
      conclusión (#dpt-concl, #cvr-concl, #cvr-tabla) son divs sueltos que no alcanza ningún
      selector, y los espejos de solo lectura tampoco. Sin repintar, el paciente nuevo arrancaba
@@ -48232,6 +48238,7 @@ async function imgFileElegido(ev) {
      nuevas para que, si son de otro paciente, sus números no se lean como del actual.
      No limpia nada — ver `_dopImagenesNuevas`. */
   try { if (typeof _dopImagenesNuevas === 'function') _dopImagenesNuevas(); } catch (e) {}
+  try { if (typeof _d2ImagenesNuevas === 'function') _d2ImagenesNuevas(); } catch (e) {}
 
   const destino = imgActiveSlot;          // el «+» que se apretó, antes de cualquier await
   let esDicom = false;
@@ -48267,6 +48274,7 @@ async function dcmImgImportar(fileList, slotPreferido) {
      nuevas para que, si son de otro paciente, sus números no se lean como del actual.
      No limpia nada — ver `_dopImagenesNuevas`. */
   try { if (typeof _dopImagenesNuevas === 'function') _dopImagenesNuevas(); } catch (e) {}
+  try { if (typeof _d2ImagenesNuevas === 'function') _d2ImagenesNuevas(); } catch (e) {}
 
   const listos = [], fallos = [], loops = [];
   for (const f of files) {
@@ -48517,6 +48525,7 @@ async function mediosImportar(fileList, slotPreferido) {
      nuevas para que, si son de otro paciente, sus números no se lean como del actual.
      No limpia nada — ver `_dopImagenesNuevas`. */
   try { if (typeof _dopImagenesNuevas === 'function') _dopImagenesNuevas(); } catch (e) {}
+  try { if (typeof _d2ImagenesNuevas === 'function') _d2ImagenesNuevas(); } catch (e) {}
 
   const dicoms = [], imagenes = [], videos = [], rechazos = [];
 
@@ -49102,6 +49111,16 @@ function _cineAbrir(loops) {
           '<div id="dop-cajon" style="display:none;margin-bottom:10px;padding:10px 12px;' +
             'border-radius:9px;border:1px solid var(--border);background:var(--bg2);"></div>' +
         '</div>' +
+        /* ⚠️ EL CAJÓN 2D ES HERMANO DEL DOPPLER Y VIVE EN EL MISMO SITIO, dentro de `#cine-ov`.
+           Todo lo que dice el comentario de arriba vale igual acá: se esconde solo al cerrar el
+           visor porque el overlay se esconde entero, y NINGÚN control de adentro lleva `id`
+           —`guardarInforme` barre `input[id]` de todo el documento y este cajón NO es dato del
+           informe, es un anotador—. El único id es el del contenedor, que no es un input.
+           Son dos cajones y no uno con pestañas porque los gobierna una compuerta distinta: éste
+           sale con la herramienta Distancia y aquél con el GRUPO Doppler abierto. Fusionarlos
+           obligaría a una tercera regla que decida cuál de las dos manda. */
+        '<div id="d2-cajon" style="display:none;margin-bottom:10px;padding:10px 12px;' +
+          'border-radius:9px;border:1px solid var(--border);background:var(--bg2);"></div>' +
         /* ⚠️ «➕ Vista» y «Cerrar» YA NO VIVEN ACÁ: se mudaron a la columna derecha del panel A
            (ver `_vPanelHTML`). Dejarlos también acá habría dejado el documento con ids
            DUPLICADOS, y entonces `getElementById` devuelve el primero y el otro se dibuja sin
@@ -49151,6 +49170,7 @@ function _cineAbrir(loops) {
      `_cineDatos` esa función sale por su guarda): sin ella el cajón se quedaría en la pestaña
      Imágenes, o sea detrás del overlay, y sus botones «medir» volverían a ser inalcanzables. */
   try { if (typeof _dopRender === 'function') _dopRender(); } catch (e) {}
+  try { if (typeof _d2Render === 'function') _d2Render(); } catch (e) {}
 }
 
 /* Deja la vista sin sesiones de medición. Es lo que `medApagar` hacía SIEMPRE y ahora sólo
@@ -49336,6 +49356,7 @@ function cineCerrar() {
      cierre sin depender de nada de esto es la imagen que se haya mandado a la biblioteca con
      «Guardar» — que es el acceso a lo medido que reemplazó al panel de la pestaña Imágenes. */
   try { if (typeof _dopRender === 'function') _dopRender(); } catch (e) {}
+  try { if (typeof _d2Render === 'function') _d2Render(); } catch (e) {}
 }
 window.cineToggle = cineToggle; window.cineCapturar = cineCapturar;
 window.cineCerrar = cineCerrar; window.cineIr = cineIr; window.cineLoop = cineLoop;
@@ -52727,6 +52748,54 @@ function _simpUniHay() {
   return _simpFilasTabla().length > 0;
 }
 
+/* ⚠️ EL CUADRO SE QUEDABA PEGADO, y no era que faltara el repintado. `_medEstado` YA llama a
+   `_simpUniPintar` en cada cambio de herramienta —la hipótesis «tiene el mostrar y le falta el
+   ocultar» era razonable y resultó falsa al medirla—. Lo que faltaba era que el predicado mirara
+   la HERRAMIENTA: `_simpUniHay` sólo pregunta si hay sesión de Simpson o filas en la tabla, y eso
+   sigue siendo cierto para siempre una vez que el médico tocó Simpson una sola vez. Medido: tras
+   tocar Simpson el cuadro quedaba visible con `herr:'dist'` y hasta con el grupo en `dop`.
+
+   ⚠️ Y VA POR VISTA, `some`, no contra la activa. `_medHerr` resuelve contra `_V`, que fuera de un
+   manejador envuelto en `_vBind` es SIEMPRE `_vistaA`: preguntarle a él escondería el cuadro
+   mientras la vista B está trazando Simpson. Es literalmente el defecto que el cajón Doppler pagó
+   ayer, así que acá nace con la regla correcta. El fallback sirve para los arranques en los que
+   `_vTodas` todavía no existe.
+
+   ⚠️ MEDIDO: ÁREA HOY NO ABRE EL CUADRO POR SÍ SOLA. Elegir Área no crea sesión de Simpson
+   (`simpEnAlguna:[false,false]` tras tocarla), así que en Área el cuadro aparece sólo si YA hay un
+   trazado o una tabla de Simpson — que es cuando hay una ventana que declarar. Los controles del
+   cuadro son de Simpson: «Confirmar trazado» sobre una medición de área no tendría qué confirmar.
+   ⚠️ DUDA ABIERTA, declarada y NO resuelta acá: el pedido dice que el cuadro debe aparecer «en
+   modo Área» porque la AI también se mide por área en A4C/A2C. Que la VENTANA se pueda declarar
+   para una medición de ÁREA es una función que hoy no existe —las áreas no guardan ventana en
+   ningún lado— y construirla es cambiar el modelo de la herramienta Área, no la visibilidad de
+   este cuadro. Queda fuera de este commit; si era eso lo que se pedía, es un pedido aparte. */
+const _SIMP_UNI_HERRS = Object.create(null);
+_SIMP_UNI_HERRS.area = 1; _SIMP_UNI_HERRS.simpson = 1;
+/* ⚠️ Y LA COMPUERTA TIENE DOS ESCAPES, porque la versión que sólo miraba la herramienta PERDÍA UN
+   TRAZADO. Reproducido: con el contorno de diástole trazado y sin confirmar, tocar «medir» en el
+   cajón 2D pasa la vista a Distancia, este cuadro se escondía **con «Confirmar trazado» adentro**,
+   y el aviso de respaldo —`_simpPasoTexto`— tampoco se dibuja sin la herramienta Simpson. El
+   médico cambiaba de cuadro para medir la sístole, `medReset` mataba el pendiente y las DOS
+   superficies que lo habrían declarado estaban ocultas. Medido: `pendienteSIGUEvivo:true` con
+   `confirmarAlcanzable:false`. Lo cazó `/sharp-edges`, no la lectura — yo había verificado los
+   cuatro contextos del pedido y ninguno tenía un trazado a medio hacer.
+     · `V.simp.pendiente` → hay trabajo sin confirmar en alguna vista.
+     · `_simpUniDocId`   → se acaba de guardar en la biblioteca y sus dos únicos controles
+       —«🗑️ Eliminar» y «📄 Incluir en PDF»— viven acá adentro. Esconder el cuadro los volvía
+       inalcanzables, que es la otra mitad del mismo defecto.
+   Los dos escapes son ESTADO, no herramienta: se apagan solos al confirmar o al descartar. */
+function _simpUniHerrActiva() {
+  try {
+    const pend = (typeof _vTodas === 'function')
+      ? _vTodas().some(V => V && V.simp && V.simp.pendiente) : false;
+    if (pend || _simpUniDocId) return true;
+    if (typeof _vTodas === 'function')
+      return _vTodas().some(V => V && !!_SIMP_UNI_HERRS[V.medHerr]);
+    return typeof _medHerr !== 'undefined' && !!_SIMP_UNI_HERRS[_medHerr];
+  } catch (e) { return false; }
+}
+
 /* El resultado que encabeza el panel. Si el cruce A × B existe, el titular ya lo publica
    `cine-biplano` justo arriba y acá NO se repite: serían dos veces el mismo número, que es
    exactamente el ruido que este cambio vino a sacar. Sin cruce se muestra el monoplanar. */
@@ -52849,6 +52918,13 @@ function _simpUniBotones() {
 function _simpUniPintar() {
   const c = document.getElementById('cine-simp-uni');
   if (!c) return;
+  /* ⚠️ ESCONDER NO ES LIMPIAR, y por eso la compuerta de herramienta va ANTES y NO toca
+     `_simpUniDocId`. Ese id es el del archivo que se acaba de guardar en la biblioteca y es lo
+     único que sostiene los botones «🗑️ Eliminar» y «📄 Incluir en PDF» de ESE archivo: metido en
+     la rama de abajo, pasar por Distancia y volver a Simpson borraría la salida de un guardado
+     que sigue existiendo, sin decir nada. Es la misma distinción que `cineCerrar` hace con el
+     cajón Doppler: apaga `abierto` y no toca `_dop`. */
+  if (!_simpUniHerrActiva()) { c.style.display = 'none'; c.innerHTML = ''; return; }
   if (!_simpUniHay()) { c.style.display = 'none'; c.innerHTML = ''; _simpUniDocId = null; return; }
   c.style.display = '';
   /* Se arma y se asigna en UN paso: `innerHTML = a + b + c` es lo que matchea
@@ -53418,6 +53494,7 @@ function _medEstado() {
      llevaría puesta la barra entera —las nueve herramientas—, no sólo el cajón. Es la misma
      razón por la que `_medDefOn` está envuelta. */
   try { if (typeof _dopRender === 'function') _dopRender(); } catch (e) {}
+  try { if (typeof _d2Render === 'function') _d2Render(); } catch (e) {}
 }
 
 /* ── VELOCIDAD SOBRE UN TRAZO ESPECTRAL ──────────────────────────────────────────────────
@@ -53579,6 +53656,14 @@ function _medClic(ev) {
      queda bien para el día que llegue un equipo que no sea isotrópico. */
   const mm = Math.sqrt(Math.pow((p.x - a.x) * ea.mmPorPx, 2) + Math.pow((p.y - a.y) * ea.mmPorPxY, 2));
   _medLineas.push({ ax:a.x, ay:a.y, bx:p.x, by:p.y, mm });
+  /* El cajón 2D se lleva la medición si hay un campo armado. Va DESPUÉS del `push`, así que la
+     línea queda dibujada sobre la imagen aunque el valor caiga fuera de banda y el cajón lo
+     rechace: lo que el médico marcó se ve, y el cajón dice por qué no lo guardó.
+     Guarda `typeof` porque el cajón vive en OTRO bloque `<script>` — un `ReferenceError` acá se
+     llevaría puesta la herramienta Distancia entera. Es la misma envoltura que `_dopCapturar`.
+     ⚠️ NO entra la línea de CALIBRACIÓN: ésa vuelve por su propia rama, arriba, y sus
+     milímetros los escribió el médico para fijar la escala — no son una medición del corazón. */
+  try { if (typeof _d2Capturar === 'function') _d2Capturar(mm); } catch (e) {}
   _medPintar(); _medEstado();
 }
 
@@ -54025,6 +54110,7 @@ function vistaBCerrar() {
      sacarlo, por una razón que no está en la pantalla.
      Guarda `typeof` porque el cajón vive en otro bloque `<script>`. */
   try { if (typeof _dopRender === 'function') _dopRender(); } catch (e) {}
+  try { if (typeof _d2Render === 'function') _d2Render(); } catch (e) {}
   _vAccionesSync();
   _vSync = false;
   _vSincronizando = false;
@@ -55760,6 +55846,12 @@ function _dopLimpiar() {
   _dop = _dopNuevo();
   _dop.modo = md;   // limpiar borra los DATOS, no cierra la válvula que se estaba mirando
   _dopRender();
+  /* ⚠️ Y EL CAJÓN 2D, porque `ao.diam` es el Diam TSVI que ESE cajón muestra como propio (ver
+     `_D2_ALIAS`). `_d2Poner` ya repinta en la dirección contraria; sin esta línea la simetría
+     faltaba y los dos cajones visibles a la vez —alcanzable: `medGrupoToggle` cambia el grupo sin
+     tocar la herramienta— dejaban el 2D publicando «Diam TSVI 22.0 mm» sobre un valor que ya es
+     null, hasta el próximo `_medEstado`. Guarda `typeof` porque vive más abajo en el archivo. */
+  try { if (typeof _d2Render === 'function') _d2Render(); } catch (e) {}
 }
 window._dopLimpiar = _dopLimpiar;
 
@@ -55775,8 +55867,14 @@ function _dopLimpiarConfirmar() {
   const con = _DOP_VALVULAS.filter(V => _dopValvConDatos(V.m)).map(V => _dopRotValv(V.m));
   if (_dopValvConDatos('gen')) con.push('mediciones sin asignar');
   if (!con.length) { _dopLimpiar(); return; }
+  /* ⚠️ NOMBRA EL DIAM TSVI APARTE cuando lo hay: ese valor se muestra también en el cajón 2D,
+     así que «Limpiar» acá se lo saca a la otra pantalla. Es la simétrica de la salvedad que
+     `_d2LimpiarConfirmar` ya declaraba en su dirección; sin ella, el borrado alcanzaba un cajón
+     que el diálogo no menciona. */
+  const extra = (_dopEstado().ao.diam != null)
+    ? '\n\nIncluye el Diam TSVI, que el cajón 2D muestra como propio.' : '';
   const ok = (typeof confirm === 'function')
-    ? confirm('Se borran las mediciones de: ' + con.join(', ') + '.\n\n' +
+    ? confirm('Se borran las mediciones de: ' + con.join(', ') + '.' + extra + '\n\n' +
               'Esto no se puede deshacer. ¿Limpiar el cajón?')
     : true;
   if (ok) _dopLimpiar();
@@ -56876,6 +56974,600 @@ async function dopGuardarBiblioteca() {
   }
 }
 window.dopGuardarBiblioteca = dopGuardarBiblioteca;
+
+/* ══ CAJÓN 2D — MEDICIONES DE DISTANCIA ═══════════════════════════════════════════════════
+   El hermano del cajón Doppler para el modo 2D. Nace del mismo problema: el Diam TSVI se mide
+   con la herramienta Distancia y hasta hoy no tenía dónde aterrizar, así que la ecuación de
+   continuidad —Diam TSVI con VTI TSVI y VTI VAo, que se miden en Doppler— no se podía completar
+   desde el visor. Pedido de Maicol (2026-09-25).
+
+   ⚠️ SE COPIA EL MECANISMO DEL CAJÓN DOPPLER, NO SE INVENTA UNO. Selector de grupo arriba,
+   `modo` en `null` como estado inicial, `medir` que arma el destino, `✏️` que escribe a mano,
+   derivados sin ✏️, y el mismo borde único de entrada con banda de plausibilidad. Lo pidió el
+   pedido con esas palabras y además es lo único que hace que las dos superficies se comporten
+   igual: dos anotadores del mismo visor con dos gestos distintos es peor que no tener el segundo.
+
+   ⚠️ UNA SOLA COLUMNA. Ningún grupo pasa de siete filas —la AI tiene UNA— y dos columnas sobre
+   cuatro valores dejan media tabla vacía. El cajón Doppler ya es de una columna; esto no es una
+   variante, es el mismo patrón.
+
+   ⚠️ NO SINCRONIZA CON EL INFORME, igual que el Doppler. Es un anotador: el médico lee el número
+   y lo escribe en el campo si quiere. La línea al pie lo dice, porque la imagen que se guarda en
+   la biblioteca puede terminar en un PDF y ahí nadie sabe de dónde salió. */
+let _d2 = null;
+function _d2Nuevo() {
+  return {
+    /* Mismo mapa plano `grupo.campo -> 'A' | 'B' | 'mano'` que el cajón Doppler, y por la misma
+       razón: con dos vistas abiertas el SIVd puede salir de una pantalla y el SIVs de la otra. */
+    origen: Object.create(null),
+    /* ⚠️ `tsvi` NO ESTÁ ACÁ: es un ALIAS del `ao.diam` del cajón Doppler (ver `_D2_ALIAS`). */
+    vi:  { sivd:null, ppd:null, sivs:null, pps:null, ddvi:null, dsvi:null },
+    vd:  { basal:null, medio:null, longit:null, tapse:null, tsvd:null },
+    ao:  { sinusal:null, sinotub:null, tubular:null, cayado:null, descend:null, abdominal:null },
+    ai:  { dap:null },
+    vci: { vci:null },
+    modo: null,        // null | 'vi' | 'vd' | 'ao' | 'ai' | 'vci'
+    destino: null,     // campo armado, p.ej. 'vi.ddvi'
+    avisoImg: false    // entraron imágenes nuevas con el cajón ya cargado
+  };
+}
+function _d2Estado() { if (!_d2) _d2 = _d2Nuevo(); return _d2; }
+
+/* Los cinco grupos. UNA lista, igual que `_DOP_VALVULAS`: la consumen los botones, el título de
+   la sección y el nombre con que la tabla se guarda. */
+const _D2_GRUPOS = [
+  { m:'vi',  rot:'🫀 VI' },
+  { m:'vd',  rot:'🔵 VD' },
+  { m:'ao',  rot:'🔴 Aorta' },
+  { m:'ai',  rot:'🟣 AI' },
+  { m:'vci', rot:'🟢 VCI' }
+];
+const _D2_GRUPOS_DATO = ['vi', 'vd', 'ao', 'ai', 'vci'];
+
+/* ⚠️ EL DIAM TSVI ES UNO SOLO EN TODO EL VISOR, Y VIVE EN EL CAJÓN DOPPLER.
+   Es el motivo declarado del pedido: medirlo en 2D «para combinarse con VTI TSVI y VTI VAo y
+   calcular el AVA». Un campo propio acá sería un SEGUNDO Diam TSVI, y entonces el cajón 2D
+   mostraría 22 mm mientras la AVA del cajón Doppler se sigue calculando con los 20 que alguien
+   tipeó la semana pasada — sin que ninguna de las dos pantallas diga que hay dos. Es el patrón
+   de «fórmula duplicada» que este archivo ya documenta tres veces, y acá el valor duplicado
+   alimentaría un área valvular.
+   Por eso `vi.tsvi` no existe en el estado: lee y escribe `_dop.ao.diam`. La fila lo DICE, y al
+   escribirlo se repinta también el cajón Doppler para que el AVA aparezca en el acto. */
+const _D2_ALIAS = Object.assign(Object.create(null), { 'vi.tsvi': 'ao.diam' });
+function _d2Ref(campo) {
+  const a = _D2_ALIAS[campo];
+  if (a) {
+    const p = a.split('.');
+    const E = (typeof _dopEstado === 'function') ? _dopEstado() : null;
+    return (E && E[p[0]]) ? { obj:E[p[0]], k:p[1], ajeno:true } : null;
+  }
+  const p = campo.split('.');
+  const E = _d2Estado();
+  /* `hasOwnProperty` y no un ternario por grupo: es la misma guarda que `dopCorregir` tuvo que
+     aprender a la mala — sin ella un campo mal escrito acuña una propiedad nueva, el valor se
+     guarda, no lo lee ningún derivado y la fila sigue mostrando un guion SIN ERROR. */
+  return (E[p[0]] && Object.prototype.hasOwnProperty.call(E[p[0]], p[1])) ? { obj:E[p[0]], k:p[1], ajeno:false } : null;
+}
+function _d2Valor(campo) { const r = _d2Ref(campo); return r ? r.obj[r.k] : null; }
+
+const _D2_ROT = Object.assign(Object.create(null), {
+  'vi.sivd':'SIVd', 'vi.ppd':'PPd', 'vi.sivs':'SIVs', 'vi.pps':'PPs',
+  'vi.ddvi':'DDVI', 'vi.dsvi':'DSVI', 'vi.tsvi':'Diam TSVI',
+  'vd.basal':'VD basal', 'vd.medio':'VD medio', 'vd.longit':'VD longitudinal',
+  'vd.tapse':'TAPSE', 'vd.tsvd':'Diam TSVD',
+  'ao.sinusal':'Senos de Valsalva', 'ao.sinotub':'Unión sinotubular', 'ao.tubular':'Aorta tubular',
+  'ao.cayado':'Cayado', 'ao.descend':'Torácica descendente', 'ao.abdominal':'Aorta abdominal',
+  'ai.dap':'DAP', 'vci.vci':'VCI'
+});
+
+/* ⚠️ LAS BANDAS SE PRESTAN SÓLO DONDE LA PREGUNTA ES LA MISMA. Es la regla que el cajón Doppler
+   escribió después de tener que sacar tres que ya había puesto, y acá volvió a morder:
+     · `vd.longit` NO lleva `vd_bas` [10–70]. El VD longitudinal normal llega a 86 mm, o sea que
+       esa banda RECHAZA una medición normal — exactamente el modo de falla que la regla describe.
+     · `vd.medio` tampoco: es otra dimensión de la misma cavidad y no tiene contrapartida propia.
+     · El cayado, la descendente y la abdominal no tienen campo en la app. Sin banda.
+   Los espesores SISTÓLICOS sí toman la banda de su diastólico (`siv`, `ppvi`, [3–35] mm): es la
+   MISMA magnitud física medida en otro instante del ciclo, y los dos extremos están verificados
+   contra los dos casos límite —un septum sistólico de una miocardiopatía hipertrófica queda muy
+   por debajo de 35, y el de una dilatada muy por encima de 3—, así que no recorta nada legítimo. */
+const _D2_BANDA_DE = Object.assign(Object.create(null), {
+  'vi.sivd':'siv', 'vi.ppd':'ppvi',
+  'vi.ddvi':'ddfvi', 'vi.dsvi':'dsfvi', 'vi.tsvi':'diam_tsvi',
+  'vd.basal':'vd_bas', 'vd.tapse':'tapse', 'vd.tsvd':'tsvd_diametro',
+  'ao.sinusal':'ao_sin', 'ao.sinotub':'ao_st', 'ao.tubular':'ao_tub',
+  'ai.dap':'ai_diam', 'vci.vci':'vci_diam'
+});
+/* ⚠️ LOS ESPESORES SISTÓLICOS LLEVAN BANDA PROPIA, Y LA PRESTADA ERA UN ERROR MÍO.
+   Estaban tomando `siv`/`ppvi` [3–35] mm con un comentario que afirmaba haber verificado los dos
+   extremos. No se sostiene con la definición del propio derivado: una hipertrófica con SIVd de
+   28 mm que engrosa un 40 % —normal— da un SIVs de 39 mm, por encima del techo. El rechazo no
+   avisa nada útil: el valor no se guarda, `_d2Derivados` devuelve null y la fila «Engrosamiento
+   SIV» NO SE DIBUJA, así que el médico ve el diastólico cargado, el sistólico vacío y ninguna
+   fila derivada, justo en la patología que el engrosamiento vino a medir. Es literalmente lo que
+   el cajón Doppler documenta como «peor que no tener banda: rechaza mediciones legítimas y lo
+   hace en silencio». Lo cazó `/sharp-edges`.
+   El techo del sistólico NO es el del diastólico: es su producto por el factor de engrosamiento.
+   ⚠️ Y LAS DISTANCIAS SIN CONTRAPARTIDA EN LA APP LLEVAN UNA BANDA GENÉRICA, que no afirma nada
+   clínico — sólo el orden de magnitud. Sin ella, el MISMO error —cargar en centímetros— se
+   rechazaba en tres filas de la aorta y entraba en silencio en las otras tres de la misma tabla,
+   y un `0` se imprimía «0.0 mm», que al lado de una unidad se lee como «medido y dio cero».
+   `vd.basal` conserva la banda de la app (`vd_bas`, techo 70 mm) aunque un Ebstein o una IT
+   severa crónica puedan pasarlo: es la banda que la propia app aplica a ESA misma medición, y
+   ensancharla sólo acá dejaría el anotador aceptando lo que el importador rechaza. Si el techo
+   está bajo, está bajo en los dos lados y se corrige en `DCM_RANGO` — no acá. Queda declarado. */
+const _D2_BANDA_FIJA = Object.assign(Object.create(null), {
+  'vi.sivs':[3, 60], 'vi.pps':[3, 60],
+  'vd.medio':[3, 120], 'vd.longit':[3, 120],
+  'ao.cayado':[3, 120], 'ao.descend':[3, 120], 'ao.abdominal':[3, 120]
+});
+function _d2Banda(campo) {
+  const f = _D2_BANDA_FIJA[campo];
+  if (f) return f;
+  const k = _D2_BANDA_DE[campo];
+  if (!k) return null;
+  try {
+    if (typeof DCM_RANGO !== 'undefined' && DCM_RANGO[k]) return DCM_RANGO[k];
+    if (typeof CHM_RANGO !== 'undefined' && CHM_RANGO[k]) return CHM_RANGO[k];
+  } catch (e) {}
+  return null;
+}
+function _d2Normalizar(campo, val) {
+  const v = Math.abs(Number(val));
+  if (!isFinite(v)) return null;
+  const b = _d2Banda(campo);
+  if (b && (v < b[0] || v > b[1])) return null;
+  return v;
+}
+
+/* De qué vista salió cada valor — mismo criterio y mismos rótulos cortos que el cajón Doppler.
+   ⚠️ EL ORIGEN VIAJA CON EL VALOR, ASÍ QUE CRUZA EL ALIAS. Primera versión: el valor del Diam
+   TSVI iba a `_dop.ao.diam` y su marca se quedaba en `_d2.origen`, o sea que el cajón Doppler
+   publicaba el AVA **sin** la procedencia de uno de sus tres insumos. Y el caso no era teórico ni
+   raro: con los dos VTI medidos en la vista A y el diámetro en la B, `_dopOrigenesEnUso` devolvía
+   `['A']`, la compuerta `_dopMarcarOrigenes()` daba `false` y NO se dibujaba ninguna marca —el
+   AVA salía como si sus tres insumos vinieran de la misma pantalla—. Es exactamente el modo de
+   falla que la marca existe para impedir. Simétrico: `dopCorregir('ao.diam')` marca «mano» allá y
+   este cajón no lo veía. Un solo mapa por valor, el que corresponda. Lo cazó `/sharp-edges`. */
+function _d2OrigenMapa(campo) {
+  const a = _D2_ALIAS[campo];
+  if (a) {
+    const E = (typeof _dopEstado === 'function') ? _dopEstado() : null;
+    if (!E) return null;
+    if (!E.origen) E.origen = Object.create(null);
+    return { o:E.origen, k:a };
+  }
+  const E = _d2Estado();
+  if (!E.origen) E.origen = Object.create(null);
+  return { o:E.origen, k:campo };
+}
+function _d2Origen(campo) { const r = _d2OrigenMapa(campo); return r ? r.o[r.k] : null; }
+function _d2MarcarOrigen(campo, quien) {
+  try {
+    const r = _d2OrigenMapa(campo);
+    if (!r) return;
+    r.o[r.k] = quien || ((typeof _V !== 'undefined' && _V && _V.rot) ? _V.rot : null);
+  } catch (e) { console.error('[2d] no se pudo registrar el origen de ' + campo, e); }
+}
+function _d2BorrarOrigen(campo) {
+  const r = _d2OrigenMapa(campo);
+  if (r) delete r.o[r.k];
+}
+/* Recorre LOS CAMPOS CONOCIDOS y no las claves del mapa: el mapa del alias es el del otro cajón y
+   tiene además las claves de las cuatro válvulas, así que iterarlo contaría orígenes de valores
+   Doppler como si fueran de este cajón. */
+function _d2OrigenesEnUso() {
+  const v = [];
+  Object.keys(_D2_ROT).forEach(c => {
+    const q = _d2Origen(c);
+    if (q && _d2Valor(c) != null && v.indexOf(q) < 0) v.push(q);
+  });
+  return v;
+}
+function _d2MarcarOrigenes() { return _d2OrigenesEnUso().length > 1; }
+function _d2SufOrigen(campos) {
+  if (!_d2MarcarOrigenes()) return '';
+  const cs = Array.isArray(campos) ? campos : [campos];
+  const vistos = [];
+  /* Filtra POR VALOR, no por entrada en el mapa: una procedencia huérfana —un campo vaciado por
+     un camino que no borre su origen— publicaría «· B» sobre un valor que ya no está, y las filas
+     derivadas se emiten incondicionalmente. Es la guarda que el cajón Doppler tuvo que aprender
+     a ejercer con un caso propio. */
+  cs.forEach(c => {
+    const q = _d2Origen(c);
+    if (q && _d2Valor(c) != null && vistos.indexOf(q) < 0) vistos.push(q);
+  });
+  return vistos.length ? ' · ' + vistos.join('+') : '';
+}
+
+function _d2Poner(campo, v) {
+  const r = _d2Ref(campo);
+  if (!r) return false;
+  r.obj[r.k] = v;
+  /* El alias escribe en el OTRO cajón, así que se lo repinta. ⚠️ ESO NO QUIERE DECIR QUE EL AVA
+     APAREZCA EN EL ACTO —lo decía este comentario y era falso—: `_dopRender` sale temprano si
+     ningún grupo Doppler está abierto, y midiendo con Distancia `medHerramienta` deja el grupo en
+     `2d`. O sea que en el flujo normal el cajón Doppler está oculto y el AVA se ve recién al
+     abrir su grupo. El valor SÍ queda guardado, así que el daño es cero; la llamada sirve para el
+     caso en que los dos cajones estén visibles a la vez, que es alcanzable. */
+  if (r.ajeno) { try { if (typeof _dopRender === 'function') _dopRender(); } catch (e) {} }
+  return true;
+}
+
+/* ── ARMAR ────────────────────────────────────────────────────────────────────────────────
+   TODOS los campos de este cajón se miden con la MISMA herramienta —Distancia—, así que no hay
+   tabla `campo -> herramienta` como en el Doppler: armar es elegir `dist` y fijar el destino. */
+function d2Armar(campo) {
+  const E = _d2Estado();
+  if (!_dopHayVisor()) {
+    if (typeof toast === 'function') toast('Abrí una imagen en el visor para medir.');
+    return;
+  }
+  /* Se comprueba que el campo SE PUEDA ESCRIBIR, no sólo que tenga rótulo: armar un destino que
+     `_d2Poner` va a rechazar deja al médico midiendo para un campo que nunca se va a llenar. */
+  if (!_D2_ROT[campo] || !_d2Ref(campo)) return;
+  E.destino = campo;
+  try { if (typeof medHerramienta === 'function') medHerramienta('dist'); } catch (e) {}
+  try { if (typeof _medEstado === 'function') _medEstado(); } catch (e) {}
+  _d2Render();
+}
+window.d2Armar = d2Armar;
+
+/* Alterna: tocar el grupo abierto vuelve al selector. `modo` es UN campo, así que dos grupos
+   abiertos a la vez son imposibles por construcción — no hay un «ocultar el anterior» que
+   alguien pueda olvidarse de escribir, que es el defecto que este mismo commit corrige en el
+   cuadro de ventana de Simpson. */
+function d2Modo(m) { const E = _d2Estado(); E.modo = (E.modo === m) ? null : m; E.destino = null; _d2Render(); }
+window.d2Modo = d2Modo;
+
+function d2Corregir(campo) {
+  const r = _d2Ref(campo);
+  if (!r) return;
+  const b = _d2Banda(campo);
+  const txt = prompt('Valor en mm para ' + (_D2_ROT[campo] || campo) +
+                     (b ? ' (' + b[0] + '–' + b[1] + ')' : '') + ' — vacío borra:',
+                     r.obj[r.k] == null ? '' : String(r.obj[r.k]));
+  if (txt === null) return;
+  const t = String(txt).trim().replace(',', '.');
+  if (t === '') { _d2Poner(campo, null); _d2BorrarOrigen(campo); _d2Render(); return; }
+  const v = _d2Normalizar(campo, t);
+  if (v == null) {
+    if (typeof toast === 'function') {
+      toast(b ? ('«' + t + '» está fuera de lo posible para ' + (_D2_ROT[campo] || campo) +
+                 ' (' + b[0] + '–' + b[1] + ' mm). No se guardó.')
+              : 'Ese valor no es un número. No se guardó.');
+    }
+    return;
+  }
+  _d2Poner(campo, v);
+  _d2MarcarOrigen(campo, 'mano');
+  _d2Render();
+}
+window.d2Corregir = d2Corregir;
+
+/* ⚠️ EL BORDE ÚNICO POR DONDE ENTRA UN NÚMERO MEDIDO. Lo llama el cierre de una medición de
+   Distancia, con los milímetros ya resueltos por la escala del archivo. Si no hay destino armado
+   no hace nada: a diferencia del Doppler, acá NO hay filas genéricas donde caer —el visor ya
+   muestra la distancia sobre la imagen y la lista de mediciones en pantalla—, así que inventar
+   una segunda lista de «sin asignar» sería una tercera copia del mismo número. */
+function _d2Capturar(mm) {
+  const E = _d2Estado();
+  const dest = E.destino;
+  if (!dest) { _d2Render(); return false; }
+  const v = _d2Normalizar(dest, mm);
+  if (v == null) {
+    /* ⚠️ EL DESTINO SOBREVIVE AL RECHAZO POR BANDA, y antes se consumía arriba de todo. Una
+       medición fuera de banda avisaba «No se guardó» y ADEMÁS desarmaba el campo: el médico
+       volvía a medir —que es lo que el aviso le pide— y el segundo intento caía en la nada,
+       porque «Midiendo para DDVI» ya había desaparecido. Conservarlo es el lado que no pierde
+       el gesto. Lo cazó `/sharp-edges`. */
+    const b = _d2Banda(dest);
+    if (typeof toast === 'function') {
+      toast(b ? ('Esa medición (' + Number(mm).toFixed(1) + ' mm) está fuera de lo posible para ' +
+                 (_D2_ROT[dest] || dest) + ' (' + b[0] + '–' + b[1] + ' mm). No se guardó — el campo sigue armado.')
+              : 'Esa medición no es un número. No se guardó.');
+    }
+    _d2Render();
+    return false;
+  }
+  /* ⚠️ SE HONRA EL VEREDICTO DE `_d2Poner`. Descartarlo producía exactamente el estado que el
+     comentario de `_d2Ref` dice que la guarda existe para impedir: fila con guion, origen
+     marcado y cero aviso. Es alcanzable si el bloque `<script>` del cajón Doppler deja de
+     parsear —este archivo lo pagó dos veces— y el campo afectado sería el Diam TSVI, o sea el
+     insumo del AVA: el médico mide y el número desaparece sin una palabra. */
+  if (!_d2Poner(dest, v)) {
+    if (typeof toast === 'function')
+      toast('No se pudo guardar ' + (_D2_ROT[dest] || dest) + '. Anotalo a mano.');
+    _d2Render();
+    return false;
+  }
+  E.destino = null;
+  _d2MarcarOrigen(dest);
+  _d2Render();
+  return true;
+}
+window._d2Capturar = _d2Capturar;
+
+/* ⚠️ FRACCIÓN DE ENGROSAMIENTO PARIETAL — NO ES LA FEVI POR TEICHHOLZ, y la distinción la pidió
+   el pedido con todas las letras. Teichholz sale de DDVI y DSVI —las CAVIDADES— y estima un
+   volumen; esto sale de los ESPESORES en diástole y en sístole y mide cuánto engrosa la pared:
+       FEP % = (espesor sistólico − espesor diastólico) / espesor diastólico × 100
+   Son dos preguntas distintas sobre el mismo latido y un ventrículo puede tener una normal y la
+   otra no. Por eso van DOS filas, una por pared: el septum y la posterior engrosan distinto, y un
+   promedio escondería justamente la asimetría que se está buscando.
+   ⚠️ NO SE PUBLICA TEICHHOLZ. DDVI y DSVI están en la tabla porque son mediciones que el médico
+   toma igual, pero calcular una FEVI acá sería un segundo número de función ventricular al lado
+   del Simpson del propio visor, con otro método y sin decirlo — el patrón de «dos agendas» que
+   este archivo ya pagó. Si hace falta, se pide aparte.
+   El corte se enuncia como ORIENTATIVO y sin graduar: ≥30 % es la referencia habitual de pared
+   normal en el análisis segmentario, pero el engrosamiento se valora junto con la motilidad y un
+   semáforo acá afirmaría más de lo que un par de calipers puede sostener. */
+/* ⚠️ SE CALCULA CON LOS MISMOS NÚMEROS QUE SE IMPRIMEN. Las filas medidas salen con un decimal
+   y el FEP se calculaba con el valor crudo, así que el médico que rehacía la cuenta desde la
+   pantalla obtenía otro resultado — y en el borde el desacuerdo cae justo en el corte: SIVd 10,04
+   («10.0») con SIVs 13,04 («13.0») da 29,88 %, que se imprimía «30 %», el número que el descargo
+   nombra como referencia de pared normal. Clasificar un valor y publicar otro es el defecto que
+   este archivo persigue desde `vp_gmax`. Lo cazó `/sharp-edges`. */
+function _d2FEP(d, s) {
+  const dd = Number(d), ss = Number(s);
+  if (!isFinite(dd) || !isFinite(ss) || dd <= 0 || ss <= 0) return null;
+  const dr = Math.round(dd * 10) / 10, sr = Math.round(ss * 10) / 10;
+  if (!(dr > 0)) return null;
+  return (sr - dr) / dr * 100;
+}
+function _d2Derivados() {
+  const V = _d2Estado().vi;
+  return {
+    fepSiv: _d2FEP(V.sivd, V.sivs),
+    fepPp:  _d2FEP(V.ppd,  V.pps)
+  };
+}
+
+/* Las filas del grupo abierto. Formato IDÉNTICO al del cajón Doppler para que el armador de
+   tabla sea el mismo: [rótulo, valor, unidad, campo, armable, insumos]. */
+function _d2Filas(modo) {
+  const E = _d2Estado();
+  const m = modo || E.modo;
+  if (!m) return [];
+  const f1 = c => [_D2_ROT[c], _d2Valor(c) == null ? null : Number(_d2Valor(c)).toFixed(1), 'mm', c, true, null];
+  let F = [];
+  if (m === 'vi') {
+    F = ['vi.sivd','vi.ppd','vi.sivs','vi.pps','vi.ddvi','vi.dsvi','vi.tsvi'].map(f1);
+    const D = _d2Derivados();
+    /* Los derivados van SIN campo (`f[3]` en null), que es lo que les saca el ✏️: un calculado
+       que se puede pisar a mano es el «campo auto que se calcula una vez y se queda viejo» que
+       este archivo documenta con `vp_gmax`. Se corrigen sus insumos. */
+    if (D.fepSiv != null)
+      F.push(['Engrosamiento SIV', D.fepSiv.toFixed(0), '%', null, false, ['vi.sivd','vi.sivs']]);
+    if (D.fepPp != null)
+      F.push(['Engrosamiento PP', D.fepPp.toFixed(0), '%', null, false, ['vi.ppd','vi.pps']]);
+  } else if (m === 'vd') {
+    F = ['vd.basal','vd.medio','vd.longit','vd.tapse','vd.tsvd'].map(f1);
+  } else if (m === 'ao') {
+    F = ['ao.sinusal','ao.sinotub','ao.tubular','ao.cayado','ao.descend','ao.abdominal'].map(f1);
+  } else if (m === 'ai') {
+    F = ['ai.dap'].map(f1);
+  } else if (m === 'vci') {
+    F = ['vci.vci'].map(f1);
+  }
+  /* La marca de origen se agrega al RÓTULO, igual que en el cajón Doppler, y los derivados
+     declaran sus insumos. */
+  F.forEach(f => {
+    const src = f[5] || (f[3] ? [f[3]] : null);
+    if (src) { const suf = _d2SufOrigen(src); if (suf) f[0] = f[0] + suf; }
+  });
+  return F;
+}
+window._d2Filas = _d2Filas;
+
+function _d2GrupoConDatos(m) {
+  if (m === 'vi') {
+    const V = _d2Estado().vi;
+    if (Object.keys(V).some(k => V[k] != null)) return true;
+    return _d2Valor('vi.tsvi') != null;      // el alias no vive en `E.vi`
+  }
+  const G = _d2Estado()[m];
+  return !!G && Object.keys(G).some(k => G[k] != null);
+}
+function _d2HayValores() { return _D2_GRUPOS_DATO.some(_d2GrupoConDatos); }
+window._d2HayValores = _d2HayValores;
+
+/* ── VISIBILIDAD ──────────────────────────────────────────────────────────────────────────
+   ⚠️ «ALGUNA VISTA CON DISTANCIA ACTIVA», y no `_medHerr`. `_medHerr` resuelve contra `_V`, que
+   fuera de un manejador envuelto en `_vBind` es SIEMPRE `_vistaA`: preguntarle a él escondería el
+   cajón mientras la vista B está midiendo distancias. Es el defecto que el cajón Doppler pagó
+   ayer entero, así que éste nace con la regla correcta y con su condición propia en el caso.
+   El fallback cubre los arranques del visor donde `_vTodas` todavía no existe — sin él, la
+   función lanza y el cajón desaparece del todo. */
+function _d2HerrEnAlguna() {
+  try {
+    if (typeof _vTodas === 'function') return _vTodas().some(V => V && V.medHerr === 'dist');
+    return typeof _medHerr !== 'undefined' && _medHerr === 'dist';
+  } catch (e) { return false; }
+}
+function _d2Visible() {
+  if (typeof _dopHayVisor !== 'function' || !_dopHayVisor()) return false;
+  return _d2HerrEnAlguna();
+}
+window._d2Visible = _d2Visible;
+
+const _D2_DISC_BASE =
+  'Anotador del visor: mediciones manuales, NO escribe ningún campo del informe. Verificar antes de usar.';
+function _d2Disc() {
+  /* ⚠️ DECLARA QUE NO QUEDA GUARDADO EN NINGÚN LADO, y esto es una diferencia REAL con el cajón
+     Doppler, que sí tiene «💾 Guardar tabla» hacia la biblioteca. Acá no se agregó —no estaba en
+     el pedido— así que estos valores viven sólo en memoria y se pierden al recargar. El hermano
+     tiene artefacto y éste no: callarlo dejaría al médico suponiendo la misma salida. */
+  const d = [_D2_DISC_BASE, 'Estas mediciones NO se guardan: viven sólo mientras la pestaña está ' +
+             'abierta. Anotá lo que necesites antes de cerrar.'];
+  const F = _d2Filas();
+  if (F.some(f => String(f[0]).indexOf('Engrosamiento') === 0)) {
+    d.push('Engrosamiento parietal = (sistólico − diastólico) / diastólico. NO es la FEVI: ' +
+           'sale de los espesores, no de las cavidades. Referencia habitual ≥30 % en pared ' +
+           'normal, orientativa — se valora junto con la motilidad.');
+    /* ⚠️ UN ENGROSAMIENTO NEGATIVO SE DECLARA. Se imprimía crudo —«-23 %»— al lado de una línea
+       que dice «≥30 % pared normal», sin nada que distinguiera el hallazgo del error de carga:
+       las dos causas posibles son adelgazamiento sistólico real y haber medido las dos fases al
+       revés, y son lecturas opuestas. */
+    if (F.some(f => String(f[0]).indexOf('Engrosamiento') === 0 && Number(f[1]) < 0)) {
+      d.push('Hay un engrosamiento NEGATIVO: el espesor sistólico salió menor que el diastólico. ' +
+             'Verificar que las dos fases no estén invertidas antes de leerlo como adelgazamiento.');
+    }
+  }
+  if (_d2Valor('vi.tsvi') != null && F.some(f => String(f[0]).indexOf('Diam TSVI') === 0)) {
+    d.push('El Diam TSVI es el MISMO valor que usa el cajón Doppler para el AVA por continuidad: ' +
+           'medirlo acá lo completa allá.');
+  }
+  if (_d2MarcarOrigenes()) {
+    d.push('· A y · B indican en qué VISTA del visor se midió cada valor; · mano, que se escribió ' +
+           'a mano. No indican en qué IMAGEN: el cajón acumula entre cineloops de una misma vista.');
+  }
+  return d;
+}
+
+function _d2Render() {
+  const cont = document.getElementById('d2-cajon');
+  if (!cont) return;
+  const E = _d2Estado();
+  if (!_d2Visible()) { cont.style.display = 'none'; cont.innerHTML = ''; return; }
+  cont.style.display = 'block';
+
+  let h = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">' +
+    _D2_GRUPOS.map(G => {
+      const con = _d2GrupoConDatos(G.m);
+      return '<button type="button" class="btn ' + (E.modo === G.m ? 'btn-primary' : 'btn-ghost') +
+        '" style="padding:4px 10px;font-size:12px;"' +
+        (con ? ' title="Este grupo ya tiene mediciones cargadas"' : '') +
+        ' data-d2-modo="' + G.m + '">' + escHtml(G.rot) + (con ? ' •' : '') + '</button>';
+    }).join('') + '</div>';
+
+  /* El aviso va ARRIBA de la tabla y no al pie: lo que se lee primero son los números, y un
+     reparo debajo llega tarde. Mismo reparto que el cajón Doppler. */
+  if (E.avisoImg && _d2HayValores()) {
+    h += '<div style="margin-bottom:8px;padding:7px 9px;border-radius:7px;border-left:3px solid var(--orange,#f59e0b);' +
+         'background:var(--bg3);font-size:11.5px;line-height:1.45;">' +
+         '<b>Hay mediciones 2D del estudio anterior. ¿Limpiar o conservar?</b><br>' +
+         'Entraron imágenes nuevas y el cajón no se vacía solo al importar: acumular entre ' +
+         'imágenes es lo que hace. ' +
+         '<button type="button" class="btn btn-ghost" style="padding:1px 8px;font-size:10.5px;margin-left:4px;" ' +
+         'data-d2-acc="avisolimpiar">🗑️ Limpiar</button> ' +
+         '<button type="button" class="btn btn-ghost" style="padding:1px 8px;font-size:10.5px;" ' +
+         'data-d2-acc="avisook">Conservar</button></div>';
+  }
+
+  const F = _d2Filas();
+  if (F.length) {
+    /* UNA columna. Mismo armador que el cajón Doppler: rótulo a la izquierda, valor a la
+       derecha con sus dos botones. */
+    let t = '<table style="width:100%;border-collapse:collapse;font-size:12.5px;">';
+    F.forEach(f => {
+      const val = f[1] == null ? '—' : escHtml(f[1] + (f[2] ? ' ' + f[2] : ''));
+      const arm = f[4] ? ' <button type="button" class="btn btn-ghost" style="padding:0 6px;font-size:10px;" data-d2-armar="' + escHtml(f[3]) + '">medir</button>' : '';
+      const cor = f[3] ? ' <button type="button" class="btn btn-ghost" style="padding:0 6px;font-size:10px;" data-d2-corr="' + escHtml(f[3]) + '">✏️</button>' : '';
+      const marcado = (E.destino && E.destino === f[3]) ? 'background:var(--bg3);' : '';
+      t += '<tr style="border-bottom:1px solid var(--border);' + marcado + '">' +
+           '<td style="padding:4px 6px;color:var(--text2);">' + escHtml(f[0]) + '</td>' +
+           '<td style="padding:4px 6px;font-weight:600;text-align:right;white-space:nowrap;">' + val + arm + cor + '</td></tr>';
+    });
+    h += t + '</table>';
+    if (E.destino) {
+      h += '<div style="margin-top:6px;font-size:11px;color:var(--accent2);">Midiendo para <b>' +
+           escHtml(_D2_ROT[E.destino] || E.destino) + '</b> — la próxima distancia cae ahí.</div>';
+    }
+  } else {
+    h += '<div style="font-size:11.5px;color:var(--text2);line-height:1.5;">' +
+         'Elegí un grupo para ver sus campos y medir sobre esta imagen.</div>';
+  }
+
+  h += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;">' +
+    '<button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" data-d2-acc="limpiar">🗑️ Limpiar</button>' +
+    '</div>';
+  if (F.length) {
+    h += '<div style="margin-top:8px;font-size:10px;color:var(--text2);line-height:1.45;">' +
+      'Las filas con ✏️ se pueden escribir a mano, y volver a medirlas las reemplaza. ' +
+      'Los derivados se recalculan solos y no se editan.</div>';
+  }
+  h += '<div style="margin-top:8px;font-size:10px;color:var(--text2);line-height:1.45;">' +
+    _d2Disc().map(t => escHtml(t)).join('<br>') + '</div>';
+  cont.innerHTML = h;
+  _d2Observar();
+}
+window._d2Render = _d2Render;
+
+/* ⚠️ ESTADO DE MÓDULO: SE LIMPIA EN LAS TRES PUERTAS, igual que `_dop`. Son mediciones del
+   paciente y `cerrarSesion` no recarga la página, así que sin esto el médico siguiente de una
+   máquina compartida hereda el DDVI del anterior. Las puertas son «Limpiar», `limpiarCampos`
+   —nuevo estudio y reabrir— y `cerrarSesion`; las dos últimas se cablean donde ya se cablea
+   `_dopLimpiar`, para que estén a la vista una al lado de la otra.
+   El `modo` sobrevive: qué grupo se estaba mirando no es dato del paciente, y cerrarlo sería
+   esconder la tabla a mitad de trabajo. Mismo criterio que `_dopLimpiar`.
+   ⚠️ BORRA TAMBIÉN EL ALIAS. `_d2Nuevo` no puede: el Diam TSVI no vive acá. Hoy `_dopLimpiar`
+   corre en las mismas dos puertas y lo cubriría, pero depender de eso ata la ausencia de una
+   fuga al ORDEN de dos líneas en otra función — y ésa es la clase de invariante que este archivo
+   ya documentó como «no puede depender en silencio de una línea enterrada más abajo». */
+function _d2Limpiar() {
+  const md = _d2 ? _d2.modo : null;
+  if (_d2Valor('vi.tsvi') != null) _d2Poner('vi.tsvi', null);
+  _d2 = _d2Nuevo();
+  _d2.modo = md;      // el aviso queda apagado por `_d2Nuevo`: ya no hay nada que confundir
+  _d2Render();
+}
+window._d2Limpiar = _d2Limpiar;
+
+/* ⚠️ IMPORTAR IMÁGENES NO ES UNA DE LAS TRES PUERTAS, y por eso hace falta esto aparte.
+   `_d2Limpiar` cubre «Limpiar», `limpiarCampos` y `cerrarSesion`; ninguna corre cuando el médico
+   mete el pendrive del paciente siguiente SIN apretar «Nuevo estudio», que es un flujo real. El
+   cajón acumula entre cineloops a propósito —lo dice su propio descargo— así que el DDVI y los
+   espesores del paciente anterior seguían ahí, sin una sola marca, mientras el cajón Doppler de
+   al lado SÍ mostraba su banda de aviso. Paridad incompleta con el módulo que este cajón dice
+   copiar; lo cazó `/sharp-edges`.
+   No limpia: PREGUNTA. Borrar solo sería peor —el cajón acumula entre imágenes porque hay
+   mediciones que se toman en planos distintos— y el médico es el único que sabe si el pendrive
+   que acaba de entrar es del mismo paciente. Sin gatillo con el cajón vacío: un aviso sobre una
+   tabla de guiones entrena a ignorarlo. */
+function _d2ImagenesNuevas() {
+  try {
+    if (!_d2HayValores()) return;
+    _d2Estado().avisoImg = true;
+    _d2Render();
+  } catch (e) {}
+}
+window._d2ImagenesNuevas = _d2ImagenesNuevas;
+function d2AvisoConservar() { _d2Estado().avisoImg = false; _d2Render(); }
+
+function _d2LimpiarConfirmar() {
+  if (!_d2HayValores()) { _d2Limpiar(); return; }
+  const con = _D2_GRUPOS.filter(G => _d2GrupoConDatos(G.m)).map(G => G.rot.replace(/^\S+\s*/, ''));
+  /* ⚠️ NOMBRA LO QUE BORRA, y el Diam TSVI aparte: vive en el cajón Doppler, así que «Limpiar»
+     acá se lo saca al AVA de allá. Un borrado que alcanza otra pantalla tiene que decirlo. */
+  const extra = (_d2Valor('vi.tsvi') != null)
+    ? '\n\nTambién borra el Diam TSVI, que es el que usa el cajón Doppler para el AVA.' : '';
+  if (!confirm('¿Borrar las mediciones 2D de ' + con.join(', ') + '?' + extra)) return;
+  _d2Limpiar();
+}
+
+/* Oyente delegado en el CONTENEDOR, registrado una sola vez y recordando el NODO: mismo patrón y
+   mismas razones que `_dopObservar` — `_d2Render` reescribe el `innerHTML` en cada pintada, así
+   que enganchar por botón acumularía un oyente por repintado. Y nada va en un `onclick` inline:
+   ahí el escape NO protege, porque el parser decodifica la entidad ANTES de compilar el handler. */
+let _d2ObsNodo = null;
+function _d2Observar() {
+  const cont = document.getElementById('d2-cajon');
+  if (!cont || _d2ObsNodo === cont) return;
+  _d2ObsNodo = cont;
+  cont.addEventListener('click', ev => {
+    const b = ev.target && ev.target.closest ? ev.target.closest('[data-d2-modo],[data-d2-armar],[data-d2-corr],[data-d2-acc]') : null;
+    if (!b || !cont.contains(b) || b.disabled) return;
+    const m = b.getAttribute('data-d2-modo');
+    if (m) { d2Modo(m); return; }
+    const a = b.getAttribute('data-d2-armar');
+    if (a) { d2Armar(a); return; }
+    const c = b.getAttribute('data-d2-corr');
+    if (c) { d2Corregir(c); return; }
+    const acc = b.getAttribute('data-d2-acc');
+    if (acc === 'limpiar' || acc === 'avisolimpiar') { _d2LimpiarConfirmar(); return; }
+    if (acc === 'avisook') { d2AvisoConservar(); return; }
+  });
+}
 
 /* `slotPreferido` es OPCIONAL y sólo lo usa el arrastre: el botón 📄 sigue mandando al primer
    espacio libre, que es lo que siempre hizo. `_dcmImgReservar` ya sabía recibirlo y sólo lo
@@ -74000,8 +74692,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260925-1103';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790344993636;                 /* eco-build-ms */
+const ECO_BUILD    = '20260925-1149';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790347761484;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -74087,7 +74779,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-1103</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-1149</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
