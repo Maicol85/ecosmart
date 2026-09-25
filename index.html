@@ -112,6 +112,64 @@
        `style="color:…"` en la raíz clonada — y ojo, las cuatro comparten ids de glifo, así que
        extraer UNA sola pierde las letras, que viven en la de 4 cámaras. */
   .ete-proy { color: var(--ete-traza); }
+  /* ⚠️ CON DOS VISTAS LA COLUMNA DE ACCIONES BAJA. Flanqueando la imagen, cada vista paga
+     118 px de herramientas + 118 de acciones = 236 de cromo; con las dos abiertas son 472, y a
+     1280 px la imagen queda en 319 px por vista — medido, y es lo que hizo que TC-199 leyera un
+     trazo de 120 px como 116,1 (−3,2 %): a esa escala el clic entero de `clientX` ya cuesta
+     precisión. El mockup aprobado es el de UNA vista; con dos, la ecografía manda.
+     `!important` NO es pereza: `_vPanelHTML` emite el panel con estilos EN LÍNEA y un estilo en
+     línea le gana a la hoja sin importar la especificidad — es la misma trampa que este archivo
+     documenta para `[hidden]` y para la media query del visor. */
+  #cine-paneles.cine-2v .cine-acc,
+  #cine-paneles .cine-acc.cine-acc-abajo {
+    flex: 1 1 100% !important;
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    align-items: flex-start !important;
+  }
+  /* ⚠️ Y TAMBIÉN POR ANCHO, QUE ERA EL CASO QUE FALTABA Y EL PEOR. La condición real no es
+     «hay dos vistas» sino «¿entra la imagen?». Con UNA vista las dos columnas se comen
+     310 px del viewport (62 de modal + 118 + 118 + los dos gap), así que el lienzo queda en
+     `viewport − 310`: **10 px a 320, 65 a 375, 80 a 390**. En todo celular la ecografía perdía
+     el 60 % — y en el visor eso no es estética: `_medPunto` escala el clic por el ancho
+     mostrado, o sea que cada píxel del dedo pasaba a valer ocho de imagen. Este archivo ya
+     tiene escrito el criterio para el visor: «una ecografía en 158 px no se mira».
+     1023 es el breakpoint que el visor YA usa y ya está justificado; no se inventa otro. */
+  @media (max-width: 1023px) {
+    #cine-paneles .cine-acc {
+      flex: 1 1 100% !important;
+      flex-direction: row !important;
+      flex-wrap: wrap;
+      align-items: flex-start !important;
+    }
+    #cine-paneles .cine-acc > .cine-sep {
+      width: 1px !important; height: auto !important; align-self: stretch; margin: 0 2px !important;
+    }
+  }
+  /* Los filetes separan TRES grupos —medir · capturar · vista— y sin ellos «Borrar» queda al
+     lado de «Guardar», que hacen cosas opuestas. En fila pasan de horizontales a verticales. */
+  /* ⚠️ MÁS DISCRETOS SIN BAJAR DE 44 px. El pedido decía «botones más chicos», y medido ya
+     estaban en `padding:3px 9px` y 10,5 px: lo que mide 44 es el PISO TÁCTIL global
+     (`button,.btn,… { min-height:44px; min-width:44px }`), una regla de accesibilidad deliberada
+     de este archivo. Bajarla para el visor —que se usa con el dedo— abre la puerta a bajarla en
+     todos lados; decisión de Maicol (2026-09-25): se conserva el piso y lo que baja es el PESO
+     VISUAL. El recurso es el mismo que la biblioteca ya usa con su ✕: separar el área táctil de
+     lo que se pinta. Acá el botón sigue midiendo 44 y lo que se atenúa es el cromo — fondo
+     transparente y borde suave hasta que el puntero encima lo devuelve. */
+  /* ⚠️ ACOTADO A LA COLUMNA DE ACCIONES. Escrito como `#cine-ov .btn-ghost` alcanzaba unos
+     treinta botones que este cambio no vino a tocar: el reproductor, el conmutador de vista
+     —único acceso a la vista B en celular—, el cajón Doppler, y los TRES destructivos del panel
+     de Simpson («Eliminar», «Limpiar», «Guardar en biblioteca»). Bajarle el peso visual a un
+     botón destructivo es lo contrario de lo que se pidió.
+     Y la devolución NO puede ser sólo `:hover`: el visor se usa con el dedo y ahí el hover no
+     existe, así que la afordancia no volvería nunca. El borde se atenúa poco —lo suficiente para
+     que la columna no compita con la ecografía— y se mantiene visible sin puntero. */
+  #cine-ov .cine-acc .btn-ghost { background: transparent; }
+  #cine-ov .cine-acc .btn-ghost:hover,
+  #cine-ov .cine-acc .btn-ghost:focus-visible { background: var(--bg3); }
+  #cine-paneles.cine-2v .cine-acc > .cine-sep {
+    width: 1px !important; height: auto !important; align-self: stretch; margin: 0 2px !important;
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     background: var(--bg);
@@ -48711,9 +48769,14 @@ function _vPanelHTML(p, esB) {
         '<span id="' + p + 'cine-cual" style="font-size:10.5px;color:var(--text2);"></span>' +
         (esB ? btn('cine-cerrar-v', 'btn-ghost', '✕ Cerrar vista', 'margin-left:auto;') : '') +
       '</div>' +
-      /* ZONA 2 (lateral) + ZONA 1 (imagen) + ZONA 3 (reproductor) */
-      '<div style="display:flex;gap:6px;align-items:flex-start;">' +
-        '<div id="' + p + 'cine-side" style="flex:0 0 118px;display:flex;flex-direction:column;gap:3px;"></div>' +
+      /* ZONA 2 (lateral) + ZONA 1 (imagen) + ZONA 3 (reproductor) + ZONA 4 (acciones).
+         ⚠️ LAS DOS COLUMNAS FLANQUEAN LA IMAGEN, y antes no: la de acciones vivía DEBAJO, en una
+         fila propia junto al panel guía. Medido en el layout anterior a 1280 px: la lateral de
+         herramientas arrancaba en y=114, al lado del lienzo, y la de acciones en **y=667**, o sea
+         73 px por debajo de donde termina la imagen. Las dos columnas tienen el MISMO ancho
+         (118 px) para que la simetría sea del layout y no del ojo. */
+      '<div class="cine-fila" style="display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;">' +
+        '<div id="' + p + 'cine-side" style="flex:0 0 118px;min-width:0;display:flex;flex-direction:column;gap:3px;"></div>' +
         '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;">' +
           '<div id="' + p + 'cine-lienzo" style="position:relative;background:#000;border-radius:8px;' +
             'display:flex;align-items:center;justify-content:center;min-height:200px;">' +
@@ -48730,13 +48793,7 @@ function _vPanelHTML(p, esB) {
           '</div>' +
           '<div id="' + p + 'cine-ayuda" style="font-size:9.5px;color:var(--text2);line-height:1.45;"></div>' +
         '</div>' +
-      '</div>' +
-      /* ZONA 4 — panel guía a la izquierda, botones fijos a la derecha */
-      '<div style="display:flex;gap:8px;align-items:flex-start;">' +
-        '<div id="' + p + 'cine-med-barra" style="display:none;flex:1;min-width:0;font-size:10.5px;' +
-          'line-height:1.5;padding:7px 9px;border-radius:7px;border:1px solid var(--border);' +
-          'background:var(--bg2);"></div>' +
-        /* COLUMNA DERECHA en TRES grupos separados por filete: medir · capturar · vista.
+        /* ZONA 4 — COLUMNA DERECHA, ahora HERMANA de la imagen y no debajo de ella en TRES grupos separados por filete: medir · capturar · vista.
            Los separadores no son adorno: sin ellos los ocho botones se leen como una sola
            lista y «Borrar» queda al lado de «Guardar», que hacen cosas opuestas.
 
@@ -48745,31 +48802,40 @@ function _vPanelHTML(p, esB) {
            Se emiten SÓLO en la vista A: son controles del modal, no de la vista, y duplicarlos
            en la B daría dos botones «Cerrar» cerrando lo mismo. La B tiene su «✕ Cerrar vista»
            en el encabezado, que es otra cosa. */
-        '<div style="flex:0 0 auto;display:flex;flex-direction:column;gap:4px;align-items:flex-end;">' +
-          '<div id="' + p + 'cine-grp-med" style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">' +
+        '<div id="' + p + 'cine-acciones" class="cine-acc" style="flex:0 0 118px;min-width:0;display:flex;' +
+          'flex-direction:column;gap:4px;align-items:stretch;">' +
+          '<div id="' + p + 'cine-grp-med" style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-start;">' +
             /* Nace OCULTO: ver `_medFijosSync`. Sin calibrar no hay nada que medir, y con la
                medición encendida su trabajo es SALIR, no entrar. */
-            btn('cine-medir', 'btn-ghost', '✕ Salir de medición', 'display:none;', 'Apaga el modo medición sobre esta vista.') +
+            /* `white-space:normal`: `.btn` trae `nowrap`, y el min-content de este rótulo son
+               ~125 px contra los 118 de la columna — el único de los nueve que desbordaba. El
+               piso táctil de 44 px lo sostiene igual con dos renglones. */
+            btn('cine-medir', 'btn-ghost', '✕ Salir de medición', 'display:none;white-space:normal;line-height:1.15;', 'Apaga el modo medición sobre esta vista.') +
             btn('cine-med-recal', 'btn-ghost', 'Recalibrar', '', 'Fija la escala a mano sobre una referencia conocida de la imagen.') +
             btn('cine-med-borrar', 'btn-ghost', 'Borrar', '', 'Borra las mediciones de esta vista. La calibración manual se conserva.') +
           '</div>' +
           '<div class="cine-sep" style="width:100%;height:1px;background:var(--border);margin:2px 0;"></div>' +
-          '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">' +
+          '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-start;">' +
             btn('cine-guardar', 'btn-ghost', '💾 Guardar', '', 'Guarda este cineloop en el estudio.') +
             btn('cine-cap', 'btn-ghost', '📸 Capturar', '', 'Captura el cuadro, a resolución plena y SIN las mediciones.') +
             btn('cine-med-cap', 'btn-primary', '📸 Capturar+Med', '', 'Captura el cuadro CON las mediciones dibujadas y la etiqueta.') +
           '</div>' +
-          '<div style="display:flex;align-items:center;gap:5px;">' +
+          /* ⚠️ EL RÓTULO VA ARRIBA Y EL CAMPO A `width:100%`, y no es cosmético: con la etiqueta
+             y el campo en una FILA, su ancho mínimo —el rótulo más los 150 px que el input tenía
+             cableados— es lo que fija el ancho mínimo de toda la columna. Medido: con eso la
+             columna salía en 199 px contra los 118 de la lateral izquierda, así que la simetría
+             que este cambio vino a conseguir se rompía por un solo control. */
+          '<div style="display:flex;flex-direction:column;gap:2px;">' +
             '<label for="' + p + 'cine-cap-etiq" style="font-size:10.5px;color:var(--text2);">Etiqueta:</label>' +
             '<input type="text" id="' + p + 'cine-cap-etiq" maxlength="' + _CAP_ETIQ_MAX + '" ' +
-              'placeholder="TAPSE, DDVI, LARS…" ' +
+              'placeholder="TAPSE, DDVI…" ' +
               'title="Se dibuja en una franja blanca debajo de la imagen capturada." ' +
-              'style="font-size:10.5px;padding:3px 6px;width:150px;border-radius:5px;' +
+              'style="font-size:10.5px;padding:3px 6px;width:100%;min-width:0;border-radius:5px;' +
               'border:1px solid var(--border);background:var(--bg3);color:var(--text);">' +
           '</div>' +
           (esB ? '' :
             '<div class="cine-sep" style="width:100%;height:1px;background:var(--border);margin:2px 0;"></div>' +
-            '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">' +
+            '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-start;">' +
               '<button type="button" class="btn btn-ghost" id="cine-add-b" style="padding:3px 9px;font-size:10.5px;" ' +
                 'title="Abre una segunda vista al lado de ésta, sin cerrar la actual.">➕ Vista</button>' +
               '<button type="button" class="btn btn-ghost" id="cine-cerrar" style="padding:3px 9px;font-size:10.5px;" ' +
@@ -48777,6 +48843,14 @@ function _vPanelHTML(p, esB) {
             '</div>') +
         '</div>' +
       '</div>' +
+      /* El panel GUÍA va DEBAJO de las dos columnas y a ancho completo. Es una tabla de datos
+         —el resultado de Simpson con su VFD/VFS/FEVI, la tabla por ventana, el selector de
+         ventana apical— y en una columna de 118 px no entra: se parte en renglones de dos
+         palabras. Pierde el `flex:1;min-width:0` porque ya no es hijo de una fila; `_medBarra`
+         le pone `display:''`, que para un div suelto es `block`, o sea el ancho del panel. */
+      '<div id="' + p + 'cine-med-barra" style="display:none;font-size:10.5px;' +
+        'line-height:1.5;padding:7px 9px;border-radius:7px;border:1px solid var(--border);' +
+        'background:var(--bg2);"></div>' +
     '</div>';
 }
 
@@ -48849,6 +48923,7 @@ function _vMontarPanel(cont, pfx) {
   const tmp = document.createElement('div');
   tmp.innerHTML = _vPanelHTML(pfx, pfx !== '');
   while (tmp.firstChild) cont.appendChild(tmp.firstChild);
+  _vAccionesSync();
 }
 
 function _vCablear(V) {
@@ -53885,6 +53960,28 @@ async function _vElegirLoop(V) {
   return true;
 }
 
+/* La clase que decide si la columna de acciones flanquea la imagen o baja debajo de ella.
+   ⚠️ SE CUENTAN LOS PANELES DEL DOM, no se lee `_vistaB`. Colgada de esa variable, la clase se
+   ponía sólo por `vistaBAbrir` — y la vista B se puede montar por otro camino: TC-199 hace
+   `_vNueva` + `_vMontarPanel` a mano, así que el caso seguía midiendo el layout de una vista con
+   dos montadas, y la imagen de B quedaba tan chica que un trazo de 120 px se leía 116,1.
+   Derivado del DOM no hay forma de que «hay dos vistas» y «la clase está puesta» discrepen: es
+   la misma regla que el predicado del botón CC deriva de `closest('.sacc')` y no de un mapa. */
+function _vAccionesSync() {
+  const c = document.getElementById('cine-paneles');
+  if (!c) return;
+  const antes = c.classList.contains('cine-2v');
+  const ahora = c.querySelectorAll('[id$="cine-panel"]').length > 1;
+  c.classList.toggle('cine-2v', ahora);
+  /* ⚠️ SI EL LAYOUT SE MOVIÓ, HAY QUE RECALZAR LAS MEDICIONES. `_medPintar` calza el canvas de
+     trazos leyendo el rect de la imagen EN EL MOMENTO de pintar, así que todo lo que cambie el
+     ancho mostrado deja los contornos fuera de lugar hasta el próximo repintado. Poner o sacar
+     `cine-2v` cambia el ancho de las DOS vistas —a 1280 la imagen de A pasa de 898 a 443 al
+     abrir la B—, y el médico que venía trazando un Simpson en A vería sus contornos corridos.
+     `vistaAlternarMobil` y el oyente de `resize` ya hacen esto mismo y con el mismo comentario;
+     ésta era la tercera función que mueve el layout y la única que no repintaba. */
+  if (antes !== ahora && typeof _vRepintarOverlays === 'function') setTimeout(_vRepintarOverlays, 0);
+}
 async function vistaBAbrir() {
   if (_vistaB) { await _vElegirLoop(_vistaB); return; }
   const cont = document.getElementById('cine-paneles');
@@ -53917,6 +54014,7 @@ function vistaBCerrar() {
     if (p && p.parentNode) p.parentNode.removeChild(p);
   }
   _vistaB = null;
+  _vAccionesSync();
   _vSync = false;
   _vSincronizando = false;
   if (_V !== _vistaA) _V = _vistaA;
@@ -73081,8 +73179,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260925-0011';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790305897990;                 /* eco-build-ms */
+const ECO_BUILD    = '20260925-0757';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790333858533;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -73168,7 +73266,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-0011</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-0757</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

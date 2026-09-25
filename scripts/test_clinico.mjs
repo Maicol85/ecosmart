@@ -22532,13 +22532,37 @@ caso('TC-241', 'Vista B: abre midiendo, y la tabla cruza las dos vistas en los d
       const cvB = document.getElementById('b-cine-med');
       R.bCapaVisible = !!(cvB && getComputedStyle(cvB).display !== 'none');
 
-      /* LAYOUT: en las DOS vistas los botones arrancan despues de la barra guia */
+      /* ⚠️ EL HARNESS CORRE EN ~756 px Y AHI LA MEDIA QUERY ESCONDE EL PANEL B. Sin forzar el
+         layout ancho, sus rects dan todo en cero y las condiciones de geometria de B se cumplian
+         solas: la version anterior comparaba el borde izquierdo contra el derecho de la guia,
+         o sea cero contra cero menos dos, y venia pasando
+         SIN MEDIR NADA. Lo destapo exigir geometria positiva. */
+      __t.anchoDesktop();
+      await new Promise(r => setTimeout(r, 120));
+      /* LAYOUT — CON DOS VISTAS LA COLUMNA DE ACCIONES BAJA DEBAJO DE SU IMAGEN, y esto
+         reemplaza al invariante viejo («los botones arrancan despues de la barra guia»), que
+         describia la ZONA 4 anterior: la guia a la izquierda y los botones a su derecha, los dos
+         debajo de la imagen. Hoy las dos columnas FLANQUEAN la imagen con una sola vista; con dos
+         cada una pagaria 236 px de cromo y la ecografia quedaria en ~350 px, asi que la columna
+         de acciones vuelve abajo. Lo que se fija es eso: arranca a ras del panel —o sea con su
+         guia— y por DEBAJO de su propia imagen. Y cada una dentro de SU panel, que es lo que
+         impide que los controles de una vista se lean como de la otra. */
       const rc = id => { const e=document.getElementById(id); if (!e) return null;
-        const r2=e.getBoundingClientRect(); return { l:r2.left, r:r2.right }; };
-      const bA=rc('cine-med-recal'), barA=rc('cine-med-barra');
-      const bB=rc('b-cine-med-recal'), barB=rc('b-cine-med-barra');
-      R.aDerechaA = !!(bA && barA && bA.l >= barA.r - 2);
-      R.aDerechaB = !!(bB && barB && bB.l >= barB.r - 2);
+        const r2=e.getBoundingClientRect(); return { l:r2.left, r:r2.right, t:r2.top, b:r2.bottom }; };
+      const accA=rc('cine-acciones'), barA=rc('cine-med-barra'), imgA=rc('cine-lienzo');
+      const accB=rc('b-cine-acciones'), barB=rc('b-cine-med-barra'), imgB=rc('b-cine-lienzo');
+      /* GEOMETRIA POSITIVA PRIMERO: el lector de rects devuelve un objeto por el solo hecho de
+         que el elemento EXISTA, y un elemento en display:none da todo en cero — con lo cual las
+         dos comparaciones de abajo se cumplen y la condicion pasa SIN HABER MEDIDO NADA.
+         Es alcanzable: por debajo de 768 px la media query esconde el panel B con display. */
+      const vivo = r2 => !!(r2 && r2.l > 0 && r2.b > 0);
+      R.aDerechaA = !!(vivo(accA) && vivo(barA) && vivo(imgA) &&
+                       Math.abs(accA.l - barA.l) <= 4 && accA.t >= imgA.b - 2);
+      R.aDerechaB = !!(vivo(accB) && vivo(barB) && vivo(imgB) &&
+                       Math.abs(accB.l - barB.l) <= 4 && accB.t >= imgB.b - 2);
+      const prR = r2 => r2 ? ('l=' + Math.round(r2.l) + ' t=' + Math.round(r2.t) + ' b=' + Math.round(r2.b)) : 'null';
+      R.diagB = 'acc[' + prR(accB) + '] guia[' + prR(barB) + '] img[' + prR(imgB) + ']';
+      R.diagA = 'acc[' + prR(accA) + '] guia[' + prR(barA) + '] img[' + prR(imgA) + ']';
       R.panelesDistintos = !!(barA && barB && Math.abs(barA.l - barB.l) > 10);
 
       /* La A2C, en la vista B */
@@ -22584,8 +22608,8 @@ caso('TC-241', 'Vista B: abre midiendo, y la tabla cruza las dos vistas en los d
       ['con la capa de medicion ya dibujada',    R.bCapaVisible === true, R.bCapaVisible],
       ['y 2D Distancia elegida',                 R.bHerr === 'dist' && R.bGrupo === '2d',
                                                  'herr=' + R.bHerr + ' grupo=' + R.bGrupo],
-      ['los botones de A van a la derecha',      R.aDerechaA === true, R.aDerechaA],
-      ['y los de B tambien',                     R.aDerechaB === true, R.aDerechaB],
+      ['con dos vistas, las acciones de A bajan debajo de su imagen', R.aDerechaA === true, R.diagA],
+      ['  y las de B tambien',                   R.aDerechaB === true, R.diagB],
       ['la tabla UNICA trae las TRES filas',     R.rotUni === 'A4C,A2C,Biplano', R.rotUni],
       ['y se dibuja UNA sola vez',               R.panelesSimpson === 1, R.panelesSimpson],
       ['sin ninguna tabla en las barras de vista', R.tablasEnBarras === 0, R.tablasEnBarras],

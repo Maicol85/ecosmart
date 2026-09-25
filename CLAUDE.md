@@ -4,6 +4,91 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## El visor: las dos columnas flanquean la imagen, y el corte NO es por vistas (2026-09-25)
+
+Pedido como «mover la fila de botones de abajo a una columna derecha y hacerlos más chicos».
+**Medido antes de tocar nada, la premisa estaba a medias:** los botones **ya** estaban en columna
+con tres grupos y **ya** eran chicos —`padding:3px 9px`, 10,5 px— desde el rediseño de las cinco
+zonas. Lo que faltaba es que esa columna **flanqueara** la imagen:
+
+| | antes |
+|---|---|
+| lateral de herramientas | x=67, **y=114** — al lado del lienzo |
+| columna de acciones | x=948, **y=667** — 73 px por debajo del final de la imagen |
+
+### ⚠️ EL INPUT DE ETIQUETA FIJABA EL ANCHO DE TODA LA COLUMNA
+
+Tenía `width:150px` cableado, y en una fila con su rótulo ése es el `min-content` del contenedor:
+la columna salía **199 px** contra los 118 de la lateral, o sea que la simetría que el cambio vino
+a conseguir la rompía un solo control. El rótulo pasó arriba y el campo a `width:100%`.
+
+### ⚠️ EL CORTE ES POR ANCHO, Y ARRANCÓ SIENDO POR CANTIDAD DE VISTAS — ahí estuvo el peor defecto
+
+Flanqueando, cada vista paga **118 + 118 + los gaps = 310 px** de cromo. La primera versión bajaba
+la columna sólo con **dos** vistas, y eso dejaba el caso más común sin cubrir: con **una** sola
+vista el lienzo es `viewport − 310`, o sea **10 px a 320, 65 a 375 y 80 a 390**. En todo celular la
+ecografía perdía el 60 %, con el `min-height:200px` del lienzo dejando un recuadro negro y la
+imagen adentro. Y no es estético: `_medPunto` escala el clic por el ancho mostrado, así que cada
+píxel del dedo pasaba a valer ocho de imagen.
+
+Lo irónico del estado intermedio: **en móvil el layout sólo quedaba bien si había DOS vistas
+abiertas.** Hoy la columna baja por `@media (max-width:1023px)` —el breakpoint que el visor ya
+usa y ya tiene justificado— **y** por `cine-2v`. Medido a 390: la imagen pasa de 80 a **204 px**.
+Lo encontró `/sharp-edges`; yo había verificado a 1280 y a 900, los dos anchos que pedía el
+prompt y los dos grandes.
+
+### La clase se cuenta del DOM, y eso no fue la primera versión
+
+`_vAccionesSync` leía `_vistaB`. La vista B se puede montar por otro camino —TC-199 hace `_vNueva`
++ `_vMontarPanel` a mano— así que el caso seguía midiendo con dos vistas montadas y la clase sin
+poner: un trazo de 120 px se leía **116,1**. Hoy cuenta `[id$="cine-panel"]` y se llama desde
+`_vMontarPanel`, que es por donde pasan los dos caminos.
+
+**Y si la clase cambió, hay que RECALZAR las mediciones.** `_medPintar` calza el canvas de trazos
+leyendo el rect de la imagen en el momento de pintar; poner o sacar `cine-2v` mueve el ancho de
+las **dos** vistas —a 1280, la imagen de A pasa de 898 a 443 al abrir la B—, así que el médico que
+venía trazando un Simpson veía sus contornos corridos. `vistaAlternarMobil` y el oyente de
+`resize` ya hacían esto; ésta era la tercera función que mueve el layout y la única que no
+repintaba.
+
+### ⚠️ «MÁS DISCRETOS» NO PUEDE SER BAJAR DE 44 px
+
+Decisión de Maicol (2026-09-25): el piso táctil global se conserva y lo que baja es el **peso
+visual**. Es el recurso que la biblioteca ya usa con su ✕ — separar el área táctil de lo que se
+pinta—. Y la regla va acotada a `.cine-acc`: escrita como `#cine-ov .btn-ghost` alcanzaba unos
+**treinta** botones que el pedido no nombraba, entre ellos el conmutador de vista —único acceso a
+la B en celular— y los **tres destructivos** del panel de Simpson. Bajarle el peso visual a un
+botón destructivo es lo contrario de lo que se pidió. La devolución tampoco puede ser sólo
+`:hover`: el visor se usa con el dedo y ahí el hover no existe.
+
+Y `✕ Salir de medición` desbordaba: `.btn` trae `white-space:nowrap` y su `min-content` son ~125 px
+contra los 118 de la columna. Va con `white-space:normal`; el piso de 44 px lo sostiene igual.
+
+### ⚠️ LA CONDICIÓN DE TC-241 ERA VACUA DESDE SIEMPRE, y lo destapó exigir geometría positiva
+
+Pinaba `bB.l >= barB.r - 2`. El lector de rects devuelve un objeto por el solo hecho de que el
+elemento **exista**, y uno en `display:none` da todo en cero: `0 >= -2` **pasaba sin medir nada**.
+Y es alcanzable — el harness corre en ~756 px y ahí la media query esconde el panel B. Hoy el caso
+exige geometría positiva **y** llama a `__t.anchoDesktop()`, que es el helper que existe para esto.
+
+Reapuntado además al invariante nuevo: con dos vistas, la columna de acciones está a ras de su
+panel y **por debajo de su propia imagen**.
+
+### Declarado y sin hacer
+
+- **El layout de UNA vista no tiene caso.** `cine-acciones` aparece sólo en TC-241, que corre con
+  dos. La mutación «la clase siempre puesta» —que revierte el commit entero— sobrevive en verde.
+- **`color-mix` se sacó**: era su única aparición en 75.000 líneas y rompe el piso de Safari 15.4
+  que este archivo declara. Degradaba benigno, pero no vale estrenar una función de color moderna
+  sin `@supports` en un archivo que no la usa en ningún lado.
+- **El campo Etiqueta quedó en ~104 px útiles para un `maxlength` de 80** — unos 17 caracteres
+  visibles. Ese texto se quema en la imagen que va al estudio.
+- **Los comentarios decían ~350 px donde la aritmética da 319.** Corregido: en un archivo cuyos
+  comentarios se leen como mediciones, un número aproximado es un número inventado.
+
+**Backticks dentro del cuerpo de un caso: van OCHENTA Y TRES.**
+
+
 ## POP: el botón no tenía ningún defecto propio — no había índice cardíaco (2026-09-25)
 
 Reportado como «el botón *Integrar al informe* no responde» y «la conclusión queda en Pendiente y
