@@ -9598,6 +9598,216 @@ caso('TC-253', 'POP: el indice del PiCCO clasifica, el mensaje nombra lo que fal
   })();
 `);
 
+caso('TC-255', 'Asociaciones: el boton elige que grafico va al PDF y al PPT, y las clinicas nacen dentro', `
+  return (async () => {
+    for (let i=0;i<80 && (typeof window.jspdf==='undefined'||!window.jspdf.jsPDF);i++) await new Promise(r=>setTimeout(r,100));
+    for (let i=0;i<80 && typeof PptxGenJS==='undefined';i++) await new Promise(r=>setTimeout(r,100));
+    if (typeof window.jspdf==='undefined') return { extra:[['jsPDF cargo', false, 'no cargo']] };
+    if (typeof PptxGenJS==='undefined') return { extra:[['PptxGenJS cargo por CDN', false, 'la libreria no llego']] };
+    if (typeof window._labAsocGraficosPDF !== 'function' || typeof window._labAsocToggleSel !== 'function')
+      return { extra:[['existen los seams de seleccion', false, 'faltan _labAsocGraficosPDF o _labAsocToggleSel']] };
+
+    const hoy = new Date();
+    const f = hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
+    /* Doce estudios con las cuatro numericas que alimentan los scatter (A_NMIN es 10, asi que con
+       menos el bloque A no calcula NINGUNO y el caso medina sobre cero). El sexo alterna para que
+       la tabla general tenga ademas alguna Chi2, que es la que NO lleva boton. */
+    const FE=[62,58,45,38,70,52,29,64,55,41,68,33], PS=[30,52,38,61,28,44,70,33,47,55,31,66],
+          TA=[22,16,19,13,24,18,11,21,17,15,23,12], EE=[8,14,10,17,7,12,19,9,11,15,8,16],
+          LA=[28,42,33,51,26,38,60,30,35,45,29,55];
+    const mk = i => ({ id:i+1, fecha:f, fecha_estudio:f, nombre:'P'+(i+1),
+      campos:{ sexo: i%2 ? 'F':'M', edad:String(40+i), peso:'70', talla:'170',
+               fevi:String(FE[i]), psap_calc:String(PS[i]), tapse:String(TA[i]),
+               onda_e:String(70+i), e_sep:String(6+i%4), e_lat:String(8+i%3),
+               ee_prom:String(EE[i]), lavi:String(LA[i]),
+               /* SIN ANTECEDENTES NO HAY NINGUNA Chi2: sus defs cruzan FEVI o grado diastolico
+                  contra HTA, DM y FA, que salen de 'antecedentes_sel'. Sin esto la tabla general
+                  no produce una sola fila chi --medido: 19 sin det y 10 sp, cero chi-- y la
+                  condicion de que Chi2 no lleve boton pasaba sobre filas SIN DATOS, o sea sin
+                  ejercer la rama. La mutacion que le pone boton a Chi2 sobrevivia en verde. */
+               antecedentes_sel: (i%3 === 0 ? ['HTA'] : (i%3 === 1 ? ['DM'] : ['HTA','DM'])),
+               en_suma: i%3 ? 'Sin alteraciones.' : 'Disfuncion diastolica grado II.' } });
+    const cohorte = [0,1,2,3,4,5,6,7,8,9,10,11].map(mk);
+
+    const origGet = window.getInformes;
+    const Orig = window.jspdf.jsPDF;
+    const origDesc = window._pptxDescargarSaneado;
+    const origToast = window.toast;
+    try {
+      window.getInformes = function(){ return cohorte; };
+      if (typeof showTab === 'function') showTab('lab');
+      const btnSub = [].slice.call(document.querySelectorAll('[onclick*="labSubTab"]'))
+        .filter(function (b2) { return /[Aa]sociacion/.test(b2.textContent); })[0];
+      if (btnSub) btnSub.click();
+      labAsociacionesRender(); labAsocARender();
+
+      const pobl = labGetInformes();
+      const A = _labAsocParaPDF(pobl);
+      const conSp = r => r && r.det && r.det.t === 'sp' && r.det.pairs && r.det.pairs.length;
+      const chiReales = A.general.filter(function (r) { return r.det && r.det.t === 'chi'; }).length;
+      const clin = A.clinicas.filter(conSp), gen = A.general.filter(conSp);
+
+      /* ⚠️ EL ESTADO DE PARTIDA REPRODUCE EL PDF DE HOY. Antes de que existiera el boton, la
+         seccion de dispersion imprimia TODAS las clinicas con scatter. Con opt-in puro el PDF
+         pasaba a salir sin un solo grafico hasta que alguien descubriera el control -- perder
+         contenido que ya circulaba, en silencio. Decision de Maicol: las clinicas nacen DENTRO.
+         Esta es la condicion que separa las dos implementaciones. */
+      const porDefecto = _labAsocGraficosPDF(pobl);
+      const defaultEsElPdfDeHoy = clin.length > 0 && porDefecto.length === clin.length &&
+                                  porDefecto.every(function (x) { return x.fam === 'clinica'; });
+
+      // -- 1 - el boton en el bloque A nace MARCADO y sacarlo lo saca del seam --
+      const Ahost = document.getElementById('lab-asocA-tabla');
+      let btnA = null, detA = null;
+      const filasA = [].slice.call(Ahost.querySelectorAll('tbody tr')).filter(function (t) { return !t.classList.contains('asocA-det'); });
+      for (const fa of filasA) {
+        fa.click(); const d = fa.nextElementSibling;
+        if (d && d.classList.contains('asocA-det') && d.querySelector('[data-asoc-pdf]')) { detA = d; btnA = d.querySelector('[data-asoc-pdf]'); break; }
+        if (d && d.classList.contains('asocA-det')) fa.click();
+      }
+      const clinNace = btnA ? btnA.getAttribute('aria-pressed') : 'sin boton';
+      let sacarLaSaca = false, filaSigueAbierta = false, canvasSigue = false;
+      if (btnA) {
+        const cl = btnA.getAttribute('data-asoc-pdf');
+        btnA.click();
+        sacarLaSaca = !_labAsocGraficosPDF(pobl).some(function (x) { return x.clave === cl; });
+        /* EL BOTON NO PUEDE REPINTAR LA TABLA: 'labAsocARender' reescribe el innerHTML, asi que
+           repintar cerraria la fila y destruiria el grafico que el medico esta mirando -- justo
+           el que acaba de elegir. */
+        /* ⚠️ document.contains Y NO parentNode. Al pisar el innerHTML del contenedor, el <tr> sale
+           del DOCUMENTO pero CONSERVA su parentNode: el <tbody> se desprende entero y la estructura
+           interna queda intacta. Con parentNode, y con querySelector sobre el nodo desprendido, las
+           dos condiciones daban true sobre una tabla repintada -- la mutacion que hace que el boton
+           llame a labAsocARender SOBREVIVIA en verde. */
+        filaSigueAbierta = !!(detA && document.contains(detA));
+        canvasSigue = !!(detA && document.contains(detA) && detA.querySelector('canvas'));
+        btnA.click();                                  // reponerla
+      }
+
+      // -- 2 - la tabla general nace SIN marcar, y Chi2 NO lleva boton --
+      const Ghost = document.getElementById('lab-asoc-tabla');
+      let btnG = null, huboChi = false, chiConBoton = false;
+      /* SE RECORREN TODAS, sin cortar en la primera con grafico. Con el break, si la primera fila
+         desplegable tenia scatter el caso no llegaba nunca a una Chi2 y la condicion de abajo
+         medina sobre cero: daba huboChi=false, o sea pasaba sin probar nada. */
+      const filasG = [].slice.call(Ghost.querySelectorAll('tr.asoc-fila'));
+      let filaConGrafico = null;
+      for (const fg of filasG) {
+        fg.click(); const d = fg.nextElementSibling;
+        if (!d || !d.classList.contains('asoc-det')) continue;
+        const tieneCanvas = !!d.querySelector('canvas'), tieneBtn = !!d.querySelector('[data-asoc-pdf]');
+        if (!tieneCanvas) { huboChi = true; if (tieneBtn) chiConBoton = true; }
+        else if (!filaConGrafico) filaConGrafico = fg;
+        fg.click();                                   // se cierra: la siguiente se mide limpia
+      }
+      if (filaConGrafico) { filaConGrafico.click();
+        const d2 = filaConGrafico.nextElementSibling;
+        btnG = d2 ? d2.querySelector('[data-asoc-pdf]') : null; }
+      const genNace = btnG ? btnG.getAttribute('aria-pressed') : 'sin boton';
+      let agregarLaAgrega = false;
+      if (btnG) { const cl = btnG.getAttribute('data-asoc-pdf'); btnG.click();
+        agregarLaAgrega = _labAsocGraficosPDF(pobl).some(function (x) { return x.clave === cl; }); }
+
+      // -- 3 - exploracion libre: el par marcado viaja con su p AJUSTADO --
+      let libreConPAdj = 'sin par libre';
+      const sx = document.getElementById('asocL-x'), sy = document.getElementById('asocL-y');
+      if (sx && sy && sx.options.length > 2) {
+        if (typeof labAsocLibreInit === 'function') labAsocLibreInit();
+        sx.value = 'fevi'; sy.value = 'psap'; labAsocLibreCalcular();
+        const bl = document.querySelector('#lab-asocL-pdf [data-asoc-pdf]');
+        if (bl) {
+          bl.click();
+          const lib = _labAsocGraficosPDF(pobl).filter(function (x) { return x.fam === 'libre'; })[0];
+          /* Con pAdj en null '_asocEstablecida' da false SIEMPRE, asi que el papel nunca trazaria
+             la recta que la pantalla si dibuja: el mismo par con y sin tendencia segun donde se
+             lo mire. El ajuste corre sobre la sesion entera, como en pantalla. */
+          libreConPAdj = lib ? (lib.pAdj != null ? 'pAdj=' + lib.pAdj.toFixed(3) : 'pAdj NULO') : 'no llego al seam';
+        }
+      }
+
+      const marcados = _labAsocGraficosPDF(pobl);
+
+      // -- 4 - el PDF imprime los marcados y DECLARA lo que no --
+      const imgs = []; const texto = [];
+      function Wr(){ const doc = new Orig(...arguments);
+        const ai = doc.addImage.bind(doc);
+        doc.addImage = function (u, fm, x, y, w, h) { imgs.push(Math.round(w) + 'x' + Math.round(h)); return ai.apply(null, arguments); };
+        doc.save = function () {
+          const raw = atob(doc.output('datauristring').split(',')[1]);
+          const re = /\\(((?:\\\\[\\s\\S]|[^()\\\\])*)\\)\\s?Tj/g; let m;
+          while ((m = re.exec(raw))) texto.push(m[1]);
+          return Promise.resolve();
+        };
+        return doc; }
+      Wr.prototype = Orig.prototype; window.jspdf.jsPDF = Wr;
+      try { await labAnalisisPDF(); } finally { window.jspdf.jsPDF = Orig; }
+      const tp = texto.join(' ');
+      const scatters = imgs.filter(function (s) { return s === '118x74'; }).length;
+      const iOm = tp.indexOf('NO se imprimen');
+
+      // -- 5 - el PPT lee EL MISMO seam --
+      let capt = null;
+      window._pptxDescargarSaneado = function (P2){ capt = P2; return Promise.resolve({ saneado:true }); };
+      window.toast = function(){};
+      __t.pptTodo();
+      await _labPPTGenerar(pobl, { presentador:'Dra. Prueba', institucion:'Centro X', fecha:'2026-09-25', tema:'azul' });
+      const slides = capt ? (capt.slides || capt._slides || []) : [];
+      const tit = function (s2) { const o = (s2 && (s2._slideObjects || s2.data)) || [];
+        const t0 = o.filter(function (x) { return x.text != null; })[0];
+        if (!t0) return ''; return typeof t0.text === 'string' ? t0.text
+          : (Array.isArray(t0.text) ? t0.text.map(function (z) { return z && z.text ? z.text : ''; }).join('') : ''); };
+      const hojasGraf = slides.filter(function (s2) { return /ficos de asociaciones/.test(tit(s2)); });
+      const imgsPPT = hojasGraf.reduce(function (a, s2) {
+        const o = (s2._slideObjects || s2.data) || [];
+        return a + o.filter(function (x) { return x._type === 'image' || x.image; }).length; }, 0);
+      const topSigue = slides.some(function (s2) { return /Asociaciones estad/.test(tit(s2)); });
+
+      return { extra: [
+        ['DENOMINADOR: la cohorte produce scatters en las dos familias', clin.length > 0 && gen.length > 0,
+          'clinicas=' + clin.length + ' general=' + gen.length],
+        ['POR DEFECTO sale lo mismo que el PDF de hoy: las clinicas y nada mas', defaultEsElPdfDeHoy,
+          porDefecto.map(function (x) { return x.fam; }).join(',') || 'ninguno'],
+        ['la clinica nace DENTRO', clinNace === 'true', String(clinNace)],
+        ['  y el boton la saca del conjunto', sacarLaSaca, ''],
+        ['  sin cerrar la fila ni destruir el grafico', filaSigueAbierta && canvasSigue,
+          'fila=' + filaSigueAbierta + ' canvas=' + canvasSigue],
+        ['la exploratoria nace FUERA', genNace === 'false', String(genNace)],
+        ['  y el boton la agrega', agregarLaAgrega, ''],
+        /* Chi2, Mann-Whitney y las filas sin datos muestran TABLA, no grafico: sin grafico no hay
+           boton. El pedido hablaba de "cada grafico" y son 19 de las 29 exploratorias las que no
+           tienen ninguno. */
+        ['DENOMINADOR: la cohorte produce filas Chi2 de verdad', chiReales > 0, 'chi=' + chiReales],
+        ['un detalle SIN grafico no lleva boton', huboChi && !chiConBoton,
+          'detallesSinGrafico=' + huboChi + ' conBoton=' + chiConBoton],
+        ['el par de exploracion libre viaja con su p AJUSTADO', String(libreConPAdj).indexOf('pAdj=') === 0, String(libreConPAdj)],
+        ['el PDF imprime UNA imagen por grafico marcado', scatters === marcados.length,
+          'imagenes=' + scatters + ' marcados=' + marcados.length],
+        ['  y DECLARA los que quedaron afuera', iOm > -1, tp.slice(Math.max(0, iOm - 40), iOm + 60)],
+        /* La condicion que impide las dos listas. Sin el seam compartido, el papel y el proyector
+           del mismo ateneo pueden llevar conjuntos distintos, y en el proyector eso no se puede
+           verificar contra nada. */
+        ['el PPT lleva EXACTAMENTE los mismos graficos que el PDF', imgsPPT === marcados.length,
+          'PPT=' + imgsPPT + ' PDF=' + scatters + ' seam=' + marcados.length],
+        ['  en su hoja propia, sin tocar la del top 3', hojasGraf.length > 0 && topSigue,
+          'hojas=' + hojasGraf.length + ' top3=' + topSigue]
+      ] };
+    } finally {
+      window.jspdf.jsPDF = Orig;
+      window._pptxDescargarSaneado = origDesc;
+      window.toast = origToast;
+      /* El estado es de MODULO y sobrevive al caso: sin devolverlo, el siguiente hereda la
+         seleccion y el PDF de otro caso sale con graficos que nadie marco. */
+      try { const st = _labAsocSelEstado();
+            st.incluidas.forEach(function (k) { _labAsocToggleSel(k, false); });
+            st.excluidas.forEach(function (k) { _labAsocToggleSel(k, true); }); } catch (e) {}
+      try { if (typeof labAsocLibreReset === 'function') labAsocLibreReset(true); } catch (e) {}
+      window.getInformes = origGet;
+      try { if (typeof showTab === 'function') showTab('datos'); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+  })();
+`);
+
 caso('TC-254', 'Estadistica descriptiva: caja por variable, casilla sin id, y la seccion del PDF con lo que NO entro', `
   return (async () => {
     for (let i=0;i<80 && (typeof window.jspdf==='undefined'||!window.jspdf.jsPDF);i++) await new Promise(r=>setTimeout(r,100));

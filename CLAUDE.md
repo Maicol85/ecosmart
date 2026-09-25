@@ -4,6 +4,181 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Asociaciones: el botón elige qué gráfico va al papel, y el mismo par salía DOS veces (2026-09-25)
+
+Pedido como «un botón PDF dentro de cada gráfico, inactivo por defecto». Dos premisas del pedido
+no se sostuvieron al medirlas, y una de las dos obligó a una decisión de producto.
+
+### ⚠️ EL PDF YA IMPRIMÍA TODAS LAS CLÍNICAS, así que un opt-in puro le SACABA contenido
+
+La sección «Gráficos de dispersión» existe desde antes y filtraba `A.clinicas` por su cuenta,
+imprimiéndolas **todas**. Con la selección desmarcada por defecto, ese PDF pasaba a salir **sin un
+solo gráfico** hasta que alguien descubriera el control: perder contenido que ya circulaba, en
+silencio y por el camino más fácil.
+
+**Decisión de Maicol (2026-09-25): las clínicas NACEN MARCADAS.** El estado de partida reproduce
+exactamente el PDF anterior y el botón sirve para SACARLAS; la tabla general y la exploración libre
+nacen desmarcadas y el botón sirve para AGREGARLAS.
+
+**Por eso hay DOS Sets y no uno, y no es redundancia: el default difiere por familia.**
+`_labAsocSelInc` guarda inclusiones y `_labAsocSelExc` exclusiones de las clínicas. Sembrar un Set
+único en el primer render congelaría el default en la cohorte de ese momento — y hoy **siete de las
+nueve clínicas caen por N insuficiente**, así que una que gane scatter al ampliar el filtro entraría
+desmarcada y el PDF perdería un gráfico que antes traía. Derivado por familia eso no puede pasar.
+
+### ⚠️ EL MISMO PAR ENTRA DOS VECES, CON VEREDICTOS OPUESTOS
+
+«PSAP – TAPSE» existe en el bloque A **y** en la tabla general —la app lo marca con ↕ justamente por
+eso—. Medido: los `det.pairs` son **idénticos punto por punto**, el ρ y el p **crudo** son los
+mismos, y el **ajustado difiere** porque cada familia corrige contra la suya:
+
+| | p crudo | p ajustado |
+|---|---|---|
+| clínica `A:psap_tapse` | 0,1020 | **0,1020** |
+| exploratoria `G:PSAP – TAPSE` | 0,1020 | **0,2550** |
+
+Con una cohorte donde una cruce 0,05 y la otra no, el PDF imprime **dos nubes idénticas seguidas**:
+una con recta de tendencia y la otra diciendo «asociación no establecida». La pantalla lo explica
+con el ↕ y su párrafo; **el papel no decía una palabra**. Hoy el seam detecta los pares repetidos
+comparando los puntos y cada pie lo declara. Lo encontró `/sharp-edges`.
+
+**Y el mismo par aparece dos veces DENTRO de la tabla general**: `FEVI – TAPSE` y `TAPSE – FEVI` son
+dos defs distintas con los ejes al revés. Es preexistente; lo nuevo es que ahora son exportables.
+
+### Las claves llevan prefijo de familia, y por eso mismo
+
+`A:` + la `k` del def, `G:` + el `lbl` —verificado ÚNICO entre las 29—, `L:` + la clave que ya acuña
+`_libreSesion`. Sin el prefijo, sacar la clínica «PSAP – TAPSE» desmarcaría la exploratoria del
+mismo nombre.
+
+### UN SOLO SEAM para el PDF y el PPT
+
+`_labAsocGraficosPDF(pobl, A0)`. Con dos listas, el papel y el proyector del mismo ateneo pueden
+llevar conjuntos distintos sobre la misma cohorte, y **el proyector es la superficie donde eso no se
+puede verificar**. Es la condición de TC-255 que más vale: la mutación que le hace armar su propia
+lista al PPT imprime `PPT=1 PDF=3 seam=3`.
+
+**El `A0` opcional no es microoptimización**: sin él, el PDF corría la batería entera —29 pruebas más
+las 9 del bloque A— **tres veces** por export, y el PPT dos más, dentro de una generación que en
+pestaña oculta ya se estrangula.
+
+### ⚠️ `A` NO ESTÁ EN ALCANCE EN EL BLOQUE 8b DEL PPT, y mi catch se lo tragó
+
+La `A` del bloque 8 es un `let` dentro de **su** bloque. Pasarla desde el 8b tiraba `ReferenceError`,
+el `catch` lo convertía en `gr = []`, y la hoja no se generaba **sin una palabra**. Lo cazó TC-255
+con `PPT=0 PDF=3`, no la lectura. Un `catch` alrededor de una llamada nueva esconde exactamente los
+errores que uno acaba de introducir.
+
+### El p ajustado de los pares libres: el ajuste corre sobre la SESIÓN entera
+
+Dos razones y la segunda es la que muerde: la familia de esas pruebas son **todos** los pares que el
+médico probó —corregir sólo sobre los que eligió imprimir es el sesgo que BH viene a eliminar—, y
+**`_asocEstablecida` lee `pAdj` y decide si se traza la recta**. Con `pAdj` en null el papel **nunca**
+trazaría la recta que la pantalla sí dibuja: el mismo par con y sin tendencia según dónde se lo mire.
+La mutación que lo pone en null cae con `pAdj NULO`.
+
+**Y el p CRUDO de la libre SÍ se imprime.** Omitir el ajustado es correcto —su familia son los pares
+de la sesión, no ese documento— pero omitir los dos dejaba **una recta trazada sin un solo número que
+la sostenga**, y la recta ES una afirmación de dirección.
+
+### ⚠️ EL BOTÓN DE LA EXPLORACIÓN LIBRE QUEDABA COLGADO DESCRIBIENDO OTRO PAR
+
+`labAsocLibreCalcular` tiene tres salidas tempranas —variable inexistente, la misma variable dos
+veces, par no calculable— y ninguna tocaba el botón. El médico leía «Sólo 2 estudio(s) tienen las dos
+variables cargadas» y justo debajo un botón encendido diciendo «Va al PDF y al PPT»: apretarlo
+**desmarcaba un par distinto** y se ponía gris confirmando que había funcionado. Cero errores, cero
+pistas — y contradecía el comentario que dice que el botón describe lo que está en pantalla.
+
+Lo mismo en «Reiniciar sesión» —que además dejaba la clave `L:` viva, así que volver a probar ese par
+lo traía **ya marcado**, lo contrario de reiniciar— y en el refresco por cambio de población, donde es
+peor: el par **sigue** en la sesión, así que el PDF lo imprimiría recalculado sobre la cohorte nueva,
+con un ρ y una recta que **el médico nunca vio**, mientras la pantalla le dice que no hay gráfica.
+
+### ⚠️ `stopPropagation` NO PROTEGÍA NADA — segunda vez en el mismo módulo
+
+El comentario decía que el botón vive dentro de la fila desplegable y que sin esa línea el gráfico se
+cerraba en el mismo gesto. **Las dos mitades son falsas.** `asocToggle` y `asocAToggle` insertan un
+`<tr>` NUEVO como **hermano**: medido, `fila.contains(boton)` da `false`. Y aunque viviera adentro,
+el oyente está en `document`, así que el burbujeo llega a la fila **antes** y para cuando corriera el
+`stopPropagation` la fila ya se habría cerrado.
+
+Daño de hoy: cero. Daño de mañana: el comentario **autorizaba** a mover el botón dentro de la fila
+prometiendo una red inexistente. Es el mismo hallazgo que la casilla de la descriptiva ya había
+revertido, reintroducido en el mismo módulo cuatro horas después.
+
+### Lo que el documento DECLARA, y por qué cada cosa
+
+- **La familia de cada gráfico.** Mezclados sin rótulo, un par de exploración libre —que el médico
+  probó a mano— se lee igual que una asociación clínica pre-especificada.
+- **Cuántos se dibujaron, no cuántos se marcaron.** El `continue` del scatter nulo y el `catch` mudo
+  del `addImage` descartan en silencio, así que el número que el documento afirmaba podía no ser el
+  de figuras que tiene — **y el denominador lo escribe el propio documento**.
+- **Los que quedaron afuera, con su motivo**, incluidos los marcados que no se pudieron calcular. Para
+  las clínicas y la general el silencio sería defendible —sus filas están en las tablas de arriba—
+  pero **la sesión libre no aparece en ninguna tabla del PDF**: si el scatter se cae, la prueba
+  desaparece entera del documento.
+- **«Disponibles» cuenta sólo los GRAFICABLES.** Contando todos los de la sesión, el PDF anunciaba
+  «tenés N gráficos disponibles, se eligen con el botón» incluyendo pares cuyo botón no existe: el
+  médico sale a buscar controles que no están.
+
+### La compuerta de Chart.js tiene que mirar los MARCADOS, no sólo `A`
+
+`hayAlgunSp` sólo recorre clínicas y general: **la familia libre no está en `A`**. Con Chart.js caído
+—modo de falla real, un hash SRI viejo hace que el navegador descarte el script en silencio—, una
+cohorte sin scatters en las otras dos y un par libre marcado, la sección salía con su título y su
+nota y **cero imágenes, sin decir por qué**. El PPT no tenía el agujero: preguntaba contra la lista
+marcada. Mismo seam, guardas distintas.
+
+### Chi², Mann-Whitney y Kruskal-Wallis NO llevan botón, y no es un olvido
+
+No tienen gráfico: su detalle es una tabla de contingencia y una de medianas, que es lo que esas
+pruebas comparan. El pedido hablaba de «cada gráfico» y son **19 de las 29** exploratorias las que no
+tienen ninguno. Meter sus tablas al PDF es otra cosa y no se improvisó.
+
+### La diapositiva del PPT es NUEVA, no la del top 3
+
+Aquélla resume las tres asociaciones más fuertes con barras de tamaño de efecto, elegidas
+automáticamente entre las establecidas; los gráficos que el médico marca son otra cosa y no entran en
+ese layout. Decisión de Maicol. Separadas, **el mazo de quien no marca nada no cambia ni un
+milímetro**. Dos por hoja paginando: con más, cada scatter baja de 3" de ancho y los rótulos de eje
+—que a 10 pt ya son chicos— dejan de leerse proyectados, que es el único modo de uso de ese mazo.
+
+**El título va a 11 pt con `h:0.42`**: un `lbl` de la familia libre son dos etiquetas completas
+concatenadas y a 13 pt partía en dos renglones que desbordaban la caja y aterrizaban sobre la línea
+de familia. PptxGenJS no recorta ni avisa.
+
+### El estadístico se unifica EN EL SEAM
+
+La tabla general emite `Spearman=-0.61` y el bloque A `ρ=-0.61`: el mismo número con dos nombres, en
+pies consecutivos de la misma lista. Se juntan ahí, así que se normalizan ahí.
+
+### Siete mutaciones, cada una en su condición
+
+Opt-in puro (cae por dos: el default y «la clínica nace dentro»), el PPT armando su propia lista
+(`PPT=1 PDF=3`), el botón repintando la tabla, los libres sin p ajustado (`pAdj NULO`), el PDF sin
+declarar lo omitido, el botón también en Chi², y la `A` fuera de alcance en el PPT.
+
+### ⚠️ `document.contains` Y NO `parentNode` — la mutación del repintado SOBREVIVÍA
+
+Al pisar el `innerHTML` de un contenedor, el `<tr>` sale del **documento** pero **conserva su
+`parentNode`**: el `<tbody>` se desprende entero y la estructura interna queda intacta. Con
+`parentNode`, y con `querySelector` sobre el nodo desprendido, las dos condiciones daban `true` sobre
+una tabla ya repintada.
+
+### Tres trampas más del propio caso
+
+- **Los dos Sets sobreviven al caso.** Sin devolverlos en el `finally`, el caso siguiente hereda la
+  selección y su PDF sale con gráficos que nadie marcó.
+- **Sin `antecedentes_sel` no hay NINGUNA fila Chi².** Sus defs cruzan FEVI o grado diastólico contra
+  HTA, DM y FA. Medido sobre la cohorte sin antecedentes: 19 sin det y 10 sp, **cero chi** — así que
+  la condición «Chi² no lleva botón» pasaba sobre filas SIN DATOS, sin ejercer la rama, y la mutación
+  sobrevivía en verde.
+- **El bucle cortaba en la primera fila con gráfico** y nunca llegaba a una Chi². Hay que recorrerlas
+  todas.
+- **El backtick dentro del cuerpo de un caso: van OCHENTA Y SEIS**, dos tandas, las dos en comentarios
+  recién escritos.
+
+
 ## Estadística descriptiva: LA CASILLA NO SE PODÍA MARCAR CON EL DEDO (2026-09-25)
 
 Se pidió tres cosas sobre la tabla de Estadística descriptiva del Laboratorio: desplegar un

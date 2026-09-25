@@ -15188,6 +15188,9 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             <canvas id="lab-asocL-graf"></canvas>
           </div>
         </div>
+        <!-- Contenedor propio del boton: `lab-asocL-graf-cont` se reescribe entero con innerHTML
+             cuando falta el canvas, asi que un boton adentro desapareceria al recalcular otro par. -->
+        <div id="lab-asocL-pdf" style="margin-top:10px;"></div>
         <div id="lab-asocL-sesion" style="margin-top:14px;"></div>
         <div style="font-size:.74rem;color:var(--text);background:var(--bg3);border-left:3px solid var(--orange,#f0a500);border-radius:6px;padding:8px 10px;line-height:1.55;margin-top:12px;">
           <b>Probar pares hasta que uno dé significativo es la forma más fácil de fabricar un hallazgo.</b>
@@ -65320,6 +65323,59 @@ function labSubTab(id, el) {
         'Si ves una nube sin forma, no hay relación; si los puntos siguen una pendiente, la hay.');
   }
 
+  /* ══ BOTÓN «va al PDF y al PPT» ═══════════════════════════════════════════════════════════
+     UN constructor y UN oyente para las TRES superficies —bloque A, tabla general y exploración
+     libre—: con uno por superficie, el día que el rótulo o el estado se afinen quedan dos
+     diciendo cosas distintas sobre el mismo gesto.
+
+     EL RÓTULO NOMBRA LAS DOS SALIDAS. Decir sólo «PDF» prometería menos de lo que hace —el mismo
+     gesto mete el gráfico en la diapositiva del PPT— y este archivo ya pagó el rótulo que promete
+     de menos con la casilla de Congénitas I y II.
+
+     ⚠️ NO LLEVA `id`, como todo control nuevo: `guardarInforme` barre `input[id]` de TODO el
+     documento. Acá es un botón, que ese barrido no toma, pero la regla se respeta igual para que
+     nadie la relaje copiando este bloque.
+
+     ⚠️ Y AL ALTERNAR NO SE REPINTA LA TABLA. `labAsocARender` y `labAsociacionesRender` reescriben
+     el `innerHTML`, así que repintar cerraría la fila desplegada y destruiría el gráfico que el
+     médico está mirando — justo el que acaba de elegir. Se actualiza el botón EN EL LUGAR. */
+  function _asocBtnHTML(clave, fam){
+    const on = (typeof _labAsocMarcado === 'function') && _labAsocMarcado(clave, fam === 'clinica');
+    return '<button type="button" class="btn ' + (on ? 'btn-primary' : 'btn-ghost') + '"' +
+      ' data-asoc-pdf="' + escHtml(clave) + '" data-asoc-fam="' + escHtml(fam) + '"' +
+      ' aria-pressed="' + (on ? 'true' : 'false') + '"' +
+      ' title="Incluye este gráfico en la sección de dispersión del PDF del análisis y en la ' +
+      'diapositiva de gráficos del PPT del Laboratorio"' +
+      ' style="font-size:11px;padding:4px 10px;">' + (on ? '📄 Va al PDF y al PPT' : '📄 Incluir en PDF y PPT') + '</button>';
+  }
+  function _asocBtnSync(btn){
+    const clave = btn.getAttribute('data-asoc-pdf');
+    const on = _labAsocMarcado(clave, btn.getAttribute('data-asoc-fam') === 'clinica');
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.classList.toggle('btn-primary', on);
+    btn.classList.toggle('btn-ghost', !on);
+    btn.textContent = on ? '📄 Va al PDF y al PPT' : '📄 Incluir en PDF y PPT';
+  }
+  if (!window._labAsocPdfDeleg) {
+    window._labAsocPdfDeleg = true;
+    document.addEventListener('click', function (ev) {
+      const btn = ev.target && ev.target.closest && ev.target.closest('[data-asoc-pdf]');
+      if (!btn) return;
+      /* ⚠️ NO VA `stopPropagation`, y el comentario que lo justificaba era falso por partida doble.
+         (1) El botón NO vive dentro de la fila clickeable: `asocToggle` y `asocAToggle` insertan un
+         `<tr>` NUEVO como hermano, y los oyentes están sobre la fila anterior — verificado,
+         `fila.contains(boton)` da false. (2) Y si viviera adentro tampoco serviría: este oyente
+         está en `document`, así que el burbujeo llega a la fila ANTES, y para cuando corriera el
+         `stopPropagation` la fila ya se habría cerrado y `_asocBtnSync` escribiría sobre un nodo
+         desprendido, sin error y sin efecto visible.
+         Es el mismo hallazgo que este módulo ya revirtió en la casilla de la descriptiva. Lo
+         peligroso no era el daño de hoy —cero— sino que el comentario AUTORIZABA a mover el botón
+         adentro de la fila prometiendo una red inexistente. */
+      _labAsocToggleSel(btn.getAttribute('data-asoc-pdf'), btn.getAttribute('data-asoc-fam') === 'clinica');
+      _asocBtnSync(btn);
+    });
+  }
+
   /* La recta es por mínimos cuadrados sobre los valores crudos, pero el test es de
      Spearman, sobre rangos. Con un outlier de mucho leverage —acá son campos numéricos
      libres: un PSAP tipeado 800, una edad 199— el signo de la recta puede salir al revés
@@ -65379,9 +65435,14 @@ function labSubTab(id, el) {
   function detalleHTML(r, idx){
     const movil = detResumenMovil(r);
     if(!r.det) return movil+'<div style="color:var(--text2);font-size:12px;">Sin datos suficientes para mostrar la gráfica de esta asociación.</div>';
+    /* Chi² y Mann-Whitney NO llevan botón, y no es un olvido: no tienen GRÁFICO. Su detalle es una
+       tabla de contingencia y una de medianas, que es lo que esas pruebas comparan. El pedido
+       hablaba de «cada gráfico» y son 19 de las 29 exploratorias las que no tienen ninguno — meter
+       sus tablas al PDF es otra cosa y no se improvisó. */
     if(r.det.t==='chi') return movil+detChi(r.det);
     if(r.det.t==='mw')  return movil+detMW(r.det);
-    return movil+detSP(r.det);
+    return movil+detSP(r.det)+
+      '<div style="margin-top:10px;">'+_asocBtnHTML(_labAsocClaveG(r), 'general')+'</div>';
   }
 
   // Guarda las filas del último render para que el acordeón lea el mismo cálculo que se
@@ -65697,8 +65758,10 @@ function labSubTab(id, el) {
         : ('No se calcula: hacen falta al menos ' + A_NMIN + ' estudios con las dos variables y hay ' + r.n + '.')) +
         ' <b>Eso no es un resultado negativo</b> — es la ausencia de la prueba.</div>';
     } else if (r.det && r.det.t === 'sp'){
-      cuerpo += '<div data-sc style="position:relative;height:260px;width:100%;"><canvas></canvas></div>';
+      cuerpo += '<div data-sc style="position:relative;height:260px;width:100%;"><canvas></canvas></div>' +
+        '<div style="margin-top:10px;">' + _asocBtnHTML(_labAsocClaveA(r), 'clinica') + '</div>';
     } else if (r.grupos){
+      // Kruskal-Wallis muestra una tabla de medianas por grupo, no un gráfico: sin gráfico, sin botón.
       cuerpo += detKW(r);
     }
     det.innerHTML = '<td colspan="7" style="padding:12px 16px;background:var(--bg2);">' + cuerpo + '</td>';
@@ -65840,10 +65903,18 @@ function _libreCircular(kx, ky){
     const res = document.getElementById('lab-asocL-resultado');
     if (res) res.innerHTML = '<div style="color:var(--text2);font-size:.82rem;">La población cambió (período, centro o filtros). ' +
       'La tabla de abajo se recalculó sobre la cohorte actual; volvé a apretar <b>Calcular</b> para ver la gráfica del par que te interese.</div>';
+    /* El par SIGUE en la sesión, así que el PDF lo imprimiría recalculado sobre la cohorte nueva
+       —con un ρ y una recta que el médico NUNCA vio— mientras la pantalla le dice que no hay
+       gráfica que mirar. Se saca el botón: sin gráfico en pantalla no hay nada que elegir. */
+    _asocLibreBtnLimpiar();
     _libreRenderSesion();
   };
 
   window.labAsocLibreReset = function(silencioso){
+    /* Las claves `L:` se purgan del conjunto. Sin esto, volver a probar el mismo par DESPUÉS de
+       «Reiniciar sesión» lo traía ya marcado — lo contrario de reiniciar. */
+    _libreSesion.forEach(x => { try { _labAsocSelInc.delete(_asocClaveL(x.clave)); } catch (e) {} });
+    _asocLibreBtnLimpiar();
     _libreSesion = [];
     const g = document.getElementById('lab-asocL-graf');
     if (g && typeof Chart !== 'undefined') { const c = Chart.getChart(g); if (c) c.destroy(); }
@@ -65900,6 +65971,16 @@ function _libreCircular(kx, ky){
     return rows;
   }
 
+  /* El botón de la exploración libre describe EL GRÁFICO QUE ESTÁ EN PANTALLA. Por eso hay que
+     borrarlo en cada camino donde el gráfico deja de estar: los tres `return` tempranos de
+     `labAsocLibreCalcular`, «Reiniciar sesión» y el refresco por cambio de población. Sin eso
+     quedaba el botón del par ANTERIOR debajo de un mensaje que habla de otro par: apretarlo
+     desmarcaba un par distinto y se ponía gris confirmando que había funcionado. Cero errores,
+     cero pistas — y contradice de frente el comentario que dice que describe lo que se ve. */
+  function _asocLibreBtnLimpiar(){
+    const b2 = document.getElementById('lab-asocL-pdf');
+    if (b2) b2.innerHTML = '';
+  }
   window.labAsocLibreCalcular = function(){
     const sx = document.getElementById('asocL-x'), sy = document.getElementById('asocL-y');
     const res = document.getElementById('lab-asocL-resultado');
@@ -65907,8 +65988,9 @@ function _libreCircular(kx, ky){
     const kx = sx.value, ky = sy.value;
     const vx = Object.prototype.hasOwnProperty.call(LIBRE, kx) ? LIBRE[kx] : null;
     const vy = Object.prototype.hasOwnProperty.call(LIBRE, ky) ? LIBRE[ky] : null;
-    if (!vx || !vy) return;
+    if (!vx || !vy) { _asocLibreBtnLimpiar(); return; }
     if (kx === ky) {
+      _asocLibreBtnLimpiar();
       res.innerHTML = '<div style="color:var(--orange);font-size:.85rem;">Elegí dos variables distintas: una variable contra sí misma da ρ = 1 por definición, no es un resultado.</div>';
       return;
     }
@@ -65933,6 +66015,7 @@ function _libreCircular(kx, ky){
            'y bastantes más para interpretar.')) + '</div>';
       const g0 = document.getElementById('lab-asocL-graf');
       if (g0 && typeof Chart !== 'undefined') { const c = Chart.getChart(g0); if (c) c.destroy(); }
+      _asocLibreBtnLimpiar();
       return;
     }
     /* Un par que se recalcula no es una prueba nueva: se reemplaza en vez de acumularse. Sin
@@ -65983,6 +66066,12 @@ function _libreCircular(kx, ky){
         cont.innerHTML = '<div data-sc style="position:relative;height:280px;width:100%;margin-top:12px;" ' +
           'id="lab-asocL-graf-wrap"><canvas id="lab-asocL-graf"></canvas></div>';
       detSPChart(cont, { pairs, xl:vx.lbl, yl:vy.lbl, rho:r.rho }, sigAj);
+      /* El botón va en un contenedor PROPIO y NO dentro de `lab-asocL-graf-cont`: ese nodo se
+         reescribe entero con `innerHTML` cuando el canvas no está, así que un botón adentro
+         desaparecería al recalcular otro par. Y se repinta en cada cálculo porque la clave cambia
+         con el par elegido — el botón describe el gráfico que está en pantalla, no una preferencia. */
+      const bcont = document.getElementById('lab-asocL-pdf');
+      if (bcont) bcont.innerHTML = _asocBtnHTML(_labAsocClaveL(clave), 'libre');
     }
   };
 
@@ -66026,6 +66115,149 @@ function _libreCircular(kx, ky){
       general:  gen, mGeneral: gen.filter(r => r.p != null).length, totalGeneral: gen.length,
       clinicas: A,   mClinicas: A.filter(r => r.p != null).length, totalClinicas: A.length,
       nMin: A_NMIN
+    };
+  };
+
+  /* ══ SELECCIÓN DE GRÁFICOS PARA EL PDF Y EL PPT ═══════════════════════════════════════════
+     ⚠️ DOS CONJUNTOS, Y NO ES REDUNDANCIA: EL DEFAULT DIFIERE POR FAMILIA.
+
+     El PDF del análisis YA imprimía, antes de que existiera este botón, **todas** las asociaciones
+     clínicas con scatter. Con una selección opt-in desmarcada por defecto, ese PDF pasaba a salir
+     **sin un solo gráfico** hasta que alguien descubriera el control — o sea perder contenido que
+     ya circulaba, en silencio y por el camino más fácil. Decisión de Maicol (2026-09-25): las
+     clínicas **nacen marcadas** y el botón sirve para SACARLAS; la tabla general y la exploración
+     libre nacen desmarcadas y el botón sirve para AGREGARLAS.
+
+     Por eso el estado NO puede ser un solo Set de «marcados»: para las clínicas hay que guardar
+     las EXCLUSIONES. Con un Set sembrado en el primer render el default se congelaría en la
+     cohorte de ese momento, y una clínica que gane scatter al cambiar el filtro —hoy siete de
+     las nueve caen por N insuficiente— entraría desmarcada, o sea que el PDF perdería un gráfico
+     que antes traía. Derivado por familia, eso no puede pasar.
+
+     NO SE PERSISTE, como la selección de la tabla descriptiva: describe un PDF que se está por
+     generar, no una preferencia del médico. */
+  const _labAsocSelInc = new Set();   // general y libres que el médico AGREGÓ
+  const _labAsocSelExc = new Set();   // clínicas que el médico SACÓ
+  window._labAsocMarcado = function (clave, esClinica) {
+    return esClinica ? !_labAsocSelExc.has(clave) : _labAsocSelInc.has(clave);
+  };
+  window._labAsocToggleSel = function (clave, esClinica) {
+    const S = esClinica ? _labAsocSelExc : _labAsocSelInc;
+    // Para las clínicas el Set guarda lo EXCLUIDO, así que las dos ramas están invertidas entre sí.
+    if (S.has(clave)) S.delete(clave); else S.add(clave);
+    return _labAsocMarcado(clave, esClinica);
+  };
+  window._labAsocSelEstado = function () {
+    return { incluidas: [..._labAsocSelInc], excluidas: [..._labAsocSelExc] };
+  };
+  /* Las claves llevan prefijo de familia porque los tres espacios de nombres son independientes y
+     pueden colisionar: «PSAP – TAPSE» existe en la tabla general Y en el bloque A —la app lo marca
+     con ↕ justamente por eso—, así que sin el prefijo sacar la clínica desmarcaría la exploratoria.
+     El bloque A tiene `k` propia; la tabla general se identifica por su `lbl`, que está verificado
+     ÚNICO entre las 29; la libre por la clave que ya acuña `_libreSesion`. */
+  const _asocClaveA = r => 'A:' + r.k;
+  const _asocClaveG = r => 'G:' + r.lbl;
+  const _asocClaveL = c => 'L:' + c;
+  window._labAsocClaveA = _asocClaveA;
+  window._labAsocClaveG = _asocClaveG;
+  window._labAsocClaveL = _asocClaveL;
+
+  /* UN SOLO SEAM para el PDF y para el PPT. Con dos listas, el papel y el proyector del mismo
+     ateneo podrían llevar conjuntos distintos de gráficos sobre la misma cohorte — y el proyector
+     es la superficie donde eso no se puede verificar.
+     Devuelve el `det` YA CALCULADO sobre `pobl`, la población congelada por quien exporta: los
+     tres consumidores reciben la misma muestra, no vuelven a leer `informes()`. */
+  const _asocConSp = r => r && r.det && r.det.t === 'sp' && r.det.pairs && r.det.pairs.length;
+  /* Los pares de exploración libre se RECALCULAN sobre `infs`, como hace `_libreRenderSesion`:
+     `_libreSesion` guarda sólo {clave, kx, ky} a propósito —guardar el número dejaría p-valores de
+     otra población al lado del nuevo—. Y se recorre la sesión VIVA, así que un par que el médico
+     sacó con «Reiniciar sesión» deja de salir sin que haya que limpiar nada aparte.
+
+     ⚠️ EL AJUSTE CORRE SOBRE LA SESIÓN ENTERA, no sobre los marcados. Dos razones, y la segunda es
+     la que importa: (1) la familia de estas pruebas son TODOS los pares que el médico probó —es el
+     sentido de la corrección, y corregir sólo sobre los que eligió imprimir es exactamente el sesgo
+     que BH viene a eliminar—; y (2) `_asocEstablecida` decide si se traza la recta, y lee `pAdj`.
+     Con `pAdj` en null el papel NUNCA trazaría la recta que la pantalla sí dibuja: el mismo par con
+     y sin tendencia según dónde se lo mire. */
+  function _asocFilasLibres(infs) {
+    return _bh(_libreSesion.map(x => {
+      const vx = LIBRE[x.kx], vy = LIBRE[x.ky];
+      const pairs = [];
+      if (vx && vy) infs.forEach(i => { const a = vx.get(i), b = vy.get(i);
+        if (a != null && b != null && !isNaN(a) && !isNaN(b)) pairs.push([a, b]); });
+      const r = pairs.length >= 3 ? spearman(pairs) : null;
+      return { clave: x.clave, pairs: pairs, xl: vx ? vx.lbl : '', yl: vy ? vy.lbl : '',
+               n: r ? r.n : pairs.length, rho: r ? r.rho : null, p: r ? r.p : null, ok: r ? r.n >= 15 : false };
+    }));
+  }
+  /* `A0` opcional: quien ya corrió `_labAsocParaPDF` se lo pasa. Sin eso el PDF disparaba la
+     batería entera —29 pruebas más las 9 del bloque A— TRES veces por export, y el PPT dos más,
+     dentro de una generación que en pestaña oculta ya se estrangula. */
+  window._labAsocGraficosPDF = function (pobl, A0) {
+    const infs = pobl || informes();
+    const A = A0 || _labAsocParaPDF(infs);
+    const out = [];
+    A.clinicas.filter(_asocConSp).forEach(r => {
+      const cl = _asocClaveA(r);
+      if (_labAsocMarcado(cl, true))
+        out.push({ clave: cl, fam: 'clinica', lbl: r.lbl, det: r.det, n: r.n,
+                   /* El estadístico se NORMALIZA acá. La tabla general emite «Spearman=-0.61» y el
+                      bloque A «ρ=-0.61»: el mismo número con dos nombres, en pies consecutivos de
+                      la misma lista del PDF. Se juntan en este seam, así que se unifican en él. */
+                   stat: 'ρ=' + (r.coef != null ? r.coef.toFixed(2) : '—'),
+                   pAdj: r.pAdj, ok: r.ok, circular: r.circular || null, dup: r.dup || null });
+    });
+    A.general.filter(_asocConSp).forEach(r => {
+      const cl = _asocClaveG(r);
+      if (_labAsocMarcado(cl, false))
+        out.push({ clave: cl, fam: 'general', lbl: r.lbl, det: r.det, n: r.n,
+                   stat: 'ρ=' + (r.det.rho != null ? r.det.rho.toFixed(2) : '—'),
+                   pAdj: r.pAdj, ok: r.ok, circular: null, dup: null });
+    });
+    _asocFilasLibres(infs).forEach(f => {
+      const cl = _asocClaveL(f.clave);
+      if (!_labAsocMarcado(cl, false) || f.rho == null) return;   // sin cálculo no hay gráfico
+      out.push({ clave: cl, fam: 'libre', lbl: f.xl + ' – ' + f.yl,
+                 det: { t:'sp', pairs: f.pairs, xl: f.xl, yl: f.yl, rho: f.rho },
+                 n: f.n, stat: 'ρ=' + f.rho.toFixed(2), p: f.p, pAdj: f.pAdj, ok: f.ok,
+                 circular: null, dup: null });
+    });
+    /* ⚠️ EL MISMO PAR PUEDE ENTRAR DOS VECES, Y CON VEREDICTOS OPUESTOS. «PSAP – TAPSE» existe en
+       el bloque A y en la tabla general: medido, los `pairs` son idénticos punto por punto, el ρ y
+       el p CRUDO son los mismos, y el p AJUSTADO difiere —0,102 contra 0,255 en una cohorte de 12—
+       porque cada familia corrige contra la suya. Con una cohorte donde una cruce 0,05 y la otra
+       no, el PDF imprime DOS NUBES IDÉNTICAS seguidas: una con recta de tendencia y la otra
+       diciendo «asociación no establecida». La pantalla lo explica con el ↕ y su párrafo; el papel
+       no decía una palabra. Se marca el duplicado para que cada pie lo declare. */
+    const porPares = Object.create(null);
+    out.forEach(x => { const h = x.det.pairs.length + ':' + x.det.pairs.map(p => p[0] + ',' + p[1]).join(';');
+                       (porPares[h] = porPares[h] || []).push(x); });
+    Object.keys(porPares).forEach(h => {
+      if (porPares[h].length < 2) return;
+      porPares[h].forEach(x => { x.mismoPar = porPares[h].filter(y => y !== x).map(y => y.fam); });
+    });
+    return out;
+  };
+  /* Cuántos quedaron AFUERA y por qué. Sin esto, un PDF sin gráficos no distingue «el médico no
+     marcó ninguno» de «esta cohorte no tiene ninguna asociación graficable» — que son cosas
+     distintas y la segunda es un hallazgo. */
+  window._labAsocGraficosOmitidos = function (pobl, A0) {
+    const infs = pobl || informes();
+    const A = A0 || _labAsocParaPDF(infs);
+    const lib = _asocFilasLibres(infs);
+    return {
+      clinicasSacadas: A.clinicas.filter(_asocConSp).filter(r => !_labAsocMarcado(_asocClaveA(r), true)).length,
+      generalSinMarcar: A.general.filter(_asocConSp).filter(r => !_labAsocMarcado(_asocClaveG(r), false)).length,
+      /* SÓLO los GRAFICABLES. Contando todos los de la sesión, el PDF anunciaba «tenés N gráficos
+         disponibles, se eligen con el botón» incluyendo pares que con esta cohorte no dibujan nada
+         —y cuyo botón por lo tanto no existe—: el médico sale a buscar controles que no están. Es
+         la misma confusión ausencia/negativo que `pctOf(n,0)` ya cerró un nivel más arriba. */
+      libresSinMarcar: lib.filter(f => f.rho != null && !_labAsocMarcado(_asocClaveL(f.clave), false)).length,
+      /* Un par MARCADO que dejó de ser calculable no entraba en ninguna de las dos listas: ni se
+         imprimía ni se declaraba. Y para la libre el silencio no es defendible como para las otras
+         dos —sus filas están en las tablas de arriba del PDF y la sesión libre NO aparece en
+         ninguna—: si el scatter se cae, la prueba desaparece entera del documento. */
+      libresMarcadosSinCalculo: lib.filter(f => f.rho == null && _labAsocMarcado(_asocClaveL(f.clave), false)).length
     };
   };
   /* Scatter a PNG, por el mismo camino que `_labValvChartPng`: canvas desprendido, fuera de la
@@ -69367,6 +69599,71 @@ async function _labPPTGenerar(infs, o) {
         s.addText(T('Asociación no implica causalidad — correlación estadística sobre la cohorte analizada. Se evaluaron ' +
           mTot + ' asociaciones y el valor de p está corregido por comparaciones múltiples.'),
           { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+      }
+    }
+
+    /* ── 8b · GRÁFICOS DE ASOCIACIONES ELEGIDOS ──────────────────────────────────────────────
+       DIAPOSITIVA NUEVA, DESPUÉS de la del top 3, y no dentro de ella. Decisión de Maicol
+       (2026-09-25): aquélla resume las tres asociaciones más fuertes con barras de tamaño de
+       efecto, elegidas automáticamente entre las establecidas; los gráficos que el médico marca
+       son otra cosa y no entran en ese layout. Separadas, el mazo de quien no marca nada no
+       cambia ni un milímetro.
+
+       LOS GRÁFICOS SALEN DEL MISMO SEAM QUE EL PDF (`_labAsocGraficosPDF`), sobre la MISMA
+       población congelada. Con dos listas, el papel y el proyector del mismo ateneo podrían
+       llevar conjuntos distintos y en el proyector eso no se puede verificar. */
+    if (G('asoc')) {
+      /* ⚠️ `A` NO ESTÁ EN ALCANCE ACÁ. La del bloque 8 es un `let` dentro de SU bloque, así que
+         pasarla desde éste tiraba `ReferenceError` — y el `catch` de abajo se lo tragaba, dejando
+         la hoja sin generar y sin una palabra. Lo cazó TC-255 con «PPT=0 PDF=3», no la lectura.
+         Se calcula UNA vez acá y se comparte con el helper de omitidos. */
+      let gr = [], A8 = null;
+      try { A8 = _labAsocParaPDF(infs);
+            gr = (typeof _labAsocGraficosPDF === 'function') ? _labAsocGraficosPDF(infs, A8) : []; }
+      catch (e) { console.error('[labPPT/asocGraf]', e); }
+      if (!gr.length) {
+        /* No se omite en silencio: si la cohorte tiene gráficos disponibles y no se marcó ninguno,
+           el mazo lo dice, igual que el resto de las omisiones declaradas. */
+        let disp = 0;
+        try { const om = _labAsocGraficosOmitidos(infs, A8);
+              disp = om.clinicasSacadas + om.generalSinMarcar + om.libresSinMarcar; } catch (e) {}
+        if (disp) omitir('Gráficos de asociaciones', 'no se marcó ninguno de los ' + disp + ' disponibles');
+      } else if (typeof Chart === 'undefined') {
+        omitir('Gráficos de asociaciones', 'la librería de gráficos no cargó');
+      } else {
+        /* DOS por diapositiva y paginando. Con más, cada scatter queda por debajo de los 3" de
+           ancho y los rótulos de eje —que a 10 pt ya son chicos— dejan de leerse proyectados, que
+           es el único modo de uso de este mazo. */
+        const POR_HOJA = 2;
+        const _famTxt = { clinica:'Asociación clínica', general:'Tabla exploratoria', libre:'Exploración libre' };
+        const hojas = Math.ceil(gr.length / POR_HOJA);
+        for (let h0 = 0; h0 < hojas; h0++) {
+          const lote = gr.slice(h0 * POR_HOJA, (h0 + 1) * POR_HOJA);
+          const s = nueva('Gráficos de asociaciones' + (hojas > 1 ? '  (' + (h0 + 1) + '/' + hojas + ')' : ''));
+          for (let j = 0; j < lote.length; j++) {
+            const r = lote[j];
+            const x = 0.4 + j * ((W - 0.8) / 2 + 0.1), cw = (W - 0.9) / 2;
+            let img = null;
+            try { img = await _labScatterPng(r.det, (typeof _asocEstablecida === 'function') ? _asocEstablecida(r) : false); }
+            catch (e) { console.error('[labPPT/scatter]', e); }
+            /* 11 pt y h 0.42: un `lbl` de la familia libre son DOS etiquetas completas concatenadas
+               —«Strain global longitudinal (%) – Gradiente TSVI máximo (mmHg)»— y a 13 pt negrita en
+               4,55" eso parte en dos renglones que desbordaban la caja de 0,26" y aterrizaban sobre
+               la línea de familia. PptxGenJS no recorta ni avisa. Hay lugar de sobra: la imagen
+               arranca en 1,46. */
+            s.addText(T(r.lbl), { x:x, y:0.92, w:cw, h:0.42, fontSize:11, bold:true, color:C.txt, fontFace:FONT });
+            /* La FAMILIA se declara. Mezclados sin rótulo, un par de exploración libre —que el
+               médico probó a mano— se proyecta igual que una asociación pre-especificada. */
+            s.addText(T(_famTxt[r.fam] + '   ·   n = ' + r.n + '   ·   ' + r.stat),
+              { x:x, y:1.18, w:cw, h:0.22, fontSize:10, color:C.txt2, fontFace:FONT });
+            if (img) s.addImage({ data: img.url, x:x, y:1.46, w:cw, h:cw * img.ar });
+            else s.addText(T('No se pudo generar el gráfico.'),
+              { x:x, y:1.46, w:cw, h:0.3, fontSize:11, italic:true, color:C.txt2, fontFace:FONT });
+          }
+          s.addText(T('La recta de tendencia se traza sólo en las asociaciones que el Laboratorio da por ' +
+            'establecidas. Asociación no implica causalidad.'),
+            { x:0.4, y:H-0.86, w:W-0.8, h:0.22, fontSize:9, italic:true, color:C.txt2, fontFace:FONT });
+        }
       }
     }
 
@@ -72829,31 +73126,66 @@ async function _labAnalisisPDFReal(infs) {
        '|rho| de aproximadamente 0,64 para alcanzar p < 0,05: la ausencia de asociaciones significativas ' +
        'no dice que no las haya, dice que esta cohorte no alcanza para verlas.');
 
-  // ══════════ 4 · DISPERSIÓN ══════════
-  const conScatter = (typeof Chart !== 'undefined')
-    ? A.clinicas.filter(r => r.det && r.det.t === 'sp' && r.det.pairs && r.det.pairs.length) : [];
+  /* ══════════ 4 · DISPERSIÓN ══════════
+     LOS GRÁFICOS LOS ELIGE EL MÉDICO, y salen del MISMO seam que consume la diapositiva del PPT:
+     con dos listas, el papel y el proyector del mismo ateneo podrían llevar conjuntos distintos
+     sobre la misma cohorte, y el proyector es la superficie donde eso no se puede verificar.
+     Antes esta sección filtraba `A.clinicas` por su cuenta y las imprimía TODAS. Las clínicas
+     siguen saliendo por defecto —el estado de partida reproduce ese PDF exactamente— y lo que
+     agrega el botón son la tabla general y la exploración libre. */
+  const graficos = (typeof _labAsocGraficosPDF === 'function') ? _labAsocGraficosPDF(infs, A) : [];
+  const omit = (typeof _labAsocGraficosOmitidos === 'function') ? _labAsocGraficosOmitidos(infs, A)
+                                                               : { clinicasSacadas:0, generalSinMarcar:0, libresSinMarcar:0, libresMarcadosSinCalculo:0 };
+  /* `graficos.length` entra a la compuerta, y NO sólo `A.clinicas+general`. La familia LIBRE no
+     está en `A`, así que con Chart.js caído —modo de falla real: un hash SRI viejo hace que el
+     navegador descarte el script en silencio—, una cohorte sin scatters en las otras dos familias
+     y un par libre marcado, la sección salía con su título y su nota sobre las rectas y CERO
+     imágenes, sin decir por qué. Que es textualmente lo que esta guarda vino a evitar. */
+  const hayAlgunSp = A.clinicas.concat(A.general).some(r => r.det && r.det.t === 'sp');
   /* Sin Chart.js `_labScatterPng` devuelve null en cada vuelta y quedaba el título de sección y
      la nota sobre las rectas con cero imágenes, sin decir por qué. Los otros dos bloques caen
      bien: distribuciones tienen tabla de respaldo y valvulopatías se saltea entera. */
-  if (typeof Chart === 'undefined' && A.clinicas.some(r => r.det && r.det.t === 'sp')) {
+  if (typeof Chart === 'undefined' && (hayAlgunSp || graficos.length)) {
     sectionTitle('Gráficos de dispersión');
     nota('No se pudieron generar: la librería de gráficos no cargó. Los coeficientes y los ' +
          'p-valores de las tablas de arriba son correctos igual — lo que falta es el dibujo.');
-  }
-  if (conScatter.length) {
-    sectionTitle('Gráficos de dispersión — asociaciones clínicas con datos');
-    for (const r of conScatter) {
+  } else if (graficos.length) {
+    sectionTitle('Gráficos de dispersión — los elegidos en el Laboratorio');
+    const _famTxt = { clinica:'asociación clínica', general:'tabla exploratoria', libre:'exploración libre' };
+    let dibujados = 0, noSePudo = 0;
+    for (const r of graficos) {
       const img = await _labScatterPng(r.det, establecida(r));
-      if (!img) continue;
+      if (!img) { noSePudo++; continue; }
+      dibujados++;
       const iw = 118, ih = iw * img.ar;
       ensure(ih + 12);
       doc.setFont('helvetica','bold'); doc.setFontSize(9);
       doc.text(S(r.lbl + (r.circular ? '  (!)' : '')), M, y); y += 3.6;
       doc.setFont('helvetica','normal'); doc.setFontSize(8);
       doc.setTextColor(P.GRY[0],P.GRY[1],P.GRY[2]);
-      doc.text(S('N = ' + r.n + '   ·   ' + r.stat + '   ·   p ajustado ' + pT(r.pAdj) +
+      /* SE DECLARA DE QUÉ FAMILIA SALE CADA UNO. Mezclados sin rótulo, un par de exploración libre
+         —que el médico probó a mano y cuyo p ni siquiera es comparable con el de las otras dos
+         familias— se lee igual que una asociación clínica pre-especificada. Y el p ajustado de la
+         libre se omite a propósito: su corrección corre sobre los pares de la SESIÓN, que no son
+         una familia de este documento. */
+      /* El p CRUDO de la libre SÍ se imprime. Omitir el ajustado es correcto —su familia son los
+         pares de la sesión, no este documento— pero omitir los dos dejaba una recta trazada sin un
+         solo número que la sostenga, y la recta ES una afirmación de dirección. */
+      doc.text(S(_famTxt[r.fam] + '   ·   N = ' + r.n + '   ·   ' + r.stat +
+                 (r.fam === 'libre' ? '   ·   p sin ajustar ' + pT(r.p)
+                                    : '   ·   p ajustado ' + pT(r.pAdj)) +
                  (establecida(r) ? '' : '   ·   asociación no establecida: no se traza la recta')), M, y);
-      doc.setTextColor(0,0,0); y += 4;
+      y += 3.4;
+      /* EL PAR DUPLICADO SE DECLARA. Sin esto el PDF podía llevar dos nubes IDÉNTICAS seguidas
+         —los mismos pares, el mismo ρ, el mismo p crudo— una con recta y la otra diciendo «no
+         establecida», porque cada familia corrige contra la suya. La pantalla lo explica con el ↕
+         y su párrafo; el papel no decía una palabra. */
+      if (r.mismoPar && r.mismoPar.length)
+        doc.text(S('El mismo par se imprime también como ' + r.mismoPar.map(f2 => _famTxt[f2]).join(' y ') +
+                   ': son los MISMOS datos y el mismo p crudo, y el ajustado difiere porque cada ' +
+                   'familia se corrige contra la suya. No son dos hallazgos.'), M, y, { maxWidth: CW });
+      if (r.mismoPar && r.mismoPar.length) y += 6.6;
+      doc.setTextColor(0,0,0); y += 1;
       try { doc.addImage(img.url, 'PNG', M, y, iw, ih); } catch (e) {}
       y += ih + 6;
     }
@@ -72861,6 +73193,34 @@ async function _labAnalisisPDFReal(infs) {
          'Y con N de al menos 15 — el mismo criterio del semáforo verde, y el mismo que aplican las tres ' +
          'superficies de la pantalla desde esta versión. Una recta trazada sobre una asociación que la app no ' +
          'da por establecida se lee como un hallazgo.');
+    /* LO QUE QUEDÓ AFUERA SE DECLARA. Una sección con tres gráficos no dice si son los tres que
+       había o tres de quince: sin el denominador, un mazo elegido a dedo se lee como el hallazgo
+       completo de la cohorte. */
+    const fuera = [];
+    if (omit.clinicasSacadas)   fuera.push(omit.clinicasSacadas + ' clínica(s) que se sacaron a mano');
+    if (omit.generalSinMarcar)  fuera.push(omit.generalSinMarcar + ' de la tabla exploratoria sin marcar');
+    if (omit.libresSinMarcar)   fuera.push(omit.libresSinMarcar + ' par(es) de exploración libre sin marcar');
+    if (omit.libresMarcadosSinCalculo)
+      fuera.push(omit.libresMarcadosSinCalculo + ' par(es) de exploración libre MARCADOS que no se ' +
+                 'pudieron calcular sobre esta cohorte');
+    if (noSePudo) fuera.push(noSePudo + ' marcado(s) cuyo gráfico no se pudo dibujar');
+    /* Cuenta lo DIBUJADO, no lo marcado: el `continue` de arriba y el catch del `addImage` descartan
+       en silencio, así que el número que el documento afirmaba podía no ser el de figuras que tiene
+       — y el denominador lo escribe el propio documento. */
+    if (fuera.length || dibujados !== graficos.length)
+      nota('Se imprimen ' + dibujados + ' gráfico(s) de los ' + graficos.length + ' marcados en el ' +
+           'Laboratorio.' + (fuera.length ? ' NO se imprimen: ' + fuera.join('; ') + '.' : '') +
+           ' Su ausencia acá no significa que no exista la asociación — significa que no se eligió ' +
+           'el gráfico o que no se pudo dibujar.');
+  } else if (hayAlgunSp) {
+    /* NINGUNO MARCADO, pero la cohorte SÍ tiene asociaciones graficables. Sin esta rama el PDF
+       salía sin la sección y sin una palabra, y eso no se distingue de «esta cohorte no tiene
+       ninguna asociación que graficar» — que es un hallazgo y no una omisión del médico. */
+    sectionTitle('Gráficos de dispersión');
+    nota('No se marcó ningún gráfico para este informe. La cohorte tiene ' +
+         (omit.clinicasSacadas + omit.generalSinMarcar + omit.libresSinMarcar) +
+         ' asociación(es) con gráfico disponible: se eligen con el botón «Incluir en PDF y PPT» ' +
+         'que aparece al desplegar cada una en la subtab Asociaciones del Laboratorio.');
   }
 
   // ══════════ PIE ══════════
@@ -73464,8 +73824,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260925-0849';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790336994176;                 /* eco-build-ms */
+const ECO_BUILD    = '20260925-1003';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790341428046;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -73551,7 +73911,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-0849</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-1003</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
