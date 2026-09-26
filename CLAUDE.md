@@ -4,6 +4,128 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Insuficiencia aórtica: la tercera sección contestable, y los tres cortes NO habían cambiado (2026-09-26)
+
+Mismo mecanismo que la EAo, sin inventar uno nuevo. **Las otras once no se tocaron.**
+
+### El censo desmintió la premisa del pedido, y eso cambió el trabajo
+
+El pedido suponía «síntomas, y algún dato de tamaño de VI» entre los ❓. **Medido en el navegador
+sobre el panel renderizado: bajo «Requiere datos clínicos» había UN SOLO campo, `Síntomas`.** Los
+datos de tamaño de VI —DTSVI y DTSVI indexado— **no son campos clínicos**: son mediciones que la
+sección ya leía de `dsfvi` + `getBSA()` y mostraba con ✅ en `filas`. No había nada de tamaño de VI
+que el médico tuviera que contestar.
+
+Los otros tres controles salieron de la GUÍA, no del censo: la cirugía concomitante, el riesgo
+quirúrgico y la candidatura a cirugía **no estaban como ❓ porque las filas que los exigen no se
+mostraban**. Hoy son cuatro.
+
+### Las dos rutas coincidieron, y los tres cortes del panel estaban bien
+
+Texto completo del artículo (Recommendation Table 3, p. 4662) **y** juego de diapositivas oficial
+de la ESC (48-49) más la Figura 5, que repite los operadores. Coincidieron dígito por dígito, y la
+ruta 2 además verificó el corrigendum: no toca esta válvula.
+
+| | lo que decía el panel | la guía 2025 |
+|---|---|---|
+| **DTSVI > 50 · idx > 25 · FEVI ≤ 50** | ESC/EACTS **2021** | **idénticos en 2025**, Clase I · Nivel B — sólo cambia la cita |
+| **Fila IIb** | «20 mm/m², Clase IIb **C**» | **22 mm/m²**, y el nivel subió a **B** |
+| **Criterio de volumen** | no existía | **VTSVI indexado > 45 ml/m²**, nuevo en 2025 |
+| **Talla pequeña** | cualitativa | **BSA < 1,68 m²**, cuantificada en 2025 |
+| **Reparación valvular** | no estaba | subió de IIb · C a **IIa · B** |
+| **TAVI en IAo** | no estaba | **fila nueva**, IIb · B, sólo sintomático no elegible |
+| **Aorta** | «> 50 mm, tiene su propia tabla» | **≥ 45 mm es fila DE ESTA tabla** (IIa · C), y dice «raíz **O** ascendente» |
+| **DDVI > 65 mm** | — | **no es fila**: prosa sin clase, y exige progresión en el seguimiento |
+
+**La aorta leía de menos:** el panel tomaba sólo `ao_tub`, así que una **raíz de 48 mm con
+ascendente normal no encendía nada**. Hoy consume `aoSegsMedidos()`, que ya trae los dos segmentos
+con su banda de plausibilidad.
+
+### El criterio que la app NO puede mirar prohíbe negar la fila
+
+**No existe campo de volumen telesistólico del VI** —`vol_lat` es volumen LATIDO—, así que
+`cIIb.vtsvi_idx` es SIEMPRE `null`. Y como los tres disparadores de esa fila se unen con «o», eso
+**prohíbe publicar «sin criterio»**: sería el `!predicadoEstricto()` que falla abierto. Esa rama
+devuelve `falta` nombrando el criterio que nadie miró, y hay fila ❓ propia que lo declara en vez
+de dejar al médico leyendo una fila de dos criterios donde la guía tiene tres.
+
+### No hay `eaEscenario()` para la IAo, y eso es lo que había que diseñar
+
+`calcIA_ESC` es un **pintor**: escribe badges y no devuelve nada. Así que el selector y las filas
+leen las mismas mediciones — el terreno exacto del defecto de «dos fuentes de alto gradiente en la
+misma tarjeta». La defensa es estructural y no de disciplina: **todo se deriva una vez en
+`_indIADatos()`** y ese objeto lo consumen las filas Y `_indIARecom`. No hay dos caminos que
+diverjan porque no hay dos cálculos.
+
+### Lo que encontró `/sharp-edges`, y tres cambiaban una conducta
+
+- **⚠️ LA SUPERFICIE CORPORAL ERA EL ÚNICO INSUMO SIN BANDA, Y ES EL QUE MÁS DAÑO HACE.** `dsfvi` y
+  `fevi` fuera de rango sólo RETIENEN una conclusión; la BSA es el **denominador de dos Clase I**,
+  así que su error las **fabrica y las borra**. Medido: peso 500 por 50 → indexado de 25,3 a 8,0 y
+  el panel publicaba «Sin criterio» sobre un paciente que sí lo tiene. Hoy pasa por las bandas que
+  la app ya declara. **Y se consume `_labRango`, no `DCM_RANGO`**: es el accesor mergeado, ya está
+  expuesto y es el único que trae `peso` y `talla`. La primera versión exportó `window.DCM_RANGO` y
+  se revirtió al encontrarlo.
+- **El TAVI se publicaba sobre un ASINTOMÁTICO.** La rama comprobaba que la fila exige síntomas y,
+  comprobado que no los hay, **devolvía igual el texto y la clase del TAVI** con el aviso al pie en
+  gris: el titular decía «TAVI PUEDE CONSIDERARSE… Clase IIb · Nivel B» sobre el paciente que esa
+  fila no cubre. Hoy el titular pasa a Heart Team y la fila inaplicable se NOMBRA — que es lo que
+  `_indEAModalidad` ya hacía cuando le falta la edad.
+- **La raíz dilatada disparaba con 41 mm y contradecía a la fila de al lado.** El disparador era
+  `dil` de `aoSegsMedidos`, que es `> AO_REF.sin` = 40. Con una raíz de 42 la fila de aorta decía
+  «no alcanza los 45 mm» y la modalidad publicaba reemplazo de raíz **Clase I · B**: dos
+  conclusiones sobre el mismo procedimiento en la misma tarjeta. La guía no da número para esa
+  fila, así que se usa el único corte de raíz que esta tabla SÍ tiene — los 45 mm de al lado.
+  **Un umbral por tarjeta, no uno por renglón.**
+
+Los demás: `sinBanda` se calculaba y no llegaba a ninguna superficie —la fila de FEVI tenía un
+ternario con **las dos ramas idénticas**— así que con la tabla caída el panel decía «sin medir»
+sobre un campo lleno y pedía un dato que estaba cargado; `aoSinMedir` se calculaba y nadie lo leía,
+así que «diámetro máximo» se imprimía sobre un solo segmento; el ✅ de la aorta salía sin mirar si
+la cirugía valvular estaba indicada, que es la precondición de su propia fila; la única rama `no`
+podía concluir con la cirugía concomitante sin contestar, que es la Clase I que la desplaza; y el
+assert vigilaba una constante donde EA vigila seis.
+
+### Lo que NO se arregló, y por qué no se puede con una banda
+
+**Un peso de 40 con talla 180 da BSA 1,41 y sigue publicando Clase I.** No lo atrapa ninguna banda
+**y no es un defecto del arreglo**: 1,41 m² es una superficie perfectamente real en un adulto
+caquéctico, y el criterio declarado de estas tablas es atrapar el error de un orden de magnitud, no
+lo clínicamente infrecuente. Es la misma lección que `EA_EDAD_MIN`: ahí la respuesta fue un piso de
+**aplicabilidad** (18 años), no de plausibilidad. Acá no hay piso de aplicabilidad que la guía
+sostenga. Queda declarado, no disimulado.
+
+### Las trampas de los casos
+
+- **⚠️ CON BSA 2,00 EL CRITERIO INDEXADO ES INVISIBLE Y LA MUTACIÓN SOBREVIVE.** Para que el
+  indexado pase de 25 con superficie 2,00 el diámetro tiene que pasar de 50, **que ya dispara el
+  absoluto**: la Clase I sale igual y el caso pasaba con el corte indexado corrido de 25 a 30. Hay
+  que usar **talla pequeña** —BSA 1,50 exacta con peso 50 / talla 162— que es justo el paciente
+  para el que la guía puso ese criterio. La mutación 25→30 sobrevivió en la primera versión.
+- **Dos filas con la MISMA cadena de clase no se distinguen comparando la clase.** `concom_ao` y
+  `concom_val` son las dos «Clase I · Nivel C», así que una mutación que rutee una a la otra pasaba
+  las dos condiciones en verde publicando el texto equivocado. Se comparan los TEXTOS.
+- **Un corte probado por un solo lado no está probado.** Faltaba el 56 y la mutación
+  `fevi_iib` 55→60 sobrevivía: 50 seguía siendo Clase I, 51 y 55 seguían siendo IIb, y el único
+  otro valor del caso era 62, que no dispara ni con 60.
+- **Buscar un token que no se contestó no prueba nada.** TC-278 contestaba `bajo` y buscaba
+  `no_bajo` en el blob guardado: de las cuatro cadenas, sólo una era discriminante.
+- **Acentos: el helper tiene que normalizar LOS DOS LADOS.** `pide('sintoma')` no matcheaba
+  «Síntomas» y el caso acusaba a la cascada de un defecto del andamio.
+- **Acentos graves en comentarios recién escritos: otra vez.** Tres, en los cuerpos de TC-277 y
+  TC-278. El barrido antes de `node --check` los encuentra; `node --check` apunta a una línea que
+  no es la culpable.
+
+### La línea base de esta ronda
+
+**Suite 292/293 antes de los arreglos de `/sharp-edges`** — el único rojo es TC-223, el
+documentado. **Con el pendrive del Vivid conectado, los 17 casos del visor y DICOM que la bitácora
+registraba como «SIN verificar» corren y pasan de verdad: la línea base dejó de ser 273/291.**
+**Semgrep 126 / 0 ERROR.** Sin huérfanos nuevos. `check_mobile` en los 2 ALTA de siempre, los dos
+`#caso_interes`, ninguno de la sección. A 375 px los nueve botones miden 44 px y ninguno desborda.
+**Diecinueve mutaciones, diecinueve en rojo, base verde leída primero en cada tanda.**
+
+
 ## Estenosis aórtica: el panel de Evidencia pasa a contestarse, con ESC/EACTS 2025 (2026-09-26)
 
 Piloto. La sección de EAo dejó de ser sólo lectura: cuatro controles que el médico contesta y una

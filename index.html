@@ -35432,41 +35432,507 @@ function _indEM(){
     ] };
 }
 
+/* ══ INSUFICIENCIA AÓRTICA — LA RECOMENDACIÓN DE LA GUÍA, SELECCIONADA ════════════════════════
+   Segunda sección contestable del panel, con EL MISMO mecanismo que estenosis aórtica:
+   `_indFilaCtrl` para los controles, `_indClin` para las respuestas y un selector que elige la
+   fila cuyas condiciones se cumplen. No se inventó un patrón nuevo.
+
+   ⚠️ LA DIFERENCIA DE FONDO CON LA EAo: NO HAY UNA `eaEscenario()` DE LA CUAL COLGARSE.
+   `calcIA_ESC` es un PINTOR —escribe badges en el DOM y no devuelve nada—, así que acá el
+   selector y las filas tienen que leer las mismas mediciones. Ese es exactamente el terreno del
+   defecto que la EAo ya pagó («dos fuentes de alto gradiente en la misma tarjeta»): las filas
+   graduaban con literales y el bloque de recomendación con `EA_CRIT`, y con el corte movido la
+   tarjeta se contradecía consigo misma sobre el mismo número.
+   La defensa acá es estructural y no de disciplina: los valores se derivan UNA SOLA VEZ en
+   `_indIADatos()`, y ese objeto lo consumen las filas Y `_indIARecom`. No hay dos caminos que
+   puedan divergir porque no hay dos cálculos.
+
+   LOS NÚMEROS PROPIOS de este bloque son los que la guía publica DENTRO de la fila que los usa y
+   que la app no tenía en ninguna constante: 50 mm, 25 mm/m², 22 mm/m², 45 ml/m², 55 % y los
+   45 mm de la aorta concomitante. El ≤ 50 % de FEVI NO se escribe: sale de
+   `UMBRAL_FEVI_NORMAL`, que es la constante que ya gobierna la pantalla y el informe firmado.
+
+   ⚠️ HAY DOS UMBRALES DE FEVI Y ESTÁN EN CLASES DISTINTAS: ≤ 50 % es Clase I · Nivel B y ≤ 55 %
+   es Clase IIb · Nivel B condicionado a riesgo quirúrgico bajo. Un solo «umbral de FEVI» en esta
+   sección sería falso, y colapsarlos en el 55 % —que es como lo resume parte de la literatura
+   secundaria— convertiría una conducta IIb en una Clase I.
+
+   ⚠️ EL 20 mm/m² ES DE LA EDICIÓN 2021 Y YA NO EXISTE. En 2025 esa fila pasó a 22 mm/m², sumó el
+   volumen telesistólico indexado > 45 ml/m² y SUBIÓ DE NIVEL C A NIVEL B. La nota que este panel
+   imprimía se quedó con el 20, con el nivel C y sin el criterio de volumen.
+
+   ⚠️ NO HAY FILA DE DIÁMETRO TELEDIASTÓLICO. El > 65 mm circula como criterio y en la edición
+   2025 es prosa del cuerpo, SIN clase, y además exige progresión en el seguimiento —que un
+   estudio aislado no tiene—. No se le arma fila: se declara en las notas.
+   Verificado por dos vías independientes que coincidieron fila por fila: el texto completo del
+   artículo (Recommendation Table 3, p. 4662) y el juego de diapositivas oficial de la ESC
+   (diapositivas 48-49, más la Figura 5 del algoritmo, que repite los operadores). El corrigendum
+   publicado no toca nada de esta válvula.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+const IA_CRIT_2025 = Object.freeze({
+  dtsvi:        50,    // mm    — Clase I · Nivel B
+  dtsvi_idx:    25,    // mm/m² — Clase I · Nivel B
+  dtsvi_idx_iib:22,    // mm/m² — Clase IIb · Nivel B (era 20 en la edición 2021)
+  vtsvi_idx:    45,    // ml/m² — Clase IIb · Nivel B. ⚠️ ESTA APP NO MIDE EL VOLUMEN TELESISTÓLICO
+  fevi_iib:     55,    // %     — Clase IIb · Nivel B
+  bsa_chica:    1.68,  // m²    — la 2025 cuantificó «talla pequeña», que en 2021 era cualitativo
+  ao_concom:    45     // mm    — Clase IIa · Nivel C, raíz O aorta ascendente, diámetro MÁXIMO
+});
+const IA_REC_2025 = Object.freeze({
+  sint:       { c:'Clase I · Nivel B',
+    t:'Cirugía valvular aórtica RECOMENDADA en el paciente sintomático con insuficiencia aórtica severa, sea cual sea la función del ventrículo izquierdo.' },
+  asint_i:    { c:'Clase I · Nivel B',
+    t:'Cirugía valvular aórtica RECOMENDADA en el paciente asintomático con insuficiencia aórtica severa y diámetro telesistólico del VI > 50 mm, o telesistólico indexado > 25 mm/m² —sobre todo en la talla pequeña (superficie corporal < 1,68 m²)—, o FEVI en reposo ≤ 50 %.' },
+  concom_ao:  { c:'Clase I · Nivel C',
+    t:'Cirugía valvular aórtica RECOMENDADA, con o sin síntomas, en el paciente con insuficiencia aórtica severa que va a cirugía de revascularización coronaria o a cirugía de la aorta ascendente.' },
+  concom_val: { c:'Clase I · Nivel C',
+    t:'Cirugía valvular aórtica RECOMENDADA en el paciente con insuficiencia aórtica severa que va a cirugía de otra válvula.' },
+  asint_iib:  { c:'Clase IIb · Nivel B',
+    t:'Cirugía valvular aórtica A CONSIDERAR en el paciente asintomático con insuficiencia aórtica severa y diámetro telesistólico indexado > 22 mm/m², o volumen telesistólico indexado > 45 ml/m² —sobre todo en la talla pequeña (superficie corporal < 1,68 m²)—, o FEVI en reposo ≤ 55 %, si el riesgo quirúrgico es bajo.' },
+  /* Modalidad. Filas separadas de la indicación, igual que en la EAo: en la guía son bloques
+     distintos de la tabla y fundirlas hace que «se opera» y «se opera así» se lean como una. */
+  repar:      { c:'Clase IIa · Nivel B',
+    t:'Reparación valvular aórtica A CONSIDERAR en pacientes seleccionados con insuficiencia aórtica severa, en centros con experiencia y cuando se esperen resultados duraderos.' },
+  tavi:       { c:'Clase IIb · Nivel B',
+    t:'TAVI PUEDE CONSIDERARSE en el paciente sintomático con insuficiencia aórtica severa no elegible para cirugía según el Heart Team, si la anatomía es apta.' },
+  vsarr:      { c:'Clase I · Nivel B',
+    t:'Reemplazo de la raíz aórtica con preservación valvular RECOMENDADO en el paciente joven con dilatación de la raíz, en centros con experiencia y cuando se esperen resultados duraderos.' },
+  ao45:       { c:'Clase IIa · Nivel C',
+    t:'Con indicación de cirugía valvular aórtica establecida y riesgo quirúrgico bajo, A CONSIDERAR el reemplazo de la raíz aórtica o de la aorta ascendente si el diámetro máximo es ≥ 45 mm.' }
+});
+const IA_FUENTE = 'ESC/EACTS 2025 — tabla de recomendaciones de insuficiencia aórtica';
+
+/* Mismo assert que `_eaAssertUmbrales` y por el mismo motivo: los textos de arriba son
+   transcripciones y llevan sus números escritos, así que si la constante viva se mueve por otro
+   motivo la cita queda falsa sin que nadie se entere. No corrige: avisa que hay que releer. */
+function _iaAssertUmbrales(){
+  /* Los SEIS números de `IA_CRIT_2025` también van escritos en prosa —en los textos de
+     `IA_REC_2025`, en la línea de la guía y en las notas—, así que mover la constante deja tres
+     superficies mintiendo. Es exactamente lo que le pasó al 20 mm/m² de la edición 2021, que
+     sobrevivió en una nota de este panel una edición entera. */
+  const C = IA_CRIT_2025;
+  const esp = [
+    ['UMBRAL_FEVI_NORMAL',        window.UMBRAL_FEVI_NORMAL, 50,   '50 %'],
+    ['IA_CRIT_2025.dtsvi',        C.dtsvi,          50,   '50 mm'],
+    ['IA_CRIT_2025.dtsvi_idx',    C.dtsvi_idx,      25,   '25 mm/m²'],
+    ['IA_CRIT_2025.dtsvi_idx_iib',C.dtsvi_idx_iib,  22,   '22 mm/m²'],
+    ['IA_CRIT_2025.vtsvi_idx',    C.vtsvi_idx,      45,   '45 ml/m²'],
+    ['IA_CRIT_2025.fevi_iib',     C.fevi_iib,       55,   '55 %'],
+    ['IA_CRIT_2025.bsa_chica',    C.bsa_chica,      1.68, '1,68 m²'],
+    ['IA_CRIT_2025.ao_concom',    C.ao_concom,      45,   '45 mm']
+  ];
+  const mal = esp.filter(e => e[1] !== e[2])
+    .map(e => e[0] + ' = ' + e[1] + ' pero los textos de IA_REC_2025 dicen ' + e[3]);
+  if (mal.length) console.error('[IAo] Los textos de la guía quedaron viejos respecto de las ' +
+    'constantes. Hay que releer la tabla de recomendaciones antes de tocar nada:\n  ' + mal.join('\n  '));
+  return mal;
+}
+document.addEventListener('DOMContentLoaded', function(){ try { _iaAssertUmbrales(); } catch (e) {} });
+
+/* ── Los datos, derivados UNA vez ─────────────────────────────────────────────────────────────
+   ⚠️ UN VALOR ILEGIBLE NO PUEDE SOSTENER NI NEGAR UN CRITERIO, y en esta sección negar es
+   publicar una conducta. `dsfvi` sostiene DOS Clase I y su input no tiene `min` ni `max`
+   (el archivo ya documenta un `dsfvi` tipeado 0 por error): un diámetro en centímetros —5,2 por
+   52— daba `5.2 > 50` falso y la fila imprimía «no supera 50 mm», que es una AFIRMACIÓN de
+   normalidad sobre basura. La banda NO se escribe acá: sale de `DCM_RANGO`, que es la tabla que
+   ya acota este campo por el camino DICOM y por el del Excel. Un solo dueño por campo.
+
+   `null` en un criterio significa NO EVALUADO, que no es lo mismo que no cumplido. Toda la
+   cascada de abajo depende de esa distinción. */
+function _indIADatos(){
+  const UF = _indUmb('UMBRAL_FEVI_NORMAL');
+  /* `_labRango` es el accesor MERGEADO de la app: parte de `DCM_RANGO` (lo fisicamente posible,
+     el guardian del importador DICOM) y le superpone `LAB_XLS_RANGO_PROPIO`, que es el del
+     Excel. Se consume ese y no `DCM_RANGO` a secas por dos motivos: es el que ya esta expuesto
+     —y por lo tanto el dueño declarado de estas bandas— y es el único que trae `peso` y `talla`,
+     que son los que faltaban. Una tabla propia acá sería la divergencia que `_indCIV` ya tiene:
+     ahí el DDVI se acota 20-90 a mano mientras la tabla dice `ddfvi:[20,100]`. */
+  const rgF = _indFn('_labRango');
+  const banda = function(k){
+    if (!rgF) return null;
+    let b = null;
+    try { b = rgF(k); } catch (e) { return null; }
+    /* ⚠️ UNA BANDA MALFORMADA NO PUEDE DESACTIVAR LA PLAUSIBILIDAD EN SILENCIO. Con `['a','b']`
+       los dos lados de la comparación dan `false` y todo valor pasaría como medido, que es la
+       dirección peligrosa; y con los límites invertidos la fila imprimiría el rango al revés.
+       Se exige lo que la banda promete ser: dos números finitos y en orden. */
+    if (!Array.isArray(b) || b.length !== 2) return null;
+    if (!isFinite(b[0]) || !isFinite(b[1]) || !(b[0] <= b[1])) return null;
+    return b;
+  };
+  /* Sin banda NO se inventa una y tampoco se usa el valor para negar: es la regla 4 (falla
+     cerrado) aplicada a la plausibilidad en vez de al umbral. Los tres estados son distintos y
+     los TRES tienen que poder decirse: medido, fuera de rango, y sin banda disponible. */
+  const leer = function(id, k){
+    const x = _indN(id), b = banda(k);
+    if (b == null) return { val:null, fuera:false, sinBanda:true, crudo:x };
+    if (x == null) return { val:null, fuera:false, sinBanda:false };
+    if (x < b[0] || x > b[1]) return { val:null, fuera:true, crudo:x, sinBanda:false, b:b };
+    return { val:x, fuera:false, sinBanda:false };
+  };
+  const D = { UF:UF };
+  D.dsf  = leer('dsfvi', 'dsfvi');
+  D.fev  = leer('fevi',  'fevi');
+  /* ⚠️ LA SUPERFICIE CORPORAL ERA EL ÚNICO INSUMO SIN BANDA, Y ES EL QUE MÁS DAÑO HACE.
+     `dsfvi` y `fevi` fuera de rango sólo RETIENEN una conclusión; la BSA es el DENOMINADOR de
+     dos criterios de Clase I, así que su error las FABRICA y las BORRA. Y sus dos insumos no
+     tienen `min` ni `max` en el formulario. Medido: con `dsfvi` 45 y un peso de 40 tipeado por
+     80, el indexado pasa de 22,5 a 31,8 y el panel publica «Cirugía RECOMENDADA — Clase I ·
+     Nivel B» donde no la hay; con un peso de 500 por 50, el indexado cae de 25,3 a 8,0 y publica
+     «Sin criterio de intervención» sobre un paciente que sí lo tiene.
+     Las bandas son las que la app ya declara para peso y talla, no unas nuevas: su criterio
+     declarado es atrapar el error de un orden de magnitud, que es exactamente este. */
+  const pes = leer('peso', 'peso'), tal = leer('talla', 'talla');
+  D.bsaFuera = pes.fuera || tal.fuera;
+  D.bsaSinBanda = pes.sinBanda || tal.sinBanda;
+  const g = _indFn('getBSA'); let bsa = null;
+  try { if (g && !D.bsaFuera && !D.bsaSinBanda) bsa = g(); } catch (e) { bsa = null; }
+  D.bsa  = (bsa != null && isFinite(bsa) && bsa > 0) ? bsa : null;
+  D.bsaChica = (D.bsa != null) ? D.bsa < IA_CRIT_2025.bsa_chica : null;
+  D.dsfi = (D.dsf.val != null && D.bsa != null) ? D.dsf.val / D.bsa : null;
+
+  /* Aorta: la fila de 2025 dice «raíz O aorta ascendente», diámetro MÁXIMO. El panel leía sólo
+     `ao_tub`, así que una raíz de 48 mm con ascendente normal no encendía nada. Se consume
+     `aoSegsMedidos()`, que es la fuente única del narrativo y de `calcAorta` y que ya trae su
+     propia ventana de plausibilidad con la marca `fuera`. */
+  const segF = _indFn('aoSegsMedidos');
+  let segs = [];
+  try { if (segF) segs = segF() || []; } catch (e) { segs = []; }
+  const de = function(k){ return segs.filter(function(s){ return s && s.sg && s.sg.k === k; })[0] || null; };
+  D.aoRaiz = de('ao_sin'); D.aoAsc = de('ao_tub');
+  const cand = [D.aoRaiz, D.aoAsc].filter(Boolean);
+  D.aoFuera = cand.filter(function(s){ return s.fuera; }).map(function(s){ return s.sg.lbl; });
+  const usables = cand.filter(function(s){ return !s.fuera; });
+  D.aoMax = usables.length ? usables.reduce(function(a, b){ return b.val > a.val ? b : a; }) : null;
+  D.aoSinMedir = ['ao_sin','ao_tub'].filter(function(k){ return !de(k); }).map(function(k){
+    return k === 'ao_sin' ? 'la raíz aórtica' : 'la aorta ascendente'; });
+  /* ⚠️ EL DISPARADOR DE LA FILA DE PRESERVACIÓN VALVULAR NO PUEDE SER «DILATACIÓN LEVE».
+     La primera versión usaba `dil` de `aoSegsMedidos`, que es `> AO_REF.sin` = 40 mm, o sea que
+     una raíz de 41 mm —que la propia app rotula «dilatación leve»— encendía una nota de Clase I
+     sobre reemplazo de raíz. Y la fila de aorta de ESTA MISMA tarjeta decía, sobre el mismo
+     número, «no alcanza los 45 mm». Dos conclusiones sobre el mismo procedimiento a cinco
+     renglones de distancia: el defecto que esta sección se propuso evitar.
+     La guía no publica un número para esa fila («dilatación de la raíz»), así que se usa el
+     único corte de raíz que SÍ tiene esta tabla —los 45 mm del reemplazo concomitante—, que es
+     además el que imprime la fila de al lado. Un umbral por tarjeta, no uno por renglón. */
+  D.raizDilatada = !!(D.aoRaiz && !D.aoRaiz.fuera && D.aoRaiz.val >= IA_CRIT_2025.ao_concom);
+
+  /* Los criterios, cada uno con su operador tal como lo imprime la guía. `true` cumple, `false`
+     medido y no cumple, `null` NO EVALUADO. */
+  D.cI = {
+    dtsvi:     D.dsf.val != null ? D.dsf.val > IA_CRIT_2025.dtsvi         : null,
+    dtsvi_idx: D.dsfi   != null ? D.dsfi   > IA_CRIT_2025.dtsvi_idx       : null,
+    fevi:      (D.fev.val != null && UF != null) ? D.fev.val <= UF        : null
+  };
+  D.cIIb = {
+    dtsvi_idx: D.dsfi   != null ? D.dsfi   > IA_CRIT_2025.dtsvi_idx_iib   : null,
+    fevi:      D.fev.val != null ? D.fev.val <= IA_CRIT_2025.fevi_iib     : null,
+    /* ⚠️ SIEMPRE `null`, Y NO ES UN OLVIDO. No existe campo de volumen telesistólico del VI en
+       esta app —`vol_lat` es volumen LATIDO—, así que este criterio no se puede evaluar NUNCA.
+       Como los tres se unen con «o», eso PROHÍBE negar la fila IIb: decir «sin criterio» con un
+       disparador sin mirar es el `!predicadoEstricto()` que falla abierto. Se declara. */
+    vtsvi_idx: null
+  };
+  const vals = function(o){ return Object.keys(o).map(function(k){ return o[k]; }); };
+  D.algunoI   = vals(D.cI).indexOf(true) > -1;
+  D.todosIEval= vals(D.cI).every(function(x){ return x !== null; });
+  D.algunoIIb = vals(D.cIIb).indexOf(true) > -1;
+  D.faltanIIb = Object.keys(D.cIIb).filter(function(k){ return D.cIIb[k] === null; });
+  return D;
+}
+
+/* La MODALIDAD sólo se propone cuando ya hay indicación: proponer una vía de intervención sobre
+   un paciente sin criterio es publicar una conducta que la guía no indica (mismo criterio que la
+   EAo). Acá la modalidad tiene una rama propia —el TAVI de la 2025, que es fila NUEVA— y esa
+   fila exige SÍNTOMAS además de la inelegibilidad, así que las dos condiciones se comprueban. */
+function _indIAModalidad(D, cand, rq, sintomatico){
+  const notas = [];
+  /* El ≥ 45 mm de la aorta concomitante va en la modalidad y no en la indicación: cambia CÓMO se
+     opera, no SI se opera. Y su fila exige riesgo bajo, así que sin ese dato se pide. */
+  if (D.aoMax && D.aoMax.val >= IA_CRIT_2025.ao_concom) {
+    const cual = D.aoMax.sg.lbl + ' ' + _indNum(D.aoMax.val, 0, 'mm');
+    if (rq === 'bajo') notas.push('Con la indicación establecida y riesgo quirúrgico bajo, corresponde considerar además el reemplazo de la raíz o de la aorta ascendente: el diámetro máximo (' + cual + ') alcanza los ' + IA_CRIT_2025.ao_concom + ' mm de esa fila (Clase IIa · Nivel C).');
+    else if (rq === 'no_bajo') notas.push('El diámetro máximo de la aorta (' + cual + ') alcanza los ' + IA_CRIT_2025.ao_concom + ' mm, pero esa fila exige riesgo quirúrgico BAJO y el consignado no lo es: la decisión vuelve al Heart Team.');
+    else notas.push('El diámetro máximo de la aorta (' + cual + ') alcanza los ' + IA_CRIT_2025.ao_concom + ' mm. Falta el riesgo quirúrgico para saber si corresponde considerar el reemplazo concomitante (Clase IIa · Nivel C exige riesgo bajo).');
+  }
+  /* La nota de preservación valvular NO se adjunta a la rama del paciente declarado NO elegible
+     para cirugía: ahí publicaría un reemplazo de raíz Clase I al lado de un TAVI, que son dos
+     conductas mutuamente excluyentes en el mismo párrafo. */
+  const notaVsarr = D.raizDilatada
+    ? 'La raíz aórtica alcanza el corte de ' + IA_CRIT_2025.ao_concom + ' mm: en el paciente JOVEN la guía recomienda el reemplazo de raíz con preservación valvular en centros con experiencia (Clase I · Nivel B). La guía no define «joven» con un número, así que esa condición queda a criterio del equipo.'
+    : '';
+  const cerrar = function(o, conVsarr){ const ns = notas.slice();
+    if (conVsarr && notaVsarr) ns.push(notaVsarr);
+    if (ns.length) o.nota = (o.nota ? o.nota + ' ' : '') + ns.join(' ');
+    return o; };
+
+  if (cand === 'no') {
+    if (sintomatico) return cerrar({ txt:IA_REC_2025.tavi.t, clase:IA_REC_2025.tavi.c,
+      nota:'Queda una condición que esta aplicación no registra: que la anatomía sea apta (acceso, dimensiones del anillo, calcificación y anclaje — la insuficiencia aórtica pura suele carecer de calcio que fije la prótesis).' }, false);
+    /* ⚠️ NO SE PUBLICA EL TEXTO NI LA CLASE DE UNA FILA CUYA CONDICIÓN ACABAMOS DE COMPROBAR QUE
+       NO SE CUMPLE. La primera versión devolvía el `txt` y el `clase` del TAVI también acá, con
+       un aviso al pie diciendo que no aplicaba: el titular del bloque quedaba «TAVI PUEDE
+       CONSIDERARSE… Clase IIb · Nivel B» sobre un ASINTOMÁTICO, que es a quien esa fila no
+       cubre. Es el mismo patrón que `_indEAModalidad` evita cuando le falta la edad: el titular
+       pasa a Heart Team y la fila inaplicable se NOMBRA en la nota, nunca se publica. */
+    return cerrar({ txt:'La vía de intervención se decide por evaluación del Heart Team.', clase:'',
+      nota:'El paciente figura como no elegible para cirugía, pero la fila de TAVI de la edición 2025 está escrita para el paciente SINTOMÁTICO y acá los síntomas no están consignados como presentes: no se la puede aplicar. Contestar los síntomas es lo que la habilitaría.' }, false);
+  }
+  if (cand === 'si') return cerrar({ txt:IA_REC_2025.repar.t, clase:IA_REC_2025.repar.c,
+    nota:'La cirugía de reemplazo es la conducta de referencia; la REPARACIÓN es la fila que la guía graduó en 2025 (subió de Clase IIb · Nivel C a Clase IIa · Nivel B). Sus dos condiciones —centro con experiencia y resultados duraderos esperables— no las puede afirmar esta aplicación.' }, true);
+  return cerrar({ txt:'La vía de intervención se decide por evaluación del Heart Team.', clase:'',
+    nota:'Falta consignar si el paciente es candidato a cirugía: es lo que separa la cirugía (con la reparación como Clase IIa · Nivel B) del TAVI (Clase IIb · Nivel B), que en 2025 es fila nueva y sólo para el sintomático no elegible para cirugía.' }, true);
+}
+
+function _indIARecom(D){
+  const fal = function(txt, faltan){ return { tipo:'falta', tit:'Falta un dato para aplicar la guía', txt:txt, faltan:faltan }; };
+  const sx = _indClinGet('ia.sintomas'), cx = _indClinGet('ia.cxconcom');
+  const rq = _indClinGet('ia.riesgo'),   cand = _indClinGet('ia.cxcandidato');
+  const sintomatico = sx === 'si';
+  /* El texto que declara el criterio que esta app no puede mirar. Se arma una vez porque lo
+     necesitan las DOS salidas que podrían leerse como una negación. */
+  const AVISO_VOL = 'El volumen telesistólico indexado (> 45 ml/m², Clase IIb · Nivel B) es el tercer disparador de esa fila y esta aplicación NO lo calcula: no hay campo de volumen telesistólico del ventrículo izquierdo. Así que no se puede descartar por esta vía — hay que estimarlo por volúmenes ecocardiográficos o por resonancia.';
+  /* ⚠️ LA CIRUGÍA CONCOMITANTE SIN CONTESTAR NO PUEDE QUEDAR MUDA EN LA RAMA DEL ASINTOMÁTICO.
+     Esa fila es Clase I · Nivel C «con o sin síntomas», así que OUTRANQUEA a cualquier cosa que
+     produzca esta rama: publicar una Clase IIb, o peor, pedir el volumen telesistólico como si
+     fuera lo único que falta, es nombrar la causa equivocada y mandar a revisar lo que está sano
+     —el mismo defecto que el «falta el gradiente medio» de la estenosis aórtica—. Se declara en
+     las dos salidas que podrían leerse como conclusión. */
+  const cxMudo = (cx == null);
+  const CX_PEND = 'Cirugía cardíaca ya programada (es Clase I · Nivel C y manda sobre lo de abajo)';
+  const AVISO_CX = 'Falta consignar si el paciente ya va a otra cirugía cardíaca: si va a revascularización coronaria, a cirugía de la aorta ascendente o a cirugía de otra válvula, la indicación pasa a ser Clase I · Nivel C y no depende de los criterios de tamaño ni de la FEVI.';
+
+  let r = null;
+  if (sintomatico) r = { k:'sint' };
+  /* La cirugía concomitante es Clase I «con o sin síntomas», así que va DESPUÉS del sintomático
+     —que es Nivel B y por lo tanto más fuerte— pero ANTES de cualquier criterio de VI. */
+  else if (cx === 'cabg_ao')  r = { k:'concom_ao' };
+  else if (cx === 'otra_valv') r = { k:'concom_val' };
+  else if (sx === 'no') {
+    if (D.algunoI) r = { k:'asint_i' };
+    /* ⚠️ NO SE NIEGA CON CRITERIOS SIN EVALUAR. Si ninguno de los tres de Clase I disparó pero
+       alguno no se pudo mirar, lo que falta es el dato, no el criterio. */
+    else if (!D.todosIEval) {
+      const q = [];
+      /* ⚠️ CADA CAUSA CON SU NOMBRE. Un «falta la FEVI» sobre un campo lleno manda a revisar lo
+         que está sano: las tres razones por las que un criterio queda sin evaluar —el dato no
+         está, el dato está pero es ilegible, o la banda que decide si es legible no cargó— son
+         distintas y accionables de forma distinta. */
+      if (D.cI.dtsvi === null) q.push(D.dsf.fuera ? 'Diámetro telesistólico del VI: el valor cargado está fuera de rango medible — revisar la unidad'
+        : D.dsf.sinBanda ? 'Diámetro telesistólico del VI: no se pudo cargar la banda de plausibilidad — recargar la aplicación'
+        : 'Diámetro telesistólico del VI');
+      if (D.cI.dtsvi_idx === null && D.dsf.val != null) q.push(
+        D.bsaFuera ? 'El peso o la talla cargados están fuera de rango medible, así que no se puede indexar el diámetro — revisar la unidad'
+        : D.bsaSinBanda ? 'Superficie corporal: no se pudo cargar la banda de plausibilidad de peso y talla — recargar la aplicación'
+        : 'Superficie corporal (peso y talla) para indexar el diámetro');
+      if (D.cI.fevi === null) q.push(D.fev.fuera ? 'FEVI: el valor cargado está fuera de rango medible'
+        : D.fev.sinBanda ? 'FEVI: no se pudo cargar la banda de plausibilidad — recargar la aplicación'
+        : UF == null ? 'El umbral de FEVI no está disponible — recargar la aplicación'
+        : 'FEVI del estudio');
+      if (cxMudo) q.push(CX_PEND);
+      return fal('En el paciente asintomático son el diámetro telesistólico del VI —absoluto o indexado— y la FEVI los que separan la Clase I de la vigilancia. Con lo cargado no se puede afirmar ni descartar ninguno de los tres.', q);
+    }
+    else if (rq == null) return fal('Descartada la Clase I, la única fila que queda para el asintomático es de Clase IIb y exige que el riesgo quirúrgico sea bajo.',
+      cxMudo ? ['Riesgo quirúrgico', CX_PEND] : ['Riesgo quirúrgico']);
+    /* ⚠️ «SIN CRITERIO» ES UNA CONDUCTA, Y NO SE PUBLICA CON UNA CLASE I SIN CONTESTAR.
+       Acá el volumen telesistólico NO contamina —la fila IIb queda excluida por el riesgo, no
+       por el volumen, así que mirarlo no cambiaría nada— y por eso esta rama puede concluir.
+       Pero la cirugía concomitante SÍ la cambiaría: es Clase I · Nivel C y la desplaza entera.
+       Declararla en una nota no alcanza cuando el título dice «Sin criterio de intervención»:
+       las otras cuatro salidas de esta cascada bajan a `falta` ante una pregunta que desplaza la
+       conclusión, y ésta era la única que no. Ahora hacen todas lo mismo. */
+    else if (rq !== 'bajo') {
+      if (cxMudo) return fal('No se alcanza ninguno de los tres criterios de Clase I del asintomático y la fila de Clase IIb exige riesgo quirúrgico BAJO, pero queda sin contestar una pregunta que desplazaría esa conclusión. ' + AVISO_VOL, [CX_PEND]);
+      return { tipo:'no', tit:'Sin criterio de intervención por ahora',
+        txt:'No se alcanza ninguno de los tres criterios de Clase I del asintomático, y la fila de Clase IIb exige riesgo quirúrgico BAJO. Corresponde seguimiento estrecho.',
+        nota:AVISO_VOL };
+    }
+    else if (D.algunoIIb) r = { k:'asint_iib', por: D.cIIb.dtsvi_idx === true
+      ? 'Parámetro presente: diámetro telesistólico indexado > ' + IA_CRIT_2025.dtsvi_idx_iib + ' mm/m².'
+      : 'Parámetro presente: FEVI ≤ ' + IA_CRIT_2025.fevi_iib + ' %.' };
+    /* ⚠️ ACÁ ESTABA LA TRAMPA. Los tres disparadores de la fila IIb se unen con «o» y uno de
+       ellos esta app no lo mide, así que un «sin criterio» limpio sería una negación sobre una
+       pregunta que nadie miró. Se devuelve `falta`, no `no`. */
+    else return fal('No se alcanza ninguno de los criterios evaluables de la fila de Clase IIb del asintomático de riesgo bajo, pero uno de sus tres disparadores queda sin mirar. ' + AVISO_VOL,
+      cxMudo
+        ? ['Volumen telesistólico del VI indexado — no lo calcula esta aplicación', CX_PEND]
+        : ['Volumen telesistólico del VI indexado — no lo calcula esta aplicación']);
+  }
+  else return fal('Los síntomas son lo que separa la Clase I —que en la insuficiencia aórtica severa es independiente de la función del ventrículo izquierdo— de los criterios de tamaño y función del asintomático.', ['Síntomas']);
+
+  const rec = IA_REC_2025[r.k];
+  const out = { tipo:'ind', tit:'Recomendación de la guía', txt:rec.t, clase:rec.c, fuente:IA_FUENTE };
+  const notas = [];
+  if (r.por) notas.push(r.por);
+  /* Un sintomático que además va a otra cirugía: la fila que se publica es la de Nivel B, y la
+     concomitante se declara para que no parezca que se la pasó por alto. */
+  if (sintomatico && (cx === 'cabg_ao' || cx === 'otra_valv')) notas.push('El paciente además va a otra cirugía cardíaca, que por sí sola ya sería Clase I · Nivel C: se publica la fila del sintomático porque su nivel de evidencia es mayor.');
+  /* Una recomendación del asintomático publicada con la cirugía concomitante sin contestar está
+     APOYADA en menos de lo que la guía tiene: esa fila es Clase I y la desplazaría. */
+  if ((r.k === 'asint_i' || r.k === 'asint_iib') && cxMudo) notas.push(AVISO_CX);
+  /* La 2025 cuantificó «talla pequeña». Se declara cuando aplica, porque es el caso en que el
+     criterio indexado manda sobre el absoluto. */
+  if ((r.k === 'asint_i' || r.k === 'asint_iib') && D.bsaChica === true)
+    notas.push('Superficie corporal < ' + String(IA_CRIT_2025.bsa_chica).replace('.', ',') + ' m²: la guía señala el criterio INDEXADO como el que manda en la talla pequeña, y es el que puede disparar con un diámetro absoluto todavía por debajo de los ' + IA_CRIT_2025.dtsvi + ' mm.');
+  if (r.k === 'asint_i' && D.cI.dtsvi === false && D.cI.dtsvi_idx === false && D.cI.fevi === true)
+    notas.push('El criterio que se alcanza es el de FEVI: los dos diámetros están por debajo de sus cortes.');
+  /* La fila de Clase I del asintomático se publica con los tres criterios evaluados; si alguno
+     disparó pero otro quedó sin mirar, se dice — no cambia la conducta, pero el lector tiene que
+     saber sobre qué se afirmó. */
+  if (r.k === 'asint_i' && !D.todosIEval)
+    notas.push('Uno de los tres criterios de esta fila no se pudo evaluar con los datos cargados. La recomendación se sostiene en el que sí disparó.');
+  if (r.k === 'asint_iib') notas.push(AVISO_VOL);
+  /* La aorta fuera de banda se declara siempre que haya indicación, porque el bloque de
+     modalidad decide con el diámetro máximo y un valor ilegible lo deja mudo sin decir por qué. */
+  if (D.aoFuera.length) notas.push('Fuera de rango medible: ' + D.aoFuera.join(' y ') + '. Ese valor no entra en el diámetro máximo que decide el reemplazo concomitante de la aorta.');
+  if (notas.length) out.nota = notas.join(' ');
+  out.mod = _indIAModalidad(D, cand, rq, sintomatico);
+  out.mod.fuente = IA_FUENTE;
+  return out;
+}
+
 /* ── Insuficiencia aórtica ─────────────────────────────────────────────────────────────────
    Mismo criterio de compuerta que la mitral: `ia_sev_final === '4'`, no 3. */
 function _indIA(){
   if (_indS('ia_sev_final') !== '4') return null;
-  const UF = _indUmb('UMBRAL_FEVI_NORMAL');
-  const fevi = _indN('fevi'), dsf = _indN('dsfvi'), asc = _indN('ao_tub');
+  const D = _indIADatos();
+  const UF = D.UF;
+  /* La recomendación se calcula ANTES de las filas porque una de ellas la necesita: el ✅ de la
+     aorta afirma «este dato alcanza un criterio de la guía», y el criterio de esa fila empieza
+     con «con indicación de cirugía valvular establecida». Sin esto, un asintomático de riesgo no
+     bajo y sin ningún criterio veía ✅ sobre una fila cuya precondición el mismo panel negaba
+     tres renglones más abajo. */
+  const recom = _indIARecom(D);
+  const hayIndicacion = !!recom && recom.tipo === 'ind';
   const filas = [_indFila('Grado de insuficiencia aórtica', 'Severa', 'ok', 'severidad confirmada en el estudio')];
   /* Acá es al revés que en la aórtica estenótica: la FEVI SÍ es criterio, y el que cumple es el
-     valor BAJO. Una FEVI conservada no alcanza ningún criterio y por eso va con «—». */
+     valor BAJO. Pero hay DOS cortes en DOS clases distintas, así que la fila los distingue: una
+     FEVI de 53 % alcanza un criterio (IIb, con riesgo bajo) y no alcanza el otro (I). */
   filas.push(UF == null ? _indSinUmbral('FEVI')
-    : _indFila('FEVI', _indNum(fevi, 0, '%'),
-        _le(fevi, UF) ? 'alarm' : (fevi != null ? 'none' : 'ask'),
-        _le(fevi, UF) ? '≤ ' + UF + ' % — criterio de cirugía Clase I' : (fevi != null ? 'conservada (> ' + UF + ' %)' : 'sin medir')));
-  /* El DTSI es criterio Clase I al mismo nivel que la FEVI y el pedido no lo tenía. Su versión
-     indexada (> 25 mm/m²) también, y es la que manda en el paciente de talla pequeña. */
-  const _g = _indFn('getBSA'), _bsa = _g ? _g() : null;
-  const dsfi = (dsf != null && _bsa != null && _bsa > 0) ? dsf / _bsa : null;
-  filas.push(_indFila('DTSI — diámetro telesistólico del VI', _indNum(dsf, 0, 'mm'),
-    _gt(dsf, 50) ? 'ok' : (dsf != null ? 'none' : 'ask'),
-    _gt(dsf, 50) ? '> 50 mm — criterio de cirugía Clase I' : (dsf != null ? 'no supera 50 mm' : 'sin medir')));
-  filas.push(_indFila('DTSI indexado', _indNum(dsfi, 1, 'mm/m²'),
-    _gt(dsfi, 25) ? 'ok' : (dsfi != null ? 'none' : 'ask'),
-    _gt(dsfi, 25) ? '> 25 mm/m² — criterio de cirugía Clase I, el que manda en talla pequeña'
-    : (dsfi != null ? 'no supera 25 mm/m²' : 'requiere peso y talla')));
-  /* `ao_tub` («Ao tubular») es la fuente canónica de la ascendente. `vab_asc_ro` la espeja en
-     gris dentro de la sección de bicúspide: leer el espejo sería leer una copia.
-     Va como contexto y no como criterio: el aneurisma de raíz o de aorta ascendente tiene su
-     propia tabla de indicaciones, que no es ésta. */
-  filas.push(_indFila('Aorta ascendente', _indNum(asc, 0, 'mm'),
-    _gt(asc, 50) ? 'warn' : (asc != null ? 'none' : 'ask'),
-    _gt(asc, 50) ? '> 50 mm — la aorta tiene su propia tabla de indicaciones, no ésta' : (asc != null ? 'no supera 50 mm' : 'sin medir')));
+    : _indFila('FEVI', D.fev.fuera ? '—' : _indNum(D.fev.val, 0, '%'),
+        D.cI.fevi === true ? 'alarm'
+          : D.cIIb.fevi === true ? 'ok'
+          : D.fev.fuera ? 'warn' : (D.fev.val != null ? 'none' : 'ask'),
+        D.fev.fuera ? 'el valor cargado (' + _indNum(D.fev.crudo, 0) + ') está fuera de rango medible — revisar la unidad'
+        : D.cI.fevi === true ? '≤ ' + UF + ' % — criterio de cirugía Clase I · Nivel B; además disfunción sistólica establecida'
+        : D.cIIb.fevi === true ? '> ' + UF + ' % y ≤ ' + IA_CRIT_2025.fevi_iib + ' % — criterio de Clase IIb · Nivel B, y sólo si el riesgo quirúrgico es bajo'
+        : D.fev.val != null ? 'conservada (> ' + IA_CRIT_2025.fevi_iib + ' %)'
+        : D.fev.sinBanda ? 'banda de plausibilidad no disponible — recargar la aplicación'
+        : 'sin medir'));
+  /* El diámetro telesistólico es criterio Clase I al mismo nivel que la FEVI, y su versión
+     indexada es la que manda en la talla pequeña — que en 2025 tiene número: superficie corporal
+     por debajo de 1,68 m². Se rotula DTSVI, que es la abreviatura estándar; «DTSI» no lo es. */
+  filas.push(_indFila('DTSVI — diámetro telesistólico del VI', D.dsf.fuera ? '—' : _indNum(D.dsf.val, 0, 'mm'),
+    D.cI.dtsvi === true ? 'ok' : (D.dsf.fuera ? 'warn' : (D.dsf.val != null ? 'none' : 'ask')),
+    D.dsf.fuera ? 'el valor cargado (' + _indNum(D.dsf.crudo, 1) + ') está fuera de rango medible (' + D.dsf.b[0] + '–' + D.dsf.b[1] + ' mm) — revisar la unidad: un valor ilegible no sostiene ni descarta el criterio'
+    : D.cI.dtsvi === true ? '> ' + IA_CRIT_2025.dtsvi + ' mm — criterio de cirugía Clase I · Nivel B'
+    : D.dsf.val != null ? 'no supera ' + IA_CRIT_2025.dtsvi + ' mm'
+    : D.dsf.sinBanda ? 'banda de plausibilidad no disponible — recargar la aplicación'
+    : 'sin medir'));
+  filas.push(_indFila('DTSVI indexado', _indNum(D.dsfi, 1, 'mm/m²'),
+    D.cI.dtsvi_idx === true ? 'ok' : (D.cIIb.dtsvi_idx === true ? 'ok' : (D.dsfi != null ? 'none' : 'ask')),
+    D.cI.dtsvi_idx === true ? '> ' + IA_CRIT_2025.dtsvi_idx + ' mm/m² — criterio de cirugía Clase I · Nivel B'
+    : D.cIIb.dtsvi_idx === true ? '> ' + IA_CRIT_2025.dtsvi_idx_iib + ' y ≤ ' + IA_CRIT_2025.dtsvi_idx + ' mm/m² — criterio de Clase IIb · Nivel B, y sólo si el riesgo quirúrgico es bajo'
+    : D.dsfi != null ? 'no supera ' + IA_CRIT_2025.dtsvi_idx_iib + ' mm/m²'
+    /* El peso y la talla fuera de banda se nombran acá y no se disimulan como «requiere peso y
+       talla»: el dato está cargado, lo que pasa es que no se puede creer. */
+    : D.bsaFuera ? 'el peso o la talla cargados están fuera de rango medible — revisar la unidad'
+    : D.bsaSinBanda ? 'banda de plausibilidad de peso y talla no disponible — recargar la aplicación'
+    : D.dsf.val == null ? 'requiere el diámetro telesistólico' : 'requiere peso y talla'));
+  /* ⚠️ EL CRITERIO QUE ESTA APP NO PUEDE MIRAR, DICHO EN VOZ ALTA. Es el tercer disparador de la
+     fila IIb y no hay campo de volumen telesistólico del VI. Callarlo dejaría al médico leyendo
+     una fila de dos criterios donde la guía tiene tres, y es lo que obliga a `_indIARecom` a
+     devolver «falta» en vez de «sin criterio». El panel declara lo que no aporta: eso está en su
+     cabecera como parte del contrato. */
+  filas.push(_indFila('VTSVI indexado — volumen telesistólico', '—', 'ask',
+    '> ' + IA_CRIT_2025.vtsvi_idx + ' ml/m² es criterio de Clase IIb · Nivel B (nuevo en 2025). Esta aplicación no lo calcula: no tiene campo de volumen telesistólico del VI. Se estima por volúmenes ecocardiográficos o por resonancia.'));
+  /* La aorta ya NO es sólo contexto: en 2025 el reemplazo CONCOMITANTE de raíz o ascendente desde
+     45 mm es una fila graduada de esta misma tabla (Clase IIa · Nivel C). Y dice «raíz O
+     ascendente», así que se toma el diámetro MÁXIMO de los dos y no sólo `ao_tub` como antes.
+     Lo que sigue viviendo en otra guía es el aneurisma AISLADO, sin indicación valvular. */
+  const aoLbl = 'Aorta — raíz o ascendente (diámetro máximo)';
+  /* ⚠️ «DIÁMETRO MÁXIMO» SOBRE UN SOLO SEGMENTO NO ES EL MÁXIMO. Con la raíz sin medir y la
+     ascendente en 42 mm, la fila decía «no alcanza los 45 mm» bajo un rótulo que promete los dos:
+     una raíz aneurismática no medida quedaba afuera sin que nada lo dijera. Se declara. */
+  const aoPend = D.aoSinMedir.length ? ' Sin medir ' + D.aoSinMedir.join(' ni ') + ': el máximo sale sólo de lo medido.' : '';
+  filas.push(!D.aoMax
+    ? _indFila(aoLbl, '—', 'ask', D.aoFuera.length
+        ? 'fuera de rango medible: ' + D.aoFuera.join(' y ') + ' — revisar la unidad'
+        : 'sin medir la raíz ni la aorta ascendente')
+    : _indFila(aoLbl, _indNum(D.aoMax.val, 0, 'mm') + ' (' + D.aoMax.sg.lbl + ')',
+        (D.aoMax.val >= IA_CRIT_2025.ao_concom && hayIndicacion) ? 'ok'
+          : (D.aoMax.val >= IA_CRIT_2025.ao_concom ? 'warn' : 'none'),
+        D.aoMax.val >= IA_CRIT_2025.ao_concom
+          ? (hayIndicacion
+              ? '≥ ' + IA_CRIT_2025.ao_concom + ' mm — con riesgo quirúrgico bajo, reemplazo concomitante a considerar (Clase IIa · Nivel C)' + aoPend
+              : '≥ ' + IA_CRIT_2025.ao_concom + ' mm, pero esa fila exige que la cirugía valvular YA esté indicada y acá todavía no lo está. El aneurisma aislado se rige por la guía de aorta, no por esta tabla.' + aoPend)
+          : 'no alcanza los ' + IA_CRIT_2025.ao_concom + ' mm del reemplazo concomitante' + aoPend));
+
+  /* ── Los datos que el ecocardiograma no da, ahora CONTESTABLES ────────────────────────────
+     Cuatro controles, y el censo del panel ANTES de esto tenía UNO solo (síntomas). Los otros
+     tres no estaban porque las filas que los exigen no se mostraban: la cirugía concomitante es
+     Clase I, el riesgo quirúrgico es condición de la única fila que le queda al asintomático, y
+     la candidatura a cirugía es lo que separa cirugía de TAVI.
+
+     La MARCA sigue significando «este dato alcanza un criterio de la guía», no «contestada». */
+  const _sx = _indClinGet('ia.sintomas'), _cx = _indClinGet('ia.cxconcom');
+  const _rq = _indClinGet('ia.riesgo'),   _cand = _indClinGet('ia.cxcandidato');
+  const clinica = [
+    _indFilaCtrl('Síntomas', 'ia.sintomas',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      _sx === 'si' ? 'ok' : (_sx === 'no' ? 'none' : 'ask'),
+      _sx === 'si' ? 'Clase I · Nivel B por sí solos, con independencia de la función del ventrículo izquierdo'
+      : _sx === 'no' ? 'el asintomático entra por los criterios de diámetro y FEVI de arriba'
+      : 'sin esto no se puede separar la Clase I de los criterios del asintomático'),
+    /* ⚠️ TRES BANDAS Y NO DOS, porque son DOS FILAS DISTINTAS de la guía y viven en tablas
+       distintas: «va a CABG o cirugía de aorta ascendente» está en la tabla de insuficiencia
+       aórtica, y «va a cirugía de otra válvula» está en la tabla de valvulopatía izquierda
+       concomitante. Las dos son Clase I · Nivel C. Fundirlas en un «va a otra cirugía» sería
+       citar una fila que no existe; separarlas deja que cada una nombre la suya. */
+    _indFilaCtrl('Cirugía cardíaca ya programada', 'ia.cxconcom',
+      [{v:'no',t:'Ninguna'},{v:'cabg_ao',t:'Coronaria o aorta ascendente'},{v:'otra_valv',t:'Otra válvula'}],
+      (_cx === 'cabg_ao' || _cx === 'otra_valv') ? 'ok' : (_cx === 'no' ? 'none' : 'ask'),
+      _cx === 'cabg_ao' ? 'Clase I · Nivel C con o sin síntomas — fila de la tabla de insuficiencia aórtica'
+      : _cx === 'otra_valv' ? 'Clase I · Nivel C — fila de la tabla de valvulopatía izquierda concomitante'
+      : _cx === 'no' ? 'sin otra cirugía programada la indicación se decide por síntomas y por los criterios de arriba'
+      : 'es Clase I con o sin síntomas, así que cambia la conducta antes que cualquier medida'),
+    /* DOS BANDAS, y acá la guía NO da número para esta válvula: el «riesgo quirúrgico bajo» de
+       las filas de insuficiencia aórtica va sin corte. No se le presta el < 4 % de la fila de
+       SAVR de la estenosis aórtica, que es de otra tabla y de otra decisión. */
+    _indFilaCtrl('Riesgo quirúrgico', 'ia.riesgo',
+      [{v:'bajo',t:'Bajo'},{v:'no_bajo',t:'No bajo'}],
+      _rq === 'bajo' ? 'ok' : (_rq === 'no_bajo' ? 'none' : 'ask'),
+      _rq == null ? 'lo exige la fila de Clase IIb del asintomático y la del reemplazo concomitante de la aorta'
+      : 'en las filas de insuficiencia aórtica la guía pide «riesgo quirúrgico bajo» SIN corte numérico: no se le aplica el < 4 % que la tabla de estenosis aórtica usa para SAVR'),
+    _indFilaCtrl('Candidato a cirugía (Heart Team)', 'ia.cxcandidato',
+      [{v:'si',t:'Sí'},{v:'no',t:'No elegible'}],
+      _cand == null ? 'ask' : 'none',
+      _cand === 'no' ? 'el TAVI en insuficiencia aórtica es Clase IIb · Nivel B y sólo para el sintomático NO elegible para cirugía, con anatomía apta — fila nueva de la edición 2025'
+      : _cand === 'si' ? 'la vía quirúrgica incluye la REPARACIÓN, que en 2025 subió a Clase IIa · Nivel B en centros con experiencia'
+      : 'decide la MODALIDAD, no la indicación: separa cirugía de TAVI')
+  ];
+
+  /* El aviso de cabecera cubre los TRES insumos que pueden anular un criterio de Clase I, no
+     sólo el diámetro: una FEVI de 0,58 en vez de 58 y un peso de 500 en vez de 50 hacen lo mismo
+     y antes sólo se declaraban dentro de su fila. */
+  const ilegibles = [];
+  if (D.dsf.fuera) ilegibles.push('el diámetro telesistólico del VI');
+  if (D.fev.fuera) ilegibles.push('la FEVI');
+  if (D.bsaFuera)  ilegibles.push('el peso o la talla');
   return { filas: filas,
-    clinica: [_indFila('Síntomas', '—', 'ask', 'con síntomas la cirugía es Clase I con independencia de la función del VI')],
-    guia: 'ESC/EACTS 2021 — Cirugía Clase I B en el paciente sintomático sea cual sea la función del VI, y en el asintomático con DTSI > 50 mm, DTSI indexado > 25 mm/m² o FEVI en reposo ≤ 50 %.',
-    notas: ['El corte de 20 mm/m² es Clase IIb C, no I, y va junto con FEVI ≤ 55 % y riesgo quirúrgico bajo. En la ESC/EACTS 2025 esa fila se reescribió a DTSI indexado > 22 mm/m². Ojo: el 20 mm/m² de la edición 2025 es el umbral MITRAL, no el aórtico.'] };
+    aviso: ilegibles.length
+      ? 'Fuera de rango medible: ' + ilegibles.join(' y ') + '. Es lo que sostiene los criterios de Clase I del asintomático, así que revisar la unidad antes de leer la recomendación.' : '',
+    clinica: clinica,
+    recom: recom,
+    guia: 'ESC/EACTS 2025 — Cirugía Clase I · Nivel B en el paciente sintomático sea cual sea la función del VI, y en el asintomático con DTSVI > 50 mm, DTSVI indexado > 25 mm/m² o FEVI en reposo ≤ 50 %. Esos tres cortes NO cambiaron respecto de la edición 2021.',
+    notas: [
+      'La fila de intervención precoz del asintomático de riesgo bajo es Clase IIb · Nivel B: DTSVI indexado > 22 mm/m², volumen telesistólico indexado > 45 ml/m² o FEVI ≤ 55 %. La edición 2025 movió el diámetro indexado de 20 a 22 mm/m², agregó el criterio de volumen y subió el nivel de evidencia de C a B.',
+      'La «talla pequeña» que hace mandar a los criterios indexados dejó de ser cualitativa: en 2025 es una superficie corporal menor de 1,68 m².',
+      'El diámetro TELEDIASTÓLICO no es criterio de esta tabla. El > 65 mm que suele citarse es texto del cuerpo del documento, sin clase asignada, y además exige progresión de los diámetros o caída de la FEVI en el seguimiento, que no se resuelve con un estudio aislado.',
+      'La reparación valvular subió en 2025 de Clase IIb · Nivel C a Clase IIa · Nivel B, y el TAVI para la insuficiencia aórtica es fila nueva (Clase IIb · Nivel B) reservada al sintomático no elegible para cirugía.',
+      'El aneurisma AISLADO de raíz o de aorta ascendente —sin indicación valvular— se rige por la guía de aorta y no por esta tabla. Lo que sí es fila de acá son los 45 mm del reemplazo CONCOMITANTE cuando la cirugía valvular ya está indicada y el riesgo es bajo.',
+      'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
+    ] };
 }
 
 /* ── CIA ───────────────────────────────────────────────────────────────────────────────────
@@ -77320,8 +77786,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260926-1724';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790454266743;                 /* eco-build-ms */
+const ECO_BUILD    = '20260926-2007';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790464023423;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -77407,7 +77873,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260926-1724</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260926-2007</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

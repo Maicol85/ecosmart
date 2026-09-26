@@ -29221,6 +29221,428 @@ caso('TC-276', 'Lo que se marca en el panel de Evidencia no se guarda, no viaja 
   })();
 `);
 
+/* ══ INSUFICIENCIA AORTICA INTERACTIVA — TC-277 y TC-278 ═════════════════════════════════════
+   Tercera seccion contestable, MISMO mecanismo que la estenosis aortica (TC-275/276): botones
+   data-ind-clin con oyente delegado, panel abierto, y nada que se persista.
+
+   ⚠️ LOS UMBRALES SE PRUEBAN POR LOS DOS LADOS DEL CORTE y con el valor que DISTINGUE el umbral
+   correcto del error plausible. Con BSA = 2,00 exacta (peso 80 / talla 180) el diametro indexado
+   es el diametro sobre dos, asi que 44 mm da 22,0 —que NO supera 22— y 46 mm da 23,0 que si.
+   Un caso que mirara 40 y 60 pasaria igual con el corte corrido de 22 a 25, que es precisamente
+   el error que esta seccion tenia que cerrar (el 20 de la edicion 2021).
+
+   ⚠️ Y LOS DOS UMBRALES DE FEVI SON DE CLASES DISTINTAS: 50 es Clase I y 55 es Clase IIb. El
+   caso cruza 50/51 y 55/56 porque colapsarlos convierte una conducta IIb en una Clase I. */
+
+const IA_IDS = "['ia_sev_final','ia_grado','fevi','dsfvi','ddfvi','peso','talla'," +
+  "'ao_sin','ao_st','ao_tub']";
+const IA_CLAVES = "['ia.sintomas','ia.cxconcom','ia.riesgo','ia.cxcandidato']";
+
+caso('TC-277', 'Insuficiencia aortica: la recomendacion ESC 2025 se recalcula con lo que el medico contesta', `
+  return (async () => {
+    if (typeof indicAbrir !== 'function' || typeof window._indIA !== 'function')
+      return { extra:[['existen indicAbrir y _indIA', false, '']] };
+    const IDS = ${IA_IDS};
+    const limpiar = () => IDS.forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+    const noEntraron = [];
+    const set = o => Object.keys(o).forEach(id => { const e = document.getElementById(id);
+      if (!e) { noEntraron.push('FALTA ' + id); return; }
+      e.value = o[id];
+      e.dispatchEvent(new Event('input', { bubbles:true }));
+      e.dispatchEvent(new Event('change', { bubbles:true }));
+      if (e.value !== String(o[id])) noEntraron.push(id + '=' + JSON.stringify(o[id])); });
+    const sinClic = [];
+    const clic = (k, v) => { const b = document.querySelector('#indic-cuerpo [data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
+      if (!b) { sinClic.push(k + '=' + v); return false; } b.click(); return true; };
+    const rec = () => { const r = window._indIA(); return (r && r.recom) ? r.recom : null; };
+    const clase = () => { const r = rec(); return r ? (r.tipo + ' / ' + (r.clase || r.tit)) : 'sin recomendacion'; };
+    const modal = () => { const r = rec(); return (r && r.mod) ? (r.mod.clase || '(sin clase)') : 'sin modalidad'; };
+    /* ⚠️ SIN ACENTOS A LOS DOS LADOS. La primera version comparaba crudo y buscaba «sintoma»
+       dentro de «Sintomas» con tilde: no matcheaba nunca y el caso acusaba a la cascada de un
+       defecto del andamio. Los textos del panel llevan acentos y los del caso no. */
+    const pl = s => String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+    const pide = txt => { const r = rec(); return !!r && Array.isArray(r.faltan) &&
+      r.faltan.some(f => pl(f).indexOf(pl(txt)) > -1); };
+    const fila = lbl => { const r = window._indIA();
+      return (r && r.filas || []).filter(f => f.lbl.indexOf(lbl) > -1)[0] || null; };
+    /* Cada escenario arranca de cero: cerrar limpia las respuestas, y ese borrado lo fija TC-278.
+       BSA = 2,00 exacta, asi que el indexado es el diametro sobre dos y el caso dice que corte
+       prueba en vez de arrastrar una superficie corporal arbitraria. */
+    const B = { ia_sev_final:'4', peso:'80', talla:'180' };
+    const esc = (campos, marcas) => { indicCerrar(); limpiar(); set(Object.assign({}, B, campos));
+      if (typeof sincronizarGradoIA === 'function') sincronizarGradoIA();
+      indicAbrir(); Object.keys(marcas || {}).forEach(k => clic(k, marcas[k])); };
+
+    try {
+      const ex = [];
+
+      // ── DENOMINADOR: la seccion existe y trae los CUATRO controles ──
+      esc({ fevi:'58', dsfvi:'52' }, {});
+      const sec0 = window._indIA();
+      const ctrls = (sec0 && sec0.clinica || []).filter(f => !!f.ctrl).map(f => f.ctrl.clave);
+      ex.push(['DENOMINADOR: la seccion trae los cuatro controles contestables',
+        ctrls.length === 4 && ${IA_CLAVES}.every(k => ctrls.indexOf(k) > -1),
+        'controles=' + ctrls.join(',')]);
+
+      // ── Clase I por SINTOMAS, con independencia de la funcion del VI ──
+      esc({ fevi:'62', dsfvi:'40' }, { 'ia.sintomas':'si' });
+      ex.push(['el sintomatico es Clase I Nivel B aunque el VI este normal',
+        !!rec() && rec().clase === 'Clase I · Nivel B', clase()]);
+
+      // ── SIN contestar los sintomas no se publica nada: se los pide ──
+      esc({ fevi:'58', dsfvi:'52' }, {});
+      ex.push(['sin los sintomas contestados pide el dato en vez de concluir',
+        !!rec() && rec().tipo === 'falta' && pide('sintoma'), clase()]);
+
+      // ── El corte ABSOLUTO de 50 mm, por los dos lados ──
+      esc({ fevi:'62', dsfvi:'50' }, { 'ia.sintomas':'no', 'ia.riesgo':'no_bajo' });
+      const abs50 = clase();
+      esc({ fevi:'62', dsfvi:'51' }, { 'ia.sintomas':'no' });
+      ex.push(['50 mm exactos NO disparan la Clase I y 51 mm si (el operador es >, no >=)',
+        abs50.indexOf('Clase I') === -1 && !!rec() && rec().clase === 'Clase I · Nivel B',
+        'con 50: ' + abs50 + ' · con 51: ' + clase()]);
+
+      /* ── EL CORTE INDEXADO DE 25 mm/m², EN AISLAMIENTO Y POR LOS DOS LADOS ──
+         ⚠️ CON BSA 2,00 ESTE CRITERIO ES INVISIBLE Y LA MUTACION SOBREVIVE. Para que el indexado
+         pase de 25 con una superficie de 2,00 el diametro tiene que pasar de 50, que ya dispara
+         el criterio ABSOLUTO: la Clase I sale igual y el caso pasa con el corte indexado corrido
+         de 25 a 30. Medido — esa mutacion quedo verde en la primera version de este caso.
+         Hace falta una talla PEQUEÑA, que es exactamente el paciente para el que la guia puso el
+         criterio indexado. BSA = 1,50 exacta con peso 50 / talla 162 (sqrt(50*162/3600) = 1,5).
+         Con dsfvi 38 el indexado da 25,3 y el absoluto 38 no llega a 50: la Clase I sale SOLO
+         por el indexado. Con 37 da 24,7 y no sale por ninguno. */
+      const CHICO = { peso:'50', talla:'162' };
+      esc(Object.assign({ fevi:'62', dsfvi:'37' }, CHICO), { 'ia.sintomas':'no', 'ia.riesgo':'no_bajo' });
+      const idx25no = clase();
+      esc(Object.assign({ fevi:'62', dsfvi:'38' }, CHICO), { 'ia.sintomas':'no' });
+      const idx25si = rec();
+      ex.push(['con talla pequeña el indexado dispara la Clase I SOLO (24,7 no y 25,3 si, con el absoluto callado)',
+        idx25no.indexOf('Clase I') === -1 && !!idx25si && idx25si.clase === 'Clase I · Nivel B' &&
+        (fila('DTSVI —') || {}).marca === 'none',
+        'idx 24,7: ' + idx25no + ' · idx 25,3: ' + clase() +
+        ' · fila absoluta=' + ((fila('DTSVI —') || {}).marca || '?')]);
+      ex.push(['y declara la superficie corporal < 1,68 m² como el motivo de que manden los indexados',
+        /1,68/.test((idx25si || {}).nota || ''), ((idx25si || {}).nota || 'SIN NOTA').slice(0, 130)]);
+
+      /* ── EL CORTE INDEXADO DE 22 mm/m², QUE ES EL QUE LA EDICION 2025 MOVIO ──
+         Era 20 en 2021. 44 mm da 22,0 y 46 mm da 23,0: son los dos valores que separan el
+         umbral correcto del error plausible. Con el corte en 20, los dos disparan. */
+      esc({ fevi:'62', dsfvi:'44' }, { 'ia.sintomas':'no', 'ia.riesgo':'bajo' });
+      const iib22no = clase();
+      esc({ fevi:'62', dsfvi:'46' }, { 'ia.sintomas':'no', 'ia.riesgo':'bajo' });
+      ex.push(['22,0 mm/m² exactos NO son Clase IIb y 23,0 si (el corte de 2025 es 22, no 20)',
+        iib22no.indexOf('Clase IIb') === -1 && !!rec() && rec().clase === 'Clase IIb · Nivel B',
+        'idx 22,0: ' + iib22no + ' · idx 23,0: ' + clase()]);
+
+      // ── Los DOS umbrales de FEVI viven en clases distintas ──
+      esc({ fevi:'50', dsfvi:'40' }, { 'ia.sintomas':'no' });
+      const fevi50 = clase();
+      esc({ fevi:'51', dsfvi:'40' }, { 'ia.sintomas':'no', 'ia.riesgo':'bajo' });
+      const fevi51 = clase();
+      esc({ fevi:'55', dsfvi:'40' }, { 'ia.sintomas':'no', 'ia.riesgo':'bajo' });
+      const fevi55 = clase();
+      /* ⚠️ Y EL CORTE DE 55 POR EL LADO DE ARRIBA, QUE FALTABA. Sin el 56 la mutacion
+         fevi_iib 55 -> 60 SOBREVIVE: 50 sigue siendo Clase I, 51 y 55 siguen siendo IIb (los dos
+         son <= 60) y el unico otro valor del caso es 62, que no dispara ni con 60. Medido. */
+      esc({ fevi:'56', dsfvi:'40' }, { 'ia.sintomas':'no', 'ia.riesgo':'bajo', 'ia.cxconcom':'no' });
+      const fevi56 = clase(), fila56 = fila('FEVI');
+      ex.push(['FEVI 50 es Clase I, 51 y 55 son Clase IIb, y 56 ya no alcanza ningun criterio',
+        fevi50.indexOf('Clase I ·') > -1 && fevi51.indexOf('Clase IIb') > -1 &&
+        fevi55.indexOf('Clase IIb') > -1 && fevi56.indexOf('Clase') === -1 &&
+        !!fila56 && fila56.marca === 'none' && /conservada/.test(fila56.nota),
+        'FEVI 50: ' + fevi50 + ' · 51: ' + fevi51 + ' · 55: ' + fevi55 + ' · 56: ' + fevi56 +
+        ' · fila56=' + (fila56 ? fila56.marca : '?')]);
+
+      // ── La fila de FEVI distingue las dos bandas, y no dice «conservada» sobre un 53 ──
+      esc({ fevi:'53', dsfvi:'40' }, { 'ia.sintomas':'no', 'ia.riesgo':'bajo' });
+      const fF = fila('FEVI');
+      ex.push(['la fila de FEVI marca el 53 % como criterio IIb y no como conservada',
+        !!fF && fF.marca === 'ok' && fF.nota.indexOf('IIb') > -1 &&
+        fF.nota.indexOf('conservada') === -1,
+        fF ? fF.marca + ' «' + fF.nota + '»' : 'NO HAY FILA']);
+
+      /* ── LA TRAMPA DEL VOLUMEN TELESISTOLICO ──
+         Los tres disparadores de la fila IIb se unen con «o» y esta app no mide uno de ellos
+         (no hay campo de volumen telesistolico del VI). Publicar «sin criterio» ahi seria negar
+         sobre un criterio que nadie miro. Tiene que salir «falta», NO «no». */
+      esc({ fevi:'62', dsfvi:'40' }, { 'ia.sintomas':'no', 'ia.riesgo':'bajo', 'ia.cxconcom':'no' });
+      const rVol = rec();
+      ex.push(['con riesgo bajo y nada que dispare NO publica «sin criterio»: pide el volumen que no calcula',
+        !!rVol && rVol.tipo === 'falta' && Array.isArray(rVol.faltan) &&
+        rVol.faltan.some(f => /volumen telesist/i.test(f)),
+        clase() + ' · faltan=' + JSON.stringify(rVol ? rVol.faltan : null)]);
+
+      /* ── UN VALOR ILEGIBLE NO NIEGA UN CRITERIO QUIRURGICO ──
+         dsfvi en centimetros (5,2 por 52). Antes daba «no supera 50 mm», que es una afirmacion
+         de normalidad sobre basura. La banda sale de DCM_RANGO, no de un literal del panel. */
+      esc({ fevi:'62', dsfvi:'5.2' }, { 'ia.sintomas':'no' });
+      const rFuera = rec(), filaD = fila('DTSVI —');
+      ex.push(['un DTSVI tipeado en centimetros no produce una negacion: pide revisar la unidad',
+        !!rFuera && rFuera.tipo === 'falta' && !!filaD && filaD.marca !== 'none' &&
+        filaD.nota.indexOf('fuera de rango') > -1,
+        clase() + ' · fila=' + (filaD ? filaD.marca + ' «' + filaD.nota + '»' : 'NO HAY')]);
+
+      /* ── LA CIRUGIA CONCOMITANTE ES CLASE I «CON O SIN SINTOMAS» ──
+         Con los sintomas SIN contestar, esa fila igual aplica: es lo que dice la guia. */
+      esc({ fevi:'62', dsfvi:'40' }, { 'ia.cxconcom':'cabg_ao' });
+      const recCabg = rec();
+      esc({ fevi:'62', dsfvi:'40' }, { 'ia.cxconcom':'otra_valv' });
+      const recValv = rec();
+      /* ⚠️ NO ALCANZA CON COMPARAR LA CLASE: las dos filas son «Clase I · Nivel C», la MISMA
+         cadena, asi que una mutacion que rutee otra_valv a la fila de CABG pasaba las dos
+         condiciones en verde publicando el texto equivocado. Lo que hay que fijar es que sean
+         filas DISTINTAS, que es justo la decision que el comentario del control defiende: son
+         dos tablas distintas de la guia y fundirlas seria citar una fila que no existe. */
+      ex.push(['las dos cirugias concomitantes son Clase I Nivel C aun con los sintomas sin contestar',
+        !!recCabg && recCabg.clase === 'Clase I · Nivel C' &&
+        !!recValv && recValv.clase === 'Clase I · Nivel C',
+        'cabg=' + (recCabg ? recCabg.clase : 'NULL') + ' · valv=' + (recValv ? recValv.clase : 'NULL')]);
+      ex.push(['y publican filas DISTINTAS: la coronaria/aorta no puede citar el texto de la otra valvula',
+        !!recCabg && !!recValv && recCabg.txt !== recValv.txt &&
+        /revascularizaci/i.test(recCabg.txt) && /otra v.lvula/i.test(recValv.txt),
+        'cabg: ' + (recCabg ? recCabg.txt.slice(60, 130) : '?') +
+        ' || valv: ' + (recValv ? recValv.txt.slice(60, 130) : '?')]);
+
+      /* ── Y SIN CONTESTARLA NO PUEDE QUEDAR MUDA, porque desplazaria a lo de abajo ──
+         Con la pregunta sin responder, una Clase IIb publicada esta apoyada en menos de lo que
+         la guia tiene. Contestada «Ninguna», el aviso desaparece. */
+      esc({ fevi:'62', dsfvi:'46' }, { 'ia.sintomas':'no', 'ia.riesgo':'bajo' });
+      const conMuda = (rec() || {}).nota || '';
+      esc({ fevi:'62', dsfvi:'46' }, { 'ia.sintomas':'no', 'ia.riesgo':'bajo', 'ia.cxconcom':'no' });
+      const conDicha = (rec() || {}).nota || '';
+      ex.push(['la cirugia concomitante sin contestar se declara, y contestada deja de avisar',
+        /otra cirug/i.test(conMuda) && !/otra cirug/i.test(conDicha),
+        'muda: ' + (/otra cirug/i.test(conMuda)) + ' · contestada: ' + (/otra cirug/i.test(conDicha))]);
+
+      /* ── LA AORTA ES «RAIZ O ASCENDENTE», DIAMETRO MAXIMO ──
+         El panel leia solo ao_tub, asi que una raiz de 48 mm con ascendente normal no encendia
+         nada. La fuente es aoSegsMedidos(), la misma del narrativo y de calcAorta. */
+      esc({ fevi:'62', dsfvi:'52', ao_sin:'48', ao_tub:'40' }, { 'ia.sintomas':'si', 'ia.riesgo':'bajo', 'ia.cxcandidato':'si' });
+      const fAo = fila('Aorta');
+      ex.push(['una raiz de 48 mm con ascendente normal SI alcanza el corte concomitante de 45 mm',
+        !!fAo && fAo.marca === 'ok' && fAo.val.indexOf('48') > -1 && /ra.z/i.test(fAo.val),
+        fAo ? fAo.val + ' | ' + fAo.marca + ' «' + fAo.nota + '»' : 'NO HAY FILA']);
+      ex.push(['y la modalidad nombra el reemplazo concomitante con su Clase IIa Nivel C',
+        /45 mm/.test(((rec() || {}).mod || {}).nota || '') &&
+        /IIa · Nivel C/.test(((rec() || {}).mod || {}).nota || ''),
+        (((rec() || {}).mod || {}).nota || 'SIN NOTA').slice(0, 160)]);
+
+      // ── La MODALIDAD separa cirugia de TAVI, y el TAVI exige sintomas ──
+      esc({ fevi:'62', dsfvi:'52' }, { 'ia.sintomas':'si', 'ia.cxcandidato':'no' });
+      const modTavi = modal();
+      esc({ fevi:'62', dsfvi:'52' }, { 'ia.sintomas':'si', 'ia.cxcandidato':'si' });
+      ex.push(['no elegible para cirugia da TAVI IIb B, y elegible da la reparacion IIa B',
+        modTavi === 'Clase IIb · Nivel B' && modal() === 'Clase IIa · Nivel B',
+        'no elegible: ' + modTavi + ' · elegible: ' + modal()]);
+
+      /* ⚠️ Y EL TAVI NO SE PUBLICA SOBRE UN ASINTOMATICO. La fila 2025 esta escrita para el
+         sintomatico no elegible; con los sintomas en «no», el bloque publicaba igual el TEXTO y
+         la CLASE del TAVI y ponia el aviso de que no aplicaba al pie, en gris. El titular decia
+         «TAVI PUEDE CONSIDERARSE… Clase IIb · Nivel B» sobre el paciente que esa fila no cubre.
+         Hoy el titular pasa a Heart Team y la fila inaplicable se NOMBRA, no se publica. */
+      esc({ fevi:'62', dsfvi:'52' }, { 'ia.sintomas':'no', 'ia.cxcandidato':'no' });
+      const modAsint = (rec() || {}).mod || {};
+      ex.push(['con el paciente ASINTOMATICO el bloque de modalidad no publica la clase del TAVI',
+        modAsint.clase === '' && !/PUEDE CONSIDERARSE/.test(modAsint.txt || '') &&
+        /Heart Team/.test(modAsint.txt || '') && /TAVI/.test(modAsint.nota || ''),
+        'clase=' + JSON.stringify(modAsint.clase) + ' txt=' + (modAsint.txt || '').slice(0, 70)]);
+
+      /* ⚠️ LA RAIZ DILATADA NO DISPARA CON «DILATACION LEVE». El disparador era el dil de
+         aoSegsMedidos, que es > AO_REF.sin = 40 mm, asi que una raiz de 42 encendia una nota de
+         reemplazo de raiz Clase I B mientras la fila de aorta de la MISMA tarjeta decia «no
+         alcanza los 45 mm». Dos conclusiones sobre el mismo procedimiento en la misma tarjeta. */
+      esc({ fevi:'62', dsfvi:'52', ao_sin:'42' }, { 'ia.sintomas':'si', 'ia.cxcandidato':'si' });
+      const fAo42 = fila('Aorta'), mod42 = (rec() || {}).mod || {};
+      ex.push(['una raiz de 42 mm no enciende la nota de preservacion valvular, y la fila coincide',
+        !!fAo42 && fAo42.marca === 'none' && !/preservaci.n valvular/i.test(mod42.nota || ''),
+        'fila=' + (fAo42 ? fAo42.marca + ' «' + fAo42.nota.slice(0, 50) + '»' : '?') +
+        ' · nota vsarr=' + /preservaci.n valvular/i.test(mod42.nota || '')]);
+
+      /* Y con la raiz en 45 SI se enciende — el corte es el mismo de la fila de al lado. */
+      esc({ fevi:'62', dsfvi:'52', ao_sin:'45' }, { 'ia.sintomas':'si', 'ia.cxcandidato':'si' });
+      ex.push(['y con 45 mm si, que es el mismo corte que usa la fila de aorta',
+        /preservaci.n valvular/i.test((((rec() || {}).mod) || {}).nota || ''),
+        ((((rec() || {}).mod) || {}).nota || 'SIN NOTA').slice(0, 120)]);
+
+      /* ── LA SUPERFICIE CORPORAL ES EL DENOMINADOR DE DOS CLASE I, Y ERA EL UNICO INSUMO SIN
+         BANDA. dsfvi y fevi fuera de rango solo RETIENEN una conclusion; el peso la FABRICA y la
+         BORRA. Los dos caminos, medidos:
+           · peso 40 por 80 -> BSA 1,41 -> idx 31,8 -> publicaba «Clase I · Nivel B» inexistente
+           · peso 500 por 50 -> BSA 4,74 -> idx 8,0 -> publicaba «Sin criterio» sobre uno que si lo tiene
+         Ninguno de los dos pesos tiene min/max en el formulario. */
+      esc({ fevi:'62', dsfvi:'45', peso:'500', talla:'180' }, { 'ia.sintomas':'no', 'ia.riesgo':'no_bajo', 'ia.cxconcom':'no' });
+      const rPeso = rec(), fIdxPeso = fila('DTSVI indexado');
+      ex.push(['un peso fuera de rango no produce una indicacion ni una negacion: pide revisar la unidad',
+        !!rPeso && rPeso.tipo === 'falta' && !!fIdxPeso && fIdxPeso.marca === 'ask' &&
+        /fuera de rango medible/.test(fIdxPeso.nota),
+        clase() + ' · fila idx=' + (fIdxPeso ? fIdxPeso.marca + ' «' + fIdxPeso.nota.slice(0, 60) + '»' : '?')]);
+      ex.push(['y el aviso de cabecera de la seccion lo nombra',
+        /peso o la talla/i.test(window._indIA().aviso || ''),
+        (window._indIA().aviso || 'SIN AVISO').slice(0, 110)]);
+
+      /* ── UNA SOLA FUENTE EN LA TARJETA ──
+         No hay eaEscenario() para la IAo, asi que las filas y el bloque de recomendacion leen
+         las mismas mediciones. Se cruzan en vez de mirar una sola: la tarjeta no puede decir
+         «no supera» arriba y publicar la Clase I abajo sobre el mismo numero. */
+      esc({ fevi:'62', dsfvi:'46' }, { 'ia.sintomas':'no', 'ia.riesgo':'bajo' });
+      const fAbs = fila('DTSVI —'), fIdx = fila('DTSVI indexado');
+      ex.push(['la fila absoluta dice «no supera», la indexada marca el criterio IIb, y la recomendacion coincide',
+        !!fAbs && fAbs.marca === 'none' && !!fIdx && fIdx.marca === 'ok' &&
+        !!rec() && rec().clase === 'Clase IIb · Nivel B',
+        'abs=' + (fAbs ? fAbs.marca : '?') + ' idx=' + (fIdx ? fIdx.marca : '?') + ' recom=' + clase()]);
+
+      /* ── EL CRITERIO QUE LA APP NO MIDE APARECE COMO FILA, no como silencio ── */
+      const fVol = fila('VTSVI indexado');
+      ex.push(['el volumen telesistolico indexado figura como fila ❓ y declara que la app no lo calcula',
+        !!fVol && fVol.marca === 'ask' && /no lo calcula/i.test(fVol.nota) && /45 ml/.test(fVol.nota),
+        fVol ? fVol.marca + ' «' + fVol.nota.slice(0, 110) + '»' : 'NO HAY FILA']);
+
+      // ── La cita principal pasa a 2025, y el recordatorio del umbral mitral ya no esta ──
+      const secG = window._indIA();
+      const notasTxt = (secG.notas || []).join(' ');
+      ex.push(['la cita dice ESC/EACTS 2025 y ninguna nota habla del umbral MITRAL',
+        secG.guia.indexOf('2025') > -1 && secG.guia.indexOf('2021') > -1 &&
+        notasTxt.indexOf('MITRAL') === -1 && notasTxt.indexOf('mitral') === -1,
+        secG.guia.slice(0, 90)]);
+      ex.push(['y la nota de la fila IIb ya no dice 20 mm/m² ni Nivel C: dice 22 y Nivel B',
+        notasTxt.indexOf('22 mm/m²') > -1 && notasTxt.indexOf('Nivel B') > -1 &&
+        notasTxt.indexOf('20 a 22') > -1,
+        notasTxt.slice(0, 150)]);
+
+      // ── El segundo toque DESMARCA: el dato es opcional ──
+      esc({ fevi:'62', dsfvi:'52' }, {});
+      clic('ia.sintomas', 'si'); const tras1 = _indClinGet('ia.sintomas');
+      clic('ia.sintomas', 'si'); const tras2 = _indClinGet('ia.sintomas');
+      ex.push(['el segundo toque sobre la opcion activa la desmarca',
+        tras1 === 'si' && tras2 === null, 'tras1=' + tras1 + ' tras2=' + tras2]);
+
+      ex.push(['ningun valor del caso fue rechazado por su select, y todos los botones existian',
+        noEntraron.length === 0 && sinClic.length === 0,
+        'rechazados: ' + noEntraron.join(',') + ' · sin boton: ' + sinClic.join(',')]);
+      return { extra: ex };
+    } finally {
+      try { indicCerrar(); limpiar();
+        if (typeof indicSyncBoton === 'function') indicSyncBoton(); } catch (e) {}
+    }
+  })();
+`);
+
+caso('TC-278', 'Lo que se contesta en Insuficiencia aortica no se guarda, no viaja y se borra al cerrar', `
+  return (async () => {
+    if (typeof indicAbrir !== 'function' || typeof window._indIA !== 'function')
+      return { extra:[['existen indicAbrir y _indIA', false, '']] };
+    const IDS = ${IA_IDS};
+    const CLAVES = ${IA_CLAVES};
+    const limpiar = () => IDS.forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+    const set = o => Object.keys(o).forEach(id => { const e = document.getElementById(id); if (!e) return;
+      e.value = o[id]; e.dispatchEvent(new Event('input', { bubbles:true }));
+      e.dispatchEvent(new Event('change', { bubbles:true })); });
+    const clic = (k, v) => { const b = document.querySelector('#indic-cuerpo [data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
+      if (b) { b.click(); return true; } return false; };
+    const estado = () => CLAVES.map(k => k + '=' + _indClinGet(k)).join(' ');
+    const ECO = { ia_sev_final:'4', peso:'80', talla:'180', fevi:'58', dsfvi:'52' };
+    const camposDe = gid => { const e = getInformes().find(i => i.estudioId === gid);
+      return (e && e.campos) ? e.campos : null; };
+    let gidA = null, gidB = null;
+    try {
+      const ex = [];
+
+      /* ── PRIMER GUARDADO: el MISMO estudio con el panel SIN contestar ──
+         Es el control. No se filtran «claves sospechosas» por nombre: eso ya hizo fallar a
+         TC-276 sobre un guardado limpio porque tdf_sintomas y compania son campos legitimos de
+         congenitas. Lo que se afirma es que contestar NO CAMBIA NI UNA CLAVE.
+         ⚠️ LOS DOS GUARDADOS SALEN DEL MISMO ESTADO DE DOM: sin el generarInforme() previo las
+         hojas cc-txt-* existen en uno y no en el otro y el caso falla 1 de cada 2 corridas. */
+      __t.limpiar(); limpiar();
+      set(ECO); if (typeof sincronizarGradoIA === 'function') sincronizarGradoIA();
+      __t.set('nombre', 'Aislamiento IAo');
+      generarInforme();
+      const gA = await __t.guardar();
+      gidA = gA.estudioId;
+      const camposA = camposDe(gidA);
+
+      __t.limpiar(); limpiar();
+      set(ECO); if (typeof sincronizarGradoIA === 'function') sincronizarGradoIA();
+      __t.set('nombre', 'Aislamiento IAo');
+      generarInforme();
+      indicAbrir();
+      /* Se contesta no_bajo y no bajo a proposito: abajo se busca ese token dentro del blob
+         guardado, y buscar un token que NO se contesto no prueba nada. La primera version
+         contestaba bajo y buscaba no_bajo: de las cuatro cadenas buscadas solo una era
+         discriminante. */
+      const marco = CLAVES.length === [clic('ia.sintomas','no'), clic('ia.cxconcom','cabg_ao'),
+        clic('ia.riesgo','no_bajo'), clic('ia.cxcandidato','si')].filter(Boolean).length;
+
+      // ── DENOMINADOR: sin las cuatro marcadas, «no aparece» no probaria nada ──
+      ex.push(['DENOMINADOR: las cuatro respuestas quedaron marcadas', marco &&
+        _indClinGet('ia.sintomas') === 'no' && _indClinGet('ia.cxconcom') === 'cabg_ao' &&
+        _indClinGet('ia.riesgo') === 'no_bajo', estado()]);
+
+      const gB = await __t.guardar();
+      gidB = gB.estudioId;
+      const camposB = camposDe(gidB);
+
+      const clavesA = camposA ? Object.keys(camposA).sort() : null;
+      const clavesB = camposB ? Object.keys(camposB).sort() : null;
+      ex.push(['contestar el panel no agrega ni una clave a lo que se persiste',
+        !!clavesA && !!clavesB && clavesA.length === clavesB.length &&
+        clavesA.join('|') === clavesB.join('|'),
+        clavesA && clavesB
+          ? 'A=' + clavesA.length + ' B=' + clavesB.length + ' · solo en B: ' +
+            (clavesB.filter(k => clavesA.indexOf(k) === -1).join(',') || 'ninguna')
+          : 'no se pudo leer campos']);
+
+      /* Y ningun VALOR de los que se contestaron aparece guardado. Se buscan los tokens del
+         panel, que no son valores legitimos de ningun campo del estudio. */
+      const crudo = camposB ? JSON.stringify(camposB) : '';
+      ex.push(['y ninguno de los tokens CONTESTADOS viaja dentro del estudio',
+        crudo.indexOf('cabg_ao') === -1 && crudo.indexOf('no_bajo') === -1,
+        'cabg_ao=' + (crudo.indexOf('cabg_ao') > -1) + ' no_bajo=' + (crudo.indexOf('no_bajo') > -1)]);
+
+      // ── NADA BARRIBLE: la garantia no es acordarse de excluirlo, es que no haya que barrer ──
+      const ov = document.getElementById('indic-overlay');
+      const barribles = ov ? ov.querySelectorAll('input[id],select[id],textarea[id]').length : -1;
+      ex.push(['el overlay del panel no tiene ni un input, select o textarea con id',
+        barribles === 0, 'barribles=' + barribles]);
+
+      // ── El panel no sale del informe narrativo ni del EN SUMA ──
+      const inf = (document.getElementById('informe_texto') || {}).value || '';
+      ex.push(['el informe narrativo no menciona nada del panel',
+        inf.indexOf('cabg_ao') === -1 && inf.toLowerCase().indexOf('heart team') === -1 &&
+        inf.indexOf('Clase IIb') === -1,
+        'largo=' + inf.length]);
+
+      /* ── CERRAR BORRA, Y REABRIR NO LO TRAE DE VUELTA ──
+         Las DOS puertas por separado: _indClinLimpiar vive en indicCerrar Y en indicAbrir.
+         ⚠️ EL VALOR SE CAPTURA, NO LA LECTURA: las condiciones de extra se evaluan al armar el
+         array, o sea despues de indicAbrir() —que tambien limpia—, asi que un every() escrito
+         aca abajo leeria el estado de DESPUES de reabrir y daria true siempre. */
+      const antesDeCerrar = estado();
+      const seguianMarcadas = CLAVES.every(k => _indClinGet(k) !== null);
+      indicCerrar();
+      const trasCerrar = estado();
+      const borroAlCerrar = CLAVES.every(k => _indClinGet(k) === null);
+      indicAbrir();
+      const trasReabrir = estado();
+      const recTrasReabrir = window._indIA() && window._indIA().recom ? window._indIA().recom.tipo : null;
+      ex.push(['DENOMINADOR: las cuatro siguen marcadas justo antes de cerrar',
+        seguianMarcadas, antesDeCerrar]);
+      ex.push(['cerrar el panel borra las cuatro respuestas', borroAlCerrar, trasCerrar]);
+      ex.push(['y al reabrirlo vuelve a pedir los datos en vez de conservar lo del paciente anterior',
+        trasReabrir.indexOf('=no') === -1 && trasReabrir.indexOf('=bajo') === -1 &&
+        trasReabrir.indexOf('=si') === -1 && recTrasReabrir === 'falta',
+        trasReabrir + ' · recom=' + recTrasReabrir]);
+      return { extra: ex };
+    } finally {
+      try { indicCerrar(); } catch (e) {}
+      try { if (gidA) await __t.borrar(gidA); } catch (e) {}
+      try { if (gidB) await __t.borrar(gidB); } catch (e) {}
+      try { __t.limpiar(); limpiar();
+        if (typeof indicSyncBoton === 'function') indicSyncBoton(); } catch (e) {}
+    }
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];
