@@ -13514,17 +13514,22 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                (grupo de acciones, a la derecha, con `btn-purple` propio): con el `margin-left:auto`
                de ese grupo, en pantalla angosta bajaba a un segundo renglón y quedaba lejos de
                todo, que es lo que se reportó como «está en otro lugar».
-               ⚠️ SIN `hidden` desde el 2026-09-24: el botón está SIEMPRE visible. Ya no lee datos
-               ni decide si mostrarse — inserta un texto fijo. La compuerta condicional, su
+               ⚠️ SIN `hidden` desde el 2026-09-24: el botón ya no lee DATOS ni decide si mostrarse
+               según el estudio — inserta un texto fijo. La compuerta condicional, su
                `ccIntegrarSync` y las dos columnas de repintado se eliminaron; ver el bloque de
                `CC_TEMPLATE_SEGMENTARIO`.
+               ⚠️ PERO SÍ RESPETA BÁSICO/AVANZADO desde el 2026-09-26, con el mismo `data-mod` que
+               usan las dos pestañas de CC —o sea la MISMA clave, `congenitas`: es un solo módulo
+               y no puede estar encendido en un lado y apagado en el otro—. Lo gobierna
+               `applyViewMode`, así que cambiar el modo o la casilla de Configuración lo actualiza
+               en caliente sin recargar. No es una compuerta nueva: es la que ya existía.
                RIESGO DECLARADO, y ahora pesa MÁS que antes: pegado al selector de estado, un botón
                con el mismo aspecto que «Conciso» puede leerse como un cuarto ESTILO, y esto no
                cambia la redacción — inserta un párrafo. Antes lo compensaba nacer oculto; hoy lo
                único que lo separa es que no lleva `estilo-pill` ni `data-estilo` (TC-217 lo fija),
                así que `setEstiloInforme` nunca le pone el `btn-primary` de «activo» que las tres
                pastillas sí se pasan entre ellas. **No borrar esas dos ausencias.** -->
-          <button type="button" class="btn btn-ghost" id="cc-integrar-btn"
+          <button type="button" class="btn btn-ghost" id="cc-integrar-btn" data-mod="congenitas"
                   onclick="ccToggleSegmentario()" aria-expanded="false" aria-controls="cc-seg-wrap"
                   title="Abre un cuadro aparte con el análisis segmentario (situs y conexiones). Tocarlo de nuevo lo cierra y descarta su contenido">🫀 CC</button>
           <span style="display:inline-flex;gap:8px;flex-wrap:wrap;margin-left:auto;">
@@ -44918,7 +44923,14 @@ function _pptTxt(x){
   /* Escapes \u..., NO los caracteres de control literales: un NUL o un \x0b crudos en el
      HTML los sustituye el parser antes de que el JS los vea, y el regex queda roto — con
      eso se cae el bloque <script> ENTERO y sin error visible en consola. */
-  return String(x).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').trim();
+  /* ⚠️ EL \r SE NORMALIZA, NO SE BORRA. El rango de arriba excluye 0x0D a propósito, así que
+     un CRLF sobrevivía entero — y `c` no sale del textarea (que normalizaría a LF) sino del
+     estudio PERSISTIDO, o sea de un backup JSON o de un import. Consecuencia medida: el
+     partidor del informe usa `/\n{2,}/` y `\r\n\r\n` NO tiene dos \n consecutivos, así que
+     todo el informe colapsaba a un solo bloque y se perdían TODOS los renglones en blanco,
+     en silencio. Borrarlo en vez de convertirlo pegaría las líneas; se convierte. */
+  return String(x).replace(/\r\n?/g,'\n')
+                  .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').trim();
 }
 /* El warn por id inexistente es el mismo de _pptSpan y por el mismo motivo: v() devuelve
    null para un id que no existe, fila() descarta lo nulo y la fila desaparece de la
@@ -46588,14 +46600,65 @@ function _pptDesdeFormulario(inf, tema, presentador){
         if (cur) out.push(cur);
         return out;
       };
+      /* ⚠️ EL RENGLÓN EN BLANCO SOBREVIVE, y antes no: `split(/\n+/)` colapsa la corrida de saltos
+         y el reensamblado con UN solo `\n` la perdía, así que la primera línea del informe
+         narrativo quedaba pegada debajo de «- Septum interventricular: …» y se leía como un
+         noveno ítem del análisis segmentario. Son dos secciones distintas del informe firmado.
+         Se parte en DOS niveles: por renglón en blanco (`\n{2,}`) y, dentro de cada bloque, por
+         salto simple. Cada párrafo recuerda con qué separador entra, y el renglón en blanco
+         CUESTA una línea del presupuesto — si no, la diapositiva se pasaría de largo por debajo
+         del marco, que es el defecto que `_porOraciones` ya existe para evitar.
+         Al abrir diapositiva nueva el separador se descarta: una hoja no empieza con un renglón
+         en blanco.
+
+         ⚠️ ALCANCE MEDIDO ANTES DE TOCAR, porque esto mueve la paginación de TODAS las
+         diapositivas de informe:
+           · Sólo afecta a estudios CON texto de CC **cuyo informe no se editó a mano**: un
+             informe GENERADO no tiene renglones en blanco propios —`_infEscribir` recibe
+             `inf.filter(Boolean)`— así que su único `\n\n` es el que arma este bloque. Pero
+             `filter(Boolean)` saca `''` y NO `' '`, y el narrativo es un textarea que el médico
+             edita —«💬 Frases» inserta en el cursor—: en un informe editado el impacto de
+             paginación es mayor que ese 1,75 %, porque cada renglón en blanco cuesta una de
+             las 23 líneas. La medición de abajo está tomada sobre informes generados.
+           · Barrido de 6000 longitudes de informe: **105 (1,75 %) cambian de paginación**, la
+             primera con 1471 caracteres —donde el bloque de CC deja 8 líneas de 23 y la línea
+             extra empuja—.
+           · En esas 105 el cambio es UNA DIAPOSITIVA MÁS, cortando antes: **cero contenido
+             perdido y cero reordenado**, verificado comparando el texto concatenado. */
+      /* ⚠️ EL SEPARADOR SALE DE «este bloque todavía no emitió nada», NO del índice crudo.
+         Escrito como `pi === 0 && ti === 0` se pierde en cuanto el primer párrafo del bloque
+         queda vacío tras el trim: con `…integro.\n\n \nEl ventrículo…` —un renglón en blanco
+         que contiene UN ESPACIO, que es lo que deja pegar desde Word— el `pi:0` se descarta,
+         el texto real llega con `pi:1` y el renglón en blanco DESAPARECE, sin ninguna señal.
+         Es el defecto que este cambio vino a cerrar, reintroducido por un espacio. Medido en
+         los dos sentidos. Lo encontró `/sharp-edges`. */
+      const _items = [];
+      texto.split(/\n{2,}/).forEach((bloque, bi) => {
+        let abre = bi > 0;
+        bloque.split(/\n/).forEach(par => {
+          if (!par.trim()) return;
+          _porOraciones(par).forEach(t => { _items.push({ t: t, sep: abre ? '\n\n' : '\n' }); abre = false; });
+        });
+      });
+      /* ⚠️ Los trozos con `sep:'\n'` que vienen de partir UNA oración larga se reensamblan con
+         un salto duro a mitad de párrafo. Es preexistente y el arreglo PARECE de una palabra
+         —un separador `' '` para esos— y no lo es: el presupuesto suma `_lineasDe` por trozo,
+         así que unirlos con espacio deja el conteo mintiendo. No prolijear sin rehacer el
+         conteo. */
       const partes = [];
       let acc = '', accL = 0;
-      texto.split(/\n+/).flatMap(_porOraciones).forEach(p => {
-        const l = _lineasDe(p);
-        if (acc && (accL + l) > _lineasCaben) { partes.push(acc); acc = p; accL = l; }
-        else { acc = acc ? (acc + '\n' + p) : p; accL += l; }
+      _items.forEach(it => {
+        const extra = (acc && it.sep === '\n\n') ? 1 : 0;   // el renglón en blanco ocupa lugar
+        const l = _lineasDe(it.t) + extra;
+        if (acc && (accL + l) > _lineasCaben) { partes.push(acc); acc = it.t; accL = _lineasDe(it.t); }
+        else { acc = acc ? (acc + it.sep + it.t) : it.t; accL += l; }
       });
       if (acc) partes.push(acc);
+      /* El aviso mide la parte YA ENSAMBLADA y el acumulador cuenta por párrafo, así que los
+         dos cuentan distinto —`_lineasDe` ignora los saltos—. NO es alcanzable, y está medido:
+         barrido de 1..40 párrafos × 20..600 caracteres, `accL` **nunca** supera las 23 salvo
+         cuando un ítem SOLO las excede, que es exactamente el caso que esta línea caza. Si
+         algún día el acumulador deja de acotar, hay que empujar `{txt, lineas}` a `partes`. */
       if (partes.some(x => _lineasDe(x) > _lineasCaben))
         _pptAvisos.push('⚠️ Hay un párrafo del informe que no entra en una diapositiva — revisá el PPT antes de presentar');
       /* Sin slice(0,4): ese techo cortaba el informe a ~6000 caracteres sin puntos
@@ -76342,8 +76405,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260926-0006';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790391980425;                 /* eco-build-ms */
+const ECO_BUILD    = '20260926-0131';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790397072153;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -76429,7 +76492,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260926-0006</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260926-0131</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -76750,6 +76813,23 @@ document.addEventListener('DOMContentLoaded', function(){
     if (faltan.length || sobran.length)
       console.warn('[modulos] EE_MODULES y data-mod no coinciden — sin casilla en Config:', faltan,
                    '· sin botón:', sobran);
+    /* ⚠️ DOS INVARIANTES MÁS, que hasta el 2026-09-26 vivían sólo en un comentario.
+       · `[data-mod]` tiene que ser un BOTÓN. `applyViewMode` escribe `style.display` en los
+         dos sentidos, así que un `data-mod` sobre un contenedor cuya visibilidad gobierne otra
+         función —un `.sacc-body`, una fila que se esconde por datos— se le abre de prepo en
+         cada toque de Config, pisando esa lógica sin ningún error.
+       · Y no puede llevar `hidden`: la rama Avanzado escribe `display:''` incondicionalmente,
+         que le GANA al `[hidden]{display:none}` del navegador y deja el fantasma de 44 px que
+         este archivo ya pagó tres veces (`.fg[hidden]`, `.frases-panel[hidden]`, el banner).
+         El botón de al lado, `#indic-btn`, usa `hidden` justamente por eso. */
+    var noBtn = [], conHidden = [];
+    document.querySelectorAll('[data-mod]').forEach(function(b){
+      if (b.tagName !== 'BUTTON') noBtn.push(b.getAttribute('data-mod') + '/' + b.tagName);
+      if (b.hasAttribute('hidden')) conHidden.push(b.getAttribute('data-mod'));
+    });
+    if (noBtn.length || conHidden.length)
+      console.warn('[modulos] un [data-mod] tiene que ser un <button> y no puede llevar hidden —',
+                   'no son botón:', noBtn, '· con hidden:', conHidden);
   } catch(e){}
 });
 function eeGetMode(){ return localStorage.getItem('ett_view_mode') || 'avanzado'; }
@@ -76927,9 +77007,15 @@ function applyViewMode(){
     if(special) special.style.display='none';
     if(tools)   tools.style.display='none';
     if(lab)     lab.style.display='none';
+    /* ⚠️ Y LOS `[data-mod]` UNO POR UNO, que hasta el 2026-09-26 no hacía falta: los once vivían
+       DENTRO de esas tres filas, así que esconder los contenedores los tapaba a todos. El botón
+       🫀 CC del informe es el primero que lleva `data-mod` y NO está en ninguna de las tres, o
+       sea que en Básico se quedaba visible — un módulo avanzado asomando por la única puerta que
+       el barrido por contenedor no cubre. Para los otros once esto es un no-op. */
+    document.querySelectorAll('button[data-mod]').forEach(function(b){ b.style.display='none'; });
   } else {
-    document.querySelectorAll('[data-mod]').forEach(function(btn){ btn.style.display = eeModOn(btn.getAttribute('data-mod')) ? '' : 'none'; });
-    [special,tools].forEach(function(row){ if(!row) return; var any=[].slice.call(row.querySelectorAll('[data-mod]')).some(function(b){ return b.style.display!=='none'; }); row.style.display = any ? '' : 'none'; });
+    document.querySelectorAll('button[data-mod]').forEach(function(btn){ btn.style.display = eeModOn(btn.getAttribute('data-mod')) ? '' : 'none'; });
+    [special,tools].forEach(function(row){ if(!row) return; var any=[].slice.call(row.querySelectorAll('button[data-mod]')).some(function(b){ return b.style.display!=='none'; }); row.style.display = any ? '' : 'none'; });
     if(lab) lab.style.display = ''; // Laboratorio: visible siempre en Modo Avanzado (CORRECCIÓN 2)
   }
 }

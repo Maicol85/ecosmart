@@ -10105,6 +10105,232 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
 
 
 
+
+
+caso('TC-269', 'PPT: el bloque de CC queda separado del informe, no pegado como un noveno item', `
+  return (async () => {
+    for (let i = 0; i < 80 && typeof PptxGenJS === 'undefined'; i++) await new Promise(r => setTimeout(r, 100));
+    if (typeof PptxGenJS === 'undefined')
+      return { extra:[['PptxGenJS cargo por CDN (sin esto el caso no prueba nada)', false, 'no llego']] };
+    if (typeof _pptDesdeFormulario !== 'function')
+      return { extra:[['existe el armador del PPT', false, 'falta _pptDesdeFormulario']] };
+    try {
+      const NL = String.fromCharCode(10);
+      const CC = 'Situs solitus, levocardia.' + NL +
+                 '- Conexion auriculoventricular: concordante.' + NL +
+                 '- Conexion ventriculoarterial: concordante.' + NL +
+                 '- Septum interventricular: integro.';
+      const NARR = 'Ventriculo izquierdo de dimensiones normales, con funcion sistolica conservada.';
+      const inf = { id:0, nombre:'Prueba PPT CC', fecha_estudio:'2026-09-26',
+                    campos:{ nombre:'Prueba PPT CC', cc_segmentario: CC, informe_texto: NARR } };
+      /* Se intercepta '_pptxDescargarSaneado', que es por donde sale el mazo —'_pptDesdeFormulario'
+         no lo devuelve, lo descarga—. Misma costura que usan los otros casos de PPT. */
+      const _desc = window._pptxDescargarSaneado;
+      let capt = null;
+      window._pptxDescargarSaneado = function(P2){ capt = P2; return Promise.resolve({ saneado:true, quitadas:0 }); };
+      const _tst = window.toast; const _msgs = [];
+      window.toast = function(m){ _msgs.push(String(m)); };
+      let _err = '';
+      try { await _pptDesdeFormulario(inf, 'azul', 'Dr. Prueba'); } catch (e) { _err = String(e); }
+      await new Promise(r => setTimeout(r, 600));
+      window.toast = _tst;
+      const P = capt;
+      const slides = P ? (P.slides || P._slides || []) : [];
+      /* ⚠️ o.text NO ES SIEMPRE UNA CADENA: PptxGenJS acepta un arreglo de «runs»
+         --[{text:'...'}, ...]-- y ahi guarda el que le pasaron. Leerlo con String() daba
+         «[object Object]» y la busqueda no encontraba nada sobre un mazo perfectamente bien
+         generado: el caso acusaba al producto por un error del lector. */
+      const _txt = o => {
+        if (!o) return '';
+        const t = o.text;
+        if (t == null) return '';
+        if (typeof t === 'string') return t;
+        if (Array.isArray(t)) return t.map(r => (r && r.text != null) ? String(r.text) : '').join('');
+        return String(t);
+      };
+      const _hoja = s2 => ((s2._slideObjects || s2.data || []).map(_txt).join(' '));
+      const textos = slides.map(_hoja);
+      const iInf = textos.findIndex(t => t.indexOf('Septum interventricular') > -1);
+      const hoja = iInf >= 0 ? textos[iInf] : '';
+
+      /* ── EL RENGLON EN BLANCO LLEGA ── es lo unico que separa las dos secciones. */
+      const sepIdx = hoja.indexOf('integro.');
+      const trasCC = sepIdx >= 0 ? hoja.slice(sepIdx + 'integro.'.length) : '';
+      const hayRenglonEnBlanco = /^\\s*\\n\\s*\\n/.test(trasCC);
+      /* ── Y NO SE PERDIO NI SE DUPLICO NADA ── */
+      const tieneLasDos = hoja.indexOf('Situs solitus') > -1 && hoja.indexOf('Ventriculo izquierdo') > -1;
+      const unaSolaVez = hoja.split('Septum interventricular').length === 2 &&
+                         hoja.split('Ventriculo izquierdo').length === 2;
+      /* ── SIN CC, EL INFORME NO GANA NINGUN RENGLON EN BLANCO ── el narrativo no tiene ninguno
+         propio ('_infEscribir' recibe inf.filter(Boolean)), asi que un estudio sin CC tiene que
+         salir exactamente como antes. Es la mitad que fija que esto NO toca a todos. */
+      const inf2 = { id:0, nombre:'Prueba PPT sin CC', fecha_estudio:'2026-09-26',
+                     campos:{ nombre:'Prueba PPT sin CC', informe_texto: NARR + NL + NARR } };
+      capt = null;
+      /* ⚠️ EL MAZO SE CAPTURA UN CICLO DESPUES: '_pptDesdeFormulario' resuelve antes de llamar a
+         '_pptxDescargarSaneado', asi que leer 'capt' pegado al await da null y la condicion mide
+         sobre una cadena vacia --que no contiene doble salto, o sea que el «sin CC» pasaria por
+         ausencia de mazo y no por ausencia de renglon--. Es el denominador de siempre. */
+      await _pptDesdeFormulario(inf2, 'azul', 'Dr. Prueba');
+      await new Promise(r => setTimeout(r, 600));
+      const P2 = capt;
+      const slides2 = P2 ? (P2.slides || P2._slides || []) : [];
+      const txt2 = slides2.map(_hoja).find(t => t.indexOf('Ventriculo izquierdo') > -1) || '';
+      const sinCCsinBlanco = txt2.indexOf(NL + NL) < 0 && txt2.indexOf('Ventriculo izquierdo') > -1;
+
+      /* ── EL RENGLON EN BLANCO CON UN ESPACIO ── lo que deja pegar desde Word. El separador
+         se deriva de «este bloque todavia no emitio nada»; derivado del indice crudo, el
+         parrafo vacio se descarta, el texto real llega con pi:1 y el renglon DESAPARECE. */
+      const _blanco = async campos => {
+        capt = null;
+        await _pptDesdeFormulario({ id:0, nombre:'P', fecha_estudio:'2026-09-26', campos: campos },
+                                  'azul', 'Dr. Prueba');
+        await new Promise(r => setTimeout(r, 600));
+        const P3 = capt;
+        return (P3 ? (P3.slides || P3._slides || []) : []).map(_hoja)
+                 .find(t => t.indexOf('ZETA') > -1) || '';
+      };
+      /* ⚠️ NADA DE REGEX ACA: el cuerpo del caso es un template literal, asi que un '/\n/' llega
+         con el salto YA convertido y el '\s' sin su barra — el constructor tira «Invalid regular
+         expression» y se lleva el caso entero. Es la trampa que este archivo documenta diez
+         veces; se cuentan los saltos con split. */
+      const _saltosAntes = (txt, marca) => {
+        const i = txt.indexOf(marca);
+        return i < 0 ? -1 : txt.slice(Math.max(0, i - 8), i).split(NL).length - 1;
+      };
+      const tEsp = await _blanco({ nombre:'P', informe_texto: 'Primer bloque.' + NL + NL + ' ' + NL + 'ZETA final.' });
+      const iE = tEsp.indexOf('ZETA');
+      const sepEspacio = _saltosAntes(tEsp, 'ZETA') >= 2;
+
+      /* ── CRLF ── '_pptTxt' dejaba pasar el 0x0D, y /\n{2,}/ NO matchea \r\n\r\n: todo el
+         informe colapsaba a un solo bloque y se perdian TODOS los renglones en blanco. */
+      const CR = String.fromCharCode(13);
+      const tCrlf = await _blanco({ nombre:'P', informe_texto: 'Primer bloque.' + CR + NL + CR + NL + 'ZETA final.' });
+      const iC = tCrlf.indexOf('ZETA');
+      const sepCrlf = _saltosAntes(tCrlf, 'ZETA') >= 2 && tCrlf.indexOf(CR) < 0;
+      /* ⚠️ LA RESTAURACION VA ACA Y NO ANTES: puesta apenas se leyo el segundo mazo, los dos
+         escenarios de abajo corrian con la costura ya devuelta, 'capt' quedaba en null y las
+         dos condiciones daban «no se hallo ZETA» sobre un partidor correcto. El denominador,
+         por tercera vez en este mismo caso. */
+      window._pptxDescargarSaneado = _desc;
+
+      return { extra: [
+        ['DENOMINADOR: la diapositiva del informe existe y trae las dos secciones', iInf >= 0 && tieneLasDos,
+          'slide=' + iInf + ' de ' + slides.length + ' · err=' + _err + ' · toasts=' + _msgs.join(' | ').slice(0,150)],
+        ['EL RENGLON EN BLANCO SEPARA el bloque de CC del informe', hayRenglonEnBlanco,
+          JSON.stringify(trasCC.slice(0, 40))],
+        ['  y no se perdio ni se duplico nada', unaSolaVez, ''],
+        ['SIN CC el informe NO gana ningun renglon en blanco', sinCCsinBlanco,
+          'hoja hallada=' + (txt2.indexOf('Ventriculo izquierdo') > -1) +
+          ' · doble salto=' + (txt2.indexOf(NL + NL) > -1)],
+        ['UN RENGLON EN BLANCO CON UN ESPACIO sigue separando', sepEspacio,
+          JSON.stringify(iE > 0 ? tEsp.slice(Math.max(0, iE - 10), iE) : '(no se hallo ZETA)')],
+        ['Y UN CRLF tambien, sin dejar el 0x0D en la diapositiva', sepCrlf,
+          JSON.stringify(iC > 0 ? tCrlf.slice(Math.max(0, iC - 10), iC) : '(no se hallo ZETA)')]
+      ] };
+    } finally {
+      try { __t.limpiar(); } catch (e) {}
+    }
+  })();
+`);
+
+caso('TC-268', 'El boton CC respeta Basico/Avanzado y la casilla de Configuracion, en caliente', `
+  return (async () => {
+    const btn = document.getElementById('cc-integrar-btn');
+    if (!btn) return { extra:[['existe el boton CC', false, 'falta #cc-integrar-btn']] };
+    const _mode = (function(){ try { return localStorage.getItem('ett_view_mode'); } catch(e){ return null; } })();
+    const _mods = (function(){ try { return localStorage.getItem('ett_modules'); } catch(e){ return null; } })();
+    try {
+      showTab('informe'); await new Promise(r => setTimeout(r, 200));
+      const se_ve = () => getComputedStyle(btn).display !== 'none';
+      /* Se cambia por las funciones REALES de Configuracion —'cfgSetMode' y 'cfgToggleMod'—, no
+         escribiendo localStorage: lo que se prueba es que el cambio se APLIQUE en caliente, y eso
+         vive en que esas dos llamen a 'applyViewMode'. Escribir la clave a mano probaria el
+         lector y saltearia justo el enganche. */
+      cfgSetMode('avanzado'); cfgToggleMod('congenitas', true);
+      await new Promise(r => setTimeout(r, 120));
+      const avanzadoConCC = se_ve();
+
+      /* ⚠️ A BASICO SE ENTRA CON EL BOTON VISIBLE, y el orden no es casual: viniendo de
+         «Avanzado + CC apagado» el boton ya estaba escondido, asi que Basico no tenia nada que
+         hacer y la condicion pasaba aunque la rama de Basico no existiera. Es el mismo error de
+         denominador de siempre — medir un «se esconde» sobre algo que ya estaba escondido. */
+      cfgSetMode('basico');
+      await new Promise(r => setTimeout(r, 120));
+      const basicoDesdeVisible = se_ve();
+
+      cfgSetMode('avanzado'); cfgToggleMod('congenitas', false);
+      await new Promise(r => setTimeout(r, 120));
+      const avanzadoSinCC = se_ve();
+
+      cfgSetMode('basico');
+      await new Promise(r => setTimeout(r, 120));
+      const basicoConCCApagado = se_ve();
+      /* ⚠️ BASICO GANA SOBRE LA CASILLA: encender CC en Basico no lo puede hacer aparecer. Es la
+         mitad que se olvida —el barrido por contenedor no cubre este boton, asi que sin la rama
+         de Basico quedaba visible con el modulo encendido—. */
+      cfgToggleMod('congenitas', true);
+      await new Promise(r => setTimeout(r, 120));
+      const basicoConCCEncendido = se_ve();
+
+      /* ── EN CALIENTE, SIN RECARGAR: volver a Avanzado lo devuelve ── */
+      cfgSetMode('avanzado');
+      await new Promise(r => setTimeout(r, 120));
+      const vuelveEnCaliente = se_ve();
+
+      /* ── LA CLAVE ES LA MISMA QUE LA DE LAS PESTAÑAS ── un solo modulo no puede estar
+         encendido en un lado y apagado en el otro. */
+      const claveBoton = btn.getAttribute('data-mod');
+      const clavesTabs = [].slice.call(document.querySelectorAll('.tab-special[data-mod]'))
+        .map(b => b.getAttribute('data-mod'));
+      const mismaClave = claveBoton === 'congenitas' && clavesTabs.indexOf('congenitas') > -1;
+
+      /* ── Y LOS OTROS '[data-mod]' NO SE ROMPIERON ── la rama de Basico ahora los toca a todos;
+         para los que viven dentro de las filas escondidas tiene que ser un no-op observable:
+         en Avanzado con su modulo encendido, se siguen viendo. */
+      cfgSetMode('avanzado');
+      ['hemodinamica','ete','pulmonar','calculadoras'].forEach(k => cfgToggleMod(k, true));
+      await new Promise(r => setTimeout(r, 150));
+      const otrosVivos = [].slice.call(document.querySelectorAll('[data-mod]'))
+        .filter(b => ['hemodinamica','ete','pulmonar','calculadoras'].indexOf(b.getAttribute('data-mod')) > -1)
+        .filter(b => getComputedStyle(b).display === 'none');
+
+      /* ── EL CONTRATO DE '[data-mod]' ── lo vigila un assert de arranque desde el 2026-09-26 y
+         acá se fija como invariante. Dos mitades:
+         · tiene que ser un BOTON: la rama de Avanzado escribe 'display:\'\'' en CADA toque de
+           Config, asi que un 'data-mod' sobre un contenedor cuya visibilidad gobierne otra
+           funcion se le abre de prepo, pisando esa logica sin ningun error;
+         · y no puede llevar 'hidden': ese 'display:\'\'' le GANA al '[hidden]{display:none}' del
+           navegador y deja el fantasma de 44 px que este archivo ya pago tres veces. */
+      const malDataMod = [].slice.call(document.querySelectorAll('[data-mod]'))
+        .filter(b => b.tagName !== 'BUTTON' || b.hasAttribute('hidden'))
+        .map(b => b.getAttribute('data-mod') + '/' + b.tagName + (b.hasAttribute('hidden') ? '+hidden' : ''));
+      const nDataMod = document.querySelectorAll('[data-mod]').length;
+
+      return { extra: [
+        ['DENOMINADOR: hay [data-mod] que auditar', nDataMod >= 10, 'n=' + nDataMod],
+        ['todo [data-mod] es un <button> y ninguno lleva hidden', malDataMod.length === 0,
+          malDataMod.join(' · ')],
+        ['AVANZADO + CC encendido: el boton SE VE', avanzadoConCC, ''],
+        ['AVANZADO + CC apagado: NO se ve', !avanzadoSinCC, ''],
+        ['BASICO viniendo de VISIBLE: se esconde', !basicoDesdeVisible, ''],
+        ['BASICO con CC apagado: sigue sin verse', !basicoConCCApagado, ''],
+        ['  y encender CC en Basico NO lo hace aparecer', !basicoConCCEncendido, ''],
+        ['EN CALIENTE: volver a Avanzado lo devuelve sin recargar', vuelveEnCaliente, ''],
+        ['usa la MISMA clave que las pestanas de CC', mismaClave,
+          'boton=' + claveBoton + ' tabs=' + clavesTabs.join(',')],
+        ['los otros [data-mod] siguen visibles con su modulo encendido', otrosVivos.length === 0,
+          otrosVivos.map(b => b.getAttribute('data-mod')).join(',')]
+      ] };
+    } finally {
+      try { if (_mode === null) localStorage.removeItem('ett_view_mode'); else localStorage.setItem('ett_view_mode', _mode);
+            if (_mods === null) localStorage.removeItem('ett_modules'); else localStorage.setItem('ett_modules', _mods);
+            if (typeof applyViewMode === 'function') applyViewMode(); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+  })();
+`);
+
 caso('TC-267', 'Las dos plantillas del menu pasan por el modal, y cada una conserva su variante', `
   return (async () => {
     if (typeof labExpAbrir !== 'function' || typeof labExpPlantilla !== 'function')

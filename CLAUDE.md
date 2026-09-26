@@ -4,6 +4,158 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## El botón 🫀 CC respeta Básico/Avanzado, y es el primer `data-mod` fuera de las tres filas (2026-09-26)
+
+`#cc-integrar-btn` lleva ahora `data-mod="congenitas"`, la misma clave que las dos pestañas de
+CC. En **Básico nunca se ve**; en **Avanzado**, sólo con el módulo tildado en Config. Cubierto por
+**TC-268** (9 condiciones, 4 mutaciones — la que saca el barrido de la rama Básico imprime
+«BASICO viniendo de VISIBLE: se esconde»).
+
+### ⚠️ EL MECANISMO YA EXISTÍA Y NO ALCANZABA, y el motivo no es obvio
+
+`applyViewMode()` tiene dos ramas y la de **Básico escondía TRES FILAS COMPLETAS** de pestañas, no
+elementos sueltos. Los once `[data-mod]` que había vivían **dentro** de esas filas, así que la
+rama nunca necesitó mirarlos uno por uno. El botón CC vive en la pestaña Informe, que no es
+ninguna de las tres: con sólo ponerle el atributo, en Básico seguía visible.
+
+Por eso la rama de Básico ganó un barrido propio (`button[data-mod] → display:none`). **Para los
+once viejos es un no-op**: ya estaban tapados por su fila. La rama de Avanzado no se tocó — ya
+recorría los `[data-mod]` con `eeModOn`.
+
+### El cambio se aplica EN CALIENTE, y eso es lo que el caso prueba
+
+`cfgSetMode` y `cfgToggleMod` llaman a `applyViewMode`, así que tocar el modo o la casilla con la
+pestaña Informe abierta mueve el botón en el acto. TC-268 se cambia por **esas dos funciones** y
+no escribiendo `localStorage`: escribir la clave a mano probaría el lector y saltearía justo el
+enganche.
+
+**⚠️ A BÁSICO SE ENTRA CON EL BOTÓN VISIBLE, y el orden del caso no es casual.** Viniendo de
+«Avanzado + CC apagado» el botón ya está escondido, así que Básico no tiene nada que hacer y la
+condición pasa **aunque la rama de Básico no exista** — la mutación M2 sobrevivía. Es el
+denominador de siempre: medir un «se esconde» sobre algo que ya estaba escondido.
+
+### Lo que encontró `/sharp-edges` y se corrigió
+
+- **El barrido pasó de «tres filas conocidas» a TODO EL DOCUMENTO.** Hoy los doce `[data-mod]` son
+  `<button>`, pero la rama de Avanzado fuerza `display:''` en **cada** toque de Config: un
+  `data-mod` sobre un contenedor cuya visibilidad gobierne otra función —un `.sacc-body`, una fila
+  que se esconde por datos— se abriría de prepo, pisando esa lógica sin ningún error. Acotado a
+  `button[data-mod]` en las tres consultas.
+- **Y no puede llevar `hidden`.** `display:''` le **gana** al `[hidden]{display:none}` del
+  navegador y deja el fantasma de 44 px que este archivo ya pagó tres veces (`.fg[hidden]`,
+  `.frases-panel[hidden]`, el banner de versión) — el botón de al lado, `#indic-btn`, usa `hidden`
+  **justamente por eso**, y su comentario lo explica. Las dos invariantes viven ahora en el
+  **assert de arranque** que ya comparaba `EE_MODULES` contra `data-mod`, en vez de en un
+  comentario: un `data-mod` sobre un `<div>`, o con `hidden`, grita por consola.
+
+### Declarado y NO corregido
+
+- **⚠️ EL BOTÓN SE ESCONDE Y EL TEXTO SIGUE SALIENDO EN EL INFORME FIRMADO.** El campo
+  `cc_segmentario` y su `#cc-seg-wrap` viven en la pestaña Informe, **no llevan `data-mod`**, y
+  las tres superficies que lo publican —PDF, detalle de Guardados, PPT— están gateadas sólo por
+  contenido. O sea: abrir CC en Avanzado, pasar a Básico, y el cuadro sigue visible con su texto
+  y el PDF sigue imprimiendo la barra «ANALISIS SEGMENTARIO». Agravante: la salida documentada del
+  cuadro es el **segundo toque del mismo botón**, que se fue con él; queda borrar el textarea a
+  mano, que funciona (`onchange` → `ccSegSync`) y no está señalizado.
+  **No se gateó la emisión por `eeModOn`, y hay precedente explícito:** este archivo ya decidió lo
+  contrario para Pericardio —«ataría el contenido de un informe firmado a una preferencia de la
+  máquina: el mismo estudio saldría distinto en dos computadoras»—. La salida limpia, si molesta,
+  es dejar el botón visible **cuando el cuadro tiene texto**, porque es el único control que
+  permite descartarlo; eso contradice el «Básico: nunca visible» que se pidió, así que es decisión
+  y no arreglo.
+- **El gate falla ABIERTO, al revés que su vecino.** `eeGetMode()` lee `localStorage` sin guarda y
+  `_eeArranqueGates` se come la excepción, así que con `localStorage` caído el botón queda visible
+  en Básico — y ahí tampoco se puede volver a Avanzado, porque `cfgSetMode` hace `setItem` antes de
+  `applyViewMode`. `eeDefOn`, dos funciones más abajo, falla **cerrado a propósito**. No se
+  invirtió: para `applyViewMode` fallar cerrado significa esconder las tres filas de pestañas
+  especiales y dejar al médico sin Hemodinámica, ETE ni Congénitas, que es peor que mostrar de más.
+  Es la misma asimetría que `eeModOn` ya declara.
+
+---
+
+## El PPT: el renglón en blanco entre el bloque de CC y el informe (2026-09-26)
+
+La diapositiva del informe hacía `texto.split(/\n+/)`, que **colapsa cualquier corrida de saltos a
+uno solo**: el renglón en blanco que separa «Análisis segmentario» del narrativo no llegaba nunca y
+la primera línea del informe se leía como un **noveno ítem** de la lista de CC. Estaba declarado
+como pendiente desde el 2026-09-24. Cubierto por **TC-269** (6 condiciones, **4 mutaciones que
+caen** —el partidor viejo, el separador siempre doble, el índice crudo y `_pptTxt` sin normalizar
+el `\r`— y 1 declarada).
+
+### El alcance se midió ANTES de tocar, porque esto mueve la paginación de todas
+
+| | |
+|---|---|
+| estudios afectados | **sólo los que tienen texto de CC** |
+| barrido de 6000 longitudes de informe | **105 (1,75 %) cambian de paginación**, la primera con 1471 caracteres |
+| qué cambia en esas 105 | **una diapositiva más, cortando antes** — cero contenido perdido, cero reordenado |
+| verificación en Chrome real, 20 escenarios (10 largos × con y sin CC) | paginación **idéntica** a HEAD |
+
+**El renglón en blanco CUESTA una línea del presupuesto** (`extra = 1`). Sin eso la diapositiva se
+pasa de largo **por debajo del marco**, y PowerPoint no recorta ni avisa: se ve entera hasta que se
+proyecta.
+
+### ⚠️ EL SEPARADOR SE DERIVA DE «este bloque todavía no emitió nada», NO del índice crudo
+
+Es el hallazgo que más enseña de la tanda, y lo encontró `/sharp-edges`. Escrito como
+`pi === 0 && ti === 0` —que es lo natural— el separador se pierde en cuanto el primer párrafo del
+bloque queda vacío tras el trim. Medido:
+
+| texto | separador emitido |
+|---|---|
+| `…integro.\n\nEl ventrículo…` | `\n\n` ✓ |
+| `…integro.\n\n \nEl ventrículo…` | **`\n`** ← el renglón desaparece |
+
+Ese segundo caso es **un renglón en blanco que contiene un espacio**, o sea lo que deja pegar desde
+Word o un Enter con espacio. El defecto que el cambio vino a cerrar, reintroducido por un espacio y
+sin ninguna señal.
+
+### ⚠️ `_pptTxt` DEJABA PASAR EL `\r`, y `/\n{2,}/` no matchea `\r\n\r\n`
+
+Su rango de control excluye 0x0D a propósito, y el texto **no sale del textarea** —que normalizaría
+a LF— sino del estudio **persistido**: un backup JSON editado a mano o un import traen CRLF. Medido:
+todo el informe colapsaba a **un solo bloque** y se perdían **todos** los renglones en blanco. No era
+una regresión —el partidor viejo tampoco los veía— pero el cambio *promete* conservarlos. Se
+normaliza en `_pptTxt` (`\r\n?` → `\n`), que arregla el partidor y de paso el `\r` suelto que hoy
+llega a PowerPoint. Alcanza a todas las superficies del PPT, y en todas es estrictamente mejor.
+
+### Declarado y NO corregido, con la medición al lado
+
+- **El aviso de desborde mide la parte YA ENSAMBLADA y el acumulador cuenta por párrafo**, así que
+  `_lineasDe` —que ignora los saltos— cuenta distinto. **NO es alcanzable**, y está medido: barrido
+  de 1..40 párrafos × 20..600 caracteres, `accL` **nunca** supera las 23 salvo cuando un ítem SOLO
+  las excede, que es exactamente el caso que el aviso caza. Si algún día el acumulador deja de
+  acotar, hay que empujar `{txt, lineas}` a `partes`.
+- **Un párrafo largo partido por `_porOraciones` se reensambla con un salto duro** a mitad de
+  oración. Es preexistente, y ahora que el separador es un campo explícito el arreglo **parece** de
+  una palabra (`ti > 0 ? ' ' : '\n'`) y no lo es: el presupuesto suma `_lineasDe` por trozo, así que
+  unirlos con espacio deja el conteo mintiendo. No prolijear sin rehacer el conteo.
+- **La mutación que saca el `extra` del presupuesto SOBREVIVE**, y está bien que sobreviva: TC-269
+  mide **contenido**, no paginación, y el `extra` sólo mueve el corte en el 1,75 % de los largos.
+  Cazarla exigiría un narrativo de longitud exacta atado a `_lineasCaben` y `_PPT_CPL`, o sea un
+  caso que se rompe al tocar el cuerpo de letra. Lo que sí está medido es el alcance, arriba.
+- **El comentario decía «el informe narrativo no tiene renglones en blanco propios» y afirmaba de
+  más.** `inf.filter(Boolean)` saca `''` y **no `' '`**, y el narrativo es un textarea que el médico
+  edita —«💬 Frases» inserta en el cursor—: en un informe editado a mano el impacto de paginación es
+  **mayor** que ese 1,75 %. El 1,75 % está medido sobre informes **generados**, y el comentario lo
+  dice ahora.
+
+### La trampa del caso, otra vez las dos mismas
+
+- **El mazo se captura UN CICLO DESPUÉS.** `_pptDesdeFormulario` no devuelve el deck: sale por
+  `_pptxDescargarSaneado`, y **resuelve antes de llamarlo**. Leer la variable interceptada pegada al
+  `await` da `null`, y entonces la condición mide sobre una cadena vacía — «sin CC no hay renglón en
+  blanco» pasaba por **ausencia de mazo**, no por ausencia de renglón. Hay que esperar.
+- **`o.text` NO ES SIEMPRE UNA CADENA.** PptxGenJS acepta un arreglo de *runs* (`[{text:'…'}]`) y ahí
+  guarda lo que se le pasó: leerlo con `String()` da `[object Object]` y la búsqueda no encuentra
+  nada **sobre un mazo perfectamente bien generado**. El caso acusaba al producto por un error del
+  lector.
+- **Y el `\n` de un regex dentro del cuerpo de un caso, DÉCIMA vez.** `/\n\s*\n$/` llega con el salto
+  ya convertido y el `\s` sin su barra: `Invalid regular expression`, y se lleva el caso entero. Se
+  cuentan los saltos con `split`. Es literalmente lo que este archivo recomienda desde la quinta.
+
+---
+
 ## Las dos plantillas del menú pasan por el modal de módulos (2026-09-25)
 
 Las entradas «📋 Descargar plantilla Excel» y «📋 Exportar plantilla virgen» del menú de Guardados
