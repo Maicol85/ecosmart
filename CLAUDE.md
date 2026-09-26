@@ -7833,28 +7833,58 @@ Ahora el getter cae en `{d:null, s:null}` y el confirmar avisa y corta.
 
 ## Arquitectura
 
-- **Un solo archivo**, **4,83 MB / 79.291 líneas** (medido 2026-09-26). HTML + CSS + JS
-  inline en **74 bloques `<script>`**, sin build, sin dependencias externas más allá de jsPDF,
-  XLSX y PptxGenJS por CDN.
-  No confundir con los **3,89 MB / 63.949 líneas del JS extraído**, que es lo que escanea
+- **Un solo archivo**, **4,95 MiB (5.189.800 bytes) / 79.362 líneas** (medido 2026-09-26
+  sobre HEAD). HTML + CSS + JS inline en **20 bloques `<script>`** —más 6 con `src`, que son
+  los CDN—, sin build, sin dependencias externas más allá de jsPDF, XLSX y PptxGenJS por CDN.
+  No confundir con los **4,00 MiB / 64.059 líneas del JS extraído**, que es lo que escanea
   Semgrep: `scan.py` saca el JS de los `<script>` antes de analizar, así que sus números de
   línea NO son los del archivo. Para ubicar un hallazgo hay que buscar el fragmento con
   `grep`, no sumarle un offset.
+  ⚠️ **`grep -c '<script'` da 74 y está mal: 54 de esas son comentarios del propio archivo**
+  hablando de bloques `<script>`. Contar ocurrencias del texto no es contar etiquetas —una
+  entrada anterior de esta sección decía 74 por eso mismo—. Para contar en serio hay que
+  neutralizar los comentarios primero, que es exactamente lo que hace el extractor hoy.
   **⚠️ EL TAMAÑO NO ES UNA CURIOSIDAD: casi se triplicó desde el 2026-09-08** —eran 1,75 MB—
-  y **Semgrep saltea en silencio los archivos que pasan su tope**, devolviendo cero hallazgos
-  que se leen igual que «no había nada». Por eso `scan.py` pasa `--max-target-bytes 20000000`;
-  la invocación correcta se copia de ahí, no se reconstruye. Si un scan da un número
-  sospechosamente bajo, lo primero es mirar el denominador.
+  y Semgrep tiene **tres** formas de leer de menos, ninguna de las cuales baja el contador de
+  archivos escaneados. `scan.py` las cubre a las tres y la invocación correcta se copia de
+  ahí, no se reconstruye:
+  1. **Tope de tamaño** — saltea en silencio lo que pase 1 MB. Cubierto con
+     `--max-target-bytes 20000000`.
+  2. **Tope por regla** — 5 s de fábrica, y al vencerse descarta ESA regla sobre ESE archivo.
+     Medido el 2026-09-26: en el barrido de la suite **ecosmart salía con 45 hallazgos en vez
+     de 126**, trece reglas que no terminaban sobre sus 4 MB. Y `--timeout-threshold` de
+     fábrica (3) apaga la regla para el resto de la corrida, así que el archivo grande le tapa
+     hallazgos a los chicos que vienen después. Cubierto con `--timeout 300
+     --timeout-threshold 0`.
+  3. **Parseo parcial** — el archivo figura en `scanned` pero hay regiones que ninguna regla
+     miró. Cubierto con una guarda propia sobre `data['errors']`, independiente de la del
+     denominador.
+  Si un scan da un número sospechosamente bajo, lo primero es mirar el denominador. Y la
+  corrida de **una app sola no es comparable con la del barrido completo** mientras el barrido
+  no esté sano: ecosmart solo daba 126 y el barrido 45, sobre el mismo archivo.
 - **`CeiboStore` es el borde de confianza para los id de informe.** El saneo va ahí, no en
   las plantillas: cinco funciones leen `CeiboStore.getLocal()` directo sin pasar por
   `getInformes()`, así que arreglar `getInformes` deja esas cinco afuera, y una plantilla
   nueva reabre el agujero.
 - **`amiloSanPDFml` es la función correcta para texto multilínea en el PDF.** `amiloSanPDF`
   es la de una sola línea.
-- **El extractor de JS falla siempre en los bloques 0 y 1.** Cualquier chequeo de sintaxis
-  que los recorra va a reportarlos como rotos y no lo están: es el extractor, que corta mal
-  por un `</script>` dentro de una cadena. Comparar SIEMPRE contra HEAD antes de creerle a
-  un resultado. `CeiboStore` vive en el **bloque 8**, que sí se valida.
+- **[CORREGIDO 2026-09-26] El extractor de JS fallaba en los bloques 0 y 1 — y la causa que
+  decía acá era la equivocada.** Esta entrada culpaba a «un `</script>` dentro de una cadena»
+  y concluía «no lo están [rotos]», o sea: ignorá el síntoma. Medido: **cero `</script>`
+  literales** en el JS. La causa real era la inversa — un `<script>` escrito **dentro de un
+  comentario HTML** (el de PptxGenJS, index.html:29-33), que la regex del extractor no
+  distingue de una etiqueta. El primer match caía ahí, el JS extraído arrancaba a mitad de
+  oración y el parser de Semgrep se caía arrastrando **628 líneas, 252 con código**: todo el
+  bloque de login (`doLogin`, `cerrarSesion`, `cerrarSesionReal`, `toggleLoginPwd`,
+  `_avisoLegalForzar`, index.html:1606-1790). El único lugar de la app donde hay una
+  contraseña era el único que ninguna regla miraba, y esta entrada mandaba a no mirarlo.
+  En **datasmart** se llevaba puestos los 26 hallazgos enteros: la app figuraba con cero,
+  indistinguible de estar limpia.
+  Hoy `extract_js` neutraliza los comentarios HTML antes de buscar `<script>`, y un
+  `PartialParsing` corta la corrida con exit 2 en vez de imprimir ✅.
+  **La lección no es la regex: es que un síntoma reproducible archivado como «falso positivo
+  conocido» deja de mirarse.** Antes de anotar algo como ruido del herramental, medir la causa
+  que se le atribuye — acá bastaba contar los `</script>`, y daba cero.
 
 ## Trampas
 
