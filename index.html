@@ -1987,28 +1987,23 @@ window.cerrarSesionReal = cerrarSesionReal;
       <button type="button" class="btn btn-ghost" style="font-size:12px;padding:3px 10px;font-weight:700;" onclick="indicCerrar()">✕</button>
     </div>
     <div id="indic-cuerpo" style="padding:12px 14px;overflow:auto;flex:1;"></div>
-    <!-- ⚠️ TRES COSAS QUE ESTE DESCARGO DEJÓ DE DECIR. Quedan anotadas porque se pidió el texto
-         exacto, no porque se hayan pasado por alto:
+    <!-- ⚠️ «NO FORMA PARTE DEL INFORME NI DEL PDF» VA EN EL TEXTO, NO EN EL `title`.
+         Estuvo sólo en el tooltip del botón durante una ronda, y un `title` NO EXISTE EN TÁCTIL:
+         en celular y tablet el alcance del panel no estaba escrito en ninguna parte, y el manual
+         tampoco lo cubre. El comportamiento nunca cambió —ningún generador de PDF, PPT ni el
+         narrativo leen `IND_SECS`, y el `@media print` de más arriba apaga el overlay—, pero una
+         garantía que no se declara es una garantía que el próximo cambio puede romper sin que
+         nada la contradiga. Lo fija TC-272.
 
-         1 · «No forma parte del informe ni del PDF». Era la ÚNICA superficie donde al médico se
-             le decía el alcance del panel. El comportamiento no cambió —ningún generador de PDF,
-             PPT ni el narrativo leen `IND_SECS`, y el `@media print` de más arriba lo apaga—,
-             pero ahora eso sólo consta en el `title` del botón, y un `title` NO EXISTE EN
-             TÁCTIL: en celular y tablet el alcance del panel no está escrito en ninguna parte.
-             El manual tampoco lo cubre. Si alguna vez se decide que el panel sí viaje, ya no
-             hay un texto visible que lo contradiga.
-         2 · «correlación clínica completa» pasó a «correlación con las guías». No son lo mismo:
-             el panel YA ES las guías —cada sección cita su clase y su umbral en negrita—; lo que
-             no puede saber son los síntomas y la clase funcional, que es justamente lo que cada
-             sección marca con ❓ bajo «Requiere datos clínicos — no evaluable por ecocardiograma».
-             El descargo nuevo nombra el dato que SÍ está y calla el que falta.
-         3 · «Este panel muestra datos ecocardiográficos contra umbrales publicados en guías
-             ESC/AHA» — el encuadre de qué es esto. Pesa más ahora que el título dice «Evidencia»,
-             que en clínica se lee primero como «nivel de evidencia» y no como «los datos de ESTE
-             estudio contra los umbrales». Lo único que desambigua es la leyenda de marcas, y esa
-             sólo se imprime cuando hay al menos una sección. -->
+         Queda UNA cosa del descargo original todavía afuera, y es decisión de producto:
+         «correlación clínica completa» sigue siendo «correlación con las guías». No son lo
+         mismo — el panel YA ES las guías, cada sección cita su clase y su umbral en negrita; lo
+         que no puede saber son los síntomas y la clase funcional, que es justamente lo que cada
+         sección marca con ❓ bajo «Requiere datos clínicos — no evaluable por ecocardiograma».
+         El descargo nombra el dato que SÍ está y calla el que falta. -->
     <div style="flex-shrink:0;padding:10px 14px;border-top:1px solid var(--border);background:var(--bg3);border-radius:0 0 12px 12px;font-size:10px;color:var(--text2);line-height:1.55;">
-      <b>No constituye recomendación terapéutica.</b> Requiere correlación con las guías.
+      <b>No constituye recomendación terapéutica.</b> No forma parte del informe ni del PDF.
+      Requiere correlación con las guías.
     </div>
   </div>
 </div>
@@ -76841,8 +76836,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260926-1336';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790440581518;                 /* eco-build-ms */
+const ECO_BUILD    = '20260926-1437';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790444222456;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -76928,7 +76923,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260926-1336</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260926-1437</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

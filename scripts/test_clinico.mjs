@@ -28575,6 +28575,286 @@ caso('TC-271', 'La guarda del filtro vive en aplicarFiltros, no en uno solo de s
   })();
 `);
 
+/* ══ PANEL DE EVIDENCIA — TC-272 a TC-274 ══════════════════════════════════════════════════
+   El panel llego a TRECE secciones con CERO casos: el barrido de indic-btn, indicAbrir,
+   indicRender e indic-overlay sobre scripts/ y tests/ no devolvia nada. Trece compuertas
+   clinicas y un descargo medico-legal sin una sola condicion que los fijara, que es como un
+   arreglo se deshace sin que nadie se entere.
+
+   ⚠️ DOS TRAMPAS DEL HARNESS QUE ESTE BLOQUE PISA:
+   · El cuerpo de un caso es un TEMPLATE LITERAL, asi que una barra invertida se come el
+     caracter que sigue: /\s+/ adentro se emite como /s+/ y deja de hacer lo que dice. Por eso
+     abajo va escapada doble. Tampoco hay acentos graves ni interpolaciones de dolar-llave.
+   · it_grado es un input OCULTO que nace en '0', no vacio. Limpiar el formulario NO lo deja
+     en blanco: hay que reponerlo a '0' a mano o la tricuspide arrastra el caso anterior. */
+
+caso('TC-272', 'El descargo del panel de Evidencia declara su alcance en el TEXTO, no en un tooltip', `
+  return (async () => {
+    if (typeof indicAbrir !== 'function') return { extra:[['existe indicAbrir', false, '']] };
+    try {
+      indicAbrir();
+      await new Promise(r => setTimeout(r, 120));
+      const card = document.getElementById('indic-card');
+      if (!card) return { extra:[['existe la tarjeta del panel', false, '']] };
+      const pie = card.lastElementChild;
+      const txt = (pie.textContent || '').replace(/\\s+/g, ' ').trim().toLowerCase();
+
+      /* ── LO QUE VE EL MEDICO SIN HOVER ──
+         innerText/textContent NO incluye los atributos title, asi que si la frase aparece aca
+         es texto de verdad. Ese es justo el punto: durante una ronda el alcance del panel vivio
+         SOLO en el title del boton, y un title no existe en tactil --no hay hover en celular ni
+         en tablet--, asi que en esos dispositivos la informacion no estaba en ningun lado. */
+      const visible = pie.offsetHeight > 0 && pie.offsetWidth > 0;
+      const btn = document.getElementById('indic-btn');
+      const tit = document.getElementById('indic-titulo');
+      /* ⚠️ innerText Y NO textContent, y es la unica razon de ser de esta condicion.
+         textContent devuelve lo que hay en el DOM aunque este oculto; innerText devuelve lo que
+         el navegador PINTA, y no incluye los atributos title. Escrita contra textContent la
+         condicion era una TAUTOLOGIA --repetia la de arriba negada-- y no podia fallar sola:
+         ocupaba el lugar de una cobertura que no existia. Asi mide otra cosa. */
+      const pintado = (pie.innerText || '').replace(/\\s+/g, ' ').toLowerCase();
+
+      return { extra: [
+        ['el pie del panel esta renderizado y tiene alto', visible,
+          'h=' + pie.offsetHeight + ' w=' + pie.offsetWidth],
+        ['dice que no es una recomendacion terapeutica',
+          txt.indexOf('no constituye recomendacion terap') > -1 ||
+          txt.indexOf('no constituye recomendación terap') > -1, JSON.stringify(txt.slice(0, 60))],
+        ['DICE QUE NO VA AL INFORME NI AL PDF, que es la frase que se habia perdido',
+          txt.indexOf('no forma parte del informe ni del pdf') > -1, JSON.stringify(txt)],
+        ['pide correlacion', txt.indexOf('correlaci') > -1, ''],
+        ['TACTIL: la frase esta PINTADA, no en un atributo que necesita hover',
+          pintado.indexOf('no forma parte del informe ni del pdf') > -1,
+          'pintado=' + JSON.stringify(pintado.slice(0, 90)) +
+          ' title=' + JSON.stringify(btn ? btn.title : null)],
+        ['y el titulo del panel ya no se llama Indicaciones',
+          !!tit && (tit.textContent || '').indexOf('Evidencia') > -1,
+          tit ? '' : 'falta #indic-titulo']
+      ] };
+    } finally { try { indicCerrar(); } catch (e) {} }
+  })();
+`);
+
+/* Datos minimos que encienden cada seccion, medidos en el navegador uno por uno. No son un
+   paciente plausible: son el conjunto mas chico que cruza cada compuerta, que es lo que un caso
+   de compuerta tiene que usar. */
+const EVID_DATOS = `{
+  EA:   {ava_cont:'0.9', gmedio_ao:'46', vmax_ao:'4.3', fevi:'58', ea_grado:'severa'},
+  IM:   {im_sev_final:'4', dsfvi:'42', ai_vol:'70', peso:'80', talla:'175'},
+  EM:   {avm_plan:'1.2', em_grado:'severa'},
+  IA:   {ia_sev_final:'4', dsfvi:'52'},
+  VT:   {it_grado:'4', it_vc:'9'},
+  EP:   {vp_gmax:'81', vp_vmax:'4.5', ep_grado:'Severa', ep_nivel:'Valvular'},
+  CIA:  {ete_cia_tipo:'secundum', ete_cia_tam_max:'22', vd_bas:'46'},
+  CIV:  {ete_civ_tipo:'perimembranosa', ete_civ_tam:'8'},
+  DAP:  {dap_tipo:'no_restrictivo', dap_diam:'5', dap_vmax:'4.2'},
+  CoAo: {coa_istmo:'6', coa_vmax:'3.2', coa_gmedio:'22', coa_hta:'si'},
+  FOP:  {fop_shunt_valsalva:'si', fop_acv:'si', edad:'45', fop_burbujas:'abundante'},
+  MCH:  {mch_grad_reposo:'62', mch_grad_valsalva:'80', mch_sam:'si', mch_cf:'iii_iv'},
+  VAB:  {ao_tub:'48', ao_sin:'42', va_morf:'Bicúspide'}
+}`;
+const EVID_FNS = `{EA:'_indEA',IM:'_indIM',EM:'_indEM',IA:'_indIA',VT:'_indVT',EP:'_indEP',
+  CIA:'_indCIA',CIV:'_indCIV',DAP:'_indDAP',CoAo:'_indCoAo',FOP:'_indFOP',MCH:'_indMCH',VAB:'_indVAB'}`;
+/* La lista de limpieza es EXPLICITA y no un querySelectorAll de inputs: el panel lee campos de
+   seis pestanas distintas, y barrer todo el formulario rompe el aislamiento de los otros casos. */
+const EVID_LIMPIAR = `['ava_cont','gmedio_ao','vmax_ao','fevi','ea_grado','im_sev_final','dsfvi',
+  'ai_vol','avm_plan','avm_ete','avm_cont','avm_thp','em_grado','ia_sev_final','it_vc','it_vmax_cw',
+  'it_pisa_r','it_vti','it_densidad','et_gmedio','et_thp','et_vti_diast','vp_gmax','vp_vmax',
+  'ep_grado','ep_nivel','ep_etiologia','ete_cia_tipo','ete_cia_tam_max','vd_bas','ete_civ_tipo',
+  'ete_civ_tam','ete_civ_vel','ete_civ_pas','dap_tipo','dap_diam','dap_vmax','dap_paps','dap_dir',
+  'coa_istmo','coa_vmax','coa_gmedio','coa_hta','fop_shunt_valsalva','fop_shunt_reposo','fop_acv',
+  'fop_burbujas','fop_asa','fop_asa_mm','fop_tunel','mch_grad_reposo','mch_grad_valsalva','mch_sam',
+  'mch_cf','ao_tub','ao_sin','diam_tsvi','itv_tsvi','tsvd_diametro','vti_tsvd','ddfvi',
+  'edad','va_morf','vp_morf','peso','talla']`;
+
+caso('TC-273', 'Panel de Evidencia: las trece secciones aparecen con su criterio y desaparecen sin el', `
+  return (async () => {
+    const DATOS = ${EVID_DATOS};
+    const FN = ${EVID_FNS};
+    const LIMPIAR = ${EVID_LIMPIAR};
+    /* ⚠️ NO ALCANZA CON QUE EL ID EXISTA: un <select> RECHAZA un valor que no sea una de sus
+       opciones y deja su value en cadena vacia, sin avisar. Paso con va_morf: el caso escribia
+       'Bicuspide' sin tilde, el select lo descartaba, y la condicion de la aorta ascendente
+       pasaba igual --por el diametro, que es otra compuerta--. Un caso que mide de menos y sale
+       verde es peor que uno rojo. Por eso se compara lo que quedo contra lo que se pidio. */
+    const ponerTodo = () => { const faltan = [], noEntraron = [];
+      Object.keys(DATOS).forEach(k => Object.keys(DATOS[k]).forEach(id => {
+        const e = document.getElementById(id);
+        if (!e) { faltan.push(id); return; }
+        if (e.type === 'checkbox') { e.checked = true; return; }
+        e.value = DATOS[k][id];
+        if (e.value !== DATOS[k][id]) noEntraron.push(id + '=' + JSON.stringify(DATOS[k][id]));
+      })); return { faltan: faltan, noEntraron: noEntraron }; };
+    /* La limpieza tambien declara lo que no encontro: su guarda de ausencia era MUDA, asi que un
+       id renombrado dejaba de limpiarse y el aislamiento se degradaba sin poner nada en rojo. */
+    const ausentesAlLimpiar = [];
+    const limpiar = () => { LIMPIAR.forEach(id => { const e = document.getElementById(id);
+        if (!e) { if (ausentesAlLimpiar.indexOf(id) === -1) ausentesAlLimpiar.push(id); return; }
+        if (e.type === 'checkbox') e.checked = false; else e.value = ''; });
+      const cb = document.getElementById('coa_diast_anterogrado'); if (cb) cb.checked = false;
+      const it = document.getElementById('it_grado'); if (it) it.value = '0'; };
+    const corre = k => { try { return window[FN[k]](); } catch (e) { return 'LANZA:' + e; } };
+
+    try {
+      limpiar();
+      const puesto = ponerTodo();
+      const conDatos = {}; Object.keys(FN).forEach(k => { conDatos[k] = corre(k); });
+      limpiar();
+      const sinDatos = {}; Object.keys(FN).forEach(k => { sinDatos[k] = corre(k); });
+
+      const vivasSinDatos = Object.keys(FN).filter(k => sinDatos[k] !== null);
+      const ex = [
+        ['ningun id del caso quedo obsoleto en la app',
+          puesto.faltan.length === 0 && ausentesAlLimpiar.length === 0,
+          'sin poner: ' + puesto.faltan.join(',') + ' · sin limpiar: ' + ausentesAlLimpiar.join(',')],
+        ['y ningun valor fue RECHAZADO por su select', puesto.noEntraron.length === 0,
+          puesto.noEntraron.join(' ')]];
+      Object.keys(FN).forEach(k => {
+        const r = conDatos[k];
+        ex.push(['  ' + k + ': aparece con su criterio cargado',
+          !!r && r !== null && typeof r === 'object' && Array.isArray(r.filas) && r.filas.length > 0,
+          typeof r === 'string' ? r : (r === null ? 'null' : 'ok')]);
+      });
+      /* ── DENOMINADOR ── sin datos NINGUNA puede seguir en pie. Si esta condicion pasara con el
+         formulario poblado, las trece de arriba estarian midiendo «la funcion devuelve algo» y
+         no «la compuerta se abre», que es lo que un caso de compuerta tiene que separar. */
+      ex.push(['DENOMINADOR: sin datos, las trece desaparecen', vivasSinDatos.length === 0,
+        'siguen vivas: ' + (vivasSinDatos.join(',') || 'ninguna')]);
+
+      /* ── EL CRUCE QUE COSTO UNA RONDA ── ccQpQsDe no tiene guarda para «no hay ningun shunt»:
+         con cero shunts devuelve el cociente GLOBAL, y sus cuatro insumos son de OTRAS cosas
+         --diam_tsvi e itv_tsvi son los del AVA por continuidad--. Con la compuerta apoyada en el
+         Qp/Qs, una estenosis aortica corriente recibia una seccion de CIV con criterio de cierre. */
+      limpiar();
+      [['diam_tsvi','20'],['itv_tsvi','18'],['tsvd_diametro','28'],['vti_tsvd','22'],
+       ['ddfvi','68'],['peso','80'],['talla','175']].forEach(p => {
+        const e = document.getElementById(p[0]); if (e) e.value = p[1]; });
+      const qGlobal = (typeof ccQpQsDe === 'function') ? ccQpQsDe('civ') : null;
+      const civSinCiv = corre('CIV');
+      ex.push(['DENOMINADOR del cruce: hay un Qp/Qs global calculable', qGlobal != null,
+        'q=' + qGlobal]);
+      ex.push(['la CIV NO aparece sin CIV declarada, aunque el Qp/Qs global exista',
+        civSinCiv === null, civSinCiv === null ? '' : 'aparecio con ' + (civSinCiv.filas || []).length + ' filas']);
+
+      /* ── LAS DOS TRAMPAS DE VALOR DE FABRICA ── no alcanza con que la seccion aparezca: hay
+         campos que NACEN con un valor, y publicarlo como dato consignado es AFIRMAR UNA
+         AUSENCIA que nadie midio. Los dos casos son reales y se corrigieron:
+         · it_grado es un input oculto que nace en '0' y limpiarCampos lo repone, asi que «Sin»
+           no distinguia «no hay insuficiencia» de «nadie la evaluo».
+         · vp_morf no tiene opcion vacia y arranca en «Normal», cuatro renglones arriba de la
+           nota que dice que una valvula displasica responde mal al balon. */
+      const filaDe = (sec, lbl) => { const f = (sec && sec.filas || []).find(x => x.lbl.indexOf(lbl) > -1);
+        return f ? (f.val + ' [' + f.marca + ']') : 'NO HAY FILA'; };
+
+      limpiar();   // estenosis tricuspidea significativa y CERO parametros de insuficiencia
+      [['et_gmedio','7'],['et_thp','210']].forEach(p => {
+        const e = document.getElementById(p[0]); if (e) e.value = p[1]; });
+      const itSinEvaluar = filaDe(corre('VT'), 'Insuficiencia tricusp');
+      ex.push(['it_grado nace en 0: sin parametros de IT la fila dice No evaluada y no Sin',
+        itSinEvaluar.indexOf('No evaluada') > -1 && itSinEvaluar.indexOf('[ask]') > -1, itSinEvaluar]);
+
+      limpiar();   // estenosis pulmonar severa con la morfologia sin tocar
+      [['vp_gmax','90'],['vp_vmax','4.7']].forEach(p => {
+        const e = document.getElementById(p[0]); if (e) e.value = p[1]; });
+      const vm = document.getElementById('vp_morf'); if (vm) vm.value = 'Normal';
+      /* UNA sola llamada, con prefijo sin acento. Concatenar dos busquedas y preguntar por dos
+         subcadenas sobre la union deja que se satisfagan por MITADES distintas: una fila
+         aportaria el texto y otra la marca, y la condicion pasaria sin que la fila que dice
+         medir diga nada. Ademas la mitad sin tilde era codigo muerto. */
+      const morfFabrica = filaDe(corre('EP'), 'Morfolog');
+      ex.push(['vp_morf nace en Normal: no se publica como morfologia consignada',
+        morfFabrica.indexOf('No consignada') > -1 && morfFabrica.indexOf('[ask]') > -1, morfFabrica]);
+
+      return { extra: ex };
+    } finally {
+      try { LIMPIAR.forEach(id => { const e = document.getElementById(id);
+        if (!e) return; if (e.type === 'checkbox') e.checked = false; else e.value = ''; });
+        const it = document.getElementById('it_grado'); if (it) it.value = '0';
+        const cb = document.getElementById('coa_diast_anterogrado'); if (cb) cb.checked = false;
+        ['peso','talla'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+      } catch (e) {}
+    }
+  })();
+`);
+
+caso('TC-274', 'El boton de Evidencia corre las MISMAS secciones que el panel, y falla hacia visible', `
+  return (async () => {
+    const DATOS = ${EVID_DATOS};
+    const LIMPIAR = ${EVID_LIMPIAR};
+    const limpiar = () => { LIMPIAR.forEach(id => { const e = document.getElementById(id);
+        if (!e) return; if (e.type === 'checkbox') e.checked = false; else e.value = ''; });
+      const cb = document.getElementById('coa_diast_anterogrado'); if (cb) cb.checked = false;
+      const it = document.getElementById('it_grado'); if (it) it.value = '0'; };
+    const btn = document.getElementById('indic-btn');
+    if (!btn || typeof indicHayCriterios !== 'function')
+      return { extra:[['existen el boton y la compuerta', false, '']] };
+    const dapReal = window.dapConclusion;
+    try {
+      limpiar();
+      if (typeof indicSyncBoton === 'function') indicSyncBoton();
+      const vacioOculto = btn.hidden === true, vacioHay = indicHayCriterios();
+
+      /* Una sola seccion con criterio real alcanza para encenderlo. */
+      Object.keys(DATOS.EA).forEach(id => { const e = document.getElementById(id); if (e) e.value = DATOS.EA[id]; });
+      if (typeof indicSyncBoton === 'function') indicSyncBoton();
+      const conEaVisible = btn.hidden === false, conEaHay = indicHayCriterios();
+
+      /* ── LA COMPUERTA NO ES UNA LISTA APARTE ── indicHayCriterios tiene que recorrer las mismas
+         IND_SECS que indicRender. Una segunda condicion escrita a mano --«EA severa o IM severa
+         o...»-- divergiria del panel sin que nada lo delate, que es el defecto que la cabecera
+         del panel declara. Se mide comparando las dos superficies sobre el mismo formulario. */
+      indicRender();
+      const nSecs = document.querySelectorAll('#indic-cuerpo details').length;
+      const coherente = (nSecs > 0) === indicHayCriterios();
+
+      /* ── FALLA HACIA VISIBLE ── si una seccion lanza, el boton se MUESTRA: escondido, la unica
+         senal seria su ausencia, indistinguible de «este paciente no tiene nada». */
+      limpiar();
+      /* ── DENOMINADOR DEL FAIL-OPEN ── indicHayCriterios sale en la PRIMERA seccion que
+         devuelve algo, y el ductus es la novena de trece. Si alguna de las ocho anteriores
+         encendiera con el formulario vacio, el stub de abajo no se ejerceria nunca y la
+         condicion pasaria sin haber probado el catch: verde sobre un mutante con el fail-open
+         removido. Por eso se exige que aca no haya NADA encendido antes de romper la seccion. */
+      const vacioAntesDelStub = indicHayCriterios();
+      window.dapConclusion = function(){ throw new Error('seccion rota a proposito'); };
+      const hayConSeccionRota = indicHayCriterios();
+      window.dapConclusion = dapReal;
+
+      /* ── BRECHA DECLARADA Y NO CORREGIDA ── un ductus SILENTE enciende el boton, y por
+         definicion no tiene indicacion de cierre: la nota de su propia seccion lo dice. Separar
+         «mostrar la seccion» de «cuenta para el boton» toca indicHayCriterios, que es el
+         mecanismo compartido por las trece. La condicion fija la conducta REAL de hoy: si
+         alguien la corrige, este renglon se pone rojo y va a saber que tiene que venir aca. */
+      limpiar();
+      const dt = document.getElementById('dap_tipo'); if (dt) dt.value = 'silente';
+      const silenteEnciende = indicHayCriterios();
+      const silenteSeccion = window._indDAP();
+      const silenteClave = (typeof dapConclusion === 'function' && dapConclusion()) ? dapConclusion().clave : null;
+
+      return { extra: [
+        ['con el formulario vacio el boton esta oculto', vacioOculto && vacioHay === false,
+          'hidden=' + btn.hidden + ' hay=' + vacioHay],
+        ['con una sola seccion con criterio, se enciende', conEaVisible && conEaHay === true,
+          'hidden=' + btn.hidden + ' hay=' + conEaHay],
+        ['la compuerta y el panel coinciden sobre el mismo formulario', coherente,
+          'secciones=' + nSecs + ' hay=' + indicHayCriterios()],
+        ['DENOMINADOR: antes de romper la seccion no habia ninguna encendida',
+          vacioAntesDelStub === false, 'hay=' + vacioAntesDelStub],
+        ['FALLA HACIA VISIBLE: una seccion que lanza enciende el boton', hayConSeccionRota === true,
+          'hay=' + hayConSeccionRota],
+        ['DENOMINADOR: el ductus silente produce conclusion pero no indicacion',
+          silenteClave === 'silente' && silenteSeccion !== null, 'clave=' + silenteClave],
+        ['BRECHA DECLARADA: hoy el ductus silente ENCIENDE el boton (si esto da rojo, se corrigio)',
+          silenteEnciende === true, 'enciende=' + silenteEnciende]
+      ] };
+    } finally {
+      window.dapConclusion = dapReal;
+      try { limpiar(); ['peso','talla'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+        if (typeof indicSyncBoton === 'function') indicSyncBoton(); } catch (e) {}
+    }
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];
