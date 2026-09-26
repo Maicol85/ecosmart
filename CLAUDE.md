@@ -152,6 +152,16 @@ comentario, o sea que es el artefacto de una corrida del extractor que cortó ma
 archivo documenta fallando en los bloques 0 y 1—. **Cero lectores**: `scan.py` extrae a un tempdir
 nuevo en cada corrida. Queda para un prompt aparte, como se pidió.
 
+### ⚠️ `--solo` TOMA UN SOLO CASO, y eso produce mutaciones que «sobreviven» sin haber corrido
+
+`const SOLO = argv[argv.indexOf('--solo') + 1]` — pasarle dos (`--solo TC-268 --solo TC-269`) NO
+corre dos: se queda con el primero y el otro **no se ejecuta**. Y la salida dice `RESULTADO: 1/1 ✓`,
+que se lee como «la mutación sobrevivió».
+
+Me pasó con una tanda de seis mutaciones: las seis dieron verde y dos de ellas eran defectos reales
+que el caso sí caza. El síntoma que lo delata es el **denominador del propio runner**: `1/1` cuando
+se pidieron dos casos. Al mutar contra más de un caso, **una corrida por caso**.
+
 ### La línea base definitiva de la ronda
 
 **Suite 285/286** — el único rojo es **TC-223**, que ya fallaba y está documentado: fija
