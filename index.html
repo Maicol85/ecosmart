@@ -1911,10 +1911,10 @@ window.cerrarSesionReal = cerrarSesionReal;
 <!-- Modal del exportador de Excel. Mismo armazón que #crit-overlay: cierra al clic afuera,
      cabecera pegajosa con ✕ y cuerpo scrolleable. -->
 <div id="lab-exp-overlay" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55);" onclick="if(event.target===this)labExpCerrar();">
-  <div role="dialog" aria-label="Exportar a Excel"
+  <div role="dialog" aria-labelledby="lab-exp-titulo"
        style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:560px;max-width:calc(100vw - 24px);max-height:calc(100vh - 48px);overflow:auto;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.6);">
     <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg2);z-index:1;">
-      <span style="flex:1;font-weight:700;font-size:13px;color:var(--accent2);">📊 Exportar a Excel</span>
+      <span id="lab-exp-titulo" style="flex:1;font-weight:700;font-size:13px;color:var(--accent2);">📊 Exportar a Excel</span>
       <button type="button" class="btn btn-ghost" style="font-size:12px;padding:3px 10px;font-weight:700;" onclick="labExpCerrar()">✕</button>
     </div>
     <div style="padding:12px 14px;">
@@ -1930,6 +1930,11 @@ window.cerrarSesionReal = cerrarSesionReal;
            Excel de otros 89, y «Limpiar filtros» de Guardados no lo cambiaba porque no toca
            los del Laboratorio. El subtítulo del menú lo avisaba, pero un aviso no es un
            control. Ahora se elige acá, y por omisión es LO QUE SE VE. -->
+      <!-- ⚠️ ZONA DE FILAS. Se esconde entera en modo PLANTILLA: una plantilla virgen no tiene
+           filas, así que preguntar de qué estudios salen —y con qué filtro— sería ofrecer una
+           decisión que no gobierna nada. Va envuelta y no escondida control por control para que
+           agregar un cuarto radio mañana no se quede afuera del modo plantilla sin que se note. -->
+      <div id="lab-exp-zona-filas">
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 6px;">Qué estudios exportar</div>
       <label style="display:flex;align-items:flex-start;gap:8px;padding:5px 6px;font-size:11.5px;cursor:pointer;">
         <input type="radio" name="lab-exp-origen" value="guardados" onchange="labExpRefrescar()" style="width:15px;height:15px;flex:0 0 auto;margin-top:1px;">
@@ -1944,11 +1949,12 @@ window.cerrarSesionReal = cerrarSesionReal;
       <label style="display:flex;align-items:center;gap:8px;padding:5px 6px;font-size:11.5px;cursor:pointer;">
         <input type="radio" name="lab-exp-filas" value="solo" onchange="labExpRefrescar()" style="width:15px;height:15px;">
         <span>Sólo los que tienen datos en los módulos elegidos</span></label>
+      </div>
       <div id="lab-exp-cuenta" style="margin-top:12px;font-size:12px;font-weight:700;padding:8px 10px;border-radius:7px;background:var(--bg3,rgba(255,255,255,.04));border-left:3px solid var(--accent2);">—</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:14px;">
-        <button type="button" class="btn btn-ghost" style="font-size:11.5px;" onclick="labExpPlantilla()">📋 Descargar plantilla vacía</button>
+        <button type="button" id="lab-exp-btn-plantilla" class="btn btn-ghost" style="font-size:11.5px;" onclick="labExpPlantilla()">📋 Descargar plantilla vacía</button>
         <button type="button" class="btn btn-ghost" style="font-size:11.5px;" onclick="labExpCerrar()">Cancelar</button>
-        <button type="button" class="btn btn-primary" style="font-size:11.5px;" onclick="labExpConfirmar()">📊 Exportar</button>
+        <button type="button" id="lab-exp-btn-exportar" class="btn btn-primary" style="font-size:11.5px;" onclick="labExpConfirmar()">📊 Exportar</button>
       </div>
     </div>
   </div>
@@ -13754,8 +13760,8 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                      ninguna toca la base. Puestas entre JSON y Excel de entrada, eran las dos
                      únicas opciones de «Importar» que no importaban nada. -->
                 <div class="igio-sep"></div>
-                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();labPlantillaXLSX()">📋 Descargar plantilla Excel<small>Columnas correctas, una fila de ejemplo con el formato de cada celda en un comentario, y las hojas «Bloques» e «Instrucciones»</small></button>
-                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();labPlantillaXLSX(true)">📋 Exportar plantilla virgen<small>La misma estructura pero SIN la fila de ejemplo: sólo los encabezados, lista para llenar e importar</small></button>
+                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();labExpAbrir({plantilla:true,conEjemplo:true})">📋 Plantilla Excel…<small>Columnas correctas, una fila de ejemplo con el formato de cada celda en un comentario, y las hojas «Bloques» e «Instrucciones»</small></button>
+                <button type="button" class="igio-op" role="menuitem" onclick="igIOCerrar();labExpAbrir({plantilla:true,conEjemplo:false})">📋 Plantilla virgen…<small>La misma estructura pero SIN la fila de ejemplo: sólo los encabezados, lista para llenar e importar</small></button>
               </div>
             </div>
             <div class="igio-wrap">
@@ -62144,14 +62150,39 @@ function _labExpBase(){
 }
 
 /* ══ MODAL DEL EXPORTADOR ════════════════════════════════════════════════════════════════════ */
-function labExpAbrir(){
-  /* La guarda mira la BASE COMPLETA y no un origen en particular: con «Último mes» en el
+/* ⚠️ MODO PLANTILLA. El mismo modal sirve a dos trabajos: exportar DATOS y generar una plantilla
+   VACÍA. Las dos entradas del menú de Guardados —«Descargar plantilla Excel» y «Exportar plantilla
+   virgen»— pasaban de largo y generaban las 429 columnas sin preguntar; ahora abren esto y el
+   médico elige los módulos con las mismas siete casillas.
+   Vive en una variable de módulo y no en el DOM porque es el estado de ESTA apertura, no un
+   control que el médico manipule.
+   ⚠️ SON DOS CAPAS, Y LA QUE SOSTIENE LA INVARIANTE ES LA PRIMERA: `labExpAbrir` fija el modo
+   INCONDICIONALMENTE en toda apertura —ésa es la que impide que un modo viejo tiña la siguiente—
+   y el `_labExpModo = null` de `labExpCerrar` es la segunda, **redundante hoy**. Se declara así a
+   propósito: redactado como «lo fija y lo apaga» el próximo puede volver condicional la
+   asignación de `labExpAbrir` creyendo que el reset lo cubre, y ÉSA es la mutación que sí rompe.
+   Ninguna mutación de una sola línea las caza; se cubren entre ellas. */
+let _labExpModo = null;   // null = exportar datos · { conEjemplo } = plantilla
+
+function labExpAbrir(modo){
+  const _pl = !!(modo && modo.plantilla);
+  /* ⚠️ LA GUARDA DE «SIN ESTUDIOS» NO APLICA A UNA PLANTILLA, y saltearla no es un atajo: una
+     plantilla virgen no lleva un solo dato del paciente, y el momento más probable para pedirla
+     es justamente cuando todavía NO hay ningún estudio guardado. Con la guarda puesta, el menú
+     habría dejado de funcionar en una app recién instalada — que es cuando más se necesita.
+     Para exportar datos la guarda queda igual, y por el motivo que ya estaba escrito:
+     mira la BASE COMPLETA y no un origen en particular: con «Último mes» en el
      Laboratorio y la pantalla filtrada a otro rango, cualquiera de los dos orígenes puede dar
      cero mientras el otro tiene estudios. Negar la apertura por el que da cero dejaría al
      médico sin poder llegar al selector que arregla justo eso. Si el origen elegido queda
      vacío lo dice el contador del modal, y `labExpConfirmar` no deja exportar. */
-  if (!getInformes().length) { toast('⚠️ Sin estudios para exportar'); return; }
+  if (!_pl && !getInformes().length) { toast('⚠️ Sin estudios para exportar'); return; }
   if (typeof XLSX === 'undefined') { toast('❌ Librería Excel (XLSX) no disponible'); return; }
+  /* ⚠️ SE FIJA DESPUÉS DE LAS DOS GUARDAS, no antes. Fijándolo arriba, un XLSX caído —que este
+     archivo documenta como algo que pasa— dejaba el modo puesto con el modal NUNCA ABIERTO, o
+     sea la invariante «modo puesto ⇔ modal abierto en ese modo» rota desde el primer clic
+     fallido. Hoy nadie lee el modo con el modal cerrado; el día que alguien lo lea, sí. */
+  _labExpModo = _pl ? { conEjemplo: !!(modo && modo.conEjemplo) } : null;
   const pref = _labExpLeerPref();
   const cont = document.getElementById('lab-exp-mods');
   if (cont) {
@@ -62175,11 +62206,33 @@ function labExpAbrir(){
   /* Cada apertura arranca en «lo que ves» — el origen no se hereda, ver `_labExpOrigen`. */
   const ro = document.querySelector('input[name="lab-exp-origen"][value="guardados"]');
   if (ro) ro.checked = true;
+  _labExpPintarModo();
   const ov = document.getElementById('lab-exp-overlay'); if (ov) ov.style.display = 'block';
   labExpRefrescar();
 }
 window.labExpAbrir = labExpAbrir;
-function labExpCerrar(){ const ov = document.getElementById('lab-exp-overlay'); if (ov) ov.style.display = 'none'; }
+/* Pone el modal en el trabajo que le toca. Se esconde la zona de filas entera y el botón de
+   exportar datos: en modo plantilla no hay filas que elegir, y dejar «📊 Exportar» como botón
+   PRIMARIO sería ofrecer, en el lugar más prominente, algo distinto de lo que el médico pidió
+   desde el menú —descargarse todos los pacientes cuando quería una planilla vacía—. */
+function _labExpPintarModo(){
+  const pl = !!_labExpModo;
+  const tit = document.getElementById('lab-exp-titulo');
+  if (tit) tit.textContent = pl
+    ? (_labExpModo.conEjemplo ? '📋 Plantilla Excel (con fila de ejemplo)' : '📋 Plantilla Excel virgen')
+    : '📊 Exportar a Excel';
+  const zf = document.getElementById('lab-exp-zona-filas');
+  if (zf) zf.style.display = pl ? 'none' : '';
+  const be = document.getElementById('lab-exp-btn-exportar');
+  if (be) be.style.display = pl ? 'none' : '';
+  const bp = document.getElementById('lab-exp-btn-plantilla');
+  if (bp) {
+    bp.textContent = pl ? '📋 Descargar plantilla' : '📋 Descargar plantilla vacía';
+    bp.className = pl ? 'btn btn-primary' : 'btn btn-ghost';
+  }
+}
+
+function labExpCerrar(){ const ov = document.getElementById('lab-exp-overlay'); if (ov) ov.style.display = 'none'; _labExpModo = null; }
 window.labExpCerrar = labExpCerrar;
 
 function labExpSeleccion(){
@@ -62196,15 +62249,32 @@ function labExpRefrescar(){
   const sel = labExpSeleccion(), solo = labExpSoloConDatos();
   const infs = _labExpBase();
   const cols = _labColsFiltradas(_labOrdenarCols(Object.keys(_labExcelRow({ id:0, campos:{} }))), sel);
-  const filas = _labFilasFiltradas(infs, sel, solo);
+  /* En modo plantilla no hay filas: calcularlas construye un `_labExcelRow` completo POR
+     ESTUDIO en cada toque de casilla, para pintar un texto que no se muestra. */
+  const filas = _labExpModo ? [] : _labFilasFiltradas(infs, sel, solo);
   const el = document.getElementById('lab-exp-cuenta');
-  if (el) el.textContent = cols.length + ' columnas · ' + filas.length +
-    (filas.length === 1 ? ' estudio' : ' estudios') +
-    (solo && !sel.length ? ' — sin módulos elegidos, el filtro de filas no se aplica' : '');
+  /* En modo PLANTILLA la cuenta habla sólo de columnas: el archivo no lleva ninguna fila de
+     paciente, así que decir «… · 149 estudios» al lado prometería un contenido que no va. */
+  /* ⚠️ CON DENOMINADOR. «129 columnas» a secas no dice que se están dejando 300 afuera, y ese
+     recorte es invisible de toda otra forma: las dos entradas del menú pasaban `undefined` —que
+     `labPlantillaXLSX` lee como «no filtrar», 429 columnas— y ahora pasan un array; `[]` es
+     TRUTHY, así que en una instalación nueva, con la preferencia vacía, «📋 Descargar plantilla
+     Excel» —cuyo subtítulo promete «Columnas correctas»— pasó a dar la plantilla MÍNIMA. El
+     denominador es lo único que hace legible esa diferencia. Lo cazó `/sharp-edges`. */
+  const _tot = _labOrdenarCols(Object.keys(_labExcelRow({ id:0, campos:{} }))).length;
+  const _cols = cols.length + (cols.length < _tot ? ' de ' + _tot : '') + ' columnas';
+  if (el) el.textContent = _labExpModo
+    ? (_cols + (_labExpModo.conEjemplo ? ' · con una fila de ejemplo' : ' · sin fila de ejemplo'))
+    : (_cols + ' · ' + filas.length +
+       (filas.length === 1 ? ' estudio' : ' estudios') +
+       (solo && !sel.length ? ' — sin módulos elegidos, el filtro de filas no se aplica' : ''));
   /* Cada opción lleva SU número al lado, para que se elija comparando y no a ciegas. Es el
      mismo cálculo de los dos lados —`igListaEnPantalla` y `labGetInformes`—, así que el rótulo
      no puede prometer una población y el export entregar otra. */
   const _n = n => n + (n === 1 ? ' estudio' : ' estudios');
+  /* Los dos rótulos de abajo son de los radios que el modo plantilla esconde, y recalcularlos
+     vuelve a pasar por `_igEnPantallaDetalle()` y `labGetInformes()` en cada toque. */
+  if (_labExpModo) { return; }
   const eg = document.getElementById('lab-exp-org-guardados');
   if (eg) {
     /* El MISMO `_igEnPantallaDetalle` que usa `_labExpBase`, y se respetan sus dos señales. Antes
@@ -62237,11 +62307,27 @@ function labExpRefrescar(){
       (coh ? ' + cohorte filtrada (' + coh + ')' : '') + ' — ' + _n(nLab);
     elab.style.color = coh ? 'var(--orange,#f0a500)' : '';
   }
+  /* ⚠️ UN SOLO DUEÑO: quien impide que la plantilla escriba la preferencia es el `return` de
+     arriba, no una segunda guarda acá. Tener las dos hacía que ninguna mutación de una sola
+     línea las cazara —se enmascaran entre sí— que es el patrón que este archivo persigue.
+     Por qué importa: leer la preferencia compartida es correcto y está justificado —una plantilla
+     de «sólo Fontan» tiene que reimportar igual que ese módulo exportado—, pero escribirla no.
+     Destildar los siete módulos para bajar una planilla flaca dejaba el export de DATOS recortado
+     a 129 columnas la próxima vez, en silencio, y ese Excel es el que va a CeiboAnalytics. */
   _labExpGuardarPref(sel, solo);
 }
 window.labExpRefrescar = labExpRefrescar;
 
 function labExpConfirmar(){
+  /* ⚠️ EN MODO PLANTILLA ESTE CAMINO NO EXISTE, y esta guarda es la red. Sin ella, lo único que
+     separa «bajar una planilla vacía» de «bajarse los 149 pacientes con nombre y cédula» es que
+     `_labExpPintarModo` haya escondido el botón — y ese escondido **falla abierto**: es un
+     `if (el)` mudo, así que si el id cambia o el marcado se mueve, no esconde nada y nadie se
+     entera. Poner una decisión sobre DATOS a cargo de una decisión de PINTURA es el patrón que
+     este archivo ya pagó con `disabled` como compuerta de contenido.
+     Peor todavía: los radios de origen y de filas están escondidos en modo plantilla, así que un
+     export por acá saldría con una población que el médico NO PUEDE VER. Lo cazó `/sharp-edges`. */
+  if (_labExpModo) { toast('⚠️ Este modal está pidiendo una plantilla, no datos'); return; }
   const sel = labExpSeleccion(), solo = labExpSoloConDatos();
   /* El origen se LEE ACÁ, junto con las filas que produjo, y se arrastra hasta el export. Leerlo
      dentro del callback lo dejaría dependiendo del estado del DOM después de cerrar el modal y
@@ -62257,10 +62343,15 @@ window.labExpConfirmar = labExpConfirmar;
 
 function labExpPlantilla(){
   const sel = labExpSeleccion();
+  /* ⚠️ LA VARIANTE SE LEE ANTES DE CERRAR: `labExpCerrar` apaga `_labExpModo`, así que leerlo
+     después daría siempre la virgen y «Descargar plantilla Excel» perdería su fila de ejemplo
+     sin ningún síntoma — el archivo sale, con las columnas correctas, y sólo le falta una fila.
+     `true` = plantilla VIRGEN, y sigue siendo el default: abierto desde el propio modal de
+     exportación, este botón hace exactamente lo que hacía. La única forma de pedir la fila de
+     ejemplo es entrar por «Descargar plantilla Excel» del menú, que es la que la prometía. */
+  const conEjemplo = !!(_labExpModo && _labExpModo.conEjemplo);
   labExpCerrar();
-  /* `true` = plantilla VIRGEN, sin la fila de ejemplo. Es la que ya existía; no se escribió un
-     segundo generador. */
-  labPlantillaXLSX(true, sel);
+  labPlantillaXLSX(!conEjemplo, sel);
 }
 window.labExpPlantilla = labExpPlantilla;
 
@@ -76251,8 +76342,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260925-2201';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790384471331;                 /* eco-build-ms */
+const ECO_BUILD    = '20260926-0006';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790391980425;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -76338,7 +76429,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-2201</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260926-0006</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

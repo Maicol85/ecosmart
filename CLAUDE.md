@@ -4,6 +4,87 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Las dos plantillas del menú pasan por el modal de módulos (2026-09-25)
+
+Las entradas «📋 Descargar plantilla Excel» y «📋 Exportar plantilla virgen» del menú de Guardados
+generaban las **429 columnas** sin preguntar; el botón de dentro del modal sí respetaba las siete
+casillas. Ahora las tres pasan por ahí. Cubierto por **TC-267** (10 condiciones, 5 mutaciones).
+
+### No eran caminos separados: era un argumento que faltaba
+
+| entrada | llamaba a | fila de ejemplo | módulos |
+|---|---|---|---|
+| menú «Descargar plantilla Excel» | `labPlantillaXLSX()` | **sí** | todos |
+| menú «Exportar plantilla virgen» | `labPlantillaXLSX(true)` | no | todos |
+| modal «Descargar plantilla vacía» | `labPlantillaXLSX(true, sel)` | no | según casillas |
+
+O sea que el generador ya era uno solo; a las del menú no se les pasaba `sel`.
+
+### ⚠️ LA GUARDA DE «SIN ESTUDIOS» NO APLICA A UNA PLANTILLA
+
+`labExpAbrir` aborta con «Sin estudios para exportar». Enrutar las plantillas por ahí sin más
+habría dejado las dos entradas **muertas en una app recién instalada** — y ése es justamente el
+momento más probable para querer una planilla vacía. La guarda se saltea en modo plantilla y
+queda igual para exportar datos.
+
+### El modal declara qué trabajo está haciendo
+
+`_labExpModo` —variable de módulo, `null` = exportar datos— la fija `labExpAbrir` y la apaga
+`labExpCerrar`. En modo plantilla: cambia el título, se esconde la zona «Qué estudios / Filas a
+incluir» —una plantilla no tiene filas— y se esconde «📊 Exportar», porque dejarlo como botón
+**primario** sería ofrecer, en el lugar más prominente, descargarse todos los pacientes cuando el
+médico pidió una planilla vacía. El contador habla sólo de columnas.
+
+**⚠️ LA VARIANTE SE LEE ANTES DE CERRAR.** `labExpCerrar` apaga `_labExpModo`, así que leerlo
+después daría siempre la virgen y «Descargar plantilla Excel» perdería su fila de ejemplo **sin
+ningún síntoma**: el archivo sale, con las columnas correctas, y sólo le falta una fila. El
+default sigue siendo la virgen, así que el botón abierto desde el modal de exportación hace
+exactamente lo que hacía.
+
+### Lo que encontró `/sharp-edges`
+
+- **⚠️ LO ÚNICO QUE IMPEDÍA EXPORTAR 149 PACIENTES EN MODO PLANTILLA ERA UN `display:none`.**
+  `labExpConfirmar` no miraba el modo, y el escondido del botón es un `if (el)` **mudo que falla
+  abierto**: si el id cambia, no esconde nada y nadie se entera. Una decisión sobre DATOS a cargo
+  de una de PINTURA. Peor: los radios de origen y filas están ocultos, así que ese export habría
+  salido con una población que el médico **no puede ver**. Hoy hay guarda en la acción.
+- **⚠️ LA PLANTILLA DEL MENÚ PASÓ DE 429 A 129 COLUMNAS EN SILENCIO — regresión de este cambio.**
+  Las dos entradas pasaban `undefined`, que `labPlantillaXLSX` lee como «no filtrar»; ahora pasan
+  un array, y **`[]` es TRUTHY**, así que en una instalación nueva «Plantilla Excel» —cuyo
+  subtítulo promete «Columnas correctas»— daba la mínima. El contador lleva **denominador**
+  («129 de 429 columnas»), que es lo único que hace legible el recorte.
+- **Pedir una plantilla reescribía la preferencia del exportador de DATOS.** Destildar los siete
+  módulos para una planilla flaca dejaba el Excel real recortado la próxima vez, en silencio — y
+  ése es el que va a CeiboAnalytics. Leerla compartida sí es correcto; escribirla no.
+- **El modo se fijaba ANTES de las guardas de salida**: con XLSX caído quedaba puesto sobre un
+  modal que nunca se abrió, rompiendo la invariante que el comentario afirmaba.
+- Menores: el `aria-label` del diálogo seguía diciendo «Exportar a Excel» —ahora se deriva del
+  título—; los rótulos del menú decían «Descargar» y ahora abren un diálogo (llevan «…»); y en
+  modo plantilla se calculaban las filas y los rótulos ocultos en cada toque de casilla.
+
+### Trampas del caso
+
+- **Tres condiciones nuevas nacieron sin discriminar, y las tres por motivos distintos.**
+  · «exportar es inalcanzable» interceptaba `_labExportarXLSXReal`, pero `_labPreguntarAnonimo`
+  abre un **overlay propio** —no usa `confirm`— y espera: sin la guarda el diálogo aparecía y el
+  exportador nunca se llamaba, así que daba verde igual. Se mide que **no aparezca el diálogo de
+  anonimización**, que es el primer paso observable del camino de datos.
+  · «la plantilla no escribe la preferencia» estaba cubierta por **dos capas** que se enmascaraban
+  entre sí; ninguna mutación de una línea las cazaba. Se dejó **un solo dueño**.
+  · «el contador» no se medía **nunca**: `marcar()` escribe `.checked` sin despachar `change`, así
+  que `labExpRefrescar` no corría.
+- **TC-135 daba rojo por el denominador nuevo.** Su condición fijaba el formato del contador, no
+  sólo el número. Actualizada al contrato nuevo.
+- **La primera versión llamaba a `labExpAbrir` directo y no veía el cableado del menú**: devolver
+  las entradas a `labPlantillaXLSX()` la dejaba en verde. Es el mismo hueco que se coló con
+  `guardarInforme` el mismo día — probar el consumidor y no el productor. Hoy lee los `onclick`.
+- **Filtrar los botones del menú por `textContent` agarra tres**: la opción de IMPORTAR también
+  dice «plantilla» en su `<small>`. Se filtra por el primer nodo de texto, que es el rótulo.
+- **Mutante equivalente declarado**: sacar `_labExpModo = null` de `labExpCerrar` no pone nada en
+  rojo, porque `labExpAbrir` fija el modo en toda apertura. Esa línea es defensa, no carga.
+
+---
+
 ## Repintar Guardados tiraba los filtros puestos (2026-09-25)
 
 Borrar un estudio de una lista filtrada la devolvía entera. Cubierto por **TC-266**

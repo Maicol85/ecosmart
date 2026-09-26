@@ -4413,8 +4413,12 @@ caso('TC-135', 'GLS y contractilidad son BASICOS del Excel: sin checkbox y siemp
         bloque4.every(function(c){ return _labModDeCol(c) === null; }),
         bloque4.filter(function(c){ return _labModDeCol(c) !== null; }).join(' | ')],
       // 5 · LA CUENTA del modal es la que sale del export, no un numero aparte.
+      /* ⚠️ EL CONTRATO DEL CONTADOR CAMBIO (2026-09-25): ahora lleva DENOMINADOR —«129 de 429
+         columnas»— porque el numero pelado no decia que se dejan 300 afuera, y ese recorte no se
+         ve de ninguna otra forma. Se sigue exigiendo que el numero sea el de las basicas REALES,
+         que es lo que esta condicion existe para vigilar; lo que se afloja es el formato. */
       ['la cuenta del modal declara las basicas reales',
-        cuentaTxt.indexOf(basicas.length + ' columnas') === 0, cuentaTxt],
+        cuentaTxt.indexOf(basicas.length + ' de ' + TODAS.length + ' columnas') === 0, cuentaTxt],
       ['y las basicas crecieron: el total no cambio, lo opcional si',
         basicas.length === 129 && TODAS.length === 429,   // +4 ET · +8 al cerrar la brecha del Lab
         basicas.length + ' basicas de ' + TODAS.length],
@@ -10099,6 +10103,181 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
 
 
 
+
+
+caso('TC-267', 'Las dos plantillas del menu pasan por el modal, y cada una conserva su variante', `
+  return (async () => {
+    if (typeof labExpAbrir !== 'function' || typeof labExpPlantilla !== 'function')
+      return { extra:[['existe el modal', false, 'faltan labExpAbrir o labExpPlantilla']] };
+    for (let i = 0; i < 60 && typeof XLSX === 'undefined'; i++) await new Promise(r => setTimeout(r, 100));
+    if (typeof XLSX === 'undefined')
+      return { extra:[['la libreria XLSX cargo (viene por CDN)', false, 'sin red tras 6 s']] };
+    const _plant = window.labPlantillaXLSX;
+    const prev = getInformes();
+    try {
+      showTab('guardados'); await new Promise(r => setTimeout(r, 200));
+      /* Se INTERCEPTA el generador: lo que importa es con QUE argumentos se lo llama —la
+         variante y la seleccion de modulos—, no el .xlsx que baja. */
+      let llamadas = [];
+      window.labPlantillaXLSX = function(vacia, sel){ llamadas.push({ vacia: !!vacia, sel: (sel||[]).slice() }); };
+      const ov = () => document.getElementById('lab-exp-overlay');
+      const visible = id => { const e = document.getElementById(id);
+        return !!e && getComputedStyle(e).display !== 'none'; };
+      const titulo = () => (document.getElementById('lab-exp-titulo')||{}).textContent || '';
+      const marcar = ks => [].slice.call(document.querySelectorAll('[data-exp-mod]'))
+        .forEach(c => { c.checked = ks.indexOf(c.getAttribute('data-exp-mod')) >= 0; });
+
+      /* ══ 0 · EL CABLEADO DEL MENU ══
+         ⚠️ Lo de abajo llama a 'labExpAbrir' DIRECTO, que prueba el modal y NO que las dos
+         entradas del menu lleguen a el. Sin esto, devolverlas a 'labPlantillaXLSX()' dejaba el
+         caso en verde con el menu generando directo otra vez — el hueco por el que ya se colo
+         un defecto hoy: probar el consumidor y no el productor. Se leen los onclick reales. */
+      /* Se filtra por el ROTULO del boton —el primer nodo de texto— y no por 'textContent', que
+         arrastra el <small> de la descripcion: la opcion de IMPORTAR tambien dice «plantilla» ahi
+         y entraba como tercera, dejando la condicion en rojo sobre un cableado correcto. */
+      const rotulo = b => { const n = b.firstChild; return (n && n.nodeValue ? n.nodeValue : '').trim(); };
+      const opsMenu = [].slice.call(document.querySelectorAll('.igio-op'))
+        .filter(b => rotulo(b).toLowerCase().indexOf('plantilla') > -1);
+      const onc = opsMenu.map(b => b.getAttribute('onclick') || '');
+      const menuAbreModal = opsMenu.length === 2 &&
+        onc.every(o => o.indexOf('labExpAbrir(') > -1 && o.indexOf('labPlantillaXLSX(') < 0) &&
+        onc.some(o => o.indexOf('conEjemplo:true') > -1) &&
+        onc.some(o => o.indexOf('conEjemplo:false') > -1);
+
+      /* ══ 1 · «Descargar plantilla Excel» ABRE EL MODAL, no genera directo ══ */
+      llamadas = [];
+      labExpAbrir({ plantilla:true, conEjemplo:true });
+      await new Promise(r => setTimeout(r, 150));
+      const abrio1 = !!ov() && ov().style.display !== 'none' && llamadas.length === 0;
+      const hayCasillas = document.querySelectorAll('[data-exp-mod]').length === LAB_XLS_MODULOS.length;
+      const tit1 = titulo();
+      /* La zona de filas y el boton de exportar DATOS no van en una plantilla. */
+      const zonaOculta = !visible('lab-exp-zona-filas') && !visible('lab-exp-btn-exportar');
+      /* Y con dos modulos marcados, la plantilla sale con esa seleccion y CON fila de ejemplo. */
+      marcar(['hemo','peri']);
+      labExpPlantilla();
+      await new Promise(r => setTimeout(r, 120));
+      const conEjemplo = llamadas.length === 1 && llamadas[0].vacia === false &&
+                         llamadas[0].sel.join(',') === 'hemo,peri';
+
+      /* ══ 2 · «Exportar plantilla virgen» — misma puerta, SIN fila de ejemplo ══ */
+      llamadas = [];
+      labExpAbrir({ plantilla:true, conEjemplo:false });
+      await new Promise(r => setTimeout(r, 150));
+      const tit2 = titulo();
+      marcar(['ete']);
+      labExpPlantilla();
+      await new Promise(r => setTimeout(r, 120));
+      const sinEjemplo = llamadas.length === 1 && llamadas[0].vacia === true &&
+                         llamadas[0].sel.join(',') === 'ete';
+      const titulosDistintos = tit1 !== tit2 && tit1.indexOf('ejemplo') > -1;
+
+      /* ══ 3 · SIN ESTUDIOS GUARDADOS, la plantilla IGUAL se puede pedir ══
+         Es el momento mas probable para quererla, y la guarda de «sin estudios para exportar»
+         habria dejado el menu muerto en una app recien instalada. */
+      CeiboStore.setLocal([]);
+      llamadas = [];
+      labExpAbrir({ plantilla:true, conEjemplo:false });
+      await new Promise(r => setTimeout(r, 150));
+      const abreSinEstudios = !!ov() && ov().style.display !== 'none';
+      labExpCerrar();
+
+      /* ══ 3bis · EXPORTAR DATOS ES INALCANZABLE EN MODO PLANTILLA ══
+         ⚠️ El botón «📊 Exportar» se esconde, pero esconder es PINTURA y exportar es DATOS: el
+         escondido es un 'if (el)' mudo que falla ABIERTO si el id cambia. Se llama a
+         'labExpConfirmar' DIRECTO —que es lo que haria cualquiera de esos caminos— y se exige
+         que no llegue al generador. Sin esta condicion, sacar el display:none dejaba el caso en
+         verde con el modal ofreciendo bajarse los 149 pacientes sobre una plantilla vacia. */
+      CeiboStore.setLocal([{ id:'t267b', estudioId:'t267b', uuid:'u267b', nombre:'Dos',
+        fecha_estudio:'2026-09-02', fecha_guardado:'2026-09-02T10:00:00', campos:{ nombre:'Dos' } }]);
+      /* Se mide que NO APAREZCA EL DIALOGO DE ANONIMIZACION, que es el primer paso observable
+         del camino de datos: '_labPreguntarAnonimo' abre un overlay propio con tres botones —no
+         usa 'confirm'— y espera, asi que interceptar '_labExportarXLSXReal' NO alcanza: con la
+         guarda sacada, el dialogo aparece y el exportador nunca se llama, o sea que la condicion
+         daba verde igual. Llegar a preguntar por los nombres ya significa que el camino de datos
+         arranco sobre una plantilla. */
+      labExpAbrir({ plantilla:true, conEjemplo:false });
+      await new Promise(r => setTimeout(r, 150));
+      labExpConfirmar();
+      await new Promise(r => setTimeout(r, 200));
+      const plantillaNoExporta = !document.getElementById('anon-si');
+      const _cancel = document.getElementById('anon-cancel'); if (_cancel) _cancel.click();
+      labExpCerrar();
+
+      /* ══ 3ter · PEDIR UNA PLANTILLA NO REESCRIBE LA PREFERENCIA DEL EXPORTADOR ══
+         Destildar los modulos para una planilla flaca dejaba el export de DATOS recortado la
+         proxima vez, en silencio — y ese Excel es el que va a CeiboAnalytics. */
+      try { localStorage.setItem('ett_lab_export_pref', JSON.stringify({ sel:['hemo','ete'], solo:true })); } catch (e) {}
+      labExpAbrir({ plantilla:true, conEjemplo:false });
+      await new Promise(r => setTimeout(r, 150));
+      marcar([]);                                  // el medico destilda TODO para la plantilla
+      labExpRefrescar();
+      await new Promise(r => setTimeout(r, 120));
+      labExpCerrar();
+      let prefTras = null;
+      try { prefTras = JSON.parse(localStorage.getItem('ett_lab_export_pref') || '{}'); } catch (e) {}
+      const prefIntacta = !!prefTras && (prefTras.sel || []).slice().sort().join(',') === 'ete,hemo';
+
+      /* ══ 3quater · EL CONTADOR DICE EL DENOMINADOR ══
+         «129 columnas» a secas no dice que se dejan 300 afuera. Y hay que llamar a
+         'labExpRefrescar' a mano: 'marcar()' escribe .checked sin despachar 'change', asi que el
+         contador no se recalcula solo y sin esto no se mide NUNCA en todo el caso. */
+      labExpAbrir({ plantilla:true, conEjemplo:false });
+      await new Promise(r => setTimeout(r, 150));
+      marcar([]); labExpRefrescar();
+      await new Promise(r => setTimeout(r, 120));
+      const txtCuenta = (document.getElementById('lab-exp-cuenta') || {}).textContent || '';
+      const totalCols = _labOrdenarCols(Object.keys(_labExcelRow({ id:0, campos:{} }))).length;
+      const cuentaConDenominador = txtCuenta.indexOf(' de ' + totalCols + ' columnas') > -1;
+      labExpCerrar();
+
+      /* ══ 4 · EL MODO NO SOBREVIVE AL CIERRE ══ abrir para EXPORTAR despues de una plantilla
+         tiene que dar el modal de siempre, con su zona de filas y su boton primario. */
+      CeiboStore.setLocal([{ id:'t267', estudioId:'t267', uuid:'u267', nombre:'Uno',
+        fecha_estudio:'2026-09-01', fecha_guardado:'2026-09-01T10:00:00', campos:{ nombre:'Uno' } }]);
+      llamadas = [];
+      labExpAbrir();
+      await new Promise(r => setTimeout(r, 150));
+      const modoExport = titulo().indexOf('Exportar') > -1 &&
+                         visible('lab-exp-zona-filas') && visible('lab-exp-btn-exportar');
+      /* Y el boton del modal sigue dando la VIRGEN, que es lo que hacia antes de este cambio. */
+      marcar([]);
+      labExpPlantilla();
+      await new Promise(r => setTimeout(r, 120));
+      const modalSigueVirgen = llamadas.length === 1 && llamadas[0].vacia === true;
+
+      return { extra: [
+        ['LAS DOS ENTRADAS DEL MENU llaman al modal, no al generador', menuAbreModal,
+          opsMenu.length + ' opciones · ' + onc.join('  ||  ')],
+        ['«Descargar plantilla Excel» ABRE el modal en vez de generar', abrio1,
+          'overlay abierto, generador llamado ' + 0 + ' veces'],
+        ['  con las siete casillas', hayCasillas,
+          document.querySelectorAll('[data-exp-mod]').length + ' de ' + LAB_XLS_MODULOS.length],
+        ['  y sin la zona de filas ni el boton de exportar datos', zonaOculta, ''],
+        ['  y respeta la seleccion, CON fila de ejemplo', conEjemplo,
+          JSON.stringify(llamadas[0] || null)],
+        ['«Exportar plantilla virgen»: misma puerta, SIN fila de ejemplo', sinEjemplo, ''],
+        ['  y el titulo distingue las dos variantes', titulosDistintos, tit1 + '  /  ' + tit2],
+        ['SIN estudios guardados la plantilla igual se puede pedir', abreSinEstudios, ''],
+        ['EXPORTAR DATOS es inalcanzable en modo plantilla, aunque se lo llame directo',
+          plantillaNoExporta, plantillaNoExporta ? '' : 'se abrio el dialogo de anonimizacion'],
+        ['el contador dice el DENOMINADOR: «N de 429 columnas»', cuentaConDenominador,
+          txtCuenta.slice(0, 70)],
+        ['pedir una plantilla NO reescribe la preferencia del exportador', prefIntacta,
+          'pref tras destildar todo = ' + JSON.stringify(prefTras && prefTras.sel)],
+        ['abrir para EXPORTAR vuelve al modal de siempre', modoExport, titulo()],
+        ['  y su boton de plantilla sigue dando la VIRGEN', modalSigueVirgen,
+          JSON.stringify(llamadas[0] || null)]
+      ] };
+    } finally {
+      window.labPlantillaXLSX = _plant;
+      try { labExpCerrar(); } catch (e) {}
+      try { CeiboStore.setLocal(prev); } catch (e) {}
+      try { localStorage.removeItem('ett_lab_export_pref'); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+  })();
+`);
 
 caso('TC-266', 'Repintar la lista de Guardados no tira los filtros que el medico tiene puestos', `
   return (async () => {
