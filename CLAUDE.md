@@ -4,6 +4,163 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Auditoría de cierre de la ronda 23-26/09/2026: lo que apareció en el CRUCE (2026-09-26)
+
+**41 commits, y cada uno se auditó por separado en su momento. Lo que nunca se auditó es la
+interacción entre ellos**, y ahí salieron tres defectos que ninguna revisión de un cambio aislado
+podía ver. Los tres son de la misma forma: **un cambio correcto amplió el alcance de otro cambio
+correcto**, y nadie volvió a mirar el par.
+
+### ⚠️ 1 · CERRAR EL VISOR NO BORRABA LOS PÍXELES, Y LA VISTA B LOS MOSTRABA AL PACIENTE SIGUIENTE
+
+Las tres piezas entraron por separado y cada una está bien:
+
+| pieza | qué hizo |
+|---|---|
+| `cineCerrar` | dejó de destruir la vista B —para no perder la segunda apical del biplano— y suelta `datos` |
+| el recorte | envolvió el canvas en `cine-recorte` con `overflow:hidden` y porcentajes |
+| `_cineAbrir` | vuelve a mostrar el overlay y llama a `_cineCargarLoop`, que corre con `_V = _vistaA` |
+
+Soltar `datos` libera los 17 MB y **no toca el bitmap ya dibujado**. Para la vista A daba igual
+—se repinta— pero **la B no se recarga por ningún camino**. Medido contra `6ea64d9`, con un
+cineloop distinto en el segundo estudio:
+
+| | HEAD | con el arreglo |
+|---|---|---|
+| píxeles de la vista B tras cerrar | **30.000** | 0 |
+| rótulo tras cerrar | **`LOOP-PACIENTE-1`** | `''` |
+| envoltorio del recorte | **`ar=4/3 mw=300px`** | desarmado |
+| píxeles **tras reabrir con OTRO loop** | **30.000** | 0 |
+
+O sea que el visor reabierto sobre el pendrive del paciente siguiente mostraba el último cuadro
+del anterior, con su rótulo, **recortado y ampliado por el envoltorio**: con el aspecto de una
+imagen viva y no de un residuo.
+
+**Pesa porque este archivo ya midió que los cuadros del Sonoscape traen nombre, cédula, fecha de
+nacimiento, edad, sexo e institución QUEMADOS en los píxeles**, y que ese equipo no recibe recorte
+—su lienzo está lleno de borde a borde—, así que la franja superior sobrevive entera. Es la fuga
+entre pacientes que `_vEpocaVigente` persigue, entrando por la puerta que esa guarda **no puede**
+cubrir: lo que queda no es una sesión de medición, es un bitmap.
+
+**NO contradice «lo medido se conserva».** Las mediciones viven en `V.simp`/`V.strain`/`medLineas`,
+no en los píxeles, y hay una condición de TC-270 que lo fija: tras cerrar, la vista B sigue
+**montada** y su medición sigue viva. Lo que se borra es la imagen.
+
+**TC-270** (7 condiciones, 2 mutaciones). ⚠️ **La vista B se monta a mano** (`_vNueva` +
+`_vMontarPanel`): `vistaBAbrir` abre el selector visual de cineloop y **se queda esperando una
+elección**, así que desde un caso **cuelga** — no falla, cuelga, que es la forma de fallar más
+cara. Es el camino que ya usaban TC-199 y TC-256, y lo volví a aprender perdiendo una corrida.
+
+### ⚠️ 2 · LA GUARDA DEL FILTRO VIVÍA EN UNO DE SUS CATORCE LLAMADORES
+
+Dos cambios de la ronda: el exportador a Excel pasó a usar la lista **en pantalla**
+(`_igPintadosIds`, que lo escribe **sólo** `igPintar`), y el repintado pasó a preservar los filtros
+con un `try/catch` **en `renderInformesGuardados`**.
+
+Lo que no se miró: a **`aplicarFiltros` la llaman PELADA trece controles** (`onchange`/`oninput`)
+**y `limpiarFiltros`**. Si lanza por ahí no se llega a `renderizarListaFiltrada` → no se llega a
+`igPintar` → `_igPintadosIds` **se queda con el conjunto anterior**. Antes el costo era «la lista
+no se actualiza»; desde que el Excel lee lo que hay en pantalla, el costo es que **ese archivo
+—el que va a CeiboAnalytics— salga con una población que los controles ya no describen**, y que el
+rótulo del radio la anuncie con el mismo número equivocado, porque sale de la misma fuente.
+
+**Y es alcanzable**: con un filtro clínico puesto se entra en `_labFevi`/`_labPsap`/`_labTapse` y
+en `_tieneValv`, que hacen `String(v)` — y `String({toString:null})` lanza sobre un valor que sale
+de un `JSON.parse` de un backup importado. **El peor llamador es `limpiarFiltros`**: deja los trece
+controles **vacíos**, así que no queda nada en pantalla que insinúe que hay un recorte puesto.
+
+Hoy el cuerpo es `_aplicarFiltrosCrudo` y `aplicarFiltros` es el **envoltorio con la guarda**, así
+que los catorce quedan cubiertos **por construcción** en vez de que cada uno se acuerde. El
+`try/catch` de `renderInformesGuardados` pasa a ser la segunda capa y **queda declarado como tal**.
+**TC-271** (5 condiciones, 1 mutación), con el **denominador explícito**: una condición exige que
+el cuerpo crudo **sí lance** con el estudio hostil — sin eso, el caso mediría una guarda sobre algo
+que nunca falla.
+
+### 3 · `_d2Limpiar` borraba el valor del alias y dejaba el ORIGEN huérfano
+
+El alias `vd.tsvd → pul.diamTsvd` y la marca de origen por vista (`· A`, `· B`, `· mano`) entraron
+en la misma ronda. El valor del alias vive en `_dop` y **su marca también** —`_d2OrigenMapa` la
+manda a `_dop.origen`—, así que el `_d2 = _d2Nuevo()` no la alcanza. `d2Corregir` ya lo hacía al
+vaciar: es la misma asimetría que ese bloque cerró para los valores y dejó abierta para los
+orígenes.
+
+**Hoy no publica nada** porque los cuatro lectores de origen filtran por `valor != null`, y **ése
+es justamente el problema**: esos cuatro filtros son la única red, y el comentario de
+`_dopSufOrigen` explica que existen porque la marca «cuelga de un solo camino remoto». Ahora ese
+camino son dos. Arreglado con una línea.
+
+### 4 · El recalce del recorte perdió la guarda de su hermano
+
+`_vRepintarOverlays` exige `_cineDatos` y dice por qué: «sobre una vista sin `_cineDatos` puede
+tocar un base que no está». Al mudar el invariante al dueño nuevo esa mitad se perdió. Los cuatro
+llamadores llegan con datos, así que no dispara — pero el `try/catch` la dejaría **muda** el día
+que dispare. Es la clase de guarda que se pierde al mover un invariante de dueño.
+
+### Declarado y NO corregido, con la medición al lado
+
+- **⚠️ CON BASE GUARDADA EL REFRESCO YA NO PREGUNTA, Y `cc_segmentario` ES EL ÚNICO TEXTO DEL
+  INFORME QUE `generarInforme` NO REESCRIBE.** Medido de punta a punta: estudio guardado con la app
+  de hoy —trae `informe_base`—, reabierto, se cambia la FEVI de 60 a 32 y se dispara un refresco
+  silencioso. Resultado: `baseAjena=false` → **`pregunto=false`**, el narrativo pasa de «Función
+  sistólica normal, FEVI 60%» a «moderadamente reducida», y el bloque de CC —que el PDF imprime
+  **arriba**, bajo su barra `ANALISIS SEGMENTARIO`— **queda idéntico**. Con un template que afirma
+  «Conexión venosa pulmonar normal» y una CVPA cargada, el mismo PDF firmado dice las dos cosas.
+  **El riesgo de contradicción es PREEXISTENTE y por diseño** —el toast de `ccToggleSegmentario`
+  promete que «Generar Informe y los estilos no lo tocan»—. Lo que la ronda cambió es que **quitó
+  la única señal visible**: antes, sobre un estudio reabierto, ese evento **siempre** levantaba el
+  `confirm`. No se tocó porque avisar en cada refresco silencioso sería un toast por cada
+  `onchange` de VEXUS o de Pericardio, y un aviso que salta siempre entrena a ignorarlo. **Es una
+  decisión de producto, no un arreglo**, y la medición está acá para tomarla.
+- **El Excel hereda «importar ignora los filtros clínicos».** Esa decisión se tomó el 2026-09-25
+  sobre el alcance «la lista»; en la misma ronda el alcance creció a «un archivo que sale del
+  dispositivo», sin volver a mirarse. Pantalla y archivo siguen coincidiendo, así que el invariante
+  que `_labExpBase` protege está intacto.
+- **La compuerta de la marca de origen es POR CAJÓN.** Con todo el Doppler en la vista A y el Diam
+  TSVI tipeado a mano en el 2D, el cajón Doppler ve `{A, mano}` y publica `· mano`; el 2D ve
+  `{mano}` y lo publica pelado. **El mismo número, dos paneles del mismo visor, uno declara la
+  procedencia y el otro no.** No hay dato falso —cada compuerta contesta bien «¿hay ambigüedad *en
+  esta tabla*?»— y la única superficie que persiste (`_dopMetaGuardado`) es la que sí marca, así
+  que la discrepancia **no llega al disco**.
+
+### Lo que se cruzó y está SANO — para que no se vuelva a auditar
+
+- **Recorte × dos vistas × los dos cajones.** Los cajones nacen fuera de `cine-recorte` y **debajo**
+  de `#cine-paneles` a ancho completo: no tocan la geometría. El `overflow:hidden` alcanza sólo a
+  `cine-cv` y `cine-med`, que son hermanos dentro del envoltorio, así que el overlay se recorta
+  igual que el canvas y `_medPintar` lo calza contra `base.parentElement` en los dos estados.
+- **Recalce cruzado entre vistas.** `#cine-paneles` reparte con `flex:1 1 0%`, así que aplicar el
+  recorte en B no mueve el ancho de A: que `_cineRecorteAplicar` recalce sólo su vista es correcto.
+- **`_dopFilas` con el séptimo elemento.** `_dopFilasSueltas` emite cinco, `f[6]` queda `undefined`
+  → cae a la izquierda y a tabla de ancho completo. Y `_dopMetaGuardado` recorta el sufijo con
+  `split(' · ')[0]`, que ningún rótulo de hoy contiene.
+- **El alias × los orígenes en los cinco caminos** —`_d2Capturar`, `d2Corregir`, `dopCorregir`,
+  `_dopLimpiar` y `_d2GrupoConDatos`—: el único agujero era el #3.
+- **`informe_base` no filtra a ninguna superficie**: no está en `_IG_SECTIONS` (lista blanca), ni
+  en el Excel, ni en el PPT. Y la reimpresión respalda `_infBase`/`_infBaseDelDOM` **por
+  referencia**, escribe `''` en los campos ausentes —así que el segmentario de otro estudio no se
+  hereda— y ninguna función de `RECALC_MODULOS` dispara un refresco silencioso.
+- **Código muerto de la ronda: CERO.** Barrido de los **319 identificadores** y **178 ids** nuevos;
+  los 65 candidatos son todos `*-arrow`, que `toggleCard` resuelve con `sectionId + '-arrow'`.
+  ⚠️ El primer barrido dio un falso positivo (`_labAccAssertRepintado`) porque mi despojador casero
+  de comentarios se comió líneas: **para declarar algo muerto, contar sobre el archivo entero** —que
+  es conservador— y verificar el candidato a mano.
+
+### `index.html.js` — confirmado, NO borrado
+
+3,4 MB **versionados**, del 20/09, y **no es una copia limpia del JS**: arranca a mitad de un
+comentario, o sea que es el artefacto de una corrida del extractor que cortó mal —el mismo que este
+archivo documenta fallando en los bloques 0 y 1—. **Cero lectores**: `scan.py` extrae a un tempdir
+nuevo en cada corrida. Queda para un prompt aparte, como se pidió.
+
+### La línea base definitiva de la ronda
+
+**Suite 285/286** — el único rojo es **TC-223**, que ya fallaba y está documentado: fija
+`StudyDate:'20260921'` y `#fecha` nace con la fecha de hoy, así que esa condición **pasaba por
+coincidencia del calendario** el día que se escribió. **Semgrep 126 / 0 ERROR.** Cero huérfanos.
+**286 casos, ninguno en `casoAbierto`.**
+
+---
+
 ## El botón 🫀 CC respeta Básico/Avanzado, y es el primer `data-mod` fuera de las tres filas (2026-09-26)
 
 `#cc-integrar-btn` lleva ahora `data-mod="congenitas"`, la misma clave que las dos pestañas de
@@ -7666,12 +7823,18 @@ Ahora el getter cae en `{d:null, s:null}` y el confirmar avisa y corta.
 
 ## Arquitectura
 
-- **Un solo archivo**, **1,75 MB / 31.233 líneas** (medido 2026-09-08). HTML + CSS + JS
-  inline, sin build, sin dependencias externas más allá de jsPDF, XLSX y PptxGenJS por CDN.
-  No confundir con los **1,24 MB / ~21.000 líneas del JS extraído**, que es lo que escanea
+- **Un solo archivo**, **4,83 MB / 79.291 líneas** (medido 2026-09-26). HTML + CSS + JS
+  inline en **74 bloques `<script>`**, sin build, sin dependencias externas más allá de jsPDF,
+  XLSX y PptxGenJS por CDN.
+  No confundir con los **3,89 MB / 63.949 líneas del JS extraído**, que es lo que escanea
   Semgrep: `scan.py` saca el JS de los `<script>` antes de analizar, así que sus números de
   línea NO son los del archivo. Para ubicar un hallazgo hay que buscar el fragmento con
   `grep`, no sumarle un offset.
+  **⚠️ EL TAMAÑO NO ES UNA CURIOSIDAD: casi se triplicó desde el 2026-09-08** —eran 1,75 MB—
+  y **Semgrep saltea en silencio los archivos que pasan su tope**, devolviendo cero hallazgos
+  que se leen igual que «no había nada». Por eso `scan.py` pasa `--max-target-bytes 20000000`;
+  la invocación correcta se copia de ahí, no se reconstruye. Si un scan da un número
+  sospechosamente bajo, lo primero es mirar el denominador.
 - **`CeiboStore` es el borde de confianza para los id de informe.** El saneo va ahí, no en
   las plantillas: cinco funciones leen `CeiboStore.getLocal()` directo sin pasar por
   `getInformes()`, así que arreglar `getInformes` deja esas cinco afuera, y una plantilla

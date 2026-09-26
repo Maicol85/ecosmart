@@ -50228,7 +50228,12 @@ function _cineRecorteAplicar(V) {
   const env = document.getElementById(V.pfx + 'cine-recorte');
   const cv  = document.getElementById(V.pfx + 'cine-cv');
   if (!env || !cv) return;
-  const recalzar = () => { try { _vCon(V, () => { if (_medOn) _medPintar(); }); } catch (e) { console.error('recorte/recalzar', e); } };
+  /* La guarda `_cineDatos` NO es decorativa y viene de `_vRepintarOverlays`, que la lleva con su
+     motivo escrito: «sobre una vista sin `_cineDatos` puede tocar un base que no está». Al mudar
+     el invariante a este dueño se perdió esa mitad; hoy los cuatro llamadores llegan con datos,
+     así que no dispara — pero el `catch` la dejaría MUDA el día que dispare. Lo encontró la
+     auditoría de cierre de la ronda. */
+  const recalzar = () => { try { _vCon(V, () => { if (_medOn && _cineDatos) _medPintar(); }); } catch (e) { console.error('recorte/recalzar', e); } };
   const D = V.datos, L = D && D.loops[D.i];
   const R = L && L.recorte;
   if (!R || cv.width !== R.w || cv.height !== R.h) {
@@ -50487,7 +50492,36 @@ function cineCerrar() {
      archivo entero, así que mientras `datos` viva, los 17 MB del cineloop viven con él. */
   const ov = document.getElementById('cine-ov');
   if (ov) ov.style.display = 'none';
-  _vTodas().forEach(V => { V.datos = null; });
+  /* ⚠️ Y LOS PÍXELES SE BORRAN, que hasta el 2026-09-26 no pasaba. Soltar `datos` libera los
+     17 MB y NO toca el bitmap ya dibujado: el canvas de cada vista se quedaba con su último
+     cuadro. Para la vista A daba igual —`_cineAbrir` llama a `_cineCargarLoop`, que la repinta—
+     pero **la B no se recarga por ningún camino**: `_cineAbrir` corre con `_V = _vistaA` y el
+     comentario de arriba declara que la B ya no se destruye. Resultado, con el visor reabierto
+     sobre el pendrive del paciente SIGUIENTE: la columna derecha muestra el último cuadro del
+     anterior, con su rótulo, y —peor— recortada y ampliada por el envoltorio de `cine-recorte`,
+     o sea con el aspecto de una imagen viva y no de un residuo.
+     Pesa porque este archivo ya midió que **los cuadros del Sonoscape traen nombre, cédula,
+     fecha de nacimiento, edad, sexo e institución QUEMADOS en los píxeles**, y que ese equipo no
+     recibe recorte: la franja superior sobrevive entera. Es la fuga entre pacientes que
+     `_vEpocaVigente` persigue, entrando por la puerta que esa guarda no puede cubrir — lo que
+     queda no es una sesión de medición, es un bitmap.
+     NO contradice «lo medido se conserva»: las mediciones viven en `V.simp`/`V.strain`/`medLineas`
+     y no en los píxeles. Lo que se borra es la imagen, que al reabrir se repinta o se vuelve a
+     elegir. Lo encontró la auditoría de cierre de la ronda. */
+  _vTodas().forEach(V => {
+    V.datos = null;
+    try {
+      ['cine-cv', 'cine-med'].forEach(sfx => {
+        const c = document.getElementById(V.pfx + sfx);
+        if (c && c.getContext) c.getContext('2d').clearRect(0, 0, c.width, c.height);
+      });
+      const cual = document.getElementById(V.pfx + 'cine-cual');
+      if (cual) cual.textContent = '';
+      /* Con `datos` ya en null esto DESARMA el envoltorio del recorte: sin él, el canvas vacío
+         queda con el `aspectRatio` y los porcentajes del loop viejo. */
+      if (typeof _cineRecorteAplicar === 'function') _cineRecorteAplicar(V);
+    } catch (e) { console.error('cineCerrar/limpiar ' + V.pfx, e); }
+  });
   _V = _vistaA;
   /* El cajón Doppler DESAPARECE CON EL OVERLAY, porque vive adentro: la línea de abajo lo pone
      además en `display:none`, que es redundante hoy —el overlay ya está oculto— y se deja porque
@@ -58870,7 +58904,15 @@ window._d2Render = _d2Render;
    ya documentó como «no puede depender en silencio de una línea enterrada más abajo». */
 function _d2Limpiar() {
   const md = _d2 ? _d2.modo : null;
-  Object.keys(_D2_ALIAS).forEach(c => { if (_d2Valor(c) != null) _d2Poner(c, null); });
+  /* ⚠️ Y SU ORIGEN CON ÉL. El valor del alias vive en `_dop` y su marca de procedencia también
+     —`_d2OrigenMapa` la manda a `_dop.origen`—, así que el `_d2 = _d2Nuevo()` de abajo no la
+     alcanza: borraba el número y dejaba la marca huérfana en el otro cajón. Hoy no publica nada
+     porque los cuatro lectores de origen filtran por `valor != null`, y ése es justamente el
+     problema: esos cuatro filtros son la ÚNICA red, y el comentario de `_dopSufOrigen` explica
+     que existen porque la marca «cuelga de un solo camino remoto». Ahora ese camino son dos.
+     `d2Corregir` ya lo hacía al vaciar: es la misma asimetría que este bloque cerró para los
+     valores y había dejado abierta para los orígenes. Lo encontró la auditoría de cierre. */
+  Object.keys(_D2_ALIAS).forEach(c => { if (_d2Valor(c) != null) _d2Poner(c, null); _d2BorrarOrigen(c); });
   _d2 = _d2Nuevo();
   _d2.modo = md;      // el aviso queda apagado por `_d2Nuevo`: ya no hay nada que confundir
   _d2Render();
@@ -75881,7 +75923,20 @@ function _tieneValv(inf, cat){
   return false;
 }
 
-function aplicarFiltros() {
+/* ⚠️ LA GUARDA VIVE EN EL ENVOLTORIO DE ABAJO, NO EN UN LLAMADOR. Esta función es el cuerpo
+   crudo y puede lanzar: con un filtro clínico puesto se entra en `_labFevi`/`_labPsap`/`_labTapse`
+   y en `_tieneValv`, que hacen `String(v)`, y `String({toString:null})` lanza sobre un valor que
+   sale de un `JSON.parse` de un backup importado.
+   Hasta el 2026-09-26 el único que la protegía era `renderInformesGuardados`, y a `aplicarFiltros`
+   la llaman PELADA trece controles (`onchange`/`oninput`) más `limpiarFiltros`. Si lanza por ahí
+   no se llega a `renderizarListaFiltrada` → no se llega a `igPintar` → **`_igPintadosIds` se queda
+   con el conjunto ANTERIOR**, que es lo único que lo escribe. Antes el costo era «la lista no se
+   actualiza»; desde que `_labExpBase` exporta lo que hay en pantalla, el costo es que **el Excel
+   —el que va a CeiboAnalytics— se lleve una población que ya no corresponde a los controles**, y
+   el rótulo del radio lo anuncia con el mismo número equivocado porque sale de la misma fuente.
+   El peor llamador es `limpiarFiltros`: deja los trece controles VACÍOS, así que si lanza no queda
+   nada en pantalla que insinúe que hay un recorte puesto. Lo encontró la auditoría de cierre. */
+function _aplicarFiltrosCrudo() {
   const filtroFevi   = document.getElementById('filtro-fevi')?.value || '';
   const filtroGeom   = document.getElementById('filtro-geom')?.value || '';
   const filtroDiast  = document.getElementById('filtro-diast')?.value || '';
@@ -76003,6 +76058,23 @@ function aplicarFiltros() {
   // Encadenar con buscador, fechas y antecedente: antes cada ruta renderizaba por su
   // cuenta desde getInformes() y los filtros se pisaban entre sí.
   renderizarListaFiltrada(igFiltrar(filtrados));
+}
+
+/* Los CATORCE llamadores quedan cubiertos por construcción, en vez de que cada uno se acuerde.
+   Degrada a la cadena corta —sin los filtros clínicos, que es el defecto que aquéllos vinieron a
+   cerrar— pero REPINTA, así que `_igPintadosIds` queda coherente con lo que se ve y el Excel no
+   puede exportar una población que la pantalla no muestra. Y se DICE: una degradación muda es
+   indistinguible de que todo esté bien.
+   El `try/catch` de `renderInformesGuardados` pasa a ser la segunda capa y queda declarado como
+   tal — no se saca, porque es el que cubre el caso en que este envoltorio deje de existir. */
+function aplicarFiltros() {
+  try { _aplicarFiltrosCrudo(); }
+  catch (e) {
+    console.error('aplicarFiltros', e);
+    try { igRepintarTodoSinFiltrar(); } catch (e2) { console.error('aplicarFiltros/respaldo', e2); }
+    if (typeof toast === 'function')
+      toast('⚠️ No se pudieron aplicar los filtros — la lista se muestra completa');
+  }
 }
 
 function limpiarFiltros() {
@@ -76405,8 +76477,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260926-0131';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790397072153;                 /* eco-build-ms */
+const ECO_BUILD    = '20260926-0221';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790400068153;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -76492,7 +76564,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260926-0131</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260926-0221</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

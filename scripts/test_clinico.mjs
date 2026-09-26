@@ -28424,6 +28424,157 @@ caso('TC-228', 'Visor: la etiqueta dice DE DONDE viene el valor, y el numero que
 
 
 
+
+/* La ronda del 23 al 26/09 metió, por separado, tres cosas que se tocan en el visor: la vista B
+   que YA NO se destruye al cerrar (para no perder la segunda apical del biplano), el recorte del
+   margen negro —que es un envoltorio con `overflow:hidden` y el canvas escalado por porcentajes—
+   y las dos columnas que flanquean la imagen. Ninguna se auditó CONTRA LAS OTRAS.
+   Lo que aparece en el cruce: `cineCerrar` suelta `datos` y NO toca el bitmap ya dibujado. Para la
+   vista A da igual —`_cineAbrir` llama a `_cineCargarLoop`, que la repinta— pero la B no se
+   recarga por ningún camino, así que el visor reabierto sobre el pendrive del paciente SIGUIENTE
+   mostraba el último cuadro del anterior, con su rótulo, recortado y ampliado por el envoltorio:
+   con el aspecto de una imagen viva.
+   Pesa porque los cuadros del Sonoscape traen nombre, cédula, fecha de nacimiento, edad, sexo e
+   institución QUEMADOS en los píxeles, y ese equipo no recibe recorte. */
+caso('TC-270', 'Cerrar el visor borra los pixeles de las dos vistas, y conserva lo medido', `
+  return (async () => {
+    if (typeof _cineAbrir !== 'function' || typeof _vNueva !== 'function')
+      return { extra:[['existen el visor y el modelo de vistas', false, 'faltan _cineAbrir o _vNueva']] };
+    const jpg = new Uint8Array([255,216,255,217]);
+    const mk = n => ({ nombre:n, cuadros:1, d:{ frags:[jpg], cols:200, filas:150, msCuadro:0,
+      regiones:[{ ux:3, uy:3, dx:0.05, dy:0.05, x0:0, y0:0, x1:200, y1:150, tipo:1 }] } });
+    const tinta = el => { if (!el || !el.width) return 0;
+      const d = el.getContext('2d').getImageData(0,0,el.width,el.height).data;
+      let n=0; for (let i=3;i<d.length;i+=4) if (d[i]>0) n++; return n; };
+    try {
+      __t.anchoDesktop();
+      _cineAbrir([mk('LOOP-PACIENTE-1')]);
+      await new Promise(r => setTimeout(r, 400));
+      /* ⚠️ LA VISTA B SE MONTA A MANO. 'vistaBAbrir' abre el selector visual de cineloop y se
+         queda esperando una eleccion, asi que desde un caso CUELGA — no falla, cuelga. Es el
+         camino que ya usan TC-199 y TC-256. */
+      const cont = document.getElementById('cine-paneles');
+      if (!_vistaB) { const VB = _vNueva('b-','B'); _vMontarPanel(cont,'b-'); _vistaB = VB; _vCablear(VB); }
+      await new Promise(r => setTimeout(r, 200));
+      const bcv = document.getElementById('b-cine-cv');
+      if (!bcv) return { extra:[['la vista B se monta', false, 'no aparecio b-cine-cv']] };
+      bcv.width = 200; bcv.height = 150;
+      const c2 = bcv.getContext('2d'); c2.fillStyle = '#c0ffee'; c2.fillRect(0,0,200,150);
+      const bc = document.getElementById('b-cine-cual');
+      if (bc) bc.textContent = 'LOOP-PACIENTE-1';
+      /* el envoltorio, como lo dejaria un loop CON margen negro */
+      const w = document.getElementById('b-cine-recorte');
+      if (w) { w.style.aspectRatio = '4 / 3'; w.style.maxWidth = '300px'; }
+      /* ── y una MEDICION viva, que es el control negativo: borrar pixeles no es perder trabajo ── */
+      _vistaB.medLineas = [{ mm: 42.0 }];
+      const tintaAntes = tinta(bcv);
+
+      cineCerrar();
+      await new Promise(r => setTimeout(r, 300));
+      const tintaTras = tinta(document.getElementById('b-cine-cv'));
+      const rotTras   = ((document.getElementById('b-cine-cual')||{}).textContent||'');
+      const w2 = document.getElementById('b-cine-recorte');
+      const envTras = w2 ? ((w2.style.aspectRatio||'') + '|' + (w2.style.maxWidth||'')) : '';
+      const panelSigue = !!document.getElementById('b-cine-panel');
+      const medSigue = !!(_vistaB && _vistaB.medLineas && _vistaB.medLineas.length === 1
+                          && _vistaB.medLineas[0].mm === 42.0);
+
+      /* ── Y NO VUELVE AL REABRIR CON OTRO CINELOOP ── que es el escenario del paciente siguiente */
+      _cineAbrir([mk('LOOP-PACIENTE-2')]);
+      await new Promise(r => setTimeout(r, 500));
+      const tintaReab = tinta(document.getElementById('b-cine-cv'));
+      const rotReab   = ((document.getElementById('b-cine-cual')||{}).textContent||'');
+
+      return { extra: [
+        ['DENOMINADOR: la vista B tenia pixeles antes de cerrar', tintaAntes > 1000, 'tinta=' + tintaAntes],
+        ['cerrar BORRA el bitmap de la vista B', tintaTras === 0, 'tinta=' + tintaTras],
+        ['  y su rotulo, que nombra el cineloop del paciente anterior', rotTras === '', JSON.stringify(rotTras)],
+        ['  y DESARMA el envoltorio del recorte', envTras === '|', JSON.stringify(envTras)],
+        ['NO VUELVE al reabrir con otro cineloop', tintaReab === 0 && rotReab === '',
+          'tinta=' + tintaReab + ' rotulo=' + JSON.stringify(rotReab)],
+        ['CONTROL: la vista B sigue MONTADA — no se destruye', panelSigue, ''],
+        ['CONTROL: y lo MEDIDO se conserva — borrar pixeles no es perder trabajo', medSigue,
+          JSON.stringify((_vistaB||{}).medLineas || null)]
+      ] };
+    } finally {
+      try { cineCerrar(); } catch (e) {}
+      try { if (typeof vistaBCerrar === 'function' && _vistaB) vistaBCerrar(); } catch (e) {}
+      /* ⚠️ LO FORZADO POR 'anchoDesktop' SOBREVIVE AL CASO, y eso ya costo una vuelta: TC-244
+         media 'row' a 756 px y acusaba a la media query de no aplicar. Se limpia acá. */
+      try {
+        const c = document.getElementById('cine-paneles');
+        if (c) { c.style.removeProperty('flex-direction');
+                 [].slice.call(c.children).forEach(p2 => p2.style.removeProperty('display')); }
+      } catch (e) {}
+    }
+  })();
+`);
+
+
+/* Otra del CRUCE de la ronda. Dos cambios independientes: (a) el exportador a Excel paso a usar
+   la lista EN PANTALLA —'_igPintadosIds', que lo escribe SOLO 'igPintar'— y (b) el repintado paso
+   a preservar los filtros clinicos, con un try/catch en 'renderInformesGuardados'.
+   Lo que no se miro: a 'aplicarFiltros' la llaman PELADA trece controles y 'limpiarFiltros'. Si
+   lanza por ahi no se llega a 'igPintar', '_igPintadosIds' se queda con el conjunto ANTERIOR, y el
+   costo ya no es «la lista no se actualiza» sino que **el Excel exporte una poblacion que los
+   controles ya no describen** — y el rotulo del radio la anuncia con el mismo numero equivocado
+   porque sale de la misma fuente. El peor llamador es 'limpiarFiltros': deja los trece controles
+   vacios, asi que no queda nada en pantalla que insinue el recorte. */
+caso('TC-271', 'La guarda del filtro vive en aplicarFiltros, no en uno solo de sus catorce llamadores', `
+  return (async () => {
+    if (typeof aplicarFiltros !== 'function' || typeof _aplicarFiltrosCrudo !== 'function')
+      return { extra:[['existen el envoltorio y el cuerpo crudo', false,
+        'crudo=' + (typeof _aplicarFiltrosCrudo)]] };
+    const prev = CeiboStore.getLocal();
+    try {
+      showTab('guardados'); await new Promise(r => setTimeout(r, 200));
+      if (typeof volverAListaInformes === 'function') volverAListaInformes();
+      await new Promise(r => setTimeout(r, 150));
+      /* ⚠️ EL VALOR HOSTIL NO SE PUEDE TIPEAR: sale de un JSON.parse de un backup importado, que
+         es la clase que este archivo ya documenta. 'String({toString:null})' LANZA. */
+      CeiboStore.setLocal([
+        { nombre:'Sano Uno',  ci:'1.111.111-1', fecha_estudio:'2026-09-20', campos:{ fevi:'30' } },
+        { nombre:'Sano Dos',  ci:'2.222.222-2', fecha_estudio:'2026-09-21', campos:{ fevi:'62' } },
+        { nombre:'Hostil',    ci:'3.333.333-3', fecha_estudio:'2026-09-22',
+          campos: JSON.parse('{"fevi_simpson":{"toString":null}}') }
+      ]);
+      const fe = document.getElementById('filtro-fevi');
+      if (!fe) return { extra:[['existe el filtro de FEVI', false, 'falta #filtro-fevi']] };
+      fe.value = 'lt40';
+
+      /* ── DENOMINADOR ── el cuerpo crudo TIENE que lanzar con este estudio; si no, el caso
+         estaria midiendo una guarda sobre algo que nunca falla. */
+      let crudoLanza = false;
+      try { _aplicarFiltrosCrudo(); } catch (e) { crudoLanza = true; }
+
+      /* ── Y EL ENVOLTORIO NO ── repinta degradado y lo dice */
+      let envLanza = false, msg = '';
+      const _t = window.toast; window.toast = function(m){ msg += String(m) + ' '; };
+      try { aplicarFiltros(); } catch (e) { envLanza = true; }
+      await new Promise(r => setTimeout(r, 250));
+      window.toast = _t;
+
+      const filas = document.querySelectorAll('#ig-lista [data-inf-id], #ig-lista .ig-item').length;
+      const enPantalla = (typeof igListaEnPantalla === 'function') ? (igListaEnPantalla() || []) : null;
+      const nPant = enPantalla ? enPantalla.length : -1;
+
+      return { extra: [
+        ['DENOMINADOR: el cuerpo crudo SI lanza con el estudio hostil', crudoLanza, ''],
+        ['el envoltorio NO propaga la excepcion', !envLanza, ''],
+        ['  repinta igual: la lista no queda vacia', nPant === 3, 'en pantalla=' + nPant],
+        ['  y lo DICE, porque una degradacion muda se ve igual que todo bien',
+          msg.indexOf('filtros') > -1, JSON.stringify(msg.slice(0, 70))],
+        ['LO QUE PROTEGE: el Excel exporta lo que la pantalla muestra',
+          nPant === 3 && (filas === 0 || filas === nPant), 'filas=' + filas + ' pantalla=' + nPant]
+      ] };
+    } finally {
+      try { const fe2 = document.getElementById('filtro-fevi'); if (fe2) fe2.value = ''; } catch (e) {}
+      try { CeiboStore.setLocal(prev); } catch (e) {}
+      try { if (typeof renderInformesGuardados === 'function') renderInformesGuardados(); } catch (e) {}
+    }
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];
