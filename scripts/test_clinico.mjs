@@ -28855,6 +28855,372 @@ caso('TC-274', 'El boton de Evidencia corre las MISMAS secciones que el panel, y
   })();
 `);
 
+/* ══ ESTENOSIS AORTICA INTERACTIVA — TC-275 y TC-276 ════════════════════════════════════════
+   La seccion dejo de ser solo-lectura: cuatro controles que el medico contesta y una
+   recomendacion de ESC/EACTS 2025 que se recalcula con cada respuesta.
+
+   ⚠️ LOS BOTONES SE CLICKEAN DE VERDAD, no se escribe `_indClin` a mano. El oyente es DELEGADO
+   y vive en #indic-cuerpo; escribir el estado directo probaria la cascada y salteria el
+   cableado, que es justo el hueco por el que ya se colo un defecto en la barra del visor.
+
+   ⚠️ Y EL PANEL TIENE QUE ESTAR ABIERTO: `_indClinCablear` corre desde `indicAbrir`, y sin el
+   los clics no hacen nada y el caso acusa a la cascada de un defecto del andamio. */
+
+const EA_IDS = "['ava_cont','gmedio_ao','vmax_ao','fevi','ea_grado','edad','va_morf'," +
+  "'diam_tsvi','itv_tsvi','itv_ao','peso','talla']";
+
+caso('TC-275', 'Estenosis aortica: la recomendacion ESC 2025 se recalcula con lo que el medico contesta', `
+  return (async () => {
+    if (typeof indicAbrir !== 'function' || typeof window._indEA !== 'function')
+      return { extra:[['existen indicAbrir y _indEA', false, '']] };
+    const IDS = ${EA_IDS};
+    const limpiar = () => { IDS.forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+      const g = document.getElementById('ea_grado'); if (g) g.value = 'sin';
+      const m = document.getElementById('va_morf'); if (m) m.selectedIndex = 0; };
+    /* Se compara lo que quedo contra lo que se pidio: un <select> rechaza un valor que no sea
+       una de sus opciones y deja el value en cadena vacia, SIN AVISAR. Ya paso con va_morf. */
+    const noEntraron = [];
+    const set = o => Object.keys(o).forEach(id => { const e = document.getElementById(id);
+      if (!e) { noEntraron.push('FALTA ' + id); return; }
+      e.value = o[id];
+      e.dispatchEvent(new Event('input', { bubbles:true }));
+      e.dispatchEvent(new Event('change', { bubbles:true }));
+      if (e.value !== String(o[id])) noEntraron.push(id + '=' + JSON.stringify(o[id])); });
+    const sinClic = [];
+    const clic = (k, v) => { const b = document.querySelector('#indic-cuerpo [data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
+      if (!b) { sinClic.push(k + '=' + v); return false; } b.click(); return true; };
+    const rec = () => { const r = window._indEA(); return (r && r.recom) ? r.recom : null; };
+    const clase = () => { const r = rec(); return r ? (r.tipo + ' / ' + (r.clase || r.tit)) : 'sin recomendacion'; };
+    const modal = () => { const r = rec(); return (r && r.mod) ? r.mod.clase : 'sin modalidad'; };
+    /* Cada escenario arranca de cero: cerrar limpia las respuestas, y ese borrado es parte de lo
+       que TC-276 fija. Aca se usa como reset. */
+    const esc = (campos, marcas) => { indicCerrar(); limpiar(); set(campos); indicAbrir();
+      Object.keys(marcas || {}).forEach(k => clic(k, marcas[k])); };
+
+    const AG = { gmedio_ao:'52', vmax_ao:'4.6', fevi:'58', edad:'74', ea_grado:'severa' };
+    const BG = { diam_tsvi:'20', itv_tsvi:'18', itv_ao:'100', gmedio_ao:'30', vmax_ao:'3.5',
+                 peso:'80', talla:'180', ea_grado:'severa', edad:'74' };
+    try {
+      const ex = [];
+
+      // ── DENOMINADOR: los cuatro controles existen, con sus opciones ──
+      esc(AG, {});
+      const botones = [].slice.call(document.querySelectorAll('#indic-cuerpo [data-ind-clin]'))
+        .map(b => b.getAttribute('data-ind-clin') + '=' + b.getAttribute('data-ind-val'));
+      const esperados = ['ea.sintomas=si','ea.sintomas=no','ea.ergo=normal','ea.ergo=sintomas',
+        'ea.ergo=ta','ea.ergo=no_realizada','ea.riesgo=bajo','ea.riesgo=no_bajo',
+        'ea.vida1a=si','ea.vida1a=no'];
+      ex.push(['DENOMINADOR: los cuatro controles estan, con sus diez opciones',
+        esperados.every(e => botones.indexOf(e) > -1) && botones.length === esperados.length,
+        botones.join(' ')]);
+      ex.push(['DENOMINADOR: el escenario de partida es una estenosis SEVERA',
+        window.eaEscenario && eaEscenario().esperado === 'severa',
+        'esperado=' + (window.eaEscenario ? eaEscenario().esperado : '?')]);
+
+      // ── SIN CONTESTAR NADA no se publica ninguna clase ──
+      const sinNada = rec();
+      /* «ntoma» y no «Sintoma»: el texto del panel lleva tilde y esta condicion daba rojo sobre
+         un panel perfectamente correcto. */
+      ex.push(['sin contestar nada NO se publica ninguna recomendacion, y se dice que faltan los sintomas',
+        !!sinNada && sinNada.tipo === 'falta' && (sinNada.faltan || []).join(' ').indexOf('ntoma') > -1,
+        clase() + ' faltan=' + JSON.stringify(sinNada ? sinNada.faltan : null)]);
+
+      // ── SINTOMATICO + ALTO GRADIENTE → Clase I · Nivel B ──
+      esc(AG, { 'ea.sintomas':'si' });
+      ex.push(['sintomatico con alto gradiente: Clase I · Nivel B',
+        rec() && rec().tipo === 'ind' && rec().clase === 'Clase I · Nivel B', clase()]);
+
+      // ── ASINTOMATICO con FEVI conservada: las IIa EXIGEN riesgo bajo ──
+      esc(AG, { 'ea.sintomas':'no' });
+      const sinRiesgo = rec();
+      ex.push(['asintomatico con FEVI conservada y SIN riesgo contestado: no se publica ninguna Clase IIa',
+        !!sinRiesgo && sinRiesgo.tipo === 'falta' && (sinRiesgo.faltan || []).join(' ').indexOf('iesgo') > -1,
+        clase() + ' faltan=' + JSON.stringify(sinRiesgo ? sinRiesgo.faltan : null)]);
+      esc(AG, { 'ea.sintomas':'no', 'ea.riesgo':'no_bajo' });
+      ex.push(['con riesgo NO bajo tampoco: corresponde vigilancia activa',
+        rec() && rec().tipo === 'no', clase()]);
+
+      // ── ASINTOMATICO + riesgo bajo + ergometria normal + alto gradiente → IIa A ──
+      esc(AG, { 'ea.sintomas':'no', 'ea.riesgo':'bajo', 'ea.ergo':'normal' });
+      ex.push(['asintomatico, riesgo bajo, ergometria normal y alto gradiente: Clase IIa · Nivel A',
+        rec() && rec().clase === 'Clase IIa · Nivel A', clase()]);
+
+      // ── ASINTOMATICO + FEVI < 50 → Clase I · Nivel B, y NO depende del riesgo ──
+      esc(Object.assign({}, AG, { fevi:'42' }), { 'ea.sintomas':'no' });
+      ex.push(['asintomatico con FEVI < 50 %: Clase I · Nivel B sin necesitar el riesgo',
+        rec() && rec().clase === 'Clase I · Nivel B' && rec().txt.indexOf('FEVI < 50') > -1, clase()]);
+
+      /* ── LA PRUEBA DE ESFUERZO «NO REALIZADA» NO ES UNA NEGACION ──
+         La guia la pide «si es factible». Contestar que no se hizo tiene que dejar salir la
+         Clase IIa · Nivel A con la condicion declarada, NO publicar «sin criterio»: eso seria
+         una conducta negativa a cuarenta pixeles de la nota que promete que no bloquea. */
+      esc(AG, { 'ea.sintomas':'no', 'ea.riesgo':'bajo', 'ea.ergo':'no_realizada' });
+      const rSinErgo = rec();
+      ex.push(['la ergometria NO REALIZADA no bloquea: sale la Clase IIa · Nivel A con la condicion declarada',
+        !!rSinErgo && rSinErgo.clase === 'Clase IIa · Nivel A' &&
+        (rSinErgo.nota || '').indexOf('NO REALIZADA') > -1, clase()]);
+
+      /* ── EL CORTE DE ESTENOSIS MUY SEVERA ES 5,0 m/s Y NO 5,5 ──
+         La cifra de 5,5 circula mucho en la literatura secundaria y no esta en la guia. El par
+         discrimina: con 5,2 tiene que disparar la Clase IIa · Nivel B y con 4,8 no. Una sola de
+         las dos mediciones pasaria igual con el corte movido.
+
+         ⚠️ LA ERGOMETRIA VA SIN CONTESTAR, y eso no es un descuido. Con ella contestada el alto
+         gradiente entra antes por la Clase IIa · Nivel A y el bundle no se ejerce nunca: la
+         primera version de este par usaba «no realizada» y dejaba el escenario midiendo otra
+         rama — la mutacion del corte pasaba y ademas volvia rojo el caso entero. */
+      esc(Object.assign({}, AG, { vmax_ao:'5.2', gmedio_ao:'30' }),
+          { 'ea.sintomas':'no', 'ea.riesgo':'bajo' });
+      const muy52 = clase();
+      esc(Object.assign({}, AG, { vmax_ao:'4.8', gmedio_ao:'30' }),
+          { 'ea.sintomas':'no', 'ea.riesgo':'bajo' });
+      const muy48 = clase();
+      ex.push(['MUY SEVERA se corta en Vmax > 5,0 m/s: 5,2 dispara la Clase IIa · Nivel B',
+        muy52.indexOf('Clase IIa · Nivel B') > -1, muy52]);
+      ex.push(['...y 4,8 NO la dispara (si esto y lo de arriba dan igual, el corte se movio)',
+        muy48.indexOf('Clase IIa') === -1 && muy48 !== muy52, 'a 5,2: ' + muy52 + ' | a 4,8: ' + muy48]);
+
+      // ── LA PRUEBA DE ESFUERZO: dos respuestas, dos caminos distintos ──
+      esc(AG, { 'ea.sintomas':'no', 'ea.ergo':'sintomas' });
+      const rSx = rec();
+      ex.push(['la ergometria que desenmascara sintomas rutea a la fila del SINTOMATICO (Clase I · B)',
+        !!rSx && rSx.clase === 'Clase I · Nivel B' && (rSx.nota || '').indexOf('desenmascar') > -1,
+        clase() + ' nota=' + JSON.stringify(rSx ? (rSx.nota || '').slice(0, 60) : null)]);
+      esc(AG, { 'ea.sintomas':'no', 'ea.ergo':'ta' });
+      ex.push(['la caida sostenida de TA es una fila propia: Clase IIa · Nivel C',
+        rec() && rec().clase === 'Clase IIa · Nivel C', clase()]);
+
+      /* ── LAS DOS FILAS DE BAJO GRADIENTE SON DE BAJO FLUJO ──
+         El par discrimina consumir eaEscenario().sub de decidir por la FEVI: con flujo normal
+         las dos implementaciones difieren, con bajo flujo coinciden. */
+      esc(Object.assign({}, BG, { fevi:'60' }), { 'ea.sintomas':'si' });
+      const parad = clase(), subParad = eaEscenario().sub;
+      esc(Object.assign({}, BG, { fevi:'60', itv_tsvi:'30', itv_ao:'170' }), { 'ea.sintomas':'si' });
+      const flujoN = clase(), subFlujoN = eaEscenario().sub;
+      ex.push(['DENOMINADOR: los dos escenarios de bajo gradiente difieren en el FLUJO',
+        subParad === 'bfbg_paradojal' && subFlujoN === 'bg_flujo_normal',
+        'sub1=' + subParad + ' sub2=' + subFlujoN]);
+      ex.push(['bajo flujo y bajo gradiente con FEVI conservada: Clase IIa · Nivel B (paradojal)',
+        parad.indexOf('Clase IIa · Nivel B') > -1, parad]);
+      ex.push(['bajo gradiente con FLUJO NORMAL: NO entra en las filas de bajo flujo',
+        flujoN.indexOf('Clase') === -1 && flujoN !== parad, 'paradojal: ' + parad + ' | flujo normal: ' + flujoN]);
+      esc(Object.assign({}, BG, { fevi:'35' }), { 'ea.sintomas':'si' });
+      ex.push(['bajo flujo y bajo gradiente con FEVI reducida: Clase I · Nivel B',
+        rec() && rec().clase === 'Clase I · Nivel B', clase()]);
+
+      // ── MODALIDAD: el corte de edad es 70, y la bicuspide no entra en la fila de TAVI ──
+      esc(Object.assign({}, AG, { edad:'62' }), { 'ea.sintomas':'si', 'ea.riesgo':'bajo' });
+      const m62 = modal(), t62 = rec().mod.txt;
+      esc(Object.assign({}, AG, { edad:'74' }), { 'ea.sintomas':'si', 'ea.riesgo':'bajo' });
+      const m74 = modal(), t74 = rec().mod.txt;
+      ex.push(['menor de 70 con riesgo bajo: SAVR, Clase I · Nivel B',
+        m62 === 'Clase I · Nivel B' && t62.indexOf('SAVR') === 0, m62 + ' / ' + t62.slice(0, 40)]);
+      ex.push(['desde los 70: TAVI, Clase I · Nivel A (el corte de edad es 70, no 75)',
+        m74 === 'Clase I · Nivel A' && t74.indexOf('TAVI') === 0, m74 + ' / ' + t74.slice(0, 40)]);
+      esc(Object.assign({}, AG, { edad:'74', va_morf:'Bicúspide' }), { 'ea.sintomas':'si', 'ea.riesgo':'bajo' });
+      const mBav = modal();
+      ex.push(['la BICUSPIDE no entra en la fila de TAVI Clase I · A: cae en la Clase IIb · Nivel B',
+        mBav === 'Clase IIb · Nivel B', mBav]);
+      esc(Object.assign({}, AG, { edad:'' }), { 'ea.sintomas':'si' });
+      ex.push(['sin edad no se aplica el corte: queda la decision del Heart Team, Clase I · Nivel C',
+        modal() === 'Clase I · Nivel C', modal()]);
+
+      /* ── LA SALVEDAD DE PSEUDO-SEVERIDAD TAMBIEN SIN SINTOMAS ──
+         Las dos filas del sintomatico la llevan en su propio texto; la del asintomatico no, asi
+         que sobre la MISMA hemodinamica el aviso salia con sintomas y se callaba sin ellos. */
+      esc(Object.assign({}, BG, { fevi:'34' }), { 'ea.sintomas':'no' });
+      const rAsintBG = rec();
+      ex.push(['el asintomatico de bajo gradiente tambien lleva la salvedad de pseudo-severidad',
+        !!rAsintBG && rAsintBG.clase === 'Clase I · Nivel B' &&
+        (rAsintBG.nota || '').indexOf('pseudo-severidad') > -1,
+        clase() + ' nota=' + JSON.stringify(rAsintBG ? (rAsintBG.nota || '').slice(0, 70) : null)]);
+
+      /* ── NO SE PIDE UN GRADIENTE QUE ESTA MEDIDO E IMPRESO ARRIBA ──
+         ⚠️ La pastilla va AL FINAL: el auto-grado la reescribe al tipear el gradiente, asi que
+         puesta primero el escenario no se arma y la condicion mide otra cosa. */
+      indicCerrar(); limpiar();
+      set({ gmedio_ao:'30', vmax_ao:'3.4', fevi:'58', edad:'74' });
+      set({ ea_grado:'severa' });
+      indicAbrir(); clic('ea.sintomas', 'si');
+      const rPast = rec();
+      ex.push(['DENOMINADOR: el gradiente esta MEDIDO y la pastilla dice severa',
+        window.eaEscenario && eaEscenario().crit.gmed === false &&
+        document.getElementById('ea_grado').value === 'severa',
+        'gmed=' + (window.eaEscenario ? eaEscenario().crit.gmed : '?') +
+        ' grado=' + document.getElementById('ea_grado').value]);
+      ex.push(['con el gradiente medido no se pide el gradiente: se declara que no sale de las mediciones',
+        !!rPast && rPast.tipo === 'no' && (rPast.txt || '').indexOf('grado consignado') > -1,
+        clase()]);
+
+      /* ── LA EDAD: el piso de aplicabilidad es el adulto, y eso atrapa el 7 tipeado por 70 ── */
+      esc(Object.assign({}, AG, { edad:'7' }), { 'ea.sintomas':'si', 'ea.riesgo':'bajo' });
+      const m7 = modal(), n7 = rec() && rec().mod ? rec().mod.nota : '';
+      ex.push(['una edad de 7 anos no recibe la modalidad del adulto: queda el Heart Team',
+        m7 === 'Clase I · Nivel C' && n7.indexOf('adulto') > -1, m7 + ' / ' + n7.slice(0, 70)]);
+
+      /* ── UNA SOLA FUENTE DE «ALTO GRADIENTE» EN LA TARJETA ──
+         Las filas graduaban con literales y el bloque de recomendacion con EA_CRIT. Con el
+         corte movido, la fila imprimia «no alcanza» y el bloque seguia publicando la Clase I
+         sobre el mismo numero. La condicion los cruza en vez de mirar uno solo. */
+      esc(Object.assign({}, AG, { gmedio_ao:'43', vmax_ao:'3.5' }), { 'ea.sintomas':'si' });
+      const secG = window._indEA();
+      const filaG = (secG && secG.filas || []).find(f => f.lbl.indexOf('Gradiente medio') > -1);
+      ex.push(['la fila del gradiente y la recomendacion salen del MISMO corte',
+        !!filaG && filaG.marca === 'ok' && !!rec() && rec().clase === 'Clase I · Nivel B',
+        'fila=' + (filaG ? filaG.marca + ' «' + filaG.nota + '»' : 'NO HAY FILA') + ' · recom=' + clase()]);
+
+      // ── El segundo toque DESMARCA: el dato es opcional y tiene que poder volver a vacio ──
+      esc(AG, {});
+      clic('ea.sintomas', 'si'); const tras1 = _indClinGet('ea.sintomas');
+      clic('ea.sintomas', 'si'); const tras2 = _indClinGet('ea.sintomas');
+      ex.push(['el segundo toque sobre la opcion activa la desmarca',
+        tras1 === 'si' && tras2 === null, 'tras1=' + tras1 + ' tras2=' + tras2]);
+
+      ex.push(['ningun valor del caso fue rechazado por su select, y todos los botones existian',
+        noEntraron.length === 0 && sinClic.length === 0,
+        'rechazados: ' + noEntraron.join(',') + ' · sin boton: ' + sinClic.join(',')]);
+      return { extra: ex };
+    } finally {
+      try { indicCerrar(); IDS.forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+        const g = document.getElementById('ea_grado'); if (g) g.value = 'sin';
+        const m = document.getElementById('va_morf'); if (m) m.selectedIndex = 0;
+        if (typeof indicSyncBoton === 'function') indicSyncBoton(); } catch (e) {}
+    }
+  })();
+`);
+
+caso('TC-276', 'Lo que se marca en el panel de Evidencia no se guarda, no viaja y no sale del informe', `
+  return (async () => {
+    if (typeof indicAbrir !== 'function') return { extra:[['existe indicAbrir', false, '']] };
+    const IDS = ${EA_IDS};
+    const CLAVES = ['ea.sintomas','ea.ergo','ea.riesgo','ea.vida1a'];
+    const limpiar = () => { IDS.forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+      const g = document.getElementById('ea_grado'); if (g) g.value = 'sin'; };
+    const set = o => Object.keys(o).forEach(id => { const e = document.getElementById(id); if (!e) return;
+      e.value = o[id]; e.dispatchEvent(new Event('input', { bubbles:true }));
+      e.dispatchEvent(new Event('change', { bubbles:true })); });
+    const clic = (k, v) => { const b = document.querySelector('#indic-cuerpo [data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
+      if (b) { b.click(); return true; } return false; };
+    const estado = () => CLAVES.map(k => k + '=' + _indClinGet(k)).join(' ');
+    const ECO = { gmedio_ao:'52', vmax_ao:'4.6', fevi:'58', edad:'74', ea_grado:'severa' };
+    const camposDe = gid => { const e = getInformes().find(i => i.estudioId === gid);
+      return (e && e.campos) ? e.campos : null; };
+    let gidA = null, gidB = null;
+    try {
+      const ex = [];
+
+      /* ── PRIMER GUARDADO: el MISMO estudio, con el panel SIN contestar ──
+         Es el control contra el que se compara el segundo. Filtrar «claves sospechosas» por
+         nombre no sirve: tdf_sintomas, cvpa_sintomas, tga_sintomas y ebs_sintomas son
+         campos legitimos de las secciones de congenitas y hacian fallar la condicion sobre un
+         guardado perfectamente limpio. Lo que se afirma es lo que de verdad importa: contestar
+         el panel NO CAMBIA NI UNA CLAVE de lo que se persiste. */
+      /* ⚠️ LOS DOS GUARDADOS TIENEN QUE SALIR DEL MISMO ESTADO DE DOM, o la comparacion mide
+         otra cosa. Sin el generarInforme() previo, las catorce hojas cc-txt-* existen en uno
+         y no en el otro segun por donde haya pasado el caso, y la condicion fallaba 1 de cada 2
+         corridas con cc-txt-cia: undefined vs "" — un rojo del andamio, no del producto. */
+      __t.limpiar();
+      set(ECO);
+      __t.set('nombre', 'Aislamiento Evidencia');
+      generarInforme();
+      const gA = await __t.guardar();
+      gidA = gA.estudioId;
+      const camposA = camposDe(gidA);
+
+      __t.limpiar();
+      set(ECO);
+      __t.set('nombre', 'Aislamiento Evidencia');
+      generarInforme();
+      indicAbrir();
+      const marco = CLAVES.length === [clic('ea.sintomas','si'), clic('ea.ergo','normal'),
+        clic('ea.riesgo','bajo'), clic('ea.vida1a','si')].filter(Boolean).length;
+
+      // ── DENOMINADOR: sin las cuatro marcadas, «no aparece» no probaria nada ──
+      ex.push(['DENOMINADOR: las cuatro respuestas quedaron marcadas', marco &&
+        _indClinGet('ea.sintomas') === 'si' && _indClinGet('ea.riesgo') === 'bajo', estado()]);
+      ex.push(['DENOMINADOR: con las cuatro contestadas SI hay una recomendacion publicada',
+        !!(window._indEA() && window._indEA().recom && window._indEA().recom.tipo === 'ind'),
+        window._indEA() && window._indEA().recom ? window._indEA().recom.tipo : 'sin recom']);
+
+      /* ── POR QUE NO PUEDE ENTRAR A campos: NO HAY NINGUN CONTROL CON id ──
+         guardarInforme barre input[id] / select[id] / textarea[id] de TODO el documento sin
+         mirar visibilidad. La garantia no es que nadie se acuerde de excluirlo: es que no hay
+         nada que barrer. Esta condicion fija el mecanismo; la de abajo fija el resultado. */
+      const controles = document.querySelectorAll('#indic-overlay input, #indic-overlay select, #indic-overlay textarea');
+      ex.push(['el panel no tiene NI UN input, select o textarea que guardarInforme pueda barrer',
+        controles.length === 0, 'controles=' + controles.length]);
+
+      // ── SEGUNDO GUARDADO: el mismo estudio, con las cuatro contestadas ──
+      const gB = await __t.guardar();
+      gidB = gB.estudioId;
+      const camposB = camposDe(gidB);
+      ex.push(['DENOMINADOR: los dos estudios se guardaron y traen los campos del eco',
+        !!camposA && !!camposB && String(camposA.vmax_ao) === '4.6' && String(camposB.vmax_ao) === '4.6',
+        'A=' + (camposA ? Object.keys(camposA).length : 'null') +
+        ' B=' + (camposB ? Object.keys(camposB).length : 'null') + ' claves']);
+      /* Se comparan las CLAVES y los VALORES. Con una clave nueva o un valor distinto, contestar
+         el panel estaria cambiando lo que se persiste, que es exactamente lo prohibido. */
+      const difs = [];
+      if (camposA && camposB) {
+        const todas = Object.keys(camposA).concat(Object.keys(camposB));
+        todas.forEach(k => { if (difs.length > 8) return;
+          if (difs.indexOf(k) > -1) return;
+          const a = camposA[k], b = camposB[k];
+          if (JSON.stringify(a === undefined ? null : a) !== JSON.stringify(b === undefined ? null : b))
+            difs.push(k + ': ' + JSON.stringify(a) + ' vs ' + JSON.stringify(b)); });
+      }
+      ex.push(['contestar las cuatro preguntas NO cambia ni una clave ni un valor de lo que se guarda',
+        !!camposA && !!camposB && difs.length === 0, difs.join(' · ')]);
+      ex.push(['y ninguna clave del panel aparece en campos',
+        !!camposB && Object.keys(camposB).filter(k => k.indexOf('ea.') === 0).length === 0,
+        camposB ? Object.keys(camposB).filter(k => k.indexOf('ea.') === 0).join(',') : 'sin campos']);
+
+      // ── Ni sale del informe ──
+      const inf = __t.informe();
+      const texto = (inf.inf + ' ' + inf.suma);
+      ex.push(['el informe no publica la recomendacion ni la clase de la guia',
+        texto.indexOf('Clase I') === -1 && texto.indexOf('RECOMENDADA') === -1 &&
+        texto.indexOf('ESC/EACTS 2025') === -1, JSON.stringify(texto.slice(0, 90))]);
+
+      /* ── CERRAR BORRA, Y REABRIR NO LO TRAE DE VUELTA ──
+         Se comprueban las DOS puertas por separado: _indClinLimpiar esta en indicCerrar y en
+         indicAbrir, y con una sola de las dos un cierre por un camino nuevo dejaria las
+         respuestas del paciente anterior contestadas sobre el estudio siguiente. */
+      /* DENOMINADOR del cierre: si algo del camino de guardado ya se hubiera llevado las
+         respuestas, «cerrar las borra» se cumpliria sobre un estado vacio y la condicion no
+         probaria nada. Se afirma que siguen puestas JUSTO ANTES de cerrar. */
+      /* ⚠️ EL VALOR SE CAPTURA, NO LA LECTURA. Las condiciones de extra se EVALUAN al armar el
+         array, o sea despues de indicAbrir() — que tambien limpia—, asi que un
+         CLAVES.every(k => _indClinGet(k) === null) escrito aca abajo lee el estado de DESPUES
+         de reabrir y da true siempre. Verificado por mutacion: con indicCerrar sin limpiar, la
+         condicion pasaba igual. Es «capturar el valor, no la referencia», que este archivo ya
+         documenta para un caso que abria dos estudios. */
+      const antesDeCerrar = estado();
+      const seguianMarcadas = CLAVES.every(k => _indClinGet(k) !== null);
+      indicCerrar();
+      const trasCerrar = estado();
+      const borroAlCerrar = CLAVES.every(k => _indClinGet(k) === null);
+      indicAbrir();
+      const trasReabrir = estado();
+      const recTrasReabrir = window._indEA() && window._indEA().recom ? window._indEA().recom.tipo : null;
+      ex.push(['DENOMINADOR: las cuatro siguen marcadas justo antes de cerrar',
+        seguianMarcadas, antesDeCerrar]);
+      ex.push(['cerrar el panel borra las cuatro respuestas', borroAlCerrar, trasCerrar]);
+      ex.push(['y al reabrirlo vuelve a pedir los datos en vez de conservar lo del paciente anterior',
+        trasReabrir.indexOf('=si') === -1 && trasReabrir.indexOf('=bajo') === -1 &&
+        recTrasReabrir === 'falta', trasReabrir + ' · recom=' + recTrasReabrir]);
+      return { extra: ex };
+    } finally {
+      try { indicCerrar(); } catch (e) {}
+      try { if (gidA) await __t.borrar(gidA); } catch (e) {}
+      try { if (gidB) await __t.borrar(gidB); } catch (e) {}
+      try { __t.limpiar(); IDS.forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+        const g2 = document.getElementById('ea_grado'); if (g2) g2.value = 'sin';
+        if (typeof indicSyncBoton === 'function') indicSyncBoton(); } catch (e) {}
+    }
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

@@ -1507,6 +1507,13 @@ html.light-mode .amilo-root{
   #indic-cuerpo tr{display:grid;grid-template-columns:1fr auto;column-gap:8px}
   #indic-cuerpo td:nth-child(3){grid-column:1/-1;padding-top:0!important}
   #indic-cuerpo td:nth-child(2){text-align:right}
+  /* La celda de CONTROLES baja a su propia fila, como la nota. Medido a 375 px: con la columna
+     `auto` dimensionada por el botón más ancho (159 px), el rótulo se quedaba con 64 px y
+     «Prueba de esfuerzo» se partía en tres renglones. Nada desbordaba —los cuatro botones
+     envuelven y ninguno se sale— pero la fila quedaba ilegible. Y `text-align:right` no alinea
+     los hijos de un contenedor flex, así que sin esto los botones quedaban a la izquierda de
+     una columna cuyo resto de filas están alineadas a la derecha. */
+  #indic-cuerpo td.ind-ctrl{grid-column:1/-1;text-align:left;padding-top:2px!important}
 }
 </style>
 <style>
@@ -12438,7 +12445,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
       <div class="card">
         <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('eao',this)">
-          🔵 EAo — Estenosis Aórtica y TAVI (ESC 2021) <span style="float:right;">▶</span>
+          🔵 EAo — Estenosis Aórtica y TAVI (ESC/EACTS 2025) <span style="float:right;">▶</span>
         </h2>
         <div id="ref-eao" style="display:none;" class="card-body">
           <table style="width:100%;border-collapse:collapse;font-size:12px;">
@@ -12450,10 +12457,17 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             <tr><td style="padding:5px 8px;color:var(--text2);">DVI</td><td style="padding:5px 8px;text-align:center;"></td><td style="padding:5px 8px;text-align:center;"></td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&lt;0.25</td></tr>
           </table>
           <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
-            • <b>Clase I:</b> EAo severa sintomática → SAVR o TAVI<br>
-            • <b>TAVI preferida:</b> ≥75 años, alto riesgo (STS ≥8%), fragilidad<br>
-            • <b>SAVR preferida:</b> &lt;75 años, bajo riesgo, bicúspide, aortopatía<br>
-            • <b>Score Ca++ por TC:</b> H ≥1600 UA · M ≥600 UA → EAo severa (bajo gradiente)<br>
+            <!-- ⚠️ ACTUALIZADO A ESC/EACTS 2025. Decía «TAVI ≥75 años, alto riesgo (STS ≥8%)» y
+                 «SAVR <75 años», que son los cortes de la edición 2021: el de edad bajó a 70 y el
+                 disparador de TAVI por riesgo alto SE ELIMINÓ. Esta tarjeta y el panel de
+                 Evidencia describen al MISMO paciente desde dos pestañas, y dejarla con los
+                 cortes viejos era publicar dos conductas distintas sobre la misma edad. -->
+            • <b>Clase I · B:</b> EAo severa sintomática de alto gradiente → intervención<br>
+            • <b>TAVI:</b> ≥70 años, válvula tricúspide, anatomía apta — Clase I · A<br>
+            • <b>SAVR:</b> &lt;70 años con riesgo quirúrgico bajo — Clase I · B<br>
+            • <b>Asintomático:</b> FEVI &lt;50% → Clase I · B · con FEVI ≥50%, alto gradiente,
+              ergometría normal y riesgo bajo → Clase IIa · A<br>
+            • <b>Score Ca++ por TC (diagnóstico, sin clase):</b> H &gt;2000 UA · M &gt;1200 UA → EAo severa<br>
             • Seguimiento: leve 3–5a · moderada 1–2a · severa asint 6–12m
           </div>
         </div>
@@ -21363,6 +21377,13 @@ function eaEscenario() {
   return Object.assign(base, { clave, sub, esperado, discordanciaGrado });
 }
 window.eaEscenario = eaEscenario;
+/* Se exportan porque el panel de Evidencia vive en OTRO bloque <script> y sus filas graduaban
+   con literales (`>= 40`, `>= 4`) mientras el bloque de recomendación ya consumía `EA_CRIT` a
+   través de `eaEscenario`: dos fuentes para «alto gradiente» dentro de la misma tarjeta. Con el
+   corte movido, la fila habría impreso ✅ «criterio de estenosis severa» y el bloque de abajo
+   «falta el gradiente» sobre el mismo número. Es la lección de los rótulos del PDF que seguían
+   diciendo «< 1,0» después de que `avaEsSevera` pasara a «≤». */
+window.EA_CRIT = EA_CRIT; window.UMBRAL_VLI_BAJO = UMBRAL_VLI_BAJO;
 
 /* Los números entre paréntesis del informe. Sólo lo MEDIDO: sin ASC no hay indexada, y afirmar
    un gradiente que nadie midió es lo mismo que afirmar una aorta normal sin medirla. */
@@ -34729,13 +34750,157 @@ function _indFila(lbl, val, marca, nota){ return { lbl:lbl, val:val, marca:marca
 /* Fila de umbral ausente. Existe para que la regla 4 tenga una sola forma de expresarse. */
 function _indSinUmbral(lbl){ return _indFila(lbl, '—', 'ask', 'umbral no disponible — recargar la aplicación'); }
 
+/* ══ RESPUESTAS CLÍNICAS DEL PANEL — EFÍMERAS, Y ESO ES LA MITAD DEL DISEÑO ══════════════════
+   Las filas de «Requiere datos clínicos» dejaron de ser sólo lectura: el médico las contesta
+   acá. Lo contestado vive en ESTE objeto y en ningún otro lado.
+
+   ⚠️ NO ES UN CAMPO DEL FORMULARIO, Y NO PUEDE SERLO. Un `<input id="...">` lo barrería
+   `guardarInforme` —que toma `input[id]` de TODO el documento sin mirar visibilidad— y estas
+   respuestas quedarían dentro de `campos` de cada estudio, viajando al Excel, al backup y al
+   informe firmado. La regla 1 de la cabecera dice que este panel no tiene estado; lo que sigue
+   es la excepción mínima, y se paga manteniéndola FUERA del DOM persistente.
+
+   SE BORRA AL ABRIR Y AL CERRAR, no sólo al cerrar. Con una sola de las dos puertas, un fallo
+   en la otra —una excepción antes del `_indClinLimpiar`, un cierre por un camino nuevo— deja
+   los síntomas del paciente anterior contestados sobre el estudio siguiente. Es la fuga de
+   `gradoGamma`/`protMonoc` con otra cara, y acá no hay barrido genérico que la tape.
+
+   `Object.create(null)` y no `{}`: las claves son literales de este archivo, pero el patrón de
+   la casa es que un mapa consultado con `hasOwnProperty` no arrastre el prototipo. */
+var _indClin = Object.create(null);
+function _indClinGet(k){ return Object.prototype.hasOwnProperty.call(_indClin, k) ? _indClin[k] : null; }
+function _indClinLimpiar(){ _indClin = Object.create(null); }
+
+/* Los botones se arman con `data-*` y un ÚNICO oyente delegado, nunca con `onclick` inline.
+   Dos motivos, los dos ya pagados en este archivo: en un atributo de evento el escape NO
+   protege —el parser decodifica la entidad ANTES de compilar el handler— y `indicRender`
+   reescribe el `innerHTML` entero en cada repintado, así que enganchar por botón acumularía un
+   oyente por pintada. */
+var _indClinCableado = false;
+function _indClinCablear(){
+  if (_indClinCableado) return;
+  const c = document.getElementById('indic-cuerpo'); if (!c) return;
+  c.addEventListener('click', function(ev){
+    const b = ev.target && ev.target.closest ? ev.target.closest('[data-ind-clin]') : null;
+    if (!b || !c.contains(b)) return;
+    const k = b.getAttribute('data-ind-clin'), v = b.getAttribute('data-ind-val');
+    /* Un segundo toque sobre la opción activa la DESMARCA. El dato es opcional: sin esto,
+       marcar por error deja una respuesta pegada al panel sin forma de volver a «no consta»
+       salvo cerrarlo. Mismo criterio que el selector de origen del SGL. */
+    _indClin[k] = (_indClinGet(k) === v) ? null : v;
+    _indRepintarConservando(k, v);
+  });
+  _indClinCableado = true;
+}
+
+/* Repinta SIN cerrarle los acordeones al médico ni perderle el scroll ni el foco.
+   `indicRender` reconstruye el cuerpo entero, así que el estado abierto/cerrado de cada
+   `<details>` —que el médico puede haber tocado a mano— y la posición del scroll se pierden en
+   cada respuesta. Sobre un panel de trece secciones eso se lee como que el panel «saltó».
+   Se conserva acá y NO dentro de `indicRender`: esa función la comparten las trece secciones y
+   el sync del botón, y cambiarle el comportamiento sería tocar el mecanismo de las otras doce. */
+function _indRepintarConservando(claveFoco, valFoco){
+  const c = document.getElementById('indic-cuerpo'); if (!c) return;
+  const abiertas = Object.create(null);
+  Array.prototype.forEach.call(c.querySelectorAll('details'), function(d){
+    const s = d.querySelector('summary');
+    if (s) abiertas[s.textContent] = d.open;
+  });
+  const y = c.scrollTop;
+  indicRender();
+  Array.prototype.forEach.call(c.querySelectorAll('details'), function(d){
+    const s = d.querySelector('summary');
+    if (s && Object.prototype.hasOwnProperty.call(abiertas, s.textContent)) d.open = abiertas[s.textContent];
+  });
+  c.scrollTop = y;
+  if (claveFoco == null) return;
+  const bs = c.querySelectorAll('[data-ind-clin]');
+  for (let i = 0; i < bs.length; i++) {
+    if (bs[i].getAttribute('data-ind-clin') === claveFoco && bs[i].getAttribute('data-ind-val') === valFoco) {
+      try { bs[i].focus({ preventScroll:true }); } catch (e) { bs[i].focus(); }
+      return;
+    }
+  }
+}
+
+/* Fila con controles. `ops` es `[{v, t}]` — el valor que se guarda y lo que se pinta.
+   La MARCA la decide el llamador, no esta función: qué significa una respuesta depende del
+   criterio, y acá `ok` sigue queriendo decir «alcanza un criterio de la guía», no «contestada». */
+function _indFilaCtrl(lbl, clave, ops, marca, nota){
+  return { lbl:lbl, ctrl:{ clave:clave, ops:ops }, marca:marca || 'ask', nota:nota || '' };
+}
+function _indCtrlHTML(ctrl){
+  const val = _indClinGet(ctrl.clave);
+  return '<div style="display:flex;flex-wrap:wrap;gap:5px;">' + ctrl.ops.map(function(o){
+    const on = val === o.v;
+    /* El alto lo fija la regla táctil global de `button` (44 px). No se pelea con ella: esto
+       se toca con el dedo en una tablet al lado del ecógrafo. */
+    return '<button type="button" data-ind-clin="' + _critEsc(ctrl.clave) + '"' +
+      ' data-ind-val="' + _critEsc(o.v) + '" aria-pressed="' + (on ? 'true' : 'false') + '"' +
+      ' style="padding:4px 11px;font-size:11.5px;font-weight:700;border-radius:7px;cursor:pointer;' +
+      'border:1px solid ' + (on ? 'var(--accent2)' : 'var(--border)') + ';' +
+      'background:' + (on ? 'var(--accent2)' : 'var(--bg2)') + ';' +
+      'color:' + (on ? 'var(--bg2)' : 'var(--text2)') + ';">' + _critEsc(o.t) + '</button>';
+  }).join('') + '</div>';
+}
+
 function _indFilaHTML(f){
   const M = IND_MARCA[f.marca] || IND_MARCA.none;
   return '<tr style="border-top:1px solid var(--border);">' +
     '<td style="padding:5px 8px;font-size:11.5px;vertical-align:top;">' + _critEsc(f.lbl) + '</td>' +
-    '<td style="padding:5px 8px;font-size:11.5px;font-weight:700;vertical-align:top;white-space:nowrap;">' + _critEsc(f.val) + '</td>' +
+    '<td' + (f.ctrl ? ' class="ind-ctrl"' : '') +
+      ' style="padding:5px 8px;font-size:11.5px;font-weight:700;vertical-align:top;' +
+      (f.ctrl ? '' : 'white-space:nowrap;') + '">' +
+      (f.ctrl ? _indCtrlHTML(f.ctrl) : _critEsc(f.val)) + '</td>' +
     '<td style="padding:5px 8px;font-size:11px;vertical-align:top;line-height:1.45;color:' + M.col + ';">' +
       M.ico + (f.nota ? ' ' + _critEsc(f.nota) : '') + '</td></tr>';
+}
+
+/* ── Bloque de recomendación ───────────────────────────────────────────────────────────────
+   Lo que se publica acá NO es una conclusión que arma este panel: es la recomendación de la
+   guía CUYAS CONDICIONES SE CUMPLEN, con su texto, su clase y su nivel. La regla 2 de la
+   cabecera sigue en pie — lo que se agregó es el selector, no un criterio nuevo.
+
+   `tipo` decide el color y nada más. `falta` NO es «no hay indicación»: son dos cosas
+   distintas y confundirlas es publicar una negación sobre preguntas sin contestar, que es el
+   defecto que este archivo persigue desde los tres selects del TEER.
+
+   ⚠️ `alarma` ES INALCANZABLE HOY, y se declara en vez de dejar creer que alguna mutación la
+   cubre: ninguna rama de `_indEARecom` la produce. Queda —igual que los extremos redundantes
+   del contorno de 3 puntos— para que la sección que mañana tenga una contraindicación no
+   invente su propio color. Si se borra, borrar también la rama de `_indSecHTML` que la nombra. */
+const IND_RECOM_COL = { ind:'#10B981', alarma:'#DC2626', falta:'#94A3B8', no:'#94A3B8' };
+function _indRecomHTML(r){
+  const col = IND_RECOM_COL[r.tipo] || IND_RECOM_COL.falta;
+  let h = '<div style="margin-top:12px;padding:9px 11px;border-left:3px solid ' + col +
+          ';background:var(--bg2);border-radius:0 8px 8px 0;">';
+  h += '<div style="font-size:10.5px;font-weight:700;color:' + col +
+       ';text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">' + _critEsc(r.tit) + '</div>';
+  h += '<div style="font-size:11.5px;line-height:1.55;color:var(--text);">' + _critEsc(r.txt) + '</div>';
+  if (r.clase) h += '<div style="font-size:11px;margin-top:5px;color:var(--text2);"><b>' +
+       _critEsc(r.clase) + '</b> · ' + _critEsc(r.fuente) + '</div>';
+  if (r.faltan && r.faltan.length) h += '<div style="font-size:11px;margin-top:5px;color:#D97706;">' +
+       'Falta contestar: ' + _critEsc(r.faltan.join(' · ')) + '</div>';
+  if (r.nota) h += '<div style="font-size:11px;margin-top:5px;color:var(--text2);line-height:1.5;">' +
+       _critEsc(r.nota) + '</div>';
+  /* La MODALIDAD va en su propio bloque y sólo cuando ya hay indicación: en la guía son dos
+     decisiones distintas, y fundirlas en un párrafo hace que «se opera» y «se opera así» se lean
+     como una sola afirmación. */
+  if (r.mod) {
+    h += '<div style="margin-top:8px;padding-top:7px;border-top:1px dashed var(--border);">';
+    h += '<div style="font-size:10.5px;font-weight:700;color:var(--text2);text-transform:uppercase;' +
+         'letter-spacing:.5px;margin-bottom:3px;">Modalidad</div>';
+    h += '<div style="font-size:11.5px;line-height:1.55;color:var(--text);">' + _critEsc(r.mod.txt) + '</div>';
+    /* La fuente viene DENTRO del objeto y no de una constante de más abajo: este render es
+       genérico y `EA_FUENTE` se declara ~120 líneas después. Hoy resolvería igual —al llamarse
+       ya está inicializada— pero ataría un helper compartido a una constante de una sección. */
+    if (r.mod.clase) h += '<div style="font-size:11px;margin-top:4px;color:var(--text2);"><b>' +
+         _critEsc(r.mod.clase) + '</b> · ' + _critEsc(r.mod.fuente || r.fuente || '') + '</div>';
+    if (r.mod.nota) h += '<div style="font-size:11px;margin-top:4px;color:var(--text2);line-height:1.5;">' +
+         _critEsc(r.mod.nota) + '</div>';
+    h += '</div>';
+  }
+  return h + '</div>';
 }
 
 /* Abre sola la sección donde hay un criterio CUMPLIDO, una alarma o un aviso. Las que sólo
@@ -34750,7 +34915,11 @@ function _indFilaHTML(f){
    claves escrita a mano contra una función que tiene dieciséis y puede sumar la diecisiete.
    Un aviso también abre, porque si no la advertencia queda tapada por el propio acordeón. */
 function _indSecHTML(tit, r){
-  const abrir = !!r.aviso || r.filas.some(f => f.marca === 'ok' || f.marca === 'alarm');
+  /* Una recomendación alcanzada también abre: es lo único de la sección que puede aparecer
+     DESPUÉS del primer pintado, cuando el médico contesta. Hoy sólo la trae estenosis aórtica,
+     así que para las otras doce esta rama es un no-op. */
+  const abrir = !!r.aviso || r.filas.some(f => f.marca === 'ok' || f.marca === 'alarm') ||
+                !!(r.recom && (r.recom.tipo === 'ind' || r.recom.tipo === 'alarma'));
   let h = '<details' + (abrir ? ' open' : '') + ' style="margin:0 0 8px;border:1px solid var(--border);border-radius:9px;background:var(--bg3);overflow:hidden;">';
   h += '<summary style="cursor:pointer;padding:9px 12px;font-size:12px;font-weight:700;color:var(--accent2);list-style:revert;">' + _critEsc(tit) + '</summary>';
   h += '<div style="padding:2px 12px 12px;">';
@@ -34760,10 +34929,254 @@ function _indSecHTML(tit, r){
     h += '<div style="font-size:11px;font-weight:700;color:var(--text2);margin:12px 0 2px;">Requiere datos clínicos — no evaluable por ecocardiograma</div>';
     h += '<table style="width:100%;border-collapse:collapse;">' + r.clinica.map(_indFilaHTML).join('') + '</table>';
   }
+  /* La recomendación va DEBAJO de los datos que la sostienen y no arriba: es la conclusión de
+     lo que se acaba de leer, y arriba se leería como el titular de la sección. */
+  if (r.recom) h += _indRecomHTML(r.recom);
   h += '<div style="font-size:11px;line-height:1.55;color:var(--text2);margin-top:11px;padding-top:8px;border-top:1px dashed var(--border);">' +
        '<b>' + _critEsc(r.guia) + '</b>' + (r.notas && r.notas.length
          ? r.notas.map(n => '<div style="margin-top:5px;">' + _critEsc(n) + '</div>').join('') : '') + '</div>';
   return h + '</div></details>';
+}
+
+/* ══ ESTENOSIS AÓRTICA — LA RECOMENDACIÓN DE LA GUÍA, SELECCIONADA ═══════════════════════════
+   ⚠️ FUNCIÓN NUEVA, Y LA ÚNICA DEL PANEL QUE CRUZA DATO CLÍNICO CON DATO ECOGRÁFICO. Se declara
+   acá porque es el cambio de fondo de esta sección y hay que poder auditarlo de un vistazo.
+
+   LO QUE **NO** HACE: no define un solo umbral propio. `EA_REC_2025` es la transcripción de las
+   filas de la tabla de recomendaciones de la guía, cada una con su texto, su clase y su nivel;
+   esta función elige CUÁL de esas filas tiene sus condiciones cumplidas. La regla 2 de la
+   cabecera del panel sigue intacta: los números que decide la app —severidad, subtipo de bajo
+   gradiente, FEVI utilizable— los sigue produciendo `eaEscenario()`, que es la fuente única y la
+   que firma el informe. Escribir acá un segundo «AVA ≤ 1,0» o un segundo «bajo flujo» sería la
+   copia que este archivo ya pagó con la geometría del VI y con `DIAST`.
+
+   LOS ÚNICOS NÚMEROS PROPIOS DE ESTE BLOQUE son los que la app todavía no tenía y que la guía
+   publica DENTRO de la fila que los usa: Vmax > 5,0 m/s o gradiente medio ≥ 60 mmHg (estenosis
+   muy severa), FEVI < 55 % y el corte de edad de 70 años. Van con su clase y su nivel al lado.
+
+   ⚠️ Vmax > 5,0 m/s Y NO 5,5. La cifra de 5,5 circula mucho en la literatura secundaria y NO
+   está en el documento. Un corte de 5,5 sub-dispara: deja sin recomendación al asintomático con
+   Vmax de 5,2, y falla en silencio —produce un «sin criterio» perfectamente plausible—.
+
+   ⚠️ EL >8 % DE RIESGO QUIRÚRGICO YA NO EXISTE. La edición 2021 lo usaba como disparador de TAVI
+   Clase I A; la 2025 lo eliminó. El < 4 % sobrevive, pero DEGRADADO A NOTA AL PIE de la fila de
+   SAVR y acoplado con «y evaluación del Heart Team» —las dos cosas, no una—. Por eso el selector
+   de riesgo tiene DOS bandas y no tres: una tercera banda «alto (> 8 %)» sería citar la edición
+   anterior bajo el rótulo de la nueva.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+const EA_REC_2025 = Object.freeze({
+  sint_ag:    { c:'Clase I · Nivel B',
+    t:'Intervención RECOMENDADA en el paciente sintomático con estenosis aórtica severa de alto gradiente (gradiente medio ≥ 40 mmHg, Vmax ≥ 4,0 m/s y AVA ≤ 1,0 cm² o ≤ 0,6 cm²/m²).' },
+  sint_bfbg:  { c:'Clase I · Nivel B',
+    t:'Intervención RECOMENDADA en el paciente sintomático con bajo flujo (volumen latido indexado ≤ 35 ml/m²) y bajo gradiente (< 40 mmHg) con FEVI reducida (< 50 %), tras confirmar cuidadosamente que la estenosis es severa.' },
+  sint_parad: { c:'Clase IIa · Nivel B',
+    t:'Intervención a CONSIDERAR en el paciente sintomático con bajo flujo (volumen latido indexado ≤ 35 ml/m²) y bajo gradiente (< 40 mmHg) con FEVI conservada (≥ 50 %), tras confirmar cuidadosamente que la estenosis es severa.' },
+  asint_fevi: { c:'Clase I · Nivel B',
+    t:'Intervención RECOMENDADA en el paciente asintomático con estenosis aórtica severa y FEVI < 50 % sin otra causa.' },
+  asint_precoz:{ c:'Clase IIa · Nivel A',
+    t:'Intervención a CONSIDERAR en el paciente asintomático —con prueba de esfuerzo normal, si es factible— con estenosis aórtica severa de alto gradiente y FEVI ≥ 50 %, como alternativa a la vigilancia activa estrecha, si el riesgo del procedimiento es bajo.' },
+  asint_bund: { c:'Clase IIa · Nivel B',
+    t:'Intervención a CONSIDERAR en el paciente asintomático con estenosis aórtica severa y FEVI ≥ 50 %, si el riesgo del procedimiento es bajo y hay al menos uno de estos parámetros: estenosis muy severa (gradiente medio ≥ 60 mmHg o Vmax > 5,0 m/s); calcificación valvular grave junto con progresión de la Vmax ≥ 0,3 m/s por año; BNP o NT-proBNP marcadamente elevados; FEVI < 55 % sin otra causa.' },
+  asint_ta:   { c:'Clase IIa · Nivel C',
+    t:'Intervención a CONSIDERAR en el paciente asintomático con estenosis aórtica severa y caída sostenida de la presión arterial (> 20 mmHg) durante la prueba de esfuerzo.' },
+  /* Modalidad. Filas separadas de la indicación a propósito: son dos decisiones distintas y en
+     la guía son dos bloques distintos de la misma tabla. */
+  mod_ht:     { c:'Clase I · Nivel C',
+    t:'La modalidad se decide por evaluación del Heart Team sobre las características clínicas, anatómicas y del procedimiento, incorporando el manejo a lo largo de la vida y la expectativa de vida estimada.' },
+  mod_savr:   { c:'Clase I · Nivel B',
+    t:'SAVR (reemplazo quirúrgico) RECOMENDADO en menores de 70 años, si el riesgo quirúrgico es bajo.' },
+  mod_tavi:   { c:'Clase I · Nivel A',
+    t:'TAVI RECOMENDADO desde los 70 años con estenosis de válvula aórtica TRICÚSPIDE, si la anatomía es apta.' },
+  mod_resto:  { c:'Clase I · Nivel B',
+    t:'SAVR o TAVI para el resto de los candidatos a bioprótesis aórtica, según evaluación del Heart Team.' },
+  mod_bav:    { c:'Clase IIb · Nivel B',
+    t:'TAVI PUEDE CONSIDERARSE en la estenosis de válvula aórtica bicúspide en pacientes con riesgo quirúrgico aumentado, si la anatomía es apta.' }
+});
+const EA_FUENTE = 'ESC/EACTS 2025 — tabla de recomendaciones de estenosis aórtica';
+
+/* ⚠️ LOS TEXTOS DE `EA_REC_2025` SON TRANSCRIPCIONES DE LA GUÍA, ASÍ QUE LLEVAN SUS NÚMEROS
+   ESCRITOS. Eso es correcto —interpolar una constante de la app dentro de una cita la volvería
+   falsa el día que la constante se mueva por otro motivo— y a la vez es exactamente la forma en
+   que este archivo ya se contradijo una vez: las dos tablas del PDF siguieron imprimiendo
+   «< 1,0» después de que `avaEsSevera` pasara a «≤», y `AVA_SEVERA_MAX` se movió el 2026-09-25.
+
+   Lo que no puede pasar es que se muevan SIN QUE NADIE SE ENTERE. Este assert compara los cinco
+   umbrales que los textos nombran contra las constantes vivas y grita por consola si divergen —
+   el patrón de `_labXlsAssertVocab`. No corrige nada: avisa que hay que releer las citas. */
+function _eaAssertUmbrales(){
+  const esp = [
+    ['AVA_SEVERA_MAX',      window.AVA_SEVERA_MAX,      1.0,  '1,0 cm²'],
+    ['EA_CRIT.gmed',        window.EA_CRIT && window.EA_CRIT.gmed,  40,  '40 mmHg'],
+    ['EA_CRIT.vmax',        window.EA_CRIT && window.EA_CRIT.vmax,  4.0, '4,0 m/s'],
+    ['EA_CRIT.avai',        window.EA_CRIT && window.EA_CRIT.avai,  0.6, '0,6 cm²/m²'],
+    ['UMBRAL_VLI_BAJO',     window.UMBRAL_VLI_BAJO,     35,   '35 ml/m²'],
+    ['UMBRAL_FEVI_NORMAL',  window.UMBRAL_FEVI_NORMAL,  50,   '50 %']
+  ];
+  const mal = esp.filter(e => e[1] !== e[2])
+    .map(e => e[0] + ' = ' + e[1] + ' pero los textos de EA_REC_2025 dicen ' + e[3]);
+  if (mal.length) console.error('[EAo] Los textos de la guía quedaron viejos respecto de las ' +
+    'constantes. Hay que releer la tabla de recomendaciones antes de tocar nada:\n  ' + mal.join('\n  '));
+  return mal;
+}
+document.addEventListener('DOMContentLoaded', function(){ try { _eaAssertUmbrales(); } catch (e) {} });
+
+/* La modalidad SÓLO se propone cuando ya hay indicación: proponer una vía de intervención sobre
+   un paciente sin criterio de intervención es publicar una conducta que la guía no indica. */
+/* La edad es el ÚNICO número que separa dos recomendaciones de Clase I distintas, y su input no
+   tiene `min` ni `max`: un 0 pasa como medición y un 700 también.
+
+   ⚠️ UNA BANDA DE PLAUSIBILIDAD NO ALCANZA, Y ES LA PARTE QUE CASI SE ME ESCAPA. Medido: con el
+   piso en 1 año, un `7` tipeado por `70` —que es el error real— pasa la banda y publica SAVR
+   Clase I · Nivel B donde corresponde TAVI Clase I · Nivel A. Siete años ES una edad plausible.
+   Lo que no es plausible es aplicarle a un chico la tabla de modalidad de esta guía: la
+   ESC/EACTS de valvulopatías está escrita para el adulto y la cardiopatía del niño tiene su
+   propio documento. Por eso el piso de APLICABILIDAD son 18 años y no 1 — y eso sí atrapa el
+   error de tipeo, además de ser cierto. */
+const EA_EDAD_MIN = 18, EA_EDAD_MAX = 120;
+function _indEAModalidad(riesgo){
+  const edadCruda = _indN('edad'), morf = _indS('va_morf');
+  const edad = (edadCruda != null && edadCruda >= EA_EDAD_MIN && edadCruda <= EA_EDAD_MAX) ? edadCruda : null;
+  const fuera = edadCruda != null && edad == null;
+  const bav  = morf === 'Bicúspide';
+  /* La fila de TAVI Clase I A dice «tricúspide». La app NO puede afirmar morfología tricúspide:
+     de las siete opciones de `va_morf`, «Calcificada» y «Reumática» —que son las del paciente
+     típico— no dicen cuántas valvas hay. Lo que sí puede es DESCARTARLA cuando el médico
+     consignó «Bicúspide». Así que la bicúspide se rutea y el resto se propone nombrando la
+     condición en vez de darla por cumplida. */
+  if (edad == null) return { txt:EA_REC_2025.mod_ht.t, clase:EA_REC_2025.mod_ht.c,
+    nota: fuera
+      ? (edadCruda < EA_EDAD_MIN
+        ? 'Edad cargada: ' + _indNum(edadCruda, 0) + ' años. Las filas de modalidad de esta guía están escritas para el adulto, así que no se les aplica el corte de 70 años. Verificar además que la edad sea la que se quiso cargar.'
+        : 'La edad cargada (' + _indNum(edadCruda, 0) + ') está fuera de toda banda plausible, así que no se aplica el corte de 70 años que separa SAVR de TAVI.')
+      : 'Sin edad cargada no se puede aplicar el corte de 70 años que separa SAVR de TAVI.' };
+  if (bav) return { txt:EA_REC_2025.mod_bav.t, clase:EA_REC_2025.mod_bav.c,
+    nota:'Morfología consignada BICÚSPIDE: la recomendación Clase I A de TAVI está escrita para la válvula tricúspide y no se aplica acá. El resto de los candidatos entra por evaluación del Heart Team (Clase I · Nivel B).' };
+  if (edad >= 70) return { txt:EA_REC_2025.mod_tavi.t, clase:EA_REC_2025.mod_tavi.c,
+    nota:'Edad ' + _indNum(edad, 0) + ' años. Quedan dos condiciones que esta aplicación no registra: que la válvula sea tricúspide —la morfología consignada no lo afirma— y que la anatomía sea apta (acceso, dimensiones del anillo, calcificación de la zona de anclaje y riesgo de obstrucción coronaria).' };
+  if (riesgo === 'bajo') return { txt:EA_REC_2025.mod_savr.t, clase:EA_REC_2025.mod_savr.c,
+    nota:'Edad ' + _indNum(edad, 0) + ' años y riesgo quirúrgico bajo. La guía define ese «bajo» en una nota al pie: STS-PROM y EuroSCORE II por debajo del 4 % Y evaluación del Heart Team — las dos cosas.' };
+  if (riesgo === 'no_bajo') return { txt:EA_REC_2025.mod_resto.t, clase:EA_REC_2025.mod_resto.c,
+    nota:'Edad ' + _indNum(edad, 0) + ' años con riesgo quirúrgico no bajo. La edición 2025 eliminó el disparador de TAVI por riesgo alto (> 8 %) que tenía la de 2021: acá no hay corte numérico, decide el Heart Team.' };
+  return { txt:EA_REC_2025.mod_ht.t, clase:EA_REC_2025.mod_ht.c,
+    nota:'Edad ' + _indNum(edad, 0) + ' años. Falta el riesgo quirúrgico para separar SAVR (Clase I · Nivel B) del resto de los candidatos.' };
+}
+
+function _indEARecom(esc){
+  const fal = function(txt, faltan){ return { tipo:'falta', tit:'Falta un dato para aplicar la guía', txt:txt, faltan:faltan }; };
+  const sx = _indClinGet('ea.sintomas'), ergo = _indClinGet('ea.ergo');
+  const rq = _indClinGet('ea.riesgo'),   vida = _indClinGet('ea.vida1a');
+
+  if (!esc) return fal('No se pudo leer el escenario hemodinámico de la estenosis aórtica.', []);
+
+  /* Severa según la MISMA definición que firma el informe: o las mediciones alcanzan un criterio
+     de severidad (`esperado`), o el médico fijó la pastilla en «severa», que en esta app manda
+     sobre el grado. No se reescribe ninguno de los dos. */
+  const severa = esc.esperado === 'severa' || _indS('ea_grado') === 'severa';
+  if (!severa) return { tipo:'no', tit:'Sin criterio de intervención',
+    txt:'Las recomendaciones de intervención de la guía son para la estenosis aórtica SEVERA. Con los datos cargados el escenario no alcanza esa definición.' };
+
+  const altoGrad = esc.crit.vmax === true || esc.crit.gmed === true;
+  /* `crit.X` es `null` cuando NO se midió, que no es lo mismo que `false`. Esa distinción es la
+     que separa «falta el gradiente» de «el gradiente está y no alcanza». */
+  const gradMedido = esc.crit.vmax !== null || esc.crit.gmed !== null;
+  const bajoGrad = esc.clave === 'discordante';   // área severa con gradiente medido y no severo
+  const fevi = esc.M.fevi;                        // null = no medida o no utilizable
+
+  /* La prueba de esfuerzo que desenmascara síntomas NO tiene fila propia en la edición 2025: la
+     de 2021 la tenía (Clase I C) y se eliminó. El cuerpo de la guía dice que a esos pacientes
+     hay que tratarlos COMO SINTOMÁTICOS, así que acá se rutean a la cascada del sintomático en
+     vez de descartarse. Borrarla sin reencaminarla habría perdido una Clase I. */
+  const sintomatico = sx === 'si' || ergo === 'sintomas';
+
+  let r = null;
+  if (sintomatico) {
+    if (altoGrad) r = { k:'sint_ag' };
+    else if (bajoGrad) {
+      /* ⚠️ LAS DOS FILAS DE BAJO GRADIENTE SON DE **BAJO FLUJO** (volumen latido indexado
+         ≤ 35 ml/m²), y el sub-escenario lo resuelve `eaEscenario`, que ya distingue la clásica
+         de la paradojal y del bajo gradiente con FLUJO NORMAL. Escribir acá «bajo gradiente con
+         FEVI conservada → paradojal» —que fue la primera versión de esta cascada— le pone la
+         etiqueta de Clase IIa a una estenosis de bajo gradiente con flujo normal, que es otra
+         entidad y a la que esas filas no la nombran. Se consume el sub-escenario, no se rehace. */
+      if (esc.sub === 'bfbg_clasica')        r = { k:'sint_bfbg' };
+      else if (esc.sub === 'bfbg_paradojal') r = { k:'sint_parad' };
+      else if (esc.sub === 'falta_fevi')     return fal('La FEVI es lo que separa la forma de bajo flujo y bajo gradiente con función reducida (Clase I) de la paradojal (Clase IIa).', ['FEVI del estudio']);
+      else if (esc.sub === 'falta_vli')      return fal('Las dos filas de bajo gradiente de la guía exigen BAJO FLUJO —volumen latido indexado ≤ 35 ml/m²—, y sin ese dato no se puede afirmar.', ['Volumen latido indexado: requiere volumen sistólico, peso y talla']);
+      else return { tipo:'no', tit:'Fuera de las filas de bajo gradiente',
+        txt:'El escenario es de estenosis severa por área con bajo gradiente y FLUJO NORMAL' +
+            (esc.sub === 'bfbg_clasica_flujo_normal' ? ', con FEVI reducida' : '') +
+            '. Las dos recomendaciones de bajo gradiente de la guía están escritas para el bajo flujo (volumen latido indexado ≤ 35 ml/m²) y no cubren esta forma: corresponde descartar pseudo-severidad antes de decidir.' };
+    }
+    /* ⚠️ «FALTA EL GRADIENTE» SÓLO SI DE VERDAD FALTA. Este `else` cubría DOS situaciones y las
+       nombraba igual: el área severa con el gradiente sin medir, y la severidad puesta a mano en
+       la pastilla `ea_grado` con el gradiente MEDIDO y no severo. En la segunda, el panel pedía
+       un dato que estaba impreso dos filas más arriba —«30 mmHg · no alcanza 40 mmHg»—, que es
+       «un mensaje de error que nombra la causa equivocada manda a revisar lo que está sano». Y
+       ahí lo que pasa no es que falte un dato: es que la pastilla y las mediciones se
+       contradicen, y eso `eaEscenario` ya lo marca en `discordanciaGrado`. */
+    else if (gradMedido) return { tipo:'no', tit:'La severidad no sale de las mediciones',
+      txt:'La estenosis figura como severa en el grado consignado, pero el gradiente medido no alcanza el criterio de alto gradiente y el área tampoco alcanza el de severidad. Las filas de la guía se apoyan en las mediciones: antes de aplicarlas hay que resolver esa discordancia.',
+      nota: esc.discordanciaGrado ? 'La tarjeta de estenosis aórtica ya señala la discordancia entre el grado consignado y lo medido.' : '' };
+    else return fal('Falta el gradiente medio o la Vmax aórtica para saber si se trata de una estenosis severa de alto gradiente.', ['Gradiente medio o Vmax aórtica']);
+  } else if (sx === 'no') {
+    if (fevi == null)             return fal('En el paciente asintomático la FEVI es lo que separa la Clase I de las recomendaciones de Clase IIa.', ['FEVI del estudio']);
+    if (esc.feviRed)              r = { k:'asint_fevi' };
+    else if (ergo === 'ta')       r = { k:'asint_ta' };
+    else {
+      /* Las dos recomendaciones IIa del asintomático con FEVI conservada EXIGEN riesgo bajo.
+         Sin ese dato no se publican: serían dos tercios de un criterio. */
+      const muySev = _gt(esc.M.vmax, 5.0) || _ge(esc.M.gmed, 60);
+      const fevi55 = fevi < 55;
+      if (rq == null)             return fal('Las dos recomendaciones de Clase IIa del paciente asintomático con FEVI conservada exigen que el riesgo del procedimiento sea bajo.', ['Riesgo quirúrgico']);
+      if (rq !== 'bajo')          return { tipo:'no', tit:'Sin criterio de intervención',
+        txt:'En el paciente asintomático con FEVI conservada, las recomendaciones de Clase IIa de la guía exigen riesgo del procedimiento BAJO. Corresponde vigilancia activa estrecha.' };
+      /* ⚠️ «NO REALIZADA» NO ES UNA NEGACIÓN, Y TRATARLA COMO TAL ERA PEOR QUE NO CONTESTAR.
+         La guía pide la prueba de esfuerzo «si es factible», y la nota de la fila lo dice con
+         esas palabras. La primera versión exigía `ergo === 'normal'` exacto, así que contestar
+         con honestidad que la ergometría no se hizo hacía que el bloque pasara de PEDIR el dato
+         a publicar «Sin criterio de intervención — corresponde vigilancia activa» — una conducta
+         negativa, a cuarenta píxeles de un renglón que promete que esa respuesta no bloquea. Hoy
+         la recomendación sale con la condición DECLARADA como no verificada. */
+      if (altoGrad && (ergo === 'normal' || ergo === 'no_realizada'))
+        r = { k:'asint_precoz', sinErgo: ergo === 'no_realizada' };
+      else if (muySev || fevi55)         r = { k:'asint_bund', por: muySev
+        ? 'Parámetro presente: estenosis muy severa (Vmax > 5,0 m/s o gradiente medio ≥ 60 mmHg).'
+        : 'Parámetro presente: FEVI < 55 % sin otra causa.' };
+      else if (altoGrad && ergo == null) return fal('La recomendación de Clase IIa · Nivel A del asintomático con FEVI conservada exige una prueba de esfuerzo normal, si es factible.', ['Prueba de esfuerzo']);
+      else return { tipo:'no', tit:'Sin criterio de intervención',
+        txt:'Con los datos cargados no se alcanza ninguno de los parámetros que la guía pide para intervenir a un asintomático con FEVI conservada. Corresponde vigilancia activa estrecha.' };
+    }
+  } else {
+    return fal('Los síntomas son lo que separa la Clase I de la vigilancia activa en la estenosis aórtica severa.', ['Síntomas']);
+  }
+
+  const rec = EA_REC_2025[r.k];
+  const out = { tipo:'ind', tit:'Recomendación de la guía', txt:rec.t, clase:rec.c, fuente:EA_FUENTE };
+  const notas = [];
+  if (r.por) notas.push(r.por);
+  if (r.sinErgo) notas.push('La prueba de esfuerzo figura como NO REALIZADA: la guía la pide «si es factible», así que no bloquea, pero esta recomendación queda con una de sus tres condiciones sin verificar.');
+  if (sx !== 'si' && ergo === 'sintomas') notas.push('La prueba de esfuerzo desenmascaró síntomas: la guía indica tratar a estos pacientes como sintomáticos.');
+  /* ⚠️ LA SALVEDAD DE PSEUDO-SEVERIDAD NO PUEDE DESAPARECER PORQUE EL PACIENTE NO TENGA
+     SÍNTOMAS. Las dos filas del sintomático la llevan en su propio texto —«tras confirmar
+     cuidadosamente que la estenosis es severa»—, pero la rama del asintomático no consumía
+     `esc.clave`, así que sobre la MISMA hemodinámica de bajo flujo y bajo gradiente el aviso
+     salía con síntomas y se callaba sin ellos. Y la fila de FEVI de esta misma sección ya dice
+     «descartar estenosis de bajo flujo y bajo gradiente antes de clasificar por gradiente»: el
+     panel se contradecía dentro de la misma tarjeta. */
+  if (!sintomatico && bajoGrad) notas.push('El escenario es de bajo gradiente: antes de aplicar esta recomendación hay que confirmar cuidadosamente que la estenosis es severa y descartar pseudo-severidad.');
+  /* Un gradiente severo con área NO severa satisface `esperado === 'severa'` y publica un texto
+     cuya tercera condición —AVA ≤ 1,0 cm²— el propio estudio desmiente en la fila de arriba. No
+     se cambia la conducta (el alto gradiente suele bastar para establecer severidad): se declara. */
+  if (r.k === 'sint_ag' && esc.crit.ava === false) notas.push('El área por continuidad NO alcanza el criterio de severidad que nombra este texto: es un alto gradiente con área no severa, y corresponde descartar un estado de alto flujo.');
+  if (r.k === 'asint_fevi' || (r.por || '').indexOf('FEVI < 55') > -1) notas.push('«Sin otra causa» es una condición a cargo del médico: el ecocardiograma no excluye las otras causas de disfunción sistólica.');
+  /* La expectativa de vida dejó de ser un umbral graduado en 2025 — vive en el cuerpo del
+     documento, sin clase—, así que NO bloquea la recomendación. Se declara cuando la respuesta
+     la contradice, que es cuando cambia la conducta del Heart Team. */
+  if (vida === 'no') notas.push('Expectativa de vida estimada NO mayor de 1 año: la guía reserva la intervención precoz para quienes la superan. En la edición 2025 esto es texto del cuerpo, sin clase asignada, y entra en la decisión del Heart Team (Clase I · Nivel C).');
+  if (notas.length) out.nota = notas.join(' ');
+  out.mod = _indEAModalidad(rq);
+  out.mod.fuente = EA_FUENTE;
+  return out;
 }
 
 /* ── Estenosis aórtica ─────────────────────────────────────────────────────────────────────
@@ -34791,12 +35204,20 @@ function _indEA(){
         : avaMod ? '> ' + _indNum(UA, 1) + ' y < 1,5 cm² — moderada'
         : ava != null ? 'no alcanza el criterio de severidad'
         : 'no calculada — requiere Ø y VTI del TSVI y VTI aórtico'));
-  filas.push(_indFila('Gradiente medio', _indNum(gm, 0, 'mmHg'),
-    _ge(gm, 40) ? 'ok' : (gm != null ? 'none' : 'ask'),
-    _ge(gm, 40) ? '≥ 40 mmHg — criterio de estenosis severa' : (gm != null ? 'no alcanza 40 mmHg' : 'sin medir')));
-  filas.push(_indFila('Vmax aórtica', _indNum(vmax, 2, 'm/s'),
-    _ge(vmax, 4) ? 'ok' : (vmax != null ? 'none' : 'ask'),
-    _ge(vmax, 4) ? '≥ 4,0 m/s — criterio de estenosis severa' : (vmax != null ? 'no alcanza 4,0 m/s' : 'sin medir')));
+  /* Los dos cortes salen de `EA_CRIT`, que es lo que ya aplica `eaEscenario` y, por esa vía, el
+     bloque de recomendación de más abajo. Escritos a mano eran la segunda fuente de «alto
+     gradiente» dentro de esta misma tarjeta. Sin la constante se dice, no se supone un número. */
+  const EC = (typeof window.EA_CRIT === 'object' && window.EA_CRIT) ? window.EA_CRIT : null;
+  filas.push(!EC ? _indSinUmbral('Gradiente medio')
+    : _indFila('Gradiente medio', _indNum(gm, 0, 'mmHg'),
+      _ge(gm, EC.gmed) ? 'ok' : (gm != null ? 'none' : 'ask'),
+      _ge(gm, EC.gmed) ? '≥ ' + EC.gmed + ' mmHg — criterio de estenosis severa'
+      : (gm != null ? 'no alcanza ' + EC.gmed + ' mmHg' : 'sin medir')));
+  filas.push(!EC ? _indSinUmbral('Vmax aórtica')
+    : _indFila('Vmax aórtica', _indNum(vmax, 2, 'm/s'),
+      _ge(vmax, EC.vmax) ? 'ok' : (vmax != null ? 'none' : 'ask'),
+      _ge(vmax, EC.vmax) ? '≥ ' + _indNum(EC.vmax, 1) + ' m/s — criterio de estenosis severa'
+      : (vmax != null ? 'no alcanza ' + _indNum(EC.vmax, 1) + ' m/s' : 'sin medir')));
   /* La FEVI NO es criterio de la indicación en la estenosis aórtica, así que una FEVI conservada
      no puede llevar ✅: con la leyenda nueva eso significaría «alcanza un criterio de la guía».
      Está acá porque una FEVI baja cambia cómo se leen los otros tres números. */
@@ -34807,14 +35228,64 @@ function _indEA(){
         : fevi != null ? 'reducida — descartar estenosis de bajo flujo y bajo gradiente antes de clasificar por gradiente'
         : 'sin medir'));
 
+  /* ── Los datos que el ecocardiograma no da, ahora CONTESTABLES ────────────────────────────
+     Dejaron de ser cuatro renglones que el médico lee y no puede tocar. Las respuestas viven en
+     `_indClin` —memoria del panel, ver su comentario—: no son campos, no se guardan, no viajan.
+
+     La MARCA de cada fila sigue significando lo mismo que en el resto del panel: ✅ es «este
+     dato alcanza un criterio de la guía», no «contestada». Por eso una prueba de esfuerzo normal
+     lleva «—» aunque sea condición de la Clase IIa A: no dispara nada por sí sola. */
+  const _sx = _indClinGet('ea.sintomas'), _ergo = _indClinGet('ea.ergo');
+  const _rq = _indClinGet('ea.riesgo'),   _vida = _indClinGet('ea.vida1a');
+  const clinica = [
+    _indFilaCtrl('Síntomas (angina, síncope, disnea)', 'ea.sintomas',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      _sx === 'si' ? 'ok' : (_sx === 'no' ? 'none' : 'ask'),
+      _sx === 'si' ? 'disparador de la Clase I en la estenosis severa'
+      : _sx === 'no' ? 'el asintomático entra por las recomendaciones de Clase IIa, que exigen riesgo bajo'
+      : 'sin esto no se puede separar la Clase I de la vigilancia activa'),
+    _indFilaCtrl('Prueba de esfuerzo', 'ea.ergo',
+      [{v:'normal',t:'Normal'},{v:'sintomas',t:'Desenmascara síntomas'},
+       {v:'ta',t:'Caída de TA > 20 mmHg'},{v:'no_realizada',t:'No realizada'}],
+      (_ergo === 'sintomas' || _ergo === 'ta') ? 'ok' : (_ergo ? 'none' : 'ask'),
+      _ergo === 'sintomas' ? 'la guía indica tratar a estos pacientes COMO SINTOMÁTICOS — la edición 2025 eliminó la fila propia que tenía en 2021, así que no hay clase que mostrar para este paso: la clase es la de la recomendación del sintomático'
+      : _ergo === 'ta' ? 'caída sostenida > 20 mmHg — criterio propio de Clase IIa · Nivel C'
+      : _ergo === 'normal' ? 'condición de la Clase IIa · Nivel A del asintomático; por sí sola no indica nada'
+      : _ergo === 'no_realizada' ? 'la guía la pide «si es factible»: no bloquea, pero deja la Clase IIa · Nivel A sin una de sus tres condiciones'
+      : 'es lo que distingue al asintomático verdadero'),
+    /* ⚠️ DOS BANDAS, NO TRES, Y EL MOTIVO ES CLÍNICO. Ver la cabecera de `EA_REC_2025`: la
+       edición 2025 eliminó el > 8 %. Y el «bajo» tiene DOS definiciones distintas según la fila
+       que lo use — con número en la de SAVR, sin número en las del asintomático—, así que la
+       nota lo dice en vez de prestarle a una el corte de la otra. */
+    _indFilaCtrl('Riesgo del procedimiento', 'ea.riesgo',
+      [{v:'bajo',t:'Bajo'},{v:'no_bajo',t:'No bajo'}],
+      _rq === 'bajo' ? 'ok' : (_rq === 'no_bajo' ? 'none' : 'ask'),
+      _rq == null ? 'lo exigen las dos recomendaciones de Clase IIa del asintomático y la de SAVR'
+      : 'para SAVR la guía define «bajo» en una nota al pie —STS-PROM y EuroSCORE II por debajo del 4 % Y evaluación del Heart Team—; en las filas del asintomático dice «riesgo del procedimiento bajo» SIN corte numérico. La edición 2025 eliminó el corte de riesgo alto (> 8 %) que tenía la de 2021.'),
+    /* `ask` sin contestar y NO `none` fijo: la leyenda que este panel imprime define `none` como
+       «medido y no alcanza el criterio», así que un guion sobre una pregunta sin responder
+       afirma que se midió. Contestada va `none` porque en la edición 2025 no alcanza ninguna
+       clase — que es otra cosa que «falta el dato». */
+    _indFilaCtrl('Expectativa de vida > 1 año', 'ea.vida1a',
+      [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      _vida == null ? 'ask' : 'none',
+      _vida == null ? 'en la edición 2025 no es un umbral graduado: vive en el cuerpo del documento, sin clase'
+      : 'sin clase asignada en 2025. Lo graduado es que la MODALIDAD se decida por Heart Team incorporando la expectativa de vida y el manejo a lo largo de la vida (Clase I · Nivel C).')
+  ];
+
+  /* FALLA CERRADO (regla 4 de la cabecera). `_indFn` comprueba que la función EXISTA, no que no
+     lance: `eaEscenario` llama a `_avaNum`, `getBSA`, `vliCalc` y al rango de FEVI, y si alguna
+     tira se lleva puesta la sección ENTERA —incluidas las cuatro filas de mediciones, que no
+     necesitan el escenario para nada—. `_indEARecom` ya sabe qué hacer con `esc` en null. */
+  let esc = null;
+  try { if (_indFn('eaEscenario')) esc = window.eaEscenario(); } catch (e) { esc = null; }
+
   return { filas: filas,
-    clinica: [
-      _indFila('Síntomas (angina, síncope, disnea)', '—', 'ask', 'es el disparador de la Clase I'),
-      _indFila('Expectativa de vida > 1 año', '—', 'ask', '')
-    ],
-    guia: 'ESC/EACTS 2021 — La INTERVENCIÓN es Clase I B en el paciente sintomático con estenosis aórtica severa de alto gradiente (gradiente medio ≥ 40 mmHg, Vmax ≥ 4,0 m/s y AVA ≤ 1,0 cm² o ≤ 0,6 cm²/m²).',
+    clinica: clinica,
+    recom: _indEARecom(esc),
+    guia: 'ESC/EACTS 2025 — La INTERVENCIÓN es Clase I · Nivel B en el paciente sintomático con estenosis aórtica severa de alto gradiente (gradiente medio ≥ 40 mmHg, Vmax ≥ 4,0 m/s y AVA ≤ 1,0 cm² o ≤ 0,6 cm²/m²). La definición de severidad NO cambió respecto de la edición 2021.',
     notas: [
-      'La MODALIDAD es una decisión aparte y no es intercambiable: SAVR Clase I B en menores de 75 años con riesgo quirúrgico bajo (STS-PROM/EuroSCORE II < 4 %); TAVI Clase I A desde los 75 años, o con riesgo alto (> 8 %) o no operables.',
+      'La MODALIDAD es una decisión aparte y no es intercambiable: SAVR Clase I · Nivel B en menores de 70 años con riesgo quirúrgico bajo; TAVI Clase I · Nivel A desde los 70 años con válvula tricúspide y anatomía apta. La edición 2025 bajó ese corte de 75 a 70 años y eliminó el disparador de TAVI por riesgo quirúrgico alto.',
       /* ⚠️ ACÁ NO VA HISTORIA DE LA APLICACIÓN. Esta nota decía «el criterio de la app coincide
          con el de la guía desde el 2026-09-25 (constante AVA_SEVERA_MAX); hasta esa fecha usaba
          < 1,0». Es una fecha de commit y un nombre de constante en la pantalla de un médico: no
@@ -34823,8 +35294,9 @@ function _indEA(){
          La historia de las GUÍAS sí se queda —«la ESC 2021 bajó el corte de 45 a 40 mm»— porque
          eso cambia la conducta y el lector puede tener la edición anterior en la cabeza. */
       'Un AVA de exactamente 1,00 cm² alcanza el criterio de área y se clasifica severa: el corte de la guía es «≤ 1,0», no «< 1,0».',
-      'Los tres criterios pueden discordar, y el patrón de bajo flujo y bajo gradiente no se cierra con estos tres números. La discordancia queda señalada en la tarjeta de estenosis aórtica.',
-      'La ESC/EACTS 2025 reemplaza a la de 2021 y mueve el corte de edad de la modalidad de 75 a 70 años.'
+      'Los tres criterios pueden discordar, y el patrón de bajo flujo y bajo gradiente no se cierra con estos tres números. El subtipo y la discordancia los resuelve la tarjeta de estenosis aórtica, que es de donde los toma este panel.',
+      'La calcificación valvular por tomografía —más de 2000 unidades Agatston en el varón y más de 1200 en la mujer— es un criterio DIAGNÓSTICO de severidad y no lleva clase de recomendación. Como criterio de intervención sólo cuenta junto con una progresión de la Vmax de 0,3 m/s por año o más, dentro de la Clase IIa · Nivel B del asintomático.',
+      'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
     ] };
 }
 
@@ -35573,10 +36045,17 @@ function indicRender(){
 }
 
 function indicAbrir(){
+  /* Se limpia ANTES de pintar, no sólo al cerrar: ver el comentario de `_indClin`. Abrir es la
+     única puerta por la que el panel se ve, así que acá la garantía es por construcción. */
+  _indClinLimpiar();
   indicRender();
+  _indClinCablear();
   const ov = document.getElementById('indic-overlay'); if (ov) ov.style.display = 'block';
 }
-function indicCerrar(){ const ov = document.getElementById('indic-overlay'); if (ov) ov.style.display = 'none'; }
+function indicCerrar(){
+  _indClinLimpiar();
+  const ov = document.getElementById('indic-overlay'); if (ov) ov.style.display = 'none';
+}
 
 /* ── Visibilidad del botón ────────────────────────────────────────────────────────────────
    El botón sólo aparece si el estudio tiene alguna sección con criterios. Corre las MISMAS
@@ -35606,8 +36085,13 @@ function indicSyncBoton(){
      sostenía— se repinta en vez de dejar en pantalla una sección que ya no corresponde. No se
      CIERRA solo: cerrarle un panel abierto en la cara es peor que mostrarle el mensaje de que
      no quedan criterios. */
+  /* ⚠️ DOS COSAS QUE ESTA LÍNEA SOSTIENE SIN DECIRLO. Que `indicAbrir` sea el ÚNICO que escribe
+     `display:'block'` —si algún día el panel se muestra con una clase, esta comparación deja de
+     dar y `_indClinLimpiar` deja de correr en la apertura—, y que el repintado conserve lo que
+     el médico tenía abierto: `indicRender` a secas le colapsa los acordeones y le pierde el
+     scroll, y el debounce de 400 ms puede quedar en vuelo justo al abrir el panel. */
   const ov = document.getElementById('indic-overlay');
-  if (ov && ov.style.display === 'block') indicRender();
+  if (ov && ov.style.display === 'block') _indRepintarConservando(null, null);
 }
 
 /* Debounce propio y generoso. Recorrer las trece secciones llama a `coaConclusion`,
@@ -76836,8 +77320,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260926-1437';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790444222456;                 /* eco-build-ms */
+const ECO_BUILD    = '20260926-1724';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790454266743;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -76923,7 +77407,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260926-1437</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260926-1724</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

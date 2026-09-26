@@ -4,6 +4,169 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Estenosis aórtica: el panel de Evidencia pasa a contestarse, con ESC/EACTS 2025 (2026-09-26)
+
+Piloto. La sección de EAo dejó de ser sólo lectura: cuatro controles que el médico contesta y una
+recomendación con su clase y su nivel que se recalcula con cada respuesta. **Las otras doce no se
+tocaron.**
+
+### Lo que valió más fue verificar las citas, y tres premisas del pedido eran falsas
+
+Se leyó el **PDF primario** (Praz F, et al. *Eur Heart J* 2025;46:4635-4736, Recommendation Table 4,
+p. 4670) y se contrastó contra el **juego de diapositivas oficial de la ESC**, por dos vías
+independientes que coincidieron fila por fila. Lo que cambió respecto de lo que traía el pedido:
+
+| | el pedido / la literatura secundaria | la guía |
+|---|---|---|
+| **Estenosis muy severa** | Vmax > **5,5** m/s | **> 5,0 m/s** o gradiente medio ≥ 60 |
+| **SAVR < 70 años** | Clase I nivel **A** (así lo dice la *Rev Esp Cardiol*) | **Clase I · Nivel B**, impreso en tres lugares del documento |
+| **Score de calcio por TC** | criterio de intervención | **diagnóstico, SIN clase**; como criterio sólo junto con progresión de Vmax ≥ 0,3 m/s/año |
+| **Expectativa de vida > 1 año** | condición graduada | **texto del cuerpo, sin clase**; lo graduado es que el Heart Team la incorpore (I · C) |
+| **Riesgo quirúrgico > 8 %** | disparador de TAVI | **eliminado**. El < 4 % sobrevive **degradado a nota al pie** de la fila de SAVR y acoplado con «y evaluación del Heart Team» |
+| **Síntomas en la ergometría** | Clase I C con fila propia | **fila eliminada**: el cuerpo dice tratarlos como sintomáticos, así que no hay clase que mostrar para ese paso |
+| **HTP severa** | criterio del asintomático | **no existe** en la tabla de EAo |
+
+**El 5,5 es el peligroso y falla en silencio**: deja sin recomendación al asintomático con Vmax
+5,2 produciendo un «sin criterio» perfectamente plausible. La cadena «5.5 m/s» no aparece en las
+102 páginas del documento.
+
+### El censo: eran DOS campos ❓, los dos binarios, y cero graduados
+
+Medido en el navegador antes de escribir nada: bajo «Requiere datos clínicos» había **Síntomas** y
+**Expectativa de vida > 1 año**. Riesgo quirúrgico y edad vivían **sólo en la prosa de las notas**,
+no como filas. La **edad ya es un campo del estudio** (`edad`), así que no se pregunta: se lee.
+
+Hoy son **cuatro** controles: síntomas (sí/no), prueba de esfuerzo (normal / desenmascara síntomas
+/ caída de TA > 20 mmHg / no realizada), riesgo del procedimiento (bajo / no bajo) y expectativa de
+vida. La ergometría se agregó porque es condición de la Clase IIa · Nivel A: sin ella, publicar esa
+fila sería afirmar una condición que nadie verificó.
+
+**DOS BANDAS DE RIESGO Y NO TRES.** Una tercera «alto (> 8 %)» sería citar la edición 2021 bajo el
+rótulo de la 2025. Y «bajo» tiene **dos definiciones según la fila**: con número en la de SAVR
+(nota al pie), **sin número** en las del asintomático. La nota lo dice en vez de prestarle a una el
+corte de la otra.
+
+### El estado es efímero, y no puede ser un campo
+
+`_indClin` es un objeto de módulo. **Ningún control lleva `id`** —son `<button data-ind-clin>`— y
+eso no es estilo: `guardarInforme` barre `input[id]`/`select[id]`/`textarea[id]` de TODO el
+documento sin mirar visibilidad. La garantía no es que alguien se acuerde de excluirlo: es que **no
+hay nada que barrer**. Medido: cero `input`, `select` y `textarea` dentro de `#indic-overlay`.
+
+**Se limpia al ABRIR y al CERRAR**, no sólo al cerrar: con una sola de las dos puertas, un cierre
+por un camino nuevo deja las respuestas del paciente anterior contestadas sobre el estudio
+siguiente.
+
+### `EA_REC_2025` es una transcripción, y `_indEARecom` un SELECTOR
+
+No define un umbral propio. La tabla tiene el texto, la clase y el nivel de cada fila; la función
+elige cuál tiene sus condiciones cumplidas, y todo lo ecográfico sale de **`eaEscenario()`**, que ya
+es la fuente única y la que firma el informe. Los únicos números propios son los que la app no
+tenía y que la guía publica dentro de la fila que los usa: Vmax > 5,0, gradiente ≥ 60, FEVI < 55 y
+el corte de edad de 70.
+
+**LAS DOS FILAS DE BAJO GRADIENTE SON DE BAJO FLUJO**, y la primera versión decidía por la FEVI.
+Escrito así, un bajo gradiente con **flujo normal** —que es otra entidad, la que hace sospechar
+pseudo-severidad— recibía la etiqueta de Clase IIa. Se consume `esc.sub`, que ya distingue la
+clásica de la paradojal y del flujo normal.
+
+### Lo que encontró `/sharp-edges`, y los dos que cambiaban una conducta
+
+Doce hallazgos sobre el diff. Los que valen:
+
+- **«No realizada» publicaba una NEGACIÓN.** La cascada exigía `ergo === 'normal'` exacto, así que
+  contestar con honestidad que la ergometría no se hizo hacía que el bloque pasara de PEDIR el dato
+  a publicar «Sin criterio de intervención — corresponde vigilancia activa», **a cuarenta píxeles
+  de la nota que promete que esa respuesta no bloquea**. La guía la pide «si es factible». Hoy la
+  recomendación sale con la condición declarada como no verificada.
+- **El asintomático perdía la salvedad de pseudo-severidad.** Las dos filas del sintomático la
+  llevan en su propio texto —«tras confirmar cuidadosamente que la estenosis es severa»— y la rama
+  del asintomático no consumía `esc.clave`: sobre la MISMA hemodinámica de bajo flujo, el aviso
+  salía con síntomas y se callaba sin ellos. Y la fila de FEVI de esa misma tarjeta ya dice
+  «descartar estenosis de bajo flujo y bajo gradiente»: el panel se contradecía consigo mismo.
+- **«Falta el gradiente medio» sobre un gradiente impreso dos filas más arriba.** El `else` cubría
+  dos situaciones y las nombraba igual: el área severa sin gradiente medido, y la severidad puesta
+  a mano en la pastilla con el gradiente **medido y no severo**. La segunda mandaba a revisar lo
+  que estaba sano.
+- **Dos fuentes de «alto gradiente» en la misma tarjeta.** Las filas graduaban con literales
+  (`>= 40`, `>= 4`) y el bloque de recomendación con `EA_CRIT` vía `eaEscenario`. Con el corte
+  movido, la fila imprimiría ✅ «criterio de estenosis severa» y el bloque «falta el gradiente»
+  sobre el mismo número. Se exportaron `EA_CRIT` y `UMBRAL_VLI_BAJO` a `window` y las filas los
+  consumen. **Es el defecto de los rótulos del PDF que seguían diciendo «< 1,0»**, y
+  `AVA_SEVERA_MAX` se había movido el día anterior.
+
+**⚠️ UNA BANDA DE PLAUSIBILIDAD NO ATRAPA EL ERROR QUE IMPORTA.** La edad es el único número que
+separa dos Clase I distintas, y con el piso en 1 año un **`7` tipeado por `70`** —que es el error
+real— pasa la banda y publica SAVR donde corresponde TAVI. Siete años ES una edad plausible; lo que
+no es plausible es aplicarle a un chico la tabla de modalidad de una guía escrita para el adulto.
+El piso son **18 años**, y eso sí lo atrapa además de ser cierto.
+
+Los demás: `eaEscenario()` sin `try` se llevaba la sección entera (regla 4, falla cerrado); la fila
+de expectativa con marca `none` fija afirmaba «medido» sobre una pregunta sin contestar;
+`indicSyncBoton` repintaba sin conservar acordeones ni scroll; «sin otra causa» se afirmaba sin
+control que lo sostuviera; la rama `alarma` quedó declarada como inalcanzable; y a 375 px la celda
+de controles baja a su propia fila —medido, el rótulo pasa de **64 a 287 px**—.
+
+### La tarjeta de referencia de otra pestaña contradecía al panel
+
+`#ref-eao` seguía en ESC 2021 con «TAVI ≥75 años, alto riesgo (STS ≥8%)». Las dos superficies
+describen al mismo paciente y dejarla así era publicar dos conductas distintas sobre la misma edad.
+Actualizada, con el score de calcio movido a 2000/1200 UA y rotulado **diagnóstico, sin clase**.
+
+### Las trampas de los casos, y una que invalidó una tanda entera
+
+- **⚠️ LA BASE SE PUSO ROJA Y CONTAMINÓ LAS TRECE MUTACIONES.** Al arreglar el hallazgo de «No
+  realizada», el escenario que TC-275 usaba para el corte de 5,0 dejó de ejercer el bundle —con la
+  ergometría contestada, el alto gradiente entra antes por la Clase IIa · Nivel A—. Las trece
+  salieron ROJO y las trece se leyeron como «OK»: **el diagnóstico de todas listaba la misma
+  condición de la base**. Lo delató mirar la salida completa en vez del resumen; el `tail -40` se
+  había comido la línea de la BASE. La regla ya está escrita en este archivo y se volvió a pagar:
+  **la base sin mutar corre en la misma tanda Y se lee primero.**
+- **Una condición leía el estado VIVO, no el snapshot.** Las condiciones de `extra` se evalúan al
+  armar el array, o sea después de `indicAbrir()` —que también limpia—, así que
+  `CLAVES.every(k => _indClinGet(k) === null)` escrito al final daba `true` siempre. La mutación
+  que saca el borrado de `indicCerrar` **sobrevivía**. Hay que capturar el booleano en el momento
+  en que se quiere observar.
+- **Colisión de substring:** filtrar las claves de `campos` con `/sintoma|ergo|.../i` matchea
+  `tdf_sintomas`, `cvpa_sintomas`, `tga_sintomas` y `ebs_sintomas`, que son campos legítimos de
+  congénitas. El caso daba rojo sobre un guardado perfectamente limpio. El invariante que sí vale
+  es **comparar dos guardados del mismo estudio, con y sin contestar**: contestar no puede cambiar
+  ni una clave.
+- **Y esa comparación era INESTABLE** hasta igualar el estado de DOM: sin un `generarInforme()`
+  antes de los dos guardados, las catorce hojas `cc-txt-*` existían en uno y no en el otro y el
+  caso fallaba 1 de cada 2 corridas. Un rojo intermitente es peor que no tener el caso.
+- **Acentos graves dentro del cuerpo de un caso: CUATRO tandas en esta sesión**, todas en
+  comentarios recién escritos. Hoy hay un barrido que recorre cada cuerpo y los lista; conviene
+  correrlo antes de `node --check`, que sólo dice que algo se rompió doscientas líneas antes.
+- **El auto-grado pisa la pastilla.** Para armar «`ea_grado` severa con el gradiente medido y no
+  severo» hay que fijar la pastilla **al final**: tipear el gradiente reescribe `ea_grado`.
+
+### La línea base de esta ronda
+
+**Suite 273/291** — 17 rojos son los casos del visor y DICOM que piden el pendrive del Vivid, que
+no está montado («no se encontró: quedó SIN verificar»), más **TC-223**, el rojo documentado. Es
+exactamente la línea base que este archivo registra para el pendrive desmontado: **cero
+regresiones**. **Semgrep 126 / 0 ERROR.** Sin huérfanos nuevos. `check_mobile` en los 2 ALTA de
+siempre, ninguno de la sección. **Trece mutaciones, trece en rojo, base verde.**
+
+### Lo que queda declarado y sin hacer
+
+- **Las otras doce secciones siguen siendo de sólo lectura.** Este es el patrón a replicar; lo que
+  se repite es la mecánica (`_indFilaCtrl`, `_indClin`, un selector sobre una tabla de
+  transcripciones), **no los criterios**: cada entidad necesita su propia verificación contra la
+  guía que la gobierna.
+- **La app no registra si la válvula es TRICÚSPIDE.** De las siete opciones de `va_morf`,
+  «Calcificada» y «Reumática» —las del paciente típico— no dicen cuántas valvas hay. La bicúspide
+  sí se descarta cuando está consignada; el resto se propone **nombrando la condición** en vez de
+  darla por cumplida. Lo mismo la aptitud anatómica para TAVI, que la app no recoge.
+- **El bundle de Clase IIa · Nivel B tiene cuatro parámetros y la app sólo puede evaluar dos.** La
+  calcificación por TC con progresión de Vmax y el BNP/NT-proBNP no tienen campo; el texto los
+  nombra para que el médico sepa que existen, pero la app no los verifica.
+- **Sin probar en Safari**, como todo lo de estas sesiones: el navegador está concedido en modo
+  sólo lectura.
+
+---
+
 ## Auditoría de cierre de la ronda 23-26/09/2026: lo que apareció en el CRUCE (2026-09-26)
 
 **41 commits, y cada uno se auditó por separado en su momento. Lo que nunca se auditó es la
