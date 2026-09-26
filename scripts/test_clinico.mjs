@@ -10098,6 +10098,159 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
 
 
 
+
+caso('TC-266', 'Repintar la lista de Guardados no tira los filtros que el medico tiene puestos', `
+  return (async () => {
+    if (typeof renderInformesGuardados !== 'function' || typeof aplicarFiltros !== 'function')
+      return { extra:[['existen las dos puertas', false, 'faltan renderInformesGuardados o aplicarFiltros']] };
+    const prev = getInformes();
+    try {
+      showTab('guardados'); await new Promise(r => setTimeout(r, 250));
+      /* Cohorte minima con DOS grupos de FEVI, para que un filtro clinico parta la lista en dos
+         y la diferencia entre «filtrado» y «todo» sea visible. */
+      const mk = (n, fevi, nombre) => ({ id:'t266-'+n, estudioId:'t266-'+n, uuid:'u266'+n,
+        nombre: nombre, ci:'9900'+n, fecha_estudio:'2026-09-0'+n,
+        fecha_guardado:'2026-09-0'+n+'T10:00:00',
+        campos:{ nombre: nombre, fevi:String(fevi), informe_texto:'FEVI '+fevi+'%.', en_suma:'' } });
+      CeiboStore.setLocal([mk(1,30,'Uno Bajo'), mk(2,35,'Dos Bajo'), mk(3,65,'Tres Normal'),
+                           mk(4,62,'Cuatro Normal'), mk(5,58,'Cinco Normal')]);
+      const set = (id,v2) => { const e = document.getElementById(id); if (e) e.value = v2; return !!e; };
+      const cuenta = () => document.querySelectorAll('#ig-lista [onclick*="verDetalleInforme"]').length;
+      const contador = () => ((document.getElementById('ig-contador')||{}).textContent || '').trim();
+      const limpiar = () => { ['filtro-fevi','ig-buscar','adv-fevi-lt','ig-fecha-desde','ig-fecha-hasta',
+        'ig-filtro-antec'].forEach(id => set(id,''));
+        const c = document.getElementById('adv-fevi-lt-on'); if (c) c.checked = false; };
+
+      /* ── DENOMINADOR: el filtro clinico de verdad parte la lista ── sin esto, «conserva»
+         seria cierto sobre una lista que nunca se filtro. */
+      limpiar(); set('filtro-fevi','lt40'); aplicarFiltros();
+      await new Promise(r => setTimeout(r, 150));
+      const conFiltro = cuenta(), contFiltro = contador();
+      limpiar(); aplicarFiltros(); await new Promise(r => setTimeout(r, 150));
+      const sinFiltro = cuenta();
+      const parte = conFiltro === 2 && sinFiltro === 5;
+
+      /* ── EL BUG REPORTADO: borrar un estudio de la lista filtrada ──
+         Se ejerce 'eliminarInforme' de VERDAD, que es el llamador que lo reporto. Pide confirm. */
+      const _cf = window.confirm; window.confirm = () => true;
+      limpiar(); set('filtro-fevi','lt40'); aplicarFiltros();
+      await new Promise(r => setTimeout(r, 150));
+      const antesBorrar = cuenta();
+      /* ⚠️ EL 'id' QUE SE SIEMBRA NO SOBREVIVE A LA ESCRITURA: 'CeiboStore.setLocal' lo reasigna
+         ('_sanearIds'), asi que borrar por el id inventado no encontraba nada y el caso daba rojo
+         culpando al filtro. Se resuelve contra la base viva, por nombre. */
+      const victima = CeiboStore.getLocal().find(x => x.nombre === 'Uno Bajo');
+      eliminarInforme(victima ? victima.id : 'no-existe');
+      await new Promise(r => setTimeout(r, 250));
+      const trasBorrar = cuenta(), contTrasBorrar = contador();
+      const totalTrasBorrar = getInformes().length;
+      window.confirm = _cf;
+      /* Quedaba uno de los dos con FEVI < 40; si el filtro se pierde aparecen los cuatro. */
+      const borrarConserva = antesBorrar === 2 && trasBorrar === 1;
+
+      /* ── EL FILTRO AVANZADO NUMERICO, que es otra cadena ── */
+      CeiboStore.setLocal([mk(1,30,'Uno Bajo'), mk(2,35,'Dos Bajo'), mk(3,65,'Tres Normal'),
+                           mk(4,62,'Cuatro Normal'), mk(5,58,'Cinco Normal')]);
+      limpiar(); set('adv-fevi-lt','40');
+      const chk = document.getElementById('adv-fevi-lt-on'); if (chk) chk.checked = true;
+      aplicarFiltros(); await new Promise(r => setTimeout(r, 150));
+      const advAntes = cuenta();
+      renderInformesGuardados(); await new Promise(r => setTimeout(r, 150));
+      const advDespues = cuenta();
+      const avanzadoConserva = advAntes === 2 && advDespues === 2;
+
+      /* ── LOS CUATRO QUE YA SOBREVIVIAN NO SE ROMPEN ── buscador, fechas y antecedente viven
+         en los controles que 'igFiltrar' relee; el cambio no puede haberlos tocado. */
+      limpiar(); set('ig-buscar','Normal'); aplicarFiltros();
+      await new Promise(r => setTimeout(r, 150));
+      const busAntes = cuenta();
+      renderInformesGuardados(); await new Promise(r => setTimeout(r, 150));
+      const busDespues = cuenta();
+      const buscadorConserva = busAntes === 3 && busDespues === 3;
+      limpiar(); set('ig-fecha-desde','2026-09-03'); aplicarFiltros();
+      await new Promise(r => setTimeout(r, 150));
+      const fecAntes = cuenta();
+      renderInformesGuardados(); await new Promise(r => setTimeout(r, 150));
+      const fechaConserva = fecAntes === 3 && cuenta() === 3;
+
+      /* ── «LIMPIAR FECHAS» BORRA SOLO LAS FECHAS ── era otro llamador afectado. */
+      limpiar(); set('filtro-fevi','lt40'); set('ig-fecha-desde','2026-09-01');
+      aplicarFiltros(); await new Promise(r => setTimeout(r, 150));
+      limpiarFiltroFechas(); await new Promise(r => setTimeout(r, 200));
+      const limpiarFechasConserva = cuenta() === 2 &&
+        (document.getElementById('ig-fecha-desde')||{}).value === '';
+
+      /* ── LAS TRES IMPORTACIONES CONSERVAN SU CONDUCTA, declarada y con nombre propio ──
+         No se decidio por ellas: 'igRepintarTodoSinFiltrar' hace lo que hacian antes. */
+      const existeSalida = typeof igRepintarTodoSinFiltrar === 'function';
+      limpiar(); set('filtro-fevi','lt40'); aplicarFiltros();
+      await new Promise(r => setTimeout(r, 150));
+      const antesImp = cuenta();
+      if (existeSalida) igRepintarTodoSinFiltrar();
+      await new Promise(r => setTimeout(r, 150));
+      const salidaIgnoraFiltro = existeSalida && antesImp === 2 && cuenta() === 5;
+
+      /* ── SI EL FILTRO EXPLOTA, LA LISTA IGUAL SE REPINTA ──
+         El peor llamador es 'eliminarInforme': el estudio ya salio del store, asi que una
+         excepcion en 'aplicarFiltros' dejaba en pantalla un estudio que ya no existe. Entre
+         «la lista pierde el filtro» y «la lista miente sobre lo que existe», la primera. */
+      CeiboStore.setLocal([mk(1,30,'Uno Bajo'), mk(2,35,'Dos Bajo'), mk(3,65,'Tres Normal'),
+                           mk(4,62,'Cuatro Normal'), mk(5,58,'Cinco Normal')]);
+      limpiar(); set('filtro-fevi','lt40'); aplicarFiltros();
+      await new Promise(r => setTimeout(r, 150));
+      const _af = window.aplicarFiltros;
+      let _toasts = 0; const _tst = window.toast;
+      window.toast = function(m){ _toasts++; return _tst ? _tst.apply(this, arguments) : null; };
+      window.aplicarFiltros = function(){ throw new TypeError('filtro roto a proposito'); };
+      let explotoArriba = false;
+      try { renderInformesGuardados(); } catch (e) { explotoArriba = true; }
+      await new Promise(r => setTimeout(r, 200));
+      const trasExplotar = cuenta();
+      window.aplicarFiltros = _af; window.toast = _tst;
+      /* Repinto —los cinco, sin el filtro clinico— y NO dejo la excepcion salir al llamador. */
+      const repintaIgual = !explotoArriba && trasExplotar === 5;
+      const avisaDeLaDegradacion = _toasts > 0;
+
+      /* ── Y EL CONTADOR NO SE CONTRADICE CON LOS CONTROLES ── era la mitad muda del defecto:
+         el select decia «FEVI < 40» y el contador «Mostrando 5 de 5». */
+      limpiar(); set('filtro-fevi','lt40'); aplicarFiltros();
+      await new Promise(r => setTimeout(r, 150));
+      renderInformesGuardados(); await new Promise(r => setTimeout(r, 150));
+      const contadorCoherente = /Mostrando 2 de 5/.test(contador()) &&
+        (document.getElementById('filtro-fevi')||{}).value === 'lt40';
+
+      return { extra: [
+        ['DENOMINADOR: el filtro clinico parte la lista en dos', parte,
+          'con filtro=' + conFiltro + ' sin filtro=' + sinFiltro + ' · ' + contFiltro],
+        ['DENOMINADOR: el estudio se borro de verdad', totalTrasBorrar === 4,
+          'getInformes=' + totalTrasBorrar],
+        ['BORRAR un estudio de la lista filtrada CONSERVA el filtro', borrarConserva,
+          'antes=' + antesBorrar + ' despues=' + trasBorrar + ' · ' + contTrasBorrar],
+        ['el filtro AVANZADO numerico tambien se conserva', avanzadoConserva,
+          'antes=' + advAntes + ' despues=' + advDespues],
+        ['el buscador sigue conservandose', buscadorConserva, 'antes=' + busAntes + ' despues=' + busDespues],
+        ['  y las fechas tambien', fechaConserva, 'antes=' + fecAntes],
+        ['«Limpiar fechas» borra las fechas y NO el filtro clinico', limpiarFechasConserva, ''],
+        ['la salida SIN filtros existe y tiene nombre propio', existeSalida, ''],
+        ['  y las importaciones conservan su conducta: ignora el filtro', salidaIgnoraFiltro,
+          'antes=' + antesImp + ' despues=' + cuenta()],
+        ['si el filtro EXPLOTA, la lista igual se repinta', repintaIgual,
+          'exploto hacia arriba=' + explotoArriba + ' items=' + trasExplotar],
+        ['  y la degradacion se avisa, no es muda', avisaDeLaDegradacion, 'toasts=' + _toasts],
+        ['el contador NO se contradice con los controles', contadorCoherente,
+          contador() + ' con filtro-fevi=' + (document.getElementById('filtro-fevi')||{}).value]
+      ] };
+    } finally {
+      try { ['filtro-fevi','ig-buscar','adv-fevi-lt','ig-fecha-desde','ig-fecha-hasta','ig-filtro-antec']
+        .forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+        const c = document.getElementById('adv-fevi-lt-on'); if (c) c.checked = false; } catch (e) {}
+      try { CeiboStore.setLocal(prev); } catch (e) {}
+      try { if (typeof aplicarFiltros === 'function') aplicarFiltros(); } catch (e) {}
+      try { __t.limpiar(); } catch (e) {}
+    }
+  })();
+`);
+
 caso('TC-265', 'La base del informe viaja con el estudio: el texto escrito a mano sobrevive a una reapertura', `
   return (async () => {
     if (typeof _refrescarInformeSiGenerado !== 'function' || typeof infBaseDesdeDOM !== 'function')

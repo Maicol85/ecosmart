@@ -4,6 +4,99 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Repintar Guardados tiraba los filtros puestos (2026-09-25)
+
+Borrar un estudio de una lista filtrada la devolvía entera. Cubierto por **TC-266**
+(10 condiciones, 4 mutaciones).
+
+### ⚠️ `igFiltrar(null)` NO ES «SIN FILTROS» — el argumento es el conjunto de PARTIDA
+
+Adentro relee del DOM cuatro controles: buscador, las dos fechas y el antecedente. Lo que **no**
+ve son los que aplica `aplicarFiltros` —los selects clínicos de FEVI, geometría, diastólica y
+valvulopatía, «caso de interés» y los siete numéricos avanzados—, que filtran ANTES y le pasan
+el resultado como base. Medido sobre una cohorte de cinco:
+
+| | con `aplicarFiltros` | tras repintar |
+|---|---|---|
+| buscador «Normal» | 3 de 5 | 3 de 5 — **sobrevive** |
+| select FEVI `lt40` | 2 de 5 | **5 de 5 — se perdía** |
+| avanzado FEVI < 40 | 2 de 5 | **5 de 5 — se perdía** |
+
+Y se perdía **en silencio con los controles todavía puestos**: la pantalla decía «FEVI < 40» y
+«Mostrando 5 de 5» al mismo tiempo. Esa contradicción es la mitad muda del defecto.
+
+### El censo: NO son 9 llamadores de `igFiltrar(null)`, son 2
+
+`igFiltrar(null)` tiene **dos** llamadas. Los nueve del reporte son llamadores de
+`renderInformesGuardados()`, que es quien la llama — y son **diez**:
+
+| llamador | acción | decisión |
+|---|---|---|
+| botón flotante 💾 Guardados | entrar a la pestaña | **preserva** — con los controles puestos, ver todo se contradice |
+| `limpiarFiltroFechas` | «limpiar fechas» | **preserva** — limpia las fechas, no el resto |
+| `eliminarInforme` | borrar un estudio | **preserva** ← el defecto reportado |
+| `eliminarInformeYVolver` | borrar desde el detalle | **preserva** |
+| `limpiarTodosInformes` | borrar todos | **preserva** — la lista queda vacía igual |
+| `labStrainAbrir` | abrir un estudio del Laboratorio | **preserva** — el repintado es incidental |
+| `filtrarInformes` (rama `else`) | respaldo si no hay `aplicarFiltros` | **ya estaba bien**, no se tocó |
+| `importEjecutar` · `labImpEjecutar` · `dcmImpEjecutar` | importar | **AMBIGUO — declarado, no decidido** |
+
+**Las tres importaciones conservan EXACTAMENTE su conducta.** Los dos lados tienen argumento: el
+médico acaba de importar y quiere ver que llegaron —con un filtro puesto la lista puede salir
+vacía justo después de «se importaron 12»— pero tirarle el filtro sin avisar es el defecto que se
+corrigió en los otros seis. Queda para Maicol; cambiarlas es una línea cada una.
+
+### El cuerpo viejo tiene NOMBRE PROPIO, y eso es la mitad del arreglo
+
+`renderInformesGuardados()` delega en `aplicarFiltros()` —con la misma guarda que ya usaba
+`filtrarInformes`— y el cuerpo anterior vive en **`igRepintarTodoSinFiltrar()`**. Dejarlo sin
+nombre era la trampa: el próximo llamador escribe el nombre obvio y se lleva los filtros puestos
+sin enterarse. Es la misma lección que la copia byte por byte de `amiloRefrescarInforme`, el mismo
+día: **el default tiene que ser el seguro y la excepción tiene que decir su nombre.**
+
+No hay recursión: `aplicarFiltros` termina en `renderizarListaFiltrada`, que con `#ig-lista`
+presente llama a `igPintar` y no vuelve.
+
+### Lo que encontró `/sharp-edges`
+
+- **⚠️ EL REPINTADO PASÓ A DEPENDER DE QUE EL FILTRO NO EXPLOTE, y eso es la dirección de falla
+  equivocada.** Con la delegación pelada, una excepción dentro de `aplicarFiltros` dejaba la lista
+  sin repintar — y el peor llamador es `eliminarInforme`: **el estudio ya salió del store y la
+  pantalla lo sigue mostrando**, sin toast ni error visible, así que el médico vuelve a apretar
+  borrar. Antes esa excepción sólo podía salir del `onchange` de un filtro, donde el costo era que
+  la lista no se actualizara; ahora sale de un borrado, y ahí **miente**.
+  Es alcanzable: con un filtro clínico puesto se entra en `_labFevi`/`_labPsap`/`_labTapse` y en
+  `_tieneValv`, que hacen `String(v)` — y `String({toString:null})` lanza; ese valor sale de un
+  `JSON.parse` de un backup importado, clase que este archivo ya documenta.
+  Hoy va en `try/catch` y degrada a la cadena corta: **entre «la lista pierde el filtro» y «la
+  lista miente sobre lo que existe», la primera.** Y se dice con un toast.
+- **`filtrarInformes` quedó siendo una copia de la guarda**, así que endurecerla habría tocado una
+  sola. Delega.
+- **El comentario de `_igPintadosIds` quedó falso** —decía que `renderInformesGuardados` usaba la
+  cadena corta «a secas»— y es el que va a leer el próximo. Corregido.
+
+### Declarado, no corregido
+
+- **El respaldo de `_igEnPantallaDetalle` usa la cadena corta**, así que si alguna vez se toma con
+  filtros clínicos puestos el Excel sale con **más** estudios que la pantalla. Hoy es
+  prácticamente inalcanzable: los selects llevan `onchange="aplicarFiltros()"`, así que ponerlos
+  ya pinta y `_igPintadosIds` deja de ser null.
+- **`window._ettInformesFiltrados` no tiene un solo lector** en todo el archivo, retiene objetos de
+  estudio vivos —con nombre y documento— y `cerrarSesion` no lo limpia. Este cambio lo hace
+  escribirse en muchos más caminos. Es el patrón que ya está marcado para `_orthEstudios`.
+- **`labStrainAbrir` repinta y acto seguido esconde la lista**, así que ese repintado no lo mira
+  nadie. El detalle abre igual aunque el filtro oculte el estudio —`verDetalleInforme` resuelve
+  por id contra `getInformes()`, verificado—; la molestia es al volver a la lista. Ya pasaba con
+  el buscador y las fechas, así que esto lo ensancha, no lo crea.
+
+### Trampa del caso, no del producto
+
+**Los `id` que se siembran no sobreviven a `CeiboStore.setLocal`**: los reasigna (`_sanearIds`).
+Borrar por el id inventado no encontraba nada, el estudio seguía ahí y el caso daba rojo culpando
+al filtro. Hay que resolver contra la base viva —por nombre— después de escribir.
+
+---
+
 ## El refresco silencioso pisaba el texto de un estudio reabierto (2026-09-25)
 
 VEXUS, los dos módulos de Pericardio y amiloidosis rehacen el informe cuando cambia un dato que él

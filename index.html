@@ -40079,9 +40079,11 @@ function igCmpFecha(a,b){
    de filtros por su cuenta.
 
    Se graba acá y no en una función de filtrado porque no hay UNA: `aplicarFiltros` encadena los
-   clínicos, los numéricos y «casos de interés» con `igFiltrar`, mientras que
-   `renderInformesGuardados` llama a `igFiltrar(null)` a secas. Dos cadenas distintas, y una
-   tercera implementación en el exportador habría sido una tercera forma de discrepar. `igPintar`
+   clínicos, los numéricos y «casos de interés» con `igFiltrar`, mientras que la cadena corta
+   —`igRepintarTodoSinFiltrar`— aplica sólo los cuatro que `igFiltrar` relee. Dos cadenas
+   distintas, y una tercera implementación en el exportador habría sido una tercera forma de
+   discrepar. (Hasta el 2026-09-25 acá decía que `renderInformesGuardados` usaba la corta «a
+   secas»; hoy delega en `aplicarFiltros` y la corta es el respaldo.) `igPintar`
    es el único punto por el que pasan las dos, y es el mismo que escribe «Mostrando N de M»: por
    construcción el Excel y el contador no pueden decir cosas distintas, que es el defecto que se
    está corrigiendo.
@@ -40102,6 +40104,11 @@ let _igPintadosIds = null;
      FRENAR el export, no degradarlo a «la base entera». */
 function _igEnPantallaDetalle(){
   if (!_igPintadosIds) {
+    /* ⚠️ ESTE RESPALDO USA LA CADENA CORTA, o sea que ignora los filtros clínicos y los
+       avanzados. Hoy es prácticamente inalcanzable —los selects llevan `onchange="aplicarFiltros()"`,
+       así que ponerlos ya pinta y `_igPintadosIds` deja de ser null— pero si alguna vez se toma
+       con filtros puestos, el Excel sale con MÁS estudios que la pantalla. Queda declarado;
+       cambiarlo es pasar a la cadena larga, que toca el exportador. */
     try { return { lista: igFiltrar(null) || [], faltan: 0, ok: true }; }
     catch (e) { return { lista: [], faltan: 0, ok: false }; }
   }
@@ -40209,9 +40216,61 @@ function igMesToggle(btn) {
 }
 window.igMesToggle = igMesToggle;
 
+/* ⚠️ REPINTAR NO PUEDE TIRAR LOS FILTROS QUE EL MÉDICO TIENE PUESTOS.
+   `igFiltrar(null)` NO es «sin filtros»: su argumento es el conjunto de PARTIDA, y adentro
+   relee del DOM el buscador, las dos fechas y el antecedente. Lo que NO ve son los filtros que
+   aplica `aplicarFiltros` —los selects clínicos de FEVI, geometría, diastólica y valvulopatía,
+   «caso de interés» y los siete numéricos avanzados—, que filtran ANTES y le pasan el resultado
+   como base. Medido sobre una cohorte de cinco:
+
+     · buscador «Normal»        3 de 5  →  repintar  →  3 de 5   sobrevive
+     · select FEVI `lt40`       2 de 5  →  repintar  →  5 de 5   SE PIERDE
+     · avanzado FEVI < 40       2 de 5  →  repintar  →  5 de 5   SE PIERDE
+
+   Y se pierde EN SILENCIO con los controles todavía puestos: la pantalla dice «FEVI < 40» y
+   «Mostrando 5 de 5» al mismo tiempo. Borrar un estudio de una lista filtrada la devolvía
+   entera.
+
+   Por eso esta función delega en `aplicarFiltros`, que es la única que conoce la cadena
+   completa. La guarda es la misma que ya usaba `filtrarInformes` —misma pregunta, misma
+   respuesta—: sin ese módulo cargado se cae a la cadena corta, que es el comportamiento de
+   siempre.
+   No hay recursión: `aplicarFiltros` termina en `renderizarListaFiltrada`, que con `#ig-lista`
+   presente llama a `igPintar` y no vuelve acá. */
 function renderInformesGuardados() {
+  if (typeof aplicarFiltros === 'function' && document.getElementById('filtro-fevi')) {
+    /* ⚠️ EL REPINTADO TIENE QUE TERMINAR SIEMPRE, AUNQUE EL FILTRO EXPLOTE. Con la delegación
+       pelada, una excepción dentro de `aplicarFiltros` dejaba la lista SIN repintar — y el peor
+       llamador es `eliminarInforme`: el estudio ya salió del store, la pantalla lo sigue
+       mostrando, no hay toast ni error visible, y el médico vuelve a apretar borrar. Antes esa
+       excepción sólo podía salir del `onchange` de un filtro, donde el costo era que la lista no
+       se actualizara; ahora sale de un borrado, y ahí miente.
+       Es alcanzable: con un filtro clínico puesto se entra en `_labFevi`/`_labPsap`/`_labTapse`
+       y en `_tieneValv`, que hacen `String(v)` — y `String({toString:null})` lanza. Ese valor
+       sale de un `JSON.parse` de un backup importado, clase que este archivo ya documenta.
+       El respaldo degrada a la cadena corta —o sea, sin los filtros clínicos, que es justo el
+       defecto que esto vino a cerrar— pero repinta. Entre «la lista pierde el filtro» y «la
+       lista miente sobre lo que existe», la primera. Y se DICE, porque una degradación muda es
+       indistinguible de que todo esté bien. Lo cazó `/sharp-edges`. */
+    try { aplicarFiltros(); return; }
+    catch (e) {
+      console.error('renderInformesGuardados/aplicarFiltros', e);
+      if (typeof toast === 'function')
+        toast('⚠️ No se pudieron aplicar los filtros — la lista se muestra completa');
+    }
+  }
+  igRepintarTodoSinFiltrar();
+}
+
+/* Repinta aplicando SÓLO los cuatro filtros que `igFiltrar` relee, ignorando los clínicos y los
+   avanzados. Tiene nombre propio para que el que la use sepa lo que está pidiendo: es el cuerpo
+   que tenía `renderInformesGuardados`, y dejarlo sin nombre era la trampa —el próximo llamador
+   escribe el nombre obvio y se lleva los filtros puestos sin enterarse—.
+   Hoy la usan las tres importaciones. Ver la nota de ambigüedad en `importEjecutar`. */
+function igRepintarTodoSinFiltrar() {
   igPintar(igFiltrar(null));
 }
+window.igRepintarTodoSinFiltrar = igRepintarTodoSinFiltrar;
 
 // Markup de una tarjeta de estudio guardado. ÚNICO lugar donde vive: lo usan
 // renderInformesGuardados() y renderizarListaFiltrada() (el Laboratorio). Antes
@@ -40485,9 +40544,11 @@ let _igBuscarT=null;
 function igBuscarDebounce(){ clearTimeout(_igBuscarT); _igBuscarT=setTimeout(filtrarInformes,180); }
 window.igBuscarDebounce = igBuscarDebounce;
 
+/* Era una copia de la guarda de `renderInformesGuardados` —misma pregunta, mismas dos ramas—
+   y desde que aquélla aprendió a no quedarse colgada si el filtro explota, tener dos copias
+   significaba endurecer una sola. Delega. */
 function filtrarInformes() {
-  if (typeof aplicarFiltros === 'function' && document.getElementById('filtro-fevi')) aplicarFiltros();
-  else renderInformesGuardados();
+  renderInformesGuardados();
 }
 
 function limpiarFiltroFechas() {
@@ -41298,7 +41359,14 @@ async function importEjecutar() {
   importCerrar();
   const ok = await _pImp;              // no anunciar la importación sin confirmarla
   if (ok === false) return;
-  if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
+  /* ⚠️ AMBIGUO, DECLARADO Y NO DECIDIDO: acá se repinta SIN los filtros clínicos ni los
+     avanzados, que es lo que hacía antes y se conserva. Los dos lados tienen argumento y ninguno
+     es obviamente el bueno: el médico acaba de importar y quiere ver que los estudios llegaron
+     —con un filtro puesto la lista puede salir vacía justo después de «se importaron 12»—, pero
+     tirarle el filtro sin avisar es exactamente el defecto que se corrigió en los otros seis
+     llamadores. Queda para que lo decida Maicol; cambiar a `renderInformesGuardados()` es la
+     única línea que hay que tocar. */
+  if (typeof igRepintarTodoSinFiltrar === 'function') igRepintarTodoSinFiltrar();
   /* Los medios van DESPUÉS de que los estudios estén guardados: si la escritura de la lista
      falla, no se escriben cientos de MB de imágenes bajo uuid de fichas que no existen. */
   const rest = medios ? await _bkRestaurarMedios(medios, _mapaUuid) : null;
@@ -64725,7 +64793,14 @@ async function labImpEjecutar() {
   labImpCerrar();
   const ok = await _p;                    // no anunciar la importación sin confirmarla
   if (ok === false) return;
-  if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
+  /* ⚠️ AMBIGUO, DECLARADO Y NO DECIDIDO: acá se repinta SIN los filtros clínicos ni los
+     avanzados, que es lo que hacía antes y se conserva. Los dos lados tienen argumento y ninguno
+     es obviamente el bueno: el médico acaba de importar y quiere ver que los estudios llegaron
+     —con un filtro puesto la lista puede salir vacía justo después de «se importaron 12»—, pero
+     tirarle el filtro sin avisar es exactamente el defecto que se corrigió en los otros seis
+     llamadores. Queda para que lo decida Maicol; cambiar a `renderInformesGuardados()` es la
+     única línea que hay que tocar. */
+  if (typeof igRepintarTodoSinFiltrar === 'function') igRepintarTodoSinFiltrar();
   if (typeof labInit === 'function') labInit();
   /* El Laboratorio filtra por período (365 días por defecto). Importar un histórico viejo
      dejaba el toast diciendo "214 nuevos" y la pantalla sin moverse un número, sin nada
@@ -66353,7 +66428,14 @@ async function dcmImpEjecutar() {
   dcmImpCerrar();
   const ok = await _p;
   if (ok === false) return;                       // guardarInformesSeguro ya avisó de la cuota
-  if (typeof renderInformesGuardados === 'function') renderInformesGuardados();
+  /* ⚠️ AMBIGUO, DECLARADO Y NO DECIDIDO: acá se repinta SIN los filtros clínicos ni los
+     avanzados, que es lo que hacía antes y se conserva. Los dos lados tienen argumento y ninguno
+     es obviamente el bueno: el médico acaba de importar y quiere ver que los estudios llegaron
+     —con un filtro puesto la lista puede salir vacía justo después de «se importaron 12»—, pero
+     tirarle el filtro sin avisar es exactamente el defecto que se corrigió en los otros seis
+     llamadores. Queda para que lo decida Maicol; cambiar a `renderInformesGuardados()` es la
+     única línea que hay que tocar. */
+  if (typeof igRepintarTodoSinFiltrar === 'function') igRepintarTodoSinFiltrar();
   if (typeof labInit === 'function') labInit();
   /* El origen y el equipo van en el aviso porque el archivo ya se cerró: si el número de
      campos no es el esperado, sin esto no queda ni rastro de cuál de los dos lectores
@@ -76127,8 +76209,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260925-2029';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790378954405;                 /* eco-build-ms */
+const ECO_BUILD    = '20260925-2115';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790381750576;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -76214,7 +76296,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-2029</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-2115</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
