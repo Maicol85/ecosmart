@@ -413,7 +413,7 @@
   .btn-danger { background: var(--red); color: #fff; }
   .btn-green { background: var(--green); color: #0f1117; }
   /* `.btn-purple` SE ELIMINÓ el 2026-09-24: su único usuario era el botón 🫀 CC, que pasó a
-     `btn-ghost` para verse igual que Frases e Indicaciones. Se borra en vez de dejarla huérfana
+     `btn-ghost` para verse igual que Frases y Evidencia. Se borra en vez de dejarla huérfana
      porque una clase de color sin usuarios invita a «restaurarle el color» al botón, que es
      justamente la decisión que se revirtió. Lo que la regla resolvía sigue valiendo para la
      próxima que use `--purple`: esa variable vale #9b7fe8 en oscuro y #7457c9 en claro, y los
@@ -1495,7 +1495,7 @@ html.light-mode .amilo-root{
 @media(max-width:600px){.amilo-root .prot-grid{grid-template-columns:1fr}}
 @media(max-width:500px){.amilo-root .grado-grid{grid-template-columns:1fr 1fr}}
 @media print{.amilo-root .btn,.amilo-root .no-print{display:none!important}.amilo-root .card{break-inside:avoid}}
-/* El panel de indicaciones es sólo pantalla. Va por ID porque la clase `.no-print` sólo la apaga
+/* El panel de Evidencia es sólo pantalla. Va por ID porque la clase `.no-print` sólo la apaga
    la regla de arriba, que está scopeada a .amilo-root: fuera de ese subárbol no hace nada. */
 @media print{#indic-overlay{display:none!important}}
 /* Tres columnas no entran en un teléfono: medido a 288 px de ancho, la nota de cada fila se parte
@@ -1854,7 +1854,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         style="font-size:9px;padding:1px 6px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:inherit;">📄 Diseño…</button>
     </span>
     <button class="btn btn-primary" onclick="generarInformeConEvolucion()">📝 Generar Informe</button>
-    <!-- El botón «📋 Indicaciones» NO va acá: vive en la fila de estilo de la pestaña Informe,
+    <!-- El botón «📋 Evidencia» NO va acá: vive en la fila de estilo de la pestaña Informe,
          al lado de «💬 Frases». Está junto al texto que el médico lee cuando decide la conducta,
          y no en un header que en móvil se pliega dentro del menú ⋮. -->
     <button onclick="abrirAyudaEco()" title="Ayuda"
@@ -1971,7 +1971,7 @@ window.cerrarSesionReal = cerrarSesionReal;
   </div>
 </div>
 
-<!-- Panel de indicaciones según guías. Mismo armazón que #crit-overlay, con una diferencia: el
+<!-- Panel de Evidencia según guías. Mismo armazón que #crit-overlay, con una diferencia: el
      pie va PEGAJOSO ABAJO, porque la advertencia médico-legal tiene que estar visible con el
      panel scrolleado — un descargo que sólo se ve llegando al final no descarga nada.
      La regla `@media print` va por ID y no por la clase `.no-print`: esa clase existe en el
@@ -1983,14 +1983,32 @@ window.cerrarSesionReal = cerrarSesionReal;
   <div id="indic-card" role="dialog" aria-modal="true" aria-labelledby="indic-titulo"
        style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:820px;max-width:calc(100vw - 24px);max-height:calc(100vh - 48px);display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.6);">
     <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);background:var(--bg2);border-radius:12px 12px 0 0;flex-shrink:0;">
-      <span id="indic-titulo" style="flex:1;font-weight:700;font-size:13px;color:var(--accent2);">📋 Indicaciones según guías</span>
+      <span id="indic-titulo" style="flex:1;font-weight:700;font-size:13px;color:var(--accent2);">📋 Evidencia según guías</span>
       <button type="button" class="btn btn-ghost" style="font-size:12px;padding:3px 10px;font-weight:700;" onclick="indicCerrar()">✕</button>
     </div>
     <div id="indic-cuerpo" style="padding:12px 14px;overflow:auto;flex:1;"></div>
+    <!-- ⚠️ TRES COSAS QUE ESTE DESCARGO DEJÓ DE DECIR. Quedan anotadas porque se pidió el texto
+         exacto, no porque se hayan pasado por alto:
+
+         1 · «No forma parte del informe ni del PDF». Era la ÚNICA superficie donde al médico se
+             le decía el alcance del panel. El comportamiento no cambió —ningún generador de PDF,
+             PPT ni el narrativo leen `IND_SECS`, y el `@media print` de más arriba lo apaga—,
+             pero ahora eso sólo consta en el `title` del botón, y un `title` NO EXISTE EN
+             TÁCTIL: en celular y tablet el alcance del panel no está escrito en ninguna parte.
+             El manual tampoco lo cubre. Si alguna vez se decide que el panel sí viaje, ya no
+             hay un texto visible que lo contradiga.
+         2 · «correlación clínica completa» pasó a «correlación con las guías». No son lo mismo:
+             el panel YA ES las guías —cada sección cita su clase y su umbral en negrita—; lo que
+             no puede saber son los síntomas y la clase funcional, que es justamente lo que cada
+             sección marca con ❓ bajo «Requiere datos clínicos — no evaluable por ecocardiograma».
+             El descargo nuevo nombra el dato que SÍ está y calla el que falta.
+         3 · «Este panel muestra datos ecocardiográficos contra umbrales publicados en guías
+             ESC/AHA» — el encuadre de qué es esto. Pesa más ahora que el título dice «Evidencia»,
+             que en clínica se lee primero como «nivel de evidencia» y no como «los datos de ESTE
+             estudio contra los umbrales». Lo único que desambigua es la leyenda de marcas, y esa
+             sólo se imprime cuando hay al menos una sección. -->
     <div style="flex-shrink:0;padding:10px 14px;border-top:1px solid var(--border);background:var(--bg3);border-radius:0 0 12px 12px;font-size:10px;color:var(--text2);line-height:1.55;">
-      Este panel muestra datos ecocardiográficos contra umbrales publicados en guías ESC/AHA.
-      <b>No constituye recomendación terapéutica.</b> La indicación final requiere correlación clínica completa.
-      No forma parte del informe ni del PDF.
+      <b>No constituye recomendación terapéutica.</b> Requiere correlación con las guías.
     </div>
   </div>
 </div>
@@ -13510,7 +13528,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
           <button type="button" class="btn btn-primary estilo-pill" data-estilo="estandar" onclick="setEstiloInforme('estandar')">📄 Estándar</button>
           <button type="button" class="btn btn-ghost estilo-pill" data-estilo="narrativo" onclick="setEstiloInforme('narrativo')">📖 Narrativo</button>
           <!-- 🫀 CC. Va PEGADO a las tres pastillas —decisión de Maicol, pedida dos veces— y con
-               el mismo `btn-ghost` que Frases e Indicaciones. Reemplaza a la ubicación anterior
+               el mismo `btn-ghost` que Frases y Evidencia. Reemplaza a la ubicación anterior
                (grupo de acciones, a la derecha, con `btn-purple` propio): con el `margin-left:auto`
                de ese grupo, en pantalla angosta bajaba a un segundo renglón y quedaba lejos de
                todo, que es lo que se reportó como «está en otro lugar».
@@ -13540,7 +13558,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                  `[hidden]` es la clase de conflicto que deja un hueco de 44 px sin botón. -->
             <button type="button" class="btn btn-ghost" id="indic-btn" hidden
                     onclick="indicAbrir()" aria-haspopup="dialog" aria-controls="indic-overlay"
-                    title="Indicaciones según guías — sólo pantalla, no va al informe">📋 Indicaciones</button>
+                    title="Evidencia según guías — sólo pantalla, no va al informe">📋 Evidencia</button>
           </span>
         </div>
       </div>
@@ -26043,7 +26061,7 @@ function RECALC_MODULOS() {
      `tdfSync` y `mcaSync` pintan a partir de ellos. Al final igual, porque tvSync los vuelve a
      llamar, pero el orden deja el estado coherente aunque alguno tire. */
   /* `indicSyncBoton` va ÚLTIMO y no es un módulo del informe: decide si se ve el botón
-     «📋 Indicaciones», y para eso corre las nueve secciones del panel, que leen el formulario ya
+     «📋 Evidencia», y para eso corre las trece secciones del panel, que leen el formulario ya
      repuesto. Va acá y no colgado de un evento porque las rutas de restauración pueblan
      asignando `.value`, que **no dispara `input`** — el listener con debounce no se entera y el
      botón quedaría con el estado del paciente anterior. Es la misma razón por la que esta lista
@@ -26430,7 +26448,7 @@ function limpiarCampos(silencioso) {
      Sin esto, el paciente nuevo arrancaba con «Congestión venosa severa… considerar
      descongestión activa» del paciente anterior debajo de un score vacío. */
   if (typeof calcVEXUS === 'function') calcVEXUS();
-  /* `limpiarCampos` NO pasa por `_recalcModulos`, así que el botón «📋 Indicaciones» hay que
+  /* `limpiarCampos` NO pasa por `_recalcModulos`, así que el botón «📋 Evidencia» hay que
      apagarlo acá a mano: si no, después de «Nuevo estudio» seguía visible el del paciente
      anterior, y abrirlo mostraba el mensaje de «sin criterios» sobre un botón que afirmaba que
      los había. Es el patrón `gradoGamma`/`protMonoc` — la columna que falta es siempre ésta. */
@@ -34627,7 +34645,19 @@ document.addEventListener('keydown', function(e){
 window.mcaScore = mcaScore; window.mcaCatI = mcaCatI; window.mcaVI = mcaVI;
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════
-   PANEL DE INDICACIONES SEGÚN GUÍAS  —  #indic-overlay
+   PANEL DE EVIDENCIA SEGÚN GUÍAS  —  #indic-overlay
+
+   ⚠️ EL NOMBRE VISIBLE ES «EVIDENCIA» Y LOS IDENTIFICADORES SIGUEN SIENDO `indic-*` / `_ind*` /
+   `IND_SECS`. Es deliberado: renombrarlos es churn de lógica sobre algo que el médico no ve, y
+   `aria-labelledby="indic-titulo"` se actualizó solo al cambiar el texto del span.
+   **Y NO RENOMBRAR POR SUBSTRING.** Después de este cambio hay TRES cosas que se llaman
+   `indicaciones` en el código y NINGUNA es este panel:
+     · `campos['indicaciones']` — el acordeón del panel Paciente. Es una clave PERSISTIDA, está
+       en `_INF_CAMPOS_ARRAY` (la validación del import rechaza el informe ENTERO ante una clave
+       desconocida) y sale al Excel, al PPT y al PDF de auditoría.
+     · `lab-acc-indicaciones` / `data-ppt="indicaciones"` — la tarjeta del Laboratorio.
+     · `_civConducta` y compañía usan «conducta», no «indicación»: no confundir.
+   Un `sed` de `indicaciones` → `evidencia` se lleva puesto un campo del estudio.
    ══════════════════════════════════════════════════════════════════════════════════════════
    Muestra los datos del estudio EN CURSO contra los umbrales publicados. NO recomienda, NO
    decide y NO sale del informe: ningún generador de PDF, PPT ni el narrativo lo leen.
@@ -35454,7 +35484,7 @@ function _indCIV(){
      e `itv_tsvi` son los del AVA por continuidad, `tsvd_diametro` y `vti_tsvd` los del volumen
      eyectivo del VD—, o sea que una estenosis aórtica corriente los tiene cargados.
      Medido: formulario sin ninguna congénita, `ccShuntsConDatos()` vacío, y la sección salía
-     con ✅ «criterio de cierre» y encendía el botón de Indicaciones. El arreglo de fondo va en
+     con ✅ «criterio de cierre» y encendía el botón de Evidencia. El arreglo de fondo va en
      `ccQpQsDe` —le serviría también al ductus y al Laboratorio— y queda declarado, no hecho:
      esa función gobierna la tarjeta de CC, el PDF y el PPT, y este prompt agrega secciones. */
   if (!tipo) return null;
@@ -35585,7 +35615,7 @@ function indicSyncBoton(){
   if (ov && ov.style.display === 'block') indicRender();
 }
 
-/* Debounce propio y generoso. Recorrer las nueve secciones llama a `coaConclusion`,
+/* Debounce propio y generoso. Recorrer las trece secciones llama a `coaConclusion`,
    `vabConclusion`, `fopConclusion`, `_htp2022Core` y `mchGrad`, así que engancharlo crudo al
    `input` de cada tecla sería correr todo eso por carácter tipeado. `input` en fase de CAPTURA
    sobre el documento, como ya hace el autoguardado: así alcanza a los campos que se pueblan por
@@ -76811,8 +76841,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260926-1223';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790436188241;                 /* eco-build-ms */
+const ECO_BUILD    = '20260926-1336';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790440581518;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -76898,7 +76928,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260926-1223</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260926-1336</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
