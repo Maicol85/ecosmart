@@ -21174,6 +21174,10 @@ function epGradoPorGmax(g) {
   return                             'Estenosis severa';
 }
 window.epGradoPorGmax = epGradoPorGmax;
+/* El corte de severidad se exporta porque el panel de Indicaciones lo NOMBRA en su texto de
+   guía. Sin esto la prosa tenía el 64 escrito a mano al lado de un comentario que decía que
+   escribirlo a mano sería otra copia del mismo umbral. */
+window.EP_GMAX_MOD_MAX = EP_GMAX_MOD_MAX;
 
 /* ══ VLI — volumen latido indexado ═══════════════════════════════════════════════════════
    VLI = volumen sistólico / superficie corporal. Es el parámetro que separa el BAJO FLUJO del
@@ -34786,8 +34790,15 @@ function _indEA(){
     guia: 'ESC/EACTS 2021 — La INTERVENCIÓN es Clase I B en el paciente sintomático con estenosis aórtica severa de alto gradiente (gradiente medio ≥ 40 mmHg, Vmax ≥ 4,0 m/s y AVA ≤ 1,0 cm² o ≤ 0,6 cm²/m²).',
     notas: [
       'La MODALIDAD es una decisión aparte y no es intercambiable: SAVR Clase I B en menores de 75 años con riesgo quirúrgico bajo (STS-PROM/EuroSCORE II < 4 %); TAVI Clase I A desde los 75 años, o con riesgo alto (> 8 %) o no operables.',
-      'El criterio de área de la guía —AVA ≤ 1,0 cm²— y el de la app coinciden desde el 2026-09-25: un AVA de exactamente 1,00 cm² se clasifica SEVERA (constante AVA_SEVERA_MAX). Hasta esa fecha la app usaba < 1,0 y lo rotulaba moderado; un informe anterior reimpreso hoy puede cambiar de grado en ese borde.',
-      'Los tres criterios pueden discordar, y el patrón de bajo flujo y bajo gradiente no se cierra con estos tres números. La app señala la discordancia en la propia tarjeta de estenosis aórtica.',
+      /* ⚠️ ACÁ NO VA HISTORIA DE LA APLICACIÓN. Esta nota decía «el criterio de la app coincide
+         con el de la guía desde el 2026-09-25 (constante AVA_SEVERA_MAX); hasta esa fecha usaba
+         < 1,0». Es una fecha de commit y un nombre de constante en la pantalla de un médico: no
+         lo ayuda a decidir y le pide que audite el software en vez de leer el estudio. El
+         criterio vigente ya está en la línea de la guía y en la fila del área.
+         La historia de las GUÍAS sí se queda —«la ESC 2021 bajó el corte de 45 a 40 mm»— porque
+         eso cambia la conducta y el lector puede tener la edición anterior en la cabeza. */
+      'Un AVA de exactamente 1,00 cm² alcanza el criterio de área y se clasifica severa: el corte de la guía es «≤ 1,0», no «< 1,0».',
+      'Los tres criterios pueden discordar, y el patrón de bajo flujo y bajo gradiente no se cierra con estos tres números. La discordancia queda señalada en la tarjeta de estenosis aórtica.',
       'La ESC/EACTS 2025 reemplaza a la de 2021 y mueve el corte de edad de la modalidad de 75 a 70 años.'
     ] };
 }
@@ -35192,12 +35203,322 @@ function _indVAB(){
     ] };
 }
 
+/* Lector de listas, hermano de `_indFn` y `_indUmb` y con la misma regla 4: si la lista no está
+   en `window` no se publica una copia escrita a mano, se dice que falta. Hace falta porque
+   `CIV_CONDUCTAS` es un `const` de otro bloque y un `const` de nivel superior NO queda en
+   `window` solo —las declaraciones de función sí, y por eso `_indFn` nunca necesitó exportarlas—. */
+function _indLista(nombre){ const a = window[nombre]; return (Array.isArray(a) && a.length) ? a : null; }
+function _indCrit(lista, k){ const e = lista && lista.find(x => x.k === k); return e ? e.crit : ''; }
+
+/* ── Ductus arterioso permeable ────────────────────────────────────────────────────────────
+   La conducta NO se escribe acá: sale de `dapConclusion()`, la misma que viaja al informe
+   firmado y al EN SUMA. Su cascada pone la hipertensión pulmonar y el shunt invertido POR
+   ENCIMA del tamaño —un ductus grande que ya invirtió el flujo no es «considerar cierre» sino
+   una contraindicación potencial—, y ese orden es clínico. Reescribirlo con umbrales propios
+   habría puesto al panel a contradecir a la app en la misma pantalla.
+
+   La compuerta es la conclusión misma: `dapConclusion` ya devuelve `null` cuando ningún campo
+   del ductus tiene valor, así que una segunda condición de presencia sobraría y podría diferir
+   de la primera en cuanto alguna de las dos se tocara.
+
+   El aviso va SIEMPRE, y es deliberado: a diferencia de la coartación —donde el gradiente por
+   Doppler no alcanza para concluir nada—, acá la conclusión de la app es el hallazgo. Dejarla
+   detrás de un acordeón cerrado haría que el panel mostrara menos que el informe. */
+function _indDAP(){
+  const conc = _indFn('dapConclusion'), gmaxF = _indFn('dapGmax'), qpqs = _indFn('ccQpQsDe');
+  const C = conc ? conc() : null;
+  if (!C) return null;
+  /* Prototipo nulo por el mismo motivo que en FOP: `MAPA['constructor']` devuelve una función en
+     vez de `undefined` y el `||` de respaldo no llega a correr. */
+  const TIPO = Object.assign(Object.create(null), { silente:'Silente', restrictivo:'Restrictivo (pequeño)', no_restrictivo:'No restrictivo (grande)' });
+  const DIR  = Object.assign(Object.create(null), { id:'Izquierda a derecha', bi:'Bidireccional', di:'Derecha a izquierda' });
+  const tipo = _indS('dap_tipo'), dir = _indS('dap_dir');
+  const diam = _indN('dap_diam'), g = gmaxF ? gmaxF() : null, paps = _indN('dap_paps');
+  const q = qpqs ? qpqs('dap') : null;
+  /* Las marcas salen de la CLAVE de la conclusión y no de los números. El reparto de pesos
+     —cuándo manda el tamaño y cuándo la presión, y cuándo la PAPs del estudio se le puede
+     atribuir al ductus— ya está resuelto en esa cascada; recalcularlo acá con comparaciones
+     propias es exactamente la segunda copia que prohíbe la regla 2 de la cabecera. */
+  const cierre = C.clave === 'grande' || C.clave === 'moderado';
+  const invert = dir === 'di' || dir === 'bi';
+  const filas = [
+    _indFila('Tipo', tipo ? (TIPO[tipo] || tipo) : 'No consignado',
+      (cierre && tipo === 'no_restrictivo') ? 'ok' : (tipo ? 'none' : 'ask'),
+      tipo ? '' : 'sin el tipo, la conducta la deciden el tamaño y el Qp/Qs'),
+    _indFila('Dirección del shunt', dir ? (DIR[dir] || dir) : 'No consignada',
+      invert ? 'alarm' : (dir ? 'none' : 'ask'),
+      invert ? 'shunt invertido o bidireccional — obliga a establecer la operabilidad antes de cerrar' : ''),
+    _indFila('Diámetro', _indNum(diam, 1, 'mm'), diam != null ? 'none' : 'ask',
+      diam != null ? '' : 'sin medir'),
+    _indFila('Gradiente máximo (4·Vmax²)', _indNum(g, 0, 'mmHg'), g != null ? 'none' : 'ask',
+      g != null ? 'un gradiente alto describe un ductus restrictivo; no es criterio de la indicación' : 'sin Vmax del ductus'),
+    _indFila('PAPs', _indNum(paps, 0, 'mmHg'), paps != null ? 'none' : 'ask',
+      paps != null ? '' : 'sin cargar acá; con un ductus grande la app toma la estimada por insuficiencia tricuspídea'),
+    _indFila('Qp/Qs atribuible al ductus', _indNum(q, 2),
+      (cierre && q != null) ? 'ok' : (q != null ? 'none' : 'ask'),
+      q != null ? '' : 'no atribuible: hay más de un shunt con datos, o faltan los flujos del TSVI y del TSVD')
+  ];
+  return { filas: filas,
+    aviso: C.txt || '',
+    clinica: [
+      _indFila('Sobrecarga de volumen de las cavidades izquierdas', '—', 'ask', 'es lo que sostiene la indicación de cierre'),
+      _indFila('Resistencias pulmonares y test de vasorreactividad', '—', 'ask', 'la guía los exige antes de cerrar un ductus con hipertensión pulmonar, y no los da el ecocardiograma'),
+      _indFila('Desaturación de esfuerzo', '—', 'ask', 'define el síndrome de Eisenmenger, que contraindica el cierre')
+    ],
+    guia: 'ESC 2020 (cardiopatías congénitas del adulto) — El cierre del ductus es Clase I C en el paciente con sobrecarga de volumen de las cavidades izquierdas y sin hipertensión pulmonar severa, con el abordaje percutáneo como técnica de elección cuando es viable.',
+    notas: [
+      'El ductus SILENTE —sin soplo y sin repercusión hemodinámica— no tiene indicación de cierre.',
+      'Con hipertensión pulmonar severa, shunt invertido o desaturación de esfuerzo el cierre está contraindicado mientras no se establezca la operabilidad.',
+      'El gradiente de arriba es Bernoulli simplificado: no descuenta la velocidad proximal y sobreestima.'
+    ] };
+}
+
+/* ── Estenosis pulmonar ────────────────────────────────────────────────────────────────────
+   El grado sale de `epGradoPorGmax()`, que es la función que ya gobierna la pantalla y el
+   informe. Sus cortes viven en constantes que NO están exportadas, y por eso se consume la
+   FUNCIÓN y no los números: comparar acá contra 64 sería escribir otra copia del mismo umbral.
+
+   El NIVEL es una fila y no una compuerta, con salvedad propia. El umbral de la guía es para la
+   estenosis VALVULAR —la que se trata con balón—; una supravalvular o de ramas con el mismo
+   gradiente no tiene esa indicación. Gatear por el nivel habría escondido la sección en el
+   paciente más común, porque `ep_nivel` arranca en «No especificado» y eso no es un «no». */
+function _indEP(){
+  const gradoF = _indFn('epGradoPorGmax');
+  const gmax = _indN('vp_gmax'), vmax = _indN('vp_vmax');
+  const banda = (gradoF && gmax != null) ? gradoF(gmax) : null;
+  const sel = _indS('ep_grado'), nivel = _indS('ep_nivel'), etio = _indS('ep_etiologia');
+  /* El grado consignado a mano cuenta igual que el calculado: es el que firma el médico. Se
+     compara con expresiones y no con igualdad porque el select tiene «Moderada-severa», que la
+     función de la app no produce. */
+  const sev = banda === 'Estenosis severa'   || /^severa/i.test(sel);
+  const mod = banda === 'Estenosis moderada' || /^moderada/i.test(sel);
+  if (!sev && !mod) return null;
+  const UM = _indUmb('EP_GMAX_MOD_MAX');
+  const valvular = /^valvular/i.test(nivel);
+  /* `ep_grado` es el ÚNICO select del panel cuyo primer valor es un token —`sin`— y no su
+     etiqueta: las demás opciones no llevan `value`, así que valen su texto. Sin el mapa la fila
+     imprimía la palabra `sin` cruda. Prototipo nulo, como los otros tres mapas. */
+  const GRADO = Object.assign(Object.create(null), { sin:'Sin estenosis' });
+  /* `vp_morf` no tiene opción vacía y arranca en «Normal», así que ese valor NO significa que
+     alguien haya mirado la válvula. Publicarlo como dato consignado es afirmar una morfología
+     normal que nadie confirmó, justo al lado de la nota que dice que una válvula displásica
+     responde mal al balón: el lector la tomaría como evidencia para elegir la técnica. */
+  const morf = _indS('vp_morf'), morfDicha = !!morf && !/^normal$/i.test(morf);
+  const filas = [
+    /* La banda manda sobre el valor: si el clasificador no está, el gradiente no se rotula. La
+       primera versión imprimía el número Y la nota «sin gradiente cargado» en la misma fila. */
+    _indFila('Gradiente máximo', _indNum(gmax, 0, 'mmHg'), sev ? 'ok' : (gmax != null ? 'warn' : 'ask'),
+      banda ? banda.toLowerCase()
+      : (gmax != null ? 'no clasificable — el grado de arriba sale de lo consignado a mano' : 'sin gradiente cargado')),
+    _indFila('Vmax pulmonar', _indNum(vmax, 2, 'm/s'), vmax != null ? 'none' : 'ask',
+      vmax != null ? 'los cortes por velocidad que suelen citarse son los mismos umbrales vistos por el otro lado' : 'sin medir'),
+    _indFila('Grado consignado', sel ? (GRADO[sel] || sel) : 'No consignado', sel ? 'none' : 'ask',
+      sel === 'sin' ? 'el grado sigue en «sin estenosis»: el nivel y la etiología están ocultos en la sección de Válvula Pulmonar hasta que se consigne' : ''),
+    _indFila('Nivel de la obstrucción', nivel || 'No especificado',
+      valvular ? 'none' : (nivel && !/^no especificado/i.test(nivel) ? 'warn' : 'ask'),
+      valvular ? 'es el nivel al que aplica el umbral de la guía'
+      : (nivel && !/^no especificado/i.test(nivel) ? 'el umbral de la guía es para la estenosis valvular; a este nivel la conducta se decide de otro modo'
+      : 'sin el nivel no se puede saber si aplica el umbral de la guía')),
+    _indFila('Etiología', etio || 'No especificada', etio && !/^no especificada/i.test(etio) ? 'none' : 'ask', ''),
+    _indFila('Morfología valvular', morfDicha ? morf : 'No consignada', morfDicha ? 'none' : 'ask',
+      morfDicha ? '' : 'el campo arranca en «Normal»: sin confirmarlo no se puede afirmar la morfología, y de ella depende la técnica')
+  ];
+  return { filas: filas,
+    clinica: [
+      _indFila('Síntomas', '—', 'ask', 'por debajo del umbral de severidad son ellos los que sostienen la indicación'),
+      _indFila('Función del ventrículo derecho y arritmias', '—', 'ask', 'pesan en el asintomático con estenosis severa')
+    ],
+    /* El umbral de la prosa sale de la constante, no de la memoria: escribirlo a mano acá era
+       la copia que el comentario de arriba dice que no hay que hacer. */
+    guia: 'ESC 2020 (cardiopatías congénitas del adulto) — La intervención sobre la estenosis pulmonar VALVULAR es Clase I C cuando el gradiente máximo por Doppler supera '
+      + (UM != null ? UM + ' mmHg' : 'el umbral de severidad') + ', con la valvuloplastia con balón como técnica de elección cuando la válvula lo permite.',
+    notas: [
+      'Por debajo de ese gradiente la intervención se reserva al paciente sintomático o con deterioro de la función del ventrículo derecho.',
+      'El umbral es para la estenosis valvular. En la supravalvular, la subvalvular y la de ramas pulmonares la conducta no se decide por este número.',
+      'Una válvula displásica —Noonan— responde mal al balón y suele requerir cirugía.',
+      'El gradiente máximo instantáneo por Doppler sobreestima el pico-a-pico del cateterismo.'
+    ] };
+}
+
+/* ── Válvula tricúspide ────────────────────────────────────────────────────────────────────
+   Una sola sección para las dos lesiones porque comparten válvula y decisión quirúrgica, pero
+   con orígenes distintos y declarados:
+
+   · La INSUFICIENCIA se lee de `it_grado`, el campo que escribe `calcIT_ESC` con el algoritmo
+     multiparamétrico de la app. `calcIT_ESC` es un PINTOR —escribe en el DOM y no devuelve
+     nada—, así que no hay función que consumir: se lee su resultado, que es el mismo camino que
+     ya usan la mitral y la aórtica con `im_sev_final` / `ia_sev_final`.
+     ⚠️ `it_grado` es un input oculto que NACE en «0», no vacío, así que un formulario en blanco
+     dice «Sin» y no «sin evaluar». Por eso la ausencia de dato no se puede afirmar acá.
+   · La ESTENOSIS sale de `etEstado()`, que sí devuelve el veredicto y sus tres criterios.
+     La guía NO la gradúa en leve/moderada/severa: define un único corte de significación
+     clínica, y el panel no puede inventar las bandas que la guía no tiene. */
+function _indVT(){
+  const etF = _indFn('etEstado');
+  const E = etF ? etF() : null;
+  const it = _indS('it_grado');
+  const itSev = it === '4';
+  const etSig = !!(E && E.signif);
+  if (!itSev && !etSig) return null;
+  const UG = _indUmb('ET_GMEDIO_SIGNIF'), UT = _indUmb('ET_THP_SIGNIF'), UA = _indUmb('ET_AVT_SIGNIF');
+  const IT = Object.assign(Object.create(null), { '0':'Sin', '1':'Leve', '2':'Moderada', '3':'Moderada', '4':'Severa' });
+  const vc = _indN('it_vc'), vmaxIt = _indN('it_vmax_cw');
+  /* ⚠️ `it_grado` NUNCA está vacío: nace en '0', `limpiarCampos` lo repone a '0' y `calcIT_ESC`
+     sale sin tocarlo cuando no hay ningún parámetro medido. O sea que «Sin» no distingue «no
+     hay insuficiencia» de «nadie la evaluó», y la rama ❓ de esta fila era inalcanzable.
+     Se deriva de los insumos REALES del algoritmo: si ninguno tiene valor, el grado es el de
+     fábrica y no se puede afirmar la ausencia. Es la misma regla que `va_morf` en la bicúspide
+     y `vp_morf` en la pulmonar — un default no es una respuesta del médico. */
+  const itEvaluada = vc != null || vmaxIt != null || _indN('it_pisa_r') != null ||
+                     _indN('it_vti') != null || _indS('it_densidad') !== '' || it === '4';
+  const filas = [
+    _indFila('Insuficiencia tricuspídea', itEvaluada ? (IT[it] || 'No consignada') : 'No evaluada',
+      itSev ? 'ok' : (itEvaluada ? 'none' : 'ask'),
+      itSev ? 'severa — es el grado que abre las indicaciones quirúrgicas'
+      : (itEvaluada ? '' : 'el campo arranca en «Sin» y no hay ningún parámetro cargado: no se puede afirmar que no la haya')),
+    _indFila('Vena contracta', _indNum(vc, 1, 'mm'), vc != null ? 'none' : 'ask',
+      vc != null ? 'uno de los parámetros que la app integra para graduar' : 'sin medir'),
+    _indFila('Vmax del jet (CW)', _indNum(vmaxIt, 2, 'm/s'), vmaxIt != null ? 'none' : 'ask',
+      vmaxIt != null ? 'da la PSAP estimada; no gradúa la insuficiencia' : 'sin medir')
+  ];
+  /* Los tres criterios de estenosis se imprimen con el umbral que aplica el código, leído de la
+     constante. Si falta la constante la fila lo dice en vez de publicar un número de memoria. */
+  if (E) {
+    filas.push(UG == null ? _indSinUmbral('Gradiente medio tricuspídeo')
+      : _indFila('Gradiente medio tricuspídeo', _indNum(E.gm, 0, 'mmHg'),
+          E.cGm ? 'ok' : (E.gmOk ? 'none' : 'ask'),
+          E.cGm ? '≥ ' + UG + ' mmHg — criterio de estenosis clínicamente significativa'
+          : (E.gmOk ? 'no alcanza ' + UG + ' mmHg' : 'sin medir')));
+    filas.push(UT == null ? _indSinUmbral('THP tricuspídeo')
+      : _indFila('THP tricuspídeo', _indNum(E.thp, 0, 'ms'),
+          E.cThp ? 'ok' : (E.thpOk ? 'none' : 'ask'),
+          E.cThp ? '≥ ' + UT + ' ms — criterio de estenosis clínicamente significativa'
+          : (E.thpOk ? 'no alcanza ' + UT + ' ms' : 'sin medir')));
+    filas.push(UA == null ? _indSinUmbral('Área valvular tricuspídea')
+      : _indFila('Área valvular tricuspídea', _indNum(E.avt, 2, 'cm²'),
+          E.cAvt ? 'ok' : (E.avt != null ? 'none' : 'ask'),
+          E.cAvt ? '≤ ' + UA + ' cm² — criterio de estenosis clínicamente significativa'
+          : (E.avt != null ? 'no alcanza el criterio' : 'requiere diámetro y VTI del TSVD y VTI diastólico tricuspídeo')));
+  }
+  return { filas: filas,
+    aviso: (E && E.fuera && E.fuera.length)
+      ? 'Fuera de rango medible: ' + E.fuera.join(' y ') + '. Un valor ilegible no sostiene ni descarta el criterio.' : '',
+    clinica: [
+      _indFila('Síntomas', '—', 'ask', 'separan la Clase I de la Clase IIa en la insuficiencia primaria aislada'),
+      _indFila('Cirugía valvular izquierda programada', '—', 'ask', 'es la condición que convierte la reparación tricuspídea en Clase I'),
+      _indFila('Función del ventrículo derecho', '—', 'ask', 'una disfunción severa cambia la indicación')
+    ],
+    guia: 'ESC/EACTS 2021 — La cirugía tricuspídea es Clase I C en la insuficiencia SEVERA (primaria o secundaria) del paciente que va a cirugía valvular izquierda, y Clase I C en la insuficiencia primaria severa del paciente SINTOMÁTICO sin disfunción ventricular derecha severa.',
+    notas: [
+      'En la insuficiencia primaria severa ASINTOMÁTICA con dilatación o deterioro progresivo del ventrículo derecho, la cirugía es Clase IIa C.',
+      'La reparación tricuspídea concomitante también es Clase IIa en la insuficiencia moderada o con anillo dilatado en quien va a cirugía izquierda: ese escenario no lo cubre esta sección, que se abre con la severa.',
+      'La guía NO gradúa la estenosis tricuspídea en leve, moderada y severa: define un solo corte de significación clínica, alcanzado por cualquiera de los tres criterios de arriba.',
+      'La estenosis tricuspídea casi siempre acompaña a una valvulopatía izquierda, y la decisión suele tomarse junto con ella.'
+    ] };
+}
+
+/* ── Comunicación interventricular ─────────────────────────────────────────────────────────
+   Los dos umbrales se LEEN de `CIV_QPQS_CIERRE` y `CIV_DDVI_IDX_CIERRE`, las mismas constantes
+   que aplica `_civConducta` en el Laboratorio, el PDF y el PPT.
+
+   ⚠️ Lo que este panel NO reproduce es la CASCADA. `_civConducta` toma un registro de cohorte
+   —lee por `_labNum(i, …)`— y no el formulario, así que desde acá no se la puede llamar sin
+   inventarle un registro; y un registro incompleto haría que `ccQpQsDe` atribuyera mal el
+   Qp/Qs, que es peor que no calcularlo. Por eso el panel marca cada fila contra su umbral y NO
+   emite una conducta: el orden de las ramas —la contraindicación va primero— sigue viviendo en
+   un solo lugar. El Qp/Qs sí sale de `ccQpQsDe('civ')`, que es de formulario y resuelve la
+   atribución cuando hay más de un shunt: esa parte no se puede duplicar sin divergir.
+
+   El DDVI indexado se calcula con `getBSA()`, igual que la mitral y la aórtica indexan sus
+   diámetros. Es la única cuenta del panel, y queda dicha. */
+function _indCIV(){
+  const qF = _indFn('ccQpQsDe'), bsaF = _indFn('getBSA');
+  const UQ = _indUmb('CIV_QPQS_CIERRE'), UD = _indUmb('CIV_DDVI_IDX_CIERRE');
+  const CRIT = _indLista('CIV_CONDUCTAS');
+  const TIPO = Object.assign(Object.create(null), { perimembranosa:'Perimembranosa', muscular:'Muscular', infundibular:'Infundibular', inlet:'Inlet' });
+  const tipo = _indS('ete_civ_tipo');
+  const q = qF ? qF('civ') : null;
+  /* Banda de plausibilidad sobre el DDVI, como la que ya tienen `dapConclusion` y `etEstado`.
+     Sin ella un diámetro tipeado en centímetros —5,2 por 52 mm— daba un índice de 2,9 mm/m² y
+     la fila NEGABA el criterio: «no alcanza 32». Un número ilegible no puede sostener una
+     afirmación, y la negación es una afirmación. */
+  const ddfviRaw = _indN('ddfvi');
+  const ddfviFuera = ddfviRaw != null && (ddfviRaw < 20 || ddfviRaw > 90);
+  const ddfvi = ddfviFuera ? null : ddfviRaw;
+  const bsa = bsaF ? bsaF() : null;
+  const ddviIdx = (ddfvi != null && bsa != null && isFinite(bsa) && bsa > 0) ? (ddfvi / bsa) : null;
+  /* ⚠️ LA COMPUERTA EXIGE EL TIPO, igual que `_indCIA`. Apoyarla además en el Qp/Qs hacía que
+     la sección se abriera en pacientes SIN CIV: `ccQpQsDe` sólo tiene guardas para «hay otro
+     shunt» y «hay un shunt ajeno», ninguna para «no hay ningún shunt», así que con cero shunts
+     cargados devuelve el cociente GLOBAL. Y sus cuatro insumos no son del defecto —`diam_tsvi`
+     e `itv_tsvi` son los del AVA por continuidad, `tsvd_diametro` y `vti_tsvd` los del volumen
+     eyectivo del VD—, o sea que una estenosis aórtica corriente los tiene cargados.
+     Medido: formulario sin ninguna congénita, `ccShuntsConDatos()` vacío, y la sección salía
+     con ✅ «criterio de cierre» y encendía el botón de Indicaciones. El arreglo de fondo va en
+     `ccQpQsDe` —le serviría también al ductus y al Laboratorio— y queda declarado, no hecho:
+     esa función gobierna la tarjeta de CC, el PDF y el PPT, y este prompt agrega secciones. */
+  if (!tipo) return null;
+  const contra = _lt(q, 1);
+  const filas = [
+    _indFila('Tipo', tipo ? (TIPO[tipo] || tipo) : 'No consignado', tipo ? 'none' : 'ask',
+      tipo ? '' : 'sin el tipo no cambia el criterio, pero sí la técnica'),
+    _indFila('Tamaño del defecto', _indNum(_indN('ete_civ_tam'), 1, 'mm'),
+      _indN('ete_civ_tam') != null ? 'none' : 'ask', 'describe el defecto; el criterio de cierre es el Qp/Qs o la dilatación del VI'),
+    /* ⚠️ EL TEXTO DE LA FILA CON UMBRAL SE DERIVA DE LA CONSTANTE, no de `CIV_CONDUCTAS`. Esa
+       lista trae el criterio escrito a mano —«Qp/Qs >= 1,5 …»—, así que si la constante cambiara
+       el código aplicaría un número y la pantalla publicaría otro: exactamente lo que la regla 4
+       existe para impedir, y al revés de como estaba (el respaldo derivaba de la constante y la
+       rama principal no). `_indCrit` queda para la CONTRAINDICACIÓN, que no tiene constante. */
+    UQ == null ? _indSinUmbral('Qp/Qs atribuible a la CIV')
+      : _indFila('Qp/Qs atribuible a la CIV', _indNum(q, 2),
+          contra ? 'alarm' : (_ge(q, UQ) ? 'ok' : (q != null ? 'none' : 'ask')),
+          contra ? (_indCrit(CRIT, 'contra') || 'menor que 1 — shunt neto invertido: el cierre está contraindicado')
+          : _ge(q, UQ) ? '≥ ' + _indNum(UQ, 1) + ' — criterio de cierre'
+          : q != null ? 'no alcanza ' + _indNum(UQ, 1)
+          : 'no atribuible: hay más de un shunt con datos, o faltan los flujos del TSVI y del TSVD'),
+    /* Con la contraindicación puesta, el DDVI NO puede seguir marcando ✅ «criterio de cierre»:
+       la cascada de `_civConducta` corta en la contraindicación antes de mirar la dilatación, y
+       el panel imprime las filas en paralelo. Sin esto la misma tabla decía 🔴 «el cierre está
+       contraindicado» y ✅ «criterio de cierre por sí solo» — alcanzable en una CIV con shunt
+       invertido y el ventrículo todavía dilatado por la sobrecarga previa. */
+    UD == null ? _indSinUmbral('DDVI indexado')
+      : _indFila('DDVI indexado', ddfviFuera ? '—' : _indNum(ddviIdx, 1, 'mm/m²'),
+          (_gt(ddviIdx, UD) && !contra) ? 'ok' : (ddviIdx != null ? 'none' : 'ask'),
+          ddfviFuera ? 'el DDVI cargado está fuera de rango medible — revisar la unidad'
+          : (_gt(ddviIdx, UD) && contra) ? '> ' + UD + ' mm/m², pero con el shunt invertido la contraindicación manda sobre este criterio'
+          : _gt(ddviIdx, UD) ? '> ' + UD + ' mm/m² — sobrecarga de volumen del ventrículo izquierdo, criterio de cierre por sí solo'
+          : ddviIdx != null ? 'no alcanza ' + UD + ' mm/m²'
+          : 'requiere el DDVI y la superficie corporal (peso y talla)'),
+    _indFila('Velocidad del jet', _indNum(_indN('ete_civ_vel'), 2, 'm/s'), _indN('ete_civ_vel') != null ? 'none' : 'ask',
+      _indN('ete_civ_vel') != null ? 'una velocidad alta describe un defecto restrictivo' : 'sin medir'),
+    _indFila('PAS pulmonar estimada por la CIV', _indNum(_indN('ete_civ_pas'), 0, 'mmHg'),
+      _indN('ete_civ_pas') != null ? 'none' : 'ask', '')
+  ];
+  return { filas: filas,
+    clinica: [
+      _indFila('Endocarditis previa sobre el defecto', '—', 'ask', 'es indicación de cierre por sí sola'),
+      _indFila('Insuficiencia aórtica progresiva por prolapso de una valva', '—', 'ask', 'es indicación de cierre aunque el shunt sea pequeño'),
+      _indFila('Resistencias pulmonares', '—', 'ask', 'deciden la operabilidad cuando hay hipertensión pulmonar, y no las da el ecocardiograma')
+    ],
+    guia: 'ESC (cardiopatías congénitas del adulto) — El cierre de la comunicación interventricular es Clase I en el paciente con sobrecarga de volumen del ventrículo izquierdo o síntomas atribuibles al shunt, siempre que no haya enfermedad vascular pulmonar avanzada.',
+    notas: [
+      'Con shunt neto invertido —Qp/Qs menor que 1— el cierre está contraindicado: primero hay que establecer la operabilidad.',
+      'Esta app no registra la dirección del shunt de la CIV, así que la contraindicación se apoya sólo en el Qp/Qs.',
+      '«Sobrecarga de volumen sin otra causa» es parte del criterio de la guía, y un ecocardiograma no excluye las otras causas de ventrículo izquierdo dilatado.',
+      'El Qp/Qs es el del shunt del estudio: cuando hay más de un defecto con datos la app no se lo atribuye a ninguno, y la fila lo dice.'
+    ] };
+}
+
 const IND_SECS = [
   { tit:'Estenosis aórtica',                     fn:_indEA },
   { tit:'Insuficiencia mitral primaria',         fn:_indIM },
   { tit:'Estenosis mitral',                      fn:_indEM },
   { tit:'Insuficiencia aórtica',                 fn:_indIA },
+  { tit:'Válvula tricúspide',                    fn:_indVT },
+  { tit:'Estenosis pulmonar',                    fn:_indEP },
   { tit:'Comunicación interauricular',           fn:_indCIA },
+  { tit:'Comunicación interventricular',         fn:_indCIV },
+  { tit:'Ductus arterioso permeable',            fn:_indDAP },
   { tit:'Coartación de aorta',                   fn:_indCoAo },
   { tit:'Foramen oval permeable',                fn:_indFOP },
   { tit:'Miocardiopatía hipertrófica obstructiva', fn:_indMCH },
@@ -69822,14 +70143,22 @@ function _ciaConducta(i) {
    salvedad de las dos superficies en vez de simularse con otro campo.
    «Sin otra causa» del criterio de dilatación tampoco es computable desde estos campos: un
    ecocardiograma no excluye las otras causas de VI dilatado. También va en la salvedad. */
+/* Los dos umbrales de la cascada, extraídos a constantes y EXPORTADOS. La conducta la sigue
+   decidiendo esta función y no se duplicó ninguna rama; lo que se evita es que el panel de
+   Indicaciones —que necesita nombrar los mismos números en pantalla— los escriba por su cuenta.
+   Dos literales iguales en dos superficies se desincronizan en la primera corrección. Los valores
+   son exactamente los que ya tenía la cascada. */
+const CIV_QPQS_CIERRE     = 1.5;   // Qp/Qs ≥ 1,5 → cierre indicado (ESC 2023 GUCH)
+const CIV_DDVI_IDX_CIERRE = 32;    // mm/m² — DDVI indexado > 32 → cierre indicado
 function _civConducta(i) {
   const q = _ccQpQsAtrib(i);
   if (q !== null && q < 1) return 'contra';
   const d = _ccDdviIdx(i);
-  if ((q !== null && q >= 1.5) || (d !== null && d > 32)) return 'cierre';
-  if (q !== null && q < 1.5 && d !== null && d <= 32) return 'exp';
+  if ((q !== null && q >= CIV_QPQS_CIERRE) || (d !== null && d > CIV_DDVI_IDX_CIERRE)) return 'cierre';
+  if (q !== null && q < CIV_QPQS_CIERRE && d !== null && d <= CIV_DDVI_IDX_CIERRE) return 'exp';
   return null;
 }
+window.CIV_QPQS_CIERRE = CIV_QPQS_CIERRE; window.CIV_DDVI_IDX_CIERRE = CIV_DDVI_IDX_CIERRE;
 /* Las filas de las dos tablas, con su criterio y su guía. Una sola lista por defecto: el PDF y
    el PPT la recorren igual, así que no pueden mostrar conductas distintas ni criterios distintos
    para la misma conducta. El orden es el de la cascada. */
@@ -69847,6 +70176,11 @@ const CIV_CONDUCTAS = [
   { k:'exp',    lbl:'Conducta expectante',   crit:'Qp/Qs < 1,5 sin dilatacion del VI (ESC 2023 GUCH)' },
   { k:'nc',     lbl:'No clasificable',       crit:'Sin Qp/Qs atribuible ni DDVI indexado calculable' }
 ];
+/* Exportadas para que el panel de Indicaciones imprima el MISMO criterio que la tarjeta, el PDF
+   y el PPT. Es un `const` de nivel superior, así que sin esta línea `window.CIV_CONDUCTAS` es
+   `undefined` y el panel no la alcanza —a diferencia de las declaraciones de función, que sí
+   quedan en `window` solas—. */
+window.CIA_CONDUCTAS = CIA_CONDUCTAS; window.CIV_CONDUCTAS = CIV_CONDUCTAS;
 const CIA_TIPOS_LBL = { secundum:'Ostium secundum', primum:'Ostium primum',
   sv_vcs:'Seno venoso VCS', sv_vci:'Seno venoso VCI', seno_coronario:'Seno coronario' };
 const CIV_TIPOS_LBL = { perimembranosa:'Perimembranosa', muscular:'Muscular',
@@ -76477,8 +76811,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260926-0221';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790400068153;                 /* eco-build-ms */
+const ECO_BUILD    = '20260926-1223';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790436188241;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -76564,7 +76898,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260926-0221</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260926-1223</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
