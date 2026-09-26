@@ -41359,13 +41359,24 @@ async function importEjecutar() {
   importCerrar();
   const ok = await _pImp;              // no anunciar la importación sin confirmarla
   if (ok === false) return;
-  /* ⚠️ AMBIGUO, DECLARADO Y NO DECIDIDO: acá se repinta SIN los filtros clínicos ni los
-     avanzados, que es lo que hacía antes y se conserva. Los dos lados tienen argumento y ninguno
-     es obviamente el bueno: el médico acaba de importar y quiere ver que los estudios llegaron
-     —con un filtro puesto la lista puede salir vacía justo después de «se importaron 12»—, pero
-     tirarle el filtro sin avisar es exactamente el defecto que se corrigió en los otros seis
-     llamadores. Queda para que lo decida Maicol; cambiar a `renderInformesGuardados()` es la
-     única línea que hay que tocar. */
+  /* ⚠️ IMPORTAR IGNORA LOS FILTROS CLÍNICOS, al revés que los otros siete llamadores de esta
+     lista. Decisión de Maicol (2026-09-25): importar NO es una acción dentro de la navegación
+     filtrada —como borrar un estudio, donde tirarle el filtro al médico que está recorriendo la
+     lista es el defecto— sino un evento que trae datos nuevos, así que primero se ve el resultado.
+     Por eso llama a `igRepintarTodoSinFiltrar()`: la excepción dice su nombre.
+
+     ⚠️ PERO NO MUESTRA «TODO»: `igFiltrar` RELEE CUATRO CONTROLES. Ignora los selects clínicos y
+     los siete avanzados, y **sigue aplicando** el buscador, las dos fechas y el antecedente.
+     Medido sobre una cohorte de cinco:
+       · con `filtro-fevi = lt40`   →  tras importar se ven 5 de 5   (se ignora)
+       · con el buscador «Perez»    →  tras importar se ven 2 de 5   (SIGUE filtrando)
+       · con `ig-fecha-desde`       →  tras importar se ven 2 de 5   (SIGUE filtrando)
+     O sea que con un término en el buscador el toast puede decir «12 importados» y la lista no
+     mostrar ninguno. Tampoco se LIMPIA ningún control: los selects clínicos quedan a la vista con
+     su valor puesto mientras el contador dice «Mostrando 17 de 17» — la misma contradicción que
+     el arreglo de los otros siete vino a eliminar, acá conservada a propósito.
+     Queda declarado y NO resuelto: el aviso de «cuántos quedan fuera» se descartó cuando se creía
+     que no quedaba nada fuera, y esa premisa era falsa. Lo cazó `/sharp-edges`. */
   if (typeof igRepintarTodoSinFiltrar === 'function') igRepintarTodoSinFiltrar();
   /* Los medios van DESPUÉS de que los estudios estén guardados: si la escritura de la lista
      falla, no se escriben cientos de MB de imágenes bajo uuid de fichas que no existen. */
@@ -64793,13 +64804,24 @@ async function labImpEjecutar() {
   labImpCerrar();
   const ok = await _p;                    // no anunciar la importación sin confirmarla
   if (ok === false) return;
-  /* ⚠️ AMBIGUO, DECLARADO Y NO DECIDIDO: acá se repinta SIN los filtros clínicos ni los
-     avanzados, que es lo que hacía antes y se conserva. Los dos lados tienen argumento y ninguno
-     es obviamente el bueno: el médico acaba de importar y quiere ver que los estudios llegaron
-     —con un filtro puesto la lista puede salir vacía justo después de «se importaron 12»—, pero
-     tirarle el filtro sin avisar es exactamente el defecto que se corrigió en los otros seis
-     llamadores. Queda para que lo decida Maicol; cambiar a `renderInformesGuardados()` es la
-     única línea que hay que tocar. */
+  /* ⚠️ IMPORTAR IGNORA LOS FILTROS CLÍNICOS, al revés que los otros siete llamadores de esta
+     lista. Decisión de Maicol (2026-09-25): importar NO es una acción dentro de la navegación
+     filtrada —como borrar un estudio, donde tirarle el filtro al médico que está recorriendo la
+     lista es el defecto— sino un evento que trae datos nuevos, así que primero se ve el resultado.
+     Por eso llama a `igRepintarTodoSinFiltrar()`: la excepción dice su nombre.
+
+     ⚠️ PERO NO MUESTRA «TODO»: `igFiltrar` RELEE CUATRO CONTROLES. Ignora los selects clínicos y
+     los siete avanzados, y **sigue aplicando** el buscador, las dos fechas y el antecedente.
+     Medido sobre una cohorte de cinco:
+       · con `filtro-fevi = lt40`   →  tras importar se ven 5 de 5   (se ignora)
+       · con el buscador «Perez»    →  tras importar se ven 2 de 5   (SIGUE filtrando)
+       · con `ig-fecha-desde`       →  tras importar se ven 2 de 5   (SIGUE filtrando)
+     O sea que con un término en el buscador el toast puede decir «12 importados» y la lista no
+     mostrar ninguno. Tampoco se LIMPIA ningún control: los selects clínicos quedan a la vista con
+     su valor puesto mientras el contador dice «Mostrando 17 de 17» — la misma contradicción que
+     el arreglo de los otros siete vino a eliminar, acá conservada a propósito.
+     Queda declarado y NO resuelto: el aviso de «cuántos quedan fuera» se descartó cuando se creía
+     que no quedaba nada fuera, y esa premisa era falsa. Lo cazó `/sharp-edges`. */
   if (typeof igRepintarTodoSinFiltrar === 'function') igRepintarTodoSinFiltrar();
   if (typeof labInit === 'function') labInit();
   /* El Laboratorio filtra por período (365 días por defecto). Importar un histórico viejo
@@ -66428,13 +66450,24 @@ async function dcmImpEjecutar() {
   dcmImpCerrar();
   const ok = await _p;
   if (ok === false) return;                       // guardarInformesSeguro ya avisó de la cuota
-  /* ⚠️ AMBIGUO, DECLARADO Y NO DECIDIDO: acá se repinta SIN los filtros clínicos ni los
-     avanzados, que es lo que hacía antes y se conserva. Los dos lados tienen argumento y ninguno
-     es obviamente el bueno: el médico acaba de importar y quiere ver que los estudios llegaron
-     —con un filtro puesto la lista puede salir vacía justo después de «se importaron 12»—, pero
-     tirarle el filtro sin avisar es exactamente el defecto que se corrigió en los otros seis
-     llamadores. Queda para que lo decida Maicol; cambiar a `renderInformesGuardados()` es la
-     única línea que hay que tocar. */
+  /* ⚠️ IMPORTAR IGNORA LOS FILTROS CLÍNICOS, al revés que los otros siete llamadores de esta
+     lista. Decisión de Maicol (2026-09-25): importar NO es una acción dentro de la navegación
+     filtrada —como borrar un estudio, donde tirarle el filtro al médico que está recorriendo la
+     lista es el defecto— sino un evento que trae datos nuevos, así que primero se ve el resultado.
+     Por eso llama a `igRepintarTodoSinFiltrar()`: la excepción dice su nombre.
+
+     ⚠️ PERO NO MUESTRA «TODO»: `igFiltrar` RELEE CUATRO CONTROLES. Ignora los selects clínicos y
+     los siete avanzados, y **sigue aplicando** el buscador, las dos fechas y el antecedente.
+     Medido sobre una cohorte de cinco:
+       · con `filtro-fevi = lt40`   →  tras importar se ven 5 de 5   (se ignora)
+       · con el buscador «Perez»    →  tras importar se ven 2 de 5   (SIGUE filtrando)
+       · con `ig-fecha-desde`       →  tras importar se ven 2 de 5   (SIGUE filtrando)
+     O sea que con un término en el buscador el toast puede decir «12 importados» y la lista no
+     mostrar ninguno. Tampoco se LIMPIA ningún control: los selects clínicos quedan a la vista con
+     su valor puesto mientras el contador dice «Mostrando 17 de 17» — la misma contradicción que
+     el arreglo de los otros siete vino a eliminar, acá conservada a propósito.
+     Queda declarado y NO resuelto: el aviso de «cuántos quedan fuera» se descartó cuando se creía
+     que no quedaba nada fuera, y esa premisa era falsa. Lo cazó `/sharp-edges`. */
   if (typeof igRepintarTodoSinFiltrar === 'function') igRepintarTodoSinFiltrar();
   if (typeof labInit === 'function') labInit();
   /* El origen y el equipo van en el aviso porque el archivo ya se cerró: si el número de
@@ -76018,7 +76051,16 @@ function asocInfoToggle() {
 window.asocInfoToggle = asocInfoToggle;
 
 function renderizarListaFiltrada(lista) {
-  window._ettInformesFiltrados = lista;
+  /* ⚠️ ACÁ VIVÍA `window._ettInformesFiltrados = lista`, y se sacó (2026-09-25). Era la ÚNICA
+     aparición del identificador en todo el archivo —cero lectores, verificado también contra
+     accesos dinámicos y contra el resto de la suite— y retenía los objetos de estudio vivos, o
+     sea nombre y documento de cada paciente listado, sin que `cerrarSesion` los soltara.
+     Mientras se escribía sólo al mover un filtro pasaba desapercibido; al delegar el repintado
+     en `aplicarFiltros` pasó a escribirse en cada borrado, en cada entrada a Guardados y en
+     `labStrainAbrir`, o sea casi siempre. Es el patrón que este archivo ya marca para
+     `_orthEstudios`: dato identificatorio vivo en memoria sin propósito. Lo cazó `/sharp-edges`.
+     Si alguna vez hace falta saber qué hay en pantalla, existe `igListaEnPantalla()`, que resuelve
+     los ids contra la base viva en vez de retener objetos. */
   // Una sola función pinta: agrupa por mes, numera y actualiza el contador.
   if (document.getElementById('ig-lista')) { igPintar(lista); return; }
   // EcoSmart no tiene renderInformes/cargarInformes; render directo en #ig-lista
@@ -76209,8 +76251,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260925-2115';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790381750576;                 /* eco-build-ms */
+const ECO_BUILD    = '20260925-2201';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790384471331;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -76296,7 +76338,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-2115</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260925-2201</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

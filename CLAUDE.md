@@ -39,12 +39,45 @@ Y se perdía **en silencio con los controles todavía puestos**: la pantalla dec
 | `limpiarTodosInformes` | borrar todos | **preserva** — la lista queda vacía igual |
 | `labStrainAbrir` | abrir un estudio del Laboratorio | **preserva** — el repintado es incidental |
 | `filtrarInformes` (rama `else`) | respaldo si no hay `aplicarFiltros` | **ya estaba bien**, no se tocó |
-| `importEjecutar` · `labImpEjecutar` · `dcmImpEjecutar` | importar | **AMBIGUO — declarado, no decidido** |
+| `importEjecutar` · `labImpEjecutar` · `dcmImpEjecutar` | importar | **limpia el filtro, a propósito** |
 
-**Las tres importaciones conservan EXACTAMENTE su conducta.** Los dos lados tienen argumento: el
-médico acaba de importar y quiere ver que llegaron —con un filtro puesto la lista puede salir
-vacía justo después de «se importaron 12»— pero tirarle el filtro sin avisar es el defecto que se
-corrigió en los otros seis. Queda para Maicol; cambiarlas es una línea cada una.
+### ⚠️ IMPORTAR IGNORA LOS CLÍNICOS — pero NO muestra «todo», y esa premisa era falsa
+
+Decisión de Maicol (2026-09-25): **importar no es una acción dentro de la navegación filtrada**
+—como borrar un estudio, donde tirarle el filtro al médico que está recorriendo la lista es el
+defecto— **sino un evento que trae datos nuevos**. Por eso llaman a `igRepintarTodoSinFiltrar()`.
+
+**⚠️ PERO NO MUESTRA TODO, Y EL COMENTARIO LLEGÓ A AFIRMAR QUE SÍ.** `igRepintarTodoSinFiltrar` es
+`igPintar(igFiltrar(null))`, y `igFiltrar` **relee cuatro controles**. Medido sobre cinco:
+
+| filtro activo al importar | se ven |
+|---|---|
+| `filtro-fevi = lt40` | **5 de 5** — se ignora |
+| buscador «Perez» | **2 de 5** — SIGUE filtrando |
+| `ig-fecha-desde` | **2 de 5** — SIGUE filtrando |
+
+Con un término en el buscador, el toast puede decir «12 importados» y la lista **no mostrar
+ninguno**. Y no se LIMPIA ningún control: los selects clínicos quedan a la vista con su valor
+puesto mientras el contador dice «Mostrando 17 de 17» — la misma contradicción que el arreglo de
+los otros siete vino a eliminar, acá conservada a propósito y ahora declarada.
+
+**El aviso de «cuántos quedan fuera» se descartó creyendo que no quedaba nada fuera**, y esa
+premisa era falsa. Queda abierto para los cuatro que sí filtran.
+
+**El caso no lo cazaba porque medía con el filtro equivocado**: `filtro-fevi`, que `igFiltrar`
+**no lee**, daba 2→5 y confirmaba la afirmación falsa. Hoy TC-266 mide también con el buscador y
+con las fechas. **Al probar un «no filtra», elegir un filtro que la función SÍ pueda aplicar.**
+
+**Son SIETE los que preservan el filtro**, no seis: los seis corregidos más la rama `else` de
+`filtrarInformes`, que ya estaba bien.
+
+**⚠️ `labImpEjecutar` NO importa desde el Laboratorio.** El nombre engaña y costó una vuelta. El
+«lab» es el **formato**, no el origen: es la planilla que produce el Laboratorio
+(`labPlantillaXLSX` / `labExportarXLSX`). El flujo real es **Guardados → Exportar/Importar →
+Importar → 📊 Excel**, que dispara el `<input type="file" id="lab-import-xlsx">` que vive en el
+marcado de **Guardados**. El Laboratorio es dueño del esquema de columnas, no fuente de datos:
+exporta el Excel, el médico lo edita afuera, y se reimporta por Guardados. Los tres importadores
+son hermanos del mismo menú — JSON, Excel y DICOM SR.
 
 ### El cuerpo viejo tiene NOMBRE PROPIO, y eso es la mitad del arreglo
 
@@ -81,9 +114,13 @@ presente llama a `igPintar` y no vuelve.
   filtros clínicos puestos el Excel sale con **más** estudios que la pantalla. Hoy es
   prácticamente inalcanzable: los selects llevan `onchange="aplicarFiltros()"`, así que ponerlos
   ya pinta y `_igPintadosIds` deja de ser null.
-- **`window._ettInformesFiltrados` no tiene un solo lector** en todo el archivo, retiene objetos de
-  estudio vivos —con nombre y documento— y `cerrarSesion` no lo limpia. Este cambio lo hace
-  escribirse en muchos más caminos. Es el patrón que ya está marcado para `_orthEstudios`.
+- ~~**`window._ettInformesFiltrados`**~~ — **ELIMINADO (2026-09-25).** No tenía un solo lector,
+  retenía objetos de estudio vivos —con nombre y documento— y `cerrarSesion` no lo limpiaba; el
+  cambio de esta ronda lo hacía escribirse en casi todos los caminos. Verificado antes de sacarlo:
+  una sola aparición literal, cero accesos dinámicos (`window['_ett…']`, `Object.keys(window)`,
+  `for…in`), nada en el resto de la suite. Para contraste, sus hermanos sí se leen —`_ettEditandoId`
+  diez veces, `_ettNumId` dos—. Si alguna vez hace falta saber qué hay en pantalla está
+  `igListaEnPantalla()`, que resuelve ids contra la base viva en vez de retener objetos.
 - **`labStrainAbrir` repinta y acto seguido esconde la lista**, así que ese repintado no lo mira
   nadie. El detalle abre igual aunque el filtro oculte el estudio —`verDetalleInforme` resuelve
   por id contra `getInformes()`, verificado—; la molestia es al volver a la lista. Ya pasaba con
@@ -94,6 +131,13 @@ presente llama a `igPintar` y no vuelve.
 **Los `id` que se siembran no sobreviven a `CeiboStore.setLocal`**: los reasigna (`_sanearIds`).
 Borrar por el id inventado no encontraba nada, el estudio seguía ahí y el caso daba rojo culpando
 al filtro. Hay que resolver contra la base viva —por nombre— después de escribir.
+
+**La condición que lee el código fuente de los importadores se acusaba a sí misma.**
+`Function.prototype.toString()` devuelve los comentarios, y el comentario que declara la decisión
+nombra a `renderInformesGuardados()`. Limpiarlos con `new RegExp` fue peor: el escape se pierde
+dentro del template literal del caso, el constructor lanza, el `catch` devuelve cadena vacía y las
+tres dan rojo **sobre código correcto**. Se resuelve buscando la llamada **con punto y coma**, que
+el comentario no lleva. Regla: dentro de un `caso()`, nada de `RegExp` si se puede evitar.
 
 ---
 

@@ -10099,6 +10099,7 @@ caso('TC-257', 'Cajon 2D de Distancia: cinco grupos, el Diam TSVI alimenta el AV
 
 
 
+
 caso('TC-266', 'Repintar la lista de Guardados no tira los filtros que el medico tiene puestos', `
   return (async () => {
     if (typeof renderInformesGuardados !== 'function' || typeof aplicarFiltros !== 'function')
@@ -10211,6 +10212,62 @@ caso('TC-266', 'Repintar la lista de Guardados no tira los filtros que el medico
       const repintaIgual = !explotoArriba && trasExplotar === 5;
       const avisaDeLaDegradacion = _toasts > 0;
 
+      /* ── LOS TRES IMPORTADORES LIMPIAN EL FILTRO, Y ESO ES DELIBERADO ──
+         Decision de Maicol: importar no es una accion dentro de la navegacion filtrada sino un
+         evento que trae datos nuevos, asi que primero se ve el resultado completo. Se comprueba
+         en el CODIGO de cada uno —no en un comentario— porque el defecto que esto evita es que
+         alguien los cambie a 'renderInformesGuardados()' creyendo que unifica. */
+      /* ⚠️ SE BUSCA LA LLAMADA CON PUNTO Y COMA, y eso resuelve dos trampas de una.
+         'Function.prototype.toString()' devuelve el codigo FUENTE con comentarios, y el comentario
+         que declara la decision nombra a renderInformesGuardados sin parentesis-punto-y-coma: asi
+         que buscar el nombre pelado hacia que el caso se acusara a si mismo. Y limpiar comentarios
+         con 'new RegExp' fallaba por el escape dentro del template literal del caso —lanzaba, el
+         catch devolvia cadena vacia, y las tres daban rojo sobre codigo correcto—. La llamada real
+         lleva punto y coma; el comentario no. */
+      const fuente = f => { try { return String(f); } catch (e) { return ''; } };
+      const _diag = [];
+      const imports = { importEjecutar: window.importEjecutar,
+                        labImpEjecutar: window.labImpEjecutar,
+                        dcmImpEjecutar: window.dcmImpEjecutar };
+      const malos = Object.keys(imports).filter(k => {
+        const src = fuente(imports[k]);
+        if (!src) return true;                                  // no existe: tambien es rojo
+        const bien = src.indexOf('igRepintarTodoSinFiltrar();') > -1;
+        const mal  = src.indexOf('renderInformesGuardados();') > -1;
+        _diag.push(k + ':' + (bien ? 'sinFiltros' : 'NO') + (mal ? '+conFiltros' : ''));
+        return !bien || mal;
+      });
+      /* Y la salida sin filtros tiene que seguir ignorandolos de verdad: si alguien la volviera
+         un alias de la otra, los tres importadores cambiarian de conducta sin tocarlos. */
+      limpiar(); set('filtro-fevi','lt40'); aplicarFiltros();
+      await new Promise(r => setTimeout(r, 150));
+      const antesImp2 = cuenta();
+      igRepintarTodoSinFiltrar(); await new Promise(r => setTimeout(r, 150));
+      const importarMuestraTodo = antesImp2 === 2 && cuenta() === 5;
+      /* ⚠️ Y LO QUE **NO** IGNORA, QUE ES LA MITAD QUE FALTABA. La condicion de arriba solo pone
+         'filtro-fevi', que 'igFiltrar' NO lee, asi que media 2→5 y daba por bueno un comentario
+         que afirmaba «no hay nada que quede fuera». Con el buscador puesto la cuenta NO se mueve:
+         el buscador, las dos fechas y el antecedente SIGUEN filtrando despues de importar, asi
+         que el toast puede decir «12 importados» y la lista no mostrar ninguno. Se fija el
+         comportamiento REAL, no el que se creia. Lo cazo '/sharp-edges'. */
+      limpiar(); set('ig-buscar','Uno'); aplicarFiltros();
+      await new Promise(r => setTimeout(r, 150));
+      const busAntesImp = cuenta();
+      igRepintarTodoSinFiltrar(); await new Promise(r => setTimeout(r, 150));
+      const buscadorSigueFiltrandoTrasImportar = busAntesImp === 1 && cuenta() === 1;
+      limpiar(); set('ig-fecha-desde','2026-09-04'); aplicarFiltros();
+      await new Promise(r => setTimeout(r, 150));
+      const fecAntesImp = cuenta();
+      igRepintarTodoSinFiltrar(); await new Promise(r => setTimeout(r, 150));
+      const fechaSigueFiltrandoTrasImportar = fecAntesImp === 2 && cuenta() === 2;
+
+      /* ── EL GLOBAL CON DATOS DE PACIENTE YA NO EXISTE ──
+         Retenia nombre y documento de cada estudio listado, sin un solo lector, y desde que el
+         repintado delega se escribia casi siempre. */
+      limpiar(); aplicarFiltros(); await new Promise(r => setTimeout(r, 150));
+      renderInformesGuardados(); await new Promise(r => setTimeout(r, 150));
+      const sinGlobal = typeof window._ettInformesFiltrados === 'undefined';
+
       /* ── Y EL CONTADOR NO SE CONTRADICE CON LOS CONTROLES ── era la mitad muda del defecto:
          el select decia «FEVI < 40» y el contador «Mostrando 5 de 5». */
       limpiar(); set('filtro-fevi','lt40'); aplicarFiltros();
@@ -10237,6 +10294,15 @@ caso('TC-266', 'Repintar la lista de Guardados no tira los filtros que el medico
         ['si el filtro EXPLOTA, la lista igual se repinta', repintaIgual,
           'exploto hacia arriba=' + explotoArriba + ' items=' + trasExplotar],
         ['  y la degradacion se avisa, no es muda', avisaDeLaDegradacion, 'toasts=' + _toasts],
+        ['los TRES importadores usan la salida sin filtros, y ninguno la otra', malos.length === 0,
+          (malos.length ? malos.join(', ') : 'ok') + ' || ' + _diag.join(' | ')],
+        ['  esa salida ignora los filtros CLINICOS', importarMuestraTodo,
+          'antes=' + antesImp2 + ' despues=5'],
+        ['  pero NO el buscador: sigue filtrando tras importar', buscadorSigueFiltrandoTrasImportar,
+          'antes=' + busAntesImp + ' despues=' + busAntesImp],
+        ['  ni las fechas', fechaSigueFiltrandoTrasImportar, 'antes=' + fecAntesImp],
+        ['window._ettInformesFiltrados YA NO SE ESCRIBE', sinGlobal,
+          'typeof=' + (typeof window._ettInformesFiltrados)],
         ['el contador NO se contradice con los controles', contadorCoherente,
           contador() + ' con filtro-fevi=' + (document.getElementById('filtro-fevi')||{}).value]
       ] };
