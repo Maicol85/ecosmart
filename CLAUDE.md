@@ -4,6 +4,105 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## VSFVI: el campo que faltaba, y el criterio que dejó de ser inevaluable (2026-09-26)
+
+Volumen telesistólico del VI (`vsfvi`) en AI/VI, su indexado por superficie corporal, la fila en
+el PDF y la conexión con el criterio de Clase IIb de la insuficiencia aórtica. **VDFVI no se tocó.**
+
+### La búsqueda de la sesión anterior había fallado, y la conclusión igual se sostenía
+
+La entrada de la IAo decía «no existe campo de volumen telesistólico». **`vdfvi` SÍ existía** y no
+apareció porque se buscó por la subcadena `vol` —`id="[a-z_]*vol[a-z_]*"`— y `vdfvi` no la tiene.
+Lo que de verdad no existía era el TELESISTÓLICO, que es el que pide la guía, así que la conclusión
+no cambia. **Al censar un campo, buscar por el nombre clínico Y por la abreviatura**, que en este
+archivo casi nunca comparten letras.
+
+### La banda de plausibilidad no es opcional: es el interruptor
+
+`leer()` de `_indIADatos` devuelve `sinBanda:true` cuando el campo no tiene entrada en la tabla de
+rangos, y eso deja el criterio en `null` **para siempre**. O sea: conectar `vsfvi` sin agregarlo a
+`DCM_RANGO` habría dejado la conexión **existiendo y sin hacer nada**, indistinguible de «el médico
+no lo cargó». Es el modo de falla silencioso del diseño que se eligió la sesión pasada, y ahora
+está dicho en el código.
+
+La banda es `[3,500]`: por abajo atrapa el volumen tipeado en litros y por arriba un cero de más.
+**No atrapa un 450 por 45**, porque un telesistólico de 450 ml es real en una dilatada terminal —
+la misma limitación honesta que la superficie corporal.
+
+### «Sin criterio» pasó a ser alcanzable, y esa es la mitad del cambio
+
+Los tres disparadores de la fila IIb se unen con «o». Mientras el volumen no se podía medir, la
+rama muerta devolvía **siempre** `falta`. Ahora tiene dos salidas: con el volumen **medido y por
+debajo del corte** los tres quedaron evaluados y «sin criterio» es una conclusión legítima; **sin
+el volumen, todo sigue igual**. La condición es `volSinMirar`, NO «existe el campo»: que el dato
+exista no es que esté siempre.
+
+### Los dos 45 no son el mismo número
+
+`vsfviInterp` usa 45 como techo de «moderadamente dilatado» **del varón** (ASE 2015; la mujer
+tiene 40) y `IA_CRIT_2025.vtsvi_idx` usa 45 como umbral de **intervención** de la ESC, sin
+distinguir sexo. Dígitos iguales, derivaciones sin relación. **Para una mujer el corte de la ESC
+cae por ENCIMA de su banda severa.** No unificarlos ni hacer que uno lea del otro: mover un umbral
+de guía cambiaría la clasificación de normalidad. TC-279 ejerce ese escenario por los dos lados.
+
+Los cortes ASE salen del documento primario (Lang RM, *J Am Soc Echocardiogr* 2015;28:1-39, Tabla 2
+y Tabla suplementaria 3): varón normal ≤ 31 · leve 32-38 · moderado 39-45 · severo > 45; mujer
+≤ 24 · 25-32 · 33-40 · > 40. El límite superior lo imprime la propia recomendación destacada.
+
+### Lo que encontró `/sharp-edges`
+
+- **El aviso le prestaba a un valor el peso de otro.** Decía «es lo que sostiene los criterios de
+  Clase I» sobre un VSFVI ilegible, cuando el volumen sostiene **sólo** la fila IIb: mandaba a
+  desconfiar de tres criterios perfectamente medidos. Hoy cada valor nombra lo suyo.
+- **La tarjeta podía imprimir «45,0» y decir «> 45» sobre el mismo número.** Se clasificaba el
+  indexado CRUDO y se imprimía redondeado: ventana `[45,00 ; 45,05)`, alcanzable con vsfvi 90,
+  peso 80 y talla 179,9. Se clasifica **el valor que se imprime**, que es la regla que el archivo
+  ya aplica en `calcGeometriaVI`. **El DTSVI indexado tiene la misma asimetría y es preexistente.**
+- **`sinBanda` no tenía rama** en el aviso del volumen y caía en «no lo trae cargado» sobre un
+  campo lleno, mientras la fila de la tabla decía correctamente «banda no disponible».
+- Y un comentario que seguía afirmando que la app no podía mirar el criterio, cuatro líneas arriba
+  del comentario que explica que ahora sí.
+
+### Deuda declarada, no disimulada
+
+- **`calcVI` y el PDF no validan plausibilidad.** Un `vsfvi` de 0,06 pinta **🟢 normal** en pantalla
+  e imprime `0.0 ml/m²` en el informe firmado, mientras el panel dice «fuera de rango medible».
+  **Toda la tabla se comporta así** (`DSVI`, `DDVI`, `PP`, y el propio VDFVI), o sea que es el
+  contrato preexistente de `drawTablaCompacta` y del `calc-box`, no algo que trajo este campo.
+  Arreglar sólo el VSFVI lo desalinearía de su gemelo.
+- **No llega al Laboratorio.** `vsfvi` no está en `LAB_XLS_MAP` ni en `_IG_SECTIONS` — igual que
+  `vdfvi` crudo, verificado. La asimetría real es que VDFVI tiene columna calculada `VDFVI idx` en
+  el Excel y VSFVI no, así que el filtro de cohorte no puede ver este criterio.
+
+### Las trampas de los casos
+
+- **TC-277 se puso ROJO y estaba bien que se pusiera.** Afirmaba «declara que la app no lo calcula»,
+  que es justo la conducta que este cambio deroga. Se reescribió para fijar el invariante que SÍ
+  sobrevive —sin el dato la fila es ❓ y no niega— en vez de mantener la afirmación vieja: un caso
+  que fija una decisión derogada empuja hacia ella el día que alguien «lo arregle».
+- **`vsfvi` entró a `IA_IDS`.** Sin eso, TC-279 lo dejaba cargado y los escenarios de TC-277 que
+  esperan «falta el volumen» pasaban a evaluarlo — rojo intermitente según el orden de los casos.
+- **Tres mutaciones sobrevivieron y las tres enseñaron algo.** Indexar por `(bsa || 1)` en vez de
+  negarse publicaba una Clase IIb sobre un paciente sin peso ni talla, y el caso miraba el guion de
+  PANTALLA, que lo pone otra guarda; mover el rango del PDF no ponía nada en rojo porque ninguna
+  condición leía el PDF; y volver a clasificar el crudo pasaba porque ningún escenario caía dentro
+  de la ventana de cinco milésimas.
+- **La aserción del PDF une TRES cadenas del content stream**, no dos: `drawTablaCompacta` pasa el
+  sufijo por `splitTextToSize`, y el `ref` nuevo es cuatro caracteres más largo que el de VDFVI.
+  Y espera a que jsPDF llegue por CDN, si no es rojo intermitente por la red.
+- **Acentos graves: SEXTA y séptima vez en el proyecto.** Las dos en comentarios recién escritos
+  dentro de cuerpos de caso. El barrido antes de `node --check` los encuentra; `node --check`
+  apunta a la línea del `caso(`, que no es la culpable.
+
+### La línea base de esta ronda
+
+**Suite 293/294** — el único rojo es TC-223, el documentado. **Semgrep 127 / 0 ERROR, y el +1 está
+explicado**: es `vsfviEl.innerHTML`, la misma forma byte a byte que el VDFVI de dos líneas arriba,
+con un `toFixed(1)` y literales de este archivo como únicos insumos. Mismo falso positivo que los
+81 de esa regla. Sin huérfanos nuevos. `check_mobile` en los 2 ALTA de siempre.
+**Quince mutaciones, quince en rojo, base verde leída primero en cada tanda.**
+
+
 ## Insuficiencia aórtica: la tercera sección contestable, y los tres cortes NO habían cambiado (2026-09-26)
 
 Mismo mecanismo que la EAo, sin inventar uno nuevo. **Las otras once no se tocaron.**

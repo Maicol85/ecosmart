@@ -2664,6 +2664,17 @@ window.cerrarSesionReal = cerrarSesionReal;
           <label>VDFVI (ml)</label>
           <input type="number" id="vdfvi" placeholder="ml" oninput="calcVI()">
         </div>
+        <!-- ⚠️ VA PEGADO A SU PAR Y NO «DEBAJO DEL SGL», QUE ES DONDE LO PEDÍA EL PROMPT.
+             En un `grid-4` «debajo de X» no es la celda siguiente sino la de cuatro después, y
+             con el `fevi-hasta-wrap` oculto de por medio la posición se corre sola según el
+             viewport: no hay una celda estable «debajo del SGL» que se pueda nombrar. Lo que sí
+             es estable es que el volumen telediastólico y el telesistólico son un par y se leen
+             juntos. Misma decisión para su indexado, que va al lado del de VDFVI en el
+             `calc-box` — ahí es donde vive TODO lo calculado, no en la grilla de entradas. -->
+        <div class="fg">
+          <label>VSFVI (ml)</label>
+          <input type="number" id="vsfvi" placeholder="ml" oninput="calcVI()">
+        </div>
       </div>
       <div class="calc-box">
         <div class="calc-row">
@@ -2677,6 +2688,10 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="calc-row">
           <span class="calc-lbl">VDFVI indexado (ml/m²)</span>
           <span id="vdfvi-idx-interp">—</span>
+        </div>
+        <div class="calc-row">
+          <span class="calc-lbl">VSFVI indexado (ml/m²)</span>
+          <span id="vsfvi-idx-interp">—</span>
         </div>
         <div class="calc-row">
           <span class="calc-lbl">RWT</span>
@@ -16510,6 +16525,30 @@ function vdfviInterp(idx, sexo) {
   return {txt:'normal', cls:'green'};
 }
 
+/* Interpretación de VSFVI indexado — MISMA estructura y misma fuente que `vdfviInterp`.
+   ASE/EACVI 2015 (Lang RM et al., J Am Soc Echocardiogr 2015;28:1-39), Tabla 2 y Tabla
+   suplementaria 3, método biplano de discos. Los tres cortes son [normal, leve, moderado]:
+     varón  — normal 11-31 · leve 32-38 · moderado 39-45 · severo > 45
+     mujer  — normal  8-24 · leve 25-32 · moderado 33-40 · severo > 40
+   El límite superior de normalidad (31 y 24) es el que el propio documento imprime en su
+   recomendación destacada, así que no sale de una tabla suelta.
+
+   ⚠️ COLISIÓN DE DÍGITOS QUE NO ES UNA COINCIDENCIA ÚTIL: el 45 de acá es el techo de
+   «moderadamente dilatado» DEL VARÓN en la ASE, y el 45 del panel de Evidencia
+   (`IA_CRIT_2025.vtsvi_idx`) es el umbral de INTERVENCIÓN de la ESC/EACTS 2025 en la
+   insuficiencia aórtica. Mismos dígitos, derivaciones sin relación, y uno es por sexo y el otro
+   no —para una mujer el corte ESC de 45 cae por ENCIMA de su banda severa, que empieza en 40—.
+   No unificarlos ni hacer que uno lea del otro: son dos afirmaciones distintas sobre el mismo
+   número, y fundirlas haría que mover un umbral de guía cambie la clasificación de normalidad. */
+function vsfviInterp(idx, sexo) {
+  idx = PF(idx);
+  const c = sexo === 'F' ? [24,32,40] : [31,38,45];
+  if (idx > c[2]) return {txt:'severamente dilatado', cls:'red'};
+  if (idx > c[1]) return {txt:'moderadamente dilatado', cls:'orange'};
+  if (idx > c[0]) return {txt:'levemente dilatado', cls:'yellow'};
+  return {txt:'normal', cls:'green'};
+}
+
 function calcVI() {
   const dd = v('ddfvi'), ds = v('dsfvi'), siv = v('siv'), pp = v('ppvi'), fevi = v('fevi');
   const bsa = getBSA();
@@ -16565,6 +16604,24 @@ function calcVI() {
       vdfviEl.innerHTML = vidx + ' ml/m² ' + badge(it.cls, it.txt);
     } else {
       vdfviEl.textContent = '—';
+    }
+  }
+
+  /* VSFVI indexado — mismo mecanismo que el de arriba: misma `bsa` de `getBSA()`, mismo
+     `.toFixed(1)` y misma forma «valor + badge». Lo único propio son sus cortes.
+     Lo que este bloque NO hace es decidir nada del panel de Evidencia: allá el volumen se
+     vuelve a leer de `vsfvi` y se indexa con la misma `getBSA()`, contra el umbral de la ESC.
+     Son dos lecturas del mismo campo para dos preguntas distintas —«¿es normal?» y «¿alcanza el
+     criterio de intervención?»—, no una copia de la otra. */
+  const vsfvi = v('vsfvi');
+  const vsfviEl = document.getElementById('vsfvi-idx-interp');
+  if (vsfviEl) {
+    if (vsfvi && bsa) {
+      const sidx = (vsfvi / bsa).toFixed(1);
+      const its = vsfviInterp(sidx, sexo);
+      vsfviEl.innerHTML = sidx + ' ml/m² ' + badge(its.cls, its.txt);
+    } else {
+      vsfviEl.textContent = '—';
     }
   }
 
@@ -28198,6 +28255,9 @@ function generarPDFReal(_aj) {
   // VDFVI indexado
   const vdfviVal = v('vdfvi');
   const vdfviIdx = (vdfviVal && bsa) ? (vdfviVal / bsa).toFixed(1) + ' ml/m²' : null;
+  // VSFVI indexado — mismo cálculo y misma BSA que la fila de arriba
+  const vsfviVal = v('vsfvi');
+  const vsfviIdx = (vsfviVal && bsa) ? (vsfviVal / bsa).toFixed(1) + ' ml/m²' : null;
 
   // AI
   const aiIdx  = (v('ai_vol')&&bsa)?(v('ai_vol')/bsa).toFixed(1)+' ml/m2':null;
@@ -28945,6 +29005,13 @@ function generarPDFReal(_aj) {
       {lbl:'DSVI',      ref:'<40 mm',             val:ds  ?ds  +' mm':null},
       {lbl:'PP',        ref:'<13 mm',             val:pp  ?pp  +' mm':null},
       {lbl:'VDFVI idx', ref:'H<75 M<61 ml/m²',   val:vdfviIdx},
+      /* Límites superiores de normalidad de la ASE/EACVI 2015, que el documento imprime en su
+         recomendación destacada: 31 ml/m² en el varón y 24 en la mujer. Se escriben con `<=`
+         —y no «H<32 M<25»— porque es lo que dice la fuente; el `>=` de las filas de FEVI y FA
+         de esta misma tabla ya usa esa convención ASCII.
+         ⚠️ NO es el 45 ml/m² del panel de Evidencia: ése es el umbral de INTERVENCIÓN de la
+         ESC/EACTS 2025 para la insuficiencia aórtica, no un límite de normalidad. */
+      {lbl:'VSFVI idx', ref:'H<=31 M<=24 ml/m²', val:vsfviIdx},
     ]},
     {titulo:'VI - Funcion sistolica', items:[
       // FEVI normal ≥50% — criterio ASE Chamber Quantification 2025
@@ -35473,7 +35540,7 @@ const IA_CRIT_2025 = Object.freeze({
   dtsvi:        50,    // mm    — Clase I · Nivel B
   dtsvi_idx:    25,    // mm/m² — Clase I · Nivel B
   dtsvi_idx_iib:22,    // mm/m² — Clase IIb · Nivel B (era 20 en la edición 2021)
-  vtsvi_idx:    45,    // ml/m² — Clase IIb · Nivel B. ⚠️ ESTA APP NO MIDE EL VOLUMEN TELESISTÓLICO
+  vtsvi_idx:    45,    // ml/m² — Clase IIb · Nivel B. Se evalúa desde `vsfvi` / getBSA (2026-09-26)
   fevi_iib:     55,    // %     — Clase IIb · Nivel B
   bsa_chica:    1.68,  // m²    — la 2025 cuantificó «talla pequeña», que en 2021 era cualitativo
   ao_concom:    45     // mm    — Clase IIa · Nivel C, raíz O aorta ascendente, diámetro MÁXIMO
@@ -35573,6 +35640,12 @@ function _indIADatos(){
   const D = { UF:UF };
   D.dsf  = leer('dsfvi', 'dsfvi');
   D.fev  = leer('fevi',  'fevi');
+  /* ⚠️ EL VOLUMEN TELESISTÓLICO DEJÓ DE SER INEVALUABLE (2026-09-26): ya hay campo `vsfvi`.
+     Pasa por `leer()` como los demás, así que su banda es OBLIGATORIA — sin entrada en la tabla
+     de rangos, `leer` devuelve `sinBanda` y el criterio se queda en `null` para siempre, o sea
+     que la conexión existiría y no haría nada. Es el modo de falla silencioso de este diseño y
+     por eso se dice acá. */
+  D.vsf  = leer('vsfvi', 'vsfvi');
   /* ⚠️ LA SUPERFICIE CORPORAL ERA EL ÚNICO INSUMO SIN BANDA, Y ES EL QUE MÁS DAÑO HACE.
      `dsfvi` y `fevi` fuera de rango sólo RETIENEN una conclusión; la BSA es el DENOMINADOR de
      dos criterios de Clase I, así que su error las FABRICA y las BORRA. Y sus dos insumos no
@@ -35590,6 +35663,18 @@ function _indIADatos(){
   D.bsa  = (bsa != null && isFinite(bsa) && bsa > 0) ? bsa : null;
   D.bsaChica = (D.bsa != null) ? D.bsa < IA_CRIT_2025.bsa_chica : null;
   D.dsfi = (D.dsf.val != null && D.bsa != null) ? D.dsf.val / D.bsa : null;
+  /* Se indexa con la MISMA superficie corporal ya validada arriba: un peso fuera de banda deja
+     `D.bsa` en null y con él este indexado, que es lo correcto — el volumen indexado no puede ser
+     más creíble que el denominador con el que se calculó. */
+  /* ⚠️ SE CLASIFICA EL VALOR QUE SE IMPRIME, NO EL CRUDO. La fila publica el indexado con un
+     decimal, así que comparando el crudo hay una ventana —[45,00 ; 45,05)— en la que la tarjeta
+     imprime «45,0 ml/m²» y al lado «> 45 ml/m² — criterio de Clase IIb». Alcanzable con
+     vsfvi 90, peso 80 y talla 179,9 (superficie 1,99944 → 45,0125). Es la regla que este archivo
+     ya aplica en `calcGeometriaVI` y en la FAC de 34,5, y la que `calcVI` respeta acá al lado al
+     pasarle a `vsfviInterp` la cadena ya redondeada.
+     El DTSVI indexado tiene la misma asimetría y es PREEXISTENTE: no se toca en este cambio. */
+  const _vsfiCrudo = (D.vsf.val != null && D.bsa != null) ? D.vsf.val / D.bsa : null;
+  D.vsfi = _vsfiCrudo == null ? null : PF(_vsfiCrudo.toFixed(1));
 
   /* Aorta: la fila de 2025 dice «raíz O aorta ascendente», diámetro MÁXIMO. El panel leía sólo
      `ao_tub`, así que una raíz de 48 mm con ascendente normal no encendía nada. Se consume
@@ -35627,11 +35712,13 @@ function _indIADatos(){
   D.cIIb = {
     dtsvi_idx: D.dsfi   != null ? D.dsfi   > IA_CRIT_2025.dtsvi_idx_iib   : null,
     fevi:      D.fev.val != null ? D.fev.val <= IA_CRIT_2025.fevi_iib     : null,
-    /* ⚠️ SIEMPRE `null`, Y NO ES UN OLVIDO. No existe campo de volumen telesistólico del VI en
-       esta app —`vol_lat` es volumen LATIDO—, así que este criterio no se puede evaluar NUNCA.
-       Como los tres se unen con «o», eso PROHÍBE negar la fila IIb: decir «sin criterio» con un
-       disparador sin mirar es el `!predicadoEstricto()` que falla abierto. Se declara. */
-    vtsvi_idx: null
+    /* Hasta el 2026-09-26 esto era `null` FIJO porque no existía el campo: `vol_lat` es volumen
+       LATIDO, no telesistólico. Hoy hay `vsfvi` y el criterio se evalúa de verdad.
+       Lo que NO cambió es la semántica del `null`, y es lo que sostiene el resto de la cascada:
+       sin el volumen cargado sigue siendo NO EVALUADO, y como los tres disparadores de esta fila
+       se unen con «o», eso PROHÍBE negarla. Que el dato ahora EXISTA no es que ahora esté SIEMPRE:
+       un estudio que no lo midió tiene que seguir diciendo que falta, no «no alcanza». */
+    vtsvi_idx: D.vsfi != null ? D.vsfi > IA_CRIT_2025.vtsvi_idx : null
   };
   const vals = function(o){ return Object.keys(o).map(function(k){ return o[k]; }); };
   D.algunoI   = vals(D.cI).indexOf(true) > -1;
@@ -35689,9 +35776,30 @@ function _indIARecom(D){
   const sx = _indClinGet('ia.sintomas'), cx = _indClinGet('ia.cxconcom');
   const rq = _indClinGet('ia.riesgo'),   cand = _indClinGet('ia.cxcandidato');
   const sintomatico = sx === 'si';
-  /* El texto que declara el criterio que esta app no puede mirar. Se arma una vez porque lo
-     necesitan las DOS salidas que podrían leerse como una negación. */
-  const AVISO_VOL = 'El volumen telesistólico indexado (> 45 ml/m², Clase IIb · Nivel B) es el tercer disparador de esa fila y esta aplicación NO lo calcula: no hay campo de volumen telesistólico del ventrículo izquierdo. Así que no se puede descartar por esta vía — hay que estimarlo por volúmenes ecocardiográficos o por resonancia.';
+  /* El texto que declara el volumen cuando quedó SIN MIRAR. Se arma una vez porque lo necesitan
+     las dos salidas que podrían leerse como una negación.
+     (Hasta el 2026-09-26 esto decía «el criterio que esta app no puede mirar»: ya no es cierto,
+     el campo existe. Dejarlo habría hecho que el archivo afirmara las dos cosas a cuatro líneas
+     de distancia.) */
+  /* ⚠️ ESTE AVISO SÓLO VALE SI EL VOLUMEN SIGUE SIN EVALUARSE. Desde que existe el campo `vsfvi`
+     el criterio se mide de verdad, y seguir imprimiendo «no se puede descartar por esta vía»
+     sobre un volumen YA MEDIDO sería una salvedad falsa — el defecto simétrico al que este aviso
+     vino a cerrar. Se arma vacío cuando el dato está y no se empuja. */
+  const volSinMirar = D.cIIb.vtsvi_idx === null;
+  const _VOL_CAB = 'El volumen telesistólico indexado (> ' + IA_CRIT_2025.vtsvi_idx + ' ml/m², Clase IIb · Nivel B) es el tercer disparador de esa fila';
+  /* Las CUATRO razones por las que puede quedar sin mirar, cada una con su nombre. La rama
+     `sinBanda` estaba faltando y caía en «no lo trae cargado», o sea que con la tabla de rangos
+     caída el panel afirmaba que el campo estaba vacío sobre un campo lleno — mientras la fila de
+     la tabla, tres renglones más arriba, decía correctamente «banda no disponible». Los otros
+     tres criterios ya distinguían este caso. */
+  const AVISO_VOL = !volSinMirar ? ''
+    : (D.vsf.fuera
+        ? _VOL_CAB + ', y el VSFVI cargado está fuera de rango medible: no sostiene ni descarta el criterio. Revisar la unidad.'
+        : D.vsf.sinBanda
+          ? _VOL_CAB + ' y no se pudo verificar: no cargó la banda de plausibilidad del VSFVI. Recargar la aplicación.'
+          : D.vsf.val != null && D.bsa == null
+            ? _VOL_CAB + ' y no se pudo indexar: falta una superficie corporal utilizable (peso y talla).'
+            : _VOL_CAB + ' y este estudio no lo trae cargado (campo VSFVI, en AI/VI). Así que no se puede descartar por esta vía.');
   /* ⚠️ LA CIRUGÍA CONCOMITANTE SIN CONTESTAR NO PUEDE QUEDAR MUDA EN LA RAMA DEL ASINTOMÁTICO.
      Esa fila es Clase I · Nivel C «con o sin síntomas», así que OUTRANQUEA a cualquier cosa que
      produzca esta rama: publicar una Clase IIb, o peor, pedir el volumen telesistólico como si
@@ -35742,21 +35850,31 @@ function _indIARecom(D){
        las otras cuatro salidas de esta cascada bajan a `falta` ante una pregunta que desplaza la
        conclusión, y ésta era la única que no. Ahora hacen todas lo mismo. */
     else if (rq !== 'bajo') {
-      if (cxMudo) return fal('No se alcanza ninguno de los tres criterios de Clase I del asintomático y la fila de Clase IIb exige riesgo quirúrgico BAJO, pero queda sin contestar una pregunta que desplazaría esa conclusión. ' + AVISO_VOL, [CX_PEND]);
+      if (cxMudo) return fal('No se alcanza ninguno de los tres criterios de Clase I del asintomático y la fila de Clase IIb exige riesgo quirúrgico BAJO, pero queda sin contestar una pregunta que desplazaría esa conclusión.' + (AVISO_VOL ? ' ' + AVISO_VOL : ''), [CX_PEND]);
       return { tipo:'no', tit:'Sin criterio de intervención por ahora',
         txt:'No se alcanza ninguno de los tres criterios de Clase I del asintomático, y la fila de Clase IIb exige riesgo quirúrgico BAJO. Corresponde seguimiento estrecho.',
         nota:AVISO_VOL };
     }
     else if (D.algunoIIb) r = { k:'asint_iib', por: D.cIIb.dtsvi_idx === true
       ? 'Parámetro presente: diámetro telesistólico indexado > ' + IA_CRIT_2025.dtsvi_idx_iib + ' mm/m².'
-      : 'Parámetro presente: FEVI ≤ ' + IA_CRIT_2025.fevi_iib + ' %.' };
-    /* ⚠️ ACÁ ESTABA LA TRAMPA. Los tres disparadores de la fila IIb se unen con «o» y uno de
-       ellos esta app no lo mide, así que un «sin criterio» limpio sería una negación sobre una
-       pregunta que nadie miró. Se devuelve `falta`, no `no`. */
-    else return fal('No se alcanza ninguno de los criterios evaluables de la fila de Clase IIb del asintomático de riesgo bajo, pero uno de sus tres disparadores queda sin mirar. ' + AVISO_VOL,
+      : D.cIIb.vtsvi_idx === true
+        ? 'Parámetro presente: volumen telesistólico indexado > ' + IA_CRIT_2025.vtsvi_idx + ' ml/m².'
+        : 'Parámetro presente: FEVI ≤ ' + IA_CRIT_2025.fevi_iib + ' %.' };
+    /* ⚠️ ACÁ ESTABA LA TRAMPA, Y AHORA TIENE DOS SALIDAS. Los tres disparadores de la fila IIb se
+       unen con «o». Mientras el volumen no se podía medir, un «sin criterio» limpio era una
+       negación sobre una pregunta que nadie miró y esta rama devolvía SIEMPRE `falta`.
+       Desde que existe `vsfvi` hay que distinguir: con el volumen MEDIDO y por debajo del corte
+       los tres quedaron evaluados y descartados, y ahí «sin criterio» es una conclusión legítima
+       —seguir pidiendo el dato que ya está cargado sería mandar a revisar lo que está sano—.
+       Sin el volumen, todo sigue igual que antes. La condición es `volSinMirar`, no «existe el
+       campo»: un estudio que no lo midió tiene que seguir diciendo que falta. */
+    else if (volSinMirar) return fal('No se alcanza ninguno de los criterios evaluables de la fila de Clase IIb del asintomático de riesgo bajo, pero uno de sus tres disparadores queda sin mirar. ' + AVISO_VOL,
       cxMudo
-        ? ['Volumen telesistólico del VI indexado — no lo calcula esta aplicación', CX_PEND]
-        : ['Volumen telesistólico del VI indexado — no lo calcula esta aplicación']);
+        ? ['Volumen telesistólico del VI (campo VSFVI, en AI/VI)', CX_PEND]
+        : ['Volumen telesistólico del VI (campo VSFVI, en AI/VI)']);
+    else if (cxMudo) return fal('Los tres criterios de Clase I y los tres de la fila de Clase IIb quedaron evaluados y ninguno se alcanza, pero queda sin contestar una pregunta que desplazaría esa conclusión.', [CX_PEND]);
+    else return { tipo:'no', tit:'Sin criterio de intervención por ahora',
+      txt:'Con los datos cargados no se alcanza ninguno de los tres criterios de Clase I del asintomático ni ninguno de los tres de la fila de Clase IIb —diámetro telesistólico indexado, volumen telesistólico indexado y FEVI—, que quedaron los tres evaluados. Corresponde seguimiento estrecho.' };
   }
   else return fal('Los síntomas son lo que separa la Clase I —que en la insuficiencia aórtica severa es independiente de la función del ventrículo izquierdo— de los criterios de tamaño y función del asintomático.', ['Síntomas']);
 
@@ -35781,7 +35899,9 @@ function _indIARecom(D){
      saber sobre qué se afirmó. */
   if (r.k === 'asint_i' && !D.todosIEval)
     notas.push('Uno de los tres criterios de esta fila no se pudo evaluar con los datos cargados. La recomendación se sostiene en el que sí disparó.');
-  if (r.k === 'asint_iib') notas.push(AVISO_VOL);
+  /* Sólo si el volumen quedó sin mirar. Con el VSFVI cargado, `AVISO_VOL` es cadena vacía y
+     empujarlo metía un renglón en blanco en la nota de una recomendación publicada. */
+  if (r.k === 'asint_iib' && AVISO_VOL) notas.push(AVISO_VOL);
   /* La aorta fuera de banda se declara siempre que haya indicación, porque el bloque de
      modalidad decide con el diámetro máximo y un valor ilegible lo deja mudo sin decir por qué. */
   if (D.aoFuera.length) notas.push('Fuera de rango medible: ' + D.aoFuera.join(' y ') + '. Ese valor no entra en el diámetro máximo que decide el reemplazo concomitante de la aorta.');
@@ -35839,13 +35959,21 @@ function _indIA(){
     : D.bsaFuera ? 'el peso o la talla cargados están fuera de rango medible — revisar la unidad'
     : D.bsaSinBanda ? 'banda de plausibilidad de peso y talla no disponible — recargar la aplicación'
     : D.dsf.val == null ? 'requiere el diámetro telesistólico' : 'requiere peso y talla'));
-  /* ⚠️ EL CRITERIO QUE ESTA APP NO PUEDE MIRAR, DICHO EN VOZ ALTA. Es el tercer disparador de la
-     fila IIb y no hay campo de volumen telesistólico del VI. Callarlo dejaría al médico leyendo
-     una fila de dos criterios donde la guía tiene tres, y es lo que obliga a `_indIARecom` a
-     devolver «falta» en vez de «sin criterio». El panel declara lo que no aporta: eso está en su
-     cabecera como parte del contrato. */
-  filas.push(_indFila('VTSVI indexado — volumen telesistólico', '—', 'ask',
-    '> ' + IA_CRIT_2025.vtsvi_idx + ' ml/m² es criterio de Clase IIb · Nivel B (nuevo en 2025). Esta aplicación no lo calcula: no tiene campo de volumen telesistólico del VI. Se estima por volúmenes ecocardiográficos o por resonancia.'));
+  /* El tercer disparador de la fila IIb. Hasta el 2026-09-26 esta fila era un ❓ fijo que
+     declaraba que la app no tenía el dato; desde que existe el campo `vsfvi` muestra el valor
+     real. Lo que NO cambió es que sin el dato sigue siendo ❓ y no «no alcanza»: un estudio que
+     no midió el volumen no descarta el criterio, y de eso depende que `_indIARecom` devuelva
+     «falta» en vez de «sin criterio». */
+  filas.push(_indFila('VTSVI indexado — volumen telesistólico', D.vsf.fuera ? '—' : _indNum(D.vsfi, 1, 'ml/m²'),
+    D.cIIb.vtsvi_idx === true ? 'ok' : (D.vsf.fuera ? 'warn' : (D.vsfi != null ? 'none' : 'ask')),
+    /* DOS decimales y no uno: el error típico es el volumen tipeado en litros, y con un decimal
+       un 0,06 se imprime «0,1» — el mensaje le muestra al médico un número que no escribió. */
+    D.vsf.fuera ? 'el VSFVI cargado (' + _indNum(D.vsf.crudo, 2) + ') está fuera de rango medible (' + D.vsf.b[0] + '–' + D.vsf.b[1] + ' ml) — revisar la unidad: un valor ilegible no sostiene ni descarta el criterio'
+    : D.cIIb.vtsvi_idx === true ? '> ' + IA_CRIT_2025.vtsvi_idx + ' ml/m² — criterio de Clase IIb · Nivel B (nuevo en 2025), y sólo si el riesgo quirúrgico es bajo'
+    : D.vsfi != null ? 'no supera ' + IA_CRIT_2025.vtsvi_idx + ' ml/m²'
+    : D.vsf.sinBanda ? 'banda de plausibilidad no disponible — recargar la aplicación'
+    : D.vsf.val != null ? 'requiere peso y talla para indexar'
+    : 'sin medir — se carga en AI/VI como VSFVI (ml)'));
   /* La aorta ya NO es sólo contexto: en 2025 el reemplazo CONCOMITANTE de raíz o ascendente desde
      45 mm es una fila graduada de esta misma tabla (Clase IIa · Nivel C). Y dice «raíz O
      ascendente», así que se toma el diámetro MÁXIMO de los dos y no sólo `ao_tub` como antes.
@@ -35915,13 +36043,22 @@ function _indIA(){
   /* El aviso de cabecera cubre los TRES insumos que pueden anular un criterio de Clase I, no
      sólo el diámetro: una FEVI de 0,58 en vez de 58 y un peso de 500 en vez de 50 hacen lo mismo
      y antes sólo se declaraban dentro de su fila. */
-  const ilegibles = [];
-  if (D.dsf.fuera) ilegibles.push('el diámetro telesistólico del VI');
-  if (D.fev.fuera) ilegibles.push('la FEVI');
-  if (D.bsaFuera)  ilegibles.push('el peso o la talla');
+  /* ⚠️ CADA VALOR ILEGIBLE SOSTIENE LO SUYO, Y EL AVISO NO PUEDE PRESTARLE EL PESO DE UNO A
+     OTRO. El diámetro, la FEVI y la superficie corporal sostienen los criterios de CLASE I; el
+     volumen telesistólico sostiene SÓLO la fila de Clase IIb. Decir «es lo que sostiene los
+     criterios de Clase I» sobre un VSFVI en litros manda a desconfiar de tres criterios que
+     están perfectamente medidos — el mensaje que nombra la causa equivocada, otra vez. */
+  const ilegibles = [], ilegiblesI = [];
+  if (D.dsf.fuera) ilegiblesI.push('el diámetro telesistólico del VI');
+  if (D.fev.fuera) ilegiblesI.push('la FEVI');
+  if (D.bsaFuera)  ilegiblesI.push('el peso o la talla');
+  if (D.vsf.fuera) ilegibles.push('el volumen telesistólico del VI');
+  const avisoPartes = [];
+  if (ilegiblesI.length) avisoPartes.push(ilegiblesI.join(' y ') + ' — sostiene' + (ilegiblesI.length > 1 ? 'n' : '') + ' los criterios de Clase I del asintomático');
+  if (ilegibles.length)  avisoPartes.push(ilegibles.join(' y ') + ' — sostiene el criterio de volumen de la fila de Clase IIb');
   return { filas: filas,
-    aviso: ilegibles.length
-      ? 'Fuera de rango medible: ' + ilegibles.join(' y ') + '. Es lo que sostiene los criterios de Clase I del asintomático, así que revisar la unidad antes de leer la recomendación.' : '',
+    aviso: avisoPartes.length
+      ? 'Fuera de rango medible: ' + avisoPartes.join('; ') + '. Revisar la unidad antes de leer la recomendación.' : '',
     clinica: clinica,
     recom: recom,
     guia: 'ESC/EACTS 2025 — Cirugía Clase I · Nivel B en el paciente sintomático sea cual sea la función del VI, y en el asintomático con DTSVI > 50 mm, DTSVI indexado > 25 mm/m² o FEVI en reposo ≤ 50 %. Esos tres cortes NO cambiaron respecto de la edición 2021.',
@@ -66853,7 +66990,16 @@ const DCM_RANGO = {
      está. */
   dsfvi:[10,90], vd_bas:[10,70], triv:[10,300], sgl:[-40,0], ai_diam:[10,90],
   itv_tsvi:[2,60], diam_tsvi:[5,45], em_vtimit:[2,80], vci_diam:[2,50],
-  tango_tac:[10,300], vti_tsvd:[2,60], tsvd_diametro:[5,50], s_prime:[1,35]
+  tango_tac:[10,300], vti_tsvd:[2,60], tsvd_diametro:[5,50], s_prime:[1,35],
+  /* Agregado 2026-09-26 con el campo `vsfvi`. NO es opcional: el panel de Evidencia lo lee por
+     `_labRango` para decidir un criterio QUIRÚRGICO (volumen telesistólico indexado > 45 ml/m²,
+     Clase IIb de la IAo), y sin entrada acá ese criterio se queda en «no evaluado» para siempre —
+     la conexión existiría y no haría nada.
+     La ventana es la del error de un orden de magnitud, que es el criterio declarado de esta
+     tabla: por abajo atrapa un volumen tipeado en litros (0,045 por 45) y por arriba un cero de
+     más. NO atrapa un 450 por 45, porque un telesistólico de 450 ml es real en una miocardiopatía
+     dilatada terminal — la misma limitación honesta que la superficie corporal. */
+  vsfvi:[3,500]
 };
 /* ── Dos niveles de rango, que contestan preguntas distintas ──────────────────────────
    `DCM_RANGO` es lo FÍSICAMENTE posible: un valor afuera no es un hallazgo raro, es un
@@ -77786,8 +77932,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260926-2007';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790464023423;                 /* eco-build-ms */
+const ECO_BUILD    = '20260926-2144';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790469887556;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -77873,7 +78019,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260926-2007</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260926-2144</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -29234,7 +29234,11 @@ caso('TC-276', 'Lo que se marca en el panel de Evidencia no se guarda, no viaja 
    ⚠️ Y LOS DOS UMBRALES DE FEVI SON DE CLASES DISTINTAS: 50 es Clase I y 55 es Clase IIb. El
    caso cruza 50/51 y 55/56 porque colapsarlos convierte una conducta IIb en una Clase I. */
 
-const IA_IDS = "['ia_sev_final','ia_grado','fevi','dsfvi','ddfvi','peso','talla'," +
+/* `vsfvi` entra a la lista de limpieza desde que existe el campo (2026-09-26). No es cosmetico:
+   TC-279 lo deja cargado, y sin limpiarlo los escenarios de TC-277 que esperan «falta el
+   volumen» pasarian a evaluarlo — un rojo intermitente segun el orden de los casos, que es peor
+   que no tener el caso. */
+const IA_IDS = "['ia_sev_final','ia_grado','fevi','dsfvi','ddfvi','vsfvi','peso','talla'," +
   "'ao_sin','ao_st','ao_tub']";
 const IA_CLAVES = "['ia.sintomas','ia.cxconcom','ia.riesgo','ia.cxcandidato']";
 
@@ -29491,10 +29495,17 @@ caso('TC-277', 'Insuficiencia aortica: la recomendacion ESC 2025 se recalcula co
         !!rec() && rec().clase === 'Clase IIb · Nivel B',
         'abs=' + (fAbs ? fAbs.marca : '?') + ' idx=' + (fIdx ? fIdx.marca : '?') + ' recom=' + clase()]);
 
-      /* ── EL CRITERIO QUE LA APP NO MIDE APARECE COMO FILA, no como silencio ── */
+      /* ── EL CRITERIO SIN MEDIR APARECE COMO FILA, no como silencio ──
+         ⚠️ ESTA CONDICION CAMBIO EL 2026-09-26 Y EL CAMBIO ES DELIBERADO. Antes exigia que la
+         fila dijera «esta aplicacion no lo calcula», porque no existia el campo. Desde que
+         existe el campo vsfvi esa frase seria falsa, asi que el caso pasaria a empujar hacia la
+         conducta descartada: el dia que alguien «lo arreglara» volviendo al texto viejo, el
+         suite le daria la razon. Lo que se fija ahora es el invariante que SI sobrevive al
+         cambio —sin el dato la fila es ❓ y NO dice «no alcanza»— y ademas que le diga al
+         medico donde cargarlo. La evaluacion del criterio con el dato puesto la fija TC-279. */
       const fVol = fila('VTSVI indexado');
-      ex.push(['el volumen telesistolico indexado figura como fila ❓ y declara que la app no lo calcula',
-        !!fVol && fVol.marca === 'ask' && /no lo calcula/i.test(fVol.nota) && /45 ml/.test(fVol.nota),
+      ex.push(['sin el volumen cargado la fila es ❓, no niega el criterio, y dice donde cargarlo',
+        !!fVol && fVol.marca === 'ask' && !/no supera/i.test(fVol.nota) && /VSFVI/.test(fVol.nota),
         fVol ? fVol.marca + ' «' + fVol.nota.slice(0, 110) + '»' : 'NO HAY FILA']);
 
       // ── La cita principal pasa a 2025, y el recordatorio del umbral mitral ya no esta ──
@@ -29638,6 +29649,254 @@ caso('TC-278', 'Lo que se contesta en Insuficiencia aortica no se guarda, no via
       try { if (gidA) await __t.borrar(gidA); } catch (e) {}
       try { if (gidB) await __t.borrar(gidB); } catch (e) {}
       try { __t.limpiar(); limpiar();
+        if (typeof indicSyncBoton === 'function') indicSyncBoton(); } catch (e) {}
+    }
+  })();
+`);
+
+/* ══ VSFVI — EL VOLUMEN TELESISTOLICO, TC-279 ════════════════════════════════════════════════
+   El campo que faltaba para que la fila de Clase IIb de la insuficiencia aortica dejara de ser
+   inevaluable. Tres superficies sobre el MISMO dato y con la MISMA getBSA(): el indexado de
+   pantalla (normalidad ASE), la fila del PDF, y el criterio de intervencion de la ESC.
+
+   ⚠️ LOS DOS 45 NO SON EL MISMO NUMERO. El 45 ml/m2 de la ASE es el techo de «moderadamente
+   dilatado» DEL VARON (la mujer tiene 40); el 45 de la ESC/EACTS 2025 es el umbral de
+   INTERVENCION y no distingue sexo. Coinciden los digitos y nada mas. El caso los cruza en el
+   mismo escenario para que nadie los unifique. */
+caso('TC-279', 'VSFVI: indexado por la misma BSA, cortes ASE por sexo, y el criterio de IAo que ya se evalua', `
+  return (async () => {
+    if (typeof calcVI !== 'function' || typeof window._indIA !== 'function')
+      return { extra:[['existen calcVI y _indIA', false, '']] };
+    /* La lista incluye los cuatro del escenario del PDF (siv, ddfvi, ppvi y el nombre se limpian
+       aparte): el finally solo barre ESTA lista, y un TC-280 heredaria un VI poblado —masa, RWT,
+       geometria— y un nombre de paciente ajeno. Hoy TC-279 es el ultimo del archivo y por eso
+       seria inocuo, que es exactamente la clase de garantia que se rompe sola al agregar el
+       caso siguiente. */
+    const IDS = ['vsfvi','vdfvi','peso','talla','sexo','fevi','dsfvi','ia_sev_final','ao_sin','ao_tub',
+                 'siv','ddfvi','ppvi'];
+    const limpiar = () => IDS.forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+    const noEntraron = [];
+    const set = o => Object.keys(o).forEach(id => { const e = document.getElementById(id);
+      if (!e) { noEntraron.push('FALTA ' + id); return; }
+      e.value = o[id];
+      e.dispatchEvent(new Event('input', { bubbles:true }));
+      e.dispatchEvent(new Event('change', { bubbles:true }));
+      if (e.value !== String(o[id])) noEntraron.push(id + '=' + JSON.stringify(o[id])); });
+    const idxTxt = () => (document.getElementById('vsfvi-idx-interp') || {}).textContent || '';
+    /* BSA = 2,00 exacta con peso 80 / talla 180, asi que el indexado es el volumen sobre dos y
+       el caso dice que corte prueba en vez de arrastrar una superficie arbitraria. */
+    const B = { peso:'80', talla:'180' };
+    const idx = (vol, sexo) => { limpiar(); set(Object.assign({}, B, { sexo:sexo, vsfvi:String(vol) })); calcVI(); return idxTxt(); };
+    const clic = (k, v) => { const b = document.querySelector('#indic-cuerpo [data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
+      if (b) { b.click(); return true; } return false; };
+    const RQ = { 'ia.sintomas':'no', 'ia.riesgo':'bajo', 'ia.cxconcom':'no' };
+    const escIA = campos => { indicCerrar(); limpiar();
+      set(Object.assign({ ia_sev_final:'4' }, B, campos));
+      if (typeof sincronizarGradoIA === 'function') sincronizarGradoIA();
+      indicAbrir(); Object.keys(RQ).forEach(k => clic(k, RQ[k])); return window._indIA(); };
+    const filaVol = s => ((s.filas || []).filter(f => f.lbl.indexOf('VTSVI') > -1)[0]) || null;
+
+    try {
+      const ex = [];
+
+      // ── El indexado sale de la MISMA getBSA(), y sin peso/talla no se inventa ──
+      ex.push(['60 ml con BSA 2,00 da 30,0 ml/m2', idx(60, 'M').indexOf('30.0 ml/m') > -1, idx(60, 'M')]);
+      limpiar(); set({ sexo:'M', vsfvi:'60' }); calcVI();
+      ex.push(['sin peso ni talla el indexado NO se publica', idxTxt().trim() === '—', JSON.stringify(idxTxt())]);
+
+      /* ── LOS CORTES ASE, POR LOS DOS LADOS Y POR SEXO ──
+         Varon  normal <=31 · leve 32-38 · moderado 39-45 · severo >45
+         Mujer  normal <=24 · leve 25-32 · moderado 33-40 · severo >40
+         Se cruzan los bordes que distinguen el corte correcto del error plausible: 31/32 y
+         45/46 en el varon, 24/25 y 40/41 en la mujer. Con los cortes del varon aplicados a la
+         mujer, los cuatro de abajo cambian de banda. */
+      ex.push(['varon: 31 normal y 32 levemente dilatado',
+        /normal/.test(idx(62, 'M')) && /levemente/.test(idx(64, 'M')),
+        '31: ' + idx(62, 'M') + ' | 32: ' + idx(64, 'M')]);
+      ex.push(['varon: 45 moderado y 46 severo',
+        /moderadamente/.test(idx(90, 'M')) && /severamente/.test(idx(92, 'M')),
+        '45: ' + idx(90, 'M') + ' | 46: ' + idx(92, 'M')]);
+      ex.push(['mujer: 24 normal y 25 levemente dilatado',
+        /normal/.test(idx(48, 'F')) && /levemente/.test(idx(50, 'F')),
+        '24: ' + idx(48, 'F') + ' | 25: ' + idx(50, 'F')]);
+      ex.push(['mujer: 40 moderado y 41 severo',
+        /moderadamente/.test(idx(80, 'F')) && /severamente/.test(idx(82, 'F')),
+        '40: ' + idx(80, 'F') + ' | 41: ' + idx(82, 'F')]);
+      /* Y que los cortes NO sean los mismos para los dos sexos: con 30 ml/m2 el varon esta
+         normal y la mujer levemente dilatada. Si alguien unifica las bandas, esto se cae. */
+      ex.push(['los cortes son POR SEXO: 30 ml/m2 es normal en el varon y anormal en la mujer',
+        /normal/.test(idx(60, 'M')) && /dilatado/.test(idx(60, 'F')),
+        'M: ' + idx(60, 'M') + ' | F: ' + idx(60, 'F')]);
+
+      // ── El VDFVI no se toco: su indexado y su banda siguen dando lo mismo ──
+      limpiar(); set(Object.assign({}, B, { sexo:'M', vdfvi:'140', vsfvi:'60' })); calcVI();
+      const vdTxt = (document.getElementById('vdfvi-idx-interp') || {}).textContent || '';
+      ex.push(['el VDFVI indexado sigue intacto (140 ml / 2,00 = 70,0, normal en el varon)',
+        vdTxt.indexOf('70.0 ml/m') > -1 && /normal/.test(vdTxt), vdTxt]);
+
+      /* ── EL CRITERIO DE LA IAo: SIN EL DATO SIGUE FALTANDO, CON EL DATO SE EVALUA ──
+         Es la condicion exacta del pedido, y las dos mitades importan: que el dato exista no
+         puede significar que este SIEMPRE. */
+      let s = escIA({ fevi:'62', dsfvi:'40' });
+      const sinVol = s.recom, fSin = filaVol(s);
+      ex.push(['sin VSFVI cargado la recomendacion SIGUE pidiendo el dato',
+        !!sinVol && sinVol.tipo === 'falta' && Array.isArray(sinVol.faltan) &&
+        sinVol.faltan.some(f => /VSFVI/.test(f)) && !!fSin && fSin.marca === 'ask',
+        (sinVol ? sinVol.tipo : '?') + ' · faltan=' + JSON.stringify(sinVol ? sinVol.faltan : null)]);
+
+      /* Con el volumen MEDIDO y por debajo del corte, los tres disparadores de la fila IIb
+         quedaron evaluados: ahi «sin criterio» deja de ser una negacion sobre lo no mirado y
+         pasa a ser una conclusion. Es el desbloqueo que este campo vino a producir. */
+      s = escIA({ fevi:'62', dsfvi:'40', vsfvi:'60' });
+      const bajoUmbral = s.recom, fBajo = filaVol(s);
+      ex.push(['con VSFVI medido y por debajo del corte, ya NO pide el dato: concluye',
+        !!bajoUmbral && bajoUmbral.tipo === 'no' && !!fBajo && fBajo.marca === 'none' &&
+        fBajo.val.indexOf('30,0') > -1 && !/no lo calcula/i.test(fBajo.nota || ''),
+        (bajoUmbral ? bajoUmbral.tipo + ' / ' + bajoUmbral.tit : '?') + ' · fila=' +
+        (fBajo ? fBajo.val + ' ' + fBajo.marca : '?')]);
+
+      /* ── SIN SUPERFICIE CORPORAL EL CRITERIO NO SE EVALUA, Y ESTO HAY QUE MIRARLO EN EL PANEL ──
+         ⚠️ La condicion de pantalla de mas arriba NO cubre esto: el guion del span lo pone la
+         guarda de calcVI, que es OTRO camino. Medido por mutacion: haciendo que el panel indexe
+         por (bsa || 1) en vez de negarse, un VSFVI de 60 ml pasa a valer 60 ml/m2, supera el
+         corte de 45 y publica una Clase IIb sobre un paciente SIN peso ni talla — y el caso
+         seguia en verde, porque la rama de la cascada devolvia «falta» igual (por la BSA que le
+         falta al DIAMETRO indexado) y la condicion no miraba la fila del volumen.
+         Lo que discrimina es la FILA: sin BSA tiene que quedar en ❓ y pedir peso y talla. */
+      s = escIA({ fevi:'62', dsfvi:'40', vsfvi:'60', peso:'', talla:'' });
+      const sinBsa = filaVol(s);
+      ex.push(['sin peso ni talla el volumen NO se indexa ni alcanza el criterio: la fila queda en ❓',
+        !!sinBsa && sinBsa.marca === 'ask' && /peso y talla/i.test(sinBsa.nota || '') &&
+        sinBsa.val === '—',
+        sinBsa ? sinBsa.val + ' | ' + sinBsa.marca + ' «' + (sinBsa.nota || '').slice(0, 60) + '»' : 'NO HAY FILA']);
+
+      /* ── LOS DOS LADOS DEL CORTE DE LA ESC (45 ml/m2, operador >) ──
+         90 ml da 45,0 exactos y NO dispara; 91 da 45,5 y si. Un caso que mirara 20 y 80 pasaria
+         igual con el corte corrido a 30. */
+      s = escIA({ fevi:'62', dsfvi:'40', vsfvi:'90' });
+      const en45 = s.recom;
+      s = escIA({ fevi:'62', dsfvi:'40', vsfvi:'91' });
+      const sobre45 = s.recom, fSobre = filaVol(s);
+      ex.push(['45,0 exactos NO alcanzan el criterio y 45,5 si (el operador es >, no >=)',
+        !!en45 && en45.tipo === 'no' && !!sobre45 && sobre45.clase === 'Clase IIb · Nivel B',
+        '45,0: ' + (en45 ? en45.tipo : '?') + ' · 45,5: ' + (sobre45 ? sobre45.clase : '?')]);
+      ex.push(['y cuando dispara, la recomendacion NOMBRA al volumen como el parametro presente',
+        /volumen telesist/i.test((sobre45 || {}).nota || '') && !!fSobre && fSobre.marca === 'ok',
+        ((sobre45 || {}).nota || 'SIN NOTA').slice(0, 90)]);
+
+      /* ── LA TARJETA NO PUEDE IMPRIMIR «45,0» Y DECIR «> 45» SOBRE EL MISMO NUMERO ──
+         La fila publica el indexado con UN decimal, asi que clasificar el crudo abre la ventana
+         [45,00 ; 45,05) donde el valor impreso y el veredicto se contradicen a dos centimetros.
+         Alcanzable de verdad: vsfvi 90 con peso 80 y talla 179,9 da una superficie de 1,99944 y
+         un indexado crudo de 45,0125 — imprime «45,0» y el crudo supera el corte.
+         ⚠️ Sin esta condicion la mutacion que vuelve a clasificar el crudo SOBREVIVE: ninguno de
+         los otros escenarios cae dentro de esa ventana de cinco milesimas. Medido. */
+      s = escIA({ fevi:'62', dsfvi:'40', vsfvi:'90', talla:'179.9' });
+      const borde = s.recom, fBorde = filaVol(s);
+      ex.push(['con el indexado crudo en 45,0125 la fila imprime 45,0 y NO afirma que supera el corte',
+        !!fBorde && fBorde.val.indexOf('45,0') > -1 && fBorde.marca === 'none' &&
+        /no supera/.test(fBorde.nota || '') && !!borde && borde.tipo === 'no',
+        (fBorde ? fBorde.val + ' | ' + fBorde.marca + ' «' + (fBorde.nota || '').slice(0, 40) + '»' : '?') +
+        ' · recom=' + (borde ? borde.tipo : '?')]);
+
+      /* ── UN VOLUMEN ILEGIBLE NO NIEGA UN CRITERIO QUIRURGICO ──
+         0,06 es el volumen tipeado en litros. Cae fuera de la banda de DCM_RANGO y no puede
+         sostener ni descartar: vuelve a «falta». Y el mensaje imprime DOS decimales, porque con
+         uno solo el 0,06 se mostraba como «0,1» — un numero que el medico no escribio. */
+      s = escIA({ fevi:'62', dsfvi:'40', vsfvi:'0.06' });
+      const ileg = s.recom, fIleg = filaVol(s);
+      ex.push(['un VSFVI tipeado en litros no produce una negacion, y el aviso cita lo que se cargo',
+        !!ileg && ileg.tipo === 'falta' && !!fIleg && fIleg.marca === 'warn' &&
+        /0,06/.test(fIleg.nota || '') && /volumen telesist/i.test(s.aviso || ''),
+        (fIleg ? fIleg.nota.slice(0, 80) : '?') + ' · aviso=' + (s.aviso || '').slice(0, 50)]);
+      /* ⚠️ Y EL AVISO NO PUEDE PRESTARLE A UN VALOR EL PESO DE OTRO. El VSFVI sostiene la fila
+         de Clase IIb y nada mas; decir «es lo que sostiene los criterios de Clase I» con el
+         diametro, la FEVI y la superficie corporal perfectamente medidos manda a desconfiar de
+         tres criterios sanos. La primera version del aviso lo hacia y este caso lo dejaba pasar,
+         porque solo buscaba la palabra «volumen». */
+      ex.push(['y con SOLO el volumen ilegible el aviso NO acusa a los criterios de Clase I',
+        !/Clase I del asintom/i.test(s.aviso || '') && /Clase IIb/.test(s.aviso || ''),
+        (s.aviso || 'SIN AVISO').slice(0, 120)]);
+
+      /* ── LOS DOS 45 SON DISTINTOS, Y ESTE ES EL ESCENARIO QUE LO PRUEBA ──
+         Mujer con indexado 42: para la ASE es SEVERAMENTE dilatada (su corte es 40) y para la
+         ESC NO alcanza el criterio de intervencion (45). Si alguien hace que uno lea del otro,
+         una de las dos afirmaciones cambia. */
+      limpiar(); set(Object.assign({}, B, { sexo:'F', vsfvi:'84' })); calcVI();
+      const asefem = idxTxt();
+      s = escIA({ fevi:'62', dsfvi:'40', vsfvi:'84', sexo:'F' });
+      ex.push(['mujer con 42 ml/m2: severa para la ASE y por debajo del umbral de intervencion de la ESC',
+        /severamente/.test(asefem) && !!s.recom && s.recom.tipo === 'no' &&
+        (filaVol(s) || {}).marca === 'none',
+        'ASE: ' + asefem + ' · ESC: ' + (s.recom ? s.recom.tipo : '?')]);
+
+      /* ── LA FILA DEL PDF, LEIDA DEL CONTENT STREAM ──
+         Sin esto el rango de referencia queda sin proteger: mover «H<=31 M<=24» a cualquier otro
+         numero no ponia nada en rojo. Verificado por mutacion.
+         Se envuelve el CONSTRUCTOR porque save es propiedad de la INSTANCIA, y se devuelve sin
+         descargar nada. Las cadenas salen de los operadores Tj del stream, que es lo unico que
+         prueba que el texto se DIBUJO y no solo que se calculo. */
+      let filaPDF = null, pdfErr = '';
+      /* jsPDF llega por CDN: sin esta espera el caso da rojo intermitente por la red, que es
+         peor que no tenerlo porque se deja de creerle al rojo. Mismo patron que TC-160. */
+      for (let i = 0; i < 80 && (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF); i++) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+      const JP = (window.jspdf || {}).jsPDF;
+      if (!JP) pdfErr = 'la libreria jsPDF no cargo en 8 s (CDN)';
+      else {
+        const Orig = JP;
+        try {
+          limpiar();
+          set(Object.assign({}, B, { sexo:'M', siv:'10', ddfvi:'50', dsfvi:'34', ppvi:'10',
+                                     fevi:'58', vdfvi:'140', vsfvi:'60' }));
+          __t.set('nombre', 'PDF VSFVI');
+          if (typeof calcVI === 'function') calcVI();
+          let textos = null;
+          window.jspdf.jsPDF = function (...a) {
+            const d = new Orig(...a);
+            d.save = function () {
+              textos = [];
+              const n = d.internal.getNumberOfPages();
+              for (let p = 1; p <= n; p++) {
+                const pg = d.internal.pages[p]; if (!pg) continue;
+                const raw = Array.isArray(pg) ? pg.join('\\n') : String(pg);
+                (raw.match(/\\((?:[^()\\\\]|\\\\.)*\\)\\s*Tj/g) || []).forEach(function (m) {
+                  textos.push(m.replace(/\\)\\s*Tj$/, '').replace(/^\\(/, ''));
+                });
+              }
+            };
+            return d;
+          };
+          window.jspdf.jsPDF.prototype = Orig.prototype;
+          generarPDFReal();
+          if (!textos) pdfErr = 'no se intercepto save()';
+          else {
+            /* Se unen TRES cadenas y no dos: drawTablaCompacta arma el sufijo
+               ' (ref): valor' y lo pasa por splitTextToSize, asi que si envuelve queda partido
+               en dos Tj y la condicion daria rojo sobre un producto correcto. El ref nuevo es
+               cuatro caracteres mas largo que el de VDFVI, o sea que el margen se achico. */
+            const i = textos.findIndex(t => /VSFVI idx/.test(t));
+            filaPDF = i > -1 ? (textos[i] + (textos[i + 1] || '') + (textos[i + 2] || '')) : null;
+            if (i === -1) pdfErr = 'no se dibujo la fila; cadenas=' + textos.length;
+          }
+        } catch (e) { pdfErr = 'excepcion: ' + e.message; }
+        finally { window.jspdf.jsPDF = Orig; }
+      }
+      /* Los parentesis y la barra invertida vienen escapados del stream, asi que se compara
+         sobre el texto con las barras sacadas. */
+      const pdfTxt = String(filaPDF || '').replace(/\\\\/g, '');
+      ex.push(['el PDF dibuja la fila VSFVI idx con el rango de la ASE y el valor indexado',
+        /VSFVI idx/.test(pdfTxt) && /H<=31 M<=24 ml\\/m/.test(pdfTxt) && /30\\.0 ml\\/m/.test(pdfTxt),
+        pdfErr || pdfTxt.slice(0, 120)]);
+
+      ex.push(['ningun valor del caso fue rechazado por su control',
+        noEntraron.length === 0, 'rechazados: ' + noEntraron.join(',')]);
+      return { extra: ex };
+    } finally {
+      try { indicCerrar(); limpiar();
+        const sx = document.getElementById('sexo'); if (sx) sx.selectedIndex = 0;
+        if (typeof calcVI === 'function') calcVI();
         if (typeof indicSyncBoton === 'function') indicSyncBoton(); } catch (e) {}
     }
   })();
