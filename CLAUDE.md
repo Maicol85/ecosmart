@@ -4,6 +4,82 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## El AT de la prótesis aórtica: se muda y se conecta (2026-09-27)
+
+El campo de AT vivía en una **caja flotante al lado del botón «Estenosis»**, desconectado de todo.
+Reproducido antes de tocarlo: Maicol cargaba **110 ms** —que sugiere estenosis significativa— y **no
+pasaba absolutamente nada**. Ninguna fila en ningún cuadro, y el informe sin mencionarlo. Hoy vive en
+el bloque expandido de Estenosis Aórtica, debajo del VTI TSVI, con su fila de resultado.
+
+### El corte, verificado por dos rutas
+
+**ASE 2024** (Zoghbi et al., JASE **37(1):2-63**, doi `10.1016/j.echo.2023.10.004`), **Tabla 5, p. 19**,
+bloque textual **«Appropriate for all prosthetic aortic valves»** — recién el bloque siguiente,
+«Specific AVR considerations», separa SAVR de TAVI, así que este corte **no depende del tipo** y por
+eso se pudo conectar sin esperar el resto de la Fase 2.
+
+| | corte |
+|---|---|
+| normal | **< 80 ms** |
+| posible estenosis | **80–100 ms** |
+| sugiere estenosis significativa | **> 100 ms** |
+
+**Operadores estrictos**, `<` y `>`: el 80 y el 100 caen **los dos** en «posible». Confirmado leyendo
+la tabla por capa de texto **y** por render a 900 dpi, con un contraste útil: la fila de velocidad pico
+de la misma tabla **sí** lleva `≥4`, así que la tipografía distingue. Y los tres números son
+**idénticos a los de la Tabla 5 de la ASE 2009**: no se movieron en 15 años.
+
+### ⚠️ Tres salvedades que viajan con el número, y las tres están EN PANTALLA
+
+No alcanza con el comentario del código: son las que impiden leer este parámetro como un veredicto.
+Aparecen sólo cuando el AT salió de la banda normal, que es cuando el número invita a concluir algo.
+
+1. **La nota al pie de la fila dice, textual: «This can be affected by LV function and heart rate.»**
+   Está marcada sobre el AT y el contorno del jet, y **no** sobre el AT/ET — coherente, porque
+   normalizar por el tiempo de eyección absorbe parte del efecto de la frecuencia.
+2. **El AT solo NO establece estenosis, y es por construcción de la tabla.** Su nota general exige
+   «at least one flow-dependent … and one flow-independent … parameter», y **la fila del AT no lleva
+   ninguna de las dos marcas**. El cuerpo lo repite: «should not rely on the measurement of a single
+   parameter». El rótulo de la columna es el de la guía, así que se publica tal cual, y la fila aclara.
+3. **⚠️ El propio documento se contradice.** La **Figura 13 de la misma página** trae un algoritmo que
+   entra por Vmax > 3 m/s y bifurca en «Early Peak: **AT < 100 ms**» / «Late Peak: **AT > 100 ms**»:
+   **el corte de 80 no aparece ahí**, así que la banda 80–100 cae del lado *no* sospechoso. Dos usos
+   distintos del mismo parámetro en el mismo documento. Acá se aplica la **Tabla 5**, y la fila lo dice.
+
+### El AT no llega al informe firmado, y eso es deliberado
+
+El narrativo sigue publicando la severidad con los **cortes nativos** —el bug que la Fase 2 viene a
+cerrar—, así que meter una lectura protésica al lado dejaría **dos afirmaciones contradictorias en el
+mismo documento**. Hay una condición que fija la decisión para que nadie la deshaga sin querer, y para
+que la Fase 2 sepa que tiene que venir a cambiarla.
+
+### Servido para la Fase 2
+
+- **AT/ET está en el mismo bloque de la Tabla 5** — `<0,32` / `0,32–0,37` / `>0,37`, novedad de 2024.
+  La Figura 13 lo usa **apareado** al AT, no como alternativa, y la guía **no** declara preferencia por
+  uno. No se implementó porque el tiempo de eyección tendría que salir de `tango_te`, que arrastra la
+  misma ambigüedad de mapeo DICOM que `tango_tac`.
+- **⚠️ Los DVI de la Figura 13 (≥0,30 / 0,29–0,25 / <0,25) CONTRADICEN los de la Tabla 5 para SAVR
+  (>0,35 / 0,25–0,35 / <0,25):** los de la figura son los de 2009 sin actualizar. **Usar los de la
+  Tabla 5.**
+- **Un mapeo que circula atribuido a esta guía —AT/ET por estadios de deterioro valvular— NO está en el
+  documento.** La Tabla 6 de deterioro estructural sólo tiene gradiente medio, EOA, DVI y
+  regurgitación intraprotésica. Viene de una revisión secundaria. No usarlo.
+- **No hay umbral de AT para posición mitral** en ninguna tabla: el análogo temporal de la mitral es el
+  PHT (Tabla 11). No se puede extrapolar.
+
+### Por qué el AT NO se espeja y el DVI sí
+
+La línea quedó explícita para no volver a derivarla: **los derivados se espejan** (DVI, AVA y AVAi salen
+de un cálculo único y el módulo TAVI los muestra readonly); **las mediciones directas quedan por
+módulo** (`ete_tavi_vmax`, `ete_tavi_gmedio` y `ete_tavi_at` siguen manuales, porque describen el
+control post-procedimiento, que es otra adquisición).
+
+Y por eso **`va_at` no se fusionó con `tango_tac`**, que sería el candidato obvio: su mapeo DICOM lo
+llama «Tiempo de aceleración **pulmonar**» y lo cablea a `RVOT AT`/`Pulm AT`, mientras `calcTango` lo usa
+para la severidad **aórtica**. Reusarlo heredaría esa ambigüedad. Declarado, no resuelto.
+
+
 ## DVI y AVA aórticos: un solo cálculo, varias vistas (2026-09-27)
 
 Cierre de la deuda que la Fase 1 dejó abierta. Había **tres** campos de DVI aórtico y **tres** de

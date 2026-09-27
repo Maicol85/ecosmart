@@ -3439,19 +3439,15 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="fg"><label>Morfología VA</label>
           <select id="va_morf" onchange="valvProtSync()"><option>Trivalva normal</option><option>Bicúspide</option><option>Calcificada</option><option>Reumática</option><option>Prótesis biológica</option><option>Prótesis mecánica</option><option>TAVI</option><option>Endocarditis</option><option>Carcinoide</option></select>
         </div>
-        <!-- Campos de PRÓTESIS aórtica (Fase 1). El AT —tiempo de aceleración— es propio de la
-             prótesis aórtica y NO se usa en válvula nativa, así que vive sólo acá.
-
-             ⚠️ ACÁ HABÍA UN `va_dvi` Y SE BORRÓ EL 2026-09-27, el mismo día que se agregó. Era el
-             TERCER campo de DVI aórtico y el único que se tipeaba a mano: el DVI ya se calcula por
-             ecuación de continuidad —`ea_dvi_display`, que es la fuente correcta— y pedirlo de
-             nuevo abría la puerta a dos valores distintos para la misma medición. El médico no lo
-             encontraba en pantalla porque el calculado vive en el bloque expandido de Estenosis
-             aórtica, no porque faltara. -->
-        <div id="bloque-prot-va" style="display:none;">
-          <div class="fg"><label>AT (ms) <span style="font-weight:400;color:var(--text2);font-size:10px;">— tiempo de aceleración</span></label>
-            <input type="number" id="va_at" step="1" placeholder="ms"></div>
-        </div>
+        <!-- ⚠️ ACÁ VIVÍAN LOS CAMPOS DE PRÓTESIS DE LA FASE 1 Y LOS DOS SE FUERON (2026-09-27).
+             · `va_dvi` se BORRÓ el mismo día que se agregó: era el tercer campo de DVI aórtico y el
+               único tipeable, y el DVI ya se calcula por continuidad.
+             · `va_at` se MUDÓ al bloque expandido de Estenosis Aórtica, debajo del VTI TSVI, que es
+               donde están sus vecinos de medición y su cuadro de resultados. Acá arriba quedaba en
+               una caja flotante al lado del botón «Estenosis», desconectado de todo: el médico
+               cargaba un AT de 110 ms y no pasaba absolutamente nada.
+             El wrapper `bloque-prot-va` sigue existiendo y lo sigue gobernando `valvProtSync`,
+             porque ahora envuelve al AT en su nueva casa. -->
         <div id="bloque-esten-aortica" style="display:none;">
         <div class="fg"><label>Estenosis a&oacute;rtica &mdash; grado final</label>
           <select id="ea_grado"><option value="sin">Sin estenosis</option><option value="esclerosis">Esclerosis</option><option value="leve">Leve (Vmax 2-3 m/s)</option><option value="moderada">Moderada (Vmax 3-4 m/s)</option><option value="severa">Severa (Vmax &gt;4 m/s)</option></select>
@@ -3501,12 +3497,24 @@ window.cerrarSesionReal = cerrarSesionReal;
             <input type="text" id="ea_dvi_display" readonly>
           </div>
         </div>
+        <!-- AT — sólo con prótesis, y por eso en su propia fila con su propio wrapper: el tiempo de
+             aceleración NO es un parámetro de la válvula aórtica nativa, así que mostrarlo siempre
+             invitaría a llenarlo donde no aplica. Lo muestra y lo esconde `valvProtSync`. -->
+        <div class="grid-4" style="margin-bottom:6px;" id="bloque-prot-va">
+          <div class="fg">
+            <label>AT (ms) <span style="font-weight:400;color:var(--text2);font-size:10px;">&mdash; tiempo de aceleraci&oacute;n, s&oacute;lo pr&oacute;tesis</span></label>
+            <input type="number" id="va_at" step="1" placeholder="ms" oninput="eaAtPintar()">
+          </div>
+        </div>
         <div class="calc-box">
           <div class="calc-row"><span class="calc-lbl">G. m&aacute;ximo (4&times;Vmax&sup2;)</span><span class="calc-val" id="ea-det-gmax">&#8212;</span></div>
           <div class="calc-row"><span class="calc-lbl">G. medio</span><span class="calc-val" id="ea-det-gmedio">&#8212;</span></div>
           <div class="calc-row"><span class="calc-lbl">AVA continuidad</span><span class="calc-val" id="ea-det-ava">&#8212;</span></div>
           <div class="calc-row"><span class="calc-lbl">AVA indexada (cm&sup2;/m&sup2;)</span><span class="calc-val" id="ea-det-avai">&#8212;</span></div>
           <div class="calc-row"><span class="calc-lbl">DVI</span><span class="calc-val" id="ea-det-dvi">&#8212;</span></div>
+          <!-- La fila del AT se esconde con la misma regla que su campo: sin prótesis no aplica. -->
+          <div class="calc-row" id="ea-det-at-row"><span class="calc-lbl">AT &mdash; tiempo de aceleraci&oacute;n</span><span id="ea-det-at">&#8212;</span></div>
+          <div id="ea-det-at-nota" style="font-size:10px;color:var(--text2);line-height:1.45;margin:-2px 0 4px;display:none;"></div>
           <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">&#x2696;&#xFE0F; Severidad EA (ESC 2021)</span><span id="ea-det-sev">&#8212;</span></div>
         </div>
       </div>
@@ -27419,6 +27427,10 @@ function valvProtSync(){
   ver('bloque-prot-va', valvEsProtesis(g('va_morf')));
   ver('bloque-prot-vt', valvEsProtesis(g('vt_morf')));
   ver('bloque-prot-vp', valvEsProtesis(g('vp_morf')));
+  /* La fila del AT en el cuadro de resultados se muestra con la misma regla que su campo, y su
+     lectura depende de la morfología: cambiar de prótesis a nativa tiene que apagarla, no dejarla
+     con el veredicto del paciente anterior. */
+  if (typeof eaAtPintar === 'function') { try { eaAtPintar(); } catch (e) {} }
 }
 window.valvProtSync = valvProtSync;
 /* Un dato de prótesis sólo se PUBLICA si la morfología dice que hay una prótesis. El campo se
@@ -27557,6 +27569,122 @@ function eaCriterioSeveridad(){
     fuente: esProt ? 'PENDIENTE — ASE 2024, sin verificar' : 'nativos, ya vigentes' };
 }
 window.eaCriterioSeveridad = eaCriterioSeveridad;
+
+/* ══ AT — TIEMPO DE ACELERACIÓN DE LA PRÓTESIS AÓRTICA ════════════════════════════════════════
+   ASE 2024 —Zoghbi et al., JASE 37(1):2-63, doi 10.1016/j.echo.2023.10.004— **Tabla 5, página 19**,
+   bloque textual «Appropriate for all prosthetic aortic valves»: el corte NO distingue SAVR de TAVI
+   —recién el bloque siguiente, «Specific AVR considerations», los separa— y por eso se pudo
+   implementar sin esperar el resto de la Fase 2. Verificado por una segunda ruta sobre el PDF
+   primario abierto de asecho.org, leyendo la tabla por capa de texto Y por render a 900 dpi.
+   Operadores ESTRICTOS, `<` y `>`: el 80 y el 100 caen los dos en «posible». Se confirmó que la
+   tipografía distingue —la fila de velocidad pico de la misma tabla sí lleva `≥4`—.
+   Los tres números son IDÉNTICOS a los de la Tabla 5 de la ASE 2009: no se movieron en 15 años.
+
+   ⚠️ TRES SALVEDADES QUE VIAJAN CON EL NÚMERO, y las tres salen del documento:
+
+   1) **La nota al pie de la fila dice, textual: «This can be affected by LV function and heart
+      rate.»** Está marcada sobre el AT y sobre el contorno del jet, y NO sobre el AT/ET —coherente,
+      porque normalizar por el tiempo de eyección absorbe parte del efecto de la frecuencia—.
+
+   2) **EL AT SOLO NO ESTABLECE ESTENOSIS, y eso es por construcción de la tabla.** Su nota general
+      exige «at least one flow-dependent (i.e., velocity and mean gradient) and one flow-independent
+      (i.e., EOA or DVI) parameter», y la fila del AT **no lleva ninguna de las dos marcas**. El
+      cuerpo lo repite: «The diagnosis of prosthetic valve stenosis should not rely on the
+      measurement of a single parameter». El rótulo de la columna es el de la guía —«suggests
+      significant stenosis»— y por eso se publica tal cual, pero la fila lo aclara.
+
+   3) **EL PROPIO DOCUMENTO SE CONTRADICE, Y HAY QUE DECIR CUÁL SE APLICA.** La **Figura 13** de la
+      MISMA página trae un algoritmo que entra por Vmax > 3 m/s y bifurca en «Early Peak: AT < 100
+      ms» / «Late Peak: AT > 100 ms»: **el corte de 80 ms no aparece ahí**, así que la banda 80-100
+      cae del lado «early peak», o sea NO sospechoso. Son dos usos distintos del mismo parámetro en
+      el mismo documento. Acá se aplica la **Tabla 5**, y la fila lo dice.
+
+   ⚠️ PARA LA FASE 2, dos cosas que la verificación dejó servidas:
+     · **AT/ET** está en el mismo bloque de la Tabla 5 —`<0.32` / `0.32-0.37` / `>0.37`— y es novedad
+       de 2024; la Figura 13 lo usa APAREADO al AT, no como alternativa, y la guía **no** declara
+       preferencia por uno. No se implementa acá porque el tiempo de eyección tendría que salir de
+       `tango_te`, cuyo mapeo DICOM arrastra la misma ambigüedad que `tango_tac` (ver `va_at`).
+     · **Los DVI de la Figura 13 (≥0,30 / 0,29-0,25 / <0,25) CONTRADICEN los de la Tabla 5 para SAVR
+       (>0,35 / 0,25-0,35 / <0,25)**: los de la figura son los de 2009 sin actualizar. Usar los de la
+       Tabla 5.
+     · Y un mapeo que circula atribuido a esta guía —AT/ET por estadios de deterioro valvular— **NO
+       está en el documento**: la Tabla 6 de deterioro estructural sólo tiene gradiente medio, EOA,
+       DVI y regurgitación intraprotésica. Viene de una revisión secundaria. No usarlo.
+
+   ⚠️ NO HAY UMBRAL DE AT PARA POSICIÓN MITRAL en ninguna tabla de la guía: el análogo temporal de la
+   mitral es el PHT (Tabla 11). No se puede extrapolar.
+
+   ⚠️ EL AT NO APLICA A LA VÁLVULA NATIVA. El campo y esta fila se muestran sólo con una morfología
+   de prótesis, y por eso los gobierna `valvProtSync`: mostrarlos siempre invitaría a llenar un
+   parámetro donde no significa nada.
+
+   ⚠️ Y ESTO NO GRADÚA LA ESTENOSIS PROTÉSICA. Publica UN parámetro con su lectura, no un veredicto
+   integrado: la guía lo usa junto al DVI, al gradiente medio y a la relación AT/ET, y ninguno de
+   esos cortes está verificado todavía. El informe narrativo sigue publicando la severidad con los
+   cortes NATIVOS —que es el bug que la Fase 2 viene a cerrar— así que este resultado vive por ahora
+   sólo en pantalla: ponerlo en el informe firmado al lado de una «estenosis moderada» calculada con
+   la escala equivocada dejaría dos afirmaciones contradictorias en el mismo documento. */
+const AT_PROT_NORMAL_MAX  = 80;   // ms — < 80 normal
+const AT_PROT_POSIBLE_MAX = 100;  // ms — 80-100 posible estenosis; > 100 sugiere significativa
+window.AT_PROT_NORMAL_MAX = AT_PROT_NORMAL_MAX;
+window.AT_PROT_POSIBLE_MAX = AT_PROT_POSIBLE_MAX;
+/* Los textos de la fila nombran los dos umbrales, así que si una constante se mueve y el texto no,
+   la pantalla publica una cifra que el código no aplica. Mismo arranque que EA, IA, EM, IM y VT. */
+function _eaAtAssertUmbrales(){
+  const esp = [
+    ['AT_PROT_NORMAL_MAX',  AT_PROT_NORMAL_MAX,  80,  'AT < 80 ms normal'],
+    ['AT_PROT_POSIBLE_MAX', AT_PROT_POSIBLE_MAX, 100, 'AT 80-100 ms posible, > 100 significativa']
+  ];
+  const mal = esp.filter(e => e[1] !== e[2])
+    .map(e => e[0] + ' = ' + e[1] + ' pero el texto de la fila del AT dice ' + e[3]);
+  if (mal.length) console.error('[AT] Los textos quedaron viejos respecto de las constantes. ' +
+    'Releer la Tabla 5 de la ASE 2024 antes de tocar nada:\n  ' + mal.join('\n  '));
+  return mal;
+}
+document.addEventListener('DOMContentLoaded', function(){ try { _eaAtAssertUmbrales(); } catch (e) {} });
+
+/* Pinta la fila del AT. Corre desde el `oninput` del campo y desde `valvProtSync` —que está en
+   `RECALC_MODULOS`, o sea el embudo de las cinco rutas de restauración—, así que cambiar la
+   morfología o reabrir un estudio la repintan sin depender de que alguien toque el campo. */
+function eaAtPintar(){
+  const fila = document.getElementById('ea-det-at-row');
+  const cel  = document.getElementById('ea-det-at');
+  const nota = document.getElementById('ea-det-at-nota');
+  if (nota) { nota.style.display = 'none'; nota.textContent = ''; }
+  if (!cel) return;
+  const m = document.getElementById('va_morf');
+  const esProt = !!m && typeof valvEsProtesis === 'function' && valvEsProtesis(m.value);
+  if (fila) fila.style.display = esProt ? '' : 'none';
+  if (!esProt) { cel.innerHTML = '—'; return; }
+  /* El AT pasa por su banda de plausibilidad —`va_at:[10,300]`— antes de clasificarse, y fuera de
+     banda NO se clasifica: un 1100 tipeado donde van 110 no puede salir «sugiere estenosis
+     significativa» como si fuera un hallazgo. Se marca sin borrar, como el resto del archivo. */
+  const p = (typeof vPlaus === 'function') ? vPlaus('va_at') : null;
+  if (!p || p.crudo == null) { cel.innerHTML = '—'; return; }
+  if (p.fuera) {
+    cel.innerHTML = badge('gray', p.crudo + ' ms — fuera de rango medible, no se clasifica');
+    return;
+  }
+  const at = p.val;
+  if (at < AT_PROT_NORMAL_MAX)
+    cel.innerHTML = badge('green', at + ' ms — normal (< ' + AT_PROT_NORMAL_MAX + ' ms)');
+  else if (at <= AT_PROT_POSIBLE_MAX)
+    cel.innerHTML = badge('yellow', at + ' ms — posible estenosis (' + AT_PROT_NORMAL_MAX + '–' + AT_PROT_POSIBLE_MAX + ' ms)');
+  else
+    cel.innerHTML = badge('red', at + ' ms — sugiere estenosis significativa (> ' + AT_PROT_POSIBLE_MAX + ' ms)');
+  /* Las salvedades van EN PANTALLA y no sólo en el comentario del código: son las que impiden leer
+     este parámetro como un veredicto. Aparecen sólo cuando el AT salió de la banda normal, que es
+     cuando el número invita a concluir algo. */
+  if (nota && at >= AT_PROT_NORMAL_MAX) {
+    nota.style.display = '';
+    nota.textContent = 'El AT solo NO establece estenosis protésica: la guía exige además un ' +
+      'parámetro dependiente del flujo (velocidad o gradiente medio) y uno independiente (EOA o DVI). ' +
+      'Se afecta por la función ventricular izquierda y por la frecuencia cardíaca. ' +
+      'Corte de la Tabla 5 — el algoritmo de la Figura 13 de la misma guía usa 100 ms como único ' +
+      'punto de corte, así que la banda ' + AT_PROT_NORMAL_MAX + '–' + AT_PROT_POSIBLE_MAX + ' ms no es sospechosa por ese camino.';
+  }
+}
+window.eaAtPintar = eaAtPintar;
 
 // ══ Módulo Prolapso mitral: mostrar/ocultar panel de detalle ══
 function showProlapsoPanel(){
@@ -80014,8 +80142,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260927-1453';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790531580467;                 /* eco-build-ms */
+const ECO_BUILD    = '20260927-1511';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790532719058;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -80101,7 +80229,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-1453</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-1511</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

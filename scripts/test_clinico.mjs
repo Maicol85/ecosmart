@@ -32306,6 +32306,159 @@ caso('TC-287', 'AVA, AVAi y DVI aorticos son UN solo calculo: identicos en Valvu
   })();
 `);
 
+/* ══ AT DE LA PRÓTESIS AÓRTICA — TC-288 ══════════════════════════════════════════════════════
+   El campo del AT vivia en una caja flotante al lado del boton «Estenosis», desconectado de todo:
+   Maicol cargaba 110 ms —que sugiere estenosis significativa— y NO PASABA NADA. Reproducido antes
+   de tocarlo: ninguna fila en ningun cuadro, y el informe sin mencionarlo. Hoy vive en el bloque
+   expandido de Estenosis Aortica, debajo del VTI TSVI, y tiene su fila de resultado.
+
+   Corte: ASE 2024, Tabla 5, fila aplicable a TODAS las protesis aorticas —no distingue SAVR de
+   TAVI, y por eso se pudo conectar sin esperar el resto de la Fase 2—. < 80 normal · 80-100 posible
+   · > 100 sugiere significativa.
+
+   ⚠️ ESTO PUBLICA UN PARAMETRO, NO UN VEREDICTO INTEGRADO, y el caso lo fija: la guia usa el AT
+   junto al DVI, al gradiente medio y a la relacion AT/ET, y ninguno de esos cortes esta verificado
+   todavia. El resultado vive SOLO en pantalla — ponerlo en el informe firmado al lado de una
+   «estenosis moderada» calculada con los cortes NATIVOS dejaria dos afirmaciones contradictorias en
+   el mismo documento, que es justo el bug que la Fase 2 viene a cerrar.
+
+   ⚠️ Y NO APLICA A LA VALVULA NATIVA. El campo y la fila se esconden sin protesis: mostrarlos
+   siempre invitaria a llenar un parametro donde no significa nada. Se mide en las dos direcciones,
+   incluido que cambiar de protesis a nativa APAGUE el veredicto en vez de dejarlo pegado. */
+caso('TC-288', 'AT de la protesis aortica: vive con sus vecinos de medicion, se interpreta con el corte de la ASE 2024, y no existe en valvula nativa', `
+  return (async () => {
+    if (typeof eaAtPintar !== 'function')
+      return { extra:[['existe eaAtPintar', false, '']] };
+    const ex = [];
+    const noEntraron = [];
+    const poner = o => Object.keys(o).forEach(function(id){
+      const e = document.getElementById(id);
+      if (!e) { noEntraron.push('FALTA ' + id); return; }
+      e.value = o[id];
+      e.dispatchEvent(new Event('input', { bubbles:true }));
+      e.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    const leer = () => { const c = document.getElementById('ea-det-at');
+      return c ? String(c.textContent || '').trim() : null; };
+    const vis = id => { const e = document.getElementById(id);
+      return e ? getComputedStyle(e).display !== 'none' : null; };
+    const pl = s => String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+
+    try {
+      /* ── DONDE VIVE: con sus vecinos de medicion, no en la caja flotante ──
+         Se mide la CADENA de ancestros, no la existencia: el defecto era de ubicacion, y un campo
+         que existe en el lugar equivocado pasa cualquier condicion que solo pregunte si existe. */
+      const cadena = (function(){ let e = document.getElementById('va_at'); const c = [];
+        while (e && e !== document.body) { if (e.id) c.push(e.id); e = e.parentElement; } return c; })();
+      ex.push(['el campo del AT vive dentro del bloque expandido de Estenosis Aortica, no en la caja flotante de la que se lo saco',
+        cadena.indexOf('va_at') === 0 && cadena.indexOf('bloque-ea-detalle') > -1,
+        'cadena=' + cadena.join(' < ')]);
+
+      // ── LOS TRES ESCENARIOS PEDIDOS ──
+      poner({ va_morf:'Prótesis mecánica', va_at:'110' });
+      const r110 = leer();
+      poner({ va_at:'70' });
+      const r70 = leer();
+      poner({ va_morf:'Trivalva normal' });
+      const rNativa = { txt:leer(), campo:vis('bloque-prot-va'), fila:vis('ea-det-at-row') };
+      ex.push(['con protesis, 110 ms sugiere estenosis significativa y 70 ms es normal; con morfologia nativa el campo Y la fila desaparecen',
+        pl(r110).indexOf('sugiere estenosis significativa') > -1 && r110.indexOf('110') > -1 &&
+        pl(r70).indexOf('normal') > -1 && r70.indexOf('70') > -1 &&
+        rNativa.campo === false && rNativa.fila === false,
+        '110 -> «' + r110 + '» · 70 -> «' + r70 + '» · nativa: campo=' + rNativa.campo + ' fila=' + rNativa.fila]);
+
+      /* ── LOS CUATRO BORDES DE LOS DOS CORTES ──
+         79/80 y 100/101. Sin esto, mover un «<» a «<=» o el 80 al 81 no rompe nada medible: los
+         bordes son de un solo milisegundo y son donde la lectura cambia de color. */
+      poner({ va_morf:'TAVI' });
+      const bordes = {};
+      [79, 80, 100, 101].forEach(function(v){ poner({ va_at:String(v) }); bordes[v] = leer(); });
+      ex.push(['los cuatro bordes caen en su banda: 79 normal, 80 posible, 100 posible y 101 sugiere significativa',
+        pl(bordes[79]).indexOf('normal') > -1 &&
+        pl(bordes[80]).indexOf('posible estenosis') > -1 &&
+        pl(bordes[100]).indexOf('posible estenosis') > -1 &&
+        pl(bordes[101]).indexOf('sugiere estenosis significativa') > -1,
+        [79,80,100,101].map(function(v){ return v + '->«' + bordes[v] + '»'; }).join(' · ')]);
+
+      /* ── FUERA DE BANDA NO SE CLASIFICA ──
+         «va_at:[10,300]». Un 1100 tipeado donde van 110 no puede salir «sugiere estenosis
+         significativa» como si fuera un hallazgo. Se marca sin borrar: el numero se sigue viendo. */
+      poner({ va_at:'1100' });
+      const rFuera = leer();
+      ex.push(['un AT fuera de su banda de plausibilidad NO se clasifica, y el numero se sigue mostrando en vez de desaparecer',
+        pl(rFuera).indexOf('fuera de rango medible') > -1 && rFuera.indexOf('1100') > -1 &&
+        pl(rFuera).indexOf('significativa') === -1,
+        '«' + rFuera + '»']);
+
+      /* ── ⚠️ PASAR A NATIVA APAGA EL VEREDICTO, NO LO DEJA PEGADO ──
+         Es el fantasma que este archivo persigue: el veredicto del paciente o del contexto anterior
+         sobreviviendo a un cambio que lo invalida. */
+      poner({ va_morf:'Prótesis biológica', va_at:'110' });
+      const antes = leer();
+      poner({ va_morf:'Bicúspide' });
+      const despues = leer();
+      ex.push(['cambiar de protesis a una morfologia nativa APAGA la lectura del AT en vez de dejar el veredicto anterior pegado',
+        pl(antes).indexOf('significativa') > -1 && despues === '—',
+        'antes=«' + antes + '» despues=«' + despues + '»']);
+
+      /* ── ⚠️ EL AT NO LLEGA AL INFORME FIRMADO, Y ESO ES DELIBERADO ──
+         La guia usa el AT dentro de un algoritmo con el DVI, el gradiente medio y la relacion AT/ET,
+         y esos cortes no estan verificados. Mientras el narrativo siga publicando la severidad con
+         los cortes NATIVOS, meter una lectura protesica al lado dejaria dos afirmaciones
+         contradictorias en el mismo documento firmado. La condicion fija la decision para que nadie
+         la deshaga sin querer, y para que la Fase 2 sepa que tiene que venir a cambiarla. */
+      poner({ va_morf:'Prótesis mecánica', va_at:'110', peso:'75', talla:'172',
+        diam_tsvi:'20', itv_tsvi:'19', itv_ao:'53', vmax_ao:'3.5', gmedio_ao:'30' });
+      generarInforme();
+      const inf = document.getElementById('informe_texto').value;
+      ex.push(['el AT y su lectura NO salen en el informe firmado todavia: publicar una lectura protesica al lado de una severidad calculada con cortes nativos seria contradecirse en el mismo documento',
+        inf.indexOf('110 ms') === -1 && pl(inf).indexOf('tiempo de aceleracion') === -1 &&
+        pl(inf).indexOf('sugiere estenosis significativa') === -1,
+        (function(){ const i = inf.indexOf('aórtica');
+          return i < 0 ? '(no nombra la aortica)' : inf.slice(i - 12, i + 120).replace(/\\s+/g, ' '); })()]);
+
+      /* ── ⚠️ LAS TRES SALVEDADES DE LA GUIA VIAJAN CON EL NUMERO, EN PANTALLA ──
+         Las trajo la segunda ruta de verificacion sobre el PDF primario y las tres son del documento:
+         · la nota al pie de la fila dice, textual, «This can be affected by LV function and heart
+           rate»;
+         · el AT SOLO no establece estenosis —la nota general de la Tabla 5 exige un parametro
+           dependiente del flujo y uno independiente, y la fila del AT no lleva ninguna de las dos
+           marcas—, y el cuerpo lo repite;
+         · la Figura 13 de la MISMA pagina usa 100 ms como unico punto de corte, asi que por ese
+           camino la banda 80-100 NO es sospechosa: hay que decir cual se aplica.
+         Aparecen solo cuando el AT salio de la banda normal, que es cuando el numero invita a
+         concluir algo — con 70 ms no hay nada que matizar. */
+      poner({ va_morf:'Prótesis mecánica', va_at:'110' });
+      const nota110 = (function(){ const e = document.getElementById('ea-det-at-nota');
+        return e ? { txt:String(e.textContent || ''), vis:getComputedStyle(e).display !== 'none' } : null; })();
+      poner({ va_at:'70' });
+      const nota70 = (function(){ const e = document.getElementById('ea-det-at-nota');
+        return e ? { txt:String(e.textContent || ''), vis:getComputedStyle(e).display !== 'none' } : null; })();
+      ex.push(['con el AT fuera de la banda normal la pantalla declara las tres salvedades de la guia —que solo no establece estenosis, que lo afectan la funcion del VI y la frecuencia, y que la Figura 13 usa otro punto de corte— y con 70 ms no aparecen',
+        !!nota110 && nota110.vis === true &&
+        pl(nota110.txt).indexOf('solo no establece estenosis') > -1 &&
+        pl(nota110.txt).indexOf('frecuencia cardiaca') > -1 &&
+        pl(nota110.txt).indexOf('figura 13') > -1 &&
+        !!nota70 && nota70.vis === false,
+        'con 110: ' + (nota110 ? nota110.vis + ' «' + nota110.txt.slice(0, 150) + '»' : 'NO HAY') +
+        ' · con 70 visible=' + (nota70 ? nota70.vis : 'NO HAY')]);
+
+      // ── El arranque compara los textos de la fila contra las constantes ──
+      const aAt = (typeof _eaAtAssertUmbrales === 'function') ? _eaAtAssertUmbrales() : ['no existe'];
+      ex.push(['el assert de arranque del AT no encuentra ningun texto viejo respecto de sus dos constantes',
+        Array.isArray(aAt) && aAt.length === 0 &&
+        AT_PROT_NORMAL_MAX === 80 && AT_PROT_POSIBLE_MAX === 100,
+        JSON.stringify(aAt) + ' · normal<' + AT_PROT_NORMAL_MAX + ' posible<=' + AT_PROT_POSIBLE_MAX]);
+
+      return { extra: ex.concat([
+        ['todos los campos del escenario existen', noEntraron.length === 0, noEntraron.join(' | ')]
+      ]) };
+    } finally {
+      try { if (typeof limpiarCampos === 'function') limpiarCampos(); } catch (e) {}
+    }
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];
