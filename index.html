@@ -36049,14 +36049,27 @@ function _indRepintarConservando(claveFoco, valFoco){
   const c = document.getElementById('indic-cuerpo'); if (!c) return;
   const abiertas = Object.create(null);
   Array.prototype.forEach.call(c.querySelectorAll('details'), function(d){
+    /* ⚠️ LA CLAVE NO PUEDE SER EL RÓTULO: los trece detalles dicen «Ver detalle», así que
+       compartían UNA entrada del mapa y ganaba la última escritura. Medido: abrir el detalle de una
+       sección y contestar un control lo CERRABA —o abría los trece, si el último estaba abierto—,
+       que es exactamente el salto que esta función existe para evitar. Se ancla al `<details>`
+       padre, cuyo summary es el título de `IND_SECS` y sí es único. Lo encontró /sharp-edges y
+       ocurre en el flujo normal: contestar controles es la interacción principal del panel. */
     const s = d.querySelector('summary');
-    if (s) abiertas[s.textContent] = d.open;
+    const pa = d.parentElement && d.parentElement.closest('details');
+    const ps = pa && pa.querySelector('summary');
+    if (s) abiertas[(ps ? ps.textContent + ' ▸ ' : '') + s.textContent] = d.open;
   });
   const y = c.scrollTop;
   indicRender();
   Array.prototype.forEach.call(c.querySelectorAll('details'), function(d){
     const s = d.querySelector('summary');
-    if (s && Object.prototype.hasOwnProperty.call(abiertas, s.textContent)) d.open = abiertas[s.textContent];
+    /* La MISMA clave que la captura. Arreglar un solo lado deja la mitad del defecto: la captura
+       distinguiría los trece detalles y la restauración seguiría leyendo una entrada compartida. */
+    const pa = d.parentElement && d.parentElement.closest('details');
+    const ps = pa && pa.querySelector('summary');
+    const k = s ? (ps ? ps.textContent + ' ▸ ' : '') + s.textContent : null;
+    if (k && Object.prototype.hasOwnProperty.call(abiertas, k)) d.open = abiertas[k];
   });
   c.scrollTop = y;
   if (claveFoco == null) return;
@@ -36204,6 +36217,41 @@ function _indFilaHTML(f){
    redundantes del contorno de 3 puntos; hoy está cubierta por TC-282. Lo que sigue valiendo es la
    otra mitad: si se borra, borrar también la rama de `_indSecHTML` que la nombra. */
 const IND_RECOM_COL = { ind:'#10B981', alarma:'#DC2626', falta:'#94A3B8', no:'#94A3B8' };
+/* ── EL DETALLE VA COLAPSADO, Y HAY UN SOLO CONTROL POR SECCIÓN ──
+   El panel mostraba la recomendación y debajo varios párrafos largos con el MISMO peso visual
+   —por qué cambió una guía entre ediciones, matices, límites de evidencia, contraindicaciones
+   condicionales—, así que el médico no podía distinguir «esto leo siempre» de «esto abro si
+   necesito profundizar». Hoy eso vive detrás de un `<details>`.
+
+   ⚠️ QUÉ QUEDA VISIBLE, Y ES UNA DESVIACIÓN DECLARADA DEL PEDIDO. Éste decía «SIEMPRE VISIBLE: la
+   recomendación y la cita de guía; OCULTO: todo el resto». Leído al pie, eso esconde también las
+   FILAS de datos y los CONTROLES clínicos, y las dos cosas son peores que el problema:
+   · Las filas son la evidencia que sostiene la recomendación —el valor medido, su umbral y su
+     marca—. Una «Clase I · Nivel B» sin nada visible que la respalde es «un número sin su reparo»,
+     que es el defecto que este archivo persigue desde la nota del NT-proBNP.
+   · `r.clinica` son los BOTONES que el médico contesta. Colapsarlos deja una sección diciendo
+     «Falta contestar: Síntomas» con el control escondido: eso es una regresión funcional, no un
+     cambio de forma, y SEGURIDAD de esta ronda prohíbe tocar la lógica.
+   Así que el corte es por lo que el pedido DESCRIBE como el problema —los párrafos largos— y no
+   por su enumeración literal. Oculto: `notas`, la nota de la recomendación y la de la modalidad.
+   Visible: aviso, filas, controles, recomendación con su clase y nivel, «Falta contestar», y la
+   cita de guía.
+
+   UN SOLO CONTROL, y sale de UN SOLO armador: `_indSecHTML` es el único llamador, así que «el mismo
+   patrón en las trece secciones» queda garantizado por construcción y no por revisión. */
+function _indDetalleHTML(items){
+  const xs = (items || []).filter(function(x){ return x && String(x.txt || '').trim(); });
+  if (!xs.length) return '';
+  let h = '<details style="margin-top:7px;">';
+  h += '<summary style="cursor:pointer;font-size:10.5px;font-weight:700;color:var(--accent2);' +
+       'list-style:revert;">&#9432; Ver detalle</summary>';
+  h += '<div style="font-size:11px;line-height:1.55;color:var(--text2);margin-top:6px;">';
+  h += xs.map(function(x){
+    return '<div style="margin-top:6px;">' + _critEsc(x.txt) + '</div>';
+  }).join('');
+  return h + '</div></details>';
+}
+
 function _indRecomHTML(r){
   const col = IND_RECOM_COL[r.tipo] || IND_RECOM_COL.falta;
   let h = '<div style="margin-top:12px;padding:9px 11px;border-left:3px solid ' + col +
@@ -36215,6 +36263,21 @@ function _indRecomHTML(r){
        _critEsc(r.clase) + '</b> · ' + _critEsc(r.fuente) + '</div>';
   if (r.faltan && r.faltan.length) h += '<div style="font-size:11px;margin-top:5px;color:#D97706;">' +
        'Falta contestar: ' + _critEsc(r.faltan.join(' · ')) + '</div>';
+  /* ⚠️ ESTA NOTA SE QUEDA VISIBLE, Y LA PRIMERA VERSIÓN DE ESTA RONDA LA MANDÓ AL DETALLE.
+     Lo encontró /sharp-edges y era el defecto más grave del cambio: `r.nota` NO es contexto de la
+     guía — es la CONDICIÓN de la fila que no se pudo verificar, y en un caso es una SEGUNDA
+     indicación con su propia clase. Tres precedentes de este mismo archivo, que pasadas anteriores
+     cerraron poniendo justamente estos textos DENTRO de la recomendación:
+     · `_indEPRecom`: «esa confirmación no está hecha» —la que la nota al pie de la tabla exige—
+       desaparecía sólo en las tres ramas que publican Clase I C o IIa. Su comentario dice, textual,
+       «va en el texto y no sólo en una nota al final».
+     · `_indEMRecom`: las cuatro contraindicaciones que la app no registra. Su comentario dice «una
+       recomendación que no las nombre se lee como si estuvieran descartadas».
+     · `_indVTRecom`: la Clase I C de la estenosis tricuspídea concomitante, con el aviso de que la
+       severa suele exigir REEMPLAZO contra una nota al pie que pide reparación.
+     Colapsarlas devolvía las tres a un pie de sección, detrás de un rótulo que ni siquiera dice que
+     hay algo sin verificar. Al detalle va sólo `r.notas` —los párrafos de contexto del final—, que
+     es lo que el pedido describe como el problema. */
   if (r.nota) h += '<div style="font-size:11px;margin-top:5px;color:var(--text2);line-height:1.5;">' +
        _critEsc(r.nota) + '</div>';
   /* La MODALIDAD va en su propio bloque y sólo cuando ya hay indicación: en la guía son dos
@@ -36230,6 +36293,8 @@ function _indRecomHTML(r){
        ya está inicializada— pero ataría un helper compartido a una constante de una sección. */
     if (r.mod.clase) h += '<div style="font-size:11px;margin-top:4px;color:var(--text2);"><b>' +
          _critEsc(r.mod.clase) + '</b> · ' + _critEsc(r.mod.fuente || r.fuente || '') + '</div>';
+    /* Ídem: `_indEAModalidad` pone acá que «la Clase I A de TAVI está escrita para la válvula
+       tricúspide y no se aplica», que es la condición de la fila que se está publicando. */
     if (r.mod.nota) h += '<div style="font-size:11px;margin-top:4px;color:var(--text2);line-height:1.5;">' +
          _critEsc(r.mod.nota) + '</div>';
     h += '</div>';
@@ -36266,10 +36331,16 @@ function _indSecHTML(tit, r){
   }
   /* La recomendación va DEBAJO de los datos que la sostienen y no arriba: es la conclusión de
      lo que se acaba de leer, y arriba se leería como el titular de la sección. */
+  /* El detalle se junta ANTES de pintarlo: `_indRecomHTML` empuja sus dos notas acá, así que el
+     control tiene que armarse después de llamarla. */
   if (r.recom) h += _indRecomHTML(r.recom);
+  /* Sólo los párrafos de contexto del final van al detalle. Sin rótulo y sin mezclarse con nada:
+     al quedar `r.nota` visible, no hay dos orígenes que puedan confundirse. */
+  const det = (r.notas || []).filter(Boolean).map(function(n){ return { txt:n }; });
+  /* La cita de guía queda SIEMPRE VISIBLE —es lo que dice con qué regla se clasificó— y el detalle
+     cuelga de ella. */
   h += '<div style="font-size:11px;line-height:1.55;color:var(--text2);margin-top:11px;padding-top:8px;border-top:1px dashed var(--border);">' +
-       '<b>' + _critEsc(r.guia) + '</b>' + (r.notas && r.notas.length
-         ? r.notas.map(n => '<div style="margin-top:5px;">' + _critEsc(n) + '</div>').join('') : '') + '</div>';
+       '<b>' + _critEsc(r.guia) + '</b>' + _indDetalleHTML(det) + '</div>';
   return h + '</div></details>';
 }
 
@@ -36643,7 +36714,7 @@ function _indEA(){
     recom: _indEARecom(esc),
     guia: 'ESC/EACTS 2025 — La INTERVENCIÓN es Clase I · Nivel B en el paciente sintomático con estenosis aórtica severa de alto gradiente (gradiente medio ≥ 40 mmHg, Vmax ≥ 4,0 m/s y AVA ≤ 1,0 cm² o ≤ 0,6 cm²/m²). La definición de severidad NO cambió respecto de la edición 2021.',
     notas: [
-      'La MODALIDAD es una decisión aparte y no es intercambiable: SAVR Clase I · Nivel B en menores de 70 años con riesgo quirúrgico bajo; TAVI Clase I · Nivel A desde los 70 años con válvula tricúspide y anatomía apta. La edición 2025 bajó ese corte de 75 a 70 años y eliminó el disparador de TAVI por riesgo quirúrgico alto.',
+      'La MODALIDAD es una decisión aparte, no intercambiable: SAVR Clase I · Nivel B bajo 70 años con riesgo quirúrgico bajo; TAVI Clase I · Nivel A desde los 70 con válvula tricúspide y anatomía apta. La edición 2025 bajó ese corte de 75 a 70 años y eliminó el disparador de TAVI por riesgo quirúrgico alto.',
       /* ⚠️ ACÁ NO VA HISTORIA DE LA APLICACIÓN. Esta nota decía «el criterio de la app coincide
          con el de la guía desde el 2026-09-25 (constante AVA_SEVERA_MAX); hasta esa fecha usaba
          < 1,0». Es una fecha de commit y un nombre de constante en la pantalla de un médico: no
@@ -36651,9 +36722,9 @@ function _indEA(){
          criterio vigente ya está en la línea de la guía y en la fila del área.
          La historia de las GUÍAS sí se queda —«la ESC 2021 bajó el corte de 45 a 40 mm»— porque
          eso cambia la conducta y el lector puede tener la edición anterior en la cabeza. */
-      'Un AVA de exactamente 1,00 cm² alcanza el criterio de área y se clasifica severa: el corte de la guía es «≤ 1,0», no «< 1,0».',
-      'Los tres criterios pueden discordar, y el patrón de bajo flujo y bajo gradiente no se cierra con estos tres números. El subtipo y la discordancia los resuelve la tarjeta de estenosis aórtica, que es de donde los toma este panel.',
-      'La calcificación valvular por tomografía —más de 2000 unidades Agatston en el varón y más de 1200 en la mujer— es un criterio DIAGNÓSTICO de severidad y no lleva clase de recomendación. Como criterio de intervención sólo cuenta junto con una progresión de la Vmax de 0,3 m/s por año o más, dentro de la Clase IIa · Nivel B del asintomático.',
+      'Un AVA de exactamente 1,00 cm² es severa: el corte de la guía es «≤ 1,0», no «< 1,0».',
+      'Los tres criterios pueden discordar, y el bajo flujo con bajo gradiente no se cierra con estos tres números. El subtipo y la discordancia los resuelve la tarjeta de estenosis aórtica, de donde este panel los toma.',
+      'La calcificación por tomografía —más de 2000 unidades Agatston en el varón, más de 1200 en la mujer— es criterio DIAGNÓSTICO de severidad y no lleva clase. Como criterio de intervención cuenta sólo junto a una progresión de la Vmax de 0,3 m/s por año o más, dentro de la Clase IIa · Nivel B del asintomático.',
       'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
     ] };
 }
@@ -36988,10 +37059,10 @@ function _indIM(){
     recom: _indIMRecom(D),
     guia: 'ESC/EACTS 2025 — Cirugía Clase I · Nivel B en el paciente sintomático operable, y en el asintomático con disfunción ventricular: diámetro telesistólico ≥ 40 mm, o indexado ≥ 20 mm/m², o FEVI ≤ 60 %.',
     notas: [
-      'El diámetro telesistólico INDEXADO ≥ 20 mm/m² es criterio nuevo de la edición 2025: la de 2021 sólo tenía el absoluto. El corte de 45 mm que a veces se cita es el de la ESC 2017.',
-      'La Clase I nueva de 2025 exige AL MENOS TRES de los cuatro criterios —fibrilación auricular, PAPs en reposo > 50 mmHg, dilatación auricular (≥ 60 ml/m² o ≥ 55 mm) e insuficiencia tricuspídea secundaria al menos moderada— y además riesgo bajo, ausencia de disfunción en los tres parámetros y reparación duradera probable. Con uno o dos criterios la conducta baja a Clase IIa.',
-      'La dilatación auricular por sí sola, y la hipertensión pulmonar o la fibrilación secundaria a la insuficiencia por sí solas, son filas de Clase IIa · Nivel B, no de Clase I. La fila de dilatación auricular exige además riesgo bajo, centro con experiencia y reparación duradera probable.',
-      'El TEER en la insuficiencia primaria subió en 2025 a Clase IIa · Nivel B para el sintomático anatómicamente apto con riesgo quirúrgico alto: dejó de exigir que el paciente fuera inoperable.',
+      'El diámetro telesistólico INDEXADO ≥ 20 mm/m² es criterio NUEVO de 2025: la edición 2021 sólo tenía el absoluto. El corte de 45 mm que se cita a veces es de la ESC 2017.',
+      'La Clase I nueva de 2025 exige AL MENOS TRES de cuatro criterios —fibrilación auricular, PAPs en reposo > 50 mmHg, dilatación auricular (≥ 60 ml/m² o ≥ 55 mm), insuficiencia tricuspídea secundaria al menos moderada— MÁS riesgo bajo, ausencia de disfunción en los tres parámetros y reparación duradera probable. Con uno o dos criterios baja a Clase IIa.',
+      'La dilatación auricular sola, y la hipertensión pulmonar o la fibrilación secundarias a la insuficiencia solas, son Clase IIa · Nivel B, no Clase I. La de dilatación auricular exige además riesgo bajo, centro con experiencia y reparación duradera probable.',
+      'El TEER en la insuficiencia primaria subió en 2025 a Clase IIa · Nivel B para el sintomático anatómicamente apto con riesgo quirúrgico alto: dejó de exigir que fuera inoperable.',
       'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
     ] };
 }
@@ -37329,10 +37400,10 @@ function _indEM(){
     recom: _indEMRecom(D),
     guia: 'ESC/EACTS 2025 — Comisurotomía mitral percutánea Clase I · Nivel B en el paciente SINTOMÁTICO en ausencia de características desfavorables, y Clase I · Nivel C en cualquier sintomático con contraindicación o riesgo alto para cirugía.',
     notas: [
-      'La guía define AVm ≤ ' + (US != null ? _indNum(US,1) : '1,5') + ' cm² como estenosis clínicamente severa y no gradúa la estenosis mitral en leve, moderada y severa por área: es un corte único de significación clínica, no una escala. Las bandas que se ven en la pantalla del estudio son la graduación habitual de la práctica ecocardiográfica, no una fila de esta tabla.',
-      'El score ecocardiográfico > ' + EM_CRIT_2025.score_desfav + ' es UNA de varias características desfavorables —repartidas en clínicas y anatómicas— y la guía agrupa con un «varias de las siguientes» que NO cuantifica. Un score aislado no descalifica a nadie, y la propia guía señala que pacientes con características desfavorables pueden beneficiarse igual, sobre todo con riesgo quirúrgico aumentado.',
-      'Contraindicaciones del procedimiento: AVm > ' + (US != null ? _indNum(US,1) : '1,5') + ' cm²; trombo en aurícula izquierda; insuficiencia mitral MÁS QUE LEVE —no «moderada o más»—; calcificación severa o bicomisural; ausencia de fusión comisural; valvulopatía aórtica severa o enfermedad tricuspídea combinada severa que requiera cirugía; enfermedad coronaria que requiera revascularización quirúrgica. Esta sección evalúa las tres primeras; las otras cuatro no tienen campo en la app y la recomendación las nombra.',
-      'Con trombo en la OREJUELA la contraindicación es condicional: la guía admite considerar el procedimiento en quien tiene contraindicación quirúrgica o no tiene necesidad urgente, con anticoagulación 1-3 meses y un ETE de control que confirme la resolución.',
+      'AVm ≤ ' + (US != null ? _indNum(US,1) : '1,5') + ' cm² es el corte ÚNICO de significación clínica: la guía NO gradúa la estenosis mitral por área en leve, moderada y severa. Las bandas de la pantalla del estudio son la graduación habitual de la práctica, no una fila de esta tabla.',
+      'El score ecocardiográfico > ' + EM_CRIT_2025.score_desfav + ' es UNA de varias características desfavorables —clínicas y anatómicas— agrupadas con un «varias de las siguientes» que la guía NO cuantifica. Un score aislado no descalifica a nadie, y la propia guía señala que esos pacientes pueden beneficiarse igual, sobre todo con riesgo quirúrgico aumentado.',
+      'Contraindicaciones: AVm > ' + (US != null ? _indNum(US,1) : '1,5') + ' cm²; trombo en aurícula izquierda; insuficiencia mitral MÁS QUE LEVE —no «moderada o más»—; calcificación severa o bicomisural; ausencia de fusión comisural; valvulopatía aórtica severa o enfermedad tricuspídea combinada severa con indicación quirúrgica; coronariopatía que requiera revascularización quirúrgica. Esta sección evalúa las tres primeras; las otras cuatro no tienen campo y la recomendación las nombra.',
+      'Con trombo en la OREJUELA la contraindicación es CONDICIONAL: la guía admite considerar el procedimiento con contraindicación quirúrgica o sin urgencia, anticoagulando 1-3 meses y con un ETE de control que confirme la resolución.',
       'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
     ] };
 }
@@ -37963,11 +38034,11 @@ function _indIA(){
     recom: recom,
     guia: 'ESC/EACTS 2025 — Cirugía Clase I · Nivel B en el paciente sintomático sea cual sea la función del VI, y en el asintomático con DTSVI > 50 mm, DTSVI indexado > 25 mm/m² o FEVI en reposo ≤ 50 %. Esos tres cortes NO cambiaron respecto de la edición 2021.',
     notas: [
-      'La fila de intervención precoz del asintomático de riesgo bajo es Clase IIb · Nivel B: DTSVI indexado > 22 mm/m², volumen telesistólico indexado > 45 ml/m² o FEVI ≤ 55 %. La edición 2025 movió el diámetro indexado de 20 a 22 mm/m², agregó el criterio de volumen y subió el nivel de evidencia de C a B.',
-      'La «talla pequeña» que hace mandar a los criterios indexados dejó de ser cualitativa: en 2025 es una superficie corporal menor de 1,68 m².',
-      'El diámetro TELEDIASTÓLICO no es criterio de esta tabla. El > 65 mm que suele citarse es texto del cuerpo del documento, sin clase asignada, y además exige progresión de los diámetros o caída de la FEVI en el seguimiento, que no se resuelve con un estudio aislado.',
-      'La reparación valvular subió en 2025 de Clase IIb · Nivel C a Clase IIa · Nivel B, y el TAVI para la insuficiencia aórtica es fila nueva (Clase IIb · Nivel B) reservada al sintomático no elegible para cirugía.',
-      'El aneurisma AISLADO de raíz o de aorta ascendente —sin indicación valvular— se rige por la guía de aorta y no por esta tabla. Lo que sí es fila de acá son los 45 mm del reemplazo CONCOMITANTE cuando la cirugía valvular ya está indicada y el riesgo es bajo.',
+      'Intervención precoz del asintomático de riesgo bajo: Clase IIb · Nivel B con DTSVI indexado > 22 mm/m², volumen telesistólico indexado > 45 ml/m² o FEVI ≤ 55 %. La 2025 movió el diámetro indexado de 20 a 22 mm/m², agregó el volumen y subió el nivel de evidencia de C a B.',
+      'La «talla pequeña» que manda a los criterios indexados dejó de ser cualitativa: en 2025 es superficie corporal menor de 1,68 m².',
+      'El diámetro TELEDIASTÓLICO no es criterio de esta tabla. El > 65 mm que se cita es texto del cuerpo, sin clase, y exige progresión de los diámetros o caída de la FEVI en el seguimiento — no se resuelve con un estudio aislado.',
+      'La reparación valvular subió en 2025 de Clase IIb · Nivel C a Clase IIa · Nivel B, y el TAVI para insuficiencia aórtica es fila nueva (Clase IIb · Nivel B), sólo para el sintomático no elegible para cirugía.',
+      'El aneurisma AISLADO de raíz o ascendente —sin indicación valvular— se rige por la guía de aorta, no por esta tabla. Sí es fila de acá el reemplazo CONCOMITANTE desde 45 mm cuando la cirugía valvular ya está indicada y el riesgo es bajo.',
       'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
     ] };
 }
@@ -38194,12 +38265,12 @@ function _indVAB(){
     aviso: (C && C.clave === 'contradiccion') ? C.txt : '',
     guia: 'ESC 2024 (enfermedades aórticas y arteriales periféricas) — Cirugía Clase I B con diámetro máximo ≥ 55 mm, y Clase I B desde 50 mm en el FENOTIPO DE RAÍZ. Todo lo demás es Clase IIa.',
     notas: [
-      C ? 'Conclusión de la app para este estudio: ' + C.txt
-        : 'La sección de válvula bicúspide no tiene datos cargados, así que la app no emite conclusión. Los diámetros de arriba se muestran solos.',
+      C ? 'Conclusión de la app: ' + C.txt
+        : 'Sin datos cargados en la sección de válvula bicúspide, la app no emite conclusión. Los diámetros de arriba van solos.',
       'La distinción raíz / ascendente decide la conducta: en fenotipo ascendente NO hay Clase I a 50 mm — el gatillo aislado es > 52 mm (IIa B) y la Clase I recién a ≥ 55 mm.',
-      'Clase IIa C a partir de 50 mm con riesgo quirúrgico bajo y algún factor: edad < 50 años, talla baja, longitud de la aorta ascendente ≥ 11 cm, crecimiento ≥ 3 mm/año, antecedente familiar de síndrome aórtico agudo, coartación, hipertensión resistente, cirugía cardíaca no valvular aórtica concomitante o deseo de embarazo.',
-      'Clase IIa C a partir de 45 mm (raíz o ascendente) si el paciente va a cirugía valvular aórtica.',
-      'Los dos umbrales Clase I que circulan con «> 50 mm con factores de riesgo» y «> 45 mm con recambio valvular programado» son de la ESC 2014: la guía de 2024 los imprime en su tabla de recomendaciones modificadas, degradados a IIa C.'
+      'Clase IIa C desde 50 mm con riesgo quirúrgico bajo y algún factor: edad < 50 años, talla baja, longitud de la ascendente ≥ 11 cm, crecimiento ≥ 3 mm/año, antecedente familiar de síndrome aórtico agudo, coartación, hipertensión resistente, cirugía cardíaca no valvular aórtica concomitante o deseo de embarazo.',
+      'Clase IIa C desde 45 mm (raíz o ascendente) si va a cirugía valvular aórtica.',
+      'Los dos umbrales Clase I que circulan —«> 50 mm con factores de riesgo» y «> 45 mm con recambio valvular programado»— son de la ESC 2014: la guía de 2024 los imprime en su tabla de recomendaciones modificadas, degradados a IIa C.'
     ] };
 }
 
@@ -38645,14 +38716,14 @@ function _indEP(){
       + (UM != null ? UM + ' mmHg' : 'el umbral de severidad')
       + ', la intervención sobre la obstrucción es Clase I C INDEPENDIENTEMENTE DE LOS SÍNTOMAS siempre que NO se requiera un sustituto valvular. Si el reemplazo quirúrgico es la única opción, hacen falta síntomas, o bien uno de cuatro criterios en el asintomático. En la estenosis valvular la valvuloplastia con balón es la técnica de elección si la válvula es anatómicamente apta.',
     notas: [
-      'La ESC/EACTS 2025 de valvulopatías NO cubre la estenosis pulmonar: la lesión está ausente de sus 102 páginas y de su índice de tablas. Gobierna la ESC 2020 de cardiopatías congénitas del adulto, que sigue siendo la edición vigente.',
-      'Por debajo del umbral la intervención es Clase IIa C ante síntomas atribuibles a la estenosis, caída de la función del ventrículo derecho o progresión de la insuficiencia tricuspídea, o shunt derecha-izquierda. Esa fila NO incluye la PSVD ni la capacidad de ejercicio, que sí están en la del asintomático.',
+      'La ESC/EACTS 2025 de valvulopatías NO cubre esta lesión: ausente de sus 102 páginas y de su índice de tablas. Gobierna la ESC 2020 de congénitas del adulto, vigente.',
+      'Bajo el umbral: Clase IIa C con síntomas atribuibles, caída de la función del VD, progresión de la insuficiencia tricuspídea o shunt derecha-izquierda. Esa fila NO incluye la PSVD ni la capacidad de ejercicio — ésas están en la del asintomático.',
       (UM != null
-        ? 'El gradiente de exactamente ' + UM + ' mmHg no cae en ninguna de las dos filas: la severidad es MÁS de ese número y la fila de Clase IIa es MENOS. El hueco es del texto de la guía, no de esta app.'
-        : 'El umbral de severidad no está disponible: recargar la aplicación. Sin él esta sección no puede decir qué valor cae en qué fila.'),
-      'El umbral es para la estenosis valvular. En la supravalvular, la subvalvular y la de ramas pulmonares la conducta no se decide por este número. La estenosis pulmonar PERIFÉRICA tiene fila propia —Clase IIa C con más del 50 % de estrechamiento y PSVD mayor de 50 mmHg— y esta app no mide el porcentaje de estrechamiento.',
-      'La nota al pie de la tabla pide que la PSVD estimada por la velocidad de la insuficiencia tricuspídea confirme la estenosis severa. Esta app no lo puede hacer: la PSAP estimada no tiene banda de plausibilidad.',
-      'El umbral de intervención es MÁS ALTO cuando hace falta un sustituto valvular, porque hay que contar el riesgo a largo plazo de endocarditis y de reintervención por falla de la prótesis. Es la razón por la que la tabla se parte en tres filas.',
+        ? 'Un gradiente de exactamente ' + UM + ' mmHg no cae en ninguna fila: severa es MÁS y la Clase IIa es MENOS. El hueco es del texto de la guía, no de esta app.'
+        : 'Umbral de severidad no disponible: recargar la aplicación. Sin él no se puede decir qué valor cae en qué fila.'),
+      'El umbral es de la estenosis VALVULAR: en la supravalvular, la subvalvular y la de ramas no decide la conducta. La PERIFÉRICA tiene fila propia —Clase IIa C con más del 50 % de estrechamiento y PSVD mayor de 50 mmHg— y esta app no mide ese porcentaje.',
+      'La nota al pie pide confirmar la severa con la PSVD estimada por la velocidad de insuficiencia tricuspídea. Esta app no puede: la PSAP estimada no tiene banda de plausibilidad.',
+      'Con sustituto valvular el umbral es MÁS ALTO: cuenta el riesgo a largo plazo de endocarditis y de reintervención por falla de la prótesis. Por eso la tabla tiene tres filas.',
       'El gradiente máximo instantáneo por Doppler sobreestima el pico-a-pico del cateterismo.'
     ] };
 }
@@ -39186,11 +39257,11 @@ function _indVT(){
     recom: _indVTRecom(D, itSev, itMod, etSev, etSig, E, UG),
     guia: 'ESC/EACTS 2025 — La cirugía tricuspídea concomitante es Clase I B en la insuficiencia SEVERA, primaria o secundaria, del paciente que va a cirugía valvular izquierda; y Clase I C en la insuficiencia primaria severa del paciente SINTOMÁTICO sin disfunción ventricular derecha severa ni hipertensión pulmonar severa. El tratamiento TRANSCATÉTER es Clase IIa A en el paciente de riesgo alto.',
     notas: [
-      'La evaluación por un Heart Team con experiencia en patología tricuspídea es Clase I C antes de indicar cualquier intervención, y es una fila nueva de la 2025 que no depende del escenario.',
-      'La reparación tricuspídea concomitante es Clase IIa B en la insuficiencia MODERADA, primaria o secundaria, de quien va a cirugía izquierda.',
-      'Con insuficiencia secundaria LEVE y anillo tricuspídeo dilatado —≥ ' + VT_CRIT_2025.anillo_mm + ' mm o > ' + VT_CRIT_2025.anillo_idx + ' mm/m²— la reparación concomitante es Clase IIb B. La 2025 la bajó de IIa y la restringió de «leve o moderada» a leve. Esta app no tiene campo de anillo tricuspídeo, así que esa fila no se puede evaluar: el único campo de anillo que existe es el mitral.',
-      'La guía define la estenosis tricuspídea severa con UN solo criterio: gradiente medio diastólico > ' + (UG != null ? UG : '5') + ' mmHg A FRECUENCIA CARDÍACA NORMAL. No la gradúa en leve, moderada y severa, y no usa el tiempo de hemipresión ni el área valvular. Esta app no registra la frecuencia a la que se midió el gradiente, así que ese calificador queda sin verificar.',
-      'La valvuloplastia percutánea con balón no aparece en el cuerpo de la tabla de estenosis tricuspídea: vive en sus notas al pie, que la dan como primer abordaje posible cuando la estenosis es aislada, o cuando además se puede hacer comisurotomía percutánea sobre la mitral.',
+      'Heart Team con experiencia en patología tricuspídea: Clase I C antes de cualquier intervención. Es fila nueva de la 2025 y no depende del escenario.',
+      'Reparación concomitante en la insuficiencia MODERADA, primaria o secundaria, de quien va a cirugía izquierda: Clase IIa B.',
+      'Con insuficiencia secundaria LEVE y anillo dilatado —≥ ' + VT_CRIT_2025.anillo_mm + ' mm o > ' + VT_CRIT_2025.anillo_idx + ' mm/m²— la reparación concomitante es Clase IIb B. La 2025 la bajó de IIa y la restringió de «leve o moderada» a leve. Esa fila NO se puede evaluar: esta app no tiene campo de anillo tricuspídeo — el único anillo que existe es el mitral.',
+      'La guía define la estenosis severa con UN solo criterio: gradiente medio diastólico > ' + (UG != null ? UG : '5') + ' mmHg A FRECUENCIA CARDÍACA NORMAL. No la gradúa en leve, moderada y severa, y no usa el tiempo de hemipresión ni el área valvular. Esta app no registra la frecuencia del gradiente, así que ese calificador queda sin verificar.',
+      'La valvuloplastia con balón NO está en el cuerpo de la tabla: vive en sus notas al pie, que la dan como primer abordaje posible con estenosis aislada, o si además se puede hacer comisurotomía percutánea mitral.',
       'La estenosis tricuspídea casi siempre acompaña a una valvulopatía izquierda, y la decisión suele tomarse junto con ella.'
     ] };
 }
@@ -39311,10 +39382,20 @@ function indicRender(){
        desaparecería sin decir por qué, que es el modo de falla contra el que este archivo
        insiste. Se cuenta y se declara al pie. */
     let r = null;
-    try { r = s.fn(); } catch (e) { fallos++; return; }
+    /* ⚠️ EL PINTADO VA DENTRO DEL `try`, y antes quedaba afuera. `indicRender` asigna
+       `c.innerHTML` en su última línea, así que una excepción en `_indSecHTML` —un `r` sin `filas`,
+       lo que sea— tenía dos salidas y las dos son peores que declarar la sección caída: por
+       `indicAbrir` el panel NO SE ABRE y el médico aprieta el botón y no pasa nada; por
+       `_indRepintarConservando` el cuerpo CONSERVA el pintado anterior, o sea que la respuesta que
+       el médico acaba de dar ya está en `_indClin` y la pantalla sigue mostrando la recomendación
+       vieja — contenido plausible y desactualizado. Es la regla 4 del panel, fallar cerrado, que
+       este bloque decía aplicar y aplicaba a medias. Lo encontró /sharp-edges; es preexistente y
+       más ancho que esta ronda. */
+    let hs = '';
+    try { r = s.fn(); if (r) hs = _indSecHTML(s.tit, r); } catch (e) { fallos++; return; }
     if (!r) return;
     n++;
-    h += _indSecHTML(s.tit, r);
+    h += hs;
   });
   if (!n) h = '<div style="padding:22px 6px;text-align:center;font-size:12px;color:var(--text2);line-height:1.6;">' +
     'Sin criterios de intervención detectados con los datos actuales.' +
@@ -80682,8 +80763,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260927-1821';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790544095274;                 /* eco-build-ms */
+const ECO_BUILD    = '20260927-1952';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790549526474;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -80769,7 +80850,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-1821</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-1952</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

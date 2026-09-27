@@ -32864,6 +32864,209 @@ caso('TC-292', 'El empate de la Tabla 8 en 50 por ciento de fraccion regurgitant
   return { extra: ex };
 `);
 
+caso('TC-293', 'Panel de Evidencia: el detalle largo nace COLAPSADO, hay un solo control por seccion, y la recomendacion con su cita quedan siempre visibles', `
+  const ex = [];
+  const pl = s => String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+  try {
+    /* Escenario que enciende varias secciones a la vez: con una sola, «las trece comparten el
+       patron» se cumple por vacuidad. El panel sale de UN armador (_indSecHTML), asi que probar
+       varias es probar el mecanismo; el denominador se declara abajo. */
+    __t.limpiar();
+    const S = { peso:'80', talla:'180', edad:'62', sexo:'M',
+      vmax_ao:'4.5', gmedio_ao:'45', diam_tsvi:'20', itv_tsvi:'18', itv_ao:'40',
+      fevi:'55', dsfvi:'52', ao_sin:'48', ao_tub:'52', va_morf:'Bicúspide',
+      im_sev_final:'4', ia_sev_final:'4', it_grado:'4', vmax_it:'3.2', vci_diam:'22',
+      em_gmedio:'8', avm_cont:'1.2', et_gmedio:'7', vp_gmax:'70',
+      mch_espesor:'18', mch_grad_reposo:'60', tapse:'14', s_prime:'8' };
+    Object.keys(S).forEach(function(k){ __t.set(k, S[k]); });
+    ['calcAo','calcEADetalle','calcVI','calcAI','calcVD','calcIT_ESC','calcIM_ESC','calcIA_ESC',
+     'calcEM','calcET','calcVP','calcBSA','calcPSAP','mchSync','vabSync'].forEach(function(f){
+       try { window[f] && window[f](); } catch (e) {} });
+    indicAbrir();
+    /* ⚠️ HAY QUE CONTESTAR LOS CONTROLES, y sin esto el caso no observa nada de lo que dice observar.
+       «recom.nota» sale sólo de las ramas que RESUELVEN una recomendación, y ésas exigen las
+       respuestas clínicas: con el panel recién abierto hay CERO secciones con nota, así que la
+       condición de «la nota queda visible» pasaba sobre un conjunto vacío. Lo delató una mutación
+       que sobrevivió. Se contesta una opción por clave; el repintado que dispara cada clic es el
+       mismo que el médico produce. */
+    const claves = {};
+    [].slice.call(document.querySelectorAll('#indic-cuerpo [data-ind-clin]')).forEach(function(b){
+      claves[b.getAttribute('data-ind-clin')] = 1; });
+    Object.keys(claves).forEach(function(k){
+      const b = document.querySelector('#indic-cuerpo [data-ind-clin="' + k + '"]');
+      if (b) b.click();
+    });
+    /* Las referencias se toman DESPUES de contestar: cada clic repinta el cuerpo, así que un array
+       capturado antes queda desprendido del documento. Ya costó una corrida en este archivo. */
+    const cu = document.getElementById('indic-cuerpo');
+    const secs = [].slice.call(cu.querySelectorAll(':scope > details'));
+    const det = [].slice.call(cu.querySelectorAll('details details'));
+
+    ex.push(['DENOMINADOR: el escenario enciende varias secciones y cada una trae su control de detalle',
+      secs.length >= 5 && det.length === secs.length,
+      'secciones=' + secs.length + ' controles=' + det.length]);
+
+    /* ⚠️ LA CONDICION CENTRAL: NINGUNO ABIERTO POR DEFECTO. Sin esto, agregar el «<details>» y
+       dejarlo con «open» se ve casi igual en el diff y no cambia nada para el medico. */
+    ex.push(['ningun detalle nace abierto: el medico ve la capa corta de entrada',
+      det.length > 0 && det.filter(function(d){ return d.open; }).length === 0,
+      'abiertos=' + det.filter(function(d){ return d.open; }).length + ' de ' + det.length]);
+
+    /* UN SOLO PATRON, no uno por seccion. Se mide el ROTULO, que es lo que el medico reconoce. */
+    const rot = det.map(function(d){ return d.querySelector('summary').textContent.trim(); });
+    ex.push(['las secciones comparten UN solo control con el mismo rotulo, no un mecanismo por seccion',
+      new Set(rot).size === 1 && pl(rot[0]).indexOf('ver detalle') > -1,
+      'rotulos distintos=' + new Set(rot).size + ' -> «' + rot[0] + '»']);
+
+    /* Expande y vuelve a cerrar. Se mide el DETAILS y no el div interno: el hijo reporta su propia
+       altura y da el mismo numero en los dos estados, o sea un denominador que no distingue nada. */
+    const d0 = det[0];
+    const hC = d0.getBoundingClientRect().height;
+    d0.open = true; const hA = d0.getBoundingClientRect().height;
+    d0.open = false; const hV = d0.getBoundingClientRect().height;
+    ex.push(['el detalle expande al abrirlo y vuelve a su alto al cerrarlo',
+      hA > hC + 20 && Math.abs(hV - hC) < 1,
+      'cerrado=' + hC.toFixed(1) + ' abierto=' + hA.toFixed(1) + ' vuelta=' + hV.toFixed(1)]);
+
+    /* ⚠️ QUE QUEDA VISIBLE. Es la desviacion declarada del pedido: las FILAS de datos y los
+       CONTROLES clinicos NO se colapsan —las filas son la evidencia que sostiene la recomendacion,
+       y r.clinica son los botones que el medico contesta—. Si alguien los manda al detalle, esta
+       condicion cae: una «Clase I · Nivel B» sin nada visible que la respalde es un numero sin su
+       reparo, y un control escondido es una regresion funcional. */
+    const fuera = secs.map(function(sec){
+      const c = sec.cloneNode(true);
+      [].slice.call(c.querySelectorAll('details details')).forEach(function(n){ n.remove(); });
+      return { filas: c.querySelectorAll('table tr').length,
+               cita:  /20\\d\\d/.test(c.textContent),
+               clin:  c.querySelectorAll('[data-ind-clin]').length };
+    });
+    ex.push(['con el detalle CERRADO siguen visibles las filas de datos y la cita de guia en todas las secciones',
+      fuera.every(function(f){ return f.filas > 0 && f.cita; }),
+      fuera.map(function(f,i){ return i + ':' + f.filas + 'filas' + (f.cita ? '+cita' : '-CITA'); }).join(' ')]);
+
+    ex.push(['los controles clinicos NO quedan detras del control: el medico los puede contestar sin abrir nada',
+      (function(){
+        const dentro = cu.querySelectorAll('details details [data-ind-clin]').length;
+        const total  = cu.querySelectorAll('[data-ind-clin]').length;
+        return dentro === 0;
+      })(),
+      'dentro del detalle=' + cu.querySelectorAll('details details [data-ind-clin]').length +
+      ' de ' + cu.querySelectorAll('[data-ind-clin]').length]);
+
+    /* ⚠️ LA CONDICION DE LA FILA QUE NO SE VERIFICO QUEDA VISIBLE, NO DETRAS DEL CONTROL.
+       La primera version de esta ronda mando «r.recom.nota» al detalle, y eso revirtio tres arreglos
+       que pasadas anteriores de /sharp-edges habian cerrado poniendo esos textos DENTRO de la
+       recomendacion: la confirmacion de severidad que la tabla de EP exige y no esta hecha, las
+       cuatro contraindicaciones de EM que la app no registra, y la Clase I C de la estenosis
+       tricuspidea concomitante — con el aviso de que la severa suele exigir REEMPLAZO contra una
+       nota al pie que pide reparacion.
+
+       ⚠️ LA PRIMERA VERSION DE ESTA CONDICION ERA VACUA Y LA MUTACION SOBREVIVIO. Buscaba la palabra
+       «confirmacion» en el texto visible de la seccion de pulmonar — y ese texto tambien viaja en
+       «recom.txt» en las ramas «falta», asi que estaba visible por otro motivo y la condicion pasaba
+       con la nota mandada al detalle. Hoy se pregunta lo que importa y se pregunta GENERICO: para
+       CADA seccion que devuelva un «recom.nota», ese texto tiene que aparecer FUERA del detalle. */
+    const conNota = [];
+    IND_SECS.forEach(function(sc){
+      let rr = null; try { rr = sc.fn(); } catch (e) { return; }
+      if (rr && rr.recom && rr.recom.nota) conNota.push({ tit:sc.tit, nota:String(rr.recom.nota) });
+      /* La nota de la MODALIDAD entra al mismo conjunto: «_indEAModalidad» pone ahi que «la Clase I A
+         de TAVI esta escrita para la valvula tricuspide y no se aplica aca», que es la condicion de
+         la fila que se esta publicando. Sin esto, la mutacion que la manda al detalle sobrevive. */
+      if (rr && rr.recom && rr.recom.mod && rr.recom.mod.nota)
+        conNota.push({ tit:sc.tit, nota:String(rr.recom.mod.nota) });
+    });
+    ex.push(['DENOMINADOR: el escenario produce al menos una seccion con nota de recomendacion, que es lo unico que hace observable donde quedo',
+      conNota.length > 0, 'secciones con recom.nota=' + conNota.length +
+      (conNota.length ? ' -> ' + conNota.map(function(x){ return x.tit; }).join(' · ') : '')]);
+
+    ex.push(['la nota de la recomendacion queda VISIBLE con el detalle cerrado: es la condicion de la fila que no se verifico, no contexto de la guia',
+      conNota.length > 0 && conNota.every(function(x){
+        const sec = secs.filter(function(y){
+          return y.querySelector('summary').textContent.trim() === x.tit; })[0];
+        if (!sec) return false;
+        const c = sec.cloneNode(true);
+        [].slice.call(c.querySelectorAll('details details')).forEach(function(n){ n.remove(); });
+        /* Se compara un tramo del MEDIO de la nota: el principio puede coincidir con el arranque de
+           «recom.txt» en algunas ramas, y ahi la condicion volveria a pasar por otro motivo. */
+        const frag = x.nota.slice(Math.floor(x.nota.length / 3), Math.floor(x.nota.length / 3) + 42);
+        return frag.length > 12 && pl(c.textContent).indexOf(pl(frag)) > -1;
+      }),
+      conNota.map(function(x){
+        const sec = secs.filter(function(y){
+          return y.querySelector('summary').textContent.trim() === x.tit; })[0];
+        if (!sec) return x.tit + ':SIN SECCION';
+        const c = sec.cloneNode(true);
+        [].slice.call(c.querySelectorAll('details details')).forEach(function(n){ n.remove(); });
+        const frag = x.nota.slice(Math.floor(x.nota.length / 3), Math.floor(x.nota.length / 3) + 42);
+        return x.tit.slice(0,16) + (pl(c.textContent).indexOf(pl(frag)) > -1 ? ':visible' : ':OCULTA');
+      }).join(' · ')]);
+
+    /* ⚠️ Y LA CLAVE DEL REPINTADO NO PUEDE SER EL ROTULO. Los trece detalles dicen «Ver detalle»,
+       asi que compartian UNA entrada del mapa: abrir uno y contestar un control lo CERRABA, o abria
+       los trece. Ocurre en el flujo normal —contestar controles es la interaccion principal— y es
+       justo el salto que «_indRepintarConservando» existe para evitar. Se ejerce de verdad: se abre
+       el primer detalle, se contesta un control y se mira si sigue abierto y si los demas no se
+       abrieron solos. */
+    const btn = cu.querySelector('[data-ind-clin]');
+    if (btn && typeof _indRepintarConservando === 'function') {
+      const secTit = btn.closest('details').querySelector('summary').textContent;
+      const dPri = btn.closest('details').querySelector('details');
+      if (dPri) dPri.open = true;
+      const otrosAntes = [].slice.call(cu.querySelectorAll('details details'))
+        .filter(function(x){ return x !== dPri && x.open; }).length;
+      btn.click();
+      const cu2 = document.getElementById('indic-cuerpo');
+      const sec2 = [].slice.call(cu2.querySelectorAll(':scope > details')).filter(function(x){
+        return x.querySelector('summary').textContent === secTit; })[0];
+      const dPos = sec2 && sec2.querySelector('details');
+      const otrosDesp = [].slice.call(cu2.querySelectorAll('details details'))
+        .filter(function(x){ return x !== dPos && x.open; }).length;
+      ex.push(['al contestar un control, el detalle que estaba abierto SIGUE abierto y los de las otras secciones no se abren solos',
+        !!(dPos && dPos.open) && otrosDesp === otrosAntes,
+        'sigue abierto=' + (dPos ? dPos.open : 'no se encontro') +
+        ' · otros abiertos antes=' + otrosAntes + ' despues=' + otrosDesp]);
+    } else {
+      ex.push(['DENOMINADOR: el escenario trae un control clinico para ejercer el repintado',
+        false, 'sin [data-ind-clin] en el panel']);
+    }
+
+    /* ── UNA SECCION QUE FALLA AL PINTAR NO SE LLEVA EL PANEL ENTERO ──
+       «indicRender» envolvia solo «s.fn()» y dejaba «_indSecHTML» afuera del try. Por «indicAbrir» eso
+       hacia que el panel NO SE ABRIERA —el medico aprieta y no pasa nada— y por el repintado dejaba
+       el cuerpo con el pintado ANTERIOR, o sea la recomendacion vieja al lado de una respuesta nueva.
+       Se ejerce en AISLAMIENTO —con una seccion que devuelve un «r» sin «filas», que es lo que hace
+       tirar a «_indSecHTML»— porque ninguna seccion real falla hoy: es el recurso que este archivo
+       ya usa con las guardas fail-closed que ningun escenario alcanza. */
+    (function(){
+      const orig = IND_SECS[0].fn, tit0 = IND_SECS[0].tit;
+      IND_SECS[0].fn = function(){ return { guia:'x' }; };   // sin «filas»: _indSecHTML tira
+      let sobrevive = null, declara = null;
+      try {
+        indicRender();
+        const c2 = document.getElementById('indic-cuerpo');
+        sobrevive = c2.querySelectorAll(':scope > details').length;
+        declara = /no se pudo evaluar|no se pudieron evaluar/.test(c2.textContent);
+      } finally { IND_SECS[0].fn = orig; indicRender(); }
+      ex.push(['una seccion que falla al PINTAR se declara caida y el resto del panel sigue: no se lleva las otras doce ni deja el pintado anterior',
+        sobrevive != null && sobrevive >= 4 && declara === true,
+        'secciones que sobrevivieron=' + sobrevive + ' · lo declara=' + declara +
+        ' (se rompio «' + tit0 + '»)']);
+    })();
+
+    /* Y el detalle NO puede estar vacio: un control que abre y no muestra nada es peor que no
+       tenerlo. «_indDetalleHTML» devuelve '' cuando no hay items, asi que un control existente
+       implica contenido. */
+    ex.push(['ningun control abre sobre un detalle vacio',
+      det.every(function(d){ return d.textContent.replace(/\\s+/g, ' ').trim().length > 40; }),
+      det.map(function(d){ return d.textContent.replace(/\\s+/g, ' ').trim().length; }).join(',')]);
+  } finally {
+    if (typeof indicCerrar === 'function') indicCerrar();
+    __t.limpiar();
+  }
+  return { extra: ex };
+`);
+
 caso('TC-289', 'Cierre de la Fase 1: el area mitral se clasifica como se imprime, «(SAVR)» no sale del selector, y el EN SUMA nombra la protesis', `
   return (async () => {
     const ex = [];

@@ -4,6 +4,133 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Panel de Evidencia: el detalle largo se colapsa, y lo que NO es detalle (2026-09-27)
+
+Dos cambios de presentación sobre el panel: el texto largo pasa detrás de un «ⓘ Ver detalle» y se
+reescribió para decir lo mismo en menos palabras. **Cero cambios de lógica**: ningún criterio, ningún
+umbral, ninguna rama.
+
+### El censo desmintió el pedido: son TRECE secciones, no quince
+
+El pedido decía «15 secciones (13 originales + Tricúspide/Pulmonar interactivas de hoy)».
+`IND_SECS` tiene **13 entradas** y Tricúspide y Pulmonar **ya están adentro** —son la 5 y la 6—, así
+que eran 11 originales + 2. Verificado contando el array, no leyendo el pedido.
+
+### ⚠️ EL CORTE NO ES «LA RECOMENDACIÓN Y LA CITA ARRIBA, TODO LO DEMÁS ABAJO»
+
+El pedido lo decía así y aplicarlo al pie esconde **las filas de datos** y **los controles clínicos**.
+Las dos cosas son peores que el problema:
+
+- Las filas son la evidencia que sostiene la recomendación —el valor medido, su umbral y su marca—.
+  Una «Clase I · Nivel B» sin nada visible que la respalde es «un número sin su reparo».
+- `r.clinica` son los **botones** `data-ind-clin` que el médico contesta. Colapsarlos deja una sección
+  diciendo «Falta contestar: Síntomas» con el control escondido: eso es una regresión **funcional**, y
+  SEGURIDAD de esta ronda prohíbe tocar la lógica.
+
+Así que el corte es por lo que el pedido **describe** como el problema —los párrafos largos del
+final— y no por su enumeración literal.
+
+### ⚠️ Y LA PRIMERA VERSIÓN MANDÓ AL DETALLE TRES ARREGLOS YA CERRADOS — lo cazó `/sharp-edges`
+
+Es el defecto más grave del cambio y la lección que hay que no volver a pagar. `r.recom.nota` **no es
+contexto de la guía**: es la **condición de la fila que no se pudo verificar**, y en un caso es una
+**segunda indicación con su propia clase**. Tres precedentes, los tres cerrados por pasadas
+anteriores de `/sharp-edges` poniendo justamente esos textos DENTRO de la recomendación:
+
+| sección | qué se escondía | lo que dice su propio comentario |
+|---|---|---|
+| `_indEPRecom` | «esa confirmación no está hecha» —la que la nota al pie de la tabla exige— y desaparecía **sólo en las tres ramas que publican Clase I C o IIa** | «va en el texto y no sólo en una nota al final» |
+| `_indEMRecom` | las cuatro contraindicaciones que la app no registra | «una recomendación que no las nombre se lee como si estuvieran descartadas» |
+| `_indVTRecom` | la **Clase I C** de la estenosis tricuspídea concomitante, con el aviso de que la severa suele exigir **reemplazo** contra una nota al pie que pide reparación | «se nombra DENTRO del texto de la recomendación, que es donde el lector la va a leer» |
+
+Más `_indEAModalidad`, cuyo `mod.nota` dice que «la Clase I A de TAVI está escrita para la válvula
+tricúspide y **no se aplica acá**».
+
+Hoy `r.nota` y `r.mod.nota` quedan **visibles** y al detalle va sólo `r.notas`. **La regla general:
+antes de colapsar un texto, preguntarse si es contexto de la guía o una condición de la fila que se
+está publicando.** Lo segundo va donde se publica la conducta.
+
+### ⚠️ LA CLAVE DEL REPINTADO NO PUEDE SER EL RÓTULO, y el defecto era del flujo normal
+
+`_indRepintarConservando` guardaba el estado de cada `<details>` con `abiertas[summary.textContent]`.
+Los trece detalles dicen **«ⓘ Ver detalle»**, así que compartían **una** entrada del mapa y ganaba la
+última escritura. Medido: abrir el detalle de una sección y contestar un control lo **cerraba** —o
+abría los trece, si el último estaba abierto—, que es exactamente el salto que esa función existe
+para evitar. Y contestar controles es **la interacción principal** del panel, así que no es un borde.
+
+Hoy la clave se ancla al `<details>` padre, cuyo summary es el título de `IND_SECS` y sí es único.
+**Hay que arreglar los DOS lados**: con la captura distinguiendo y la restauración leyendo la entrada
+compartida, queda la mitad del defecto.
+
+### Una sección que falla al PINTAR ya no se lleva el panel entero
+
+`indicRender` envolvía sólo `s.fn()` y dejaba `h += _indSecHTML(...)` **afuera** del `try`. Dos
+salidas, las dos peores que declarar la sección caída:
+
+- por **`indicAbrir`**: `indicRender()` corre antes de `display:block`, así que el panel **no se
+  abre** — el médico aprieta el botón y no pasa nada, sin toast y sin más rastro que la consola;
+- por **`_indRepintarConservando`**: el `innerHTML` se asigna en la última línea, así que el cuerpo
+  **conserva el pintado anterior** — la respuesta que el médico acaba de dar ya está en `_indClin` y
+  la pantalla sigue mostrando la recomendación vieja. Contenido plausible y desactualizado.
+
+Es preexistente y más ancho que esta ronda —cualquier `r` sin `filas` lo dispara— y es la regla 4 del
+propio panel, fallar cerrado, que ese bloque decía aplicar y aplicaba a medias.
+
+### El acortamiento se verificó con un diff de CONTENIDO, no leyendo
+
+`/tmp/tokens.py` extrae de cada sección los tokens que no se pueden perder —números, guías, años,
+clases, niveles y palabras de matiz— y compara las dos versiones. **Encontró una pérdida real**: al
+acortar `_indIA` se fue «nivel de **evidencia** de C a B», que es el término preciso de la guía. Se
+repuso.
+
+**Y el verificador tuvo un falso positivo que hubo que cerrar:** su regex de guías tomaba `esc` como
+prefijo y matcheaba «**esc**ala», así que acusó una pérdida inexistente. Un verificador con falsos
+positivos se deja de leer —es lo que ya pasó con `api-key-protector` y su idioma `clave`—, así que se
+apretó a límite de palabra y se corrió **contra sí mismo** (HEAD contra HEAD) para confirmar que no
+se acusa solo.
+
+Resultado: **13/13 sin pérdidas**, notas de sección **−8 %** en total y hasta **−20 %** en la más
+larga (Pulmonar). Seis secciones quedaron **sin tocar a propósito** —CIA, CIV, DAP, CoAo, FOP, MCH—:
+ya están telegráficas y reescribirlas para bajar un porcentaje es churn.
+
+### Lo que queda sin hacer, medido y declarado
+
+**La capa SIEMPRE VISIBLE no se reescribió.** Medida en el navegador con el detalle cerrado:
+**16.459 caracteres visibles contra 9.710 ocultos** (37 % oculto), con Pulmonar en 2.952 visibles,
+Mitral en 2.673 y Tricúspide en 2.555. Eso está dominado por el texto de **criterio de cada fila**,
+que se construye inline en cada `filas.push(_indFila(...))` — es una pasada fila por fila, no una
+reescritura de bloque, y no se hizo.
+
+**Ojo con cómo medirlo:** mi primer intento buscó las cadenas largas con un regex sobre el cuerpo de
+la función y lo que devolvió fueron **comentarios de código** —matcheaba a través de los `/* */`—.
+Era una medición mala y no se actuó sobre ella. Para medir la capa visible hay que hacerlo **en el
+navegador**, clonando la sección y borrando los `details details`.
+
+**Y un ternario no-op preexistente que `/sharp-edges` atribuyó a esta ronda.** En `_indVTRecom` hay
+`(… ? '' : '')` con las dos ramas vacías, que evalúa `_indUmb` dos veces para no agregar nada. El
+informe lo dio como «cáscara de un fragmento que se movió durante el cambio 2»; **está en HEAD
+también**, así que es preexistente y no se tocó —es lógica, y esta ronda es de forma—. Verificado
+contando la ocurrencia en las dos versiones, no razonando.
+
+### Lo que la verificación enseñó
+
+- **Una condición puede pasar por el motivo equivocado.** La primera versión de «la nota queda
+  visible» buscaba la palabra «confirmación» en el texto visible de Pulmonar — y ese texto **también
+  viaja en `recom.txt`** en las ramas `falta`, así que estaba visible por otra razón y la condición
+  pasaba con la nota mandada al detalle. **La mutación fue lo único que lo delató.**
+- **Y al reescribirla, el denominador dijo que el escenario no la podía observar:** «secciones con
+  `recom.nota` = 0». `recom.nota` sale sólo de las ramas que RESUELVEN una recomendación, y ésas
+  exigen las respuestas clínicas. El caso tiene que **contestar los controles** —un clic por clave—
+  y tomar las referencias **después**, porque cada clic repinta y un array capturado antes queda
+  desprendido del documento.
+- **Se mide el `<details>`, no el div interno.** El hijo reporta su propia altura y da el mismo
+  número abierto y cerrado: con ese denominador «expande» pasaba sin probar nada.
+- **Siete mutaciones, las siete en rojo**, cada una en su condición: el detalle naciendo abierto, un
+  rótulo distinto por sección, `recom.nota` al detalle, `mod.nota` al detalle, la clave volviendo al
+  rótulo, los controles clínicos al detalle, y el pintado volviendo afuera del `try`. Las tres
+  últimas necesitaron una condición nueva: sobrevivían por falta de cobertura, no por redundancia.
+
+
 ## Prótesis valvulares, Fase 2: la graduación aórtica — y la cápsula NO alcanzaba (2026-09-27)
 
 Cierra el bug que el diagnóstico del mismo día midió: con morfología de prótesis, la severidad
