@@ -4,6 +4,121 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Cierre de la Fase 1 de prótesis: el censo a las otras tres, «(SAVR)» y el EN SUMA (2026-09-27)
+
+Tres cambios independientes.
+
+### 1 · El censo replicado encontró el mismo defecto en la mitral, y cae en el corte
+
+`calcEM` **clasificaba el área CRUDA mientras las tres superficies imprimen la REDONDEADA.** Medido:
+con un THP de **146,55 ms** el área cruda es **1,50119**, y `avm_thp`, `em_avm_thp_display` y la fila
+`em-thp-row` imprimen **«1,50 cm²»** — pero la cascada recibía el crudo, y `1,50119 > AVM_SEVERA_MAX`
+es verdadero, así que votaba **MODERADA**. O sea: la pantalla mostraba 1,50 cm² al lado de una escala
+impresa que dice **«≤1,5 severa»**, y el veredicto decía moderada. Reproducido igual por continuidad
+con 20 / 19,1144 / 40.
+
+Es **el mismo defecto que el AVA aórtica** (`calcEADetalle` con el crudo), en otra válvula, encontrado
+porque el censo se replicó en vez de asumir. El arreglo mueve el veredicto hacia **severa** en la
+ventana del borde: el lado conservador.
+
+Y `calcEM` tenía una **copia inline** de la fórmula del THP (`220 / thpRaw`) mientras `_avmPorPHT`
+existe y su comentario dice que se extrajo «para que sacar la fórmula de acá no pueda cambiar lo que
+se publica». Tercera vez que aparece este patrón en el día.
+
+**Tricúspide y pulmonar: sin duplicados, y está medido.** `et_avt` tiene un solo escritor y coincide
+exacto con `etEstado().avt`; `vp_gmax` sale siempre de `vp_vmax` — se lo pisó a mano con 999 y
+`calcVP` lo sobrescribió al instante. El campo es editable, lo cual es engañoso, pero **hay una sola
+fuente**.
+
+### 2 · «(SAVR)» va en el selector y no en el informe
+
+Las dos opciones quirúrgicas llevan ahora **`value` explícito** con el texto de antes y la **etiqueta**
+muestra «Prótesis biológica (SAVR)». Así el dato persistido, `LAB_XLS_LISTAS`, el array `VALV`,
+`VALV_PROT_OPCIONES`, `VALV_MORF_FRASE`, el informe, el PDF y el Excel **no cambian ni una letra** —
+el «(SAVR)» es una aclaración para quien carga, no un dato del documento firmado. **TAVI no lo lleva**:
+es la vía percutánea, que es justo la distinción que el paréntesis marca.
+
+⚠️ **Eso rompe la universalidad de una invariante declarada del archivo** —«los cuatro selects de
+morfología NO llevan atributo `value`, así que el valor persistido ES el texto»—. Ahora **dos opciones
+de cada select sí lo llevan**, y las dos convenciones conviven a propósito. Quedó dicho donde la
+invariante está declarada: **quien agregue una opción nueva ahí tiene que mirar si necesita `value`.**
+Se eligió así porque `_labXlsAssertListas` compara `o.value`, así que el `value` explícito deja todas
+las listas alineadas sin tocar nada más.
+
+### 3 · El EN SUMA nombra la prótesis sana — y mi primera versión disparaba AL REVÉS
+
+Antes, un estudio cuyo **único** hallazgo era una prótesis salía «Estudio sin alteraciones
+estructurales ni funcionales significativas»: la superficie que se lee y se copia **negaba el implante
+que el cuerpo describía dos párrafos más arriba**. Misma familia que la aurícula dilatada por diámetro
+AP y la CIA de 30 × 24 mm.
+
+⚠️ **LA PRIMERA VERSIÓN ERA EL PEOR DEFECTO DEL DÍA, y lo encontró `/sharp-edges`.** Decidía «sin
+disfunción» leyendo los campos de grado, con un comentario mío que afirmaba que ésos son «el estado de
+lo que el médico consignó». **Falso para SEIS de los ocho:** `em_grado`, `ea_grado`, `im_grado`,
+`ia_grado`, `it_grado` y `ep_grado` los escriben los **calculadores**, con los cortes **nativos**.
+Consecuencia medida:
+
+- prótesis mitral mecánica **normal**, THP 90 ms → AVm 2,44 → `em_grado='moderada'` → la línea **no**
+  se emitía, justo en el caso para el que la escribí;
+- prótesis con **nada medido** → los ocho campos de fábrica → la línea **sí** se emitía, o sea que el
+  informe firmado afirmaba «normofuncionante» sobre **cero evidencia**, en la superficie que se copia
+  al resumen de alta. **«Un default tranquilizador es una afirmación.»**
+
+**Hoy se exigen dos cosas, y ninguna necesita un corte protésico:**
+
+1. **Evidencia positiva.** Para afirmar que funciona bien hay que haber medido algo de esa prótesis
+   —gradiente, área, DVI o AT—. Es una compuerta de evidencia, la misma regla que ya aplican los tres
+   selects del TEER y la aorta sin medir.
+2. **Que el resumen no se contradiga.** En vez de ocho predicados sobre campos que escriben cascadas
+   ajenas, se pregunta lo único que importa: **¿el EN SUMA ya dice algo de esta válvula?** Eso cubre
+   de una sola vez los **tres** caminos por los que el narrativo afirma sin pasar por el grado, y que
+   ocho predicados se perdían:
+   - las **píldoras**, que afirman con el grado en su valor de fábrica — la de IT se cumple con
+     `vmax_it` medida, o sea en casi todo eco;
+   - el **módulo TAVI**, cuya regurgitación paravalvular vive en `eteTaviRPV()` y **no** en `ia_grado`;
+   - la **cascada nativa**, que sobre una prótesis normal escribe «moderada» o «leve».
+
+Medido después del arreglo: cero mediciones → no afirma; prótesis sana **con** mediciones →
+«Prótesis tricuspídea biológica normofuncionante.»; y los tres caminos de contradicción quedan limpios.
+
+⚠️ **Límite honesto:** en la mitral y la aórtica, una prótesis **normal** todavía sale «EM moderada» /
+«EAo leve» por los cortes nativos, así que **no se la nombra como normofuncionante**. Es la conducta
+correcta hoy —la app genuinamente cree que hay estenosis— y es exactamente lo que la Fase 2 arregla.
+
+Y `TIPO` era una **tercera lista paralela** de las tres opciones —con `VALV_PROT_OPCIONES` y
+`VALV_MORF_FRASE`—: una opción nueva olvidada ahí hacía que el bloque saliera **en silencio**, con la
+prótesis cargada y el resumen sin nombrarla. Hoy la etiqueta se **deriva** de `VALV_MORF_FRASE`.
+
+⚠️ **La rama de disfunción está INERTE a propósito.** `_protDisfuncion` devuelve `null` siempre, y es
+**el único lugar que la Fase 2 tiene que tocar**. Conectarla hoy publicaría «Prótesis aórtica biológica
+con estenosis moderada» calculada con los cortes **NATIVOS** —el bug de la Fase 2— en la superficie
+que se copia al resumen de alta: peor que el silencio de hoy. Cuando la Fase 2 traiga los cortes
+verificados, devuelve la frase y el resto del bloque no se toca.
+
+### ⚠️ Y el predicado de la tricúspide heredaba un hueco conocido
+
+Leía `et_grado`, que **`calcET` deliberadamente NO escribe cuando hay significación** —retorna antes,
+porque la guía no gradúa la estenosis tricuspídea—. Así que el campo se quedaba en reposo y el EN SUMA
+salía:
+
+> «ET significativa. Prótesis tricuspídea biológica normofuncionante.»
+
+**Las dos afirmaciones contradictorias en la misma línea.** Hoy el predicado consume `etEstado()`, que
+es la función que decide y la misma que pinta el badge. La lección general: **un campo que su propio
+calculador no escribe no sirve como predicado**, y en este archivo hay al menos tres así (`et_grado`,
+y los tres grados de insuficiencia que nacen en `'0'`).
+
+### Lo que la verificación enseñó
+
+- **Un verificador de setup puede hacer fallar la condición correcta.** `poner({vp_gmax:'999'})`
+  comprobaba que el valor entró, y `calcVP` lo pisa al instante — que es **exactamente lo que la
+  condición prueba**. El caso falló por su propio diagnóstico. Ahí se asigna directo y sin verificar.
+- **Una mutación que no entra no vale como evidencia.** La de TAVI buscaba
+  `<option value="TAVI">` y TAVI **no** lleva `value` — sólo las dos de SAVR. Con el string correcto
+  cayó. El script de mutación aborta con código 3 cuando no hay exactamente una coincidencia, y por eso
+  se vio en vez de pasar por sobreviviente.
+
+
 ## El AT de la prótesis aórtica: se muda y se conecta (2026-09-27)
 
 El campo de AT vivía en una **caja flotante al lado del botón «Estenosis»**, desconectado de todo.

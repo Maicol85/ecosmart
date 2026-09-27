@@ -32459,6 +32459,233 @@ caso('TC-288', 'AT de la protesis aortica: vive con sus vecinos de medicion, se 
   })();
 `);
 
+/* ══ CIERRE DE LA FASE 1 DE PRÓTESIS — TC-289 ════════════════════════════════════════════════
+   Tres cambios independientes, y el caso los fija por separado.
+
+   ⚠️ 1) EL CENSO DE DUPLICADOS REPLICADO A LAS OTRAS TRES VALVULAS ENCONTRO UNO REAL EN LA MITRAL,
+   y cae justo en el corte. `calcEM` clasificaba el area CRUDA mientras las TRES superficies
+   —`avm_thp`, `em_avm_thp_display` y la fila `em-thp-row`— imprimen la REDONDEADA. Medido: con un
+   THP de 146,55 ms el area cruda es 1,50119, las tres imprimen «1,50 cm²», y la cascada votaba
+   MODERADA porque `1,50119 > AVM_SEVERA_MAX`. O sea: el numero en pantalla, leido contra la escala
+   que la propia app imprime —«≤1,5 severa»—, decia severa, y el veredicto decia moderada.
+   Reproducido igual por continuidad. Es el mismo defecto que se cerro en el AVA aortica.
+   Tricuspide y Pulmonar NO tienen duplicados: `et_avt` tiene un solo escritor y coincide exacto con
+   `etEstado().avt`, y `vp_gmax` sale siempre de `vp_vmax`. El caso lo fija para que se sepa que se
+   midio y no que se asumio.
+
+   ⚠️ 2) «(SAVR)» VA EN EL SELECTOR Y NO EN EL INFORME, y el mecanismo importa: las dos opciones
+   llevan `value` explicito con el texto de antes y la ETIQUETA muestra el «(SAVR)». Asi el dato
+   persistido y las nueve superficies que lo consumen no cambian ni una letra. Eso rompe la
+   universalidad de una invariante declarada —«estos selects NO llevan value»— asi que el caso mide
+   las DOS mitades: que la etiqueta lo diga y que el valor NO lo lleve.
+
+   ⚠️ 3) EL EN SUMA NOMBRA LA PROTESIS, y la rama de disfuncion esta INERTE a proposito.
+   Hasta hoy un estudio cuyo unico hallazgo era una protesis salia «Estudio sin alteraciones
+   estructurales ni funcionales significativas»: la superficie que se lee y se copia negaba el
+   implante que el cuerpo describia. Y el predicado de la tricuspide leia `et_grado`, que `calcET`
+   deliberadamente NO escribe cuando hay significacion, asi que el EN SUMA salia «ET significativa.
+   Protesis tricuspidea biologica normofuncionante.» — las dos afirmaciones contradictorias en la
+   misma linea. Hoy consume `etEstado()`. */
+caso('TC-289', 'Cierre de la Fase 1: el area mitral se clasifica como se imprime, «(SAVR)» no sale del selector, y el EN SUMA nombra la protesis', `
+  return (async () => {
+    const ex = [];
+    const noEntraron = [];
+    const poner = o => Object.keys(o).forEach(function(id){
+      const e = document.getElementById(id);
+      if (!e) { noEntraron.push('FALTA ' + id); return; }
+      e.value = o[id];
+      e.dispatchEvent(new Event('input', { bubbles:true }));
+      e.dispatchEvent(new Event('change', { bubbles:true }));
+      if (e.value !== String(o[id])) noEntraron.push(id + ' quedo en «' + e.value + '»');
+    });
+    const val = id => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : null; };
+    const tx  = id => { const e = document.getElementById(id); return e ? String(e.textContent || '').trim() : null; };
+    const limpiar = () => { if (typeof limpiarCampos === 'function') limpiarCampos(); };
+    const suma = () => String(document.getElementById('en_suma').value || '').replace(/\\s+/g, ' ');
+    const pl = s => String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+
+    try {
+      /* ── (1a) EL BORDE DE LA MITRAL, POR LOS DOS METODOS ──
+         Se verifica que el escenario produce de verdad el area del borde —si no, la condicion mide
+         un numero comodo— y que el veredicto coincide con lo impreso en las TRES superficies. */
+      limpiar(); poner({ thp:'146.55' });
+      const thpCaso = { avm:val('avm_thp'), disp:val('em_avm_thp_display'), fila:tx('em-thp-row'),
+        grado:val('em_grado'), badge:tx('em-sev-integrada') };
+      ex.push(['con un area mitral por THP de 1,50119 —que redondea a 1,50 y cae en el corte— las tres superficies imprimen 1,50 y el veredicto dice SEVERA, no moderada',
+        Math.abs(220 / 146.55 - 1.50119) < 0.0001 &&
+        thpCaso.avm === '1.50' && thpCaso.disp === '1.50 cm²' && thpCaso.fila === '1.50 cm²' &&
+        thpCaso.grado === 'severa' && pl(thpCaso.badge).indexOf('severa') > -1,
+        'crudo=' + (220 / 146.55).toFixed(5) + ' · avm_thp=' + thpCaso.avm + ' disp=' + thpCaso.disp +
+        ' fila=' + thpCaso.fila + ' · grado=' + thpCaso.grado + ' badge=«' + thpCaso.badge + '»']);
+
+      limpiar(); poner({ em_dtsvi:'20', em_vtitsvi:'19.1144', em_vtimit:'40' });
+      const contCaso = { campo:val('avm_cont'), fila:tx('em-cont-row'), grado:val('em_grado') };
+      ex.push(['y por continuidad el mismo borde da el mismo resultado: 1,50 impreso y severa como veredicto',
+        contCaso.campo === '1.50 cm²' && contCaso.fila === '1.50 cm²' && contCaso.grado === 'severa',
+        'avm_cont=' + contCaso.campo + ' fila=' + contCaso.fila + ' grado=' + contCaso.grado]);
+
+      /* ── (1b) LA FORMULA DEL THP VIVE EN UN SOLO LUGAR ──
+         «calcEM» tenia una copia inline mientras el comentario de «calcTHP» dice que la extraccion se
+         hizo «para que sacar la formula de aca no pueda cambiar lo que se publica». Daban el mismo
+         numero, asi que sin esta condicion la copia puede volver sin que nada lo delate. Se mide
+         sobre el codigo; no se prohibe el fallback, que es deliberado en las dos funciones. */
+      ex.push(['las dos funciones que calculan el area mitral por THP tienen su via primaria en _avmPorPHT',
+        typeof _avmPorPHT === 'function' &&
+        String(calcTHP).indexOf('_avmPorPHT(') > -1 && String(calcEM).indexOf('_avmPorPHT(') > -1,
+        'calcTHP=' + (String(calcTHP).indexOf('_avmPorPHT(') > -1) +
+        ' calcEM=' + (String(calcEM).indexOf('_avmPorPHT(') > -1)]);
+
+      /* ── (1c) TRICUSPIDE Y PULMONAR NO TIENEN DUPLICADOS ──
+         Se mide, no se declara: el area tricuspidea del campo tiene que ser exactamente la que
+         devuelve la funcion que la calcula, y el gradiente pulmonar tiene que salir siempre de la
+         Vmax aunque alguien pise el campo a mano. */
+      limpiar(); poner({ tsvd_diametro:'20', vti_tsvd:'10', et_vti_diast:'40' });
+      const avtFn = (typeof etEstado === 'function') ? etEstado().avt : null;
+      const avtCampo = parseFloat(String(val('et_avt')).replace(',', '.'));
+      limpiar(); poner({ vp_vmax:'3.0' });
+      const gDerivado = val('vp_gmax');
+      /* Se asigna DIRECTO y sin verificar que entro: el punto de la condicion es que «calcVP» lo
+         pisa al instante, asi que el verificador de «poner» lo registraria como «no entro» y el caso
+         fallaria por su propio diagnostico. Ya paso. */
+      (function(){ const e = document.getElementById('vp_gmax');
+        if (e) { e.value = '999'; e.dispatchEvent(new Event('input', { bubbles:true })); } })();
+      poner({ vp_vmax:'3.2' });                       // y corrige la Vmax
+      const gTrasCorregir = val('vp_gmax');
+      ex.push(['la tricuspide y la pulmonar NO tienen area ni gradiente duplicados: el campo del area tricuspidea es exactamente el que devuelve etEstado, y el gradiente pulmonar vuelve a derivarse de la Vmax aunque se lo pise a mano',
+        avtFn != null && Math.abs(avtCampo - avtFn) < 0.0001 &&
+        gDerivado === '36' && gTrasCorregir === '41',
+        'et_avt campo=' + avtCampo + ' funcion=' + avtFn +
+        ' · vp_gmax: derivado=' + gDerivado + ' tras pisarlo y corregir=' + gTrasCorregir]);
+
+      /* ── (2) «(SAVR)»: EN LA ETIQUETA Y NO EN EL VALOR ──
+         Las dos mitades en una condicion, sobre los CUATRO selects. Y TAVI NO lleva «(SAVR)»:
+         es la via percutanea, que es justo la distincion que el parentesis viene a marcar. */
+      const savr = {};
+      ['vm_morf','va_morf','vt_morf','vp_morf'].forEach(function(id){
+        const e = document.getElementById(id);
+        savr[id] = e ? [].slice.call(e.options)
+          .filter(function(o){ return /Prótesis|TAVI/.test(o.value); })
+          .map(function(o){ return { v:o.value, t:o.text }; }) : null;
+      });
+      const okSavr = Object.keys(savr).every(function(id){
+        const ops = savr[id]; if (!ops || !ops.length) return false;
+        return ops.every(function(o){
+          if (o.v === 'TAVI') return o.t.indexOf('SAVR') === -1;
+          return o.v.indexOf('SAVR') === -1 && o.t.indexOf('(SAVR)') > -1;
+        });
+      });
+      ex.push(['en los cuatro selects las dos protesis quirurgicas muestran «(SAVR)» en la ETIQUETA y NO en el valor persistido, y TAVI no lo lleva porque es la via percutanea',
+        okSavr, Object.keys(savr).map(function(id){ return id + ':' +
+          (savr[id] || []).map(function(o){ return '«' + o.v + '»/«' + o.t + '»'; }).join(','); }).join(' · ')]);
+
+      /* ── ⚠️ Y «(SAVR)» NO SALE DEL SELECTOR: ni al informe, ni al EN SUMA, ni al Excel ──
+         Es la mitad que importa clinicamente: es una aclaracion tecnica para quien carga, no un dato
+         del documento firmado. */
+      limpiar(); poner({ vm_morf:'Prótesis mecánica', va_morf:'Prótesis biológica' });
+      generarInforme();
+      const infS = document.getElementById('informe_texto').value;
+      const filaXls = (typeof _labExcelRow === 'function')
+        ? _labExcelRow({ id:1, campos:{ vm_morf:'Prótesis mecánica', va_morf:'Prótesis biológica' } }) : null;
+      ex.push(['«(SAVR)» no aparece en el informe, ni en el EN SUMA, ni en las columnas del Excel: el dato persistido sigue siendo «Protesis mecanica» pelado',
+        infS.indexOf('SAVR') === -1 && suma().indexOf('SAVR') === -1 &&
+        val('vm_morf') === 'Prótesis mecánica' &&
+        !!filaXls && String(filaXls['Morfología mitral']).indexOf('SAVR') === -1 &&
+        filaXls['Morfología mitral'] === 'Prótesis mecánica',
+        'informe=' + (infS.indexOf('SAVR') > -1) + ' suma=' + (suma().indexOf('SAVR') > -1) +
+        ' persistido=«' + val('vm_morf') + '» excel=«' + (filaXls ? filaXls['Morfología mitral'] : '?') + '»']);
+
+      // ── Y las listas del importador siguen alineadas con el select tras darle value ──
+      const aL = (typeof _labXlsAssertListas === 'function') ? _labXlsAssertListas() : ['no existe'];
+      ex.push(['darle value explicito a las dos opciones no desincronizo las listas del importador',
+        Array.isArray(aL) && aL.length === 0, JSON.stringify(aL)]);
+
+      /* ── (3) EL EN SUMA NOMBRA LA PROTESIS SANA, PERO SOLO CON EVIDENCIA ──
+         ⚠️ LA PRIMERA VERSION DISPARABA AL REVES y lo encontro /sharp-edges: decidia «sin disfuncion»
+         leyendo los campos de grado, y SEIS de los ocho los escriben los CALCULADORES con cortes
+         NATIVOS, no el medico. Asi que afirmaba «normofuncionante» sobre CERO mediciones y callaba
+         sobre una protesis normal cuyo calculador decia «moderada». Hoy exige (1) evidencia positiva
+         —al menos un parametro medido— y (2) que el resumen no diga ya algo de esa valvula. */
+
+      // (3a) Con CERO mediciones no se afirma nada: es la direccion peligrosa.
+      limpiar(); poner({ vm_morf:'Prótesis mecánica' });
+      generarInforme();
+      const sinMedir = suma();
+      ex.push(['con una protesis cargada y NINGUN parametro medido el EN SUMA no afirma «normofuncionante»: no se puede decir que funciona bien sin haber medido nada',
+        pl(sinMedir).indexOf('normofuncionante') === -1,
+        '«' + sinMedir + '»']);
+
+      // (3b) Con mediciones que no muestran disfuncion, si se nombra — en las cuatro valvulas.
+      const lineas = {};
+      [['vm_morf','mitral','Prótesis mecánica',{ avm_plan:'4.2' }],
+       ['va_morf','aórtica','TAVI',{ vmax_ao:'1.8' }],
+       ['vt_morf','tricuspídea','Prótesis biológica',{ et_gmedio:'3' }],
+       ['vp_morf','pulmonar','Prótesis mecánica',{ vp_vmax:'1.2' }]]
+        .forEach(function(p){ limpiar(); const o = {}; o[p[0]] = p[2];
+          Object.keys(p[3]).forEach(function(k){ o[k] = p[3][k]; });
+          poner(o); generarInforme(); lineas[p[1]] = suma(); });
+      ex.push(['con parametros medidos y sin disfuncion las cuatro valvulas nombran la protesis normofuncionante con su etiologia real, y ninguna cae en la negacion global',
+        pl(lineas['mitral']).indexOf('protesis mitral mecanica normofuncionante') > -1 &&
+        pl(lineas['aórtica']).indexOf('protesis aortica transcateter tipo tavi normofuncionante') > -1 &&
+        pl(lineas['tricuspídea']).indexOf('protesis tricuspidea biologica normofuncionante') > -1 &&
+        pl(lineas['pulmonar']).indexOf('protesis pulmonar mecanica normofuncionante') > -1 &&
+        Object.keys(lineas).every(function(k){ return pl(lineas[k]).indexOf('sin alteraciones estructurales') === -1; }),
+        Object.keys(lineas).map(function(k){ return k + ': «' + lineas[k] + '»'; }).join(' · ')]);
+
+      /* ── ⚠️ LAS TRES CONTRADICCIONES QUE /sharp-edges ENCONTRO, EN UNA CONDICION ──
+         Los tres caminos por los que el narrativo afirma algo de una valvula SIN pasar por su campo
+         de grado, y que ocho predicados se perdian:
+           · la PILDORA de IT, que se cumple con «vmax_it» medida —o sea en casi todo eco—;
+           · el modulo TAVI, cuya regurgitacion paravalvular vive en «eteTaviRPV()» y no en «ia_grado»;
+           · y la cascada nativa, que sobre una protesis mitral NORMAL escribe «em_grado='moderada'».
+         En los tres, el EN SUMA no puede decir «normofuncionante» debajo. */
+      limpiar(); poner({ vt_morf:'Prótesis biológica', et_gmedio:'3', vmax_it:'2.5' });
+      generarInforme();
+      const cPildora = suma();
+      limpiar();
+      (function(){ const c = document.getElementById('ete_tavi_incluir_chk');
+        if (c) { c.checked = true; c.dispatchEvent(new Event('change', { bubbles:true })); } })();
+      poner({ va_morf:'TAVI', ete_tavi_pro_tipo:'balon', ete_tavi_gmedio:'12',
+        ete_tavi_jet_horas:'3', ete_tavi_ext_circ:'20' });
+      if (typeof eteTaviSync === 'function') eteTaviSync();
+      generarInforme();
+      const cTavi = suma();
+      limpiar(); poner({ vm_morf:'Prótesis mecánica', thp:'90' });
+      generarInforme();
+      const cNativa = { suma:suma(), grado:val('em_grado'), avm:val('avm_thp') };
+      ex.push(['ninguno de los tres caminos por los que el narrativo afirma algo de una valvula —la pildora de IT, la regurgitacion del modulo TAVI y la cascada con cortes nativos— queda con un «normofuncionante» contradiciendolo debajo',
+        pl(cPildora).indexOf('it ') > -1 && pl(cPildora).indexOf('normofuncionante') === -1 &&
+        pl(cTavi).indexOf('rpv') > -1 && pl(cTavi).indexOf('normofuncionante') === -1 &&
+        cNativa.grado === 'moderada' && pl(cNativa.suma).indexOf('normofuncionante') === -1,
+        'pildora IT: «' + cPildora + '» · TAVI: «' + cTavi + '» · cascada nativa (AVm ' +
+        cNativa.avm + ' -> ' + cNativa.grado + '): «' + cNativa.suma + '»']);
+
+      /* ── LA ETIQUETA SALE DE «VALV_MORF_FRASE» Y NO DE UNA TERCERA LISTA ──
+         «TIPO» era una tercera enumeracion de las tres opciones —con «VALV_PROT_OPCIONES» y
+         «VALV_MORF_FRASE»— y una opcion nueva olvidada ahi hacia que el bloque saliera EN SILENCIO:
+         la protesis existia y el resumen no la nombraba. */
+      ex.push(['la etiqueta de la protesis en el EN SUMA se deriva de VALV_MORF_FRASE, asi que no hay una tercera lista paralela que se pueda desincronizar',
+        typeof VALV_MORF_FRASE === 'object' &&
+        Object.keys(VALV_MORF_FRASE).length === VALV_PROT_OPCIONES.length &&
+        VALV_PROT_OPCIONES.every(function(o){ return !!VALV_MORF_FRASE[o]; }),
+        'opciones=' + VALV_PROT_OPCIONES.length + ' frases=' + Object.keys(VALV_MORF_FRASE).length]);
+
+      /* ── LA RAMA DE DISFUNCION SIGUE INERTE, Y ESO SE FIJA ──
+         Conectarla hoy publicaria una severidad con cortes NATIVOS sobre una protesis en la
+         superficie que se copia al resumen de alta. */
+      ex.push(['la rama de disfuncion del bloque sigue inerte: ninguna linea dice «protesis ... con» una severidad todavia',
+        pl(cNativa.suma).indexOf('protesis mitral mecanica con ') === -1 &&
+        pl(cTavi).indexOf('protesis aortica transcateter tipo tavi con ') === -1,
+        'cascada=«' + cNativa.suma + '» · TAVI=«' + cTavi + '»']);
+
+      return { extra: ex.concat([
+        ['todos los campos del escenario existen y aceptaron su valor', noEntraron.length === 0, noEntraron.join(' | ')]
+      ]) };
+    } finally {
+      try { if (typeof limpiarCampos === 'function') limpiarCampos(); } catch (e) {}
+    }
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];
