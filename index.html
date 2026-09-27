@@ -36352,7 +36352,8 @@ function _imAssertUmbrales(){
 const _IND_ORIGEN_CAMPOS = Object.freeze({
   'em.score':     'wilkins_movilidad',
   'em.trombo':    'oai_trombo',
-  'im.mecanismo': 'teer_tipo_im'
+  'im.mecanismo': 'teer_tipo_im',
+  'ep.shunt':     'ete_cia_dir'
 });
 function _indOrigenAssert(){
   /* Los paneles que `applyViewMode()` puede esconder son los que abre un `.tab-btn[data-mod]`:
@@ -37247,10 +37248,262 @@ function _indDAP(){
    El NIVEL es una fila y no una compuerta, con salvedad propia. El umbral de la guía es para la
    estenosis VALVULAR —la que se trata con balón—; una supravalvular o de ramas con el mismo
    gradiente no tiene esa indicación. Gatear por el nivel habría escondido la sección en el
-   paciente más común, porque `ep_nivel` arranca en «No especificado» y eso no es un «no». */
+   paciente más común, porque `ep_nivel` arranca en «No especificado» y eso no es un «no».
+
+   ══ LA GUÍA NO ES LA MISMA QUE LA DE LAS OTRAS SECCIONES ══════════════════════════════════
+   La ESC/EACTS 2025 de valvulopatías NO cubre la estenosis pulmonar, y eso se verificó de forma
+   exhaustiva por dos rutas independientes: cero ocurrencias de «pulmonary stenosis» en las 102
+   páginas, la lesión ausente de la lista de palabras clave del artículo, y ninguna tabla de
+   recomendaciones de válvula pulmonar en el índice —salta de estenosis tricuspídea a
+   valvulopatía múltiple—. Gobierna la ESC 2020 de cardiopatías congénitas del adulto, sección
+   4.8, que sigue siendo la edición vigente: el calendario oficial de la ESC pone la próxima
+   en 2028.
+
+   ⚠️ LA INDICACIÓN NO ES UNA SOLA FILA, Y ESTA SECCIÓN LA PUBLICABA COMO SI LO FUERA. El texto
+   que decía «es Clase I C cuando el gradiente máximo supera 64 mmHg» se saltaba la precondición
+   con la que empieza esa fila: «PROVIDED THAT NO VALVE REPLACEMENT IS REQUIRED». Son tres filas
+   distintas y el umbral no alcanza para elegir entre ellas:
+     · sin sustituto valvular  → se interviene con estenosis severa INDEPENDIENTEMENTE de los
+       síntomas (Clase I C);
+     · con sustituto y SINTOMÁTICO → Clase I C;
+     · con sustituto y ASINTOMÁTICO → sólo si además hay uno de cuatro criterios (Clase I C).
+   La nota al pie de la tabla lo dice sin rodeos: el umbral de intervención es MÁS ALTO cuando
+   hace falta un sustituto, por el riesgo de endocarditis y de reintervención. Publicar la
+   primera fila sin su precondición es la que más lejos va del texto.
+
+   ⚠️ LAS ARRITMIAS NO SON CRITERIO DE NINGUNA DE LAS SEIS FILAS. La fila clínica de esta sección
+   decía «Función del ventrículo derecho y arritmias». Los criterios que la tabla enumera para el
+   asintomático son otros cuatro: caída objetiva de la capacidad de ejercicio, caída de la función
+   del VD y/o progresión de la insuficiencia tricuspídea a por lo menos moderada, PSVD > 80 mmHg,
+   y shunt derecha-izquierda por CIA o CIV. Las dos rutas coinciden en que las arritmias no
+   figuran. El rótulo nombraba un criterio que la guía no tiene, y por eso `tv_documentada` de la
+   pestaña de Congénitas NO se conecta: conectarlo habría dado cuerpo a la invención.
+
+   ⚠️ EL 64 EXACTO NO ESTÁ CUBIERTO POR NINGUNA FILA. La severidad es «> 64 mmHg» y la fila de
+   Clase IIa dice «< 64 mmHg». Un gradiente de exactamente 64 no cae en ninguna de las dos. No se
+   rellena el hueco: se dice. (`epGradoPorGmax` lo clasifica «moderada», con `<=`.)
+
+   ⚠️ Y EL PROPIO UMBRAL LLEGA INCOMPLETO. La nota al pie «a» de la tabla exige que la PSVD
+   estimada por la velocidad de la insuficiencia tricuspídea CONFIRME la estenosis severa.
+   `psap_calc` no tiene banda de plausibilidad, así que no se puede usar para confirmar nada sin
+   repetir el error de VSFVI: se muestra y se declara que la confirmación que pide la guía no está
+   hecha. */
+const EP_REC_2020 = Object.freeze({
+  sin_sust:   { c:'Clase I · Nivel C',
+    t:'Intervención sobre la obstrucción del tracto de salida derecho RECOMENDADA, a cualquier nivel e INDEPENDIENTEMENTE DE LOS SÍNTOMAS, cuando la estenosis es severa y el procedimiento no requiere un sustituto valvular.' },
+  sust_sint:  { c:'Clase I · Nivel C',
+    t:'Cuando el reemplazo valvular quirúrgico es la única opción, la intervención está INDICADA en el paciente con estenosis severa que está SINTOMÁTICO.' },
+  sust_asint: { c:'Clase I · Nivel C',
+    t:'Cuando el reemplazo valvular quirúrgico es la única opción, la intervención está INDICADA en el ASINTOMÁTICO con estenosis severa que presenta al menos uno de estos criterios: caída objetiva de la capacidad de ejercicio, caída de la función del ventrículo derecho y/o progresión de la insuficiencia tricuspídea a por lo menos moderada, PSVD mayor de 80 mmHg, o shunt derecha-izquierda por CIA o CIV.' },
+  submax:     { c:'Clase IIa · Nivel C',
+    t:'Con un gradiente máximo por Doppler POR DEBAJO del umbral de severidad, la intervención SE DEBE CONSIDERAR ante al menos uno de estos criterios: síntomas atribuibles a la estenosis pulmonar, caída de la función del ventrículo derecho y/o progresión de la insuficiencia tricuspídea a por lo menos moderada, o shunt derecha-izquierda por CIA o CIV.' },
+  balon:      { c:'Clase I · Nivel C',
+    t:'En la estenosis pulmonar VALVULAR, la valvuloplastia con balón es la técnica de elección si la válvula es anatómicamente apta.' }
+});
+const EP_FUENTE = 'ESC 2020 (cardiopatías congénitas del adulto) — tabla de recomendaciones de obstrucción del tracto de salida derecho';
+/* La PSVD de la fila del asintomático es el único número de esta tabla que no vive ya en una
+   constante de la app. No se compara contra él —`psap_calc` no tiene banda— pero el texto lo
+   nombra, así que queda anclado y entra en el arranque igual que los demás. */
+const EP_PSVD_ASINT = 80;   // mmHg — PSVD > 80 en la fila del asintomático con sustituto
+function _epAssertUmbrales(){
+  const esp = [
+    ['EP_GMAX_MOD_MAX', window.EP_GMAX_MOD_MAX, 64, 'gradiente máximo por Doppler > 64 mmHg'],
+    ['EP_PSVD_ASINT',   EP_PSVD_ASINT,          80, 'PSVD > 80 mmHg']
+  ];
+  const mal = esp.filter(e => e[1] !== e[2])
+    .map(e => e[0] + ' = ' + e[1] + ' pero los textos de EP_REC_2020 y las notas dicen ' + e[3]);
+  if (mal.length) console.error('[EP] Los textos de la guía quedaron viejos respecto de las ' +
+    'constantes. Releer la tabla de recomendaciones antes de tocar nada:\n  ' + mal.join('\n  '));
+  return mal;
+}
+
+/* Reúne lo contestado en el panel y lo LEÍDO del estudio.
+
+   El shunt derecha-izquierda es el único campo de esta sección con DOBLE MECANISMO: `ete_cia_dir`
+   vive en la pestaña de Congénitas 2, que `applyViewMode()` esconde en Modo Básico, así que el
+   médico en Básico no tiene dónde cargarlo. La lectura tiene prioridad; el control sólo se dibuja
+   si no hay valor de origen.
+   ⚠️ La CIV no tiene campo de dirección en esta app —existen tipo, tamaño, velocidad y vista,
+   pero no dirección—, así que la lectura automática sólo cubre la CIA. Queda dicho en la fila.
+
+   El DETERIORO es una pregunta y no una lectura, y la diferencia importa: la guía pide «caída de
+   la función del VD y/o PROGRESIÓN de la insuficiencia tricuspídea», que son comparaciones con un
+   estudio previo. Un TAPSE bajo de hoy no es una caída, y una IT moderada de hoy no es una
+   progresión. Se pregunta, y los valores actuales van en la nota del control para que la pregunta
+   se conteste mirando datos y no de memoria. */
+function _indEPDatos(){
+  const leer = _indLeer;
+  const t = leer('tapse', 'tapse'), sp = leer('s_prime', 's_prime');
+  const psap = leer('psap_calc', 'psap_calc');
+  const itG = _indS('it_grado'), itEv = _indITEvaluada();
+  /* `itMod` exige que la insuficiencia haya sido EVALUADA: el grado de fábrica es '0', pero un '2'
+     escrito por `calcIT_ESC` sin insumos no existe, así que la guarda es de simetría con la nota
+     del control y con `_indVT`. */
+  const itMod = itEv && (itG === '2' || itG === '3' || itG === '4');
+  const dirOrig = _indS('ete_cia_dir');
+  return {
+    sx:        _indClinGet('ep.sintomas'),
+    sust:      _indClinGet('ep.sustituto'),
+    ejercicio: _indClinGet('ep.ejercicio'),
+    deterioro: _indClinGet('ep.deterioro'),
+    /* ⚠️ SÓLO LA LECTURA AFIRMATIVA RESUELVE EL CRITERIO. `ete_cia_dir` es de la CIA, y la CIV no
+       tiene campo de dirección en esta app. Con la CIA en «izquierda → derecha» la lectura daba
+       `false`, `_indFilaOrigen` NO dibujaba el control manual, y el criterio contaba como evaluado
+       y NEGATIVO: un paciente con CIV de shunt derecha-izquierda —criterio de Clase I— salía «sin
+       ninguno de los criterios», sin ningún camino en la interfaz para decirlo. Y la nota que
+       advierte de la CIV vivía sólo en la rama sin dato. Lo encontró /sharp-edges.
+       Un `id` del origen se trata como dato ausente: se dibuja el control. */
+    shunt:     _indOrigen((dirOrig === 'di' || dirOrig === 'bi') ? dirOrig : '', 'ep.shunt'),
+    shuntCiaId: dirOrig === 'id',
+    t:t, sp:sp, psap:psap, itG:itG, itMod:itMod, itEvaluada:itEv
+  };
+}
+/* ⚠️ `it_grado` NUNCA ESTÁ VACÍO: nace en '0', `limpiarCampos` lo repone a '0' y `calcIT_ESC` sale
+   sin tocarlo cuando no hay ningún parámetro medido. O sea que «Sin» no distingue «no hay
+   insuficiencia» de «nadie la evaluó». Vivía sólo dentro de `_indVT`, y la nota del control
+   `ep.deterioro` de la pulmonar —que es la evidencia que el panel le ofrece al médico para
+   contestar uno de los cuatro criterios de Clase I— le afirmaba la AUSENCIA de insuficiencia
+   tricuspídea sobre el valor de fábrica. Las dos secciones nuevas quedaban con convenciones
+   opuestas para el mismo campo. Lo encontró /sharp-edges. */
+function _indITEvaluada(){
+  /* ⚠️ CUALQUIER GRADO DISTINTO DE '0' CUENTA, NO SÓLO EL '4'. La versión original sólo aceptaba
+     el '4' como pastilla puesta a mano, y eso alcanzaba mientras la sección se abría sólo con la
+     severa. Al agregar la fila de la MODERADA, un grado 3 sin parámetros medidos publicaba la
+     recomendación con la fila diciendo «No evaluada»: la app afirmaba y negaba en la misma tarjeta.
+     El razonamiento original —«un default no es una respuesta del médico»— aplica igual al revés:
+     '0' es el valor de fábrica y todo lo demás lo puso alguien. `limpiarCampos` repone '0'. */
+  const g = _indS('it_grado');
+  return _indN('it_vc') != null || _indN('it_vmax_cw') != null || _indN('it_pisa_r') != null ||
+         _indN('it_vti') != null || _indS('it_densidad') !== '' || (g !== '' && g !== '0');
+}
+/* ⚠️ El código 3 es MODERADA-SEVERA en TODA la app —`INSUF_TXT`, `imTxt`, `_labRegurgSev`, el
+   propio pintor—. Imprimirlo como «Moderada» oculta en qué bin cayó el grado: el médico lee
+   «Moderada» y no puede saber que la app leyó un 3. Un solo mapa para las dos secciones. */
+const _IND_IT_TXT = Object.freeze(Object.assign(Object.create(null),
+  { '0':'Sin', '1':'Leve', '2':'Moderada', '3':'Moderada-severa', '4':'Severa' }));
+
+/* Un shunt derecha-izquierda o bidireccional cuenta: el bidireccional TIENE componente
+   derecha-izquierda, que es lo que la fila nombra. `id` y `no` no cuentan, y cualquier otra cosa
+   —incluido el valor vacío— no permite afirmar ni descartar. Devuelve `true`, `false` o `null`. */
+function _epShuntDI(val){
+  if (val === 'di' || val === 'bi') return true;
+  if (val === 'id' || val === 'no') return false;
+  return null;
+}
+
+function _indEPRecom(D, sev, mod, gmax, UM, valvular, nivelDicho, ramas){
+  const fal = function(txt, faltan){ return { tipo:'falta', tit:'Falta un dato para aplicar la guía', txt:txt, faltan:faltan }; };
+  /* ── SÓLO LAS RAMAS PULMONARES CORTAN, Y NO POR EL NIVEL SINO POR SER OTRA LESIÓN ──
+     ⚠️ ACÁ HABÍA UNA COMPUERTA QUE RETENÍA UNA CLASE I C. Cortaba todo nivel que no fuera
+     «Valvular» diciendo que «el umbral de la guía es para la estenosis VALVULAR». La fila de la
+     guía dice lo contrario, y está transcrita literal diez líneas más arriba en
+     `EP_REC_2020.sin_sust.t`: «intervención sobre la obstrucción del tracto de salida derecho
+     RECOMENDADA, **a cualquier nivel**». Las dos afirmaciones vivían en la misma sección a 250
+     líneas de distancia y una era falsa: la compuerta le negaba la indicación a toda obstrucción
+     subvalvular, supravalvular o MIXTA con gradiente sobre el umbral. Lo encontró /sharp-edges.
+
+     Lo que sí es de otra lesión son las RAMAS PULMONARES: tienen fila propia —Clase IIa C con más
+     del 50 % de estrechamiento del diámetro y PSVD > 50 mmHg— y esta app no mide el porcentaje,
+     así que ahí no se concluye. Lo único que sigue siendo valvular es la TÉCNICA: el balón. */
+  if (ramas) {
+    return { tipo:'no', tit:'Fuera del alcance de estas filas — la obstrucción es de ramas pulmonares',
+      txt:'La estenosis pulmonar PERIFÉRICA tiene su propia fila en la tabla: Clase IIa C cuando hay más del 50 % de estrechamiento del diámetro y una PSVD mayor de 50 mmHg. Esta app no mide el porcentaje de estrechamiento, así que la fila no se puede evaluar. El umbral de gradiente de las otras filas es para la obstrucción del tracto de salida, no para las ramas.',
+      fuente:EP_FUENTE };
+  }
+  /* ── EL HUECO DEL 64 EXACTO ──
+     La severidad es «> UM» y la fila de Clase IIa es «< UM». El valor exacto no está en ninguna,
+     y `epGradoPorGmax` lo manda a «moderada». No se elige una por él. */
+  if (UM != null && gmax != null && gmax === UM) {
+    return { tipo:'no', tit:'El texto de la guía no cubre este valor exacto',
+      txt:'El gradiente máximo es de exactamente ' + _indNum(gmax, 0, 'mmHg') + '. La guía define la estenosis severa como MÁS de ' + UM + ' mmHg y su fila de Clase IIa como MENOS de ' + UM + ': el valor exacto no cae en ninguna de las dos. La app lo clasifica como moderada. La conducta acá no sale de la tabla.',
+      fuente:EP_FUENTE };
+  }
+  const shuntDI = _epShuntDI(D.shunt.val);
+  /* La confirmación que pide la nota al pie «a» no se puede hacer, y eso acompaña a toda
+     afirmación de severidad. Va en el texto y no sólo en una nota al final. */
+  const conf = sev
+    ? ' La nota al pie de la tabla pide que la PSVD estimada por la velocidad de la insuficiencia tricuspídea CONFIRME la estenosis severa; '
+      + (D.psap.crudo != null
+          ? 'la PSAP estimada es de ' + _indNum(D.psap.crudo, 0, 'mmHg') + ', pero no tiene banda de plausibilidad en esta app y no se usa para confirmar.'
+          : 'no hay PSAP estimada.')
+      + ' Esa confirmación no está hecha.'
+    : '';
+  /* ⚠️ EL BALON NO SE PUBLICA CONTRA LA RESPUESTA DEL MEDICO. Si contesto que el procedimiento
+     posible REQUIERE un sustituto valvular, publicar «la valvuloplastia con balón es la técnica de
+     elección» al lado de la indicación lo contradice — y es la fila que la guía usa justo para
+     separar los dos caminos. Es el mismo defecto que ya aparecio en la mitral con la reparacion y
+     en la aortica con el TAVI. Con la pregunta en null SI se publica, porque ahi nada la niega. */
+  const balon = (valvular && D.sust !== 'si')
+    ? { txt:EP_REC_2020.balon.t, clase:EP_REC_2020.balon.c, fuente:EP_FUENTE,
+        nota:'El calificador oficial de la fila es «si es anatómicamente apta», sin más precisión. Que una válvula displásica responda mal al balón es cierto y clínicamente importante, pero no está en el texto de la recomendación: circula en comentarios editoriales sobre la guía, no en la guía.' }
+    : null;
+
+  if (sev) {
+    if (!D.sust) return fal('La estenosis es severa. La tabla se parte en tres filas según si el procedimiento posible requiere un sustituto valvular, porque el umbral de intervención es más alto cuando hace falta.' + conf,
+      ['Requiere sustituto valvular']);
+    if (D.sust === 'no') return { tipo:'ind', tit:'Estenosis severa sin necesidad de sustituto valvular',
+      txt:EP_REC_2020.sin_sust.t, clase:EP_REC_2020.sin_sust.c, fuente:EP_FUENTE,
+      nota:'Esta es la única fila que no mira los síntomas, y sólo porque no hace falta un sustituto.' + conf, mod:balon };
+    if (D.sx === 'si') return { tipo:'ind', tit:'Estenosis severa sintomática, con sustituto valvular necesario',
+      txt:EP_REC_2020.sust_sint.t, clase:EP_REC_2020.sust_sint.c, fuente:EP_FUENTE,
+      nota:'El umbral de intervención es más alto cuando hace falta un sustituto, por el riesgo de endocarditis y de reintervención: por eso acá los síntomas son condición.' + conf, mod:balon };
+    if (!D.sx) return fal('La estenosis es severa y el procedimiento requiere un sustituto valvular. En ese escenario la fila pide síntomas, o bien uno de cuatro criterios en el asintomático.' + conf, ['Síntomas']);
+    /* Asintomático con sustituto: la fila pide AL MENOS UNO de cuatro. Se enumeran los que se
+       cumplen; y si no se cumple ninguno, hay que distinguir «ninguno se cumple» de «no se
+       evaluaron», porque lo segundo no permite descartar la indicación. */
+    const cumple = [], sinResp = [];
+    if (D.ejercicio === 'si') cumple.push('caída objetiva de la capacidad de ejercicio');
+    else if (!D.ejercicio) sinResp.push('Caída de la capacidad de ejercicio');
+    if (D.deterioro === 'si') cumple.push('caída de la función del ventrículo derecho o progresión de la insuficiencia tricuspídea');
+    else if (!D.deterioro) sinResp.push('Caída de la función del VD o progresión de la IT');
+    if (shuntDI === true) cumple.push('shunt derecha-izquierda');
+    else if (shuntDI == null) sinResp.push('Shunt derecha-izquierda por CIA o CIV');
+    /* La PSVD > 80 es el cuarto criterio y NO se evalúa: sin banda de plausibilidad el valor no
+       se usa. Nunca entra en `cumple`, y entra siempre en lo no evaluado. */
+    if (cumple.length) return { tipo:'ind', tit:'Estenosis severa asintomática con criterio de intervención',
+      txt:EP_REC_2020.sust_asint.t, clase:EP_REC_2020.sust_asint.c, fuente:EP_FUENTE,
+      nota:'Se cumple: ' + cumple.join('; ') + '. Alcanza con uno.' + conf, mod:balon };
+    if (sinResp.length) return fal('La estenosis es severa, el procedimiento requiere un sustituto valvular y el paciente está asintomático. La fila pide al menos uno de cuatro criterios, y quedan sin contestar los de abajo.' + conf, sinResp);
+    /* El titular decía «sin ninguno de los criterios» y el texto, dos líneas abajo, «ninguno de
+       los criterios CONTESTADOS» más un cuarto sin evaluar. `_indRecomHTML` pinta el titular en
+       mayúsculas arriba de todo: es lo que se lee. La afirmación sale del texto. */
+    return { tipo:'no', tit:'Estenosis severa asintomática sin ninguno de los tres criterios evaluables',
+      txt:'La estenosis es severa, el procedimiento requiere un sustituto valvular, el paciente está asintomático y ninguno de los criterios contestados se cumple. La guía reserva la intervención para ese escenario. Queda sin evaluar el cuarto criterio, la PSVD mayor de ' + EP_PSVD_ASINT + ' mmHg: esta app no la puede usar porque la PSAP estimada no tiene banda de plausibilidad.' + conf,
+      fuente:EP_FUENTE };
+  }
+
+  /* ── POR DEBAJO DEL UMBRAL: Clase IIa, y son TRES criterios, no cuatro ──
+     Esta fila no incluye la PSVD ni la capacidad de ejercicio: pide síntomas ATRIBUIBLES a la
+     estenosis, deterioro, o shunt derecha-izquierda. No se le agregan los de la otra fila. */
+  /* REDUNDANTE POR CONSTRUCCIÓN, y queda dicho para que la próxima tanda de mutación no lo lea
+     como «sobreviviente» sin saber por qué: `_indEP` ya devolvió `null` con `!sev && !mod`, y el
+     bloque `if (sev)` de arriba retorna por todas sus salidas. Acá sólo se llega con `mod` en
+     `true`. Se conserva porque es la regla 4 y porque el próximo llamador de esta función no
+     hereda esas dos garantías. */
+  if (!mod) return null;
+  const c2 = [], s2 = [];
+  if (D.sx === 'si') c2.push('síntomas atribuibles a la estenosis pulmonar');
+  else if (!D.sx) s2.push('Síntomas');
+  if (D.deterioro === 'si') c2.push('caída de la función del ventrículo derecho o progresión de la insuficiencia tricuspídea');
+  else if (!D.deterioro) s2.push('Caída de la función del VD o progresión de la IT');
+  if (shuntDI === true) c2.push('shunt derecha-izquierda');
+  else if (shuntDI == null) s2.push('Shunt derecha-izquierda por CIA o CIV');
+  if (c2.length) return { tipo:'ind', tit:'Por debajo del umbral de severidad, con criterio de intervención',
+    txt:EP_REC_2020.submax.t, clase:EP_REC_2020.submax.c, fuente:EP_FUENTE,
+    nota:'Se cumple: ' + c2.join('; ') + '. Alcanza con uno. Los síntomas de esta fila tienen que ser ATRIBUIBLES a la estenosis pulmonar, no cualquier síntoma.', mod:balon };
+  if (s2.length) return fal('El gradiente está por debajo del umbral de severidad. La fila de Clase IIa pide al menos uno de tres criterios, y quedan sin contestar los de abajo.', s2);
+  return { tipo:'no', tit:'Por debajo del umbral, sin ninguno de los tres criterios',
+    txt:'El gradiente no alcanza el umbral de severidad y ninguno de los tres criterios de la fila de Clase IIa se cumple. El escenario es de seguimiento.',
+    fuente:EP_FUENTE };
+}
+
 function _indEP(){
   const gradoF = _indFn('epGradoPorGmax');
-  const gmax = _indN('vp_gmax'), vmax = _indN('vp_vmax');
+  /* El gradiente pasa por su banda de plausibilidad ANTES de clasificarse: es el único número de
+     esta sección que publica una conducta quirúrgica, y fuera de banda no se clasifica. */
+  const gL = _indLeer('vp_gmax', 'vp_gmax'), vL = _indLeer('vp_vmax', 'vp_vmax');
+  const gmax = gL.val, gFuera = !!gL.fuera, gCrudo = gL.crudo != null ? gL.crudo : gmax;
+  const vmax = vL.val, vFuera = !!vL.fuera;
   const banda = (gradoF && gmax != null) ? gradoF(gmax) : null;
   const sel = _indS('ep_grado'), nivel = _indS('ep_nivel'), etio = _indS('ep_etiologia');
   /* El grado consignado a mano cuenta igual que el calculado: es el que firma el médico. Se
@@ -37259,52 +37512,118 @@ function _indEP(){
   const sev = banda === 'Estenosis severa'   || /^severa/i.test(sel);
   const mod = banda === 'Estenosis moderada' || /^moderada/i.test(sel);
   if (!sev && !mod) return null;
+  /* El grado consignado a mano y el medido pueden apuntar a bandas distintas, y la sección se abre
+     por cualquiera de los dos. Antes no lo decía en ninguna parte: dos afirmaciones opuestas en la
+     misma tarjeta. La EAo ya tenía `discordanciaGrado` justamente para esto. */
+  const discorda = !!banda && !!sel && sel !== 'sin' &&
+    banda.toLowerCase().indexOf(String(sel).toLowerCase().replace(/-.*$/, '')) === -1;
   const UM = _indUmb('EP_GMAX_MOD_MAX');
-  const valvular = /^valvular/i.test(nivel);
+  /* `Mixto` TIENE componente valvular —es el Fallot operado, el caso corriente— y con `/^valvular/`
+     quedaba afuera: el balón desaparecía y el panel afirmaba «la obstrucción no es valvular» contra
+     la respuesta del propio médico. Se acepta, y la modalidad lo dice. */
+  const mixto = /^mixto/i.test(nivel);
+  const valvular = /^valvular/i.test(nivel) || mixto;
+  const nivelDicho = !!nivel && !/^no especificado/i.test(nivel);
   /* `ep_grado` es el ÚNICO select del panel cuyo primer valor es un token —`sin`— y no su
      etiqueta: las demás opciones no llevan `value`, así que valen su texto. Sin el mapa la fila
      imprimía la palabra `sin` cruda. Prototipo nulo, como los otros tres mapas. */
   const GRADO = Object.assign(Object.create(null), { sin:'Sin estenosis' });
   /* `vp_morf` no tiene opción vacía y arranca en «Normal», así que ese valor NO significa que
      alguien haya mirado la válvula. Publicarlo como dato consignado es afirmar una morfología
-     normal que nadie confirmó, justo al lado de la nota que dice que una válvula displásica
-     responde mal al balón: el lector la tomaría como evidencia para elegir la técnica. */
+     normal que nadie confirmó, justo al lado de la nota que habla de la técnica: el lector la
+     tomaría como evidencia para elegirla. */
   const morf = _indS('vp_morf'), morfDicha = !!morf && !/^normal$/i.test(morf);
   const filas = [
     /* La banda manda sobre el valor: si el clasificador no está, el gradiente no se rotula. La
        primera versión imprimía el número Y la nota «sin gradiente cargado» en la misma fila. */
-    _indFila('Gradiente máximo', _indNum(gmax, 0, 'mmHg'), sev ? 'ok' : (gmax != null ? 'warn' : 'ask'),
-      banda ? banda.toLowerCase()
-      : (gmax != null ? 'no clasificable — el grado de arriba sale de lo consignado a mano' : 'sin gradiente cargado')),
-    _indFila('Vmax pulmonar', _indNum(vmax, 2, 'm/s'), vmax != null ? 'none' : 'ask',
-      vmax != null ? 'los cortes por velocidad que suelen citarse son los mismos umbrales vistos por el otro lado' : 'sin medir'),
+    /* ⚠️ LA MARCA SALE DE `banda` —LO MEDIDO— Y NO DE `sev`. Con `sev` la fila quedaba
+       «Gradiente máximo · 20 mmHg · ✅ estenosis leve» cuando el grado estaba fijado a mano en
+       «Severa», y `IND_MARCA.ok` significa literalmente «el dato alcanza un criterio de la guía».
+       Veinte mmHg no alcanza ninguno, y debajo se publicaba Clase I C. Lo encontró /sharp-edges. */
+    _indFila('Gradiente máximo', gFuera ? _indNum(gCrudo, 0, 'mmHg') : _indNum(gmax, 0, 'mmHg'),
+      banda === 'Estenosis severa' ? 'ok' : (gmax != null ? 'warn' : 'ask'),
+      gFuera ? 'fuera de rango medible — no se clasifica, y un valor ilegible no sostiene ni descarta el umbral'
+      : (banda ? banda.toLowerCase() + (discorda ? ' — DISCREPA del grado consignado a mano, que es el que abre esta sección' : '')
+      : (gmax != null ? 'no clasificable' : 'sin gradiente cargado'))),
+    _indFila('Vmax pulmonar', vFuera ? _indNum(vL.crudo, 2, 'm/s') : _indNum(vmax, 2, 'm/s'),
+      vmax != null ? 'none' : 'ask',
+      vFuera ? 'fuera de rango medible' :
+      (vmax != null ? 'los cortes por velocidad que suelen citarse son los mismos umbrales vistos por el otro lado' : 'sin medir')),
     _indFila('Grado consignado', sel ? (GRADO[sel] || sel) : 'No consignado', sel ? 'none' : 'ask',
       sel === 'sin' ? 'el grado sigue en «sin estenosis»: el nivel y la etiología están ocultos en la sección de Válvula Pulmonar hasta que se consigne' : ''),
     _indFila('Nivel de la obstrucción', nivel || 'No especificado',
-      valvular ? 'none' : (nivel && !/^no especificado/i.test(nivel) ? 'warn' : 'ask'),
+      valvular ? 'none' : (nivelDicho ? 'warn' : 'ask'),
       valvular ? 'es el nivel al que aplica el umbral de la guía'
-      : (nivel && !/^no especificado/i.test(nivel) ? 'el umbral de la guía es para la estenosis valvular; a este nivel la conducta se decide de otro modo'
+      : (nivelDicho ? 'el umbral de la guía es para la estenosis valvular; a este nivel la conducta se decide de otro modo'
       : 'sin el nivel no se puede saber si aplica el umbral de la guía')),
     _indFila('Etiología', etio || 'No especificada', etio && !/^no especificada/i.test(etio) ? 'none' : 'ask', ''),
     _indFila('Morfología valvular', morfDicha ? morf : 'No consignada', morfDicha ? 'none' : 'ask',
       morfDicha ? '' : 'el campo arranca en «Normal»: sin confirmarlo no se puede afirmar la morfología, y de ella depende la técnica')
   ];
+  const D = _indEPDatos();
+  const vdTxt = [D.t.val != null ? 'TAPSE ' + _indNum(D.t.val, 0, 'mm') : null,
+                 D.sp.val != null ? 'S′ ' + _indNum(D.sp.val, 1, 'cm/s') : null].filter(Boolean).join(' · ')
+    || ((D.t.fuera || D.sp.fuera) ? 'TAPSE o S′ fuera de rango medible' : '');
+  const clinica = [
+    _indFilaCtrl('Síntomas', 'ep.sintomas', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      D.sx ? 'none' : 'ask',
+      'sostienen la indicación cuando hace falta un sustituto valvular, y por debajo del umbral tienen que ser ATRIBUIBLES a la estenosis'),
+    _indFilaCtrl('Requiere sustituto valvular', 'ep.sustituto', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      D.sust ? 'none' : 'ask',
+      'es la precondición que parte la tabla en tres filas: sin sustituto se interviene la estenosis severa aunque el paciente esté asintomático'),
+    _indFilaCtrl('Caída objetiva de la capacidad de ejercicio', 'ep.ejercicio', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      D.ejercicio ? 'none' : 'ask',
+      'uno de los cuatro criterios del asintomático con sustituto necesario; requiere una prueba de esfuerzo, que esta app no registra'),
+    _indFilaCtrl('Caída de la función del VD o progresión de la IT', 'ep.deterioro', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      D.deterioro ? 'none' : 'ask',
+      'la guía pide una COMPARACIÓN con un estudio previo, y eso no se lee de un estudio solo. Hoy en este estudio: '
+        + (vdTxt || 'sin TAPSE ni S′') + ' · insuficiencia tricuspídea '
+        + (D.itEvaluada ? (_IND_IT_TXT[D.itG] || 'no consignada') : 'NO evaluada')
+        + (D.itMod ? ' (ya es al menos moderada)' : '')),
+    /* El shunt es el único con doble mecanismo: si está cargado en Congénitas 2 se lee, y si no
+       se contesta acá. La lectura tiene prioridad y el control ni se dibuja. */
+    _indFilaOrigen('Shunt derecha-izquierda por CIA o CIV', D.shunt,
+      [{v:'di',t:'Derecha → izquierda'},{v:'bi',t:'Bidireccional'},{v:'id',t:'Izquierda → derecha'},{v:'no',t:'Sin shunt'}],
+      function(val){
+        const di = _epShuntDI(val);
+        if (di === true) return { txt: val === 'bi' ? 'Bidireccional' : 'Derecha → izquierda', marca:'ok',
+          nota:'satisface uno de los criterios de intervención' + (val === 'bi' ? '; el bidireccional tiene componente derecha-izquierda, que es lo que la fila nombra' : '') };
+        if (di === false) return { txt: val === 'no' ? 'Sin shunt' : 'Izquierda → derecha', marca:'none',
+          nota:'no es el shunt que la fila nombra' };
+        return { txt: D.shuntCiaId ? 'CIA izquierda → derecha' : 'No consignado', marca:'ask',
+          nota: (D.shuntCiaId ? 'la CIA consignada es izquierda → derecha; ' : '')
+            + 'la app tiene dirección del shunt para la CIA pero NO para la CIV, así que por la CIV hay que contestarlo acá' };
+      }),
+    (D.t.val != null || D.sp.val != null)
+      ? _indFila('Función del ventrículo derecho', vdTxt, 'none',
+          'leído del estudio. Es el valor de HOY: la guía pide una caída respecto de un previo, que se contesta en la fila de arriba')
+      : _indFila('Función del ventrículo derecho',
+          (D.t.fuera || D.sp.fuera) ? 'Fuera de rango medible' : 'No medida', 'ask',
+          (D.t.fuera || D.sp.fuera) ? 'un valor ilegible no sostiene ni descarta nada' : 'sin TAPSE ni S′ la fila de arriba se contesta sin datos de apoyo'),
+    _indFila('PSVD', D.psap.crudo != null ? _indNum(D.psap.crudo, 0, 'mmHg') : 'No estimada', 'ask',
+      'la fila del asintomático pide PSVD mayor de ' + EP_PSVD_ASINT + ' mmHg, y la nota al pie pide que la PSVD confirme la estenosis severa. Ninguna de las dos cosas se puede hacer acá: la PSAP estimada de esta app no tiene banda de plausibilidad')
+  ];
   return { filas: filas,
-    clinica: [
-      _indFila('Síntomas', '—', 'ask', 'por debajo del umbral de severidad son ellos los que sostienen la indicación'),
-      _indFila('Función del ventrículo derecho y arritmias', '—', 'ask', 'pesan en el asintomático con estenosis severa')
-    ],
+    clinica: clinica,
+    recom: _indEPRecom(D, sev, mod, gmax, UM, valvular, nivelDicho, /^ramas/i.test(nivel)),
     /* El umbral de la prosa sale de la constante, no de la memoria: escribirlo a mano acá era
        la copia que el comentario de arriba dice que no hay que hacer. */
-    guia: 'ESC 2020 (cardiopatías congénitas del adulto) — La intervención sobre la estenosis pulmonar VALVULAR es Clase I C cuando el gradiente máximo por Doppler supera '
-      + (UM != null ? UM + ' mmHg' : 'el umbral de severidad') + ', con la valvuloplastia con balón como técnica de elección cuando la válvula lo permite.',
+    guia: 'ESC 2020 (cardiopatías congénitas del adulto) — Con un gradiente máximo por Doppler mayor de '
+      + (UM != null ? UM + ' mmHg' : 'el umbral de severidad')
+      + ', la intervención sobre la obstrucción es Clase I C INDEPENDIENTEMENTE DE LOS SÍNTOMAS siempre que NO se requiera un sustituto valvular. Si el reemplazo quirúrgico es la única opción, hacen falta síntomas, o bien uno de cuatro criterios en el asintomático. En la estenosis valvular la valvuloplastia con balón es la técnica de elección si la válvula es anatómicamente apta.',
     notas: [
-      'Por debajo de ese gradiente la intervención se reserva al paciente sintomático o con deterioro de la función del ventrículo derecho.',
-      'El umbral es para la estenosis valvular. En la supravalvular, la subvalvular y la de ramas pulmonares la conducta no se decide por este número.',
-      'Una válvula displásica —Noonan— responde mal al balón y suele requerir cirugía.',
+      'La ESC/EACTS 2025 de valvulopatías NO cubre la estenosis pulmonar: la lesión está ausente de sus 102 páginas y de su índice de tablas. Gobierna la ESC 2020 de cardiopatías congénitas del adulto, que sigue siendo la edición vigente.',
+      'Por debajo del umbral la intervención es Clase IIa C ante síntomas atribuibles a la estenosis, caída de la función del ventrículo derecho o progresión de la insuficiencia tricuspídea, o shunt derecha-izquierda. Esa fila NO incluye la PSVD ni la capacidad de ejercicio, que sí están en la del asintomático.',
+      (UM != null
+        ? 'El gradiente de exactamente ' + UM + ' mmHg no cae en ninguna de las dos filas: la severidad es MÁS de ese número y la fila de Clase IIa es MENOS. El hueco es del texto de la guía, no de esta app.'
+        : 'El umbral de severidad no está disponible: recargar la aplicación. Sin él esta sección no puede decir qué valor cae en qué fila.'),
+      'El umbral es para la estenosis valvular. En la supravalvular, la subvalvular y la de ramas pulmonares la conducta no se decide por este número. La estenosis pulmonar PERIFÉRICA tiene fila propia —Clase IIa C con más del 50 % de estrechamiento y PSVD mayor de 50 mmHg— y esta app no mide el porcentaje de estrechamiento.',
+      'La nota al pie de la tabla pide que la PSVD estimada por la velocidad de la insuficiencia tricuspídea confirme la estenosis severa. Esta app no lo puede hacer: la PSAP estimada no tiene banda de plausibilidad.',
+      'El umbral de intervención es MÁS ALTO cuando hace falta un sustituto valvular, porque hay que contar el riesgo a largo plazo de endocarditis y de reintervención por falla de la prótesis. Es la razón por la que la tabla se parte en tres filas.',
       'El gradiente máximo instantáneo por Doppler sobreestima el pico-a-pico del cateterismo.'
     ] };
 }
+document.addEventListener('DOMContentLoaded', function(){ try { _epAssertUmbrales(); } catch (e) {} });
 
 /* ── Válvula tricúspide ────────────────────────────────────────────────────────────────────
    Una sola sección para las dos lesiones porque comparten válvula y decisión quirúrgica, pero
@@ -37317,17 +37636,359 @@ function _indEP(){
      ⚠️ `it_grado` es un input oculto que NACE en «0», no vacío, así que un formulario en blanco
      dice «Sin» y no «sin evaluar». Por eso la ausencia de dato no se puede afirmar acá.
    · La ESTENOSIS sale de `etEstado()`, que sí devuelve el veredicto y sus tres criterios.
-     La guía NO la gradúa en leve/moderada/severa: define un único corte de significación
-     clínica, y el panel no puede inventar las bandas que la guía no tiene. */
+
+   ══ LO QUE ESTA SECCIÓN DECÍA MAL, Y POR QUÉ ══════════════════════════════════════════════
+   Era la última sección del panel que citaba la ESC/EACTS 2021. La 2025 reescribió la tabla de
+   la insuficiencia tricuspídea en tres direcciones, y dos van en sentidos opuestos:
+
+   · El tratamiento TRANSCATÉTER subió de Clase IIb Nivel C a **Clase IIa Nivel A** — un grado de
+     clase y dos niveles de evidencia, sobre TRILUMINATE, Tri.Fr y TRISCEND II. Es el cambio más
+     grande de la tabla y la sección no lo mencionaba en ninguna parte.
+   · Las dos filas de cirugía izquierda concomitante —primaria severa I C y secundaria severa
+     I B— se FUSIONARON en una sola fila **I B**. Lo que esta sección publicaba como «Clase I C»
+     para la primaria es hoy Clase I **B**.
+   · La fila del ANILLO DILATADO se DEGRADÓ de IIa B a **IIb B**, y se restringió de «leve o
+     moderada» a «LEVE secundaria». La nota de la sección la daba como IIa. También desapareció
+     de la fila la precisión «by 2D echocardiography» que traía la 2021.
+
+   Verificado por dos rutas independientes: contra la Recommendation Table 9 del artículo y
+   contra las diapositivas 75-76 del slide set oficial, más la diapositiva 31, que enfrenta las
+   dos ediciones en columnas. Las dos rutas coinciden dígito por dígito.
+
+   ⚠️ LA ESTENOSIS TRICUSPÍDEA TIENE UN SOLO CRITERIO EN LA 2025, Y NO SON LOS TRES QUE MOSTRABA
+   ESTA SECCIÓN. El texto dice, literal: «A mean diastolic transvalvular gradient of >5 mmHg at a
+   normal heart rate indicates severe TS». Eso es todo. No la gradúa en leve/moderada/severa, y
+   NO menciona ni el tiempo de hemipresión ni el área valvular: las dos rutas barrieron las 102
+   páginas por separado buscándolos. `ET_THP_SIGNIF` y `ET_AVT_SIGNIF` son de la EAE/ASE 2009
+   —así lo dice el comentario de las constantes— y siguen siendo criterios ecocardiográficos
+   válidos; el defecto era de atribución: la sección los publicaba como «criterio de estenosis
+   clínicamente significativa» bajo una cita de la ESC, y su nota afirmaba que la guía definía
+   «un solo corte, alcanzado por cualquiera de los tres criterios de arriba». Eso le atribuía a
+   la ESC dos cortes que no tiene. Las tres filas se mantienen —el dato ecocardiográfico no se
+   esconde— con la procedencia de cada una dicha, y sólo el gradiente decide la recomendación.
+
+   ⚠️ Y EL OPERADOR NO ES EL MISMO. `etEstado()` aplica `gm >= ET_GMEDIO_SIGNIF`; la guía dice
+   `> 5`. Un gradiente medio de exactamente 5,0 mmHg es «significativo» para la pantalla y NO es
+   estenosis severa para la 2025. `etEstado()` no se toca: gobierna la pantalla y el informe, y
+   cambiarle el operador movería el grado consignado en estudios ya firmados. El panel aplica el
+   criterio de la guía con `_gt` sobre LA MISMA constante —no una copia— y la fila dice cuál
+   umbral está aplicando cada cosa.
+
+   ══ LO QUE LA APP NO PUEDE EVALUAR, Y QUEDA DICHO ═════════════════════════════════════════
+   · El ANILLO TRICUSPÍDEO no existe como campo. `ete_diam_anular` es el anillo MITRAL, vive
+     dentro de `ete-seccion-mediciones-mitral`. Sin él la fila IIb del anillo dilatado no se
+     puede evaluar, ni a favor ni en contra, y tampoco su forma indexada.
+   · La HIPERTENSIÓN PULMONAR aparece en las filas con TRES formas distintas —«HTP severa» en la
+     primaria, «HTP» a secas en la secundaria y «HTP PRE-CAPILAR» en el transcatéter— y ninguna
+     de las tres es lo que mide `psap_calc`: la pre-capilar es invasiva por definición. Además
+     `psap_calc` no tiene banda de plausibilidad, así que no se puede conectar sin repetir el
+     error de VSFVI. Se muestra el valor y se declara que no resuelve la condición.
+   · La FRECUENCIA CARDÍACA a la que se midió el gradiente medio no existe junto al Doppler
+     tricuspídeo. Los tres campos «FC (lpm)» de la app son entradas de calculadora en
+     Hemodinamia y en Calculadoras, que es otro contexto de medición: usarlos sería afirmar que
+     el gradiente se tomó a esa frecuencia. El calificador de la guía queda declarado.
+   · La disfunción VD severa se evalúa con TAPSE y S', los dos únicos parámetros de función del
+     VD que tienen banda de plausibilidad. La FAC y la FEVD no la tienen y quedan afuera; se
+     dice, porque un TAPSE conservado con la FAC sin mirar no descarta la disfunción severa. */
+const VT_CRIT_2025 = Object.freeze({
+  /* Los dos operadores de la fila del anillo son DISTINTOS entre sí y así están en la tabla:
+     «≥40 mm or >21 mm/m2». No se unifican. Hoy ninguno es evaluable —no hay campo de anillo
+     tricuspídeo— y viven acá para que el día que el campo exista el número ya esté anclado. */
+  anillo_mm:     40,  // mm    — ≥ 40 mm
+  anillo_idx:    21,  // mm/m² — > 21 mm/m²
+  /* Figura 15 de la ESC/EACTS 2025. La app tenía el corte de DISFUNCIÓN para TAPSE
+     (`UMBRAL_TAPSE_NORMAL`, 17 mm) pero no el de disfunción SEVERA, que es el que las filas de
+     esta tabla usan como exclusión. No se exportan como `UMBRAL_*`: la pantalla no los aplica, y
+     nombrarlos así haría creer que sí.
+     ⚠️ La misma figura publica FAC ≤22 % para disfunción severa y la app usa 25 % en la cápsula
+     de la FAC (`UMBRAL_FAC_VD_SEVERA`). No se unifican ni se toca la cápsula: son dos
+     parámetros distintos y la FAC no entra acá por falta de banda. Si algún día entra, esa
+     diferencia hay que resolverla antes, no después. */
+  tapse_severa:  10,  // mm    — Figura 15: TAPSE < 10 mm
+  sprime_severa: 6    // cm/s  — Figura 15: S' tricuspídeo < 6 cm/s
+});
+const VT_REC_2025 = Object.freeze({
+  cx_izq_sev: { c:'Clase I · Nivel B',
+    t:'Cirugía tricuspídea concomitante RECOMENDADA en la insuficiencia SEVERA, primaria o secundaria, del paciente que va a cirugía valvular izquierda.' },
+  cx_izq_mod: { c:'Clase IIa · Nivel B',
+    t:'Reparación tricuspídea concomitante A CONSIDERAR en la insuficiencia MODERADA, primaria o secundaria, del paciente que va a cirugía valvular izquierda.' },
+  prim_sint:  { c:'Clase I · Nivel C',
+    t:'Cirugía tricuspídea RECOMENDADA en el paciente SINTOMÁTICO con insuficiencia primaria severa, en ausencia de disfunción ventricular derecha severa y de hipertensión pulmonar severa.' },
+  prim_asint: { c:'Clase IIa · Nivel C',
+    t:'Cirugía tricuspídea A CONSIDERAR en el paciente ASINTOMÁTICO con insuficiencia primaria severa y dilatación o deterioro de la función del ventrículo derecho, en ausencia de disfunción severa de cualquiera de los dos ventrículos y de hipertensión pulmonar severa.' },
+  sec:        { c:'Clase IIa · Nivel B',
+    t:'Cirugía tricuspídea A CONSIDERAR en la insuficiencia SECUNDARIA severa del paciente sintomático, o con dilatación o deterioro de la función del ventrículo derecho, en ausencia de disfunción severa de cualquiera de los dos ventrículos y de hipertensión pulmonar.' },
+  transcat:   { c:'Clase IIa · Nivel A',
+    t:'Tratamiento tricuspídeo TRANSCATÉTER A CONSIDERAR para mejorar la calidad de vida y el remodelado del ventrículo derecho en el paciente de ALTO RIESGO quirúrgico, sintomático, con insuficiencia severa a pesar de tratamiento médico óptimo, y en ausencia de disfunción ventricular derecha severa y de hipertensión pulmonar pre-capilar.' }
+});
+const VT_FUENTE = 'ESC/EACTS 2025 — tabla de recomendaciones de insuficiencia tricuspídea';
+const ET_REC_2025 = Object.freeze({
+  sint:   { c:'Clase I · Nivel C',
+    t:'Cirugía RECOMENDADA en el paciente SINTOMÁTICO con estenosis tricuspídea severa.' },
+  cx_izq: { c:'Clase I · Nivel C',
+    t:'Cirugía RECOMENDADA en la estenosis tricuspídea severa del paciente que va a una intervención valvular izquierda.' }
+});
+const ET_FUENTE = 'ESC/EACTS 2025 — tabla de recomendaciones de estenosis tricuspídea';
+/* Los textos de arriba nombran umbrales. Si una constante se mueve y el texto no, el panel
+   publica una cifra que el código no aplica — el mismo arranque que ya tienen EA, IA, EM e IM. */
+function _vtAssertUmbrales(){
+  const esp = [
+    ['ET_GMEDIO_SIGNIF',           window.ET_GMEDIO_SIGNIF,      5,  'gradiente medio diastólico > 5 mmHg'],
+    ['VT_CRIT_2025.anillo_mm',     VT_CRIT_2025.anillo_mm,       40, 'anillo ≥ 40 mm'],
+    ['VT_CRIT_2025.anillo_idx',    VT_CRIT_2025.anillo_idx,      21, 'anillo > 21 mm/m²'],
+    ['VT_CRIT_2025.tapse_severa',  VT_CRIT_2025.tapse_severa,    10, 'TAPSE < 10 mm'],
+    ['VT_CRIT_2025.sprime_severa', VT_CRIT_2025.sprime_severa,   6,  'S′ tricuspídeo < 6 cm/s']
+  ];
+  const mal = esp.filter(e => e[1] !== e[2])
+    .map(e => e[0] + ' = ' + e[1] + ' pero los textos de VT_REC_2025 y las notas dicen ' + e[3]);
+  if (mal.length) console.error('[VT] Los textos de la guía quedaron viejos respecto de las ' +
+    'constantes. Releer la tabla de recomendaciones antes de tocar nada:\n  ' + mal.join('\n  '));
+  return mal;
+}
+
+/* Reúne lo que la recomendación necesita: lo contestado en el panel y lo LEÍDO del estudio.
+   Nada de lo leído se vuelve a preguntar — es la regla de «conectar, no duplicar». */
+function _indVTDatos(){
+  const banda = _indBanda, leer = _indLeer;
+  /* Función del VD. Se usa SÓLO COMO BLOQUEO, nunca como luz verde: que el TAPSE esté por
+     encima de 10 mm no permite afirmar «sin disfunción severa» si la FAC no se miró. `severa`
+     es por eso un `true` afirmativo o un `null` que significa «no se sabe», no un `false`. */
+  const t = leer('tapse', 'tapse'), sp = leer('s_prime', 's_prime');
+  const vdSev = _lt(t.val, VT_CRIT_2025.tapse_severa) || _lt(sp.val, VT_CRIT_2025.sprime_severa);
+  const vdMedido = t.val != null || sp.val != null;
+  /* Distingue «no medido» de «fuera de banda»: con un TAPSE de 95 —cm por mm— la nota decía «no hay
+     TAPSE ni S′ medidos» mientras la fila de arriba decía «fuera de rango medible». */
+  const vdIlegible = !!(t.fuera || sp.fuera);
+  /* Dilatación del VD: se consume `vdDiamsMedidos()`, la función que ya gobierna la pantalla y
+     el informe con los tres diámetros de la ASE 2015. No se reimplementa ninguno de sus cortes.
+     Un diámetro fuera de banda llega con `dil:false` y `fuera:true`, así que no cuenta como
+     dilatación ni como normalidad. */
+  const dF = _indFn('vdDiamsMedidos');
+  let ds = [];
+  try { ds = dF ? (dF() || []) : []; } catch (e) { ds = []; }
+  const dilat = ds.some(function(d){ return d && d.dil && !d.fuera; });
+  const dilMedido = ds.some(function(d){ return d && !d.fuera; });
+  /* `psap_calc` no tiene banda de plausibilidad, así que `leer` devuelve `sinBanda:true` y el
+     valor crudo. Se muestra y NO se usa para decidir: la fila lo dice. */
+  const psap = leer('psap_calc', 'psap_calc');
+  return {
+    mec:   _indClinGet('vt.mecanismo'),
+    sx:    _indClinGet('vt.sintomas'),
+    cxizq: _indClinGet('vt.cxizq'),
+    riesgo:_indClinGet('vt.riesgo'),
+    tmo:   _indClinGet('vt.tmo'),
+    t:t, sp:sp, vdSev:vdSev, vdMedido:vdMedido, vdIlegible:vdIlegible, fevi:leer('fevi', 'fevi'),
+    ds:ds, dilat:dilat, dilMedido:dilMedido, psap:psap
+  };
+}
+
+/* La modalidad —cirugía o transcatéter— es una decisión SEPARADA de la indicación, igual que en
+   la mitral. Va en su propio bloque y sólo cuando la indicación ya existe. */
+function _indVTModalidad(D){
+  if (D.riesgo !== 'alto') return null;
+  if (D.sx !== 'si') return null;
+  /* ⚠️ `null` Y `'no'` SON DOS ESTADOS DISTINTOS. Con un solo texto, el panel afirmaba «eso no
+     está contestado» justo debajo de un botón marcado «No»: un mensaje que nombra la causa
+     equivocada manda a revisar lo que está sano. Lo encontró /sharp-edges. */
+  if (D.tmo === 'no') {
+    return { txt:'El paciente es de riesgo quirúrgico alto y está sintomático, pero la insuficiencia NO persiste a pesar de tratamiento médico óptimo. La fila del tratamiento transcatéter lo exige de forma explícita, así que no aplica.',
+      clase:'', fuente:VT_FUENTE };
+  }
+  if (D.tmo == null) {
+    return { txt:'El paciente es de riesgo quirúrgico alto y está sintomático. La fila del tratamiento transcatéter exige además que la insuficiencia persista A PESAR de tratamiento médico óptimo, y eso no está contestado.',
+      clase:'', fuente:VT_FUENTE };
+  }
+  /* REDUNDANTE POR CONSTRUCCIÓN, dicho por el mismo motivo: `_indVTRecom` calcula `mod` y luego
+     retorna por `D.vdSev` SIN adjuntarlo, así que el resultado de esta línea no llega a ninguna
+     superficie. Se conserva porque la fila del transcatéter excluye la disfunción severa por su
+     cuenta y esta función no debe depender de que su llamador lo recuerde. */
+  if (D.vdSev) return null;
+  return { txt:VT_REC_2025.transcat.t, clase:VT_REC_2025.transcat.c, fuente:VT_FUENTE,
+    nota:'Subió de Clase IIb Nivel C en la ESC/EACTS 2021 a Clase IIa Nivel A en la 2025. La fila también excluye la hipertensión pulmonar PRE-CAPILAR, que es invasiva por definición y esta app no la mide: queda como condición no verificada.' };
+}
+
+function _indVTRecom(D, itSev, itMod, etSev, etSig, E, UG){
+  const fal = function(txt, faltan){ return { tipo:'falta', tit:'Falta un dato para aplicar la guía', txt:txt, faltan:faltan }; };
+  /* ── LA ESTENOSIS SEVERA PRIMERO CUANDO ES LA ÚNICA LESIÓN ──
+     Su tabla son dos filas y las dos son Clase I C, así que no hace falta el mecanismo ni el
+     riesgo: alcanza con síntomas o con la cirugía izquierda programada. */
+  const recEt = (function(){
+    /* ⚠️ CUANDO LA APP MARCA SIGNIFICACIÓN Y LA GUÍA NO, LA SECCIÓN NO PUEDE QUEDARSE MUDA.
+       `etEstado()` alcanza la significación con `>=` sobre el gradiente O con el THP O con el
+       área; la 2025 sólo reconoce el gradiente, y con `>`. En esos casos la sección se abre —el
+       hallazgo ecocardiográfico existe— y antes no publicaba nada: el lector veía filas en verde
+       sin una sola línea que explicara por qué no hay recomendación. Decirlo es la mitad del
+       trabajo de este panel. */
+    if (!etSev) {
+      if (!etSig) return null;
+      const porOtro = !!(E && !E.cGm && (E.cThp || E.cAvt));
+      if (porOtro) {
+        const cual = [];
+        if (E.cThp) cual.push('el tiempo de hemipresión');
+        if (E.cAvt) cual.push('el área valvular');
+        return { tipo:'no', tit:'Significación por un criterio que la guía 2025 no usa',
+          txt:'La app marca estenosis tricuspídea significativa por ' + cual.join(' y ') + ' — criterio de la EAE/ASE 2009. La ESC/EACTS 2025 define la estenosis severa con UN solo criterio —gradiente medio diastólico mayor de ' + (UG != null ? UG : 5) + ' mmHg a frecuencia cardíaca normal— y no menciona ni el tiempo de hemipresión ni el área valvular. '
+            + (E.gmOk ? 'El gradiente medio medido es de ' + _indNum(E.gm, 0, 'mmHg') + ', que no supera el corte.' : 'El gradiente medio no está medido, así que el único criterio de la guía no se puede evaluar.')
+            + ' No hay fila de la guía que aplicar: el hallazgo es real y la recomendación no sale de esta tabla.',
+          fuente:ET_FUENTE };
+      }
+      /* ⚠️ SIN UMBRAL NO SE CONCLUYE (regla 4). Con `UG == null`, `_gt(x, null)` es `false` para
+         TODO gradiente, así que esta rama se alcanzaba con un gm de 12 y afirmaba «no es estenosis
+         severa para la guía» citando un 5 que salía de un literal de respaldo. La fila ya usa
+         `_indSinUmbral`; la recomendación tenía que hacer lo mismo. Lo encontró /sharp-edges. */
+      if (UG == null) return { tipo:'falta', tit:'Falta el umbral de la guía',
+        txt:'El umbral de severidad de la estenosis tricuspídea no está disponible: recargar la aplicación. Sin él esta sección no puede decir si el gradiente medio alcanza el criterio.',
+        fuente:ET_FUENTE };
+      /* El `return null` con que cierra esta función interna es REDUNDANTE por construcción: se
+         alcanzaría con `etSig && !porOtro && !E.cGm`, y `etSig` es `cGm || cThp || cAvt`, así que
+         `!cGm && !porOtro` implica `!cThp && !cAvt`, o sea `!etSig` — contradicción. Queda por la
+         regla 4, y se declara para que la próxima tanda de mutación no lo lea como sobreviviente. */
+      if (E && E.cGm) return { tipo:'no', tit:'El valor exacto no alcanza el criterio de la guía',
+        txt:'El gradiente medio es de ' + _indNum(E.gm, 0, 'mmHg') + '. La app lo cuenta como significativo porque aplica «mayor o igual», pero la ESC/EACTS 2025 pide MÁS de ' + (UG != null ? UG : 5) + ' mmHg: con este valor no es estenosis severa para la guía, y sus dos filas piden estenosis severa.',
+        fuente:ET_FUENTE,
+        nota:'La pantalla y el informe siguen usando el criterio de la app, que no se tocó: cambiarlo movería el grado consignado en estudios ya firmados.' };
+      return null;
+    }
+    if (D.sx === 'si')    return { tipo:'ind', tit:'Estenosis tricuspídea severa sintomática', txt:ET_REC_2025.sint.t, clase:ET_REC_2025.sint.c, fuente:ET_FUENTE };
+    if (D.cxizq === 'si') return { tipo:'ind', tit:'Estenosis tricuspídea severa con cirugía izquierda programada', txt:ET_REC_2025.cx_izq.t, clase:ET_REC_2025.cx_izq.c, fuente:ET_FUENTE };
+    if (D.sx === 'no' && D.cxizq === 'no')
+      return { tipo:'no', tit:'Estenosis severa sin ninguno de los dos disparadores', txt:'El gradiente medio supera el corte de severidad, pero el paciente está asintomático y no va a una intervención valvular izquierda. Las dos únicas filas de la tabla de estenosis tricuspídea piden una de esas dos condiciones.', fuente:ET_FUENTE };
+    return fal('El gradiente medio supera el corte de severidad de la guía. Las dos filas de la tabla se separan por los síntomas y por la cirugía izquierda programada.',
+      [D.sx ? null : 'Síntomas', D.cxizq ? null : 'Cirugía valvular izquierda programada'].filter(Boolean));
+  })();
+  if (!itSev && !itMod) return recEt;
+
+  /* ── CIRUGÍA IZQUIERDA PROGRAMADA: ES LA RAMA MÁS FUERTE Y NO PIDE EL MECANISMO ──
+     La 2025 fusionó primaria y secundaria en una sola fila, así que acá el mecanismo no cambia
+     nada. Tampoco menciona la disfunción del VD: no se bloquea por algo que la fila no pide. */
+  if (D.cxizq === 'si') {
+    const r = itSev ? VT_REC_2025.cx_izq_sev : VT_REC_2025.cx_izq_mod;
+    return { tipo:'ind',
+      tit: itSev ? 'Insuficiencia severa con cirugía valvular izquierda programada'
+                 : 'Insuficiencia moderada con cirugía valvular izquierda programada',
+      txt:r.t, clase:r.c, fuente:VT_FUENTE,
+      nota: (itSev ? 'La 2025 fusionó en esta única fila Nivel B las dos que traía la 2021 —primaria severa I C y secundaria severa I B—, así que el mecanismo no cambia la clase. '
+                   : 'La guía no tiene una fila para «moderada-severa»: el grado ' + _indS('it_grado') + ' consignado por la app se resolvió hacia la fila de la MODERADA, que es Nivel B igual pero Clase IIa en vez de I. Si el grado es en realidad severo, la fila que aplica es la de arriba. ')
+        + 'La nota al pie de la tabla dice «reparación valvular siempre que sea posible».'
+        + (etSev ? ' La estenosis severa concomitante tiene su propia fila Clase I C en el mismo escenario.' : '') };
+  }
+  /* ⚠️ LA MODERADA ABRE LA SECCION Y TIENE UNA SOLA FILA. Hasta esta ronda la seccion se abria
+     solo con la severa; al agregar la fila IIa B de la moderada concomitante, la moderada SIN
+     cirugía izquierda quedaba abriendo la sección y devolviendo `null`: filas y controles, y ni
+     una línea explicando por qué no hay recomendación. Es el mismo silencio que se corrigió del
+     lado de la estenosis, y aquí lo introdujo el cambio de esta ronda. */
+  if (!itSev) {
+    if (!itMod) return recEt;
+    if (D.cxizq === 'no') return { tipo:'no', tit:'La insuficiencia moderada entra en la tabla sólo con cirugía izquierda',
+      txt:'La insuficiencia tricuspídea consignada es moderada. La única fila que la 2025 le dedica es la reparación concomitante del paciente que va a cirugía valvular izquierda, y no es el caso. Las filas de la insuficiencia aislada piden insuficiencia SEVERA.',
+      fuente:VT_FUENTE,
+      nota:'Con insuficiencia LEVE secundaria y anillo dilatado hay otra fila, Clase IIb B, que esta app no puede evaluar porque no tiene campo de anillo tricuspídeo.' };
+    return fal('La insuficiencia tricuspídea consignada es moderada, y la única fila que la guía le dedica es la de la reparación concomitante en cirugía valvular izquierda.',
+      ['Cirugía valvular izquierda programada']);
+  }
+
+  /* A partir de acá: insuficiencia SEVERA sin cirugía izquierda programada. El mecanismo deja de
+     ser indiferente —la primaria y la secundaria tienen filas, clases y exclusiones distintas— y
+     la app no tiene campo de mecanismo tricuspídeo, así que sin contestarlo no se concluye. */
+  const faltan = [];
+  if (!D.cxizq) faltan.push('Cirugía valvular izquierda programada');
+  if (!D.mec)   faltan.push('Mecanismo de la insuficiencia');
+  if (!D.sx)    faltan.push('Síntomas');
+  if (faltan.length) return fal('La insuficiencia tricuspídea consignada es severa. Las filas que quedan cuando no hay cirugía izquierda programada se separan por el mecanismo y por los síntomas.', faltan);
+
+  const mod = _indVTModalidad(D);
+  /* La disfunción VD severa excluye TODAS las filas de esta rama, y también la del transcatéter.
+     Es la única exclusión que la app puede afirmar, y por eso corta antes que las demás. */
+  if (D.vdSev) {
+    const cual = [];
+    if (_lt(D.t.val,  VT_CRIT_2025.tapse_severa))  cual.push('TAPSE de ' + _indNum(D.t.val, 0, 'mm') + ' (< ' + VT_CRIT_2025.tapse_severa + ' mm)');
+    if (_lt(D.sp.val, VT_CRIT_2025.sprime_severa)) cual.push('S′ de ' + _indNum(D.sp.val, 1, 'cm/s') + ' (< ' + VT_CRIT_2025.sprime_severa + ' cm/s)');
+    return { tipo:'no', tit:'Fuera del alcance de la tabla — disfunción ventricular derecha severa',
+      txt:'Las tres filas que quedan cuando no hay cirugía izquierda programada, y también la del tratamiento transcatéter, exigen la AUSENCIA de disfunción ventricular derecha severa. Acá está presente: ' + cual.join(' y ') + ', por la Figura 15 de la guía. La decisión sale de la tabla y pasa a ser individual.',
+      fuente:VT_FUENTE,
+      nota:'La misma figura publica FAC ≤ 22 % como disfunción severa. La app no aplica ese corte —su cápsula usa 25 %— y la FAC no tiene banda de plausibilidad, así que no entra en esta evaluación.' };
+  }
+  /* La HTP es una exclusión de las tres filas y la app no la puede resolver: no se afirma su
+     ausencia. Se nombra como condición pendiente DENTRO del texto de la recomendación, que es
+     donde el lector la va a leer, y no sólo en una nota al pie. */
+  const htp = 'La fila también exige la ausencia de hipertensión pulmonar'
+    + (D.mec === 'prim' ? ' SEVERA' : '')
+    + ', y esta app no la evalúa: '
+    + (D.psap.sinBanda && D.psap.crudo != null
+        ? 'la PSAP estimada es de ' + _indNum(D.psap.crudo, 0, 'mmHg') + ', pero no tiene banda de plausibilidad y la guía define la hipertensión pulmonar por cateterismo.'
+        : 'no hay PSAP estimada, y la guía la define por cateterismo.')
+    + ' Queda como condición no verificada.';
+  /* ⚠️ LAS FILAS IIa EXIGEN AUSENCIA DE DISFUNCIÓN SEVERA DE **LOS DOS** VENTRÍCULOS, y esta nota
+     enumeraba dos huecos y los dos eran del derecho: se leía como un denominador completo que no
+     mencionaba el izquierdo en ninguna parte. `fevi` SÍ tiene banda y la app ya lo clasifica, así
+     que era la única exclusión de esas filas evaluable, sin evaluar y sin declarar. No se inventa un
+     corte de disfunción severa de VI —las dos rutas no lo verificaron— y se declara.
+     Lo encontró /sharp-edges. */
+  const vdNota = (D.vdMedido
+    ? 'La ausencia de disfunción ventricular derecha severa se evaluó sólo con TAPSE y S′, los dos únicos parámetros de función del VD con banda de plausibilidad en esta app. La FAC y la FEVD no entraron.'
+    : (D.vdIlegible
+        ? 'El TAPSE o el S′ están fuera de rango medible, así que la ausencia de disfunción ventricular derecha severa que la fila exige NO está verificada.'
+        : 'No hay TAPSE ni S′ medidos, así que la ausencia de disfunción ventricular derecha severa que la fila exige NO está verificada.'))
+    + ' Y la fila exige la ausencia de disfunción severa de CUALQUIERA DE LOS DOS ventrículos: la del IZQUIERDO no se evalúa acá'
+    + (D.fevi.val != null ? ' —la FEVI consignada es de ' + _indNum(D.fevi.val, 0, '%') + '—' : '')
+    + ', porque esta app no tiene un corte de disfunción severa de ventrículo izquierdo anclado a esta guía. Queda como condición no verificada.';
+  /* La estenosis severa concomitante tiene su propia Clase I C y se calculó al principio: sin esto
+     se perdía en silencio en toda esta rama, con la fila del gradiente en verde arriba
+     afirmándola. No es cosmético — una tricúspide estenótica suele exigir REEMPLAZO, mientras la
+     nota al pie de la tabla de la insuficiencia pide reparación siempre que sea posible.
+     Lo encontró /sharp-edges. */
+  const etNota = (recEt && recEt.tipo === 'ind')
+    ? ' Y hay estenosis tricuspídea severa concomitante, que tiene fila propia: ' + recEt.clase + ' — ' + recEt.txt
+      + ' Ojo con la técnica: la estenosis severa suele exigir reemplazo, y la nota al pie de la tabla de la insuficiencia pide reparación siempre que sea posible.'
+    : '';
+
+  if (D.mec === 'prim') {
+    if (D.sx === 'si') return { tipo:'ind', tit:'Insuficiencia primaria severa sintomática, aislada',
+      txt:VT_REC_2025.prim_sint.t, clase:VT_REC_2025.prim_sint.c, fuente:VT_FUENTE,
+      nota:htp + ' ' + vdNota + etNota, mod:mod };
+    /* Asintomática: la fila IIa pide ADEMÁS dilatación o deterioro del VD. Sin diámetros
+       medidos no se puede afirmar ni negar, y la fila no se publica. */
+    if (D.dilat) return { tipo:'ind', tit:'Insuficiencia primaria severa asintomática con ventrículo derecho dilatado',
+      txt:VT_REC_2025.prim_asint.t, clase:VT_REC_2025.prim_asint.c, fuente:VT_FUENTE,
+      nota:'La dilatación sale de los tres diámetros del ventrículo derecho, con la misma función que gobierna la pantalla: ' + _indVTDils(D) + '. ' + htp + ' ' + vdNota + etNota, mod:mod };
+    if (!D.dilMedido) return fal('La insuficiencia primaria severa asintomática entra en la tabla sólo si hay dilatación o deterioro de la función del ventrículo derecho. No hay ningún diámetro del VD medido, así que no se puede afirmar ni descartar.',
+      ['Diámetros del ventrículo derecho']);
+    return { tipo:'no', tit:'Insuficiencia primaria severa asintomática, sin dilatación del ventrículo derecho',
+      txt:'Los diámetros medidos del ventrículo derecho están dentro de lo normal (' + _indVTDils(D) + ') y el paciente está asintomático. La fila Clase IIa pide dilatación o deterioro progresivo de la función del VD, así que hoy el escenario es de seguimiento. El «deterioro progresivo» es una comparación con estudios previos que esta sección no hace.',
+      fuente:VT_FUENTE, mod:mod };
+  }
+  /* Secundaria: una sola fila, IIa B, y se satisface con síntomas O con dilatación/deterioro. */
+  if (D.sx === 'si' || D.dilat) return { tipo:'ind', tit:'Insuficiencia secundaria severa',
+    txt:VT_REC_2025.sec.t, clase:VT_REC_2025.sec.c, fuente:VT_FUENTE,
+    nota:(D.sx === 'si' ? 'El paciente está sintomático, que ya satisface la fila. ' : 'El ventrículo derecho está dilatado (' + _indVTDils(D) + '), que satisface la fila sin necesidad de síntomas. ')
+      + htp + ' ' + vdNota + etNota
+      + ' La guía NO usa el fenotipo auricular o ventricular de la insuficiencia secundaria para decidir: dice que falta evidencia de que cambie el manejo.', mod:mod };
+  if (!D.dilMedido) return fal('La insuficiencia secundaria severa del paciente asintomático entra en la tabla sólo si hay dilatación o deterioro de la función del ventrículo derecho. No hay ningún diámetro del VD medido.',
+    ['Diámetros del ventrículo derecho']);
+  return { tipo:'no', tit:'Insuficiencia secundaria severa asintomática, sin dilatación del ventrículo derecho',
+    txt:'Los diámetros medidos del ventrículo derecho están dentro de lo normal (' + _indVTDils(D) + ') y el paciente está asintomático. La única fila de la insuficiencia secundaria severa sin cirugía izquierda pide una de las dos cosas.',
+    fuente:VT_FUENTE, mod:mod };
+}
+/* Enumera los diámetros MEDIDOS con su veredicto, para que la afirmación de dilatación —o de su
+   ausencia— diga sobre qué se apoya. Sin esto el texto negaba sobre un denominador invisible. */
+function _indVTDils(D){
+  const ms = D.ds.filter(function(d){ return d && !d.fuera; });
+  if (!ms.length) return 'ningún diámetro medido';
+  return ms.map(function(d){ return d.lblC + ' ' + _indNum(d.val, 0, 'mm') + (d.dil ? ' dilatado' : ' normal'); }).join(', ');
+}
+
 function _indVT(){
   const etF = _indFn('etEstado');
   const E = etF ? etF() : null;
   const it = _indS('it_grado');
   const itSev = it === '4';
+  const itMod = it === '2' || it === '3';
   const etSig = !!(E && E.signif);
-  if (!itSev && !etSig) return null;
   const UG = _indUmb('ET_GMEDIO_SIGNIF'), UT = _indUmb('ET_THP_SIGNIF'), UA = _indUmb('ET_AVT_SIGNIF');
-  const IT = Object.assign(Object.create(null), { '0':'Sin', '1':'Leve', '2':'Moderada', '3':'Moderada', '4':'Severa' });
+  /* El criterio de la 2025 es `> UG`, no `>= UG` como aplica `etEstado()`. Se calcula acá con
+     `_gt` sobre la misma constante para no abrir una copia del número. */
+  const etSev = !!(E && E.gmOk && _gt(E.gm, UG));
+  if (!itSev && !itMod && !etSig) return null;
   const vc = _indN('it_vc'), vmaxIt = _indN('it_vmax_cw');
   /* ⚠️ `it_grado` NUNCA está vacío: nace en '0', `limpiarCampos` lo repone a '0' y `calcIT_ESC`
      sale sin tocarlo cuando no hay ningún parámetro medido. O sea que «Sin» no distingue «no
@@ -37335,10 +37996,9 @@ function _indVT(){
      Se deriva de los insumos REALES del algoritmo: si ninguno tiene valor, el grado es el de
      fábrica y no se puede afirmar la ausencia. Es la misma regla que `va_morf` en la bicúspide
      y `vp_morf` en la pulmonar — un default no es una respuesta del médico. */
-  const itEvaluada = vc != null || vmaxIt != null || _indN('it_pisa_r') != null ||
-                     _indN('it_vti') != null || _indS('it_densidad') !== '' || it === '4';
+  const itEvaluada = _indITEvaluada();
   const filas = [
-    _indFila('Insuficiencia tricuspídea', itEvaluada ? (IT[it] || 'No consignada') : 'No evaluada',
+    _indFila('Insuficiencia tricuspídea', itEvaluada ? (_IND_IT_TXT[it] || 'No consignada') : 'No evaluada',
       itSev ? 'ok' : (itEvaluada ? 'none' : 'ask'),
       itSev ? 'severa — es el grado que abre las indicaciones quirúrgicas'
       : (itEvaluada ? '' : 'el campo arranca en «Sin» y no hay ningún parámetro cargado: no se puede afirmar que no la haya')),
@@ -37348,40 +38008,87 @@ function _indVT(){
       vmaxIt != null ? 'da la PSAP estimada; no gradúa la insuficiencia' : 'sin medir')
   ];
   /* Los tres criterios de estenosis se imprimen con el umbral que aplica el código, leído de la
-     constante. Si falta la constante la fila lo dice en vez de publicar un número de memoria. */
+     constante. Si falta la constante la fila lo dice en vez de publicar un número de memoria.
+     ⚠️ Cada fila declara de QUÉ documento sale su corte. Sólo el gradiente medio es de la
+     ESC/EACTS 2025 y sólo él decide la recomendación; el THP y el área son de la EAE/ASE 2009 y
+     la guía 2025 no los menciona. Presentar los tres como «criterio de la guía» era el defecto
+     que tenía esta sección. */
   if (E) {
     filas.push(UG == null ? _indSinUmbral('Gradiente medio tricuspídeo')
       : _indFila('Gradiente medio tricuspídeo', _indNum(E.gm, 0, 'mmHg'),
-          E.cGm ? 'ok' : (E.gmOk ? 'none' : 'ask'),
-          E.cGm ? '≥ ' + UG + ' mmHg — criterio de estenosis clínicamente significativa'
-          : (E.gmOk ? 'no alcanza ' + UG + ' mmHg' : 'sin medir')));
+          etSev ? 'ok' : (E.gmOk ? 'none' : 'ask'),
+          etSev ? '> ' + UG + ' mmHg — estenosis severa por la ESC/EACTS 2025, el ÚNICO criterio que publica'
+          : (E.gmOk ? (E.cGm
+              ? 'la app lo cuenta como significativo con ≥ ' + UG + ' mmHg, pero la guía 2025 pide > ' + UG + ': con este valor exacto no es estenosis severa para la guía'
+              : 'no supera ' + UG + ' mmHg')
+            : (E.gm != null ? 'fuera de rango medible — no sostiene ni descarta el criterio' : 'sin medir'))));
     filas.push(UT == null ? _indSinUmbral('THP tricuspídeo')
       : _indFila('THP tricuspídeo', _indNum(E.thp, 0, 'ms'),
-          E.cThp ? 'ok' : (E.thpOk ? 'none' : 'ask'),
-          E.cThp ? '≥ ' + UT + ' ms — criterio de estenosis clínicamente significativa'
-          : (E.thpOk ? 'no alcanza ' + UT + ' ms' : 'sin medir')));
+          E.cThp ? 'warn' : (E.thpOk ? 'none' : 'ask'),
+          (E.cThp ? '≥ ' + UT + ' ms — criterio de la EAE/ASE 2009' : (E.thpOk ? 'no alcanza los ' + UT + ' ms de la EAE/ASE 2009' : (E.thp != null ? 'fuera de rango medible' : 'sin medir')))
+          + ' · la ESC/EACTS 2025 no usa el tiempo de hemipresión para la estenosis tricuspídea'));
     filas.push(UA == null ? _indSinUmbral('Área valvular tricuspídea')
       : _indFila('Área valvular tricuspídea', _indNum(E.avt, 2, 'cm²'),
-          E.cAvt ? 'ok' : (E.avt != null ? 'none' : 'ask'),
-          E.cAvt ? '≤ ' + UA + ' cm² — criterio de estenosis clínicamente significativa'
-          : (E.avt != null ? 'no alcanza el criterio' : 'requiere diámetro y VTI del TSVD y VTI diastólico tricuspídeo')));
+          E.cAvt ? 'warn' : (E.avt != null ? 'none' : 'ask'),
+          (E.cAvt ? '≤ ' + UA + ' cm² — criterio de la EAE/ASE 2009' : (E.avt != null ? 'no alcanza el criterio de ≤ ' + UA + ' cm² de la EAE/ASE 2009' : 'requiere diámetro y VTI del TSVD y VTI diastólico tricuspídeo'))
+          + ' · la ESC/EACTS 2025 no usa el área valvular para la estenosis tricuspídea'));
   }
+  const D = _indVTDatos();
+  /* Las filas de función y dilatación del VD se LEEN del estudio: no son controles. El dato ya
+     está cargado en la pestaña de Ventrículo Derecho y preguntarlo sería duplicarlo. */
+  const clinica = [
+    _indFilaCtrl('Mecanismo de la insuficiencia', 'vt.mecanismo', [{v:'prim',t:'Primaria'},{v:'sec',t:'Secundaria'}],
+      D.mec ? 'none' : 'ask',
+      'la primaria y la secundaria tienen filas, clases y exclusiones distintas cuando no hay cirugía izquierda programada; esta app no tiene campo de mecanismo tricuspídeo'),
+    _indFilaCtrl('Síntomas', 'vt.sintomas', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      D.sx ? 'none' : 'ask', 'separan la Clase I de la Clase IIa en la insuficiencia primaria aislada, y son la única condición de la fila del transcatéter junto con el riesgo alto'),
+    _indFilaCtrl('Cirugía valvular izquierda programada', 'vt.cxizq', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      D.cxizq ? 'none' : 'ask', 'es la condición que lleva la cirugía tricuspídea a Clase I, sin importar el mecanismo'),
+    _indFilaCtrl('Riesgo quirúrgico alto', 'vt.riesgo', [{v:'alto',t:'Alto'},{v:'no',t:'No alto'}],
+      D.riesgo ? 'none' : 'ask', 'abre la fila del tratamiento transcatéter, que en la 2025 es Clase IIa Nivel A'),
+    _indFilaCtrl('Insuficiencia persistente con tratamiento médico óptimo', 'vt.tmo', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      D.tmo ? 'none' : 'ask', 'la fila del transcatéter lo exige de forma explícita'),
+    (D.t.val != null || D.sp.val != null)
+      ? _indFila('Función del ventrículo derecho',
+          [D.t.val != null ? 'TAPSE ' + _indNum(D.t.val, 0, 'mm') : null,
+           D.sp.val != null ? 'S′ ' + _indNum(D.sp.val, 1, 'cm/s') : null].filter(Boolean).join(' · '),
+          D.vdSev ? 'warn' : 'none',
+          D.vdSev ? 'disfunción SEVERA por la Figura 15 — excluye las filas que no tienen cirugía izquierda programada'
+          : 'sin disfunción severa por estos dos parámetros; la FAC y la FEVD no tienen banda de plausibilidad y no entran')
+      : _indFila('Función del ventrículo derecho',
+          (D.t.fuera || D.sp.fuera) ? 'Fuera de rango medible' : 'No medida', 'ask',
+          (D.t.fuera || D.sp.fuera)
+            ? 'un valor ilegible no sostiene ni descarta la disfunción severa'
+            : 'sin TAPSE ni S′ no se puede descartar la disfunción severa que las filas exigen'),
+    D.dilMedido
+      ? _indFila('Dilatación del ventrículo derecho', _indVTDils(D), D.dilat ? 'ok' : 'none',
+          D.dilat ? 'satisface el criterio de dilatación de las filas del paciente asintomático'
+          : 'leído de la pestaña de Ventrículo Derecho con los tres diámetros de la ASE 2015')
+      : _indFila('Dilatación del ventrículo derecho',
+          D.ds.some(function(d){ return d && d.fuera; }) ? 'Fuera de rango medible' : 'No medida', 'ask',
+          D.ds.some(function(d){ return d && d.fuera; })
+            ? 'un diámetro ilegible no sostiene ni descarta la dilatación; la fila de función del VD hace la misma distinción'
+            : 'sin ningún diámetro no se puede afirmar ni descartar la dilatación que piden las filas del asintomático'),
+    _indFila('Hipertensión pulmonar',
+      D.psap.crudo != null ? 'PSAP estimada ' + _indNum(D.psap.crudo, 0, 'mmHg') : 'No estimada', 'ask',
+      'condición no verificable acá: las filas piden HTP severa, HTP a secas o HTP PRE-CAPILAR según cuál sea, la guía la define por cateterismo, y la PSAP de esta app no tiene banda de plausibilidad')
+  ];
   return { filas: filas,
     aviso: (E && E.fuera && E.fuera.length)
       ? 'Fuera de rango medible: ' + E.fuera.join(' y ') + '. Un valor ilegible no sostiene ni descarta el criterio.' : '',
-    clinica: [
-      _indFila('Síntomas', '—', 'ask', 'separan la Clase I de la Clase IIa en la insuficiencia primaria aislada'),
-      _indFila('Cirugía valvular izquierda programada', '—', 'ask', 'es la condición que convierte la reparación tricuspídea en Clase I'),
-      _indFila('Función del ventrículo derecho', '—', 'ask', 'una disfunción severa cambia la indicación')
-    ],
-    guia: 'ESC/EACTS 2021 — La cirugía tricuspídea es Clase I C en la insuficiencia SEVERA (primaria o secundaria) del paciente que va a cirugía valvular izquierda, y Clase I C en la insuficiencia primaria severa del paciente SINTOMÁTICO sin disfunción ventricular derecha severa.',
+    clinica: clinica,
+    recom: _indVTRecom(D, itSev, itMod, etSev, etSig, E, UG),
+    guia: 'ESC/EACTS 2025 — La cirugía tricuspídea concomitante es Clase I B en la insuficiencia SEVERA, primaria o secundaria, del paciente que va a cirugía valvular izquierda; y Clase I C en la insuficiencia primaria severa del paciente SINTOMÁTICO sin disfunción ventricular derecha severa ni hipertensión pulmonar severa. El tratamiento TRANSCATÉTER es Clase IIa A en el paciente de riesgo alto.',
     notas: [
-      'En la insuficiencia primaria severa ASINTOMÁTICA con dilatación o deterioro progresivo del ventrículo derecho, la cirugía es Clase IIa C.',
-      'La reparación tricuspídea concomitante también es Clase IIa en la insuficiencia moderada o con anillo dilatado en quien va a cirugía izquierda: ese escenario no lo cubre esta sección, que se abre con la severa.',
-      'La guía NO gradúa la estenosis tricuspídea en leve, moderada y severa: define un solo corte de significación clínica, alcanzado por cualquiera de los tres criterios de arriba.',
+      'La evaluación por un Heart Team con experiencia en patología tricuspídea es Clase I C antes de indicar cualquier intervención, y es una fila nueva de la 2025 que no depende del escenario.',
+      'La reparación tricuspídea concomitante es Clase IIa B en la insuficiencia MODERADA, primaria o secundaria, de quien va a cirugía izquierda.',
+      'Con insuficiencia secundaria LEVE y anillo tricuspídeo dilatado —≥ ' + VT_CRIT_2025.anillo_mm + ' mm o > ' + VT_CRIT_2025.anillo_idx + ' mm/m²— la reparación concomitante es Clase IIb B. La 2025 la bajó de IIa y la restringió de «leve o moderada» a leve. Esta app no tiene campo de anillo tricuspídeo, así que esa fila no se puede evaluar: el único campo de anillo que existe es el mitral.',
+      'La guía define la estenosis tricuspídea severa con UN solo criterio: gradiente medio diastólico > ' + (UG != null ? UG : '5') + ' mmHg A FRECUENCIA CARDÍACA NORMAL. No la gradúa en leve, moderada y severa, y no usa el tiempo de hemipresión ni el área valvular. Esta app no registra la frecuencia a la que se midió el gradiente, así que ese calificador queda sin verificar.',
+      'La valvuloplastia percutánea con balón no aparece en el cuerpo de la tabla de estenosis tricuspídea: vive en sus notas al pie, que la dan como primer abordaje posible cuando la estenosis es aislada, o cuando además se puede hacer comisurotomía percutánea sobre la mitral.',
       'La estenosis tricuspídea casi siempre acompaña a una valvulopatía izquierda, y la decisión suele tomarse junto con ella.'
     ] };
 }
+document.addEventListener('DOMContentLoaded', function(){ try { _vtAssertUmbrales(); } catch (e) {} });
 
 /* ── Comunicación interventricular ─────────────────────────────────────────────────────────
    Los dos umbrales se LEEN de `CIV_QPQS_CIERRE` y `CIV_DDVI_IDX_CIERRE`, las mismas constantes
@@ -67848,6 +68555,12 @@ const DCM_RANGO = {
   fevi:[5,90], siv:[3,35], ddfvi:[20,100], ppvi:[3,35], tapse:[3,40], ai_vol:[5,400],
   onda_e:[10,250], onda_a:[5,250], e_sep:[1,30], e_lat:[1,35], tde:[40,500],
   vmax_it:[0.5,8], vmax_ao:[0.5,8], gmedio_ao:[1,150], em_gmedio:[1,60],
+  /* Agregados 2026-09-27. `vp_gmax` era el ÚNICO número que decide una conducta quirúrgica en el
+     panel y entraba sin banda: una Vmax tipeada en cm/s —400 por 4,0— da un gradiente de 640.000,
+     sale «Estenosis severa» y el panel publica Clase I C sin que nada lo declare. Es la misma
+     familia que la superficie corporal de la aórtica: el error de un orden de magnitud FABRICA la
+     indicación. Los topes son los físicamente posibles, no los normales. */
+  vp_gmax:[1,200], vp_vmax:[0.2,8],
   ao_sin:[10,90], ao_st:[10,80], ao_tub:[10,90],
   // Agregados 2026-09-14. Siguen siendo los FÍSICAMENTE posibles, no los normales.
   /* `sgl` va [-40,0] y no [-45,45]: después de forzar el signo el valor es siempre ≤0, así
@@ -78806,8 +79519,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260927-0803';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790507010651;                 /* eco-build-ms */
+const ECO_BUILD    = '20260927-1009';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790514547837;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -78893,7 +79606,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-0803</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-1009</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

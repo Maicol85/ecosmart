@@ -30903,6 +30903,765 @@ caso('TC-283', 'Insuficiencia mitral primaria: el tres-de-cuatro se cuenta, y el
   })();
 `);
 
+/* ══ ESTENOSIS PULMONAR INTERACTIVA — TC-284 ═════════════════════════════════════════════════
+   Sexta seccion contestable, y la unica del panel que NO cita la guia de valvulopatias: la
+   ESC/EACTS 2025 no cubre la estenosis pulmonar —cero ocurrencias en sus 102 paginas, lesion
+   ausente del indice de tablas— y gobierna la ESC 2020 de cardiopatias congenitas del adulto.
+
+   ⚠️ LA INDICACION NO ES UNA FILA, SON TRES, Y LA VERSION ANTERIOR LA PUBLICABA COMO UNA SOLA.
+   El texto decia «Clase I C cuando el gradiente supera 64 mmHg» y se saltaba la precondicion con
+   la que empieza esa fila: «provided that no valve replacement is required». Un caso que probara
+   solo el escenario sin sustituto PASA con la version vieja: hace falta el par completo —sin
+   sustituto se interviene AUNQUE el paciente este asintomatico, y con sustituto los sintomas son
+   condicion— porque es justo el eje que la version vieja fundia.
+
+   ⚠️ LAS ARRITMIAS NO SON CRITERIO DE NINGUNA DE LAS SEIS FILAS. La fila clinica decia «Funcion
+   del ventriculo derecho y arritmias». Las dos rutas de investigacion coinciden en que no
+   figuran: los criterios del asintomatico son caida de la capacidad de ejercicio, caida de la
+   funcion del VD y/o progresion de la IT a >= moderada, PSVD > 80, y shunt derecha-izquierda.
+   Se mide que la palabra no vuelva, porque volver es gratis y nadie lo nota.
+
+   ⚠️ EL 64 EXACTO NO ESTA EN NINGUNA FILA. Severa es «> 64» y la fila IIa es «< 64». El hueco es
+   del texto de la guia. Un panel que elija una de las dos para ese valor inventa.
+
+   ⚠️ Y EL CUARTO CRITERIO DEL ASINTOMATICO NO SE EVALUA NUNCA. La PSVD > 80 necesita psap_calc,
+   que no tiene banda de plausibilidad: no puede entrar en «se cumple» jamas, y la rama que
+   descarta la indicacion tiene que NOMBRARLO como no evaluado. Si algun dia entra sin banda, la
+   condicion de abajo lo caza. */
+const EP_IDS = "['vp_gmax','vp_vmax','ep_grado','ep_nivel','ep_etiologia','vp_morf'," +
+  "'ete_cia_dir','tapse','s_prime','psap_calc','it_vc','it_grado']";
+const EP_CLAVES = "['ep.sintomas','ep.sustituto','ep.ejercicio','ep.deterioro','ep.shunt']";
+
+caso('TC-284', 'Estenosis pulmonar: la precondicion del sustituto parte la tabla en tres, y el shunt se lee de Congenitas', `
+  return (async () => {
+    if (typeof indicAbrir !== 'function' || typeof window._indEP !== 'function')
+      return { extra:[['existen indicAbrir y _indEP', false, '']] };
+    const IDS = ${EP_IDS};
+    const limpiar = () => IDS.forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+    const noEntraron = [];
+    const set = o => Object.keys(o).forEach(id => { const e = document.getElementById(id);
+      if (!e) { noEntraron.push('FALTA ' + id); return; }
+      e.value = o[id];
+      e.dispatchEvent(new Event('input', { bubbles:true }));
+      e.dispatchEvent(new Event('change', { bubbles:true }));
+      if (e.value !== String(o[id])) noEntraron.push(id + '=' + JSON.stringify(o[id])); });
+    const sinClic = [];
+    /* ⚠️ Un segundo toque sobre la opcion activa la DESMARCA (_indClinCablear lo hace a
+       proposito). Marcar dos veces el mismo valor deja la respuesta en null y la condicion mide
+       otra cosa: por eso se verifica el valor DESPUES de tocar, en vez de confiar en el click. */
+    const clic = (k, v) => { if (_indClinGet(k) === v) return true;
+      const b = document.querySelector('#indic-cuerpo [data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
+      if (!b) { sinClic.push(k + '=' + v); return false; } b.click();
+      if (_indClinGet(k) !== v) sinClic.push(k + ' quedo en ' + _indClinGet(k)); return true; };
+    const sec = () => window._indEP();
+    const rec = () => { const s = sec(); return (s && s.recom) ? s.recom : null; };
+    const clase = () => { const r = rec(); return r ? (r.tipo + ' / ' + (r.clase || r.tit)) : 'sin recomendacion'; };
+    const pl = s => String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+    const pide = txt => { const r = rec(); return !!r && Array.isArray(r.faltan) &&
+      r.faltan.some(f => pl(f).indexOf(pl(txt)) > -1); };
+    /* ⚠️ Compara los rotulos NORMALIZADOS, como pide(). Con los rotulos crudos, buscar
+       «Funcion del ventriculo» no encuentra «Función del ventrículo» y la fila da null: la
+       condicion falla por la busqueda y no por el codigo. Ya paso dos veces en esta tanda. */
+    const filaDe = lbl => { const s = sec(); if (!s) return null;
+      return (s.filas || []).concat(s.clinica || []).filter(f => pl(f.lbl).indexOf(pl(lbl)) > -1)[0] || null; };
+    const ctrls = () => { const s = sec(); if (!s) return [];
+      return (s.filas || []).concat(s.clinica || []).filter(f => !!f.ctrl).map(f => f.ctrl.clave); };
+    const todoElTexto = () => { const s = sec(); if (!s) return '';
+      const r = s.recom || {};
+      return pl([s.guia, (s.notas || []).join(' '), r.tit, r.txt, r.nota,
+        (r.mod || {}).txt, (r.mod || {}).nota,
+        (s.filas || []).concat(s.clinica || []).map(f => f.lbl + ' ' + f.val + ' ' + f.nota).join(' ')].join(' ')); };
+    /* Severa por gradiente Y por grado consignado, y nivel VALVULAR, que es el unico al que la
+       guia le aplica su umbral. Sin el nivel la cascada corta antes de llegar a las filas. */
+    const SEV = { vp_gmax:'81', ep_grado:'Severa', ep_nivel:'Valvular' };
+    const esc = (campos, marcas) => { indicCerrar(); limpiar(); set(Object.assign({}, SEV, campos));
+      indicAbrir(); Object.keys(marcas || {}).forEach(k => clic(k, marcas[k])); };
+
+    try {
+      const ex = [];
+
+      // ── DENOMINADOR: sin el shunt en Congenitas hay CINCO controles ──
+      esc({}, {});
+      const c0 = ctrls();
+      ex.push(['DENOMINADOR: sin el shunt en Congenitas hay CINCO controles, los cinco esperados',
+        c0.length === 5 && ${EP_CLAVES}.every(k => c0.indexOf(k) > -1),
+        'controles=' + c0.join(',')]);
+
+      /* ── ⚠️ EL EJE QUE LA VERSION VIEJA FUNDIA ──
+         Sin sustituto se interviene INDEPENDIENTEMENTE de los sintomas: se contesta «no» a
+         sintomas a proposito, porque una implementacion que pidiera sintomas en esta fila no
+         publicaria nada y el caso lo caza. Con sustituto, el mismo asintomatico NO alcanza. */
+      esc({}, { 'ep.sustituto':'no', 'ep.sintomas':'no' });
+      const sinSust = clase(), tSinSust = (rec() || {}).tit;
+      esc({}, { 'ep.sustituto':'si', 'ep.sintomas':'no' });
+      const conSust = rec();
+      ex.push(['sin sustituto valvular la estenosis severa es Clase I C AUNQUE el paciente este asintomatico, y con sustituto el mismo asintomatico no alcanza',
+        sinSust === 'ind / Clase I · Nivel C' && pl(tSinSust).indexOf('sin necesidad de sustituto') > -1 &&
+        !!conSust && conSust.tipo === 'falta',
+        'sin sustituto: ' + sinSust + ' «' + tSinSust + '» · con sustituto: ' + (conSust ? conSust.tipo : 'null')]);
+
+      // ── Con sustituto, el sintomatico si es Clase I C, y es OTRA fila ──
+      esc({}, { 'ep.sustituto':'si', 'ep.sintomas':'si' });
+      const tSint = (rec() || {}).tit;
+      ex.push(['con sustituto necesario el sintomatico es Clase I C, y el titular lo distingue de la fila anterior',
+        clase() === 'ind / Clase I · Nivel C' && pl(tSint).indexOf('sintomatica') > -1 &&
+        pl(tSint).indexOf('con sustituto') > -1,
+        clase() + ' «' + tSint + '»']);
+
+      /* ── FALLA CERRADO: el asintomatico con sustituto NO se descarta sin contestar ──
+         La fila pide al menos uno de cuatro. Con los tres contestables en null, lo unico correcto
+         es pedirlos; descartar la indicacion ahi seria negar sobre lo no evaluado. */
+      esc({}, { 'ep.sustituto':'si', 'ep.sintomas':'no' });
+      const rAsint = rec();
+      ex.push(['el asintomatico con sustituto NO se descarta sin contestar: pide los tres criterios contestables',
+        !!rAsint && rAsint.tipo === 'falta' && pide('capacidad de ejercicio') &&
+        pide('funcion del VD') && pide('Shunt'),
+        (rAsint ? rAsint.tipo + ' faltan=' + (rAsint.faltan || []).join(' | ') : 'null')]);
+
+      /* ── CADA CRITERIO EN AISLAMIENTO: alcanza con UNO ──
+         Se prueban de a uno con los otros dos en «no». Probar «los tres en si» pasa igual con una
+         implementacion que exija los tres, que es la direccion peligrosa. */
+      const unoSolo = {};
+      [['ep.ejercicio','ejercicio'], ['ep.deterioro','deterioro']].forEach(par => {
+        const m = { 'ep.sustituto':'si', 'ep.sintomas':'no', 'ep.ejercicio':'no', 'ep.deterioro':'no', 'ep.shunt':'no' };
+        m[par[0]] = 'si';
+        esc({}, m);
+        unoSolo[par[1]] = clase();
+      });
+      esc({}, { 'ep.sustituto':'si', 'ep.sintomas':'no', 'ep.ejercicio':'no', 'ep.deterioro':'no', 'ep.shunt':'di' });
+      unoSolo.shunt = clase();
+      ex.push(['cada uno de los tres criterios contestables alcanza POR SI SOLO con los otros dos en no',
+        Object.keys(unoSolo).length === 3 &&
+        Object.keys(unoSolo).every(k => unoSolo[k] === 'ind / Clase I · Nivel C'),
+        Object.keys(unoSolo).map(k => k + ': ' + unoSolo[k]).join(' · ')]);
+
+      /* ── ⚠️ EL CUARTO CRITERIO NO SE EVALUA, Y LA RAMA QUE DESCARTA TIENE QUE DECIRLO ──
+         La PSVD > 80 necesita psap_calc, que no tiene banda de plausibilidad. Se carga un valor
+         que SUPERA 80 y la recomendacion tiene que seguir descartando y nombrandolo como no
+         evaluado: si alguna version lo conectara sin banda, esta condicion cae. */
+      esc({ psap_calc:'95' }, { 'ep.sustituto':'si', 'ep.sintomas':'no',
+        'ep.ejercicio':'no', 'ep.deterioro':'no', 'ep.shunt':'no' });
+      const rNada = rec(), fPsvd = filaDe('PSVD');
+      ex.push(['con los tres criterios en no la indicacion se descarta, y el texto NOMBRA la PSVD como criterio no evaluado aunque el valor cargado supere 80',
+        !!rNada && rNada.tipo === 'no' && pl(rNada.tit).indexOf('tres criterios evaluables') > -1 &&
+        pl(rNada.txt).indexOf('psvd') > -1 &&
+        pl(rNada.txt).indexOf('banda de plausibilidad') > -1 &&
+        !!fPsvd && fPsvd.marca === 'ask',
+        (rNada ? rNada.tipo + ' / ' + rNada.tit : 'null') + ' · fila PSVD marca=' + (fPsvd ? fPsvd.marca : 'NO HAY')]);
+
+      // ── CAMINO (a): el shunt se LEE de Congenitas 2 y su control manual no se dibuja ──
+      esc({ ete_cia_dir:'di' }, { 'ep.sustituto':'si', 'ep.sintomas':'no' });
+      const fShE = filaDe('Shunt'), cE = ctrls();
+      ex.push(['con el shunt cargado en Congenitas la fila es LECTURA, quedan cuatro controles, y satisface la fila',
+        !!fShE && !fShE.ctrl && fShE.marca === 'ok' && cE.length === 4 &&
+        cE.indexOf('ep.shunt') === -1 && clase() === 'ind / Clase I · Nivel C',
+        (fShE ? fShE.marca + ' «' + fShE.val + '» ctrl=' + (!!fShE.ctrl) : 'NO HAY FILA') +
+        ' · controles=' + cE.join(',') + ' · ' + clase()]);
+
+      /* ── ⚠️ LA LECTURA TIENE PRIORIDAD SOBRE EL CONTROL MANUAL ──
+         Se contesta «sin shunt» en el panel y DESPUES aparece «derecha-izquierda» en Congenitas:
+         el estudio manda y la indicacion aparece. Una implementacion que diera precedencia al
+         panel pasa todo lo de arriba y cae aca. */
+      esc({}, { 'ep.sustituto':'si', 'ep.sintomas':'no', 'ep.ejercicio':'no',
+        'ep.deterioro':'no', 'ep.shunt':'no' });
+      const antesPrio = clase();
+      set({ ete_cia_dir:'di' });
+      const fPrio = filaDe('Shunt');
+      ex.push(['el control manual NO pisa el shunt del estudio: con Congenitas cargado la fila es lectura y manda el estudio',
+        antesPrio.indexOf('no /') === 0 && !!fPrio && !fPrio.ctrl && fPrio.marca === 'ok' &&
+        clase() === 'ind / Clase I · Nivel C' && _indClinGet('ep.shunt') === 'no',
+        'antes: ' + antesPrio + ' · despues: ' + clase() + ' · panel sigue en ' + _indClinGet('ep.shunt')]);
+
+      /* ── EL BIDIRECCIONAL CUENTA Y EL IZQUIERDA-DERECHA NO ──
+         El bidireccional TIENE componente derecha-izquierda, que es lo que la fila nombra. Sin
+         esta condicion, tratar 'bi' como 'id' deja de indicar a un paciente que si entra. */
+      esc({ ete_cia_dir:'bi' }, { 'ep.sustituto':'si', 'ep.sintomas':'no' });
+      const bi = clase();
+      /* ⚠️ UN «IZQUIERDA → DERECHA» DE LA CIA NO RESUELVE EL CRITERIO, PORQUE LA CIV NO TIENE
+         CAMPO DE DIRECCION EN ESTA APP. Antes la lectura daba «false», el control manual no se
+         dibujaba, y el criterio contaba como evaluado y NEGATIVO: un paciente con CIV de shunt
+         derecha-izquierda —criterio de Clase I— salia «sin ninguno de los criterios» sin ningun
+         camino en la interfaz para decirlo. Hoy la lectura solo resuelve en sentido AFIRMATIVO.
+         Lo encontro /sharp-edges. */
+      esc({ ete_cia_dir:'id' }, { 'ep.sustituto':'si', 'ep.sintomas':'no',
+        'ep.ejercicio':'no', 'ep.deterioro':'no' });
+      const idR = rec(), fId = filaDe('Shunt'), cId = ctrls();
+      ex.push(['el shunt BIDIRECCIONAL satisface la fila; un izquierda-derecha de la CIA no la satisface Y TAMPOCO la descarta, porque la CIV no tiene direccion: el control se dibuja igual',
+        bi === 'ind / Clase I · Nivel C' && !!idR && idR.tipo === 'falta' &&
+        cId.indexOf('ep.shunt') > -1 && !!fId && !!fId.ctrl &&
+        pl(fId.nota).indexOf('no para la civ') > -1,
+        'bidireccional: ' + bi + ' · izquierda-derecha: ' + (idR ? idR.tipo + ' / ' + idR.tit : 'null') +
+        ' · control dibujado=' + (cId.indexOf('ep.shunt') > -1) + ' · nota: ' + (fId ? String(fId.nota).slice(0, 90) : 'NO HAY')]);
+
+      /* ── ⚠️ EL 64 EXACTO NO CAE EN NINGUNA FILA ──
+         Severa es «> 64» y la fila IIa es «< 64». El panel no puede elegir una. Se prueba con el
+         grado consignado en severa Y con la clasificacion de la app en moderada a la vez, que es
+         exactamente el borde. */
+      esc({ vp_gmax:'64' }, { 'ep.sustituto':'no', 'ep.sintomas':'si' });
+      const r64 = rec();
+      ex.push(['el gradiente de exactamente 64 no cae en ninguna fila y el panel lo DICE en vez de elegir una',
+        !!r64 && r64.tipo === 'no' && pl(r64.tit).indexOf('no cubre este valor') > -1 &&
+        pl(r64.txt).indexOf('exactamente 64') > -1,
+        (r64 ? r64.tipo + ' / ' + r64.tit : 'null')]);
+
+      /* ── ⚠️ EL GRADIENTE FUERA DE BANDA NO CLASIFICA, Y ERA EL UNICO NUMERO DEL PANEL QUE
+         PUBLICA UNA CONDUCTA QUIRURGICA SIN BANDA DE PLAUSIBILIDAD. Una Vmax tipeada en cm/s
+         —400 por 4,0— da un gradiente de 640.000 y salia «Estenosis severa» con Clase I C, sin que
+         nada lo declarara. Es la misma familia que la superficie corporal de la aortica: el error
+         de un orden de magnitud FABRICA la indicacion. Lo encontro /sharp-edges. */
+      /* Se mide en las DOS direcciones, y la distincion importa: el grado escrito a mano SI abre la
+         seccion —es el que firma el medico, y la app entera trata su valor asi—. Lo que tiene que
+         ser imposible es que el gradiente ilegible fabrique la severidad POR SI SOLO. Con
+         ep_grado en «sin», un 640.000 no abre nada; y cuando la firma del medico la abre, la fila
+         declara que ese numero no sirve para el umbral. */
+      esc({ vp_gmax:'640000', ep_grado:'sin' }, {});
+      const secSolaFuera = sec();
+      esc({ vp_gmax:'640000' }, { 'ep.sustituto':'no', 'ep.sintomas':'si' });
+      const fFuera = filaDe('Gradiente maximo');
+      ex.push(['un gradiente fuera de rango medible no fabrica la severidad por si solo —sin grado consignado la seccion no abre— y cuando la abre la firma del medico, la fila declara que ese numero no sirve para el umbral',
+        secSolaFuera === null && !!fFuera && fFuera.marca === 'ask' &&
+        pl(fFuera.nota).indexOf('fuera de rango medible') > -1,
+        'solo el gradiente: ' + (secSolaFuera === null ? 'la seccion NO abre' : 'ABRE — el numero ilegible fabrico la severidad') +
+        ' · con grado consignado: ' + (fFuera ? 'marca=' + fFuera.marca + ' · ' + fFuera.nota : 'NO HAY FILA')]);
+
+      /* ── ⚠️ LA MARCA DE LA FILA SALE DE LO MEDIDO, NO DEL GRADO ESCRITO A MANO ──
+         Con vp_gmax en 20 y ep_grado fijado en «Severa», la fila quedaba «20 mmHg · verde ·
+         estenosis leve»: IND_MARCA.ok significa «el dato alcanza un criterio de la guia», y 20 no
+         alcanza ninguno. Debajo se publicaba Clase I C. Y la discordancia no se declaraba en
+         ninguna parte. Lo encontro /sharp-edges. */
+      esc({ vp_gmax:'20', ep_grado:'Severa' }, { 'ep.sustituto':'no', 'ep.sintomas':'si' });
+      const fDisc = filaDe('Gradiente maximo');
+      ex.push(['con el grado escrito a mano en severa y un gradiente de 20 la fila NO sale en verde, y la discordancia queda declarada',
+        !!fDisc && fDisc.marca !== 'ok' && pl(fDisc.nota).indexOf('discrepa del grado consignado') > -1,
+        (fDisc ? 'marca=' + fDisc.marca + ' · ' + fDisc.nota : 'NO HAY FILA')]);
+
+      /* ── ⚠️ LA NOTA DEL DETERIORO NO AFIRMA LA AUSENCIA DE IT SOBRE EL VALOR DE FABRICA ──
+         it_grado nace en '0' y la nota decia «insuficiencia tricuspidea sin»: le afirmaba al medico
+         la ausencia de IT sobre el default, y esa nota es la evidencia que el panel le ofrece para
+         contestar uno de los cuatro criterios de Clase I. _indVT ya resolvia esto en el mismo diff
+         y las dos secciones quedaban con convenciones opuestas. Lo encontro /sharp-edges. */
+      esc({}, { 'ep.sustituto':'si', 'ep.sintomas':'no' });
+      const fDet = filaDe('Caida de la funcion del VD');
+      esc({ it_vc:'8' }, { 'ep.sustituto':'si', 'ep.sintomas':'no' });
+      const fDet2 = filaDe('Caida de la funcion del VD');
+      ex.push(['sin ningun parametro de IT cargado la nota del deterioro dice NO evaluada y no afirma la ausencia, y con un parametro cargado publica el grado',
+        !!fDet && pl(fDet.nota).indexOf('no evaluada') > -1 &&
+        !!fDet2 && pl(fDet2.nota).indexOf('no evaluada') === -1,
+        'sin insumos: ' + (fDet ? String(fDet.nota).slice(-70) : 'NO HAY') +
+        ' || con it_vc: ' + (fDet2 ? String(fDet2.nota).slice(-70) : 'NO HAY')]);
+
+      /* ── ⚠️ TODA AFIRMACION DE SEVERIDAD ARRASTRA LA NOTA AL PIE «a» ──
+         La guia pide que la PSVD estimada por la velocidad de la IT CONFIRME la estenosis severa,
+         y esta app no lo puede hacer. Publicar la Clase I sin esa salvedad es publicar un umbral
+         a medio verificar. */
+      esc({}, { 'ep.sustituto':'no', 'ep.sintomas':'si' });
+      const rConf = rec();
+      ex.push(['la recomendacion de la estenosis severa arrastra siempre la salvedad de que la PSVD no confirmo la severidad',
+        !!rConf && pl(rConf.nota || '').indexOf('confirme la estenosis severa') > -1 &&
+        pl(rConf.nota || '').indexOf('no esta hecha') > -1,
+        (rConf ? 'nota: ' + String(rConf.nota).slice(0, 110) : 'null')]);
+
+      /* ── ⚠️ LA FILA DICE «A CUALQUIER NIVEL», Y LA COMPUERTA VIEJA RETENIA UNA CLASE I C ──
+         Cortaba todo nivel que no fuera «Valvular» diciendo que el umbral era para la estenosis
+         valvular. El texto de la guia —transcrito literal en EP_REC_2020.sin_sust.t— dice
+         «intervencion sobre la obstruccion del tracto de salida derecho RECOMENDADA, a cualquier
+         nivel». Las dos afirmaciones vivian en la misma seccion y una era falsa: la compuerta le
+         negaba la indicacion a toda obstruccion subvalvular, supravalvular o MIXTA. Lo que si es
+         otra lesion son las RAMAS PULMONARES, con fila propia que la app no puede evaluar.
+         Las tres direcciones en una condicion. Lo encontro /sharp-edges. */
+      esc({ ep_nivel:'Supravalvular' }, { 'ep.sustituto':'no', 'ep.sintomas':'si' });
+      const rSupra = clase();
+      esc({ ep_nivel:'Mixto' }, { 'ep.sustituto':'no', 'ep.sintomas':'si' });
+      const rMixto = clase(), modMixto = (rec() || {}).mod;
+      esc({ ep_nivel:'Ramas pulmonares' }, { 'ep.sustituto':'no', 'ep.sintomas':'si' });
+      const rRamas = rec();
+      ex.push(['la supravalvular y la MIXTA reciben la Clase I C porque la fila aplica a cualquier nivel, la mixta conserva el balon por su componente valvular, y solo las ramas pulmonares quedan fuera con su fila propia nombrada',
+        rSupra === 'ind / Clase I · Nivel C' && rMixto === 'ind / Clase I · Nivel C' &&
+        !!modMixto && pl(modMixto.txt).indexOf('balon') > -1 &&
+        !!rRamas && rRamas.tipo === 'no' && pl(rRamas.tit).indexOf('ramas pulmonares') > -1 &&
+        pl(rRamas.txt).indexOf('periferica') > -1 && pl(rRamas.txt).indexOf('50 %') > -1,
+        'supravalvular: ' + rSupra + ' · mixta: ' + rMixto + ' (balon=' + (modMixto ? 'si' : 'NO') + ')' +
+        ' · ramas: ' + (rRamas ? rRamas.tipo + ' / ' + rRamas.tit : 'null')]);
+
+      // ── La valvuloplastia con balon es MODALIDAD, y solo en la estenosis valvular ──
+      esc({}, { 'ep.sustituto':'no', 'ep.sintomas':'si' });
+      const modV = (rec() || {}).mod;
+      esc({ ep_nivel:'No especificado' }, { 'ep.sustituto':'no', 'ep.sintomas':'si' });
+      const modNE = (rec() || {}).mod;
+      ex.push(['el balon aparece como modalidad en la estenosis valvular y NO cuando el nivel no se especifico, porque de la morfologia depende la tecnica',
+        !!modV && pl(modV.txt).indexOf('balon') > -1 && modV.clase === 'Clase I · Nivel C' && !modNE,
+        'valvular: ' + (modV ? modV.clase : 'sin modalidad') + ' · sin nivel: ' + (modNE ? 'HAY' : 'sin modalidad')]);
+
+      /* ── ⚠️ EL BALON NO SE PUBLICA CONTRA LA RESPUESTA DEL MEDICO ──
+         Con ep.sustituto en «si» el medico dijo que hace falta un sustituto valvular: publicar
+         «la valvuloplastia con balon es la tecnica de eleccion» al lado de la indicacion lo
+         contradice, y es justo la fila que separa los dos caminos. Con la pregunta en null SI se
+         publica, porque ahi nada la niega. Encontrado releyendo, no por una mutacion. */
+      esc({}, { 'ep.sustituto':'si', 'ep.sintomas':'si' });
+      const modSust = (rec() || {}).mod;
+      esc({ vp_gmax:'50', ep_grado:'Moderada' }, { 'ep.sintomas':'si' });
+      const modNull = (rec() || {}).mod;
+      ex.push(['con sustituto valvular CONTESTADO el balon NO se publica como modalidad, y con la pregunta sin contestar si',
+        !modSust && !!modNull && pl(modNull.txt).indexOf('balon') > -1,
+        'con sustituto: ' + (modSust ? 'PUBLICA «' + String(modSust.txt).slice(0, 70) + '»' : 'sin modalidad') +
+        ' · sin contestar: ' + (modNull ? 'publica' : 'SIN MODALIDAD')]);
+
+      /* ── ⚠️ EL CALIFICADOR DEL BALON ES «ANATOMICAMENTE APTA», NO «NO DISPLASICA» ──
+         Las dos rutas de investigacion DISCREPAN en este unico punto: una lo daba como texto de
+         la guia y la otra lo rastreo a un comentario editorial de Rev Esp Cardiol. Sin acuerdo no
+         se publica como guia. Se mide que el texto use el calificador oficial y que, si menciona
+         lo displasico, aclare que no es de la recomendacion. */
+      /* ⚠️ EL TEXTO PUBLICADO Y SU NOTA SE MIDEN POR SEPARADO. La primera version de esta
+         condicion concatenaba los dos, y la mutacion que cambia «anatomicamente apta» por «no
+         displasica» EN LA RECOMENDACION sobrevivia: la frase seguia apareciendo en la nota, y la
+         aclaracion de la nota avalaba una afirmacion del texto. Denominador equivocado — la nota
+         no puede licenciar lo que dice la recomendacion. */
+      esc({}, { 'ep.sustituto':'no', 'ep.sintomas':'si' });
+      const mB = (rec() || {}).mod || {};
+      const bT = pl(mB.txt), bN = pl(mB.nota);
+      ex.push(['la recomendacion del balon usa el calificador oficial «anatomicamente apta» y NO se apoya en lo displasico, que solo aparece en la nota y dicho como ajeno al texto de la guia',
+        bT.indexOf('anatomicamente apta') > -1 && bT.indexOf('displasica') === -1 &&
+        (bN.indexOf('displasica') === -1 || bN.indexOf('no esta en el texto de la recomendacion') > -1),
+        'txt: ' + bT.slice(0, 120) + ' || nota: ' + bN.slice(0, 120)]);
+
+      /* ── ⚠️ LAS ARRITMIAS NO VUELVEN ──
+         No son criterio de ninguna de las seis filas. Se barre TODO el texto de la seccion, no
+         solo el rotulo que las tenia, porque volver por una nota es igual de facil. */
+      esc({}, { 'ep.sustituto':'no', 'ep.sintomas':'si' });
+      const T = todoElTexto();
+      ex.push(['ninguna parte de la seccion nombra arritmias ni taquicardia ventricular como criterio, porque la tabla no las tiene',
+        T.indexOf('arritmia') === -1 && T.indexOf('taquicardia') === -1 && ctrls().indexOf('ep.arritmias') === -1,
+        'arritmia=' + (T.indexOf('arritmia') > -1) + ' taquicardia=' + (T.indexOf('taquicardia') > -1)]);
+
+      // ── La precondicion del sustituto queda escrita en el texto de la guia de la seccion ──
+      const G = pl((sec() || {}).guia);
+      ex.push(['el texto de la guia de la seccion enuncia la precondicion del sustituto valvular, que la version anterior omitia',
+        G.indexOf('sustituto valvular') > -1 && G.indexOf('independientemente de los sintomas') > -1,
+        G.slice(0, 200)]);
+
+      // ── El arranque compara los textos contra las constantes ──
+      const aEP = (typeof _epAssertUmbrales === 'function') ? _epAssertUmbrales() : ['no existe _epAssertUmbrales'];
+      ex.push(['el assert de arranque de la pulmonar no encuentra ningun texto viejo respecto de las constantes',
+        Array.isArray(aEP) && aEP.length === 0, JSON.stringify(aEP)]);
+
+      indicCerrar(); limpiar();
+      ex.push(['todos los campos del escenario existen en el formulario', noEntraron.length === 0, noEntraron.join(' | ')]);
+      ex.push(['todos los botones del panel se encontraron al tocarlos', sinClic.length === 0, sinClic.join(' | ')]);
+      return { extra: ex };
+    } finally {
+      try { indicCerrar(); } catch (e) {}
+      limpiar();
+    }
+  })();
+`);
+
+/* ══ VALVULA TRICUSPIDE INTERACTIVA — TC-285 ══════════════════════════════════════════════════
+   Septima seccion contestable, y la que mas texto viejo tenia: era la ULTIMA del panel que
+   citaba la ESC/EACTS 2021. La 2025 movio tres filas, y dos van en sentidos OPUESTOS, asi que un
+   caso que solo mirara «subio» o «bajo» dejaria la mitad sin cubrir:
+   · el transcateter subio de IIb C a IIa A —un grado de clase y dos niveles de evidencia—;
+   · las dos filas de cirugia izquierda concomitante se FUSIONARON en una sola Clase I NIVEL B, de
+     modo que lo que la seccion publicaba como I C hoy es I B;
+   · la fila del anillo dilatado BAJO de IIa B a IIb B y se restringio de «leve o moderada» a
+     «leve secundaria».
+
+   ⚠️ LA ESTENOSIS TRICUSPIDEA TIENE UN SOLO CRITERIO EN LA 2025, Y LA SECCION MOSTRABA TRES.
+   El texto dice «A mean diastolic transvalvular gradient of >5 mmHg at a normal heart rate
+   indicates severe TS» y no menciona ni el tiempo de hemipresion ni el area valvular: las dos
+   rutas barrieron las 102 paginas por separado. ET_THP_SIGNIF y ET_AVT_SIGNIF son de la EAE/ASE
+   2009 y siguen siendo criterios ecocardiograficos validos — el defecto era de ATRIBUCION.
+
+   ⚠️ Y EL OPERADOR DIFIERE. etEstado() aplica «>= 5» y la guia pide «> 5». Un gradiente medio de
+   exactamente 5,0 es significativo para la pantalla y NO es estenosis severa para la guia. Ese
+   borde es de un solo valor: sin una condicion que lo fije, cambiar _gt por _ge no rompe nada
+   mas y publica una Clase I sobre un paciente que la guia no llama severo.
+
+   ⚠️ LA DISFUNCION VD SEVERA BLOQUEA UNAS FILAS Y NO OTRAS. Es exclusion de las tres filas sin
+   cirugia izquierda y de la del transcateter, pero la fila de la cirugia izquierda concomitante
+   NO la menciona. Bloquear de forma global es la direccion peligrosa al reves: le quita la
+   Clase I B a un paciente que la tiene. */
+/* ⚠️ et_avt NO EXISTE: el area tricuspidea es DERIVADA. etEstado() la calcula por continuidad
+   desde el diametro del TSVD, el VTI del TSVD y el VTI diastolico tricuspideo, y exige los tres
+   dentro de banda. Escribir en un campo que no existe deja la fila del area SIEMPRE sin valor, y
+   la condicion de procedencia medía entonces la rama equivocada — fue como se encontro. */
+const VT_IDS = "['it_vc','it_vmax_cw','it_grado','et_gmedio','et_thp','et_vti_diast'," +
+  "'tsvd_diametro','vti_tsvd','tapse','s_prime','vd_bas','vd_mid','vd_long','psap_calc'," +
+  "'fevi','vp_gmax','ep_grado']";
+const VT_CLAVES = "['vt.mecanismo','vt.sintomas','vt.cxizq','vt.riesgo','vt.tmo']";
+
+caso('TC-285', 'Valvula tricuspide: la tabla de 2025, el operador del gradiente, y la disfuncion del VD que bloquea unas filas y no otras', `
+  return (async () => {
+    if (typeof indicAbrir !== 'function' || typeof window._indVT !== 'function')
+      return { extra:[['existen indicAbrir y _indVT', false, '']] };
+    const IDS = ${VT_IDS};
+    const limpiar = () => IDS.forEach(id => { const e = document.getElementById(id);
+      if (e) e.value = (id === 'it_grado') ? '0' : ''; });
+    const noEntraron = [];
+    const set = o => Object.keys(o).forEach(id => { const e = document.getElementById(id);
+      if (!e) { noEntraron.push('FALTA ' + id); return; }
+      e.value = o[id];
+      e.dispatchEvent(new Event('input', { bubbles:true }));
+      e.dispatchEvent(new Event('change', { bubbles:true }));
+      if (e.value !== String(o[id])) noEntraron.push(id + '=' + JSON.stringify(o[id])); });
+    const sinClic = [];
+    const clic = (k, v) => { if (_indClinGet(k) === v) return true;
+      const b = document.querySelector('#indic-cuerpo [data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
+      if (!b) { sinClic.push(k + '=' + v); return false; } b.click();
+      if (_indClinGet(k) !== v) sinClic.push(k + ' quedo en ' + _indClinGet(k)); return true; };
+    const sec = () => window._indVT();
+    const rec = () => { const s = sec(); return (s && s.recom) ? s.recom : null; };
+    const clase = () => { const r = rec(); return r ? (r.tipo + ' / ' + (r.clase || r.tit)) : 'sin recomendacion'; };
+    const pl = s => String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+    const pide = txt => { const r = rec(); return !!r && Array.isArray(r.faltan) &&
+      r.faltan.some(f => pl(f).indexOf(pl(txt)) > -1); };
+    /* ⚠️ Compara los rotulos NORMALIZADOS, como pide(). Con los rotulos crudos, buscar
+       «Funcion del ventriculo» no encuentra «Función del ventrículo» y la fila da null: la
+       condicion falla por la busqueda y no por el codigo. Ya paso dos veces en esta tanda. */
+    const filaDe = lbl => { const s = sec(); if (!s) return null;
+      return (s.filas || []).concat(s.clinica || []).filter(f => pl(f.lbl).indexOf(pl(lbl)) > -1)[0] || null; };
+    const ctrls = () => { const s = sec(); if (!s) return [];
+      return (s.filas || []).concat(s.clinica || []).filter(f => !!f.ctrl).map(f => f.ctrl.clave); };
+    const todoElTexto = () => { const s = sec(); if (!s) return '';
+      const r = s.recom || {};
+      return pl([s.guia, (s.notas || []).join(' '), r.tit, r.txt, r.nota,
+        (r.mod || {}).txt, (r.mod || {}).nota,
+        (s.filas || []).concat(s.clinica || []).map(f => f.lbl + ' ' + f.val + ' ' + f.nota).join(' ')].join(' ')); };
+    /* ⚠️ it_grado ES UN INPUT OCULTO QUE calcIT_ESC PISA. Se pone SIEMPRE AL FINAL, en un set()
+       aparte: cargar it_vc despues lo recalcula a 2 y la seccion deja de abrirse por severa. Ya
+       paso una vez en esta sesion. Y el VD va sin dilatar y con funcion conservada por defecto,
+       para que ninguna condicion mida de arrastre. */
+    const VD_OK = { tapse:'20', s_prime:'12', vd_bas:'38', vd_mid:'30', vd_long:'70' };
+    /* it_grado se asigna SIN despachar eventos: es un input oculto que gobierna calcIT_ESC, y un
+       change sobre el puede hacer que un handler lo recalcule y pise el valor del escenario. */
+    const ponerGrado = g => { const e = document.getElementById('it_grado');
+      if (!e) { noEntraron.push('FALTA it_grado'); return; }
+      e.value = g; if (e.value !== String(g)) noEntraron.push('it_grado=' + g); };
+    const esc = (campos, marcas, grado) => { indicCerrar(); limpiar();
+      set(Object.assign({}, VD_OK, campos));
+      ponerGrado(grado == null ? '4' : grado);
+      indicAbrir(); Object.keys(marcas || {}).forEach(k => clic(k, marcas[k])); };
+
+    try {
+      const ex = [];
+
+      // ── DENOMINADOR: la insuficiencia severa abre CINCO controles ──
+      esc({}, {});
+      const c0 = ctrls();
+      ex.push(['DENOMINADOR: la insuficiencia severa abre CINCO controles, los cinco esperados',
+        c0.length === 5 && ${VT_CLAVES}.every(k => c0.indexOf(k) > -1),
+        'controles=' + c0.join(',')]);
+
+      /* ── ⚠️ LA FUSION DE 2025: ES NIVEL B, NO NIVEL C ──
+         Y no pide el mecanismo, porque la fila fusionada cubre primaria y secundaria. Se prueba
+         con el mecanismo SIN contestar a proposito: si alguna version lo exigiera, esto cae. */
+      esc({}, { 'vt.cxizq':'si' });
+      const cxIzq = clase(), tCx = (rec() || {}).tit;
+      ex.push(['con cirugia izquierda programada la insuficiencia severa es Clase I NIVEL B —la fila fusionada de 2025— y no pide el mecanismo',
+        cxIzq === 'ind / Clase I · Nivel B' && _indClinGet('vt.mecanismo') === null,
+        cxIzq + ' «' + tCx + '» · mecanismo=' + _indClinGet('vt.mecanismo')]);
+
+      // ── La moderada con cirugia izquierda es IIa B, y es otra fila ──
+      esc({}, { 'vt.cxizq':'si' }, '2');
+      const cxMod = clase();
+      ex.push(['la insuficiencia MODERADA con cirugia izquierda programada es Clase IIa Nivel B',
+        cxMod === 'ind / Clase IIa · Nivel B', cxMod]);
+
+      /* ── ⚠️ LA MODERADA SIN CIRUGIA IZQUIERDA NO SE QUEDA MUDA ──
+         Agregar la fila IIa B de la moderada hizo que la moderada abriera la seccion; sin esta
+         rama devolvia nulo y el lector veia filas y controles sin una linea que explicara por
+         que no hay recomendacion. Las dos mitades: sin contestar pide el dato, contestado «no»
+         explica que la unica fila de la moderada es la concomitante. */
+      esc({}, {}, '2');
+      const modSinResp = rec();
+      esc({}, { 'vt.cxizq':'no' }, '2');
+      const modNoCx = rec();
+      ex.push(['la insuficiencia moderada sin cirugia izquierda no se queda muda: sin contestar pide el dato, y contestado que no explica que su unica fila es la concomitante',
+        /* ⚠️ NO se usa pide() acá: relee el estado VIVO, y cuando la condicion se evalua ya
+           corrio el segundo escenario, asi que mide el «faltan» del otro. Se chequea el objeto
+           capturado. Es la misma trampa que ya aparecio en el caso de la estenosis mitral. */
+        !!modSinResp && modSinResp.tipo === 'falta' &&
+        (modSinResp.faltan || []).some(f => pl(f).indexOf('cirugia valvular izquierda') > -1) &&
+        !!modNoCx && modNoCx.tipo === 'no' && pl(modNoCx.txt).indexOf('piden insuficiencia severa') > -1,
+        'sin contestar: ' + (modSinResp ? modSinResp.tipo : 'NULL — MUDA') +
+        ' · contestado no: ' + (modNoCx ? modNoCx.tipo + ' / ' + modNoCx.tit : 'NULL — MUDA')]);
+
+      // ── Sin cirugia izquierda: primaria sintomatica es Clase I C ──
+      esc({}, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'si' });
+      const primSint = clase();
+      ex.push(['la insuficiencia primaria severa sintomatica aislada es Clase I Nivel C',
+        primSint === 'ind / Clase I · Nivel C', primSint]);
+
+      // ── Primaria asintomatica con VD dilatado: IIa C ──
+      esc({ vd_bas:'50' }, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'no' });
+      const primDil = clase();
+      ex.push(['la primaria severa asintomatica con ventriculo derecho dilatado es Clase IIa Nivel C',
+        primDil === 'ind / Clase IIa · Nivel C', primDil]);
+
+      /* ── FALLA CERRADO: sin ningun diametro no se afirma NI se niega la dilatacion ──
+         La fila del asintomatico pide dilatacion o deterioro. Descartarla sin haber medido seria
+         negar sobre lo no evaluado; afirmarla seria inventar. Lo correcto es pedir el dato. */
+      esc({ vd_bas:'', vd_mid:'', vd_long:'' }, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'no' });
+      const rSinD = rec();
+      ex.push(['sin ningun diametro del VD la primaria asintomatica NO se descarta: pide el dato',
+        !!rSinD && rSinD.tipo === 'falta' && pide('Diametros del ventriculo derecho'),
+        (rSinD ? rSinD.tipo + ' faltan=' + (rSinD.faltan || []).join(' | ') : 'null')]);
+
+      /* ── Y CUANDO SI SE MIDIERON, EL TEXTO NOMBRA EL DENOMINADOR ──
+         «Sin dilatacion» sobre un solo diametro medido no es lo mismo que sobre los tres. El
+         texto tiene que decir cuales se midieron y con que valores. */
+      esc({}, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'no' });
+      const rNoDil = rec();
+      ex.push(['cuando descarta la dilatacion el texto NOMBRA los diametros medidos con sus valores, no niega sobre un denominador invisible',
+        !!rNoDil && rNoDil.tipo === 'no' && pl(rNoDil.txt).indexOf('basal 38') > -1 &&
+        pl(rNoDil.txt).indexOf('medio 30') > -1 && pl(rNoDil.txt).indexOf('longitudinal 70') > -1,
+        (rNoDil ? String(rNoDil.txt).slice(0, 170) : 'null')]);
+
+      // ── Secundaria: una sola fila IIa B, y la satisface el sintoma O la dilatacion ──
+      esc({}, { 'vt.cxizq':'no', 'vt.mecanismo':'sec', 'vt.sintomas':'si' });
+      const secSint = clase();
+      esc({ vd_bas:'50' }, { 'vt.cxizq':'no', 'vt.mecanismo':'sec', 'vt.sintomas':'no' });
+      const secDil = clase();
+      ex.push(['la insuficiencia secundaria severa es Clase IIa Nivel B y la satisface el sintoma O la dilatacion, por separado',
+        secSint === 'ind / Clase IIa · Nivel B' && secDil === 'ind / Clase IIa · Nivel B',
+        'sintomatica: ' + secSint + ' · dilatada asintomatica: ' + secDil]);
+
+      /* ── ⚠️ LA DISFUNCION VD SEVERA BLOQUEA UNAS FILAS Y NO OTRAS ──
+         Excluye las tres filas sin cirugia izquierda, y NO la fila de la cirugia concomitante,
+         que no la menciona. Las dos direcciones en una condicion: bloquear de mas le saca la
+         Clase I B a quien la tiene. */
+      esc({ tapse:'8' }, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'si' });
+      const bloq = rec();
+      esc({ tapse:'8' }, { 'vt.cxizq':'si' });
+      const noBloq = clase();
+      ex.push(['la disfuncion VD severa saca del alcance las filas sin cirugia izquierda, y NO bloquea la fila de la cirugia concomitante, que no la menciona',
+        !!bloq && bloq.tipo === 'no' && pl(bloq.tit).indexOf('disfuncion ventricular derecha severa') > -1 &&
+        pl(bloq.txt).indexOf('tapse de 8') > -1 && noBloq === 'ind / Clase I · Nivel B',
+        'sin cirugia izq: ' + (bloq ? bloq.tipo + ' / ' + bloq.tit : 'null') + ' · con cirugia izq: ' + noBloq]);
+
+      /* ── ⚠️ DISFUNCION NO ES DISFUNCION SEVERA, Y LA FILA EXCLUYE SOLO LA SEGUNDA ──
+         La Figura 15 publica DOS cortes por parametro. La app ya tenia el de disfuncion
+         (UMBRAL_TAPSE_NORMAL, 17 mm) y no el de severa (10 mm). Un TAPSE de 14 y un S de 8 son
+         disfuncion y NO son severa: la Clase I C se publica igual. Sin esta condicion, poner el
+         corte de normalidad en lugar del de severa solo lo caza el assert de arranque —lo
+         verificado por mutacion— y le niega la indicacion a un paciente que la tiene. */
+      esc({ tapse:'14', s_prime:'8' }, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'si' });
+      const disfNoSev = clase(), fVdNoSev = filaDe('Funcion del ventriculo derecho');
+      ex.push(['un TAPSE de 14 y un S de 8 son disfuncion pero NO disfuncion severa: la fila se publica igual y la fila del VD no la marca como severa',
+        disfNoSev === 'ind / Clase I · Nivel C' && !!fVdNoSev &&
+        pl(fVdNoSev.nota).indexOf('sin disfuncion severa') > -1,
+        disfNoSev + ' · fila VD: ' + (fVdNoSev ? '«' + fVdNoSev.val + '» ' + fVdNoSev.nota : 'NO HAY')]);
+
+      // ── El S' tambien bloquea, por su propio corte de la Figura 15 ──
+      esc({ tapse:'20', s_prime:'4' }, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'si' });
+      const bloqSp = rec();
+      ex.push(['el S tricuspideo por debajo de su corte de la Figura 15 tambien bloquea, con su propio valor en el texto',
+        !!bloqSp && bloqSp.tipo === 'no' && pl(bloqSp.txt).indexOf('4,0 cm/s') > -1,
+        (bloqSp ? String(bloqSp.txt).slice(0, 190) : 'null')]);
+
+      /* ── ⚠️ EL TRANSCATETER ES IIa A, Y ES MODALIDAD, NO INDICACION ──
+         Pide riesgo alto, sintomas Y tratamiento medico optimo, las tres. Se prueba que con dos
+         de las tres no se publique la clase: publicarla de menos es tolerable, de mas no. */
+      esc({}, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'si',
+        'vt.riesgo':'alto', 'vt.tmo':'si' });
+      const mTC = (rec() || {}).mod || {};
+      esc({}, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'si',
+        'vt.riesgo':'alto', 'vt.tmo':'no' });
+      const mSinTmo = (rec() || {}).mod || {};
+      esc({}, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'si',
+        'vt.riesgo':'no', 'vt.tmo':'si' });
+      const mSinRiesgo = (rec() || {}).mod;
+      ex.push(['el transcateter es Clase IIa NIVEL A y solo con riesgo alto, sintomas y tratamiento medico optimo: sin el tratamiento optimo la clase no se publica, y sin riesgo alto no hay modalidad',
+        mTC.clase === 'Clase IIa · Nivel A' && !mSinTmo.clase && !mSinRiesgo,
+        'las tres: ' + mTC.clase + ' · sin tmo: ' + (mSinTmo.clase || 'sin clase') +
+        ' · sin riesgo alto: ' + (mSinRiesgo ? 'HAY' : 'sin modalidad')]);
+
+      // ── El salto de clase desde 2021 queda dicho donde se publica ──
+      ex.push(['la nota del transcateter dice de donde viene: IIb C en 2021 y IIa A en 2025',
+        pl(mTC.nota).indexOf('iib') > -1 && pl(mTC.nota).indexOf('2021') > -1 &&
+        pl(mTC.nota).indexOf('iia') > -1, String(mTC.nota).slice(0, 150)]);
+
+      /* ── ⚠️ EL BORDE DEL OPERADOR: GRADIENTE MEDIO EXACTAMENTE 5 ──
+         etEstado() lo cuenta como significativo con «>=» y la guia pide «>». Con 5 exacto NO hay
+         indicacion publicada y la seccion tiene que DECIR por que; con 5,1 si la hay. Es el borde
+         de un solo valor que fija _gt contra _ge. */
+      esc({ et_gmedio:'5' }, { 'vt.sintomas':'si', 'vt.cxizq':'si' }, '0');
+      const E5 = window.etEstado();
+      const r5 = rec(), f5 = filaDe('Gradiente medio');
+      esc({ et_gmedio:'5.1' }, { 'vt.sintomas':'si' }, '0');
+      const r51 = rec(), f51 = filaDe('Gradiente medio');
+      ex.push(['con gradiente medio de 5 exacto la app marca significacion y la guia NO: no se publica una Clase I, se explica; con 5,1 si se publica',
+        E5.signif === true && !!r5 && r5.tipo === 'no' && f5.marca !== 'ok' &&
+        pl(r5.txt).indexOf('mayor o igual') > -1 &&
+        !!r51 && r51.tipo === 'ind' && r51.clase === 'Clase I · Nivel C' && f51.marca === 'ok',
+        'app signif=' + E5.signif + ' · con 5: ' + (r5 ? r5.tipo + ' / ' + r5.tit : 'null') +
+        ' marca=' + f5.marca + ' · con 5,1: ' + (r51 ? r51.tipo + ' / ' + r51.clase : 'null')]);
+
+      /* ── ⚠️ LA SIGNIFICACION POR THP O AREA NO ES ESTENOSIS SEVERA PARA LA 2025 ──
+         Son criterios de la EAE/ASE 2009. La seccion se abre —el hallazgo existe— y no puede
+         publicar una fila de la ESC ni quedarse muda. */
+      esc({ et_thp:'210' }, { 'vt.sintomas':'si', 'vt.cxizq':'si' }, '0');
+      const rThp = rec(), fThp = filaDe('THP');
+      ex.push(['la significacion alcanzada solo por el THP no publica una fila de la ESC: se dice que es un criterio que la guia 2025 no usa',
+        !!rThp && rThp.tipo === 'no' && pl(rThp.tit).indexOf('la guia 2025 no usa') > -1 &&
+        pl(rThp.txt).indexOf('eae/ase 2009') > -1,
+        (rThp ? rThp.tipo + ' / ' + rThp.tit : 'null')]);
+
+      // ── Y cada fila declara de que documento sale su corte ──
+      /* Area por continuidad: pi * (20/20)^2 * 10 / 40 = 0,79 cm², bajo el corte de 1 cm², con
+         los tres insumos dentro de sus bandas. Poner un numero en et_avt no habria hecho nada. */
+      esc({ et_gmedio:'8', et_thp:'210', tsvd_diametro:'20', vti_tsvd:'10', et_vti_diast:'40' },
+        { 'vt.sintomas':'si' }, '0');
+      const Eavt = window.etEstado();
+      const fG = filaDe('Gradiente medio'), fT = filaDe('THP'), fA = filaDe('Area valvular tricuspidea');
+      ex.push(['cada fila de estenosis declara su procedencia: el gradiente es de la ESC/EACTS 2025, y el THP y el area son de la EAE/ASE 2009 y la 2025 no los usa',
+        Eavt.cAvt === true &&
+        pl(fG.nota).indexOf('esc/eacts 2025') > -1 &&
+        pl(fT.nota).indexOf('eae/ase 2009') > -1 && pl(fT.nota).indexOf('no usa el tiempo de hemipresion') > -1 &&
+        pl(fA.nota).indexOf('eae/ase 2009') > -1 && pl(fA.nota).indexOf('no usa el area valvular') > -1,
+        'avt=' + Eavt.avt + ' cAvt=' + Eavt.cAvt + ' || gm: ' + fG.nota + ' || thp: ' + fT.nota + ' || area: ' + fA.nota]);
+
+      /* ── ⚠️ LA SECCION YA NO CITA LA 2021 EN NINGUNA PARTE ──
+         Era la ultima del panel que lo hacia. Se barre todo el texto, no solo el rotulo de la
+         guia, porque una nota vieja cita igual de fuerte. La mencion del cambio 2021 -> 2025 del
+         transcateter es la unica permitida, y va en su nota de modalidad. */
+      esc({}, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'si' });
+      const T = todoElTexto();
+      ex.push(['el rotulo de guia, las notas y las filas de la seccion citan la ESC/EACTS 2025 y ninguna sigue citando la 2021',
+        T.indexOf('2025') > -1 && T.indexOf('2021') === -1,
+        '2025=' + (T.indexOf('2025') > -1) + ' 2021=' + (T.indexOf('2021') > -1)]);
+
+      /* ── LA FILA DEL ANILLO: DEGRADADA A IIb, RESTRINGIDA A LEVE, Y NO EVALUABLE ──
+         Los dos operadores son DISTINTOS entre si —«>= 40 mm» y «> 21 mm/m²»— y asi estan en la
+         tabla. Unificarlos es el defecto que ya documento la mitral. */
+      const N = pl(((sec() || {}).notas || []).join(' || '));
+      ex.push(['la nota del anillo dice IIb, dice LEVE secundaria, trae los dos operadores distintos, y declara que la app no puede evaluarla',
+        N.indexOf('iib') > -1 && N.indexOf('leve') > -1 && N.indexOf('40 mm') > -1 &&
+        N.indexOf('21 mm/m') > -1 && N.indexOf('no tiene campo de anillo tricuspideo') > -1,
+        N.slice(0, 260)]);
+
+      // ── El Heart Team es una fila nueva de 2025 y no depende del escenario ──
+      ex.push(['la nota del Heart Team esta, con su clase, y dicha como fila nueva de 2025 que no depende del escenario',
+        N.indexOf('heart team') > -1 && N.indexOf('clase i c') > -1 && N.indexOf('nueva') > -1,
+        N.slice(0, 200)]);
+
+      /* ── LO QUE LA APP NO PUEDE EVALUAR QUEDA DICHO, NO NEGADO ──
+         La HTP aparece en las filas con tres formas distintas y ninguna es lo que mide psap_calc.
+         Se carga una PSAP alta: la fila tiene que seguir en ❓ y el texto nombrarla pendiente. */
+      esc({ psap_calc:'70' }, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'si' });
+      const fHtp = filaDe('Hipertension pulmonar');
+      const rHtp = rec();
+      ex.push(['la hipertension pulmonar queda como condicion NO verificada aunque haya una PSAP alta cargada, y la recomendacion lo dice en su texto',
+        !!fHtp && fHtp.marca === 'ask' && !!rHtp && rHtp.tipo === 'ind' &&
+        pl(rHtp.nota).indexOf('no verificada') > -1 && pl(rHtp.nota).indexOf('cateterismo') > -1,
+        (fHtp ? 'fila marca=' + fHtp.marca + ' «' + fHtp.val + '»' : 'NO HAY FILA') +
+        ' · ' + (rHtp ? String(rHtp.nota).slice(0, 150) : 'null')]);
+
+      // ── La FAC y la FEVD quedan afuera por falta de banda, y se dice ──
+      ex.push(['la nota de la recomendacion declara que la ausencia de disfuncion severa se evaluo solo con TAPSE y S, y que la FAC y la FEVD no entraron',
+        pl((rec() || {}).nota).indexOf('solo con tapse') > -1 &&
+        pl((rec() || {}).nota).indexOf('fac y la fevd no entraron') > -1,
+        String((rec() || {}).nota).slice(0, 240)]);
+
+      // ── La frecuencia cardiaca del criterio de estenosis queda declarada como no registrada ──
+      ex.push(['la nota de la estenosis trae el calificador de frecuencia cardiaca normal y declara que la app no la registra',
+        N.indexOf('frecuencia cardiaca normal') > -1 && N.indexOf('sin verificar') > -1,
+        N.slice(0, 300)]);
+
+      /* ── HALLAZGOS DE /sharp-edges QUE SOBREVIVIERON A LA PRIMERA TANDA DE MUTACIONES ──
+         Los cuatro se arreglaron sin condicion, y una mutacion que los revierte dejaba el caso en
+         verde. Un arreglo sin caso se deshace sin que nadie se entere. */
+
+      /* (1) LA ESTENOSIS SEVERA CONCOMITANTE SE PERDIA EN SILENCIO. recEt se calculaba al principio
+         y en la rama de la insuficiencia severa sin cirugia izquierda nunca se volvia a mirar: la
+         fila del gradiente salia en verde afirmando estenosis severa y el bloque de recomendacion
+         no la mencionaba. No es cosmetico — la estenosis severa suele exigir REEMPLAZO, mientras la
+         nota de la insuficiencia pide reparacion siempre que sea posible. */
+      esc({ et_gmedio:'9' }, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'si' });
+      const rConET = rec(), fGmConIT = filaDe('Gradiente medio');
+      ex.push(['con insuficiencia severa Y estenosis severa sin cirugia izquierda, la recomendacion nombra la estenosis concomitante con su clase y avisa de la tecnica, en vez de perderla en silencio',
+        !!rConET && rConET.tipo === 'ind' && !!fGmConIT && fGmConIT.marca === 'ok' &&
+        pl(rConET.nota).indexOf('estenosis tricuspidea severa concomitante') > -1 &&
+        pl(rConET.nota).indexOf('clase i · nivel c') > -1 &&
+        pl(rConET.nota).indexOf('reemplazo') > -1,
+        'fila gm marca=' + (fGmConIT ? fGmConIT.marca : 'NO HAY') + ' · nota: ' +
+        (rConET ? String(rConET.nota).slice(0, 220) : 'null')]);
+
+      /* (2) LAS FILAS IIa EXIGEN AUSENCIA DE DISFUNCION SEVERA DE **LOS DOS** VENTRICULOS, y la
+         nota enumeraba dos huecos y los dos eran del derecho: se leia como un denominador completo
+         que no mencionaba el izquierdo en ninguna parte. fevi SI tiene banda, asi que era la unica
+         exclusion de esas filas evaluable, sin evaluar y sin declarar. */
+      esc({ fevi:'28' }, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'si' });
+      const rVI = rec();
+      ex.push(['la nota declara que la fila exige ausencia de disfuncion severa de los DOS ventriculos y que la del izquierdo no se evalua, con la FEVI consignada a la vista',
+        !!rVI && pl(rVI.nota).indexOf('cualquiera de los dos ventriculos') > -1 &&
+        pl(rVI.nota).indexOf('izquierdo no se evalua') > -1 && pl(rVI.nota).indexOf('28 %') > -1,
+        (rVI ? String(rVI.nota).slice(-260) : 'null')]);
+
+      /* (3) EL CODIGO 3 ES MODERADA-SEVERA EN TODA LA APP —INSUF_TXT, imTxt, _labRegurgSev, el
+         propio pintor— y esta seccion lo imprimia «Moderada»: el medico leia «Moderada» y no podia
+         saber que la app habia leido un 3. Y la rama de la moderada no decia en que bin cayo. */
+      esc({}, { 'vt.cxizq':'si' }, '3');
+      const f3 = filaDe('Insuficiencia tricuspidea'), r3 = rec();
+      esc({}, { 'vt.cxizq':'si' }, '2');
+      const f2 = filaDe('Insuficiencia tricuspidea');
+      ex.push(['el grado 3 se imprime Moderada-severa como en el resto de la app, el 2 se imprime Moderada, y la rama dice hacia que fila se resolvio el 3',
+        !!f3 && pl(f3.val) === 'moderada-severa' && !!f2 && pl(f2.val) === 'moderada' &&
+        !!r3 && r3.clase === 'Clase IIa · Nivel B' &&
+        pl(r3.nota).indexOf('no tiene una fila para «moderada-severa»') > -1 &&
+        pl(r3.nota).indexOf('se resolvio hacia la fila de la moderada') > -1,
+        'grado 3: «' + (f3 ? f3.val : 'NO HAY') + '» / grado 2: «' + (f2 ? f2.val : 'NO HAY') +
+        '» · nota: ' + (r3 ? String(r3.nota).slice(0, 170) : 'null')]);
+
+      /* (4) SIN UMBRAL NO SE CONCLUYE (regla 4). _gt(x, null) es false para TODO gradiente, asi
+         que con la constante ausente esta rama se alcanzaba con un gm de 12 y afirmaba «no es
+         estenosis severa para la guia» citando un 5 que salia de un literal de respaldo.
+         Se saca la constante de verdad y se repone en el finally; la condicion de mas abajo
+         comprueba que quedo repuesta, porque si no el resto del suite mide sobre un umbral roto. */
+      const UG_REAL = window.ET_GMEDIO_SIGNIF;
+      let rSinUG = null, fSinUG = null;
+      try {
+        window.ET_GMEDIO_SIGNIF = undefined;
+        esc({ et_gmedio:'12' }, { 'vt.sintomas':'si', 'vt.cxizq':'si' }, '0');
+        rSinUG = rec(); fSinUG = filaDe('Gradiente medio');
+      } finally { window.ET_GMEDIO_SIGNIF = UG_REAL; }
+      ex.push(['sin la constante del umbral el panel NO afirma que un gradiente de 12 no es estenosis severa: dice que falta el umbral, y la fila tambien',
+        !!rSinUG && rSinUG.tipo === 'falta' && pl(rSinUG.tit).indexOf('falta el umbral') > -1 &&
+        !!fSinUG && fSinUG.marca === 'ask' && pl(fSinUG.nota).indexOf('umbral no disponible') > -1,
+        (rSinUG ? rSinUG.tipo + ' / ' + rSinUG.tit : 'null') + ' · fila: ' +
+        (fSinUG ? fSinUG.marca + ' ' + fSinUG.nota : 'NO HAY')]);
+      ex.push(['la constante del umbral quedo repuesta despues de la prueba anterior',
+        window.ET_GMEDIO_SIGNIF === UG_REAL && typeof window.ET_GMEDIO_SIGNIF === 'number',
+        'ET_GMEDIO_SIGNIF=' + window.ET_GMEDIO_SIGNIF]);
+
+      // ── El arranque compara los textos contra las constantes ──
+      const aVT = (typeof _vtAssertUmbrales === 'function') ? _vtAssertUmbrales() : ['no existe _vtAssertUmbrales'];
+      ex.push(['el assert de arranque de la tricuspide no encuentra ningun texto viejo respecto de las constantes',
+        Array.isArray(aVT) && aVT.length === 0, JSON.stringify(aVT)]);
+
+      // ── El shunt de la pulmonar esta registrado como campo de origen, con su pestana gateada ──
+      const aOri = (typeof _indOrigenAssert === 'function') ? _indOrigenAssert() : ['no existe _indOrigenAssert'];
+      ex.push(['el campo de origen nuevo de la pulmonar esta declarado y su pestana es una de las que el Modo Basico esconde',
+        Array.isArray(aOri) && aOri.length === 0 &&
+        typeof _IND_ORIGEN_CAMPOS === 'object' && _IND_ORIGEN_CAMPOS['ep.shunt'] === 'ete_cia_dir',
+        JSON.stringify(aOri) + ' · ep.shunt -> ' + (typeof _IND_ORIGEN_CAMPOS === 'object' ? _IND_ORIGEN_CAMPOS['ep.shunt'] : 'no existe')]);
+
+      // ── Y los controles nuevos no dejan nada que barra guardarInforme ──
+      const ov = document.getElementById('indic-overlay');
+      const barribles = ov ? ov.querySelectorAll('input[id],select[id],textarea[id]').length : -1;
+      ex.push(['con las dos secciones nuevas abiertas el overlay sigue sin un solo input, select o textarea con id',
+        barribles === 0, 'barribles=' + barribles]);
+
+      indicCerrar(); limpiar();
+      ex.push(['todos los campos del escenario existen en el formulario', noEntraron.length === 0, noEntraron.join(' | ')]);
+      ex.push(['todos los botones del panel se encontraron al tocarlos', sinClic.length === 0, sinClic.join(' | ')]);
+      return { extra: ex };
+    } finally {
+      try { indicCerrar(); } catch (e) {}
+      limpiar();
+    }
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

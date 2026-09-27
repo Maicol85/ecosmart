@@ -4,6 +4,346 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Las dos válvulas derechas, y el texto que citaba una guía reemplazada (2026-09-27)
+
+Sexta y séptima secciones contestables del panel de Evidencia: **Estenosis Pulmonar** y **Válvula
+Tricúspide** (estenosis + insuficiencia). Mismo patrón que las cuatro izquierdas. Las once
+secciones restantes no se tocaron.
+
+**Lo que el pedido daba por sentado era falso en las dos direcciones.** Decía que estas dos
+secciones «hoy no tienen ningún campo ❓». Tienen once: cinco la pulmonar y seis la tricúspide. Y
+de esos once, **seis no debían llevar control**: `ep_nivel`, `ep_etiologia`, `vp_morf`,
+`et_gmedio`, `et_thp` y `et_avt` son campos de **`tab-valvulas`, o sea Modo Básico**, ya
+conectados y ya leídos. El pedido también advertía que la guía podía no tener criterio de
+intervención para estas válvulas. Lo tiene, y en la tricúspide **ocho filas**.
+
+### El hallazgo más grande no era una falta: era una cita vencida
+
+`_indVT` era **la última sección del panel que citaba la ESC/EACTS 2021**, reemplazada. La 2025
+movió tres filas y **dos van en sentidos opuestos**, así que revisar «qué subió» deja la mitad sin
+ver:
+
+| | 2021 | 2025 |
+|---|---|---|
+| Transcatéter | IIb C | **IIa A** — un grado de clase y **dos niveles** de evidencia |
+| Cirugía izquierda concomitante, severa | dos filas: primaria I **C**, secundaria I B | **una sola fila I B** |
+| Anillo dilatado | IIa B, «leve **o moderada**» | **IIb B**, sólo «**leve**» — degradada y restringida |
+
+Lo que la sección publicaba como «Clase I C» para la primaria con cirugía izquierda **hoy es I B**,
+y del transcatéter —el cambio más grande de la tabla— no decía una palabra.
+
+### `_indVT` publicaba dos criterios de estenosis que la guía citada no tiene
+
+La sección mostraba **THP tricuspídeo** y **Área valvular tricuspídea** como «criterio de estenosis
+clínicamente significativa», y su nota afirmaba que la guía definía «un solo corte, alcanzado por
+**cualquiera de los tres** criterios de arriba». La ESC/EACTS 2025 define la estenosis severa con
+**UNO**: *«A mean diastolic transvalvular gradient of >5 mmHg at a normal heart rate indicates
+severe TS»*. No la gradúa, y **no menciona ni el tiempo de hemipresión ni el área valvular** — las
+dos rutas de investigación barrieron las 102 páginas por separado buscándolos.
+
+`ET_THP_SIGNIF` y `ET_AVT_SIGNIF` **no están mal**: el comentario de las constantes ya decía
+«EAE/ASE 2009», y siguen siendo criterios ecocardiográficos válidos. **El defecto era de
+atribución** — la prosa se los cargaba a la ESC. Las tres filas se mantienen; cada una declara hoy
+de qué documento sale su corte, y **sólo el gradiente decide la recomendación**.
+
+### Y el operador no era el mismo: `>=` en la app, `>` en la guía
+
+`etEstado()` aplica `gm >= ET_GMEDIO_SIGNIF`. La guía dice `> 5`. **Un gradiente medio de
+exactamente 5,0 mmHg es «significativo» para la pantalla y NO es estenosis severa para la 2025.**
+
+`etEstado()` **no se tocó**: gobierna la pantalla y el informe, y cambiarle el operador movería el
+grado consignado en estudios ya firmados. El panel aplica `_gt` sobre **la misma constante** —no
+una copia— y cada fila dice qué umbral está aplicando. Es un borde de **un solo valor**: sin la
+condición que lo fija, cambiar `_gt` por `_ge` no rompe nada más y publica una Clase I sobre un
+paciente que la guía no llama severo.
+
+**Corolario que no estaba previsto:** cuando la app marca significación y la guía no, la sección se
+abría y **no publicaba nada**. Filas en verde y ni una línea explicando por qué no hay
+recomendación. Hoy publica un `tipo:'no'` que lo dice, en sus dos variantes —el valor exacto, y la
+significación alcanzada sólo por THP o área—.
+
+### La pulmonar no la cubre la guía de valvulopatías, y su indicación son TRES filas
+
+La ESC/EACTS 2025 **no cubre la estenosis pulmonar**: cero ocurrencias en sus 102 páginas, lesión
+ausente de la lista de palabras clave y del índice de tablas —salta de estenosis tricuspídea a
+valvulopatía múltiple—. Gobierna la **ESC 2020 de cardiopatías congénitas del adulto**, §4.8, que
+sigue vigente (el calendario oficial de la ESC pone la próxima en **2028**).
+
+⚠️ **El texto decía «Clase I C cuando el gradiente supera 64 mmHg» y se saltaba la precondición con
+la que empieza esa fila: «provided that no valve replacement is required».** Son tres filas:
+
+- sin sustituto valvular → se interviene la severa **independientemente de los síntomas**, I C;
+- con sustituto y **sintomático** → I C;
+- con sustituto y **asintomático** → sólo con uno de cuatro criterios, I C.
+
+La nota al pie lo explica: el umbral es **más alto** cuando hace falta un sustituto, por
+endocarditis y reintervención. Publicar la primera fila sin su precondición es lo que más lejos iba
+del texto. **Un caso que probara sólo el escenario sin sustituto pasa con la versión vieja**: hace
+falta el par, porque es justo el eje que fundía.
+
+### Las arritmias eran una invención del panel
+
+La fila clínica decía **«Función del ventrículo derecho y arritmias»**. Las arritmias **no son
+criterio de ninguna de las seis filas** —los del asintomático son caída de la capacidad de
+ejercicio, caída de la función del VD y/o progresión de la IT a ≥ moderada, PSVD > 80, y shunt
+derecha-izquierda—, y las dos rutas coinciden. Por eso **`tv_documentada` de Congénitas NO se
+conectó**: conectarlo le habría dado cuerpo a la invención. TC-284 barre **todo** el texto de la
+sección buscando «arritmia» y «taquicardia», no sólo el rótulo que las tenía, porque volver por una
+nota es igual de fácil.
+
+### El hueco del 64 exacto es del texto de la guía, no de la app
+
+Severa es `> 64` y la fila de Clase IIa es `< 64`. **El valor exacto no cae en ninguna de las dos.**
+No se rellenó: el panel lo dice. (`epGradoPorGmax` lo clasifica «moderada», con `<=`.)
+
+### El cuarto criterio del asintomático no se evalúa NUNCA, y la rama que descarta lo nombra
+
+La PSVD > 80 necesita `psap_calc`, que **no tiene banda de plausibilidad** —igual que `vd_fac`,
+`fevd`, `vp_gmax`, `vp_vmax`, `et_gmedio` e `it_vc`—. No puede entrar en «se cumple» jamás. La
+condición de TC-284 carga una PSAP de **95** y exige que la recomendación **siga descartando** y lo
+nombre como no evaluado: si alguien lo conecta sin banda, cae ahí. Es la lección de VSFVI aplicada
+al revés — no sólo «sin banda no se conecta», también «y la rama que niega tiene que declararlo».
+
+### Lo que la app no puede evaluar, dicho y no negado
+
+- **El anillo tricuspídeo no existe como campo.** `ete_diam_anular` es el **mitral** (vive en
+  `ete-seccion-mediciones-mitral`). La fila IIb del anillo dilatado no se puede evaluar. Sus dos
+  operadores son **distintos entre sí** —`≥ 40 mm` **o** `> 21 mm/m²`— y así están en la tabla: no
+  se unifican.
+- **La HTP aparece en las filas con tres formas distintas** —«HTP severa» en la primaria, «HTP» a
+  secas en la secundaria, «HTP **pre-capilar**» en el transcatéter— y ninguna es lo que mide
+  `psap_calc`: la pre-capilar es invasiva por definición.
+- **La frecuencia cardíaca del criterio de estenosis no existe.** Los tres campos «FC (lpm)» de la
+  app son entradas de calculadora en **Hemodinamia** y **Calculadoras** — otro contexto de
+  medición. Usarlos sería afirmar que el gradiente se tomó a esa frecuencia.
+- **Ningún campo de mecanismo tricuspídeo.** `teer_tipo_im` es **mitral**. Por eso
+  primaria/secundaria es un control y no una lectura: las filas difieren en cuatro lugares.
+- **La guía se niega a usar el fenotipo auricular/ventricular** de la secundaria para decidir:
+  *«Evidence of an impact on patient management is currently lacking.»*
+
+### La función del VD se conecta; el «deterioro» se pregunta. No es lo mismo
+
+**Conectado:** TAPSE y S′, los únicos dos parámetros de función del VD **con banda**
+(`tapse:[3,40]`, `s_prime:[1,35]`). `VT_CRIT_2025.tapse_severa = 10` y `sprime_severa = 6` salen de
+la **Figura 15** de la 2025; la app sólo tenía el corte de *disfunción* (`UMBRAL_TAPSE_NORMAL`, 17),
+no el de **severa**, que es el que estas filas usan como **exclusión**.
+
+**Preguntado:** el «deterioro» de la pulmonar. La guía pide *«decreasing RV function and/or
+progression of TR»* — **comparaciones con un estudio previo**. Un TAPSE bajo de hoy no es una
+caída, y una IT moderada de hoy no es una progresión. Se pregunta, y los valores actuales van en la
+**nota del control** para que se conteste mirando datos. En la tricúspide, en cambio, la fila dice
+*«RV dilatation **/** RV function deterioration»*: la **dilatación** es un estado y sí se lee —de
+`vdDiamsMedidos()`, la función que ya gobierna la pantalla—, y cuando no está dilatado el texto
+aclara que el deterioro progresivo es una comparación que la sección no hace.
+
+⚠️ **La Figura 15 publica FAC ≤ 22 % y la app usa 25 %** (`UMBRAL_FAC_VD_SEVERA`, en la cápsula de
+la FAC). **No se unificaron y no se tocó la cápsula**: la FAC no entra en el panel por falta de
+banda, así que hoy no hay conflicto. **Si algún día entra, esa diferencia hay que resolverla
+antes, no después.** Y las constantes nuevas **no se exportan como `UMBRAL_*`**: la pantalla no las
+aplica, y nombrarlas así haría creer que sí.
+
+### La disfunción VD severa bloquea unas filas y no otras
+
+Es exclusión de las tres filas **sin** cirugía izquierda y de la del transcatéter. **La fila de la
+cirugía concomitante NO la menciona.** Bloquear de forma global es la dirección peligrosa al
+revés: le quita la **Clase I B** a un paciente que la tiene. La condición de TC-285 mide **las dos
+direcciones a la vez**, y la mutación que bloquea de más cae sólo ahí.
+
+Y el panel usa el VD **sólo como bloqueo, nunca como luz verde**: que el TAPSE pase de 10 mm no
+permite afirmar «sin disfunción severa» si la FAC no se miró. La nota lo declara.
+
+### Un shunt Grupo 1 que no estaba en el censo del pedido
+
+`ete_cia_dir` vive en **`tab-congenitas2`**, uno de los diez paneles que `applyViewMode()` esconde
+en Modo Básico → **doble mecanismo**, y registrado en `_IND_ORIGEN_CAMPOS` para que
+`_indOrigenAssert()` lo compruebe al arrancar. ⚠️ **La CIV no tiene campo de dirección** (hay tipo,
+tamaño, velocidad y vista, no dirección), así que la lectura automática cubre sólo la CIA y la fila
+lo dice.
+
+**El bidireccional cuenta.** Tiene componente derecha-izquierda, que es lo que la fila nombra.
+Tratarlo como izquierda-derecha deja sin indicar a un paciente que entra.
+
+### Las dos rutas discreparon en un punto, y ahí no se publicó
+
+El único desacuerdo: **«válvula displásica / Noonan»**. Una ruta lo daba como texto de §4.8; la otra
+demostró que el cuerpo de ACHD 2020 **no es accesible por ninguna fuente oficial** (el sitio de la
+ESC sólo publica el slide set —donde «dysplastic» y «Noonan» tienen **cero** ocurrencias en 108
+diapositivas— y el «Download the DOI» es el *Declaration of Interest Report*, no la guía), y rastreó
+la formulación a un **comentario editorial de Rev Esp Cardiol**. El wording oficial es sólo **«if
+anatomically suitable»**.
+
+Sin acuerdo entre rutas, **no se publica como guía**. La nota de modalidad usa el calificador
+oficial y aclara que lo displásico *«no está en el texto de la recomendación»*. La nota vieja
+—«Una válvula displásica —Noonan— responde mal al balón»— decía algo **clínicamente cierto** bajo
+una cita que no lo respalda: eso también es inventar.
+
+### Trampa de método: el slide set de VHD 2025 no trae las notas al pie
+
+Verificado por análisis de tamaños de fuente, no leyendo: las diapositivas 75-77 reproducen las
+Tables 9 y 10 **sin un solo marcador de nota ni leyenda**. Cuatro notas quedan invisibles por esa
+vía, y una es la **única** mención de la valvuloplastia con balón en la estenosis tricuspídea
+(*«can be attempted as a first approach if TS is isolated»*). **Para las tablas de esta guía el
+slide set no sustituye al artículo:** sirve para clases y niveles, no para condiciones. El slide set
+de **ACHD sí** trae sus notas — la omisión es del deck de VHD, no una política de la ESC.
+
+Los dos **corrigenda** de la VHD 2025 (EHJ `ehag625`, EJCTS `ezag193`) se verificaron: uno cambia
+«NYHA class II–V» por «II–IV» en IM secundaria y el otro arregla un duplicado de prosa. **Ninguno
+toca clases, niveles ni umbrales de tricúspide.**
+
+### Lo que encontró `/sharp-edges`, y los dos que encontré yo releyendo
+
+Catorce hallazgos. Diez cambian una conducta. Los dos primeros los había encontrado yo releyendo
+antes de que volviera el analizador, y los confirmó por separado.
+
+**1 · El balón se publicaba CONTRA la respuesta del propio médico.** Con `ep.sustituto = 'si'` el
+médico dijo que hace falta un sustituto, y la tarjeta publicaba «Cuando el reemplazo valvular es
+**la única opción**…» y debajo, en MODALIDAD, «la valvuloplastia con balón es **la técnica de
+elección**». Las dos oraciones se excluyen. Es el mismo defecto que ya apareció con la reparación
+mitral y con el TAVI. Hoy `balon` se gatea con `D.sust !== 'si'` — y con la pregunta sin contestar
+sí se publica, porque ahí nada la niega.
+
+**2 · La compuerta del nivel RETENÍA una Clase I C, y mi propia transcripción la desmentía.**
+Cortaba todo nivel que no fuera `Valvular` diciendo «el umbral de la guía es para la estenosis
+VALVULAR». La fila dice lo contrario, y está transcrita literal diez líneas más arriba en
+`EP_REC_2020.sin_sust.t`: *«intervención sobre la obstrucción del tracto de salida derecho
+RECOMENDADA, **a cualquier nivel**»*. Las dos afirmaciones vivían en la misma sección a 250 líneas
+de distancia y una era falsa. Hoy sólo cortan las **ramas pulmonares**, que son otra lesión con
+fila propia (IIa C, >50 % de estrechamiento + PSVD >50) que la app no puede evaluar.
+
+**Y `Mixto` quedaba afuera de lo valvular.** `/^valvular/i` no lo matchea, así que el Fallot
+operado —el caso corriente— perdía el balón y recibía «la obstrucción no es valvular» contra la
+respuesta del médico. Tiene componente valvular: entra.
+
+**3 · Con IT severa + ET severa y sin cirugía izquierda, la Clase I C de la estenosis desaparecía.**
+`recEt` se calculaba al principio y en esa rama no se volvía a mirar: la fila del gradiente en verde
+arriba afirmando estenosis severa, y el bloque de recomendación sin mencionarla. No es cosmético —
+**una tricúspide estenótica suele exigir reemplazo**, mientras la nota al pie de la tabla de la
+insuficiencia pide *«reparación siempre que sea posible»*.
+
+**4 · El shunt declaraba negativo el cuarto criterio leyendo sólo la CIA.** Con `ete_cia_dir = 'id'`
+la lectura daba `false`, `_indFilaOrigen` **no dibujaba el control**, y el criterio contaba como
+evaluado y negativo. Un paciente con **CIV** de shunt derecha-izquierda —criterio de Clase I— salía
+«sin ninguno de los criterios» **y sin ningún camino en la interfaz para decirlo**, porque la CIV no
+tiene campo de dirección. Hoy la lectura de origen resuelve el criterio **sólo en sentido
+afirmativo**; un `id` se trata como dato ausente y el control se dibuja.
+
+**5 · Las filas IIa exigen ausencia de disfunción severa de LOS DOS ventrículos.** La nota enumeraba
+dos huecos —FAC y FEVD— y los dos eran del derecho: se leía como un denominador completo que no
+mencionaba el izquierdo. `fevi` **sí tiene banda** y la app ya lo clasifica, así que era la única
+exclusión de esas filas evaluable, sin evaluar y sin declarar. No se inventó un corte de disfunción
+severa de VI —las dos rutas no lo verificaron— y se declara.
+
+**6 · `it_grado = 3` es MODERADA-SEVERA en toda la app** —`INSUF_TXT`, `imTxt`, `_labRegurgSev`, el
+propio pintor— y esta sección lo imprimía «Moderada». El médico leía «Moderada» y no podía saber que
+la app había leído un 3, que con cirugía izquierda es la diferencia entre **IIa B y I B**. Hoy hay un
+solo mapa, `_IND_IT_TXT`, compartido por las dos secciones, y la rama de la moderada dice hacia qué
+fila se resolvió el 3.
+
+**7 · `vp_gmax` era el único número del panel que publica una conducta quirúrgica y entraba sin
+banda.** Una Vmax tipeada en cm/s —400 por 4,0— da un gradiente de 640.000, salía «Estenosis
+severa» y el panel publicaba Clase I C sin que nada lo declarara. Misma familia que la superficie
+corporal de la aórtica: **el error de un orden de magnitud fabrica la indicación.** Hoy `vp_gmax` y
+`vp_vmax` tienen banda y pasan por `_indLeer`.
+
+**8 · La marca de la fila del gradiente salía del grado escrito a mano.** Con `vp_gmax = 20` y
+`ep_grado = 'Severa'` la fila quedaba «20 mmHg · ✅ · estenosis leve», y `IND_MARCA.ok` significa
+literalmente «el dato alcanza un criterio de la guía». Hoy la marca sale de `banda` —lo medido— y la
+**discordancia se declara**, como ya hacía la EAo con `discordanciaGrado`.
+
+**9 · «Eso no está contestado» debajo de un botón marcado «No».** `if (D.tmo !== 'si')` cubría `null`
+y `'no'` con un solo texto. Un mensaje que nombra la causa equivocada manda a revisar lo que está
+sano — ya documentado dos veces en este archivo.
+
+**10 · Sin la constante del umbral, el panel afirmaba que un gradiente de 12 «no es estenosis
+severa».** `_gt(x, null)` es `false` para todo gradiente, así que la rama escrita para el 5,0 exacto
+se alcanzaba con cualquier valor, y el literal de respaldo `(UG != null ? UG : 5)` convertía «no
+tengo el umbral» en una negación afirmativa. La fila ya usaba `_indSinUmbral`; la recomendación
+tenía que hacer lo mismo. Mismo reparo en la nota de EP con `(UM != null ? UM : 64)`.
+
+**11 · La nota del deterioro afirmaba la ausencia de IT sobre el valor de fábrica.** `it_grado` nace
+en `'0'`, y la nota salía «insuficiencia tricuspídea **sin**» — roto, y afirmando. Esa nota es la
+evidencia que el panel le ofrece al médico para contestar uno de los cuatro criterios de **Clase I**.
+`_indVT` ya resolvía esto en el mismo diff, así que las dos secciones nuevas quedaban con
+convenciones opuestas para el mismo campo. Hoy `_indITEvaluada()` es un helper compartido.
+
+**Y arregló uno mal, lo que destapó otro.** Al hacer que la moderada abriera la sección, un grado 3
+sin parámetros medidos publicaba la recomendación con la fila diciendo «No evaluada»: la app
+afirmaba y negaba en la misma tarjeta. `_indITEvaluada` sólo aceptaba el `'4'` como pastilla puesta
+a mano. El razonamiento original —«un default no es una respuesta del médico»— aplica igual al
+revés: **`'0'` es el valor de fábrica y todo lo demás lo puso alguien.**
+
+**12 · La moderada abría la sección y no publicaba nada.** Lo introdujo el cambio de esta ronda:
+filas y controles, y ni una línea explicando por qué no hay recomendación. Es el mismo silencio que
+se había corregido del lado de la estenosis. Las otras cuatro secciones contestables emiten `falta`
+en esa situación.
+
+**13 · Un titular que afirmaba más que su propio texto.** «Estenosis severa asintomática sin ninguno
+de los criterios» sobre un texto que decía «ninguno de los criterios **contestados**» más un cuarto
+sin evaluar. `_indRecomHTML` pinta el titular en mayúsculas arriba de todo: es lo que se lee.
+
+**14 · Fuera de banda se publicaba como «sin medir», con el número impreso al lado.** «Gradiente
+medio tricuspídeo · 400 mmHg · ❓ sin medir». `_indLeer` existe para separar los tres estados —medido,
+fuera de banda, sin banda— y acá se colapsaban dos. No cambia conducta, pero manda al médico a
+cargar un dato que ya cargó.
+
+### Cuarenta mutaciones, y las que sobrevivieron enseñaron más que las rojas
+
+**Cuatro tandas.** La primera: 23 mutaciones, **22 rojas y una sobreviviente** —el calificador del
+balón—. La condición medía `pl(mB.txt + ' ' + mB.nota)` **concatenados**, así que la frase seguía
+apareciendo en la nota y **la aclaración de la nota avalaba una afirmación del texto publicado**.
+Denominador equivocado. Se miden por separado: la nota no puede licenciar lo que dice la
+recomendación.
+
+**Dos cayeron en la condición de otro hallazgo, y eso también es un hueco.** `M22` —poner el corte de
+disfunción *severa* en el de *normalidad*— sólo la cazaba el assert de arranque: con TAPSE 20 y
+TAPSE 8 el comportamiento no cambia, así que **ninguna condición clínica la tocaba**. El corte de
+severa no estaba fijado por conducta. Se agregó el escenario que lo fija: **TAPSE 14 y S′ 8 son
+disfunción y NO son severa**, y la Clase I C se publica igual — confundir las dos le niega la
+indicación a un paciente que la tiene.
+
+Y después de arreglar los catorce hallazgos, **cuatro mutaciones volvieron a sobrevivir**: eran
+justo los cuatro arreglos que había hecho **sin agregar condición**. Un arreglo sin caso se deshace
+sin que nadie se entere.
+
+### Las trampas que volvieron a morder, y qué cambió
+
+- **Backticks dentro del cuerpo de un caso: veinte veces en esta sesión.** `` `null` ``, `` `faltan` ``,
+  `` `vdDiamsMedidos()` `` — en comentarios recién escritos. `node --check` apunta a la línea del
+  `caso(`, no a la del backtick. Dejé de barrer a mano: `/tmp/sanear_casos.py` lo hace y convierte
+  `` `x` `` en «x».
+- **`pide()` relee el estado VIVO.** Con dos escenarios en la misma condición, mide el `faltan` del
+  segundo. Ya había pasado en la ronda anterior. Se chequea el objeto capturado.
+- **Un segundo toque sobre la opción activa la DESMARCA** (`_indClinCablear` lo hace a propósito).
+  Marcar dos veces el mismo valor deja la respuesta en `null`. Me dio un `falta` que leí como
+  defecto. Los helpers `clic` verifican el valor **después** de tocar.
+- **`filaDe` comparaba los rótulos CRUDOS.** Buscar «Funcion del ventriculo» no encuentra «Función
+  del ventrículo»: la fila da `null` y la condición falla **por la búsqueda, no por el código**.
+  Normaliza los dos lados, como `pide()`.
+- **`et_avt` no existe.** El área tricuspídea es **derivada** —continuidad desde `tsvd_diametro`,
+  `vti_tsvd` y `et_vti_diast`, los tres dentro de banda—. Escribir en un campo inexistente dejaba la
+  fila siempre sin valor y la condición de procedencia medía la rama equivocada. **Así se encontró.**
+- **`it_grado` se pone al FINAL y sin eventos.** Es un input oculto que gobierna `calcIT_ESC`: cargar
+  `it_vc` después lo recalcula a 2 y la sección deja de abrirse por severa.
+
+### Cosas que costaron tiempo y no se ven en el diff
+
+- **`et_avt` no existe.** El área tricuspídea es **derivada**: `etEstado()` la calcula por
+  continuidad desde `tsvd_diametro`, `vti_tsvd` y `et_vti_diast`, y exige **los tres dentro de
+  banda**. Escribir en un campo inexistente dejaba la fila del área siempre sin valor, y la
+  condición de procedencia medía la rama equivocada. **Así se encontró** — el caso falló por eso, no
+  por el código.
+- **Un segundo toque sobre la opción activa la DESMARCA** (`_indClinCablear` lo hace a propósito).
+  Marcar dos veces el mismo valor deja la respuesta en `null` y la condición mide otra cosa. Me dio
+  un `falta` que leí como defecto durante un rato. Los helpers `clic` de los dos casos **verifican
+  el valor después de tocar** en vez de confiar en el click.
+- **`it_grado` se pone al FINAL y sin eventos.** Es un input oculto que gobierna `calcIT_ESC`:
+  cargar `it_vc` después lo recalcula a 2 y la sección deja de abrirse por severa. Ya pasó una vez
+  esta sesión.
+- **«No alcanza el criterio» sin decir cuál criterio** deja la fila a medio atribuir — justo el
+  defecto que esta ronda venía a corregir. Las dos ramas que muestran un umbral nombran hoy su
+  fuente.
+
+
 ## Las dos secciones mitrales, y el doble mecanismo para lo que vive en ETE (2026-09-27)
 
 Cuarta y quinta secciones contestables del panel de Evidencia: **Estenosis Mitral** e
