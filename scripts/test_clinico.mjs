@@ -4420,7 +4420,10 @@ caso('TC-135', 'GLS y contractilidad son BASICOS del Excel: sin checkbox y siemp
       ['la cuenta del modal declara las basicas reales',
         cuentaTxt.indexOf(basicas.length + ' de ' + TODAS.length + ' columnas') === 0, cuentaTxt],
       ['y las basicas crecieron: el total no cambio, lo opcional si',
-        basicas.length === 129 && TODAS.length === 429,   // +4 ET · +8 al cerrar la brecha del Lab
+        /* +5 el 2026-09-27: los cuatro DVI de protesis y el AT aortico. Caen como BASICAS y esta
+           bien — son mediciones del bloque valvular, como «VC IM» o «PHT IAo», no de un modulo
+           detras de un checkbox. Las dos cuentas crecen igual, que es lo que este caso vigila. */
+        basicas.length === 134 && TODAS.length === 434,   // +4 ET · +8 Lab · +5 protesis
         basicas.length + ' basicas de ' + TODAS.length],
       // 6 · Una preferencia vieja con el modulo borrado no lo revive.
       ['una preferencia guardada con contr no revive el modulo', (function(){
@@ -31738,6 +31741,286 @@ caso('TC-285', 'Valvula tricuspide: la tabla de 2025, el operador del gradiente,
     } finally {
       try { indicCerrar(); } catch (e) {}
       limpiar();
+    }
+  })();
+`);
+
+/* ══ PRÓTESIS VALVULARES — FASE 1 — TC-286 ═══════════════════════════════════════════════════
+   Renombrado de la etiologia y campos nuevos. La FASE 1 NO GRADUA SEVERIDAD a proposito, asi que
+   este caso NO mide clasificacion: mide que el vocabulario sea uno solo, que los campos aparezcan
+   cuando corresponde, y que un dato protesico no se publique sobre una valvula nativa.
+
+   ⚠️ LA TRAMPA PRINCIPAL DE ESTE CAMPO ES LA COMPARACION LITERAL. Los cuatro selects NO llevan
+   atributo `value`, asi que el valor persistido ES el texto de la opcion. Antes de esta ronda la
+   pulmonar decia «Post-quirurgica / protesis» y las otras tres «Protesis»: cualquier
+   `=== 'Protesis'` escrito a mano se saltaba la pulmonar EN SILENCIO, y el diagnostico previo lo
+   confirmo. Por eso hay una sola constante compartida y el caso la mide sobre las cuatro.
+
+   ⚠️ Y LA SEGUNDA ES QUE ASIGNAR `.value` NO DISPARA `onchange`. Los campos se esconden con
+   `display:none`, asi que reponerlos sin correr el toggle deja al medico sin ver un dato que SI
+   esta guardado. Se ejerce el camino sin eventos, que es el que usan cargar un estudio, el
+   autosave y limpiarCampos.
+
+   ⚠️ Y LA TERCERA, encontrada midiendo: el barrido de `guardarInforme` toma `input[id]` SIN mirar
+   visibilidad, asi que un DVI cargado y despues escondido al cambiar la morfologia sigue valiendo
+   y viajaria al PDF y al Excel. El dato NO se borra —si el medico vuelve a protesis tiene que
+   seguir ahi— y lo que se controla es quien lo publica. Las dos mitades se miden. */
+const PROT_OPS = "['Prótesis biológica','Prótesis mecánica','TAVI']";
+const PROT_PARES = "[['vm_morf','bloque-prot-vm','vm_dvi'],['va_morf','bloque-prot-va','va_dvi']," +
+  "['vt_morf','bloque-prot-vt','vt_dvi'],['vp_morf','bloque-prot-vp','vp_dvi']]";
+
+caso('TC-286', 'Protesis valvulares Fase 1: un solo vocabulario, los campos que aparecen, y el dato que no se publica sobre una valvula nativa', `
+  return (async () => {
+    if (typeof valvEsProtesis !== 'function' || typeof valvProtSync !== 'function')
+      return { extra:[['existen valvEsProtesis y valvProtSync', false, '']] };
+    const ex = [];
+    const PARES = ${PROT_PARES};
+    const OPS = ${PROT_OPS};
+    const g = id => { const e = document.getElementById(id); return e ? e.value : null; };
+    const opciones = id => { const e = document.getElementById(id); return e ? [].map.call(e.options, o => o.value) : null; };
+    const visible = id => { const e = document.getElementById(id);
+      return e ? getComputedStyle(e).display !== 'none' : null; };
+    /* Cambia el select por el camino REAL —despacha el change, como el medico— y verifica que el
+       valor entro: si la opcion no existe, el .value queda como estaba y la condicion mediria otra
+       cosa sin avisar. */
+    const noEntraron = [];
+    const elegir = (id, val) => { const e = document.getElementById(id);
+      if (!e) { noEntraron.push('FALTA ' + id); return false; }
+      e.value = val;
+      if (e.value !== val) { noEntraron.push(id + ' no acepta «' + val + '»'); return false; }
+      e.dispatchEvent(new Event('change', { bubbles:true })); return true; };
+    const poner = (id, val) => { const e = document.getElementById(id);
+      if (!e) { noEntraron.push('FALTA ' + id); return; }
+      e.value = val; e.dispatchEvent(new Event('input', { bubbles:true }));
+      e.dispatchEvent(new Event('change', { bubbles:true })); };
+
+    try {
+      // ── DENOMINADOR: las tres opciones estan en las cuatro, y TAVI SOLO en la aortica ──
+      const ops = { vm:opciones('vm_morf'), va:opciones('va_morf'), vt:opciones('vt_morf'), vp:opciones('vp_morf') };
+      const tieneLasDos = k => ops[k] && ops[k].indexOf('Prótesis biológica') > -1 && ops[k].indexOf('Prótesis mecánica') > -1;
+      ex.push(['las cuatro valvulas ofrecen biologica y mecanica, y TAVI existe SOLO en la aortica',
+        ['vm','va','vt','vp'].every(tieneLasDos) &&
+        ops.va.indexOf('TAVI') > -1 &&
+        ops.vm.indexOf('TAVI') === -1 && ops.vt.indexOf('TAVI') === -1 && ops.vp.indexOf('TAVI') === -1,
+        Object.keys(ops).map(k => k + ':[' + (ops[k] || []).join('|') + ']').join(' · ')]);
+
+      /* ── ⚠️ NINGUNA DE LAS CUATRO OFRECE YA EL STRING VIEJO ──
+         Y no alcanza con que no este en la lista: se intenta ASIGNARLO. Si alguien lo repusiera
+         como opcion oculta, esto lo caza. */
+      const viejos = ['Prótesis', 'Post-quirúrgica / prótesis'];
+      const resucita = [];
+      ['vm_morf','va_morf','vt_morf','vp_morf'].forEach(id => {
+        const e = document.getElementById(id), antes = e.value;
+        viejos.forEach(vv => { e.value = vv; if (e.value === vv) resucita.push(id + '=' + vv); });
+        e.value = antes; e.dispatchEvent(new Event('change', { bubbles:true }));
+      });
+      ex.push(['ninguno de los cuatro selects acepta ya «Protesis» ni «Post-quirurgica / protesis»',
+        resucita.length === 0 && viejos.every(vv => !valvEsProtesis(vv)),
+        'aceptados=' + (resucita.join(', ') || 'ninguno') +
+        ' · el predicado los reconoce=' + viejos.map(vv => valvEsProtesis(vv)).join(',')]);
+
+      /* ── ⚠️ EL PREDICADO ES UNO Y ES COMPARTIDO ──
+         Es la condicion que sustituye a las cuatro comparaciones literales que se saltaban la
+         pulmonar. Se mide sobre la constante exportada, no sobre una copia escrita aca. */
+      ex.push(['el predicado compartido reconoce las tres opciones, tolera espacios, y rechaza lo que no es protesis y el nulo',
+        typeof VALV_PROT_OPCIONES !== 'undefined' && VALV_PROT_OPCIONES.length === 3 &&
+        OPS.every(o => valvEsProtesis(o)) && valvEsProtesis('  TAVI  ') === true &&
+        valvEsProtesis('Normal') === false && valvEsProtesis('Calcificada') === false &&
+        valvEsProtesis(null) === false && valvEsProtesis('') === false,
+        'constante=' + JSON.stringify(typeof VALV_PROT_OPCIONES !== 'undefined' ? VALV_PROT_OPCIONES : null)]);
+
+      /* ── COHERENCIA EXHAUSTIVA: visible SI Y SOLO SI el predicado dice protesis ──
+         Se recorren TODAS las opciones de los cuatro selects, no una muestra: son 29 y el costo es
+         nulo. Una implementacion que acertara en tres valvulas y fallara en la cuarta —el defecto
+         historico— cae aca. */
+      const incoherentes = [];
+      PARES.forEach(function(par){
+        const sel = par[0], blq = par[1];
+        (opciones(sel) || []).forEach(function(o){
+          if (!elegir(sel, o)) return;
+          if (visible(blq) !== valvEsProtesis(o)) incoherentes.push(sel + '=' + o + ' -> visible=' + visible(blq));
+        });
+      });
+      ex.push(['en las 29 combinaciones de opcion y valvula el bloque es visible si y solo si la opcion es una protesis',
+        incoherentes.length === 0, incoherentes.join(' | ') || 'todas coherentes']);
+
+      // ── El AT existe SOLO en la aortica, y el DVI en las cuatro ──
+      const dvis = ['vm_dvi','va_dvi','vt_dvi','vp_dvi'].map(id => !!document.getElementById(id));
+      ex.push(['hay un DVI en cada una de las cuatro valvulas y el AT existe solo en la aortica',
+        dvis.every(Boolean) && !!document.getElementById('va_at') &&
+        !document.getElementById('vm_at') && !document.getElementById('vt_at') && !document.getElementById('vp_at'),
+        'dvi=' + dvis.join(',') + ' va_at=' + !!document.getElementById('va_at')]);
+
+      /* ── ⚠️ ASIGNAR «.value» NO DISPARA «onchange» ──
+         Es el camino de cargar un estudio, el autosave y limpiarCampos. Sin el reengache, la
+         morfologia se ve y sus campos quedan ESCONDIDOS: el medico no ve un dato que si esta
+         guardado, y si guarda de nuevo el valor sigue ahi sin forma de verlo ni corregirlo. */
+      /* La primera opcion de cada select, no «Normal»: la aortica arranca en «Trivalva normal» y
+         la pulmonar en «Normal», asi que un literal compartido falla en una de las cuatro. */
+      PARES.forEach(function(par){ elegir(par[0], opciones(par[0])[0]); });
+      document.getElementById('vm_morf').value = 'Prótesis mecánica';   // SIN evento
+      document.getElementById('va_morf').value = 'TAVI';                 // SIN evento
+      const antesDelSync = { vm:visible('bloque-prot-vm'), va:visible('bloque-prot-va') };
+      valvProtSync();
+      const trasElSync = { vm:visible('bloque-prot-vm'), va:visible('bloque-prot-va') };
+      ex.push(['reponer la morfologia sin eventos deja los campos escondidos, y el reengache los muestra',
+        antesDelSync.vm === false && antesDelSync.va === false &&
+        trasElSync.vm === true && trasElSync.va === true,
+        'antes=' + JSON.stringify(antesDelSync) + ' despues=' + JSON.stringify(trasElSync)]);
+
+      /* ── ⚠️ QUE LA FUNCION SIRVA NO ES QUE ESTE ENGANCHADA ──
+         La condicion de arriba llama a valvProtSync() DIRECTO, asi que pasa igual con los tres
+         call sites borrados: probaria la funcion y no el cableado. Lo descubri porque una mutacion
+         sobrevivio. Se cubre de dos formas:
+         · funcional, por el unico camino invocable desde el harness: limpiarCampos() tiene que
+           dejar los cuatro bloques escondidos, y para eso tiene que llamar al sync;
+         · de caja blanca para los otros dos, mirando el fuente de la funcion. Es la unica forma de
+           cazar el borrado de una llamada en «editarInforme» y «_autosaveRestore» sin montar un
+           ciclo completo de guardar y reabrir, que este harness no tiene. Queda dicho que es caja
+           blanca en vez de fingir que es una prueba de comportamiento. */
+      elegir('vm_morf', 'Prótesis mecánica'); elegir('va_morf', 'TAVI');
+      elegir('vt_morf', 'Prótesis biológica'); elegir('vp_morf', 'Prótesis biológica');
+      const antesLimpiar = PARES.map(function(p){ return visible(p[1]); });
+      if (typeof limpiarCampos === 'function') limpiarCampos();
+      const trasLimpiar = PARES.map(function(p){ return visible(p[1]); });
+      const cableado = {};
+      [['editarInforme', editarInforme], ['_autosaveRestore', typeof _autosaveRestore === 'function' ? _autosaveRestore : null]]
+        .forEach(function(par){
+          cableado[par[0]] = par[1] ? String(par[1]).indexOf('valvProtSync') > -1 : 'no existe';
+        });
+      ex.push(['limpiarCampos esconde los cuatro bloques —o sea que corre el sync— y editarInforme y _autosaveRestore siguen nombrandolo en su fuente',
+        antesLimpiar.every(function(x){ return x === true; }) &&
+        trasLimpiar.every(function(x){ return x === false; }) &&
+        cableado.editarInforme === true && cableado._autosaveRestore === true,
+        'antes=' + JSON.stringify(antesLimpiar) + ' tras limpiar=' + JSON.stringify(trasLimpiar) +
+        ' · cableado=' + JSON.stringify(cableado)]);
+
+      /* ── ⚠️ UN DATO PROTESICO NO SE PUBLICA SOBRE UNA VALVULA NATIVA, Y TAMPOCO SE BORRA ──
+         Las dos mitades en una condicion. El barrido de guardarInforme toma «input[id]» sin mirar
+         visibilidad, asi que el valor sobrevive al cambio de morfologia —y tiene que sobrevivir,
+         porque el medico puede volver a protesis—; lo que cambia es quien lo muestra. */
+      elegir('vm_morf', 'Prótesis mecánica');
+      poner('vm_dvi', '0.32');
+      const conProtesis = { dato:valvProtDato('vm_morf','vm_dvi'), pdf:_protPdf('vm_morf','vm_dvi','') };
+      elegir('vm_morf', 'Normal');
+      const sinProtesis = { dato:valvProtDato('vm_morf','vm_dvi'), pdf:_protPdf('vm_morf','vm_dvi',''),
+        campoSigueValiendo:g('vm_dvi'), bloque:visible('bloque-prot-vm') };
+      elegir('vm_morf', 'Prótesis biológica');
+      const alVolver = { dato:valvProtDato('vm_morf','vm_dvi'), pdf:_protPdf('vm_morf','vm_dvi','') };
+      ex.push(['con la morfologia en Normal el DVI NO se publica ni al PDF ni al Excel, el valor NO se borra, y al volver a protesis se publica de nuevo',
+        conProtesis.dato === 0.32 && conProtesis.pdf === '0.32' &&
+        sinProtesis.dato === null && sinProtesis.pdf === null &&
+        sinProtesis.campoSigueValiendo === '0.32' && sinProtesis.bloque === false &&
+        alVolver.dato === 0.32 && alVolver.pdf === '0.32',
+        'con protesis=' + JSON.stringify(conProtesis) + ' · en Normal=' + JSON.stringify(sinProtesis) +
+        ' · al volver=' + JSON.stringify(alVolver)]);
+
+      /* ── LA BANDA DE PLAUSIBILIDAD, Y QUE MARQUE SIN BORRAR ──
+         La convencion del PDF de esta app es que el numero SIEMPRE se imprime y la banda solo
+         agrega «(revisar)»: borrar la fila sacaria una medicion real del informe firmado. Se mide
+         que «_protPdf» la herede en vez de inventar su propio comportamiento. */
+      const bandas = ['vm_dvi','va_dvi','vt_dvi','vp_dvi','va_at','ete_tavi_at']
+        .map(k => k + '=' + JSON.stringify(typeof _labRango === 'function' ? _labRango(k) : null));
+      elegir('vm_morf', 'Prótesis mecánica');
+      poner('vm_dvi', '25');                         // el orden de magnitud tipico: 25 por 0,25
+      const fuera = _protPdf('vm_morf','vm_dvi','');
+      ex.push(['los seis numericos nuevos tienen banda, y un DVI fuera de banda se IMPRIME marcado en vez de desaparecer del informe',
+        bandas.every(b => b.indexOf('=null') === -1) &&
+        typeof fuera === 'string' && fuera.indexOf('25') === 0 && /revisar/.test(fuera),
+        bandas.join(' · ') + ' · fuera de banda -> «' + fuera + '»']);
+
+      /* ── HALLAZGOS DE /sharp-edges SOBRE ESTA MISMA RONDA ──
+         Los cuatro cambian el informe firmado o el dato exportado. */
+
+      /* (1) EL QUINTO CAMINO: el QR del PDF. «cargarEstudioPorId» hace limpiarCampos(true) —que
+         esconde los bloques—, repuebla sin eventos, y llama a _recalcModulos. Sin el toggle en
+         RECALC_MODULOS la pantalla mostraba «Protesis mecanica» SIN campo de DVI mientras el PDF
+         regenerado si imprimia la fila, porque _protPdf se gatea por el valor y no por la
+         visibilidad: el medico no podia ver ni corregir el numero que el documento publica. */
+      ex.push(['valvProtSync esta en RECALC_MODULOS, que es el embudo de las cinco rutas de restauracion —incluida la del QR del PDF firmado—',
+        typeof RECALC_MODULOS === 'function' && RECALC_MODULOS().indexOf('valvProtSync') > -1,
+        'en RECALC_MODULOS=' + (typeof RECALC_MODULOS === 'function' ? RECALC_MODULOS().indexOf('valvProtSync') > -1 : 'no existe')]);
+
+      /* (2) LA PROSA DEL INFORME FIRMADO. El fallback de _valvMorfF pasa la opcion a MINUSCULAS,
+         asi que TAVI publicaba «Valvula aortica tavi» y «La valvula aortica ES TAVI» —acronimo
+         destruido y «es» + sustantivo, que no es español—. Es la misma leccion que este archivo ya
+         pago con «HTP salia htp». Se mide la del acronimo Y una de las otras dos. */
+      const prosa = {};
+      ['Prótesis biológica','TAVI'].forEach(function(o){
+        if (typeof limpiarCampos === 'function') limpiarCampos();
+        elegir('va_morf', o);
+        generarInforme();
+        prosa[o] = document.getElementById('informe_texto').value;
+      });
+      ex.push(['el informe firmado nombra la protesis con una frase en español y conserva el acronimo TAVI en mayusculas',
+        prosa['TAVI'].indexOf('Válvula aórtica con prótesis transcatéter tipo TAVI') > -1 &&
+        !/\btavi\b/.test(prosa['TAVI']) && prosa['TAVI'].indexOf('es tavi') === -1 &&
+        prosa['Prótesis biológica'].indexOf('Válvula aórtica con prótesis biológica') > -1,
+        'TAVI: ' + (function(){ const i = prosa['TAVI'].indexOf('álvula aórtica');
+          return i < 0 ? '(no la nombra)' : prosa['TAVI'].slice(i - 1, i + 70).replace(/\s+/g, ' '); })()]);
+
+      /* (3) EL EXCEL LEIA EL DOM VIVO. «_labExcelRow(inf)» deriva todo de «inf.campos» y estas
+         columnas eran la unica excepcion: con un paciente con protesis abierto, las N filas del
+         libro salian con SU DVI, incluidos los de valvula nativa — y ese archivo va a
+         CeiboAnalytics. Se mide que el registro manda sobre la pantalla, en las dos direcciones. */
+      if (typeof limpiarCampos === 'function') limpiarCampos();
+      elegir('vm_morf', 'Prótesis mecánica'); poner('vm_dvi', '0.22');
+      const xlsDom    = valvProtDato('vm_morf','vm_dvi');
+      const xlsNativa = valvProtDato('vm_morf','vm_dvi', { vm_morf:'Normal', vm_dvi:'0.99' });
+      const xlsOtra   = valvProtDato('vm_morf','vm_dvi', { vm_morf:'Prótesis biológica', vm_dvi:'0.41' });
+      ex.push(['con un registro inyectado el dato sale del REGISTRO y no del paciente en pantalla: una valvula nativa da null aunque la pantalla tenga una protesis cargada',
+        xlsDom === 0.22 && xlsNativa === null && xlsOtra === 0.41,
+        'pantalla=' + xlsDom + ' · registro nativo=' + xlsNativa + ' · registro con protesis=' + xlsOtra]);
+
+      /* (4) LA COLUMNA DEL DVI PULMONAR NO SE EMITIA. La entrada de LAB_XLS_MAP existia y el PDF
+         imprimia la fila, pero «_labExcelRow» no emitia la clave: el dato se perdia en el ida y
+         vuelta, y como la plantilla deriva sus columnas de esa funcion, la entrada de importacion
+         era inalcanzable. Se miden las CINCO sobre un registro inyectado. */
+      /* ⚠️ LOS VALORES DEL REGISTRO SON DISTINTOS DE LOS DE LA PANTALLA, Y SE VERIFICA CADA UNO.
+         La primera version inyectaba «vm_dvi:'0.22'» con 0,22 tambien en el DOM, y solo miraba que
+         la CLAVE existiera: leer la pantalla o leer el registro daba el mismo numero, asi que la
+         mutacion que devuelve UNA columna al DOM sobrevivia. Mismo denominador en los dos lados no
+         prueba nada — lo cazo la mutacion, no la lectura. */
+      const REG = { vm_morf:'Prótesis mecánica', vm_dvi:'0.51', va_morf:'TAVI', va_dvi:'0.30',
+        va_at:'88', vt_morf:'Prótesis biológica', vt_dvi:'0.44',
+        vp_morf:'Prótesis biológica', vp_dvi:'0.38' };
+      const filaXls = (typeof _labExcelRow === 'function') ? _labExcelRow({ id:1, campos:REG }) : null;
+      const ESP = { 'DVI mitral':0.51, 'DVI aórtico':0.3, 'AT aórtico (ms)':88,
+        'DVI tricuspídeo':0.44, 'DVI pulmonar':0.38 };
+      const COLS = Object.keys(ESP);
+      ex.push(['las cinco columnas nuevas se emiten con el valor DEL REGISTRO y no el de la pantalla —el DVI mitral difiere a proposito— incluida la del DVI pulmonar que faltaba',
+        !!filaXls && COLS.every(function(k){
+          return Object.prototype.hasOwnProperty.call(filaXls, k) && filaXls[k] === ESP[k]; }),
+        'en pantalla vm_dvi=' + g('vm_dvi') + ' · fila: ' +
+        (filaXls ? COLS.map(function(k){ return k + '=' + JSON.stringify(filaXls[k]) + ' (esp ' + ESP[k] + ')'; }).join(' · ') : 'no hay _labExcelRow')]);
+
+      // ── Las listas del importador siguen al select: sin eso se descarta la FILA, no la celda ──
+      const aL = (typeof _labXlsAssertListas === 'function') ? _labXlsAssertListas() : ['no existe'];
+      const aV = (typeof _labXlsAssertVocab === 'function') ? _labXlsAssertVocab() : ['no existe'];
+      ex.push(['los dos asserts de arranque no encuentran ninguna lista desincronizada del select',
+        Array.isArray(aL) && aL.length === 0 && Array.isArray(aV) && aV.length === 0,
+        'listas=' + JSON.stringify(aL) + ' vocab=' + JSON.stringify(aV)]);
+
+      /* ── EL MODULO TAVI COMPARTE VOCABULARIO Y EL PAR DE PARAMETROS ──
+         Es un modulo independiente en la interfaz y duplica a proposito sus mediciones, pero decia
+         «Protesis» a secas donde los cuatro selects ahora dicen cual. Y tenia el DVI sin el AT, o
+         sea la mitad del par. */
+      const at = document.getElementById('ete_tavi_at'), dvi = document.getElementById('ete_tavi_dvi');
+      ex.push(['el modulo TAVI tiene el par completo DVI y AT, con el AT en ms y su banda',
+        !!at && !!dvi && at.step === '1' &&
+        JSON.stringify(typeof _labRango === 'function' ? _labRango('ete_tavi_at') : null) === '[10,300]',
+        'at=' + !!at + ' dvi=' + !!dvi + ' step=' + (at ? at.step : '-')]);
+
+      return { extra: ex.concat([
+        ['todos los campos y opciones del escenario existen', noEntraron.length === 0, noEntraron.join(' | ')]
+      ]) };
+    } finally {
+      PARES.forEach(function(par){
+        const e = document.getElementById(par[0]);
+        if (e && e.options.length) { e.value = e.options[0].value; e.dispatchEvent(new Event('change', { bubbles:true })); }
+        const c = document.getElementById(par[2]); if (c) c.value = '';
+      });
+      const a = document.getElementById('va_at'); if (a) a.value = '';
     }
   })();
 `);

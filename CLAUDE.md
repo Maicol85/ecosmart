@@ -4,6 +4,163 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Prótesis valvulares, Fase 1: renombrar y abrir campos (2026-09-27)
+
+Primera de tres fases. Acá se renombró la etiología y se abrieron los campos; **no se gradúa
+severidad** —eso es la Fase 2— y **no se tocó el panel de Evidencia** —Fase 3—.
+
+El diagnóstico previo del mismo día había confirmado que **ninguna de las cuatro válvulas mira la
+Morfología** para clasificar: las once funciones de severidad aplican cortes nativos sin condición,
+y eso llega al informe firmado, que publica en una sola oración «Válvula mitral de morfología
+prótesis, con estenosis moderada».
+
+### Lo que se hizo
+
+| Válvula | Antes | Ahora |
+|---|---|---|
+| `vm_morf`, `vt_morf` | «Prótesis» | Prótesis **biológica** / **mecánica** |
+| `va_morf` | «Prótesis» | biológica / mecánica / **TAVI** |
+| `vp_morf` | «**Post-quirúrgica / prótesis**» | biológica / mecánica |
+
+Campos nuevos: **DVI** en las cuatro, **AT** sólo en la aórtica, y **AT** en el módulo TAVI, que ya
+tenía el DVI y estaba con la mitad del par.
+
+**Sin migración, por decisión explícita de Maicol:** no hay estudios ni informes reales con
+«Prótesis» cargada. Eso rompe la regla que el comentario de `vp_morf` declara —sacar una opción sin
+migrar hace que el estudio reabra con `selectedIndex = -1` y el hueco se persista— y la excepción
+queda dicha acá para que no se lea como un descuido. **Verificado que el riesgo era real:** el
+string viejo ya no es asignable.
+
+**El concepto «post-quirúrgica» de la pulmonar no se perdió:** `ep_etiologia` e `ip_etiologia` ya lo
+tienen como opción propia, así que salió del campo de morfología —donde mezclaba una reparación sin
+prótesis con una protésica— y quedó donde corresponde.
+
+### La trampa del campo es la comparación literal, y se cerró por construcción
+
+Los cuatro selects **no llevan atributo `value`**, así que el valor persistido **es el texto de la
+opción**. Antes la pulmonar decía «Post-quirúrgica / prótesis» y las otras tres «Prótesis»:
+**cualquier `=== 'Prótesis'` escrito a mano se saltaba la pulmonar en silencio.** Hoy hay una sola
+constante, `VALV_PROT_OPCIONES`, y un predicado, `valvEsProtesis()`. No hay condición que olvidar.
+
+«TAVI» está en la lista compartida aunque sólo exista en `va_morf`: los otros tres selects no pueden
+producir ese valor, así que incluirlo no afloja nada y evita dos listas que se desincronicen.
+
+### Tres superficies que rompen en silencio si sólo se toca el `<select>`
+
+1. **`LAB_XLS_LISTAS`** — sin el valor, `_labXlsLista` devuelve `null` y el importador **descarta la
+   FILA ENTERA, no la celda**. `_labXlsAssertListas()` compara las dos al arrancar.
+2. **El array `VALV`** de la auditoría de distribución del Laboratorio — se escribe a mano a
+   propósito y **ningún assert lo vigila**.
+3. **Los `onchange`** — `va_morf` y `vt_morf` no tenían handler.
+
+### Lo que encontró `/sharp-edges`, y dos eran regresiones mías
+
+**1 · El quinto camino de restauración era el del QR del PDF firmado.** Mi comentario decía que los
+caminos eran tres y citaba dos precedentes; **los dos estaban mal**. `showProlapsoPanel` tiene **un
+solo** sitio de restauración, así que copiarlo fue heredar un hueco; y `vpSync` está en los tres
+**y además en `RECALC_MODULOS`**, o sea que el precedente citado era justo el que tenía la cobertura
+que me faltaba.
+
+El camino que se colaba: `cargarEstudioPorId` —abrir `?estudio=<id>` desde el QR— hace
+`limpiarCampos(true)` (esconde los bloques), repuebla con `.value` sin eventos, y llama a
+`_recalcModulos`, que no corría el toggle. **La pantalla mostraba «Prótesis mecánica» sin campo de
+DVI mientras el PDF regenerado sí imprimía la fila**, porque `_protPdf` se gatea por el valor y no
+por la visibilidad. El médico no podía ver ni corregir el número que el documento publica. Hoy
+`valvProtSync` está en `RECALC_MODULOS`, que es el embudo de las cinco rutas, **más** la línea de
+`limpiarCampos`, que no pasa por ahí: la doble columna que `vpSync` ya declaraba.
+
+**2 · `va_morf = 'TAVI'` publicaba «La válvula aórtica es tavi».** El fallback de `_valvMorfF` pasa
+la opción a minúsculas: el acrónimo destruido y «es» + sustantivo, que no es español. **Es la misma
+lección que este archivo ya pagó en el campo de al lado** —«HTP salía htp, y Noonan/Williams son
+nombres propios»—, reintroducida por la otra puerta.
+
+Se arregló con `VALV_MORF_FRASE`, **un mapa aparte y no una entrada en `VALV_MORF_ETIOL`**. Esa
+pertenencia hace **dos** cosas: da las frases **y** dispara `ccMarcarParrafo()`. Las tres opciones
+necesitan lo primero; lo segundo es un cambio de conducta del EN SUMA que no le toca a la Fase 1.
+
+⚠️ **Decisión pendiente, declarada:** hoy un estudio cuyo único hallazgo es una prótesis mecánica
+sale con EN SUMA «Estudio sin alteraciones estructurales ni funcionales significativas». La decisión
+de no resumirla fue deliberada, pero se tomó cuando la opción era una sola y vaga.
+
+**3 · El Excel leía el DOM VIVO, y ese archivo va a CeiboAnalytics.** `_labExcelRow(inf)` deriva
+**todo** de `inf.campos`, y mis tres columnas eran la única excepción: usaban
+`document.getElementById`. Con un paciente con prótesis abierto, **las N filas del libro salían con
+SU DVI**, incluidos los de válvula nativa; con el formulario vacío salían todas en blanco. Es el
+defecto que este repo ya documentó para Pericardio. Hoy `valvProtDato(idMorf, idCampo, src)` tiene
+fuente inyectable: sin `src` lee el DOM —correcto en el PDF, donde el formulario **es** el estudio—,
+con `src` lee del registro.
+
+**4 · `vp_dvi` tenía entrada de importación y ninguna columna de exportación.** El PDF imprimía la
+fila, el Excel no la emitía, y como la plantilla deriva sus columnas de `_labExcelRow`, la entrada de
+importación era **inalcanzable**. Y ahí hay un hueco estructural que ningún assert cubre: **nada
+compara `LAB_XLS_MAP` contra las claves que `_labExcelRow` emite**.
+
+### Un dato protésico no se publica sobre una válvula nativa, y tampoco se borra
+
+Encontrado midiendo, no leyendo: el barrido de `guardarInforme` toma `input[id]` **sin mirar
+visibilidad**, así que un DVI cargado y después escondido al cambiar la morfología sigue valiendo y
+viajaría al Excel y al PDF — imprimiría un DVI protésico sobre una válvula que dice «Normal».
+
+**No se borra el dato** —si el médico vuelve a prótesis tiene que seguir ahí— y lo que se controla es
+**quién lo publica**: `valvProtDato` y `_protPdf` se gatean por la morfología. Es la misma distinción
+que `calcVD` hizo con la FAC, resuelta del lado del que publica.
+
+`_protPdf` **delega en `vPdf`** para heredar la convención de MARCAR SIN BORRAR: el número siempre se
+imprime y la banda sólo agrega «(revisar)». Y las filas del PDF van **sin escala de referencia al
+lado**, a propósito: las vecinas imprimen la suya y ésa es **nativa**, así que una escala junto al
+DVI de una prótesis reproduciría el defecto que el diagnóstico encontró.
+
+### El módulo TAVI: mismo vocabulario, pero su «Tipo» es otro eje
+
+`ete_tavi_pro_tipo` es **balón vs auto-expandible** —el eje del **despliegue**— y **no** se renombró
+a biológica/mecánica: sería falso, porque una TAVI es por definición una **bioprótesis**, así que ahí
+ese eje no es una elección. Lo que se alineó es la palabra: encabezado, narrativo y PPT dicen
+**«Prótesis TAVI»**.
+
+Y una precisión que estaba perdida: el narrativo imprimía el DVI con `f1` —**un** decimal—, así que
+un 0,42 salía «0.4» y un 0,25 y un 0,34 se imprimían distinto pero cerca. En un cociente donde los
+cortes viven en **0,25 y 0,35**, el segundo decimal separa bandas. Hoy va con dos, como el Excel.
+
+### Tres DVI aórticos conviven, y la Fase 2 tiene que elegir
+
+`ea_dvi_display` (bloque de estenosis aórtica, **readonly y derivado** del cociente de VTI), `va_dvi`
+(Válvulas, tipeado) y `ete_tavi_dvi` (ETE, tipeado). **Dos de los tres en la misma pestaña.** El AT
+tiene el mismo problema con dos. Hoy ninguno alimenta un cálculo, pero es el patrón del espesor
+parietal que este archivo ya pagó tres veces.
+
+### Bandas: una es inerte y queda dicho
+
+`vm_dvi`/`va_dvi`/`vt_dvi`/`vp_dvi` en `[0.05,1.5]` y `va_at` en `[10,300]` — físicamente posibles,
+no normales. **Los cortes clínicos los define la Fase 2: estas bandas son de plausibilidad y no
+deben reutilizarse como umbrales.**
+
+⚠️ **`ete_tavi_at:[10,300]` es inerte hoy**: no hay columna de importación que la consuma ni paso por
+`vPlaus`/`vPdf`. Se deja porque la invariante del archivo es que todo numérico nuevo lleva su banda,
+y queda declarado para que no se lea como una protección que existe.
+
+### Lo que la verificación enseñó
+
+- **Que la función sirva no es que esté enganchada.** La condición llamaba a `valvProtSync()`
+  directo, así que pasaba con los tres call sites borrados. Lo descubrí porque **una mutación
+  sobrevivió**. Se cubre funcionalmente por `limpiarCampos` y de **caja blanca** para los otros dos,
+  mirando el fuente — dicho como caja blanca en vez de fingir que es comportamiento.
+- **Mismo denominador en los dos lados no prueba nada.** La condición del Excel inyectaba
+  `vm_dvi:'0.22'` con 0,22 también en el DOM: leer la pantalla o el registro daba idéntico, y la
+  mutación que devuelve **una** columna al DOM sobrevivió. Hoy los valores difieren y se verifica
+  cada uno.
+- **Una literal compartida falla en una de las cuatro.** Mi línea de limpieza probaba `'Normal'` en
+  las cuatro y la aórtica arranca en «Trivalva normal».
+
+### Lo que NO se hizo, y por qué
+
+- **No se migró «Prótesis» ni «Post-quirúrgica / prótesis».** `/sharp-edges` argumentó que un Excel
+  **ya exportado** con esas celdas haría que el importador descarte la fila entera. El argumento no
+  sobrevive a la confirmación de Maicol: el export escribe `c.vm_morf` desde estudios guardados, y
+  **sin estudios con ese valor no hay celdas con ese valor** en ningún archivo exportado.
+- **No se graduó severidad** (Fase 2) ni se tocó el panel de Evidencia (Fase 3).
+- **No se agregó marca/modelo** — decisión tomada, criterio genérico.
+
+
 ## Las dos válvulas derechas, y el texto que citaba una guía reemplazada (2026-09-27)
 
 Sexta y séptima secciones contestables del panel de Evidencia: **Estenosis Pulmonar** y **Válvula

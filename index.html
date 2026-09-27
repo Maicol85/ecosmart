@@ -3159,7 +3159,13 @@ window.cerrarSesionReal = cerrarSesionReal;
           <!-- Las dos últimas son ETIOLOGÍAS, no morfologías, y por eso el narrativo NO las mete
                en «de morfología …»: ver `VALV_MORF_ETIOL`. Van al final para no mover el orden
                de las que ya estaban — el valor persistido es el texto de la opción. -->
-          <select id="vm_morf" onchange="showProlapsoPanel()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option>Prótesis</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
+          <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option>Prótesis biológica</option><option>Prótesis mecánica</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
+        </div>
+        <!-- Campos de PRÓTESIS (Fase 1, 2026-09-27). Se muestran sólo con una de las tres
+             opciones de prótesis y NO calculan nada todavía: la graduación es la Fase 2. -->
+        <div id="bloque-prot-vm" class="fg" style="display:none;">
+          <label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label>
+          <input type="number" id="vm_dvi" step="0.01" placeholder="—">
         </div>
         <div id="bloque-prolapso-vm" class="fg" style="display:none;">
           <label style="font-weight:600">🔍 Detalle morfológico — Prolapso / Barlow</label>
@@ -3431,7 +3437,15 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div class="sev-pills" id="sevpills-aortica"></div>
       <div class="grid-2" style="margin-bottom:8px;">
         <div class="fg"><label>Morfología VA</label>
-          <select id="va_morf"><option>Trivalva normal</option><option>Bicúspide</option><option>Calcificada</option><option>Reumática</option><option>Prótesis</option><option>Endocarditis</option><option>Carcinoide</option></select>
+          <select id="va_morf" onchange="valvProtSync()"><option>Trivalva normal</option><option>Bicúspide</option><option>Calcificada</option><option>Reumática</option><option>Prótesis biológica</option><option>Prótesis mecánica</option><option>TAVI</option><option>Endocarditis</option><option>Carcinoide</option></select>
+        </div>
+        <!-- Campos de PRÓTESIS aórtica (Fase 1). El AT —tiempo de aceleración— es propio de la
+             prótesis aórtica y NO se usa en válvula nativa, así que vive sólo acá. -->
+        <div id="bloque-prot-va" style="display:none;">
+          <div class="fg"><label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label>
+            <input type="number" id="va_dvi" step="0.01" placeholder="—"></div>
+          <div class="fg" style="margin-top:6px;"><label>AT (ms) <span style="font-weight:400;color:var(--text2);font-size:10px;">— tiempo de aceleración</span></label>
+            <input type="number" id="va_at" step="1" placeholder="ms"></div>
         </div>
         <div id="bloque-esten-aortica" style="display:none;">
         <div class="fg"><label>Estenosis a&oacute;rtica &mdash; grado final</label>
@@ -3566,12 +3580,17 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div class="sev-pills" id="sevpills-tricuspide"></div>
       <div class="grid-2" style="margin-bottom:8px;">
         <div class="fg"><label>Morfología VT</label>
-          <select id="vt_morf"><option>Normal</option><option>Mixomatosa</option><option>Reumática</option><option>Prótesis</option><option>Carcinoide</option><option>Endocarditis</option><option>Funcional / dilatación VD</option></select>
+          <select id="vt_morf" onchange="valvProtSync()"><option>Normal</option><option>Mixomatosa</option><option>Reumática</option><option>Prótesis biológica</option><option>Prótesis mecánica</option><option>Carcinoide</option><option>Endocarditis</option><option>Funcional / dilatación VD</option></select>
           <!-- La nota didáctica va ACÁ y no dentro de la etiqueta de la opción. El valor de la
                opción es lo que se persiste, lo que imprime la tabla del PDF y lo que viaja al
                Excel: «Funcional / dilatación VD (causa más frecuente de IT)» habría puesto una
                frase de manual dentro de un documento firmado y dentro de una celda de datos. -->
           <span style="font-size:10px;color:var(--text2);">Funcional / dilatación VD es la causa más frecuente de insuficiencia tricuspídea.</span>
+        </div>
+        <!-- Campos de PRÓTESIS tricuspídea (Fase 1). -->
+        <div id="bloque-prot-vt" class="fg" style="display:none;">
+          <label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label>
+          <input type="number" id="vt_dvi" step="0.01" placeholder="—">
         </div>
         <div id="bloque-esten-tricuspide" style="display:none;">
           <div class="grid-2" style="margin-bottom:8px;">
@@ -3676,7 +3695,12 @@ window.cerrarSesionReal = cerrarSesionReal;
            sacar una opción sin migrar hace que el estudio reabra con el select en BLANCO
            —`selectedIndex = -1`, no la primera opción— y ese hueco se persiste al guardar. -->
       <div class="fg"><label>Morfología pulmonar</label>
-        <select id="vp_morf" onchange="vpSync()"><option>Normal</option><option>Displásica (congénita)</option><option>Reumática</option><option>Carcinoide</option><option>Post-quirúrgica / prótesis</option><option>No especificada</option></select>
+        <select id="vp_morf" onchange="vpSync();valvProtSync()"><option>Normal</option><option>Displásica (congénita)</option><option>Reumática</option><option>Carcinoide</option><option>Prótesis biológica</option><option>Prótesis mecánica</option><option>No especificada</option></select>
+      </div>
+      <!-- Campos de PRÓTESIS pulmonar (Fase 1). -->
+      <div id="bloque-prot-vp" class="fg" style="display:none;">
+        <label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label>
+        <input type="number" id="vp_dvi" step="0.01" placeholder="—">
       </div>
       <div class="fg"><label>Estenosis pulmonar</label>
         <select id="ep_grado" onchange="vpSync()">
@@ -9130,7 +9154,13 @@ z
 
     <!-- ── POST-TAVI ── -->
     <div id="ete-tavi-pane-post" style="display:none;">
-      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Prótesis</div>
+      <!-- ⚠️ «Tipo» de acá es BALÓN vs AUTO-EXPANDIBLE, que es el eje del DESPLIEGUE y NO el de
+           biológica/mecánica de los cuatro selects de Morfología. No se renombra a
+           biológica/mecánica porque sería falso: una TAVI es por definición una BIOPRÓTESIS, así
+           que en este módulo ese eje no es una elección. Lo que sí se alineó es la palabra: el
+           encabezado, el narrativo y el PPT dicen «prótesis TAVI» y no «prótesis» a secas, para
+           compartir vocabulario con `VALV_PROT_OPCIONES`. -->
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">Prótesis TAVI</div>
       <div class="grid-4">
         <div class="fg"><label>Tipo</label>
           <select id="ete_tavi_pro_tipo" onchange="eteTaviSync()">
@@ -9153,7 +9183,18 @@ z
         <div class="fg"><label>AVAi (cm²/m²)</label><input type="number" id="ete_tavi_avai" step="0.01" placeholder="cm²/m²" oninput="eteTaviSync()"></div>
       </div>
       <div class="grid-4" style="margin-top:6px;">
-        <div class="fg"><label>DVI</label><input type="number" id="ete_tavi_dvi" step="0.01" placeholder="—" oninput="eteTaviSync()"></div>
+        <div class="fg"><label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label><input type="number" id="ete_tavi_dvi" step="0.01" placeholder="—" oninput="eteTaviSync()"></div>
+        <!-- AT agregado 2026-09-27 (Fase 1 de prótesis): el DVI ya estaba acá y el tiempo de
+             aceleración no, así que este módulo quedaba con la mitad del par. Es el mismo dato que
+             `va_at` de la pestaña Válvulas; los dos módulos duplican a propósito sus mediciones
+             —igual que `ete_tavi_vmax` frente a `vmax_ao`— porque describen dos estudios distintos.
+             ⚠️ DUDA PARA LA FASE 2, DECLARADA, Y SON TRES DVI AÓRTICOS, NO DOS: `ete_tavi_dvi`
+             (acá, tipeado), `va_dvi` (pestaña Válvulas, tipeado) y `ea_dvi_display` (el bloque de
+             estenosis aórtica, READONLY y DERIVADO del cociente de VTI). Dos de los tres están en
+             la misma pestaña. Hay que decidir cuál gobierna la graduación, o el panel va a tener
+             tres respuestas para una válvula — es el patrón del espesor parietal que este archivo
+             ya pagó tres veces. El AT tiene el mismo problema con dos. -->
+        <div class="fg"><label>AT (ms) <span style="font-weight:400;color:var(--text2);font-size:10px;">— tiempo de aceleración</span></label><input type="number" id="ete_tavi_at" step="1" placeholder="ms" oninput="eteTaviSync()"></div>
       </div>
 
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin:14px 0 8px;">Regurgitación paravalvular <span style="font-weight:400;color:var(--text2);font-size:11px;">— ASE/EACVI 2019 + VARC-3</span></div>
@@ -21339,12 +21380,42 @@ const VALV_MORF_ETIOL = {
     adj:'con insuficiencia funcional por dilatación del ventrículo derecho',
     es:'presenta insuficiencia funcional por dilatación del ventrículo derecho' }
 };
+/* ⚠️ FRASES SIN CAMBIAR LA CONDUCTA DEL EN SUMA, Y LA SEPARACIÓN ES EL PUNTO. Pertenecer a
+   `VALV_MORF_ETIOL` hace DOS cosas: da las cuatro formas de la frase Y dispara `ccMarcarParrafo()`
+   en las tres válvulas. Las tres opciones de prótesis necesitan lo primero y lo segundo es un
+   cambio de conducta del resumen que no le toca a la Fase 1 — queda declarado abajo.
+
+   El defecto que cierra: el fallback pasa la opción a MINÚSCULAS, así que `va_morf = 'TAVI'`
+   publicaba en el informe firmado «Válvula aórtica tavi» y «La válvula aórtica ES TAVI» —el
+   acrónimo destruido, y «es» + sustantivo, que no es español—. Es la misma lección que este
+   archivo ya pagó en el campo de al lado: «La etiología NO se pasa a minúsculas: HTP salía htp y
+   Noonan/Williams son nombres propios». La opción nueva la reintrodujo por la otra puerta, y lo
+   encontró /sharp-edges.
+
+   `adj` va SIN paréntesis porque el narrativo lo usa dentro de unos: «La válvula aórtica
+   (${adj}), …». Un `adj` con paréntesis propios daría paréntesis anidados. */
+const VALV_MORF_FRASE = Object.freeze({
+  'Prótesis biológica': { de:'con prótesis biológica', presenta:'una prótesis biológica',
+    adj:'con prótesis biológica', es:'presenta una prótesis biológica' },
+  'Prótesis mecánica':  { de:'con prótesis mecánica',  presenta:'una prótesis mecánica',
+    adj:'con prótesis mecánica',  es:'presenta una prótesis mecánica' },
+  'TAVI':               { de:'con prótesis transcatéter tipo TAVI', presenta:'una prótesis transcatéter tipo TAVI',
+    adj:'con prótesis transcatéter tipo TAVI', es:'presenta una prótesis transcatéter tipo TAVI' }
+});
+/* ⚠️ DECISIÓN PENDIENTE, DECLARADA Y NO TOMADA: hoy una prótesis NO llama a `ccMarcarParrafo()`,
+   así que un estudio cuyo único hallazgo es una prótesis mecánica sale con EN SUMA «Estudio sin
+   alteraciones estructurales ni funcionales significativas». La decisión anterior fue deliberada
+   —«descriptores crónicos que esta app nunca resumió»— pero se tomó cuando la opción era una sola y
+   vaga. Con las tres nombradas, y sin informes viejos que proteger, hay que decidir si una prótesis
+   es un hallazgo que el resumen debe nombrar. No se cambia acá: sería conducta, no vocabulario. */
 function _valvMorfF(val){
   const k = String(val == null ? '' : val).trim();
-  const e = Object.prototype.hasOwnProperty.call(VALV_MORF_ETIOL, k) ? VALV_MORF_ETIOL[k] : null;
+  const e = Object.prototype.hasOwnProperty.call(VALV_MORF_ETIOL, k) ? VALV_MORF_ETIOL[k]
+          : (Object.prototype.hasOwnProperty.call(VALV_MORF_FRASE, k) ? VALV_MORF_FRASE[k] : null);
   const low = k.toLowerCase();
   return e || { de:'de morfología ' + low, presenta:'morfología ' + low, adj:low, es:'es ' + low };
 }
+window.VALV_MORF_FRASE = VALV_MORF_FRASE;
 function valvMorfDe(v){ return _valvMorfF(v).de; }
 function valvMorfPresenta(v){ return _valvMorfF(v).presenta; }
 function valvMorfAdj(v){ return _valvMorfF(v).adj; }
@@ -23841,8 +23912,10 @@ function generarInforme(opts) {
        congénitas, sobre otra pestaña. NO se empuja una línea nueva al resumen: se marca que hubo
        párrafo, y el fallback pasa a «Sin OTRAS alteraciones — ver los hallazgos descritos en el
        cuerpo». Alcanza sólo a las cuatro de `VALV_MORF_ETIOL`: «Calcificada», «Reumática»,
-       «Prótesis» y «Mixomatosa» son descriptores crónicos que esta app nunca resumió, y
-       cambiarles el comportamiento tocaría informes existentes — queda declarado, no hecho. */
+       «Mixomatosa» y las TRES de prótesis —biológica, mecánica y TAVI— son descriptores crónicos
+       que esta app nunca resumió. La decisión de no resumirlos se tomó cuando la prótesis era una
+       opción sola y vaga; con las tres nombradas hay que revisarla. Ver la nota de
+       `VALV_MORF_FRASE`: queda declarado, no hecho. */
     if (Object.prototype.hasOwnProperty.call(VALV_MORF_ETIOL, String(vmMorf).trim())) ccMarcarParrafo();
     const emDesc = emG && emG !== 'sin' ? emG.toLowerCase() : null;
     /* ⚠️ `'sin'` ES UNA RESPUESTA, NO UN HUECO. La píldora sólo aporta la palabra «estenosis»
@@ -24968,7 +25041,7 @@ function generarInforme(opts) {
       const pTipo=sv('ete_tavi_pro_tipo'), pMarca=(sv('ete_tavi_pro_marca')||'').trim();
       const pTam=v('ete_tavi_pro_tam'), pPos=sv('ete_tavi_pro_pos');
       const vmax=v('ete_tavi_vmax'), gm=v('ete_tavi_gmedio'), ava=v('ete_tavi_ava');
-      const avai=v('ete_tavi_avai'), dvi=v('ete_tavi_dvi');
+      const avai=v('ete_tavi_avai'), dvi=v('ete_tavi_dvi'), at=v('ete_tavi_at');
       const pht=v('ete_tavi_pht'), flujo=sv('ete_tavi_flujo_rev'), ext=v('ete_tavi_ext_circ');
       const horas=(typeof eteEpcHoras==='function')?eteEpcHoras():[];
       const rpv=(typeof eteTaviRPV==='function')?eteTaviRPV():null;
@@ -24981,7 +25054,7 @@ function generarInforme(opts) {
       if(hayProtesis){
         const p=[];
         {
-          let s='Prótesis'+(pTipo?' '+(TAVI_TXT.tipo[pTipo]||pTipo):'');
+          let s='Prótesis TAVI'+(pTipo?' '+(TAVI_TXT.tipo[pTipo]||pTipo):'');
           if(pMarca) s+=' '+pMarca;
           if(f1(pTam)) s+=' de '+f1(pTam)+' mm';
           if(pPos) s+=', en posición '+(TAVI_TXT.pos[pPos]||pPos);
@@ -24994,7 +25067,14 @@ function generarInforme(opts) {
         // AVAi y DVI son los dos parámetros con los que se define el mismatch prótesis-paciente:
         // estaban en el formulario y no se leían en ningún lado.
         if(f1(avai)) gr.push('AVA indexada '+f1(avai)+' cm²/m²');
-        if(f1(dvi))  gr.push('DVI '+f1(dvi));
+        /* ⚠️ EL DVI VA CON DOS DECIMALES Y NO CON UNO. `f1` redondea a un decimal y el DVI es un
+           cociente donde el segundo decimal separa bandas —los cortes de prótesis viven en 0,25 y
+           0,35—, así que un 0,42 salía «0.4» en el informe firmado y un 0,25 y un 0,34 se
+           imprimían iguales. El Excel ya lo exporta con dos. El AT sí va con `f1`: es un entero
+           en ms y el decimal no aporta nada. */
+        const f2 = n => (n==null||!isFinite(n)) ? null : String(Math.round(n*100)/100);
+        if(f2(dvi))  gr.push('DVI '+f2(dvi));
+        if(f1(at))   gr.push('AT '+f1(at)+' ms');
         if(gr.length) p.push(gr.join(', ').replace(/^./,c=>c.toUpperCase()));
         /* La frase de la regurgitación sale de `taviRpvNarrativa()`, la MISMA función que pinta
            la vista previa de la pantalla, así que las dos no pueden divergir. Antes se armaba
@@ -26276,7 +26356,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -26562,6 +26642,7 @@ function limpiarCampos(silencioso) {
      esta línea el bloque de nivel/etiología del paciente anterior quedaba abierto sobre un
      formulario en blanco. */
   if (typeof vpSync === 'function') { try { vpSync(); } catch (e) {} }
+  if (typeof valvProtSync === 'function') { try { valvProtSync(); } catch (e) {} }
   if (typeof dptSync === 'function') { try { dptSync(); } catch (e) {} }
   if (typeof cvrSync === 'function') { try { cvrSync(); } catch (e) {} }
   /* El desplegable del origen del SGL lo resetea solo el barrido de `select`; lo que no se
@@ -27222,6 +27303,88 @@ window._neCerrar = _neCerrar;
 window.neGuardarYContinuar = neGuardarYContinuar;
 window.neContinuarSinGuardar = neContinuarSinGuardar;
 
+/* ══ PRÓTESIS VALVULARES: qué opciones cuentan, y el toggle de sus campos ═════════════════════
+   Fase 1 (2026-09-27): se renombró la etiología y se abrieron los campos. NO se gradúa severidad
+   —eso es la Fase 2— así que estos campos todavía no alimentan ningún cálculo.
+
+   ⚠️ LA LISTA ES UNA CONSTANTE Y NO UNA COMPARACIÓN SUELTA, Y ESO NO ES ESTILO. Los cuatro
+   selects de morfología NO llevan atributo `value`, así que el valor persistido ES el texto de la
+   opción. Antes de esta ronda la pulmonar decía «Post-quirúrgica / prótesis» y las otras tres
+   «Prótesis»: cualquier `=== 'Prótesis'` escrito a mano se saltaba la pulmonar en silencio, y el
+   diagnóstico previo lo confirmó como la trampa principal de este campo. Con una sola lista
+   compartida, agregar una opción nueva a un select y olvidarse de la condición es imposible: no
+   hay condición que olvidar.
+
+   ⚠️ «TAVI» SÓLO EXISTE EN `va_morf`. Está en la lista compartida igual porque los otros tres
+   selects no pueden producir ese valor —no es una opción suya—, así que incluirlo no afloja nada
+   y evita tener dos listas que se desincronicen. */
+const VALV_PROT_OPCIONES = Object.freeze(['Prótesis biológica', 'Prótesis mecánica', 'TAVI']);
+function valvEsProtesis(val){
+  return VALV_PROT_OPCIONES.indexOf(String(val == null ? '' : val).trim()) > -1;
+}
+window.VALV_PROT_OPCIONES = VALV_PROT_OPCIONES;
+window.valvEsProtesis = valvEsProtesis;
+/* ⚠️ ASIGNAR `.value` NO DISPARA `onchange`, así que esto NO alcanza con estar en los cuatro
+   selects: hay que llamarlo en cada camino que repone campos sin eventos. **VA EN
+   `RECALC_MODULOS`**, que es el embudo de las cinco rutas —editar, abrir por `?estudio=`, el
+   autosave, la reimpresión y la vuelta— MÁS la línea de `limpiarCampos`, que no pasa por ahí. Es
+   la doble columna que `vpSync` ya declara.
+
+   ⚠️ Y LA PRIMERA VERSIÓN DE ESTE COMENTARIO CITABA DOS PRECEDENTES Y LOS DOS ESTABAN MAL. Decía
+   «los mismos que ya usan `showProlapsoPanel` y `vpSync`»: `showProlapsoPanel` tiene UN solo sitio
+   de restauración —`_autosaveRestore`— así que copiarlo fue heredar un hueco; y `vpSync` sí está en
+   los tres **y además en `RECALC_MODULOS`**, o sea que el precedente citado era justo el que tenía
+   la cobertura que faltaba. Lo encontró /sharp-edges, y el camino que se colaba es el peor de los
+   cinco: `cargarEstudioPorId`, el del QR del PDF firmado. Ahí `limpiarCampos(true)` escondía los
+   cuatro bloques, los campos se repoblaban sin eventos y `_recalcModulos` no corría el toggle: la
+   pantalla mostraba «Prótesis mecánica» SIN campo de DVI mientras el PDF regenerado sí imprimía la
+   fila, porque `_protPdf` se gatea por el valor y no por la visibilidad. El médico no podía ver ni
+   corregir el número que el documento firmado publica. */
+function valvProtSync(){
+  const g = id => { const e = document.getElementById(id); return e ? e.value : ''; };
+  const ver = (id, on) => { const e = document.getElementById(id); if (e) e.style.display = on ? '' : 'none'; };
+  ver('bloque-prot-vm', valvEsProtesis(g('vm_morf')));
+  ver('bloque-prot-va', valvEsProtesis(g('va_morf')));
+  ver('bloque-prot-vt', valvEsProtesis(g('vt_morf')));
+  ver('bloque-prot-vp', valvEsProtesis(g('vp_morf')));
+}
+window.valvProtSync = valvProtSync;
+/* Un dato de prótesis sólo se PUBLICA si la morfología dice que hay una prótesis. El campo se
+   esconde al cambiar de morfología pero su valor queda —el barrido de `guardarInforme` toma
+   `input[id]` sin mirar visibilidad—, así que el Excel y el PDF necesitan esta guarda para no
+   publicar un DVI protésico sobre una válvula nativa. NO borra nada: el dato sobrevive por si el
+   médico vuelve a prótesis, y lo que se controla es quién lo muestra. */
+/* ⚠️ LA FUENTE ES INYECTABLE, Y NO ES UN DETALLE DE ESTILO. Sin `src` esta función leía el DOM
+   VIVO —`document.getElementById`— y `_labExcelRow(inf)` deriva TODO lo demás de `inf.campos`.
+   Medido por /sharp-edges: las columnas nuevas del Excel salían con el DVI del paciente ABIERTO EN
+   PANTALLA repetido en las N filas, y con el formulario vacío salían todas en blanco. Ese archivo
+   es el que va a CeiboAnalytics. Es el defecto que este repo ya documentó para Pericardio: «una
+   sola lectura que quede en `v()` o `sv()` hace que la columna mezcle la fila con el paciente en
+   pantalla, y eso parece correcto».
+   Sin `src` lee el DOM, que es lo correcto en el PDF —ahí el formulario ES el estudio—; con `src`
+   lee del registro. */
+function valvProtDato(idMorf, idCampo, src){
+  const leer = id => {
+    if (src) { const x = src[id]; return x == null ? '' : String(x); }
+    const e = document.getElementById(id); return e ? e.value : null;
+  };
+  const morf = leer(idMorf), crudo = leer(idCampo);
+  if (morf == null || crudo == null || !valvEsProtesis(morf)) return null;
+  const n = (typeof PF === 'function') ? PF(crudo) : parseFloat(crudo);
+  return (n != null && isFinite(n)) ? n : null;
+}
+window.valvProtDato = valvProtDato;
+/* Fila del PDF para un dato de prótesis. Delega en `vPdf` para heredar la convención de MARCAR
+   SIN BORRAR —el número siempre se imprime y la banda sólo agrega «(revisar)»— y lo único que
+   agrega es la compuerta de morfología: si no hay prótesis consignada, `null` y la fila no se
+   dibuja. Se define acá y no junto a `vPdf` porque depende de `valvEsProtesis`. */
+function _protPdf(idMorf, id, uni, dec){
+  const m = document.getElementById(idMorf);
+  if (!m || !valvEsProtesis(m.value)) return null;
+  return (typeof vPdf === 'function') ? vPdf(id, uni, dec) : null;
+}
+window._protPdf = _protPdf;
+
 // ══ Módulo Prolapso mitral: mostrar/ocultar panel de detalle ══
 function showProlapsoPanel(){
   var v = (document.getElementById('vm_morf') || {}).value || '';
@@ -27425,6 +27588,7 @@ function _autosaveRestore(){
     else if (val != null) el.value = val;
   });
   if (typeof showProlapsoPanel === 'function') showProlapsoPanel();
+  if (typeof valvProtSync === 'function') valvProtSync();
   // El autosave repone los tildes humorales, pero es el único camino de restauración
   // que no pasa por _restaurarChecklistPaciente(). Sin esto, _hfRitmoPrevFA quedaba en
   // null tras una recarga y el primer cambio de ritmo NO soltaba los tildes: quedaban
@@ -29301,6 +29465,8 @@ function generarPDFReal(_aj) {
       {lbl:'V. máx VP',  ref:'', val:vPdf('vp_vmax',' m/s')},
       {lbl:'G. máx VP',  ref:'', val:vPdf('vp_gmax',' mmHg')},
       {lbl:'Morf. VP',   ref:'', val:(sv('vp_morf')&&sv('vp_morf')!=='Normal')?sv('vp_morf'):null},
+      // DVI de prótesis, sin escala al lado: ver la nota de la fila DVI de la mitral.
+      {lbl:'DVI VP',     ref:'', val:_protPdf('vp_morf','vp_dvi','',2)},
       /* Sin PmAD NO se publica la fila. El `(pm||0)` de antes imprimía `4·V²` —el gradiente
          entre arteria pulmonar y ventrículo derecho— bajo el rótulo «PAPm», subestimando la
          presión pulmonar en el valor entero de la PmAD (5-15 mmHg) sin ninguna marca. Y desde
@@ -29379,6 +29545,18 @@ function generarPDFReal(_aj) {
       {lbl:'Vol.R',         ref:'(<30 / 30–60 / ≥60) ml', val:volrS},
       {lbl:'EM grado',      ref:'', val:(sv('em_grado')&&sv('em_grado')!=='sin')?_cap(sv('em_grado')):null},
       {lbl:'AVm',           ref:'(>2.5 / 1.5–2.5 / ≤1.5) cm²', val:emAvmPdfVal()},
+      /* ⚠️ SIN BANDA DE REFERENCIA, Y A PROPÓSITO. Las otras filas de esta tabla imprimen su
+         escala al lado —`AVm (>2.5 / 1.5–2.5 / ≤1.5) cm²`—, y ésa es NATIVA. Poner una escala al
+         lado del DVI de una prótesis reproduciría el defecto que el diagnóstico del 2026-09-27
+         encontró: la referencia nativa impresa junto a un dato protésico se lee como aplicable.
+         Los cortes de prótesis los define la Fase 2, y hasta entonces acá va el valor y nada más.
+
+         ⚠️ Y LA FILA SE GATEA POR LA MORFOLOGÍA. El campo se esconde al elegir una morfología que
+         no es prótesis, pero el VALOR queda —el barrido de `guardarInforme` no mira visibilidad—,
+         así que sin esta guarda el PDF imprimía «DVI 0,32» sobre una válvula que dice «Normal».
+         No se BORRA el dato: si el médico vuelve a prótesis tiene que seguir ahí. Es la misma
+         distinción que ya hizo `calcVD` con la FAC, resuelta del lado del que publica. */
+      {lbl:'DVI',           ref:'', val:_protPdf('vm_morf','vm_dvi','',2)},
       {lbl:'Notas',         ref:'', val:sv('vm_notas')||null},
     ]},
     {titulo:'Válvula Aórtica', items:[
@@ -29392,6 +29570,8 @@ function generarPDFReal(_aj) {
       {lbl:'IAo',           ref:'', val:iaG?GT[iaG]:null},
       {lbl:'VC IAo',        ref:'(<3 / 3–6 / >6) mm', val:vPdf('ia_vc',' mm')},
       {lbl:'PHT',           ref:'(>500 / 200–500 / <200) ms', val:vPdf('ia_pht',' ms')},
+      {lbl:'DVI',           ref:'', val:_protPdf('va_morf','va_dvi','',2)},
+      {lbl:'AT',            ref:'', val:_protPdf('va_morf','va_at',' ms',0)},
       {lbl:'Notas',         ref:'', val:sv('va_notas')||null},
     ]},
     {titulo:'Válvula Tricúspide', items:[
@@ -29406,6 +29586,8 @@ function generarPDFReal(_aj) {
         return p.crudo ? (4*p.crudo*p.crudo).toFixed(0)+' mmHg'+(p.fuera?MARCA_REVISAR:'') : null; })()},
       // Idem la fila del Bloque 3: un solo corte de normalidad, no una escala de cuatro bandas.
       {lbl:'PSAP',          ref:'<=' + UMBRAL_PSAP_ELEVADA + ' mmHg', val:vPdf('psap_calc',' mmHg')},
+      // DVI de prótesis, sin escala al lado: ver la nota de la fila DVI de la mitral.
+      {lbl:'DVI',           ref:'', val:_protPdf('vt_morf','vt_dvi','',2)},
     ]},
     {titulo:'Otros', items:[
       {lbl:'Pericardio',    ref:'', val:sv('pericardio')||null},
@@ -35372,7 +35554,8 @@ function _indEAModalidad(riesgo){
   const fuera = edadCruda != null && edad == null;
   const bav  = morf === 'Bicúspide';
   /* La fila de TAVI Clase I A dice «tricúspide». La app NO puede afirmar morfología tricúspide:
-     de las siete opciones de `va_morf`, «Calcificada» y «Reumática» —que son las del paciente
+     de las NUEVE opciones de `va_morf` —siete hasta que el 2026-09-27 la prótesis se partió en
+     tres—, «Calcificada» y «Reumática» —que son las del paciente
      típico— no dicen cuántas valvas hay. Lo que sí puede es DESCARTARLA cuando el médico
      consignó «Bicúspide». Así que la bicúspide se rutea y el resto se propone nombrando la
      condición en vez de darla por cumplida. */
@@ -42517,6 +42700,9 @@ function editarInforme(id) {
     if (typeof calcAI === 'function') calcAI();
     if (typeof calcAorta === 'function') calcAorta();
     if (typeof calcVD === 'function') calcVD();
+    /* Los campos de prótesis se esconden con `display:none`, así que reponerlos sin correr el
+       toggle deja al médico sin ver un dato que SÍ está guardado en el estudio. */
+    if (typeof valvProtSync === 'function') valvProtSync();
     /* `calcVP` sólo corría desde los `oninput` del Doppler pulmonar, así que el gradiente
        congelado —el defecto que se cerró en calcVP— sobrevivía intacto en todos los estudios YA
        guardados: se reabría uno con Vmax 4 y Gmax 16 y el informe volvía a imprimir los dos
@@ -49273,7 +49459,7 @@ function _pptDesdeFormulario(inf, tema, presentador){
         fila(F,'Morfología valvular nativa', _pptSel('ete_tavi_morf'));
         fila(F,'Diámetro anular', _pptNum('ete_tavi_anillo_diam'), ' mm');
         fila(F,'Área anular', _pptNum('ete_tavi_anillo_area'), ' cm²');
-        fila(F,'Prótesis', [_pptSel('ete_tavi_pro_tipo'), _pptTxt(c['ete_tavi_pro_marca'])].filter(Boolean).join(' · '));
+        fila(F,'Prótesis TAVI', [_pptSel('ete_tavi_pro_tipo'), _pptTxt(c['ete_tavi_pro_marca'])].filter(Boolean).join(' · '));
         fila(F,'Tamaño de prótesis', _pptNum('ete_tavi_pro_tam'), ' mm');
         fila(F,'Gradiente medio', _pptNum('ete_tavi_gmedio'), ' mmHg');
         const r = (typeof eteTaviRPV === 'function') ? eteTaviRPV() : null;
@@ -64732,12 +64918,17 @@ function _labExcelRow(inf) {
     'FEVD (%)': rnd(num('fevd'),0),
     'VCI diám (mm)': rnd(num('vci_diam'),0), 'Colapso VCI': c.vci_col || '', 'PmAD (mmHg)': rnd(num('pmad'),0),
     'VEXUS suprahepática': c.vexus_sh || '', 'VEXUS porta': c.vexus_pv || '', 'VEXUS intrarrenal': c.vexus_ir || '',
+    /* DVI y AT de prótesis, Fase 1 (2026-09-27). Van al Excel y al PDF porque son MEDICIONES que
+       el médico tomó: dejarlas sólo en `campos` haría un campo que se llena y no sobrevive al
+       informe, que es justo el huérfano que `detectar_huerfanos` persigue. Todavía no gradúan. */
+    'DVI mitral': rnd(valvProtDato('vm_morf','vm_dvi',c),2),
     'Morfología mitral': c.vm_morf || '', 'IM grado': gIM,
     'IM_I (Leve)': bin(gIM,'leve'), 'IM_II (Moderada)': bin(gIM,'moderada'), 'IM_III (Severa)': bin(gIM,'severa'),
     'VC IM (mm)': rnd(num('im_vc','vc_mitral'),1),
     'EROA IM (mm²)': rnd(eroa,1), 'Vol R IM (ml)': rnd(volr,1), 'EM grado': gEM,
     'EM_I (Leve)': bin(gEM,'leve'), 'EM_II (Moderada)': bin(gEM,'moderada'), 'EM_III (Severa)': bin(gEM,'severa'),
     'AVm (cm²)': rnd(num('avm_thp'),2),
+    'DVI aórtico': rnd(valvProtDato('va_morf','va_dvi',c),2), 'AT aórtico (ms)': rnd(valvProtDato('va_morf','va_at',c),0),
     'Morfología aórtica': c.va_morf || '', 'EA grado': gEA,
     'EAo_I (Leve)': bin(gEA,'leve'), 'EAo_II (Moderada)': bin(gEA,'moderada'), 'EAo_III (Severa)': bin(gEA,'severa'),
     'AVA (cm²)': rnd(ava,2),
@@ -64745,6 +64936,7 @@ function _labExcelRow(inf) {
     'IAo grado': gIA,
     'IAo_I (Leve)': bin(gIA,'leve'), 'IAo_II (Moderada)': bin(gIA,'moderada'), 'IAo_III (Severa)': bin(gIA,'severa'),
     'VC IAo (mm)': rnd(num('ia_vc','vc_aortica'),1), 'PHT IAo (ms)': rnd(num('ia_pht'),0),
+    'DVI tricuspídeo': rnd(valvProtDato('vt_morf','vt_dvi',c),2),
     'Morfología tricúspide': c.vt_morf || '', 'IT grado': gIT,
     'IT_I (Leve)': bin(gIT,'leve'), 'IT_II (Moderada)': bin(gIT,'moderada'), 'IT_III (Severa)': bin(gIT,'severa'),
     'VC IT (mm)': rnd(num('it_vc','vc_tricusp'),1),
@@ -64759,6 +64951,10 @@ function _labExcelRow(inf) {
       if (d === null || vt === null || vd === null || vd <= 0) return null;
       if (!(d >= 5 && d <= 60) || !(vt >= 2 && vt <= 60) || !(vd >= 5 && vd <= 100)) return null;
       return rnd((Math.PI * Math.pow(d / 20, 2) * vt) / vd, 2); })(),
+    /* `DVI pulmonar` faltaba: la entrada de `LAB_XLS_MAP` existía, el PDF imprimía la fila y la
+       columna no se emitía nunca, así que el dato se perdía en el ida y vuelta y la entrada de
+       importación era inalcanzable —la plantilla deriva sus columnas de esta función—. */
+    'DVI pulmonar': rnd(valvProtDato('vp_morf','vp_dvi',c),2),
     'Morfología pulmonar': c.vp_morf || '',
     'EP grado': c.ep_grado || '', 'EP nivel': c.ep_nivel || '', 'EP etiología': c.ep_etiologia || '',
     'IP grado': c.ip_grado || '', 'IP etiología': c.ip_etiologia || '',
@@ -66110,6 +66306,7 @@ const LAB_XLS_MAP = [
 
   // 10 · Válvula mitral
   ['Morfología mitral',      'vm_morf',        'opcion'],
+  ['DVI mitral',             'vm_dvi',         'num'],
   ['IM grado',               'im_grado',       'vocab'],
   ['VC IM (mm)',             'im_vc',          'num'],
   ['EM grado',               'em_grado',       'vocab'],
@@ -66117,6 +66314,8 @@ const LAB_XLS_MAP = [
 
   // 11 · Válvula aórtica
   ['Morfología aórtica',     'va_morf',        'opcion'],
+  ['DVI aórtico',            'va_dvi',         'num'],
+  ['AT aórtico (ms)',        'va_at',          'num'],
   ['EA grado',               'ea_grado',       'vocab'],
   ['V. max Ao (m/s)',        'vmax_ao',        'num'],
   ['G. máx Ao (mmHg)',       'gmax_calc',      'num'],
@@ -66127,9 +66326,11 @@ const LAB_XLS_MAP = [
 
   // 12 · Válvula tricúspide y presiones pulmonares
   ['Morfología tricúspide',  'vt_morf',        'opcion'],
+  ['DVI tricuspídeo',        'vt_dvi',         'num'],
   /* Pulmonar (2026-09-16). Las SEIS van juntas: exportar la etiología de una insuficiencia
      cuyo grado no viaja daría una planilla que no se puede leer sola. */
   ['Morfología pulmonar',    'vp_morf',        'opcion'],
+  ['DVI pulmonar',           'vp_dvi',         'num'],
   ['EP grado',               'ep_grado',       'opcion'],
   ['EP nivel',               'ep_nivel',       'opcion'],
   ['EP etiología',           'ep_etiologia',   'opcion'],
@@ -66533,6 +66734,23 @@ const LAB_XLS_RANGO_PROPIO = {
   diam_cayado:[10,80], diam_ao_toracica:[8,70],
   vd_bas:[10,80], vd_mid:[10,80], vd_long:[25,140],
   vd_area_d:[3,60], vd_area_s:[1,50],
+  /* Prótesis valvulares, Fase 1 (2026-09-27). Físicamente posibles, NO los normales.
+     · DVI es un COCIENTE adimensional (VTI del TSVI sobre VTI de la prótesis). Un valor normal
+       ronda 0,3–0,6 y la obstrucción lo baja; por encima de 1 significaría que el TSVI tiene más
+       VTI que la prótesis, que es físicamente raro pero no imposible con un jet mal alineado. La
+       banda está para atrapar el orden de magnitud —un 25 tipeado donde va 0,25—, no lo raro.
+     · AT es el tiempo de aceleración en ms de la prótesis aórtica. Normal < 100 ms, obstrucción
+       por encima; el rango atrapa un valor en segundos o un tipeo de más.
+     ⚠️ Los CORTES clínicos de estos dos parámetros los define la Fase 2. Estas bandas son de
+     plausibilidad y no de severidad: no deben confundirse ni reutilizarse como umbrales. */
+  vm_dvi:[0.05,1.5], va_dvi:[0.05,1.5], vt_dvi:[0.05,1.5], vp_dvi:[0.05,1.5],
+  va_at:[10,300],
+  /* ⚠️ ESTA BANDA ES INERTE HOY, y se deja dicho para que no se lea como una protección que existe:
+     `ete_tavi_at` no tiene columna de importación que la consuma ni pasa por `vPlaus`/`vPdf` —el
+     narrativo del módulo lo imprime con `f1` crudo—. Se agrega igual porque la invariante del
+     archivo es que todo numérico nuevo lleva su banda, y porque el módulo TAVI no tiene NINGUNA de
+     sus mediciones en el Excel (preexistente): el día que las tenga, ésta ya está. */
+  ete_tavi_at:[10,300],
   /* FAC del VD, agregada 2026-09-27 para que el panel de Evidencia pueda CONSUMIRLA: `_indLeer`
      usa la banda como compuerta de admisión, y sin entrada acá devuelve `sinBanda` y el valor no
      se usa para nada.
@@ -67245,14 +67463,17 @@ const LAB_XLS_LISTAS = {
      `errs`, que descarta la FILA ENTERA —nombre, cédula, FEVI, informe—: el defecto que costó la
      sesión de «no cargan en Safari». `_labXlsAssertVocab` sólo audita las columnas `vocab`, así
      que hasta el 2026-09-16 nada vigilaba ésta; hoy lo hace `_labXlsAssertListas()`. */
-  vm_morf: ['Normal','Mixomatosa / Barlow','Calcificada','Reumática','Prolapso / EVMS','Prótesis','Endocarditis','Isquémica (disfunción/rotura músculo papilar)'],
-  va_morf: ['Trivalva normal','Bicúspide','Calcificada','Reumática','Prótesis','Endocarditis','Carcinoide'],
-  vt_morf: ['Normal','Mixomatosa','Reumática','Prótesis','Carcinoide','Endocarditis','Funcional / dilatación VD'],
+  /* Las tres opciones de prótesis reemplazaron a «Prótesis» el 2026-09-27. Estas listas tienen que
+     seguir al select o el importador descarta la FILA ENTERA —no la celda—, como dice el comentario
+     de abajo. `_labXlsAssertListas()` compara las dos al arrancar. */
+  vm_morf: ['Normal','Mixomatosa / Barlow','Calcificada','Reumática','Prolapso / EVMS','Prótesis biológica','Prótesis mecánica','Endocarditis','Isquémica (disfunción/rotura músculo papilar)'],
+  va_morf: ['Trivalva normal','Bicúspide','Calcificada','Reumática','Prótesis biológica','Prótesis mecánica','TAVI','Endocarditis','Carcinoide'],
+  vt_morf: ['Normal','Mixomatosa','Reumática','Prótesis biológica','Prótesis mecánica','Carcinoide','Endocarditis','Funcional / dilatación VD'],
   /* `et_grado` es `opcion` y su `value` ES el texto de la etiqueta —el select no lleva
      atributo `value`—. Sin esta lista `_labXlsLista` devuelve null y el importador descarta
      la FILA ENTERA, no la celda. */
   et_grado: ['Sin estenosis','Leve','Moderada','Severa'],
-  vp_morf: ['Normal','Displásica (congénita)','Reumática','Carcinoide','Post-quirúrgica / prótesis','No especificada'],
+  vp_morf: ['Normal','Displásica (congénita)','Reumática','Carcinoide','Prótesis biológica','Prótesis mecánica','No especificada'],
   /* `ep_grado` guarda «sin» en la opción 0 —su `value` difiere de la etiqueta, único de los
      seis— así que es «sin» lo que va acá: `_labXlsLista` compara contra el VALOR. */
   ep_grado: ['sin','Leve','Moderada','Moderada-severa','Severa'],
@@ -75992,13 +76213,13 @@ function labMedTricValvRender(infs, n) {
      esté acá. Los seis selects guardan el TEXTO como valor (no llevan atributo `value`). */
   const VALV = [
     { id:'vm_morf', lbl:'Válvula mitral', tipo:'morfología / etiología',
-      vals:['Normal', 'Mixomatosa / Barlow', 'Calcificada', 'Reumática', 'Prolapso / EVMS', 'Prótesis', 'Endocarditis', 'Isquémica (disfunción/rotura músculo papilar)'] },
+      vals:['Normal', 'Mixomatosa / Barlow', 'Calcificada', 'Reumática', 'Prolapso / EVMS', 'Prótesis biológica', 'Prótesis mecánica', 'Endocarditis', 'Isquémica (disfunción/rotura músculo papilar)'] },
     { id:'va_morf', lbl:'Válvula aórtica', tipo:'morfología / etiología',
-      vals:['Trivalva normal', 'Bicúspide', 'Calcificada', 'Reumática', 'Prótesis', 'Endocarditis', 'Carcinoide'] },
+      vals:['Trivalva normal', 'Bicúspide', 'Calcificada', 'Reumática', 'Prótesis biológica', 'Prótesis mecánica', 'TAVI', 'Endocarditis', 'Carcinoide'] },
     { id:'vt_morf', lbl:'Válvula tricúspide', tipo:'morfología / etiología',
-      vals:['Normal', 'Mixomatosa', 'Reumática', 'Prótesis', 'Carcinoide', 'Endocarditis', 'Funcional / dilatación VD'] },
+      vals:['Normal', 'Mixomatosa', 'Reumática', 'Prótesis biológica', 'Prótesis mecánica', 'Carcinoide', 'Endocarditis', 'Funcional / dilatación VD'] },
     { id:'vp_morf', lbl:'Válvula pulmonar', tipo:'morfología',
-      vals:['Normal', 'Displásica (congénita)', 'Reumática', 'Carcinoide', 'Post-quirúrgica / prótesis'], sinEsp:['No especificada'] },
+      vals:['Normal', 'Displásica (congénita)', 'Reumática', 'Carcinoide', 'Prótesis biológica', 'Prótesis mecánica'], sinEsp:['No especificada'] },
     { id:'ep_etiologia', lbl:'Estenosis pulmonar', tipo:'etiología',
       vals:['Congénita valvular', 'Displasia valvular (Noonan)', 'Supravalvular (Williams)', 'Carcinoide', 'Post-quirúrgica', 'Ramas pulmonares'], sinEsp:['No especificada'] },
     { id:'ip_etiologia', lbl:'Insuficiencia pulmonar', tipo:'etiología',
@@ -79617,8 +79838,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260927-1106';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790517987883;                 /* eco-build-ms */
+const ECO_BUILD    = '20260927-1316';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790525810545;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -79704,7 +79925,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-1106</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-1316</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
