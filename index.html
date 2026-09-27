@@ -3158,8 +3158,12 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="fg"><label>Morfología VM</label>
           <!-- Las dos últimas son ETIOLOGÍAS, no morfologías, y por eso el narrativo NO las mete
                en «de morfología …»: ver `VALV_MORF_ETIOL`. Van al final para no mover el orden
-               de las que ya estaban — el valor persistido es el texto de la opción. -->
-          <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option value="Prótesis biológica">Prótesis biológica (SAVR)</option><option value="Prótesis mecánica">Prótesis mecánica (SAVR)</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
+               de las que ya estaban — el valor persistido es el texto de la opción, SALVO las dos
+               opciones de prótesis, que llevan `value` explícito (ver `VALV_PROT_OPCIONES`).
+               ⚠️ ESE `value` NO ES COPY-PASTE SOBRANTE aunque hoy sea idéntico a la etiqueta: es lo
+               que impide que un sufijo agregado a la etiqueta se filtre al dato. Ya pasó —«(SAVR)»
+               estuvo en esta etiqueta y no ensució un solo estudio porque el `value` estaba—. -->
+          <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
         </div>
         <!-- Campos de PRÓTESIS (Fase 1, 2026-09-27). Se muestran sólo con una de las tres
              opciones de prótesis y NO calculan nada todavía: la graduación es la Fase 2. -->
@@ -3437,6 +3441,13 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div class="sev-pills" id="sevpills-aortica"></div>
       <div class="grid-2" style="margin-bottom:8px;">
         <div class="fg"><label>Morfología VA</label>
+          <!-- ⚠️ ACÁ Y SÓLO ACÁ la etiqueta lleva «(SAVR)», y es la ÚNICA excepción del archivo a la
+               convención que declara el comentario de `vt_morf`: una nota didáctica no va dentro de
+               la etiqueta de una opción. Se justifica porque TAVI existe SÓLO en este select, y el
+               paréntesis es lo que distingue la vía quirúrgica de la percutánea —que también es una
+               bioprótesis—. En las otras tres se sacó (2026-09-27) porque ahí no hay nada con qué
+               confundirse. Lo que impide que el paréntesis llegue al dato es el `value` explícito;
+               antes de tocar cualquiera de los dos, leer `VALV_PROT_OPCIONES`. Lo fija TC-289. -->
           <select id="va_morf" onchange="valvProtSync()"><option>Trivalva normal</option><option>Bicúspide</option><option>Calcificada</option><option>Reumática</option><option value="Prótesis biológica">Prótesis biológica (SAVR)</option><option value="Prótesis mecánica">Prótesis mecánica (SAVR)</option><option>TAVI</option><option>Endocarditis</option><option>Carcinoide</option></select>
         </div>
         <!-- ⚠️ ACÁ VIVÍAN LOS CAMPOS DE PRÓTESIS DE LA FASE 1 Y LOS DOS SE FUERON (2026-09-27).
@@ -3595,7 +3606,7 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div class="sev-pills" id="sevpills-tricuspide"></div>
       <div class="grid-2" style="margin-bottom:8px;">
         <div class="fg"><label>Morfología VT</label>
-          <select id="vt_morf" onchange="valvProtSync()"><option>Normal</option><option>Mixomatosa</option><option>Reumática</option><option value="Prótesis biológica">Prótesis biológica (SAVR)</option><option value="Prótesis mecánica">Prótesis mecánica (SAVR)</option><option>Carcinoide</option><option>Endocarditis</option><option>Funcional / dilatación VD</option></select>
+          <select id="vt_morf" onchange="valvProtSync()"><option>Normal</option><option>Mixomatosa</option><option>Reumática</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Carcinoide</option><option>Endocarditis</option><option>Funcional / dilatación VD</option></select>
           <!-- La nota didáctica va ACÁ y no dentro de la etiqueta de la opción. El valor de la
                opción es lo que se persiste, lo que imprime la tabla del PDF y lo que viaja al
                Excel: «Funcional / dilatación VD (causa más frecuente de IT)» habría puesto una
@@ -3710,7 +3721,7 @@ window.cerrarSesionReal = cerrarSesionReal;
            sacar una opción sin migrar hace que el estudio reabra con el select en BLANCO
            —`selectedIndex = -1`, no la primera opción— y ese hueco se persiste al guardar. -->
       <div class="fg"><label>Morfología pulmonar</label>
-        <select id="vp_morf" onchange="vpSync();valvProtSync()"><option>Normal</option><option>Displásica (congénita)</option><option>Reumática</option><option>Carcinoide</option><option value="Prótesis biológica">Prótesis biológica (SAVR)</option><option value="Prótesis mecánica">Prótesis mecánica (SAVR)</option><option>No especificada</option></select>
+        <select id="vp_morf" onchange="vpSync();valvProtSync()"><option>Normal</option><option>Displásica (congénita)</option><option>Reumática</option><option>Carcinoide</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>No especificada</option></select>
       </div>
       <!-- Campos de PRÓTESIS pulmonar (Fase 1). -->
       <div id="bloque-prot-vp" class="fg" style="display:none;">
@@ -27586,17 +27597,29 @@ window.neContinuarSinGuardar = neContinuarSinGuardar;
    —eso es la Fase 2— así que estos campos todavía no alimentan ningún cálculo.
 
    ⚠️ LA LISTA ES UNA CONSTANTE Y NO UNA COMPARACIÓN SUELTA, Y ESO NO ES ESTILO. Los cuatro
-   selects de morfología NO llevan atributo `value` —SALVO las dos opciones de prótesis quirúrgica,
-   ver abajo—, así que el valor persistido ES el texto de la opción.
+   selects de morfología NO llevan atributo `value` —SALVO «Prótesis biológica» y «Prótesis
+   mecánica», ver abajo—, así que el valor persistido ES el texto de la opción.
 
    ⚠️ EXCEPCIÓN DELIBERADA (2026-09-27): «Prótesis biológica» y «Prótesis mecánica» SÍ llevan
-   `value`, y la etiqueta muestra «(SAVR)» — «Prótesis biológica (SAVR)»— para dejar claro en el
-   desplegable que son las vías QUIRÚRGICAS, distintas de TAVI, que también es biológica pero
-   percutánea. El `value` mantiene el dato persistido EXACTAMENTE como antes, así que el informe, el
-   PDF, el Excel, `LAB_XLS_LISTAS`, el array `VALV` y esta misma constante no cambian ni una letra:
-   el «(SAVR)» es una aclaración del selector y no un dato que vaya al documento firmado. Si algún
-   día alguien agrega una opción nueva acá, que mire si necesita `value` o no —las dos convenciones
-   conviven a propósito en este select—. Antes de esta ronda la pulmonar decía «Post-quirúrgica / prótesis» y las otras tres
+   `value` en los cuatro selects. El `value` mantiene el dato persistido EXACTAMENTE como antes, así
+   que el informe, el PDF, el Excel, `LAB_XLS_LISTAS`, el array `VALV` y esta misma constante no
+   cambian ni una letra. Si alguien agrega una opción nueva acá, que mire si necesita `value` o no
+   —las dos convenciones conviven a propósito en este select—.
+
+   ⚠️ Y EL «(SAVR)» DE LA ETIQUETA QUEDÓ SÓLO EN LA AÓRTICA (decisión de Maicol, 2026-09-27).
+   El paréntesis existe para distinguir la vía QUIRÚRGICA de TAVI, que también es una bioprótesis
+   pero percutánea — y **TAVI sólo existe como opción en `va_morf`**. En la mitral, la tricúspide y
+   la pulmonar no hay nada con qué confundirse, así que ahí era ruido en el desplegable que el médico
+   usa todos los días. La primera versión lo puso en los cuatro y NUNCA se corrigió hasta hoy: no fue
+   una reversión, el cambio a «sólo aórtica» no se había aplicado (un solo commit tocó el string,
+   `35efa61`, y lo puso en los cuatro).
+
+   En esas tres el `value` quedó IDÉNTICO a la etiqueta, o sea redundante. Se conserva a propósito:
+   quitarlo tocaría el camino de persistencia para no ganar nada, y mientras esté, un sufijo que
+   alguien vuelva a agregar a la etiqueta no puede filtrarse al dato. Lo fija TC-289.
+
+   ── Por qué esta lista existe (razonamiento original, 2026-09-27) ──
+   Antes de la Fase 1 la pulmonar decía «Post-quirúrgica / prótesis» y las otras tres
    «Prótesis»: cualquier `=== 'Prótesis'` escrito a mano se saltaba la pulmonar en silencio, y el
    diagnóstico previo lo confirmó como la trampa principal de este campo. Con una sola lista
    compartida, agregar una opción nueva a un select y olvidarse de la condición es imposible: no
@@ -80763,8 +80786,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260927-1952';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790549526474;                 /* eco-build-ms */
+const ECO_BUILD    = '20260927-2049';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790552972333;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -80850,7 +80873,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-1952</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-2049</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

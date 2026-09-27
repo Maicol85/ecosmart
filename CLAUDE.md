@@ -4,6 +4,129 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## «(SAVR)» queda SÓLO en la aórtica (2026-09-27)
+
+Se quitó el sufijo del TEXTO de las dos opciones de prótesis quirúrgica en mitral, tricúspide y
+pulmonar. En la aórtica se conserva. **Cero cambios de lógica y cero cambios de dato.**
+
+El paréntesis existe para distinguir la vía QUIRÚRGICA de TAVI —que también es una bioprótesis,
+pero percutánea— y **TAVI sólo existe como opción en `va_morf`**. En las otras tres no hay nada con
+qué confundirse, así que era ruido en el desplegable que el médico usa todos los días.
+
+### NO fue una reversión: el cambio a «sólo aórtica» nunca se aplicó
+
+Contestado con `git log -S '(SAVR)'`, no supuesto: **hay un solo commit que tocó ese string**
+—`35efa61`, el cierre de la Fase 1— y ahí se puso en los **cuatro** selects desde el primer momento.
+Ningún commit posterior lo movió. La decisión de dejarlo sólo en la aórtica se tomó y se documentó en
+la entrada de aquel cierre, y **el código nunca la siguió**.
+
+**La lección de método:** ante «esto se revirtió o nunca se aplicó», `git log -S '<el string>'` lo
+contesta en diez segundos. Si devuelve un solo commit, no hubo reversión.
+
+### ⚠️ NINGÚN ESTUDIO GUARDADO PUDO TENER «(SAVR)» EN EL DATO — verificado, no razonado
+
+La pregunta natural es qué pasa con los estudios históricos, porque un valor que ya no es ninguna
+opción deja el select en `selectedIndex = -1` y el hueco se persiste al guardar. **Acá no aplica, y
+la razón es que el atributo `value` nació sin el sufijo en el MISMO commit que la etiqueta.**
+Medido sobre `git show 35efa61:index.html`: cuatro `value="Prótesis biológica">Prótesis biológica
+(SAVR)` y cuatro de la mecánica. O sea que **nunca hubo una ventana en la que «(SAVR)» fuera
+persistible**, y no hay nada que migrar ni que declarar más allá de esto.
+
+No se migró nada, como pedía la consigna. Lo que sí se verificó es que no hacía falta.
+
+### El `value` quedó redundante en tres selects y se conserva a propósito
+
+En mitral, tricúspide y pulmonar la etiqueta ahora es **idéntica** al `value`, así que el atributo no
+hace nada. Se deja por dos razones:
+
+- Quitarlo toca el camino de persistencia para no ganar nada.
+- Mientras esté, un sufijo que alguien vuelva a agregar a la etiqueta **no puede filtrarse al dato**.
+  Y eso es justamente lo que acaba de pasar en la dirección contraria: el sufijo estuvo cinco commits
+  en tres selects donde no correspondía, y no ensució un solo estudio porque el `value` estaba.
+
+La contrapartida es que **los cuatro selects ya no son iguales entre sí** —uno muestra el sufijo y
+tres no— y eso queda declarado donde vive la invariante.
+
+### Lo que se verificó, y cómo
+
+En el navegador: los cuatro selects (mitral/tricúspide/pulmonar con **cero** «SAVR», aórtica con dos
+y TAVI sin él); el valor persistido de los cuatro sigue siendo el token pelado; un informe generado
+con prótesis en las cuatro **no contiene «SAVR»** ni en el cuerpo ni en el EN SUMA; y
+`_labXlsAssertListas()` devuelve `[]`, o sea que las listas del importador siguen alineadas con el DOM.
+
+**El censo de «(SAVR)» en todo el archivo son 28 ocurrencias y 26 son correctas:** dos en el select
+aórtico, y el resto comentarios de código más los textos de **modalidad aórtica** —«SAVR Clase I ·
+Nivel B bajo 70 años», la tarjeta `#ref-eao`, el panel de Evidencia—, que hablan del reemplazo
+quirúrgico contra TAVI y no tienen nada que ver con el selector de morfología. **`ECO_AYUDA` no lo
+menciona ni una vez**, así que el manual no quedó falso — a diferencia de lo que pasó con los
+rótulos de pestaña, donde el manual es la superficie que se pudre.
+
+**Y el balance de `<option>` se comparó CONTRA HEAD, no en absoluto:** da 13 en las dos versiones.
+El número absoluto no dice nada —hay literales de marcado dentro de comentarios— y lo que delata un
+desbalance real es que el delta se mueva. Ya costó una sesión escribir una etiqueta literal en un
+comentario.
+
+### ⚠️ DECLARADO Y NO ARREGLADO: el importador de Excel rechaza la FILA ENTERA por el paréntesis
+
+Lo encontró `/sharp-edges`. `_labXlsLista` —que valida las columnas de tipo `opcion`, las cuatro
+morfologías entre ellas— **no tiene el fallback de etiqueta larga que sí tiene `_labXlsVocab`**, cuyo
+comentario explica por qué existe: «el export puede traer la etiqueta larga del `<option>`
+("Leve (AVm >2.5 cm²)")» → `n.split('(')[0]`.
+
+Escenario: el médico llena el Excel a mano copiando lo que ve en la app y escribe
+`Prótesis biológica (SAVR)` en «Morfología aórtica». `_labXlsNorm` no toca los paréntesis, la lista
+devuelve `null`, y se descarta **la FILA ENTERA** —nombre, cédula, FEVI, informe—, no la celda.
+
+**Es preexistente y esta ronda lo volvió ASIMÉTRICO:** antes las cuatro columnas fallaban igual, y
+hoy tres entran y sólo la aórtica no. «La mitral entró y la aórtica no» es bastante más difícil de
+leer que «ninguna entró».
+
+**No se arregló, y la razón es de alcance:** darle el fallback a `_labXlsLista` ensancha lo que el
+importador ACEPTA desde un archivo externo, y lo hace para **todas** las columnas `opcion`, no sólo
+las morfologías. Eso es un cambio del contrato del importador, no del texto de un selector, y esta
+ronda era de texto. Mientras tanto el rechazo es diagnosticable —imprime el motivo y la lista de
+valores aceptados— aunque la diferencia entre lo que el médico escribió y lo «correcto» sean cinco
+caracteres entre paréntesis en el renglón de al lado.
+
+### El daño de un valor con sufijo es peor que el hueco del select, y por eso el `value` importa
+
+`/sharp-edges` lo desarrolló y vale registrarlo, porque es la respuesta a «cómo se comportan al
+reabrirlos». Si alguna vez existiera `campos.va_morf === 'Prótesis biológica (SAVR)'`, el
+`selectedIndex = -1` sería lo **menos** grave de tres cosas:
+
+- **`valvEsProtesis()` devolvería `false`** —compara contra la lista congelada— así que
+  `valvProtSync` esconde el bloque de prótesis y `valvProtDato`/`_protPdf` devuelven `null`: **el DVI
+  y el AT dejan de publicarse en el PDF y en el Excel, en silencio, sobre un estudio que SÍ tiene
+  prótesis**. La compuerta funcionando en contra.
+- **`_valvMorfF` caería al fallback con `toLowerCase()`** y el informe firmado imprimiría «Válvula
+  aórtica de morfología prótesis biológica (savr)» — la misma clase que «La válvula aórtica es tavi»
+  que ese mapa vino a cerrar.
+- Y la reimportación por Excel de ese estudio descartaría la fila entera.
+
+Los tres son **inalcanzables hoy**, y lo que los mantiene así es el atributo `value`.
+
+### Lo que la verificación enseñó
+
+- **La fila del Excel salió vacía y ese «sin SAVR» no probaba nada.** `capturarForm` no es alcanzable
+  como global, así que mi primera sonda le pasó `campos` en blanco a `_labExcelRow` y las cuatro
+  columnas de morfología salieron `«»`. Un cero sobre cero se lee igual que un cero real. Se rehizo
+  armando `campos` con el mismo criterio que `guardarInforme` —id → `value` del control— y declarando
+  **cuántas columnas quedaron pobladas** antes de contar: cuatro de cuatro, y cero «SAVR».
+- **TC-289 se puso rojo y ésa es la señal.** Su condición exigía «(SAVR)» en los **cuatro** selects.
+  Se reapuntó, no se borró: mantener la afirmación vieja habría empujado a devolverlo a las cuatro el
+  día que alguien «lo arreglara», que es lo que este archivo ya documenta con TC-277 y TC-288. La
+  condición mide ahora **las dos direcciones en una**: sin la mitad negativa, devolverlo a las tres
+  pasa en verde; sin la positiva, sacarlo de la aórtica también.
+- **Cuatro mutaciones, las cuatro en rojo:** devolverlo a la mitral, sacarlo de la aórtica, filtrarlo
+  al `value` de la tricúspide y ponérselo a TAVI. Las dos últimas disparan además
+  `_labXlsAssertListas` con el mensaje exacto —«la opción NO está en `LAB_XLS_LISTAS`, la
+  reimportación rechazaría la fila entera»—, o sea la segunda línea de defensa funcionando.
+- **El replace se hizo POR SELECT, acotado con un regex al `<select id="…">…</select>`.** Un replace
+  global del string se lleva la aórtica, que es justo lo que la consigna prohibía tocar — y el script
+  verifica al final que la aórtica **siga** teniendo las dos opciones, no sólo que las tres no las
+  tengan. Es la lección del renombre por sufijo que se llevó tres campos ajenos.
+
+
 ## Panel de Evidencia: el detalle largo se colapsa, y lo que NO es detalle (2026-09-27)
 
 Dos cambios de presentación sobre el panel: el texto largo pasa detrás de un «ⓘ Ver detalle» y se

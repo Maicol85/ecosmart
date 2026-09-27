@@ -32390,33 +32390,6 @@ caso('TC-288', 'AT de la protesis aortica: vive con sus vecinos de medicion, se 
   })();
 `);
 
-/* ══ CIERRE DE LA FASE 1 DE PRÓTESIS — TC-289 ════════════════════════════════════════════════
-   Tres cambios independientes, y el caso los fija por separado.
-
-   ⚠️ 1) EL CENSO DE DUPLICADOS REPLICADO A LAS OTRAS TRES VALVULAS ENCONTRO UNO REAL EN LA MITRAL,
-   y cae justo en el corte. `calcEM` clasificaba el area CRUDA mientras las TRES superficies
-   —`avm_thp`, `em_avm_thp_display` y la fila `em-thp-row`— imprimen la REDONDEADA. Medido: con un
-   THP de 146,55 ms el area cruda es 1,50119, las tres imprimen «1,50 cm²», y la cascada votaba
-   MODERADA porque `1,50119 > AVM_SEVERA_MAX`. O sea: el numero en pantalla, leido contra la escala
-   que la propia app imprime —«≤1,5 severa»—, decia severa, y el veredicto decia moderada.
-   Reproducido igual por continuidad. Es el mismo defecto que se cerro en el AVA aortica.
-   Tricuspide y Pulmonar NO tienen duplicados: `et_avt` tiene un solo escritor y coincide exacto con
-   `etEstado().avt`, y `vp_gmax` sale siempre de `vp_vmax`. El caso lo fija para que se sepa que se
-   midio y no que se asumio.
-
-   ⚠️ 2) «(SAVR)» VA EN EL SELECTOR Y NO EN EL INFORME, y el mecanismo importa: las dos opciones
-   llevan `value` explicito con el texto de antes y la ETIQUETA muestra el «(SAVR)». Asi el dato
-   persistido y las nueve superficies que lo consumen no cambian ni una letra. Eso rompe la
-   universalidad de una invariante declarada —«estos selects NO llevan value»— asi que el caso mide
-   las DOS mitades: que la etiqueta lo diga y que el valor NO lo lleve.
-
-   ⚠️ 3) EL EN SUMA NOMBRA LA PROTESIS, y la rama de disfuncion esta INERTE a proposito.
-   Hasta hoy un estudio cuyo unico hallazgo era una protesis salia «Estudio sin alteraciones
-   estructurales ni funcionales significativas»: la superficie que se lee y se copia negaba el
-   implante que el cuerpo describia. Y el predicado de la tricuspide leia `et_grado`, que `calcET`
-   deliberadamente NO escribe cuando hay significacion, asi que el EN SUMA salia «ET significativa.
-   Protesis tricuspidea biologica normofuncionante.» — las dos afirmaciones contradictorias en la
-   misma linea. Hoy consume `etEstado()`. */
 caso('TC-290', 'Protesis aortica Fase 2: la severidad sale de la Tabla 5 de la ASE 2024, exige las dos mitades, y la valvula nativa no la ve', `
   return (async () => {
     if (typeof eaProtVeredicto !== 'function' || typeof calcEADetalle !== 'function')
@@ -33067,6 +33040,42 @@ caso('TC-293', 'Panel de Evidencia: el detalle largo nace COLAPSADO, hay un solo
   return { extra: ex };
 `);
 
+/* ══ CIERRE DE LA FASE 1 DE PRÓTESIS — TC-289 ════════════════════════════════════════════════
+   Tres cambios independientes, y el caso los fija por separado.
+
+   ⚠️ 1) EL CENSO DE DUPLICADOS REPLICADO A LAS OTRAS TRES VALVULAS ENCONTRO UNO REAL EN LA MITRAL,
+   y cae justo en el corte. `calcEM` clasificaba el area CRUDA mientras las TRES superficies
+   —`avm_thp`, `em_avm_thp_display` y la fila `em-thp-row`— imprimen la REDONDEADA. Medido: con un
+   THP de 146,55 ms el area cruda es 1,50119, las tres imprimen «1,50 cm²», y la cascada votaba
+   MODERADA porque `1,50119 > AVM_SEVERA_MAX`. O sea: el numero en pantalla, leido contra la escala
+   que la propia app imprime —«≤1,5 severa»—, decia severa, y el veredicto decia moderada.
+   Reproducido igual por continuidad. Es el mismo defecto que se cerro en el AVA aortica.
+   Tricuspide y Pulmonar NO tienen duplicados: `et_avt` tiene un solo escritor y coincide exacto con
+   `etEstado().avt`, y `vp_gmax` sale siempre de `vp_vmax`. El caso lo fija para que se sepa que se
+   midio y no que se asumio.
+
+   ⚠️ 2) «(SAVR)» VA EN LA ETIQUETA DE LA AORTICA Y EN NINGUN OTRO LADO.
+   El mecanismo: las dos opciones de protesis llevan `value` explicito con el token pelado, asi que el
+   dato persistido y las nueve superficies que lo consumen no cambian ni una letra. Eso rompe la
+   universalidad de una invariante declarada —«estos selects NO llevan value»—.
+   ⚠️ EL ALCANCE SE REDUJO EL 2026-09-27 y esta nota decia lo contrario: el sufijo se puso en los
+   CUATRO selects y hoy queda SOLO en `va_morf`, porque TAVI existe unicamente ahi y el parentesis es
+   lo que distingue la via quirurgica de la percutanea. En las otras tres era ruido. No fue una
+   reversion: el cambio a «solo aortica» nunca se habia aplicado —un solo commit toco el string,
+   `35efa61`, y lo puso en los cuatro—.
+   El caso mide las DOS direcciones en una condicion: que la aortica lo lleve en la ETIQUETA, que las
+   otras tres NO lo lleven, y que el VALOR no lo lleve en ninguno. Sin la mitad negativa, devolverlo a
+   las tres pasa en verde; sin la positiva, sacarlo de la aortica tambien.
+   ⚠️ Y NINGUN ESTUDIO GUARDADO PUDO TENERLO EN EL DATO: el `value` nacio sin el sufijo en el MISMO
+   commit que la etiqueta, asi que nunca hubo una ventana en la que fuera persistible.
+
+   ⚠️ 3) EL EN SUMA NOMBRA LA PROTESIS, y la rama de disfuncion esta INERTE a proposito.
+   Hasta hoy un estudio cuyo unico hallazgo era una protesis salia «Estudio sin alteraciones
+   estructurales ni funcionales significativas»: la superficie que se lee y se copia negaba el
+   implante que el cuerpo describia. Y el predicado de la tricuspide leia `et_grado`, que `calcET`
+   deliberadamente NO escribe cuando hay significacion, asi que el EN SUMA salia «ET significativa.
+   Protesis tricuspidea biologica normofuncionante.» — las dos afirmaciones contradictorias en la
+   misma linea. Hoy consume `etEstado()`. */
 caso('TC-289', 'Cierre de la Fase 1: el area mitral se clasifica como se imprime, «(SAVR)» no sale del selector, y el EN SUMA nombra la protesis', `
   return (async () => {
     const ex = [];
@@ -33138,9 +33147,16 @@ caso('TC-289', 'Cierre de la Fase 1: el area mitral se clasifica como se imprime
         'et_avt campo=' + avtCampo + ' funcion=' + avtFn +
         ' · vp_gmax: derivado=' + gDerivado + ' tras pisarlo y corregir=' + gTrasCorregir]);
 
-      /* ── (2) «(SAVR)»: EN LA ETIQUETA Y NO EN EL VALOR ──
-         Las dos mitades en una condicion, sobre los CUATRO selects. Y TAVI NO lleva «(SAVR)»:
-         es la via percutanea, que es justo la distincion que el parentesis viene a marcar. */
+      /* ── (2) «(SAVR)»: SOLO EN LA AORTICA, Y NUNCA EN EL VALOR ──
+         ⚠️ ESTA CONDICION EXIGIA «(SAVR)» EN LOS CUATRO SELECTS Y SE REAPUNTO (2026-09-27), no se
+         borro. El parentesis existe para distinguir la via QUIRURGICA de TAVI —que tambien es una
+         bioprotesis, pero percutanea— y **TAVI solo existe como opcion en «va_morf»**: en la mitral,
+         la tricuspide y la pulmonar no hay nada con que confundirse, asi que ahi era ruido. Mantener
+         la afirmacion vieja habria empujado a devolverlo a las cuatro el dia que alguien «lo
+         arreglara», que es lo que este archivo documenta con TC-277 y TC-288.
+
+         Se miden las DOS direcciones en una condicion. Sin la mitad negativa, devolver «(SAVR)» a
+         las tres pasa en verde; sin la positiva, sacarlo de la aortica tambien. */
       const savr = {};
       ['vm_morf','va_morf','vt_morf','vp_morf'].forEach(function(id){
         const e = document.getElementById(id);
@@ -33151,11 +33167,14 @@ caso('TC-289', 'Cierre de la Fase 1: el area mitral se clasifica como se imprime
       const okSavr = Object.keys(savr).every(function(id){
         const ops = savr[id]; if (!ops || !ops.length) return false;
         return ops.every(function(o){
+          /* El VALOR nunca lleva el parentesis, en ninguno de los cuatro: es la mitad que hace que el
+             dato persistido no cambie, y por eso ningun estudio guardado pudo tener «(SAVR)» nunca. */
+          if (o.v.indexOf('SAVR') > -1) return false;
           if (o.v === 'TAVI') return o.t.indexOf('SAVR') === -1;
-          return o.v.indexOf('SAVR') === -1 && o.t.indexOf('(SAVR)') > -1;
+          return id === 'va_morf' ? o.t.indexOf('(SAVR)') > -1 : o.t.indexOf('SAVR') === -1;
         });
       });
-      ex.push(['en los cuatro selects las dos protesis quirurgicas muestran «(SAVR)» en la ETIQUETA y NO en el valor persistido, y TAVI no lo lleva porque es la via percutanea',
+      ex.push(['«(SAVR)» queda SOLO en la etiqueta de la aortica —la unica valvula con opcion TAVI— y en ninguna de las otras tres; el valor persistido nunca lo lleva, y TAVI tampoco',
         okSavr, Object.keys(savr).map(function(id){ return id + ':' +
           (savr[id] || []).map(function(o){ return '«' + o.v + '»/«' + o.t + '»'; }).join(','); }).join(' · ')]);
 
