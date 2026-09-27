@@ -35065,6 +35065,93 @@ function _indRepintarConservando(claveFoco, valFoco){
 function _indFilaCtrl(lbl, clave, ops, marca, nota){
   return { lbl:lbl, ctrl:{ clave:clave, ops:ops }, marca:marca || 'ask', nota:nota || '' };
 }
+
+/* ══ EL DATO DEL ESTUDIO, O CONTESTADO ACÁ ════════════════════════════════════════════════════
+   Hay campos que el panel necesita y que viven en la pestaña ETE. Esa pestaña es un
+   `data-mod="ete"` dentro de `.tabs-special`, y `applyViewMode()` pone esa fila entera en
+   `display:none` en Modo Básico: **el médico en Básico NO TIENE DÓNDE cargarlos**. El panel los
+   leía igual, no encontraba nada, y mostraba ❓ para siempre sin decir que el lugar donde se
+   cargan no existe en su pantalla.
+
+   Doble mecanismo: si el dato ESTÁ, se lee de su origen; si no está, se contesta acá.
+
+   ⚠️ LA LECTURA TIENE PRIORIDAD, Y NO POR CONVENCIÓN: cuando hay valor de origen el control
+   manual NI SIQUIERA SE DIBUJA. No es que la respuesta del panel se ignore — es que no hay
+   respuesta que dar. Así es imposible que el panel publique una cosa distinta de la que dice el
+   estudio, que es la forma en que una segunda fuente se convierte en una contradicción. Es el
+   mismo argumento por el que el AVm y el volumen de AI NO llevan control manual: esos campos
+   viven en pestañas básicas, el médico ya puede cargarlos, y duplicarlos sería crear la segunda
+   fuente en vez de evitarla.
+
+   NO se detecta el modo. El criterio es «¿hay valor?», que además cubre al médico en Avanzado
+   que todavía no pasó por esa pestaña, y que no depende de una preferencia que vive en
+   `localStorage` y puede cambiar entre dos aperturas del panel. */
+function _indOrigen(valorOrigen, claveManual){
+  const hay = valorOrigen != null && valorOrigen !== '';
+  return { val: hay ? valorOrigen : _indClinGet(claveManual),
+           deEstudio: hay, clave: claveManual };
+}
+/* Arma la fila según de dónde salió el dato: leída del estudio, o contestable acá.
+   `pinta(val)` devuelve `{txt, marca, nota}` y es la MISMA para los dos caminos, así que el
+   veredicto no puede depender de por dónde entró el dato — sólo se le agrega de dónde vino.
+
+   ⚠️ UN `pinta` QUE NO DEVUELVE NADA TIENE QUE FALLAR CERRADO. La primera versión hacía
+   `pinta(o.val) || {}` y seguía: con el objeto vacío, `_indFila` normaliza la marca a `none`, o
+   sea que la fila salía con la marca de «evaluado y NO cumple» —una afirmación— y el valor
+   `undefined` impreso. Es la dirección peligrosa, y sin error que mirar. Hoy cae en `ask`.
+
+   ⚠️ Y LA NOTA DEL ESTADO SIN DATO NO PUEDE SER CÓDIGO MUERTO. La versión anterior descartaba
+   `p.nota` cuando no había valor, que es exactamente cuando esa nota hace falta: las dos frases
+   que dicen DÓNDE se carga el campo —«se puntúa en ETE», «la indicación exige haber descartado
+   trombo auricular»— no se mostraban nunca. Se muestran, y recién después el aviso de que lo que
+   se contesta acá no viaja con el estudio. */
+function _indFilaOrigen(lbl, o, ops, pinta){
+  let p = null;
+  try { p = pinta(o.val); } catch (e) { p = null; }
+  const ok = p && typeof p === 'object';
+  const txt   = ok && p.txt != null ? p.txt : '—';
+  const marca = ok && p.marca ? p.marca : 'ask';
+  const nota  = ok && p.nota ? p.nota : '';
+  if (o.deEstudio) return _indFila(lbl, txt, marca, nota);
+  return _indFilaCtrl(lbl, o.clave, ops, o.val == null ? 'ask' : marca,
+    (nota ? nota + ' ' : '') +
+    '— contestado en este panel: no se guarda con el estudio' +
+    (o.val == null ? '. Si ya está cargado en su pestaña, aparece acá solo.' : '.'));
+}
+
+/* ══ PLAUSIBILIDAD: UN VALOR ILEGIBLE NO SOSTIENE NI NIEGA UN CRITERIO ════════════════════════
+   Extraído de `_indIADatos` el 2026-09-27, cuando las dos secciones mitrales necesitaron lo
+   mismo: escribirlo una tercera vez es cómo tres superficies del mismo panel empiezan a acotar
+   el mismo campo con bandas distintas —el defecto que `_indCIV` ya tiene, acotando el DDVI
+   20-90 a mano mientras la tabla dice `[20,100]`—. `_indIADatos` los consume por alias local,
+   así que su cuerpo no cambió ni un carácter.
+
+   La banda NO se escribe acá: sale de `_labRango`, el accesor MERGEADO de la app —`DCM_RANGO`
+   (lo físicamente posible, el guardián del importador DICOM) más `LAB_XLS_RANGO_PROPIO` (el del
+   Excel)—. Un solo dueño por campo. ══════════════════════════════════════════════════════════ */
+function _indBanda(k){
+  const rgF = _indFn('_labRango');
+  if (!rgF) return null;
+  let b = null;
+  try { b = rgF(k); } catch (e) { return null; }
+  /* ⚠️ UNA BANDA MALFORMADA NO PUEDE DESACTIVAR LA PLAUSIBILIDAD EN SILENCIO. Con `['a','b']` los
+     dos lados de la comparación dan `false` y todo valor pasaría como medido, que es la dirección
+     peligrosa; con los límites invertidos la fila imprimiría el rango al revés. Se exige lo que la
+     banda promete ser: dos números finitos y en orden. */
+  if (!Array.isArray(b) || b.length !== 2) return null;
+  if (!isFinite(b[0]) || !isFinite(b[1]) || !(b[0] <= b[1])) return null;
+  return b;
+}
+/* Sin banda NO se inventa una y tampoco se usa el valor para negar: es la regla 4 (falla cerrado)
+   aplicada a la plausibilidad en vez de al umbral. Los tres estados son distintos y los TRES
+   tienen que poder decirse: medido, fuera de rango, y sin banda disponible. */
+function _indLeer(id, k){
+  const x = _indN(id), b = _indBanda(k);
+  if (b == null) return { val:null, fuera:false, sinBanda:true, crudo:x };
+  if (x == null) return { val:null, fuera:false, sinBanda:false };
+  if (x < b[0] || x > b[1]) return { val:null, fuera:true, crudo:x, sinBanda:false, b:b };
+  return { val:x, fuera:false, sinBanda:false };
+}
 function _indCtrlHTML(ctrl){
   const val = _indClinGet(ctrl.clave);
   return '<div style="display:flex;flex-wrap:wrap;gap:5px;">' + ctrl.ops.map(function(o){
@@ -35101,10 +35188,11 @@ function _indFilaHTML(f){
    distintas y confundirlas es publicar una negación sobre preguntas sin contestar, que es el
    defecto que este archivo persigue desde los tres selects del TEER.
 
-   ⚠️ `alarma` ES INALCANZABLE HOY, y se declara en vez de dejar creer que alguna mutación la
-   cubre: ninguna rama de `_indEARecom` la produce. Queda —igual que los extremos redundantes
-   del contorno de 3 puntos— para que la sección que mañana tenga una contraindicación no
-   invente su propio color. Si se borra, borrar también la rama de `_indSecHTML` que la nombra. */
+   `alarma` DEJÓ DE SER INALCANZABLE el 2026-09-27: la produce `_indEMRecom` en sus dos ramas de
+   trombo —confirmado y sospecha—, que son la contraindicación condicional de la comisurotomía.
+   El comentario anterior decía que ninguna rama la producía y que se conservaba como los extremos
+   redundantes del contorno de 3 puntos; hoy está cubierta por TC-282. Lo que sigue valiendo es la
+   otra mitad: si se borra, borrar también la rama de `_indSecHTML` que la nombra. */
 const IND_RECOM_COL = { ind:'#10B981', alarma:'#DC2626', falta:'#94A3B8', no:'#94A3B8' };
 function _indRecomHTML(r){
   const col = IND_RECOM_COL[r.tipo] || IND_RECOM_COL.falta;
@@ -35152,8 +35240,9 @@ function _indRecomHTML(r){
    Un aviso también abre, porque si no la advertencia queda tapada por el propio acordeón. */
 function _indSecHTML(tit, r){
   /* Una recomendación alcanzada también abre: es lo único de la sección que puede aparecer
-     DESPUÉS del primer pintado, cuando el médico contesta. Hoy sólo la trae estenosis aórtica,
-     así que para las otras doce esta rama es un no-op. */
+     DESPUÉS del primer pintado, cuando el médico contesta. La traen las cinco secciones
+     contestables —las dos aórticas y las dos mitrales, más la alarma de trombo de la estenosis
+     mitral—; para las otras ocho esta rama sigue siendo un no-op. */
   const abrir = !!r.aviso || r.filas.some(f => f.marca === 'ok' || f.marca === 'alarm') ||
                 !!(r.recom && (r.recom.tipo === 'ind' || r.recom.tipo === 'alarma'));
   let h = '<details' + (abrir ? ' open' : '') + ' style="margin:0 0 8px;border:1px solid var(--border);border-radius:9px;background:var(--bg3);overflow:hidden;">';
@@ -35536,66 +35625,527 @@ function _indEA(){
     ] };
 }
 
+/* ══ INSUFICIENCIA MITRAL PRIMARIA — LA RECOMENDACIÓN DE LA GUÍA, SELECCIONADA ════════════════
+   Quinta sección contestable. Mismo mecanismo que las aórticas, más `_indOrigen` para el
+   MECANISMO, que vive en ETE → TEER y es inalcanzable en Modo Básico.
+
+   ⚠️ LA CLASE I NUEVA DE 2025 ES «AL MENOS TRES DE CUATRO», Y ESO NO ES UN DETALLE.
+   Verificado sobre el documento primario (Recommendation Table 6, p. 4675) y confirmado en otros
+   tres lugares del mismo documento: la Table 3 de recomendaciones nuevas, la Figura 11 y la tabla
+   resumen de Clase I de la Sección 20. Implementarla como «alguno de» convertiría cuatro filas
+   de Clase IIa en una Clase I, que es la dirección peligrosa.
+   Y tiene CUATRO condiciones más que deben cumplirse TODAS: asintomático, riesgo quirúrgico
+   BAJO, sin disfunción de VI en los TRES parámetros a la vez, y reparación duradera probable.
+   El procedimiento que nombra es REPARACIÓN quirúrgica, no reemplazo y no TEER.
+
+   ⚠️ «FIBRILACIÓN AURICULAR DE NUEVA APARICIÓN» ERA EL RÓTULO DE LA OTRA VÁLVULA. En el
+   contexto de la insuficiencia mitral primaria la guía NUNCA dice «new-onset»: el criterio es
+   «AF» dentro del tres-de-cuatro, y «AF secondary to MR» en la fila de Clase IIa. El
+   «de nueva aparición» pertenece a la ESTENOSIS mitral, donde es un disparador de riesgo
+   tromboembólico. El campo estaba además sin ninguna frase al lado, que es lo que lo delató.
+
+   Los números propios son los que la guía publica dentro de su fila: 40 mm, 20 mm/m², 60 %,
+   60 ml/m², 55 mm y 50 mmHg. NO se reusa `UMBRAL_LAVI_DILATADO` (34) ni `UMBRAL_PSAP_ELEVADA`
+   (35): son otros cortes, de otra pregunta, y fundirlos sería la colisión de dígitos que este
+   archivo ya documentó con los dos «45» de la aórtica.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+const IM_CRIT_2025 = Object.freeze({
+  dtsvi: 40,      // mm    — ≥ 40 → disfunción de VI (Clase I)
+  dtsvi_idx: 20,  // mm/m² — ≥ 20 → disfunción de VI (Clase I). NUEVO en 2025
+  fevi: 60,       // %     — ≤ 60 → disfunción de VI (Clase I)
+  lavi: 60,       // ml/m² — dilatación auricular significativa
+  ai_diam: 55,    // mm    — la otra mitad de la dilatación auricular, unidas por «o»
+  spap: 50,       // mmHg en reposo
+  tr_min: 2       // it_grado ≥ 2 → insuficiencia tricuspídea al menos moderada
+});
+const IM_REC_2025 = Object.freeze({
+  sint:       { c:'Clase I · Nivel B',
+    t:'Cirugía de la válvula mitral RECOMENDADA en el paciente sintomático con insuficiencia mitral primaria severa considerado operable por el Heart Team.' },
+  asint_dvi:  { c:'Clase I · Nivel B',
+    t:'Cirugía de la válvula mitral RECOMENDADA en el paciente asintomático con insuficiencia mitral primaria severa y disfunción del ventrículo izquierdo (diámetro telesistólico ≥ 40 mm, o telesistólico indexado ≥ 20 mm/m², o FEVI ≤ 60 %).' },
+  asint_3de4: { c:'Clase I · Nivel B',
+    t:'Reparación quirúrgica RECOMENDADA en el paciente asintomático de riesgo bajo con insuficiencia mitral primaria severa SIN disfunción ventricular, cuando es probable un resultado duradero y se cumplen AL MENOS TRES de estos cuatro criterios: fibrilación auricular; PAPs en reposo > 50 mmHg; dilatación auricular izquierda (volumen indexado ≥ 60 ml/m² o diámetro ≥ 55 mm); insuficiencia tricuspídea secundaria al menos moderada.' },
+  asint_iia:  { c:'Clase IIa · Nivel B',
+    t:'Cirugía de la válvula mitral A CONSIDERAR en el paciente asintomático con insuficiencia mitral primaria severa sin disfunción ventricular, en presencia de hipertensión pulmonar (PAPs en reposo > 50 mmHg) o de fibrilación auricular secundaria a la insuficiencia.' },
+  asint_ai:   { c:'Clase IIa · Nivel B',
+    t:'Reparación quirúrgica A CONSIDERAR en el paciente asintomático de riesgo bajo con insuficiencia mitral primaria severa sin disfunción ventricular y dilatación auricular significativa (volumen indexado ≥ 60 ml/m² o diámetro ≥ 55 mm), en un centro con experiencia y si es probable una reparación duradera.' },
+  reparar:    { c:'Clase I · Nivel B',
+    t:'La REPARACIÓN es la técnica quirúrgica recomendada en la insuficiencia mitral primaria severa cuando se espera un resultado duradero.' },
+  teer:       { c:'Clase IIa · Nivel B',
+    t:'TEER A CONSIDERAR en el paciente sintomático con insuficiencia mitral primaria severa anatómicamente apto y con riesgo quirúrgico alto según el Heart Team.' }
+});
+const IM_FUENTE = 'ESC/EACTS 2025 — tabla de recomendaciones de insuficiencia mitral primaria';
+
+function _indIMRecom(D){
+  const fal = function(txt, faltan){ return { tipo:'falta', tit:'Falta un dato para aplicar la guía', txt:txt, faltan:faltan }; };
+  const sx = _indClinGet('im.sintomas'), rq = _indClinGet('im.riesgo'), rep = _indClinGet('im.reparable');
+  /* ⚠️ LA REPARACIÓN NO SE PUBLICA CONTRA UNA RESPUESTA QUE LA CONTRADICE. El texto de esa fila
+     dice «cuando se espera un resultado duradero»: con `im.reparable` en «no» CONTESTADO, publicar
+     «La REPARACIÓN es la técnica recomendada — Clase I · Nivel B» es el defecto del TAVI sobre el
+     asintomático —titular con su clase y el reparo al pie en gris—. Con la pregunta en `null` sí
+     se publica: ahí la condición se NOMBRA, que es lo que la guía escribe dentro de su propia
+     fila. Contestada en contra, la fila deja de aplicar y se dice. */
+  const modRep = function(){
+    if (rep === 'no') return { txt:'La reparación NO se espera duradera según lo consignado, así que esa fila no aplica: la elección entre reemplazo valvular y TEER pasa al Heart Team.',
+      clase:'', fuente:IM_FUENTE,
+      nota:'La reparación es Clase I · Nivel B sólo cuando se espera un resultado duradero. El TEER es Clase IIa · Nivel B en el sintomático anatómicamente apto con riesgo quirúrgico alto.' };
+    return { txt:IM_REC_2025.reparar.t, clase:IM_REC_2025.reparar.c, fuente:IM_FUENTE,
+      nota:(rep == null ? 'Esta fila condiciona a que se espere un resultado duradero, y eso no está consignado. ' : '') +
+        'Y si el riesgo quirúrgico es alto y la anatomía es apta, el TEER es Clase IIa · Nivel B — en 2025 subió desde Clase IIb y dejó de exigir que el paciente fuera inoperable.' };
+  };
+  if (D.mec.val === 'secundaria') return { tipo:'no', tit:'Fuera del alcance de esta tabla',
+    txt:'El mecanismo consignado es SECUNDARIO (funcional). Las filas de esta sección son las de la insuficiencia mitral PRIMARIA y no gobiernan esa situación: la conducta en la secundaria depende del tratamiento médico óptimo y de la evaluación por Heart Team.' };
+  if (sx === 'si') {
+    const out = { tipo:'ind', tit:'Recomendación de la guía', txt:IM_REC_2025.sint.t, clase:IM_REC_2025.sint.c, fuente:IM_FUENTE };
+    out.mod = modRep();
+    if (D.mec.val == null) out.nota = 'El mecanismo no está consignado: estas filas son las de la insuficiencia PRIMARIA.';
+    return out;
+  }
+  if (sx == null) return fal('Los síntomas son lo que separa la Clase I del resto de la tabla.', ['Síntomas']);
+
+  /* ── Asintomático ── */
+  if (D.disf.alguno) {
+    const por = D.disf.dtsvi ? 'diámetro telesistólico ≥ ' + IM_CRIT_2025.dtsvi + ' mm'
+      : D.disf.idx ? 'telesistólico indexado ≥ ' + IM_CRIT_2025.dtsvi_idx + ' mm/m²'
+      : 'FEVI ≤ ' + IM_CRIT_2025.fevi + ' %';
+    const out = { tipo:'ind', tit:'Recomendación de la guía', txt:IM_REC_2025.asint_dvi.t, clase:IM_REC_2025.asint_dvi.c, fuente:IM_FUENTE,
+      nota:'Parámetro presente: ' + por + '. Los tres se unen con «o»: alcanza con uno.' };
+    out.mod = modRep();
+    return out;
+  }
+  if (!D.disf.todosEval) return fal('En el asintomático son el diámetro telesistólico —absoluto o indexado— y la FEVI los que separan la Clase I del resto. Con lo cargado no se puede afirmar ni descartar la disfunción ventricular.', D.disf.faltan);
+
+  /* Sin disfunción: el tres-de-cuatro, y después las dos filas de Clase IIa. */
+  const n = D.tres.cumplidos.length;
+  if (n >= 3) {
+    if (rq == null || rep == null) return fal('La Clase I del asintomático sin disfunción exige además riesgo quirúrgico BAJO y que sea probable una reparación duradera.',
+      [rq == null ? 'Riesgo quirúrgico' : null, rep == null ? 'Reparación duradera probable' : null].filter(Boolean));
+    if (rq === 'bajo' && rep === 'si') {
+      const out = { tipo:'ind', tit:'Recomendación de la guía', txt:IM_REC_2025.asint_3de4.t, clase:IM_REC_2025.asint_3de4.c, fuente:IM_FUENTE,
+        nota:'Se cumplen ' + n + ' de los cuatro criterios: ' + D.tres.cumplidos.join(', ') + '.' };
+      return out;
+    }
+  }
+  /* ⚠️ EL DISPARADOR DE ESTA FILA ES LA FA **SECUNDARIA A LA INSUFICIENCIA**, no cualquier FA.
+     Con `faSec` derivado de «hay FA» a secas, una fibrilación permanente de años por hipertensión
+     publicaba un titular que AFIRMA «fibrilación auricular secundaria a la insuficiencia» — la
+     condición declarada en la nota de la fila y dada por cumplida por la recomendación. Hoy
+     `im.fa` distingue las dos, y el tres-de-cuatro sigue contando la FA a secas, que es lo que esa
+     otra fila pide. */
+  if (D.tres.psap || D.tres.faSec) return { tipo:'ind', tit:'Recomendación de la guía', txt:IM_REC_2025.asint_iia.t, clase:IM_REC_2025.asint_iia.c, fuente:IM_FUENTE,
+    nota:(n >= 3 ? 'Se cumplen ' + n + ' de los cuatro criterios de la Clase I, pero esa fila exige además riesgo bajo y reparación duradera probable, y acá no están los dos. ' : '') +
+      'Disparador presente: ' + (D.tres.psap ? 'PAPs en reposo > ' + IM_CRIT_2025.spap + ' mmHg' : 'fibrilación auricular secundaria a la insuficiencia') + '.' };
+  /* ⚠️ LA FILA DE DILATACIÓN AURICULAR EXIGE RIESGO BAJO Y REPARACIÓN DURADERA, y su texto los
+     AFIRMA («en el paciente asintomático de riesgo bajo … y si es probable una reparación
+     duradera»). La rama del tres-de-cuatro, cuatro líneas más arriba, sí los exige; ésta los
+     nombraba en una nota gris y publicaba la Clase IIa igual. */
+  if (D.tres.ai) {
+    if (rq == null || rep == null) return fal('La fila de dilatación auricular del asintomático exige riesgo quirúrgico BAJO y que sea probable una reparación duradera.',
+      [rq == null ? 'Riesgo quirúrgico' : null, rep == null ? 'Reparación duradera probable' : null].filter(Boolean));
+    if (rq === 'bajo' && rep === 'si') return { tipo:'ind', tit:'Recomendación de la guía', txt:IM_REC_2025.asint_ai.t, clase:IM_REC_2025.asint_ai.c, fuente:IM_FUENTE,
+      nota:'Dilatación auricular significativa, riesgo bajo y reparación duradera probable. La guía pide además un centro con experiencia.' };
+    return { tipo:'no', tit:'Sin criterio de intervención',
+      txt:'Hay dilatación auricular significativa, pero la fila que la usa exige riesgo quirúrgico bajo Y que sea probable una reparación duradera, y eso no se cumple con lo consignado. Corresponde vigilancia en un centro con experiencia.',
+      nota:'Riesgo quirúrgico: ' + (rq === 'bajo' ? 'bajo' : 'no bajo') + '. Reparación duradera probable: ' + (rep === 'si' ? 'sí' : 'no') + '.' };
+  }
+  if (!D.tres.todosEval) return fal('Sin disfunción ventricular, lo que queda son los cuatro criterios del tres-de-cuatro y las dos filas de Clase IIa. Alguno no se pudo evaluar.', D.tres.faltan);
+  /* ⚠️ EL TEXTO NO PUEDE NEGAR LOS CUATRO CRITERIOS CUANDO UNO ESTÁ PRESENTE. El único camino que
+     llega acá con `n >= 1` es la insuficiencia tricuspídea aislada —FA, PAPs y dilatación
+     auricular rutean antes—, y ahí la fila de arriba mostraba ✅ «uno de los cuatro criterios»
+     mientras esta línea decía «sin ninguno de los cuatro». */
+  return { tipo:'no', tit:'Sin criterio de intervención',
+    txt: n === 0
+      ? 'Asintomático, sin disfunción ventricular y sin ninguno de los cuatro criterios de la fila de Clase I ni de las dos de Clase IIa. Corresponde vigilancia en un centro con experiencia.'
+      : 'Asintomático, sin disfunción ventricular y con ' + n + ' de los cuatro criterios (' + D.tres.cumplidos.join(', ') + '), que no alcanza ni para la Clase I —que pide al menos tres— ni para ninguna de las dos filas de Clase IIa. Corresponde vigilancia en un centro con experiencia.' };
+}
+
 /* ── Insuficiencia mitral primaria ─────────────────────────────────────────────────────────
    Gatea por `im_sev_final === '4'` y NO por 3: el valor 3 es «Moderada-severa» y el 4 es
-   «Severa». El pedido original decía «severa (im_sev_final=3)» — se verificó contra el `<select>`
-   y contra `_labRegurgSev`, que mapea el 3 a «Moderada».
+   «Severa». El pedido original decía «severa (im_sev_final=3)» — se verificó contra las opciones
+   reales del desplegable y contra `_labRegurgSev`, que mapea el 3 a «Moderada».
 
-   El MECANISMO no es compuerta, es una FILA. El único campo que registra primaria vs secundaria
-   es `teer_tipo_im`, y vive dentro del bloque TEER de la pestaña ETE —evaluación de Heart Team
-   para reparación percutánea—, así que arranca vacío y la enorme mayoría de los estudios con IM
-   severa nunca lo tocan. Gatear por él habría hecho que un prolapso con IM severa no viera nada
-   y sin decir por qué. Decisión de Maicol, 2026-09-11: mostrar y declarar. */
+   ⚠️ Y ESE MISMO CAMPO LO LEE AHORA `_indEM` CON OTRO CORTE: la insuficiencia mitral «más que
+   leve» es contraindicación de la comisurotomía percutánea, o sea `>= 2`. Son dos preguntas
+   distintas sobre la misma escala —«¿es severa?» y «¿es más que leve?»— y no se unifican. Si la
+   numeración del desplegable cambia, se mueven las dos. */
 function _indIM(){
   if (_indS('im_sev_final') !== '4') return null;
   const UF = _indUmb('UMBRAL_FEVI_NORMAL');
-  const fevi = _indN('fevi'), dsf = _indN('dsfvi'), aiVol = _indN('ai_vol');
-  const getBsa = _indFn('getBSA');
-  const bsa = getBsa ? getBsa() : null;
-  const lavi = (aiVol != null && bsa != null && bsa > 0) ? aiVol / bsa : null;
-  const mec = _indS('teer_tipo_im');
+  /* ⚠️ LAS MEDICIONES PASAN POR SU BANDA DE PLAUSIBILIDAD, Y LA SUPERFICIE CORPORAL ES LA QUE MÁS
+     DAÑO HACE. `fevi` y `dsfvi` fuera de rango sólo RETIENEN una conclusión; la BSA es el
+     DENOMINADOR del criterio indexado, así que su error lo FABRICA y lo BORRA. Medido: con un
+     DTSVI de 34 mm, talla 170 y un peso de 40 tipeado por 80, el indexado pasa de 17,5 a 24,8 y el
+     panel publicaba «Cirugía RECOMENDADA — Clase I · Nivel B» donde no la hay. Y un DTSVI tipeado
+     en centímetros —4,2 por 42— daba `4.2 >= 40` falso, o sea que la fila imprimía «no alcanza
+     40 mm»: una AFIRMACIÓN de normalidad sobre basura, con los tres parámetros contando como
+     evaluados y la cascada siguiendo hasta «Sin criterio de intervención».
+     El corte indexado de la IM (20 mm/m²) es MÁS BAJO que el de la IAo (25), así que el error de
+     un orden de magnitud en el peso lo alcanza más fácil que allá, donde ya está medido. */
+  const fev = _indLeer('fevi', 'fevi'), dsfL = _indLeer('dsfvi', 'dsfvi');
+  const aiVolL = _indLeer('ai_vol', 'ai_vol'), aiDiamL = _indLeer('ai_diam', 'ai_diam');
+  const pes = _indLeer('peso', 'peso'), tal = _indLeer('talla', 'talla');
+  const bsaFuera = pes.fuera || tal.fuera, bsaSinBanda = pes.sinBanda || tal.sinBanda;
+  const getBsa = _indFn('getBSA'); let _bsa = null;
+  try { if (getBsa && !bsaFuera && !bsaSinBanda) _bsa = getBsa(); } catch (e) { _bsa = null; }
+  const bsa = (_bsa != null && isFinite(_bsa) && _bsa > 0) ? _bsa : null;
+  const fevi = fev.val, dsf = dsfL.val, aiVol = aiVolL.val, aiDiam = aiDiamL.val;
+  /* ⚠️ `psap_calc` NO TIENE BANDA EN LA TABLA DE RANGOS, y no se le inventa una: la regla de esta
+     casa es declararlo, no deducirlo. Si se lo pasara por `_indLeer` quedaría `sinBanda` y su
+     criterio se apagaría PARA SIEMPRE —el criterio existiría y no haría nada, que es el modo de
+     falla silencioso de este diseño—. Se lee crudo y la fila lo dice. */
+  const psap = _indN('psap_calc');
+  /* ⚠️ `it_grado` EN 0 ES «VALORADA COMO NORMAL», NO «NADIE LA MIRÓ». Es la regla que este archivo
+     ya fijó —y revirtió el intento contrario— el 2026-09-16: en esta app el médico marca sólo lo
+     que el paciente tiene, así que el valor de fábrica ES un grado. Leerlo como ausencia le pedía
+     al médico un dato que el estudio ya da, y dejaba la rama «Sin criterio de intervención»
+     prácticamente inalcanzable justo para el paciente más común de la sección. El hueco de verdad
+     —la cadena vacía, que sólo puede venir de un import sin esa columna— sí es «no consignada». */
+  const itRaw = _indS('it_grado');
+  const itG = (itRaw === '' || itRaw == null) ? null : (parseInt(itRaw, 10) || 0);
+  const lavi = (aiVol != null && bsa != null) ? aiVol / bsa : null;
+  const dsfi = (dsf != null && bsa != null) ? dsf / bsa : null;
 
+  /* Las tres razones por las que una medición queda sin evaluar, cada una con su nombre: el dato
+     no está, el dato está y es ilegible, o la banda que decide si es legible no cargó. Un «falta la
+     FEVI» sobre un campo lleno manda a revisar lo que está sano. */
+  const porQue = function(L, lbl, dec, uni){
+    return L.fuera ? 'el valor cargado (' + _indNum(L.crudo, dec) + ') está fuera de rango medible ('
+        + L.b[0] + '–' + L.b[1] + ' ' + uni + ') — revisar la unidad: un valor ilegible no sostiene ni descarta el criterio'
+      : L.sinBanda ? 'no se pudo cargar la banda de plausibilidad de ' + lbl + ' — recargar la aplicación'
+      : 'sin medir';
+  };
+
+  /* Mecanismo: leído de ETE → TEER, o contestado acá.
+     ⚠️ SIN `|| null`: `_indOrigen` ya trata la cadena vacía como ausencia, y ese operador es la
+     forma de convertir un `0` legítimo en «no hay dato» el día que el campo de origen sea
+     numérico — o sea de dibujar un control manual al lado de un campo del estudio que SÍ tiene
+     valor, que es la segunda fuente que el helper existe para evitar. */
+  const oMec = _indOrigen(_indS('teer_tipo_im'), 'im.mecanismo');
   const filas = [
-    _indFila('Mecanismo', mec === 'primaria' ? 'Primaria (orgánica)' : (mec === 'secundaria' ? 'Secundaria (funcional)' : 'No consignado'),
-      mec === 'primaria' ? 'ok' : (mec === 'secundaria' ? 'warn' : 'ask'),
-      mec === 'primaria' ? 'los umbrales de abajo le corresponden'
-      : mec === 'secundaria' ? 'los umbrales de abajo son de IM PRIMARIA y no se aplican a ésta'
-      : 'se registra en ETE → TEER · sin él no se puede afirmar que los umbrales de abajo correspondan'),
+    _indFilaOrigen('Mecanismo', oMec, [{v:'primaria',t:'Primaria'},{v:'secundaria',t:'Secundaria'}],
+      function(val){ return {
+        txt: val === 'primaria' ? 'Primaria (orgánica)' : (val === 'secundaria' ? 'Secundaria (funcional)' : 'No consignado'),
+        marca: val === 'primaria' ? 'ok' : (val === 'secundaria' ? 'warn' : 'ask'),
+        nota: val === 'primaria' ? 'los umbrales de abajo le corresponden'
+        : val === 'secundaria' ? 'los umbrales de abajo son de insuficiencia PRIMARIA y no se aplican a ésta'
+        : 'se registra en ETE → TEER · sin él no se puede afirmar que los umbrales de abajo correspondan' }; }),
     _indFila('Grado de insuficiencia mitral', 'Severa', 'ok', 'severidad confirmada en el estudio')
   ];
-  /* FEVI ≤ 60 % y DTSI ≥ 40 mm son los DOS criterios Clase I del asintomático, con esos
-     operadores. El pedido traía «FEVI < 60 %» y «DTSI > 45 mm»: el 45 es el valor de la ESC
-     2017, que la propia guía de 2021 imprime en su tabla de recomendaciones revisadas al
-     bajarlo a ≥ 40. Con la versión anterior, un DTSI de 42 mm —que la guía opera— salía como
-     «40–45 mm» sin cumplir nada, y una FEVI de exactamente 60 % tampoco disparaba. */
-  filas.push(UF == null ? _indSinUmbral('FEVI')
-    : _indFila('FEVI', _indNum(fevi, 0, '%'),
-        _lt(fevi, UF) ? 'alarm' : (_le(fevi, 60) ? 'ok' : (fevi != null ? 'none' : 'ask')),
-        _lt(fevi, UF) ? '≤ 60 % — criterio de cirugía; además disfunción sistólica establecida (< ' + UF + ' %)'
-        : _le(fevi, 60) ? '≤ 60 % — criterio de cirugía Clase I'
-        : fevi != null ? 'conservada (> 60 %)' : 'sin medir'));
-  filas.push(_indFila('DTSI — diámetro telesistólico del VI', _indNum(dsf, 0, 'mm'),
-    _ge(dsf, 40) ? 'ok' : (dsf != null ? 'none' : 'ask'),
-    _ge(dsf, 40) ? '≥ 40 mm — criterio de cirugía Clase I' : (dsf != null ? 'no alcanza 40 mm' : 'sin medir')));
-  filas.push(_indFila('Volumen AI indexado', _indNum(lavi, 1, 'ml/m²'),
-    _ge(lavi, 60) ? 'warn' : (lavi != null ? 'none' : 'ask'),
-    _ge(lavi, 60) ? '≥ 60 ml/m² — dilatación significativa: entra en la Clase IIa, no en la I' : (lavi != null ? 'no alcanza 60 ml/m²' : 'requiere volumen de AI, peso y talla')));
+  /* ⚠️ LA FILA DE FEVI NO SE APAGA POR `UMBRAL_FEVI_NORMAL`. El criterio de la guía es el 60 % de
+     `IM_CRIT_2025`, que es una constante propia y siempre está; `UF` sólo aporta la frase de
+     «disfunción sistólica establecida». Reemplazar la fila entera por `_indSinUmbral` cuando falta
+     `UF` apagaba la fila por un umbral que usa para un dato secundario, mientras `disf.fevi`
+     seguía calculándose y podía publicar la Clase I. */
+  filas.push(_indFila('FEVI', _indNum(fevi, 0, '%'),
+      _le(fevi, IM_CRIT_2025.fevi) ? 'ok' : (fevi != null ? 'none' : 'ask'),
+      (UF != null && _lt(fevi, UF)) ? '≤ ' + IM_CRIT_2025.fevi + ' % — criterio de disfunción (Clase I); además disfunción sistólica establecida (< ' + UF + ' %)'
+      : _le(fevi, IM_CRIT_2025.fevi) ? '≤ ' + IM_CRIT_2025.fevi + ' % — criterio de disfunción ventricular, Clase I · Nivel B'
+      : fevi != null ? 'conservada (> ' + IM_CRIT_2025.fevi + ' %)' : porQue(fev, 'la FEVI', 0, '%')));
+  filas.push(_indFila('DTSVI — diámetro telesistólico del VI', _indNum(dsf, 0, 'mm'),
+    _ge(dsf, IM_CRIT_2025.dtsvi) ? 'ok' : (dsf != null ? 'none' : 'ask'),
+    _ge(dsf, IM_CRIT_2025.dtsvi) ? '≥ ' + IM_CRIT_2025.dtsvi + ' mm — criterio de disfunción ventricular, Clase I · Nivel B'
+    : (dsf != null ? 'no alcanza ' + IM_CRIT_2025.dtsvi + ' mm' : porQue(dsfL, 'el diámetro telesistólico', 1, 'mm'))));
+  filas.push(_indFila('DTSVI indexado', _indNum(dsfi, 1, 'mm/m²'),
+    _ge(dsfi, IM_CRIT_2025.dtsvi_idx) ? 'ok' : (dsfi != null ? 'none' : 'ask'),
+    _ge(dsfi, IM_CRIT_2025.dtsvi_idx) ? '≥ ' + IM_CRIT_2025.dtsvi_idx + ' mm/m² — criterio de disfunción ventricular, NUEVO en la edición 2025'
+    : dsfi != null ? 'no alcanza ' + IM_CRIT_2025.dtsvi_idx + ' mm/m²'
+    : bsaFuera ? 'el peso o la talla cargados están fuera de rango medible, así que no se puede indexar — revisar la unidad'
+    : bsaSinBanda ? 'no se pudo cargar la banda de plausibilidad de peso y talla — recargar la aplicación'
+    : 'requiere el diámetro telesistólico, peso y talla'));
+  /* La dilatación auricular tiene DOS formas unidas por «o», igual que la aorta de la IAo: el
+     volumen indexado y el diámetro. Leer una sola dejaría afuera al paciente que tiene la otra. */
+  const aiDil = _ge(lavi, IM_CRIT_2025.lavi) || _ge(aiDiam, IM_CRIT_2025.ai_diam);
+  const aiIleg = aiVolL.fuera || aiDiamL.fuera;
+  filas.push(_indFila('Aurícula izquierda',
+    (lavi != null ? _indNum(lavi, 1, 'ml/m²') : '—') + (aiDiam != null ? ' · ' + _indNum(aiDiam, 0, 'mm') : ''),
+    aiDil ? 'ok' : ((lavi != null || aiDiam != null) ? 'none' : 'ask'),
+    aiDil ? 'dilatación significativa (≥ ' + IM_CRIT_2025.lavi + ' ml/m² o ≥ ' + IM_CRIT_2025.ai_diam + ' mm) — uno de los cuatro criterios de la Clase I, y por sí sola una fila de Clase IIa'
+    : (lavi != null || aiDiam != null) ? 'no alcanza ' + IM_CRIT_2025.lavi + ' ml/m² ni ' + IM_CRIT_2025.ai_diam + ' mm'
+    : aiIleg ? 'el volumen o el diámetro cargados están fuera de rango medible — revisar la unidad'
+    : 'requiere volumen de AI (con peso y talla) o diámetro AP'));
+  filas.push(_indFila('PAPs en reposo', _indNum(psap, 0, 'mmHg'),
+    _gt(psap, IM_CRIT_2025.spap) ? 'ok' : (psap != null ? 'none' : 'ask'),
+    _gt(psap, IM_CRIT_2025.spap) ? '> ' + IM_CRIT_2025.spap + ' mmHg — uno de los cuatro criterios, y por sí solo una fila de Clase IIa'
+    : psap != null ? 'no supera ' + IM_CRIT_2025.spap + ' mmHg · este campo no tiene banda de plausibilidad declarada en la app, así que el valor se toma como viene'
+    : 'sin estimar'));
+  /* ⚠️ La guía dice insuficiencia tricuspídea SECUNDARIA. `it_grado` no distingue primaria de
+     secundaria, así que el grado se lee y la condición de mecanismo se declara. */
+  filas.push(_indFila('Insuficiencia tricuspídea',
+    itG == null ? 'No consignada' : (itG === 0 ? 'Sin insuficiencia' : ['—','Leve','Moderada','Moderada-severa','Severa'][itG]),
+    (itG != null && itG >= IM_CRIT_2025.tr_min) ? 'ok' : (itG != null ? 'none' : 'ask'),
+    (itG != null && itG >= IM_CRIT_2025.tr_min) ? 'al menos moderada — uno de los cuatro criterios. La guía pide que sea SECUNDARIA, y ese matiz no lo registra esta aplicación'
+    : itG === 0 ? 'sin insuficiencia: en esta app no marcar la válvula significa valorada como normal, así que cuenta como criterio evaluado y negativo'
+    : itG != null ? 'no alcanza el grado moderado'
+    : 'la columna del grado no vino en este estudio'));
 
+  const _sx = _indClinGet('im.sintomas'), _fa = _indClinGet('im.fa');
+  const _rq = _indClinGet('im.riesgo'), _rep = _indClinGet('im.reparable');
+  const clinica = [
+    _indFilaCtrl('Síntomas', 'im.sintomas', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      _sx === 'si' ? 'ok' : (_sx === 'no' ? 'none' : 'ask'),
+      _sx === 'si' ? 'Clase I · Nivel B en el paciente operable, con independencia de los números de arriba'
+      : _sx === 'no' ? 'el asintomático entra por la disfunción ventricular o por el tres-de-cuatro'
+      : 'sin esto no se puede separar la Clase I del resto de la tabla'),
+    /* ⚠️ TRES ESTADOS Y NO DOS, Y LA RAZÓN ES CLÍNICA: la guía usa la fibrilación auricular en DOS
+       filas distintas y con dos definiciones. En el tres-de-cuatro es «AF» a secas; en la fila de
+       Clase IIa es «AF SECONDARY TO MR», y el texto que se publica lo afirma. Con un sí/no, una
+       fibrilación permanente de años por hipertensión disparaba esa Clase IIa con un titular que
+       decía «secundaria a la insuficiencia».
+       SIN «DE NUEVA APARICIÓN»: ver la cabecera — ese rótulo es el de la estenosis mitral. */
+    _indFilaCtrl('Fibrilación auricular', 'im.fa',
+      [{v:'si_sec',t:'Sí — secundaria a la IM'},{v:'si_otra',t:'Sí — de otra causa'},{v:'no',t:'No'}],
+      (_fa === 'si_sec' || _fa === 'si_otra') ? 'ok' : (_fa === 'no' ? 'none' : 'ask'),
+      _fa === 'si_sec' ? 'cuenta como uno de los cuatro criterios de la Clase I, y por ser SECUNDARIA a la insuficiencia es además por sí sola una fila de Clase IIa · Nivel B'
+      : _fa === 'si_otra' ? 'cuenta como uno de los cuatro criterios de la Clase I; la fila de Clase IIa exige que la fibrilación sea SECUNDARIA a la insuficiencia, y ésta no lo es'
+      : _fa === 'no' ? 'no aporta ninguno de los dos criterios'
+      : 'la guía la usa en dos filas con dos definiciones distintas, así que hace falta saber si es secundaria a la insuficiencia'),
+    _indFilaCtrl('Riesgo quirúrgico', 'im.riesgo', [{v:'bajo',t:'Bajo'},{v:'no_bajo',t:'No bajo'}],
+      _rq === 'bajo' ? 'ok' : (_rq === 'no_bajo' ? 'none' : 'ask'),
+      'la Clase I del tres-de-cuatro y la fila de dilatación auricular exigen riesgo BAJO'),
+    _indFilaCtrl('Reparación duradera probable', 'im.reparable', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      _rep === 'si' ? 'ok' : (_rep === 'no' ? 'none' : 'ask'),
+      'es condición de la Clase I del tres-de-cuatro, de la fila de dilatación auricular y de que la reparación sea la técnica recomendada; la decide el equipo, no el ecocardiograma')
+  ];
+
+  const disf = { dtsvi:_ge(dsf, IM_CRIT_2025.dtsvi), idx:_ge(dsfi, IM_CRIT_2025.dtsvi_idx),
+                 fevi:(fevi != null && _le(fevi, IM_CRIT_2025.fevi)) };
+  disf.alguno = disf.dtsvi || disf.idx || disf.fevi;
+  disf.faltan = [];
+  if (dsf == null) disf.faltan.push('Diámetro telesistólico del VI: ' + porQue(dsfL, 'el diámetro telesistólico', 1, 'mm'));
+  if (dsfi == null && dsf != null) disf.faltan.push(
+    bsaFuera ? 'El peso o la talla cargados están fuera de rango medible, así que no se puede indexar el diámetro — revisar la unidad'
+    : bsaSinBanda ? 'Superficie corporal: no se pudo cargar la banda de plausibilidad de peso y talla — recargar la aplicación'
+    : 'Superficie corporal (peso y talla) para indexar el diámetro');
+  if (fevi == null) disf.faltan.push('FEVI del estudio: ' + porQue(fev, 'la FEVI', 0, '%'));
+  disf.todosEval = disf.faltan.length === 0;
+
+  const tres = { fa:(_fa === 'si_sec' || _fa === 'si_otra'), psap:_gt(psap, IM_CRIT_2025.spap),
+                 ai:aiDil, tr:(itG != null && itG >= IM_CRIT_2025.tr_min) };
+  /* El disparador de la fila de Clase IIa es la fibrilación SECUNDARIA; el del tres-de-cuatro es
+     la fibrilación a secas. Son dos booleanos distintos y no pueden volver a ser el mismo. */
+  tres.faSec = (_fa === 'si_sec');
+  tres.cumplidos = [];
+  if (tres.fa)   tres.cumplidos.push('fibrilación auricular');
+  if (tres.psap) tres.cumplidos.push('PAPs > ' + IM_CRIT_2025.spap + ' mmHg');
+  if (tres.ai)   tres.cumplidos.push('dilatación auricular');
+  if (tres.tr)   tres.cumplidos.push('insuficiencia tricuspídea ≥ moderada');
+  tres.faltan = [];
+  if (_fa == null) tres.faltan.push('Fibrilación auricular');
+  if (psap == null) tres.faltan.push('PAPs en reposo');
+  if (lavi == null && aiDiam == null) tres.faltan.push(
+    aiIleg ? 'Aurícula izquierda: el volumen o el diámetro cargados están fuera de rango medible — revisar la unidad'
+    : 'Aurícula izquierda (volumen indexado o diámetro)');
+  if (itG == null) tres.faltan.push('Grado de insuficiencia tricuspídea');
+  tres.todosEval = tres.faltan.length === 0;
+
+  const ileg = [];
+  if (fev.fuera)     ileg.push('la FEVI');
+  if (dsfL.fuera)    ileg.push('el diámetro telesistólico');
+  if (aiVolL.fuera)  ileg.push('el volumen de aurícula izquierda');
+  if (aiDiamL.fuera) ileg.push('el diámetro de aurícula izquierda');
+  if (bsaFuera)      ileg.push('el peso o la talla');
+  const D = { mec:oMec, disf:disf, tres:tres };
   return { filas: filas,
-    aviso: mec === 'primaria' ? '' :
-      (mec === 'secundaria'
-        ? 'El mecanismo registrado es SECUNDARIO (funcional). Los umbrales de esta sección son los de la insuficiencia mitral PRIMARIA y no gobiernan esta situación: la conducta en la secundaria depende del tratamiento médico óptimo y de la evaluación por Heart Team.'
-        : 'El mecanismo (primaria / secundaria) no está consignado. Se registra en ETE → TEER. Los umbrales de esta sección son los de la insuficiencia mitral PRIMARIA.'),
-    clinica: [
-      _indFila('Síntomas (clase funcional NYHA)', '—', 'ask', 'con síntomas la cirugía es Clase I con independencia de los números de arriba'),
-      _indFila('Fibrilación auricular de nueva aparición', '—', 'ask', '')
-    ],
-    guia: 'ESC/EACTS 2021 — Cirugía Clase I B en el paciente sintomático operable y de riesgo no alto, y en el asintomático con FEVI ≤ 60 % o DTSI ≥ 40 mm.',
+    aviso: oMec.val === 'secundaria'
+      ? 'El mecanismo registrado es SECUNDARIO (funcional). Los umbrales de esta sección son los de la insuficiencia mitral PRIMARIA y no gobiernan esa situación.'
+      : ileg.length
+        ? 'Hay valores fuera de rango medible (' + ileg.join(', ') + '): no sostienen ni descartan ningún criterio. Revisar la unidad.'
+        : (oMec.val == null ? 'El mecanismo (primaria / secundaria) no está consignado. Los umbrales de esta sección son los de la insuficiencia mitral PRIMARIA.' : ''),
+    clinica: clinica,
+    recom: _indIMRecom(D),
+    guia: 'ESC/EACTS 2025 — Cirugía Clase I · Nivel B en el paciente sintomático operable, y en el asintomático con disfunción ventricular: diámetro telesistólico ≥ 40 mm, o indexado ≥ 20 mm/m², o FEVI ≤ 60 %.',
     notas: [
-      'El corte de 45 mm es el de la ESC 2017. La guía de 2021 lo bajó a ≥ 40 mm y lo declara en su propia tabla de recomendaciones revisadas.',
-      'La dilatación auricular (índice de volumen ≥ 60 ml/m² o diámetro ≥ 55 mm) es Clase IIa B, no I, y sólo en asintomáticos de bajo riesgo con FEVI > 60 % y DTSI < 40 mm, en un centro experto y con reparación duradera probable.',
-      'La ESC/EACTS 2025 reemplaza a la de 2021: agrega el DTSI indexado ≥ 20 mm/m² a la Clase I y una Clase I nueva con función preservada cuando concurren tres de cuatro (FA, PAPs en reposo > 50 mmHg, dilatación auricular, insuficiencia tricuspídea secundaria al menos moderada).'
+      'El diámetro telesistólico INDEXADO ≥ 20 mm/m² es criterio nuevo de la edición 2025: la de 2021 sólo tenía el absoluto. El corte de 45 mm que a veces se cita es el de la ESC 2017.',
+      'La Clase I nueva de 2025 exige AL MENOS TRES de los cuatro criterios —fibrilación auricular, PAPs en reposo > 50 mmHg, dilatación auricular (≥ 60 ml/m² o ≥ 55 mm) e insuficiencia tricuspídea secundaria al menos moderada— y además riesgo bajo, ausencia de disfunción en los tres parámetros y reparación duradera probable. Con uno o dos criterios la conducta baja a Clase IIa.',
+      'La dilatación auricular por sí sola, y la hipertensión pulmonar o la fibrilación secundaria a la insuficiencia por sí solas, son filas de Clase IIa · Nivel B, no de Clase I. La fila de dilatación auricular exige además riesgo bajo, centro con experiencia y reparación duradera probable.',
+      'El TEER en la insuficiencia primaria subió en 2025 a Clase IIa · Nivel B para el sintomático anatómicamente apto con riesgo quirúrgico alto: dejó de exigir que el paciente fuera inoperable.',
+      'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
     ] };
+}
+
+/* ══ ESTENOSIS MITRAL — LA RECOMENDACIÓN DE LA GUÍA, SELECCIONADA ═════════════════════════════
+   Cuarta sección contestable, mismo mecanismo que las dos aórticas, más el DOBLE MECANISMO de
+   `_indOrigen` para los dos campos que viven en la pestaña ETE (score y trombo de orejuela).
+
+   ⚠️ TRES COSAS QUE EL «CORTE CLÁSICO DE WILKINS» TIENE MAL, Y LAS TRES CAMBIAN LA CONDUCTA.
+   Verificado sobre el documento primario (Recommendation Table 8, p. 4682, nota ^c):
+   1. La guía NO dice «Wilkins». Dice «echocardiographic score», deliberadamente: el apellido
+      aparece una sola vez en las 102 páginas, como referencia bibliográfica.
+   2. El operador es «> 8», así que un score de EXACTAMENTE 8 no es desfavorable.
+   3. **UN SCORE > 8 NO ALEJA DEL PROCEDIMIENTO.** Es UNA de varias características
+      desfavorables —repartidas en clínicas y anatómicas— y la regla de agregación que la guía
+      usa es «several of the following», SIN cuantificar. Un score > 8 con lo clínico favorable
+      rutea a la fila de Clase IIa («suboptimal anatomy but no unfavourable clinical
+      characteristics»), no fuera de la comisurotomía. Implementar «> 8 → contraindicada» sería
+      inventar una regla que el documento se cuidó de no escribir.
+
+   ⚠️ Y EL TROMBO DE OREJUELA NO ES CONTRAINDICACIÓN ABSOLUTA. La tabla de contraindicaciones
+   dice «LA thrombus» a secas, pero su nota ^b dice que CUANDO ESTÁ EN LA OREJUELA la
+   comisurotomía puede considerarse en quien tiene contraindicación quirúrgica o no tiene
+   urgencia, con anticoagulación 1-3 meses y un ETE de control que confirme la resolución. El
+   campo de esta app (`oai_trombo`) es justamente el de la OREJUELA, así que el panel decía
+   «contraindicación ABSOLUTA» sobre la única localización que la guía trata como condicional.
+
+   Los únicos números propios son los que la guía publica dentro de la fila que los usa y que la
+   app no tenía: el 8 del score y los 50 mmHg de PAPs en reposo. El área sale de
+   `AVM_SEVERA_MAX`, que ya gobierna la pantalla y el informe.
+
+   ⚠️ DOS DE ESTAS AFIRMACIONES SE VERIFICARON POR UNA SOLA VÍA, Y HAY QUE SABERLO: el «score > 8»
+   y la condicionalidad del trombo de OREJUELA viven en las NOTAS AL PIE de la tabla del texto
+   completo (notas ^c y ^b, p. 4682). El juego de diapositivas oficial reproduce las tablas SIN
+   las leyendas de sus notas al pie —comprobado: «echocardiographic score» no aparece en las 105
+   diapositivas ni en el Essential Messages—, así que la segunda ruta no pudo ni confirmarlas ni
+   desmentirlas. No es una discrepancia: es una ausencia. Todo lo demás de esta sección coincidió
+   dígito por dígito entre las dos rutas.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+const EM_CRIT_2025 = Object.freeze({
+  score_desfav: 8,   // «echocardiographic score >8» — UNA de las características anatómicas
+  spap_decomp: 50    // mmHg en reposo — riesgo de descompensación hemodinámica (fila del asintomático)
+});
+const EM_REC_2025 = Object.freeze({
+  sint_fav:    { c:'Clase I · Nivel B',
+    t:'Comisurotomía mitral percutánea RECOMENDADA en el paciente sintomático, en ausencia de características desfavorables para el procedimiento.' },
+  sint_riesgo: { c:'Clase I · Nivel C',
+    t:'Comisurotomía mitral percutánea RECOMENDADA en cualquier paciente sintomático con contraindicación quirúrgica o riesgo quirúrgico alto.' },
+  sint_cx:     { c:'Clase I · Nivel C',
+    t:'Cirugía de la válvula mitral RECOMENDADA en el paciente sintomático que no es candidato a comisurotomía percutánea.' },
+  sint_subopt: { c:'Clase IIa · Nivel C',
+    t:'Comisurotomía mitral percutánea A CONSIDERAR como tratamiento inicial en el paciente sintomático con anatomía subóptima pero sin características clínicas desfavorables.' },
+  asint:       { c:'Clase IIa · Nivel C',
+    t:'Comisurotomía mitral percutánea A CONSIDERAR en el paciente asintomático sin características clínicas ni anatómicas desfavorables y con riesgo embólico alto (embolia sistémica previa, contraste espontáneo denso en la aurícula, fibrilación auricular de nueva aparición o paroxística) y/o riesgo alto de descompensación hemodinámica (PAPs en reposo > 50 mmHg, necesidad de cirugía mayor no cardíaca, embarazo o deseo de embarazo).' }
+});
+const EM_FUENTE = 'ESC/EACTS 2025 — tabla de recomendaciones de estenosis mitral';
+
+function _indEMRecom(D){
+  const fal = function(txt, faltan){ return { tipo:'falta', tit:'Falta un dato para aplicar la guía', txt:txt, faltan:faltan }; };
+  const sx = _indClinGet('em.sintomas'), clin = _indClinGet('em.clin'), emb = _indClinGet('em.embolico');
+  const rq = _indClinGet('em.riesgo'), dec = _indClinGet('em.decomp');
+
+  /* ── LAS CONTRAINDICACIONES SE EVALÚAN PRIMERO Y CORTAN ──
+     Publicar una indicación sobre una anatomía que la guía excluye es la cascada fail-open que
+     este archivo persigue.
+     ⚠️ SIN UMBRAL DE ÁREA NO SE CONCLUYE. La versión anterior comparaba con `>` crudo, donde
+     `avmMax > null` es `avmMax > 0`, o sea VERDADERO para cualquier área: el panel publicaba
+     «La mayor de las áreas medidas supera — cm², que es una contraindicación» al lado de una fila
+     que decía «umbral no disponible». Lo que lo cierra es el `return` de la línea siguiente.
+
+     ⚠️ Y EL `_gt` DE ABAJO ES REDUNDANTE POR CONSTRUCCIÓN, declarado en vez de dejar creer que
+     alguna mutación lo cubre: con el `return` puesto, `D.US` no puede ser null cuando se llega a
+     esa comparación, así que devolverla a `>` crudo es un no-op y su mutación SOBREVIVE. Se
+     conserva porque fija el contrato —es la regla 3 de la cabecera del panel— para el día que
+     alguien mueva el `return` o agregue una rama antes. Lo que sí está cubierto es la guarda:
+     sacarla pone TC-282 en rojo. */
+  if (D.US == null) return fal('No se pudo cargar el umbral de área de esta válvula, y es el que define la primera contraindicación del procedimiento.', ['Umbral de área valvular (recargar la aplicación)']);
+  /* ⚠️ LAS CONTRAINDICACIONES EVALUABLES SE REPORTAN JUNTAS, NO LA PRIMERA QUE APAREZCA. Con dos
+     presentes —un área por encima del corte Y una insuficiencia mitral moderada— la versión
+     anterior publicaba sólo la que estaba primero en la cascada, y el orden lo decidía en qué línea
+     se había escrito cada `if`. La segunda seguía visible en su fila, pero el titular afirmaba UNA
+     razón sobre un paciente que tiene dos, y eso es un motivo que nombra de menos.
+
+     ⚠️ LA INSUFICIENCIA MITRAL MÁS QUE LEVE ES CONTRAINDICACIÓN, Y LA APP YA TIENE EL CAMPO. De las
+     siete que esta sección enumera al pie, es la única evaluable con lo que el estudio ya recoge y
+     la cascada no la miraba: un paciente con IM moderada-severa recibía «Comisurotomía RECOMENDADA
+     — Clase I · Nivel B» sobre un procedimiento contraindicado. «Más que leve» es grado ≥ 2 —la
+     guía dice «más que leve», no «moderada o más»— y sólo dispara sobre lo que el médico consignó. */
+  const contra = [];
+  if (D.avmMax != null && _gt(D.avmMax, D.US))
+    contra.push('la mayor de las áreas medidas supera ' + _indNum(D.US, 1) + ' cm²');
+  if (D.imSev != null && D.imSev >= 2)
+    contra.push('la insuficiencia mitral consignada es ' + D.imSevTxt + ', o sea MÁS QUE LEVE');
+  if (contra.length) return { tipo:'no', tit:'Fuera del alcance de la tabla',
+    txt:'Hay ' + (contra.length > 1 ? 'dos contraindicaciones' : 'una contraindicación') +
+      ' del procedimiento: ' + contra.join('; y ') + '. Con un área mayor la guía admite considerarlo sólo si los síntomas no se explican por otra causa y la anatomía es favorable.',
+    /* Y si además hay trombo, se NOMBRA acá: la rama de alarma no se alcanza, y el trombo pide una
+       conducta propia —anticoagular— con independencia de que el procedimiento esté descartado. */
+    nota: D.trombo.val === 'si'
+      ? 'Además hay trombo confirmado en la orejuela izquierda, que pide anticoagulación por su cuenta aunque el procedimiento ya esté descartado por lo de arriba.'
+      : (D.trombo.val === 'sospecha' ? 'Además hay sospecha de trombo en la orejuela izquierda.' : '') };
+  if (D.trombo.val === 'si') return { tipo:'alarma', tit:'Trombo confirmado — resolver antes de indicar',
+    txt:'Con trombo en la aurícula izquierda la comisurotomía está contraindicada. Cuando el trombo está en la OREJUELA, la guía admite considerarla en quien tiene contraindicación quirúrgica o no tiene necesidad urgente de intervención, si se puede anticoagular 1-3 meses y un ETE de control confirma la resolución.' };
+  /* ⚠️ LA SOSPECHA NO PUEDE CONVIVIR CON UN TITULAR VERDE. Antes salía como nota gris debajo de
+     «Comisurotomía RECOMENDADA — Clase I», que es el defecto del TAVI sobre el asintomático. */
+  if (D.trombo.val === 'sospecha') return { tipo:'alarma', tit:'Sospecha de trombo — resolver antes de indicar',
+    txt:'Hay sospecha de trombo en la orejuela izquierda. La indicación del procedimiento exige haber DESCARTADO trombo auricular, así que la sospecha se resuelve antes de indicar: el ETE es el estudio que lo hace.' };
+
+  /* Lo que falta para poder evaluar la tabla, junto y con su nombre. El trombo es la única
+     precondición de esta cascada que tiene control propio en el panel, así que dejarla sin
+     contestar tenía que pedirse igual que los síntomas o el score, no quedar en una nota. */
+  const prev = [];
+  if (D.avmMax == null) prev.push(D.avmIleg.length
+    ? 'Área valvular mitral: ' + D.avmIleg.join(' y ') + ' fuera de rango medible — revisar la unidad'
+    : 'Área valvular mitral (ninguna de las cuatro fuentes tiene valor)');
+  if (D.trombo.val == null) prev.push('Trombo en orejuela izquierda');
+  if (prev.length) return fal('La tabla de la estenosis mitral se apoya en el área valvular y en haber descartado trombo auricular: las dos son contraindicaciones del procedimiento.', prev);
+  if (sx == null) return fal('Los síntomas son lo que separa la Clase I de la vigilancia en la estenosis mitral clínicamente significativa.', ['Síntomas']);
+
+  let r = null;
+  if (sx === 'si') {
+    /* ⚠️ «CARACTERÍSTICAS CLÍNICAS DESFAVORABLES» NO ES «RIESGO QUIRÚRGICO ALTO», Y ESA CONFUSIÓN
+       CAMBIABA LA VÍA DE TRATAMIENTO. La fila de Clase I · Nivel C que se publicaba dice
+       «cualquier paciente sintomático con CONTRAINDICACIÓN QUIRÚRGICA o riesgo quirúrgico alto», y
+       el panel la emitía a partir de la edad avanzada, la comisurotomía previa o la FA permanente
+       —que son otra cosa— sin ninguna pregunta de riesgo quirúrgico. Lo delataba que `sint_cx`
+       («Cirugía RECOMENDADA en el sintomático que no es candidato a comisurotomía») fuera
+       INALCANZABLE: la rama que tenía que producir cirugía producía percutánea. */
+    if (clin === 'desfav') {
+      if (rq == null) return fal('Con características desfavorables para la comisurotomía, la guía separa dos filas según el riesgo quirúrgico: con contraindicación o riesgo alto sigue siendo percutánea (Clase I · Nivel C), y sin ellos la recomendada es la cirugía (Clase I · Nivel C).', ['Contraindicación quirúrgica o riesgo alto']);
+      r = (rq === 'alto')
+        ? { k:'sint_riesgo', nota:'Las características clínicas son desfavorables para la comisurotomía, pero hay contraindicación quirúrgica o riesgo alto, así que la guía mantiene la vía percutánea. La decisión la toma el Heart Team.' }
+        : { k:'sint_cx', nota:'Las características clínicas son desfavorables para la comisurotomía y el riesgo quirúrgico no es alto, así que la fila que corresponde es la de cirugía.' };
+    }
+    /* ⚠️ `clin === 'fav'` EXPLÍCITO Y NO «no es desfav». Esta fila AFIRMA «sin características
+       clínicas desfavorables», así que publicarla con la pregunta sin contestar sería dar por
+       cumplida una condición que nadie verificó — el defecto que este panel persigue desde los
+       tres selects del TEER. Con `clin` en null se cae al `fal` de abajo, que la pide. */
+    else if (D.score.val === 'desfav' && clin === 'fav') r = { k:'sint_subopt' };
+    else if (D.score.val === 'fav' && clin === 'fav') r = { k:'sint_fav' };
+    else return fal('La fila de Clase I del sintomático exige la AUSENCIA de características desfavorables, y eso se decide con las dos mitades: la anatómica y la clínica.',
+      [D.score.val == null ? 'Score ecocardiográfico (anatomía)' : null, clin == null ? 'Características clínicas' : null].filter(Boolean));
+  } else if (sx === 'no') {
+    if (clin === 'desfav' || D.score.val === 'desfav') return { tipo:'no', tit:'Sin criterio de intervención',
+      txt:'La única fila del asintomático exige la ausencia de características desfavorables, clínicas Y anatómicas. Corresponde seguimiento.' };
+    if (D.score.val == null || clin == null) return fal('La fila del asintomático exige la ausencia de características desfavorables en las dos mitades.',
+      [D.score.val == null ? 'Score ecocardiográfico (anatomía)' : null, clin == null ? 'Características clínicas' : null].filter(Boolean));
+    /* ⚠️ EL DISPARADOR DE DESCOMPENSACIÓN SON TRES COSAS UNIDAS POR «y/o», NO UNA. La fila dice
+       «PAPs en reposo > 50 mmHg, necesidad de cirugía mayor no cardíaca, embarazo o deseo de
+       embarazo», y la cascada evaluaba sólo la primera: una mujer de 31 años con deseo de embarazo
+       y PAPs normal salía «Sin criterio de intervención — corresponde seguimiento». Es el
+       `!predicadoEstricto()` que falla abierto, y sobre una negación. Las otras dos no salen de
+       ninguna medición, así que se preguntan. */
+    const psapAlta = _gt(D.psap, EM_CRIT_2025.spap_decomp);
+    const decomp = psapAlta || dec === 'si';
+    if (emb === 'si' || decomp) {
+      const cuales = [];
+      if (psapAlta) cuales.push('la PAPs en reposo > ' + EM_CRIT_2025.spap_decomp + ' mmHg, medida en este estudio');
+      if (dec === 'si') cuales.push('otro disparador de descompensación hemodinámica contestado en el panel (cirugía mayor no cardíaca, embarazo o deseo de embarazo)');
+      if (emb === 'si') cuales.push('el riesgo embólico alto, contestado en el panel');
+      r = { k:'asint', nota:'Disparador' + (cuales.length > 1 ? 'es' : '') + ' presente' + (cuales.length > 1 ? 's' : '') + ': ' + cuales.join('; ') + '.' };
+    }
+    else if (emb == null || dec == null) return fal('La fila del asintomático necesita además un disparador: riesgo embólico alto, o riesgo alto de descompensación hemodinámica.',
+      [emb == null ? 'Riesgo embólico' : null, dec == null ? 'Otro disparador de descompensación (cirugía mayor no cardíaca, embarazo o deseo de embarazo)' : null].filter(Boolean));
+    /* ⚠️ Y LA NEGACIÓN NO PUEDE AFIRMAR ALGO QUE NO SE MIDIÓ. El texto decía «con la PAPs por
+       debajo de 50 mmHg» aunque la PAPs no estuviera estimada —falso—, y lo desmentía una nota en
+       gris en la línea siguiente. La afirmación sale del texto, no se corrige abajo. */
+    else return { tipo:'no', tit:'Sin criterio de intervención',
+      txt:'Sin riesgo embólico alto, sin los otros disparadores de descompensación, y '
+        + (D.psap == null ? 'sin PAPs estimada en este estudio' : 'con la PAPs por debajo de ' + EM_CRIT_2025.spap_decomp + ' mmHg')
+        + ', no se alcanza el disparador que la fila del asintomático exige. Corresponde seguimiento.',
+      nota: D.psap == null ? 'La PAPs no está estimada, así que ese disparador quedó sin evaluar: la negación se apoya en los otros dos, que sí se contestaron.' : '' };
+  } else return fal('Los síntomas son lo que separa la Clase I de la vigilancia.', ['Síntomas']);
+
+  const rec = EM_REC_2025[r.k];
+  const out = { tipo:'ind', tit:'Recomendación de la guía', txt:rec.t, clase:rec.c, fuente:EM_FUENTE };
+  const notas = [];
+  if (r.nota) notas.push(r.nota);
+  if (r.k === 'sint_subopt') notas.push('El score ecocardiográfico > ' + EM_CRIT_2025.score_desfav + ' es UNA de las características anatómicas desfavorables, no un veto: la guía lo agrupa con la calcificación de Cormier 3 y la insuficiencia tricuspídea severa, y ninguna de ellas por sí sola descalifica. Con lo clínico favorable, la comisurotomía sigue siendo el tratamiento inicial a considerar.');
+  /* ⚠️ LO QUE LA APP NO PUEDE EVALUAR SE NOMBRA, no se deja sólo en el pie de sección. De las siete
+     contraindicaciones, el área y la insuficiencia mitral se evalúan y el trombo se pregunta; las
+     otras cuatro no tienen campo, y una recomendación que no las nombre se lee como si estuvieran
+     descartadas. Es lo que `_indEAModalidad` ya hace con las dos condiciones que le faltan. */
+  notas.push('Cuatro contraindicaciones del procedimiento no las registra esta aplicación y quedan a cargo del operador: calcificación severa o bicomisural, ausencia de fusión comisural, valvulopatía aórtica severa o enfermedad tricuspídea combinada severa que requiera cirugía, y enfermedad coronaria que requiera revascularización quirúrgica.');
+  if (D.avmDiscordantes) notas.push('Las fuentes del área discordan alrededor del corte: la contraindicación se evaluó con la MAYOR de las medidas, que es el lado que no inventa una indicación. Conviene resolver la discordancia antes de decidir.');
+  if (notas.length) out.nota = notas.join(' ');
+  return out;
 }
 
 /* ── Estenosis mitral ──────────────────────────────────────────────────────────────────────
@@ -35604,69 +36154,233 @@ function _indIM(){
    planimetría y THP se vea en vez de quedar resuelta en silencio por una prioridad inventada.
 
    El TROMBO DE OREJUELA no estaba en el pedido y va igual, porque sin él esta sección imprimiría
-   «Valvuloplastia Clase I si AVm ≤1,5 + Wilkins ≤8 + sin trombo» al lado de un Wilkins favorable
-   sobre un paciente con trombo confirmado — que es contraindicación ABSOLUTA y exactamente el
-   defecto que ya se cerró una vez en el cruce Wilkins × orejuela. */
+   «Valvuloplastia Clase I si AVm ≤1,5 + score ≤8 + sin trombo» al lado de un score favorable
+   sobre un paciente con trombo confirmado — el defecto que ya se cerró una vez en el cruce
+   Wilkins × orejuela. */
 function _indEM(){
   const US = _indUmb('AVM_SEVERA_MAX'), UM = _indUmb('AVM_MODERADA_MAX');
   const grado = _indS('em_grado');
-  const FUENTES = [['avm_plan','planimetría'], ['avm_ete','planimetría por ETE'], ['avm_cont','ecuación de continuidad'], ['avm_thp','THP (Hatle)']];
-  const medidas = FUENTES.map(f => [f[1], _indN(f[0])]).filter(f => f[1] != null);
+  /* ⚠️ DOS DE LAS CUATRO FUENTES TIENEN BANDA DE PLAUSIBILIDAD Y DOS NO, y eso se declara en vez
+     de prestarle a una la banda de otra: el archivo ya fijó que un número de banda lo elige una
+     persona (fue la decisión del `vdfvi` [3,500]). `avm_plan` y `avm_cont` están en la tabla de
+     rangos; `avm_ete` y `avm_thp` no.
+     El área decide la PRIMERA contraindicación de la tabla, así que un valor ilegible no puede
+     producirla: sale de `medidas` y se declara. */
+  const FUENTES = [['avm_plan','planimetría','avm_plan'], ['avm_ete','planimetría por ETE',null],
+                   ['avm_cont','ecuación de continuidad','avm_cont'], ['avm_thp','THP (Hatle)',null]];
+  /* ⚠️ `avm_ete` NO vive en la pestaña ETE: está en Válvulas, como `avm_plan`. El «ETE» del
+     nombre es la TÉCNICA de medición, no dónde se carga. Por eso ninguna de las cuatro fuentes
+     del área lleva control manual: las cuatro son alcanzables en Modo Básico, y duplicarlas
+     crearía la segunda fuente que `_indOrigen` existe para evitar. */
+  const leidas = FUENTES.map(function(f){
+    const L = f[2] ? _indLeer(f[0], f[2]) : { val:_indN(f[0]), fuera:false, sinBanda:true, crudo:_indN(f[0]) };
+    return { lbl:f[1], L:L, conBanda:!!f[2] };
+  });
+  const medidas = leidas.filter(function(x){ return x.L.val != null; }).map(function(x){ return [x.lbl, x.L.val, x.conBanda]; });
+  const avmIleg = leidas.filter(function(x){ return x.L.fuera; }).map(function(x){ return x.lbl; });
   if (!(grado === 'moderada' || grado === 'severa' || medidas.some(m => _le(m[1], US)))) return null;
 
   const filas = [];
   if (US == null || UM == null) filas.push(_indSinUmbral('Área valvular mitral'));
-  else if (!medidas.length) filas.push(_indFila('Área valvular mitral', '—', 'ask', 'ninguna de las cuatro fuentes tiene valor'));
-  else medidas.forEach(function(m){
-    filas.push(_indFila('AVm — ' + m[0], _indNum(m[1], 2, 'cm²'),
-      _le(m[1], US) ? 'ok' : (_le(m[1], UM) ? 'warn' : 'none'),
-      _le(m[1], US) ? '≤ ' + _indNum(US, 1) + ' cm² — estenosis clínicamente significativa'
-      : _le(m[1], UM) ? _indNum(US, 1) + '–' + _indNum(UM, 1) + ' cm² — moderada para esta app'
-      : 'mayor que ' + _indNum(UM, 1) + ' cm² — leve'));
-  });
+  else if (!medidas.length && !avmIleg.length) filas.push(_indFila('Área valvular mitral', '—', 'ask', 'ninguna de las cuatro fuentes tiene valor'));
+  else {
+    leidas.forEach(function(x){
+      if (x.L.fuera) { filas.push(_indFila('AVm — ' + x.lbl, _indNum(x.L.crudo, 2, 'cm²'), 'ask',
+        'fuera de rango medible (' + x.L.b[0] + '–' + x.L.b[1] + ' cm²) — revisar la unidad: un valor ilegible no sostiene ni descarta el criterio')); return; }
+      if (x.L.val == null) return;
+      filas.push(_indFila('AVm — ' + x.lbl, _indNum(x.L.val, 2, 'cm²'),
+        _le(x.L.val, US) ? 'ok' : 'none',
+        (_le(x.L.val, US) ? '≤ ' + _indNum(US, 1) + ' cm² — estenosis clínicamente significativa'
+         : 'mayor que ' + _indNum(US, 1) + ' cm² — por encima del corte de significación clínica, y contraindicación del procedimiento')
+        + (x.conBanda ? '' : ' · esta fuente no tiene banda de plausibilidad declarada en la app, así que el valor se toma como viene')));
+    });
+  }
 
-  /* El Wilkins NO es un criterio positivo y la primera versión lo tenía invertido: marcaba ✅ un
-     score ≤ 8 como si habilitara el procedimiento. La ESC/EACTS 2021 no pide un score favorable,
-     define lo CONTRARIO y como conjunto — «características desfavorables» son VARIAS de: edad
-     avanzada, comisurotomía previa, NYHA IV, FA permanente, hipertensión pulmonar severa, score
-     ecocardiográfico > 8, Cormier 3, área muy pequeña, insuficiencia tricuspídea severa. Un
-     score de 9 aislado no descalifica a nadie. */
+  /* ── Score ecocardiográfico: leído del ETE, o contestado acá ── */
   const W = (_indFn('wilkinsScore') || function(){ return null; })();
-  filas.push(!W ? _indSinUmbral('Score de Wilkins')
-    : _indFila('Score de Wilkins', W.puntuados ? W.total + ' / 16' : '—',
-        (W.banda === 'suboptimo' || W.banda === 'nofavorable') ? 'warn' : (W.banda === 'favorable' ? 'none' : 'ask'),
-        W.banda === 'favorable' ? '≤ 8 — no figura entre las características desfavorables'
-        : W.banda === 'suboptimo' ? '9–11 — > 8 es UNA de las características desfavorables; no descalifica por sí sola'
-        : W.banda === 'nofavorable' ? '≥ 12 — > 8 es UNA de las características desfavorables; pesa junto con las demás'
-        : W.puntuados ? 'incompleto: ' + W.puntuados + ' de 4 criterios puntuados — no se interpreta'
-        : 'sin puntuar'));
+  const scoreOrigen = (W && W.puntuados === 4) ? (W.total > EM_CRIT_2025.score_desfav ? 'desfav' : 'fav') : null;
+  const oScore = _indOrigen(scoreOrigen, 'em.score');
+  filas.push(_indFilaOrigen('Score ecocardiográfico (anatomía)', oScore,
+    [{v:'fav',t:'≤ 8'},{v:'desfav',t:'> 8'}],
+    function(val){
+      const detalle = (W && W.puntuados === 4) ? ' (' + W.total + ' / 16)' : '';
+      return { txt: val === 'desfav' ? '> ' + EM_CRIT_2025.score_desfav + detalle
+                  : val === 'fav' ? '≤ ' + EM_CRIT_2025.score_desfav + detalle : '—',
+        marca: val == null ? 'ask' : (val === 'desfav' ? 'warn' : 'none'),
+        nota: val === 'desfav'
+          ? 'UNA de las características anatómicas desfavorables, junto con la calcificación de Cormier 3 y la insuficiencia tricuspídea severa. No descalifica por sí sola: rutea a la fila de Clase IIa, no fuera del procedimiento.'
+          : val === 'fav' ? 'no figura entre las características anatómicas desfavorables'
+          : 'la guía lo llama «score ecocardiográfico», no «Wilkins»; se puntúa en la pestaña ETE' };
+    }));
+  if (W && W.puntuados && W.puntuados < 4)
+    filas.push(_indFila('Score — puntuación parcial', W.puntuados + ' de 4 criterios', 'ask',
+      'el score es la suma de los cuatro: incompleto queda sesgado hacia abajo, o sea hacia «favorable», y por eso no se interpreta'));
 
-  /* La guía habla de trombo en AURÍCULA izquierda, sin restringirlo a la orejuela. El campo de
-     la app es de orejuela, así que el rótulo lo dice y la nota aclara el alcance real. */
-  const tr = _indS('oai_trombo');
-  filas.push(_indFila('Trombo en orejuela izquierda',
-    tr === 'si' ? 'Confirmado' : (tr === 'sospecha' ? 'Sospecha' : (tr === 'no' ? 'No se observó' : 'No evaluado')),
-    tr === 'si' ? 'alarm' : (tr === 'sospecha' ? 'warn' : (tr === 'no' ? 'none' : 'ask')),
-    tr === 'si' ? 'contraindicación ABSOLUTA de comisurotomía percutánea'
-    : tr === 'sospecha' ? 'resolver antes de indicar el procedimiento'
-    : tr === 'no' ? 'la contraindicación de la guía es el trombo en la aurícula, no sólo en la orejuela'
-    : 'la indicación exige haber descartado trombo auricular'));
+  /* ── Trombo de orejuela: leído del ETE, o contestado acá ── */
+  const oTrombo = _indOrigen(_indS('oai_trombo'), 'em.trombo');
+  filas.push(_indFilaOrigen('Trombo en orejuela izquierda', oTrombo,
+    [{v:'no',t:'No se observó'},{v:'si',t:'Confirmado'},{v:'sospecha',t:'Sospecha'}],
+    function(val){
+      return { txt: val === 'si' ? 'Confirmado' : (val === 'sospecha' ? 'Sospecha' : (val === 'no' ? 'No se observó' : 'No evaluado')),
+        marca: val === 'si' ? 'alarm' : (val === 'sospecha' ? 'warn' : (val === 'no' ? 'none' : 'ask')),
+        /* ⚠️ CONDICIONAL Y NO ABSOLUTA, y justo para la localización que mide este campo. */
+        nota: val === 'si' ? 'contraindicación — pero en la OREJUELA la guía admite considerar el procedimiento con anticoagulación 1-3 meses y ETE que confirme la resolución'
+        : val === 'sospecha' ? 'resolver antes de indicar el procedimiento'
+        : val === 'no' ? 'la contraindicación de la guía es el trombo en la aurícula, no sólo en la orejuela'
+        : 'la indicación exige haber descartado trombo auricular, y el ETE es el estudio que lo hace' };
+    }));
+
+  /* ── Insuficiencia mitral asociada: «más que leve» es contraindicación ── */
+  const imSevRaw = _indS('im_sev_final');
+  const imSev = (imSevRaw === '' || imSevRaw == null) ? null : (parseInt(imSevRaw, 10) || 0);
+  const IM_TXT = ['sin insuficiencia', 'leve', 'moderada', 'moderada-severa', 'severa'];
+  const imSevTxt = (imSev != null && IM_TXT[imSev]) ? IM_TXT[imSev] : 'no consignada';
+  filas.push(_indFila('Insuficiencia mitral asociada', imSev == null ? 'No consignada' : (imSevTxt.charAt(0).toUpperCase() + imSevTxt.slice(1)),
+    (imSev != null && imSev >= 2) ? 'alarm' : (imSev != null ? 'none' : 'ask'),
+    (imSev != null && imSev >= 2) ? 'MÁS QUE LEVE — contraindicación de la comisurotomía percutánea. La guía dice «más que leve», no «moderada o más»'
+    : imSev != null ? 'no alcanza el «más que leve» que contraindica el procedimiento'
+    : 'sin consignar: es una de las contraindicaciones de la tabla'));
 
   const UP = _indUmb('UMBRAL_PSAP_ELEVADA'), psap = _indN('psap_calc');
+  /* ⚠️ DOS UMBRALES DE PAPs QUE NO SON EL MISMO. `UMBRAL_PSAP_ELEVADA` (35) es el de «elevada»
+     que usa toda la app; los 50 de acá son el disparador de descompensación hemodinámica de la
+     fila del asintomático, y son de la guía. No se unifican. Y `psap_calc` no tiene banda de
+     plausibilidad declarada en la app: se toma como viene y la fila lo dice. */
   filas.push(UP == null ? _indSinUmbral('PSAP estimada')
     : _indFila('PSAP estimada', _indNum(psap, 0, 'mmHg'),
-        _gt(psap, UP) ? 'warn' : (psap != null ? 'none' : 'ask'),
-        _gt(psap, UP) ? 'mayor que ' + UP + ' mmHg' : (psap != null ? 'no elevada' : 'sin estimar')));
+        _gt(psap, EM_CRIT_2025.spap_decomp) ? 'ok' : (_gt(psap, UP) ? 'warn' : (psap != null ? 'none' : 'ask')),
+        _gt(psap, EM_CRIT_2025.spap_decomp) ? '> ' + EM_CRIT_2025.spap_decomp + ' mmHg en reposo — disparador de descompensación hemodinámica de la fila del asintomático. Es OTRA pregunta que la hipertensión pulmonar severa del control de características clínicas'
+        : _gt(psap, UP) ? 'mayor que ' + UP + ' mmHg, pero no alcanza los ' + EM_CRIT_2025.spap_decomp + ' del disparador'
+        : (psap != null ? 'no elevada' : 'sin estimar')));
 
+  const _sx = _indClinGet('em.sintomas'), _clin = _indClinGet('em.clin'), _emb = _indClinGet('em.embolico');
+  const _rq = _indClinGet('em.riesgo'), _dec = _indClinGet('em.decomp');
+  const clinica = [
+    _indFilaCtrl('Síntomas', 'em.sintomas', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      _sx === 'si' ? 'ok' : (_sx === 'no' ? 'none' : 'ask'),
+      _sx === 'si' ? 'disparador de la Clase I' : _sx === 'no' ? 'el asintomático entra por una sola fila, de Clase IIa · Nivel C'
+      : 'sin esto no se puede separar la Clase I de la vigilancia'),
+    _indFilaCtrl('Características clínicas desfavorables', 'em.clin',
+      [{v:'fav',t:'Ninguna'},{v:'desfav',t:'Alguna'}],
+      _clin === 'desfav' ? 'warn' : (_clin === 'fav' ? 'none' : 'ask'),
+      'edad avanzada, comisurotomía previa, clase funcional IV, fibrilación auricular permanente o hipertensión pulmonar severa. Son la MITAD CLÍNICA de las características desfavorables para el PROCEDIMIENTO; la otra mitad es la anatómica de arriba. La hipertensión pulmonar severa de esta lista es otra pregunta que la fila de PAPs > ' + EM_CRIT_2025.spap_decomp + ' mmHg, que es el disparador del asintomático.'),
+    /* ⚠️ ESTE CONTROL FALTABA Y SU AUSENCIA CAMBIABA LA VÍA DE TRATAMIENTO. Ver el comentario de
+       `_indEMRecom`: sin él, «características clínicas desfavorables» se publicaba como
+       «contraindicación quirúrgica o riesgo quirúrgico alto» y la fila de cirugía era inalcanzable. */
+    _indFilaCtrl('Contraindicación quirúrgica o riesgo alto', 'em.riesgo',
+      [{v:'alto',t:'Sí'},{v:'no_alto',t:'No'}],
+      _rq === 'alto' ? 'ok' : (_rq === 'no_alto' ? 'none' : 'ask'),
+      'con características desfavorables para la comisurotomía, es lo que separa la fila percutánea de la fila de cirugía, las dos Clase I · Nivel C. Es una evaluación del equipo, no del ecocardiograma'),
+    _indFilaCtrl('Riesgo embólico alto', 'em.embolico', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      _emb === 'si' ? 'ok' : (_emb === 'no' ? 'none' : 'ask'),
+      'embolia sistémica previa, contraste espontáneo denso en la aurícula, o fibrilación auricular de nueva aparición o paroxística. Es el primero de los dos disparadores de la fila del asintomático'),
+    /* ⚠️ LOS OTROS DOS DISPARADORES DE DESCOMPENSACIÓN NO SALEN DE NINGUNA MEDICIÓN, y sin ellos la
+       negación de la fila del asintomático se apoyaba en uno de tres. */
+    _indFilaCtrl('Otro disparador de descompensación', 'em.decomp', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      _dec === 'si' ? 'ok' : (_dec === 'no' ? 'none' : 'ask'),
+      'necesidad de cirugía mayor no cardíaca, embarazo o deseo de embarazo. Junto con la PAPs en reposo > ' + EM_CRIT_2025.spap_decomp + ' mmHg forman el segundo disparador de la fila del asintomático, y la guía los une con «o»')
+  ];
+
+  const avmMax = medidas.length ? medidas.reduce(function(a,b){ return b[1] > a[1] ? b : a; })[1] : null;
+  const avmMin = medidas.length ? medidas.reduce(function(a,b){ return b[1] < a[1] ? b : a; })[1] : null;
+  /* Discordancia ALREDEDOR DEL CORTE: que dos fuentes difieran no importa si las dos caen del mismo
+     lado. Lo que hay que declarar es que una contraindique y la otra no. */
+  const avmDiscordantes = (avmMax != null && avmMin != null && US != null
+    && _le(avmMin, US) && _gt(avmMax, US));
+  const D = { US:US, avmMax:avmMax, avmIleg:avmIleg, avmDiscordantes:avmDiscordantes,
+              psap:psap, score:oScore, trombo:oTrombo, imSev:imSev, imSevTxt:imSevTxt };
   return { filas: filas,
-    clinica: [_indFila('Síntomas', '—', 'ask', 'es el disparador de la Clase I: en el asintomático la indicación baja a Clase IIa C')],
-    guia: 'ESC/EACTS 2021 — Comisurotomía mitral percutánea Clase I B en el paciente SINTOMÁTICO sin características desfavorables, y Clase I C en cualquier sintomático con contraindicación o riesgo alto para cirugía.',
+    aviso: avmIleg.length ? 'Hay áreas fuera de rango medible (' + avmIleg.join(', ') + '): no sostienen ni descartan ningún criterio. Revisar la unidad.'
+      : (avmDiscordantes ? 'Las fuentes del área discordan alrededor del corte de ' + _indNum(US, 1) + ' cm²: una contraindica el procedimiento y otra no. Conviene resolverlo antes de decidir.' : ''),
+    clinica: clinica,
+    recom: _indEMRecom(D),
+    guia: 'ESC/EACTS 2025 — Comisurotomía mitral percutánea Clase I · Nivel B en el paciente SINTOMÁTICO en ausencia de características desfavorables, y Clase I · Nivel C en cualquier sintomático con contraindicación o riesgo alto para cirugía.',
     notas: [
-      'La guía define AVm ≤ 1,5 cm² como estenosis «clínicamente significativa (moderada o severa)»: ese corte no separa moderada de severa, las agrupa. La banda ' + (US != null && UM != null ? _indNum(US,1) + '–' + _indNum(UM,1) : '1,5–2,5') + ' cm² que usa esta app es su propia graduación y no sale de esa tabla.',
-      'Contraindicaciones del procedimiento: AVm > 1,5 cm²; trombo en aurícula izquierda; insuficiencia mitral MÁS QUE LEVE —no «moderada o más»—; calcificación severa o bicomisural; ausencia de fusión comisural; valvulopatía aórtica severa o enfermedad tricuspídea combinada severa que requiera cirugía; enfermedad coronaria que requiera revascularización quirúrgica.',
-      'En el asintomático la comisurotomía es Clase IIa C y sólo con riesgo embólico alto o de descompensación hemodinámica.'
+      'La guía define AVm ≤ ' + (US != null ? _indNum(US,1) : '1,5') + ' cm² como estenosis clínicamente severa y no gradúa la estenosis mitral en leve, moderada y severa por área: es un corte único de significación clínica, no una escala. Las bandas que se ven en la pantalla del estudio son la graduación habitual de la práctica ecocardiográfica, no una fila de esta tabla.',
+      'El score ecocardiográfico > ' + EM_CRIT_2025.score_desfav + ' es UNA de varias características desfavorables —repartidas en clínicas y anatómicas— y la guía agrupa con un «varias de las siguientes» que NO cuantifica. Un score aislado no descalifica a nadie, y la propia guía señala que pacientes con características desfavorables pueden beneficiarse igual, sobre todo con riesgo quirúrgico aumentado.',
+      'Contraindicaciones del procedimiento: AVm > ' + (US != null ? _indNum(US,1) : '1,5') + ' cm²; trombo en aurícula izquierda; insuficiencia mitral MÁS QUE LEVE —no «moderada o más»—; calcificación severa o bicomisural; ausencia de fusión comisural; valvulopatía aórtica severa o enfermedad tricuspídea combinada severa que requiera cirugía; enfermedad coronaria que requiera revascularización quirúrgica. Esta sección evalúa las tres primeras; las otras cuatro no tienen campo en la app y la recomendación las nombra.',
+      'Con trombo en la OREJUELA la contraindicación es condicional: la guía admite considerar el procedimiento en quien tiene contraindicación quirúrgica o no tiene necesidad urgente, con anticoagulación 1-3 meses y un ETE de control que confirme la resolución.',
+      'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
     ] };
 }
+
+/* ══ LOS TRES ASSERTS DE LAS SECCIONES MITRALES ═══════════════════════════════════════════════
+   Mismos que `_eaAssertUmbrales` y `_iaAssertUmbrales` y por el mismo motivo: los textos de
+   `EM_REC_2025` y `IM_REC_2025` son TRANSCRIPCIONES y llevan sus números escritos en prosa, así
+   que si la constante viva se mueve por otro motivo la cita queda falsa sin que nadie se entere.
+   No corrigen: avisan que hay que releer la tabla. ══════════════════════════════════════════ */
+function _emAssertUmbrales(){
+  const esp = [
+    ['EM_CRIT_2025.score_desfav', EM_CRIT_2025.score_desfav, 8,   'score > 8'],
+    ['EM_CRIT_2025.spap_decomp',  EM_CRIT_2025.spap_decomp,  50,  'PAPs en reposo > 50 mmHg'],
+    ['AVM_SEVERA_MAX',            window.AVM_SEVERA_MAX,     1.5, 'AVm ≤ 1,5 cm²']
+  ];
+  const mal = esp.filter(e => e[1] !== e[2])
+    .map(e => e[0] + ' = ' + e[1] + ' pero los textos de EM_REC_2025 y las notas dicen ' + e[3]);
+  if (mal.length) console.error('[EM] Los textos de la guía quedaron viejos respecto de las ' +
+    'constantes. Releer la tabla de recomendaciones antes de tocar nada:\n  ' + mal.join('\n  '));
+  return mal;
+}
+function _imAssertUmbrales(){
+  const C = IM_CRIT_2025;
+  const esp = [
+    ['IM_CRIT_2025.dtsvi',     C.dtsvi,     40, '40 mm'],
+    ['IM_CRIT_2025.dtsvi_idx', C.dtsvi_idx, 20, '20 mm/m²'],
+    ['IM_CRIT_2025.fevi',      C.fevi,      60, '60 %'],
+    ['IM_CRIT_2025.lavi',      C.lavi,      60, '60 ml/m²'],
+    ['IM_CRIT_2025.ai_diam',   C.ai_diam,   55, '55 mm'],
+    ['IM_CRIT_2025.spap',      C.spap,      50, '50 mmHg'],
+    ['IM_CRIT_2025.tr_min',    C.tr_min,    2,  'al menos moderada (grado 2)']
+  ];
+  const mal = esp.filter(e => e[1] !== e[2])
+    .map(e => e[0] + ' = ' + e[1] + ' pero los textos de IM_REC_2025 y las notas dicen ' + e[3]);
+  if (mal.length) console.error('[IM] Los textos de la guía quedaron viejos respecto de las ' +
+    'constantes. Releer la tabla de recomendaciones antes de tocar nada:\n  ' + mal.join('\n  '));
+  return mal;
+}
+
+/* ⚠️ EL DOBLE MECANISMO SÓLO VALE PARA CAMPOS QUE EL MÉDICO NO PUEDE ALCANZAR, y hasta hoy esa
+   regla vivía SÓLO EN PROSA, en la cabecera de `_indOrigen`. `_indOrigen` no sabe dónde vive el
+   campo: sólo pregunta «¿hay valor?». Aplicado a `fevi`, `ai_diam` o `avm_plan` —que viven en
+   pestañas básicas— dibujaría un control manual cada vez que el campo está vacío, y la
+   recomendación quedaría sostenida por una respuesta efímera que no persiste, no va al informe y
+   desaparece al reabrir el panel: exactamente la segunda fuente que el helper existe para evitar.
+   Y el modo de falla es mudo — el panel se ve perfecto.
+   El archivo ya tiene el patrón para volver ejecutable una regla así (`_labXlsAssertVocab`,
+   `_labPptAssertGrupos`): la lista se declara y un assert de arranque la vigila.
+   AL AGREGAR UN CAMPO DEL GRUPO 1, SU ENTRADA VA ACÁ. */
+const _IND_ORIGEN_CAMPOS = Object.freeze({
+  'em.score':     'wilkins_movilidad',
+  'em.trombo':    'oai_trombo',
+  'im.mecanismo': 'teer_tipo_im'
+});
+function _indOrigenAssert(){
+  /* Los paneles que `applyViewMode()` puede esconder son los que abre un `.tab-btn[data-mod]`:
+     el id del panel se deriva del `showTab('x')` del propio botón, no de una lista paralela. */
+  const gated = Object.create(null);
+  Array.prototype.forEach.call(document.querySelectorAll('.tab-btn[data-mod]'), function(b){
+    const m = /showTab\(['"]([a-zA-Z0-9_-]+)['"]\)/.exec(b.getAttribute('onclick') || '');
+    if (m) gated['tab-' + m[1]] = true;
+  });
+  const mal = [];
+  Object.keys(_IND_ORIGEN_CAMPOS).forEach(function(k){
+    const id = _IND_ORIGEN_CAMPOS[k];
+    const el = document.getElementById(id);
+    if (!el) { mal.push(k + ' → #' + id + ' NO EXISTE en el documento'); return; }
+    const pan = el.closest('.tab-section');
+    if (!pan || !gated[pan.id]) mal.push(k + ' → #' + id + ' vive en ' +
+      (pan ? '#' + pan.id : 'ningún panel de pestaña') + ', que NO está gateado por data-mod: ' +
+      'el médico ya puede cargarlo, así que un control manual sería una SEGUNDA FUENTE');
+  });
+  if (mal.length) console.error('[panel] El doble mecanismo de _indOrigen se aplicó a un campo ' +
+    'alcanzable en Modo Básico:\n  ' + mal.join('\n  '));
+  return mal;
+}
+document.addEventListener('DOMContentLoaded', function(){
+  try { _emAssertUmbrales(); } catch (e) {}
+  try { _imAssertUmbrales(); } catch (e) {}
+  try { _indOrigenAssert(); } catch (e) {}
+});
 
 /* ══ INSUFICIENCIA AÓRTICA — LA RECOMENDACIÓN DE LA GUÍA, SELECCIONADA ════════════════════════
    Segunda sección contestable del panel, con EL MISMO mecanismo que estenosis aórtica:
@@ -35783,29 +36497,12 @@ function _indIADatos(){
      —y por lo tanto el dueño declarado de estas bandas— y es el único que trae `peso` y `talla`,
      que son los que faltaban. Una tabla propia acá sería la divergencia que `_indCIV` ya tiene:
      ahí el DDVI se acota 20-90 a mano mientras la tabla dice `ddfvi:[20,100]`. */
-  const rgF = _indFn('_labRango');
-  const banda = function(k){
-    if (!rgF) return null;
-    let b = null;
-    try { b = rgF(k); } catch (e) { return null; }
-    /* ⚠️ UNA BANDA MALFORMADA NO PUEDE DESACTIVAR LA PLAUSIBILIDAD EN SILENCIO. Con `['a','b']`
-       los dos lados de la comparación dan `false` y todo valor pasaría como medido, que es la
-       dirección peligrosa; y con los límites invertidos la fila imprimiría el rango al revés.
-       Se exige lo que la banda promete ser: dos números finitos y en orden. */
-    if (!Array.isArray(b) || b.length !== 2) return null;
-    if (!isFinite(b[0]) || !isFinite(b[1]) || !(b[0] <= b[1])) return null;
-    return b;
-  };
-  /* Sin banda NO se inventa una y tampoco se usa el valor para negar: es la regla 4 (falla
-     cerrado) aplicada a la plausibilidad en vez de al umbral. Los tres estados son distintos y
-     los TRES tienen que poder decirse: medido, fuera de rango, y sin banda disponible. */
-  const leer = function(id, k){
-    const x = _indN(id), b = banda(k);
-    if (b == null) return { val:null, fuera:false, sinBanda:true, crudo:x };
-    if (x == null) return { val:null, fuera:false, sinBanda:false };
-    if (x < b[0] || x > b[1]) return { val:null, fuera:true, crudo:x, sinBanda:false, b:b };
-    return { val:x, fuera:false, sinBanda:false };
-  };
+  /* ⚠️ ALIAS LOCALES, NO COPIAS. Los dos helpers se subieron a nivel de módulo el 2026-09-27 para
+     que las dos secciones mitrales los consuman; el cuerpo de esta función NO se tocó, así que
+     sigue diciendo `leer(...)` y `banda(...)` en sus veinte sitios de llamada. Es la misma
+     técnica de sombra que `tgaConclusion` usa para su fuente inyectable: o toda la función lee
+     del helper nuevo, o no compila — un sitio que se olvide no existe. */
+  const banda = _indBanda, leer = _indLeer;
   const D = { UF:UF };
   D.dsf  = leer('dsfvi', 'dsfvi');
   D.fev  = leer('fevi',  'fevi');
@@ -78109,8 +78806,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260927-0056';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790481400669;                 /* eco-build-ms */
+const ECO_BUILD    = '20260927-0803';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790507010651;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -78196,7 +78893,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-0056</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-0803</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

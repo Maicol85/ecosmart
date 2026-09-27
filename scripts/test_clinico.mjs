@@ -30137,6 +30137,772 @@ caso('TC-281', 'El PDF firmado no imprime una medicion ilegible, y borra la fila
   })();
 `);
 
+/* ══ ESTENOSIS MITRAL INTERACTIVA — TC-282 ═══════════════════════════════════════════════════
+   Cuarta seccion contestable, y la primera con el DOBLE MECANISMO de `_indOrigen`: el score
+   ecocardiografico y el trombo de orejuela viven en la pestaña ETE, que es `data-mod="ete"`
+   dentro de `.tabs-special` y queda en `display:none` en Modo Basico — o sea que en Basico el
+   medico NO TIENE DONDE cargarlos. Si el dato esta, se lee de su origen; si no, se contesta aca.
+
+   ⚠️ LOS DOS CAMINOS SE PRUEBAN POR SEPARADO, Y ADEMAS QUE EL VEREDICTO NO DEPENDA DE CUAL SE
+   USO. Con solo el camino del estudio, una implementacion que ignorara el control manual pasaria;
+   con solo el manual, una que ignorara el estudio tambien. Lo que ninguno de los dos solos caza
+   es la INVERSION de prioridad, que es la regla explicita de esta ronda —el control manual no
+   puede pisar el dato real—: por eso hay un escenario que contesta en el panel y DESPUES carga el
+   ETE, donde el estudio tiene que ganar.
+
+   ⚠️ EL CORTE DEL SCORE ES «> 8» Y SE PRUEBA CON 8 EXACTO Y CON 10. Un caso que mirara 4 y 14
+   pasa igual con el operador corrido a `>=`, y ahi un 8 exacto se cae de Clase I a Clase IIa.
+
+   ⚠️ Y SE PRUEBA QUE UN SCORE DESFAVORABLE **NO** CONTRAINDIQUE. El «corte clasico de Wilkins»
+   que circula dice «> 8 no es candidato»; la guia lo agrupa con un «varias de las siguientes» sin
+   cuantificar y lo rutea a la fila de Clase IIa. Una condicion que solo mirara la clase pasaria
+   con la implementacion que lo veta, porque las dos dejan de publicar la Clase I.
+
+   ⚠️ LAS CINCO CONTRAINDICACIONES Y LA VIA DE TRATAMIENTO — lo que encontro /sharp-edges el
+   2026-09-27 y esta version fija:
+   · «caracteristicas clinicas desfavorables» NO es «riesgo quirurgico alto». El panel publicaba
+     comisurotomia percutanea afirmando una contraindicacion quirurgica que nadie pregunto, y la
+     fila de CIRUGIA era inalcanzable. Se prueban las dos vias y que sus textos DIFIERAN.
+   · el asintomatico negaba sobre dos de los tres disparadores de descompensacion.
+   · sin area medida se publicaba Clase I salteando la primera contraindicacion de la tabla.
+   · la insuficiencia mitral mas que leve es contraindicacion y la app ya tiene el campo.
+   · el trombo sin contestar y la sospecha salian como nota gris bajo un titular verde. */
+const EM_IDS = "['em_grado','avm_plan','avm_ete','avm_cont','avm_thp','psap_calc'," +
+  "'wilkins_movilidad','wilkins_engrosamiento','wilkins_calcificacion','wilkins_subvalvular'," +
+  "'oai_trombo','im_sev_final','peso','talla']";
+const EM_CLAVES = "['em.score','em.trombo','em.sintomas','em.clin','em.riesgo','em.embolico','em.decomp']";
+
+caso('TC-282', 'Estenosis mitral: el doble mecanismo lee del ETE o se contesta, y la lectura manda', `
+  return (async () => {
+    if (typeof indicAbrir !== 'function' || typeof window._indEM !== 'function')
+      return { extra:[['existen indicAbrir y _indEM', false, '']] };
+    const IDS = ${EM_IDS};
+    const limpiar = () => IDS.forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+    const noEntraron = [];
+    const set = o => Object.keys(o).forEach(id => { const e = document.getElementById(id);
+      if (!e) { noEntraron.push('FALTA ' + id); return; }
+      e.value = o[id];
+      e.dispatchEvent(new Event('input', { bubbles:true }));
+      e.dispatchEvent(new Event('change', { bubbles:true }));
+      if (e.value !== String(o[id])) noEntraron.push(id + '=' + JSON.stringify(o[id])); });
+    const sinClic = [];
+    const clic = (k, v) => { const b = document.querySelector('#indic-cuerpo [data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
+      if (!b) { sinClic.push(k + '=' + v); return false; } b.click(); return true; };
+    const sec = () => window._indEM();
+    const rec = () => { const s = sec(); return (s && s.recom) ? s.recom : null; };
+    const clase = () => { const r = rec(); return r ? (r.tipo + ' / ' + (r.clase || r.tit)) : 'sin recomendacion'; };
+    /* Los textos del panel llevan acentos y los del caso no: se normalizan LOS DOS LADOS.
+       Escrito crudo, pide('clinicas') no matchea «clinicas» con tilde y el caso acusa a la
+       cascada de un defecto del andamio. */
+    const pl = s => String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+    const pide = txt => { const r = rec(); return !!r && Array.isArray(r.faltan) &&
+      r.faltan.some(f => pl(f).indexOf(pl(txt)) > -1); };
+    const fila = lbl => { const s = sec();
+      return (s && s.filas || []).filter(f => f.lbl.indexOf(lbl) > -1)[0] || null; };
+    /* Los controles del Grupo 1 salen en filas y los del Grupo 2 en clinica: para contar cuantos
+       hay que contestar hacen falta las dos listas. */
+    const ctrls = () => { const s = sec(); if (!s) return [];
+      return (s.filas || []).concat(s.clinica || []).filter(f => !!f.ctrl).map(f => f.ctrl.clave); };
+    const wilk = (m, e, c, s) => ({ wilkins_movilidad:String(m), wilkins_engrosamiento:String(e),
+      wilkins_calcificacion:String(c), wilkins_subvalvular:String(s) });
+    const W8  = wilk(2, 2, 2, 2);   // total 8  -> favorable, el borde exacto
+    const W10 = wilk(3, 3, 2, 2);   // total 10 -> desfavorable
+    /* AVm 1,20 cm² abre la seccion por area, sin tocar la pastilla em_grado: tipear un area
+       dispara calcEM, que reescribe el grado, asi que apoyarse en la pastilla obliga a fijarla al
+       final y el escenario deja de decir que prueba. */
+    const B = { avm_plan:'1.2', peso:'80', talla:'180' };
+    const esc = (campos, marcas) => { indicCerrar(); limpiar(); set(Object.assign({}, B, campos));
+      indicAbrir(); Object.keys(marcas || {}).forEach(k => clic(k, marcas[k])); };
+    /* Con la pastilla forzada al final, para los escenarios donde el area no puede abrir la
+       seccion: sin medir, o fuera de rango medible. */
+    const escGrado = (campos, marcas) => { indicCerrar(); limpiar();
+      set(Object.assign({ peso:'80', talla:'180' }, campos)); set({ em_grado:'severa' });
+      indicAbrir(); Object.keys(marcas || {}).forEach(k => clic(k, marcas[k])); };
+    const SIN_TROMBO = { 'em.trombo':'no' };
+
+    try {
+      const ex = [];
+
+      // ── DENOMINADOR: sin nada del ETE la seccion trae los SIETE controles ──
+      esc({}, {});
+      const c0 = ctrls();
+      ex.push(['DENOMINADOR: sin datos del ETE hay SIETE controles contestables, los siete esperados',
+        c0.length === 7 && ${EM_CLAVES}.every(k => c0.indexOf(k) > -1),
+        'controles=' + c0.join(',')]);
+
+      /* ── CAMINO (a) DEL SCORE: con los cuatro criterios puntuados en ETE se LEE, y el control
+         manual NO SE DIBUJA. Que no se dibuje es la mitad que importa: asi es imposible que el
+         panel publique algo distinto de lo que dice el estudio. */
+      esc(W10, Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN_TROMBO));
+      const fSc10 = fila('Score ecocardiogr');
+      const cl10 = clase();
+      ex.push(['con el score puntuado en ETE la fila es LECTURA, con su total, y no hay control manual',
+        !!fSc10 && !fSc10.ctrl && fSc10.marca === 'warn' &&
+        fSc10.val.indexOf('> 8') > -1 && fSc10.val.indexOf('(10 / 16)') > -1 &&
+        ctrls().indexOf('em.score') === -1,
+        fSc10 ? fSc10.marca + ' «' + fSc10.val + '» ctrl=' + (!!fSc10.ctrl) : 'NO HAY FILA']);
+
+      /* ── CAMINO (b): sin nada en ETE, se contesta aca y da EL MISMO veredicto ──
+         Es lo que separa «el doble mecanismo funciona» de «hay dos mecanismos que no coinciden». */
+      esc({}, Object.assign({ 'em.sintomas':'si', 'em.clin':'fav', 'em.score':'desfav' }, SIN_TROMBO));
+      ex.push(['contestado en el panel, un score desfavorable da el MISMO veredicto que leido del ETE',
+        clase() === cl10 && cl10.indexOf('Clase IIa') > -1,
+        'manual: ' + clase() + ' · de ETE: ' + cl10]);
+
+      /* ── ⚠️ LA LECTURA TIENE PRIORIDAD SOBRE EL CONTROL MANUAL ──
+         Se contesta «favorable» en el panel y DESPUES aparece el score en ETE. El estudio manda:
+         la fila pasa a lectura y el veredicto es el del 10, no el del control. Una implementacion
+         que diera precedencia al panel pasaria las dos condiciones de arriba y cae aca. */
+      esc({}, Object.assign({ 'em.sintomas':'si', 'em.clin':'fav', 'em.score':'fav' }, SIN_TROMBO));
+      const antesPrio = clase();
+      set(W10);
+      const fPrio = fila('Score ecocardiogr');
+      ex.push(['el control manual NO pisa el dato del estudio: con el score en ETE la fila es lectura y manda el 10',
+        antesPrio.indexOf('Clase I ·') > -1 && !!fPrio && !fPrio.ctrl &&
+        fPrio.val.indexOf('(10 / 16)') > -1 && clase().indexOf('Clase IIa') > -1 &&
+        _indClinGet('em.score') === 'fav',
+        'antes: ' + antesPrio + ' · despues: ' + clase() + ' · panel sigue en ' + _indClinGet('em.score')]);
+
+      /* ── EL CORTE ES «> 8», POR LOS DOS LADOS ──
+         8 exacto es FAVORABLE y cae en la Clase I; 10 baja a la Clase IIa. Con 4 y 14 la mutacion
+         del operador pasa en verde. */
+      esc(W8, Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN_TROMBO));
+      const cl8 = clase(), f8 = fila('Score ecocardiogr');
+      ex.push(['un score de 8 EXACTO es favorable y da Clase I Nivel B; 10 da Clase IIa Nivel C',
+        cl8 === 'ind / Clase I · Nivel B' && cl10 === 'ind / Clase IIa · Nivel C' &&
+        !!f8 && f8.marca === 'none' && f8.val.indexOf('(8 / 16)') > -1,
+        'con 8: ' + cl8 + ' · con 10: ' + cl10 + ' · fila8=' + (f8 ? f8.marca : '?')]);
+
+      // ── UN SCORE DESFAVORABLE NO SACA AL PACIENTE DEL PROCEDIMIENTO ──
+      ex.push(['con score > 8 y lo clinico favorable SIGUE habiendo indicacion: rutea a IIa, no la niega',
+        cl10.indexOf('ind /') === 0 && cl10.indexOf('Clase') > -1, cl10]);
+
+      /* ── UN SCORE PARCIAL NO SE INTERPRETA ──
+         Tres de cuatro criterios queda sesgado hacia abajo, o sea hacia «favorable»: el panel lo
+         declara y vuelve a ofrecer el control manual. */
+      esc(wilk(3, 3, 2, 0), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN_TROMBO));
+      const fParc = fila('puntuaci');
+      ex.push(['con 3 de 4 criterios el score no se interpreta: se declara parcial y vuelve el control manual',
+        !!fParc && fParc.marca === 'ask' && fParc.val.indexOf('3 de 4') > -1 &&
+        ctrls().indexOf('em.score') > -1,
+        (fParc ? fParc.val : 'NO HAY FILA') + ' · controles=' + ctrls().join(',')]);
+
+      /* ── LA FILA DE CLASE IIa AFIRMA «sin caracteristicas clinicas desfavorables» ──
+         Con la pregunta SIN contestar, publicarla seria dar por cumplida una condicion que nadie
+         verifico. Tiene que pedir el dato. */
+      esc(W10, Object.assign({ 'em.sintomas':'si' }, SIN_TROMBO));
+      const rSinClin = rec();
+      ex.push(['con el score desfavorable y lo clinico sin contestar NO publica la IIa: pide las caracteristicas clinicas',
+        !!rSinClin && rSinClin.tipo === 'falta' && pide('clinicas'),
+        clase() + ' · faltan=' + JSON.stringify(rSinClin ? rSinClin.faltan : null)]);
+
+      /* ── ⚠️ «CARACTERISTICAS CLINICAS DESFAVORABLES» NO ES «RIESGO QUIRURGICO ALTO» ──
+         Es el hallazgo que cambia la VIA de tratamiento. La fila que el panel publicaba dice
+         «cualquier paciente sintomatico con CONTRAINDICACION QUIRURGICA o riesgo alto», y se
+         emitia a partir de la edad avanzada o la FA permanente, que son otra cosa. Con el riesgo
+         quirurgico contestado, las dos filas son Clase I · Nivel C y hay que distinguirlas por el
+         TEXTO: comparar la clase no alcanza, porque las dos cadenas son iguales. */
+      esc(W8, Object.assign({ 'em.sintomas':'si', 'em.clin':'desfav', 'em.riesgo':'alto' }, SIN_TROMBO));
+      const rAlto = rec();
+      esc(W8, Object.assign({ 'em.sintomas':'si', 'em.clin':'desfav', 'em.riesgo':'no_alto' }, SIN_TROMBO));
+      const rNoAlto = rec();
+      ex.push(['con caracteristicas desfavorables, el riesgo quirurgico ALTO mantiene la via percutanea y el NO ALTO manda a CIRUGIA',
+        !!rAlto && !!rNoAlto && rAlto.clase === 'Clase I · Nivel C' && rNoAlto.clase === 'Clase I · Nivel C' &&
+        rAlto.txt !== rNoAlto.txt &&
+        pl(rAlto.txt).indexOf('comisurotomia mitral percutanea recomendada') > -1 &&
+        pl(rNoAlto.txt).indexOf('cirugia de la valvula mitral recomendada') > -1,
+        'alto: ' + (rAlto ? rAlto.txt.slice(0, 50) : 'null') + ' || no alto: ' + (rNoAlto ? rNoAlto.txt.slice(0, 50) : 'null')]);
+      esc(W8, Object.assign({ 'em.sintomas':'si', 'em.clin':'desfav' }, SIN_TROMBO));
+      const rSinRq = rec();
+      ex.push(['y sin contestar el riesgo quirurgico NO publica ninguna de las dos: lo pide',
+        !!rSinRq && rSinRq.tipo === 'falta' && pide('contraindicacion quirurgica'),
+        clase() + ' · faltan=' + JSON.stringify(rSinRq ? rSinRq.faltan : null)]);
+
+      /* ── TROMBO: LOS DOS CAMINOS, Y CORTA ANTES DE LOS SINTOMAS ──
+         Sin contestar los sintomas, un trombo confirmado ya detiene la indicacion. */
+      esc({ oai_trombo:'si' }, {});
+      const fTrE = fila('Trombo'), rTrE = rec();
+      esc({}, { 'em.trombo':'si' });
+      const fTrM = fila('Trombo'), rTrM = rec();
+      ex.push(['el trombo leido del ETE es fila de lectura con alarma y corta antes de los sintomas',
+        !!fTrE && !fTrE.ctrl && fTrE.marca === 'alarm' && !!rTrE && rTrE.tipo === 'alarma',
+        (fTrE ? fTrE.marca + ' ctrl=' + (!!fTrE.ctrl) : 'NO HAY FILA') + ' · ' + (rTrE ? rTrE.tipo : 'null')]);
+      ex.push(['contestado en el panel da el MISMO veredicto que leido del ETE',
+        !!rTrM && !!rTrE && rTrM.tipo === rTrE.tipo && rTrM.tit === rTrE.tit && !!fTrM && !!fTrM.ctrl,
+        'manual: ' + (rTrM ? rTrM.tipo + ' / ' + rTrM.tit : 'null') +
+        ' · de ETE: ' + (rTrE ? rTrE.tipo + ' / ' + rTrE.tit : 'null')]);
+
+      /* ── ⚠️ EN LA OREJUELA LA CONTRAINDICACION ES CONDICIONAL, NO ABSOLUTA ──
+         La nota ^b de la guia admite considerar el procedimiento con anticoagulacion 1-3 meses y
+         un ETE de control que confirme la resolucion, y el campo de esta app es justamente el de
+         la orejuela. Decir «absoluta» aca es equivocarse en la direccion estricta. */
+      ex.push(['el texto del trombo declara la condicionalidad de la orejuela y no la llama absoluta',
+        !!rTrE && pl(rTrE.txt).indexOf('orejuela') > -1 && pl(rTrE.txt).indexOf('anticoagular') > -1 &&
+        pl(rTrE.txt).indexOf('absoluta') === -1,
+        (rTrE ? rTrE.txt.slice(0, 120) : 'SIN TEXTO')]);
+
+      /* ── ⚠️ LA SOSPECHA Y EL «NO CONSTA» NO PUEDEN CONVIVIR CON UN TITULAR VERDE ──
+         Salian como nota gris debajo de «Comisurotomia RECOMENDADA — Clase I», que es el defecto
+         del TAVI sobre el asintomatico. Y el trombo es la unica precondicion de esta cascada que
+         tiene control propio en el panel: dejarla sin contestar tenia que pedirse. */
+      esc(W8, { 'em.sintomas':'si', 'em.clin':'fav', 'em.trombo':'sospecha' });
+      const rSosp = rec();
+      esc(W8, { 'em.sintomas':'si', 'em.clin':'fav' });
+      const rSinTr = rec();
+      ex.push(['la SOSPECHA de trombo no publica una indicacion: sale como alarma y manda a resolverla',
+        !!rSosp && rSosp.tipo === 'alarma' && pl(rSosp.tit).indexOf('sospecha') > -1,
+        rSosp ? rSosp.tipo + ' / ' + rSosp.tit : 'null']);
+      ex.push(['y el trombo SIN CONTESTAR se pide en vez de quedar en una nota gris',
+        !!rSinTr && rSinTr.tipo === 'falta' && pide('trombo'),
+        clase() + ' · faltan=' + JSON.stringify(rSinTr ? rSinTr.faltan : null)]);
+
+      /* ── EL AREA FUERA DE RANGO SE EVALUA PRIMERO ──
+         Con area > 1,5 cm² el procedimiento esta contraindicado, y eso corta ANTES del trombo:
+         publicar una alarma de trombo sobre un paciente que ya esta fuera de la tabla seria
+         ordenar la cascada por lo que se reporto y no por lo que decide. */
+      escGrado({ avm_plan:'2.0', oai_trombo:'si' }, {});
+      const rArea = rec();
+      ex.push(['con el area por encima del corte la contraindicacion del area gana sobre el trombo',
+        !!rArea && rArea.tipo === 'no' && pl(rArea.tit).indexOf('fuera del alcance') > -1,
+        rArea ? rArea.tipo + ' / ' + rArea.tit : 'sin recomendacion']);
+
+      /* ── ⚠️ SIN AREA MEDIDA NO SE PUBLICA UNA CLASE I ──
+         Con medidas vacio, avmMax queda en null y la comprobacion de la PRIMERA
+         contraindicacion de la tabla se salteaba SIN DECIRLO: un gradiente medio de 7 mmHg con
+         calcEM dejando el grado en moderada publicaba «Comisurotomia RECOMENDADA — Clase I ·
+         Nivel B» debajo de una fila que decia «ninguna de las cuatro fuentes tiene valor». */
+      escGrado({}, Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN_TROMBO));
+      const rSinArea = rec();
+      ex.push(['sin ninguna de las cuatro areas medidas NO publica una indicacion: pide el area',
+        !!rSinArea && rSinArea.tipo === 'falta' && pide('area valvular mitral'),
+        clase() + ' · faltan=' + JSON.stringify(rSinArea ? rSinArea.faltan : null)]);
+
+      /* ── UN AREA ILEGIBLE TAMPOCO SOSTIENE NI NIEGA LA CONTRAINDICACION ──
+         Planimetria tipeada en mm² (150 por 1,50). avm_plan SI tiene banda en la tabla de
+         rangos; avm_ete y avm_thp no, y eso se declara en su fila en vez de prestarles la
+         banda de su gemela. */
+      escGrado({ avm_plan:'150' }, Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN_TROMBO));
+      const rIleg = rec(), fIleg = fila('AVm'), avIleg = sec().aviso || '';
+      ex.push(['una planimetria tipeada en mm² no produce ni indicacion ni contraindicacion: pide revisar la unidad',
+        !!rIleg && rIleg.tipo === 'falta' && pide('fuera de rango medible') &&
+        !!fIleg && fIleg.marca === 'ask' && fIleg.nota.indexOf('fuera de rango medible') > -1 &&
+        avIleg.indexOf('fuera de rango medible') > -1,
+        clase() + ' · fila=' + (fIleg ? fIleg.marca : '?') + ' · aviso=' + avIleg.slice(0, 55)]);
+
+      /* ── LA DISCORDANCIA ENTRE FUENTES SE DECLARA, NO SE RESUELVE EN SILENCIO ──
+         El comentario de la seccion promete que una discordancia «se vea en vez de quedar resuelta
+         por una prioridad inventada», y la contraindicacion se decidia por el maximo sin decirlo.
+         Se declara SOLO cuando las fuentes caen a lados distintos del corte: que difieran del
+         mismo lado no cambia ninguna conducta. */
+      esc({ avm_plan:'1.2', avm_thp:'1.8' }, Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN_TROMBO));
+      const avDisc = sec().aviso || '';
+      esc({ avm_plan:'1.2', avm_thp:'1.4' }, Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN_TROMBO));
+      const avIgual = sec().aviso || '';
+      ex.push(['con las fuentes a lados distintos del corte se declara la discordancia, y del mismo lado no',
+        avDisc.indexOf('discordan') > -1 && avIgual.indexOf('discordan') === -1,
+        '1,2 vs 1,8: ' + avDisc.slice(0, 55) + ' || 1,2 vs 1,4: ' + (avIgual || 'sin aviso')]);
+
+      /* ── ⚠️ LA INSUFICIENCIA MITRAL MAS QUE LEVE ES CONTRAINDICACION, Y LA APP TIENE EL CAMPO ──
+         De las siete contraindicaciones que la seccion enumera al pie, era la unica evaluable con
+         lo que el estudio ya recoge y la cascada no la miraba. Los dos lados del corte: grado 1
+         (leve) no contraindica, grado 2 (moderada) si. La guia dice «mas que leve», no «moderada o
+         mas», asi que el corte es >= 2. */
+      esc(Object.assign({ im_sev_final:'1' }, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN_TROMBO));
+      const imLeve = clase();
+      esc(Object.assign({ im_sev_final:'2' }, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN_TROMBO));
+      const rImMod = rec(), fIm = fila('Insuficiencia mitral asociada');
+      ex.push(['una insuficiencia mitral LEVE no contraindica y una MODERADA si (el corte es «mas que leve»)',
+        imLeve === 'ind / Clase I · Nivel B' && !!rImMod && rImMod.tipo === 'no' &&
+        pl(rImMod.tit).indexOf('fuera del alcance') > -1 && !!fIm && fIm.marca === 'alarm',
+        'leve: ' + imLeve + ' · moderada: ' + clase() + ' · fila=' + (fIm ? fIm.marca : '?')]);
+
+      /* ── ⚠️ DOS CONTRAINDICACIONES SE REPORTAN JUNTAS, NO LA PRIMERA DE LA CASCADA ──
+         Con un area por encima del corte Y una insuficiencia mitral moderada, la version anterior
+         publicaba solo la que estaba primero en el orden en que se habian escrito los if. La otra
+         seguia visible en su fila, pero el titular afirmaba UNA razon sobre un paciente que tiene
+         dos. Y con trombo confirmado ADEMAS, la rama de alarma no se alcanza: el trombo se nombra,
+         porque pide anticoagulacion por su cuenta aunque el procedimiento ya este descartado. */
+      escGrado({ avm_plan:'2.0', im_sev_final:'3' }, {});
+      const rDos = rec();
+      escGrado({ avm_plan:'2.0', im_sev_final:'3', oai_trombo:'si' }, {});
+      const rDosTr = rec();
+      ex.push(['con dos contraindicaciones el titular nombra las DOS, y un trombo que coexiste se nombra aparte',
+        !!rDos && pl(rDos.txt).indexOf('dos contraindicaciones') > -1 &&
+        pl(rDos.txt).indexOf('areas medidas supera') > -1 && pl(rDos.txt).indexOf('mas que leve') > -1 &&
+        !!rDosTr && pl(rDosTr.nota || '').indexOf('trombo confirmado') > -1 &&
+        pl(rDosTr.nota).indexOf('anticoagulacion') > -1,
+        (rDos ? rDos.txt.slice(0, 120) : 'null') + ' || nota con trombo: ' + (rDosTr ? (rDosTr.nota || 'SIN NOTA').slice(0, 70) : 'null')]);
+
+      /* ── EL DISPARADOR DEL ASINTOMATICO: PAPs > 50 mmHg, POR LOS DOS LADOS ──
+         50 exactos NO disparan (el operador es >, no >=) y 51 si. Es el unico valor que separa el
+         umbral correcto del error plausible. */
+      const ASINT = { 'em.sintomas':'no', 'em.clin':'fav', 'em.score':'fav', 'em.trombo':'no', 'em.embolico':'no', 'em.decomp':'no' };
+      esc({ psap_calc:'50' }, ASINT);
+      const ps50 = clase();
+      esc({ psap_calc:'51' }, ASINT);
+      const ps51 = rec();
+      ex.push(['PAPs de 50 mmHg exactos NO alcanzan el disparador y 51 si',
+        ps50.indexOf('no /') === 0 && !!ps51 && ps51.tipo === 'ind' && ps51.clase === 'Clase IIa · Nivel C',
+        'con 50: ' + ps50 + ' · con 51: ' + clase()]);
+      ex.push(['y la nota dice cual de los disparadores esta presente',
+        !!ps51 && pl(ps51.nota || '').indexOf('paps') > -1,
+        (ps51 ? (ps51.nota || 'SIN NOTA') : 'null').slice(0, 110)]);
+
+      /* ── ⚠️ EL DISPARADOR DE DESCOMPENSACION SON TRES COSAS UNIDAS POR «y/o», NO UNA ──
+         La fila dice «PAPs en reposo > 50 mmHg, necesidad de cirugia mayor no cardiaca, embarazo o
+         deseo de embarazo», y la cascada evaluaba solo la primera: una mujer de 31 años con deseo
+         de embarazo y PAPs normal salia «Sin criterio de intervencion — corresponde seguimiento».
+         Con la PAPs NORMAL, el disparador tiene que salir del control. */
+      esc({ psap_calc:'30' }, Object.assign({}, ASINT, { 'em.decomp':'si' }));
+      const rDec = rec();
+      ex.push(['con la PAPs normal, el otro disparador de descompensacion alcanza para la fila del asintomatico',
+        !!rDec && rDec.tipo === 'ind' && rDec.clase === 'Clase IIa · Nivel C' &&
+        pl(rDec.nota || '').indexOf('embarazo') > -1,
+        clase() + ' · ' + (rDec ? (rDec.nota || 'SIN NOTA').slice(0, 95) : 'null')]);
+      /* El escenario sin contestar SE CONSTRUYE sin la clave, no pasandola en null: clic(k, null)
+         busca un boton con data-ind-val="null" y lo unico que prueba es que no existe. */
+      esc({ psap_calc:'30' }, { 'em.sintomas':'no', 'em.clin':'fav', 'em.score':'fav',
+                                'em.trombo':'no', 'em.embolico':'no' });
+      const rSinDec = rec();
+      ex.push(['y sin contestarlo NO se niega la fila: se pide el disparador que falta',
+        !!rSinDec && rSinDec.tipo === 'falta' && pide('descompensacion'),
+        clase() + ' · faltan=' + JSON.stringify(rSinDec ? rSinDec.faltan : null)]);
+
+      /* ── Y LA NEGACION NO AFIRMA UNA PAPs QUE NO SE MIDIO ──
+         El texto decia «con la PAPs por debajo de 50 mmHg» aunque no estuviera estimada, y lo
+         desmentia una nota en gris en la linea siguiente. */
+      esc({}, ASINT);
+      const rNeg = rec();
+      ex.push(['sin PAPs estimada, la negacion lo dice en vez de afirmar que esta por debajo del corte',
+        !!rNeg && rNeg.tipo === 'no' && pl(rNeg.txt).indexOf('sin paps estimada') > -1 &&
+        pl(rNeg.txt).indexOf('por debajo de') === -1,
+        (rNeg ? rNeg.txt : 'null').slice(0, 140)]);
+
+      /* ── LO QUE LA APP NO PUEDE EVALUAR SE NOMBRA EN LA RECOMENDACION ──
+         Cuatro de las siete contraindicaciones no tienen campo. Dejarlas solo en el pie de seccion
+         hace que la indicacion se lea como si estuvieran descartadas. */
+      esc(W8, Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN_TROMBO));
+      const rNom = rec();
+      ex.push(['la recomendacion nombra las cuatro contraindicaciones que la app no registra',
+        !!rNom && pl(rNom.nota || '').indexOf('no las registra esta aplicacion') > -1 &&
+        pl(rNom.nota).indexOf('fusion comisural') > -1,
+        (rNom ? (rNom.nota || 'SIN NOTA') : 'null').slice(0, 130)]);
+
+      // ── AISLAMIENTO: cerrar borra las siete respuestas, y reabrir no las trae ──
+      esc({}, { 'em.sintomas':'si', 'em.clin':'fav', 'em.riesgo':'alto', 'em.score':'desfav',
+                'em.trombo':'no', 'em.embolico':'si', 'em.decomp':'no' });
+      /* ⚠️ EL VALOR SE CAPTURA, NO LA LECTURA: las condiciones de extra se evaluan al armar el
+         array, o sea despues de indicAbrir() —que tambien limpia—, asi que un every() escrito
+         abajo leeria el estado de DESPUES de reabrir y daria true siempre. */
+      const seguian = ${EM_CLAVES}.every(k => _indClinGet(k) !== null);
+      const antes = ${EM_CLAVES}.map(k => k + '=' + _indClinGet(k)).join(' ');
+      indicCerrar();
+      const borro = ${EM_CLAVES}.every(k => _indClinGet(k) === null);
+      indicAbrir();
+      const trasReabrir = ${EM_CLAVES}.map(k => k + '=' + _indClinGet(k)).join(' ');
+      ex.push(['DENOMINADOR: las siete respuestas seguian marcadas justo antes de cerrar', seguian, antes]);
+      ex.push(['cerrar el panel borra las siete, y reabrir no las trae de vuelta',
+        borro && trasReabrir.indexOf('=si') === -1 && trasReabrir.indexOf('=no') === -1 &&
+        trasReabrir.indexOf('=fav') === -1 && trasReabrir.indexOf('=desfav') === -1 &&
+        trasReabrir.indexOf('=alto') === -1,
+        trasReabrir]);
+
+      // ── El overlay no tiene nada que barra guardarInforme ──
+      const ov = document.getElementById('indic-overlay');
+      const barribles = ov ? ov.querySelectorAll('input[id],select[id],textarea[id]').length : -1;
+      ex.push(['el overlay del panel no tiene ni un input, select o textarea con id',
+        barribles === 0, 'barribles=' + barribles]);
+
+      /* ── LAS DOS GUARDAS QUE FALLAN CERRADO, EJERCIDAS ──
+         Las dos sobrevivieron a la primera tanda de mutaciones porque NINGUN escenario las
+         alcanzaba: los llamadores siempre devuelven un objeto y los umbrales siempre cargan. Una
+         defensa en profundidad que ningun caso ejerce es «una capa que nadie sabe si existe», asi
+         que se ejercen en aislamiento en vez de declararlas y seguir. */
+
+      /* (1) Un pinta que no devuelve nada tiene que caer en ❓ y no en la marca de «evaluado y
+         NO cumple», que es una AFIRMACION. Se llama al helper directo porque ningun sitio de la
+         app puede producir ese retorno — y es infraestructura compartida que va a copiar quien
+         escriba la sexta seccion. */
+      const oFalso = { val:'x', deEstudio:true, clave:'em.score' };
+      const fUndef = _indFilaOrigen('Prueba', oFalso, [], function(){ return undefined; });
+      const fNull  = _indFilaOrigen('Prueba', { val:'x', deEstudio:true, clave:'em.score' }, [],
+        function(){ throw new Error('pinta que lanza'); });
+      ex.push(['un pinta() que no devuelve nada, o que lanza, deja la fila en ❓ y no en una afirmacion',
+        !!fUndef && fUndef.marca === 'ask' && !!fNull && fNull.marca === 'ask',
+        'undefined -> ' + (fUndef ? fUndef.marca : 'REVENTO') + ' · throw -> ' + (fNull ? fNull.marca : 'REVENTO')]);
+
+      /* (2) Sin el umbral de area no se concluye. _gt falla cerrado; con > crudo,
+         avmMax > null es avmMax > 0, o sea VERDADERO para cualquier area: el panel publicaba
+         «supera — cm², que es una contraindicacion» al lado de una fila que decia «umbral no
+         disponible». El umbral se restaura SIEMPRE, o los 297 casos de abajo miden sobre otra app. */
+      const umbGuardado = window.AVM_SEVERA_MAX;
+      let rSinUmb = null, fSinUmb = null;
+      try {
+        window.AVM_SEVERA_MAX = undefined;
+        esc(W8, Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN_TROMBO));
+        rSinUmb = rec();
+        fSinUmb = fila('Área valvular mitral') || fila('rea valvular mitral');
+      } finally { window.AVM_SEVERA_MAX = umbGuardado; }
+      /* ⚠️ NO SE USA pide() ACA: ese helper relee el estado VIVO, y para cuando se evalua la
+         condicion el finally ya restauro el umbral — asi que estaria mirando otra recomendacion.
+         Es la trampa de «capturar el valor, no la lectura» que este archivo ya documenta, pagada
+         otra vez: el diagnostico mostraba el faltan correcto y la condicion daba false. */
+      const pidioUmbral = !!rSinUmb && Array.isArray(rSinUmb.faltan) &&
+        rSinUmb.faltan.some(f => pl(f).indexOf('umbral de area') > -1);
+      ex.push(['sin el umbral de area el panel no publica una contraindicacion: la pide, y la fila lo declara',
+        !!rSinUmb && rSinUmb.tipo === 'falta' && pidioUmbral &&
+        !!fSinUmb && fSinUmb.marca === 'ask',
+        (rSinUmb ? rSinUmb.tipo + ' / ' + rSinUmb.tit + ' · faltan=' + JSON.stringify(rSinUmb.faltan) : 'null') +
+        ' · fila=' + (fSinUmb ? fSinUmb.marca : 'NO HAY')]);
+      ex.push(['DENOMINADOR: el umbral volvio a su valor despues de la prueba',
+        window.AVM_SEVERA_MAX === umbGuardado && typeof window.AVM_SEVERA_MAX === 'number',
+        'AVM_SEVERA_MAX=' + window.AVM_SEVERA_MAX]);
+
+      // ── Los tres asserts de arranque de las secciones mitrales no tienen nada que decir ──
+      const asserts = [typeof _emAssertUmbrales === 'function' ? _emAssertUmbrales() : ['no existe _emAssertUmbrales'],
+                       typeof _indOrigenAssert === 'function' ? _indOrigenAssert() : ['no existe _indOrigenAssert']];
+      ex.push(['los umbrales de EM coinciden con sus textos, y el doble mecanismo no se aplico a un campo de pestaña basica',
+        asserts.every(a => Array.isArray(a) && a.length === 0),
+        JSON.stringify(asserts)]);
+
+      ex.push(['ningun valor del caso fue rechazado por su campo, y todos los botones existian',
+        noEntraron.length === 0 && sinClic.length === 0,
+        'rechazados: ' + noEntraron.join(',') + ' · sin boton: ' + sinClic.join(',')]);
+      return { extra: ex };
+    } finally {
+      try { indicCerrar(); limpiar();
+        if (typeof indicSyncBoton === 'function') indicSyncBoton(); } catch (e) {}
+    }
+  })();
+`);
+
+/* ══ INSUFICIENCIA MITRAL PRIMARIA INTERACTIVA — TC-283 ══════════════════════════════════════
+   Quinta seccion contestable. Un solo campo del Grupo 1 —el MECANISMO, que vive en ETE → TEER—
+   y cuatro del Grupo 2.
+
+   ⚠️ LA CLASE I NUEVA DE 2025 ES «AL MENOS TRES DE CUATRO», Y ESO ES LO QUE MAS CUESTA FIJAR.
+   Implementada como «alguno de», cuatro filas de Clase IIa se convierten en una Clase I — la
+   direccion peligrosa. Un caso que probara solo el escenario de tres criterios PASA con esa
+   implementacion: hacen falta los tres escenarios juntos —tres, dos, y tres con riesgo no bajo—
+   porque la fila exige ademas riesgo quirurgico BAJO y reparacion duradera probable.
+
+   ⚠️ Y EL CRITERIO INDEXADO SE PRUEBA EN AISLAMIENTO. Con una superficie corporal comoda, para
+   que el indexado pase de 20 el diametro tiene que pasar de 40, que ya dispara el criterio
+   ABSOLUTO: la Clase I sale igual y el caso pasa con el indexado roto. Es la misma trampa que la
+   insuficiencia aortica documento con su corte de 25 mm/m². Aca se usan DOS superficies:
+   · peso 96,8 / talla 180 → BSA 2,20 → con DTSVI 40 el indexado da 18,2: dispara SOLO el absoluto
+   · peso 76,45 / talla 170 → BSA 1,90 → con DTSVI 39 el indexado da 20,5: dispara SOLO el indexado
+
+   ⚠️ LO QUE ENCONTRO /sharp-edges EL 2026-09-27 Y ESTA VERSION FIJA:
+   · it_grado en 0 se leia como «nadie la miro» cuando en esta app significa «valorada como
+     normal». Le pedia al medico un dato que el estudio ya da y dejaba la rama «Sin criterio de
+     intervencion» casi inalcanzable para el paciente mas comun de la seccion.
+   · la fila de Clase IIa afirmaba «fibrilacion auricular SECUNDARIA a la insuficiencia» sobre
+     cualquier FA. El control pasa a tener tres estados.
+   · la fila de dilatacion auricular y el bloque de modalidad publicaban contra la respuesta del
+     propio medico: sus textos afirman «de riesgo bajo» y «cuando se espera un resultado duradero».
+   · las mediciones no pasaban por su banda de plausibilidad, y la superficie corporal FABRICA y
+     BORRA el criterio indexado.
+   · el texto final negaba los cuatro criterios teniendo uno presente. */
+const IM_IDS = "['im_sev_final','im_grado','teer_tipo_im','fevi','dsfvi','ai_vol','ai_diam'," +
+  "'psap_calc','it_grado','peso','talla']";
+const IM_CLAVES = "['im.mecanismo','im.sintomas','im.fa','im.riesgo','im.reparable']";
+
+caso('TC-283', 'Insuficiencia mitral primaria: el tres-de-cuatro se cuenta, y el mecanismo se lee de ETE', `
+  return (async () => {
+    if (typeof indicAbrir !== 'function' || typeof window._indIM !== 'function')
+      return { extra:[['existen indicAbrir y _indIM', false, '']] };
+    const IDS = ${IM_IDS};
+    const limpiar = () => IDS.forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+    const noEntraron = [];
+    const set = o => Object.keys(o).forEach(id => { const e = document.getElementById(id);
+      if (!e) { noEntraron.push('FALTA ' + id); return; }
+      e.value = o[id];
+      e.dispatchEvent(new Event('input', { bubbles:true }));
+      e.dispatchEvent(new Event('change', { bubbles:true }));
+      if (e.value !== String(o[id])) noEntraron.push(id + '=' + JSON.stringify(o[id])); });
+    const sinClic = [];
+    const clic = (k, v) => { const b = document.querySelector('#indic-cuerpo [data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
+      if (!b) { sinClic.push(k + '=' + v); return false; } b.click(); return true; };
+    const sec = () => window._indIM();
+    const rec = () => { const s = sec(); return (s && s.recom) ? s.recom : null; };
+    const clase = () => { const r = rec(); return r ? (r.tipo + ' / ' + (r.clase || r.tit)) : 'sin recomendacion'; };
+    const pl = s => String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+    const pide = txt => { const r = rec(); return !!r && Array.isArray(r.faltan) &&
+      r.faltan.some(f => pl(f).indexOf(pl(txt)) > -1); };
+    const fila = lbl => { const s = sec();
+      return (s && s.filas || []).filter(f => f.lbl.indexOf(lbl) > -1)[0] || null; };
+    const ctrls = () => { const s = sec(); if (!s) return [];
+      return (s.filas || []).concat(s.clinica || []).filter(f => !!f.ctrl).map(f => f.ctrl.clave); };
+    /* BSA 2,20 exacta (sqrt(96.8*180/3600) = 2,2): el indexado es el diametro sobre 2,2 y el
+       escenario dice que corte prueba en vez de arrastrar una superficie arbitraria. */
+    const B  = { im_sev_final:'4', peso:'96.8', talla:'180' };
+    /* BSA 1,90 exacta (sqrt(76.45*170/3600) = 1,9), para el criterio indexado en aislamiento. */
+    const CH = { peso:'76.45', talla:'170' };
+    const esc = (campos, marcas) => { indicCerrar(); limpiar(); set(Object.assign({}, B, campos));
+      indicAbrir(); Object.keys(marcas || {}).forEach(k => clic(k, marcas[k])); };
+    /* Asintomatico SIN disfuncion ventricular y con los tres parametros evaluados: es la
+       precondicion de la fila del tres-de-cuatro, y sin ella la cascada corta antes de contarla. */
+    const SIN_DISF = { fevi:'62', dsfvi:'35' };
+
+    try {
+      const ex = [];
+
+      // ── DENOMINADOR: sin el mecanismo en ETE hay CINCO controles ──
+      esc({}, {});
+      const c0 = ctrls();
+      ex.push(['DENOMINADOR: sin el mecanismo en ETE hay CINCO controles, los cinco esperados',
+        c0.length === 5 && ${IM_CLAVES}.every(k => c0.indexOf(k) > -1),
+        'controles=' + c0.join(',')]);
+
+      // ── CAMINO (a): el mecanismo se LEE de ETE y su control manual no se dibuja ──
+      esc({ teer_tipo_im:'primaria' }, {});
+      const fMecE = fila('Mecanismo'), cE = ctrls();
+      ex.push(['con el mecanismo cargado en ETE la fila es LECTURA y quedan cuatro controles',
+        !!fMecE && !fMecE.ctrl && fMecE.marca === 'ok' && cE.length === 4 &&
+        cE.indexOf('im.mecanismo') === -1,
+        (fMecE ? fMecE.marca + ' «' + fMecE.val + '» ctrl=' + (!!fMecE.ctrl) : 'NO HAY FILA') +
+        ' · controles=' + cE.join(',')]);
+
+      // ── El mecanismo SECUNDARIO leido del estudio saca la seccion del alcance de la tabla ──
+      esc({ teer_tipo_im:'secundaria' }, { 'im.sintomas':'si' });
+      const rSec = rec();
+      ex.push(['el mecanismo secundario leido del estudio saca estas filas del alcance, aun con sintomas',
+        !!rSec && rSec.tipo === 'no' && pl(rSec.tit).indexOf('fuera del alcance') > -1,
+        clase()]);
+
+      /* ── ⚠️ LA LECTURA TIENE PRIORIDAD SOBRE EL CONTROL MANUAL ──
+         Se contesta «secundaria» en el panel y DESPUES aparece «primaria» en ETE: el estudio manda
+         y la recomendacion vuelve a la tabla de la primaria. Una implementacion que diera
+         precedencia al panel pasa todas las condiciones de arriba y cae aca. */
+      esc({}, { 'im.sintomas':'si', 'im.mecanismo':'secundaria' });
+      const antesPrio = clase();
+      set({ teer_tipo_im:'primaria' });
+      const fPrio = fila('Mecanismo');
+      ex.push(['el control manual NO pisa el mecanismo del estudio: con ETE cargado la fila es lectura y manda primaria',
+        antesPrio.indexOf('no /') === 0 && !!fPrio && !fPrio.ctrl &&
+        clase() === 'ind / Clase I · Nivel B' && _indClinGet('im.mecanismo') === 'secundaria',
+        'antes: ' + antesPrio + ' · despues: ' + clase() + ' · panel sigue en ' + _indClinGet('im.mecanismo')]);
+
+      // ── Clase I por SINTOMAS, con independencia de los numeros del ventriculo ──
+      esc(Object.assign({}, SIN_DISF, { teer_tipo_im:'primaria' }), { 'im.sintomas':'si' });
+      ex.push(['el sintomatico es Clase I Nivel B aunque el ventriculo este normal',
+        clase() === 'ind / Clase I · Nivel B', clase()]);
+
+      /* ── ⚠️ LA MODALIDAD NO PUEDE AFIRMAR LA REPARACION CONTRA LA RESPUESTA DEL MEDICO ──
+         Su texto dice «cuando se espera un resultado duradero». Con im.reparable en «no»
+         CONTESTADO, publicar «La REPARACION es la tecnica recomendada — Clase I · Nivel B» es el
+         defecto del TAVI sobre el asintomatico: titular con su clase y el reparo al pie en gris.
+         Con la pregunta en null si se publica, porque ahi la condicion se NOMBRA. */
+      esc(Object.assign({}, SIN_DISF, { teer_tipo_im:'primaria' }), { 'im.sintomas':'si', 'im.reparable':'no' });
+      const modNo = (rec() || {}).mod || {};
+      esc(Object.assign({}, SIN_DISF, { teer_tipo_im:'primaria' }), { 'im.sintomas':'si', 'im.reparable':'si' });
+      const modSi = (rec() || {}).mod || {};
+      ex.push(['con la reparacion contestada NO, el bloque de modalidad no publica su clase: dice que esa fila no aplica',
+        modNo.clase === '' && pl(modNo.txt || '').indexOf('no se espera duradera') > -1 &&
+        modSi.clase === 'Clase I · Nivel B',
+        'con no: clase=' + JSON.stringify(modNo.clase) + ' «' + (modNo.txt || '').slice(0, 55) +
+        '» · con si: ' + JSON.stringify(modSi.clase)]);
+
+      /* ── EL CORTE ABSOLUTO DE 40 mm, EN AISLAMIENTO Y POR LOS DOS LADOS ──
+         Con BSA 2,20 un DTSVI de 40 da un indexado de 18,2, o sea que la Clase I sale SOLO por el
+         absoluto: la fila indexada tiene que quedar en «no alcanza». */
+      esc({ fevi:'62', dsfvi:'39' }, { 'im.sintomas':'no', 'im.fa':'no' });
+      const abs39 = clase();
+      esc({ fevi:'62', dsfvi:'40' }, { 'im.sintomas':'no' });
+      const rAbs40 = rec(), fAbs = fila('DTSVI —'), fIdxA = fila('DTSVI indexado');
+      ex.push(['39 mm no dispara y 40 mm EXACTOS si (el operador es >=), y el indexado queda callado',
+        abs39.indexOf('Clase I ·') === -1 && !!rAbs40 && rAbs40.clase === 'Clase I · Nivel B' &&
+        !!fAbs && fAbs.marca === 'ok' && !!fIdxA && fIdxA.marca === 'none',
+        'con 39: ' + abs39 + ' · con 40: ' + clase() +
+        ' · abs=' + (fAbs ? fAbs.marca : '?') + ' idx=' + (fIdxA ? fIdxA.marca : '?')]);
+
+      /* ── EL CORTE INDEXADO DE 20 mm/m², QUE ES EL NUEVO DE 2025, TAMBIEN EN AISLAMIENTO ──
+         BSA 1,90 con DTSVI 39: el indexado da 20,5 y el absoluto no llega a 40. La Clase I sale
+         SOLO por el indexado, que es el paciente para el que la guia lo agrego. */
+      esc(Object.assign({ fevi:'62', dsfvi:'39' }, CH), { 'im.sintomas':'no' });
+      const rIdx = rec(), fAbsB = fila('DTSVI —'), fIdxB = fila('DTSVI indexado');
+      ex.push(['con talla pequeña el indexado dispara la Clase I SOLO, con el absoluto en «no alcanza»',
+        !!rIdx && rIdx.clase === 'Clase I · Nivel B' &&
+        !!fAbsB && fAbsB.marca === 'none' && !!fIdxB && fIdxB.marca === 'ok',
+        clase() + ' · abs=' + (fAbsB ? fAbsB.marca : '?') + ' idx=' + (fIdxB ? fIdxB.marca : '?')]);
+      ex.push(['y la nota nombra el parametro indexado como el presente',
+        !!rIdx && pl(rIdx.nota || '').indexOf('indexado') > -1,
+        (rIdx ? (rIdx.nota || 'SIN NOTA') : 'null').slice(0, 130)]);
+
+      // ── EL CORTE DE FEVI ES ≤ 60 %, POR LOS DOS LADOS ──
+      esc({ fevi:'60', dsfvi:'35' }, { 'im.sintomas':'no' });
+      const fevi60 = rec();
+      esc({ fevi:'61', dsfvi:'35' }, { 'im.sintomas':'no', 'im.fa':'no' });
+      const fevi61 = clase();
+      ex.push(['FEVI de 60 % EXACTA es criterio de disfuncion (Clase I) y 61 % no',
+        !!fevi60 && fevi60.clase === 'Clase I · Nivel B' && fevi61.indexOf('Clase I ·') === -1,
+        'con 60: ' + (fevi60 ? fevi60.clase : 'null') + ' · con 61: ' + fevi61]);
+
+      /* ── ⚠️ LAS MEDICIONES PASAN POR SU BANDA, Y LA SUPERFICIE CORPORAL ES LA QUE MAS DAÑO HACE ──
+         La BSA es el denominador del criterio indexado, asi que su error lo FABRICA y lo BORRA;
+         un DTSVI tipeado en centimetros hacia que la fila imprimiera «no alcanza 40 mm», que es una
+         AFIRMACION de normalidad sobre basura, con los tres parametros contando como evaluados. */
+      esc({ fevi:'62', dsfvi:'34', peso:'500', talla:'50', psap_calc:'30', ai_diam:'44', it_grado:'1' },
+          { 'im.sintomas':'no', 'im.fa':'no' });
+      const rPeso = rec(), avPeso = sec().aviso || '';
+      ex.push(['un peso fuera de rango medible no produce ni una indicacion ni una negacion: pide revisar la unidad',
+        !!rPeso && rPeso.tipo === 'falta' && pide('fuera de rango medible') &&
+        avPeso.indexOf('fuera de rango medible') > -1,
+        clase() + ' · aviso=' + avPeso.slice(0, 70)]);
+      esc({ fevi:'62', dsfvi:'4.2', psap_calc:'30', ai_diam:'44', it_grado:'1' },
+          { 'im.sintomas':'no', 'im.fa':'no' });
+      const rCm = rec(), fCm = fila('DTSVI —');
+      ex.push(['un DTSVI tipeado en centimetros no produce la afirmacion «no alcanza 40 mm»: pide revisar la unidad',
+        !!rCm && rCm.tipo === 'falta' && !!fCm && fCm.marca === 'ask' &&
+        fCm.nota.indexOf('fuera de rango medible') > -1 && pide('fuera de rango medible'),
+        clase() + ' · fila=' + (fCm ? fCm.marca + ' «' + fCm.nota.slice(0, 50) + '»' : 'NO HAY')]);
+
+      /* ── ⚠️ it_grado EN 0 ES «VALORADA COMO NORMAL», NO «NADIE LA MIRO» ──
+         Es la regla que este archivo ya fijo el 2026-09-16 —y revirtio el intento contrario—: en
+         esta app el medico marca solo lo que el paciente tiene, asi que el valor de fabrica ES un
+         grado. Leerlo como ausencia le pedia al medico un dato que el estudio ya da y dejaba la
+         rama «Sin criterio de intervencion» casi inalcanzable para el paciente mas comun. La cadena
+         VACIA —que solo puede venir de un import sin esa columna— si es «no consignada». */
+      const NADA = Object.assign({ psap_calc:'30', ai_diam:'44' }, SIN_DISF);
+      esc(Object.assign({ it_grado:'0' }, NADA), { 'im.sintomas':'no', 'im.fa':'no' });
+      const rIt0 = rec(), fIt0 = fila('tricusp');
+      esc(NADA, { 'im.sintomas':'no', 'im.fa':'no' });
+      const rItVacio = rec();
+      ex.push(['con la tricuspide en 0 el criterio cuenta como evaluado y negativo, y se alcanza «Sin criterio»',
+        !!rIt0 && rIt0.tipo === 'no' && !!fIt0 && fIt0.marca === 'none' &&
+        pl(fIt0.val).indexOf('sin insuficiencia') > -1,
+        clase() + ' · fila=' + (fIt0 ? fIt0.val + ' / ' + fIt0.marca : '?')]);
+      ex.push(['y con la columna del grado ausente si es «no consignada»: ahi se pide',
+        !!rItVacio && rItVacio.tipo === 'falta' && pide('tricuspidea'),
+        (rItVacio ? rItVacio.tipo : 'null') + ' · faltan=' + JSON.stringify(rItVacio ? rItVacio.faltan : null)]);
+
+      /* ── ⚠️ EL TRES-DE-CUATRO SE CUENTA, Y LAS DOS CONDICIONES EXTRA SE EXIGEN ──
+         Criterios: fibrilacion auricular, PAPs > 50, dilatacion auricular y IT al menos moderada.
+         Escenario con TRES (FA + PAPs 60 + AI 55 mm) y la tricuspidea leve, que no cuenta. */
+      const TRES = { fevi:'62', dsfvi:'35', psap_calc:'60', ai_diam:'55', it_grado:'1' };
+      const DOS  = { fevi:'62', dsfvi:'35', psap_calc:'45', ai_diam:'50', it_grado:'2' };
+      esc(TRES, { 'im.sintomas':'no', 'im.fa':'si_sec', 'im.riesgo':'bajo', 'im.reparable':'si' });
+      const r3 = rec();
+      esc(DOS, { 'im.sintomas':'no', 'im.fa':'si_sec', 'im.riesgo':'bajo', 'im.reparable':'si' });
+      const r2 = rec();
+      esc(TRES, { 'im.sintomas':'no', 'im.fa':'si_sec', 'im.riesgo':'no_bajo', 'im.reparable':'si' });
+      const r3nb = rec();
+      ex.push(['TRES de los cuatro criterios con riesgo bajo y reparacion duradera dan Clase I Nivel B',
+        !!r3 && r3.clase === 'Clase I · Nivel B' && pl(r3.nota || '').indexOf('3 de los cuatro') > -1,
+        (r3 ? r3.clase + ' · ' + (r3.nota || '') : 'null').slice(0, 150)]);
+      ex.push(['DOS de los cuatro NO alcanzan la Clase I: bajan a Clase IIa Nivel B',
+        !!r2 && r2.clase === 'Clase IIa · Nivel B', r2 ? r2.clase : 'null']);
+      ex.push(['TRES de los cuatro con riesgo quirurgico NO bajo tampoco alcanzan la Clase I',
+        !!r3nb && r3nb.clase === 'Clase IIa · Nivel B' && pl(r3nb.nota || '').indexOf('riesgo bajo') > -1,
+        (r3nb ? r3nb.clase + ' · ' + (r3nb.nota || '') : 'null').slice(0, 150)]);
+
+      // ── Y con tres criterios pero sin contestar la reparacion, NO se publica: se pide ──
+      esc(TRES, { 'im.sintomas':'no', 'im.fa':'si_sec', 'im.riesgo':'bajo' });
+      const rSinRep = rec();
+      ex.push(['con tres criterios y la reparacion duradera sin contestar pide el dato en vez de concluir',
+        !!rSinRep && rSinRep.tipo === 'falta' && pide('reparacion duradera'),
+        clase() + ' · faltan=' + JSON.stringify(rSinRep ? rSinRep.faltan : null)]);
+
+      /* ── ⚠️ LA FILA DE CLASE IIa PIDE FIBRILACION **SECUNDARIA A LA INSUFICIENCIA** ──
+         Su texto lo AFIRMA, y con un si/no una fibrilacion permanente de años por hipertension lo
+         disparaba. El tres-de-cuatro, en cambio, cuenta la FA a secas: los dos criterios son
+         distintos y no pueden salir del mismo booleano. */
+      const UNA_FA = { fevi:'62', dsfvi:'35', psap_calc:'30', ai_diam:'44', it_grado:'1' };
+      esc(UNA_FA, { 'im.sintomas':'no', 'im.fa':'si_sec' });
+      const rFaSec = rec();
+      esc(UNA_FA, { 'im.sintomas':'no', 'im.fa':'si_otra' });
+      const rFaOtra = rec();
+      ex.push(['la FA secundaria a la insuficiencia dispara la Clase IIa y la de OTRA causa no',
+        !!rFaSec && rFaSec.tipo === 'ind' && rFaSec.clase === 'Clase IIa · Nivel B' &&
+        pl(rFaSec.nota || '').indexOf('secundaria a la insuficiencia') > -1 &&
+        !!rFaOtra && rFaOtra.tipo === 'no',
+        'secundaria: ' + (rFaSec ? rFaSec.clase : 'null') + ' · de otra causa: ' + (rFaOtra ? rFaOtra.tipo + ' / ' + rFaOtra.tit : 'null')]);
+      ex.push(['pero la de otra causa SI cuenta como uno de los cuatro criterios del tres-de-cuatro',
+        !!rFaOtra && pl(rFaOtra.txt).indexOf('1 de los cuatro') > -1,
+        (rFaOtra ? rFaOtra.txt : 'null').slice(0, 130)]);
+
+      /* ── ⚠️ EL TEXTO NO PUEDE NEGAR LOS CUATRO CRITERIOS TENIENDO UNO PRESENTE ──
+         El unico camino que llega a la rama final con un criterio es la insuficiencia tricuspidea
+         aislada, y ahi la fila de arriba mostraba ✅ «uno de los cuatro criterios» mientras la
+         conclusion decia «sin ninguno de los cuatro». */
+      esc({ fevi:'62', dsfvi:'35', psap_calc:'30', ai_diam:'44', it_grado:'2' },
+          { 'im.sintomas':'no', 'im.fa':'no' });
+      const rUno = rec(), fItM = fila('tricusp');
+      ex.push(['con la tricuspidea moderada aislada la conclusion cuenta ese criterio en vez de negar los cuatro',
+        !!rUno && rUno.tipo === 'no' && pl(rUno.txt).indexOf('1 de los cuatro') > -1 &&
+        pl(rUno.txt).indexOf('sin ninguno de los cuatro') === -1 &&
+        !!fItM && fItM.marca === 'ok',
+        (rUno ? rUno.txt : 'null').slice(0, 130)]);
+
+      /* ── LA DILATACION AURICULAR TIENE DOS FORMAS UNIDAS POR «o» ──
+         El diametro anteroposterior alcanza SOLO, sin volumen indexado: leer una sola dejaria
+         afuera al paciente que tiene la otra. 54 mm no llega y 55 si.
+         ⚠️ Y SU FILA EXIGE RIESGO BAJO Y REPARACION DURADERA, que es lo que su texto AFIRMA: la
+         version anterior los nombraba en una nota gris y publicaba la Clase IIa igual. */
+      const AI = { fevi:'62', dsfvi:'35', psap_calc:'40', it_grado:'1' };
+      const OK_AI = { 'im.sintomas':'no', 'im.fa':'no', 'im.riesgo':'bajo', 'im.reparable':'si' };
+      esc(Object.assign({ ai_diam:'54' }, AI), OK_AI);
+      const fAi54 = fila('Aur');
+      esc(Object.assign({ ai_diam:'55' }, AI), OK_AI);
+      const fAi55 = fila('Aur'), rAi = rec();
+      ex.push(['el diametro auricular de 55 mm cuenta SIN volumen indexado, y 54 mm no',
+        !!fAi54 && fAi54.marca === 'none' && !!fAi55 && fAi55.marca === 'ok' &&
+        !!rAi && rAi.clase === 'Clase IIa · Nivel B',
+        'con 54: ' + (fAi54 ? fAi54.marca : '?') + ' · con 55: ' + (fAi55 ? fAi55.marca : '?') +
+        ' · recom=' + clase()]);
+      esc(Object.assign({ ai_diam:'55' }, AI), { 'im.sintomas':'no', 'im.fa':'no', 'im.riesgo':'no_bajo', 'im.reparable':'no' });
+      const rAiNb = rec();
+      esc(Object.assign({ ai_diam:'55' }, AI), { 'im.sintomas':'no', 'im.fa':'no' });
+      const rAiSin = rec();
+      ex.push(['con riesgo no bajo y reparacion no duradera la fila de dilatacion auricular NO se publica',
+        !!rAiNb && rAiNb.tipo === 'no' && pl(rAiNb.txt).indexOf('riesgo quirurgico bajo') > -1,
+        (rAiNb ? rAiNb.tipo + ' / ' + rAiNb.txt.slice(0, 80) : 'null')]);
+      ex.push(['y sin contestarlos pide los dos en vez de publicarla',
+        !!rAiSin && rAiSin.tipo === 'falta' && pide('riesgo quirurgico') && pide('reparacion duradera'),
+        clase() + ' · faltan=' + JSON.stringify(rAiSin ? rAiSin.faltan : null)]);
+
+      /* ── ⚠️ «DE NUEVA APARICION» ERA EL ROTULO DE LA OTRA VALVULA ──
+         En la insuficiencia mitral primaria la guia nunca dice «new-onset»: ese matiz pertenece a
+         la ESTENOSIS mitral. El campo estaba ademas sin ninguna frase al lado. */
+      esc({}, {});
+      const fFa = (sec().clinica || []).filter(f => f.ctrl && f.ctrl.clave === 'im.fa')[0];
+      ex.push(['la fila de fibrilacion auricular no dice «de nueva aparicion», tiene su texto y ofrece las tres respuestas',
+        !!fFa && pl(fFa.lbl) === 'fibrilacion auricular' && (fFa.nota || '').length > 20 &&
+        fFa.ctrl.ops.length === 3 &&
+        fFa.ctrl.ops.map(o => o.v).sort().join(',') === 'no,si_otra,si_sec',
+        (fFa ? fFa.lbl + ' | ops=' + fFa.ctrl.ops.map(o => o.v).join(',') + ' | ' + (fFa.nota || 'SIN NOTA') : 'NO HAY FILA').slice(0, 165)]);
+
+      // ── AISLAMIENTO ──
+      esc({}, { 'im.mecanismo':'primaria', 'im.sintomas':'no', 'im.fa':'si_sec', 'im.riesgo':'bajo', 'im.reparable':'si' });
+      const seguian = ${IM_CLAVES}.every(k => _indClinGet(k) !== null);
+      const antes = ${IM_CLAVES}.map(k => k + '=' + _indClinGet(k)).join(' ');
+      indicCerrar();
+      const borro = ${IM_CLAVES}.every(k => _indClinGet(k) === null);
+      indicAbrir();
+      const trasReabrir = ${IM_CLAVES}.map(k => k + '=' + _indClinGet(k)).join(' ');
+      ex.push(['DENOMINADOR: las cinco respuestas seguian marcadas justo antes de cerrar', seguian, antes]);
+      ex.push(['cerrar el panel borra las cinco, y reabrir no las trae de vuelta',
+        borro && trasReabrir.indexOf('=si') === -1 && trasReabrir.indexOf('=no') === -1 &&
+        trasReabrir.indexOf('=bajo') === -1 && trasReabrir.indexOf('=primaria') === -1,
+        trasReabrir]);
+
+      // ── El assert de umbrales de IM no tiene nada que decir ──
+      ex.push(['los umbrales de IM coinciden con los textos de su tabla de recomendaciones',
+        typeof _imAssertUmbrales === 'function' && _imAssertUmbrales().length === 0,
+        typeof _imAssertUmbrales === 'function' ? JSON.stringify(_imAssertUmbrales()) : 'no existe']);
+
+      ex.push(['ningun valor del caso fue rechazado por su campo, y todos los botones existian',
+        noEntraron.length === 0 && sinClic.length === 0,
+        'rechazados: ' + noEntraron.join(',') + ' · sin boton: ' + sinClic.join(',')]);
+      return { extra: ex };
+    } finally {
+      try { indicCerrar(); limpiar();
+        if (typeof indicSyncBoton === 'function') indicSyncBoton(); } catch (e) {}
+    }
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

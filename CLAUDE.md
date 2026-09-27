@@ -4,6 +4,305 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Las dos secciones mitrales, y el doble mecanismo para lo que vive en ETE (2026-09-27)
+
+Cuarta y quinta secciones contestables del panel de Evidencia: **Estenosis Mitral** e
+**Insuficiencia Mitral primaria**. Mismo patrón que las dos aórticas, más `_indOrigen` /
+`_indFilaOrigen` para los campos del **Grupo 1** — los que viven en la pestaña ETE, que es
+`data-mod="ete"` dentro de `.tabs-special`, o sea que **en Modo Básico el médico no tiene dónde
+cargarlos**. Las otras nueve no se tocaron.
+
+### El censo desmintió el pedido en dos de cuatro, y la corrección es la regla del mecanismo
+
+El pedido listaba cuatro entradas como Grupo 1 y **dos no lo son**: `ai_vol` (tab AI/VI) y los
+cuatro `avm_*` (tab Válvulas y tab Doppler) son **alcanzables en Modo Básico**, así que darles
+control manual habría creado la segunda fuente que la regla explícita de esta ronda prohíbe —«el
+control manual nunca debe sobrescribir ni duplicar el dato real si existe en su lugar de origen»—.
+El Grupo 1 real son
+**tres**: el score ecocardiográfico (`wilkins_*`), el trombo de orejuela (`oai_trombo`) y el
+**Mecanismo** (`teer_tipo_im`) — que el pedido citaba como ejemplo y no incluía en su lista.
+
+**`avm_ete` es el más engañoso: NO vive en la pestaña ETE.** Está en Válvulas, al lado de
+`avm_plan`. El «ETE» del nombre es la **técnica** de medición, no dónde se carga.
+
+### La prioridad es POR CONSTRUCCIÓN, no por convención
+
+Cuando hay valor de origen, `_indFilaOrigen` **no dibuja el control manual**. No es que la
+respuesta del panel se ignore: es que no hay respuesta que dar. Así es imposible que el panel
+publique algo distinto de lo que dice el estudio. Hay una condición en cada caso que contesta en el
+panel y **después** carga el ETE: ahí el estudio tiene que ganar, y la mutación que invierte la
+precedencia cae sólo ahí —las condiciones de «se lee del estudio» y «se contesta en el panel»
+pasan las dos con la inversión puesta—.
+
+**Y la regla dejó de vivir sólo en prosa.** `_IND_ORIGEN_CAMPOS` declara los tres pares
+clave→campo y **`_indOrigenAssert()`** comprueba al arrancar que cada campo de origen viva en un
+panel gateado por un `.tab-btn[data-mod]` —el id del panel se deriva del `showTab('x')` del propio
+botón, no de una lista paralela—. Sin eso, aplicar el mecanismo a `fevi` o a `avm_plan` dibuja un
+control manual sobre un campo que el médico ya puede cargar, y el panel se ve perfecto.
+
+### Estenosis mitral: tres cosas que el «corte clásico de Wilkins» tiene mal
+
+Verificado sobre el documento primario (Recommendation Table 8, p. 4682, nota ^c):
+
+1. **La guía NO dice «Wilkins».** Dice *«echocardiographic score»*; el apellido aparece una sola
+   vez en las 102 páginas, como referencia bibliográfica.
+2. **El operador es `> 8`**, así que un score de **exactamente 8 no es desfavorable**.
+3. **⚠️ UN SCORE > 8 NO ALEJA DEL PROCEDIMIENTO.** Es UNA de varias características desfavorables
+   y la regla de agregación es *«several of the following»*, **sin cuantificar**. Rutea a la fila
+   de **Clase IIa**, no fuera de la comisurotomía. Implementar «> 8 → contraindicada» sería
+   inventar una regla que el documento se cuidó de no escribir.
+
+**⚠️ Y EL TROMBO DE OREJUELA NO ES CONTRAINDICACIÓN ABSOLUTA.** La tabla dice «LA thrombus» a
+secas, pero su nota ^b dice que **cuando está en la OREJUELA** la comisurotomía puede considerarse
+en quien tiene contraindicación quirúrgica o no tiene urgencia, con anticoagulación 1-3 meses y un
+ETE de control que confirme la resolución. `oai_trombo` es justamente el campo de la **orejuela**,
+así que el panel decía «contraindicación ABSOLUTA» sobre la única localización que la guía trata
+como condicional — un error en la dirección estricta.
+
+**⚠️ DOS DE ESAS AFIRMACIONES SE VERIFICARON POR UNA SOLA VÍA.** El «> 8» y la condicionalidad del
+trombo viven en las **notas al pie** de la tabla del texto completo, y el juego de diapositivas
+oficial reproduce las tablas **sin las leyendas de sus notas** —comprobado: «echocardiographic
+score» no aparece en las 105 diapositivas ni en el Essential Messages—. No es una discrepancia: es
+una **ausencia**, y está declarada en el código. Todo lo demás coincidió dígito por dígito.
+
+### «Fibrilación auricular de nueva aparición» era el rótulo de la OTRA válvula
+
+En la insuficiencia mitral primaria la guía **nunca dice «new-onset»**: el criterio es «AF» dentro
+del tres-de-cuatro, y «AF **secondary to MR**» en la fila de Clase IIa. El «de nueva aparición»
+pertenece a la **estenosis** mitral, donde es un disparador de riesgo tromboembólico. El campo
+estaba además **sin ninguna frase al lado**, que es lo que lo delató.
+
+### La Clase I nueva de 2025 es «al menos TRES de CUATRO», y se implementa como un conteo
+
+Verificado en cuatro lugares del mismo documento (Recommendation Table 6 p. 4675, la Table 3 de
+recomendaciones nuevas, la Figura 11 y la tabla resumen de Clase I de la Sección 20). Implementada
+como «alguno de», **cuatro filas de Clase IIa se convierten en una Clase I** — la dirección
+peligrosa. Y exige además cuatro condiciones que se cumplen TODAS: asintomático, riesgo quirúrgico
+**bajo**, sin disfunción de VI en los tres parámetros, y reparación duradera probable.
+
+**Un caso que probara sólo el escenario de tres criterios PASA con «alguno de».** Hacen falta los
+tres juntos: tres, dos, y tres con riesgo no bajo.
+
+### ⚠️ LO QUE ENCONTRÓ `/sharp-edges`, Y SEIS CAMBIABAN UNA CONDUCTA
+
+Catorce hallazgos sobre el diff. Los que valen:
+
+- **⚠️ «CARACTERÍSTICAS CLÍNICAS DESFAVORABLES» NO ES «RIESGO QUIRÚRGICO ALTO», y esa confusión
+  cambiaba la VÍA DE TRATAMIENTO.** La fila que el panel publicaba dice «cualquier paciente
+  sintomático con **contraindicación quirúrgica** o riesgo alto», y se emitía a partir de la edad
+  avanzada, la comisurotomía previa o la FA permanente —que son otra cosa— **sin ninguna pregunta
+  de riesgo quirúrgico**. Lo delataba que **`sint_cx` («Cirugía RECOMENDADA en el sintomático que
+  no es candidato a comisurotomía») fuera INALCANZABLE**: la rama que tenía que producir cirugía
+  producía percutánea. Hoy hay control `em.riesgo` y las dos filas se distinguen. **Al probarlo,
+  comparar la CLASE no alcanza: las dos son «Clase I · Nivel C», la misma cadena. Se comparan los
+  TEXTOS** — es la misma trampa que las dos cirugías concomitantes de la IAo.
+- **⚠️ EL ASINTOMÁTICO NEGABA SOBRE DOS DE LOS TRES DISPARADORES.** La fila dice «PAPs en reposo
+  > 50 mmHg, **necesidad de cirugía mayor no cardíaca, embarazo o deseo de embarazo**», unidos por
+  «y/o», y la cascada evaluaba el primero: una mujer de 31 años con **deseo de embarazo** y PAPs
+  normal salía «Sin criterio de intervención — corresponde seguimiento». Es el
+  `!predicadoEstricto()` que falla abierto, y sobre una negación. Los otros dos no salen de ninguna
+  medición, así que hoy se preguntan (`em.decomp`).
+  Y en la misma rama: el texto decía «con la PAPs por debajo de 50 mmHg» **aunque la PAPs no
+  estuviera estimada** —falso— y lo desmentía una nota en gris en la línea siguiente. La afirmación
+  sale del texto, no se corrige abajo.
+- **⚠️ SE PUBLICABA CLASE I SIN ÁREA MEDIDA.** Con `medidas` vacío, `avmMax` queda en `null` y la
+  comprobación de la **primera contraindicación de la tabla se salteaba sin decirlo**: un gradiente
+  medio de 7 mmHg con `calcEM` dejando el grado en «moderada» publicaba «Comisurotomía RECOMENDADA
+  — Clase I · Nivel B» debajo de una fila que decía «ninguna de las cuatro fuentes tiene valor».
+- **⚠️ LA INSUFICIENCIA MITRAL MÁS QUE LEVE ES CONTRAINDICACIÓN Y LA APP YA TIENE EL CAMPO.** De
+  las siete que la sección enumera al pie, era la **única evaluable** con lo que el estudio recoge
+  (`im_sev_final >= 2`) y la cascada no la miraba: un paciente con IM moderada-severa recibía
+  «Comisurotomía RECOMENDADA» sobre un procedimiento contraindicado. «Más que leve» es ≥ 2, **no
+  «moderada o más»**. Las otras cuatro no tienen campo y hoy **la recomendación las nombra**, en
+  vez de dejarlas sólo en el pie: una indicación que no las mencione se lee como si estuvieran
+  descartadas.
+- **⚠️ DOS FILAS DE IM PUBLICABAN CONTRA LA RESPUESTA DEL PROPIO MÉDICO.** `asint_ai` («en el
+  paciente asintomático **de riesgo bajo** … **si es probable una reparación duradera**») se
+  publicaba con `im.riesgo = no_bajo` y `im.reparable = no` contestados, nombrando las condiciones
+  en una nota gris; y el bloque de modalidad afirmaba «La REPARACIÓN es la técnica recomendada —
+  Clase I · Nivel B» con `im.reparable = no`. Es el defecto del TAVI sobre el asintomático, dos
+  veces. **Con la pregunta en `null` sí se publica** —ahí la condición se NOMBRA, que es lo que la
+  guía escribe dentro de su propia fila—; contestada en contra, la fila deja de aplicar.
+- **⚠️ `faSec = fa`: LA CLASE IIa AFIRMABA «FIBRILACIÓN SECUNDARIA A LA INSUFICIENCIA» SOBRE
+  CUALQUIER FA.** El control era sí/no y el texto publicado lo afirma, mientras la nota de la fila
+  **declaraba la condición** — o sea que la fila la nombraba y la recomendación la daba por
+  cumplida. Una FA permanente de años por hipertensión disparaba esa Clase IIa. Hoy `im.fa` tiene
+  **tres estados** (secundaria a la IM / de otra causa / no) y los dos criterios dejaron de salir
+  del mismo booleano: el tres-de-cuatro cuenta la FA **a secas**, que es lo que esa otra fila pide.
+- **⚠️ `it_grado = 0` SE LEÍA COMO «NADIE LA MIRÓ», Y EN ESTA APP SIGNIFICA «VALORADA COMO
+  NORMAL».** Es la regla que este archivo ya fijó el 2026-09-16 —y revirtió el intento contrario—.
+  Le pedía al médico un dato que el estudio ya da y dejaba la rama «Sin criterio de intervención»
+  **casi inalcanzable para el paciente más común de la sección**. Hoy el `0` es criterio evaluado y
+  negativo, y sólo la **cadena vacía** —que sólo puede venir de un import sin esa columna— es «no
+  consignada».
+- **La sospecha de trombo y el «no consta» salían como nota gris bajo un titular VERDE de Clase
+  I.** El trombo confirmado sí cortaba; y el trombo es la única precondición de esa cascada que
+  **tiene control propio en el panel**, así que dejarla sin contestar tenía que pedirse igual que
+  los síntomas o el score. Hoy: sospecha → alarma, sin contestar → `falta`.
+- **Una comparación cruda contra un umbral que puede ser `null`.** `avmMax > D.US` con `US` en
+  `null` es `avmMax > 0`, o sea **verdadero para cualquier área**: el panel publicaba «La mayor de
+  las áreas supera — cm², que es una contraindicación» al lado de una fila que decía «umbral no
+  disponible». Es la regla 3 del panel, y era la única comparación cruda de las dos secciones.
+- **Y un hallazgo propio, de mi relectura del arreglo: con DOS contraindicaciones el titular
+  nombraba UNA.** El área por encima del corte y la insuficiencia mitral moderada eran dos `if`
+  seguidos con `return`, así que **el orden lo decidía en qué línea se había escrito cada uno**. La
+  otra seguía visible en su fila, pero la conclusión afirmaba una razón sobre un paciente que tiene
+  dos. Hoy se recogen juntas y el texto dice «Hay dos contraindicaciones: …; y …». De paso: con
+  trombo confirmado **además**, la rama de alarma no se alcanza, así que el trombo **se nombra en la
+  nota** — pide anticoagulación por su cuenta aunque el procedimiento ya esté descartado.
+- **El texto final de IM negaba los cuatro criterios teniendo uno presente.** El único camino que
+  llega ahí con `n >= 1` es la IT moderada aislada, y la fila de arriba mostraba ✅ «uno de los
+  cuatro criterios» mientras la conclusión decía «sin ninguno de los cuatro».
+- **La fila de FEVI de IM se apagaba por `UMBRAL_FEVI_NORMAL`**, que sólo aporta la frase de
+  «disfunción sistólica establecida»: el criterio es el 60 % de `IM_CRIT_2025`, una constante
+  propia que siempre está. Con `UF` ausente la fila desaparecía mientras `disf.fevi` seguía
+  calculándose y podía publicar la Clase I.
+- **`pinta()` devolviendo `undefined` fallaba ABIERTO.** `pinta(o.val) || {}` dejaba que `_indFila`
+  normalizara la marca a `none`, o sea la marca de «evaluado y NO cumple» —una afirmación— con
+  `undefined` impreso como valor. Hoy cae en `ask`.
+- **Y la nota del estado SIN DATO era código muerto.** `_indFilaOrigen` descartaba `p.nota` cuando
+  no había valor, que es justo cuando hace falta: las dos frases que dicen **dónde se carga** el
+  campo —«se puntúa en la pestaña ETE», «la indicación exige haber descartado trombo auricular»—
+  no se mostraban nunca.
+
+### Las bandas de plausibilidad: `_indBanda` / `_indLeer` se EXTRAJERON, no se copiaron
+
+Las dos secciones leían crudo mientras `_indIADatos`, escrita 24 h antes y 300 líneas más abajo, ya
+consumía `_labRango` y **documentaba por qué**. Escribirlo una tercera vez es cómo tres superficies
+del mismo panel empiezan a acotar el mismo campo con bandas distintas. Los dos helpers subieron a
+nivel de módulo y **`_indIADatos` los consume por ALIAS LOCAL** (`const banda = _indBanda, leer =
+_indLeer;`), así que su cuerpo no cambió ni un carácter en sus veinte sitios de llamada — la misma
+técnica de sombra que `tgaConclusion` usa para su fuente inyectable.
+
+**La superficie corporal es la que más daño hace**, igual que en la IAo: es el **denominador** del
+criterio indexado, así que su error lo **fabrica** y lo **borra**. Y un DTSVI tipeado en
+centímetros —4,2 por 42— daba `4.2 >= 40` falso, o sea que la fila imprimía «no alcanza 40 mm»:
+una **afirmación de normalidad sobre basura**, con los tres parámetros contando como evaluados.
+**El corte indexado de la IM (20 mm/m²) es MÁS BAJO que el de la IAo (25)**, así que el error de un
+orden de magnitud en el peso lo alcanza más fácil que allá.
+
+**Lo que NO tiene banda se DECLARA, no se inventa** — la regla de la ronda anterior. `psap_calc` no
+tiene entrada en la tabla de rangos: se lee crudo y **la fila lo dice**. Si se lo pasara por
+`_indLeer` quedaría `sinBanda` y su criterio se apagaría **para siempre** —existiría y no haría
+nada, que es el modo de falla silencioso de este diseño—. Lo mismo `avm_ete` y `avm_thp`, que no
+tienen banda mientras `avm_plan` y `avm_cont` sí: **no se les presta la de su gemela**, porque ese
+número lo elige una persona (fue la decisión del `vdfvi` `[3,500]`).
+
+**Un peso de 40 por 80 no lo atrapa ninguna banda**, y sigue sin atraparlo: `[1,400]` está escrita
+para el error de un orden de magnitud, no para lo clínicamente infrecuente. Es la misma limitación
+declarada de la IAo, y está medida: lo que sí atrapa es `peso 500 / talla 50`.
+
+### La discordancia entre las cuatro fuentes de AVm se declara, y sólo cuando importa
+
+El comentario de la sección promete que una discordancia «se vea en vez de quedar resuelta por una
+prioridad inventada», y la contraindicación se decidía **por el máximo** sin decirlo. Hoy se
+declara —y se conserva el máximo, que es el lado que no inventa una indicación— **sólo cuando las
+fuentes caen a lados distintos del corte**: que difieran del mismo lado no cambia ninguna conducta,
+y un aviso que salta siempre deja de leerse.
+
+### Tres asserts de arranque nuevos
+
+`_emAssertUmbrales`, `_imAssertUmbrales` y `_indOrigenAssert`. Los dos primeros por el motivo de
+`_eaAssertUmbrales`: los textos de `EM_REC_2025` y `IM_REC_2025` son **transcripciones** con sus
+números escritos en prosa, así que mover la constante viva deja la cita falsa sin que nadie se
+entere. Cada caso tiene una condición que los corre y exige que no tengan nada que decir.
+
+**⚠️ `_indOrigenAssert` DEVUELVE `[]` Y ESO PODRÍA SER UN DENOMINADOR VACÍO.** `_IND_ORIGEN_CAMPOS`
+es un `const` de nivel superior, así que **no llega a `window`**: un assert que recorriera un mapa
+vacío devolvería `[]` igual que uno que no encontró nada. Se verificó en las **dos direcciones**,
+que es lo que hace falta para dar por buena una regla nueva: los tres campos reales viven los tres
+en `#tab-ete` —que es uno de los **10** paneles gateados que detecta—, y con un campo de pestaña
+básica (`fevi`, `avm_plan`, `ai_diam`) o con un id inventado **sí** produce hallazgo. El `[]` es un
+negativo real.
+
+### `alarma` DEJÓ de ser inalcanzable
+
+El comentario de `IND_RECOM_COL` afirmaba que ninguna rama la producía y que se conservaba «como
+los extremos redundantes del contorno de 3 puntos». La produce `_indEMRecom` en sus dos ramas de
+trombo. Corregido, y también el de `_indSecHTML`, que decía «hoy sólo la trae estenosis aórtica, así
+que para las otras doce esta rama es un no-op».
+
+### Las trampas de los casos
+
+- **Acentos graves: DÉCIMA a DECIMOCUARTA vez, en tres tandas de la misma sesión.** Veinticuatro en
+  total, **todos** en comentarios recién escritos dentro de los cuerpos de TC-282 y TC-283 —
+  nombrando `medidas`, `avmMax`, `calcEM`, `avm_plan`, `avm_ete`, `avm_thp`, `pinta`, `_gt`, `if`—.
+  Las tres veces la causa fue la misma: escribir un comentario nuevo **después** de haber barrido.
+  El barrido acotado **al cuerpo del caso** los encuentra de un saque; `node --check` apunta a la
+  línea del `caso(`, cien líneas antes del culpable. **Conviene correrlo después de CADA edición
+  del cuerpo de un caso, no una vez al final.**
+  ```
+  python3 -c "s=open('scripts/test_clinico.mjs',encoding='utf-8').read()
+  i=s.index(\"caso('TC-282'\"); j=s.index(chr(96),i); k=s.rindex(chr(96))
+  print(s[j+1:k].count(chr(96)))"
+  ```
+- **`clic(k, null)` no es «no contestar»: busca un botón con `data-ind-val="null"`.** El escenario
+  sin contestar se CONSTRUYE sin la clave. Lo cazó la condición del denominador
+  (`sinClic` con `em.decomp=null`), que existe justamente para eso.
+- **Los controles del Grupo 1 salen en `filas` y los del Grupo 2 en `clinica`**: para contar
+  cuántos hay que contestar hacen falta las dos listas.
+- **Un caso que pasa en la primera corrida hay que mirar con desconfianza.** Los dos pasaron, y lo
+  que demostró que no eran vacuos fue la mutación con el **diagnóstico impreso**: cada una cae en
+  SU condición con el valor medido al lado. Sin eso, «24 en rojo» no distingue una condición que
+  discrimina de un daño colateral.
+- **⚠️ `pide()` RELEE EL ESTADO VIVO, y lo pagué otra vez.** La condición del umbral ausente
+  captura la recomendación en una variable —porque el `finally` restaura el umbral antes de que las
+  condiciones se evalúen— y aun así usé `pide(...)`, que vuelve a llamar a `_indEM()`. El
+  diagnóstico mostraba el `faltan` **correcto** y la condición daba `false`. Es la misma trampa que
+  TC-278 ya documenta para el borrado al cerrar: **capturar el valor, no la lectura.**
+- **DOS MUTACIONES SOBREVIVIERON A LA PRIMERA TANDA, y las dos eran guardas fail-closed que ningún
+  escenario alcanzaba** — `pinta()` devolviendo `undefined` (los llamadores siempre devuelven un
+  objeto) y el umbral de área ausente (los umbrales siempre cargan). Una defensa en profundidad que
+  ningún caso ejerce es «una capa que nadie sabe si existe», así que **se ejercen en aislamiento**:
+  llamando a `_indFilaOrigen` directo con un `pinta` que no devuelve nada y con uno que lanza, y
+  poniendo `window.AVM_SEVERA_MAX` en `undefined` con restauración en un `finally` **más una
+  condición que afirma que volvió** —sin eso, los 297 casos de abajo miden sobre otra app—.
+  La alternativa era declararlas como redundantes; la de `pinta()` no lo es: `_indFilaOrigen` es
+  infraestructura compartida que va a copiar quien escriba la sexta sección, y con la mutación
+  puesta la fila sale con la marca de «evaluado y NO cumple» —una afirmación— y `undefined`
+  impreso. Ejercida, cae.
+- **Y UNA SIGUE SOBREVIVIENDO, DECLARADA: el `_gt` de la contraindicación de área.** Leída como
+  código es un **no-op**: el `return` del umbral ausente está ANTES, así que `D.US` no puede ser
+  `null` cuando se llega a esa comparación y devolverla a `>` crudo no reintroduce nada. Lo que sí
+  está cubierto es la guarda —sacarla pone el caso en rojo—. Se conserva el `_gt` porque fija la
+  regla 3 del panel para el día que alguien mueva ese `return` o agregue una rama antes, y **se
+  declara en el código** en vez de dejar creer que alguna mutación lo cubre. Es el mismo criterio
+  con el que este archivo conserva los extremos redundantes del contorno de 3 puntos.
+- **⚠️ EL PENDRIVE SE DESMONTÓ A MITAD DE LA SESIÓN, Y LA CORRIDA SIGUIENTE DIO 280/298 CON
+  DIECIOCHO ROJOS.** Los 17 del visor y DICOM más TC-223 — o sea exactamente el patrón de «fixture
+  ausente» que este archivo ya documenta, no una regresión. Lo confirmó `ls /Volumes/DISK_IMG`
+  **antes** de leer el rojo como un defecto: es un paso de diez segundos que separa «se rompió algo»
+  de «se soltó el cable». Al volver a montarse, la corrida siguiente dio 297/298 sin tocar una
+  línea. **Ante un rojo EN BLOQUE, mirar el fixture antes que el diff** — y si no se puede
+  remontar, la única lectura honesta es que el conjunto de rojos sea exactamente ése.
+
+### La línea base de esta ronda
+
+**Suite 297/298 con el pendrive montado** — el único rojo es **TC-223**, el documentado: fija
+`StudyDate:'20260921'` y `#fecha` nace con la fecha de hoy, así que esa condición pasaba por
+coincidencia del calendario el día que se escribió. Falla idéntico contra HEAD. **Cero regresiones**
+sobre la línea base de 295/296 (dos casos más).
+
+**Una corrida INTERMEDIA de la misma sesión dio 280/298** porque el pendrive se había desmontado:
+los 17 del visor y DICOM más TC-223, o sea el conjunto exacto de los que dependen del fixture. Al
+volver a montarse, la corrida final dio 297/298 otra vez. Los dos casos nuevos pasan en las tres
+corridas. Ver la trampa del pendrive abajo: **lo primero ante un rojo en bloque es mirar si el
+fixture está**, no leerlo como regresión.
+
+**Semgrep 126 / 0 ERROR**, la línea histórica. **Sin huérfanos nuevos.** `check_mobile` en los 2
+ALTA de siempre, los dos `#caso_interes` —`#hdr-med-btn` es MEDIA, no ALTA—. `api-key-protector`
+reporta los dos hallazgos **preexistentes y documentados** (la contraseña del login y el flag
+`ett_auth`), verificados idénticos contra HEAD: los dos están diferidos a Supabase.
+
+**Treinta mutaciones contra el código final: veintinueve en rojo, la base verde leída primero en
+cada tanda.** La única que sobrevive es el `_gt` de la contraindicación de área, **declarada arriba
+como redundante por construcción**. Las dos que sobrevivieron a la primera pasada eran guardas
+fail-closed sin escenario que las alcanzara; la de `pinta()` se ejerció en aislamiento y cae.
+
+**Sin probar en Safari**, como todo lo de estas sesiones: el navegador está concedido en modo sólo
+lectura. Todo se verificó en Chrome —por CDP para el suite, y por el preview para las mediciones
+del panel—.
+
 ## Plausibilidad en pantalla y en el papel: MARCAR SIN BORRAR (2026-09-27)
 
 `vPlaus(id)` / `vPdf(id, uni, dec)` al lado de `v()`. La banda sale de `_labRango` —el accesor
