@@ -32197,96 +32197,18 @@ caso('TC-287', 'AVA, AVAi y DVI aorticos son UN solo calculo: identicos en Valvu
         'calcAo llama=' + (cAo.indexOf(LLAMADA) > -1) +
         ' · calcEADetalle llama=' + (cDet.indexOf(LLAMADA) > -1)]);
 
-      /* ── EL GANCHO DE LA FASE 2 ──
-         Devuelve el CONTEXTO y no los cortes, y «cortes: null» significa «usar los nativos», que es
-         lo que la app ya hace. La condicion exige que siga devolviendo null: si alguien conecta
-         cortes proteticos sin verificarlos contra la ASE 2024 por dos rutas, cae aca. */
-      const gN = eaCriterioSeveridad();
-      poner({ va_morf:'TAVI' });
-      const gP = eaCriterioSeveridad();
-      poner({ va_morf:'Prótesis mecánica' });
-      const gM = eaCriterioSeveridad();
-      ex.push(['el gancho distingue nativa de protesis y NO trae cortes proteticos todavia: cortes null significa aplicar los nativos, que es lo que la app hace hoy',
-        gN.protesis === false && gN.cortes === null &&
-        gP.protesis === true && gP.tipo === 'TAVI' && gP.cortes === null &&
-        gM.protesis === true && gM.tipo === 'Prótesis mecánica' && gM.cortes === null &&
-        /PENDIENTE/.test(String(gP.fuente)),
-        'nativa=' + JSON.stringify(gN) + ' · TAVI=' + JSON.stringify(gP)]);
-
-      /* ── HALLAZGOS DE /sharp-edges SOBRE ESTA MISMA RONDA ──
-         Cuatro afectan el informe firmado y tres las introdujo este cambio. */
-
-      /* (1) BORRAR UN INSUMO TIENE QUE LIMPIAR EL ESPEJO. «calcAo» vaciaba «ava_cont» y «dvi-val» en
-         su rama «else» y NO llamaba al espejo, asi que los tres campos del TAVI se quedaban con la
-         medicion anterior — readonly, o sea sin forma de corregirlos, y de ahi salen el narrativo,
-         «campos» y las columnas del Excel. Y la rama sin datos de «calcEADetalle» dejaba
-         «ea_dvi_display» con el valor viejo, que era justo la primera fuente del espejo. */
-      /* ⚠️ EL BLOQUE EXPANDIDO DE VALVULAS SE ABRE A MANO, o «calcEADetalle» NO CORRE. La primera
-         version de esta condicion lo dejaba cerrado: «sincronizarEADesdeGlobal» esta gateada por la
-         visibilidad, asi que «ea_ava_display» y «ea_dvi_display» nunca se escribian y su rancidez no
-         se ejercia. Sin abrirlo, la mitad de la condicion medía un contenedor vacio — el mismo
-         defecto de denominador que este archivo ya documento tres veces. */
-      limpiar();
-      (function(){ const d = document.getElementById('bloque-ea-detalle');
-        if (d) d.style.display = ''; })();
-      poner(ESC);
-      if (typeof calcEADetalle === 'function') calcEADetalle();
-      const conDatos = [val('ete_tavi_ava'), val('ete_tavi_avai'), val('ete_tavi_dvi'),
-        val('ea_ava_display'), val('ea_dvi_display')];
-      /* ⚠️ SE BORRAN LOS DOS: «itv_ao» Y SU ESPEJO «ea_vtiao». Al medirlo salio una divergencia que
-         NO es de esta ronda y queda declarada: «sincronizarEADesdeGlobal» copia del Doppler al bloque
-         de Valvulas pero NO propaga el vaciado, asi que borrar solo «itv_ao» deja «ea_vtiao» con el
-         valor viejo, «calcEADetalle» sigue calculando con el, y «ava_cont» queda VACIO al lado de un
-         «ea_ava_display» de 1,13. Arreglar eso es tocar la sincronizacion de los cinco campos «ea_*»,
-         que tiene otro radio de impacto. Aca se borra lo que el medico ve borrado en las dos
-         pantallas, que es el escenario que este cambio cubre. */
-      poner({ itv_ao:'', ea_vtiao:'' });
-      if (typeof calcEADetalle === 'function') calcEADetalle();
-      const trasBorrar = [val('ete_tavi_ava'), val('ete_tavi_avai'), val('ete_tavi_dvi'),
-        val('ea_ava_display'), val('ea_dvi_display')];
-      ex.push(['borrar el VTI aortico en las dos pantallas limpia los tres campos del TAVI y los dos readonly de Valvulas: no queda el fantasma de la medicion anterior en un campo que el medico ya no puede corregir',
-        conDatos.every(function(x){ return x !== ''; }) &&
-        trasBorrar.every(function(x){ return x === ''; }),
-        'con datos=[' + conDatos.join('|') + '] tras borrar=[' + trasBorrar.join('|') + ']']);
-
-      /* (2) BORRAR EL PESO LIMPIA EL AVAi Y DEJA EL AVA. La salida temprana de «calcBSA» repintaba el
-         VLI y no el espejo, asi que el informe publicaba un «AVA indexada 0,6 cm²/m²» sobre un
-         estudio sin superficie corporal. El espejo ya sabia negarse; nunca se le daba la
-         oportunidad. */
-      limpiar(); poner(ESC);
-      const avaiAntes = val('ete_tavi_avai');
-      poner({ peso:'' });
-      ex.push(['borrar el peso limpia el AVA indexado del espejo y deja el AVA, que no depende de la superficie corporal',
-        avaiAntes !== '' && val('ete_tavi_avai') === '' && val('ete_tavi_ava') !== '',
-        'avai antes=' + avaiAntes + ' despues=' + val('ete_tavi_avai') + ' · ava=' + val('ete_tavi_ava')]);
-
-      /* (3) ⚠️ EL ESPEJO NO DESTRUYE UN VALOR QUE NO ESCRIBIO EL. Los tres campos eran EDITABLES
-         antes de hoy y describian otra medicion: el AVA de la protesis en el control
-         post-procedimiento. Un estudio guardado los repone, y sin la guarda el espejo los pisaba —o
-         los vaciaba— y la REIMPRESION de un PDF firmado salia con numeros distintos de los firmados.
-         Se simula el camino real: el barrido generico escribe el valor SIN la marca del espejo. */
-      limpiar();
-      (function(){ const e = document.getElementById('ete_tavi_ava');
-        if (e) { e.value = '0.88'; delete e.dataset.espejo; } })();
-      poner(ESC);
-      ex.push(['un AVA del TAVI tipeada en un estudio anterior se PRESERVA aunque el calculo unico de hoy de otro numero: el espejo solo limpia y pisa lo que escribio el mismo',
-        val('ete_tavi_ava') === '0.88' && val('ava_cont') !== '0.88' &&
-        val('ava_cont') !== '' ,
-        'legacy=' + val('ete_tavi_ava') + ' · calculado=' + val('ava_cont')]);
-
-      /* (4) ⚠️ LA VENTANA DE CINCO MILESIMAS. «calcEADetalle» clasificaba el AVA CRUDA mientras
-         «calcAo» y «clasificarEA_Vmax» clasifican la redondeada — y corre ULTIMA y escribe
-         «ea_grado». Con Ø TSVI 20, VTI TSVI 16 y VTI Ao 50,2 el AVA cruda es 1,00131 y «ava_cont»
-         «1,00»: «avaEsSevera» es «<=», asi que el badge sale ROJO «Severa» y el select del informe
-         BAJABA a «moderada». Es el defecto ECOS-12 reintroducido por la diferencia de redondeo. */
-      limpiar();
-      poner({ peso:'75', talla:'172', diam_tsvi:'20', itv_tsvi:'16', itv_ao:'50.2',
-        vmax_ao:'3.5', gmedio_ao:'32' });
-      if (typeof calcEADetalle === 'function') calcEADetalle();
-      const badgeEA = tx('ea-sev'), gradoEA = val('ea_grado');
-      ex.push(['con un AVA de 1,00131 —que redondea a 1,00 y cae en el corte— el badge y el grado del informe dicen lo MISMO: severa, y no uno rojo contra un select en moderada',
-        val('ava_cont') === '1.00' && /[Ss]evera/.test(String(badgeEA)) && gradoEA === 'severa',
-        'ava_cont=' + val('ava_cont') + ' badge=«' + badgeEA + '» ea_grado=' + gradoEA]);
+      /* ── EL GANCHO DE LA FASE 1 YA NO EXISTE: LA FASE 2 LO REEMPLAZO POR LA IMPLEMENTACION ──
+         «eaCriterioSeveridad» devolvia «{protesis, tipo, cortes:null}» y su unico proposito era que
+         la Fase 2 colgara los cortes de ahi. Hoy los cortes estan en «EA_PROT_CRIT» y el veredicto en
+         «eaProtVeredicto», asi que el gancho se fue. Se mide que el reemplazo este completo, no que
+         el gancho siga: un gancho vacio conviviendo con la implementacion seria la tercera lista
+         paralela de esta sesion. */
+      ex.push(['el gancho vacio de la Fase 1 se fue y lo reemplazaron los cortes verificados de la Tabla 5 con su veredicto',
+        typeof eaCriterioSeveridad === 'undefined' &&
+        typeof EA_PROT_CRIT === 'object' && typeof eaProtVeredicto === 'function' &&
+        EA_PROT_CRIT.savr_dvi_normal_min === 0.35 && EA_PROT_CRIT.savr_gmed_signif_min === 35,
+        'gancho=' + (typeof eaCriterioSeveridad) + ' · DVI normal>' + EA_PROT_CRIT.savr_dvi_normal_min +
+        ' · gradiente signif>=' + EA_PROT_CRIT.savr_gmed_signif_min]);
 
       // ── Y el numero unico llega al informe firmado ──
       limpiar(); poner(ESC);
@@ -32411,11 +32333,20 @@ caso('TC-288', 'AT de la protesis aortica: vive con sus vecinos de medicion, se 
         diam_tsvi:'20', itv_tsvi:'19', itv_ao:'53', vmax_ao:'3.5', gmedio_ao:'30' });
       generarInforme();
       const inf = document.getElementById('informe_texto').value;
-      ex.push(['el AT y su lectura NO salen en el informe firmado todavia: publicar una lectura protesica al lado de una severidad calculada con cortes nativos seria contradecirse en el mismo documento',
-        inf.indexOf('110 ms') === -1 && pl(inf).indexOf('tiempo de aceleracion') === -1 &&
-        pl(inf).indexOf('sugiere estenosis significativa') === -1,
+      /* ⚠️ ESTA CONDICION AFIRMABA LO CONTRARIO Y SE REAPUNTO, no se borro. Fijaba que el AT NO llegue
+         al informe, y el motivo estaba escrito: «el narrativo sigue publicando la severidad con los
+         cortes NATIVOS, asi que una lectura protesica al lado dejaria dos afirmaciones
+         contradictorias en el mismo documento». La Fase 2 derogo esa premisa —con protesis el
+         narrativo ya publica la Tabla 5— asi que el AT SI llega, y mantener la afirmacion vieja
+         habria empujado a sacarlo el dia que alguien «lo arreglara». Lo que sobrevive es el
+         invariante real: el AT viaja CON su lectura y CON la salvedad de que por si solo no
+         establece estenosis, y nunca suelto al lado de una severidad nativa. */
+      ex.push(['el AT llega al informe firmado junto al veredicto protesico, y NO al lado de una severidad calculada con cortes nativos',
+        inf.indexOf('110 ms') > -1 &&
+        pl(inf).indexOf('estenosis protesica') > -1 &&
+        pl(inf).indexOf('estenosis moderada') === -1 && pl(inf).indexOf('estenosis severa') === -1,
         (function(){ const i = inf.indexOf('aórtica');
-          return i < 0 ? '(no nombra la aortica)' : inf.slice(i - 12, i + 120).replace(/\\s+/g, ' '); })()]);
+          return i < 0 ? '(no nombra la aortica)' : inf.slice(i - 12, i + 200).replace(/\\s+/g, ' '); })()]);
 
       /* ── ⚠️ LAS TRES SALVEDADES DE LA GUIA VIAJAN CON EL NUMERO, EN PANTALLA ──
          Las trajo la segunda ruta de verificacion sobre el PDF primario y las tres son del documento:
@@ -32486,6 +32417,453 @@ caso('TC-288', 'AT de la protesis aortica: vive con sus vecinos de medicion, se 
    deliberadamente NO escribe cuando hay significacion, asi que el EN SUMA salia «ET significativa.
    Protesis tricuspidea biologica normofuncionante.» — las dos afirmaciones contradictorias en la
    misma linea. Hoy consume `etEstado()`. */
+caso('TC-290', 'Protesis aortica Fase 2: la severidad sale de la Tabla 5 de la ASE 2024, exige las dos mitades, y la valvula nativa no la ve', `
+  return (async () => {
+    if (typeof eaProtVeredicto !== 'function' || typeof calcEADetalle !== 'function')
+      return { extra:[['existen eaProtVeredicto y calcEADetalle', false, '']] };
+    const ex = [];
+    const noEntraron = [];
+    const poner = o => Object.keys(o).forEach(function(id){
+      const e = document.getElementById(id);
+      if (!e) { noEntraron.push('FALTA ' + id); return; }
+      e.value = o[id];
+      e.dispatchEvent(new Event('input', { bubbles:true }));
+      e.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    const tx = id => { const e = document.getElementById(id); return e ? String(e.textContent || '').trim() : null; };
+    const vl = id => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : null; };
+    const pl = s => String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+    /* ⚠️ EL TITULO Y LA NOTA SE LEEN SEPARADOS, y no es prolijidad: concatenados, la nota
+       —que explica por que algo quedo en «posible»— licencia una afirmacion del titulo. Ya paso
+       una vez en este archivo con el calificador del balon de la pulmonar. */
+    const ver = () => {
+      if (typeof calcAo === 'function') calcAo();
+      calcEADetalle();
+      return { txt: tx('ea-det-sev'), nota: tx('ea-det-sev-nota') };
+    };
+    /* Los cuatro insumos del escenario. El diametro queda en 20 mm para que el volumen sistolico
+       —pi*(d/20)^2*VTI— caiga en la banda 50-90 mL que la nota al pie de la Tabla 5 exige, salvo
+       donde el escenario la quiere violar a proposito. */
+    const BASE = { va_morf:'Prótesis mecánica', diam_tsvi:'20' };
+    const DVI = { n045:{ itv_tsvi:'18', itv_ao:'40' },   // 0,45 normal
+                  n036:{ itv_tsvi:'18', itv_ao:'50' },   // 0,36 normal por un centesimo
+                  n035:{ itv_tsvi:'21', itv_ao:'60' },   // 0,35 NO es normal: el corte es «>»
+                  n025:{ itv_tsvi:'21', itv_ao:'84' },   // 0,25 posible
+                  n024:{ itv_tsvi:'21', itv_ao:'87.5' }, // 0,24 significativa
+                  n022:{ itv_tsvi:'18', itv_ao:'82' } }; // 0,22 significativa
+    const esc = (dvi, o) => { if (typeof limpiarCampos === 'function') limpiarCampos();
+      poner(Object.assign({}, BASE, DVI[dvi] || {}, o || {})); return ver(); };
+
+    try {
+      // ── DENOMINADOR: el escenario produce de verdad el DVI y el volumen sistolico que se dicen ──
+      const d0 = esc('n045', { vmax_ao:'2.6', gmedio_ao:'14' });
+      const dviLeido = tx('dvi-val'), vsLeido = vl('vs_calc');
+      const vsNum = parseFloat(String(vsLeido || '').replace(',', '.'));
+      ex.push(['DENOMINADOR: el escenario da DVI 0,45 y un volumen sistolico dentro de la banda 50-90 mL de la nota al pie',
+        dviLeido === '0.45' && isFinite(vsNum) && vsNum >= 50 && vsNum <= 90,
+        'dvi-val=' + dviLeido + ' vs_calc=' + vsLeido]);
+
+      /* ── LOS OCHO CORTES SON LOS DE LA TABLA 5, Y EL ASSERT NO TIENE NADA QUE DECIR ──
+         El DVI se fija aparte porque es el numero que el documento se contradice a si mismo: la
+         Figura 13 de la MISMA pagina publica 0,30, que es el valor de la edicion 2009. */
+      const mal = (typeof _eaProtAssertUmbrales === 'function') ? _eaProtAssertUmbrales() : ['no existe'];
+      ex.push(['el assert de arranque no tiene nada que decir y el DVI normal es el 0,35 de la Tabla 5, no el 0,30 de la Figura 13',
+        Array.isArray(mal) && mal.length === 0 &&
+        EA_PROT_CRIT.savr_dvi_normal_min === 0.35 && EA_PROT_CRIT.savr_dvi_signif_max === 0.25 &&
+        EA_PROT_CRIT.vmax_signif_min === 4 && EA_PROT_CRIT.savr_gmed_signif_min === 35 &&
+        EA_PROT_CRIT.vmax_normal_max === 3 && EA_PROT_CRIT.savr_gmed_normal_max === 20 &&
+        EA_PROT_CRIT.atet_normal_max === 0.32 && EA_PROT_CRIT.atet_signif_min === 0.37,
+        'assert=' + JSON.stringify(mal) + ' dvi_normal=' + EA_PROT_CRIT.savr_dvi_normal_min]);
+
+      // ── SAVR: sin criterios, con las dos mitades, y la banda de 50-90 no se viola ──
+      ex.push(['con los tres ejes normales la capsula dice que no hay criterios de estenosis protesica',
+        pl(d0.txt).indexOf('sin criterios de estenosis protesica') > -1,
+        'capsula=«' + d0.txt + '»']);
+
+      const dSig = esc('n022', { vmax_ao:'4.5', gmedio_ao:'45' });
+      ex.push(['con un eje dependiente del flujo Y el DVI en rango de significativa, sugiere estenosis protesica significativa',
+        pl(dSig.txt).indexOf('sugiere estenosis protesica significativa') > -1,
+        'capsula=«' + dSig.txt + '»']);
+
+      /* ── ⚠️ LA CONDICION CENTRAL: UN SOLO EJE NO ALCANZA ──
+         La nota general de la Tabla 5 exige «at least one flow-dependent … and one flow-independent
+         … parameter». Sin esta condicion, una implementacion que concluya «significativa» con la
+         velocidad pico sola pasa todo lo demas en verde — y es la direccion peligrosa, porque un
+         gradiente alto por flujo aumentado se publica como obstruccion. */
+      const dSoloDep = esc('n045', { vmax_ao:'4.5', gmedio_ao:'45' });
+      const dSoloInd = esc('n022', { vmax_ao:'2.6', gmedio_ao:'14' });
+      ex.push(['un solo eje NO alcanza para significativa: con los dos dependientes del flujo alterados y el DVI normal queda en POSIBLE, y al reves tambien',
+        pl(dSoloDep.txt).indexOf('posible estenosis protesica') > -1 &&
+        pl(dSoloDep.txt).indexOf('sugiere') === -1 &&
+        pl(dSoloInd.txt).indexOf('posible estenosis protesica') > -1 &&
+        pl(dSoloInd.txt).indexOf('sugiere') === -1,
+        'solo dependiente -> «' + dSoloDep.txt + '» · solo independiente -> «' + dSoloInd.txt + '»']);
+
+      /* ── SIN DVI NO SE CONCLUYE, Y SE DICE CUAL FALTA ──
+         La EOA es el otro eje flujo-independiente de la tabla y esta aplicacion no puede evaluarla,
+         asi que el DVI queda solo de ese lado: sin el, no hay mitad independiente y la cascada
+         falla CERRADO en vez de graduar con la mitad que tiene. */
+      if (typeof limpiarCampos === 'function') limpiarCampos();
+      poner(Object.assign({}, BASE, { vmax_ao:'4.5', gmedio_ao:'45' }));
+      const dFalta = ver();
+      const pFalta = eaProtVeredicto();
+      ex.push(['sin DVI no se gradua: la capsula dice que falta un dato y la nota NOMBRA el DVI como el unico eje independiente del flujo evaluable',
+        pFalta != null && pFalta.nivel === 'faltan' &&
+        pl(dFalta.txt).indexOf('falta un dato') > -1 &&
+        pl(dFalta.nota).indexOf('dvi') > -1,
+        'nivel=' + (pFalta ? pFalta.nivel : 'null') + ' capsula=«' + dFalta.txt + '»']);
+
+      // ── LA EOA SE DECLARA SIEMPRE NO EVALUABLE, Y ES LO QUE DEJA AL DVI SOLO ──
+      ex.push(['las cuatro capsulas declaran que el area efectiva no se evalua porque la Tabla 5 la expresa respecto del MODELO implantado',
+        [d0, dSig, dSoloDep, dSoloInd].every(function(r){
+          return pl(r.nota).indexOf('area efectiva no se evalua') > -1 &&
+                 pl(r.nota).indexOf('modelo') > -1; }),
+        'notas=' + [d0, dSig, dSoloDep, dSoloInd].map(function(r){ return pl(r.nota).indexOf('area efectiva no se evalua') > -1; }).join(',')]);
+
+      /* ── EL VOLUMEN SISTOLICO FUERA DE 50-90 mL SE DECLARA ──
+         Es la nota «‡» de la Tabla 5: la velocidad pico vale con volumen sistolico normal. Con 11 cm
+         de VTI TSVI y 20 mm de diametro el volumen da ~35 mL, o sea un bajo flujo donde el gradiente
+         subestima. El numero se sigue publicando; lo que se agrega es la salvedad. */
+      if (typeof limpiarCampos === 'function') limpiarCampos();
+      poner(Object.assign({}, BASE, { itv_tsvi:'11', itv_ao:'50', vmax_ao:'2.6', gmedio_ao:'14' }));
+      const dVsBajo = ver();
+      const vsBajo = parseFloat(String(vl('vs_calc') || '').replace(',', '.'));
+      ex.push(['con el volumen sistolico por debajo de 50 mL la capsula lo declara, y con volumen normal NO lo declara',
+        isFinite(vsBajo) && vsBajo < 50 &&
+        pl(dVsBajo.nota).indexOf('volumen sistolico') > -1 &&
+        pl(d0.nota).indexOf('volumen sistolico') === -1,
+        'vs=' + vsBajo + ' nota fuera de banda=' + (pl(dVsBajo.nota).indexOf('volumen sistolico') > -1) +
+        ' nota en banda=' + (pl(d0.nota).indexOf('volumen sistolico') > -1)]);
+
+      /* ── LOS SEIS BORDES DE LOS TRES CORTES DE SAVR ──
+         Sin esto, mover el 4 al 4,1 o cambiar un «>=» por un «>» no rompe nada medible. Los tres
+         operadores DIFIEREN y eso es parte del hallazgo: la velocidad pico y el gradiente medio
+         usan «>=» —la edicion 2009 decia «>4» y la 2024 lo cambio— y el DVI normal usa «>» estricto,
+         asi que 0,35 exacto NO es normal. */
+      const bVmax = { b39: esc('n022', { vmax_ao:'3.9', gmedio_ao:'14' }).txt,
+                      b40: esc('n022', { vmax_ao:'4.0', gmedio_ao:'14' }).txt };
+      const bGmed = { b34: esc('n022', { vmax_ao:'2.6', gmedio_ao:'34' }).txt,
+                      b35: esc('n022', { vmax_ao:'2.6', gmedio_ao:'35' }).txt };
+      /* ⚠️ EL BORDE DE ARRIBA DEL DVI SE MIDE CON LOS EJES DEPENDIENTES NORMALES —ahi la unica
+         diferencia posible es normal contra posible— y el de ABAJO con un eje dependiente ya
+         significativo, porque si no la regla de integracion colapsa los dos lados en «posible» y el
+         borde deja de ser observable. La primera version medio el de abajo con Vmax 2,6 y dio rojo
+         sobre codigo correcto: el caso estaba mal disenado, no el codigo. */
+      const bDvi  = { b036: esc('n036', { vmax_ao:'2.6', gmedio_ao:'14' }).txt,
+                      b035: esc('n035', { vmax_ao:'2.6', gmedio_ao:'14' }).txt,
+                      b025: esc('n025', { vmax_ao:'4.5', gmedio_ao:'45' }).txt,
+                      b024: esc('n024', { vmax_ao:'4.5', gmedio_ao:'45' }).txt };
+      const esSig = t => pl(t).indexOf('sugiere estenosis protesica significativa') > -1;
+      const esPos = t => pl(t).indexOf('posible estenosis protesica') > -1;
+      const esNor = t => pl(t).indexOf('sin criterios de estenosis protesica') > -1;
+      ex.push(['los seis bordes caen donde la Tabla 5 los pone: Vmax 3,9 posible y 4,0 significativa; gradiente 34 posible y 35 significativa; DVI 0,36 normal, 0,35 posible, 0,25 posible y 0,24 significativa',
+        esPos(bVmax.b39) && esSig(bVmax.b40) &&
+        esPos(bGmed.b34) && esSig(bGmed.b35) &&
+        esNor(bDvi.b036) && esPos(bDvi.b035) && esPos(bDvi.b025) && esSig(bDvi.b024),
+        'vmax 3.9=«' + bVmax.b39 + '» 4.0=«' + bVmax.b40 + '» · gmed 34=«' + bGmed.b34 +
+        '» 35=«' + bGmed.b35 + '» · dvi 0.36=«' + bDvi.b036 + '» 0.35=«' + bDvi.b035 +
+        '» 0.25=«' + bDvi.b025 + '» 0.24=«' + bDvi.b024 + '»']);
+
+      /* ── TAVI NO SE GRADUA, Y SE DICE POR QUE ──
+         Decision de Maicol (2026-09-27): el criterio especifico de TAVI de la Tabla 5 es el CAMBIO
+         respecto de un estudio basal post-implante en condiciones hemodinamicas estables —nota «‖»—
+         y elegir ese basal es una decision clinica. Se publican los ejes absolutos y no se emite
+         veredicto; publicar uno con los cortes de SAVR seria citar la fila equivocada. */
+      const dTavi = esc('n022', { va_morf:'TAVI', vmax_ao:'4.5', gmedio_ao:'45' });
+      const pTavi = eaProtVeredicto();
+      ex.push(['con TAVI no se emite veredicto de estenosis y la nota declara que el criterio es el CAMBIO respecto de un basal post-implante',
+        pTavi != null && pTavi.via === 'TAVI' && pTavi.sinGraduar === true &&
+        pl(dTavi.txt).indexOf('sin graduar') > -1 &&
+        pl(dTavi.txt).indexOf('sugiere') === -1 &&
+        pl(dTavi.nota).indexOf('basal') > -1,
+        'via=' + (pTavi ? pTavi.via : 'null') + ' capsula=«' + dTavi.txt + '»']);
+
+      /* ── ⚠️ LA VALVULA NATIVA NO VE NADA DE ESTO ──
+         Es la condicion que separa «se agrego una rama» de «se rompio la cascada de siempre». El
+         escenario es el del bug original al reves: Vmax 3,5 con AVA 0,90 es severa por area con bajo
+         gradiente, y tiene que seguir saliendo asi. «eaProtVeredicto()» devuelve null por
+         construccion, asi que el «return» temprano de calcEADetalle no se alcanza. */
+      if (typeof limpiarCampos === 'function') limpiarCampos();
+      poner({ va_morf:'Trivalva normal', diam_tsvi:'20', itv_tsvi:'18', itv_ao:'63',
+              vmax_ao:'3.5', gmedio_ao:'28' });
+      const dNat = ver();
+      const pNat = eaProtVeredicto();
+      const avaNat = vl('ava_cont'), gradoNat = vl('ea_grado');
+      ex.push(['con morfologia NATIVA el veredicto protesico no existe, la capsula no nombra la protesis y la cascada nativa sigue firmando severa por area con bajo gradiente',
+        pNat === null &&
+        pl(dNat.txt).indexOf('protesica') === -1 &&
+        avaNat === '0.90' && String(gradoNat || '').toLowerCase() === 'severa',
+        'veredicto=' + (pNat === null ? 'null' : JSON.stringify(pNat && pNat.via)) +
+        ' capsula=«' + dNat.txt + '» ava_cont=' + avaNat + ' ea_grado=' + gradoNat]);
+
+      /* ── LA NOTA NO SE DIBUJA EN VALVULA NATIVA ──
+         El div de la nota es compartido: si queda visible con el texto de la protesis anterior, el
+         informe de una valvula nativa sale declarando que «el area efectiva no se evalua». */
+      const notaVis = (function(){ const e = document.getElementById('ea-det-sev-nota');
+        return e ? getComputedStyle(e).display : null; })();
+      ex.push(['la nota de la protesis no queda pegada sobre una valvula nativa',
+        notaVis === 'none' || pl(dNat.nota).indexOf('area efectiva') === -1,
+        'display=' + notaVis + ' nota=«' + (dNat.nota || '') + '»']);
+
+      /* ── EL OPERADOR DEL AT/ET SE EJERCE EN AISLAMIENTO, Y SE DECLARA POR QUE ──
+         «nv.atet» se calcula y NO vota: la regla de integracion usa Vmax/gradiente de un lado y el
+         DVI del otro, asi que la diferencia entre «>= 0,37» y «> 0,37» no es observable por el
+         veredicto. Pero los tres textos del archivo dicen «>» y el helper capturaba el 0,37 exacto,
+         asi que el borde se fija llamando al helper directo — que es lo que este archivo ya hace con
+         las guardas fail-closed que ningun escenario alcanza. El assert de arranque NO lo caza:
+         compara VALORES, no operadores. */
+      const nAtet = { b037: _eaProtNivel(0.37, 0.32, 0.37, true, true),
+                      b038: _eaProtNivel(0.38, 0.32, 0.37, true, true),
+                      vmax4: _eaProtNivel(4, 3, 4, true, false),
+                      gmed35: _eaProtNivel(35, 20, 35, true, false) };
+      ex.push(['los tres operadores de la Tabla 5 DIFIEREN: el AT/ET es estricto —0,37 exacto es posible— y la velocidad pico y el gradiente medio no —4,0 y 35 son significativa—',
+        nAtet.b037 === 'posible' && nAtet.b038 === 'signif' &&
+        nAtet.vmax4 === 'signif' && nAtet.gmed35 === 'signif',
+        'atet 0.37=' + nAtet.b037 + ' 0.38=' + nAtet.b038 + ' · vmax 4=' + nAtet.vmax4 + ' gmed 35=' + nAtet.gmed35]);
+
+      ex.push(['DENOMINADOR: todos los campos del escenario existen', noEntraron.length === 0, noEntraron.join(' · ')]);
+    } finally {
+      if (typeof limpiarCampos === 'function') limpiarCampos();
+    }
+    return { extra: ex };
+  })();
+`);
+
+caso('TC-291', 'La severidad protesica llega al INFORME FIRMADO: ea_grado no se auto-gradua, el narrativo publica la Tabla 5 y el escenario nativo de bajo gradiente no corre', `
+  const ex = [];
+  const pl = s => String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+  const esc = o => { __t.limpiar(); Object.keys(o).forEach(function(id){ __t.set(id, o[id]); });
+    if (typeof calcAo === 'function') calcAo();
+    if (typeof calcEADetalle === 'function') calcEADetalle();
+    return __t.informe(); };
+
+  try {
+    /* ── ESCENARIO 1: LOS MISMOS NUMEROS, LAS DOS MORFOLOGIAS ──
+       Es el bug original y el denominador mas fuerte posible: un unico juego de mediciones
+       —Vmax 3,2 · gradiente 25 · DVI 0,45 · AVA 1,15— leido con los cortes NATIVOS es «estenosis
+       moderada» y con la Tabla 5 de la ASE 2024 es «posible estenosis protesica». Antes del arreglo
+       la capsula publicaba lo segundo y el informe firmado, el EN SUMA, el PDF, el Excel y el
+       Laboratorio publicaban lo primero: dos lecturas del mismo estudio en el mismo documento.
+       Comparar las dos morfologias sobre los mismos numeros es lo que impide que este caso pase con
+       un escenario que la cascada nativa nunca habria llamado moderada. */
+    const MED = { diam_tsvi:'18', itv_tsvi:'18', itv_ao:'40', vmax_ao:'3.2', gmedio_ao:'25', va_at:'60' };
+    const rNat1 = esc(Object.assign({ va_morf:'Calcificada' }, MED));
+    const gNat1 = __t.val('ea_grado');
+    const r1 = esc(Object.assign({ va_morf:'Prótesis biológica' }, MED));
+    const g1 = __t.val('ea_grado');
+
+    ex.push(['DENOMINADOR: con estos mismos numeros y morfologia NATIVA la app escribe ea_grado moderada y el informe dice estenosis moderada — o sea que el escenario reproduce el bug',
+      gNat1 === 'moderada' && pl(rNat1.inf).indexOf('estenosis moderada') > -1 &&
+      __t.txt('dvi-val') === '0.45',
+      'nativa: ea_grado=' + gNat1 + ' ava_cont=' + __t.val('ava_cont') +
+      ' dice moderada=' + (pl(rNat1.inf).indexOf('estenosis moderada') > -1)]);
+
+    /* ⚠️ LA CONDICION CENTRAL. «clasificarEA_Vmax» y «sugerirSeveridadEA» corren ANTES de
+       «calcEADetalle», asi que el «return» protesico de aquella cortaba DESPUES de que estas dos ya
+       habian escrito el grado nativo. Se mide el CAMPO, no la capsula: el campo es el que firma. */
+    ex.push(['con protesis el grado NO se auto-gradua con la escala nativa: ea_grado no queda en moderada ni en severa',
+      g1 !== 'moderada' && g1 !== 'severa',
+      'ea_grado=«' + g1 + '»']);
+
+    ex.push(['el narrativo publica el veredicto de la Tabla 5 y NO nombra una estenosis moderada, y el EN SUMA tampoco',
+      pl(r1.inf).indexOf('posible estenosis protesica') > -1 &&
+      pl(r1.inf).indexOf('estenosis moderada') === -1 &&
+      pl(r1.suma).indexOf('protesis aortica: posible estenosis protesica') > -1 &&
+      pl(r1.suma).indexOf('eao moderada') === -1,
+      'inf=«' + r1.inf.replace(/\\n/g, ' | ').slice(0, 320) + '» || suma=«' + r1.suma.replace(/\\n/g, ' | ') + '»']);
+
+    /* ── LA CITA VIAJA CON EL NUMERO ──
+       Quien lea el informe en seis meses necesita saber con que regla se clasifico, y la escala
+       protesica NO es la del selector de al lado, que cita la ESC 2021. */
+    ex.push(['el informe declara que los criterios son de la Tabla 5 de la ASE 2024 para protesis, y que no son los de valvula nativa',
+      pl(r1.inf).indexOf('tabla 5 de la ase 2024') > -1 &&
+      pl(r1.inf).indexOf('no son los cortes de valvula nativa') > -1 &&
+      pl(r1.inf).indexOf('area efectiva no se evalua') > -1,
+      'cita=' + (pl(r1.inf).indexOf('tabla 5 de la ase 2024') > -1)]);
+
+    // ── TAREA 4: EL AT LLEGA AL NARRATIVO, CON SUS TRES SALVEDADES CUANDO SALE DE RANGO ──
+    const rAt = esc({ va_morf:'Prótesis mecánica', diam_tsvi:'21', itv_tsvi:'18', itv_ao:'40',
+      vmax_ao:'2.6', gmedio_ao:'14', va_at:'130' });
+    ex.push(['el AT llega al informe con su valor, y fuera de rango normal se declara que por si solo NO establece estenosis en vez de dejar una negacion sin calificar',
+      rAt.inf.indexOf('AT 130 ms') > -1 &&
+      pl(rAt.inf).indexOf('sin criterios de estenosis protesica') > -1 &&
+      pl(rAt.inf).indexOf('no establece estenosis') > -1 &&
+      pl(rAt.inf).indexOf('frecuencia cardiaca') > -1 &&
+      pl(r1.inf).indexOf('no establece estenosis') === -1,
+      'con AT 130=«' + rAt.inf.replace(/\\n/g, ' | ').slice(0, 300) + '» · con AT 60 declara=' +
+      (pl(r1.inf).indexOf('no establece estenosis') > -1)]);
+
+    /* ── ESCENARIO 2: LA PROTESIS DE 19 mm CON AVA 0,90 ──
+       Es el segundo caso del diagnostico. Con los cortes nativos «clasificarEA_Vmax» escribe
+       «ea_grado='severa'» por discordancia AVA/gradiente, «eaEscenario()» devuelve «discordante» y el
+       informe firmado publicaba «EAo severa por AVA, BF/BG» MAS el parrafo entero que recomienda un
+       eco con dobutamina — sobre una protesis, con los cortes de la valvula que ya no esta. */
+    const r2 = esc({ va_morf:'Prótesis mecánica', diam_tsvi:'19', itv_tsvi:'18', itv_ao:'63',
+      vmax_ao:'3.4', gmedio_ao:'28' });
+    ex.push(['con protesis NO se publica el escenario nativo de bajo gradiente: ni la linea de severa por AVA en el EN SUMA ni el parrafo de la dobutamina',
+      pl(r2.suma).indexOf('severa por ava') === -1 &&
+      pl(r2.inf).indexOf('dobutamina') === -1 &&
+      pl(r2.inf).indexOf('bajo flujo') === -1,
+      'suma=«' + r2.suma.replace(/\\n/g, ' | ') + '»']);
+
+    /* ── ⚠️ LA VALVULA NATIVA CONSERVA TODO, Y ES LA MITAD QUE SEPARA UN ARREGLO DE UNA ROTURA ──
+       El mismo escenario con morfologia nativa tiene que seguir escribiendo el grado, nombrando la
+       estenosis y publicando el parrafo del bajo gradiente. */
+    const rN = esc({ va_morf:'Calcificada', diam_tsvi:'19', itv_tsvi:'18', itv_ao:'63',
+      vmax_ao:'3.4', gmedio_ao:'28' });
+    const gN = __t.val('ea_grado');
+    ex.push(['con morfologia NATIVA la cascada de siempre sigue intacta: escribe ea_grado severa, nombra la estenosis y publica el escenario de bajo gradiente',
+      gN === 'severa' &&
+      pl(rN.inf).indexOf('estenosis severa') > -1 &&
+      pl(rN.suma).indexOf('severa por ava') > -1 &&
+      pl(rN.inf).indexOf('protesica') === -1,
+      'ea_grado=' + gN + ' suma=«' + rN.suma.replace(/\\n/g, ' | ') + '»']);
+
+    /* ── EL ROTULO DEL CUADRO CAMBIA EN LOS DOS SENTIDOS ──
+       Publicar la ASE 2024 bajo un rotulo que dice «ESC 2021» es una cita falsa en la superficie que
+       el medico mira; y dejar el rotulo protesico pegado al volver a nativa es la misma cita falsa
+       espejada. Un rotulo que cambia en un sentido tiene que cambiar en los dos. */
+    const lblNat = __t.txt('ea-det-sev-lbl');
+    esc({ va_morf:'Prótesis mecánica', diam_tsvi:'21', itv_tsvi:'18', itv_ao:'40', vmax_ao:'2.6', gmedio_ao:'14' });
+    const lblProt = __t.txt('ea-det-sev-lbl');
+    esc({ va_morf:'Trivalva normal', diam_tsvi:'21', itv_tsvi:'18', itv_ao:'40', vmax_ao:'2.6', gmedio_ao:'14' });
+    const lblVuelta = __t.txt('ea-det-sev-lbl');
+    ex.push(['el rotulo del cuadro cita la ASE 2024 con protesis y vuelve a la ESC 2021 con valvula nativa',
+      pl(lblNat).indexOf('esc 2021') > -1 && pl(lblProt).indexOf('ase 2024') > -1 &&
+      pl(lblProt).indexOf('protesica') > -1 && pl(lblVuelta).indexOf('esc 2021') > -1,
+      'nativa=«' + lblNat + '» protesis=«' + lblProt + '» vuelta=«' + lblVuelta + '»']);
+
+    /* ── EL DVI NO SE APAGA POR EL DIAMETRO DEL TSVI ──
+       El DVI es un cociente de los dos VTI y es adimensional justamente para NO depender del
+       diametro, que es la medicion menos confiable sobre una protesis. Estaba adentro del «if» que
+       exige el diametro, asi que con los dos VTI trazados y sin diametro el veredicto salia «falta un
+       dato» sobre el UNICO eje flujo-independiente que esta aplicacion puede evaluar. */
+    const rSinD = esc({ va_morf:'Prótesis mecánica', itv_tsvi:'18', itv_ao:'82',
+      vmax_ao:'4.5', gmedio_ao:'45' });
+    const pSinD = (typeof eaProtVeredicto === 'function') ? eaProtVeredicto() : null;
+    ex.push(['sin diametro del TSVI el DVI se sigue calculando y el veredicto se emite: no se cae en «falta un dato» por un insumo que ese cociente no usa',
+      __t.txt('dvi-val') === '0.22' && __t.val('ava_cont') === '' &&
+      pSinD != null && pSinD.nivel === 'signif' &&
+      pl(rSinD.inf).indexOf('sugieren estenosis protesica significativa') > -1,
+      'dvi=' + __t.txt('dvi-val') + ' ava=«' + __t.val('ava_cont') + '» nivel=' + (pSinD ? pSinD.nivel : 'null')]);
+
+    /* ── ⚠️ EL GRADO PUESTO A MANO NO REABRE LA PUERTA DEL ESCENARIO NATIVO ──
+       Con protesis el grado queda en lo que el medico consigne, asi que un «Severa» puesto a mano es
+       un estado ALCANZABLE — y «_eaDiscordante» cuelga de «eaG === 'severa'». Sin apagar «_eaR», ese
+       estudio vuelve a publicar «EAo severa por AVA, BF/BG» y el parrafo de la dobutamina, con los
+       cortes de la valvula que ya no esta. La mutacion que deja correr «eaEscenario()» sobrevivia a
+       todo lo demas justamente porque los otros escenarios tienen el grado en reposo: esta condicion
+       es la unica que la caza, y el estado que la produce es el de todos los dias. */
+    __t.limpiar();
+    ['va_morf','diam_tsvi','itv_tsvi','itv_ao','vmax_ao','gmedio_ao'].forEach(function(id, i){
+      __t.set(id, ['Prótesis mecánica','19','18','63','3.4','28'][i]); });
+    /* El grado va AL FINAL y sin eventos: es lo que este archivo ya documenta para «it_grado» — si se
+       toca un campo del Doppler despues, el autocalculo lo repinta y el escenario deja de existir. */
+    (function(){ const e = document.getElementById('ea_grado'); if (e) e.value = 'severa'; })();
+    const rMano = __t.informe();
+    ex.push(['con protesis y el grado puesto A MANO en severa, el escenario nativo de bajo gradiente sigue apagado: ni la linea de severa por AVA ni el parrafo de la dobutamina',
+      __t.val('ea_grado') === 'severa' &&
+      pl(rMano.suma).indexOf('severa por ava') === -1 &&
+      pl(rMano.inf).indexOf('dobutamina') === -1 &&
+      pl(rMano.inf).indexOf('estenosis protesica') > -1,
+      'ea_grado=' + __t.val('ea_grado') + ' suma=«' + rMano.suma.replace(/\\n/g, ' | ') + '»']);
+
+    /* ── EL PANEL DE EVIDENCIA NO PUBLICA UNA CONDUCTA NATIVA SOBRE UNA PROTESIS ──
+       Su compuerta no mira la morfologia, asi que con Vmax 4,5 sobre una protesis la seccion abria y
+       publicaba la cascada de la ESC/EACTS 2025 para valvula NATIVA — «SAVR recomendado, Clase I ·
+       Nivel B»—, y ninguna de esas filas cubre una protesis disfuncionante: eso es la tabla de
+       reintervencion, que esta app no tiene. Y la Fase 2 ENSANCHO la divergencia: antes las dos
+       superficies decian lo mismo y hoy la capsula publica la Tabla 5. Es un adelanto de la Fase 3. */
+    esc({ va_morf:'Prótesis mecánica', diam_tsvi:'21', itv_tsvi:'18', itv_ao:'40',
+      vmax_ao:'4.5', gmedio_ao:'45' });
+    const secProt = (typeof _indEA === 'function') ? _indEA() : null;
+    esc({ va_morf:'Calcificada', diam_tsvi:'21', itv_tsvi:'18', itv_ao:'40',
+      vmax_ao:'4.5', gmedio_ao:'45' });
+    const secNat = (typeof _indEA === 'function') ? _indEA() : null;
+    ex.push(['el panel de Evidencia declara que sus filas no aplican a una protesis y NO recomienda nada, mientras con valvula nativa sigue publicando la conducta de siempre',
+      secProt != null && secProt.recom && secProt.recom.tipo === 'no' &&
+      pl(secProt.recom.tit).indexOf('no aplica') > -1 &&
+      pl(JSON.stringify(secProt)).indexOf('savr') === -1 &&
+      secNat != null && secNat.recom && secNat.recom.tipo !== 'no',
+      'protesis: tipo=' + (secProt && secProt.recom ? secProt.recom.tipo : 'null') +
+      ' tit=«' + (secProt && secProt.recom ? secProt.recom.tit : '') +
+      '» · nativa: tipo=' + (secNat && secNat.recom ? secNat.recom.tipo : 'null')]);
+
+    /* ── SIN VEREDICTO NO SE RESUME NADA ──
+       Con TAVI —que no se gradua— y con un dato faltante, cualquier linea en el EN SUMA se leeria
+       como una conclusion. Se describe en el cuerpo y no se resume. */
+    const rTavi = esc({ va_morf:'TAVI', diam_tsvi:'21', itv_tsvi:'18', itv_ao:'82',
+      vmax_ao:'4.5', gmedio_ao:'45' });
+    ex.push(['con TAVI el cuerpo describe y el EN SUMA no afirma: no se resume una estenosis que no se gradua',
+      pl(rTavi.inf).indexOf('sin graduacion de estenosis protesica') > -1 &&
+      pl(rTavi.inf).indexOf('basal post-implante') > -1 &&
+      pl(rTavi.suma).indexOf('protesis aortica:') === -1 &&
+      pl(rTavi.suma).indexOf('estenosis') === -1,
+      'inf=«' + rTavi.inf.replace(/\\n/g, ' | ').slice(0, 220) + '» suma=«' + rTavi.suma.replace(/\\n/g, ' | ') + '»']);
+  } finally {
+    __t.limpiar();
+  }
+  return { extra: ex };
+`);
+
+caso('TC-292', 'El empate de la Tabla 8 en 50 por ciento de fraccion regurgitante vota SEVERA en los TRES sitios que la clasifican', `
+  const ex = [];
+
+  /* ⚠️ LA TABLA 8 DE LA ASE 2024 SE SOLAPA EN EL 50, y no es una errata de transcripcion: publica
+     «< 30 / 30-50 / >= 50», asi que el 50 exacto cae en la banda moderada Y en la severa. El
+     documento no lo resuelve. Decision de Maicol (2026-09-27): vota SEVERA, que es el lado seguro
+     en un empate real de la guia — el costo de sobreestimar una regurgitacion protesica es un
+     control mas, y el de subestimarla es no verla.
+     NO HUBO QUE CAMBIAR NADA: los tres sitios ya lo mandaban a severa por el operador. Lo que
+     faltaba era FIJARLO, que es distinto: sin esta condicion, aflojar cualquiera a «<=» o a «>» no
+     rompe nada medible y el empate se resolveria al otro lado en silencio.
+     ⚠️ Y SON TRES, NO CUATRO: la insuficiencia TRICUSPIDEA no clasifica fraccion regurgitante.
+     Contarla habria dado una condicion que pasa sobre una funcion que no existe. */
+  try {
+    /* Se mide el OPERADOR en el fuente. Es la unica forma de fijar un borde de un solo valor en una
+       cascada local a la que el harness no puede llamar con un parametro, y es el mismo recurso que
+       TC-98 usa para las dos listas del cero del TEER — declarado como verificacion de fuente, no
+       disfrazado de comportamiento. */
+    const F = { im: (typeof calcIM_ESC === 'function') ? String(calcIM_ESC) : '',
+                ia: (typeof calcIA_ESC === 'function') ? String(calcIA_ESC) : '',
+                pil:(typeof calcContIM === 'function') ? String(calcContIM) : '' };
+
+    ex.push(['DENOMINADOR: las tres funciones existen y las tres clasifican la fraccion regurgitante',
+      F.im.indexOf('if (fr < 30)') > -1 && F.ia.indexOf('if (fr < 30)') > -1 &&
+      F.pil.indexOf('fr >= 50') > -1,
+      'im=' + (F.im.indexOf('if (fr < 30)') > -1) + ' ia=' + (F.ia.indexOf('if (fr < 30)') > -1) +
+      ' pildora=' + (F.pil.indexOf('fr >= 50') > -1)]);
+
+    const banda = f => { const i = f.indexOf('if (fr < 30)'); return i === -1 ? '' : f.slice(i, i + 300); };
+    const bIm = banda(F.im), bIa = banda(F.ia);
+    ex.push(['las dos cascadas mandan el 50 exacto a SEVERA: la banda moderada corta en «fr < 50», nunca en «fr <= 50»',
+      bIm.indexOf('fr < 50') > -1 && bIm.indexOf('fr <= 50') === -1 &&
+      bIa.indexOf('fr < 50') > -1 && bIa.indexOf('fr <= 50') === -1,
+      'im=' + (bIm.indexOf('fr < 50') > -1 ? 'estricto' : 'NO') +
+      ' ia=' + (bIa.indexOf('fr < 50') > -1 ? 'estricto' : 'NO')]);
+
+    /* La pildora de severidad integrada es OTRA funcion y OTRO operador: alli la severa se afirma
+       con «fr >= 50». Un «> 50» la mandaria a moderada mientras las dos cascadas de arriba seguirian
+       diciendo severa sobre el mismo numero, en la misma pantalla. */
+    ex.push(['la pildora integrada tambien afirma severa en el 50 exacto, con «fr >= 50» y no con «fr > 50»',
+      F.pil.indexOf('fr >= 50') > -1 && F.pil.indexOf('fr > 50') === -1,
+      'tiene fr>=50=' + (F.pil.indexOf('fr >= 50') > -1) + ' tiene fr>50=' + (F.pil.indexOf('fr > 50') > -1)]);
+
+    /* ── LA TABLA 6 QUEDA DECLARADA Y SIN IMPLEMENTAR ──
+       Decision de Maicol (2026-09-27). Se fija por AUSENCIA: si alguien la implementa a medias —solo
+       el delta contra el basal, sin el gradiente resultante ABSOLUTO que la tabla tambien exige— esta
+       condicion se pone en rojo y hay que venir a leer por que la decision era no hacerlo. */
+    const cr = (typeof EA_PROT_CRIT === 'object') ? Object.keys(EA_PROT_CRIT) : [];
+    ex.push(['la Tabla 6 de deterioro estructural NO esta implementada: no hay funcion que lo gradue ni constante de deterioro o de basal',
+      typeof window.eaProtDeterioro === 'undefined' && cr.length > 0 &&
+      cr.every(function(k){ return k.indexOf('deterioro') === -1 && k.indexOf('basal') === -1; }),
+      'claves=' + cr.join(',')]);
+  } finally {
+    __t.limpiar();
+  }
+  return { extra: ex };
+`);
+
 caso('TC-289', 'Cierre de la Fase 1: el area mitral se clasifica como se imprime, «(SAVR)» no sale del selector, y el EN SUMA nombra la protesis', `
   return (async () => {
     const ex = [];

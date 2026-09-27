@@ -4,6 +4,234 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Prótesis valvulares, Fase 2: la graduación aórtica — y la cápsula NO alcanzaba (2026-09-27)
+
+Cierra el bug que el diagnóstico del mismo día midió: con morfología de prótesis, la severidad
+aórtica salía de los cortes de válvula NATIVA. Una prótesis de 21 mm normal salía «estenosis
+moderada» y una de 19 mm con AVA 0,90 salía «Severa por AVA ⚠️ bajo gradiente» con el párrafo
+entero de bajo gradiente detrás.
+
+### ⚠️ LA PRIMERA VERSIÓN PONÍA UNA CÁPSULA ENCIMA Y NO CERRABA NADA — lo encontró `/sharp-edges`
+
+Es el hallazgo más importante de la sesión y hay que tenerlo presente al tocar cualquier cascada de
+severidad de esta app. `calcEADetalle` ganó un `return` temprano que desvía a la rama protésica, y
+el `return` estaba **bien construido en la dirección que se temía** —con válvula nativa
+`eaProtVeredicto()` devuelve `null` y la cascada corre intacta; no hay camino por el que una nativa
+se desvíe—. El problema era el opuesto: **cortaba demasiado tarde en la cadena de llamadas.**
+
+El orden real es `syncEADesdeValvulas → calcAo → clasificarEA_Vmax → calcEADetalle`, y
+**`sugerirSeveridadEA` y `clasificarEA_Vmax` escriben `ea_grado` ANTES**. Ninguna de las dos miraba
+la morfología. Medido sobre la prótesis de 21 mm normal:
+
+| superficie | qué decía |
+|---|---|
+| cápsula `#ea-det-sev` | «Sin criterios de estenosis protésica» ✅ |
+| `ea_grado` | **`'moderada'`** |
+| narrativo | **«Válvula aórtica prótesis biológica, con estenosis moderada (…)»** |
+| EN SUMA | **«EAo moderada.»** |
+| tabla del PDF | fila `EA grado: Moderada`, con la **escala de referencia NATIVA** al lado |
+| Excel · Laboratorio · filtro de cohorte · PDF de auditoría | el estudio contaba como EAo moderada |
+
+Y en el escenario de 19 mm, `clasificarEA_Vmax` escribía `'severa'` por discordancia AVA/gradiente,
+`eaEscenario()` devolvía `discordante`, y el informe firmado publicaba «EAo severa por AVA, BF/BG
+clásica» **más** el párrafo que recomienda un eco con dobutamina.
+
+O sea: **el bug que la Fase 2 decía cerrar seguía intacto, palabra por palabra, en el documento
+firmado — y lo único que había cambiado es que la cápsula ahora lo contradecía.**
+
+**La lección general: el bloqueo va del lado del ESCRITOR, no del pintor.** Un `return` en la
+función que dibuja no protege nada si el campo que firma lo escribe otra función que corre antes.
+Antes de dar por cerrado un defecto de severidad, recorrer la CADENA DE LLAMADAS completa y
+preguntarse quién escribe el campo, no quién lo muestra.
+
+### El grado NO se escribe con prótesis, y es la misma decisión que `calcET`
+
+Las dos funciones se abstienen y `ea_grado` queda en lo que el médico consignó. No se escribe un
+grado protésico porque **no existe en ese vocabulario**: el veredicto de la Tabla 5 tiene tres
+niveles (normal / posible / significativa) y el `<select>` tiene otros cuatro, y `nivelDe()` sólo
+reconoce leve/moderada/severa — agregar una opción dejaría la píldora diciendo «Sin est.» sobre un
+select que dice otra cosa. Es **exactamente** el caso de `calcET`, que por encima de su umbral
+deliberadamente no escribe grado.
+
+**Y eso vuelve alcanzable un estado que hay que tener en cuenta: el médico puede poner «Severa» a
+mano sobre una prótesis.** `_eaDiscordante` cuelga de `eaG === 'severa'`, así que sin apagar
+`eaEscenario()` ese estudio volvía a publicar el párrafo de la dobutamina. Es la única condición
+que caza esa mutación —los otros escenarios tienen el grado en reposo— y el estado que la produce
+es el de todos los días.
+
+### Los cortes, y el número que el documento se contradice a sí mismo
+
+ASE 2024, Tabla 5, p. 19 (Zoghbi et al., JASE 37(1):2-63), verificados por dos rutas independientes:
+
+| | normal | posible | significativa |
+|---|---|---|---|
+| velocidad pico (todas) | < 3 | 3-4 | **≥ 4** m/s |
+| AT (todas) | < 80 | 80-100 | > 100 ms |
+| AT/ET (todas) | < 0,32 | 0,32-0,37 | **> 0,37** |
+| gradiente medio (SAVR) | < 20 | 20-34 | **≥ 35** mmHg |
+| DVI (SAVR) | **> 0,35** | 0,25-0,35 | < 0,25 |
+
+**⚠️ LOS TRES OPERADORES DIFIEREN Y ESO ES PARTE DEL HALLAZGO.** La velocidad pico y el gradiente
+medio usan `≥` —la edición 2009 decía `>4` y la 2024 lo cambió—, el AT/ET y el AT usan `>` estricto,
+y el DVI usa `>` estricto en el borde NORMAL. `_eaProtNivel` capturaba el 0,37 exacto del AT/ET
+mientras los tres textos del archivo decían `>`: **el assert de arranque no lo cazaba porque compara
+VALORES, no operadores.** Hoy el helper tiene `signifEstricto`.
+
+**⚠️ EL DVI NORMAL ES 0,35 Y NO 0,30.** La **Figura 13 de la misma página** publica
+`≥0,30 / 0,29-0,25 / <0,25` — carácter por carácter la Tabla 5 de la ASE **2009**— y colapsa el AT a
+un binario de 100 ms. La guía asigna los roles ella misma: la Figura 13 «helps facilitate
+assessment» y las Tablas 5-7 son los «recommended criteria». **Manda la Tabla 5.** Hay una guarda
+especial en `_eaProtAssertUmbrales` que grita si alguien pone 0,30, porque es el error plausible.
+
+**La EOA no se implementa, y no es una omisión.** La guía la expresa en desviaciones estándar
+respecto del **modelo implantado** y no publica referencias genéricas: el Apéndice A4 son ~45 marcas
+comerciales × tamaño, y la única fila no-comercial es «Homograft». La edición 2009 **sí** tenía un
+corte absoluto (`>1,2 / 1,2-0,8 / <0,8`) y 2024 lo quitó a propósito. Consecuencia: **el DVI es el
+único eje flujo-independiente que esta app puede evaluar**, así que el número importa doblemente y
+el informe lo declara.
+
+**TAVI no se gradúa** (decisión de Maicol): su criterio es cambio-vs-basal y elegir el basal es
+clínico. Se publican los ejes absolutos del bloque general y se declara que el veredicto queda
+pendiente. El mecanismo de comparación **sí existe** —`verEvolucion` junta los estudios del mismo
+paciente por documento y los ordena por fecha— así que lo que falta es la decisión, no la plomería.
+
+### La regla de integración es lo que impide el falso positivo más peligroso
+
+La nota general de la tabla exige «at least one flow-dependent … and one flow-independent …
+parameter». Sin eso, un gradiente alto **por flujo aumentado** se publica como obstrucción. Con un
+solo eje alterado el veredicto es «posible», nunca «significativa», y sin DVI **no se gradúa**:
+se dice qué falta y se nombra el DVI como el único eje independiente evaluable.
+
+### ⚠️ EL DVI SE APAGABA POR EL DIÁMETRO DEL TSVI, que es justo lo que no usa
+
+El DVI es `VTI TSVI / VTI Ao`: **adimensional precisamente para no depender del diámetro**, que es
+la medición menos confiable sobre una prótesis. Estaba dentro del `if (itsvi && dtsvi && itvao)` en
+las dos superficies que lo publican, y el `else` de ese mismo `if` lo **borraba**. Resultado: con los
+dos VTI trazados y sin diámetro, el veredicto salía «Falta un dato para aplicar la tabla» sobre un
+estudio donde el único eje flujo-independiente estaba medido y era calculable. El fail-closed se
+disparaba por un insumo ajeno, y **en el caso para el que el DVI existe.**
+
+### Una nota compartida sin apagado es una fuga entre pacientes
+
+`#ea-det-sev-nota` se mostraba y **nada lo escondía**. Dos caminos alcanzables: pasar de TAVI a
+«Calcificada» dejaba el informe declarando «El criterio específico de TAVI es el CAMBIO respecto de
+un basal» sobre una válvula nativa; y **«Nuevo estudio» tampoco lo limpia**, porque el barrido de
+`limpiarCampos` es `.calc-box .calc-row span[id]` más `[id$="-badge"]` y esto es un `<div>` fuera de
+un `.calc-row`. O sea: raya en la fila de severidad con las salvedades del paciente anterior
+desplegadas debajo. Hoy hay `_eaProtNotaOcultar()` al principio del bloque de severidad **y** la
+llamada explícita: las dos columnas de siempre.
+
+Su vecino ya lo hacía bien —`eaAtPintar` **empieza** apagando su nota— y esta función no. **Al
+agregar un contenedor de texto compartido, mirar cómo lo apaga el de al lado.**
+
+### El rótulo tiene que cambiar en los DOS sentidos
+
+La fila dice «⚖️ Severidad EA (ESC 2021)» y ahí se publicaba un veredicto de la **ASE 2024**: cita
+falsa en la superficie que el médico mira, la misma clase que «Task Force 2010» calculado con otra
+regla. Y arreglar sólo la ida deja la cita falsa **espejada** al volver a nativa. Un rótulo que
+cambia en un sentido tiene que cambiar en los dos.
+
+### El AT llega al narrativo (Tarea 4), y TC-288 se puso rojo — ésa es la señal
+
+TC-288 fijaba que el AT **no** llegara al informe, con el motivo escrito: «el narrativo sigue
+publicando la severidad con los cortes NATIVOS, así que una lectura protésica al lado dejaría dos
+afirmaciones contradictorias en el mismo documento». **La Fase 2 derogó esa premisa**, así que el AT
+sí llega — y mantener la afirmación vieja habría empujado a sacarlo el día que alguien «lo
+arreglara». Se reapuntó al invariante que sobrevive: el AT viaja con su lectura **y** con la
+salvedad de que por sí solo no establece estenosis, nunca suelto al lado de una severidad nativa.
+
+**Y el AT fuera de rango se DECLARA cuando el veredicto dice «sin criterios».** Con AT 130 ms,
+Vmax 2,8 y DVI 0,50 la fila del AT sale en rojo y la cápsula decía «Sin criterios de estenosis
+protésica» a tres renglones: una negación absoluta con el eje que la contradice en el mismo cuadro.
+La regla de integración es correcta —el AT no lleva `†` ni `§`, así que no vota— pero eso hay que
+decirlo, no callarlo.
+
+### El panel de Evidencia: un adelanto de la Fase 3, porque la Fase 2 ensanchó la divergencia
+
+`_indEA` abre con `_ge(vmax,4)` **sin mirar la morfología**, así que con Vmax 4,5 sobre una prótesis
+publicaba la cascada de la ESC/EACTS 2025 de estenosis aórtica NATIVA — «SAVR recomendado, Clase I ·
+Nivel B»—. Ninguna de esas filas cubre una prótesis disfuncionante: eso es la tabla de
+reintervención, que esta app no tiene. La Fase 3 estaba declarada como pendiente y eso es legítimo,
+pero **antes de este cambio las dos superficies decían lo mismo (nativo) y ahora la cápsula publica
+la Tabla 5**: la divergencia la creó la Fase 2. Se declara y no se recomienda nada, que es la
+dirección segura y lo que `_indEAModalidad` ya hace cuando le falta la edad.
+
+### ⚠️ LA TABLA 6 QUEDA DECLARADA Y SIN IMPLEMENTAR
+
+Decisión de Maicol. Es la tabla vecina y sus criterios se **parecen** —gradiente medio, EOA, DVI,
+regurgitación intraprotésica— así que la tentación es leerla como «los mismos cortes con otro
+nombre». No lo es, por dos razones:
+
+- **Es un criterio de CAMBIO**: compara contra la «baseline (1-3 months) postprocedural assessment»,
+  que es el mismo basal que la Fase 2 decidió no elegir para la TAVI, y por el mismo motivo.
+- **Y además del delta exige un gradiente resultante ABSOLUTO.** Implementar sólo el delta graduaría
+  deterioro sobre prótesis que la tabla no llama deterioradas.
+
+Mientras no esté: esta app gradúa **obstrucción** (Tabla 5) y no **deterioro** (Tabla 6), y no
+afirma nada sobre el segundo. Y el mapeo de AT/ET por estadios de deterioro que circula atribuido a
+esta guía **no está en el documento**: viene de una revisión secundaria. No usarlo.
+
+### El empate del 50 % de fracción regurgitante vota SEVERA — y no hubo que cambiar nada
+
+La Tabla 8 publica `< 30 / 30-50 / ≥ 50`, así que **el 50 exacto cae en las dos bandas y el documento
+no lo resuelve**. Decisión de Maicol: vota **severa**, que es el lado seguro en un empate real de la
+guía — sobreestimar cuesta un control más, subestimar cuesta no verla.
+
+**Los tres sitios ya lo mandaban a severa por el operador** —`calcIM_ESC` y `calcIA_ESC` con
+`else if (fr < 50)`, y la píldora `calcContIM` con `fr >= 50`—. Lo que faltaba era **fijarlo**, que
+es distinto: sin la condición, aflojar cualquiera a `<=` o a `>` no rompe nada medible y el empate
+se resolvería al otro lado en silencio. **Y son TRES, no cuatro: la insuficiencia TRICUSPÍDEA no
+clasifica fracción regurgitante** — contarla habría dado una condición que pasa sobre una función
+que no existe.
+
+### Una sola derivación para las tres superficies
+
+`eaProtNarrativa(P)` devuelve `{frase, resumen, salvedades, guia}` y la consumen el cuerpo del
+informe, el EN SUMA **y** `_eaProtPintar`. La primera versión tenía las salvedades escritas dos
+veces y ya habían empezado a divergir: la cápsula no declaraba el AT fuera de rango. Con dos listas,
+el papel y la pantalla publican dos lecturas del mismo veredicto — que es el defecto que la Fase 2
+vino a cerrar, entrando por la otra puerta.
+
+**Sin veredicto no se resume nada.** Con TAVI y con un dato faltante el EN SUMA se calla: cualquier
+línea ahí se leería como una conclusión. Se describe en el cuerpo.
+
+### Cambios de comportamiento declarados
+
+- **Los conteos del Laboratorio de estenosis aórtica BAJAN.** Un estudio con prótesis ya no entra a
+  la distribución de valvulopatías, al filtro de cohorte ni al PDF de auditoría como EAo moderada o
+  severa, porque `ea_grado` deja de escribirse solo. Es la conducta correcta y es un cambio: si un
+  número no coincide con una captura vieja, es por acá.
+- **El reset de `window._eaBajoGradiente` subió por encima de la compuerta.** Su propio comentario
+  dice que existe porque las salidas tempranas dejaban el valor del paciente anterior, y el `return`
+  protésico es una salida temprana más. Hoy **no tiene lectores**, así que el impacto es nulo y la
+  mutación que lo revierte **sobrevive, declarada**: es una invariante que el `return` derogaba en
+  silencio, no un defecto vivo.
+
+### Lo que la verificación enseñó
+
+- **Un borde no se puede medir donde la regla de integración lo colapsa.** La primera versión de
+  TC-290 medía el borde de abajo del DVI (0,25 / 0,24) con los dos ejes dependientes normales, y ahí
+  las dos respuestas son «posible»: dio rojo sobre código correcto. El borde de arriba se mide con
+  los dependientes normales y el de abajo con uno ya significativo.
+- **El denominador más fuerte es correr el MISMO escenario con las dos morfologías.** TC-291 carga un
+  único juego de mediciones y afirma que con morfología nativa la app escribe `ea_grado = 'moderada'`
+  y dice «estenosis moderada». Sin esa mitad, el caso pasaría con un escenario que la cascada nativa
+  nunca habría llamado moderada — o sea sin reproducir el bug.
+- **`_eaProtNivel` se ejerce en AISLAMIENTO para el AT/ET.** `nv.atet` se calcula y **no vota**, así
+  que la diferencia entre `>=` y `>` no es observable por el veredicto. Se llama al helper directo,
+  que es lo que este archivo ya hace con las guardas fail-closed que ningún escenario alcanza — y se
+  declara que es así, en vez de dejar creer que lo cubre una condición clínica.
+- **Una mutación que no entra por la INDENTACIÓN no vale como evidencia.** La de la regla de
+  integración se escribió con cuatro espacios y la línea real tiene dos: el script abortó con código
+  3 y se vio. Sin ese `assert` habría pasado por sobreviviente.
+- **Trece mutaciones, las trece en rojo y cada una sólo en su condición**, con la base verde leída
+  primero en cada tanda.
+- **Semgrep subió de 126 a 129 y los tres eran míos**, todos `innerHTML = a + b` en la cápsula —
+  literales de una tabla congelada, o sea de la familia con 81 falsos positivos previos—. Se
+  reescribió con la API del DOM y `textContent`: de vuelta en 126, y **el sink deja de existir en
+  vez de existir y ser inofensivo**.
+
+
 ## Cierre de la Fase 1 de prótesis: el censo a las otras tres, «(SAVR)» y el EN SUMA (2026-09-27)
 
 Tres cambios independientes.

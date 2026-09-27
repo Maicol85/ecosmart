@@ -3515,7 +3515,9 @@ window.cerrarSesionReal = cerrarSesionReal;
           <!-- La fila del AT se esconde con la misma regla que su campo: sin prótesis no aplica. -->
           <div class="calc-row" id="ea-det-at-row"><span class="calc-lbl">AT &mdash; tiempo de aceleraci&oacute;n</span><span id="ea-det-at">&#8212;</span></div>
           <div id="ea-det-at-nota" style="font-size:10px;color:var(--text2);line-height:1.45;margin:-2px 0 4px;display:none;"></div>
-          <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">&#x2696;&#xFE0F; Severidad EA (ESC 2021)</span><span id="ea-det-sev">&#8212;</span></div>
+          <div class="calc-row"><span class="calc-lbl" id="ea-det-sev-lbl" style="font-weight:700;">&#x2696;&#xFE0F; Severidad EA (ESC 2021)</span><span id="ea-det-sev">&#8212;</span></div>
+          <!-- Salvedades del veredicto PROTÉSICO. Con válvula nativa queda oculta. -->
+          <div id="ea-det-sev-nota" style="font-size:10px;color:var(--text2);line-height:1.45;margin:-2px 0 4px;display:none;"></div>
         </div>
       </div>
       <div style="display:none;"><!-- placeholder para mantener estructura --></div
@@ -20892,6 +20894,29 @@ function calcEADetalle() {
     ['ea_ava_display','ea_dvi_display'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
   }
 
+  /* ⚠️ CON PRÓTESIS LA SEVERIDAD NO SALE DE LOS CORTES NATIVOS. Es el bug que el diagnóstico del
+     2026-09-27 midió y el que la Fase 2 cierra: una prótesis de 21 mm normal —Vmax 3,2, gradiente
+     25— salía «Moderada», y una de 19 mm con AVA 0,90 salía «Severa por AVA ⚠️ bajo gradiente» con
+     todo el párrafo de bajo gradiente detrás. Los cortes protésicos son otra escala.
+     El `return` corta ANTES de toda la cascada nativa, así que la válvula nativa queda intacta por
+     construcción: no hay una rama nueva que pueda cambiarle el comportamiento. */
+  /* ⚠️ LA NOTA SE APAGA ACÁ Y LA VUELVE A PRENDER `_eaProtPintar`. El div es COMPARTIDO, y sin
+     esta línea la nota de la prótesis queda pegada sobre una válvula nativa: al pasar de TAVI a
+     «Trivalva normal» el informe salía declarando «El criterio específico de TAVI es el CAMBIO
+     respecto de un basal» y «El área efectiva no se evalúa» sobre una válvula nativa. Lo cazó
+     TC-290; no lo alcanza ningún barrido de `limpiarCampos` —no es un input ni un span de
+     `.calc-row`— así que además hay una línea explícita allá: son las dos columnas de siempre. */
+  if (typeof _eaProtNotaOcultar === 'function') _eaProtNotaOcultar();
+  /* ⚠️ EL RESET VA ARRIBA DE LA COMPUERTA, no abajo. Esta línea existe porque el global se
+     asignaba en un solo camino y las salidas tempranas dejaban el valor del paciente anterior
+     —lo dice su propio comentario treinta líneas más abajo—; el `return` protésico es una salida
+     temprana más y la derogaba en silencio. Lo que se resetea, se resetea antes de CUALQUIER
+     salida temprana, que es el patrón que `eaAtPintar` ya usa. */
+  window._eaBajoGradiente = null;
+  if (typeof eaProtVeredicto === 'function') {
+    const P = eaProtVeredicto();
+    if (P) { _eaProtPintar(P); return; }
+  }
   // Severidad EA integrada (Vmax primario, AVA confirma)
   const sevEl = document.getElementById('ea-det-sev');
   /* Un grado fijado a mano —o traído por una importación— gana sobre el autocálculo, igual
@@ -21084,6 +21109,19 @@ function calcAo() {
     setv('gmax_calc', gmax);
   }
 
+  /* ⚠️ EL DVI NO NECESITA EL DIÁMETRO DEL TSVI, y estaba adentro del `if` que lo exige. Es un
+     cociente de los dos VTI —adimensional justamente para NO depender del diámetro, que es la
+     medición menos confiable sobre una prótesis— así que se calcula con sus propios insumos.
+     Consecuencia medida antes del arreglo: con los dos VTI trazados y sin `diam_tsvi`, el veredicto
+     protésico salía «Falta un dato para aplicar la tabla» sobre un estudio donde el Único eje
+     flujo-independiente disponible estaba medido y era calculable. El fail-closed se disparaba por
+     un insumo ajeno, y justo en el caso para el que el DVI existe. Lo encontró /sharp-edges. */
+  if (itsvi && itvao) {
+    document.getElementById('dvi-val').textContent = (itsvi / itvao).toFixed(2);
+  } else {
+    const _dv = document.getElementById('dvi-val'); if (_dv) _dv.textContent = '—';
+  }
+
   // AVA continuidad — la fórmula vive en `_avaContinuidad`, no acá (ver su comentario)
   if (itsvi && dtsvi && itvao) {
     const _avaN = _avaContinuidad(dtsvi, itsvi, itvao);
@@ -21108,10 +21146,6 @@ function calcAo() {
       const avai = (PF(ava) / bsa).toFixed(2);
       document.getElementById('ava-idx').textContent = avai + ' cm²/m²';
     }
-    if (itsvi) {
-      const dvi = (itsvi / itvao).toFixed(2);
-      document.getElementById('dvi-val').textContent = dvi;
-    }
     /* El módulo TAVI espeja estos mismos números, y se repinta ACÁ porque `calcAo` es el que los
        acaba de escribir: sin esto el bloque de TAVI queda con los de la medición anterior hasta que
        alguien toque uno de sus campos. */
@@ -21128,7 +21162,9 @@ function calcAo() {
     setv('ava_cont', '');
     const sevEl = document.getElementById('ea-sev'); if (sevEl) sevEl.innerHTML = '—';
     const idxEl = document.getElementById('ava-idx'); if (idxEl) idxEl.textContent = '—';
-    const dviEl = document.getElementById('dvi-val'); if (dviEl) dviEl.textContent = '—';
+    /* El DVI NO se limpia acá: lo gobierna su propio `if/else` de arriba, con sus propios insumos.
+       Esta línea era la segunda mitad del defecto — sin el diámetro se entra por este `else` y
+       borraba el DVI que el bloque de arriba acababa de calcular bien. */
     const vsElB = document.getElementById('vs-val'); if (vsElB) vsElB.textContent = '—';
     const vsCalcB = document.getElementById('vs_calc'); if (vsCalcB) vsCalcB.value = '';
   }
@@ -21167,6 +21203,23 @@ function clasificarEA_Vmax() {
   const sel = document.getElementById('ea_grado');
   const badgeEl = document.getElementById('ea-ava-badge');
   if (!sel || vmax === null) return;
+  /* ⚠️ CON PRÓTESIS NO SE AUTO-GRADÚA, y ésta es la mitad del bug que la cápsula NO cerraba.
+     `calcEADetalle` corre ÚLTIMA (syncEADesdeValvulas → calcAo → clasificarEA_Vmax →
+     calcEADetalle), así que su `return` protésico cortaba DESPUÉS de que esta función y
+     `sugerirSeveridadEA` ya habían escrito `ea_grado` con cortes NATIVOS. Resultado medido: una
+     prótesis de 21 mm normal salía «Sin criterios de estenosis protésica» en la cápsula y
+     «estenosis moderada» en el narrativo, el EN SUMA, el PDF, el Excel y el Laboratorio.
+     No se escribe un grado protésico porque no existe en este vocabulario: el veredicto de la
+     Tabla 5 tiene tres niveles (normal / posible / significativa) y el `<select>` tiene otros
+     cuatro, y `nivelDe()` sólo reconoce leve/moderada/severa —es exactamente el caso de `calcET`,
+     que por encima de su umbral deliberadamente NO escribe grado—. El grado queda en lo que el
+     médico haya consignado, y el narrativo publica el veredicto protésico por su propia rama. */
+  if (typeof valvEsProtesis === 'function' && valvEsProtesis(sv('va_morf'))) {
+    if (badgeEl) badgeEl.textContent = 'Morfología protésica: el grado NO se sugiere automáticamente — ' +
+      'los cortes de este selector son de válvula nativa (ESC 2021) y la severidad protésica se ' +
+      'gradúa con la Tabla 5 de la ASE 2024, que está en el cuadro de Estenosis Aórtica.';
+    return;
+  }
   /* Grado fijado a mano —o traído por una importación— gana sobre el autocálculo, igual
      que en calcIM_ESC/calcIA_ESC/calcIT_ESC. Sin esto, tocar cualquier campo del Doppler
      aórtico cambiaba el <select> de «Severa» a lo que diera la Vmax, sin avisar. */
@@ -21223,6 +21276,10 @@ function sugerirSeveridadEA(ava) {
   const sel = document.getElementById('ea_grado');
   const badgeEl = document.getElementById('ea-ava-badge');
   if (!sel) return;
+  /* Misma guarda que `clasificarEA_Vmax`, y hace falta en las dos: `calcAo` las llama a las dos
+     —ésta en la línea del AVA y aquélla al final— así que cerrar una sola deja la otra escribiendo
+     el grado nativo. El badge lo escribe aquélla; acá se sale en silencio para no pelearle. */
+  if (typeof valvEsProtesis === 'function' && valvEsProtesis(sv('va_morf'))) return;
   /* Un AVA no positivo no sugiere NADA: esta función escribe ea_grado, que es lo que baja al
      informe firmado. Está además exportada a window tomando un número crudo. */
   /* Se DICE que no se actualizó, en vez de borrar el badge: el badge era lo único que
@@ -24067,6 +24124,16 @@ function generarInforme(opts) {
   {
     const vaMorf = sv('va_morf') || 'trivalva';
     const _vaAdj = valvMorfAdj(vaMorf), _vaEs = valvMorfEs(vaMorf);
+    /* ⚠️ CON PRÓTESIS LA ESTENOSIS NO SE DESCRIBE CON LOS CORTES NATIVOS, y acá es donde el bug
+       llegaba al documento FIRMADO. La cápsula de pantalla ya publicaba el veredicto de la Tabla 5
+       de la ASE 2024, y este párrafo seguía diciendo «con estenosis moderada» porque leía
+       `ea_grado`, que lo escribían `clasificarEA_Vmax` y `sugerirSeveridadEA` con la escala nativa
+       ANTES de que `calcEADetalle` llegara a su compuerta. Hoy esas dos se abstienen con prótesis y
+       la descripción sale de `eaProtNarrativa`, la MISMA derivación que pinta la cápsula.
+       Devuelve `null` con morfología nativa, así que la cascada de siempre queda intacta. */
+    const _eaProtP = (typeof valvEsProtesis === 'function' && valvEsProtesis(vaMorf) &&
+      typeof eaProtVeredicto === 'function') ? eaProtVeredicto() : null;
+    const _eaProtN = (_eaProtP && typeof eaProtNarrativa === 'function') ? eaProtNarrativa(_eaProtP) : null;
     if (Object.prototype.hasOwnProperty.call(VALV_MORF_ETIOL, String(vaMorf).trim())) ccMarcarParrafo();
     // FIX: comparar contra el VALUE del <select> ('sin'/'esclerosis'), no contra el texto de la opción.
     const esclerosis = eaG === 'esclerosis';
@@ -24100,7 +24167,13 @@ function generarInforme(opts) {
        y acá sólo se redacta. `_eaDiscordante` se deriva de ella en vez de reimplementar las
        condiciones: eran las mismas de `clasificarEA_Vmax` copiadas a mano, y una tercera copia
        de un criterio clínico es como se pudren los umbrales. */
-    const _eaR = (typeof eaEscenario === 'function') ? eaEscenario() : null;
+    /* ⚠️ CON PRÓTESIS EL ESCENARIO DE BAJO GRADIENTE NO CORRE. `eaEscenario()` aplica los cortes
+       NATIVOS, y de él cuelgan `_eaDiscordante`, la línea «EAo severa por AVA, BF/BG clásica» del EN
+       SUMA y el párrafo entero que recomienda un eco con dobutamina. Reproducido antes del arreglo:
+       una prótesis de 19 mm con AVA 0,90 publicaba las dos cosas en el informe firmado. Se apaga
+       poniéndolo en `null`, que corta las tres superficies de una — con una guarda por sitio, la que
+       se olvide vuelve a publicar la lectura nativa. */
+    const _eaR = _eaProtN ? null : ((typeof eaEscenario === 'function') ? eaEscenario() : null);
     /* Sigue exigiendo que el grado consignado sea severa: la salvedad de bajo flujo / bajo
        gradiente sobre un grado «moderada» o «sin» dejaba el informe firmado con «sin estenosis
        significativa» seguido de «estenosis aórtica severa por AVA», dos frases consecutivas que
@@ -24155,7 +24228,26 @@ function generarInforme(opts) {
     if (iaG > 0) suma.push(`IAo ${imTxt[iaG]}.`); else if (insE) suma.push('Insuficiencia aórtica.');
     if (esclerosis) suma.push('Esclerosis aórtica.');
     const cE = fraseEI(estE, insE), cC = fraseEI(estC, insC);
-    if (esclerosis && !estE && !insE) {
+    if (_eaProtN) {
+      /* La mitad de INSUFICIENCIA sigue saliendo de la cascada nativa, y es correcto: la Tabla 8
+         de la ASE 2024 remite la regurgitación protésica a los criterios de la válvula nativa
+         —«Classification of intra- and paravalvular prosthetic AR severity is similar to that
+         suggested for native valves»— y los cortes que la app aplica ya coinciden con los de esa
+         tabla en todo lo que mide. Lo que NO aplica a una prótesis es la escala de ESTENOSIS. */
+      const _pIns = insE ? ', ' + insE : '';
+      inf.push(estiloPick(
+        `VAo ${_vaAdj}, ${_eaProtN.frase}${_pIns}.`,
+        `Válvula aórtica ${_vaAdj}, ${_eaProtN.frase}${_pIns}.`,
+        `La válvula aórtica ${_vaEs} ${_vaAdj}, ${_eaProtN.frase}${_pIns}.`));
+      /* Las salvedades y la cita van al cuerpo, NO al pie: son las que impiden leer el veredicto
+         como si saliera del selector de al lado, que cita otra guía y otra escala. */
+      _eaProtN.salvedades.forEach(function(t){ inf.push(t); });
+      inf.push(_eaProtN.guia);
+      /* El EN SUMA sólo afirma cuando hay veredicto: con TAVI —que no se gradúa— y con un dato
+         faltante NO se resume nada, porque cualquier línea ahí se leería como una conclusión. */
+      if (_eaProtN.resumen) suma.push(`Prótesis aórtica: ${_eaProtN.resumen}.`);
+      ccMarcarParrafo();
+    } else if (esclerosis && !estE && !insE) {
       inf.push(estiloPick(
         `VAo con esclerosis valvular.`,
         `Válvula aórtica ${_vaAdj}, con esclerosis valvular, sin estenosis significativa ni insuficiencia.`,
@@ -27655,35 +27747,346 @@ function eaTaviEspejar(){
 }
 window.eaTaviEspejar = eaTaviEspejar;
 
-/* ══ GANCHO DE LA FASE 2: EL CRITERIO DE SEVERIDAD SEGÚN EL CONTEXTO ══════════════════════════
-   El VALOR medido es uno solo —AVA, AVAi y DVI salen del mismo cálculo— y lo único que cambia con
-   la morfología es el CRITERIO que se le aplica. Este gancho existe para que la Fase 2 conecte los
-   cortes protésicos sin tener que volver a buscar dónde se decide.
+/* ══ ESTENOSIS AÓRTICA PROTÉSICA — ASE 2024, TABLA 5 (p. 19) ══════════════════════════════════
+   Fase 2. Con una morfología de prótesis la severidad DEJA de salir de los cortes nativos, que es
+   el bug que el diagnóstico del 2026-09-27 midió: una prótesis normal de 21 mm salía «estenosis
+   moderada», y una chica salía «severa por AVA con bajo gradiente» con todo el párrafo de bajo
+   gradiente detrás.
 
-   ⚠️ HOY DEVUELVE `null` A PROPÓSITO Y ESO SIGNIFICA «USAR LOS CORTES NATIVOS», que es lo que la
-   app ya hace. **No se inventan los números de la ASE 2024**: el diagnóstico del 2026-09-27 dejó
-   documentado que una prótesis aórtica normal cae en la banda de «moderada» y hasta de «severa por
-   AVA con bajo gradiente» con los cortes nativos, así que devolver cortes equivocados sería peor
-   que no devolver ninguno.
+   Verificado por DOS rutas independientes sobre el PDF primario abierto de asecho.org, con todos
+   los operadores confirmados al render —la capa de texto de este PDF remapea glifos: `$`=`≥`,
+   `#`=`≤`, `6`=`±`—. Las dos rutas coinciden dígito por dígito. Cita: Zoghbi et al., JASE
+   37(1):2-63, doi 10.1016/j.echo.2023.10.004, Tabla 5 en la página 19 de la revista.
 
-   LO QUE LA FASE 2 TIENE QUE TRAER, y hasta entonces esta función no puede decidir nada:
-     · los cortes de AVA, AVAi, DVI, gradiente medio y AT para prótesis, verificados contra la ASE
-       2024 por dos rutas independientes, como el resto de los umbrales de este archivo;
-     · si los cortes dependen del TIPO —biológica, mecánica, TAVI— o del tamaño de la prótesis; el
-       criterio genérico elegido (DVI + gradiente + AVA por continuidad) no depende de la marca,
-       pero eso no responde si depende del tipo;
-     · qué hacer con el AT, que hoy tiene tres campos aórticos posibles y una ambigüedad de mapeo
-       DICOM sin resolver (ver la nota de `va_at`). */
-function eaCriterioSeveridad(){
-  const m = document.getElementById('va_morf');
-  const esProt = !!m && typeof valvEsProtesis === 'function' && valvEsProtesis(m.value);
-  /* Se devuelve el CONTEXTO, no los cortes: así la Fase 2 sólo tiene que llenar la rama protésica
-     y ningún llamador necesita volver a preguntar por la morfología. */
-  return { protesis: esProt, tipo: esProt ? String(m.value).trim() : null,
-    cortes: null,   // ← Fase 2. `null` = aplicar los nativos, que es lo que se hace hoy.
-    fuente: esProt ? 'PENDIENTE — ASE 2024, sin verificar' : 'nativos, ya vigentes' };
+   ⚠️ EL BLOQUE GENERAL VALE PARA SAVR Y PARA TAVI; EL ESPECÍFICO NO. La tabla tiene dos partes:
+   «Appropriate for all prosthetic aortic valves» —contorno del jet, AT, AT/ET y velocidad pico, con
+   cortes ABSOLUTOS— y «Specific AVR considerations», que separa SAVR (gradiente medio, DVI, EOA) de
+   TAVI (cambio respecto del basal).
+
+   ⚠️ LA EOA DE SAVR NO ES IMPLEMENTABLE, Y ESTO ES UNA LIMITACIÓN DECLARADA, NO UN OLVIDO. Sus tres
+   celdas NO son números: son «Reference EOA ± 1 SD», «1 SD smaller than reference EOA» y «2 SDs
+   smaller than reference EOA». El valor de referencia y su desviación salen del Apéndice A4, que
+   está indexado por MODELO COMERCIAL y tamaño —unos 45 marcas nominadas, y la única fila que no es
+   una marca es «Homograft»—. La guía NO publica en ninguna parte rangos de referencia genéricos por
+   tipo ni por tamaño: las dos rutas lo verificaron por enumeración de las cinco páginas de A4.
+   Y es un cambio deliberado de edición: la guía 2009 SÍ tenía un corte absoluto de EOA
+   —`>1,2 / 1,2-0,8 / <0,8 cm²`— y la 2024 lo eliminó. Decisión ya tomada: esta app no pide
+   marca/modelo, así que el eje EOA queda NO EVALUABLE y el informe lo dice.
+
+   ⚠️ CONSECUENCIA DIRECTA DE ESO, Y ES LA PARTE DELICADA: la nota general de la Tabla 5 exige «at
+   least one flow-dependent (i.e., velocity and mean gradient) and one flow-independent (i.e., EOA or
+   DVI) parameter» para hablar de estenosis significativa. Los flujo-independientes son sólo DOS, y
+   la tabla los marca con `§`: EOA y DVI. Sin EOA, **el DVI queda como el ÚNICO contrapeso
+   flujo-independiente**. Por eso el corte de DVI importa doble, y por eso hay que insistir en el
+   próximo aviso.
+
+   ⚠️ LA FIGURA 13 DE LA MISMA PÁGINA CONTRADICE ESTA TABLA, Y SUS NÚMEROS SON LOS DE 2009.
+   Da DVI `≥0,30 / 0,29-0,25 / <0,25`, que es carácter por carácter la Tabla 5 de la edición 2009;
+   la Tabla 5 de 2024 da `>0,35 / 0,25-0,35 / <0,25`. También colapsa el AT a un corte binario en
+   100 ms y el AT/ET a uno solo en 0,37. Las dos rutas lo verificaron y el propio texto de la guía
+   asigna los roles: la Figura 13 «helps facilitate assessment» y las Tablas 5-7 son los
+   «recommended criteria». **Para una severidad que se firma, manda la Tabla 5.**
+   Acá se usan los de la Tabla 5. Si alguien alguna vez implementa el algoritmo de la Figura 13,
+   que use su ESTRUCTURA con los cortes de la Tabla 5, y que lo declare.
+
+   ⚠️ Y NO CONFUNDIR CON LA TABLA 6. Esa es de deterioro estructural (SVD), usa cortes de
+   cambio-desde-basal que se PARECEN a las filas TAVI de la Tabla 5 pero no son los mismos —exige
+   además un gradiente absoluto resultante— y compara contra «baseline (1-3 months) postprocedural
+   assessment». Son dos tablas para dos preguntas distintas. */
+const EA_PROT_CRIT = Object.freeze({
+  /* Bloque «Appropriate for all prosthetic aortic valves» — absolutos, SAVR y TAVI por igual. */
+  vmax_normal_max: 3,      // m/s  — < 3 normal · 3-4 posible · ≥ 4 sugiere significativa
+  vmax_signif_min: 4,      // m/s  — ⚠️ `≥`, no `>`: la 2009 era `>4` y la 2024 lo cambió
+  atet_normal_max: 0.32,   // — < 0,32 normal · 0,32-0,37 posible · > 0,37 sugiere significativa
+  atet_signif_min: 0.37,
+  /* Bloque «Specific AVR considerations» → SAVR. El AT y su corte viven en AT_PROT_*. */
+  savr_gmed_normal_max: 20, // mmHg — < 20 normal · 20-34 posible · ≥ 35 sugiere significativa
+  savr_gmed_signif_min: 35, // mmHg — ⚠️ `≥`; la 2009 era `20-35 / >35`, sin hueco en la 2024
+  savr_dvi_normal_min:  0.35, // — > 0,35 normal ⚠️ ESTRICTO, y NO el 0,30 de la Figura 13
+  savr_dvi_signif_max:  0.25  // — < 0,25 sugiere significativa · 0,25-0,35 posible
+  /* EOA: relativa al modelo. No se pone un número acá porque la guía no da ninguno genérico. */
+});
+/* Volumen sistólico que la nota `‡` de la Tabla 5 exige para que la velocidad pico valga:
+   «Valid with normal stroke volume (50-90 mL) and flow rates (200-300 mL).» La app SÍ calcula el
+   volumen sistólico —`vs_calc`— así que la condición se puede verificar en vez de suponerse.
+   (La nota está impresa con «mL» en los dos paréntesis; el segundo es casi seguro una errata del
+   original por mL/s. Se transcribe como está y no se corrige.) */
+/* ⚠️ LA TABLA 6 —DETERIORO ESTRUCTURAL DE LA VÁLVULA— QUEDA DECLARADA Y SIN IMPLEMENTAR.
+   Decisión de Maicol (2026-09-27). Es la tabla vecina de la 5 y sus criterios se PARECEN —gradiente
+   medio, EOA, DVI, regurgitación intraprotésica— así que la tentación es leerla como «los mismos
+   cortes con otro nombre». No lo es, y por dos razones que la vuelven una tarea aparte:
+   · Es un criterio de CAMBIO: compara contra la «baseline (1-3 months) postprocedural assessment»,
+     o sea el estudio post-implante en condiciones estables. Es el mismo basal que la Fase 2 decidió
+     NO elegir para graduar la TAVI, y por el mismo motivo: cuál estudio es el basal es una decisión
+     clínica que esta aplicación no puede tomar sola.
+   · Y además del cambio exige un gradiente resultante ABSOLUTO, así que un delta que alcance el
+     umbral sobre un gradiente basal muy bajo no clasifica. Implementar sólo el delta graduaría
+     deterioro sobre prótesis que la tabla no llama deterioradas.
+   El mecanismo de comparación existe —`verEvolucion` junta los estudios del mismo paciente por
+   documento y los ordena por fecha— así que lo que falta es la DECISIÓN del basal, no la plomería.
+   Mientras no esté: esta aplicación gradúa OBSTRUCCIÓN (Tabla 5) y no DETERIORO (Tabla 6), y no
+   afirma nada sobre el segundo. Un mapeo de AT/ET por estadios de deterioro que circula atribuido a
+   esta guía NO está en el documento: viene de una revisión secundaria. No usarlo. */
+const EA_PROT_VS_MIN = 50, EA_PROT_VS_MAX = 90;   // mL
+function _eaProtAssertUmbrales(){
+  const esp = [
+    ['vmax_normal_max', EA_PROT_CRIT.vmax_normal_max, 3,    'velocidad pico < 3 m/s normal'],
+    ['vmax_signif_min', EA_PROT_CRIT.vmax_signif_min, 4,    'velocidad pico ≥ 4 m/s significativa'],
+    ['atet_normal_max', EA_PROT_CRIT.atet_normal_max, 0.32, 'AT/ET < 0,32 normal'],
+    ['atet_signif_min', EA_PROT_CRIT.atet_signif_min, 0.37, 'AT/ET > 0,37 significativa'],
+    ['savr_gmed_normal_max', EA_PROT_CRIT.savr_gmed_normal_max, 20,   'gradiente medio < 20 normal'],
+    ['savr_gmed_signif_min', EA_PROT_CRIT.savr_gmed_signif_min, 35,   'gradiente medio ≥ 35 significativa'],
+    ['savr_dvi_normal_min',  EA_PROT_CRIT.savr_dvi_normal_min,  0.35, 'DVI > 0,35 normal'],
+    ['savr_dvi_signif_max',  EA_PROT_CRIT.savr_dvi_signif_max,  0.25, 'DVI < 0,25 significativa']
+  ];
+  const mal = esp.filter(e => e[1] !== e[2])
+    .map(e => 'EA_PROT_CRIT.' + e[0] + ' = ' + e[1] + ' pero los textos dicen ' + e[3]);
+  /* El 0,35 es el que más importa: si alguien lo baja a 0,30 está poniendo el número de la Figura 13
+     —o sea el de 2009— en el ÚNICO eje flujo-independiente que esta app puede evaluar. */
+  if (EA_PROT_CRIT.savr_dvi_normal_min === 0.3)
+    mal.push('savr_dvi_normal_min = 0,30: ése es el valor de la FIGURA 13, que arrastra la edición ' +
+      '2009. La Tabla 5 de 2024 dice 0,35, y es el único contrapeso flujo-independiente disponible.');
+  if (mal.length) console.error('[EA prótesis] Los textos quedaron viejos respecto de las ' +
+    'constantes. Releer la Tabla 5 de la ASE 2024 antes de tocar nada:\n  ' + mal.join('\n  '));
+  return mal;
 }
-window.eaCriterioSeveridad = eaCriterioSeveridad;
+document.addEventListener('DOMContentLoaded', function(){ try { _eaProtAssertUmbrales(); } catch (e) {} });
+
+/* Clasifica UN parámetro en los tres niveles de la tabla. Devuelve `null` cuando no hay dato: sin
+   dato no se afirma nada, y el que integra cuenta cuántos ejes quedaron sin evaluar. */
+function _eaProtNivel(val, normalMax, signifMin, mayorEsPeor, signifEstricto){
+  if (val == null || !isFinite(val)) return null;
+  if (mayorEsPeor) {
+    if (val < normalMax)  return 'normal';
+    /* ⚠️ LOS TRES OPERADORES DE LA TABLA 5 DIFIEREN, y eso es parte del hallazgo. La velocidad pico
+       y el gradiente medio usan `>=` —la edición 2009 decía «>4» y la 2024 lo cambió— y el AT/ET usa
+       `> 0,37`, así que el 0,37 exacto es POSIBLE, no significativa. Sin `signifEstricto` este
+       helper capturaba el 0,37 y los tres textos del archivo decían lo contrario; el assert de
+       arranque no lo cazaba porque compara VALORES, no operadores. Lo encontró /sharp-edges. */
+    if (signifEstricto ? (val > signifMin) : (val >= signifMin)) return 'signif';
+    return 'posible';
+  }
+  /* Ejes invertidos —el DVI—: más chico es peor. `>` estricto en el borde normal, como la tabla. */
+  if (val > normalMax)  return 'normal';
+  if (val < signifMin)  return 'signif';
+  return 'posible';
+}
+
+/* ══ EL VEREDICTO PROTÉSICO ════════════════════════════════════════════════════════════════════
+   Aplica la regla de integración de la nota general de la Tabla 5, que es la formulación MÁS
+   ESTRICTA de las tres que el documento trae —la ruta 2 encontró que el cuerpo la enuncia otras dos
+   veces, y una de ellas OMITE el DVI—: para decir «significativa» hace falta al menos un parámetro
+   flujo-dependiente Y al menos uno flujo-independiente alterados.
+
+   ⚠️ FALLA CERRADO Y NO AFIRMA SOBRE LO NO EVALUADO. Si falta el eje flujo-independiente —que con
+   la EOA fuera de juego significa: si falta el DVI— NO se puede concluir «significativa» por más
+   alto que esté el gradiente: se dice qué falta. Es la misma regla que el resto del archivo. */
+function eaProtVeredicto(){
+  const n = id => { const e = document.getElementById(id); if (!e) return null;
+    const x = PF(e.value); return (x != null && isFinite(x)) ? x : null; };
+  const m = document.getElementById('va_morf');
+  const morf = m ? String(m.value || '').trim() : '';
+  if (!(typeof valvEsProtesis === 'function' && valvEsProtesis(morf))) return null;
+  const esTavi = morf === 'TAVI';
+
+  const vmax = n('vmax_ao'), gmed = n('gmedio_ao');
+  /* ⚠️ EL DVI SE LEE DE LAS DOS SUPERFICIES QUE LO PUBLICAN, Y EL ORDEN IMPORTA. `ea_dvi_display`
+     lo escribe `calcEADetalle`, que está gateada por la VISIBILIDAD del bloque expandido: leyendo
+     sólo de ahí, el veredicto salía «falta el DVI» con el DVI calculado y visible en la pestaña de
+     Doppler Aórtico. Y el DVI es el ÚNICO eje flujo-independiente disponible, así que perderlo no es
+     perder un dato: es no poder concluir nada. `dvi-val` lo escribe `calcAo`, que corre siempre.
+     Es el mismo arreglo que el espejo del módulo TAVI, por la misma causa. */
+  const dvi  = (function(){
+    const el = document.getElementById('dvi-val');
+    const t = el ? String(el.textContent || '').trim() : '';
+    const a = (t && t !== '—') ? PF(t) : null;
+    if (a != null && isFinite(a)) return a;
+    return n('ea_dvi_display');
+  })();
+  const at   = n('va_at'),  et   = n('tango_te');
+  const atet = (at != null && et != null && et > 0) ? (at / et) : null;
+  const vs   = n('vs_calc');
+
+  /* ── Bloque general: vale para las dos vías ── */
+  const nv = {
+    vmax: _eaProtNivel(vmax, EA_PROT_CRIT.vmax_normal_max, EA_PROT_CRIT.vmax_signif_min, true),
+    atet: _eaProtNivel(atet, EA_PROT_CRIT.atet_normal_max, EA_PROT_CRIT.atet_signif_min, true, true),
+    at:   _eaProtNivel(at,   AT_PROT_NORMAL_MAX,           AT_PROT_POSIBLE_MAX,            true, true)
+  };
+  /* El AT usa `> 100` para significativa —igual que el AT/ET con su 0,37— y eso lo resuelve ahora
+     `signifEstricto` en el helper. Acá VIVÍA una re-derivación a mano con un epsilon de 0,0001 que
+     era CÓDIGO MUERTO: sobreescribía el resultado del helper en todo caso donde `at != null`, y
+     cuando era null el helper ya había devuelto null. Se sacó junto con el epsilon, que existía
+     sólo para simular el `>` que el helper ya sabe hacer. */
+  /* ── Bloque específico ── */
+  if (esTavi) {
+    /* Decisión de Maicol (2026-09-27): el criterio TAVI es «change from baseline» y elegir CUÁL
+       estudio es el basal es una decisión clínica que la app no puede tomar sola. El mecanismo de
+       comparación SÍ existe —`verEvolucion` junta los estudios del mismo paciente por documento con
+       un predicado de identidad endurecido, y los ordena por fecha— pero «basal» en la tabla es el
+       estudio post-implante en condiciones hemodinámicas estables (nota `‖`), no «el anterior» ni
+       «el más viejo». Así que TAVI NO se gradúa: se publican los ejes del bloque general, que son
+       absolutos y no necesitan basal, y se declara que el criterio específico quedó pendiente. */
+    return { via:'TAVI', niveles:nv, gmed:gmed, dvi:dvi, vmax:vmax, at:at, atet:atet, vs:vs,
+      sinGraduar:true, eoaEvaluable:false };
+  }
+  nv.gmed = _eaProtNivel(gmed, EA_PROT_CRIT.savr_gmed_normal_max, EA_PROT_CRIT.savr_gmed_signif_min, true);
+  nv.dvi  = _eaProtNivel(dvi,  EA_PROT_CRIT.savr_dvi_normal_min,  EA_PROT_CRIT.savr_dvi_signif_max,  false);
+
+  /* La regla de integración, con los ejes que la tabla marca `†` (flujo-dependiente) y `§`
+     (flujo-independiente). La EOA es `§` y no es evaluable, así que el DVI queda solo de ese lado. */
+  const peor = ls => ls.indexOf('signif') > -1 ? 'signif' : (ls.indexOf('posible') > -1 ? 'posible' : (ls.length ? 'normal' : null));
+  const dep   = [nv.vmax, nv.gmed].filter(Boolean);
+  const indep = [nv.dvi].filter(Boolean);
+  const pDep = peor(dep), pIndep = peor(indep);
+  let nivel, falta = [];
+  if (!dep.length)   falta.push('un parámetro dependiente del flujo (velocidad pico o gradiente medio)');
+  if (!indep.length) falta.push('el DVI, que es el único eje independiente del flujo que esta aplicación puede evaluar');
+  if (falta.length) nivel = 'faltan';
+  else if (pDep === 'signif' && pIndep === 'signif') nivel = 'signif';
+  else if (pDep === 'normal' && pIndep === 'normal') nivel = 'normal';
+  else nivel = 'posible';
+  return { via:'SAVR', niveles:nv, nivel:nivel, falta:falta, pDep:pDep, pIndep:pIndep,
+    gmed:gmed, dvi:dvi, vmax:vmax, at:at, atet:atet, vs:vs, eoaEvaluable:false,
+    vsFueraDeRango: vs != null && (vs < EA_PROT_VS_MIN || vs > EA_PROT_VS_MAX) };
+}
+window.eaProtVeredicto = eaProtVeredicto;
+
+/* Pinta la cápsula con el veredicto protésico y sus salvedades. Vive aparte de `calcEADetalle` para
+   que la cascada nativa no tenga que saber de esto: allá sólo hay un `return`. */
+/* ⚠️ LOS TRES VEREDICTOS Y LAS SALVEDADES VIVEN EN UNA SOLA TABLA, y las consumen la cápsula de
+   pantalla Y el narrativo del informe firmado. Con dos listas, el papel y la pantalla publican dos
+   lecturas del mismo veredicto — que es EXACTAMENTE el defecto que la Fase 2 vino a cerrar,
+   entrando por la otra puerta. */
+const EA_PROT_TXT = Object.freeze({
+  normal:  'Sin criterios de estenosis protésica',
+  posible: 'Posible estenosis protésica',
+  signif:  'Sugiere estenosis protésica significativa',
+  faltan:  'Falta un dato para aplicar la tabla',
+  tavi:    'TAVI — sin graduar'
+});
+const EA_PROT_SALV = Object.freeze({
+  eoa: 'El área efectiva no se evalúa: la Tabla 5 la expresa en desviaciones estándar respecto ' +
+       'del valor de referencia del MODELO implantado, y esta aplicación no registra marca ni modelo. ' +
+       'El DVI queda como único eje independiente del flujo.',
+  tavi: 'El criterio específico de TAVI de la Tabla 5 es el CAMBIO respecto de un estudio ' +
+       'basal post-implante en condiciones hemodinámicas estables, y esta aplicación todavía no elige ' +
+       'ese basal: se publican los parámetros del bloque que la guía aplica a todas las prótesis ' +
+       'aórticas, que son de corte absoluto, y no se emite veredicto de estenosis.',
+  signif: 'Se cumplen las dos mitades que la tabla exige: un eje dependiente del flujo y uno ' +
+       'independiente del flujo en rango de estenosis significativa.',
+  posible: 'No se cumplen las DOS mitades que la tabla exige para «significativa» —un eje ' +
+       'dependiente del flujo y uno independiente—, así que queda en posible.'
+});
+/* El AT y el AT/ET pertenecen al bloque «todas las prótesis aórticas» y NO votan: la nota general
+   de la Tabla 5 exige un parámetro `†` (flujo-dependiente) y uno `§` (flujo-independiente), y la
+   fila del AT no lleva ninguna de las dos marcas. Pero si están fuera de rango normal y el veredicto
+   dice «sin criterios», la cápsula y el informe afirmarían una negación que el eje de al lado
+   contradice — así que se DECLARA. Lo encontró /sharp-edges. */
+function _eaProtSalvTiempos(P){
+  const s = [];
+  if (P && P.niveles && P.niveles.at && P.niveles.at !== 'normal' && P.at != null)
+    s.push('El tiempo de aceleración es de ' + P.at + ' ms, fuera del rango normal de la Tabla 5 ' +
+      '(< 80 ms), y por sí solo NO establece estenosis: su fila no lleva ninguna de las dos marcas ' +
+      'que la nota general exige. Puede además estar afectado por la función del VI y la frecuencia cardíaca.');
+  if (P && P.niveles && P.niveles.atet && P.niveles.atet !== 'normal' && P.atet != null)
+    s.push('El cociente AT/tiempo eyectivo es de ' + P.atet.toFixed(2) + ', fuera del rango normal ' +
+      '(< 0,32), y tampoco vota por sí solo.');
+  return s;
+}
+/* ── EL NARRATIVO PROTÉSICO ──
+   Una sola derivación para el cuerpo del informe y para el EN SUMA. Devuelve `null` con válvula
+   nativa, así que la cascada nativa queda intacta por construcción. */
+function eaProtNarrativa(P){
+  if (!P) return null;
+  const nums = [];
+  if (P.vmax != null) nums.push('Vmax ' + P.vmax + ' m/s');
+  if (P.gmed != null) nums.push('G. medio ' + P.gmed + ' mmHg');
+  if (P.dvi  != null) nums.push('DVI ' + P.dvi.toFixed(2));
+  if (P.at   != null) nums.push('AT ' + P.at + ' ms');
+  if (P.atet != null) nums.push('AT/TE ' + P.atet.toFixed(2));
+  const med = nums.length ? ' (' + nums.join(', ') + ')' : '';
+  const salv = [];
+  let frase, resumen;
+  if (P.via === 'TAVI') {
+    frase   = 'sin graduación de estenosis protésica' + med;
+    resumen = null;   // TAVI no se gradúa: no se afirma nada en el resumen
+    salv.push(EA_PROT_SALV.tavi);
+  } else if (P.nivel === 'faltan') {
+    frase   = 'sin datos suficientes para graduar la estenosis protésica' + med;
+    resumen = null;
+    salv.push('Para hablar de estenosis protésica significativa la Tabla 5 exige al menos un ' +
+      'parámetro dependiente del flujo Y uno independiente. Falta: ' + (P.falta || []).join('; ') + '.');
+  } else {
+    const F = { normal:'sin criterios de estenosis protésica',
+                posible:'con posible estenosis protésica',
+                signif:'con criterios que sugieren estenosis protésica significativa' };
+    /* El resumen va en minúscula y sin los números: el EN SUMA lo prefija con la válvula, y los
+       valores ya están en el cuerpo. Un resumen que repita seis números deja de ser un resumen. */
+    const R = { normal:'sin criterios de estenosis protésica',
+                posible:'posible estenosis protésica',
+                signif:'criterios que sugieren estenosis protésica significativa' };
+    frase   = F[P.nivel] + med;
+    resumen = R[P.nivel];
+    if (P.nivel !== 'normal') salv.push(EA_PROT_SALV[P.nivel]);
+  }
+  salv.push(EA_PROT_SALV.eoa);
+  if (P.vsFueraDeRango && P.vs != null)
+    salv.push('La nota al pie de la tabla exige un volumen sistólico de ' + EA_PROT_VS_MIN + '-' +
+      EA_PROT_VS_MAX + ' mL para que la velocidad pico valga, y el calculado es de ' + P.vs.toFixed(0) + ' mL.');
+  _eaProtSalvTiempos(P).forEach(s => salv.push(s));
+  return { frase: frase, resumen: resumen, salvedades: salv,
+    /* La cita va en el informe: quien lo lea en seis meses necesita saber con qué regla se
+       clasificó, y la escala protésica NO es la del selector de al lado. */
+    guia: 'Criterios de la Tabla 5 de la ASE 2024 (Zoghbi et al., JASE 37:2-63) para prótesis ' +
+      'aórtica quirúrgica; no son los cortes de válvula nativa.' };
+}
+window.eaProtNarrativa = eaProtNarrativa;
+
+function _eaProtPintar(P){
+  const sevEl = document.getElementById('ea-det-sev');
+  if (!sevEl) return;
+  const TXT = EA_PROT_TXT;
+  const COL = { normal:'#3ecf8e', posible:'#f59e0b', signif:'var(--red)' };
+  /* Las salvedades salen de `eaProtNarrativa`, la MISMA fuente que el informe firmado: antes
+     estaban escritas dos veces y ya habían empezado a divergir —la cápsula no declaraba el AT
+     fuera de rango, así que decía «Sin criterios» al lado de una fila roja—. */
+  const N = eaProtNarrativa(P) || { salvedades: [] };
+  const sal = N.salvedades.slice();
+  /* Se arma con la API del DOM y el texto va por `textContent`: son tres literales de una tabla
+     congelada, pero la regla de la casa es no sumar hallazgos de Semgrep —y así el sink no existe
+     en vez de existir y ser inofensivo—. */
+  const col = (P.via === 'TAVI') ? '#f59e0b'
+            : (P.nivel === 'faltan') ? 'var(--text2)' : COL[P.nivel];
+  const txt = (P.via === 'TAVI') ? EA_PROT_TXT.tavi
+            : (P.nivel === 'faltan') ? EA_PROT_TXT.faltan : TXT[P.nivel];
+  sevEl.textContent = '';
+  const sp = document.createElement('span');
+  sp.style.color = col; sp.style.fontWeight = '700'; sp.textContent = txt;
+  sevEl.appendChild(sp);
+  /* ⚠️ EL RÓTULO DE LA FILA DICE «ESC 2021» Y ACÁ SE PUBLICA LA ASE 2024. Sin esto, el veredicto
+     protésico sale bajo una cita falsa en la superficie que el médico mira — la misma clase que
+     «Task Force 2010» calculado con otra regla. Lo cazó /sharp-edges. */
+  const lblEl = document.getElementById('ea-det-sev-lbl');
+  if (lblEl) lblEl.textContent = '⚖️ Severidad EA protésica (ASE 2024)';
+  const nota = document.getElementById('ea-det-sev-nota');
+  if (nota) { nota.style.display = ''; nota.innerHTML = sal.map(_critEsc).join('<br>'); }
+}
+/* Apaga la nota y le BORRA el contenido. Vaciar además de esconder no es redundante: el barrido
+   de `limpiarCampos` no alcanza a este div, así que el texto sobreviviría en el DOM y volvería a
+   verse el día que alguien lo muestre por otro camino. */
+function _eaProtNotaOcultar(){
+  const nota = document.getElementById('ea-det-sev-nota');
+  if (nota) { nota.style.display = 'none'; nota.innerHTML = ''; }
+  /* Y el rótulo vuelve a la cita NATIVA. Sin esta mitad, pasar de prótesis a «Calcificada» deja
+     el cuadro diciendo «Severidad EA protésica (ASE 2024)» sobre un veredicto de la ESC 2021: la
+     cita falsa espejada. Un rótulo que cambia en un sentido tiene que cambiar en los dos. */
+  const lbl = document.getElementById('ea-det-sev-lbl');
+  if (lbl) lbl.textContent = '⚖️ Severidad EA (ESC 2021)';
+}
+window._eaProtNotaOcultar = _eaProtNotaOcultar;
+window._eaProtPintar = _eaProtPintar;
+window.EA_PROT_CRIT = EA_PROT_CRIT;
 
 /* ══ AT — TIEMPO DE ACELERACIÓN DE LA PRÓTESIS AÓRTICA ════════════════════════════════════════
    ASE 2024 —Zoghbi et al., JASE 37(1):2-63, doi 10.1016/j.echo.2023.10.004— **Tabla 5, página 19**,
@@ -36124,6 +36527,28 @@ function _indEA(){
   const avaSev = !!(esSev && ava != null && esSev(ava));
   const avaMod = !!(esMod && ava != null && esMod(ava));
   if (!(_indS('ea_grado') === 'severa' || _ge(vmax, 4) || _ge(gm, 40) || _le(ava, UA))) return null;
+
+  /* ⚠️ CON PRÓTESIS ESTA SECCIÓN NO PUBLICA CONDUCTA, Y ES UN ADELANTO DE LA FASE 3.
+     Sus filas son la cascada de la ESC/EACTS 2025 para estenosis aórtica de válvula NATIVA —SAVR
+     contra TAVI por edad, las bandas de bajo gradiente— y ninguna cubre una prótesis
+     disfuncionante: ésa es otra tabla (reintervención / valve-in-valve), que esta app no tiene.
+     La compuerta de arriba no mira la morfología, así que con una Vmax de 4,5 sobre una prótesis la
+     sección abría y publicaba «SAVR recomendado — Clase I · Nivel B». Y la Fase 2 ENSANCHÓ la
+     divergencia: antes las dos superficies decían lo mismo (nativo) y hoy la cápsula publica el
+     veredicto de la Tabla 5 mientras el panel publicaría una indicación quirúrgica nativa.
+     Se declara y no se recomienda nada, que es la dirección segura y lo que `_indEAModalidad` ya
+     hace cuando le falta la edad. Lo encontró /sharp-edges. */
+  if (typeof valvEsProtesis === 'function' && valvEsProtesis(_indS('va_morf'))) {
+    return { filas: [_indFila('Morfología de la válvula', _indS('va_morf'), 'warn',
+        'Prótesis — las filas de esta sección son para válvula nativa')],
+      recom: { tipo:'no', tit:'Prótesis aórtica: esta sección no aplica',
+        txt:'Las recomendaciones de intervención de la ESC/EACTS 2025 para estenosis aórtica están ' +
+          'escritas para la válvula NATIVA, y ninguna de sus filas cubre una prótesis disfuncionante ' +
+          '—eso es otra tabla, la de reintervención, que esta aplicación todavía no implementa—. La ' +
+          'severidad protésica se gradúa con la Tabla 5 de la ASE 2024 y está en el cuadro de ' +
+          'Estenosis Aórtica del formulario.',
+        nota:'No se publica ninguna conducta en vez de aplicar los cortes de la válvula que ya no está.' } };
+  }
 
   const filas = [];
   filas.push(UA == null ? _indSinUmbral('AVA por continuidad')
@@ -80257,8 +80682,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260927-1552';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790535157812;                 /* eco-build-ms */
+const ECO_BUILD    = '20260927-1821';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790544095274;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -80344,7 +80769,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-1552</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-1821</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
