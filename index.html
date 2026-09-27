@@ -3440,11 +3440,16 @@ window.cerrarSesionReal = cerrarSesionReal;
           <select id="va_morf" onchange="valvProtSync()"><option>Trivalva normal</option><option>Bicúspide</option><option>Calcificada</option><option>Reumática</option><option>Prótesis biológica</option><option>Prótesis mecánica</option><option>TAVI</option><option>Endocarditis</option><option>Carcinoide</option></select>
         </div>
         <!-- Campos de PRÓTESIS aórtica (Fase 1). El AT —tiempo de aceleración— es propio de la
-             prótesis aórtica y NO se usa en válvula nativa, así que vive sólo acá. -->
+             prótesis aórtica y NO se usa en válvula nativa, así que vive sólo acá.
+
+             ⚠️ ACÁ HABÍA UN `va_dvi` Y SE BORRÓ EL 2026-09-27, el mismo día que se agregó. Era el
+             TERCER campo de DVI aórtico y el único que se tipeaba a mano: el DVI ya se calcula por
+             ecuación de continuidad —`ea_dvi_display`, que es la fuente correcta— y pedirlo de
+             nuevo abría la puerta a dos valores distintos para la misma medición. El médico no lo
+             encontraba en pantalla porque el calculado vive en el bloque expandido de Estenosis
+             aórtica, no porque faltara. -->
         <div id="bloque-prot-va" style="display:none;">
-          <div class="fg"><label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label>
-            <input type="number" id="va_dvi" step="0.01" placeholder="—"></div>
-          <div class="fg" style="margin-top:6px;"><label>AT (ms) <span style="font-weight:400;color:var(--text2);font-size:10px;">— tiempo de aceleración</span></label>
+          <div class="fg"><label>AT (ms) <span style="font-weight:400;color:var(--text2);font-size:10px;">— tiempo de aceleración</span></label>
             <input type="number" id="va_at" step="1" placeholder="ms"></div>
         </div>
         <div id="bloque-esten-aortica" style="display:none;">
@@ -9179,11 +9184,16 @@ z
       <div class="grid-4">
         <div class="fg"><label>Vmax (m/s)</label><input type="number" id="ete_tavi_vmax" step="0.1" placeholder="m/s" oninput="eteTaviSync()"></div>
         <div class="fg"><label>G. medio (mmHg)</label><input type="number" id="ete_tavi_gmedio" step="0.1" placeholder="mmHg" oninput="eteTaviSync()"></div>
-        <div class="fg"><label>AVA continuidad (cm²)</label><input type="number" id="ete_tavi_ava" step="0.01" placeholder="cm²" oninput="eteTaviSync()"></div>
-        <div class="fg"><label>AVAi (cm²/m²)</label><input type="number" id="ete_tavi_avai" step="0.01" placeholder="cm²/m²" oninput="eteTaviSync()"></div>
+        <!-- ⚠️ LOS TRES SON READONLY Y ESPEJAN EL CÁLCULO ÚNICO (2026-09-27). Se tipeaban a mano y
+             sin conexión con la ecuación de continuidad, así que el control post-TAVI podía publicar
+             un AVA distinto del que el informe usa para la misma válvula del mismo estudio. Los
+             llena `eaTaviEspejar()`. `type="text"` como los otros espejos readonly de la app: un
+             `number` readonly igual muestra las flechas en algunos navegadores. -->
+        <div class="fg"><label>AVA continuidad (cm²) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← continuidad</span></label><input type="text" id="ete_tavi_ava" readonly placeholder="— requiere Ø TSVI y los dos VTI"></div>
+        <div class="fg"><label>AVAi (cm²/m²) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← AVA / ASC</span></label><input type="text" id="ete_tavi_avai" readonly placeholder="— requiere peso y talla"></div>
       </div>
       <div class="grid-4" style="margin-top:6px;">
-        <div class="fg"><label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label><input type="number" id="ete_tavi_dvi" step="0.01" placeholder="—" oninput="eteTaviSync()"></div>
+        <div class="fg"><label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← VTI TSVI / VTI Ao</span></label><input type="text" id="ete_tavi_dvi" readonly placeholder="— requiere los dos VTI"></div>
         <!-- AT agregado 2026-09-27 (Fase 1 de prótesis): el DVI ya estaba acá y el tiempo de
              aceleración no, así que este módulo quedaba con la mitad del par. Es el mismo dato que
              `va_at` de la pestaña Válvulas; los dos módulos duplican a propósito sus mediciones
@@ -16532,6 +16542,10 @@ function calcBSA() {
   if (!p || !t) {
     setv('bsa-val', '—'); setv('imc-val', '—');
     if (typeof _vliPintar === 'function') _vliPintar();
+    /* El AVAi del espejo del TAVI se deriva de la superficie corporal, así que esta salida temprana
+       también lo repinta: sin esto, borrar el peso dejaba un «AVA indexada 0,6 cm²/m²» en el informe
+       firmado sobre un estudio sin ASC. El espejo ya sabe negarse; nunca se le daba la oportunidad. */
+    if (typeof eaTaviEspejar === 'function') { try { eaTaviEspejar(); } catch (e) {} }
     return;
   }
   const bsa = Math.sqrt((p * t) / 3600).toFixed(2);
@@ -20799,14 +20813,40 @@ function calcEADetalle() {
 
   // AVA continuidad
   let ava = null;
+  /* ⚠️ `avaR` ES EL AVA REDONDEADO, Y ES EL QUE CLASIFICA. Esta función usaba el float CRUDO en sus
+     cuatro comparaciones de severidad mientras `calcAo`, `clasificarEA_Vmax` y `eaEscenario` usan el
+     redondeado —`ava_cont`—, y encima corre ÚLTIMA y escribe `ea_grado`. Medido: Ø TSVI 20, VTI TSVI
+     16 y VTI Ao 50,2 dan AVA cruda 1,00131 y `ava_cont` «1,00»; `avaEsSevera` es `<=`, así que
+     `calcAo` pinta el badge ROJO «Severa (≤1.0)» y `clasificarEA_Vmax` escribe `ea_grado='severa'`,
+     y esta función —con el crudo— lo BAJA a «moderada» en el select que firma el informe, con la
+     cápsula de al lado imprimiendo «AVA 1.00 cm²». Es el defecto ECOS-12 que el comentario de abajo
+     declara cerrado, reintroducido en una ventana de cinco milésimas. La regla del archivo es la de
+     la FAC del VD y la de la geometría del VI: clasifica el REDONDEADO, que es el que se guarda, el
+     que se imprime y el que lee el informe. Los textos siguen mostrando lo que mostraban.
+     Lo encontró /sharp-edges. */
+  let avaR = null;
   if (itsvi && itvao && dtsvi) {
-    const atsvi = Math.PI * ((dtsvi/20)**2);
-    ava = atsvi * itsvi / itvao;
+    /* ⚠️ LA FÓRMULA SALE DE `_avaContinuidad` Y NO DE UNA COPIA ACÁ. Había una copia inline
+       —`Math.PI * ((dtsvi/20)**2) * itsvi / itvao`— justo mientras el comentario de `calcAo` decía
+       «la fórmula vive en `_avaContinuidad`, no acá». Daban el MISMO número, así que no cambia
+       nada hoy; lo que se cierra es la posibilidad de que se separen, que es para lo que se
+       extrajo la función. Se cae a la expresión anterior por si devuelve null, igual que `calcAo`. */
+    const _avaN = (typeof _avaContinuidad === 'function') ? _avaContinuidad(dtsvi, itsvi, itvao) : null;
+    ava = (_avaN != null) ? _avaN : (Math.PI * ((dtsvi/20)**2) * itsvi / itvao);
     const avaStr = ava.toFixed(2);
+    avaR = PF(avaStr);
     const el = document.getElementById('ea_ava_display'); if (el) el.value = avaStr + ' cm²';
     document.getElementById('ea-det-ava').textContent = avaStr + ' cm²';
     if (bsa) {
-      const avai = (ava/bsa).toFixed(2);
+      /* ⚠️ SE INDEXA EL AVA REDONDEADO, NO EL CRUDO, Y ACÁ SÍ CAMBIA UN NÚMERO PUBLICADO. Esta
+         línea hacía `ava/bsa` sobre el float crudo mientras `calcAo` —y `eaEscenario`, que es el
+         que decide el informe— indexan el REDONDEADO. Medido: con Ø TSVI 20, VTI TSVI 19 y VTI Ao
+         53, el AVA indexado salía 0,59 en esta pantalla y 0,60 en Doppler Aórtico, con el corte de
+         severidad de `EA_CRIT.avai` justo en 0,6: los dos números se paraban a los lados del
+         umbral, en el mismo estudio y para la misma medición. Manda el redondeado, que es el que
+         se guarda, el que se imprime y el que lee el informe — la misma regla que este archivo ya
+         fijó para la FAC del VD y para la geometría del VI. */
+      const avai = (PF(avaStr) / bsa).toFixed(2);
       document.getElementById('ea-det-avai').textContent = avai + ' cm²/m²';
     }
     const dvi = (itsvi/itvao).toFixed(2);
@@ -20814,6 +20854,12 @@ function calcEADetalle() {
     document.getElementById('ea-det-dvi').textContent = dvi;
   } else {
     ['ea-det-ava','ea-det-avai','ea-det-dvi'].forEach(id => { document.getElementById(id).textContent = '—'; });
+    /* ⚠️ LOS DOS `input readonly` TAMBIÉN SE LIMPIAN. Esta rama vaciaba los tres `<span>` y dejaba
+       `ea_ava_display` y `ea_dvi_display` con el valor de la medición anterior. Son `input[id]`, así
+       que `guardarInforme` los persiste y viajan en `campos`; y el espejo del TAVI leía
+       `ea_dvi_display` como una de sus fuentes, o sea justo la superficie que nunca se limpiaba.
+       Lo encontró /sharp-edges. */
+    ['ea_ava_display','ea_dvi_display'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
   }
 
   // Severidad EA integrada (Vmax primario, AVA confirma)
@@ -20859,14 +20905,14 @@ function calcEADetalle() {
          O sea: el mismo modo de falla que ECOS-12 vino a cerrar, corrido a la banda de
          Vmax <3,0. Dos predicados distintos para la misma pregunta clínica siempre terminan
          discrepando en la banda que nadie probó. */
-      if (avaEsSevera(ava) && vmax < 4.0 && gradNoSevero) {
+      if (avaEsSevera(avaR) && vmax < 4.0 && gradNoSevero) {
         eaAdvBajoGrad = '⚠️ Posible estenosis aórtica de bajo gradiente: AVA ≤' + AVA_SEVERA_MAX.toFixed(1) + ' cm² con Vmax/gradiente ' +
           'en rango moderado. Considerar flujo, AVAi, DVI y contexto clínico para clasificación definitiva.';
         sev = 'Severa por AVA ⚠️ bajo gradiente';
         color = 'var(--red)';
         gradoStr = 'severa';
-      } else if (ava >= 1.5 && gradoStr === 'severa') { sev += ' ⚠️ AVA no concuerda'; color='#f59e0b'; }
-      else if (avaEsSevera(ava) && gradoStr === 'leve') { sev += ' ⚠️ AVA no concuerda'; color='#f59e0b'; }
+      } else if (avaR >= 1.5 && gradoStr === 'severa') { sev += ' ⚠️ AVA no concuerda'; color='#f59e0b'; }
+      else if (avaEsSevera(avaR) && gradoStr === 'leve') { sev += ' ⚠️ AVA no concuerda'; color='#f59e0b'; }
     }
     if (sevEl) sevEl.innerHTML = `<span style="color:${color};font-weight:700;">${sev}</span>` +
       (eaAdvBajoGrad ? `<div style="margin-top:4px;color:var(--red);font-size:11px;font-weight:600;">${eaAdvBajoGrad}</div>` : '');
@@ -20881,10 +20927,17 @@ function calcEADetalle() {
        bajaba al <select> —y de ahí al informe firmado y al buscador del Laboratorio, que
        grepea el EN SUMA por palabras de severidad— era «EAo leve.» sobre una válvula con
        área normal. clasificarEA_Vmax usa 'sin' para el mismo caso. */
-    if (ava >= 1.5)      { sev='Sin estenosis / leve'; color='#3ecf8e'; gradoStr='sin'; }
-    else if (avaEsModerada(ava)) { sev='Moderada';       color='#f59e0b'; gradoStr='moderada'; }
+    if (avaR >= 1.5)      { sev='Sin estenosis / leve'; color='#3ecf8e'; gradoStr='sin'; }
+    else if (avaEsModerada(avaR)) { sev='Moderada';       color='#f59e0b'; gradoStr='moderada'; }
     else                 { sev='Severa';                color='var(--red)'; gradoStr='severa'; }
     if (sevEl) sevEl.innerHTML = `<span style="color:${color};font-weight:700;">${sev}</span>`;
+  /* ⚠️ ACÁ HABÍA UNA LLAMADA AL ESPEJO Y SE SACÓ. Estaba DENTRO de la rama `else if (ava)` —la que
+     corre sólo cuando NO hay Vmax— mientras su comentario decía que corría «también acá porque ésta
+     es la función que escribe `ea_dvi_display`». En el camino común, que es toda estenosis aórtica
+     con Vmax, no corría nunca: la red que debía atajar el fantasma del espejo no estaba puesta donde
+     el comentario afirmaba. Hoy el espejo corre desde `calcAo` DESPUÉS de `sincronizarEADesdeGlobal`
+     —que es la que llama a esta función— así que el orden queda garantizado por el llamador y una
+     llamada acá sería una tercera copia del mismo disparo. Lo encontró /sharp-edges. */
     if (sel && gradoStr) sel.value = gradoStr;
   }
 }
@@ -21029,6 +21082,10 @@ function calcAo() {
       const dvi = (itsvi / itvao).toFixed(2);
       document.getElementById('dvi-val').textContent = dvi;
     }
+    /* El módulo TAVI espeja estos mismos números, y se repinta ACÁ porque `calcAo` es el que los
+       acaba de escribir: sin esto el bloque de TAVI queda con los de la medición anterior hasta que
+       alguien toque uno de sus campos. */
+    if (typeof eaTaviEspejar === 'function') { try { eaTaviEspejar(); } catch (e) {} }
     if (dtsvi && itsvi) {
       const atsvi2 = Math.PI * ((dtsvi/20)**2);
       const vs = (atsvi2 * itsvi).toFixed(1);
@@ -21056,6 +21113,15 @@ function calcAo() {
   if (eaDet && eaDet.style.display !== 'none') {
     sincronizarEADesdeGlobal();
   }
+  /* ⚠️ EL ESPEJO DEL TAVI VA ACÁ: FUERA DEL `if/else` —el mismo motivo que `_vliPintar`, doce
+     líneas más arriba— Y DESPUÉS de `sincronizarEADesdeGlobal`, que es la que corre
+     `calcEADetalle` y escribe `ea_dvi_display`. La primera versión lo puso DENTRO de la rama con
+     datos: al borrar el VTI aórtico, `calcAo` entraba por el `else`, vaciaba `ava_cont` y
+     `dvi-val`, y los tres campos del TAVI se quedaban con la medición ANTERIOR — readonly, así que
+     sin forma de corregirlos, y de ahí salen el narrativo del informe firmado, `campos` y las
+     columnas del Excel que van a CeiboAnalytics. Es el defecto que el comentario de `_vliPintar`
+     dice haber cerrado. */
+  if (typeof eaTaviEspejar === 'function') { try { eaTaviEspejar(); } catch (e) {} }
   if (typeof calcHemo === 'function') calcHemo();
   if (typeof cxCont === 'function') cxCont();
 }
@@ -25061,18 +25127,24 @@ function generarInforme(opts) {
           p.push(s);
         }
         const gr=[];
+        /* ⚠️ `f2` SUBE ACÁ Y LO USAN LOS TRES. Estaba declarado más abajo, junto al DVI, así que el
+           AVA y el AVAi del párrafo del TAVI salían con UN decimal mientras el párrafo aórtico del
+           mismo PDF los imprimía con dos: el mismo número, dos precisiones, en un documento firmado.
+           Y los cortes viven en 1,0 para el AVA y 0,6 para el AVAi, así que un 0,64 impreso «0,6» se
+           lee como exactamente en el corte. Desde que estos campos espejan el cálculo único, dejaron
+           de ser «su» número y tienen que imprimirse igual que en el resto del informe. */
+        const f2 = n => (n==null||!isFinite(n)) ? null : String(Math.round(n*100)/100);
         if(f1(gm))   gr.push('gradiente medio '+f1(gm)+' mmHg');
         if(f1(vmax)) gr.push('Vmax '+f1(vmax)+' m/s');
-        if(f1(ava))  gr.push('AVA '+f1(ava)+' cm²');
+        if(f2(ava))  gr.push('AVA '+f2(ava)+' cm²');
         // AVAi y DVI son los dos parámetros con los que se define el mismatch prótesis-paciente:
         // estaban en el formulario y no se leían en ningún lado.
-        if(f1(avai)) gr.push('AVA indexada '+f1(avai)+' cm²/m²');
+        if(f2(avai)) gr.push('AVA indexada '+f2(avai)+' cm²/m²');
         /* ⚠️ EL DVI VA CON DOS DECIMALES Y NO CON UNO. `f1` redondea a un decimal y el DVI es un
            cociente donde el segundo decimal separa bandas —los cortes de prótesis viven en 0,25 y
            0,35—, así que un 0,42 salía «0.4» en el informe firmado y un 0,25 y un 0,34 se
            imprimían iguales. El Excel ya lo exporta con dos. El AT sí va con `f1`: es un entero
            en ms y el decimal no aporta nada. */
-        const f2 = n => (n==null||!isFinite(n)) ? null : String(Math.round(n*100)/100);
         if(f2(dvi))  gr.push('DVI '+f2(dvi));
         if(f1(at))   gr.push('AT '+f1(at)+' ms');
         if(gr.length) p.push(gr.join(', ').replace(/^./,c=>c.toUpperCase()));
@@ -26356,7 +26428,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -27384,6 +27456,107 @@ function _protPdf(idMorf, id, uni, dec){
   return (typeof vPdf === 'function') ? vPdf(id, uni, dec) : null;
 }
 window._protPdf = _protPdf;
+
+/* ══ AVA, AVAi Y DVI AÓRTICOS: UN SOLO CÁLCULO, Y EL MÓDULO TAVI LO ESPEJA ════════════════════
+   Los insumos ya tienen una sola fuente: los `ea_*` del bloque expandido de Válvulas escriben de
+   vuelta a los del Doppler Aórtico por `syncEADesdeValvulas()`, así que `calcAo` y `calcEADetalle`
+   leen lo mismo. Lo que faltaba era el módulo TAVI, cuyos tres campos se tipeaban A MANO y sin
+   ninguna conexión: `ete_tavi_ava`, `ete_tavi_avai` y `ete_tavi_dvi`. Con eso, el control post-TAVI
+   podía publicar un AVA distinto del que el informe usa para la misma válvula del mismo estudio.
+
+   Hoy los tres son READONLY y espejan el valor único. Se lee de `ava_cont` y `ea_dvi_display`, que
+   son los dos campos que ya publican el cálculo, en vez de recalcular acá: una tercera cuenta sería
+   exactamente lo que este bloque viene a cerrar.
+
+   ⚠️ QUEDA UNA ASIMETRÍA DECLARADA: `ete_tavi_vmax` y `ete_tavi_gmedio` siguen siendo manuales y
+   propios del módulo, a propósito —describen el control post-procedimiento—. O sea que en ese
+   bloque el AVA y el DVI vienen del Doppler y el gradiente de al lado puede venir de otra medición.
+   Unificarlos es una decisión clínica que este prompt no pide: si el gradiente post-TAVI es el que
+   manda, entonces el AVA también debería salir de ahí. Declarado para la Fase 2. */
+/* ⚠️ EL ESPEJO NO DESTRUYE UN VALOR QUE NO ESCRIBIÓ ÉL, Y ESTO NO ES PARANOIA. Hasta el
+   2026-09-27 los tres campos del TAVI eran `input type=number` EDITABLES y describían OTRA
+   medición: el AVA de la prótesis en el control post-procedimiento, no el AVA nativa del Doppler.
+   Un estudio guardado antes de hoy trae esos valores tipeados a mano, y el barrido genérico los
+   repone ANTES de que corra el espejo. Sin esta guarda el espejo los pisaba —o los vaciaba, que es
+   el caso esperable en un control post-TAVI donde el Doppler aórtico está en blanco—, y lo peor era
+   la REIMPRESIÓN: un PDF ya firmado salía con números distintos de los que se firmaron, sin aviso y
+   sin forma de volver a escribir el original, porque ahora son readonly.
+
+   La confirmación de que «no hay estudios reales con el valor viejo» fue sobre `va_morf`; estos tres
+   campos son ANTERIORES a hoy y esa confirmación no los cubre. Lo encontró /sharp-edges.
+
+   Cómo se resuelve sin decidir nada clínico: el espejo MARCA lo que escribe con `data-espejo`. Lo
+   que tenga valor y NO tenga la marca es un dato tipeado por el médico en otra época: se deja
+   quieto. Todo lo que el espejo escribió sí se puede limpiar, que es lo que A1 y A3 necesitan.
+
+   ⚠️ DECISIÓN PENDIENTE PARA MAICOL: si hay estudios con `ete_tavi_ava` distinto de `ava_cont`,
+   quedan mostrando el valor viejo y readonly, o sea visible pero no corregible. Lo correcto ahí es
+   moverlos a un campo propio —`ete_tavi_ava_medida`— y que el espejo ocupe otro id. No se hace acá
+   porque crear campos y migrar datos no es lo que este prompt pide, y porque primero hay que
+   contestar si existen. */
+function eaTaviEspejar(){
+  const leer = id => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
+  const poner = (id, txt) => { const e = document.getElementById(id); if (!e) return;
+    e.readOnly = true;
+    /* Un valor previo SIN la marca del espejo es del médico: no se toca. */
+    const propio = String(e.value || '').trim() !== '' && e.dataset.espejo !== '1';
+    if (propio) return;
+    e.value = txt;
+    if (txt === '') delete e.dataset.espejo; else e.dataset.espejo = '1';
+  };
+  const avaTxt = leer('ava_cont');
+  const ava = (typeof PF === 'function') ? PF(avaTxt) : parseFloat(avaTxt);
+  const bsa = (typeof getBSA === 'function') ? getBSA() : null;
+  poner('ete_tavi_ava',  avaTxt);
+  /* El AVAi se deriva del AVA REDONDEADO, igual que `calcAo` y `eaEscenario`: ver la nota de
+     `calcEADetalle`. Sin superficie corporal no se inventa. */
+  poner('ete_tavi_avai', (ava != null && isFinite(ava) && bsa) ? (ava / bsa).toFixed(2) : '');
+  /* ⚠️ EL DVI SE LEE DE LAS DOS SUPERFICIES QUE LO PUBLICAN, Y EL ORDEN IMPORTA. La primera
+     versión leía sólo `ea_dvi_display`, que lo escribe `calcEADetalle`; pero el espejo también
+     corre desde `calcAo`, que termina ANTES —`calcAo` escribe `dvi-val` y llama acá—, así que en
+     ese camino el campo del TAVI quedaba VACÍO con el DVI ya calculado y visible dos pestañas más
+     allá. Medido. Se toma el primero que tenga un número: los dos llevan el mismo, y por eso no es
+     un tercer cálculo sino dos vistas del mismo. */
+  const dviTxt = (function(){
+    const a = leer('ea_dvi_display');
+    if (a && a !== '—') return a;
+    const el = document.getElementById('dvi-val');
+    const b = el ? String(el.textContent || '').trim() : '';
+    return (b && b !== '—') ? b : '';
+  })();
+  poner('ete_tavi_dvi', dviTxt);
+}
+window.eaTaviEspejar = eaTaviEspejar;
+
+/* ══ GANCHO DE LA FASE 2: EL CRITERIO DE SEVERIDAD SEGÚN EL CONTEXTO ══════════════════════════
+   El VALOR medido es uno solo —AVA, AVAi y DVI salen del mismo cálculo— y lo único que cambia con
+   la morfología es el CRITERIO que se le aplica. Este gancho existe para que la Fase 2 conecte los
+   cortes protésicos sin tener que volver a buscar dónde se decide.
+
+   ⚠️ HOY DEVUELVE `null` A PROPÓSITO Y ESO SIGNIFICA «USAR LOS CORTES NATIVOS», que es lo que la
+   app ya hace. **No se inventan los números de la ASE 2024**: el diagnóstico del 2026-09-27 dejó
+   documentado que una prótesis aórtica normal cae en la banda de «moderada» y hasta de «severa por
+   AVA con bajo gradiente» con los cortes nativos, así que devolver cortes equivocados sería peor
+   que no devolver ninguno.
+
+   LO QUE LA FASE 2 TIENE QUE TRAER, y hasta entonces esta función no puede decidir nada:
+     · los cortes de AVA, AVAi, DVI, gradiente medio y AT para prótesis, verificados contra la ASE
+       2024 por dos rutas independientes, como el resto de los umbrales de este archivo;
+     · si los cortes dependen del TIPO —biológica, mecánica, TAVI— o del tamaño de la prótesis; el
+       criterio genérico elegido (DVI + gradiente + AVA por continuidad) no depende de la marca,
+       pero eso no responde si depende del tipo;
+     · qué hacer con el AT, que hoy tiene tres campos aórticos posibles y una ambigüedad de mapeo
+       DICOM sin resolver (ver la nota de `va_at`). */
+function eaCriterioSeveridad(){
+  const m = document.getElementById('va_morf');
+  const esProt = !!m && typeof valvEsProtesis === 'function' && valvEsProtesis(m.value);
+  /* Se devuelve el CONTEXTO, no los cortes: así la Fase 2 sólo tiene que llenar la rama protésica
+     y ningún llamador necesita volver a preguntar por la morfología. */
+  return { protesis: esProt, tipo: esProt ? String(m.value).trim() : null,
+    cortes: null,   // ← Fase 2. `null` = aplicar los nativos, que es lo que se hace hoy.
+    fuente: esProt ? 'PENDIENTE — ASE 2024, sin verificar' : 'nativos, ya vigentes' };
+}
+window.eaCriterioSeveridad = eaCriterioSeveridad;
 
 // ══ Módulo Prolapso mitral: mostrar/ocultar panel de detalle ══
 function showProlapsoPanel(){
@@ -29570,7 +29743,8 @@ function generarPDFReal(_aj) {
       {lbl:'IAo',           ref:'', val:iaG?GT[iaG]:null},
       {lbl:'VC IAo',        ref:'(<3 / 3–6 / >6) mm', val:vPdf('ia_vc',' mm')},
       {lbl:'PHT',           ref:'(>500 / 200–500 / <200) ms', val:vPdf('ia_pht',' ms')},
-      {lbl:'DVI',           ref:'', val:_protPdf('va_morf','va_dvi','',2)},
+      /* El DVI aórtico NO tiene fila propia acá: ya se publica desde el cálculo único de la
+         continuidad, y una fila tipeada a mano al lado sería el segundo valor. */
       {lbl:'AT',            ref:'', val:_protPdf('va_morf','va_at',' ms',0)},
       {lbl:'Notas',         ref:'', val:sv('va_notas')||null},
     ]},
@@ -39802,6 +39976,9 @@ function taviDispositivoTxt(){
 window.taviDispositivoTxt = taviDispositivoTxt;
 
 function eteTaviSync(){
+  /* El espejo va PRIMERO: la prosa y la cápsula de abajo leen los tres campos, así que si corriera
+     al final publicarían el valor de la pasada anterior. */
+  if (typeof eaTaviEspejar === 'function') { try { eaTaviEspejar(); } catch (e) {} }
   const txt=(id,val)=>{ const e=document.getElementById(id); if(e) e.textContent=val; };
   // La velocidad tele-diastólica sólo aplica al patrón holodiastólico
   const wrap=document.getElementById('ete-tavi-veltele-wrap');
@@ -64928,7 +65105,7 @@ function _labExcelRow(inf) {
     'EROA IM (mm²)': rnd(eroa,1), 'Vol R IM (ml)': rnd(volr,1), 'EM grado': gEM,
     'EM_I (Leve)': bin(gEM,'leve'), 'EM_II (Moderada)': bin(gEM,'moderada'), 'EM_III (Severa)': bin(gEM,'severa'),
     'AVm (cm²)': rnd(num('avm_thp'),2),
-    'DVI aórtico': rnd(valvProtDato('va_morf','va_dvi',c),2), 'AT aórtico (ms)': rnd(valvProtDato('va_morf','va_at',c),0),
+    'AT aórtico (ms)': rnd(valvProtDato('va_morf','va_at',c),0),
     'Morfología aórtica': c.va_morf || '', 'EA grado': gEA,
     'EAo_I (Leve)': bin(gEA,'leve'), 'EAo_II (Moderada)': bin(gEA,'moderada'), 'EAo_III (Severa)': bin(gEA,'severa'),
     'AVA (cm²)': rnd(ava,2),
@@ -66314,7 +66491,6 @@ const LAB_XLS_MAP = [
 
   // 11 · Válvula aórtica
   ['Morfología aórtica',     'va_morf',        'opcion'],
-  ['DVI aórtico',            'va_dvi',         'num'],
   ['AT aórtico (ms)',        'va_at',          'num'],
   ['EA grado',               'ea_grado',       'vocab'],
   ['V. max Ao (m/s)',        'vmax_ao',        'num'],
@@ -66743,7 +66919,7 @@ const LAB_XLS_RANGO_PROPIO = {
        por encima; el rango atrapa un valor en segundos o un tipeo de más.
      ⚠️ Los CORTES clínicos de estos dos parámetros los define la Fase 2. Estas bandas son de
      plausibilidad y no de severidad: no deben confundirse ni reutilizarse como umbrales. */
-  vm_dvi:[0.05,1.5], va_dvi:[0.05,1.5], vt_dvi:[0.05,1.5], vp_dvi:[0.05,1.5],
+  vm_dvi:[0.05,1.5], vt_dvi:[0.05,1.5], vp_dvi:[0.05,1.5],
   va_at:[10,300],
   /* ⚠️ ESTA BANDA ES INERTE HOY, y se deja dicho para que no se lea como una protección que existe:
      `ete_tavi_at` no tiene columna de importación que la consuma ni pasa por `vPlaus`/`vPdf` —el
@@ -79838,8 +80014,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260927-1316';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790525810545;                 /* eco-build-ms */
+const ECO_BUILD    = '20260927-1453';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790531580467;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -79925,7 +80101,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-1316</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-1453</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

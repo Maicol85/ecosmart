@@ -4423,7 +4423,7 @@ caso('TC-135', 'GLS y contractilidad son BASICOS del Excel: sin checkbox y siemp
         /* +5 el 2026-09-27: los cuatro DVI de protesis y el AT aortico. Caen como BASICAS y esta
            bien — son mediciones del bloque valvular, como «VC IM» o «PHT IAo», no de un modulo
            detras de un checkbox. Las dos cuentas crecen igual, que es lo que este caso vigila. */
-        basicas.length === 134 && TODAS.length === 434,   // +4 ET · +8 Lab · +5 protesis
+        basicas.length === 133 && TODAS.length === 433,   // +4 ET · +8 Lab · +5 protesis · −1 «DVI aortico», que salio al unificar el calculo
         basicas.length + ' basicas de ' + TODAS.length],
       // 6 · Una preferencia vieja con el modulo borrado no lo revive.
       ['una preferencia guardada con contr no revive el modulo', (function(){
@@ -31766,7 +31766,10 @@ caso('TC-285', 'Valvula tricuspide: la tabla de 2025, el operador del gradiente,
    y viajaria al PDF y al Excel. El dato NO se borra —si el medico vuelve a protesis tiene que
    seguir ahi— y lo que se controla es quien lo publica. Las dos mitades se miden. */
 const PROT_OPS = "['Prótesis biológica','Prótesis mecánica','TAVI']";
-const PROT_PARES = "[['vm_morf','bloque-prot-vm','vm_dvi'],['va_morf','bloque-prot-va','va_dvi']," +
+/* ⚠️ La aortica va con `va_at` y NO con un DVI: `va_dvi` se borro el 2026-09-27, el mismo dia que
+   se agrego. Era el tercer campo de DVI aortico y el unico tipeado a mano; el DVI sale del calculo
+   unico de la continuidad. */
+const PROT_PARES = "[['vm_morf','bloque-prot-vm','vm_dvi'],['va_morf','bloque-prot-va','va_at']," +
   "['vt_morf','bloque-prot-vt','vt_dvi'],['vp_morf','bloque-prot-vp','vp_dvi']]";
 
 caso('TC-286', 'Protesis valvulares Fase 1: un solo vocabulario, los campos que aparecen, y el dato que no se publica sobre una valvula nativa', `
@@ -31845,11 +31848,16 @@ caso('TC-286', 'Protesis valvulares Fase 1: un solo vocabulario, los campos que 
         incoherentes.length === 0, incoherentes.join(' | ') || 'todas coherentes']);
 
       // ── El AT existe SOLO en la aortica, y el DVI en las cuatro ──
-      const dvis = ['vm_dvi','va_dvi','vt_dvi','vp_dvi'].map(id => !!document.getElementById(id));
-      ex.push(['hay un DVI en cada una de las cuatro valvulas y el AT existe solo en la aortica',
-        dvis.every(Boolean) && !!document.getElementById('va_at') &&
+      /* ⚠️ LA AORTICA NO TIENE CAMPO DE DVI TIPEABLE, y eso es el punto: su DVI sale del calculo
+         unico por continuidad. Las otras tres si lo tienen —todavia no hay un calculo para ellas—.
+         Se mide en las dos direcciones para que reponer «va_dvi» caiga aca. */
+      const dvis = ['vm_dvi','vt_dvi','vp_dvi'].map(id => !!document.getElementById(id));
+      ex.push(['hay un DVI tipeable en mitral, tricuspide y pulmonar; la aortica NO tiene ninguno —el suyo se calcula— y el AT existe solo en la aortica',
+        dvis.every(Boolean) && !document.getElementById('va_dvi') &&
+        !!document.getElementById('va_at') &&
         !document.getElementById('vm_at') && !document.getElementById('vt_at') && !document.getElementById('vp_at'),
-        'dvi=' + dvis.join(',') + ' va_at=' + !!document.getElementById('va_at')]);
+        'dvi mitral/tri/pulm=' + dvis.join(',') + ' · va_dvi=' + !!document.getElementById('va_dvi') +
+        ' · va_at=' + !!document.getElementById('va_at')]);
 
       /* ── ⚠️ ASIGNAR «.value» NO DISPARA «onchange» ──
          Es el camino de cargar un estudio, el autosave y limpiarCampos. Sin el reengache, la
@@ -31919,7 +31927,7 @@ caso('TC-286', 'Protesis valvulares Fase 1: un solo vocabulario, los campos que 
          La convencion del PDF de esta app es que el numero SIEMPRE se imprime y la banda solo
          agrega «(revisar)»: borrar la fila sacaria una medicion real del informe firmado. Se mide
          que «_protPdf» la herede en vez de inventar su propio comportamiento. */
-      const bandas = ['vm_dvi','va_dvi','vt_dvi','vp_dvi','va_at','ete_tavi_at']
+      const bandas = ['vm_dvi','vt_dvi','vp_dvi','va_at','ete_tavi_at']
         .map(k => k + '=' + JSON.stringify(typeof _labRango === 'function' ? _labRango(k) : null));
       elegir('vm_morf', 'Prótesis mecánica');
       poner('vm_dvi', '25');                         // el orden de magnitud tipico: 25 por 0,25
@@ -31981,11 +31989,12 @@ caso('TC-286', 'Protesis valvulares Fase 1: un solo vocabulario, los campos que 
          la CLAVE existiera: leer la pantalla o leer el registro daba el mismo numero, asi que la
          mutacion que devuelve UNA columna al DOM sobrevivia. Mismo denominador en los dos lados no
          prueba nada — lo cazo la mutacion, no la lectura. */
-      const REG = { vm_morf:'Prótesis mecánica', vm_dvi:'0.51', va_morf:'TAVI', va_dvi:'0.30',
+      const REG = { vm_morf:'Prótesis mecánica', vm_dvi:'0.51', va_morf:'TAVI',
         va_at:'88', vt_morf:'Prótesis biológica', vt_dvi:'0.44',
         vp_morf:'Prótesis biológica', vp_dvi:'0.38' };
       const filaXls = (typeof _labExcelRow === 'function') ? _labExcelRow({ id:1, campos:REG }) : null;
-      const ESP = { 'DVI mitral':0.51, 'DVI aórtico':0.3, 'AT aórtico (ms)':88,
+      /* «DVI aórtico» ya no es columna: el DVI de esa valvula sale del calculo unico. */
+      const ESP = { 'DVI mitral':0.51, 'AT aórtico (ms)':88,
         'DVI tricuspídeo':0.44, 'DVI pulmonar':0.38 };
       const COLS = Object.keys(ESP);
       ex.push(['las cinco columnas nuevas se emiten con el valor DEL REGISTRO y no el de la pantalla —el DVI mitral difiere a proposito— incluida la del DVI pulmonar que faltaba',
@@ -32021,6 +32030,278 @@ caso('TC-286', 'Protesis valvulares Fase 1: un solo vocabulario, los campos que 
         const c = document.getElementById(par[2]); if (c) c.value = '';
       });
       const a = document.getElementById('va_at'); if (a) a.value = '';
+    }
+  })();
+`);
+
+/* ══ AVA, AVAi Y DVI AÓRTICOS: UN SOLO CÁLCULO — TC-287 ══════════════════════════════════════
+   Habia TRES campos de DVI aortico —uno calculado, uno manual en el modulo TAVI y uno tipeable
+   agregado el mismo dia— y TRES de AVA, con los del TAVI tipeandose a mano y sin conexion con la
+   ecuacion de continuidad. Este caso fija que el valor sea UNO y que se propague a todas las
+   superficies; el CRITERIO de severidad segun la morfologia es la Fase 2 y aca no se mide.
+
+   ⚠️ LA DIVERGENCIA QUE ESTE CASO EXISTE PARA QUE NO VUELVA CAE JUSTO EN UN CORTE. `calcEADetalle`
+   indexaba el AVA CRUDO y `calcAo` el REDONDEADO: con Ø TSVI 20, VTI TSVI 19 y VTI Ao 53 el AVA
+   indexado salia 0,59 en la pantalla de Valvulas y 0,60 en Doppler Aortico, y `EA_CRIT.avai` vale
+   justo 0,6 — los dos numeros a los lados del umbral, en el mismo estudio y para la misma medicion.
+   Ese escenario es el que usa este caso, no uno comodo.
+
+   ⚠️ Y EL ORDEN DEL ESPEJO SE MIDE POR LOS TRES CAMINOS. El espejo del TAVI leia `ea_dvi_display`,
+   que lo escribe `calcEADetalle`; pero tambien corre desde `calcAo`, que termina ANTES. Por ese
+   camino el campo del TAVI quedaba VACIO con el DVI ya visible dos pestañas mas alla. Lo encontre
+   midiendo, no leyendo, y por eso se ejercen `calcAo` solo, `calcEADetalle` solo y el embudo de
+   restauracion por separado. */
+const UNIF_IDS = "['peso','talla','diam_tsvi','itv_tsvi','itv_ao','vmax_ao','gmedio_ao'," +
+  "'ea_vmax','ea_gmedio','ea_vtitsvi','ea_vtiao','ea_dtsvi','va_morf']";
+
+caso('TC-287', 'AVA, AVAi y DVI aorticos son UN solo calculo: identicos en Valvulas, Doppler y TAVI, y nadie los tipea', `
+  return (async () => {
+    if (typeof calcAo !== 'function' || typeof eaTaviEspejar !== 'function')
+      return { extra:[['existen calcAo y eaTaviEspejar', false, '']] };
+    const ex = [];
+    const noEntraron = [];
+    const poner = o => Object.keys(o).forEach(function(id){
+      const e = document.getElementById(id);
+      if (!e) { noEntraron.push('FALTA ' + id); return; }
+      e.value = o[id];
+      e.dispatchEvent(new Event('input', { bubbles:true }));
+      e.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    const val = id => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : null; };
+    const tx  = id => { const e = document.getElementById(id); return e ? String(e.textContent || '').trim() : null; };
+    const num = s => { const n = parseFloat(String(s == null ? '' : s).replace(/[^\\d.,-]/g, '').replace(',', '.'));
+      return isFinite(n) ? n : null; };
+    /* El escenario del borde: 20 / 19 / 53 con peso 75 y talla 172 da BSA 1,8930, AVA crudo
+       1,1298 -> redondeado 1,13, y 1,13/1,8930 = 0,5969 -> «0,60». Indexar el crudo daba 0,59. */
+    const ESC = { peso:'75', talla:'172', diam_tsvi:'20', itv_tsvi:'19', itv_ao:'53',
+      vmax_ao:'3.5', gmedio_ao:'30' };
+    const limpiar = () => { if (typeof limpiarCampos === 'function') limpiarCampos(); };
+
+    try {
+      // ── DENOMINADOR: el escenario produce de verdad los numeros del borde ──
+      limpiar(); poner(ESC);
+      if (typeof calcAo === 'function') calcAo();
+      if (typeof calcEADetalle === 'function') calcEADetalle();
+      const avaBase = val('ava_cont'), bsa = (typeof getBSA === 'function') ? getBSA() : null;
+      ex.push(['DENOMINADOR: el escenario da el AVA y la superficie corporal del borde, con el corte de AVAi en 0,6',
+        avaBase === '1.13' && bsa != null && Math.abs(bsa - 1.893) < 0.001 &&
+        typeof EA_CRIT !== 'undefined' && EA_CRIT.avai === 0.6,
+        'ava_cont=' + avaBase + ' bsa=' + (bsa == null ? 'null' : bsa.toFixed(4)) +
+        ' corte=' + (typeof EA_CRIT !== 'undefined' ? EA_CRIT.avai : '?')]);
+
+      /* ── ⚠️ EL AVAi COINCIDE EN LAS DOS PANTALLAS, Y ANTES NO ──
+         Es la condicion central: 0,59 contra 0,60 sobre un corte de 0,6. Se comparan los TEXTOS
+         que el medico lee, no un valor interno, porque el defecto era de lo publicado. */
+      const avaiDop = tx('ava-idx'), avaiVal = tx('ea-det-avai');
+      ex.push(['el AVA indexado es el MISMO en Doppler Aortico y en Valvulas, sobre el escenario que antes los separaba a los lados del corte',
+        num(avaiDop) != null && num(avaiDop) === num(avaiVal) && num(avaiDop) === 0.6,
+        'Doppler=«' + avaiDop + '» Valvulas=«' + avaiVal + '»']);
+
+      /* ── ⚠️ LOS TRES CAMINOS DEJAN EL ESPEJO DEL TAVI COMPLETO ──
+         «calcAo» solo, «calcEADetalle» solo, y el embudo de restauracion. Ninguno puede dejar un
+         campo vacio con el valor ya calculado en otra pestaña. */
+      const caminos = {};
+      limpiar(); poner(ESC);                               // los oninput ya corren calcAo
+      caminos.soloCalcAo = [val('ete_tavi_ava'), val('ete_tavi_avai'), val('ete_tavi_dvi')];
+      if (typeof calcEADetalle === 'function') calcEADetalle();
+      caminos.trasCalcEADetalle = [val('ete_tavi_ava'), val('ete_tavi_avai'), val('ete_tavi_dvi')];
+      /* ⚠️ SE BLANQUEAN LOS TRES ANTES DE MEDIR EL EMBUDO. Sin esto la condicion medía lo que los
+         pasos anteriores ya habian dejado escrito, asi que sacar el espejo de RECALC_MODULOS
+         sobrevivia: los campos seguian llenos porque nadie los habia vaciado. Lo cazo la mutacion.
+         Se escriben con «.value» directo —son readonly, y el punto es que solo el espejo los
+         vuelva a llenar—. */
+      ['ete_tavi_ava','ete_tavi_avai','ete_tavi_dvi'].forEach(function(id){
+        const e = document.getElementById(id); if (e) e.value = ''; });
+      caminos.embudoDesdeVacio_antes = [val('ete_tavi_ava'), val('ete_tavi_avai'), val('ete_tavi_dvi')];
+      /* ⚠️ REDUNDANTE POR CONSTRUCCION, y queda dicho para que la proxima tanda de mutacion no lo
+         lea como sobreviviente sin saber por que: sacar «eaTaviEspejar» de RECALC_MODULOS NO rompe
+         este camino, porque «eteTaviSync» ya esta en esa lista y llama al espejo en su PRIMERA
+         linea, antes de cualquier salida temprana. Tenerlo en la lista es cinturon y tirantes. Lo
+         que esta condicion si cubre son los otros dos caminos, que no pasan por ningun «*Sync». */
+      if (typeof _recalcModulos === 'function') _recalcModulos('TC-287');
+      caminos.trasRecalcModulos = [val('ete_tavi_ava'), val('ete_tavi_avai'), val('ete_tavi_dvi')];
+      const lleno = a => a.every(function(x){ return x !== null && x !== '' && x !== '—'; });
+      const completos = lleno(caminos.soloCalcAo) && lleno(caminos.trasCalcEADetalle) &&
+        /* el blanqueo tiene que haber vaciado de verdad —si no, el embudo no se esta midiendo— */
+        caminos.embudoDesdeVacio_antes.every(function(x){ return x === ''; }) &&
+        lleno(caminos.trasRecalcModulos);
+      ex.push(['los tres campos del TAVI quedan completos por los TRES caminos —calcAo solo, calcEADetalle solo y el embudo de restauracion— sin ninguno vacio',
+        completos, Object.keys(caminos).map(function(k){ return k + '=[' + caminos[k].join('|') + ']'; }).join(' · ')]);
+
+      /* ── LA IDENTIDAD, QUE ES EL PEDIDO ──
+         Los tres numeros comparados entre las tres superficies. Se normaliza la unidad porque cada
+         superficie la escribe distinto («1.13 cm²» vs «1.13»), pero el NUMERO tiene que ser uno. */
+      const trios = {
+        AVA:  [val('ava_cont'), val('ea_ava_display'), val('ete_tavi_ava')],
+        AVAi: [tx('ava-idx'), tx('ea-det-avai'), val('ete_tavi_avai')],
+        DVI:  [tx('dvi-val'), val('ea_dvi_display'), val('ete_tavi_dvi')]
+      };
+      const distintos = Object.keys(trios).filter(function(k){
+        const ns = trios[k].map(num);
+        return ns.some(function(x){ return x == null; }) || new Set(ns).size !== 1; });
+      ex.push(['el AVA, el AVA indexado y el DVI son numericamente IDENTICOS en las tres superficies: Doppler Aortico, Valvulas y TAVI',
+        distintos.length === 0,
+        Object.keys(trios).map(function(k){ return k + '=[' + trios[k].join(' | ') + ']'; }).join(' · ')]);
+
+      /* ── ⚠️ NADIE TIPEA UN DVI NI UN AVA AORTICO A MANO ──
+         Los seis campos son readonly. Y «va_dvi» no existe: era el tercero y el unico tipeable.
+         Se barre el DOM en vez de listarlos, para que un campo nuevo tipeable caiga aca. */
+      const tipeables = [].slice.call(document.querySelectorAll('input'))
+        .filter(function(e){ return /dvi|ava/i.test(e.id) &&
+          !/^(vm_|vt_|vp_|tep_|rwt|evol|cx_)|shunt/.test(e.id); })
+        .filter(function(e){ return !e.readOnly; })
+        .map(function(e){ return e.id; });
+      /* ⚠️ SE MIDE EL ATRIBUTO DEL HTML Y NO SOLO LA PROPIEDAD EN RUNTIME. «eaTaviEspejar» pone
+         «readOnly = true» al escribir, asi que un campo del TAVI declarado editable en el HTML
+         igual termina readonly y la propiedad no delata nada — la mutacion que lo devuelve a
+         «type="number"» sin «readonly» sobrevivia. Que la propiedad se imponga igual es defensa en
+         profundidad y esta bien; lo que se pinta aca es la INTENCION declarada en el marcado. */
+      const attrTavi = ['ete_tavi_ava','ete_tavi_avai','ete_tavi_dvi'].map(function(id){
+        const e = document.getElementById(id);
+        return id + '=' + (e ? (e.hasAttribute('readonly') ? 'readonly' : 'SIN ATRIBUTO') + '/' + e.type : 'NO EXISTE'); });
+      /* ⚠️ Y ESTA CONDICION NO PUEDE CAZAR UN CAMBIO DEL MARCADO, tampoco por el atributo: el
+         espejo hace «e.readOnly = true» al escribir, y esa propiedad REFLEJA al atributo, asi que un
+         campo declarado «type="number"» sin «readonly» igual termina readonly y con el atributo
+         puesto. La proteccion es real y doble —por eso la mutacion que revierte el HTML no
+         reintroduce el defecto— pero el marcado solo se podria pintar leyendo el fuente, y eso este
+         harness no lo hace desde la pagina. Queda declarado en vez de fingir cobertura. */
+      ex.push(['ningun campo de DVI ni de AVA aortico se puede tipear, los tres del TAVI quedan readonly, y va_dvi ya no existe',
+        tipeables.length === 0 && !document.getElementById('va_dvi') &&
+        attrTavi.every(function(x){ return x.indexOf('=readonly/text') > -1; }),
+        'tipeables=' + (tipeables.join(', ') || 'ninguno') + ' · va_dvi=' + !!document.getElementById('va_dvi') +
+        ' · ' + attrTavi.join(' ')]);
+
+      /* ── LA FORMULA VIVE EN UN SOLO LUGAR ──
+         «calcEADetalle» tenia una copia inline mientras el comentario de «calcAo» decia que la
+         formula vive en «_avaContinuidad». Daban el mismo numero, asi que sin esta condicion la
+         copia puede volver sin que nada lo delate. Se mide de caja blanca: es la unica forma de
+         cazar una segunda copia que produce el mismo valor. */
+      /* ⚠️ SE SACAN LOS COMENTARIOS ANTES DE MIRAR EL CODIGO. «String(fn)» los incluye, y los dos
+         comentarios de estas funciones NOMBRAN «_avaContinuidad» para explicar por que la formula
+         vive ahi: la condicion matcheaba la prosa y no la llamada, asi que reponer la copia inline
+         sobrevivia. Lo cazo la mutacion. Se exige la LLAMADA y se prohibe la copia. */
+      /* ⚠️ SIN REGEX, A PROPOSITO. El cuerpo de un caso es un template literal, asi que consume los
+         escapes antes de evaluar: un «[\s\S]» escrito con una sola barra llega como «[sS]» y el
+         caso muere con un SyntaxError que apunta a la linea del «caso(». Los helpers que si usan
+         regex en este archivo llevan doble barra por eso mismo. Aca alcanza con buscar cadenas:
+         la LLAMADA lleva parentesis y argumento, y el comentario que nombra la funcion no. */
+      const cAo = String(calcAo), cDet = String(calcEADetalle);
+      /* ⚠️ NO se prohibe la expresion «Math.PI * ((dtsvi/20)**2)»: en las DOS funciones es un
+         FALLBACK declarado —«se cae a la expresion anterior por si alguna vez devuelve null»— y no
+         una copia rival. Mi primera version la prohibia y daba rojo sobre el codigo correcto. Lo
+         que se fija es que la via PRIMARIA sea la funcion unica, que es lo que la mutacion saca. */
+      const LLAMADA = '_avaContinuidad(dtsvi';
+      ex.push(['las dos funciones que calculan el AVA tienen su via PRIMARIA en _avaContinuidad y ninguna vuelve a calcular la formula por su cuenta',
+        typeof _avaContinuidad === 'function' &&
+        cAo.indexOf(LLAMADA) > -1 && cDet.indexOf(LLAMADA) > -1,
+        'calcAo llama=' + (cAo.indexOf(LLAMADA) > -1) +
+        ' · calcEADetalle llama=' + (cDet.indexOf(LLAMADA) > -1)]);
+
+      /* ── EL GANCHO DE LA FASE 2 ──
+         Devuelve el CONTEXTO y no los cortes, y «cortes: null» significa «usar los nativos», que es
+         lo que la app ya hace. La condicion exige que siga devolviendo null: si alguien conecta
+         cortes proteticos sin verificarlos contra la ASE 2024 por dos rutas, cae aca. */
+      const gN = eaCriterioSeveridad();
+      poner({ va_morf:'TAVI' });
+      const gP = eaCriterioSeveridad();
+      poner({ va_morf:'Prótesis mecánica' });
+      const gM = eaCriterioSeveridad();
+      ex.push(['el gancho distingue nativa de protesis y NO trae cortes proteticos todavia: cortes null significa aplicar los nativos, que es lo que la app hace hoy',
+        gN.protesis === false && gN.cortes === null &&
+        gP.protesis === true && gP.tipo === 'TAVI' && gP.cortes === null &&
+        gM.protesis === true && gM.tipo === 'Prótesis mecánica' && gM.cortes === null &&
+        /PENDIENTE/.test(String(gP.fuente)),
+        'nativa=' + JSON.stringify(gN) + ' · TAVI=' + JSON.stringify(gP)]);
+
+      /* ── HALLAZGOS DE /sharp-edges SOBRE ESTA MISMA RONDA ──
+         Cuatro afectan el informe firmado y tres las introdujo este cambio. */
+
+      /* (1) BORRAR UN INSUMO TIENE QUE LIMPIAR EL ESPEJO. «calcAo» vaciaba «ava_cont» y «dvi-val» en
+         su rama «else» y NO llamaba al espejo, asi que los tres campos del TAVI se quedaban con la
+         medicion anterior — readonly, o sea sin forma de corregirlos, y de ahi salen el narrativo,
+         «campos» y las columnas del Excel. Y la rama sin datos de «calcEADetalle» dejaba
+         «ea_dvi_display» con el valor viejo, que era justo la primera fuente del espejo. */
+      /* ⚠️ EL BLOQUE EXPANDIDO DE VALVULAS SE ABRE A MANO, o «calcEADetalle» NO CORRE. La primera
+         version de esta condicion lo dejaba cerrado: «sincronizarEADesdeGlobal» esta gateada por la
+         visibilidad, asi que «ea_ava_display» y «ea_dvi_display» nunca se escribian y su rancidez no
+         se ejercia. Sin abrirlo, la mitad de la condicion medía un contenedor vacio — el mismo
+         defecto de denominador que este archivo ya documento tres veces. */
+      limpiar();
+      (function(){ const d = document.getElementById('bloque-ea-detalle');
+        if (d) d.style.display = ''; })();
+      poner(ESC);
+      if (typeof calcEADetalle === 'function') calcEADetalle();
+      const conDatos = [val('ete_tavi_ava'), val('ete_tavi_avai'), val('ete_tavi_dvi'),
+        val('ea_ava_display'), val('ea_dvi_display')];
+      /* ⚠️ SE BORRAN LOS DOS: «itv_ao» Y SU ESPEJO «ea_vtiao». Al medirlo salio una divergencia que
+         NO es de esta ronda y queda declarada: «sincronizarEADesdeGlobal» copia del Doppler al bloque
+         de Valvulas pero NO propaga el vaciado, asi que borrar solo «itv_ao» deja «ea_vtiao» con el
+         valor viejo, «calcEADetalle» sigue calculando con el, y «ava_cont» queda VACIO al lado de un
+         «ea_ava_display» de 1,13. Arreglar eso es tocar la sincronizacion de los cinco campos «ea_*»,
+         que tiene otro radio de impacto. Aca se borra lo que el medico ve borrado en las dos
+         pantallas, que es el escenario que este cambio cubre. */
+      poner({ itv_ao:'', ea_vtiao:'' });
+      if (typeof calcEADetalle === 'function') calcEADetalle();
+      const trasBorrar = [val('ete_tavi_ava'), val('ete_tavi_avai'), val('ete_tavi_dvi'),
+        val('ea_ava_display'), val('ea_dvi_display')];
+      ex.push(['borrar el VTI aortico en las dos pantallas limpia los tres campos del TAVI y los dos readonly de Valvulas: no queda el fantasma de la medicion anterior en un campo que el medico ya no puede corregir',
+        conDatos.every(function(x){ return x !== ''; }) &&
+        trasBorrar.every(function(x){ return x === ''; }),
+        'con datos=[' + conDatos.join('|') + '] tras borrar=[' + trasBorrar.join('|') + ']']);
+
+      /* (2) BORRAR EL PESO LIMPIA EL AVAi Y DEJA EL AVA. La salida temprana de «calcBSA» repintaba el
+         VLI y no el espejo, asi que el informe publicaba un «AVA indexada 0,6 cm²/m²» sobre un
+         estudio sin superficie corporal. El espejo ya sabia negarse; nunca se le daba la
+         oportunidad. */
+      limpiar(); poner(ESC);
+      const avaiAntes = val('ete_tavi_avai');
+      poner({ peso:'' });
+      ex.push(['borrar el peso limpia el AVA indexado del espejo y deja el AVA, que no depende de la superficie corporal',
+        avaiAntes !== '' && val('ete_tavi_avai') === '' && val('ete_tavi_ava') !== '',
+        'avai antes=' + avaiAntes + ' despues=' + val('ete_tavi_avai') + ' · ava=' + val('ete_tavi_ava')]);
+
+      /* (3) ⚠️ EL ESPEJO NO DESTRUYE UN VALOR QUE NO ESCRIBIO EL. Los tres campos eran EDITABLES
+         antes de hoy y describian otra medicion: el AVA de la protesis en el control
+         post-procedimiento. Un estudio guardado los repone, y sin la guarda el espejo los pisaba —o
+         los vaciaba— y la REIMPRESION de un PDF firmado salia con numeros distintos de los firmados.
+         Se simula el camino real: el barrido generico escribe el valor SIN la marca del espejo. */
+      limpiar();
+      (function(){ const e = document.getElementById('ete_tavi_ava');
+        if (e) { e.value = '0.88'; delete e.dataset.espejo; } })();
+      poner(ESC);
+      ex.push(['un AVA del TAVI tipeada en un estudio anterior se PRESERVA aunque el calculo unico de hoy de otro numero: el espejo solo limpia y pisa lo que escribio el mismo',
+        val('ete_tavi_ava') === '0.88' && val('ava_cont') !== '0.88' &&
+        val('ava_cont') !== '' ,
+        'legacy=' + val('ete_tavi_ava') + ' · calculado=' + val('ava_cont')]);
+
+      /* (4) ⚠️ LA VENTANA DE CINCO MILESIMAS. «calcEADetalle» clasificaba el AVA CRUDA mientras
+         «calcAo» y «clasificarEA_Vmax» clasifican la redondeada — y corre ULTIMA y escribe
+         «ea_grado». Con Ø TSVI 20, VTI TSVI 16 y VTI Ao 50,2 el AVA cruda es 1,00131 y «ava_cont»
+         «1,00»: «avaEsSevera» es «<=», asi que el badge sale ROJO «Severa» y el select del informe
+         BAJABA a «moderada». Es el defecto ECOS-12 reintroducido por la diferencia de redondeo. */
+      limpiar();
+      poner({ peso:'75', talla:'172', diam_tsvi:'20', itv_tsvi:'16', itv_ao:'50.2',
+        vmax_ao:'3.5', gmedio_ao:'32' });
+      if (typeof calcEADetalle === 'function') calcEADetalle();
+      const badgeEA = tx('ea-sev'), gradoEA = val('ea_grado');
+      ex.push(['con un AVA de 1,00131 —que redondea a 1,00 y cae en el corte— el badge y el grado del informe dicen lo MISMO: severa, y no uno rojo contra un select en moderada',
+        val('ava_cont') === '1.00' && /[Ss]evera/.test(String(badgeEA)) && gradoEA === 'severa',
+        'ava_cont=' + val('ava_cont') + ' badge=«' + badgeEA + '» ea_grado=' + gradoEA]);
+
+      // ── Y el numero unico llega al informe firmado ──
+      limpiar(); poner(ESC);
+      if (typeof calcAo === 'function') calcAo();
+      generarInforme();
+      const inf = document.getElementById('informe_texto').value;
+      ex.push(['el AVA y el AVA indexado del calculo unico son los que salen en el informe firmado',
+        inf.indexOf('AVA 1.13 cm') > -1 && inf.indexOf('AVAi 0.60 cm') > -1,
+        (function(){ const i = inf.indexOf('AVA '); return i < 0 ? '(no nombra AVA)' : inf.slice(i, i + 90).replace(/\\s+/g, ' '); })()]);
+
+      return { extra: ex.concat([
+        ['todos los campos del escenario existen', noEntraron.length === 0, noEntraron.join(' | ')]
+      ]) };
+    } finally {
+      try { if (typeof limpiarCampos === 'function') limpiarCampos(); } catch (e) {}
     }
   })();
 `);

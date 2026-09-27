@@ -4,6 +4,122 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## DVI y AVA aórticos: un solo cálculo, varias vistas (2026-09-27)
+
+Cierre de la deuda que la Fase 1 dejó abierta. Había **tres** campos de DVI aórtico y **tres** de
+AVA; el valor queda uno y lo único que cambiará con la morfología es el **criterio** (Fase 2).
+
+### Lo que estaba mal, medido
+
+- **`va_dvi`** —agregado y borrado el mismo día— era el tercer DVI y el único tipeable. Maicol no lo
+  encontraba en pantalla porque el calculado vive en el bloque **expandido** de Estenosis aórtica,
+  no porque faltara.
+- **`ete_tavi_ava`, `ete_tavi_avai` y `ete_tavi_dvi` se tipeaban a mano**, sin conexión con la
+  continuidad: el control post-TAVI podía publicar un AVA distinto del que el informe usa para la
+  misma válvula del mismo estudio.
+- **`calcEADetalle` tenía una copia inline de la fórmula** mientras el comentario de `calcAo` decía
+  «la fórmula vive en `_avaContinuidad`, no acá». Daban el mismo número; lo que se cerró es que se
+  puedan separar.
+- ⚠️ **El AVA indexado divergía sobre su propio corte.** `calcEADetalle` indexaba el AVA **cruda** y
+  `calcAo` la **redondeada**: con Ø TSVI 20 · VTI TSVI 19 · VTI Ao 53 salía **0,59** en Válvulas y
+  **0,60** en Doppler, y `EA_CRIT.avai` vale **0,6**. Los dos números a los lados del umbral, mismo
+  estudio, misma medición.
+
+### Lo que NO estaba mal, y lo verifiqué antes de tocarlo
+
+Sospeché que los cinco campos `ea_*` del bloque expandido producían un segundo AVA invisible para
+`calcAo`. **Falso:** `syncEADesdeValvulas()` los escribe de vuelta a los del Doppler, así que los
+insumos ya tenían una sola fuente. Medir en vez de asumir evitó un refactor inútil.
+
+### Lo que encontró `/sharp-edges`, y tres las introduje yo
+
+**1 · `calcAo` limpiaba el AVA y el DVI en su rama `else` y NO llamaba al espejo.** Los tres campos
+del TAVI quedaban con la medición anterior — **readonly, o sea sin forma de corregirlos** — y de ahí
+salen el narrativo firmado, `campos` y las columnas del Excel que van a CeiboAnalytics. `_vliPintar`
+está fuera del `if/else` **doce líneas más arriba y por este mismo motivo**, declarado en su propio
+comentario. Hoy el espejo va fuera del `if/else` y **después** de `sincronizarEADesdeGlobal`.
+
+**2 · La cuarta llamada al espejo no estaba «al final de `calcEADetalle`»:** estaba dentro de
+`else if (ava)`, la rama que corre sólo **sin** Vmax. En el camino común —toda estenosis aórtica—
+no corría nunca, y mi comentario afirmaba lo contrario. Se sacó: el orden lo garantiza el llamador.
+
+**3 · La rama sin datos de `calcEADetalle` dejaba `ea_ava_display` y `ea_dvi_display` con el valor
+viejo.** Son `input[id]`, así que `guardarInforme` los persiste — y el espejo leía `ea_dvi_display`
+como fuente, justo la que nunca se limpiaba.
+
+**4 · ⚠️ `calcEADetalle` clasificaba el AVA CRUDA, corre ÚLTIMA y escribe `ea_grado`.** Preexistente
+y el más grave. Con Ø TSVI 20 · VTI TSVI 16 · VTI Ao 50,2: AVA cruda **1,00131**, `ava_cont`
+**«1,00»**, y `avaEsSevera` es `≤`. `calcAo` pinta el badge **rojo «Severa (≤1.0)»**,
+`clasificarEA_Vmax` escribe `ea_grado='severa'`, y `calcEADetalle` lo **bajaba a «moderada»** en el
+select que firma el informe, con la cápsula de al lado imprimiendo «AVA 1.00 cm²». Es **ECOS-12
+reintroducido en una ventana de cinco milésimas**. Hoy clasifica `avaR`, el redondeado — la misma
+regla que la FAC del VD y la geometría del VI.
+
+**5 · La salida temprana de `calcBSA`** repintaba el VLI y no el espejo: borrar el peso dejaba «AVA
+indexada 0,6 cm²/m²» en el informe sobre un estudio **sin superficie corporal**. El espejo ya sabía
+negarse; nunca se le daba la oportunidad.
+
+**6 · El párrafo del TAVI imprimía el AVA y el AVAi con UN decimal** mientras el párrafo aórtico del
+mismo PDF los imprimía con dos. Desde que espejan el cálculo único dejaron de ser «su» número. Y los
+cortes viven en **1,0** y **0,6**, así que un 0,64 impreso «0,6» se lee como exactamente en el corte.
+
+### ⚠️ El espejo no destruye lo que no escribió él, y esto es una decisión pendiente
+
+Los tres campos del TAVI eran **editables antes de hoy** y describían **otra medición**: el AVA de la
+prótesis en el control post-procedimiento. Un estudio guardado los repone **antes** de que corra el
+espejo, y sin guarda el espejo los pisaba —o los vaciaba, que es el caso esperable en un control
+post-TAVI con el Doppler aórtico en blanco—. **Lo peor era la reimpresión: un PDF ya firmado salía
+con números distintos de los que se firmaron.**
+
+La confirmación de «no hay datos legacy» fue sobre `va_morf`; **estos tres campos son anteriores a
+hoy y esa confirmación no los cubre.** Hoy el espejo **marca lo que escribe** con `data-espejo` y
+deja quieto lo que tenga valor sin la marca.
+
+**Decisión pendiente:** si hay estudios con `ete_tavi_ava` ≠ `ava_cont`, quedan visibles y **no
+corregibles**. Lo correcto sería moverlos a un campo propio (`ete_tavi_ava_medida`) y que el espejo
+ocupe otro id — pero primero hay que contestar si existen.
+
+### Y dos cosas más que quedan declaradas, no arregladas
+
+- **`sincronizarEADesdeGlobal` no propaga el vaciado.** Borrar `itv_ao` deja `ea_vtiao` con el valor
+  viejo, `calcEADetalle` sigue calculando con él, y `ava_cont` queda **vacío al lado de un
+  `ea_ava_display` de 1,13**. Lo destapó una condición cuando la hice abrir el bloque expandido.
+  Tocar la sincronización de los cinco `ea_*` tiene otro radio de impacto.
+- **La asimetría del módulo TAVI ya produce una superficie firmada.** `ete_tavi_vmax` y
+  `ete_tavi_gmedio` siguen manuales y propios del módulo, y el narrativo concatena los seis valores
+  en **una sola oración** sin declarar la procedencia de cada uno: un DVI de 0,22 —obstrucción severa
+  en cualquier tabla protésica— puede quedar pegado a un gradiente de 12 mmHg que dice lo contrario,
+  leídos como una sola adquisición. El recurso correcto ya existe dos veces en el archivo
+  (`AVAi (BSA 2.00)` lleva su insumo en el rótulo; `popPatron` avisa cuando la FC del Swan difiere).
+
+### El gancho de la Fase 2
+
+`eaCriterioSeveridad()` devuelve el **contexto**, no los cortes: `{protesis, tipo, cortes, fuente}`
+con **`cortes: null` a propósito**, que significa «aplicar los nativos» — lo que la app ya hace.
+**No se inventaron los números de la ASE 2024.** Lo que la Fase 2 tiene que traer está listado en su
+comentario. Una nota de `/sharp-edges` que vale guardar: el gancho decide leyendo `va_morf`, de la
+pestaña **Válvulas**, para un módulo que vive en **ETE**, y nada obliga a que un estudio con el
+módulo TAVI cargado tenga `va_morf = 'TAVI'`.
+
+### Lo que la verificación enseñó, otra vez sobre denominadores
+
+- **Una condición con el bloque cerrado mide un contenedor vacío.** `sincronizarEADesdeGlobal` está
+  gateada por la visibilidad, así que `ea_ava_display` nunca se escribía y su rancidez no se ejercía.
+  Hay que abrir `#bloque-ea-detalle` a mano.
+- **`String(fn)` incluye los comentarios.** La condición que exigía `_avaContinuidad` matcheaba mi
+  propio comentario, no la llamada: reponer la copia inline **sobrevivió**.
+- **El cuerpo de un caso es un template literal**, así que consume los escapes: un `[\s\S]` con una
+  sola barra llega como `[sS]` y el caso muere con un `SyntaxError` que apunta a la línea del
+  `caso(`. Los helpers que sí usan regex llevan doble barra por eso.
+- **Dos mutaciones son redundantes por construcción y quedan declaradas:** sacar `eaTaviEspejar` de
+  `RECALC_MODULOS` no rompe nada porque `eteTaviSync` ya está en esa lista y lo llama en su primera
+  línea; y devolver un campo del TAVI a `type="number"` sin `readonly` tampoco, porque
+  `e.readOnly = true` **refleja al atributo**.
+- **Un lote de edición que aborta no escribe nada.** Dos arreglos —A2 y A3— los di por aplicados y no
+  lo estaban; el navegador daba verde porque otro arreglo tapaba el síntoma. Hay que verificar que la
+  edición entró, no que el test pasa.
+
+
 ## Prótesis valvulares, Fase 1: renombrar y abrir campos (2026-09-27)
 
 Primera de tres fases. Acá se renombró la etiología y se abrieron los campos; **no se gradúa
