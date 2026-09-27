@@ -16363,6 +16363,67 @@ function v(id) {
   const n = PF(el.value.replace(',', '.'));
   return isNaN(n) ? null : n;
 }
+
+/* ══ LECTURA CON BANDA DE PLAUSIBILIDAD ═══════════════════════════════════════════════════════
+   `v()` contesta «qué número hay»; esto contesta «¿ese número se puede creer?». Nace porque la
+   pantalla y el PDF clasificaban CUALQUIER cosa: un VSFVI de 0,06 —el volumen tipeado en litros—
+   salía «🟢 normal» en el calc-box e imprimía «0.0 ml/m²» en el informe FIRMADO, mientras el
+   panel de Evidencia, que sí valida, lo rechazaba. El mismo estudio decía dos cosas distintas
+   según la superficie, y la que se archiva es la que no validaba.
+
+   LA BANDA NO SE INVENTA ACÁ: sale de `_labRango`, el accesor mergeado que ya usan el importador
+   DICOM, el del Excel y el panel de Evidencia. Un solo dueño por campo.
+
+   ⚠️ SIN BANDA SE DEVUELVE EL VALOR, y es deliberado — acá NO se falla cerrado como en el panel.
+   Allá la ausencia de banda es un accidente (la tabla no cargó) y callar es lo seguro; acá hay
+   campos que NO TIENEN banda definida y nunca la tuvieron (`vdfvi`, `vol_lat`, `tvia`, `vd_fac`,
+   `fevd`), así que fallar cerrado los borraría del informe de todos los pacientes que hoy los
+   tienen cargados. Un cambio de validación no puede sacar datos válidos del papel: sin banda,
+   este helper se comporta EXACTAMENTE como `v()` y queda declarado cuáles son.
+
+   `fuera` = medido y fuera de lo físicamente posible. NO es lo mismo que `val === null`, que es
+   «no hay dato»: el primero tiene que DECIRSE y el segundo simplemente no se dibuja. */
+function vPlaus(id) {
+  const x = v(id);
+  if (x == null) return { val:null, fuera:false, sinBanda:false, crudo:null };
+  let b = null;
+  try { b = (typeof _labRango === 'function') ? _labRango(id) : null; } catch (e) { b = null; }
+  /* Se exige que la banda sea lo que promete ser. Con `['a','b']` los dos lados de la
+     comparación dan false y la plausibilidad quedaría desactivada en silencio, que es la
+     dirección peligrosa; con los límites invertidos, todo valor sería «fuera». */
+  if (!Array.isArray(b) || b.length !== 2 || !isFinite(b[0]) || !isFinite(b[1]) || !(b[0] <= b[1]))
+    return { val:x, fuera:false, sinBanda:true, crudo:x };
+  if (x < b[0] || x > b[1]) return { val:null, fuera:true, sinBanda:false, crudo:x, b:b };
+  return { val:x, fuera:false, sinBanda:false, crudo:x };
+}
+/* Valor para una fila de las tablas compactas del PDF. Devuelve `null` cuando no hay dato —y
+   entonces `drawTablaCompacta` NO dibuja la fila, que es el comportamiento de siempre— y un
+   texto explícito cuando el dato está pero es ilegible. Lo segundo NO puede ser `null`: borrar
+   la fila dejaría al lector sin saber que se cargó algo, que es peor que decirlo. */
+/* ══ MARCAR SIN BORRAR ════════════════════════════════════════════════════════════════════════
+   Decisión de Maicol (2026-09-27), y es la que hace que este cambio sea seguro. La primera
+   versión REEMPLAZABA el valor fuera de banda por «fuera de rango», y eso borraba mediciones
+   REALES del informe firmado: medido, un septum de 36 mm —miocardiopatía hipertrófica severa, y
+   esta misma app trata ≥ 30 mm como criterio mayor— y una FEVI de 92 % —hiperdinámica, y el
+   propio repo ya había elegido `[0,95]` en la tabla del Laboratorio POR ESTO MISMO— salían del
+   papel. Las bandas de `DCM_RANGO` se escribieron para RECHAZAR UNA FILA DE IMPORTACIÓN, donde
+   el falso positivo cuesta «no entra»; acá cuestan «desaparece del informe».
+
+   Hoy el número SIEMPRE se imprime y la banda decide sólo si se CLASIFICA. Un 110 mm sale
+   «110 mm (revisar)» y un 36 mm sale «36 mm (revisar)»: el dedazo queda visible, el hallazgo
+   real no se pierde, y lo que se suprime es el juicio derivado —la masa indexada, la geometría,
+   el badge de HVI— que es lo único que de verdad no se puede sostener sobre un valor dudoso. */
+const MARCA_REVISAR = ' (revisar)';
+function vPdf(id, uni, dec) {
+  const p = vPlaus(id);
+  /* ⚠️ `!p.crudo` Y NO `p.crudo == null`, a propósito: las treinta y tres filas que ahora llaman
+     acá estaban escritas como `v('X') ? v('X')+' mm' : null`, o sea que un 0 NO dibujaba la
+     fila. Este cambio es de VALIDACIÓN, no de contenido: lo que hoy no sale, sigue sin salir. */
+  if (!p.crudo) return null;
+  const n = (dec != null) ? p.crudo.toFixed(dec) : p.crudo;
+  return n + (uni || '') + (p.fuera ? MARCA_REVISAR : '');
+}
+window.vPlaus = vPlaus; window.vPdf = vPdf;
 // Geometría VI unificada — ÚNICA FUENTE DE VERDAD.
 // La usan el informe narrativo, la tabla del PDF, el badge en pantalla y el export del Laboratorio.
 // Normaliza masa y RWT a la precisión que se IMPRIME en el informe (masa entera, RWT 2 decimales):
@@ -16550,15 +16611,39 @@ function vsfviInterp(idx, sexo) {
 }
 
 function calcVI() {
-  const dd = v('ddfvi'), ds = v('dsfvi'), siv = v('siv'), pp = v('ppvi'), fevi = v('fevi');
+  /* Lectura CON banda de plausibilidad (`vPlaus`): un número fuera de lo físicamente posible
+     deja de CLASIFICARSE, pero se sigue mostrando. Antes, un SIV de 110 mm —dedazo por 11,0—
+     pintaba «HVI severa» y un VSFVI de 0,06 pintaba «🟢 normal», las dos sobre basura,
+     mientras el panel de Evidencia ya las rechazaba.
+
+     ⚠️ Y CADA BLOQUE ESCRIBE SU SALIDA EN TODOS LOS CAMINOS. Los `if` de abajo no tenían `else`:
+     cuando un insumo faltaba, el span conservaba el valor del paciente ANTERIOR. Era latente
+     —`calcVI` es el único que escribe estos seis spans, así que sólo se veía al vaciar un campo—
+     y arreglarlo era condición para tocar este bloque: un `else` que no escribe deja al médico
+     leyendo el ventrículo del paciente anterior. */
+  const P = { dd:vPlaus('ddfvi'), ds:vPlaus('dsfvi'), siv:vPlaus('siv'),
+              pp:vPlaus('ppvi'),  fevi:vPlaus('fevi') };
+  /* ⚠️ SE CALCULA CON EL VALOR CRUDO, SIEMPRE. `crudo` es exactamente lo que devolvía `v()`, así
+     que todas las cuentas de abajo dan lo mismo que antes de este cambio — «lo válido no se
+     mueve» queda garantizado POR CONSTRUCCIÓN y no por revisión. Lo único que decide la banda es
+     si el resultado se CLASIFICA: ver `MARCA_REVISAR` y la decisión de «marcar sin borrar». */
+  const dd = P.dd.crudo, ds = P.ds.crudo, siv = P.siv.crudo, pp = P.pp.crudo, fevi = P.fevi.crudo;
   const bsa = getBSA();
   const sexo = sv('sexo');
+  /* Un solo texto y un solo escritor, para que los siete spans no lo resuelvan cada uno a su
+     manera. `_viDudoso` reemplaza al BADGE, no al valor. */
+  const VI_REVISAR = '⚠️ revisar la unidad';
+  const _viFuera = ks => ks.some(k => P[k] && P[k].fuera);
+  const _viPon = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  /* Sin insumos no hay nada que mostrar. Ya no hace falta distinguir «ilegible» acá: un valor
+     ilegible YA NO deja el insumo en null, así que esta rama es sólo «el campo está vacío». */
+  const _viVacio = id => _viPon(id, '—');
 
   // FA
   if (dd && ds) {
     const fa = (((dd - ds) / dd) * 100).toFixed(1);
-    document.getElementById('fa-val').textContent = fa + '%';
-  }
+    document.getElementById('fa-val').textContent = fa + '%' + (_viFuera(['dd','ds']) ? ' ' + VI_REVISAR : '');
+  } else _viVacio('fa-val');
 
   // Devereux mass index
   if (dd && siv && pp) {
@@ -16566,7 +16651,11 @@ function calcVI() {
     if (bsa) {
       const idx = (mass / bsa).toFixed(0);
       const hvi = (sexo === 'F' && idx > UMBRAL_MASA_HVI_M) || (sexo !== 'F' && idx > UMBRAL_MASA_HVI_H);
-      document.getElementById('devereux-val').innerHTML = idx + ' g/m² ' + (hvi ? badge('red','HVI') : badge('green','Normal'));
+      /* El NÚMERO sale siempre; lo que se suprime con un insumo dudoso es el veredicto. */
+      const _masaDud = _viFuera(['dd','siv','pp']);
+      document.getElementById('devereux-val').innerHTML = _masaDud
+        ? idx + ' g/m² ' + badge('yellow','revisar la unidad')
+        : idx + ' g/m² ' + (hvi ? badge('red','HVI') : badge('green','Normal'));
     } else {
       document.getElementById('devereux-val').textContent = mass.toFixed(0) + ' g (sin BSA)';
     }
@@ -16574,7 +16663,7 @@ function calcVI() {
     // RWT + Geometría (con severidad de HVI)
     if (dd) {
       const rwt = (2 * pp / dd).toFixed(2);
-      document.getElementById('rwt-val').textContent = rwt;
+      document.getElementById('rwt-val').textContent = rwt + (_viFuera(['dd','pp']) ? ' ' + VI_REVISAR : '');
       const massIdx = bsa ? (mass / bsa) : null;
       // El patrón lo decide calcGeometriaVI() (fuente única); acá solo se mapea a label/color.
       const geomPat = calcGeometriaVI(massIdx, rwt, sexo);
@@ -16584,7 +16673,11 @@ function calcVI() {
         'Hipertrofia excéntrica':  ['HVI excéntrica',         'orange'],
         'Hipertrofia concéntrica': ['HVI concéntrica',        'red'],
       };
-      if (GEOM_UI[geomPat]) {
+      if (_viFuera(['dd','siv','pp'])) {
+        /* La geometría es un PATRÓN, no una medida: no hay número que preservar, y publicarla
+           sobre un insumo dudoso sería exactamente el juicio que no se puede sostener. */
+        _viPon('geom-val', VI_REVISAR);
+      } else if (GEOM_UI[geomPat]) {
         let [geomTxt, geomCls] = GEOM_UI[geomPat];
         if (geomPat.startsWith('Hipertrofia')) { const sev = hviSeveridad(massIdx, sexo); if (sev) geomTxt += ` (${sev})`; }
         document.getElementById('geom-val').innerHTML = badge(geomCls, geomTxt);
@@ -16592,16 +16685,31 @@ function calcVI() {
         document.getElementById('geom-val').textContent = '—';
       }
     }
+  } else {
+    /* Los tres salen juntos porque los tres dependen de la masa de Devereux: sin DDVI, SIV o PP
+       utilizables no hay masa, y sin masa no hay geometría ni tiene sentido dejar el RWT de otro
+       paciente al lado de un guion. */
+    /* Los TRES miran los mismos tres insumos, incluido el SIV en el RWT. No es que el RWT use el
+       septum —no lo usa—: es que vive DENTRO del bloque que exige los tres, así que cuando el
+       SIV es ilegible el RWT tampoco se calcula. Si acá mirara sólo DD y PP, la pantalla diría
+       «—» («no hay dato») mientras el PDF dice «fuera de rango» para el mismo estudio, que es
+       justo la divergencia entre superficies que este cambio vino a cerrar. */
+    _viVacio('devereux-val'); _viVacio('rwt-val'); _viVacio('geom-val');
   }
 
   // VDFVI indexado + interpretación de dilatación (ASE)
-  const vdfvi = v('vdfvi');
+  /* El censo de este cambio encontró que `vdfvi` era el ÚNICO campo de esta tarjeta sin banda,
+     al revés que su gemelo `vsfvi`. La entrada se agregó a `DCM_RANGO` el 2026-09-27 (decisión
+     de Maicol, no deducida del código: el número lo eligió una persona). Este bloque no cambió
+     por eso — lee por `vPlaus` y la banda apareció debajo. */
+  const _vdf = vPlaus('vdfvi');
+  const vdfvi = _vdf.crudo;
   const vdfviEl = document.getElementById('vdfvi-idx-interp');
   if (vdfviEl) {
     if (vdfvi && bsa) {
       const vidx = (vdfvi / bsa).toFixed(1);
       const it = vdfviInterp(vidx, sexo);
-      vdfviEl.innerHTML = vidx + ' ml/m² ' + badge(it.cls, it.txt);
+      vdfviEl.innerHTML = vidx + ' ml/m² ' + (_vdf.fuera ? badge('yellow','revisar la unidad') : badge(it.cls, it.txt));
     } else {
       vdfviEl.textContent = '—';
     }
@@ -16613,13 +16721,14 @@ function calcVI() {
      vuelve a leer de `vsfvi` y se indexa con la misma `getBSA()`, contra el umbral de la ESC.
      Son dos lecturas del mismo campo para dos preguntas distintas —«¿es normal?» y «¿alcanza el
      criterio de intervención?»—, no una copia de la otra. */
-  const vsfvi = v('vsfvi');
+  const _vsf = vPlaus('vsfvi');
+  const vsfvi = _vsf.crudo;
   const vsfviEl = document.getElementById('vsfvi-idx-interp');
   if (vsfviEl) {
     if (vsfvi && bsa) {
       const sidx = (vsfvi / bsa).toFixed(1);
       const its = vsfviInterp(sidx, sexo);
-      vsfviEl.innerHTML = sidx + ' ml/m² ' + badge(its.cls, its.txt);
+      vsfviEl.innerHTML = sidx + ' ml/m² ' + (_vsf.fuera ? badge('yellow','revisar la unidad') : badge(its.cls, its.txt));
     } else {
       vsfviEl.textContent = '—';
     }
@@ -16633,8 +16742,8 @@ function calcVI() {
     else if (fevi >= 40) fi = badge('yellow', 'Levemente reducida (40-49%)');
     else if (fevi >= 30) fi = badge('orange', 'Moderadamente reducida (30-39%)');
     else fi = badge('red', 'Severamente reducida (<30%)');
-    document.getElementById('fevi-interp').innerHTML = fi;
-  }
+    document.getElementById('fevi-interp').innerHTML = P.fevi.fuera ? badge('yellow','revisar la unidad') : fi;
+  } else _viVacio('fevi-interp');
 
   if (typeof calcHemo === 'function') calcHemo();
   /* La FEVI es la PREMISA del HFA-PEFF, no uno de sus insumos: corregirla puede volver el score
@@ -28232,8 +28341,17 @@ function generarPDFReal(_aj) {
   const cTipo = sv('centro_tipo'), cNom = sv('centro_nombre');
   const centroStr = (cTipo&&cNom)?cTipo+': '+cNom:(cNom||cTipo||null);
 
-  // VI
-  const dd=v('ddfvi'), ds=v('dsfvi'), sivV=v('siv'), pp=v('ppvi');
+  /* VI — lectura CON banda (`vPlaus`), la misma que usa el calc-box de la pantalla.
+     ⚠️ ESTE ES EL PAPEL QUE SE FIRMA Y SE ARCHIVA. Antes, un SIV de 110 mm imprimía una masa
+     indexada y una geometría calculadas sobre basura, y un VSFVI en litros imprimía «0.0 ml/m²»
+     al lado de su rango de normalidad — o sea que el informe afirmaba una medición normal sobre
+     un valor que la app, en otra superficie, ya sabía rechazar.
+     La marca NUNCA reemplaza al número —ver `MARCA_REVISAR`—: `drawTablaCompacta` no dibuja
+     las filas nulas, así que devolver `null` borraría la fila y el lector no se enteraría de
+     que se cargó algo; y reemplazar el valor borraría una medición que puede ser real. */
+  const _pDd = vPlaus('ddfvi'), _pDs = vPlaus('dsfvi'), _pSiv = vPlaus('siv'), _pPp = vPlaus('ppvi');
+  /* Crudo: las cuentas dan lo mismo que antes del cambio. La banda sólo agrega la marca. */
+  const dd=_pDd.crudo, ds=_pDs.crudo, sivV=_pSiv.crudo, pp=_pPp.crudo;
   let masaIdx=null, rwtStr=null, geomStr=null;
   if (dd&&sivV&&pp&&bsa) {
     const mass = 0.8*(1.04*((dd/10+sivV/10+pp/10)**3-(dd/10)**3))+0.6;
@@ -28242,31 +28360,58 @@ function generarPDFReal(_aj) {
     rwtStr = rwt.toFixed(2);
     geomStr = calcGeometriaVI(mass/bsa, rwt, sexo);
   }
-  const faStr  = (dd&&ds)?((dd-ds)/dd*100).toFixed(1)+'%':null;
+  /* El número se conserva y se marca; la GEOMETRÍA, que es un patrón y no una medida, se
+     retira —publicarla sobre un insumo dudoso sería el juicio que no se puede sostener—. */
+  if (_pDd.fuera || _pSiv.fuera || _pPp.fuera) {
+    if (masaIdx) masaIdx += MARCA_REVISAR;
+    if (rwtStr)  rwtStr  += MARCA_REVISAR;
+    geomStr = null;
+  }
+  const faStr  = (dd&&ds)?((dd-ds)/dd*100).toFixed(1)+'%'+((_pDd.fuera||_pDs.fuera)?MARCA_REVISAR:''):null;
   const feviM  = sv('fevi_met');
+  const _pFevi = vPlaus('fevi');
   // Con estimación visual muestra el rango completo (feviRangoTexto), no el piso.
-  const feviS  = v('fevi')?feviRangoTexto(v('fevi'))+(feviM?' ('+feviM+')':''):null;
+  const feviS  = _pFevi.crudo?feviRangoTexto(_pFevi.crudo)+(feviM?' ('+feviM+')':'')+(_pFevi.fuera?MARCA_REVISAR:''):null;
+  /* ⚠️ EL SGL NO SE VALIDA CON SU BANDA, Y NO ES UN OLVIDO. `DCM_RANGO.sgl` es `[-40,0]` y está
+     escrita para el camino DICOM, donde el signo se NORMALIZA antes del chequeo (lo dice su
+     propio comentario). En el formulario no hay normalización: el campo acepta el strain tipeado
+     en positivo —el borde del Laboratorio lo arregla con `-Math.abs()` y `calcDiastol` compara
+     con `Math.abs(sgl)`—, así que aplicar la banda acá convertiría un SGL de 18 —perfectamente
+     válido, y el 18 % es el valor NORMAL— en «fuera de rango» en el informe firmado, mientras la
+     hoja de strain del MISMO PDF lo sigue imprimiendo como 18 %.
+     Queda sin validar y declarado. Validarlo exige decidir antes dónde se normaliza el signo. */
   const sglN   = v('sgl');
   /* Sólo el número. Sin «Normal / Zona gris / Anormal»: la clasificación del SGL la hace el
      médico en el narrativo, no la tabla de mediciones. Ver el comentario largo en calcSGL —
      acá vivía la MITAD del informe firmado que se contradecía con su propia referencia. */
   const sglS   = sglN ? sglN + '%' : null;
 
-  // VDFVI indexado
-  const vdfviVal = v('vdfvi');
-  const vdfviIdx = (vdfviVal && bsa) ? (vdfviVal / bsa).toFixed(1) + ' ml/m²' : null;
+  /* VDFVI indexado. Su banda se agregó a `DCM_RANGO` el 2026-09-27: hasta entonces era el único
+     campo de esta tarjeta sin validar, al revés que su gemelo telesistólico de abajo. */
+  const _pVdf = vPlaus('vdfvi');
+  const vdfviIdx = (_pVdf.crudo && bsa) ? (_pVdf.crudo / bsa).toFixed(1) + ' ml/m²' + (_pVdf.fuera?MARCA_REVISAR:'') : null;
   // VSFVI indexado — mismo cálculo y misma BSA que la fila de arriba
-  const vsfviVal = v('vsfvi');
-  const vsfviIdx = (vsfviVal && bsa) ? (vsfviVal / bsa).toFixed(1) + ' ml/m²' : null;
+  const _pVsf = vPlaus('vsfvi');
+  const vsfviIdx = (_pVsf.crudo && bsa) ? (_pVsf.crudo / bsa).toFixed(1) + ' ml/m²' + (_pVsf.fuera?MARCA_REVISAR:'') : null;
 
   // AI
-  const aiIdx  = (v('ai_vol')&&bsa)?(v('ai_vol')/bsa).toFixed(1)+' ml/m2':null;
+  const _pAiVol = vPlaus('ai_vol');
+  const aiIdx  = (_pAiVol.crudo&&bsa)?(_pAiVol.crudo/bsa).toFixed(1)+' ml/m2'+(_pAiVol.fuera?MARCA_REVISAR:''):null;
 
-  // Doppler mitral
-  const ea     = (v('onda_e')&&v('onda_a'))?(v('onda_e')/v('onda_a')).toFixed(2):null;
-  const eSep   = v('e_sep'), eLat = v('e_lat');
-  const eProm  = (eSep&&eLat)?((eSep+eLat)/2).toFixed(1):(eSep?eSep.toFixed(1):eLat?eLat.toFixed(1):null);
-  const ee     = (v('onda_e')&&eProm)?(v('onda_e')/PF(eProm)).toFixed(1):null;
+  /* Doppler mitral. Los cocientes E/A y E/e' se publican SÓLO con los dos insumos legibles: un
+     cociente calculado sobre una onda ilegible es un número con la misma pinta que uno bueno. */
+  const _pE = vPlaus('onda_e'), _pA = vPlaus('onda_a');
+  const ea     = (_pE.crudo&&_pA.crudo)?(_pE.crudo/_pA.crudo).toFixed(2)+((_pE.fuera||_pA.fuera)?MARCA_REVISAR:''):null;
+  const _pESep = vPlaus('e_sep'), _pELat = vPlaus('e_lat');
+  const eSep   = _pESep.crudo, eLat = _pELat.crudo;
+  /* El PROMEDIO hereda la duda de cualquiera de los dos anillos: con e' septal en 0,07 —m/s por
+     cm/s— el promedio daba «5.0 cm/s» sin una sola marca, y ese número es el denominador del
+     E/e'. Un promedio contaminado se ve igual que uno bueno. */
+  const _ePromDud = _pESep.fuera || _pELat.fuera;
+  const _ePromN = (eSep&&eLat)?((eSep+eLat)/2).toFixed(1):(eSep?eSep.toFixed(1):eLat?eLat.toFixed(1):null);
+  const eProm  = _ePromN;
+  const ePromS = _ePromN ? _ePromN + (_ePromDud ? MARCA_REVISAR : '') : null;
+  const ee     = (_pE.crudo&&eProm)?(_pE.crudo/PF(eProm)).toFixed(1)+((_pE.fuera||_pESep.fuera||_pELat.fuera)?MARCA_REVISAR:''):null;
 
   // Aortic
   const avaC   = v('ava_cont');
@@ -28283,7 +28428,10 @@ function generarPDFReal(_aj) {
   const icV    = (coV&&bsa)?(PF(coV)/bsa).toFixed(2)+' L/min/m2':null;
 
   // PSAP
-  const gradIT = v('vmax_it')?(4*v('vmax_it')**2).toFixed(0)+' mmHg':null;
+  /* Hereda la banda de su INSUMO: sin esto, el mismo PDF decia «V. max IT: fuera de rango» y
+     «Grad. IT: 313600 mmHg» sobre la misma Vmax de 280 (cm/s tipeados donde van m/s). */
+  const _pVit  = vPlaus('vmax_it');
+  const gradIT = _pVit.crudo?(4*_pVit.crudo**2).toFixed(0)+' mmHg'+(_pVit.fuera?MARCA_REVISAR:''):null;
 
   // Valve grades
   const GT = ['--','Leve','Moderada','Moderada-severa','Severa'];
@@ -29000,11 +29148,24 @@ function generarPDFReal(_aj) {
   // ════════════════════════════════════════════════════════════
   drawTablaCompacta([
     {titulo:'VI - Estructura', items:[
-      {lbl:'SIV',       ref:'<13 mm',            val:sivV?sivV+' mm':null},
-      {lbl:'DDVI',      ref:'42-58 mm',           val:dd  ?dd  +' mm':null},
-      {lbl:'DSVI',      ref:'<40 mm',             val:ds  ?ds  +' mm':null},
-      {lbl:'PP',        ref:'<13 mm',             val:pp  ?pp  +' mm':null},
-      {lbl:'VDFVI idx', ref:'H<75 M<61 ml/m²',   val:vdfviIdx},
+      /* ⚠️ ESTAS CUATRO NO PUEDEN USAR LA VARIABLE LOCAL YA VALIDADA: `sivV` es `null` cuando el
+         valor es ilegible, y `sivV ? … : null` hace que la fila DESAPAREZCA del papel firmado.
+         Medido: con SIV 110 la fila se borraba entera mientras «Masa idx» decía «fuera de
+         rango», o sea que el informe acusaba al derivado y escondía el insumo que lo causó.
+         Se consume el objeto de `vPlaus`, que distingue «no hay dato» de «hay dato ilegible». */
+      {lbl:'SIV',       ref:'<13 mm',   val:sivV?sivV+' mm'+(_pSiv.fuera?MARCA_REVISAR:''):null},
+      {lbl:'DDVI',      ref:'42-58 mm', val:dd  ?dd  +' mm'+(_pDd.fuera ?MARCA_REVISAR:''):null},
+      {lbl:'DSVI',      ref:'<40 mm',   val:ds  ?ds  +' mm'+(_pDs.fuera ?MARCA_REVISAR:''):null},
+      {lbl:'PP',        ref:'<13 mm',   val:pp  ?pp  +' mm'+(_pPp.fuera ?MARCA_REVISAR:''):null},
+      /* ⚠️ «H<75 M<61» ERA FALSO EN LAS DOS DIRECCIONES, Y EL CÓDIGO NUNCA ESTUVO MAL.
+         `vdfviInterp` clasifica con `> 74` y `> 61` desde siempre —medido: 74,0 normal y 74,1
+         levemente dilatado; 61,0 normal en la mujer—, que es exactamente lo que dice la ASE 2015
+         («74 mL/m2 for men and 61 mL/m2 for women … as the upper limits of the normal range»).
+         La etiqueta impresa decía otra cosa: el «H<75» daba por normal un 74,5 que el badge
+         llama dilatado, y el «M<61» daba por anormal un 61,0 exacto que el badge llama normal.
+         O sea que el papel firmado y la pantalla se contradecían en los dos bordes.
+         Se escribe con `<=` igual que la fila de VSFVI de acá abajo, que ya usa esa convención. */
+      {lbl:'VDFVI idx', ref:'H<=74 M<=61 ml/m²',  val:vdfviIdx},
       /* Límites superiores de normalidad de la ASE/EACVI 2015, que el documento imprime en su
          recomendación destacada: 31 ml/m² en el varón y 24 en la mujer. Se escriben con `<=`
          —y no «H<32 M<25»— porque es lo que dice la fuente; el `>=` de las filas de FEVI y FA
@@ -29024,29 +29185,29 @@ function generarPDFReal(_aj) {
          referencia seguiría afirmando dónde está lo normal, que es justo lo que se decidió
          que no haga la tabla. `_suf` ya contempla ref vacía: sale «SGL: -18%». */
       {lbl:'SGL',       ref:'',                val:sglS},
-      {lbl:'Vol. lat.', ref:'55-100 ml',       val:v('vol_lat')?v('vol_lat')+' ml':null},
+      {lbl:'Vol. lat.', ref:'55-100 ml',       val:vPdf('vol_lat',' ml')},
       {lbl:'Masa idx',  ref:'H<' + UMBRAL_MASA_HVI_H + ' M<' + UMBRAL_MASA_HVI_M + ' g/m2', val:masaIdx},
       {lbl:'RWT',       ref:'<=0.42',          val:rwtStr},
       {lbl:'Geometria', ref:'',                val:geomStr},
     ]},
     {titulo:'Ventrículo Derecho', items:[
-      {lbl:'TAP',         ref:'>105 ms',    val:v('tvia')   ?v('tvia')   +' ms'  :null},
-      {lbl:'TAPSE',       ref:'>=' + UMBRAL_TAPSE_NORMAL + ' mm',     val:v('tapse')  ?v('tapse')  +' mm'  :null},
-      {lbl:"S'",          ref:'>9.5 cm/s',  val:v('s_prime')?v('s_prime')+' cm/s':null},
+      {lbl:'TAP',         ref:'>105 ms',    val:vPdf('tvia',' ms')},
+      {lbl:'TAPSE',       ref:'>=' + UMBRAL_TAPSE_NORMAL + ' mm',     val:vPdf('tapse',' mm')},
+      {lbl:"S'",          ref:'>9.5 cm/s',  val:vPdf('s_prime',' cm/s')},
       /* Los tres diámetros con SU referencia (ASE 2015). El medio y el longitudinal se imprimían
          sin corte, así que el lector no tenía cómo saber que un VD medio de 42 mm está dilatado
          — y hasta este commit la app tampoco lo decía en el informe. */
-      {lbl:'Diám. basal', ref:'<=' + VD_BAS_NORMAL_MAX + ' mm',   val:v('vd_bas') ?v('vd_bas') +' mm'  :null},
-      {lbl:'Diám. medio', ref:'<=' + VD_MID_NORMAL_MAX + ' mm',   val:v('vd_mid') ?v('vd_mid') +' mm'  :null},
-      {lbl:'Longitud',    ref:'<=' + VD_LONG_NORMAL_MAX + ' mm',  val:v('vd_long')?v('vd_long')+' mm'  :null},
+      {lbl:'Diám. basal', ref:'<=' + VD_BAS_NORMAL_MAX + ' mm',   val:vPdf('vd_bas',' mm')},
+      {lbl:'Diám. medio', ref:'<=' + VD_MID_NORMAL_MAX + ' mm',   val:vPdf('vd_mid',' mm')},
+      {lbl:'Longitud',    ref:'<=' + VD_LONG_NORMAL_MAX + ' mm',  val:vPdf('vd_long',' mm')},
       /* FAC y FEVD van juntas y con SU propia referencia cada una: son dos medidas distintas de
          lo mismo (2D por áreas vs 3D) y confundir los cortes —35 % y 45 %— convierte un VD
          normal en disfuncionante. La referencia del diámetro basal decía «<42 mm» mientras el
          código clasifica con «<=41»: el mismo borde escrito de dos formas, ahora derivado de la
          constante. */
-      {lbl:'FAC',         ref:'>=' + UMBRAL_FAC_VD_NORMAL + '%', val:v('vd_fac') ?v('vd_fac') +'%'    :null},
-      {lbl:'FEVD',        ref:'>=45%',       val:v('fevd')   ?v('fevd')   +'%'    :null},
-      {lbl:'VD/VI',       ref:'',           val:v('vd_vi')  ?v('vd_vi')  .toFixed(2):null},
+      {lbl:'FAC',         ref:'>=' + UMBRAL_FAC_VD_NORMAL + '%', val:vPdf('vd_fac','%')},
+      {lbl:'FEVD',        ref:'>=45%',       val:vPdf('fevd','%')},
+      {lbl:'VD/VI',       ref:'',           val:vPdf('vd_vi','',2)},
     ]},
   ]);
 
@@ -29069,13 +29230,13 @@ function generarPDFReal(_aj) {
        sale idéntico. */
     {titulo: (typeof venpHay === 'function' && venpHay())
                ? 'VM — Transmitral / Vena pulmonar' : 'VM — Flujo transmitral', items:[
-      {lbl:'Onda E',    ref:'',  val:v('onda_e')?v('onda_e')+' cm/s':null},
-      {lbl:'Onda A',    ref:'',  val:v('onda_a')?v('onda_a')+' cm/s':null},
+      {lbl:'Onda E',    ref:'',  val:vPdf('onda_e',' cm/s')},
+      {lbl:'Onda A',    ref:'',  val:vPdf('onda_a',' cm/s')},
       {lbl:'E/A',       ref:'',  val:ea},
-      {lbl:'TDA',       ref:'',  val:v('tde') ?v('tde') +' ms':null},
-      {lbl:'TRIV',      ref:'',  val:v('triv')?v('triv')+' ms':null},
-      {lbl:'THP',       ref:'',  val:v('thp') ?v('thp') +' ms':null},
-      {lbl:'AVm THP',   ref:'',  val:v('avm_thp')?v('avm_thp')+' cm2':null},
+      {lbl:'TDA',       ref:'',  val:vPdf('tde',' ms')},
+      {lbl:'TRIV',      ref:'',  val:vPdf('triv',' ms')},
+      {lbl:'THP',       ref:'',  val:vPdf('thp',' ms')},
+      {lbl:'AVm THP',   ref:'',  val:vPdf('avm_thp',' cm2')},
     ],
     /* ⚠️ SUB-COLUMNA DERECHA: VENA PULMONAR. Va como `items2` de ESTA sección y no como una
        cuarta columna — ver la nota larga en `drawTablaCompacta`—: así «DTI mitral» y
@@ -29107,16 +29268,19 @@ function generarPDFReal(_aj) {
                                              return d==null?null:(d+' ms'); })()},
     ]},
     {titulo:'DTI mitral', items:[
-      {lbl:"e' septal",  ref:'>7 cm/s',  val:eSep ?eSep +' cm/s':null},
-      {lbl:"e' lateral", ref:'>10 cm/s', val:eLat ?eLat +' cm/s':null},
-      {lbl:"e' prom.",   ref:'',         val:eProm?eProm+' cm/s':null},
+      /* Igual que las cuatro de VI-Estructura: un valor ilegible se DICE, no borra la fila.
+         Con e_sep = 0,07 (m/s por cm/s) la fila desaparecia del papel firmado y el E/e' se
+         seguia publicando como «promedio» calculado con un solo anillo. */
+      {lbl:"e' septal",  ref:'>7 cm/s',  val:eSep?eSep+' cm/s'+(_pESep.fuera?MARCA_REVISAR:''):null},
+      {lbl:"e' lateral", ref:'>10 cm/s', val:eLat?eLat+' cm/s'+(_pELat.fuera?MARCA_REVISAR:''):null},
+      {lbl:"e' prom.",   ref:'',         val:ePromS?ePromS.replace(/( \(revisar\))?$/,' cm/s$1'):null},
       /* ⚠️ `<=14` Y DERIVADO DE LA CONSTANTE. Decía `<14`, que EXCLUYE el 14,0 exacto — y la app
          clasifica con `> 14`, así que ese mismo valor salía en negro en pantalla y fuera de rango
          en el documento firmado. Es el borde que el pintado nuevo destapó. Lo cazó `/sharp-edges`. */
       {lbl:"E/e'",       ref:'<=' + UMBRAL_EE_ELEVADA,      val:ee},
     ]},
     {titulo:'Tricúspide / PSAP', items:[
-      {lbl:'V. máx IT',  ref:'',                    val:v('vmax_it')  ?v('vmax_it')  +' m/s' :null},
+      {lbl:'V. máx IT',  ref:'',                    val:vPdf('vmax_it',' m/s')},
       {lbl:'Grad. IT',   ref:'',                    val:gradIT},
       /* La columna `ref` de esta tabla es la de UMBRALES DE SEVERIDAD, y cuatro bandas al lado
          de la PSAP son una graduación de hipertensión pulmonar en todo menos en el nombre —
@@ -29124,10 +29288,10 @@ function generarPDFReal(_aj) {
          grado de HTP»). Se sostenía por el contrapeso de la salvedad del narrativo; al salir
          ésa (2026-09-14) la tabla quedaba como la única lectura, y la más afirmativa.
          Queda el corte de normalidad, que sí es un valor de referencia. */
-      {lbl:'PSAP',       ref:'<=' + UMBRAL_PSAP_ELEVADA + ' mmHg',   val:v('psap_calc')?v('psap_calc')+' mmHg':null},
+      {lbl:'PSAP',       ref:'<=' + UMBRAL_PSAP_ELEVADA + ' mmHg',   val:vPdf('psap_calc',' mmHg')},
       {lbl:'PAP media',  ref:'',                    val:sv('pap_med')||null},
-      {lbl:'V. máx VP',  ref:'', val:v('vp_vmax')?v('vp_vmax')+' m/s' :null},
-      {lbl:'G. máx VP',  ref:'', val:v('vp_gmax')?v('vp_gmax')+' mmHg':null},
+      {lbl:'V. máx VP',  ref:'', val:vPdf('vp_vmax',' m/s')},
+      {lbl:'G. máx VP',  ref:'', val:vPdf('vp_gmax',' mmHg')},
       {lbl:'Morf. VP',   ref:'', val:(sv('vp_morf')&&sv('vp_morf')!=='Normal')?sv('vp_morf'):null},
       /* Sin PmAD NO se publica la fila. El `(pm||0)` de antes imprimía `4·V²` —el gradiente
          entre arteria pulmonar y ventrículo derecho— bajo el rótulo «PAPm», subestimando la
@@ -29144,19 +29308,19 @@ function generarPDFReal(_aj) {
   // ════════════════════════════════════════════════════════════
   drawTablaCompacta([
     {titulo:'VA — Gradientes', items:[
-      {lbl:'V. máx Ao',   ref:'', val:v('vmax_ao')  ?v('vmax_ao')  +' m/s' :null},
-      {lbl:'G. máx',      ref:'', val:v('gmax_calc')?v('gmax_calc')+' mmHg':null},
-      {lbl:'G. medio',    ref:'', val:v('gmedio_ao')?v('gmedio_ao')+' mmHg':null},
+      {lbl:'V. máx Ao',   ref:'', val:vPdf('vmax_ao',' m/s')},
+      {lbl:'G. máx',      ref:'', val:vPdf('gmax_calc',' mmHg')},
+      {lbl:'G. medio',    ref:'', val:vPdf('gmedio_ao',' mmHg')},
     ]},
     {titulo:'Continuidad TSVI', items:[
-      {lbl:'VTI TSVI',  ref:'', val:v('itv_tsvi')?v('itv_tsvi')+' cm':null},
-      {lbl:'VTI Vao',   ref:'', val:v('itv_ao')  ?v('itv_ao')  +' cm':null},
-      {lbl:'Ø TSVI',    ref:'', val:v('diam_tsvi')?v('diam_tsvi')+' mm':null},
+      {lbl:'VTI TSVI',  ref:'', val:vPdf('itv_tsvi',' cm')},
+      {lbl:'VTI Vao',   ref:'', val:vPdf('itv_ao',' cm')},
+      {lbl:'Ø TSVI',    ref:'', val:vPdf('diam_tsvi',' mm')},
     ]},
     {titulo:'AVA / GC / IC', items:[
       {lbl:'AVA',         ref:'(>1.5 / >' + AVA_SEVERA_MAX.toFixed(1) + '–1.49 / ≤' + AVA_SEVERA_MAX.toFixed(1) + ') cm²', val:avaC?avaC+' cm2':null},
       {lbl:'AVA idx',     ref:'<0.6 cm2/m2', val:avaIdx},
-      {lbl:'Vol. sistól.',ref:'55-100 ml',    val:v('vs_calc')?v('vs_calc')+' ml':null},
+      {lbl:'Vol. sistól.',ref:'55-100 ml',    val:vPdf('vs_calc',' ml')},
       /* VLI: el informe lo cita para decidir entre «paradojal» y «flujo normal», así que el
          número tiene que estar también en la tabla de mediciones — si no, el lector no puede
          verificar la frase que sostiene el escenario. Sale de `vliCalc`, la misma función que
@@ -29202,7 +29366,7 @@ function generarPDFReal(_aj) {
     {titulo:'Válvula Mitral', items:[
       {lbl:'Morf.',         ref:'', val:sv('vm_morf')||null},
       {lbl:'IM',            ref:'', val:imG?GT[imG]:null},
-      {lbl:'VC IM',         ref:'(<3 / 3–7 / ≥7) mm', val:v('im_vc')?v('im_vc')+' mm':null},
+      {lbl:'VC IM',         ref:'(<3 / 3–7 / ≥7) mm', val:vPdf('im_vc',' mm')},
       {lbl:'EROA',          ref:'(<20 / 20–40 / ≥40) mm²', val:eroaS},
       {lbl:'Vol.R',         ref:'(<30 / 30–60 / ≥60) ml', val:volrS},
       {lbl:'EM grado',      ref:'', val:(sv('em_grado')&&sv('em_grado')!=='sin')?_cap(sv('em_grado')):null},
@@ -29213,22 +29377,27 @@ function generarPDFReal(_aj) {
       {lbl:'Morf.',         ref:'', val:sv('va_morf')||null},
       {lbl:'EA grado',      ref:'', val:eaReal?_cap(sv('ea_grado')):null},
       {lbl:'AVA',           ref:'(>1.5 / >' + AVA_SEVERA_MAX.toFixed(1) + '–1.49 / ≤' + AVA_SEVERA_MAX.toFixed(1) + ') cm²', val:eaReal&&avaC?avaC+' cm2':null},
-      {lbl:'V. max',        ref:'(<3 / 3–4 / >4) m/s', val:eaReal&&v('vmax_ao')?v('vmax_ao')+' m/s':null},
-      {lbl:'G. medio',      ref:'(<20 / 20–40 / >40) mmHg', val:eaReal&&v('gmedio_ao')?v('gmedio_ao')+' mmHg':null},
+      /* Mismas bandas que las filas del bloque de gradientes: sin esto, un mismo PDF decia
+         «V. máx Ao: fuera de rango» arriba y «V. max: 280 m/s» dos bloques mas abajo. */
+      {lbl:'V. max',        ref:'(<3 / 3–4 / >4) m/s', val:eaReal?vPdf('vmax_ao',' m/s'):null},
+      {lbl:'G. medio',      ref:'(<20 / 20–40 / >40) mmHg', val:eaReal?vPdf('gmedio_ao',' mmHg'):null},
       {lbl:'IAo',           ref:'', val:iaG?GT[iaG]:null},
-      {lbl:'VC IAo',        ref:'(<3 / 3–6 / >6) mm', val:v('ia_vc')?v('ia_vc')+' mm':null},
-      {lbl:'PHT',           ref:'(>500 / 200–500 / <200) ms', val:v('ia_pht')?v('ia_pht')+' ms':null},
+      {lbl:'VC IAo',        ref:'(<3 / 3–6 / >6) mm', val:vPdf('ia_vc',' mm')},
+      {lbl:'PHT',           ref:'(>500 / 200–500 / <200) ms', val:vPdf('ia_pht',' ms')},
       {lbl:'Notas',         ref:'', val:sv('va_notas')||null},
     ]},
     {titulo:'Válvula Tricúspide', items:[
       {lbl:'Morf.',         ref:'', val:sv('vt_morf')||null},
       {lbl:'IT',            ref:'', val:itG?GT[itG]:null},
       {lbl:'ET grado',      ref:'', val:(sv('et_grado')&&sv('et_grado')!=='Sin estenosis')?sv('et_grado'):null},
-      {lbl:'VC IT',         ref:'(<3 / 3–7 / >7) mm', val:v('it_vc')?v('it_vc')+' mm':null},
-      {lbl:'EROA IT',       ref:'(<20 / 20–40 / ≥40) mm²', val:v('it_eroa')?v('it_eroa')+' mm2':null},
-      {lbl:'Grad. VD-AD',   ref:'', val:v('vmax_it')?(4*v('vmax_it')*v('vmax_it')).toFixed(0)+' mmHg':null},
+      {lbl:'VC IT',         ref:'(<3 / 3–7 / >7) mm', val:vPdf('it_vc',' mm')},
+      {lbl:'EROA IT',       ref:'(<20 / 20–40 / ≥40) mm²', val:vPdf('it_eroa',' mm2')},
+      /* El gradiente se DERIVA de la Vmax IT, así que hereda su banda: sin esto, una Vmax de 280
+         —cm/s tipeados donde van m/s— imprimía un gradiente de 313.600 mmHg. */
+      {lbl:'Grad. VD-AD',   ref:'', val:(function(){ const p=vPlaus('vmax_it');
+        return p.crudo ? (4*p.crudo*p.crudo).toFixed(0)+' mmHg'+(p.fuera?MARCA_REVISAR:'') : null; })()},
       // Idem la fila del Bloque 3: un solo corte de normalidad, no una escala de cuatro bandas.
-      {lbl:'PSAP',          ref:'<=' + UMBRAL_PSAP_ELEVADA + ' mmHg', val:v('psap_calc')?v('psap_calc')+' mmHg':null},
+      {lbl:'PSAP',          ref:'<=' + UMBRAL_PSAP_ELEVADA + ' mmHg', val:vPdf('psap_calc',' mmHg')},
     ]},
     {titulo:'Otros', items:[
       {lbl:'Pericardio',    ref:'', val:sv('pericardio')||null},
@@ -66999,7 +67168,15 @@ const DCM_RANGO = {
      tabla: por abajo atrapa un volumen tipeado en litros (0,045 por 45) y por arriba un cero de
      más. NO atrapa un 450 por 45, porque un telesistólico de 450 ml es real en una miocardiopatía
      dilatada terminal — la misma limitación honesta que la superficie corporal. */
-  vsfvi:[3,500]
+  vsfvi:[3,500],
+  /* Agregada 2026-09-27 por decisión de Maicol, tras el censo que la encontró faltando. Es la
+     MISMA ventana que su gemelo telesistólico y por el mismo motivo: atrapa el volumen tipeado
+     en litros y el cero de más, y no el 450 real de una dilatada terminal.
+     No se dedujo del código —`vdfvi` nunca tuvo banda en ninguna de las dos tablas— así que el
+     número lo decidió una persona, no este archivo. Lo que elimina es la asimetría de que el
+     volumen telesistólico validara y el telediastólico no, que es la clase de desalineación
+     entre hermanos que esta suite ya pagó dos veces. */
+  vdfvi:[3,500]
 };
 /* ── Dos niveles de rango, que contestan preguntas distintas ──────────────────────────
    `DCM_RANGO` es lo FÍSICAMENTE posible: un valor afuera no es un hallazgo raro, es un
@@ -77932,8 +78109,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260926-2144';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790469887556;                 /* eco-build-ms */
+const ECO_BUILD    = '20260927-0056';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790481400669;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -78019,7 +78196,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260926-2144</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-0056</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

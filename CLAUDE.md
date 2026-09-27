@@ -4,6 +4,105 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Plausibilidad en pantalla y en el papel: MARCAR SIN BORRAR (2026-09-27)
+
+`vPlaus(id)` / `vPdf(id, uni, dec)` al lado de `v()`. La banda sale de `_labRango` —el accesor
+mergeado que ya usan el importador DICOM, el del Excel y el panel de Evidencia—, no de una tabla
+nueva.
+
+### La decisión que hace que esto sea seguro, y casi se va de las manos
+
+La primera versión **reemplazaba** el valor fuera de banda por «fuera de rango». Funcionaba, el
+suite pasaba, y **borraba mediciones reales del informe firmado**. Medido antes de commitear:
+
+| entrada | es real | qué hacía la primera versión |
+|---|---|---|
+| Septum de **36 mm** | MCH severa; esta app trata ≥ 30 mm como criterio mayor AHA | desaparecía del PDF y perdía la clasificación de HVI |
+| FEVI de **92 %** | hiperdinámica | «fuera de rango» |
+| SGL **+18** | el campo acepta el strain en positivo | «fuera de rango» en la tabla, y la hoja de strain del MISMO PDF lo imprimía como 18 % |
+
+**La causa es conceptual y hay que tenerla presente antes de reusar estas bandas:
+`DCM_RANGO` se escribió para RECHAZAR UNA FILA DE IMPORTACIÓN**, donde un falso positivo cuesta
+«no entra». Usarla para decidir qué se imprime en un documento que se archiva cambia el costo a
+«se pierde el hallazgo». El propio repo ya había pagado esto: `co_fevi_basal` es `[0,95]` **y no
+`[0,90]`** con un comentario que dice textualmente que con el techo en 90 «se RECHAZABA LA FILA
+ENTERA» por una FEVI de 92.
+
+**Decisión de Maicol: el número se imprime SIEMPRE y la banda decide sólo si se CLASIFICA.** Un
+110 mm sale «110 mm (revisar)» y un 36 mm sale «36 mm (revisar)»: el dedazo queda visible, el
+hallazgo real no se pierde, y lo que se suprime es el juicio derivado —masa indexada, geometría,
+badge de HVI—, que es lo único que no se sostiene sobre un valor dudoso.
+
+### Y eso además hace la garantía estructural
+
+Se calcula **siempre con `crudo`**, que es exactamente lo que devolvía `v()`. Así «lo válido no se
+mueve» queda garantizado **por construcción y no por revisión**: las cuentas son las de antes,
+byte a byte, y la banda sólo agrega la marca.
+
+### El censo dio treinta y cinco campos, no dos
+
+No eran «los dos volúmenes». Las tablas compactas del PDF leen 35 campos; **seis no tenían banda**
+(`vdfvi`, `vol_lat`, `tvia`, `vd_fac`, `fevd`, los `venp_*`) y otros catorce derivados `readonly`
+tampoco (`psap_calc`, `gmax_calc`, `vs_calc`…). Para todos ésos `vPlaus` se comporta igual que
+`v()` — **sin banda NO se falla cerrado**, al revés que en el panel de Evidencia, porque acá
+fallar cerrado borraría datos de todos los pacientes que hoy los tienen cargados.
+
+**`vdfvi` era el único de su tarjeta sin banda.** Se le agregó `[3,500]` —la de su gemelo— el
+2026-09-27 por decisión de Maicol: el número lo eligió una persona, no se dedujo del código.
+
+### El defecto que la conversión automática introduce, y hay que buscar a mano
+
+El script convirtió 33 filas `val:v('X')?…:null` a `vPdf`. Lo que **no** alcanza:
+
+- **Las filas que usan una variable local ya validada.** `{val: sivV ? sivV+' mm' : null}` con
+  `sivV` en `null` **borra la fila entera**, y el papel terminaba acusando al derivado
+  («Masa idx: fuera de rango») mientras escondía el insumo que lo causó. Pasó con SIV/DDVI/DSVI/PP
+  y con e' septal / e' lateral.
+- **Los derivados que no son una fila.** `gradIT`, las dos filas aórticas del bloque 5 y `eProm`
+  quedaron sin marcar al lado de su propio insumo marcado: el mismo PDF decía «V. máx IT: fuera de
+  rango» y «Grad. IT: 313600 mmHg». Un promedio contaminado **se ve igual que uno bueno**, y es el
+  denominador del E/e'.
+
+### Lo demás
+
+- **El rótulo de VDFVI decía `H<75 M<61` y el código nunca estuvo mal.** `vdfviInterp` clasifica
+  con `> 74` y `> 61` desde siempre —medido: 74,0 normal, 74,1 dilatado, 61,0 normal en la mujer—,
+  que es lo que dice la ASE 2015. La etiqueta impresa **era falsa en las dos direcciones**: daba
+  por normal un 74,5 que el badge llama dilatado y por anormal un 61,0 que llama normal. Hoy
+  `H<=74 M<=61`. **Antes de "corregir un umbral", mirar si el que está mal es el rótulo.**
+- **`calcVI` no tenía `else` en ningún bloque**, así que al vaciar un campo el span conservaba el
+  valor del paciente ANTERIOR. Era latente; agregar validación sin arreglarlo lo habría vuelto
+  cotidiano.
+- **El SGL no se valida, a propósito.** Su banda `[-40,0]` está escrita para el camino DICOM,
+  donde el signo se normaliza ANTES del chequeo; el formulario acepta el positivo. Validarlo
+  convertiría un 18 % —el valor NORMAL— en dudoso.
+- **`vPdf` usa `!p.crudo` y no `== null`**: las 33 filas venían con guarda de truthiness, así que
+  un 0 no dibujaba la fila y tiene que seguir sin dibujarla.
+
+### Las trampas de los casos
+
+- **Acentos graves: sexta a novena vez.** Cuatro más, todas en comentarios recién escritos dentro
+  de cuerpos de caso. El barrido antes de `node --check` los encuentra:
+  ```
+  python3 -c "import re,sys;s=open('scripts/test_clinico.mjs',encoding='utf-8').read();
+  print([m.group(1) for m in re.finditer(r\"caso\('(TC-[\w-]+)'\",s) ])"
+  ```
+- **Y una trampa nueva de escape: `\/` dentro de un cuerpo de caso NO es `\/`.** El cuerpo es un
+  template literal, así que `/316 g\/m/` llega al navegador como `/316 g/m/` — regex inválida, y
+  el caso muere con «Invalid regular expression flags» en vez de con un rojo legible. Hace falta
+  `\\/` en el archivo. **Lo más simple es no usar regex: `indexOf` no tiene este problema**, y es
+  lo que hacen los casos viejos de LAVI.
+- **Un valor pineado tiene que salir del escenario, no de la cabeza.** La condición del septum de
+  36 mm afirmaba una masa de 316 g/m² sobre un escenario que además tenía el DDVI en 5,0: daba 55.
+
+### La línea base de esta ronda
+
+**Suite 295/296** — el único rojo es TC-223, el documentado. **Semgrep 126 / 0 ERROR**, que es la
+línea histórica: el +1 de la ronda anterior desapareció al reestructurar los dos `innerHTML` de
+los volúmenes. Sin huérfanos nuevos. `check_mobile` en los 2 ALTA de siempre.
+**Once mutaciones, once en rojo, base verde leída primero en cada tanda.**
+
+
 ## VSFVI: el campo que faltaba, y el criterio que dejó de ser inevaluable (2026-09-26)
 
 Volumen telesistólico del VI (`vsfvi`) en AI/VI, su indexado por superficie corporal, la fila en

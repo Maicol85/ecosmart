@@ -29902,6 +29902,241 @@ caso('TC-279', 'VSFVI: indexado por la misma BSA, cortes ASE por sexo, y el crit
   })();
 `);
 
+/* ══ PLAUSIBILIDAD EN PANTALLA Y EN EL PAPEL — TC-280 y TC-281 ═══════════════════════════════
+   Hasta hoy el calc-box y las tablas del PDF clasificaban CUALQUIER numero: un SIV de 110 mm
+   —dedazo por 11,0— pintaba HVI y un VSFVI de 0,06 —el volumen tipeado en litros— salia
+   «normal», las dos cosas sobre basura, mientras el panel de Evidencia ya las rechazaba. El
+   mismo estudio decia dos cosas distintas segun la superficie, y la que se archiva era la que
+   no validaba.
+
+   ⚠️ LO QUE MAS IMPORTA DE ESTOS DOS CASOS NO ES EL RECHAZO: ES QUE LO VALIDO NO CAMBIE. Una
+   validacion que de paso mueve un resultado bueno es peor que no tenerla, porque se descubre
+   sobre un informe firmado. TC-280 compara el calc-box entero y TC-281 compara las dieciseis
+   filas del PDF, con datos NORMALES, contra lo que la app imprimia antes del cambio. */
+
+/* `nombre` va en la lista: PLAUS_BASE lo fija, y si el finally no lo limpia el caso siguiente
+   hereda un nombre de paciente ajeno — que es exactamente la fuga que TC-279 declara haber
+   cerrado en la direccion contraria. Hoy TC-281 es el ultimo del archivo, o sea la clase de
+   garantia que se rompe sola al agregar el caso que viene. */
+const PLAUS_IDS = "['ddfvi','dsfvi','siv','ppvi','fevi','vdfvi','vsfvi','peso','talla','sexo'," +
+  "'tapse','vmax_it','onda_e','onda_a','ai_vol','vol_lat','sgl','s_prime','vd_bas','nombre']";
+/* Estudio NORMAL de referencia. BSA 2,00 exacta (80/180), asi que los indexados dan redondos. */
+const PLAUS_BASE = "{nombre:'Plausibilidad',peso:'80',talla:'180',sexo:'M',ddfvi:'50',dsfvi:'34'," +
+  "siv:'10',ppvi:'10',fevi:'60',vdfvi:'140',vsfvi:'60',tapse:'20',vmax_it:'2.5',onda_e:'80'," +
+  "onda_a:'60',ai_vol:'50',vol_lat:'75',sgl:'18',s_prime:'12',vd_bas:'35'}";
+
+caso('TC-280', 'El calc-box del VI no clasifica un valor ilegible, y lo valido sigue igual', `
+  return (async () => {
+    if (typeof vPlaus !== 'function' || typeof calcVI !== 'function')
+      return { extra:[['existen vPlaus y calcVI', false, '']] };
+    const IDS = ${PLAUS_IDS};
+    const BASE = ${PLAUS_BASE};
+    const SPANS = ['fa-val','devereux-val','rwt-val','geom-val','vdfvi-idx-interp',
+                   'vsfvi-idx-interp','fevi-interp'];
+    const set = o => { IDS.forEach(id => { const e = document.getElementById(id);
+                         if (e && !(id in o)) e.value = ''; });
+                       Object.keys(o).forEach(id => { const e = document.getElementById(id);
+                         if (e) e.value = o[id]; });
+                       calcVI(); };
+    const leer = () => SPANS.reduce((a,id) => { const e = document.getElementById(id);
+      a[id] = e ? e.textContent.trim() : 'NO EXISTE'; return a; }, {});
+    const FUERA = /revisar la unidad/;
+    try {
+      const ex = [];
+
+      /* ── 1 · LO VALIDO NO SE MUEVE ── es la mitad que importa del cambio. */
+      set(BASE);
+      const ok = leer();
+      ex.push(['un estudio normal clasifica exactamente igual que antes del cambio',
+        ok['fa-val'] === '32.0%' && /91 g\\/m/.test(ok['devereux-val']) &&
+        /Normal/.test(ok['devereux-val']) && ok['rwt-val'] === '0.40' &&
+        /Geometr.a normal/.test(ok['geom-val']) && /70.0 ml\\/m/.test(ok['vdfvi-idx-interp']) &&
+        /normal/.test(ok['vdfvi-idx-interp']) && /30.0 ml\\/m/.test(ok['vsfvi-idx-interp']) &&
+        /Normal/.test(ok['fevi-interp']),
+        JSON.stringify(ok)]);
+
+      /* ── 2 · UN SIV DE 110 mm NO PINTA HVI, PERO EL NUMERO NO SE BORRA ──
+         Es el dedazo de 11,0 y cae fuera de la banda [3,35]. Antes pintaba el badge rojo de HVI
+         sobre un ventriculo sano. Hoy: el valor sigue, el VEREDICTO no.
+         ⚠️ MARCAR SIN BORRAR (decision de Maicol, 2026-09-27). La primera version REEMPLAZABA el
+         valor, y eso borraba mediciones REALES: un septum de 36 mm es miocardiopatia hipertrofica
+         severa —esta misma app trata >=30 mm como criterio mayor— y desaparecia del informe. */
+      set(Object.assign({}, BASE, { siv:'110' }));
+      const sivMal = leer();
+      ex.push(['un SIV de 110 mm conserva la masa calculada pero le saca el veredicto de HVI',
+        sivMal['devereux-val'].indexOf('1992 g') > -1 && FUERA.test(sivMal['devereux-val']) &&
+        !/HVI/.test(sivMal['devereux-val']) && FUERA.test(sivMal['geom-val']),
+        sivMal['devereux-val'] + ' | ' + sivMal['geom-val']]);
+
+      /* ── 2b · Y EL SEPTUM DE 36 mm, QUE ES REAL, NO DESAPARECE ──
+         Es el caso que decidio el diseno: la banda de DCM_RANGO se escribio para rechazar una
+         fila de IMPORTACION, donde un falso positivo cuesta «no entra»; en el informe firmado
+         cuesta «se pierde el hallazgo». Con 35 mm clasifica normal, con 36 se marca. */
+      set(Object.assign({}, BASE, { siv:'36' }));
+      const siv36 = leer();
+      set(Object.assign({}, BASE, { siv:'35' }));
+      const siv35 = leer();
+      ex.push(['un septum de 36 mm (MCH severa) conserva su masa indexada en pantalla',
+        siv36['devereux-val'].indexOf('316 g') > -1 && FUERA.test(siv36['devereux-val']) &&
+        /HVI/.test(siv35['devereux-val']),
+        '36mm: ' + siv36['devereux-val'] + ' | 35mm: ' + siv35['devereux-val']]);
+      /* Y la FA, que NO usa el SIV, sigue saliendo: el rechazo es POR CAMPO, no por bloque. */
+      ex.push(['y la FA, que no usa el SIV, sigue publicandose igual',
+        sivMal['fa-val'] === '32.0%', sivMal['fa-val']]);
+
+      /* ── 3 · EL VOLUMEN EN LITROS ── el caso que motivo todo esto. */
+      set(Object.assign({}, BASE, { vsfvi:'0.06' }));
+      const volMal = leer();
+      ex.push(['un VSFVI de 0,06 conserva el indexado pero ya no dice «normal»',
+        FUERA.test(volMal['vsfvi-idx-interp']) && !/normal/.test(volMal['vsfvi-idx-interp']) &&
+        volMal['vsfvi-idx-interp'].indexOf('ml/m') > -1,
+        volMal['vsfvi-idx-interp']]);
+
+      /* ── 4 · UNA FEVI DE 600 % ── banda [5,90]. */
+      set(Object.assign({}, BASE, { fevi:'600' }));
+      ex.push(['una FEVI de 600 % no se clasifica', FUERA.test(leer()['fevi-interp']),
+        leer()['fevi-interp']]);
+
+      /* ── 5 · NO QUEDA EL VALOR DEL PACIENTE ANTERIOR ──
+         Los bloques de calcVI no tenian else, asi que al vaciar un campo el span conservaba lo
+         de antes. Era latente; la validacion lo volveria frecuente, porque ahora un numero
+         ilegible tambien hace desaparecer el insumo. */
+      set(BASE);
+      set({});
+      const vacio = leer();
+      ex.push(['al vaciar el formulario ningun span conserva el valor del estudio anterior',
+        SPANS.every(id => vacio[id] === '—'), JSON.stringify(vacio)]);
+
+      /* ── 6 · LOS DOS VOLUMENES VALIDAN IGUAL ──
+         El censo encontro que vdfvi era el unico campo de la tarjeta SIN banda, al reves que su
+         gemelo. La entrada se agrego a DCM_RANGO el 2026-09-27 por decision de Maicol. El caso
+         fija la banda Y el efecto: si alguien la saca, el 0,14 vuelve a clasificarse «normal». */
+      const bandaVdf = (typeof window._labRango === 'function') ? window._labRango('vdfvi') : null;
+      set(Object.assign({}, BASE, { vdfvi:'0.14' }));
+      const vdfMal = leer()['vdfvi-idx-interp'];
+      ex.push(['vdfvi tiene banda y un 0,14 se marca, igual que su gemelo telesistolico',
+        Array.isArray(bandaVdf) && bandaVdf.length === 2 && FUERA.test(vdfMal) &&
+        !/normal/.test(vdfMal),
+        'banda=' + JSON.stringify(bandaVdf) + ' | ' + vdfMal]);
+      return { extra: ex };
+    } finally {
+      try { IDS.forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+        const sx = document.getElementById('sexo'); if (sx) sx.selectedIndex = 0;
+        calcVI(); } catch (e) {}
+    }
+  })();
+`);
+
+caso('TC-281', 'El PDF firmado no imprime una medicion ilegible, y borra la fila de ninguna', `
+  return (async () => {
+    if (typeof vPdf !== 'function') return { extra:[['existe vPdf', false, '']] };
+    /* jsPDF llega por CDN: sin la espera el caso da rojo intermitente por la red. */
+    for (let i = 0; i < 80 && (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF); i++) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+    const JP = (window.jspdf || {}).jsPDF;
+    if (!JP) return { extra:[['la libreria jsPDF llego por CDN', false, 'no cargo en 8 s']] };
+    const IDS = ${PLAUS_IDS};
+    const BASE = ${PLAUS_BASE};
+    const set = o => { IDS.forEach(id => { const e = document.getElementById(id);
+                         if (e && !(id in o)) e.value = ''; });
+                       Object.keys(o).forEach(id => { const e = document.getElementById(id);
+                         if (e) e.value = o[id]; });
+                       if (typeof calcVI === 'function') calcVI(); };
+    /* Se envuelve el CONSTRUCTOR porque save es propiedad de la instancia, y se devuelve sin
+       descargar. Las cadenas salen de los operadores Tj: es lo unico que prueba que el texto se
+       DIBUJO y no solo que se calculo. */
+    const capturar = () => {
+      const Orig = JP; let t = null;
+      window.jspdf.jsPDF = function (...a) {
+        const d = new Orig(...a);
+        d.save = function () { t = [];
+          const n = d.internal.getNumberOfPages();
+          for (let p = 1; p <= n; p++) { const pg = d.internal.pages[p]; if (!pg) continue;
+            const raw = Array.isArray(pg) ? pg.join('\\n') : String(pg);
+            (raw.match(/\\((?:[^()\\\\]|\\\\.)*\\)\\s*Tj/g) || []).forEach(function (m) {
+              t.push(m.replace(/\\)\\s*Tj$/, '').replace(/^\\(/, '')); }); } };
+        return d; };
+      window.jspdf.jsPDF.prototype = Orig.prototype;
+      try { generarPDFReal(); } catch (e) { return { err: e.message }; }
+      finally { window.jspdf.jsPDF = Orig; }
+      return { t: (t || []).map(x => x.replace(/\\\\/g, '')) };
+    };
+    const fila = (t, lbl) => { const i = t.indexOf(lbl);
+      return i > -1 ? (t[i] + (t[i+1] || '') + (t[i+2] || '')) : '(no dibujada)'; };
+    try {
+      const ex = [];
+
+      /* ── 1 · CON DATOS NORMALES EL PAPEL SALE IGUAL QUE SIEMPRE ── */
+      set(BASE);
+      const r1 = capturar();
+      if (r1.err) return { extra:[['el PDF se genero', false, r1.err]] };
+      const t1 = r1.t;
+      const esperado = {
+        'SIV':'10 mm', 'DDVI':'50 mm', 'DSVI':'34 mm', 'PP':'10 mm',
+        'VSFVI idx':'30.0 ml/m', 'Masa idx':'91 g/m2', 'RWT':'0.40',
+        'FEVI':'60%', 'Vol. lat.':'75 ml', 'TAPSE':'20 mm', 'Grad. VD-AD':'25 mmHg'
+      };
+      const malas = Object.keys(esperado).filter(k => fila(t1, k).indexOf(esperado[k]) === -1);
+      ex.push(['con un estudio normal las once filas imprimen lo mismo que antes del cambio',
+        malas.length === 0, malas.length ? malas.map(k => k + ' -> ' + fila(t1, k)).join(' | ') : 'todas']);
+
+      /* ── 2 · EL ROTULO DE VDFVI DICE LO QUE EL CODIGO APLICA ──
+         Decia «H<75 M<61» mientras vdfviInterp clasifica con > 74 y > 61: el papel daba por
+         normal un 74,5 que la pantalla llama dilatado, y por anormal un 61,0 que llama normal. */
+      ex.push(['la fila de VDFVI idx imprime el rango H<=74 M<=61, que es el que aplica el badge',
+        /H<=74 M<=61/.test(fila(t1, 'VDFVI idx')), fila(t1, 'VDFVI idx')]);
+
+      /* ── 3 · LA MEDICION DUDOSA SE MARCA, PERO NO SE BORRA NI SE REEMPLAZA ──
+         ⚠️ Decision de Maicol (2026-09-27). La primera version imprimia «fuera de rango» EN LUGAR
+         del numero, y eso sacaba del papel firmado mediciones REALES: un septum de 36 mm es MCH
+         severa y una FEVI de 92 % es hiperdinamica —el propio repo ya habia elegido [0,95] en la
+         tabla del Laboratorio POR ESTO—. Las bandas de DCM_RANGO se escribieron para rechazar una
+         fila de IMPORTACION, no para decidir que se imprime en un informe que se archiva.
+         Hoy el numero sale SIEMPRE y lo que se suprime es el juicio derivado. */
+      set(Object.assign({}, BASE, { siv:'36', ddfvi:'5.0', vsfvi:'0.06', fevi:'92',
+                                    tapse:'200', vmax_it:'280', s_prime:'120' }));
+      const r2 = capturar();
+      if (r2.err) return { extra:[['el PDF se genero con datos ilegibles', false, r2.err]] };
+      const t2 = r2.t;
+      const DEBEN = ['SIV','DDVI','VSFVI idx','Masa idx','RWT','FEVI','TAPSE',"S'",'Grad. VD-AD'];
+      const sinMarca = DEBEN.filter(k => fila(t2, k).indexOf('(revisar)') === -1);
+      ex.push(['las nueve mediciones dudosas quedan marcadas y ninguna se borra del papel',
+        sinMarca.length === 0, sinMarca.length ? sinMarca.map(k => k + ' -> ' + fila(t2, k)).join(' | ') : 'las nueve']);
+
+      /* ── 3b · Y EL VALOR SIGUE AHI ── es la mitad que decidio el diseno. Un septum de 36 mm y
+         una FEVI de 92 % son hallazgos reales: se marcan, no se borran. */
+      ex.push(['el septum de 36 mm y la FEVI de 92 % siguen impresos con su numero',
+        fila(t2, 'SIV').indexOf('36 mm') > -1 && fila(t2, 'FEVI').indexOf('92%') > -1,
+        fila(t2, 'SIV') + ' | ' + fila(t2, 'FEVI')]);
+
+      /* ── 3c · EL SGL NO SE VALIDA, Y ES DELIBERADO ── su banda [-40,0] esta escrita para el
+         camino DICOM, donde el signo se normaliza antes; el formulario acepta el strain en
+         positivo, asi que validarlo convertiria un 18 % —que es el valor NORMAL— en dudoso. */
+      ex.push(['un SGL tipeado en positivo se imprime tal cual, sin marca',
+        fila(t2, 'SGL').indexOf('18%') > -1 && fila(t2, 'SGL').indexOf('(revisar)') === -1,
+        fila(t2, 'SGL')]);
+
+      /* ── 4 · EL RECHAZO ES POR CAMPO ── en el MISMO estudio, lo legible sigue saliendo. */
+      const SANAS = { 'DSVI':'34 mm', 'PP':'10 mm', 'Vol. lat.':'75 ml', 'Diám. basal':'35 mm' };
+      // (ninguna de estas lleva marca: el rechazo es por campo, no por bloque)
+      const rotas = Object.keys(SANAS).filter(k => fila(t2, k).indexOf(SANAS[k]) === -1);
+      ex.push(['y en el mismo estudio los campos legibles siguen imprimiendose',
+        rotas.length === 0, rotas.length ? rotas.map(k => k + ' -> ' + fila(t2, k)).join(' | ') : 'las cuatro']);
+
+      /* ── 5 · LA GEOMETRIA NO SE PUBLICA COMO «fuera de rango» ──
+         Es un PATRON, no una medida: «Geometria: fuera de rango» se leeria como un hallazgo. */
+      ex.push(['la geometria del VI no se dibuja cuando sus insumos son ilegibles',
+        fila(t2, 'Geometria') === '(no dibujada)', fila(t2, 'Geometria')]);
+      return { extra: ex };
+    } finally {
+      try { IDS.forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+        const sx = document.getElementById('sexo'); if (sx) sx.selectedIndex = 0;
+        if (typeof calcVI === 'function') calcVI(); } catch (e) {}
+    }
+  })();
+`);
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];
