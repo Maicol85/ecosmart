@@ -17283,6 +17283,14 @@ const VD_BAS_LEVE_MAX   = 45;   // mm — 42-45 dilatación leve;  >45 dilatado
    que trabaja esta app y por eso vive acá y no repartido en literales. */
 const UMBRAL_FAC_VD_NORMAL = 35;   // %
 const UMBRAL_FAC_VD_SEVERA = 25;   // %
+/* Exportados 2026-09-27: el panel de Evidencia los LEE por `_indUmb` —que resuelve sobre
+   `window`— para poder decir que su corte de la Figura 15 (≤ 22 %) no es el de esta cápsula
+   (< 25 %) cuando los dos discrepan. Sin el export, `_indUmb` devolvía `null`, `_lt(fac, null)`
+   daba `false` y el aviso de las dos escalas quedaba DESACTIVADO EN SILENCIO: la conducta se
+   publicaba igual y el médico no se enteraba de que la pantalla y el panel decían cosas
+   distintas del mismo número. Lo cazó la condición de TC-285 que lo mide. */
+window.UMBRAL_FAC_VD_NORMAL = UMBRAL_FAC_VD_NORMAL;
+window.UMBRAL_FAC_VD_SEVERA = UMBRAL_FAC_VD_SEVERA;
 /* Área de la AD en 4 cámaras: ≤18 cm² normal (ASE). Estaba como literal en `calcAD` y otro
    literal igual en el informe narrativo — dos copias del mismo corte, que es como la cápsula
    de pantalla y el informe firmado terminan discrepando. */
@@ -37705,7 +37713,24 @@ const VT_CRIT_2025 = Object.freeze({
      parámetros distintos y la FAC no entra acá por falta de banda. Si algún día entra, esa
      diferencia hay que resolverla antes, no después. */
   tapse_severa:  10,  // mm    — Figura 15: TAPSE < 10 mm
-  sprime_severa: 6    // cm/s  — Figura 15: S' tricuspídeo < 6 cm/s
+  sprime_severa: 6,   // cm/s  — Figura 15: S' tricuspídeo < 6 cm/s
+  /* ⚠️ EL OPERADOR DE LA FAC ES `≤`, Y ES EL ÚNICO DE LA COLUMNA QUE LO USA: los otros cinco
+     parámetros de la Figura 15 —TAPSE, s', FWS, GLS y 3D RV EF— usan `<`. Verificado por dos
+     lecturas independientes del mismo PDF: al render, la barra inferior del `≤` está presente en
+     la fila de la FAC y ausente en la de arriba; y por extracción posicional, los ÚNICOS dos
+     glifos `≤` de toda la región caen en la fila de la FAC de cada caja. No es un desliz de
+     transcripción: una FAC de exactamente 22 % ES disfunción severa. Se aplica con `_le`.
+
+     ⚠️ Y NO ES EL NÚMERO DE LA CÁPSULA DE LA PANTALLA. `UMBRAL_FAC_VD_SEVERA` vale 25 y gobierna
+     el badge de la FAC y el informe firmado; no se toca, porque moverlo cambiaría el grado
+     consignado en estudios ya firmados. Son dos preguntas distintas: la cápsula gradúa la FAC, y
+     esto es la EXCLUSIÓN de unas filas de recomendación. Misma situación que `ET_GMEDIO_SIGNIF`
+     con su `>=` frente al `>` de la guía. Entre 23 y 24 % las dos discrepan —la cápsula dice
+     severa y la guía no— y el panel lo NOMBRA cuando pasa, en vez de dejar dos escalas del mismo
+     dato sin avisar.
+     (De paso: la guía pone el corte de disfunción NO severa en `≤ 35`, y la app en `>= 35` normal,
+     así que una FAC de exactamente 35 también las separa. El panel no usa ese corte.) */
+  fac_severa:    22   // %     — Figura 15: FAC ≤ 22 % (p. 4684 de EHJ 46(44))
 });
 const VT_REC_2025 = Object.freeze({
   cx_izq_sev: { c:'Clase I · Nivel B',
@@ -37737,10 +37762,21 @@ function _vtAssertUmbrales(){
     ['VT_CRIT_2025.anillo_mm',     VT_CRIT_2025.anillo_mm,       40, 'anillo ≥ 40 mm'],
     ['VT_CRIT_2025.anillo_idx',    VT_CRIT_2025.anillo_idx,      21, 'anillo > 21 mm/m²'],
     ['VT_CRIT_2025.tapse_severa',  VT_CRIT_2025.tapse_severa,    10, 'TAPSE < 10 mm'],
-    ['VT_CRIT_2025.sprime_severa', VT_CRIT_2025.sprime_severa,   6,  'S′ tricuspídeo < 6 cm/s']
+    ['VT_CRIT_2025.sprime_severa', VT_CRIT_2025.sprime_severa,   6,  'S′ tricuspídeo < 6 cm/s'],
+    ['VT_CRIT_2025.fac_severa',    VT_CRIT_2025.fac_severa,      22, 'FAC ≤ 22 %']
   ];
   const mal = esp.filter(e => e[1] !== e[2])
     .map(e => e[0] + ' = ' + e[1] + ' pero los textos de VT_REC_2025 y las notas dicen ' + e[3]);
+  /* ⚠️ EL AVISO DE LAS DOS ESCALAS DE LA FAC DEPENDE DE UN EXPORT, Y SIN ÉL SE APAGA EN SILENCIO.
+     El panel compara su corte de la Figura 15 contra `UMBRAL_FAC_VD_SEVERA` para poder decir
+     cuándo la cápsula de la pantalla y la guía discrepan. `_indUmb` resuelve sobre `window`: sin el
+     export devuelve `null`, `_lt(fac, null)` da `false`, y la conducta se publica igual sin que
+     nadie se entere de que las dos superficies dicen cosas distintas del mismo número. Pasó — la
+     constante estaba declarada y no exportada, y lo cazó una condición del caso. Acá queda como
+     comprobación de arranque para que no dependa de que alguien vuelva a escribir esa condición. */
+  if (typeof window.UMBRAL_FAC_VD_SEVERA !== 'number')
+    mal.push('UMBRAL_FAC_VD_SEVERA no está exportada a window: el panel no puede avisar cuándo su ' +
+      'corte de FAC de la Figura 15 discrepa del de la cápsula de la pantalla, y el aviso se apaga en silencio');
   if (mal.length) console.error('[VT] Los textos de la guía quedaron viejos respecto de las ' +
     'constantes. Releer la tabla de recomendaciones antes de tocar nada:\n  ' + mal.join('\n  '));
   return mal;
@@ -37754,11 +37790,26 @@ function _indVTDatos(){
      encima de 10 mm no permite afirmar «sin disfunción severa» si la FAC no se miró. `severa`
      es por eso un `true` afirmativo o un `null` que significa «no se sabe», no un `false`. */
   const t = leer('tapse', 'tapse'), sp = leer('s_prime', 's_prime');
-  const vdSev = _lt(t.val, VT_CRIT_2025.tapse_severa) || _lt(sp.val, VT_CRIT_2025.sprime_severa);
-  const vdMedido = t.val != null || sp.val != null;
+  /* La FAC se usa SÓLO si sus dos insumos están en banda. El campo es un derivado y su propio
+     rango no delata un área implausible —es un cociente, el error de unidad se cancela—, así que
+     la compuerta son las áreas, que son las que se importan. Si una de las dos está fuera de
+     banda o falta, la FAC no entra: no se puede saber de qué par de áreas salió. */
+  const aD = leer('vd_area_d', 'vd_area_d'), aS = leer('vd_area_s', 'vd_area_s');
+  const facL = leer('vd_fac', 'vd_fac');
+  const facUsable = facL.val != null && aD.val != null && aS.val != null;
+  const fac = facUsable ? facL.val : null;
+  /* `_le` y no `_lt`: el operador de la Figura 15 para la FAC es `≤`, y es el único de esa
+     columna que lo es. Una FAC de exactamente 22 % ES disfunción severa. */
+  const facSev = _le(fac, VT_CRIT_2025.fac_severa);
+  const vdSev = _lt(t.val, VT_CRIT_2025.tapse_severa) || _lt(sp.val, VT_CRIT_2025.sprime_severa) || facSev;
+  /* La cápsula de la pantalla usa 25 y la guía 22: entre 23 y 24 las dos discrepan. El panel lo
+     nombra cuando pasa, en vez de dejar al médico con dos escalas del mismo dato sin aviso. */
+  const facDiscorda = fac != null && !facSev &&
+    _lt(fac, _indUmb('UMBRAL_FAC_VD_SEVERA'));
+  const vdMedido = t.val != null || sp.val != null || fac != null;
   /* Distingue «no medido» de «fuera de banda»: con un TAPSE de 95 —cm por mm— la nota decía «no hay
      TAPSE ni S′ medidos» mientras la fila de arriba decía «fuera de rango medible». */
-  const vdIlegible = !!(t.fuera || sp.fuera);
+  const vdIlegible = !!(t.fuera || sp.fuera || facL.fuera || aD.fuera || aS.fuera);
   /* Dilatación del VD: se consume `vdDiamsMedidos()`, la función que ya gobierna la pantalla y
      el informe con los tres diámetros de la ASE 2015. No se reimplementa ninguno de sus cortes.
      Un diámetro fuera de banda llega con `dil:false` y `fuera:true`, así que no cuenta como
@@ -37777,7 +37828,8 @@ function _indVTDatos(){
     cxizq: _indClinGet('vt.cxizq'),
     riesgo:_indClinGet('vt.riesgo'),
     tmo:   _indClinGet('vt.tmo'),
-    t:t, sp:sp, vdSev:vdSev, vdMedido:vdMedido, vdIlegible:vdIlegible, fevi:leer('fevi', 'fevi'),
+    t:t, sp:sp, fac:fac, facSev:facSev, facL:facL, aD:aD, aS:aS, facDiscorda:facDiscorda,
+    vdSev:vdSev, vdMedido:vdMedido, vdIlegible:vdIlegible, fevi:leer('fevi', 'fevi'),
     ds:ds, dilat:dilat, dilMedido:dilMedido, psap:psap
   };
 }
@@ -37903,10 +37955,18 @@ function _indVTRecom(D, itSev, itMod, etSev, etSig, E, UG){
     const cual = [];
     if (_lt(D.t.val,  VT_CRIT_2025.tapse_severa))  cual.push('TAPSE de ' + _indNum(D.t.val, 0, 'mm') + ' (< ' + VT_CRIT_2025.tapse_severa + ' mm)');
     if (_lt(D.sp.val, VT_CRIT_2025.sprime_severa)) cual.push('S′ de ' + _indNum(D.sp.val, 1, 'cm/s') + ' (< ' + VT_CRIT_2025.sprime_severa + ' cm/s)');
-    return { tipo:'no', tit:'Fuera del alcance de la tabla — disfunción ventricular derecha severa',
+    if (D.facSev) cual.push('FAC de ' + _indNum(D.fac, 0, '%') + ' (≤ ' + VT_CRIT_2025.fac_severa + ' %)');
+    /* ⚠️ EL ENCUADRE ES EL DE LA GUÍA, NO UNA CONTRAINDICACIÓN DURA. El texto que gobierna la
+       Figura 15 dice, literal, que los cortes de disfunción severa están para «señalar
+       intervenciones de alto riesgo o posiblemente fútiles», que se eligieron DELIBERADAMENTE
+       conservadores porque la función del VD se SOBRESTIMA en la insuficiencia tricuspídea severa,
+       y que «falta validación robusta». Publicar esto como un «no se opera» diría más que la guía. */
+    return { tipo:'no', tit:'Alto riesgo — disfunción ventricular derecha severa',
       txt:'Las tres filas que quedan cuando no hay cirugía izquierda programada, y también la del tratamiento transcatéter, exigen la AUSENCIA de disfunción ventricular derecha severa. Acá está presente: ' + cual.join(' y ') + ', por la Figura 15 de la guía. La decisión sale de la tabla y pasa a ser individual.',
       fuente:VT_FUENTE,
-      nota:'La misma figura publica FAC ≤ 22 % como disfunción severa. La app no aplica ese corte —su cápsula usa 25 %— y la FAC no tiene banda de plausibilidad, así que no entra en esta evaluación.' };
+      nota:'La guía es explícita sobre el peso de estos cortes: están para señalar una intervención de ALTO RIESGO o posiblemente FÚTIL, no como contraindicación absoluta, se eligieron deliberadamente conservadores porque la función del ventrículo derecho se SOBRESTIMA en la insuficiencia tricuspídea severa, y el propio texto dice que «falta validación robusta».'
+        + (D.fac != null && D.facSev && _indUmb('UMBRAL_FAC_VD_SEVERA') != null && _lt(D.fac, _indUmb('UMBRAL_FAC_VD_SEVERA')) ? '' : '')
+        + ' La FEVD 3D no entra en esta evaluación: no tiene banda de plausibilidad en esta app.' };
   }
   /* La HTP es una exclusión de las tres filas y la app no la puede resolver: no se afirma su
      ausencia. Se nombra como condición pendiente DENTRO del texto de la recomendación, que es
@@ -37924,14 +37984,32 @@ function _indVTRecom(D, itSev, itMod, etSev, etSig, E, UG){
      que era la única exclusión de esas filas evaluable, sin evaluar y sin declarar. No se inventa un
      corte de disfunción severa de VI —las dos rutas no lo verificaron— y se declara.
      Lo encontró /sharp-edges. */
+  /* El denominador se enumera con lo que REALMENTE entró, no con una lista fija: antes decía
+     «sólo con TAPSE y S′ … la FAC y la FEVD no entraron» incluso cuando la FAC sí estaba. */
+  const vdCuales = [D.t.val != null ? 'TAPSE' : null, D.sp.val != null ? 'S′' : null,
+                    D.fac != null ? 'FAC' : null].filter(Boolean);
+  const vdFueraLista = [D.fac == null ? (D.aD.val == null || D.aS.val == null
+        ? 'la FAC (sus dos áreas no están las dos en banda, y de ellas depende: la FAC es un cociente y el error de unidad se le cancela)'
+        : 'la FAC') : null,
+      'la FEVD 3D (no tiene banda de plausibilidad en esta app)'].filter(Boolean);
   const vdNota = (D.vdMedido
-    ? 'La ausencia de disfunción ventricular derecha severa se evaluó sólo con TAPSE y S′, los dos únicos parámetros de función del VD con banda de plausibilidad en esta app. La FAC y la FEVD no entraron.'
+    ? 'La ausencia de disfunción ventricular derecha severa se evaluó con ' + vdCuales.join(' y ')
+      + '. No entró ' + vdFueraLista.join(', ni ') + '.'
     : (D.vdIlegible
         ? 'El TAPSE o el S′ están fuera de rango medible, así que la ausencia de disfunción ventricular derecha severa que la fila exige NO está verificada.'
         : 'No hay TAPSE ni S′ medidos, así que la ausencia de disfunción ventricular derecha severa que la fila exige NO está verificada.'))
     + ' Y la fila exige la ausencia de disfunción severa de CUALQUIERA DE LOS DOS ventrículos: la del IZQUIERDO no se evalúa acá'
     + (D.fevi.val != null ? ' —la FEVI consignada es de ' + _indNum(D.fevi.val, 0, '%') + '—' : '')
-    + ', porque esta app no tiene un corte de disfunción severa de ventrículo izquierdo anclado a esta guía. Queda como condición no verificada.';
+    /* ⚠️ VERIFICADO, NO SUPUESTO: la guía NO cifra «severe LV dysfunction» en ninguna parte. La
+       Figura 15 no tiene fila de ventrículo izquierdo —sus tres columnas son dilatación del VD,
+       disfunción del VD y presiones pulmonares— y los usos del término en el cuerpo son
+       cualitativos. Sí cifra «LV dysfunction» sin el «severe» y atado a otra patología (LVEF ≤60
+       en la IM primaria, <55 en la EA asintomática, <35 como factor tromboembólico), y ninguno de
+       esos es este. Operacionalizarlo sería un criterio LOCAL, sin respaldo en este documento. */
+    + '. La guía no lo cifra en ninguna parte: la Figura 15 no tiene fila de ventrículo izquierdo y los usos del término en el texto son cualitativos, así que ponerle un número acá sería un criterio propio y no de la guía. Queda como condición no verificada.'
+    + (D.facDiscorda
+        ? ' ⚠️ Y hay dos escalas del mismo dato a la vista: la cápsula de la FAC de esta app marca disfunción SEVERA por debajo de ' + _indUmb('UMBRAL_FAC_VD_SEVERA') + ' %, y la Figura 15 pide ' + VT_CRIT_2025.fac_severa + ' % o menos. Con la FAC en ' + _indNum(D.fac, 0, '%') + ' la pantalla dice severa y la guía no, así que esta recomendación se publica sobre el corte de la guía.'
+        : '');
   /* La estenosis severa concomitante tiene su propia Clase I C y se calculó al principio: sin esto
      se perdía en silencio en toda esta rama, con la fila del gradiente en verde arriba
      afirmándola. No es cosmético — una tricúspide estenótica suele exigir REEMPLAZO, mientras la
@@ -38048,13 +38126,16 @@ function _indVT(){
       D.riesgo ? 'none' : 'ask', 'abre la fila del tratamiento transcatéter, que en la 2025 es Clase IIa Nivel A'),
     _indFilaCtrl('Insuficiencia persistente con tratamiento médico óptimo', 'vt.tmo', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
       D.tmo ? 'none' : 'ask', 'la fila del transcatéter lo exige de forma explícita'),
-    (D.t.val != null || D.sp.val != null)
+    (D.t.val != null || D.sp.val != null || D.fac != null)
       ? _indFila('Función del ventrículo derecho',
           [D.t.val != null ? 'TAPSE ' + _indNum(D.t.val, 0, 'mm') : null,
-           D.sp.val != null ? 'S′ ' + _indNum(D.sp.val, 1, 'cm/s') : null].filter(Boolean).join(' · '),
+           D.sp.val != null ? 'S′ ' + _indNum(D.sp.val, 1, 'cm/s') : null,
+           D.fac != null ? 'FAC ' + _indNum(D.fac, 0, '%') : null].filter(Boolean).join(' · '),
           D.vdSev ? 'warn' : 'none',
-          D.vdSev ? 'disfunción SEVERA por la Figura 15 — excluye las filas que no tienen cirugía izquierda programada'
-          : 'sin disfunción severa por estos dos parámetros; la FAC y la FEVD no tienen banda de plausibilidad y no entran')
+          D.vdSev ? 'disfunción SEVERA por la Figura 15 — marca una intervención de alto riesgo o posiblemente fútil, y saca del alcance las filas sin cirugía izquierda programada'
+          : (D.facDiscorda
+              ? 'por la Figura 15 NO es disfunción severa (pide ' + VT_CRIT_2025.fac_severa + ' % o menos), pero la cápsula de la FAC de esta app sí la marca severa con su corte de ' + _indUmb('UMBRAL_FAC_VD_SEVERA') + ' %: son dos escalas del mismo dato, y acá se aplica la de la guía'
+              : 'sin disfunción severa por los parámetros que entraron; la FEVD 3D no tiene banda de plausibilidad y queda afuera'))
       : _indFila('Función del ventrículo derecho',
           (D.t.fuera || D.sp.fuera) ? 'Fuera de rango medible' : 'No medida', 'ask',
           (D.t.fuera || D.sp.fuera)
@@ -66452,6 +66533,23 @@ const LAB_XLS_RANGO_PROPIO = {
   diam_cayado:[10,80], diam_ao_toracica:[8,70],
   vd_bas:[10,80], vd_mid:[10,80], vd_long:[25,140],
   vd_area_d:[3,60], vd_area_s:[1,50],
+  /* FAC del VD, agregada 2026-09-27 para que el panel de Evidencia pueda CONSUMIRLA: `_indLeer`
+     usa la banda como compuerta de admisión, y sin entrada acá devuelve `sinBanda` y el valor no
+     se usa para nada.
+
+     El rango es el fisiológicamente posible, no el normal —normal es 35-63 % por la ASE 2015—.
+     El campo es READONLY y derivado: `calcVD` escribe `Math.round((areaD−areaS)/areaD*100)` con la
+     guarda `0 < areaS < areaD`, así que estructuralmente cae en (0,100].
+     ⚠️ Y el 100 ES ALCANZABLE: un área telesistólica de 0,05 cm² —el `step` no restringe, porque
+     en runtime estos input pasan a text— da FAC 100 y la cápsula de la pantalla lo pinta VERDE
+     «normal». La guarda de `calcVD` cubre el cero exacto y no el casi-cero. Esta banda lo ataja
+     del lado del panel; del lado de la pantalla sigue abierto.
+
+     ⚠️ LA BANDA DE LA FAC NO PUEDE DELATAR UN ÁREA IMPLAUSIBLE, porque es un COCIENTE y el error
+     de unidad se cancela: áreas en mm² en vez de cm² dan exactamente la misma FAC. La plausibilidad
+     real de este dato vive en `vd_area_d` y `vd_area_s` —que sí se importan del Excel y del SR—, y
+     por eso el panel exige las DOS áreas en banda antes de usar la FAC. */
+  vd_fac:[5,80],
   ai_diam:[10,90], ai_area:[3,60], ai_vol:[5,400], lars:[0,60], ad_area:[3,60],
   /* Bandas de los numéricos agregados el 2026-09-11. Sin entrada acá, `_labXlsNum` sólo
      verifica que el valor PARSEE: una FEVI basal de 580 o un NT-proBNP de 900000 entraban sin
@@ -79519,8 +79617,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260927-1009';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790514547837;                 /* eco-build-ms */
+const ECO_BUILD    = '20260927-1106';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790517987883;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -79606,7 +79704,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-1009</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-1106</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -31286,7 +31286,7 @@ caso('TC-284', 'Estenosis pulmonar: la precondicion del sustituto parte la tabla
    la condicion de procedencia medía entonces la rama equivocada — fue como se encontro. */
 const VT_IDS = "['it_vc','it_vmax_cw','it_grado','et_gmedio','et_thp','et_vti_diast'," +
   "'tsvd_diametro','vti_tsvd','tapse','s_prime','vd_bas','vd_mid','vd_long','psap_calc'," +
-  "'fevi','vp_gmax','ep_grado']";
+  "'fevi','vd_area_d','vd_area_s','vd_fac','vp_gmax','ep_grado']";
 const VT_CLAVES = "['vt.mecanismo','vt.sintomas','vt.cxizq','vt.riesgo','vt.tmo']";
 
 caso('TC-285', 'Valvula tricuspide: la tabla de 2025, el operador del gradiente, y la disfuncion del VD que bloquea unas filas y no otras', `
@@ -31330,7 +31330,10 @@ caso('TC-285', 'Valvula tricuspide: la tabla de 2025, el operador del gradiente,
        aparte: cargar it_vc despues lo recalcula a 2 y la seccion deja de abrirse por severa. Ya
        paso una vez en esta sesion. Y el VD va sin dilatar y con funcion conservada por defecto,
        para que ninguna condicion mida de arrastre. */
-    const VD_OK = { tapse:'20', s_prime:'12', vd_bas:'38', vd_mid:'30', vd_long:'70' };
+    /* ⚠️ vd_fac es READONLY: lo calcula calcVD desde las areas, asi que NUNCA se escribe directo
+       —hacerlo probaria el mecanismo y no el camino real—. 20 y 10 dan FAC 50 %, normal. */
+    const VD_OK = { tapse:'20', s_prime:'12', vd_bas:'38', vd_mid:'30', vd_long:'70',
+      vd_area_d:'20', vd_area_s:'10' };
     /* it_grado se asigna SIN despachar eventos: es un input oculto que gobierna calcIT_ESC, y un
        change sobre el puede hacer que un handler lo recalcule y pise el valor del escenario. */
     const ponerGrado = g => { const e = document.getElementById('it_grado');
@@ -31556,11 +31559,86 @@ caso('TC-285', 'Valvula tricuspide: la tabla de 2025, el operador del gradiente,
         (fHtp ? 'fila marca=' + fHtp.marca + ' «' + fHtp.val + '»' : 'NO HAY FILA') +
         ' · ' + (rHtp ? String(rHtp.nota).slice(0, 150) : 'null')]);
 
-      // ── La FAC y la FEVD quedan afuera por falta de banda, y se dice ──
-      ex.push(['la nota de la recomendacion declara que la ausencia de disfuncion severa se evaluo solo con TAPSE y S, y que la FAC y la FEVD no entraron',
-        pl((rec() || {}).nota).indexOf('solo con tapse') > -1 &&
-        pl((rec() || {}).nota).indexOf('fac y la fevd no entraron') > -1,
-        String((rec() || {}).nota).slice(0, 240)]);
+      /* ── ⚠️ EL BORDE DEL OPERADOR DE LA FAC: 22 ES SEVERA ──
+         La Figura 15 usa «≤» para la FAC y es el UNICO parametro de esa columna que lo hace; los
+         otros cinco usan «<». Verificado por dos lecturas independientes del mismo PDF. Es un borde
+         de un solo valor: cambiar _le por _lt no rompe nada mas y le saca la marca de alto riesgo
+         a un paciente que la guia si incluye. Las areas se cargan y calcVD calcula la FAC, que es
+         el camino real: 20 y 15,6 dan 22 % exacto, y 20 y 15,4 dan 23 %. */
+      esc({ vd_area_d:'20', vd_area_s:'15.6' }, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'si' });
+      const fac22 = window.v('vd_fac'), r22 = rec();
+      esc({ vd_area_d:'20', vd_area_s:'15.4' }, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'si' });
+      const fac23 = window.v('vd_fac'), r23 = rec();
+      ex.push(['una FAC de exactamente 22 % ES disfuncion severa —el operador de la Figura 15 es menor-o-igual— y con 23 % la fila se publica',
+        fac22 === 22 && fac23 === 23 &&
+        !!r22 && r22.tipo === 'no' && pl(r22.txt).indexOf('fac de 22 %') > -1 &&
+        !!r23 && r23.tipo === 'ind' && r23.clase === 'Clase I · Nivel C',
+        'FAC22=' + fac22 + ' -> ' + (r22 ? r22.tipo + ' / ' + r22.tit : 'null') +
+        ' · FAC23=' + fac23 + ' -> ' + (r23 ? r23.tipo + ' / ' + r23.clase : 'null')]);
+
+      /* ── ⚠️ DOS ESCALAS DEL MISMO DATO, Y EL PANEL LO NOMBRA ──
+         La capsula de la FAC de la app marca severa con < 25 y la guia pide ≤ 22: entre 23 y 24 la
+         pantalla dice severa y el panel no. No se unifico —mover UMBRAL_FAC_VD_SEVERA cambiaria el
+         grado consignado en estudios ya firmados— asi que la unica salida honesta es decirlo donde
+         se publica la conducta. Con 26 % no hay discordancia y no debe avisar. */
+      const r23b = r23, f23 = filaDe('Funcion del ventriculo derecho');
+      esc({ vd_area_d:'20', vd_area_s:'14.8' }, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'si' });
+      const fac26 = window.v('vd_fac'), r26 = rec();
+      ex.push(['con la FAC en 23 % el panel avisa que la capsula de la app y la guia discrepan y dice cual aplica; con 26 % no hay discordancia y no avisa',
+        fac26 === 26 &&
+        !!r23b && pl(r23b.nota).indexOf('dos escalas del mismo dato') > -1 &&
+        pl(r23b.nota).indexOf('la pantalla dice severa y la guia no') > -1 &&
+        !!f23 && pl(f23.nota).indexOf('dos escalas del mismo dato') > -1 &&
+        !!r26 && pl(r26.nota).indexOf('dos escalas del mismo dato') === -1,
+        'con 23: ' + (r23b ? String(r23b.nota).slice(-200) : 'null') +
+        ' || con 26 avisa=' + (r26 ? pl(r26.nota).indexOf('dos escalas') > -1 : 'null')]);
+
+      /* ── ⚠️ LA FAC NO SE USA SI SUS DOS AREAS NO ESTAN EN BANDA ──
+         La FAC es un COCIENTE: un area en mm² en vez de cm² da exactamente la misma FAC, asi que su
+         propia banda no puede delatar un area implausible. La plausibilidad vive en las areas, que
+         son las que se importan del Excel y del SR. Con un area fuera de banda la FAC no entra y la
+         nota dice POR QUE — no basta con omitirla en silencio.
+         Nota: la banda de vd_fac en si misma no se puede aislar por ningun camino alcanzable hoy
+         —calcVD la mantiene en (0,100] y editarInforme recalcula—; esta para el dia que algo
+         escriba el campo directo, como el mapeo de SR que 69135 dejo deliberadamente afuera. */
+      esc({ vd_area_d:'20', vd_area_s:'15.6' }, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'si' });
+      const conAreas = (rec() || {}).tipo;
+      esc({ vd_area_d:'200', vd_area_s:'156' }, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'si' });
+      const facMismo = window.v('vd_fac'), rAreaFuera = rec(), fAreaFuera = filaDe('Funcion del ventriculo derecho');
+      ex.push(['con las areas fuera de banda la FAC da el MISMO 22 % —es un cociente— y aun asi no se usa: la fila ya no la muestra, la recomendacion se publica, y la nota dice que sus dos areas no estan en banda',
+        conAreas === 'no' && facMismo === 22 &&
+        !!rAreaFuera && rAreaFuera.tipo === 'ind' &&
+        !!fAreaFuera && pl(fAreaFuera.val).indexOf('fac') === -1 &&
+        pl(rAreaFuera.nota).indexOf('sus dos areas no estan las dos en banda') > -1,
+        'areas en banda: ' + conAreas + ' · areas x10: FAC=' + facMismo + ' -> ' +
+        (rAreaFuera ? rAreaFuera.tipo : 'null') + ' · fila «' + (fAreaFuera ? fAreaFuera.val : 'NO HAY') + '»']);
+
+      // ── El denominador se enumera con lo que REALMENTE entro, no con una lista fija ──
+      esc({ vd_area_d:'20', vd_area_s:'10' }, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'si' });
+      const nDen = pl((rec() || {}).nota);
+      esc({ tapse:'', s_prime:'', vd_area_d:'20', vd_area_s:'10' }, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'si' });
+      const nSoloFac = pl((rec() || {}).nota);
+      ex.push(['la nota enumera los parametros que REALMENTE entraron —con las tres, las tres; con solo la FAC, solo ella— y siempre declara que la FEVD 3D queda afuera por falta de banda',
+        nDen.indexOf('se evaluo con tapse y s′ y fac') > -1 &&
+        nSoloFac.indexOf('se evaluo con fac') > -1 && nSoloFac.indexOf('tapse') === -1 &&
+        nDen.indexOf('fevd 3d') > -1 && nSoloFac.indexOf('fevd 3d') > -1,
+        'con las tres: ' + nDen.slice(0, 170) + ' || solo FAC: ' + nSoloFac.slice(0, 170)]);
+
+      /* ── ⚠️ EL ENCUADRE DEL BLOQUEO ES EL DE LA GUIA, NO UNA CONTRAINDICACION DURA ──
+         El texto que gobierna la Figura 15 dice que los cortes de disfuncion severa estan para
+         señalar intervenciones de ALTO RIESGO o posiblemente FUTILES, que se eligieron
+         deliberadamente conservadores porque la funcion del VD se SOBRESTIMA en la insuficiencia
+         tricuspidea severa, y que falta validacion robusta. Publicarlo como un «no se opera» diria
+         mas que la guia. */
+      esc({ vd_area_d:'20', vd_area_s:'15.6' }, { 'vt.cxizq':'no', 'vt.mecanismo':'prim', 'vt.sintomas':'si' });
+      const rEnc = rec();
+      ex.push(['el bloqueo por disfuncion severa se publica con el encuadre de la guia: alto riesgo o posiblemente futil, cortes conservadores porque la funcion del VD se sobrestima, y validacion que falta',
+        !!rEnc && pl(rEnc.tit).indexOf('alto riesgo') > -1 &&
+        pl(rEnc.nota).indexOf('posiblemente futil') > -1 &&
+        pl(rEnc.nota).indexOf('no como contraindicacion absoluta') > -1 &&
+        pl(rEnc.nota).indexOf('se sobrestima') > -1 &&
+        pl(rEnc.nota).indexOf('falta validacion robusta') > -1,
+        (rEnc ? rEnc.tit + ' || ' + String(rEnc.nota).slice(0, 260) : 'null')]);
 
       // ── La frecuencia cardiaca del criterio de estenosis queda declarada como no registrada ──
       ex.push(['la nota de la estenosis trae el calificador de frecuencia cardiaca normal y declara que la app no la registra',
@@ -31594,7 +31672,9 @@ caso('TC-285', 'Valvula tricuspide: la tabla de 2025, el operador del gradiente,
       const rVI = rec();
       ex.push(['la nota declara que la fila exige ausencia de disfuncion severa de los DOS ventriculos y que la del izquierdo no se evalua, con la FEVI consignada a la vista',
         !!rVI && pl(rVI.nota).indexOf('cualquiera de los dos ventriculos') > -1 &&
-        pl(rVI.nota).indexOf('izquierdo no se evalua') > -1 && pl(rVI.nota).indexOf('28 %') > -1,
+        pl(rVI.nota).indexOf('izquierdo no se evalua') > -1 && pl(rVI.nota).indexOf('28 %') > -1 &&
+        pl(rVI.nota).indexOf('la guia no lo cifra en ninguna parte') > -1 &&
+        pl(rVI.nota).indexOf('figura 15 no tiene fila de ventriculo izquierdo') > -1,
         (rVI ? String(rVI.nota).slice(-260) : 'null')]);
 
       /* (3) EL CODIGO 3 ES MODERADA-SEVERA EN TODA LA APP —INSUF_TXT, imTxt, _labRegurgSev, el

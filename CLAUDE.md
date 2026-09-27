@@ -123,8 +123,9 @@ al revés — no sólo «sin banda no se conecta», también «y la rama que nie
 
 ### La función del VD se conecta; el «deterioro» se pregunta. No es lo mismo
 
-**Conectado:** TAPSE y S′, los únicos dos parámetros de función del VD **con banda**
-(`tapse:[3,40]`, `s_prime:[1,35]`). `VT_CRIT_2025.tapse_severa = 10` y `sprime_severa = 6` salen de
+**Conectado:** TAPSE, S′ y —desde el 2026-09-27— la **FAC**, con las tres bandas
+(`tapse:[3,40]`, `s_prime:[1,35]`, `vd_fac:[5,80]`). La **FEVD 3D** sigue afuera: no tiene banda.
+La nota enumera los que **realmente entraron**, no una lista fija. `VT_CRIT_2025.tapse_severa = 10` y `sprime_severa = 6` salen de
 la **Figura 15** de la 2025; la app sólo tenía el corte de *disfunción* (`UMBRAL_TAPSE_NORMAL`, 17),
 no el de **severa**, que es el que estas filas usan como **exclusión**.
 
@@ -141,6 +142,83 @@ la FAC). **No se unificaron y no se tocó la cápsula**: la FAC no entra en el p
 banda, así que hoy no hay conflicto. **Si algún día entra, esa diferencia hay que resolverla
 antes, no después.** Y las constantes nuevas **no se exportan como `UMBRAL_*`**: la pantalla no las
 aplica, y nombrarlas así haría creer que sí.
+
+### La FAC entra, y con el corte de la guía — no con el de la cápsula
+
+Cerrada la pieza que quedaba abierta: la precondición de disfunción severa del VD ya no está sólo
+declarada, se **evalúa**. Entra la **FAC** con el corte de la Figura 15, `VT_CRIT_2025.fac_severa`.
+
+**El corte es `≤ 22 %`, y el operador es parte del hallazgo.** El FAC es **el único** parámetro de
+esa columna que usa `≤`; los otros cinco —TAPSE, s', FWS, GLS y 3D RV EF— usan `<`. Verificado por
+dos lecturas independientes del **mismo** PDF, porque los números de esa figura no son texto
+extraíble: al render a 430–700 dpi la barra inferior del `≤` está presente en la fila de la FAC y
+ausente en la de arriba; y por extracción posicional, los **únicos dos** glifos `≤` de toda la región
+caen en la fila de la FAC de cada caja. No es un desliz de transcripción: **una FAC de exactamente
+22 % ES disfunción severa.** Se aplica con `_le`, y es un borde de un solo valor.
+
+**Y NO es el número de la cápsula.** `UMBRAL_FAC_VD_SEVERA` vale 25, gobierna el badge de la FAC y
+el informe firmado, y **no se tocó** — moverlo cambiaría el grado consignado en estudios ya
+firmados. Son dos preguntas distintas: la cápsula **gradúa** la FAC, el panel evalúa una
+**exclusión** de filas de recomendación. Misma situación que `ET_GMEDIO_SIGNIF` con su `>=` frente al
+`>` de la guía.
+
+⚠️ **Pero entre 23 y 24 % las dos discrepan, y eso es lo que había que resolver:** la pantalla dice
+«disfunción severa» y el panel publica la Clase I C. Dos escalas del mismo dato delante del mismo
+médico. Al no poder unificarlas, la única salida honesta es **nombrarlo donde se publica la
+conducta** — la nota de la recomendación y la fila del VD lo dicen, con los dos números y cuál
+aplica. Con 26 % no hay discordancia y no avisa.
+
+**El aviso dependía de un export, y sin él se apagaba en silencio.** `_indUmb` resuelve sobre
+`window`, y `UMBRAL_FAC_VD_SEVERA` estaba **declarada y no exportada**: devolvía `null`,
+`_lt(fac, null)` daba `false`, la conducta se publicaba igual y nadie se enteraba de que las dos
+superficies decían cosas distintas del mismo número. Lo cazó la condición del caso. Hoy están
+exportadas **y `_vtAssertUmbrales` comprueba el export al arrancar**, para que no dependa de que
+alguien vuelva a escribir esa condición.
+
+### La banda de un derivado no protege lo que uno cree
+
+El pedido decía «banda de plausibilidad a `vd_fac`». Medido antes de fijarla, el campo resultó
+**readonly y derivado**: `calcVD` escribe `Math.round((areaD−areaS)/areaD*100)` con la guarda
+`0 < areaS < areaD`, así que estructuralmente cae en **(0,100]**. Y `editarInforme()` y el armador de
+PDF **recalculan** `calcVD()` al abrir un estudio, así que un valor foráneo de un backup no
+sobrevive. **Ningún importador lo escribe** — el lector de SR declina explícitamente el
+`2D/RV FAC General` («pisar un calculado con un dato externo que el próximo recálculo borra») y el
+Excel lo recalcula desde las áreas.
+
+⚠️ **Y una banda sobre la FAC no puede delatar un área implausible, porque es un COCIENTE: el error
+de unidad se cancela.** Áreas en mm² en vez de cm² dan **exactamente la misma FAC**. Medido: 20/15,6
+y 200/156 dan los dos 22 %.
+
+Así que la plausibilidad real vive en `vd_area_d:[3,60]` y `vd_area_s:[1,50]` —que **sí** se importan
+del Excel y del SR y ya tenían banda—, y **el panel exige las dos áreas en banda antes de usar la
+FAC**. La banda `vd_fac:[5,80]` existe por otra razón, dicha en el código: `_indLeer` la usa como
+**compuerta de admisión** —sin entrada devuelve `sinBanda` y el valor no se usa para nada— y queda
+lista para el día que algo escriba el campo directo. **No se puede aislar por ningún camino
+alcanzable hoy**, y eso está declarado en el caso en vez de fingir que la cubre una condición.
+
+**Un hallazgo lateral que no es de esta ronda:** el 100 % **es alcanzable**. Un área telesistólica de
+0,05 cm² —el `step` no restringe, porque en runtime estos input pasan a `text`— da FAC 100 y la
+**cápsula de la pantalla lo pinta VERDE «normal»**. La guarda de `calcVD` cubre el cero exacto y no
+el casi-cero, que es el mismo caso degenerado que su propio comentario dice haber cerrado. El panel
+lo ataja por las dos bandas; del lado de la pantalla sigue abierto.
+
+### Y el «severe LV dysfunction» no lo cifra la guía — verificado, no supuesto
+
+Las filas IIa dicen «in the absence of severe LV/RV dysfunction». La segunda ruta lo buscó y el
+documento **no le pone número en ninguna parte**: la Figura 15 no tiene fila de ventrículo izquierdo
+—sus tres columnas son dilatación del VD, disfunción del VD y presiones pulmonares— y los usos del
+término en el cuerpo son cualitativos. Sí cifra «LV dysfunction» **sin** el «severe» y atado a otra
+patología (LVEF ≤60 en la IM primaria, <55 en la EA asintomática, <35 como factor tromboembólico), y
+**ninguno de esos es este**. Operacionalizarlo sería un criterio **local**. La nota lo dice así
+ahora: no es que «esta app no lo tenga», es que **la guía no lo cifra**.
+
+### El encuadre del bloqueo es el de la guía, no una contraindicación dura
+
+El texto que gobierna la Figura 15 dice, literal, que los cortes de disfunción severa están para
+*«señalar intervenciones de alto riesgo o posiblemente fútiles»*, que se eligieron **deliberadamente
+conservadores** porque la función del VD **se sobrestima en la insuficiencia tricuspídea severa**, y
+que *«falta validación robusta»*. El titular decía «Fuera del alcance de la tabla», que dice más que
+la guía. Hoy dice **«Alto riesgo»** y la nota carga los tres matices.
 
 ### La disfunción VD severa bloquea unas filas y no otras
 
