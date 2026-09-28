@@ -32678,26 +32678,48 @@ caso('TC-291', 'La severidad protesica llega al INFORME FIRMADO: ea_grado no se 
       pl(r1.suma).indexOf('eao moderada') === -1,
       'inf=«' + r1.inf.replace(/\\n/g, ' | ').slice(0, 320) + '» || suma=«' + r1.suma.replace(/\\n/g, ' | ') + '»']);
 
-    /* ── LA CITA VIAJA CON EL NUMERO ──
-       Quien lea el informe en seis meses necesita saber con que regla se clasifico, y la escala
-       protesica NO es la del selector de al lado, que cita la ESC 2021. */
-    ex.push(['el informe declara que los criterios son de la Tabla 5 de la ASE 2024 para protesis, y que no son los de valvula nativa',
-      pl(r1.inf).indexOf('tabla 5 de la ase 2024') > -1 &&
-      pl(r1.inf).indexOf('no son los cortes de valvula nativa') > -1 &&
-      pl(r1.inf).indexOf('area efectiva no se evalua') > -1,
-      'cita=' + (pl(r1.inf).indexOf('tabla 5 de la ase 2024') > -1)]);
+    /* ── ⚠️ LA CITA SE MOVIO A LA PANTALLA, Y ESTA CONDICION ESTA AL REVES QUE ANTES ──
+       Hasta el 2026-09-28 este caso EXIGIA la cita en el informe, con el argumento de que quien lo
+       lea en seis meses necesita saber con que regla se clasifico. Decision de Maicol: el informe
+       firmado lleva el hallazgo clinico, no la justificacion metodologica —numero de tabla, autores,
+       año, por que un parametro no se evalua, que no registra la app—; eso es consulta del medico y
+       vive en la pantalla y en el panel de Evidencia.
+       Se mide LAS DOS MITADES: que no este en el informe Y que SIGA en la pantalla. Sin la segunda,
+       esta condicion pasaria igual si alguien borrara la explicacion de los dos lados, que es
+       perderla, no moverla. El texto completo de las nueve frases esta archivado en CLAUDE.md. */
+    /* El id real es 'ea-det-sev-nota', y lo escribe '_eaProtPintar'. Dos correcciones que costaron
+       una vuelta cada una: el primer intento adivino 'ea-prot-salv', que NO EXISTE, y la condicion
+       midio sobre la cadena vacia — o sea que habria dicho «la pantalla tampoco la tiene» sin haber
+       mirado la pantalla. Y aun con el id bueno el div llega vacio, porque su pintor cuelga de
+       'calcEADetalle', gateada por la VISIBILIDAD del bloque expandido, que en el suite esta
+       cerrado. Se invoca la ruta real a mano; medir el denominador es justamente lo que falta
+       cuando un caso dice «no esta» sobre un contenedor que nadie lleno. */
+    const _panel = (function(){
+      try { _eaProtPintar(eaProtVeredicto()); } catch (e) {}
+      const e = document.getElementById('ea-det-sev-nota');
+      return e ? (e.textContent || '') : '(no existe ea-det-sev-nota)'; })();
+    ex.push(['la cita y las salvedades YA NO van al informe firmado, y siguen estando en la pantalla',
+      pl(r1.inf).indexOf('tabla 5 de la ase 2024') === -1 &&
+      pl(r1.inf).indexOf('no son los cortes de valvula nativa') === -1 &&
+      pl(r1.inf).indexOf('area efectiva no se evalua') === -1 &&
+      pl(_panel).indexOf('area efectiva no se evalua') > -1,
+      'informe limpio=' + (pl(r1.inf).indexOf('tabla 5 de la ase 2024') === -1) +
+      ' · pantalla conserva=' + (pl(_panel).indexOf('area efectiva no se evalua') > -1) +
+      ' :: ' + String(_panel).replace(/\s+/g, ' ').slice(0, 160)]);
 
     // ── TAREA 4: EL AT LLEGA AL NARRATIVO, CON SUS TRES SALVEDADES CUANDO SALE DE RANGO ──
     const rAt = esc({ va_morf:'Prótesis mecánica', diam_tsvi:'21', itv_tsvi:'18', itv_ao:'40',
       vmax_ao:'2.6', gmedio_ao:'14', va_at:'130' });
-    ex.push(['el AT llega al informe con su valor, y fuera de rango normal se declara que por si solo NO establece estenosis en vez de dejar una negacion sin calificar',
+    /* ⚠️ Antes esta condicion exigia, ademas del valor, la frase que explica que el AT por si solo
+       no establece estenosis. Esa frase es metodologica y se fue del informe con las otras ocho. Lo
+       que el informe TIENE que seguir teniendo es el DATO —el AT con su numero— y el veredicto: sin
+       el numero, retirar la explicacion habria sido perder informacion clinica, no moverla. */
+    ex.push(['el AT sigue llegando al informe con su valor y con el veredicto, sin la explicacion metodologica al lado',
       rAt.inf.indexOf('AT 130 ms') > -1 &&
       pl(rAt.inf).indexOf('sin criterios de estenosis protesica') > -1 &&
-      pl(rAt.inf).indexOf('no establece estenosis') > -1 &&
-      pl(rAt.inf).indexOf('frecuencia cardiaca') > -1 &&
-      pl(r1.inf).indexOf('no establece estenosis') === -1,
-      'con AT 130=«' + rAt.inf.replace(/\\n/g, ' | ').slice(0, 300) + '» · con AT 60 declara=' +
-      (pl(r1.inf).indexOf('no establece estenosis') > -1)]);
+      pl(rAt.inf).indexOf('no establece estenosis') === -1 &&
+      pl(rAt.inf).indexOf('frecuencia cardiaca') === -1,
+      'con AT 130=«' + rAt.inf.replace(/\\n/g, ' | ').slice(0, 300) + '»']);
 
     /* ── ESCENARIO 2: LA PROTESIS DE 19 mm CON AVA 0,90 ──
        Es el segundo caso del diagnostico. Con los cortes nativos «clasificarEA_Vmax» escribe
@@ -32800,12 +32822,27 @@ caso('TC-291', 'La severidad protesica llega al INFORME FIRMADO: ea_grado no se 
        como una conclusion. Se describe en el cuerpo y no se resume. */
     const rTavi = esc({ va_morf:'TAVI', diam_tsvi:'21', itv_tsvi:'18', itv_ao:'82',
       vmax_ao:'4.5', gmedio_ao:'45' });
-    ex.push(['con TAVI el cuerpo describe y el EN SUMA no afirma: no se resume una estenosis que no se gradua',
+    /* La mitad de 'basal post-implante' se fue con las salvedades: era metodologia. Lo que el cuerpo
+       TIENE que seguir diciendo es que no se gradua, y el EN SUMA que no resume una estenosis. */
+    ex.push(['con TAVI el cuerpo describe y el EN SUMA no resume una estenosis que no se gradua',
       pl(rTavi.inf).indexOf('sin graduacion de estenosis protesica') > -1 &&
-      pl(rTavi.inf).indexOf('basal post-implante') > -1 &&
+      pl(rTavi.inf).indexOf('basal post-implante') === -1 &&
       pl(rTavi.suma).indexOf('protesis aortica:') === -1 &&
       pl(rTavi.suma).indexOf('estenosis') === -1,
       'inf=«' + rTavi.inf.replace(/\\n/g, ' | ').slice(0, 220) + '» suma=«' + rTavi.suma.replace(/\\n/g, ' | ') + '»']);
+    /* ── ⚠️ DEFECTO PREEXISTENTE, MEDIDO Y DECLARADO, NO ARREGLADO ACA ──
+       Con Vmax 4,5 m/s y gradiente 45 mmHg, el EN SUMA dice «normofuncionante» mientras el cuerpo
+       se ABSTIENE de graduar. El gate de ese bloque exige evidencia positiva y que el resumen no
+       hable ya de la valvula; con TAVI el resumen no dice nada —porque no se gradua— asi que el
+       gate pasa y afirma normofuncion sobre evidencia de DISFUNCION, en la superficie que se copia
+       al resumen de alta. Lo mismo pasa por la rama 'faltan'. Corresponde al prompt de graduacion
+       protesica, cuya tarea 4 nombra este bloque; tocarlo aca habria sido cambiar cuando se afirma
+       una conducta protesica, que este pedido prohibe.
+       ESTA CONDICION SE PONE EN ROJO EL DIA QUE SE ARREGLE, y eso es deliberado: obliga a volver
+       aca en vez de dejar el defecto documentado en un comentario que nadie vuelve a leer. */
+    ex.push(['DECLARADO (lo cierra el prompt de graduacion protesica): el EN SUMA todavia afirma normofuncion donde el cuerpo se abstuvo',
+      pl(rTavi.suma).indexOf('normofuncionante') > -1,
+      'suma=«' + rTavi.suma.replace(/\\n/g, ' | ') + '» · cuerpo=«sin graduacion de estenosis protesica»']);
   } finally {
     __t.limpiar();
   }
@@ -33926,6 +33963,117 @@ caso('TC-300', 'Etiologia mitral Valvulas<->ETE: sincroniza solo los pares que c
       ['la escritura no deja un hueco: un par cuyo destino no es una opcion no se asigna',
         huecoEvitado === 'Normal', '«' + huecoEvitado + '»'],
       ['DENOMINADOR: la tabla de pares quedo restaurada', pilaRestaurada, String(pilaRestaurada)]
+    ] };
+  })();
+`);
+
+caso('TC-302', 'Con protesis, el informe firmado, el EN SUMA y el PDF no llevan justificacion metodologica: ni tabla, ni guia, ni autores, ni limites de la app — y los valores medidos siguen impresos', `
+  return (async () => {
+    const NL = String.fromCharCode(10);
+    const MARC = ['ASE','Zoghbi','JASE','Tabla','tabla','desviaciones estandar','desviaciones estándar',
+                  'marca ni modelo','Criterios de la','esta aplicacion','esta aplicación','nota general'];
+
+    /* ⚠️ «LINEA DE PROTESIS» SE MIDE POR DIFERENCIA CONTRA LA VALVULA NATIVA, no por buscar la
+       palabra «protesis» en la linea. La primera version hacia lo segundo y CINCO de las ocho
+       frases metodologicas quedaban fuera del denominador porque no nombran la protesis —«El area
+       efectiva no se evalua…», «No se cumplen las DOS mitades…», «La nota al pie de la tabla…»,
+       las dos de los tiempos—: cuatro mutaciones que las reintroducian SOBREVIVIAN con el caso en
+       verde. Lo que el pedido llama linea de protesis es la que aparece POR TENER protesis, y eso
+       es exactamente una diferencia de conjuntos. */
+    const lineas = t => String(t || '').split(NL).map(l => l.trim()).filter(l => l.length > 0);
+    const dif = (conProt, nativa) => { const base = new Set(lineas(nativa)); return lineas(conProt).filter(l => !base.has(l)); };
+
+    const sembrarBase = () => { __t.limpiar();
+      __t.set('nombre','TC302'); __t.set('edad','70'); __t.set('peso','80'); __t.set('talla','175'); };
+    const ao = sev => { __t.set('vmax_ao', sev ? '4.01' : '2.2'); __t.set('gmedio_ao', sev ? '41' : '9');
+      __t.set('itv_tsvi','18'); __t.set('itv_ao', sev ? '53' : '26'); __t.set('diam_tsvi','21');
+      __t.set('va_at','101'); __t.set('tango_te','280');
+      try{ calcAo(); }catch(e){} try{ calcEADetalle(); }catch(e){} };
+
+    /* Cada escenario trae su CONTROL nativo: mismos numeros, morfologia no protesica. */
+    const ESC = [
+      ['TAVI severa',       () => { __t.set('va_morf','TAVI'); ao(true); },                 () => { __t.set('va_morf','Calcificada'); ao(true); }],
+      ['biologica severa',  () => { __t.set('va_morf','Prótesis biológica'); ao(true); },   () => { __t.set('va_morf','Calcificada'); ao(true); }],
+      ['mecanica severa',   () => { __t.set('va_morf','Prótesis mecánica'); ao(true); },    () => { __t.set('va_morf','Calcificada'); ao(true); }],
+      ['biologica normal',  () => { __t.set('va_morf','Prótesis biológica'); ao(false); },  () => { __t.set('va_morf','Calcificada'); ao(false); }],
+      ['aortica sin datos', () => { __t.set('va_morf','Prótesis mecánica'); },              () => { __t.set('va_morf','Calcificada'); }],
+      ['mitral bio',        () => { __t.set('vm_morf','Prótesis biológica'); __t.set('em_grado','moderada'); __t.set('im_grado','4'); },
+                            () => { __t.set('vm_morf','Reumática'); __t.set('em_grado','moderada'); __t.set('im_grado','4'); }],
+      ['tricuspide mec',    () => { __t.set('vt_morf','Prótesis mecánica'); },              () => { __t.set('vt_morf','Reumática'); }],
+      ['pulmonar bio',      () => { __t.set('vp_morf','Prótesis biológica'); },             () => { __t.set('vp_morf','Reumática'); }],
+      /* ⚠️ ESTE ESCENARIO EXISTE PARA ALCANZAR LA NOTA DEL VOLUMEN SISTOLICO, que la tabla exige
+         entre 50 y 90 mL. Con Ø TSVI 21 y VTI 18 el VS da ~62 mL —dentro de rango— y la frase
+         NUNCA se emitia: la mutacion que la reintroducia SOBREVIVIA, porque no habia denominador.
+         Con VTI 30 el VS se va a ~104 mL y la frase aparece. */
+      ['biologica VS alto', () => { __t.set('va_morf','Prótesis biológica'); ao(true); __t.set('itv_tsvi','30');
+                                    try{ calcAo(); }catch(e){} try{ calcEADetalle(); }catch(e){} },
+                            () => { __t.set('va_morf','Calcificada'); ao(true); __t.set('itv_tsvi','30');
+                                    try{ calcAo(); }catch(e){} try{ calcEADetalle(); }catch(e){} }]
+    ];
+
+    const correr = sem => { sembrarBase(); sem(); try{ valvProtSync(); }catch(e){} try{ vpSync(); }catch(e){} return __t.informe(); };
+
+    const malas = [], nLineas = [];
+    let lineaTavi = '(no se genero)';
+    ESC.forEach(function(E){
+      const conP = correr(E[1]), nat = correr(E[2]);
+      const dInf = dif(conP.inf, nat.inf), dSum = dif(conP.suma, nat.suma);
+      nLineas.push(E[0] + '=' + dInf.length);
+      dInf.concat(dSum).forEach(function(l){
+        const m = MARC.filter(k => l.indexOf(k) > -1);
+        if (m.length) malas.push(E[0] + ' · ' + m.join('/') + ' :: ' + l.slice(0, 80));
+      });
+      if (E[0] === 'TAVI severa') lineaTavi = dInf.join(' ⏎ ') || '(sin linea)';
+    });
+    /* La otra mitad del pedido: UNA oracion clinica por valvula. Sin esto, una frase metodologica
+       que no use ninguna de las nueve marcas —«…y tampoco vota por si solo»— pasaria invisible. */
+    const deMas = nLineas.filter(x => Number(x.split('=')[1]) > 1);
+
+    // ── Los valores clinicos siguen impresos ──
+    const rV = correr(() => { __t.set('va_morf','Prótesis biológica'); ao(true); });
+    const lV = lineas(rV.inf).filter(l => l.indexOf('biológica') > -1)[0] || '';
+    const valores = ['4.01','41','0.34','101'].filter(x => lV.indexOf(x) > -1);
+    const severidad = lV.indexOf('posible estenosis protésica') > -1;
+
+    // ── Y EL PDF, que es la superficie que se firma ──
+    let pdfSucio = '(no se pudo)';
+    for (let i = 0; i < 40 && !(window.jspdf && window.jspdf.jsPDF); i++) await new Promise(r => setTimeout(r, 200));
+    if (window.jspdf && window.jspdf.jsPDF) {
+      sembrarBase(); __t.set('nombre','TC302pdf');
+      __t.set('va_morf','TAVI'); ao(true); try{ valvProtSync(); }catch(e){}
+      __t.informe();
+      const O = window.jspdf.jsPDF; let out = null;
+      window.jspdf.jsPDF = function () { const d = new O(...arguments);
+        d.save = function () { try { out = d.output('datauristring'); } catch (e) { out = null; } }; return d; };
+      window.jspdf.jsPDF.API = O.API;
+      try { generarPDFReal(); for (let k = 0; k < 80 && !out; k++) await new Promise(r => setTimeout(r, 100)); }
+      catch (e) {} finally { window.jspdf.jsPDF = O; }
+      if (!out) pdfSucio = '(sin PDF)';
+      else {
+        const bin = atob(out.split(',')[1]);
+        const re = new RegExp('\\(((?:\\\\[^]|[^()])*)\\)\\s?Tj', 'g');
+        let m, t = []; while ((m = re.exec(bin))) t.push(m[1]);
+        const texto = t.join(' ');
+        const hall = ['Zoghbi','JASE','desviaciones','marca ni modelo','Criterios de la','nota general',
+                      'mitades','area efectiva','rea efectiva','vota por']
+          .filter(k => texto.indexOf(k) > -1);
+        pdfSucio = hall.length ? hall.join('/') : 'limpio (' + t.length + ' fragmentos)';
+      }
+    }
+    __t.limpiar();
+
+    return { extra: [
+      ['DENOMINADOR: los NUEVE escenarios agregan al menos una linea por tener protesis',
+        nLineas.every(x => Number(x.split('=')[1]) >= 1), nLineas.join(' · ')],
+      ['⚠️ CERO justificacion metodologica en lo que el informe y el EN SUMA agregan por la protesis',
+        malas.length === 0, malas.join(' | ') || '(ninguna en 8 escenarios x 2 superficies)'],
+      ['⚠️ y UNA sola oracion por valvula: ninguna frase de mas, con marca o sin ella',
+        deMas.length === 0, deMas.join(' | ') || '(una por valvula en los ocho)'],
+      ['CERO en el PDF, que es la superficie que se firma',
+        String(pdfSucio).indexOf('limpio') === 0, String(pdfSucio)],
+      ['el caso TAVI queda en UNA linea, como el modelo del pedido', lineaTavi.indexOf('⏎') === -1, lineaTavi],
+      ['los valores medidos siguen impresos', valores.length === 4, valores.join(',') + ' :: ' + lV],
+      ['y la severidad que el informe afirma sigue impresa', severidad, lV]
     ] };
   })();
 `);

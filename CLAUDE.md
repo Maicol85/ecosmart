@@ -4,6 +4,84 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Archivo: las ocho frases metodológicas que se retiraron del informe con prótesis (2026-09-28)
+
+Decisión de Maicol: el informe firmado lleva el hallazgo clínico, no la justificación metodológica.
+Número de tabla, autores, año, por qué un parámetro no se evalúa y qué no registra el programa son
+**consulta del médico** y pertenecen al panel de Evidencia. Se retiraron del informe narrativo, del
+EN SUMA y del PDF; **`eaProtNarrativa` las sigue devolviendo** y `_eaProtPintar` las sigue mostrando
+en PANTALLA — retirarlas de ahí no lo pidió nadie y borraría la única explicación que hoy existe.
+
+**Esto es un archivo, no una lista de tareas.** Cuando el panel de Evidencia tenga su sección de
+prótesis, el texto se toma de acá tal cual, sin reescribirlo.
+
+Las ocho, con su origen en el código:
+
+1. `EA_PROT_SALV.tavi` — «El criterio específico de TAVI de la Tabla 5 es el CAMBIO respecto de un
+   estudio basal post-implante en condiciones hemodinámicas estables, y esta aplicación todavía no
+   elige ese basal: se publican los parámetros del bloque que la guía aplica a todas las prótesis
+   aórticas, que son de corte absoluto, y no se emite veredicto de estenosis.»
+2. `EA_PROT_SALV.eoa` — «El área efectiva no se evalúa: la Tabla 5 la expresa en desviaciones
+   estándar respecto del valor de referencia del MODELO implantado, y esta aplicación no registra
+   marca ni modelo. El DVI queda como único eje independiente del flujo.»
+3. `EA_PROT_SALV.signif` — «Se cumplen las dos mitades que la tabla exige: un eje dependiente del
+   flujo y uno independiente del flujo en rango de estenosis significativa.»
+4. `EA_PROT_SALV.posible` — «No se cumplen las DOS mitades que la tabla exige para «significativa»
+   —un eje dependiente del flujo y uno independiente—, así que queda en posible.»
+5. Rama `faltan` de `eaProtNarrativa` — «Para hablar de estenosis protésica significativa la Tabla 5
+   exige al menos un parámetro dependiente del flujo Y uno independiente. Falta: <lista>.»
+6. Nota del volumen sistólico — «La nota al pie de la tabla exige un volumen sistólico de 50-90 mL
+   para que la velocidad pico valga, y el calculado es de <N> mL.»
+7. `_eaProtSalvTiempos`, primera — «El tiempo de aceleración es de <N> ms, fuera del rango normal de
+   la Tabla 5 (< 80 ms), y por sí solo NO establece estenosis: su fila no lleva ninguna de las dos
+   marcas que la nota general exige. Puede además estar afectado por la función del VI y la
+   frecuencia cardíaca.»
+8. `_eaProtSalvTiempos`, segunda — «El cociente AT/tiempo eyectivo es de <N>, fuera del rango normal
+   (< 0,32), y tampoco vota por sí solo.»
+9. La cita, campo `guia` — «Criterios de la Tabla 5 de la ASE 2024 (Zoghbi et al., JASE 37:2-63)
+   para prótesis aórtica quirúrgica; no son los cortes de válvula nativa.»
+
+**⚠️ EL INFORME SE CONTRADECÍA A SÍ MISMO, y está medido.** Una TAVI con Vmax 4,01 m/s imprimía SEIS
+líneas. La 1 decía que el criterio de TAVI es el cambio contra un basal; la 9, dos renglones más
+abajo, citaba «criterios para prótesis aórtica **quirúrgica**» — sobre el mismo paciente con TAVI.
+El `return` de `eaProtNarrativa` está **fuera** del `if (P.via === 'TAVI')`, así que el campo `guia`
+se arma para las tres vías por igual. Un censo por lectura afirmó lo contrario («TAVI no recibe
+`guia`»); la medición en Chrome lo desmintió. **Ése es el único lugar donde el código imprimía
+«quirúrgica» sobre una prótesis, y sí salía con TAVI.**
+
+**Mitral, tricúspide y pulmonar no tenían NADA metodológico**: sus líneas de prótesis ya eran
+clínicas puras. Todo lo retirado era de la aórtica.
+
+**⚠️ PENDIENTE, NO TOCADO (es del prompt de graduación protésica).** El EN SUMA de esa misma TAVI
+—Vmax 4,01 m/s, G. medio 41 mmHg— dice **«Prótesis aórtica transcatéter tipo TAVI
+normofuncionante»** mientras el cuerpo dice «sin graduación de estenosis protésica». El gate exige
+evidencia positiva y que el resumen no hable ya de esa válvula; con TAVI el resumen no dice nada
+—porque no se gradúa— así que el gate pasa y el resumen **afirma normofunción con evidencia de
+disfunción**. Preexistente a esta fase, y en la superficie que se copia al resumen de alta.
+
+**Y no es sólo TAVI: la rama `faltan` es la segunda instancia, y es peor.** El gate `yaDicho` de la
+aórtica incluye `'aórtica'`, y la línea que se empuja es «Prótesis aórtica: <resumen>» — así que
+siempre que hay `resumen`, el gate cierra. El bloque dispara **sólo** en los dos casos donde
+`resumen` es `null`: TAVI y `faltan`. Una prótesis SAVR con Vmax y gradiente medidos y **sin DVI**
+—el reporte protésico mínimo habitual, si no se trazaron los dos VTI— cae en `faltan`, y el EN SUMA
+dice «normofuncionante» con **Vmax 4,5 m/s y gradiente 45 mmHg** en el cuerpo. Lo cierra el prompt de
+graduación protésica, cuya tarea 4 nombra este bloque. **TC-291 lo mide y se pondrá en ROJO el día
+que se arregle** — a propósito, para obligar a volver al caso en vez de dejarlo en un comentario.
+
+**Lo que se perdió y no era metodología, dicho como es.** El AT y el volumen sistólico siguen
+impresos en el papel, pero **sin la frase que los califica**: «AT 130 ms» sale sin decir que por sí
+solo no establece estenosis, y la Vmax sale sin la nota de que fuera de 50-90 mL de VS no vale.
+Es un número sin su reparo. Se aceptó porque esas frases son metodológicas por la definición del
+pedido —explican por qué un parámetro no vota, citando la nota general de una tabla— y Maicol las
+nombró entre las que hay que sacar; el reparo queda a un clic, en la cápsula. Si alguna vez se
+reponen, van **sin cita y en una línea**. Ojo además con la fila `Vol. sistól.` del PDF: su
+referencia dice `55-100 ml`, que **no es** la ventana 50-90 de la nota.
+
+Cobertura: **TC-302**. Mide «línea de prótesis» **por diferencia contra la válvula nativa**, no
+buscando la palabra «prótesis» en la línea: cinco de las ocho frases no la nombran, y con el
+criterio ingenuo cuatro mutaciones sobrevivían en verde. Y exige **una sola oración por válvula**,
+que es lo único que atrapa la frase 8 — la única que no usa ninguna de las nueve marcas prohibidas.
+
 ## La marca de espejo: nueve destinos, un solo registro, y el fallback que no puede correr en el formulario vivo (2026-09-28, fase 5 de 5)
 
 **El censo se hace por ATRIBUTO, no por la lista a mano.** El pedido nombraba siete campos;

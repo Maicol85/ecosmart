@@ -25274,10 +25274,18 @@ function generarInforme(opts) {
         `VAo ${_vaAdj}, ${_eaProtN.frase}${_pIns}.`,
         `Válvula aórtica ${_vaAdj}, ${_eaProtN.frase}${_pIns}.`,
         `La válvula aórtica ${_vaEs} ${_vaAdj}, ${_eaProtN.frase}${_pIns}.`));
-      /* Las salvedades y la cita van al cuerpo, NO al pie: son las que impiden leer el veredicto
-         como si saliera del selector de al lado, que cita otra guía y otra escala. */
-      _eaProtN.salvedades.forEach(function(t){ inf.push(t); });
-      inf.push(_eaProtN.guia);
+      /* ⚠️ LAS SALVEDADES Y LA CITA YA NO VAN AL INFORME (decisión de Maicol, 2026-09-28). Eran
+         justificación metodológica y estado interno de la app —número de tabla, autores, año,
+         por qué un parámetro no se evalúa, qué no registra el programa—, y eso pertenece al panel
+         de Evidencia, que es consulta del médico, no al informe que se firma y se entrega.
+         Medido antes de sacarlas: una TAVI con Vmax 4,01 imprimía SEIS líneas, cinco de ellas
+         metodológicas, y dos se CONTRADECÍAN entre sí —una decía que el criterio de TAVI es el
+         cambio contra un basal, y la siguiente citaba «criterios para prótesis aórtica
+         QUIRÚRGICA»—. El texto de las ocho frases retiradas está archivado completo en CLAUDE.md
+         para reutilizarlo cuando el panel de Evidencia tenga su sección de prótesis.
+         `eaProtNarrativa` SIGUE devolviendo `salvedades` y `guia`: los consume `_eaProtPintar`,
+         que es la PANTALLA y sí es el lugar donde el médico consulta el porqué. Retirarlos de ahí
+         no lo pidió nadie y borraría la única explicación que hoy existe. */
       /* El EN SUMA sólo afirma cuando hay veredicto: con TAVI —que no se gradúa— y con un dato
          faltante NO se resume nada, porque cualquier línea ahí se leería como una conclusión. */
       if (_eaProtN.resumen) suma.push(`Prótesis aórtica: ${_eaProtN.resumen}.`);
@@ -29228,10 +29236,11 @@ window.eaProtVeredicto = eaProtVeredicto;
 
 /* Pinta la cápsula con el veredicto protésico y sus salvedades. Vive aparte de `calcEADetalle` para
    que la cascada nativa no tenga que saber de esto: allá sólo hay un `return`. */
-/* ⚠️ LOS TRES VEREDICTOS Y LAS SALVEDADES VIVEN EN UNA SOLA TABLA, y las consumen la cápsula de
-   pantalla Y el narrativo del informe firmado. Con dos listas, el papel y la pantalla publican dos
-   lecturas del mismo veredicto — que es EXACTAMENTE el defecto que la Fase 2 vino a cerrar,
-   entrando por la otra puerta. */
+/* ⚠️ LOS TRES VEREDICTOS Y LAS SALVEDADES VIVEN EN UNA SOLA TABLA. Desde el 2026-09-28 el reparto
+   cambió y el comentario viejo —«las consumen la cápsula Y el narrativo del informe firmado»— ya no
+   describe el código: el informe consume `frase` y `resumen`, y las SALVEDADES son sólo de la
+   cápsula. La tabla única sigue valiendo igual, y por el mismo motivo: con dos listas, el papel y
+   la pantalla publicarían dos lecturas del mismo veredicto. */
 const EA_PROT_TXT = Object.freeze({
   normal:  'Sin criterios de estenosis protésica',
   posible: 'Posible estenosis protésica',
@@ -29255,8 +29264,15 @@ const EA_PROT_SALV = Object.freeze({
 /* El AT y el AT/ET pertenecen al bloque «todas las prótesis aórticas» y NO votan: la nota general
    de la Tabla 5 exige un parámetro `†` (flujo-dependiente) y uno `§` (flujo-independiente), y la
    fila del AT no lleva ninguna de las dos marcas. Pero si están fuera de rango normal y el veredicto
-   dice «sin criterios», la cápsula y el informe afirmarían una negación que el eje de al lado
-   contradice — así que se DECLARA. Lo encontró /sharp-edges. */
+   dice «sin criterios», se afirmaría una negación que el eje de al lado contradice — así que se
+   DECLARA. Lo encontró /sharp-edges.
+   ⚠️ DESDE EL 2026-09-28 ESTO VALE PARA LA CÁPSULA Y YA NO PARA EL INFORME, y es una pérdida
+   declarada, no un olvido: el informe firmado sigue imprimiendo el AT con su valor —«AT 130 ms»—
+   pero sin la frase que dice que por sí solo no establece estenosis. Es un número sin su reparo en
+   el papel, y el reparo está a un clic, en la cápsula. Se aceptó porque la frase es metodológica
+   por la definición del pedido —explica por qué un parámetro no vota, citando la nota general de
+   una tabla— y Maicol la nombró entre las que hay que sacar. Misma situación con la nota del
+   volumen sistólico. Si alguna vez se repone, va SIN cita y en una línea. */
 function _eaProtSalvTiempos(P){
   const s = [];
   if (P && P.niveles && P.niveles.at && P.niveles.at !== 'normal' && P.at != null)
@@ -29310,8 +29326,14 @@ function eaProtNarrativa(P){
       EA_PROT_VS_MAX + ' mL para que la velocidad pico valga, y el calculado es de ' + P.vs.toFixed(0) + ' mL.');
   _eaProtSalvTiempos(P).forEach(s => salv.push(s));
   return { frase: frase, resumen: resumen, salvedades: salv,
-    /* La cita va en el informe: quien lo lea en seis meses necesita saber con qué regla se
-       clasificó, y la escala protésica NO es la del selector de al lado. */
+    /* ⚠️ LA CITA YA NO VA AL INFORME (2026-09-28). El comentario anterior decía lo contrario y hay
+       que leerlo al revés: el argumento —quien lo lea en seis meses necesita saber con qué regla se
+       clasificó— sigue siendo cierto, y la respuesta pasó a ser la PANTALLA y el panel de Evidencia,
+       no el papel que se firma. El campo se sigue devolviendo porque `_eaProtPintar` lo consume.
+       ⚠️ Y ESTE TEXTO DICE «quirúrgica» PARA LAS TRES VÍAS: el `return` está FUERA del
+       `if (P.via === 'TAVI')`, así que una TAVI recibía esta cita igual, dos renglones debajo de la
+       salvedad que dice que el criterio de TAVI es otro. El informe se contradecía a sí mismo.
+       Medido en Chrome, no leído — un censo por lectura afirmó justo lo contrario. */
     guia: 'Criterios de la Tabla 5 de la ASE 2024 (Zoghbi et al., JASE 37:2-63) para prótesis ' +
       'aórtica quirúrgica; no son los cortes de válvula nativa.' };
 }
@@ -82223,8 +82245,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260928-0851';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790596272566;                 /* eco-build-ms */
+const ECO_BUILD    = '20260928-0921';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790598062695;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -82310,7 +82332,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-0851</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-0921</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
