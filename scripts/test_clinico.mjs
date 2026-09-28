@@ -36464,6 +36464,276 @@ caso('TC-309', 'emCategoria bandea como el panel de Evidencia: un valor fuera de
   })();
 `);
 
+/* TC-310 — Mitral protésica: los descriptores de válvula NATIVA dejan de EMITIRSE.
+   `ete_carpentier`, `ete_mecanismo` y los cuatro `wilkins_*` describen una válvula nativa
+   (Wilkins puntúa la anatomía para valvuloplastia con balón sobre una mitral reumática nativa).
+   El CONTEXTO reproducido antes del arreglo, textual y medido:
+     «ETE — Válvula mitral con prótesis mecánica con mecanismo Carpentier Tipo II (prolapso /
+      movimiento excesivo), mecanismo predominante: prolapso. Score de Wilkins 8/16.»
+
+   ⚠️ LAS DOS PUERTAS SE EJERCEN POR SEPARADO. La prótesis puede afirmarse desde Válvulas
+   (`vm_morf`) o desde el ETE (`ete_etiologia`), y la propagación de la Fase 4 hacia el ETE corre
+   SOLO si «Es un ETE» esta tildado. Un caso que sembrara siempre las dos dejaria sobrevivir la
+   mutacion que borra cualquiera de las mitades del predicado. */
+caso('TC-310', 'Mitral protesica: Carpentier, el mecanismo y el score de Wilkins dejan de EMITIRSE en informe, EN SUMA, PDF y PPT por las DOS puertas —Valvulas y ete_etiologia—; con valvula nativa no cambia nada, el Excel sigue completo, y reabrir un estudio guardado no toca un solo valor', `
+  return (async () => {
+    const NL = String.fromCharCode(10);
+    const g  = id => document.getElementById(id);
+    const gv = id => { const e = g(id); return e ? e.value : '(no existe)'; };
+    /* Los SIETE campos del pedido. Se listan una vez y se usan para el censo del informe y para
+       la condicion de «reabrir no escribe»: asi no pueden divergir. */
+    const CAMPOS = ['ete_carpentier','ete_mecanismo','wilkins_movilidad','wilkins_engrosamiento',
+                    'wilkins_calcificacion','wilkins_subvalvular','teer_tipo_im'];
+    /* Las MARCAS son el texto que cada oracion imprime, no el nombre del campo: lo que se mide es
+       lo que sale al papel. «mecanismo predominante» y no «prolapso» a secas, porque «prolapso»
+       tambien aparece en la morfologia de Valvulas y daria falso positivo. */
+    const MARCAS = ['Carpentier', 'mecanismo predominante', 'Wilkins'];
+
+    const sembrar = (opt) => {
+      __t.limpiar();
+      __t.set('nombre','TC310'); __t.set('edad','62'); __t.set('peso','70'); __t.set('talla','170');
+      __t.chk('ete_morfo_incluir_chk', true);
+      if (opt.esEte) __t.chk('ete-es-ete', true);
+      __t.set('vm_morf', opt.vm || 'Reumática');
+      /* Sin evento: es como vuelve un estudio guardado, y es la unica forma de dejar las dos
+         puertas en estados DISTINTOS —que es lo que aisla cada mitad del predicado—. */
+      if (opt.etio !== undefined) { const e = g('ete_etiologia'); if (e) e.value = opt.etio; }
+      __t.set('ete_carpentier','II');
+      __t.set('ete_mecanismo','prolapso');
+      ['wilkins_movilidad','wilkins_engrosamiento','wilkins_calcificacion','wilkins_subvalvular']
+        .forEach(k => __t.set(k,'2'));
+      __t.set('teer_tipo_im','primaria');
+      /* ⚠️ EL SEGUNDO SCORE DE WILKINS. La tarjeta de Calculadoras es otra implementacion, con
+         ids propios (cx_wilk_*), y el PDF la imprime por su cuenta. Un censo por nombre de campo
+         no la encuentra: se siembra a proposito para que el caso tenga denominador ahi tambien. */
+      ['cx_wilk_mov','cx_wilk_eng','cx_wilk_cal','cx_wilk_sub'].forEach(k => __t.set(k,'2'));
+      if (opt.avmE !== undefined) __t.set('ete_area_mitral', opt.avmE);
+      try{ calcWilkins(); }catch(e){}
+      try{ cxWilkins(); }catch(e){}
+      try{ valvProtSync(); }catch(e){}
+      try{ eteVmAvisoSync(); }catch(e){}
+      try{ amiloIntegrar('wilk'); }catch(e){}
+    };
+
+    const ESC = [
+      /* DENOMINADOR. Sin el, «cero Carpentier» lo cumple tambien una app que no emite nada. */
+      ['N nativa reumatica',        { esEte:true, vm:'Reumática', avmE:'1.9' }],
+      ['P1 prot mecanica Valvulas', { esEte:true, vm:'Prótesis mecánica', avmE:'1.9' }],
+      ['P2 prot biologica Valvulas',{ esEte:true, vm:'Prótesis biológica', avmE:'1.9' }],
+      /* SEGUNDA PUERTA AISLADA: Valvulas NO dice protesis. Sin este escenario, borrar la mitad
+         de ete_etiologia del predicado sobrevive en verde. */
+      ['P3 solo ete_etiologia',     { vm:'Normal', etio:'prot_mec', avmE:'1.9' }]
+    ];
+
+    // ── 1 · INFORME y EN SUMA, en los TRES estilos ────────────────────────────────────────
+    const EST = ['conciso','estandar','narrativo'];
+    const infPorEsc = {}, sucias = [], sumaSucia = [];
+    ESC.forEach(E => {
+      EST.forEach(st => {
+        sembrar(E[1]);
+        try { setEstiloInforme(st); } catch(e) {}
+        const r = __t.informe();
+        const lin = String(r.inf).split(NL).map(l=>l.trim()).filter(l=>l.indexOf('ETE')===0);
+        if (st === 'estandar') infPorEsc[E[0]] = { linea: lin.join(' / '), inf: r.inf, suma: r.suma };
+        const hall = MARCAS.filter(m => String(r.inf).indexOf(m) > -1);
+        if (E[0][0] === 'P' && hall.length) sucias.push(E[0] + ' [' + st + '] ' + hall.join('/') + ' :: ' + lin.join(' / '));
+        const hs = MARCAS.filter(m => String(r.suma).indexOf(m) > -1);
+        if (hs.length) sumaSucia.push(E[0] + ' [' + st + '] ' + hs.join('/'));
+      });
+    });
+    try { setEstiloInforme('estandar'); } catch(e) {}
+    const nativoTieneLasTres = MARCAS.every(m => infPorEsc['N nativa reumatica'].inf.indexOf(m) > -1);
+    /* EL ETE NO QUEDA MUDO NI AFIRMA NORMALIDAD: con la etiologia consignada la oracion conserva
+       su sujeto —nombra la protesis— y sigue publicando el area medida, que es de ESTA valvula. */
+    const p1 = infPorEsc['P1 prot mecanica Valvulas'].linea;
+    const noMudo = p1.indexOf('prótesis mecánica') > -1 && p1.indexOf('1.9 cm²') > -1;
+    const noAfirmaNormal = ['normal','sin alteraciones','normofuncionante']
+      .every(x => p1.toLowerCase().indexOf(x) === -1);
+
+    /* ⚠️ EL LIMITE, MEDIDO Y DECLARADO: sin ete_etiologia Y sin area, la linea ETE de la mitral
+       desaparece ENTERA. Es el transtorácico con protesis en Valvulas —la propagacion no escribe
+       ahi, a proposito— y el estudio legado. No se inventa texto para taparlo: el parrafo de la
+       mitral del cuerpo sigue describiendo la protesis. La condicion fija ese limite para que
+       cambiarlo sea deliberado. */
+    sembrar({ vm:'Prótesis mecánica', avmE:'' });
+    const rMudo = __t.informe();
+    const lineaMuda = String(rMudo.inf).split(NL).map(l=>l.trim()).filter(l=>l.indexOf('ETE')===0);
+    const cuerpoNombraProtesis = String(rMudo.inf).toLowerCase().indexOf('prótesis mecánica') > -1;
+
+    // ── 2 · PDF, que es la superficie que se firma ────────────────────────────────────────
+    const pdfDe = async (opt) => {
+      sembrar(opt); __t.informe();
+      /* Clave GLOBAL de localStorage, no del estudio: se enciende para la medicion y se apaga en
+         el finally, o el caso siguiente hereda el bloque de Wilkins en su PDF. */
+      try{ localStorage.setItem('wilkins_incluir_pdf','1'); }catch(e){}
+      const O = window.jspdf.jsPDF; let out = null;
+      window.jspdf.jsPDF = function () { const d = new O(...arguments);
+        d.save = function () { try { out = d.output('datauristring'); } catch (e) { out = null; } }; return d; };
+      window.jspdf.jsPDF.API = O.API;
+      try { generarPDFReal(); for (let k = 0; k < 120 && !out; k++) await new Promise(r => setTimeout(r, 100)); }
+      catch (e) {} finally { window.jspdf.jsPDF = O; try{ localStorage.setItem('wilkins_incluir_pdf','0'); }catch(e2){} }
+      if (!out) return '(sin PDF)';
+      const bin = atob(out.split(',')[1]);
+      const re = new RegExp('\\\\(((?:\\\\\\\\[^]|[^()])*)\\\\)\\\\s?Tj', 'g');
+      let m, t = []; while ((m = re.exec(bin))) t.push(m[1]);
+      return t.join(' ');
+    };
+    let pdfNat = '(no se pudo)', pdfProt = '(no se pudo)';
+    for (let i = 0; i < 40 && !(window.jspdf && window.jspdf.jsPDF); i++) await new Promise(r => setTimeout(r, 200));
+    if (window.jspdf && window.jspdf.jsPDF) {
+      pdfNat  = await pdfDe({ esEte:true, vm:'Reumática', avmE:'1.9' });
+      pdfProt = await pdfDe({ esEte:true, vm:'Prótesis mecánica', avmE:'1.9' });
+    }
+    /* El PDF sanea a ASCII, asi que «Carpentier» y «Wilkins» sobreviven tal cual. */
+    /* «SCORE DE WILKINS» en mayusculas es la BARRA del bloque de Calculadoras; «Wilkins» a secas
+       es la oracion del narrativo. Se miden por separado: son dos emisores distintos y una sola
+       marca dejaria sobrevivir la mutacion del que no se nombra. */
+    const pdfNatTiene  = ['Carpentier','Wilkins','SCORE DE WILKINS','Movilidad'].filter(k => pdfNat.indexOf(k) > -1);
+    const pdfProtSucio = ['Carpentier','Wilkins','SCORE DE WILKINS','Movilidad'].filter(k => pdfProt.indexOf(k) > -1);
+
+    // ── 3 · PPT ───────────────────────────────────────────────────────────────────────────
+    const pptDe = async (opt) => {
+      sembrar(opt); __t.informe();
+      let capt = null;
+      const oD = window._pptxDescargarSaneado, oW = PptxGenJS.prototype.writeFile;
+      window._pptxDescargarSaneado = function(P2){ capt = P2; return Promise.resolve({saneado:true,quitadas:0}); };
+      PptxGenJS.prototype.writeFile = function(){ capt = this; return Promise.resolve(''); };
+      try { _pptDesdeFormulario({ id:0, fecha_estudio:'2026-09-28', campos:{ nombre:'TC310' } }, 'azul', 'Dr X');
+            for (let k=0;k<200 && !capt;k++) await new Promise(r=>setTimeout(r,50)); } catch(e) {}
+      window._pptxDescargarSaneado = oD; PptxGenJS.prototype.writeFile = oW;
+      if (!capt) return '(sin PPT)';
+      const sl = capt.slides || capt._slides || [];
+      return sl.map(s2 => (s2._slideObjects || s2.data || []).map(o => {
+        if (o.arrTabRows) return o.arrTabRows.map(row => row.map(c => (c && c.text != null) ? String(c.text) : '').join('=')).join(' § ');
+        if (typeof o.text === 'string') return o.text;
+        if (Array.isArray(o.text)) return o.text.map(t => t&&t.text?t.text:'').join(' ');
+        return ''; }).join(' | ')).join(' ## ');
+    };
+    let pptNat = '(no se pudo)', pptProt = '(no se pudo)';
+    for (let i=0;i<300 && typeof PptxGenJS === 'undefined';i++) await new Promise(r=>setTimeout(r,100));
+    if (typeof PptxGenJS !== 'undefined') {
+      pptNat  = await pptDe({ esEte:true, vm:'Reumática', avmE:'1.9' });
+      pptProt = await pptDe({ esEte:true, vm:'Prótesis mecánica', avmE:'1.9' });
+    }
+    const pptNatTiene  = ['Carpentier','Mecanismo','Wilkins'].filter(k => pptNat.indexOf(k) > -1);
+    const pptProtSucio = ['Carpentier','Mecanismo','Wilkins'].filter(k => pptProt.indexOf(k) > -1);
+    /* El PPT no queda mudo: la ETIOLOGIA y el AREA son de esta valvula y se siguen proyectando. */
+    const pptProtNoMudo = pptProt.indexOf('Etiología=Prótesis mecánica') > -1
+                       && pptProt.indexOf('Área valvular por planimetría') > -1;
+
+    // ── 4 · LA HOJA DEL PDF SE OMITE, y el TEXTO GUARDADO NO SE TOCA ──────────────────────
+    sembrar({ esEte:true, vm:'Reumática', avmE:'1.9' });
+    const hojasNat = (amiloEnInforme() || []).map(x => x.k);
+    const txtNat = (g('am-txt-wilk') || {}).value || '';
+    __t.set('vm_morf','Prótesis mecánica');
+    try{ valvProtSync(); }catch(e){}
+    const hojasProt = (amiloEnInforme() || []).map(x => x.k);
+    const txtProt = (g('am-txt-wilk') || {}).value || '';
+    /* ⚠️ SE SUPRIME LA EMISION, NO EL DATO: el textarea sigue con su texto —viaja dentro del
+       estudio guardado— y el boton sigue diciendo «integrado». Lo unico que cambia es que la
+       hoja no baja al papel. Si esto fuera un borrado, corregir la morfologia no lo devolveria. */
+    const datoIntacto = txtProt !== '' && txtProt === txtNat && amiloIntegrado('wilk') === true;
+    /* Y VUELVE al corregir la morfologia: la prueba de que se suprimio la emision y nada mas. */
+    __t.set('vm_morf','Reumática');
+    try{ valvProtSync(); }catch(e){}
+    const hojasVuelta = (amiloEnInforme() || []).map(x => x.k);
+
+    /* ⚠️ LA GUARDA FAIL-CLOSED DE amiloEnInforme, EJERCIDA EN AISLAMIENTO. Si la compuerta de
+       la seccion LANZA, la hoja NO tiene que imprimirse. Sin este ejercicio seria «una capa que
+       nadie sabe si existe»: ninguna otra condicion la alcanza, porque el predicado real no
+       lanza nunca. Se restaura en el finally Y se afirma que quedo restaurada. */
+    /* ⚠️ SON DOS FORMAS DE FALLAR Y HAY QUE EJERCER LAS DOS. Con la guarda escrita como
+       "typeof vmEsProtesis === 'function' && vmEsProtesis()", un predicado que LANZA queda
+       cubierto por el try/catch, pero uno AUSENTE devuelve false sin lanzar y la hoja SALE. La
+       primera version de este caso solo stubeaba el throw, y la mutacion que reintroduce el
+       typeof SOBREVIVIA en verde. Medido. */
+    const _vmOrig = window.vmEsProtesis;
+    let hojasThrow = ['(no corrio)'], hojasAusente = ['(no corrio)'];
+    try {
+      window.vmEsProtesis = function(){ throw new Error('compuerta rota a proposito'); };
+      hojasThrow = (amiloEnInforme() || []).map(x => x.k);
+      window.vmEsProtesis = undefined;
+      hojasAusente = (amiloEnInforme() || []).map(x => x.k);
+    } finally { window.vmEsProtesis = _vmOrig; }
+    const restaurada = window.vmEsProtesis === _vmOrig && (amiloEnInforme() || []).map(x => x.k).indexOf('wilk') > -1;
+
+    // ── 5 · REABRIR UN ESTUDIO GUARDADO NO CAMBIA UN SOLO VALOR ───────────────────────────
+    sembrar({ esEte:true, vm:'Prótesis mecánica', avmE:'1.9' });
+    __t.informe();
+    const antes = {}; CAMPOS.concat(['vm_morf','ete_etiologia','ete_area_mitral']).forEach(id => { antes[id] = gv(id); });
+    const gd = await __t.guardar();
+    const eid = gd.estudioId;
+    __t.limpiar();
+    if (eid) __t.reabrir(eid);
+    const difieren = [];
+    Object.keys(antes).forEach(id => { if (antes[id] !== gv(id)) difieren.push(id + ': «' + antes[id] + '» → «' + gv(id) + '»'); });
+
+    // ── 6 · EL EXCEL NO SE TOCA ──────────────────────────────────────────────────────────
+    const infG = eid ? getInformes().find(i => i.estudioId === eid) : null;
+    const fila = infG ? _labExcelRow(infG) : null;
+    const xlsWilkins = fila ? ['Wilkins movilidad','Wilkins engrosamiento','Wilkins calcificación',
+                               'Wilkins subvalvular','Score Wilkins total']
+      .map(k => k + '=' + String(fila[k])).join(' · ') : '(sin fila)';
+    const xlsCompleto = !!fila && String(fila['Score Wilkins total']) === '8'
+      && String(fila['Wilkins movilidad']).indexOf('2') === 0;
+
+    const asserts = _labXlsAssertListas().concat(_labXlsAssertVocab());
+    try { if (eid) __t.borrar(eid); } catch (e) {}
+    __t.limpiar();
+
+    return { extra: [
+      // ── DENOMINADOR ──
+      ['DENOMINADOR: con valvula NATIVA las TRES oraciones salen en el informe (sin esto el caso no prueba nada)',
+        nativoTieneLasTres, infPorEsc['N nativa reumatica'].linea],
+      ['DENOMINADOR del PDF: con nativa el papel firmado trae Carpentier, la oracion del score Y la barra del SEGUNDO Wilkins (el de Calculadoras, cx_wilk_*)',
+        pdfNatTiene.length === 4, pdfNatTiene.join('/') + ' (' + pdfNat.length + ' car.)'],
+      ['DENOMINADOR del PPT: con nativa la diapositiva trae las TRES filas',
+        pptNatTiene.length === 3, pptNatTiene.join('/')],
+      ['DENOMINADOR de la hoja: con nativa «wilk» baja al PDF',
+        hojasNat.indexOf('wilk') > -1, hojasNat.join(',')],
+
+      // ── LA SUPRESION, por las DOS puertas y en los TRES estilos ──
+      ['⚠️ CERO Carpentier, mecanismo y Wilkins en el INFORME con protesis, por las dos puertas y en los tres estilos',
+        sucias.length === 0, sucias.join(' | ') || '(3 escenarios x 3 estilos limpios)'],
+      ['el EN SUMA nunca los emitio, y sigue sin emitirlos',
+        sumaSucia.length === 0, sumaSucia.join(' | ') || '(4 escenarios x 3 estilos limpios)'],
+      ['⚠️ CERO en el PDF —las DOS implementaciones del score—, que es la superficie que se firma',
+        pdfProtSucio.length === 0 && pdfProt.length > 500, pdfProtSucio.join('/') || 'limpio (' + pdfProt.length + ' car.)'],
+      ['⚠️ CERO en el PPT', pptProtSucio.length === 0 && pptProt.length > 200,
+        pptProtSucio.join('/') || 'limpio (' + pptProt.length + ' car.)'],
+      ['y la hoja «SCORE DE WILKINS» no baja al PDF con protesis',
+        hojasProt.indexOf('wilk') === -1, hojasProt.join(',')],
+
+      // ── SUPRIMIR NO ES CALLARSE ──
+      ['el ETE NO queda mudo: la oracion conserva su sujeto y el area medida',
+        noMudo, p1],
+      ['y NO afirma normalidad sobre la protesis', noAfirmaNormal, p1],
+      ['el PPT tampoco queda mudo: etiologia y area siguen proyectandose',
+        pptProtNoMudo, pptProt.indexOf('VÁLVULA MITRAL') > -1 ? 'con grupo' : 'sin grupo'],
+      ['⚠️ EL LIMITE, DECLARADO: sin etiologia de ETE y sin area, la linea ETE de la mitral desaparece entera — el cuerpo del informe sigue nombrando la protesis',
+        lineaMuda.length === 0 && cuerpoNombraProtesis,
+        'lineaETE=' + (lineaMuda.join(' / ') || '(ninguna)') + ' · cuerpo nombra protesis=' + cuerpoNombraProtesis],
+
+      // ── NO SE BORRA NI SE MIGRA NADA ──
+      ['⚠️ se suprime la EMISION, no el dato: el texto de la hoja sigue entero y el boton sigue integrado',
+        datoIntacto, 'txt=' + txtProt.length + ' car. · integrado=' + amiloIntegrado('wilk')],
+      ['y la hoja VUELVE al corregir la morfologia a nativa', hojasVuelta.indexOf('wilk') > -1, hojasVuelta.join(',')],
+      ['⚠️ la guarda FAIL-CLOSED de amiloEnInforme, en aislamiento: si la compuerta LANZA, la hoja NO se imprime',
+        hojasThrow.indexOf('wilk') === -1 && hojasThrow.indexOf('(no corrio)') === -1, hojasThrow.join(',')],
+      ['⚠️ y la SEGUNDA forma de fallar: si el predicado NO EXISTE, la hoja tampoco se imprime (es lo que el typeof dejaba pasar)',
+        hojasAusente.indexOf('wilk') === -1 && hojasAusente.indexOf('(no corrio)') === -1, hojasAusente.join(',')],
+      ['y la compuerta quedo restaurada (si no, las condiciones de abajo medirian sobre un stub)',
+        restaurada, String(window.vmEsProtesis === _vmOrig)],
+      ['⚠️ REABRIR UN ESTUDIO GUARDADO NO CAMBIA UN SOLO VALOR',
+        difieren.length === 0 && !!eid, difieren.join(' | ') || 'los ' + Object.keys(antes).length + ' vuelven igual'],
+      ['el EXCEL no se toco: las cuatro subescalas y el total siguen saliendo con protesis',
+        xlsCompleto, xlsWilkins],
+      ['_labXlsAssertListas() y _labXlsAssertVocab() en []', asserts.length === 0, asserts.join(' | ') || '[]']
+    ] };
+  })();
+`);
+
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

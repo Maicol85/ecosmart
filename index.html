@@ -26728,10 +26728,27 @@ function generarInforme(opts) {
        del defecto, porque la interfaz afirmaba lo contrario de lo que hacía el informe firmado. */
     const _morfoChk = document.getElementById('ete_morfo_incluir_chk');
     const _morfoInc = _morfoChk ? _morfoChk.checked : (localStorage.getItem('ete_morfo_incluir') === '1');
+    /* ⚠️ CON LA MITRAL PROTÉSICA NO SALEN LOS DESCRIPTORES DE VÁLVULA NATIVA. Ver `vmEsProtesis`.
+       La ETIOLOGÍA SÍ SIGUE SALIENDO —«con prótesis mecánica» es el hallazgo, no un descriptor
+       nativo— y el área por planimetría también: es una medición de esta válvula, no una
+       clasificación de una nativa. Sin eso la oración se quedaría sin sujeto.
+       Se apagan las TRES ENTRADAS y no el texto de salida: así la compuerta de abajo —que decide
+       si la oración existe— ve lo mismo que se va a imprimir. Apagar sólo el texto dejaba salir
+       «ETE — Válvula mitral.» a secas cuando el Carpentier era lo único cargado. */
+    /* SIN `typeof`, y es deliberado. `vmEsProtesis` es una declaración de función en el MISMO
+       bloque `<script>` que ésta, así que se hoistea y el `typeof` daría `'function'` siempre
+       —incluso con el script muerto—: no protegía de nada y degradaba a «emitir», que es la
+       dirección equivocada. Es textual la lección que la Fase A ya escribió sobre
+       `typeof protNoGradua === 'function'`. La llamada pelada falla RUIDOSA si alguien mueve la
+       función a otro bloque, que es lo que se quiere. */
+    const _vmProt = vmEsProtesis();
     const etio = _morfoInc ? sv('ete_etiologia')  : '';
-    const carp = _morfoInc ? sv('ete_carpentier') : '';
-    const mec  = _morfoInc ? sv('ete_mecanismo')  : '';
-    const wEl  = document.getElementById('wilkins-total');
+    const carp = (_morfoInc && !_vmProt) ? sv('ete_carpentier') : '';
+    const mec  = (_morfoInc && !_vmProt) ? sv('ete_mecanismo')  : '';
+    /* El span se anula en vez de filtrar el número más abajo: de ahí salen las DOS ramas del
+       score —el total y el «incompleto — no interpretable»— y la compuerta. Con `null`, `wN`
+       queda `NaN` y `_wParcial` en `false`, así que las tres se apagan de una sola vez. */
+    const wEl  = _vmProt ? null : document.getElementById('wilkins-total');
     const wN   = wEl ? parseInt(wEl.textContent) : NaN;
     const avmE = v('ete_area_mitral');
     if (etio || carp || (!isNaN(wN) && wN > 0) || avmE) {
@@ -29585,6 +29602,65 @@ function _eteVmEsProt(origen, val) {
   const enVm = origen === 'ete' ? _eteVmPar('ete', val) : val;
   return !!(enVm && typeof valvEsProtesis === 'function' && valvEsProtesis(enVm));
 }
+
+/* ══ ¿LA MITRAL ES UNA PRÓTESIS? — DUEÑO ÚNICO DE LOS **DESCRIPTORES NATIVOS** ════════════════
+   ⚠️ EL ALCANCE ESTÁ EN EL TÍTULO Y NO ES EL DE TODA LA APP. Esta función decide si se EMITEN
+   Carpentier, el mecanismo y el score de Wilkins, y nada más. La GRADUACIÓN sigue preguntando por
+   `protNoGradua('vm_morf')` sola —una puerta— así que en el estado «`ete_etiologia` protésico con
+   `vm_morf` nativo» las dos preguntas dan distinto y el informe puede decir «Válvula mitral de
+   morfología normal, sin estenosis ni insuficiencia» en el párrafo de Válvulas y «ETE — Válvula
+   mitral con prótesis mecánica» en el del ETE. Esa contradicción es PREEXISTENTE —para eso existe
+   `eteVmAvisoSync`— pero esta fase la vuelve accionable de forma asimétrica, y unificarla cambia
+   el alcance de la Fase A, o sea de la graduación. Declarado y NO tocado: es otra decisión.
+   Ese estado no se alcanza tipeando (`eteVmPropagar('ete')` pisa `vm_morf` en el `onchange`); sí
+   por las rutas que reponen con `.value` sin evento: import de Excel, backup, estudio legado.
+
+   `ete_carpentier`, `ete_mecanismo` y los cuatro `wilkins_*` describen una válvula NATIVA: la
+   clasificación de Carpentier es de la mitral nativa y el score de Wilkins puntúa la anatomía
+   para una valvuloplastia con balón sobre una mitral REUMÁTICA nativa. Sobre una prótesis no
+   significan nada, y desde la Fase 4 —que propaga la etiología de Válvulas al ETE— el informe
+   firmado podía publicar «ETE — Válvula mitral con prótesis mecánica con mecanismo Carpentier
+   Tipo II … Score de Wilkins 8/16». Medido, con esa misma redacción.
+
+   ⚠️ LAS DOS PUERTAS, porque el estudio puede afirmar la prótesis por cualquiera de ellas y la
+   propagación NO siempre corre: hacia el ETE sólo escribe si «Es un ETE» está tildado (guarda de
+   `eteVmPropagar`, para no fabricar dato de un estudio que no se hizo). O sea que un
+   transtorácico con prótesis en Válvulas deja `ete_etiologia` vacío, y preguntar por un solo lado
+   dejaría la mitad de los casos sin compuerta. Medido: escenarios B2/C/D/F del censo.
+
+   ⚠️ NO HAY LISTA NUEVA DE «QUÉ TOKEN ES PROTÉSICO». Se usan los dos predicados que ya existen
+   —`protNoGradua`, que es el dueño del lado Válvulas, y `_eteVmEsProt`, que deriva el lado ETE de
+   `valvEsProtesis` por la tabla de pares—. Con una tercera lista, agregar mañana una prótesis a
+   los selects y olvidarse de acá deja esta compuerta muda y nadie se entera.
+
+   ⚠️ HEREDA EL FAIL-CLOSED DE `protNoGradua`: sin `#vm_morf` devuelve `true`, o sea que suprime.
+   La dirección es deliberada y es la misma que eligió esa función: publicar «Carpentier Tipo II»
+   sobre una prótesis es una afirmación FALSA en un documento firmado; no publicar el Wilkins de
+   una mitral nativa es una omisión, y el score sigue en pantalla, en el Excel y en el estudio
+   guardado. Una afirmación falsa es peor que una omisión visible.
+
+   ⚠️ SUPRIME EN SILENCIO — no hay salvedad ni leyenda, por decisión de Maicol (informe corto,
+   sólo hallazgos). En pantalla el ETE sigue mostrando los cuatro campos con su valor, que es
+   donde el médico los corrige; lo que se retira es la EMISIÓN. Queda declarado en CLAUDE.md.
+
+   ⚠️ NO LLAMARLA EN TIEMPO DE CARGA. Su cuerpo llega a `VALV_PROT_OPCIONES` (~29537) y a
+   `_ETE_VM_PARES` (~29582), las dos `const` de nivel superior: leerlas antes de su línea no da
+   `undefined`, **lanza**, y en este archivo eso mata el bloque `<script>` entero. Hoy sus tres
+   llamadores corren por acción del médico —generar informe, PDF y PPT—; una sentencia nueva de
+   nivel superior por encima de esas líneas reintroduce la trampa. Es el mismo motivo por el que
+   `protNoGradua` se mudó arriba de su primer llamador.
+
+   ⚠️ EL `console.error` DE `protNoGradua` NO NOMBRA ESTO. Dice «no se gradúa, por las dudas»;
+   desde esta fase, ese mismo `true` además BORRA el Carpentier y el Wilkins de todos los
+   informes. Quien lo lea va a buscar un problema de graduación. */
+function vmEsProtesis() {
+  /* `protNoGradua('vm_morf')` y no `valvEsProtesis(sv('vm_morf'))`: el que falla cerrado sobre un
+     `#vm_morf` inexistente es el primero, y copiar el segundo sería reintroducir el fail-open. */
+  if (typeof protNoGradua === 'function' && protNoGradua('vm_morf')) return true;
+  const e = document.getElementById('ete_etiologia');
+  return !!(e && e.value && typeof _eteVmEsProt === 'function' && _eteVmEsProt('ete', e.value));
+}
+window.vmEsProtesis = vmEsProtesis;
 
 /* PINTA, no escribe. Por eso va en `RECALC_MODULOS` y al final de `limpiarCampos`: un estudio
    guardado antes de esta fase —o importado— puede traer los dos lados contradiciéndose, y sin
@@ -32787,7 +32863,20 @@ function generarPDFReal(_aj) {
      dejaron de reconocer el hueco y los bloques sin datos se imprimían llenos de guiones,
      empujando el informe a una segunda hoja. */
   const _cxVacio = t => !t || t === '—' || t === '-';
-  if (localStorage.getItem('wilkins_incluir_pdf') === '1') {
+  /* ⚠️ EL SEGUNDO SCORE DE WILKINS, Y ES EL QUE SE ESCAPA DEL CENSO. Este bloque NO lee los
+     `wilkins_*` de la pestaña ETE: lee `cx_wilk_*`, la tarjeta de Calculadoras, que es una
+     implementación aparte con sus propios ids. Un censo por nombre de campo no lo encuentra —la
+     misma trampa que `em_grado` ya cobró dos veces— y lo levantó `/sharp-edges` sobre este diff.
+     Medido con la mitral protésica: el PDF FIRMADO seguía imprimiendo la barra «SCORE DE WILKINS»
+     con «Movilidad 2/4 · … · Total 8/16 — favorable para valvuloplastia percutánea», dos
+     centímetros debajo de un informe que ya no lo dice. Entra por la misma compuerta que las
+     otras tres superficies. Se gatea la EMISIÓN: la tarjeta de Calculadoras sigue calculando y
+     mostrando, y ni el toggle ni los cuatro selects se tocan.
+     ⚠️ El toggle `wilkins_incluir_pdf` es una clave GLOBAL de localStorage —preferencia del
+     dispositivo, no del estudio—, así que quien lo encendió una vez lo tiene encendido para todos
+     los pacientes: sin esta guarda el defecto no es un caso raro, es el estado por defecto de ese
+     médico. Queda declarado aparte, no se toca acá. */
+  if (localStorage.getItem('wilkins_incluir_pdf') === '1' && !vmEsProtesis()) {
     const _wt = _cxtx('cx-wilkins-total');
     /* El guard de parcialidad estaba SÓLO en pantalla: el bloque reconstruía las filas por su
        cuenta, así que un score de 2 de 4 criterios salía como «Movilidad 3/4 · Engrosamiento
@@ -49187,7 +49276,26 @@ function amiloSecs() {
     { k:'etem', lbl:'Mediciones ETE — Válvula mitral', tit:'MEDICIONES - VALVULA MITRAL',               gen:amiloTextoEteMitral, grupo:'ete' },
     { k:'teer', lbl:'Criterios TEER (MitraClip / PASCAL)', tit:'CRITERIOS TEER - MITRACLIP / PASCAL',   gen:amiloTextoTEER, grupo:'ete',
       hayDatos:function(){ return typeof teerEstado !== 'function' || teerEstado().hayDatos; } },
-    { k:'wilk', lbl:'Score de Wilkins',                tit:'SCORE DE WILKINS - ESTENOSIS MITRAL',      gen:amiloTextoWilkins, grupo:'ete' },
+    /* ⚠️ `omitir`: la hoja NO SE IMPRIME con la mitral protésica. El score de Wilkins puntúa la
+       anatomía para una valvuloplastia con balón sobre una mitral reumática NATIVA; sobre una
+       prótesis la hoja entera —incluida su línea «Favorable para valvuloplastia percutánea»— no
+       se aplica. Ver `vmEsProtesis`.
+       Va como PROPIEDAD del registro y no como un `if (s.k === 'wilk')` dentro de
+       `amiloEnInforme`, por el mismo argumento que `hayDatos` escribe acá arriba: el día que otro
+       módulo lo necesite es agregar una propiedad y no tocar el armador.
+       Y se consulta en `amiloEnInforme` —la que arma el PDF— y NO en `amiloIntegrar`: el texto ya
+       integrado viaja dentro del estudio guardado (`am-txt-wilk`) y una compuerta en el
+       integrador no alcanzaría a la REIMPRESIÓN de un estudio guardado antes de esta fase, que es
+       justo donde la hoja sobrevive. Suprimir la emisión no borra ese texto: el dato guardado
+       queda intacto y vuelve entero si la morfología se corrige.
+       ⚠️ LLAMADA PELADA, SIN `typeof`, Y ES LA MITAD QUE FALTABA DEL FAIL-CLOSED. Con
+       `typeof vmEsProtesis === 'function' && …` un predicado inexistente devolvía `false` **sin
+       lanzar**, así que el try/catch de `amiloEnInforme` no se enteraba y la hoja SALÍA. Pelada,
+       una función ausente tira `ReferenceError`, lo caza ese try y la hoja no se imprime: las dos
+       formas de fallar —lanzar y no existir— terminan en el mismo lado. Lo levantó `/sharp-edges`
+       sobre este diff: el comentario de allá prometía fail-closed y sólo cubría una. */
+    { k:'wilk', lbl:'Score de Wilkins',                tit:'SCORE DE WILKINS - ESTENOSIS MITRAL',      gen:amiloTextoWilkins, grupo:'ete',
+      omitir:function(){ return vmEsProtesis(); } },
     { k:'oai',  lbl:'Mediciones OAI',                  tit:'OREJUELA IZQUIERDA',                       gen:amiloTextoOAI, grupo:'ete' },
     { k:'aoete',lbl:'Mediciones Aorta (ETE)',          tit:'AORTA TORACICA',                           gen:amiloTextoAortaETE, grupo:'ete' },
     { k:'dpt',  lbl:'Derrame pericárdico / Taponamiento', tit:'DERRAME PERICARDICO - VALORACION HEMODINAMICA', gen:amiloTextoDPT },
@@ -49805,6 +49913,17 @@ function amiloEnInforme() {
   amiloSecs().forEach(s => {
     const w = document.getElementById('am-wrap-' + s.k);
     if (!w || w.style.display === 'none') return;
+    /* Compuerta OPCIONAL de emisión, declarada por la sección. Hoy sólo la usa `wilk` —el score
+       de Wilkins no se imprime sobre una prótesis mitral—; ver la nota en `amiloSecs`.
+       ⚠️ FALLA CERRADO si `omitir` lanza: una compuerta rota tiene que suprimir, no publicar. Es
+       la dirección contraria a la de `hayDatos` en `amiloIntegrar`, y a propósito: allá un throw
+       deja INTEGRAR una hoja vacía —cosmético— y acá dejaría salir al papel firmado una hoja que
+       no corresponde a esta válvula. */
+    if (typeof s.omitir === 'function') {
+      let _om = true;
+      try { _om = !!s.omitir(); } catch (e) { console.error('[amiloEnInforme] omitir de ' + s.k + ' lanzó — no se imprime:', e); }
+      if (_om) return;
+    }
     const txt = _amV('am-txt-' + s.k);
     if (txt) out.push({ k: s.k, tit: s.tit, txt: txt, grupo: s.grupo || 'ett' });
   });
@@ -52581,10 +52700,18 @@ function _pptDesdeFormulario(inf, tema, presentador){
         const t = (typeof eteTecnicaTexto === 'function') ? eteTecnicaTexto() : '';
         fila(F,'Técnica y sedación', t);
       }
+      /* ⚠️ MISMA COMPUERTA QUE EL INFORME, y por el mismo predicado: con la mitral protésica no
+         se proyectan los descriptores de válvula NATIVA. En el ateneo el informe está abierto al
+         lado, así que una fila «Carpentier — Tipo II» en la pantalla contra un informe que no la
+         dice es la contradicción que este bloque ya se cuida de evitar con `integrado()`.
+         Sin `typeof`: ver la nota del mismo predicado en el bloque ETE del informe. */
+      const _vmProt = vmEsProtesis();
       if (chkMor && chkMor.checked) {
         fila(F,'Etiología', _pptSel('ete_etiologia'));
-        fila(F,'Carpentier', _pptSel('ete_carpentier'));
-        fila(F,'Mecanismo', _pptSel('ete_mecanismo'));
+        if (!_vmProt) {
+          fila(F,'Carpentier', _pptSel('ete_carpentier'));
+          fila(F,'Mecanismo', _pptSel('ete_mecanismo'));
+        }
       }
       /* Cada grupo consulta SU compuerta. Los tres se agregaban incondicionalmente mientras
          `hayEte` —que es la unión de las cuatro— alcanzara con una sola: el médico integraba el
@@ -52594,7 +52721,9 @@ function _pptDesdeFormulario(inf, tema, presentador){
          en el ateneo el informe está abierto al lado. */
       let n = F.length;
       if (integrado('wilk')) {
-        fila(F,'Score de Wilkins', _pptSpan('wilkins-total'));
+        /* El ÁREA sigue proyectándose: es una medición de ESTA válvula, protésica o no. Lo que
+           no sale es el score, que puntúa la anatomía de una mitral reumática nativa. */
+        if (!_vmProt) fila(F,'Score de Wilkins', _pptSpan('wilkins-total'));
         fila(F,'Área valvular por planimetría', _pptNum('ete_area_mitral'), ' cm²');
       }
       grupo(F,'Válvula mitral', n);

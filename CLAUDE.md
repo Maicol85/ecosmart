@@ -1,5 +1,151 @@
 # EcoSmart — trampas de este archivo
 
+## Mitral protésica: los descriptores de válvula NATIVA dejan de emitirse (2026-09-28)
+
+`ete_carpentier`, `ete_mecanismo` y los cuatro `wilkins_*` describen una válvula **nativa**
+—Wilkins puntúa la anatomía para una valvuloplastia con balón sobre una mitral reumática nativa—.
+El CONTEXTO se reprodujo textual antes de escribir una línea:
+
+> «ETE — Válvula mitral con prótesis mecánica **con mecanismo Carpentier Tipo II (prolapso /
+> movimiento excesivo), mecanismo predominante: prolapso. Score de Wilkins 8/16.**»
+
+Se retira la **emisión** en informe, EN SUMA, PDF y PPT. No se toca ningún cálculo, ni la
+gradación, ni la aórtica, ni el panel de Evidencia, ni un solo dato guardado. El Excel tampoco.
+
+### El censo, y los DOS emisores que un grep por nombre de campo no encuentra
+
+| # | emisor | superficie | qué se hizo |
+|---|---|---|---|
+| 1 | bloque ETE de `generarInforme` (~26740) | informe (**los tres estilos**) y, por el cuerpo, PDF | se apagan las tres ENTRADAS |
+| 2 | `_pptDesdeFormulario` (~52660) | PPT | `if (!_vmProt)` en los dos grupos |
+| 3 | hoja `wilk` (`amiloTextoWilkins` → `amiloEnInforme`) | PDF | propiedad `omitir` en el registro |
+| 4 | **bloque «SCORES ADICIONALES» de `generarPDFReal`** (~32838) | **PDF firmado** | gateado |
+| — | `_labExcelRow`, Laboratorio | Excel, agregado poblacional | **no se tocan** (pedido) |
+
+**⚠️ EL 4 SE ESCAPÓ DEL CENSO Y LO CAZÓ `/sharp-edges`, no la lectura.** Hay **DOS
+implementaciones del score de Wilkins**, y la segunda vive en Calculadoras con ids propios
+—`cx_wilk_mov/eng/cal/sub` → `cx-wilkins-total`—. Un grep por `wilkins_*` y `wilkins-total` **no
+la toca**. Medido con la mitral protésica: el PDF firmado seguía imprimiendo la barra
+**«SCORE DE WILKINS»** con «Movilidad 2/4 · … · Total 8/16 — favorable para valvuloplastia
+percutánea», dos centímetros debajo de un informe que ya no lo decía. Es exactamente la lección
+que este archivo ya escribió dos veces para `em_grado` —**contar los emisores, no encontrar
+uno**— y esta vez el que faltaba no compartía ni el nombre del campo.
+
+**⚠️ Y su toggle `wilkins_incluir_pdf` es una clave GLOBAL de `localStorage`**, o sea preferencia
+del dispositivo y no del estudio: quien lo encendió una vez lo tiene encendido para **todos** sus
+pacientes. Sin la guarda eso no era un caso raro, era el estado por defecto de ese médico.
+El toggle no se tocó; queda declarado.
+
+### El predicado son DOS puertas, y preguntar por una sola deja la mitad afuera
+
+`vmEsProtesis()` (~29600) pregunta por `protNoGradua('vm_morf')` **y** por `_eteVmEsProt('ete',
+ete_etiologia)`. Las dos, porque **la propagación de la Fase 4 hacia el ETE sólo escribe si «Es un
+ETE» está tildado** (guarda de `eteVmPropagar`, para no fabricar dato de un estudio que no se
+hizo). Medido: un transtorácico con prótesis en Válvulas deja `ete_etiologia` **vacío**. Con una
+sola puerta, la mitad de los casos se quedaba sin compuerta — y hay una mutación por cada mitad.
+
+No hay lista nueva de «qué token es protésico»: los dos predicados ya existían y los dos derivan
+de `valvEsProtesis`, que es el único dueño de esa pregunta.
+
+### ⚠️ SUPRIMIR NO ES CALLARSE — qué queda dicho, y dónde queda mudo
+
+- Con la etiología consignada: **«ETE — Válvula mitral con prótesis mecánica.»** La oración
+  conserva el sujeto, sigue publicando el área por planimetría —que es una medición de ESTA
+  válvula— y **no afirma normalidad**. El PPT igual: `Etiología = Prótesis mecánica` y el área.
+- Se apagan las **entradas** (`carp`, `mec`, `wEl = null`) y no el texto de salida, para que la
+  compuerta `if (etio || carp || … || avmE)` vea lo mismo que se va a imprimir. Apagando sólo el
+  texto salía **«ETE — Válvula mitral.»** a secas cuando el Carpentier era lo único cargado.
+- **⚠️ DONDE SÍ QUEDA MUDO, medido y declarado:** sin `ete_etiologia` **y** sin área, la línea ETE
+  de la mitral **desaparece entera**. Es el transtorácico con la prótesis sólo en Válvulas y el
+  estudio legado. **No se inventó texto** para taparlo —el pedido prohíbe agregar— y el párrafo de
+  la mitral del cuerpo sigue describiendo la prótesis. TC-310 fija ese límite con una condición
+  propia, para que cambiarlo sea deliberado.
+- **La pantalla no cambia**: el ETE sigue mostrando los cuatro campos con su valor, que es donde
+  el médico los corrige. Es el precedente de `_eaProtPintar`.
+
+### Lo que `/sharp-edges` encontró sobre este mismo diff, y se corrigió en el acto
+
+- **Los tres `typeof vmEsProtesis === 'function' &&` eran VACUOS y fallaban ABIERTO.** Es
+  textualmente la lección que la Fase A ya escribió sobre `typeof protNoGradua`: es una
+  declaración de función en el **mismo** bloque `<script>` (abre en 16263 y cierra en 83226), se
+  hoistea, y el `typeof` da `'function'` siempre. No protegía de nada y degradaba a «emitir».
+  **Se sacaron los tres.**
+- **⚠️ Y EN `omitir` ESO ERA LA MITAD QUE FALTABA DEL FAIL-CLOSED.** El comentario prometía que
+  una compuerta rota no imprime, y sólo cubría el caso de que **lance**: con el `typeof`, un
+  predicado **ausente** devolvía `false` **sin lanzar** y la hoja **salía**. Pelada, una función
+  ausente tira `ReferenceError` y el try/catch la manda al mismo lado. **Y el test tenía el mismo
+  hueco**: sólo stubeaba el throw, así que la mutación que reintroduce el `typeof` **sobrevivía en
+  verde**. Hoy TC-310 ejerce las dos formas de fallar.
+
+### Declarado y NO tocado
+
+- **⚠️ DOS DEFINICIONES DE «MITRAL PROTÉSICA» CONVIVEN.** La **graduación** sigue preguntando por
+  `protNoGradua('vm_morf')` sola —una puerta—; esta fase usa dos. En el estado «`ete_etiologia`
+  protésico con `vm_morf` nativo» el informe puede decir «Válvula mitral de morfología normal, sin
+  estenosis ni insuficiencia» en el párrafo de Válvulas y «ETE — Válvula mitral con prótesis
+  mecánica» en el del ETE. La contradicción es **preexistente** —para eso existe `eteVmAvisoSync`—
+  pero **esta fase la vuelve accionable de forma asimétrica**. Unificarla cambia el alcance de la
+  Fase A, o sea de la graduación: es otra decisión. Ese estado no se alcanza tipeando
+  (`eteVmPropagar('ete')` pisa `vm_morf` en el `onchange`); sí por import de Excel, backup o
+  estudio legado, que reponen con `.value` sin evento.
+- **Hay un TERCER Carpentier: `vm_carpentier`**, el del detalle de prolapso/Barlow de Válvulas
+  (~25818). Está fuera del pedido y hoy queda protegido **por accidente y no por diseño**: su
+  bloque sólo corre con `vm_morf` en «Prolapso / EVMS» o «Mixomatosa / Barlow». Por la puerta 2 el
+  estado es alcanzable, y ahí el informe suprimiría el Carpentier del ETE y publicaría el de
+  Válvulas, en el mismo documento.
+- **La REIMPRESIÓN queda a medias, y está medido.** El cuerpo del informe viaja **congelado** en
+  `campos.informe_texto` y la reimpresión no lo regenera, pero `amiloEnInforme` corre sobre el DOM
+  ya repoblado. O sea que un estudio firmado **antes** de esta fase se reimprime diciendo «Score de
+  Wilkins 8/16» en el cuerpo y **sin** la hoja que lo sostiene. No se tocó porque reescribir el
+  texto de un informe firmado es cambiar un dato guardado, que el pedido prohíbe explícitamente.
+- **`teer_tipo_im`: SÓLO MEDIDO, no cambiado** (lo pidió el prompt). Con prótesis **no emite nada**
+  al informe ni al EN SUMA —verificado: `enInf=false`, `enSuma=false`—. Lo único que publica es su
+  hoja del PDF, y sólo si el médico la integra: «Tipo de insuficiencia mitral | Primaria
+  (orgánica)» más los criterios y la conclusión, que ahí dio «Falta descartar trombo en aurícula
+  izquierda». No se tocó.
+- **El botón sigue diciendo «✓ Integrado al informe» y la hoja no sale.** `amiloIntegrado` mira el
+  `display` del wrap, no `omitir`. Es el mismo defecto que este archivo ya anota para
+  `ete_morfo_incluir`. Arreglarlo bien es retirar el módulo al cambiar la premisa clínica —como
+  hace HFA-PEFF— y eso **escribe** `am-integrados`, o sea toca un dato guardado.
+- **La puerta 2 puede quedar muda en silencio.** Resuelve `ete_etiologia → vm_morf` por
+  `_ETE_VM_PARES`: un token protésico nuevo **sin fila** en esa tabla devuelve `false`.
+  `_eteVmAssertPares` no lo caza —verifica que las filas nombren opciones que existen, no que toda
+  opción protésica tenga fila—. El assert que faltaría: *toda `<option>` de `#ete_etiologia` cuyo
+  value empiece con `prot_` tiene que tener fila*.
+- **El `console.error` de `protNoGradua` no nombra esto.** Dice «no se gradúa, por las dudas»;
+  desde esta fase ese mismo `true` además borra el Carpentier y el Wilkins de todos los informes.
+- **El panel de Evidencia** (`_indEM`, ~39555) consume `wilkinsScore()` sin compuerta y rutea la
+  conducta de comisurotomía sobre él. Pedido explícito de no tocarlo. A partir de acá el informe
+  omite el score y el panel lo sigue publicando, sobre el mismo paciente.
+
+### Verificación
+
+**Denominador declarado.** Con válvula **nativa**: informe, EN SUMA y PDF **idénticos byte a byte
+contra HEAD** —hash FNV-1a **y** longitud de cada superficie, dos magnitudes, y repetido para
+descartar no-determinismo: `INF=102170c3/618 · SUMA=3905c4c4/69 · PDF=7a346d0e/2417 · HOJAS=wilk`,
+iguales en las dos versiones— con el bloque `cx_wilk_*` **encendido**, que es el que se agregó
+último. Reabrir un estudio guardado no cambia ninguno de los diez campos mirados.
+
+**TC-310, 18 condiciones.** Cuatro denominadores (informe, PDF, PPT y hoja con nativa), los tres
+escenarios protésicos × tres estilos, el PDF y el PPT medidos de verdad —content stream y
+diapositivas reales, no «la función no lanzó»—, el ETE que no queda mudo ni afirma normalidad, el
+límite mudo fijado a propósito, el dato que NO se borra (el textarea sigue con sus 547 caracteres
+y la hoja **vuelve** al corregir la morfología), el Excel completo y los dos asserts.
+
+**ONCE mutaciones, las once en rojo**: las tres oraciones del informe, las dos del PPT, la hoja del
+PDF, el segundo Wilkins del PDF, las **dos mitades del predicado por separado**, el fail-closed de
+`amiloEnInforme` y el `typeof` que lo anulaba. Las dos guardas fail-closed **se ejercen en
+aislamiento**, stubeando el predicado para que **lance** y para que **falte** —son dos formas
+distintas de fallar—, restaurando en el `finally` y con una condición que afirma que quedó
+restaurado.
+
+**Suite 324/325**, único rojo **TC-223**, el documentado y ya rojo en la línea base.
+**Semgrep 125 / 0 ERROR**, el mismo número exacto que HEAD. `check_mobile` en los 2 ALTA de
+siempre. `_labXlsAssertListas()` y `_labXlsAssertVocab()` los dos en `[]`.
+
+**Y el caso se cayó dos veces por un backtick dentro del template literal**, que es la trampa que
+este archivo ya numera. Van veintiuna.
+
 ## FASE B — la continuidad de la EM deja de votar con regurgitación significativa (2026-09-28)
 
 **La regla (ASE 2023, rheumatic heart disease):** la ecuación de continuidad asume que todo lo que
