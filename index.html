@@ -2553,7 +2553,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
           <div class="fg">
             <label>Área AI (cm²)</label>
-            <input type="number" id="ai_area" placeholder="cm²" oninput="calcAI()">
+            <input type="number" id="ai_area" placeholder="cm²" oninput="calcAI();imSyncSiExiste()">
           </div>
           <div class="fg">
             <label>Volumen AI (ml)</label>
@@ -3022,7 +3022,7 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div class="grid-3" style="margin-top:8px;">
         <div class="fg">
           <label>VTI TSVI (cm)</label>
-          <input type="number" id="itv_tsvi" placeholder="cm" oninput="calcAo();eteShuntSyncSiExiste()">
+          <input type="number" id="itv_tsvi" placeholder="cm" oninput="calcAo();eteShuntSyncSiExiste();imSyncSiExiste()">
         </div>
         <div class="fg">
           <label>VTI Vao (cm)</label>
@@ -3030,7 +3030,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div class="fg">
           <label>Ø TSVI (mm)</label>
-          <input type="number" id="diam_tsvi" placeholder="mm" oninput="calcAo();mostrarTSVIEstimado();eteShuntSyncSiExiste();">
+          <input type="number" id="diam_tsvi" placeholder="mm" oninput="calcAo();mostrarTSVIEstimado();eteShuntSyncSiExiste();imSyncSiExiste();">
           <div id="tsvi-estimado-box" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
         </div>
       </div>
@@ -3327,8 +3327,21 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div class="grid-4">
         <div class="fg"><label>Vena contracta (mm)</label><input type="number" id="im_vc" placeholder="mm" oninput="calcIM_ESC()"></div>
         <div class="fg"><label>Área jet IM (cm²)</label><input type="number" id="im_jet_area" placeholder="cm²" oninput="calcIM_ESC()"></div>
-        <div class="fg"><label>Área AI (cm²)</label><input type="number" id="im_ai_area" placeholder="cm²" oninput="calcIM_ESC()"></div>
+        <div class="fg"><label>Área AI (cm²) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← AI/VI</span></label><input type="number" id="im_ai_area" placeholder="cm²" oninput="calcIM_ESC()"></div>
         <div class="fg"><label>Radio PISA (mm)</label><input type="number" id="pisa_r" placeholder="mm" oninput="calcIM_ESC()"></div>
+        <!-- ⚠️ CUÁLES DE LAS TRES CASILLAS SON ESPEJO, PERSISTIDO. `dataset` no sobrevive al
+             guardado, así que sin esto un espejo vuelve del estudio SIN marca, `_syncDerivado` no
+             puede probar que es suyo y lo respeta como manual: el valor queda CONGELADO y —esto es
+             lo caro— `calcIM_ESC` lo prefiere sobre el global (`v('im_ai_area') || v('ai_area')`),
+             así que re-medir el área en un estudio reabierto NO movía la severidad. Medido antes de
+             este oculto: guardado con el espejo en 26 cm² y re-medida la AI a 18, el ratio jet/AI se
+             quedaba en 34,6 % y `im_grado` en 2 (Moderada) cuando con el área nueva da 50,0 % y 4
+             (SEVERA). Dos bandas, hacia el lado tranquilizador, en un informe firmado.
+             Es `hidden` y no `readonly` por lo mismo que `ete_seg_*`: no hay nada que leer acá.
+             Lleva `data-espejo` para que `secAutoOpen` no lo cuente como «esta sección tiene datos».
+             Y como es `hidden`, el barrido de `limpiarCampos` —que toma text y number— NO lo
+             alcanza: se vacía A MANO, igual que `ete_tavi_jet_horas` y `co_serie_json`. -->
+        <input type="hidden" id="im_espejos" data-espejo>
         <div class="fg"><label>Valiasing PISA (cm/s)</label><input type="number" id="pisa_val" placeholder="cm/s" oninput="calcIM_ESC()"></div>
         <div class="fg"><label>Vmax IM (cm/s)</label><input type="number" id="im_vmax" placeholder="cm/s" oninput="calcIM_ESC()"></div>
         <div class="fg"><label>VTI IM (cm)</label><input type="number" id="im_itv" placeholder="cm" oninput="calcIM_ESC()"></div>
@@ -3373,12 +3386,12 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div class="grid-4" style="margin-bottom:4px;">
         <div class="fg">
           <label>Ø TSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Doppler</span></label>
-          <input type="number" id="im_dtsvi" placeholder="mm" oninput="calcContIM()">
+          <input type="number" id="im_dtsvi" placeholder="mm" oninput="calcContIM();calcIM_ESC()">
           <div id="im-tsvi-estimado-box" style="font-size:10px;color:var(--accent2);margin-top:3px;min-height:14px;"></div>
         </div>
         <div class="fg">
           <label>VTI TSVI (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Doppler</span></label>
-          <input type="number" id="im_itv_tsvi" placeholder="cm" oninput="calcContIM()">
+          <input type="number" id="im_itv_tsvi" placeholder="cm" oninput="calcContIM();calcIM_ESC()">
         </div>
         <div class="fg">
           <label>VTI mitral CW (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">compartido con PISA</span></label>
@@ -20771,6 +20784,139 @@ function sincronizarEMDesdeGlobal() {
 }
 window.sincronizarEMDesdeGlobal = sincronizarEMDesdeGlobal;
 
+/* IM: el mismo defecto que el de arriba, en la otra pastilla de la misma válvula, y lo mismo
+   medido — `im_dtsvi`, `im_itv_tsvi` y `im_ai_area` quedaban VACÍOS mientras `calcContIM` y
+   `calcIM_ESC` caían a los globales (`v('im_dtsvi') || v('diam_tsvi')`), así que los derivados
+   salían idénticos y lo único en blanco era lo que el médico ve. Verificado por diferencia: con
+   las tres casillas vacías y tipeadas a mano, vol eyectado, FR, ratio jet/AI y la severidad
+   integrada dan el MISMO número. La rama `mitral/insuf` de `toggleValvPill` no llamaba a nada.
+
+   ⚠️ VA POR `_syncDerivado` Y NO POR `_syncSiVacio`, al revés que EM, y es decisión de Maicol
+   (2026-09-27). La pastilla de IM suele quedar abierta mientras se corrige el Doppler: con el
+   espejo de una sola vez, corregir `diam_tsvi` dejaba la casilla mostrando el valor VIEJO
+   mientras el cálculo ya usaba el nuevo — o sea dos números del mismo dato en la misma tarjeta,
+   que es peor que el blanco de hoy. Es el mismo criterio por el que `teer_fevi`, `teer_dtsvi` y
+   `teer_pasp` pasaron de uno al otro cuando empezaron a decidir APTO / NO APTO.
+
+   ⚠️ LA COPIA SE GATEA POR LA PASTILLA, y el gate dice menos de lo que parece: compara el
+   `style.display` que escriben `toggleValvPill` y `limpiarCampos`, o sea que significa «la pastilla
+   de IM está encendida» y NO «el médico está viendo el bloque» — con la pastilla encendida y la
+   pestaña Válvulas inactiva, el gate PASA, que es lo correcto porque `ai_area` vive en otra pestaña
+   y el espejo tiene que estar al día cuando el médico vuelva. Lo que el gate evita es llenar tres
+   campos de una sección APAGADA, que `guardarInforme` persistiría igual —barre `input[id]` sin
+   mirar visibilidad— y que el médico no tiene dónde auditar. Y deja el alcance igual al precedente
+   de EM, que sólo corre al abrir.
+   NO se usa `disabled` ni ningún estado que no sobreviva a la restauración: acá la visibilidad
+   decide CUÁNDO copiar, nunca qué se calcula ni qué se publica.
+   ⚠️ Y EL VALOR NO ES INERTE, que es lo que decía acá y la medición desmintió. Es cierto que los
+   tres no salen al PDF ni al Excel ni al importador, pero la cláusula que sostenía «inerte» era
+   «ya caen al global» — y la caída es un `||`, que PREFIERE EL CAMPO. `calcIM_ESC` no es un
+   cálculo de pantalla: el ratio jet/AI y la FR son votos que escriben `im_grado` e `im_sev_final`,
+   que es lo que firma el informe. De ahí el oculto `im_espejos`.
+
+   Las DOS funciones de recálculo, porque son independientes —ninguna llama a la otra, medido—.
+   ⚠️ Y NO PORQUE «SE REPARTAN LOS CAMPOS», que es lo que decía acá y es FALSO: `calcIM_ESC` lee
+   los TRES (`v('im_dtsvi') || v('diam_tsvi')` y los usa para el voto de fracción regurgitante),
+   así que el reparto real es por función que PINTA, no por función que LEE. Ese comentario tapaba
+   un defecto vivo: los `oninput` de `im_dtsvi` e `im_itv_tsvi` llamaban sólo a `calcContIM`, así
+   que tipear el Ø TSVI A MANO dejaba el vol eyectado, la FR y el voto de severidad computados con
+   el valor ANTERIOR. Medido: con 40 tipeado, la FR seguía en 89 % y pasaba a 70 % recién al forzar
+   `calcIM_ESC`. Hoy los dos `oninput` llaman a las dos, como ya hacía `vtim`.
+
+   ⚠️ EL PEDIDO —«siguen al origen mientras el médico no las toque»— NO LO CUMPLE `_syncDerivado`
+   SOLO, y ésa es la razón de ser del oculto `im_espejos` de más abajo. La marca vive en `dataset`,
+   que NO se persiste, así que un espejo vuelve del estudio guardado sin ella: `_syncDerivado` no
+   puede probar que el valor es suyo y lo respeta como manual. Respetar es la dirección correcta
+   —nunca pisar lo que no se puede demostrar propio— y el costo NO es cosmético, porque
+   `calcIM_ESC` prefiere el campo sobre el global. Medido antes del oculto: guardado con el espejo
+   del área en 26 cm², reabierto y RE-MEDIDA la AI a 18, el ratio jet/AI se quedaba en 34,6 % y
+   `im_grado` en 2 (Moderada) cuando con el área nueva da 50,0 % y 4 (SEVERA). Dos bandas, hacia
+   el lado tranquilizador, sobre un grado que firma el informe.
+   ⚠️ Y NO ES «lo mismo que ya hace Estenosis», que es lo que decía acá: `em_dtsvi` congelado mueve
+   un número MOSTRADO —el AVm por continuidad, que el médico tiene al lado— y medido en el mismo
+   escenario NO movió `em_grado`. El espejo de IM mueve un VOTO que re-deriva el grado. No es el
+   mismo costo y no hay que volver a presentarlo como si lo fuera.
+   Con `im_espejos` la marca sobrevive al guardado, así que al reabrir el espejo se reconoce y la
+   próxima corrección del origen lo refresca. Lo que el médico tipeó sigue intacto: el oculto sólo
+   anota los que eran espejo GENUINO al guardar. */
+const _IM_ESPEJOS = [['diam_tsvi','im_dtsvi'], ['itv_tsvi','im_itv_tsvi'], ['ai_area','im_ai_area']];
+/* Guarda en el oculto SÓLO los que son espejo genuino AHORA mismo —marca presente e igual al
+   valor—, así que un campo que el médico pisó no entra y al reabrir sigue siendo manual. */
+function _imEspejosGuardar() {
+  const h = document.getElementById('im_espejos');
+  if (!h) return;
+  h.value = _IM_ESPEJOS.map(function(par){
+    const el = document.getElementById(par[1]);
+    return (el && el.dataset.espejoDe !== undefined && el.dataset.espejoDe === el.value)
+      ? par[1] + '=' + el.value : null;
+  }).filter(Boolean).join('|');
+}
+/* La vuelta: repone `dataset.espejoDe` sobre los que el estudio declara espejo. Va en
+   `RECALC_MODULOS`, que es el embudo de las rutas de restauración, y NO copia nada — sólo
+   devuelve la identidad, para que la próxima corrección del origen pueda refrescar el espejo.
+   Exige que el valor COINCIDA con el que se guardó: si no coincide, alguien lo cambió y se
+   respeta como manual. Es fail-closed hacia no pisar. */
+function imEspejosRestaurar() {
+  const h = document.getElementById('im_espejos');
+  if (!h || !h.value) return;
+  h.value.split('|').forEach(function(par){
+    const i = par.indexOf('=');
+    if (i < 0) return;
+    const el = document.getElementById(par.slice(0, i));
+    if (el && el.value === par.slice(i + 1)) el.dataset.espejoDe = el.value;
+  });
+}
+window.imEspejosRestaurar = imEspejosRestaurar;
+
+function sincronizarIMDesdeGlobal() {
+  const bloque = document.getElementById('bloque-insuf-mitral');
+  const oculto = !bloque || bloque.style.display === 'none';
+  /* ⚠️ EL GATE ELIGE QUÉ PARES ENTRAN, NO SI LA SINCRONÍA CORRE — y es la corrección que más costó.
+     La primera versión hacía `return` con el bloque oculto, y eso rompía DOS cosas:
+     · vaciar `ai_area` con la pastilla cerrada no limpiaba el espejo, que quedaba con el número
+       viejo y seguía ganando en el `||` —el fantasma del gradiente pulmonar—;
+     · y, peor, al reabrir un estudio `limpiarCampos` CIERRA las seis pastillas, así que el espejo
+       reconocido tampoco se refrescaba: medido, con el área re-medida a 18 el espejo seguía en 26 y
+       `im_grado` en 2 (Moderada) donde corresponde 4 (Severa).
+     Lo que el gate tiene que evitar es CREAR un espejo en una sección apagada —eso sí sería
+     escribir en disco algo que el médico no puede auditar—. MANTENER uno que ya existe y que se
+     puede PROBAR propio no crea nada: lo deja honesto. Así que con el bloque oculto se pasan sólo
+     los pares cuyo destino ya es nuestro espejo, y `_syncDerivado` hace lo mismo que siempre
+     —refrescar o limpiar—. Se filtran los PARES en vez de duplicar su lógica acá, que es lo que
+     garantiza que las dos ramas se comporten igual. */
+  const pares = oculto ? _IM_ESPEJOS.filter(function(par){
+    const el = document.getElementById(par[1]);
+    return el && el.dataset.espejoDe !== undefined && el.dataset.espejoDe === el.value;
+  }) : _IM_ESPEJOS;
+  _syncDerivado(pares);
+  _imEspejosGuardar();
+  if (typeof calcContIM === 'function') calcContIM();
+  if (typeof calcIM_ESC === 'function') calcIM_ESC();
+}
+window.sincronizarIMDesdeGlobal = sincronizarIMDesdeGlobal;
+
+/* El enganche que hace que el espejo SIGA al origen, que es la mitad que `_syncDerivado` no puede
+   dar sola: sin esto la sincronía correría únicamente al abrir la pastilla y «refresca mientras
+   sea espejo» no tendría quién lo disparara. Va en el `oninput` de los TRES ORÍGENES —`diam_tsvi`,
+   `itv_tsvi` (Doppler) y `ai_area` (AI/VI)— y no dentro de `calcAo`/`calcAI`: los tres viven en dos
+   pestañas distintas y enganchar dos funciones de cálculo anchas para tres campos es más radio del
+   necesario. Es el mismo efecto que `calcPSAP → sincronizarTEERDesdeGlobal`, acotado al origen.
+   De paso cubre el borrado: vaciar `diam_tsvi` dispara su `oninput`, y la rama de `_syncDerivado`
+   para origen vacío limpia el espejo si sigue siendo suyo — sin eso quedaría un número sin origen,
+   que es el fantasma del gradiente pulmonar.
+   Con guarda y `try/catch` porque el `oninput` vive en el MARCADO y sobrevive aunque este bloque
+   deje de parsear; sin ella un `ReferenceError` ahí se llevaría las llamadas que van detrás.
+   No hay riesgo de bucle, y no es por suerte: `_syncDerivado` escribe con `el.value = …`, y asignar
+   `.value` por JS NO dispara `input`, así que el `oninput="calcContIM()"` de los tres destinos no
+   se re-dispara; y ni `calcContIM` ni `calcIM_ESC` llaman a `calcAo`, `calcAI` ni a esta sincronía
+   —medido recorriendo sus dos cuerpos, no supuesto—. */
+function imSyncSiExiste(){ if (typeof sincronizarIMDesdeGlobal === 'function') {
+  /* Avisa en vez de tragar: si esto tira, las tres casillas dejan de seguir al origen y las filas
+     derivadas dejan de repintarse, con los valores anteriores en pantalla — indistinguible de
+     funcionar. Es el mismo `console.warn` que usa `_recalcModulos`. */
+  try { sincronizarIMDesdeGlobal(); } catch(e){ console.warn('[imSync]', e); } } }
+window.imSyncSiExiste = imSyncSiExiste;
+
 /* ══ Selector de métodos de AVm que van al PDF ══
    Un método sin valor calculado no se puede imprimir, así que su casilla queda desmarcada y
    DESHABILITADA: una casilla marcable que no imprime nada es una promesa que el informe no
@@ -26813,7 +26959,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -27040,6 +27186,13 @@ function limpiarCampos(silencioso) {
      los cuatro caminos que cambian de estudio —«Nuevo estudio» con y sin guardar, `editarInforme`
      y `cargarEstudioPorId`—. Verificado por `grep` de sus llamadores; si mañana aparece un quinto
      que NO pase por acá, la época no sube y la fuga vuelve. */
+  /* ⚠️ EL OCULTO DE LOS ESPEJOS DE IM SE VACÍA A MANO: es `input[type=hidden]` y el barrido de
+     `limpiarCampos` toma text y number, así que no lo alcanza — la misma fuga que ya pagaron
+     `ete_tavi_jet_horas` y `co_serie_json`. Sin esta línea, la declaración de «estas tres eran
+     espejo» del paciente ANTERIOR sobrevive a «Nuevo estudio», y `imEspejosRestaurar` —que corre
+     desde `RECALC_MODULOS`— le pondría marca de espejo a un campo del paciente nuevo si el valor
+     coincidiera. Va suelta y no dentro de ningún try, por el mismo motivo que la época. */
+  { const _imE = document.getElementById('im_espejos'); if (_imE) _imE.value = ''; }
   _estudioEpoca++;
   /* ⚠️ Y LA COLA DE CINELOOPS PENDIENTES, por el MISMO motivo que la época: es memoria de
      sesión que sobrevive al cambio de estudio. Sin esta línea, un cineloop que el médico pidió
@@ -41453,6 +41606,13 @@ function toggleValvPill(valvula, tipo) {
       // igual que la aórtica de abajo hace con sincronizarEADesdeGlobal.
       sincronizarEMDesdeGlobal();
     }
+    /* IM: esta rama no llamaba a nada, así que las tres casillas «auto» quedaban vacías con el
+       Doppler cargado. Va DESPUÉS del `display = 'block'` de arriba a propósito: la sincronía se
+       gatea por la visibilidad del bloque, y con el orden invertido saldría por su return y el
+       médico vería las casillas en blanco justo al abrir la pastilla. */
+    if (valvula === 'mitral' && tipo === 'insuf' && typeof sincronizarIMDesdeGlobal === 'function') {
+      sincronizarIMDesdeGlobal();
+    }
     // Mostrar bloque detalle EA si corresponde
     if (valvula === 'aortica' && tipo === 'esten') {
       const det = document.getElementById('bloque-ea-detalle');
@@ -51541,7 +51701,15 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
   /* `vp_morf` salió y entró `ep_grado`: desde el 2026-09-16 el auto-grado escribe el segundo.
      Dejarlo apuntando al viejo habría hecho que la reimpresión respaldara una marca que ya
      nadie escribe y perdiera la que sí. */
-  const _MARCAS_DERIV = ['vp_gmax','ep_grado','teer_pasp'];
+  /* Los tres de IM entran acá aunque HOY la ruta no sea alcanzable, y queda declarado en vez de
+     dejar creer que alguna mutación lo cubre: `sincronizarIMDesdeGlobal` NO está en
+     `RECALC_MODULOS` y la reimpresión no toca las pastillas —medido: ni `toggleValvPill` ni
+     ninguna `sincronizar*` aparecen en ese camino— así que `_syncDerivado` no corre durante la
+     ventana y no hay marca nueva que se quede pegada. Van igual porque el día que alguien
+     enganche la sincronía de IM a la restauración, esto es exactamente el defecto de la PASP del
+     TEER que el comentario de arriba describe: la marca del paciente EN PANTALLA sobreviviendo a
+     la carga del estudio guardado y haciendo que el espejo crea que el valor restaurado es suyo. */
+  const _MARCAS_DERIV = ['vp_gmax','ep_grado','teer_pasp','im_dtsvi','im_itv_tsvi','im_ai_area'];
   const marcaEstado = {};
   _MARCAS_DERIV.forEach(id => {
     const el = document.getElementById(id);
@@ -80972,8 +81140,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260927-2233';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790559222617;                 /* eco-build-ms */
+const ECO_BUILD    = '20260928-0030';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790566236948;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -81059,7 +81227,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-2233</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-0030</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

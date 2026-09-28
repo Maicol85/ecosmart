@@ -33524,6 +33524,197 @@ caso('TC-295', 'Las tres referencias de AI del PDF firmado coinciden con el oper
    es la MEDIA del volumen indexado normal, y es el error plausible que alguien puede reponer. */
 
 
+caso('TC-296', 'Insuficiencia mitral: las tres casillas «auto» espejan, SIGUEN al origen y no pisan lo manual — ni despues de guardar', `
+  return (async () => {
+    const g = id => document.getElementById(id);
+    const vis = () => (g('bloque-insuf-mitral') || { style:{} }).style.display;
+    const abrir = () => { if (vis() === 'none') toggleValvPill('mitral','insuf'); };
+    const cerrar = () => { if (vis() !== 'none') toggleValvPill('mitral','insuf'); };
+    const tres = () => [__t.val('im_dtsvi'), __t.val('im_itv_tsvi'), __t.val('im_ai_area')].join('/');
+    const deriv = () => [__t.txt('vsvtsvi-val'), __t.txt('freg-val'), __t.txt('im-jet-ratio'), __t.txt('im-sev')].join(' | ');
+    const marca = id => { const e = g(id); return (e && e.dataset.espejoDe !== undefined) ? e.dataset.espejoDe : '(sin marca)'; };
+    const guardar = () => new Promise(r => { window._ettEditandoId = null;
+      const antes = new Set(getInformes().map(i => i.estudioId));
+      const fin = () => { const n = getInformes().find(i => !antes.has(i.estudioId)); r(n ? n.estudioId : null); };
+      try { guardarInforme(fin); } catch (e) { r(null); return; }
+      const cf = g('rev-confirm'); if (cf) cf.click(); });
+    const sembrar = o => { __t.limpiar();
+      const base = { peso:80, talla:180, diam_tsvi:21, itv_tsvi:18, ai_area:26, onda_e:170, onda_a:60,
+                     thp:150, im_vc:7, im_jet_area:9, pisa_r:8, pisa_val:5, im_vmax:5, im_itv:130 };
+      Object.keys(base).forEach(k => __t.set(k, String(base[k])));
+      Object.keys(o || {}).forEach(k => __t.set(k, String(o[k])));
+      ['calcBSA','calcAI'].forEach(f => { try { window[f] && window[f](); } catch (e) {} }); };
+
+    /* DENOMINADOR: PISA va sembrada a proposito — sin ella el vol eyectado y la FR salen «—» y el
+       caso mediria sobre nada, que es como se leyo un defecto que no existia durante el censo. Lo
+       que NO se siembra es vtim, asi que im-vti-ratio queda en «—» por falta de insumo y no por
+       esta sincronia: esa fila va en otro prompt. */
+    sembrar();
+    const faltan = ['diam_tsvi','itv_tsvi','ai_area','im_dtsvi','im_itv_tsvi','im_ai_area','im_espejos',
+                    'im_grado','im_sev_final'].filter(id => g(id) === null);
+
+    cerrar();
+    const cerradaTres = tres();
+    /* EL «ANTES» SE MIDE, NO SE ESCRIBE COMO LITERAL. La version anterior pinaba
+       «62.3 ml | 89% | 34.6% | Severa» capturado CON la sincronia puesta: si la sincronia hubiera
+       corrido un derivado, el literal se habria anotado corrido y la condicion estaria igual de
+       verde. Protegia contra deriva futura, no contra la regresion que su texto dice descartar.
+       Con la pastilla cerrada los tres estan vacios y el calculo cae al global, que es exactamente
+       el estado de antes de esta sincronia. */
+    const derivCerrado = deriv();
+    __t.set('ai_area','44');
+    const noCrea = tres();
+    __t.set('ai_area','26');
+
+    abrir();
+    const alAbrir = tres();
+    const derivAbierto = deriv();
+    const gradoAbierto = __t.val('im_grado') + '/' + __t.val('im_sev_final');
+
+    /* CADA ORIGEN SE MUEVE SOLO Y SE MIDE ANTES DE TOCAR EL SIGUIENTE. Moviendo dos seguidos y
+       leyendo al final, el oninput del area reparaba la falta del oninput del diametro —la
+       sincronia copia LOS TRES en cada disparo— y la mutacion que saca un enganche SOBREVIVIA. */
+    __t.set('diam_tsvi','25'); const sigueD = __t.val('im_dtsvi');
+    __t.set('itv_tsvi','22');  const sigueI = __t.val('im_itv_tsvi');
+    __t.set('ai_area','31');   const sigueA = __t.val('im_ai_area');
+
+    /* Tipear a mano el Ø TSVI tiene que refrescar el voto de calcIM_ESC en el acto. Antes el
+       oninput llamaba solo a calcContIM y la FR se quedaba con el valor anterior. */
+    const frAntes = __t.txt('freg-val');
+    __t.set('im_dtsvi','40');
+    const frTrasTipear = __t.txt('freg-val');
+    const manualGana = (function(){ __t.set('diam_tsvi','33'); return __t.val('im_dtsvi'); })();
+
+    __t.set('itv_tsvi','');
+    const origenVacio = [__t.val('im_itv_tsvi'), __t.val('im_dtsvi')].join('/');
+
+    __t.set('im_dtsvi',''); __t.set('diam_tsvi','');
+    try { usarTSVIenIM(17); } catch (e) {}
+    const trasEnlace = __t.val('im_dtsvi');
+    __t.set('diam_tsvi','28');
+    const enlaceGana = __t.val('im_dtsvi');
+
+    /* ══ el espejo con la pastilla CERRADA: se MANTIENE, no se crea ══ */
+    sembrar(); abrir();
+    const espejoVivo = __t.val('im_ai_area');
+    cerrar();
+    __t.set('ai_area','');
+    const limpiaCerrada = __t.val('im_ai_area');
+
+    /* ══ GUARDAR Y REABRIR: el espejo sigue siendo espejo, y el manual sigue siendo manual ══ */
+    sembrar({ nombre:'TC296 espejo', ci:'296901' }); abrir();
+    const ocultoAlGuardar = __t.val('im_espejos');
+    const idE = await guardar();
+    __t.limpiar();
+    cargarEstudioPorId(idE);
+    await new Promise(r => setTimeout(r, 400));
+    const marcaRepuesta = marca('im_ai_area');
+    __t.set('ai_area','18');                       // el medico RE-MIDE la AI
+    const reRatio = __t.txt('im-jet-ratio');
+    const reGrado = __t.val('im_grado') + '/' + __t.val('im_sev_final');
+    const reEspejo = __t.val('im_ai_area');
+    await __t.borrar(idE);
+
+    sembrar({ nombre:'TC296 manual', ci:'296902' }); abrir();
+    __t.set('im_ai_area','33');
+    const idM = await guardar();
+    __t.limpiar();
+    cargarEstudioPorId(idM);
+    await new Promise(r => setTimeout(r, 400));
+    const manAlReabrir = __t.val('im_ai_area');
+    __t.set('ai_area','18');
+    const manTrasMover = __t.val('im_ai_area');
+    await __t.borrar(idM);
+
+    __t.limpiar();
+    const ocultoTrasLimpiar = __t.val('im_espejos');
+    /* AISLAMIENTO: el caso deja la pastilla CERRADA y sin su clave en localStorage. El suite corre
+       los 311 casos en una sola pagina, y con la pastilla abierta cada __t.set de diam_tsvi /
+       itv_tsvi / ai_area de un caso posterior escribe tres campos y corre calcIM_ESC, que escribe
+       im_grado — o sea el informe que ese caso esta midiendo. */
+    cerrar();
+
+    return { extra: [
+      ['los ids del escenario existen', faltan.length === 0, faltan.join(',') || 'todos'],
+      ['con la pastilla CERRADA los tres quedan vacios', cerradaTres === '//', cerradaTres],
+      ['y con la pastilla cerrada NO se CREA espejo aunque cambie el origen',
+        noCrea === '//', noCrea],
+      ['al ABRIR, las tres muestran el valor del origen', alAbrir === '21/18/26', alAbrir],
+      /* La condicion anti-regresion de verdad: el mismo escenario con las casillas vacias (o sea el
+         estado de antes de esta sincronia) contra las casillas espejando. */
+      ['los derivados son IDENTICOS con las casillas vacias y espejando',
+        derivCerrado === derivAbierto, derivCerrado + '  vs  ' + derivAbierto],
+      /* Lo que el badge de pantalla no cubre: im_grado / im_sev_final son los que lee el informe. */
+      ['y el grado que FIRMA el informe tampoco se mueve',
+        gradoAbierto === '4/4', gradoAbierto],
+      ['el espejo del DIAMETRO sigue a su origen, con su propio enganche', sigueD === '25', 'im_dtsvi=' + sigueD],
+      ['el del VTI TSVI tambien, con el suyo', sigueI === '22', 'im_itv_tsvi=' + sigueI],
+      ['y el del AREA, que vive en otra pestaña', sigueA === '31', 'im_ai_area=' + sigueA],
+      ['tipear el Ø TSVI a mano refresca el voto de FR en el acto',
+        frAntes !== frTrasTipear && frTrasTipear !== '—', frAntes + ' -> ' + frTrasTipear],
+      ['lo tipeado a mano GANA: mover el origen despues no lo pisa', manualGana === '40', 'im_dtsvi=' + manualGana],
+      ['vaciar el origen limpia el espejo y NO lo manual', origenVacio === '/40', origenVacio],
+      ['el estimado que el medico eligio con el enlace tambien gana',
+        trasEnlace === '17' && enlaceGana === '17', trasEnlace + ' -> ' + enlaceGana],
+      /* El gate elige QUE PARES entran, no si la sincronia corre: mantener un espejo reconocido no
+         crea nada, asi que el borrado no se gatea. Sin esto quedaba un numero sin origen que seguia
+         ganando en el el operador de caida — el fantasma del gradiente pulmonar. */
+      ['con la pastilla CERRADA, vaciar el origen SI limpia el espejo que ya existia',
+        espejoVivo === '26' && limpiaCerrada === '', espejoVivo + ' -> «' + limpiaCerrada + '»'],
+      /* ⚠️ LA CONDICION MAS IMPORTANTE DEL CASO. Sin el oculto im_espejos, el espejo volvia del
+         estudio SIN marca, calcIM_ESC lo prefiere sobre el global, y re-medir el area NO movia la
+         severidad: medido, ratio clavado en 34,6 % y im_grado en 2 (Moderada) donde corresponde
+         50,0 % y 4 (SEVERA). Dos bandas hacia el lado tranquilizador en un informe firmado. */
+      ['el estudio guardado DECLARA cuales eran espejo', ocultoAlGuardar.indexOf('im_ai_area=26') > -1, ocultoAlGuardar],
+      ['y al reabrir la marca se repone', marcaRepuesta === '26', marcaRepuesta],
+      ['asi que RE-MEDIR el area en un estudio reabierto SI mueve el grado',
+        reEspejo === '18' && reRatio === '50.0%' && reGrado === '4/4',
+        'espejo=' + reEspejo + ' ratio=' + reRatio + ' grado=' + reGrado],
+      ['pero lo MANUAL guardado sigue intacto al reabrir y al mover el origen',
+        manAlReabrir === '33' && manTrasMover === '33', manAlReabrir + ' -> ' + manTrasMover],
+      /* El oculto es input[type=hidden]: el barrido de limpiarCampos toma text y number, asi que
+         hay que vaciarlo A MANO. Sin eso la declaracion del paciente anterior sobrevive. */
+      ['el oculto se vacia en «Nuevo estudio»', ocultoTrasLimpiar === '', '«' + ocultoTrasLimpiar + '»'],
+      ['el area declara su origen REAL y no «Doppler»',
+        (function(){ const l = g('im_ai_area') && g('im_ai_area').closest('.fg');
+          const t = l ? l.textContent : ''; return t.indexOf('auto ← AI/VI') > -1 && t.indexOf('Doppler') === -1; })(),
+        (function(){ const l = g('im_ai_area') && g('im_ai_area').closest('.fg'); return l ? l.textContent.trim() : '(sin .fg)'; })()],
+      ['los tres estan en el respaldo de marcas de la reimpresion',
+        (function(){ const f = String(_pdfDeInformeGuardadoArmar);
+          return ['im_dtsvi','im_itv_tsvi','im_ai_area'].every(x => f.indexOf("'" + x + "'") > -1); })(),
+        (function(){ const f = String(_pdfDeInformeGuardadoArmar);
+          const falta = ['im_dtsvi','im_itv_tsvi','im_ai_area'].filter(x => f.indexOf("'" + x + "'") === -1);
+          return falta.length ? 'faltan: ' + falta.join(',') : 'los tres'; })()]
+    ] };
+  })();
+`);
+
+/* POR QUE _syncDerivado Y NO _syncSiVacio, que es lo que usa Estenosis (decision de Maicol,
+   2026-09-27). La pastilla de IM suele quedar abierta mientras se corrige el Doppler: con el
+   espejo de una sola vez, corregir diam_tsvi deja la casilla con el valor VIEJO mientras el calculo
+   ya usa el nuevo. Es el mismo criterio por el que teer_fevi, teer_dtsvi y teer_pasp pasaron de uno
+   al otro cuando empezaron a decidir APTO / NO APTO.
+
+   ⚠️ Y EL PEDIDO NO SE CUMPLE CON _syncDerivado SOLO. La marca vive en dataset, que NO se persiste,
+   asi que un espejo vuelve del estudio guardado sin ella y se lo respeta como manual. Eso no es
+   cosmetico: calcIM_ESC PREFIERE el campo sobre el global (el «||» de la caida), y el ratio jet/AI
+   y la FR son votos que escriben im_grado e im_sev_final, que es lo que firma el informe. De ahi el
+   oculto im_espejos, que es el patron de hfaicos_manual — y por eso hay tres condiciones sobre
+   guardar y reabrir, que es donde el defecto vivia.
+
+   QUEDA DECLARADO Y SIN CONDICION, los dos preexistentes de _syncDerivado que este cambio extiende:
+   · EL CERO. _syncDerivado mide «vacio» con === '' y todos sus consumidores con v(), que devuelve 0
+     para un «0» tipeado y 0 es falsy en el «||». Asi que un origen en 0 se COPIA como «0» visible al
+     espejo y se persiste, mientras el calculo lo trata como ausente. Y quien «borra» tipeando 0 no
+     dispara la rama de limpieza. Es propiedad de _syncDerivado —la hereda teer_pasp— y arreglarla
+     toca la sincronia del TEER, que esta fuera de alcance.
+   · LA BANDA. Los tres DESTINOS no tienen entrada en ninguna tabla de rangos, asi que un
+     diam_tsvi de 200 (cm por mm) se copia literal a una casilla que el rotulo declara medida, sin
+     el «Verificar la medicion» que si emiten calcVD y la aorta. El voto que arrastra es
+     preexistente —el calculo ya caia al global— y lo que el espejo agrega es la APARIENCIA de una
+     medicion propia de IM respaldandolo. */
+
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

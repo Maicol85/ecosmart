@@ -4,6 +4,157 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Insuficiencia mitral: las tres casillas «auto», y la marca que hay que PERSISTIR (2026-09-28)
+
+`im_dtsvi` e `im_itv_tsvi` —etiquetados «auto ← Doppler»— e `im_ai_area` quedaban **vacíos**. La rama
+`mitral/insuf` de `toggleValvPill` no llamaba a ninguna sincronía, mientras la de Estenosis llamaba a
+`sincronizarEMDesdeGlobal` desde siempre. **`sincronizarIMDesdeGlobal` no existía.**
+
+Medido por diferencia antes de tocar nada: con las tres vacías y tipeadas a mano los derivados dan
+**idéntico** —vol eyectado 62,3 ml · FR 89 % · ratio jet/AI 34,6 % · «Severa»— porque `calcContIM` y
+`calcIM_ESC` caen a los globales. Lo único en blanco era lo que el médico ve, que es el mismo defecto
+que el comentario de EM ya describía: «leía un AVm por continuidad calculado a partir de dos casillas
+en blanco, sin forma de saber con qué Ø TSVI se computó».
+
+### ⚠️ `_syncDerivado` SOLO NO CUMPLE EL PEDIDO, y eso es el corazón de esta ronda
+
+El pedido era «siguen al origen mientras el médico no las toque» — por eso `_syncDerivado` y no el
+`_syncSiVacio` de Estenosis: la pastilla de IM suele quedar abierta mientras se corrige el Doppler, y
+con la copia única la casilla muestra el valor viejo mientras el cálculo ya usa el nuevo. Es el mismo
+criterio por el que `teer_fevi`, `teer_dtsvi` y `teer_pasp` pasaron de uno al otro.
+
+**Pero la marca vive en `dataset`, que NO se persiste.** Un espejo vuelve del estudio guardado sin
+ella, `_syncDerivado` no puede probar que es suyo y lo respeta como manual. Y eso **no es
+cosmético**: la caída al global es un `||`, que **prefiere el CAMPO**, y `calcIM_ESC` no es un cálculo
+de pantalla —el ratio jet/AI y la FR son **votos** que escriben `im_grado` e `im_sev_final`, que es lo
+que firma el informe.
+
+**Medido, y es el hallazgo más caro de la ronda:** guardado con el espejo del área en 26 cm²,
+reabierto y **re-medida la AI a 18**, el ratio se quedaba en 34,6 % y `im_grado` en **2 (Moderada)**
+cuando con el área nueva da 50,0 % y **4 (SEVERA)**. Dos bandas, hacia el lado tranquilizador, sobre
+un grado que se firma. Antes de esta sincronía `campos.im_ai_area` **no existía en ningún estudio**,
+así que la reapertura siempre usaba `ai_area`: el defecto lo habría introducido este cambio.
+
+Lo cierra el oculto **`im_espejos`**, que es el patrón de `hfaicos_manual`: guarda `id=valor` de los
+que son espejo **genuino** al momento de guardar —marca presente e igual al valor— y
+`imEspejosRestaurar` repone `dataset.espejoDe` desde `RECALC_MODULOS`. **Exige que el valor coincida**
+con el guardado: si no coincide, alguien lo cambió y se respeta. Fail-closed hacia no pisar.
+
+**Y se vacía A MANO en `limpiarCampos`**: es `input[type=hidden]` y ese barrido toma text y number —la
+fuga que ya pagaron `ete_tavi_jet_horas` y `co_serie_json`—. Son las dos columnas de siempre.
+
+### ⚠️ EL GATE ELIGE QUÉ PARES ENTRAN, NO SI LA SINCRONÍA CORRE
+
+Primera versión: `return` con el bloque oculto. Rompía dos cosas, y la segunda es la que importa:
+
+- vaciar `ai_area` con la pastilla cerrada **no limpiaba** el espejo, que quedaba con el número viejo
+  y seguía ganando en el `||` — el fantasma del gradiente pulmonar;
+- y al reabrir un estudio **`limpiarCampos` CIERRA las seis pastillas**, así que el espejo reconocido
+  tampoco se refrescaba: con el oculto puesto y el gate cortando, el área re-medida a 18 seguía
+  dando grado 2. El arreglo de F1 no servía para nada con el gate mal planteado.
+
+Lo que el gate tiene que evitar es **CREAR** un espejo en una sección apagada —eso sí sería persistir
+algo que el médico no puede auditar—. **MANTENER** uno que ya existe y se puede probar propio no crea
+nada: lo deja honesto. Así que con el bloque oculto se **filtran los pares** cuyo destino ya es
+espejo, y `_syncDerivado` hace lo mismo que siempre. Se filtran los pares en vez de duplicar su
+lógica, que es lo que garantiza que las dos ramas se comporten igual.
+
+Y el gate **dice menos de lo que parece**: compara el `style.display` que escriben `toggleValvPill` y
+`limpiarCampos`, o sea significa «la pastilla está encendida», no «el médico está mirando». Con la
+pastilla encendida y la pestaña Válvulas inactiva **pasa**, y eso es correcto: `ai_area` vive en otra
+pestaña y el espejo tiene que estar al día cuando el médico vuelva.
+
+### El enganche va en el ORIGEN, uno por campo
+
+`imSyncSiExiste()` —envoltorio con guarda `typeof` y `console.warn`, como `eteShuntSyncSiExiste`— en
+el `oninput` de `diam_tsvi`, `itv_tsvi` y `ai_area`. No dentro de `calcAo`/`calcAI`: los tres orígenes
+viven en dos pestañas y enganchar dos funciones anchas para tres campos es más radio del necesario.
+Es el mismo efecto que `calcPSAP → sincronizarTEERDesdeGlobal`, acotado.
+
+**Sin riesgo de bucle, y no por suerte:** `_syncDerivado` escribe con `el.value = …`, y asignar
+`.value` por JS **no dispara `input`**; y ni `calcContIM` ni `calcIM_ESC` llaman a `calcAo`, `calcAI`
+ni a la sincronía — medido recorriendo sus dos cuerpos.
+
+### «Se reparten los campos» era falso, y tapaba un defecto vivo
+
+Mi comentario decía que `im_dtsvi`/`im_itv_tsvi` llevan `calcContIM` y `im_ai_area` lleva
+`calcIM_ESC`, «así que se reparten». **`calcIM_ESC` lee los TRES** y los usa para el voto de fracción
+regurgitante: el reparto real es por función que **PINTA**, no por función que **LEE**. Consecuencia
+medida: tipear el Ø TSVI a mano dejaba la FR en 89 % y pasaba a 70 % recién al forzar `calcIM_ESC`.
+Hoy los dos `oninput` llaman a las dos, como ya hacía `vtim`.
+
+### Lo que NO es cierto: «es lo mismo que ya hace Estenosis»
+
+Lo escribí y la medición lo desmintió. `em_dtsvi` congelado mueve un número **mostrado** —el AVm por
+continuidad, que el médico tiene al lado— y en el mismo escenario **no movió `em_grado`**. El espejo
+de IM mueve un **voto que re-deriva el grado**. No es el mismo costo y no hay que volver a
+presentarlo como si lo fuera.
+
+### Dónde NO llegan los tres, verificado con tres evidencias independientes
+
+No salen al PDF, ni al Excel, ni al importador: sus únicos lectores son las dos funciones de cálculo.
+Medido con las tres vacías contra las tres espejando: el **Excel byte a byte idéntico** (10 975
+caracteres, 433 columnas, cero que las mencionen) y el **texto del PDF idéntico** (47 objetos, 1
+página, cero diferencias). Lo que sí cambia es que ahora **viajan en `campos`** del JSON — y eso es
+justo lo que hace falta vigilar, porque de ahí sale el voto de F1.
+
+### Declarado y NO corregido
+
+- **EL CERO.** `_syncDerivado` mide «vacío» con `=== ''` y todos sus consumidores con `v()`, que
+  devuelve **0** para un «0» tipeado y 0 es falsy en el `||`. Así que un origen en 0 se **copia** como
+  «0» visible al espejo y se persiste, mientras el cálculo lo trata como ausente: casilla con número,
+  derivados vacíos, sin decir por qué. Y quien «borra» tipeando 0 no dispara la rama de limpieza. Es
+  propiedad de `_syncDerivado` —la hereda `teer_pasp`— y arreglarla toca la sincronía del TEER, fuera
+  de alcance. Choca con la regla «El cero se rechaza donde no puede ser una medición».
+- **LA BANDA.** Los tres **destinos** no tienen entrada en ninguna tabla de rangos, mientras los
+  orígenes sí (`diam_tsvi [5,45]`, `itv_tsvi [2,60]`, `ai_area [3,60]`). Un `diam_tsvi` de 200 —cm por
+  mm— se copia literal a una casilla que el rótulo declara medida, sin el «Verificar la medición» que
+  sí emiten `calcVD` y la aorta. El voto que arrastra es preexistente —el cálculo ya caía al global—;
+  lo que el espejo agrega es la **apariencia** de una medición propia de IM respaldándolo.
+- **`usarTSVIenIM` escribe en una casilla rotulada «auto ← Doppler»** y el estimado por ASC o por
+  talla no viene del Doppler. Mismo problema de procedencia que este cambio arregló en `im_ai_area`.
+- **La deuda de este archivo «`_syncDerivado` no valida unicidad del destino. Hoy hay un solo mapeo»
+  quedó vieja**: hoy hay cuatro llamadas, y `diam_tsvi`/`itv_tsvi` son origen de dos sincronías
+  distintas —a `em_*` por `_syncSiVacio`, a `im_*` por `_syncDerivado`— con destinos distintos, así
+  que no hay colisión, pero la frase ya no describe el archivo.
+
+### Lo que la verificación enseñó
+
+- **⚠️ UN BACKTICK EN EL CUERPO DE UN CASO NO SIEMPRE ROMPE EL PARSEO: PUEDE TRUNCARLO EN SILENCIO.**
+  Van dos tandas en esta ronda. La primera fueron seis y `node --check` los cazó. La segunda fueron
+  **dos** —un `` `||` `` en un comentario— y con número **par** el literal cierra y reabre: el chequeo
+  de sintaxis **pasa** y el caso corre con el cuerpo **mutilado**, o sea falla por el motivo
+  equivocado. Perdí una vuelta buscando el defecto en el código. El barrido acotado al cuerpo del
+  caso los encuentra; `node --check` sólo caza los impares.
+- **La condición anti-regresión era un LITERAL DE ORO, no una comparación.** Pinaba
+  `'62.3 ml | 89% | 34.6% | Severa'`, capturado **con** la sincronía puesta: si la sincronía hubiera
+  corrido un derivado, el literal se habría anotado corrido y la condición estaría igual de verde.
+  Protegía contra deriva futura, no contra la regresión que su texto dice descartar. Hoy mide el
+  **antes de verdad** —los derivados con la pastilla cerrada, que es el estado previo a esta
+  sincronía— contra el de después.
+- **El caso no leía el campo que publica.** Medía `im-sev`, que es el badge de pantalla, y no
+  `im_grado` ni `im_sev_final`, que son los que lee el informe — y `sincronizarIMDesdeGlobal` llama a
+  `calcIM_ESC`, que es *la* función que los escribe. Este archivo ya documenta un estudio archivado
+  que «ADQUIRÍA un grado que su PDF firmado original no tenía» justo por esa vía.
+- **Y el hueco del enganche.** La condición movía dos orígenes seguidos y leía los tres al final:
+  como la sincronía copia **los tres** en cada disparo, el `oninput` del área reparaba la falta del
+  `oninput` del diámetro y la mutación **sobrevivía**. No distinguía «cada origen tiene su enganche»
+  de «alguno lo tiene», y el flujo clínico real es corregir **sólo** el TSVI. Hoy cada origen se mueve
+  solo y se mide antes de tocar el siguiente.
+- **Un literal de marcado dentro de un comentario movió el balance de `<input>`.** +2 donde agregué
+  uno: el oculto y un `input type=hidden` escrito en prosa dentro de un comentario. Es la regla del
+  archivo —«en los comentarios, describir; no transcribir marcado»— y el delta contra HEAD es lo que
+  lo delata, no el número absoluto.
+- **Doce mutaciones, las doce en rojo y cada una en su condición**, con la base verde leída primero en
+  cada tanda. Las que más enseñan: sacar `imEspejosRestaurar` del embudo de restauración reproduce F1
+  exacto (`espejo=26 ratio=34.6%`), y devolver el gate a `return` rompe **dos** condiciones a la vez
+  —el borrado con la pastilla cerrada y el re-medido al reabrir—.
+- **Suite 310/311**, único rojo **TC-223**, el documentado. Semgrep **126 / 0 ERROR**, sin huérfanos,
+  `check_mobile` en los 2 ALTA de siempre, `api-key-protector` en los 2 preexistentes.
+- **Y el CHM volvió al Escritorio**, así que TC-177 y TC-178 vuelven a pasar: los rojos de la sesión
+  anterior eran fixture ausente, como se declaró.
+
+
 ## Dilatación de AI: el diámetro y el área AVISAN, el volumen indexado GRADÚA (2026-09-27)
 
 Decisión de Maicol. El diámetro AP y el área contestan «¿está dilatada?» —binario, **sin grado**— y
