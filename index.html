@@ -2577,6 +2577,13 @@ window.cerrarSesionReal = cerrarSesionReal;
             <span class="calc-lbl">Diámetro AP</span>
             <span id="ai-diam-interp">—</span>
           </div>
+          <!-- El área NO tenía cápsula: el campo se cargaba y no producía nada en ninguna
+               superficie. Un área de 25 cm² sin volumen ni diámetro hacía que el informe dijera
+               «de dimensiones normales» sobre una aurícula dilatada. -->
+          <div class="calc-row">
+            <span class="calc-lbl">Área AI</span>
+            <span id="ai-area-interp">—</span>
+          </div>
         </div>
       </div>
     </div>
@@ -16324,6 +16331,24 @@ window.GMED_MITRAL_SEVERO_MIN = GMED_MITRAL_SEVERO_MIN;
    criterios diastólicos ASE 2016, el HFA-PEFF y el score de amiloidosis, así que vivía en
    ocho lugares. */
 const UMBRAL_LAVI_DILATADO = 34;   // ml/m² — LAVI >34 → aurícula izquierda dilatada
+/* ⚠️ EL DIÁMETRO Y EL ÁREA DICEN «DILATADA», NUNCA CUÁNTO — y eso no es una simplificación
+   nuestra, es lo que la guía publica. Lang et al. 2015 (JASE 28:1-39) gradúa en leve/moderada/severa
+   SÓLO el volumen indexado; el diámetro AP y el área son valores de referencia heredados de la
+   edición 2006 (Eur J Echocardiography 7:79-108) y se usan para marcar dilatada sí/no. Verificado
+   por dos rutas independientes sobre las dos ediciones: coinciden dígito por dígito.
+   Por eso estos dos cortes son BINARIOS y no hay que «completarlos» con bandas: inventarle un
+   leve/moderada/severa al diámetro es exactamente lo que esta ronda vino a sacar.
+
+   ⚠️ EL ÁREA ES 20 cm², NO 22. Se buscó una segunda fuente para el 22 y no existe: con toda
+   probabilidad se confunde con el promedio de volumen indexado normal —22 ± 6 ml/m²—, que es otra
+   magnitud y otra unidad. La tabla del PDF imprimía «<22 cm2» y se corrigió en esta misma ronda.
+
+   ⚠️ EL DIÁMETRO ES UN SOLO CORTE PARA LOS DOS SEXOS, y ESO SÍ es una decisión de Maicol
+   (2026-09-27): la guía da 3,9 cm en la mujer y 4,1 cm en el varón, y acá se toma el valor de la
+   mujer —el más sensible— para las dos. No es una cifra que la guía dé directamente y queda dicho
+   para que nadie la cite como si lo fuera. */
+const UMBRAL_AI_DIAM_DILATADO = 40;   // mm  — ≥40 → dilatada, SIN grado (ASE 2015; ver arriba)
+const UMBRAL_AI_AREA_DILATADA = 20;   // cm² — >20 → dilatada, SIN grado (ASE 2015; NO 22)
 /* Aorta torácica: UN solo juego de umbrales para los tres segmentos, **ESC 2021**. Antes había
    dos conviviendo —las cápsulas de `calcAorta` decían normal hasta 38 y 40, y las dos tablas del
    PDF marcaban «* dilatado» desde 34 y 37—, así que la misma medición salía verde en pantalla y
@@ -16384,6 +16409,8 @@ function aoSegsMedidos() {
 }
 window.aoSegsMedidos = aoSegsMedidos;
 window.UMBRAL_LAVI_DILATADO = UMBRAL_LAVI_DILATADO;
+window.UMBRAL_AI_DIAM_DILATADO = UMBRAL_AI_DIAM_DILATADO;
+window.UMBRAL_AI_AREA_DILATADA = UMBRAL_AI_AREA_DILATADA;
 /* Masa VI indexada: el corte de HVI es distinto por sexo (ASE/EACVI). Estaban los dos
    números sueltos en el cálculo, en la tabla de referencia del PDF y en el Laboratorio. */
 const UMBRAL_MASA_HVI_M = 95;    // g/m² — mujeres
@@ -16618,14 +16645,45 @@ function calcAorta() {
   });
 }
 
+/* ¿Marca dilatación el diámetro AP? Predicado compartido por la cápsula, el informe y el PDF: con
+   tres copias del `>=` alcanza con que alguien mueva una para que la pantalla y el papel discrepen. */
+function aiDiamDilatado(d){ d = PF(d); return (d != null && isFinite(d)) ? d >= UMBRAL_AI_DIAM_DILATADO : null; }
+function aiAreaDilatada(a){ a = PF(a); return (a != null && isFinite(a)) ? a > UMBRAL_AI_AREA_DILATADA : null; }
+window.aiDiamDilatado = aiDiamDilatado; window.aiAreaDilatada = aiAreaDilatada;
+
 function calcAI() {
   const vol = v('ai_vol');
   const bsa = getBSA();
-  const diam = v('ai_diam');
-  if (diam) {
-    let di = diam <= 38 ? badge('green','Normal (≤38mm)') : diam <= 42 ? badge('yellow','Dilat. leve (39-42mm)') : diam <= 46 ? badge('orange','Dilat. moderada (43-46mm)') : badge('red','Dilat. severa (>46mm)');
-    document.getElementById('ai-diam-interp').innerHTML = di;
-  }
+  /* ⚠️ LAS DOS MEDICIONES SE LEEN POR SU BANDA DE PLAUSIBILIDAD, igual que el narrativo, y no con
+     `v()` crudo. Si la cápsula clasificara el crudo y el informe el validado, la pantalla diría
+     «Normal (<40mm)» sobre un diámetro de 4 mm que el informe se niega a clasificar: dos respuestas
+     a la misma pregunta sobre el mismo número, que es el defecto que este archivo persigue desde la
+     FAC del VD. Las bandas ya existían (`ai_diam [10,90]`, `ai_area [3,60]`, vía `_labRango`).
+     `vPlaus` sin banda se comporta como `v()`, así que acá no se falla cerrado — y eso es lo
+     correcto: fallar cerrado borraría la medición de todos los pacientes que hoy la tienen. */
+  const pDiam = vPlaus('ai_diam'), pArea = vPlaus('ai_area');
+  /* ⚠️ LAS DOS CÁPSULAS SE PINTAN ANTES DEL `return` DE ABAJO, que corta cuando falta el volumen o
+     la superficie corporal — que es justo el caso en que el diámetro y el área son lo único que hay.
+     La del diámetro ya estaba de este lado; la del área es nueva y tiene que quedar acá.
+     Tres estados y no dos, con el `else` que devuelve la raya: sin él el valor del paciente ANTERIOR
+     se queda pegado —`calcAI` no tenía rama de limpieza para el diámetro— y es el defecto que
+     `calcVI` ya pagó en este archivo. El cero cae en «fuera»: está por debajo de la banda, y antes
+     la cápsula lo leía como «sin dato» (truthiness) mientras el narrativo lo leía como un dato
+     (`!= null`) y publicaba «de dimensiones normales, con diámetro AP 0 mm». */
+  const _cap = (p, dil, rotDil, rotNorm) => p.fuera
+    ? badge('red', 'Fuera de rango — verificar')
+    : (p.val != null ? (dil(p.val) ? badge('orange', rotDil) : badge('green', rotNorm)) : '—');
+  const dEl = document.getElementById('ai-diam-interp');
+  /* Antes esto graduaba: ≤38 normal · 39-42 leve · 43-46 moderada · >46 SEVERA. Los tres cortes
+     eran inventados —la guía no gradúa por diámetro— y el «severa» del >46 mm es lo que esta ronda
+     vino a sacar. Hoy es binario y lo dice el rótulo. */
+  if (dEl) dEl.innerHTML = _cap(pDiam, aiDiamDilatado,
+    'Dilatada (≥' + UMBRAL_AI_DIAM_DILATADO + 'mm) — sin grado',
+    'Normal (<' + UMBRAL_AI_DIAM_DILATADO + 'mm)');
+  const aEl = document.getElementById('ai-area-interp');
+  if (aEl) aEl.innerHTML = _cap(pArea, aiAreaDilatada,
+    'Dilatada (>' + UMBRAL_AI_AREA_DILATADA + 'cm²) — sin grado',
+    'Normal (≤' + UMBRAL_AI_AREA_DILATADA + 'cm²)');
   if (!vol || !bsa) {
     document.getElementById('ai-idx').textContent = '—';
     document.getElementById('ai-interp').innerHTML = '—';
@@ -23682,7 +23740,7 @@ function generarInforme(opts) {
   const tapse = v('tapse'), sp = v('s_prime');
   const onda_e = v('onda_e'), onda_a = v('onda_a');
   const e_sep = v('e_sep'), e_lat = v('e_lat');
-  const ai_vol = v('ai_vol'), ai_diam = v('ai_diam');
+  const ai_vol = v('ai_vol'), ai_diam = v('ai_diam'), ai_area = v('ai_area');
   const psap = v('psap_calc');
   // Severidades desde los campos de la tab Válvulas (lo que fijan las pills o el médico).
   // Antes había un override desde los selectores del Esquema válvulas; ese módulo se eliminó.
@@ -23849,6 +23907,51 @@ function generarInforme(opts) {
   }
 
   // ── 4) Aurícula izquierda ──
+  /* DOS PREGUNTAS DISTINTAS Y NO SE MEZCLAN: «¿está dilatada?» la contestan el diámetro AP y el
+     área —binario, sin grado— y «¿qué tan severa?» la contesta SÓLO el volumen indexado, que es el
+     único parámetro que la guía gradúa. Los predicados salen de `aiDiamDilatado`/`aiAreaDilatada`,
+     los mismos que pintan las cápsulas: con el `>=` escrito acá otra vez, mover el corte en un lado
+     deja la pantalla y el informe firmado diciendo cosas distintas del mismo número. */
+  /* ⚠️ LAS DOS PASAN POR SU BANDA DE PLAUSIBILIDAD, y las dos bandas ya existían
+     (`ai_diam [10,90]`, `ai_area [3,60]`, vía `_labRango`). Sin esto los dos bordes fallaban, y cada
+     uno hacia el lado peligroso: un diámetro de 4 mm —centímetros tipeados por milímetros— publicaba
+     «La aurícula izquierda es de dimensiones normales, con diámetro AP 4 mm», o sea una NEGACIÓN
+     sobre un valor ilegible; y un área de 250 cm² —milímetros cuadrados por centímetros— publicaba
+     «AI dilatada (área 250 cm²)» en el EN SUMA y además disparaba `ccMarcarParrafo()`, o sea que la
+     bandera GLOBAL del informe se encendía sobre basura y el resumen de un estudio por lo demás
+     normal pasaba a «ver los hallazgos descritos en el cuerpo».
+     Es la regla que `AO_SEGS` ya fija con su grado `'fuera'`: un valor ilegible bloquea la
+     AFIRMACIÓN y la NEGACIÓN, y se declara. El número se imprime IGUAL —decisión ya tomada en este
+     archivo para `vPdf`: «el número se imprime SIEMPRE y la banda decide sólo si se CLASIFICA»—
+     porque estas bandas salieron de una tabla escrita para RECHAZAR una fila de importación, donde
+     un falso positivo cuesta «no entra», y acá costaría perder el hallazgo.
+     De paso cierra el `0`: `v()` devuelve 0, que no es `null`, así que la cápsula lo leía como «sin
+     dato» (truthiness) y el narrativo como un dato (`!= null`), y el informe salía «de dimensiones
+     normales, con diámetro AP 0 mm». El 0 está por debajo de la banda. */
+  const _pAiDiam = vPlaus('ai_diam'), _pAiArea = vPlaus('ai_area');
+  const aiDilD = aiDiamDilatado(_pAiDiam.val), aiDilA = aiAreaDilatada(_pAiArea.val);
+  const aiDilGeo = aiDilD === true || aiDilA === true;
+  const aiGeoMedido = aiDilD !== null || aiDilA !== null;
+  const aiGeoFuera = [_pAiDiam.fuera ? `diámetro AP ${_pAiDiam.crudo} mm` : null,
+                      _pAiArea.fuera ? `área ${_pAiArea.crudo} cm²` : null].filter(Boolean).join(', ');
+  /* ⚠️ DOS LISTAS Y NO UNA, Y ES LA CORRECCIÓN MÁS IMPORTANTE DE ESTE BLOQUE. La primera versión
+     armaba UN solo texto por PRESENCIA (`ai_diam != null`) y lo interpolaba en las tres superficies
+     que AFIRMAN dilatación, mientras `aiDilGeo` es un OR. Medido: con diámetro 38 mm (normal) y área
+     25 cm² (dilatada), el informe firmado y el EN SUMA decían «AI dilatada (diámetro AP 38 mm, área
+     25 cm²)» —nombrando como marcador de dilatación a la medición que la cápsula de al lado rotula
+     «Normal (<40mm)»—. Y al revés en la discordancia: «pero diámetro AP 50 mm, área 15 cm² marca
+     dilatación», con el área en «Normal (≤20cm²)».
+     No es un borde raro: la discordancia ENTRE el diámetro y el área es exactamente el remodelado
+     asimétrico que el comentario de la discordancia invoca como motivo clínico.
+     `aiGeoDil` sale del PREDICADO y es lo único que puede entrar en una afirmación; `aiGeoTxt` sale
+     de la presencia y sirve para DESCRIBIR; `aiGeoNorm` es la que quedó en rango normal, que se
+     declara en vez de callarse — callarla deja fuera del informe una medición que el médico tomó. */
+  const aiGeoDil  = [aiDilD === true  ? `diámetro AP ${_pAiDiam.val} mm` : null,
+                     aiDilA === true  ? `área ${_pAiArea.val} cm²` : null].filter(Boolean).join(', ');
+  const aiGeoNorm = [aiDilD === false ? `diámetro AP ${_pAiDiam.val} mm` : null,
+                     aiDilA === false ? `área ${_pAiArea.val} cm²` : null].filter(Boolean).join(', ');
+  const aiGeoTxt  = [_pAiDiam.val != null ? `diámetro AP ${_pAiDiam.val} mm` : null,
+                     _pAiArea.val != null ? `área ${_pAiArea.val} cm²` : null].filter(Boolean).join(', ');
   if (ai_vol && bsa) {
     const aiIdx = (ai_vol / bsa).toFixed(1);
     let aiStr, aiSuma;
@@ -23864,12 +23967,57 @@ function generarInforme(opts) {
       : `La aurícula izquierda se encuentra ${aiStr}, con un volumen indexado de ${aiIdx} ml/m², hallazgo que puede reflejar elevación crónica de las presiones de llenado o valvulopatía asociada.`;
     inf.push(estiloPick(cAI, eAI, nAI));
     if (aiSuma) suma.push(aiSuma);
-  } else if (ai_diam) {
-    const aiStr = ai_diam <= 38 ? 'de dimensiones normales' : ai_diam <= 42 ? 'levemente dilatada' : 'dilatada';
-    const cAI = `AI ${aiStr} (${ai_diam} mm).`;
-    const eAI = `Aurícula izquierda ${aiStr} (diámetro AP ${ai_diam} mm).`;
-    const nAI = `La aurícula izquierda es ${aiStr}, con un diámetro anteroposterior de ${ai_diam} mm.`;
+    /* ── ⚠️ LA DISCORDANCIA SE DECLARA, NO SE RESUELVE EN SILENCIO (decisión de Maicol, 2026-09-27) ──
+       Caso real: diámetro AP 50 mm con volumen indexado 20 ml/m². Antes el `else if` hacía que la
+       rama del volumen ganara y el diámetro de 50 mm NO APARECÍA en el narrativo: la discordancia se
+       resolvía callando una de las dos mediciones. Es la regla que este archivo ya fija para
+       `ea_grado` contra las mediciones —«definir cuál manda, documentarlo, y publicar la discrepancia
+       en vez de resolverla en silencio»—.
+       Manda el VOLUMEN para el grado, que es lo que la guía gradúa. Lo que se agrega es nombrar la
+       otra medición y por qué no gradúa. El motivo clínico es real: el diámetro AP mide UN eje, así
+       que sobrestima en el remodelado asimétrico y una aurícula dilatada en sentido anteroposterior
+       puede tener volumen normal.
+       NO sube al EN SUMA, y es deliberado: el parámetro que gradúa dice normal, así que afirmar
+       «AI dilatada» en el resumen contradiría la línea de arriba del mismo documento. Queda en el
+       cuerpo, donde está la medición que lo sostiene.
+       ⚠️ PERO SÍ MARCA PÁRRAFO, y la diferencia importa: sin `ccMarcarParrafo()` el fallback del
+       EN SUMA salía «Estudio sin alteraciones estructurales ni funcionales significativas» sobre
+       un informe que dos renglones arriba nombra un diámetro AP de 50 mm. Es el defecto que este
+       archivo ya documenta con la CIA de 30 × 24 mm: el fallback negaba lo que el propio cuerpo
+       describía. Marcar NO afirma dilatación —el resumen pasa a «Sin OTRAS alteraciones
+       significativas — ver los hallazgos descritos en el cuerpo»—: deja de negar y manda a leer
+       la medición, que es lo único que el volumen indexado normal autoriza a decir. */
+    if (aiDilGeo && aiNormal) {
+      inf.push(
+        `El volumen indexado es normal (${aiIdx} ml/m²) pero ${aiGeoDil} marca dilatación: la severidad ` +
+        `se gradúa por el volumen indexado, que es el único parámetro que la guía gradúa. El diámetro ` +
+        `anteroposterior mide un solo eje y sobrestima en el remodelado asimétrico.`);
+      if (typeof ccMarcarParrafo === 'function') ccMarcarParrafo();
+    }
+  } else if (aiGeoMedido) {
+    /* ⚠️ ACÁ ESTABA LA SEVERIDAD POR DIÁMETRO, Y SE FUE. Decía «≤38 de dimensiones normales · 39-42
+       levemente dilatada · >42 dilatada»: tres cortes que la guía NO publica, graduando con un
+       parámetro que la guía usa sólo para decir sí/no. Hoy es binario y sin grado.
+       Y ahora el ÁREA también habla: antes no llegaba al narrativo por ningún camino, así que un
+       área de 25 cm² sin volumen ni diámetro caía en el `else` de abajo y el informe firmado decía
+       «La aurícula izquierda es de dimensiones normales» sobre una aurícula dilatada. */
+    const aiStr = aiDilGeo ? 'dilatada' : 'de dimensiones normales';
+    /* La medición que va DENTRO de la afirmación sale del predicado, no de la presencia: con el
+       diámetro normal y el área dilatada, `aiGeoTxt` nombraba a los dos y el informe afirmaba que un
+       diámetro de 38 mm marca dilatación. La que quedó normal se declara aparte. */
+    const aiGeoAfirma = aiDilGeo ? aiGeoDil : aiGeoTxt;
+    const cAI = `AI ${aiStr} (${aiGeoAfirma}).`;
+    const eAI = `Aurícula izquierda ${aiStr} (${aiGeoAfirma}).`;
+    const nAI = `La aurícula izquierda es ${aiStr}, con ${aiGeoAfirma}.`;
     inf.push(estiloPick(cAI, eAI, nAI));
+    /* La discordancia ENTRE las dos mediciones geométricas se declara, con el mismo criterio que la
+       discordancia contra el volumen indexado: la que está en rango normal se nombra en vez de
+       desaparecer del informe. Es el caso del remodelado asimétrico. */
+    if (aiDilGeo && aiGeoNorm) inf.push(`La otra medición está en rango normal (${aiGeoNorm}).`);
+    /* La invitación a completar el volumen va SÓLO cuando hay dilatación: sobre una aurícula normal
+       pediría un dato para graduar algo que no hay que graduar. Y va en el cuerpo, no en el EN SUMA:
+       es una instrucción para quien mide, no un hallazgo del paciente. */
+    if (aiDilGeo) inf.push('El grado de dilatación auricular no se informa: la guía lo gradúa sólo por volumen indexado, que requiere el volumen de AI y la superficie corporal.');
     /* Esta rama no tenía NI UN `suma.push`: la misma aurícula dilatada subía al EN SUMA si se
        midió por volumen y no subía si se midió por diámetro AP — que es la vía que queda en el
        eco de rutina, la más frecuente de las dos. El informe firmado terminaba diciendo
@@ -23880,9 +24028,29 @@ function generarInforme(opts) {
        literal genérico: el EN SUMA de este informe siempre lleva el número que sostiene la
        afirmación, y acá el número disponible es el diámetro, no el índice. No puede duplicarse
        con la rama del volumen porque son las dos mitades de un `if/else if`. */
-    if (aiStr !== 'de dimensiones normales') suma.push(`AI ${aiStr} (diámetro AP ${ai_diam} mm).`);
-  } else {
+    /* El EN SUMA sigue llevando la dilatación medida por esta vía —sin esto, la misma aurícula
+       dilatada subía al resumen si se midió por volumen y no subía si se midió por diámetro, que es
+       la vía del eco de rutina: el informe decía «dilatada» arriba y «sin alteraciones» abajo—. Lo
+       que cambió es que ya no lleva grado. */
+    if (aiDilGeo) suma.push(`AI dilatada (${aiGeoDil}).`);
+  } else if (!aiGeoFuera) {
     inf.push(estiloPick('AI normal.', 'Aurícula izquierda de dimensiones normales.', 'La aurícula izquierda es de dimensiones normales.'));
+  }
+  /* ⚠️ UN VALOR ILEGIBLE SE DECLARA, Y ESO ES LO QUE IMPIDE QUE LA RAMA DE ARRIBA NIEGUE SOBRE ÉL.
+     Con el diámetro o el área fuera de banda su predicado da `null`, así que `aiGeoMedido` es falso
+     y la cadena caía en el `else` de normalidad: el informe firmado decía «Aurícula izquierda de
+     dimensiones normales» sobre un estudio donde la única medición auricular era ilegible. De ahí el
+     `!aiGeoFuera` — la negación necesita evidencia de haber podido leer algo.
+     Va FUERA de la cadena a propósito: alcanza a las tres ramas, así que un volumen indexado bien
+     medido con el área tipeada en mm² publica su grado Y declara qué no se pudo leer.
+     Y MARCA PÁRRAFO: el fallback del EN SUMA es una negación, y negar «sin alteraciones» cuando una
+     medición no se pudo leer deja al lector sin saber si se perdió un hallazgo. La contrapartida, y
+     queda dicha: un solo dedazo cambia el resumen del informe entero a «ver los hallazgos descritos
+     en el cuerpo», que sobre este caso apunta a un reparo y no a un hallazgo. Se elige ese lado
+     porque el otro es el silencio, y el cuerpo dice exactamente qué corregir. */
+  if (aiGeoFuera) {
+    inf.push(`Aurícula izquierda: ${aiGeoFuera} fuera de rango medible — verificar la medición; no se informa el tamaño auricular por esa vía.`);
+    if (typeof ccMarcarParrafo === 'function') ccMarcarParrafo();
   }
 
   // ── 5) Ventrículo derecho (una sola oración combinada: tamaño + función) ──
@@ -30135,10 +30303,19 @@ function generarPDFReal(_aj) {
       return filas;
     })()},
     {titulo:'Aurícula Izquierda', items:[
-      {lbl:'Diám. AP',     ref:'<40 mm',    val:v('ai_diam')?v('ai_diam')+' mm':null},
-      {lbl:'Área AI',      ref:'<22 cm2',   val:v('ai_area')?v('ai_area')+' cm2':null},
+      /* ⚠️ El área decía «<22 cm2» y ese 22 NO TIENE FUENTE: se confunde con el promedio de volumen
+         indexado normal (22 ± 6 ml/m²), que es otra magnitud. Los dos cortes salen ahora de las
+         constantes, así que la referencia impresa en el papel firmado no puede separarse del
+         predicado que usan la cápsula y el informe. */
+      {lbl:'Diám. AP',     ref:'<' + UMBRAL_AI_DIAM_DILATADO + ' mm',  val:v('ai_diam')?v('ai_diam')+' mm':null},
+      {lbl:'Área AI',      ref:'<=' + UMBRAL_AI_AREA_DILATADA + ' cm2', val:v('ai_area')?v('ai_area')+' cm2':null},
       {lbl:'Volumen AI',   ref:'',           val:v('ai_vol') ?v('ai_vol') +' ml':null},
-      {lbl:'Vol. indexado',ref:'<' + UMBRAL_LAVI_DILATADO + ' ml/m2', val:aiIdx},
+      /* `<=` y no `<`: el clasificador trata el 34,0 exacto como NORMAL (`idx <= UMBRAL_LAVI_DILATADO`,
+         y el comentario de la constante dice «>34 → dilatada»). Con `<` el papel firmado imprimía un
+         LAVI de 34,0 —alcanzable, `(68/2.00).toFixed(1)`— al lado de una referencia que lo excluye,
+         mientras la cápsula de la pantalla decía «Normal (≤34 ml/m²)». Las otras dos superficies que
+         publican este corte ya lo decían bien (la tarjeta de Referencias y el manual). */
+      {lbl:'Vol. indexado',ref:'<=' + UMBRAL_LAVI_DILATADO + ' ml/m2', val:aiIdx},
     ]},
     {titulo:'Aurícula Derecha / VCI', items:[
       {lbl:'Área AD',     ref:'<18 cm2',  val:v('ad_area') ?v('ad_area') +' cm2':null},
@@ -69884,7 +70061,16 @@ const DCM_RANGO_CLIN = {
      185 ms, el TSVD proximal a 35 mm, y no hay piso de normalidad para el diámetro de AI—, así
      que avisaban sobre estudios sanos: la forma más rápida de que el médico aprenda a ignorar
      el cartel. Los topes de la aorta salen de AO_REF, que es la única definición de dilatada. */
-  tango_tac:[null,185], vti_tsvd:[12,22], tsvd_diametro:[null,35], ai_diam:[null,40],
+  /* `ai_diam` DERIVA de `UMBRAL_AI_DIAM_DILATADO` —igual que los tres segmentos de aorta de más
+     arriba derivan de `AO_REF`, y por el mismo motivo: el 40 estaba escrito a mano acá y en el
+     umbral, así que mover el corte dejaba el importador avisando con el número viejo. Se lee con el
+     nombre pelado, como `AO_REF.sin`: es un `const` de nivel superior de un bloque anterior, así que
+     la ligadura existe, y si ese bloque muriera es mejor que esto falle que que avise de menos.
+     ⚠️ HUECO DE UN VALOR, DECLARADO: el aviso dispara con `conv > rgc[1]` —estricto— y la dilatación
+     es `>= 40`, así que un diámetro de exactamente 40 mm entra SIN advertencia y el informe lo llama
+     dilatado. Corregirlo exige tocar el operador del consumidor, que es compartido por los 40 campos
+     de esta tabla. No es un error de carga: 40 mm es un diámetro real. */
+  tango_tac:[null,185], vti_tsvd:[12,22], tsvd_diametro:[null,35], ai_diam:[null,UMBRAL_AI_DIAM_DILATADO],
   ao_sin:[null,AO_REF.sin], ao_st:[null,AO_REF.st], ao_tub:[null,AO_REF.tub]
 };
 
@@ -80786,8 +80972,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260927-2049';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790552972333;                 /* eco-build-ms */
+const ECO_BUILD    = '20260927-2233';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790559222617;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -80873,7 +81059,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-2049</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260927-2233</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

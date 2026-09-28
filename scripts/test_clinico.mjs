@@ -660,17 +660,45 @@ caso('TC-30', 'AI por volumen indexado: las cuatro bandas en sus cortes exactos'
   ] };
 `);
 
-caso('TC-31', 'AI por diametro AP cuando no hay volumen: 38 / 40 / 45', `
+caso('TC-31', 'AI sin volumen: el diametro NOMBRA la dilatacion y no la gradua (borde 39/40)', `
   function ai(d) { __t.limpiar(); __t.set('ai_diam', String(d)); return __t.informe().inf; }
+  const d38 = ai(38), d39 = ai(39), d40 = ai(40), d45 = ai(45);
+  /* Cubre las DOS redacciones: la estandar y la CONCISA, que emite «AI levemente dilatada (…)».
+     Con solo la primera, una graduacion reintroducida y leida en estilo Conciso no matchea. */
+  const gradua = t => /Aur.cula izquierda (levemente|moderadamente|severamente)/.test(t) ||
+                      /\bAI (levemente|moderadamente|severamente)/.test(t);
   return { extra: [
-    ['38 mm normal',            /Aurícula izquierda de dimensiones normales \\(diámetro AP 38 mm\\)/.test(ai(38))],
-    ['40 mm levemente dilatada',/Aurícula izquierda levemente dilatada \\(diámetro AP 40 mm\\)/.test(ai(40))],
-    ['45 mm dilatada',          /Aurícula izquierda dilatada \\(diámetro AP 45 mm\\)/.test(ai(45))]
+    ['38 mm normal',
+      d38.indexOf('Aur\u00edcula izquierda de dimensiones normales (di\u00e1metro AP 38 mm).') > -1],
+    ['39 mm TODAVIA normal — el borde de abajo',
+      d39.indexOf('Aur\u00edcula izquierda de dimensiones normales (di\u00e1metro AP 39 mm).') > -1],
+    ['40 mm YA dilatada — el corte es >=40, no >40',
+      d40.indexOf('Aur\u00edcula izquierda dilatada (di\u00e1metro AP 40 mm).') > -1],
+    ['45 mm dilatada',
+      d45.indexOf('Aur\u00edcula izquierda dilatada (di\u00e1metro AP 45 mm).') > -1],
+    ['NINGUNO de los cuatro publica un grado',
+      !gradua(d38) && !gradua(d39) && !gradua(d40) && !gradua(d45),
+      'd38=' + gradua(d38) + ' d39=' + gradua(d39) + ' d40=' + gradua(d40) + ' d45=' + gradua(d45)],
+    ['y los dilatados DECLARAN por que no se gradua',
+      d40.indexOf('El grado de dilataci\u00f3n auricular no se informa') > -1 &&
+      d45.indexOf('El grado de dilataci\u00f3n auricular no se informa') > -1]
   ] };
 `);
 
-/* El volumen MANDA sobre el diametro: cargados los dos, la rama del diametro ni se evalua
-   (`if (ai_vol && bsa) ... else if (ai_diam)`). Si algun dia se invierte, este test lo dice. */
+/* REAPUNTADO 2026-09-27, y el rojo fue la senal. Este caso fijaba las tres bandas por diametro
+   —38 normal / 40 «levemente dilatada» / 45 «dilatada»— y esa graduacion se DEROGO: la ASE 2015
+   gradua unicamente el VOLUMEN INDEXADO (16-34 / 35-41 / 42-48 / >48); el diametro y el area son
+   valores de referencia de 2006 para decir dilatada SI o NO. Mantener la afirmacion vieja habria
+   empujado a devolver los tres cortes el dia que alguien «lo arreglara», que es lo que este
+   archivo ya documenta con TC-277, TC-288 y TC-289.
+   El invariante que SOBREVIVE es mas fuerte que el anterior: el diametro nombra el hallazgo y NO
+   lo gradua. La condicion que lo fija no es que el texto diga «dilatada» —eso pasa con las bandas
+   viejas puestas, porque 45 caia en «dilatada» igual— sino que NINGUNO de los cuatro valores
+   publique una palabra de grado.
+   El par 39/40 esta elegido: es el unico que distingue el corte >=40 de los errores plausibles
+   (la banda 39-42 de «leve», un corte en 38, o un `>` en vez de `>=`). Con 38 y 45 solos, mover
+   el umbral tres milimetros no pone nada en rojo. */
+
 caso('TC-32', 'Con volumen Y diametro cargados manda el volumen', `
   __t.limpiar(); ${BSA2} __t.set('ai_vol','98'); __t.set('ai_diam','30');
   const r = __t.informe();
@@ -1590,31 +1618,36 @@ caso('TC-90', 'TEER: los criterios COAPT se espejan vivos, rechazan el cero y no
    abajo. Es la asimetria entre rutas de la leccion 9; la AD dilatada tenia esta misma forma.
    El caso verifica las DOS mitades: que el hallazgo suba, y que la afirmacion tranquilizadora
    deje de emitirse. Sin la segunda, un `suma.push` de mas seguiria pasando el test. */
-caso('TC-87', 'AI dilatada por diametro AP llega al EN SUMA, y la normal no', `
+caso('TC-87', 'AI dilatada por diametro AP llega al EN SUMA sin grado, y la normal no sube', `
   function ai(mm) { __t.limpiar(); __t.set('ai_diam', String(mm)); return __t.informe(); }
-  const r = ai(45), leve = ai(39), normal = ai(38);
+  const r = ai(45), borde = ai(40), normal = ai(39);
   return { inf: r.inf, suma: r.suma,
-    debe: ['Aurícula izquierda dilatada (diámetro AP 45 mm).'],
-    debeSuma: ['AI dilatada (diámetro AP 45 mm).'],
+    debe: ['Aur\u00edcula izquierda dilatada (di\u00e1metro AP 45 mm).'],
+    debeSuma: ['AI dilatada (di\u00e1metro AP 45 mm).'],
     noSuma: ['Estudio sin alteraciones estructurales ni funcionales significativas.'],
     extra: [
-      ['39 mm sube como levemente dilatada',
-        leve.suma.indexOf('AI levemente dilatada (diámetro AP 39 mm).') > -1],
-      ['38 mm es normal y NO sube al EN SUMA', /AI .*dilatada/.test(normal.suma) === false],
+      ['el EN SUMA tampoco gradua',
+        /AI (levemente|moderadamente|severamente) dilatada/.test(r.suma) === false, r.suma],
+      ['40 mm sube igual — el borde del corte',
+        borde.suma.indexOf('AI dilatada (di\u00e1metro AP 40 mm).') > -1, borde.suma],
+      ['39 mm es normal y NO sube al EN SUMA',
+        /AI .*dilatada/.test(normal.suma) === false, normal.suma],
       ['y ese estudio sigue diciendo que no hay alteraciones',
         normal.suma.indexOf('Estudio sin alteraciones estructurales ni funcionales significativas.') > -1]
     ] };
 `);
 
-/* DECISION TOMADA (Maicol, 2026-09-15): c1b es ADVERTENCIA, no veto. Las guias no lo tratan
-   como contraindicacion — es factibilidad tecnica del operador. Este caso dejo de ser
-   `casoAbierto`: mientras la decision estaba pendiente el xfail decia «debe pesar en el
-   veredicto», y sostener eso DESPUES de decidir lo contrario es peor que no tener el caso —
-   el runner exigiria promoverlo el dia que alguien lo «arregle», o sea que empujaria
-   activamente hacia la conducta que se descarto. Ahora fija la decision por el lado correcto.
-   Lo que SI se verifica es que la advertencia se lea como advertencia: su texto lo dice con
-   todas las letras y `vetoIds` la deja fuera, que es de donde sale el color de la capsula.
-   Sin eso, c1b se pintaba en rojo identico a c1 —que si veta— y se leia como un rechazo. */
+/* REAPUNTADO 2026-09-27. El TEMA del caso no cambio y sigue siendo el que importa: el hallazgo
+   sube al EN SUMA Y la afirmacion tranquilizadora deja de emitirse. Sin la segunda mitad, un
+   `suma.push` de mas seguiria pasando — por eso conviven `debeSuma` y `noSuma`.
+   Lo que cambio son dos cosas del escenario. (1) El umbral: 39 mm era «levemente dilatada» con
+   las bandas viejas y hoy es NORMAL, asi que el valor que ejerce «sube» paso a ser 40 —el borde
+   del `>=`— y el 39 quedo del lado de «no sube», que es justo el par que discrimina. (2) La
+   redaccion: ya no hay grado, asi que se agrego la condicion de que el resumen tampoco lo
+   publique. Un caso que solo buscara «AI dilatada» pasaria con «AI levemente dilatada»
+   reintroducida, porque la segunda contiene a la primera — es la colision de substring que este
+   archivo ya pago tres veces. */
+
 caso('TC-86', 'TEER: el velo posterior <7 mm advierte y NO cambia el veredicto', `
   function base(lvp) { __t.limpiar(); __t.set('teer_tipo_im','secundaria');
     __t.set('teer_lva','24'); __t.set('teer_lvp', String(lvp)); __t.set('teer_gap','6');
@@ -33285,6 +33318,211 @@ caso('TC-289', 'Cierre de la Fase 1: el area mitral se clasifica como se imprime
     }
   })();
 `);
+
+caso('TC-294', 'Dilatacion de AI: el diametro y el area avisan SIN grado, y el grado sale solo del volumen indexado', `
+  function esc(o) {
+    __t.limpiar();
+    __t.set('peso', '80'); __t.set('talla', '180');   // BSA = 2.00 exacta: el indexado da redondo
+    Object.keys(o).forEach(k => __t.set(k, String(o[k])));
+    const r = __t.informe();
+    return { inf: r.inf, suma: r.suma,
+             capD: __t.txt('ai-diam-interp'), capA: __t.txt('ai-area-interp'),
+             capV: __t.txt('ai-interp') };
+  }
+  const a20 = esc({ ai_area: 20 });
+  const a21 = esc({ ai_area: 21 });
+  const a25 = esc({ ai_area: 25 });
+  const volLeve = esc({ ai_diam: 41, ai_vol: 76 });    // 76/2 = 38.0 -> leve POR VOLUMEN
+  const d50 = esc({ ai_diam: 50 });                    // sin volumen: el viejo >46 decia «severa»
+  const disc = esc({ ai_diam: 50, ai_vol: 40 });       // 40/2 = 20.0 -> normal: discordancia
+  const cruz  = esc({ ai_diam: 38, ai_area: 25 });      // diametro NORMAL, area dilatada
+  const cruzV = esc({ ai_diam: 50, ai_area: 15, ai_vol: 40 }); // area NORMAL en la discordancia
+  const fueraA = esc({ ai_area: 250, ai_vol: 40 });     // mm2 tipeados por cm2, con volumen normal
+  const fueraD = esc({ ai_diam: 4 });                   // cm tipeados por mm
+  const cero   = esc({ ai_diam: 0 });
+  const vaciada = (function () {
+    const r = esc({ ai_diam: 45, ai_area: 25 });
+    __t.set('ai_diam', ''); __t.set('ai_area', '');
+    return { capD: __t.txt('ai-diam-interp'), capA: __t.txt('ai-area-interp'), antes: r.capA };
+  })();
+  /* Cubre las DOS redacciones: la estandar y la CONCISA, que emite «AI levemente dilatada (…)».
+     Con solo la primera, una graduacion reintroducida y leida en estilo Conciso no matchea. */
+  const gradua = t => /Aur.cula izquierda (levemente|moderadamente|severamente)/.test(t) ||
+                      /\bAI (levemente|moderadamente|severamente)/.test(t);
+  return { extra: [
+    ['el AREA tiene capsula propia — antes no llegaba a NINGUNA superficie',
+      a25.capA !== null && a25.capA.indexOf('Dilatada') > -1, a25.capA],
+    ['el corte del area es 20 y NO 22: 20 normal, 21 dilatada',
+      a20.capA.indexOf('Normal') > -1 && a21.capA.indexOf('Dilatada') > -1,
+      'a20=' + a20.capA + ' | a21=' + a21.capA],
+    ['un area de 25 SOLA llega al informe — antes decia «de dimensiones normales»',
+      a25.inf.indexOf('Aurícula izquierda dilatada (área 25 cm²).') > -1 &&
+      a25.inf.indexOf('de dimensiones normales (área 25') === -1,
+      a25.inf.split(String.fromCharCode(10)).filter(l => l.indexOf('Aurícula izquierda') > -1)[0] || '(sin linea de AI)'],
+    ['ni el area ni el diametro publican grado',
+      !gradua(a25.inf) && !gradua(d50.inf),
+      'a25=' + gradua(a25.inf) + ' d50=' + gradua(d50.inf)],
+    ['un diametro de 50 sin volumen NO es «severamente»: el corte >46 se fue',
+      d50.inf.indexOf('Aurícula izquierda dilatada (diámetro AP 50 mm).') > -1 &&
+      d50.inf.indexOf('severamente') === -1, d50.suma],
+    ['con volumen, el grado sale del VOLUMEN aunque el diametro tambien este dilatado',
+      volLeve.inf.indexOf('Aurícula izquierda levemente dilatada (Vol Index 38.0 ml/m²).') > -1 &&
+      volLeve.capD.indexOf('Dilatada') > -1, volLeve.capD + ' || ' + volLeve.suma],
+    ['la discordancia diametro/volumen se DECLARA y nombra los dos',
+      disc.inf.indexOf('El volumen indexado es normal (20.0 ml/m²)') > -1 &&
+      disc.inf.indexOf('diámetro AP 50 mm') > -1,
+      disc.inf.split(String.fromCharCode(10)).filter(l => l.indexOf('volumen indexado es normal') > -1)[0] || '(no salio)'],
+    /* No alcanza con la AUSENCIA de la negacion: una mutacion que borre el fallback entero, o que lo
+       deje vacio, pasa en verde. Se exige TAMBIEN el texto de reemplazo. */
+    ['y con la discordancia el EN SUMA deja de NEGAR lo que el cuerpo describe',
+      disc.suma.indexOf('Estudio sin alteraciones estructurales ni funcionales significativas.') === -1 &&
+      disc.suma.indexOf('ver los hallazgos descritos en el cuerpo') > -1,
+      disc.suma],
+    /* ⚠️ LA AFIRMACION NOMBRA SOLO LO QUE MARCA DILATACION. La primera version armaba el texto por
+       PRESENCIA, asi que con el diametro NORMAL (38) y el area dilatada (25) el informe firmado y el
+       EN SUMA decian «AI dilatada (diámetro AP 38 mm, área 25 cm²)» — atribuyendole la dilatacion a la
+       medicion que la capsula de al lado rotula «Normal (<40mm)». Ninguna condicion lo veia porque
+       ningun escenario tenia las dos cargadas y DISCORDANTES entre si. */
+    ['la afirmacion nombra SOLO la medicion dilatada, no la que esta normal',
+      cruz.inf.indexOf('dilatada (área 25 cm²).') > -1 &&
+      cruz.inf.indexOf('diámetro AP 38 mm, área 25') === -1 &&
+      cruz.suma.indexOf('AI dilatada (área 25 cm²).') > -1, cruz.suma],
+    ['y la que quedo normal se DECLARA en vez de callarse',
+      cruz.inf.indexOf('La otra medición está en rango normal (diámetro AP 38 mm).') > -1, cruz.inf],
+    ['lo mismo dentro de la discordancia: el area normal no «marca dilatacion»',
+      cruzV.inf.indexOf('pero diámetro AP 50 mm marca dilatación') > -1 &&
+      cruzV.inf.indexOf('área 15 cm² marca') === -1,
+      cruzV.inf.split(String.fromCharCode(10)).filter(l => l.indexOf('marca dilatación') > -1)[0] || '(no salio)'],
+    /* ⚠️ UN VALOR ILEGIBLE BLOQUEA LA AFIRMACION Y LA NEGACION. Las dos bandas ya existian
+       (ai_diam 10-90, ai_area 3-60) y ninguna lectura las consultaba: un area de 250 cm² —mm² por
+       cm²— publicaba «AI dilatada (área 250 cm²)» en el EN SUMA y ademas disparaba ccMarcarParrafo,
+       o sea la bandera GLOBAL del informe encendida sobre basura; y un diametro de 4 mm publicaba
+       «de dimensiones normales, con diámetro AP 4 mm». El 0 entra por la misma puerta. */
+    ['un area fuera de banda NO afirma dilatacion: la declara',
+      fueraA.inf.indexOf('área 250 cm² fuera de rango medible') > -1 &&
+      fueraA.inf.indexOf('dilatada (área 250') === -1 &&
+      fueraA.suma.indexOf('AI dilatada') === -1, fueraA.suma],
+    ['un diametro fuera de banda NO afirma normalidad: la declara',
+      fueraD.inf.indexOf('diámetro AP 4 mm fuera de rango medible') > -1 &&
+      fueraD.inf.indexOf('de dimensiones normales') === -1,
+      fueraD.inf.split(String.fromCharCode(10)).filter(l => l.indexOf('Aurícula izquierda') > -1)[0] || '(sin linea)'],
+    ['el 0 no es una medicion, y la capsula y el informe lo dicen IGUAL',
+      cero.inf.indexOf('diámetro AP 0 mm fuera de rango medible') > -1 &&
+      cero.inf.indexOf('de dimensiones normales') === -1,
+      cero.inf.split(String.fromCharCode(10)).filter(l => l.indexOf('Aurícula izquierda') > -1)[0] || '(sin linea)'],
+    ['pero un estudio de verdad normal SIGUE negando — la marca no se filtra',
+      a20.suma.indexOf('Estudio sin alteraciones estructurales ni funcionales significativas.') > -1,
+      a20.suma],
+    /* ⚠️ LA RAYA NO SIRVE COMO CENTINELA: el badge que queda pegado dice «Dilatada (>20cm²) —
+       sin grado», o sea que CONTIENE la raya, y el indexOf de la raya daba verdadero con el valor del
+       paciente anterior puesto. La mutacion que saca el else SOBREVIVIO a la primera version
+       de esta condicion. Se exige la raya SOLA — es la colision de substring que este archivo ya
+       pago con «Clase I» dentro de «Clase IIa» y con «Sin criterios de ET significativa». */
+    ['las dos capsulas vuelven a la raya SOLA al vaciar el campo',
+      vaciada.capD.trim() === '—' && vaciada.capA.trim() === '—',
+      'antes=' + vaciada.antes + ' | despues D=«' + vaciada.capD.trim() + '» A=«' + vaciada.capA.trim() + '»']
+  ] };
+`);
+
+/* LA DECISION QUE ESTE CASO FIJA (Maicol, 2026-09-27): el diametro AP y el area avisan que la
+   auricula esta dilatada y NO la graduan; el grado sale UNICAMENTE del volumen indexado.
+   Sale de la ASE 2015 (Lang, JASE 28:1-39), que es la unica que publica bandas —16-34 / 35-41 /
+   42-48 / >48 ml/m²—. El diametro y el area son valores de referencia de 2006 para contestar
+   «dilatada si o no». Los tres cortes por diametro que habia (38/42/46) no los publica ninguna
+   guia, y el de severidad en >46 era el mas caro: un solo eje decidiendo «severamente dilatada»
+   en un informe firmado.
+
+   EL CORTE DEL AREA ES 20 cm², NO 22, y la condicion esta escrita para eso: el 22 no tiene
+   fuente verificada —se confunde con el 22±6 ml/m² que es la MEDIA del volumen indexado normal—
+   y con el corte en 22 un area de 21 sale «Normal». Sin el par 20/21 esta condicion pasaria con
+   el 22 puesto.
+
+   EL CORTE DEL DIAMETRO ES 40 mm PARA LOS DOS SEXOS y esa parte es DECISION DE MAICOL, no de la
+   guia: la ASE publica 3,9 cm en la mujer y 4,1 cm en el hombre. Un solo corte pierde medio
+   milimetro de precision por sexo y gana que el informe no dependa de que el campo `sexo` este
+   cargado — que es el mismo razonamiento por el que el strain del VD SI se niega a clasificar
+   sin sexo: alla el corte decide una conducta, aca solo nombra un hallazgo.
+
+   `IM_CRIT_2025.lavi` (60 ml/m²) y `ai_diam` (55 mm) NO SE TOCARON y no hay que unificarlos con
+   esto: son criterios de INTERVENCION de la ESC/EACTS 2025 para insuficiencia mitral —la guia
+   publica los dos unidos por «o»— no grados de severidad auricular. Es la misma distincion que
+   este archivo ya declara entre `VD_BAS_NORMAL_MAX` (41, normal) y `vdBasCat` (>45, dilatado).
+
+   LA CONDICION QUE SEPARA UN CASO UTIL DE UNO DECORATIVO es «el grado sale del volumen aunque el
+   diametro tambien este dilatado»: con d41 + indice 38 las dos vias dicen «dilatada», asi que un
+   escenario que solo mire la palabra pasa con la graduacion por diametro reintroducida. Lo que
+   discrimina es que el texto cite «Vol Index 38.0 ml/m²» Y que la capsula del diametro este en
+   «Dilatada» al mismo tiempo — o sea que el diametro se ve y no vota.
+
+   Y LA ULTIMA CONDICION es la que mas facil se rompe sin ruido: las dos capsulas tienen rama
+   `else` que las devuelve a «—». Sin ella queda la capsula del paciente ANTERIOR sobre un campo
+   ya vacio, que es el defecto que `calcVI` pago tres veces («no tenia `else` en ningun bloque,
+   asi que al vaciar un campo el span conservaba el valor del paciente anterior»). */
+
+
+caso('TC-295', 'Las tres referencias de AI del PDF firmado coinciden con el operador que aplica el codigo', `
+  return (async () => {
+    /* Depende del CDN. Se espera hasta 8 s y, si no llega, se FALLA con el motivo escrito: un caso
+       que se saltea solo es cobertura que no existe, y uno que da rojo por la red entrena a no
+       creerle al rojo. Es lo que ya hacen TC-131 con SheetJS y los seis de PptxGenJS. */
+    for (let i = 0; i < 40 && !(window.jspdf && window.jspdf.jsPDF); i++)
+      await new Promise(r => setTimeout(r, 200));
+    if (!(window.jspdf && window.jspdf.jsPDF))
+      return { extra: [['jsPDF llego por CDN', false, 'no llego en 8 s — el caso no pudo verificar nada']] };
+
+    __t.limpiar();
+    __t.set('nombre', 'Prueba AI'); __t.set('peso', '80'); __t.set('talla', '180');
+    __t.set('ai_diam', '50'); __t.set('ai_area', '25'); __t.set('ai_vol', '40');
+    __t.informe();
+
+    /* \`save()\` es propiedad de la INSTANCIA, asi que se envuelve el CONSTRUCTOR. */
+    const O = window.jspdf.jsPDF; let cap = null;
+    window.jspdf.jsPDF = function () {
+      const d = new O(...arguments);
+      d.save = function () { try { cap = d.output('datauristring'); } catch (e) { cap = null; } };
+      return d;
+    };
+    window.jspdf.jsPDF.API = O.API;
+    try { await generarPDFReal(); } finally { window.jspdf.jsPDF = O; }
+    if (!cap) return { extra: [['se capturo el PDF', false, 'generarPDFReal no llamo a save()']] };
+
+    const bin = atob(cap.split(',')[1]);
+    /* El regex va ANCLADO en parentesis y con alternancia DETERMINISTA. Dentro del cuerpo de un caso
+       —que es un template literal— los escapes se consumen, asi que van DOBLES: escrito con una sola
+       barra, el \\( queda como parentesis de grupo, el regex deja de estar anclado, y el \`.*?\` lazy
+       sobre el stream binario de un PDF con imagenes es cuadratico — no da rojo, CUELGA la suite. */
+    const re = /\\(((?:\\\\[\\s\\S]|[^()\\\\])*)\\)\\s?Tj/g;
+    let m, txt = [];
+    while ((m = re.exec(bin))) txt.push(m[1]);
+    const t = txt.join(' | ');
+    return { extra: [
+      /* DENOMINADOR PRIMERO: contar una ausencia sobre un PDF vacio da cero y se lee igual que un
+         documento correcto. */
+      ['el PDF tiene paginas y texto que contar',
+        (bin.match(/\\/Type\\s*\\/Page[^s]/g) || []).length > 0 && txt.length > 20,
+        'objetos de texto: ' + txt.length],
+      ['la ref del diametro dice <40 mm — el corte es >=40',
+        t.indexOf('<40 mm') > -1, txt.filter(x => x.indexOf('mm): ') > -1).join(' / ')],
+      ['la ref del area dice <=20 cm2 — el corte es >20',
+        t.indexOf('<=20 cm2') > -1, txt.filter(x => x.indexOf('cm2') > -1).join(' / ')],
+      ['la ref del volumen indexado dice <=34 — el clasificador trata el 34,0 como NORMAL',
+        t.indexOf('<=34 ml/m2') > -1, txt.filter(x => x.indexOf('ml/m2') > -1).join(' / ')],
+      ['y el 22 cm2 NO aparece en el documento firmado',
+        t.indexOf('22 cm2') === -1, t.indexOf('22 cm2') > -1 ? 'aparece' : 'no aparece']
+    ] };
+  })();
+`);
+
+/* POR QUE ESTE CASO EXISTE APARTE. Las tres referencias viven en la superficie que se ARCHIVA, y no
+   habia una sola condicion que las cubriera: devolver el literal «<22 cm2», o cambiar el <= por <,
+   no ponia nada en rojo. Este archivo ya pago exactamente eso — «LOS ROTULOS SE MUEVEN CON EL
+   PREDICADO O EL PDF SE CONTRADICE SOLO», cuando las dos tablas del PDF seguian imprimiendo «<1.0»
+   despues de mover AVA_SEVERA_MAX.
+   Va en caso PROPIO y no dentro de TC-294 para aislar la dependencia del CDN: TC-294 no toca la red
+   y tiene que seguir corriendo en segundos.
+   El 22 se vigila por AUSENCIA porque no tiene fuente verificada: se confunde con el 22±6 ml/m² que
+   es la MEDIA del volumen indexado normal, y es el error plausible que alguien puede reponer. */
+
 
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {

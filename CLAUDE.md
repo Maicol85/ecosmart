@@ -4,6 +4,192 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Dilatación de AI: el diámetro y el área AVISAN, el volumen indexado GRADÚA (2026-09-27)
+
+Decisión de Maicol. El diámetro AP y el área contestan «¿está dilatada?» —binario, **sin grado**— y
+«¿qué tan severa?» la contesta **sólo el volumen indexado**.
+
+**La fuente es la ASE 2015** (Lang, *JASE* 28:1-39), que es la única que publica bandas:
+**16-34 / 35-41 / 42-48 / >48 ml/m²**. El diámetro y el área son **valores de referencia de 2006**
+para decir dilatada sí o no; esa guía **no los gradúa**.
+
+### Los tres cortes por diámetro no los publicaba ninguna guía, y el peor era el de severidad
+
+`calcAI` graduaba **≤38 normal · 39-42 leve · 43-46 moderada · >46 SEVERA**. Los cuatro cortes eran
+inventados, y el `>46` es el que más costaba: **un solo eje decidiendo «severamente dilatada» en un
+informe firmado**. El narrativo tenía la misma cascada en su `else if (ai_diam)`.
+
+### El área no tenía cápsula y NO LLEGABA A NINGUNA SUPERFICIE
+
+Defecto preexistente, medido: `ai_area` se cargaba y **desaparecía**. Un área de 25 cm² sin volumen
+ni diámetro caía en el `else` final y el informe firmado decía **«La aurícula izquierda es de
+dimensiones normales»** sobre una aurícula dilatada. Hoy tiene cápsula propia (`ai-area-interp`),
+llega al cuerpo y al EN SUMA.
+
+### ⚠️ EL CORTE DEL ÁREA ES 20 cm², NO 22
+
+El 22 **no tiene fuente verificada**: se confunde con el **22±6 ml/m²**, que es la *media* del
+volumen indexado normal de esa misma guía — otra magnitud y otra unidad. Con el corte en 22 un área
+de 21 cm² sale «Normal». La fila del PDF imprimía `<22 cm2`, su única aparición en el archivo.
+
+### El corte de 40 mm para los dos sexos es DECISIÓN DE MAICOL, no de la guía
+
+La ASE publica **3,9 cm en la mujer y 4,1 cm en el hombre**. Un solo corte pierde medio milímetro
+por sexo y gana que el informe no dependa de que el campo `sexo` esté cargado. Es la asimetría
+inversa del strain del VD, que **sí** se niega a clasificar sin sexo: allá el corte decide una
+conducta, acá sólo nombra un hallazgo. `UMBRAL_AI_DIAM_DILATADO` es `>=` y `UMBRAL_AI_AREA_DILATADA`
+es `>` estricto — los rótulos de las cuatro superficies llevan el operador que aplica el código.
+
+### La discordancia se DECLARA, y el EN SUMA dejó de negarla
+
+Caso real: **diámetro AP 50 mm con volumen indexado 20 ml/m²**. Antes el `else if` hacía que la rama
+del volumen ganara y **el diámetro de 50 mm no aparecía en el narrativo**: la discordancia se
+resolvía callando una de las dos mediciones. Hoy manda el volumen para el grado —que es lo que la
+guía gradúa— y se nombra la otra medición con el motivo clínico: el diámetro AP mide **un** eje, así
+que sobrestima en el remodelado asimétrico.
+
+**No sube al EN SUMA** —afirmar «AI dilatada» contradiría la línea de arriba del mismo documento—
+**pero SÍ marca párrafo con `ccMarcarParrafo()`**. Sin eso, el resumen salía «Estudio sin
+alteraciones estructurales ni funcionales significativas» sobre un informe que dos renglones arriba
+nombra un diámetro de 50 mm: el defecto de la CIA de 30 × 24 mm. Marcar **no afirma dilatación** —el
+resumen pasa a «Sin otras alteraciones … ver los hallazgos descritos en el cuerpo»—: deja de negar.
+Verificado con control negativo: un estudio de verdad normal **sigue negando**, o sea que la marca no
+se filtra.
+
+### ⚠️ LO QUE ENCONTRÓ `/sharp-edges`, Y EL PRIMERO LO INTRODUJE YO
+
+**1 · EL TEXTO SE ARMABA POR PRESENCIA Y LA AFIRMACIÓN ERA UN «O».** `aiGeoTxt` listaba las
+mediciones que EXISTEN y se interpolaba en las tres superficies que **afirman** dilatación, mientras
+`aiDilGeo` es `aiDilD === true || aiDilA === true`. Medido:
+
+| escenario | el informe firmado y el EN SUMA decían | la cápsula de al lado |
+|---|---|---|
+| diámetro 38 · área 25 | «AI dilatada (**diámetro AP 38 mm**, área 25 cm²)» | diámetro **Normal (<40mm)** |
+| diámetro 50 · área 15 · vol normal | «pero d50, **área 15 cm²** marca dilatación» | área **Normal (≤20cm²)** |
+
+O sea: le atribuía la dilatación a la medición que la pantalla rotula normal. **Y no es un borde
+raro** — la discordancia ENTRE el diámetro y el área es exactamente el remodelado asimétrico que el
+comentario de la discordancia invoca como motivo clínico. Hoy hay **tres** derivaciones: `aiGeoDil`
+sale del PREDICADO y es lo único que entra en una afirmación, `aiGeoTxt` describe, y `aiGeoNorm` es
+la que quedó normal, que **se declara** («La otra medición está en rango normal (…)») en vez de
+desaparecer del informe.
+
+**2 · LAS DOS MEDICIONES NO CONSULTABAN SU BANDA, Y LAS DOS BANDAS YA EXISTÍAN**
+(`ai_diam [10,90]`, `ai_area [3,60]`, vía `_labRango`). Los dos bordes fallaban, cada uno hacia el
+lado peligroso:
+
+| entrada | qué publicaba |
+|---|---|
+| `ai_diam 4` (cm por mm) | «La aurícula izquierda es de dimensiones normales, con **diámetro AP 4 mm**» — una NEGACIÓN sobre un valor ilegible, con la cápsula en verde |
+| `ai_area 250` (mm² por cm²) | «AI dilatada (área 250 cm²)» **en el EN SUMA** |
+| `ai_area 250` + volumen normal | además **disparaba `ccMarcarParrafo()`** — la bandera GLOBAL del informe encendida sobre basura, y el resumen de un estudio por lo demás normal pasaba a «ver los hallazgos descritos en el cuerpo» |
+
+Hoy las dos pasan por **`vPlaus`** y un valor fuera de banda **bloquea la afirmación Y la negación**
+y se declara, que es la regla que `AO_SEGS` ya fija con su grado `'fuera'`. El número **se imprime
+igual** —decisión ya tomada para `vPdf`: «el número se imprime SIEMPRE y la banda decide sólo si se
+CLASIFICA»— porque estas bandas salieron de una tabla escrita para RECHAZAR una fila de importación,
+donde un falso positivo cuesta «no entra», y acá costaría perder el hallazgo.
+
+**⚠️ Y la rama final había que gatearla, o el arreglo empeoraba las cosas:** fuera de banda el
+predicado da `null`, así que `aiGeoMedido` es falso y la cadena caía en el `else` de normalidad — el
+informe decía «de dimensiones normales» sobre un estudio cuya única medición auricular era ilegible.
+De ahí el `!aiGeoFuera`. La declaración va **fuera** de la cadena, así que alcanza a las tres ramas:
+un volumen bien medido con el área tipeada en mm² publica su grado **y** declara qué no se pudo leer.
+
+**3 · EL `0` TENÍA DOS PREDICADOS.** `v()` devuelve 0, que no es `null`, así que la cápsula lo leía
+como «sin dato» (truthiness) y el narrativo como un dato (`!= null`): «de dimensiones normales, con
+diámetro AP 0 mm». Lo cierra la banda —0 está por debajo de 10— y de paso las dos superficies pasaron
+a usar la misma lectura.
+
+**4 · LA FILA DEL VOLUMEN INDEXADO DEL PDF TENÍA EL OPERADOR AL REVÉS.** Imprimía `<34` y los once
+clasificadores del archivo tratan **`<=34` como normal** (el propio comentario de la constante dice
+«>34 → dilatada»). Un LAVI de **34,0** exacto —alcanzable, `(68/2.00).toFixed(1)`— salía en el papel
+firmado al lado de una referencia que lo excluye, mientras la cápsula decía «Normal (≤34 ml/m²)». Las
+otras dos superficies que publican ese corte ya lo decían bien.
+
+**5 · `DCM_RANGO_CLIN.ai_diam` duplicaba el 40 a mano.** Hoy deriva de la constante, igual que los
+tres segmentos de aorta de la misma línea derivan de `AO_REF`. **Hueco de un valor, declarado:** el
+aviso dispara con `conv > rgc[1]` —estricto— y la dilatación es `>=40`, así que un diámetro de
+exactamente 40 mm entra sin advertencia. Corregirlo exige tocar el operador del consumidor, que es
+compartido por los 40 campos de esa tabla.
+
+### `IM_CRIT_2025` NO se tocó, y no hay que unificarlo con esto
+
+`lavi = 60` y `ai_diam = 55` son criterios de **INTERVENCIÓN** de la ESC/EACTS 2025 para
+insuficiencia mitral —la guía publica los dos unidos por «o»—, no grados de severidad auricular. Es
+la misma distinción que este archivo ya declara entre `VD_BAS_NORMAL_MAX` (41, normal) y `vdBasCat`
+(>45, dilatado). Ídem `_mchNv('ai_diam')`, que es una variable del HCM Risk-SCD en milímetros.
+
+### Declarado y NO corregido
+
+- **La rama final afirma normalidad con CERO mediciones**, mientras la **aurícula derecha**, en la
+  misma función y 170 líneas más abajo, dice «Aurícula derecha no valorada» y tiene caso propio que
+  lo fija. Son dos respuestas a la misma pregunta entre estructuras análogas (lección 9). No se tocó
+  porque cambia el narrativo de **todo** informe con la AI sin medir: es decisión clínica, no técnica.
+  Del mismo `else` cuelga un segundo camino: `ai_vol` cargado **sin peso/talla** y sin diámetro ni
+  área hace que el volumen **desaparezca** del informe y que igual diga «de dimensiones normales»,
+  mientras la pantalla pone las dos cápsulas en «—».
+- **El Excel redondea y el umbral es un borde entero, así que el round-trip da vuelta el veredicto.**
+  `rnd(num('ai_diam'),0)`, y los decimales son el caso **normal** de un estudio importado: el SR y el
+  CHM convierten cm→mm, así que un GE que informa 3,96 cm deja `39.6`. Ese estudio dice «normal», el
+  Excel exporta **40**, y reimportado dice «dilatada». Ídem 20,04 cm² → 20,0 → «normal». Arreglarlo
+  toca el contrato del Excel para todo el histórico.
+- **El diámetro y el área no tienen fila en la tabla de mediciones del PPT.** Un estudio cuyo único
+  hallazgo auricular es un área de 25 cm² proyecta las dos filas de AI en «—» mientras la diapositiva
+  del informe dice «Aurícula izquierda dilatada (área 25 cm²)». Preexistente para el diámetro; el
+  área recién ahora sostiene un hallazgo.
+- **Los dos párrafos nuevos no pasan por `estiloPick`**: salen con la misma redacción larga en los
+  tres estilos, incluido Conciso. Es la convención del archivo para las salvedades, pero suman dos
+  renglones que `_pdfAjustarA4` tiene que comprimir.
+- **Ni la tarjeta de Referencias ni el manual publican los dos cortes nuevos.** No mienten —no quedó
+  ningún rótulo con las bandas 38/42/46— pero la referencia clínica queda incompleta.
+
+### Lo que la verificación enseñó
+
+- **⚠️ MI CENTINELA DEL RESETEO DE CÁPSULA ERA VACUO, Y LA MUTACIÓN LO DELATÓ.** La condición usaba
+  `indexOf('—')` para «volvió a la raya», y el badge que queda pegado dice «Dilatada (>20cm²) **—**
+  sin grado»: **contiene la raya**. La mutación que saca el `else` pasó en verde. Apretada a la raya
+  SOLA, cae con el badge viejo impreso en el diagnóstico. Es la colisión de substring que este
+  archivo ya pagó con «Clase I» dentro de «Clase IIa» y con «Sin criterios de ET significativa».
+- **Un `assert` que corta el script se lleva TODAS las ediciones de ese script.** El ancla
+  `const gradua = t => …` aparecía **dos veces** —TC-31 y TC-294 comparten el helper— el assert
+  disparó, y **no se escribió nada**. Hizo su trabajo: sin él habría quedado el reemplazo aplicado a
+  uno de los dos. Hoy el script verifica **todas** las anclas antes de escribir una sola.
+- **TC-31 y TC-87 se pusieron en rojo y ésa es la señal.** Fijaban la graduación por diámetro —«40 mm
+  levemente dilatada», «39 mm sube como levemente dilatada»— que es justo la premisa que se derogó.
+  Se reapuntaron al invariante que sobrevive, que además es **más fuerte**: no que el texto diga
+  «dilatada» —eso pasa con las bandas viejas puestas— sino que **ninguno de los cuatro valores
+  publique una palabra de grado**. Y el par que discrimina es **39/40**: es el único que separa el
+  `>=40` de los errores plausibles (la banda 39-42, un corte en 38, o un `>` en vez de `>=`).
+- **Las referencias del PDF no las cubría nada, y es la superficie que se ARCHIVA.** Devolver el
+  literal `<22 cm2`, o cambiar el `<=` por `<`, no ponía nada en rojo. **TC-295** lee el content
+  stream del PDF real; va en caso **propio** para aislar la dependencia del CDN, así que TC-294 sigue
+  corriendo en segundos. Dos trampas del content stream que ya están escritas y volvieron a aplicar:
+  jsPDF **escapa los paréntesis**, y el regex de extracción va **anclado y con alternancia
+  determinista** —con `.*?` lazy sobre el binario es cuadrático y **cuelga la suite** en vez de dar
+  rojo—, con las barras **dobles** porque el cuerpo de un caso es un template literal.
+- **La condición del fallback comprobaba sólo una AUSENCIA.** Verificaba que el EN SUMA no negara, y
+  una mutación que borre el fallback entero pasa en verde. Hoy exige también el **texto de
+  reemplazo**.
+- **Backticks escapados dentro del cuerpo de un caso: legales, y conviene no dejarlos.** `\`` no
+  cierra el template literal, así que el caso parsea y corre — pero mi propio contador de backticks
+  los contó como crudos y dio una falsa alarma. Se reemplazaron por prosa.
+- **Catorce mutaciones, las catorce en rojo y cada una en su condición**, con la base verde leída
+  primero en cada tanda. Entre ellas: el corte del área de vuelta a 22, el área dejando de llegar al
+  narrativo, `ccMarcarParrafo` fuera de la discordancia, las dos cápsulas quedándose pegadas, la
+  graduación por diámetro reintroducida, el diámetro ganándole al volumen, la afirmación armada por
+  presencia, las lecturas de vuelta al crudo, la guarda `!aiGeoFuera` sacada, y las dos referencias
+  del PDF revertidas.
+- **⚠️ EL CHM REAL DESAPARECIÓ DEL ESCRITORIO A MITAD DE SESIÓN.** TC-177 y TC-178 pasaron en las dos
+  primeras corridas y en la última reportan «archivo no encontrado: el descompresor quedó SIN
+  verificar». **No es una regresión** —ninguno de los dos toca la AI— y los dos **declaran su propio
+  denominador**, que es justo para lo que esa condición existe. Es el patrón del pendrive desmontado:
+  ante un rojo que dice «no encontrado», mirar el fixture antes que el diff.
+- **Suite 307/310.** Los tres rojos: **TC-223** (preexistente y documentado) y **TC-177 / TC-178**
+  (fixture ausente). Semgrep **126 / 0 ERROR**, sin huérfanos, `check_mobile` en los 2 ALTA de
+  siempre, `api-key-protector` en los 2 preexistentes diferidos a Supabase.
+
+
 ## «(SAVR)» queda SÓLO en la aórtica (2026-09-27)
 
 Se quitó el sufijo del TEXTO de las dos opciones de prótesis quirúrgica en mitral, tricúspide y
