@@ -33715,6 +33715,281 @@ caso('TC-296', 'Insuficiencia mitral: las tres casillas «auto» espejan, SIGUEN
      medicion propia de IM respaldandolo. */
 
 
+caso('TC-297', 'El VTI mitral DE ENTRADA vive en Doppler, vtim es su espejo, la EROA por continuidad sale del jet, y ninguna banda deja pasar el VTI equivocado', `
+  return (async () => {
+    const g = id => document.getElementById(id);
+    const vis = () => (g('bloque-insuf-mitral') || { style:{} }).style.display;
+    const abrir = () => { if (vis() === 'none') toggleValvPill('mitral','insuf'); };
+    const ratio = () => __t.txt('im-vti-ratio');
+    const sev   = () => __t.txt('im-cont-severidad');
+    const marca = id => { const e = g(id); return (e && e.dataset.espejoDe !== undefined) ? e.dataset.espejoDe : '(sin marca)'; };
+    const guardar = () => new Promise(r => { window._ettEditandoId = null;
+      const antes = new Set(getInformes().map(i => i.estudioId));
+      const fin = () => { const n = getInformes().find(i => !antes.has(i.estudioId)); r(n ? n.estudioId : null); };
+      try { guardarInforme(fin); } catch (e) { r(null); return; }
+      const cf = g('rev-confirm'); if (cf) cf.click(); });
+    /* EL ESCENARIO BASE DEL CENSO, con sus ocho resultados de referencia medidos a mano:
+       vm_lat 106,0 · vr_cont 43,7 · FR 41 % · cociente 0,83 · EROA-PISA 50,3 mm2 · Vol-R PISA
+       65,4 ml · VS TSVI 62,3 ml · FR PISA 51 %. La EROA por continuidad esperada es 33,6 mm2.
+       vtim se siembra A MANO y no por el campo nuevo: asi el caso mide primero que los estudios
+       de siempre —los que cargan vtim directo— no cambiaron, que es la mitad que un cambio de
+       origen puede romper sin que se note. */
+    const sembrar = o => { __t.limpiar(); abrir();
+      const base = { peso:80, talla:180, diam_tsvi:21, itv_tsvi:18, diam_mit:30, vtim:15,
+                     pisa_r:10, pisa_val:40, im_vmax:500, im_itv:130 };
+      Object.keys(base).forEach(k => __t.set(k, String(base[k])));
+      Object.keys(o || {}).forEach(k => __t.set(k, String(o[k]))); };
+
+    /* DENOMINADOR: se siembra PISA completa porque sin ella eroa-val, volr-val y freg-val salen
+       «—» y las condiciones que exigen que el fuera-de-banda NO las toque medirian sobre la raya.
+       Queda vacio por no sembrarlo: onda_e, im_jet_area, ai_area, im_onda_s, im_vc e itv_mitral
+       —este ultimo a proposito en el tramo 1, para medir el camino manual antes del espejo—. */
+    const faltan = ['itv_mitral','vtim','diam_mit','im_itv','im_eroa_cont','im-vti-ratio',
+                    'im-cont-severidad','im_espejos','vm_lat','vr_cont','im_fr_cont'].filter(id => g(id) === null);
+
+    // ── 1. Escenario base: las ocho de referencia + la EROA nueva ──────────────────────────
+    sembrar();
+    const base8 = [__t.val('vm_lat'), __t.val('vr_cont'), __t.val('im_fr_cont'), ratio(),
+                   __t.txt('eroa-val'), __t.txt('volr-val'), __t.txt('vsvtsvi-val'), __t.txt('freg-val')].join(' | ');
+    const eroaCont = __t.val('im_eroa_cont');
+    /* ⚠️ ESCENARIO DISCRIMINANTE PARA «LA EROA NO VOTA». Con im_itv=130 la EROA da 33,6 mm2, que
+       cae en la banda MODERADA igual que el veredicto volumetrico: si la EROA votara, el grado no
+       se moveria y la condicion pasaria sobre un mutante. Con im_itv=60 la EROA sube a 72,8 mm2
+       —banda SEVERA, por encima del corte de 40— y el volumetrico sigue en Moderada con Vol-R 43,7
+       y FR 41 %. Ahi las dos posibilidades dan resultados distintos, que es lo que hace medible la
+       condicion. */
+    sembrar({ im_itv:'60' });
+    const eroaAlta = __t.val('im_eroa_cont') + ' :: ' + sev();
+    /* La EROA NO VOTA: con 33,6 mm2 en la casilla, el grado por metodo volumetrico sigue saliendo
+       de Vol-R y FR. 33,6 esta en la banda «moderada» de EROA (20-39) y el volumetrico da
+       Moderada tambien, asi que la condicion no distingue nada por si sola — lo que la hace medir
+       algo es que el texto de la fila nombre el metodo y los dos numeros de los que sale. */
+    const noVota = /m.todo volum.trico/.test(sev()) && /Vol-R 43\\.7 ml/.test(sev()) && /FR 41%/.test(sev());
+
+    // ── 2. im_itv dispara calcContIM: la EROA aparece sin tocar ningun otro campo ───────────
+    sembrar({ im_itv:'' });
+    const sinJet = __t.val('im_eroa_cont') + ' [ph:' + (g('im_eroa_cont') || {}).placeholder + ']';
+    __t.set('im_itv','130');                    // UNICO campo que se toca
+    const conJet = __t.val('im_eroa_cont');
+
+    // ── 3. El campo nuevo es el ORIGEN y vtim su espejo ────────────────────────────────────
+    sembrar({ vtim:'' });
+    __t.set('itv_mitral','13');
+    const espejoCreado = __t.val('vtim') + '/' + marca('vtim');
+    __t.set('itv_mitral','16');
+    const espejoSigue = __t.val('vtim');
+    const hiddenDeclara = __t.val('im_espejos');
+    __t.set('vtim','22');                        // el medico lo pisa
+    __t.set('itv_mitral','19');
+    const manualGana = __t.val('vtim');
+
+    // ── 4. La marca de vtim sobrevive al guardado ──────────────────────────────────────────
+    sembrar({ vtim:'' });
+    __t.set('nombre','TC297 espejo'); __t.set('edad','60');
+    __t.set('itv_mitral','15');
+    const antesGuardar = __t.val('vtim') + '/' + (__t.val('im_espejos').indexOf('vtim=15') > -1);
+    const id1 = await guardar();
+    if (id1) { __t.reabrir(id1); abrir(); }
+    const trasReabrir = __t.val('vtim') + '/' + marca('vtim');
+    if (id1) __t.set('itv_mitral','20');         // re-medir el origen en el estudio reabierto
+    const trasRemedir = __t.val('vtim') + '/' + __t.val('vm_lat');
+    if (id1) await __t.borrar(id1);
+
+    // ── 5. El estudio VIEJO: vtim a mano, sin registro de marcas ni campo nuevo ────────────
+    sembrar();
+    __t.set('nombre','TC297 viejo'); __t.set('edad','60');
+    const id2 = await guardar();
+    if (id2) { const l = getInformes(); const it = l.find(x => x.estudioId === id2);
+      if (it && it.campos) { delete it.campos.im_espejos; delete it.campos.itv_mitral; }
+      await CeiboStore.setLocal(l); __t.reabrir(id2); abrir(); }
+    const viejoIntacto = __t.val('vtim') + '/' + __t.val('vm_lat') + '/' + __t.val('itv_mitral');
+    if (id2) __t.set('itv_mitral','25');
+    const viejoNoSePisa = __t.val('vtim');
+    if (id2) await __t.borrar(id2);
+
+    // ── 6. Bandas: el VTI del CHORRO en la casilla del de ENTRADA ──────────────────────────
+    sembrar({ vtim:'130' });
+    const fuera130 = [__t.val('vm_lat'), __t.val('vr_cont'), __t.val('im_fr_cont'), ratio()].join('|');
+    const fuera130Dice = sev();
+    const pisaIntacta130 = [__t.txt('eroa-val'), __t.txt('volr-val'), __t.txt('freg-val')].join('|');
+
+    /* El anillo se pisa SIN re-sembrar, para que la casilla de EROA venga de mostrar 33,6: asi la
+       condicion mide que clearAll REPONE el placeholder y no solo que vacia el valor. Con sembrar()
+       de nuevo la casilla arrancaria vacia y la condicion no distinguiria las dos cosas. */
+    sembrar();
+    const eroaAntesDeBorrar = __t.val('im_eroa_cont');
+    __t.set('diam_mit','3');                     // el anillo tipeado en cm
+    const fueraAnillo = [__t.val('vm_lat'), __t.val('vr_cont')].join('|') + ' :: ' + sev();
+    const eroaMudaNo = __t.val('im_eroa_cont') + ' [ph:' + (g('im_eroa_cont') || {}).placeholder + ']';
+
+    sembrar({ im_itv:'5' });                     // el VTI de entrada en la casilla del chorro
+    const fueraJet = __t.val('im_eroa_cont') + ' [ph:' + (g('im_eroa_cont') || {}).placeholder + ']';
+
+    /* Los OTROS DOS insumos que multiplican, que /sharp-edges encontro sin banda: el Ø TSVI va al
+       cuadrado y el VTI TSVI escala lineal, igual que los dos que ya la tenian. El Ø TSVI se pisa
+       en la casilla del BLOQUE —no en el global— porque ahi es donde la validacion por casilla no
+       hubiera mordido: im_dtsvi no tiene entrada propia en la tabla de rangos. */
+    sembrar(); __t.set('im_dtsvi','2');          // el Ø TSVI tipeado en cm
+    const fueraTsviD = [__t.val('vm_lat'), __t.val('vr_cont'), __t.val('im_fr_cont')].join('|') + ' :: ' + sev();
+    sembrar(); __t.set('im_itv_tsvi','180');     // el VTI TSVI en mm
+    const fueraTsviV = [__t.val('vm_lat'), __t.val('vr_cont'), __t.val('im_fr_cont')].join('|') + ' :: ' + sev();
+
+    // ── 7. El cociente: cascada, else y el cero ────────────────────────────────────────────
+    sembrar();
+    const ratioBase = ratio();
+    __t.set('vtim','');
+    const ratioSinVtim = ratio();
+    sembrar(); __t.set('itv_tsvi',''); __t.set('im_itv_tsvi','');
+    const ratioSinTsvi = ratio();
+    __t.set('im_itv_tsvi','9');                  // solo la casilla del bloque, global vacio
+    const ratioCascada = ratio();
+    /* ⚠️ LOS DOS EN 0, y esto lo corrigio una mutacion que SOBREVIVIO. Con solo la casilla del
+       bloque en 0 la guarda nunca entra en juego: v() devuelve 0, que es falsy, asi que el «||» cae
+       al global —vacio— y el resultado sale por el else de todos modos. La condicion decia probar
+       la guarda del cero y estaba probando el else. El estado donde la guarda es lo UNICO que
+       queda en pie es con los DOS en 0: ahi el «||» entrega 0, el 0 pasa el «!= null», y sin el
+       «> 0» la division publica «Infinity» en la fila. */
+    __t.set('itv_tsvi','0'); __t.set('im_itv_tsvi','0');
+    const ratioCero = ratio();
+
+    // ── 8. Vol-R negativo y Vol-R cero ─────────────────────────────────────────────────────
+    sembrar({ itv_tsvi:'36' });
+    const negativo = sev() + ' :: vr_cont=' + __t.val('vr_cont') + ' fr=' + __t.val('im_fr_cont');
+    /* El Ø anillo que IGUALA los dos volumenes: area_TSVI x VTI_TSVI = area_anillo x vtim.
+       Se calcula en vez de ponerse a ojo porque el residuo binario de esa resta es justo lo que
+       mandaba el cero exacto a la rama negativa. */
+    sembrar({ diam_mit: String((Math.sqrt(Math.PI*((21/20)**2)*18/(Math.PI*15))*20).toFixed(6)) });
+    const ceroExacto = sev() + ' :: vr_cont=' + __t.val('vr_cont');
+    /* ⚠️ UN SEGUNDO ESCENARIO, Y LO PIDIO UNA MUTACION QUE SOBREVIVIO. El de arriba iguala los dos
+       volumenes, asi que el Vol-R sale en -1e-14: NEGATIVO, y por lo tanto falla igual un «> 0» que
+       un «> 0,05» — la condicion no podia distinguir las dos versiones. La ventana que importa es
+       la de un Vol-R POSITIVO pero por debajo de la tolerancia, donde un «> 0» publica «EROA
+       continuidad 0.0 mm2» en negrita al lado de «Sin regurgitacion significativa». Se busca el
+       Ø anillo que da 0,03 ml de diferencia, que redondea a 0,0 en pantalla. */
+    const _svTsvi = Math.PI*((21/20)**2)*18;
+    sembrar({ diam_mit: String((20*Math.sqrt((_svTsvi + 0.03)/(Math.PI*15))).toFixed(6)) });
+    const ceroPositivo = sev() + ' :: vr_cont=' + __t.val('vr_cont') + ' eroa=' + __t.val('im_eroa_cont');
+
+    // ── 9. Los dos rotulos ─────────────────────────────────────────────────────────────────
+    const lblVtim = (() => { const i = g('vtim'); const f = i && i.closest('.fg');
+      const l = f && f.querySelector('label'); return l ? l.textContent.replace(/\\s+/g,' ').trim() : '(sin label)'; })();
+    /* El rotulo se busca por CONTENIDO y no por posicion: en ese card-body hay CINCO div con
+       font-size:10px y el de la ecuacion es el cuarto, asi que un querySelector a secas devolvia
+       el primero —vacio— y la condicion pasaba sobre una cadena que no era el rotulo. */
+    const lblEc = (() => { const i = g('vtim'); const c = i && i.closest('.card-body');
+      const ds = c ? [...c.querySelectorAll('div[style*="font-size:10px"]')] : [];
+      const d = ds.find(x => /(EROA|Vol-R)\\s*=/.test(x.textContent));
+      return d ? d.textContent.replace(/\\s+/g,' ').trim() : '(sin rotulo)'; })();
+
+    // ── 10. El Vol R del Excel, alineado con la pantalla ──────────────────────────────────
+    sembrar(); __t.set('nombre','TC297 xls'); __t.set('edad','60');
+    const pantallaVolR = __t.txt('volr-val');
+    const id3 = await guardar();
+    let xlsVolR = '(no guardo)';
+    if (id3) { const it = getInformes().find(x => x.estudioId === id3);
+      try { xlsVolR = String(_labExcelRow(it)['Vol R IM (ml)']); } catch (e) { xlsVolR = 'ERR:' + e.message; }
+      await __t.borrar(id3); }
+
+    __t.limpiar();
+    return { extra: [
+      ['los once ids del escenario existen', faltan.length === 0, faltan.join(',')],
+      ['las ocho casillas de referencia no se movieron',
+        base8 === '106.0 | 43.7 | 41 % | 0.83 | 50.3 mm² | 65.4 ml | 62.3 ml | 51%', base8],
+      ['la EROA por continuidad sale del VTI del CHORRO: 33.6 mm2', eroaCont === '33.6 mm²', eroaCont],
+      ['y NO vota: con una EROA en banda SEVERA el volumetrico sigue en Moderada',
+        eroaAlta.indexOf('72.8 mm\u00b2') === 0 && /Moderada/.test(eroaAlta) &&
+        /Vol-R 43\\.7 ml/.test(eroaAlta) && /FR 41%/.test(eroaAlta) && !/Severa/.test(eroaAlta), eroaAlta],
+      ['sin el VTI del jet la casilla DICE por que', /requiere VTI del jet/.test(sinJet) && sinJet.indexOf('33.6') < 0, sinJet],
+      ['tipear el VTI del jet recalcula la EROA en el acto, sin tocar otro campo', conJet === '33.6 mm²', conJet],
+      ['el campo nuevo de Doppler crea el espejo en vtim', espejoCreado === '13/13', espejoCreado],
+      ['y el espejo SIGUE al origen', espejoSigue === '16', espejoSigue],
+      ['el oculto declara que vtim es espejo', hiddenDeclara.indexOf('vtim=16') > -1, hiddenDeclara],
+      ['un vtim tipeado a mano NO se pisa', manualGana === '22', manualGana],
+      ['al guardar, el oculto anota vtim como espejo', antesGuardar === '15/true', antesGuardar],
+      ['la marca vuelve del estudio guardado', trasReabrir === '15/15', trasReabrir],
+      ['asi que re-medir el origen en un estudio reabierto SI mueve el volumen mitral',
+        trasRemedir === '20/141.4', trasRemedir],
+      ['un estudio SIN registro de marcas ni campo nuevo reabre igual', viejoIntacto === '15/106.0/', viejoIntacto],
+      ['y cargar el campo nuevo NO le pisa el vtim manual', viejoNoSePisa === '15', viejoNoSePisa],
+      ['el VTI del CHORRO en la casilla del de ENTRADA no produce NINGUN numero',
+        fuera130 === '||' + '|VTI de entrada fuera de rango — verificar', fuera130],
+      ['y lo dice nombrando el valor ilegible', /Fuera de rango medible/.test(fuera130Dice) && /130/.test(fuera130Dice), fuera130Dice],
+      ['la cadena de PISA, que lee otro campo, NO se toca',
+        pisaIntacta130 === '50.3 mm²|65.4 ml|51%', pisaIntacta130],
+      ['el anillo tipeado en cm tampoco calcula, y lo dice',
+        fueraAnillo.indexOf('| :: ') === 0 && /Fuera de rango medible/.test(fueraAnillo) && /3 mm/.test(fueraAnillo), fueraAnillo],
+      /* Dos cosas en una condicion, y la segunda la agrego /sharp-edges: que la casilla no quede
+         MUDA tras un fuera-de-banda, y que el texto NO mande a revisar el jet cuando el jet esta
+         bien cargado y el problema es el anillo. Antes reponia siempre «requiere VTI del jet»,
+         o sea nombraba la causa equivocada. */
+      ['tras un insumo fuera de banda la EROA no queda muda, y no culpa al dato que esta bien',
+        eroaAntesDeBorrar === '33.6 mm\u00b2' && eroaMudaNo === ' [ph:insumo fuera de rango — ver el aviso]',
+        eroaAntesDeBorrar + ' -> ' + eroaMudaNo],
+      ['y cuando lo que falta ES el jet, el texto si lo nombra',
+        /requiere VTI del jet/.test(sinJet), sinJet],
+      ['un VTI de ENTRADA en la casilla del chorro no da EROA, y lo dice',
+        fueraJet.indexOf('33.6') < 0 && /jet fuera de rango/.test(fueraJet), fueraJet],
+      ['el Ø TSVI tipeado en cm tampoco calcula, y lo dice',
+        fueraTsviD.indexOf('||') === 0 && /Fuera de rango medible/.test(fueraTsviD) && /Ø TSVI 2 mm/.test(fueraTsviD), fueraTsviD],
+      ['ni el VTI TSVI en mm', fueraTsviV.indexOf('||') === 0 && /Fuera de rango medible/.test(fueraTsviV) &&
+        /VTI TSVI 180 cm/.test(fueraTsviV), fueraTsviV],
+      ['el cociente en el escenario base', ratioBase === '0.83', ratioBase],
+      ['borrar el VTI de entrada lo devuelve a la raya', ratioSinVtim === '\\u2014', ratioSinVtim],
+      ['borrar los dos VTI TSVI tambien', ratioSinTsvi === '\\u2014', ratioSinTsvi],
+      ['y lee la casilla del BLOQUE cuando el global esta vacio: 15/9 cruza el 1,4',
+        ratioCascada.indexOf('1.67') === 0 && /apoya IM severa/.test(ratioCascada), ratioCascada],
+      ['un 0 en el denominador no es un dato', ratioCero === '\\u2014', ratioCero],
+      ['Vol mitral menor que Vol TSVI es NO VALORABLE, y sin numeros negativos',
+        /No valorable/.test(negativo) && /106\\.0/.test(negativo) && /124\\.7/.test(negativo) &&
+        negativo.indexOf('vr_cont= fr=') > -1, negativo],
+      ['dos volumenes IGUALES no caen en la rama negativa, y no imprimen «-0.0»',
+        /Sin regurgitaci/.test(ceroExacto) && ceroExacto.indexOf('-0.0') < 0, ceroExacto],
+      ['un Vol-R positivo por debajo de la tolerancia no publica una EROA de 0.0',
+        /Sin regurgitaci/.test(ceroPositivo) && ceroPositivo.indexOf('eroa=') === ceroPositivo.length - 5, ceroPositivo],
+      ['el rotulo de vtim ya no dice CW ni «compartido con PISA»',
+        /de entrada/.test(lblVtim) && /pulsado/.test(lblVtim) && !/CW/.test(lblVtim) &&
+        !/compartido con PISA/.test(lblVtim) && /Doppler Mitral/.test(lblVtim), lblVtim],
+      ['el rotulo de la ecuacion anuncia las tres formulas que el codigo implementa',
+        /EROA = Vol-R/.test(lblEc) && /VTI del chorro/.test(lblEc) && /VTI de entrada/.test(lblEc) &&
+        !/VTI\\s*TSVI\\s*×\\s*Área\\s*TSVI/.test(lblEc), lblEc],
+      ['el Vol R del Excel coincide con el de la pantalla', xlsVolR === '65.4' && pantallaVolR === '65.4 ml',
+        'pantalla=' + pantallaVolR + ' excel=' + xlsVolR],
+    ] };
+  })();
+`);
+
+/* POR QUE ESTE CASO MIDE LO QUE MIDE. El bloque de continuidad de IM calculaba BIEN —ocho de ocho
+   casillas contra el calculo a mano— con el rotulo pidiendole el insumo EQUIVOCADO: «VTI mitral CW»
+   es el chorro de regurgitacion, y la formula del volumen mitral necesita la envolvente de LLENADO
+   por pulsado. Medido antes del cambio: el VTI del chorro (130 cm) en esa casilla daba Vol mitral
+   918,9 ml, FR 93 %, veredicto «Severa» y un cociente de 7,22 con el cartel «apoya IM severa». No
+   habia una sola señal de que el numero fuera ilegible. De ahi que las condiciones de banda exijan
+   AUSENCIA de numero y no un numero distinto: el peligro nunca fue la casilla vacia.
+
+   TRES COSAS QUE LA MEDICION CORRIGIO SOBRE LA MARCHA, y cada una tiene su condicion:
+   · im_itv era insumo de UN calculo y paso a ser de DOS, y su oninput seguia llamando solo a
+     calcIM_ESC: en el escenario base la EROA nueva quedaba con el placeholder CON los 130
+     cargados. Es el mismo defecto que ya pago la fila de FR con im_dtsvi/im_itv_tsvi.
+   · «volR < 0» a secas mandaba el cero EXACTO a la rama negativa por el residuo binario de la
+     resta, y el aviso salia «Vol mitral 62.3 ml menor que Vol TSVI 62.3 ml»: afirmando «menor»
+     sobre dos cifras que el propio texto imprime iguales.
+   · clearAll vaciaba el valor de la EROA pero no repoina el placeholder, asi que despues de un
+     fuera-de-banda la casilla quedaba muda justo donde el codigo dice explicar.
+
+   QUEDA DECLARADO Y SIN CONDICION, y NO es un olvido:
+   · calcIM_ESC NO esta en RECALC_MODULOS, asi que al reabrir un estudio TODO su calc-box vuelve
+     en blanco —cociente, EROA-PISA, Vol-R, FR y el badge de severidad— hasta que algo lo dispare.
+     Medido en HEAD y en el arbol de trabajo con el mismo escenario: identico, o sea preexistente y
+     mas ancho que esta ronda. No se arregla aca porque meterlo en el embudo de restauracion hace
+     que reabrir RE-DERIVE im_grado, que es exactamente el defecto que CLAUDE.md documenta como «un
+     estudio archivado ADQUIRIA un grado que su PDF firmado original no tenia». Es una decision con
+     consecuencia sobre el papel firmado, no una linea que falte.
+   · im_itv se lee con banda en la EROA por continuidad y SIN banda en la cadena de PISA, que es el
+     mismo campo leido con dos criterios. Es a proposito: banderarlo en calcIM_ESC cambiaria que
+     parametros votan y por lo tanto la gradacion, que el pedido prohibe tocar. La asimetria queda
+     anotada para el prompt que si pueda tocar esa funcion.
+   · El cero de _syncDerivado sigue como estaba, por la misma prohibicion. */
+
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {
   const fallos = [];

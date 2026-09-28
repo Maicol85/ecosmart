@@ -2917,6 +2917,17 @@ window.cerrarSesionReal = cerrarSesionReal;
           <label>Onda A (cm/s)</label>
           <input type="number" id="onda_a" placeholder="cm/s" oninput="calcDiastol()">
         </div>
+        <!-- VTI mitral DE ENTRADA, y vive aca y no en Valvulas por lo que mide: es la envolvente
+             de LLENADO por Doppler PULSADO en el anillo, el mismo trazado del que salen la onda E y
+             la onda A que tiene al lado. En Valvulas quedaba rotulado «CW», que es el chorro de
+             regurgitacion y es OTRA envolvente: medido, cargar el VTI del chorro (130) donde iba el
+             de entrada daba un Vol mitral de 918,9 ml y una FR de 93 % con veredicto «Severa».
+             `vtim` pasa a ser su espejo. El id sigue la convencion de `itv_tsvi`: prefijo del
+             parametro + sitio de medicion. -->
+        <div class="fg">
+          <label>VTI mitral de entrada — Doppler pulsado (cm)</label>
+          <input type="number" id="itv_mitral" placeholder="cm" oninput="imSyncSiExiste()">
+        </div>
         <div class="fg">
           <label>e' septal (cm/s)</label>
           <input type="number" id="e_sep" placeholder="cm/s" oninput="calcDiastol();cvrSync();" onchange="cvrCambio()">
@@ -3344,7 +3355,13 @@ window.cerrarSesionReal = cerrarSesionReal;
         <input type="hidden" id="im_espejos" data-espejo>
         <div class="fg"><label>Valiasing PISA (cm/s)</label><input type="number" id="pisa_val" placeholder="cm/s" oninput="calcIM_ESC()"></div>
         <div class="fg"><label>Vmax IM (cm/s)</label><input type="number" id="im_vmax" placeholder="cm/s" oninput="calcIM_ESC()"></div>
-        <div class="fg"><label>VTI IM (cm)</label><input type="number" id="im_itv" placeholder="cm" oninput="calcIM_ESC()"></div>
+        <!-- ⚠️ LLAMA A LAS DOS, y el `calcContIM` es de esta ronda. `im_itv` era insumo de un solo
+             calculo —el Vol-R de PISA— y desde que la EROA por continuidad lo lee tambien es insumo
+             de dos. Medido sin esto: en el escenario base la EROA por continuidad quedaba con el
+             placeholder «requiere VTI del jet» CON los 130 cargados, y aparecia recien al tocar
+             cualquier otro campo del bloque. Es el mismo defecto que ya pago la fila de FR con
+             `im_dtsvi`/`im_itv_tsvi`: un consumidor nuevo sin su disparador. -->
+        <div class="fg"><label>VTI IM (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">del chorro, CW</span></label><input type="number" id="im_itv" placeholder="cm" oninput="calcContIM();calcIM_ESC()"></div>
         <div class="fg"><label>Onda S pulmonar</label>
           <select id="im_onda_s" onchange="calcIM_ESC()">
             <option value="">—</option>
@@ -3381,7 +3398,11 @@ window.cerrarSesionReal = cerrarSesionReal;
       <!-- ═══ ECUACIÓN DE CONTINUIDAD IM ═══ -->
       <div class="divider"></div>
       <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:8px 0 6px;">📐 Ecuación de Continuidad — Cuantificación IM</div>
-      <div style="font-size:10px;color:var(--text2);margin-bottom:6px;">EROA = (VTI<sub>TSVI</sub> × Área<sub>TSVI</sub>) / VTI<sub>mitral</sub> &nbsp;·&nbsp; Vol-R = Área<sub>anillo</sub> × VTI<sub>mitral</sub> − VS<sub>TSVI</sub> &nbsp;·&nbsp; FR = Vol-R / Vol<sub>mitral</sub></div>
+      <!-- El rotulo anunciaba `EROA = (VTI_TSVI x Area_TSVI) / VTI_mitral`, que es la ecuacion de
+           continuidad del AREA VALVULAR mitral y no una EROA de insuficiencia; el codigo la habia
+           quitado a proposito (ver el comentario de calcContIM) y el rotulo se quedo pidiendo un
+           numero que la app decidio no dar. Hoy dice las tres formulas que se implementan. -->
+      <div style="font-size:10px;color:var(--text2);margin-bottom:6px;">EROA = Vol-R ÷ VTI del chorro (CW) &nbsp;·&nbsp; Vol-R = SV mitral (Área<sub>anillo</sub> × VTI de entrada) − SV<sub>TSVI</sub> &nbsp;·&nbsp; FR = Vol-R ÷ SV mitral</div>
       <!-- Fila 1: entradas -->
       <div class="grid-4" style="margin-bottom:4px;">
         <div class="fg">
@@ -3394,7 +3415,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           <input type="number" id="im_itv_tsvi" placeholder="cm" oninput="calcContIM();calcIM_ESC()">
         </div>
         <div class="fg">
-          <label>VTI mitral CW (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">compartido con PISA</span></label>
+          <label>VTI mitral de entrada — pulsado (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &#8592; Doppler Mitral</span></label>
           <input type="number" id="vtim" placeholder="cm" oninput="calcContIM();calcIM_ESC()">
         </div>
         <div class="fg">
@@ -20839,7 +20860,15 @@ window.sincronizarEMDesdeGlobal = sincronizarEMDesdeGlobal;
    Con `im_espejos` la marca sobrevive al guardado, así que al reabrir el espejo se reconoce y la
    próxima corrección del origen lo refresca. Lo que el médico tipeó sigue intacto: el oculto sólo
    anota los que eran espejo GENUINO al guardar. */
-const _IM_ESPEJOS = [['diam_tsvi','im_dtsvi'], ['itv_tsvi','im_itv_tsvi'], ['ai_area','im_ai_area']];
+const _IM_ESPEJOS = [['diam_tsvi','im_dtsvi'], ['itv_tsvi','im_itv_tsvi'], ['ai_area','im_ai_area'],
+                     ['itv_mitral','vtim']];
+/* El cuarto par entra con una diferencia que importa: los tres primeros espejan un campo que ya
+   existia en dos lugares, y este MUDA el origen. `vtim` venia siendo el unico lugar donde se
+   cargaba el VTI de entrada, asi que hay estudios guardados con `vtim` poblado y `itv_mitral`
+   inexistente. No se migra nada —lo prohibe el pedido y ademas seria reescribir mediciones—: al
+   reabrir uno de esos, `itv_mitral` queda vacio, `vtim` conserva su valor y `im_espejos` no lo
+   declara espejo, asi que `_syncDerivado` lo respeta como manual y el informe sale igual. Lo que
+   cambia es de ahi en adelante: si el medico carga el campo nuevo, el espejo empieza a seguirlo. */
 /* Guarda en el oculto SÓLO los que son espejo genuino AHORA mismo —marca presente e igual al
    valor—, así que un campo que el médico pisó no entra y al reabrir sigue siendo manual. */
 function _imEspejosGuardar() {
@@ -20897,10 +20926,10 @@ window.sincronizarIMDesdeGlobal = sincronizarIMDesdeGlobal;
 
 /* El enganche que hace que el espejo SIGA al origen, que es la mitad que `_syncDerivado` no puede
    dar sola: sin esto la sincronía correría únicamente al abrir la pastilla y «refresca mientras
-   sea espejo» no tendría quién lo disparara. Va en el `oninput` de los TRES ORÍGENES —`diam_tsvi`,
-   `itv_tsvi` (Doppler) y `ai_area` (AI/VI)— y no dentro de `calcAo`/`calcAI`: los tres viven en dos
-   pestañas distintas y enganchar dos funciones de cálculo anchas para tres campos es más radio del
-   necesario. Es el mismo efecto que `calcPSAP → sincronizarTEERDesdeGlobal`, acotado al origen.
+   sea espejo» no tendría quién lo disparara. Va en el `oninput` de los CUATRO ORÍGENES —`diam_tsvi`,
+   `itv_tsvi` e `itv_mitral` (Doppler) y `ai_area` (AI/VI)— y no dentro de `calcAo`/`calcAI`/
+   `calcDiastol`: viven en dos pestañas distintas y enganchar tres funciones de cálculo anchas para
+   cuatro campos es más radio del necesario. Es el mismo efecto que `calcPSAP → sincronizarTEERDesdeGlobal`, acotado al origen.
    De paso cubre el borrado: vaciar `diam_tsvi` dispara su `oninput`, y la rama de `_syncDerivado`
    para origen vacío limpia el espejo si sigue siendo suyo — sin eso quedaría un número sin origen,
    que es el fantasma del gradiente pulmonar.
@@ -21596,12 +21625,31 @@ function calcIM_ESC() {
      sólo la usaba para votar— y agregar uno que no existe sería código muerto que aparenta
      informar. El dato sigue visible en su propia tab (Doppler). */
 
-  const vtim = v('vtim');
-  const vtitsvi = v('itv_tsvi');
-  if (vtim && vtitsvi) {
-    const ratio = (vtim / vtitsvi).toFixed(2);
-    const ratioEl = document.getElementById('im-vti-ratio');
-    if (ratioEl) ratioEl.textContent = ratio + (PF(ratio) > 1.4 ? '  (>1,4 — apoya IM severa)' : '');
+  /* ⚠️ TRES DEFECTOS MEDIDOS EN CUATRO LINEAS, y el peor era el que no se veia.
+     · Leia `v('itv_tsvi')` A SECAS, la UNICA lectura de esta funcion que no usaba la cascada
+       `v('im_itv_tsvi') || v('itv_tsvi')` que usan sus otras cinco. Medido: con el global vacio y
+       9 tipeado en la casilla del bloque, `Vol eyectado` y `FR` se movian a 31,2 ml y 68 % y el
+       cociente se quedaba en 0,83 —calculado con un 18 que ya no estaba en ninguna parte—. El
+       correcto era 1,67, que CRUZA el 1,4: la fila NEGABA un signo de apoyo presente.
+     · NO TENIA `else`. Borrar `vtim` o el VTI TSVI dejaba el numero viejo pegado; lo unico que lo
+       limpiaba era `limpiarCampos`, o sea «Nuevo estudio». Las dos columnas otra vez.
+     · Y sin banda: con el VTI del chorro en `vtim` publicaba «7,22 (>1,4 — apoya IM severa)».
+     El denominador se lee con `||` a proposito, para que sea EL MISMO que el de las filas vecinas
+     del calc-box: un cociente que discrepe con el `Vol eyectado` de arriba sobre cual VTI TSVI
+     existe es peor que el defecto que se arregla. El `> 0` cubre el cero —que `v()` devuelve como
+     dato y es falsy en el `||`— sin tocar `_syncDerivado`, que queda como deuda declarada. */
+  const _pVtimR  = vPlaus('vtim');
+  const _vtsRatio = v('im_itv_tsvi') || v('itv_tsvi');
+  const ratioEl = document.getElementById('im-vti-ratio');
+  if (ratioEl) {
+    if (_pVtimR.fuera) {
+      ratioEl.textContent = 'VTI de entrada fuera de rango — verificar';
+    } else if (_pVtimR.val != null && _vtsRatio != null && _vtsRatio > 0) {
+      const ratio = (_pVtimR.val / _vtsRatio).toFixed(2);
+      ratioEl.textContent = ratio + (PF(ratio) > 1.4 ? '  (>1,4 — apoya IM severa)' : '');
+    } else {
+      ratioEl.textContent = '\u2014';
+    }
   }
 
   if (params.length === 0) return;
@@ -23274,14 +23322,66 @@ window.coAdoptarHuerfanos = coAdoptarHuerfanos; window.coDescartarHuerfanos = co
 try { renderSeguimientoLista(); } catch (e) { /* no puede tumbar el resto del script */ }
 
 // ══ CONTINUIDAD IM ══
+/* Los dos avisos del bloque de continuidad se arman por DOM y NO por innerHTML concatenado.
+   Los valores que entran son numeros salidos de `PF()` —`vPlaus().crudo` es `v(id)`, y `vmit` y
+   `vstsvi` son productos de numeros—, asi que un `esc()` no haria absolutamente nada: no hay texto
+   del usuario en juego. Lo que se evita es el PATRON. La regla local `ceibo-xss-innerhtml-concat`
+   marca la concatenacion y no el dato, y tiene razon en hacerlo: las once rutas de XSS que esta
+   suite cerro eran todas «esto que interpolo es seguro» hasta que un dia el campo cambio de dueño.
+   Con `textContent` el navegador no parsea nada y la afirmacion deja de depender de quien alimente
+   la variable. Los avisos con texto FIJO siguen en innerHTML: sin concatenacion no hay patron.
+   ⚠️ EL INVENTARIO NO ES «los dos avisos», y decirlo asi daba el bloque por cerrado: la linea de
+   severidad del final de `calcContIM` sigue siendo un `innerHTML` con CUATRO interpolaciones
+   —color, grado, Vol-R y FR— y es preexistente, o sea uno de los 126 que Semgrep ya contaba. Las
+   cuatro son literales del propio codigo o numeros, asi que no hay ruta de inyeccion; queda
+   anotada porque un comentario que enumera «los dos» invita a creer que no hay un tercero. */
+/* ⚠️ LA BANDA ES DE LA MAGNITUD, NO DE LA CASILLA — y esto lo encontro /sharp-edges sobre el
+   propio comentario de mas abajo. Ese comentario declara que los insumos que MULTIPLICAN entran
+   con banda «porque un error de unidad no degrada el resultado, lo fabrica», y de los cuatro que
+   multiplican solo dos la tenian: el Ø TSVI va al cuadrado y el VTI TSVI escala lineal igual que
+   los otros dos. Escenario medido del hallazgo: Ø TSVI tipeado en cm (2 por 20) da un VS TSVI de
+   0,63 ml, un Vol-R de 91 ml y «Severa», que es exactamente el veredicto fabricado que esta ronda
+   vino a cerrar, entrando por la casilla de al lado.
+   No se usa `vPlaus` por casilla porque esos dos llegan por CASCADA (`v('im_dtsvi') || v('diam_tsvi')`)
+   y el destino del espejo no tiene entrada propia en la tabla: validar casilla por casilla haria
+   que la banda mordiera SOLO cuando el medico no toco la del bloque, que es al reves de lo que
+   hace falta. Se valida el valor ELEGIDO contra la banda de la magnitud, y la banda sigue saliendo
+   de `_labRango` —un solo dueño por campo, que es la regla que `vPlaus` ya declara—. */
+function _imFueraBanda(idMagnitud, val) {
+  if (val == null) return false;
+  let b = null;
+  try { b = (typeof _labRango === 'function') ? _labRango(idMagnitud) : null; } catch (e) { b = null; }
+  /* Misma exigencia que `vPlaus`: una banda que no es lo que promete desactiva la validacion en
+     silencio, que es la direccion peligrosa. Sin banda utilizable se contesta «no esta fuera»,
+     igual que `vPlaus` devuelve el valor: acá tampoco se falla cerrado. */
+  if (!Array.isArray(b) || b.length !== 2 || !isFinite(b[0]) || !isFinite(b[1]) || !(b[0] <= b[1])) return false;
+  return val < b[0] || val > b[1];
+}
+
+function _imAvisoCont(el, color, texto) {
+  if (!el) return;
+  el.textContent = '';
+  const sp = document.createElement('span');
+  sp.style.color = color;
+  sp.textContent = texto;
+  el.appendChild(sp);
+}
+
 function calcContIM() {
   // ── Ø TSVI: manual en bloque IM > campo Doppler general ──
   const dtsvi = v('im_dtsvi') || v('diam_tsvi');
   // ── VTI TSVI: manual en bloque IM > campo Doppler general ──
   const itsvi = v('im_itv_tsvi') || v('itv_tsvi');
-  // ── VTI mitral y Ø anillo mitral ──
-  const vtim  = v('vtim');
-  const diam  = v('diam_mit');
+  /* ── VTI mitral de entrada y Ø anillo mitral, CON banda de plausibilidad ──
+     Los dos entran por `vPlaus` y no por `v()` porque los dos multiplican: el Ø va al cuadrado y
+     el VTI escala lineal, asi que un error de unidad no degrada el resultado, lo fabrica. Medido
+     antes de la banda: `vtim` con el VTI del chorro (130 cm) daba Vol mitral 918,9 ml, Vol-R
+     856,6 ml, FR 93 % y el veredicto «Severa», sin una sola señal de que el numero era ilegible.
+     Las bandas son ATRAPA-ERRORES DE UNIDAD, no cortes clinicos: ver DCM_RANGO. */
+  const _pVtim = vPlaus('vtim');
+  const _pDiam = vPlaus('diam_mit');
+  const vtim  = _pVtim.val;
+  const diam  = _pDiam.val;
 
   // Actualizar box de TSVI estimado si no hay Ø TSVI medido
   const imTsviBox = document.getElementById('im-tsvi-estimado-box');
@@ -23305,15 +23405,40 @@ function calcContIM() {
   }
 
   // Limpiar outputs
-  const clearAll = () => {
+  const clearAll = (motivo) => {
     setv('vm_lat',''); setv('vr_cont','');
     const e = document.getElementById('im_eroa_cont');
     const f = document.getElementById('im_fr_cont');
     const s = document.getElementById('im-cont-severidad');
-    if (e) e.value = '';
+    /* El placeholder se REPONE, no sólo se vacía el valor. Desde que la EROA se calcula, la rama
+       que la computa pone `placeholder = ''`, así que un `clearAll` posterior —insumo fuera de
+       banda, campo borrado— dejaba la casilla en blanco SIN decir por qué, que es precisamente lo
+       que el comentario de más abajo dice evitar. Medido: con el Ø anillo en 3 mm la casilla
+       quedaba muda después de haber mostrado 33,6. */
+    if (e) { e.value = ''; e.placeholder = motivo || 'requiere VTI del jet de IM (CW)'; }
     if (f) f.value = '';
     if (s) s.innerHTML = '';
   };
+
+  /* MARCAR SIN BORRAR, aplicado a este bloque: con un insumo ilegible no se calcula NADA y se
+     dice cual es. Antes se calculaba igual —`v()` no mira bandas— y la fila de severidad publicaba
+     un grado sobre un numero imposible. Va ANTES de las tres cuentas para que no quede ninguna
+     casilla poblada: el peligro no es la casilla vacia, es la casilla con un numero creible. */
+  const _fueraIM = [_pVtim.fuera ? 'VTI de entrada ' + _pVtim.crudo + ' cm' : null,
+                    _pDiam.fuera ? 'Ø anillo ' + _pDiam.crudo + ' mm'       : null,
+                    _imFueraBanda('diam_tsvi', dtsvi) ? 'Ø TSVI ' + dtsvi + ' mm'   : null,
+                    _imFueraBanda('itv_tsvi',  itsvi) ? 'VTI TSVI ' + itsvi + ' cm' : null].filter(Boolean);
+  if (_fueraIM.length) {
+    /* El motivo viaja porque el texto por defecto pide el VTI del jet, y esta rama dispara por el
+       VTI de ENTRADA, el Ø anillo o los del TSVI: con el jet correctamente cargado la casilla
+       decia «requiere VTI del jet de IM (CW)», o sea mandaba a revisar el unico dato que estaba
+       bien. Es la regla que este archivo ya documenta sobre los mensajes que nombran mal la causa. */
+    clearAll('insumo fuera de rango — ver el aviso');
+    _imAvisoCont(document.getElementById('im-cont-severidad'), 'var(--red)',
+      'Fuera de rango medible: ' + _fueraIM.join(' y ') +
+      ' — verificar la medici\u00f3n; no se calcula por este m\u00e9todo.');
+    return;
+  }
 
   // Vol mitral/latido (requiere VTI mitral + Ø anillo)
   if (vtim && diam) {
@@ -23358,9 +23483,28 @@ function calcContIM() {
   const fEl = document.getElementById('im_fr_cont');
   const sEl = document.getElementById('im-cont-severidad');
 
-  // El campo de EROA queda vacío y DICE por qué: en blanco a secas el médico lo lee como
-  // «no se pudo calcular con estos datos» y vuelve a cargar campos que ya están.
-  if (eEl) { eEl.value = ''; eEl.placeholder = 'requiere VTI del jet de IM (CW)'; }
+  /* EROA por continuidad = Vol-R / VTI del CHORRO por CW, que es `im_itv` y NO `vtim`. Esta es la
+     casilla que estuvo vacia con el placeholder «requiere VTI del jet de IM (CW)»: el insumo ya
+     existia en la fila de Cuantificacion y lo unico que faltaba era leerlo desde aca.
+     Tres guardas, y ninguna es decorativa: sin Vol-R positivo el cociente no significa nada (ver
+     la rama de abajo); con `im_itv` fuera de banda el numero seria una EROA fabricada con un VTI
+     imposible; y con `im_itv` en 0 seria una division por cero que imprime «Infinity mm²».
+     ⚠️ ESTA EROA NO VOTA. `calcContIM` sigue graduando SOLO por Vol-R y FR, que es lo que el
+     comentario de arriba explica: la EROA entro como dato mostrado, no como parametro de
+     gradacion, y agregarla al OR de mas abajo repetiria el defecto que esa nota documenta. */
+  const _pJet = vPlaus('im_itv');
+  if (eEl) {
+    /* El umbral es el MISMO 0,05 de las ramas de abajo y no un `> 0`: con un Vol-R de 0,03 ml la
+       casilla publicaba «EROA continuidad 0.0 mm²» en negrita al lado de «Sin regurgitacion
+       significativa», que son dos afirmaciones que no se sostienen juntas. */
+    if (volR > 0.05 && _pJet.val != null && _pJet.val > 0) {
+      eEl.value = (volR / _pJet.val * 100).toFixed(1) + ' mm\u00b2';
+      eEl.placeholder = '';
+    } else {
+      eEl.value = '';
+      eEl.placeholder = _pJet.fuera ? 'VTI del jet fuera de rango' : 'requiere VTI del jet de IM (CW)';
+    }
+  }
   if (fEl) fEl.value = fr.toFixed(0) + ' %';
 
   // Clasificación ESC 2021
@@ -23372,8 +23516,31 @@ function calcContIM() {
        el área por continuidad de calcEM— donde la insuficiencia puede ser nula. Sin esta guarda
        se imprimía «Leve · Vol-R -9,0 ml · FR -11 %», y la etiqueta nueva es más creíble que la
        vieja. */
-    if (volR <= 0) {
+    /* ⚠️ SE SEPARA EL NEGATIVO DEL CERO EXACTO, que antes caian juntos en `<= 0`. No son lo mismo:
+       Vol-R = 0 con los dos volumenes iguales es «no hay regurgitacion medible», un resultado; y
+       Vol-R < 0 es aritmeticamente imposible como volumen regurgitante, o sea que una de las dos
+       mediciones esta mal y el metodo NO APLICA. Medido, la casilla `vr_cont` seguia mostrando
+       «-18.7» y «-143.4» como si fueran resultados. El texto nombra los dos volumenes para que se
+       vea CUAL revisar, que es la diferencia entre un aviso y un cartel. */
+    /* ⚠️ LA TOLERANCIA NO ES COSMETICA. Con `< 0` a secas, dos volumenes IGUALES caen en la rama
+       negativa por el residuo binario de la resta: medido con un Ø anillo elegido para igualarlos,
+       el aviso salia «Vol mitral 62.3 ml menor que Vol TSVI 62.3 ml», o sea afirmando «menor» sobre
+       dos cifras que el propio texto imprime iguales — que es como un aviso correcto se lee como un
+       error de la app. El umbral es 0,05 ml porque `vr_cont` publica un decimal: por debajo de eso
+       la diferencia no existe EN PANTALLA, asi que declararla seria hablar de algo invisible. */
+    if (volR < -0.05) {
+      _imAvisoCont(sEl, 'var(--yellow)', 'No valorable: Vol mitral ' + vmit.toFixed(1) +
+        ' ml menor que Vol TSVI ' + vstsvi.toFixed(1) + ' ml, revisar mediciones');
+      setv('vr_cont', '');
+      if (fEl) fEl.value = '';
+      return;
+    }
+    if (Math.abs(volR) <= 0.05) {
       sEl.innerHTML = '<span style="color:var(--text2);">Sin regurgitación significativa por método volumétrico</span>';
+      /* El signo se normaliza porque la resta de dos volumenes iguales da un residuo negativo y
+         `toFixed(1)` lo publica como «-0.0»: un volumen regurgitante con signo menos, que es
+         justamente el numero sin sentido que esta rama existe para no mostrar. */
+      setv('vr_cont', '0.0');
       if (fEl) fEl.value = '';
       return;
     }
@@ -51701,15 +51868,21 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
   /* `vp_morf` salió y entró `ep_grado`: desde el 2026-09-16 el auto-grado escribe el segundo.
      Dejarlo apuntando al viejo habría hecho que la reimpresión respaldara una marca que ya
      nadie escribe y perdiera la que sí. */
-  /* Los tres de IM entran acá aunque HOY la ruta no sea alcanzable, y queda declarado en vez de
+  /* Los CUATRO de IM entran acá aunque HOY la ruta no sea alcanzable, y queda declarado en vez de
      dejar creer que alguna mutación lo cubre: `sincronizarIMDesdeGlobal` NO está en
      `RECALC_MODULOS` y la reimpresión no toca las pastillas —medido: ni `toggleValvPill` ni
      ninguna `sincronizar*` aparecen en ese camino— así que `_syncDerivado` no corre durante la
-     ventana y no hay marca nueva que se quede pegada. Van igual porque el día que alguien
+     ventana.
+     ⚠️ PERO «no hay marca nueva que se quede pegada» YA NO ES CIERTO, y lo señaló /sharp-edges:
+     `imEspejosRestaurar` SÍ está en `RECALC_MODULOS` desde la ronda anterior, y escribe
+     `dataset.espejoDe` durante esa ventana. Lo que protege hoy no es que nadie escriba marcas
+     —alguien las escribe— sino este respaldo, que las repone y hace `delete` cuando el backup era
+     `undefined`. O sea: la lista de abajo dejó de ser una precaución para el futuro y es la única
+     defensa activa. Van igual porque el día que alguien
      enganche la sincronía de IM a la restauración, esto es exactamente el defecto de la PASP del
      TEER que el comentario de arriba describe: la marca del paciente EN PANTALLA sobreviviendo a
      la carga del estudio guardado y haciendo que el espejo crea que el valor restaurado es suyo. */
-  const _MARCAS_DERIV = ['vp_gmax','ep_grado','teer_pasp','im_dtsvi','im_itv_tsvi','im_ai_area'];
+  const _MARCAS_DERIV = ['vp_gmax','ep_grado','teer_pasp','im_dtsvi','im_itv_tsvi','im_ai_area','vtim'];
   const marcaEstado = {};
   _MARCAS_DERIV.forEach(id => {
     const el = document.getElementById(id);
@@ -66152,7 +66325,14 @@ function _labExcelRow(inf) {
   let eprom = null; if (es !== null && el !== null) eprom = (es+el)/2; else if (es !== null) eprom = es; else if (el !== null) eprom = el;
   const pr = num('pisa_r'), pv = num('pisa_val'), ivmax = num('im_vmax'), iitv = num('im_itv');
   let eroa = null, volr = null;
-  if (pr && pv && ivmax) { eroa = 2*Math.PI*Math.pow(pr/10,2)*pv/ivmax*100; if (iitv) volr = eroa/100*iitv; }
+  /* El Vol-R se deriva de la EROA YA REDONDEADA a un decimal, que es lo que hace la pantalla y lo
+     que deja la fila internamente coherente. Antes se derivaba de la EROA sin redondear: el mismo
+     estudio mostraba «Vol R 65,4 ml» en el calc-box —al lado de su «EROA 50,3 mm²»— y exportaba
+     65,3, que no es el producto de ninguna de las dos cifras que el Excel imprime. Se alinea en la
+     direccion de la pantalla y no al reves porque 65,4 es el numero que el medico tenia delante
+     cuando firmo el informe. Cambia UNA columna, `Vol R IM (ml)`; `EROA IM (mm²)` no se mueve. */
+  if (pr && pv && ivmax) { eroa = 2*Math.PI*Math.pow(pr/10,2)*pv/ivmax*100;
+                           if (iitv) volr = Number(eroa.toFixed(1))/100*iitv; }
   const dts = num('diam_tsvi'), itvT = num('itv_tsvi'), itvA = num('itv_ao');
   const ava = (dts && itvT && itvA) ? (Math.PI*Math.pow(dts/20,2))*itvT/itvA : null;
   const vit = num('vmax_it','vrt'); const gradVDAD = vit ? 4*vit*vit : null;
@@ -70003,6 +70183,7 @@ const DCM_MAPA = [
   { campo:'itv_tsvi',      etiq:'VTI TSVI',                  ucum:{ 'cm':1 },              cods:[['CM-VTITSVI','privado CeiboMed']],esq:'99CEIBOMED' },
   { campo:'diam_tsvi',     etiq:'Diámetro TSVI',             ucum:{ 'cm':10, 'mm':1 },     cods:[['CM-DTSVI','privado CeiboMed']], esq:'99CEIBOMED' },
   { campo:'em_vtimit',     etiq:'VTI mitral',                ucum:{ 'cm':1 },              cods:[['CM-VTIMIT','privado CeiboMed']],esq:'99CEIBOMED' },
+  { campo:'itv_mitral',    etiq:'VTI mitral de entrada',     ucum:{ 'cm':1 },              cods:[['CM-VTIMITENT','privado CeiboMed']],esq:'99CEIBOMED' },
   { campo:'vci_diam',      etiq:'Diámetro VCI',              ucum:{ 'cm':10, 'mm':1 },     cods:[['CM-VCID','privado CeiboMed']],  esq:'99CEIBOMED' },
   { campo:'tango_tac',     etiq:'Tiempo de aceleración pulmonar', ucum:{ 'ms':1 },         cods:[['CM-TACPULM','privado CeiboMed']],esq:'99CEIBOMED' },
   { campo:'vti_tsvd',      etiq:'VTI TSVD',                  ucum:{ 'cm':1 },              cods:[['CM-VTITSVD','privado CeiboMed']],esq:'99CEIBOMED' },
@@ -70059,6 +70240,15 @@ const DCM_ETIQ = {
   tde:           ["MV DT","Mitral DT","MV DecT"],
   triv:          ["IVRT","IVR Time","Isovolumic Relaxation"],
   em_vtimit:     ["MV VTI","MV TVI","Mitral VTI"],
+  /* Los sinonimos NO se solapan con los de `em_vtimit`, y la razon NO es la que decia antes aca
+     —«un equipo que rotule MV VTI a secas no dice si midio llenado o chorro»—, que era imprecisa:
+     `em_vtimit` TAMBIEN es el llenado. La diferencia entre los dos campos es la MODALIDAD, no la
+     envolvente: en estenosis mitral el llenado se mide por CW porque en pulsado aliasa, y para el
+     volumen sistolico mitral se mide por PULSADO en el anillo. Un «MV VTI» a secas no dice cual de
+     las dos, asi que ese token ambiguo se queda donde ya estaba en vez de mudarse; aca entran solo
+     los que nombran el INFLOW explicitamente. Queda anotado que el token ambiguo sigue alimentando
+     un area valvular que vota `em_grado`: tocarlo es tocar `calcEM`, que esta fuera de alcance. */
+  itv_mitral:    ["MV Inflow VTI","Mitral Inflow VTI","MV inflow TVI","VTI mitral entrada"],
   e_sep:         ["e' sep","e' septal","e' (septal)","e' (sept)","Septal e'","TDI e' sep","Medial e'","e' med"],
   e_lat:         ["e' lat","e' lateral","e' (lateral)","e' (lat)","Lateral e'","TDI e' lat"],
   vmax_ao:       ["AV Vmax","AV Max Vel","Aortic Vmax","AV Peak Vel","AoV Vmax","AV V max"],
@@ -70181,6 +70371,25 @@ const DCM_RANGO = {
      está. */
   dsfvi:[10,90], vd_bas:[10,70], triv:[10,300], sgl:[-40,0], ai_diam:[10,90],
   itv_tsvi:[2,60], diam_tsvi:[5,45], em_vtimit:[2,80], vci_diam:[2,50],
+  /* Agregados 2026-09-28 con el VTI de entrada. Los cuatro son atrapa-errores de UNIDAD, con el
+     criterio declarado de esta tabla —el error de un orden de magnitud—, y NO cortes clinicos:
+     · `itv_mitral` y `vtim` [2,80] son el MISMO parametro que `em_vtimit`, que ya estaba en [2,80];
+       el mismo campo no puede tener dos veredictos segun en que bloque se cargue. El techo de 80
+       atrapa el VTI del chorro (130-200 cm), que es el error que esta ronda vino a cerrar.
+     · `diam_mit` [10,60] mm: por abajo atrapa el anillo tipeado en cm (3,0 por 30) y por arriba
+       deja pasar cualquier anillo dilatado real; los anillos mitrales normales van 27-35 mm.
+     · `im_itv` [20,400] cm es el VTI del CHORRO: un chorro severo con Vmax 5-6 m/s da 100-200 cm,
+       asi que el techo de 400 atrapa el orden de magnitud y el piso de 20 el VTI de entrada
+       cargado ahi por error.
+     ⚠️ LAS DOS BANDAS SE SOLAPAN EN [20,80] Y NO HAY FORMA DE QUE NO LO HAGAN — la version anterior
+     de esta nota afirmaba que el piso del chorro quedaba por encima del techo del de entrada, y es
+     FALSO: 20 < 80. Lo dice /sharp-edges y se verifica con los propios numeros de la tabla. La
+     consecuencia hay que tenerla a la vista: un VTI de chorro de 70 cm —jet corto, Vmax ~3,5 m/s,
+     perfectamente plausible— cargado en la casilla del de entrada PASA la banda y sigue dando un
+     Vol mitral inflado. Estas bandas atrapan el error de un orden de magnitud, que es el criterio
+     declarado de la tabla; NO separan las dos envolventes. Lo que las separa es el rotulo, y por
+     eso el rotulo era el arreglo principal de esta ronda y no la banda. */
+  itv_mitral:[2,80], vtim:[2,80], diam_mit:[10,60], im_itv:[20,400],
   tango_tac:[10,300], vti_tsvd:[2,60], tsvd_diametro:[5,50], s_prime:[1,35],
   /* Agregado 2026-09-26 con el campo `vsfvi`. NO es opcional: el panel de Evidencia lo lee por
      `_labRango` para decidir un criterio QUIRÚRGICO (volumen telesistólico indexado > 45 ml/m²,
@@ -71497,6 +71706,14 @@ const DCM_EXPORT = [
   { campo:'itv_tsvi',      cod:'CM-VTITSVI', esq:'99CEIBOMED', u:'cm',     ut:'cm',   f:1 },
   { campo:'diam_tsvi',     cod:'CM-DTSVI',   esq:'99CEIBOMED', u:'cm',     ut:'cm',   f:0.1 },
   { campo:'em_vtimit',     cod:'CM-VTIMIT',  esq:'99CEIBOMED', u:'cm',     ut:'cm',   f:1 },
+  /* Entra al EXPORT y no solo al MAPA porque si no el viaje es asimetrico: la app leeria un
+     `itv_mitral` de un SR ajeno y no lo escribiria en el propio, asi que un estudio exportado y
+     reimportado perderia el VTI de entrada — y con el, el ORIGEN del espejo de `vtim`, que es lo
+     que esta ronda acaba de construir. Lo encontro /sharp-edges. Hay diez campos en `DCM_MAPA`
+     sin entrada aca, asi que la asimetria no es un error del archivo; lo que la hace equivocada
+     en este caso es que este campo es origen de una sincronia. Al Excel NO se le agrega columna:
+     eso si es una superficie que el pedido dejo fuera, y `vtim` tampoco la tuvo nunca. */
+  { campo:'itv_mitral',    cod:'CM-VTIMITENT', esq:'99CEIBOMED', u:'cm',   ut:'cm',   f:1 },
   { campo:'vci_diam',      cod:'CM-VCID',    esq:'99CEIBOMED', u:'cm',     ut:'cm',   f:0.1 },
   { campo:'tango_tac',     cod:'CM-TACPULM', esq:'99CEIBOMED', u:'ms',     ut:'ms',   f:1 },
   { campo:'vti_tsvd',      cod:'CM-VTITSVD', esq:'99CEIBOMED', u:'cm',     ut:'cm',   f:1 },
@@ -81140,8 +81357,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260928-0030';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790566236948;                 /* eco-build-ms */
+const ECO_BUILD    = '20260928-0242';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790574145930;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -81227,7 +81444,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-0030</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-0242</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

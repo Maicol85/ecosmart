@@ -4,6 +4,164 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## El VTI mitral era DOS mediciones con un solo rótulo, y el rótulo nombraba la equivocada (2026-09-28, fase 1 de 5)
+
+El bloque de continuidad de IM calculaba **bien** —ocho de ocho casillas contra el cálculo a mano—
+con el rótulo pidiéndole el insumo **equivocado**. «VTI mitral CW (cm) — compartido con PISA»: las
+dos mitades falsas. CW es el chorro de regurgitación y la fórmula del volumen mitral necesita la
+envolvente de **llenado por pulsado**; y PISA no leía `vtim` sino `im_itv`.
+
+**Medido antes de tocar nada, y es el número que justifica toda la fase:** el VTI del chorro
+(130 cm) en esa casilla daba **Vol mitral 918,9 ml · Vol-R 856,6 ml · FR 93 % · «Severa»**, con el
+cociente en **7,22** y el cartel «apoya IM severa». Sin una sola señal de que el número era
+ilegible. Obedecer el rótulo fabricaba el veredicto.
+
+### Lo que se hizo
+
+- **`itv_mitral`**, campo nuevo en Doppler Mitral —«VTI mitral de entrada — Doppler pulsado (cm)»,
+  al lado de la onda E y la onda A, que salen del mismo trazado—. `vtim` pasó a ser su espejo, con
+  el patrón completo de la ronda anterior: `_syncDerivado`, enganche en el `oninput` del origen,
+  marca persistida en `im_espejos` y reposición desde `RECALC_MODULOS`.
+- **`im_eroa_cont` dejó de estar vacío**: EROA = Vol-R ÷ VTI del **chorro** (`im_itv`), en mm².
+  33,6 mm² en el escenario base. El insumo ya existía en la fila de Cuantificación; lo único que
+  faltaba era leerlo desde acá. **No vota** — `calcContIM` sigue graduando sólo por Vol-R y FR.
+- **Vol-R negativo** dejó de imprimirse como resultado: «No valorable: Vol mitral X ml menor que
+  Vol TSVI Y ml, revisar mediciones», nombrando los dos volúmenes para que se vea cuál revisar.
+- **El cociente**: cascada `v('im_itv_tsvi') || v('itv_tsvi')`, `vPlaus` sobre el VTI de entrada,
+  guarda `> 0` en el denominador y el `else` que lo devuelve a la raya.
+- **Bandas de plausibilidad** para los cuatro insumos que multiplican, y el rótulo de la ecuación
+  reescrito a las tres fórmulas que el código implementa de verdad.
+
+### ⚠️ EL CAMBIO PRINCIPAL ES UN RÓTULO, Y LA BANDA NO LO REEMPLAZA
+
+Es la lección de la fase y conviene no perderla: las bandas atrapan el **error de un orden de
+magnitud**, que es el criterio declarado de `DCM_RANGO`. **No separan las dos envolventes.** Un VTI
+de chorro de **70 cm** —jet corto, Vmax ~3,5 m/s, perfectamente plausible— cargado en la casilla del
+de entrada **pasa la banda** y sigue inflando el volumen mitral. `itv_mitral`/`vtim` van [2,80] e
+`im_itv` va [20,400]: **se solapan en [20,80] y no hay forma de que no lo hagan.** Mi primera versión
+del comentario afirmaba que el piso del chorro quedaba por encima del techo del de entrada — es
+falso, 20 < 80, y lo cazó `/sharp-edges`. Lo que separa las dos mediciones es el rótulo.
+
+### Las bandas elegidas, declaradas y no asumidas
+
+`itv_mitral` y `vtim` **[2,80]**, la misma que `em_vtimit` ya tenía: es el mismo parámetro y el
+mismo campo no puede tener dos veredictos según en qué bloque se cargue. `diam_mit` **[10,60] mm** —
+por abajo atrapa el anillo tipeado en cm, por arriba deja pasar cualquier anillo dilatado real.
+`im_itv` **[20,400] cm**.
+
+### ⚠️ LA BANDA ES DE LA MAGNITUD, NO DE LA CASILLA
+
+Lo encontró `/sharp-edges` leyendo **mi propio comentario**: yo había escrito que los insumos que
+multiplican entran con banda «porque un error de unidad no degrada el resultado, lo fabrica», y de
+los **cuatro** que multiplican sólo dos la tenían. El Ø TSVI va al cuadrado y el VTI TSVI escala
+lineal, igual que los otros dos. **Escenario medido: el Ø TSVI tipeado en cm (2 por 20) da un VS
+TSVI de 0,63 ml, un Vol-R de 91 ml y «Severa»** — el mismo veredicto fabricado, entrando por la
+casilla de al lado.
+
+Y no alcanzaba con `vPlaus` por casilla: esos dos llegan por **cascada** y el destino del espejo no
+tiene entrada propia en la tabla, así que validar casilla por casilla haría que la banda mordiera
+**sólo cuando el médico no tocó la del bloque**, que es al revés de lo que hace falta. De ahí
+`_imFueraBanda(idMagnitud, val)`, que valida el valor **elegido** contra la banda de la magnitud, con
+la banda saliendo igual de `_labRango` — un solo dueño por campo.
+
+### Cinco defectos que la medición encontró y el código leído no
+
+Ninguno salió de revisar el diff; los cinco salieron de cargar datos en Chrome.
+
+1. **`im_itv` pasó de ser insumo de UN cálculo a serlo de DOS y su `oninput` seguía llamando a uno.**
+   En el escenario base la EROA nueva quedaba con el placeholder **con los 130 cargados**, y aparecía
+   recién al tocar cualquier otro campo. Es el mismo defecto que ya pagó la fila de FR con
+   `im_dtsvi`/`im_itv_tsvi` la ronda pasada: **un consumidor nuevo sin su disparador.** Van dos
+   rondas seguidas con esta forma exacta.
+2. **`volR < 0` a secas mandaba el cero EXACTO a la rama negativa.** El residuo binario de restar
+   dos volúmenes calculados hacía salir «Vol mitral 62.3 ml menor que Vol TSVI 62.3 ml»: afirmando
+   «menor» sobre dos cifras que el propio texto imprime **iguales**. Tolerancia de 0,05 ml, que es
+   donde `vr_cont` deja de distinguir: por debajo de eso la diferencia no existe en pantalla, así
+   que declararla es hablar de algo invisible.
+3. **`clearAll` vaciaba la EROA pero no reponía su placeholder**, así que después de un fuera-de-banda
+   la casilla quedaba **muda** justo donde el código dice explicar.
+4. **Y el placeholder repuesto nombraba la causa equivocada** (`/sharp-edges`): decía «requiere VTI
+   del jet de IM (CW)» cuando el problema era el anillo o el TSVI y el jet estaba bien cargado, o sea
+   mandaba a revisar el único dato sano. Hoy el motivo viaja como argumento.
+5. **Un Vol-R positivo por debajo de la tolerancia publicaba «EROA continuidad 0.0 mm²»** en negrita
+   al lado de «Sin regurgitación significativa» — dos afirmaciones que no se sostienen juntas.
+
+### Semgrep: los dos hallazgos nuevos eran míos, y se cerraron cambiando el PATRÓN
+
+126 → **128**. Los dos eran mis dos `innerHTML` concatenados. Los valores son números salidos de
+`PF()`, así que **no hay ruta de inyección y un `esc()` no haría nada** — pero la regla
+`ceibo-xss-innerhtml-concat` marca la **concatenación**, no el dato, y tiene razón: las once rutas de
+XSS que esta suite cerró eran todas «esto que interpolo es seguro» hasta que el campo cambió de
+dueño. Pasaron a `_imAvisoCont`, que arma por DOM con `textContent`. Vuelta a **126 / 0 ERROR**, y la
+afirmación de seguridad dejó de depender de quién alimente la variable.
+
+⚠️ **Y el inventario de ese comentario estaba incompleto**: yo escribí «los dos avisos» y la línea de
+severidad del final de `calcContIM` sigue siendo un `innerHTML` con **cuatro** interpolaciones. Es
+preexistente —uno de los 126— y todas son literales o números, pero un comentario que enumera «los
+dos» invita a creer que no hay un tercero.
+
+⚠️ **Ojo con cómo se corre Semgrep a mano para este diff:** sin `--max-target-bytes 20000000` el
+binario **no emite JSON y sale con cero hallazgos**, indistinguible de un archivo limpio. El JS
+extraído son 4,5 MB. Es el mismo defecto que este repo ya documenta y que `scan.py` ya tenía
+resuelto; lo volví a pagar al invocar el binario directamente para diffear regla por regla.
+
+### Lo que NO llega al papel, verificado y no razonado
+
+Informe, EN SUMA y PDF **idénticos** a `06628d3` — 58 objetos de texto, byte a byte. Excel con
+**433 columnas, cero nuevas, cero perdidas y UN solo valor cambiado**: `Vol R IM (ml)` de 65,3 a
+65,4, que es el redondeo que se vino a alinear. El mismo estudio mostraba 65,4 en el calc-box —al
+lado de su «EROA 50,3 mm²»— y exportaba 65,3, que no es el producto de ninguna de las dos cifras que
+el Excel imprime. Se alineó hacia la pantalla porque **65,4 es el número que el médico tenía delante
+cuando firmó**.
+
+### Declarado y NO arreglado, con el motivo
+
+- **`calcIM_ESC` lee `im_itv` SIN banda mientras VOTA**, y es el mismo campo que `calcContIM` lee con
+  banda. Escenario del hallazgo: el VTI de entrada (13) en la casilla del chorro con EROA-PISA de
+  40 mm² da `Vol-R = 5,2 ml` y **vota LEVE** donde con 130 votaría moderada, y ese 5,2 sale al Excel.
+  No se toca porque banderarlo cambia **qué parámetros votan**, o sea la gradación, que el pedido
+  prohíbe explícitamente. Es el hallazgo más caro que queda abierto de esta fase.
+- **`em_vtimit` sigue rotulado «VTI mitral CW» y `calcEM` no consulta su banda `[2,80]`**, que ya
+  existe. `/sharp-edges` lo levantó como el hallazgo principal argumentando que la continuidad mitral
+  exige pulsado — **eso es incorrecto**: en estenosis mitral el llenado se mide por **CW** porque en
+  pulsado aliasa, así que ahí «CW» es el rótulo correcto. El residuo real es la banda que el cálculo
+  no mira: con 130 en esa casilla el AVm por continuidad da 0,48 cm² y vota **estenosis severa** sobre
+  una válvula normal. Cae de lleno en «no tocar `calcEM` ni `em_vtimit`».
+- **`calcIM_ESC` no está en `RECALC_MODULOS`**, así que al reabrir un estudio **todo su calc-box
+  vuelve en blanco** —cociente, EROA-PISA, Vol-R, FR y el badge de severidad—. Medido en HEAD y en el
+  árbol de trabajo con el mismo escenario: **idéntico**, o sea preexistente y más ancho que esta fase.
+  No se agrega porque meterlo en el embudo de restauración hace que reabrir **re-derive `im_grado`**,
+  que es el defecto que este archivo documenta como «un estudio archivado ADQUIRÍA un grado que su
+  PDF firmado original no tenía». Es una decisión con consecuencia sobre el papel firmado.
+- **Un estudio importado por DICOM deja el espejo vacío**: `itv_mitral` visible con `vtim` en blanco
+  bajo un rótulo que dice «auto ← Doppler Mitral», y se recupera sólo al abrir la pastilla de IM.
+  Agregar la sincronía a la restauración choca con «reabrir sin editar no puede cambiar ningún valor»,
+  que es regla de la fase 5. Va allá.
+- **El cero de `_syncDerivado`** sigue como estaba, por prohibición explícita del pedido.
+
+### Verificación
+
+**TC-297, 34 condiciones. 24 mutaciones, las 24 en rojo y cada una en su condición**, con la base
+verde leída primero en cada tanda. **Dos sobrevivieron y las dos enseñaron lo mismo: la condición
+describía un escenario que no ejercitaba el código que decía probar.**
+
+- **M10 (la guarda del `> 0` en el cociente).** Yo ponía `im_itv_tsvi = 0` con el global vacío. Pero
+  `v()` devuelve 0, que es **falsy**, así que el `||` cae al global y el resultado sale por el `else`
+  de todos modos: la condición decía probar la guarda del cero y estaba probando el `else`. El estado
+  donde la guarda es lo único en pie es con **los dos en 0** — ahí el `||` entrega 0, el 0 pasa el
+  `!= null`, y sin el `> 0` la fila publica **«Infinity»**.
+- **M24 (la tolerancia de la EROA).** Mi escenario igualaba los dos volúmenes, y eso da un Vol-R de
+  **−1e−14**: negativo, así que falla igual un `> 0` que un `> 0,05`. La ventana que importa es la de
+  un Vol-R **positivo** por debajo de la tolerancia, y hubo que calcular el Ø anillo que la produce.
+
+**Y una condición pasaba por el motivo equivocado:** el rótulo de la ecuación se buscaba con
+`querySelector('div[style*="font-size:10px"]')` y en ese `card-body` hay **cinco**; el de la ecuación
+es el cuarto, así que la condición medía una cadena vacía. Hoy se busca por contenido.
+
+**Suite 311/312**, único rojo **TC-223**, el documentado. Semgrep **126 / 0 ERROR**, sin huérfanos,
+`check_mobile` en los 2 ALTA de siempre, `api-key-protector` en los 2 preexistentes.
+
+
 ## Insuficiencia mitral: las tres casillas «auto», y la marca que hay que PERSISTIR (2026-09-28)
 
 `im_dtsvi` e `im_itv_tsvi` —etiquetados «auto ← Doppler»— e `im_ai_area` quedaban **vacíos**. La rama
@@ -179,8 +337,10 @@ llega al cuerpo y al EN SUMA.
 
 ### ⚠️ EL CORTE DEL ÁREA ES 20 cm², NO 22
 
-El 22 **no tiene fuente verificada**: se confunde con el **22±6 ml/m²**, que es la *media* del
-volumen indexado normal de esa misma guía — otra magnitud y otra unidad. Con el corte en 22 un área
+El 22 aparece en **material docente** (curso e-cardioimage) **sin fuente primaria identificada**;
+la guía **2006 (Tabla 9) da ≤20 cm²** y el corte se mantiene en **>20**. (La versión anterior de esta
+nota afirmaba que el 22 «se confunde con el 22±6 ml/m²» del volumen indexado: eso era una HIPÓTESIS
+mía sobre el origen del número, no un hecho verificado, y no hay que volver a escribirla como tal.) Con el corte en 22 un área
 de 21 cm² sale «Normal». La fila del PDF imprimía `<22 cm2`, su única aparición en el archivo.
 
 ### El corte de 40 mm para los dos sexos es DECISIÓN DE MAICOL, no de la guía
