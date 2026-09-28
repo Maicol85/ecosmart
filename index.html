@@ -26970,14 +26970,78 @@ function generarInforme(opts) {
     };
     const VALVS = [
       { adj:'mitral',      morf:'vm_morf', mide:['em_gmedio','avm_plan','avm_cont','avm_thp','avm_ete','vm_dvi'],
-        yaDicho:['EM ','IM ','Estenosis mitral','Insuficiencia mitral','mitral'] },
+        yaDicho:['EM ','IM ','Estenosis mitral','Insuficiencia mitral','mitral'],
+        enCuerpo:['VM','Válvula mitral','La válvula mitral'] },
       { adj:'aórtica',     morf:'va_morf', mide:['gmedio_ao','vmax_ao','ava_cont','ea_dvi_display','va_at','ete_tavi_gmedio','ete_tavi_vmax'],
-        yaDicho:['EAo','IAo','Estenosis aórtica','Insuficiencia aórtica','TAVI','RPV','aórtica'] },
+        yaDicho:['EAo','IAo','Estenosis aórtica','Insuficiencia aórtica','TAVI','RPV','aórtica'],
+        enCuerpo:['VAo','Válvula aórtica','La válvula aórtica'] },
       { adj:'tricuspídea', morf:'vt_morf', mide:['et_gmedio','et_avt','vt_dvi','it_vc'],
-        yaDicho:['ET ','IT ','Estenosis tricuspídea','Insuficiencia tricuspídea','tricúspide','tricuspídea'] },
+        yaDicho:['ET ','IT ','Estenosis tricuspídea','Insuficiencia tricuspídea','tricúspide','tricuspídea'],
+        enCuerpo:['VT','Válvula tricúspide','La válvula tricúspide'] },
       { adj:'pulmonar',    morf:'vp_morf', mide:['vp_gmax','vp_vmax','vp_dvi'],
-        yaDicho:['EP ','IP ','Estenosis pulmonar','Insuficiencia pulmonar','pulmonar'] }
+        yaDicho:['EP ','IP ','Estenosis pulmonar','Insuficiencia pulmonar','pulmonar'],
+        enCuerpo:['VP','Válvula pulmonar','La válvula pulmonar',
+                  'IP ','EP ','Insuficiencia pulmonar','Estenosis pulmonar','insuficiencia pulmonar'] }
     ];
+    /* ⚠️ EL CUERPO ES LA OTRA MITAD DEL GATE, y faltaba. La compuerta (2) mira el EN SUMA, así que
+       sólo evita que el resumen se contradiga CONSIGO MISMO — no con el cuerpo, que es la superficie
+       que el resumen resume. Medido: una prótesis pulmonar biológica con Vmax 1,5 m/s imprime en el
+       cuerpo «Válvula pulmonar con prótesis biológica y estenosis leve (Vmax 1.5 m/s, Gmax 9 mmHg)»
+       y en el EN SUMA «Prótesis pulmonar biológica normofuncionante», porque el resumen no había
+       dicho nada de pulmonar y el gate pasó. Dos renglones, dos conductas opuestas, en el papel que
+       se firma.
+       Se buscan tokens de AFIRMACIÓN, no la palabra «estenosis» a secas: «sin estenosis ni
+       insuficiencia», «sin criterios de estenosis protésica» y «sin graduación de estenosis
+       protésica» la contienen y son negaciones. Y no se leen los selects de grado —que es el
+       enfoque que ya falló acá, porque los escriben los calculadores con cortes nativos—: lo que
+       importa es qué DICE el papel, no de dónde lo sacó. */
+    /* ⚠️ LOS SEIS PRIMEROS SON DEL ESTILO ESTÁNDAR/NARRATIVO Y NO ALCANZAN: el informe tiene TRES
+       estilos y el CONCISO escribe con siglas —«con EM moderada e IM leve», «sin estenosis, con IAo
+       leve»—, así que ninguno de los tokens largos matchea y la compuerta quedaba ciega en un tercio
+       de los informes. Hoy no era alcanzable porque esas afirmaciones también llegan al EN SUMA y
+       las corta la compuerta (2), pero eso significa que la (3) nunca se ejercía ahí: el único caso
+       que funcionaba en los tres estilos era el de la pulmonar, porque su línea no pasa por
+       `fraseEI`. Se agregan las siglas para que la guarda no dependa del estilo elegido. */
+    const AFIRMA = ['con estenosis', 'con insuficiencia', 'e insuficiencia', 'y estenosis',
+                    'y insuficiencia', 'con doble lesión', 'con posible estenosis',
+                    'con criterios que sugieren', 'con estenosis protésica',
+                    'con EM ', 'con IM ', 'con EAo', 'con IAo', 'con ET ', 'con IT ',
+                    'con EP ', 'con IP ', 'e IM ', 'e IAo', 'e IT ', 'e IP ',
+                    'Insuficiencia pulmonar', 'insuficiencia pulmonar presente'];
+    const lineasCuerpo = function(V){
+      if (!(typeof inf !== 'undefined' && Array.isArray(inf))) return [];
+      return inf.map(function(l){ return String(l || ''); }).filter(function(t){
+        return V.enCuerpo.some(function(k){ return t.indexOf(k) === 0 || t.indexOf(k + ' ') > -1; });
+      });
+    };
+    const lineaCuerpo = function(V){ const h = lineasCuerpo(V); return h.length ? h[0] : null; };
+    /* ⚠️ MIRA TODAS LAS LÍNEAS DE LA VÁLVULA, NO LA PRIMERA. La pulmonar es la única que parte su
+       hallazgo en DOS `inf.push`: la morfología por un lado y la insuficiencia por otro —«IP leve.»,
+       «Insuficiencia pulmonar presente (PAP media 39 mmHg)»—. Con `hit[0]` esa segunda línea era
+       invisible, y la IP leve tampoco sube al EN SUMA, así que la compuerta (2) tampoco la veía:
+       una bioprótesis pulmonar con DVI medido e IP presente se resumía «normofuncionante».
+       Las otras tres llevan la insuficiencia en la MISMA oración, y la guarda había quedado
+       calibrada contra ellas. */
+    const cuerpoAfirma = function(V){
+      return lineasCuerpo(V).some(function(t){
+        return AFIRMA.some(function(k){ return t.indexOf(k) > -1; });
+      });
+    };
+    /* ⚠️ SUPRIMIR NO ES CALLARSE. Sin esto, la TAVI de la captura salía del EN SUMA sin UNA palabra
+       de la prótesis y el resumen caía al «Sin otras alteraciones…» — o sea que arreglar la
+       afirmación falsa producía una omisión, que en la superficie que se copia al resumen de alta
+       se lee igual de tranquilizadora. Se reutiliza LA LÍNEA QUE EL CUERPO YA IMPRIMIÓ: no es texto
+       clínico nuevo, es la misma oración, y por construcción no puede contradecir al cuerpo QUE ESTA
+       FUNCIÓN GENERA — con la salvedad de que `_infEscribir` hace merge con las ediciones manuales
+       del médico en los refrescos silenciosos, así que si él corrigió esa oración a mano, el resumen
+       publica la versión de la app. Vale para `inf`, no para el textarea.
+       Si el cuerpo no tiene línea para esa válvula, no se inventa ninguna. */
+    const reusar = function(V){
+      const t = lineaCuerpo(V);
+      if (!t) return;
+      if (suma.some(function(l){ return String(l || '') === t; })) return;
+      suma.push(t);
+    };
     /* ← FASE 2: devolver la frase de disfunción con los cortes protésicos verificados. */
     const _protDisfuncion = function(){ return null; };
     VALVS.forEach(function(V){
@@ -26996,9 +27060,42 @@ function generarInforme(opts) {
         const t = String(l || '');
         return V.yaDicho.some(function(k){ return t.indexOf(k) > -1; });
       });
-      const d = _protDisfuncion(V, morf);
-      if (d) { if (!yaEnSuma) suma.push(base + ' con ' + d + '.'); return; }
       if (yaEnSuma) return;                   // ya hay una línea de esta válvula: no se contradice
+      /* (3) EL CUERPO YA AFIRMÓ UNA CONDUCTA. No se resume al revés de lo que dice el informe. */
+      if (cuerpoAfirma(V)) { reusar(V); return; }
+      /* (4) LA APP NO GRADÚA LA TAVI, así que no puede afirmar que funciona bien. La captura que
+         disparó esto: Vmax 4,01 m/s, G. medio 41 mmHg, cuerpo «sin graduación de estenosis
+         protésica» y resumen «normofuncionante». Y (5) con el veredicto protésico aórtico en
+         cualquier estado que NO sea `normal` tampoco se afirma: `posible` y `signif` ya tienen su
+         propio resumen y no llegan acá —y `normal` TAMPOCO llega, contra lo que decía acá: su
+         resumen es «Prótesis aórtica: sin criterios de estenosis protésica», que la compuerta (2)
+         reconoce, así que la frase «Prótesis aórtica … normofuncionante» NUNCA se emitió, ni antes
+         ni después de este cambio; de hecho esta guarda sólo gobierna `faltan`—, pero `faltan` sí llegaba — una SAVR con Vmax 4,5 y
+         gradiente 45 SIN DVI, que es el reporte protésico mínimo habitual, se resumía
+         «normofuncionante» mientras el cuerpo decía «sin datos suficientes para graduar».
+         Se pregunta por el veredicto que la app YA calcula: no se introduce ningún corte nuevo. */
+      if (V.morf === 'va_morf') {
+        let P = null;
+        try { P = (typeof eaProtVeredicto === 'function') ? eaProtVeredicto() : null; } catch (e) { P = null; }
+        if (!P) { reusar(V); return; }        // sin veredicto no se afirma nada: fail-closed
+        /* ⚠️ REDUNDANTE HOY, Y SE CONSERVA DECLARÁNDOLO: con TAVI el veredicto no trae `nivel`, así
+           que la guarda de abajo (`P.nivel !== 'normal'`) ya la caza y borrar ésta no cambia nada
+           —una mutación que la desactivaba SOBREVIVÍA—. Se queda porque es la que expresa la
+           intención (la app no gradúa esa prótesis) y la otra la cubre por accidente. TC-303 la
+           aísla forzando un veredicto TAVI con `nivel:'normal'`. */
+        if (P.via === 'TAVI') { reusar(V); return; }
+        if (P.nivel !== 'normal') { reusar(V); return; }
+      }
+      /* ⚠️ LA RAMA DE DISFUNCIÓN VA ACÁ ABAJO, Y ANTES ESTABA ARRIBA DE LAS CUATRO GUARDAS.
+         `_protDisfuncion` devuelve `null` hoy, así que mover la línea no cambia NADA del
+         comportamiento actual — y ése es justamente el momento de moverla. Donde estaba, el día que
+         la Fase 2 la conecte cortaba antes que (3), (4) y (5): una TAVI recibiría una frase de
+         disfunción pese a la guarda de TAVI, y se publicaría texto NUEVO en vez de la línea del
+         cuerpo aunque el cuerpo afirme otra cosa. Las cuatro guardas desaparecían en silencio con un
+         cambio de una línea en otro lugar, y el comentario de más arriba —«es el único lugar que la
+         Fase 2 tiene que tocar»— habría quedado siendo falso. */
+      const d = _protDisfuncion(V, morf);
+      if (d) { suma.push(base + ' con ' + d + '.'); return; }
       suma.push(base + ' normofuncionante.');
     });
   })();
@@ -82245,8 +82342,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260928-0921';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790598062695;                 /* eco-build-ms */
+const ECO_BUILD    = '20260928-0951';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790599910220;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -82332,7 +82429,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-0921</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-0951</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -4,6 +4,98 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## «Prótesis normofuncionante»: cuándo el EN SUMA puede afirmar que funciona bien (2026-09-28)
+
+El bloque que empuja «Prótesis <válvula> <tipo> normofuncionante» al EN SUMA exigía dos cosas:
+**(1)** evidencia positiva —al menos un parámetro medido de esa prótesis— y **(2)** que el resumen
+no dijera ya algo de esa válvula. Las dos siguen. Se agregaron tres más, y cada una cierra un caso
+medido, no hipotético:
+
+**(3) El CUERPO ya afirmó una conducta.** La compuerta (2) miraba el EN SUMA, así que sólo evitaba
+que el resumen se contradijera **consigo mismo** — no con el cuerpo, que es la superficie que el
+resumen resume. Medido: prótesis pulmonar biológica con Vmax 1,5 m/s imprime en el cuerpo «Válvula
+pulmonar con prótesis biológica **y estenosis leve** (Vmax 1.5 m/s, Gmax 9 mmHg)» y en el resumen
+«Prótesis pulmonar biológica **normofuncionante**». Dos renglones, dos conductas opuestas, en el
+papel que se firma.
+
+**(4) La app no gradúa la TAVI**, así que no puede afirmar que funciona bien — **ni siquiera con
+valores normales**. Con los de la captura de Maicol —Vmax 4,01 m/s, G. medio 41 mmHg— el cuerpo
+decía «sin graduación de estenosis protésica» y el resumen «normofuncionante».
+
+**(5) El veredicto protésico aórtico en cualquier estado que no sea `normal`.** `posible` y `signif`
+ya tienen resumen propio y nunca llegaban; **`faltan` sí llegaba**: una SAVR con Vmax 4,5 y gradiente
+45 **sin DVI** —el reporte protésico mínimo habitual, si no se trazaron los dos VTI— se resumía
+«normofuncionante» mientras el cuerpo decía «sin datos suficientes para graduar».
+
+**⚠️ SUPRIMIR NO ES CALLARSE.** Sin la otra mitad, arreglar la afirmación falsa producía una
+**omisión**: la TAVI salía del EN SUMA sin una palabra de la prótesis y el resumen caía al «Sin otras
+alteraciones…», que en la superficie que se copia al resumen de alta se lee igual de tranquilizadora.
+En los cinco casos el resumen **reutiliza la línea que el cuerpo ya imprimió**: no es texto clínico
+nuevo, es la misma oración, y por construcción no puede contradecir al cuerpo.
+
+**⚠️ LAS GUARDAS (4) Y (5) SE TAPAN ENTRE SÍ, y lo mostró una mutación.** Con TAVI el veredicto no
+trae `nivel`, así que `P.nivel !== 'normal'` ya es true y suprime igual: desactivar la guarda de TAVI
+no cambiaba nada y la mutación **sobrevivía**. La de TAVI es la que expresa la intención; la de nivel
+la cubre por accidente. TC-303 la aísla forzando un veredicto TAVI con `nivel:'normal'`.
+
+**No se leen los selects de grado**, que es el enfoque que ya falló en este bloque —los escriben los
+calculadores con cortes nativos—: lo que importa es **qué dice el papel**, no de dónde lo sacó. Y se
+buscan tokens de **afirmación**, no la palabra «estenosis» a secas: «sin estenosis ni insuficiencia»,
+«sin criterios de estenosis protésica» y «sin graduación de estenosis protésica» la contienen y son
+negaciones. Una mitral protésica con sólo el DVI medido lo ejercita.
+
+**Mitral, tricúspide y pulmonar no se tocaron** (tarea 3 del pedido): la app no tiene hoy criterio de
+normalidad protésica para ellas y no se inventó uno. Siguen diciendo «normofuncionante» con evidencia
+positiva y sin afirmación en el cuerpo. Verificado **byte a byte contra HEAD** en diez escenarios
+—seis nativos y cuatro protésicos normales—: salida idéntica.
+
+**Dos falsos negativos más, que sólo aparecieron en el `/sharp-edges` posterior:**
+
+- **La insuficiencia pulmonar vive en OTRA línea del cuerpo.** La pulmonar es la única válvula que
+  parte su hallazgo en dos `inf.push` —la morfología por un lado, «IP leve.» / «Insuficiencia
+  pulmonar presente (PAP media 39 mmHg)» por otro—, y el gate miraba **sólo la primera**. La IP leve
+  tampoco sube al EN SUMA, así que la compuerta (2) tampoco la veía: una bioprótesis pulmonar con
+  DVI medido e IP presente se resumía «normofuncionante». Hoy se miran **todas** las líneas de la
+  válvula y la tabla `enCuerpo` de la pulmonar lleva además sus tokens de insuficiencia.
+- **La rama de disfunción estaba ARRIBA de las cuatro guardas.** `_protDisfuncion` devuelve `null`
+  hoy, así que mover la línea no cambia nada — y ése es justamente el momento de moverla. Donde
+  estaba, el día que la fase de graduación protésica la conecte, cortaba antes que todas: una TAVI
+  recibiría una frase de disfunción pese a su guarda, y se publicaría texto **nuevo** en vez de la
+  línea del cuerpo. Las guardas desaparecían en silencio con un cambio en otro lugar.
+
+**⚠️ LO QUE ESTE CAMBIO EMPEORA, DICHO COMO ES.** La línea reusada de la **prótesis pulmonar**
+arrastra al EN SUMA una graduación hecha con **cortes nativos**: `calcVP` escribe `ep_grado` con
+`epGradoPorGmax` (9-36 mmHg → «Leve»), y toda bioprótesis pulmonar normal cae ahí, así que el cuerpo
+dice «y estenosis leve» y ahora el resumen también. Antes la estenosis leve quedaba fuera del resumen
+por decisión explícita. Se acepta porque el pedido dice textualmente «el EN SUMA reutiliza la línea
+clínica que el cuerpo ya imprime», y porque cambia una afirmación **falsa y tranquilizadora**
+(«normofuncionante») por una **coherente con el cuerpo**. Lo cierra la fase que quita la graduación
+nativa de las prótesis mitral, tricúspide y pulmonar.
+
+**Otras cuatro cosas declaradas y no tocadas**, todas preexistentes:
+1. La línea reusada lleva **los números entre paréntesis**, contra lo que el propio `eaProtNarrativa`
+   declara («un resumen que repita seis números deja de ser un resumen»). Es consecuencia directa de
+   reutilizar la línea del cuerpo, que es lo pedido.
+2. En estilo **Narrativo** la línea aórtica protésica se **duplica**: «La válvula aórtica presenta una
+   prótesis … **con prótesis** …». Preexistente del cuerpo; ahora sale dos veces en el documento.
+3. `yaDicho` usa la palabra suelta («aórtica», «pulmonar»), así que una línea ajena —«Dilatación raíz
+   aórtica 46 mm», «Edema pulmonar intersticial»— cierra la compuerta (2) y **anula también el
+   respaldo**: el resumen no dice una palabra de la prótesis. Es «suprimir es callarse» entrando por
+   la puerta de al lado.
+4. El matcheo usa prefijos de dos letras (`VP`, `VT`) y depende del orden de `inf`. Hoy no es
+   alcanzable —las cuatro líneas de válvula se empujan antes que ETE, congénitas y `otras_notas`— pero
+   `'RVP '` matchearía `VP` y `'VTI'` matchearía `VT` si alguna vez llegan al narrativo.
+
+Cobertura: **TC-303**, 14 condiciones, siete mutaciones en rojo. Dos quedan **declaradas sin cobertura**: la rama `if (!P)` del
+aórtico: es defensiva y no alcanzable, porque el bloque ya salió
+por `valvEsProtesis(morf)`, que es la misma pregunta que hace `eaProtVeredicto` antes de devolver
+null; y el agujero del estilo **Conciso** —las siglas de `AFIRMA`— que no es alcanzable hoy porque
+esas afirmaciones también llegan al EN SUMA y las corta la compuerta (2). Las siglas quedan como
+defensa en profundidad, **declaradas como tales en el propio caso**, no fingiendo cobertura.
+**TC-289 y TC-291 reapuntados**: los dos fijaban el comportamiento anterior. La condición de
+TC-291 que escribí midiendo el defecto *con la advertencia de que se pondría en rojo el día que se
+arreglara* hizo exactamente eso, el mismo día.
+
 ## Archivo: las ocho frases metodológicas que se retiraron del informe con prótesis (2026-09-28)
 
 Decisión de Maicol: el informe firmado lleva el hallazgo clínico, no la justificación metodológica.

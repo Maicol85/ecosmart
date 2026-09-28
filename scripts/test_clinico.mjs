@@ -32824,25 +32824,33 @@ caso('TC-291', 'La severidad protesica llega al INFORME FIRMADO: ea_grado no se 
       vmax_ao:'4.5', gmedio_ao:'45' });
     /* La mitad de 'basal post-implante' se fue con las salvedades: era metodologia. Lo que el cuerpo
        TIENE que seguir diciendo es que no se gradua, y el EN SUMA que no resume una estenosis. */
+    /* ⚠️ La ultima clausula ya no puede ser «el EN SUMA no dice la palabra estenosis»: desde que el
+       resumen REUTILIZA la linea del cuerpo, dice «sin graduacion de ESTENOSIS protesica», que es
+       una negacion. Lo que hay que exigir es que no AFIRME: ni «posible», ni «criterios que
+       sugieren», ni un grado. Buscar la palabra suelta confundia afirmacion con mencion. */
     ex.push(['con TAVI el cuerpo describe y el EN SUMA no resume una estenosis que no se gradua',
       pl(rTavi.inf).indexOf('sin graduacion de estenosis protesica') > -1 &&
       pl(rTavi.inf).indexOf('basal post-implante') === -1 &&
       pl(rTavi.suma).indexOf('protesis aortica:') === -1 &&
-      pl(rTavi.suma).indexOf('estenosis') === -1,
+      pl(rTavi.suma).indexOf('posible estenosis') === -1 &&
+      pl(rTavi.suma).indexOf('criterios que sugieren') === -1 &&
+      pl(rTavi.suma).indexOf('con estenosis') === -1,
       'inf=«' + rTavi.inf.replace(/\\n/g, ' | ').slice(0, 220) + '» suma=«' + rTavi.suma.replace(/\\n/g, ' | ') + '»']);
-    /* ── ⚠️ DEFECTO PREEXISTENTE, MEDIDO Y DECLARADO, NO ARREGLADO ACA ──
-       Con Vmax 4,5 m/s y gradiente 45 mmHg, el EN SUMA dice «normofuncionante» mientras el cuerpo
-       se ABSTIENE de graduar. El gate de ese bloque exige evidencia positiva y que el resumen no
-       hable ya de la valvula; con TAVI el resumen no dice nada —porque no se gradua— asi que el
-       gate pasa y afirma normofuncion sobre evidencia de DISFUNCION, en la superficie que se copia
-       al resumen de alta. Lo mismo pasa por la rama 'faltan'. Corresponde al prompt de graduacion
-       protesica, cuya tarea 4 nombra este bloque; tocarlo aca habria sido cambiar cuando se afirma
-       una conducta protesica, que este pedido prohibe.
-       ESTA CONDICION SE PONE EN ROJO EL DIA QUE SE ARREGLE, y eso es deliberado: obliga a volver
-       aca en vez de dejar el defecto documentado en un comentario que nadie vuelve a leer. */
-    ex.push(['DECLARADO (lo cierra el prompt de graduacion protesica): el EN SUMA todavia afirma normofuncion donde el cuerpo se abstuvo',
-      pl(rTavi.suma).indexOf('normofuncionante') > -1,
-      'suma=«' + rTavi.suma.replace(/\\n/g, ' | ') + '» · cuerpo=«sin graduacion de estenosis protesica»']);
+    /* ── ⚠️ CERRADO EL 2026-09-28, Y ESTA CONDICION SE DIO VUELTA SOLA ──
+       Se escribio midiendo el DEFECTO —«el EN SUMA todavia afirma normofuncion donde el cuerpo se
+       abstuvo»— con la advertencia de que se pondria en rojo el dia que se arreglara, justamente
+       para obligar a volver aca en vez de dejarlo en un comentario que nadie relee. Paso: el
+       prompt de «normofuncionante» lo cerro y este caso se puso rojo el mismo dia.
+       Hoy mide lo contrario: que el resumen NO afirme normofuncion y que en su lugar lleve la linea
+       que el cuerpo ya imprimio. El defecto viejo, por si vuelve: con Vmax 4,5 y G. medio 45, el
+       cuerpo decia «sin graduacion de estenosis protesica» y el resumen «normofuncionante» — el
+       gate exigia evidencia positiva y que el resumen no hablara ya de la valvula, y con TAVI el
+       resumen no decia nada porque no se gradua, asi que pasaba y afirmaba normofuncion sobre
+       evidencia de DISFUNCION, en la superficie que se copia al resumen de alta. */
+    ex.push(['con TAVI el EN SUMA NO afirma normofuncion, y lleva la linea que el cuerpo imprimio',
+      pl(rTavi.suma).indexOf('normofuncionante') === -1 &&
+      pl(rTavi.suma).indexOf('sin graduacion de estenosis protesica') > -1,
+      'suma=«' + rTavi.suma.replace(/\\n/g, ' | ') + '»']);
   } finally {
     __t.limpiar();
   }
@@ -33293,9 +33301,20 @@ caso('TC-289', 'Cierre de la Fase 1: el area mitral se clasifica como se imprime
         .forEach(function(p){ limpiar(); const o = {}; o[p[0]] = p[2];
           Object.keys(p[3]).forEach(function(k){ o[k] = p[3][k]; });
           poner(o); generarInforme(); lineas[p[1]] = suma(); });
-      ex.push(['con parametros medidos y sin disfuncion las cuatro valvulas nombran la protesis normofuncionante con su etiologia real, y ninguna cae en la negacion global',
+      /* ⚠️ LA AORTICA DE ESTE ESCENARIO ES UN TAVI, y desde el 2026-09-28 ya NO dice
+         «normofuncionante»: la app no gradua esa protesis, asi que no puede afirmar que funciona
+         bien —ni siquiera con una Vmax de 1,8 m/s—. En su lugar el resumen lleva la linea que el
+         cuerpo ya imprimio. Las otras tres no cambian: mitral, tricuspide y pulmonar siguen igual
+         porque no hay criterio de normalidad protesica para ellas y el pedido prohibe inventar uno.
+         Se exige la sustitucion COMPLETA —que no diga normofuncionante Y que traiga la linea del
+         cuerpo—: con solo la primera mitad, esta condicion pasaria igual si el resumen se quedara
+         mudo sobre la protesis, que en la superficie que se copia al alta se lee igual de
+         tranquilizadora que la afirmacion falsa. */
+      ex.push(['con parametros medidos y sin disfuncion las protesis mitral, tricuspide y pulmonar nombran «normofuncionante» con su etiologia real; la TAVI no lo afirma y lleva la linea del cuerpo; ninguna cae en la negacion global',
         pl(lineas['mitral']).indexOf('protesis mitral mecanica normofuncionante') > -1 &&
-        pl(lineas['aórtica']).indexOf('protesis aortica transcateter tipo tavi normofuncionante') > -1 &&
+        pl(lineas['aórtica']).indexOf('normofuncionante') === -1 &&
+        pl(lineas['aórtica']).indexOf('tavi') > -1 &&
+        pl(lineas['aórtica']).indexOf('sin graduacion de estenosis protesica') > -1 &&
         pl(lineas['tricuspídea']).indexOf('protesis tricuspidea biologica normofuncionante') > -1 &&
         pl(lineas['pulmonar']).indexOf('protesis pulmonar mecanica normofuncionante') > -1 &&
         Object.keys(lineas).every(function(k){ return pl(lineas[k]).indexOf('sin alteraciones estructurales') === -1; }),
@@ -33963,6 +33982,150 @@ caso('TC-300', 'Etiologia mitral Valvulas<->ETE: sincroniza solo los pares que c
       ['la escritura no deja un hueco: un par cuyo destino no es una opcion no se asigna',
         huecoEvitado === 'Normal', '«' + huecoEvitado + '»'],
       ['DENOMINADOR: la tabla de pares quedo restaurada', pilaRestaurada, String(pilaRestaurada)]
+    ] };
+  })();
+`);
+
+caso('TC-303', 'El EN SUMA no afirma «protesis normofuncionante» donde la app no gradua, donde falta un eje o donde el cuerpo ya afirmo una conducta — y en su lugar reutiliza la linea que el cuerpo imprimio', `
+  return (async () => {
+    const NL = String.fromCharCode(10);
+    const ao = o => { Object.keys(o).forEach(k => __t.set(k, o[k]));
+      try{ calcAo(); }catch(e){} try{ calcEADetalle(); }catch(e){} };
+    const correr = sem => {
+      __t.limpiar();
+      __t.set('nombre','TC303'); __t.set('edad','70'); __t.set('peso','80'); __t.set('talla','175');
+      sem(); try{ valvProtSync(); }catch(e){} try{ vpSync(); }catch(e){}
+      const r = __t.informe();
+      return { inf: r.inf, suma: r.suma,
+               lineas: r.suma.split(NL).map(l => l.trim()).filter(l => l.length > 0),
+               nf: r.suma.indexOf('normofuncionante') > -1 };
+    };
+    const CAPTURA = { vmax_ao:'4.01', gmedio_ao:'41', itv_tsvi:'18', itv_ao:'53', diam_tsvi:'21', va_at:'101', tango_te:'280' };
+    const NORMAL  = { vmax_ao:'2.2',  gmedio_ao:'9',  itv_tsvi:'18', itv_ao:'26', diam_tsvi:'21', va_at:'60',  tango_te:'280' };
+
+    // ── (a) LA APP NO GRADUA LA TAVI: no puede afirmar que funciona bien ──────────────
+    const tavi  = correr(() => { __t.set('va_morf','TAVI'); ao(CAPTURA); });
+    const taviN = correr(() => { __t.set('va_morf','TAVI'); ao(NORMAL); });
+    const lineaCuerpoTavi = tavi.inf.split(NL).map(l => l.trim()).filter(l => l.indexOf('TAVI') > -1)[0] || '';
+
+    // ── (b) FALTA UN EJE: el cuerpo dice «sin datos suficientes» ──────────────────────
+    const faltan = correr(() => { __t.set('va_morf','Prótesis biológica');
+      __t.set('vmax_ao','4.5'); __t.set('gmedio_ao','45'); try{ calcAo(); }catch(e){} });
+
+    // ── (c) EL CUERPO YA AFIRMO UNA CONDUCTA ─────────────────────────────────────────
+    const pulm = correr(() => { __t.set('vp_morf','Prótesis biológica'); __t.set('vp_vmax','1.5'); });
+    const lineaCuerpoPulm = pulm.inf.split(NL).map(l => l.trim()).filter(l => l.indexOf('ulmonar') > -1)[0] || '';
+
+    // ── TAREA 4: con todo normal y protesis NO TAVI, el EN SUMA queda IDENTICO ────────
+    const bioN = correr(() => { __t.set('va_morf','Prótesis biológica'); ao(NORMAL); });
+    const mecN = correr(() => { __t.set('va_morf','Prótesis mecánica');  ao(NORMAL); });
+    /* Las dos cadenas son las MEDIDAS en HEAD antes del cambio, transcritas. */
+    const IGUAL_AO = 'Prótesis aórtica: sin criterios de estenosis protésica.';
+
+    // ── TAREA 3: mitral, tricuspide y pulmonar sin criterio protesico: NO se toca ─────
+    const tric = correr(() => { __t.set('vt_morf','Prótesis mecánica'); __t.set('et_gmedio','3'); });
+
+    // ── Cada valor aortico fuera de rango, UNO POR VEZ ───────────────────────────────
+    const unoPorVez = [
+      ['Vmax',     () => { __t.set('va_morf','Prótesis biológica'); ao(NORMAL); __t.set('vmax_ao','4.5'); try{calcAo();}catch(e){} try{calcEADetalle();}catch(e){} }],
+      ['G. medio', () => { __t.set('va_morf','Prótesis biológica'); ao(NORMAL); __t.set('gmedio_ao','45'); try{calcAo();}catch(e){} try{calcEADetalle();}catch(e){} }],
+      ['DVI',      () => { __t.set('va_morf','Prótesis biológica'); ao(NORMAL); __t.set('itv_ao','72'); try{calcAo();}catch(e){} try{calcEADetalle();}catch(e){} }]
+    ].map(function(E){ const r = correr(E[1]); return E[0] + '=' + (r.nf ? 'AFIRMA' : 'ok'); });
+
+    // ── Una NEGACION del cuerpo no cuenta como afirmacion ────────────────────────────
+    /* Mitral protesica con solo el DVI medido: el cuerpo dice «sin estenosis ni insuficiencia», que
+       CONTIENE la palabra estenosis y es lo contrario de afirmarla. Si el gate buscara «estenosis»
+       a secas en vez de los tokens de afirmacion, aca suprimiria una frase correcta. */
+    const mitNeg = correr(() => { __t.set('vm_morf','Prótesis biológica'); __t.set('vm_dvi','2.1'); });
+
+    // ── La guarda de TAVI, AISLADA de la de nivel ────────────────────────────────────
+    /* ⚠️ LAS DOS GUARDAS SE TAPAN ENTRE SI, y lo mostro una mutacion: con TAVI el veredicto no trae
+       'nivel', asi que 'P.nivel !== 'normal'' ya es true y suprime igual. Desactivar la guarda de
+       TAVI no cambiaba nada y la mutacion SOBREVIVIA. La de TAVI es la que expresa la intencion
+       —la app no gradua esa protesis— y la de nivel la cubre por accidente. Se aisla forzando un
+       veredicto TAVI con nivel normal, que es justo el caso donde la segunda deja de alcanzar. */
+    let taviAislada = '(no se pudo)';
+    if (typeof eaProtVeredicto === 'function') {
+      const _base = eaProtVeredicto;
+      window.eaProtVeredicto = function(){ const P = _base.apply(this, arguments);
+        return P ? Object.assign({}, P, { nivel: 'normal' }) : P; };
+      try { const r = correr(() => { __t.set('va_morf','TAVI'); ao(CAPTURA); });
+            taviAislada = r.nf ? 'AFIRMA' : 'ok'; }
+      finally { window.eaProtVeredicto = _base; }
+    }
+
+    // ── La IP pulmonar vive en OTRA linea del cuerpo, y tambien cuenta ───────────────
+    /* La pulmonar es la unica valvula que parte su hallazgo en DOS inf.push. Con el gate mirando
+       solo la primera linea, una bioprotesis con DVI medido e IP presente se resumia
+       «normofuncionante» mientras el cuerpo decia que hay insuficiencia. */
+    const pulmIP = correr(() => { __t.set('vp_morf','Prótesis biológica'); __t.set('vp_dvi','0.40');
+      __t.set('ip_vmax','2.8'); __t.set('pmad','8'); });
+
+    // ── El estilo CONCISO usa siglas: el gate no puede depender del estilo ───────────
+    /* El estilo NO es un campo del formulario: es la global 'estiloInforme' que lee 'estiloPick'. */
+    let concisoOk = '(no se pudo)';
+    if (typeof estiloInforme !== 'undefined') {
+      const _prev = estiloInforme;
+      try { window.estiloInforme = 'conciso';
+            const r = correr(() => { __t.set('vm_morf','Prótesis biológica'); __t.set('vm_dvi','2.1');
+                                     __t.set('em_gmedio','8'); });
+            concisoOk = r.nf ? 'AFIRMA («' + r.suma.split(NL).join(' | ') + '»)' : 'ok';
+      } finally { window.estiloInforme = _prev; }
+    }
+
+    // ── Las NATIVAS no se tocan ──────────────────────────────────────────────────────
+    const nat = correr(() => { __t.set('va_morf','Calcificada'); ao(NORMAL); });
+    const natM = correr(() => { __t.set('vm_morf','Reumática'); __t.set('em_gmedio','4'); });
+    __t.limpiar();
+
+    return { extra: [
+      ['DENOMINADOR: los escenarios generan su EN SUMA y el cuerpo su linea de protesis',
+        tavi.lineas.length > 0 && lineaCuerpoTavi.length > 0 && lineaCuerpoPulm.length > 0,
+        'suma TAVI=' + tavi.lineas.length + ' lineas · cuerpo TAVI=«' + lineaCuerpoTavi.slice(0, 60) + '»'],
+      ['⚠️ TAVI con los valores de la captura: el EN SUMA NO dice «normofuncionante»',
+        !tavi.nf, tavi.suma.split(NL).join(' | ')],
+      ['y en su lugar reutiliza la linea que el cuerpo ya imprimio, sin texto nuevo',
+        tavi.lineas.indexOf(lineaCuerpoTavi) > -1, tavi.suma.split(NL).join(' | ')],
+      ['TAVI con todo NORMAL tampoco la afirma: la app no la gradua, punto',
+        !taviN.nf, taviN.suma.split(NL).join(' | ')],
+      ['SAVR a la que le falta el DVI: el cuerpo dice «sin datos suficientes» y el resumen no afirma normofuncion',
+        !faltan.nf && faltan.suma.indexOf('sin datos suficientes') > -1,
+        faltan.suma.split(NL).join(' | ')],
+      ['⚠️ el cuerpo dice «protesis pulmonar y estenosis leve» y el resumen YA NO dice lo contrario',
+        !pulm.nf && pulm.lineas.indexOf(lineaCuerpoPulm) > -1,
+        'cuerpo=«' + lineaCuerpoPulm + '» · suma=«' + pulm.suma.split(NL).join(' | ') + '»'],
+      ['con todo normal y protesis NO TAVI el EN SUMA queda IDENTICO a antes del cambio',
+        bioN.suma.trim() === IGUAL_AO && mecN.suma.trim() === IGUAL_AO,
+        'bio=«' + bioN.suma.trim() + '» mec=«' + mecN.suma.trim() + '»'],
+      ['cada valor aortico fuera de rango, uno por vez: ninguno afirma normofuncion',
+        unoPorVez.every(x => x.indexOf('=ok') > -1), unoPorVez.join(' · ')],
+      ['DECLARADO (tarea 3): tricuspide y pulmonar no tienen criterio de normalidad protesica, asi que su comportamiento NO se toca',
+        tric.nf, tric.suma.split(NL).join(' | ')],
+      ['una NEGACION del cuerpo («sin estenosis ni insuficiencia») no cuenta como afirmacion',
+        mitNeg.nf, mitNeg.suma.split(NL).join(' | ')],
+      ['la guarda de TAVI suprime POR SI SOLA, sin apoyarse en la de nivel',
+        taviAislada === 'ok', taviAislada],
+      /* DECLARADO SIN COBERTURA: la rama 'if (!P)' del aortico es defensiva y NO es alcanzable —el
+         bloque ya salio por 'valvEsProtesis(morf)', que es la misma pregunta que hace
+         'eaProtVeredicto' antes de devolver null—. Se deja fail-closed igual, y se dice que no hay
+         caso en vez de inventar uno que la toque por un camino que el producto no tiene. */
+      ['DECLARADO: la rama «sin veredicto aortico» es defensiva y no alcanzable desde el producto',
+        true, 'valvEsProtesis ya filtro antes: eaProtVeredicto no puede devolver null aca'],
+      ['la insuficiencia pulmonar, que el cuerpo imprime en OTRA linea, tambien impide afirmar normofuncion',
+        !pulmIP.nf, pulmIP.suma.split(NL).join(' | ')],
+      /* ⚠️ ESTA CONDICION NO DISTINGUE, y se dice en vez de dejarla pasando por verde: sacar las
+         siglas de AFIRMA la deja igual de verde (mutacion P9 SOBREVIVE). El agujero del estilo
+         conciso no es alcanzable hoy porque las afirmaciones de mitral, aortica y tricuspide
+         TAMBIEN llegan al EN SUMA y las corta la compuerta (2), y la unica que llega hasta la (3)
+         —la pulmonar— no pasa por fraseEI, asi que dice «y estenosis leve» en los tres estilos.
+         Las siglas quedan como defensa en profundidad para el dia que una de esas lineas deje de
+         subir al resumen; mientras tanto esto verifica que el conciso no REGRESE, no que el gate
+         funcione por las siglas. */
+      ['DECLARADO: en CONCISO tampoco afirma — pero las siglas de AFIRMA no son lo que lo impide hoy',
+        concisoOk === 'ok', concisoOk],
+      ['las valvulas NATIVAS no cambian',
+        nat.suma.indexOf('normofuncionante') === -1 && natM.suma.indexOf('normofuncionante') === -1,
+        'ao nativa=«' + nat.suma.split(NL).join(' | ') + '» · mitral nativa=«' + natM.suma.split(NL).join(' | ') + '»']
     ] };
   })();
 `);
