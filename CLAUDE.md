@@ -4,6 +4,155 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## `em_grado` tiene DOS escritores, y el censo por nombre de función se queda con el primero (2026-09-28)
+
+Buscar «quién escribe `em_grado`» y quedarse con `sugerirSeveridadEM` es quedarse con **el que no
+importa en el caso más común**. Los dos:
+
+| escritor | corre cuando | escribe |
+|---|---|---|
+| `sugerirSeveridadEM` | sólo por el **THP** | `sel.value = opcion` |
+| la línea de `calcEM` que resuelve `gradSel` | **siempre** que recalcula la severidad integrada | `gradSel.value = gradoStr` |
+
+Los dos respetan `esqSevManual.em`, así que parecen equivalentes — y no lo son: **`sugerirSeveridadEM`
+no corre con un AVm por planimetría**. Medido: poniendo la guarda de «no graduar prótesis» sólo en
+`sugerirSeveridadEM`, el caso de la captura —prótesis mitral, **AVm 2,0 cm² por planimetría**— seguía
+dando `em_grado='moderada'`, igual que antes. La guarda tiene que ir en **los dos**, y la de `calcEM`
+es la que cierra el caso real.
+
+Vale la sospecha general: antes de dar por bloqueado un campo calculado, **contar los escritores**,
+no encontrar uno. Es la misma trampa que la fórmula duplicada pantalla/informe.
+
+## FASE A — la prótesis mitral, tricúspide y pulmonar dejan de graduarse con cortes nativos (2026-09-28)
+
+### Qué se cerró
+
+- **El CONTEXTO, reproducido y cerrado.** Prótesis mitral normal —AVm 2,0 cm², gradiente medio
+  4 mmHg— daba `em_grado='moderada'`, cuerpo «con estenosis moderada» y EN SUMA «EM moderada». **El
+  control que lo prueba**: la misma medición con «Reumática» daba exactamente el mismo grado, o sea
+  que ninguna función leía Morfología. Prótesis pulmonar con Vmax 2,2 daba `ep_grado='Leve'`.
+- **Bloqueo de la ESTENOSIS en las tres válvulas**, con una sola función dueña —`protNoGradua` /
+  `protNoGraduaPintar`, al lado de `valvEsProtesis`— y no una guarda copiada en cada calculador.
+  Puntos intervenidos: `sugerirSeveridadEM`, la línea `gradSel` de `calcEM`, `calcET`, `calcVP`, y
+  **`etSignif` del informe** (ver abajo).
+- **El informe protésico ya no niega lo que no evaluó.** Mitral y tricúspide imprimen tipo de
+  prótesis + valores medidos, sin veredicto. La pulmonar ya lo hacía.
+
+### ⚠️ `protNoGradua` NO pregunta «¿es una prótesis?» sino «¿ESTA prótesis se gradúa?»
+
+La aórtica **también** es una prótesis y **sí** se gradúa —tablas de la ASE 2024, y la TAVI con su
+propio veredicto—. La primera versión de la función contestaba `valvEsProtesis` a secas, así que el
+primer llamador que le pasara `va_morf` apagaba la graduación protésica aórtica entera. Hoy la lista
+`PROT_SIN_GRADO_VALVS = ['vm_morf','vt_morf','vp_morf']` vive **dentro** de la función: agregar o
+sacar una válvula del bloqueo se hace en un solo lugar.
+
+### ⚠️ BLOQUEAR EL CALCULADOR DE PANTALLA NO ALCANZA: EL INFORME TIENE SU PROPIO CAMINO
+
+`calcET` es **sólo el pintor** —lo dice su propio comentario— y el veredicto sale de `etEstado()`,
+que el narrativo llama por su cuenta. Con la guarda puesta sólo en el pintor, la pantalla quedaba sin
+grado y **el informe FIRMADO seguía diciendo** «Sin criterios de ET significativa con los datos
+disponibles (gradiente medio 3 mmHg)» sobre una prótesis, con los cortes nativos `ET_GMEDIO_SIGNIF` /
+`ET_THP_SIGNIF` / `ET_AVT_SIGNIF`. Es la trampa de la fórmula duplicada pantalla/informe: **la copia
+que llega al papel se pudre sin que se vea desde la app**. Se apaga en `etSignif`, el origen del que
+cuelgan la línea del cuerpo y los dos `suma.push` del EN SUMA, y no en cada consumidor.
+
+### La INSUFICIENCIA protésica NO se bloqueó, y es deliberado
+
+El pedido original decía bloquear `im_grado`, `it_grado` e `ip_grado`. **Se paró y se reportó**,
+porque contradecía al propio código: la aórtica protésica gradúa su insuficiencia con la cascada
+nativa citando la **Tabla 8 de la ASE 2024** — «Classification of intra- and paravalvular prosthetic
+AR severity is similar to that suggested for native valves». Lo que NO aplica a una prótesis es la
+escala de **estenosis**. Decisión de Maicol: la insuficiencia se sigue graduando, coherente con la
+aórtica.
+
+De paso, **la premisa de `ip_grado` era falsa**: tiene **CERO escritores**, se elige siempre a mano.
+No había nada que bloquear.
+
+**DEUDA DECLARADA:** la insuficiencia protésica usa la lógica integrada actual, **sin auditar contra
+las Tablas 8 y 13 de la ASE 2024**. `Jet/AI` y la vena contracta pierden fiabilidad con la sombra
+acústica de la prótesis, y el informe no lo advierte. Se audita en la fase de graduación real.
+
+### «Normofuncionante»: se retiró de las tres, y una decisión anterior quedó superada
+
+Al bloquear la estenosis, el EN SUMA **volvió** a decir «Prótesis mitral mecánica normofuncionante».
+La nota de la sesión anterior decía que eso quedaba «coherente ahora, porque el cuerpo dejó de
+afirmar». **Es al revés, y lo midieron los tests**: la compuerta (3) del bloque se disparaba *porque*
+el cuerpo decía «y estenosis leve»; al dejar de graduar, el cuerpo dejó de afirmar **y por eso la
+compuerta que dependía de esa afirmación dejó de protegernos**. TC-289 y TC-303 pasaban en `caf4be8`
+y se pusieron **rojos** con el bloqueo.
+
+Se agregó la guarda **(3b)**, que es la (4) de la TAVI generalizada: *si la app no gradúa esa
+prótesis, no puede afirmar que funciona bien ni siquiera con valores normales*. Antes había una
+asimetría defendible —la TAVI no se graduaba y las otras tres sí—; hoy las cuatro están igual.
+
+Esto **invirtió a propósito** tres aserciones de TC-289 y TC-303 que fijaban la decisión de la Fase 1
+(«mitral, tricúspide y pulmonar siguen igual porque no hay criterio de normalidad protésica»). Están
+marcadas en el test con la razón. **No son tests acomodados a un cambio que los rompió**: la decisión
+que fijaban quedó superada porque la app dejó de graduar esas prótesis.
+
+**Vuelve** cuando exista la graduación protésica real de esas tres válvulas (tablas ASE 2024).
+
+**Y no se cayó en el silencio**: suprimir no es callarse (lección de `caf4be8`). El EN SUMA reutiliza
+la línea que el cuerpo ya imprimió, así que nombra la prótesis; no cae en «Sin otras alteraciones…».
+Está fijado en las dos condiciones, que exigen las dos mitades.
+
+### Lo que encontró `/sharp-edges` sobre este mismo diff, y se corrigió en el acto
+
+- **El `typeof protNoGradua === 'function'` NO protegía de nada, y encima daba falsa confianza.**
+  `protNoGradua` es una *declaración* de función: se hoistea, así que el `typeof` da `'function'`
+  **aunque el script haya muerto**. Lo que podía fallar era el CUERPO, leyendo `PROT_SIN_GRADO_VALVS`
+  —una `const` declarada ~8.400 líneas más abajo— antes de su inicialización: eso no da `undefined`,
+  **lanza**. No era alcanzable hoy (ningún llamador corre en tiempo de carga; se verificaron las
+  sentencias de nivel superior, `loadCentro`, `DOMContentLoaded` y `RECALC_MODULOS`), pero cualquier
+  sentencia nueva en el medio mataba el bloque entero. **El bloque se mudó arriba de su primer
+  llamador** y se sacaron los `typeof`. Ver `ecosmart-const-tdz-corta-script`.
+- **`protNoGradua` fallaba ABIERTO.** Con `#morf` inexistente devolvía `false` = «graduá con cortes
+  nativos», sin síntoma. Ahora **falla cerrado** y lo grita por consola.
+- **`protNoGraduaPintar` tenía un `if (e)` mudo.** Si el rótulo cambiaba de id, seguía devolviendo
+  `true` —el llamador cortaba y no escribía el grado— pero **la cápsula quedaba con el grado
+  anterior**, sin la leyenda: pantalla con severidad nativa y nada que dijera que la app se abstuvo.
+- **⚠️ EL QUE IMPORTABA: la guarda (3b) podía dejar el EN SUMA MUDO.** `reusar()` se rinde cuando no
+  encuentra línea de cuerpo, así que suprimía «normofuncionante» **sin reemplazo**; si esa válvula
+  era lo único que el resumen tenía, `suma` quedaba vacío y el fallback publicaba **«Estudio sin
+  alteraciones estructurales ni funcionales significativas»** sobre una prótesis con valores medidos
+  — la negación tranquilizadora que todo el bloque existe para evitar, entrando por la puerta de
+  atrás. Hoy `reusar` **devuelve si cubrió el resumen** y la guarda pone una frase de respaldo que
+  nombra la prótesis sin graduar nada.
+
+### Mutación que SOBREVIVE, y se declara en vez de decir que está cubierta
+
+Quitarle a `protNoGradua` la línea del allowlist —`if (PROT_SIN_GRADO_VALVS.indexOf(morfId) === -1)
+return false;`— **no pone ningún caso en rojo**. La razón: hoy el único llamador que le pasa
+`va_morf` es la guarda (3b), y ahí el resultado coincide con el del camino aórtico (ni
+«normofuncionante» ni silencio, la línea del cuerpo en los dos). O sea que la lista es **defensa en
+profundidad para el próximo llamador**, no una condición observable hoy. Se queda porque expresa la
+intención —la aórtica se gradúa— igual que la guarda de TAVI de TC-303, que también sobrevivía.
+
+Las otras cinco mutaciones **matan**: sacar la guarda (3b) (TC-289 + TC-303), forzar `_vmProt` a
+`false`, sacarle el `&& !_vtProt` a `etSignif`, y quitar cualquiera de las dos ramas `_vtProt` del
+tricúspide (las cuatro, TC-304).
+
+**Y una mutación encontró un defecto en el TEST, no en el código:** la condición del tricúspide
+buscaba «ET significativa» en el CUERPO, pero el cuerpo escribe «Estenosis tricuspídea significativa»
+y la sigla sale sólo en el EN SUMA. Con el token equivocado daba verde con el veredicto nativo
+impreso en las dos superficies. Además el caso usaba un gradiente de 4 mmHg, **por debajo** del corte
+`ET_GMEDIO_SIGNIF` (5), así que no ejercía nada. Hoy usa 9 mmHg y mira las dos superficies con la
+redacción de cada una.
+
+### Declarado sin cambiar: la prótesis sin un solo valor medido
+
+Con prótesis y **ninguna** medición, el cuerpo dice «Válvula mitral con prótesis mecánica.» — correcto
+(no afirma nada) pero no distingue «prótesis normal medida» de «prótesis que nadie midió». Se deja
+así porque el pedido fue **una línea y sin salvedades**; queda anotado como decisión clínica abierta.
+
+### Estudios guardados (tarea 5) — declarado, sin código
+
+Un grado ya guardado **no se borra ni cambia**: el bloqueo vive en los CALCULADORES, no en el
+guardado ni en la carga, y no hay migración de datos históricos. Un estudio viejo con
+`em_grado='moderada'` sigue diciendo «moderada» al reabrirlo, y el informe lo imprime — que es
+también la regla general «un grado se imprime sólo si alguien lo eligió». Reabrir sin editar no
+cambia ningún valor; lo fija TC-301, que ya existía.
+
 ## «Prótesis normofuncionante»: cuándo el EN SUMA puede afirmar que funciona bien (2026-09-28)
 
 El bloque que empuja «Prótesis <válvula> <tipo> normofuncionante» al EN SUMA exigía dos cosas:

@@ -20531,6 +20531,61 @@ function calcTHP() {
   calcEM();
 }
 
+/* ══ EL GRADO NO SE AUTO-COMPLETA SOBRE UNA PRÓTESIS ═══════════════════════════════════════════
+   Medido el 27/09 y reproducido el 28/09 en el navegador: NINGUNA función de severidad de mitral,
+   tricúspide y pulmonar leía Morfología, así que una prótesis mitral NORMAL —AVm 2,0 cm², gradiente
+   medio 4 mmHg— salía «Moderada» con los cortes de válvula NATIVA, y esa graduación llegaba al
+   informe firmado y al EN SUMA. La prueba de que no leen Morfología: la misma medición con
+   «Reumática» daba exactamente el mismo grado.
+   La aórtica NO entra acá: ya usa las tablas de prótesis de la ASE 2024 y la TAVI no se gradúa por
+   diseño. La graduación protésica real de las otras tres es una fase futura con tablas verificadas;
+   hasta entonces, decisión de Maicol: **un informe sin grado es mejor que uno con grado
+   equivocado**. El médico puede elegirlo a mano — el selector sigue habilitado y esta guarda sólo
+   impide que lo escriba un CALCULADOR. La INSUFICIENCIA sí se gradúa: la ASE 2024 remite la
+   regurgitación protésica a los criterios de la válvula nativa (ver CLAUDE.md).
+   Una sola función para todos los escritores —`sugerirSeveridadEM`, la línea `gradSel` de `calcEM`,
+   `calcET`, `calcVP`, el `etSignif` del informe y la guarda de «normofuncionante»—: con una guarda
+   copiada en cada uno, el que se olvide sigue graduando y nadie se entera.
+   ⚠️ VA ACÁ ARRIBA, ANTES DEL PRIMER LLAMADOR, POR TDZ. Ver la nota en el lugar donde vivía. */
+const PROT_SIN_GRADO_TXT = 'No graduada: los cortes de válvula nativa no aplican a prótesis';
+/* ⚠️ LA PREGUNTA NO ES «¿ES UNA PRÓTESIS?» SINO «¿ESTA PRÓTESIS SE GRADÚA?», y confundirlas rompe
+   la aórtica. `valvEsProtesis` también dice que sí sobre `va_morf` —una SAVR es una prótesis— pero
+   la aórtica SÍ se gradúa, con las tablas de la ASE 2024, y la TAVI tiene su propio veredicto. Sin
+   esta lista, el primer llamador que pasara `va_morf` —y hay uno, la guarda de «normofuncionante»—
+   apagaría la graduación protésica aórtica entera sin que nadie lo pida.
+   La lista vive ACÁ y no en cada llamador: agregar o sacar una válvula del bloqueo se hace en un
+   solo lugar y todos los consumidores la siguen. */
+const PROT_SIN_GRADO_VALVS = ['vm_morf', 'vt_morf', 'vp_morf'];
+function protNoGradua(morfId){
+  if (PROT_SIN_GRADO_VALVS.indexOf(morfId) === -1) return false;   // la aórtica y las nativas sí gradúan
+  const el = document.getElementById(morfId);
+  /* ⚠️ FALLA CERRADO, y la dirección importa. Antes un `#morf` inexistente —id mal escrito, un
+     select que cambia de id en un rediseño— devolvía `false`, o sea «graduá con cortes nativos»:
+     el defecto volvía SIN síntoma, en silencio y en el informe firmado. Al revés cuesta un grado
+     que el médico pone a mano, que es la mitad barata del error. El `console.error` es el que
+     convierte «no pasa nada» en algo que se ve. */
+  if (!el) { console.error('[protNoGradua] no existe #' + morfId + ' — no se gradúa, por las dudas'); return true; }
+  return valvEsProtesis(el.value);
+}
+/* Pinta la línea en el rótulo de severidad sugerida y devuelve `true`, para que el llamador haga
+   `if (protNoGraduaPintar(...)) return;` en una línea y no se olvide de ninguna de las dos mitades. */
+function protNoGraduaPintar(morfId, idsPintar){
+  if (!protNoGradua(morfId)) return false;
+  (idsPintar || []).forEach(function(id){
+    const e = document.getElementById(id);
+    /* ⚠️ EL `else` NO ES DECORATIVO. Sin él, si el rótulo cambia de id la función sigue devolviendo
+       `true` —el llamador corta y no escribe el grado— pero la CÁPSULA QUEDA CON EL GRADO ANTERIOR
+       y sin la leyenda: la pantalla muestra una severidad calculada con cortes nativos y nada dice
+       que la app se abstuvo. Suprimir sin avisar es el modo de falla de toda esta fase. */
+    if (e) e.textContent = PROT_SIN_GRADO_TXT;
+    else console.error('[protNoGraduaPintar] no existe el rótulo #' + id + ' — el grado viejo puede quedar visible');
+  });
+  return true;
+}
+window.PROT_SIN_GRADO_TXT = PROT_SIN_GRADO_TXT;
+window.protNoGradua = protNoGradua;
+window.protNoGraduaPintar = protNoGraduaPintar;
+
 function sugerirSeveridadEM(avm) {
   const sel = document.getElementById('em_grado');
   const badgeEl = document.getElementById('em-thp-badge');
@@ -20539,6 +20594,8 @@ function sugerirSeveridadEM(avm) {
      que en calcIM_ESC/calcIA_ESC/calcIT_ESC. Sin esto, tocar cualquier campo del Doppler
      aórtico cambiaba el <select> de «Severa» a lo que diera la Vmax, sin avisar. */
   if (window.esqSevManual && window.esqSevManual.em) return;
+  /* Sobre una prótesis no se escribe grado: los cortes de abajo son de válvula nativa. */
+  if (protNoGraduaPintar('vm_morf', ['em-thp-badge'])) return;
   /* Mismas constantes que clasificarAVm: ésta es la función que ESCRIBE `em_grado`, así que
      si las dos escalas divergen el <select> y el score integrado discrepan sobre el mismo
      campo — que es el defecto que este bloque cierra. */
@@ -20754,7 +20811,17 @@ function calcEM() {
      en la pastilla, tocaba cualquier campo del bloque (THP, gradiente medio, VTI) y el grado
      volvía al autocálculo sin aviso. `em_grado` baja al informe narrativo y a la tabla del PDF.
      Es el mismo cierre que ya tienen `autoCompletarSevIM` y `autoCompletarSevIA`. */
-  if (gradSel && !(window.esqSevManual && window.esqSevManual.em)) gradSel.value = gradoStr;
+  /* ⚠️ Y ACÁ TAMBIÉN, que es el escritor que de verdad producía el «Moderada» de la captura:
+     `sugerirSeveridadEM` sólo corre por el THP, así que bloquear allá dejaba el caso del CONTEXTO
+     —AVm 2,0 por planimetría— exactamente igual. Medido: con la guarda sólo en la otra función,
+     `em_grado` seguía en «moderada». Dos escritores del mismo campo, y el censo por nombre de
+     función se quedaba con el primero. */
+  /* Una sola lectura para las dos ramas: son las dos mitades de la MISMA decisión —no escribir el
+     grado y decir por qué— y con dos llamadas podían divergir el día que la función deje de ser
+     una lectura pura del DOM. */
+  const _emProt = protNoGradua('vm_morf');
+  if (gradSel && !(window.esqSevManual && window.esqSevManual.em) && !_emProt) gradSel.value = gradoStr;
+  if (_emProt && sevEl) sevEl.textContent = PROT_SIN_GRADO_TXT;
 
   const sevs = [...new Set(params.map(p=>p.sev))];
   if (discEl) discEl.textContent = sevs.length > 1 ? '⚠️ Parámetros discordantes — revisar integración clínica: ' + params.map(p=>`${p.p}:${p.sev}`).join(', ') : '';
@@ -22642,6 +22709,7 @@ function calcVP() {
      función de clasificación es la única que decide qué es un gradiente, y acá no se repite el
      criterio. Antes se preguntaba por `vmax === null && gmax === null`, que dejaba pasar el
      cero y el texto no numérico. */
+  if (protNoGraduaPintar('vp_morf', ['vp-sev-badge'])) return;
   const opcion = epGradoPorGmax(gmax);
   if (opcion === null) {
     /* Sin gradiente utilizable, un grado que quedó de una medición borrada es una estenosis
@@ -22884,6 +22952,9 @@ function calcET() {
   const _pisable = !!sel && (sel.value === '' || sel.value === 'Sin estenosis' ||
                              (_sug && sel.value === _sug));
   const fueraTxt = r.fuera.length ? ' Fuera de rango: ' + r.fuera.join(' y ') + '.' : '';
+  /* Prótesis: los valores medidos siguen visibles —el área ya se escribió arriba— pero el grado no
+     se sugiere ni se escribe. */
+  if (protNoGraduaPintar('vt_morf', ['et-sev'])) { _msg(''); return; }
   if (!r.hayDatos) {
     if (sel && _sug) delete sel.dataset.sugerido;
     _sev('—'); _msg('');
@@ -25124,8 +25195,51 @@ function generarInforme(opts) {
     if (emDesc) suma.push(`EM ${emDesc}.`); else if (estE) suma.push('Estenosis mitral.');
     if (imG > 0) suma.push(`IM ${imTxt[imG]}.`); else if (insE) suma.push('Insuficiencia mitral.');
     const cE = fraseEI(estE, insE), cC = fraseEI(estC, insC);
+    /* ══ PRÓTESIS: LA FRASE SE ARMA CON LO QUE LA APP PUEDE SOSTENER, Y NADA MÁS ════════════════
+       ⚠️ EL PROBLEMA NO ES SÓLO «sin insuficiencia»: es que `fraseEI` NIEGA LAS DOS MITADES. Con
+       una prótesis mitral y los valores de fábrica el cuerpo imprimía «Válvula mitral con prótesis
+       mecánica, sin estenosis ni insuficiencia» — y desde la Fase A ese «sin estenosis» es una
+       afirmación que la app dejó de poder hacer: no es que midió y descartó, es que se abstiene de
+       graduar. Publicar la negación es peor que el grado equivocado que vinimos a sacar, porque se
+       lee como un descarte activo.
+       Por eso acá NO se usa `fraseEI`: se listan sólo las mitades afirmables. La ESTENOSIS entra
+       únicamente si hay un grado explícito —que con el bloqueo sólo puede haberlo puesto el médico
+       a mano, o venir de un estudio guardado de antes—; la INSUFICIENCIA entra cuando está graduada,
+       porque ésa la app SÍ la gradúa sobre prótesis (ASE 2024: los criterios de regurgitación
+       protésica son los de la válvula nativa, que es lo que ya hace la aórtica). Sin ninguna de las
+       dos no se dice nada de más: quedan el tipo de prótesis y los valores medidos.
+       La AÓRTICA no pasa por acá —tiene `eaProtNarrativa`, con las tablas protésicas de la ASE
+       2024— y las NATIVAS tampoco: `protNoGradua` devuelve `false` para las dos. */
+    const _vmProt = (typeof protNoGradua === 'function') && protNoGradua('vm_morf');
     let vmSent;
-    if (!estE && !insE) {
+    if (_vmProt) {
+      /* Los valores medidos SUSTITUYEN al grado, así que si no hay ninguno la oración queda con el
+         tipo de prótesis solo — que es correcto: es exactamente lo que se sabe. El orden sigue al
+         de la captura del CONTEXTO (AVm y después el gradiente). La planimetría y el ETE comparten
+         renglón con la misma precedencia que usa `em-plan-row` y la clasificación integrada. */
+      const _vmVals = [];
+      const _aPlan = v('avm_plan'), _aEte = v('avm_ete'), _aCont = v('avm_cont'), _aThp = v('avm_thp');
+      /* «por planimetría» y no «(planimetría)»: el bloque entero ya va entre paréntesis y anidarlos
+         daba «(AVm 4.2 cm² (planimetría))». Es el mismo criterio que la etiología pulmonar, que
+         usa «de etiología X» porque varias etiquetas ya traen su propio paréntesis. */
+      if (_aPlan !== null)      _vmVals.push(`AVm ${_aPlan} cm² por planimetría`);
+      else if (_aEte !== null)  _vmVals.push(`AVm ${_aEte} cm² por ETE`);
+      if (_aCont !== null)      _vmVals.push(`AVm ${_aCont} cm² por continuidad`);
+      if (_aThp !== null)       _vmVals.push(`AVm ${_aThp} cm² por THP`);
+      const _gmedM = v('em_gmedio'); if (_gmedM !== null) _vmVals.push(`gradiente medio ${_gmedM} mmHg`);
+      const _vmaxM = v('em_vmax');   if (_vmaxM !== null) _vmVals.push(`Vmax ${_vmaxM} m/s`);
+      const _vmValsTxt = _vmVals.length ? ` (${_vmVals.join(', ')})` : '';
+      /* Une con «y»/«e» siguiendo la misma regla de `fraseEI`, que elige por la vocal inicial. */
+      const _unir = (a) => a.length === 2
+        ? a[0] + (/^[aeiouáéíóúAEIOU]/.test(a[1]) ? ' e ' : ' y ') + a[1] : a[0];
+      const _pE = [estE, insE].filter(Boolean), _pC = [estC, insC].filter(Boolean);
+      const _fE = _pE.length ? `, con ${_unir(_pE)}` : '';
+      const _fC = _pC.length ? `, con ${_unir(_pC)}` : '';
+      vmSent = estiloPick(
+        `VM ${_vmDe}${_fC}${_vmValsTxt}.`,
+        `Válvula mitral ${_vmDe}${_fE}${_vmValsTxt}.`,
+        `La válvula mitral presenta ${_vmPres}${_fE}${_vmValsTxt}.`);
+    } else if (!estE && !insE) {
       vmSent = estiloPick(
         `VM normal.`,
         `Válvula mitral ${_vmDe}, ${cE}.`,
@@ -25401,7 +25515,19 @@ function generarInforme(opts) {
        habrían quedado dos definiciones del mismo hecho en el mismo documento — el defecto que
        este archivo persigue desde las dos copias de los criterios del TEER. */
     const _et = (typeof etEstado === 'function') ? etEstado() : null;
-    const etSignif = !!(_et && _et.signif);
+    /* ⚠️ BLOQUEAR `calcET` NO ALCANZABA: EL INFORME NO PASA POR AHÍ. `calcET` es sólo el PINTOR
+       —lo dice su propio comentario— y el veredicto sale de `etEstado()`, que el narrativo llama
+       por su cuenta acá. La guarda que la Fase A puso en el pintor dejaba la pantalla sin grado y
+       el informe FIRMADO seguía diciendo «Sin criterios de ET significativa con los datos
+       disponibles (gradiente medio 3 mmHg)» sobre una prótesis, con los cortes nativos
+       `ET_GMEDIO_SIGNIF` / `ET_THP_SIGNIF` / `ET_AVT_SIGNIF`. Es la trampa de la fórmula duplicada
+       pantalla/informe: la copia que llega al papel se pudre sin que se vea desde la app.
+       Se apaga ACÁ, en `etSignif`, y no en cada consumidor: de este booleano cuelgan la línea del
+       cuerpo, la de «significativa» y los dos `suma.push` del EN SUMA. Apagarlo en el origen es lo
+       que evita que el próximo consumidor nazca ya roto. `_et` se conserva entero porque los
+       VALORES MEDIDOS se siguen publicando — lo que se retira es el veredicto, no el dato. */
+    const _vtProt = (typeof protNoGradua === 'function') && protNoGradua('vt_morf');
+    const etSignif = !!(_et && _et.signif) && !_vtProt;
     /* SÓLO LOS PARÁMETROS QUE SOSTIENEN EL VEREDICTO, y sólo los cargados. Publicar un THP que
        no alcanza el umbral al lado de «significativa» invita a leerlo como si lo sostuviera. */
     const _etPar = [];
@@ -25426,7 +25552,13 @@ function generarInforme(opts) {
       ? `Estenosis tricuspídea ${etDesc}${etSignif ? ', significativa' : ''}${etParTxt}.${etFueraTxt} `
       : (etSignif ? `Estenosis tricuspídea significativa${etParTxt}.${etFueraTxt} `
       : (etPill ? 'Estenosis tricuspídea. '
-      : ((_et && _et.hayDatos) ? `Sin criterios de ET significativa con los datos disponibles${etParTxt}.${etFueraTxt} ` : '')));
+      /* Con prótesis tampoco se emite la NEGACIÓN. «Sin criterios de ET significativa con los datos
+         disponibles» se lee como un descarte activo, y la app no descartó: se abstuvo de aplicar
+         cortes que no corresponden. Los valores medidos NO se pierden — bajan a la oración de la
+         válvula, que es donde ya está el tipo de prótesis, en vez de abrir una oración propia.
+         Lo que sí se conserva es el aviso de valor fuera de rango: ése no depende de los cortes. */
+      : (_vtProt ? (etFueraTxt ? etFueraTxt.trim() + ' ' : '')
+      : ((_et && _et.hayDatos) ? `Sin criterios de ET significativa con los datos disponibles${etParTxt}.${etFueraTxt} ` : ''))));
     /* `vt_morf` NO LLEGABA AL NARRATIVO. Vivía sólo en la tabla del PDF y en la columna del
        Excel, así que una afectación carcinoide o una endocarditis de la tricúspide se cargaban
        y NO aparecían en el informe firmado — y la carcinoide afecta característicamente a esta
@@ -25445,12 +25577,20 @@ function generarInforme(opts) {
        declara la inconsistencia en vez de publicar las dos mitades como si nada. */
     if (Object.prototype.hasOwnProperty.call(VALV_MORF_ETIOL, String(vtMorf).trim())) ccMarcarParrafo();
     const vtFuncSinIT = vtDe && vtMorf === 'Funcional / dilatación VD' && !hayIT;
-    const vtFrag = (vtDe && hayIT) ? `Válvula tricúspide ${vtDe}. ` : '';
+    /* Con prótesis los valores medidos viajan ACÁ, que es la oración que nombra la válvula: es el
+       reemplazo de la línea de veredicto que `etFrag` dejó de emitir, no un agregado. */
+    const vtFrag = (vtDe && hayIT) ? `Válvula tricúspide ${vtDe}${_vtProt ? etParTxt : ''}. ` : '';
     /* En la rama SIN insuficiencia la morfología se PLIEGA en la oración en vez de anteponerse:
        si no, «Válvula tricúspide» abría dos oraciones consecutivas. */
     const vtSinIT = vtFuncSinIT
       ? 'Válvula tricúspide: se consignó insuficiencia funcional por dilatación del ventrículo derecho, sin grado de insuficiencia cargado.'
-      : `Válvula tricúspide${vtDe ? ' ' + vtDe + ',' : ''} sin insuficiencia valorable.`;
+      /* Con prótesis y sin un solo parámetro de regurgitación cargado, «sin insuficiencia
+         valorable» es la misma negación sin evidencia que el «sin estenosis» de la mitral: nadie
+         evaluó la insuficiencia, así que no se la niega. En su lugar quedan el tipo de prótesis y
+         los valores medidos. Si la IT está cargada esta rama no corre —la toma `hayIT`— y el grado
+         se publica como siempre, porque la regurgitación protésica SÍ se gradúa (ASE 2024). */
+      : (_vtProt ? `Válvula tricúspide${vtDe ? ' ' + vtDe : ''}${etParTxt}.`
+      : `Válvula tricúspide${vtDe ? ' ' + vtDe + ',' : ''} sin insuficiencia valorable.`);
     const tapBajo = tap !== null && tap < 105;
     let tricLine;
     if (hayIT) {
@@ -27036,11 +27176,16 @@ function generarInforme(opts) {
        del médico en los refrescos silenciosos, así que si él corrigió esa oración a mano, el resumen
        publica la versión de la app. Vale para `inf`, no para el textarea.
        Si el cuerpo no tiene línea para esa válvula, no se inventa ninguna. */
+    /* ⚠️ DEVUELVE SI EL RESUMEN QUEDÓ CUBIERTO, y no es cosmético: el llamador necesita saberlo.
+       Las dos salidas tempranas son «no hace falta empujar» por razones opuestas —no hay línea de
+       cuerpo (queda DESCUBIERTO) o ya está esa misma línea en el resumen (queda CUBIERTO)— y antes
+       las dos devolvían lo mismo, así que quien llamaba no podía distinguirlas. */
     const reusar = function(V){
       const t = lineaCuerpo(V);
-      if (!t) return;
-      if (suma.some(function(l){ return String(l || '') === t; })) return;
+      if (!t) return false;
+      if (suma.some(function(l){ return String(l || '') === t; })) return true;
       suma.push(t);
+      return true;
     };
     /* ← FASE 2: devolver la frase de disfunción con los cortes protésicos verificados. */
     const _protDisfuncion = function(){ return null; };
@@ -27063,6 +27208,33 @@ function generarInforme(opts) {
       if (yaEnSuma) return;                   // ya hay una línea de esta válvula: no se contradice
       /* (3) EL CUERPO YA AFIRMÓ UNA CONDUCTA. No se resume al revés de lo que dice el informe. */
       if (cuerpoAfirma(V)) { reusar(V); return; }
+      /* (3b) LAS OTRAS TRES PRÓTESIS TAMPOCO SE GRADÚAN, y ésta es la contracara de la Fase A.
+         ⚠️ NO ES TEXTO NUEVO: es una compuerta que se volvió ALCANZABLE al bloquear la estenosis.
+         Mientras el cuerpo decía «Válvula pulmonar con prótesis biológica y estenosis leve», la
+         guarda (3) veía ese «y estenosis» y reutilizaba la línea. Al dejar de graduar, el cuerpo
+         pasó a decir sólo «Válvula pulmonar con prótesis biológica (Vmax 1.5 m/s…)» —sin token de
+         AFIRMA—, la (3) dejó de disparar, y el resumen volvió a publicar «Prótesis pulmonar
+         biológica normofuncionante» sobre una válvula que la app acababa de declarar no graduable.
+         Medido, no supuesto: TC-289 y TC-303 pasaban en `caf4be8` y se pusieron ROJOS con el
+         bloqueo. La nota de la sesión anterior decía que al dejar de graduar el resumen quedaba
+         «coherente ahora, porque el cuerpo dejó de afirmar» — es al revés: el cuerpo dejó de
+         afirmar Y POR ESO la compuerta que dependía de esa afirmación dejó de protegernos.
+         El criterio es el MISMO de (4), la de la TAVI: si la app no gradúa esa prótesis, no puede
+         afirmar que funciona bien ni siquiera con valores normales. Se pregunta por
+         `protNoGradua` —la función dueña que también bloquea el grado— y no por una lista de ids
+         repetida acá; por eso esa función excluye `va_morf`, que sí se gradúa. */
+      /* ⚠️ Y SI NO HAY LÍNEA DE CUERPO QUE REUSAR, SE DICE — no se sale en silencio. Lo encontró
+         /sharp-edges sobre este mismo diff: `reusar` se rinde cuando `lineaCuerpo` no encuentra
+         nada, así que la guarda suprimía «normofuncionante» SIN reemplazo; si esa válvula era lo
+         único que el resumen tenía, `suma` quedaba vacío y el fallback publicaba «Estudio sin
+         alteraciones estructurales ni funcionales significativas» sobre una prótesis con valores
+         medidos. Es la negación tranquilizadora que este bloque entero existe para evitar, entrando
+         por la puerta de atrás. La frase de respaldo NO gradúa ni afirma función: sólo nombra la
+         prótesis y dice que no se gradúa, que es exactamente lo que la app sabe. */
+      if (protNoGradua(V.morf)) {
+        if (!reusar(V)) suma.push(base + ': no se gradúa la estenosis con cortes de válvula nativa.');
+        return;
+      }
       /* (4) LA APP NO GRADÚA LA TAVI, así que no puede afirmar que funciona bien. La captura que
          disparó esto: Vmax 4,01 m/s, G. medio 41 mmHg, cuerpo «sin graduación de estenosis
          protésica» y resumen «normofuncionante». Y (5) con el veredicto protésico aórtico en
@@ -28796,6 +28968,15 @@ function valvEsProtesis(val){
 }
 window.VALV_PROT_OPCIONES = VALV_PROT_OPCIONES;
 window.valvEsProtesis = valvEsProtesis;
+
+/* ⚠️ `protNoGradua` / `protNoGraduaPintar` / `PROT_SIN_GRADO_TXT` VIVÍAN ACÁ y se MUDARON arriba,
+   al lado de `sugerirSeveridadEM`, que es su primer llamador. El motivo es TDZ, no estética: sus
+   dos `const` quedaban declaradas ~8.400 líneas DESPUÉS de las funciones que las usan, y una
+   `const` leída antes de su línea no da `undefined` — LANZA, y se lleva puesto el resto del bloque
+   `<script>`. Hoy ningún llamador corre en tiempo de carga, así que no era alcanzable; lo que la
+   mudanza cierra es que mañana alguien agregue una sentencia de nivel superior en el medio y mate
+   la app entera con el síntoma de siempre («abre sin ningún estudio»). Lo encontró /sharp-edges,
+   y este repo ya pagó ese bug una vez. Ver `ecosmart-const-tdz-corta-script`. */
 /* ⚠️ ASIGNAR `.value` NO DISPARA `onchange`, así que esto NO alcanza con estar en los cuatro
    selects: hay que llamarlo en cada camino que repone campos sin eventos. **VA EN
    `RECALC_MODULOS`**, que es el embudo de las cinco rutas —editar, abrir por `?estudio=`, el
@@ -82342,8 +82523,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260928-0951';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790599910220;                 /* eco-build-ms */
+const ECO_BUILD    = '20260928-1123';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790605416175;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -82429,7 +82610,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-0951</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-1123</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

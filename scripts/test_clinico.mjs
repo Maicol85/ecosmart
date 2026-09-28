@@ -33301,22 +33301,28 @@ caso('TC-289', 'Cierre de la Fase 1: el area mitral se clasifica como se imprime
         .forEach(function(p){ limpiar(); const o = {}; o[p[0]] = p[2];
           Object.keys(p[3]).forEach(function(k){ o[k] = p[3][k]; });
           poner(o); generarInforme(); lineas[p[1]] = suma(); });
-      /* ⚠️ LA AORTICA DE ESTE ESCENARIO ES UN TAVI, y desde el 2026-09-28 ya NO dice
-         «normofuncionante»: la app no gradua esa protesis, asi que no puede afirmar que funciona
-         bien —ni siquiera con una Vmax de 1,8 m/s—. En su lugar el resumen lleva la linea que el
-         cuerpo ya imprimio. Las otras tres no cambian: mitral, tricuspide y pulmonar siguen igual
-         porque no hay criterio de normalidad protesica para ellas y el pedido prohibe inventar uno.
-         Se exige la sustitucion COMPLETA —que no diga normofuncionante Y que traiga la linea del
-         cuerpo—: con solo la primera mitad, esta condicion pasaria igual si el resumen se quedara
-         mudo sobre la protesis, que en la superficie que se copia al alta se lee igual de
-         tranquilizadora que la afirmacion falsa. */
-      ex.push(['con parametros medidos y sin disfuncion las protesis mitral, tricuspide y pulmonar nombran «normofuncionante» con su etiologia real; la TAVI no lo afirma y lleva la linea del cuerpo; ninguna cae en la negacion global',
-        pl(lineas['mitral']).indexOf('protesis mitral mecanica normofuncionante') > -1 &&
-        pl(lineas['aórtica']).indexOf('normofuncionante') === -1 &&
+      /* ⚠️ ESTA CONDICION EXIGIA LO CONTRARIO HASTA LA FASE A (2026-09-28), Y SE INVIRTIO A
+         PROPOSITO — no es un test acomodado a un cambio que lo rompio.
+         Decia que mitral, tricuspide y pulmonar «siguen igual porque no hay criterio de normalidad
+         protesica para ellas y el pedido prohibe inventar uno». La Fase A dejo de graduar la
+         ESTENOSIS de esas tres —los cortes nativos no aplican a una protesis— y con eso la
+         afirmacion perdio el sustento que le quedaba: es EL MISMO criterio que ya regia para la
+         TAVI, «si la app no gradua esa protesis, no puede afirmar que funciona bien ni siquiera con
+         valores normales». Antes habia una asimetria defendible (la TAVI no se graduaba y las otras
+         tres si, con cortes nativos); hoy las cuatro estan en la misma situacion y siguen la misma
+         regla. Decision de Maicol, registrada en CLAUDE.md: vuelve cuando exista la graduacion
+         protesica real de esas tres valvulas (tablas ASE 2024).
+         Se exige la sustitucion COMPLETA —ni «normofuncionante» NI silencio—: el resumen tiene que
+         NOMBRAR la protesis, porque quedarse mudo sobre ella se lee, en la superficie que se copia
+         al alta, igual de tranquilizador que la afirmacion falsa. Esa es la leccion de caf4be8:
+         suprimir no es callarse. */
+      ex.push(['NINGUNA de las cuatro protesis afirma «normofuncionante» —la app no gradua su estenosis— y en su lugar el resumen NOMBRA la protesis con la linea que el cuerpo imprimio, sin caer en la negacion global',
+        Object.keys(lineas).every(function(k){ return pl(lineas[k]).indexOf('normofuncionante') === -1; }) &&
+        pl(lineas['mitral']).indexOf('protesis mecanica') > -1 &&
         pl(lineas['aórtica']).indexOf('tavi') > -1 &&
         pl(lineas['aórtica']).indexOf('sin graduacion de estenosis protesica') > -1 &&
-        pl(lineas['tricuspídea']).indexOf('protesis tricuspidea biologica normofuncionante') > -1 &&
-        pl(lineas['pulmonar']).indexOf('protesis pulmonar mecanica normofuncionante') > -1 &&
+        pl(lineas['tricuspídea']).indexOf('protesis biologica') > -1 &&
+        pl(lineas['pulmonar']).indexOf('protesis mecanica') > -1 &&
         Object.keys(lineas).every(function(k){ return pl(lineas[k]).indexOf('sin alteraciones estructurales') === -1; }),
         Object.keys(lineas).map(function(k){ return k + ': «' + lineas[k] + '»'; }).join(' · ')]);
 
@@ -33341,10 +33347,22 @@ caso('TC-289', 'Cierre de la Fase 1: el area mitral se clasifica como se imprime
       limpiar(); poner({ vm_morf:'Prótesis mecánica', thp:'90' });
       generarInforme();
       const cNativa = { suma:suma(), grado:val('em_grado'), avm:val('avm_thp') };
-      ex.push(['ninguno de los tres caminos por los que el narrativo afirma algo de una valvula —la pildora de IT, la regurgitacion del modulo TAVI y la cascada con cortes nativos— queda con un «normofuncionante» contradiciendolo debajo',
+      /* ⚠️ EL TERCER CAMINO YA NO EXISTE: LA FASE A LO CERRO EN EL ORIGEN, y esta condicion lo
+         media. Exigia «cNativa.grado === 'moderada'» — o sea, FIJABA EL BUG: con una protesis
+         mecanica y un THP de 90 ms el AVm da 2,44 cm² y la cascada con cortes NATIVOS escribia
+         em_grado='moderada' sobre una protesis normal. Ese es exactamente el defecto del CONTEXTO
+         de la Fase A, y el caso lo daba por sentado para verificar que al menos el resumen no lo
+         contradijera con un «normofuncionante» debajo.
+         Hoy la cascada no escribe nada: em_grado se queda en su valor de FABRICA ('sin'). Se
+         invierte la condicion y se exige ademas que el AVm SIGA CALCULANDOSE —lo que se retiro es
+         el grado, no la medicion—, que es la mitad que distingue «dejo de graduar» de «dejo de
+         funcionar». Sin ese segundo control, romper el calculo del AVm por THP dejaria esta
+         condicion en verde. */
+      ex.push(['ninguno de los tres caminos por los que el narrativo afirma algo de una valvula —la pildora de IT, la regurgitacion del modulo TAVI y la cascada con cortes nativos— queda con un «normofuncionante» contradiciendolo debajo; y el tercero ya no escribe grado: se queda en fabrica con el AVm igual de medido',
         pl(cPildora).indexOf('it ') > -1 && pl(cPildora).indexOf('normofuncionante') === -1 &&
         pl(cTavi).indexOf('rpv') > -1 && pl(cTavi).indexOf('normofuncionante') === -1 &&
-        cNativa.grado === 'moderada' && pl(cNativa.suma).indexOf('normofuncionante') === -1,
+        cNativa.grado === 'sin' && parseFloat(cNativa.avm) > 2.4 && parseFloat(cNativa.avm) < 2.5 &&
+        pl(cNativa.suma).indexOf('normofuncionante') === -1,
         'pildora IT: «' + cPildora + '» · TAVI: «' + cTavi + '» · cascada nativa (AVm ' +
         cNativa.avm + ' -> ' + cNativa.grado + '): «' + cNativa.suma + '»']);
 
@@ -34099,10 +34117,33 @@ caso('TC-303', 'El EN SUMA no afirma «protesis normofuncionante» donde la app 
         'bio=«' + bioN.suma.trim() + '» mec=«' + mecN.suma.trim() + '»'],
       ['cada valor aortico fuera de rango, uno por vez: ninguno afirma normofuncion',
         unoPorVez.every(x => x.indexOf('=ok') > -1), unoPorVez.join(' · ')],
-      ['DECLARADO (tarea 3): tricuspide y pulmonar no tienen criterio de normalidad protesica, asi que su comportamiento NO se toca',
-        tric.nf, tric.suma.split(NL).join(' | ')],
-      ['una NEGACION del cuerpo («sin estenosis ni insuficiencia») no cuenta como afirmacion',
-        mitNeg.nf, mitNeg.suma.split(NL).join(' | ')],
+      /* ⚠️ LAS DOS CONDICIONES DE ABAJO EXIGIAN nf —o sea, que SI dijera «normofuncionante»— hasta
+         la Fase A (2026-09-28). Se invirtieron a proposito, no se acomodaron: al dejar de graduar
+         la estenosis de mitral, tricuspide y pulmonar, la app ya no puede afirmar que esas
+         protesis funcionan bien, por el mismo criterio que ya se le aplicaba a la TAVI. Ver la nota
+         larga de TC-289. */
+      ['la protesis TRICUSPIDE ya no afirma «normofuncionante» y el resumen la nombra igual',
+        /* «tric» y no «tricuspide»: el resumen escribe «tricúspide» CON TILDE y toLowerCase no
+           quita acentos, asi que la condicion daba rojo sobre un resumen correcto. */
+        !tric.nf && tric.suma.toLowerCase().indexOf('tric') > -1,
+        tric.suma.split(NL).join(' | ')],
+      ['la protesis MITRAL con solo el DVI medido tampoco la afirma, y el resumen la nombra',
+        !mitNeg.nf && mitNeg.suma.toLowerCase().indexOf('mitral') > -1,
+        mitNeg.suma.split(NL).join(' | ')],
+      /* ⚠️ LO QUE ESTA CONDICION PROBABA ANTES YA NO SE EJERCE ACA, y se dice en vez de dejarlo
+         como cobertura fantasma. El caso mitNeg existia para probar que el gate busca TOKENS DE
+         AFIRMACION y no la palabra «estenosis» a secas: el cuerpo decia «sin estenosis ni
+         insuficiencia» —que la contiene y es su contrario— y el gate no debia leerla como
+         afirmacion. Hoy ese escenario no existe por partida doble: la guarda (3b) corta antes de
+         llegar a cuerpoAfirma para las tres protesis no graduadas, y ademas la Fase A quito esa
+         frase del cuerpo mitral protesico, que ahora imprime el tipo de protesis y los valores.
+         La discriminacion negacion-vs-afirmacion SIGUE VIVA para la AORTICA, porque la guarda (3)
+         corre antes que el bloque de va_morf: la cubre el caso faltan, cuyo cuerpo dice «sin
+         datos suficientes para graduar» —una negacion sin token de AFIRMA— y cuyo resumen tampoco
+         afirma normofuncion. */
+      ['DECLARADO: la discriminacion negacion-vs-afirmacion ya no se ejerce en la mitral (la corta la guarda 3b); sigue cubierta en la aortica por el caso «faltan»',
+        !faltan.nf && faltan.suma.indexOf('sin datos suficientes') > -1,
+        faltan.suma.split(NL).join(' | ')],
       ['la guarda de TAVI suprime POR SI SOLA, sin apoyarse en la de nivel',
         taviAislada === 'ok', taviAislada],
       /* DECLARADO SIN COBERTURA: la rama 'if (!P)' del aortico es defensiva y NO es alcanzable —el
@@ -34126,6 +34167,102 @@ caso('TC-303', 'El EN SUMA no afirma «protesis normofuncionante» donde la app 
       ['las valvulas NATIVAS no cambian',
         nat.suma.indexOf('normofuncionante') === -1 && natM.suma.indexOf('normofuncionante') === -1,
         'ao nativa=«' + nat.suma.split(NL).join(' | ') + '» · mitral nativa=«' + natM.suma.split(NL).join(' | ') + '»']
+    ] };
+  })();
+`);
+
+caso('TC-304', 'FASE A: la protesis mitral, tricuspide y pulmonar dejan de graduar la ESTENOSIS con cortes nativos —el grado queda en fabrica y los valores se publican igual—, un grado elegido A MANO si se imprime, la INSUFICIENCIA se sigue graduando, y la aortica y las nativas no cambian', `
+  return (async () => {
+    const NL = String.fromCharCode(10);
+    const correr = sem => {
+      __t.limpiar();
+      __t.set('nombre','TC304'); __t.set('edad','68'); __t.set('peso','78'); __t.set('talla','172');
+      sem(); try{ valvProtSync(); }catch(e){} try{ vpSync(); }catch(e){}
+      const r = __t.informe();
+      return { inf: r.inf, suma: r.suma,
+               em: __t.val('em_grado'), ep: __t.val('ep_grado'), et: __t.val('et_grado'),
+               im: __t.val('im_grado'), it: __t.val('it_grado') };
+    };
+    /* LA MEDICION DEL CONTEXTO, tal cual: AVm 2,0 cm² por planimetria y gradiente medio 4 mmHg.
+       Con cortes NATIVOS eso es «moderada» (banda 1,5-2,5). */
+    const MED_EM = () => { __t.set('avm_plan','2.0'); __t.set('em_gmedio','4'); };
+
+    const prot = correr(() => { __t.set('vm_morf','Prótesis mecánica'); MED_EM(); });
+    /* ⚠️ EL DENOMINADOR, Y ES LA MITAD QUE IMPORTA. Sin este control, «em_grado no es moderada»
+       tambien da verde si el calculo se rompio, si el campo no entro o si el caso no midio nada.
+       La MISMA medicion con una morfologia NATIVA tiene que seguir dando «moderada»: eso prueba
+       que lo que cambio es la lectura de Morfologia y no la cascada. Es exactamente el control que
+       el CONTEXTO de la fase uso para demostrar el bug al reves —con «Reumatica» daba lo mismo que
+       con protesis, o sea que nadie leia Morfologia—. */
+    const nativa = correr(() => { __t.set('vm_morf','Reumática'); MED_EM(); });
+
+    /* Grado elegido A MANO sobre la protesis: el bloqueo es para los CALCULADORES, no para el
+       medico. Se pone DESPUES de las mediciones, que es el orden en que el medico trabaja, y ahi
+       es donde un recalculo lo pisaria. */
+    const manual = correr(() => { __t.set('vm_morf','Prótesis mecánica'); MED_EM();
+                                  __t.set('em_grado','severa'); });
+
+    /* LA INSUFICIENCIA SIGUE GRADUANDOSE (decision de Maicol, 2026-09-28): la ASE 2024 remite la
+       regurgitacion protesica a los criterios de la valvula nativa, que es lo que ya hace la
+       aortica. Una vena contracta de 8 mm es severa en esa escala. */
+    const insuf = correr(() => { __t.set('vm_morf','Prótesis mecánica'); __t.set('im_vc','8'); });
+
+    /* ⚠️ 9 mmHg Y NO 4: TIENE QUE ESTAR POR ENCIMA DEL CORTE NATIVO (ET_GMEDIO_SIGNIF = 5). Con 4
+       la condicion daba verde sin ejercer nada —ningun criterio se cumplia, asi que el veredicto
+       tampoco habria salido SIN la guarda— y una mutacion que la desactivara SOBREVIVIA. Con 9 el
+       corte nativo SI se cumple, asi que la unica razon por la que el informe no dice
+       «significativa» es la guarda que estamos probando. */
+    const tric = correr(() => { __t.set('vt_morf','Prótesis mecánica'); __t.set('et_gmedio','9'); });
+    const tricNat = correr(() => { __t.set('vt_morf','Reumática'); __t.set('et_gmedio','9'); });
+    const pulm = correr(() => { __t.set('vp_morf','Prótesis biológica'); __t.set('vp_vmax','2.2'); });
+    __t.limpiar();
+
+    const lineaVM = t => (t.split(NL).map(l => l.trim()).filter(l => l.indexOf('álvula mitral') > -1)[0] || '');
+    const lineaVT = t => (t.split(NL).map(l => l.trim()).filter(l => l.indexOf('álvula tricúspide') > -1)[0] || '');
+
+    return { extra: [
+      ['DENOMINADOR: la misma medicion con morfologia NATIVA sigue dando «moderada», asi que la cascada no se rompio — lo que cambio es que ahora se lee Morfologia',
+        nativa.em === 'moderada',
+        'nativa(Reumatica, AVm 2.0 + Gm 4) -> em_grado=«' + nativa.em + '»'],
+      ['⚠️ la protesis mitral con la MISMA medicion ya no escribe grado: em_grado se queda en su valor de fabrica',
+        prot.em === 'sin', 'protesis -> em_grado=«' + prot.em + '»'],
+      ['y el cuerpo NO imprime la negacion «sin estenosis ni insuficiencia» sobre la protesis: no se evaluo, no se niega',
+        lineaVM(prot.inf).indexOf('sin estenosis') === -1 &&
+        lineaVM(prot.inf).indexOf('sin insuficiencia') === -1,
+        '«' + lineaVM(prot.inf) + '»'],
+      ['SUPRIMIR NO ES CALLARSE: la linea publica el tipo de protesis y los valores medidos',
+        lineaVM(prot.inf).indexOf('prótesis mecánica') > -1 &&
+        lineaVM(prot.inf).indexOf('2') > -1 && lineaVM(prot.inf).indexOf('4 mmHg') > -1,
+        '«' + lineaVM(prot.inf) + '»'],
+      ['un grado elegido A MANO sobre la protesis SI se imprime: el bloqueo es para los calculadores, no para el medico',
+        manual.em === 'severa' && lineaVM(manual.inf).indexOf('estenosis severa') > -1,
+        'em_grado=«' + manual.em + '» · «' + lineaVM(manual.inf) + '»'],
+      ['la INSUFICIENCIA se sigue graduando sobre protesis (ASE 2024: la regurgitacion protesica usa criterios nativos, igual que la aortica)',
+        parseInt(insuf.im, 10) >= 2 && lineaVM(insuf.inf).indexOf('insuficiencia') > -1,
+        'im_grado=«' + insuf.im + '» · «' + lineaVM(insuf.inf) + '»'],
+      ['⚠️ TRICUSPIDE: el informe dejo de emitir el veredicto con cortes nativos —bloquear calcET no alcanzaba, el narrativo llama a etEstado() por su cuenta— y publica el gradiente',
+        /* ⚠️ SE MIRAN LAS DOS SUPERFICIES Y CADA UNA CON SU REDACCION, y la primera version no lo
+           hacia: buscaba «ET significativa» en el CUERPO, pero el cuerpo escribe «Estenosis
+           tricuspidea significativa» y la sigla sale solo en el EN SUMA. Con el token equivocado la
+           condicion daba verde con el veredicto nativo impreso en las dos: la mutacion que quitaba
+           «&& !_vtProt» de etSignif SOBREVIVIA. Tampoco sirve buscar «significativa» a secas: el
+           fallback del EN SUMA dice «alteraciones estructurales ni funcionales significativas» y la
+           condicion fallaria sobre un informe correcto. */
+        tric.inf.indexOf('tricúspidea significativa') === -1 &&
+        tric.inf.indexOf('tricuspídea significativa') === -1 &&
+        tric.suma.indexOf('ET significativa') === -1 &&
+        tric.inf.indexOf('Sin criterios de ET') === -1 &&
+        lineaVT(tric.inf).indexOf('9 mmHg') > -1,
+        'cuerpo=«' + lineaVT(tric.inf) + '» · suma=«' + tric.suma.split(NL).join(' | ') + '»'],
+      ['DENOMINADOR de la tricuspide: la NATIVA con gradiente 9 mmHg sigue diciendo «significativa»',
+        tricNat.inf.indexOf('significativa') > -1,
+        tricNat.inf.split(NL).filter(l => l.indexOf('ricúspide') > -1).join(' | ')],
+      ['PULMONAR: ep_grado se queda en fabrica con Vmax 2,2 —antes daba «Leve»— y los valores siguen impresos',
+        (pulm.ep === 'sin' || pulm.ep === '') && pulm.inf.indexOf('2.2 m/s') > -1,
+        'ep_grado=«' + pulm.ep + '» · ' + pulm.inf.split(NL).filter(l => l.indexOf('ulmonar') > -1).join(' | ')],
+      ['ninguno de los tres escenarios protesicos cae en la negacion global del EN SUMA',
+        [prot, tric, pulm].every(r => r.suma.indexOf('sin alteraciones estructurales') === -1),
+        [prot, tric, pulm].map(r => '«' + r.suma.split(NL).join(' | ') + '»').join(' · ')]
     ] };
   })();
 `);
