@@ -4,6 +4,147 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## La fila de la onda E estaba MUERTA, y revivirla abrió una fuga entre pacientes (2026-09-28, fase 2 de 5)
+
+`im-ondae-interp` existía en el marcado y **nadie la escribía**: cuatro sitios la leen y cero la
+poblaban. Hoy publica un signo específico de IM severa, y el aviso de discordancia entre el método
+volumétrico y el integrado dejó de pisar al que ya estaba.
+
+### El corte es 120 cm/s, y es el único número clínico nuevo de la fase
+
+ASE 2017 (Zoghbi, *JASE* 30:303-371), verificado contra el PDF primario: una onda E **≥ 120 cm/s**
+apoya IM severa, y una **onda A dominante** prácticamente la descarta. Los cuatro textos, en una
+línea y sin salvedades, tal como los fijó Maicol:
+
+| estado | fila |
+|---|---|
+| onda A > onda E | «Onda A dominante — prácticamente descarta IM severa» |
+| E ≥ 120 con A medida y menor | «Onda E ≥ 120 cm/s — apoya IM severa» |
+| E < 120 | «Onda E X cm/s — sin signo de apoyo» |
+| E ≥ 120 sin onda A | «Onda E 170 cm/s — onda A no medida» |
+| sin datos, o gate cerrado | «—» |
+
+**⚠️ EL PROMPT TRAÍA «> 1,4» PARA EL COCIENTE Y NO TIENE FUENTE PRIMARIA.** La regla de parada de la
+fase disparó acá: se verificó el documento y ese umbral no está en la ASE 2017. Decisión de Maicol:
+**se deja el 1,4 y se quita la atribución falsa** — el número se conserva porque ya estaba en la app,
+lo que no se conserva es decir que lo publica una guía que no lo publica. Es «un umbral con una guía
+al lado que no lo contiene es una cita falsa», por enésima vez.
+
+**Las DOS mitades del criterio se publican**, también por decisión: la que apoya y la que descarta.
+Publicar sólo la primera deja al médico sin el signo que más peso tiene para *excluir* severidad.
+
+### El gate NO es fail-closed, y eso hay que saberlo
+
+La fila se apaga con estenosis mitral leve/moderada/severa documentada o con prótesis mitral —ahí el
+llenado no dice nada de la regurgitación—, y con **fibrilación auricular** sale sólo la E, porque no
+existe onda A que medir. Pero:
+
+- **`em_grado` nace en «sin»**, que es su valor de fábrica: un estudio donde nadie miró la estenosis
+  mitral **no apaga la fila**. Es deliberado —apagarla sobre el default silenciaría el signo en casi
+  todo estudio— y es lo contrario de lo que hace el resto del archivo con los defaults. Queda dicho.
+- **La prótesis se resuelve con `valvEsProtesis()`**, no con un regex propio. Mi primera versión
+  escribió su propia comparación y `/sharp-edges` la marcó: con dos definiciones de «es una
+  prótesis», la fila se apagaría para una y no para la otra sobre el mismo estudio. Es el patrón de
+  `VALV_PROT_OPCIONES`, que existe justamente para esto.
+
+**El detalle vive en la ayuda que YA existe**, no en un mecanismo nuevo: dos filas de «Referencia
+clínica» en `ECO_AYUDA`, alcanzables desde un `ⓘ` que llama a `abrirAyudaEco()`. El `title` de los
+rótulos se conserva y **no alcanza solo**: en táctil no hay hover, así que la salvedad sería
+invisible justo en el dispositivo donde más se usa la app.
+
+### ⚠️ LA FILA NO VOTA, NO LLEGA AL PAPEL, Y ESO SE VERIFICA POR AUSENCIA
+
+No toca `im_grado`, no entra al informe, no entra al EN SUMA y no tiene columna de Excel. Es una
+lectura de pantalla. Las cuatro cosas son condiciones del caso —con y sin onda E, informe y EN SUMA
+byte a byte idénticos, y ninguna columna del Excel conteniendo el texto—, porque una fila que un día
+empiece a votar no se ve distinta desde la pantalla.
+
+### El defecto CRÍTICO: `dataset` no se persiste, pero tampoco se limpia
+
+`/sharp-edges` lo encontró sobre el diff. El aviso de discordancia guarda su estado en
+`dataset.paramsDisc` y `dataset.gradoVolum`, y esas marcas **sobrevivían a «Nuevo estudio»**: el
+paciente siguiente veía «⚠️ Parámetros discordantes» del anterior. Es exactamente la entrada que este
+archivo ya tiene escrita —«`dataset` no se persiste, pero tampoco se limpia solo»— reintroducida por
+la puerta de al lado, y hubo que cerrar **las dos mitades**:
+
+1. el barrido por atributo de `limpiarCampos` (que ya existía) ganó `[data-params-disc]` y
+   `[data-grado-volum]`;
+2. y el bloque que escribe `paramsDisc` se movió **antes** del `return` temprano de
+   `params.length === 0`: con el return primero, un estudio sin parámetros no borraba la marca vieja.
+
+Una sola de las dos deja la fuga viva y el caso en verde.
+
+### Los otros hallazgos de `/sharp-edges`, y los tres son de la misma familia
+
+- **La onda A fuera de banda INVERTÍA la conclusión.** Una onda A tipeada en m/s (0,8 por 80) no es
+  mayor que la E, así que la cascada caía en «apoya IM severa» sobre un dato ilegible. Hoy se mira
+  `pA.fuera` y la fila dice «Onda A fuera de rango — verificar».
+- **`im_grado === '3'` (Moderada-severa) no se reportaba nunca.** El mapa de la discordancia tenía
+  1, 2 y 4: un grado 3 —que sólo pone el médico a mano— hacía que el aviso se callara justo donde el
+  método integrado y el volumétrico difieren más. **El `'0'` se deja sin mapear a propósito**: es el
+  valor de fábrica, y mapearlo publica una discordancia sobre un grado que nadie consignó. Las dos
+  mutaciones caen en su condición, y la del `'0'` imprime literal «⚠️ El método volumétrico da
+  Moderada y el integrado Leve» sobre un formulario recién limpiado.
+- **«apoya IM severa» sin onda A afirmaba una dominancia que nadie midió.** La dominancia es parte
+  del criterio; sin la A, el texto dice «onda A no medida» en vez de concluir.
+
+### ⚠️ LA REIMPRESIÓN DEJABA LA FILA CON EL VEREDICTO DE OTRO ESTUDIO
+
+Durante la ventana de reimpresión corren `calcDiastol`, `calcIM_ESC` y `calcContIM` **con los datos
+del estudio guardado**, y el cierre recalcula BSA, VI, AI, Ao y SGL pero ninguna de esas tres. O sea:
+el médico volvía a su paciente con la fila diciendo lo del otro, al lado de sus propios onda E y onda
+A. Antes de esta fase la fila estaba muerta, así que revivirla **agregó una superficie clínica a un
+camino de fuga que el archivo ya documenta haber cerrado** para `psap-interp`, `sgl-interp` y
+`bsa-val`. Cerrado con backup/restore de las dos filas y sus dos marcas de `dataset` dentro de
+`_pdfDeInformeGuardadoArmar`, junto a los demás respaldos que esa función ya hace.
+
+### ⚠️ Y LA CONDICIÓN QUE VIGILA ESO NACIÓ VACUA: `inf.id` NO ES `estudioId`
+
+Es la lección más cara de la fase y costó varias corridas. La condición de la reimpresión pasaba en
+verde **con la mutación puesta**, y el motivo no era el escenario: el caso le pasaba a
+`pdfDeInformeGuardado` el valor que devuelve su helper `guardar()`, que es el **`estudioId`**,
+mientras esa función —y `_pdfDeInformeGuardadoArmar`— buscan por **`inf.id`**. Son dos campos
+distintos del mismo registro. El resultado:
+
+```
+toasts=["❌ No se encontró ese estudio guardado"]  callback=false  ms=8002
+```
+
+La reimpresión **nunca ocurría**, así que «la fila no cambió» se cumplía sola. Y había un segundo
+defecto en el mismo bloque: `__t.borrar()` filtra por `estudioId`, así que pasarle el mismo valor
+equivocado dejaba el estudio de prueba vivo en el store, cambiando el denominador de los casos
+siguientes.
+
+Dos reglas que quedan:
+- **`id` y `estudioId` no son intercambiables.** `pdfDeInformeGuardado` y `cargarEstudioPorId` van
+  por `id`; `guardar()`, `reabrir()` y `borrar()` van por `estudioId`. Al cruzarlos no hay error:
+  hay una salida temprana con un toast que ningún caso mira.
+- **Una condición que afirma «X no cambió» necesita su denominador.** Hoy hay una condición propia
+  que exige que el estudio se haya resuelto **y que el callback de la reimpresión haya corrido**;
+  sin ella, el caso no distingue «el respaldo funciona» de «la reimpresión no se ejecutó».
+
+Lo que lo resolvió fue **instrumentación progresiva** —capturar `console.error` (vacío), después los
+toasts (decisivo)— y leer el helper `guardar()` verbatim. Leer el diff no lo habría mostrado.
+
+### Lo que NO llega al papel, verificado y no razonado
+
+Informe, EN SUMA y PDF **idénticos** a `7b88856` — 58 objetos de texto. Excel con **433 columnas,
+cero nuevas y cero valores cambiados**.
+
+### Verificación
+
+**TC-298, ~40 condiciones.** Los cuatro textos, la prioridad de la onda A, la FA, la onda A fuera de
+banda, los tres gates con sus dos controles negativos, los enganches, la composición del aviso de
+discordancia, las marcas entre pacientes, el `im_grado='3'`, el `ⓘ` alcanzable con el dedo, que no
+vota y no llega al papel, los rótulos, la tabla de referencia y la ayuda.
+
+**Mutaciones: las tres en rojo y cada una en su condición** — el respaldo de la reimpresión anulado
+(imprime el veredicto cruzado, que es el síntoma exacto), el `'3'` fuera del mapa, y el `'0'` dentro.
+
+**Suite 312/313**, único rojo **TC-223**, el documentado. Semgrep **126 / 0 ERROR**, sin huérfanos,
+`check_mobile` en los 2 ALTA de siempre, `api-key-protector` en los 2 preexistentes.
+
+
 ## El VTI mitral era DOS mediciones con un solo rótulo, y el rótulo nombraba la equivocada (2026-09-28, fase 1 de 5)
 
 El bloque de continuidad de IM calculaba **bien** —ocho de ocho casillas contra el cálculo a mano—

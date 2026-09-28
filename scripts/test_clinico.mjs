@@ -33913,11 +33913,11 @@ caso('TC-297', 'El VTI mitral DE ENTRADA vive en Doppler, vtim es su espejo, la 
       ['y cargar el campo nuevo NO le pisa el vtim manual', viejoNoSePisa === '15', viejoNoSePisa],
       ['el VTI del CHORRO en la casilla del de ENTRADA no produce NINGUN numero',
         fuera130 === '||' + '|VTI de entrada fuera de rango — verificar', fuera130],
-      ['y lo dice nombrando el valor ilegible', /Fuera de rango medible/.test(fuera130Dice) && /130/.test(fuera130Dice), fuera130Dice],
+      ['y lo dice nombrando el valor ilegible', /Fuera de rango/.test(fuera130Dice) && /130/.test(fuera130Dice), fuera130Dice],
       ['la cadena de PISA, que lee otro campo, NO se toca',
         pisaIntacta130 === '50.3 mm²|65.4 ml|51%', pisaIntacta130],
       ['el anillo tipeado en cm tampoco calcula, y lo dice',
-        fueraAnillo.indexOf('| :: ') === 0 && /Fuera de rango medible/.test(fueraAnillo) && /3 mm/.test(fueraAnillo), fueraAnillo],
+        fueraAnillo.indexOf('| :: ') === 0 && /Fuera de rango/.test(fueraAnillo) && /3 mm/.test(fueraAnillo), fueraAnillo],
       /* Dos cosas en una condicion, y la segunda la agrego /sharp-edges: que la casilla no quede
          MUDA tras un fuera-de-banda, y que el texto NO mande a revisar el jet cuando el jet esta
          bien cargado y el problema es el anillo. Antes reponia siempre «requiere VTI del jet»,
@@ -33930,8 +33930,8 @@ caso('TC-297', 'El VTI mitral DE ENTRADA vive en Doppler, vtim es su espejo, la 
       ['un VTI de ENTRADA en la casilla del chorro no da EROA, y lo dice',
         fueraJet.indexOf('33.6') < 0 && /jet fuera de rango/.test(fueraJet), fueraJet],
       ['el Ø TSVI tipeado en cm tampoco calcula, y lo dice',
-        fueraTsviD.indexOf('||') === 0 && /Fuera de rango medible/.test(fueraTsviD) && /Ø TSVI 2 mm/.test(fueraTsviD), fueraTsviD],
-      ['ni el VTI TSVI en mm', fueraTsviV.indexOf('||') === 0 && /Fuera de rango medible/.test(fueraTsviV) &&
+        fueraTsviD.indexOf('||') === 0 && /Fuera de rango/.test(fueraTsviD) && /Ø TSVI 2 mm/.test(fueraTsviD), fueraTsviD],
+      ['ni el VTI TSVI en mm', fueraTsviV.indexOf('||') === 0 && /Fuera de rango/.test(fueraTsviV) &&
         /VTI TSVI 180 cm/.test(fueraTsviV), fueraTsviV],
       ['el cociente en el escenario base', ratioBase === '0.83', ratioBase],
       ['borrar el VTI de entrada lo devuelve a la raya', ratioSinVtim === '\\u2014', ratioSinVtim],
@@ -33939,9 +33939,13 @@ caso('TC-297', 'El VTI mitral DE ENTRADA vive en Doppler, vtim es su espejo, la 
       ['y lee la casilla del BLOQUE cuando el global esta vacio: 15/9 cruza el 1,4',
         ratioCascada.indexOf('1.67') === 0 && /apoya IM severa/.test(ratioCascada), ratioCascada],
       ['un 0 en el denominador no es un dato', ratioCero === '\\u2014', ratioCero],
-      ['Vol mitral menor que Vol TSVI es NO VALORABLE, y sin numeros negativos',
-        /No valorable/.test(negativo) && /106\\.0/.test(negativo) && /124\\.7/.test(negativo) &&
-        negativo.indexOf('vr_cont= fr=') > -1, negativo],
+      /* Los dos volumenes ya NO van en el texto: la regla de Maicol para todo texto visible es una
+         linea sin salvedades, y los dos numeros estan en sus casillas a la vista. Lo que la
+         condicion sigue exigiendo es lo que importa —que el metodo se declare no valorable y que
+         NO quede un volumen negativo publicado— mas que el aviso sea de UNA linea. */
+      ['Vol mitral menor que Vol TSVI es NO VALORABLE, en una linea y sin numeros negativos',
+        /No valorable/.test(negativo) && negativo.indexOf('-') < 0 &&
+        negativo.indexOf('vr_cont= fr=') > -1 && negativo.split('\\n').length === 1, negativo],
       ['dos volumenes IGUALES no caen en la rama negativa, y no imprimen «-0.0»',
         /Sin regurgitaci/.test(ceroExacto) && ceroExacto.indexOf('-0.0') < 0, ceroExacto],
       ['un Vol-R positivo por debajo de la tolerancia no publica una EROA de 0.0',
@@ -33989,6 +33993,293 @@ caso('TC-297', 'El VTI mitral DE ENTRADA vive en Doppler, vtim es su espejo, la 
      parametros votan y por lo tanto la gradacion, que el pedido prohibe tocar. La asimetria queda
      anotada para el prompt que si pueda tocar esa funcion.
    · El cero de _syncDerivado sigue como estaba, por la misma prohibicion. */
+
+caso('TC-298', 'La fila de Onda E revive con el corte VERIFICADO, publica el signo especifico que la guia pone al reves, se apaga donde la guia la invalida, y el aviso de discordancia no pisa al que ya estaba', `
+  return (async () => {
+    const g = id => document.getElementById(id);
+    const vis = () => (g('bloque-insuf-mitral') || { style:{} }).style.display;
+    const abrir = () => { if (vis() === 'none') toggleValvPill('mitral','insuf'); };
+    const oe = () => __t.txt('im-ondae-interp');
+    const dc = () => __t.txt('im-discordancia');
+    const sev = () => __t.txt('im-cont-severidad');
+    const guardar = () => new Promise(r => { window._ettEditandoId = null;
+      const antes = new Set(getInformes().map(i => i.estudioId));
+      const fin = () => { const n = getInformes().find(i => !antes.has(i.estudioId)); r(n ? n.estudioId : null); };
+      try { guardarInforme(fin); } catch (e) { r(null); return; }
+      const cf = g('rev-confirm'); if (cf) cf.click(); });
+    /* DENOMINADOR: PISA completa y el bloque de continuidad completo, para que los DOS metodos
+       publiquen grado — sin eso el aviso de discordancia mediria sobre la nada, que es como se
+       leyo un defecto inexistente durante el censo. em_grado y vm_morf quedan en su valor DE
+       FABRICA («sin» y «Normal»): NO se siembran, y eso es parte de lo que el caso mide.
+       Vacio por no sembrarlo: im_jet_area, ai_area, im_onda_s. */
+    const sembrar = o => { __t.limpiar(); abrir();
+      const base = { peso:80, talla:180, diam_tsvi:21, itv_tsvi:18, diam_mit:30, vtim:15,
+                     pisa_r:10, pisa_val:40, im_vmax:500, im_itv:130 };
+      Object.keys(base).forEach(k => __t.set(k, String(base[k])));
+      Object.keys(o || {}).forEach(k => __t.set(k, String(o[k]))); };
+
+    const faltan = ['im-ondae-interp','im-discordancia','onda_e','onda_a','diast_ritmo','em_grado','vm_morf']
+                     .filter(id => g(id) === null);
+    /* El valor DE FABRICA de em_grado, medido y no supuesto: es la leccion «un campo por defecto
+       no es un dato». Si algun dia deja de ser «sin», el gate de esta fila cambia de sentido. */
+    sembrar();
+    const emFabrica = __t.val('em_grado') + '/' + (g('em_grado').querySelector('option[value=""]') ? 'hay vacia' : 'sin opcion vacia');
+    const morfFabrica = __t.val('vm_morf');
+
+    // ── 1. Los cuatro textos de la fila ───────────────────────────────────────────────────
+    /* ⚠️ TODOS LOS ESCENARIOS SIEMBRAN LA ONDA A, y eso lo corrigio /sharp-edges: sin ella la fila
+       ya no publica el veredicto de apoyo, porque la DOMINANCIA es parte del criterio de la guia
+       —«E-wave dominant (>1.2 m/sec)», no «E >=1,2»— y sin la A no se puede establecer. La version
+       anterior de este caso media el veredicto en escenarios donde la A estaba vacia, o sea sobre
+       un estado que hoy no lo produce. La onda A va en 60 para que la E domine. */
+    const sinDato = oe();
+    sembrar({ onda_e:'170', onda_a:'60' });  const apoya   = oe();
+    sembrar({ onda_e:'100', onda_a:'60' });  const noApoya = oe();
+    sembrar({ onda_e:'120', onda_a:'60' });  const borde   = oe();   // el >= , no el >
+    sembrar({ onda_e:'119', onda_a:'60' });  const bordeNo = oe();
+    sembrar({ onda_e:'900', onda_a:'60' });  const fuera   = oe();   // m/s tipeado en cm/s
+    /* Las dos mitades del arreglo S4: sin onda A NO hay veredicto, y en FA si lo hay porque ahi
+       no existe onda A que medir. Sin la segunda condicion, un gate que apagara el veredicto
+       siempre que falte la A tambien pasaria la primera. */
+    sembrar({ onda_e:'170' });                          const sinOndaA = oe();
+    sembrar({ onda_e:'170', diast_ritmo:'fa' });        const sinOndaAenFA = oe();
+    /* Y la onda A CON banda: tipeada en m/s invertia la conclusion —publicaba «apoya IM severa»
+       donde con el valor bien tipeado dice «practicamente descarta»—. */
+    sembrar({ onda_e:'130', onda_a:'150' });            const aBien = oe();
+    sembrar({ onda_e:'130', onda_a:'1.5' });            const aFuera = oe();
+
+    // ── 2. El signo ESPECIFICO, que es el opuesto ────────────────────────────────────────
+    sembrar({ onda_e:'170', onda_a:'180' });  const aDomina = oe();
+    sembrar({ onda_e:'170', onda_a:'60'  });  const eDomina = oe();
+    /* En FA no hay onda A: aunque el campo traiga un numero de otro paciente o de una medicion
+       anterior, no se puede comparar contra una onda que este paciente no tiene. */
+    sembrar({ onda_e:'170', onda_a:'180', diast_ritmo:'fa' });  const enFA = oe();
+
+    // ── 3. Los tres gates ────────────────────────────────────────────────────────────────
+    sembrar({ onda_e:'170', onda_a:'60', em_grado:'leve' });      const conEMleve = oe();
+    sembrar({ onda_e:'170', onda_a:'60', em_grado:'severa' });    const conEMsev  = oe();
+    sembrar({ onda_e:'170', onda_a:'60', vm_morf:'Prótesis mecánica' });   const conProtMec = oe();
+    sembrar({ onda_e:'170', onda_a:'60', vm_morf:'Prótesis biológica' });  const conProtBio = oe();
+    /* DOS controles NEGATIVOS del gate: una morfologia que NO es protesis no puede apagar la fila.
+       Sin esto, un gate que apagara con CUALQUIER morfologia distinta de Normal pasaria igual.
+       «Calcificada» esta ademas porque es la que el comentario del codigo discute: es calcificacion
+       VALVULAR y la guia habla de la del ANILLO, asi que NO debe apagar la fila. */
+    sembrar({ onda_e:'170', onda_a:'60', vm_morf:'Reumática' });   const conReumatica = oe();
+    sembrar({ onda_e:'170', onda_a:'60', vm_morf:'Calcificada' }); const conCalcificada = oe();
+
+    // ── 4. Que la fila SIGA a su insumo, que es donde la fase 1 se tropezo ────────────────
+    sembrar({ onda_e:'100', onda_a:'60' });
+    const antesDeSubir = oe();
+    __t.set('onda_e','170');                 // UNICO campo que se toca
+    const trasSubir = oe();
+    __t.set('em_grado','moderada');          // UNICO campo que se toca
+    const trasEstenosis = oe();
+
+    // ── 5. El aviso de discordancia ──────────────────────────────────────────────────────
+    sembrar();                               // volumetrico Moderada · integrado Severa
+    const volTxt = (sev().match(/Leve|Moderada|Severa/) || [''])[0];
+    const discordan = volTxt + '/' + __t.val('im_grado') + ' :: ' + dc();
+    /* Con un solo metodo NO hay discordancia, hay un solo dato: se borra el anillo, que mata el
+       volumetrico, y el aviso tiene que irse con el. */
+    __t.set('diam_mit','');
+    const unSoloMetodo = sev() + ' :: "' + dc() + '"';
+    sembrar();
+    /* Y el aviso que YA existia —parametros discordantes— no puede quedar pisado: los dos viven
+       en el mismo elemento y el que escribiera ultimo borraba al otro. */
+    __t.set('im_vc','2');
+    const compone = dc();
+    const marcasA = JSON.stringify({ pd: (g('im-discordancia')||{dataset:{}}).dataset.paramsDisc,
+                                     gv: (g('im-cont-severidad')||{dataset:{}}).dataset.gradoVolum });
+    /* ⚠️ EL CRUCE DE PACIENTES. Las dos marcas viven en dataset, que el sweep de limpiarCampos NO
+       tocaba: se borraba lo que se VE y quedaba vivo lo que DECIDE. Abrir la pastilla en el
+       paciente siguiente dispara calcContIM -> imDiscordanciaPintar y reimprimia el aviso del
+       anterior, nombrando parametros que el estudio nuevo no tiene. */
+    __t.nuevoEstudio();
+    const marcasTrasNuevo = JSON.stringify({ pd: (g('im-discordancia')||{dataset:{}}).dataset.paramsDisc,
+                                             gv: (g('im-cont-severidad')||{dataset:{}}).dataset.gradoVolum });
+    abrir();
+    const cruce = dc();
+    /* El '3' lo pone SOLO el medico —calcIM_ESC nunca lo produce— y era la unica discordancia que
+       no se reportaba, justo la mas grande. El '0' se calla a proposito por ambiguo. */
+    sembrar();
+    const volParaTres = (sev().match(/Leve|Moderada|Severa/) || [''])[0];
+    g('im_grado').value = '3'; imDiscordanciaPintar();
+    const conTres = dc();
+    g('im_grado').value = '0'; imDiscordanciaPintar();
+    const conCero = dc();
+
+    // ── 6. NO VOTA y NO llega al papel ───────────────────────────────────────────────────
+    sembrar(); __t.set('nombre','TC298'); __t.set('edad','60');
+    const gradoSinE = __t.val('im_grado');
+    const rSinE = __t.informe();
+    __t.set('onda_e','170');
+    const gradoConE = __t.val('im_grado');
+    const rConE = __t.informe();
+    const noVota  = gradoSinE === gradoConE;
+    const noPapel = rSinE.inf === rConE.inf && rSinE.suma === rConE.suma;
+    let xlsTieneOndaE = '(no guardo)';
+    const id1 = await guardar();
+    if (id1) { const it = getInformes().find(x => x.estudioId === id1);
+      try { const row = _labExcelRow(it);
+        xlsTieneOndaE = Object.keys(row).filter(k => /apoya IM severa|descarta IM severa/.test(String(row[k]))).join(',') || '(ninguna columna)';
+      } catch (e) { xlsTieneOndaE = 'ERR:' + e.message; }
+      await __t.borrar(id1); }
+
+    // ── 7. Los dos rotulos y las dos filas de la tabla de referencia ──────────────────────
+    const lblOndaE = (() => { const e = g('im-ondae-interp');
+      const l = e && e.parentElement && e.parentElement.querySelector('.calc-lbl');
+      return l ? l.textContent.replace(/\\s+/g,' ').trim() + ' [title:' + (l.getAttribute('title') || '') + ']' : '(sin)'; })();
+    const lblRatio = (() => { const e = g('im-vti-ratio');
+      const l = e && e.parentElement && e.parentElement.querySelector('.calc-lbl');
+      return l ? l.textContent.replace(/\\s+/g,' ').trim() + ' [title:' + (l.getAttribute('title') || '') + ']' : '(sin)'; })();
+    const tablaRef = (() => { const t = [...document.querySelectorAll('td')]
+        .filter(td => /Onda E|Ratio VTI mitral\\/TSVI/.test(td.textContent));
+      return t.map(td => [...td.parentElement.children].map(c => c.textContent.replace(/\\s+/g,' ').trim()).join(' | ')).join('  ||  '); })();
+    const ayuda = (() => { try { return ECO_AYUDA.map(s => s.html).join(' '); } catch (e) { return ''; } })();
+
+    /* ⚠️ LA REIMPRESION PISABA LA FILA CON EL VEREDICTO DEL OTRO ESTUDIO, y lo encontro
+       /sharp-edges. Durante la ventana corren calcDiastol, calcIM_ESC y calcContIM CON LOS DATOS
+       DEL ESTUDIO GUARDADO, y el cierre recalcula BSA, VI, AI, Ao y SGL pero ninguna de esas tres:
+       el medico volvia a su paciente con la fila diciendo lo del otro, al lado de sus propios
+       onda_e/onda_a. Antes de esta fase la fila estaba muerta, asi que revivirla agrego una
+       superficie clinica a un camino de fuga que el archivo ya documenta haber cerrado para
+       psap-interp, sgl-interp y bsa-val.
+       El escenario tiene los dos veredictos OPUESTOS a proposito: el guardado con onda A dominante
+       («descarta IM severa») y el de pantalla con onda E dominante («apoya IM severa»). Si el
+       respaldo fallara, la fila diria exactamente lo contrario de lo que el paciente en pantalla
+       tiene medido. */
+    sembrar({ onda_e:'100', onda_a:'180' });     // estudio A: la onda A domina
+    __t.set('nombre','TC298 reimp'); __t.set('edad','60');
+    const veredictoA = oe();
+    /* OJO: guardar() resuelve {ok, estudioId} y pdfDeInformeGuardado busca por inf.id, que es
+       OTRO campo. Pasarle el estudioId hace que salga por su guarda "no se encontro ese estudio
+       guardado" SIN llamar al callback: la reimpresion nunca ocurre y la condicion de abajo se
+       cumple sola. Se resuelve el inf real del store. */
+    const _eid = await guardar();   // el helper local resuelve el estudioId, no el objeto
+    const _infR = (typeof getInformes === 'function' ? getInformes() : [])
+      .find(i => i.estudioId === _eid);
+    const idR = _infR ? _infR.id : null;
+    sembrar({ onda_e:'170', onda_a:'60' });      // paciente B en pantalla: la E domina
+    const antesReimp = oe();
+    /* La forma del harness (ver ~19976): el callback recibe inf2 y se resuelve DESDE ADENTRO.
+       Y va con carrera contra un plazo: una promesa sin timeout no pone el caso en rojo, CUELGA
+       la suite entera — que es peor, porque no hay nada que leer. */
+    let _cbReimp = false;
+    if (idR) await Promise.race([
+      new Promise(res => { try { pdfDeInformeGuardado(idR, () => { _cbReimp = true; setTimeout(res, 800); }, 'PDF'); }
+                           catch (e) { res(); } }),
+      new Promise(res => setTimeout(res, 8000))
+    ]);
+    await new Promise(res => setTimeout(res, 400));
+    const trasReimp = oe();
+    if (_eid) await __t.borrar(_eid);   // borrar() filtra por estudioId, no por id
+
+    __t.limpiar();
+    return { extra: [
+      ['los siete ids del escenario existen', faltan.length === 0, faltan.join(',')],
+      ['el estudio guardado se resolvio y la reimpresion pudo correr (denominador)',
+        idR != null && _cbReimp === true, 'idR=' + idR + ' callback=' + _cbReimp],
+      ['reimprimir otro estudio NO deja su veredicto en la fila del paciente en pantalla',
+        veredictoA.indexOf('descarta') > -1 && antesReimp.indexOf('apoya') > -1 && trasReimp === antesReimp,
+        'A="' + veredictoA + '" antes="' + antesReimp + '" despues="' + trasReimp + '"'],
+      ['em_grado nace en «sin» y NO tiene opcion vacia', emFabrica === 'sin/sin opcion vacia', emFabrica],
+      ['vm_morf nace en Normal', morfFabrica === 'Normal', morfFabrica],
+      ['sin onda E la fila es una raya', sinDato === '\\u2014', sinDato],
+      ['onda E 170 con la A por debajo apoya IM severa', apoya === 'Onda E \\u2265 120 cm/s \\u2014 apoya IM severa', apoya],
+      ['sin onda A NO hay veredicto: la dominancia es parte del criterio',
+        sinOndaA === 'Onda E 170 cm/s \\u2014 onda A no medida', sinOndaA],
+      ['pero en FA si lo hay, porque ahi no existe onda A que medir',
+        sinOndaAenFA === 'Onda E \\u2265 120 cm/s \\u2014 apoya IM severa', sinOndaAenFA],
+      ['una onda A tipeada en m/s NO invierte la conclusion',
+        aBien === 'Onda A dominante \\u2014 pr\\u00e1cticamente descarta IM severa' &&
+        aFuera === 'Onda A fuera de rango \\u2014 verificar', aBien + ' | ' + aFuera],
+      ['onda E 100 NO apoya, y lo dice sin negar la severidad', noApoya === 'Onda E 100 cm/s \\u2014 sin signo de apoyo', noApoya],
+      ['el corte es >= y no >: 120 apoya', borde === 'Onda E \\u2265 120 cm/s \\u2014 apoya IM severa', borde],
+      ['y 119 no', bordeNo === 'Onda E 119 cm/s \\u2014 sin signo de apoyo', bordeNo],
+      ['una onda E en m/s no publica una negacion sobre un valor ilegible',
+        fuera === 'Onda E fuera de rango \\u2014 verificar', fuera],
+      ['la onda A dominante GANA al signo de apoyo, que es como la guia pone el peso',
+        aDomina === 'Onda A dominante \\u2014 pr\\u00e1cticamente descarta IM severa', aDomina],
+      ['con la onda A por debajo, vuelve el signo de apoyo', eDomina === 'Onda E \\u2265 120 cm/s \\u2014 apoya IM severa', eDomina],
+      ['en fibrilacion NO se compara contra la onda A', enFA === 'Onda E \\u2265 120 cm/s \\u2014 apoya IM severa', enFA],
+      ['con estenosis mitral LEVE la fila se apaga', conEMleve === '\\u2014', conEMleve],
+      ['y con severa tambien', conEMsev === '\\u2014', conEMsev],
+      ['con protesis mecanica se apaga', conProtMec === '\\u2014', conProtMec],
+      ['y con biologica tambien', conProtBio === '\\u2014', conProtBio],
+      ['pero una morfologia que NO es protesis no la apaga', conReumatica === 'Onda E \\u2265 120 cm/s \\u2014 apoya IM severa', conReumatica],
+      ['ni «Calcificada», que es calcificacion valvular y no del anillo',
+        conCalcificada === 'Onda E \\u2265 120 cm/s \\u2014 apoya IM severa', conCalcificada],
+      ['subir la onda E repinta la fila en el acto', antesDeSubir.indexOf('100 cm/s') > -1 && trasSubir === 'Onda E \\u2265 120 cm/s \\u2014 apoya IM severa', antesDeSubir + ' -> ' + trasSubir],
+      ['y graduar la estenosis la apaga en el acto', trasEstenosis === '\\u2014', trasEstenosis],
+      ['con los dos metodos discordando, el aviso los nombra a los dos',
+        discordan === 'Moderada/4 :: \\u26a0\\ufe0f El m\\u00e9todo volum\\u00e9trico da Moderada y el integrado Severa', discordan],
+      ['con un solo metodo no hay aviso', unSoloMetodo.indexOf(':: ""') > -1, unSoloMetodo],
+      ['y el aviso de parametros discordantes NO queda pisado: se componen',
+        /Par.metros discordantes/.test(compone) && /m.todo volum.trico da/.test(compone) && compone.indexOf(' \\u00b7 ') > -1, compone],
+      ['las dos marcas se borran con «Nuevo estudio»', marcasTrasNuevo === '{}', marcasA + ' -> ' + marcasTrasNuevo],
+      ['asi que el paciente siguiente NO hereda el aviso del anterior', cruce === '\\u2014' || cruce === '', cruce],
+      ['un im_grado 3 (Moderada-severa), que solo pone el medico, SI se reporta',
+        volParaTres === 'Moderada' && /volum.trico da Moderada y el integrado Moderada-severa/.test(conTres), volParaTres + ' :: ' + conTres],
+      ['y un im_grado 0, que es ambiguo, se calla', conCero === '', conCero],
+      ['el ⓘ es un control TOCABLE que abre la ayuda, no solo un title',
+        (() => { const e = g('im-ondae-interp');
+          const l = e && e.parentElement.querySelector('.calc-lbl');
+          const i = l && l.querySelector('span[onclick]');
+          return !!i && /abrirAyudaEco/.test(i.getAttribute('onclick')) && typeof abrirAyudaEco === 'function'; })(),
+        'ⓘ tocable'],
+      ['la onda E NO vota el grado', noVota, gradoSinE + ' vs ' + gradoConE],
+      ['ni llega al informe ni al EN SUMA', noPapel, noPapel ? 'identicos' : 'DIFIEREN'],
+      ['ni al Excel', xlsTieneOndaE === '(ninguna columna)', xlsTieneOndaE],
+      ['el rotulo de la fila dice 120, no 150, y lleva la salvedad en el title',
+        /120 cm\\/s/.test(lblOndaE) && !/150/.test(lblOndaE) && /estenosis mitral/.test(lblOndaE) &&
+        /fibrilaci/.test(lblOndaE) && /ASE 2017/.test(lblOndaE), lblOndaE],
+      ['el rotulo del cociente conserva el 1,4 y DECLARA que no sale de una guia',
+        /1\\.4/.test(lblRatio) && /no figura en ASE 2017/.test(lblRatio) && /Tribouilloy/.test(lblRatio), lblRatio],
+      ['la tabla de referencia ya no inventa bandas numericas para la onda E',
+        /onda A dominante/.test(tablaRef) && /variable/.test(tablaRef) && /120 cm\\/s/.test(tablaRef) &&
+        !/100.149/.test(tablaRef) && !/150/.test(tablaRef), tablaRef],
+      ['ni para el cociente, y dice que no tiene guia',
+        !/1\\.0.1\\.4/.test(tablaRef) && /sin gu.a/.test(tablaRef), tablaRef],
+      ['la ayuda lleva el detalle largo, con la cita y la procedencia del 1,4',
+        /Zoghbi/.test(ayuda) && /Tribouilloy/.test(ayuda) && /calcificaci.n anular/.test(ayuda) &&
+        /error de transcripci.n/.test(ayuda), ayuda.length + ' caracteres de ayuda'],
+    ] };
+  })();
+`);
+
+/* POR QUE ESTE CASO. La fila de onda E estaba MUERTA: el elemento se declaraba una vez en el
+   marcado y nadie lo escribia nunca —el codigo la leia solo para VOTAR y, cuando ese voto se quito
+   porque la onda E no gradua, el elemento quedo sin dueño— mientras su rotulo enseñaba «>150 cm/s
+   severa» al lado de una raya permanente. Un umbral visible sobre un valor que nunca aparece.
+
+   EL 150 NO TENIA FUENTE. Verificado contra el PDF primario de ASE 2017 (Zoghbi, JASE 30:303-371)
+   por dos vias independientes —la Tabla 8 leida como texto Y renderizada como imagen, mas el
+   estudio de origen (Thomas, JACC 1998;31:174-9) por otra base de datos—: el corte es 1,2 m/s.
+
+   ⚠️ Y LA GUIA PONE EL PESO AL REVES DE LO QUE EL PEDIDO ASUMIA. La leyenda de la Tabla 8 dice que
+   lo marcado EN NEGRITA es especifico de su grado, y en la fila de llenado mitral la unica en
+   negrita es «A-wave dominant». La onda A dominante DESCARTA IM severa —signo fuerte— y la E >=120
+   es apenas de soporte. Por eso hay condiciones para las dos mitades y por eso la A GANA cuando
+   las dos aplican: publicar solo la E daria vuelta el peso de la evidencia.
+
+   LOS GATES SALEN DE LIMITACIONES QUE LA GUIA NOMBRA, no de criterio propio: «even mild degrees of
+   mitral stenosis» alteran la onda E (de ahi la condicion con estenosis LEVE, no solo severa), y
+   la guia nombra tambien el «mitral annular ring». La FA no invalida la E pero borra la onda A.
+   El control negativo —morfologia Reumatica, que NO apaga— esta porque un gate que apagara con
+   cualquier morfologia distinta de Normal pasaria las otras cuatro condiciones igual.
+
+   ⚠️ EL GATE DE ESTENOSIS NO ES FAIL-CLOSED Y EL CASO LO MIDE EN VEZ DE TAPARLO: la condicion
+   «em_grado nace en sin y no tiene opcion vacia» existe para que quede escrito que «sin estenosis»
+   y «nunca se evaluo» son indistinguibles en ese campo. Si algun dia se agrega una opcion vacia o
+   un «no evaluada», esa condicion se pone roja y obliga a revisar el sentido del gate.
+
+   QUEDA DECLARADO Y SIN CONDICION: la calcificacion anular y la IM secundaria, que la guia tambien
+   nombra como limitaciones, no tienen campo propio en la app y por eso no se gatean; la salvedad
+   vive en el title del rotulo y en la pestaña «Referencia clinica», que son los dos mecanismos que
+   la app ya tenia. Y el 1,4 del cociente se conserva por decision de Maicol —cambiar un corte de
+   severidad es otra cosa— con la atribucion falsa quitada: el barrido del PDF de ASE 2017 da CERO
+   ocurrencias de «1.4», «VTI ratio» y «mitral-to-aortic», con control de denominador («1.2» sale 4
+   veces y «1.5» 3, o sea que la extraccion funciona). */
 
 // ── Evaluacion ──────────────────────────────────────────────────────────────────────────────
 function evaluar(r) {

@@ -3181,7 +3181,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                ⚠️ ESE `value` NO ES COPY-PASTE SOBRANTE aunque hoy sea idéntico a la etiqueta: es lo
                que impide que un sufijo agregado a la etiqueta se filtre al dato. Ya pasó —«(SAVR)»
                estuvo en esta etiqueta y no ensució un solo estudio porque el `value` estaba—. -->
-          <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
+          <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync();imOndaESiExiste()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
         </div>
         <!-- Campos de PRÓTESIS (Fase 1, 2026-09-27). Se muestran sólo con una de las tres
              opciones de prótesis y NO calculan nada todavía: la graduación es la Fase 2. -->
@@ -3221,7 +3221,10 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div id="bloque-esten-mitral" style="display:none;">
         <div class="fg"><label>Estenosis mitral — grado final</label>
-          <select id="em_grado"><option value="sin">Sin estenosis (AVm &ge;4 cm²)</option><option value="leve">Leve (AVm 2.51–3.99 cm²)</option><option value="moderada">Moderada (1.5–2.5 cm²)</option><option value="severa">Severa (&le;1.5 cm²)</option></select>
+          <!-- El `onchange` es de la fase 2 y NO toca `calcEM`: solo repinta la fila de onda E de
+               IM, que se apaga con estenosis documentada. Sin esto el medico gradua la estenosis y
+               la fila de al lado sigue afirmando un signo que la guia invalida. -->
+          <select id="em_grado" onchange="imOndaESiExiste()"><option value="sin">Sin estenosis (AVm &ge;4 cm²)</option><option value="leve">Leve (AVm 2.51–3.99 cm²)</option><option value="moderada">Moderada (1.5–2.5 cm²)</option><option value="severa">Severa (&le;1.5 cm²)</option></select>
           <div id="em-thp-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
         </div>
         </div>
@@ -3378,8 +3381,25 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="calc-row"><span class="calc-lbl">Vol eyectado TSVI (ml)</span><span class="calc-val" id="vsvtsvi-val">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Fracción regurgitante (%)</span><span class="calc-val" id="freg-val">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Onda S pulmonar</span><span id="im-onda-s-interp">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Onda E (parámetro soporte — >150 cm/s severa)</span><span id="im-ondae-interp">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Ratio VTI mitral / VTI TSVI (>1.4 severa)</span><span class="calc-val" id="im-vti-ratio">—</span></div>
+        <!-- La salvedad va en el `title` y NO al lado del dato: es el mecanismo que la app ya usa
+             (hay `title` en labels y spans de Config, del Laboratorio y del encabezado del PDF) y
+             la regla es que el texto visible sea de una línea.
+             ⚠️ PERO EL `title` NO EXISTE EN TÁCTIL, y esta app se usa en celular y tablet: sin hover
+             no se muestra nunca, así que el ⓘ prometía información que al tocar no pasaba nada.
+             Lo levantó /sharp-edges. Por eso el ⓘ es un control que abre la ayuda —`abrirAyudaEco`,
+             que ya existía— y el detalle largo vive en la pestaña «Referencia clínica», que sí es
+             alcanzable con el dedo. El `title` queda como atajo en escritorio, no como único
+             camino. -->
+        <div class="calc-row"><span class="calc-lbl" title="Válido sin estenosis mitral, calcificación anular, anillo protésico ni fibrilación auricular. Menos específico en IM secundaria. La onda A dominante es más aplicable en mayores de 50 años. ASE 2017 (Zoghbi, JASE 30:303-371).">Onda E (parámetro soporte — &ge;120 cm/s apoya IM severa) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span id="im-ondae-interp">—</span></div>
+        <!-- ⚠️ EL 1,4 NO SALE DE NINGUNA GUÍA, y el `title` lo dice en vez de callarlo. Barrido del
+             PDF primario de ASE 2017: «1.4» aparece CERO veces, y «VTI ratio» y «mitral-to-aortic»
+             tampoco —con control de denominador, porque «1.2» sale 4 veces y «1.5» 3, o sea que la
+             extracción funciona—. El estudio original (Tribouilloy, Eur Heart J 1994;15:1335-9) da
+             ≥1,3; el ≥1,4 se rastrea a un artículo del E-Journal de la ESC que cita ese corte con
+             la sensibilidad y especificidad EXACTAS de Tribouilloy para 1,3 (87 %/91 %), o sea un
+             error de transcripción propagado. Decisión de Maicol: NO se cambia el número —cambiar
+             un corte de severidad es otra cosa— y se quita la atribución falsa. -->
+        <div class="calc-row"><span class="calc-lbl" title="El corte 1,4 no figura en ASE 2017 ni en ESC/EACTS 2021. El estudio original (Tribouilloy, Eur Heart J 1994) da 1,3. Ver «Referencia clínica» en la ayuda.">Ratio VTI mitral / VTI TSVI (&gt;1.4 severa) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-vti-ratio">—</span></div>
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad IM integrada (ESC 2021)</span><span id="im-sev">—</span></div>
         <div class="calc-row"><span id="im-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
       </div>
@@ -12503,8 +12523,21 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">EROA mm² (secundaria)</td><td style="padding:5px 8px;text-align:center;">&lt;10</td><td style="padding:5px 8px;text-align:center;">10–19</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≥20</td></tr>
             <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Vol regurgitante (ml)</td><td style="padding:5px 8px;text-align:center;">&lt;30</td><td style="padding:5px 8px;text-align:center;">30–59</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≥60</td></tr>
             <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">FR (%)</td><td style="padding:5px 8px;text-align:center;">&lt;30</td><td style="padding:5px 8px;text-align:center;">30–49</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≥50</td></tr>
-            <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Onda E (cm/s)</td><td style="padding:5px 8px;text-align:center;">&lt;100</td><td style="padding:5px 8px;text-align:center;">100–149</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&gt;150</td></tr>
-            <tr><td style="padding:5px 8px;color:var(--text2);">Ratio VTI mitral/TSVI</td><td style="padding:5px 8px;text-align:center;">&lt;1.0</td><td style="padding:5px 8px;text-align:center;">1.0–1.4</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&gt;1.4</td></tr>
+            <!-- ⚠️ ESTA FILA TENÍA TRES BANDAS NUMÉRICAS QUE LA GUÍA NO DA. Verificado contra el PDF primario
+     de ASE 2017, Tabla 8, fila «Mitral inflow», leída como texto Y renderizada: dice literalmente
+     «A-wave dominant | Variable | E-wave dominant (>1.2 m/sec)». No hay un «<100» ni un «100–149»
+     en ninguna parte, y el «>150» tampoco: el corte es 120 cm/s. Las tres bandas eran inventadas.
+     La negrita de la columna leve es la de la propia guía: su leyenda dice que lo marcado en
+     negrita es ESPECÍFICO de su grado, y en esa fila la única en negrita es la onda A dominante.
+     ⚠️ Y LA TABLA SE LLAMA «ESC 2021»: estas dos filas —onda E y cociente de VTI— NO son de esa
+     guía. La onda E se verificó en ASE 2017 y el cociente no se pudo verificar en ninguna. La
+     tabla NO se renombra (decisión de Maicol), así que la atribución queda anotada en cada fila. -->
+<tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Onda E — llenado mitral <span style="font-size:10px;">(ASE 2017)</span></td><td style="padding:5px 8px;text-align:center;font-weight:700;">onda A dominante</td><td style="padding:5px 8px;text-align:center;">variable</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">onda E dominante (&ge;120 cm/s)</td></tr>
+            <!-- Las bandas «<1.0» y «1.0–1.4» eran inventadas: el índice sólo se publicó como corte binario
+     para severa, en ninguna fuente hay bandas de leve y moderada. Y el cálculo tampoco las usaba
+     —la fila de pantalla sólo mira si cruza el corte—, así que la tabla enseñaba una graduación
+     que el código nunca aplicó. La atribución va en la celda porque no es de la ESC. -->
+<tr><td style="padding:5px 8px;color:var(--text2);">Ratio VTI mitral/TSVI <span style="font-size:10px;">(sin guía — ver ayuda)</span></td><td style="padding:5px 8px;text-align:center;">—</td><td style="padding:5px 8px;text-align:center;">—</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&gt;1.4</td></tr>
           </table>
           <div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--accent2);">Indicaciones IM primaria (ESC 2021)</div>
           <div style="font-size:12px;color:var(--text);line-height:1.8;margin-top:4px;">
@@ -16383,6 +16416,15 @@ const UMBRAL_LAVI_DILATADO = 34;   // ml/m² — LAVI >34 → aurícula izquierd
    para que nadie la cite como si lo fuera. */
 const UMBRAL_AI_DIAM_DILATADO = 40;   // mm  — ≥40 → dilatada, SIN grado (ASE 2015; ver arriba)
 const UMBRAL_AI_AREA_DILATADA = 20;   // cm² — >20 → dilatada, SIN grado (ASE 2015; NO 22)
+/* Onda E como signo de SOPORTE de IM severa. 120 cm/s = 1,2 m/s, verificado contra el PDF primario
+   de ASE 2017 (Zoghbi, JASE 30:303-371) por dos vías independientes: la Tabla 8 leída como texto Y
+   renderizada como imagen, y el estudio de origen (Thomas, Foster, Schiller, JACC 1998;31:174-9,
+   vía Europe PMC — otra base). El rótulo anterior decía «>150 cm/s severa» y ese 150 no tenía
+   fuente en ninguna de las dos.
+   Se escribe ≥ y no >: la Tabla 7 y el cuerpo del texto imprimen «≥1.2 m/sec» y la Tabla 8 imprime
+   «>1.2». Es una inconsistencia de la propia guía —verificada glifo por glifo, no inferida— y se
+   elige el ≥ porque es el que aparece dos veces. */
+const UMBRAL_ONDA_E_APOYO_IM = 120;   // cm/s — ≥120 apoya IM severa (ASE 2017); NO gradúa
 /* Aorta torácica: UN solo juego de umbrales para los tres segmentos, **ESC 2021**. Antes había
    dos conviviendo —las cápsulas de `calcAorta` decían normal hasta 38 y 40, y las dos tablas del
    PDF marcaban «* dilatado» desde 34 y 37—, así que la misma medición salía verde en pantalla y
@@ -20190,6 +20232,14 @@ window.calcDiastol = function() {
        paciente no tiene el hallazgo». */
     try { if (typeof calcVenaPulm === 'function') calcVenaPulm(); }
     catch (e) { console.error('[venp] calcVenaPulm tras calcDiastol', e); }
+    /* La fila de onda E de IM cuelga de ACA y no del `oninput` de `onda_e`/`onda_a` por el mismo
+       argumento que ya justifica este envoltorio: `calcDiastol` tiene cuatro salidas y tres
+       `return` tempranos, y el ritmo (`diast_ritmo`) —que decide si se compara contra la onda A—
+       tambien entra por aca. Un solo enganche cubre los tres insumos. Es la leccion de la fase 1,
+       donde un consumidor nuevo se quedo sin disparador: `im_itv` paso a ser insumo de dos
+       calculos y su `oninput` seguia llamando a uno. */
+    try { if (typeof imOndaEPintar === 'function') imOndaEPintar(); }
+    catch (e) { console.error('[imOndaE] tras calcDiastol', e); }
     return r;
   };
 })();
@@ -21638,6 +21688,25 @@ function calcIM_ESC() {
      del calc-box: un cociente que discrepe con el `Vol eyectado` de arriba sobre cual VTI TSVI
      existe es peor que el defecto que se arregla. El `> 0` cubre el cero —que `v()` devuelve como
      dato y es falsy en el `||`— sin tocar `_syncDerivado`, que queda como deuda declarada. */
+  /* Va ANTES del `return` de «sin parámetros cuantitativos»: la onda E es un signo de soporte que
+     NO depende de que haya cuantificación de IM cargada, y colgarlo después del return dejaba la
+     fila muda justo en el estudio donde la única cosa medida es el Doppler mitral. */
+  /* ⚠️ VA ANTES DEL `return`, y estar después era la otra mitad del defecto de cruce de pacientes:
+     con `params` vacío —un estudio sin una sola cuantificación de IM— la función salía sin borrar
+     la marca del estudio anterior, así que la única forma de limpiarla era volver a tener
+     parámetros. Con `params` vacío `sevs.length` es 0 y la rama `else` la borra, que es justo lo
+     que hace falta. Se pinta acá Y al final: acá para que el borrado tenga efecto aunque la
+     función salga, y al final porque `im_grado` todavía no se escribió en este punto. */
+  const _sevsDisc = [...new Set(params.map(p => p.sev))];
+  const _dElDisc = document.getElementById('im-discordancia');
+  if (_dElDisc) {
+    if (_sevsDisc.length > 1) _dElDisc.dataset.paramsDisc = '⚠️ Parámetros discordantes: ' + params.map(p=>`${p.p}:${p.sev}`).join(', ');
+    else delete _dElDisc.dataset.paramsDisc;
+  }
+  imDiscordanciaPintar();
+
+  imOndaEPintar();
+
   const _pVtimR  = vPlaus('vtim');
   const _vtsRatio = v('im_itv_tsvi') || v('itv_tsvi');
   const ratioEl = document.getElementById('im-vti-ratio');
@@ -21668,9 +21737,138 @@ function calcIM_ESC() {
     document.getElementById('im_grado').value = gradoVal;
     if (typeof autoCompletarSevIM === 'function') autoCompletarSevIM(gradoVal);
   }
-  const sevs = [...new Set(params.map(p=>p.sev))];
-  document.getElementById('im-discordancia').textContent = sevs.length > 1 ? '⚠️ Parámetros discordantes: ' + params.map(p=>`${p.p}:${p.sev}`).join(', ') : '';
+  /* Segundo repintado: la marca ya se guardó arriba, pero `im_grado` se escribió DESPUÉS, y el
+     aviso de discordancia entre métodos lo lee. Se guarda en el `dataset` y no en el
+     `textContent` porque el elemento lo comparte con el otro aviso y el que escribiera último
+     borraba al primero; `imDiscordanciaPintar` es el único que toca el texto. */
+  imDiscordanciaPintar();
 }
+
+/* ⚠️ ESTA FILA ESTUVO MUERTA. `im-ondae-interp` se declaraba UNA vez en el marcado y nadie lo
+   escribía nunca: el código anterior leía la onda E sólo para VOTAR, y cuando ese voto se quitó
+   —porque la onda E no gradúa— el elemento quedó sin dueño, con un rótulo que enseñaba un umbral
+   al lado de una raya permanente. Medido: «—» con todo el estudio cargado.
+
+   ⚠️ Y LA GUÍA PONE EL PESO AL REVÉS DE LO QUE PARECE. La leyenda de la Tabla 8 de ASE 2017 dice
+   que lo que está EN NEGRITA es específico de su grado, y en la fila de llenado mitral la única en
+   negrita es «A-wave dominant». O sea: la onda A dominante DESCARTA IM severa —ese es el signo
+   fuerte, y el estudio de origen lo dice igual: «An A wave dominant pattern excluded the presence
+   of severe MR»— y la E ≥120 es apenas de SOPORTE, no específica. Publicar sólo la mitad de la E
+   daría vuelta el peso de la evidencia, así que la fila publica las dos.
+
+   TRES GATES, ninguno decorativo, y los tres salen de limitaciones que la guía nombra:
+   · estenosis mitral —«even mild degrees of mitral stenosis» alteran la onda E—;
+   · prótesis mitral, que es lo que `vm_morf` SÍ puede decir;
+     ⚠️ y el ANILLO DE ANULOPLASTIA no queda cubierto, aunque la guía lo nombre junto con la
+     calcificación anular: `vm_morf` tiene nueve opciones y ninguna es un anillo, así que una
+     mitral reparada se consigna como «Prolapso / EVMS» o «Normal» y la fila publica el signo que
+     el anillo invalida. Lo señaló /sharp-edges sobre la versión anterior de este comentario, que
+     presentaba el caso como cubierto. No hay campo donde leerlo; queda en la ayuda;
+   · fibrilación auricular, que NO invalida la E pero borra la onda A: ahí se publica sólo la mitad
+     que existe, en vez de comparar contra una onda que el paciente no tiene.
+
+   ⚠️ EL GATE DE ESTENOSIS NO ES FAIL-CLOSED, Y HAY QUE SABERLO: `em_grado` nace en «sin» —es su
+   primera opción y no hay una vacía— así que «sin estenosis» y «nunca se evaluó» son
+   indistinguibles en ese campo y la fila se muestra en los dos casos. Es consistente con el resto
+   de la app —el informe narrativo también dice «sin estenosis» por defecto— y el costo queda
+   acotado porque esta fila NO VOTA: no escribe `im_grado`, no entra en `params`, no va al informe
+   y no va al PDF. La calcificación anular y la IM secundaria, que la guía también nombra, no
+   tienen campo propio y por eso NO se gatean: la salvedad vive en el `title` del rótulo, en el ⓘ
+   que abre la ayuda y en la pestaña «Referencia clínica», que son los mecanismos que la app ya
+   tenía. Matiz que /sharp-edges pidió no borrar: `vm_morf` SÍ tiene una opción «Calcificada», pero
+   es calcificación VALVULAR y la guía habla de la del ANILLO (MAC) — son cosas distintas y por eso
+   no se gatea con ella, no porque el campo no exista. */
+function imOndaEPintar() {
+  const el = document.getElementById('im-ondae-interp');
+  if (!el) return;
+  const raya = () => { el.textContent = '\u2014'; };
+  const emG = sv('em_grado');
+  if (emG === 'leve' || emG === 'moderada' || emG === 'severa') { raya(); return; }
+  /* Se usa el predicado del archivo y no un regex propio: `valvEsProtesis` sobre
+     `VALV_PROT_OPCIONES` es el único dueño de esta pregunta y ya se lo llama con esta misma guarda
+     desde otros dos puntos. Un segundo dueño diverge sin que nada lo señale — que es el defecto
+     que este archivo documenta con las «TRES listas paralelas» de opciones de prótesis. */
+  if (typeof valvEsProtesis === 'function' && valvEsProtesis(sv('vm_morf'))) { raya(); return; }
+  /* Con banda, porque la onda E ya la tiene en `DCM_RANGO` y sin esto una E de 9 —m/s por cm/s—
+     publicaría «sin signo de apoyo», que es una NEGACIÓN sobre un valor ilegible. */
+  const pE = vPlaus('onda_e');
+  if (pE.fuera) { el.textContent = 'Onda E fuera de rango \u2014 verificar'; return; }
+  if (pE.val == null) { raya(); return; }
+  const pA = vPlaus('onda_a');
+  const enFA = sv('diast_ritmo') === 'fa';
+  /* ⚠️ LA ONDA A TAMBIÉN SE LEE CON BANDA, y no hacerlo INVERTÍA la conclusión. Lo encontró
+     /sharp-edges: con onda E 130 y la onda A tipeada en m/s («1.5» por 150), `vPlaus` devuelve
+     `val:null` y la rama de A dominante se salteaba, así que la fila publicaba «apoya IM severa»
+     donde con el valor bien tipeado dice «prácticamente descarta IM severa». La conclusión
+     OPUESTA por un dedazo de unidad. La banda de `onda_e` estaba puesta con este mismo argumento
+     y el de la A es peor: allá era una negación sobre basura, acá una afirmación invertida. */
+  if (!enFA && pA.fuera) { el.textContent = 'Onda A fuera de rango \u2014 verificar'; return; }
+  if (!enFA && pA.val != null && pA.val > pE.val) {
+    el.textContent = 'Onda A dominante \u2014 pr\u00e1cticamente descarta IM severa'; return;
+  }
+  if (pE.val >= UMBRAL_ONDA_E_APOYO_IM) {
+    /* ⚠️ LA DOMINANCIA ES PARTE DEL CRITERIO. La Tabla 8 de ASE 2017 dice «E-wave dominant
+       (>1.2 m/sec)», no «E ≥1,2»: sin la onda A no se puede establecer que la E domine, y si esa
+       A hubiera sido mayor la conclusión era la contraria. Así que sin onda A se publica el valor
+       y se nombra lo que falta, en vez de un veredicto que el dato no sostiene. En FA no hay onda
+       A que medir, así que ahí el veredicto sí se publica. */
+    if (!enFA && pA.val == null) { el.textContent = 'Onda E ' + pE.val + ' cm/s \u2014 onda A no medida'; return; }
+    el.textContent = 'Onda E \u2265 ' + UMBRAL_ONDA_E_APOYO_IM + ' cm/s \u2014 apoya IM severa'; return;
+  }
+  el.textContent = 'Onda E ' + pE.val + ' cm/s \u2014 sin signo de apoyo';
+}
+window.imOndaEPintar = imOndaEPintar;
+/* Con guarda y `try/catch` por lo mismo que `imSyncSiExiste`: el `onchange` vive en el MARCADO y
+   sobrevive aunque este bloque deje de parsear, y sin la guarda un `ReferenceError` ahí se
+   llevaría las llamadas que van detrás. Avisa en vez de tragar. */
+function imOndaESiExiste(){ if (typeof imOndaEPintar === 'function') {
+  try { imOndaEPintar(); } catch (e) { console.warn('[imOndaE]', e); } } }
+window.imOndaESiExiste = imOndaESiExiste;
+
+/* El aviso de DISCORDANCIA entre los dos métodos, y vive en una función propia porque los dos
+   grados los calculan funciones DISTINTAS: el volumétrico sale de `calcContIM` y el integrado de
+   `calcIM_ESC`, que no se llaman entre sí. Recalcular el volumétrico acá sería una SEGUNDA copia
+   de la fórmula —el defecto que este archivo documenta como «la copia que usa el PDF se pudre sin
+   que se vea desde la app»—, así que `calcContIM` deja su categoría en el `dataset` del elemento
+   que ya la muestra y acá se lee. `dataset` no se persiste y no hace falta que lo haga: nada se
+   decide con esto, y las dos funciones lo recalculan cuando corren.
+   Comparte elemento con el aviso de parámetros discordantes, que ya existía, así que se COMPONEN
+   en una línea en vez de pisarse —el `textContent` directo de antes borraba al otro—.
+   SÓLO PANTALLA, y esta es la verificación buena: barrido de `im-discordancia`, `im-ondae-interp`,
+   `im-cont-severidad` e `im-vti-ratio` contra el informe narrativo, el EN SUMA, el PDF, el PPT,
+   `LAB_XLS_MAP` y el panel de Evidencia → cero consumidores. La versión anterior de esta nota
+   decía «aparece dos veces en el archivo» y hoy son tres: contar apariciones deja de servir en
+   cuanto alguien agrega un escritor, y lo que hay que barrer son las SUPERFICIES. */
+function imDiscordanciaPintar() {
+  const el = document.getElementById('im-discordancia');
+  if (!el) return;
+  const sEl = document.getElementById('im-cont-severidad');
+  const vol = (sEl && sEl.dataset.gradoVolum) ? sEl.dataset.gradoVolum : '';
+  /* ⚠️ EL '3' ESTABA SIN MAPEAR, Y ERA EL PEOR HUECO: `calcIM_ESC` nunca produce un 3, así que un
+     `im_grado === '3'` («Moderada-severa») sólo puede haberlo puesto el médico a mano — un juicio
+     deliberado—. Sin la entrada, `integ` quedaba vacío y la guarda no disparaba: un volumétrico
+     «Leve» contra un integrado «Moderada-severa» —dos bandas, la discordancia más grande posible—
+     no imprimía NADA, mientras un «Leve» contra «Moderada» sí. El aviso estaba para la
+     discrepancia chica y ausente para la grande. Lo encontró /sharp-edges.
+     Se mapea a su propia etiqueta y no se lo asimila a «Moderada»: inventar una equivalencia
+     volumétrica para una categoría que el método volumétrico no produce sería fabricar el
+     denominador de la comparación.
+     El '0' se deja SIN mapear a propósito y esto es la declaración: es el valor de fábrica del
+     oculto y también el que el médico elige para «Sin insuficiencia / no evaluada», o sea
+     ambiguo, y un aviso de discordancia sobre un grado que puede ser «nadie lo tocó» es ruido. */
+  const INT = { '1':'Leve', '2':'Moderada', '3':'Moderada-severa', '4':'Severa' };
+  const ig  = document.getElementById('im_grado');
+  const integ = (ig && INT[ig.value]) ? INT[ig.value] : '';
+  const partes = [];
+  if (el.dataset.paramsDisc) partes.push(el.dataset.paramsDisc);
+  /* Se comparan CATEGORÍAS y no cadenas: el volumétrico publica «Moderada» y el integrado guarda
+     «2», que son la misma cosa escrita de dos formas. Y se exige que los DOS existan —con un solo
+     método cargado no hay discordancia, hay un solo dato—. */
+  if (vol && integ && vol !== integ)
+    partes.push('\u26a0\ufe0f El m\u00e9todo volum\u00e9trico da ' + vol + ' y el integrado ' + integ);
+  el.textContent = partes.join(' \u00b7 ');
+}
+window.imDiscordanciaPintar = imDiscordanciaPintar;
 
 function calcIA_ESC() {
   const vc = v('ia_vc');
@@ -23417,7 +23615,11 @@ function calcContIM() {
        quedaba muda después de haber mostrado 33,6. */
     if (e) { e.value = ''; e.placeholder = motivo || 'requiere VTI del jet de IM (CW)'; }
     if (f) f.value = '';
-    if (s) s.innerHTML = '';
+    /* Se borra la marca del grado volumétrico junto con el texto: si sobreviviera, el aviso de
+       discordancia seguiría comparando contra un grado que la pantalla ya no muestra —el fantasma
+       del gradiente pulmonar, aplicado a un aviso—. */
+    if (s) { s.innerHTML = ''; delete s.dataset.gradoVolum; }
+    if (typeof imDiscordanciaPintar === 'function') imDiscordanciaPintar();
   };
 
   /* MARCAR SIN BORRAR, aplicado a este bloque: con un insumo ilegible no se calcula NADA y se
@@ -23434,9 +23636,10 @@ function calcContIM() {
        decia «requiere VTI del jet de IM (CW)», o sea mandaba a revisar el unico dato que estaba
        bien. Es la regla que este archivo ya documenta sobre los mensajes que nombran mal la causa. */
     clearAll('insumo fuera de rango — ver el aviso');
+    /* Una línea, sin la salvedad que llevaba detrás del punto y coma: qué insumo es y que hay que
+       verificarlo alcanza, y «no se calcula por este método» ya se ve en las casillas vacías. */
     _imAvisoCont(document.getElementById('im-cont-severidad'), 'var(--red)',
-      'Fuera de rango medible: ' + _fueraIM.join(' y ') +
-      ' — verificar la medici\u00f3n; no se calcula por este m\u00e9todo.');
+      'Fuera de rango: ' + _fueraIM.join(' y ') + ' — verificar la medici\u00f3n');
     return;
   }
 
@@ -23529,14 +23732,21 @@ function calcContIM() {
        error de la app. El umbral es 0,05 ml porque `vr_cont` publica un decimal: por debajo de eso
        la diferencia no existe EN PANTALLA, asi que declararla seria hablar de algo invisible. */
     if (volR < -0.05) {
-      _imAvisoCont(sEl, 'var(--yellow)', 'No valorable: Vol mitral ' + vmit.toFixed(1) +
-        ' ml menor que Vol TSVI ' + vstsvi.toFixed(1) + ' ml, revisar mediciones');
+      /* UNA LÍNEA CORTA, y es la regla nueva de Maicol para todo texto visible: las salvedades
+         van al `title` o a la ayuda, no al lado del dato. La versión anterior nombraba los dos
+         volúmenes y agregaba «revisar mediciones» detrás de una coma; los dos volúmenes ya están
+         en sus casillas, a la vista, así que repetirlos era ruido. */
+      _imAvisoCont(sEl, 'var(--yellow)', 'No valorable — revisar mediciones');
+      delete sEl.dataset.gradoVolum;
+      if (typeof imDiscordanciaPintar === 'function') imDiscordanciaPintar();
       setv('vr_cont', '');
       if (fEl) fEl.value = '';
       return;
     }
     if (Math.abs(volR) <= 0.05) {
       sEl.innerHTML = '<span style="color:var(--text2);">Sin regurgitación significativa por método volumétrico</span>';
+      delete sEl.dataset.gradoVolum;
+      if (typeof imDiscordanciaPintar === 'function') imDiscordanciaPintar();
       /* El signo se normaliza porque la resta de dos volumenes iguales da un residuo negativo y
          `toFixed(1)` lo publica como «-0.0»: un volumen regurgitante con signo menos, que es
          justamente el numero sin sentido que esta rama existe para no mostrar. */
@@ -23554,6 +23764,12 @@ function calcContIM() {
     }
     sEl.innerHTML = `Severidad (continuidad): <span style="color:${color};">${sev}</span>
       <span style="font-weight:400;color:var(--text2);font-size:10px;margin-left:8px;">método volumétrico · Vol-R ${volR.toFixed(1)} ml · FR ${fr.toFixed(0)}%</span>`;
+    /* La categoría queda AL LADO del texto que la muestra, para que `imDiscordanciaPintar` no
+       tenga que volver a calcularla ni parsear este HTML. Se escribe sólo en las ramas que
+       PUBLICAN un grado; las otras la borran, para que un aviso de discordancia no sobreviva al
+       escenario que lo hacía cierto. */
+    sEl.dataset.gradoVolum = sev;
+    if (typeof imDiscordanciaPintar === 'function') imDiscordanciaPintar();
   }
 }
 function usarTSVIenIM(val) {
@@ -27203,8 +27419,17 @@ function limpiarCampos(silencioso) {
      `dataset.desdeEstudio`, y por la misma razón. Barrido por atributo y no por lista de ids:
      así una marca nueva queda cubierta sin que nadie tenga que acordarse. */
   // (`oai_area_ostium` también lleva `derivadoDe`; el barrido es por atributo, así que ya entra.)
-  document.querySelectorAll('[data-derivado-de],[data-sugerido],[data-espejo-de]').forEach(el => {
+  /* ⚠️ `data-params-disc` y `data-grado-volum` entran acá, y NO entrar era un defecto de cruce de
+     pacientes. Los estrenó la fase 2 y este barrido —cuyo propio comentario promete que «una marca
+     nueva queda cubierta sin que nadie tenga que acordarse»— no los cubría: el sweep de
+     `.calc-box .calc-row span[id]` pone la fila en «—» pero NO toca el `dataset`, así que se
+     borraba lo que se ve y quedaba vivo lo que decide. Medido por /sharp-edges: paciente A con
+     parámetros discordantes, «Nuevo estudio», paciente B abre la pastilla de IM —lo que dispara
+     `calcContIM` → `imDiscordanciaPintar`— y el aviso del paciente A vuelve a imprimirse,
+     nombrando dos parámetros que el estudio nuevo no tiene. */
+  document.querySelectorAll('[data-derivado-de],[data-sugerido],[data-espejo-de],[data-params-disc],[data-grado-volum]').forEach(el => {
     delete el.dataset.derivadoDe; delete el.dataset.sugerido; delete el.dataset.espejoDe;
+    delete el.dataset.paramsDisc; delete el.dataset.gradoVolum;
   });
   if (typeof renderCentroField === 'function') renderCentroField('');   // nuevo estudio → centro principal por defecto
   /* ══ Checkboxes: barrido con ALLOWLIST, no lista de los que sí se limpian ══
@@ -51883,6 +52108,18 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      TEER que el comentario de arriba describe: la marca del paciente EN PANTALLA sobreviviendo a
      la carga del estudio guardado y haciendo que el espejo crea que el valor restaurado es suyo. */
   const _MARCAS_DERIV = ['vp_gmax','ep_grado','teer_pasp','im_dtsvi','im_itv_tsvi','im_ai_area','vtim'];
+  /* Las dos filas de IM que la reimpresión pisa. Van aparte de `_MARCAS_DERIV` porque eso respalda
+     `dataset` de INPUTS y esto es texto de `span`/`div` más dos atributos; meterlas ahí obligaría
+     a que el respaldo supiera de dos formas distintas. */
+  const _imFilasBackup = (() => {
+    const oe = document.getElementById('im-ondae-interp');
+    const dd = document.getElementById('im-discordancia');
+    const cs = document.getElementById('im-cont-severidad');
+    return { ondaE: oe ? oe.textContent : '',
+             disc:  dd ? dd.textContent : '',
+             paramsDisc: dd ? dd.dataset.paramsDisc : undefined,
+             gradoVolum: cs ? cs.dataset.gradoVolum : undefined };
+  })();
   const marcaEstado = {};
   _MARCAS_DERIV.forEach(id => {
     const el = document.getElementById(id);
@@ -52136,6 +52373,26 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
       if (tocadoEstado[id] === undefined) delete el.dataset.tocado;
       else el.dataset.tocado = tocadoEstado[id];
     });
+    /* ⚠️ LAS TRES COSAS DE IM QUE LA REIMPRESIÓN PISABA, y lo encontró /sharp-edges. Durante la
+       ventana corren `calcDiastol`, `calcIM_ESC` y `calcContIM` CON LOS DATOS DEL ESTUDIO
+       GUARDADO, así que escriben la fila de onda E y las dos marcas del `dataset`; el cierre
+       recalcula BSA, VI, AI, Ao, SGL y cardio-onco, pero NINGUNA de esas tres funciones, así que
+       el médico volvía a su paciente con la fila diciendo el veredicto del OTRO estudio al lado
+       de sus propios `onda_e`/`onda_a` — dos cosas que se contradicen en la misma pantalla.
+       Antes de la fase 2 esa fila estaba muerta, así que revivirla agregó una superficie clínica
+       a un camino de fuga que este archivo ya documenta haber cerrado para `psap-interp`,
+       `sgl-interp` y `bsa-val` en las otras dos rutas. Se respalda y se repone, que es el mismo
+       recurso de `dataset.tocado` y `_MARCAS_DERIV` de acá al lado: repintar llamando a las
+       funciones haría que la reimpresión RE-DERIVE `im_grado`, que es justo lo que no puede pasar. */
+    { const _oe = document.getElementById('im-ondae-interp');
+      if (_oe) _oe.textContent = _imFilasBackup.ondaE;
+      const _dd = document.getElementById('im-discordancia');
+      if (_dd) { _dd.textContent = _imFilasBackup.disc;
+        if (_imFilasBackup.paramsDisc === undefined) delete _dd.dataset.paramsDisc;
+        else _dd.dataset.paramsDisc = _imFilasBackup.paramsDisc; }
+      const _cs = document.getElementById('im-cont-severidad');
+      if (_cs) { if (_imFilasBackup.gradoVolum === undefined) delete _cs.dataset.gradoVolum;
+        else _cs.dataset.gradoVolum = _imFilasBackup.gradoVolum; } }
     // Simétrico con la limpieza de antes de cargar: el paciente en pantalla recupera SUS marcas.
     _MARCAS_DERIV.forEach(id => {
       const el = document.getElementById(id);
@@ -81357,8 +81614,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260928-0242';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790574145930;                 /* eco-build-ms */
+const ECO_BUILD    = '20260928-0505';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790582721290;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -81444,7 +81701,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-0242</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-0505</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -83598,6 +83855,8 @@ const ECO_AYUDA = [
 <div class="mSub">Válvulas — regurgitación e indicación quirúrgica</div>
 <table class="mTbl"><tr><th>Situación</th><th>Criterio</th><th>Guía</th></tr>
 <tr><td>Insuficiencia mitral primaria severa, asintomática</td><td>DTSI ≥ 40 mm o FEVI ≤ 60 % (Clase I)</td><td>ESC/EACTS 2021</td></tr>
+<tr><td>IM — onda E como signo de soporte<br><span style="font-size:11px;color:var(--text2);">Sólo soporte: no gradúa. El signo <b>específico</b> es el opuesto — la onda A dominante prácticamente descarta IM severa. Válido sin estenosis mitral (la guía dice que incluso la leve altera la onda E), calcificación anular, anillo protésico ni fibrilación auricular; menos específico en IM secundaria; más aplicable en mayores de 50 años.</span></td><td>onda E ≥ 120 cm/s apoya severa · onda A dominante la descarta</td><td>ASE 2017 (Zoghbi, JASE 30:303-371, Tabla 8)</td></tr>
+<tr><td>IM — cociente VTI mitral / VTI TSVI<br><span style="font-size:11px;color:var(--text2);">⚠️ Este corte <b>no figura en ASE 2017 ni en ESC/EACTS 2021</b>. El estudio original (Tribouilloy, Eur Heart J 1994;15:1335-9) da ≥ 1,3 con sensibilidad 87 % y especificidad 91 %; el 1,4 se rastrea a un artículo del E-Journal de la ESC que cita esas mismas dos cifras, o sea un error de transcripción propagado. Se conserva el 1,4 que la app venía usando y se declara su procedencia.</span></td><td>&gt; 1,4 apoya severa</td><td>sin guía — Tribouilloy 1994 da 1,3</td></tr>
 <tr><td>Insuficiencia aórtica severa, asintomática</td><td>FEVI ≤ 50 % · DTSI &gt; 50 mm o &gt; 25 mm/m² (Clase I)</td><td>ESC/EACTS 2021</td></tr>
 <tr><td>Estenosis aórtica severa sintomática</td><td>intervención Clase I; modalidad por edad y riesgo (corte 75 años)</td><td>ESC/EACTS 2021</td></tr>
 <tr><td>TEER — inclusión COAPT</td><td>FEVI 20–50 % · DTSVI ≤ 70 mm</td><td>COAPT</td></tr></table>
