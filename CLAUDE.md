@@ -1,5 +1,95 @@
 # EcoSmart — trampas de este archivo
 
+## FASE B — la continuidad de la EM deja de votar con regurgitación significativa (2026-09-28)
+
+**La regla (ASE 2023, rheumatic heart disease):** la ecuación de continuidad asume que todo lo que
+entra por la mitral sale por el TSVI. Con IM significativa parte del volumen vuelve a la aurícula;
+con IAo significativa entra volumen que no pasó por la mitral. En los dos casos el cociente deja de
+medir el área. Se retira el **voto**, no el dato: el AVm sigue en pantalla.
+
+- **Se pregunta por el GRADO FINAL** (`im_grado` / `ia_grado` >= 2), no por los parámetros sueltos:
+  es el mismo número que se imprime en el informe, y derivar acá una segunda definición de
+  «significativa» sería la fórmula duplicada de siempre. Valor de fábrica `'0'` → no bloquea nada.
+- **El THP SIGUE VOTANDO con IAo significativa** — pedido explícito: reportar, no cambiar.
+  `if (avm_thp_val) clasificarAVm(avm_thp_val, 'THP')` no tiene guarda. Clínicamente el THP
+  **también** se invalida con IAo significativa (sube la presión diastólica del VI, acorta el THP y
+  **sobreestima** el área, o sea hacia «menos severa»). Queda declarado y sin tocar.
+
+### ⚠️ LA BANDA DECIDE SI **VOTA**, NO SI SE **MUESTRA**
+
+La primera versión BORRABA el área con `em_vtimit` fuera de [2,80] y mostraba «fuera de rango». Lo
+levantó `/sharp-edges` con la aritmética: con VTI TSVI ~18 cm, un AVm de **0,70 cm² necesita un VTI
+mitral de ~80 cm**, o sea que **toda EM crítica tiene un VTI legítimo pegado al techo o por encima**.
+Borrar ahí le sacaba el área al paciente MÁS GRAVE y encima le decía «revisar VTI» sobre una
+medición correcta. Es el mismo criterio que este repo ya adoptó el 27/09 para `vPdf` —**MARCAR SIN
+BORRAR**—, cuando reemplazar el valor fuera de banda sacó del informe firmado un septum de 36 mm y
+una FEVI de 92 % que eran reales. Hoy se calcula con el crudo, se publica con «(revisar)» y sólo se
+retira el voto. Decisión de Maicol. **La banda no se ensanchó**: 130 cm (el VTI del CHORRO, el error
+de carga habitual) y 0,5 cm siguen marcados.
+
+⚠️ La banda de `em_vtimit` vive en **`DCM_RANGO`**, NO en `LAB_XLS_RANGO_PROPIO`.
+
+### El PDF: no se auto-marca, y no se agregó una palabra
+
+Cuando la continuidad no vale, la casilla «AVm por continuidad» **deja de auto-marcarse**. No hay
+texto nuevo en informe, EN SUMA ni PDF. Si el médico la tilda a mano, se imprime como siempre.
+
+**⚠️ ABSTENERSE DE SUBIRLA NO ALCANZA: HAY QUE BAJARLA.** `auto:false` sólo evita PONER el tilde, y
+el orden real de trabajo la deja puesta igual —el médico carga primero la EM, ahí la continuidad es
+válida y la casilla se auto-marca, y DESPUÉS gradúa la IM—. Lo cazó TC-305, no la lectura. Se baja
+sólo si `tocado`/`desdeEstudio` no están: la decisión del médico y la de un estudio guardado mandan.
+**No se usa el `auto:false` de `_pdfMetodoChk`** para esto: ahí significa «nunca marcar sola» y lo
+usa la IM, que es otra cosa.
+
+**El EN SUMA NO cita el AVm por continuidad** — verificado, no hay `suma.push` que lo haga.
+
+### ⚠️ `im_grado` tiene TRES escritores, no dos — y el tercero es el del PDF
+
+Escribí en un comentario que «los dos escritores del oculto pasan por el embudo, así que no hay una
+tercera puerta que se olvide». **Era falso**, y lo encontró `/sharp-edges` sobre mi propio diff:
+`mostrarCardSeveridadValvular` —la tarjeta de revisión que sale **antes de guardar y de emitir el
+PDF**— escribe `im_grado`/`ia_grado`/`it_grado` directo. Es la misma trampa que este archivo ya
+documenta para `em_grado`: **contar los escritores, no encontrar uno.**
+
+Y el recálculo tuvo que ir **DESPUÉS** del bucle `CLONADOS`, no antes: `CLONADOS` repone `em_grado`
+desde el clon, así que con el recálculo antes la pantalla mostraba la salvedad y el oculto seguía en
+«severa». Lo cazó el caso nuevo, no la lectura.
+
+### El oculto puede traer TEXTO, y la primera versión fallaba ABIERTO
+
+`im_grado` es 0-4 en el formulario pero **llega como texto desde un backup importado** («Severa»).
+Con el parser ingenuo daba `NaN → 0`, la continuidad **votaba** y el aviso no se pintaba — sobre la
+IM severa que el cambio venía a proteger. Y el comentario con el que yo lo había justificado era una
+**racionalización**: decía que `parseInt` evitaba un fail-open «porque NaN comparado con >= da
+false», y normalizar ese NaN a 0 da exactamente el mismo resultado. Hoy `_emRegurgGrado` interpreta
+número y texto, y lo que no puede interpretar **falla cerrado** con un aviso distinto —«no se pudo
+verificar» no es «no hay regurgitación»—.
+
+### Declarado, NO corregido
+
+- **La marca «(revisar)» se pierde donde se lee el número.** `v('avm_cont')` y `num('avm_cont')`
+  parsean `"0.63 cm² (revisar)"` como `0.63`. Los alcanza (a) la línea de prótesis mitral de la Fase
+  A, que publica «AVm 0.63 cm² por continuidad» sin la marca, y (b) la **exportación a Excel /
+  CeiboAnalytics**, que cruza a otra frontera de confianza. No se tocó porque Maicol pidió no agregar
+  texto al informe; queda como deuda.
+- **`avmMejor` y `avm_idx` siguen derivándose de la continuidad inválida**, con precedencia sobre el
+  THP. Publican «el área estimada», no gradúan.
+- **Tocar un campo de IM/IAo ahora re-deriva `em_grado`** por la cadena nueva
+  `calcIM_ESC → autoCompletarSevIM → sincronizarGradoIM → emContRefrescar → calcEM`. Mitigado por
+  `esqSevManual.em`. `calcEM` sigue **fuera** de `RECALC_MODULOS`, así que reabrir un estudio no
+  re-deriva nada por sí solo.
+
+### Mutaciones (las doce en rojo)
+
+Gate del voto, corte a 1, banda quitada, disparador de IM, disparador de IAo, tarjeta de revisión,
+parser ingenuo, no-verificable fallando abierto, borrar en vez de marcar, quitar «(revisar)», el PDF
+sin bajar la casilla, y la bajada pisando la decisión del médico.
+
+**Dos mutaciones encontraron defectos en MIS tests antes que en el código:** el caso del disparador
+llamaba a `calcEM()` a mano —así que probaba que el gate existe, no que corra—, y el de la IAo no
+existía, así que el de la mitral lo tapaba.
+
+
 Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cada una;
 ninguna es evidente leyendo el código alrededor.
 

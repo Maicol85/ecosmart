@@ -3304,6 +3304,10 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div class="calc-row"><span class="calc-lbl">G. medio</span><span class="calc-val" id="em-gmedio-row">—</span></div>
           <div class="calc-row"><span class="calc-lbl">AVm por THP</span><span class="calc-val" id="em-thp-row">—</span></div>
           <div class="calc-row"><span class="calc-lbl">AVm por continuidad</span><span class="calc-val" id="em-cont-row">—</span></div>
+          <!-- Renglón propio y NO dentro de `em-cont-row`: el valor se sigue mostrando —el médico
+               lo midió y tiene derecho a verlo— y lo que se declara es que NO vota. Mezclarlos en
+               la misma celda haría elegir entre publicar el número o publicar la salvedad. -->
+          <div class="calc-row"><span id="em-cont-aviso" style="color:var(--yellow);font-size:11px;"></span></div>
           <div class="calc-row"><span class="calc-lbl">AVm por planimetría</span><span class="calc-val" id="em-plan-row">—</span></div>
           <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad EM integrada (ESC 2021)</span><span id="em-sev-integrada">—</span></div>
           <div class="calc-row"><span id="em-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
@@ -20586,6 +20590,83 @@ window.PROT_SIN_GRADO_TXT = PROT_SIN_GRADO_TXT;
 window.protNoGradua = protNoGradua;
 window.protNoGraduaPintar = protNoGraduaPintar;
 
+/* ══ LA CONTINUIDAD MITRAL NO VALE CON REGURGITACIÓN SIGNIFICATIVA (ASE 2023) ═══════════════════
+   La ecuación de continuidad asume que TODO lo que entra por la mitral sale por el TSVI. Con una
+   IM significativa parte del volumen vuelve a la aurícula y con una IAo significativa entra
+   volumen que no pasó por la mitral: en los dos casos el cociente deja de medir el área. La ASE
+   2023 (rheumatic heart disease) lo dice explícito — la continuidad no debe usarse con
+   regurgitación mitral o aórtica significativa.
+   ⚠️ SE PREGUNTA POR EL GRADO FINAL Y NO POR LOS PARÁMETROS SUELTOS: `im_grado` e `ia_grado` son
+   el veredicto que ya integró la app —o que puso el médico a mano—, y es el mismo número que se
+   imprime en el informe. Derivar acá una segunda definición de «significativa» sería la fórmula
+   duplicada de siempre: el día que cambie un corte, la que vota y la que se publica discreparían.
+   `>= 2` es «moderada o mayor» en la escala 0-4 que comparten los dos campos (0 = sin / no
+   evaluada, 1 leve, 2 moderada, 3 moderada-severa, 4 severa). El valor de FÁBRICA es '0', así que
+   un estudio sin regurgitación graduada no bloquea nada — que es lo pedido. */
+const EM_CONT_REGURG_MIN = 2;
+const EM_CONT_AVISO_TXT   = 'AVm por continuidad no válida con regurgitación significativa';
+const EM_CONT_NOVERIF_TXT = 'AVm por continuidad: no se pudo verificar la regurgitación — revisar IM / IAo';
+/* ⚠️ EL OCULTO NO SIEMPRE TRAE UN NÚMERO, y la primera versión de esto fallaba ABIERTO justo con
+   el paciente que el cambio vino a proteger. Lo encontró /sharp-edges, y de paso desarmó el
+   comentario que yo había puesto para justificarlo: decía que `parseInt` evitaba un fail-open
+   «porque NaN comparado con >= da false», y normalizar ese NaN a 0 produce EXACTAMENTE el mismo
+   resultado que dejarlo — las dos ramas no votan. Era una racionalización, no una protección.
+   El caso real está declarado dos veces en este archivo: `im_grado` es 0-4 en el formulario pero
+   **puede llegar como TEXTO** desde un backup importado («Severa», «Moderada»), y `_labRegurgSev`
+   existe precisamente porque el mismo campo viene numérico o en palabras. Con el parser viejo,
+   reabrir un estudio con `im_grado:'Severa'` daba NaN → 0 → la continuidad VOTABA y el aviso no se
+   pintaba, sobre una IM severa.
+   Devuelve el grado 0-4, o `null` cuando el valor está pero NO se puede interpretar. `null` no es
+   «no hay regurgitación»: es «no lo pude leer», y las dos cosas no pueden verse igual. */
+function _emRegurgGrado(id){
+  const e = document.getElementById(id);
+  if (!e) return null;                                   // el campo no está: no verificable
+  const raw = String(e.value == null ? '' : e.value).trim();
+  if (raw === '') return 0;                              // vacío = valor de fábrica, no bloquea
+  if (/^-?\d+$/.test(raw)) { const n = parseInt(raw, 10); return (n >= 0 && n <= 4) ? n : null; }
+  const t = raw.toLowerCase();
+  /* «moderada-severa» contiene las DOS palabras: se pregunta por la combinación ANTES que por
+     «severa» sola, si no cae en 4 y sube el grado de un estudio importado. */
+  if (t.indexOf('moderada') > -1 && t.indexOf('severa') > -1) return 3;
+  if (t.indexOf('severa') > -1)   return 4;
+  if (t.indexOf('moderada') > -1) return 2;
+  if (t.indexOf('leve') > -1)     return 1;
+  if (t.indexOf('sin') === 0 || t.indexOf('no evaluada') > -1 || t.indexOf('ausente') > -1) return 0;
+  return null;                                           // texto desconocido: no verificable
+}
+/* Devuelve POR QUÉ no vota, o '' si vota. Un solo lugar decide, y el aviso de pantalla sale de
+   acá: si el motivo y el texto se derivaran por separado volverían a discrepar. */
+function emContMotivoNoVota(){
+  const im = _emRegurgGrado('im_grado'), ia = _emRegurgGrado('ia_grado');
+  /* FAIL-CLOSED: si no se puede leer la regurgitación, se retira el voto igual y se DICE. Contar
+     un área que quizá esté invalidada es el error caro; retirarla cuesta un voto y un aviso. */
+  if (im === null || ia === null) return EM_CONT_NOVERIF_TXT;
+  if (im >= EM_CONT_REGURG_MIN || ia >= EM_CONT_REGURG_MIN) return EM_CONT_AVISO_TXT;
+  return '';
+}
+function emContRegurgSignif(){ return emContMotivoNoVota() !== ''; }
+/* ⚠️ EL CONSUMIDOR NUEVO NECESITA SU DISPARADOR, y esta serie ya lo pagó tres veces (`im_itv`,
+   `im_dtsvi`/`im_itv_tsvi`, y el PISA del selector del PDF). Desde la Fase B la severidad
+   integrada de la EM depende de `im_grado` y de `ia_grado`, que viven en OTROS módulos: sin esto,
+   el médico cargaba la IM, el grado pasaba a «moderada», y la EM seguía contando el voto de la
+   continuidad hasta que alguien tocara un campo del bloque mitral — con el aviso apagado y el
+   grado viejo en pantalla y en el informe.
+   Va en `sincronizarGradoIM` / `sincronizarGradoIA` porque ése es el EMBUDO de los dos caminos:
+   el del calculador (`calcIM_ESC` → `autoCompletarSevIM` → acá) y el del selector que el médico
+   confirma a mano (`onchange` del `<select>` → acá). Los dos escritores del oculto pasan por
+   aquí, así que no hay una tercera puerta que se olvide.
+   El `try` no es decorativo: si `calcEM` fallara, la sincronía del grado —que es lo que esta
+   función vino a hacer— tiene que completarse igual. */
+function emContRefrescar(){
+  try { if (typeof calcEM === 'function') calcEM(); }
+  catch (e) { console.warn('[emContRefrescar] calcEM', e); }
+}
+window.emContRegurgSignif = emContRegurgSignif;
+window.emContMotivoNoVota = emContMotivoNoVota;
+window.emContRefrescar = emContRefrescar;
+window.EM_CONT_AVISO_TXT = EM_CONT_AVISO_TXT;
+window.EM_CONT_NOVERIF_TXT = EM_CONT_NOVERIF_TXT;
+
 function sugerirSeveridadEM(avm) {
   const sel = document.getElementById('em_grado');
   const badgeEl = document.getElementById('em-thp-badge');
@@ -20665,7 +20746,32 @@ function calcEM() {
   // AVm por continuidad
   const dtsvi  = v('em_dtsvi')  || v('diam_tsvi');
   const itsvi  = v('em_vtitsvi')|| v('itv_tsvi');
-  const vtimit = v('em_vtimit');
+  /* ⚠️ LA BANDA ANTES DE LA DIVISIÓN, porque `em_vtimit` es EL DENOMINADOR de la continuidad y un
+     denominador equivocado no da error: da un área. Las dos direcciones terminan en el informe
+     firmado y ninguna se ve rara desde la pantalla:
+       · 130 cm —el VTI del CHORRO de la IM en vez del de ENTRADA, que es el error de carga
+         habitual y ya costó una fase entera (ver «El VTI mitral era DOS mediciones con un solo
+         rótulo»)— da un AVm minúsculo y vota «severa»;
+       · 0,5 cm —dedazo— da un AVm disparatado y vota «sin estenosis».
+     La banda es [2,80] y vive en **`DCM_RANGO`**, NO en `LAB_XLS_RANGO_PROPIO`, que no tiene
+     entrada para este campo; `_labRango` parte de la primera y le superpone la segunda. La
+     atribución importa: quien venga a ensanchar la banda va a editar la tabla que nombre este
+     comentario, y en este archivo un comentario mal atribuido ya costó sesiones.
+     Se usa la MISMA banda que ya valida ese campo cuando entra por Excel o por DICOM: el mismo
+     número no puede ser creíble o no según por qué puerta entró.
+
+     ⚠️ LA BANDA DECIDE SI **VOTA**, NO SI SE **MUESTRA** — y la primera versión de esto borraba.
+     Lo levantó /sharp-edges con la aritmética: con VTI TSVI ~18 cm, un AVm de 0,7 cm² necesita un
+     VTI mitral de ~80 cm, o sea que **toda EM crítica tiene un VTI legítimo pegado al techo de la
+     banda o por encima**. Suprimir ahí le sacaba el área al paciente MÁS GRAVE y encima le decía
+     «revisar VTI» sobre una medición correcta. Es exactamente lo que este repo ya decidió el
+     27/09 para `vPdf` —MARCAR SIN BORRAR—, cuando reemplazar el valor fuera de banda sacó del
+     informe firmado un septum de 36 mm y una FEVI de 92 % que eran reales.
+     Así que se calcula con el crudo, se muestra con «(revisar)», y lo único que se retira es el
+     VOTO. Decisión de Maicol, 2026-09-28. */
+  const _pVtimit = vPlaus('em_vtimit');
+  /* `val` viene en `null` cuando está fuera de banda; el número está en `crudo`. */
+  const vtimit = _pVtimit.fuera ? _pVtimit.crudo : _pVtimit.val;
 
   // Box estimado TSVI
   const emBox = document.getElementById('em-tsvi-box');
@@ -20689,11 +20795,29 @@ function calcEM() {
     const contStr = avm_cont_val.toFixed(2);
     /* ⚠️ SE CLASIFICA EL REDONDEADO, igual que el del THP. Ver la nota de la cascada. */
     avm_cont_val = PF(contStr);
-    setv('avm_cont', contStr + ' cm²');
-    document.getElementById('em-cont-row').textContent = contStr + ' cm²';
+    /* MARCAR SIN BORRAR: fuera de banda el área se calcula y se publica igual, con «(revisar)»
+       pegado al número. La marca va en el MISMO string que el valor a propósito — separarlos deja
+       que una superficie copie el número y pierda la marca, que es cómo un dato dudoso se vuelve
+       un dato a secas. No se agrega texto nuevo: es una palabra. */
+    const _marca = _pVtimit.fuera ? ' (revisar)' : '';
+    setv('avm_cont', contStr + ' cm²' + _marca);
+    document.getElementById('em-cont-row').textContent = contStr + ' cm²' + _marca;
   } else {
     setv('avm_cont','');
     document.getElementById('em-cont-row').textContent = '—';
+  }
+  /* ⚠️ UNA SOLA VARIABLE PARA «NO VOTA», y de ella cuelgan las TRES consecuencias: no entra al
+     score, no se auto-marca para el PDF, y se pinta el aviso. Derivar cada una por su cuenta es
+     cómo terminan discrepando —la pantalla diciendo «no válida» y el PDF imprimiéndola tildada—,
+     que es justo el defecto que /sharp-edges encontró en la primera versión de esta fase. */
+  const _contNoVota = _pVtimit.fuera || emContRegurgSignif();
+  {
+    const _avisoEl = document.getElementById('em-cont-aviso');
+    /* El MOTIVO, no un texto fijo: «hay regurgitación significativa» y «no pude leer la
+       regurgitación» retiran el voto por razones distintas y el médico tiene que poder
+       distinguirlas — con un solo texto, un backup con el grado en palabras se leía como una IM
+       moderada real. */
+    if (_avisoEl) _avisoEl.textContent = avm_cont_val ? emContMotivoNoVota() : '';
   }
 
   // AVm planimetría
@@ -20702,7 +20826,8 @@ function calcEM() {
   // Selector de métodos para el PDF: refleja qué se puede imprimir con los datos de ahora.
   // La planimetría cae al área de Wilkins por ETE cuando no hay planimetría transtorácica,
   // que es la misma precedencia que usan em-plan-row y la clasificación integrada de abajo.
-  emPdfMetodosUI(avm_thp_val, avm_cont_val, avm_plan ? PF(avm_plan) : (avm_ete ? PF(avm_ete) : null));
+  emPdfMetodosUI(avm_thp_val, avm_cont_val, avm_plan ? PF(avm_plan) : (avm_ete ? PF(avm_ete) : null),
+                 !_contNoVota);
 
   // AVm indexada — mejor estimada (planimetría > continuidad > THP)
   /* `avm_cont_val` y `avm_thp_val` ya vienen redondeados de arriba, y `avm_plan` es lo que el
@@ -20751,7 +20876,14 @@ function calcEM() {
 
   if (avm_plan)      clasificarAVm(PF(avm_plan), 'plan');
   else if (avm_ete)  clasificarAVm(PF(avm_ete),  'ETE');
-  if (avm_cont_val)  clasificarAVm(avm_cont_val, 'cont');
+  /* ⚠️ SE MUESTRA PERO NO VOTA. El área por continuidad sigue en pantalla —el médico la midió— y
+     lo único que se retira es su VOTO en la severidad integrada: con regurgitación significativa
+     el número no mide el área (ASE 2023). Retirarlo del score y dejarlo visible son las dos
+     mitades; publicar el número sin decir que no vota sería peor que no mostrarlo, y por eso el
+     aviso de arriba se pinta en el mismo recorrido.
+     NO se toca `avmMejor` ni el indexado: ésos publican «el área estimada», no gradúan, y
+     sacarle la continuidad cambiaría un número que hoy se imprime sin que nadie lo pida. */
+  if (avm_cont_val && !_contNoVota) clasificarAVm(avm_cont_val, 'cont');
   if (avm_thp_val)   clasificarAVm(avm_thp_val,  'THP');
 
   if (gmedio) {
@@ -20848,6 +20980,7 @@ function sincronizarGradoIM() {
   const sel = document.getElementById('im_sev_final');
   const hid = document.getElementById('im_grado');
   if (sel && hid) hid.value = sel.value;
+  emContRefrescar();
 }
 window.sincronizarGradoIM = sincronizarGradoIM;
 
@@ -20856,6 +20989,7 @@ function sincronizarGradoIA() {
   const sel = document.getElementById('ia_sev_final');
   const hid = document.getElementById('ia_grado');
   if (sel && hid) hid.value = sel.value;
+  emContRefrescar();
 }
 window.sincronizarGradoIA = sincronizarGradoIA;
 
@@ -21309,11 +21443,35 @@ function _pdfMetodoChk(idChk, idSpan, val, opts) {
   if (auto && !resuelto) cb.checked = true;
 }
 function _emPdfChk(idChk, idSpan, val) { return _pdfMetodoChk(idChk, idSpan, val); }
-function emPdfMetodosUI(thpVal, contVal, planVal) {
+/* `contAuto === false` → la casilla de continuidad NO se auto-marca. Lo manda `calcEM` cuando la
+   continuidad no vota (regurgitación significativa o VTI fuera de banda).
+   ⚠️ NO es lo mismo que desmarcarla, y la diferencia es la que hace seguro el cambio: `auto:false`
+   sólo se abstiene de PONERLA sola. La casilla que el médico tildó a mano (`dataset.tocado`) y la
+   que viene de un estudio guardado (`dataset.desdeEstudio`) están protegidas por `resuelto` y se
+   respetan igual — o sea que ni le sacamos al médico su decisión ni le cambiamos el PDF a un
+   estudio ya archivado. Por eso la salvedad no necesita texto en el papel: si la continuidad no
+   vale, sencillamente no se ofrece sola; y si el médico la quiere igual, la tilda y se imprime.
+   Se mantiene el valor en el `<span>` en los dos casos: «no se marca» no es «no se mide». */
+function emPdfMetodosUI(thpVal, contVal, planVal, contAuto) {
   // THP no lleva guarda de «tocado»: su casilla no se puede desmarcar, sólo informa el valor.
   const spT = document.getElementById('em-pdf-thp-val');
   if (spT) spT.textContent = (thpVal != null && !isNaN(thpVal)) ? '— ' + Number(thpVal).toFixed(2) + ' cm²' : '— sin valor';
-  _emPdfChk('em_pdf_cont', 'em-pdf-cont-val', contVal);
+  _pdfMetodoChk('em_pdf_cont', 'em-pdf-cont-val', contVal, { auto: contAuto !== false });
+  /* ⚠️ ABSTENERSE DE SUBIRLA NO ALCANZA: HAY QUE BAJARLA. `auto:false` sólo evita PONER el tilde,
+     y el orden real de trabajo la deja puesta igual — el médico carga primero la EM (ahí la
+     continuidad es válida y la casilla se auto-marca) y DESPUÉS gradúa la IM. En ese segundo
+     recálculo `auto` ya es false, pero la casilla venía marcada de antes y nadie la baja: el PDF
+     salía con la continuidad tildada justo en el caso donde no vale. Lo cazó TC-305, no la lectura.
+     Se baja SÓLO si el médico no la resolvió: `tocado` (la tildó a mano) y `desdeEstudio` (viene de
+     un estudio guardado) siguen mandando, que es lo que hace que esto no le cambie el PDF a nadie
+     que ya haya decidido. La bandera NO se toca: bajarla acá es la decisión de la APP, no del
+     médico, y marcarla como suya le impediría volver a subirla sola cuando la continuidad vuelva
+     a valer. NO se usa `_pdfMetodoChk` para esto porque su `auto:false` significa «nunca marcar
+     sola» para la IM, que es otra cosa y no debe cambiar. */
+  if (contAuto === false) {
+    const _cbC = document.getElementById('em_pdf_cont');
+    if (_cbC && !(_cbC.dataset.tocado || _cbC.dataset.desdeEstudio)) _cbC.checked = false;
+  }
   _emPdfChk('em_pdf_plan', 'em-pdf-plan-val', planVal);
 }
 window.emPdfMetodosUI = emPdfMetodosUI;
@@ -30151,11 +30309,30 @@ function mostrarCardSeveridadValvular(onConfirm) {
   ov.querySelector('#rev-confirm').onclick = () => {
     const setGrade = (hid, rev) => { const el = document.getElementById(hid), r = ov.querySelector('#' + rev); if (el && r) el.value = r.value; };
     setGrade('im_grado','rev-im'); setGrade('ia_grado','rev-ia'); setGrade('it_grado','rev-it');
+    /* ⚠️ ÉSTE ES EL TERCER ESCRITOR DE `im_grado`/`ia_grado`, y es el PEOR de los tres: corre
+       justo ANTES de guardar y de emitir el PDF, o sea que lo que escriba acá es lo que queda
+       firmado. No pasa por `sincronizarGradoIM`/`IA`, así que no arrastraba el recálculo de la EM.
+       El comentario que puse en `emContRefrescar` decía «los dos escritores del oculto pasan por
+       aquí, así que no hay una tercera puerta que se olvide» — era falso, y lo encontró
+       /sharp-edges sobre mi propio diff. Es literalmente la trampa que este archivo ya documenta
+       para `em_grado`: contar los escritores, no encontrar uno.
+       El caso, sin nada raro: EM cargada con IM leve —la continuidad vota y `em_grado` sale
+       «moderada»—, el médico aprieta «Generar PDF», la tarjeta de revisión le ofrece corregir la
+       IM a moderada-severa, la corrige, y el PDF salía con la severidad de EM sostenida por un AVm
+       por continuidad que la app acababa de invalidar, sin la salvedad en ninguna superficie.
+       Una sola llamada después de los tres, y no una por `setGrade`: el recálculo tiene que ver
+       los tres valores ya escritos. */
     CLONADOS.forEach(id => {
       const dst = document.getElementById(id);
       const src = ov.querySelector('select[data-target="' + id + '"]');
       if (dst && src) dst.value = src.value;
     });
+    /* ⚠️ VA DESPUÉS DE `CLONADOS`, Y NO ANTES — lo cazó el caso nuevo de TC-305, no la lectura.
+       `CLONADOS` incluye `em_grado`, así que repone el grado que el médico vio en la tarjeta: con
+       el recálculo antes, `calcEM` corregía el grado y la línea de abajo lo pisaba de vuelta con
+       el valor rancio del clon. La pantalla mostraba la salvedad y el oculto seguía en «severa»
+       — las dos mitades en desacuerdo, y la que viaja al PDF era la equivocada. */
+    if (typeof emContRefrescar === 'function') emContRefrescar();
     ov.remove();
     if (onConfirm) onConfirm();
   };
@@ -82523,8 +82700,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260928-1123';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790605416175;                 /* eco-build-ms */
+const ECO_BUILD    = '20260928-1221';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790608891217;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -82610,7 +82787,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-1123</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-1221</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

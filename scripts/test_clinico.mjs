@@ -34171,6 +34171,186 @@ caso('TC-303', 'El EN SUMA no afirma «protesis normofuncionante» donde la app 
   })();
 `);
 
+caso('TC-305', 'FASE B: el AVm por continuidad se SIGUE MOSTRANDO pero deja de votar en la severidad integrada de la EM cuando la IM o la IAo estan en moderada o mayor (ASE 2023), y el VTI mitral fuera de banda no calcula continuidad y lo dice', `
+  return (async () => {
+    /* AVm por continuidad = (pi * (d/20)^2 * VTI_TSVI) / VTI_mitral.
+       Con d=20 mm, VTI TSVI=18 cm y VTI mitral=60.8 cm  ->  3.1416*18/60.8 = 0.93 cm², que cae en
+       la banda SEVERA. El gradiente medio de 3 mmHg vota LEVE. Asi que el voto de la continuidad
+       es el que decide el grado, y eso es lo que hace visible si vota o no:
+         · si vota  -> severa  (scores.severa >= 1 gana la cascada)
+         · si no    -> leve    (queda solo el gradiente)
+       Sin ese segundo votante el caso no distinguiria: con params vacio calcEM sale por el return
+       temprano y el grado se queda como estaba, que da igual que «no voto». */
+    const EM = () => { __t.set('em_dtsvi','20'); __t.set('em_vtitsvi','18');
+                       __t.set('em_vtimit','60.8'); __t.set('em_gmedio','3'); };
+    const correr = sem => {
+      __t.limpiar();
+      __t.set('nombre','TC305'); __t.set('edad','62'); __t.set('peso','75'); __t.set('talla','170');
+      sem();
+      try{ calcEM(); }catch(e){}
+      const _chk = document.getElementById('em_pdf_cont');
+      return { em: __t.val('em_grado'), cont: __t.val('avm_cont'),
+               contRow: __t.txt('em-cont-row'), aviso: __t.txt('em-cont-aviso'),
+               pdfChk: _chk ? (_chk.checked ? 'marcada' : 'sin marcar') : '(no existe)',
+               disc: __t.txt('em-discordancia') };
+    };
+
+    /* DENOMINADOR: sin regurgitacion graduada la continuidad VOTA, como siempre. */
+    const sinRegurg = correr(() => { EM(); });
+    /* IM moderada: se pone por el selector confirmado, que es el camino del medico y ademas el
+       embudo donde vive el disparador. */
+    const imMod    = correr(() => { EM(); __t.set('im_sev_final','2'); });
+    const imSev    = correr(() => { EM(); __t.set('im_sev_final','4'); });
+    const imLeve   = correr(() => { EM(); __t.set('im_sev_final','1'); });
+    const iaMod    = correr(() => { EM(); __t.set('ia_sev_final','2'); });
+    /* Fuera de banda: 130 cm es el VTI del CHORRO (el error de carga habitual) y 0,5 un dedazo.
+       80.8 cm es el caso que obligo a cambiar el diseno: con VTI TSVI 18 da un AVm de 0,70 cm² —una
+       EM critica REAL— y cae apenas por encima del techo de la banda [2,80]. Borrar ahi le sacaba
+       el area al paciente mas grave; hoy se MARCA y no vota. */
+    const vtiAlto  = correr(() => { EM(); __t.set('em_vtimit','130'); });
+    const vtiBajo  = correr(() => { EM(); __t.set('em_vtimit','0.5'); });
+    const vtiCrit  = correr(() => { EM(); __t.set('em_vtimit','80.8'); });
+
+    /* ⚠️ EL DISPARADOR, Y ESTE ESCENARIO NO LLAMA A calcEM A MANO — a proposito. Todos los de
+       arriba terminan con un calcEM() explicito, asi que verifican que el GATE EXISTE, no que
+       CORRA cuando tiene que correr: con ese calcEM de mas, quitarle el disparador a
+       sincronizarGradoIM dejaba la mutacion SOBREVIVIENDO (medido). Aca se reproduce el flujo real
+       del medico: primero carga la EM —los oninput ya llamaron calcEM y el grado quedo en
+       «severa»— y DESPUES confirma la IM en otro modulo, sin volver a tocar un solo campo de la
+       EM. Si el grado no se mueve, el informe firmado se queda con el voto que la guia invalida. */
+    __t.limpiar();
+    __t.set('nombre','TC305b'); __t.set('edad','62'); __t.set('peso','75'); __t.set('talla','170');
+    EM();
+    const antesIM = { em: __t.val('em_grado'), aviso: __t.txt('em-cont-aviso') };
+    __t.set('im_sev_final','2');            // SOLO esto: no se vuelve a tocar la EM
+    const despuesIM = { em: __t.val('em_grado'), aviso: __t.txt('em-cont-aviso') };
+
+    /* Y LO MISMO POR LA AORTICA, que es el OTRO embudo. Sin este escenario la mutacion que le
+       quita el disparador a sincronizarGradoIA SOBREVIVIA: el de la mitral la tapaba. Dos
+       escritores, dos disparadores, dos casos. */
+    __t.limpiar();
+    __t.set('nombre','TC305c'); __t.set('edad','62'); __t.set('peso','75'); __t.set('talla','170');
+    EM();
+    const antesIA = { em: __t.val('em_grado'), aviso: __t.txt('em-cont-aviso') };
+    __t.set('ia_sev_final','2');
+    const despuesIA = { em: __t.val('em_grado'), aviso: __t.txt('em-cont-aviso') };
+
+    /* ⚠️ EL TERCER ESCRITOR: la tarjeta de revisión que sale ANTES de guardar y de emitir el PDF.
+       Escribe los ocultos directo, sin pasar por sincronizarGradoIM/IA, asi que es la puerta por
+       la que el grado de EM quedaba rancio JUSTO en el artefacto firmado. Se maneja la tarjeta de
+       verdad —abrir, cambiar el select, confirmar— y no se llama al helper a mano: lo que se
+       verifica es el CABLEADO, no que la funcion exista. */
+    __t.limpiar();
+    __t.set('nombre','TC305d'); __t.set('edad','62'); __t.set('peso','75'); __t.set('talla','170');
+    EM();
+    const antesCard = { em: __t.val('em_grado'), aviso: __t.txt('em-cont-aviso') };
+    let cardOk = '(no se pudo abrir la tarjeta)';
+    if (typeof mostrarCardSeveridadValvular === 'function') {
+      mostrarCardSeveridadValvular(function(){});
+      const revIM = document.getElementById('rev-im'), conf = document.getElementById('rev-confirm');
+      if (revIM && conf) {
+        revIM.value = '3';                       // moderada-severa, por la tarjeta
+        conf.click();
+        cardOk = 'ok';
+      }
+    }
+    const despuesCard = { em: __t.val('em_grado'), im: __t.val('im_grado'),
+                          aviso: __t.txt('em-cont-aviso') };
+    try { const _ov = document.getElementById('pdf-review-overlay'); if (_ov) _ov.remove(); } catch(e){}
+
+    /* ⚠️ EL OCULTO PUEDE TRAER TEXTO, no un codigo: es lo que pasa al reabrir un backup importado,
+       y este archivo lo declara en dos lugares. Con el parser viejo daba NaN -> 0 y la continuidad
+       VOTABA sobre una IM severa, que es el paciente que el cambio vino a proteger. */
+    __t.limpiar();
+    __t.set('nombre','TC305e'); __t.set('edad','62'); __t.set('peso','75'); __t.set('talla','170');
+    EM(); __t.set('im_grado','Severa'); try{ calcEM(); }catch(e){}
+    const txtSevera = { em: __t.val('em_grado'), aviso: __t.txt('em-cont-aviso') };
+
+    __t.limpiar();
+    __t.set('nombre','TC305f'); __t.set('edad','62'); __t.set('peso','75'); __t.set('talla','170');
+    EM(); __t.set('im_grado','no_se_que_es_esto'); try{ calcEM(); }catch(e){}
+    const txtRaro = { em: __t.val('em_grado'), aviso: __t.txt('em-cont-aviso') };
+
+    /* LA OTRA MITAD: que la app no la marque sola NO puede convertirse en que el medico no pueda
+       marcarla. Se tilda a mano —que es lo que hace el onchange de la casilla: deja «tocado»— y a
+       partir de ahi ningun recalculo se la baja. Sin esta condicion, «no se auto-marca» y «no se
+       puede imprimir» pasarian por lo mismo. */
+    __t.limpiar();
+    __t.set('nombre','TC305g'); __t.set('edad','62'); __t.set('peso','75'); __t.set('talla','170');
+    EM(); __t.set('im_sev_final','2');
+    let manualChk = '(no se pudo)';
+    { const cb = document.getElementById('em_pdf_cont');
+      if (cb) { const antes = cb.checked ? 'marcada' : 'sin marcar';
+        cb.checked = true; cb.dataset.tocado = '1';     // el medico la tilda
+        try{ calcEM(); }catch(e){}                       // y se recalcula otra vez
+        manualChk = antes + ' -> ' + (cb.checked ? 'sigue marcada' : 'SE LA BAJARON');
+      } }
+    __t.limpiar();
+
+    return { extra: [
+      ['DENOMINADOR: sin regurgitacion graduada la continuidad calcula 0,93 cm², VOTA, y el grado integrado sale «severa»',
+        sinRegurg.cont.indexOf('0.93') > -1 && sinRegurg.em === 'severa' && sinRegurg.aviso === '',
+        'AVm=«' + sinRegurg.cont + '» em_grado=«' + sinRegurg.em + '» aviso=«' + sinRegurg.aviso + '»'],
+      ['⚠️ con IM MODERADA el AVm(cont) se sigue mostrando —el medico lo midio— pero NO vota: el grado cae a «leve», que es lo que dice el unico votante que queda',
+        imMod.cont.indexOf('0.93') > -1 && imMod.em === 'leve',
+        'AVm=«' + imMod.cont + '» em_grado=«' + imMod.em + '»'],
+      ['y aparece la linea que lo declara, en su propio renglon',
+        imMod.aviso.indexOf('continuidad no válida con regurgitación significativa') > -1,
+        '«' + imMod.aviso + '»'],
+      ['con IM SEVERA tambien deja de votar',
+        imSev.em === 'leve' && imSev.aviso !== '', 'em_grado=«' + imSev.em + '» aviso=«' + imSev.aviso + '»'],
+      ['con IAo MODERADA tambien: la continuidad no vale con regurgitacion aortica significativa',
+        iaMod.cont.indexOf('0.93') > -1 && iaMod.em === 'leve' && iaMod.aviso !== '',
+        'AVm=«' + iaMod.cont + '» em_grado=«' + iaMod.em + '» aviso=«' + iaMod.aviso + '»'],
+      ['⚠️ con IM LEVE NO se bloquea nada: el corte es «moderada o mayor», no «hay algo cargado»',
+        imLeve.em === 'severa' && imLeve.aviso === '',
+        'em_grado=«' + imLeve.em + '» aviso=«' + imLeve.aviso + '»'],
+      ['VTI mitral 130 cm (el del CHORRO): el area se MARCA con «(revisar)», se sigue mostrando, y NO vota',
+        vtiAlto.cont.indexOf('(revisar)') > -1 && vtiAlto.contRow.indexOf('(revisar)') > -1 &&
+        vtiAlto.em === 'leve',
+        'AVm=«' + vtiAlto.cont + '» fila=«' + vtiAlto.contRow + '» em_grado=«' + vtiAlto.em + '»'],
+      ['VTI mitral 0,5 cm (dedazo): misma banda, misma marca, y tampoco vota',
+        vtiBajo.cont.indexOf('(revisar)') > -1 && vtiBajo.em === 'leve',
+        'AVm=«' + vtiBajo.cont + '» em_grado=«' + vtiBajo.em + '»'],
+      ['⚠️ MARCAR SIN BORRAR: un VTI de 80,8 cm es LEGITIMO —da un AVm de 0,70 cm², una EM critica— y cae fuera de banda: el area NO desaparece, sale marcada y sin votar',
+        vtiCrit.cont.indexOf('0.70') > -1 && vtiCrit.cont.indexOf('(revisar)') > -1 &&
+        vtiCrit.em === 'leve',
+        'AVm=«' + vtiCrit.cont + '» em_grado=«' + vtiCrit.em + '»'],
+      ['la raya queda SOLO para el campo vacio: fuera de banda ya no se borra',
+        vtiAlto.contRow !== '—' && vtiBajo.contRow !== '—' && vtiCrit.contRow !== '—',
+        'alto=«' + vtiAlto.contRow + '» bajo=«' + vtiBajo.contRow + '» critico=«' + vtiCrit.contRow + '»'],
+      ['⚠️ EL PDF: con la continuidad valida la casilla se auto-marca, y cuando NO vota deja de auto-marcarse — sin agregar una sola palabra al papel',
+        sinRegurg.pdfChk === 'marcada' && imMod.pdfChk === 'sin marcar' &&
+        iaMod.pdfChk === 'sin marcar' && vtiAlto.pdfChk === 'sin marcar' &&
+        vtiCrit.pdfChk === 'sin marcar',
+        'valida=' + sinRegurg.pdfChk + ' · IM mod=' + imMod.pdfChk + ' · IAo mod=' + iaMod.pdfChk +
+        ' · VTI 130=' + vtiAlto.pdfChk + ' · VTI 80,8=' + vtiCrit.pdfChk],
+      ['DENOMINADOR del disparador: con la EM cargada y sin regurgitacion, el grado arranca en «severa»',
+        antesIM.em === 'severa' && antesIM.aviso === '',
+        'em_grado=«' + antesIM.em + '» aviso=«' + antesIM.aviso + '»'],
+      ['⚠️ EL DISPARADOR: confirmar la IM en OTRO modulo actualiza la EM sin tocar un solo campo suyo — el consumidor nuevo llega con su disparador',
+        despuesIM.em === 'leve' && despuesIM.aviso !== '',
+        'em_grado=«' + despuesIM.em + '» aviso=«' + despuesIM.aviso + '»'],
+      ['⚠️ Y EL DE LA AORTICA, que es el otro embudo: confirmar la IAo tambien actualiza la EM sola',
+        antesIA.em === 'severa' && despuesIA.em === 'leve' && despuesIA.aviso !== '',
+        'antes=«' + antesIA.em + '» despues=«' + despuesIA.em + '» aviso=«' + despuesIA.aviso + '»'],
+      ['⚠️ EL TERCER ESCRITOR: corregir la IM en la tarjeta de revision —la que sale antes del PDF y del guardado— recalcula la EM, asi que el artefacto FIRMADO no se lleva el grado rancio',
+        cardOk === 'ok' && antesCard.em === 'severa' && despuesCard.im === '3' &&
+        despuesCard.em === 'leve' && despuesCard.aviso !== '',
+        cardOk + ' · antes=«' + antesCard.em + '» despues: im_grado=«' + despuesCard.im +
+        '» em_grado=«' + despuesCard.em + '» aviso=«' + despuesCard.aviso + '»'],
+      ['⚠️ el oculto con TEXTO («Severa», como llega de un backup importado) se interpreta y bloquea: antes daba NaN -> 0 y la continuidad votaba sobre una IM severa',
+        txtSevera.em === 'leve' && txtSevera.aviso.indexOf('regurgitación significativa') > -1,
+        'em_grado=«' + txtSevera.em + '» aviso=«' + txtSevera.aviso + '»'],
+      ['y un texto que NO se puede interpretar falla CERRADO y lo dice distinto: «no se pudo verificar» no es lo mismo que «no hay regurgitacion»',
+        txtRaro.em === 'leve' && txtRaro.aviso.indexOf('no se pudo verificar') > -1,
+        'em_grado=«' + txtRaro.em + '» aviso=«' + txtRaro.aviso + '»'],
+      ['⚠️ «no se auto-marca» NO es «no se puede imprimir»: si el medico tilda la casilla a mano, ningun recalculo se la baja',
+        manualChk.indexOf('sigue marcada') > -1, manualChk]
+    ] };
+  })();
+`);
+
 caso('TC-304', 'FASE A: la protesis mitral, tricuspide y pulmonar dejan de graduar la ESTENOSIS con cortes nativos —el grado queda en fabrica y los valores se publican igual—, un grado elegido A MANO si se imprime, la INSUFICIENCIA se sigue graduando, y la aortica y las nativas no cambian', `
   return (async () => {
     const NL = String.fromCharCode(10);
