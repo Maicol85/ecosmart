@@ -3181,7 +3181,8 @@ window.cerrarSesionReal = cerrarSesionReal;
                ⚠️ ESE `value` NO ES COPY-PASTE SOBRANTE aunque hoy sea idéntico a la etiqueta: es lo
                que impide que un sufijo agregado a la etiqueta se filtre al dato. Ya pasó —«(SAVR)»
                estuvo en esta etiqueta y no ensució un solo estudio porque el `value` estaba—. -->
-          <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync();imOndaESiExiste()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
+          <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync();imOndaESiExiste();eteVmPropagar('vm')"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
+          <div id="vm-ete-aviso" style="display:none;font-size:11px;color:var(--red);margin-top:3px;"></div>
         </div>
         <!-- Campos de PRÓTESIS (Fase 1, 2026-09-27). Se muestran sólo con una de las tres
              opciones de prótesis y NO calculan nada todavía: la graduación es la Fase 2. -->
@@ -5468,7 +5469,7 @@ window.cerrarSesionReal = cerrarSesionReal;
     <div class="card-body">
       <div class="grid-3">
         <div class="fg"><label>Etiología</label>
-          <select id="ete_etiologia" onchange="calcETE()">
+          <select id="ete_etiologia" onchange="calcETE();eteVmPropagar('ete')">
             <option value="">—</option>
             <option value="barlow">Degenerativa — Barlow</option>
             <option value="dfe">Degenerativa — DFE (deficiencia fibroelástica)</option>
@@ -5477,7 +5478,10 @@ window.cerrarSesionReal = cerrarSesionReal;
             <option value="funcional_aur">Funcional auricular (FA)</option>
             <option value="endocarditis">Endocarditis</option>
             <option value="congenita">Congénita</option>
+            <option value="prot_bio">Prótesis biológica</option>
+            <option value="prot_mec">Prótesis mecánica</option>
           </select>
+          <div id="ete-vm-aviso" style="display:none;font-size:11px;color:var(--red);margin-top:3px;"></div>
         </div>
         <div class="fg"><label>Carpentier</label>
           <select id="ete_carpentier" onchange="calcETE()">
@@ -25876,8 +25880,14 @@ function generarInforme(opts) {
         funcional_isq:'funcional isquémica',
         funcional_aur:'funcional auricular',
         endocarditis:'endocarditis',
-        congenita:'congénita'
+        congenita:'congénita',
+        prot_bio:'prótesis biológica',
+        prot_mec:'prótesis mecánica'
       };
+      /* Una prótesis no es una etiología: «de etiología prótesis biológica» no es español, y es el
+         mismo defecto que `VALV_MORF_FRASE` vino a cerrar del lado de Válvulas —«La válvula aórtica
+         es tavi»—. El conector cambia; el resto de la oración no. */
+      const etioProt = { prot_bio:1, prot_mec:1 };
       const carpMap = {
         'I':    'Tipo I (movimiento normal)',
         'II':   'Tipo II (prolapso / movimiento excesivo)',
@@ -25890,7 +25900,7 @@ function generarInforme(opts) {
         dilatacion_anular:'dilatación anular', tethering:'tethering'
       };
       let s = 'ETE — Válvula mitral';
-      if (etio) s += ' de etiología ' + (etioMap[etio] || etio);
+      if (etio) s += (etioProt[etio] ? ' con ' : ' de etiología ') + (etioMap[etio] || etio);
       if (carp) s += ' con mecanismo Carpentier ' + (carpMap[carp] || carp);
       if (mec)  s += ', mecanismo predominante: ' + (mecMap[mec] || mec);
       /* El sufijo «(parcial)» que agrega calcWilkins lo descartaba parseInt, así que un score
@@ -27512,7 +27522,7 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -27636,6 +27646,9 @@ function limpiarCampos(silencioso) {
      informe en silencio. THP vuelve a marcado, que es su estado permanente. */
   { const _t = document.getElementById('em_pdf_thp'); if (_t) _t.checked = true; }
   { const _p = document.getElementById('im_pdf_pisa'); if (_p) _p.checked = true; }
+  /* Las DOS columnas: `RECALC_MODULOS` es el embudo de las rutas de restauracion y `limpiarCampos`
+     NO pasa por ahi. Sin esta linea, «Nuevo estudio» dejaba el aviso del paciente anterior. */
+  { if (typeof eteVmAvisoSync === 'function') { try { eteVmAvisoSync(); } catch (e) {} } }
   _PDF_METODO_IDS.forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.checked = false; el.disabled = true; delete el.dataset.tocado; delete el.dataset.desdeEstudio; }
@@ -28534,6 +28547,200 @@ window.valvEsProtesis = valvEsProtesis;
    pantalla mostraba «Prótesis mecánica» SIN campo de DVI mientras el PDF regenerado sí imprimía la
    fila, porque `_protPdf` se gatea por el valor y no por la visibilidad. El médico no podía ver ni
    corregir el número que el documento firmado publica. */
+/* ══ Etiología mitral: Válvulas ↔ ETE ══════════════════════════════════════════════════════
+   Los dos selects describen la MISMA válvula del MISMO estudio y hasta ahora no se hablaban: el
+   informe podía decir «Válvula mitral de morfología prótesis mecánica» y, tres renglones abajo,
+   «ETE — Válvula mitral de etiología reumática».
+
+   ⚠️ SÓLO SE SINCRONIZAN LOS PARES QUE COINCIDEN. Cada select describe un eje distinto —`vm_morf`
+   mezcla morfología y etiología, `ete_etiologia` es sólo etiología— así que la mayoría de las
+   opciones no tiene equivalente: «Calcificada», «Prolapso / EVMS» e «Isquémica» de un lado, y
+   «Degenerativa — DFE», las dos funcionales y «Congénita» del otro. Inventarles un par sería
+   escribir en un campo firmado un hallazgo que el médico no consignó.
+
+   ⚠️ «ES PRÓTESIS» SE DERIVA DE `valvEsProtesis` SOBRE EL PAR, no de una segunda lista de qué
+   token del ETE es protésico: con dos listas, agregar una prótesis a un lado y no al otro deja la
+   sincronía muda. `valvEsProtesis` es el único dueño de esa pregunta en todo el archivo. */
+const _ETE_VM_PARES = [
+  ['reumatica',    'Reumática'],
+  ['endocarditis', 'Endocarditis'],
+  ['barlow',       'Mixomatosa / Barlow'],
+  ['prot_bio',     'Prótesis biológica'],
+  ['prot_mec',     'Prótesis mecánica']
+];
+function _eteVmPar(origen, val) {
+  if (!val) return null;
+  const i = origen === 'ete' ? 0 : 1;
+  const par = _ETE_VM_PARES.filter(function (x) { return x[i] === val; })[0];
+  return par ? par[1 - i] : null;
+}
+function _eteVmEsProt(origen, val) {
+  const enVm = origen === 'ete' ? _eteVmPar('ete', val) : val;
+  return !!(enVm && typeof valvEsProtesis === 'function' && valvEsProtesis(enVm));
+}
+
+/* PINTA, no escribe. Por eso va en `RECALC_MODULOS` y al final de `limpiarCampos`: un estudio
+   guardado antes de esta fase —o importado— puede traer los dos lados contradiciéndose, y sin
+   repintar al abrir esa contradicción no se ve. Pintar no es sincronizar: ningún valor se toca. */
+function eteVmAvisoSync() {
+  const pintar = function (id, txt) {
+    const e = document.getElementById(id);
+    if (e) { e.textContent = txt; e.style.display = txt ? '' : 'none'; }
+  };
+  const eteEl = document.getElementById('ete_etiologia');
+  const vmEl  = document.getElementById('vm_morf');
+  if (!eteEl || !vmEl) { pintar('ete-vm-aviso',''); pintar('vm-ete-aviso',''); return; }
+  const ete = eteEl.value, vm = vmEl.value;
+  const etePar = _eteVmPar('ete', ete), vmPar = _eteVmPar('vm', vm);
+  /* El VALOR DE FÁBRICA no afirma nada: «—» en el ETE y «Normal» en Válvulas son ausencia de
+     dato, no una contradicción. */
+  const eteAfirma = ete !== '', vmAfirma = vm !== 'Normal';
+  /* ⚠️ UNA SOLA REGLA, y no una rama por escenario: avisa cuando los dos lados afirman y UNO DE
+     LOS DOS ERA SINCRONIZABLE —tiene par— pero el otro dice algo distinto. Eso cubre de una vez
+     los tres casos: la opción sin par contra una prótesis, los dos con par distintos, y el que
+     introdujo la guarda de «no pisar lo que el otro no puede decir» (DFE contra Barlow), que con
+     ramas sueltas quedaba mudo justo donde la sincronía se abstiene.
+     Lo que NO avisa es que los DOS estén en opciones sin par —«Calcificada» y «Congénita»—: ahí
+     no hay nada que sincronizar y no se contradicen; una válvula congénita puede estar
+     calcificada. Un aviso que salta sin contradicción deja de leerse. */
+  const chocan = eteAfirma && vmAfirma
+    && ((vmPar != null && ete !== vmPar) || (etePar != null && vm !== etePar));
+  let txt = '';
+  if (chocan) {
+    /* Se nombran los DOS valores. «biológica contra mecánica» cambia la anticoagulación y no
+       puede salir con el mismo texto genérico que «reumática contra Barlow»: nombrarlos cuesta
+       lo mismo y es lo único que le dice al médico cuál corregir. */
+    const _lblEte = (typeof LAB_XLS_ETIQ !== 'undefined' && LAB_XLS_ETIQ.ete_etiologia
+                     && LAB_XLS_ETIQ.ete_etiologia[ete]) || ete;
+    txt = '⚠️ ETE dice «' + _lblEte + '» y Válvulas «' + vm + '»';
+  }
+  pintar('ete-vm-aviso', txt);
+  pintar('vm-ete-aviso', txt);
+  /* ⚠️ LOS DOS AVISOS VIVEN DENTRO DE SECCIONES COLAPSADAS —`ete-seccion-morfo` y
+     `ete-seccion-valv-mitral`, las dos con `display:none` de fábrica— y las abre SÓLO
+     `toggleEteSeccion`: no las recorre `secAutoOpen` (`.sacc`) ni `cardAutoOpen`
+     (`[data-autoopen]`). O sea que el aviso se pintaba y seguía sin verse, justo en el escenario
+     para el que existe: un estudio legado con la prótesis en Válvulas y una etiología nativa en
+     el ETE. Lo cazó `/sharp-edges`; el caso no, porque medía el `display` del propio div y no su
+     visibilidad real.
+     Abrir la sección NO toca ningún valor — es lo mismo que hace `secAutoOpen` cuando hay datos. */
+  if (txt) ['ete-seccion-morfo', 'ete-seccion-valv-mitral'].forEach(function (id) {
+    const sec = document.getElementById(id);
+    if (sec && sec.style.display === 'none') sec.style.display = 'block';
+  });
+}
+window.eteVmAvisoSync = eteVmAvisoSync;
+
+/* `_ETE_VM_PARES` es una lista PARALELA a los dos selects y nada la vigilaba. Una fila que nombre
+   una opción que ya no existe deja la sincronía y el aviso MUDOS —`_eteVmPar` devuelve null,
+   `_eteVmEsProt` devuelve false— sin error y sin señal, que es exactamente cómo el comentario de
+   arriba dejaría de ser cierto. Mismo patrón que `_labXlsAssertListas` y `_indOrigenAssert`. */
+function _eteVmAssertPares() {
+  const problemas = [];
+  const ops = function (id) {
+    const e = document.getElementById(id);
+    return e && e.options ? [].slice.call(e.options).map(function (o) { return o.value; }) : null;
+  };
+  const oEte = ops('ete_etiologia'), oVm = ops('vm_morf');
+  if (!oEte || !oVm) return problemas;          // sin los selects no hay nada que comparar
+  _ETE_VM_PARES.forEach(function (p) {
+    if (oEte.indexOf(p[0]) < 0) problemas.push('ete_etiologia no tiene la opción «' + p[0] + '»');
+    if (oVm.indexOf(p[1])  < 0) problemas.push('vm_morf no tiene la opción «' + p[1] + '»');
+  });
+  /* La otra dirección se declara y NO se exige: la mayoría de las opciones de los dos selects no
+     tiene par a propósito —«Calcificada», «Degenerativa — DFE»— y eso es el diseño, no un hueco. */
+  if (problemas.length) console.error('[eteVm] _ETE_VM_PARES divergió de los selects:\n  ' + problemas.join('\n  '));
+  return problemas;
+}
+window._eteVmAssertPares = _eteVmAssertPares;
+if (document.readyState === 'loading')
+  document.addEventListener('DOMContentLoaded', function(){ try { _eteVmAssertPares(); } catch (e) { console.error('[eteVm] assert de pares:', e); } });
+else { try { _eteVmAssertPares(); } catch (e) { console.error('[eteVm] assert de pares:', e); } }
+
+/* ESCRIBE, y por eso la llaman SÓLO los dos `onchange`. NO va en `RECALC_MODULOS` ni en ninguna
+   ruta de restauración: reabrir un estudio no puede modificar un valor guardado. Y no hace falta
+   ninguna guarda para eso — las rutas reponen con `.value`, que no dispara `change`. */
+/* ⚠️ La guarda es REDUNDANTE hoy y se declara como tal: ninguno de los efectos del destino
+   llama a `eteVmPropagar`, y asignar `.value` no dispara `change`, así que la reentrada no es
+   alcanzable y ningún caso la ejerce. Se conserva porque fija el contrato para el día que un
+   efecto del destino pase a despachar el evento. */
+let _eteVmSincronizando = false;
+function eteVmPropagar(origen) {
+  if (_eteVmSincronizando) return;
+  const eteEl = document.getElementById('ete_etiologia');
+  const vmEl  = document.getElementById('vm_morf');
+  if (!eteEl || !vmEl) return;
+  const srcEl = origen === 'ete' ? eteEl : vmEl;
+  const dstEl = origen === 'ete' ? vmEl  : eteEl;
+  /* ⚠️ HACIA EL ETE SÓLO SI EL ESTUDIO ES UN ETE. `vm_morf` vive en la pestaña Válvulas, que es
+     alcanzable en Modo Básico, así que sin esta guarda elegir «Prótesis biológica» en un
+     transtorácico escribía `campos.ete_etiologia` y fabricaba dato de un estudio que no se hizo.
+     Tres salidas medidas, y las tres ya están documentadas como defecto en este archivo:
+       · `_labUsaEteVM` sólo pregunta si `ete_etiologia` tiene texto, así que «Con datos ETE
+         cargados» del Laboratorio se infla con CADA prótesis mitral transtorácica;
+       · la columna «Etiología mitral ETE» del Excel —el archivo que va a CeiboAnalytics— queda
+         poblada para todos esos estudios;
+       · y la deducción de `ete-es-ete__chk` al reimportar matchea `/^ete_etiologia/`, así que ese
+         estudio vuelve con la bandera encendida y el PDF sale titulado «Informe Ecocardiograma
+         Transesofágico». El comentario de esa deducción dice, textual, que eso «inventaría
+         transesofágicos que no se hicieron».
+     Al revés no hace falta guarda: si el médico consigna la etiología EN el ETE, la morfología de
+     Válvulas describe la misma válvula y es del transtorácico igual. */
+  if (dstEl === eteEl) {
+    const esEte = document.getElementById('ete-es-ete');
+    if (!esEte || !esEte.checked) { eteVmAvisoSync(); return; }
+  }
+  const par = _eteVmPar(origen, srcEl.value);
+  /* ⚠️ NO SE PISA LO QUE EL OTRO SELECT NO PUEDE DECIR. Los dos ejes no tienen la misma
+     granularidad: `ete_etiologia` distingue «Degenerativa — DFE» de «Degenerativa — Barlow», y
+     `vm_morf` tiene UNA sola opción degenerativa. Sin esta guarda, el médico que consignó DFE en
+     el ETE y después elige «Mixomatosa / Barlow» en Válvulas —la mejor aproximación disponible,
+     no un cambio de diagnóstico— veía el informe pasar a «etiología degenerativa (enfermedad de
+     Barlow)», en silencio: los dos valores tienen par, así que ninguna rama del aviso disparaba.
+     DFE y Barlow son fenotipos distintos con expectativas de reparabilidad distintas.
+     Se escribe igual en los tres casos donde no se pierde nada:
+       · el destino está en su valor DE FÁBRICA —no hay afirmación que destruir—;
+       · el destino dice algo que el origen SÍ puede expresar, o sea que el cambio es deliberado;
+       · hay una prótesis de por medio, que es lo que el pedido manda pisar explícitamente. */
+  const _fab = dstEl === vmEl ? 'Normal' : '';
+  const _dstTienePar = _eteVmPar(dstEl === vmEl ? 'vm' : 'ete', dstEl.value) != null;
+  const _hayProt = _eteVmEsProt(origen, srcEl.value)
+                || _eteVmEsProt(dstEl === vmEl ? 'vm' : 'ete', dstEl.value);
+  const _puedeEscribir = dstEl.value === _fab || _dstTienePar || _hayProt;
+  if (par != null && dstEl.value !== par && _puedeEscribir) {
+    _eteVmSincronizando = true;
+    try {
+      /* Asignar un valor que ya no es ninguna opción del select deja `selectedIndex = -1`, `.value`
+         devuelve '' y `guardarInforme` PERSISTE el hueco. Es el defecto de `vab_tipo` y de
+         `centro_nombre`, que este archivo documenta dos veces. */
+      if (!Array.prototype.some.call(dstEl.options, function (o) { return o.value === par; })) {
+        console.error('[eteVm] «' + par + '» ya no es una opción de #' + dstEl.id);
+        _eteVmSincronizando = false; eteVmAvisoSync(); return;
+      }
+      dstEl.value = par;
+      /* ⚠️ LOS EFECTOS DEL DESTINO SE LLAMAN A MANO. Asignar `.value` no dispara `change`, así que
+         sin esto elegir una prótesis en el ETE dejaba el bloque de prótesis de Válvulas escondido
+         y el DVI sin dónde cargarse, con la morfología ya cambiada. */
+      /* Cada uno en su `try`: `valvProtSync` lleva `eaAtPintar` adentro, y sin esto un throw ahí
+         dejaba `imOndaESiExiste` sin correr Y el aviso con el estado anterior sobre un valor ya
+         cambiado — el `finally` sólo libera la bandera.
+         ⚠️ Y es una LISTA PARALELA del `onchange` del destino: hoy coincide, pero `imOndaESiExiste`
+         se agregó después, así que el día que alguien sume otra, la propagación deja el destino a
+         medias sin dar error. `calcETE` está por CONTRATO: medido, no lee `ete_etiologia` —sólo
+         `ete_angulo_vp`, `ete_altura_tenting` y `ete_prof_coapt`—, así que esa mitad es hoy un
+         no-op y no hay que leerla como una cobertura que existe. */
+      const _efectos = dstEl === vmEl
+        ? ['showProlapsoPanel', 'valvProtSync', 'imOndaESiExiste']
+        : ['calcETE'];
+      _efectos.forEach(function (fn) {
+        if (typeof window[fn] === 'function') { try { window[fn](); } catch (e) { console.error('[eteVm] ' + fn, e); } }
+      });
+    } finally { _eteVmSincronizando = false; }
+  }
+  eteVmAvisoSync();
+}
+window.eteVmPropagar = eteVmPropagar;
+
 function valvProtSync(){
   const g = id => { const e = document.getElementById(id); return e ? e.value : ''; };
   const ver = (id, on) => { const e = document.getElementById(id); if (e) e.style.display = on ? '' : 'none'; };
@@ -68807,7 +69014,8 @@ const LAB_XLS_ETIQ = {
   'ett-sparkling': { no:'No presente', si:'Presente' },
   ete_etiologia: { barlow:'Degenerativa — Barlow', dfe:'Degenerativa — DFE', reumatica:'Reumática',
                    funcional_isq:'Funcional isquémica', funcional_aur:'Funcional auricular (FA)',
-                   endocarditis:'Endocarditis', congenita:'Congénita' },
+                   endocarditis:'Endocarditis', congenita:'Congénita',
+                   prot_bio:'Prótesis biológica', prot_mec:'Prótesis mecánica' },
   oai_morfologia: { ala:'Ala de pollo', coliflor:'Coliflor', cactus:'Cactus', veleta:'Veleta' },
   oai_lobulos: { '1':'1 lóbulo', '2':'2 lóbulos', '3':'3 o más lóbulos' },
   oai_trombo: { no:'No', sospecha:'Sospecha', si:'Sí — confirmado' },
@@ -68902,7 +69110,8 @@ const LAB_XLS_VOCAB_NUEVOS = {
               fa:'fa', 'fibrilacion auricular':'fa' },
   'ett-sparkling': { '':'', no:'no', 'no presente':'no', si:'si', 'sí':'si', presente:'si' },
   ete_etiologia: { '':'', barlow:'barlow', dfe:'dfe', reumatica:'reumatica', funcional_isq:'funcional_isq',
-                   funcional_aur:'funcional_aur', endocarditis:'endocarditis', congenita:'congenita' },
+                   funcional_aur:'funcional_aur', endocarditis:'endocarditis', congenita:'congenita',
+                   prot_bio:'prot_bio', prot_mec:'prot_mec' },
   oai_morfologia: { '':'', ala:'ala', 'ala de pollo':'ala', coliflor:'coliflor', cactus:'cactus', veleta:'veleta' },
   /* Declarar la columna como `vocab` en `LAB_XLS_MAP` y NO poner el vocabulario acá rechaza la
      FILA ENTERA al reimportar —nombre, CI, FEVI, informe, todo— porque el bucle que propaga las
@@ -81798,8 +82007,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260928-0614';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790586879954;                 /* eco-build-ms */
+const ECO_BUILD    = '20260928-0759';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790593177069;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -81885,7 +82094,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-0614</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-0759</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -4,6 +4,180 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## Etiología mitral Válvulas ↔ ETE: los pares que coinciden, y lo que NO se pisa (2026-09-28, fase 4 de 5)
+
+`vm_morf` (pestaña Válvulas) y `ete_etiologia` (pestaña ETE) describen la MISMA válvula del MISMO
+estudio y no se hablaban: el informe podía decir «Válvula mitral de morfología prótesis mecánica» y,
+tres renglones abajo, «ETE — Válvula mitral de etiología reumática». `ete_etiologia` ganó
+**«Prótesis biológica»** (`prot_bio`) y **«Prótesis mecánica»** (`prot_mec`), y los dos selects se
+sincronizan.
+
+### Los dos selects usan modelos de valor DISTINTOS
+
+`ete_etiologia` va por **tokens** (`barlow`, `reumatica`, …) y `vm_morf` usa **el texto como value**,
+salvo las dos protésicas, que llevan `value` explícito igual al texto. Los tokens nuevos siguen el
+estilo del select al que pertenecen; escribirlos con el texto habría roto la convención de ese
+campo y su vocabulario de importación.
+
+### ⚠️ SÓLO CINCO PARES, Y LA MAYORÍA DE LAS OPCIONES NO TIENE EQUIVALENTE A PROPÓSITO
+
+Reumática, Endocarditis, «Mixomatosa / Barlow» ↔ «Degenerativa — Barlow», y las dos prótesis. Cada
+select describe un eje distinto —`vm_morf` mezcla morfología y etiología, `ete_etiologia` es sólo
+etiología— así que «Calcificada», «Prolapso / EVMS» e «Isquémica» de un lado, y «Degenerativa — DFE»,
+las dos funcionales y «Congénita» del otro, **no tienen par**. Inventárselo sería escribir en un
+campo firmado un hallazgo que el médico no consignó.
+
+**«Es prótesis» se DERIVA de `valvEsProtesis` sobre el par**, no de una segunda lista de qué token
+del ETE es protésico: con dos listas, agregar una prótesis a un lado y no al otro deja la sincronía
+muda. `valvEsProtesis` es el único dueño de esa pregunta en todo el archivo.
+
+### ⚠️ ESCRIBIR Y PINTAR SON DOS FUNCIONES, Y ESA SEPARACIÓN ES EL PUNTO 3 DEL PEDIDO
+
+- **`eteVmPropagar(origen)` escribe** y la llaman SÓLO los dos `onchange`.
+- **`eteVmAvisoSync()` sólo pinta** y va en `RECALC_MODULOS` **y** al final de `limpiarCampos` —las
+  dos columnas de siempre.
+
+Reabrir un estudio no puede modificar un valor guardado, y con una sola función eso es exactamente
+lo que pasa. **La mutación que mete la propagación en el embudo de restauración imprime
+`Prótesis mecánica / prot_mec` donde el estudio guardado decía `Prótesis mecánica / funcional_isq`:
+reabrir cambió el dato.** No hace falta ninguna guarda extra para el resto de las rutas —reponen con
+`.value`, que no dispara `change`— y eso se verificó barriendo los `dispatchEvent` del archivo:
+ninguna ruta de restauración ni de importación despacha `change` sobre estos dos selects.
+
+### ⚠️ NO SE PISA LO QUE EL OTRO SELECT NO PUEDE DECIR — lo encontró `/sharp-edges`
+
+Los dos ejes no tienen la misma granularidad. `ete_etiologia` distingue «Degenerativa — DFE» de
+«Degenerativa — Barlow»; `vm_morf` tiene **una sola** opción degenerativa. Escenario medido, sin nada
+raro: el médico consigna DFE en el ETE y después elige «Mixomatosa / Barlow» en Válvulas —la mejor
+aproximación disponible, no un cambio de diagnóstico— y el informe pasaba a «etiología degenerativa
+(enfermedad de Barlow)», **en silencio**: los dos valores tienen par, así que ninguna rama del aviso
+disparaba. DFE y Barlow son fenotipos distintos con expectativas de reparabilidad distintas.
+
+Se escribe igual en los tres casos donde no se pierde nada: el destino está en su **valor de
+fábrica** —`''` en el ETE, `'Normal'` en Válvulas—; el destino dice algo que el origen **sí puede
+expresar**, o sea que el cambio es deliberado; o hay una **prótesis** de por medio, que es lo que el
+pedido manda pisar explícitamente.
+
+### ⚠️ LA PROPAGACIÓN HACIA EL ETE EXIGE QUE EL ESTUDIO SEA UN ETE
+
+`vm_morf` vive en la pestaña Válvulas, que es alcanzable en Modo Básico. Sin guarda, elegir
+«Prótesis biológica» en un **transtorácico** escribía `campos.ete_etiologia` y fabricaba dato de un
+estudio que no se hizo. Tres salidas, las tres ya documentadas en este archivo como defecto:
+
+- **`_labUsaEteVM` sólo pregunta si `ete_etiologia` tiene texto**, así que «Con datos ETE cargados»
+  del Laboratorio se inflaba con CADA prótesis mitral transtorácica;
+- la columna **«Etiología mitral ETE» del Excel** —el archivo que va a CeiboAnalytics— quedaba
+  poblada para todos esos estudios;
+- y la deducción de **`ete-es-ete__chk`** al reimportar matchea `/^ete_etiologia/`, así que el
+  estudio volvía con la bandera encendida y **el PDF salía titulado «Informe Ecocardiograma
+  Transesofágico»**. El comentario de esa deducción dice, textual, que eso «inventaría
+  transesofágicos que no se hicieron».
+
+Al revés no hace falta guarda: si el médico consigna la etiología EN el ETE, la morfología de
+Válvulas describe la misma válvula y vale igual.
+
+### ⚠️ EL AVISO SE PINTABA DENTRO DE UNA SECCIÓN COLAPSADA — y el caso lo daba por visible
+
+`#ete-vm-aviso` vive en `ete-seccion-morfo` y `#vm-ete-aviso` en `ete-seccion-valv-mitral`, las dos
+con `display:none` de fábrica, y las abre **sólo** `toggleEteSeccion`: no las recorre `secAutoOpen`
+(`.sacc`) ni `cardAutoOpen` (`[data-autoopen]`). O sea que el aviso se pintaba y **seguía sin
+verse**, justo en el escenario para el que existe —un estudio legado con la prótesis en Válvulas y
+una etiología nativa en el ETE, que es la única contradicción que un estudio anterior a esta fase
+puede traer, porque los tokens `prot_*` son nuevos—.
+
+**Y el caso pasaba igual, porque medía `style.display` DEL PROPIO DIV.** Hoy mide `offsetParent`, y
+además **abre la pestaña** antes de medir: `offsetParent` también es null cuando la pestaña no es la
+activa, y eso no es un defecto del aviso. Lo que se quiere medir es si el médico, parado en esa
+pestaña, lo ve.
+
+Con contradicción, la sección se abre sola. Abrirla no toca ningún valor — es lo mismo que hace
+`secAutoOpen` cuando hay datos.
+
+### El aviso es UNA regla, no una rama por escenario
+
+Avisa cuando los dos lados **afirman** y uno de los dos era **sincronizable** —tiene par— pero el
+otro dice algo distinto. Eso cubre de una vez los tres casos: la opción sin par contra una prótesis,
+los dos con par distintos, y el que introdujo la guarda de arriba (DFE contra Barlow), que con ramas
+sueltas quedaba mudo justo donde la sincronía se abstiene.
+
+**Lo que NO avisa es que los dos estén en opciones sin par** —«Calcificada» y «Congénita»—: ahí no
+hay nada que sincronizar y no se contradicen; una válvula congénita puede estar calcificada. Un
+aviso que salta sin contradicción deja de leerse. **El valor de fábrica tampoco afirma**: «—» y
+«Normal» son ausencia de dato.
+
+**Y nombra los DOS valores.** «biológica contra mecánica» cambia la anticoagulación y no puede salir
+con el mismo texto genérico que «reumática contra Barlow»: nombrarlos cuesta lo mismo y es lo único
+que le dice al médico cuál corregir.
+
+### Lo demás que hubo que tocar, y por qué
+
+- **Los efectos del destino se llaman a mano**, porque asignar `.value` no dispara `change`: sin
+  eso, elegir una prótesis en el ETE dejaba el bloque de prótesis de Válvulas escondido y el DVI sin
+  dónde cargarse, con la morfología ya cambiada. Cada uno en su `try` — un throw en `valvProtSync`
+  se llevaba el repintado del aviso y dejaba el estado anterior sobre un valor ya cambiado.
+  ⚠️ **Es una lista paralela del `onchange`**: hoy coincide, pero `imOndaESiExiste` se agregó
+  después. Y **la mitad del ETE es hoy un no-op**: medido, `calcETE` no lee `ete_etiologia` —sólo
+  `ete_angulo_vp`, `ete_altura_tenting` y `ete_prof_coapt`—, así que esa llamada está por contrato y
+  no hay que leerla como una cobertura que existe.
+- **`_eteVmAssertPares()` al arrancar.** La tabla es paralela a los dos selects y nada la vigilaba:
+  una fila que nombre una opción inexistente deja la sincronía **y** el aviso mudos, sin error. La
+  otra dirección se declara y NO se exige: que la mayoría de las opciones no tenga par es el diseño.
+- **La escritura verifica que el valor SEA una opción del destino.** Asignar uno que no lo es deja
+  `selectedIndex = -1`, `.value` devuelve `''` y `guardarInforme` **persiste el hueco** — el defecto
+  de `vab_tipo` y de `centro_nombre`.
+- **El informe: «de etiología prótesis biológica» no es español.** El conector pasa a «con» para las
+  dos protésicas. Es el mismo defecto que `VALV_MORF_FRASE` cerró del lado de Válvulas con «La
+  válvula aórtica es tavi».
+- **Los cuatro consumidores del token quedaron cubiertos**: informe (`etioMap`), Excel
+  (`_labXlsEtiq`), PPT (`_pptSel`, que usa el TEXTO de la opción, así que salió solo) y el
+  Laboratorio. Ninguno publica el token crudo.
+- **La guarda de reentrada es REDUNDANTE hoy y se declara**: ningún efecto del destino llama a la
+  propagación, y `.value` no dispara `change`. Se conserva por contrato.
+
+### Declarado y NO tocado
+
+- **`ete_carpentier`, `ete_mecanismo`, `teer_tipo_im` y los cuatro `wilkins_*`** describen otros ejes
+  y no se sincronizan. Medido: los siete existen y ninguno aparece en la tabla de pares.
+- **⚠️ Y ninguno tiene compuerta por etiología**, así que con una prótesis el informe puede publicar
+  **«ETE — Válvula mitral con prótesis mecánica con mecanismo Carpentier Tipo II — prolapso. Score de
+  Wilkins 8/16.»** — Carpentier y el mecanismo describen una válvula NATIVA, y Wilkins es de
+  valvuloplastia con balón sobre una mitral reumática nativa. **Esta fase lo vuelve alcanzable sin
+  entrar a la pestaña ETE**, porque la propagación puede fijar la etiología a protésica desde
+  Válvulas dejando pegado un Carpentier consignado antes. No se tocó porque el pedido dice
+  «declarar sin tocar» sobre esos cuatro campos y suprimir su emisión es texto clínico; el prompt
+  que sigue —sacar lo metodológico de las líneas de prótesis— toca exactamente esas oraciones.
+  De ahí sale también el «con … con» seguido.
+- **El valor escrito no lleva marca de procedencia.** El resto del archivo marca lo que escribe
+  (`dataset.sugerido` en `vp_gmax`, con su badge; `dataset.espejoDe`). Acá el valor entra al informe
+  firmado y el médico no puede distinguir qué lado tipeó y cuál escribió la sincronía.
+
+### Verificación
+
+**TC-300, 28 condiciones.** Los cinco pares en los dos sentidos, el pisado por prótesis, la nativa
+mapeable pisando una prótesis, la opción sin par que no escribe, los dos avisos **medidos por
+visibilidad real**, el ruido que no aparece, el vacío que no contradice, el bloque de prótesis que se
+abre, DFE que sobrevive, el transtorácico que no fabrica dato de ETE, el informe, los dos
+vocabularios y los tres asserts.
+
+**⚠️ REABRIR NO ESCRIBE** tiene condición propia, con el estudio guardado **contradictorio a
+propósito**: los dos valores tienen que volver tal cual y el aviso pintarse.
+
+**Doce mutaciones, las doce en rojo y cada una en su condición.** Las dos guardas fail-closed —el
+assert de pares y la verificación de que el valor sea una opción— **se ejercen en aislamiento**
+metiendo un par roto y restaurando en el `finally`, con una condición que afirma que la tabla quedó
+restaurada: sin eso serían «una capa que nadie sabe si existe».
+
+**Denominador de TC-300:** se sembraron sólo `vm_morf`, `ete_etiologia` y la casilla «Es ETE» —más
+nombre y edad en el paso del guardado—. Todo el resto del formulario quedó vacío, así que el caso no
+dice nada sobre interacciones con otros campos del ETE.
+
+**Suite 314/315**, único rojo **TC-223**, el documentado. Semgrep **126 / 0 ERROR**, sin huérfanos,
+`check_mobile` en los 2 ALTA de siempre, `_labXlsAssertVocab`, `_labXlsAssertListas` y
+`_eteVmAssertPares` los tres en `[]`. Balance de etiquetas contra HEAD: **+2/+2 en `div` y en
+`option`**, que son los dos avisos y las dos opciones —y el delta de más que apareció primero era una
+etiqueta transcrita dentro de un comentario, que es la regla del archivo.
+
+
 ## El selector de EROA, y las SEIS listas que había que tocar a mano (2026-09-28, fase 3 de 5)
 
 Las filas `EROA` y `Vol.R` de la tabla de Válvula Mitral del PDF pasaron a tener selector de

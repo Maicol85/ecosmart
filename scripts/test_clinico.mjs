@@ -33710,6 +33710,226 @@ caso('TC-299', 'Selector de EROA/Vol-R: PISA es el default y siempre sale, la co
   })();
 `);
 
+caso('TC-300', 'Etiologia mitral Valvulas<->ETE: sincroniza solo los pares que coinciden, avisa cuando no hay par, y NUNCA escribe al reabrir un estudio', `
+  return (async () => {
+    const g  = id => document.getElementById(id);
+    const gv = id => { const e = g(id); return e ? e.value : '(no existe)'; };
+    /* ⚠️ Se mide offsetParent, NO el style.display del propio div: los dos avisos viven dentro de
+       secciones colapsadas, asi que medir el div daba «visible» sobre un aviso que nadie ve. Es
+       el error de denominador de siempre, y la version anterior pasaba con el aviso invisible. */
+    const _TAB_AVISO = { 'ete-vm-aviso':'ete', 'vm-ete-aviso':'valvulas' };
+    const av = id => {
+      /* Se ABRE la pestaña del aviso antes de medir: offsetParent tambien es null cuando la
+         pestaña no es la activa, y eso no es un defecto del aviso. Lo que se quiere medir es si
+         el medico, PARADO en esa pestaña, lo ve — o sea si alguna SECCION lo tapa. */
+      try { showTab(_TAB_AVISO[id]); } catch (e) {}
+      const el = g(id);
+      return (el && el.offsetParent !== null) ? el.textContent : '';
+    };
+    const esEte = on => { const c = g('ete-es-ete'); if (!c) return false;
+      if (c.checked !== on) { c.checked = on; c.dispatchEvent(new Event('change', { bubbles:true })); }
+      return true; };
+    /* Cambiar por el camino REAL: asignar .value no dispara change, asi que un caso que sólo
+       asigna prueba la funcion y no el cableado del select. */
+    const elegir = (id, val) => { const e = g(id); if (!e) return false; e.value = val;
+      e.dispatchEvent(new Event('change', { bubbles:true })); return e.value === val; };
+
+    __t.limpiar();
+    esEte(true);
+    const opsEte = [].slice.call(g('ete_etiologia').options).map(o => o.value);
+    const tieneProtEte = opsEte.indexOf('prot_bio') > -1 && opsEte.indexOf('prot_mec') > -1;
+
+    // ── 1. Los cinco pares, en los DOS sentidos ────────────────────────────────────────
+    const PARES = [['reumatica','Reumática'],['endocarditis','Endocarditis'],
+                   ['barlow','Mixomatosa / Barlow'],['prot_bio','Prótesis biológica'],
+                   ['prot_mec','Prótesis mecánica']];
+    const idaVuelta = [];
+    PARES.forEach(function (p) {
+      __t.limpiar(); esEte(true);
+      elegir('ete_etiologia', p[0]);
+      const haciaVm = gv('vm_morf');
+      __t.limpiar(); esEte(true);
+      elegir('vm_morf', p[1]);
+      const haciaEte = gv('ete_etiologia');
+      idaVuelta.push(p[0] + '→' + haciaVm + ' | ' + p[1] + '→' + haciaEte
+        + (haciaVm === p[1] && haciaEte === p[0] ? ' OK' : ' ✗'));
+    });
+    const losCinco = idaVuelta.every(x => x.indexOf(' OK') > -1);
+
+    // ── 2. Una protesis PISA una etiologia nativa ──────────────────────────────────────
+    __t.limpiar();
+    elegir('vm_morf','Calcificada');
+    elegir('ete_etiologia','prot_mec');
+    const protPisa = gv('vm_morf');
+
+    // ── 3. Una nativa mapeable pisa la protesis del otro lado ──────────────────────────
+    __t.limpiar(); esEte(true);
+    elegir('ete_etiologia','prot_bio');
+    elegir('vm_morf','Reumática');
+    const nativaPisa = gv('ete_etiologia');
+
+    // ── 4. Una opcion SIN par no escribe nada, y avisa si el otro dice protesis ────────
+    __t.limpiar(); esEte(true);
+    elegir('vm_morf','Prótesis mecánica');
+    elegir('ete_etiologia','funcional_isq');
+    const sinParNoEscribe = gv('vm_morf');
+    const avisoEte = av('ete-vm-aviso');
+
+    __t.limpiar(); esEte(true);
+    elegir('ete_etiologia','prot_bio');
+    elegir('vm_morf','Calcificada');
+    const sinParNoEscribe2 = gv('ete_etiologia');
+    const avisoVm = av('vm-ete-aviso');
+
+    // ── 5. Sin protesis del otro lado, una opcion sin par NO avisa ─────────────────────
+    /* Los DOS en opciones sin par: ahi no hay nada que sincronizar y no se contradicen —una
+       valvula congenita puede estar calcificada—. Con «Reumática» de un lado el escenario no
+       probaria esto: ese valor SI tiene par, asi que el aviso es correcto y esperado. */
+    __t.limpiar(); esEte(true);
+    elegir('vm_morf','Calcificada');
+    elegir('ete_etiologia','congenita');
+    const sinRuido = av('ete-vm-aviso') + av('vm-ete-aviso');
+
+    // ── 6. El VACIO no contradice: «—» es ausencia de dato ─────────────────────────────
+    __t.limpiar(); esEte(true);
+    elegir('vm_morf','Prótesis mecánica');
+    elegir('ete_etiologia','');
+    const vacioNoAvisa = av('ete-vm-aviso');
+
+    // ── 7. Elegir protesis en el ETE abre el bloque de protesis de Valvulas ────────────
+    __t.limpiar(); esEte(true);
+    elegir('ete_etiologia','prot_mec');
+    const bloqueProt = (() => { const e = g('bloque-prot-vm'); return e ? (e.style.display !== 'none') : '(no existe)'; })();
+
+    // ── 8. ⚠️ REABRIR NO ESCRIBE. Se guarda un estudio CONTRADICTORIO —lo trae cualquier
+    //        estudio anterior a esta fase— y al reabrirlo los dos valores tienen que volver
+    //        TAL CUAL, con el aviso pintado. ────────────────────────────────────────────
+    __t.limpiar();
+    esEte(true);
+    __t.set('nombre','TC300'); __t.set('edad','60');
+    elegir('vm_morf','Prótesis mecánica');
+    elegir('ete_etiologia','funcional_isq');     // queda contradictorio a proposito
+    const antesG = gv('vm_morf') + ' / ' + gv('ete_etiologia');
+    __t.informe();
+    const eid = await new Promise(r => { window._ettEditandoId = null;
+      const antes = new Set(getInformes().map(i => i.estudioId));
+      const fin = () => { const n = getInformes().find(i => !antes.has(i.estudioId)); r(n ? n.estudioId : null); };
+      try { guardarInforme(fin); } catch (e) { r(null); return; }
+      const cf = g('rev-confirm'); if (cf) cf.click(); });
+    __t.limpiar();
+    if (eid) __t.reabrir(eid);
+    const trasReabrir = gv('vm_morf') + ' / ' + gv('ete_etiologia');
+    const avisoTrasReabrir = av('ete-vm-aviso');
+    if (eid) await __t.borrar(eid);
+
+    // ── 9. El informe no dice «de etiologia protesis biologica» ────────────────────────
+    __t.limpiar();
+    esEte(true);
+    __t.set('nombre','TC300b'); __t.set('edad','60');
+    { const c = g('ete_morfo_incluir_chk'); if (c && !c.checked) { c.checked = true; c.dispatchEvent(new Event('change', { bubbles:true })); } }
+    elegir('ete_etiologia','prot_bio');
+    const rInf = __t.informe();
+    const lineaEte = rInf.inf.split('\\n').filter(x => x.indexOf('ETE') > -1 && x.indexOf('mitral') > -1).join(' | ');
+
+    // ── 11. NO se pisa lo que el otro select no puede decir: DFE no se degrada a Barlow ─
+    __t.limpiar(); esEte(true);
+    elegir('ete_etiologia','dfe');
+    elegir('vm_morf','Mixomatosa / Barlow');
+    const dfeSobrevive = gv('ete_etiologia');
+    const avisoDfe = av('ete-vm-aviso');
+    // pero una nativa que el otro SI puede decir se corrige normalmente
+    __t.limpiar(); esEte(true);
+    elegir('ete_etiologia','endocarditis');
+    elegir('vm_morf','Reumática');
+    const corrigeDeliberada = gv('ete_etiologia');
+
+    // ── 12. En un TRANSTORACICO la propagacion no fabrica dato de ETE ──────────────────
+    __t.limpiar(); esEte(false);
+    elegir('vm_morf','Prótesis biológica');
+    const eteEnTt = gv('ete_etiologia');
+    const usaEteTt = (typeof _labUsaEteVM === 'function')
+      ? _labUsaEteVM({ campos: { vm_morf:'Prótesis biológica', ete_etiologia:gv('ete_etiologia') } }) : '(no existe)';
+    // y con la casilla tildada si escribe
+    esEte(true);
+    elegir('vm_morf','Normal'); elegir('vm_morf','Prótesis biológica');
+    const eteEnEte = gv('ete_etiologia');
+
+    // ── 13. El assert de arranque de los pares, y la guarda de la escritura ────────────
+    /* Las dos son fail-closed y ningun escenario clinico las alcanza —todos los pares existen—,
+       asi que se EJERCEN EN AISLAMIENTO metiendo un par roto y restaurando en el finally. Sin
+       esto serian «una capa que nadie sabe si existe», que es como sobrevivio una mutacion en
+       TC-206. La restauracion se AFIRMA: sin eso los casos de abajo medirian sobre otra app. */
+    const assertPares = (typeof _eteVmAssertPares === 'function') ? _eteVmAssertPares() : ['(no existe)'];
+    let assertCaza = '(no se pudo)', huecoEvitado = '(no se pudo)', pilaRestaurada = false;
+    if (typeof _ETE_VM_PARES !== 'undefined') {
+      const _n = _ETE_VM_PARES.length;
+      try {
+        _ETE_VM_PARES.push(['no_existe_en_ete', 'No existe en vm']);
+        assertCaza = _eteVmAssertPares().length;
+        __t.limpiar(); esEte(true);
+        /* Un par cuyo destino no es ninguna <option>: asignarlo dejaria selectedIndex = -1 y
+           guardarInforme PERSISTIRIA el hueco. */
+        _ETE_VM_PARES.push(['congenita', 'Valor que no existe']);
+        elegir('ete_etiologia','congenita');
+        huecoEvitado = gv('vm_morf');
+      } finally {
+        while (_ETE_VM_PARES.length > _n) _ETE_VM_PARES.pop();
+        pilaRestaurada = _ETE_VM_PARES.length === _n && _eteVmAssertPares().length === 0;
+      }
+    }
+
+    // ── 10. El importador acepta los dos tokens nuevos y el assert sigue limpio ────────
+    const vocabOk = typeof _labXlsVocab === 'function'
+      && _labXlsVocab('ete_etiologia','Prótesis biológica') === 'prot_bio'
+      && _labXlsVocab('ete_etiologia','prot_mec') === 'prot_mec';
+    const etiqOk = typeof _labXlsEtiq === 'function'
+      && _labXlsEtiq('ete_etiologia','prot_mec') === 'Prótesis mecánica';
+    const assertListas = (typeof _labXlsAssertListas === 'function') ? _labXlsAssertListas() : ['(no existe)'];
+    __t.limpiar();
+
+    return { extra: [
+      ['DENOMINADOR: el select del ETE tiene las dos opciones nuevas', tieneProtEte, opsEte.join(',')],
+      ['los CINCO pares sincronizan en los dos sentidos', losCinco, idaVuelta.join('  ·  ')],
+      ['una protesis PISA una etiologia nativa del otro lado', protPisa === 'Prótesis mecánica', protPisa],
+      ['una nativa mapeable pisa la protesis del otro lado', nativaPisa === 'reumatica', nativaPisa],
+      ['una opcion SIN par no escribe nada en el otro (ETE→Valvulas)',
+        sinParNoEscribe === 'Prótesis mecánica', sinParNoEscribe],
+      ['y avisa, nombrando los DOS valores', avisoEte.indexOf('ETE dice') > -1 && avisoEte.indexOf('Válvulas «Prótesis mecánica»') > -1, avisoEte || '(sin aviso)'],
+      ['lo mismo en el sentido contrario (Valvulas→ETE)', sinParNoEscribe2 === 'prot_bio', sinParNoEscribe2],
+      ['y su aviso', avisoVm.indexOf('Prótesis biológica') > -1 && avisoVm.indexOf('Calcificada') > -1, avisoVm || '(sin aviso)'],
+      ['sin protesis del otro lado, una opcion sin par NO avisa — el aviso no es ruido',
+        sinRuido === '', sinRuido || '(sin aviso, correcto)'],
+      ['el vacio NO contradice: «—» es ausencia de dato, no una afirmacion',
+        vacioNoAvisa === '', vacioNoAvisa || '(sin aviso, correcto)'],
+      ['elegir protesis en el ETE abre el bloque de protesis de Valvulas — el destino corre sus efectos',
+        bloqueProt === true, String(bloqueProt)],
+      ['DENOMINADOR: el estudio se guardo contradictorio a proposito', antesG === 'Prótesis mecánica / funcional_isq', antesG],
+      ['⚠️ REABRIR NO ESCRIBE: los dos valores vuelven TAL CUAL', trasReabrir === antesG, trasReabrir],
+      ['y el aviso se repinta al abrir Y SE VE, para que la contradiccion no quede escondida',
+        avisoTrasReabrir.indexOf('ETE dice') > -1, avisoTrasReabrir || '(sin aviso)'],
+      ['el informe no dice «de etiologia protesis»', lineaEte.indexOf('de etiología prótesis') < 0 && lineaEte.indexOf('con prótesis biológica') > -1, lineaEte],
+      ['el importador acepta los dos tokens nuevos, por etiqueta y por token', vocabOk && etiqOk,
+        'vocab=' + vocabOk + ' etiq=' + etiqOk],
+      ['_labXlsAssertListas() sigue en []', assertListas.length === 0, assertListas.join(' | ')],
+      ['NO se pisa lo que el otro select no puede decir: «DFE» sobrevive a elegir Barlow en Valvulas',
+        dfeSobrevive === 'dfe', dfeSobrevive],
+      ['y se avisa, en vez de cambiar el fenotipo en silencio',
+        avisoDfe.indexOf('Degenerativa — DFE') > -1 && avisoDfe.indexOf('Mixomatosa / Barlow') > -1, avisoDfe || '(sin aviso)'],
+      ['pero una nativa que el otro SI puede decir se corrige normalmente',
+        corrigeDeliberada === 'reumatica', corrigeDeliberada],
+      ['en un TRANSTORACICO la propagacion no fabrica dato de ETE', eteEnTt === '', '«' + eteEnTt + '»'],
+      ['y por eso ese estudio no cuenta como ETE en el Laboratorio', usaEteTt === false, String(usaEteTt)],
+      ['DENOMINADOR: con la casilla «Es ETE» tildada si escribe', eteEnEte === 'prot_bio', eteEnEte],
+      ['_eteVmAssertPares() en []', assertPares.length === 0, assertPares.join(' | ')],
+      ['y CAZA un par que no existe en el select — no es un assert que no pueda fallar',
+        assertCaza === 2, String(assertCaza)],
+      ['la escritura no deja un hueco: un par cuyo destino no es una opcion no se asigna',
+        huecoEvitado === 'Normal', '«' + huecoEvitado + '»'],
+      ['DENOMINADOR: la tabla de pares quedo restaurada', pilaRestaurada, String(pilaRestaurada)]
+    ] };
+  })();
+`);
+
 caso('TC-295', 'Las tres referencias de AI del PDF firmado coinciden con el operador que aplica el codigo', `
   return (async () => {
     /* Depende del CDN. Se espera hasta 8 s y, si no llega, se FALLA con el motivo escrito: un caso
