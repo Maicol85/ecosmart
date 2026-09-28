@@ -3372,6 +3372,24 @@ window.cerrarSesionReal = cerrarSesionReal;
              Y como es `hidden`, el barrido de `limpiarCampos` —que toma text y number— NO lo
              alcanza: se vacía A MANO, igual que `ete_tavi_jet_horas` y `co_serie_json`. -->
         <input type="hidden" id="im_espejos" data-espejo>
+        <!-- ⚠️ LOS DOS RESULTADOS DE PISA, CONGELADOS EN EL ESTUDIO. Medido: la fila EROA/Vol-R del
+             PDF sale DISTINTA según por dónde se restaure el estudio, porque sus dos patas leen de
+             sitios de naturaleza distinta —«Cont:» sale de `im_eroa_cont`/`vr_cont`, que son inputs
+             reales y viajan con el estudio; «PISA:» sale del TEXTO de los span `eroa-val`/`volr-val`,
+             que sólo escribe `calcIM_ESC`—. Y `calcIM_ESC` corre en la reimpresión y NO en
+             `editarInforme` ni en `cargarEstudioPorId` (el QR del PDF firmado):
+
+               reimpresión → «PISA: 50.3 mm² · Cont: 33.6»
+               editar / QR → «Cont: 33.6 mm²»          ← el mismo estudio, tres PDF distintos
+
+             El arreglo NO es llamar a `calcIM_ESC` en la restauración: eso re-deriva `im_grado` y
+             «un estudio archivado ADQUIRÍA un grado que su PDF firmado original no tenía» (fase 1,
+             prohibido explícitamente). Se congela el RESULTADO, que es un dato del estudio, y las
+             tres rutas lo leen igual.
+             Mismo patrón que `im_espejos`: `hidden` + `data-espejo` para que `secAutoOpen` no lo
+             cuente como dato de sección, y vaciado A MANO en `limpiarCampos` porque el barrido
+             toma text y number y no lo alcanza. -->
+        <input type="hidden" id="im_pisa" data-espejo>
         <div class="fg"><label>Valiasing PISA (cm/s)</label><input type="number" id="pisa_val" placeholder="cm/s" oninput="calcIM_ESC()"></div>
         <div class="fg"><label>Vmax IM (cm/s)</label><input type="number" id="im_vmax" placeholder="cm/s" oninput="calcIM_ESC()"></div>
         <!-- ⚠️ LLAMA A LAS DOS, y el `calcContIM` es de esta ronda. `im_itv` era insumo de un solo
@@ -3407,15 +3425,23 @@ window.cerrarSesionReal = cerrarSesionReal;
              alcanzable con el dedo. El `title` queda como atajo en escritorio, no como único
              camino. -->
         <div class="calc-row"><span class="calc-lbl" title="Válido sin estenosis mitral, calcificación anular, anillo protésico ni fibrilación auricular. Menos específico en IM secundaria. La onda A dominante es más aplicable en mayores de 50 años. ASE 2017 (Zoghbi, JASE 30:303-371).">Onda E (parámetro soporte — &ge;120 cm/s apoya IM severa) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span id="im-ondae-interp">—</span></div>
-        <!-- ⚠️ EL 1,4 NO SALE DE NINGUNA GUÍA, y el `title` lo dice en vez de callarlo. Barrido del
-             PDF primario de ASE 2017: «1.4» aparece CERO veces, y «VTI ratio» y «mitral-to-aortic»
-             tampoco —con control de denominador, porque «1.2» sale 4 veces y «1.5» 3, o sea que la
-             extracción funciona—. El estudio original (Tribouilloy, Eur Heart J 1994;15:1335-9) da
-             ≥1,3; el ≥1,4 se rastrea a un artículo del E-Journal de la ESC que cita ese corte con
-             la sensibilidad y especificidad EXACTAS de Tribouilloy para 1,3 (87 %/91 %), o sea un
-             error de transcripción propagado. Decisión de Maicol: NO se cambia el número —cambiar
-             un corte de severidad es otra cosa— y se quita la atribución falsa. -->
-        <div class="calc-row"><span class="calc-lbl" title="El corte 1,4 no figura en ASE 2017 ni en ESC/EACTS 2021. El estudio original (Tribouilloy, Eur Heart J 1994) da 1,3. Ver «Referencia clínica» en la ayuda.">Ratio VTI mitral / VTI TSVI (&gt;1.4 severa) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-vti-ratio">—</span></div>
+        <!-- ⚠️ EL 1,4 SÍ TIENE FUENTE, Y NO ES LA QUE SE BUSCÓ EN LA FASE 2. Aquella pasada barrió el
+             PDF primario de ASE 2017 —«1.4» cero veces, «VTI ratio» y «mitral-to-aortic» tampoco,
+             con control de denominador: «1.2» sale 4 veces y «1.5» 3, o sea que la extracción
+             funcionaba— y concluyó «sin guía». La conclusión era correcta PARA ESE DOCUMENTO: el
+             cociente está en OTRO, la ASE 2023 de cardiopatía reumática (Pandian et al., JASE
+             2023;36:3-28), en los Key Points de IM reumática — >1,4 sugiere IM severa y <1 leve,
+             **en ausencia de IAo moderada o severa**. Origen: Tribouilloy 1994.
+             ⚠️ Y LA TENSIÓN NO SE RESUELVE, SE DECLARA. La fase 2 rastreó el 1,4 a un artículo del
+             E-Journal de la ESC que lo cita con la sensibilidad y especificidad EXACTAS de
+             Tribouilloy para 1,3 (87 %/91 %), o sea un error de transcripción. Que la ASE 2023
+             publique 1,4 citando a Tribouilloy no distingue entre «lo validó» y «propagó el mismo
+             error»: el primario reporta 1,3. Se publican LAS DOS cosas y no se afirma que la guía
+             valide el número. Decisión de Maicol: el 1,4 SE MANTIENE —cambiar un corte de severidad
+             es otra cosa— y lo que se corrige es la atribución, que decía «sin guía».
+             La condición de IAo del ⓘ no es decorativa: la aplica `calcIM_ESC`, que retira la fila
+             con `ia_grado` ≥ moderada. -->
+        <div class="calc-row"><span class="calc-lbl" title="Requiere ausencia de insuficiencia aórtica moderada o severa: la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir (ASE 2023). Con IAo moderada o mayor la fila no se calcula. Fuente del corte: ASE 2023, cardiopatía reumática (Pandian, JASE 36:3-28); no figura en ASE 2017 ni en ESC/EACTS 2021, y el estudio original (Tribouilloy, Eur Heart J 1994) da 1,3. Ver «Referencia clínica» en la ayuda.">Ratio VTI mitral / VTI TSVI (&gt;1.4 severa) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-vti-ratio">—</span></div>
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad IM integrada (ESC 2021)</span><span id="im-sev">—</span></div>
         <div class="calc-row"><span id="im-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
       </div>
@@ -12579,7 +12605,7 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
      para severa, en ninguna fuente hay bandas de leve y moderada. Y el cálculo tampoco las usaba
      —la fila de pantalla sólo mira si cruza el corte—, así que la tabla enseñaba una graduación
      que el código nunca aplicó. La atribución va en la celda porque no es de la ESC. -->
-<tr><td style="padding:5px 8px;color:var(--text2);">Ratio VTI mitral/TSVI <span style="font-size:10px;">(sin guía — ver ayuda)</span></td><td style="padding:5px 8px;text-align:center;">—</td><td style="padding:5px 8px;text-align:center;">—</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&gt;1.4</td></tr>
+<tr><td style="padding:5px 8px;color:var(--text2);">Ratio VTI mitral/TSVI <span style="font-size:10px;">(ASE 2023 — ver ayuda)</span></td><td style="padding:5px 8px;text-align:center;">—</td><td style="padding:5px 8px;text-align:center;">—</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&gt;1.4</td></tr>
           </table>
           <div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--accent2);">Indicaciones IM primaria (ESC 2021)</div>
           <div style="font-size:12px;color:var(--text);line-height:1.8;margin-top:4px;">
@@ -21782,10 +21808,84 @@ window.emAvmPdfVal = emAvmPdfVal;
    donde sale el numero de filas que ya existen.
    La continuidad no se auto-marca aunque tenga valor —ver `_pdfMetodoChk`—: el default es PISA,
    que es lo que ya sale. */
+/* ══ LOS DOS RESULTADOS DE PISA, CONGELADOS EN EL ESTUDIO ══════════════════════════════════════
+   Ver la nota del marcado de `#im_pisa`. Acá viven el sellado y la lectura, juntos, porque el
+   formato de la cadena es un contrato entre los dos y separarlos es cómo se desincronizan.
+
+   ⚠️ UNA SOLA LLAMADA DESPUÉS DEL BLOQUE DE PISA, NO UNA POR RAMA. `calcIM_ESC` tiene cuatro
+   salidas para esos span —el `if` completo y los tres `_pisaLimpiar(n)`— y con un sellado por rama
+   la que se olvide deja el oculto rancio: el médico BORRA `pisa_r`, la pantalla dice «—», y el PDF
+   sigue publicando «PISA: 50.3 mm²» sobre una medición retirada. Es el defecto que el `else` de
+   esos span vino a cerrar, reabierto por la puerta del oculto. Sellando después del bloque, lo que
+   se congela es lo que los span ACABAN de decir, sea lo que sea.
+
+   ⚠️ DÓNDE SE SELLA, MEDIDO — y NO es sólo el `oninput` de los cuatro insumos:
+     · los `oninput` de `pisa_r`, `pisa_val`, `im_vmax` e `im_itv` → el caso normal;
+     · **la reimpresión**, que llama a `calcIM_ESC` con los datos del estudio reimpreso (por eso el
+       cierre respalda y repone el formulario entero, y el oculto viaja con él por ser un `input`);
+     · **`_autosaveRestore`**, que tiene `calcIM_ESC` en su lista de recálculos. O sea que tras un
+       F5 el oculto se re-sella. **No cambia ninguna salida** —esa lista ya poblaba los span antes
+       de este mecanismo, así que el PDF ya imprimía ese PISA—, pero un estudio legado reabierto y
+       después F5 sale del refresco CON la clave sellada. Queda declarado: el pedido prohíbe
+       recalcular en la restauración y esta ruta ya lo hacía, de antes;
+     · **abrir la pastilla de IM** (`toggleValvPill` → `sincronizarIMDesdeGlobal` → `calcIM_ESC`),
+       así que en un estudio reabierto MIRAR la pastilla escribe el oculto. Esa ruta ya re-derivaba
+       `im_grado`, así que no agrega una clase de daño nueva; agrega un campo persistido más.
+   No se sella en `guardarInforme` ni en el autosave a mano —a diferencia de `im_espejos`, que sí
+   lo hace y lo explica—: el sellado de `im_espejos` cuelga de cinco sincronías que pueden no
+   correr en una sesión, y éste cuelga del `oninput` de sus propios insumos, que es la única forma
+   de que haya un valor que congelar. */
+/* ⚠️ LA `const` VA ARRIBA DE SUS DOS LECTORES. Leer una `const` de nivel superior antes de su
+   línea no da `undefined`: **lanza**, y en este archivo eso mata el bloque `<script>` entero. Hoy
+   ningún llamador corre en tiempo de carga, pero es la misma disciplina por la que
+   `PROT_SIN_GRADO_VALVS` se mudó arriba de `protNoGradua`. */
+const _IM_PISA_SPANS = ['eroa-val', 'volr-val'];
+function _imPisaSellar() {
+  const h = document.getElementById('im_pisa');
+  if (!h) return;
+  h.value = ['v1'].concat(_IM_PISA_SPANS.map(function (id) {
+    const e = document.getElementById(id);
+    const t = e ? String(e.textContent || '').trim() : '';
+    if (!t || t === '—') return null;
+    /* ⚠️ `|` y `=` SON LOS SEPARADORES, así que un texto que los contenga parte mal la cadena al
+       leerla. Hoy el span dice «50.3 mm²» y no puede traerlos, pero el formato del span ya cambió
+       una vez en esta serie —se le agregó el sufijo «(revisar)» a otras filas— y una cadena
+       corrompida se lee como un valor plausible. Se descarta la entrada en vez de escribirla: sin
+       PISA es una omisión, con PISA mal parseado es un número equivocado en el papel firmado. */
+    if (t.indexOf('|') > -1 || t.indexOf('=') > -1) {
+      console.error('[imPisaSellar] el texto de #' + id + ' trae un separador y no se congela: «' + t + '»');
+      return null;
+    }
+    return id + '=' + t;
+  }).filter(Boolean)).join('|');
+}
+window._imPisaSellar = _imPisaSellar;
+/* Devuelve lo congelado para ESE span, o `null`. `null` —y no ''— porque el llamador distingue
+   «no hay valor» de «hay un valor vacío», y la fila del PDF se omite entera con `null`.
+   ⚠️ SIN FALLBACK POR INFERENCIA, a diferencia de `imEspejosRestaurar`. Un estudio guardado antes
+   de este mecanismo no trae la clave y tiene que imprimir EXACTAMENTE lo que imprimía: deducirle
+   un PISA desde `pisa_r` sería recalcular en la restauración por la puerta de atrás, y cambiaría
+   el papel de un informe ya firmado. No se inventa y no se migra. */
+function _imPisaPersistido(idSpan) {
+  const h = document.getElementById('im_pisa');
+  if (!h || !h.value) return null;
+  const p = String(h.value).split('|');
+  if (p[0] !== 'v1') return null;          // formato desconocido: no se adivina
+  for (let i = 1; i < p.length; i++) {
+    const j = p[i].indexOf('=');
+    if (j > 0 && p[i].slice(0, j) === idSpan) { const t = p[i].slice(j + 1).trim(); return t || null; }
+  }
+  return null;
+}
+/* ⚠️ EL SPAN MANDA Y EL CONGELADO ES EL RESPALDO, en ese orden. El span sólo tiene texto cuando
+   `calcIM_ESC` acaba de correr sobre los datos que están en pantalla, o sea que es el valor más
+   fresco; el congelado es del estudio. Al revés —el oculto primero— un médico que corrige `pisa_r`
+   en un estudio reabierto vería el PDF con el valor viejo hasta que algo volviera a sellar. */
 function _imPdfPisaTxt(idSpan) {
   const e = document.getElementById(idSpan);
   const t = e ? String(e.textContent || '').trim() : '';
-  return (t && t !== '—') ? t : null;
+  if (t && t !== '—') return t;
+  return _imPisaPersistido(idSpan);
 }
 function imPdfMetodosUI() {
   const spP = document.getElementById('im-pdf-pisa-val');
@@ -22459,6 +22559,12 @@ function calcIM_ESC() {
       } else _pisaLimpiar(2);
     } else _pisaLimpiar(1);
   } else _pisaLimpiar(0);
+  /* ⚠️ EL SELLADO VA ACÁ, UNA SOLA VEZ Y DESPUÉS DE LAS CUATRO SALIDAS. Congela en el estudio lo
+     que los dos span acaban de decir —incluido «no hay valor»—, que es lo que deja que
+     `editarInforme` y el QR impriman la MISMA fila que la reimpresión sin volver a calcular nada.
+     Ver `_imPisaSellar`. No toca ningún `score` ni ningún `param`: la graduación sale de las
+     mismas ramas de arriba, sin enterarse. */
+  try { _imPisaSellar(); } catch (e) { console.error('[imPisaSellar]', e); }
 
   if (ondaS) {
     if (ondaS === 'positiva') { scores.leve++; document.getElementById('im-onda-s-interp').innerHTML = badge('green','Normal'); }
@@ -22528,8 +22634,40 @@ function calcIM_ESC() {
   const _pVtimR  = vPlaus('vtim');
   const _vtsRatio = v('im_itv_tsvi') || v('itv_tsvi');
   const ratioEl = document.getElementById('im-vti-ratio');
+  /* ⚠️ EL COCIENTE NO APLICA CON IAo MODERADA O MAYOR, y por eso va ANTES que la banda de
+     plausibilidad: si no aplica, no hay nada que verificar y la fila es «—» (no aplica), no
+     «VTI de entrada fuera de rango».
+     El motivo es el DENOMINADOR: el cociente es VTI mitral / VTI TSVI, y la IAo infla el VTI
+     aórtico directamente, así que el cociente deja de medir lo que dice medir en cuanto la
+     regurgitación es hemodinámicamente relevante. Es la propia condición que la fuente del 1,4
+     pone —ASE 2023, «en ausencia de IAo moderada o severa»—. Decisión de Maicol 2026-09-28.
+     ⚠️ SE PREGUNTA POR EL GRADO FINAL (`ia_grado`), que es el número que se imprime, y se lee con
+     `_emRegurgGrado` —el único dueño de «cómo se lee un grado», que interpreta número y texto—.
+     Derivar acá una segunda definición de «IAo moderada» es la fórmula duplicada de siempre.
+     ⚠️ UMBRAL PROPIO Y NO `EM_CONT_REGURG_MIN`, aunque hoy los dos valgan 2. Son reglas
+     independientes sobre mecanismos distintos —allá la continuidad mitral, acá un denominador
+     aórtico— y Maicol las declaró explícitamente no unificables: con la constante compartida,
+     cambiar el umbral de la EM movería este corte en silencio.
+     ⚠️ FALLA CERRADO: un `ia_grado` ilegible —texto desconocido de un import— da `null` y el
+     cociente se retira igual. Publicar «>1,4 — apoya IM severa» sobre un cociente que quizá esté
+     corrompido es una AFIRMACIÓN; retirarlo es una omisión, y el número sigue en pantalla en sus
+     dos insumos. Es la misma dirección que eligió `emContMotivoNoVota`. */
+  const IM_RATIO_IA_MAX = 2;
+  /* ⚠️ LLAMADA PELADA, SIN `typeof`, Y ES LA CUARTA VEZ QUE ESTE ARCHIVO PAGA ESTO. `_emRegurgGrado`
+     es una declaración de función del MISMO bloque `<script>`: se hoistea, el `typeof` daría
+     `'function'` siempre —aunque el script haya muerto— y la otra rama es código muerto. Peor: el
+     valor que esa rama muerta devolvía era `0` = «no hay IAo» = PUBLICAR el cociente, o sea la
+     dirección contraria al fail-closed que este bloque promete tres líneas más abajo. Lo levantó
+     `/sharp-edges` sobre este diff, igual que con `protNoGradua` en la Fase A y con `vmEsProtesis`
+     en el commit anterior. Pelada, si alguien la mueve a otro bloque falla RUIDOSA. */
+  const _iaRatio = _emRegurgGrado('ia_grado');
+  const _ratioNoAplica = (_iaRatio === null || _iaRatio >= IM_RATIO_IA_MAX);
   if (ratioEl) {
-    if (_pVtimR.fuera) {
+    if (_ratioNoAplica) {
+      /* «—» a secas, SIN texto nuevo: el pedido prohíbe agregar copy, y el porqué vive en el ⓘ
+         de la fila, que es donde el resto de las salvedades de este calc-box ya viven. */
+      ratioEl.textContent = '—';
+    } else if (_pVtimR.fuera) {
       ratioEl.textContent = 'VTI de entrada fuera de rango — verificar';
     } else if (_pVtimR.val != null && _vtsRatio != null && _vtsRatio > 0) {
       const ratio = (_pVtimR.val / _vtsRatio).toFixed(2);
@@ -28784,6 +28922,14 @@ function limpiarCampos(silencioso) {
      desde `RECALC_MODULOS`— le pondría marca de espejo a un campo del paciente nuevo si el valor
      coincidiera. Va suelta y no dentro de ningún try, por el mismo motivo que la época. */
   { const _imE = document.getElementById('im_espejos'); if (_imE) _imE.value = ''; }
+  /* ⚠️ Y EL PISA CONGELADO, POR EL MISMO MOTIVO Y CON MÁS CONSECUENCIA. Es `hidden`, así que el
+     barrido de arriba —que toma text y number— no lo alcanza. Sin esta línea, «Nuevo estudio»
+     deja el PISA del paciente ANTERIOR, y el paciente nuevo que no tiene PISA imprime en su PDF
+     firmado «EROA … PISA: 50.3 mm²» del otro: `calcIM_ESC` no vuelve a sellar hasta que alguien
+     toque `pisa_r`, y el fallback de `_imPdfPisaTxt` sólo mira que el span esté vacío —que es
+     exactamente el estado de un paciente sin PISA—. Es el mismo escenario de dos pacientes que el
+     `else` de los span cerró, entrando por la puerta del oculto. */
+  { const _imP = document.getElementById('im_pisa'); if (_imP) _imP.value = ''; }
   _estudioEpoca++;
   /* ⚠️ Y LA COLA DE CINELOOPS PENDIENTES, por el MISMO motivo que la época: es memoria de
      sesión que sobrevive al cambio de estudio. Sin esta línea, un cineloop que el médico pidió
@@ -53743,6 +53889,15 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
        «PISA:» y con la escala de severidad al lado. */
     const er = document.getElementById('eroa-val');
     const vr = document.getElementById('volr-val');
+    /* ⚠️ EL OCULTO `im_pisa` NO VA ACÁ, Y ESO SE MIDIÓ. Durante la reimpresión `calcIM_ESC` corre
+       con los datos del estudio reimpreso y sella `im_pisa` con SUS valores, así que parecía tener
+       que respaldarse junto a los dos span. No hace falta: el respaldo genérico de unas líneas más
+       abajo toma `input[id], select[id], textarea[id]`, y `im_pisa` **es un input**. Los dos span
+       no lo son —son `span`, texto, no valor—, y ésa es exactamente la razón de ser de este
+       respaldo aparte. Agregarlo acá era un segundo mecanismo para lo que uno ya cubre.
+       Verificado por mutación: quitando la reposición explícita, el oculto vuelve igual. Lo que
+       queda vigilado es el INVARIANTE —el paciente en pantalla no se queda con el PISA del
+       estudio reimpreso—, no cuál de los dos respaldos lo provee. */
     return { ondaE: oe ? oe.textContent : '',
              eroa:  er ? er.textContent : '',
              volr:  vr ? vr.textContent : '',
@@ -85527,7 +85682,7 @@ const ECO_AYUDA = [
 <table class="mTbl"><tr><th>Situación</th><th>Criterio</th><th>Guía</th></tr>
 <tr><td>Insuficiencia mitral primaria severa, asintomática</td><td>DTSI ≥ 40 mm o FEVI ≤ 60 % (Clase I)</td><td>ESC/EACTS 2021</td></tr>
 <tr><td>IM — onda E como signo de soporte<br><span style="font-size:11px;color:var(--text2);">Sólo soporte: no gradúa. El signo <b>específico</b> es el opuesto — la onda A dominante prácticamente descarta IM severa. Válido sin estenosis mitral (la guía dice que incluso la leve altera la onda E), calcificación anular, anillo protésico ni fibrilación auricular; menos específico en IM secundaria; más aplicable en mayores de 50 años.</span></td><td>onda E ≥ 120 cm/s apoya severa · onda A dominante la descarta</td><td>ASE 2017 (Zoghbi, JASE 30:303-371, Tabla 8)</td></tr>
-<tr><td>IM — cociente VTI mitral / VTI TSVI<br><span style="font-size:11px;color:var(--text2);">⚠️ Este corte <b>no figura en ASE 2017 ni en ESC/EACTS 2021</b>. El estudio original (Tribouilloy, Eur Heart J 1994;15:1335-9) da ≥ 1,3 con sensibilidad 87 % y especificidad 91 %; el 1,4 se rastrea a un artículo del E-Journal de la ESC que cita esas mismas dos cifras, o sea un error de transcripción propagado. Se conserva el 1,4 que la app venía usando y se declara su procedencia.</span></td><td>&gt; 1,4 apoya severa</td><td>sin guía — Tribouilloy 1994 da 1,3</td></tr>
+<tr><td>IM — cociente VTI mitral / VTI TSVI<br><span style="font-size:11px;color:var(--text2);"><b>Requiere ausencia de insuficiencia aórtica moderada o severa:</b> la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir. Con IAo moderada o mayor la app no calcula la fila.<br>El corte sale de la <b>ASE 2023 de cardiopatía reumática</b> (Pandian et al., JASE 2023;36:3-28), Key Points de IM reumática: &gt; 1,4 sugiere IM severa y &lt; 1 leve. <b>No figura en ASE 2017 ni en ESC/EACTS 2021.</b><br>⚠️ El estudio original que la guía cita (Tribouilloy, Eur Heart J 1994;15:1335-9) da ≥ <b>1,3</b> con sensibilidad 87 % y especificidad 91 %, y el 1,4 se rastrea además a un artículo del E-Journal de la ESC que cita esas mismas dos cifras. O sea que la guía publica 1,4 sobre un primario que dice 1,3, y eso no distingue entre haberlo validado y haber propagado el mismo error. Se conserva el 1,4 que la app venía usando y se declaran las dos cosas.</span></td><td>&gt; 1,4 apoya severa</td><td>ASE 2023 (Pandian, JASE 36:3-28) — el primario da 1,3</td></tr>
 <tr><td>Insuficiencia aórtica severa, asintomática</td><td>FEVI ≤ 50 % · DTSI &gt; 50 mm o &gt; 25 mm/m² (Clase I)</td><td>ESC/EACTS 2021</td></tr>
 <tr><td>Estenosis aórtica severa sintomática</td><td>intervención Clase I; modalidad por edad y riesgo (corte 75 años)</td><td>ESC/EACTS 2021</td></tr>
 <tr><td>TEER — inclusión COAPT</td><td>FEVI 20–50 % · DTSVI ≤ 70 mm</td><td>COAPT</td></tr></table>

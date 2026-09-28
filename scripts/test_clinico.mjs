@@ -36076,16 +36076,31 @@ caso('TC-298', 'La fila de Onda E revive con el corte VERIFICADO, publica el sig
       ['el rotulo de la fila dice 120, no 150, y lleva la salvedad en el title',
         /120 cm\\/s/.test(lblOndaE) && !/150/.test(lblOndaE) && /estenosis mitral/.test(lblOndaE) &&
         /fibrilaci/.test(lblOndaE) && /ASE 2017/.test(lblOndaE), lblOndaE],
-      ['el rotulo del cociente conserva el 1,4 y DECLARA que no sale de una guia',
-        /1\\.4/.test(lblRatio) && /no figura en ASE 2017/.test(lblRatio) && /Tribouilloy/.test(lblRatio), lblRatio],
+      /* ⚠️ ACTUALIZADO 2026-09-28. Este caso nacio afirmando «no sale de una guia», y esa conclusion
+         era correcta PARA EL DOCUMENTO QUE SE HABIA BARRIDO —ASE 2017—: el cociente esta en OTRO,
+         la ASE 2023 de cardiopatia reumatica (Pandian, JASE 36:3-28). La condicion no se debilita,
+         se corrige y se refuerza: ahora exige que el rotulo NOMBRE la guia, que siga diciendo que
+         no esta en ASE 2017, que conserve el 1,4 y que mantenga la procedencia Tribouilloy —que es
+         lo que impide leer «la guia lo valido», porque el primario da 1,3—, MAS la condicion de
+         IAo que ahora la app aplica de verdad. */
+      ['el rotulo del cociente conserva el 1,4, NOMBRA la guia (ASE 2023), sigue diciendo que no esta en ASE 2017, y declara la condicion de IAo',
+        /1\\.4/.test(lblRatio) && /ASE 2023/.test(lblRatio) && /no figura en ASE 2017/.test(lblRatio)
+        && /Tribouilloy/.test(lblRatio) && /a.rtica moderada o severa/.test(lblRatio), lblRatio],
       ['la tabla de referencia ya no inventa bandas numericas para la onda E',
         /onda A dominante/.test(tablaRef) && /variable/.test(tablaRef) && /120 cm\\/s/.test(tablaRef) &&
         !/100.149/.test(tablaRef) && !/150/.test(tablaRef), tablaRef],
-      ['ni para el cociente, y dice que no tiene guia',
-        !/1\\.0.1\\.4/.test(tablaRef) && /sin gu.a/.test(tablaRef), tablaRef],
+      ['ni para el cociente, y la tabla ATRIBUYE el corte a la ASE 2023 en vez de decir «sin guia»',
+        !/1\\.0.1\\.4/.test(tablaRef) && /ASE 2023/.test(tablaRef) && !/sin gu.a/.test(tablaRef), tablaRef],
       ['la ayuda lleva el detalle largo, con la cita y la procedencia del 1,4',
-        /Zoghbi/.test(ayuda) && /Tribouilloy/.test(ayuda) && /calcificaci.n anular/.test(ayuda) &&
-        /error de transcripci.n/.test(ayuda), ayuda.length + ' caracteres de ayuda'],
+        /Zoghbi/.test(ayuda) && /Tribouilloy/.test(ayuda) && /calcificaci.n anular/.test(ayuda), ayuda.length + ' caracteres de ayuda'],
+      /* ⚠️ LA AYUDA TIENE QUE DECIR LAS DOS COSAS, y por eso son dos exigencias y no una: que la
+         ASE 2023 publica el 1,4, Y que el primario que esa guia cita da 1,3. Con solo la primera,
+         la app afirmaria que una guia valido el numero, y eso no esta establecido —publicarlo
+         citando a Tribouilloy no distingue entre validarlo y propagar el mismo error—. */
+      ['y la ayuda publica LA FUENTE y LA TENSION: la ASE 2023 da 1,4, el primario que cita da 1,3',
+        /ASE 2023/.test(ayuda) && /Pandian/.test(ayuda) && /1,3/.test(ayuda)
+        && /error/.test(ayuda) && /a.rtica moderada o severa/.test(ayuda),
+        (/ASE 2023/.test(ayuda) ? 'ASE2023 ' : '') + (/Pandian/.test(ayuda) ? 'Pandian ' : '') + (/1,3/.test(ayuda) ? '1,3 ' : '')],
     ] };
   })();
 `);
@@ -36732,6 +36747,365 @@ caso('TC-310', 'Mitral protesica: Carpentier, el mecanismo y el score de Wilkins
     ] };
   })();
 `);
+
+
+
+/* TC-311 — IM nativa: las TRES rutas de restauracion imprimen la MISMA fila EROA/Vol-R.
+   La fila tiene dos patas que leen de sitios de naturaleza distinta: «Cont:» sale de
+   `im_eroa_cont`/`vr_cont`, que son inputs reales y viajan con el estudio, y «PISA:» salia del
+   TEXTO de los span `eroa-val`/`volr-val`, que solo escribe `calcIM_ESC`. Medido antes del
+   arreglo, el mismo estudio daba TRES PDF distintos:
+     reimpresion  -> «PISA: 50.3 mm² · Cont: 33.6»
+     editar / QR  -> «Cont: 33.6 mm²»
+   El arreglo NO es llamar a calcIM_ESC en la restauracion —eso re-deriva im_grado y esta
+   prohibido desde la fase 1—: se congela el RESULTADO en el oculto `im_pisa`.
+
+   ⚠️ COMO SE MANEJAN LAS TRES RUTAS, que es lo que la primera version hizo mal y dio un falso
+   hallazgo: `pdfDeInformeGuardado` y `editarInforme` buscan por `inf.id`, NO por `estudioId`; y
+   `editarInforme` abre un MODAL y no carga nada hasta apretar «Cargar datos». Sin las dos cosas el
+   formulario queda vacio y «la fila no sale» por un motivo que no es el que se mide. */
+caso('TC-311', 'IM nativa: las TRES rutas de restauracion del PDF imprimen la MISMA fila EROA/Vol-R —el resultado de PISA viaja congelado en el estudio, sin recalcular—, un estudio viejo sale identico a antes, no hay fuga entre pacientes, y el cociente VTI se retira con IAo moderada', `
+  return (async () => {
+    for (let i = 0; i < 40 && !(window.jspdf && window.jspdf.jsPDF); i++) await new Promise(r => setTimeout(r, 200));
+    if (!(window.jspdf && window.jspdf.jsPDF))
+      return { extra: [['jsPDF llego por CDN', false, 'no llego en 8 s — el caso no pudo verificar nada']] };
+    const g  = id => document.getElementById(id);
+    const tx = id => { const e = g(id); return e ? String(e.textContent||'').trim() : '(no existe)'; };
+    const vl = id => { const e = g(id); return e ? e.value : '(no existe)'; };
+
+    /* Mismo idiom que TC-299: regex DETERMINISTA —con .*? lazy sobre el stream binario es
+       cuadratico y CUELGA la suite en vez de dar rojo— y sondeo DESPUES del disparo, porque el
+       save() de la reimpresion ocurre al final de una cadena asincrona. */
+    const filasPdf = async (gen) => {
+      const O = window.jspdf.jsPDF; let cap = null;
+      window.jspdf.jsPDF = function () { const d = new O(...arguments);
+        d.save = function () { try { cap = d.output('datauristring'); } catch (e) { cap = null; } }; return d; };
+      window.jspdf.jsPDF.API = O.API;
+      try { await gen(); for (let k = 0; k < 80 && !cap; k++) await new Promise(r => setTimeout(r, 100)); }
+      finally { window.jspdf.jsPDF = O; }
+      if (!cap) return '(no se capturo el PDF)';
+      const bin = atob(cap.split(',')[1]);
+      const re = /\\(((?:\\\\[\\s\\S]|[^()\\\\])*)\\)\\s?Tj/g;
+      let m, txt = []; while ((m = re.exec(bin))) txt.push(m[1]);
+      const fila = lbl => { const i = txt.findIndex(x => x.trim() === lbl);
+        return i < 0 ? '(sin fila ' + lbl + ')' : txt.slice(i + 1, i + 3).join(' ').trim(); };
+      return { eroa: fila('EROA'), volr: fila('Vol.R'), n: txt.length };
+    };
+    const esperarPdfLibre = async () => {
+      for (let k = 0; k < 120 && window._pdfGuardadoEnCurso; k++) await new Promise(r => setTimeout(r, 100));
+      return !window._pdfGuardadoEnCurso;
+    };
+
+    const sembrar = (nom, conPisa) => {
+      __t.limpiar();
+      __t.set('nombre', nom); __t.set('edad','60'); __t.set('peso','80'); __t.set('talla','180');
+      /* La pastilla hay que abrirla: limpiarCampos esconde los bloques y sin eso el espejo de
+         vtim no se crea y la continuidad no tiene con que calcular. */
+      try { toggleValvPill('mitral','insuf'); } catch (e) {}
+      const base = [['diam_tsvi','21'],['itv_tsvi','18'],['diam_mit','30'],['itv_mitral','15'],
+                    ['im_itv','130'],['im_vc','7']];
+      const pisa = [['pisa_r','10'],['pisa_val','40'],['im_vmax','500']];
+      (conPisa ? base.concat(pisa) : base).forEach(kv => __t.set(kv[0], kv[1]));
+      /* La casilla de continuidad NO se auto-marca (auto:false): la tilda el medico. Sin este
+         paso la fila sale solo con PISA y el escenario del pedido no se reproduce. */
+      const cb = g('im_pdf_cont');
+      if (cb && !cb.disabled) { cb.checked = true; cb.dataset.tocado = '1';
+        cb.dispatchEvent(new Event('change', { bubbles: true })); }
+    };
+    const guardarActual = async () => {
+      __t.informe();
+      const gd = await __t.guardar();
+      const inf = gd.estudioId ? getInformes().find(i => i.estudioId === gd.estudioId) : null;
+      return { eid: gd.estudioId, id: inf ? inf.id : null };
+    };
+
+    /* ⚠️ CUENTA LAS LLAMADAS A calcIM_ESC. Es el invariante de SEGURIDAD del pedido: la
+       restauracion no puede recalcular, porque eso re-deriva im_grado y un estudio archivado
+       ADQUIERE un grado que su PDF firmado no tenia. Se mide, no se asume. */
+    const _origCalc = window.calcIM_ESC;
+    let nCalc = 0;
+    const contar = on => { if (on) { nCalc = 0; window.calcIM_ESC = function(){ nCalc++; return _origCalc.apply(this, arguments); }; }
+                           else { window.calcIM_ESC = _origCalc; } };
+
+    const R = {};
+    let A = null;
+    try {
+      sembrar('TC311A', true);
+      R.vivo = 'eroa-val=«' + tx('eroa-val') + '» im_pisa=«' + vl('im_pisa') + '»';
+      R.gradoAntes = vl('im_grado');
+      A = await guardarActual();
+      if (!A.id) return { extra: [['se guardo el estudio', false, JSON.stringify(A)]] };
+      /* ⚠️ EL OCULTO TIENE QUE ESTAR EN campos, o las otras dos rutas no tienen de donde leer. */
+      const infA = getInformes().find(i => i.estudioId === A.eid);
+      R.enCampos = String(infA.campos['im_pisa'] === undefined ? '(AUSENTE)' : infA.campos['im_pisa']);
+
+      // ── RUTA 1 · reimpresion ──
+      __t.limpiar();
+      contar(true);
+      R.r1 = await filasPdf(() => { try { pdfDeInformeGuardado(A.id); } catch (e) {} return Promise.resolve(); });
+      await esperarPdfLibre();
+      R.nCalc1 = nCalc; contar(false);
+
+      // ── RUTA 2 · editarInforme (modal + «Cargar datos») ──
+      __t.limpiar();
+      contar(true);
+      try { editarInforme(A.id); } catch (e) {}
+      await new Promise(r => setTimeout(r, 200));
+      { const ok = g('edit-ok'); if (ok) ok.click(); }
+      await new Promise(r => setTimeout(r, 1500));
+      R.nCalc2 = nCalc; contar(false);
+      R.spanTras2 = tx('eroa-val');
+      R.gradoTras2 = vl('im_grado');
+      R.r2 = await filasPdf(() => generarPDFReal());
+
+      // ── RUTA 3 · cargarEstudioPorId (el QR del PDF firmado) ──
+      __t.limpiar();
+      contar(true);
+      try { cargarEstudioPorId(A.eid); } catch (e) {}
+      await new Promise(r => setTimeout(r, 1500));
+      R.nCalc3 = nCalc; contar(false);
+      R.spanTras3 = tx('eroa-val');
+      R.gradoTras3 = vl('im_grado');
+      R.r3 = await filasPdf(() => generarPDFReal());
+
+      /* ── EL MEDICO RETIRA LA MEDICION ──────────────────────────────────────────────────
+         Sigue en la ruta 3, con A reabierto. Borrar pisa_r dispara calcIM_ESC, que pone los
+         span en «—» y tiene que RE-SELLAR el oculto vaciandolo. Si el sellado viviera dentro del
+         if de PISA, el oculto quedaria rancio y el PDF seguiria publicando «PISA: 50.3 mm²»
+         sobre una medicion que el medico retiro — el mismo defecto que el else de los span vino
+         a cerrar, entrando por la puerta del oculto. */
+      __t.set('pisa_r','');
+      await new Promise(r => setTimeout(r, 200));
+      R.ocultoTrasBorrar = vl('im_pisa');
+      R.trasBorrar = await filasPdf(() => generarPDFReal());
+
+      /* ── Y LA CORRIGE ──────────────────────────────────────────────────────────────────
+         El span recien calculado tiene que GANARLE al congelado. Al reves, el medico corrige el
+         radio en un estudio reabierto y el PDF sale con el valor viejo hasta que algo vuelva a
+         sellar. r=12 mm da una EROA distinta de la de r=10. */
+      __t.set('pisa_r','12');
+      await new Promise(r => setTimeout(r, 200));
+      R.spanCorregido = tx('eroa-val');
+      R.corregido = await filasPdf(() => generarPDFReal());
+
+      /* ── PRECEDENCIA span > congelado, EJERCIDA EN AISLAMIENTO ────────────────────────
+         ⚠️ EN EL FLUJO REAL LOS DOS NUNCA DIVERGEN: el sellado corre despues de CADA escritura de
+         los span, asi que el congelado siempre los repite. Medido: invertir la precedencia no
+         cambia una sola salida. O sea que sin ejercicio en aislamiento esto es «una capa que
+         nadie sabe si existe», y la mutacion que la invierte sobrevive en verde.
+         Se fuerza la divergencia escribiendo el oculto A MANO —que es lo que traeria un estudio
+         cuyos campos se editaron fuera de la app, o un import— y se exige que gane el span, que es
+         el valor recien calculado sobre los datos que estan en pantalla. Se restaura despues. */
+      /* ⚠️ EL CENTINELA DE VERSION, tambien en aislamiento. Un oculto con un formato que esta
+         version no conoce NO se adivina: se devuelve null y la fila sale como la de un estudio
+         sin la clave. Sin este ejercicio, el p[0] !== 'v1' es una rama que ningun escenario
+         alcanza —un estudio legado sale antes, por el oculto vacio— y nadie sabria si funciona. */
+      /* ⚠️ HAY QUE VACIAR EL SPAN, o el centinela no se consulta. La precedencia es span > oculto,
+         asi que con el span poblado gana el span y la rama de version queda sin ejercitar: la
+         primera version de esta condicion pasaba en verde con la mutacion viva. El estado que se
+         reproduce —span en «—» y oculto con valor— es exactamente el de un estudio reabierto. */
+      /* ── EL BLINDAJE DEL SEPARADOR, EN AISLAMIENTO ────────────────────────────────────
+         ⚠️ HOY ES INALCANZABLE: el span dice «50.3 mm²» y no puede traer un | ni un =. Pero el
+         formato de estos span ya cambio una vez en esta serie —se le agrego el sufijo «(revisar)»
+         a otras filas— y una cadena corrompida se lee como un valor plausible. Se fuerza
+         escribiendo el span a mano y sellando: el oculto NO tiene que tomar esa entrada. Sin este
+         ejercicio la guarda es «una capa que nadie sabe si existe». Se restaura despues. */
+      const _spanPrev = tx('eroa-val');
+      { const e = g('eroa-val'); if (e) e.textContent = '99.9 mm²|eroa-val=11.1 mm²'; }
+      try { _imPisaSellar(); } catch (e) {}
+      R.sep = vl('im_pisa');
+      { const e = g('eroa-val'); if (e) e.textContent = _spanPrev; }
+      try { _imPisaSellar(); } catch (e) {}
+      R.sepRestaurado = tx('eroa-val') === _spanPrev;
+
+      const _ocultoReal0 = vl('im_pisa');
+      const _spanReal0 = tx('eroa-val'), _spanReal0v = tx('volr-val');
+      { const e = g('eroa-val'); if (e) e.textContent = '—';
+        const w = g('volr-val'); if (w) w.textContent = '—';
+        const h = g('im_pisa'); if (h) h.value = 'v9|eroa-val=99.9 mm²'; }
+      R.v9 = await filasPdf(() => generarPDFReal());
+      /* Y el control del denominador: con el MISMO span vacio y el oculto en v1, la fila SI sale.
+         Sin esto, «no aparece 99.9» lo cumple tambien un PDF que no imprime nada. */
+      { const h = g('im_pisa'); if (h) h.value = 'v1|eroa-val=99.9 mm²'; }
+      R.v1ctrl = await filasPdf(() => generarPDFReal());
+      { const e = g('eroa-val'); if (e) e.textContent = _spanReal0;
+        const w = g('volr-val'); if (w) w.textContent = _spanReal0v;
+        const h = g('im_pisa'); if (h) h.value = _ocultoReal0; }
+
+      const _ocultoReal = vl('im_pisa');
+      { const h = g('im_pisa'); if (h) h.value = 'v1|eroa-val=11.1 mm²|volr-val=22.2 ml'; }
+      R.precedencia = await filasPdf(() => generarPDFReal());
+      { const h = g('im_pisa'); if (h) h.value = _ocultoReal; }
+      R.ocultoRestaurado = vl('im_pisa') === _ocultoReal;
+
+      // ── ESTUDIO VIEJO: sin la clave, imprime EXACTAMENTE lo que imprimia ──
+      /* Se le SACA im_pisa al estudio guardado, que es como viene uno anterior al mecanismo. */
+      { const L = getInformes(); const x = L.find(i => i.estudioId === A.eid);
+        delete x.campos['im_pisa']; CeiboStore.setLocal(L); }
+      __t.limpiar();
+      try { cargarEstudioPorId(A.eid); } catch (e) {}
+      await new Promise(r => setTimeout(r, 1500));
+      R.viejo = await filasPdf(() => generarPDFReal());
+      R.viejoOculto = vl('im_pisa');
+
+      // ── SIN PISA: la fila no imprime PISA, NI LA DE OTRO PACIENTE ──
+      /* Paciente B, sin PISA, inmediatamente despues de haber tenido a A en pantalla. */
+      sembrar('TC311B', false);
+      R.bOculto = vl('im_pisa');
+      R.b = await filasPdf(() => generarPDFReal());
+      /* Y la otra direccion: se REIMPRIME a A con B en pantalla, y despues se emite el PDF de B.
+         Sin reponer el oculto en el cierre de la reimpresion, B sale con el PISA de A. */
+      { const L = getInformes(); const x = L.find(i => i.estudioId === A.eid);
+        x.campos['im_pisa'] = 'v1|eroa-val=50.3 mm²|volr-val=65.4 ml'; CeiboStore.setLocal(L); }
+      /* ⚠️ SE CAPTURA EL PDF DE LA REIMPRESION PARA AFIRMAR QUE OCURRIO. pdfDeInformeGuardado
+         tiene guard de reentrada: si sale por ahi, no pasa nada y «el oculto no cambio» se cumple
+         SOLO, con la mutacion viva y el caso en verde. Es la leccion mas cara de la fase 3 y se
+         paga otra vez si no se mide el denominador. */
+      R.reimpDeA = await filasPdf(() => { try { pdfDeInformeGuardado(A.id); } catch (e) {} return Promise.resolve(); });
+      await esperarPdfLibre();
+      await new Promise(r => setTimeout(r, 500));
+      R.bTrasReimp = vl('im_pisa');
+      R.b2 = await filasPdf(() => generarPDFReal());
+
+      // ── REABRIR SIN EDITAR NO CAMBIA NINGUN VALOR ──
+      __t.limpiar();
+      try { cargarEstudioPorId(A.eid); } catch (e) {}
+      await new Promise(r => setTimeout(r, 1500));
+      const antes = {};
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => { antes[e.id] = e.value; });
+      __t.limpiar();
+      try { cargarEstudioPorId(A.eid); } catch (e) {}
+      await new Promise(r => setTimeout(r, 1500));
+      const dif = [];
+      Object.keys(antes).forEach(id => { const e = g(id); if (e && antes[id] !== e.value) dif.push(id); });
+      R.difieren = dif;
+    } finally {
+      contar(false);
+      try { if (A && A.eid) await __t.borrar(A.eid); } catch (e) {}
+    }
+
+    // ── COCIENTE VTI: se retira con IAo moderada o mayor ──
+    sembrar('TC311C', true);
+    __t.set('vtim','21'); __t.set('im_itv_tsvi','15');
+    try { calcIM_ESC(); } catch (e) {}
+    const ratioSinIA = tx('im-vti-ratio');
+    __t.set('ia_grado','2');
+    try { calcIM_ESC(); } catch (e) {}
+    const ratioIAmod = tx('im-vti-ratio');
+    __t.set('ia_grado','1');
+    try { calcIM_ESC(); } catch (e) {}
+    const ratioIAleve = tx('im-vti-ratio');
+    /* FAIL-CLOSED: un grado ilegible —texto desconocido de un import— tambien retira la fila. */
+    { const e = g('ia_grado'); if (e) e.value = 'zzz-desconocido'; }
+    try { calcIM_ESC(); } catch (e) {}
+    const ratioIArara = tx('im-vti-ratio');
+    /* ⚠️ EL ORDEN DE LOS DOS GATES IMPORTA. Con IAo moderada Y el VTI de entrada fuera de banda,
+       la fila tiene que decir «—» (no aplica) y NO «fuera de rango — verificar»: si el cociente no
+       aplica, no hay nada que verificar, y mandar al medico a revisar un VTI para una fila que no
+       se va a calcular es ruido. Sin esta condicion, invertir los dos gates sobrevive en verde. */
+    __t.set('ia_grado','2'); __t.set('vtim','999');
+    try { calcIM_ESC(); } catch (e) {}
+    const ratioIAmodYFuera = tx('im-vti-ratio');
+    __t.set('vtim','21');
+    __t.set('ia_grado','0');
+    try { calcIM_ESC(); } catch (e) {}
+    /* El cociente NO llega al papel: es de pantalla. Se mide, no se asume. */
+    const rC = __t.informe();
+    const pdfC = await filasPdf(() => generarPDFReal());
+    const cocienteEnPapel = ['VTI mitral / VTI TSVI','Ratio VTI','apoya IM severa']
+      .filter(k => String(rC.inf).indexOf(k) > -1 || String(rC.suma).indexOf(k) > -1);
+
+    const asserts = _labXlsAssertListas().concat(_labXlsAssertVocab());
+    __t.limpiar();
+
+    const igual = (a, b) => a.eroa === b.eroa && a.volr === b.volr;
+    return { extra: [
+      // ── DENOMINADOR ──
+      ['DENOMINADOR: el formulario vivo calcula PISA y lo sella en el oculto',
+        R.vivo.indexOf('50.3') > -1 && R.vivo.indexOf('eroa-val=50.3') > -1, R.vivo],
+      ['y el oculto VIAJA dentro del estudio guardado (sin esto las otras dos rutas no tienen de donde leer)',
+        R.enCampos.indexOf('eroa-val=50.3') > -1, R.enCampos],
+      ['DENOMINADOR: las tres rutas producen una fila EROA con contenido (tres filas vacias tambien serian «iguales»)',
+        [R.r1, R.r2, R.r3].every(x => x && x.eroa && x.eroa.indexOf('sin fila') === -1),
+        [R.r1, R.r2, R.r3].map(x => x && x.eroa).join(' | ')],
+
+      // ── LO QUE EL PEDIDO PIDE ──
+      ['⚠️ LAS TRES RUTAS IMPRIMEN LA MISMA FILA EROA y la misma Vol-R',
+        igual(R.r1, R.r2) && igual(R.r1, R.r3),
+        'r1=«' + R.r1.eroa + '» / r2=«' + R.r2.eroa + '» / r3=«' + R.r3.eroa + '»'],
+      ['y lleva LAS DOS patas, PISA y continuidad',
+        R.r1.eroa.indexOf('PISA:') > -1 && R.r1.eroa.indexOf('Cont:') > -1
+        && R.r1.volr.indexOf('PISA:') > -1 && R.r1.volr.indexOf('Cont:') > -1,
+        R.r1.eroa + ' ‖ ' + R.r1.volr],
+
+      // ── EL INVARIANTE DE SEGURIDAD ──
+      ['⚠️ calcIM_ESC NO corre en editarInforme ni en el QR: la fila sale del valor CONGELADO, no de un recalculo (recalcular re-deriva im_grado)',
+        R.nCalc2 === 0 && R.nCalc3 === 0, 'reimpresion=' + R.nCalc1 + ' editar=' + R.nCalc2 + ' QR=' + R.nCalc3],
+      ['y la PANTALLA no se toca: el span sigue en «—» en las dos rutas, como antes',
+        R.spanTras2 === '—' && R.spanTras3 === '—', R.spanTras2 + ' / ' + R.spanTras3],
+      ['im_grado vuelve igual por las dos rutas',
+        R.gradoTras2 === R.gradoAntes && R.gradoTras3 === R.gradoAntes,
+        'antes=' + R.gradoAntes + ' editar=' + R.gradoTras2 + ' QR=' + R.gradoTras3],
+      ['⚠️ REABRIR SIN EDITAR NO CAMBIA NINGUN VALOR', R.difieren.length === 0,
+        R.difieren.join(', ') || '(ninguno de los del formulario)'],
+
+      // ── NO SE INVENTA NI SE MIGRA ──
+      ['⚠️ un estudio guardado SIN la clave imprime lo que imprimia: solo la pata de continuidad, sin PISA inventado desde pisa_r',
+        R.viejo.eroa.indexOf('PISA') === -1 && R.viejo.eroa.indexOf('Cont:') > -1 && R.viejoOculto === '',
+        '«' + R.viejo.eroa + '» oculto=«' + R.viejoOculto + '»'],
+
+      // ── FUGA ENTRE PACIENTES, LAS DOS DIRECCIONES ──
+      /* ⚠️ SE AFIRMA EL CONTRATO, NO LA CADENA CRUDA. El oculto tiene DOS estados que significan
+         «sin PISA» y no son el mismo: '' es «nunca se sello» —estudio anterior al mecanismo— y
+         'v1' es «se sello y no habia PISA», que es lo que deja calcIM_ESC sobre un paciente sin
+         PISA. Los dos tienen que dar fila sin PISA; exigir '' ponia en rojo el comportamiento
+         correcto. Lo que NO puede aparecer es un eroa-val= que no sea de este paciente. */
+      ['sin PISA cargado la fila no imprime PISA —y menos la de otro paciente—: «Nuevo estudio» vacia el oculto',
+        R.bOculto.indexOf('eroa-val=') === -1 && R.b.eroa.indexOf('PISA') === -1,
+        'oculto=«' + R.bOculto + '» fila=«' + R.b.eroa + '»'],
+      ['⚠️ y REIMPRIMIR a otro paciente no le deja su PISA congelado debajo al que esta en pantalla',
+        R.bTrasReimp.indexOf('eroa-val=') === -1 && R.b2.eroa.indexOf('PISA') === -1,
+        'oculto tras reimprimir=«' + R.bTrasReimp + '» fila=«' + R.b2.eroa + '»'],
+
+      // ── COCIENTE VTI ──
+      ['⚠️ el medico RETIRA la medicion: el oculto se re-sella vacio y el PDF deja de publicar PISA sobre algo que ya no esta',
+        R.ocultoTrasBorrar.indexOf('eroa-val=') === -1 && R.trasBorrar.eroa.indexOf('PISA') === -1,
+        'oculto=«' + R.ocultoTrasBorrar + '» fila=«' + R.trasBorrar.eroa + '»'],
+      ['⚠️ y la CORRIGE: el span recien calculado le gana al congelado, el PDF sale con el valor nuevo',
+        R.spanCorregido.indexOf('50.3') === -1 && R.corregido.eroa.indexOf(R.spanCorregido) > -1
+        && R.corregido.eroa.indexOf('50.3') === -1,
+        'span=«' + R.spanCorregido + '» fila=«' + R.corregido.eroa + '»'],
+      ['⚠️ el BLINDAJE DEL SEPARADOR, en aislamiento: un texto de span con | no se congela, se descarta',
+        R.sep.indexOf('99.9') === -1 && R.sep.indexOf('11.1') === -1, R.sep],
+      ['y el span quedo restaurado', R.sepRestaurado, String(R.sepRestaurado)],
+      ['⚠️ el CENTINELA DE VERSION, en aislamiento: con el span vacio y un formato desconocido, no se adivina',
+        R.v9.eroa.indexOf('99.9') === -1, R.v9.eroa],
+      ['DENOMINADOR de esa condicion: con el MISMO span vacio y el formato v1, la fila SI sale (si no, «no aparece 99.9» se cumple solo)',
+        R.v1ctrl.eroa.indexOf('99.9') > -1, R.v1ctrl.eroa],
+      ['⚠️ la PRECEDENCIA, en aislamiento: con el oculto divergente A MANO, gana el span recien calculado y no el congelado',
+        R.precedencia.eroa.indexOf(R.spanCorregido) > -1 && R.precedencia.eroa.indexOf('11.1') === -1,
+        R.precedencia.eroa],
+      ['y el oculto quedo restaurado (si no, las condiciones de abajo medirian sobre un valor puesto por el caso)',
+        R.ocultoRestaurado, String(R.ocultoRestaurado)],
+      ['DENOMINADOR de la fuga: la reimpresion de A OCURRIO de verdad (si sale por el guard de reentrada, «el oculto no cambio» se cumple solo)',
+        !!R.reimpDeA && R.reimpDeA.eroa.indexOf('PISA: 50.3') > -1, R.reimpDeA ? R.reimpDeA.eroa : '(no corrio)'],
+      ['DENOMINADOR del cociente: sin IAo la fila se calcula como hasta hoy',
+        ratioSinIA !== '—' && ratioSinIA !== '(no existe)', ratioSinIA],
+      ['⚠️ con IAo MODERADA el cociente no aplica y la fila queda en «—», sin texto nuevo',
+        ratioIAmod === '—', ratioIAmod],
+      ['con IAo LEVE sigue saliendo: el corte es moderada, no cualquier IAo', ratioIAleve === ratioSinIA,
+        ratioIAleve],
+      ['⚠️ y FALLA CERRADO: un ia_grado ilegible tambien retira el cociente', ratioIArara === '—', ratioIArara],
+      ['⚠️ el gate de IAo va ANTES que la banda de plausibilidad: con IAo moderada y el VTI fuera de banda dice «—», no «fuera de rango»',
+        ratioIAmodYFuera === '—', ratioIAmodYFuera],
+      ['el cociente no llega al informe ni al EN SUMA ni al PDF: es de pantalla',
+        cocienteEnPapel.length === 0 && pdfC.n > 50, cocienteEnPapel.join('/') || 'limpio (' + pdfC.n + ' fragmentos)'],
+
+      ['_labXlsAssertListas() y _labXlsAssertVocab() en []', asserts.length === 0, asserts.join(' | ') || '[]']
+    ] };
+  })();
+`);
+
 
 
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);

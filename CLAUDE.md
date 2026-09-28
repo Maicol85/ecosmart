@@ -1,5 +1,175 @@
 # EcoSmart — trampas de este archivo
 
+## IM nativa: las tres rutas del PDF, y la fuente del cociente 1,4 (2026-09-28)
+
+Cierra la deuda que la Fase 3 dejó declarada: **el mismo estudio daba tres PDF distintos** según
+por dónde se lo restaurara. Y le pone fuente al cociente VTI mitral/aórtico.
+
+### El censo, medido antes de escribir una línea
+
+La fila EROA/Vol-R tiene **dos patas que leen de sitios de naturaleza distinta**, y ahí está todo:
+
+| pata | de dónde sale | ¿viaja con el estudio? |
+|---|---|---|
+| `Cont:` | `v('im_eroa_cont')` / `v('vr_cont')` — **inputs reales** | **sí** |
+| `PISA:` | el **`textContent` de los span** `eroa-val` / `volr-val` | **no** — sólo los escribe `calcIM_ESC` |
+
+| ruta | ¿corre `calcIM_ESC`? | la fila que medí |
+|---|---|---|
+| reimpresión | **sí** | `PISA: 50.3 mm² · Cont: 33.6` |
+| `editarInforme` | no | `Cont: 33.6 mm²` |
+| `cargarEstudioPorId` (el QR del PDF firmado) | no | `Cont: 33.6 mm²` |
+
+**⚠️ Y LA PRIMERA MEDICIÓN DIO UN HALLAZGO FALSO que casi reporté como contradicción del pedido.**
+Medí «en `editarInforme` la fila no sale en absoluto», peor que lo documentado. Eran **dos errores
+míos**: `editarInforme` y `pdfDeInformeGuardado` buscan por **`inf.id`, no por `estudioId`**, y
+`editarInforme` **abre un modal** y no carga nada hasta apretar «✓ Cargar datos». Con las dos cosas
+mal, el formulario quedaba vacío y «la fila no sale» se cumplía por una razón que no era la que yo
+estaba midiendo. Es exactamente la trampa que este archivo ya documenta para la reimpresión de la
+Fase 3 —«la reimpresión nunca ocurría, así que "la fila no cambió" se cumplía sola»— y la pagué
+otra vez. **Antes de reportar que el CONTEXTO se contradice, verificar que el escenario ocurrió.**
+
+### El arreglo: se congela el RESULTADO, no se recalcula
+
+Un oculto nuevo, `#im_pisa`, con el mismo patrón que `im_espejos` (`hidden` + `data-espejo`, y
+vaciado **a mano** en `limpiarCampos` porque el barrido toma text y number). Guarda
+`v1|eroa-val=50.3 mm²|volr-val=65.4 ml`, y `_imPdfPisaTxt` lo usa **de respaldo cuando el span está
+vacío**. `calcIM_ESC` **no se llama en la restauración** —está prohibido desde la Fase 1, re-deriva
+`im_grado`— y se verifica midiendo: el caso **cuenta las llamadas** y exige 0 en las dos rutas.
+
+- **⚠️ EL SELLADO VA DESPUÉS DEL BLOQUE, UNA SOLA VEZ, NO UNA POR RAMA.** `calcIM_ESC` tiene cuatro
+  salidas para esos span (el `if` y los tres `_pisaLimpiar(n)`). Con un sellado por rama, la que se
+  olvide deja el oculto rancio: el médico **borra** `pisa_r`, la pantalla dice «—» y el PDF sigue
+  publicando «PISA: 50.3 mm²» sobre una medición retirada. Es el defecto que el `else` de esos span
+  vino a cerrar, reabierto por la puerta del oculto. **Mutación en rojo.**
+- **El span MANDA y el congelado es el respaldo**, en ese orden: el span es el valor recién
+  calculado sobre lo que está en pantalla. Al revés, corregir `pisa_r` en un estudio reabierto daba
+  el PDF con el valor viejo.
+- **Sin fallback por inferencia**, a diferencia de `imEspejosRestaurar`. Un estudio sin la clave
+  imprime **exactamente** lo que imprimía; deducirle un PISA desde `pisa_r` sería recalcular en la
+  restauración por la puerta de atrás y cambiaría el papel de un informe ya firmado.
+- **`''` y `'v1'` NO son lo mismo**: `''` es «nunca se selló» (estudio legado) y `'v1'` es «se selló
+  y no había PISA». Los dos dan fila sin PISA. Mi primera condición exigía `''` y ponía en rojo el
+  comportamiento correcto.
+- **El respaldo explícito en la reimpresión era REDUNDANTE y se quitó.** Lo escribí junto a los dos
+  span y lo midió la mutación: el cierre ya respalda `input[id], select[id], textarea[id]`, y
+  `im_pisa` **es un input**. Los span no lo son —son texto— y ésa es la razón de ser de
+  `_imFilasBackup`. Lo que queda vigilado es el **invariante**, no cuál de los dos respaldos lo da.
+
+### ⚠️ Dónde se sella, medido — y no es sólo el `oninput`
+
+Los cuatro `oninput`; **la reimpresión**; **`_autosaveRestore`**, que tiene `calcIM_ESC` en su lista
+de recálculos; y **abrir la pastilla de IM** (`toggleValvPill → sincronizarIMDesdeGlobal →
+calcIM_ESC`), o sea que en un estudio reabierto **mirar** la pastilla escribe el oculto. Las dos
+últimas ya re-derivaban `im_grado` de antes, así que no agregan una clase de daño nueva y **no
+cambian ninguna salida** —esa lista ya poblaba los span, así que el PDF ya imprimía ese PISA—, pero
+un estudio legado reabierto y después F5 sale del refresco **con la clave sellada**. Declarado.
+
+### El cociente VTI mitral/aórtico
+
+**El 1,4 se mantiene y ahora tiene fuente: ASE 2023** de cardiopatía reumática (Pandian et al.,
+*JASE* 2023;36:3-28), Key Points de IM reumática — >1,4 sugiere IM severa y <1 leve, **en ausencia
+de IAo moderada o severa**. Origen: Tribouilloy 1994 (*Eur Heart J* 15:1335-9).
+
+**⚠️ LA FASE 2 CONCLUYÓ «SIN GUÍA» Y NO ESTABA EQUIVOCADA: estaba mirando otro documento.** Barrió
+el primario de ASE **2017** —«1.4» cero veces, con control de denominador— y el cociente vive en la
+ASE **2023**, que es otra guía. La lección no es «el barrido falló»; es que **«no está en este
+documento» no es «no está en ninguno»**, y la conclusión negativa se escribió sin ese reparo.
+
+**⚠️ Y LA TENSIÓN NO SE RESUELVE, SE PUBLICA.** La Fase 2 rastreó el 1,4 a un artículo del E-Journal
+de la ESC que lo cita con la sensibilidad y especificidad **exactas de Tribouilloy para 1,3**
+(87 %/91 %). Que la ASE 2023 publique 1,4 citando a Tribouilloy **no distingue** entre «lo validó» y
+«propagó el mismo error»: el primario dice 1,3. El ⓘ y la ayuda dicen **las dos cosas**, y no se
+afirma que la guía valide el número. Son **dos condiciones separadas** del caso, a propósito: con
+una sola, la app afirmaría que una guía respalda un corte que su propia referencia contradice.
+
+**Con IAo moderada o mayor la fila queda en «—»** (no aplica), sin una palabra nueva: el cociente
+tiene un **denominador aórtico** y la IAo lo infla, así que deja de medir lo que dice medir. El gate
+va **antes** que la banda de plausibilidad —si no aplica, no hay nada que verificar— y **falla
+cerrado**: un `ia_grado` ilegible también lo retira. Se lee con `_emRegurgGrado`, el único dueño de
+«cómo se lee un grado», con **umbral propio y no `EM_CONT_REGURG_MIN`** aunque hoy los dos valgan 2:
+Maicol los declaró no unificables, y con la constante compartida mover el de la EM movería éste en
+silencio. El cociente **no vota y no llega al papel** — medido, no asumido.
+
+### Lo que `/sharp-edges` encontró sobre este mismo diff, y se corrigió en el acto
+
+- **⚠️ `typeof _emRegurgGrado === 'function' ? … : 0` era VACUO Y FALLABA ABIERTO — cuarta vez.**
+  Misma declaración de función, mismo bloque `<script>`, se hoistea: el `typeof` da `'function'`
+  siempre y la otra rama es código muerto. Y el valor de esa rama muerta era **`0` = «no hay IAo» =
+  PUBLICAR**, la dirección contraria al fail-closed que el bloque promete tres líneas más abajo.
+  **No es mutable**: por ser inalcanzable, ninguna condición la distingue. Se quita por lectura, con
+  el mismo criterio con que la Fase A quitó los de `protNoGradua`.
+- **El formato del oculto no estaba blindado.** `|` y `=` son los separadores y el texto del span no
+  se saneaba. Hoy es inalcanzable, pero el formato de estos span **ya cambió una vez en esta serie**
+  (el sufijo «(revisar)»), y una cadena corrompida se lee como un valor plausible. Se descarta la
+  entrada y se grita por consola. Ejercido **en aislamiento**, con mutación en rojo.
+
+### Declarado y NO tocado
+
+- **⚠️ `#im-pdf-pisa-val` y `#im-pdf-cont-val` —los dos span del panel «Incluir en el informe»— no
+  los limpia nadie.** Viven dentro de un `<label>`, no de un `.calc-row`, así que el barrido de
+  `limpiarCampos` no los alcanza, y su único escritor es `imPdfMetodosUI`. Resultado: sobreviven a
+  «Nuevo estudio» (el panel promete un PISA sobre un formulario en blanco, con la casilla tildada y
+  **no desmarcable**), al QR, y **a la vuelta de la reimpresión — ahí el paciente en pantalla se
+  queda con el PISA del estudio reimpreso en el panel**. Preexistente y espejo exacto del defecto
+  que este commit cierra en el PDF. **No se tocó por el «SOLO» del pedido**, y arreglar una de las
+  tres mitades sería el arreglo a medias que este archivo ya documenta. Ojo al arreglarlo: **no**
+  meter `imPdfMetodosUI` en `RECALC_MODULOS` —escribe `.checked`/`.disabled`/`dataset.tocado` y
+  pisaría la decisión que la reimpresión respalda—; limpiar los dos span alcanza. **Es el próximo
+  prompt.**
+- **El gate del cociente lee `ia_grado`, que el import de PDF NO inyecta.** `MAP_SKIP` de
+  `editarInforme` saltea `im_grado`/`ia_grado`/`it_grado` en importados, así que quedan en `'0'` y
+  el cociente se publica **aunque el estudio traiga IAo severa** consignada en `campos`. El daño es
+  acotado —la fila es de pantalla, no vota, no tiene consumidores— y es una limitación general de
+  esos tres campos en importados, no de este gate.
+- **«—» significa ahora tres cosas**: sin datos, denominador cero, y «retirado por IAo». El porqué
+  vive en el `title` y en la ayuda; el `title` **no existe en táctil** —es lo que motivó el ⓘ— así
+  que el estado «retirado» sólo se distingue entrando a la ayuda.
+- **`usarTSVIenIM` deja rancios `vsvtsvi-val` y `freg-val`** (escribe `im_dtsvi` y llama sólo a
+  `calcContIM`). No toca `eroa-val`/`volr-val`, así que el congelado no se ve. Preexistente.
+- **El THP de la EM sigue votando con IAo severa.** La nota de decisión del 28/09 fijaba los dos
+  umbrales —cociente con moderada, THP con severa— y el THP es **estenosis**, fuera del «SOLO» de
+  este pedido. Queda pendiente con su texto de ⓘ ya acordado.
+
+### Verificación
+
+**Denominador declarado.** Con el formulario vivo: informe, EN SUMA, PDF **y la fila del Excel**
+idénticos **byte a byte contra HEAD** —hash FNV-1a **y** longitud de cada superficie:
+`INF=3d29b997/749 · SUMA=ff7cfeb1/69 · PDF=b45ff4e7/2024 · XLS=ae0b01e3/11870`, iguales en las dos
+versiones—. Lo único que cambia es la fila de las rutas 2 y 3, que es el pedido.
+
+**TC-311, 24 condiciones.** Cuatro denominadores; las tres rutas comparadas **entre sí** y no contra
+un texto esperado; el conteo de llamadas a `calcIM_ESC` (**0** en editar y en el QR); la pantalla
+que sigue en «—»; `im_grado` igual por las tres; el médico que **retira** la medición y el que la
+**corrige**; el estudio legado sin la clave; la fuga entre pacientes **en las dos direcciones**, con
+el denominador de que la reimpresión **ocurrió** de verdad; y los cinco casos del cociente.
+
+**Tres guardas ejercidas EN AISLAMIENTO**, porque las tres son inalcanzables en el flujo real y sin
+eso son «una capa que nadie sabe si existe»: la **precedencia** span>oculto (que nunca divergen
+porque el sellado sigue al span), el **centinela de versión** (`v9` → no se adivina) y el
+**blindaje del separador**. Cada una con su restauración verificada, y la del centinela **con su
+propio control de denominador** —con el mismo span vacío y formato `v1`, la fila **sí** sale—,
+porque «no aparece 99.9» lo cumple también un PDF que no imprime nada.
+
+**TRECE mutaciones, las trece en rojo.** Cinco sobrevivieron en la primera pasada y **las cinco
+eran lagunas del test, no del código**: no había escenario de medición retirada, ni de corrección
+posterior, la fuga no afirmaba que la reimpresión hubiera ocurrido, y dos mutaciones apuntaban a
+ramas **inalcanzables** —una al `p[0] !== 'v1'` que un estudio legado nunca alcanza porque sale
+antes por el oculto vacío—. **Una mutación sobre código muerto no es una mutación.**
+
+**TC-298 hubo que actualizarlo, y se reforzó en vez de debilitarlo.** Afirmaba «el cociente dice que
+no tiene guía», que es justo lo que este commit corrige. Ahora exige que el rótulo **nombre** la
+ASE 2023, que **siga** diciendo que no está en ASE 2017, que conserve el 1,4, que mantenga la
+procedencia Tribouilloy y que declare la condición de IAo — cinco exigencias donde había tres.
+
+**Suite 325/326**, único rojo **TC-223**, el documentado y **ya rojo en la línea base que corrí
+antes de tocar nada**. **Semgrep 125 / 0 ERROR**, el mismo número exacto que HEAD.
+`detectar_huerfanos.py` sin huérfanos nuevos. `check_mobile` en los 2 ALTA de siempre.
+`_labXlsAssertListas()` y `_labXlsAssertVocab()` los dos en `[]`.
+
+**Y el caso se cayó cuatro veces por un backtick dentro del template literal.** Van veinticinco.
+
+
 ## Mitral protésica: los descriptores de válvula NATIVA dejan de emitirse (2026-09-28)
 
 `ete_carpentier`, `ete_mecanismo` y los cuatro `wilkins_*` describen una válvula **nativa**
