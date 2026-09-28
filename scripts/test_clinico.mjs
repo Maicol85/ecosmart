@@ -833,24 +833,45 @@ caso('TC-41', 'Aorta sin medir: silencio. Aorta medida y normal: se publica.', `
 
 // ═══ GRUPO 15 — Valvula mitral ══════════════════════════════════════════════════════════════
 /* AVm por THP = 220 / THP. El corte de severa es 1,5 cm², o sea THP 146,7 ms. */
-caso('TC-42', 'EM por THP: 220/THP, y el corte de severa en AVm 1.5', `
+/* REAPUNTADO el 2026-09-28. Este caso fijaba «AVm 1.57 -> EM moderada» y «1.47 -> EM severa»,
+   que es la GRADUACION AUTOMATICA que la regla de categoria derogo: el area ya no escribe un
+   grado. El invariante que sobrevive es mas fuerte y es el que importa clinicamente — la formula
+   de Hatle intacta y el CORTE DE SIGNIFICACION en 1,5 cm², probado por los dos lados. */
+caso('TC-42', 'EM por THP: 220/THP, y el corte de significacion clinica en AVm 1,5 por los dos lados', `
   function thp(ms) { __t.limpiar(); __t.set('thp', String(ms));
-    return { avm: __t.val('avm_thp'), suma: __t.informe().suma }; }
-  const a = thp(140), b = thp(150);
+    return { avm: __t.val('avm_thp'), suma: __t.informe().suma,
+             cat: (typeof emCategoria === 'function' ? emCategoria().clave : 'NO EXISTE emCategoria') }; }
+  const a = thp(140), b = thp(150), c = thp(146.67), d = thp(145.7);
   return { extra: [
-    ['THP 140 -> AVm 1.57',    a.avm === '1.57'],
-    ['AVm 1.57 es moderada',   a.suma.indexOf('EM moderada.') > -1],
-    ['THP 150 -> AVm 1.47',    b.avm === '1.47'],
-    ['AVm 1.47 es severa',     b.suma.indexOf('EM severa.') > -1]
+    ['THP 140 -> AVm 1.57', a.avm === '1.57', a.avm],
+    ['1,57 NO alcanza el corte: sin gradiente cargado no hay categoria, y el EN SUMA no dice nada de EM',
+      a.cat === 'nada' && a.suma.indexOf('stenosis mitral') === -1 && a.suma.indexOf('EM ') === -1,
+      'cat=' + a.cat + ' · suma=«' + a.suma + '»'],
+    ['THP 150 -> AVm 1.47', b.avm === '1.47', b.avm],
+    ['1,47 es estenosis mitral SEVERA, y el EN SUMA lo dice CON el area y su metodo',
+      b.cat === 'severa' && b.suma.indexOf('Estenosis mitral severa (AVm 1.47 cm² por THP).') > -1,
+      'cat=' + b.cat + ' · suma=«' + b.suma + '»'],
+    ['⚠️ EL BORDE: 1,50 EXACTO cuenta como severa —el operador es <=, no <. La ASE lo publica asi en su Tabla 1, aunque el cuerpo del mismo articulo escriba «less than»—',
+      c.avm === '1.50' && c.cat === 'severa', c.avm + ' -> ' + c.cat],
+    ['  y 1,51 ya no: es el unico par que separa el corte correcto del error plausible',
+      d.avm === '1.51' && d.cat === 'nada', d.avm + ' -> ' + d.cat]
   ] };
 `);
 
-caso('TC-43', 'EM por planimetria 1.2 cm²: severa, con AVm indexada', `
+/* REAPUNTADO el 2026-09-28: el grado ya no sale de una escalera de area. La categoria dice «severa»
+   —ASE 2023 Tabla 1 y AHA/ACC 2020— y ADEMAS publica el area con su metodo, que es lo que la version
+   anterior de este caso no pedia: sin el numero, «estenosis severa» es una afirmacion sin respaldo
+   visible en el mismo renglon. */
+caso('TC-43', 'EM por planimetria 1.2 cm²: severa con el area y su metodo, con AVm indexada, y el grado se completa en «severa» y en nada mas', `
   __t.limpiar(); ${BSA2} __t.set('avm_plan','1.2');
   const r = __t.informe();
   return { inf: r.inf, suma: r.suma,
-    debe: ['con estenosis severa'], debeSuma: ['EM severa.'],
-    extra: [['AVm indexada = 1.2 / 2.00', (__t.val('avm_idx') || '').indexOf('0.60') > -1]] };
+    debe: ['con estenosis severa (AVm 1.20 cm² por planimetría)'],
+    debeSuma: ['Estenosis mitral severa (AVm 1.20 cm² por planimetría).'],
+    noDebe: ['estenosis moderada', 'estenosis leve', 'significativa'],
+    extra: [['AVm indexada = 1.2 / 2.00', (__t.val('avm_idx') || '').indexOf('0.60') > -1],
+            ['el grado se completa en «severa», que es el UNICO que la app escribe',
+             __t.val('em_grado') === 'severa', 'em_grado=«' + __t.val('em_grado') + '»']] };
 `);
 
 /* Wilkins: <=8 favorable, 9-11 suboptimo, >=12 no favorable. El total se pinta sobre 16. */
@@ -11634,10 +11655,15 @@ caso('TC-262', 'Cajon Doppler en dos columnas: nada se pierde ni se duplica, y e
   })();
 `);
 
-caso('TC-261', 'Severidad valvular: la AVA de 1,00 es SEVERA, y un AVm sano deja de ser «estenosis leve»', `
+/* REAPUNTADO el 2026-09-28. La mitad AORTICA no se toco: sigue fijando que el AVA de 1,00 exacto
+   es severa y que las dos bandas no se solapan. La mitad MITRAL fijaba el PISO DE NORMALIDAD
+   (AVm >= 4 -> «sin») y los cortes internos del score (1,5 / 2,5 -> severa/moderada/leve), que es
+   justo la escalera que la regla de categoria derogo. El invariante que la reemplaza es MAS FUERTE
+   que el que fijaba: no que un area sana diga «sin», sino que NINGUN area escriba un grado. */
+caso('TC-261', 'Severidad valvular: la AVA de 1,00 es SEVERA, y la EM dejo de graduarse por area —ningun valor escribe grado—', `
   return (async () => {
-    if (typeof avaEsSevera !== 'function' || typeof sugerirSeveridadEM !== 'function')
-      return { extra:[['existen los clasificadores', false, 'faltan avaEsSevera o sugerirSeveridadEM']] };
+    if (typeof avaEsSevera !== 'function' || typeof emCategoria !== 'function')
+      return { extra:[['existen los clasificadores', false, 'faltan avaEsSevera o emCategoria']] };
     const _manualPrev = window.esqSevManual;
     try {
       showTab('doppler');
@@ -11659,76 +11685,64 @@ caso('TC-261', 'Severidad valvular: la AVA de 1,00 es SEVERA, y un AVm sano deja
       const fallaCerrado = [null, '', 0, -1, 'abc', NaN]
         .every(a => !avaEsSevera(a) && !avaEsModerada(a));
 
-      /* ══ TAREA 2 — EL PISO DE NORMALIDAD DE LA ESTENOSIS MITRAL ══
-         Caso EXACTO del pedido: onda E 70,4 · onda A 80 · THP 53 ms. Hatle da 220/53 = 4,15 cm²,
-         que es una valvula mitral SANA (rango 4–6), y el badge decia «Estenosis mitral leve». */
-      const set = (id, val) => { const e = document.getElementById(id); if (e) e.value = val; };
-      ['em_vmax','em_gmedio','avm_plan','avm_ete','em_dtsvi','em_vtitsvi','em_vtimit']
-        .forEach(id => set(id, ''));
+      /* ══ TAREA 2 — LA VALVULA SANA YA NO ES «ESTENOSIS LEVE», Y AHORA POR AUSENCIA DE ESCALERA ══
+         Caso EXACTO del pedido original: onda E 70,4 · onda A 80 · THP 53 ms. Hatle da 220/53 =
+         4,15 cm², que es una valvula mitral SANA (rango 4-6), y el badge decia «Estenosis mitral
+         leve». La version anterior lo arreglaba con un PISO en 4,0; el 28/09 se elimino la banda
+         «leve» de 2,5-4,0 entera y con ella toda la graduacion automatica, asi que el piso se
+         quedo sin cascada que proteger. */
+      try { if (typeof limpiarCampos === 'function') limpiarCampos(true); } catch (e) {}
+      const set = (id, val) => { const e = document.getElementById(id); if (e) e.value = '' + val; };
+      const limpiarEM = () => ['em_vmax','em_gmedio','avm_plan','avm_ete','em_dtsvi','em_vtitsvi',
+        'em_vtimit','avm_thp','avm_cont','thp','onda_e','onda_a'].forEach(id => set(id, ''));
+      limpiarEM();
       set('onda_e', 70.4); set('onda_a', 80); set('thp', 53);
       if (typeof calcTHP === 'function') calcTHP();
       const avmCaso = document.getElementById('avm_thp').value;
       const gradoCaso = document.getElementById('em_grado').value;
-      const badgeCaso = document.getElementById('em-thp-badge').textContent;
       const integradaCaso = document.getElementById('em-sev-integrada').textContent;
 
-      /* El piso y sus bordes. El pedido pide declarar con que valor EXACTO arranca: es 4,00. */
-      const em = a => { sugerirSeveridadEM(a); return document.getElementById('em_grado').value; };
-      const p398 = em(3.98), p399 = em(3.99), p400 = em(4.0), p415 = em(4.15), p600 = em(6.0);
+      /* NINGUN area escribe LEVE NI MODERADA, en TODA la escala. Antes 3,99 daba «leve» y 4,00
+         «sin», y ese par era el que fijaba el piso; hoy los doce valores tienen dos salidas
+         posibles y nada mas: «severa» por debajo del unico corte vivo, «sin» arriba. */
+      const porArea = a => { limpiarEM(); set('avm_plan', a);
+        if (typeof calcEM === 'function') calcEM();
+        return { grado: document.getElementById('em_grado').value, cat: emCategoria().clave }; };
+      const ESCALA = [0.8, 1.4, 1.5, 1.51, 2.4, 2.5, 2.51, 3.9, 3.99, 4.0, 4.15, 6.0];
+      const barrido = ESCALA.map(porArea);
+      /* La comparacion se hace contra el CORTE y no contra una lista escrita a mano: una lista
+         paralela se desincroniza de ESCALA en la primera edicion y el caso pasa a verificar otra
+         cosa sin que el rojo aparezca. */
+      const gradoEsperado = barrido.every((r, i) => r.grado === (ESCALA[i] <= 1.5 ? 'severa' : 'sin'));
+      const niLeveNiModerada = barrido.every(r => r.grado !== 'leve' && r.grado !== 'moderada');
 
-      /* ⚠️ LOS CORTES INTERNOS NO SE TOCARON, y el pedido lo pidio explicito. Esta condicion es la
-         que se pone roja si alguien «aprovecha» para moverlos. */
-      const c14 = em(1.4), c15 = em(1.5), c151 = em(1.51), c24 = em(2.4), c25 = em(2.5),
-            c251 = em(2.51), c390 = em(3.9);
-      const cortesIntactos = c14 === 'severa' && c15 === 'severa' && c151 === 'moderada' &&
-                             c24 === 'moderada' && c25 === 'moderada' && c251 === 'leve' &&
-                             c390 === 'leve';
+      /* EL UNICO CORTE VIVO ES 1,5 — el de significacion clinica, no un grado— por los dos lados. */
+      const c150 = porArea(1.5), c151 = porArea(1.51);
 
-      /* ── LA ESCALERA FINAL DEL SCORE INTEGRADO ── con el piso puesto, un estudio cuyo unico
-         parametro es un AVm normal no tiene ningun voto de leve/moderada/severa. El 'else' mudo
-         que habia lo habria rotulado «Leve» igual: el defecto entrando por la puerta de atras. */
-      ['em_vmax','em_gmedio','avm_plan','avm_ete','em_dtsvi','em_vtitsvi','em_vtimit']
-        .forEach(id => set(id, ''));
-      set('thp', 53);
-      if (typeof calcEM === 'function') calcEM();
-      const soloAreaNormal = document.getElementById('em-sev-integrada').textContent;
+      /* EL GRADIENTE MEDIO TAMPOCO GRADUA: su unico corte es >4 y no escribe grado. Antes 3 votaba
+         «leve», 7 «moderada» y 12 «severa», y la escalera los volcaba al selector. */
+      const porGm = g => { limpiarEM(); set('em_gmedio', g);
+        if (typeof calcEM === 'function') calcEM();
+        return { grado: document.getElementById('em_grado').value, cat: emCategoria().clave }; };
+      const g3 = porGm(3), g4 = porGm(4), g5 = porGm(5), g12 = porGm(12);
 
-      /* ── UN AREA NORMAL NO BORRA UN GRADIENTE SEVERO ── el area no vota, pero el gradiente si,
-         y la discordancia tiene que seguir viendose: es el caso donde mas importa. */
-      set('em_gmedio', 12);
+      /* UN AREA SANA CON UN GRADIENTE ALTO. El area no tapa el gradiente y el gradiente no
+         convierte el area en estenosis: lo que se publica es exactamente lo que se puede afirmar. */
+      limpiarEM(); set('avm_plan', 4.15); set('em_gmedio', 12);
       if (typeof calcEM === 'function') calcEM();
-      const conGradSevero = document.getElementById('em-sev-integrada').textContent;
-      const discord = document.getElementById('em-discordancia').textContent;
-      set('em_gmedio', '');
+      const sanaConGrad = { grado: document.getElementById('em_grado').value, cat: emCategoria().clave,
+                            txt: document.getElementById('em-sev-integrada').textContent };
 
-      /* ⚠️ EL DEFECTO VOLVIA ENTERO POR EL GRADIENTE. La escala del gradiente medio tiene la MISMA
-         primera rama abierta que tenia la del area —'gm < 5' es el cajon de sastre de todo lo
-         chico—, asi que un gradiente mitral NORMAL de 3 mmHg vota 'leve' y ganaba en la escalera:
-         el informe volvia a decir «estenosis leve» sobre la valvula sana que el piso acababa de
-         declarar normal. Un voto de leve no alcanza para contradecir un area explicitamente
-         normal; uno de moderada o severa SI, y ese caso tiene que seguir intacto. */
-      set('em_gmedio', 3);
+      /* La banda «leve» de 2,5-4,0 no puede volver por ninguna puerta: ni al selector, ni a la
+         pantalla, ni a las etiquetas del propio selector, que la publicaban como regla impresa. */
+      limpiarEM(); set('avm_plan', 3.0);
       if (typeof calcEM === 'function') calcEM();
-      const gradNormal = document.getElementById('em_grado').value;
-      set('em_gmedio', 7);
-      if (typeof calcEM === 'function') calcEM();
-      const gradModerado = document.getElementById('em_grado').value;
-      set('em_gmedio', 12);
-      if (typeof calcEM === 'function') calcEM();
-      const gradSevero = document.getElementById('em_grado').value;
-      set('em_gmedio', '');
-      if (typeof calcEM === 'function') calcEM();
-      /* El badge tiene que EXPLICAR por que no hay grado: el mensaje vivia en una funcion cuyo
-         texto pisaba 'calcEM' 130 lineas despues, asi que no se veia nunca. */
-      const badgeFinal = document.getElementById('em-thp-badge').textContent;
-      /* Y el predicado del AVm tiene que tener el mismo endurecimiento que el de la AVA: con
-         'Number()' pelado, un '4,15' con COMA daba NaN y la cascada lo mandaba a SEVERA. */
-      const parserOk = avmEsNormal('4,15') === true && avmEsNormal(-5) === false &&
-                       avmEsNormal('') === false && avmEsNormal(4) === true;
-
-      /* El valor que escribe el <select> tiene que EXISTIR en el <select>. */
-      const opciones = Array.from(document.getElementById('em_grado').options).map(o => o.value);
-      const sinEsOpcion = opciones.indexOf('sin') >= 0;
+      const banda30 = { grado: document.getElementById('em_grado').value,
+                        pantalla: document.getElementById('em-sev-integrada').textContent };
+      const opts = Array.from(document.getElementById('em_grado').options);
+      const opciones = opts.map(o => o.value).join(',');
+      const etiquetas = opts.map(o => o.text).join(' | ');
+      const pl2 = x => String(x || '').toLowerCase();
 
       return { extra: [
         ['un AVA de 0,99 es severa', ea099 === 'severa', ea099],
@@ -11739,32 +11753,37 @@ caso('TC-261', 'Severidad valvular: la AVA de 1,00 es SEVERA, y un AVm sano deja
         ['las dos bandas NO se solapan en ningun valor', sinSolape, ''],
         ['y siguen fallando CERRADO ante vacio, cero y negativo', fallaCerrado, ''],
         ['DENOMINADOR: el caso del pedido da 4,15 cm² por Hatle', avmCaso === '4.15', 'avm=' + avmCaso],
-        ['ESE CASO YA NO DICE «LEVE»', gradoCaso === 'sin', 'grado=' + gradoCaso],
-        ['  y el badge lo dice con palabras', badgeCaso.indexOf('Sin estenosis') >= 0 ||
-          badgeCaso.indexOf('normal') >= 0, badgeCaso.slice(0, 80)],
-        ['  y la clasificacion integrada tambien', integradaCaso.indexOf('Sin estenosis') >= 0,
-          integradaCaso.slice(0, 60)],
-        ['el piso arranca en 4,00 EXACTOS', p399 === 'leve' && p400 === 'sin',
-          '3.99 → ' + p399 + ' · 4.00 → ' + p400],
-        ['  3,98 sigue dando un grado', p398 === 'leve', '3.98 → ' + p398],
-        ['  y todo lo mayor es normal', p415 === 'sin' && p600 === 'sin',
-          '4.15 → ' + p415 + ' · 6.00 → ' + p600],
-        ['LOS CORTES INTERNOS NO SE MOVIERON', cortesIntactos,
-          '1.4=' + c14 + ' 1.5=' + c15 + ' 1.51=' + c151 + ' 2.4=' + c24 + ' 2.5=' + c25 +
-          ' 2.51=' + c251 + ' 3.9=' + c390],
-        ['con SOLO un area normal, el score no cae en «Leve»', soloAreaNormal.indexOf('Sin estenosis') >= 0,
-          soloAreaNormal.slice(0, 60)],
-        ['un gradiente severo SIGUE pesando aunque el area sea normal',
-          conGradSevero.indexOf('Severa') >= 0, conGradSevero.slice(0, 60)],
-        ['  y la discordancia se declara', discord.length > 0, discord.slice(0, 70)],
-        ['«sin» es una opcion real del selector', sinEsOpcion, opciones.join(',')],
-        ['un gradiente NORMAL no devuelve el informe a «leve»', gradNormal === 'sin', 'grado=' + gradNormal],
-        ['  pero uno MODERADO si contradice al area', gradModerado === 'moderada', 'grado=' + gradModerado],
-        ['  y uno SEVERO tambien', gradSevero === 'severa', 'grado=' + gradSevero],
-        ['el badge EXPLICA por que no hay grado', badgeFinal.indexOf('rango normal') >= 0,
-          badgeFinal.slice(0, 60)],
-        ['el predicado del AVm acepta coma y rechaza negativo', parserOk,
-          'coma=' + avmEsNormal('4,15') + ' neg=' + avmEsNormal(-5)]
+        ['ESE CASO YA NO DICE «LEVE» — y ahora tampoco dice ningun otro grado',
+          gradoCaso === 'sin', 'grado=' + gradoCaso],
+        /* ⚠️ «severa» A SECAS ESTA DENTRO DE «Sin criterios de EM severa», que es justo la frase
+           que este caso quiere ver: buscar la palabra pelada daba rojo sobre la salida correcta.
+           Se busca la forma AFIRMATIVA, y se exige la negacion explicita para que la condicion no
+           pase tambien con la pantalla vacia. */
+        ['  y la pantalla no publica NINGUNA severidad graduada: niega en vez de rotular',
+          pl2(integradaCaso).indexOf('leve') === -1 && pl2(integradaCaso).indexOf('moderada') === -1 &&
+          pl2(integradaCaso).indexOf('estenosis mitral severa') === -1 &&
+          pl2(integradaCaso).indexOf('sin criterios') > -1, '«' + integradaCaso + '»'],
+        ['⚠️ NINGUN area escribe «leve» ni «moderada», en los doce valores de la escala —la banda «leve» de 2,5-4,0 incluida',
+          niLeveNiModerada, ESCALA.map((a, i) => a + '->' + barrido[i].grado).join(' ')],
+        ['  y lo UNICO que se autocompleta es «severa», exactamente por debajo del corte de 1,5',
+          gradoEsperado, ESCALA.map((a, i) => a + '->' + barrido[i].grado).join(' ')],
+        ['el UNICO corte vivo es 1,5, y separa «severa» de «nada»',
+          c150.cat === 'severa' && c151.cat === 'nada',
+          '1.50 -> ' + c150.cat + ' · 1.51 -> ' + c151.cat],
+        ['el gradiente medio tampoco gradua: su unico corte es >4 y ninguno escribe grado',
+          g3.cat === 'nada' && g4.cat === 'nada' && g5.cat === 'gradiente' && g12.cat === 'gradiente' &&
+          [g3, g4, g5, g12].every(r => r.grado === 'sin'),
+          '3->' + g3.cat + ' 4->' + g4.cat + ' 5->' + g5.cat + ' 12->' + g12.cat],
+        ['un area SANA con gradiente alto publica el gradiente y NO lo llama estenosis severa',
+          sanaConGrad.cat === 'gradiente' && sanaConGrad.grado === 'sin',
+          'cat=' + sanaConGrad.cat + ' grado=' + sanaConGrad.grado + ' «' + sanaConGrad.txt + '»'],
+        ['la banda «leve» de 2,5-4,0 no vuelve por ninguna puerta',
+          banda30.grado === 'sin' && pl2(banda30.pantalla).indexOf('leve') === -1,
+          'grado=' + banda30.grado + ' pantalla=«' + banda30.pantalla + '»'],
+        ['los cuatro valores del selector SIGUEN existiendo: sacar una opcion deja selectedIndex -1 y el hueco se persiste',
+          opciones === 'sin,leve,moderada,severa', opciones],
+        ['  y sus etiquetas ya no publican una banda de area que ninguna funcion aplica',
+          etiquetas.indexOf('cm²') === -1, etiquetas]
       ] };
     } finally {
       window.esqSevManual = _manualPrev;
@@ -30575,7 +30594,12 @@ caso('TC-282', 'Estenosis mitral: el doble mecanismo lee del ETE o se contesta, 
       let rSinUmb = null, fSinUmb = null;
       try {
         window.AVM_SEVERA_MAX = undefined;
-        esc(W8, Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN_TROMBO));
+        /* ⚠️ escGrado Y NO esc: la compuerta de la seccion es «grado moderada/severa O alguna
+           area <= US», y aca US se quita a proposito. Con esc la seccion se abria porque calcEM
+           AUTOCOMPLETABA el grado desde el area de 1,2 — y ese autocompletado se derogo el
+           2026-09-28, asi que el escenario quedaba midiendo sobre una seccion que no renderiza.
+           El grado se pone a mano, que es lo unico que hoy puede abrirla sin umbral. */
+        escGrado(Object.assign({ avm_plan:'1.2' }, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN_TROMBO));
         rSinUmb = rec();
         fSinUmb = fila('Área valvular mitral') || fila('rea valvular mitral');
       } finally { window.AVM_SEVERA_MAX = umbGuardado; }
@@ -33179,18 +33203,29 @@ caso('TC-289', 'Cierre de la Fase 1: el area mitral se clasifica como se imprime
       limpiar(); poner({ thp:'146.55' });
       const thpCaso = { avm:val('avm_thp'), disp:val('em_avm_thp_display'), fila:tx('em-thp-row'),
         grado:val('em_grado'), badge:tx('em-sev-integrada') };
-      ex.push(['con un area mitral por THP de 1,50119 —que redondea a 1,50 y cae en el corte— las tres superficies imprimen 1,50 y el veredicto dice SEVERA, no moderada',
+      /* REAPUNTADO el 2026-09-28: el veredicto dejo de ser un GRADO («severa») y paso a ser la
+         CATEGORIA. Lo que este caso fija sigue siendo lo mismo y sigue siendo lo que importa —que
+         se clasifique el area REDONDEADA, la que se imprime, y no la cruda— sólo que ahora la
+         diferencia entre clasificar 1,50119 y 1,50 es «significativa» contra «nada». */
+      /* REAPUNTADO el 2026-09-28: el veredicto se llama «severa» —ASE 2023 Tabla 1 y AHA/ACC 2020—
+         y ahora el grado SI se autocompleta con ese valor, que es el unico que la app escribe. El
+         badge pasa a publicar el area con su metodo, asi que se le pide tambien el numero: sin eso
+         la condicion pasaria con un badge que dijera «severa» sin respaldo visible. */
+      ex.push(['con un area mitral por THP de 1,50119 —que redondea a 1,50 y cae en el corte— las tres superficies imprimen 1,50, el veredicto dice SEVERA y el grado se completa con ese valor',
         Math.abs(220 / 146.55 - 1.50119) < 0.0001 &&
         thpCaso.avm === '1.50' && thpCaso.disp === '1.50 cm²' && thpCaso.fila === '1.50 cm²' &&
-        thpCaso.grado === 'severa' && pl(thpCaso.badge).indexOf('severa') > -1,
+        thpCaso.grado === 'severa' && pl(thpCaso.badge).indexOf('estenosis mitral severa') > -1 &&
+        thpCaso.badge.indexOf('1.50 cm² por THP') > -1,
         'crudo=' + (220 / 146.55).toFixed(5) + ' · avm_thp=' + thpCaso.avm + ' disp=' + thpCaso.disp +
         ' fila=' + thpCaso.fila + ' · grado=' + thpCaso.grado + ' badge=«' + thpCaso.badge + '»']);
 
       limpiar(); poner({ em_dtsvi:'20', em_vtitsvi:'19.1144', em_vtimit:'40' });
-      const contCaso = { campo:val('avm_cont'), fila:tx('em-cont-row'), grado:val('em_grado') };
+      const contCaso = { campo:val('avm_cont'), fila:tx('em-cont-row'), grado:val('em_grado'),
+                         cat:(typeof emCategoria === 'function' ? emCategoria().clave : '?') };
       ex.push(['y por continuidad el mismo borde da el mismo resultado: 1,50 impreso y severa como veredicto',
-        contCaso.campo === '1.50 cm²' && contCaso.fila === '1.50 cm²' && contCaso.grado === 'severa',
-        'avm_cont=' + contCaso.campo + ' fila=' + contCaso.fila + ' grado=' + contCaso.grado]);
+        contCaso.campo === '1.50 cm²' && contCaso.fila === '1.50 cm²' && contCaso.cat === 'severa' &&
+        contCaso.grado === 'severa',
+        'avm_cont=' + contCaso.campo + ' fila=' + contCaso.fila + ' cat=' + contCaso.cat]);
 
       /* ── (1b) LA FORMULA DEL THP VIVE EN UN SOLO LUGAR ──
          «calcEM» tenia una copia inline mientras el comentario de «calcTHP» dice que la extraccion se
@@ -34189,7 +34224,8 @@ caso('TC-305', 'FASE B: el AVm por continuidad se SIGUE MOSTRANDO pero deja de v
       sem();
       try{ calcEM(); }catch(e){}
       const _chk = document.getElementById('em_pdf_cont');
-      return { em: __t.val('em_grado'), cont: __t.val('avm_cont'),
+      return { em: (typeof emCategoria === 'function' ? emCategoria().clave : 'NO EXISTE emCategoria'),
+               cont: __t.val('avm_cont'),
                contRow: __t.txt('em-cont-row'), aviso: __t.txt('em-cont-aviso'),
                pdfChk: _chk ? (_chk.checked ? 'marcada' : 'sin marcar') : '(no existe)',
                disc: __t.txt('em-discordancia') };
@@ -34221,9 +34257,10 @@ caso('TC-305', 'FASE B: el AVm por continuidad se SIGUE MOSTRANDO pero deja de v
     __t.limpiar();
     __t.set('nombre','TC305b'); __t.set('edad','62'); __t.set('peso','75'); __t.set('talla','170');
     EM();
-    const antesIM = { em: __t.val('em_grado'), aviso: __t.txt('em-cont-aviso') };
+    const _cat = () => (typeof emCategoria === 'function' ? emCategoria().clave : 'NO EXISTE emCategoria');
+    const antesIM = { em: _cat(), aviso: __t.txt('em-cont-aviso') };
     __t.set('im_sev_final','2');            // SOLO esto: no se vuelve a tocar la EM
-    const despuesIM = { em: __t.val('em_grado'), aviso: __t.txt('em-cont-aviso') };
+    const despuesIM = { em: _cat(), aviso: __t.txt('em-cont-aviso') };
 
     /* Y LO MISMO POR LA AORTICA, que es el OTRO embudo. Sin este escenario la mutacion que le
        quita el disparador a sincronizarGradoIA SOBREVIVIA: el de la mitral la tapaba. Dos
@@ -34231,9 +34268,9 @@ caso('TC-305', 'FASE B: el AVm por continuidad se SIGUE MOSTRANDO pero deja de v
     __t.limpiar();
     __t.set('nombre','TC305c'); __t.set('edad','62'); __t.set('peso','75'); __t.set('talla','170');
     EM();
-    const antesIA = { em: __t.val('em_grado'), aviso: __t.txt('em-cont-aviso') };
+    const antesIA = { em: _cat(), aviso: __t.txt('em-cont-aviso') };
     __t.set('ia_sev_final','2');
-    const despuesIA = { em: __t.val('em_grado'), aviso: __t.txt('em-cont-aviso') };
+    const despuesIA = { em: _cat(), aviso: __t.txt('em-cont-aviso') };
 
     /* ⚠️ EL TERCER ESCRITOR: la tarjeta de revisión que sale ANTES de guardar y de emitir el PDF.
        Escribe los ocultos directo, sin pasar por sincronizarGradoIM/IA, asi que es la puerta por
@@ -34243,7 +34280,7 @@ caso('TC-305', 'FASE B: el AVm por continuidad se SIGUE MOSTRANDO pero deja de v
     __t.limpiar();
     __t.set('nombre','TC305d'); __t.set('edad','62'); __t.set('peso','75'); __t.set('talla','170');
     EM();
-    const antesCard = { em: __t.val('em_grado'), aviso: __t.txt('em-cont-aviso') };
+    const antesCard = { em: _cat(), aviso: __t.txt('em-cont-aviso') };
     let cardOk = '(no se pudo abrir la tarjeta)';
     if (typeof mostrarCardSeveridadValvular === 'function') {
       mostrarCardSeveridadValvular(function(){});
@@ -34254,7 +34291,7 @@ caso('TC-305', 'FASE B: el AVm por continuidad se SIGUE MOSTRANDO pero deja de v
         cardOk = 'ok';
       }
     }
-    const despuesCard = { em: __t.val('em_grado'), im: __t.val('im_grado'),
+    const despuesCard = { em: _cat(), im: __t.val('im_grado'),
                           aviso: __t.txt('em-cont-aviso') };
     try { const _ov = document.getElementById('pdf-review-overlay'); if (_ov) _ov.remove(); } catch(e){}
 
@@ -34264,12 +34301,12 @@ caso('TC-305', 'FASE B: el AVm por continuidad se SIGUE MOSTRANDO pero deja de v
     __t.limpiar();
     __t.set('nombre','TC305e'); __t.set('edad','62'); __t.set('peso','75'); __t.set('talla','170');
     EM(); __t.set('im_grado','Severa'); try{ calcEM(); }catch(e){}
-    const txtSevera = { em: __t.val('em_grado'), aviso: __t.txt('em-cont-aviso') };
+    const txtSevera = { em: _cat(), aviso: __t.txt('em-cont-aviso') };
 
     __t.limpiar();
     __t.set('nombre','TC305f'); __t.set('edad','62'); __t.set('peso','75'); __t.set('talla','170');
     EM(); __t.set('im_grado','no_se_que_es_esto'); try{ calcEM(); }catch(e){}
-    const txtRaro = { em: __t.val('em_grado'), aviso: __t.txt('em-cont-aviso') };
+    const txtRaro = { em: _cat(), aviso: __t.txt('em-cont-aviso') };
 
     /* LA OTRA MITAD: que la app no la marque sola NO puede convertirse en que el medico no pueda
        marcarla. Se tilda a mano —que es lo que hace el onchange de la casilla: deja «tocado»— y a
@@ -34288,34 +34325,38 @@ caso('TC-305', 'FASE B: el AVm por continuidad se SIGUE MOSTRANDO pero deja de v
     __t.limpiar();
 
     return { extra: [
-      ['DENOMINADOR: sin regurgitacion graduada la continuidad calcula 0,93 cm², VOTA, y el grado integrado sale «severa»',
+      /* REAPUNTADO el 2026-09-28: el observable dejo de ser el GRADO —que ya no se autocompleta—
+         y paso a ser la CATEGORIA, que es lo que hoy alimenta pantalla, informe, EN SUMA y PDF.
+         El invariante es el mismo: si la continuidad vota, el AVm de 0,93 hace que la categoria
+         sea «severa»; si no vota, con el gradiente de 3 mmHg no queda ninguna. */
+      ['DENOMINADOR: sin regurgitacion graduada la continuidad calcula 0,93 cm², VOTA, y la categoria sale «severa»',
         sinRegurg.cont.indexOf('0.93') > -1 && sinRegurg.em === 'severa' && sinRegurg.aviso === '',
-        'AVm=«' + sinRegurg.cont + '» em_grado=«' + sinRegurg.em + '» aviso=«' + sinRegurg.aviso + '»'],
-      ['⚠️ con IM MODERADA el AVm(cont) se sigue mostrando —el medico lo midio— pero NO vota: el grado cae a «leve», que es lo que dice el unico votante que queda',
-        imMod.cont.indexOf('0.93') > -1 && imMod.em === 'leve',
-        'AVm=«' + imMod.cont + '» em_grado=«' + imMod.em + '»'],
+        'AVm=«' + sinRegurg.cont + '» categoria=«' + sinRegurg.em + '» aviso=«' + sinRegurg.aviso + '»'],
+      ['⚠️ con IM MODERADA el AVm(cont) se sigue mostrando —el medico lo midio— pero NO vota: sin el, el gradiente de 3 mmHg no alcanza y no queda ninguna categoria',
+        imMod.cont.indexOf('0.93') > -1 && imMod.em === 'nada',
+        'AVm=«' + imMod.cont + '» categoria=«' + imMod.em + '»'],
       ['y aparece la linea que lo declara, en su propio renglon',
         imMod.aviso.indexOf('continuidad no válida con regurgitación significativa') > -1,
         '«' + imMod.aviso + '»'],
       ['con IM SEVERA tambien deja de votar',
-        imSev.em === 'leve' && imSev.aviso !== '', 'em_grado=«' + imSev.em + '» aviso=«' + imSev.aviso + '»'],
+        imSev.em === 'nada' && imSev.aviso !== '', 'categoria=«' + imSev.em + '» aviso=«' + imSev.aviso + '»'],
       ['con IAo MODERADA tambien: la continuidad no vale con regurgitacion aortica significativa',
-        iaMod.cont.indexOf('0.93') > -1 && iaMod.em === 'leve' && iaMod.aviso !== '',
-        'AVm=«' + iaMod.cont + '» em_grado=«' + iaMod.em + '» aviso=«' + iaMod.aviso + '»'],
+        iaMod.cont.indexOf('0.93') > -1 && iaMod.em === 'nada' && iaMod.aviso !== '',
+        'AVm=«' + iaMod.cont + '» categoria=«' + iaMod.em + '» aviso=«' + iaMod.aviso + '»'],
       ['⚠️ con IM LEVE NO se bloquea nada: el corte es «moderada o mayor», no «hay algo cargado»',
         imLeve.em === 'severa' && imLeve.aviso === '',
-        'em_grado=«' + imLeve.em + '» aviso=«' + imLeve.aviso + '»'],
+        'categoria=«' + imLeve.em + '» aviso=«' + imLeve.aviso + '»'],
       ['VTI mitral 130 cm (el del CHORRO): el area se MARCA con «(revisar)», se sigue mostrando, y NO vota',
         vtiAlto.cont.indexOf('(revisar)') > -1 && vtiAlto.contRow.indexOf('(revisar)') > -1 &&
-        vtiAlto.em === 'leve',
-        'AVm=«' + vtiAlto.cont + '» fila=«' + vtiAlto.contRow + '» em_grado=«' + vtiAlto.em + '»'],
+        vtiAlto.em === 'nada',
+        'AVm=«' + vtiAlto.cont + '» fila=«' + vtiAlto.contRow + '» categoria=«' + vtiAlto.em + '»'],
       ['VTI mitral 0,5 cm (dedazo): misma banda, misma marca, y tampoco vota',
-        vtiBajo.cont.indexOf('(revisar)') > -1 && vtiBajo.em === 'leve',
-        'AVm=«' + vtiBajo.cont + '» em_grado=«' + vtiBajo.em + '»'],
+        vtiBajo.cont.indexOf('(revisar)') > -1 && vtiBajo.em === 'nada',
+        'AVm=«' + vtiBajo.cont + '» categoria=«' + vtiBajo.em + '»'],
       ['⚠️ MARCAR SIN BORRAR: un VTI de 80,8 cm es LEGITIMO —da un AVm de 0,70 cm², una EM critica— y cae fuera de banda: el area NO desaparece, sale marcada y sin votar',
         vtiCrit.cont.indexOf('0.70') > -1 && vtiCrit.cont.indexOf('(revisar)') > -1 &&
-        vtiCrit.em === 'leve',
-        'AVm=«' + vtiCrit.cont + '» em_grado=«' + vtiCrit.em + '»'],
+        vtiCrit.em === 'nada',
+        'AVm=«' + vtiCrit.cont + '» categoria=«' + vtiCrit.em + '»'],
       ['la raya queda SOLO para el campo vacio: fuera de banda ya no se borra',
         vtiAlto.contRow !== '—' && vtiBajo.contRow !== '—' && vtiCrit.contRow !== '—',
         'alto=«' + vtiAlto.contRow + '» bajo=«' + vtiBajo.contRow + '» critico=«' + vtiCrit.contRow + '»'],
@@ -34325,28 +34366,437 @@ caso('TC-305', 'FASE B: el AVm por continuidad se SIGUE MOSTRANDO pero deja de v
         vtiCrit.pdfChk === 'sin marcar',
         'valida=' + sinRegurg.pdfChk + ' · IM mod=' + imMod.pdfChk + ' · IAo mod=' + iaMod.pdfChk +
         ' · VTI 130=' + vtiAlto.pdfChk + ' · VTI 80,8=' + vtiCrit.pdfChk],
-      ['DENOMINADOR del disparador: con la EM cargada y sin regurgitacion, el grado arranca en «severa»',
+      ['DENOMINADOR del disparador: con la EM cargada y sin regurgitacion, la categoria arranca en «severa»',
         antesIM.em === 'severa' && antesIM.aviso === '',
-        'em_grado=«' + antesIM.em + '» aviso=«' + antesIM.aviso + '»'],
+        'categoria=«' + antesIM.em + '» aviso=«' + antesIM.aviso + '»'],
       ['⚠️ EL DISPARADOR: confirmar la IM en OTRO modulo actualiza la EM sin tocar un solo campo suyo — el consumidor nuevo llega con su disparador',
-        despuesIM.em === 'leve' && despuesIM.aviso !== '',
-        'em_grado=«' + despuesIM.em + '» aviso=«' + despuesIM.aviso + '»'],
+        despuesIM.em === 'nada' && despuesIM.aviso !== '',
+        'categoria=«' + despuesIM.em + '» aviso=«' + despuesIM.aviso + '»'],
       ['⚠️ Y EL DE LA AORTICA, que es el otro embudo: confirmar la IAo tambien actualiza la EM sola',
-        antesIA.em === 'severa' && despuesIA.em === 'leve' && despuesIA.aviso !== '',
+        antesIA.em === 'severa' && despuesIA.em === 'nada' && despuesIA.aviso !== '',
         'antes=«' + antesIA.em + '» despues=«' + despuesIA.em + '» aviso=«' + despuesIA.aviso + '»'],
-      ['⚠️ EL TERCER ESCRITOR: corregir la IM en la tarjeta de revision —la que sale antes del PDF y del guardado— recalcula la EM, asi que el artefacto FIRMADO no se lleva el grado rancio',
+      ['⚠️ EL TERCER ESCRITOR: corregir la IM en la tarjeta de revision —la que sale antes del PDF y del guardado— recalcula la EM, asi que el artefacto FIRMADO no se lleva la categoria rancia',
         cardOk === 'ok' && antesCard.em === 'severa' && despuesCard.im === '3' &&
-        despuesCard.em === 'leve' && despuesCard.aviso !== '',
+        despuesCard.em === 'nada' && despuesCard.aviso !== '',
         cardOk + ' · antes=«' + antesCard.em + '» despues: im_grado=«' + despuesCard.im +
-        '» em_grado=«' + despuesCard.em + '» aviso=«' + despuesCard.aviso + '»'],
+        '» categoria=«' + despuesCard.em + '» aviso=«' + despuesCard.aviso + '»'],
       ['⚠️ el oculto con TEXTO («Severa», como llega de un backup importado) se interpreta y bloquea: antes daba NaN -> 0 y la continuidad votaba sobre una IM severa',
-        txtSevera.em === 'leve' && txtSevera.aviso.indexOf('regurgitación significativa') > -1,
-        'em_grado=«' + txtSevera.em + '» aviso=«' + txtSevera.aviso + '»'],
+        txtSevera.em === 'nada' && txtSevera.aviso.indexOf('regurgitación significativa') > -1,
+        'categoria=«' + txtSevera.em + '» aviso=«' + txtSevera.aviso + '»'],
       ['y un texto que NO se puede interpretar falla CERRADO y lo dice distinto: «no se pudo verificar» no es lo mismo que «no hay regurgitacion»',
-        txtRaro.em === 'leve' && txtRaro.aviso.indexOf('no se pudo verificar') > -1,
-        'em_grado=«' + txtRaro.em + '» aviso=«' + txtRaro.aviso + '»'],
+        txtRaro.em === 'nada' && txtRaro.aviso.indexOf('no se pudo verificar') > -1,
+        'categoria=«' + txtRaro.em + '» aviso=«' + txtRaro.aviso + '»'],
       ['⚠️ «no se auto-marca» NO es «no se puede imprimir»: si el medico tilda la casilla a mano, ningun recalculo se la baja',
         manualChk.indexOf('sigue marcada') > -1, manualChk]
+    ] };
+  })();
+`);
+
+/* ══ TC-306 — LA REGLA DE CATEGORIA DE LA ESTENOSIS MITRAL NATIVA ═══════════════════════════════
+   Fija las CUATRO salidas y sus dos umbrales por los DOS lados, la discordancia con el peor
+   prevaleciendo, el grado que la app SI autocompleta y el que no, la precedencia de la eleccion del
+   medico, el THP con IAo severa, los valores medidos sin veredicto, y que un AVm por continuidad
+   invalido no salga ni en el informe ni en el Excel pero siga en pantalla.
+
+   ⚠️ LA CONDICION QUE DISCRIMINA NO ES «aparece la frase» sino cual de las CUATRO aparece: las dos
+   del gradiente comparten el numero y el escenario, y lo unico que las separa es si el informe dice
+   o no la palabra «estenosis». Un caso que buscara «gradiente elevado» pasaria con las dos. Y
+   «severa» esta DENTRO de «probablemente severa», asi que la discordancia se busca por la palabra
+   «probablemente» y por los DOS numeros, no por «severa».
+
+   ⚠️ Y EL GRADO A MANO SE PONE AL FINAL. Tipear un area dispara calcEM; ponerlo antes dejaba el
+   escenario probando el orden de las llamadas y no la precedencia.
+
+   ⚠️ `__t.set` DESPACHA `change`, y de eso depende la mitad de este caso: la marca que protege la
+   eleccion del medico (`esqSevManual.em`) la pone el manejador del desplegable, asi que asignar
+   `.value` a mano —como hacen los CLONADOS de la tarjeta de severidades— NO la pone. Si el harness
+   dejara de despachar, «el grado a mano manda» pasaria a medir otra cosa. */
+caso('TC-306', 'EM NATIVA: cuatro salidas —severa / probablemente severa por discordancia / con gradiente elevado / gradiente transmitral elevado—, el grado se autocompleta SOLO en «severa», la eleccion del medico manda, los valores medidos salen sin veredicto, y un AVm por continuidad invalido no sale al papel ni al Excel', `
+  return (async () => {
+    if (typeof emCategoria !== 'function' || typeof emContValido !== 'function' || typeof emAvmSevera !== 'function')
+      return { extra:[['existen las funciones duenas', false, 'faltan emCategoria, emContValido o emAvmSevera']] };
+    const NL = String.fromCharCode(10);
+    const pl = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const lineaVM = t => (String(t).split(NL).map(l => l.trim())
+      .filter(l => pl(l).indexOf('alvula mitral') > -1 || l.indexOf('VM ') === 0)[0] || '');
+    const base = () => { __t.limpiar();
+      __t.set('nombre','TC306'); __t.set('edad','64'); __t.set('peso','80'); __t.set('talla','180'); };
+    const correr = sem => { base(); sem(); try{ calcEM(); }catch(e){}
+      const r = __t.informe();
+      return { cat: emCategoria().clave, inf: r.inf, suma: r.suma, vm: lineaVM(r.inf),
+               grado: __t.val('em_grado'), pantalla: __t.txt('em-sev-integrada'),
+               disc: __t.txt('em-discordancia') }; };
+
+    // ── (1) LOS DOS UMBRALES, POR LOS DOS LADOS ──────────────────────────────────────────────
+    const a150   = correr(() => { __t.set('avm_plan','1.5'); });
+    const a151g5 = correr(() => { __t.set('avm_plan','1.51'); __t.set('em_gmedio','5'); });
+    const a151g4 = correr(() => { __t.set('avm_plan','1.51'); __t.set('em_gmedio','4'); });
+    const a20g3  = correr(() => { __t.set('avm_plan','2.0');  __t.set('em_gmedio','3'); });
+
+    // ── (2) LA IM MODERADA SACA LA PALABRA «ESTENOSIS» ───────────────────────────────────────
+    const imModGrad = correr(() => { __t.set('avm_plan','2.0'); __t.set('em_gmedio','8');
+                                     __t.set('im_sev_final','2'); });
+    const sinImGrad = correr(() => { __t.set('avm_plan','2.0'); __t.set('em_gmedio','8'); });
+    /* Y UN AREA SEVERA NO SE DEGRADA POR LA IM: la rama del area corre antes que la del gradiente. */
+    const imModArea = correr(() => { __t.set('avm_plan','1.3'); __t.set('em_gmedio','8');
+                                     __t.set('im_sev_final','2'); });
+
+    // ── (3) EL THP Y LA IAo ──────────────────────────────────────────────────────────────────
+    /* THP 160 ms -> 220/160 = 1,38 cm², que alcanza el corte. Con IAo SEVERA ese voto se retira y
+       no queda ninguna fuente, asi que la categoria desaparece; con IAo MODERADA sigue votando
+       —decision de Maicol; la ASE 2023 dice «moderada o severa», asi que esto DIVERGE de la guia a
+       proposito y queda declarado en CLAUDE.md—. */
+    const thpSolo = correr(() => { __t.set('thp','160'); });
+    const thpIaSev = correr(() => { __t.set('thp','160'); __t.set('ia_sev_final','4'); });
+    const thpIaMod = correr(() => { __t.set('thp','160'); __t.set('ia_sev_final','2'); });
+    /* EL NUMERO SE SIGUE VIENDO: retirar el voto no es borrar la medicion. Se mide DESPUES de
+       reproducir el escenario, porque correr() deja el formulario del ultimo caso. */
+    base(); __t.set('thp','160'); __t.set('ia_sev_final','4'); try{ calcEM(); }catch(e){}
+    const thpVisible = { campo: __t.val('avm_thp'), fila: __t.txt('em-thp-row'),
+                         badge: __t.txt('em-thp-badge') };
+    /* La planimetria no pasa por esa compuerta: con IAo severa y 1,3 cm² sigue severa. */
+    const planIaSev = correr(() => { __t.set('avm_plan','1.3'); __t.set('ia_sev_final','4'); });
+
+    // ── (4) LA DISCORDANCIA: LOS DOS VALORES, Y PREVALECE EL PEOR ────────────────────────────
+    /* ⚠️ EL HALLAZGO QUE ESTE BLOQUE VIGILA. La primera version se quedaba con la fuente
+       PREFERIDA —planimetria— y descartaba la otra: con planimetria 1,8 y THP 1,38 devolvia
+       «nada», o sea que el informe FIRMADO negaba una estenosis que una fuente valida marcaba como
+       severa. La discordancia se declaraba solo en pantalla y el papel salia tranquilizador. */
+    const disc = correr(() => { __t.set('avm_plan','1.8'); __t.set('thp','160'); });
+    /* EL SENTIDO INVERSO: la preferida alcanza el corte y la otra no. Sale simetrico —«probablemente
+       severa por planimetria»— porque la regla no pondera el metodo, solo el peor valor. */
+    const discInv = correr(() => { __t.set('avm_plan','1.3'); __t.set('thp','140'); });
+    /* CONCORDANTES POR DEBAJO: dos fuentes validas, las dos <=1,5 -> «severa» sin matiz. */
+    const concord = correr(() => { __t.set('avm_plan','1.4'); __t.set('thp','160'); });
+
+    // ── (5) EL GRADO: SOLO «SEVERA» SE AUTOCOMPLETA, Y LA ELECCION DEL MEDICO MANDA ──────────
+    const autoSev  = correr(() => { __t.set('avm_plan','0.8'); __t.set('em_gmedio','12'); });
+    const autoGrad = correr(() => { __t.set('avm_plan','2.0'); __t.set('em_gmedio','8'); });
+    /* A MANO: el set del harness despacha el evento change, que es lo que pone la marca. */
+    const manual = correr(() => { __t.set('avm_plan','1.3'); __t.set('em_grado','moderada'); });
+    /* ⚠️ Y EL «SIN» A MANO TAMBIEN SE RESPETA, que es la mitad que la version anterior no tenia:
+       el valor de fabrica es «sin», asi que si «sin» valiera como respuesta sin marca, todo estudio
+       medido antes del primer calculo se leeria como una negacion del medico. */
+    const manualSin = correr(() => { __t.set('avm_plan','1.3'); __t.set('em_grado','severa');
+                                     __t.set('em_grado','sin'); });
+    /* Y EL GRADO NO SE QUEDA RANCIO: pasar de severa a no-severa lo devuelve a «sin». */
+    base(); __t.set('avm_plan','1.2'); try{ calcEM(); }catch(e){}
+    const rancioA = __t.val('em_grado');
+    __t.set('avm_plan','2.2'); try{ calcEM(); }catch(e){}
+    const rancioB = __t.val('em_grado');
+
+    // ── (6) LOS VALORES MEDIDOS, SIN VEREDICTO ───────────────────────────────────────────────
+    /* AVm 2,0 con gradiente 3: ninguna categoria. El cuerpo tiene que publicar los DOS numeros y
+       NO puede decir «sin estenosis» ni «VM normal», que es lo que decia antes de esta ronda. */
+    const sinVer = {};
+    ['conciso','estandar','narrativo'].forEach(e => {
+      base(); __t.set('avm_plan','2.0'); __t.set('em_gmedio','3'); try{ calcEM(); }catch(e2){}
+      try{ setEstiloInforme(e); }catch(e2){}
+      sinVer[e] = lineaVM(__t.informe().inf);
+    });
+    try{ setEstiloInforme('estandar'); }catch(e){}
+
+    // ── (7) LOS TRES ESTILOS CON LA CATEGORIA ────────────────────────────────────────────────
+    const estilos = {};
+    ['conciso','estandar','narrativo'].forEach(e => {
+      base(); __t.set('avm_plan','1.2'); try{ calcEM(); }catch(e2){}
+      try{ setEstiloInforme(e); }catch(e2){}
+      estilos[e] = lineaVM(__t.informe().inf);
+    });
+    try{ setEstiloInforme('estandar'); }catch(e){}
+
+    // ── (8) LA CONTINUIDAD INVALIDA: FUERA DEL PAPEL Y DEL EXCEL, DENTRO DE LA PANTALLA ──────
+    /* Se usa una PROTESIS mitral porque es la linea del informe que publica los AVm con su metodo
+       uno por uno. AVm por continuidad = pi*(20/20)^2*18/60.8 = 0,93 cm². */
+    const CONT = () => { __t.set('vm_morf','Prótesis mecánica');
+      __t.set('em_dtsvi','20'); __t.set('em_vtitsvi','18'); __t.set('em_vtimit','60.8'); };
+    const protOk = correr(() => { CONT(); });
+    const protIM = correr(() => { CONT(); __t.set('im_sev_final','2'); });
+    const protVTI = correr(() => { CONT(); __t.set('em_vtimit','130'); });
+    base(); CONT(); __t.set('im_sev_final','2'); try{ calcEM(); }catch(e){}
+    const pantallaIM = { campo: __t.val('avm_cont'), fila: __t.txt('em-cont-row'),
+                         aviso: __t.txt('em-cont-aviso') };
+    base(); CONT(); __t.set('em_vtimit','130'); try{ calcEM(); }catch(e){}
+    const pantallaVTI = { campo: __t.val('avm_cont'), fila: __t.txt('em-cont-row') };
+
+    /* EL EXCEL. Se arma el objeto de estudio con la convencion de guardarInforme —id del control—
+       y se le pregunta a la MISMA funcion que decide el informe, con la fuente inyectada. */
+    const XL = (extra) => {
+      const c = Object.assign({ em_dtsvi:'20', em_vtitsvi:'18', em_vtimit:'60.8',
+        avm_cont:'0.93 cm²', im_grado:'0', ia_grado:'0' }, extra || {});
+      return (typeof _labExcelRow === 'function')
+        ? _labExcelRow({ id:0, campos:c })['AVm continuidad (cm²)'] : 'NO EXISTE _labExcelRow';
+    };
+    const xlOk  = XL({});
+    const xlIM  = XL({ im_grado:'2' });
+    const xlVTI = XL({ em_vtimit:'130', avm_cont:'0.43 cm² (revisar)' });
+    __t.limpiar();
+
+    return { extra: [
+      // (1)
+      ['AVm 1,50 EXACTO es estenosis mitral severa, con el area y su metodo en el EN SUMA —el operador es <=, como en la Tabla 1 de la ASE 2023—',
+        a150.cat === 'severa' && a150.suma.indexOf('Estenosis mitral severa (AVm 1.50 cm² por planimetría).') > -1,
+        a150.cat + ' · suma=«' + a150.suma + '»'],
+      ['1,51 con gradiente 5 mmHg cae en «EM con gradiente elevado», no en severa',
+        a151g5.cat === 'gradiente' && a151g5.suma.indexOf('EM con gradiente elevado.') > -1 &&
+        pl(a151g5.suma).indexOf('severa') === -1,
+        a151g5.cat + ' · suma=«' + a151g5.suma + '»'],
+      ['⚠️ 1,51 con gradiente 4 EXACTO no publica nada: el corte es >4, no >=4',
+        a151g4.cat === 'nada' && pl(a151g4.suma).indexOf('gradiente') === -1 &&
+        pl(a151g4.suma).indexOf('estenosis mitral') === -1,
+        a151g4.cat + ' · suma=«' + a151g4.suma + '»'],
+      ['⚠️ la palabra «significativa» NO vuelve por ninguna de las cuatro salidas: la terminologia es «severa»',
+        [a150, a151g5, imModGrad, disc].every(r => pl(r.suma).indexOf('estenosis mitral significativa') === -1 &&
+                                                   pl(r.vm).indexOf('estenosis significativa') === -1),
+        [a150, a151g5, imModGrad, disc].map(r => '«' + r.suma + '»').join(' | ')],
+      // (2)
+      ['⚠️ IM moderada + gradiente 8 + AVm 2,0 publica «gradiente transmitral elevado» SIN la palabra estenosis',
+        imModGrad.cat === 'gradiente_im' &&
+        pl(imModGrad.vm).indexOf('gradiente transmitral elevado') > -1 &&
+        pl(imModGrad.vm).indexOf('estenosis') === -1 &&
+        imModGrad.suma.indexOf('Gradiente transmitral elevado.') > -1,
+        imModGrad.cat + ' · «' + imModGrad.vm + '» · suma=«' + imModGrad.suma + '»'],
+      ['  y el MISMO escenario sin IM significativa si dice estenosis: es lo unico que separa las dos frases',
+        sinImGrad.cat === 'gradiente' && pl(sinImGrad.vm).indexOf('estenosis') > -1,
+        sinImGrad.cat + ' · «' + sinImGrad.vm + '»'],
+      ['un AVm <=1,5 por planimetria con IM moderada SIGUE siendo severa: la rama del area corre antes',
+        imModArea.cat === 'severa' &&
+        imModArea.suma.indexOf('Estenosis mitral severa (AVm 1.30 cm² por planimetría).') > -1,
+        imModArea.cat + ' · suma=«' + imModArea.suma + '»'],
+      // (3)
+      ['DENOMINADOR: el THP de 160 ms da 1,38 cm² y por si solo es severa',
+        thpSolo.cat === 'severa' && thpSolo.suma.indexOf('(AVm 1.38 cm² por THP).') > -1,
+        thpSolo.cat + ' · suma=«' + thpSolo.suma + '»'],
+      ['⚠️ con IAo SEVERA el THP deja de votar y no queda categoria',
+        thpIaSev.cat === 'nada', thpIaSev.cat],
+      ['  pero el NUMERO se sigue viendo, y el badge dice POR QUE no vota',
+        thpVisible.campo === '1.38' && thpVisible.fila.indexOf('1.38') > -1 &&
+        pl(thpVisible.badge).indexOf('insuficiencia aortica severa') > -1,
+        'campo=«' + thpVisible.campo + '» fila=«' + thpVisible.fila + '» badge=«' + thpVisible.badge + '»'],
+      ['⚠️ con IAo MODERADA el THP SIGUE votando —decision de Maicol; la ASE 2023 dice «moderada o severa», asi que esto DIVERGE de la guia a proposito—',
+        thpIaMod.cat === 'severa', thpIaMod.cat],
+      ['y la planimetria no pasa por esa compuerta: con IAo severa y 1,3 cm² sigue severa',
+        planIaSev.cat === 'severa', planIaSev.cat],
+      // (4)
+      ['⚠️ DISCORDANCIA: planimetria 1,8 y THP 1,38 NO devuelven «nada» —eso hacia que el informe firmado negara una estenosis que una fuente valida marcaba como severa—',
+        disc.cat === 'probable', disc.cat + ' · «' + disc.vm + '»'],
+      ['  prevalece el PEOR: los DOS valores con su metodo, y «probablemente» con el que alcanza el corte',
+        disc.vm.indexOf('AVm 1.80 cm² por planimetría') > -1 &&
+        disc.vm.indexOf('probablemente severa por THP (AVm 1.38 cm²)') > -1,
+        '«' + disc.vm + '»'],
+      ['  y el EN SUMA reusa la MISMA linea: no queda mudo ni cae en «sin otras alteraciones»',
+        disc.suma.indexOf('Estenosis mitral probablemente severa por THP (AVm 1.38 cm²), con AVm 1.80 cm² por planimetría.') > -1 &&
+        pl(disc.suma).indexOf('sin alteraciones') === -1,
+        'suma=«' + disc.suma + '»'],
+      ['  el grado se completa igual en «severa»: prevalece el peor tambien en el campo',
+        disc.grado === 'severa', 'grado=' + disc.grado],
+      ['  y la pantalla declara la discordancia, que es lo que el medico necesita para resolverla',
+        pl(disc.disc).indexOf('discordantes') > -1 && disc.disc.indexOf('1.80') > -1 && disc.disc.indexOf('1.38') > -1,
+        '«' + disc.disc + '»'],
+      ['⚠️ EL SENTIDO INVERSO es simetrico —planimetria 1,3 y THP 1,57— y tambien dice «probablemente»: la regla pondera el peor valor, NO el metodo preferido',
+        discInv.cat === 'probable' && discInv.vm.indexOf('AVm 1.57 cm² por THP') > -1 &&
+        discInv.vm.indexOf('probablemente severa por planimetría (AVm 1.30 cm²)') > -1,
+        discInv.cat + ' · «' + discInv.vm + '»'],
+      ['  y «probablemente» se usa SOLO en discordancia: con las dos fuentes por debajo del corte no hay matiz',
+        concord.cat === 'severa' && pl(concord.vm).indexOf('probablemente') === -1 &&
+        concord.vm.indexOf('AVm 1.40 cm² por planimetría') > -1 && concord.vm.indexOf('AVm 1.38 cm² por THP') > -1,
+        concord.cat + ' · «' + concord.vm + '»'],
+      // (5)
+      ['el grado SI se autocompleta, y solo en «severa»',
+        autoSev.grado === 'severa' && autoSev.cat === 'severa',
+        'grado=' + autoSev.grado + ' cat=' + autoSev.cat],
+      ['⚠️ y la categoria del GRADIENTE no escribe grado: leve y moderada no se autocompletan nunca',
+        autoGrad.grado === 'sin' && autoGrad.cat === 'gradiente',
+        'grado=' + autoGrad.grado + ' cat=' + autoGrad.cat],
+      ['un grado elegido A MANO manda, aun con la regla diciendo severa',
+        manual.grado === 'moderada' && pl(manual.vm).indexOf('estenosis moderada') > -1,
+        'grado=' + manual.grado + ' · «' + manual.vm + '»'],
+      ['⚠️ y un «sin» elegido A MANO tambien —lo que NO cuenta como respuesta es el «sin» de fabrica—',
+        manualSin.grado === 'sin' && pl(manualSin.vm).indexOf('severa') === -1,
+        'grado=' + manualSin.grado + ' · «' + manualSin.vm + '»'],
+      ['y el grado no se queda RANCIO: 1,2 escribe severa y corregir a 2,2 lo devuelve a «sin»',
+        rancioA === 'severa' && rancioB === 'sin', rancioA + ' -> ' + rancioB],
+      // (6)
+      ['⚠️ AVm 2,0 con gradiente 3: sin categoria, el cuerpo publica los DOS valores medidos y NO dice «sin estenosis» ni «VM normal»',
+        ['conciso','estandar','narrativo'].every(e =>
+          sinVer[e].indexOf('AVm 2.00 cm² por planimetría') > -1 &&
+          sinVer[e].indexOf('gradiente medio 3 mmHg') > -1 &&
+          pl(sinVer[e]).indexOf('sin estenosis') === -1 &&
+          pl(sinVer[e]).indexOf('vm normal') === -1),
+        'C=«' + sinVer.conciso + '» E=«' + sinVer.estandar + '» N=«' + sinVer.narrativo + '»'],
+      ['  y tampoco inventa un veredicto: ninguna de las cuatro frases aparece',
+        ['conciso','estandar','narrativo'].every(e =>
+          pl(sinVer[e]).indexOf('severa') === -1 && pl(sinVer[e]).indexOf('gradiente elevado') === -1 &&
+          pl(sinVer[e]).indexOf('transmitral') === -1),
+        'E=«' + sinVer.estandar + '»'],
+      // (7)
+      ['los TRES estilos publican la categoria con su area y su metodo, cada uno con su redaccion y sin frases de mas',
+        pl(estilos.conciso).indexOf('em severa (avm 1.20 cm² por planimetria)') > -1 &&
+        pl(estilos.estandar).indexOf('estenosis severa (avm 1.20 cm² por planimetria)') > -1 &&
+        pl(estilos.narrativo).indexOf('estenosis severa (avm 1.20 cm² por planimetria)') > -1 &&
+        estilos.conciso !== estilos.estandar && estilos.estandar !== estilos.narrativo,
+        'C=«' + estilos.conciso + '» E=«' + estilos.estandar + '» N=«' + estilos.narrativo + '»'],
+      // (8)
+      ['DENOMINADOR: con la continuidad VALIDA la linea de protesis publica el AVm por continuidad',
+        protOk.vm.indexOf('0.93 cm² por continuidad') > -1, '«' + protOk.vm + '»'],
+      ['⚠️ con IM moderada ese AVm NO sale en el informe: «(revisar)» se pierde al leer el numero, asi que se omite en vez de publicarse sin su reparo',
+        protIM.vm.indexOf('por continuidad') === -1, '«' + protIM.vm + '»'],
+      ['⚠️ y con el VTI fuera de banda tampoco',
+        protVTI.vm.indexOf('por continuidad') === -1, '«' + protVTI.vm + '»'],
+      ['pero en PANTALLA se sigue viendo, con su valor y su motivo',
+        pantallaIM.campo.indexOf('0.93') > -1 && pantallaIM.fila.indexOf('0.93') > -1 &&
+        pantallaIM.aviso.indexOf('regurgitación significativa') > -1,
+        'campo=«' + pantallaIM.campo + '» fila=«' + pantallaIM.fila + '» aviso=«' + pantallaIM.aviso + '»'],
+      ['  y el fuera de banda tambien, con su marca «(revisar)»',
+        pantallaVTI.campo.indexOf('(revisar)') > -1 && pantallaVTI.fila.indexOf('(revisar)') > -1,
+        'campo=«' + pantallaVTI.campo + '» fila=«' + pantallaVTI.fila + '»'],
+      ['DENOMINADOR del Excel: con la continuidad valida la columna trae el numero',
+        xlOk === 0.93, 'AVm continuidad=«' + xlOk + '»'],
+      ['⚠️ EL EXCEL: con IM moderada la columna se vacia —ese archivo va a CeiboAnalytics y alla nadie ve la pantalla—',
+        xlIM === '', 'AVm continuidad=«' + xlIM + '»'],
+      ['⚠️ y con el VTI fuera de banda tambien',
+        xlVTI === '', 'AVm continuidad=«' + xlVTI + '»'],
+      /* Las etiquetas del selector perdieron su banda de area. El valor NO se toco —sacar una
+         opcion deja selectedIndex -1 y el hueco se persiste— y los dos asserts de arranque son lo
+         que lo vigila: LAB_XLS_LISTAS compara por VALUE y el vocabulario del importador tambien,
+         asi que si alguien renombra un value la reimportacion rechaza la fila entera. */
+      ['los dos asserts del importador no tienen nada que decir: el cambio fue de ETIQUETA, no de valor',
+        (typeof _labXlsAssertListas === 'function' ? _labXlsAssertListas() : ['no existe']).length === 0 &&
+        (typeof _labXlsAssertVocab === 'function' ? _labXlsAssertVocab() : ['no existe']).length === 0,
+        JSON.stringify([typeof _labXlsAssertListas === 'function' ? _labXlsAssertListas() : 'no existe',
+                        typeof _labXlsAssertVocab === 'function' ? _labXlsAssertVocab() : 'no existe'])]
+    ] };
+  })();
+`);
+
+/* ══ TC-307 — LAS CUATRO SUPERFICIES QUE SEGUIAN PUBLICANDO LA ESCALERA DEROGADA ═════════════════
+   La regla nueva vive en `emCategoria`, pero la escalera vieja tambien se IMPRIMIA en cuatro
+   lugares que ninguna funcion consulta: la tarjeta de Referencias, el manual de ayuda, la
+   calculadora de AVm por THP y la columna de referencia del PDF FIRMADO. Un medico que abria
+   Referencias leia «AVm 2,0 -> moderada» y volvia a una pantalla que dice «Sin criterios de EM
+   severa»: dos escalas para el mismo numero en la misma app, y una de ellas con el sello de una
+   guia que no la publica.
+
+   ⚠️ SE VERIFICA LO QUE NO ESTA, Y ESO NECESITA UN DENOMINADOR. Buscar la ausencia de «1.51–2.5»
+   pasa en verde si el elemento no existe o si la busqueda apunta al id equivocado, asi que cada
+   bloque confirma PRIMERO que hay texto y que trae lo que SI debe traer.
+
+   ⚠️ LAS CITAS SE VERIFICARON CONTRA EL TEXTO PRIMARIO. `≤1,5 = severa` sale de la Tabla 1 de la
+   ASE 2023 (pag. 8) y del resumen oficial del ACC para la AHA/ACC 2020; `>4 mmHg` es la DEFINICION
+   de EM reumatica que la ASE atribuye a la World Heart Federation, no un corte de severidad; la ESC
+   2021 §7.1.1 dice «clinically significant ... ≤1.5 cm²» y NO gradua por area. El `≥10 mmHg` de la
+   ASE existe pero la app no lo aplica: la propia ESC describe la «EM severa de bajo gradiente». */
+caso('TC-307', 'Las superficies dejan de publicar la escalera derogada: Referencias, el manual, la calculadora de AVm por THP y la columna de referencia del PDF —con «leve» y «moderada» por area fuera, el ≥10 mmHg sin sello de criterio, y la calculadora contestando con la MISMA funcion duena que el modulo de EM', `
+  return (async () => {
+    if (typeof emAvmSevera !== 'function')
+      return { extra:[['existe la funcion duena del corte', false, 'falta emAvmSevera']] };
+    const pl = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+    // ── (1) LA TARJETA DE REFERENCIAS ────────────────────────────────────────────────────────
+    const ref = document.getElementById('ref-em');
+    const refTxt = pl(ref ? ref.textContent : '');
+    /* El titulo de la tarjeta llevaba el sello «(ESC 2021)» sobre una tabla con bandas que esa guia
+       no publica. Se busca en el encabezado, que es el hermano previo del cuerpo. */
+    const refHead = pl(ref && ref.previousElementSibling ? ref.previousElementSibling.textContent : '');
+
+    // ── (2) EL MANUAL ────────────────────────────────────────────────────────────────────────
+    /* ECO_AYUDA es un ARRAY de secciones, no una cadena: la primera version lo trataba como texto
+       y media una cadena vacia, o sea que las tres condiciones del manual pasaban sin leer nada.
+       El denominador de abajo es lo que lo cazo. */
+    const ayuda = pl(Array.isArray(typeof ECO_AYUDA !== 'undefined' ? ECO_AYUDA : null)
+      ? ECO_AYUDA.map(x => String(x && x.html || '')).join(' ') : '');
+
+    // ── (3) LA CALCULADORA DE AVm POR THP ────────────────────────────────────────────────────
+    /* THP 130 ms -> 220/130 = 1,69 cm², que NO alcanza el corte. Antes esta calculadora lo rotulaba
+       «moderada» y el modulo de EM resolvia otra cosa sobre el mismo numero. */
+    const cx = ms => { const e = document.getElementById('cx_thp'); if (!e) return 'NO EXISTE cx_thp';
+      e.value = String(ms); try{ cxAVT(); }catch(err){ return 'ERROR ' + err.message; }
+      return document.getElementById('cx-avt-res').textContent; };
+    const cx130 = cx(130), cx150 = cx(150), cx60 = cx(60), cx147 = cx(146.67);
+    /* ⚠️ EL BORDE QUE DISCRIMINA EL OPERADOR. 146,67 ms da 1,49996, que cae del lado severo con <=
+       Y con <, asi que esa condicion no separa el corte correcto del error plausible: la mutacion
+       que cambia <= por < dejaba este caso en VERDE. 146,55 da 1,50119 — imprime «1.50» y el crudo
+       pasa el corte por 0,00119. Es el mismo valor que TC-289 usa para las otras tres superficies
+       del area por THP, y aca fija que la calculadora clasifica lo que IMPRIME. */
+    const cx150b = cx(146.55);
+    /* Y LA MISMA PREGUNTA AL MODULO DE EM, con el mismo THP: las dos superficies tienen que
+       coincidir, que es el defecto que esta tarea cierra. */
+    const emDe = ms => { __t.limpiar(); __t.set('thp', String(ms));
+      return { avm: __t.val('avm_thp'), cat: emCategoria().clave }; };
+    const em130 = emDe(130), em150 = emDe(150);
+    __t.limpiar();
+    try { const e = document.getElementById('cx_thp'); if (e) e.value = ''; } catch (e) {}
+
+    // ── (4) LA COLUMNA DE REFERENCIA DEL PDF FIRMADO ─────────────────────────────────────────
+    /* NO SE DIBUJA EL PDF. La tabla se arma inline dentro de generarPDFReal y el dibujante es una
+       funcion interna, asi que no hay nada que interceptar desde afuera ni extractor al que
+       preguntarle. Se lee el CODIGO FUENTE de esa funcion y se busca la cadena de la columna de
+       referencia, que es literalmente lo que se imprime en el papel firmado: si esa cadena esta, se
+       imprime, y si no esta, no. Es una verificacion real, no un proxy.
+       El denominador es la propia fuente: sin el, «no contiene la escalera» pasa en verde sobre una
+       cadena vacia, que es el error que ya se cometio en este mismo caso con el manual. */
+    const fuentePdf = (typeof generarPDFReal === 'function') ? String(generarPDFReal) : '';
+
+    return { extra: [
+      // (1)
+      ['DENOMINADOR: la tarjeta de Referencias de EM existe y publica el corte vigente con su fuente',
+        refTxt.length > 200 && refTxt.indexOf('1,5') > -1 && refTxt.indexOf('ase 2023') > -1,
+        'largo=' + refTxt.length + ' · «' + refTxt.slice(0, 160) + '»'],
+      ['⚠️ y ya NO publica la escalera de area: ni la banda «moderada» de 1,51-2,5 ni el «>2.5» como leve',
+        refTxt.indexOf('1.51') === -1 && refTxt.indexOf('1,51') === -1 &&
+        refTxt.indexOf('>2.5') === -1 && refTxt.indexOf('> 2,5') === -1,
+        '«' + refTxt.slice(0, 400) + '»'],
+      ['⚠️ el ≥10 mmHg ya no figura como corte de severidad, y la tarjeta DICE que no se usa',
+        refTxt.indexOf('no') > -1 && refTxt.indexOf('bajo gradiente') > -1 &&
+        refTxt.indexOf('4 mmhg') > -1,
+        '«' + refTxt + '»'],
+      ['⚠️ y el sello «(ESC 2021)» sale del titulo: esa guia no publica ninguna de las bandas que la tabla tenia',
+        refHead.indexOf('esc 2021') === -1 && refHead.indexOf('estenosis mitral') > -1,
+        '«' + refHead + '»'],
+      ['el >4 mmHg se publica como lo que es —definicion de EM REUMATICA, atribuida a la World Heart Federation— y no como severidad',
+        refTxt.indexOf('reumatica') > -1 && refTxt.indexOf('world heart federation') > -1,
+        '«' + refTxt + '»'],
+      ['y el area normal se atribuye a quien la publica: 4-6 cm², ASE 2023',
+        refTxt.indexOf('4 – 6 cm²') > -1 || refTxt.indexOf('4 - 6 cm²') > -1 || refTxt.indexOf('4-6 cm²') > -1,
+        '«' + refTxt + '»'],
+      // (2)
+      ['DENOMINADOR: el manual existe y describe la regla implementada',
+        ayuda.length > 5000 && ayuda.indexOf('la app completa solo «severa»') > -1,
+        'largo=' + ayuda.length],
+      ['⚠️ el manual ya NO atribuye el corte de area a la ESC/EACTS 2021 a secas, y NO publica el ≥10 mmHg como severidad mitral',
+        ayuda.indexOf('gradiente medio mitral, severa') === -1 &&
+        ayuda.indexOf('≥ 10 mmhg') === -1,
+        '«' + (ayuda.match(/[^<>]*mitral[^<>]*/g) || []).join(' | ').slice(0, 600) + '»'],
+      ['  y dice explicitamente que leve y moderada las elige el medico',
+        ayuda.indexOf('leve y moderada las elige el medico') > -1, ''],
+      ['  con el >4 mmHg como definicion de EM reumatica y la atribucion correcta',
+        ayuda.indexOf('world heart federation') > -1 && ayuda.indexOf('reumatica') > -1, ''],
+      // (3)
+      ['DENOMINADOR: la calculadora contesta, y con 150 ms (1,47 cm²) dice severa',
+        cx150.indexOf('1.47') > -1 && pl(cx150).indexOf('severa') > -1, '«' + cx150 + '»'],
+      ['⚠️ THP 130 ms -> 1,69 cm²: la calculadora YA NO dice «moderada», no dice ningun grado',
+        cx130.indexOf('1.69') > -1 && pl(cx130).indexOf('moderada') === -1 &&
+        pl(cx130).indexOf('leve') === -1 && pl(cx130).indexOf('severa') === -1,
+        '«' + cx130 + '»'],
+      ['  y un THP normal de 60 ms (3,67 cm², valvula sana) tampoco lleva rotulo: la banda «leve» no vuelve por esta pestana',
+        cx60.indexOf('3.67') > -1 && pl(cx60).indexOf('leve') === -1 && pl(cx60).indexOf('estenosis') === -1,
+        '«' + cx60 + '»'],
+      ['  el borde de la calculadora es el MISMO 1,5, con el mismo operador',
+        cx147.indexOf('1.50') > -1 && pl(cx147).indexOf('severa') > -1, '«' + cx147 + '»'],
+      ['⚠️ y clasifica el numero que IMPRIME: con THP 146,55 el crudo es 1,50119 pero la pantalla dice «1.50 cm²», asi que el veredicto es el de 1,50 —el mismo criterio que TC-289 fijo para las otras tres superficies—',
+        cx150b.indexOf('1.50') > -1 && pl(cx150b).indexOf('severa') > -1, '«' + cx150b + '»'],
+      ['⚠️ Y LAS DOS SUPERFICIES COINCIDEN sobre el mismo THP: 130 ms no es severa en ninguna de las dos, 150 ms lo es en las dos',
+        em130.avm === '1.69' && em130.cat === 'nada' && pl(cx130).indexOf('severa') === -1 &&
+        em150.avm === '1.47' && em150.cat === 'severa' && pl(cx150).indexOf('severa') > -1,
+        '130: cx=«' + cx130 + '» em=' + em130.cat + ' · 150: cx=«' + cx150 + '» em=' + em150.cat],
+      // (4)
+      ['DENOMINADOR: se esta leyendo la funcion que arma el PDF, y contiene la fila del AVm mitral',
+        fuentePdf.length > 10000 && fuentePdf.indexOf("{lbl:'AVm',") > -1,
+        'largo=' + fuentePdf.length],
+      ['⚠️ y su columna de referencia deja de publicar la escalera derogada en el papel FIRMADO: queda el unico corte vivo',
+        fuentePdf.indexOf('(severa ≤1.5) cm²') > -1 &&
+        fuentePdf.indexOf('(>2.5 / 1.5–2.5 / ≤1.5) cm²') === -1,
+        (fuentePdf.match(/\{lbl:'AVm',[^}]*\}/g) || []).join(' | ')]
     ] };
   })();
 `);
@@ -34363,9 +34813,13 @@ caso('TC-304', 'FASE A: la protesis mitral, tricuspide y pulmonar dejan de gradu
                em: __t.val('em_grado'), ep: __t.val('ep_grado'), et: __t.val('et_grado'),
                im: __t.val('im_grado'), it: __t.val('it_grado') };
     };
-    /* LA MEDICION DEL CONTEXTO, tal cual: AVm 2,0 cm² por planimetria y gradiente medio 4 mmHg.
-       Con cortes NATIVOS eso es «moderada» (banda 1,5-2,5). */
-    const MED_EM = () => { __t.set('avm_plan','2.0'); __t.set('em_gmedio','4'); };
+    /* LA MEDICION DEL CONTEXTO: AVm 2,0 cm² por planimetria y gradiente medio elevado.
+       ⚠️ EL GRADIENTE PASO DE 4 A 8 mmHg EL 2026-09-28, y no es cosmetico. El denominador de este
+       caso es «la misma medicion con morfologia NATIVA tiene que decir algo», y con la graduacion
+       por area derogada el unico discriminante nativo/protesis es la CATEGORIA — que con 4 mmHg
+       exactos no dispara, porque el corte es >4. Con 8 la nativa dice «EM con gradiente elevado» y
+       la protesis sigue sin decir nada, que es lo que el caso prueba. */
+    const MED_EM = () => { __t.set('avm_plan','2.0'); __t.set('em_gmedio','8'); };
 
     const prot = correr(() => { __t.set('vm_morf','Prótesis mecánica'); MED_EM(); });
     /* ⚠️ EL DENOMINADOR, Y ES LA MITAD QUE IMPORTA. Sin este control, «em_grado no es moderada»
@@ -34401,9 +34855,12 @@ caso('TC-304', 'FASE A: la protesis mitral, tricuspide y pulmonar dejan de gradu
     const lineaVT = t => (t.split(NL).map(l => l.trim()).filter(l => l.indexOf('álvula tricúspide') > -1)[0] || '');
 
     return { extra: [
-      ['DENOMINADOR: la misma medicion con morfologia NATIVA sigue dando «moderada», asi que la cascada no se rompio — lo que cambio es que ahora se lee Morfologia',
-        nativa.em === 'moderada',
-        'nativa(Reumatica, AVm 2.0 + Gm 4) -> em_grado=«' + nativa.em + '»'],
+      ['DENOMINADOR: la misma medicion con morfologia NATIVA si publica categoria, asi que la regla no se rompio — lo que cambio es que ahora se lee Morfologia',
+        nativa.inf.indexOf('estenosis con gradiente medio elevado') > -1,
+        'nativa(Reumatica, AVm 2.0 + Gm 8) -> «' + (nativa.inf.split(NL).map(l=>l.trim()).filter(l=>l.indexOf('álvula mitral')>-1)[0]||'') + '»'],
+      ['⚠️ y la PROTESIS con la MISMA medicion no publica ninguna categoria: la regla es de la mitral NATIVA',
+        prot.inf.indexOf('gradiente medio elevado') === -1 && prot.inf.indexOf('estenosis significativa') === -1,
+        '«' + (prot.inf.split(NL).map(l=>l.trim()).filter(l=>l.indexOf('álvula mitral')>-1)[0]||'') + '»'],
       ['⚠️ la protesis mitral con la MISMA medicion ya no escribe grado: em_grado se queda en su valor de fabrica',
         prot.em === 'sin', 'protesis -> em_grado=«' + prot.em + '»'],
       ['y el cuerpo NO imprime la negacion «sin estenosis ni insuficiencia» sobre la protesis: no se evaluo, no se niega',
@@ -34412,7 +34869,7 @@ caso('TC-304', 'FASE A: la protesis mitral, tricuspide y pulmonar dejan de gradu
         '«' + lineaVM(prot.inf) + '»'],
       ['SUPRIMIR NO ES CALLARSE: la linea publica el tipo de protesis y los valores medidos',
         lineaVM(prot.inf).indexOf('prótesis mecánica') > -1 &&
-        lineaVM(prot.inf).indexOf('2') > -1 && lineaVM(prot.inf).indexOf('4 mmHg') > -1,
+        lineaVM(prot.inf).indexOf('2') > -1 && lineaVM(prot.inf).indexOf('8 mmHg') > -1,
         '«' + lineaVM(prot.inf) + '»'],
       ['un grado elegido A MANO sobre la protesis SI se imprime: el bloqueo es para los calculadores, no para el medico',
         manual.em === 'severa' && lineaVM(manual.inf).indexOf('estenosis severa') > -1,
@@ -35714,6 +36171,205 @@ function evaluar(r) {
   });
   return fallos;
 }
+/* ══ TC-308 — LOS SEIS DEFECTOS QUE EL ESCRITOR NUEVO DE `em_grado` ABRIO ════════════════════════
+   Los encontro /sharp-edges sobre el diff de TC-306, y los tres primeros son de la peor clase: el
+   informe FIRMADO pasaba a NEGAR. La causa comun es que `emGradoAuto` escribe tambien «sin», asi que
+   cada camino que lo dispara sin la marca del estudio no regradua: borra.
+
+   ⚠️ LA CONDICION NO ES «no se pisa» SINO «no se pisa CON UNA NEGACION». Antes del 28/09 estos
+   mismos caminos reescribian leve/moderada/severa desde las mediciones del propio estudio, asi que un
+   caso que solo mirara «cambio o no cambio» habria estado rojo desde siempre y no seria nuevo. */
+caso('TC-308', 'El escritor nuevo de em_grado no borra grados ajenos: la reimpresion restaura la marca del estudio, la tarjeta de revision protege lo que el medico elige, pasar a protesis limpia el «severa» de la app, el cero no es una fuente, calcEM repinta la onda E, y un «sin» a mano niega la estenosis pero no el gradiente ni los numeros', `
+  return (async () => {
+    if (typeof emCategoria !== 'function' || typeof emGradoAuto !== 'function')
+      return { extra:[['existen las funciones duenas', false, 'faltan emCategoria o emGradoAuto']] };
+    const NL = String.fromCharCode(10);
+    const pl = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const lineaVM = t => (String(t).split(NL).map(l => l.trim())
+      .filter(l => pl(l).indexOf('alvula mitral') > -1 || l.indexOf('VM ') === 0)[0] || '');
+    const base = () => { __t.limpiar();
+      __t.set('nombre','TC308'); __t.set('edad','64'); __t.set('peso','80'); __t.set('talla','180'); };
+
+    // ── (1) LA RUTA DE REIMPRESION ───────────────────────────────────────────────────────────
+    /* La ventana de reimpresion abre un documento y dibuja un PDF, asi que en vez de recorrerla se
+       verifican las DOS mitades que la hacian fallar, cada una donde vive.
+       (a) EL ORDEN EN LA FUENTE: la reposicion de la marca tiene que estar ANTES del recalculo que
+       la necesita. Sin eso, ponerla despues seria un arreglo que no arregla nada. */
+    const fteRe = (typeof _pdfDeInformeGuardadoArmar === 'function') ? String(_pdfDeInformeGuardadoArmar) : '';
+    /* ⚠️ SE BUSCA LA LLAMADA, NO EL NOMBRE. toString() incluye los COMENTARIOS, y el comentario que
+       explica este arreglo nombra la funcion: buscar el nombre pelado lo encontraba ahi —antes del
+       recalculo, encima— asi que la mutacion que BORRA la llamada dejaba el caso en VERDE. Es la
+       segunda vez en esta tanda que un comentario satisface la busqueda: la primera fue la columna de
+       referencia del PDF, cuyo comentario transcribia la escalera que el caso queria ver ausente.
+       Regla: cuando se verifica sobre el codigo fuente de una funcion, el patron tiene que ser algo
+       que SOLO puede aparecer en codigo ejecutable. */
+    const iMarca = fteRe.indexOf("_sevManualRestaurar === 'function') _sevManualRestaurar()");
+    const iRecalc = fteRe.indexOf("calcIM_ESC === 'function') calcIM_ESC()");
+    /* (b) EL MECANISMO, medido: con la marca AUSENTE el recalculo pisa el grado guardado con «sin»,
+       y con la marca PUESTA lo respeta. Es el mismo recalculo de IM que corre en esa ventana. */
+    const pisa = (marcar) => {
+      base(); __t.set('avm_plan','2.0');                 // categoria 'nada' -> el auto escribiria 'sin'
+      /* ⚠️ HACE FALTA DATO DE IM. El recalculo de IM sale antes de autoCompletarSevIM si no tiene
+         nada que clasificar, asi que sin esto el denominador daba «no pisa» y el caso habria pasado
+         en verde midiendo un camino que nunca corrio. Lo agarro la condicion de denominador. */
+      __t.set('im_vc','8'); __t.set('im_eroa','45');
+      const sel = document.getElementById('em_grado');
+      window.esqSevManual = marcar ? { em:true } : {};   // el estado que trae (o no) el estudio
+      sel.value = 'moderada';                            // el grado GUARDADO, escrito sin evento
+      try { calcIM_ESC(); } catch (e) {}
+      const g = sel.value;
+      const vm = lineaVM(__t.informe().inf);
+      window.esqSevManual = {};
+      return { grado: g, vm: vm };
+    };
+    const sinMarca = pisa(false), conMarca = pisa(true);
+
+    // ── (2) LA TARJETA DE REVISION ───────────────────────────────────────────────────────────
+    /* Se recorre de verdad: se abre, se elige «Severa» en el clon de EM sobre una valvula cuya
+       categoria es 'nada' —o sea que el auto escribiria «sin»— y se aprieta Confirmar. */
+    let tarjeta = { grado:'NO CORRIO', marca:false, vm:'', abrio:false };
+    try {
+      base(); __t.set('avm_plan','2.0');
+      window.esqSevManual = {};
+      mostrarCardSeveridadValvular(null);
+      const ov = document.getElementById('pdf-review-overlay');
+      tarjeta.abrio = !!ov;
+      if (ov) {
+        const clon = ov.querySelector('select[data-target="em_grado"]');
+        if (clon) clon.value = 'severa';
+        ov.querySelector('#rev-confirm').click();
+        tarjeta.grado = __t.val('em_grado');
+        tarjeta.marca = !!(window.esqSevManual && window.esqSevManual.em);
+        tarjeta.vm = lineaVM(__t.informe().inf);
+      }
+      window.esqSevManual = {};
+    } catch (e) { tarjeta.grado = 'ERROR ' + e.message; }
+    /* Y EL CONTROL: un clon que el medico NO toca no queda marcado, o mirar la tarjeta equivaldria a
+       fijar todos los grados a mano y los campos quedarian rancios para siempre. */
+    let noTocado = { marca:true };
+    try {
+      base(); __t.set('avm_plan','1.2'); try{ calcEM(); }catch(e){}
+      window.esqSevManual = {};
+      mostrarCardSeveridadValvular(null);
+      const ov2 = document.getElementById('pdf-review-overlay');
+      if (ov2) { ov2.querySelector('#rev-confirm').click();
+                 noTocado.marca = !!(window.esqSevManual && window.esqSevManual.em); }
+      window.esqSevManual = {};
+    } catch (e) { noTocado.err = e.message; }
+
+    // ── (3) PASAR A PROTESIS ─────────────────────────────────────────────────────────────────
+    /* El gesto real: AVm nativa que hace escribir «severa», y despues la morfologia a protesis por
+       el MISMO camino que usa la pantalla —el evento del selector—, no llamando a calcEM a mano. */
+    base(); __t.set('avm_plan','1.2'); __t.set('em_gmedio','8'); try{ calcEM(); }catch(e){}
+    const antesProt = __t.val('em_grado');
+    __t.set('vm_morf','Prótesis mecánica');
+    const prot = { grado: __t.val('em_grado'), vm: lineaVM(__t.informe().inf),
+                   suma: __t.informe().suma, pantalla: __t.txt('em-sev-integrada') };
+    /* Y un grado que el MEDICO eligio sobre la protesis se sigue imprimiendo: la Fase A lo fijo. */
+    base(); __t.set('vm_morf','Prótesis biológica'); __t.set('em_grado','severa');
+    const protManual = { grado: __t.val('em_grado'), vm: lineaVM(__t.informe().inf) };
+    window.esqSevManual = {};
+
+    // ── (4) EL CERO NO ES UNA MEDICION ───────────────────────────────────────────────────────
+    const cero = (sem) => { base(); sem(); try{ calcEM(); }catch(e){}
+      const c = emCategoria();
+      return { cat:c.clave, fuentes:c.fuentes.map(f => f.fuente + ' ' + f.avm).join(','),
+               vm: lineaVM(__t.informe().inf) }; };
+    const c0solo = cero(() => { __t.set('avm_plan','0'); });
+    const c0thp  = cero(() => { __t.set('avm_plan','0'); __t.set('thp','183.33'); });
+    const c0ete  = cero(() => { __t.set('avm_plan','0'); __t.set('avm_ete','1.3'); });
+    const cDen   = cero(() => { __t.set('avm_plan','1.8'); __t.set('thp','183.33'); });
+
+    // ── (5) EL DISPARADOR DE LA FILA DE ONDA E ───────────────────────────────────────────────
+    /* Onda E 135 con AVm sana deja la fila encendida; tipear un AVm de 1,2 la tiene que apagar SIN
+       que corra nada del modulo de IM ni de la diastolica. */
+    base(); __t.set('onda_e','135'); __t.set('onda_a','50'); __t.set('im_sev_final','3'); __t.set('avm_plan','3.5');
+    try{ calcEM(); }catch(e){}
+    const ondaAntes = __t.txt('im-ondae-interp');
+    __t.set('avm_plan','1.2');
+    const ondaDespues = __t.txt('im-ondae-interp');
+
+    // ── (6) UN «SIN» A MANO: QUE NIEGA Y QUE NO ──────────────────────────────────────────────
+    const sinMano = (sem) => { base(); sem(); __t.set('em_grado','sin');
+      const r = __t.informe();
+      return { vm: lineaVM(r.inf), suma: r.suma, cat: emCategoria().clave }; };
+    const sinSevera = sinMano(() => { __t.set('avm_plan','1.3'); });
+    const sinGradIm = sinMano(() => { __t.set('avm_plan','2.0'); __t.set('em_gmedio','8');
+                                      __t.set('im_sev_final','2'); });
+    const sinNums   = sinMano(() => { __t.set('avm_plan','2.0'); __t.set('em_gmedio','3'); });
+    window.esqSevManual = {};
+    __t.limpiar();
+
+    return { extra: [
+      // (1)
+      ['DENOMINADOR: se esta leyendo la ruta de reimpresion, y llama al recalculo que arrastra a calcEM',
+        fteRe.length > 5000 && iRecalc > -1, 'largo=' + fteRe.length + ' iRecalc=' + iRecalc],
+      ['⚠️ y repone la marca del estudio ANTES de ese recalculo —era la TERCERA columna de _sevManualRestaurar y esta ruta no la tenia—',
+        iMarca > -1 && iMarca < iRecalc, 'iMarca=' + iMarca + ' iRecalc=' + iRecalc],
+      ['DENOMINADOR del mecanismo: SIN la marca, el recalculo pisa un «moderada» guardado y lo deja en «sin» —el papel pasa a decir que la valvula es normal—',
+        sinMarca.grado === 'sin', 'grado=' + sinMarca.grado + ' · «' + sinMarca.vm + '»'],
+      ['  y CON la marca repuesta lo respeta: el grado firmado sobrevive a la reimpresion',
+        conMarca.grado === 'moderada' && pl(conMarca.vm).indexOf('estenosis moderada') > -1,
+        'grado=' + conMarca.grado + ' · «' + conMarca.vm + '»'],
+      // (2)
+      ['DENOMINADOR: la tarjeta de revision abre y trae el clon del grado de EM',
+        tarjeta.abrio === true, 'abrio=' + tarjeta.abrio],
+      ['⚠️ lo que el medico elige EN LA TARJETA queda marcado y el recalculo no lo pisa —antes lo convertia en «sin» en el mismo gesto de confirmar, y la tarjeta promete por escrito que queda cargado—',
+        tarjeta.grado === 'severa' && tarjeta.marca === true &&
+        pl(tarjeta.vm).indexOf('estenosis severa') > -1,
+        'grado=' + tarjeta.grado + ' marca=' + tarjeta.marca + ' · «' + tarjeta.vm + '»'],
+      ['  y un clon que NO se toca no queda marcado: mirar la tarjeta no es fijar todos los grados a mano',
+        noTocado.marca === false, 'marca=' + noTocado.marca + (noTocado.err ? ' err=' + noTocado.err : '')],
+      // (3)
+      ['DENOMINADOR: con morfologia nativa y AVm 1,2 la app escribe «severa»',
+        antesProt === 'severa', 'grado=' + antesProt],
+      ['⚠️ pasar la morfologia a PROTESIS limpia ese «severa» y el informe no publica estenosis con cortes nativos —era el defecto que la Fase A cerro, reabierto por el escritor nuevo—',
+        prot.grado === 'sin' && pl(prot.vm).indexOf('estenosis severa') === -1 &&
+        pl(prot.suma).indexOf('em severa') === -1,
+        'grado=' + prot.grado + ' · «' + prot.vm + '» · suma=«' + prot.suma + '»'],
+      ['  y la pantalla tampoco queda rancia: dice que no se gradua, no «Estenosis mitral severa»',
+        pl(prot.pantalla).indexOf('estenosis mitral severa') === -1,
+        '«' + prot.pantalla + '»'],
+      ['  pero un grado que el MEDICO elige sobre la protesis SI se imprime: la Fase A lo fijo y esto no lo toca',
+        protManual.grado === 'severa' && pl(protManual.vm).indexOf('estenosis severa') > -1,
+        'grado=' + protManual.grado + ' · «' + protManual.vm + '»'],
+      // (4)
+      ['DENOMINADOR: planimetria 1,8 con THP 1,20 da discordancia, o sea que las dos fuentes entran',
+        cDen.cat === 'probable' && cDen.fuentes.indexOf('planimetría 1.8') > -1 &&
+        cDen.fuentes.indexOf('THP 1.2') > -1, cDen.cat + ' · ' + cDen.fuentes],
+      ['⚠️ un AVm en CERO no entra como fuente: no publica «AVm 0.00 cm²» ni degrada una severa a probable',
+        c0thp.cat === 'severa' && c0thp.fuentes.indexOf('0') === -1 &&
+        c0thp.vm.indexOf('0.00') === -1,
+        c0thp.cat + ' · ' + c0thp.fuentes + ' · «' + c0thp.vm + '»'],
+      ['  ni deja la pantalla clasificando un cero por si solo',
+        c0solo.cat === 'nada' && c0solo.fuentes === '', c0solo.cat + ' · «' + c0solo.fuentes + '»'],
+      ['  y ya no descarta la planimetria por ETE, que vive en la rama else de ese mismo if',
+        c0ete.cat === 'severa' && c0ete.fuentes.indexOf('ETE') > -1,
+        c0ete.cat + ' · ' + c0ete.fuentes],
+      // (5)
+      ['DENOMINADOR: con onda E 135, IM severa y un area sana la fila de onda E dice algo',
+        pl(ondaAntes).indexOf('apoya') > -1, '«' + ondaAntes + '»'],
+      ['⚠️ y tipear un AVm de 1,2 la apaga en el mismo gesto: calcEM dispara el repintado, sin depender de que corra algo del modulo de IM',
+        pl(ondaDespues).indexOf('apoya') === -1 && ondaDespues !== ondaAntes,
+        'antes=«' + ondaAntes + '» despues=«' + ondaDespues + '»'],
+      // (6)
+      ['un «Sin estenosis» elegido a mano SI calla a la categoria que lo contradice',
+        sinSevera.cat === 'severa' && pl(sinSevera.vm).indexOf('estenosis severa') === -1,
+        'cat=' + sinSevera.cat + ' · «' + sinSevera.vm + '»'],
+      ['⚠️ pero NO borra «gradiente transmitral elevado», que no afirma ninguna estenosis: el medico que niega la estenosis es CONSISTENTE con esa frase y la perdia con su propia respuesta',
+        sinGradIm.cat === 'gradiente_im' &&
+        pl(sinGradIm.vm).indexOf('gradiente transmitral elevado') > -1 &&
+        sinGradIm.suma.indexOf('Gradiente transmitral elevado.') > -1,
+        'cat=' + sinGradIm.cat + ' · «' + sinGradIm.vm + '»'],
+      ['⚠️ y tampoco pierde los valores medidos: publicarlos sin veredicto no contradice su «sin», lo respalda',
+        sinNums.vm.indexOf('AVm 2.00 cm² por planimetría') > -1 &&
+        sinNums.vm.indexOf('gradiente medio 3 mmHg') > -1 &&
+        pl(sinNums.vm).indexOf('vm normal') === -1,
+        '«' + sinNums.vm + '»']
+    ] };
+  })();
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

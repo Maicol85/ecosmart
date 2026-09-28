@@ -3181,7 +3181,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                ⚠️ ESE `value` NO ES COPY-PASTE SOBRANTE aunque hoy sea idéntico a la etiqueta: es lo
                que impide que un sufijo agregado a la etiqueta se filtre al dato. Ya pasó —«(SAVR)»
                estuvo en esta etiqueta y no ensució un solo estudio porque el `value` estaba—. -->
-          <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync();imOndaESiExiste();eteVmPropagar('vm')"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
+          <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync();imOndaESiExiste();eteVmPropagar('vm');calcEM()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
           <div id="vm-ete-aviso" style="display:none;font-size:11px;color:var(--red);margin-top:3px;"></div>
         </div>
         <!-- Campos de PRÓTESIS (Fase 1, 2026-09-27). Se muestran sólo con una de las tres
@@ -3221,11 +3221,16 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
         </div>
         <div id="bloque-esten-mitral" style="display:none;">
-        <div class="fg"><label>Estenosis mitral — grado final</label>
+        <div class="fg"><label>Estenosis mitral — grado final (lo elige el médico)</label>
           <!-- El `onchange` es de la fase 2 y NO toca `calcEM`: solo repinta la fila de onda E de
                IM, que se apaga con estenosis documentada. Sin esto el medico gradua la estenosis y
-               la fila de al lado sigue afirmando un signo que la guia invalida. -->
-          <select id="em_grado" onchange="imOndaESiExiste()"><option value="sin">Sin estenosis (AVm &ge;4 cm²)</option><option value="leve">Leve (AVm 2.51–3.99 cm²)</option><option value="moderada">Moderada (1.5–2.5 cm²)</option><option value="severa">Severa (&le;1.5 cm²)</option></select>
+               la fila de al lado sigue afirmando un signo que la guia invalida.
+               ⚠️ LAS ETIQUETAS PERDIERON SU BANDA DE AREA, y no es cosmetico: desde el 28/09 el
+               grado NO se autocompleta y el area ya no lo define, asi que «Leve (AVm 2.51-3.99)»
+               era una regla impresa que ninguna funcion aplica. Los `value` NO se tocan —sacar u
+               nombrar distinto una opcion deja `selectedIndex = -1` y el hueco se persiste— y el
+               PPT sale igual, porque `_pptSel` ya recorta el parentesis final. -->
+          <select id="em_grado" onchange="emGradoManual()"><option value="sin">Sin estenosis</option><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option></select>
           <div id="em-thp-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
         </div>
         </div>
@@ -3309,7 +3314,13 @@ window.cerrarSesionReal = cerrarSesionReal;
                la misma celda haría elegir entre publicar el número o publicar la salvedad. -->
           <div class="calc-row"><span id="em-cont-aviso" style="color:var(--yellow);font-size:11px;"></span></div>
           <div class="calc-row"><span class="calc-lbl">AVm por planimetría</span><span class="calc-val" id="em-plan-row">—</span></div>
-          <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad EM integrada (ESC 2021)</span><span id="em-sev-integrada">—</span></div>
+          <!-- ⚠️ YA NO ES UNA SEVERIDAD GRADUADA. Publica la CATEGORIA que devuelve `emCategoria()`
+               —la unica funcion duena, la misma que alimenta el informe, el EN SUMA y el PDF—. El
+               rotulo decia «Severidad EM integrada (ESC 2021)» y graduaba leve/moderada/severa por
+               area con una banda de «leve» de 2,5-4,0 cm² que no publica ninguna guia: una valvula
+               sana mide 4-6 cm². Cambiar el rotulo es parte del arreglo, no un detalle: dejarlo
+               diciendo «severidad» al lado de una categoria es la cita falsa de siempre. -->
+          <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Categoría EM (ESC/EACTS 2021 · ASE 2023)</span><span id="em-sev-integrada">—</span></div>
           <div class="calc-row"><span id="em-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
         </div>
 
@@ -12595,15 +12606,31 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
 
       <div class="card">
         <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleRef('em',this)">
-          🟠 EM — Estenosis Mitral (ESC 2021) <span style="float:right;">▶</span>
+          🟠 EM — Estenosis Mitral <span style="float:right;">▶</span>
         </h2>
         <div id="ref-em" style="display:none;" class="card-body">
+          <!-- ⚠️ ESTA TARJETA PUBLICABA LA ESCALERA QUE LA APP DEROGO, CON EL SELLO «(ESC 2021)».
+               Imprimia «AVm >2,5 leve · 1,51-2,5 moderada» y «Gmedio ≥10 severa» — bandas que esa
+               guia NO publica en ninguna parte (verificado sobre las 72 paginas del texto
+               completo: la ESC no gradua la EM por area) y el corte de gradiente que este commit
+               borro del codigo. Un medico que la abria leia «AVm 2,0 -> moderada» y volvia a una
+               pantalla que dice «Sin criterios de EM severa»: dos escalas para el mismo numero en
+               la misma app. Reemplazada por la regla vigente, con cada cifra atribuida a la fuente
+               que SI la publica. -->
           <table style="width:100%;border-collapse:collapse;font-size:12px;">
-            <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Parámetro</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Leve</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Moderada</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Severa</th></tr>
-            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">AVm (cm²)</td><td style="padding:5px 8px;text-align:center;">&gt;2.5</td><td style="padding:5px 8px;text-align:center;">1.51–2.5</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≤1.5</td></tr>
-            <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">THP (ms) <span style="font-size:9px;color:var(--text2);">— no se clasifica solo: se convierte a AVm (220/THP) y manda la fila de arriba. ASE publica ≥150 para severa; el equivalente exacto de AVm ≤1,5 es ≥147</span></td><td style="padding:5px 8px;text-align:center;">&lt;88</td><td style="padding:5px 8px;text-align:center;">88–146</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≥147</td></tr>
-            <tr><td style="padding:5px 8px;color:var(--text2);">Gmedio (mmHg)</td><td style="padding:5px 8px;text-align:center;">&lt;5</td><td style="padding:5px 8px;text-align:center;">5–9</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≥10</td></tr>
+            <tr style="background:var(--section-head);"><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Criterio</th><th style="padding:6px 8px;text-align:center;color:var(--accent2);">Corte</th><th style="padding:6px 8px;text-align:left;color:var(--accent2);">Fuente</th></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">AVm — <b style="color:var(--text);">estenosis mitral severa</b></td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≤ 1,5 cm²</td><td style="padding:5px 8px;color:var(--text2);">ASE 2023, Tabla 1 · AHA/ACC 2020 (estadios C-D). La ESC/EACTS 2021 usa el mismo corte y lo llama «clínicamente significativa (moderada o severa)»</td></tr>
+            <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">THP — equivalente exacto de AVm 1,5 por Hatle (220/THP)</td><td style="padding:5px 8px;text-align:center;">≥ 147 ms</td><td style="padding:5px 8px;color:var(--text2);">derivado. ASE 2023 y AHA/ACC 2020 publican ≥ 150 ms; el THP no se clasifica solo, se convierte a área y manda la fila de arriba</td></tr>
+            <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Gradiente medio — definición de EM <b>reumática</b></td><td style="padding:5px 8px;text-align:center;">&gt; 4 mmHg</td><td style="padding:5px 8px;color:var(--text2);">World Heart Federation, citada por ASE 2023. Exige además ≥ 2 cambios morfológicos (engrosamiento valvar, fusión comisural, restricción, domo diastólico, engrosamiento cordal) que la app no cruza con el gradiente</td></tr>
+            <tr style="background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Área mitral normal en el adulto</td><td style="padding:5px 8px;text-align:center;">4 – 6 cm²</td><td style="padding:5px 8px;color:var(--text2);">ASE 2023. La ESC no publica rango normal</td></tr>
           </table>
+          <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
+            <b style="color:var(--accent2);">Lo que la app hace con esto:</b> completa el grado en <b>«severa»</b> cuando el AVm válido es ≤ 1,5 cm². <b>Leve y moderada las elige el médico</b> — la app no las autocompleta.<br>
+            • Con AVm &gt; 1,5 y <b>gradiente medio &gt; 4 mmHg</b> publica «EM con gradiente elevado»; con insuficiencia mitral moderada o mayor, «gradiente transmitral elevado» <b>sin</b> la palabra estenosis, porque ahí el gradiente sube por volumen.<br>
+            • Si dos áreas válidas caen a los dos lados del corte, se publican <b>las dos</b> con su método y <b>prevalece el peor</b>, con «probablemente severa por …».<br>
+            • El <b>gradiente medio ≥ 10 mmHg</b> de la ASE <b>no</b> se usa como criterio de severidad: el área es el indicador primario y la propia ESC 2021 describe la «estenosis mitral severa de bajo gradiente» (AVm ≤ 1,5 con gradiente medio &lt; 10).<br>
+            • La <b>ecuación de continuidad</b> no vale con regurgitación mitral o aórtica significativa, y el <b>THP</b> no es confiable con insuficiencia aórtica moderada o severa (ASE 2023). La app retira el voto y lo dice.
+          </div>
           <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
             <b style="color:var(--accent2);">Score Wilkins:</b> ≤8 → favorable para PMV · &gt;8 → resultado subóptimo<br>
             • <b>Clase I:</b> EM severa sintomática + Wilkins ≤8 + sin trombo AI → PMV<br>
@@ -13129,7 +13156,11 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">PAPm — estimada</td><td style="padding:5px 8px;font-family:monospace;">(PSAP + 2×PADP) / 3</td><td style="padding:5px 8px;">&lt;20 mmHg</td></tr>
         <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">E/A</td><td style="padding:5px 8px;font-family:monospace;">Onda E / Onda A</td><td style="padding:5px 8px;">0.8–2.0</td></tr>
         <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;font-weight:700;">E/e' promedio</td><td style="padding:5px 8px;font-family:monospace;">Onda E / ((e'sep + e'lat) / 2)</td><td style="padding:5px 8px;">≤14</td></tr>
-        <tr style="background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">AVA por THP (EM)</td><td style="padding:5px 8px;font-family:monospace;">220 / THP</td><td style="padding:5px 8px;">&gt;2.5 cm²</td></tr>
+        <!-- Decia «AVA» donde es AVm —el AVA aortica de verdad esta dos filas mas abajo— y publicaba
+             «Normal >2,5 cm²», que era el piso de la banda «leve» derogada. El rango normal del area
+             mitral en el adulto es 4-6 cm² y lo publica ASE 2023; el 2,5 no es un piso de normalidad
+             en ninguna guia. -->
+        <tr style="background:var(--bg3);"><td style="padding:5px 8px;font-weight:700;">AVm por THP (EM)</td><td style="padding:5px 8px;font-family:monospace;">220 / THP</td><td style="padding:5px 8px;">4–6 cm² (adulto)</td></tr>
       </table>
 
       <!-- 5. PISA / INSUFICIENCIA MITRAL -->
@@ -16388,39 +16419,27 @@ window.AVA_SEVERA_MAX = AVA_SEVERA_MAX; window.avaEsSevera = avaEsSevera;
    efectivo del motor es 220/1,5 = 146,7, o sea ≥147 ms, no ≥150. La tabla de referencia
    publica los valores derivados y lo dice. */
 const AVM_SEVERA_MAX    = 1.5;   // cm² — AVm ≤1.5 → severa (ESC/EACTS 2021 y 2025, ASE 2023)
-const AVM_MODERADA_MAX  = 2.5;   // cm² — 1.5 < AVm ≤2.5 → moderada;  >2.5 → sin estenosis / leve
-/* ⚠️ PISO DE NORMALIDAD (2026-09-25). La cascada de EM no tenía techo: su PRIMERA rama —«mayor
-   que 2,5»— era el cajón de sastre de TODO lo grande, así que un área SANA caía en «leve».
-   Reproducido con el caso del pedido: onda E 70,4 · onda A 80 · THP 53 ms → AVm 4,15 cm² por
-   Hatle, que es una válvula mitral normal (rango sano 4–6 cm²), y el badge decía «Leve». Medido
-   además el extremo: 6,00 cm² también daba «leve».
-   Es el mismo defecto que este archivo documenta para `epGradoPorGmax` y para `_dopSevPHT` —una
-   cadena `if/else if/else` sin predicado final manda lo no clasificable a una banda— sólo que acá
-   la rama abierta es la PRIMERA y no la última, así que en vez de exagerar la gravedad inventa
-   una enfermedad leve donde no hay ninguna.
-   ⚠️ EL PISO NO TOCA LOS CORTES INTERNOS: 1,5 y 2,5 quedan exactamente donde estaban, y eso lo
-   pidió el pedido de forma explícita. Esto se agrega ARRIBA de los tres.
-   El valor es 4,0 cm² y el operador `>=`: un AVm de 4,00 exactos ya es normal. */
-const AVM_NORMAL_MIN    = 4.0;   // cm² — AVm >=4 → sin estenosis (válvula mitral sana: 4–6 cm²)
-window.AVM_NORMAL_MIN = AVM_NORMAL_MIN;
-/* Un solo predicado para las superficies que clasifican AVm. Con la comparación escrita en cada
-   una, mover el piso mañana deja alguna atrás — que es literalmente lo que acaba de pasar con la
-   banda de la AVA, copiada en cuatro lugares. */
-function avmEsNormal(avm) {
-  /* ⚠️ MISMO ENDURECIMIENTO QUE `_avaNum`, y no por simetría: con `Number()` pelado un `'4,15'`
-     con COMA decimal daba NaN → «no normal» → y la cascada de abajo lo mandaba a **SEVERA**,
-     porque `'4,15' > 2.5` también es falso. Un negativo terminaba igual. Es exactamente la
-     asimetría que el lado aórtico documenta haber cerrado —«fallaba abierta con vacío y cerrada
-     con coma: al revés de lo seguro»—, y este helper está exportado en `window`, así que la
-     próxima superficie que lo use hereda el borde. Lo cazó `/sharp-edges`. */
-  const n = (typeof avm === 'number') ? avm
-          : parseFloat(String(avm == null ? '' : avm).replace(',', '.'));
-  return isFinite(n) && n > 0 && n >= AVM_NORMAL_MIN;
-}
-window.avmEsNormal = avmEsNormal;
-const GMED_MITRAL_SEVERO_MIN = 10;  // mmHg — gradiente medio ≥10 → severa (ASE 2023)
+/* ⚠️ `AVM_MODERADA_MAX` YA NO GOBIERNA NINGUNA GRADUACIÓN de esta app. Su comentario decía
+   «1.5 < AVm ≤2.5 → moderada; >2.5 → sin estenosis / leve», que es la escalera derogada el 28/09.
+   Sobrevive porque el panel de Evidencia lo publica como referencia (fuera de alcance) y porque
+   `LAB_XLS_*` no lo usa. Dato verificado que conviene tener escrito: la ASE 2023 SÍ publica bandas
+   —«Progressive (Mild)» >2,5 abierta y «Progressive (Moderate)» 2,5-1,6— o sea que el 2,5
+   pertenece a MODERADA y el «leve» NO tiene techo. La banda de esta app ponía el 2,5 del lado
+   equivocado y le inventaba un techo de 4,0. */
+const AVM_MODERADA_MAX  = 2.5;   // cm² — referencia del panel de Evidencia; no gradúa nada acá
+/* ⚠️ SE ELIMINARON TRES CONSTANTES, Y CADA UNA ERA UNA REGLA QUE ESTA FASE DEROGÓ (2026-09-28):
+     · `AVM_NORMAL_MIN = 4.0` y `avmEsNormal()` — el piso de normalidad del 25/09. Existían para
+       que un área sana no cayera en la banda «leve» de 2,5-4,0; al eliminarse esa banda —y con
+       ella toda la graduación automática— el piso se quedó sin ninguna cascada que proteger.
+     · `GMED_MITRAL_SEVERO_MIN = 10` — el corte de «gradiente medio ≥10 → severa». La app ya no
+       gradúa la EM por gradiente: el único corte vivo es `EM_GMEDIO_SIGNIF = 4` (ASE 2023), que
+       no gradúa nada, decide si hay CATEGORÍA.
+   Se borran en vez de dejarse huérfanas: un `GMED_MITRAL_SEVERO_MIN` vivo al lado de un corte de
+   4 mmHg es la invitación a reintroducir la escalera, y este archivo ya documenta que «una
+   constante que no gobierna nada es peor que el literal». `AVM_SEVERA_MAX` (1,5) y
+   `AVM_MODERADA_MAX` (2,5) SIGUEN: el primero es el corte de la categoría y los dos los publica
+   la calculadora `cxAVT` y el panel de Evidencia, que están fuera de alcance. */
 window.AVM_SEVERA_MAX = AVM_SEVERA_MAX; window.AVM_MODERADA_MAX = AVM_MODERADA_MAX;
-window.GMED_MITRAL_SEVERO_MIN = GMED_MITRAL_SEVERO_MIN;
 
 /* ── Umbrales que estaban escritos a mano en 3+ lugares ────────────────────────────────
    Mismo patrón que AVA_SEVERA_MAX / UMBRAL_PSAP_ELEVADA. No se extraen «todos los números»:
@@ -17297,16 +17316,24 @@ function cxAVT() {
   if (!el) return;
   if (t === null || t <= 0) { el.textContent = '—'; return; }
   const avm = 220 / t;
-  /* Misma escala que el módulo de EM y que el informe. Esta calculadora usaba la vieja
-     —severa <1.0—, así que el mismo THP daba «moderada» acá y «severa» tres pestañas más
-     allá, sobre el mismo paciente. */
-  const cls = avm > AVM_MODERADA_MAX ? 'green' : avm > AVM_SEVERA_MAX ? 'yellow' : 'red';
-  /* «sin estenosis / leve» y no «leve» a secas: un THP normal de 60 ms da AVm 3,67 cm², que
-     es una válvula sana. Rotularla «leve» afirma una estenosis que no existe. */
-  const sev = avm > AVM_MODERADA_MAX ? 'sin estenosis / leve (>' + AVM_MODERADA_MAX + ')'
-            : avm > AVM_SEVERA_MAX   ? 'moderada (' + (AVM_SEVERA_MAX + 0.01).toFixed(2) + '–' + AVM_MODERADA_MAX.toFixed(1) + ')'
-                                     : 'severa (≤' + AVM_SEVERA_MAX + ')';
-  el.innerHTML = avm.toFixed(2) + ' cm² ' + badge(cls, sev);
+  /* ⚠️ LA MISMA FUNCIÓN DUEÑA QUE EL MÓDULO DE EM, y no una escala propia. Esta calculadora tuvo
+     dos: primero la vieja de AHA (severa <1,0) y después la escalera de tres bandas. Con la
+     escalera, un THP de 130 ms salía «moderada» acá y el módulo de EM resolvía otra cosa sobre el
+     mismo número, en la misma app. Hoy contesta lo único que la app afirma: severa o nada.
+     `>1,5` va SIN rótulo a propósito: rotularlo «leve» o «sin estenosis» sería reintroducir por
+     esta pestaña la banda que el commit del 28/09 eliminó —un THP normal de 60 ms da 3,67 cm², que
+     es una válvula sana, y ninguna guía publica una banda «leve» con techo—. Leve y moderada las
+     elige el médico. */
+  /* ⚠️ SE CLASIFICA EL VALOR QUE SE IMPRIME, NO EL COCIENTE CRUDO. Con la primera versión, un THP
+     de 146,55 daba 1,50119: la calculadora mostraba «1.50 cm²» y NO lo llamaba severa, porque
+     comparaba el crudo. El módulo de EM, en cambio, lee `avm_thp`, que YA está redondeado a dos
+     decimales, así que decía severa sobre el mismo THP — las dos superficies en desacuerdo otra vez,
+     en la franja de 1,5 a 1,505. Lo destapó la mutación M1, que dejó a esta pestaña en VERDE.
+     Manda el número impreso, que es la regla que TC-289 ya fijó para las otras tres superficies del
+     área por THP: si el papel dice 1,50, el veredicto es el de 1,50. */
+  const _avmPub = Number(avm.toFixed(2));
+  const _sev = (typeof emAvmSevera === 'function') ? emAvmSevera(_avmPub) : (_avmPub <= AVM_SEVERA_MAX);
+  el.innerHTML = avm.toFixed(2) + ' cm²' + (_sev ? ' ' + badge('red', 'severa (≤' + AVM_SEVERA_MAX + ')') : '');
 }
 
 function cxTango() {
@@ -20618,10 +20645,24 @@ const EM_CONT_NOVERIF_TXT = 'AVm por continuidad: no se pudo verificar la regurg
    pintaba, sobre una IM severa.
    Devuelve el grado 0-4, o `null` cuando el valor está pero NO se puede interpretar. `null` no es
    «no hay regurgitación»: es «no lo pude leer», y las dos cosas no pueden verse igual. */
-function _emRegurgGrado(id){
-  const e = document.getElementById(id);
-  if (!e) return null;                                   // el campo no está: no verificable
-  const raw = String(e.value == null ? '' : e.value).trim();
+/* ⚠️ `src` OPCIONAL: sin argumento lee el FORMULARIO —literal, para no mover una sola coma del
+   camino de siempre— y con un objeto `campos` lee un estudio GUARDADO. Hace falta porque el
+   exportador a Excel corre sobre estudios que no están en pantalla y tiene que preguntar por la
+   MISMA validez que decide el informe: escribir el predicado dos veces es cómo las dos superficies
+   terminan diciendo cosas distintas del mismo AVm. Es el patrón `_pcSrc` del pericardio.
+   Una clave AUSENTE en `campos` se trata como cadena vacía, o sea el valor de fábrica: fallar
+   cerrado ahí vaciaría la columna de todo estudio importado sin esa clave, que es la mayoría del
+   histórico, y eso no es proteger nada — es perder dato. */
+function _emRegurgGrado(id, src){
+  let raw;
+  if (src) {
+    const x = src[id];
+    raw = String(x == null ? '' : x).trim();
+  } else {
+    const e = document.getElementById(id);
+    if (!e) return null;                                 // el campo no está: no verificable
+    raw = String(e.value == null ? '' : e.value).trim();
+  }
   if (raw === '') return 0;                              // vacío = valor de fábrica, no bloquea
   if (/^-?\d+$/.test(raw)) { const n = parseInt(raw, 10); return (n >= 0 && n <= 4) ? n : null; }
   const t = raw.toLowerCase();
@@ -20636,15 +20677,15 @@ function _emRegurgGrado(id){
 }
 /* Devuelve POR QUÉ no vota, o '' si vota. Un solo lugar decide, y el aviso de pantalla sale de
    acá: si el motivo y el texto se derivaran por separado volverían a discrepar. */
-function emContMotivoNoVota(){
-  const im = _emRegurgGrado('im_grado'), ia = _emRegurgGrado('ia_grado');
+function emContMotivoNoVota(src){
+  const im = _emRegurgGrado('im_grado', src), ia = _emRegurgGrado('ia_grado', src);
   /* FAIL-CLOSED: si no se puede leer la regurgitación, se retira el voto igual y se DICE. Contar
      un área que quizá esté invalidada es el error caro; retirarla cuesta un voto y un aviso. */
   if (im === null || ia === null) return EM_CONT_NOVERIF_TXT;
   if (im >= EM_CONT_REGURG_MIN || ia >= EM_CONT_REGURG_MIN) return EM_CONT_AVISO_TXT;
   return '';
 }
-function emContRegurgSignif(){ return emContMotivoNoVota() !== ''; }
+function emContRegurgSignif(src){ return emContMotivoNoVota(src) !== ''; }
 /* ⚠️ EL CONSUMIDOR NUEVO NECESITA SU DISPARADOR, y esta serie ya lo pagó tres veces (`im_itv`,
    `im_dtsvi`/`im_itv_tsvi`, y el PISA del selector del PDF). Desde la Fase B la severidad
    integrada de la EM depende de `im_grado` y de `ia_grado`, que viven en OTROS módulos: sin esto,
@@ -20667,33 +20708,250 @@ window.emContRefrescar = emContRefrescar;
 window.EM_CONT_AVISO_TXT = EM_CONT_AVISO_TXT;
 window.EM_CONT_NOVERIF_TXT = EM_CONT_NOVERIF_TXT;
 
-function sugerirSeveridadEM(avm) {
-  const sel = document.getElementById('em_grado');
-  const badgeEl = document.getElementById('em-thp-badge');
-  if (!sel) return;
-  /* Grado fijado a mano —o traído por una importación— gana sobre el autocálculo, igual
-     que en calcIM_ESC/calcIA_ESC/calcIT_ESC. Sin esto, tocar cualquier campo del Doppler
-     aórtico cambiaba el <select> de «Severa» a lo que diera la Vmax, sin avisar. */
-  if (window.esqSevManual && window.esqSevManual.em) return;
-  /* Sobre una prótesis no se escribe grado: los cortes de abajo son de válvula nativa. */
-  if (protNoGraduaPintar('vm_morf', ['em-thp-badge'])) return;
-  /* Mismas constantes que clasificarAVm: ésta es la función que ESCRIBE `em_grado`, así que
-     si las dos escalas divergen el <select> y el score integrado discrepan sobre el mismo
-     campo — que es el defecto que este bloque cierra. */
-  let opcion;
-  /* ⚠️ EL PISO VA PRIMERO. Debajo de él la cascada es la de siempre —1,5 y 2,5 sin tocar—; lo
-     único nuevo es que un área sana ya no entra a la escalera de estenosis. El `<select>` ya
-     tenía la opción «Sin estenosis», así que no hace falta inventar un grado. */
-  if (avmEsNormal(avm)) opcion = 'sin';
-  else if (avm > AVM_MODERADA_MAX) opcion = 'leve';
-  else if (avm > AVM_SEVERA_MAX) opcion = 'moderada';
-  else opcion = 'severa';
-  sel.value = opcion;
-  if (badgeEl) badgeEl.textContent = avmEsNormal(avm)
-    ? `AVm ${avm.toFixed(2)} cm² por THP — dentro del rango normal (>=${AVM_NORMAL_MIN} cm²). Sin estenosis.`
-    : `Sugerido por THP (AVm ${avm.toFixed(2)} cm²) — editable manualmente.`;
+/* ══ EL THP NO VALE CON INSUFICIENCIA AÓRTICA SEVERA ═══════════════════════════════════════════
+   El tiempo de hemipresión mide la velocidad con que se igualan las presiones auriculoventricular
+   izquierda: con IAo significativa la presión diastólica del VI sube por el chorro aórtico, el THP
+   se ACORTA y el AVm de Hatle (220/THP) sale MÁS GRANDE — o sea el error va hacia «menos severa»,
+   que es el lado que hace perder una estenosis.
+
+   ⚠️ LA ASE 2023 DICE «MODERADA O SEVERA» Y ACÁ SE APLICA SÓLO A LA SEVERA. Es una DECISIÓN
+   CLÍNICA DE MAICOL (2026-09-28), no una lectura de la guía, y por eso está escrita acá y en
+   CLAUDE.md en vez de quedar en el código como si fuera lo que dice el documento. Con IAo moderada
+   el THP SIGUE VOTANDO. La divergencia es deliberada y acotada: `ia_grado` 2 y 3 votan, el 4 no.
+
+   Se pregunta por `ia_grado`, el GRADO FINAL, con la MISMA función que ya decide la continuidad
+   (`_emRegurgGrado`): derivar acá una segunda definición de «IAo severa» es la fórmula duplicada
+   que este archivo persigue desde el THP. Y falla CERRADO por el mismo motivo que la continuidad:
+   un grado que no se puede interpretar no es un grado ausente. */
+const EM_IA_SEVERA_MIN   = 4;
+const EM_THP_IA_TXT      = 'AVm por THP no válido con insuficiencia aórtica severa';
+const EM_THP_NOVERIF_TXT = 'AVm por THP: no se pudo verificar la IAo — revisar';
+function emThpMotivoNoVota(src){
+  const ia = _emRegurgGrado('ia_grado', src);
+  if (ia === null) return EM_THP_NOVERIF_TXT;
+  if (ia >= EM_IA_SEVERA_MIN) return EM_THP_IA_TXT;
+  return '';
 }
-window.sugerirSeveridadEM = sugerirSeveridadEM;
+function emThpValido(src){ return emThpMotivoNoVota(src) === ''; }
+
+/* ══ ¿ESTE AVm POR CONTINUIDAD VALE? — UNA SOLA FUNCIÓN DUEÑA ══════════════════════════════════
+   Dos motivos independientes lo invalidan y los dos ya existían sueltos dentro de `calcEM`:
+   el VTI mitral fuera de banda y la regurgitación significativa (ASE 2023). Estaban compuestos en
+   una variable LOCAL (`_contNoVota`), así que el informe y el Excel no podían preguntar lo mismo
+   y cada uno habría escrito su copia — que es exactamente el defecto que la tarea 4 vino a cerrar.
+   `emContValido()` es hoy el ÚNICO dueño de esa pregunta; `calcEM` la consume igual que el resto.
+   La BANDA no aporta motivo en pantalla a propósito: ya se declara con «(revisar)» pegado al
+   número, y duplicarlo en el renglón de abajo sería decir dos veces lo mismo. */
+function emContFueraBanda(src){
+  /* Sin `src` se DELEGA en `vPlaus`, que es lo que ya decide la marca «(revisar)» del número en
+     pantalla y en el Excel. La primera versión repetía acá la comparación y quedaban DOS lecturas
+     de la misma banda: una decidía la marca y la otra el voto, así que afinar una dejaba la
+     pantalla marcando «(revisar)» sobre un AVm que sigue votando, o al revés. Lo cazó
+     `/sharp-edges`. La rama `src` existe porque el exportador a Excel no tiene formulario. */
+  if (!src) return vPlaus('em_vtimit').fuera;
+  const n = PF(src['em_vtimit']);
+  const x = isNaN(n) ? null : n;
+  if (x == null) return false;
+  let b = null;
+  try { b = (typeof _labRango === 'function') ? _labRango('em_vtimit') : null; } catch (e) { b = null; }
+  /* Sin banda creíble no se invalida nada: es la misma guarda que `vPlaus`, y fallar al revés
+     dejaría la continuidad muda el día que la tabla de rangos no cargue. */
+  if (!Array.isArray(b) || b.length !== 2 || !isFinite(b[0]) || !isFinite(b[1]) || !(b[0] <= b[1])) return false;
+  return x < b[0] || x > b[1];
+}
+function emContValido(src){ return !emContFueraBanda(src) && emContMotivoNoVota(src) === ''; }
+window.emThpValido = emThpValido; window.emThpMotivoNoVota = emThpMotivoNoVota;
+window.emContValido = emContValido; window.emContFueraBanda = emContFueraBanda;
+
+/* ══ LA CATEGORÍA DE LA ESTENOSIS MITRAL NATIVA — LA FUNCIÓN DUEÑA ═════════════════════════════
+   Reemplaza al score de leve/moderada/severa que `calcEM` calculaba y volcaba en `em_grado`.
+   Decisión de Maicol (2026-09-28).
+
+   ══ LAS FUENTES, VERIFICADAS CONTRA EL TEXTO PRIMARIO — no de memoria ══
+   · **AVm ≤1,5 cm² = SEVERA.** ASE 2023 de cardiopatía reumática (Pandian NG et al., JASE
+     2023;36(1):3-28), **Tabla 1, pág. 8**, columna «Severe», operador `≤`. Repetido en los Key
+     Points de la pág. 10. ⚠️ El MISMO documento dice «MVA less than 1.5 cm2 is considered severe
+     MS» en el cuerpo de la pág. 7, o sea `<` estricto: manda la Tabla 1, que es la normativa y la
+     que coincide con las otras dos guías. Queda dicho para que nadie «corrija» el operador con el
+     párrafo en la mano.
+     AHA/ACC 2020 (Otto CM et al., Circulation 2021;143:e72-e227) también usa ≤1,5 cm² —estadio D,
+     con PHT ≥150 ms unidos por «and/or»—. ⚠️ Eso se verificó contra el RESUMEN OFICIAL del ACC
+     («Key Perspectives, Part 2», acc.org) y NO contra el texto del artículo, que está detrás de un
+     bloqueo del editor: por eso no se publica número de tabla de esa guía en ninguna superficie.
+   · **ESC/EACTS 2021** (Vahanian A et al., EHJ 2022;43:561-632), §7.1.1, textual: «Clinically
+     significant mitral stenosis is defined by a mitral valve area (MVA) ≤1.5 cm².» Y lo glosa como
+     «(moderate or severe)» en el título de su tabla de recomendaciones. **No gradúa la EM por área
+     en ninguna parte del documento** — verificado barriendo las 72 páginas.
+   · **Gradiente medio >4 mmHg.** ASE 2023, págs. 7 y 10. ⚠️ Y NO ES UN CRITERIO DE SEVERIDAD: es
+     la **definición diagnóstica de EM REUMÁTICA**, que la ASE **atribuye a la World Heart
+     Federation** y que exige ADEMÁS al menos dos cambios morfológicos (engrosamiento valvar, fusión
+     comisural, restricción, domo diastólico, engrosamiento cordal) que esta app no cruza con el
+     gradiente. Por eso la categoría se llama «EM con gradiente elevado» y NO «EM reumática»: el
+     texto dice lo que el número sostiene, y la atribución completa vive acá y en la ayuda, no en el
+     papel.
+   · **Área mitral normal 4-6 cm².** ASE 2023, pág. 6, textual, «in adults». **Sólo ASE**: la ESC no
+     publica rango normal y la AHA no se pudo verificar. No atribuirlo a «las guías» en plural.
+   · **El gradiente ≥10 mmHg de severidad NO se aplica**, y hay respaldo de guía para no aplicarlo:
+     la propia ESC 2021 (pág. 36 del PDF) habla de «low-gradient severe mitral stenosis (MVA ≤1,5
+     cm², mean gradient <10 mmHg)», o sea que el área y el gradiente legítimamente discrepan. La ASE
+     lo dice de frente: «MVA is one of the main indicators of severity» y el abordaje es
+     multiparamétrico. **El área es primaria; el gradiente, de apoyo.**
+
+   ══ LAS CUATRO SALIDAS ══
+     · `severa`       → «Estenosis mitral severa (AVm X cm² por <método>)»
+     · `probable`     → discordancia: se escriben LOS DOS valores con su método y prevalece el PEOR,
+                        con «probablemente severa por <el método que da ≤1,5>»
+     · `gradiente`    → «EM con gradiente elevado»       (gradiente medio >4, sin IM ≥ moderada)
+     · `gradiente_im` → «Gradiente transmitral elevado»  (ídem, con IM moderada o mayor)
+   Más `nada` y `protesis`, que no publican categoría.
+
+   ⚠️ LA PALABRA ES «SEVERA» Y NO «SIGNIFICATIVA» (decisión de Maicol, 2026-09-28). Las dos son
+   defendibles —la ESC usa la segunda— y se eligió la primera porque es la que usan la ASE y la AHA
+   y la que el médico escribe. Lo que NO puede pasar es que conviva con la escalera vieja: ver el
+   barrido de superficies en CLAUDE.md.
+
+   ⚠️ `gradiente_im` NO LLEVA LA PALABRA «ESTENOSIS», y ésa es toda su razón de ser: con una IM
+   moderada o mayor el gradiente transmitral sube por VOLUMEN y no por obstrucción, así que llamarlo
+   estenosis es afirmar una obstrucción que el número no sostiene.
+
+   ⚠️ EL «LEVE» POR ÁREA DE 2,5-4,0 SE ELIMINA, Y NINGUNA GUÍA LO RESPALDABA. Verificado: la ASE es
+   la única de las tres que publica bandas de área, y su «leve» es **>2,5 abierta, sin techo**, con
+   el 2,5 perteneciendo a **moderada** («2,5-1,6»). O sea que la banda de la app se inventaba un
+   techo de 4,0 que no existe Y ponía el 2,5 del lado equivocado. Y rotulaba «estenosis leve» a
+   válvulas sanas, que miden 4-6 cm². No se reemplaza por otra banda: leve y moderada las elige el
+   médico y la app NO las autocompleta nunca.
+
+   ⚠️ ORDEN DE PREFERENCIA DEL AVm: planimetría → THP → continuidad (ASE 2023). NO es el que usa
+   `avmMejor` para el área indexada, que va planimetría → continuidad → THP. Los dos conviven a
+   propósito: `avmMejor` publica «el área estimada» y no gradúa nada, y cambiarlo movería un número
+   que hoy se imprime sin que nadie lo haya pedido. Queda DECLARADO, no corregido.
+
+   ⚠️ Y LA PREFERENCIA NO DECIDE SOLA: prevalece el PEOR. La primera versión se quedaba con
+   `fuentes[0]` y con planimetría 1,8 + THP 1,38 devolvía «nada», o sea que el informe firmado NEGABA
+   una estenosis que una fuente válida marcaba como severa, con la discordancia declarada sólo en
+   pantalla. Lo encontró `/sharp-edges`. Hoy la discordancia produce `probable` y los dos valores
+   viajan al papel.
+
+   «AVm válido» es el que VOTA: la continuidad sale por `emContValido()` y el THP por
+   `emThpValido()`. La planimetría no tiene compuerta —no depende del flujo— y el ETE es su
+   respaldo, con la misma precedencia que ya usan `em-plan-row` y la fila del PDF.
+
+   Devuelve datos, no HTML: lo consumen la pantalla, el informe narrativo, el EN SUMA y el PDF. */
+const EM_GMEDIO_SIGNIF = 4;     // mmHg — definición de EM reumática (WHF, citada por ASE 2023 p.7)
+const EM_CAT_TXT = {
+  severa:        'Estenosis mitral severa',
+  probable:      'Probablemente estenosis mitral severa',
+  gradiente:     'EM con gradiente elevado',
+  gradiente_im:  'Gradiente transmitral elevado'
+};
+/* ⚠️ UN SOLO DUEÑO DE «¿ESTE ÁREA ALCANZA EL CORTE?». Lo consumen `emCategoria` y la calculadora
+   `cxAVT` de la pestaña Calculadoras, que hasta hoy tenía su propia escalera y contestaba
+   «moderada» sobre el mismo THP que el módulo de EM resolvía de otra forma. Con dos lecturas, el
+   mismo número tenía dos respuestas en la misma app.
+   Endurecido como `avmEsNormal` lo estaba y por el mismo motivo: con `Number()` pelado un «1,40»
+   con COMA decimal daba NaN y la comparación fallaba ABIERTA, o sea hacia NO decir severa. */
+function emAvmSevera(avm){
+  const n = (typeof avm === 'number') ? avm
+          : parseFloat(String(avm == null ? '' : avm).replace(',', '.'));
+  return isFinite(n) && n > 0 && n <= AVM_SEVERA_MAX;
+}
+window.emAvmSevera = emAvmSevera;
+/* Grado FINAL de la IM, con la misma función dueña que la continuidad. Falla CERRADO hacia NO
+   decir «estenosis»: con un `im_grado` ilegible no se puede afirmar que el gradiente sea
+   obstructivo, y la frase sin la palabra es la que no afirma de más. */
+function emImSignificativa(src){
+  const im = _emRegurgGrado('im_grado', src);
+  return im === null || im >= EM_CONT_REGURG_MIN;
+}
+function emCategoria(){
+  /* Sobre una prótesis NO se aplica ningún corte de válvula nativa — es la Fase A, y esta regla
+     es de la mitral NATIVA. Se devuelve una clave propia para que el llamador la distinga de
+     «no hay categoría»: la pantalla dice que no se gradúa y el informe no escribe nada. */
+  if (typeof protNoGradua === 'function' && protNoGradua('vm_morf'))
+    return { clave:'protesis', gm:null, fuentes:[], sev:[], noSev:[] };
+
+  /* Todas las fuentes VÁLIDAS, en el orden de preferencia de la ASE 2023. Se juntan TODAS y no
+     sólo la primera: con la preferencia decidiendo sola, una fuente válida que alcanza el corte
+     quedaba descartada y el informe negaba la estenosis. */
+  /* ⚠️ EL CERO NO ES UNA MEDICIÓN, Y ENTRABA COMO FUENTE VÁLIDA. `emAvmSevera` exige `n > 0`, así
+     que un `avm_plan` en 0 caía en `noSev` y hacía tres cosas a la vez: descartaba la planimetría por
+     ETE entera (es la rama `else`), degradaba una severa real a `probable` —basta un THP de 1,2
+     válido—, y publicaba en el informe firmado «AVm 0.00 cm² por planimetría, probablemente severa
+     por THP». Es la regla escrita de esta casa —«el cero se rechaza donde no puede ser una
+     medición»— aplicada donde faltaba. Lo cazó `/sharp-edges`.
+     Se filtra al ENTRAR y no al clasificar: filtrar después deja el 0 en `fuentes`, que es lo que
+     alimenta la rama de valores medidos y el detalle de la pantalla. */
+  const fuentes = [];
+  const _pos = x => x != null && x > 0;
+  const _plan = v('avm_plan'), _ete = v('avm_ete');
+  if (_pos(_plan))      fuentes.push({ avm:_plan, fuente:'planimetría' });
+  else if (_pos(_ete))  fuentes.push({ avm:_ete,  fuente:'planimetría por ETE' });
+  const _thp = v('avm_thp');   if (_pos(_thp)  && emThpValido())  fuentes.push({ avm:_thp,  fuente:'THP' });
+  const _cont = v('avm_cont'); if (_pos(_cont) && emContValido()) fuentes.push({ avm:_cont, fuente:'continuidad' });
+
+  const sev   = fuentes.filter(function(f){ return emAvmSevera(f.avm); });
+  const noSev = fuentes.filter(function(f){ return !emAvmSevera(f.avm); });
+  const gm = v('em_gmedio');
+  const _r = { gm:gm, fuentes:fuentes, sev:sev, noSev:noSev };
+
+  /* PREVALECE EL PEOR. Con todas las fuentes válidas por debajo del corte no hay nada que
+     matizar; con una sola por debajo, el matiz es «probablemente» y los DOS valores se publican
+     con su método, porque cuál discrepa es la información que el médico necesita para resolverlo. */
+  if (sev.length && !noSev.length) return Object.assign({ clave:'severa' }, _r);
+  if (sev.length && noSev.length)  return Object.assign({ clave:'probable' }, _r);
+  if (gm != null && gm > EM_GMEDIO_SIGNIF)
+    return Object.assign({ clave: emImSignificativa() ? 'gradiente_im' : 'gradiente' }, _r);
+  return Object.assign({ clave:'nada' }, _r);
+}
+window.emCategoria = emCategoria; window.EM_CAT_TXT = EM_CAT_TXT;
+window.EM_GMEDIO_SIGNIF = EM_GMEDIO_SIGNIF; window.emImSignificativa = emImSignificativa;
+/* ⚠️ `em_grado` VUELVE A TENER UN ESCRITOR, Y ES ÉSTE — el único. Escribe SÓLO «severa» (cuando la
+   regla da severa o probablemente severa) o «sin»; leve y moderada NO se autocompletan nunca.
+   Que escriba también «sin» no es un adorno: sin esa mitad el campo se queda RANCIO en cuanto el
+   médico corrige una medición y la categoría deja de ser severa, que es el defecto del «campo auto
+   que se calcula una vez» que este archivo documenta con `vp_gmax`.
+   ⚠️ LA MARCA DE QUIÉN LO ESCRIBIÓ ES `esqSevManual.em`, que ya existe, ya la escriben las dos
+   superficies con las que el médico elige el grado y —lo que la hace servir acá— YA SE PERSISTE
+   con el estudio (en el oculto `sev_manual`, vía `_sevManualSync`). No se inventó un campo oculto
+   nuevo: habría sido una segunda marca de lo mismo, y encima una que `limpiarCampos` no barre. */
+function emGradoAuto(cat){
+  const sel = document.getElementById('em_grado');
+  if (!sel) return;
+  if (window.esqSevManual && window.esqSevManual.em) return;   // lo eligió el médico → no se pisa
+  /* ⚠️ CON PRÓTESIS SE LIMPIA, NO SE SALE. Salir dejaba RANCIO el «severa» que esta misma función
+     había escrito con morfología nativa: el médico cargaba AVm 1,2 —la app escribía «severa»—, pasaba
+     la morfología a «Prótesis mecánica», y nada lo reescribía, porque el `onchange` de `vm_morf` no
+     llamaba a `calcEM`. El narrativo lo tomaba como grado explícito y publicaba «Válvula mitral con
+     prótesis mecánica, con estenosis severa (AVm 1.20 cm² …)» — que es literalmente el defecto que
+     la Fase A cerró, reabierto por el escritor nuevo. Y el EN SUMA «EM severa.», porque corre antes
+     de la compuerta de prótesis. Lo cazó `/sharp-edges`.
+     Limpiar no borra la elección del médico: el `return` de arriba ya salió si la marca está puesta,
+     así que acá sólo se borra lo que escribió la app. */
+  sel.value = (cat.clave !== 'protesis' && (cat.clave === 'severa' || cat.clave === 'probable'))
+    ? 'severa' : 'sin';
+}
+/* La marca que protege la elección del médico. La ponen `esqPills` y `valvSevMenu`; el desplegable
+   suelto de «grado final» NO la ponía, así que elegir el grado ahí y tocar después un campo del
+   bloque lo devolvía al autocálculo sin avisar — el mismo defecto que `autoCompletarSevIM` cerró de
+   su lado. Reemplaza al `onchange` que sólo repintaba la fila de onda E; esa llamada sigue adentro. */
+function emGradoManual(){
+  window.esqSevManual = window.esqSevManual || {};
+  window.esqSevManual.em = true;
+  /* El espejo persistido es `#sev_manual`, y quien lo escribe es `_sevManualSync`. Sin esta
+     línea la marca vive una sesión: al reabrir el estudio, el autocálculo pisaría el grado que
+     el médico eligió — que es exactamente el defecto que ese espejo vino a cerrar. */
+  try { if (typeof _sevManualSync === 'function') _sevManualSync(); } catch (e) {}
+  if (typeof imOndaESiExiste === 'function') imOndaESiExiste();
+}
+window.emGradoManual = emGradoManual;
+
+/* ⚠️ `sugerirSeveridadEM` SE ELIMINÓ (2026-09-28), y era UNO DE LOS DOS ESCRITORES de `em_grado`.
+   Su único trabajo era autocompletar leve/moderada/severa desde el AVm por THP, que es justo lo
+   que esta fase deroga: el grado lo elige el médico. El badge que pintaba lo sobrescribía `calcEM`
+   130 líneas más abajo —está documentado en el archivo— así que no se pierde ninguna superficie.
+   Se borra en vez de vaciarse: una función exportada que ya no escribe nada invita a volver a
+   colgarle el autocálculo, y contar los escritores de `em_grado` es la trampa que este archivo
+   documenta dos veces. Hoy queda UNO, y tampoco escribe el grado. */
 
 // ══ ESTENOSIS MITRAL INTEGRADA ══
 function calcEM() {
@@ -20738,7 +20996,6 @@ function calcEM() {
     const avmDisp = document.getElementById('em_avm_thp_display');
     if (avmDisp) avmDisp.value = avmStr + ' cm²';
     document.getElementById('em-thp-row').textContent = avmStr + ' cm²';
-    sugerirSeveridadEM(avm_thp_val);
   } else {
     document.getElementById('em-thp-row').textContent = '—';
   }
@@ -20810,7 +21067,10 @@ function calcEM() {
      score, no se auto-marca para el PDF, y se pinta el aviso. Derivar cada una por su cuenta es
      cómo terminan discrepando —la pantalla diciendo «no válida» y el PDF imprimiéndola tildada—,
      que es justo el defecto que /sharp-edges encontró en la primera versión de esta fase. */
-  const _contNoVota = _pVtimit.fuera || emContRegurgSignif();
+  /* Se pregunta a `emContValido()`, que es hoy el ÚNICO dueño de la validez: la composición que
+     estaba escrita acá —`_pVtimit.fuera || emContRegurgSignif()`— era literalmente la misma, y
+     dejarla local impedía que el informe y el Excel preguntaran lo mismo. Ver la tarea 4. */
+  const _contNoVota = !emContValido();
   {
     const _avisoEl = document.getElementById('em-cont-aviso');
     /* El MOTIVO, no un texto fijo: «hay regurgitación significativa» y «no pude leer la
@@ -20840,132 +21100,87 @@ function calcEM() {
     if (elIdx) elIdx.value = idx + ' cm²/m²';
   }
 
-  /* ══ CLASIFICACIÓN INTEGRADA — ESC/EACTS 2021-2025 + ASE 2023 ══
-     AVm     >2.5 leve · 1.5–2.5 moderada · ≤1.5 severa
-     G.medio  <5  leve · 5–9    moderada · ≥10 severa
+  /* ══ CATEGORÍA DE LA ESTENOSIS MITRAL NATIVA ═══════════════════════════════════════════════
+     Acá vivía la CASCADA DE GRADUACIÓN: un score de votos —AVm >2,5 leve · 1,5-2,5 moderada ·
+     ≤1,5 severa, y gradiente medio <5 / 5-9 / ≥10— que escribía `em_grado` y publicaba
+     «Severidad EM integrada». Se eliminó entera (2026-09-28, decisión de Maicol):
 
-     El THP NO vota aparte. El «AVm por THP» que ya se clasifica más abajo ES 220/THP: son la
-     misma medición expresada de dos formas. Votando las dos, un THP de 180 ms sumaba a la vez
-     «severa» (por AVm = 1,22) y «moderada» (por el umbral viejo de ≥220), o sea que una sola
-     medición se contaba dos veces y en contra de sí misma. Ver el bloque de AVM_SEVERA_MAX. */
-  /* ⚠️ LA CASCADA CLASIFICA EL ÁREA REDONDEADA, Y ESTO CAMBIA UN VEREDICTO PUBLICADO.
-     Medido el 2026-09-27: con un THP de 146,55 ms el área cruda es 1,50119 y las TRES superficies
-     —`avm_thp`, `em_avm_thp_display` y la fila `em-thp-row`— imprimen «1,50 cm²», pero la cascada
-     recibía el crudo, y `1,50119 > AVM_SEVERA_MAX` es verdadero, así que votaba MODERADA. O sea: la
-     pantalla mostraba 1,50 cm² al lado de una escala impresa que dice «≤1,5 severa», y el veredicto
-     decía moderada. Reproducido igual por continuidad, con 20 / 19,1144 / 40.
-     La regla del archivo es la de la FAC del VD, la de la geometría del VI y la del AVA aórtica:
-     clasifica el REDONDEADO, que es el que se guarda, el que se imprime y el que lee el informe.
-     El arreglo mueve el veredicto hacia SEVERA en la ventana del borde, o sea hacia el lado
-     conservador. Lo encontró el censo que replicó a las otras tres válvulas el trabajo de la
-     aórtica. */
-  let scores = { sin:0, leve:0, moderada:0, severa:0 };
-  let params = [];
+       · el «leve» por área abarcaba 2,5-4,0 cm² y una válvula mitral SANA mide 4-6 cm², así que
+         esa banda rotulaba estenosis leve a válvulas normales;
+       · y el grado leve/moderada/severa pasó a ser criterio del médico: la app NO lo autocompleta.
 
-  const clasificarAVm = (avm, fuente) => {
-    if (!avm) return;
-    /* ⚠️ UN ÁREA NORMAL NO VOTA UN GRADO DE ESTENOSIS, PERO SÍ SE REGISTRA. Si no se registrara,
-       desaparecería de la línea de discordancia y el médico perdería de vista que hay un área
-       sana conviviendo con, por ejemplo, un gradiente medio alto — que es justo el caso donde la
-       discordancia importa. Vota a `sin`, que NO está en la escalera de severidad. */
-    if (avmEsNormal(avm))          { scores.sin++;      params.push({p:`AVm(${fuente})`, sev:'sin'}); return; }
-    if (avm > AVM_MODERADA_MAX)    { scores.leve++;     params.push({p:`AVm(${fuente})`, sev:'leve'}); }
-    else if (avm > AVM_SEVERA_MAX) { scores.moderada++; params.push({p:`AVm(${fuente})`, sev:'moderada'}); }
-    else                           { scores.severa++;   params.push({p:`AVm(${fuente})`, sev:'severa'}); }
-  };
-
-  if (avm_plan)      clasificarAVm(PF(avm_plan), 'plan');
-  else if (avm_ete)  clasificarAVm(PF(avm_ete),  'ETE');
-  /* ⚠️ SE MUESTRA PERO NO VOTA. El área por continuidad sigue en pantalla —el médico la midió— y
-     lo único que se retira es su VOTO en la severidad integrada: con regurgitación significativa
-     el número no mide el área (ASE 2023). Retirarlo del score y dejarlo visible son las dos
-     mitades; publicar el número sin decir que no vota sería peor que no mostrarlo, y por eso el
-     aviso de arriba se pinta en el mismo recorrido.
-     NO se toca `avmMejor` ni el indexado: ésos publican «el área estimada», no gradúan, y
-     sacarle la continuidad cambiaría un número que hoy se imprime sin que nadie lo pida. */
-  if (avm_cont_val && !_contNoVota) clasificarAVm(avm_cont_val, 'cont');
-  if (avm_thp_val)   clasificarAVm(avm_thp_val,  'THP');
-
-  if (gmedio) {
-    const gm = PF(gmedio);
-    if (gm < 5)                            { scores.leve++;     params.push({p:'Gmedio', sev:'leve'}); }
-    else if (gm < GMED_MITRAL_SEVERO_MIN)  { scores.moderada++; params.push({p:'Gmedio', sev:'moderada'}); }
-    else                                   { scores.severa++;   params.push({p:'Gmedio', sev:'severa'}); }
-  }
-
-  /* Acá había un tercer voto por THP con la escala vieja (≥220 severa). Se quitó: el THP ya
-     entra al score como `AVm(THP)`, que es su conversión de Hatle. No se pierde información
-     —el THP se sigue mostrando y sigue alimentando el AVm—, se deja de contar dos veces. */
-
+     Lo que queda es la CATEGORÍA, con una sola función dueña —`emCategoria()`— que alimenta esta
+     pantalla, el informe narrativo, el EN SUMA y el PDF. `em_grado` ya NO se escribe desde acá:
+     con esto el campo se queda sin ningún escritor automático, que es lo pedido.
+     El AVm indexado y `avmMejor`, doce líneas más arriba, NO se tocaron: publican «el área
+     estimada» y no gradúan nada. */
   const sevEl   = document.getElementById('em-sev-integrada');
   const discEl  = document.getElementById('em-discordancia');
-  const gradSel = document.getElementById('em_grado');
-
-  if (params.length === 0) {
-    if (sevEl)  sevEl.innerHTML = '—';
-    if (discEl) discEl.textContent = '';
-    return;
-  }
-
-  let sev, color, gradoStr;
-  /* ⚠️ LA ÚLTIMA RAMA ES EXPLÍCITA, y antes el `else` mudo era «Leve»: con el piso puesto, un
-     estudio cuyo único parámetro es un AVm normal no tiene ningún voto de leve/moderada/severa y
-     ese `else` lo habría rotulado «Leve» igual — el defecto entrando por la puerta de atrás.
-     Es la misma corrección que este archivo ya hizo en `epGradoPorGmax`: lo no clasificable no
-     cae en ninguna banda. */
-  if (scores.severa >= 1) {
-    sev = 'Severa'; color = 'var(--red)'; gradoStr = 'severa';
-  } else if (scores.moderada >= 1) {
-    sev = 'Moderada'; color = '#f59e0b'; gradoStr = 'moderada';
-  } else if (scores.leve >= 1 && scores.sin === 0) {
-    sev = 'Leve'; color = '#3ecf8e'; gradoStr = 'leve';
-  } else if (scores.leve >= 1) {
-    /* ⚠️ UN ÁREA EXPLÍCITAMENTE NORMAL NO SE VUELVE «LEVE» POR EL GRADIENTE. La escala del
-       gradiente medio tiene la MISMA primera rama abierta que tenía la del área —`gm < 5` es el
-       cajón de sastre de todo lo chico—, así que un gradiente mitral NORMAL de 3 mmHg vota «leve»
-       y, al ganar en esta escalera, devolvía el informe a «estenosis leve» sobre la misma válvula
-       sana que el piso acababa de declarar normal. Medido: THP 53 (AVm 4,15 → sin) + Gmedio 3 →
-       `em_grado = 'leve'`. O sea: el defecto del pedido volvía entero por el parámetro de al lado.
-       Lo cazó `/sharp-edges`.
-       ⚠️ NO SE LE INVENTA UN PISO AL GRADIENTE: eso sería un umbral clínico nuevo y el pedido lo
-       prohíbe. Lo que se hace es leer el pedido al pie —«con área ≥4 cm² el RESULTADO debe ser
-       normal»—: un voto de «leve» no alcanza para contradecir un área normal. Un voto de moderada
-       o severa SÍ la contradice y gana, que es el caso clínicamente importante y sigue intacto:
-       las dos ramas de arriba corren primero. */
-    sev = 'Sin estenosis'; color = '#3ecf8e'; gradoStr = 'sin';
-  } else {
-    sev = 'Sin estenosis'; color = '#3ecf8e'; gradoStr = 'sin';
-  }
-
-  if (sevEl)  sevEl.innerHTML = `<span style="color:${color};font-weight:700;">${sev}</span> <span style="font-weight:400;color:var(--text2);font-size:10px;">${params.map(p=>p.p+':'+p.sev).join(' · ')}</span>`;
-  /* No se pisa el grado que el médico fijó a mano. `sugerirSeveridadEM` ya respeta
-     `esqSevManual.em`, pero esta línea corre DESPUÉS y sin guarda: el médico confirmaba «Severa»
-     en la pastilla, tocaba cualquier campo del bloque (THP, gradiente medio, VTI) y el grado
-     volvía al autocálculo sin aviso. `em_grado` baja al informe narrativo y a la tabla del PDF.
-     Es el mismo cierre que ya tienen `autoCompletarSevIM` y `autoCompletarSevIA`. */
-  /* ⚠️ Y ACÁ TAMBIÉN, que es el escritor que de verdad producía el «Moderada» de la captura:
-     `sugerirSeveridadEM` sólo corre por el THP, así que bloquear allá dejaba el caso del CONTEXTO
-     —AVm 2,0 por planimetría— exactamente igual. Medido: con la guarda sólo en la otra función,
-     `em_grado` seguía en «moderada». Dos escritores del mismo campo, y el censo por nombre de
-     función se quedaba con el primero. */
-  /* Una sola lectura para las dos ramas: son las dos mitades de la MISMA decisión —no escribir el
-     grado y decir por qué— y con dos llamadas podían divergir el día que la función deje de ser
-     una lectura pura del DOM. */
-  const _emProt = protNoGradua('vm_morf');
-  if (gradSel && !(window.esqSevManual && window.esqSevManual.em) && !_emProt) gradSel.value = gradoStr;
-  if (_emProt && sevEl) sevEl.textContent = PROT_SIN_GRADO_TXT;
-
-  const sevs = [...new Set(params.map(p=>p.sev))];
-  if (discEl) discEl.textContent = sevs.length > 1 ? '⚠️ Parámetros discordantes — revisar integración clínica: ' + params.map(p=>`${p.p}:${p.sev}`).join(', ') : '';
-
   const badgeEl = document.getElementById('em-thp-badge');
-  /* ⚠️ ESTE BADGE PISA AL DE `sugerirSeveridadEM`, que corre 130 líneas antes sobre el MISMO
-     nodo: el mensaje que explicaba el rango normal no se veía NUNCA, porque con THP cargado
-     `params` nunca está vacío. Era justo la superficie que le explica al médico por qué un área
-     de 4,15 dejó de decir «leve». Se dice acá, que es el único badge que sobrevive. */
-  if (badgeEl && params.length > 0) badgeEl.textContent = (gradoStr === 'sin')
-    ? `AVm dentro del rango normal (>=${AVM_NORMAL_MIN} cm²) — sin estenosis. El grado final es editable.`
-    : `Clasificación integrada sugerida: ${sev}. El grado final es editable.`;
+  const cat = emCategoria();
+
+  /* ESCRIBE `em_grado`, y es el ÚNICO que lo hace. Va ANTES de pintar para que la pantalla y el
+     campo no puedan quedar desfasados dentro de la misma corrida. */
+  emGradoAuto(cat);
+
+  if (sevEl) {
+    if (cat.clave === 'protesis') {
+      sevEl.textContent = PROT_SIN_GRADO_TXT;
+    } else if (cat.clave === 'nada') {
+      /* Con datos y sin categoría se DICE que no hay, y sin ningún dato queda la raya: son dos
+         estados distintos y colapsarlos haría que «se midió y no alcanza el corte» se lea igual
+         que «nadie midió nada». */
+      sevEl.textContent = (cat.fuentes.length || cat.gm != null)
+        ? 'Sin criterios de EM severa' : '\u2014';
+    } else {
+      const _col = (cat.clave === 'severa') ? 'var(--red)' : '#f59e0b';
+      const _det = [];
+      cat.fuentes.forEach(function(f){ _det.push('AVm ' + f.avm.toFixed(2) + ' cm² por ' + f.fuente); });
+      if (cat.gm != null) _det.push('gradiente medio ' + cat.gm + ' mmHg');
+      /* Por DOM y no por `innerHTML` concatenado: el detalle lleva el nombre de la fuente, que es
+         un literal del archivo, pero la regla `ceibo-xss-innerhtml-concat` marca la concatenación
+         y no el dato — y este archivo ya reescribió tres avisos por lo mismo. */
+      sevEl.textContent = '';
+      const _b = document.createElement('span');
+      _b.style.cssText = 'color:' + _col + ';font-weight:700;';
+      _b.textContent = EM_CAT_TXT[cat.clave];
+      sevEl.appendChild(_b);
+      if (_det.length) {
+        const _s = document.createElement('span');
+        _s.style.cssText = 'font-weight:400;color:var(--text2);font-size:10px;';
+        _s.textContent = ' ' + _det.join(' · ');
+        sevEl.appendChild(_s);
+      }
+    }
+  }
+
+  /* DISCORDANCIA entre áreas VÁLIDAS a los dos lados del corte. Antes comparaba los grados del
+     score, que ya no existe. Hoy la decide `emCategoria` —clave `probable`— y acá sólo se pinta:
+     derivarla otra vez sería la segunda lectura de la misma regla. */
+  if (discEl) {
+    discEl.textContent = (cat.clave === 'probable')
+      ? '⚠️ Áreas discordantes — prevalece el peor: ' +
+        cat.fuentes.map(function(f){ return f.fuente + ' ' + f.avm.toFixed(2); }).join(', ')
+      : '';
+  }
+
+  /* El badge dice POR QUÉ el THP no vota —el número se sigue viendo arriba, así que sin esta línea
+     quedaría un área publicada y silenciosamente descontada—, y si no, de quién es el grado. Con
+     prótesis, la leyenda de la Fase A. */
+  /* ⚠️ EL DISPARADOR DEL CONSUMIDOR NUEVO. `imOndaEPintar` ahora consulta `emCategoria()`, y lo
+     llamaban sólo el envoltorio de `calcDiastol` y `calcIM_ESC`: tipear el AVm o el gradiente medio
+     —lo único que mueve la categoría— no repintaba la fila, así que quedaba «Onda E ≥ 120 cm/s —
+     apoya IM severa» al lado de una EM severa recién afirmada. Es «un consumidor nuevo sin su
+     disparador», el patrón que este archivo documenta tres veces. Lo cazó `/sharp-edges`. */
+  if (typeof imOndaESiExiste === 'function') { try { imOndaESiExiste(); } catch (e) {} }
+
+  if (badgeEl) {
+    if (protNoGradua('vm_morf')) badgeEl.textContent = PROT_SIN_GRADO_TXT;
+    else if (v('avm_thp') != null && !emThpValido()) badgeEl.textContent = emThpMotivoNoVota();
+    else if (window.esqSevManual && window.esqSevManual.em) badgeEl.textContent = 'Grado fijado a mano — el autocálculo no lo pisa.';
+    else if (!cat.fuentes.length && cat.gm == null) badgeEl.textContent = '';
+    else badgeEl.textContent = 'Leve y moderada las elige el médico; «severa» la completa la app cuando el AVm es \u22641,5 cm².';
+  }
 }
 function usarTSVIenEM(val) {
   setv('em_dtsvi', val);
@@ -22336,6 +22551,18 @@ function imOndaEPintar() {
   const raya = () => { el.textContent = '\u2014'; };
   const emG = sv('em_grado');
   if (emG === 'leve' || emG === 'moderada' || emG === 'severa') { raya(); return; }
+  /* ⚠️ Y TAMBIÉN POR LA CATEGORÍA, que desde el 28/09 es la que sabe si hay estenosis. Con la
+     graduación automática derogada, `em_grado` se queda en «sin» salvo que la regla dé severa o que
+     el médico elija, así que el gate de arriba dejó de dispararse en el caso que importa: una AVm de
+     1,2 cm² con onda E 135 publicaba «apoya IM severa» sobre un llenado acelerado por la obstrucción
+     que la app acababa de afirmar dos tarjetas más allá. Lo cazó `/sharp-edges`.
+     Se pregunta a la función DUEÑA y no se rehace el criterio. `gradiente` y `gradiente_im` también
+     apagan la fila: ahí el gradiente transmitral alto sube la onda E por el mismo mecanismo. */
+  if (typeof emCategoria === 'function') {
+    try { const _c = emCategoria().clave;
+      if (_c === 'severa' || _c === 'probable' || _c === 'gradiente' || _c === 'gradiente_im') { raya(); return; }
+    } catch (e) { console.warn('[imOndaE] emCategoria', e); }
+  }
   /* Se usa el predicado del archivo y no un regex propio: `valvEsProtesis` sobre
      `VALV_PROT_OPCIONES` es el único dueño de esta pregunta y ya se lo llama con esta misma guarda
      desde otros dos puntos. Un segundo dueño diverge sin que nada lo señale — que es el defecto
@@ -25334,23 +25561,101 @@ function generarInforme(opts) {
        opción sola y vaga; con las tres nombradas hay que revisarla. Ver la nota de
        `VALV_MORF_FRASE`: queda declarado, no hecho. */
     if (Object.prototype.hasOwnProperty.call(VALV_MORF_ETIOL, String(vmMorf).trim())) ccMarcarParrafo();
-    const emDesc = emG && emG !== 'sin' ? emG.toLowerCase() : null;
-    /* ⚠️ `'sin'` ES UNA RESPUESTA, NO UN HUECO. La píldora sólo aporta la palabra «estenosis»
-       cuando el campo NO dice nada; con `em_grado = 'sin'` el cuerpo publicaba «Válvula mitral,
-       con estenosis» y el EN SUMA «Estenosis mitral.» sobre una válvula que el propio clasificador
-       acababa de declarar normal.
-       Esta rama era casi inalcanzable antes del piso —con cualquier medición el grado caía en
-       leve/moderada/severa— y el piso la volvió alcanzable JUSTO en el caso que vino a arreglar. Y
-       es el flujo obligatorio al reabrir un estudio, porque `limpiarCampos` borra las píldoras y
-       el médico las vuelve a abrir. Lo cazó `/sharp-edges`.
-       De paso desmiente al comentario de `toggleValvPill` —«el informe se arma desde el campo, no
-       desde el botón»—, que era falso exactamente por estas líneas. */
-    const emSinExplicito = emG === 'sin';
-    const estE = emDesc ? `estenosis ${emDesc}` : ((!emSinExplicito && pillOn('mitral','esten')) ? 'estenosis' : null);
+    /* ⚠️ EL GRADO QUE ESCRIBIÓ LA APP NO ES «LA ELECCIÓN DEL MÉDICO», Y DE ESO DEPENDE QUÉ SE
+       IMPRIME. Desde que `emGradoAuto` completa «severa», `em_grado` deja de ser sólo la voz del
+       médico: si esta línea lo tomara sin distinguir, el cuerpo publicaría «con estenosis severa» a
+       secas —la redacción del grado— y el área con su método se perdería, que es justo lo que esta
+       fase vino a poner en el papel. Lo destapó la primera corrida de TC-306: «EM severa.» sin un
+       número al lado, en las cinco condiciones a la vez.
+       Quién lo escribió lo dice `esqSevManual.em`, y ésa es la razón de ser de la marca.
+       ⚠️ SE EXIGE ADEMÁS QUE LA CATEGORÍA COINCIDA, y no es redundante: es lo que protege a los
+       ESTUDIOS YA GUARDADOS. Los de antes del 28/09 traen un grado escrito por la escalera derogada
+       y SIN marca, así que son indistinguibles de una elección a mano. Con esta condición, un
+       «moderada» viejo se sigue imprimiendo tal cual —la categoría de hoy no dice «moderada» nunca,
+       así que la rama no se activa— y sólo un «severa» que la regla de hoy TAMBIÉN afirma se
+       reescribe con su área. Ninguno pierde el veredicto que tenía. */
+    const _emManualPrev = !!(window.esqSevManual && window.esqSevManual.em);
+    const _emCatPrev = (typeof emCategoria === 'function') ? emCategoria().clave : 'nada';
+    const _emAppSevera = !_emManualPrev && emG === 'severa' &&
+                         (_emCatPrev === 'severa' || _emCatPrev === 'probable');
+    const emDesc = (emG && emG !== 'sin' && !_emAppSevera) ? emG.toLowerCase() : null;
+    /* ══ LA CATEGORÍA ENTRA ACÁ, Y NO ES UN GRADO ══════════════════════════════════════════════
+       Precedencia: el grado que el MÉDICO eligió gana siempre —«si el médico elige un grado a mano,
+       se imprime su elección»— y sólo cuando no eligió ninguno habla la categoría. La píldora queda
+       última, como estaba.
+       ⚠️ Y «sin» SÓLO CUENTA COMO RESPUESTA SI LA MARCÓ EL MÉDICO. Es el valor de fábrica del
+       desplegable, así que antes de esta fase sólo se alcanzaba con el formulario en blanco —`calcEM`
+       autocompletaba en cuanto hubiera una medición— y el narrativo lo trataba como una decisión.
+       Con el autocálculo derogado, ese default sobrevive a todo estudio medido, y leerlo como
+       respuesta hacía que el informe FIRMADO dijera «sin estenosis ni insuficiencia» —en Conciso,
+       «VM normal.»— sobre una válvula con AVm 2,0 cm² y gradiente 3 mmHg. Una negación
+       tranquilizadora sobre un dato medido, que es lo que este archivo persigue desde el TEER. Lo
+       cazó `/sharp-edges`. La marca es `esqSevManual.em`, la misma que protege la elección.
+       Las frases son las cuatro definidas y no se agrega ninguna más. Encajan en el molde de
+       `fraseEI` sin cambiar una coma de los tres estilos: el slot de «estenosis» acepta cualquier
+       sintagma, así que `gradiente transmitral elevado` entra ahí SIN la palabra «estenosis», que
+       es toda la razón de ser de esa salida.
+       Sobre una PRÓTESIS `emCategoria()` devuelve `protesis` y esto no aporta nada: la Fase A ya
+       decidió que la app no gradúa esa válvula con cortes nativos. */
+    const emCat = (typeof emCategoria === 'function') ? emCategoria() : { clave:'nada', fuentes:[], sev:[], noSev:[], gm:null };
+    const _emManual = _emManualPrev;
+    const emSinExplicito = emG === 'sin' && _emManual;
+    /* ⚠️ UN «SIN ESTENOSIS» ELEGIDO A MANO CALLA A LA CATEGORÍA. Sin esta compuerta, el médico
+       marcaba «Sin estenosis» sobre un AVm de 1,3 cm² y el cuerpo publicaba «con estenosis severa
+       (AVm 1.30 cm² por planimetría)» igual: la app contradecía por escrito la única respuesta
+       explícita que tenía. También lo destapó la primera corrida de TC-306.
+       Es la misma regla de siempre, aplicada entera: la elección del médico gana, y gana también
+       cuando lo que elige es la negación. El número no desaparece —la pantalla sigue mostrando la
+       categoría con su área y el badge dice que el grado está fijado a mano—, así que la
+       discrepancia es visible donde se trabaja y no en el papel firmado. */
+    /* ⚠️ Y SILENCIA LO QUE LA CONTRADICE, NO TODO. La primera versión apagaba las cuatro claves, y
+       `gradiente_im` existe precisamente porque ahí NO hay estenosis —el gradiente sube por volumen—,
+       así que un médico que marca «Sin estenosis» está siendo CONSISTENTE con esa frase y con ese
+       gesto la borraba del informe. Un hallazgo independiente perdido por una respuesta correcta.
+       Lo cazó `/sharp-edges`. Sólo `severa` y `probable` afirman la estenosis que él niega. */
+    const _emCatAct = ['severa','probable','gradiente','gradiente_im'].indexOf(emCat.clave) > -1 &&
+                      !(emSinExplicito && (emCat.clave === 'severa' || emCat.clave === 'probable'));
+    /* Un solo formateador para las cuatro superficies —cuerpo, EN SUMA y los dos rótulos cortos—:
+       con uno por superficie, el número y su método se escriben distinto en el mismo documento. */
+    const _emAvm = f => 'AVm ' + f.avm.toFixed(2) + ' cm² por ' + f.fuente;
+    const _emUnir = a => a.length > 1
+      ? a.slice(0, -1).join(', ') + ' y ' + a[a.length - 1] : (a[0] || '');
+    /* DISCORDANCIA: los DOS valores con su método, y prevalece el PEOR. «probablemente» se usa
+       SÓLO acá, con el método que da ≤1,5 — es el matiz que separa «una fuente lo dice» de «todas
+       lo dicen», y sin él el informe afirmaría con la misma seguridad en los dos casos. */
+    const _emDisc = () => _emUnir(emCat.noSev.map(_emAvm)) + ', probablemente severa por ' +
+      _emUnir(emCat.sev.map(f => f.fuente + ' (AVm ' + f.avm.toFixed(2) + ' cm²)'));
+    const EM_CAT_EST = {
+      severa:       () => 'estenosis severa (' + _emUnir(emCat.sev.map(_emAvm)) + ')',
+      probable:     _emDisc,
+      gradiente:    () => 'estenosis con gradiente medio elevado',
+      gradiente_im: () => 'gradiente transmitral elevado'
+    };
+    const EM_CAT_CORTO = {
+      severa:       () => 'EM severa (' + _emUnir(emCat.sev.map(_emAvm)) + ')',
+      probable:     _emDisc,
+      gradiente:    () => 'EM con gradiente elevado',
+      gradiente_im: () => 'gradiente transmitral elevado'
+    };
+    const EM_CAT_SUMA = {
+      severa:       () => 'Estenosis mitral severa (' + _emUnir(emCat.sev.map(_emAvm)) + ').',
+      probable:     () => 'Estenosis mitral probablemente severa por ' +
+                          _emUnir(emCat.sev.map(f => f.fuente + ' (AVm ' + f.avm.toFixed(2) + ' cm²)')) +
+                          ', con ' + _emUnir(emCat.noSev.map(_emAvm)) + '.',
+      gradiente:    () => 'EM con gradiente elevado.',
+      gradiente_im: () => 'Gradiente transmitral elevado.'
+    };
+    const estE = emDesc ? `estenosis ${emDesc}`
+               : _emCatAct ? EM_CAT_EST[emCat.clave]()
+               : ((!emSinExplicito && pillOn('mitral','esten')) ? 'estenosis' : null);
     const insE = (imG > 0) ? `insuficiencia ${imTxt[imG]}` : (pillOn('mitral','insuf') ? 'insuficiencia' : null);
-    const estC = emDesc ? `EM ${emDesc}` : ((!emSinExplicito && pillOn('mitral','esten')) ? 'estenosis' : null);
+    const estC = emDesc ? `EM ${emDesc}`
+               : _emCatAct ? EM_CAT_CORTO[emCat.clave]()
+               : ((!emSinExplicito && pillOn('mitral','esten')) ? 'estenosis' : null);
     const insC = (imG > 0) ? `IM ${imTxt[imG]}` : (pillOn('mitral','insuf') ? 'insuficiencia' : null);
-    if (emDesc) suma.push(`EM ${emDesc}.`); else if (estE) suma.push('Estenosis mitral.');
+    if (emDesc) suma.push(`EM ${emDesc}.`);
+    else if (_emCatAct) suma.push(EM_CAT_SUMA[emCat.clave]());
+    else if (estE) suma.push('Estenosis mitral.');
     if (imG > 0) suma.push(`IM ${imTxt[imG]}.`); else if (insE) suma.push('Insuficiencia mitral.');
     const cE = fraseEI(estE, insE), cC = fraseEI(estC, insC);
     /* ══ PRÓTESIS: LA FRASE SE ARMA CON LO QUE LA APP PUEDE SOSTENER, Y NADA MÁS ════════════════
@@ -25382,7 +25687,21 @@ function generarInforme(opts) {
          usa «de etiología X» porque varias etiquetas ya traen su propio paréntesis. */
       if (_aPlan !== null)      _vmVals.push(`AVm ${_aPlan} cm² por planimetría`);
       else if (_aEte !== null)  _vmVals.push(`AVm ${_aEte} cm² por ETE`);
-      if (_aCont !== null)      _vmVals.push(`AVm ${_aCont} cm² por continuidad`);
+      /* ⚠️ LA MARCA «(revisar)» SE PIERDE ACÁ, Y POR ESO EL NÚMERO NO SE IMPRIME. `v('avm_cont')`
+         parsea «0.63 cm² (revisar)» como 0.63, así que esta línea publicaba en el informe FIRMADO
+         un área que la pantalla acababa de declarar no válida —fuera de banda, o con regurgitación
+         significativa (ASE 2023)— y sin una palabra que lo dijera. Era la deuda que la Fase B dejó
+         declarada y no corregida.
+         Se OMITE en vez de marcarse porque el pedido prohíbe texto nuevo en el papel, y un número
+         sin su reparo es peor que su ausencia: en pantalla el médico lo sigue viendo con su marca y
+         con el motivo al lado, que es donde puede corregirlo.
+         Se pregunta a `emContValido()`, la MISMA función que decide el voto en `calcEM` y la que
+         gatea la columna del Excel: un predicado copiado acá sería la tercera lectura de la misma
+         regla, que es exactamente cómo el informe y la planilla empiezan a discrepar. */
+      /* Falla CERRADO —sin la función no se publica— porque la dirección segura acá es omitir un
+         número, no publicar uno que nadie pudo validar. */
+      if (_aCont !== null && typeof emContValido === 'function' && emContValido())
+        _vmVals.push(`AVm ${_aCont} cm² por continuidad`);
       if (_aThp !== null)       _vmVals.push(`AVm ${_aThp} cm² por THP`);
       const _gmedM = v('em_gmedio'); if (_gmedM !== null) _vmVals.push(`gradiente medio ${_gmedM} mmHg`);
       const _vmaxM = v('em_vmax');   if (_vmaxM !== null) _vmVals.push(`Vmax ${_vmaxM} m/s`);
@@ -25397,6 +25716,35 @@ function generarInforme(opts) {
         `VM ${_vmDe}${_fC}${_vmValsTxt}.`,
         `Válvula mitral ${_vmDe}${_fE}${_vmValsTxt}.`,
         `La válvula mitral presenta ${_vmPres}${_fE}${_vmValsTxt}.`);
+    } else if (!estE && emCat.clave === 'nada' && (emCat.fuentes.length || emCat.gm != null)) {
+      /* ⚠️ LOS VALORES MEDIDOS, SIN VEREDICTO. Decisión de Maicol (2026-09-28) sobre un hallazgo de
+         `/sharp-edges`: con la graduación automática derogada, un estudio con AVm 2,0 cm² por
+         planimetría y gradiente medio 3 mmHg caía en la rama de abajo y el informe FIRMADO decía
+         «sin estenosis ni insuficiencia» —en Conciso, «VM normal.»—. Eso es una negación
+         tranquilizadora sobre una válvula medida, y la app afirma en el mismo commit que una mitral
+         sana mide 4-6 cm². No se inventa una frase: es el MISMO molde que la Fase A eligió para la
+         prótesis —morfología + valores medidos, sin veredicto— y por el mismo argumento.
+         Sólo entran las fuentes VÁLIDAS, así que un AVm por continuidad invalidado no se publica
+         acá tampoco: es la misma compuerta de la tarea 4.
+         ⚠️ YA NO EXIGE `!_emManual`. Con «Sin estenosis» elegido a mano sobre un AVm de 2,0 y un
+         gradiente de 3 esta rama se salteaba y el informe caía en «VM normal.», perdiendo los dos
+         números — la misma negación sobre una válvula medida que esta rama vino a cerrar, sólo que
+         habilitada por la respuesta del médico en vez del valor de fábrica. Publicar los valores SIN
+         veredicto es compatible con su «sin»: no lo contradice, lo respalda con lo que se midió.
+         ⚠️ NO llama a `ccMarcarParrafo()`, y es deliberado: con la categoría en `nada` la frase
+         «sin alteraciones significativas» del EN SUMA es CIERTA —la regla acaba de decir que nada
+         alcanza el corte—, y marcar párrafo la degradaría en todo estudio al que alguien le midió
+         un THP o un gradiente mitral, que es cuando este molde se usa. Un resumen que deja de negar
+         siempre deja de significar algo. Queda declarado. */
+      const _emMed = emCat.fuentes.map(_emAvm);
+      if (emCat.gm != null) _emMed.push('gradiente medio ' + emCat.gm + ' mmHg');
+      const _emMedTxt = ' (' + _emMed.join(', ') + ')';
+      const _emIns  = insE ? `, con ${insE}` : '';
+      const _emInsC = insC ? `, con ${insC}` : '';
+      vmSent = estiloPick(
+        `VM ${_vmDe}${_emInsC}${_emMedTxt}.`,
+        `Válvula mitral ${_vmDe}${_emIns}${_emMedTxt}.`,
+        `La válvula mitral presenta ${_vmPres}${_emIns}${_emMedTxt}.`);
     } else if (!estE && !insE) {
       vmSent = estiloPick(
         `VM normal.`,
@@ -30322,16 +30670,39 @@ function mostrarCardSeveridadValvular(onConfirm) {
        por continuidad que la app acababa de invalidar, sin la salvedad en ninguna superficie.
        Una sola llamada después de los tres, y no una por `setGrade`: el recálculo tiene que ver
        los tres valores ya escritos. */
+    /* ⚠️ Y LO QUE SE ELIGE ACÁ QUEDA MARCADO COMO MANUAL, que es lo que la tarjeta PROMETE por
+       escrito: «Lo que confirmes acá queda cargado en la tab Válvulas». Asignar por `.value` no
+       dispara el `onchange`, así que la marca no se ponía y el `emContRefrescar()` de abajo pisaba la
+       elección en el mismo gesto de confirmar. Desde el 28/09 la pisa con «sin»: el médico juzgaba
+       severa por criterio clínico sin AVm cuantificada, elegía «Severa», y el PDF que salía a
+       continuación decía «VM normal». Una elección explícita convertida en su negación, en el
+       documento firmado, por el propio acto de confirmarla. Lo cazó `/sharp-edges`.
+       Se marca sólo lo que CAMBIÓ: marcar un clon que el médico no tocó convertiría «mirar la
+       tarjeta» en «fijar todos los grados a mano» y dejaría los campos rancios para siempre. */
     CLONADOS.forEach(id => {
       const dst = document.getElementById(id);
       const src = ov.querySelector('select[data-target="' + id + '"]');
-      if (dst && src) dst.value = src.value;
+      if (!dst || !src) return;
+      const cambio = String(dst.value) !== String(src.value);
+      dst.value = src.value;
+      if (cambio) {
+        window.esqSevManual = window.esqSevManual || {};
+        window.esqSevManual[id.replace('_grado','')] = true;
+      }
     });
+    if (typeof _sevManualSync === 'function') _sevManualSync();
     /* ⚠️ VA DESPUÉS DE `CLONADOS`, Y NO ANTES — lo cazó el caso nuevo de TC-305, no la lectura.
        `CLONADOS` incluye `em_grado`, así que repone el grado que el médico vio en la tarjeta: con
        el recálculo antes, `calcEM` corregía el grado y la línea de abajo lo pisaba de vuelta con
        el valor rancio del clon. La pantalla mostraba la salvedad y el oculto seguía en «severa»
-       — las dos mitades en desacuerdo, y la que viaja al PDF era la equivocada. */
+       — las dos mitades en desacuerdo, y la que viaja al PDF era la equivocada.
+       ⚠️ Y HOY EL ORDEN SIGUE IMPORTANDO, POR OTRO MOTIVO. Desde el 28/09 `calcEM` vuelve a
+       escribir `em_grado` —sólo «severa» o «sin», por `emGradoAuto`— y respeta `esqSevManual.em`.
+       Elegir el grado de EM en esta tarjeta NO pone esa marca: los clones se asignan por `.value`
+       y eso no dispara el `onchange` que la pone. O sea que un «moderada» elegido acá lo pisa el
+       `emContRefrescar()` de abajo si la regla da severa, y lo respeta si no. Queda DECLARADO: la
+       superficie donde la elección del médico SÍ se protege es el desplegable de la pestaña
+       Válvulas y la pastilla de severidad. */
     if (typeof emContRefrescar === 'function') emContRefrescar();
     ov.remove();
     if (onConfirm) onConfirm();
@@ -32135,9 +32506,14 @@ function generarPDFReal(_aj) {
       {lbl:'EROA',          ref:'(<20 / 20–40 / ≥40) mm²', val:imEroaPdfVal()},
       {lbl:'Vol.R',         ref:'(<30 / 30–60 / ≥60) ml', val:imVolrPdfVal()},
       {lbl:'EM grado',      ref:'', val:(sv('em_grado')&&sv('em_grado')!=='sin')?_cap(sv('em_grado')):null},
-      {lbl:'AVm',           ref:'(>2.5 / 1.5–2.5 / ≤1.5) cm²', val:emAvmPdfVal()},
+      /* ⚠️ LA COLUMNA `ref` PUBLICABA LA ESCALERA DEROGADA EN EL PAPEL FIRMADO: «(>2.5 / 1.5–2.5
+         / ≤1.5) cm²», o sea leve/moderada/severa por área. Desde el 28/09 la app no gradúa la EM
+         por área y la banda «leve» no la publica ninguna guía. Queda el ÚNICO corte vivo. Es la
+         regla que este archivo ya fijó con el AVA aórtica: los rótulos se mueven con el predicado
+         o el PDF se contradice solo. */
+      {lbl:'AVm',           ref:'(severa ≤1.5) cm²', val:emAvmPdfVal()},
       /* ⚠️ SIN BANDA DE REFERENCIA, Y A PROPÓSITO. Las otras filas de esta tabla imprimen su
-         escala al lado —`AVm (>2.5 / 1.5–2.5 / ≤1.5) cm²`—, y ésa es NATIVA. Poner una escala al
+         escala al lado —la del AVm, por ejemplo—, y ésa es NATIVA. Poner una escala al
          lado del DVI de una prótesis reproduciría el defecto que el diagnóstico del 2026-09-27
          encontró: la referencia nativa impresa junto a un dato protésico se lee como aplicable.
          Los cortes de prótesis los define la Fase 2, y hasta entonces acá va el valor y nada más.
@@ -53363,6 +53739,21 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      ⚠️ Y HOY ES ADEMÁS REDUNDANTE: el `calcDiastol()` de arriba arrastra `calcVenaPulm` por su
      envoltorio. Se conserva porque es idempotente y porque no depende de que ese envoltorio siga
      existiendo — pero si alguien la ve dos veces, es esto. */
+  /* ⚠️ LA MARCA DEL ESTUDIO, ANTES DE CUALQUIER RECÁLCULO. Es la TERCERA columna de
+     `_sevManualRestaurar`: `editarInforme` y `cargarEstudioPorId` la tenían y esta ruta NO, aunque
+     el barrido de campos de arriba ya repuso el oculto `sev_manual` — nadie lo leía, así que en esta
+     ventana `window.esqSevManual` era el de la SESIÓN, o sea vacío después de un F5 o un «Nuevo
+     estudio». El respaldo/reposición de las líneas 53433 y 53766 protege a la sesión de lo que pase
+     acá adentro; no traía la marca del estudio hacia adentro.
+     ⚠️ Y DESDE EL 28/09 ESO BORRA UN GRADO FIRMADO. El `calcIM_ESC()` de la línea siguiente arrastra
+     `sincronizarGradoIM` → `emContRefrescar` → `calcEM` → `emGradoAuto`, que sin la marca escribe
+     «severa» o **«sin»**. Un estudio guardado con `em_grado='moderada'` se reimprimía con «sin» y el
+     papel decía «Válvula mitral normal» — y la población en riesgo es justo la que este commit vino
+     a proteger, porque hasta ahora el desplegable de grado final no ponía la marca, así que ningún
+     estudio anterior la trae. Antes del commit el mismo camino existía pero la escalera reescribía
+     leve/moderada/severa desde las mediciones: el daño pasó de REGRADUAR a NEGAR. Lo cazó
+     `/sharp-edges` sobre este diff. */
+  if (typeof _sevManualRestaurar === 'function') _sevManualRestaurar();
   if (typeof calcVenaPulm === 'function') calcVenaPulm();
   if (typeof calcIM_ESC === 'function') calcIM_ESC();
   if (typeof calcIA_ESC === 'function') calcIA_ESC();
@@ -68078,7 +68469,15 @@ function _labExcelRow(inf) {
        Los ids se verificaron contra el DOM uno por uno. */
     // Mismo predicado que los seis consumidores de la app: `'1'` o `'true'`.
     'Caso de interés (S/N)': (c.caso_interes === '1' || c.caso_interes === 'true') ? 1 : 0,
-    'AVm continuidad (cm²)': rnd(num('avm_cont'),2), 'AVm planimetría (cm²)': rnd(num('avm_plan'),2),
+    /* ⚠️ LA COLUMNA SE VACÍA CUANDO LA CONTINUIDAD NO VALE, y este archivo va a CeiboAnalytics —o
+       sea que cruza a otra frontera de confianza, donde nadie tiene la pantalla al lado para ver
+       la marca «(revisar)» ni el aviso de regurgitación—. `num('avm_cont')` parsea «0.63 cm²
+       (revisar)» como 0,63, así que la celda venía publicando como medición un área invalidada.
+       `emContValido(c)` es la MISMA función que decide el voto en `calcEM` y la que gatea la línea
+       de prótesis del informe; se le pasa `c` porque acá no hay formulario que leer. Vaciar y no
+       marcar: es una columna numérica y un texto la volvería inimportable. */
+    'AVm continuidad (cm²)': (typeof emContValido === 'function' && !emContValido(c)) ? '' : rnd(num('avm_cont'),2),
+    'AVm planimetría (cm²)': rnd(num('avm_plan'),2),
     'AVA continuidad (cm²)': rnd(num('ava_cont'),2), /* «AVm indexada» y NO «AVAi»: `avm_idx` es el área MITRAL indexada —así lo rotula su propio
        campo en el formulario— y AVAi en ecocardiografía es la AÓRTICA. Salía pegada a «AVA
        continuidad», que sí es aórtica, así que se leía como su par; y el mismo libro ya tiene una
@@ -82700,8 +83099,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260928-1221';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790608891217;                 /* eco-build-ms */
+const ECO_BUILD    = '20260928-1712';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790626322783;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -82787,7 +83186,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-1221</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-1712</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -84770,7 +85169,8 @@ const ECO_AYUDA = [
 <p class="mP">Mitral (E, A, e’ septal y lateral, TDE, TRIV), aórtico (Vmax, gradientes, VTI del TSVI) y tricuspídeo. Los cocientes E/A y E/e’ y los gradientes se derivan solos y se limpian si borrás el origen.</p>
 
 <div class="mSub">🫀 Válvulas</div>
-<p class="mP">Seis válvulas con su grado y su morfología. La severidad de las regurgitaciones se integra con PISA, vena contracta y los criterios de soporte; las estenosis, con área, gradiente medio y THP.</p>
+<p class="mP">Seis válvulas con su grado y su morfología. La severidad de las regurgitaciones se integra con PISA, vena contracta y los criterios de soporte.</p>
+<div class="mBox mAviso"><b>Estenosis mitral: la app completa sólo «severa».</b> Con un área valvular válida ≤ 1,5 cm² escribe el grado en «severa» (ASE 2023 · AHA/ACC 2020; la ESC/EACTS 2021 usa el mismo corte y lo llama «clínicamente significativa»). <b>Leve y moderada las elige el médico</b> y la app no las autocompleta: la banda «leve» por área que tenía antes llegaba hasta 4 cm² y no la publica ninguna guía — una mitral sana mide 4-6 cm² (ASE 2023). Con área &gt; 1,5 y gradiente medio &gt; 4 mmHg el informe dice «EM con gradiente elevado»; si además hay insuficiencia mitral moderada o mayor dice «gradiente transmitral elevado», <b>sin</b> la palabra estenosis, porque ahí el gradiente sube por volumen y no por obstrucción. Si dos áreas válidas caen a los dos lados del corte se publican las dos con su método y prevalece el peor. El área por continuidad no vale con regurgitación mitral o aórtica significativa y el THP no vale con insuficiencia aórtica severa: ahí el número se muestra y se retira del cálculo, y la pantalla dice por qué.</div>
 <div class="mBox mAviso"><b>Estenosis tricuspídea: es binaria, no se gradúa.</b> No hay clasificación leve/moderada/severa validada. Basta con que se cumpla <b>uno</b> de los tres criterios —gradiente medio ≥ 5 mmHg, THP ≥ 190 ms, área ≤ 1 cm²— para hablar de estenosis significativa. Los tres pesan igual. Los dos insumos del área por continuidad (diámetro del TSVD y VTI del TSVD) se cargan en la pestaña VD.</div>
 <div class="mBox mAviso"><b>Válvula pulmonar: morfología, estenosis e insuficiencia son tres campos separados.</b> Antes vivían en un solo desplegable y elegir una excluía las otras, cuando clínicamente coexisten. El auto-grado por gradiente pico produce sólo leve, moderada o severa; «moderada-severa» existe pero es <b>elección manual</b>, porque ninguna guía publica ese corte.</div>
 <div class="mBox mAviso"><b>La normalidad exige consignarla.</b> «No especificada» —el valor al que migran los estudios viejos— no produce «válvula pulmonar normal». Sin morfología consignada y sin mediciones, la válvula no se nombra en el informe.</div>
@@ -84930,8 +85330,9 @@ const ECO_AYUDA = [
 
 <div class="mSub">Válvulas — estenosis</div>
 <table class="mTbl"><tr><th>Medida</th><th>Corte</th><th>Guía</th></tr>
-<tr><td>Área mitral, severa</td><td>≤ 1,5 cm²</td><td>ESC/EACTS 2021</td></tr>
-<tr><td>Gradiente medio mitral, severa</td><td>≥ 10 mmHg</td><td>ASE 2023</td></tr>
+<tr><td>Área mitral, severa</td><td>≤ 1,5 cm²</td><td>ASE 2023, Tabla 1 · AHA/ACC 2020</td></tr>
+<tr><td>Área mitral normal en el adulto</td><td>4 – 6 cm²</td><td>ASE 2023</td></tr>
+<tr><td>Gradiente medio mitral — define EM <b>reumática</b>, no severidad</td><td>&gt; 4 mmHg</td><td>World Heart Federation, citada por ASE 2023</td></tr>
 <tr><td>THP mitral (equivale a área 1,5)</td><td>≥ 147 ms</td><td>derivado de Hatle</td></tr>
 <tr><td>Wilkins favorable para valvuloplastia</td><td>≤ 8</td><td>ESC/EACTS 2021</td></tr>
 <tr><td>Obstrucción del tracto de salida izquierdo, severa (cualquier nivel)</td><td>gradiente medio ≥ 40 mmHg</td><td>ESC 2020</td></tr>
