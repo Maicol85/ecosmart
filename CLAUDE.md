@@ -4,6 +4,176 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## El selector de EROA, y las SEIS listas que había que tocar a mano (2026-09-28, fase 3 de 5)
+
+Las filas `EROA` y `Vol.R` de la tabla de Válvula Mitral del PDF pasaron a tener selector de
+método: PISA —lo que ya salía— y continuidad.
+
+### La condición de parada se midió y NO se disparó
+
+El pedido mandaba parar si el PDF **no** imprimía ninguna cifra de IM, porque agregar filas al
+papel firmado es una decisión de Maicol. Medido en Chrome sobre el escenario base antes de escribir
+una línea: la tabla sale con **`EROA … PISA: 50.3 mm²`** y **`Vol.R … 65.4 ml`**, leídos del content
+stream del PDF real. O sea que esto **no agrega filas**: cambia de dónde sale el número de filas que
+ya existen, y por eso la fase siguió.
+
+### ⚠️ EL PATRÓN DE `em_pdf_*` SON SEIS LISTAS ESCRITAS A MANO
+
+`['em_pdf_cont','em_pdf_plan']` estaba repetido en **seis** sitios, cada uno haciendo algo distinto
+e imprescindible: `limpiarCampos`, `_restaurarChkInclusion`, `guardarInforme`, y los **tres** de la
+reimpresión (backup, reposición desde el estudio, restauración al paciente en pantalla). Agregar un
+método y olvidarse de uno **no da ningún error**: deja una casilla que se guarda y no se restaura, o
+una decisión que la reimpresión pisa, y las dos se ven igual que si funcionara.
+
+Hoy los seis derivan de **`_PDF_METODOS`**, un mapa `id → campos del estudio de los que ese método
+saca su número` —que es justo lo que `_restaurarChkInclusion` necesita para distinguir «el médico
+dijo que no» de «no había nada que incluir»—. Y el cuerpo del selector se extrajo a
+**`_pdfMetodoChk`**, con `_emPdfChk` delegando: los defaults reproducen Estenosis Mitral sin cambiar
+una línea de comportamiento, y el manejo de `tocado`/`desdeEstudio`/`disabled` —que costó varias
+rondas— deja de tener dos copias.
+
+### La continuidad NO se auto-marca, y es la única diferencia con EM
+
+`auto:false`. En EM el selector nació con el bloque y no había papel previo; acá el PDF **ya
+imprime** la EROA de PISA, así que auto-marcar la continuidad cambiaría en silencio lo que publica
+una fila existente. «Se ofrece tildar el método que tiene valor» es **habilitar** la casilla, no
+marcarla.
+
+**El prefijo va SIEMPRE**, aunque haya un solo método: la celda pasa de «50.3 mm²» a
+«PISA: 50.3 mm²» en todo informe reimpreso. Es el mismo argumento por el que `emAvmPdfVal` prefija
+el THP — la celda lleva al lado la escala de severidad, y un número sin decir de qué método salió se
+lee como si esa escala le aplicara a cualquiera. Con el prefijo sólo cuando hay dos, la celda con
+**sólo** continuidad diría «33.6 mm²» a secas, que es el caso ambiguo. El dato no cambia: cambia el
+rótulo, y hacia decir más.
+
+### ⚠️ LOS CUATRO SPAN DE PISA NO TENÍAN `else` — y el prefijo lo convirtió en una afirmación
+
+Lo encontró `/sharp-edges`. `calcIM_ESC` escribía `eroa-val`, `volr-val`, `vsvtsvi-val` y
+`freg-val` **sólo dentro de sus `if`**, sin ninguna rama que los devolviera a la raya. Es el mismo
+defecto que la fase 1 cerró en la fila de al lado (`im-vti-ratio`). Dos escenarios, los dos
+alcanzables sin nada raro:
+
+- **Un paciente.** Se carga PISA (r 10, aliasing 40, Vmax 500) → «50.3 mm²». El médico revisa el
+  clip, decide que el hemisferio no era medible y **borra el radio**. El `if` deja de entrar, la
+  fila sigue diciendo 50.3, y el PDF sale con «EROA … PISA: 50.3 mm²» sobre una medición que el
+  médico retiró. Peor: **ese mismo estudio reimpreso sale SIN la fila**, porque ahí `limpiarCampos`
+  dejó el span en «—». El papel firmado y su reimpresión no coinciden, y el equivocado es el papel.
+- **Dos pacientes.** Se reimprime un estudio A que **no tiene PISA**. `calcIM_ESC` corre con los
+  datos de A, no entra al `if`, y los span conservan los del paciente B que estaba en pantalla: el
+  PDF de A publica la EROA y el Vol-R de B.
+
+El `else` no cambia ninguna gradación: los `scores` y los `params` siguen saliendo de las mismas
+ramas.
+
+### ⚠️ Y LAS DOS FILAS QUE SÍ LLEGAN AL PAPEL NO ESTABAN EN `_imFilasBackup`
+
+La fase 2 creó ese respaldo para las tres filas de aviso de IM, con el argumento escrito: durante la
+ventana de reimpresión corren `calcDiastol`, `calcIM_ESC` y `calcContIM` **con los datos del estudio
+guardado**, y el cierre recalcula BSA, VI, AI, Ao y SGL pero ninguna de esas tres. `eroa-val` y
+`volr-val` quedaron afuera — y son **las dos únicas del calc-box de IM que llegan al PDF**. Sin
+respaldarlas, el paciente en pantalla volvía con los números del estudio reimpreso, y su propio PDF
+—generado después sin tocar ningún campo PISA, porque asignar `.value` no dispara `oninput`— salía
+con los del otro. La mutación imprime la contaminación literal: **`antes=32.2 mm² despues=50.3 mm²`**.
+
+### ⚠️ EL SELECTOR TIENE DOS MITADES Y CADA UNA CUELGA DE UNA FUNCIÓN DISTINTA
+
+El envoltorio de `calcContIM` cubre la continuidad. El valor de PISA lo escribe **`calcIM_ESC`**, y
+los tres campos que lo producen (`pisa_r`, `pisa_val`, `im_vmax`) llaman **sólo a ésa**. Sin el
+enganche, un médico que hace sólo PISA veía el selector diciendo «— sin valor» mientras la tabla del
+PDF ya publicaba «PISA: 50.3 mm²», y no se actualizaba hasta tocar algún campo del bloque de
+continuidad. Es «un consumidor nuevo sin su disparador», que esta serie **ya pagó dos rondas
+seguidas** con `im_itv` y con `im_dtsvi`/`im_itv_tsvi`. Van tres.
+
+### ⚠️ UNA CASILLA QUE GOBIERNA DOS FILAS NO SE PUEDE GATEAR POR UN SOLO CAMPO
+
+La casilla dice «EROA **y Vol-R** por continuidad» y se gateaba sólo por `im_eroa_cont`. Los dos
+campos tienen insumos **distintos**: el Vol-R sale de la diferencia de volúmenes y la EROA de
+`Vol-R ÷ VTI del chorro por CW`. Un volumétrico completo **sin el VTI del chorro** —medición extra,
+frecuente de omitir— dejaba la casilla **deshabilitada** y el Vol-R por continuidad sin ninguna
+forma de llegar al informe, con el número a la vista en la casilla de arriba. Hoy `_PDF_METODOS`
+lista los dos y se habilita si cualquiera tiene número.
+
+**Y el cero tenía dos criterios**, como siempre: `_pdfMetodoChk` acepta `0` como valor y el emisor lo
+descarta por truthiness, así que una EROA de «0.0 mm²» habilitaba la casilla, mostraba su número al
+lado, y el informe salía sin ella. Los dos usan `> 0`.
+
+### `desdeEstudio` era inerte y esta fase lo volvió alcanzable
+
+De las columnas de la reimpresión, `tocado` se limpiaba y respaldaba y `desdeEstudio` no. Antes daba
+igual: la única que lo lee es `_pdfMetodoChk`, y para EM la llama `calcEM`, que **no corre** en esa
+ventana. `calcContIM` **sí corre**, así que la bandera del paciente en pantalla entraba viva a la
+ventana de otro estudio. Hoy se limpia y viaja en el par backup/restore.
+
+### ⚠️ EL ENVOLTORIO DE `calcContIM` ROMPIÓ UNA VERIFICACIÓN DE CAJA BLANCA
+
+**TC-292 se puso en rojo y no era una expectativa vieja: era una regresión.** Ese caso fija que el
+empate del 50 % de fracción regurgitante se escriba `fr >= 50` leyendo **`String(calcContIM)`** — es
+la única forma de fijar un operador que ningún escenario clínico distingue. El envoltorio le
+devolvía **su** cuerpo, así que la condición buscaba el operador en el lugar equivocado y el caso
+fallaba sobre una regla clínica intacta.
+
+Cerrado delegando `toString` al original, con `_base` expuesto. **Contrapartida declarada:** quien
+inspeccione `String(calcContIM)` ve el cuerpo original y **no** el enganche.
+
+**Al envolver una función, buscar quién la inspecciona.** `String(fn)` se usa en este archivo para
+fijar reglas que ningún escenario alcanza, y un envoltorio las deja midiendo otra cosa.
+
+### La mutación que SOBREVIVE, y su alcance real
+
+Agregar `&& !cb.disabled` en `_imMetodoPdfVal` **no pone nada en rojo**, y la razón NO es la misma
+que en `emAvmPdfVal` — conviene no copiar aquel comentario sin medir. Allá `calcEM` no corre durante
+la reimpresión, así que el `disabled` queda rancio y usarlo **borra el dato** de un informe firmado.
+Acá sí corre: medido interceptando las dos durante una reimpresión real, **`calcContIM` corre 1 vez
+y `calcEM` 0**, y la casilla llega a la función con `disabled=false` aunque «Nuevo estudio» la
+hubiera deshabilitado un momento antes.
+
+**Pero la equivalencia vale SÓLO en esa ruta.** Ni `editarInforme` ni `cargarEstudioPorId` —la del
+QR del PDF firmado— llaman a `calcContIM`, así que allá la casilla queda `disabled` y nada la vuelve
+a habilitar: con la mutación puesta, esos dos caminos publicarían la fila sin la pata «Cont:». La
+guarda por el **número** es la única que vale en las tres.
+
+### Declarado y NO arreglado, con la medición al lado
+
+**Las tres rutas de restauración dan tres PDF distintos del mismo estudio**, y sólo la reimpresión
+llama a `calcIM_ESC`:
+
+| ruta | ¿corre `calcIM_ESC`? | la fila EROA sale |
+|---|---|---|
+| reimpresión | **sí** | `PISA: 50.3 · Cont: 33.6` |
+| `editarInforme` | no | **sólo `Cont: 33.6`** |
+| `cargarEstudioPorId` (el QR) | no | **sólo `Cont: 33.6`** |
+
+Es **preexistente** —antes de esta fase esas dos rutas ya publicaban la fila sin la pata PISA,
+porque `eroaS` leía el mismo span vacío— y lo que la fase agrega es el prefijo, que lo vuelve
+visible. **No se arregla metiendo `calcIM_ESC` en la restauración**: eso es exactamente lo que la
+fase 1 declaró prohibido, porque re-deriva `im_grado` y «un estudio archivado ADQUIRÍA un grado que
+su PDF firmado original no tenía». El arreglo que sí corresponde —congelar los dos valores de PISA
+en `campos` y reponerlos en las tres rutas— es un cambio del modelo de datos y no de esta fase.
+Mientras tanto el rótulo de la casilla dice «se incluyen cuando están calculados» y no «siempre
+incluidos», que era una afirmación que dos de las tres rutas desmienten.
+
+### Verificación
+
+**TC-299, 26 condiciones.** El default, el PDF con y sin la continuidad, la casilla de PISA no
+desmarcable, la deshabilitación sin valor, que el PDF no imprima un método sin número aunque la
+casilla siga tildada, la decisión viajando con el estudio, «Nuevo estudio», reabrir, la reimpresión
+tras limpiar, un estudio **sin las claves** reimprimiendo la EROA igual, el disparador de la mitad
+PISA, el `else` de `calcIM_ESC`, el Vol-R sin EROA, la contaminación entre pacientes, y que no toque
+el informe, el EN SUMA ni el Excel.
+
+**Ocho mutaciones. Siete en rojo y cada una en su condición**; la octava es la de `disabled`,
+declarada arriba como equivalente en la ruta que el caso ejercita. Las que más enseñan: el `else`
+quitado imprime «PISA: 50.3 mm²» sobre un radio borrado, y el respaldo quitado imprime
+«antes=32.2 mm² despues=50.3 mm²».
+
+**Y el caso siembra con `__t.set`, que despacha el evento**, para que corran los `oninput` reales:
+llamando a las dos funciones a mano, un selector sin disparador pasa en verde — que es como el hueco
+de la mitad PISA se coló en la primera versión.
+
+**Suite 313/314**, único rojo **TC-223**, el documentado. Semgrep **126 / 0 ERROR**, sin huérfanos,
+`check_mobile` en los 2 ALTA de siempre.
+
+
 ## La fila de la onda E estaba MUERTA, y revivirla abrió una fuga entre pacientes (2026-09-28, fase 2 de 5)
 
 `im-ondae-interp` existía en el marcado y **nadie la escribía**: cuatro sitios la leen y cero la

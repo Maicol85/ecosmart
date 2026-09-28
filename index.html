@@ -3463,6 +3463,29 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
       </div>
       <div id="im-cont-severidad" style="font-size:11px;font-weight:700;margin:6px 2px 0;min-height:16px;"></div>
+      <!-- Selector de metodo para el informe. Mismo patron que em_pdf_thp/cont/plan.
+           ⚠️ LO QUE PROTEGE A LOS INFORMES VIEJOS NO ES EL `onchange` DE LA CASILLA DE PISA: es que
+           `_imMetodoPdfVal` NO la consulte nunca. La fila se gatea por el NUMERO. Importa porque
+           la reimpresion SI la desmarca —su bucle escribe `.checked` desde `campos` sobre todos
+           los checkbox, y un estudio anterior a este selector no trae `im_pdf_pisa__chk`—, asi que
+           el dia que alguien «complete» el selector agregando `if (pisaCb.checked)` todo informe
+           anterior se reimprimiria sin EROA ni Vol-R, en silencio. Es el defecto que `em_pdf_thp`
+           ya documenta haber pagado.
+           La casilla es INFORMATIVA y no se puede desmarcar para que no prometa una eleccion que
+           no existe. `onchange` y NUNCA `onclick`: la regla tactil global matchea por el ATRIBUTO
+           e inflaria la casilla a 44x44. -->
+      <div style="margin-top:8px;padding:8px;border:1px solid var(--border);border-radius:6px;">
+        <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;">🖨️ Incluir en el informe:</div>
+        <label style="display:block;font-size:11px;margin-bottom:4px;cursor:pointer;">
+          <input type="checkbox" id="im_pdf_pisa" checked onchange="this.checked=true;"> EROA y Vol-R por PISA
+          <span id="im-pdf-pisa-val" style="color:var(--text2);"></span>
+          <span style="color:var(--text2);font-size:10px;">— se incluyen cuando estan calculados</span>
+        </label>
+        <label style="display:block;font-size:11px;cursor:pointer;">
+          <input type="checkbox" id="im_pdf_cont" onchange="this.dataset.tocado='1';"> EROA y Vol-R por continuidad
+          <span id="im-pdf-cont-val" style="color:var(--text2);"></span>
+        </label>
+      </div>
       </div><!-- fin bloque-insuf-mitral -->
 
       <div class="fg" style="margin-top:8px;"><label>Notas mitral</label>
@@ -21004,12 +21027,46 @@ window.imSyncSiExiste = imSyncSiExiste;
    recálculo posterior se la pisa. Sin ese freno, desmarcar «continuidad» y después corregir
    cualquier medida del bloque la habría vuelto a marcar sin decir nada, que es exactamente
    el defecto que ya se pagó con las secciones del ETE (ver _restaurarChkInclusion). */
-function _emPdfChk(idChk, idSpan, val) {
+/* ⚠️ UNA SOLA TABLA DE METODOS, y no seis listas escritas a mano. Los ids de estos selectores
+   viven en SEIS sitios —limpiarCampos, guardarInforme, _restaurarChkInclusion y los tres de la
+   reimpresion— y cada uno hace algo distinto e imprescindible. Con la lista repetida, agregar un
+   metodo y olvidarse de uno no da ningun error: deja una casilla que se guarda y no se restaura,
+   o una decision que la reimpresion pisa, y las dos se ven igual que si funcionara.
+   El valor de cada entrada son los CAMPOS DEL ESTUDIO de los que ese metodo saca su numero, que
+   es lo que `_restaurarChkInclusion` necesita para distinguir «el medico dijo que no» de «no
+   habia nada que incluir». */
+const _PDF_METODOS = {
+  em_pdf_cont: ['avm_cont'],
+  em_pdf_plan: ['avm_plan', 'avm_ete'],
+  /* ⚠️ LOS DOS CAMPOS, y la casilla gobierna DOS filas del PDF. `im_eroa_cont` sale de
+     Vol-R ÷ VTI del chorro por CW, y `vr_cont` de la diferencia de volumenes: son insumos
+     DISTINTOS. Con solo el primero, un volumetrico completo sin el VTI del chorro —medicion
+     extra, frecuente de omitir— dejaba la casilla DESHABILITADA y el Vol-R por continuidad sin
+     ninguna forma de llegar al informe, con el numero a la vista en la casilla de arriba. */
+  im_pdf_cont: ['im_eroa_cont', 'vr_cont']
+};
+const _PDF_METODO_IDS = Object.keys(_PDF_METODOS);
+window._PDF_METODOS = _PDF_METODOS;
+window._PDF_METODO_IDS = _PDF_METODO_IDS;
+
+/* Cuerpo compartido del selector de metodos. Se extrajo de `_emPdfChk` SIN cambiarle una linea
+   de comportamiento —los defaults reproducen exactamente lo que hacia— porque el manejo de
+   `tocado`/`desdeEstudio`/`disabled` de arriba costo varias rondas y una segunda copia se
+   desincroniza sola.
+   `auto:false` es la unica diferencia que usa IM, y es deliberada: alli el PDF YA imprime la
+   EROA de PISA, asi que auto-marcar la continuidad cambiaria en silencio lo que publica una
+   fila que ya existe. «Se ofrece tildar el metodo que tiene valor» es habilitar la casilla, no
+   marcarla. */
+function _pdfMetodoChk(idChk, idSpan, val, opts) {
+  const o = opts || {};
+  const uni = o.uni !== undefined ? o.uni : ' cm²';
+  const dec = o.dec !== undefined ? o.dec : 2;
+  const auto = o.auto !== false;
   const cb = document.getElementById(idChk);
   const sp = document.getElementById(idSpan);
   if (!cb) return;
   const hay = (val != null && val !== '' && !isNaN(val));
-  if (sp) sp.textContent = hay ? '— ' + Number(val).toFixed(2) + ' cm²' : '— sin valor';
+  if (sp) sp.textContent = hay ? '— ' + Number(val).toFixed(dec) + uni : '— sin valor';
   /* Los input de esta app se convierten en runtime a type="text", así que `oninput` dispara
      con el valor intermedio: corregir una medida borrándola con backspace pasa SIEMPRE por
      ''. Ese vacío es transitorio y no debe tocar la decisión del médico — ni la bandera ni
@@ -21025,8 +21082,9 @@ function _emPdfChk(idChk, idSpan, val) {
   const resuelto = cb.dataset.tocado || cb.dataset.desdeEstudio;
   if (!hay) { if (!resuelto) cb.checked = false; cb.disabled = true; return; }
   cb.disabled = false;
-  if (!resuelto) cb.checked = true;
+  if (auto && !resuelto) cb.checked = true;
 }
+function _emPdfChk(idChk, idSpan, val) { return _pdfMetodoChk(idChk, idSpan, val); }
 function emPdfMetodosUI(thpVal, contVal, planVal) {
   // THP no lleva guarda de «tocado»: su casilla no se puede desmarcar, sólo informa el valor.
   const spT = document.getElementById('em-pdf-thp-val');
@@ -21068,6 +21126,90 @@ function emAvmPdfVal() {
   return partes.length ? partes.join(' · ') : null;
 }
 window.emAvmPdfVal = emAvmPdfVal;
+
+/* ══ Selector de metodo de las filas EROA y Vol.R del PDF de IM ══
+   El PDF YA imprimia las dos filas, con los valores de PISA (`eroa-val` / `volr-val`, que escribe
+   `calcIM_ESC`). Medido en Chrome sobre el escenario base antes de tocar nada: la tabla sale con
+   «EROA … 50.3 mm²» y «Vol.R … 65.4 ml». Asi que esto NO agrega filas al papel firmado: cambia de
+   donde sale el numero de filas que ya existen.
+   La continuidad no se auto-marca aunque tenga valor —ver `_pdfMetodoChk`—: el default es PISA,
+   que es lo que ya sale. */
+function _imPdfPisaTxt(idSpan) {
+  const e = document.getElementById(idSpan);
+  const t = e ? String(e.textContent || '').trim() : '';
+  return (t && t !== '—') ? t : null;
+}
+function imPdfMetodosUI() {
+  const spP = document.getElementById('im-pdf-pisa-val');
+  if (spP) { const t = _imPdfPisaTxt('eroa-val'); spP.textContent = t ? '— ' + t : '— sin valor'; }
+  /* Habilita si CUALQUIERA de las dos filas tiene numero, que es lo que la casilla ofrece.
+     `> 0` y no `!= null`: `v()` devuelve 0 para un «0» tipeado, y `_imMetodoPdfVal` descarta el
+     cero por truthiness — con criterios distintos, una EROA de «0.0 mm²» habilitaba la casilla,
+     mostraba su numero al lado, y el informe salia sin ella. */
+  const _e = v('im_eroa_cont'), _r = v('vr_cont');
+  const _hay = (_e > 0) ? _e : ((_r > 0) ? _r : null);
+  const _uni = (_e > 0) ? ' mm²' : ' ml';
+  _pdfMetodoChk('im_pdf_cont', 'im-pdf-cont-val', _hay, { uni:_uni, dec:1, auto:false });
+}
+window.imPdfMetodosUI = imPdfMetodosUI;
+
+/* ⚠️ EL ENGANCHE VA COMO ENVOLTORIO Y NO ADENTRO, y no es comodidad. `calcContIM` tiene SIETE
+   salidas —insumo fuera de banda, los cuatro que faltan, Vol-R negativo, Vol-R bajo la
+   tolerancia— y el selector tiene que reflejar el estado en todas: una casilla que queda marcada
+   sobre un metodo que ya no tiene numero es una promesa que el informe no cumple, y
+   `_pdfMetodoChk` es lo unico que la deshabilita. Enganchando adentro habria que tocar cada
+   `return`, y el que se olvide no da error.
+   El `catch` NO es mudo: un fallo del selector no puede llevarse el calculo de la severidad, pero
+   tampoco puede desaparecer. */
+(function () {
+  const _base = calcContIM;
+  calcContIM = function () {
+    const r = _base.apply(this, arguments);
+    try { imPdfMetodosUI(); } catch (e) { console.error('[imPdfMetodosUI]', e); }
+    return r;
+  };
+  /* ⚠️ `toString` DELEGA AL ORIGINAL, y no es cosmetica: TC-292 verifica de CAJA BLANCA que el
+     empate del 50 % de fraccion regurgitante se escriba `fr >= 50` leyendo `String(calcContIM)`
+     —es la unica forma de fijar un operador que ningun escenario clinico distingue—. Sin esto el
+     envoltorio le devuelve SU cuerpo, la condicion busca el operador en el lugar equivocado y el
+     caso se pone rojo sobre una regla clinica intacta. Lo cazo la suite, no la lectura.
+     Contrapartida declarada: quien inspeccione `String(calcContIM)` ve el cuerpo original y NO el
+     enganche. Para eso esta `_base` y esta este comentario. */
+  calcContIM.toString = function () { return _base.toString(); };
+  calcContIM._base = _base;
+  window.calcContIM = calcContIM;
+})();
+
+/* ⚠️ EL PREFIJO VA SIEMPRE, aunque haya un solo metodo — y eso cambia el texto de la celda en
+   todo informe reimpreso: «50.3 mm²» pasa a «PISA: 50.3 mm²». Es el mismo argumento por el que
+   `emAvmPdfVal` prefija el THP: la celda lleva al lado la escala de severidad, y un numero sin
+   decir con que metodo salio se lee como si esa escala le aplicara a cualquiera. Con el prefijo
+   solo cuando hay dos, la celda con SOLO continuidad —PISA sin calcular— diria «33.6 mm²» a
+   secas, que es justo el caso ambiguo.
+   El dato no cambia: cambia el rotulo, y hacia decir mas. */
+function _imMetodoPdfVal(idSpanPisa, idCampoCont, uni, dec) {
+  const partes = [];
+  const p = _imPdfPisaTxt(idSpanPisa);
+  if (p) partes.push('PISA: ' + p);
+  /* NO se consulta `disabled`, y acá la razón NO es la misma que en `emAvmPdfVal` — conviene no
+     copiar aquel comentario sin medir. Allá `calcEM` no corre durante la reimpresión, así que el
+     `disabled` queda rancio y usarlo como compuerta BORRA el dato de un informe firmado. Acá sí
+     corre: medido interceptando las dos durante una reimpresión real, `calcContIM` corre 1 vez y
+     `calcEM` 0, y la casilla llega a esta función con `disabled=false` aunque «Nuevo estudio» la
+     hubiera deshabilitado un momento antes.
+     ⚠️ O sea que la mutación que agrega `&& !cb.disabled` SOBREVIVE, y está declarado: en ESA ruta
+     es equivalente. **No lo es en las otras dos**: ni `editarInforme` ni `cargarEstudioPorId` —la
+     del QR del PDF firmado— llaman a `calcContIM`, así que allá `limpiarCampos` deja la casilla
+     `disabled` y nada la vuelve a habilitar. Con la mutación puesta, esos dos caminos publicarían
+     la fila sin la pata «Cont:». La guarda por el NÚMERO es la única que vale en las tres. */
+  const cb = document.getElementById('im_pdf_cont');
+  if (cb && cb.checked) { const x = v(idCampoCont); if (x > 0) partes.push('Cont: ' + x.toFixed(dec) + uni); }
+  return partes.length ? partes.join(' · ') : null;
+}
+function imEroaPdfVal() { return _imMetodoPdfVal('eroa-val', 'im_eroa_cont', ' mm²', 1); }
+function imVolrPdfVal() { return _imMetodoPdfVal('volr-val', 'vr_cont', ' ml', 1); }
+window.imEroaPdfVal = imEroaPdfVal;
+window.imVolrPdfVal = imVolrPdfVal;
 
 /* TEER: los cinco criterios de MitraClip/PASCAL que ya están medidos en otras secciones.
    DTSVI es el diámetro TELEsistólico (LVESD del COAPT, umbral ≤70 mm), o sea DSFVI — no
@@ -21627,6 +21769,24 @@ function calcIM_ESC() {
     else { scores.severa++; params.push({p:'Jet/AI',sev:'severa'}); }
   }
 
+  /* ⚠️ LOS CUATRO SPAN DE PISA NO TENIAN `else`, y desde que la fila del PDF los atribuye a un
+     metodo eso pasa de ser un numero pegado en pantalla a una AFIRMACION en el papel firmado.
+     Dos escenarios medidos, los dos alcanzables sin nada raro:
+       · Un paciente: se carga PISA (r 10, aliasing 40, Vmax 500) → «50.3 mm²». El medico revisa el
+         clip, decide que el hemisferio no era medible y BORRA `pisa_r`. El `if` deja de entrar, la
+         fila sigue diciendo 50.3, y el PDF sale con «EROA … PISA: 50.3 mm²» sobre una medicion que
+         el medico retiro. Peor: ese mismo estudio reimpreso sale SIN la fila —ahi `limpiarCampos`
+         dejo el span en «—»—, o sea que el papel firmado y su reimpresion no coinciden.
+       · Dos pacientes: se reimprime un estudio A que no tiene PISA. `calcIM_ESC` corre con los
+         datos de A, no entra al `if`, y los span conservan los del paciente B que estaba en
+         pantalla: el PDF de A publica la EROA y el Vol-R de B.
+     Es el mismo defecto que la fase 1 cerro en la fila de al lado (`im-vti-ratio`), y el `else` es
+     lo unico que lo cierra en los dos sentidos. NO cambia ninguna gradacion: los `scores` y los
+     `params` siguen saliendo exactamente de las mismas ramas. */
+  const _pisaSpans = ['eroa-val','volr-val','vsvtsvi-val','freg-val'];
+  const _pisaLimpiar = desde => _pisaSpans.slice(desde).forEach(id => {
+    const el = document.getElementById(id); if (el) el.textContent = '—';
+  });
   if (pisaR && pisaVal && vmaxIM) {
     const eroa = (2*Math.PI*(pisaR/10)**2*pisaVal/vmaxIM*100).toFixed(1);
     document.getElementById('eroa-val').textContent = eroa + ' mm²';
@@ -21648,9 +21808,9 @@ function calcIM_ESC() {
         if (fr < 30) { scores.leve++; params.push({p:'FR',sev:'leve'}); }
         else if (fr < 50) { scores.moderada++; params.push({p:'FR',sev:'moderada'}); }
         else { scores.severa++; params.push({p:'FR',sev:'severa'}); }
-      }
-    }
-  }
+      } else _pisaLimpiar(2);
+    } else _pisaLimpiar(1);
+  } else _pisaLimpiar(0);
 
   if (ondaS) {
     if (ondaS === 'positiva') { scores.leve++; document.getElementById('im-onda-s-interp').innerHTML = badge('green','Normal'); }
@@ -21706,6 +21866,16 @@ function calcIM_ESC() {
   imDiscordanciaPintar();
 
   imOndaEPintar();
+
+  /* ⚠️ EL SELECTOR TIENE DOS MITADES Y CADA UNA CUELGA DE UNA FUNCION DISTINTA. El envoltorio de
+     `calcContIM` cubre la continuidad; el valor de PISA lo escribe ESTA funcion, y los tres campos
+     que lo producen (`pisa_r`, `pisa_val`, `im_vmax`) llaman SOLO a `calcIM_ESC`. Sin esta linea,
+     un medico que hace solo PISA veia el selector diciendo «— sin valor» mientras la tabla del PDF
+     ya publicaba «PISA: 50.3 mm²», y no se actualizaba hasta tocar algun campo del bloque de
+     continuidad. Es «un consumidor nuevo sin su disparador», que esta serie ya pago dos rondas
+     seguidas con `im_itv` y con `im_dtsvi`/`im_itv_tsvi`. */
+  try { if (typeof imPdfMetodosUI === 'function') imPdfMetodosUI(); }
+  catch (e) { console.error('[imPdfMetodosUI]', e); }
 
   const _pVtimR  = vPlaus('vtim');
   const _vtsRatio = v('im_itv_tsvi') || v('itv_tsvi');
@@ -27465,7 +27635,8 @@ function limpiarCampos(silencioso) {
      nuevo el auto-marcado nunca vuelve a encenderse y la continuidad queda fuera del
      informe en silencio. THP vuelve a marcado, que es su estado permanente. */
   { const _t = document.getElementById('em_pdf_thp'); if (_t) _t.checked = true; }
-  ['em_pdf_cont','em_pdf_plan'].forEach(id => {
+  { const _p = document.getElementById('im_pdf_pisa'); if (_p) _p.checked = true; }
+  _PDF_METODO_IDS.forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.checked = false; el.disabled = true; delete el.dataset.tocado; delete el.dataset.desdeEstudio; }
   });
@@ -30165,10 +30336,6 @@ function generarPDFReal(_aj) {
   const imG = parseInt(sv('im_grado'))||0;
   const iaG = parseInt(sv('ia_grado'))||0;
   const itG = parseInt(sv('it_grado'))||0;
-  const eroaEl=document.getElementById('eroa-val');
-  const eroaS = eroaEl&&eroaEl.textContent!=='—'?eroaEl.textContent:null;
-  const volrEl=document.getElementById('volr-val');
-  const volrS  = volrEl&&volrEl.textContent!=='—'?volrEl.textContent:null;
 
   // ════════════════════════════════════════════════════════════
   // 1+2. ENCABEZADO (4 plantillas) + DATOS DEL PACIENTE
@@ -31105,8 +31272,8 @@ function generarPDFReal(_aj) {
       {lbl:'Morf.',         ref:'', val:sv('vm_morf')||null},
       {lbl:'IM',            ref:'', val:imG?GT[imG]:null},
       {lbl:'VC IM',         ref:'(<3 / 3–7 / ≥7) mm', val:vPdf('im_vc',' mm')},
-      {lbl:'EROA',          ref:'(<20 / 20–40 / ≥40) mm²', val:eroaS},
-      {lbl:'Vol.R',         ref:'(<30 / 30–60 / ≥60) ml', val:volrS},
+      {lbl:'EROA',          ref:'(<20 / 20–40 / ≥40) mm²', val:imEroaPdfVal()},
+      {lbl:'Vol.R',         ref:'(<30 / 30–60 / ≥60) ml', val:imVolrPdfVal()},
       {lbl:'EM grado',      ref:'', val:(sv('em_grado')&&sv('em_grado')!=='sin')?_cap(sv('em_grado')):null},
       {lbl:'AVm',           ref:'(>2.5 / 1.5–2.5 / ≤1.5) cm²', val:emAvmPdfVal()},
       /* ⚠️ SIN BANDA DE REFERENCIA, Y A PROPÓSITO. Las otras filas de esta tabla imprimen su
@@ -41818,8 +41985,7 @@ function _restaurarChkInclusion(campos){
      hubiera tocado la casilla, y a partir de ahí la clave dejaba de significar lo que dice su
      nombre: un '1' rancio congelaba el auto-marcado sobre un estudio al que después le
      desaparecía el valor. */
-  const _AVM_FUENTE = { em_pdf_cont: ['avm_cont'], em_pdf_plan: ['avm_plan', 'avm_ete'] };
-  ['em_pdf_cont','em_pdf_plan'].forEach(function(id){
+  _PDF_METODO_IDS.forEach(function(id){
     const cb = document.getElementById(id);
     if (!cb) return;
     delete cb.dataset.tocado; delete cb.dataset.desdeEstudio;
@@ -41831,7 +41997,7 @@ function _restaurarChkInclusion(campos){
     /* `> 0`, no `!isNaN`: un «0» parsea a 0 y daría «hay valor», pero calcEM y emAvmPdfVal
        lo tratan como ausencia por truthiness. Con el criterio distinto, un area de 0 cm²
        —tipeo o importación— congelaba la casilla y mataba el auto-marcado para siempre. */
-    const conValor = _AVM_FUENTE[id].some(function(k){
+    const conValor = _PDF_METODOS[id].some(function(k){
       const raw = campos[k];
       if (raw == null || String(raw).trim() === '') return false;
       const n = parseFloat(String(raw).replace(',', '.'));
@@ -44845,7 +45011,7 @@ function guardarInforme(onDone) {
      Inferir la decisión de esa presencia hacía que al reabrir CUALQUIER estudio el
      auto-marcado quedara muerto: la continuidad se calculaba, se mostraba en pantalla y no
      entraba al informe, sin que nadie hubiera decidido eso. */
-  ['em_pdf_cont','em_pdf_plan'].forEach(id => {
+  _PDF_METODO_IDS.forEach(id => {
     const el = document.getElementById(id);
     if (el) campos[id + '__tocado'] = el.dataset.tocado ? '1' : '0';
   });
@@ -52080,9 +52246,9 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      pisa más abajo. Sin respaldarlo, imprimir un guardado dejaba congelada la decisión del
      paciente EN PANTALLA: sus casillas ya no se volvían a auto-marcar al recalcular. */
   const tocadoEstado = {};
-  ['em_pdf_cont','em_pdf_plan'].forEach(id => {
+  _PDF_METODO_IDS.forEach(id => {
     const el = document.getElementById(id);
-    if (el) tocadoEstado[id] = el.dataset.tocado;
+    if (el) tocadoEstado[id] = { t: el.dataset.tocado, d: el.dataset.desdeEstudio };
   });
   /* Mismo problema con las marcas de valor derivado. Acá tienen DOS caras: si la marca del
      paciente en pantalla sobrevive a la carga del estudio guardado, `_syncDerivado` puede creer
@@ -52115,7 +52281,17 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
     const oe = document.getElementById('im-ondae-interp');
     const dd = document.getElementById('im-discordancia');
     const cs = document.getElementById('im-cont-severidad');
+    /* ⚠️ `eroa-val` y `volr-val` van aca aunque no sean «filas de aviso»: son las DOS unicas del
+       calc-box de IM que LLEGAN AL PAPEL, y el cierre de la reimpresion no recalcula `calcIM_ESC`.
+       Sin respaldarlas, el paciente en pantalla volvia con la EROA y el Vol-R del estudio
+       reimpreso, y su propio PDF —generado despues sin tocar ningun campo PISA, porque asignar
+       `.value` no dispara `oninput`— salia con los numeros del otro, ahora ademas rotulados
+       «PISA:» y con la escala de severidad al lado. */
+    const er = document.getElementById('eroa-val');
+    const vr = document.getElementById('volr-val');
     return { ondaE: oe ? oe.textContent : '',
+             eroa:  er ? er.textContent : '',
+             volr:  vr ? vr.textContent : '',
              disc:  dd ? dd.textContent : '',
              paramsDisc: dd ? dd.dataset.paramsDisc : undefined,
              gradoVolum: cs ? cs.dataset.gradoVolum : undefined };
@@ -52240,11 +52416,16 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      generación no la vuelva a auto-marcar. Sin esto, un estudio donde el médico había
      sacado la continuidad la reimprimía CON continuidad, y el informe reimpreso no
      coincidía con el firmado. */
-  ['em_pdf_cont','em_pdf_plan'].forEach(function(id){
+  _PDF_METODO_IDS.forEach(function(id){
     const cb = document.getElementById(id);
     if (!cb) return;
     if (c[id + '__tocado'] === '1') cb.dataset.tocado = '1';
     else delete cb.dataset.tocado;
+    /* ⚠️ `desdeEstudio` tambien, y antes de esta fase era inerte: la unica que lo lee es
+       `_pdfMetodoChk`, y para EM la llama `calcEM`, que NO corre en esta ventana. `calcContIM` SI
+       corre, asi que la bandera del paciente EN PANTALLA entraba viva a la ventana de otro
+       estudio y podia conservar una casilla que ese estudio no pidio. */
+    delete cb.dataset.desdeEstudio;
   });
   /* Se escribe SIEMPRE, con '' cuando el estudio no trae la clave. Con la asignación
      condicional, un guardado sin médico —toda la base anterior a que guardarInforme lo
@@ -52367,11 +52548,12 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
     document.querySelectorAll('input[type=checkbox][id]').forEach(el => {
       if (chkEstado[el.id] !== undefined) el.checked = chkEstado[el.id];
     });
-    ['em_pdf_cont','em_pdf_plan'].forEach(id => {
+    _PDF_METODO_IDS.forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
-      if (tocadoEstado[id] === undefined) delete el.dataset.tocado;
-      else el.dataset.tocado = tocadoEstado[id];
+      const _b = tocadoEstado[id];
+      if (!_b || _b.t === undefined) delete el.dataset.tocado; else el.dataset.tocado = _b.t;
+      if (!_b || _b.d === undefined) delete el.dataset.desdeEstudio; else el.dataset.desdeEstudio = _b.d;
     });
     /* ⚠️ LAS TRES COSAS DE IM QUE LA REIMPRESIÓN PISABA, y lo encontró /sharp-edges. Durante la
        ventana corren `calcDiastol`, `calcIM_ESC` y `calcContIM` CON LOS DATOS DEL ESTUDIO
@@ -52386,6 +52568,8 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
        funciones haría que la reimpresión RE-DERIVE `im_grado`, que es justo lo que no puede pasar. */
     { const _oe = document.getElementById('im-ondae-interp');
       if (_oe) _oe.textContent = _imFilasBackup.ondaE;
+      { const _er = document.getElementById('eroa-val'); if (_er) _er.textContent = _imFilasBackup.eroa;
+        const _vr = document.getElementById('volr-val'); if (_vr) _vr.textContent = _imFilasBackup.volr; }
       const _dd = document.getElementById('im-discordancia');
       if (_dd) { _dd.textContent = _imFilasBackup.disc;
         if (_imFilasBackup.paramsDisc === undefined) delete _dd.dataset.paramsDisc;
@@ -81614,8 +81798,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260928-0505';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790582721290;                 /* eco-build-ms */
+const ECO_BUILD    = '20260928-0614';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790586879954;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -81701,7 +81885,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-0505</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-0614</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

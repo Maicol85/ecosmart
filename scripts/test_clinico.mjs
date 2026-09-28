@@ -33460,6 +33460,256 @@ caso('TC-294', 'Dilatacion de AI: el diametro y el area avisan SIN grado, y el g
    asi que al vaciar un campo el span conservaba el valor del paciente anterior»). */
 
 
+caso('TC-299', 'Selector de EROA/Vol-R: PISA es el default y siempre sale, la continuidad se ofrece solo con valor, y la decision viaja con el estudio', `
+  return (async () => {
+    for (let i = 0; i < 40 && !(window.jspdf && window.jspdf.jsPDF); i++)
+      await new Promise(r => setTimeout(r, 200));
+    if (!(window.jspdf && window.jspdf.jsPDF))
+      return { extra: [['jsPDF llego por CDN', false, 'no llego en 8 s — el caso no pudo verificar nada']] };
+
+    const g  = id => document.getElementById(id);
+    const gv = id => { const e = g(id); return e ? (e.tagName === 'INPUT' ? e.value : e.textContent) : ''; };
+    const cbC = () => g('im_pdf_cont');
+    const cbP = () => g('im_pdf_pisa');
+
+    /* Lee las filas EROA y Vol.R del PDF REAL. save() es propiedad de la instancia, asi que se
+       envuelve el CONSTRUCTOR. El regex va anclado y con alternancia determinista: con .*? lazy
+       sobre el stream binario es cuadratico y CUELGA la suite en vez de dar rojo. */
+    const filasPdf = async (gen) => {
+      const O = window.jspdf.jsPDF; let cap = null;
+      window.jspdf.jsPDF = function () { const d = new O(...arguments);
+        d.save = function () { try { cap = d.output('datauristring'); } catch (e) { cap = null; } }; return d; };
+      window.jspdf.jsPDF.API = O.API;
+      /* Sondeo despues del disparo: \`pdfDeInformeGuardado\` no devuelve promesa y su save()
+         ocurre al final de una cadena asincrona (lee las imagenes de IndexedDB primero). Sin
+         esperar, la captura sale vacia y se lee igual que un PDF que no se genero. */
+      try { await gen(); for (let k = 0; k < 80 && !cap; k++) await new Promise(r => setTimeout(r, 100)); }
+      finally { window.jspdf.jsPDF = O; }
+      if (!cap) return '(no se capturo el PDF)';
+      const bin = atob(cap.split(',')[1]);
+      const re = /\\(((?:\\\\[\\s\\S]|[^()\\\\])*)\\)\\s?Tj/g;
+      let m, txt = []; while ((m = re.exec(bin))) txt.push(m[1]);
+      const i = txt.findIndex(x => x.trim() === 'EROA');
+      return i < 0 ? '(sin fila EROA) total=' + txt.length : txt.slice(i, i + 6).join(' ');
+    };
+    const pdfVivo = () => filasPdf(() => generarPDFReal());
+    /* \`pdfDeInformeGuardado\` tiene guard de reentrada y lo baja recien cuando termina su
+       restauracion diferida. Con un plazo fijo, la segunda reimpresion del caso salia por ese
+       guard y la captura quedaba vacia — que se lee igual que un PDF que no se genero. */
+    const esperarPdfLibre = async () => {
+      for (let k = 0; k < 120 && window._pdfGuardadoEnCurso; k++) await new Promise(r => setTimeout(r, 100));
+      return !window._pdfGuardadoEnCurso;
+    };
+
+    const sembrar = () => {
+      __t.limpiar();
+      __t.set('nombre','TC299'); __t.set('edad','60'); __t.set('peso','80'); __t.set('talla','180');
+      /* La pastilla hay que abrirla: limpiarCampos esconde los bloques, y con el bloque cerrado
+         el espejo de \`vtim\` no se crea y la continuidad no tiene con que calcular. */
+      try { toggleValvPill('mitral','insuf'); } catch (e) {}
+      /* Se siembra con __t.set, que despacha el evento input: asi corren los oninput REALES y el
+         caso ejercita el cableado. Llamando calcContIM y calcIM_ESC a mano, un selector sin
+         disparador pasa en verde — que es como el hueco de la mitad PISA se colo. */
+      [['diam_tsvi','21'],['itv_tsvi','18'],['diam_mit','30'],['itv_mitral','15'],
+       ['pisa_r','10'],['pisa_val','40'],['im_vmax','500'],['im_itv','130'],['im_vc','7']]
+        .forEach(function (kv) { __t.set(kv[0], kv[1]); });
+    };
+    const guardar = () => new Promise(r => { window._ettEditandoId = null;
+      const antes = new Set(getInformes().map(i => i.estudioId));
+      const fin = () => { const n = getInformes().find(i => !antes.has(i.estudioId)); r(n ? n.estudioId : null); };
+      try { guardarInforme(fin); } catch (e) { r(null); return; }
+      const cf = g('rev-confirm'); if (cf) cf.click(); });
+
+    // ── 1. DENOMINADOR: los DOS metodos tienen numero, y son DISTINTOS ──────────────────
+    sembrar();
+    const pisaEroa = gv('eroa-val'), contEroa = gv('im_eroa_cont');
+    const dosMetodos = pisaEroa.indexOf('50.3') > -1 && contEroa.indexOf('33.6') > -1;
+
+    // ── 2. El default es PISA: la continuidad nace DESMARCADA y HABILITADA ──────────────
+    const naceDesmarcada = !!cbC() && cbC().checked === false && cbC().disabled === false;
+    const spanCont = gv('im-pdf-cont-val');
+
+    // ── 3. El PDF por defecto lleva PISA y NO lleva continuidad ─────────────────────────
+    __t.informe();
+    const pdfDefault = await pdfVivo();
+
+    // ── 4. Tildada, el PDF lleva los dos, cada uno con su metodo ────────────────────────
+    if (cbC()) { cbC().checked = true; cbC().dataset.tocado = '1'; }
+    const pdfConCont = await pdfVivo();
+
+    // ── 5. PISA no se puede desmarcar ───────────────────────────────────────────────────
+    let pisaSiguePuesta = '(sin casilla)';
+    if (cbP()) { cbP().checked = false; cbP().dispatchEvent(new Event('change')); pisaSiguePuesta = cbP().checked; }
+
+    // ── 6. Sin valor, la casilla se deshabilita — y el PDF NO la imprime aunque siga
+    //       tildada: la guarda es el NUMERO, no la casilla. Es lo que hace que reimprimir
+    //       un guardado no dependa de un estado que ninguna restauracion repone. ─────────
+    __t.set('diam_mit','');
+    try { calcContIM(); } catch (e) {}
+    const sinValorDeshabilita = !!cbC() && cbC().disabled === true && cbC().checked === true;
+    const pdfSinValor = await pdfVivo();
+
+    // ── 7. La decision viaja con el estudio y vuelve al reabrir ─────────────────────────
+    sembrar();
+    if (cbC()) { cbC().checked = true; cbC().dataset.tocado = '1'; }
+    __t.informe();
+    const eid = await guardar();
+    const infG = eid ? getInformes().find(i => i.estudioId === eid) : null;
+    const claveChk = infG ? infG.campos['im_pdf_cont__chk'] : '(no guardo)';
+    const claveToc = infG ? infG.campos['im_pdf_cont__tocado'] : '(no guardo)';
+    __t.limpiar();
+    const trasLimpiar = !!cbC() && cbC().checked === false && !cbC().dataset.tocado
+      && !!cbP() && cbP().checked === true;
+
+    /* ── 7b. REIMPRIMIR con el formulario RECIEN LIMPIADO. Es el escenario del defecto real que
+       documenta \`emAvmPdfVal\`: limpiarCampos deja la casilla \`disabled\`, y \`calcContIM\` NO corre
+       durante la reimpresion, asi que nada la vuelve a habilitar. Si la fila consultara
+       \`disabled\` en vez del numero, un guardado con la continuidad marcada se reimprimiria SIN
+       ella — distinto del que se firmo y sin aviso.
+       Sin esta condicion el escenario de «sin valor» no discrimina: alli \`disabled\` y «no hay
+       numero» son ciertos a la vez, asi que las dos implementaciones dan lo mismo. */
+    const chkDeshabilitada = !!cbC() && cbC().disabled === true;
+    let pdfReimp = '(no se pudo)';
+    {
+      const infR = eid ? getInformes().find(i => i.estudioId === eid) : null;
+      const idR = infR ? infR.id : null;
+      if (idR) pdfReimp = await filasPdf(() => { try { pdfDeInformeGuardado(idR); } catch (e) {} return Promise.resolve(); });
+      await esperarPdfLibre();
+    }
+
+    if (eid) __t.reabrir(eid);
+    const trasReabrir = !!cbC() && cbC().checked === true;
+
+    // ── 8. REIMPRESION de un estudio SIN la clave (anterior al selector): la EROA de PISA
+    //       tiene que salir igual. Si la fila dependiera de la casilla de PISA, todo informe
+    //       viejo se reimprimiria SIN EROA — borrando un dato que el papel firmado si traia. ─
+    let pdfViejo = '(no se pudo)';
+    if (infG) {
+      const c2 = Object.assign({}, infG.campos);
+      delete c2['im_pdf_pisa__chk']; delete c2['im_pdf_cont__chk']; delete c2['im_pdf_cont__tocado'];
+      const lista = getInformes().map(i => i.estudioId === eid ? Object.assign({}, i, { campos: c2 }) : i);
+      await CeiboStore.setLocal(lista);
+      /* pdfDeInformeGuardado busca por inf.id, que NO es el estudioId. Y va con carrera contra
+         un plazo: una promesa sin timeout no pone el caso en rojo, CUELGA la suite. */
+      const infR = getInformes().find(i => i.estudioId === eid);
+      const idR = infR ? infR.id : null;
+      /* SIN pasarle accion: el tercer argumento REEMPLAZA a \`_pdfAjustarA4\`, que es quien
+         termina llamando a save(). Con una accion propia el PDF nunca se guarda y la captura
+         sale vacia — que es como esta condicion nacio en verde sin probar nada. */
+      if (idR) pdfViejo = await filasPdf(() => { try { pdfDeInformeGuardado(idR); } catch (e) {} return Promise.resolve(); });
+      await esperarPdfLibre();
+    }
+    if (eid) await __t.borrar(eid);
+
+    // ── 9. No toca el informe ni el EN SUMA ────────────────────────────────────────────
+    sembrar();
+    __t.informe();
+    const r1 = __t.informe();
+    if (cbC()) { cbC().checked = true; cbC().dataset.tocado = '1'; }
+    const r2 = __t.informe();
+    // ── 10. La mitad PISA del selector tiene su propio disparador ──────────────────────
+    __t.limpiar();
+    try { toggleValvPill('mitral','insuf'); } catch (e) {}
+    ['pisa_r','pisa_val','im_vmax'].forEach(function (k, i) { __t.set(k, ['10','40','500'][i]); });
+    const spanPisaSoloPisa = gv('im-pdf-pisa-val');
+
+    // ── 11. Borrar el radio PISA limpia la fila: no queda un numero pegado que el PDF firme ─
+    sembrar();
+    const eroaAntes = gv('eroa-val');
+    __t.set('pisa_r','');
+    const eroaTrasBorrar = gv('eroa-val');
+    __t.informe();
+    const pdfSinPisa = await pdfVivo();
+
+    // ── 12. Vol-R por continuidad SIN el VTI del chorro: la casilla gobierna DOS filas, asi
+    //        que un volumetrico completo sin ese VTI tiene que poder llegar al informe ───────
+    sembrar();
+    __t.set('im_itv','');
+    const eroaContVacia = gv('im_eroa_cont'), volrContPresente = gv('vr_cont');
+    const casillaSigueOfrecida = !!cbC() && cbC().disabled === false;
+    if (cbC()) { cbC().checked = true; cbC().dataset.tocado = '1'; }
+    __t.informe();
+    const pdfSoloVolr = await pdfVivo();
+
+    // ── 13. Reimprimir con un paciente POBLADO en pantalla no le deja los numeros del otro ──
+    sembrar();
+    if (cbC()) { cbC().checked = true; cbC().dataset.tocado = '1'; }
+    __t.informe();
+    const eidA = await guardar();
+    sembrar();
+    __t.set('pisa_r','8');            // paciente B: otra EROA
+    const eroaB = gv('eroa-val');
+    let eroaTrasReimp = '(no se pudo)';
+    {
+      const infA = eidA ? getInformes().find(i => i.estudioId === eidA) : null;
+      const idA = infA ? infA.id : null;
+      if (idA) { try { pdfDeInformeGuardado(idA); } catch (e) {} await esperarPdfLibre();
+        await new Promise(r => setTimeout(r, 400)); eroaTrasReimp = gv('eroa-val'); }
+    }
+    if (eidA) await __t.borrar(eidA);
+
+    sembrar();
+    __t.informe();
+    let colsXls = '(no se pudo)';
+    try {
+      const campos = {}; document.querySelectorAll('input[id],select[id],textarea[id]').forEach(function (el) { campos[el.id] = el.value; });
+      const row = _labExcelRow({ campos: campos });
+      colsXls = Object.keys(row).filter(function (k) { return /im_pdf|Incluir en el informe/.test(k); }).join(',') || '(ninguna)';
+    } catch (e) { colsXls = 'ERR:' + e.message; }
+    __t.limpiar();
+
+    return { extra: [
+      ['DENOMINADOR: los dos metodos tienen numero y son distintos', dosMetodos,
+        'PISA=' + pisaEroa + ' cont=' + contEroa],
+      ['la continuidad nace DESMARCADA y habilitada — el default es PISA, que es lo que ya salia',
+        naceDesmarcada, 'checked=' + (cbC() && cbC().checked) + ' disabled=' + (cbC() && cbC().disabled)],
+      ['la casilla informa el valor que ofrece', spanCont.indexOf('33.6') > -1, spanCont],
+      ['por defecto el PDF lleva PISA y NO la continuidad',
+        pdfDefault.indexOf('PISA: 50.3') > -1 && pdfDefault.indexOf('Cont') < 0, pdfDefault],
+      ['tildada, el PDF lleva los DOS y cada numero dice de que metodo salio',
+        pdfConCont.indexOf('PISA: 50.3') > -1 && pdfConCont.indexOf('Cont: 33.6') > -1, pdfConCont],
+      ['la casilla de PISA no se puede desmarcar', pisaSiguePuesta === true, String(pisaSiguePuesta)],
+      ['sin valor la casilla se deshabilita', sinValorDeshabilita,
+        'checked=' + (cbC() && cbC().checked) + ' disabled=' + (cbC() && cbC().disabled)],
+      ['y el PDF NO imprime la continuidad sin numero, aunque la casilla siga tildada',
+        pdfSinValor.indexOf('PISA: 50.3') > -1 && pdfSinValor.indexOf('Cont') < 0, pdfSinValor],
+      ['la decision se guarda con el estudio', claveChk === '1' && claveToc === '1',
+        '__chk=' + claveChk + ' __tocado=' + claveToc],
+      ['«Nuevo estudio» borra la decision y repone PISA', trasLimpiar,
+        'cont=' + (cbC() && cbC().checked) + ' tocado=' + (cbC() && cbC().dataset.tocado) + ' pisa=' + (cbP() && cbP().checked)],
+      ['y reabrir el estudio la devuelve', trasReabrir, 'checked=' + (cbC() && cbC().checked)],
+      ['DENOMINADOR: tras «Nuevo estudio» la casilla queda deshabilitada', chkDeshabilitada,
+        'disabled=' + (cbC() && cbC().disabled)],
+      ['reimprimir un guardado CON continuidad la conserva — la guarda es el numero, no el estado visual',
+        pdfReimp.indexOf('PISA: 50.3') > -1 && pdfReimp.indexOf('Cont: 33.6') > -1, pdfReimp],
+      ['un estudio SIN las claves (anterior al selector) reimprime la EROA de PISA igual',
+        pdfViejo.indexOf('PISA: 50.3') > -1 && pdfViejo.indexOf('Cont') < 0, pdfViejo],
+      ['el selector NO toca el informe ni el EN SUMA',
+        r1.inf === r2.inf && r1.suma === r2.suma, 'inf igual=' + (r1.inf === r2.inf) + ' suma igual=' + (r1.suma === r2.suma)],
+      ['ni agrega columnas al Excel', colsXls === '(ninguna)', colsXls],
+      ['la mitad PISA del selector se refresca con SU disparador, sin tocar la continuidad',
+        spanPisaSoloPisa.indexOf('50.3') > -1, spanPisaSoloPisa],
+      ['DENOMINADOR: la fila de PISA tenia numero antes de borrar el radio', eroaAntes.indexOf('50.3') > -1, eroaAntes],
+      ['borrar el radio PISA limpia la fila — no queda un numero pegado', eroaTrasBorrar === '—', eroaTrasBorrar],
+      ['y el PDF deja de publicar esa EROA', pdfSinPisa.indexOf('PISA') < 0, pdfSinPisa],
+      ['DENOMINADOR: sin el VTI del chorro hay Vol-R y no hay EROA por continuidad',
+        eroaContVacia === '' && volrContPresente.indexOf('43.7') > -1,
+        'eroa=«' + eroaContVacia + '» volr=«' + volrContPresente + '»'],
+      ['la casilla sigue ofreciendose: gobierna las DOS filas, no solo la EROA', casillaSigueOfrecida,
+        'disabled=' + (cbC() && cbC().disabled)],
+      ['y el Vol-R por continuidad llega al informe', pdfSoloVolr.indexOf('Cont: 43.7 ml') > -1, pdfSoloVolr],
+      ['DENOMINADOR: el paciente en pantalla tiene OTRA EROA que el estudio que se reimprime',
+        eroaB.indexOf('32.2') > -1, eroaB],
+      ['reimprimir NO le deja al paciente en pantalla los numeros del estudio reimpreso',
+        eroaTrasReimp === eroaB, 'antes=' + eroaB + ' despues=' + eroaTrasReimp],
+      ['los seis sitios de persistencia salen de UNA tabla, y la continuidad de IM esta en ella',
+        Array.isArray(window._PDF_METODO_IDS) && window._PDF_METODO_IDS.indexOf('im_pdf_cont') > -1
+        && window._PDF_METODO_IDS.indexOf('em_pdf_cont') > -1,
+        String(window._PDF_METODO_IDS)]
+    ] };
+  })();
+`);
+
 caso('TC-295', 'Las tres referencias de AI del PDF firmado coinciden con el operador que aplica el codigo', `
   return (async () => {
     /* Depende del CDN. Se espera hasta 8 s y, si no llega, se FALLA con el motivo escrito: un caso
