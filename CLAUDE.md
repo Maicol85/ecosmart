@@ -4,6 +4,89 @@ Leer esto antes de tocar `index.html`. Son cosas que ya costaron una sesión cad
 ninguna es evidente leyendo el código alrededor.
 
 
+## La marca de espejo: nueve destinos, un solo registro, y el fallback que no puede correr en el formulario vivo (2026-09-28, fase 5 de 5)
+
+**El censo se hace por ATRIBUTO, no por la lista a mano.** El pedido nombraba siete campos;
+recorrer todos los destinos de `_syncDerivado` dio **nueve**, y los dos que faltaban
+(`em_dtsvi`, `em_vtitsvi`) eran justo los que había que convertir. La lista a mano
+`_MARCAS_DERIV` —la que la reimpresión usa para salvar y reponer las marcas— tenía **siete ids
+escritos a dedo** y se quedó corta en cuanto el registro pasó a reponer nueve. Hoy se **deriva**
+de `_ESPEJOS_TODOS`; agregar un par a la tabla la actualiza sola. Los nueve, con lo que deciden:
+
+| origen | destino | decide |
+|---|---|---|
+| `diam_tsvi` | `im_dtsvi` | FR de IM → `im_grado` (informe firmado) |
+| `itv_tsvi` | `im_itv_tsvi` | FR de IM → `im_grado` |
+| `ai_area` | `im_ai_area` | ratio jet/AI → `im_grado` |
+| `itv_mitral` | `vtim` | Vol-R y FR → `calcContIM` |
+| `fevi` | `teer_fevi` | criterio c7 → APTO / NO APTO del TEER |
+| `dsfvi` | `teer_dtsvi` | criterio c8 → APTO / NO APTO |
+| `psap_calc` | `teer_pasp` | criterio PASP → APTO / NO APTO |
+| `diam_tsvi` | `em_dtsvi` | AVm por continuidad → severidad integrada de EM |
+| `itv_tsvi` | `em_vtitsvi` | AVm por continuidad → severidad integrada de EM |
+
+**`dataset` no se persiste, así que la marca vivía una sola sesión.** De ahí el oculto
+`im_espejos` (el id quedó, aunque hoy guarde también TEER y EM: renombrarlo rompe los estudios ya
+guardados). Formato `v1|id=valor|id~valor`. El centinela `v1` **no es decorativo**: es lo único
+que distingue «se guardó con el mecanismo y no tenía espejos» de «es anterior al mecanismo» —los
+dos llegan como cadena vacía— y decide si corre el fallback por igualdad.
+
+**⚠️ EL FALLBACK SE GATEA POR EL ESTUDIO, NO POR EL DOM.** Preguntar «¿el oculto está vacío
+ahora?» lo cumple el **formulario vivo** en tres situaciones que no son un estudio legado: la
+vuelta de la reimpresión, el borrador restaurado tras un F5, y **todo estudio importado** de
+Excel/DICOM/PDF —esos `campos` se arman de cero y nunca traen la clave—. Escenario real:
+`teer_fevi` tipeado a mano que coincide con `fevi` porque es la misma medición dicha dos veces, un
+F5, y el fallback lo marca espejo; el médico corrige la FEVI y el valor del TEER se va solo detrás.
+Hoy `imEspejosRestaurar(campos)` infiere **sólo** si `campos.im_espejos === undefined`, y la
+llamada sin argumento de `RECALC_MODULOS` **nunca** infiere. La reimpresión no recibe `campos` a
+propósito: tiene su propio backup (`_MARCAS_DERIV`) y devuelve el formulario a otro paciente.
+
+**Una marca REPUESTA no habilita el vaciado.** `_syncDerivado` limpia el destino cuando el origen
+se vacía —el fantasma del gradiente pulmonar—, pero desde que la marca sobrevive al guardado llega
+viva a un formulario donde el origen puede volver vacío **sin que nadie lo haya borrado**:
+`psap_calc` se recalcula al abrir, y si al estudio le falta el colapso de la VCI vuelve en blanco
+mientras `teer_pasp` conserva su valor guardado. Sin guarda, abrir la pestaña TEER **borraba** el
+campo y con él el insumo de un APTO / NO APTO. Sólo se vacía lo copiado **en esta sesión**
+(`dataset.espejoVivo`).
+
+**La marca inferida se persiste con `~` y no con `=`.** Una coincidencia casual sellada como hecho
+queda como permiso permanente para pisar el campo, y el fallback ya no vuelve a correr sobre ese
+estudio para corregirlo. Y **asciende**: cuando `_syncDerivado` la copia, deja de ser inferida —esa
+dirección faltaba, y sin ella un estudio legado quedaba marcado `~` para siempre aunque el médico
+corrigiera el origen diez veces.
+
+**⚠️ LA LISTA DE ATRIBUTOS DE `limpiarCampos` ES CERRADA.** Agregar una marca a `dataset` sin
+sumarla a ese selector la hace sobrevivir a «Nuevo estudio». Costó tres casos en rojo: `espejoVivo`
+y `espejoInferido` quedaban pegados al campo de un paciente al siguiente, y el registro del estudio
+nuevo declaraba con `~` espejos que la app había copiado ella misma. Lo destapó el suite, no la
+lectura, y es la misma clase de fuga que este archivo ya documenta para `dataset`.
+
+**Convertir a `_syncDerivado` sin agregar el disparador es PEOR que no convertir.** El único
+llamador de `sincronizarEMDesdeGlobal` era `toggleValvPill`: el espejo se refrescaba sólo al abrir
+la pastilla. Con la casilla poblada, el `||` de `calcEM` la **prefiere** al global, así que el AVm
+salía con el Ø TSVI viejo — antes, en blanco, caía al global y daba bien. Va en el `oninput` de los
+orígenes (`emSyncSiExiste`), como IM.
+
+**⚠️ Y EL GATE DE EM MIRA LA PASTILLA, NO `bloque-em-detalle`.** Lo destapó una mutación, no la
+lectura: `limpiarCampos` apaga las seis pastillas pero **no** el detalle de EM, así que gatear por
+el detalle dejaba el gate abierto para siempre desde la primera vez que alguien abrió Estenosis
+Mitral en esa carga de la página — sobrevivía a «Nuevo estudio» y a reabrir otro paciente, llenando
+dos campos de una sección apagada que `guardarInforme` persiste igual (barre `input[id]` sin mirar
+visibilidad). Hoy gatea `bloque-esten-mitral`, igual que IM con `bloque-insuf-mitral`.
+
+**Los `input[type=hidden]` no los barre `limpiarCampos`.** `im_espejos` se limpia a mano; si no, la
+marca del paciente anterior sobrevive a «Nuevo estudio».
+
+**El sellado cuelga de cinco puntos del médico** —`toggleValvPill` y los cuatro `oninput` que pasan
+por `imSyncSiExiste`—, ninguno de los cuales corre en una ruta de restauración (reponer con
+`.value` no dispara `oninput`). Una sesión que trabaja FEVI y estenosis mitral pero no toca ningún
+origen de IM **nunca** sella: por eso sellan además `guardarInforme` y el autosave.
+
+Cobertura: **TC-301**, 24 condiciones, verificado por mutación en **nueve** puntos independientes.
+La décima —«el autosave no sella si la reposición falló»— queda **declarada sin cobertura**:
+`_autosaveRestore` corre una sola vez, en el arranque de la página, y los 316 casos comparten esa
+carga.
+
 ## Etiología mitral Válvulas ↔ ETE: los pares que coinciden, y lo que NO se pisa (2026-09-28, fase 4 de 5)
 
 `vm_morf` (pestaña Válvulas) y `ete_etiologia` (pestaña ETE) describen la MISMA válvula del MISMO

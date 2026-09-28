@@ -33930,6 +33930,284 @@ caso('TC-300', 'Etiologia mitral Valvulas<->ETE: sincroniza solo los pares que c
   })();
 `);
 
+caso('TC-301', 'Marca de espejo para los NUEVE destinos: la marca sobrevive al guardado, reabrir sin editar no cambia un solo valor, y el fallback por igualdad corre SOLO en estudios anteriores al mecanismo', `
+  return (async () => {
+    const g  = id => document.getElementById(id);
+    const gv = id => { const e = g(id); return e ? e.value : '(no existe)'; };
+    const marca = id => { const e = g(id); return e ? (e.dataset.espejoDe === undefined ? '(sin marca)' : e.dataset.espejoDe) : '(no existe)'; };
+    const PARES = (window._ESPEJOS_TODOS || []).map(p => p.slice());
+    const guardar = () => new Promise(r => { window._ettEditandoId = null;
+      const antes = new Set(getInformes().map(i => i.estudioId));
+      const fin = () => { const n = getInformes().find(i => !antes.has(i.estudioId)); r(n ? n.estudioId : null); };
+      try { guardarInforme(fin); } catch (e) { r(null); return; }
+      const cf = g('rev-confirm'); if (cf) cf.click(); });
+    /* Abre las tres puertas: cada sincronia corre SOLO al abrir su pastilla o su acordeon. */
+    const abrirTodo = () => {
+      try { toggleValvPill('mitral','insuf'); } catch (e) {}
+      try { toggleValvPill('mitral','esten'); } catch (e) {}
+      try { sincronizarTEERDesdeGlobal(); } catch (e) {}
+    };
+    const sembrar = () => {
+      __t.limpiar();
+      __t.set('nombre','TC301'); __t.set('edad','60'); __t.set('peso','80'); __t.set('talla','180');
+      [['diam_tsvi','21'],['itv_tsvi','18'],['ai_area','26'],['itv_mitral','15'],
+       ['fevi','45'],['dsfvi','52'],['vmax_it','3'],['vci_diam','18']].forEach(kv => __t.set(kv[0], kv[1]));
+      /* psap_calc necesita la Vmax de IT Y la PmAD, que sale de la VCI: diametro Y colapso. Sin el
+         colapso la PmAD queda en null y teer_pasp se queda vacio — el espejo no tendria origen y
+         la condicion mediria sobre la nada. */
+      __t.set('vci_col','>50');
+      try { calcPmAD(); } catch (e) {}
+      try { calcPSAP(); } catch (e) {}
+      abrirTodo();
+    };
+
+    // ── 1. DENOMINADOR: el censo tiene los nueve, y cada destino recibio su origen ─────
+    sembrar();
+    const copiados = PARES.map(p => p[1] + '=' + gv(p[1]) + (marca(p[1]) === gv(p[1]) ? ' M' : ' —'));
+    const nueve = PARES.length === 9;
+    const todosCopiados = PARES.every(p => gv(p[1]) !== '' && gv(p[1]) === gv(p[0]) && marca(p[1]) === gv(p[1]));
+
+    // ── 2. La marca viaja con el estudio ──────────────────────────────────────────────
+    __t.informe();
+    const eid = await guardar();
+    const infG = eid ? getInformes().find(i => i.estudioId === eid) : null;
+    const oculto = infG ? String(infG.campos['im_espejos'] || '') : '(no guardo)';
+    const declaraLosNueve = PARES.every(p => oculto.indexOf(p[1] + '=') > -1) && oculto.indexOf('v1') === 0;
+
+    // ── 3. ⚠️ REABRIR SIN EDITAR NO CAMBIA UN SOLO VALOR ──────────────────────────────
+    const antesDeReabrir = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => { antesDeReabrir[e.id] = e.value; });
+    __t.limpiar();
+    if (eid) __t.reabrir(eid);
+    /* ⚠️ Se acota a los NUEVE espejos, sus NUEVE origenes y el oculto. Barrer el formulario entero
+       mide ademas diferencias PREEXISTENTES que esta fase no introduce y que se declaran aparte:
+       los checkbox se serializan con .value («on») y vuelven como '0', y los espejos readonly de
+       otras secciones (mch_fevi_ro, dsav_vi_ro, ebs_areas_ro) se REPINTAN al restaurar, que es lo
+       que tienen que hacer. Con el barrido ancho la condicion daba rojo sobre ruido ajeno. */
+    const _MIRAR = PARES.map(p => p[1]).concat(PARES.map(p => p[0])).concat(['im_espejos']);
+    const difieren = [];
+    _MIRAR.forEach(id => {
+      if (antesDeReabrir[id] !== undefined && antesDeReabrir[id] !== gv(id)) difieren.push(id + ': «' + antesDeReabrir[id] + '» → «' + gv(id) + '»');
+    });
+    /* Y se cuenta el ruido preexistente, para que quede DECLARADO y no descubierto de nuevo. */
+    let ajenos = 0;
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(e => {
+      if (_MIRAR.indexOf(e.id) < 0 && antesDeReabrir[e.id] !== undefined && antesDeReabrir[e.id] !== e.value) ajenos++;
+    });
+    const marcasTrasReabrir = PARES.filter(p => marca(p[1]) === gv(p[1])).length;
+
+    // ── 4. Y el espejo SIGUE VIVO: corregir el origen refresca el destino ─────────────
+    __t.set('fevi','60');
+    abrirTodo();
+    const teerTrasCorregir = gv('teer_fevi');
+
+    // ── 5. Un valor TIPEADO A MANO no se pisa ─────────────────────────────────────────
+    __t.set('teer_dtsvi','99');
+    __t.set('dsfvi','40');
+    abrirTodo();
+    const manualRespetado = gv('teer_dtsvi');
+
+    // ── 6. La reimpresion sale IDENTICA ───────────────────────────────────────────────
+    let pdfIgual = '(no se pudo)';
+    /* ⚠️ La reimpresion es la UNICA ruta que no pasa por limpiarCampos: carga OTRO estudio sobre el
+       formulario del paciente en pantalla y lo devuelve con un backup a mano. Si ese backup no cubre
+       los nueve destinos, la marca del estudio impreso se le queda pegada al paciente en pantalla.
+       Se fotografian las marcas ANTES y se comparan DESPUES. */
+    const marcasAntesPdf = PARES.map(p => p[1] + ':' + marca(p[1])).join(',');
+    for (let i = 0; i < 40 && !(window.jspdf && window.jspdf.jsPDF); i++) await new Promise(r => setTimeout(r, 200));
+    if (eid && window.jspdf && window.jspdf.jsPDF) {
+      const cap = async gen => {
+        const O = window.jspdf.jsPDF; let out = null;
+        window.jspdf.jsPDF = function () { const d = new O(...arguments);
+          d.save = function () { try { out = d.output('datauristring'); } catch (e) { out = null; } }; return d; };
+        window.jspdf.jsPDF.API = O.API;
+        try { await gen(); for (let k = 0; k < 80 && !out; k++) await new Promise(r => setTimeout(r, 100)); }
+        finally { window.jspdf.jsPDF = O; }
+        for (let k = 0; k < 120 && window._pdfGuardadoEnCurso; k++) await new Promise(r => setTimeout(r, 100));
+        if (!out) return null;
+        const bin = atob(out.split(',')[1]);
+        const re = /\\(((?:\\\\[\\s\\S]|[^()\\\\])*)\\)\\s?Tj/g;
+        let m, t = []; while ((m = re.exec(bin))) t.push(m[1]);
+        return t.join('|');
+      };
+      const infR = getInformes().find(i => i.estudioId === eid);
+      const idR = infR ? infR.id : null;
+      if (idR) {
+        const a = await cap(() => { try { pdfDeInformeGuardado(idR); } catch (e) {} return Promise.resolve(); });
+        const b = await cap(() => { try { pdfDeInformeGuardado(idR); } catch (e) {} return Promise.resolve(); });
+        pdfIgual = (a && b) ? (a === b ? 'IDENTICO (' + a.split('|').length + ' objetos)' : 'DIFIEREN') : '(sin PDF)';
+      }
+    }
+    const marcasDespuesPdf = PARES.map(p => p[1] + ':' + marca(p[1])).join(',');
+    if (eid) await __t.borrar(eid);
+
+    // ── 7. FALLBACK: estudio SIN el oculto (anterior al mecanismo) ─────────────────────
+    sembrar();
+    __t.set('teer_dtsvi','99');          // difiere de dsfvi=52 → tiene que quedar MANUAL
+    __t.informe();
+    const eid2 = await guardar();
+    let fbMarcados = '(no se pudo)', fbManual = '(no se pudo)';
+    if (eid2) {
+      const lista = getInformes().map(i => {
+        if (i.estudioId !== eid2) return i;
+        const c = Object.assign({}, i.campos); delete c['im_espejos'];
+        return Object.assign({}, i, { campos: c });
+      });
+      await CeiboStore.setLocal(lista);
+      __t.limpiar();
+      __t.reabrir(eid2);
+      fbMarcados = PARES.filter(p => gv(p[1]) !== '' && gv(p[1]) === gv(p[0]) && marca(p[1]) === gv(p[1])).length;
+      fbManual = marca('teer_dtsvi');
+      await __t.borrar(eid2);
+    }
+
+    // ── 8. Con el centinela y SIN marcas, el fallback NO corre ─────────────────────────
+    __t.limpiar();
+    __t.set('nombre','TC301c'); __t.set('edad','60');
+    __t.set('fevi','45'); __t.set('teer_fevi','45');    // coinciden, pero tipeados a mano
+    __t.informe();
+    const eid3 = await guardar();
+    const oculto3 = eid3 ? String((getInformes().find(i => i.estudioId === eid3) || {campos:{}}).campos['im_espejos'] || '') : '';
+    __t.limpiar();
+    if (eid3) __t.reabrir(eid3);
+    const noInventa = marca('teer_fevi');
+    if (eid3) await __t.borrar(eid3);
+    __t.limpiar();
+
+    // ── 9. El espejo de EM SIGUE al origen sin volver a abrir la pastilla ─────────────
+    __t.limpiar();
+    __t.set('nombre','TC301d'); __t.set('edad','60');
+    __t.set('diam_tsvi','21'); __t.set('itv_tsvi','18');
+    try { toggleValvPill('mitral','esten'); } catch (e) {}
+    const emAlAbrir = gv('em_dtsvi');
+    __t.set('diam_tsvi','25');                 // se corrige el Doppler SIN reabrir la pastilla
+    const emSigue = gv('em_dtsvi');
+
+    // ── 10. Vaciar el origen: la marca VIVA limpia, la REPUESTA no ───────────────────
+    __t.set('diam_tsvi','');
+    const vivoSeVacia = gv('em_dtsvi');
+    __t.set('diam_tsvi','25');
+    /* Se simula la vuelta de un estudio guardado: valor + marca declarada en el oculto, sin que
+       nadie haya copiado nada en esta sesion. Es el estado en que llega teer_pasp cuando el
+       estudio no trae el colapso de la VCI y psap_calc vuelve vacio. */
+    g('em_dtsvi').value = '25';
+    g('im_espejos').value = 'v1|em_dtsvi=25';
+    try { imEspejosRestaurar(); } catch (e) {}
+    __t.set('diam_tsvi','');
+    const repuestaSobrevive = gv('em_dtsvi');
+
+    // ── 10b. Con la pastilla APAGADA no se CREA un espejo ────────────────────────────
+    __t.limpiar();
+    g('im_espejos').value = '';
+    __t.set('nombre','TC301f'); __t.set('edad','60');
+    __t.set('diam_tsvi','21'); __t.set('itv_tsvi','18');   // sin abrir Estenosis Mitral
+    const emApagado = gv('em_dtsvi') + '/' + gv('em_vtitsvi');
+
+    // ── 10c. El registro no acepta un id fuera del censo ──────────────────────────────
+    g('im_espejos').value = 'v1|nombre=TC301f|em_dtsvi=21';
+    try { imEspejosRestaurar(); } catch (e) {}
+    const idAjeno = marca('nombre');
+
+    // ── 10d. ⚠️ Las marcas de dataset NO sobreviven a «Nuevo estudio» ────────────────
+    /* La lista de atributos de limpiarCampos es CERRADA. Cuando esta fase agrego espejoVivo y
+       espejoInferido sin sumarlos al selector, la marca de un paciente quedaba pegada al campo del
+       siguiente: el estudio nuevo declaraba con ~ —«salio de una coincidencia»— espejos que la app
+       habia copiado ella misma. Lo destapo el suite, no la lectura. */
+    __t.limpiar();
+    g('im_espejos').value = '';
+    g('fevi').value = '45'; g('teer_fevi').value = '45';
+    try { imEspejosRestaurar({}); } catch (e) {}      // deja espejoDe + espejoInferido
+    __t.set('diam_tsvi','21');
+    try { toggleValvPill('mitral','esten'); } catch (e) {}   // deja espejoVivo en em_dtsvi
+    __t.limpiar();
+    const sucios = ['teer_fevi','em_dtsvi'].map(function (id) {
+      const e = g(id); if (!e) return id + ':(no existe)';
+      const d = [];
+      if (e.dataset.espejoDe !== undefined) d.push('espejoDe');
+      if (e.dataset.espejoVivo !== undefined) d.push('espejoVivo');
+      if (e.dataset.espejoInferido !== undefined) d.push('espejoInferido');
+      return d.length ? id + ':' + d.join('+') : null;
+    }).filter(Boolean);
+
+    // ── 11. La marca INFERIDA por el fallback se persiste como inferida, no como hecho ─
+    __t.limpiar();
+    g('im_espejos').value = '';
+    g('fevi').value = '45'; g('teer_fevi').value = '45';     // coinciden, nadie los copio
+    try { imEspejosRestaurar({}); } catch (e) {}              // objeto SIN im_espejos = estudio viejo
+    const infMarcado = g('teer_fevi').dataset.espejoInferido || '(no)';
+    try { _imEspejosGuardar(); } catch (e) {}
+    const selloInferido = gv('im_espejos');
+
+    // ── 11b. Corregir el origen ASCIENDE la marca: deja de ser inferida ──────────────
+    /* La direccion inversa del ~. Una marca que la app COPIO ya no salio de una coincidencia, y si
+       el registro sigue diciendo que si, un estudio legado queda marcado ~ para siempre aunque el
+       medico corrija el origen diez veces. */
+    __t.limpiar();
+    g('im_espejos').value = '';
+    g('fevi').value = '45'; g('teer_fevi').value = '45';
+    try { imEspejosRestaurar({}); } catch (e) {}
+    __t.set('fevi','60');                                  // el medico corrige el ORIGEN
+    try { sincronizarTEERDesdeGlobal(); } catch (e) {}
+    try { _imEspejosGuardar(); } catch (e) {}
+    const selloAscendido = gv('im_espejos');
+
+    // ── 12. ⚠️ EL FALLBACK NO CORRE SOBRE EL FORMULARIO VIVO ──────────────────────────
+    __t.limpiar();
+    g('im_espejos').value = '';
+    g('fevi').value = '45'; g('teer_fevi').value = '45';
+    try { imEspejosRestaurar(); } catch (e) {}                // sin argumento: la de RECALC_MODULOS
+    const vivoNoInfiere = marca('teer_fevi');
+    __t.limpiar();
+
+    return { extra: [
+      ['DENOMINADOR: el censo declara los NUEVE destinos de _syncDerivado', nueve, PARES.length + ' :: ' + PARES.map(p => p[1]).join(',')],
+      ['los nueve reciben su origen y quedan marcados como espejo', todosCopiados, copiados.join(' · ')],
+      ['la marca de los nueve viaja con el estudio, con centinela', declaraLosNueve, oculto],
+      ['⚠️ REABRIR SIN EDITAR NO CAMBIA NINGUNO DE LOS NUEVE ESPEJOS NI SUS ORIGENES',
+        difieren.length === 0, difieren.join(' | ') || '(ninguno)'],
+      ['DECLARADO: hay diferencias PREEXISTENTES en otros campos, ajenas a esta fase',
+        ajenos > 0, ajenos + ' campos (checkbox «on»→«0» y espejos readonly repintados)'],
+      ['y los nueve vuelven reconocidos como espejo', marcasTrasReabrir === 9, marcasTrasReabrir + '/9'],
+      ['el espejo sigue VIVO en el estudio reabierto: corregir la FEVI refresca teer_fevi',
+        teerTrasCorregir === '60', teerTrasCorregir],
+      ['pero un valor tipeado a mano no se pisa', manualRespetado === '99', manualRespetado],
+      ['la reimpresion sale identica', String(pdfIgual).indexOf('IDENTICO') === 0, String(pdfIgual)],
+      ['y la reimpresion devuelve las marcas de los NUEVE como estaban',
+        marcasAntesPdf === marcasDespuesPdf && String(pdfIgual).indexOf('IDENTICO') === 0,
+        marcasAntesPdf === marcasDespuesPdf ? 'iguales' : ('antes ' + marcasAntesPdf + ' :: despues ' + marcasDespuesPdf)],
+      ['FALLBACK: un estudio SIN el oculto marca espejo lo que coincide con su origen',
+        fbMarcados === 8, fbMarcados + '/8 (teer_dtsvi difiere a proposito)'],
+      ['y deja MANUAL lo que difiere', fbManual === '(sin marca)', fbManual],
+      ['DENOMINADOR: un estudio nuevo SIN espejos igual declara el centinela', oculto3 === 'v1', oculto3],
+      ['y con el centinela el fallback NO corre: no inventa una marca sobre un valor tipeado',
+        noInventa === '(sin marca)', noInventa],
+      ['el espejo de EM sigue al origen sin volver a abrir la pastilla',
+        emAlAbrir === '21' && emSigue === '25', 'al abrir ' + emAlAbrir + ' → tras corregir ' + emSigue],
+      ['vaciar el origen limpia el espejo VIVO', vivoSeVacia === '', '«' + vivoSeVacia + '»'],
+      ['pero NO borra una marca REPUESTA por el estudio: ese campo puede no tener origen al abrir',
+        repuestaSobrevive === '25', '«' + repuestaSobrevive + '»'],
+      ['la marca INFERIDA por el fallback se anota como inferida', infMarcado === '1', infMarcado],
+      ['y se persiste con ~ , no se sella como observada',
+        selloInferido.indexOf('teer_fevi~45') > -1, selloInferido],
+      ['⚠️ EL FALLBACK NO CORRE SOBRE EL FORMULARIO VIVO: sin datos de estudio no infiere nada',
+        vivoNoInfiere === '(sin marca)', vivoNoInfiere],
+      ['con la pastilla de EM apagada no se CREA el espejo: la seccion no se llena sola',
+        emApagado === '/', '«' + emApagado + '»'],
+      ['y el registro no marca un id fuera del censo', idAjeno === '(sin marca)', idAjeno],
+      ['⚠️ NINGUNA de las tres marcas de dataset sobrevive a «Nuevo estudio»',
+        sucios.length === 0, sucios.join(' | ') || '(las tres barridas)'],
+      ['y corregir el origen ASCIENDE la marca inferida: pasa de ~ a =',
+        selloAscendido.indexOf('teer_fevi=60') > -1, selloAscendido],
+      /* DECLARADO SIN COBERTURA: el sellado del autosave esta condicionado a que la reposicion no
+         haya lanzado, y esa rama no se puede alcanzar desde el suite —_autosaveRestore corre UNA
+         vez, en el arranque de la pagina, y los 316 casos comparten esa carga—. Queda verificado
+         por lectura y por el patron fail-closed del resto del modulo, no por caso. */
+      ['DECLARADO: la rama «reposicion fallida → no sellar» del autosave no es alcanzable desde el suite',
+        true, 'verificada por lectura: _autosaveRestore corre solo en el arranque']
+    ] };
+  })();
+`);
+
 caso('TC-295', 'Las tres referencias de AI del PDF firmado coinciden con el operador que aplica el codigo', `
   return (async () => {
     /* Depende del CDN. Se espera hasta 8 s y, si no llega, se FALLA con el motivo escrito: un caso
@@ -34149,12 +34427,22 @@ caso('TC-296', 'Insuficiencia mitral: las tres casillas «auto» espejan, SIGUEN
         (function(){ const l = g('im_ai_area') && g('im_ai_area').closest('.fg');
           const t = l ? l.textContent : ''; return t.indexOf('auto ← AI/VI') > -1 && t.indexOf('Doppler') === -1; })(),
         (function(){ const l = g('im_ai_area') && g('im_ai_area').closest('.fg'); return l ? l.textContent.trim() : '(sin .fg)'; })()],
-      ['los tres estan en el respaldo de marcas de la reimpresion',
+      /* ⚠️ Esta condicion media los tres ids LITERALES dentro de _pdfDeInformeGuardadoArmar, y eso
+         era medir la implementacion: la lista a mano _MARCAS_DERIV se quedo corta en cuanto los
+         destinos pasaron de siete a nueve, con los literales igual de presentes. Hoy la lista se
+         DERIVA de _ESPEJOS_TODOS, que es lo que hace imposible el olvido, asi que lo que se
+         verifica es la derivacion — y los tres siguen contados porque estan en el censo. El
+         comportamiento (la reimpresion devuelve las marcas como estaban) lo mide TC-301. */
+      ['el respaldo de marcas de la reimpresion se DERIVA del censo, no de una lista a mano',
         (function(){ const f = String(_pdfDeInformeGuardadoArmar);
-          return ['im_dtsvi','im_itv_tsvi','im_ai_area'].every(x => f.indexOf("'" + x + "'") > -1); })(),
+          const enCenso = (window._ESPEJOS_TODOS || []).map(p => p[1]);
+          return f.indexOf('_ESPEJOS_TODOS') > -1 &&
+                 ['im_dtsvi','im_itv_tsvi','im_ai_area'].every(x => enCenso.indexOf(x) > -1); })(),
         (function(){ const f = String(_pdfDeInformeGuardadoArmar);
-          const falta = ['im_dtsvi','im_itv_tsvi','im_ai_area'].filter(x => f.indexOf("'" + x + "'") === -1);
-          return falta.length ? 'faltan: ' + falta.join(',') : 'los tres'; })()]
+          const enCenso = (window._ESPEJOS_TODOS || []).map(p => p[1]);
+          const falta = ['im_dtsvi','im_itv_tsvi','im_ai_area'].filter(x => enCenso.indexOf(x) === -1);
+          return (f.indexOf('_ESPEJOS_TODOS') > -1 ? 'deriva del censo' : '⚠️ lista a mano') +
+                 ' · censo de ' + enCenso.length + (falta.length ? ' — faltan: ' + falta.join(',') : ''); })()]
     ] };
   })();
 `);

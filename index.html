@@ -3033,7 +3033,7 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div class="grid-3" style="margin-top:8px;">
         <div class="fg">
           <label>VTI TSVI (cm)</label>
-          <input type="number" id="itv_tsvi" placeholder="cm" oninput="calcAo();eteShuntSyncSiExiste();imSyncSiExiste()">
+          <input type="number" id="itv_tsvi" placeholder="cm" oninput="calcAo();eteShuntSyncSiExiste();imSyncSiExiste();emSyncSiExiste()">
         </div>
         <div class="fg">
           <label>VTI Vao (cm)</label>
@@ -3041,7 +3041,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div class="fg">
           <label>Ø TSVI (mm)</label>
-          <input type="number" id="diam_tsvi" placeholder="mm" oninput="calcAo();mostrarTSVIEstimado();eteShuntSyncSiExiste();imSyncSiExiste();">
+          <input type="number" id="diam_tsvi" placeholder="mm" oninput="calcAo();mostrarTSVIEstimado();eteShuntSyncSiExiste();imSyncSiExiste();emSyncSiExiste();">
           <div id="tsvi-estimado-box" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
         </div>
       </div>
@@ -20860,13 +20860,27 @@ function _syncDerivado(map) {
       /* El origen se vació —borraron la velocidad de IT—: si el destino es nuestro se limpia
          con él. Si no, es un valor que tipeó el médico y se respeta. Dejarlo daba el mismo
          fantasma que el gradiente pulmonar: un criterio evaluándose contra un número que ya no
-         tiene de dónde salir. */
-      if (esNuestro) { el.value = ''; delete el.dataset.espejoDe; }
+         tiene de dónde salir.
+         ⚠️ PERO SÓLO SI LA MARCA ES DE ESTA SESIÓN. Desde que el registro persiste los nueve, una
+         marca REPUESTA desde el estudio llega viva a un formulario donde el origen puede volver
+         vacío sin que nadie lo haya borrado: `psap_calc` se RECALCULA al abrir, y si al estudio le
+         falta el colapso de la VCI —o es un importado— vuelve en blanco mientras `teer_pasp`
+         conserva su valor guardado. Sin esta guarda, la primera vez que el médico abre la pestaña
+         TEER el campo se BORRA solo, y con él el insumo de un criterio que decide APTO / NO APTO.
+         Antes de esta fase no era alcanzable porque la marca no sobrevivía al guardado. */
+      if (esNuestro && el.dataset.espejoVivo === '1') { el.value = ''; delete el.dataset.espejoDe; delete el.dataset.espejoVivo; }
       return;
     }
     if (el.value === '' || esNuestro) {
       el.value = s.value;
       el.dataset.espejoDe = s.value;
+      el.dataset.espejoVivo = '1';   // copiada en esta sesión: ahora sí puede vaciarse con su origen
+      /* Y DEJA DE SER INFERIDA, que es la dirección que faltaba. El fallback puede haberla marcado
+         por una coincidencia, pero esto de acá es la app copiando: el permiso ya no sale de una
+         casualidad y el registro no tiene por qué seguir diciendo que sí. Sin esta línea, un
+         estudio legado quedaba marcado con `~` para siempre aunque el médico corrigiera el origen
+         diez veces. */
+      delete el.dataset.espejoInferido;
     }
   });
 }
@@ -20876,11 +20890,42 @@ function _syncDerivado(map) {
    quedaba vacío. El médico leía un «AVm por continuidad» calculado a partir de dos casillas
    en blanco, sin forma de saber con qué Ø TSVI se computó ni de detectar que era el del
    Doppler y no el que él creía haber puesto. Esto hace visible lo que ya se estaba usando. */
+/* ⚠️ CONVERTIR A `_syncDerivado` SIN AGREGAR EL DISPARADOR HABRÍA SIDO PEOR QUE NO CONVERTIR.
+   Su único llamador era `toggleValvPill`, o sea que el espejo se refrescaba SÓLO al abrir la
+   pastilla: el médico abría Estenosis Mitral, volvía al Doppler a corregir el Ø TSVI y la casilla
+   seguía mostrando el valor viejo. Y con la casilla poblada el `||` de `calcEM` la PREFIERE al
+   global, así que el AVm por continuidad se calculaba con el número viejo — antes, con la casilla
+   en blanco, caía al global y al menos daba bien. Un espejo que no sigue es una regresión del
+   cálculo, no sólo de la pantalla. El gate es el mismo de IM y por las mismas razones: con la
+   pastilla apagada se pasan sólo los pares que YA son espejo propio —refrescarlos o limpiarlos no
+   crea nada que el médico no pueda auditar—, nunca los demás. */
 function sincronizarEMDesdeGlobal() {
-  _syncSiVacio([['diam_tsvi','em_dtsvi'], ['itv_tsvi','em_vtitsvi']]);
-  calcEM();
+  /* ⚠️ EL GATE MIRA LA PASTILLA (`bloque-esten-mitral`), NO `bloque-em-detalle`, y la diferencia
+     se midió: `limpiarCampos` apaga las seis pastillas pero NO el detalle de EM, así que gatear
+     por el detalle dejaba el gate ABIERTO para siempre desde la primera vez que alguien abrió
+     Estenosis Mitral en esa carga de la página — incluso después de «Nuevo estudio» y de reabrir
+     otro paciente. Es el mismo bloque que gatea IM y por el mismo motivo. */
+  const det = document.getElementById('bloque-esten-mitral');
+  const oculto = !det || det.style.display === 'none';
+  const pares = oculto ? _EM_ESPEJOS.filter(function(par){
+    const el = document.getElementById(par[1]);
+    return el && el.dataset.espejoDe !== undefined && el.dataset.espejoDe === el.value;
+  }) : _EM_ESPEJOS;
+  _syncDerivado(pares);
+  /* Con la pastilla apagada y sin ningún espejo propio no hay nada que refrescar, y esto corre en el
+     `oninput` de dos campos del Doppler: sin la guarda, cada tecla dispara un `calcEM` completo que
+     antes no ocurría —la función tenía UN solo llamador—. Con la pastilla abierta `pares` es la
+     tabla entera y el comportamiento no cambia. */
+  if (pares.length) calcEM();
 }
 window.sincronizarEMDesdeGlobal = sincronizarEMDesdeGlobal;
+
+/* Mismo enganche que `imSyncSiExiste`, con guarda y `try/catch` por lo mismo: el `oninput` vive en
+   el marcado y sobrevive aunque este bloque deje de parsear. Sin bucle: `_syncDerivado` escribe con
+   `.value`, que no dispara `input`, y `calcEM` no llama a `calcAo` ni a esta sincronía. */
+function emSyncSiExiste(){ if (typeof sincronizarEMDesdeGlobal === 'function') {
+  try { sincronizarEMDesdeGlobal(); } catch(e){ console.warn('[emSync]', e); } } }
+window.emSyncSiExiste = emSyncSiExiste;
 
 /* IM: el mismo defecto que el de arriba, en la otra pastilla de la misma válvula, y lo mismo
    medido — `im_dtsvi`, `im_itv_tsvi` y `im_ai_area` quedaban VACÍOS mientras `calcContIM` y
@@ -20939,6 +20984,41 @@ window.sincronizarEMDesdeGlobal = sincronizarEMDesdeGlobal;
    anota los que eran espejo GENUINO al guardar. */
 const _IM_ESPEJOS = [['diam_tsvi','im_dtsvi'], ['itv_tsvi','im_itv_tsvi'], ['ai_area','im_ai_area'],
                      ['itv_mitral','vtim']];
+/* ⚠️ CENSO POR DESTINO, no la lista a mano `_MARCAS_DERIV`. Éstos son TODOS los destinos de
+   `_syncDerivado` que hay en el archivo, con su origen y con lo que deciden:
+
+     diam_tsvi   → im_dtsvi        FR de IM        → im_grado (informe firmado)
+     itv_tsvi    → im_itv_tsvi     FR de IM        → im_grado
+     ai_area     → im_ai_area      ratio jet/AI    → im_grado
+     itv_mitral  → vtim            Vol-R y FR      → calcContIM
+     fevi        → teer_fevi       criterio c7     → APTO / NO APTO del TEER
+     dsfvi       → teer_dtsvi      criterio c8     → APTO / NO APTO
+     psap_calc   → teer_pasp       criterio PASP   → APTO / NO APTO
+     diam_tsvi   → em_dtsvi        AVm continuidad → severidad integrada de EM
+     itv_tsvi    → em_vtitsvi      AVm continuidad → severidad integrada de EM
+
+   Los CUATRO de IM ya persistían su marca en el oculto `im_espejos`; los otros CINCO no, así que
+   al reabrir un estudio ninguno se reconocía como espejo y quedaban CONGELADOS: corregir la FEVI
+   en su tab no refrescaba `teer_fevi`, y el criterio del COAPT se seguía evaluando contra el
+   valor viejo. Eso es exactamente el defecto que el comentario de esa sincronía dice haber
+   cerrado — lo había cerrado para la sesión en curso y no para el estudio reabierto.
+
+   ⚠️ LAS LISTAS SIGUEN SEPARADAS porque `sincronizarIMDesdeGlobal` filtra `_IM_ESPEJOS` con el
+   gate de su bloque: una tabla única haría que ese gate mirara también los del TEER y los de EM,
+   que no tienen nada que ver con la pastilla de IM. Lo que se unifica es DÓNDE se guarda la
+   marca, no quién sincroniza qué. */
+const _TEER_ESPEJOS = [['fevi','teer_fevi'], ['dsfvi','teer_dtsvi'], ['psap_calc','teer_pasp']];
+/* EM pasa de `_syncSiVacio` a `_syncDerivado`. Su comentario NO declara que la copia única sea
+   intencional —dice que el campo «hace visible lo que ya se estaba usando»—, así que cae bajo la
+   misma regla que IM y TEER: el origen sigue cambiando después de abrir la pastilla y el espejo
+   quedaba con el número viejo, con cara de dato actual, alimentando el AVm por continuidad.
+   ⚠️ Es un cambio de comportamiento declarado, y su costo es MENOR que el de IM: CLAUDE.md ya
+   midió que `em_dtsvi` congelado mueve un número MOSTRADO —el AVm, que el médico tiene al lado—
+   y en el mismo escenario NO movió `em_grado`. No se toca `calcEM`, que es lo que el pedido
+   prohíbe: lo que cambia es de dónde saca su insumo. */
+const _EM_ESPEJOS = [['diam_tsvi','em_dtsvi'], ['itv_tsvi','em_vtitsvi']];
+const _ESPEJOS_TODOS = [].concat(_IM_ESPEJOS, _TEER_ESPEJOS, _EM_ESPEJOS);
+window._ESPEJOS_TODOS = _ESPEJOS_TODOS;
 /* El cuarto par entra con una diferencia que importa: los tres primeros espejan un campo que ya
    existia en dos lugares, y este MUDA el origen. `vtim` venia siendo el unico lugar donde se
    cargaba el VTI de entrada, asi que hay estudios guardados con `vtim` poblado y `itv_mitral`
@@ -20948,28 +21028,101 @@ const _IM_ESPEJOS = [['diam_tsvi','im_dtsvi'], ['itv_tsvi','im_itv_tsvi'], ['ai_
    cambia es de ahi en adelante: si el medico carga el campo nuevo, el espejo empieza a seguirlo. */
 /* Guarda en el oculto SÓLO los que son espejo genuino AHORA mismo —marca presente e igual al
    valor—, así que un campo que el médico pisó no entra y al reabrir sigue siendo manual. */
+/* ⚠️ EL CENTINELA `v1` NO ES DECORATIVO: es lo único que distingue «este estudio se guardó con el
+   mecanismo puesto y NO tenía ningún espejo» de «este estudio es anterior al mecanismo». Los dos
+   llegan como cadena vacía —el barrido de restauración escribe '' cuando la clave no está— y el
+   fallback por igualdad tiene que correr en el segundo y NUNCA en el primero. Sin él, un estudio
+   nuevo donde el médico tipeó a mano un valor que casualmente coincide con su origen quedaría
+   marcado como espejo y el próximo recálculo se lo pisaría.
+   El id sigue siendo `im_espejos` aunque hoy guarde también los del TEER y los de EM: renombrarlo
+   dejaría huérfana la clave de todos los estudios ya guardados. El nombre quedó corto; la
+   alternativa era una migración. */
+/* ⚠️ NO SE LLAMA DESDE LAS SINCRONÍAS DE TEER NI DE EM, y la razón la encontró el caso, no la
+   lectura: `sincronizarTEERDesdeGlobal` la llama `calcPSAP`, que corre DENTRO de las rutas de
+   restauración y ANTES de `imEspejosRestaurar` —que va en `RECALC_MODULOS`—. O sea que sellaba el
+   oculto con las marcas todavía sin reponer y lo dejaba en `v1` pelado: al reabrir un estudio, el
+   registro de espejos se BORRABA solo y los nueve campos quedaban congelados como manuales.
+   `sincronizarIMDesdeGlobal` sí puede llamarla, y NO porque tenga un solo llamador —eso lo escribí
+   y es falso: tiene CINCO, `toggleValvPill` más los cuatro `oninput` que pasan por
+   `imSyncSiExiste`— sino porque los cinco son acciones del médico y ninguno corre en una ruta de
+   restauración: reponer con `.value` no dispara `oninput`. El censo mal hecho es lo que costó la
+   ronda anterior, así que conviene que el comentario diga el número real.
+   Consecuencia de que el sellado cuelgue de esos cinco puntos: una sesión que trabaja FEVI, DSFVI
+   y estenosis mitral pero NO toca ninguno de los cuatro orígenes de IM nunca sella el oculto. Por
+   eso sellan además `guardarInforme` y el autosave, que son los dos puntos por los que pasan todas
+   las sesiones por igual. */
 function _imEspejosGuardar() {
   const h = document.getElementById('im_espejos');
   if (!h) return;
-  h.value = _IM_ESPEJOS.map(function(par){
+  const marcas = _ESPEJOS_TODOS.map(function(par){
     const el = document.getElementById(par[1]);
-    return (el && el.dataset.espejoDe !== undefined && el.dataset.espejoDe === el.value)
-      ? par[1] + '=' + el.value : null;
-  }).filter(Boolean).join('|');
+    if (!el || el.dataset.espejoDe === undefined || el.dataset.espejoDe !== el.value) return null;
+    /* Una marca INFERIDA por el fallback no se sella como observada: se persiste con `~` para que
+       siga siendo auditable de dónde salió el permiso. */
+    return par[1] + (el.dataset.espejoInferido === '1' ? '~' : '=') + el.value;
+  }).filter(Boolean);
+  h.value = ['v1'].concat(marcas).join('|');
 }
+window._imEspejosGuardar = _imEspejosGuardar;
 /* La vuelta: repone `dataset.espejoDe` sobre los que el estudio declara espejo. Va en
    `RECALC_MODULOS`, que es el embudo de las rutas de restauración, y NO copia nada — sólo
    devuelve la identidad, para que la próxima corrección del origen pueda refrescar el espejo.
    Exige que el valor COINCIDA con el que se guardó: si no coincide, alguien lo cambió y se
    respeta como manual. Es fail-closed hacia no pisar. */
-function imEspejosRestaurar() {
+/* ⚠️ EL FALLBACK SE GATEA POR EL ESTUDIO, NO POR EL DOM. La primera versión preguntaba «¿el
+   oculto está vacío AHORA?», y eso lo cumple el FORMULARIO VIVO en tres situaciones que no son un
+   estudio legado: la vuelta de la reimpresión (`limpiarCampos` lo vacía y sólo lo sella una
+   sincronía que quizá no corrió), el borrador restaurado tras un F5, y TODO estudio importado de
+   Excel, DICOM o PDF —esos `campos` se construyen desde cero y nunca traen la clave—.
+   El escenario que eso abría: `teer_fevi` tipeado a mano que coincide con `fevi` porque es la
+   misma medición dicha dos veces, un F5, y el fallback lo marca espejo; el médico corrige la FEVI
+   y el valor del TEER se va solo detrás. Es exactamente lo que el centinela existe para impedir,
+   entrando por la puerta del formulario en vez de la del estudio guardado.
+   Llamada SIN argumento —así la llama `RECALC_MODULOS`— repone lo declarado y NUNCA infiere. */
+function imEspejosRestaurar(campos) {
   const h = document.getElementById('im_espejos');
-  if (!h || !h.value) return;
+  if (!h) return;
+  if (!h.value) {
+    if (!campos || campos.im_espejos !== undefined) return;   // no es un estudio anterior al mecanismo
+    /* ⚠️ FALLBACK PARA ESTUDIOS ANTERIORES AL MECANISMO, y sólo para ellos. Decisión de Maicol:
+       un destino cuyo valor es IGUAL al de su origen se marca espejo —es lo que el médico vería
+       si lo hubiera dejado seguir— y uno que difiere queda manual, que es la lectura honesta de
+       un número que alguien cambió. Se exige valor NO VACÍO en los dos: con los dos en blanco la
+       igualdad se cumple sola y marcaría espejos sobre campos que nadie tocó.
+       Con el centinela presente esto NO corre, ni siquiera si la lista de marcas viene vacía:
+       ahí el estudio ya declaró que no tenía ninguno. */
+    _ESPEJOS_TODOS.forEach(function(par){
+      const src = document.getElementById(par[0]), dst = document.getElementById(par[1]);
+      if (!src || !dst) return;
+      if (dst.value !== '' && src.value !== '' && dst.value === src.value) {
+        dst.dataset.espejoDe = dst.value;
+        /* INFERIDA, no observada: se marca aparte para que el próximo guardado no la selle como
+           un hecho. Sin esto, una coincidencia casual quedaba escrita como permiso permanente
+           para pisar ese campo, y el fallback ya no volvía a correr sobre ese estudio para
+           corregirlo. Y no habilita el vaciado, por lo mismo que la repuesta. */
+        dst.dataset.espejoInferido = '1';
+      }
+    });
+    return;
+  }
   h.value.split('|').forEach(function(par){
-    const i = par.indexOf('=');
-    if (i < 0) return;
-    const el = document.getElementById(par.slice(0, i));
-    if (el && el.value === par.slice(i + 1)) el.dataset.espejoDe = el.value;
+    const iEq = par.indexOf('='), iTi = par.indexOf('~');
+    const i = (iEq < 0) ? iTi : (iTi < 0 ? iEq : Math.min(iEq, iTi));
+    if (i < 0) return;                      // el centinela `v1` cae acá y se ignora
+    const inferida = par.charAt(i) === '~';
+    const id = par.slice(0, i);
+    /* Se valida el id contra el censo: el registro es una cadena separada por `|` sin escape, y
+       los nueve destinos son `input` que la app convierte a `type=text` en runtime, así que un
+       valor pegado con una barra parte el registro y puede fabricar una entrada para OTRO campo.
+       Sin esta guarda, un `campos.im_espejos` corrupto —de un import o de un JSON editado a mano—
+       marca como espejo cualquier control del formulario cuyo valor coincida. */
+    if (!_ESPEJOS_TODOS.some(function (pp) { return pp[1] === id; })) return;
+    const el = document.getElementById(id);
+    if (el && el.value === par.slice(i + 1)) {
+      el.dataset.espejoDe = el.value;
+      delete el.dataset.espejoVivo;
+      if (inferida) el.dataset.espejoInferido = '1'; else delete el.dataset.espejoInferido;
+    }
   });
 }
 window.imEspejosRestaurar = imEspejosRestaurar;
@@ -21231,13 +21384,13 @@ function sincronizarTEERDesdeGlobal() {
      tipeada 45 y corregida a 60 seguía imprimiendo «FEVI 45% (20-50%) ✓ APTO».
      Es el mismo defecto y el mismo arreglo que `psap_calc → teer_pasp`, acá abajo. Sigue
      respetando el valor tipeado a mano: en cuanto deja de coincidir con la marca, no se toca. */
-  _syncDerivado([['fevi','teer_fevi'], ['dsfvi','teer_dtsvi']]);
+  _syncDerivado(_TEER_ESPEJOS.slice(0, 2));
   /* PASP: la app ya la calcula en `psap_calc` (4·VIT² + PmAD, en calcPSAP) y este campo no la
      recibía — había que tipearla a mano en un módulo cuyo criterio ≤70 mmHg decide APTO / NO
      APTO para MitraClip. Va por `_syncDerivado` y no por `_syncSiVacio` porque este acordeón
      suele quedar abierto mientras se corrige la velocidad de IT: con el espejo de una sola vez,
      la primera PSAP se quedaba fija y el criterio se evaluaba contra un número viejo. */
-  _syncDerivado([['psap_calc','teer_pasp']]);
+  _syncDerivado(_TEER_ESPEJOS.slice(2));
   /* El área mitral cae a «Área Wilkins (ETE)» cuando no hay planimetría transtorácica: TEER
      es un contexto transesofágico, así que ése es justamente el campo que suele estar
      cargado. Es la misma precedencia que usan emAvmPdfVal y em-plan-row; sin esto calcTEER
@@ -27607,8 +27760,15 @@ function limpiarCampos(silencioso) {
      parámetros discordantes, «Nuevo estudio», paciente B abre la pastilla de IM —lo que dispara
      `calcContIM` → `imDiscordanciaPintar`— y el aviso del paciente A vuelve a imprimirse,
      nombrando dos parámetros que el estudio nuevo no tiene. */
-  document.querySelectorAll('[data-derivado-de],[data-sugerido],[data-espejo-de],[data-params-disc],[data-grado-volum]').forEach(el => {
+  /* ⚠️ `data-espejo-vivo` y `data-espejo-inferido` entran acá, y la lista es CERRADA: agregar una
+     marca de `dataset` sin agregarla a este selector la hace sobrevivir a «Nuevo estudio». Costó
+     tres casos en rojo: `espejoInferido` quedaba pegado al campo de un paciente al siguiente, y el
+     registro del estudio nuevo declaraba con `~` —«esto salió de una coincidencia»— espejos que la
+     app había copiado ella misma. El daño es de auditabilidad hoy y de comportamiento el día que
+     `~` y `=` se traten distinto. */
+  document.querySelectorAll('[data-derivado-de],[data-sugerido],[data-espejo-de],[data-espejo-vivo],[data-espejo-inferido],[data-params-disc],[data-grado-volum]').forEach(el => {
     delete el.dataset.derivadoDe; delete el.dataset.sugerido; delete el.dataset.espejoDe;
+    delete el.dataset.espejoVivo; delete el.dataset.espejoInferido;
     delete el.dataset.paramsDisc; delete el.dataset.gradoVolum;
   });
   if (typeof renderCentroField === 'function') renderCentroField('');   // nuevo estudio → centro principal por defecto
@@ -29553,6 +29713,22 @@ function _autosaveRestore(){
       if (typeof window[fn] === 'function') { try { window[fn](); } catch (e) { console.warn('[autosave] '+fn, e); } }
     });
     _recalcModulos('autosave');
+    /* Fallback de estudios ANTERIORES al mecanismo: se pasa el objeto restaurado para que la
+       decisión la tome el ESTUDIO y no el DOM. La llamada sin argumento que hace `RECALC_MODULOS`
+       repone las marcas declaradas y nunca infiere; ésta es la única que puede inferir, y sólo si
+       la clave `im_espejos` no viene en los datos. Va DESPUÉS de `_recalcModulos` porque las
+       sincronías que corren ahí adentro son las que pueden dejar el oculto sellado. */
+    let _espejosRepuestos = false;
+    if (typeof imEspejosRestaurar === 'function') { try { imEspejosRestaurar(data); _espejosRepuestos = true; } catch (e) { console.warn('[imEspejos/autosave]', e); } }
+    /* Y se SELLA: el borrador se persiste entero cada vez, así que si el oculto no queda escrito
+       acá, una sesión que no toca ninguno de los cinco orígenes de IM lo guarda vacío y el propio
+       borrador vuelve pareciendo anterior al mecanismo — el fallback inferiría sobre datos que
+       nacieron con la marca puesta. Es el mismo sellado que hace `guardarInforme`.
+       Condicionado a que la reposición NO haya lanzado: sellar después de una reposición fallida
+       escribe `v1` pelado y borra el registro entero — el mismo defecto que costó la ronda
+       anterior con `sincronizarTEERDesdeGlobal`, entrando por la puerta del autosave. Ante duda,
+       no se pisa. */
+    if (_espejosRepuestos && typeof _imEspejosGuardar === 'function') { try { _imEspejosGuardar(); } catch (e) {} }
   } catch (e) { console.warn('[autosave] recálculo de derivados', e); }
   /* El borrador repuesto es la base de procedencia del informe. Sin esta línea, `_infBase`
      quedaba en null tras una recarga y los refrescos silenciosos dejaban de actualizar el
@@ -44786,6 +44962,12 @@ function editarInforme(id) {
        conclusión del ductus y de la coartación son spans pintados por JS, así que un estudio
        reabierto mostraba los campos cargados y la conclusión en «—». */
     _recalcModulos('editarInforme');
+    /* Fallback de estudios ANTERIORES al mecanismo: se pasa el objeto restaurado para que la
+       decisión la tome el ESTUDIO y no el DOM. La llamada sin argumento que hace `RECALC_MODULOS`
+       repone las marcas declaradas y nunca infiere; ésta es la única que puede inferir, y sólo si
+       la clave `im_espejos` no viene en los datos. Va DESPUÉS de `_recalcModulos` porque las
+       sincronías que corren ahí adentro son las que pueden dejar el oculto sellado. */
+    if (typeof imEspejosRestaurar === 'function') { try { imEspejosRestaurar(inf.campos); } catch (e) { console.warn('[imEspejos/editar]', e); } }
     // Guardar id del informe siendo editado
     window._ettEditandoId = id;
     eeCurrentInformeId = inf.estudioId || null;   // el QR del PDF apuntará a este estudio
@@ -44877,6 +45059,12 @@ function cargarEstudioPorId(id) {
      envoltorio puesto, arrastra el pintado del color solo. */
   ['calcBSA','calcVI','calcAI','calcAorta','calcVD','calcPSAP','calcSGL','calcDiastol','calcVEXUS'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
   _recalcModulos('cargarEstudioPorId');
+  /* Fallback de estudios ANTERIORES al mecanismo: se pasa el objeto restaurado para que la
+     decisión la tome el ESTUDIO y no el DOM. La llamada sin argumento que hace `RECALC_MODULOS`
+     repone las marcas declaradas y nunca infiere; ésta es la única que puede inferir, y sólo si
+     la clave `im_espejos` no viene en los datos. Va DESPUÉS de `_recalcModulos` porque las
+     sincronías que corren ahí adentro son las que pueden dejar el oculto sellado. */
+  if (typeof imEspejosRestaurar === 'function') { try { imEspejosRestaurar(inf.campos); } catch (e) { console.warn('[imEspejos/cargar]', e); } }
   window._ettEditandoId = inf.id;
   infBaseDesdeDOM(inf.campos);   // ver nota en editarInforme: base = la guardada, o lo que quedó
   if (typeof imgRestaurar === 'function') imgRestaurar(inf.uuid);
@@ -45222,6 +45410,15 @@ function guardarInforme(onDone) {
     const el = document.getElementById(id);
     if (el) campos[id + '__tocado'] = el.dataset.tocado ? '1' : '0';
   });
+  /* ⚠️ El registro de espejos se SELLA acá, no sólo al sincronizar. Las tres sincronías corren
+     únicamente al abrir su pastilla o su acordeón, así que un estudio donde el médico nunca los
+     abrió se guardaba con el oculto en cadena vacía — indistinguible de un estudio anterior al
+     mecanismo, y al reabrirlo el fallback por igualdad le inventaba marcas. Con esto, TODO
+     estudio guardado desde hoy declara su estado, aunque sea «ninguno». */
+  if (typeof _imEspejosGuardar === 'function') { try { _imEspejosGuardar(); } catch (e) {} }
+  /* Y se copia a `campos` explícitamente en vez de confiar en el orden del barrido genérico: si
+     éste ya capturó el oculto, sellarlo después del barrido no llegaría al estudio. */
+  { const _h = document.getElementById('im_espejos'); if (_h) campos['im_espejos'] = _h.value; }
   campos['caso_interes'] = document.getElementById('caso_interes')?.checked ? '1' : '0';
   // Criterios humorales del HFA-PEFF: el bucle de arriba los guarda con .value, que
   // en un checkbox vale "on" siempre. Hay que persistir .checked como '1'/'0'.
@@ -52480,7 +52677,20 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      enganche la sincronía de IM a la restauración, esto es exactamente el defecto de la PASP del
      TEER que el comentario de arriba describe: la marca del paciente EN PANTALLA sobreviviendo a
      la carga del estudio guardado y haciendo que el espejo crea que el valor restaurado es suyo. */
-  const _MARCAS_DERIV = ['vp_gmax','ep_grado','teer_pasp','im_dtsvi','im_itv_tsvi','im_ai_area','vtim'];
+  /* ⚠️ SE DERIVA DEL CENSO, no se escribe a mano. La lista tenía SIETE ids y desde que
+     `imEspejosRestaurar` repone los NUEVE quedaban cuatro afuera —`teer_fevi`, `teer_dtsvi`,
+     `em_dtsvi`, `em_vtitsvi`—, o sea cuatro marcas sin respaldar en la única ruta que NO pasa por
+     `limpiarCampos`. Las dos fugas que eso abría, las dos medibles:
+       · la marca del estudio reimpreso se le quedaba pegada al paciente en pantalla —`imEspejosRestaurar`
+         sólo AGREGA marcas, nunca borra las ajenas—, y la próxima sincronía pisaba su `teer_fevi`
+         tipeado a mano con el `fevi` del Simpson: el criterio c7 del COAPT pasa de fallar a
+         cumplirse, o sea NO APTO → APTO, en silencio y hacia el lado permisivo;
+       · y al revés, la marca rancia del paciente en pantalla entraba viva a la ventana del otro
+         estudio —`calcPSAP` corre ahí y llama a la sincronía del TEER ANTES de que se repongan las
+         marcas—, así que la reimpresión salía distinta del papel firmado.
+     Es el defecto que el comentario de arriba describe para la PASP, entrando por los cuatro ids
+     que la fase 5 agregó al registro y no agregó acá. Derivarla lo cierra por construcción. */
+  const _MARCAS_DERIV = ['vp_gmax','ep_grado'].concat(_ESPEJOS_TODOS.map(function (p) { return p[1]; }));
   /* Las dos filas de IM que la reimpresión pisa. Van aparte de `_MARCAS_DERIV` porque eso respalda
      `dataset` de INPUTS y esto es texto de `span`/`div` más dos atributos; meterlas ahí obligaría
      a que el respaldo supiera de dos formas distintas. */
@@ -52697,6 +52907,12 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      repintar. Si la restauración falla a mitad, el médico revisa la pestaña ETE y ve los
      botones del paciente en curso sobre las casillas del estudio reimpreso. */
   _recalcModulos('pdfDeInformeGuardado');
+  /* ⚠️ ACÁ NO VA `imEspejosRestaurar(c)`, a propósito. Ésta es la única ruta que no pasa por
+     `limpiarCampos` y la única que tiene que DEVOLVER el formulario al paciente en pantalla: sus
+     marcas se salvan y reponen por `_MARCAS_DERIV`. Inferir marcas de un estudio que sólo se
+     imprime metería una marca nacida de una coincidencia en un formulario que después vuelve a ser
+     de otro paciente. La llamada sin argumento de `RECALC_MODULOS` ya repuso las declaradas, que es
+     todo lo que la reimpresión necesita. */
 
   // Fallback: estudios históricos (previos al acordeón) con texto libre en indicacion/antecedentes
   // → el PDF lo usa solo si el acordeón quedó vacío
@@ -82007,8 +82223,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260928-0759';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790593177069;                 /* eco-build-ms */
+const ECO_BUILD    = '20260928-0851';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790596272566;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -82094,7 +82310,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-0759</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-0851</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
