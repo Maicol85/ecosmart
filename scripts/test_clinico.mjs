@@ -36370,6 +36370,100 @@ caso('TC-308', 'El escritor nuevo de em_grado no borra grados ajenos: la reimpre
   })();
 `);
 
+/* ══ TC-309 — LA BANDA DE PLAUSIBILIDAD DE emCategoria ═══════════════════════════════════════════
+   La bandas NO se escriben a mano en el caso: se LEEN de _labRango, que es quien las resuelve de
+   verdad —mezcla DCM_RANGO con LAB_XLS_RANGO_PROPIO y cachea—, y los valores de prueba se derivan de
+   ahi. Una copia de la banda en el caso se desincroniza en la primera edicion y el caso pasa a
+   verificar otra cosa sin ponerse rojo. */
+caso('TC-309', 'emCategoria bandea como el panel de Evidencia: un valor fuera de rango NO se clasifica —ni afirma severa ni degrada una severa real—, se muestra con «(revisar unidad)» y no llega al papel; y el 0,5 tipeado por 5,0 NO lo caza una banda, que es el limite de este arreglo', `
+  return (async () => {
+    if (typeof emCategoria !== 'function' || typeof emFueraBanda !== 'function' || typeof _labRango !== 'function')
+      return { extra:[['existen las funciones duenas', false, 'faltan emCategoria, emFueraBanda o _labRango']] };
+    const NL = String.fromCharCode(10);
+    const pl = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const lineaVM = t => (String(t).split(NL).map(l => l.trim())
+      .filter(l => pl(l).indexOf('alvula mitral') > -1 || l.indexOf('VM ') === 0)[0] || '');
+    const base = () => { __t.limpiar();
+      __t.set('nombre','TC309'); __t.set('edad','64'); __t.set('peso','80'); __t.set('talla','180'); };
+    const bandas = {};
+    ['avm_plan','avm_ete','avm_thp','avm_cont','em_gmedio'].forEach(id => {
+      const b = _labRango(id);
+      bandas[id] = (Array.isArray(b) && b.length === 2) ? b : null;
+    });
+    const bPlan = bandas.avm_plan, bGm = bandas.em_gmedio;
+    const corre = sem => { base(); sem(); try{ calcEM(); }catch(e){}
+      const c = emCategoria(); const r = __t.informe();
+      return { cat:c.clave, fuentes:c.fuentes.map(f => f.fuente + ' ' + f.avm).join(','),
+               revisar:(c.revisar || []).map(x => x.fuente + ' ' + x.avm).join(','),
+               grado:__t.val('em_grado'), pantalla:__t.txt('em-sev-integrada'),
+               vm:lineaVM(r.inf), suma:r.suma }; };
+
+    // ── EL 150: mm² tipeados donde van cm² ──────────────────────────────────────────────────
+    const ALTO = bPlan ? (bPlan[1] * 20) : 150;   // holgadamente fuera, cualquiera sea la banda
+    /* DENOMINADOR 1: el mismo escenario con un area PLAUSIBLE de 1,2 da severa. */
+    const denSev = corre(() => { __t.set('avm_plan','1.2'); });
+    /* DENOMINADOR 2: antes del arreglo, ese 150 DEGRADABA una severa real a «probablemente». Se
+       reproduce el escenario completo: THP 183,33 -> 1,20 cm², que por si solo es severa. */
+    const denThp = corre(() => { __t.set('thp','183.33'); });
+    const alto = corre(() => { __t.set('avm_plan', String(ALTO)); __t.set('thp','183.33'); });
+    const altoSolo = corre(() => { __t.set('avm_plan', String(ALTO)); });
+    /* Y NO SUPRIME AL ETE: un valor basura en planimetria no se come el respaldo. */
+    const altoEte = corre(() => { __t.set('avm_plan', String(ALTO)); __t.set('avm_ete','1.3'); });
+
+    // ── EL GRADIENTE FUERA DE BANDA ─────────────────────────────────────────────────────────
+    const GMALTO = bGm ? (bGm[1] * 10) : 600;
+    const denGm = corre(() => { __t.set('avm_plan','2.0'); __t.set('em_gmedio','8'); });
+    const gmAlto = corre(() => { __t.set('avm_plan','2.0'); __t.set('em_gmedio', String(GMALTO)); });
+
+    // ── EL 0,5 TIPEADO POR 5,0: LO QUE LA BANDA *NO* CAZA ───────────────────────────────────
+    /* 0,5 cm² es una EM CRITICA real y cae DENTRO de la banda de plausibilidad, asi que ninguna
+       banda lo distingue de un dedazo. Negarse a clasificarlo seria peor: dejaria sin veredicto al
+       area mas grave que la app puede recibir. Se fija lo que SI pasa, para que no se lea como
+       cubierto. */
+    const medio = corre(() => { __t.set('avm_plan','0.5'); });
+    const dentro = bPlan ? (0.5 >= bPlan[0] && 0.5 <= bPlan[1]) : null;
+    __t.limpiar();
+
+    return { extra: [
+      ['DENOMINADOR: _labRango publica banda para el area por planimetria y para el gradiente medio —sin banda esta funcion falla ABIERTO y el caso no probaria nada',
+        !!bPlan && !!bGm, JSON.stringify(bandas)],
+      ['DENOMINADOR: con un area plausible de 1,2 la categoria es severa y el grado se completa',
+        denSev.cat === 'severa' && denSev.grado === 'severa',
+        denSev.cat + ' grado=' + denSev.grado],
+      ['DENOMINADOR: el THP de 183,33 ms da 1,20 cm² y por si solo es severa',
+        denThp.cat === 'severa', denThp.cat + ' · ' + denThp.fuentes],
+      ['⚠️ un area FUERA DE BANDA no degrada esa severa a «probablemente»: no vota',
+        alto.cat === 'severa' && alto.fuentes.indexOf(String(ALTO)) === -1 &&
+        pl(alto.vm).indexOf('probablemente') === -1,
+        alto.cat + ' · fuentes=' + alto.fuentes + ' · «' + alto.vm + '»'],
+      ['  y por si sola NO se clasifica: ni severa ni «nada» con el numero publicado',
+        altoSolo.cat === 'nada' && altoSolo.fuentes === '' && altoSolo.grado === 'sin' &&
+        altoSolo.revisar.indexOf(String(ALTO)) > -1,
+        altoSolo.cat + ' · fuentes=«' + altoSolo.fuentes + '» revisar=' + altoSolo.revisar],
+      ['⚠️ se MUESTRA en pantalla con «(revisar unidad)» —marcar sin borrar, como la continuidad fuera de banda—',
+        pl(altoSolo.pantalla).indexOf('revisar unidad') > -1 &&
+        altoSolo.pantalla.indexOf(String(ALTO)) > -1,
+        '«' + altoSolo.pantalla + '»'],
+      ['⚠️ y NO llega al papel: el informe no publica el valor implausible, ni como valor medido',
+        altoSolo.vm.indexOf(String(ALTO)) === -1 && pl(altoSolo.vm).indexOf('revisar') === -1,
+        '«' + altoSolo.vm + '»'],
+      ['  y no suprime a la planimetria por ETE, que es una medicion independiente y legitima',
+        altoEte.cat === 'severa' && altoEte.fuentes.indexOf('ETE') > -1,
+        altoEte.cat + ' · ' + altoEte.fuentes],
+      ['DENOMINADOR: un gradiente medio plausible de 8 mmHg con area 2,0 publica «EM con gradiente elevado»',
+        denGm.cat === 'gradiente', denGm.cat],
+      ['⚠️ y uno fuera de banda no publica nada: el gradiente pasa por la misma puerta',
+        gmAlto.cat === 'nada' && gmAlto.vm.indexOf(String(GMALTO)) === -1 &&
+        gmAlto.revisar.indexOf(String(GMALTO)) > -1,
+        gmAlto.cat + ' · revisar=' + gmAlto.revisar + ' · «' + gmAlto.vm + '»'],
+      ['⚠️ EL LIMITE DEL ARREGLO, FIJADO A PROPOSITO: 0,5 cm² —el 5,0 con el dedo corrido— cae DENTRO de la banda, asi que se clasifica como severa. Es una EM critica real y negarse a clasificarla seria peor. Ninguna banda distingue ese dedazo',
+        dentro === true && medio.cat === 'severa' &&
+        medio.vm.indexOf('AVm 0.50 cm² por planimetría') > -1,
+        'dentro=' + dentro + ' cat=' + medio.cat + ' · «' + medio.vm + '»']
+    ] };
+  })();
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

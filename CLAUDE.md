@@ -17260,15 +17260,67 @@ ver ausente; (b) el comentario que explica el arreglo #1 nombra `_sevManualResta
 mutación que BORRA la llamada dejaba TC-308 en verde. **Regla: cuando se verifica sobre el código
 fuente de una función, el patrón tiene que ser algo que SÓLO puede aparecer en código ejecutable.**
 
+##### La banda de plausibilidad de `emCategoria` — cerrado (decisión de Maicol, 2026-09-28)
+Era el hallazgo abierto de mayor riesgo clínico de la pasada anterior, y Maicol lo priorizó por
+delante de los dos prompts en cola. `emCategoria` leía `avm_plan`, `avm_ete`, `avm_thp` y `em_gmedio`
+**crudos**: sólo la continuidad se gateaba, así que la asimetría vivía dentro de la misma función. Y
+el panel de Evidencia **sí** bandea y declara «revisar la unidad» — o sea que la app se negaba a
+clasificar en la pantalla de consulta y clasificaba en el documento que se firma.
+
+El dueño es `emFueraBanda(id)` y **delega en `vPlaus`**, que es quien ya decide la marca «(revisar)»
+del número en pantalla y en el Excel: dos lecturas de la misma banda dejarían la pantalla marcando un
+valor que sigue votando. Un valor fuera de banda **no se clasifica** —ni afirma severa ni degrada una
+severa real—, **se muestra** con «(revisar unidad)» y **no llega al papel**. Es la misma decisión que
+ya regía para el AVm por continuidad inválido, y por el mismo argumento.
+
+Dos detalles que no son obvios:
+- **Falla ABIERTO sin banda creíble**, deliberado: `_labRango` no publica banda para todos los id, y
+  negarse a clasificar por falta de tabla convertiría un hueco de configuración en un informe mudo.
+  TC-309 tiene una condición de denominador que se pone roja si `avm_plan` o `em_gmedio` pierden su
+  banda — sin eso, el caso entero pasaría verde probando nada. Y las bandas **se leen de `_labRango`**,
+  no se copian al caso: una copia se desincroniza en la primera edición.
+- **Un valor implausible en planimetría NO suprime al ETE.** La rama `else` original hacía que
+  cualquier cosa en `avm_plan` se comiera el respaldo. Un 150 es basura; el área por ETE es una
+  medición independiente y legítima. El 150 sigue visible con su marca.
+
+⚠️ **EL LÍMITE, FIJADO A PROPÓSITO EN TC-309: una banda NO caza el «0,5 tipeado por 5,0».** Maicol
+pidió verificar ese caso y la respuesta honesta es que **no queda cubierto, y no puede quedarlo**: 0,5
+cm² está DENTRO de la banda de plausibilidad porque es una EM crítica real. Negarse a clasificarlo
+sería peor que el dedazo — dejaría sin veredicto al área más grave que la app puede recibir. La banda
+caza **confusión de unidad** (mm² por cm², el 150), no **transposición de dígitos dentro del rango
+plausible**. Está escrito como condición para que nadie lo lea como cubierto.
+
+##### Las otras dos decisiones de Maicol sobre esta tanda
+- **Discordancia en sentido inverso: SE DEJA SIMÉTRICA.** Con planimetría 1,3 y THP 1,57 el informe
+  dice «probablemente severa por planimetría» aun cuando la que alcanza el corte es el método
+  preferido de la ASE. Es intencional: *«no quiero que la app decida cuál método vale más caso por
+  caso»*. La regla pondera el peor valor y nada más.
+- **La rama de valores medidos sin veredicto NO marca párrafo.** Con la categoría en `nada`, el «sin
+  alteraciones significativas» del EN SUMA es cierto y no hace falta degradarlo.
+
+##### Cociente VTI mitral/aórtico: se retira con IAo MODERADA, y el THP con SEVERA — a propósito
+Decisión de Maicol (2026-09-28), para cuando se implemente el prompt de las rutas del PDF y el
+cociente. **Los dos umbrales son distintos y no se unifican**: *«cada medición se distorsiona por un
+mecanismo fisiológico distinto frente a la IAo, y no hay razón para que compartan umbral»*.
+- **Cociente VTI mitral/aórtico → se retira con IAo moderada o mayor.** El cociente tiene un
+  denominador aórtico: la IAo infla el VTI aórtico directamente, así que el cociente se corrompe en
+  cuanto la regurgitación es hemodinámicamente relevante. Fuente del 1,4: ASE 2023 (Pandian et al.,
+  JASE 2023;36:3-28), Key Points de IM reumática — >1,4 sugiere IM severa y <1 leve, **en ausencia de
+  IAo moderada o severa**; origen Tribouilloy 1994 (Eur Heart J 15:1335-9). **No figura en ASE 2017.**
+- **THP → se retira sólo con IAo severa.** Ahí el mecanismo es otro: la IAo eleva la presión
+  diastólica del VI y acelera la caída del gradiente transmitral, y el efecto es gradual. La ASE lo
+  redacta con verbo hedged («PHT **may not be** a reliable measure … moderate or severe AR», pág. 20),
+  a diferencia de la continuidad, que es una prohibición («should not be used», pág. 8).
+- Texto acordado para el ⓘ de cada fila, **sin agregar nada al informe**:
+  · cociente → «Requiere ausencia de insuficiencia aórtica moderada o severa: la IAo aumenta el VTI
+    aórtico, que es el denominador, y el cociente deja de medir lo que dice medir (ASE 2023).»
+  · THP → «Con insuficiencia aórtica severa el THP no se usa: la IAo eleva la presión diastólica del
+    VI y acelera la caída del gradiente, acortando el THP y sobreestimando el área. El corte es más
+    permisivo que el del cociente VTI porque el mecanismo es gradual, no un denominador corrompido.»
+
 ##### Hallazgos de esa pasada que quedan ABIERTOS, declarados
-- **`emCategoria` clasifica sin banda de plausibilidad.** Lee `avm_plan`, `avm_ete`, `avm_thp` y
-  `em_gmedio` crudos; sólo la continuidad se gatea por banda. Las bandas existen (`avm_plan [0.1,8]`,
-  `em_gmedio [1,60]`). Las dos direcciones llegan al papel: un AVm de 0,5 tipeado por 5,0 publica
-  «Estenosis mitral severa» **y** escribe el grado; un 150 (mm² por cm²) degrada una severa real a
-  `probable`. Y el panel de Evidencia **sí** bandea y declara «revisar la unidad», así que la app se
-  niega a clasificar en la pantalla de consulta y clasifica en el documento que se firma. Es
-  preexistente —la cascada vieja también leía crudo— pero **es el hallazgo abierto de mayor riesgo
-  clínico que queda**.
+- ~~`emCategoria` clasifica sin banda de plausibilidad.~~ **CERRADO** el mismo día — ver arriba. Del
+  caso original queda abierto sólo lo que una banda no puede cerrar: el 0,5 tipeado por 5,0.
 - **`_indEM` es un SEGUNDO dueño** de «¿este área alcanza el corte?» y de la validez de la
   continuidad: no consulta `emAvmSevera`, `emContValido` ni `emThpValido`, y su gate
   (`medidas.some(m => _le(m[1], US))`) no filtra por validez. Un AVm por continuidad de 1,2 cm² que
@@ -17295,10 +17347,10 @@ fuente de una función, el patrón tiene que ser algo que SÓLO puede aparecer e
   «(revisar)» de la continuidad, y el THP con IAo severa es un número medido, no un veredicto.
 
 #### Verificación de esta tanda
-Suite **322/323**, único fallo TC-223 (Orthanc, conocido) — la línea base del mismo día, con HEAD
-puro, da **319/320** con el mismo único fallo. Tres casos más (TC-306, TC-307, TC-308), cero
+Suite **323/324**, único fallo TC-223 (Orthanc, conocido) — la línea base del mismo día, con HEAD
+puro, da **319/320** con el mismo único fallo. Cuatro casos más (TC-306, TC-307, TC-308, TC-309), cero
 regresiones.
-**24 mutaciones, las 24 rojas**, cada una en su propia condición — incluida la que destapó la
+**29 mutaciones, las 29 rojas**, cada una en su propia condición — incluida la que destapó la
 divergencia crudo/redondeado de `cxAVT`, y M17, que quedó verde hasta que la condición dejó de
 buscar el nombre de la función y buscó la llamada.
 **Diff byte a byte contra HEAD** de las superficies que NO son EM nativa —aórtica nativa severa,

@@ -20863,12 +20863,29 @@ function emImSignificativa(src){
   const im = _emRegurgGrado('im_grado', src);
   return im === null || im >= EM_CONT_REGURG_MIN;
 }
+/* ⚠️ LA BANDA DE PLAUSIBILIDAD, QUE `emCategoria` NO TENÍA. Leía `avm_plan`, `avm_ete`, `avm_thp` y
+   `em_gmedio` CRUDOS: sólo la continuidad se gateaba, así que la asimetría vivía dentro de la misma
+   función. Un AVm de 150 —mm² tipeados donde van cm²— degradaba una estenosis severa real a
+   «probablemente», y un gradiente de 600 publicaba «estenosis con gradiente medio elevado». Y el
+   panel de Evidencia SÍ bandea y declara «revisar la unidad», o sea que la app se negaba a clasificar
+   en la pantalla de consulta y clasificaba en el documento que se firma. Lo cazó `/sharp-edges`.
+   Un valor fuera de banda NO se clasifica —ni afirma ni degrada—, se muestra con su marca y no vota:
+   es la misma decisión que ya rige para el AVm por continuidad inválido, y por el mismo argumento.
+   Delega en `vPlaus`, que es quien ya decide la marca «(revisar)» del número en pantalla y en el
+   Excel. Dos lecturas de la misma banda dejarían la pantalla marcando un valor que sigue votando.
+   ⚠️ FALLA ABIERTO sin banda creíble —`_labRango` no publica banda para todos los id— y es
+   deliberado: sin banda, el valor entra y se clasifica como antes. Negarse a clasificar por falta de
+   tabla convertiría un hueco de configuración en un informe mudo. */
+function emFueraBanda(id){
+  try { return !!vPlaus(id).fuera; } catch (e) { return false; }
+}
+window.emFueraBanda = emFueraBanda;
 function emCategoria(){
   /* Sobre una prótesis NO se aplica ningún corte de válvula nativa — es la Fase A, y esta regla
      es de la mitral NATIVA. Se devuelve una clave propia para que el llamador la distinga de
      «no hay categoría»: la pantalla dice que no se gradúa y el informe no escribe nada. */
   if (typeof protNoGradua === 'function' && protNoGradua('vm_morf'))
-    return { clave:'protesis', gm:null, fuentes:[], sev:[], noSev:[] };
+    return { clave:'protesis', gm:null, fuentes:[], sev:[], noSev:[], revisar:[] };
 
   /* Todas las fuentes VÁLIDAS, en el orden de preferencia de la ASE 2023. Se juntan TODAS y no
      sólo la primera: con la preferencia decidiendo sola, una fuente válida que alcanza el corte
@@ -20882,17 +20899,35 @@ function emCategoria(){
      Se filtra al ENTRAR y no al clasificar: filtrar después deja el 0 en `fuentes`, que es lo que
      alimenta la rama de valores medidos y el detalle de la pantalla. */
   const fuentes = [];
+  const revisar = [];
   const _pos = x => x != null && x > 0;
-  const _plan = v('avm_plan'), _ete = v('avm_ete');
-  if (_pos(_plan))      fuentes.push({ avm:_plan, fuente:'planimetría' });
-  else if (_pos(_ete))  fuentes.push({ avm:_ete,  fuente:'planimetría por ETE' });
-  const _thp = v('avm_thp');   if (_pos(_thp)  && emThpValido())  fuentes.push({ avm:_thp,  fuente:'THP' });
-  const _cont = v('avm_cont'); if (_pos(_cont) && emContValido()) fuentes.push({ avm:_cont, fuente:'continuidad' });
+  /* Devuelve `true` si el campo TENÍA un valor —plausible o no—, para que el llamador distinga
+     «no se midió» de «se midió y no se puede usar». */
+  const _tomar = (id, fuente, vota) => {
+    const x = v(id);
+    if (!_pos(x)) return false;
+    if (emFueraBanda(id)) { revisar.push({ avm:x, fuente:fuente, id:id }); return true; }
+    if (vota && !vota()) return true;
+    fuentes.push({ avm:x, fuente:fuente });
+    return true;
+  };
+  /* ⚠️ UN VALOR IMPLAUSIBLE EN PLANIMETRÍA NO SUPRIME AL ETE. La rama `else` original hacía que
+     cualquier cosa en `avm_plan` se comiera el respaldo; un 150 es basura y el área por ETE es una
+     medición independiente y legítima. Se consulta el ETE si la planimetría no dejó una fuente que
+     VOTE — y el 150 sigue visible con su marca. */
+  const _hayPlan = _tomar('avm_plan', 'planimetría');
+  if (!fuentes.length) _tomar('avm_ete', 'planimetría por ETE');
+  _tomar('avm_thp',  'THP',          emThpValido);
+  _tomar('avm_cont', 'continuidad',  emContValido);
 
   const sev   = fuentes.filter(function(f){ return emAvmSevera(f.avm); });
   const noSev = fuentes.filter(function(f){ return !emAvmSevera(f.avm); });
-  const gm = v('em_gmedio');
-  const _r = { gm:gm, fuentes:fuentes, sev:sev, noSev:noSev };
+  /* El gradiente pasa por la misma puerta: un 600 no publica «gradiente medio elevado». */
+  const _gmCrudo = v('em_gmedio');
+  const _gmFuera = _gmCrudo != null && emFueraBanda('em_gmedio');
+  const gm = _gmFuera ? null : _gmCrudo;
+  if (_gmFuera) revisar.push({ avm:_gmCrudo, fuente:'gradiente medio', id:'em_gmedio' });
+  const _r = { gm:gm, fuentes:fuentes, sev:sev, noSev:noSev, revisar:revisar };
 
   /* PREVALECE EL PEOR. Con todas las fuentes válidas por debajo del corte no hay nada que
      matizar; con una sola por debajo, el matiz es «probablemente» y los DOS valores se publican
@@ -21130,8 +21165,24 @@ function calcEM() {
       /* Con datos y sin categoría se DICE que no hay, y sin ningún dato queda la raya: son dos
          estados distintos y colapsarlos haría que «se midió y no alcanza el corte» se lea igual
          que «nadie midió nada». */
-      sevEl.textContent = (cat.fuentes.length || cat.gm != null)
-        ? 'Sin criterios de EM severa' : '\u2014';
+      /* MARCAR SIN BORRAR, igual que la continuidad fuera de banda: el número se sigue viendo y la
+         pantalla dice POR QUÉ no se clasificó. Sin esta rama, tipear 150 en el área dejaba la misma
+         leyenda que no haber medido nada — y eso es lo que hace que un dedazo pase inadvertido. */
+      if (cat.revisar && cat.revisar.length) {
+        sevEl.textContent = '';
+        const _rv = document.createElement('span');
+        _rv.style.cssText = 'color:#f59e0b;font-weight:700;';
+        _rv.textContent = 'Sin clasificar — revisar unidad';
+        sevEl.appendChild(_rv);
+        const _rs = document.createElement('span');
+        _rs.style.cssText = 'font-weight:400;color:var(--text2);font-size:10px;';
+        _rs.textContent = ' ' + cat.revisar.map(function(r){
+          return r.fuente + ' ' + r.avm + ' (revisar unidad)'; }).join(' · ');
+        sevEl.appendChild(_rs);
+      } else {
+        sevEl.textContent = (cat.fuentes.length || cat.gm != null)
+          ? 'Sin criterios de EM severa' : '\u2014';
+      }
     } else {
       const _col = (cat.clave === 'severa') ? 'var(--red)' : '#f59e0b';
       const _det = [];
@@ -25736,6 +25787,10 @@ function generarInforme(opts) {
          alcanza el corte—, y marcar párrafo la degradaría en todo estudio al que alguien le midió
          un THP o un gradiente mitral, que es cuando este molde se usa. Un resumen que deja de negar
          siempre deja de significar algo. Queda declarado. */
+      /* Sólo lo PLAUSIBLE. Un valor fuera de banda no entra acá: publicar «AVm 150.00 cm² por
+         planimetría» en el informe firmado es peor que omitirlo, y la marca «(revisar unidad)» no
+         sobrevive al papel —es la misma decisión que ya rige para el AVm por continuidad inválido—.
+         La pantalla lo sigue mostrando con su motivo, que es donde se corrige. */
       const _emMed = emCat.fuentes.map(_emAvm);
       if (emCat.gm != null) _emMed.push('gradiente medio ' + emCat.gm + ' mmHg');
       const _emMedTxt = ' (' + _emMed.join(', ') + ')';
@@ -83099,8 +83154,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260928-1712';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790626322783;                 /* eco-build-ms */
+const ECO_BUILD    = '20260928-1750';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790628645402;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -83186,7 +83241,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-1712</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-1750</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
