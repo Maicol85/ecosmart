@@ -22746,19 +22746,91 @@ function _imVmProt() {
   return valvEsProtesis(el.value);
 }
 
+/* ⚠️ BANDAS DE PLAUSIBILIDAD EN LOS VOTANTES — 2026-09-29, y el motivo es la regla de integracion,
+   no la aritmetica. Desde `8b143e6` basta `severa >= 1`, asi que un parametro dejo de ser «uno
+   entre varios» y paso a ser EL VEREDICTO: un solo valor ilegible publica «IM severa» en el
+   informe firmado. El caso del censo, medido: area del jet en mm² (600) sobre area de AI en cm²
+   (20) → 3000 % → severa, sin una sola señal.
+   ⚠️ LA BANDA DECIDE SI **VOTA**, NO SI SE **MUESTRA**. Es la decision de Maicol del 27/09 —MARCAR
+   SIN BORRAR— y acá pesa doble: `eroa-val` y `volr-val` son las dos unicas filas de este calc-box
+   que LLEGAN AL PAPEL, asi que borrarlas sacaria del informe una medicion que el medico hizo. Se
+   calcula con el CRUDO, se publica con «(revisar)» y lo unico que se retira es el voto.
+   ⚠️ Y LA BANDA ES DE LA MAGNITUD, NO DE LA CASILLA, en los tres que llegan por cascada
+   (`im_ai_area || ai_area`, `im_itv_tsvi || itv_tsvi`, `im_dtsvi || diam_tsvi`): validar casilla
+   por casilla haria que mordiera solo cuando el medico no toco la del bloque. Para eso esta
+   `_imFueraBanda`, que ya usa `calcContIM` sobre estos mismos dos ultimos.
+   ⚠️ `im_itv` NO ESTRENA BANDA: ya tenia [20,400] y `calcContIM` ya la aplicaba. Lo que se cierra
+   es la asimetria —dos lectores del mismo dato con proteccion distinta— y por eso se consulta el
+   MISMO `_labRango` en vez de escribir un rango nuevo.
+   ⚠️ TRES COSAS DECLARADAS Y NO CORREGIDAS, las tres de /sharp-edges sobre este mismo diff:
+     · **`ai_area [3,60]` puede silenciar el jet/AI de una auricula GIGANTE REAL.** La banda es
+       PREEXISTENTE —la definen `LAB_XLS_RANGO_PROPIO` y ya la usan `calcAI` y el importador— pero
+       el CONSUMIDOR es nuevo: pasa de decidir un badge de dilatacion a retirar un votante del
+       grado que firma el informe. En una mitral reumatica de larga data el area de AI puede pasar
+       los 60 cm², y ahi el aviso manda a revisar una medicion correcta. Se deja porque la
+       direccion de falla es OMITIR y no afirmar, y porque la alternativa —bandear solo el
+       numerador— deja abierto el error de unidad en el denominador, que es igual de frecuente.
+     · **La fila «VC IM» del PDF sigue imprimiendo su escala `(<3 / 3-7 / >=7) mm` al lado de un
+       valor que la app acaba de declarar no clasificable.** Es el idioma de `drawTablaCompacta`
+       —la columna `ref` es fija— y cambiarlo toca todas las filas de esa tabla.
+     · **La IAo y la IT siguen SIN banda con los mismos parametros fisicos.** `calcIA_ESC` y
+       `calcIT_ESC` leen `ia_pisa_r`/`ia_pisa_val`/`ia_vmax_cw` y sus equivalentes tricuspideos con
+       `v()` pelado, y los ids son distintos, asi que **ninguna banda de aca los alcanza**: el mismo
+       error de unidad sigue fabricando una EROA cien veces mayor en esas dos valvulas. Fuera del
+       alcance de este pedido —que es Mitral— y dicho aca para que este comentario no se lea como
+       si el problema de las EROA sin banda estuviera cerrado en toda la app.
+
+   ⚠️ `itv_tsvi` y `diam_tsvi` ENTRAN aunque no estuvieran en la lista de siete del pedido: son los
+   dos insumos del VS TSVI, o sea del denominador de la fraccion regurgitante, que VOTA. Dejarlos
+   afuera reproducia exactamente la asimetria que este cambio viene a cerrar para `im_itv` — y el
+   escenario es el que `calcContIM` ya documenta haber cerrado de su lado: Ø TSVI tipeado en cm
+   (2 por 20) da un VS de 0,63 ml y una FR severa fabricada. Declarado: son NUEVE campos, no siete.
+   Lo que NO se toco: ningun corte de severidad, ni la regla `severa >= 1`, ni el gate
+   `params.length === 0`. Con todos los votantes fuera de banda `params` queda vacio y se sale por
+   el mismo `return` de «sin parametros cuantitativos», sin una rama nueva que mantener.
+   ⚠️ PERO «NO SE AUTOCOMPLETA» NO ES «SE LIMPIA», Y EN NATIVA ESO IMPORTA — la primera version de
+   este comentario decia lo primero y se leia como lo segundo. La limpieza del badge y de
+   `im_grado` dentro de ese `return` esta gateada por `_imVmProt()`, o sea que **solo corre en
+   PROTESIS**: en una mitral nativa el early return sale sin tocar nada y el badge y el grado ya
+   escritos SOBREVIVEN, con el informe publicandolos. Es el «grado rancio» que este archivo declara
+   como LIMITE y que TC-316 fija; lo que las bandas cambian es que ahora `params` tambien puede
+   encoger en NATIVA —antes solo la morfologia lo lograba, y solo en protesis—, o sea que abren esa
+   puerta en el caso mayoritario. Escenario: VC 8 mm → «Severa»; se borra la VC y se carga un jet
+   ilegible → ningun votante → early return → el badge sigue diciendo «Severa» sobre CERO
+   parametros. Retirar el grado auto-derivado tambien en nativa es una DECISION CLINICA de Maicol
+   —«no queda ningun parametro cargado» y «esta valvula no se gradua» no son lo mismo— y esta
+   tomada: NO se toca. Lo que se corrige aca es la afirmacion. */
 function calcIM_ESC() {
-  const vc = v('im_vc');
-  const jetArea = v('im_jet_area');
+  const _pVc = vPlaus('im_vc'), _pJetA = vPlaus('im_jet_area');
+  const _pPr = vPlaus('pisa_r'), _pPv = vPlaus('pisa_val'), _pVm = vPlaus('im_vmax'), _pIt = vPlaus('im_itv');
+  /* `val` viene en `null` fuera de banda y el numero esta en `crudo`: se toma el crudo para que
+     las filas se sigan calculando y se marquen, que es lo contrario de borrarlas.
+     ⚠️ ES `p.crudo` PELADO Y NO EL TERNARIO `p.fuera ? p.crudo : p.val`, que es lo que estaba y lo
+     que uno escribe primero. `_plausDe` devuelve `crudo:x` en TODAS sus ramas con dato y
+     `crudo:null` sin dato —verificado en las cuatro: sin dato, dentro, fuera y sin banda—, asi que
+     el ternario daba exactamente lo mismo. El problema no era el costo: era que sugeria que las
+     dos ramas producen cosas distintas e invitaba a «simplificarlo» hacia `p.val`, que SI cambia
+     el comportamiento —borraria el numero en vez de marcarlo, o sea reintroduciria la decision que
+     este bloque existe para no tomar—. Lo levanto /sharp-edges. */
+  const _crudo = p => p.crudo;
+  const vc = _crudo(_pVc);
+  const jetArea = _crudo(_pJetA);
   const aiArea = v('im_ai_area') || v('ai_area');
-  const pisaR = v('pisa_r'), pisaVal = v('pisa_val'), vmaxIM = v('im_vmax'), itvIM = v('im_itv');
+  const pisaR = _crudo(_pPr), pisaVal = _crudo(_pPv), vmaxIM = _crudo(_pVm), itvIM = _crudo(_pIt);
   const ondaS = sv('im_onda_s');
   const itsvi = v('im_itv_tsvi') || v('itv_tsvi');
   const dtsvi = v('im_dtsvi') || v('diam_tsvi');
+  const _aiFuera = _imFueraBanda('ai_area', aiArea);
+  const _itsviFuera = _imFueraBanda('itv_tsvi', itsvi);
+  const _dtsviFuera = _imFueraBanda('diam_tsvi', dtsvi);
 
   let scores = { leve:0, moderada:0, severa:0 };
   let params = [];
 
-  if (vc) {
+  /* La VC es el UNICO votante sin fila de resultado propia —su valor se ve en su input y nada
+     mas—, asi que su marca no puede ir pegada a un span: va al aviso de `_imFueraVot`, que es la
+     superficie que este bloque agrega para exactamente eso. */
+  if (vc && !_pVc.fuera) {
     if (vc < 3) { scores.leve++; params.push({p:'VC',sev:'leve'}); }
     else if (vc < 7) { scores.moderada++; params.push({p:'VC',sev:'moderada'}); }
     else { scores.severa++; params.push({p:'VC',sev:'severa'}); }
@@ -22789,6 +22861,14 @@ function calcIM_ESC() {
   if (jetArea && aiArea) {
     const ratio = (jetArea/aiArea*100).toFixed(1);
     const _jetPct = PF(ratio);
+    /* ⚠️ EL COCIENTE SE MARCA SI CUALQUIERA DE LOS DOS INSUMOS ES ILEGIBLE, y no sólo el jet: es un
+       cociente, así que un área de AI en mm² fabrica el porcentaje igual de bien que un jet en mm².
+       Éste es el caso del censo —600/20 → 3000 %—, y hasta hoy publicaba «IM severa» él solo.
+       El porcentaje se sigue mostrando: lo que desaparece es el voto y la leyenda del régimen, que
+       es una afirmación sobre en qué banda cae un número que no se puede creer. */
+    const _jetDud = _pJetA.fuera || _aiFuera;
+    if (_jetDud) { _jetEl.textContent = ratio + '%' + MARCA_REVISAR; }
+    else {
     /* ⚠️ EL RÉGIMEN PROTÉSICO SE DECLARA EN SUS TRES RAMAS, NO SÓLO EN LA INTERMEDIA. Un 55 %
        protésico y un 45 % nativo imprimían exactamente la misma forma, y el único indicio de con
        qué corte se estaba graduando aparecía cuando el parámetro NO votaba — o sea nunca donde
@@ -22807,6 +22887,7 @@ function calcIM_ESC() {
       if (_jetPct < 20) { scores.leve++; params.push({p:'Jet/AI',sev:'leve'}); }
       else if (_jetPct <= 40) { scores.moderada++; params.push({p:'Jet/AI',sev:'moderada'}); }
       else { scores.severa++; params.push({p:'Jet/AI',sev:'severa'}); }
+    }
     }
   } else {
     /* ⚠️ SIN GUARDA `if (_jetEl)`, Y ES DELIBERADO: las cuatro escrituras de la rama de arriba lo
@@ -22839,27 +22920,46 @@ function calcIM_ESC() {
   const _pisaLimpiar = desde => _pisaSpans.slice(desde).forEach(id => {
     const el = document.getElementById(id); if (el) el.textContent = '—';
   });
+  /* ⚠️ LA DUDA SE PROPAGA HACIA ABAJO, Y ESO ES LO QUE HACE QUE ESTE BLOQUE SEA HONESTO. Las tres
+     filas están ENCADENADAS —el Vol-R sale del EROA, la FR sale del Vol-R— así que un insumo
+     ilegible arriba contamina los tres numeros, no uno. Marcar sólo la fila del campo dudoso
+     dejaría dos derivados limpios en pantalla sostenidos por el mismo valor imposible, y los dos
+     votarían. Es el mismo encadenamiento que el PDF ya resuelve así en el E/e'
+     (`_pE.fuera || _pESep.fuera || _pELat.fuera`). */
   if (pisaR && pisaVal && vmaxIM) {
     const eroa = (2*Math.PI*(pisaR/10)**2*pisaVal/vmaxIM*100).toFixed(1);
-    document.getElementById('eroa-val').textContent = eroa + ' mm²';
-    if (eroa < 20) { scores.leve++; params.push({p:'EROA',sev:'leve'}); }
-    else if (eroa < 40) { scores.moderada++; params.push({p:'EROA',sev:'moderada'}); }
-    else { scores.severa++; params.push({p:'EROA',sev:'severa'}); }
+    const _eroaDud = _pPr.fuera || _pPv.fuera || _pVm.fuera;
+    document.getElementById('eroa-val').textContent = eroa + ' mm²' + (_eroaDud ? MARCA_REVISAR : '');
+    if (!_eroaDud) {
+      if (eroa < 20) { scores.leve++; params.push({p:'EROA',sev:'leve'}); }
+      else if (eroa < 40) { scores.moderada++; params.push({p:'EROA',sev:'moderada'}); }
+      else { scores.severa++; params.push({p:'EROA',sev:'severa'}); }
+    }
     if (itvIM) {
       const volR = (PF(eroa)/100*itvIM).toFixed(1);
-      document.getElementById('volr-val').textContent = volR + ' ml';
-      if (volR < 30) { scores.leve++; params.push({p:'Vol-R',sev:'leve'}); }
-      else if (volR < 60) { scores.moderada++; params.push({p:'Vol-R',sev:'moderada'}); }
-      else { scores.severa++; params.push({p:'Vol-R',sev:'severa'}); }
+      const _volRDud = _eroaDud || _pIt.fuera;
+      document.getElementById('volr-val').textContent = volR + ' ml' + (_volRDud ? MARCA_REVISAR : '');
+      if (!_volRDud) {
+        if (volR < 30) { scores.leve++; params.push({p:'Vol-R',sev:'leve'}); }
+        else if (volR < 60) { scores.moderada++; params.push({p:'Vol-R',sev:'moderada'}); }
+        else { scores.severa++; params.push({p:'Vol-R',sev:'severa'}); }
+      }
       if (itsvi && dtsvi) {
         const atsvi = Math.PI*((dtsvi/20)**2);
         const vsv = (atsvi*itsvi).toFixed(1);
-        document.getElementById('vsvtsvi-val').textContent = vsv + ' ml';
+        /* El VS del TSVI se marca por SUS dos insumos y no por los del PISA: es una medición
+           independiente, y ensuciarla con la duda del jet diría que está mal algo que no lo está.
+           La FR sí hereda las dos, porque las multiplica. */
+        const _vsvDud = _itsviFuera || _dtsviFuera;
+        document.getElementById('vsvtsvi-val').textContent = vsv + ' ml' + (_vsvDud ? MARCA_REVISAR : '');
         const fr = (PF(volR)/(PF(volR)+PF(vsv))*100).toFixed(0);
-        document.getElementById('freg-val').textContent = fr + '%';
-        if (fr < 30) { scores.leve++; params.push({p:'FR',sev:'leve'}); }
-        else if (fr < 50) { scores.moderada++; params.push({p:'FR',sev:'moderada'}); }
-        else { scores.severa++; params.push({p:'FR',sev:'severa'}); }
+        const _frDud = _volRDud || _vsvDud;
+        document.getElementById('freg-val').textContent = fr + '%' + (_frDud ? MARCA_REVISAR : '');
+        if (!_frDud) {
+          if (fr < 30) { scores.leve++; params.push({p:'FR',sev:'leve'}); }
+          else if (fr < 50) { scores.moderada++; params.push({p:'FR',sev:'moderada'}); }
+          else { scores.severa++; params.push({p:'FR',sev:'severa'}); }
+        }
       } else _pisaLimpiar(2);
     } else _pisaLimpiar(1);
   } else _pisaLimpiar(0);
@@ -22947,12 +23047,37 @@ function calcIM_ESC() {
      de «una válvula que nadie cuantificó no recibe severidad»— y `_votosDisc` sean cosas
      DISTINTAS. Con el alias, el primer `_votosDisc.push(...)` que alguien escriba mañana mueve el
      gate de severidad sin que nada lo señale. Cuesta lo mismo y hace la separación estructural. */
+  /* Se arma acá, junto a los otros dos avisos y no en cada bloque, por el mismo motivo por el que
+     `_votosDisc` se compone acá: los sitios que leen las bandas quedan intactos y lo único que
+     cambia es qué se declara. El orden es el de carga del formulario, no el de gravedad — con
+     varios fuera de rango, ordenarlos por algún criterio inventado sugiere una prioridad. */
+  const _imFueraVot = [
+    _pVc.fuera   ? 'VC ' + _pVc.crudo + ' mm'                : null,
+    _pJetA.fuera ? 'área del jet ' + _pJetA.crudo + ' cm²'   : null,
+    _aiFuera     ? 'área AI ' + aiArea + ' cm²'              : null,
+    _pPr.fuera   ? 'radio PISA ' + _pPr.crudo + ' mm'        : null,
+    _pPv.fuera   ? 'Valiasing ' + _pPv.crudo + ' cm/s'       : null,
+    _pVm.fuera   ? 'Vmax IM ' + _pVm.crudo + ' cm/s'         : null,
+    _pIt.fuera   ? 'VTI del jet ' + _pIt.crudo + ' cm'       : null,
+    _dtsviFuera  ? 'Ø TSVI ' + dtsvi + ' mm'                 : null,
+    _itsviFuera  ? 'VTI TSVI ' + itsvi + ' cm'               : null
+  ].filter(Boolean);
+
   const _votosDisc = params.concat(_ondaSVoto ? [_ondaSVoto] : []);
   const _sevsDisc = [...new Set(_votosDisc.map(p => p.sev))];
   const _dElDisc = document.getElementById('im-discordancia');
   if (_dElDisc) {
     if (_sevsDisc.length > 1) _dElDisc.dataset.paramsDisc = '⚠️ Parámetros discordantes: ' + _votosDisc.map(p=>`${p.p}:${p.sev}`).join(', ');
     else delete _dElDisc.dataset.paramsDisc;
+    /* ⚠️ SE DECLARA CUÁL Y CON QUÉ VALOR, no «hay un dato fuera de rango». Un aviso genérico manda
+       al médico a revisar los nueve campos, y el que está mal es uno — es la regla de este archivo
+       sobre los mensajes que nombran la causa equivocada. Las unidades van en el texto porque el
+       error que esta banda atrapa ES de unidad: «área del jet 600 cm²» se lee solo.
+       Va al MISMO elemento que los otros dos avisos de IM y por `dataset`, porque `im-discordancia`
+       lo comparten tres escritores y el que escribiera el `textContent` último borraría a los
+       otros; `imDiscordanciaPintar` es el único que lo toca. */
+    if (_imFueraVot.length) _dElDisc.dataset.fueraBanda = '⚠️ Fuera de rango, no gradúa: ' + _imFueraVot.join(' · ') + ' — verificar la medición';
+    else delete _dElDisc.dataset.fueraBanda;
   }
   imDiscordanciaPintar();
 
@@ -23260,6 +23385,11 @@ function imDiscordanciaPintar() {
   const ig  = document.getElementById('im_grado');
   const integ = (ig && INT[ig.value]) ? INT[ig.value] : '';
   const partes = [];
+  /* ⚠️ VA PRIMERO, y no al final. Es el reparo que CONDICIONA a los otros dos: una discordancia
+     entre parámetros no significa lo mismo si uno de ellos es ilegible, y el aviso de
+     «volumétrico vs integrado» compara contra un grado que puede haberse quedado sin votantes.
+     Leído último, el médico ya sacó la conclusión. */
+  if (el.dataset.fueraBanda) partes.push(el.dataset.fueraBanda);
   if (el.dataset.paramsDisc) partes.push(el.dataset.paramsDisc);
   /* Se comparan CATEGORÍAS y no cadenas: el volumétrico publica «Moderada» y el integrado guarda
      «2», que son la misma cosa escrita de dos formas. Y se exige que los DOS existan —con un solo
@@ -29277,10 +29407,19 @@ function limpiarCampos(silencioso) {
      registro del estudio nuevo declaraba con `~` —«esto salió de una coincidencia»— espejos que la
      app había copiado ella misma. El daño es de auditabilidad hoy y de comportamiento el día que
      `~` y `=` se traten distinto. */
-  document.querySelectorAll('[data-derivado-de],[data-sugerido],[data-espejo-de],[data-espejo-vivo],[data-espejo-inferido],[data-params-disc],[data-grado-volum]').forEach(el => {
+  document.querySelectorAll('[data-derivado-de],[data-sugerido],[data-espejo-de],[data-espejo-vivo],[data-espejo-inferido],[data-params-disc],[data-grado-volum],[data-fuera-banda]').forEach(el => {
     delete el.dataset.derivadoDe; delete el.dataset.sugerido; delete el.dataset.espejoDe;
     delete el.dataset.espejoVivo; delete el.dataset.espejoInferido;
     delete el.dataset.paramsDisc; delete el.dataset.gradoVolum;
+    /* ⚠️ EL SELECTOR Y EL CUERPO SON DOS LISTAS, y agregar la marca a UNA SOLA es un no-op
+       COMPLETO: nadie mas borra este atributo en toda la app. Asi entro —con la entrada en el
+       selector de arriba y sin este `delete`— y la fuga sobrevivio a su propio caso, porque el
+       barrido `.calc-box .calc-row span[id]` de mas abajo deja `im-discordancia` en «—» y la
+       pantalla se ve limpia: la marca reaparece recien en la primera llamada a
+       `imDiscordanciaPintar()` —la que hace `calcContIM` desde `editarInforme`, por ejemplo— con
+       el texto del paciente ANTERIOR. Medir el textContent da falso negativo; el invariante es el
+       atributo, y asi lo mide TC-320. */
+    delete el.dataset.fueraBanda;
   });
   if (typeof renderCentroField === 'function') renderCentroField('');   // nuevo estudio → centro principal por defecto
   /* ══ Checkboxes: barrido con ALLOWLIST, no lista de los que sí se limpian ══
@@ -54771,6 +54910,11 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
              jetRatio: jr ? jr.textContent : '',
              disc:  dd ? dd.textContent : '',
              paramsDisc: dd ? dd.dataset.paramsDisc : undefined,
+             /* Entra por el mismo argumento que `paramsDisc` y se olvido en la primera version:
+                durante la ventana `calcIM_ESC` corre con los datos del estudio REIMPRESO, asi que
+                el paciente en pantalla volvia con «Fuera de rango: Vmax IM 5 cm/s» de OTRO
+                estudio — una afirmacion sobre una medicion que el suyo no tiene. */
+             fueraBanda: dd ? dd.dataset.fueraBanda : undefined,
              gradoVolum: cs ? cs.dataset.gradoVolum : undefined };
   })();
   const marcaEstado = {};
@@ -55072,7 +55216,9 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
       const _dd = document.getElementById('im-discordancia');
       if (_dd) { _dd.textContent = _imFilasBackup.disc;
         if (_imFilasBackup.paramsDisc === undefined) delete _dd.dataset.paramsDisc;
-        else _dd.dataset.paramsDisc = _imFilasBackup.paramsDisc; }
+        else _dd.dataset.paramsDisc = _imFilasBackup.paramsDisc;
+        if (_imFilasBackup.fueraBanda === undefined) delete _dd.dataset.fueraBanda;
+        else _dd.dataset.fueraBanda = _imFilasBackup.fueraBanda; }
       const _cs = document.getElementById('im-cont-severidad');
       if (_cs) { if (_imFilasBackup.gradoVolum === undefined) delete _cs.dataset.gradoVolum;
         else _cs.dataset.gradoVolum = _imFilasBackup.gradoVolum; } }
@@ -73468,6 +73614,47 @@ const DCM_RANGO = {
      declarado de la tabla; NO separan las dos envolventes. Lo que las separa es el rotulo, y por
      eso el rotulo era el arreglo principal de esta ronda y no la banda. */
   itv_mitral:[2,80], vtim:[2,80], diam_mit:[10,60], im_itv:[20,400],
+  /* ⚠️ Agregados 2026-09-29: los VOTANTES de `calcIM_ESC`. Hasta hoy ninguno tenia banda, y desde
+     que la integracion es `severa >= 1` eso significa que UN SOLO valor ilegible aporta el
+     veredicto del informe firmado. Medido: area del jet en mm² (600) sobre area de AI en cm² (20)
+     da 3000 % y publica «IM severa» sin nada que lo delate.
+     Siguen el criterio declarado de esta tabla —el error de un ORDEN DE MAGNITUD, no lo normal— y
+     NO son cortes clinicos: los de severidad viven en la cascada y no se tocaron.
+     ⚠️ · `im_vc` **[0,20] mm, y el piso es 0 A PROPOSITO — NO se puede subir**. Es el UNICO de los
+       cinco con columna importable (`['VC IM (mm)','im_vc','num']`), y `_labRango` lo consume
+       TAMBIEN el importador de Excel, que ante un valor fuera de banda **descarta la FILA ENTERA**
+       —nombre, cedula, FEVI, informe— y no la celda. Con el piso en 0,5 que tenia la primera
+       version, un estudio ya guardado con `im_vc = 0` —«sin IM medible», valor legitimo que hoy se
+       importa sin problema— dejaba de poder reimportarse: una PERDIDA DE DATOS introducida por una
+       banda de pantalla. Lo encontro /sharp-edges sobre este mismo diff.
+       **El costo de bajarlo esta declarado**: el piso de 0,5 era el que atrapaba la VC tipeada en
+       cm (0,7 por 7), y con 0 ese valor vuelve a votar «leve». No se pierde nada respecto de HEAD
+       —ahi tampoco habia banda— pero esa proteccion NO se gano. No hay forma de tener las dos:
+       `_labRango` tiene un solo dueño y dos consumidores con costos OPUESTOS —en pantalla un falso
+       positivo cuesta «no vota», en el importador cuesta «se pierde el estudio»—, que es la misma
+       asimetria que la nota de MARCAR SIN BORRAR ya declara, acá en la direccion contraria.
+       Por arriba el 20 atrapa el dedazo de 70 y deja pasar una vena contracta de 10-12 mm, que
+       existe en un flail masivo.
+     · `im_jet_area` [0.5,50] cm²: atrapa los mm² (600), que es el error del censo. El techo es
+       generoso a proposito —un jet no puede ser mayor que la auricula que lo contiene—.
+     · `pisa_r` [1,30] mm: atrapa el radio en cm (0,9 por 9). Los radios reales van 3-12 mm.
+     · `pisa_val` [5,150] cm/s: velocidad de aliasing; atrapa los m/s (0,4 por 40). El equipo
+       permite hasta ~80-100, el techo de 150 deja margen sin dejar pasar un orden de magnitud.
+     ⚠️ · `im_vmax` [100,900] **cm/s, NO m/s** — y esto hay que leerlo antes de tocar el numero. La
+       etiqueta del campo dice «Vmax IM (cm/s)» y la formula del EROA lo EXIGE: el cociente
+       `pisaVal / vmaxIM` es adimensional, asi que los dos tienen que estar en la MISMA unidad. Con
+       la banda escrita en m/s ([1,10]) quedarian fuera de rango TODOS los valores reales y la EROA
+       dejaria de votar siempre — o sea el arreglo apagaria el parametro en vez de protegerlo. El
+       piso de 100 cm/s deja pasar cualquier jet real (el gradiente VI-AI sistolico da >250 cm/s) y
+       atrapa el 5 tipeado en m/s, que hoy produce una EROA CIEN VECES mayor. El techo de 900 es
+       imposible: 9 m/s son 324 mmHg.
+     `im_ai_area` NO lleva entrada propia: llega por CASCADA (`im_ai_area || ai_area`) y se valida
+     con `_imFueraBanda('ai_area', …)`, o sea contra la banda de la MAGNITUD. Es el mismo patron
+     que `im_dtsvi`/`diam_tsvi`, y por el mismo motivo: con banda por casilla la validacion
+     morderia solo cuando el medico no toco la del bloque, que es al reves de lo que hace falta.
+     `im_itv` YA estaba en [20,400] y NO se duplica: lo unico que faltaba era que `calcIM_ESC` la
+     consultara, porque `calcContIM` ya la aplica al mismo campo — un dueño del rango, dos lectores. */
+  im_vc:[0,20], im_jet_area:[0.5,50], pisa_r:[1,30], pisa_val:[5,150], im_vmax:[100,900],
   tango_tac:[10,300], vti_tsvd:[2,60], tsvd_diametro:[5,50], s_prime:[1,35],
   /* Agregado 2026-09-26 con el campo `vsfvi`. NO es opcional: el panel de Evidencia lo lee por
      `_labRango` para decidir un criterio QUIRÚRGICO (volumen telesistólico indexado > 45 ml/m²,
@@ -84435,8 +84622,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260929-1334';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790699641104;                 /* eco-build-ms */
+const ECO_BUILD    = '20260929-1427';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790702838518;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -84522,7 +84709,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-1334</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-1427</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

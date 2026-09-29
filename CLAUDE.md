@@ -1,5 +1,203 @@
 # EcoSmart — trampas de este archivo
 
+## Mitral: bandas de plausibilidad en los votantes de IM (2026-09-29)
+
+Cierra el hallazgo más caro que quedaba abierto de la serie. El motivo no es la aritmética: es que
+desde `8b143e6` la integración es **`severa >= 1`**, así que un parámetro dejó de ser «uno entre
+varios» y pasó a ser **el veredicto**. Con `v()` —que no mira bandas— un solo valor ilegible
+publicaba «IM severa» en el informe firmado.
+
+**El caso del censo, reproducido antes de tocar nada:** área del jet en **mm²** (600) sobre área de
+AI en **cm²** (20) → 3000 % → severa, sin una sola señal.
+
+### ⚠️ DOS AFIRMACIONES DEL CONTEXTO NO SE SOSTUVIERON, y la segunda habría apagado el parámetro
+
+| el pedido decía | medido |
+|---|---|
+| «`im_itv` … no tiene banda en ninguna tabla» | **la tiene: `[20,400]` en `DCM_RANGO`**, y `calcContIM` ya la aplicaba. Lo cierto es la otra mitad: `calcIM_ESC` la ignoraba — **dos lectores del mismo dato con protección distinta** |
+| «`im_vmax` en **m/s**» | **es cm/s.** La etiqueta dice «Vmax IM (cm/s)» y la fórmula lo EXIGE: `pisaVal / vmaxIM` es adimensional, así que los dos van en la misma unidad |
+
+La segunda es material. Con la banda escrita en m/s (`[1,10]`) quedaban fuera de rango **todos** los
+valores reales y la EROA dejaba de votar siempre: el arreglo habría **apagado** el parámetro en vez
+de protegerlo. Hay una mutación que lo demuestra —M11— y cae por **tres** condiciones, dos de ellas
+denominadores. Se usó cm/s, que es lo verificable en el código.
+
+### Nueve campos, no siete — y la diferencia es un votante entero
+
+Cinco bandas nuevas en `DCM_RANGO` (`im_vc [0.5,20]`, `im_jet_area [0.5,50]`, `pisa_r [1,30]`,
+`pisa_val [5,150]`, `im_vmax [100,900]`), todas con el criterio declarado de esa tabla —el error de
+un **orden de magnitud**, no lo normal— y **ningún corte clínico nuevo**.
+
+Los otros cuatro **no estrenan banda: se consultan**. `im_itv` ya tenía la suya, y `ai_area`,
+`itv_tsvi` y `diam_tsvi` también. **`itv_tsvi` y `diam_tsvi` NO estaban en la lista de siete del
+pedido y entran igual**: son los dos insumos del VS del TSVI, o sea del **denominador de la fracción
+regurgitante, que VOTA**. Dejarlos afuera reproducía exactamente la asimetría que este cambio viene
+a cerrar para `im_itv` — y el escenario es el que `calcContIM` ya documenta haber cerrado de su
+lado: Ø TSVI tipeado en cm (2 por 20) da un VS de 0,63 ml y una FR severa fabricada.
+
+**Los tres que llegan por CASCADA se validan con `_imFueraBanda`, no con `vPlaus`.**
+`im_ai_area || ai_area`, `im_itv_tsvi || itv_tsvi` y `im_dtsvi || diam_tsvi`: la banda es de la
+**magnitud**, no de la casilla. Validando por casilla, la banda mordería sólo cuando el médico no
+tocó la del bloque, que es al revés de lo que hace falta. Ese helper ya existía y lo usa
+`calcContIM` sobre estos mismos dos últimos.
+
+### La banda decide si VOTA, no si se MUESTRA
+
+Decisión del 27/09 —MARCAR SIN BORRAR— y acá pesa doble: `eroa-val` y `volr-val` son **las dos
+únicas filas de este calc-box que llegan al papel**. Se calcula con el **crudo**, se publica con
+`MARCA_REVISAR` y lo único que se retira es el voto. La mutación que borra en vez de marcar cae por
+**tres** condiciones.
+
+**⚠️ LA DUDA SE PROPAGA HACIA ABAJO, y eso es lo que hace honesto al bloque PISA.** Las tres filas
+están encadenadas —el Vol-R sale del EROA, la FR sale del Vol-R— así que un insumo ilegible arriba
+contamina los tres números. Marcar sólo la fila del campo dudoso dejaría dos derivados limpios en
+pantalla sostenidos por el mismo valor imposible, **y los dos votarían**. Es el encadenamiento que
+el PDF ya resuelve así en el E/e'. El VS del TSVI es la excepción: se marca por **sus** dos insumos
+y no por los del PISA —es una medición independiente— y la FR sí hereda las dos, porque las
+multiplica.
+
+### Lo que NO se tocó
+
+Ningún corte de severidad, ni `severa >= 1`, ni el gate `params.length === 0`. **Con todos los
+votantes fuera de banda `params` queda vacío y se sale por el mismo `return` de «sin parámetros
+cuantitativos»** — o sea el grado no se autocompleta, que es el comportamiento pedido, sin una rama
+nueva que mantener.
+
+### El aviso nombra el campo Y el valor
+
+`dataset.fueraBanda` sobre `im-discordancia`, el mismo elemento que los otros dos avisos de IM y por
+`dataset` porque lo comparten tres escritores y el que escribiera el `textContent` último borraría a
+los demás. **Va PRIMERO**: es el reparo que condiciona a los otros dos —una discordancia entre
+parámetros no significa lo mismo si uno es ilegible—. Y dice cuál y con qué valor: un genérico manda
+al médico a revisar los nueve campos cuando el que está mal es uno. Las unidades van en el texto
+porque el error que la banda atrapa ES de unidad: «área del jet 600 cm²» se lee solo.
+
+**Y la VC es el único votante sin fila de resultado propia**, así que su marca no puede ir pegada a
+un span — por eso el aviso existe.
+
+**Las dos columnas de siempre:** `[data-fuera-banda]` entró al barrido por atributo de
+`limpiarCampos` —esa lista es CERRADA, y sin la entrada la marca sobrevive a «Nuevo estudio»— y al
+respaldo de `_imFilasBackup`, porque durante la reimpresión `calcIM_ESC` corre con los datos del
+estudio reimpreso: sin eso el paciente en pantalla volvía con «Fuera de rango: Vmax IM 5 cm/s» de
+otro estudio.
+
+### ⚠️ LO QUE `/sharp-edges` ENCONTRÓ EN ESTE MISMO DIFF — y los dos primeros eran míos y graves
+
+**1 · EL `delete` FALTABA, Y EL CASO PASÓ EN VERDE SOBRE LA FUGA.** Agregué `[data-fuera-banda]` al
+**selector** de `limpiarCampos` y **no** el `delete el.dataset.fueraBanda` al **cuerpo**. Son dos
+listas, y poner la marca en una sola es un **no-op completo**: nadie más borra ese atributo en toda
+la app. Es literalmente la fuga que el comentario de esa función declara cerrada, reintroducida por
+la otra mitad.
+
+**Y mi condición «el aviso no sobrevive a Nuevo estudio» daba verde**, porque medía el
+`textContent` — y el barrido `.calc-box .calc-row span[id]` deja `im-discordancia` en «—», así que
+**la pantalla se ve limpia**. La marca reaparece en la primera llamada a `imDiscordanciaPintar()`
+—la que hace `calcContIM` desde `editarInforme`— con el texto del paciente ANTERIOR. Reproducido de
+punta a punta antes de arreglarlo. Hoy el caso mide **el atributo**, que es el invariante, y la
+mutación que borra el `delete` cae por dos condiciones.
+**La regla: al agregar una marca de `dataset`, el selector y el cuerpo son DOS sitios, y el caso
+que la vigila tiene que medir el atributo, nunca el texto visible.**
+
+**2 · EL PISO DE `im_vc` ROMPÍA LA REIMPORTACIÓN DEL EXCEL.** `im_vc` es el **único** de los cinco
+campos nuevos con columna importable, y `_labRango` lo consume **también el importador**, que ante
+un valor fuera de banda **descarta la FILA ENTERA** —nombre, cédula, FEVI, informe—, no la celda.
+Con el piso en 0,5 que tenía la primera versión, un estudio ya guardado con `im_vc = 0` —«sin IM
+medible», valor legítimo que hoy se importa sin problema— **dejaba de poder reimportarse**: una
+pérdida de datos introducida por una banda de pantalla. Es el precedente exacto de `vm_dvi`.
+
+**Bajado a `[0,20]`, y el costo está declarado**: el piso de 0,5 era el que atrapaba la VC tipeada
+en cm (0,7 por 7), y con 0 ese valor vuelve a votar «leve». No se pierde nada respecto de HEAD —ahí
+tampoco había banda— pero esa protección **no se ganó**. **No hay forma de tener las dos:**
+`_labRango` tiene un solo dueño y dos consumidores con costos OPUESTOS —en pantalla un falso
+positivo cuesta «no vota»; en el importador, «se pierde el estudio»—. Es la misma asimetría que la
+nota de MARCAR SIN BORRAR ya declara, acá en la dirección contraria.
+**Y el control A/B no podía verlo**: usó los dos bordes de la VC (3 y 7), los dos DENTRO de banda.
+
+**3 · Mi comentario afirmaba que el grado «no se autocompleta» y se leía como «se limpia».** La
+limpieza del badge y de `im_grado` dentro del early return está gateada por `_imVmProt()`, o sea que
+**sólo corre en PRÓTESIS**. En nativa el grado ya escrito sobrevive — es el «grado rancio» que este
+archivo declara como límite y que fija TC-316. Lo que las bandas cambian es que ahora `params`
+también puede **encoger en NATIVA**, o sea que abren esa puerta en el caso mayoritario.
+**Decisión de Maicol: NO se toca** («no queda ningún parámetro cargado» y «esta válvula no se
+gradúa» no son lo mismo). Lo que se corrigió es la afirmación. TC-316 verificado en verde, sin
+modificarlo.
+
+**4 · `_crudo` era un ternario muerto.** `_plausDe` devuelve `crudo:x` en **las cuatro** ramas
+—verificado: sin dato, dentro, fuera y sin banda—, así que `p.fuera ? p.crudo : p.val` daba siempre
+`p.crudo`. El problema no era el costo: sugería que las dos ramas producen cosas distintas e
+invitaba a «simplificarlo» hacia `p.val`, que **sí** cambia el comportamiento —borraría el número en
+vez de marcarlo—. Hoy es `p.crudo` pelado, con el motivo escrito.
+
+**Tres declarados y no corregidos**, los tres en el comentario de cabecera de `calcIM_ESC`: la banda
+de `ai_area [3,60]` puede silenciar el jet/AI de una aurícula **gigante real** —la banda es
+preexistente, el consumidor es nuevo, y la dirección de falla es OMITIR, no afirmar—; la fila «VC
+IM» del PDF sigue imprimiendo su escala de severidad al lado de un valor ya declarado no
+clasificable; y **la IAo y la IT siguen sin banda** con los mismos parámetros físicos (`ia_pisa_r`,
+`ia_vmax_cw` y sus equivalentes tricuspídeos), así que ahí el error de unidad sigue fabricando una
+EROA cien veces mayor.
+
+### ⚠️ DOS EFECTOS AGUAS ABAJO, uno deseable y otro declarado
+
+Las bandas viven en `_labRango`, que **no lo consulta sólo `calcIM_ESC`**. Medido, no supuesto:
+
+- **La fila «VC IM» del PDF FIRMADO empieza a marcar.** Se dibuja con `vPdf('im_vc',' mm')`, y hasta
+  hoy `im_vc` no tenía entrada en la tabla, así que esa fila **no podía marcar nada**. Con la banda,
+  una VC de 70 mm sale «70 mm (revisar)». Es deseable y coherente con las otras filas, **pero es un
+  cambio de una superficie firmada que el pedido no nombraba**, así que está fijado por dos
+  condiciones —una por cada lado del borde—. No hace falta generar el PDF: lo que cambió es el
+  enlace campo→tabla, y `vPdf` es la función que ese enlace habilita.
+- **⚠️ DECLARADO Y NO CORREGIDO: el Excel NO bandea, y este cambio lo vuelve ASIMÉTRICO.**
+  `_labExcelRow` recalcula la EROA y el Vol-R desde `num('pisa_r')`, `num('pisa_val')`,
+  `num('im_vmax')` y `num('im_itv')` —lectura cruda, sin banda— y exporta `'VC IM (mm)'` igual.
+  O sea que la pantalla marca «(revisar)» y **la planilla que cruza a CeiboAnalytics publica el
+  número fabricado sin una palabra**. Es PREEXISTENTE —antes las dos superficies publicaban el
+  número fabricado— y lo que el cambio crea es la divergencia: la interpretabilidad del Excel la
+  degradó este arreglo, igual que pasó con la columna del DVI. Cerrarlo es hacer que esas cuatro
+  lecturas pasen por `_labRango`, y toca el contrato del Excel.
+
+### Verificación
+
+**Control A/B contra HEAD, 10 escenarios**, con hash FNV-1a y longitud de informe y EN SUMA más los
+cinco span y el grado: **cero diferencias**. Denominador declarado —informes de **408 a 419**
+caracteres, **5 hashes distintos**, grados 0/1/2/4, los cinco span poblados en los escenarios PISA y
+los dos bordes de la VC (3 y 7)—.
+
+⚠️ **La primera corrida del A/B dio «IDÉNTICO» sobre DOS SALIDAS VACÍAS**: el `resumen` de un caso
+sólo se imprime cuando falla, así que `grep` devolvía 0 líneas en las dos versiones y el diff daba
+vacío. Se fuerza el volcado por el diagnóstico (`extra: out.map(l => ['dump', false, l])`). Es el
+error de denominador otra vez, y en su forma más peligrosa: **un diff vacío se lee como éxito.**
+
+**Las bandas no rechazan mediciones REALES de pacientes graves**, verificado caso por caso y no por
+intuición: VC de flail masivo 15 mm, jet llenando una AI gigante 35 cm², radio PISA 15 mm, Nyquist
+bajado a 15 cm/s, y la Vmax del jet con PAS 80 / PAI 40 —el paciente en shock, que es el de Vmax más
+baja posible— da 316 cm/s. Los siete pasan. **El techo más ajustado es `im_jet_area` en 50 cm²**: el
+área de una AI muy dilatada llega a 50-60, así que un jet que la llenara entera quedaría en el
+borde. Queda declarado.
+
+**TC-320, 27 condiciones. CATORCE mutaciones, las catorce en rojo y cada una en SU condición** —las
+once del diseño más las tres de los arreglos de `/sharp-edges`: el `delete` faltante, el piso de
+`im_vc` de vuelta en 0,5 y `_crudo` volviendo a `p.val`.
+**Dos sobrevivieron a la primera versión y las dos eran lagunas del caso, no del código:**
+- **bandear sólo el jet y no el área de AI** pasaba porque mi escenario tenía el numerador ilegible
+  y el denominador sano. Es un **cociente**: el área de AI en mm² lo fabrica igual de bien, y es
+  igual de frecuente. La condición nueva usa el caso espejo —jet 12 cm² sobre AI 200—.
+- **la FR sin heredar la duda del Vol-R** pasaba porque el escenario del Ø TSVI ya marcaba la FR por
+  su propio lado. La condición que discrimina exige el TSVI **sano** y el Vol-R dudoso.
+
+**Suite 317/335**, los mismos 18 rojos de la línea base. **Semgrep 125 / 0 ERROR.**
+`node --check` por bloque: fallan **sólo** los bloques 0 y 1, idéntico a HEAD.
+
+### Trampas del propio caso
+
+- **`calcContIM` lee `vtim` —el ESPEJO—, no `itv_mitral`.** Sin sembrarlo, sale por su guarda de
+  insumos incompletos y el placeholder es el genérico: la condición medía **otra rama** y daba rojo
+  sobre código correcto.
+- **Con todo plausible SÍ hay aviso**, y es correcto: una VC severa contra un Vol-R moderado es una
+  discordancia real. Mi condición exigía el elemento vacío y ponía en rojo un aviso legítimo. Lo que
+  se fija es la ausencia del aviso **de banda**, que es lo que este cambio agrega.
+- **Backticks dentro del cuerpo de un caso: van CIENTO DOS**, cuatro de una tanda, todos en
+  comentarios que acababa de escribir.
+
 ## Mitral: columna DVI fuente y panel EM entre pacientes (2026-09-29)
 
 Dos cosas, y la segunda se censó ANTES de asumir el patrón de IM — que es lo que evitó copiar un
@@ -1018,9 +1216,8 @@ antes era uno entre varios.
 - **El jet/AI vota severa desde 40 % y la Tabla 13 pone el corte en >50 %** (censo del 2026-09-29).
   Con `severa >= 1`, un jet de 45 % **solo** pasa de «Moderada» a «IM severa». Cuatro de las once
   combinaciones que se mueven están impulsadas por esa ventana. Lo cierra el prompt del jet.
-- **Ningún votante tiene banda de plausibilidad** (`im_vc`, `im_jet_area`, `im_ai_area`, `pisa_r`,
-  `pisa_val`, `im_vmax`, `im_itv`). Antes un valor ilegible aportaba un voto entre varios; ahora
-  aporta el veredicto: área del jet en mm² (600) sobre AI en cm² (20) → 3000 % → **IM severa**.
+- ~~**Ningún votante tiene banda de plausibilidad**~~ — **CERRADO 2026-09-29**, y son NUEVE campos,
+  no siete: ver «Mitral: bandas de plausibilidad en los votantes de IM» al principio del archivo.
 
 ### Declarado y NO tocado
 
@@ -2615,11 +2812,13 @@ cuando firmó**.
 
 ### Declarado y NO arreglado, con el motivo
 
-- **`calcIM_ESC` lee `im_itv` SIN banda mientras VOTA**, y es el mismo campo que `calcContIM` lee con
-  banda. Escenario del hallazgo: el VTI de entrada (13) en la casilla del chorro con EROA-PISA de
-  40 mm² da `Vol-R = 5,2 ml` y **vota LEVE** donde con 130 votaría moderada, y ese 5,2 sale al Excel.
-  No se toca porque banderarlo cambia **qué parámetros votan**, o sea la gradación, que el pedido
-  prohíbe explícitamente. Es el hallazgo más caro que queda abierto de esta fase.
+- ~~**`calcIM_ESC` lee `im_itv` SIN banda mientras VOTA**~~ — **CERRADO 2026-09-29.** Era, como decía
+  esta entrada, «el hallazgo más caro que queda abierto de esta fase». El escenario original sigue
+  siendo el que mejor lo explica: el VTI de entrada (13) en la casilla del chorro con EROA-PISA de
+  40 mm² da `Vol-R = 5,2 ml` y **votaba LEVE** donde con 130 votaría moderada.
+  Lo que aquí se declaraba como el motivo para no tocarlo —«bandearlo cambia qué parámetros votan, o
+  sea la gradación»— **era exactamente el pedido de la tanda del 29/09**: retirar el voto es lo
+  buscado, y lo que no se movió es ningún corte. Ver la entrada del principio del archivo.
 - **`em_vtimit` sigue rotulado «VTI mitral CW» y `calcEM` no consulta su banda `[2,80]`**, que ya
   existe. `/sharp-edges` lo levantó como el hallazgo principal argumentando que la continuidad mitral
   exige pulsado — **eso es incorrecto**: en estenosis mitral el llenado se mide por **CW** porque en

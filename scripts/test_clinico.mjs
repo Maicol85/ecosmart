@@ -38342,6 +38342,8 @@ caso('TC-318', 'El panel de metodos de EM no se filtra entre pacientes: Nuevo es
    salgan de UNA SOLA derivacion: con dos, basta que el fallback de una se dispare y el de la otra
    no para que la fila publique el DVI calculado rotulado «consignado» — una procedencia
    FABRICADA, peor que no tener la columna. Por eso se cruzan los dos en cada escenario. */
+
+
 caso('TC-319', 'Excel: la columna de procedencia del DVI mitral dice consignado o calculado, y sale de la misma derivacion que el valor', `
   const fila = campos => _labExcelRow({ campos, fecha_estudio: '2026-09-29' });
 
@@ -38390,6 +38392,219 @@ caso('TC-319', 'Excel: la columna de procedencia del DVI mitral dice consignado 
       !LAB_XLS_MAP.some(r => r[0] === 'DVI mitral (fuente)'),
       'en LAB_XLS_MAP=' + LAB_XLS_MAP.some(r => r[0] === 'DVI mitral (fuente)')]
   ] };
+`);
+
+/* == TC-320 - Bandas de plausibilidad en los votantes de calcIM_ESC =========================
+   Desde que la integracion es `severa >= 1`, un solo valor ilegible aporta el VEREDICTO del
+   informe firmado. El caso del censo -area del jet en mm2 sobre area de AI en cm2- publicaba
+   «IM severa» sin una sola señal. Lo que se fija aca es que la banda retire el VOTO y NO el
+   numero: las dos filas del calc-box que llegan al papel se siguen mostrando, con «(revisar)».   */
+caso('TC-320', 'IM: un votante fuera de banda no gradua, se muestra marcado y se declara cual', `
+  return (async () => {
+    const R = {};
+    const sp = id => { const e = document.getElementById(id); return e ? e.textContent.trim() : '(NO EXISTE)'; };
+    const grado = () => (document.getElementById('im_grado') || {}).value;
+    const aviso = () => sp('im-discordancia');
+    const base = () => {
+      __t.limpiar();
+      __t.set('nombre','Bandas IM'); __t.set('ci','77777777'); __t.set('edad','60');
+      __t.set('peso','80'); __t.set('talla','180');
+    };
+
+    // 1 - DENOMINADOR: con valores plausibles el jet/AI SI vota, y vota severa.
+    base();
+    __t.set('im_jet_area','12'); __t.set('im_ai_area','20');
+    try { calcIM_ESC(); } catch (e) {}
+    R.okJetGrado = grado();
+    R.okJetSpan  = sp('im-jet-ratio');
+
+    // 2 - EL CASO DEL CENSO: 600 cm2 de jet sobre 20 de AI. Mismo cociente, 3000 %.
+    base();
+    __t.set('im_jet_area','600'); __t.set('im_ai_area','20');
+    try { calcIM_ESC(); } catch (e) {}
+    R.censoGrado = grado();
+    R.censoSpan  = sp('im-jet-ratio');
+    R.censoAviso = aviso();
+
+    /* 2b - EL CASO ESPEJO: el jet plausible y el AREA DE AI en mm2. Es un COCIENTE, asi que
+       cualquiera de los dos insumos lo fabrica, y el area de AI en mm2 es tan frecuente como el
+       jet. Sin esta condicion, bandear solo el numerador pasa en verde: lo delato la mutacion. */
+    base();
+    __t.set('im_jet_area','12'); __t.set('im_ai_area','200');
+    try { calcIM_ESC(); } catch (e) {}
+    R.aiGrado = grado(); R.aiSpan = sp('im-jet-ratio'); R.aiAviso = aviso();
+
+    // 3 - DENOMINADOR del PISA + Vmax IM tipeada en m/s (5 en vez de 500).
+    base();
+    __t.set('pisa_r','10'); __t.set('pisa_val','40'); __t.set('im_vmax','500');
+    try { calcIM_ESC(); } catch (e) {}
+    R.okEroaGrado = grado(); R.okEroaSpan = sp('eroa-val');
+    base();
+    __t.set('pisa_r','10'); __t.set('pisa_val','40'); __t.set('im_vmax','5');
+    try { calcIM_ESC(); } catch (e) {}
+    R.vmaxGrado = grado(); R.vmaxSpan = sp('eroa-val'); R.vmaxAviso = aviso();
+
+    /* 4 - im_itv fuera de banda: LOS DOS LECTORES tienen que coincidir. calcContIM ya aplicaba
+       [20,400] y calcIM_ESC la ignoraba - dos lectores del mismo dato con proteccion distinta,
+       que es la asimetria que este cambio cierra. No se define un rango nuevo: se consulta el
+       mismo _labRango. */
+    base();
+    __t.set('pisa_r','10'); __t.set('pisa_val','40'); __t.set('im_vmax','500'); __t.set('im_itv','100');
+    /* calcContIM lee vtim -el ESPEJO-, no itv_mitral: sin el, sale por su guarda de insumos
+       incompletos y el placeholder es el generico, o sea el caso mide otra rama. */
+    __t.set('itv_mitral','20'); __t.set('vtim','20'); __t.set('diam_mit','30');
+    __t.set('diam_tsvi','20'); __t.set('itv_tsvi','20');
+    try { calcIM_ESC(); } catch (e) {} try { calcContIM(); } catch (e) {}
+    R.okItvGrado = grado(); R.okItvVolR = sp('volr-val');
+    base();
+    __t.set('pisa_r','10'); __t.set('pisa_val','40'); __t.set('im_vmax','500'); __t.set('im_itv','5');
+    __t.set('itv_mitral','20'); __t.set('vtim','20'); __t.set('diam_mit','30');
+    __t.set('diam_tsvi','20'); __t.set('itv_tsvi','20');
+    try { calcIM_ESC(); } catch (e) {} try { calcContIM(); } catch (e) {}
+    R.itvVolR  = sp('volr-val');
+    R.itvBanda = _labRango('im_itv').join('-');
+    const _ec = document.getElementById('im_eroa_cont');
+    R.itvContPlaceholder = _ec ? _ec.placeholder : '(NO EXISTE)';
+    R.itvContValor = _ec ? _ec.value : '(NO EXISTE)';
+    /* La FR tiene que heredar la duda del Vol-R aunque sus DOS insumos propios esten sanos: las
+       tres filas estan encadenadas. Con el TSVI plausible, sin la propagacion la FR sale limpia y
+       vota, sostenida por un Vol-R que la pantalla ya marco. Lo delato la mutacion. */
+    R.itvFr = sp('freg-val'); R.itvVsv = sp('vsvtsvi-val');
+
+    /* 5 - El diametro del TSVI tipeado en cm. NO estaba en la lista de siete del pedido y entra
+       igual: es insumo del VS TSVI, o sea del denominador de la FR, que VOTA. */
+    base();
+    __t.set('pisa_r','10'); __t.set('pisa_val','40'); __t.set('im_vmax','500'); __t.set('im_itv','100');
+    __t.set('diam_tsvi','2'); __t.set('itv_tsvi','20');
+    try { calcIM_ESC(); } catch (e) {}
+    R.tsviVsv = sp('vsvtsvi-val'); R.tsviFr = sp('freg-val'); R.tsviAviso = aviso();
+
+    // 6 - TODOS fuera de banda: el grado no se autocompleta.
+    base();
+    /* im_vc se saca de banda por ARRIBA (70 mm): el piso es 0 a proposito -ver 8b- asi que ya no
+       hay forma de dejarlo fuera por abajo, y un 0,1 vota leve. */
+    __t.set('im_vc','70'); __t.set('im_jet_area','600'); __t.set('im_ai_area','100');
+    __t.set('pisa_r','0.5'); __t.set('pisa_val','1'); __t.set('im_vmax','5'); __t.set('im_itv','5');
+    __t.set('diam_tsvi','2'); __t.set('itv_tsvi','0.5');
+    try { calcIM_ESC(); } catch (e) {}
+    R.todosGrado = grado(); R.todosAviso = aviso();
+
+    // 7 - Y con TODO plausible no aparece ninguna marca ni ningun aviso.
+    base();
+    __t.set('im_vc','8'); __t.set('im_jet_area','12'); __t.set('im_ai_area','20');
+    __t.set('pisa_r','10'); __t.set('pisa_val','40'); __t.set('im_vmax','500'); __t.set('im_itv','100');
+    __t.set('diam_tsvi','20'); __t.set('itv_tsvi','20');
+    try { calcIM_ESC(); } catch (e) {}
+    R.limpioGrado = grado();
+    R.limpioMarcas = ['im-jet-ratio','eroa-val','volr-val','vsvtsvi-val','freg-val']
+      .filter(id => sp(id).indexOf('revisar') >= 0).join(',');
+    R.limpioAviso = aviso();
+
+    /* 8 - EFECTO AGUAS ABAJO, medido y no supuesto: la fila «VC IM» del PDF FIRMADO se dibuja con
+       vPdf('im_vc'), que aplica la banda de _labRango. Hasta hoy im_vc no tenia entrada, asi que
+       esa fila NO podia marcar nada; con la banda nueva empieza a salir «(revisar)». Es deseable y
+       coherente con las otras filas del PDF, pero es un cambio de una superficie firmada que el
+       pedido no nombraba, asi que se fija aca. No hace falta generar el PDF: lo que cambio es el
+       enlace campo -> tabla, y vPdf es la funcion que ese enlace habilita. */
+    /* 8b - EL PISO DE im_vc ES 0 Y NO SE PUEDE SUBIR. Es el UNICO de los cinco campos nuevos con
+       columna importable, y _labRango lo consume TAMBIEN el importador de Excel, que ante un valor
+       fuera de banda descarta la FILA ENTERA. Con el piso en 0,5 que tenia la primera version, un
+       estudio con im_vc = 0 -valor legitimo, «sin IM medible»- dejaba de poder reimportarse.
+       LIMITE DECLARADO: esto fija la BANDA, no el round-trip completo; el ida y vuelta real por
+       Excel lo ejerce TC-131 sobre otros campos. */
+    R.bandaVc = _labRango('im_vc').join('-');
+    base(); __t.set('im_vc','0');
+    const _pc = vPlaus('im_vc');
+    R.vcCeroFuera = _pc.fuera;
+    R.vcCeroVota = grado();
+
+    base(); __t.set('im_vc','70');
+    R.pdfVcFuera = vPdf('im_vc',' mm');
+    base(); __t.set('im_vc','8');
+    R.pdfVcOk = vPdf('im_vc',' mm');
+
+    /* 9 - LA FUGA SE MIDE EN EL dataset, NO EN EL TEXTO. El barrido
+       .calc-box .calc-row span[id] de limpiarCampos pone im-discordancia en «—», asi que la
+       pantalla se ve limpia y medir el textContent da FALSO NEGATIVO: la marca sigue puesta y
+       reaparece en la primera llamada a imDiscordanciaPintar() -por ejemplo la que hace
+       calcContIM desde editarInforme-. La primera version de este caso media el texto y paso en
+       verde sobre la fuga; lo caza /sharp-edges. El invariante es el atributo. */
+    base(); __t.set('im_jet_area','600'); __t.set('im_ai_area','20');
+    try { calcIM_ESC(); } catch (e) {}
+    const _dAntes = document.getElementById('im-discordancia');
+    R.datasetAntes = !!(_dAntes && _dAntes.dataset.fueraBanda);
+    __t.limpiar();
+    R.trasLimpiar = aviso();
+    const _dd = document.getElementById('im-discordancia');
+    R.datasetTrasLimpiar = _dd ? (_dd.dataset.fueraBanda === undefined) : false;
+    // y que no reaparezca cuando algo repinta sin que el escritor haya corrido
+    try { imDiscordanciaPintar(); } catch (e) {}
+    R.trasRepintar = aviso();
+
+    const M = 'revisar';
+    return { resumen: JSON.stringify(R), extra: [
+      ['DENOMINADOR: con jet 12 sobre AI 20 el parametro vota severa',
+        R.okJetGrado === '4' && R.okJetSpan.indexOf(M) < 0, 'grado=' + R.okJetGrado + ' span=' + R.okJetSpan],
+      ['EL CASO DEL CENSO: 600 sobre 20 ya NO gradua',
+        R.censoGrado !== '4', 'grado=' + R.censoGrado],
+      ['y el cociente se SIGUE mostrando, marcado',
+        R.censoSpan.indexOf('3000.0%') === 0 && R.censoSpan.indexOf(M) > 0, R.censoSpan],
+      ['el aviso nombra el campo Y el valor, no un generico',
+        R.censoAviso.indexOf('area del jet 600') > 0 || R.censoAviso.indexOf('área del jet 600') > 0, R.censoAviso],
+      ['EL COCIENTE SE MARCA TAMBIEN POR EL DENOMINADOR: area de AI en mm2',
+        R.aiGrado !== '1' && R.aiSpan.indexOf(M) > 0, 'grado=' + R.aiGrado + ' span=' + R.aiSpan],
+      ['y el aviso nombra el area de AI, no el jet',
+        R.aiAviso.indexOf('AI 200') > 0 && R.aiAviso.indexOf('jet') < 0, R.aiAviso],
+      ['DENOMINADOR: con Vmax 500 cm/s la EROA vota severa',
+        R.okEroaGrado === '4' && R.okEroaSpan.indexOf(M) < 0, 'grado=' + R.okEroaGrado + ' eroa=' + R.okEroaSpan],
+      ['la Vmax tipeada en m/s no gradua y la EROA queda marcada',
+        R.vmaxGrado !== '4' && R.vmaxSpan.indexOf(M) > 0, 'grado=' + R.vmaxGrado + ' eroa=' + R.vmaxSpan],
+      ['DENOMINADOR: con VTI del jet 100 cm el Vol-R vota',
+        R.okItvGrado !== '0' && R.okItvVolR.indexOf(M) < 0, 'grado=' + R.okItvGrado + ' volR=' + R.okItvVolR],
+      ['UN SOLO DUEÑO DEL RANGO: calcIM_ESC usa la MISMA banda que calcContIM',
+        R.itvBanda === '20-400', 'banda=' + R.itvBanda],
+      ['con el VTI del jet fuera de banda el Vol-R se marca y no vota',
+        R.itvVolR.indexOf(M) > 0, R.itvVolR],
+      ['y calcContIM coincide: no usa ese valor y lo dice',
+        R.itvContValor === '' && R.itvContPlaceholder.indexOf('fuera de rango') >= 0,
+        'valor=' + JSON.stringify(R.itvContValor) + ' ph=' + R.itvContPlaceholder],
+      ['LA DUDA SE PROPAGA: con el TSVI sano, la FR hereda la del Vol-R',
+        R.itvFr.indexOf(M) > 0 && R.itvVsv.indexOf(M) < 0, 'fr=' + R.itvFr + ' vsv=' + R.itvVsv],
+      ['el Ø TSVI en cm marca el VS y la FR, que es la que vota',
+        R.tsviVsv.indexOf(M) > 0 && R.tsviFr.indexOf(M) > 0, 'vsv=' + R.tsviVsv + ' fr=' + R.tsviFr],
+      ['y lo declara nombrando ese campo',
+        R.tsviAviso.indexOf('TSVI 2') > 0, R.tsviAviso],
+      ['CON TODOS FUERA DE BANDA EL GRADO NO SE AUTOCOMPLETA',
+        R.todosGrado === '0', 'grado=' + R.todosGrado],
+      ['y el aviso sale igual, aunque no quede ningun votante',
+        R.todosAviso.indexOf('Fuera de rango') >= 0, R.todosAviso],
+      ['CONTROL: con todo plausible no hay ninguna marca en las cinco filas',
+        R.limpioMarcas === '', 'marcadas=' + JSON.stringify(R.limpioMarcas)],
+      /* NO se exige que el elemento quede VACIO: con todo plausible hay una discordancia REAL
+         entre parametros -VC severa contra Vol-R moderada- y ese aviso tiene que salir. Lo que
+         se fija es la ausencia del aviso de BANDA, que es lo que este cambio agrega; pedir el
+         elemento vacio ponia en rojo un aviso correcto. */
+      ['no hay aviso de banda, y el grado se autocompleta como siempre',
+        R.limpioAviso.indexOf('Fuera de rango') < 0 && R.limpioGrado === '4',
+        'aviso=' + JSON.stringify(R.limpioAviso) + ' grado=' + R.limpioGrado],
+      ['el piso de im_vc es 0: el importador de Excel NO puede descartar la fila por este campo',
+        R.bandaVc === '0-20', 'banda=' + R.bandaVc],
+      ['y un im_vc en 0 no queda fuera de banda ni gradua, igual que siempre',
+        R.vcCeroFuera === false && R.vcCeroVota === '0', 'fuera=' + R.vcCeroFuera + ' grado=' + R.vcCeroVota],
+      ['la fila VC IM del PDF firmado ahora SI marca una VC ilegible',
+        R.pdfVcFuera.indexOf('70') === 0 && R.pdfVcFuera.indexOf(M) > 0, R.pdfVcFuera],
+      ['y con una VC plausible sale igual que siempre, sin marca',
+        R.pdfVcOk === '8 mm', JSON.stringify(R.pdfVcOk)],
+      ['DENOMINADOR: la marca queda puesta en el dataset con el dato fuera de banda',
+        R.datasetAntes === true, 'dataset=' + R.datasetAntes],
+      ['y el aviso de banda NO sobrevive a Nuevo estudio',
+        R.trasLimpiar.indexOf('Fuera de rango') < 0, JSON.stringify(R.trasLimpiar)],
+      ['LA MARCA SE BORRA DEL dataset, no solo del texto',
+        R.datasetTrasLimpiar === true, 'fueraBanda sigue puesto=' + !R.datasetTrasLimpiar],
+      ['y no reaparece cuando algo repinta sin que calcIM_ESC haya corrido',
+        R.trasRepintar.indexOf('Fuera de rango') < 0, JSON.stringify(R.trasRepintar)]
+    ] };
+  })();
 `);
 
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
