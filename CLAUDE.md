@@ -1,5 +1,199 @@
 # EcoSmart — trampas de este archivo
 
+## Mitral protésica: onda S, jet/AI y cociente VTI (2026-09-29)
+
+Tres arreglos de `calcIM_ESC`, y **seis defectos más que `/sharp-edges` encontró en mi propio
+diff** — cinco de ellos en código que escribí ese mismo turno.
+
+### 1 · La onda S entra en el registro de discordancia
+
+Votaba en `scores` y **no** en `params`, y `_sevsDisc` se armaba de `params`: el informe firmado
+decía «IM severa» sobre una vena contracta de 2 mm y la única superficie que podía delatarlo
+estaba muda **por construcción**. Hoy su voto se captura en `_ondaSVoto` y `_votosDisc` es
+`params` **más** ese voto.
+
+**⚠️ NO ENTRA EN `params`, Y ESO ES EL PUNTO.** `params` es el gate de «una válvula que nadie
+cuantificó no recibe severidad»; la onda S es cualitativa. Son dos preguntas distintas —«¿alguien
+midió algo?» y «¿los votos coinciden?»— y meterla en la primera rompería el gate. La condición que
+lo fija es el DENOMINADOR: **la onda S sola sigue dejando el grado en 0**.
+
+**Y el `concat` va SIEMPRE, sin alias.** `_ondaSVoto ? params.concat(...) : params` aliasea
+`params` cuando no hay voto de onda S. Hoy es inocuo —nadie muta ninguno de los dos después— pero
+el primer `_votosDisc.push(...)` que alguien escriba mañana mueve el gate de severidad sin que
+nada lo señale. Cuesta lo mismo y hace la separación estructural en vez de convencional.
+
+### 2 · Jet/AI protésico: >50 %, y entre 20 y 50 NO VOTA
+
+ASE 2024, **Tabla 13, p. 30**: severa es `> 50 %` y la banda intermedia dice «**Variable**». La app
+votaba severa desde 40 % —la banda nativa— así que un jet protésico de 45 % **solo** publicaba
+«IM severa» desde que `severa >= 1` basta.
+
+**En la banda intermedia no se vota Y SE DICE.** Inventar «moderada» donde la tabla dice «Variable»
+es lo que este arreglo viene a sacar; descontar el parámetro en silencio es el defecto que el badge
+del THP ya cerró del otro lado. La fila publica «(Variable — no gradúa en prótesis)».
+
+**⚠️ SE MARCA LA EXCEPCIÓN, NO EL DEFAULT — y la primera versión lo hizo al revés.** Le puse la
+leyenda del régimen también a la rama nativa y **TC-296 se puso en rojo**: pina el texto literal de
+esa fila. Tenía razón dos veces — el caso, y el diseño: meterle una leyenda a la mayoría de los
+estudios para distinguir a la minoría es el idioma contrario al de `protNoGradua`. Hoy la nativa
+publica el número pelado y las **tres** ramas protésicas declaran su régimen. Los cortes de los dos
+se publican en el `title`/ⓘ, en la tarjeta de Referencias y en el manual, **donde hasta hoy no
+estaban en ninguna de las tres**.
+
+**Los cortes absolutos de la tabla (<4 / >8 cm²) NO se implementan**: `im_jet_area` existe —es el
+área del jet en cm²— pero la guía los da como alternativa al porcentaje («usually … or …») y
+aplicarlos exigiría decidir qué manda cuando los dos discrepan. Y el **Nyquist de 50-60 cm/s** que
+la nota ¶ exige no se registra en ningún campo, así que **ninguno de los dos regímenes** puede
+verificar la condición en la que su corte vale. Las dos cosas quedan declaradas, no olvidadas.
+
+### 3 · Cociente VTI mitral/TSVI protésico: ≥2,5
+
+ASE 2024, **Tabla 12, p. 28**, sensibilidad 89 % / especificidad 91 %. El 1,4 sale de la ASE 2023
+de cardiopatía **reumática nativa** y se aplicaba también sobre prótesis: un cociente de 1,50 sobre
+una mecánica publicaba «>1,4 — apoya IM severa» estando muy por debajo de lo que la tabla protésica
+considera sugestivo.
+
+**⚠️ EL OPERADOR CAMBIA CON EL CORTE**: la Tabla 12 dice «≥2,5» y la fuente del 1,4 dice «>1,4».
+Unificarlos movería un borde clínico en una de las dos ramas.
+
+**⚠️ LAS DOS CONDICIONES QUE LA TABLA 12 ENUNCIA NO SE VERIFICAN, y la segunda se me escapó.** La
+del **THP normal** la declaré de entrada; la de «**in mechanical valves**» la extendí a la
+bioprótesis **en silencio**, con mi propio comentario citando esas tres palabras dos veces.
+`_imVmProt` sale de `valvEsProtesis` y `VALV_PROT_OPCIONES` incluye «Prótesis biológica».
+Se conserva la extensión —el marcador sólo dice «apoya», no gradúa, y un cociente ≥2,5 sobre una
+bioprótesis es genuinamente anormal; callarlo es la dirección cara— **y se declara en las cuatro
+superficies**. Lo que sí cambió para la biológica es que un 1,8 dejó de afirmar «apoya IM severa»
+con un corte de mitral reumática nativa, que nunca le aplicó.
+**Si se decide restringir el ≥2,5 a mecánicas, la bioprótesis pasa a publicar el número pelado**,
+igual que el jet/AI en su banda variable. Es una decisión clínica, no un arreglo.
+
+### ⚠️ `_imVmProt` NACIÓ FALLANDO ABIERTO, Y ES LA EXPRESIÓN QUE EL ARCHIVO PROHÍBE POR ESCRITO
+
+El defecto más grave del turno, y lo escribí yo. El helper era
+`valvEsProtesis(sv('vm_morf'))` pelado — **exactamente** lo que el comentario de `vmEsProtesis`
+prohíbe con todas las letras: *«`protNoGradua('vm_morf')` y no `valvEsProtesis(sv('vm_morf'))`: el
+que falla cerrado sobre un `#vm_morf` inexistente es el primero, y copiar el segundo sería
+reintroducir el fail-open»*. `sv()` devuelve `''` sobre un id inexistente y `valvEsProtesis('')` es
+`false`, o sea **«graduá con cortes NATIVOS»**: el jet vuelve a votar severa desde 40 % y el
+cociente a afirmar desde 1,4, los dos sobre una prótesis, en el informe firmado y **sin un solo
+síntoma**. Mi comentario razonaba bien la dirección de falla del `typeof` y dejaba abierta la del
+elemento.
+
+Hoy falla **cerrado a `true`**: con la morfología ilegible la app se ABSTIENE —el jet no vota en la
+banda intermedia, el cociente exige 2,5, la fila de onda E se oculta—, que es el grado que el
+médico pone a mano, la mitad barata del error. Mismo `console.error` que `protNoGradua`.
+
+**Y NO se delega en `protNoGradua('vm_morf')`, que hoy daría el mismo valor:** ese predicado
+depende de `PROT_SIN_GRADO_VALVS`, y el día que la mitral salga de esa lista —porque se decida
+graduar la prótesis— devolvería `false` y estos dos cortes volverían al régimen nativo **por una
+lista que no habla de ellos**.
+
+**El comentario decía «UN SOLO DUEÑO … PARA TODO `calcIM_ESC`» y era falso en el commit que lo
+escribía:** `imOndaEPintar` —que `calcIM_ESC` llama— tenía su propia copia pelada, con un `typeof`
+vacuo. Hoy consume `_imVmProt()`, así que la invariante del título es cierta y de paso esa fila
+heredó el fail-closed.
+
+### El `else` que le di a una fila y no a su vecina
+
+`im-jet-ratio` no tenía rama `else`: borrar `im_jet_area` o `im_ai_area` dejaba el valor anterior.
+Antes el residuo era un número; **desde el corte protésico puede ser «45.0% (Variable — no gradúa
+en prótesis)» sobre un paciente cuya mitral es NATIVA** — una afirmación sobre la morfología de otro
+estudio. Se lo agregué… **y se lo olvidé a `im-onda-s-interp`, en el mismo bloque que acababa de
+editar**, donde el residuo es un badge ROJO diciendo «Invertida — severa» sobre un parámetro que el
+médico acaba de retirar. Lo cazó `/sharp-edges`, no la relectura. Los dos tienen `else` y su caso.
+
+**Y `im-jet-ratio` entró a `_imFilasBackup`**, por el mismo argumento con el que entraron
+`eroa-val` y `volr-val`: durante la reimpresión `calcIM_ESC` corre con los datos del estudio
+reimpreso y el cierre no lo recalcula.
+
+### ⚠️ LÍMITE DECLARADO: el grado rancio — `params.length === 0` sale por `return`
+
+Es el hallazgo ALTO que queda **abierto**, y lo mide TC-314. Ese `return` está **antes** del badge
+`im-sev` y de la escritura de `im_grado`/`im_sev_final`, así que un grado ya escrito **no se borra**
+cuando todos los parámetros dejan de votar.
+
+**Es PREEXISTENTE** —borrar la única vena contracta de una nativa deja el grado igual, medido— pero
+hasta este commit **`params` nunca podía ENCOGER**: la morfología no era insumo de esta cascada. Hoy
+sí, y el camino es exactamente el gesto que el `onchange` nuevo vino a cubrir:
+
+| paso | `im_grado` | la fila del jet | el badge |
+|---|---|---|---|
+| nativa, jet 45 % | **4** | `45.0%` | Severa |
+| se corrige a **prótesis** | **4 ← rancio** | `45.0%  (Variable — no gradúa en prótesis)` | **Severa** |
+| *control:* nativa con jet 45 **+ VC 2** → prótesis | 1 | — | Leve |
+| *control:* nativa VC 8, se borra la VC | **4 ← preexistente** | — | Severa |
+
+La pantalla se contradice sola y el informe sigue publicando «IM severa». Cerrarlo es repintar
+`im-sev` y **retirar el grado auto-derivado respetando `esqSevManual.im`** —o sea decidir qué pasa
+con un grado que el médico eligió a mano—, que alcanza a TODO estudio donde se borre el último
+parámetro, no sólo a los protésicos. **Es una decisión clínica y quedó fuera del «SOLO tres
+arreglos».**
+
+**Y mi comentario del `onchange` afirmaba que la línea sola lo resolvía.** Decía que sin ella el
+voto quedaba con el régimen nativo «hasta que alguien tocara otro campo de IM»; con ella, la
+re-graduación ocurre **sólo si queda otro parámetro cuantificado**. Corregido en el mismo commit:
+un comentario que promete más de lo que el código hace es peor que no tenerlo.
+
+### Punto 4 — `calcIA_ESC` y `calcIT_ESC`: NO tienen el problema, y tienen el INVERSO
+
+**Medido, no leído.** Censo de las tres cascadas:
+
+| | `scores.++` | `params.push` | ¿votante mudo? |
+|---|---|---|---|
+| `calcIM_ESC` | 21 | 18 | **sí** — la onda S, ahora en `_votosDisc` |
+| `calcIA_ESC` | 24 | **24** | no |
+| `calcIT_ESC` | 12 | **12** | no |
+
+Las dos arman su registro de `params` y **ningún voto queda fuera**. Verificado en el navegador: con
+VC leve más el signo cualitativo severo, las dos publican «⚠️ Discordancia: VC:leve, Jet:severa» y
+«… VTI-Desc:moderada».
+
+**⚠️ PERO EL GATE DE `params` NO SE SOSTIENE EN LA TRICÚSPIDE.** `it_densidad` —densidad y contorno
+del jet, un `<select>`, sin una sola medición— **entra a `params`**, así que abre el gate. Medido con
+ESE campo y nada más:
+
+| | grado | badge |
+|---|---|---|
+| **IT**, sólo `it_densidad='denso'` | **2** | **«Moderada — evaluar integrado»** |
+| **IA**, sólo `ia_vti_desc=20` | 2 | «Moderada — evaluar integrado» |
+| **IM** *(control)*, sólo `im_onda_s='invertida'` | **0** | **«—»** |
+
+En la mitral el gate se sostiene; en la tricúspide **un signo cualitativo solo escribe un grado en el
+campo que firma el informe**. La aórtica es distinta: `ia_vti_desc` es un número medido —los ocho
+votantes de `calcIA_ESC` lo son— así que ahí el gate se cumple de verdad. **El caso a decidir es
+`it_densidad`, y es el único votante puramente cualitativo de las tres cascadas.**
+
+Y las dos **conservan la cascada vieja**, con su `else` mudo: el «Moderada — evaluar integrado» de
+arriba sale de un voto **severo** solitario. Es lo que el turno anterior arregló en la mitral y sigue
+declarado como no tocado.
+
+### Verificación
+
+**Denominador declarado.** Catorce escenarios de control con hash FNV-1a **y longitud** de informe,
+EN SUMA y **la fila completa del Excel**, comparados contra HEAD: **14 idénticos, cero diferencias**
+— estudio vacío, IM nativa leve/moderada/severa, jet nativo 45 y 35, cociente nativo 1,5, prótesis
+mitral normal y con VC 8, prótesis aórtica/tricúspide/pulmonar, EM nativa severa y onda S sola.
+**⚠️ La primera corrida dio «0 diferencias» sobre un informe de 9 caracteres en los 14**: el helper
+devuelve `inf.inf`, no `inf.texto`, así que la columna medía la cadena `"undefined"`. Con el campo
+correcto son 403-475 caracteres y 11 hashes distintos de 14. *Confirmar el denominador antes de
+creerle a un diff vacío* — enésima vez.
+
+**Suite 328/329**, único rojo **TC-223**, el documentado. **TC-296 se puso en rojo a mitad de camino
+y tenía razón** (ver punto 2). Semgrep **125 / 0 ERROR**, igual que HEAD. `detectar_huerfanos.py` en
+0 candidatos. `check_mobile` en los 2 ALTA de siempre.
+
+**CATORCE mutaciones, las catorce en rojo y cada una en SU condición**: la onda S fuera del
+registro, el jet protésico de vuelta al corte nativo, sus dos bordes estrictos (50,0 y 20,0), el
+corte nativo movido, el cociente de vuelta al 1,4, su borde 2,50 y el nativo movido, el disparador
+del `onchange`, `_imVmProt` fallando abierto, `imOndaEPintar` con su copia pelada, el jet sin
+`else`, la onda S sin `else`, y la nativa con leyenda de régimen.
+
+**⚠️ Y mi script de mutación no tenía `assert` de ancla única.** `const recorte` aparece **dos**
+veces en el suite —una dentro del cuerpo de un caso— así que el reemplazo rompió TC-263 y el
+archivo dejó de parsear. Es literalmente la regla que este archivo documenta desde hace meses.
+Backticks dentro del cuerpo de un caso: **van TREINTA Y CINCO**, dos más, las dos en comentarios
+que acababa de escribir.
+
 ## Mitral protésica: integración de la IM y EN SUMA sin datos (2026-09-29)
 
 Dos arreglos, y **el segundo tuvo un defecto propio que cazó el control byte a byte**.

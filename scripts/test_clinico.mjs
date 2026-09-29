@@ -37402,6 +37402,196 @@ caso('TC-313', 'Protesis mitral SIN un solo parametro medido: el EN SUMA reutili
 `);
 
 
+caso('TC-314', 'IM: la onda S entra en el registro de discordancia, y el jet/AI y el cociente VTI tienen corte PROPIO en protesis (ASE 2024 Tablas 13 y 12)', `
+  const T = id => { const e = document.getElementById(id); return e ? (e.textContent || '').trim() : 'NO EXISTE'; };
+  function im(morf, campos, ondaS) {
+    __t.limpiar();
+    __t.set('nombre','TC314'); __t.set('edad','70');
+    __t.set('vm_morf', morf);
+    Object.keys(campos || {}).forEach(k => __t.set(k, String(campos[k])));
+    if (ondaS) __t.set('im_onda_s', ondaS);
+    const r = __t.informe();
+    return { g: __t.val('im_grado'), jet: T('im-jet-ratio'), vti: T('im-vti-ratio'),
+             disc: T('im-discordancia'), suma: r.suma };
+  }
+  const jet = (morf, pct) => im(morf, { im_ai_area: 50, im_jet_area: pct / 2 });
+  const rat = (morf, vtim) => im(morf, { vtim: vtim, itv_tsvi: 18, diam_tsvi: 20 });
+  const PROT = 'Prótesis mecánica', NAT = 'Reumática';
+
+  // ── (1) ONDA S EN EL REGISTRO DE DISCORDANCIA ──
+  const solaS   = im(NAT, {}, 'invertida');
+  const discor  = im(NAT, { im_vc: 2 }, 'invertida');
+  const acorde  = im(NAT, { im_vc: 2 }, 'positiva');
+
+  // ── (2) JET/AI ──
+  const p45 = jet(PROT, 45), p55 = jet(PROT, 55), p15 = jet(PROT, 15);
+  const p50 = jet(PROT, 50), p20 = jet(PROT, 20);
+  const n45 = jet(NAT, 45),  n35 = jet(NAT, 35),  n40 = jet(NAT, 40);
+
+  // ── (3) COCIENTE VTI ──
+  const rp15 = rat(PROT, 27), rp25 = rat(PROT, 45), rp249 = rat(PROT, 44.82);
+  const rn15 = rat(NAT, 27),  rn14 = rat(NAT, 25.2);
+
+  /* ── (5) FAIL-CLOSED: sin #vm_morf se ASUME protesis, no nativa ──
+     El modo de falla que cierra: sv() devuelve cadena vacia sobre un id inexistente y
+     valvEsProtesis de eso es false, o sea "gradua con cortes NATIVOS" — el jet vuelve a votar
+     severa desde 40 % y el cociente a afirmar desde 1,4, los dos sobre una protesis, en el
+     informe firmado y sin un solo sintoma. Esta expresion esta PROHIBIDA por escrito en
+     index.html; ver el comentario de vmEsProtesis. */
+  const failClosed = (function(){
+    /* DENOMINADOR de la mitad de la onda E: hay que sembrar un llenado que SI pinte algo, o el
+       gate pasa a ser indistinguible del "no hay datos" — la fila cae en la raya por las dos
+       razones y la condicion pasa con el gate borrado. */
+    __t.limpiar(); __t.set('nombre','TC314'); __t.set('edad','70');
+    __t.set('vm_morf', NAT); __t.set('onda_e','130'); __t.set('onda_a','60');
+    const ondaENativa = T('im-ondae-interp');
+    const el = document.getElementById('vm_morf');
+    if (!el) return { corrio: false };
+    const padre = el.parentNode, sig = el.nextSibling;
+    try {
+      padre.removeChild(el);
+      const prot = (typeof _imVmProt === 'function') ? _imVmProt() : null;
+      // imOndaEPintar tiene que consumir el MISMO duenio: con la morfologia ilegible se abstiene.
+      let ondaE = null;
+      try { if (typeof imOndaEPintar === 'function') { imOndaEPintar(); ondaE = T('im-ondae-interp'); } }
+      catch (e) { ondaE = 'LANZO: ' + e.message; }
+      return { corrio: true, prot: prot, ondaE: ondaE, ondaENativa: ondaENativa };
+    } finally {
+      padre.insertBefore(el, sig);
+      __t.set('vm_morf', NAT);
+    }
+  })();
+
+  /* ── (7) LA RAMA else DE LA ONDA S: retirarla devuelve el badge a la raya ──
+     Sin ella el voto desaparece de scores y de _votosDisc —correcto— y el badge SIGUE EN ROJO
+     diciendo «Invertida — severa» sobre un parametro que el medico acaba de retirar. */
+  const elseOndaS = (function(){
+    __t.limpiar(); __t.set('nombre','TC314'); __t.set('edad','70');
+    __t.set('vm_morf', NAT); __t.set('im_onda_s','invertida');
+    const conDato = T('im-onda-s-interp');
+    __t.set('im_onda_s','');
+    return { conDato: conDato, sinDato: T('im-onda-s-interp') };
+  })();
+
+  /* ── (6) LA RAMA else DEL JET: borrar un insumo devuelve el span a la raya ──
+     Sin el else, el texto rancio ahora puede AFIRMAR una morfologia ajena sobre el paciente
+     en pantalla. */
+  const elseJet = (function(){
+    __t.limpiar(); __t.set('nombre','TC314'); __t.set('edad','70');
+    __t.set('vm_morf', PROT); __t.set('im_ai_area','50'); __t.set('im_jet_area','22.5');
+    const conDato = T('im-jet-ratio');
+    __t.set('im_jet_area','');
+    return { conDato: conDato, sinDato: T('im-jet-ratio') };
+  })();
+
+  // ── (4) EL DISPARADOR: cambiar la morfologia repinta sin tocar otro campo ──
+  const disparador = (function(){
+    __t.limpiar(); __t.set('nombre','TC314'); __t.set('edad','70');
+    __t.set('vm_morf', NAT); __t.set('im_ai_area','50'); __t.set('im_jet_area','22.5');
+    const antes = T('im-jet-ratio');
+    __t.set('vm_morf', PROT);
+    return { antes: antes, despues: T('im-jet-ratio') };
+  })();
+
+  return { extra: [
+    // (1)
+    ['DENOMINADOR: la onda S sola NO escribe grado — el gate de params se conserva',
+      solaS.g === '0', 'grado=' + solaS.g],
+    ['VC 2 (leve) + onda S invertida: la fila de discordancia APARECE',
+      discor.disc.indexOf('Parámetros discordantes') > -1, 'disc=«' + discor.disc + '»'],
+    ['y NOMBRA la onda S, que es la que discrepa',
+      discor.disc.indexOf('Onda S') > -1 && discor.disc.indexOf('VC') > -1, 'disc=«' + discor.disc + '»'],
+    ['control: VC 2 + onda S positiva (las dos leve) NO produce discordancia',
+      acorde.disc.indexOf('discordantes') === -1, 'disc=«' + acorde.disc + '»'],
+
+    // (2) protesis
+    ['jet 45 % PROTESIS ya no vota severa (ASE 2024 T13: severa es > 50 %)',
+      p45.g === '0' && p45.suma.indexOf('IM severa') === -1, 'grado=' + p45.g + ' suma=«' + p45.suma + '»'],
+    ['y lo DICE en vez de descontarse en silencio',
+      p45.jet.indexOf('Variable') > -1, 'jet=«' + p45.jet + '»'],
+    ['jet 55 % PROTESIS vota severa', p55.g === '4', 'grado=' + p55.g],
+    /* El regimen protesico se declara en SUS TRES ramas, no solo en la intermedia: un 55 %
+       protesico y un 45 % nativo imprimian exactamente la misma forma, asi que el unico indicio
+       de con que corte se graduaba aparecia cuando el parametro NO votaba. */
+    ['y lo DICE tambien cuando vota: las tres ramas protesicas declaran su regimen',
+      p55.jet.indexOf('prótesis') > -1 && p15.jet.indexOf('prótesis') > -1 && p45.jet.indexOf('prótesis') > -1,
+      'severa=«' + p55.jet + '» leve=«' + p15.jet + '»'],
+    ['jet 15 % PROTESIS vota leve (la banda leve < 20 % sigue votando)',
+      p15.g === '1', 'grado=' + p15.g],
+    ['borde: jet 50,0 % exacto PROTESIS NO vota (el corte es > 50, estricto)',
+      p50.g === '0' && p50.jet.indexOf('Variable') > -1, 'grado=' + p50.g + ' jet=«' + p50.jet + '»'],
+    ['borde: jet 20,0 % exacto PROTESIS NO vota (leve es < 20, estricto)',
+      p20.g === '0' && p20.jet.indexOf('Variable') > -1, 'grado=' + p20.g + ' jet=«' + p20.jet + '»'],
+    // (2) nativa: NO se toco
+    ['jet 45 % NATIVA sigue votando severa', n45.g === '4', 'grado=' + n45.g],
+    ['jet 35 % NATIVA sigue votando moderada', n35.g === '2', 'grado=' + n35.g],
+    ['borde: jet 40,0 % exacto NATIVA sigue moderada (el corte nativo no se movio)',
+      n40.g === '2', 'grado=' + n40.g],
+    /* Se marca la EXCEPCION, no el default: la nativa publica el numero pelado. Meterle una
+       leyenda a la mayoria de los estudios para distinguir a la minoria es al reves, y ademas
+       TC-296 pina ese texto — los cortes de los dos regimenes se publican en el ⓘ, en la tarjeta
+       de Referencias y en el manual, que es donde van. */
+    ['y la nativa publica el numero PELADO, sin leyenda de ningun regimen',
+      n45.jet === '45.0%' && n35.jet === '35.0%', 'jet45=«' + n45.jet + '» jet35=«' + n35.jet + '»'],
+
+    // (3) cociente VTI
+    ['cociente 1,50 PROTESIS ya NO dice que apoya severa (ASE 2024 T12: el corte es 2,5)',
+      rp15.vti.indexOf('apoya') === -1, 'vti=«' + rp15.vti + '»'],
+    ['borde: cociente 2,50 exacto PROTESIS SI lo dice (el operador es mayor o igual)',
+      rp25.vti.indexOf('apoya IM severa') > -1, 'vti=«' + rp25.vti + '»'],
+    ['borde: cociente 2,49 PROTESIS no lo dice', rp249.vti.indexOf('apoya') === -1, 'vti=«' + rp249.vti + '»'],
+    ['y el texto de la protesis publica SU corte, no el nativo',
+      rp25.vti.indexOf('2,5') > -1 && rp25.vti.indexOf('1,4') === -1, 'vti=«' + rp25.vti + '»'],
+    ['cociente 1,50 NATIVA sigue diciendo que apoya severa, con el corte 1,4',
+      rn15.vti.indexOf('1,4') > -1 && rn15.vti.indexOf('apoya IM severa') > -1, 'vti=«' + rn15.vti + '»'],
+    ['borde: cociente 1,40 exacto NATIVA no lo dice (el corte nativo es mayor estricto)',
+      rn14.vti.indexOf('apoya') === -1, 'vti=«' + rn14.vti + '»'],
+
+    // (4) disparador
+    ['cambiar la morfologia repinta el jet sin tocar ningun otro campo',
+      disparador.antes.indexOf('Variable') === -1 && disparador.despues.indexOf('Variable') > -1,
+      'antes=«' + disparador.antes + '» despues=«' + disparador.despues + '»'],
+
+    // (5) fail-closed
+    ['DENOMINADOR: el escenario del fail-closed pudo sacar y reponer #vm_morf',
+      failClosed.corrio === true && !!document.getElementById('vm_morf'), JSON.stringify(failClosed)],
+    ['sin #vm_morf se ASUME protesis (falla CERRADO, no al reves)',
+      failClosed.prot === true, 'devolvio ' + failClosed.prot],
+    ['DENOMINADOR: con la morfologia LEGIBLE y nativa, esa misma onda E SI pinta',
+      failClosed.ondaENativa !== '—' && failClosed.ondaENativa.length > 3,
+      'ondaE nativa=«' + failClosed.ondaENativa + '»'],
+    ['y la fila de onda E consume el MISMO duenio: con la morfologia ilegible se abstiene',
+      failClosed.ondaE === '—', 'ondaE=«' + failClosed.ondaE + '»'],
+
+    // (6) el else del jet
+    ['DENOMINADOR: con los dos insumos el jet publica su valor',
+      elseJet.conDato.indexOf('%') > -1, 'jet=«' + elseJet.conDato + '»'],
+    ['borrar un insumo devuelve el jet a la raya — el texto rancio afirmaba una morfologia ajena',
+      elseJet.sinDato === '—', 'jet=«' + elseJet.sinDato + '»'],
+
+    // (7) el else de la onda S — se olvido en la primera version de este mismo bloque
+    ['DENOMINADOR: la onda S invertida SI pinta su badge',
+      elseOndaS.conDato.indexOf('Invertida') > -1, 'badge=«' + elseOndaS.conDato + '»'],
+    ['retirar la onda S devuelve el badge a la raya — seguia en ROJO sobre un parametro retirado',
+      elseOndaS.sinDato === '—', 'badge=«' + elseOndaS.sinDato + '»'],
+
+    /* ⚠️ LIMITE DECLARADO, no es el comportamiento deseado. la salida temprana de params vacio sale por
+       un return ANTES de escribir el grado, asi que un grado ya escrito NO se borra cuando todos
+       los parametros dejan de votar. Es PREEXISTENTE —borrar la unica VC de una nativa deja el
+       grado igual— y el corte protesico del jet lo vuelve alcanzable por una puerta nueva:
+       cambiar la morfologia. Ver CLAUDE.md. */
+    ['LIMITE DECLARADO: el grado ya escrito NO se borra cuando el jet deja de votar (preexistente)',
+      (function(){
+        __t.limpiar(); __t.set('nombre','TC314'); __t.set('edad','70');
+        __t.set('vm_morf', NAT); __t.set('im_ai_area','50'); __t.set('im_jet_area','22.5');
+        const antes = __t.val('im_grado');
+        __t.set('vm_morf', PROT);
+        return antes === '4' && __t.val('im_grado') === '4';
+      })()]
+  ] };
+`);
+
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

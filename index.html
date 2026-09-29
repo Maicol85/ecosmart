@@ -3181,7 +3181,20 @@ window.cerrarSesionReal = cerrarSesionReal;
                ⚠️ ESE `value` NO ES COPY-PASTE SOBRANTE aunque hoy sea idéntico a la etiqueta: es lo
                que impide que un sufijo agregado a la etiqueta se filtre al dato. Ya pasó —«(SAVR)»
                estuvo en esta etiqueta y no ensució un solo estudio porque el `value` estaba—. -->
-          <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync();imOndaESiExiste();eteVmPropagar('vm');calcEM()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
+          <!-- ⚠️ `calcIM_ESC()` ES EL DISPARADOR DEL CONSUMIDOR NUEVO, y es la cuarta vez que este
+               archivo paga esta forma. Desde que el jet/AI y el cociente VTI tienen corte propio
+               en prótesis, la MORFOLOGÍA es un insumo de `calcIM_ESC` — y este `onchange` no la
+               llamaba. Sin esta línea, pasar de «Reumática» a «Prótesis mecánica» dejaba el voto
+               del jet y el «apoya IM severa» del cociente calculados con el régimen NATIVO hasta
+               que alguien tocara otro campo de IM. Va ANTES de `calcEM()` porque `calcIM_ESC`
+               escribe `im_grado`, que es lo que la continuidad de la EM consulta.
+               ⚠️ PERO NO ALCANZA SOLA, Y ESTE COMENTARIO LLEGÓ A AFIRMAR QUE SÍ. `calcIM_ESC`
+               corta con `if (params.length === 0) return;` ANTES de escribir el badge y el grado,
+               así que la re-graduación ocurre sólo si queda al menos OTRO parámetro cuantificado.
+               Con una vena contracta cargada funciona —el voto leve pisa al severo del jet—; con
+               el jet como único parámetro, el grado nativo sobrevive. Ver la nota de
+               `params.length === 0` en `calcIM_ESC` y la entrada de CLAUDE.md. -->
+          <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync();imOndaESiExiste();eteVmPropagar('vm');calcIM_ESC();calcEM()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
           <div id="vm-ete-aviso" style="display:none;font-size:11px;color:var(--red);margin-top:3px;"></div>
         </div>
         <!-- Campos de PRÓTESIS (Fase 1, 2026-09-27). Se muestran sólo con una de las tres
@@ -3409,7 +3422,11 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
       </div>
       <div class="calc-box" style="margin-top:10px;">
-        <div class="calc-row"><span class="calc-lbl">Ratio jet/AI (%)</span><span class="calc-val" id="im-jet-ratio">—</span></div>
+        <!-- El ⓘ y el `title` publican los DOS regímenes, igual que la fila del cociente VTI: hasta
+             hoy esta fila no declaraba su corte en NINGUNA superficie —ni acá, ni en la tarjeta de
+             Referencias, ni en el manual—, así que ni el 20/40 nativo ni el 20/50 protésico eran
+             consultables desde la app. -->
+        <div class="calc-row"><span class="calc-lbl" title="DOS CORTES SEGÚN LA MORFOLOGÍA. En válvula NATIVA: &lt;20 % leve · ≤40 % moderada · &gt;40 % severa. En PRÓTESIS mitral: &lt;20 % leve · &gt;50 % severa, y entre 20 y 50 la ASE 2024 (Tabla 13, pág. 30 — Zoghbi, JASE 2024;37(1):2-63) dice «Variable», así que el parámetro NO vota y la fila lo declara. Los cortes absolutos de esa tabla (&lt;4 cm² / &gt;8 cm²) no se implementan: la guía los da como alternativa al porcentaje. La tabla exige además un Nyquist de 50-60 cm/s que la app no registra. Ver «Referencia clínica» en la ayuda.">Ratio jet/AI (%) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-jet-ratio">—</span></div>
         <div class="calc-row"><span class="calc-lbl">EROA — PISA (mm²)</span><span class="calc-val" id="eroa-val">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Vol regurgitante (ml)</span><span class="calc-val" id="volr-val">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Vol eyectado TSVI (ml)</span><span class="calc-val" id="vsvtsvi-val">—</span></div>
@@ -3441,7 +3458,7 @@ window.cerrarSesionReal = cerrarSesionReal;
              es otra cosa— y lo que se corrige es la atribución, que decía «sin guía».
              La condición de IAo del ⓘ no es decorativa: la aplica `calcIM_ESC`, que retira la fila
              con `ia_grado` ≥ moderada. -->
-        <div class="calc-row"><span class="calc-lbl" title="Requiere ausencia de insuficiencia aórtica moderada o severa: la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir (ASE 2023). Con IAo moderada o mayor la fila no se calcula. Fuente del corte: ASE 2023, cardiopatía reumática (Pandian, JASE 36:3-28); no figura en ASE 2017 ni en ESC/EACTS 2021, y el estudio original (Tribouilloy, Eur Heart J 1994) da 1,3. Ver «Referencia clínica» en la ayuda.">Ratio VTI mitral / VTI TSVI (&gt;1.4 severa) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-vti-ratio">—</span></div>
+        <div class="calc-row"><span class="calc-lbl" title="Requiere ausencia de insuficiencia aórtica moderada o severa: la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir (ASE 2023). Con IAo moderada o mayor la fila no se calcula. DOS CORTES SEGÚN LA MORFOLOGÍA: en válvula NATIVA, &gt;1,4 apoya IM severa — ASE 2023, cardiopatía reumática (Pandian, JASE 36:3-28); no figura en ASE 2017 ni en ESC/EACTS 2021, y el estudio original (Tribouilloy, Eur Heart J 1994) da 1,3. En PRÓTESIS mitral el corte es ≥2,5 — ASE 2024, Tabla 12, pág. 28 (Zoghbi, JASE 2024;37(1):2-63), «hallazgos de ETT que sugieren IM protésica significativa en válvulas mecánicas con THP normal»: sensibilidad 89 %, especificidad 91 %. Esa tabla lo define para válvulas MECÁNICAS con THP normal, y la app NO verifica ninguna de las dos condiciones: el ≥2,5 se aplica a toda prótesis mitral, biológica incluida, y el THP no se cruza. Ver «Referencia clínica» en la ayuda.">Ratio VTI mitral / VTI TSVI (nativa &gt;1.4 · prótesis ≥2.5) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-vti-ratio">—</span></div>
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad IM integrada (ESC 2021)</span><span id="im-sev">—</span></div>
         <div class="calc-row"><span id="im-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
       </div>
@@ -12605,8 +12622,26 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
      para severa, en ninguna fuente hay bandas de leve y moderada. Y el cálculo tampoco las usaba
      —la fila de pantalla sólo mira si cruza el corte—, así que la tabla enseñaba una graduación
      que el código nunca aplicó. La atribución va en la celda porque no es de la ESC. -->
-<tr><td style="padding:5px 8px;color:var(--text2);">Ratio VTI mitral/TSVI <span style="font-size:10px;">(ASE 2023 — ver ayuda)</span></td><td style="padding:5px 8px;text-align:center;">—</td><td style="padding:5px 8px;text-align:center;">—</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&gt;1.4</td></tr>
+            <!-- ⚠️ DOS CORTES EN LA MISMA FILA, y la celda tiene que decir los dos o miente en la
+     mitad de los pacientes: el &gt;1,4 es de válvula NATIVA (ASE 2023 reumática) y con prótesis
+     mitral el corte es ≥2,5 (ASE 2024, Tabla 12, p. 28). La app elige por la morfología. Es la
+     regla de esta casa: el rótulo se mueve con el predicado o la tarjeta de referencia
+     contradice a la fila que el médico está mirando. -->
+<tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Ratio VTI mitral/TSVI <span style="font-size:10px;">(nativa ASE 2023 · prótesis ASE 2024 — ver ayuda)</span></td><td style="padding:5px 8px;text-align:center;">—</td><td style="padding:5px 8px;text-align:center;">—</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">nativa &gt;1.4 · prótesis &ge;2.5</td></tr>
+            <!-- ⚠️ EL JET/AI NO TENÍA FILA ACÁ, y es el otro parámetro con dos regímenes. Hasta hoy
+     sus cortes —20/40 nativo y 20/50 protésico— no se publicaban en NINGUNA superficie de la
+     app: ni en el rótulo de la fila, ni acá, ni en el manual. Un parámetro que vota y cuyo
+     corte no es consultable es el defecto que esta tarjeta existe para cerrar.
+     La banda intermedia de la prótesis dice «Variable» porque eso es lo que dice la Tabla 13:
+     ahí el parámetro NO gradúa, y la app se abstiene en vez de inventar «moderada». -->
+<tr style="background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">Ratio jet/AI (%) <span style="font-size:10px;">(nativa ASE 2017 · prótesis ASE 2024 T13 p.30)</span></td><td style="padding:5px 8px;text-align:center;">&lt;20</td><td style="padding:5px 8px;text-align:center;">nativa 20–40 · <b>prótesis: Variable, no gradúa</b></td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">nativa &gt;40 · prótesis &gt;50</td></tr>
           </table>
+          <!-- Las dos condiciones que la Tabla 12 enuncia y la app NO verifica van juntas acá y no
+     dentro de la celda: una celda de tabla con dos salvedades deja de leerse como un corte. -->
+          <div style="margin-top:6px;font-size:11px;color:var(--text2);line-height:1.6;">
+            ⚠️ El &ge;2,5 del cociente lo define la ASE 2024 para pr&oacute;tesis <b>mec&aacute;nicas con THP normal</b>.
+            EcoSmart no verifica ninguna de las dos: lo aplica a toda pr&oacute;tesis mitral —biol&oacute;gica incluida— y no cruza el THP.
+          </div>
           <div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--accent2);">Indicaciones IM primaria (ESC 2021)</div>
           <div style="font-size:12px;color:var(--text);line-height:1.8;margin-top:4px;">
             • <b>Clase I:</b> IM severa sintomática, FEVI &gt;30% → Cirugía (preferir reparación)<br>
@@ -22491,6 +22526,38 @@ window.sugerirSeveridadEA = sugerirSeveridadEA;
 // ══ PISA ══
 function calcPISA() { calcIM_ESC(); }
 
+/* ⚠️ UN SOLO DUEÑO DE «¿ESTA MITRAL ES PROTÉSICA?» PARA TODO `calcIM_ESC`. Lo consultan el jet/AI
+   y el cociente VTI, que desde hoy tienen corte propio en prótesis. Con la pregunta escrita dos
+   veces, el día que una se afine la otra publica el régimen equivocado sobre el mismo paciente —
+   que es el defecto que este mismo bloque acaba de cerrar del lado del jet.
+   ⚠️ `valvEsProtesis` Y NO `protNoGradua`: son dos preguntas distintas. `protNoGradua` contesta
+   «¿esta prótesis se abstiene de graduar?» y excluye la aórtica a propósito; acá la pregunta es
+   sobre la MORFOLOGÍA de la mitral, y la insuficiencia protésica SÍ se gradúa (ASE 2024, Tabla 13).
+   Es el mismo predicado que ya usa `imOndaEPintar` sobre este campo.
+   ⚠️ LLAMADA PELADA, SIN `typeof`: `valvEsProtesis` es una declaración de función del MISMO bloque
+   de script, se hoistea, y el `typeof` daría `'function'` siempre —la lección que este archivo ya
+   pagó cuatro veces—. Si alguien la mueve a otro bloque, falla RUIDOSA en vez de degradar a
+   «nativa», que es el régimen equivocado. Su `const VALV_PROT_OPCIONES` se inicializa mucho antes
+   de que `calcIM_ESC` corra por primera vez (ninguna sentencia de nivel superior la llama).
+   ⚠️ FALLA CERRADO SOBRE UN `#vm_morf` AUSENTE, Y POR ESO NO ES `valvEsProtesis(sv('vm_morf'))`
+   PELADO. Esa expresión exacta está PROHIBIDA por escrito en este archivo —ver el comentario de
+   `vmEsProtesis`: «copiar el segundo sería reintroducir el fail-open»— porque `sv()` devuelve `''`
+   sobre un id inexistente y `valvEsProtesis('')` es `false`, o sea «graduá con cortes NATIVOS»:
+   el jet vuelve a votar severa desde 40 % y el cociente vuelve a afirmar «apoya IM severa» desde
+   1,4, los dos sobre una prótesis, en el informe firmado y sin un solo síntoma. Acá el lado
+   cerrado es `true`: con la morfología ilegible la app se ABSTIENE —el jet no vota en la banda
+   intermedia y el cociente exige 2,5—, que es el grado que el médico pone a mano, la mitad barata
+   del error. Misma decisión, misma dirección y mismo `console.error` que `protNoGradua`.
+   ⚠️ Y NO SE DELEGA EN `protNoGradua('vm_morf')`, que hoy daría el mismo valor: ese predicado
+   depende de `PROT_SIN_GRADO_VALVS`, y el día que la mitral salga de esa lista —porque se decida
+   graduar la prótesis— devolvería `false` y estos dos cortes volverían al régimen nativo por una
+   lista que no habla de ellos. */
+function _imVmProt() {
+  const el = document.getElementById('vm_morf');
+  if (!el) { console.error('[_imVmProt] no existe #vm_morf — se asume prótesis, por las dudas'); return true; }
+  return valvEsProtesis(el.value);
+}
+
 function calcIM_ESC() {
   const vc = v('im_vc');
   const jetArea = v('im_jet_area');
@@ -22509,12 +22576,61 @@ function calcIM_ESC() {
     else { scores.severa++; params.push({p:'VC',sev:'severa'}); }
   }
 
+  /* ⚠️ EL JET/AI TIENE DOS REGÍMENES, y hasta hoy publicaba el nativo sobre una prótesis.
+     ASE 2024, Tabla 13 (Zoghbi et al., JASE 2024;37(1):2-63, **p. 30**), fila «Color flow jet
+     area», para prótesis MITRAL:
+       · leve    → «Small, central jet (usually <4 cm² or **<20 % of LA area**)»
+       · moderada→ «**Variable**»  ← la guía NO publica banda numérica
+       · severa  → «Large central jet (usually >8 cm² or **>50 % of LA area**)»
+     La app votaba severa desde >40 % —el corte nativo— e inventaba una banda moderada de 20-40 %
+     que esa columna no tiene. Con `severa >= 1` bastando desde `8b143e6`, un jet protésico de
+     45 % pasaba a publicar «IM severa» él solo, por debajo del corte de la guía.
+     ⚠️ EN LA BANDA INTERMEDIA NO SE VOTA, Y SE DICE. Inventar «moderada» donde la tabla dice
+     «Variable» es exactamente lo que este arreglo viene a sacar; y descontar el parámetro en
+     silencio es el defecto que el badge del THP ya cerró del otro lado —«el número se sigue
+     viendo arriba, así que sin esta línea quedaría un valor publicado y silenciosamente
+     descontado»—. El marcador es de PANTALLA: `im-jet-ratio` no tiene un solo lector fuera de
+     esta función (ni PDF, ni Excel, ni PPT, ni informe), verificado por grep.
+     ⚠️ LOS CORTES ABSOLUTOS DE LA TABLA (<4 cm² / >8 cm²) NO SE IMPLEMENTAN: `im_jet_area` es el
+     área del jet en cm² y existe, pero la guía los da como alternativa al porcentaje («usually
+     … or …») y aplicarlos exigiría decidir qué manda cuando los dos discrepan. Queda declarado,
+     no es un olvido.
+     ⚠️ Y EL NYQUIST DE 50-60 cm/s que la nota ¶ exige NO SE REGISTRA en ningún campo de la app,
+     así que ninguno de los dos regímenes puede verificar la condición en la que su corte vale. */
+  const _jetEl = document.getElementById('im-jet-ratio');
   if (jetArea && aiArea) {
     const ratio = (jetArea/aiArea*100).toFixed(1);
-    document.getElementById('im-jet-ratio').textContent = ratio + '%';
-    if (ratio < 20) { scores.leve++; params.push({p:'Jet/AI',sev:'leve'}); }
-    else if (ratio <= 40) { scores.moderada++; params.push({p:'Jet/AI',sev:'moderada'}); }
-    else { scores.severa++; params.push({p:'Jet/AI',sev:'severa'}); }
+    const _jetPct = PF(ratio);
+    /* ⚠️ EL RÉGIMEN PROTÉSICO SE DECLARA EN SUS TRES RAMAS, NO SÓLO EN LA INTERMEDIA. Un 55 %
+       protésico y un 45 % nativo imprimían exactamente la misma forma, y el único indicio de con
+       qué corte se estaba graduando aparecía cuando el parámetro NO votaba — o sea nunca donde
+       decide.
+       ⚠️ Y SE MARCA LA EXCEPCIÓN, NO EL DEFAULT: la rama nativa sigue publicando el número pelado.
+       Es el idioma del resto del archivo —`protNoGradua`, `PROT_SIN_GRADO_TXT`— y evita meterle
+       una leyenda a la mayoría de los estudios para distinguir a la minoría. Los cortes de los DOS
+       regímenes se publican igual, en el `title` y el ⓘ de la fila, en la tarjeta de Referencias y
+       en el manual: hasta hoy no estaban en ninguna de las tres. */
+    if (_imVmProt()) {
+      if (_jetPct < 20) { scores.leve++; params.push({p:'Jet/AI',sev:'leve'}); _jetEl.textContent = ratio + '%  (prótesis: <20 % leve · >50 % severa)'; }
+      else if (_jetPct > 50) { scores.severa++; params.push({p:'Jet/AI',sev:'severa'}); _jetEl.textContent = ratio + '%  (prótesis: <20 % leve · >50 % severa)'; }
+      else _jetEl.textContent = ratio + '%  (Variable — no gradúa en prótesis)';
+    } else {
+      _jetEl.textContent = ratio + '%';
+      if (_jetPct < 20) { scores.leve++; params.push({p:'Jet/AI',sev:'leve'}); }
+      else if (_jetPct <= 40) { scores.moderada++; params.push({p:'Jet/AI',sev:'moderada'}); }
+      else { scores.severa++; params.push({p:'Jet/AI',sev:'severa'}); }
+    }
+  } else {
+    /* ⚠️ SIN GUARDA `if (_jetEl)`, Y ES DELIBERADO: las cuatro escrituras de la rama de arriba lo
+       desreferencian pelado, así que una guarda sólo acá protegería la única rama que no puede
+       fallar y se leería como una capa que no existe. `#im-jet-ratio` es marcado estático; si
+       algún día no está, esto tira igual que la rama principal, que es el comportamiento previo.
+       ⚠️ EL `else` NO ES DECORATIVO, y desde el corte protésico es PEOR que un número rancio.
+       Sin él, borrar `im_jet_area` o `im_ai_area` deja el span con lo último calculado — y eso
+       ahora puede ser «45.0%  (Variable — no gradúa en prótesis)», o sea una AFIRMACIÓN sobre la
+       MORFOLOGÍA de otro estudio sobre el paciente en pantalla. Es el mismo argumento con el que
+       `im-vti-ratio` y los cuatro span de PISA ya tienen el suyo. */
+    _jetEl.textContent = '—';
   }
 
   /* ⚠️ LOS CUATRO SPAN DE PISA NO TENIAN `else`, y desde que la fila del PDF los atribuye a un
@@ -22566,10 +22682,34 @@ function calcIM_ESC() {
      mismas ramas de arriba, sin enterarse. */
   try { _imPisaSellar(); } catch (e) { console.error('[imPisaSellar]', e); }
 
+  /* ⚠️ LA ONDA S VOTA Y NO ENTRABA EN EL REGISTRO DE DISCORDANCIA, y eso se volvió caro el día que
+     un solo voto severo pasó a bastar (`8b143e6`). Los otros cinco votantes hacen `scores.X++` **y**
+     `params.push`; ésta sólo lo primero, y `_sevsDisc` se arma de `params`. Medido y declarado en
+     ese commit: con vena contracta 2 mm (leve) + onda S invertida el informe firmado decía
+     «IM severa» y la fila «⚠️ Parámetros discordantes» quedaba VACÍA — la única superficie que
+     podía delatarlo, muda por construcción.
+     ⚠️ SE REGISTRA EL VOTO, NO SE METE EN `params`, y la distinción es la que el censo documentó:
+     `params.length === 0` es el gate de «una válvula que nadie cuantificó no recibe severidad», y
+     la onda S NO es una cuantificación de la regurgitación —es el flujo venoso pulmonar—. Metida
+     ahí, una onda S invertida SOLA escribiría grado 4 sobre una mitral sin un solo parámetro
+     cuantitativo medido. El registro de discordancia es otra pregunta: «¿los votos coinciden?»,
+     y ahí sí tiene que estar. */
+  let _ondaSVoto = null;
   if (ondaS) {
-    if (ondaS === 'positiva') { scores.leve++; document.getElementById('im-onda-s-interp').innerHTML = badge('green','Normal'); }
-    else if (ondaS === 'embotada') { scores.moderada++; document.getElementById('im-onda-s-interp').innerHTML = badge('yellow','Embotada — moderada'); }
-    else { scores.severa++; document.getElementById('im-onda-s-interp').innerHTML = badge('red','Invertida — severa'); }
+    if (ondaS === 'positiva') { scores.leve++; _ondaSVoto = {p:'Onda S', sev:'leve'}; document.getElementById('im-onda-s-interp').innerHTML = badge('green','Normal'); }
+    else if (ondaS === 'embotada') { scores.moderada++; _ondaSVoto = {p:'Onda S', sev:'moderada'}; document.getElementById('im-onda-s-interp').innerHTML = badge('yellow','Embotada — moderada'); }
+    else { scores.severa++; _ondaSVoto = {p:'Onda S', sev:'severa'}; document.getElementById('im-onda-s-interp').innerHTML = badge('red','Invertida — severa'); }
+  } else {
+    /* ⚠️ EL `else` VA ACÁ POR EL MISMO ARGUMENTO QUE EL DE `im-jet-ratio`, y se olvidó en la
+       primera versión de este mismo bloque. Sin él, el médico RETIRA la onda S —devuelve el select
+       a «—», que es el gesto de decir «esto no lo pude valorar»— el voto desaparece de `scores` y
+       de `_votosDisc`, correctamente, y el badge SIGUE EN ROJO diciendo «Invertida — severa».
+       Con `severa >= 1` bastando desde `8b143e6`, ése es justo el caso en que el grado baja: la
+       fila afirma severidad sobre un parámetro retirado, al lado de un badge integrado que ya dice
+       otra cosa. Lo limpia `limpiarCampos`, o sea sólo «Nuevo estudio» — el escenario «un
+       paciente» que el comentario de los cuatro span de PISA describe acá al lado. */
+    const _osEl = document.getElementById('im-onda-s-interp');
+    if (_osEl) _osEl.textContent = '—';
   }
 
   /* ── Signos de APOYO, no parámetros graduados ──────────────────────────────
@@ -22611,10 +22751,19 @@ function calcIM_ESC() {
      parámetros. Con `params` vacío `sevs.length` es 0 y la rama `else` la borra, que es justo lo
      que hace falta. Se pinta acá Y al final: acá para que el borrado tenga efecto aunque la
      función salga, y al final porque `im_grado` todavía no se escribió en este punto. */
-  const _sevsDisc = [...new Set(params.map(p => p.sev))];
+  /* `_votosDisc` = `params` MÁS los que votan sin cuantificar. Se compone acá y no en cada
+     `push` para que los cinco sitios que llenan `params` queden intactos: lo que cambia es el
+     denominador de la discordancia, no quién entra al gate de severidad. */
+  /* ⚠️ `concat` SIEMPRE, nunca `_ondaSVoto ? params.concat(...) : params`. Esa forma ALIASEA
+     `params` cuando no hay voto de onda S, y toda la arquitectura de acá es que `params` —el gate
+     de «una válvula que nadie cuantificó no recibe severidad»— y `_votosDisc` sean cosas
+     DISTINTAS. Con el alias, el primer `_votosDisc.push(...)` que alguien escriba mañana mueve el
+     gate de severidad sin que nada lo señale. Cuesta lo mismo y hace la separación estructural. */
+  const _votosDisc = params.concat(_ondaSVoto ? [_ondaSVoto] : []);
+  const _sevsDisc = [...new Set(_votosDisc.map(p => p.sev))];
   const _dElDisc = document.getElementById('im-discordancia');
   if (_dElDisc) {
-    if (_sevsDisc.length > 1) _dElDisc.dataset.paramsDisc = '⚠️ Parámetros discordantes: ' + params.map(p=>`${p.p}:${p.sev}`).join(', ');
+    if (_sevsDisc.length > 1) _dElDisc.dataset.paramsDisc = '⚠️ Parámetros discordantes: ' + _votosDisc.map(p=>`${p.p}:${p.sev}`).join(', ');
     else delete _dElDisc.dataset.paramsDisc;
   }
   imDiscordanciaPintar();
@@ -22670,13 +22819,52 @@ function calcIM_ESC() {
     } else if (_pVtimR.fuera) {
       ratioEl.textContent = 'VTI de entrada fuera de rango — verificar';
     } else if (_pVtimR.val != null && _vtsRatio != null && _vtsRatio > 0) {
+      /* ⚠️ DOS CORTES, Y EL DE LA PRÓTESIS NO ES EL NATIVO. El 1,4 sale de la ASE 2023 de
+         cardiopatía REUMÁTICA (Pandian, JASE 36:3-28) y hasta hoy se aplicaba también sobre una
+         prótesis, sin ningún predicado de morfología. Para prótesis mitral el corte es el de la
+         ASE 2024, **Tabla 12, p. 28** («TTE findings suggestive of significant prosthetic MR in
+         mechanical valves with normal PHT»): **VTI_PrMV/VTI_LVOT ≥ 2,5**, sensibilidad 89 % y
+         especificidad 91 %. Medido antes de tocar nada: un cociente de 1,50 sobre una prótesis
+         mecánica publicaba «>1,4 — apoya IM severa» estando MUY por debajo de lo que la tabla
+         protésica considera sugestivo.
+         ⚠️ EL OPERADOR CAMBIA CON EL CORTE: la Tabla 12 dice «≥2,5» y la fuente del 1,4 dice
+         «>1,4». Unificarlos movería un borde clínico en una de las dos ramas.
+         ⚠️ La condición de la Tabla 12 —«in mechanical valves with **normal PHT**»— NO se
+         verifica: el THP existe (`avm_thp`) pero cruzarlo acá sería un predicado nuevo sobre la
+         estenosis, que este pedido excluye. Queda declarado; el ⓘ de la fila lo dice.
+         ⚠️ Y LA OTRA MITAD DE ESA MISMA CONDICIÓN —«in MECHANICAL valves»— SE EXTIENDE A LA
+         BIOPRÓTESIS, DECLARADO. `_imVmProt()` sale de `valvEsProtesis`, y `VALV_PROT_OPCIONES`
+         incluye «Prótesis biológica», así que el ≥2,5 se aplica también ahí aunque la tabla lo
+         enuncie para mecánicas. Se eligió ese lado porque el marcador sólo dice «apoya» —no
+         gradúa— y un cociente ≥2,5 sobre una bioprótesis mitral es genuinamente anormal: callarlo
+         sería la dirección cara. Lo que SÍ cambió para la biológica es que un cociente de 1,8 dejó
+         de decir «>1,4 — apoya IM severa»: ese 1,4 es de mitral REUMÁTICA nativa y nunca le
+         aplicó. **Si Maicol decide restringir el ≥2,5 a mecánicas, la bioprótesis pasa a publicar
+         el número pelado, igual que el jet/AI en su banda variable.** */
       const ratio = (_pVtimR.val / _vtsRatio).toFixed(2);
-      ratioEl.textContent = ratio + (PF(ratio) > 1.4 ? '  (>1,4 — apoya IM severa)' : '');
+      const _rProt = _imVmProt();
+      const _apoya = _rProt ? (PF(ratio) >= 2.5) : (PF(ratio) > 1.4);
+      ratioEl.textContent = ratio + (_apoya ? (_rProt ? '  (≥2,5 — apoya IM severa)' : '  (>1,4 — apoya IM severa)') : '');
     } else {
       ratioEl.textContent = '\u2014';
     }
   }
 
+  /* ⚠️ LÍMITE DECLARADO, NO ES EL COMPORTAMIENTO DESEADO — y el corte protésico del jet lo volvió
+     alcanzable por una puerta NUEVA. Este `return` está ANTES del badge `im-sev` y de la escritura
+     de `im_grado`/`im_sev_final`, así que un grado YA ESCRITO no se borra cuando todos los
+     parámetros dejan de votar. Es PREEXISTENTE —borrar la única vena contracta de una nativa deja
+     el grado igual, medido— pero hasta este commit `params` nunca podía ENCOGER: la morfología no
+     era insumo de esta cascada. Hoy sí, y el camino es exactamente el gesto que el `onchange` de
+     `vm_morf` vino a cubrir: nativa con jet 45 % → «IM severa» → el médico corrige a prótesis → el
+     jet cae en la banda Variable, `params` queda vacío y se sale por acá. Resultado medido: la
+     fila dice «45.0%  (Variable — no gradúa en prótesis)» y dos filas más abajo el badge sigue
+     diciendo «Severa», con el informe firmado publicando «IM severa».
+     Cerrarlo es repintar `im-sev` a «—» y retirar el grado AUTO-derivado respetando
+     `esqSevManual.im` —o sea decidir qué pasa con un grado que el médico eligió a mano—, que es
+     una decisión clínica y no un arreglo: alcanza a TODO estudio donde se borre el último
+     parámetro, no sólo a los protésicos. Fuera del «SOLO tres arreglos» de este pedido, fijado
+     como límite en TC-314. */
   if (params.length === 0) return;
   let sevBadge, gradoVal;
   /* ⚠️ UN SOLO PARÁMETRO EN SEVERA BASTA, y antes NO bastaba: caía en el `else` mudo del final y
@@ -22775,11 +22963,11 @@ function imOndaEPintar() {
       if (_c === 'severa' || _c === 'probable' || _c === 'gradiente' || _c === 'gradiente_im') { raya(); return; }
     } catch (e) { console.warn('[imOndaE] emCategoria', e); }
   }
-  /* Se usa el predicado del archivo y no un regex propio: `valvEsProtesis` sobre
-     `VALV_PROT_OPCIONES` es el único dueño de esta pregunta y ya se lo llama con esta misma guarda
-     desde otros dos puntos. Un segundo dueño diverge sin que nada lo señale — que es el defecto
-     que este archivo documenta con las «TRES listas paralelas» de opciones de prótesis. */
-  if (typeof valvEsProtesis === 'function' && valvEsProtesis(sv('vm_morf'))) { raya(); return; }
+  /* `_imVmProt()` y no una copia: es el dueño de «¿esta mitral es protésica?» para todo el árbol
+     de llamadas de `calcIM_ESC` —esta función cuelga de ahí— y además FALLA CERRADO sobre un
+     `#vm_morf` ausente, que la copia pelada que vivía acá no hacía. Un segundo dueño diverge sin
+     que nada lo señale — el defecto de las «TRES listas paralelas» de opciones de prótesis. */
+  if (_imVmProt()) { raya(); return; }
   /* Con banda, porque la onda E ya la tiene en `DCM_RANGO` y sin esto una E de 9 —m/s por cm/s—
      publicaría «sin signo de apoyo», que es una NEGACIÓN sobre un valor ilegible. */
   const pE = vPlaus('onda_e');
@@ -54000,9 +54188,16 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
        Verificado por mutación: quitando la reposición explícita, el oculto vuelve igual. Lo que
        queda vigilado es el INVARIANTE —el paciente en pantalla no se queda con el PISA del
        estudio reimpreso—, no cuál de los dos respaldos lo provee. */
+    /* ⚠️ `im-jet-ratio` ENTRA POR EL MISMO ARGUMENTO QUE `eroa-val`, y desde el corte protésico
+       pesa más: durante la ventana `calcIM_ESC` corre con los datos del estudio reimpreso y el
+       cierre no lo recalcula, así que el paciente en pantalla volvía con el cociente del otro —y
+       ahora ese texto puede decir «(Variable — no gradúa en prótesis)», o sea una afirmación sobre
+       la MORFOLOGÍA de un estudio ajeno sobre una mitral que puede ser nativa. */
+    const jr = document.getElementById('im-jet-ratio');
     return { ondaE: oe ? oe.textContent : '',
              eroa:  er ? er.textContent : '',
              volr:  vr ? vr.textContent : '',
+             jetRatio: jr ? jr.textContent : '',
              disc:  dd ? dd.textContent : '',
              paramsDisc: dd ? dd.dataset.paramsDisc : undefined,
              gradoVolum: cs ? cs.dataset.gradoVolum : undefined };
@@ -54301,7 +54496,8 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
     { const _oe = document.getElementById('im-ondae-interp');
       if (_oe) _oe.textContent = _imFilasBackup.ondaE;
       { const _er = document.getElementById('eroa-val'); if (_er) _er.textContent = _imFilasBackup.eroa;
-        const _vr = document.getElementById('volr-val'); if (_vr) _vr.textContent = _imFilasBackup.volr; }
+        const _vr = document.getElementById('volr-val'); if (_vr) _vr.textContent = _imFilasBackup.volr;
+        const _jr = document.getElementById('im-jet-ratio'); if (_jr) _jr.textContent = _imFilasBackup.jetRatio; }
       const _dd = document.getElementById('im-discordancia');
       if (_dd) { _dd.textContent = _imFilasBackup.disc;
         if (_imFilasBackup.paramsDisc === undefined) delete _dd.dataset.paramsDisc;
@@ -83561,8 +83757,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260928-2319';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790648340273;                 /* eco-build-ms */
+const ECO_BUILD    = '20260929-0055';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790654155408;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -83648,7 +83844,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-2319</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-0055</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -85805,7 +86001,8 @@ const ECO_AYUDA = [
 <table class="mTbl"><tr><th>Situación</th><th>Criterio</th><th>Guía</th></tr>
 <tr><td>Insuficiencia mitral primaria severa, asintomática</td><td>DTSI ≥ 40 mm o FEVI ≤ 60 % (Clase I)</td><td>ESC/EACTS 2021</td></tr>
 <tr><td>IM — onda E como signo de soporte<br><span style="font-size:11px;color:var(--text2);">Sólo soporte: no gradúa. El signo <b>específico</b> es el opuesto — la onda A dominante prácticamente descarta IM severa. Válido sin estenosis mitral (la guía dice que incluso la leve altera la onda E), calcificación anular, anillo protésico ni fibrilación auricular; menos específico en IM secundaria; más aplicable en mayores de 50 años.</span></td><td>onda E ≥ 120 cm/s apoya severa · onda A dominante la descarta</td><td>ASE 2017 (Zoghbi, JASE 30:303-371, Tabla 8)</td></tr>
-<tr><td>IM — cociente VTI mitral / VTI TSVI<br><span style="font-size:11px;color:var(--text2);"><b>Requiere ausencia de insuficiencia aórtica moderada o severa:</b> la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir. Con IAo moderada o mayor la app no calcula la fila.<br>El corte sale de la <b>ASE 2023 de cardiopatía reumática</b> (Pandian et al., JASE 2023;36:3-28), Key Points de IM reumática: &gt; 1,4 sugiere IM severa y &lt; 1 leve. <b>No figura en ASE 2017 ni en ESC/EACTS 2021.</b><br>⚠️ El estudio original que la guía cita (Tribouilloy, Eur Heart J 1994;15:1335-9) da ≥ <b>1,3</b> con sensibilidad 87 % y especificidad 91 %, y el 1,4 se rastrea además a un artículo del E-Journal de la ESC que cita esas mismas dos cifras. O sea que la guía publica 1,4 sobre un primario que dice 1,3, y eso no distingue entre haberlo validado y haber propagado el mismo error. Se conserva el 1,4 que la app venía usando y se declaran las dos cosas.</span></td><td>&gt; 1,4 apoya severa</td><td>ASE 2023 (Pandian, JASE 36:3-28) — el primario da 1,3</td></tr>
+<tr><td>IM — cociente VTI mitral / VTI TSVI<br><span style="font-size:11px;color:var(--text2);"><b>Requiere ausencia de insuficiencia aórtica moderada o severa:</b> la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir. Con IAo moderada o mayor la app no calcula la fila.<br>El corte sale de la <b>ASE 2023 de cardiopatía reumática</b> (Pandian et al., JASE 2023;36:3-28), Key Points de IM reumática: &gt; 1,4 sugiere IM severa y &lt; 1 leve. <b>No figura en ASE 2017 ni en ESC/EACTS 2021.</b><br>⚠️ El estudio original que la guía cita (Tribouilloy, Eur Heart J 1994;15:1335-9) da ≥ <b>1,3</b> con sensibilidad 87 % y especificidad 91 %, y el 1,4 se rastrea además a un artículo del E-Journal de la ESC que cita esas mismas dos cifras. O sea que la guía publica 1,4 sobre un primario que dice 1,3, y eso no distingue entre haberlo validado y haber propagado el mismo error. Se conserva el 1,4 que la app venía usando y se declaran las dos cosas.<br>⚠️ <b>Con PRÓTESIS mitral el corte es otro: ≥ 2,5.</b> Sale de la <b>ASE 2024 de prótesis</b> (Zoghbi et al., JASE 2024;37(1):2-63), <b>Tabla 12, pág. 28</b> — «hallazgos de ETT que sugieren IM protésica significativa en válvulas mecánicas con THP normal»: VTI protésico / VTI TSVI ≥ 2,5, sensibilidad 89 %, especificidad 91 %. El 1,4 es de válvula <b>nativa</b> y aplicarlo a una prótesis daba «apoya IM severa» sobre cocientes muy por debajo de lo que la tabla protésica considera sugestivo. La app elige el corte por la morfología de la válvula mitral.<br>⚠️ Esa tabla define el corte <b>para válvulas mecánicas y con THP normal</b>, y la app <b>no verifica ninguna de las dos condiciones</b>: lo aplica a cualquier prótesis mitral y no cruza el tiempo de hemipresión.</span></td><td>nativa &gt; 1,4 · prótesis ≥ 2,5</td><td>nativa: ASE 2023 (Pandian, JASE 36:3-28) — el primario da 1,3 · prótesis: ASE 2024 (Zoghbi), Tabla 12 p. 28</td></tr>
+<tr><td>IM — cociente jet/AI (%)<br><span style="font-size:11px;color:var(--text2);">⚠️ <b>Dos cortes según la morfología.</b> En válvula <b>nativa</b>: &lt; 20 % leve, ≤ 40 % moderada, &gt; 40 % severa.<br>⚠️ <b>Con PRÓTESIS mitral el corte de severa es &gt; 50 %</b>, y entre 20 y 50 % la <b>ASE 2024 de prótesis</b> (Zoghbi et al., JASE 2024;37(1):2-63), <b>Tabla 13, pág. 30</b>, dice «<b>Variable</b>»: ahí el parámetro <b>no gradúa</b> y la app se abstiene en vez de inventar una banda moderada. La fila de pantalla lo declara en vez de descontar el parámetro en silencio.<br>⚠️ Los <b>cortes absolutos</b> de esa misma tabla (área del jet &lt; 4 cm² leve / &gt; 8 cm² severa) <b>no se implementan</b>: la guía los da como alternativa al porcentaje («usually … or …») y aplicarlos exigiría decidir qué manda cuando los dos discrepan.<br>⚠️ Y la nota al pie de la tabla exige un <b>Nyquist de 50-60 cm/s</b> para que el porcentaje valga; la app <b>no registra ese dato</b>, así que ninguno de los dos regímenes puede verificar la condición en la que su corte está definido.</span></td><td>nativa &lt; 20 / ≤ 40 / &gt; 40 % · prótesis &lt; 20 % leve · &gt; 50 % severa</td><td>nativa: ASE 2017 (Zoghbi, JASE 30:303-371) · prótesis: ASE 2024 (Zoghbi), Tabla 13 p. 30</td></tr>
 <tr><td>Insuficiencia aórtica severa, asintomática</td><td>FEVI ≤ 50 % · DTSI &gt; 50 mm o &gt; 25 mm/m² (Clase I)</td><td>ESC/EACTS 2021</td></tr>
 <tr><td>Estenosis aórtica severa sintomática</td><td>intervención Clase I; modalidad por edad y riesgo (corte 75 años)</td><td>ESC/EACTS 2021</td></tr>
 <tr><td>TEER — inclusión COAPT</td><td>FEVI 20–50 % · DTSVI ≤ 70 mm</td><td>COAPT</td></tr></table>
