@@ -1,5 +1,169 @@
 # EcoSmart — trampas de este archivo
 
+## Prótesis mitral: EOA, DVI y PPM (2026-09-29)
+
+**⚠️ EL EOA YA ESTABA CALCULADO Y YA SALÍA EN EL INFORME FIRMADO.** La fórmula de la Sección III.B
+de la ASE 2024 —EOA = volumen sistólico del TSVI / VTI a través de la prótesis— es exactamente
+`π·(Ø TSVI/20)²·VTI_TSVI / VTI_mitral`, o sea **la ecuación de continuidad que `calcEM` publica como
+«AVm por continuidad»** y que la línea de la prótesis mitral imprime desde la Fase A. Lo que faltaba
+no era el número: era su **interpretación**. Medirlo antes de construir ahorró escribir una segunda
+copia de la fórmula, que es lo que este archivo castiga desde el THP.
+
+### El censo, medido antes de escribir una línea
+
+| | |
+|---|---|
+| `avm_cont` con Ø 20 · VTI TSVI 20 · VTI mitral 40 | **1.57 cm²** = π·1·20/40 ✓ |
+| el informe de esa prótesis | «Válvula mitral con prótesis biológica (AVm 1.57 cm² por continuidad).» |
+| `peso` y `talla` | **existen**; `getBSA()` es Mosteller. **No hay campo de IMC** — se deriva |
+| biológica vs mecánica | **idéntico** — la Sección III.B no abre ramas por tipo |
+
+**HAY CUATRO VTI MITRALES Y SÓLO UNO SIRVE.** `itv_mitral`/`vtim` son la envolvente de llenado por
+**pulsado** (método volumétrico de la IM), `im_itv` es el VTI del **chorro** de regurgitación, y
+**`em_vtimit` es el de CW** — el que la guía pide para capturar la velocidad máxima. Un campo propio
+habría sido la **quinta** entrada de la misma medición.
+
+### ⚠️ LA MISMA RAZÓN, EL MISMO 2,5, DOS CONCLUSIONES OPUESTAS
+
+La ASE 2024 usa `VTI_PrMV / VTI_TSVI` en **dos tablas**: la **11** (p. 27) dice que `> 2,5` sugiere
+**ESTENOSIS**, y la **13** (p. 30) que `≥ 2,5` apoya **REGURGITACIÓN** significativa — que es la fila
+que se implementó el mismo día en `calcIM_ESC`. No es una contradicción de la guía: el cociente sube
+por **cualquier** flujo transmitral aumentado, y una regurgitación protésica severa lo aumenta igual
+que una obstrucción.
+
+**Medido antes de cerrarlo:** con `im_grado = 4` el informe publicaba «Prótesis mitral con hallazgos
+sugestivos de obstrucción (DVI 3.50)» en el **mismo documento** en que la fila de la IM dice
+«≥2,5 — apoya IM severa» sobre ese mismo número. Hoy, con regurgitación significativa el DVI **se
+muestra y no concluye**: el número queda en pantalla con su motivo, lo que se retira es la afirmación.
+
+### La validez la decide `emContValido()`, y es MÁS ESTRICTO que lo que pide la guía
+
+La Sección III.B condiciona el volumen sistólico a «la ausencia de **IAo** significativa». La función
+que ya existe retira además el valor con **IM significativa**, y el motivo es simétrico: con IAo el
+TSVI lleva volumen que vuelve y **sobrestima** el flujo mitral; con IM el flujo transmitral es el
+anterógrado **más** el regurgitante y el TSVI lo **subestima**. En una prótesis mitral con
+regurgitación protésica —lo que esta serie viene graduando— el segundo caso es el frecuente. Es una
+divergencia del CONTEXTO **hacia el lado seguro**, y se consulta esa función en vez de escribir un
+predicado de IAo propio.
+
+### Las dos tablas contestan dos preguntas y NO se mezclan
+
+| | pregunta | corte |
+|---|---|---|
+| **Tabla 11** | ¿la prótesis **en sí** está obstruida? | EOA **absoluta** < 1,0 cm² · DVI > 2,5 |
+| **Tabla 7** | ¿la prótesis es **chica para este paciente**? | EOA **indexada** a la BSA |
+
+Tabla 7, toda indexada —no publica valores absolutos—: IMC < 30 → normal > 1,2 · moderado 1,2-0,91 ·
+severo ≤ 0,90 cm²/m². IMC ≥ 30 → normal > 1,0 · moderado 1,0-0,76 · severo ≤ 0,75.
+**La rama de IMC ≥ 30 vive SÓLO en la tabla**: el texto narrativo de la p. 10 la omite, así que quien
+verifique contra el cuerpo del artículo no la va a encontrar. **El PPM es automático** (decisión de
+Maicol) y sólo con EOA válido.
+
+**NO SE REUSA `AVA_SEVERA_MAX`, aunque valga 1,0.** Ése es el corte de la estenosis **aórtica nativa**
+y usa `≤`; éste es obstrucción de una prótesis **mitral** y la Tabla 11 lo da como `<`. Coinciden en
+el dígito y no en la entidad ni en el operador.
+
+### Lo que `/sharp-edges` encontró en este mismo diff — diez, y los cinco graves eran míos
+
+1. **⚠️ EL EOA LEÍA LOS CAMPOS PELADOS Y `calcEM` LEE LOS ESPEJOS.** `em_dtsvi` y `em_vtitsvi` son
+   **tipeables** y dejan de seguir al origen en cuanto el médico los pisa; `calcEM` hace
+   `v('em_dtsvi') || v('diam_tsvi')`. Con `em_dtsvi = 22` y `diam_tsvi = 20` el área escala **×1,21**
+   y el informe firmado decía «(AVm **1.15** cm² por continuidad)» y dos renglones abajo
+   «obstrucción (EOA **0.95** cm²)»: **dos áreas de la misma válvula en oraciones consecutivas**, una
+   por encima del corte y otra por debajo, con el veredicto saliendo de la que NO se publica. Y peor:
+   el enlace «Estimado por ASC» escribe `em_dtsvi` con `diam_tsvi` **vacío**, así que ahí el EOA, el
+   DVI y el PPM quedaban **mudos** sobre un estudio donde la continuidad sí se calculó. Mi comentario
+   afirmaba que los insumos eran los mismos.
+2. **El DVI consignado entraba sin banda.** El calculado sí bandeaba. Un 2,5 tipeado como 25 publicaba
+   «obstrucción (DVI 25.00)» mientras la tabla del **mismo PDF** imprimía «25.00 (revisar)» —
+   `_protPdf` sí delega en `vPdf`—: la app marcaba el número como ilegible en una superficie y
+   concluía sobre él en la otra.
+3. **El PDF imprimía el DVI TIPEADO y el informe concluía con el CALCULADO.** Con los dos presentes,
+   «DVI 1.50» con su escala de normalidad a centímetros de «obstrucción (DVI 2.80)». **La
+   contradicción la crean las dos mitades de este commit a la vez**: antes la fila salía sin escala y
+   el narrativo no concluía nada.
+4. **`calcBSA` no repintaba en su salida temprana** — que es justo el caso en que el PPM deja de poder
+   calcularse. Borrar el peso dejaba «PPM 0.53 cm²/m² (severo)» sobre un estudio sin superficie
+   corporal. La **propia función** escribe esa lección dos líneas más arriba para el VLI, y el
+   consumidor nuevo quedó del lado equivocado.
+5. **`getIMC().toFixed(1)` LANZA.** El dueño nuevo devuelve `null` como centinela —guarda que la copia
+   inline no tenía— y un peso negativo la dispara. El throw se llevaba `bsa-val`, `imc-val`, `calcAI`,
+   `calcVI`, `calcAo`, el VLI y el repintado del PPM: peor que el `NaN` anterior. El **otro** sitio de
+   llamada del mismo hunk sí guardaba.
+6. **El IMC se clasificaba CRUDO y se publica REDONDEADO.** Con 29,96 el encabezado del PDF dice
+   «30.0 kg/m2» y se aplicaban los cortes de **< 30**.
+7. El informe no decía si el DVI era calculado o **consignado** — la regla que el módulo declara se
+   cumplía en la pantalla y se perdía en la superficie que se firma.
+8. La `ref` del PDF era un **literal** mientras las constantes gobiernan el veredicto.
+9. Un comentario que decía **«SIN BANDA DE REFERENCIA, Y A PROPÓSITO»** sobrevivía cinco líneas arriba
+   de la fila que ahora sí la lleva.
+10. El comentario de `valvProtSync` afirmaba que los dos predicados «coinciden por construcción»: no
+    coinciden en el borde — `_imVmProt()` falla cerrado a **true** y `valvEsProtesis('')` a **false**.
+
+### El IMC tenía DOS copias inline y ésta habría sido la tercera
+
+`calcBSA` y el encabezado del PDF. `getIMC(src)` es el dueño único, con la misma firma que `getBSA`;
+devuelve el crudo y cada superficie formatea, que es lo que deja a las dos existentes byte por byte.
+
+### Dos disparadores, no ocho
+
+El EOA depende de cinco valores repartidos en tres bloques. Los cinco caminos que los mueven ya
+terminan en **`calcEM`** —los `oninput` vía `emSyncSiExiste`, el `onchange` de `vm_morf` y
+`emContRefrescar` desde `sincronizarGradoIM`/`IA`— así que el repintado va al final de esa función
+más **`calcBSA`** (peso y talla) y el `oninput` nuevo de **`vm_dvi`**, que **no tenía ninguno**: desde
+la Fase 1 tipear el DVI a mano no repintaba nada.
+Las dos columnas de siempre salen gratis: `valvProtSync` ya está en `RECALC_MODULOS` **y** en
+`limpiarCampos`.
+
+### ⚠️ La banda de `vm_dvi` era la escala AÓRTICA
+
+`[0,05 · 1,5]` es la del DVI **aórtico** (VTI_TSVI/VTI_prótesis, normal > 0,35). El **mitral** va al
+revés, con > 2,5 como valor diagnóstico: el techo de 1,5 dejaba **fuera de banda todo el rango que
+define el hallazgo**, y el importador de Excel **rechazaba la FILA ENTERA** de un estudio con DVI 2,6.
+`vt_dvi` y `vp_dvi` conservan la suya — quedan fuera de este pedido.
+
+### Declarado y NO tocado
+
+- **La tarjeta «🔴 Prótesis Mitral — ESC 2021»** (~12800) publica «Ratio VTI mitral/VTI Ao <0.38 /
+  >0.38 — **IM severa**». No es la misma razón que las Tablas 11 y 13 —su denominador es el VTI
+  aórtico, no el del TSVI— pero es una **tercera** escala de un cociente de VTI para prótesis mitral,
+  con un número que no se pudo rastrear y bajo el sello de una guía que no se verificó. **Requiere el
+  primario de la ESC 2021 antes de tocarla.**
+- **La columna «DVI mitral» del Excel** sigue exportando el campo tipeado, no el calculado: a
+  CeiboAnalytics puede viajar un DVI distinto del que decidió el informe. `_labExcelRow` corre sobre
+  estudios que no están en pantalla y `vmProtEOA()` lee el DOM; cerrarlo exige la fuente inyectable.
+- **Un estudio protésico CON los tres insumos gana una línea de PPM que antes no tenía.** Es el
+  objetivo del cambio, no un efecto colateral, pero **cambia informes firmados** de esa población.
+- **`calcEM` conserva su copia inline** de la ecuación de continuidad. Verificado que da el mismo
+  número; unificarla es tocar estenosis.
+- **La obstrucción «posible» (DVI 2,2-2,5) no sube al papel**: la banda es explícitamente intermedia y
+  publicarla con el mismo peso que la significativa es la graduación que la app se cuida de no
+  inventar. Se ve en pantalla.
+
+### Verificación
+
+**Denominador declarado.** Se sembraron Ø TSVI, VTI TSVI, VTI mitral CW, peso, talla, morfología y los
+dos grados de regurgitación; **no** se creó ningún campo de paciente. **14 escenarios de control con
+hash FNV-1a y longitud de informe, EN SUMA y la fila completa del Excel contra HEAD: 14 idénticos,
+cero diferencias**, con informes de 403-475 caracteres y 11 hashes distintos de 14.
+
+**Aritmética cerrada, verificada a mano:** Ø 20 mm → área π cm²; VTI TSVI 20 → VS 62,83 mL;
+EOA = 62,83/40 = **1,57**. Peso 80 / talla 180 → BSA **2,00 exacta** → indexado 0,785 → **0,79**.
+**El par que separa las dos ramas de la Tabla 7 usa el MISMO indexado 0,85**: severo con IMC 24,7 y
+moderado con IMC 33,3. Sin ese par, una implementación de una sola rama pasa todo lo demás.
+
+**Suite 329/330**, único rojo **TC-223**. **TC-315, 34 condiciones.** Semgrep **125 / 0 ERROR**.
+`detectar_huerfanos` en 0. `check_mobile` en los 2 ALTA de siempre. Balance de etiquetas idéntico.
+**QUINCE mutaciones, las quince en rojo y cada una en su condición.**
+
+**⚠️ Y la sonda del censo se equivocó tres veces, las tres por el denominador:** midió la visibilidad
+con la pestaña cerrada —en `display:none` todo mide «oculto»—; usó `o.peso || 80`, así que el
+escenario «sin peso» nunca se ejerció; y llamó a `sincronizarGradoIM/IA` para sembrar la
+regurgitación, que **re-derivan el grado desde los parámetros** y con el formulario vacío lo devuelven
+a 0 — el escenario se rompía por el otro lado y la condición medía una regurgitación que ya no estaba.
+El embudo correcto es `emContRefrescar`. **Backticks dentro del cuerpo de un caso: van CUARENTA Y
+DOS**, siete más en esta sesión.
+
 ## Mitral protésica: onda S, jet/AI y cociente VTI (2026-09-29)
 
 Tres arreglos de `calcIM_ESC`, y **seis defectos más que `/sharp-edges` encontró en mi propio

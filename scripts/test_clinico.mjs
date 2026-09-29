@@ -37592,6 +37592,219 @@ caso('TC-314', 'IM: la onda S entra en el registro de discordancia, y el jet/AI 
 `);
 
 
+caso('TC-315', 'Protesis mitral: EOA por continuidad, DVI y PPM (ASE 2024, Seccion III.B y Tablas 11 y 7)', `
+  const T = id => { const e = document.getElementById(id); return e ? (e.textContent||'').trim() : 'NO EXISTE'; };
+  const NL = String.fromCharCode(10);
+  function esc(o){
+    __t.limpiar(); __t.set('nombre','TC315'); __t.set('edad','70');
+    __t.set('peso', o.peso === '' ? '' : String(o.peso == null ? 80 : o.peso));
+    __t.set('talla', o.talla === '' ? '' : String(o.talla == null ? 180 : o.talla));
+    __t.set('vm_morf', o.morf || 'Prótesis mecánica');
+    if (o.d != null)      __t.set('diam_tsvi', String(o.d));
+    if (o.tsvi != null)   __t.set('itv_tsvi', String(o.tsvi));
+    if (o.prmv != null)   __t.set('em_vtimit', String(o.prmv));
+    if (o.dviMan != null) __t.set('vm_dvi', String(o.dviMan));
+    if (o.ia != null) __t.set('ia_grado', String(o.ia));
+    if (o.im != null) __t.set('im_grado', String(o.im));
+    /* El grado va al oculto y se repinta por emContRefrescar — NO por sincronizarGradoIM/IA, que
+       RE-DERIVAN el grado desde los parametros: con el formulario vacio lo devuelven a 0 y el
+       escenario se rompe por el otro lado, midiendo una regurgitacion que ya no esta. */
+    if ((o.ia != null || o.im != null) && typeof emContRefrescar === 'function') emContRefrescar();
+    const P = vmProtEOA();
+    const inf = __t.informe();
+    const hall = t => inf.inf.split(NL).filter(function(l){ return l.indexOf(t) > -1; });
+    return { P: P, obstrInf: hall('sugestivos de obstrucción'), ppmInf: hall('Desajuste protésico'),
+             obstrSuma: inf.suma.split(NL).filter(function(l){ return l.indexOf('sugestivos de obstrucción') > -1; }),
+             fEoa: T('vm-prot-eoa'), fDvi: T('vm-prot-dvi'), fPpm: T('vm-prot-ppm'),
+             inf: inf.inf, suma: inf.suma };
+  }
+  /* ARITMETICA CERRADA: Ø20 mm -> area π·(20/20)² = 3.1416 cm²; VTI TSVI 20 -> VS 62.83 ml.
+     EOA = 62.83/40 = 1.5708 -> 1.57. Y peso 80 / talla 180 da BSA 2.00 EXACTA, asi que el
+     indexado es 0.785 -> 0.79. Los numeros se eligen para que el corte se verifique a mano. */
+  const base   = esc({ d:20, tsvi:20, prmv:40 });
+  const obstr  = esc({ d:20, tsvi:20, prmv:70 });   // EOA 62.83/70 = 0.897 -> 0.90 ; DVI 3.50
+  const dviSol = esc({ d:30, tsvi:20, prmv:52 });   // EOA 2.72 (normal) y DVI 2.60 -> solo el DVI
+  const conIAo = esc({ d:20, tsvi:20, prmv:70, ia:4 });
+  const conIM  = esc({ d:20, tsvi:20, prmv:70, im:4 });
+  const sinPes = esc({ d:20, tsvi:20, prmv:70, peso:'', talla:'' });
+  const fuera  = esc({ d:2,  tsvi:20, prmv:40 });   // Ø en cm: el area cae por CIEN
+  const bio    = esc({ d:20, tsvi:20, prmv:70, morf:'Prótesis biológica' });
+  const nativa = esc({ d:20, tsvi:20, prmv:70, morf:'Reumática' });
+  const dviMan = esc({ d:null, tsvi:null, prmv:null, dviMan:2.6 });
+  /* EL PAR QUE SEPARA LAS DOS RAMAS DE LA TABLA 7: el MISMO indexado 0.85 con dos IMC distintos.
+     Con IMC 24.7 es SEVERO (≤0.90) y con IMC 33.3 es MODERADO (>0.75). Sin este par, una
+     implementacion con una sola rama pasa todas las demas condiciones. */
+  const bBajo  = esc({ d:20, tsvi:23,   prmv:42.3, peso:80,  talla:180 });
+  const bAlto  = esc({ d:20, tsvi:26.7, prmv:42.3, peso:108, talla:180 });
+
+  /* ── LOS ESPEJOS MANDAN, igual que en calcEM. em_dtsvi es tipeable y deja de seguir al origen
+        en cuanto el medico lo pisa: leyendo diam_tsvi pelado quedaban DOS areas por continuidad
+        de la misma valvula en oraciones consecutivas del informe firmado. ── */
+  const espejo = (function(){
+    __t.limpiar(); __t.set('nombre','TC315'); __t.set('edad','70');
+    __t.set('peso','80'); __t.set('talla','180');
+    __t.set('vm_morf','Prótesis mecánica');
+    __t.set('diam_tsvi','20'); __t.set('itv_tsvi','20'); __t.set('em_vtimit','70');
+    __t.set('em_dtsvi','22');            // el medico corrige el Ø DENTRO del bloque de EM
+    const P = vmProtEOA();
+    return { eoa:P.eoa, avmCont: __t.val('avm_cont') };
+  })();
+  /* Y el caso del enlace «Estimado por ASC»: escribe em_dtsvi con diam_tsvi VACIO. */
+  const soloEspejo = (function(){
+    __t.limpiar(); __t.set('nombre','TC315'); __t.set('edad','70');
+    __t.set('peso','80'); __t.set('talla','180');
+    __t.set('vm_morf','Prótesis mecánica');
+    __t.set('itv_tsvi','20'); __t.set('em_vtimit','70'); __t.set('em_dtsvi','20');
+    const P = vmProtEOA();
+    return { eoa:P.eoa, faltan:P.faltan, avmCont: __t.val('avm_cont') };
+  })();
+  const dviAbsurdo = esc({ d:null, tsvi:null, prmv:null, dviMan:25 });   // 2,5 tipeado como 25
+  const borraPeso = (function(){
+    __t.limpiar(); __t.set('nombre','TC315'); __t.set('edad','70');
+    __t.set('peso','80'); __t.set('talla','180');
+    __t.set('vm_morf','Prótesis mecánica');
+    __t.set('diam_tsvi','20'); __t.set('itv_tsvi','20'); __t.set('em_vtimit','40');
+    const conPeso = T('vm-prot-ppm');
+    __t.set('peso','');                  // el unico disparador de peso/talla es calcBSA
+    return { conPeso: conPeso, sinPeso: T('vm-prot-ppm') };
+  })();
+
+  return { extra: [
+    // ── los insumos son los MISMOS que los de calcEM ──
+    ['DENOMINADOR: con el espejo pisado, avm_cont usa el espejo y NO el campo original',
+      espejo.avmCont.indexOf('1.') === 0, 'avm_cont=«' + espejo.avmCont + '»'],
+    ['el EOA sale de los MISMOS insumos: coincide con el AVm que el informe publica',
+      espejo.eoa === PF(espejo.avmCont), 'eoa=' + espejo.eoa + ' avm_cont=«' + espejo.avmCont + '»'],
+    ['y con el Ø sólo en el espejo —el enlace «Estimado por ASC»— el EOA NO queda mudo',
+      soloEspejo.eoa != null && soloEspejo.faltan.length === 0,
+      'eoa=' + soloEspejo.eoa + ' faltan=' + JSON.stringify(soloEspejo.faltan)],
+
+    // ── el DVI consignado tambien bandea ──
+    ['un DVI tipeado fuera de banda (25 por 2,5) NO concluye obstruccion',
+      dviAbsurdo.P.dvi === null && dviAbsurdo.obstrInf.length === 0,
+      'dvi=' + dviAbsurdo.P.dvi + ' lineas=' + dviAbsurdo.obstrInf.length],
+
+    // ── calcBSA repinta en su salida temprana ──
+    ['DENOMINADOR: con peso y talla el PPM se publica', borraPeso.conPeso.indexOf('cm²/m²') > -1, borraPeso.conPeso],
+    ['borrar el peso limpia el PPM — quedaba «severo» sobre un estudio sin superficie corporal',
+      borraPeso.sinPeso.indexOf('cm²/m²') === -1, 'sinPeso=«' + borraPeso.sinPeso + '»'],
+
+    // ── EOA: la formula de la Seccion III.B ──
+    ['DENOMINADOR: el EOA sale de la continuidad y da el valor calculado a mano (1.57 cm²)',
+      base.P.eoa === 1.57, 'eoa=' + base.P.eoa],
+    ['y NO se reimplementa: coincide con lo que publica _avaContinuidad',
+      base.P.eoa === PF(_avaContinuidad(20, 20, 40).toFixed(2)),
+      base.P.eoa + ' vs ' + _avaContinuidad(20, 20, 40)],
+    ['EOA < 1 cm²: avisa obstruccion significativa (Tabla 11)',
+      obstr.P.eoa === 0.90 && obstr.P.porEoa === 'significativa', 'eoa=' + obstr.P.eoa + ' ' + obstr.P.porEoa],
+    ['EOA 1.57: NO avisa', base.P.porEoa === 'normal', base.P.porEoa],
+
+    // ── DVI: Tabla 11 ──
+    ['DVI = VTI protesis / VTI TSVI, calculado', obstr.P.dvi === 3.5 && obstr.P.dviFuente === 'calculado',
+      'dvi=' + obstr.P.dvi + ' ' + obstr.P.dviFuente],
+    ['DVI 2.60 > 2.5: avisa obstruccion significativa', dviSol.P.porDvi === 'significativa', String(dviSol.P.porDvi)],
+    ['DVI 2.00 < 2.2: normal', base.P.porDvi === 'normal', String(base.P.porDvi)],
+    ['el DVI tipeado a mano se usa de RESPALDO y se declara como consignado',
+      dviMan.P.dvi === 2.6 && dviMan.P.dviFuente === 'consignado', dviMan.P.dvi + ' ' + dviMan.P.dviFuente],
+    ['y la fila lo dice, que es lo unico que distingue las dos fuentes del mismo numero',
+      dviMan.fDvi.indexOf('consignado') > -1 && obstr.fDvi.indexOf('consignado') === -1,
+      'man=«' + dviMan.fDvi + '» calc=«' + obstr.fDvi + '»'],
+
+    // ── el aviso NO se duplica ──
+    ['EOA < 1 Y DVI > 2.5 en el mismo estudio: UNA sola linea, no dos',
+      obstr.obstrInf.length === 1 && obstr.obstrSuma.length === 1,
+      'inf=' + obstr.obstrInf.length + ' suma=' + obstr.obstrSuma.length],
+    ['y esa linea nombra los DOS numeros que la dispararon',
+      obstr.obstrInf[0].indexOf('EOA 0.90') > -1 && obstr.obstrInf[0].indexOf('DVI 3.50') > -1,
+      obstr.obstrInf[0]],
+    ['con el DVI solo, la linea nombra SOLO el DVI',
+      dviSol.obstrInf.length === 1 && dviSol.obstrInf[0].indexOf('EOA') === -1,
+      dviSol.obstrInf[0]],
+
+    // ── PPM: Tabla 7, y las DOS ramas ──
+    ['PPM automatico, sin que el medico lo pida: EOA 1.57 / BSA 2.00 = 0.79 cm²/m² -> severo',
+      base.P.eoaI === 0.79 && base.P.ppm === 'severo', 'eoaI=' + base.P.eoaI + ' ' + base.P.ppm],
+    ['DENOMINADOR: los dos bordes tienen el MISMO indexado, 0.85',
+      bBajo.P.eoaI === 0.85 && bAlto.P.eoaI === 0.85, bBajo.P.eoaI + ' / ' + bAlto.P.eoaI],
+    ['y el MISMO 0.85 es SEVERO con IMC < 30 y MODERADO con IMC ≥ 30 — las dos ramas de la Tabla 7',
+      bBajo.P.ppm === 'severo' && bAlto.P.ppm === 'moderado',
+      'imc ' + bBajo.P.imc.toFixed(1) + '->' + bBajo.P.ppm + ' · imc ' + bAlto.P.imc.toFixed(1) + '->' + bAlto.P.ppm],
+    ['sin peso ni talla el PPM NO se calcula — no se inventa BSA',
+      sinPes.P.eoa === 0.90 && sinPes.P.eoaI === null && sinPes.P.ppm === null && sinPes.ppmInf.length === 0,
+      'eoa=' + sinPes.P.eoa + ' eoaI=' + sinPes.P.eoaI + ' ppm=' + sinPes.P.ppm + ' lineas=' + sinPes.ppmInf.length],
+    ['y la fila del PPM dice CUAL es el dato que falta, no se queda muda',
+      sinPes.fPpm.indexOf('peso') > -1, 'fPpm=«' + sinPes.fPpm + '»'],
+
+    // ── regurgitacion significativa: ni EOA ni PPM, y el DVI no concluye ──
+    ['con IAo severa NO se calcula el EOA ni el PPM',
+      conIAo.P.eoa === null && conIAo.P.ppm === null, 'eoa=' + conIAo.P.eoa + ' ppm=' + conIAo.P.ppm],
+    ['con IM severa tampoco — la regla existente es MAS estricta que la Seccion III.B, a proposito',
+      conIM.P.eoa === null && conIM.P.ppm === null, 'eoa=' + conIM.P.eoa + ' ppm=' + conIM.P.ppm],
+    /* La MISMA razon con el MISMO 2,5 significa estenosis en la Tabla 11 y regurgitacion en la
+       Tabla 13. Con regurgitacion significativa el DVI no puede atribuirse a la obstruccion:
+       medido, el informe publicaba «sugestivos de obstruccion (DVI 3.50)» en el mismo documento
+       en que la fila de la IM dice «≥2,5 — apoya IM severa» sobre ese mismo numero. */
+    ['y el DVI NO concluye obstruccion: el mismo cociente apoya IM severa en la Tabla 13',
+      conIM.P.porDvi === null && conIM.obstrInf.length === 0,
+      'porDvi=' + conIM.P.porDvi + ' lineas=' + conIM.obstrInf.length],
+    ['pero el numero se SIGUE viendo, con el motivo — retirar el dato seria peor que la afirmacion',
+      conIM.P.dvi === 3.5 && conIM.fDvi.indexOf('no concluye') > -1, 'fDvi=«' + conIM.fDvi + '»'],
+    ['y en el papel no queda UNA palabra de metodologia: la linea no sale, no se explica por que',
+      conIM.inf.indexOf('regurgitación significativa') === -1 && conIM.suma.indexOf('continuidad no válida') === -1,
+      'inf tiene el motivo=' + (conIM.inf.indexOf('regurgitación significativa') > -1)],
+
+    // ── banda de plausibilidad ──
+    ['el Ø TSVI tipeado en cm (2 por 20) NO clasifica: el area cae por cien y el EOA seria 0.016',
+      fuera.P.eoa === null && fuera.P.fuera === true && fuera.obstrInf.length === 0,
+      'eoa=' + fuera.P.eoa + ' fuera=' + fuera.P.fuera],
+    ['y la fila lo DICE en vez de quedarse muda', fuera.fEoa.indexOf('revisar') > -1, 'fEoa=«' + fuera.fEoa + '»'],
+
+    // ── biologica y nativa ──
+    ['la BIOLOGICA se trata igual que la mecanica: la Seccion III.B no distingue',
+      bio.P.eoa === obstr.P.eoa && bio.P.ppm === obstr.P.ppm && bio.obstrInf.length === 1,
+      'eoa=' + bio.P.eoa + ' ppm=' + bio.P.ppm],
+    ['la NATIVA no calcula nada y no publica una sola linea',
+      nativa.P.esProt === false && nativa.P.eoa === null && nativa.obstrInf.length === 0 && nativa.ppmInf.length === 0,
+      'esProt=' + nativa.P.esProt],
+    ['y su capsula queda en la raya', nativa.fEoa === '—' && nativa.fPpm === '—', nativa.fEoa + ' / ' + nativa.fPpm],
+
+    // ── el DVI mitral tenia la banda de plausibilidad AORTICA ──
+    /* [0.05 · 1.5] es la escala del DVI aortico. El mitral va al reves y su valor diagnostico es
+       > 2.5: el importador de Excel RECHAZABA la fila entera de un estudio con DVI 2.6. */
+    ['la banda de vm_dvi admite el rango diagnostico de la Tabla 11 (era la escala AORTICA)',
+      (function(){ const b = _labRango('vm_dvi'); return Array.isArray(b) && b[1] > 2.5; })(),
+      JSON.stringify(_labRango('vm_dvi'))],
+    /* La columna ref estaba VACIA desde la Fase 1, y ahora se DERIVA de las constantes que
+       gobiernan el veredicto: escrita a mano, mover un corte deja el papel publicando la escala
+       anterior al lado del veredicto nuevo. Se mira que las dos constantes esten en la expresion
+       y que no quede el literal. */
+    ['el PDF publica la escala del DVI y la DERIVA de las constantes, no de un literal',
+      String(generarPDFReal).indexOf('VM_PROT_DVI_NORMAL_MAX') > -1 &&
+      String(generarPDFReal).indexOf('VM_PROT_DVI_SIGNIF_MIN') > -1 &&
+      String(generarPDFReal).indexOf(String.fromCharCode(39) + '(<2.2 / 2.2-2.5 / >2.5)') === -1,
+      'deriva=' + (String(generarPDFReal).indexOf('VM_PROT_DVI_NORMAL_MAX') > -1)],
+
+    // ── el IMC tenia DOS copias inline y esta habria sido la tercera ──
+    /* El IMC estaba escrito DOS veces inline —calcBSA y el encabezado del PDF— y el PPM habria
+       sido la tercera. La condicion mira el INVARIANTE: que el duenio exista y de el numero, y
+       que ninguna de las dos superficies conserve su propia copia de la expresion. */
+    /* ⚠️ EL VALOR SE CAPTURA DENTRO DEL ESCENARIO, no se lee al final: las condiciones del bloque extra
+       se evaluan TODAS despues del ultimo escenario, y ese ultimo tiene peso 108 — la primera
+       version leia getIMC() aca y media 33.33 sobre un caso que dice medir 24.69. */
+    /* ⚠️ Y SE CLASIFICA EL REDONDEADO, que es el que las dos superficies imprimen. Con 29,96 el
+       encabezado del PDF dice «30.0» y la version cruda aplicaba los cortes de < 30: el mismo
+       documento mostraba 30,0 y usaba la tabla del otro lado. */
+    ['getIMC da el valor calculado a mano, REDONDEADO a lo que se publica (80 kg / 1.80 m² = 24.7)',
+      base.P.imc === 24.7 && Math.abs(80 / (1.8 * 1.8) - 24.691) < 0.001,
+      'imc=' + base.P.imc],
+    ['y no queda ninguna copia inline de la formula del IMC en las dos superficies previas',
+      String(calcBSA).indexOf('/ ((t/100) ** 2)') === -1 &&
+      String(generarPDFReal).indexOf('(talla/100)**2') === -1,
+      'calcBSA=' + (String(calcBSA).indexOf('/ ((t/100) ** 2)') > -1) +
+      ' pdf=' + (String(generarPDFReal).indexOf('(talla/100)**2') > -1)]
+  ] };
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

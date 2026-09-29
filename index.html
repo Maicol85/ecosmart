@@ -3201,7 +3201,24 @@ window.cerrarSesionReal = cerrarSesionReal;
              opciones de prótesis y NO calculan nada todavía: la graduación es la Fase 2. -->
         <div id="bloque-prot-vm" class="fg" style="display:none;">
           <label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label>
-          <input type="number" id="vm_dvi" step="0.01" placeholder="—">
+          <!-- ⚠️ ESTE CAMPO NO TENÍA UN SOLO DISPARADOR. Nació en la Fase 1 —«no calculan
+               nada todavía»— y desde que el DVI se interpreta, tipearlo a mano no repintaba
+               nada: el médico cargaba el número y la cápsula seguía en «—». Es «un consumidor
+               nuevo sin su disparador», el patrón que este archivo documenta tres veces. -->
+          <input type="number" id="vm_dvi" step="0.01" placeholder="—" oninput="vmProtEOAPintar()">
+        </div>
+        <!-- ⚠️ CÁPSULA DE SÓLO LECTURA: ni un `id` de control acá dentro. `guardarInforme` barre
+             `input[id]`/`select[id]` de TODO el documento, así que un campo con id se guardaría en
+             `campos` de cada estudio y viajaría al Excel — la regla de los paneles de referencia de
+             Marfan. Los tres valores se DERIVAN en cada repintado de `vmProtEOA()`.
+             ⚠️ Y NO HAY UN CAMPO NUEVO DE VTI: el insumo es `em_vtimit`, que vive en el bloque de
+             Estenosis Mitral. Uno propio acá sería la cuarta entrada de la misma medición (el
+             patrón del espesor parietal, pagado tres veces). Por eso la cápsula NOMBRA el campo que
+             falta en vez de ofrecer dónde tipearlo de nuevo. -->
+        <div id="bloque-prot-vm-res" class="calc-box" style="display:none;margin-top:8px;">
+          <div class="calc-row"><span class="calc-lbl" title="Área efectiva del orificio protésico. ASE 2024 (Zoghbi, JASE 2024;37(1):2-63), Sección III.B: EOA = volumen sistólico del TSVI / VTI a través de la prótesis por CW. Es la ecuación de continuidad, la misma que publica «AVm por continuidad». Tabla 11, pág. 27: &lt;1,0 cm² sugiere obstrucción significativa. El volumen sistólico del TSVI exige ausencia de regurgitación significativa: con IAo o IM moderada o mayor no se calcula. Insumos: Ø TSVI y VTI TSVI (Doppler aórtico) y VTI mitral CW (bloque Estenosis Mitral).">EOA por continuidad <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="vm-prot-eoa">—</span></div>
+          <div class="calc-row"><span class="calc-lbl" title="DVI = VTI de la prótesis mitral (CW) / VTI del TSVI. ASE 2024, Tabla 11, pág. 27: &lt;2,2 normal · 2,2-2,5 posible obstrucción · &gt;2,5 sugiere obstrucción significativa. Es un COCIENTE de dos VTI y no usa el volumen sistólico, así que la salvedad de regurgitación que retira el EOA no lo alcanza. Se calcula desde los dos VTI; el campo DVI de arriba se usa sólo como respaldo cuando no alcanzan, y la fila dice «consignado» cuando es así.">DVI — VTI prótesis / VTI TSVI <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="vm-prot-dvi">—</span></div>
+          <div class="calc-row"><span class="calc-lbl" title="Desajuste protésico-paciente (PPM): EOA indexada a la superficie corporal. ASE 2024, Tabla 7, pág. 20, TODA indexada — esa tabla no publica valores absolutos en cm². IMC &lt;30: normal &gt;1,2 · moderado 1,2-0,91 · severo ≤0,90 cm²/m². IMC ≥30: normal &gt;1,0 · moderado 1,0-0,76 · severo ≤0,75 cm²/m². La rama de IMC ≥30 está SÓLO en la tabla; el texto narrativo de la pág. 10 la omite. Contesta «¿la prótesis es chica para este paciente?», que es otra pregunta que «¿está obstruida?» — por eso el corte es indexado y el de arriba absoluto.">PPM — EOA indexada <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="vm-prot-ppm">—</span></div>
         </div>
         <div id="bloque-prolapso-vm" class="fg" style="display:none;">
           <label style="font-weight:600">🔍 Detalle morfológico — Prolapso / Barlow</label>
@@ -16781,10 +16798,25 @@ function calcBSA() {
        también lo repinta: sin esto, borrar el peso dejaba un «AVA indexada 0,6 cm²/m²» en el informe
        firmado sobre un estudio sin ASC. El espejo ya sabe negarse; nunca se le daba la oportunidad. */
     if (typeof eaTaviEspejar === 'function') { try { eaTaviEspejar(); } catch (e) {} }
+    /* ⚠️ Y EL PPM TAMBIÉN, POR EL MISMO MOTIVO QUE EL VLI: esta salida es justo el caso en que el
+       PPM deja de poder calcularse. Con la llamada sólo abajo, borrar el peso dejaba en pantalla
+       «PPM 0.53 cm²/m² (severo)» sobre un estudio sin superficie corporal. `peso` y `talla` no
+       tienen otro disparador. Es la lección que esta función escribe dos líneas más arriba, y el
+       consumidor nuevo había quedado del lado equivocado. */
+    if (typeof vmProtEOAPintar === 'function') { try { vmProtEOAPintar(); } catch (e) {} }
     return;
   }
   const bsa = Math.sqrt((p * t) / 3600).toFixed(2);
-  const imc = (p / ((t/100) ** 2)).toFixed(1);
+  /* ⚠️ `getIMC` devuelve `null` como centinela —guarda que la copia inline no tenía— y un peso
+     negativo la dispara sin que el `if (!p || !t)` de arriba lo atrape. `null.toFixed(1)` LANZA, y
+     el throw se lleva `bsa-val`, `imc-val`, `calcAI`, `calcVI`, `calcAo`, el VLI y el repintado del
+     PPM: la pantalla queda con la BSA y el IMC del paciente anterior, que es peor que el `NaN` que
+     producía la versión inline. El otro sitio de llamada de este mismo cambio sí guardaba. */
+  const _imcN = getIMC();   // el dueño es `getIMC`, no una copia acá
+  const imc = _imcN != null ? _imcN.toFixed(1) : '\u2014';
+  /* El PPM se indexa a la superficie corporal y su rama sale del IMC, así que peso y talla lo
+     mueven sin tocar un solo campo del Doppler — y `calcEM` no corre al cargarlos. */
+  if (typeof vmProtEOAPintar === 'function') { try { vmProtEOAPintar(); } catch (e) {} }
   document.getElementById('bsa-val').textContent = bsa + ' m²';
   document.getElementById('imc-val').textContent = imc + ' kg/m²';
   calcAI(); calcVI(); calcAo();
@@ -16807,6 +16839,21 @@ function getBSA(src) {
   if (!p || !t) return null;
   return Math.sqrt((p * t) / 3600);
 }
+/* ⚠️ EL IMC ESTABA ESCRITO DOS VECES INLINE —`calcBSA` y el encabezado del PDF— y el PPM mitral
+   habría sido la TERCERA. Es el patrón de la fórmula duplicada que este archivo ya pagó con el
+   THP y con el espesor parietal: dos copias que hoy dan el mismo número y que el día que una se
+   afine publican dos IMC del mismo paciente en el mismo documento.
+   Misma firma que `getBSA`: sin `src` lee el formulario, con un objeto `campos` lee un estudio
+   guardado. Devuelve el número CRUDO; cada superficie lo formatea, que es lo que permite que las
+   dos existentes queden byte por byte iguales (las dos hacen `.toFixed(1)`). */
+function getIMC(src) {
+  const p = src ? _ccNv('peso', src) : v('peso');
+  const t = src ? _ccNv('talla', src) : v('talla');
+  if (!p || !t) return null;
+  const imc = p / ((t / 100) ** 2);
+  return isFinite(imc) && imc > 0 ? imc : null;
+}
+window.getIMC = getIMC;
 
 // ══ AORTA / AI ══
 /* Las tres cápsulas salen del MISMO `aoSegsMedidos()` que el narrativo, así que ya no pueden
@@ -21293,6 +21340,18 @@ function calcEM() {
     else if (!cat.fuentes.length && cat.gm == null) badgeEl.textContent = '';
     else badgeEl.textContent = 'Leve y moderada las elige el médico; «severa» la completa la app cuando el AVm es \u22641,5 cm².';
   }
+
+  /* ⚠️ EL DISPARADOR DEL CONSUMIDOR NUEVO VA ACÁ, Y ES LA RAZÓN DE PONERLO EN `calcEM` Y NO EN
+     OCHO `oninput`. El EOA protésico se deriva de `diam_tsvi`, `itv_tsvi` y `em_vtimit`, y su
+     validez de `im_grado`/`ia_grado`: los cinco caminos que mueven esos cinco valores ya terminan
+     acá —los tres `oninput` vía `emSyncSiExiste`, el `onchange` de `vm_morf`, y `emContRefrescar`
+     desde `sincronizarGradoIM`/`sincronizarGradoIA`—. Con una línea por campo, el que se olvide
+     deja la cápsula con el EOA del valor anterior, que es el defecto que este archivo ya pagó tres
+     veces seguidas (`im_itv`, `im_dtsvi`/`im_itv_tsvi`, y el PISA del selector del PDF).
+     NO cambia una sola decisión de estenosis: `calcEM` ya termina llamando a `imOndaESiExiste` por
+     el mismo motivo, y esto sólo repinta tres `span` de otro módulo. Va en `try` porque un throw
+     acá se llevaría el badge de arriba. */
+  if (typeof vmProtEOAPintar === 'function') { try { vmProtEOAPintar(); } catch (e) {} }
 }
 function usarTSVIenEM(val) {
   setv('em_dtsvi', val);
@@ -26177,6 +26236,44 @@ function generarInforme(opts) {
       vmSent += ' ' + _fr;
     }
     inf.push(vmSent);
+
+    /* ══ PRÓTESIS MITRAL: OBSTRUCCIÓN Y PPM — UNA LÍNEA CADA UNO ═══════════════════════════════
+       ⚠️ EL EOA YA ESTABA EN EL PAPEL: la oración de arriba imprime «AVm X cm² por continuidad»,
+       que ES el EOA de la Sección III.B. Lo que faltaba era su INTERPRETACIÓN, así que acá no se
+       repite el número por repetirlo: sale sólo cuando hay un HALLAZGO que nombrar.
+       ⚠️ UN SOLO AVISO AUNQUE LOS DOS CRITERIOS DISPAREN. El EOA y el DVI son dos ventanas al
+       mismo hecho —la prótesis obstruida—, no dos hallazgos: con una línea por criterio, un
+       estudio con EOA 0,85 y DVI 2,8 publicaba el mismo aviso dos veces. La línea nombra los
+       números que lo dispararon, que es lo que permite auditarlo sin la app al lado.
+       ⚠️ LA OBSTRUCCIÓN «POSIBLE» NO SUBE AL PAPEL. La banda 2,2-2,5 de la Tabla 11 es
+       explícitamente intermedia; publicarla en un informe firmado con el mismo peso que la
+       significativa es la graduación que la app se cuida de no inventar. Se ve en pantalla, que
+       es donde el médico decide si profundiza.
+       ⚠️ Y EL PPM ES OTRA PREGUNTA, así que va en su propia línea: una prótesis puede estar
+       obstruida sin PPM (degeneración) y tener PPM sin estar obstruida (prótesis chica para un
+       paciente grande). Fundirlas diría que son el mismo hallazgo. */
+    {
+      const _pe = (typeof vmProtEOA === 'function') ? vmProtEOA() : null;
+      if (_pe && _pe.esProt) {
+        if (_pe.obstr === 'significativa') {
+          const _q = [];
+          if (_pe.porEoa === 'significativa') _q.push('EOA ' + _pe.eoa.toFixed(2) + ' cm²');
+          /* La procedencia va TAMBIÉN al papel. La cápsula agrega «· consignado» y su comentario
+             lo justifica; el emisor lo imprimía pelado, así que la regla que el módulo declara se
+             cumplía en la pantalla y se perdía en la superficie que se firma — una obstrucción
+             atribuida a un cociente que puede venir del informe de otro laboratorio. */
+          if (_pe.porDvi === 'significativa')
+            _q.push('DVI ' + _pe.dvi.toFixed(2) + (_pe.dviFuente === 'consignado' ? ' consignado' : ''));
+          const _t = 'Prótesis mitral con hallazgos sugestivos de obstrucción (' + _q.join(', ') + ').';
+          inf.push(_t); suma.push(_t);
+        }
+        if (_pe.ppm === 'moderado' || _pe.ppm === 'severo') {
+          const _t = 'Desajuste protésico-paciente ' + _pe.ppm +
+                     ' (EOA indexada ' + _pe.eoaI.toFixed(2) + ' cm²/m²).';
+          inf.push(_t); suma.push(_t);
+        }
+      }
+    }
   }
 
   // ── 8) Válvula aórtica (morfología + estenosis + insuficiencia) ──
@@ -30241,10 +30338,246 @@ function eteVmPropagar(origen) {
 }
 window.eteVmPropagar = eteVmPropagar;
 
+/* ══ PRÓTESIS MITRAL — EOA, DVI Y PPM ═══════════════════════════════════════════════════════════
+   ASE 2024 (Zoghbi et al., J Am Soc Echocardiogr 2024;37(1):2-63), Sección III.B, Tabla 11 (p. 27)
+   y Tabla 7 (p. 20). Contesta DOS preguntas distintas sobre el mismo número, y por eso hay dos
+   juegos de cortes que NO se mezclan:
+     · «¿la prótesis EN SÍ está obstruida?»  → EOA ABSOLUTA en cm² y DVI (Tabla 11)
+     · «¿la prótesis es CHICA para este paciente?» → EOA INDEXADA a la superficie corporal (Tabla 7)
+   Es una discrepancia interna de la propia guía —la misma medición con y sin indexar— y se respeta
+   tal cual: implementarlas juntas daría un solo veredicto para dos hallazgos que pueden no coincidir
+   (una prótesis 31 mm normal en un paciente grande puede tener EOA 1,8 cm² y PPM moderado).
+
+   ⚠️ EL EOA NO SE CALCULA DE NUEVO: ES `_avaContinuidad`. La fórmula de la Sección III.B
+   —EOA = volumen sistólico / VTI_PrMV— es exactamente π·(Ø TSVI/20)²·VTI_TSVI / VTI_mitral, o sea
+   la ecuación de continuidad que este archivo ya tiene extraída y que `calcEM` publica como
+   «AVm por continuidad». Escribirla acá sería la copia que la entrada del THP y la del espesor
+   parietal ya pagaron tres veces. **Y el informe ya la publica**: la línea de la prótesis mitral
+   imprime «AVm X cm² por continuidad». Lo que faltaba no era el número, era su INTERPRETACIÓN.
+   (Declarado: `calcEM` conserva su propia copia inline de esa misma expresión. Verificado que dan
+   el mismo número; unificarla es tocar estenosis, que este pedido excluye.)
+
+   ⚠️ VTI_PrMV ES `em_vtimit`, EL DE **CW**, Y NO `itv_mitral`/`vtim`. Son dos mediciones distintas
+   con el mismo nombre corto: `itv_mitral` es la envolvente de llenado por **pulsado** —la que usa
+   el método volumétrico de la IM— y `em_vtimit` es la de **CW**, que es la que la guía pide para
+   capturar la velocidad máxima a través de la prótesis. `im_itv` es una tercera cosa: el VTI del
+   CHORRO de regurgitación. Un campo propio acá habría sido la CUARTA entrada de la misma medición.
+
+   ⚠️ LA VALIDEZ LA DECIDE `emContValido()`, QUE ES MÁS ESTRICTO QUE LO QUE PIDE LA SECCIÓN III.B —
+   Y ESTÁ BIEN QUE LO SEA. La guía condiciona el volumen sistólico del TSVI a «la ausencia de IAo
+   significativa»; `emContValido` retira además el voto con **IM significativa**, y el motivo es
+   fisiológico y simétrico: con IAo el TSVI lleva volumen que vuelve, así que SOBRESTIMA el flujo
+   mitral y el EOA sale grande; con IM el flujo transmitral es el anterógrado MÁS el regurgitante,
+   así que el TSVI lo SUBESTIMA y el EOA sale chico. En una prótesis mitral con regurgitación
+   protésica significativa —que es justo lo que esta serie viene graduando— el segundo caso es el
+   frecuente. Se consulta esa función y no se escribe un predicado propio de IAo: con dos lecturas
+   de la misma regla, el informe y esta cápsula terminan diciendo cosas distintas del mismo EOA.
+
+   ⚠️ NO SE REUSA `AVA_SEVERA_MAX`, AUNQUE VALGA 1,0. Ése es el corte de área de la estenosis
+   AÓRTICA NATIVA y usa `≤`; éste es obstrucción de una prótesis MITRAL y la Tabla 11 lo da como
+   `<`. Coinciden en el dígito y no en la entidad ni en el operador — acoplarlos haría que mover el
+   umbral aórtico moviera en silencio el veredicto de una prótesis mitral. Es la trampa que este
+   archivo ya documenta para el 45 de `vsfviInterp` contra el de `IA_CRIT_2025`.
+
+   ⚠️ LA TABLA 7 ES TODA INDEXADA: no publica valores absolutos en cm². Y su rama de IMC ≥ 30 vive
+   SÓLO en la tabla —el texto narrativo de la p. 10 la omite—, así que quien verifique contra el
+   cuerpo del artículo no la va a encontrar. Queda dicho para que nadie la borre por «no estar».
+
+   ⚠️ NO DISTINGUE MECÁNICA DE BIOLÓGICA, verificado: la Sección III.B da una sola fórmula para
+   «prosthetic mitral valves» y la Tabla 7 no abre ramas por tipo. Es lo contrario de la Tabla 12
+   —la del cociente de regurgitación— que sí dice «in mechanical valves», y esa asimetría está
+   declarada en la entrada del cociente VTI. Acá se aplica igual a las dos. */
+const VM_PROT_EOA_OBSTR_MAX  = 1.0;   // EOA < 1,0 cm² sugiere obstrucción significativa (Tabla 11)
+const VM_PROT_DVI_NORMAL_MAX = 2.2;   // DVI < 2,2 normal
+const VM_PROT_DVI_SIGNIF_MIN = 2.5;   // DVI > 2,5 sugiere obstrucción significativa
+const VM_PROT_IMC_OBESIDAD   = 30;    // la rama de la Tabla 7
+/* Los dos juegos de la Tabla 7. `normalMin` es EXCLUSIVO (normal es `>`) y `severoMax` INCLUSIVO
+   (severo es `≤`), que es como la tabla los imprime: «Normal >1,2 · Moderado 1,2-0,91 · Severo
+   ≤0,90». La banda moderada queda definida por diferencia, sin un tercer número que mantener. */
+const VM_PROT_PPM_CORTES = {
+  imcBajo:  { normalMin: 1.2, severoMax: 0.90 },
+  imcAlto:  { normalMin: 1.0, severoMax: 0.75 }
+};
+window.VM_PROT_EOA_OBSTR_MAX = VM_PROT_EOA_OBSTR_MAX;
+window.VM_PROT_DVI_NORMAL_MAX = VM_PROT_DVI_NORMAL_MAX;
+window.VM_PROT_DVI_SIGNIF_MIN = VM_PROT_DVI_SIGNIF_MIN;
+window.VM_PROT_PPM_CORTES = VM_PROT_PPM_CORTES;
+
+/* Devuelve DATOS, nunca HTML — el patrón de `emCategoria` y `popPatron`. Lo consumen la cápsula de
+   pantalla, el narrativo y el EN SUMA, así que las tres no pueden divergir. */
+function vmProtEOA() {
+  const R = { esProt:false, eoa:null, dvi:null, dviFuente:null, eoaI:null, bsa:null, imc:null,
+              obstr:null, ppm:null, valido:false, motivo:'', fuera:false, faltan:[] };
+  /* `_imVmProt()` y no un predicado propio: es el ÚNICO dueño de «¿esta mitral es protésica?» que
+     falla CERRADO sobre un `#vm_morf` ausente. Un segundo dueño diverge sin que nada lo señale. */
+  if (typeof _imVmProt !== 'function' || !_imVmProt()) return R;
+  R.esProt = true;
+
+  /* ⚠️ LA MISMA CASCADA QUE `calcEM`, NO LOS CAMPOS PELADOS. `em_dtsvi` y `em_vtitsvi` son campos
+     VISIBLES Y TIPEABLES —espejos por `_syncDerivado` que dejan de seguir al origen en cuanto el
+     médico los pisa—, y `calcEM` lee `v('em_dtsvi') || v('diam_tsvi')`. Leyendo los originales
+     quedaban DOS áreas por continuidad de la MISMA válvula en oraciones consecutivas del informe
+     firmado: «(AVm 1.15 cm² por continuidad)» y «obstrucción (EOA 0.95 cm²)», una por encima del
+     corte y otra por debajo, con el veredicto saliendo de la que NO se publica. Y peor: el enlace
+     «Estimado por ASC» de `usarTSVIenEM` escribe `em_dtsvi` con `diam_tsvi` VACÍO, así que ahí el
+     EOA, el DVI y el PPM quedaban mudos sobre un estudio donde la continuidad sí se calculó.
+     Lo cazó `/sharp-edges`; mi comentario de arriba afirmaba que los insumos eran los mismos. */
+  const d = v('em_dtsvi') || v('diam_tsvi');
+  const tsvi = v('em_vtitsvi') || v('itv_tsvi');
+  const prmv = v('em_vtimit');
+  if (d == null)    R.faltan.push('Ø TSVI');
+  if (tsvi == null) R.faltan.push('VTI TSVI');
+  if (prmv == null) R.faltan.push('VTI mitral CW');
+
+  /* ⚠️ LOS TRES INSUMOS CON BANDA, no sólo el del denominador. `emContFueraBanda` bandea `em_vtimit`
+     y nada más; el Ø TSVI entra AL CUADRADO, así que un 2 tipeado por 20 divide el área por cien y
+     publica un EOA de 0,016 cm² — «obstrucción significativa» fabricada por un dedazo, y con un
+     número que se ve perfectamente plausible como resultado. Es el mismo escenario que la Fase 1 de
+     la IM midió para el volumen sistólico. Fuera de banda NO se clasifica y se declara. */
+  [(v('em_dtsvi') != null ? 'em_dtsvi' : 'diam_tsvi'),
+   (v('em_vtitsvi') != null ? 'em_vtitsvi' : 'itv_tsvi'), 'em_vtimit'].forEach(function (id) {
+    try { if (typeof vPlaus === 'function' && vPlaus(id).fuera) R.fuera = true; } catch (e) {}
+  });
+
+  /* El motivo sale de `emContMotivoNoVota`, el mismo que pinta el aviso de la continuidad: con un
+     texto propio acá, la pantalla diría dos cosas distintas sobre el mismo número. */
+  if (typeof emContMotivoNoVota === 'function') R.motivo = emContMotivoNoVota();
+  R.valido = !R.fuera && R.motivo === '' && !R.faltan.length;
+
+  /* ⚠️ EL DVI SE CALCULA AUNQUE EL EOA NO SEA VÁLIDO —es un COCIENTE de dos VTI y no usa el volumen
+     sistólico, así que la salvedad de la Sección III.B no lo alcanza— PERO NO CONCLUYE OBSTRUCCIÓN
+     CON REGURGITACIÓN SIGNIFICATIVA. Ver la nota de `porDvi` más abajo: ahí está el motivo, que es
+     la colisión de las Tablas 11 y 13. Lo que sí lo alcanza siempre es la banda de los dos VTI. */
+  if (tsvi != null && prmv != null && tsvi > 0) {
+    const bandaDvi = (function () {
+      try { return typeof vPlaus === 'function' &&
+        (vPlaus(v('em_vtitsvi') != null ? 'em_vtitsvi' : 'itv_tsvi').fuera || vPlaus('em_vtimit').fuera); }
+      catch (e) { return false; }
+    })();
+    if (!bandaDvi) { R.dvi = PF((prmv / tsvi).toFixed(2)); R.dviFuente = 'calculado'; }
+  }
+  /* ⚠️ EL TIPEADO NO PISA AL CALCULADO Y SE DECLARA CUÁL ES. `vm_dvi` existe desde la Fase 1 y se
+     carga a mano —puede venir de otro laboratorio—, así que se usa como RESPALDO cuando los dos VTI
+     no alcanzan. Publicar un DVI sin decir de dónde salió es lo que el módulo POP ya resolvió con
+     `icFuente`: dos fuentes del mismo número que pueden diferir sobre el mismo paciente. */
+  if (R.dvi == null) {
+    const manual = v('vm_dvi');
+    /* ⚠️ EL CONSIGNADO TAMBIÉN BANDEA, y la primera versión sólo bandeaba el calculado. Un 2,5
+       tipeado como 25 publicaba «obstrucción (DVI 25.00)» en el informe firmado mientras la tabla
+       del MISMO PDF imprimía «25.00 (revisar)» —`_protPdf` sí delega en `vPdf`—: la app marcaba el
+       número como ilegible en una superficie y concluía sobre él en la otra. Y ensanchar la banda
+       a 10 amplía el rango que entraría sin filtro. */
+    let _manFuera = false;
+    try { _manFuera = typeof vPlaus === 'function' && vPlaus('vm_dvi').fuera; } catch (e) {}
+    if (manual != null && manual > 0 && !_manFuera) { R.dvi = PF(manual.toFixed(2)); R.dviFuente = 'consignado'; }
+    else if (_manFuera) R.dviFuera = true;
+  }
+
+  if (R.valido && typeof _avaContinuidad === 'function') {
+    const eoaN = _avaContinuidad(d, tsvi, prmv);
+    /* SE CLASIFICA EL REDONDEADO, que es el número que se publica. Es la regla de la casa desde el
+       AVA de 1,00 y la que `calcEM` ya aplica a este mismo cociente. */
+    if (eoaN != null) R.eoa = PF(eoaN.toFixed(2));
+  }
+
+  /* ── Tabla 11: obstrucción. El EOA y el DVI votan por SEPARADO y el peor manda, sin duplicar el
+        aviso: son dos ventanas al mismo hecho, no dos hallazgos. ── */
+  const porEoa = (R.eoa != null && R.eoa < VM_PROT_EOA_OBSTR_MAX) ? 'significativa' : (R.eoa != null ? 'normal' : null);
+  /* ⚠️⚠️ LA MISMA RAZÓN, EL MISMO 2,5, DOS CONCLUSIONES OPUESTAS — y la app publica las dos.
+     La ASE 2024 usa `VTI_PrMV / VTI_TSVI` en DOS tablas:
+       · **Tabla 11, p. 27** — > 2,5 sugiere **ESTENOSIS** protésica (esto).
+       · **Tabla 13, p. 30** — ≥ 2,5 apoya **REGURGITACIÓN** protésica significativa (la fila
+         «Ratio VTI mitral / VTI TSVI» de `calcIM_ESC`, implementada el 2026-09-29).
+     No es una contradicción de la guía: es que el cociente sube por CUALQUIER flujo transmitral
+     aumentado, y una regurgitación protésica severa lo aumenta exactamente igual que una
+     obstrucción. Lo que no se puede es ATRIBUIRLO a una de las dos sin mirar el resto.
+     Medido antes de cerrarlo: con `im_grado = 4` el informe publicaba «Prótesis mitral con
+     hallazgos sugestivos de obstrucción (DVI 3.50)» en el MISMO documento en que la fila de la IM
+     dice «≥2,5 — apoya IM severa» sobre ese mismo número. Dos lecturas opuestas del mismo dato,
+     firmadas.
+     Por eso con regurgitación significativa —o sin poder verificarla, que `emContMotivoNoVota`
+     resuelve fail-closed— el DVI **se muestra y no concluye**. El número queda en pantalla; lo que
+     se retira es la afirmación. Es la misma decisión que la app ya toma con la continuidad, y por
+     el mismo motivo: el parámetro deja de medir lo que dice medir. */
+  const porDvi = (R.dvi == null || R.motivo !== '') ? null
+               : (R.dvi > VM_PROT_DVI_SIGNIF_MIN ? 'significativa'
+               : (R.dvi < VM_PROT_DVI_NORMAL_MAX ? 'normal' : 'posible'));
+  R.obstr = ['significativa','posible','normal'].find(function (k) { return porEoa === k || porDvi === k; }) || null;
+  R.porEoa = porEoa; R.porDvi = porDvi;
+
+  /* ── Tabla 7: PPM. AUTOMÁTICO (decisión de Maicol) y sólo con EOA válido. ── */
+  R.bsa = (typeof getBSA === 'function') ? getBSA() : null;
+  /* SE CLASIFICA EL REDONDEADO, que es el que las dos superficies imprimen con `.toFixed(1)`. Con
+     29,96 el encabezado del PDF dice «30.0 kg/m2» y la rama cruda aplicaba los cortes de < 30: el
+     mismo documento mostraba un IMC de 30,0 y usaba la tabla del otro lado. Es la regla de la casa
+     desde el AVA de 1,00, y la que este mismo bloque ya aplica al EOA y al indexado. */
+  const _imcN = (typeof getIMC === 'function') ? getIMC() : null;
+  R.imc = _imcN == null ? null : PF(_imcN.toFixed(1));
+  if (R.eoa != null && R.bsa) {
+    R.eoaI = PF((R.eoa / R.bsa).toFixed(2));
+    /* ⚠️ SIN IMC NO SE ELIGE RAMA: se usa la de IMC < 30, que es la MÁS EXIGENTE (declara PPM con
+       EOA indexada más alta). Suponer obesidad sobre un paciente sin peso ni talla sería el lado
+       permisivo, y acá peso y talla siempre están —el EOA indexado necesita la BSA, que sale de los
+       mismos dos campos—, así que la rama sin IMC es inalcanzable por construcción y queda como
+       defensa. `getBSA` y `getIMC` leen `peso` y `talla`: si falta uno, no hay ninguno de los dos. */
+    const c = (R.imc != null && R.imc >= VM_PROT_IMC_OBESIDAD)
+            ? VM_PROT_PPM_CORTES.imcAlto : VM_PROT_PPM_CORTES.imcBajo;
+    R.ppmCortes = c;
+    R.ppm = R.eoaI <= c.severoMax ? 'severo' : (R.eoaI > c.normalMin ? 'no' : 'moderado');
+  }
+  return R;
+}
+window.vmProtEOA = vmProtEOA;
+
+/* Sólo PINTA. El corte evaluación/pintor es el de `teerEstado`/`calcTEER`: el informe lee la
+   función de datos, así que pantalla y papel no pueden divergir. */
+function vmProtEOAPintar() {
+  const caja = document.getElementById('bloque-prot-vm-res');
+  if (!caja) return;
+  const R = vmProtEOA();
+  if (!R.esProt) { caja.style.display = 'none'; return; }
+  caja.style.display = '';
+  const put = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
+  const OBSTR_TXT = { normal:'sin criterios de obstrucción', posible:'posible obstrucción',
+                      significativa:'sugiere obstrucción significativa' };
+  const PPM_TXT   = { no:'sin desajuste', moderado:'moderado', severo:'severo' };
+
+  /* El MOTIVO y no un texto fijo: «falta un insumo», «fuera de banda» y «hay regurgitación
+     significativa» retiran el EOA por razones distintas y el médico tiene que poder distinguirlas
+     para saber qué corregir. El de la regurgitación sale de `emContMotivoNoVota`, compartido. */
+  let eoaTxt;
+  if (R.eoa != null)        eoaTxt = R.eoa.toFixed(2) + ' cm²' + (R.obstr ? '  (' + OBSTR_TXT[R.obstr] + ')' : '');
+  else if (R.faltan.length) eoaTxt = '—  (falta ' + R.faltan.join(', ') + ')';
+  else if (R.fuera)         eoaTxt = '—  (revisar la unidad de los insumos)';
+  else if (R.motivo)        eoaTxt = '—  (' + R.motivo + ')';
+  else                      eoaTxt = '—';
+  put('vm-prot-eoa', eoaTxt);
+
+  put('vm-prot-dvi', R.dvi == null ? '—'
+    : R.dvi.toFixed(2) +
+      (R.porDvi ? '  (' + OBSTR_TXT[R.porDvi] + ')'
+                : (R.motivo ? '  (no concluye: ' + R.motivo + ')' : '')) +
+      (R.dviFuente === 'consignado' ? '  · consignado' : ''));
+
+  put('vm-prot-ppm', R.eoaI == null
+    ? (R.eoa != null && !R.bsa ? '—  (falta peso o talla)' : '—')
+    : R.eoaI.toFixed(2) + ' cm²/m²  (' + PPM_TXT[R.ppm] +
+      (R.imc != null && R.imc >= VM_PROT_IMC_OBESIDAD ? ' · cortes de IMC ≥ 30' : '') + ')');
+}
+window.vmProtEOAPintar = vmProtEOAPintar;
+
 function valvProtSync(){
   const g = id => { const e = document.getElementById(id); return e ? e.value : ''; };
   const ver = (id, on) => { const e = document.getElementById(id); if (e) e.style.display = on ? '' : 'none'; };
   ver('bloque-prot-vm', valvEsProtesis(g('vm_morf')));
+  /* La cápsula de EOA/DVI/PPM se muestra desde acá, junto a sus campos.
+     ⚠️ Y LOS DOS PREDICADOS NO COINCIDEN EN EL BORDE, que es lo contrario de lo que decía este
+     comentario. `vmProtEOAPintar` pregunta a `_imVmProt()`, que falla cerrado a **true** con
+     `#vm_morf` ausente; esta línea usa `valvEsProtesis(g('vm_morf'))`, que ahí cae a **false**. En
+     ese escenario el bloque de entrada se esconde y el de resultados se muestra. Es poco
+     alcanzable —`#vm_morf` es marcado estático— y se deja dicho en vez de afirmar una invariante
+     que los predicados no dan: es la clase de frase que hace que nadie vuelva a mirar. */
+  if (typeof vmProtEOAPintar === 'function') { try { vmProtEOAPintar(); } catch (e) {} }
   ver('bloque-prot-va', valvEsProtesis(g('va_morf')));
   ver('bloque-prot-vt', valvEsProtesis(g('vt_morf')));
   ver('bloque-prot-vp', valvEsProtesis(g('vp_morf')));
@@ -32009,7 +32342,8 @@ function generarPDFReal(_aj) {
 
   // ─── pre-calculations ─────────────────────────────────────────
   const peso = v('peso'), talla = v('talla');
-  const imc  = (peso&&talla) ? (peso/((talla/100)**2)).toFixed(1)+' kg/m2' : null;
+  const _imcN = getIMC();   // el dueño es `getIMC`, no una copia acá
+  const imc  = _imcN != null ? _imcN.toFixed(1)+' kg/m2' : null;
   const ascV = bsa ? bsa.toFixed(2)+' m2' : null;
   const sexo = sv('sexo');
   const sexoTxt = sexo==='M'?'Masculino':sexo==='F'?'Femenino':(sexo||null);
@@ -33060,18 +33394,36 @@ function generarPDFReal(_aj) {
          regla que este archivo ya fijó con el AVA aórtica: los rótulos se mueven con el predicado
          o el PDF se contradice solo. */
       {lbl:'AVm',           ref:'(severa ≤1.5) cm²', val:emAvmPdfVal()},
-      /* ⚠️ SIN BANDA DE REFERENCIA, Y A PROPÓSITO. Las otras filas de esta tabla imprimen su
-         escala al lado —la del AVm, por ejemplo—, y ésa es NATIVA. Poner una escala al
-         lado del DVI de una prótesis reproduciría el defecto que el diagnóstico del 2026-09-27
-         encontró: la referencia nativa impresa junto a un dato protésico se lee como aplicable.
-         Los cortes de prótesis los define la Fase 2, y hasta entonces acá va el valor y nada más.
+      /* ⚠️ ESTA FILA YA NO VA SIN ESCALA — y el párrafo que decía lo contrario vivía acá hasta el
+         2026-09-29. Decía «los cortes de prótesis los define la Fase 2, y hasta entonces acá va el
+         valor y nada más»: la Fase 2 llegó, la escala es la de la ASE 2024 (Tabla 11, p. 27) y es
+         PROTÉSICA, no la nativa que ese párrafo temía. Se reescribe en vez de dejarlo al lado de la
+         línea que lo desmiente — «un archivo que afirma las dos cosas a dos líneas de distancia
+         garantiza que el próximo pase lo vuelva a dar vuelta».
 
          ⚠️ Y LA FILA SE GATEA POR LA MORFOLOGÍA. El campo se esconde al elegir una morfología que
          no es prótesis, pero el VALOR queda —el barrido de `guardarInforme` no mira visibilidad—,
          así que sin esta guarda el PDF imprimía «DVI 0,32» sobre una válvula que dice «Normal».
          No se BORRA el dato: si el médico vuelve a prótesis tiene que seguir ahí. Es la misma
          distinción que ya hizo `calcVD` con la FAC, resuelta del lado del que publica. */
-      {lbl:'DVI',           ref:'', val:_protPdf('vm_morf','vm_dvi','',2)},
+      /* La columna `ref` es la de umbrales de severidad. Estaba VACÍA desde la Fase 1 —«no
+         calculan nada todavía»— así que el papel firmado publicaba un DVI sin decir contra
+         qué se lee, al lado de filas que sí traen su escala. Es el mismo defecto que los
+         rótulos del AVA que seguían diciendo «< 1,0». Los cortes son los de la Tabla 11. */
+      /* ⚠️ SALE DE `vmProtEOA().dvi`, NO DEL CAMPO CRUDO. `_protPdf` lee `vm_dvi` —el tipeado— y el
+         narrativo concluye con el CALCULADO, así que con los dos presentes el mismo PDF imprimía
+         «DVI 1.50» con su escala de normalidad a centímetros de «hallazgos sugestivos de
+         obstrucción (DVI 2.80)». Antes de este cambio la fila salía SIN escala y el narrativo no
+         concluía nada: la contradicción la crean las dos mitades de este commit a la vez.
+         ⚠️ Y LA ESCALA SE DERIVA DE LAS CONSTANTES que gobiernan el veredicto. Escrita a mano,
+         mover un corte deja el papel firmado publicando la escala anterior al lado del veredicto
+         nuevo — es lo que ya pasó con los rótulos del AVA que seguían diciendo «< 1,0». */
+      {lbl:'DVI',
+       ref:'(<' + VM_PROT_DVI_NORMAL_MAX + ' / ' + VM_PROT_DVI_NORMAL_MAX + '-' + VM_PROT_DVI_SIGNIF_MIN + ' / >' + VM_PROT_DVI_SIGNIF_MIN + ')',
+       val:(function(){
+         try { const _p = vmProtEOA(); if (_p.esProt && _p.dvi != null) return _p.dvi.toFixed(2); } catch (e) {}
+         return _protPdf('vm_morf','vm_dvi','',2);
+       })()},
       {lbl:'Notas',         ref:'', val:sv('vm_notas')||null},
     ]},
     {titulo:'Válvula Aórtica', items:[
@@ -70614,7 +70966,16 @@ const LAB_XLS_RANGO_PROPIO = {
        por encima; el rango atrapa un valor en segundos o un tipeo de más.
      ⚠️ Los CORTES clínicos de estos dos parámetros los define la Fase 2. Estas bandas son de
      plausibilidad y no de severidad: no deben confundirse ni reutilizarse como umbrales. */
-  vm_dvi:[0.05,1.5], vt_dvi:[0.05,1.5], vp_dvi:[0.05,1.5],
+  /* ⚠️ `vm_dvi` NO COMPARTE BANDA CON LAS OTRAS TRES, Y HASTA HOY SÍ. Las cuatro estaban en
+     [0,05 · 1,5], que es la escala del DVI **AÓRTICO** —VTI_TSVI / VTI_prótesis, normal > 0,35—.
+     El DVI **MITRAL** va al revés: VTI_prótesis / VTI_TSVI, con normal < 2,2 y > 2,5 sugiriendo
+     obstrucción significativa (ASE 2024, Tabla 11, p. 27). O sea que el techo de 1,5 dejaba FUERA
+     DE BANDA todo el rango diagnóstico: un DVI mitral de 2,6 —exactamente el valor que define el
+     hallazgo— lo RECHAZABA el importador de Excel, y con él la FILA ENTERA del estudio.
+     No es un corte clínico: el techo se abre lo justo para que la escala de la propia tabla entre
+     con margen. Las otras tres conservan su banda —la tricúspide y la pulmonar quedan fuera de
+     este pedido, y la aórtica la tiene bien—. */
+  vm_dvi:[0.05,10], vt_dvi:[0.05,1.5], vp_dvi:[0.05,1.5],
   va_at:[10,300],
   /* ⚠️ ESTA BANDA ES INERTE HOY, y se deja dicho para que no se lea como una protección que existe:
      `ete_tavi_at` no tiene columna de importación que la consuma ni pasa por `vPlaus`/`vPdf` —el
@@ -83757,8 +84118,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260929-0055';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790654155408;                 /* eco-build-ms */
+const ECO_BUILD    = '20260929-0141';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790656917376;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -83844,7 +84205,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-0055</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-0141</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
