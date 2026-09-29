@@ -887,21 +887,75 @@ caso('TC-44', 'Score de Wilkins: 6 favorable / 13 no favorable', `
   ] };
 `);
 
-/* La votacion de `calcIM_ESC`: cada parametro vota una banda y el veredicto sale de la mayoria.
-   UN SOLO criterio severo NO alcanza para «severa» —cae al `else` con «Moderada — evaluar
-   integrado»—: son necesarios dos severos, o uno severo y uno moderado. Es la evaluacion
-   integrada de la ESC y es deliberada; la primera version de este test daba por hecho que una
-   vena contracta de 8 mm bastaba, y la habria congelado al reves. */
-caso('TC-45', 'IM: la vena contracta sola no puede declarar severa — hacen falta dos criterios', `
+/* ⚠️⚠️ REAPUNTADO 2026-09-29 — Y ES EL ÚNICO PUNTO DE ESTE COMMIT QUE HAY QUE CONFIRMAR.
+   Este caso se llamaba «la vena contracta sola no puede declarar severa — hacen falta dos
+   criterios» y su comentario decía, textual:
+
+     «UN SOLO criterio severo NO alcanza para "severa" —cae al `else` con "Moderada — evaluar
+      integrado"—: son necesarios dos severos, o uno severo y uno moderado. Es la evaluacion
+      integrada de la ESC y es deliberada; la primera version de este test daba por hecho que una
+      vena contracta de 8 mm bastaba, y la habria congelado al reves.»
+
+   O sea que había una decisión ESCRITA en sentido contrario al de este cambio, y se deroga a
+   propósito. Las tres razones, para que revertirlo sea un commit y no una arqueología:
+
+   1. LA CITA NO EXISTE. «La evaluación integrada de la ESC» no lleva guía, año ni tabla, y es
+      justamente lo que este repo llama cita falsa. La ASE integra cualitativo y cuantitativo y
+      NO publica ninguna regla de recuento de votos; la Tabla 13 (ASE 2024, JASE 2024;37(1):2-63,
+      p. 30) pone la vena contracta ≥0,7 cm en la columna SEVERA, y ése es exactamente el corte
+      que la app ya aplicaba al votar.
+   2. EL COMENTARIO DESCRIBE CÓMO SE ESCRIBIÓ, NO UNA DECISIÓN CLÍNICA. Su última oración dice
+      que el primer borrador suponía que la VC de 8 mm bastaba y se reescribió al ver la app; y
+      el commit que lo creó (c9d44c6) se titula «suite completo GENERADO AUTOMÁTICAMENTE» y
+      declara que cada caso se verificó «contra la salida real de la app corrida en Chrome». Es
+      el literal de oro de TC-288, TC-289, TC-31 y TC-87: se congeló el comportamiento del día y
+      se le puso arriba un nombre que suena a regla.
+   3. SE CONTRADECÍA CON LA CONDICIÓN DE AL LADO. Aceptaba «VC 5 -> moderada», que llegaba por
+      ESE MISMO `else`. Si el `else` es una regla, no puede ser a la vez el cajón de sastre.
+
+   Y lo que de verdad decide: el hedge «— evaluar integrado» vive SÓLO en el badge de pantalla.
+   El informe firmado y el EN SUMA decían «IM moderada» a secas sobre una vena contracta que la
+   Tabla 13 llama severa. Publicar sin hedge lo que en pantalla se hedgea es el defecto, cualquiera
+   sea la filosofía de integración que se prefiera.
+
+   ⚠️ SI LA DECISIÓN ERA REAL Y CLÍNICA, revertir es volver la primera rama de la cascada a
+   `severa >= 2 || (severa === 1 && moderada >= 1)` y devolver acá la condición vieja. Queda
+   dicho para que la vuelta cueste lo mismo que la ida.
+
+   El invariante nuevo es MÁS FUERTE que el viejo: los cortes de la VC se prueban por los dos
+   lados y se exige además que la banda moderada NO se haya colapsado al arreglar la severa. */
+caso('TC-45', 'IM: un parametro en severa basta — la integracion no lo degrada a moderada', `
   function im(campos) { __t.limpiar();
     Object.keys(campos).forEach(k => __t.set(k, String(campos[k])));
-    return { g: __t.val('im_grado'), r: __t.informe() }; }
+    return { g: __t.val('im_grado'), b: __t.txt('im-sev'), r: __t.informe() }; }
   const leve = im({ im_vc: 2 }), mod = im({ im_vc: 5 }), solaSev = im({ im_vc: 8 });
+  const borde = im({ im_vc: 6.9 });
   const dosSev = im({ im_vc: 8, im_onda_s: 'invertida' });
+  const sevMasLeve = im({ im_vc: 8, im_onda_s: 'positiva' });
+  const dosMod = im({ im_vc: 5, im_ai_area: 50, im_jet_area: 15 });
   return { extra: [
     ['VC 2 -> grado 1 leve',  leve.g === '1' && leve.r.suma.indexOf('IM leve.') > -1],
-    ['VC 5 -> moderada',      mod.r.suma.indexOf('IM moderada.') > -1],
-    ['VC 8 SOLA no llega a severa', solaSev.g !== '4' && solaSev.r.suma.indexOf('IM severa.') === -1],
+    ['VC 5 -> moderada: la banda moderada NO se colapso',
+      mod.g === '2' && mod.r.suma.indexOf('IM moderada.') > -1, 'grado=' + mod.g],
+    ['VC 6.9 sigue moderada: el corte de la Tabla 13 (0,7 cm) no se movio',
+      borde.g === '2', 'grado=' + borde.g],
+    ['VC 8 SOLA -> severa (ASE 2024 Tabla 13: VC mayor o igual a 0,7 cm)',
+      solaSev.g === '4' && solaSev.r.suma.indexOf('IM severa.') > -1, 'grado=' + solaSev.g],
+    ['y el narrativo de la VC sola acompana', /con insuficiencia severa/.test(solaSev.r.inf)],
+    ['VC 8 mas un voto LEVE sigue severa: el leve no degrada',
+      sevMasLeve.g === '4', 'grado=' + sevMasLeve.g],
+    ['dos votos moderados siguen dando moderada, no severa',
+      dosMod.g === '2', 'grado=' + dosMod.g],
+    /* El hedge «evaluar integrado» es la UNICA superficie que dice que el veredicto salio de un
+       solo parametro —el informe firmado imprime «IM moderada» a secas— asi que colapsar la banda
+       amarilla contra la naranja es una perdida de senal que ninguna condicion de grado caza. */
+    ['un UNICO voto moderado conserva el hedge «evaluar integrado» del badge',
+      mod.b.indexOf('evaluar integrado') > -1, 'badge=«' + mod.b + '»'],
+    ['y con DOS votos moderados el badge es el naranja liso, sin hedge',
+      dosMod.b.indexOf('evaluar integrado') === -1 && dosMod.b.indexOf('Moderada') > -1,
+      'badge=«' + dosMod.b + '»'],
+    ['la VC sola pinta el badge de severa',
+      solaSev.b.indexOf('Severa') > -1, 'badge=«' + solaSev.b + '»'],
     ['VC 8 + onda S invertida -> severa',
       dosSev.g === '4' && dosSev.r.suma.indexOf('IM severa.') > -1],
     ['y el narrativo acompana', /con insuficiencia severa/.test(dosSev.r.inf)]
@@ -37279,6 +37333,72 @@ caso('TC-312', 'El panel «Incluir en el informe» de IM no arrastra el PISA de 
       ['_labXlsAssertListas() y _labXlsAssertVocab() en []', asserts.length === 0, asserts.join(' | ') || '[]']
     ] };
   })();
+`);
+
+
+caso('TC-313', 'Protesis mitral SIN un solo parametro medido: el EN SUMA reutiliza la linea del cuerpo en vez de negar — y con la regurgitacion medida NO la duplica', `
+  const g = id => { const e = document.getElementById(id); return e ? e.value : null; };
+  function esc(morf, campos) {
+    __t.limpiar();
+    __t.set('nombre','Censo'); __t.set('edad','70');
+    __t.set(morf.id, morf.v);
+    Object.keys(campos || {}).forEach(k => __t.set(k, String(campos[k])));
+    const r = __t.informe();
+    const lineaVM = r.inf.split(String.fromCharCode(10))
+      .filter(l => l.indexOf('Válvula mitral') === 0)[0] || '';
+    return { inf: r.inf, suma: r.suma, lineaVM: lineaVM,
+             niega: r.suma.indexOf('Estudio sin alteraciones estructurales') > -1 };
+  }
+  const MIDE = ['em_gmedio','avm_plan','avm_cont','avm_thp','avm_ete','vm_dvi'];
+
+  const sinNada  = esc({ id:'vm_morf', v:'Prótesis mecánica' }, {});
+  const conVC    = esc({ id:'vm_morf', v:'Prótesis mecánica' }, { im_vc: 8 });
+  const conDvi   = esc({ id:'vm_morf', v:'Prótesis mecánica' }, { vm_dvi: 0.35 });
+  const nativa   = esc({ id:'vm_morf', v:'Normal' }, {});
+  const aortica  = esc({ id:'va_morf', v:'Prótesis mecánica' }, {});
+  const pulmonar = esc({ id:'vp_morf', v:'Prótesis mecánica' }, {});
+  const tricusp  = esc({ id:'vt_morf', v:'Prótesis mecánica' }, {});
+
+  // Cuantas lineas del EN SUMA hablan de la mitral
+  const lineasMitral = s => s.split(String.fromCharCode(10))
+    .filter(l => l.indexOf('mitral') > -1 || l.indexOf('IM ') > -1).length;
+
+  return { extra: [
+    // ── DENOMINADOR: el escenario es el que se dice que es ──
+    ['DENOMINADOR: con la protesis elegida, los SEIS parametros de evidencia estan vacios',
+      (function(){ __t.limpiar(); __t.set('vm_morf','Prótesis mecánica');
+        return MIDE.every(id => { const v = g(id); return v === '' || v === null; }); })()],
+    ['DENOMINADOR: el cuerpo SI imprime la linea de la protesis',
+      sinNada.lineaVM.indexOf('prótesis mecánica') > -1, sinNada.lineaVM],
+
+    // ── EL ARREGLO ──
+    ['el EN SUMA ya NO dice «Estudio sin alteraciones»', !sinNada.niega, sinNada.suma],
+    ['y lo que dice es EXACTAMENTE la linea del cuerpo, sin una palabra nueva',
+      sinNada.suma === sinNada.lineaVM, 'suma=«' + sinNada.suma + '» cuerpo=«' + sinNada.lineaVM + '»'],
+
+    // ── LO QUE NO SE PUEDE ROMPER AL ARREGLARLO ──
+    ['con la VC medida el resumen NO duplica: una sola linea de mitral',
+      lineasMitral(conVC.suma) === 1, 'suma=«' + conVC.suma.replace(/\\n/g,' | ') + '»'],
+    ['y esa linea es la del grado, no la de la protesis',
+      conVC.suma.indexOf('IM severa.') > -1, conVC.suma],
+    ['con un parametro de evidencia medido (DVI) el camino es el de siempre y tampoco niega',
+      !conDvi.niega, conDvi.suma],
+    ['una mitral NATIVA sin nada sigue cayendo en «sin alteraciones» (no se toco el caso normal)',
+      nativa.niega, nativa.suma],
+
+    // ── DENOMINADORES NEGATIVOS: el arreglo esta ACOTADO a la mitral ──
+    ['la AORTICA sin nada NO cambio: sigue con «Sin otras alteraciones… ver el cuerpo»',
+      aortica.suma.indexOf('Sin otras alteraciones estructurales') === 0, aortica.suma],
+    ['la PULMONAR sin nada NO cambio',
+      pulmonar.suma.indexOf('Sin otras alteraciones estructurales') === 0, pulmonar.suma],
+
+    /* ⚠️ LIMITE DECLARADO A PROPOSITO, no es el comportamiento deseado. La tricuspide tiene el
+       MISMO defecto que la mitral y queda sin cerrar por el «SOLO» del pedido. Esta condicion
+       existe para que arreglarla sea DELIBERADO: cerrarla es agregarle reusaSinEvidencia a su
+       fila de VALVS y dar vuelta esta linea. Es el idioma de TC-310 con su limite mudo. */
+    ['LIMITE DECLARADO: la TRICUSPIDE sigue negando — mismo defecto, sin cerrar (ver CLAUDE.md)',
+      tricusp.niega, tricusp.suma]
+  ] };
 `);
 
 

@@ -1,5 +1,157 @@
 # EcoSmart — trampas de este archivo
 
+## Mitral protésica: integración de la IM y EN SUMA sin datos (2026-09-29)
+
+Dos arreglos, y **el segundo tuvo un defecto propio que cazó el control byte a byte**.
+
+### 1 · Un solo parámetro en severa caía al `else` y se publicaba «Moderada»
+
+`calcIM_ESC` integraba con `severa >= 2 || (severa === 1 && moderada >= 1)`. Con **vena contracta
+8 mm y nada más** —que la ASE 2024 (Tabla 13, JASE 2024;37(1):2-63, **p. 30**) llama SEVERA desde
+0,7 cm— el voto solitario no matcheaba ninguna de las tres primeras ramas y el `else` final
+publicaba **«IM moderada»** en el informe firmado y en el EN SUMA. El corte de la VC siempre
+estuvo bien; lo que tiraba el veredicto era el último paso.
+
+**No es un defecto protésico**: reproducido byte a byte con `vm_morf = Reumática` y con `Normal`.
+Ninguna función de la cascada lee la morfología.
+
+**Y la segunda cláusula del `else if` era código muerto**: `(moderada === 1 && severa === 1)` ya
+matcheaba `severa === 1 && moderada >= 1` en la condición de arriba.
+
+**El cambio es EXACTAMENTE un caso, medido sobre las 64 combinaciones** de los tres parámetros
+independientes (VC, jet/AI, onda S): se mueve sólo `severa >= 1 && moderada === 0` — **11 de 64**,
+todas de «Moderada» a «Severa». Las otras 53 idénticas, incluidas las tres bandas de Leve y el
+hedge «Moderada — evaluar integrado» del voto moderado único, que conserva texto y color.
+
+### 2 · El EN SUMA negaba sobre una prótesis que nadie evaluó
+
+La compuerta (1) del bloque de «normofuncionante» hacía `return` pelado sin evidencia, `suma`
+quedaba vacío y el fallback publicaba **«Estudio sin alteraciones estructurales ni funcionales
+significativas»** sobre una prótesis mecánica mitral, mientras el cuerpo decía «Válvula mitral con
+prótesis mecánica.». Hoy `reusar(V)` empuja **la línea que el cuerpo ya imprimió** — cero texto
+nuevo, el mismo recurso de (3), (3b), (4) y (5).
+
+**⚠️ EL ALCANCE NO ES EL MISMO PARA LAS CUATRO, y por eso la marca es por fila.** Medido con
+prótesis y nada cargado:
+
+| | EN SUMA antes | |
+|---|---|---|
+| **mitral** | «Estudio sin alteraciones…» | ← se cierra |
+| **tricúspide** | «Estudio sin alteraciones…» | ← **MISMO DEFECTO, SIN CERRAR** |
+| aórtica | «Sin OTRAS alteraciones… ver el cuerpo» | ya marcaba párrafo |
+| pulmonar | «Sin OTRAS alteraciones… ver el cuerpo» | ya marcaba párrafo |
+
+Un `reusar` incondicional le cambiaba el EN SUMA a la **aórtica**, que el pedido prohíbe tocar.
+De ahí `reusaSinEvidencia:true` como dato de la fila (idioma de `soloHoja`): cerrar la tricúspide
+es una palabra.
+
+### ⚠️ LA COMPUERTA (1) CORRE ANTES DE LA (2), y mi primera versión duplicaba la línea
+
+`V.mide` **no incluye ningún parámetro de regurgitación** —es la lista de estenosis y DVI— así que
+una prótesis mitral con la VC medida tiene `hayEvidencia === false`. El `reusar` de (1) empujaba la
+línea del cuerpo **debajo** del «IM severa.» que el narrativo ya había puesto:
+
+```
+IM severa.
+Válvula mitral con prótesis mecánica, con insuficiencia severa.
+```
+
+Dos renglones diciendo lo mismo en el papel firmado. **No lo vio la lectura: lo vio el control byte
+a byte de los once escenarios.** Cerrado subiendo el cómputo de `yaEnSuma` —lectura pura de `suma`,
+ninguna rama la modifica entre los dos puntos— y gateando el rescate con `!yaEnSuma`.
+
+### ⚠️ TC-45 FIJABA LA PREMISA CONTRARIA, CON UNA DECISIÓN ESCRITA — es lo único a confirmar
+
+Se llamaba «la vena contracta sola no puede declarar severa — hacen falta dos criterios» y su
+comentario decía, textual: *«son necesarios dos severos, o uno severo y uno moderado. **Es la
+evaluación integrada de la ESC y es deliberada**»*. Se derogó a propósito, por tres razones, y
+queda escrito para que revertir sea un commit y no una arqueología:
+
+1. **La cita no existe.** «La evaluación integrada de la ESC» no lleva guía, año ni tabla. La ASE
+   integra cualitativo y cuantitativo y **no publica ninguna regla de recuento de votos**.
+2. **El comentario describe cómo se escribió el caso, no una decisión clínica.** Su última oración
+   dice que el primer borrador suponía que la VC de 8 mm bastaba y se reescribió al ver la app; y
+   el commit que lo creó (`c9d44c6`) se titula «suite completo **generado automáticamente**» y
+   declara que cada caso se verificó «contra la salida real de la app corrida en Chrome». Es el
+   literal de oro de TC-288, TC-289, TC-31 y TC-87.
+3. **Se contradecía con la condición de al lado**: aceptaba «VC 5 → moderada», que llegaba por
+   **ese mismo `else`**. Si el `else` es una regla, no puede ser a la vez el cajón de sastre.
+
+Y lo que de verdad decide: **el hedge «— evaluar integrado» vive sólo en el badge de pantalla**. El
+informe firmado y el EN SUMA decían «IM moderada» a secas.
+
+### ⚠️ LO QUE ESTE CAMBIO EMPEORA, DICHO COMO ES — tres consecuencias medidas
+
+Las tres son del mismo mecanismo: con `severa >= 1`, **un voto severo pasa a ser irrebatible**, y
+antes era uno entre varios.
+
+- **⚠️ LA ONDA S VOTA `severa` Y NO ENTRA EN `params`, ASÍ QUE LA DISCORDANCIA QUEDA MUDA.** Los
+  otros cinco votantes hacen `scores.X++` **y** `params.push`; la onda S sólo lo primero, y
+  `_sevsDisc` se arma de `params`. Medido:
+
+  | escenario | grado | fila de discordancia |
+  |---|---|---|
+  | VC **2 mm** (leve) + onda S invertida | **4 «IM severa.»** | **(vacío)** |
+  | VC 2 + jet 10 % + onda S invertida | **4 «IM severa.»** | **(vacío)** |
+  | *control:* VC 2 + jet 45 % (los dos en `params`) | 4 | «⚠️ Parámetros discordantes: VC:leve, Jet/AI:severa» |
+
+  O sea: el informe firmado dice «IM severa» sobre una vena contracta de 2 mm y la única superficie
+  que podía delatarlo está muda **por construcción**. Antes caía en «Moderada — evaluar integrado».
+  **El arreglo de una línea es que `_sevsDisc` vea el voto de la onda S** —sin meterla en `params`,
+  que rompería el gate «una válvula que nadie cuantificó no recibe severidad»—. No se aplicó por el
+  «SOLO dos arreglos» del pedido. **Es lo primero a decidir.**
+- **El jet/AI vota severa desde 40 % y la Tabla 13 pone el corte en >50 %** (censo del 2026-09-29).
+  Con `severa >= 1`, un jet de 45 % **solo** pasa de «Moderada» a «IM severa». Cuatro de las once
+  combinaciones que se mueven están impulsadas por esa ventana. Lo cierra el prompt del jet.
+- **Ningún votante tiene banda de plausibilidad** (`im_vc`, `im_jet_area`, `im_ai_area`, `pisa_r`,
+  `pisa_val`, `im_vmax`, `im_itv`). Antes un valor ilegible aportaba un voto entre varios; ahora
+  aporta el veredicto: área del jet en mm² (600) sobre AI en cm² (20) → 3000 % → **IM severa**.
+
+### Declarado y NO tocado
+
+- **`calcIA_ESC` (insuficiencia AÓRTICA) y `calcIT_ESC` (tricuspídea) tienen la cascada IDÉNTICA**
+  —líneas 22933 y 23617—, con el mismo `else` fail-open. **Lo encontró el `assert` del script de
+  mutación**, que frenó dos mutaciones al ver que el ancla aparecía tres veces. La aórtica está
+  prohibida por el pedido; la tricúspide queda fuera del «SOLO». Ninguna de las dos lleva la
+  cláusula muerta: ésa era exclusiva de la mitral.
+- **El rescate apaga el puntero «ver los hallazgos descritos en el cuerpo».** El fallback tiene dos
+  formas y al empujar la línea mitral se apagan las dos. Medido: prótesis mitral sin nada **+**
+  `ai_diam` fuera de banda (que marca párrafo sin empujar a `suma`) da «Válvula mitral con prótesis
+  mecánica.» donde antes daba «Sin otras alteraciones… ver los hallazgos descritos en el cuerpo».
+  El resumen dejó de negar —eso mejoró— y dejó de mandar a leer el cuerpo. Arreglarlo es sacar la
+  decisión del puntero de adentro del `suma.length === 0`, que toca a todos los estudios.
+- **`reusaSinEvidencia` tiene el default en el lado inseguro**: una fila nueva que no lo declare, o
+  un typo, vuelve a «Estudio sin alteraciones» sin un solo error. El opt-out (`sinRescate`) o un
+  assert de arranque sobre `VALVS` lo invertirían.
+- **Si `yaEnSuma` da un falso positivo** —`yaDicho` usa la palabra suelta `'mitral'`— el rescate no
+  dispara y se vuelve al comportamiento de hoy, no a uno peor. Barridos los ~50 `suma.push` del
+  archivo: hoy ninguna línea ajena matchea los tokens mitrales.
+- **`else` mudo de `im_onda_s`**: una opción nueva con `value` no vacío cae en `severa`, y ahora eso
+  es el veredicto. Latente.
+
+### Verificación
+
+**Denominador declarado.** Once escenarios de control con hash FNV-1a **y longitud** de informe,
+EN SUMA y **la fila completa del Excel**: **nueve idénticos byte a byte** —estudio vacío, IM nativa
+leve/moderada/severa, prótesis mitral con parámetros normales, prótesis aórtica, pulmonar y
+tricúspide sin nada, y EM nativa severa— y los dos que cambian son exactamente los dos bugs. El
+EN SUMA nuevo mueve **1 de las 433 columnas del Excel**, la suya, verificado aislando el texto.
+
+**Suite 327/328**, único rojo **TC-223**, el documentado y **ya rojo en la corrida de línea base
+antes de tocar nada**. Semgrep **125 / 0 ERROR**, el mismo número exacto que HEAD (corrido sobre
+los dos). `detectar_huerfanos.py` sin huérfanos nuevos. `check_mobile` en los 2 ALTA de siempre.
+
+**Ocho mutaciones, siete en rojo y cada una en SU condición**, con el valor medido en el
+diagnóstico: la cascada revertida (`grado=2`), `severa >= 2` a secas, la banda moderada colapsada
+(`badge=«Moderada»`), el rescate revertido, el rescate sin `!yaEnSuma` —que imprime la duplicación
+literal—, el rescate sin la marca de fila (caen los tres denominadores negativos) y la marca
+borrada de la fila mitral. **La octava sobrevive y está declarada**: reintroducir la cláusula
+muerta es un mutante equivalente, porque desde la rama 1 `severa === 0` siempre.
+
+**Dos rojos colaterales EXPLICADOS y no dados por buenos**: las mutaciones de la cascada también
+tiran una condición de TC-313 —«esa línea es la del grado»— porque con el veredicto degradado el
+resumen dice «IM moderada.» en vez de «IM severa.». Es dependencia legítima, no ruido.
+
 ## Mitral: el panel PISA arrastraba el dato de otro paciente (2026-09-29)
 
 Cierra lo que `98672cb` dejó declarado: los dos span del panel «🖨️ Incluir en el informe» del bloque

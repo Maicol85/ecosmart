@@ -22679,10 +22679,33 @@ function calcIM_ESC() {
 
   if (params.length === 0) return;
   let sevBadge, gradoVal;
-  if (scores.severa >= 2 || (scores.severa === 1 && scores.moderada >= 1)) {
+  /* ⚠️ UN SOLO PARÁMETRO EN SEVERA BASTA, y antes NO bastaba: caía en el `else` mudo del final y
+     se publicaba «Moderada». Medido con el caso del censo —prótesis mitral, vena contracta 8 mm y
+     nada más—: la VC votaba `severa`, `moderada` quedaba en 0, ninguna de las tres primeras ramas
+     matcheaba y el informe firmado y el EN SUMA salían «IM moderada» sobre una VC que la ASE 2024
+     (Tabla 13, JASE 2024;37(1):2-63, p. 30) clasifica como SEVERA a partir de 0,7 cm. Es el
+     `else` fail-open que este archivo ya documenta para `epGradoPorGmax` y para `avaEsSevera`:
+     la última rama de una cascada sin predicado se come lo que ninguna clasificó, y acá se lo
+     comía hacia el lado tranquilizador.
+     ⚠️ NO ES UN DEFECTO PROTÉSICO: reproducido byte a byte con `vm_morf = Reumática`. Ninguna
+     función de esta cascada lee la morfología, así que el arreglo vale para las dos — que es lo
+     que corresponde, porque los cortes de la Tabla 13 para vena contracta, EROA, volumen y
+     fracción regurgitante son IDÉNTICOS a los nativos.
+     ⚠️ Y LA SEGUNDA CLÁUSULA DEL `else if` ERA CÓDIGO MUERTO. `(moderada === 1 && severa === 1)`
+     no se alcanzaba nunca: ese estado ya matcheaba `severa === 1 && moderada >= 1` en la
+     condición de arriba. Se lee como si tratara un empate y lo que hacía era nada.
+     EL CAMBIO ES EXACTAMENTE UN CASO, y está medido sobre las 64 combinaciones de los tres
+     parámetros independientes (VC, jet/AI y onda S pulmonar): sólo se mueve
+     `severa >= 1 && moderada === 0`, que pasa de «Moderada» a «Severa» — once de las 64. Las
+     otras 53 salen idénticas, incluidas las tres bandas de «Leve» y el «Moderada — evaluar
+     integrado» de un único voto moderado, que conserva su texto y su color. */
+  if (scores.severa >= 1) {
     sevBadge = badge('red','Severa'); gradoVal = '4';
-  } else if (scores.moderada >= 2 || (scores.moderada === 1 && scores.severa === 1)) {
+  } else if (scores.moderada >= 2) {
     sevBadge = badge('orange','Moderada'); gradoVal = '2';
+  /* `scores.severa === 0` es REDUNDANTE desde que la primera rama se lleva todo `severa >= 1`, y
+     se conserva declarándolo: es lo que hace que esta banda siga fallando cerrada el día que
+     alguien afloje la condición de arriba. Ninguna mutación la distingue. */
   } else if (scores.leve >= 1 && scores.moderada === 0 && scores.severa === 0) {
     sevBadge = badge('green','Leve'); gradoVal = '1';
   } else {
@@ -27825,9 +27848,13 @@ function generarInforme(opts) {
       return String(f.presenta || '').replace(/^una\s+/, '').replace(/^prótesis\s*/i, '') || null;
     };
     const VALVS = [
+      /* `reusaSinEvidencia` — ver la compuerta (1) más abajo. Va como DATO de la fila y no como un
+         `V.morf === 'vm_morf'` suelto dentro del bucle: el alcance queda declarado al lado de la
+         válvula a la que pertenece, y sumar la tricúspide el día que se decida es una palabra y no
+         un cambio de código. Es el idioma de `soloHoja` y de `PROT_SIN_GRADO_VALVS`. */
       { adj:'mitral',      morf:'vm_morf', mide:['em_gmedio','avm_plan','avm_cont','avm_thp','avm_ete','vm_dvi'],
         yaDicho:['EM ','IM ','Estenosis mitral','Insuficiencia mitral','mitral'],
-        enCuerpo:['VM','Válvula mitral','La válvula mitral'] },
+        enCuerpo:['VM','Válvula mitral','La válvula mitral'], reusaSinEvidencia:true },
       { adj:'aórtica',     morf:'va_morf', mide:['gmedio_ao','vmax_ao','ava_cont','ea_dvi_display','va_at','ete_tavi_gmedio','ete_tavi_vmax'],
         yaDicho:['EAo','IAo','Estenosis aórtica','Insuficiencia aórtica','TAVI','RPV','aórtica'],
         enCuerpo:['VAo','Válvula aórtica','La válvula aórtica'] },
@@ -27911,16 +27938,50 @@ function generarInforme(opts) {
       const tipo = tipoDe(morf);
       if (!tipo) return;                      // opción nueva sin frase: no se inventa una etiqueta
       const base = 'Prótesis ' + V.adj + ' ' + tipo;
-      /* (1) Sin un solo parámetro medido NO se afirma nada: ni que funciona bien ni que no. */
-      const hayEvidencia = V.mide.some(medido);
-      if (!hayEvidencia) return;
+      /* (1) Sin un solo parámetro medido NO se afirma nada: ni que funciona bien ni que no.
+         ⚠️ PERO CALLARSE TAMPOCO ES GRATIS, Y ACÁ EL `return` PELADO NEGABA. Con una prótesis
+         mitral y CERO parámetros medidos —elegir la prótesis en Válvulas y no cargar gradiente ni
+         área, que es el caso de todos los días— esta compuerta salía sin empujar nada, `suma`
+         quedaba vacío y el fallback publicaba «Estudio sin alteraciones estructurales ni
+         funcionales significativas» sobre una prótesis mecánica, en la superficie que se copia al
+         resumen de alta y mientras el cuerpo, dos párrafos más arriba, decía «Válvula mitral con
+         prótesis mecánica.». Es exactamente la negación tranquilizadora que este bloque entero
+         existe para evitar, entrando por la puerta de un `return` temprano — el mismo defecto que
+         la guarda (3b) ya había tenido que cerrar tres compuertas más abajo.
+         NO SE AGREGA UNA PALABRA: `reusar` empuja LA LÍNEA QUE EL CUERPO YA IMPRIMIÓ, igual que
+         hacen (3), (3b), (4) y (5). Por construcción no puede contradecir al cuerpo, y con `suma`
+         ya no vacío el fallback no corre.
+         Si no hubiera línea de cuerpo que reusar, `reusar` devuelve `false` y NO se inventa
+         ninguna: se vuelve al comportamiento de hoy. Con prótesis mitral esa rama no es
+         alcanzable —`vmSent` se arma siempre en la rama protésica del narrativo— y por eso no
+         lleva frase de respaldo, a diferencia de (3b), donde sí hay válvulas que pueden quedar
+         sin línea.
+         ⚠️ ALCANCE MEDIDO, y NO es el mismo para las cuatro. Con prótesis y nada medido:
+           · mitral     → «Estudio sin alteraciones…»          ← el defecto, se cierra acá
+           · tricúspide → «Estudio sin alteraciones…»          ← EL MISMO DEFECTO, SIN CERRAR
+           · aórtica    → «Sin OTRAS alteraciones… ver el cuerpo»   (ya marcaba párrafo)
+           · pulmonar   → «Sin OTRAS alteraciones… ver el cuerpo»   (ya marcaba párrafo)
+         Por eso la marca es por fila y no un `if` global: un `reusar` incondicional acá le
+         cambiaría el EN SUMA a la AÓRTICA, que el pedido prohíbe tocar, y a la pulmonar, que no
+         está rota. La tricúspide queda DECLARADA y sin tocar por el «SOLO» del pedido: cerrarla
+         es agregarle `reusaSinEvidencia:true` a su fila y una condición al caso. */
       /* (2) Si el resumen ya habla de esta válvula, la conducta la describe esa línea. Se compara
          sobre lo que hay en `suma` en este momento — el bloque corre último, después de todos los
-         `suma.push` de las válvulas, y por eso puede preguntarlo. */
+         `suma.push` de las válvulas, y por eso puede preguntarlo.
+         ⚠️ SE COMPUTA ANTES DE (1) PORQUE (1) TAMBIÉN LA NECESITA, y no haberlo hecho fue un
+         defecto de la primera versión de este arreglo que cazó el control byte a byte: `V.mide`
+         NO incluye ningún parámetro de regurgitación —es la lista de estenosis y DVI— así que una
+         prótesis mitral con la vena contracta medida y nada más tiene `hayEvidencia === false`, y
+         el `reusar` de (1) empujaba la línea del cuerpo DEBAJO del «IM severa.» que el narrativo
+         ya había puesto. El EN SUMA salía con dos renglones diciendo lo mismo.
+         Subirla es neutral para las otras tres: es una lectura PURA de `suma` y ninguna rama la
+         modifica entre los dos puntos. */
       const yaEnSuma = suma.some(function(l){
         const t = String(l || '');
         return V.yaDicho.some(function(k){ return t.indexOf(k) > -1; });
       });
+      const hayEvidencia = V.mide.some(medido);
+      if (!hayEvidencia) { if (V.reusaSinEvidencia && !yaEnSuma) reusar(V); return; }
       if (yaEnSuma) return;                   // ya hay una línea de esta válvula: no se contradice
       /* (3) EL CUERPO YA AFIRMÓ UNA CONDUCTA. No se resume al revés de lo que dice el informe. */
       if (cuerpoAfirma(V)) { reusar(V); return; }
@@ -83500,8 +83561,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260928-1750';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790628645402;                 /* eco-build-ms */
+const ECO_BUILD    = '20260928-2319';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790648340273;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -83587,7 +83648,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-1750</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260928-2319</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
