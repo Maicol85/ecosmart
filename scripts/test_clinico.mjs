@@ -30303,7 +30303,7 @@ caso('TC-281', 'El PDF firmado no imprime una medicion ilegible, y borra la fila
    · sin area medida se publicaba Clase I salteando la primera contraindicacion de la tabla.
    · la insuficiencia mitral mas que leve es contraindicacion y la app ya tiene el campo.
    · el trombo sin contestar y la sospecha salian como nota gris bajo un titular verde. */
-const EM_IDS = "['em_grado','avm_plan','avm_ete','avm_cont','avm_thp','psap_calc'," +
+const EM_IDS = "['em_grado','vm_morf','avm_plan','avm_ete','avm_cont','avm_thp','psap_calc'," +
   "'wilkins_movilidad','wilkins_engrosamiento','wilkins_calcificacion','wilkins_subvalvular'," +
   "'oai_trombo','im_sev_final','peso','talla']";
 const EM_CLAVES = "['em.score','em.trombo','em.sintomas','em.clin','em.riesgo','em.embolico','em.decomp']";
@@ -30346,13 +30346,16 @@ caso('TC-282', 'Estenosis mitral: el doble mecanismo lee del ETE o se contesta, 
     /* AVm 1,20 cm² abre la seccion por area, sin tocar la pastilla em_grado: tipear un area
        dispara calcEM, que reescribe el grado, asi que apoyarse en la pastilla obliga a fijarla al
        final y el escenario deja de decir que prueba. */
-    const B = { avm_plan:'1.2', peso:'80', talla:'180' };
+    /* vm_morf REUMATICA en la base: desde la compuerta de etiologia (2026-09-29) la cascada de
+       comisurotomia solo aplica a esa etiologia, asi que sin esto los escenarios de abajo caen en
+       la rama que pide la morfologia y el caso mediria otra cosa. Lo prueba TC-323. */
+    const B = { vm_morf:'Reum\u00e1tica', avm_plan:'1.2', peso:'80', talla:'180' };
     const esc = (campos, marcas) => { indicCerrar(); limpiar(); set(Object.assign({}, B, campos));
       indicAbrir(); Object.keys(marcas || {}).forEach(k => clic(k, marcas[k])); };
     /* Con la pastilla forzada al final, para los escenarios donde el area no puede abrir la
        seccion: sin medir, o fuera de rango medible. */
     const escGrado = (campos, marcas) => { indicCerrar(); limpiar();
-      set(Object.assign({ peso:'80', talla:'180' }, campos)); set({ em_grado:'severa' });
+      set(Object.assign({ vm_morf:'Reum\u00e1tica', peso:'80', talla:'180' }, campos)); set({ em_grado:'severa' });
       indicAbrir(); Object.keys(marcas || {}).forEach(k => clic(k, marcas[k])); };
     const SIN_TROMBO = { 'em.trombo':'no' };
 
@@ -30714,6 +30717,269 @@ caso('TC-282', 'Estenosis mitral: el doble mecanismo lee del ETE o se contesta, 
       try { indicCerrar(); limpiar();
         if (typeof indicSyncBoton === 'function') indicSyncBoton(); } catch (e) {}
     }
+  })();
+`);
+
+/* ══ ESTENOSIS MITRAL — LAS TRES CORRECCIONES DEL 2026-09-29 — TC-323 ════════════════════════
+   Las tres salen del censo clinico contra la ESC/EACTS 2025 y las tres las decidio Maicol:
+
+   1. LA CMP ES DE LA ESTENOSIS REUMATICA. Las cinco filas viven en el capitulo de esa etiologia,
+      la figura de manejo y la tabla de contraindicaciones lo dicen en su titulo, y el texto agrega
+      que la degenerativa no es susceptible del procedimiento porque no hay fusion comisural. La
+      seccion no miraba vm_morf: con Calcificada y AVm 1,2 publicaba la cascada entera.
+      TRES estados y no dos --«Normal» es el valor de fabrica del desplegable, no una etiologia--
+      y los dos que cortan lo hacen por motivos DISTINTOS. Sin esa distincion, el mensaje manda a
+      revisar lo que esta sano.
+   2. «VARIAS DE LAS SIGUIENTES» NO ES UNA. El control era Ninguna/Alguna, asi que un solo factor
+      --edad avanzada-- rutéaba a desfavorable y, sin riesgo quirurgico alto, a CIRUGIA. El umbral
+      de 2 es de la APLICACION, la guia no da numero, y por eso se declara en las tres superficies.
+   3. DOS FILAS DE LA MISMA TABLA. Clinica favorable + score >8 + riesgo alto cumple sint_subopt
+      (IIa C) Y la fila general «cualquier paciente sintomatico con contraindicacion o riesgo alto»
+      (I C). Se publican las dos, cada una con su clase y su corchete. Publicar solo la IIa
+      --que es lo que hacia-- sub-declara la fuerza de la indicacion.
+
+   ⚠️ LAS DOS CITAS LLEVAN EL MISMO NUMERO Y ESO ES LO CORRECTO: el numero identifica al DOCUMENTO
+   y son dos renglones de la misma tabla. Darles numeros distintos exigiria dos entradas en
+   IND_REFS para el mismo documento, que es el modo de falla que ese registro declara. */
+caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declarado y dos filas con su cita', `
+  return (async () => {
+    if (typeof indicAbrir !== 'function' || typeof window._indEM !== 'function')
+      return { extra:[['existen indicAbrir y _indEM', false, '']] };
+    const IDS = ['em_grado','vm_morf','avm_plan','avm_ete','avm_cont','avm_thp','psap_calc',
+      'wilkins_movilidad','wilkins_engrosamiento','wilkins_calcificacion','wilkins_subvalvular',
+      'oai_trombo','im_sev_final','peso','talla'];
+    const limpiar = () => IDS.forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+    const noEntraron = [];
+    const set = o => Object.keys(o).forEach(id => { const e = document.getElementById(id);
+      if (!e) { noEntraron.push('FALTA ' + id); return; }
+      e.value = o[id];
+      e.dispatchEvent(new Event('input', { bubbles:true }));
+      e.dispatchEvent(new Event('change', { bubbles:true }));
+      if (e.value !== String(o[id])) noEntraron.push(id + '=' + JSON.stringify(o[id])); });
+    const sinClic = [];
+    const clic = (k, v) => { const b = document.querySelector('#indic-cuerpo [data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
+      if (!b) { sinClic.push(k + '=' + v); return false; } b.click(); return true; };
+    const rec = () => { const s = window._indEM(); return (s && s.recom) ? s.recom : null; };
+    const pl = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const B = { avm_plan:'1.2', peso:'80', talla:'180' };
+    const esc = (campos, marcas) => { indicCerrar(); limpiar(); set(Object.assign({}, B, campos));
+      indicAbrir(); Object.keys(marcas || {}).forEach(k => clic(k, marcas[k])); };
+    const SIN = { 'em.trombo':'no' };
+    const REU = { vm_morf:'Reum\u00e1tica' };
+    /* Score favorable puntuado en ETE: 2+2+2+2 = 8, el borde exacto (el corte es > 8). */
+    const W8  = { wilkins_movilidad:'2', wilkins_engrosamiento:'2', wilkins_calcificacion:'2', wilkins_subvalvular:'2' };
+    const W10 = { wilkins_movilidad:'3', wilkins_engrosamiento:'3', wilkins_calcificacion:'2', wilkins_subvalvular:'2' };
+
+    try {
+      const ex = [];
+
+      // ══ 1 · COMPUERTA DE ETIOLOGIA ══════════════════════════════════════════════════════
+      esc(Object.assign({}, REU, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN));
+      const rReu = rec();
+      esc(Object.assign({ vm_morf:'Calcificada' }, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN));
+      const rCal = rec();
+      const secCal = window._indEM();
+      ex.push(['DENOMINADOR: con etiologia REUMATICA y el mismo AVm la cascada SI publica conducta',
+        !!rReu && rReu.tipo === 'ind' && rReu.clase === 'Clase I \u00b7 Nivel B',
+        rReu ? (rReu.tipo + ' / ' + rReu.clase) : 'null']);
+      ex.push(['con CALCIFICADA la cascada de comisurotomia NO se ofrece, y el motivo es la fusion comisural',
+        !!rCal && rCal.tipo === 'no' && pl(rCal.txt).indexOf('no es reumatica') > -1 &&
+        pl(rCal.txt).indexOf('fusion comisural') > -1,
+        rCal ? (rCal.tipo + ' / ' + String(rCal.txt).slice(0, 110)) : 'null']);
+      ex.push(['y la seccion sigue mostrando sus mediciones: lo que no aplica es la tabla, no el estudio',
+        !!secCal && (secCal.filas || []).length >= 5 &&
+        (secCal.filas || []).some(f => f.lbl.indexOf('AVm') > -1),
+        'filas=' + ((secCal && secCal.filas) ? secCal.filas.length : -1)]);
+
+      /* ⚠️ «Normal» es el valor de fabrica y NO es una etiologia: corta igual, con otro motivo. */
+      esc(Object.assign({ vm_morf:'Normal' }, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN));
+      const rNor = rec();
+      ex.push(['sin morfologia consignada se PIDE en vez de concluir, y el motivo DIFIERE del de la degenerativa',
+        !!rNor && rNor.tipo === 'falta' &&
+        (rNor.faltan || []).some(f => pl(f).indexOf('morfologia de la valvula mitral') > -1) &&
+        pl(rNor.txt).indexOf('valor de fabrica') > -1 &&
+        (!rCal || pl(rNor.txt) !== pl(rCal.txt)),
+        rNor ? (rNor.tipo + ' / ' + (rNor.faltan || []).join(' | ')) : 'null']);
+
+      /* Una protesis mitral entra a esta seccion por el area medida y tampoco es candidata. */
+      esc(Object.assign({ vm_morf:'Pr\u00f3tesis mec\u00e1nica' }, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN));
+      const rPro = rec();
+      ex.push(['una protesis mitral tampoco recibe la cascada de comisurotomia',
+        !!rPro && rPro.tipo === 'no', rPro ? rPro.tipo : 'null']);
+
+      // ══ 2 · «VARIAS» NO ES UNA ══════════════════════════════════════════════════════════
+      esc(Object.assign({}, REU, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'una' }, SIN));
+      const rUna = rec();
+      esc(Object.assign({}, REU, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'desfav', 'em.riesgo':'no_alto' }, SIN));
+      const rDos = rec();
+      ex.push(['UN solo factor clinico ya NO rutea a desfavorable: sigue siendo la fila que afirma la ausencia',
+        !!rUna && rUna.tipo === 'ind' && rUna.clase === 'Clase I \u00b7 Nivel B',
+        rUna ? (rUna.tipo + ' / ' + rUna.clase) : 'null']);
+      ex.push(['y el factor NO desaparece: la recomendacion lo declara y dice que el umbral es de la app',
+        !!rUna && pl(rUna.nota || '').indexOf('un factor clinico desfavorable') > -1 &&
+        pl(rUna.nota).indexOf('criterio de la aplicacion') > -1,
+        rUna ? String(rUna.nota || 'SIN NOTA').slice(0, 130) : 'null']);
+      ex.push(['DOS o mas rutean como antes: sin riesgo quirurgico alto, la fila es la de CIRUGIA',
+        !!rDos && rDos.tipo === 'ind' && pl(rDos.txt).indexOf('cirug') > -1 &&
+        pl(rDos.txt).indexOf('no es candidato') > -1,
+        rDos ? String(rDos.txt).slice(0, 110) : 'null']);
+      ex.push(['DENOMINADOR: las dos respuestas dan recomendaciones DISTINTAS',
+        !!rUna && !!rDos && rUna.txt !== rDos.txt, 'una=' + (rUna ? rUna.clase : '?') + ' dos=' + (rDos ? rDos.clase : '?')]);
+
+      // ══ 3 · DOS FILAS DE LA MISMA TABLA ═════════════════════════════════════════════════
+      esc(Object.assign({}, REU, W10), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav', 'em.riesgo':'alto' }, SIN));
+      const rDob = rec();
+      const secDob = window._indEM();
+      ex.push(['con anatomia subobtima y riesgo alto se publican LAS DOS filas, cada una con su clase',
+        !!rDob && rDob.clase === 'Clase IIa \u00b7 Nivel C' && !!rDob.mod &&
+        rDob.mod.clase === 'Clase I \u00b7 Nivel C' && pl(rDob.mod.txt).indexOf('cualquier paciente sintomatico') > -1,
+        rDob ? (rDob.clase + ' + ' + (rDob.mod ? rDob.mod.clase : 'SIN SEGUNDA')) : 'null']);
+      ex.push(['la segunda NO se rotula como modalidad y explica por que aplican las dos',
+        !!rDob && !!rDob.mod && rDob.mod.tit === 'Tambi\u00e9n aplica' &&
+        pl(rDob.mod.nota || '').indexOf('dos filas') > -1 &&
+        pl(rDob.mod.nota).indexOf('no dice cual prevalece') > -1,
+        rDob && rDob.mod ? (rDob.mod.tit + ' / ' + String(rDob.mod.nota || '').slice(0, 90)) : 'null']);
+      ex.push(['las dos citan por CLAVE del registro, y la clave esta registrada',
+        !!rDob && rDob.ref === 'esc2025vc' && !!rDob.mod && rDob.mod.ref === 'esc2025vc' &&
+        _indRefNum('esc2025vc') != null,
+        rDob ? ('ref=' + rDob.ref + ' modRef=' + (rDob.mod ? rDob.mod.ref : '-') + ' n=' + _indRefNum('esc2025vc')) : 'null']);
+
+      /* El corchete tiene que estar DIBUJADO, no solo en el objeto. Se cuenta dentro de la seccion
+         de estenosis mitral para no sumar los de las otras. */
+      const secDe = lbl => Array.prototype.filter.call(
+        document.querySelectorAll('#indic-cuerpo > details'),
+        d => { const su = d.querySelector('summary'); return !!su && su.textContent === lbl; })[0] || null;
+      const dDob = secDe('Estenosis mitral');
+      const nDob = dDob ? dDob.querySelectorAll('[data-ind-ref]').length : -1;
+      esc(Object.assign({}, REU, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN));
+      const dUno = secDe('Estenosis mitral');
+      const nUno = dUno ? dUno.querySelectorAll('[data-ind-ref]').length : -1;
+      ex.push(['los dos corchetes se DIBUJAN: con dos filas hay uno mas que con una',
+        nDob === 3 && nUno === 2, 'dos filas=' + nDob + ' una fila=' + nUno]);
+
+      /* Sin contestar el riesgo quirurgico no se inventa la segunda fila: se dice que quedo sin
+         evaluar. Es la mitad que impide que el desdoble se lea como automatico. */
+      esc(Object.assign({}, REU, W10), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN));
+      const rSinRq = rec();
+      esc(Object.assign({}, REU, W10), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav', 'em.riesgo':'no_alto' }, SIN));
+      const rNoAlto = rec();
+      ex.push(['sin contestar el riesgo quirurgico NO aparece la segunda fila, y se declara que no se evaluo',
+        !!rSinRq && !rSinRq.mod && pl(rSinRq.nota || '').indexOf('sin contestar') > -1,
+        rSinRq ? String(rSinRq.nota || 'SIN NOTA').slice(0, 110) : 'null']);
+      ex.push(['con riesgo NO alto tampoco: la fila general no aplica',
+        !!rNoAlto && !rNoAlto.mod && rNoAlto.clase === 'Clase IIa \u00b7 Nivel C',
+        rNoAlto ? (rNoAlto.clase + ' mod=' + (rNoAlto.mod ? 'SI' : 'no')) : 'null']);
+
+      /* ══ LO QUE LA COMPUERTA NO PUEDE TAPAR (hallazgos de /sharp-edges sobre este mismo diff) ══
+         ⚠️ LA PRIMERA VERSION PUSO LA COMPUERTA ARRIBA DE TODO Y DEGRADABA LA ALARMA DE TROMBO A
+         «falta un dato» EN EL ESTADO DE FABRICA. El trombo pide anticoagulacion por su cuenta, con
+         independencia de que el procedimiento este descartado, y eso vale sea la valvula reumatica,
+         degenerativa o protesica. Se prueban los tres. */
+      esc({ vm_morf:'Normal', oai_trombo:'si' }, { 'em.sintomas':'si', 'em.clin':'fav' });
+      const rTrNor = rec();
+      esc({ vm_morf:'Calcificada', oai_trombo:'si' }, { 'em.sintomas':'si', 'em.clin':'fav' });
+      const rTrCal = rec();
+      esc({ vm_morf:'Pr\u00f3tesis mec\u00e1nica', oai_trombo:'si' }, { 'em.sintomas':'si', 'em.clin':'fav' });
+      const rTrPro = rec();
+      ex.push(['sin morfologia consignada, el trombo confirmado sigue siendo la ALARMA y no «falta un dato»',
+        !!rTrNor && rTrNor.tipo === 'alarma' && pl(rTrNor.tit).indexOf('trombo confirmado') > -1,
+        rTrNor ? (rTrNor.tipo + ' / ' + rTrNor.tit) : 'null']);
+      ex.push(['con etiologia NO reumatica tampoco se tapa: el trombo manda igual',
+        !!rTrCal && rTrCal.tipo === 'alarma' && !!rTrPro && rTrPro.tipo === 'alarma',
+        'calcificada=' + (rTrCal ? rTrCal.tipo : '?') + ' protesis=' + (rTrPro ? rTrPro.tipo : '?')]);
+      /* Y las contraindicaciones evaluables tampoco: el area por encima del corte sigue cortando
+         antes que la morfologia sin consignar. */
+      esc({ vm_morf:'Normal', em_grado:'severa', avm_plan:'1.8' }, { 'em.sintomas':'si', 'em.clin':'fav', 'em.trombo':'no' });
+      const rAreaNor = rec();
+      ex.push(['sin morfologia consignada, la contraindicacion por area sigue siendo el titular',
+        !!rAreaNor && rAreaNor.tipo === 'no' && pl(rAreaNor.txt).indexOf('contraindicacion') > -1,
+        rAreaNor ? (rAreaNor.tipo + ' / ' + String(rAreaNor.txt).slice(0, 100)) : 'null']);
+
+      /* ⚠️ EL MOTIVO SE NOMBRA POR MORFOLOGIA. Ocho opciones caen en «otra» y solo una es
+         degenerativa: con un texto unico, una protesis obstruida recibia un razonamiento sobre
+         estenosis degenerativa y se le ofrecia el implante transcateter para calcificacion anular,
+         que no le toca. */
+      esc({ vm_morf:'Pr\u00f3tesis mec\u00e1nica' }, Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN));
+      const rProt = rec();
+      esc({ vm_morf:'Calcificada' }, Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN));
+      const rCalc = rec();
+      ex.push(['a una protesis NO se le ofrece el implante transcateter de la calcificacion anular',
+        !!rProt && pl(rProt.txt).indexOf('protesis mitral no aplica ninguna fila') > -1 &&
+        pl(rProt.txt).indexOf('calcificacion anular extensa') === -1,
+        rProt ? String(rProt.txt).slice(60, 200) : 'null']);
+      ex.push(['y a la calcificada SI, que es la etiologia para la que la guia la escribe',
+        !!rCalc && pl(rCalc.txt).indexOf('calcificacion anular extensa') > -1 &&
+        rCalc.txt !== (rProt ? rProt.txt : null),
+        rCalc ? String(rCalc.txt).slice(60, 200) : 'null']);
+      ex.push(['el bloque que transcribe una clase en prosa CITA su documento con corchete',
+        !!rCalc && rCalc.ref === 'esc2025vc' && !rCalc.clase,
+        rCalc ? ('ref=' + rCalc.ref + ' clase=' + rCalc.clase) : 'null']);
+
+      /* ⚠️ LOS AVISOS SE CONCATENAN. Como etio == null es el estado de fabrica, un ternario
+         encadenado dejaba el aviso de unidades sin pintarse en la mayoria de los estudios. */
+      /* avm_cont y NO avm_thp: de las cuatro fuentes solo planimetria y continuidad tienen banda
+         de plausibilidad declarada, asi que un 150 en el THP no es «fuera de rango» sino una
+         discordancia — y la condicion mediria otro aviso. */
+      esc({ vm_morf:'Normal', avm_cont:'150' }, Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN));
+      const avNor = (window._indEM() || {}).aviso || '';
+      ex.push(['el aviso de etiologia NO se come el de unidades: se ven los dos',
+        pl(avNor).indexOf('no esta consignada') > -1 && pl(avNor).indexOf('fuera de rango medible') > -1,
+        avNor.slice(0, 170)]);
+
+      /* El assert de la compuerta, EJERCIDO EN AISLAMIENTO por los dos lados: no hay forma de
+         alcanzarlo desde la app, y sin ejercerlo es una capa que nadie sabe si existe. */
+      const selM = document.getElementById('vm_morf');
+      let malSinSel = ['no se pudo ejercer'], malSinOpt = ['no se pudo ejercer'], restaurado = false;
+      if (selM) {
+        /* ⚠️ EL ASSERT SE LLAMA ENVUELTO. En la app el llamador es try/catch mudo, asi que un
+           assert que LANZA se comporta igual que uno que calla — y sin este catch la excepcion
+           mata el caso entero y ninguna condicion llega a evaluarse: rojo sin diagnostico, que es
+           la trampa de TC-207. Envuelto, el throw cae en SU condicion y con su mensaje. */
+        try { selM.id = 'vm_morf_MUTADO'; malSinSel = _emAssertUmbrales(); }
+        catch (e) { malSinSel = ['LANZO EN VEZ DE AVISAR: ' + e.message]; }
+        finally { selM.id = 'vm_morf'; }
+        const op = selM.querySelector('option[value="Reum\u00e1tica"]') ||
+                   Array.prototype.filter.call(selM.options, o => o.value === 'Reum\u00e1tica')[0];
+        if (op) {
+          const vOrig = op.value;
+          try { op.value = 'Reumatica_MUTADO'; malSinOpt = _emAssertUmbrales(); }
+          catch (e) { malSinOpt = ['LANZO EN VEZ DE AVISAR: ' + e.message]; }
+          finally { op.value = vOrig; }
+        }
+        restaurado = !!document.getElementById('vm_morf') &&
+          Array.prototype.some.call(selM.options, o => o.value === 'Reum\u00e1tica');
+      }
+      ex.push(['el assert grita si el select desaparece —no se queda mudo— y tambien si el token no matchea',
+        malSinSel.length > 0 && malSinOpt.length > 0 &&
+        JSON.stringify(malSinSel).indexOf('no existe #vm_morf') > -1,
+        'sinSelect=' + JSON.stringify(malSinSel).slice(0, 90) + ' sinOpcion=' + JSON.stringify(malSinOpt).slice(0, 90)]);
+      ex.push(['DENOMINADOR: el select y su opcion quedaron restaurados', restaurado, 'restaurado=' + restaurado]);
+
+      // ══ NO SE ROMPIO NADA DE LAS OTRAS SECCIONES ════════════════════════════════════════
+      indicRender();
+      const cuerpo = document.getElementById('indic-cuerpo');
+      const html = cuerpo ? cuerpo.innerHTML : '';
+      ex.push(['ninguna seccion pinta el rojo de referencia no registrada',
+        html.indexOf('referencia no registrada') === -1 && html.length > 200,
+        'largo=' + html.length]);
+      /* _indIM no se toco: su recomendacion sigue SIN ref, o sea sin corchete propio. */
+      esc({ im_sev_final:'4', dsfvi:'44', fevi:'55' }, {});
+      const sIM = window._indIM();
+      ex.push(['_indIM sigue sin corchete propio en la recomendacion: no se toco',
+        !!sIM && !!sIM.recom && sIM.recom.ref === undefined,
+        sIM && sIM.recom ? ('ref=' + sIM.recom.ref) : 'sin recom']);
+
+      let malAssert = ['no existe'];
+      try { if (typeof _emAssertUmbrales === 'function') malAssert = _emAssertUmbrales(); }
+      catch (e) { malAssert = ['LANZO: ' + e.message]; }
+      ex.push(['el assert de arranque de estenosis mitral no tiene nada que decir',
+        Array.isArray(malAssert) && malAssert.length === 0, JSON.stringify(malAssert).slice(0, 200)]);
+      ex.push(['DENOMINADOR: todos los campos del escenario entraron y todos los clics encontraron su boton',
+        noEntraron.length === 0 && sinClic.length === 0,
+        'noEntraron=' + noEntraron.join(',') + ' sinClic=' + sinClic.join(',')]);
+
+      return { extra: ex };
+    } finally { indicCerrar(); limpiar(); }
   })();
 `);
 

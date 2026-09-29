@@ -1,5 +1,126 @@
 # EcoSmart — trampas de este archivo
 
+## Estenosis mitral: la comisurotomía es de la REUMÁTICA, y «varias» no es una (2026-09-29)
+
+Tres correcciones a `_indEM`/`_indEMRecom`, salidas del censo clínico contra la ESC/EACTS 2025.
+`_indIM` no se tocó: sus siete filas coinciden con la Tabla 6 en clase, nivel, texto y umbral.
+
+### ⚠️ LA COMPUERTA DE ETIOLOGÍA, Y DÓNDE **NO** VA
+
+Las cinco filas de comisurotomía viven en §10.2 —el capítulo reumático—, la Figura 14 se titula
+«Manejo de la estenosis mitral **REUMÁTICA**» y la tabla de contraindicaciones también; §10.3.2 lo
+dice con todas las letras: *«La EM degenerativa no es susceptible de CMP porque no hay fusión
+comisural»*. La sección no miraba `vm_morf`: con «Calcificada» y un AVm de 1,2 cm² publicaba la
+cascada percutánea entera sobre una válvula que el procedimiento no puede abrir. De paso alcanzaba
+a la **prótesis mitral**, que entra a esta sección por el área medida.
+
+**TRES ESTADOS Y NO DOS.** «Normal» es el valor de fábrica del desplegable y sobre una válvula con
+AVm ≤ 1,5 cm² se contradice a sí mismo —una mitral no puede ser morfológicamente normal y estar
+estenótica—, así que se trata como NO CONSIGNADA y se pide. Las dos ramas cortan igual; lo que
+cambia es el MOTIVO, y confundirlos manda a revisar lo que está sano.
+
+**⚠️ Y LA COMPUERTA NO VA ARRIBA DE TODO. Ahí DEGRADA LA ALARMA DE TROMBO en el estado de fábrica.**
+Fue mi primera versión y lo encontró `/sharp-edges`. Medido: EM significativa, `oai_trombo`
+confirmado y `vm_morf` sin tocar —o sea el default— y el titular pasaba de «Trombo confirmado —
+resolver antes de indicar» a **«Falta contestar: Morfología de la válvula mitral»**. El argumento
+contra estaba escrito seis líneas más arriba en la misma función: **el trombo pide anticoagulación
+por su cuenta, con independencia de que el procedimiento esté descartado** — y eso vale sea la
+válvula reumática, degenerativa o protésica. Con una prótesis con trombo era peor: «Fuera del
+alcance de esta tabla» sobre un cuadro compatible con trombosis protésica. Hoy la compuerta va
+**después** de las contraindicaciones evaluables y de las dos ramas de trombo, y antes de la
+cascada de síntomas: no ofrece la comisurotomía sin tapar lo que exige conducta propia.
+
+**El motivo se nombra por MORFOLOGÍA, no con un texto único.** Ocho opciones caen en «otra» y sólo
+una es degenerativa: con el texto genérico, una prótesis obstruida recibía un razonamiento sobre
+estenosis degenerativa y se le ofrecía como alternativa el implante transcatéter para calcificación
+anular, que no le toca. `valvEsProtesis` es el dueño único de esa pregunta y se le pregunta a él.
+
+### «Varias de las siguientes» no es una — y el umbral es de la APP
+
+El control era Ninguna/Alguna, así que UN solo rasgo —edad avanzada— rutéaba a desfavorable y, sin
+riesgo quirúrgico alto, a **cirugía**. Hoy son tres estados y `EM_CRIT_2025.clin_desfav_min = 2`.
+**Ese número NO es de la guía** —la nota ^c dice «varias» y no cuantifica— y por eso se declara como
+criterio de la aplicación en las tres superficies que lo publican: el control, la recomendación y el
+pie. Un factor aislado no cambia la rama, pero **se declara**: la fila que se publica afirma la
+ausencia de características desfavorables y callarlo la dejaría sin su reparo.
+
+**⚠️ CONSECUENCIA MEDIDA Y DECLARADA, en el ASINTOMÁTICO el cambio es de otra naturaleza.** En el
+sintomático mueve de *cirugía* a *percutánea* —misma familia de conducta—; en el asintomático, un
+paciente con un solo factor y riesgo embólico alto pasa de «Sin criterio de intervención —
+corresponde seguimiento» a «Comisurotomía A CONSIDERAR — Clase IIa · Nivel C». Es la lectura
+correcta de la guía (con uno no hay «varias»), y es un cambio de dirección que conviene saber.
+
+### Dos filas de la misma tabla, y por qué llevan EL MISMO número
+
+Clínica favorable + score > 8 + riesgo quirúrgico alto cumple `sint_subopt` (IIa · C) **y** la fila
+general «cualquier paciente sintomático con contraindicación o riesgo alto» (I · C). Se publican las
+dos con su clase y su corchete; publicar sólo la IIa —que es lo que hacía— sub-declara la fuerza de
+la indicación. **No se duplica en la rama totalmente favorable**: ahí `sint_fav` ya es Clase I · B y
+la fila general no agrega conducta, sólo un nivel de evidencia menor sobre lo mismo.
+
+**Las dos citas llevan el MISMO número y eso es lo correcto:** el número identifica al DOCUMENTO y
+son dos renglones de la misma tabla. Darles números distintos exigiría dos entradas en `IND_REFS`
+para el mismo documento, que es justo el modo de falla que ese registro declara.
+
+**El slot `mod` de `_indRecomHTML` dejó de ser sólo «Modalidad».** Su rótulo es ahora un campo
+(`tit`), con «Modalidad» de respaldo. Lo que el slot NO es, y conviene no convertirlo, es un cajón
+de notas: lo que entra ahí lleva clase, fuente y corchete, o sea que se lee como una recomendación.
+
+### Lo demás que encontró `/sharp-edges` sobre este mismo diff
+
+- **El `aviso` elegía uno y se comía los otros.** Escrito como ternario encadenado, y como
+  `etio == null` es el ESTADO DE FÁBRICA, el aviso de unidades dejaba de pintarse en la mayoría de
+  los estudios: un AVm tipeado en mm² quedaba declarado sólo en la nota de su fila. Hoy se
+  concatenan.
+- **La fila de etiología llevaba `ok` en la reumática.** La leyenda define ✅ como «este dato alcanza
+  un criterio de la guía» y la etiología no dispara ninguna conducta: es la PRECONDICIÓN de que la
+  tabla aplique. Con `ok` además entraba a la apertura automática de `_indSecHTML`, que se reserva
+  para criterios cumplidos y alarmas.
+- **El assert de `EM_ETIO_CMP` fallaba ABIERTO justo en el escenario que su comentario llamaba «el
+  peor posible».** Con `if (selM && …)`, un `#vm_morf` que cambie de id deja el assert MUDO — y el
+  desenlace es el mismo que el token renombrado: `etio` queda en null y la sección deja de publicar
+  recomendación para TODOS los pacientes. Hoy son dos mensajes distintos.
+- **La bibliografía recolectaba `ref` sin exigir `clase`.** El corchete se dibuja dentro del renglón
+  de la clase, así que una recomendación con `ref` y sin `clase` aportaba una entrada numerada **sin
+  corchete que la invoque** — la regla 2 del registro. La condición de recolección tiene que ser la
+  misma que dibuja el corchete.
+- **Un bloque sin conducta puede igual transcribir una clase.** La rama de etiología nombra una
+  Clase IIb en prosa y era el único texto de la sección que citaba sin decir de dónde:
+  `_indRecomHTML` pasó a imprimir el renglón de fuente con `r.clase || r.fuente`.
+
+### Verificación
+
+**Suite 337/338**, único rojo **TC-223**, el documentado —y con el pendrive montado, o sea que los
+17 del visor y DICOM corrieron de verdad—. **TC-323, 22 condiciones. OCHO mutaciones, las ocho en
+rojo y cada una en SU condición**, incluida la que devuelve la compuerta arriba y tapa el trombo.
+Semgrep **125 / 0 ERROR**, el mismo número que antes del cambio. Sin huérfanos nuevos.
+`check_mobile` en los 2 ALTA de siempre. `node --check` por bloque: fallan **sólo** los bloques 0 y
+1, la línea base del extractor.
+
+**TC-282 se puso en rojo y ésa era la señal**: sus escenarios no consignan `vm_morf`, así que la
+compuerta nueva los mandaba a la rama que pide la morfología. Se reapuntó sembrando `Reumática` en
+la base —no se aflojó ninguna condición— y el caso volvió a verde con las suyas intactas.
+
+**⚠️ M7 MATABA EL CASO CON UNA EXCEPCIÓN EN VEZ DE FALLAR EN SU CONDICIÓN**, que es la trampa de
+TC-207: rojo es rojo, pero ninguna condición llega a evaluarse y el mensaje no dice qué se rompió.
+Y en la app el llamador del assert es un `try/catch` mudo, así que un assert que LANZA se comporta
+igual que uno que calla. Hoy el caso lo llama envuelto y el throw cae en su condición con su mensaje.
+
+**Backticks dentro del cuerpo de un caso: van CIENTO CUATRO**, dos de esta tanda, las dos en un
+comentario que acababa de escribir para explicar por qué los avisos se concatenan.
+
+**⚠️ `avm_thp` NO TIENE BANDA DE PLAUSIBILIDAD, y la condición del aviso medía otra cosa.** De las
+cuatro fuentes del área sólo planimetría y continuidad están en la tabla de rangos, así que un 150
+en el THP no es «fuera de rango» sino una **discordancia** — y el caso daba rojo sobre código sano
+buscando el aviso equivocado. Al escribir un escenario de valor ilegible, elegir un campo que
+tenga banda.
+
+**Lo que NO se verificó byte a byte:** no se corrió el control A/B de informe + EN SUMA + Excel. El
+argumento es de construcción —`_indRecomHTML` e `indicRender` sólo se alcanzan desde `indicRender`,
+que escribe `#indic-cuerpo`, y lo agregado a `_indEM` son lecturas— más los 337 casos en verde, que
+incluyen los que fijan el Excel y el informe. Es más débil que una medición y queda dicho.
+
+
 ## Panel de Evidencia: citas numeradas, y la CIV cita un criterio que su guía no dice (2026-09-29)
 
 Las trece `guia:` del panel pasaron de un string que mezclaba documento + edición + clase +

@@ -39984,8 +39984,19 @@ function _indRecomHTML(r){
   h += '<div style="font-size:10.5px;font-weight:700;color:' + col +
        ';text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">' + _critEsc(r.tit) + '</div>';
   h += '<div style="font-size:11.5px;line-height:1.55;color:var(--text);">' + _critEsc(r.txt) + '</div>';
-  if (r.clase) h += '<div style="font-size:11px;margin-top:5px;color:var(--text2);"><b>' +
-       _critEsc(r.clase) + '</b> · ' + _critEsc(r.fuente) + '</div>';
+  /* ⚠️ EL CORCHETE SE EMITE SÓLO SI LA RECOMENDACIÓN TRAE `ref`, y la asimetría es deliberada.
+     `_indRefMarca` pinta en rojo «[referencia no registrada]» ante una clave que no está en el
+     registro —que es lo correcto para una cita mal escrita— pero llamarla sin clave le pondría ese
+     rojo a las recomendaciones de las OTRAS secciones, que todavía citan sólo por `guia`. Una `ref`
+     mal escrita SÍ sale en rojo; una ausente no se pinta. */
+  /* ⚠️ `r.clase || r.fuente` Y NO SÓLO `r.clase`: un bloque que NO publica conducta puede igual
+     transcribir lo que la guía dice —la rama de etiología de la estenosis mitral nombra una Clase
+     IIb en prosa— y sin este renglón quedaba como el único texto de la sección que cita sin decir
+     de dónde. Las que no traen ninguno de los dos siguen saliendo sin renglón, que es el
+     comportamiento de las doce secciones que no citan por recomendación. Lo encontró /sharp-edges. */
+  if (r.clase || r.fuente) h += '<div style="font-size:11px;margin-top:5px;color:var(--text2);">' +
+       (r.clase ? '<b>' + _critEsc(r.clase) + '</b> · ' : '') + _critEsc(r.fuente || '') +
+       (r.ref ? _indRefMarca(r.ref) : '') + '</div>';
   if (r.faltan && r.faltan.length) h += '<div style="font-size:11px;margin-top:5px;color:#D97706;">' +
        'Falta contestar: ' + _critEsc(r.faltan.join(' · ')) + '</div>';
   /* ⚠️ ESTA NOTA SE QUEDA VISIBLE, Y LA PRIMERA VERSIÓN DE ESTA RONDA LA MANDÓ AL DETALLE.
@@ -40005,19 +40016,24 @@ function _indRecomHTML(r){
      es lo que el pedido describe como el problema. */
   if (r.nota) h += '<div style="font-size:11px;margin-top:5px;color:var(--text2);line-height:1.5;">' +
        _critEsc(r.nota) + '</div>';
-  /* La MODALIDAD va en su propio bloque y sólo cuando ya hay indicación: en la guía son dos
-     decisiones distintas, y fundirlas en un párrafo hace que «se opera» y «se opera así» se lean
-     como una sola afirmación. */
+  /* EL SEGUNDO BLOQUE. Nació para la MODALIDAD —en la guía «se opera» y «se opera así» son dos
+     decisiones distintas y fundirlas en un párrafo las hace leer como una sola afirmación— y desde
+     el 2026-09-29 transporta además una SEGUNDA FILA de la misma tabla, cuando el paciente cumple
+     las condiciones de dos y la guía no dice cuál prevalece (estenosis mitral). Por eso el rótulo
+     es un campo: `tit`, con «Modalidad» de respaldo para los llamadores que no lo pasan. Lo que el
+     slot NO es, y conviene no convertirlo, es un cajón de notas: lo que entra acá lleva su propia
+     clase, su propia fuente y su propio corchete, o sea que se lee como una recomendación. */
   if (r.mod) {
     h += '<div style="margin-top:8px;padding-top:7px;border-top:1px dashed var(--border);">';
     h += '<div style="font-size:10.5px;font-weight:700;color:var(--text2);text-transform:uppercase;' +
-         'letter-spacing:.5px;margin-bottom:3px;">Modalidad</div>';
+         'letter-spacing:.5px;margin-bottom:3px;">' + _critEsc(r.mod.tit || 'Modalidad') + '</div>';
     h += '<div style="font-size:11.5px;line-height:1.55;color:var(--text);">' + _critEsc(r.mod.txt) + '</div>';
     /* La fuente viene DENTRO del objeto y no de una constante de más abajo: este render es
        genérico y `EA_FUENTE` se declara ~120 líneas después. Hoy resolvería igual —al llamarse
        ya está inicializada— pero ataría un helper compartido a una constante de una sección. */
     if (r.mod.clase) h += '<div style="font-size:11px;margin-top:4px;color:var(--text2);"><b>' +
-         _critEsc(r.mod.clase) + '</b> · ' + _critEsc(r.mod.fuente || r.fuente || '') + '</div>';
+         _critEsc(r.mod.clase) + '</b> · ' + _critEsc(r.mod.fuente || r.fuente || '') +
+         (r.mod.ref ? _indRefMarca(r.mod.ref) : '') + '</div>';
     /* Ídem: `_indEAModalidad` pone acá que «la Clase I A de TAVI está escrita para la válvula
        tricúspide y no se aplica», que es la condición de la fila que se está publicando. */
     if (r.mod.nota) h += '<div style="font-size:11px;margin-top:4px;color:var(--text2);line-height:1.5;">' +
@@ -40846,8 +40862,22 @@ function _indIM(){
    ══════════════════════════════════════════════════════════════════════════════════════════ */
 const EM_CRIT_2025 = Object.freeze({
   score_desfav: 8,   // «echocardiographic score >8» — UNA de las características anatómicas
-  spap_decomp: 50    // mmHg en reposo — riesgo de descompensación hemodinámica (fila del asintomático)
+  spap_decomp: 50,   // mmHg en reposo — riesgo de descompensación hemodinámica (fila del asintomático)
+  /* ⚠️ ESTE NÚMERO **NO ES DE LA GUÍA**, y por eso es el único de este bloque que no lleva su
+     cita al lado. La nota ^c define las características desfavorables como «VARIAS de las
+     siguientes» y NO dice cuántas; la app tenía un control de dos estados —Ninguna / Alguna— así
+     que UN solo factor (edad avanzada, por ejemplo) rutéaba a desfavorable y, sin riesgo
+     quirúrgico alto, a CIRUGÍA. Un rasgo aislado no es «varias».
+     El corte es de la aplicación y se declara como tal en las tres superficies que lo publican —el
+     control, la recomendación y el pie—. Si se mueve, se mueve acá y los textos lo siguen solos;
+     lo que `_emAssertUmbrales` vigila es que la PROSA no se quede vieja. */
+  clin_desfav_min: 2 // criterio EcoSmart, no de la guía: cuántos factores hacen «varias»
 });
+/* ⚠️ SALE DEL `<option>` REAL DE `#vm_morf`, QUE NO TIENE ATRIBUTO `value`: el valor persistido ES
+   el texto, acentos incluidos. Un token inventado no falla, calla — y acá el silencio sería el peor
+   posible, porque la compuerta pasaría a cortar la cascada de TODOS los pacientes, incluidos los
+   reumáticos. Lo vigila `_emAssertUmbrales` contra el DOM. */
+const EM_ETIO_CMP = 'Reumática';
 const EM_REC_2025 = Object.freeze({
   sint_fav:    { c:'Clase I · Nivel B',
     t:'Comisurotomía mitral percutánea RECOMENDADA en el paciente sintomático, en ausencia de características desfavorables para el procedimiento.' },
@@ -40861,11 +40891,18 @@ const EM_REC_2025 = Object.freeze({
     t:'Comisurotomía mitral percutánea A CONSIDERAR en el paciente asintomático sin características clínicas ni anatómicas desfavorables y con riesgo embólico alto (embolia sistémica previa, contraste espontáneo denso en la aurícula, fibrilación auricular de nueva aparición o paroxística) y/o riesgo alto de descompensación hemodinámica (PAPs en reposo > 50 mmHg, necesidad de cirugía mayor no cardíaca, embarazo o deseo de embarazo).' }
 });
 const EM_FUENTE = 'ESC/EACTS 2025 — tabla de recomendaciones de estenosis mitral';
+/* Clave del registro de citas. Una sola para las dos filas: identifica el documento. */
+const EM_REF = 'esc2025vc';
 
 function _indEMRecom(D){
   const fal = function(txt, faltan){ return { tipo:'falta', tit:'Falta un dato para aplicar la guía', txt:txt, faltan:faltan }; };
   const sx = _indClinGet('em.sintomas'), clin = _indClinGet('em.clin'), emb = _indClinGet('em.embolico');
   const rq = _indClinGet('em.riesgo'), dec = _indClinGet('em.decomp');
+  /* «Varias de las siguientes» según el criterio declarado de la app: con UNO la fila que afirma la
+     ausencia de características clínicas desfavorables sigue siendo la que corresponde, y el hecho
+     de que haya un factor se DECLARA abajo en vez de cambiar la rama. */
+  const clinFav = (clin === 'fav' || clin === 'una');
+
 
   /* ── LAS CONTRAINDICACIONES SE EVALÚAN PRIMERO Y CORTAN ──
      Publicar una indicación sobre una anatomía que la guía excluye es la cascada fail-open que
@@ -40913,6 +40950,48 @@ function _indEMRecom(D){
   if (D.trombo.val === 'sospecha') return { tipo:'alarma', tit:'Sospecha de trombo — resolver antes de indicar',
     txt:'Hay sospecha de trombo en la orejuela izquierda. La indicación del procedimiento exige haber DESCARTADO trombo auricular, así que la sospecha se resuelve antes de indicar: el ETE es el estudio que lo hace.' };
 
+  /* ── LA ETIOLOGÍA CORTA LA CASCADA, PERO **DESPUÉS** DE LAS CONTRAINDICACIONES Y DEL TROMBO ──
+     ⚠️ LA PRIMERA VERSIÓN DE ESTE CAMBIO LA PUSO ARRIBA DE TODO, Y ESO DEGRADABA LA ALARMA DE
+     TROMBO A «falta un dato» EN EL ESTADO DE FÁBRICA. Medido: EM significativa, `oai_trombo`
+     confirmado y `vm_morf` sin tocar —o sea «Normal», que es justo el estado que el comentario de
+     abajo declara esperable— y el titular pasaba de «Trombo confirmado — resolver antes de indicar»
+     a «Falta contestar: Morfología de la válvula mitral». El argumento contra estaba escrito seis
+     líneas más arriba, en esta misma función: el trombo pide **anticoagulación por su cuenta**, con
+     independencia de que el procedimiento esté descartado — y eso vale sea la válvula reumática,
+     degenerativa o protésica. Con una prótesis con trombo era peor todavía: «Fuera del alcance de
+     esta tabla» sobre un cuadro compatible con trombosis protésica. Lo encontró /sharp-edges.
+     Acá abajo la compuerta hace lo que tiene que hacer —no ofrecer la cascada de comisurotomía—
+     sin tapar lo que exige conducta propia.
+
+     ⚠️ TODA ESTA TABLA —incluida su tabla de contraindicaciones— ESTÁ ESCRITA PARA LA ESTENOSIS
+     MITRAL **REUMÁTICA**. Las cinco filas viven en §10.2, la Figura 14 se titula «Manejo de la
+     estenosis mitral REUMÁTICA» y la tabla de contraindicaciones también; §10.3.2 lo dice con
+     todas las letras: «La EM degenerativa no es susceptible de CMP porque no hay fusión comisural».
+     Hasta hoy la sección no miraba la morfología: con «Calcificada» y un AVm de 1,2 cm² publicaba
+     la cascada percutánea entera sobre una válvula que el procedimiento no puede abrir.
+
+     ⚠️ Y EL MOTIVO SE NOMBRA POR MORFOLOGÍA, NO CON UN TEXTO ÚNICO. Ocho opciones caen en «otra» y
+     sólo una es degenerativa: con el texto genérico, una PRÓTESIS obstruida recibía un razonamiento
+     sobre estenosis degenerativa y se le ofrecía como alternativa el implante transcatéter para
+     calcificación anular, que no le toca. `valvEsProtesis` es el dueño único de «¿es una prótesis?»
+     en todo el archivo y se le pregunta a él, no a un `indexOf` propio. */
+  if (D.etio === 'otra') return { tipo:'no', tit:'Fuera del alcance de esta tabla',
+    txt:'La morfología consignada es «' + D.morf + '», que no es reumática. Las filas de esta sección son las de la comisurotomía mitral percutánea en la estenosis mitral REUMÁTICA: el procedimiento abre la FUSIÓN COMISURAL, y sin etiología reumática esa fusión no existe. '
+      + (D.esProt
+          ? 'Sobre una prótesis mitral no aplica ninguna fila de esta tabla, que es de válvula nativa: una prótesis obstruida se evalúa con los criterios de disfunción protésica, que están en el cuadro de la válvula y no acá.'
+          : (D.morf === 'Calcificada'
+              ? 'Para la estenosis DEGENERATIVA con calcificación anular extensa la guía tiene una fila propia —implante transcatéter de válvula mitral, Clase IIb · Nivel C— que esta aplicación no implementa.'
+              : 'La guía no escribe filas de comisurotomía para esta etiología.')),
+    fuente:EM_FUENTE, ref:EM_REF,
+    nota:'Las mediciones de arriba siguen siendo válidas y describen la válvula: lo que no aplica es la tabla de indicaciones de comisurotomía.' };
+  /* ⚠️ «NORMAL» NO ES UNA ETIOLOGÍA: es el valor de fábrica del desplegable, y sobre una válvula con
+     AVm ≤ 1,5 cm² se contradice a sí mismo —una mitral no puede ser morfológicamente normal y estar
+     estenótica—. Se trata como NO CONSIGNADA y se pide, que es la regla de la casa: un default no
+     es una respuesta. Las dos ramas cortan igual la cascada; lo que cambia es el MOTIVO, y
+     confundirlos manda al médico a revisar lo que está sano. */
+  if (D.etio == null) return fal('Las filas de esta sección son las de la estenosis mitral REUMÁTICA, y la morfología de la válvula no está consignada. «Normal» es el valor de fábrica del desplegable, no una etiología.',
+    ['Morfología de la válvula mitral (pestaña Válvulas)']);
+
   /* Lo que falta para poder evaluar la tabla, junto y con su nombre. El trombo es la única
      precondición de esta cascada que tiene control propio en el panel, así que dejarla sin
      contestar tenía que pedirse igual que los síntomas o el score, no quedar en una nota. */
@@ -40943,8 +41022,23 @@ function _indEMRecom(D){
        clínicas desfavorables», así que publicarla con la pregunta sin contestar sería dar por
        cumplida una condición que nadie verificó — el defecto que este panel persigue desde los
        tres selects del TEER. Con `clin` en null se cae al `fal` de abajo, que la pide. */
-    else if (D.score.val === 'desfav' && clin === 'fav') r = { k:'sint_subopt' };
-    else if (D.score.val === 'fav' && clin === 'fav') r = { k:'sint_fav' };
+    /* ⚠️ ACÁ EL PACIENTE CUMPLE **DOS** FILAS DE LA MISMA TABLA, Y SE PUBLICAN LAS DOS.
+       `sint_subopt` (IIa · C) es la fila escrita para este paciente exacto —anatomía subóptima con
+       lo clínico favorable— y `sint_riesgo` (I · C) es la fila general, que dice «CUALQUIER
+       paciente sintomático con contraindicación o riesgo alto para cirugía». Las dos terminan en
+       comisurotomía y la guía les asigna clases distintas sin decir cuál manda.
+       DECISIÓN DE MAICOL (2026-09-29): no se elige la de mayor clase ni se funden en una línea. El
+       médico tiene que ver que el paciente entra por los dos criterios, cada uno con su clase y su
+       cita. Publicar sólo la IIa —que es lo que hacía— sub-declara la fuerza de la indicación.
+       ⚠️ Y NO SE DUPLICA EN LA RAMA TOTALMENTE FAVORABLE: ahí `sint_fav` ya es Clase I · Nivel B y
+       la fila general (I · C) no agrega ninguna conducta nueva, sólo un nivel de evidencia menor
+       sobre la misma recomendación. Dos bloques que dicen lo mismo se leen como dos decisiones. */
+    else if (clinFav && D.score.val === 'desfav') {
+      r = { k:'sint_subopt' };
+      if (rq === 'alto') r.tambien = 'sint_riesgo';
+      else if (rq == null) r.nota = 'Si además hubiera contraindicación quirúrgica o riesgo alto, la guía tiene otra fila —Clase I · Nivel C— que también aplicaría a este paciente. El control «Contraindicación quirúrgica o riesgo alto» está sin contestar, así que esa segunda fila no se evaluó.';
+    }
+    else if (clinFav && D.score.val === 'fav') r = { k:'sint_fav' };
     else return fal('La fila de Clase I del sintomático exige la AUSENCIA de características desfavorables, y eso se decide con las dos mitades: la anatómica y la clínica.',
       [D.score.val == null ? 'Score ecocardiográfico (anatomía)' : null, clin == null ? 'Características clínicas' : null].filter(Boolean));
   } else if (sx === 'no') {
@@ -40980,9 +41074,26 @@ function _indEMRecom(D){
   } else return fal('Los síntomas son lo que separa la Clase I de la vigilancia.', ['Síntomas']);
 
   const rec = EM_REC_2025[r.k];
-  const out = { tipo:'ind', tit:'Recomendación de la guía', txt:rec.t, clase:rec.c, fuente:EM_FUENTE };
+  /* La `ref` es la clave del registro de citas, la misma que ya usa el pie de la sección: así cada
+     recomendación lleva su corchete y se puede auditar contra qué documento, sin que haga falta
+     mirar el criterio del final. */
+  const out = { tipo:'ind', tit:'Recomendación de la guía', txt:rec.t, clase:rec.c, fuente:EM_FUENTE, ref:EM_REF };
+  /* ⚠️ LAS DOS LLEVAN **EL MISMO NÚMERO**, Y ESO ES LO CORRECTO. El número identifica al DOCUMENTO,
+     no a la fila: son dos renglones de la misma tabla de la misma guía. Darles números distintos
+     exigiría dos entradas en `IND_REFS` para el mismo documento, que es justo el modo de falla que
+     ese registro declara —dos entradas numeradas apuntando a lo mismo se leen como dos fuentes—.
+     Lo que las distingue está donde tiene que estar: la clase, el nivel y el texto de cada una. */
+  if (r.tambien) {
+    const rec2 = EM_REC_2025[r.tambien];
+    out.mod = { tit:'También aplica', txt:rec2.t, clase:rec2.c, fuente:EM_FUENTE, ref:EM_REF,
+      nota:'Este paciente cumple las condiciones de DOS filas de la tabla y se publican las dos. La de arriba, porque la anatomía es subóptima con las características clínicas favorables (Clase IIa · Nivel C); ésta, porque la guía la escribe para CUALQUIER paciente sintomático con contraindicación quirúrgica o riesgo alto (Clase I · Nivel C). Las dos terminan en comisurotomía percutánea, la guía les asigna clases distintas y no dice cuál prevalece: la elección es del Heart Team.' };
+  }
   const notas = [];
   if (r.nota) notas.push(r.nota);
+  /* ⚠️ UN FACTOR CLÍNICO NO DESAPARECE PORQUE NO ALCANCE EL UMBRAL. La fila que se acaba de
+     publicar AFIRMA la ausencia de características clínicas desfavorables; callarlo dejaría esa
+     afirmación sin el reparo que la sostiene. */
+  if (clin === 'una') notas.push('Hay UN factor clínico desfavorable consignado. La guía define las características desfavorables como «varias de las siguientes» y no dice cuántas son, así que esta aplicación exige ' + EM_CRIT_2025.clin_desfav_min + ' o más para darlas por presentes: con uno solo, la fila que corresponde sigue siendo la que afirma la ausencia. Ese número es un criterio de la aplicación, no de la guía.');
   if (r.k === 'sint_subopt') notas.push('El score ecocardiográfico > ' + EM_CRIT_2025.score_desfav + ' es UNA de las características anatómicas desfavorables, no un veto: la guía lo agrupa con la calcificación de Cormier 3 y la insuficiencia tricuspídea severa, y ninguna de ellas por sí sola descalifica. Con lo clínico favorable, la comisurotomía sigue siendo el tratamiento inicial a considerar.');
   /* ⚠️ LO QUE LA APP NO PUEDE EVALUAR SE NOMBRA, no se deja sólo en el pie de sección. De las siete
      contraindicaciones, el área y la insuficiencia mitral se evalúan y el trombo se pregunta; las
@@ -41006,6 +41117,14 @@ function _indEMRecom(D){
 function _indEM(){
   const US = _indUmb('AVM_SEVERA_MAX'), UM = _indUmb('AVM_MODERADA_MAX');
   const grado = _indS('em_grado');
+  /* Etiología: tres estados, y los dos que no son reumática NO son lo mismo. Ver la compuerta de
+     `_indEMRecom`, que es donde corta. Acá sólo se lee y se muestra. */
+  const morf = _indS('vm_morf');
+  const etio = (morf === '' || morf == null || morf === 'Normal') ? null
+             : (morf === EM_ETIO_CMP ? 'reumatica' : 'otra');
+  /* Dueño único de «¿es una prótesis?» en todo el archivo. Con guarda porque vive en otro bloque. */
+  const _vep = _indFn('valvEsProtesis');
+  const esProt = !!(_vep && morf && _vep(morf));
   /* ⚠️ DOS DE LAS CUATRO FUENTES TIENEN BANDA DE PLAUSIBILIDAD Y DOS NO, y eso se declara en vez
      de prestarle a una la banda de otra: el archivo ya fijó que un número de banda lo elige una
      persona (fue la decisión del `vdfvi` [3,500]). `avm_plan` y `avm_cont` están en la tabla de
@@ -41027,6 +41146,17 @@ function _indEM(){
   if (!(grado === 'moderada' || grado === 'severa' || medidas.some(m => _le(m[1], US)))) return null;
 
   const filas = [];
+  /* VA PRIMERA: es la compuerta de toda la tabla, no un dato más. */
+  filas.push(_indFila('Etiología de la válvula mitral',
+    etio == null ? (morf ? morf + ' — sin consignar' : 'No consignada') : morf,
+    /* ⚠️ `none` Y NO `ok` PARA LA REUMÁTICA. La leyenda de este panel define ✅ como «este dato
+       alcanza un criterio de la guía», y la etiología no dispara ninguna conducta: es la
+       PRECONDICIÓN de que la tabla aplique. Con `ok` además entraba a la regla de apertura
+       automática de `_indSecHTML`, que se reserva para criterios cumplidos y alarmas. */
+    etio === 'reumatica' ? 'none' : (etio === 'otra' ? 'warn' : 'ask'),
+    etio === 'reumatica' ? 'reumática — es la etiología para la que la guía escribe las filas de comisurotomía percutánea'
+    : etio === 'otra' ? 'NO reumática: la comisurotomía abre la fusión comisural, que es un mecanismo reumático, y la guía dice que la estenosis degenerativa no es susceptible del procedimiento porque esa fusión no existe'
+    : 'sin consignar: «Normal» es el valor de fábrica del desplegable, no una etiología. Las filas de esta tabla son las de la estenosis mitral REUMÁTICA, así que sin la morfología no se puede afirmar que le correspondan. Se elige en la pestaña Válvulas'));
   if (US == null || UM == null) filas.push(_indSinUmbral('Área valvular mitral'));
   else if (!medidas.length && !avmIleg.length) filas.push(_indFila('Área valvular mitral', '—', 'ask', 'ninguna de las cuatro fuentes tiene valor'));
   else {
@@ -41106,10 +41236,17 @@ function _indEM(){
       _sx === 'si' ? 'ok' : (_sx === 'no' ? 'none' : 'ask'),
       _sx === 'si' ? 'disparador de la Clase I' : _sx === 'no' ? 'el asintomático entra por una sola fila, de Clase IIa · Nivel C'
       : 'sin esto no se puede separar la Clase I de la vigilancia'),
+    /* ⚠️ TRES ESTADOS Y NO DOS. La nota ^c de la tabla dice «VARIAS de las siguientes» y no
+       cuantifica; con un control de Ninguna/Alguna, un solo rasgo —edad avanzada— rutéaba a
+       desfavorable y, sin riesgo quirúrgico alto, a CIRUGÍA. El umbral —hoy dos— es de la
+       APLICACIÓN y se declara como tal acá, en la recomendación y en el pie: la guía no da número.
+       ⚠️ Y la ETIQUETA del botón es literal, así que no sigue sola a la constante: moverla a tres
+       dejaría el botón diciendo «Dos o más» y la nota «3 o más». Lo caza `_emAssertUmbrales`. */
     _indFilaCtrl('Características clínicas desfavorables', 'em.clin',
-      [{v:'fav',t:'Ninguna'},{v:'desfav',t:'Alguna'}],
-      _clin === 'desfav' ? 'warn' : (_clin === 'fav' ? 'none' : 'ask'),
-      'edad avanzada, comisurotomía previa, clase funcional IV, fibrilación auricular permanente o hipertensión pulmonar severa. Son la MITAD CLÍNICA de las características desfavorables para el PROCEDIMIENTO; la otra mitad es la anatómica de arriba. La hipertensión pulmonar severa de esta lista es otra pregunta que la fila de PAPs > ' + EM_CRIT_2025.spap_decomp + ' mmHg, que es el disparador del asintomático.'),
+      [{v:'fav',t:'Ninguna'},{v:'una',t:'Una sola'},{v:'desfav',t:'Dos o más'}],
+      _clin === 'desfav' ? 'warn' : (_clin === 'una' ? 'warn' : (_clin === 'fav' ? 'none' : 'ask')),
+      'edad avanzada, comisurotomía previa, clase funcional IV, fibrilación auricular permanente o hipertensión pulmonar severa. Son la MITAD CLÍNICA de las características desfavorables para el PROCEDIMIENTO; la otra mitad es la anatómica de arriba. La hipertensión pulmonar severa de esta lista es otra pregunta que la fila de PAPs > ' + EM_CRIT_2025.spap_decomp + ' mmHg, que es el disparador del asintomático.'
+      + (_clin === 'una' ? ' · Con UNA sola no se consideran presentes: la guía pide «varias de las siguientes», y esta aplicación fija ese «varias» en ' + EM_CRIT_2025.clin_desfav_min + ' o más. Es un criterio de la app, no un número de la guía.' : '')),
     /* ⚠️ ESTE CONTROL FALTABA Y SU AUSENCIA CAMBIABA LA VÍA DE TRATAMIENTO. Ver el comentario de
        `_indEMRecom`: sin él, «características clínicas desfavorables» se publicaba como
        «contraindicación quirúrgica o riesgo quirúrgico alto» y la fila de cirugía era inalcanzable. */
@@ -41134,16 +41271,28 @@ function _indEM(){
   const avmDiscordantes = (avmMax != null && avmMin != null && US != null
     && _le(avmMin, US) && _gt(avmMax, US));
   const D = { US:US, avmMax:avmMax, avmIleg:avmIleg, avmDiscordantes:avmDiscordantes,
-              psap:psap, score:oScore, trombo:oTrombo, imSev:imSev, imSevTxt:imSevTxt };
+              psap:psap, score:oScore, trombo:oTrombo, imSev:imSev, imSevTxt:imSevTxt,
+              etio:etio, morf:morf, esProt:esProt };
   return { filas: filas,
-    aviso: avmIleg.length ? 'Hay áreas fuera de rango medible (' + avmIleg.join(', ') + '): no sostienen ni descartan ningún criterio. Revisar la unidad.'
-      : (avmDiscordantes ? 'Las fuentes del área discordan alrededor del corte de ' + _indNum(US, 1) + ' cm²: una contraindica el procedimiento y otra no. Conviene resolverlo antes de decidir.' : ''),
+    /* ⚠️ LOS AVISOS SE CONCATENAN, NO SE ELIGE UNO. Escrito como ternario encadenado —que fue la
+       primera versión— la rama de etiología se comía las otras dos, y como `etio == null` es el
+       ESTADO DE FÁBRICA eso dejaba el aviso de unidades sin pintarse en la mayoría de los estudios:
+       un AVm tipeado en mm² quedaba declarado sólo en la nota de su propia fila. Lo encontró
+       /sharp-edges. La etiología va primera porque decide si el resto de la sección significa algo. */
+    aviso: [
+      etio === 'otra' ? 'La morfología consignada es «' + morf + '», que no es reumática: las filas de comisurotomía percutánea de esta sección son las de la estenosis mitral REUMÁTICA y no gobiernan esta situación.' : '',
+      etio == null ? 'La morfología de la válvula mitral no está consignada. Las filas de esta sección son las de la estenosis mitral REUMÁTICA.' : '',
+      avmIleg.length ? 'Hay áreas fuera de rango medible (' + avmIleg.join(', ') + '): no sostienen ni descartan ningún criterio. Revisar la unidad.' : '',
+      avmDiscordantes ? 'Las fuentes del área discordan alrededor del corte de ' + _indNum(US, 1) + ' cm²: una contraindica el procedimiento y otra no. Conviene resolverlo antes de decidir.' : ''
+    ].filter(Boolean).join(' · '),
     clinica: clinica,
     recom: _indEMRecom(D),
     guia: { ref:'esc2025vc',
       txt:'Comisurotomía mitral percutánea Clase I · Nivel B en el paciente SINTOMÁTICO en ausencia de características desfavorables, y Clase I · Nivel C en cualquier sintomático con contraindicación o riesgo alto para cirugía.' },
     notas: [
       'AVm ≤ ' + (US != null ? _indNum(US,1) : '1,5') + ' cm² es el corte ÚNICO de significación clínica: la guía NO gradúa la estenosis mitral por área en leve, moderada y severa. Las bandas de la pantalla del estudio son la graduación habitual de la práctica, no una fila de esta tabla.',
+      'Las filas de comisurotomía de esta tabla son las de la estenosis mitral REUMÁTICA: viven en el capítulo de esa etiología, la figura de manejo y la tabla de contraindicaciones lo dicen en su título, y el texto agrega que la estenosis degenerativa no es susceptible del procedimiento porque no hay fusión comisural que abrir. Para la degenerativa con calcificación anular extensa la guía tiene una fila propia —implante transcatéter, Clase IIb · Nivel C— que esta aplicación no implementa.',
+      'Las características clínicas desfavorables son «varias de las siguientes» y la guía NO dice cuántas. Esta aplicación exige ' + EM_CRIT_2025.clin_desfav_min + ' o más: con un solo factor la fila que se publica sigue siendo la que afirma la ausencia, y el factor se declara. Ese número es un criterio de la aplicación, no de la guía.',
       'El score ecocardiográfico > ' + EM_CRIT_2025.score_desfav + ' es UNA de varias características desfavorables —clínicas y anatómicas— agrupadas con un «varias de las siguientes» que la guía NO cuantifica. Un score aislado no descalifica a nadie, y la propia guía señala que esos pacientes pueden beneficiarse igual, sobre todo con riesgo quirúrgico aumentado.',
       'Contraindicaciones: AVm > ' + (US != null ? _indNum(US,1) : '1,5') + ' cm²; trombo en aurícula izquierda; insuficiencia mitral MÁS QUE LEVE —no «moderada o más»—; calcificación severa o bicomisural; ausencia de fusión comisural; valvulopatía aórtica severa o enfermedad tricuspídea combinada severa con indicación quirúrgica; coronariopatía que requiera revascularización quirúrgica. Esta sección evalúa las tres primeras; las otras cuatro no tienen campo y la recomendación las nombra.',
       'Con trombo en la OREJUELA la contraindicación es CONDICIONAL: la guía admite considerar el procedimiento con contraindicación quirúrgica o sin urgencia, anticoagulando 1-3 meses y con un ETE de control que confirme la resolución.',
@@ -41160,10 +41309,27 @@ function _emAssertUmbrales(){
   const esp = [
     ['EM_CRIT_2025.score_desfav', EM_CRIT_2025.score_desfav, 8,   'score > 8'],
     ['EM_CRIT_2025.spap_decomp',  EM_CRIT_2025.spap_decomp,  50,  'PAPs en reposo > 50 mmHg'],
-    ['AVM_SEVERA_MAX',            window.AVM_SEVERA_MAX,     1.5, 'AVm ≤ 1,5 cm²']
+    ['AVM_SEVERA_MAX',            window.AVM_SEVERA_MAX,     1.5, 'AVm ≤ 1,5 cm²'],
+    ['EM_CRIT_2025.clin_desfav_min', EM_CRIT_2025.clin_desfav_min, 2, 'dos o más factores clínicos']
   ];
   const mal = esp.filter(e => e[1] !== e[2])
     .map(e => e[0] + ' = ' + e[1] + ' pero los textos de EM_REC_2025 y las notas dicen ' + e[3]);
+  /* ⚠️ Y EL TOKEN DE ETIOLOGÍA CONTRA EL DOM, que es de lo que depende la compuerta entera. Si
+     alguien renombra la opción del desplegable, `etio` pasa a valer «otra» para TODO paciente y la
+     sección deja de publicar recomendación — un fallo mudo que se ve igual que «ninguno de mis
+     pacientes es reumático». Corre en DOMContentLoaded, así que el select ya existe. */
+  /* ⚠️ LAS DOS FORMAS DE FALLAR, Y LA PRIMERA VERSIÓN SÓLO VIGILABA UNA. Con `if (selM && …)`, un
+     `#vm_morf` que cambie de id o desaparezca dejaba el assert MUDO — y es el mismo desenlace que
+     el token renombrado: `_indS` devuelve '' , `etio` queda en null y la sección deja de publicar
+     recomendación para TODOS los pacientes. Un assert que calla justo en el escenario que su propio
+     comentario llama «el peor posible» es peor que no tenerlo. Lo encontró /sharp-edges. */
+  const selM = document.getElementById('vm_morf');
+  if (!selM)
+    mal.push('no existe #vm_morf: la compuerta de etiología no puede leer la morfología y corta la ' +
+      'cascada de estenosis mitral para TODOS los pacientes');
+  else if (!Array.prototype.some.call(selM.options, function(o){ return o.value === EM_ETIO_CMP; }))
+    mal.push('EM_ETIO_CMP = "' + EM_ETIO_CMP + '" no es ninguna opción de #vm_morf: la compuerta de ' +
+      'etiología corta la cascada de estenosis mitral para TODOS los pacientes');
   if (mal.length) console.error('[EM] Los textos de la guía quedaron viejos respecto de las ' +
     'constantes. Releer la tabla de recomendaciones antes de tocar nada:\n  ' + mal.join('\n  '));
   return mal;
@@ -43159,6 +43325,17 @@ function indicRender(){
        verdad: una que lanzó se declara caída al pie y no puede aportar una entrada a la
        bibliografía — sería numerar una cita que no está en pantalla. */
     if (r.guia && r.guia.ref) usadas[r.guia.ref] = true;
+    /* ⚠️ Y LAS DE LAS RECOMENDACIONES TAMBIÉN, desde que el corchete puede salir ahí. Sin esto, una
+       recomendación que cite un documento distinto del del pie publicaría un número sin entrada en
+       la bibliografía: un corchete que abre el desplegable y no marca nada. Hoy la de estenosis
+       mitral cita el mismo, así que es defensa en profundidad, no un caso vivo. */
+    /* ⚠️ LA CONDICIÓN TIENE QUE SER LA MISMA QUE DIBUJA EL CORCHETE, y la primera versión era más
+       ancha: `_indRecomHTML` emite el corchete dentro del renglón de la clase, así que una
+       recomendación con `ref` y SIN `clase` aportaba su entrada numerada a la bibliografía sin
+       ningún corchete que la invoque — la regla 2 del registro, «una entrada sin corchete se lee
+       como que hay una cita más que no encontrás». Lo encontró /sharp-edges. */
+    if (r.recom && r.recom.ref && (r.recom.clase || r.recom.fuente)) usadas[r.recom.ref] = true;
+    if (r.recom && r.recom.mod && r.recom.mod.ref && (r.recom.mod.clase || r.recom.mod.fuente)) usadas[r.recom.mod.ref] = true;
   });
   if (!n) h = '<div style="padding:22px 6px;text-align:center;font-size:12px;color:var(--text2);line-height:1.6;">' +
     'Sin criterios de intervención detectados con los datos actuales.' +
@@ -84966,8 +85143,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260929-1712';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790712758069;                 /* eco-build-ms */
+const ECO_BUILD    = '20260929-1821';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790716864963;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -85053,7 +85230,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-1712</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-1821</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
