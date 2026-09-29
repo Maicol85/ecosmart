@@ -128,6 +128,14 @@ antes era uno entre varios.
   archivo: hoy ninguna línea ajena matchea los tokens mitrales.
 - **`else` mudo de `im_onda_s`**: una opción nueva con `value` no vacío cae en `severa`, y ahora eso
   es el veredicto. Latente.
+- **⚠️ `_indIM` (panel de Evidencia) NO TIENE COMPUERTA DE PRÓTESIS, y este cambio lo vuelve más
+  alcanzable.** Gatea por `im_sev_final === '4'`, que desde hoy se alcanza con **un** parámetro en
+  vez de dos. Medido sobre una prótesis mecánica mitral con VC 8 mm, FEVI 55 % y los controles
+  clínicos contestados, el panel publica **«Cirugía de la válvula mitral RECOMENDADA en el paciente
+  sintomático con insuficiencia mitral primaria severa» — Clase I · Nivel B**, y **no menciona la
+  prótesis en ninguna parte**: es la cascada de IM **primaria** de la ESC/EACTS, cuya primera fila
+  es la REPARACIÓN valvular, sobre una válvula que ya está reemplazada. Es sólo pantalla —no llega
+  al informe firmado— pero es conducta quirúrgica publicada al lado del paciente equivocado.
 
 ### Verificación
 
