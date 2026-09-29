@@ -21964,12 +21964,30 @@ window.emPdfMetodosUI = emPdfMetodosUI;
    del 28/09). Por eso aca se lee, no se recalcula — al reves que en IM, donde recalcular era la
    decision correcta porque `calcContIM` no escribe ningun grado. */
 function emPdfValsSync() {
-  _pdfMetodoSpan('em-pdf-thp-val',  v('avm_thp'));
-  _pdfMetodoSpan('em-pdf-cont-val', v('avm_cont'));
+  /* ⚠️ `disabled` SI SE ESCRIBE, Y `.checked` NO. La distincion es la que hace segura esta
+     funcion en el embudo de restauracion, y hay que leerla por lo que CONSUME cada cosa:
+       · `.checked` es la DECISION del medico: se persiste como <id>__chk, lo repone
+         `_restaurarChkInclusion` y lo LEE `emAvmPdfVal` para armar la fila «AVm» del PDF. Tocarlo
+         cambia un informe firmado — medido: «THP · Plan» pasa a «THP · Cont · Plan».
+       · `dataset.tocado`/`desdeEstudio` es la marca que PROTEGE esa decision.
+       · `disabled` no es ninguna de las dos: no esta en el HTML, `guardarInforme` no lo guarda,
+         ninguna ruta lo repone, y `emAvmPdfVal` NO lo consulta —su propio comentario lo declara—.
+         Es estado de pantalla puro, asi que escribirlo no puede cambiar ningun artefacto.
+     Sin esta linea el panel quedaba ofreciendo un numero INALCANZABLE: `limpiarCampos` deja las
+     dos casillas en `disabled` y `_restaurarChkInclusion` repone `.checked` y `dataset` pero
+     nunca `disabled`, asi que al reabrir un estudio el medico veia «— 3.14 cm²» al lado de una
+     casilla que no podia tildar, y si el estudio no la traia tildada no habia forma de sumar ese
+     metodo al PDF sin tocar un campo de EM que disparara `calcEM`. Antes del pintor la
+     contradiccion existia y era INVISIBLE —el span estaba vacio—: el repintado la volvio visible.
+     IM no lo tiene porque su `_pdfMetodoChk` hace `cb.disabled = false` cuando hay valor, y TC-312
+     lo declara como «capacidad nueva en la ruta del QR». Decision de Maicol, 2026-09-29. */
+  const hab = (idChk, hay) => { const cb = document.getElementById(idChk); if (cb) cb.disabled = !hay; };
+  _pdfMetodoSpan('em-pdf-thp-val',  v('avm_thp'));   // el THP no se puede desmarcar: no lleva guarda
+  hab('em_pdf_cont', _pdfMetodoSpan('em-pdf-cont-val', v('avm_cont')));
   /* Misma precedencia que `em-plan-row` y que `emAvmPdfVal`: planimetria transtoracica y, si no
      hay, el area por ETE. Derivar otra aca dejaria el panel ofreciendo un metodo distinto del
      que imprime el PDF. */
-  _pdfMetodoSpan('em-pdf-plan-val', v('avm_plan') || v('avm_ete'));
+  hab('em_pdf_plan', _pdfMetodoSpan('em-pdf-plan-val', v('avm_plan') || v('avm_ete')));
 }
 window.emPdfValsSync = emPdfValsSync;
 
@@ -29160,11 +29178,14 @@ function RECALC_MODULOS() {
          diámetro en un estudio reabierto dejaba el área vieja. */
   /* `emPdfValsSync` repinta los tres <span> del panel de metodos de EM y cubre de una los DOS
      escenarios que pasan por este embudo: `editarInforme` y el QR. Entra aca —y no como llamada
-     suelta en cada uno— por el mismo argumento que `_vliPintar`. Y puede entrar, a diferencia de
-     `imPdfMetodosUI`, porque NO escribe `.checked`, `.disabled` ni `dataset`: solo texto. Esa es
-     exactamente la objecion que este archivo dejo escrita para IM —«pisaria la decision que la
-     reimpresion respalda; limpiar los dos span alcanza»— y por eso el pintor de EM se escribio
-     sin tocar las casillas. */
+     suelta en cada uno— por el mismo argumento que `_vliPintar`.
+     ⚠️ Y PUEDE ENTRAR, a diferencia de `imPdfMetodosUI`, PORQUE NO ESCRIBE NADA QUE UN PDF O UN
+     ESTUDIO GUARDADO LEAN. La frase corta —«solo texto»— dejo de ser cierta el 2026-09-29, cuando
+     el pintor paso a escribir tambien `disabled`; lo que sostiene el argumento no es que escriba
+     poco sino QUE CONSUME cada cosa: `.checked` lo persiste `guardarInforme` y lo lee
+     `emAvmPdfVal` para la fila del PDF, `dataset` protege esa decision, y `disabled` no lo
+     persiste ni lo lee nadie. Los dos primeros siguen intocados — que es exactamente la objecion
+     que este archivo dejo escrita para IM: «pisaria la decision que la reimpresion respalda». */
   return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync'];
 }
 function _recalcModulos(etiqueta) {
@@ -84414,8 +84435,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260929-1300';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790697633340;                 /* eco-build-ms */
+const ECO_BUILD    = '20260929-1334';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790699641104;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -84501,7 +84522,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-1300</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-1334</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

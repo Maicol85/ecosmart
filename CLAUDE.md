@@ -94,7 +94,50 @@ bloque.
 
 **⚠️ LA TAREA PEDÍA «adyacente a la columna AVm» y eso es otra medición** —el área por THP, ocho
 columnas más allá—. Una cabecera «DVI mitral (fuente)» al lado de un área se lee como la
-procedencia DEL ÁREA. Se puso pegada al DVI que describe; reportado.
+procedencia DEL ÁREA. Se puso pegada al DVI que describe.
+**DECISIÓN DE MAICOL (2026-09-29): se queda pegada al DVI.** *«Más clara que pegarla a AVm.»*
+No es un pendiente ni una desviación abierta del pedido: está resuelto, y el que venga a
+«cumplir la tarea al pie de la letra» moviéndola junto a AVm tiene que leer esto primero.
+
+### 3 · La casilla deshabilitada — cerrada el mismo día
+
+**DECISIÓN DE MAICOL (2026-09-29):** *«cuando hay un valor calculado al lado (el panel ofrece un
+número), la casilla debe poder tildarse, no quedar disabled mostrando un dato inalcanzable.»*
+`emPdfValsSync` escribe ahora `cb.disabled = !hay` para `em_pdf_cont` y `em_pdf_plan`.
+
+**⚠️ EL PINTOR ESCRIBE `disabled` Y NO ESCRIBE `.checked`, Y ESA DISTINCIÓN ES LO QUE LO MANTIENE
+SEGURO EN `RECALC_MODULOS`.** El comentario viejo lo resumía como «solo texto» y eso **dejó de ser
+cierto**: el argumento no es que escriba poco, es QUÉ CONSUME cada cosa.
+
+| | quién lo persiste | quién lo lee | ¿lo toca el pintor? |
+|---|---|---|---|
+| `.checked` | `guardarInforme` como `<id>__chk` | **`emAvmPdfVal`** → fila «AVm» del PDF | **no** |
+| `dataset.tocado` / `desdeEstudio` | ídem | protege la decisión del médico | **no** |
+| `disabled` | **nadie** — no está en el HTML, ninguna ruta lo repone | **nadie**: `emAvmPdfVal` gatea por `.checked` y el número, y su propio comentario lo declara | sí |
+
+O sea: es estado de pantalla puro y **no puede cambiar ningún artefacto**. Los dos primeros siguen
+intocados, que es exactamente la objeción que este archivo dejó escrita para IM.
+
+**El defecto que cerraba:** `limpiarCampos` deja las dos casillas en `disabled` y
+`_restaurarChkInclusion` repone `.checked` y `dataset` pero **nunca `disabled`**, así que al reabrir
+un estudio el médico veía «— 3.14 cm²» al lado de una casilla que no podía tildar — y si el estudio
+no la traía tildada, no había forma de sumar ese método al PDF sin tocar un campo de EM que
+disparara `calcEM`. **Antes del pintor la contradicción existía y era INVISIBLE** —el span estaba
+vacío—: el repintado la volvió visible.
+
+**⚠️ Y LA MITAD QUE SEPARA EL ARREGLO DE UN CONTROL MUERTO ES NO REHABILITAR SIN NÚMERO.** La
+mutación «`disabled = false` siempre» **sobrevivió** a la primera versión del caso: `disabledTrasLimpiar`
+mide lo que hace `limpiarCampos`, no el pintor. Con ella puesta, un estudio sin continuidad vuelve
+con la casilla tildable y tildarla no produce nada, porque `emAvmPdfVal` gatea por el número —
+«visible, clicable, sin ningún efecto», que es como este archivo describe los acordeones rotos de
+Congénitas. La condición que discrimina es un estudio **sin los insumos de continuidad** reabierto:
+ahí la casilla tiene que seguir deshabilitada.
+
+Tres mutaciones, cada una en su condición: el pintor que deja de rehabilitar, el que rehabilita
+siempre, y el que además **marca** la casilla —ésa cae por **cuatro**, las que protegen la decisión
+del médico—.
+
+**`em_pdf_thp` queda afuera**: esa casilla no se puede desmarcar y no lleva guarda.
 
 **`p.dviFuente` va sin `|| 'calculado'`.** El default elegía **una de las dos respuestas posibles**
 como relleno: la primera rama futura que escriba `dvi` sin fuente publicaría «calculado» sobre un
@@ -102,13 +145,7 @@ valor tipeado. Vacío es el centinela correcto — «no sé de dónde salió» n
 
 ### Declarado y NO corregido
 
-- **⚠️ La casilla queda `disabled` al reabrir y el panel ahora SÍ ofrece el valor.** `limpiarCampos`
-  pone `disabled=true` y `_restaurarChkInclusion` repone `.checked` y `dataset` pero **nunca
-  `disabled`**. Antes la contradicción era invisible —el span estaba vacío—; el pintor la vuelve
-  visible sin resolverla: el médico ve «— 3.14 cm²» al lado de una casilla que no puede tildar. **IM
-  no lo tiene** porque su `_pdfMetodoChk` hace `cb.disabled = false`, y TC-312 lo declara como
-  «capacidad nueva en la ruta del QR». Arreglarlo es una línea (`cb.disabled = !hay`) y es un cambio
-  de comportamiento que este pedido no autorizó.
+- ~~**La casilla queda `disabled` al reabrir**~~ — **CERRADO el mismo día**, ver abajo.
 - **Un `vm_dvi` fuera de banda sale rotulado «consignado».** `vmProtEOA` lo bandea y devuelve null
   *justamente porque el número es ilegible* —el PDF lo imprime «25.00 (revisar)»—, el fallback cae a
   `valvProtDato`, que no bandea, y ahora le estampa una procedencia. La deuda ya estaba declarada;
@@ -127,10 +164,11 @@ valor tipeado. Vacío es el centinela correcto — «no sé de dónde salió» n
 - **La cobertura de EM en el cierre de la reimpresión es más frágil que la de IM**: aquélla se llama
   en la línea siguiente a las reposiciones y ésta depende del `_recalcModulos` ~60 líneas después,
   con una docena de restauraciones en el medio que comparten `catch`.
-- **`_pdfMetodoSpan` es «sólo texto» por convención, no por construcción.** Todo el argumento de
-  meter el pintor en `RECALC_MODULOS` cuelga de eso, y la función recibe el `idSpan` y el `opts`
-  completo — el lugar natural para que alguien agregue un `.disabled`. Pasarle el nodo ya resuelto
-  lo haría inmune.
+- **`_pdfMetodoSpan` es «sólo texto» por convención, no por construcción**, y desde el arreglo de
+  la casilla eso pesa más: recibe el `idSpan` y el `opts` completo, o sea que es el lugar natural
+  para que alguien agregue un `.checked` — y `.checked` **sí** lo lee `emAvmPdfVal`. Lo que la
+  separa de ser peligrosa es que hoy la comparten IM y EM, así que un escritor nuevo ahí rompería
+  los dos módulos a la vez. Pasarle el nodo ya resuelto la haría inmune.
 
 ### Verificación
 
@@ -166,8 +204,25 @@ sonda reportó «el panel no se contaminó» sobre un estudio que nunca se abri�
 devuelve `{ok, estudioId}` y **no** `id`, así que TC-318 resuelve el `id` contra la base viva — sin
 eso `editarInforme(undefined)` salía temprano en silencio y los denominadores lo cazaron.
 
-**Backticks dentro del cuerpo de un caso: van NOVENTA Y SEIS**, diez de una sola tanda, todos en un
-comentario que acababa de escribir para explicar la trampa de arriba.
+**Backticks dentro del cuerpo de un caso: van NOVENTA Y OCHO**, diez de una sola tanda, todos en
+comentarios que acababa de escribir para explicar las trampas de arriba.
+
+### ⚠️ UN PENDRIVE A MEDIO DESCONECTAR MATABA LA CORRIDA ENTERA
+
+El intento de correr TC-318 murió con **`ENXIO: no such device or address, read`** y **cero casos
+ejecutados**. No era el caso ni el cambio: el pendrive del Vivid quedó en estado **fantasma** —`ls`
+dice «No such file or directory» y `diskutil list external` no devuelve nada, pero `readdir` y
+`stat` **contestan desde la caché del VFS**, así que la lista de archivos sale poblada y el
+`readFile` revienta—.
+
+Los **cinco** cargadores de fixture tenían el `stat` envuelto y el `readFile` **pelado**, así que
+la excepción subía por el IIFE de nivel superior y se llevaba los 324 casos. El comportamiento
+documentado —«los casos del visor reportan sin verificar»— **no se cumplía**: no reportaba nada.
+Hoy los cinco saltean el archivo ilegible.
+
+**La lección operativa:** ante un error de I/O en el arranque del suite, mirar el **montaje** antes
+que el diff — `ls /Volumes` y `diskutil list external`. Y un `ls` que falla mientras `readdir`
+funciona es la firma del fantasma, no un permiso.
 
 ## UI: reordenar Doppler Mitral y Aórtico (2026-09-29)
 

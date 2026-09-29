@@ -14180,7 +14180,14 @@ const PENDRIVE = await (async () => {
   for (const p of todos) { try { conTam.push({ p, n: (await stat(p)).size }); } catch (e) {} }
   conTam.sort((a, b) => a.n - b.n);
   for (const { p } of conTam) {
-    const b = await readFile(p);
+    /* ⚠️ CON GUARDA: un pendrive a medio desconectar deja el punto de montaje en estado FANTASMA
+       —`readdir` y `stat` contestan desde la cache del VFS y `readFile` tira ENXIO—, asi que
+       `conTam` sale poblado y esta lectura revienta. Sin el try/catch la excepcion sube por el
+       IIFE de nivel superior y MATA LA CORRIDA ENTERA: 324 casos sin ejecutar por un cable flojo,
+       con un diagnostico que no nombra al pendrive. Con guarda, el archivo ilegible se saltea y
+       los casos del visor reportan «sin verificar», que es lo documentado cuando falta el fixture. */
+    let b;
+    try { b = await readFile(p); } catch (e) { continue; }
     if (b.slice(128,132).toString('ascii') !== 'DICM') continue;
     const multi = b.indexOf(Buffer.from('1.2.840.10008.5.1.4.1.1.3.1')) > -1;  // US Multi-frame
     const nombre = p.split('/').pop();
@@ -14332,7 +14339,9 @@ const LOOPS22 = await (async () => {
   conTam.sort((a, b) => a.n - b.n);
   const ref = [], enPagina = [];
   for (const { p } of conTam) {
-    const b = await readFile(p);
+    /* Guarda del pendrive fantasma — el motivo, completo, en el primer cargador (TC-181). */
+    let b;
+    try { b = await readFile(p); } catch (e) { continue; }
     if (b.slice(128,132).toString('ascii') !== 'DICM') continue;
     if (b.indexOf(Buffer.from('1.2.840.10008.5.1.4.1.1.3.1')) === -1) continue;   // solo multi-frame
     const d = mirar(b);
@@ -15087,7 +15096,9 @@ const DOPPLER = await (async () => {
   /* Se busca uno que declare unidades de SEGUNDOS en X: eso es un trazo espectral, la region
      sobre la que medir una distancia no tiene sentido. El 3 de (0018,6024) es cm. */
   for (const { p } of conTam) {
-    const b = await readFile(p);
+    /* Guarda del pendrive fantasma — el motivo, completo, en el primer cargador (TC-181). */
+    let b;
+    try { b = await readFile(p); } catch (e) { continue; }
     if (b.slice(128,132).toString('ascii') !== 'DICM') continue;
     // (0018,6024) US con valor 4 = seconds  -> 18 00 24 60 'US' 02 00 04 00
     const pat = Buffer.from([0x18,0x00,0x24,0x60,0x55,0x53,0x02,0x00,0x04,0x00]);
@@ -15371,7 +15382,9 @@ const FIJA_ESC = await (async () => {
   // (0018,6024) US con valor 3 = cm  ->  18 00 24 60 'U' 'S' 02 00 03 00
   const pat = Buffer.from([0x18,0x00,0x24,0x60,0x55,0x53,0x02,0x00,0x03,0x00]);
   for (const { p } of conTam) {
-    const b = await readFile(p);
+    /* Guarda del pendrive fantasma — el motivo, completo, en el primer cargador (TC-181). */
+    let b;
+    try { b = await readFile(p); } catch (e) { continue; }
     if (b.slice(128,132).toString('ascii') !== 'DICM') continue;
     if (b.indexOf(Buffer.from('1.2.840.10008.5.1.4.1.1.3.1')) > -1) continue;   // multi-frame, no
     if (b.indexOf(pat) === -1) continue;
@@ -16379,7 +16392,9 @@ const DOP_VEL = await (async () => {
   // (0018,6026) Physical Units Y = 7 (cm/s)  ->  18 00 26 60 'U' 'S' 02 00 07 00
   const pat = Buffer.from([0x18,0x00,0x26,0x60,0x55,0x53,0x02,0x00,0x07,0x00]);
   for (const { p } of conTam) {
-    const b = await readFile(p);
+    /* Guarda del pendrive fantasma — el motivo, completo, en el primer cargador (TC-181). */
+    let b;
+    try { b = await readFile(p); } catch (e) { continue; }
     if (b.slice(128,132).toString('ascii') !== 'DICM') continue;
     if (b.indexOf(pat) === -1) continue;
     return { nombre: p.split('/').pop(), b64: b.toString('base64') };
@@ -38240,6 +38255,35 @@ caso('TC-318', 'El panel de metodos de EM no se filtra entre pacientes: Nuevo es
     R.filaSRDespues = (typeof emAvmPdfVal === 'function') ? emAvmPdfVal() : null;
     R.panelSinResolver = panel();
 
+    /* 7 - LA CASILLA DESHABILITADA. limpiarCampos deja las dos en disabled y
+       _restaurarChkInclusion repone .checked y dataset pero NUNCA disabled: al reabrir, el panel
+       ofrecia un numero que el medico no podia tildar. Se mide con el ciclo real —vaciar y volver
+       a abrir— y no forzando el atributo, porque lo que se vigila es que la ruta de restauracion
+       lo rehabilite, no que la funcion sepa escribirlo. */
+    __t.limpiar();
+    R.disabledTrasLimpiar = !!(document.getElementById('em_pdf_cont') || {}).disabled;
+    cargarEstudioPorId(C.estudioId); await new Promise(r => setTimeout(r, 400));
+    const cb3 = document.getElementById('em_pdf_cont');
+    R.disabledTrasReabrir = !!(cb3 && cb3.disabled);
+    R.panelTrasReabrir = panel();
+    R.chkNoLoToco = !!(cb3 && cb3.checked);
+
+    /* 8 - Y NO REHABILITA SIN NUMERO. Es la mitad que separa «rehabilita cuando el panel ofrece
+       un valor» de «rehabilita siempre»: con lo segundo, un estudio sin continuidad vuelve con la
+       casilla tildable y tildarla no produce nada —emAvmPdfVal gatea por el numero—, o sea un
+       control muerto. El escenario es un estudio SIN los insumos de continuidad, que es el caso
+       frecuente: sin Ø TSVI ni VTI no hay area por continuidad que ofrecer. */
+    sembrar('Panel EM E', '55555555', '200', '1.4', '40', '3');
+    __t.set('diam_tsvi', ''); __t.set('itv_tsvi', ''); __t.set('em_vtimit', '');
+    try { calcEM(); } catch (e) {}
+    const E = await __t.guardar();
+    __t.limpiar();
+    cargarEstudioPorId(E.estudioId); await new Promise(r => setTimeout(r, 400));
+    const cb4 = document.getElementById('em_pdf_cont');
+    R.sinContDisabled = !!(cb4 && cb4.disabled);
+    R.sinContPanel = panel();
+    R.sinContTieneThp = R.sinContPanel.indexOf('2.2') > 0 || R.sinContPanel.indexOf('1.10') > 0;
+
     __t.borrar(C.estudioId); __t.borrar(D.estudioId);
 
     return { extra: [
@@ -38273,7 +38317,16 @@ caso('TC-318', 'El panel de metodos de EM no se filtra entre pacientes: Nuevo es
         R.chkSinResolver === false, 'em_pdf_cont.checked=' + R.chkSinResolver],
       ['y por eso la fila del PDF de ese informe queda igual',
         R.filaSRAntes === R.filaSRDespues,
-        'antes=' + JSON.stringify(R.filaSRAntes) + ' despues=' + JSON.stringify(R.filaSRDespues)]
+        'antes=' + JSON.stringify(R.filaSRAntes) + ' despues=' + JSON.stringify(R.filaSRDespues)],
+      ['DENOMINADOR: tras Nuevo estudio la casilla queda deshabilitada',
+        R.disabledTrasLimpiar === true, 'disabled=' + R.disabledTrasLimpiar],
+      ['al reabrir, la casilla se REHABILITA: el panel no ofrece un numero inalcanzable',
+        R.disabledTrasReabrir === false && R.panelTrasReabrir.indexOf('1.57') > 0,
+        'disabled=' + R.disabledTrasReabrir + ' panel=' + R.panelTrasReabrir],
+      ['DENOMINADOR: el estudio SIN continuidad reabre con su THP en el panel',
+        R.sinContTieneThp === true, 'panel=' + R.sinContPanel],
+      ['y ahi la casilla de continuidad SIGUE deshabilitada: no se ofrece un metodo sin numero',
+        R.sinContDisabled === true, 'disabled=' + R.sinContDisabled + ' panel=' + R.sinContPanel]
     ] };
   })();
 `);
