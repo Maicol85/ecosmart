@@ -21856,16 +21856,27 @@ window._PDF_METODO_IDS = _PDF_METODO_IDS;
    EROA de PISA, asi que auto-marcar la continuidad cambiaria en silencio lo que publica una
    fila que ya existe. «Se ofrece tildar el metodo que tiene valor» es habilitar la casilla, no
    marcarla. */
-function _pdfMetodoChk(idChk, idSpan, val, opts) {
+/* ══ EL TEXTO DEL <span>, UNA SOLA VEZ ═════════════════════════════════════════════════════════
+   Lo comparten `_pdfMetodoChk` —que ademas decide la casilla— y `emPdfValsSync`, que SOLO repinta.
+   Se extrae en vez de copiarse porque con dos copias el panel diria una cosa despues de un
+   recalculo y otra despues de reabrir un estudio, sobre el MISMO numero: es la divergencia
+   pantalla/pantalla que este archivo ya pago con la formula duplicada. Devuelve si habia valor,
+   que es lo que el llamador necesita para decidir la casilla. */
+function _pdfMetodoSpan(idSpan, val, opts) {
   const o = opts || {};
   const uni = o.uni !== undefined ? o.uni : ' cm²';
   const dec = o.dec !== undefined ? o.dec : 2;
+  const hay = (val != null && val !== '' && !isNaN(val));
+  const sp = document.getElementById(idSpan);
+  if (sp) sp.textContent = hay ? '— ' + Number(val).toFixed(dec) + uni : '— sin valor';
+  return hay;
+}
+function _pdfMetodoChk(idChk, idSpan, val, opts) {
+  const o = opts || {};
   const auto = o.auto !== false;
   const cb = document.getElementById(idChk);
-  const sp = document.getElementById(idSpan);
   if (!cb) return;
-  const hay = (val != null && val !== '' && !isNaN(val));
-  if (sp) sp.textContent = hay ? '— ' + Number(val).toFixed(dec) + uni : '— sin valor';
+  const hay = _pdfMetodoSpan(idSpan, val, o);
   /* Los input de esta app se convierten en runtime a type="text", así que `oninput` dispara
      con el valor intermedio: corregir una medida borrándola con backspace pasa SIEMPRE por
      ''. Ese vacío es transitorio y no debe tocar la decisión del médico — ni la bandera ni
@@ -21895,8 +21906,7 @@ function _emPdfChk(idChk, idSpan, val) { return _pdfMetodoChk(idChk, idSpan, val
    Se mantiene el valor en el `<span>` en los dos casos: «no se marca» no es «no se mide». */
 function emPdfMetodosUI(thpVal, contVal, planVal, contAuto) {
   // THP no lleva guarda de «tocado»: su casilla no se puede desmarcar, sólo informa el valor.
-  const spT = document.getElementById('em-pdf-thp-val');
-  if (spT) spT.textContent = (thpVal != null && !isNaN(thpVal)) ? '— ' + Number(thpVal).toFixed(2) + ' cm²' : '— sin valor';
+  _pdfMetodoSpan('em-pdf-thp-val', thpVal);
   _pdfMetodoChk('em_pdf_cont', 'em-pdf-cont-val', contVal, { auto: contAuto !== false });
   /* ⚠️ ABSTENERSE DE SUBIRLA NO ALCANZA: HAY QUE BAJARLA. `auto:false` sólo evita PONER el tilde,
      y el orden real de trabajo la deja puesta igual — el médico carga primero la EM (ahí la
@@ -21916,6 +21926,52 @@ function emPdfMetodosUI(thpVal, contVal, planVal, contAuto) {
   _emPdfChk('em_pdf_plan', 'em-pdf-plan-val', planVal);
 }
 window.emPdfMetodosUI = emPdfMetodosUI;
+
+/* ══ LOS TRES <span> DEL PANEL DE EM, REPINTADOS DESDE LOS CAMPOS ══════════════════════════════
+   Cierra el mismo defecto que `imPdfMetodosUI` cerro para IM, medido en los CUATRO escenarios
+   (2026-09-29). El unico escritor del panel era `emPdfMetodosUI`, colgado de `calcEM`, que no
+   corre en ninguna ruta de restauracion:
+
+     · «Nuevo estudio»  → campos vacios y los tres span con el paciente anterior (calcEM 0 veces)
+     · `editarInforme`  → campos de A y panel con B (calcEM 0 veces) — a diferencia de IM, aca
+                          NO lo tapa por accidente: alla lo cubre el `calcContIM()` que esa
+                          funcion llama por otro motivo
+     · QR (`cargarEstudioPorId`) → campos de A y panel con B
+     · reimpresion      → `calcIM_ESC` arrastra `sincronizarGradoIM` → `emContRefrescar` →
+                          `calcEM`, que repinta el panel con el estudio REIMPRESO, y el cierre
+                          repone los campos y no el panel: el medico vuelve a su paciente y el
+                          panel le ofrece las areas de otro
+
+   ⚠️ LA REIMPRESION SOLO SE CONTAMINA SI LA IM TIENE PARAMETROS, y eso hay que saberlo para
+   testearla: sin datos de IM la cadena no se dispara —medido, `calcEM` corre CERO veces— y el
+   panel no se toca. Un caso escrito sin sembrar la IM pasa sin probar nada. En la practica es el
+   caso frecuente: una mitral reumatica casi siempre tiene algo de insuficiencia.
+
+   ⚠️ NO SE LLAMA A `emPdfMetodosUI` DESDE LAS RUTAS DE RESTAURACION, y esta es LA diferencia con
+   IM. Alla `imPdfMetodosUI` usa `auto:false` —nunca marca sola— asi que llamarla es inocuo. Aca
+   `contAuto` es dinamico, y con continuidad valida la funcion MARCA `em_pdf_cont`. Medido: sobre
+   un estudio con la casilla desmarcada y sin resolver, la fila del PDF pasa de
+   «THP: 2.2 cm2 · Plan: 2.60 cm2» a «THP: 2.2 cm2 · Cont: 3.14 cm2 · Plan: 2.60 cm2». O sea que
+   reimprimir un informe firmado ANTES del selector le agregaria la continuidad que no tenia:
+   distinto del que se firmo, y en silencio. Por eso este pintor escribe SOLO los span.
+
+   Las casillas no lo necesitan: son la DECISION del medico, se persisten como `<id>__chk` y las
+   repone `_restaurarChkInclusion` por el camino de siempre.
+
+   Los valores salen de los campos ya calculados —los MISMOS que lee `emAvmPdfVal`— y no se
+   recalculan: `calcEM` escribe `em_grado` via `emGradoAuto` y recalcularia `avm_cont` sobre un
+   estudio archivado, y que este FUERA del embudo de restauracion es load-bearing (ver la entrada
+   del 28/09). Por eso aca se lee, no se recalcula — al reves que en IM, donde recalcular era la
+   decision correcta porque `calcContIM` no escribe ningun grado. */
+function emPdfValsSync() {
+  _pdfMetodoSpan('em-pdf-thp-val',  v('avm_thp'));
+  _pdfMetodoSpan('em-pdf-cont-val', v('avm_cont'));
+  /* Misma precedencia que `em-plan-row` y que `emAvmPdfVal`: planimetria transtoracica y, si no
+     hay, el area por ETE. Derivar otra aca dejaria el panel ofreciendo un metodo distinto del
+     que imprime el PDF. */
+  _pdfMetodoSpan('em-pdf-plan-val', v('avm_plan') || v('avm_ete'));
+}
+window.emPdfValsSync = emPdfValsSync;
 
 /* Valor de la fila «AVm» de la tabla del PDF.
    THP se imprime SIEMPRE que tenga valor, sin consultar su casilla. No es sólo por el «no
@@ -29102,7 +29158,14 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync'];
+  /* `emPdfValsSync` repinta los tres <span> del panel de metodos de EM y cubre de una los DOS
+     escenarios que pasan por este embudo: `editarInforme` y el QR. Entra aca —y no como llamada
+     suelta en cada uno— por el mismo argumento que `_vliPintar`. Y puede entrar, a diferencia de
+     `imPdfMetodosUI`, porque NO escribe `.checked`, `.disabled` ni `dataset`: solo texto. Esa es
+     exactamente la objecion que este archivo dejo escrita para IM —«pisaria la decision que la
+     reimpresion respalda; limpiar los dos span alcanza»— y por eso el pintor de EM se escribio
+     sin tocar las casillas. */
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -29262,6 +29325,15 @@ function limpiarCampos(silencioso) {
      alcanza y sus `.checked`/`.disabled` los sigue gobernando el bloque de `_PDF_METODO_IDS` de
      acá arriba. Verificado por censo del archivo entero. */
   document.querySelectorAll('[id^="im-pdf-"]').forEach(el => { el.textContent = ''; });
+  /* Y los tres de EM, por el mismo motivo y con el mismo recurso. Medido antes de escribirlo:
+     tras «Nuevo estudio» los campos quedan vacios, las casillas se limpian bien —esas si las
+     barre esta funcion— y los tres span seguian con «— 1.57 cm²» del paciente anterior, con
+     `calcEM` corriendo CERO veces. Aca se VACIA en vez de llamar a `emPdfValsSync`: sobre un
+     formulario en blanco el pintor escribiria «— sin valor» en los tres, que es texto sobre un
+     panel que todavia no tiene nada que decir; el estado de arranque de esos span es la cadena
+     vacia. El prefijo `em-pdf-` con guion MEDIO lo usan solo estos tres —verificado—: las
+     casillas van con guion BAJO (`em_pdf_cont`) y no las toca este selector. */
+  document.querySelectorAll('[id^="em-pdf-"]').forEach(el => { el.textContent = ''; });
   /* Paciente nuevo: no hay texto previo nuestro contra el cual comparar. Sin esto, la base del
      paciente ANTERIOR clasificaba como «automático» texto del nuevo y lo dejaba pisar. */
   _infBase = null; _sumaBase = null;
@@ -55004,6 +55076,23 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
        médico —con `auto:false` no marca sola, y sólo desmarca cuando no hay valor Y nadie decidió—. */
     try { if (typeof imPdfMetodosUI === 'function') imPdfMetodosUI(); }
     catch (e) { console.error('[imPdfMetodosUI/reimpresion]', e); }
+    /* ⚠️ EL PANEL DE EM NO LLEVA LLAMADA ACA, Y NO ES UN OLVIDO. Esta ventana TAMBIEN lo
+       contamina —el `calcIM_ESC()` de la lista de recalculos arrastra `sincronizarGradoIM` →
+       `emContRefrescar` → `calcEM`, que repinta los tres span con el estudio REIMPRESO; medido:
+       con el paciente D en pantalla y reimprimiendo C el panel quedaba con las areas de C—, pero
+       lo cubre el `_recalcModulos('restaurarTrasReimpresion')` DEL CIERRE, que es donde vive
+       `emPdfValsSync`.
+       ⚠️ OJO CON CUAL: el `_recalcModulos('pdfDeInformeGuardado')` de la fase de CARGA es el que
+       CONTAMINA —corre con los campos del estudio reimpreso—, no el que limpia. Escribi el
+       comentario nombrandolo a el y era falso; quien borre el del cierre creyendo que aquel
+       cubre el escenario reabre la fuga.
+       Escribi la llamada explicita y la mutacion que la borra SOBREVIVIO: es la guarda duplicada
+       que esta serie ya pago con la sincronizacion del visor, donde el predicado estaba escrito
+       dos veces y ninguna mutacion de un solo sitio lo mataba. Se saca. Lo que vigila el
+       escenario es TC-318, no una segunda llamada.
+       IM sí la necesita porque `imPdfMetodosUI` NO esta en `RECALC_MODULOS` —escribe `.checked`
+       y pisaria la decision que esta funcion respalda—; `emPdfValsSync` solo escribe texto, y por
+       eso puede vivir en el embudo. */
     // Simétrico con la limpieza de antes de cargar: el paciente en pantalla recupera SUS marcas.
     _MARCAS_DERIV.forEach(id => {
       const el = document.getElementById(id);
@@ -69210,6 +69299,43 @@ function _labExcelRow(inf) {
   const gIM = _labGradoTxt(inf,'im_grado'), gIA = _labGradoTxt(inf,'ia_grado'), gIT = _labGradoTxt(inf,'it_grado');
   const gEA = _labGradoTxt(inf,'ea_grado'), gEM = _labGradoTxt(inf,'em_grado');
   const psapV = num('psap_calc');
+  /* ══ DVI MITRAL: EL VALOR Y SU PROCEDENCIA, DE UNA SOLA DERIVACIÓN ═══════════════════════════
+     Desde el commit del DVI calculado la columna dejó de ser homogénea —antes siempre era el
+     tipeado— así que un número suelto ya no dice si lo escribió el médico o lo calculó la app, y
+     esa planilla cruza a CeiboAnalytics SIN el informe al lado. El informe sí lo distingue
+     («consignado»); la planilla no lo hacía, y ésa es la interpretabilidad que el cambio degradó.
+     ⚠️ LAS DOS COLUMNAS SALEN DE ACÁ Y NO CADA UNA POR SU CUENTA. Con dos derivaciones, la fila
+     podría publicar el DVI calculado y rotularlo «consignado» —una procedencia FABRICADA, que es
+     peor que no tener la columna—: basta que el fallback de una se dispare y el de la otra no.
+     Es la regla que este archivo repite desde la fórmula duplicada.
+     El fallback conserva el comportamiento anterior: si `vmProtEOA` lanza o no puede calcular, la
+     columna del valor cae a `valvProtDato` —el DVI tipeado, con su compuerta de morfología— y la
+     procedencia dice «consignado» sólo si ese número EXISTE. Sin dato, las dos van vacías: una
+     procedencia sobre una celda vacía es una afirmación sobre algo que nadie midió. */
+  const _dviMit = (function () {
+    /* La procedencia se deriva SIEMPRE del valor que se acaba de resolver, en las dos ramas: sin
+       número no hay procedencia. Escrito con la guarda en una sola rama, la primaria estampaba
+       una fuente sobre una celda que `rnd` podía dejar vacía. */
+    const conFuente = (val, f) => ({ val: val, fuente: (val === '' || val === null || val === undefined) ? '' : f });
+    try {
+      const p = vmProtEOA(c);
+      /* ⚠️ `p.dviFuente` SIN `|| 'calculado'`. El default parecía inocuo —hoy los dos escritores
+         de `p.dvi` setean la fuente— pero elegía UNA DE LAS DOS RESPUESTAS POSIBLES como relleno:
+         la primera rama futura que escriba `dvi` sin fuente publicaría «calculado» sobre un valor
+         tipeado, o sea la procedencia FABRICADA que esta columna existe para impedir. Vacío es el
+         centinela correcto: «no sé de dónde salió» no es «lo calculé yo». */
+      if (p.esProt && p.dvi != null) return conFuente(rnd(p.dvi,2), p.dviFuente || '');
+    } catch (e) {}
+    /* ⚠️ EL CERO SE EXPORTA, Y SE DECLARA EN VEZ DE ARREGLARSE ACÁ. `valvProtDato` acepta
+       cualquier número finito y `rnd(0,2)` devuelve `0`, así que un `vm_dvi` tipeado en 0 sale
+       «0», mientras `vmProtEOA` exige `> 0` para el MISMO dato: dos criterios sobre el mismo
+       número. Un DVI de 0 no es una medición posible. Pero eso es de la columna del VALOR, que es
+       PREEXISTENTE, y cambiarlo mueve lo que viaja a CeiboAnalytics para esos estudios — fuera
+       del «SOLO dos cosas» de este pedido. La procedencia que le corresponde es «consignado», y
+       es cierta: alguien lo tipeó. Queda declarado, no corregido. */
+    const base = rnd(valvProtDato('vm_morf','vm_dvi',c),2);
+    return conFuente(base, 'consignado');
+  })();
   const bin = (g, t) => {
     const s = String(g || '').toLowerCase();
     // 'Moderada-severa' (grado 3) se cuenta como moderada (II) — criterio conservador; maneja texto y numérico vía _labGradoTxt
@@ -69274,11 +69400,12 @@ function _labExcelRow(inf) {
        un estudio con el DVI sólo tipeado —o con un VTI fuera de escala— tiene que seguir
        exportando lo que exportaba. Y `valvProtDato` sigue siendo la compuerta de morfología: un
        DVI cargado y después escondido al cambiar a válvula nativa no se publica. */
-    'DVI mitral': (function () {
-      const _base = rnd(valvProtDato('vm_morf','vm_dvi',c),2);
-      try { const _p = vmProtEOA(c); if (_p.esProt && _p.dvi != null) return rnd(_p.dvi,2); } catch (e) {}
-      return _base;
-    })(),
+    'DVI mitral': _dviMit.val,
+    /* ⚠️ VA PEGADA AL DVI Y NO A «AVm (cm²)», QUE ES LO QUE PEDÍA LA TAREA. Esa columna es el área
+       por THP —otra medición, ocho columnas más allá— y una cabecera «DVI mitral (fuente)» al
+       lado de un área se lee como la procedencia DEL ÁREA. Una columna de procedencia sólo
+       significa algo pegada al valor que describe. Reportado el 2026-09-29. */
+    'DVI mitral (fuente)': _dviMit.fuente,
     'Morfología mitral': c.vm_morf || '', 'IM grado': gIM,
     'IM_I (Leve)': bin(gIM,'leve'), 'IM_II (Moderada)': bin(gIM,'moderada'), 'IM_III (Severa)': bin(gIM,'severa'),
     'VC IM (mm)': rnd(num('im_vc','vc_mitral'),1),
@@ -70234,6 +70361,17 @@ function _labOrdenarCols(headers) {
        la vena contracta dentro de "Morfología aórtica". */
     const grp = LAB_XLS_BIN.find(g => g.dest === m[1]);
     if (grp) grp.cols.forEach(alias => meter(alias[0]));
+    /* ⚠️ EL ORDEN DEL EXCEL NO ES EL DEL OBJETO QUE DEVUELVE `_labExcelRow`, y esa confusion
+       costó el arreglo del 2026-09-29. Lo decide esta función: primero las columnas DEL MAPA en
+       el orden del mapa, y al final —`headers.forEach(meter)`— las que el mapa no conoce. Una
+       columna DERIVADA, que por definición no está en el mapa, termina a decenas de columnas de
+       la que describe: medido, «DVI mitral (fuente)» salía ÚLTIMA, 68 columnas después de «DVI
+       mitral» y pegada a los campos de Marfan, mientras el objeto las tenía contiguas.
+       `LAB_XLS_BIN` ya resuelve esto para las binarias de severidad y NO SE PUEDE REUSAR: lo
+       consume también el IMPORTADOR, que lee esas columnas de vuelta a `campos[grp.dest]`, así
+       que una procedencia metida ahí terminaría escribiéndose dentro de `vm_dvi`. De ahí una
+       tabla propia, que no participa de ninguna otra decisión. */
+    (LAB_XLS_TRAS[m[0]] || []).forEach(meter);
   });
   headers.forEach(meter);
   /* Reagrupación por BLOQUE, estable: dentro de cada bloque se conserva el orden que acaba de
@@ -71241,6 +71379,11 @@ const LAB_XLS_BIN = [
                                       ['EM_III (Severa)','EM_III','EM_severa']] },
 ];
 // im/ia/it son <input hidden> con código numérico; em/ea son <select> con texto.
+/* Columnas DERIVADAS que van intercaladas inmediatamente DESPUÉS de la columna que describen.
+   Sólo la consume `_labOrdenarCols` —ver la nota de ahí—: no es importable, no entra al mapa y
+   no toca ninguna otra decisión del Excel. La clave es el RÓTULO de la columna del mapa, no el
+   id del campo, porque es a ese nivel que decide el orden. */
+const LAB_XLS_TRAS = { 'DVI mitral': ['DVI mitral (fuente)'] };
 const LAB_XLS_BIN_VAL = { num:['1','2','4'], txt:['leve','moderada','severa'] };
 const LAB_XLS_BIN_NADA = { num:'0', txt:'sin' };
 
@@ -84271,8 +84414,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260929-1140';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790692848480;                 /* eco-build-ms */
+const ECO_BUILD    = '20260929-1300';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790697633340;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -84358,7 +84501,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-1140</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-1300</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

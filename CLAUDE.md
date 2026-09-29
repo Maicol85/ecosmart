@@ -1,5 +1,174 @@
 # EcoSmart — trampas de este archivo
 
+## Mitral: columna DVI fuente y panel EM entre pacientes (2026-09-29)
+
+Dos cosas, y la segunda se censó ANTES de asumir el patrón de IM — que es lo que evitó copiar un
+arreglo que acá habría cambiado informes firmados.
+
+### 1 · El panel de EM: el censo dio CUATRO escenarios, y el cuarto es CONDICIONAL
+
+Los tres `<span>` del panel «🖨️ Incluir en el informe» de Estenosis Mitral —`em-pdf-thp-val`,
+`em-pdf-cont-val`, `em-pdf-plan-val`— tenían un solo escritor, `emPdfMetodosUI`, colgado de
+`calcEM`, que no corre en ninguna ruta de restauración. Medido en el navegador, no leído:
+
+| escenario | qué pasaba | `calcEM` |
+|---|---|---|
+| «Nuevo estudio» | campos vacíos, **casillas bien limpiadas**, los tres span con el paciente anterior | 0 veces |
+| `editarInforme` | campos de A, panel con B | 0 veces |
+| QR (`cargarEstudioPorId`) | campos de A, panel con B | — |
+| **reimpresión** | el panel pasa a las áreas del estudio REIMPRESO y se queda ahí | **1 vez** |
+
+**⚠️ LA REIMPRESIÓN SÓLO SE CONTAMINA SI LA IM TIENE PARÁMETROS, y sin eso el caso es vacuo.** La
+cadena es `calcIM_ESC → sincronizarGradoIM → emContRefrescar → calcEM`, y `calcIM_ESC` no la
+dispara si no hay nada que graduar: **medido, sin `im_vc` cargado `calcEM` corre CERO veces en la
+ventana y el panel no se toca**. Mi primera medición fue exactamente ésa y dio «no reproduce» — un
+falso negativo que casi reporto como contradicción del CONTEXTO. En la práctica es el caso
+frecuente: una mitral reumática casi siempre tiene algo de insuficiencia. TC-318 siembra `im_vc` y
+**cuenta `calcEM`** para declarar que la cadena se ejerció.
+
+#### ⚠️ EL PATRÓN DE IM NO SE PUEDE COPIAR, y la diferencia cambia un informe firmado
+
+Para IM, `imPdfMetodosUI` usa `auto:false` —nunca marca sola— así que llamarla en la restauración
+es inocuo. Acá `contAuto` es **dinámico**, y con continuidad válida `emPdfMetodosUI` **MARCA**
+`em_pdf_cont`. Medido sobre una casilla desmarcada y sin resolver:
+
+| | fila `AVm` del PDF |
+|---|---|
+| antes | `THP: 2.2 cm2 · Plan: 2.60 cm2` |
+| después de llamar a `emPdfMetodosUI` | `THP: 2.2 cm2 · **Cont: 3.14 cm2** · Plan: 2.60 cm2` |
+
+O sea: reimprimir un informe firmado **antes** del selector le agregaría la continuidad que no
+tenía. Por eso el pintor nuevo, **`emPdfValsSync`, escribe SÓLO los tres span**. Las casillas son
+la DECISIÓN del médico, se persisten como `<id>__chk` y las repone `_restaurarChkInclusion`.
+
+**Y lee los campos en vez de recalcular**, al revés que IM: allá recalcular era correcto porque
+`calcContIM` no escribe ningún grado; acá `calcEM` escribe `em_grado` y recalcula `avm_cont`, y que
+esté **fuera del embudo de restauración es load-bearing** (entrada del 28/09). Los valores salen de
+los mismos campos que lee `emAvmPdfVal`.
+
+#### Tres sitios de código para cuatro escenarios, y la llamada que sobraba
+
+`RECALC_MODULOS` (cubre `editarInforme`, el QR **y la reimpresión**, vía el
+`_recalcModulos('restaurarTrasReimpresion')` del cierre) + el barrido `[id^="em-pdf-"]` en
+`limpiarCampos`.
+
+**⚠️ ESCRIBÍ UNA CUARTA LLAMADA EXPLÍCITA EN LA REIMPRESIÓN Y LA MUTACIÓN QUE LA BORRA SOBREVIVIÓ.**
+Era la guarda duplicada que esta serie ya pagó con la sincronización del visor. Se sacó: con un
+solo mecanismo, la mutación que quita `emPdfValsSync` de `RECALC_MODULOS` mata **las tres**
+condiciones de restauración. Y el comentario que dejé en su lugar nombraba el `_recalcModulos`
+**equivocado** —el de la fase de carga, que es el que CONTAMINA— hasta que `/sharp-edges` lo
+corrigió.
+
+`_pdfMetodoSpan` se **extrajo** de `_pdfMetodoChk`: un solo formateador del texto del span, para
+que el panel no diga una cosa después de un recálculo y otra después de reabrir. Verificado
+equivalente; lo único que cambia es la guarda del THP, que era `!isNaN(thpVal)` sin `!== ''` —con
+`''` imprimía «— 0.00 cm²»—, hoy inalcanzable.
+
+### 2 · La columna «DVI mitral (fuente)»
+
+Desde el commit del DVI calculado la planilla dejó de ser homogénea, y cruza a CeiboAnalytics
+**sin el informe al lado**, que es la única superficie que hoy distingue «consignado». La columna
+lo dice: `consignado` · `calculado` · vacío. **Sólo-export por construcción**: no está en
+`LAB_XLS_MAP`, así que el importador no la conoce.
+
+**El valor y la procedencia salen de UNA SOLA derivación (`_dviMit`).** Con dos, basta que el
+fallback de una se dispare y el de la otra no para que la fila publique el DVI calculado rotulado
+«consignado» — una procedencia **fabricada**, peor que no tener la columna.
+
+#### ⚠️ «ADYACENTE» NO SE DECIDE EN `_labExcelRow`, Y MI CASO MEDÍA EL DENOMINADOR EQUIVOCADO
+
+El orden del Excel lo fija **`_labOrdenarCols`**: primero las columnas DEL MAPA en el orden del
+mapa, y al final las que el mapa no conoce. Una columna derivada —que por definición no está en el
+mapa— termina al fondo. **Medido: salía ÚLTIMA, 68 columnas después del DVI y pegada a los campos
+de Marfan**, mientras el objeto las tenía contiguas.
+
+**Y TC-319 pasaba en verde**, porque hacía `Object.keys(A)`: medía la estructura de la que sale el
+dato en vez de la superficie que el médico abre. Lo cazó `/sharp-edges`, no el caso. Hoy el caso
+llama a `_labOrdenarCols` y publica la distancia en el diagnóstico.
+
+El arreglo es `LAB_XLS_TRAS`, una tabla propia consumida **sólo** por `_labOrdenarCols`.
+**`LAB_XLS_BIN` NO se puede reusar** aunque haga exactamente ese intercalado: lo consume también el
+**importador**, que lee esas columnas de vuelta a `campos[grp.dest]` — una procedencia metida ahí
+terminaría escribiéndose dentro de `vm_dvi`. Hoy la distancia es **1** y las dos caen en el mismo
+bloque.
+
+**⚠️ LA TAREA PEDÍA «adyacente a la columna AVm» y eso es otra medición** —el área por THP, ocho
+columnas más allá—. Una cabecera «DVI mitral (fuente)» al lado de un área se lee como la
+procedencia DEL ÁREA. Se puso pegada al DVI que describe; reportado.
+
+**`p.dviFuente` va sin `|| 'calculado'`.** El default elegía **una de las dos respuestas posibles**
+como relleno: la primera rama futura que escriba `dvi` sin fuente publicaría «calculado» sobre un
+valor tipeado. Vacío es el centinela correcto — «no sé de dónde salió» no es «lo calculé yo».
+
+### Declarado y NO corregido
+
+- **⚠️ La casilla queda `disabled` al reabrir y el panel ahora SÍ ofrece el valor.** `limpiarCampos`
+  pone `disabled=true` y `_restaurarChkInclusion` repone `.checked` y `dataset` pero **nunca
+  `disabled`**. Antes la contradicción era invisible —el span estaba vacío—; el pintor la vuelve
+  visible sin resolverla: el médico ve «— 3.14 cm²» al lado de una casilla que no puede tildar. **IM
+  no lo tiene** porque su `_pdfMetodoChk` hace `cb.disabled = false`, y TC-312 lo declara como
+  «capacidad nueva en la ruta del QR». Arreglarlo es una línea (`cb.disabled = !hay`) y es un cambio
+  de comportamiento que este pedido no autorizó.
+- **Un `vm_dvi` fuera de banda sale rotulado «consignado».** `vmProtEOA` lo bandea y devuelve null
+  *justamente porque el número es ilegible* —el PDF lo imprime «25.00 (revisar)»—, el fallback cae a
+  `valvProtDato`, que no bandea, y ahora le estampa una procedencia. La deuda ya estaba declarada;
+  la columna la **agrava**, porque un sello de procedencia sobre un valor que la app marcó ilegible
+  se lee como dato validado. `p.dviFuera` está disponible.
+- **El cero se exporta.** `valvProtDato` acepta cualquier número finito y `vmProtEOA` exige `> 0`
+  para el mismo dato: un `vm_dvi` en 0 sale «0 · consignado». Es de la columna del VALOR, que es
+  preexistente, y cambiarla mueve lo que viaja a CeiboAnalytics.
+- **El span pierde la marca «(revisar)».** `avm_cont` guarda `"1.23 cm² (revisar)"` y `v()` se queda
+  con el número. Preexistente por la ruta de `emPdfMetodosUI`, pero al reabrir `em-cont-row` está
+  vacía y el panel pasa a ser **la única** superficie que menciona ese AVm — sin el reparo.
+- **El `calc-box` de EM queda vacío al reabrir y el panel no.** `calcEM` no corre, así que
+  `em-thp-row`/`em-cont-row`/`em-plan-row` quedan en «—» mientras el panel de 20 px más abajo sí
+  muestra los valores. El nuevo es el correcto; la asimetría la crea este cambio. Si alguna vez se
+  repinta el `calc-box`, que sea leyendo campos, nunca con `calcEM`.
+- **La cobertura de EM en el cierre de la reimpresión es más frágil que la de IM**: aquélla se llama
+  en la línea siguiente a las reposiciones y ésta depende del `_recalcModulos` ~60 líneas después,
+  con una docena de restauraciones en el medio que comparten `catch`.
+- **`_pdfMetodoSpan` es «sólo texto» por convención, no por construcción.** Todo el argumento de
+  meter el pintor en `RECALC_MODULOS` cuelga de eso, y la función recibe el `idSpan` y el `opts`
+  completo — el lugar natural para que alguien agregue un `.disabled`. Pasarle el nodo ya resuelto
+  lo haría inmune.
+
+### Verificación
+
+**Control byte a byte contra HEAD**, cinco escenarios: informe, EN SUMA y la fila completa del
+Excel **descontando la columna nueva** —cuyo contenido lo verifica TC-319 aparte—. **15 mediciones,
+cero diferencias**, con las columnas pasando de 433 a 434 en los cinco. Denominador declarado:
+informes de 408 a 895 caracteres y hashes distintos entre escenarios.
+
+**TC-318** (13 condiciones) y **TC-319** (8). **Seis mutaciones en rojo**, cada una en su condición:
+el barrido de `limpiarCampos`, el pintor fuera de `RECALC_MODULOS` —que cae por las **tres**
+condiciones de restauración, confirmando que hay un solo mecanismo—, el pintor volviendo a
+`emPdfMetodosUI`, el intercalado quitado, la procedencia derivada aparte y el default fabricado.
+**Una sobrevive y es equivalente**: mover la clave dentro de `_labExcelRow` ya no cambia el orden
+emitido, porque lo fija `_labOrdenarCols`. Es el diseño funcionando.
+
+**Suite 316/334**, los **mismos 18 rojos** de la línea base: los 17 del visor y DICOM por el
+pendrive del Vivid ausente más TC-223. Cero regresiones. **Semgrep 125 / 0 ERROR**.
+`detectar_huerfanos.py` sin huérfanos nuevos. `check_mobile` en los 2 ALTA de siempre. Los tres
+asserts de arranque del Excel en `[]`.
+
+**TC-135 se puso en rojo y ésa es la señal**: fijaba 433/133. Reapuntado a 434/134 — la columna cae
+como BÁSICA, igual que el DVI que describe.
+
+### ⚠️ CORRECCIÓN A ESTE ARCHIVO: `cargarEstudioPorId` va por `estudioId`, no por `id`
+
+La entrada del 2026-09-28 dice: *«`pdfDeInformeGuardado` y `cargarEstudioPorId` van por `id`;
+`guardar()`, `reabrir()` y `borrar()` van por `estudioId`»*. **La mitad de `cargarEstudioPorId` es
+falsa**: hace `getInformes().find(i => i.estudioId === id)`. `editarInforme` y
+`_pdfDeInformeGuardadoArmar` sí van por `.id` — verificados los tres.
+
+Costó una medición entera: pasarle el `.id` no lanza ni emite toast, simplemente **no carga**, y la
+sonda reportó «el panel no se contaminó» sobre un estudio que nunca se abrió. Y `__t.guardar()`
+devuelve `{ok, estudioId}` y **no** `id`, así que TC-318 resuelve el `id` contra la base viva — sin
+eso `editarInforme(undefined)` salía temprano en silencio y los denominadores lo cazaron.
+
+**Backticks dentro del cuerpo de un caso: van NOVENTA Y SEIS**, diez de una sola tanda, todos en un
+comentario que acababa de escribir para explicar la trampa de arriba.
+
 ## UI: reordenar Doppler Mitral y Aórtico (2026-09-29)
 
 Reordenamiento **visual puro** de las dos secciones. Cero cambios de cálculo, sincronía, fórmula,
@@ -2249,8 +2418,9 @@ equivocado dejaba el estudio de prueba vivo en el store, cambiando el denominado
 siguientes.
 
 Dos reglas que quedan:
-- **`id` y `estudioId` no son intercambiables.** `pdfDeInformeGuardado` y `cargarEstudioPorId` van
-  por `id`; `guardar()`, `reabrir()` y `borrar()` van por `estudioId`. Al cruzarlos no hay error:
+- **`id` y `estudioId` no son intercambiables.** `pdfDeInformeGuardado` y `editarInforme` van
+  por `id`; **`cargarEstudioPorId` va por `estudioId`** —esta línea decía `id` y era falsa, ver la
+  entrada del 29/09—; `guardar()`, `reabrir()` y `borrar()` van por `estudioId`. Al cruzarlos no hay error:
   hay una salida temprana con un toast que ningún caso mira.
 - **Una condición que afirma «X no cambió» necesita su denominador.** Hoy hay una condición propia
   que exige que el estudio se haya resuelto **y que el callback de la reimpresión haya corrido**;

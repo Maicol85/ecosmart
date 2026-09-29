@@ -4531,7 +4531,10 @@ caso('TC-135', 'GLS y contractilidad son BASICOS del Excel: sin checkbox y siemp
         /* +5 el 2026-09-27: los cuatro DVI de protesis y el AT aortico. Caen como BASICAS y esta
            bien — son mediciones del bloque valvular, como «VC IM» o «PHT IAo», no de un modulo
            detras de un checkbox. Las dos cuentas crecen igual, que es lo que este caso vigila. */
-        basicas.length === 133 && TODAS.length === 433,   // +4 ET · +8 Lab · +5 protesis · −1 «DVI aortico», que salio al unificar el calculo
+        /* +1 el 2026-09-29: «DVI mitral (fuente)», la procedencia del DVI. Cae como BASICA por el
+           mismo argumento que el DVI que describe —es del bloque valvular, no de un modulo detras
+           de un checkbox— y las dos cuentas crecen igual, que es lo que este caso vigila. */
+        basicas.length === 134 && TODAS.length === 434,   // +4 ET · +8 Lab · +5 protesis · −1 «DVI aortico», que salio al unificar el calculo · +1 fuente del DVI mitral
         basicas.length + ' basicas de ' + TODAS.length],
       // 6 · Una preferencia vieja con el modulo borrado no lo revive.
       ['una preferencia guardada con contr no revive el modulo', (function(){
@@ -38119,6 +38122,220 @@ caso('TC-317', 'El DVI del Doppler Aortico se borra entre pacientes, y el barrid
       despues === '—',
       'antes=' + JSON.stringify(antes) + ' despues=' + JSON.stringify(despues) +
       ' | dentroDelCalcBox=' + dentro + ' loMatcheaElBarrido=' + barrido]
+  ] };
+`);
+
+/* -- TC-318 ---------------------------------------------------------------------------------
+   EL PANEL DE METODOS DE EM NO SE FILTRA ENTRE PACIENTES.
+
+   Mismo defecto que 734c9ef cerro para IM, en el panel de al lado. El unico escritor era
+   `emPdfMetodosUI`, colgado de `calcEM`, que no corre en ninguna ruta de restauracion. Censado y
+   medido en los CUATRO escenarios antes de escribir una linea (2026-09-29).
+
+   ⚠️ LA REIMPRESION SOLO SE CONTAMINA SI LA IM TIENE PARAMETROS. La cadena es
+   `calcIM_ESC` -> `sincronizarGradoIM` -> `emContRefrescar` -> `calcEM`, y `calcIM_ESC` no la
+   dispara sin nada que graduar: medido, sin `im_vc` cargado `calcEM` corre CERO veces en la
+   ventana y el panel no se toca. Por eso los dos estudios llevan `im_vc` — sin eso la condicion
+   de la reimpresion pasa sin ejercer nada, que es el denominador de siempre.
+
+   ⚠️ Y LA CASILLA ES LA MITAD QUE NO SE PUEDE ROMPER. El arreglo NO llama a `emPdfMetodosUI`
+   desde las rutas de restauracion: con continuidad valida esa funcion MARCA `em_pdf_cont`, y eso
+   CAMBIA la fila del PDF —medido: «THP · Plan» pasa a «THP · Cont · Plan»—, o sea que reimprimir
+   un informe firmado antes del selector le agregaria la continuidad que no tenia. Las dos ultimas
+   condiciones lo fijan por el lado del medico que dijo que NO. */
+caso('TC-318', 'El panel de metodos de EM no se filtra entre pacientes: Nuevo estudio, QR, editarInforme y reimpresion', `
+  return (async () => {
+
+    const sp = id => { const e = document.getElementById(id); return e ? e.textContent.trim() : '(NO EXISTE)'; };
+    const panel = () => sp('em-pdf-thp-val') + ' | ' + sp('em-pdf-cont-val') + ' | ' + sp('em-pdf-plan-val');
+    const quien = () => (document.getElementById('nombre') || {}).value;
+
+    // Dos estudios con paneles DISTINTOS. Si fueran iguales, «muestra el suyo» se cumple con el
+    // panel contaminado y el caso no distingue nada.
+    const sembrar = (nom, ci, thp, plan, vtimit, imvc) => {
+      __t.limpiar();
+      __t.set('nombre', nom); __t.set('ci', ci); __t.set('edad', '60');
+      __t.set('peso', '80'); __t.set('talla', '180');
+      __t.set('thp', thp); __t.set('avm_plan', plan);
+      __t.set('em_vmax', '1.8'); __t.set('em_gmedio', '9');
+      __t.set('diam_tsvi', '20'); __t.set('itv_tsvi', '20'); __t.set('em_vtimit', vtimit);
+      __t.set('im_vc', imvc);                 // <- lo que hace alcanzable la cadena de la reimpresion
+      try { calcIM_ESC(); } catch (e) {}
+      try { calcEM(); } catch (e) {}
+    };
+
+    sembrar('Panel EM C', '33333333', '200', '1.4', '40', '3');
+    const panelC = panel();
+    const C = await __t.guardar();
+    sembrar('Panel EM D', '44444444', '100', '2.6', '20', '8');
+    const panelD = panel();
+    const D = await __t.guardar();
+
+    /* ⚠️ __t.guardar() devuelve {ok, estudioId} y NO id, y editarInforme y
+       pdfDeInformeGuardado buscan por id. Pasarles el estudioId —o un undefined— hace que
+       salgan temprano SIN error: el modal no abre, el PDF no se genera, y «el panel no cambio»
+       se cumple solo. Lo cazaron los dos denominadores de abajo. Se resuelve contra la base viva. */
+    const idDe = eid => { const x = getInformes().find(i => i.estudioId === eid); return x ? x.id : null; };
+    const idC = idDe(C.estudioId), idD = idDe(D.estudioId);
+
+    const R = { panelC, panelD, difieren: panelC !== panelD, idC, idD };
+
+    // 1 - Nuevo estudio
+    __t.limpiar();
+    R.trasNuevoEstudio = panel();
+
+    // 2 - QR: cargar D y despues C
+    cargarEstudioPorId(D.estudioId); await new Promise(r => setTimeout(r, 400));
+    R.qrD = quien() + ' -> ' + panel();
+    cargarEstudioPorId(C.estudioId); await new Promise(r => setTimeout(r, 400));
+    R.qrC = quien() + ' -> ' + panel();
+
+    // 3 - editarInforme: con C en pantalla, abrir D. Va por .id, NO por .estudioId.
+    editarInforme(idD); await new Promise(r => setTimeout(r, 250));
+    const ok = document.getElementById('edit-ok'); R.huboModal = !!ok; if (ok) ok.click();
+    await new Promise(r => setTimeout(r, 600));
+    R.editarD = quien() + ' -> ' + panel();
+
+    // 4 - reimpresion: con D en pantalla, reimprimir C. Se cuenta calcEM para saber que la
+    //     cadena SE DISPARO: sin eso, «el panel no cambio» se cumple porque nadie lo toco.
+    const toasts = [];
+    const ot = window.toast; window.toast = function (m) { toasts.push(String(m)); return ot && ot.apply(this, arguments); };
+    const oc = window.calcEM; let vecesEM = 0;
+    window.calcEM = function () { vecesEM++; return oc.apply(this, arguments); };
+    pdfDeInformeGuardado(idC);
+    await new Promise(r => setTimeout(r, 9000));
+    window.calcEM = oc;
+    R.reimpresionOcurrio = toasts.filter(t => t.indexOf('PDF generado') >= 0).length;
+    R.calcEMEnLaVentana = vecesEM;
+    R.trasReimprimirC = quien() + ' -> ' + panel();
+
+    // 5 - control: reimprimir el MISMO estudio no rompe el caso que funciona, y la casilla que el
+    //     medico desmarco a mano sobrevive con su fila del PDF intacta.
+    cargarEstudioPorId(C.estudioId); await new Promise(r => setTimeout(r, 400));
+    const cb = document.getElementById('em_pdf_cont');
+    if (cb) { cb.checked = false; cb.dataset.tocado = '1'; }
+    const filaAntes = (typeof emAvmPdfVal === 'function') ? emAvmPdfVal() : null;
+    pdfDeInformeGuardado(idC);
+    await new Promise(r => setTimeout(r, 9000));
+    window.toast = ot;
+    R.mismoEstudio = quien() + ' -> ' + panel();
+    R.chkSobrevivio = !!(cb && cb.checked === false);
+    R.filaDespues = (typeof emAvmPdfVal === 'function') ? emAvmPdfVal() : null;
+    R.filaAntes = filaAntes;
+
+    /* 6 - LA CASILLA SIN RESOLVER, que es donde el pintor puede hacer dano y donde el escenario
+       de arriba NO llega: alla la casilla lleva dataset.tocado, o sea resuelto, y _pdfMetodoChk
+       la respeta pase lo que pase. El estado que discrimina es el de un estudio guardado ANTES
+       del selector: casilla desmarcada, sin tocado y sin desdeEstudio, con avm_cont cargado. Si
+       el pintor llamara a emPdfMetodosUI, ahi la MARCA y la fila del PDF pasa de THP+Plan a
+       THP+Cont+Plan, o sea que reimprimir un informe firmado le agrega la continuidad que no
+       tenia. Medido antes de escribir el arreglo. Se llama al pintor directo porque el invariante
+       es del PINTOR: no escribe casillas, venga por donde venga. */
+    const cb2 = document.getElementById('em_pdf_cont');
+    if (cb2) { cb2.checked = false; delete cb2.dataset.tocado; delete cb2.dataset.desdeEstudio; }
+    const filaSR = (typeof emAvmPdfVal === 'function') ? emAvmPdfVal() : null;
+    try { emPdfValsSync(); } catch (e) {}
+    R.chkSinResolver = !!(cb2 && cb2.checked);
+    R.filaSRAntes = filaSR;
+    R.filaSRDespues = (typeof emAvmPdfVal === 'function') ? emAvmPdfVal() : null;
+    R.panelSinResolver = panel();
+
+    __t.borrar(C.estudioId); __t.borrar(D.estudioId);
+
+    return { extra: [
+      ['DENOMINADOR: los dos estudios tienen paneles distintos',
+        R.difieren, 'C=' + R.panelC + '  D=' + R.panelD],
+      ['Nuevo estudio deja el panel VACIO',
+        R.trasNuevoEstudio === ' |  | ', JSON.stringify(R.trasNuevoEstudio)],
+      ['el QR muestra el panel del estudio que abre, no el del anterior',
+        R.qrD.indexOf(R.panelD) > 0 && R.qrC.indexOf(R.panelC) > 0,
+        'D: ' + R.qrD + '   C: ' + R.qrC],
+      ['DENOMINADOR: editarInforme abrio el modal',
+        R.huboModal, String(R.huboModal)],
+      ['editarInforme muestra el panel del estudio que abre',
+        R.editarD.indexOf(R.panelD) > 0, R.editarD],
+      ['DENOMINADOR: la reimpresion OCURRIO',
+        R.reimpresionOcurrio >= 1, 'toasts PDF=' + R.reimpresionOcurrio],
+      ['DENOMINADOR: la cadena calcIM_ESC->calcEM se disparo en la ventana (sin IM cargada no se ejerce nada)',
+        R.calcEMEnLaVentana >= 1, 'calcEM corrio ' + R.calcEMEnLaVentana + ' vez/veces'],
+      ['tras reimprimir OTRO estudio el panel vuelve al paciente en pantalla',
+        R.trasReimprimirC.indexOf(R.panelD) > 0, R.trasReimprimirC + '  (esperado ' + R.panelD + ')'],
+      ['reimprimir el MISMO estudio sigue mostrando lo suyo',
+        R.mismoEstudio.indexOf(R.panelC) > 0, R.mismoEstudio + '  (esperado ' + R.panelC + ')'],
+      ['la casilla que el medico desmarco sobrevive a la reimpresion',
+        R.chkSobrevivio, 'em_pdf_cont.checked=' + (!R.chkSobrevivio)],
+      ['y la fila del PDF no cambia: el repintado no toca las casillas',
+        R.filaAntes === R.filaDespues,
+        'antes=' + JSON.stringify(R.filaAntes) + ' despues=' + JSON.stringify(R.filaDespues)],
+      ['DENOMINADOR: con la casilla SIN resolver el panel igual muestra la continuidad',
+        R.panelSinResolver.indexOf('1.57') > 0, R.panelSinResolver],
+      ['el pintor NO marca una casilla sin resolver: un informe anterior al selector no gana continuidad',
+        R.chkSinResolver === false, 'em_pdf_cont.checked=' + R.chkSinResolver],
+      ['y por eso la fila del PDF de ese informe queda igual',
+        R.filaSRAntes === R.filaSRDespues,
+        'antes=' + JSON.stringify(R.filaSRAntes) + ' despues=' + JSON.stringify(R.filaSRDespues)]
+    ] };
+  })();
+`);
+
+/* -- TC-319 ---------------------------------------------------------------------------------
+   LA COLUMNA «DVI mitral (fuente)» DICE DE DONDE SALIO EL NUMERO DE AL LADO.
+
+   Desde que el Excel exporta el DVI CALCULADO la planilla dejo de ser homogenea —antes era
+   siempre el tipeado— y cruza a CeiboAnalytics sin el informe al lado, que es la unica superficie
+   que hoy distingue «consignado». La columna lo dice.
+
+   ⚠️ LA CONDICION QUE IMPORTA NO ES QUE LA COLUMNA EXISTA, es que el valor y la procedencia
+   salgan de UNA SOLA derivacion: con dos, basta que el fallback de una se dispare y el de la otra
+   no para que la fila publique el DVI calculado rotulado «consignado» — una procedencia
+   FABRICADA, peor que no tener la columna. Por eso se cruzan los dos en cada escenario. */
+caso('TC-319', 'Excel: la columna de procedencia del DVI mitral dice consignado o calculado, y sale de la misma derivacion que el valor', `
+  const fila = campos => _labExcelRow({ campos, fecha_estudio: '2026-09-29' });
+
+  // consignado: protesis con el DVI tipeado y SIN los dos VTI, o sea sin calculo posible
+  const A = fila({ vm_morf: 'Prótesis mecánica', vm_dvi: '1.20' });
+  // calculado: los dos VTI presentes y en banda -> vmProtEOA lo deriva y manda sobre el tipeado
+  const B = fila({ vm_morf: 'Prótesis mecánica', vm_dvi: '1.20',
+                   diam_tsvi: '20', itv_tsvi: '20', em_vtimit: '60' });
+  // vacio: protesis sin ningun DVI
+  const C = fila({ vm_morf: 'Prótesis mecánica' });
+  // control de morfologia: valvula NATIVA con un DVI cargado y escondido -> no se publica nada
+  const D = fila({ vm_morf: 'Normal', vm_dvi: '1.20' });
+
+  /* ⚠️ SE MIDE EL ORDEN DEL EXCEL EMITIDO, NO EL DEL OBJETO. La primera version de este caso
+     hacia Object.keys(A) y pasaba en verde mientras la columna salia ULTIMA en el archivo, 68
+     columnas despues del DVI: el orden lo decide _labOrdenarCols —primero las del mapa, y al
+     final las que el mapa no conoce— y una derivada no esta en el mapa. Lo cazo /sharp-edges,
+     no el caso. Es el denominador equivocado en su forma mas pura: medir la estructura de la
+     que sale el dato en vez de la superficie que el medico abre. */
+  const ks = _labOrdenarCols(Object.keys(A));
+  const i  = ks.indexOf('DVI mitral');
+  const vacio = x => x === '' || x === null || x === undefined;
+
+  return { extra: [
+    ['el Excel pasa a 434 columnas', ks.length === 434, String(ks.length)],
+    ['la columna nueva va PEGADA al DVI que describe EN EL EXCEL EMITIDO',
+      ks[i + 1] === 'DVI mitral (fuente)',
+      'vecindario=' + JSON.stringify(ks.slice(i, i + 3)) +
+      ' distancia=' + (ks.indexOf('DVI mitral (fuente)') - i)],
+    ['DENOMINADOR: el escenario calculado da un DVI distinto del tipeado',
+      B['DVI mitral'] === 3 && A['DVI mitral'] === 1.2,
+      'calculado=' + B['DVI mitral'] + ' tipeado=' + A['DVI mitral']],
+    ['con el DVI solo tipeado la fuente dice consignado',
+      A['DVI mitral'] === 1.2 && A['DVI mitral (fuente)'] === 'consignado',
+      'val=' + A['DVI mitral'] + ' fuente=' + JSON.stringify(A['DVI mitral (fuente)'])],
+    ['con los dos VTI la fuente dice calculado, y el valor es el calculado',
+      B['DVI mitral'] === 3 && B['DVI mitral (fuente)'] === 'calculado',
+      'val=' + B['DVI mitral'] + ' fuente=' + JSON.stringify(B['DVI mitral (fuente)'])],
+    ['sin DVI las DOS columnas quedan vacias: no se afirma procedencia sobre lo que nadie midio',
+      vacio(C['DVI mitral']) && vacio(C['DVI mitral (fuente)']),
+      'val=' + JSON.stringify(C['DVI mitral']) + ' fuente=' + JSON.stringify(C['DVI mitral (fuente)'])],
+    ['con morfologia NATIVA no se publica ni el DVI ni su procedencia',
+      vacio(D['DVI mitral']) && vacio(D['DVI mitral (fuente)']),
+      'val=' + JSON.stringify(D['DVI mitral']) + ' fuente=' + JSON.stringify(D['DVI mitral (fuente)'])],
+    ['la columna es SOLO-EXPORT: el importador no la conoce',
+      !LAB_XLS_MAP.some(r => r[0] === 'DVI mitral (fuente)'),
+      'en LAB_XLS_MAP=' + LAB_XLS_MAP.some(r => r[0] === 'DVI mitral (fuente)')]
   ] };
 `);
 
