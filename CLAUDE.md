@@ -1,5 +1,164 @@
 # EcoSmart — trampas de este archivo
 
+## Panel de Evidencia: citas numeradas, y la CIV cita un criterio que su guía no dice (2026-09-29)
+
+Las trece `guia:` del panel pasaron de un string que mezclaba documento + edición + clase +
+criterio + glosa a `{ref, txt, nota}`. El número sale de la **posición en `IND_REFS`** y de ningún
+otro lado; las secciones citan por **clave**, nunca por número.
+
+### ⚠️ EL HALLAZGO CLÍNICO: la CIV publica un criterio que la ESC 2020 NO dice
+
+Se verificó la edición contra la fuente primaria porque la divergencia lo exigía, y apareció algo
+más grande que el año. El código atribuye la conducta de la CIV a **«ESC 2023 GUCH» en cinco
+lugares** —el encabezado de la cascada, el comentario de `CIV_QPQS_CIERRE` y los tres `crit` de
+`CIV_CONDUCTAS`— y **no existe ninguna guía ESC de congénitas del adulto de 2023**: la vigente es
+la **2020** (Baumgartner H, et al. *Eur Heart J* 2021;42(6):563-645, doi:10.1093/eurheartj/ehaa554),
+y la próxima está agendada para 2028. Pero corregir el año habría sido lo peor posible, porque
+**el criterio tampoco es el de esa tabla**. Tres divergencias verificadas contra la recomendación
+de CIV (§4.2.4):
+
+| lo que publica la app | lo que dice la guía |
+|---|---|
+| «sobrecarga de volumen del VI **o síntomas atribuibles al shunt**» | «sobrecarga de volumen del VI y sin HAP, **INDEPENDIENTEMENTE DE LOS SÍNTOMAS**» (Clase I · Nivel C). La fórmula de los síntomas **no figura** — suena a la de la CIA o a AHA/ACC |
+| `CIV_QPQS_CIERRE = 1.5` como criterio de cierre, con `>=` | **> 1,5** —con `>`— y **sólo** dentro de los dos escenarios con HAP establecida (RVP 3-5 UW → IIa; ≥5 UW → IIb). La Clase I **no usa Qp/Qs** |
+| `CIV_DDVI_IDX_CIERRE = 32` mm/m² | **no está en el documento**: cero coincidencias en el texto completo |
+
+**Por eso la CIV NO se unificó con sus cuatro hermanas**, y el motivo no es el año: estampar
+«ESC 2020 [2]» sobre ese criterio convierte una cita numerada y verificada en el respaldo de tres
+afirmaciones que la fuente no sostiene. Tiene entrada propia en el registro (`escGuchCiv`) que
+declara las tres divergencias, y su `nota` visible dice que el nivel no se publica y que la
+redacción está en verificación. **Corregirlo es contenido clínico y toca los `crit` que imprimen la
+tarjeta de Congénitas, el PDF y el PPT** — fuera del alcance de un cambio de forma de citas.
+
+### El 14º `guia:` es CÓDIGO MUERTO, y dos comentarios afirmaban lo contrario
+
+`eaProtNarrativa` devuelve un campo `guia` y **nadie lo lee**: los únicos accesos a su retorno en
+todo el archivo son `.frase`, `.resumen` y `.salvedades`. Dos comentarios —en su declaración y a
+4.600 líneas— decían que lo consume `_eaProtPintar`; esa función lee `N.salvedades` y nada más. Se
+dejó en la forma del sistema (`{ref, txt}`) para que el día que exista la sección de prótesis del
+panel el número y la bibliografía ya sean consistentes, **y no se le inventó una superficie donde
+pintarse** — eso sería construir esa sección, que es material reservado. El filtro por uso
+garantiza que una referencia registrada y no citada no se publique.
+
+### Tres reglas del mecanismo
+
+1. **Los números son ESTABLES, no por orden de aparición.** Numerar en el orden en que las
+   secciones salen haría que [1] fuera la ESC/EACTS 2025 en un paciente y la ESC 2020 en el
+   siguiente, porque qué secciones se muestran depende del estudio. El precio son huecos en la
+   bibliografía de un estudio concreto, y es el precio correcto: un hueco no afirma nada, un número
+   que cambia de documento sí. **Las entradas nuevas van AL FINAL** — la lista ya tiene una metida
+   en el medio (`escGuchCiv`), así que el precedente empuja a insertar donde queda prolijo.
+2. **La bibliografía lista SÓLO lo citado en ese pintado.** Listar todo publicaría una entrada
+   numerada sin ningún corchete que la invoque, y hay un caso real esperando (`aseProtAo`). Una
+   entrada sin corchete se lee como «hay una cita más que no encontrás».
+3. **La clase y el nivel NO viven en el registro.** Son propiedad de la RECOMENDACIÓN: seis
+   secciones citan la ESC/EACTS 2025 con clases distintas. Van en el `txt`, con el formato único
+   `Clase I · Nivel B` —el mismo de los 46 campos `c:` de las constantes de recomendación—. Y el
+   nivel es **opcional**: el documento del foramen usa GRADE y forzarle el molde sería inventarle
+   una clase que no tiene.
+
+### ⚠️ UN CAMBIO DE FORMA DE N CAMPOS NO CAMBIA EL CONTENIDO DE NINGUNO — y se me cayó un «o»
+
+El defecto más grave de mi propio diff, y lo encontró `/sharp-edges`. Al reescribir los trece `txt`
+la IM perdió el primer «o»: de «diámetro telesistólico ≥ 40 mm, **o** indexado ≥ 20 mm/m², o FEVI
+≤ 60 %» a «≥ 40 mm, indexado ≥ 20 mm/m², o FEVI…», que se lee como si hicieran falta el absoluto
+**Y** el indexado cuando los tres son criterios independientes de Clase I. **Por qué no se nota:**
+los trece hunks son visualmente idénticos —cada uno un string que pasa a `{ref, txt}`— así que se
+revisan por forma y no palabra por palabra. Ningún caso mira el `txt` de la IM. La regla: si hay que
+reescribir prosa clínica, va en otro commit.
+
+### Los tres modos de falla MUDOS que hubo que cerrar, todos de `/sharp-edges`
+
+- **El `txt` vacío publicaba el corchete solo.** La asimetría iba al revés de donde importa: una
+  `ref` no registrada ya salía en rojo, y un `txt` ausente o mal nombrado —`text:` por `txt:`— daba
+  `<b></b>` seguido de un corchete azul perfectamente formado que abre la bibliografía y muestra la
+  guía correcta. **Todo confirma que la cita es válida y lo único que falta es el criterio**, y un
+  renglón vacío bajo la línea punteada se lee como separador.
+- **La rama de compat con string desactivaba el sistema entero en silencio.** Una sección que
+  devolviera un string se pintaba tal cual: **idéntica píxel por píxel al panel de antes del
+  cambio**, sin corchete y sin aportar a la bibliografía, y nadie cuenta corchetes contra secciones.
+  La rama cambiaba un fallo ruidoso (`[object Object]`) por uno mudo, que es peor. Hoy las dos
+  declaran, y se ejercen **en aislamiento** porque ninguna es alcanzable con las trece bien escritas.
+- **Una clave duplicada en `IND_REFS` da dos entradas con el MISMO número.** El índice se queda con
+  la última (`m[r.k] = i + 1` en un `forEach`) mientras `_indBiblioHTML` filtra `IND_REFS` —no las
+  claves—, así que las dos filas pasan y publican el mismo número; y `_indRefAbrir` resuelve con
+  `querySelector`, que devuelve la PRIMERA, o sea la fila cuyo número no le corresponde. El registro
+  ya tiene dos entradas del mismo documento por una razón declarada, así que es alcanzable el día
+  que se resuelva la divergencia de la CIV. Grita al arrancar.
+
+### `role="button"` NO dispara `click` con Enter
+
+Eso es gratis sólo en un `<button>` real. El corchete se anuncia como botón y entra al orden de
+tabulación: sin su rama de `keydown` el médico tabula, lo ve enfocado, aprieta Enter y **no pasa
+nada**, mientras los controles clínicos del mismo panel —que sí son `<button>`— responden. Dos
+mecanismos que se anuncian igual a la tecnología asistiva y sólo uno funciona.
+**No se convirtió en `<button>`**: el corchete vive inline dentro de la oración del criterio y la
+regla táctil global infla todo `button` a 44 px de alto, que ahí rompe el renglón. Declarado: el
+corchete **no llega a los 44 px** —`min-width`/`min-height` no aplican a un inline no reemplazado—
+y `check_mobile` no lo caza porque el panel nace con `display:none`. Si molesta, la salida es que la
+bibliografía nazca abierta, no engordar el corchete.
+
+### ⚠️ EL DOCUMENTO Y SU EDICIÓN YA NO SE VEN SIN INTERACCIÓN en SIETE secciones
+
+Consecuencia del diseño pedido —número inline, bibliografía en capa desplegable— y hay que tenerla
+escrita. `_indRecomHTML` imprime `r.fuente` visible **sólo si hay `r.clase`**, y CIA, CIV, DAP,
+CoAo, FOP, MCH y VAB **no devuelven `recom`**: en esas siete el texto visible del panel pasó a ser
+«Clase I · Nivel C [2]» sin nombrar ninguna guía ni ningún año. Lo alcanzable es el corchete, que
+abre la bibliografía en un clic y marca su entrada.
+**Y TC-293 se puso en rojo por eso, con su condición `/20\d\d/.test(textContent)`.** Se la
+reapuntó al corchete —que es más fuerte: un año puede aparecer por casualidad en cualquier nota y el
+atributo no— **pero el comentario que escribí primero la llamaba «falso negativo» y no lo era**: era
+la única condición automática que medía que el documento fuera legible sin interacción, y se puso
+roja porque dejó de serlo. Si hace falta que se lea sin un clic, la salida es que la bibliografía
+nazca abierta.
+
+### Lo que rompió el cambio de contrato, y por qué cada rojo era la señal
+
+Cuatro sitios del suite leían `r.guia` **como string**: TC-277 (`secG.guia.indexOf is not a
+function`), TC-284 (`[object object]`) y las dos copias de `todoElTexto`. Los cuatro se reapuntaron
+al invariante, que quedó más fuerte —TC-277 identifica el documento por su **clave del registro**,
+que una sección no puede errar citando la guía correcta—. Y **TC-293 tomaba la bibliografía como una
+sección más**: su `:scope > details` contaba ocho donde hay siete, con cero filas de tabla y sin
+control de detalle adentro. Se excluye por su marca `data-ind-biblio`, no por posición.
+
+### El caso, y una intermitencia que NO era del caso
+
+**TC-322**, 26 condiciones, un escenario por sección. Dos cosas:
+
+- **Recorre `IND_SECS`, no la tabla de escenarios.** La primera versión iteraba la tabla y la
+  cobertura era **asimétrica**: borrar o renombrar una sección rompía el caso y **agregar** una lo
+  dejaba verde —`abrieron` seguía dando 13 y los `every()` corrían sobre las claves de la tabla, o
+  sea verde por vacío—. Y hay una sección esperando: `aseProtAo` ya está numerada.
+- **Fallaba 1 de cada 3 corridas con `marcadas=0`, y la causa era del producto.** `__t.set` despacha
+  `input`, que arma el debounce de 400 ms de `_indSyncDebounced`; al vencer, `indicSyncBoton` ve el
+  panel abierto y llama a `_indRepintarConservando`, que **repinta el cuerpo** y borra la marca del
+  corchete. El propio comentario de `indicSyncBoton` ya advertía que ese debounce puede quedar en
+  vuelo al abrir el panel. El caso drena el debounce antes de medir, **y de paso quedó cubierto el
+  repintado**: la bibliografía abierta SÍ sobrevive —`_indRepintarConservando` conserva el `open` por
+  el texto del summary, y «ⓘ Bibliografía» es único y **hermano** de las secciones, así que su clave
+  no choca con los 26 «▸ ⓘ Ver detalle»— y la marca NO, que es la decisión declarada.
+
+### Verificación
+
+Suite **319/337**, los mismos **18 rojos de la línea base** (17 del pendrive, que no está montado
+—confirmado con `ls /Volumes/DISK_IMG`— más TC-223). **Trece mutaciones, cada una en su condición.**
+Control A/B contra HEAD sobre **10 escenarios** —informe + EN SUMA + la fila completa del Excel, con
+hash FNV-1a y longitud—: **30 mediciones, cero diferencias**, con el denominador declarado (informes
+de 408 a 528 caracteres, 9 hashes distintos de 10, 434 columnas en los diez) y **con control negativo
+de la propia sonda**: un canario en el texto de la prótesis TAVI mueve INF, SUMA y XLS de ese
+escenario, así que el «idéntico» no es una sonda que no mide nada. El escenario `coa_dap` da el mismo
+hash que `vacio` —esas dos secciones no emiten sin su `*_incluir_chk`— y queda declarado: para el
+informe no tiene denominador, aunque el Excel sí difiere.
+**Semgrep 125 / 0 ERROR**, el mismo número exacto que HEAD (corrido sobre los dos).
+`detectar_huerfanos.py` sin huérfanos nuevos. `check_mobile` en los 2 ALTA de siempre.
+`node --check` por bloque: fallan **sólo** los bloques 0 y 1, la línea base del extractor.
+
+**Backticks dentro del cuerpo de un caso: van CIENTO TRES**, ocho de una tanda, todos en comentarios
+que acababa de escribir para explicar las trampas de arriba.
+**Y un lote de edición abortó en su primer `rep` por un argumento faltante, no escribió nada, y el
+`node --check` + la corrida siguiente dieron VERDE sobre el archivo sin tocar** — el falso éxito que
+este archivo ya documenta. Desde entonces el lote compara el md5 antes y después.
+
 ## Mitral: se elimina el cociente 0,38, que no tenía fuente (2026-09-29)
 
 La tarjeta «🔴 Prótesis Mitral — ESC 2021» de la pestaña Referencias publicaba

@@ -29638,10 +29638,19 @@ caso('TC-277', 'Insuficiencia aortica: la recomendacion ESC 2025 se recalcula co
       // ── La cita principal pasa a 2025, y el recordatorio del umbral mitral ya no esta ──
       const secG = window._indIA();
       const notasTxt = (secG.notas || []).join(' ');
-      ex.push(['la cita dice ESC/EACTS 2025 y ninguna nota habla del umbral MITRAL',
-        secG.guia.indexOf('2025') > -1 && secG.guia.indexOf('2021') > -1 &&
+      /* ⚠️ REAPUNTADO AL SISTEMA DE CITAS NUMERADAS (2026-09-29). Antes buscaba «2025» y «2021»
+         dentro de un string; hoy la cita es un objeto: el DOCUMENTO se identifica por su clave del
+         registro —que es mas fuerte que un match de texto, porque una seccion no puede citar la
+         guia correcta con la clave equivocada— y el «no cambio respecto de 2021» es la GLOSA, que
+         va aparte y sin numero. El invariante no cambio; cambio donde vive cada mitad. */
+      const refIA  = (secG.guia || {}).ref;
+      const notaIA = String((secG.guia || {}).nota || '');
+      const fullIA = (typeof IND_REFS !== 'undefined' && refIA)
+        ? String((IND_REFS.filter(function(x){ return x.k === refIA; })[0] || {}).full || '') : '';
+      ex.push(['la cita apunta a la ESC/EACTS 2025 del registro, la glosa nombra 2021, y ninguna nota habla del umbral MITRAL',
+        refIA === 'esc2025vc' && fullIA.indexOf('2025') > -1 && notaIA.indexOf('2021') > -1 &&
         notasTxt.indexOf('MITRAL') === -1 && notasTxt.indexOf('mitral') === -1,
-        secG.guia.slice(0, 90)]);
+        'ref=' + refIA + ' full=' + fullIA.slice(0, 40) + ' nota=' + notaIA.slice(0, 60)]);
       ex.push(['y la nota de la fila IIb ya no dice 20 mm/m² ni Nivel C: dice 22 y Nivel B',
         notasTxt.indexOf('22 mm/m²') > -1 && notasTxt.indexOf('Nivel B') > -1 &&
         notasTxt.indexOf('20 a 22') > -1,
@@ -31100,7 +31109,9 @@ caso('TC-284', 'Estenosis pulmonar: la precondicion del sustituto parte la tabla
       return (s.filas || []).concat(s.clinica || []).filter(f => !!f.ctrl).map(f => f.ctrl.clave); };
     const todoElTexto = () => { const s = sec(); if (!s) return '';
       const r = s.recom || {};
-      return pl([s.guia, (s.notas || []).join(' '), r.tit, r.txt, r.nota,
+      const g = s.guia || {};
+      return pl([(typeof g === 'string' ? g : (g.txt || '') + ' ' + (g.nota || '')),
+        (s.notas || []).join(' '), r.tit, r.txt, r.nota,
         (r.mod || {}).txt, (r.mod || {}).nota,
         (s.filas || []).concat(s.clinica || []).map(f => f.lbl + ' ' + f.val + ' ' + f.nota).join(' ')].join(' ')); };
     /* Severa por gradiente Y por grado consignado, y nivel VALVULAR, que es el unico al que la
@@ -31366,7 +31377,9 @@ caso('TC-284', 'Estenosis pulmonar: la precondicion del sustituto parte la tabla
         'arritmia=' + (T.indexOf('arritmia') > -1) + ' taquicardia=' + (T.indexOf('taquicardia') > -1)]);
 
       // ── La precondicion del sustituto queda escrita en el texto de la guia de la seccion ──
-      const G = pl((sec() || {}).guia);
+      /* La cita es un objeto del sistema de citas numeradas: el criterio vive en .txt. */
+      const gEP = (sec() || {}).guia || {};
+      const G = pl(typeof gEP === 'string' ? gEP : (gEP.txt || ''));
       ex.push(['el texto de la guia de la seccion enuncia la precondicion del sustituto valvular, que la version anterior omitia',
         G.indexOf('sustituto valvular') > -1 && G.indexOf('independientemente de los sintomas') > -1,
         G.slice(0, 200)]);
@@ -31455,7 +31468,9 @@ caso('TC-285', 'Valvula tricuspide: la tabla de 2025, el operador del gradiente,
       return (s.filas || []).concat(s.clinica || []).filter(f => !!f.ctrl).map(f => f.ctrl.clave); };
     const todoElTexto = () => { const s = sec(); if (!s) return '';
       const r = s.recom || {};
-      return pl([s.guia, (s.notas || []).join(' '), r.tit, r.txt, r.nota,
+      const g = s.guia || {};
+      return pl([(typeof g === 'string' ? g : (g.txt || '') + ' ' + (g.nota || '')),
+        (s.notas || []).join(' '), r.tit, r.txt, r.nota,
         (r.mod || {}).txt, (r.mod || {}).nota,
         (s.filas || []).concat(s.clinica || []).map(f => f.lbl + ' ' + f.val + ' ' + f.nota).join(' ')].join(' ')); };
     /* ⚠️ it_grado ES UN INPUT OCULTO QUE calcIT_ESC PISA. Se pone SIEMPRE AL FINAL, en un set()
@@ -33046,7 +33061,12 @@ caso('TC-293', 'Panel de Evidencia: el detalle largo nace COLAPSADO, hay un solo
     /* Las referencias se toman DESPUES de contestar: cada clic repinta el cuerpo, así que un array
        capturado antes queda desprendido del documento. Ya costó una corrida en este archivo. */
     const cu = document.getElementById('indic-cuerpo');
-    const secs = [].slice.call(cu.querySelectorAll(':scope > details'));
+    /* ⚠️ LA BIBLIOGRAFIA NO ES UNA SECCION, y sin excluirla este denominador cuenta ocho donde
+       hay siete: el sistema de citas numeradas agrega un <details> propio al pie del panel, con
+       cero filas de tabla y sin control de detalle adentro. Se excluye por su marca, no por
+       posicion — al pie hoy, pero eso no es un invariante. */
+    const secs = [].slice.call(cu.querySelectorAll(':scope > details'))
+      .filter(function(d){ return !d.hasAttribute('data-ind-biblio'); });
     const det = [].slice.call(cu.querySelectorAll('details details'));
 
     ex.push(['DENOMINADOR: el escenario enciende varias secciones y cada una trae su control de detalle',
@@ -33084,7 +33104,12 @@ caso('TC-293', 'Panel de Evidencia: el detalle largo nace COLAPSADO, hay un solo
       const c = sec.cloneNode(true);
       [].slice.call(c.querySelectorAll('details details')).forEach(function(n){ n.remove(); });
       return { filas: c.querySelectorAll('table tr').length,
-               cita:  /20\\d\\d/.test(c.textContent),
+               /* ⚠️ LA CITA VISIBLE YA NO ES UN ANO (2026-09-29). Con el sistema de citas
+                  numeradas el documento y su edicion viven en la bibliografia del pie, y lo que
+                  queda pegado al criterio es el CORCHETE. Buscar cuatro digitos daba falso
+                  negativo sobre un panel correcto; mirar el corchete es ademas mas fuerte, porque
+                  un ano puede aparecer por casualidad en cualquier nota y el atributo no. */
+               cita:  !!c.querySelector('[data-ind-ref]'),
                clin:  c.querySelectorAll('[data-ind-clin]').length };
     });
     ex.push(['con el detalle CERRADO siguen visibles las filas de datos y la cita de guia en todas las secciones',
@@ -38353,6 +38378,353 @@ caso('TC-318', 'El panel de metodos de EM no se filtra entre pacientes: Nuevo es
    ⚠️ SE MIDE EL DOM RENDERIZADO Y NO EL FUENTE: el comentario que explica la eliminacion
    TRANSCRIBE el numero, asi que un grep sobre index.html lo sigue encontrando. Lo que importa
    es lo que el medico ve.                                                                      */
+caso('TC-322', 'Evidencia: sistema de citas numeradas con un solo dueno de la numeracion', `
+  return (async () => {
+    const R = { secs: {}, err: [] };
+
+    /* Un escenario por seccion. El campo de cada fila es el MINIMO que abre su compuerta, leido
+       de la propia compuerta y no de memoria. Si alguno deja de abrir, la condicion del
+       denominador se pone en rojo y NOMBRA la seccion: sin eso, un escenario mal sembrado hace
+       que el caso mida sobre cero secciones y pase en verde sin probar nada. */
+    const SEED = [
+      ['Estenosis aortica',                   { vmax_ao:'4.5' },                                    'esc2025vc'],
+      ['Insuficiencia mitral primaria',       { im_sev_final:'4' },                                 'esc2025vc'],
+      ['Estenosis mitral',                    { avm_plan:'1.2' },                                   'esc2025vc'],
+      ['Insuficiencia aortica',               { ia_sev_final:'4' },                                 'esc2025vc'],
+      ['Valvula tricuspide',                  { it_grado:'4' },                                     'esc2025vc'],
+      ['Estenosis pulmonar',                  { vp_gmax:'70' },                                     'esc2020guch'],
+      ['Comunicacion interauricular',         { ete_cia_tipo:'secundum', ete_cia_tam_max:'18' },    'esc2020guch'],
+      ['Comunicacion interventricular',       { ete_civ_tipo:'perimembranosa' },                     'escGuchCiv'],
+      ['Ductus arterioso permeable',          { dap_tipo:'no_restrictivo', dap_diam:'4' },           'esc2020guch'],
+      ['Coartacion de aorta',                 { coa_vmax:'3.2' },                                   'esc2020guch'],
+      ['Foramen oval permeable',              { fop_shunt_valsalva:'si', fop_burbujas:'abundante', fop_acv:'si', edad:'45' }, 'fop2019'],
+      ['Miocardiopatia hipertrofica obstructiva', { mch_grad_reposo:'60' },                          'esc2023mioc'],
+      ['Valvula aortica bicuspide',           { ao_tub:'50' },                                      'esc2024ao']
+    ];
+
+    const sembrar = campos => {
+      __t.limpiar();
+      __t.set('nombre','Citas'); __t.set('ci','77777777');
+      Object.keys(campos).forEach(k => { try { __t.set(k, campos[k]); } catch (e) {} });
+    };
+
+    /* Se busca la seccion por el PREFIJO de su titulo en IND_SECS y se la corre por su propia
+       entrada, que es la unica lista que el panel recorre: con una tabla de funciones escrita
+       aparte, una seccion nueva quedaria sin probar y nada lo diria. */
+    const secDe = pref => IND_SECS.filter(x => x.tit.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').indexOf(pref) === 0)[0];
+
+    /* ⚠️ SE RECORRE IND_SECS, NO SEED, Y LA PRIMERA VERSION HACIA LO CONTRARIO. Con el bucle sobre
+       SEED la cobertura era ASIMETRICA: borrar o renombrar una seccion rompia el caso, y AGREGAR
+       una lo dejaba verde —abrieron seguia dando 13 y los every() corrian sobre las claves de SEED,
+       o sea verde por vacio—. Y hay una seccion esperando: aseProtAo ya esta numerada para la de
+       protesis. Es un criterio que se pinta y no se cuenta, aplicado al caso de prueba. Lo
+       encontro /sharp-edges. */
+    const SEEDMAP = {};
+    SEED.forEach(function(x){ SEEDMAP[x[0]] = x; });
+    const sinSeed = [];
+    for (let i = 0; i < IND_SECS.length; i++) {
+      const titN = IND_SECS[i].tit.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const claves = Object.keys(SEEDMAP).filter(function(pr){ return titN.indexOf(pr) === 0; });
+      if (!claves.length) { sinSeed.push(IND_SECS[i].tit); continue; }
+      const pref = claves[0], campos = SEEDMAP[pref][1], esperado = SEEDMAP[pref][2];
+      const S = secDe(pref);
+      if (!S) { R.err.push('sin entrada en IND_SECS: ' + pref); continue; }
+      sembrar(campos);
+      let r = null, html = '';
+      try { r = S.fn(); if (r) html = _indSecHTML(S.tit, r); }
+      catch (e) { R.err.push(pref + ' LANZO: ' + e.message); continue; }
+      const g = r && r.guia;
+      const ref = (g && typeof g === 'object') ? g.ref : null;
+      const num = ref ? _indRefNum(ref) : null;
+      R.secs[pref] = {
+        abrio: !!r,
+        esObj: !!(g && typeof g === 'object'),
+        ref: ref,
+        num: num,
+        ok: ref === esperado,
+        /* El corchete tiene que estar DIBUJADO con ese numero, no solo declarado en el objeto. */
+        corchete: num != null && html.indexOf('[' + num + ']') >= 0,
+        atributo: !!ref && html.indexOf('data-ind-ref="' + ref + '"') >= 0,
+        noRegistrada: html.indexOf('referencia no registrada') >= 0,
+        /* La glosa va VISIBLE: fuera del <details> del detalle. Se mide cortando el html en el
+           <details> del detalle y buscando la glosa en la mitad de arriba. */
+        nota: (g && typeof g === 'object' && g.nota) ? g.nota : '',
+        /* El criterio tiene que estar CARGADO: un txt vacio o mal nombrado publicaba el corchete
+           solo, que confirma la cita y se come el criterio. */
+        txtLargo: !!(g && typeof g === 'object' && String(g.txt || '').trim().length > 40),
+        noCargado: html.indexOf('criterio no cargado') >= 0,
+        /* Ningun texto de criterio puede traer un corchete escrito a mano. */
+        txtConCorchete: !!(g && typeof g === 'object' && g.txt && /\\[\\d/.test(g.txt)),
+        /* LA GLOSA QUEDA VISIBLE, fuera del desplegable. Es la leccion que _indRecomHTML ya pago
+           con r.nota: lo que matiza una afirmacion tiene que verse junto a la afirmacion. Se mide
+           por POSICION contra el <details> del detalle, que _indDetalleHTML abre con su propio
+           margin-top: si la glosa cayera adentro, su indice seria mayor. */
+        notaVisible: (function(){
+          if (!(g && typeof g === 'object' && g.nota)) return null;
+          const iDet = html.indexOf('<details style="margin-top:7px;');
+          const iNota = html.indexOf(g.nota.slice(0, 30));
+          if (iNota < 0) return false;
+          return iDet < 0 ? true : iNota < iDet;
+        })(),
+        /* Y el corchete tambien: con el detalle cerrado tiene que verse. */
+        corcheteVisible: (function(){
+          const iDet = html.indexOf('<details style="margin-top:7px;');
+          const iCor = html.indexOf('data-ind-ref=');
+          if (iCor < 0) return false;
+          return iDet < 0 ? true : iCor < iDet;
+        })()
+      };
+    }
+
+    const S = R.secs;
+    const nombres = Object.keys(S);
+    R.abrieron = nombres.filter(k => S[k].abrio).length;
+    R.todasObj = nombres.every(k => S[k].esObj);
+    R.todasNum = nombres.every(k => typeof S[k].num === 'number');
+    R.todasOk  = nombres.every(k => S[k].ok);
+    R.todasCor = nombres.every(k => S[k].corchete);
+    R.todasAtr = nombres.every(k => S[k].atributo);
+    R.ningunaNoReg = nombres.every(k => S[k].noRegistrada === false);
+    R.ningunTxtCorchete = nombres.every(k => S[k].txtConCorchete === false);
+    R.todasTxt = nombres.every(k => S[k].txtLargo);
+    R.ningunaNoCargada = nombres.every(k => S[k].noCargado === false);
+    R.sinSeed = sinSeed;
+    R.conNota = nombres.filter(k => S[k].nota).length;
+    R.notasVisibles = nombres.every(k => S[k].notaVisible !== false);
+    R.corchetesVisibles = nombres.every(k => S[k].corcheteVisible === true);
+    R.malas = nombres.filter(k => !S[k].abrio || !S[k].ok || !S[k].corchete)
+                     .map(k => k + '(abrio=' + S[k].abrio + ' ref=' + S[k].ref + ' num=' + S[k].num + ')');
+
+    /* ⚠️ LA DISYUNCION DEL CRITERIO DE LA IM, y esta condicion existe porque su defecto SOBREVIVIO
+       a las otras doce mutaciones. Al reescribir los trece txt se me cayo el primer «o»: «diametro
+       telesistolico >= 40 mm, indexado >= 20 mm/m2, o FEVI <= 60 %» se lee como si hicieran falta
+       el absoluto Y el indexado, cuando los tres son criterios INDEPENDIENTES de Clase I. Lo
+       encontro /sharp-edges y ninguna condicion lo cazaba.
+       No se pina la prosa —un caso que fija texto hay que tocarlo cada vez que el texto cambia a
+       proposito— sino una propiedad GRAMATICAL: tres alternativas exigen DOS disyunciones. Quien
+       reescriba el criterio conservando los tres criterios conserva los dos «o»; quien se coma uno
+       cae aca. Acotado a la IM y no generalizado: la IA enumera sus tres con una sola disyuncion
+       final, que es la otra construccion valida en espanol, asi que un umbral comun seria un
+       literal disfrazado de invariante. */
+    R.disyIM = (function(){
+      const SIM = secDe('Insuficiencia mitral primaria');
+      if (!SIM) return 'sin seccion';
+      sembrar({ im_sev_final:'4' });
+      let r2 = null; try { r2 = SIM.fn(); } catch (e) { return 'lanzo'; }
+      const t = String(((r2 || {}).guia || {}).txt || '');
+      const i2 = t.indexOf(':');
+      const cola = i2 >= 0 ? t.slice(i2) : t;
+      return cola.split(' o ').length - 1;
+    })();
+
+    /* Las cinco que citan la ESC/EACTS 2025 tienen que dar el MISMO numero: es una referencia,
+       no una por seccion. */
+    const nums2025 = nombres.filter(k => S[k].ref === 'esc2025vc').map(k => S[k].num);
+    R.mismo2025 = nums2025.length >= 4 && nums2025.every(n => n === nums2025[0]);
+
+    /* Las dos ramas de fallo visible se ejercen EN AISLAMIENTO: ninguna es alcanzable mientras las
+       trece secciones esten bien escritas, y una defensa que ningun caso ejerce es una capa que
+       nadie sabe si existe. */
+    R.vacioDeclara  = _indGuiaHTML({ ref:'esc2025vc', txt:'' }).indexOf('criterio no cargado') >= 0;
+    R.vacioCorchete = _indGuiaHTML({ ref:'esc2025vc', txt:'' }).indexOf('data-ind-ref=') >= 0;
+    R.stringDeclara = _indGuiaHTML('ESC/EACTS 2025 — texto suelto a la vieja').indexOf('cita sin numerar') >= 0;
+    R.refMalaDeclara = _indGuiaHTML({ ref:'no-existe', txt:'Criterio cualquiera' }).indexOf('referencia no registrada') >= 0;
+    /* Y las claves del registro tienen que ser UNICAS: con una repetida el indice se queda con la
+       ultima y la bibliografia publica dos filas con el mismo numero. */
+    R.clavesUnicas = (new Set(IND_REFS.map(function(r){ return r.k; }))).size === IND_REFS.length;
+
+    /* ── Nivel panel: bibliografia, estabilidad y el clic ─────────────────────────────────── */
+    const cuerpo = () => document.getElementById('indic-cuerpo');
+
+    /* Render A: solo una seccion aortica -> la bibliografia lleva UNA entrada. */
+    sembrar({ vmax_ao:'4.5' });
+    indicAbrir();
+    const hA = cuerpo() ? cuerpo().innerHTML : '';
+    R.A_biblio  = hA.indexOf('data-ind-biblio') >= 0;
+    R.A_items   = (hA.match(/data-ind-refitem=/g) || []).length;
+    R.A_tiene25 = hA.indexOf('data-ind-refitem="esc2025vc"') >= 0;
+    R.A_tieneGuch = hA.indexOf('data-ind-refitem="esc2020guch"') >= 0;
+    /* El numero de la ESC/EACTS 2025 con UNA sola seccion en pantalla. */
+    const mA = hA.match(/\\[(\\d+)\\]/);
+    R.A_num = mA ? Number(mA[1]) : null;
+    indicCerrar();
+
+    /* Render B: aortica + una congenita -> DOS entradas, y el numero de la 2025 NO cambia.
+       Es la condicion que separa numeros estables de numeros por orden de aparicion. */
+    sembrar({ vmax_ao:'4.5', mch_grad_reposo:'60' });
+    indicAbrir();
+    /* ⚠️ SE DRENA EL DEBOUNCE ANTES DE MEDIR, Y SIN ESTO EL CASO ES INTERMITENTE. __t.set
+       despacha input, que arma el debounce de 400 ms de _indSyncDebounced; al vencer,
+       indicSyncBoton ve el panel abierto y llama a _indRepintarConservando, que REPINTA el
+       cuerpo. Medido: 1 de cada 3 corridas el repintado caia entre el clic y la lectura de la
+       marca, y el caso reportaba «marcadas=0» sobre un mecanismo sano — el rojo intermitente que
+       este archivo declara peor que no tener el caso. El propio comentario de indicSyncBoton ya
+       advertia que ese debounce puede quedar en vuelo al abrir el panel. */
+    await new Promise(r2 => setTimeout(r2, 520));
+    const hB = cuerpo() ? cuerpo().innerHTML : '';
+    R.B_items = (hB.match(/data-ind-refitem=/g) || []).length;
+    R.B_tiene25   = hB.indexOf('data-ind-refitem="esc2025vc"') >= 0;
+    R.B_tieneMioc = hB.indexOf('data-ind-refitem="esc2023mioc"') >= 0;
+    /* El corchete de la seccion aortica en el render B. Se toma el primero, que es el suyo. */
+    const mB = hB.match(/data-ind-ref="esc2025vc"[^>]*>\\[(\\d+)\\]/);
+    R.B_num = mB ? Number(mB[1]) : null;
+    R.estable = R.A_num != null && R.A_num === R.B_num;
+
+    /* La 14a: registrada y SIN corchete en pantalla, porque su unico emisor es codigo muerto.
+       Si algun dia se la cita, esta condicion se pone en rojo y hay que venir a decidir. */
+    /* Dos entradas de la bibliografia no pueden compartir numero: un registro que devolviera
+       siempre el mismo dejaria el panel con dos [1] apuntando a documentos distintos, y todas las
+       condiciones de arriba seguirian en verde. */
+    R.numsBiblio = (hB.match(/<b>\\[(\\d+)\\]<\\/b>/g) || []).map(x => x.replace(/\\D/g,''));
+    R.numsDistintos = R.numsBiblio.length >= 2 &&
+      R.numsBiblio.length === (new Set(R.numsBiblio)).size;
+
+    R.prot_registrada = _indRefNum('aseProtAo') != null;
+    R.prot_enBiblio   = hB.indexOf('data-ind-refitem="aseProtAo"') >= 0;
+    R.ecosmart_registrada = _indRefNum('ecosmart') != null;
+    R.ecosmart_enBiblio  = hB.indexOf('data-ind-refitem="ecosmart"') >= 0;
+
+    /* El clic: abre el desplegable y marca la entrada que corresponde, no otra. */
+    const brackets = cuerpo() ? cuerpo().querySelectorAll('[data-ind-ref]') : [];
+    R.hayBrackets = brackets.length;
+    const det = cuerpo() ? cuerpo().querySelector('[data-ind-biblio]') : null;
+    R.detAntes = det ? det.open : null;
+    let clave = null;
+    if (brackets.length) {
+      clave = brackets[0].getAttribute('data-ind-ref');
+      brackets[0].click();
+      await new Promise(r2 => setTimeout(r2, 40));
+    }
+    const det2 = cuerpo() ? cuerpo().querySelector('[data-ind-biblio]') : null;
+    R.detDespues = det2 ? det2.open : null;
+    const sel = cuerpo() ? cuerpo().querySelectorAll('[data-ind-refsel]') : [];
+    R.marcadas = sel.length;
+    R.marcada = sel.length ? sel[0].getAttribute('data-ind-refitem') : null;
+    R.marcadaCorrecta = clave != null && R.marcada === clave;
+
+    /* Lo que SI sobrevive a un repintado es el desplegable ABIERTO: _indRepintarConservando
+       conserva el estado de cada <details> por el texto de su summary, y «Bibliografia» es unico.
+       La MARCA no sobrevive, y es aceptable: es una senal de «este es el que tocaste», no estado
+       clinico. Queda fijado por los dos lados para que la diferencia sea deliberada y no un
+       descubrimiento. */
+    _indSyncDebounced();
+    await new Promise(r2 => setTimeout(r2, 520));
+    const det3 = cuerpo() ? cuerpo().querySelector('[data-ind-biblio]') : null;
+    R.detTrasRepintado = det3 ? det3.open : null;
+    R.marcadasTrasRepintado = cuerpo() ? cuerpo().querySelectorAll('[data-ind-refsel]').length : -1;
+    R.biblioTrasRepintado = cuerpo() ? cuerpo().querySelectorAll('[data-ind-refitem]').length : -1;
+    /* Se vuelve a marcar para que la condicion de la clave ajena mida sobre un estado conocido. */
+    const br2 = cuerpo() ? cuerpo().querySelectorAll('[data-ind-ref]') : [];
+    if (br2.length) br2[0].click();
+
+    /* El teclado: se cierra a mano y se abre con Enter sobre el corchete, que es el camino que un
+       role=button promete y que sin su rama de keydown no existe. */
+    const detK = cuerpo() ? cuerpo().querySelector('[data-ind-biblio]') : null;
+    if (detK) detK.open = false;
+    const brK = cuerpo() ? cuerpo().querySelectorAll('[data-ind-ref]') : [];
+    if (brK.length) {
+      brK[0].dispatchEvent(new KeyboardEvent('keydown', { key:'Enter', bubbles:true, cancelable:true }));
+      await new Promise(r2 => setTimeout(r2, 40));
+    }
+    const detK2 = cuerpo() ? cuerpo().querySelector('[data-ind-biblio]') : null;
+    R.tecladoAbre = !!(detK2 && detK2.open);
+
+    /* Una clave ajena no entra al selector: es el saneo del borde. No puede lanzar ni marcar nada. */
+    let ajenaLanzo = false;
+    try { _indRefAbrir(cuerpo(), 'no-existe"] , [data-ind-biblio'); } catch (e) { ajenaLanzo = true; }
+    R.ajenaLanzo = ajenaLanzo;
+    R.marcadasTrasAjena = cuerpo() ? cuerpo().querySelectorAll('[data-ind-refsel]').length : -1;
+
+    indicCerrar();
+    __t.limpiar();
+
+    const res = JSON.stringify({
+      abrieron: R.abrieron, de: nombres.length, malas: R.malas, err: R.err,
+      A_items: R.A_items, B_items: R.B_items, A_num: R.A_num, B_num: R.B_num,
+      marcada: R.marcada, clave: clave, brackets: R.hayBrackets
+    });
+
+    return { resumen: res, extra: [
+      ['DENOMINADOR: TODAS las secciones de IND_SECS tienen escenario y abren',
+        R.abrieron === IND_SECS.length && R.err.length === 0 && R.sinSeed.length === 0,
+        'abrieron=' + R.abrieron + '/' + IND_SECS.length + ' sinEscenario=' + JSON.stringify(R.sinSeed) +
+        ' malas=' + JSON.stringify(R.malas) + ' err=' + JSON.stringify(R.err)],
+      ['las secciones traen su CRITERIO cargado, no solo el corchete',
+        R.todasTxt === true && R.ningunaNoCargada === true,
+        JSON.stringify(nombres.filter(k => !S[k].txtLargo || S[k].noCargado))],
+      ['las 13 devuelven la cita como OBJETO, no como string suelto',
+        R.todasObj === true, JSON.stringify(nombres.map(k => k + '=' + S[k].esObj))],
+      ['y cada clave resuelve a un numero del registro',
+        R.todasNum === true, JSON.stringify(nombres.map(k => k + '=' + S[k].num))],
+      ['cada seccion cita el DOCUMENTO que le corresponde',
+        R.todasOk === true, JSON.stringify(R.malas)],
+      ['EL CORCHETE SE DIBUJA, con el numero del registro',
+        R.todasCor === true, JSON.stringify(nombres.map(k => k + '=' + S[k].corchete))],
+      ['y lleva su clave en el atributo, no el numero interpolado en un onclick',
+        R.todasAtr === true, JSON.stringify(nombres.map(k => k + '=' + S[k].atributo))],
+      ['ninguna cae en el aviso de referencia no registrada',
+        R.ningunaNoReg === true, JSON.stringify(nombres.filter(k => S[k].noRegistrada))],
+      ['NINGUN TEXTO DE CRITERIO TRAE UN CORCHETE ESCRITO A MANO',
+        R.ningunTxtCorchete === true, JSON.stringify(nombres.filter(k => S[k].txtConCorchete))],
+      ['DENOMINADOR: hay secciones con glosa, o la condicion de abajo no mide nada',
+        R.conNota >= 3, 'conNota=' + R.conNota + ' ' + JSON.stringify(nombres.filter(k => S[k].nota))],
+      ['LA GLOSA QUEDA VISIBLE, no colapsada dentro del desplegable',
+        R.notasVisibles === true, JSON.stringify(nombres.filter(k => S[k].notaVisible === false))],
+      ['y el corchete tambien se ve con el detalle cerrado',
+        R.corchetesVisibles === true, JSON.stringify(nombres.filter(k => !S[k].corcheteVisible))],
+      ['el criterio de la IM ofrece sus tres alternativas como DISYUNCION, no como conjuncion',
+        R.disyIM === 2, 'disyunciones=' + R.disyIM],
+      ['las secciones que citan la misma guia comparten el MISMO numero',
+        R.mismo2025 === true, 'nums2025=' + JSON.stringify(nums2025)],
+      ['la bibliografia se dibuja al pie del panel',
+        R.A_biblio === true, 'biblio=' + R.A_biblio],
+      ['y lista SOLO lo citado: con una seccion aortica, UNA entrada',
+        R.A_items === 1 && R.A_tiene25 === true && R.A_tieneGuch === false,
+        'items=' + R.A_items + ' 2025=' + R.A_tiene25 + ' guch=' + R.A_tieneGuch],
+      ['con dos secciones de guias distintas, DOS entradas',
+        R.B_items === 2 && R.B_tiene25 === true && R.B_tieneMioc === true,
+        'items=' + R.B_items + ' 2025=' + R.B_tiene25 + ' mioc=' + R.B_tieneMioc],
+      ['EL NUMERO NO CAMBIA al cambiar qué secciones se muestran',
+        R.estable === true, 'A=' + R.A_num + ' B=' + R.B_num],
+      ['y dos entradas de la bibliografia nunca comparten numero',
+        R.numsDistintos === true, 'nums=' + JSON.stringify(R.numsBiblio)],
+      ['la 14a referencia esta REGISTRADA y sin corchete que la invoque',
+        R.prot_registrada === true && R.prot_enBiblio === false,
+        'registrada=' + R.prot_registrada + ' enBiblio=' + R.prot_enBiblio],
+      ['y el Criterio EcoSmart tambien: registrado, sin uso forzado',
+        R.ecosmart_registrada === true && R.ecosmart_enBiblio === false,
+        'registrada=' + R.ecosmart_registrada + ' enBiblio=' + R.ecosmart_enBiblio],
+      ['DENOMINADOR: hay corchetes en el panel para poder clickear',
+        R.hayBrackets >= 2, 'brackets=' + R.hayBrackets],
+      ['el desplegable nace cerrado y el clic en el corchete lo ABRE',
+        R.detAntes === false && R.detDespues === true,
+        'antes=' + R.detAntes + ' despues=' + R.detDespues],
+      ['y marca UNA sola entrada, la del corchete que se toco',
+        R.marcadas === 1 && R.marcadaCorrecta === true,
+        'marcadas=' + R.marcadas + ' marcada=' + R.marcada + ' clave=' + clave],
+      ['un repintado del panel CONSERVA la bibliografia abierta y sus entradas',
+        R.detTrasRepintado === true && R.biblioTrasRepintado === 2,
+        'open=' + R.detTrasRepintado + ' items=' + R.biblioTrasRepintado],
+      ['la marca del corchete NO sobrevive al repintado, y es la decision declarada',
+        R.marcadasTrasRepintado === 0, 'marcadas=' + R.marcadasTrasRepintado],
+      ['EN AISLAMIENTO: un criterio vacio lo DECLARA en vez de publicar el corchete solo',
+        R.vacioDeclara === true && R.vacioCorchete === true,
+        'declara=' + R.vacioDeclara + ' corchete=' + R.vacioCorchete],
+      ['una cita que quedo como string suelto se marca sin numerar, no se ve igual que antes',
+        R.stringDeclara === true, 'declara=' + R.stringDeclara],
+      ['y una clave que no esta en el registro sale en rojo',
+        R.refMalaDeclara === true, 'declara=' + R.refMalaDeclara],
+      ['las claves del registro son UNICAS: dos entradas no pueden compartir numero',
+        R.clavesUnicas === true, 'claves=' + JSON.stringify(IND_REFS.map(function(r){ return r.k; }))],
+      ['el corchete responde al TECLADO, no solo al mouse: se anuncia como boton',
+        R.tecladoAbre === true, 'abrio=' + R.tecladoAbre],
+      ['una clave ajena no lanza ni marca nada: se valida contra el registro',
+        R.ajenaLanzo === false && R.marcadasTrasAjena === 1,
+        'lanzo=' + R.ajenaLanzo + ' marcadas=' + R.marcadasTrasAjena]
+    ] };
+  })();
+`);
+
 caso('TC-321', 'Referencias: la tarjeta de protesis mitral ya no publica el cociente 0,38 sin fuente', `
   return (async () => {
     const R = {};

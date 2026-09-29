@@ -26720,9 +26720,12 @@ function generarInforme(opts) {
          cambio contra un basal, y la siguiente citaba «criterios para prótesis aórtica
          QUIRÚRGICA»—. El texto de las ocho frases retiradas está archivado completo en CLAUDE.md
          para reutilizarlo cuando el panel de Evidencia tenga su sección de prótesis.
-         `eaProtNarrativa` SIGUE devolviendo `salvedades` y `guia`: los consume `_eaProtPintar`,
-         que es la PANTALLA y sí es el lugar donde el médico consulta el porqué. Retirarlos de ahí
-         no lo pidió nadie y borraría la única explicación que hoy existe. */
+         `eaProtNarrativa` SIGUE devolviendo `salvedades`: las consume `_eaProtPintar`, que es la
+         PANTALLA y sí es el lugar donde el médico consulta el porqué. Retirarlas de ahí no lo pidió
+         nadie y borraría la única explicación que hoy existe.
+         ⚠️ `guia` NO: este comentario decía que `_eaProtPintar` lo consumía y es falso — ese campo
+         no tiene un solo lector en el archivo. Ver su declaración, donde queda declarado como
+         código muerto y con la forma del sistema de citas numeradas. */
       /* El EN SUMA sólo afirma cuando hay veredicto: con TAVI —que no se gradúa— y con un dato
          faltante NO se resume nada, porque cualquier línea ahí se leería como una conclusión. */
       if (_eaProtN.resumen) suma.push(`Prótesis aórtica: ${_eaProtN.resumen}.`);
@@ -31358,13 +31361,24 @@ function eaProtNarrativa(P){
     /* ⚠️ LA CITA YA NO VA AL INFORME (2026-09-28). El comentario anterior decía lo contrario y hay
        que leerlo al revés: el argumento —quien lo lea en seis meses necesita saber con qué regla se
        clasificó— sigue siendo cierto, y la respuesta pasó a ser la PANTALLA y el panel de Evidencia,
-       no el papel que se firma. El campo se sigue devolviendo porque `_eaProtPintar` lo consume.
+       no el papel que se firma.
+       ⚠️ PERO HOY ESTE CAMPO NO LO LEE NADIE, Y EL COMENTARIO ANTERIOR AFIRMABA LO CONTRARIO. Decía
+       que lo consume `_eaProtPintar`; medido sobre el archivo entero, los únicos accesos al retorno
+       de esta función son `.frase`, `.resumen` y `.salvedades` — `.guia` tiene CERO lectores, acá y
+       en el bloque del informe. Es código muerto, y la única superficie que podría pintarlo es la
+       sección de prótesis del panel de Evidencia, que todavía no existe (ver `index.html` en el
+       lugar donde este archivo reserva ese material). Se deja en la FORMA del sistema de citas
+       numeradas —`{ref, txt}`, que renderiza `_indGuiaHTML`— así que el día que esa sección se
+       construya, el número y la bibliografía ya son consistentes con las otras trece. No se le
+       inventó una superficie: una cita que se pinta donde nadie la pidió es peor que una que
+       espera.
        ⚠️ Y ESTE TEXTO DICE «quirúrgica» PARA LAS TRES VÍAS: el `return` está FUERA del
        `if (P.via === 'TAVI')`, así que una TAVI recibía esta cita igual, dos renglones debajo de la
        salvedad que dice que el criterio de TAVI es otro. El informe se contradecía a sí mismo.
        Medido en Chrome, no leído — un censo por lectura afirmó justo lo contrario. */
-    guia: 'Criterios de la Tabla 5 de la ASE 2024 (Zoghbi et al., JASE 37:2-63) para prótesis ' +
-      'aórtica quirúrgica; no son los cortes de válvula nativa.' };
+    guia: { ref:'aseProtAo',
+      txt:'Criterios de la Tabla 5 para prótesis aórtica quirúrgica; no son los cortes de ' +
+          'válvula nativa.' } };
 }
 window.eaProtNarrativa = eaProtNarrativa;
 
@@ -39398,6 +39412,247 @@ window.mcaScore = mcaScore; window.mcaCatI = mcaCatI; window.mcaVI = mcaVI;
    ciertos criterios no son ecocardiográficos, y cuándo un valor quedó fuera de escala.
    ══════════════════════════════════════════════════════════════════════════════════════════ */
 
+/* ══ REFERENCIAS DEL PANEL — UN SOLO DUEÑO DE LA NUMERACIÓN ══════════════════════════════════
+   El número de cada cita sale de la POSICIÓN en esta lista y de ningún otro lado. Las secciones
+   citan por CLAVE (`guia:{ref:'esc2025vc', …}`) y NUNCA por número: agregar una referencia en el
+   medio renumera el panel entero sin tocar ninguna sección. Escribir «[4]» a mano en el texto de
+   una sección es exactamente el defecto que esta lista existe para impedir — catorce literales
+   que se desincronizan en la primera inserción, la misma trampa que los umbrales copiados que la
+   regla 2 de la cabecera prohíbe.
+
+   ⚠️ LOS NÚMEROS SON ESTABLES, NO SE ASIGNAN POR ORDEN DE APARICIÓN. Un panel que numerara en el
+   orden en que las secciones salen haría que [1] fuera la ESC/EACTS 2025 en un paciente y la ESC
+   2020 de congénitas en el siguiente, porque las secciones que se muestran dependen del estudio.
+   Un médico que aprende «[1] es la de valvulopatías» tiene que seguir teniendo razón mañana. El
+   precio es que la bibliografía de un estudio concreto tenga huecos —[1] y [5] sin [2] ni [3]—, y
+   es el precio correcto: un hueco no afirma nada, un número que cambia de documento sí.
+
+   ⚠️ LA BIBLIOGRAFÍA LISTA SÓLO LO QUE SE CITÓ EN ESTE PINTADO, no las ocho entradas siempre.
+   Si listara todo, publicaría una entrada numerada que no tiene ningún corchete que la invoque en
+   pantalla — y hay un caso real esperando: `aseProtAo` no la cita hoy ninguna sección (ver su
+   comentario). Una entrada sin corchete se lee como «hay una cita más que no encontrás».
+
+   ⚠️ LA CLASE Y EL NIVEL NO VIVEN ACÁ. Son propiedad de la RECOMENDACIÓN, no del documento: seis
+   secciones citan la ESC/EACTS 2025 con clases distintas. Van en el `txt` de cada sección, con el
+   formato único `Clase I · Nivel B` —el mismo que ya usan los 46 campos `c:` de las constantes de
+   recomendación—. Y el nivel es OPCIONAL por diseño: el documento de posición del foramen usa
+   metodología GRADE y no tiene clases ESC, así que forzarle el molde sería inventarle una.
+
+   ⚠️ LAS ENTRADAS NUEVAS VAN AL FINAL. Las dos afirmaciones de arriba están en tensión: «agregar
+   una referencia en el medio renumera el panel sin tocar ninguna sección» es la virtud del diseño
+   PARA LAS SECCIONES, y es exactamente lo que rompe la promesa que el médico leyó. Y no hay nada
+   que empuje a insertar al final — esta lista ya tiene una entrada metida en el medio
+   (`escGuchCiv`), así que el precedente del archivo es insertar donde queda temáticamente prolijo.
+   El orden de esta lista ES el orden de los números publicados: insertar en el medio cambia el
+   significado de un número que alguien ya anotó. Hoy la exposición es baja porque el panel no se
+   exporta —sus únicos lectores son `_indSecHTML` e `indicRender`, así que no hay PDF firmado con un
+   corchete— y el costo cae en el cuaderno del médico. Lo encontró /sharp-edges.
+
+   Lo que va en `full` es lo que la app YA PUEDE SOSTENER. Donde no hay autores, volumen ni
+   páginas es porque este archivo no los tiene y no se completan de memoria: una referencia
+   bibliográfica inventada es peor que una incompleta, y se ve igual de bien. */
+const IND_REFS = Object.freeze([
+  { k:'esc2025vc',
+    full:'ESC/EACTS 2025 — Guía de práctica clínica para el manejo de las valvulopatías. ' +
+         'Sociedad Europea de Cardiología y Asociación Europea de Cirugía Cardiotorácica. ' +
+         'Tablas de recomendaciones por lesión.' },
+  { k:'esc2020guch',
+    full:'Baumgartner H, De Backer J, Babu-Narayan SV, et al. 2020 ESC Guidelines for the ' +
+         'management of adult congenital heart disease. Eur Heart J 2021;42(6):563-645. ' +
+         'doi:10.1093/eurheartj/ehaa554. Edición vigente: no existe una guía ESC de cardiopatías ' +
+         'congénitas del adulto posterior; la próxima está agendada para 2028.' },
+  /* ⚠️ ENTRADA PROPIA PARA LA CIV, Y NO SE FUSIONA CON LA DE ARRIBA — pero el motivo NO es la
+     edición. La edición quedó verificada contra la fuente primaria: es la ESC 2020, la misma que
+     citan sus cuatro hermanas, y el «ESC 2023 GUCH» que el código repite en cinco lugares —el
+     encabezado de la cascada de conducta, el comentario de `CIV_QPQS_CIERRE` y los tres `crit` de
+     `CIV_CONDUCTAS`— es un error: en 2023 la ESC no publicó ninguna guía de congénitas del adulto.
+     Lo que impide unificar es otra cosa, y es más grave: EL CRITERIO QUE ESTA SECCIÓN PUBLICA NO
+     ES EL DE LA TABLA DE LA ESC 2020. Tres divergencias verificadas contra el texto de la
+     recomendación de CIV (sección 4.2.4):
+       · La guía dice «sobrecarga de volumen del VI y sin HAP, INDEPENDIENTEMENTE DE LOS SÍNTOMAS»
+         (Clase I · Nivel C). La fórmula «o síntomas atribuibles al shunt» que esta sección publica
+         NO figura en esa recomendación — suena a la de la CIA o a AHA/ACC.
+       · El Qp/Qs no es el criterio de la Clase I. Aparece como «> 1,5» —con >, no ≥— y SÓLO dentro
+         de los dos escenarios con hipertensión pulmonar establecida (RVP 3-5 UW → IIa; ≥5 UW → IIb).
+       · El DDVI indexado > 32 mm/m² NO ESTÁ EN LA GUÍA. Cero coincidencias en el documento completo.
+     Estampar «ESC 2020» sobre ese criterio sería peor que citarlo sin año: convertiría una cita
+     numerada y verificada en el respaldo de tres afirmaciones que la fuente no sostiene. Corregirlo
+     es contenido clínico y toca los `crit` que imprimen la tarjeta de Congénitas, el PDF y el PPT.
+     Queda declarado y pendiente de decisión. */
+  { k:'escGuchCiv',
+    full:'ESC 2020 — cardiopatías congénitas del adulto (Baumgartner H, et al. Eur Heart J ' +
+         '2021;42(6):563-645), sección de comunicación interventricular. ⚠️ EL CRITERIO QUE ESTA ' +
+         'SECCIÓN APLICA DIVERGE DE ESA TABLA Y LA DIVERGENCIA ESTÁ SIN RESOLVER: la guía indica ' +
+         'el cierre con sobrecarga de volumen del VI y sin hipertensión pulmonar, ' +
+         'INDEPENDIENTEMENTE DE LOS SÍNTOMAS (Clase I · Nivel C), y no por síntomas atribuibles al ' +
+         'shunt; su Qp/Qs es «> 1,5» y sólo dentro de los escenarios con hipertensión pulmonar ' +
+         'establecida (Clase IIa y IIb), no como criterio general de cierre; y el corte de DDVI ' +
+         'indexado > 32 mm/m² no figura en el documento. Verificación clínica pendiente: hasta ' +
+         'resolverla, el nivel de evidencia no se publica y esta referencia no se unifica con la ' +
+         'de sus secciones hermanas.' },
+  { k:'esc2023mioc',
+    full:'ESC 2023 — Guía para el manejo de las miocardiopatías. Sociedad Europea de Cardiología.' },
+  { k:'esc2024ao',
+    full:'ESC 2024 — Guía para el manejo de las enfermedades aórticas y arteriales periféricas. ' +
+         'Sociedad Europea de Cardiología. Incluye la tabla de recomendaciones modificadas, donde ' +
+         'los umbrales de la edición 2014 aparecen degradados a Clase IIa.' },
+  { k:'fop2019',
+    full:'Pristipino C, et al. Documento de posición europeo sobre el manejo intervencionista del ' +
+         'foramen oval permeable. Eur Heart J 2019;40:3182. EAPCI, ESO, EHRA, EACVI y otras ' +
+         'sociedades. Metodología GRADE: no usa las clases I/IIa/IIb de la ESC.' },
+  /* ⚠️ REGISTRADA Y HOY SIN NINGÚN CORCHETE QUE LA INVOQUE, y eso es un hallazgo, no un descuido.
+     El `guia:` de `eaProtNarrativa` —el decimocuarto del archivo— es CÓDIGO MUERTO: los únicos
+     accesos al retorno de esa función en todo el archivo son `.frase`, `.resumen` y `.salvedades`.
+     `.guia` tiene CERO lectores, y dos comentarios del archivo afirman que `_eaProtPintar` lo
+     consume. No lo consume: `_eaProtPintar` lee `N.salvedades` y nada más.
+     Se registra igual —la referencia es real y el número queda reservado y estable— pero NO se le
+     inventa una superficie donde pintarse: eso sería construir la sección de prótesis del panel,
+     que es material explícitamente reservado para después. La bibliografía no la va a mostrar
+     mientras nadie la cite, que es justamente lo que el filtro por uso garantiza. */
+  { k:'aseProtAo',
+    full:'Zoghbi WA, et al. Guía de la ASE para la evaluación de prótesis valvulares por ' +
+         'ecocardiografía. J Am Soc Echocardiogr 2024;37(1):2-63. doi 10.1016/j.echo.2023.10.004. ' +
+         'Tabla 5 — prótesis aórtica quirúrgica; no son los cortes de válvula nativa.' },
+  /* La frase es FIJA y va sin firma ni fecha, por decisión de Maicol: un criterio de la app no se
+     vuelve más ni menos válido por quién lo escribió o cuándo. Registrada para que exista el
+     vocabulario en el panel. Hoy ninguna de las trece `guia:` la necesita —las trece afirman una
+     recomendación de un documento, no una decisión de la app— y no se le fuerza un uso para que
+     el sistema parezca más completo: un [8] colgado de una cita de guía real diría que esa
+     recomendación es una invención de EcoSmart. */
+  { k:'ecosmart',
+    full:'Criterio EcoSmart: decisión clínica de la aplicación cuando la evidencia no ofrece un ' +
+         'único corte aplicable.' }
+]);
+
+/* Clave → número. Se arma UNA vez desde `IND_REFS`.
+   ⚠️ LA CLAVE DUPLICADA ES LA ÚNICA DISCREPANCIA QUE LA CONSTRUCCIÓN NO IMPIDE, y el comentario
+   anterior afirmaba que no había ninguna. Con `k` repetida este `forEach` se queda con la ÚLTIMA,
+   mientras `_indBiblioHTML` filtra `IND_REFS` —no las claves—, así que las DOS filas pasan el
+   filtro y las dos imprimen el mismo número: la bibliografía publica «[3] Documento A» y «[3]
+   Documento B» y el corchete no distingue a cuál apunta. Peor, `_indRefAbrir` resuelve con
+   `querySelector`, que devuelve la PRIMERA, o sea la fila cuyo número no le corresponde. El
+   registro ya tiene dos entradas del mismo documento por una razón declarada (`esc2020guch` y
+   `escGuchCiv`), así que el día que se resuelva la divergencia de la CIV esto es alcanzable.
+   Grita al arrancar; no se corta el arranque porque el panel sigue siendo usable.
+   Prototipo nulo por el patrón de la casa. Nota: el comentario anterior lo justificaba diciendo
+   que `IDX['constructor']` pasaría la guarda de abajo, y es FALSO —`typeof Object === 'function'`,
+   así que la guarda lo caza—. Se conserva porque es la convención del archivo y sobrevive a que
+   alguien afloje la guarda, no porque tape algo hoy. */
+const IND_REF_IDX = (function(){
+  const m = Object.create(null);
+  IND_REFS.forEach(function(r, i){
+    if (m[r.k] != null) console.error('[IND_REFS] clave duplicada: ' + r.k +
+      ' — la bibliografía va a publicar dos entradas con el mismo número');
+    m[r.k] = i + 1;
+  });
+  return m;
+})();
+
+/* Devuelve el número de una clave, o `null` si no está registrada. Es la ÚNICA lectura del
+   índice: todo lo demás pasa por acá, así que validar una clave y numerarla son la misma
+   operación y no pueden divergir. */
+function _indRefNum(k){
+  const n = IND_REF_IDX[k];
+  return (typeof n === 'number' && isFinite(n)) ? n : null;
+}
+
+/* El corchete. Regla 4 de la cabecera: una clave que no está en el registro NO se pinta como si
+   todo estuviera bien. Un corchete que no abre nada es peor que un aviso, porque se lee como una
+   cita verificada. */
+function _indRefMarca(k){
+  const n = _indRefNum(k);
+  return n == null
+    ? ' <span style="color:#DC2626;font-weight:400;">[referencia no registrada]</span>'
+    /* ⚠️ NO LLEGA A LOS 44 px DE LA REGLA TÁCTIL, Y SE DECLARA. El corchete vive inline dentro de
+       la oración del criterio: un objetivo de 44 px de alto rompe el renglón, y la regla global no
+       lo alcanza sola porque `min-width`/`min-height` no aplican a un inline no reemplazado. Se
+       ensancha con padding lo que se puede sin mover la línea; en una tablet sigue siendo un blanco
+       chico, y es el único acceso a la bibliografía. Si molesta, la salida es que la bibliografía
+       nazca abierta, no engordar el corchete. */
+    : ' <span data-ind-ref="' + k + '" role="button" tabindex="0" ' +
+      'title="Ver la referencia al pie del panel" ' +
+      'style="cursor:pointer;color:var(--accent2);font-weight:700;padding:3px 5px;' +
+      'margin:-3px -2px;border-radius:4px;">[' + n + ']</span>';
+}
+
+/* La cita de una sección: el criterio, su corchete, y la glosa APARTE y SIN número.
+   La separación es el punto del sistema: hasta acá cada `guia:` era un solo string que mezclaba
+   documento, edición, clase, criterio y comentario del programador, y el comentario heredaba la
+   autoridad de la cita. «La definición de severidad no cambió respecto de 2021» no es una
+   recomendación de nadie; iba pegada a una que sí lo es.
+
+   La glosa queda VISIBLE, no en el desplegable. Es la misma lección que `_indRecomHTML` pagó con
+   `r.nota`: lo que matiza una afirmación tiene que verse junto a la afirmación. Al desplegable van
+   `r.notas` —los párrafos de contexto— y la bibliografía. */
+function _indGuiaHTML(g){
+  if (g == null) return '';
+  /* ⚠️ COMPAT DEFENSIVA QUE **DECLARA**, Y LA PRIMERA VERSIÓN CALLABA. Una sección que todavía
+     devuelva un string se imprime tal cual —sin esta rama, `_critEsc` sobre un objeto publica
+     «[object Object]» justo donde va la cita— pero se MARCA: sin la marca, ese panel se ve idéntico
+     píxel por píxel al de antes del sistema de citas, con una frase en negrita que empieza con el
+     nombre de la guía y sin corchete, y nadie cuenta corchetes contra secciones. La rama cambiaba
+     un fallo ruidoso por uno mudo, que es peor. Lo encontró /sharp-edges. */
+  if (typeof g === 'string') return '<b>' + _critEsc(g) + '</b>' +
+    ' <span style="color:#DC2626;font-weight:400;">[cita sin numerar]</span>';
+  /* ⚠️ Y EL CRITERIO VACÍO TAMBIÉN, por la misma razón y con la asimetría al revés: una `ref` que
+     no está en el registro ya salía en rojo, y un `txt` ausente o mal nombrado —`text:` por `txt:`,
+     o un string que se partió mal— publicaba `<b></b>` seguido de un corchete azul perfectamente
+     formado que abre la bibliografía y muestra la guía correcta. Todo confirma que la cita es
+     válida y lo único que falta es el criterio: un renglón vacío bajo la línea punteada se lee
+     como separador, no como falta. */
+  const txt = String(g.txt == null ? '' : g.txt).trim();
+  if (!txt) return '<span style="color:#DC2626;font-weight:700;">[criterio no cargado]</span>' +
+    _indRefMarca(g.ref);
+  let h = '<b>' + _critEsc(txt) + '</b>' + _indRefMarca(g.ref);
+  if (g.nota) h += '<div style="font-weight:400;margin-top:4px;">' + _critEsc(g.nota) + '</div>';
+  return h;
+}
+
+/* La bibliografía. Recorre `IND_REFS` —no las claves usadas— para que las entradas salgan en
+   orden de número ascendente sin ordenar nada a mano. */
+function _indBiblioHTML(usadas){
+  const xs = IND_REFS.filter(function(r){
+    return Object.prototype.hasOwnProperty.call(usadas, r.k);
+  });
+  if (!xs.length) return '';
+  let h = '<details data-ind-biblio style="margin:10px 0 0;border:1px solid var(--border);' +
+          'border-radius:9px;background:var(--bg3);overflow:hidden;">';
+  h += '<summary style="cursor:pointer;padding:8px 12px;font-size:11px;font-weight:700;' +
+       'color:var(--accent2);list-style:revert;">&#9432; Bibliografía</summary>';
+  h += '<div style="padding:2px 12px 10px;font-size:10.5px;line-height:1.6;color:var(--text2);">';
+  h += xs.map(function(r){
+    return '<div data-ind-refitem="' + r.k + '" style="margin-top:7px;padding:4px 6px;' +
+      'border-radius:6px;"><b>[' + _indRefNum(r.k) + ']</b> ' + _critEsc(r.full) + '</div>';
+  }).join('');
+  return h + '</div></details>';
+}
+
+/* Abre la bibliografía y marca la entrada que se pidió. Lo llama el listener delegado del panel.
+   ⚠️ LA CLAVE SE VALIDA CONTRA EL REGISTRO ANTES DE ENTRAR AL SELECTOR. Viene de un atributo del
+   DOM, así que vuelve como string, y `querySelector` con una clave que traiga `"` o `]` lanza una
+   excepción de sintaxis que se lleva el handler del panel entero —con él, las respuestas clínicas,
+   que son la interacción principal—. `_indRefNum` es a la vez la numeración y la allowlist: sólo
+   pasan las claves que están en `IND_REFS`, así que el selector nunca se arma con algo ajeno. Es
+   el mismo saneo en el borde que `csNumId` en CardioSalud. */
+function _indRefAbrir(c, k){
+  if (!c || _indRefNum(k) == null) return;
+  const det = c.querySelector('[data-ind-biblio]');
+  if (det) det.open = true;
+  /* La marca es un ATRIBUTO y un estilo persistente, no una animación. Una transición CSS no
+     avanza en un navegador headless, así que un resaltado que se desvanece no se puede verificar
+     —el archivo ya se comió ese falso negativo— y además el médico que hace scroll y vuelve
+     perdería la marca. Se limpia la anterior para que haya UNA sola entrada señalada. */
+  Array.prototype.forEach.call(c.querySelectorAll('[data-ind-refsel]'), function(el){
+    el.removeAttribute('data-ind-refsel');
+    el.style.background = '';
+  });
+  const it = c.querySelector('[data-ind-refitem="' + k + '"]');
+  if (!it) return;
+  it.setAttribute('data-ind-refsel', '1');
+  it.style.background = 'rgba(167,139,250,.12)';
+  try { it.scrollIntoView({ block:'nearest' }); } catch (e) { /* headless o navegador viejo */ }
+}
+
 /* Las cinco marcas, y su leyenda se IMPRIME en el panel. Sin leyenda, el ✅ significaba dos cosas
    incompatibles según la sección —«criterio de intervención cumplido» en la estenosis aórtica y
    «valor normal» en la insuficiencia mitral—, que es el mismo defecto que la gráfica de válvulas
@@ -39470,6 +39725,14 @@ function _indClinCablear(){
   if (_indClinCableado) return;
   const c = document.getElementById('indic-cuerpo'); if (!c) return;
   c.addEventListener('click', function(ev){
+    /* Rama de la CITA, y va PRIMERO con su propio `return`. Un corchete no es una respuesta del
+       médico: sin ese corte, el `closest` de abajo podría encontrar un `[data-ind-clin]` ancestro
+       y contestar una fila por un clic que se dio sobre una referencia. Hoy el corchete vive en el
+       bloque de la cita, que no está dentro de ningún control, así que no hay ancestro que
+       colisione — el `return` está para que siga siendo cierto si el pie se reestructura. */
+    const cita = ev.target && ev.target.closest ? ev.target.closest('[data-ind-ref]') : null;
+    if (cita && c.contains(cita)) { _indRefAbrir(c, cita.getAttribute('data-ind-ref')); return; }
+    /* (la rama de teclado va en su propio listener, más abajo: ver el comentario de `keydown`) */
     const b = ev.target && ev.target.closest ? ev.target.closest('[data-ind-clin]') : null;
     if (!b || !c.contains(b)) return;
     const k = b.getAttribute('data-ind-clin'), v = b.getAttribute('data-ind-val');
@@ -39478,6 +39741,20 @@ function _indClinCablear(){
        salvo cerrarlo. Mismo criterio que el selector de origen del SGL. */
     _indClin[k] = (_indClinGet(k) === v) ? null : v;
     _indRepintarConservando(k, v);
+  });
+  /* ⚠️ UN `role="button"` NO DISPARA `click` CON ENTER NI CON ESPACIO — eso es gratis sólo en un
+     `<button>` real. El corchete se anuncia como botón y entra al orden de tabulación, así que sin
+     esta rama el médico tabula, lo ve enfocado, aprieta Enter y no pasa NADA, mientras los
+     controles clínicos del mismo panel —que sí son `<button>`— responden. Dos mecanismos que se
+     anuncian igual a la tecnología asistiva y sólo uno funciona. Lo encontró /sharp-edges.
+     No se convirtió en `<button>` porque el corchete vive INLINE dentro de la oración del criterio
+     y la regla táctil global infla todo `button` a 44 px de alto: ahí rompería el renglón. */
+  c.addEventListener('keydown', function(ev){
+    if (ev.key !== 'Enter' && ev.key !== ' ' && ev.key !== 'Spacebar') return;
+    const cita = ev.target && ev.target.closest ? ev.target.closest('[data-ind-ref]') : null;
+    if (!cita || !c.contains(cita)) return;
+    ev.preventDefault();
+    _indRefAbrir(c, cita.getAttribute('data-ind-ref'));
   });
   _indClinCableado = true;
 }
@@ -39780,10 +40057,19 @@ function _indSecHTML(tit, r){
   /* Sólo los párrafos de contexto del final van al detalle. Sin rótulo y sin mezclarse con nada:
      al quedar `r.nota` visible, no hay dos orígenes que puedan confundirse. */
   const det = (r.notas || []).filter(Boolean).map(function(n){ return { txt:n }; });
-  /* La cita de guía queda SIEMPRE VISIBLE —es lo que dice con qué regla se clasificó— y el detalle
-     cuelga de ella. */
+  /* EL CRITERIO y su corchete quedan SIEMPRE VISIBLES, y el detalle cuelga de ellos. El criterio,
+     el corchete y la glosa los reparte `_indGuiaHTML`.
+     ⚠️ EL DOCUMENTO Y SU EDICIÓN YA NO SE VEN ACÁ, y el comentario anterior —«la cita de guía queda
+     SIEMPRE VISIBLE»— afirmaba más de lo que el sistema garantiza desde las citas numeradas. Hoy
+     visible es «Clase I · Nivel C [2]»; el documento vive en la bibliografía del pie, que nace
+     cerrada. Es el diseño pedido —número inline, bibliografía en capa desplegable— y el corchete
+     la abre en UN clic marcando su entrada, que es lo que la vuelve alcanzable. En las SIETE
+     secciones sin bloque de recomendación (CIA, CIV, DAP, CoAo, FOP, MCH, VAB) el pie del panel es
+     el único lugar donde aparece el nombre de la guía: `_indRecomHTML` imprime `r.fuente` sólo si
+     hay `r.clase`, y esas siete no devuelven `recom`. Queda declarado: si hace falta que el
+     documento se lea sin ninguna interacción, la salida es que la bibliografía nazca abierta. */
   h += '<div style="font-size:11px;line-height:1.55;color:var(--text2);margin-top:11px;padding-top:8px;border-top:1px dashed var(--border);">' +
-       '<b>' + _critEsc(r.guia) + '</b>' + _indDetalleHTML(det) + '</div>';
+       _indGuiaHTML(r.guia) + _indDetalleHTML(det) + '</div>';
   return h + '</div></details>';
 }
 
@@ -40155,7 +40441,9 @@ function _indEA(){
   return { filas: filas,
     clinica: clinica,
     recom: _indEARecom(esc),
-    guia: 'ESC/EACTS 2025 — La INTERVENCIÓN es Clase I · Nivel B en el paciente sintomático con estenosis aórtica severa de alto gradiente (gradiente medio ≥ 40 mmHg, Vmax ≥ 4,0 m/s y AVA ≤ 1,0 cm² o ≤ 0,6 cm²/m²). La definición de severidad NO cambió respecto de la edición 2021.',
+    guia: { ref:'esc2025vc',
+      txt:'Intervención Clase I · Nivel B en el paciente sintomático con estenosis aórtica severa de alto gradiente: gradiente medio ≥ 40 mmHg, Vmax ≥ 4,0 m/s y AVA ≤ 1,0 cm² o ≤ 0,6 cm²/m².',
+      nota:'La definición de severidad no cambió respecto de la edición 2021.' },
     notas: [
       'La MODALIDAD es una decisión aparte, no intercambiable: SAVR Clase I · Nivel B bajo 70 años con riesgo quirúrgico bajo; TAVI Clase I · Nivel A desde los 70 con válvula tricúspide y anatomía apta. La edición 2025 bajó ese corte de 75 a 70 años y eliminó el disparador de TAVI por riesgo quirúrgico alto.',
       /* ⚠️ ACÁ NO VA HISTORIA DE LA APLICACIÓN. Esta nota decía «el criterio de la app coincide
@@ -40500,7 +40788,8 @@ function _indIM(){
         : (oMec.val == null ? 'El mecanismo (primaria / secundaria) no está consignado. Los umbrales de esta sección son los de la insuficiencia mitral PRIMARIA.' : ''),
     clinica: clinica,
     recom: _indIMRecom(D),
-    guia: 'ESC/EACTS 2025 — Cirugía Clase I · Nivel B en el paciente sintomático operable, y en el asintomático con disfunción ventricular: diámetro telesistólico ≥ 40 mm, o indexado ≥ 20 mm/m², o FEVI ≤ 60 %.',
+    guia: { ref:'esc2025vc',
+      txt:'Cirugía Clase I · Nivel B en el paciente sintomático operable, y en el asintomático con disfunción ventricular: diámetro telesistólico ≥ 40 mm, o indexado ≥ 20 mm/m², o FEVI ≤ 60 %.' },
     notas: [
       'El diámetro telesistólico INDEXADO ≥ 20 mm/m² es criterio NUEVO de 2025: la edición 2021 sólo tenía el absoluto. El corte de 45 mm que se cita a veces es de la ESC 2017.',
       'La Clase I nueva de 2025 exige AL MENOS TRES de cuatro criterios —fibrilación auricular, PAPs en reposo > 50 mmHg, dilatación auricular (≥ 60 ml/m² o ≥ 55 mm), insuficiencia tricuspídea secundaria al menos moderada— MÁS riesgo bajo, ausencia de disfunción en los tres parámetros y reparación duradera probable. Con uno o dos criterios baja a Clase IIa.',
@@ -40841,7 +41130,8 @@ function _indEM(){
       : (avmDiscordantes ? 'Las fuentes del área discordan alrededor del corte de ' + _indNum(US, 1) + ' cm²: una contraindica el procedimiento y otra no. Conviene resolverlo antes de decidir.' : ''),
     clinica: clinica,
     recom: _indEMRecom(D),
-    guia: 'ESC/EACTS 2025 — Comisurotomía mitral percutánea Clase I · Nivel B en el paciente SINTOMÁTICO en ausencia de características desfavorables, y Clase I · Nivel C en cualquier sintomático con contraindicación o riesgo alto para cirugía.',
+    guia: { ref:'esc2025vc',
+      txt:'Comisurotomía mitral percutánea Clase I · Nivel B en el paciente SINTOMÁTICO en ausencia de características desfavorables, y Clase I · Nivel C en cualquier sintomático con contraindicación o riesgo alto para cirugía.' },
     notas: [
       'AVm ≤ ' + (US != null ? _indNum(US,1) : '1,5') + ' cm² es el corte ÚNICO de significación clínica: la guía NO gradúa la estenosis mitral por área en leve, moderada y severa. Las bandas de la pantalla del estudio son la graduación habitual de la práctica, no una fila de esta tabla.',
       'El score ecocardiográfico > ' + EM_CRIT_2025.score_desfav + ' es UNA de varias características desfavorables —clínicas y anatómicas— agrupadas con un «varias de las siguientes» que la guía NO cuantifica. Un score aislado no descalifica a nadie, y la propia guía señala que esos pacientes pueden beneficiarse igual, sobre todo con riesgo quirúrgico aumentado.',
@@ -41475,7 +41765,9 @@ function _indIA(){
       ? 'Fuera de rango medible: ' + avisoPartes.join('; ') + '. Revisar la unidad antes de leer la recomendación.' : '',
     clinica: clinica,
     recom: recom,
-    guia: 'ESC/EACTS 2025 — Cirugía Clase I · Nivel B en el paciente sintomático sea cual sea la función del VI, y en el asintomático con DTSVI > 50 mm, DTSVI indexado > 25 mm/m² o FEVI en reposo ≤ 50 %. Esos tres cortes NO cambiaron respecto de la edición 2021.',
+    guia: { ref:'esc2025vc',
+      txt:'Cirugía Clase I · Nivel B en el paciente sintomático sea cual sea la función del VI, y en el asintomático con DTSVI > 50 mm, DTSVI indexado > 25 mm/m² o FEVI en reposo ≤ 50 %.',
+      nota:'Esos tres cortes no cambiaron respecto de la edición 2021.' },
     notas: [
       'Intervención precoz del asintomático de riesgo bajo: Clase IIb · Nivel B con DTSVI indexado > 22 mm/m², volumen telesistólico indexado > 45 ml/m² o FEVI ≤ 55 %. La 2025 movió el diámetro indexado de 20 a 22 mm/m², agregó el volumen y subió el nivel de evidencia de C a B.',
       'La «talla pequeña» que manda a los criterios indexados dejó de ser cualitativa: en 2025 es superficie corporal menor de 1,68 m².',
@@ -41531,7 +41823,8 @@ function _indCIA(){
 
   return { filas: filas,
     clinica: [_indFila('Resistencia vascular pulmonar < 3 UW', '—', 'ask', 'es la compuerta de la guía y se mide por cateterismo, no por ecocardiograma')],
-    guia: 'ESC 2020 (cardiopatías congénitas del adulto) — Cierre Clase I B con sobrecarga de volumen del VD y sin hipertensión pulmonar (sin signos no invasivos de PAP elevada, o RVP < 3 UW confirmada por cateterismo si los hay) ni enfermedad del VI, CON INDEPENDENCIA DE LOS SÍNTOMAS.',
+    guia: { ref:'esc2020guch',
+      txt:'Cierre Clase I · Nivel B con sobrecarga de volumen del VD y sin hipertensión pulmonar (sin signos no invasivos de PAP elevada, o RVP < 3 UW confirmada por cateterismo si los hay) ni enfermedad del VI, CON INDEPENDENCIA DE LOS SÍNTOMAS.' },
     notas: [
       'El corte es RVP < 3 UW, no < 5. La escalera completa: < 3 UW → Clase I B · 3–5 UW → Clase IIa C y sólo con shunt izquierda-derecha significativo (Qp/Qs > 1,5) · ≥ 5 UW → cierre FENESTRADO Clase IIb C, y sólo si la RVP baja de 5 tras tratamiento dirigido · Eisenmenger o ≥ 5 UW pese al tratamiento → Clase III C.',
       'Un Qp/Qs menor que 1 indica shunt neto de derecha a izquierda, que es donde el cierre está contraindicado.'
@@ -41573,7 +41866,8 @@ function _indCoAo(){
       _indFila('Gradiente invasivo pico-a-pico ≥ 20 mmHg', '—', 'ask', 'es el número que la guía exige, y no lo da el ecocardiograma'),
       _indFila('Estrechamiento ≥ 50 % respecto de la aorta a nivel del diafragma', '—', 'ask', 'permite intervenir aun con gradiente invasivo < 20 mmHg')
     ],
-    guia: 'ESC 2020 (cardiopatías congénitas del adulto) — Reparación Clase I C en pacientes HIPERTENSOS con gradiente no invasivo aumentado CONFIRMADO por medición invasiva (pico-a-pico ≥ 20 mmHg), con preferencia por el tratamiento percutáneo cuando es técnicamente posible.',
+    guia: { ref:'esc2020guch',
+      txt:'Reparación Clase I · Nivel C en pacientes HIPERTENSOS con gradiente no invasivo aumentado CONFIRMADO por medición invasiva (pico-a-pico ≥ 20 mmHg), con preferencia por el tratamiento percutáneo cuando es técnicamente posible.' },
     notas: [
       'Sin hipertensión arterial, el mismo gradiente invasivo ≥ 20 mmHg es Clase IIa C.',
       'Se puede intervenir con gradiente invasivo < 20 mmHg: un estrechamiento ≥ 50 % respecto del diámetro aórtico a nivel del diafragma es Clase IIa C en el hipertenso y IIb C en el normotenso.',
@@ -41627,7 +41921,9 @@ function _indFOP(){
       : 'sin cargar en la ficha del paciente')
   ];
   return { filas: filas,
-    guia: 'Documento de posición europeo sobre foramen oval permeable (Pristipino et al., Eur Heart J 2019;40:3182 — EAPCI/ESO/EHRA/EACVI y otras) — recomendación FUERTE a favor del cierre percutáneo en pacientes seleccionados de 18 a 65 años con ACV criptogénico, AIT o embolia sistémica confirmados y probabilidad alta de rol causal del foramen.',
+    guia: { ref:'fop2019',
+      txt:'Recomendación FUERTE a favor del cierre percutáneo en pacientes seleccionados de 18 a 65 años con ACV criptogénico, AIT o embolia sistémica confirmados y probabilidad alta de rol causal del foramen.',
+      nota:'Metodología GRADE — sin clase ni nivel ESC.' },
     notas: [
       'No sale de la guía ESC 2020 de cardiopatías congénitas: ahí la palabra «criptogénico» no aparece y las únicas recomendaciones sobre foramen oval son específicas de la anomalía de Ebstein.',
       'El documento usa metodología GRADE y no las clases I/IIa/IIb de la ESC, así que «Clase IIa» no le corresponde: su fuerza es «recomendación fuerte».',
@@ -41659,7 +41955,8 @@ function _indMCH(){
   ];
   return { filas: filas,
     clinica: [_indFila('Refractariedad al tratamiento médico máximo tolerado', '—', 'ask', 'la Clase I lo exige y no se registra en la app')],
-    guia: 'ESC 2023 (miocardiopatías) — La terapia de reducción septal para mejorar los síntomas es Clase I B con gradiente del TSVI ≥ 50 mmHg en reposo o máximo provocado y clase funcional NYHA/Ross III–IV, pese al tratamiento médico máximo tolerado.',
+    guia: { ref:'esc2023mioc',
+      txt:'La terapia de reducción septal para mejorar los síntomas es Clase I · Nivel B con gradiente del TSVI ≥ 50 mmHg en reposo o máximo provocado y clase funcional NYHA/Ross III–IV, pese al tratamiento médico máximo tolerado.' },
     notas: [
       'Es Clase I B, no IIa. El IIa C de esa misma tabla es otra fila, la del SÍNCOPE DE ESFUERZO RECURRENTE con el mismo gradiente de 50 mmHg — comparten el umbral y por eso se confunden.',
       'La clase funcional III–IV no es un detalle: es lo que separa esta Clase I de la Clase IIb (NYHA II con insuficiencia mitral por SAM, fibrilación auricular o dilatación auricular).',
@@ -41706,7 +42003,8 @@ function _indVAB(){
   ];
   return { filas: filas,
     aviso: (C && C.clave === 'contradiccion') ? C.txt : '',
-    guia: 'ESC 2024 (enfermedades aórticas y arteriales periféricas) — Cirugía Clase I B con diámetro máximo ≥ 55 mm, y Clase I B desde 50 mm en el FENOTIPO DE RAÍZ. Todo lo demás es Clase IIa.',
+    guia: { ref:'esc2024ao',
+      txt:'Cirugía Clase I · Nivel B con diámetro máximo ≥ 55 mm, y Clase I · Nivel B desde 50 mm en el FENOTIPO DE RAÍZ. Todo lo demás es Clase IIa.' },
     notas: [
       C ? 'Conclusión de la app: ' + C.txt
         : 'Sin datos cargados en la sección de válvula bicúspide, la app no emite conclusión. Los diámetros de arriba van solos.',
@@ -41779,7 +42077,8 @@ function _indDAP(){
       _indFila('Resistencias pulmonares y test de vasorreactividad', '—', 'ask', 'la guía los exige antes de cerrar un ductus con hipertensión pulmonar, y no los da el ecocardiograma'),
       _indFila('Desaturación de esfuerzo', '—', 'ask', 'define el síndrome de Eisenmenger, que contraindica el cierre')
     ],
-    guia: 'ESC 2020 (cardiopatías congénitas del adulto) — El cierre del ductus es Clase I C en el paciente con sobrecarga de volumen de las cavidades izquierdas y sin hipertensión pulmonar severa, con el abordaje percutáneo como técnica de elección cuando es viable.',
+    guia: { ref:'esc2020guch',
+      txt:'El cierre del ductus es Clase I · Nivel C en el paciente con sobrecarga de volumen de las cavidades izquierdas y sin hipertensión pulmonar severa, con el abordaje percutáneo como técnica de elección cuando es viable.' },
     notas: [
       'El ductus SILENTE —sin soplo y sin repercusión hemodinámica— no tiene indicación de cierre.',
       'Con hipertensión pulmonar severa, shunt invertido o desaturación de esfuerzo el cierre está contraindicado mientras no se establezca la operabilidad.',
@@ -42155,9 +42454,10 @@ function _indEP(){
     recom: _indEPRecom(D, sev, mod, gmax, UM, valvular, nivelDicho, /^ramas/i.test(nivel)),
     /* El umbral de la prosa sale de la constante, no de la memoria: escribirlo a mano acá era
        la copia que el comentario de arriba dice que no hay que hacer. */
-    guia: 'ESC 2020 (cardiopatías congénitas del adulto) — Con un gradiente máximo por Doppler mayor de '
-      + (UM != null ? UM + ' mmHg' : 'el umbral de severidad')
-      + ', la intervención sobre la obstrucción es Clase I C INDEPENDIENTEMENTE DE LOS SÍNTOMAS siempre que NO se requiera un sustituto valvular. Si el reemplazo quirúrgico es la única opción, hacen falta síntomas, o bien uno de cuatro criterios en el asintomático. En la estenosis valvular la valvuloplastia con balón es la técnica de elección si la válvula es anatómicamente apta.',
+    guia: { ref:'esc2020guch',
+      txt:'Con un gradiente máximo por Doppler mayor de '
+        + (UM != null ? UM + ' mmHg' : 'el umbral de severidad')
+        + ', la intervención sobre la obstrucción es Clase I · Nivel C INDEPENDIENTEMENTE DE LOS SÍNTOMAS siempre que NO se requiera un sustituto valvular. Si el reemplazo quirúrgico es la única opción, hacen falta síntomas, o bien uno de cuatro criterios en el asintomático. En la estenosis valvular la valvuloplastia con balón es la técnica de elección si la válvula es anatómicamente apta.' },
     notas: [
       'La ESC/EACTS 2025 de valvulopatías NO cubre esta lesión: ausente de sus 102 páginas y de su índice de tablas. Gobierna la ESC 2020 de congénitas del adulto, vigente.',
       'Bajo el umbral: Clase IIa C con síntomas atribuibles, caída de la función del VD, progresión de la insuficiencia tricuspídea o shunt derecha-izquierda. Esa fila NO incluye la PSVD ni la capacidad de ejercicio — ésas están en la del asintomático.',
@@ -42698,7 +42998,8 @@ function _indVT(){
       ? 'Fuera de rango medible: ' + E.fuera.join(' y ') + '. Un valor ilegible no sostiene ni descarta el criterio.' : '',
     clinica: clinica,
     recom: _indVTRecom(D, itSev, itMod, etSev, etSig, E, UG),
-    guia: 'ESC/EACTS 2025 — La cirugía tricuspídea concomitante es Clase I B en la insuficiencia SEVERA, primaria o secundaria, del paciente que va a cirugía valvular izquierda; y Clase I C en la insuficiencia primaria severa del paciente SINTOMÁTICO sin disfunción ventricular derecha severa ni hipertensión pulmonar severa. El tratamiento TRANSCATÉTER es Clase IIa A en el paciente de riesgo alto.',
+    guia: { ref:'esc2025vc',
+      txt:'La cirugía tricuspídea concomitante es Clase I · Nivel B en la insuficiencia SEVERA, primaria o secundaria, del paciente que va a cirugía valvular izquierda; y Clase I · Nivel C en la insuficiencia primaria severa del paciente SINTOMÁTICO sin disfunción ventricular derecha severa ni hipertensión pulmonar severa. El tratamiento TRANSCATÉTER es Clase IIa · Nivel A en el paciente de riesgo alto.' },
     notas: [
       'Heart Team con experiencia en patología tricuspídea: Clase I C antes de cualquier intervención. Es fila nueva de la 2025 y no depende del escenario.',
       'Reparación concomitante en la insuficiencia MODERADA, primaria o secundaria, de quien va a cirugía izquierda: Clase IIa B.',
@@ -42793,7 +43094,9 @@ function _indCIV(){
       _indFila('Insuficiencia aórtica progresiva por prolapso de una valva', '—', 'ask', 'es indicación de cierre aunque el shunt sea pequeño'),
       _indFila('Resistencias pulmonares', '—', 'ask', 'deciden la operabilidad cuando hay hipertensión pulmonar, y no las da el ecocardiograma')
     ],
-    guia: 'ESC (cardiopatías congénitas del adulto) — El cierre de la comunicación interventricular es Clase I en el paciente con sobrecarga de volumen del ventrículo izquierdo o síntomas atribuibles al shunt, siempre que no haya enfermedad vascular pulmonar avanzada.',
+    guia: { ref:'escGuchCiv',
+      txt:'El cierre de la comunicación interventricular es Clase I en el paciente con sobrecarga de volumen del ventrículo izquierdo o síntomas atribuibles al shunt, siempre que no haya enfermedad vascular pulmonar avanzada.',
+      nota:'El nivel de evidencia no se publica acá y la redacción de este criterio diverge de la tabla de la guía: ver la referencia.' },
     notas: [
       'Con shunt neto invertido —Qp/Qs menor que 1— el cierre está contraindicado: primero hay que establecer la operabilidad.',
       'Esta app no registra la dirección del shunt de la CIV, así que la contraindicación se apoya sólo en el Qp/Qs.',
@@ -42820,6 +43123,9 @@ const IND_SECS = [
 
 function indicRender(){
   let h = '', n = 0, fallos = 0;
+  /* Las claves citadas EN ESTE PINTADO. Prototipo nulo por el patrón de la casa: se consulta con
+     `hasOwnProperty` y un `{}` arrastraría las del prototipo. */
+  const usadas = Object.create(null);
   IND_SECS.forEach(function(s){
     /* Una sección que lanza NO puede llevarse el panel entero: el resto de las indicaciones
        desaparecería sin decir por qué, que es el modo de falla contra el que este archivo
@@ -42839,11 +43145,15 @@ function indicRender(){
     if (!r) return;
     n++;
     h += hs;
+    /* La clave se anota DESPUÉS del `try` y del `if (!r)`, o sea sólo si la sección se pintó de
+       verdad: una que lanzó se declara caída al pie y no puede aportar una entrada a la
+       bibliografía — sería numerar una cita que no está en pantalla. */
+    if (r.guia && r.guia.ref) usadas[r.guia.ref] = true;
   });
   if (!n) h = '<div style="padding:22px 6px;text-align:center;font-size:12px;color:var(--text2);line-height:1.6;">' +
     'Sin criterios de intervención detectados con los datos actuales.' +
     '<div style="font-size:11px;margin-top:8px;">El panel sólo muestra las secciones cuyos umbrales alcanzan el estudio cargado. Que no aparezca ninguna no descarta patología: puede faltar la medición que la activa.</div></div>';
-  else h = _indLeyendaHTML() + h;
+  else h = _indLeyendaHTML() + h + _indBiblioHTML(usadas);
   if (fallos) h += '<div style="font-size:11px;color:#DC2626;margin-top:10px;line-height:1.5;">' +
     fallos + (fallos === 1 ? ' sección no se pudo evaluar' : ' secciones no se pudieron evaluar') +
     ' — el resto del panel es válido, pero falta información. Revisar la consola.</div>';
@@ -84646,8 +84956,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260929-1437';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790703460643;                 /* eco-build-ms */
+const ECO_BUILD    = '20260929-1620';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790709614883;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -84733,7 +85043,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-1437</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-1620</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
