@@ -1,5 +1,71 @@
 # EcoSmart — trampas de este archivo
 
+## Mitral: se elimina el cociente 0,38, que no tenía fuente (2026-09-29)
+
+La tarjeta «🔴 Prótesis Mitral — ESC 2021» de la pestaña Referencias publicaba
+**«Ratio VTI mitral/VTI Ao · <0.38 · >0.38 — IM severa»**. Se eliminó esa fila. Tres motivos, en
+orden:
+
+1. **El 0,38 no existe en ninguna fuente.** Verificado con dos búsquedas independientes: la
+   ESC/EACTS 2021 completa —la guía que el propio título de la tarjeta invoca— y el mismo PDF de la
+   ASE 2024 del que salieron las Tablas 11 a 13. Un umbral con una guía al lado que no lo contiene
+   es una **cita falsa**, que es lo que este archivo persigue desde la nota del NT-proBNP.
+2. **Estaba bajo el encabezado equivocado.** Las otras tres filas son de **obstrucción** —la columna
+   dice «Obstrucción severa»— y ésa decía «IM severa», o sea **regurgitación**.
+3. **Era una tercera escala del mismo tipo de dato.** La app ya publica el cociente correcto y
+   citado: `VTI mitral / VTI TSVI ≥ 2,5` (ASE 2024, Tabla 12, p. 28), en la fila `im-vti-ratio`.
+
+### ⚠️ SE ELIMINÓ LA FILA, NO LA TARJETA — y el pedido decía «la tarjeta del 0,38»
+
+La tarjeta tiene **cuatro filas** y sólo una era el 0,38. Las otras tres —gradiente medio, AVm y
+THP— son **obstrucción protésica mitral**, y este archivo ya las declara validadas con una
+advertencia explícita: *«se ven como la escala vieja y NO lo son. No la "arregles"»*. Borrar la
+tarjeta se las llevaba puestas. El pedido ofrecía «eliminar o reemplazar, la opción más simple»; la
+más simple **y correcta** era ninguna de las dos tal cual: eliminar la fila.
+
+**En su lugar va una nota que REMITE, no que calcula.** Dice cuál es el cociente validado, con su
+fuente y sus operadores, que es de **regurgitación** y no de obstrucción —que es por lo que la fila
+vieja estaba bajo el encabezado equivocado—, y dónde lo aplica la app. No duplica ninguna lógica: es
+texto de referencia. Sin ella quedaba un hueco de conocimiento: el médico que buscaba el cociente en
+esa tarjeta no sabría dónde está el bueno.
+
+**Hipótesis NO confirmada del origen, y queda como hipótesis:** `1/0,38 = 2,63`, cerca del 2,5 de la
+Tabla 12, así que podría ser ese mismo cociente invertido. No se pudo verificar y no se afirma — ni
+en el código ni acá.
+
+### ⚠️ EL GREP NO SIRVE PARA VERIFICAR ESTO, PORQUE MI COMENTARIO TRANSCRIBE EL NÚMERO
+
+Medido: las ocurrencias de `0.38` en el archivo **no bajaron** —8 antes y 8 después—, porque el
+comentario que explica la eliminación nombra el valor dos veces. Es la regla del archivo —«en los
+comentarios, describir; no transcribir»— con la variante de que acá **el número ES el hallazgo** y
+describirlo sin nombrarlo sería peor.
+
+Por eso **TC-321 mide el `textContent` de `#ref-pm` renderizado**, no el fuente: lo que importa es lo
+que el médico ve. Quien venga a comprobarlo con `grep` va a encontrar el número y va a creer que la
+fila sigue ahí.
+
+### Verificación
+
+**Es marcado puro y no toca ningún cálculo**, censado antes de tocar: `#ref-pm` aparece **una sola
+vez** en todo el archivo —su declaración— y lo único que lo consume es `toggleRef`, que sólo cambia
+`display`. El 0,38 no estaba en `ECO_AYUDA` ni en ninguna otra superficie.
+
+**Balance de etiquetas contra HEAD**: −1 `tr`, −3 `td`, +1 `div`, +3 `b`, `table` sin cambio — los
+deltas que corresponden exactamente a sacar una fila de tres celdas y poner una nota con tres
+negritas.
+
+**Control A/B, 8 escenarios**: informe y EN SUMA con hash FNV-1a y longitud, más la fila del cociente
+y el grado. **Cero diferencias** —informes de 377 a 480 caracteres, 6 hashes distintos—, y el
+cociente sale `3.00 (≥2,5 — apoya IM severa)` en prótesis y `3.00 (>1,4 — apoya IM severa)` en
+nativa, idéntico a antes.
+
+**TC-321, 9 condiciones**, con los dos denominadores: que la tarjeta **siga existiendo** y que
+conserve sus tres filas de obstrucción. **Dos mutaciones en rojo**: la fila vieja reapareciendo y la
+nota dejando de remitir.
+
+**TC-316 en verde sin modificarlo** — confirmado que el límite del grado rancio nativo sigue
+protegido, que era el punto 2 del pedido y explícitamente «no tocar».
+
 ## Mitral: bandas de plausibilidad en los votantes de IM (2026-09-29)
 
 Cierra el hallazgo más caro que quedaba abierto de la serie. El motivo no es la aritmética: es que
@@ -879,11 +945,11 @@ define el hallazgo**, y el importador de Excel **rechazaba la FILA ENTERA** de u
 
 ### Declarado y NO tocado
 
-- **La tarjeta «🔴 Prótesis Mitral — ESC 2021»** (~12800) publica «Ratio VTI mitral/VTI Ao <0.38 /
-  >0.38 — **IM severa**». No es la misma razón que las Tablas 11 y 13 —su denominador es el VTI
-  aórtico, no el del TSVI— pero es una **tercera** escala de un cociente de VTI para prótesis mitral,
-  con un número que no se pudo rastrear y bajo el sello de una guía que no se verificó. **Requiere el
-  primario de la ESC 2021 antes de tocarla.**
+- ~~**La tarjeta «🔴 Prótesis Mitral — ESC 2021»** publica «Ratio VTI mitral/VTI Ao <0.38»~~ —
+  **CERRADO 2026-09-29.** La entrada pedía «el primario de la ESC 2021 antes de tocarla»: se buscó
+  ahí y en el PDF de la ASE 2024, y **el 0,38 no está en ninguno de los dos**. Se eliminó LA FILA
+  —no la tarjeta, cuyas otras tres son obstrucción protésica y están validadas— y en su lugar hay
+  una nota que remite al ≥2,5 de la Tabla 12. Ver la entrada del principio del archivo.
 - **La columna «DVI mitral» del Excel** sigue exportando el campo tipeado, no el calculado: a
   CeiboAnalytics puede viajar un DVI distinto del que decidió el informe. `_labExcelRow` corre sobre
   estudios que no están en pantalla y `vmProtEOA()` lee el DOM; cerrarlo exige la fuente inyectable.

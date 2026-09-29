@@ -38344,6 +38344,73 @@ caso('TC-318', 'El panel de metodos de EM no se filtra entre pacientes: Nuevo es
    FABRICADA, peor que no tener la columna. Por eso se cruzan los dos en cada escenario. */
 
 
+
+/* == TC-321 - La tarjeta de protesis mitral pierde el cociente 0,38 sin fuente ===============
+   El 0,38 no aparece en la ESC/EACTS 2021 -la guia que el titulo de la tarjeta invoca- ni en el
+   PDF de la ASE 2024 del que salieron las Tablas 11 a 13. Y estaba bajo el encabezado
+   «Obstruccion severa» diciendo «IM severa», o sea regurgitacion. Se elimino LA FILA, no la
+   tarjeta: las otras tres son obstruccion protesica y este archivo las declara validadas.
+   ⚠️ SE MIDE EL DOM RENDERIZADO Y NO EL FUENTE: el comentario que explica la eliminacion
+   TRANSCRIBE el numero, asi que un grep sobre index.html lo sigue encontrando. Lo que importa
+   es lo que el medico ve.                                                                      */
+caso('TC-321', 'Referencias: la tarjeta de protesis mitral ya no publica el cociente 0,38 sin fuente', `
+  return (async () => {
+    const R = {};
+    const card = document.getElementById('ref-pm');
+    R.existe = !!card;
+    const txt = card ? card.textContent.replace(/\\s+/g, ' ') : '';
+    R.txt = txt.slice(0, 400);
+
+    // DENOMINADOR: las tres filas de obstruccion siguen ahi.
+    R.gmedio = txt.indexOf('G. medio') >= 0;
+    R.avm    = txt.indexOf('AVm') >= 0;
+    R.thp    = txt.indexOf('THP') >= 0;
+    R.filas  = card ? card.querySelectorAll('tr').length : 0;
+
+    R.tiene038   = txt.indexOf('0.38') >= 0 || txt.indexOf('0,38') >= 0;
+    R.tieneVtiAo = txt.indexOf('VTI Ao') >= 0;
+    R.remite25   = txt.indexOf('2,5') >= 0 && txt.indexOf('VTI TSVI') >= 0;
+    R.citaTabla  = txt.indexOf('Tabla 12') >= 0;
+    R.diceRegurg = txt.indexOf('regurgitación') >= 0 || txt.indexOf('regurgitacion') >= 0;
+
+    /* El cociente de verdad sigue funcionando igual: se ejerce sobre una PROTESIS, que es donde
+       aplica el >=2,5, y sobre una NATIVA, donde el corte sigue siendo >1,4. Si la tarjeta
+       hubiera empezado a calcular algo por su cuenta, estos dos no podrian coincidir con lo que
+       publica la fila del calc-box. */
+    const ratio = () => { const e = document.getElementById('im-vti-ratio'); return e ? e.textContent.trim() : 'X'; };
+    const sembrar = morf => {
+      __t.limpiar();
+      __t.set('nombre','Ratio'); __t.set('ci','88888888'); __t.set('edad','60');
+      __t.set('vm_morf', morf);
+      __t.set('vtim','60'); __t.set('itv_tsvi','20'); __t.set('ia_grado','0');
+      try { calcIM_ESC(); } catch (e) {}
+    };
+    sembrar('Prótesis mecánica'); R.prot = ratio();
+    sembrar('Normal');            R.nativa = ratio();
+
+    return { resumen: JSON.stringify(R), extra: [
+      ['DENOMINADOR: la tarjeta sigue existiendo, no se borro entera',
+        R.existe === true, 'existe=' + R.existe],
+      ['y conserva sus TRES filas de obstruccion protesica',
+        R.gmedio && R.avm && R.thp, 'gmedio=' + R.gmedio + ' avm=' + R.avm + ' thp=' + R.thp],
+      ['EL 0,38 YA NO SE VE EN PANTALLA',
+        R.tiene038 === false, 'txt=' + R.txt],
+      ['ni el cociente contra el VTI aortico, que era el rotulo equivocado',
+        R.tieneVtiAo === false, 'VTI Ao=' + R.tieneVtiAo],
+      ['y en su lugar remite al cociente validado: >=2,5 contra el VTI del TSVI',
+        R.remite25 === true, 'txt=' + R.txt],
+      ['con su fuente, que es lo que la fila vieja no tenia',
+        R.citaTabla === true, 'Tabla 12=' + R.citaTabla],
+      ['y aclara que ese cociente es de REGURGITACION, no de obstruccion',
+        R.diceRegurg === true, 'regurg=' + R.diceRegurg],
+      ['el cociente >=2,5 sigue publicandose igual en la protesis',
+        R.prot.indexOf('3.00') === 0 && R.prot.indexOf('2,5') > 0, 'protesis=' + R.prot],
+      ['y el corte nativo >1,4 tambien, o sea que la tarjeta no cambio ningun calculo',
+        R.nativa.indexOf('3.00') === 0 && R.nativa.indexOf('1,4') > 0, 'nativa=' + R.nativa]
+    ] };
+  })();
+`);
+
 caso('TC-319', 'Excel: la columna de procedencia del DVI mitral dice consignado o calculado, y sale de la misma derivacion que el valor', `
   const fila = campos => _labExcelRow({ campos, fecha_estudio: '2026-09-29' });
 
