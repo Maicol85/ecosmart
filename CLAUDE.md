@@ -49,10 +49,20 @@ O sea: un DVI del paciente anterior sobreviviendo a «Nuevo estudio» alimentar�
 obstrucción protésica del siguiente. **Eso no es reordenar.** La celda 4 de la fila 2 queda vacía
 a propósito, con el motivo escrito en el marcado.
 
-**Si se quiere el DVI ahí igual**, la forma que NO rompe el barrido es anidar un `calc-box` de una
-sola fila dentro de la celda de la grilla —el selector sigue matcheando— a costa de meter el
-idioma del cuadro de resultados adentro de la grilla de entrada y de duplicar el rótulo. Es una
-decisión de diseño, no un arreglo, y queda para Maicol.
+**DECISIÓN DE MAICOL (2026-09-29): el DVI SE QUEDA DONDE ESTÁ. La celda vacía no se completa.**
+Prioriza el barrido de limpieza entre pacientes por encima de cerrar el layout. **Esto no es un
+pendiente: está resuelto.** El que venga a «terminar» la fila 2 tiene que leer esto primero — y si
+alguna vez se revierte, la única forma que NO rompe el barrido es anidar un `calc-box` de una sola
+fila dentro de la celda de la grilla (el selector `.calc-box .calc-row span[id]` sigue matcheando),
+a costa de meter el idioma del cuadro de resultados adentro de la grilla de entrada y de duplicar
+el rótulo.
+
+**⚠️ Y LA DECISIÓN NO TIENE CASO QUE LA SOSTENGA.** Nada en el suite fija que `dvi-val` viva dentro
+de un `.calc-box`: si alguien lo saca, el span deja de limpiarse entre pacientes **en silencio** y
+los 331 casos siguen en verde. Es exactamente la forma de fallar que este archivo documenta —«un
+arreglo sin caso es un arreglo que se deshace sin que nadie se entere»— y queda **declarada, no
+cubierta**. El caso que la cerraría es de una condición: sembrar el DVI, llamar `limpiarCampos` y
+exigir que el span vuelva a «—».
 
 ### ⚠️ «Volumen sistólico» SÍ está duplicado hoy, entre input y resultado — declarado, no tocado
 
@@ -67,9 +77,15 @@ pantalla.
   columna del Excel — y se **persiste** con el estudio;
 - `vs-val` lo lee `_pptSpan` para la diapositiva de hemodinámica del PPT.
 
-Queda declarado. El VLI tiene una duplicación **parcial** de la misma familia —`vli_calc` trae el
-número y `vli-interp` el número **más** su badge de clasificación— y ésa sí es defendible: son dos
-cosas distintas.
+**DECISIÓN DE MAICOL (2026-09-29): no se toca por ahora.** Queda como deuda declarada, no como
+hallazgo abierto: las dos superficies muestran el mismo número y ninguna miente, así que el costo
+de convivir es cosmético y el de borrar la equivocada es clínico. El día que se unifique, lo que
+hay que decidir primero es **cuál sobrevive**, y la respuesta no es obvia: `vs_calc` se persiste
+con el estudio y `vs-val` no.
+
+El VLI tiene una duplicación **parcial** de la misma familia —`vli_calc` trae el número y
+`vli-interp` el número **más** su badge de clasificación— y ésa sí es defendible: son dos cosas
+distintas.
 
 ### Tres `grid-4` separadas, no una grilla con once celdas
 
