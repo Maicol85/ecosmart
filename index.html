@@ -2917,17 +2917,6 @@ window.cerrarSesionReal = cerrarSesionReal;
           <label>Onda A (cm/s)</label>
           <input type="number" id="onda_a" placeholder="cm/s" oninput="calcDiastol()">
         </div>
-        <!-- VTI mitral DE ENTRADA, y vive aca y no en Valvulas por lo que mide: es la envolvente
-             de LLENADO por Doppler PULSADO en el anillo, el mismo trazado del que salen la onda E y
-             la onda A que tiene al lado. En Valvulas quedaba rotulado «CW», que es el chorro de
-             regurgitacion y es OTRA envolvente: medido, cargar el VTI del chorro (130) donde iba el
-             de entrada daba un Vol mitral de 918,9 ml y una FR de 93 % con veredicto «Severa».
-             `vtim` pasa a ser su espejo. El id sigue la convencion de `itv_tsvi`: prefijo del
-             parametro + sitio de medicion. -->
-        <div class="fg">
-          <label>VTI mitral de entrada — Doppler pulsado (cm)</label>
-          <input type="number" id="itv_mitral" placeholder="cm" oninput="imSyncSiExiste()">
-        </div>
         <div class="fg">
           <label>e' septal (cm/s)</label>
           <input type="number" id="e_sep" placeholder="cm/s" oninput="calcDiastol();cvrSync();" onchange="cvrCambio()">
@@ -2958,10 +2947,23 @@ window.cerrarSesionReal = cerrarSesionReal;
              impreso bajo el rótulo del otro; acá se separan desde el nombre.
              Los cuatro llevan `id` a propósito: `guardarInforme` barre
              `input[id], select[id], textarea[id]`, así que viajan con el estudio y `limpiarCampos`
-             los resetea por el mismo camino. Ninguno matchea `_noEsDelEstudio`. -->
+             los resetea por el mismo camino. Ninguno matchea `_noEsDelEstudio`.
+             ⚠️ LOS CUATRO VAN CONTIGUOS Y EN ESTE ORDEN (2026-09-29): las tres duraciones y
+             velocidades primero y el S/D al final. El S/D es el unico `select` del grupo y el
+             unico que no entra en ningun calculo —es informativo—, asi que cerrar con el deja la
+             fila leyendose de lo medido a lo descriptivo. Mover uno de los tres numericos fuera
+             de este bloque separa el comentario de arriba de los campos que describe. -->
         <div class="fg">
           <label>Dur. onda A mitral (ms)</label>
           <input type="number" id="venp_dur_a" placeholder="ms" oninput="calcVenaPulm()">
+        </div>
+        <div class="fg">
+          <label>Dur. onda Ar pulmonar (ms)</label>
+          <input type="number" id="venp_dur_ar" placeholder="ms" oninput="calcVenaPulm()">
+        </div>
+        <div class="fg">
+          <label>Veloc. Ar pulmonar (cm/s)</label>
+          <input type="number" id="venp_vel_ar" placeholder="cm/s" oninput="calcVenaPulm()">
         </div>
         <div class="fg">
           <!-- ⚠️ S/D ES UN SELECTOR, NO UN NÚMERO. Es informativo y no entra en ningún cálculo:
@@ -2979,13 +2981,21 @@ window.cerrarSesionReal = cerrarSesionReal;
             <option value="mayor1">&gt;1</option>
           </select>
         </div>
+        <!-- VTI mitral DE ENTRADA, y vive aca y no en Valvulas por lo que mide: es la envolvente
+             de LLENADO por Doppler PULSADO en el anillo, el mismo trazado del que salen la onda E y
+             la onda A que tiene al lado. En Valvulas quedaba rotulado «CW», que es el chorro de
+             regurgitacion y es OTRA envolvente: medido, cargar el VTI del chorro (130) donde iba el
+             de entrada daba un Vol mitral de 918,9 ml y una FR de 93 % con veredicto «Severa».
+             `vtim` pasa a ser su espejo. El id sigue la convencion de `itv_tsvi`: prefijo del
+             parametro + sitio de medicion.
+             ⚠️ VA ULTIMO Y SOLO EN SU FILA (2026-09-29), y el rotulo hace mas trabajo que la
+             posicion: es el unico campo de esta grilla que NO alimenta la funcion diastolica —lo
+             consume el metodo volumetrico de la IM via `vtim`— y el que mas se confunde con otra
+             envolvente. Aislarlo lo separa de la onda E y la onda A, que salen del mismo trazado
+             pero contestan otra pregunta. -->
         <div class="fg">
-          <label>Dur. onda Ar pulmonar (ms)</label>
-          <input type="number" id="venp_dur_ar" placeholder="ms" oninput="calcVenaPulm()">
-        </div>
-        <div class="fg">
-          <label>Veloc. Ar pulmonar (cm/s)</label>
-          <input type="number" id="venp_vel_ar" placeholder="cm/s" oninput="calcVenaPulm()">
+          <label>VTI mitral de entrada — Doppler pulsado (cm)</label>
+          <input type="number" id="itv_mitral" placeholder="cm" oninput="imSyncSiExiste()">
         </div>
       </div>
 
@@ -3016,7 +3026,21 @@ window.cerrarSesionReal = cerrarSesionReal;
   <div id="dop-aortico" style="display:none;">
   <div class="card">
     <div class="card-body">
-      <div class="grid-3">
+      <!-- ⚠️ TRES `grid-4` SEPARADAS Y NO UNA SOLA GRILLA CON ONCE CELDAS (2026-09-29). La grilla
+           reparte por auto-flow, asi que once campos en un solo contenedor se acomodan 4/4/3 y la
+           tercera fila arrancaria con el TE en la columna que le toque, no en la primera. Con un
+           contenedor por fila cada renglon es independiente y las columnas siguen alineadas entre
+           los tres, que es lo que el reordenamiento busca: velocidad/gradiente arriba,
+           distancia/VTI y sus derivados en el medio, tiempos y volumenes abajo.
+           ⚠️ LA FILA 2 TIENE TRES CAMPOS Y LA CUARTA CELDA QUEDA VACIA A PROPOSITO. Ahi iria el
+           DVI (ratio TSVI/Ao), que NO es un input: es el span `dvi-val` del cuadro de
+           resultados de abajo. Sacarlo de ahi lo saca del barrido
+           `.calc-box .calc-row span[id]:not(.calc-lbl)` de `limpiarCampos`, que es lo UNICO que lo
+           borra entre pacientes — y ese span lo leen `eaTaviEspejar` y el veredicto de estenosis
+           aortica PROTESICA, donde el DVI es el unico eje flujo-independiente. O sea que moverlo
+           no es reordenar: es abrir una fuga entre pacientes sobre un veredicto clinico. Ver el
+           reporte del 2026-09-29 en CLAUDE.md. -->
+      <div class="grid-4">
         <div class="fg">
           <label>Vmax aórtica (m/s)</label>
           <input type="number" id="vmax_ao" placeholder="m/s" step="0.1" oninput="calcAo();eteShuntSyncSiExiste()">
@@ -3029,8 +3053,13 @@ window.cerrarSesionReal = cerrarSesionReal;
           <label>G.Medio (mmHg)</label>
           <input type="number" id="gmedio_ao" placeholder="mmHg" oninput="calcAo();eteShuntSyncSiExiste()">
         </div>
+        <div class="fg">
+          <label>Ø TSVI (mm)</label>
+          <input type="number" id="diam_tsvi" placeholder="mm" oninput="calcAo();mostrarTSVIEstimado();eteShuntSyncSiExiste();imSyncSiExiste();emSyncSiExiste();">
+          <div id="tsvi-estimado-box" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
+        </div>
       </div>
-      <div class="grid-3" style="margin-top:8px;">
+      <div class="grid-4" style="margin-top:8px;">
         <div class="fg">
           <label>VTI TSVI (cm)</label>
           <input type="number" id="itv_tsvi" placeholder="cm" oninput="calcAo();eteShuntSyncSiExiste();imSyncSiExiste();emSyncSiExiste()">
@@ -3040,12 +3069,11 @@ window.cerrarSesionReal = cerrarSesionReal;
           <input type="number" id="itv_ao" placeholder="cm" oninput="calcAo();eteShuntSyncSiExiste()">
         </div>
         <div class="fg">
-          <label>Ø TSVI (mm)</label>
-          <input type="number" id="diam_tsvi" placeholder="mm" oninput="calcAo();mostrarTSVIEstimado();eteShuntSyncSiExiste();imSyncSiExiste();emSyncSiExiste();">
-          <div id="tsvi-estimado-box" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
+          <label>AVA ec. continuidad (cm²) — automático</label>
+          <input type="number" id="ava_cont" readonly>
         </div>
       </div>
-      <div class="grid-2" style="margin-top:8px;">
+      <div class="grid-4" style="margin-top:8px;">
         <div class="fg">
           <label>Tiempo eyectivo total — TE (ms)</label>
           <input type="number" id="tango_te" placeholder="ms" oninput="calcTango()">
@@ -3053,12 +3081,6 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="fg">
           <label>Tiempo de aceleración — TAC (ms)</label>
           <input type="number" id="tango_tac" placeholder="ms" oninput="calcTango()">
-        </div>
-      </div>
-      <div class="grid-2" style="margin-top:8px;">
-        <div class="fg">
-          <label>AVA ec. continuidad (cm²) — automático</label>
-          <input type="number" id="ava_cont" readonly>
         </div>
         <div class="fg">
           <label>Volumen sistólico (ml) — automático</label>
@@ -84247,8 +84269,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260929-0938';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790685539000;                 /* eco-build-ms */
+const ECO_BUILD    = '20260929-1127';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790692072939;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -84334,7 +84356,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-0938</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-1127</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -1,5 +1,117 @@
 # EcoSmart — trampas de este archivo
 
+## UI: reordenar Doppler Mitral y Aórtico (2026-09-29)
+
+Reordenamiento **visual puro** de las dos secciones. Cero cambios de cálculo, sincronía, fórmula,
+validación, id o nombre de campo — medido, no afirmado: **el conjunto de los 2359 ids y el de los
+1303 manejadores inline es idéntico al de HEAD**, y el único `<div>` que desaparece es un
+contenedor de fila que se fusionó (−1 apertura, −1 cierre, balanceado).
+
+| | orden nuevo |
+|---|---|
+| **Mitral**, fila 1 | Onda E · Onda A · e' septal · e' lateral |
+| fila 2 | TDE · TRIV · THP mitral · AVm por THP |
+| fila 3 | Dur. onda A mitral · Dur. onda Ar pulmonar · Veloc. Ar pulmonar · S/D pulmonar |
+| fila 4 | VTI mitral de entrada |
+| **Aórtico**, fila 1 | Vmax aórtica · G.Máx · G.Medio · Ø TSVI |
+| fila 2 | VTI TSVI · VTI Vao · AVA ec. continuidad · *(celda vacía — ver abajo)* |
+| fila 3 | TE · TAC · Volumen sistólico · VLI |
+
+Medido en el navegador a 1400 px: las **siete** filas alinean sus columnas en los mismos cuatro
+orígenes (211 / 503 / 794 / 1086), que es lo que el reordenamiento busca. A 390 px las dos
+secciones colapsan a una columna, cero elementos fuera del viewport y cero scroll horizontal.
+
+### ⚠️ EL DVI NO SE MOVIÓ, Y NO ES UN OLVIDO: MOVERLO ABRE UNA FUGA ENTRE PACIENTES
+
+El pedido contemplaba mover «DVI (ratio TSVI/Ao)» y «AVA ec. continuidad» desde el bloque de
+resultados a la fila 2, *«verificá primero si eso rompe algún estilo o lógica de posición; si hay
+riesgo, reportalo y no lo hagas»*. Medido, los dos casos son **distintos**:
+
+- **`ava_cont` YA ERA un `input readonly` de la grilla**, no una fila de resultados: no aparece en
+  el `calc-box`. Reubicarlo es el mismo reordenamiento que el resto. Hecho.
+- **El DVI NO es un input.** Existe **sólo** como el span `dvi-val` dentro de
+  `.calc-box > .calc-row`, escrito por `calcAo`.
+
+Sacar ese span del `calc-box` lo saca del barrido
+`.calc-box .calc-row span[id]:not(.calc-lbl)` de `limpiarCampos`, que es **lo único que lo borra
+entre pacientes** — el defecto que este archivo ya documenta para los paneles de cardio-oncología
+y de Eisenmenger/Fontan, que pintan con `<span>` sin id y sobrevivían a «Nuevo estudio».
+
+Y acá el costo es peor que un residuo en pantalla, porque **ese span tiene dos consumidores
+clínicos**, los dos con su comentario explicando que leen de ahí a propósito:
+
+| consumidor | qué hace con el DVI |
+|---|---|
+| `eaTaviEspejar` | escribe `ete_tavi_dvi`, que viaja con el estudio |
+| veredicto de estenosis aórtica **protésica** (ASE 2024, Tabla 5) | el DVI es **el único eje flujo-independiente** que esta app puede evaluar — su propio comentario dice que perderlo «no es perder un dato: es no poder concluir nada» |
+
+O sea: un DVI del paciente anterior sobreviviendo a «Nuevo estudio» alimentaría el veredicto de
+obstrucción protésica del siguiente. **Eso no es reordenar.** La celda 4 de la fila 2 queda vacía
+a propósito, con el motivo escrito en el marcado.
+
+**Si se quiere el DVI ahí igual**, la forma que NO rompe el barrido es anidar un `calc-box` de una
+sola fila dentro de la celda de la grilla —el selector sigue matcheando— a costa de meter el
+idioma del cuadro de resultados adentro de la grilla de entrada y de duplicar el rótulo. Es una
+decisión de diseño, no un arreglo, y queda para Maicol.
+
+### ⚠️ «Volumen sistólico» SÍ está duplicado hoy, entre input y resultado — declarado, no tocado
+
+El pedido pedía reportar cualquier campo duplicado entre la grilla y el bloque de resultados. Hay
+uno y es **preexistente**: `calcAo` escribe el MISMO número en las dos superficies, el input
+`vs_calc` («62.8») y la fila `vs-val` del `calc-box` («62.8 ml»). Las dos se ven en la misma
+pantalla.
+
+**No se borró ninguna**, y borrar la equivocada cuesta caro en los dos sentidos:
+- `vs_calc` lo leen `vliCalc` (de ahí sale el VLI, que decide «bajo flujo» vs «flujo normal» en la
+  estenosis de bajo gradiente), la fila `Vol. sistól.` del PDF firmado, el veredicto protésico y la
+  columna del Excel — y se **persiste** con el estudio;
+- `vs-val` lo lee `_pptSpan` para la diapositiva de hemodinámica del PPT.
+
+Queda declarado. El VLI tiene una duplicación **parcial** de la misma familia —`vli_calc` trae el
+número y `vli-interp` el número **más** su badge de clasificación— y ésa sí es defendible: son dos
+cosas distintas.
+
+### Tres `grid-4` separadas, no una grilla con once celdas
+
+La grilla reparte por auto-flow: once campos en un solo contenedor se acomodan 4/4/3 y la tercera
+fila arranca donde caiga, no en la primera columna. Con un contenedor por fila cada renglón es
+independiente y las columnas siguen alineadas entre los tres — que es exactamente lo que la
+medición de arriba confirma. Es además el idioma que la sección ya usaba (tenía cuatro
+contenedores: dos `grid-3` y dos `grid-2`).
+
+**Ojo con la `grid-2` que tenía TRES hijos** (AVA + VS + VLI): era una fila de 2+1 con un hueco en
+el medio. Al pasar a `grid-4` eso desapareció solo.
+
+### Los comentarios viajan con su campo
+
+Los dos bloques de comentario que describen campos concretos se movieron **pegados a ellos**: el
+del VTI mitral de entrada —que explica por qué vive en Doppler y no en Válvulas, y por qué el VTI
+del chorro en esa casilla daba «Vol mitral 918,9 ml, FR 93 %, Severa»— bajó a la fila 4 con su
+campo, y el de la vena pulmonar —el que explica el prefijo `venp_` contra `vp_`— quedó encabezando
+los cuatro `venp_*`, que siguen contiguos. Un comentario que se queda explicando el campo de al
+lado es peor que no tenerlo; ya pasó al reordenar las tarjetas del Laboratorio.
+
+### ⚠️ Y el conteo de ids delató MI comentario, no el marcado
+
+La primera versión del comentario del DVI transcribía la etiqueta del span con su atributo `id`
+literal. El barrido de ids pasó de 2359 a **2360** con un id «nuevo» que no existe en ninguna
+parte: el de adentro del comentario. Es la regla que este archivo ya tiene escrita —«en los
+comentarios, describir; no transcribir marcado»— y **la detectó el conteo, no la lectura**.
+Corregido a `` el span `dvi-val` ``.
+
+### Verificación
+
+**Control byte a byte contra HEAD**, cinco escenarios sembrando las dos secciones —vacío, mitral
+completo con vena pulmonar, aórtico con estenosis severa, los dos juntos con VI/AI/VCI, y EM
+severa—: hash FNV-1a **y longitud** de informe, EN SUMA y **la fila completa del Excel (433
+columnas)**. **15 mediciones, cero diferencias.**
+Denominador declarado: informes de **408 a 895** caracteres, EN SUMA de 30 a 228, filas de Excel de
+9834 a 10696, y hashes distintos entre escenarios — o sea que la sonda medía contenido real y no
+cinco veces lo mismo.
+
+`node --check` por bloque: fallan **sólo los bloques 0 y 1**, que es la línea base documentada del
+extractor. `detectar_huerfanos.py` **sin huérfanos nuevos**.
+
 ## Mitral protésica: grado rancio y DVI del Excel (2026-09-29)
 
 Dos arreglos chicos con la misma forma —**una superficie publicaba un número que otra superficie
