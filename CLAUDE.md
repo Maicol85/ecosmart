@@ -93,10 +93,16 @@ tabulación: sin su rama de `keydown` el médico tabula, lo ve enfocado, aprieta
 nada**, mientras los controles clínicos del mismo panel —que sí son `<button>`— responden. Dos
 mecanismos que se anuncian igual a la tecnología asistiva y sólo uno funciona.
 **No se convirtió en `<button>`**: el corchete vive inline dentro de la oración del criterio y la
-regla táctil global infla todo `button` a 44 px de alto, que ahí rompe el renglón. Declarado: el
-corchete **no llega a los 44 px** —`min-width`/`min-height` no aplican a un inline no reemplazado—
-y `check_mobile` no lo caza porque el panel nace con `display:none`. Si molesta, la salida es que la
-bibliografía nazca abierta, no engordar el corchete.
+regla táctil global infla todo `button` a 44 px de alto, que ahí rompe el renglón. El corchete **no
+llega a los 44 px** —`min-width`/`min-height` no aplican a un inline no reemplazado— y
+`check_mobile` no lo caza porque el panel nace con `display:none`, y en `display:none` todo mide
+cero.
+
+**DECISIÓN DE MAICOL (2026-09-29): no se toca por ahora — se prueba en una tablet real antes de
+decidir si hace falta agrandarlo.** No es un pendiente olvidado: es una medición que no se puede
+hacer desde acá, porque el navegador está concedido en modo sólo lectura y el preview no sirve para
+geometría. Si la prueba dice que el blanco es chico, la salida es que la bibliografía nazca abierta
+—hoy decidido al revés, ver abajo— y **no** engordar el corchete.
 
 ### ⚠️ EL DOCUMENTO Y SU EDICIÓN YA NO SE VEN SIN INTERACCIÓN en SIETE secciones
 
@@ -109,8 +115,16 @@ abre la bibliografía en un clic y marca su entrada.
 reapuntó al corchete —que es más fuerte: un año puede aparecer por casualidad en cualquier nota y el
 atributo no— **pero el comentario que escribí primero la llamaba «falso negativo» y no lo era**: era
 la única condición automática que medía que el documento fuera legible sin interacción, y se puso
-roja porque dejó de serlo. Si hace falta que se lea sin un clic, la salida es que la bibliografía
-nazca abierta.
+roja porque dejó de serlo.
+
+**DECISIÓN DE MAICOL (2026-09-29): LA BIBLIOGRAFÍA QUEDA CERRADA POR DEFECTO. Esto NO es un
+pendiente: está resuelto.** Se midió la consecuencia —en esas siete secciones el texto visible no
+nombra ninguna guía ni ningún año— y se confirmó igual: el corchete la abre en un clic y marca su
+entrada, y eso es la resolución del pedido original («bibliografía completa en capa oculta
+desplegable»). El que venga a «arreglar» que el documento no se lee sin interacción tiene que leer
+esto primero. Lo fija TC-322 por los **dos** lados —«el desplegable nace cerrado» y «el clic en el
+corchete lo ABRE»—, así que abrirla por defecto pone el caso en rojo y obliga a pensarlo en vez de
+descubrirlo.
 
 ### Lo que rompió el cambio de contrato, y por qué cada rojo era la señal
 

@@ -39567,8 +39567,13 @@ function _indRefMarca(k){
        la oración del criterio: un objetivo de 44 px de alto rompe el renglón, y la regla global no
        lo alcanza sola porque `min-width`/`min-height` no aplican a un inline no reemplazado. Se
        ensancha con padding lo que se puede sin mover la línea; en una tablet sigue siendo un blanco
-       chico, y es el único acceso a la bibliografía. Si molesta, la salida es que la bibliografía
-       nazca abierta, no engordar el corchete. */
+       chico, y es el único acceso a la bibliografía.
+       ⚠️ DECISIÓN DE MAICOL (2026-09-29): NO SE TOCA POR AHORA — se prueba en una tablet real antes
+       de decidir si hace falta agrandarlo. No es un descuido ni un pendiente olvidado: es una
+       medición que no se puede hacer desde acá. `check_mobile` tampoco lo caza, porque el panel nace
+       con `display:none` y en `display:none` todo mide cero. Si la prueba en tablet dice que el
+       blanco es chico, la salida es que la bibliografía nazca abierta —que hoy está decidido al
+       revés, ver `_indSecHTML`— y NO engordar el corchete, que rompe el renglón del criterio. */
     : ' <span data-ind-ref="' + k + '" role="button" tabindex="0" ' +
       'title="Ver la referencia al pie del panel" ' +
       'style="cursor:pointer;color:var(--accent2);font-weight:700;padding:3px 5px;' +
@@ -40066,8 +40071,13 @@ function _indSecHTML(tit, r){
      la abre en UN clic marcando su entrada, que es lo que la vuelve alcanzable. En las SIETE
      secciones sin bloque de recomendación (CIA, CIV, DAP, CoAo, FOP, MCH, VAB) el pie del panel es
      el único lugar donde aparece el nombre de la guía: `_indRecomHTML` imprime `r.fuente` sólo si
-     hay `r.clase`, y esas siete no devuelven `recom`. Queda declarado: si hace falta que el
-     documento se lea sin ninguna interacción, la salida es que la bibliografía nazca abierta. */
+     hay `r.clase`, y esas siete no devuelven `recom`.
+     ⚠️ DECISIÓN DE MAICOL (2026-09-29): LA BIBLIOGRAFÍA QUEDA CERRADA POR DEFECTO. Se midió la
+     consecuencia —en esas siete el texto visible no nombra ninguna guía ni ningún año— y se
+     confirmó igual: el corchete la abre en un clic y marca su entrada, y eso es la resolución.
+     **Esto NO es un pendiente: está resuelto.** El que venga a «arreglar» que el documento no se
+     lee sin interacción tiene que leer esto primero. Y lo fija TC-322 por los dos lados: «el
+     desplegable nace cerrado» y «el clic en el corchete lo ABRE». */
   h += '<div style="font-size:11px;line-height:1.55;color:var(--text2);margin-top:11px;padding-top:8px;border-top:1px dashed var(--border);">' +
        _indGuiaHTML(r.guia) + _indDetalleHTML(det) + '</div>';
   return h + '</div></details>';
@@ -84956,8 +84966,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260929-1620';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790709614883;                 /* eco-build-ms */
+const ECO_BUILD    = '20260929-1712';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790712758069;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -85043,7 +85053,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-1620</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-1712</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
