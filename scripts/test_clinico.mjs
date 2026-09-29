@@ -37108,6 +37108,180 @@ caso('TC-311', 'IM nativa: las TRES rutas de restauracion del PDF imprimen la MI
 
 
 
+
+/* TC-312 — El panel «🖨️ Incluir en el informe» de IM no arrastra el PISA de otro paciente.
+   Los dos span (`im-pdf-pisa-val`, `im-pdf-cont-val`) viven dentro de un <label>, no de un
+   `.calc-box .calc-row`, asi que el barrido de `limpiarCampos` no los alcanzaba; y su unico
+   escritor, `imPdfMetodosUI`, cuelga de `calcIM_ESC`/`calcContIM`, que no corren en «Nuevo estudio»
+   ni al cerrar una reimpresion. Medido antes del arreglo:
+     · «Nuevo estudio» dejaba «EROA y Vol-R por PISA — 50.3 mm²» con la casilla tildada y NO
+       desmarcable, sobre un formulario en blanco;
+     · con B en pantalla, reimprimir A dejaba el panel ofreciendo la EROA de A para el informe de B;
+     · y por el QR el panel decia «— sin valor» mientras el PDF del MISMO boton imprimia
+       «PISA: 50.3 mm²» — contradiccion que introdujo 98672cb al persistir el valor.
+
+   ⚠️ EL CASO LEGITIMO ES PARTE DEL PEDIDO: reimprimir el MISMO estudio tiene que seguir mostrando
+   su propio PISA. Por eso hay dos escenarios espejo —reimprimir otro con PISA estando sin PISA, y
+   reimprimir otro sin PISA estando con PISA—: con uno solo, «siempre sin valor» pasa en verde. */
+caso('TC-312', 'El panel «Incluir en el informe» de IM no arrastra el PISA de otro paciente: se vacia en «Nuevo estudio», se recalcula al cerrar una reimpresion y coincide con el PDF por el QR — y reimprimir el MISMO estudio sigue mostrando su propio PISA', `
+  return (async () => {
+    for (let i = 0; i < 40 && !(window.jspdf && window.jspdf.jsPDF); i++) await new Promise(r => setTimeout(r, 200));
+    if (!(window.jspdf && window.jspdf.jsPDF))
+      return { extra: [['jsPDF llego por CDN', false, 'no llego en 8 s — el caso no pudo verificar nada']] };
+    const g  = id => document.getElementById(id);
+    const tx = id => { const e = g(id); return e ? String(e.textContent||'').trim() : '(NO EXISTE)'; };
+    const panel = () => tx('im-pdf-pisa-val');
+    /* «Tiene numero» y no «es distinto de vacio»: los tres estados del span son '' (barrido),
+       «— sin valor» (sin PISA) y «— NN.N mm²» (con PISA), y lo que este caso vigila es que el
+       NUMERO no sea de otro paciente. */
+    const conNumero = s => /\\d/.test(String(s));
+
+    const esperarPdfLibre = async () => {
+      for (let k = 0; k < 120 && window._pdfGuardadoEnCurso; k++) await new Promise(r => setTimeout(r, 100));
+      return !window._pdfGuardadoEnCurso;
+    };
+    const filaPdf = async (gen) => {
+      const O = window.jspdf.jsPDF; let cap = null;
+      window.jspdf.jsPDF = function () { const d = new O(...arguments);
+        d.save = function () { try { cap = d.output('datauristring'); } catch (e) { cap = null; } }; return d; };
+      window.jspdf.jsPDF.API = O.API;
+      try { await gen(); for (let k = 0; k < 80 && !cap; k++) await new Promise(r => setTimeout(r, 100)); }
+      finally { window.jspdf.jsPDF = O; }
+      if (!cap) return '(no se capturo el PDF)';
+      const bin = atob(cap.split(',')[1]);
+      const re = /\\(((?:\\\\[\\s\\S]|[^()\\\\])*)\\)\\s?Tj/g;
+      let m, t = []; while ((m = re.exec(bin))) t.push(m[1]);
+      const i = t.findIndex(x => x.trim() === 'EROA');
+      return i < 0 ? '(sin fila EROA)' : t.slice(i + 1, i + 3).join(' ').trim();
+    };
+    const sembrar = (nom, conPisa) => {
+      __t.limpiar();
+      __t.set('nombre', nom); __t.set('edad','60'); __t.set('peso','80'); __t.set('talla','180');
+      /* La pastilla hay que abrirla: limpiarCampos esconde los bloques y sin eso el espejo de
+         vtim no se crea y la continuidad no tiene con que calcular. */
+      try { toggleValvPill('mitral','insuf'); } catch (e) {}
+      const base = [['diam_tsvi','21'],['itv_tsvi','18'],['diam_mit','30'],['itv_mitral','15'],
+                    ['im_itv','130'],['im_vc','7']];
+      const pisa = [['pisa_r','10'],['pisa_val','40'],['im_vmax','500']];
+      (conPisa ? base.concat(pisa) : base).forEach(kv => __t.set(kv[0], kv[1]));
+    };
+    const guardar = async () => { __t.informe(); const gd = await __t.guardar();
+      const inf = gd.estudioId ? getInformes().find(i => i.estudioId === gd.estudioId) : null;
+      return { eid: gd.estudioId, id: inf ? inf.id : null }; };
+    const reimprimir = async id => { try { pdfDeInformeGuardado(id); } catch (e) {}
+      await esperarPdfLibre(); await new Promise(r => setTimeout(r, 600)); };
+
+    const R = {};
+    let A = null, B = null;
+    try {
+      // ── A, con PISA ──
+      sembrar('TC312A', true);
+      R.conPisa = panel();
+      A = await guardar();
+      if (!A.id) return { extra: [['se guardo A', false, JSON.stringify(A)]] };
+
+      // ── «Nuevo estudio» ──
+      __t.limpiar();
+      R.trasNuevo = panel();
+      R.contTrasNuevo = tx('im-pdf-cont-val');
+      R.chkTrasNuevo = (g('im_pdf_pisa')||{}).checked;
+
+      // ── B, sin PISA ──
+      sembrar('TC312B', false);
+      B = await guardar();
+      if (!B.id) return { extra: [['se guardo B', false, JSON.stringify(B)]] };
+
+      /* ── ESCENARIO 1: B (sin PISA) en pantalla, se reimprime A (con PISA) ── */
+      await reimprimir(A.id);
+      R.bTrasReimpA = panel();
+
+      /* ── ESCENARIO 2, EL ESPEJO: A (con PISA) en pantalla, se reimprime B (sin PISA).
+         ⚠️ Sin este, «siempre sin valor» cumpliria el escenario 1 y el arreglo podria ser
+         simplemente borrar el panel en toda reimpresion, que romperia el caso legitimo. */
+      __t.limpiar();
+      try { cargarEstudioPorId(A.eid); } catch (e) {}
+      await new Promise(r => setTimeout(r, 1200));
+      R.aPorQr = panel();
+      R.aPorQrPdf = await filaPdf(() => generarPDFReal());
+      /* La decision del medico sobre la casilla de continuidad, para exigir que la reimpresion no
+         la pise: el recalculo del panel escribe .checked cuando nadie decidio. */
+      { const cb = g('im_pdf_cont'); if (cb) { cb.checked = true; cb.dataset.tocado = '1'; } }
+      await reimprimir(B.id);
+      R.aTrasReimpB = panel();
+      R.contTrasReimpB = (g('im_pdf_cont')||{}).checked + '/' + ((g('im_pdf_cont')||{}).dataset.tocado || '-');
+
+      /* ── ESCENARIO 4: editarInforme, la CUARTA ruta, que hoy refresca POR ACCIDENTE ──
+         ⚠️ Esa ruta no llama a imPdfMetodosUI: la cubre el calcContIM() que editarInforme llama por
+         OTRO motivo (un placeholder legado), sin try/catch. O sea que su cobertura es un
+         acoplamiento, no una decision. Lo levanto /sharp-edges sobre este diff. En vez de agregar
+         una cuarta llamada redundante —el defecto de «dos mecanismos para lo que uno cubre» que
+         esta serie ya pago—, se cubre con una CONDICION: si alguien saca ese calcContIM el dia que
+         el legado deje de importar, el suite se entera.
+         Se entra con B (sin PISA) en pantalla para que el panel tenga que CAMBIAR: si arrancara ya
+         mostrando lo de A, la condicion se cumpliria sola. */
+      __t.limpiar();
+      sembrar('TC312zz', false);
+      R.panelAntesEditar = panel();
+      try { editarInforme(A.id); } catch (e) {}
+      await new Promise(r => setTimeout(r, 200));
+      { const ok = g('edit-ok'); if (ok) ok.click(); }
+      await new Promise(r => setTimeout(r, 1500));
+      R.panelTrasEditar = panel();
+
+      /* ── ESCENARIO 3, EL LEGITIMO: reimprimir el MISMO estudio dos veces seguidas ── */
+      __t.limpiar();
+      try { cargarEstudioPorId(A.eid); } catch (e) {}
+      await new Promise(r => setTimeout(r, 1200));
+      await reimprimir(A.eid ? A.id : null);
+      R.aTrasReimpA1 = panel();
+      await reimprimir(A.id);
+      R.aTrasReimpA2 = panel();
+    } finally {
+      try { if (A && A.eid) await __t.borrar(A.eid); } catch (e) {}
+      try { if (B && B.eid) await __t.borrar(B.eid); } catch (e) {}
+    }
+
+    const asserts = _labXlsAssertListas().concat(_labXlsAssertVocab());
+    __t.limpiar();
+
+    return { extra: [
+      // ── DENOMINADOR ──
+      ['DENOMINADOR: con PISA cargado el panel muestra su valor (sin esto, «vacio» se cumple solo)',
+        conNumero(R.conPisa) && R.conPisa.indexOf('50.3') > -1, R.conPisa],
+
+      // ── «NUEVO ESTUDIO» ──
+      ['⚠️ «Nuevo estudio»: los DOS span del panel quedan vacios, sin el dato del paciente anterior',
+        R.trasNuevo === '' && R.contTrasNuevo === '', 'pisa=«' + R.trasNuevo + '» cont=«' + R.contTrasNuevo + '»'],
+      ['y la casilla no queda tildada mostrando un dato que ya no existe: si sigue tildada, no hay numero al lado',
+        !(R.chkTrasNuevo && conNumero(R.trasNuevo)), 'chk=' + R.chkTrasNuevo + ' span=«' + R.trasNuevo + '»'],
+
+      // ── LA FUGA, EN LAS DOS DIRECCIONES ──
+      ['⚠️ con B (sin PISA) en pantalla, reimprimir A (con PISA) NO le deja la EROA de A en el panel',
+        !conNumero(R.bTrasReimpA), R.bTrasReimpA],
+      ['⚠️ Y EL ESPEJO: con A (con PISA) en pantalla, reimprimir B (sin PISA) no le BORRA su propio PISA',
+        R.aTrasReimpB.indexOf('50.3') > -1, R.aTrasReimpB],
+      ['la decision del medico sobre la casilla de continuidad sobrevive a la reimpresion',
+        R.contTrasReimpB === 'true/1', R.contTrasReimpB],
+
+      // ── EL CASO LEGITIMO, QUE NO SE PUEDE ROMPER ──
+      ['⚠️ la CUARTA ruta: editarInforme deja el panel con el PISA del estudio que abre, no con el que habia en pantalla (hoy lo cubre un calcContIM que esta ahi por otro motivo — si alguien lo saca, esta condicion cae)',
+        !conNumero(R.panelAntesEditar) && R.panelTrasEditar.indexOf('50.3') > -1,
+        'antes=«' + R.panelAntesEditar + '» despues=«' + R.panelTrasEditar + '»'],
+      ['reimprimir el MISMO estudio dos veces seguidas sigue mostrando su propio PISA',
+        R.aTrasReimpA1.indexOf('50.3') > -1 && R.aTrasReimpA2.indexOf('50.3') > -1,
+        '1a=«' + R.aTrasReimpA1 + '» 2a=«' + R.aTrasReimpA2 + '»'],
+
+      // ── LA TERCERA RUTA: EL PANEL DEJA DE CONTRADECIR AL PDF ──
+      ['⚠️ por el QR el panel dice lo MISMO que imprime el PDF del mismo boton (98672cb los habia dejado en desacuerdo)',
+        conNumero(R.aPorQr) && R.aPorQr.indexOf('50.3') > -1 && R.aPorQrPdf.indexOf('50.3') > -1,
+        'panel=«' + R.aPorQr + '» pdf=«' + R.aPorQrPdf + '»'],
+
+      ['_labXlsAssertListas() y _labXlsAssertVocab() en []', asserts.length === 0, asserts.join(' | ') || '[]']
+    ] };
+  })();
+`);
+
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

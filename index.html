@@ -28806,6 +28806,28 @@ function limpiarCampos(silencioso) {
     const el = document.getElementById(id);
     if (el) { el.checked = false; el.disabled = true; delete el.dataset.tocado; delete el.dataset.desdeEstudio; }
   });
+  /* ⚠️ Y LOS SPAN DEL PANEL «🖨️ Incluir en el informe», QUE NO LOS ALCANZABA NINGÚN BARRIDO.
+     Viven dentro de un `<label>`, no de un `.calc-box .calc-row`, así que el barrido de más arriba
+     —`.calc-box .calc-row span[id]:not(.calc-lbl)`— pasa de largo, y su único escritor,
+     `imPdfMetodosUI`, cuelga de `calcIM_ESC` y de `calcContIM`, que en «Nuevo estudio» no corren.
+     Medido antes de tocar: con la EROA por PISA del paciente anterior en 50,3 mm², «Nuevo estudio»
+     dejaba el formulario en blanco, la fila del calc-box en «—» —ésa sí se limpia— y el panel
+     diciendo **«EROA y Vol-R por PISA — 50.3 mm²» con la casilla tildada y NO desmarcable**. Es la
+     interfaz prometiendo que el informe va a llevar un dato de otra persona, y es el mismo defecto
+     que `98672cb` cerró del lado del PDF: ahí el papel publicaba el PISA ajeno, acá lo promete la
+     pantalla.
+     ⚠️ POR PREFIJO Y NO POR UNA LISTA DE DOS IDS. Es la regla que `_PDF_METODOS` escribe tres
+     comentarios más arriba —«una sola tabla de métodos, y no seis listas escritas a mano»—: el día
+     que el panel gane un tercer método, su span entra solo. Con los dos ids a mano, el que se
+     olvide deja exactamente este defecto y se ve igual que si funcionara.
+     ⚠️ Y SIN ACOTAR A `span`, que es como estaba escrito primero: lo levantó `/sharp-edges` sobre
+     este mismo diff. El comentario reivindicaba «por prefijo» y el selector decía `span[...]`, así
+     que un método nuevo cuyo valor se mostrara en un `<b>` o un `<small>` no se limpiaba —y se
+     vería idéntico a que funcionara—. El prefijo `im-pdf-` con GUIÓN MEDIO sólo lo usan estos dos
+     span: las casillas son `im_pdf_pisa`/`im_pdf_cont`, con guión BAJO, así que el selector no las
+     alcanza y sus `.checked`/`.disabled` los sigue gobernando el bloque de `_PDF_METODO_IDS` de
+     acá arriba. Verificado por censo del archivo entero. */
+  document.querySelectorAll('[id^="im-pdf-"]').forEach(el => { el.textContent = ''; });
   /* Paciente nuevo: no hay texto previo nuestro contra el cual comparar. Sin esto, la base del
      paciente ANTERIOR clasificaba como «automático» texto del nuevo y lo dejaba pisar. */
   _infBase = null; _sumaBase = null;
@@ -46201,6 +46223,25 @@ function cargarEstudioPorId(id) {
      Va DESPUÉS de `calcSGL` y antes de `calcVEXUS` sin ningún requisito de orden propio; con el
      envoltorio puesto, arrastra el pintado del color solo. */
   ['calcBSA','calcVI','calcAI','calcAorta','calcVD','calcPSAP','calcSGL','calcDiastol','calcVEXUS'].forEach(fn => { if (typeof window[fn] === 'function') { try { window[fn](); } catch(e){} } });
+  /* ⚠️ `imPdfMetodosUI` VA APARTE DE LA LISTA DE ARRIBA, y es la quinta instancia del defecto que
+     TC-GR-13 documentó para `psap-interp`, `sgl-interp`, `bsa-val` y `calcDiastol`: un span que
+     escribe UNA sola función que no corría en esta ruta.
+     ⚠️ Y ACÁ `98672cb` LO VOLVIÓ CONTRADICTORIO, no sólo rancio. Esa fase hizo que el PDF de esta
+     misma ruta imprima «PISA: 50.3 mm²» leyendo el oculto `im_pisa`; el panel, que no se
+     refrescaba, seguía diciendo «— sin valor» sobre el mismo estudio. Medido: la pantalla negaba un
+     dato que el papel firmado del mismo botón publicaba. Por eso entra, aunque el pedido de esta
+     tanda nombre sólo «Nuevo estudio» y la vuelta de la reimpresión: dejarla afuera era cerrar dos
+     de tres y dejar la tercera peor que antes de `98672cb`.
+     Va DESPUÉS de `_restaurarChkInclusion` (~46168), que es lo que pone `dataset.desdeEstudio`, para
+     que `_pdfMetodoChk` vea `resuelto` y no desmarque la casilla que el estudio traía decidida.
+     ⚠️ ESE ORDEN ES POR CONTRATO Y NO ESTÁ PROTEGIDO POR NINGÚN CASO, y se declara en vez de
+     afirmarlo: la mutación que lo adelanta **sobrevive en verde**. Medido el por qué —
+     `_pdfMetodoChk` con `auto:false` sólo escribe `.checked` cuando NO hay valor, y para exhibir la
+     diferencia haría falta un estudio guardado con la casilla tildada y sin ningún valor de
+     continuidad, que es un estado que no supe construir por las puertas reales. Si alguien mueve
+     esta línea, el suite no se va a enterar.
+     No va en la lista de `calc*` de arriba: no deriva nada, sólo repinta el panel. */
+  if (typeof imPdfMetodosUI === 'function') { try { imPdfMetodosUI(); } catch (e) { console.error('[imPdfMetodosUI/QR]', e); } }
   _recalcModulos('cargarEstudioPorId');
   /* Fallback de estudios ANTERIORES al mecanismo: se pasa el objeto restaurado para que la
      decisión la tome el ESTUDIO y no el DOM. La llamada sin argumento que hace `RECALC_MODULOS`
@@ -54207,6 +54248,27 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
       const _cs = document.getElementById('im-cont-severidad');
       if (_cs) { if (_imFilasBackup.gradoVolum === undefined) delete _cs.dataset.gradoVolum;
         else _cs.dataset.gradoVolum = _imFilasBackup.gradoVolum; } }
+    /* ⚠️ EL PANEL «Incluir en el informe» SE RECALCULA, NO SE RESTAURA DESDE UN RESPALDO — y la
+       diferencia la decidió la medición, no la simetría con las líneas de arriba.
+       Durante la ventana corren `calcIM_ESC` y `calcContIM` con los datos del estudio REIMPRESO, y
+       de ahí cuelga `imPdfMetodosUI`, así que el panel se queda con el PISA de ese estudio: medido,
+       con el paciente B (sin PISA) en pantalla, reimprimir A dejaba el panel diciendo
+       «— 50.3 mm²», o sea la EROA de A ofrecida para el informe de B.
+       ⚠️ POR QUÉ NO UN RESPALDO, que es lo primero que uno escribe acá: el respaldo repone lo que
+       el panel MOSTRABA, y eso puede estar ya podrido. Medido: abrir A por el QR deja el panel en
+       «— sin valor» —esa ruta no refresca el panel— aunque A sí tenga PISA; con respaldo, reimprimir
+       A devolvería ese «sin valor» y el panel seguiría contradiciendo al PDF, que desde `98672cb`
+       sí imprime el PISA de A. Recalcular acierta en los DOS escenarios; el respaldo, en uno.
+       ⚠️ Y NO CONTRADICE EL COMENTARIO DE ARRIBA. Lo que ahí se prohíbe es repintar llamando a las
+       funciones que RE-DERIVAN `im_grado` (`calcIM_ESC`, `calcContIM`). `imPdfMetodosUI` no escribe
+       ningún grado: lee `eroa-val`, `im_pisa`, `im_eroa_cont` y `vr_cont`, y escribe los dos span
+       del panel más el `.checked`/`.disabled` de la casilla de continuidad.
+       ⚠️ VA DESPUÉS DE LAS TRES REPOSICIONES de acá arriba, y el orden es lo que lo hace seguro:
+       necesita `eroa-val` y el `dataset.tocado`/`desdeEstudio` del paciente en pantalla ya
+       restaurados. Con eso, `_pdfMetodoChk` ve `resuelto` correcto y NO puede pisar la decisión del
+       médico —con `auto:false` no marca sola, y sólo desmarca cuando no hay valor Y nadie decidió—. */
+    try { if (typeof imPdfMetodosUI === 'function') imPdfMetodosUI(); }
+    catch (e) { console.error('[imPdfMetodosUI/reimpresion]', e); }
     // Simétrico con la limpieza de antes de cargar: el paciente en pantalla recupera SUS marcas.
     _MARCAS_DERIV.forEach(id => {
       const el = document.getElementById(id);

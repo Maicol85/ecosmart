@@ -1,5 +1,129 @@
 # EcoSmart — trampas de este archivo
 
+## Mitral: el panel PISA arrastraba el dato de otro paciente (2026-09-29)
+
+Cierra lo que `98672cb` dejó declarado: los dos span del panel «🖨️ Incluir en el informe» del bloque
+de IM —`im-pdf-pisa-val` y `im-pdf-cont-val`— **no los limpiaba nadie**. Es el mismo defecto que ese
+commit cerró en el PDF, del lado de la pantalla.
+
+### ⚠️ EL PEDIDO NOMBRABA LOS SPAN EQUIVOCADOS, y los que nombraba ya estaban bien
+
+El prompt decía «los dos span de PISA (`eroa-val` / `volr-val`) del panel». **Ésos son los del
+calc-box, no los del panel, y están cubiertos desde antes**: los limpia el barrido
+`.calc-box .calc-row span[id]:not(.calc-lbl)` de `limpiarCampos` y los repone `_imFilasBackup` al
+cerrar la reimpresión. Medido en el censo, fila por fila. Los que estaban sueltos son los del panel,
+que es lo que el propio CONTEXTO describía («pantalla, no PDF», «la casilla tildada y no
+desmarcable»). Se trabajó sobre los que tienen el defecto.
+
+### Por qué se les escapaban los dos barridos
+
+Viven dentro de un `<label>`, no de un `.calc-box .calc-row`, así que el barrido genérico pasa de
+largo; y su único escritor, `imPdfMetodosUI`, cuelga de `calcIM_ESC` y de `calcContIM`, que no corren
+en «Nuevo estudio» ni al cerrar una reimpresión. El censo, medido en siete fotos:
+
+| momento | calc-box | panel |
+|---|---|---|
+| A con PISA | `50.3 mm²` | `— 50.3 mm²` |
+| **«Nuevo estudio»** | `—` ✓ | **`— 50.3 mm²`** con la casilla tildada y NO desmarcable |
+| B sin PISA | `—` | `— sin valor` ✓ |
+| **B en pantalla, reimprimo A** | `—` ✓ | **`— 50.3 mm²`** ← la EROA de A ofrecida para el informe de B |
+| **A por el QR** | `—` | **`— sin valor`** ← y el PDF del mismo botón imprime `PISA: 50.3` |
+
+### Las tres entradas, y una que el pedido no listaba
+
+1. **`limpiarCampos`**: barrido genérico `[id^="im-pdf-"]` → `''`.
+2. **Cierre de la reimpresión**: `imPdfMetodosUI()` **después** de reponer los span y el
+   `dataset.tocado`/`desdeEstudio`.
+3. **`cargarEstudioPorId`** (el QR): `imPdfMetodosUI()` después de `_restaurarChkInclusion`.
+   **No estaba en el pedido** —que nombra «Nuevo estudio» y la vuelta de la reimpresión— y entra
+   porque `98672cb` la volvió **contradictoria**, no sólo rancia: desde esa fase el PDF de esa ruta
+   imprime el PISA persistido y el panel decía «sin valor» sobre el mismo estudio. Dejarla afuera
+   era cerrar dos de tres y dejar la tercera peor que antes.
+
+### ⚠️ SE RECALCULA, NO SE RESTAURA UN SNAPSHOT — y el pedido pedía lo contrario
+
+El prompt decía «reutilizá el patrón de respaldo/restauración que `98672cb` ya usó». **No se hizo, y
+la medición es la razón.** Un respaldo repone lo que el panel **mostraba**, y eso puede estar ya
+podrido: abrir A por el QR dejaba el panel en «sin valor» aunque A tenga PISA, así que reimprimir A
+devolvería ese «sin valor» y el panel seguiría contradiciendo al PDF. **Recalcular acierta en los dos
+escenarios; el respaldo, en uno.** (Y el respaldo explícito de `98672cb` resultó redundante, según su
+propia nota.)
+
+**No contradice la prohibición de repintar de esa función.** Lo prohibido ahí es llamar a lo que
+RE-DERIVA `im_grado` (`calcIM_ESC`, `calcContIM`). `imPdfMetodosUI` no escribe ningún grado: lee
+`eroa-val`, `im_pisa`, `im_eroa_cont` y `vr_cont`, y escribe los dos span más el
+`.checked`/`.disabled` de la casilla de continuidad. **Con `auto:false` sólo escribe `.checked` en la
+rama «no hay valor»**, así que no puede marcar nada solo.
+
+### Lo que `/sharp-edges` encontró sobre este mismo diff
+
+- **El comentario reivindicaba «por prefijo» y el selector decía `span[id^=…]`.** Un método nuevo
+  cuyo valor se mostrara en un `<b>` o un `<small>` no se limpiaba, y se vería idéntico a que
+  funcionara. Hoy es `[id^="im-pdf-"]` sin acotar la etiqueta. Las casillas usan guión **bajo**
+  (`im_pdf_pisa`), así que el selector no las toca — censado sobre el archivo entero.
+- **`editarInforme` es la única de las cuatro rutas que refresca POR ACCIDENTE**: la cubre el
+  `calcContIM()` que esa función llama por otro motivo (el placeholder legado de 483 mm²), sin
+  `try/catch`. **No se agregó una cuarta llamada** —sería el «dos mecanismos para lo que uno cubre»
+  que esta serie ya pagó— y en su lugar se cubrió con una **condición**: si alguien saca ese
+  `calcContIM` el día que el legado deje de importar, el suite se entera. **Mutación en rojo.**
+
+### Declarado y NO tocado
+
+- **⚠️ EL PANEL DE EM TIENE EL MISMO DEFECTO Y ES PEOR.** Tres span (`em-pdf-thp-val`,
+  `em-pdf-cont-val`, `em-pdf-plan-val`), mismo `<label>`, escritor único `emPdfMetodosUI` colgado de
+  `calcEM`. Queda rancio en «Nuevo estudio», en **`editarInforme`** y en el QR —`calcEM` no corre en
+  ninguna—, y **contaminado con el estudio ajeno en la reimpresión** por la cadena
+  `calcIM_ESC → autoCompletarSevIM → sincronizarGradoIM → emContRefrescar → calcEM`, sin que nada lo
+  restaure. Alcance: **pantalla solamente** —`emAvmPdfVal` lee los inputs, que el respaldo genérico
+  repone—, igual que el de IM antes de este commit. **Su cierre necesita CUATRO puntos, no tres**,
+  porque a diferencia de IM, `editarInforme` no lo cubre por accidente. Fuera de alcance por el
+  «SOLO» del pedido (estenosis).
+- **El orden de la llamada del QR respecto de `_restaurarChkInclusion` NO está protegido.** Es por
+  contrato: la mutación que lo adelanta **sobrevive en verde**, porque `_pdfMetodoChk` con
+  `auto:false` sólo escribe `.checked` cuando no hay valor, y exhibir la diferencia exige un estudio
+  guardado con la casilla tildada **y sin** valor de continuidad — un estado que no supe construir
+  por las puertas reales. Está declarado en el código, no afirmado.
+- **La única puerta a ese estado es un backup JSON editado a mano** con `im_pdf_cont__chk:'1'`,
+  `im_pdf_cont__tocado:'0'` y los dos campos de continuidad vacíos: ahí el repintado descartaría en
+  silencio un «sí» que el estudio traía, y `auto:false` lo hace irreversible salvo tilde manual. La
+  app no puede producirlo —el `onchange` pone `tocado` en cada tilde y `auto:false` nunca marca
+  sola—, y `im_pdf_cont__chk` no tiene columna de Excel, así que el importador tampoco.
+- **Capacidad nueva en la ruta del QR, declarada:** antes `limpiarCampos` dejaba `im_pdf_cont`
+  `disabled` y nadie la volvía a habilitar en esa ruta. Ahora, con valor de continuidad, queda
+  tildable. Es el comportamiento correcto y el mismo de `editarInforme`, pero es nuevo ahí.
+- **El QR muestra la continuidad GUARDADA, que `editarInforme` corrige.** Esa ruta no llama a
+  `calcContIM`, así que en un estudio legado con la «EROA por continuidad» fabricada (483 mm²) el
+  panel ahora ofrece ese número. El PDF ya lo imprimía si la casilla estaba tildada; el cambio
+  **alinea el panel con el papel**, y lo que pasa de invisible a visible es la asimetría preexistente
+  entre las dos rutas.
+
+### Verificación
+
+**Denominador declarado.** Informe, EN SUMA, PDF **y la fila del Excel** idénticos **byte a byte
+contra `98672cb`** —hash FNV-1a y longitud: `INF=3d29b997/749 · SUMA=ff7cfeb1/69 ·
+PDF=34e656f3/2024 · XLS=888b6de5/11870`, iguales en las dos versiones—. Por construcción: lo único
+que se escribe son dos span **sin lectores** y el `.disabled`, y `_imMetodoPdfVal` gatea por el
+**número**, no por la casilla.
+
+**TC-312, 10 condiciones.** El denominador (con PISA el panel muestra su valor); los dos span vacíos
+tras «Nuevo estudio» y la casilla sin número al lado; **la fuga en las DOS direcciones** —con B sin
+PISA se reimprime A con PISA, y con A con PISA se reimprime B sin PISA—, porque con una sola
+dirección «siempre sin valor» pasa en verde y el arreglo podría ser borrar el panel en toda
+reimpresión; el **caso legítimo** (reimprimir el MISMO estudio dos veces sigue mostrando su PISA); la
+decisión del médico sobre la casilla sobreviviendo a la reimpresión; la **cuarta ruta**
+(`editarInforme`); y el panel diciendo lo mismo que imprime el PDF por el QR.
+
+**SIETE mutaciones, las siete en rojo.** Dos de las primeras sobrevivieron y **las dos eran
+mutaciones falsas**: pretendían mover la llamada y en realidad **agregaban una segunda**, que la
+correcta sobrescribía. Reescritas como movimientos reales, las dos mueren. Es la misma lección de la
+tanda anterior —una mutación que no cambia el estado final no es una mutación— con una forma nueva:
+**agregar código no es moverlo.**
+
+**Suite 326/327**, único rojo **TC-223**, el documentado. **Semgrep 125 / 0 ERROR**, el mismo número
+exacto que `98672cb`. `detectar_huerfanos.py` sin huérfanos nuevos. `check_mobile` en los 2 ALTA de
+siempre. `_labXlsAssertListas()` y `_labXlsAssertVocab()` los dos en `[]`.
+
+
 ## IM nativa: las tres rutas del PDF, y la fuente del cociente 1,4 (2026-09-28)
 
 Cierra la deuda que la Fase 3 dejó declarada: **el mismo estudio daba tres PDF distintos** según
