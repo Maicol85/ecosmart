@@ -57,12 +57,28 @@ fila dentro de la celda de la grilla (el selector `.calc-box .calc-row span[id]`
 a costa de meter el idioma del cuadro de resultados adentro de la grilla de entrada y de duplicar
 el rótulo.
 
-**⚠️ Y LA DECISIÓN NO TIENE CASO QUE LA SOSTENGA.** Nada en el suite fija que `dvi-val` viva dentro
-de un `.calc-box`: si alguien lo saca, el span deja de limpiarse entre pacientes **en silencio** y
-los 331 casos siguen en verde. Es exactamente la forma de fallar que este archivo documenta —«un
-arreglo sin caso es un arreglo que se deshace sin que nadie se entere»— y queda **declarada, no
-cubierta**. El caso que la cerraría es de una condición: sembrar el DVI, llamar `limpiarCampos` y
-exigir que el span vuelva a «—».
+**LA DECISIÓN LA SOSTIENE TC-317** (2026-09-29). Hasta ese caso, sacar `dvi-val` del `calc-box`
+dejaba los **331** casos en verde: el span dejaba de limpiarse entre pacientes **en silencio**. Es
+la forma de fallar que este archivo documenta —«un arreglo sin caso se deshace sin que nadie se
+entere»— y estaba abierta.
+
+El caso fija el **invariante**, no la implementación: siembra los dos VTI, comprueba que el span
+publique un DVI, llama `limpiarCampos` y exige que vuelva a «—». Así, quien saque el span del
+`calc-box` **y agregue una limpieza explícita** pasa —que es un arreglo válido—, y quien sólo lo
+saque, no.
+
+**⚠️ Y LA TERCERA CONDICIÓN ES EL DENOMINADOR DE LA MUTACIÓN, no un requisito del producto.**
+Afirma que **`calcAo` corre CERO veces dentro de `limpiarCampos`** —medido—, o sea que hoy hay **un
+solo** mecanismo de limpieza. Si `calcAo` entrara a ese embudo, su rama `else` pondría la raya por
+su cuenta y **sacar el barrido sobreviviría en verde**: la guarda duplicada que este archivo ya
+pagó con la sincronización del visor, donde el predicado estaba escrito dos veces y ninguna
+mutación de un solo sitio lo mataba. El día que alguien lo meta, esa condición se pone roja y hay
+que pensarlo, en vez de descubrirlo cuando la otra mitad se borre.
+
+Verificado por mutación —«completar el layout»: subir la fila del DVI a la celda vacía, que es
+literalmente lo que escribiría el que venga a cerrarla—. Cae **sólo** en su condición, con la fuga
+impresa: `antes="0.33" despues="0.33" | dentroDelCalcBox=false loMatcheaElBarrido=false`. Los tres
+denominadores quedan verdes, o sea que el caso midió lo que dice medir.
 
 ### ⚠️ «Volumen sistólico» SÍ está duplicado hoy, entre input y resultado — declarado, no tocado
 
@@ -127,6 +143,12 @@ cinco veces lo mismo.
 
 `node --check` por bloque: fallan **sólo los bloques 0 y 1**, que es la línea base documentada del
 extractor. `detectar_huerfanos.py` **sin huérfanos nuevos**.
+
+**Suite 314/332**, con los **mismos 18 rojos** de la línea base de la sesión: los **17** del visor y
+DICOM por el pendrive del Vivid ausente —`diskutil list external` no devuelve nada— más **TC-223**,
+el documentado. Cero regresiones. ⚠️ **Esos 17 no son cobertura mientras el pendrive no esté**: un
+caso apagado por falta de fixture no vigila nada, y este reordenamiento les pasó por encima sin que
+ninguno pudiera decir una palabra.
 
 ## Mitral protésica: grado rancio y DVI del Excel (2026-09-29)
 

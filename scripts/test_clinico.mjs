@@ -38055,6 +38055,73 @@ caso('TC-316', 'Protesis mitral: el grado rancio se retira al pasar de nativa a 
   ] };
 `);
 
+/* ── TC-317 ─────────────────────────────────────────────────────────────────────────────────
+   EL DVI SE BORRA ENTRE PACIENTES, Y LO UNICO QUE LO BORRA ES EL BARRIDO DEL CALC-BOX.
+
+   Nace de la decision de Maicol del 2026-09-29: al reordenar el Doppler Aortico la celda 4 de la
+   fila 2 quedo vacia porque el DVI (ratio TSVI/Ao) NO es un input — es el span dvi-val dentro de
+   .calc-box > .calc-row —, y sacarlo de ahi para completar el layout lo saca del barrido
+   .calc-box .calc-row span[id]:not(.calc-lbl) de limpiarCampos.
+
+   POR QUE IMPORTA MAS QUE UN RESIDUO EN PANTALLA: ese span tiene dos consumidores clinicos que
+   leen de el a proposito —eaTaviEspejar, que escribe ete_tavi_dvi y viaja con el estudio, y el
+   veredicto de estenosis aortica PROTESICA de la ASE 2024 Tabla 5, donde el DVI es el UNICO eje
+   flujo-independiente que esta app puede evaluar—. Un DVI del paciente anterior sobreviviendo a
+   Nuevo estudio alimenta el veredicto de obstruccion protesica del siguiente.
+
+   ⚠️ Y HASTA HOY NO LO CUBRIA NADA: sacar el span del calc-box dejaba los 331 casos en verde.
+   Es la forma de fallar que CLAUDE.md documenta —un arreglo sin caso se deshace sin que nadie se
+   entere—, y esta es la condicion que la cierra.
+
+   ⚠️ LA TERCERA CONDICION ES EL DENOMINADOR DE LA MUTACION, no un requisito del producto. Fija
+   que hoy hay UN SOLO mecanismo de limpieza: si calcAo corriera dentro de limpiarCampos, su rama
+   else pondria la raya por su cuenta y sacar el barrido sobreviviria en verde — la guarda
+   duplicada que este archivo ya pago con la sincronizacion del visor. Medido: calcAo corre CERO
+   veces. El dia que alguien lo meta en el embudo, esta condicion se pone roja y hay que pensarlo,
+   en vez de descubrirlo cuando la otra mitad se borre. */
+caso('TC-317', 'El DVI del Doppler Aortico se borra entre pacientes, y el barrido del calc-box es lo unico que lo borra', `
+  __t.limpiar();
+
+  const sp = () => document.getElementById('dvi-val');
+  const txt = () => { const e = sp(); return e ? String(e.textContent || '').trim() : '(NO EXISTE)'; };
+
+  // Denominador: sembrar los dos VTI tiene que PUBLICAR un DVI. Sin esto, "vuelve a la raya"
+  // se cumple sobre un span que nunca tuvo nada y el caso no prueba absolutamente nada.
+  __t.set('itv_tsvi', '20');
+  __t.set('itv_ao', '60');
+  const antes = txt();
+
+  // Se cuenta si calcAo corre DENTRO de limpiarCampos: ver la nota de arriba.
+  const orig = window.calcAo;
+  let vecesCalcAo = 0;
+  window.calcAo = function () { vecesCalcAo++; return orig.apply(this, arguments); };
+  let exploto = '';
+  try { __t.limpiar(); } catch (e) { exploto = e.message; }
+  window.calcAo = orig;
+
+  const despues = txt();
+
+  // Diagnostico: si la condicion se rompe, que el mensaje apunte a la CAUSA y no solo al sintoma.
+  const e2 = sp();
+  const dentro = !!(e2 && e2.closest('.calc-box'));
+  const barrido = !!e2 && Array.prototype.indexOf.call(
+    document.querySelectorAll('.calc-box .calc-row span[id]:not(.calc-lbl)'), e2) >= 0;
+
+  return { extra: [
+    ['DENOMINADOR: no exploto limpiarCampos', exploto === '', exploto || 'ok'],
+    ['DENOMINADOR: con los dos VTI el span publica un DVI',
+      antes !== '' && antes !== '—' && antes !== '(NO EXISTE)',
+      'antes=' + JSON.stringify(antes)],
+    ['DENOMINADOR DE LA MUTACION: calcAo NO corre dentro de limpiarCampos, asi que el barrido del calc-box es el UNICO que limpia',
+      vecesCalcAo === 0,
+      'calcAo corrio ' + vecesCalcAo + ' vez/veces'],
+    ['Nuevo estudio devuelve el DVI a la raya: no se filtra al paciente siguiente',
+      despues === '—',
+      'antes=' + JSON.stringify(antes) + ' despues=' + JSON.stringify(despues) +
+      ' | dentroDelCalcBox=' + dentro + ' loMatcheaElBarrido=' + barrido]
+  ] };
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────
