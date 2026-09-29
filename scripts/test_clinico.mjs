@@ -37575,18 +37575,22 @@ caso('TC-314', 'IM: la onda S entra en el registro de discordancia, y el jet/AI 
     ['retirar la onda S devuelve el badge a la raya — seguia en ROJO sobre un parametro retirado',
       elseOndaS.sinDato === '—', 'badge=«' + elseOndaS.sinDato + '»'],
 
-    /* ⚠️ LIMITE DECLARADO, no es el comportamiento deseado. la salida temprana de params vacio sale por
-       un return ANTES de escribir el grado, asi que un grado ya escrito NO se borra cuando todos
-       los parametros dejan de votar. Es PREEXISTENTE —borrar la unica VC de una nativa deja el
-       grado igual— y el corte protesico del jet lo vuelve alcanzable por una puerta nueva:
-       cambiar la morfologia. Ver CLAUDE.md. */
-    ['LIMITE DECLARADO: el grado ya escrito NO se borra cuando el jet deja de votar (preexistente)',
+    /* ⚠️ ESTE CASO FIJABA EL «GRADO RANCIO» COMO LIMITE DECLARADO Y SE PUSO EN ROJO — esa es la
+       señal, no el problema. Mientras ese limite estuvo abierto la condicion decia que el grado
+       ya escrito NO se borraba al pasar a protesis; el commit «grado rancio y DVI del Excel» lo
+       cerro, asi que sostener la afirmacion vieja empujaria a reintroducir el defecto el dia que
+       alguien la «arregle». Es lo mismo que paso con TC-296, TC-31 y TC-87.
+       SE REAPUNTA al invariante que SI es de este caso y que el cierre vuelve observable: que el
+       jet en la banda Variable NO VOTE. Antes eso solo se podia mirar en la fila; ahora se mide
+       en el unico lugar que decide, que es el grado. La cobertura completa del retiro —el badge,
+       el informe, la pill del medico y el limite del lado NATIVO— vive en TC-316. */
+    ['el jet en la banda Variable no vota: el grado protesico se retira',
       (function(){
         __t.limpiar(); __t.set('nombre','TC314'); __t.set('edad','70');
         __t.set('vm_morf', NAT); __t.set('im_ai_area','50'); __t.set('im_jet_area','22.5');
         const antes = __t.val('im_grado');
         __t.set('vm_morf', PROT);
-        return antes === '4' && __t.val('im_grado') === '4';
+        return antes === '4' && __t.val('im_grado') === '0';
       })()]
   ] };
 `);
@@ -37802,6 +37806,252 @@ caso('TC-315', 'Protesis mitral: EOA por continuidad, DVI y PPM (ASE 2024, Secci
       String(generarPDFReal).indexOf('(talla/100)**2') === -1,
       'calcBSA=' + (String(calcBSA).indexOf('/ ((t/100) ** 2)') > -1) +
       ' pdf=' + (String(generarPDFReal).indexOf('(talla/100)**2') > -1)]
+  ] };
+`);
+
+caso('TC-316', 'Protesis mitral: el grado rancio se retira al pasar de nativa a protesis, y el Excel exporta el DVI que decidio el informe', `
+  /* Dos arreglos chicos con la misma forma: una superficie publicaba un numero que otra
+     superficie del MISMO estudio ya habia dejado de sostener.
+
+     1) GRADO RANCIO. calcIM_ESC cortaba con if (params.length === 0) return; ANTES del badge
+        y de escribir im_grado, asi que un grado ya escrito NO se borraba cuando todos los
+        parametros dejaban de votar. Camino medido: nativa con jet 45 % da severa; el medico
+        corrige la morfologia a protesis, el jet cae en la banda Variable (ASE 2024, Tabla 13) y
+        params queda vacio. La fila decia «no gradua en protesis» y dos filas mas abajo el
+        badge seguia diciendo «Severa», con el informe firmado publicando «IM severa».
+
+     2) DVI DEL EXCEL. La columna exportaba vm_dvi —el campo de carga manual— mientras el
+        informe concluye con VTI_PrMV / VTI_TSVI. Dos numeros distintos del mismo paciente, y
+        el que viajaba a CeiboAnalytics era el que el medico NO firmo.
+
+     LA CONDICION QUE SEPARA LOS DOS ARREGLOS DE UNO A MEDIAS es la 3: con un parametro protesico
+     cargado el grado tiene que RECALCULAR, no quedar en blanco. Una implementacion que limpiara
+     siempre pasa todo lo demas. */
+  const R = {};
+  const badge = () => (__t.txt('im-sev') || '').trim();
+  const campos = () => {
+    const c = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (el) {
+      if (el.type === 'checkbox') c[el.id + '__chk'] = el.checked ? '1' : '0';
+      else c[el.id] = el.value;
+    });
+    return c;
+  };
+  const base = () => { __t.limpiar(); __t.set('nombre','TC316'); __t.set('edad','70'); __t.set('sexo','M'); };
+
+  /* ── 1 · DENOMINADOR. Sin esto, «vuelve a 0» se cumple sobre un grado que nunca fue 4. ── */
+  base();
+  __t.set('vm_morf','Reumática'); __t.set('im_ai_area','50'); __t.set('im_jet_area','22.5');
+  R.nativaGrado = __t.val('im_grado'); R.nativaBadge = badge();
+
+  /* ── 2 · El grado rancio se retira al pasar a protesis ── */
+  __t.set('vm_morf','Prótesis mecánica');
+  R.protGrado = __t.val('im_grado'); R.protSevFinal = __t.val('im_sev_final'); R.protBadge = badge();
+  R.protInf = __t.informe().inf;
+
+  /* ── 3 · CON parametro protesico RECALCULA, no queda en blanco ──
+     Vena contracta de 2 mm: la ASE 2024 (Tabla 13) la clasifica LEVE, y los cortes de VC son
+     identicos a los nativos. Se elige 2 y no 8 a proposito: 8 da severa, o sea el MISMO 4 del
+     escenario nativo, y ahi una implementacion que no limpiara nunca pasaria igual. */
+  __t.set('im_vc','2');
+  R.recalcGrado = __t.val('im_grado'); R.recalcBadge = badge();
+
+  /* ── 4 · La pill fijada por el medico NO se pisa ──
+     CAJA BLANCA DECLARADA: la marca se pone a mano en vez de por esqPills.setLevel, que exige
+     el gesto sobre la pastilla. Lo que se fija es el contrato —la limpieza respeta la eleccion
+     del medico igual que emGradoAuto—, no el camino por el que se puso la marca. */
+  const _marcaPrev = window.esqSevManual ? window.esqSevManual.im : undefined;
+  try {
+    base();
+    __t.set('vm_morf','Reumática'); __t.set('im_ai_area','50'); __t.set('im_jet_area','22.5');
+    window.esqSevManual = window.esqSevManual || {};
+    window.esqSevManual.im = true;
+    __t.set('vm_morf','Prótesis mecánica');
+    R.manualGrado = __t.val('im_grado');
+    /* El badge SI se repinta: es el veredicto AUTOMATICO, y dejarlo en «Severa» sobre cero
+       parametros es falso aunque el grado lo haya elegido el medico. */
+    R.manualBadge = badge();
+  } finally {
+    if (_marcaPrev === undefined) { try { delete window.esqSevManual.im; } catch (e) {} }
+    else window.esqSevManual.im = _marcaPrev;
+  }
+  R.marcaRestaurada = !(window.esqSevManual && window.esqSevManual.im);
+
+  /* ── 4b · EL CAMINO REAL DEL MEDICO: el desplegable «Severidad IM confirmada» ──
+     La condicion de arriba es CAJA BLANCA y fija el contrato; esta ejerce el control que el
+     medico usa de verdad, con su evento. El desplegable NO ponia la marca —solo la ponian las
+     pastillas y valvSevMenu— asi que la limpieza nueva convertia su eleccion en la NEGACION:
+     protesis sin parametros, el medico elige «Severa» por criterio clinico, corrige el area de
+     la AI, y el grado volvia a «Sin insuficiencia». Lo caza sharp-edges, no la relectura. */
+  base();
+  __t.set('vm_morf','Prótesis mecánica');
+  __t.set('im_sev_final','4');                     // __t.set despacha change: entra por imGradoManual
+  R.selGradoAntes = __t.val('im_grado');
+  R.selMarca = !!(window.esqSevManual && window.esqSevManual.im);
+  __t.set('im_ai_area','50');                      // tocar otro campo dispara calcIM_ESC
+  R.selGradoDespues = __t.val('im_grado');
+  R.selVisible = __t.val('im_sev_final');
+  /* Y la marca viaja con el estudio: sin el espejo persistido vive una sesion y al reabrir el
+     estudio la limpieza pisaria el grado igual. */
+  R.selEspejo = (__t.val('sev_manual') || '').indexOf('"im":true') > -1;
+  try { delete window.esqSevManual.im; } catch (e) {}
+  try { if (typeof _sevManualSync === 'function') _sevManualSync(); } catch (e) {}
+
+  /* ── 4c · LA TARJETA DE REVISION, que corre justo ANTES de guardar y de emitir el PDF ──
+     Asignar por .value no dispara el onchange, asi que lo elegido ahi tampoco quedaba marcado, y
+     el emContRefrescar() del mismo bloque encadena hasta calcIM_ESC: la severidad se convertia
+     en «Sin insuficiencia» en el mismo gesto de confirmarla. Se marca solo lo que CAMBIO. */
+  base();
+  __t.set('vm_morf','Prótesis mecánica');
+  R.tarjetaOk = false; R.tarjetaGrado = 'NO CORRIO'; R.tarjetaMarca = false;
+  if (typeof mostrarCardSeveridadValvular === 'function') {
+    mostrarCardSeveridadValvular(function () {});
+    const ov = document.getElementById('pdf-review-overlay');
+    const sel = ov ? ov.querySelector('#rev-im') : null;
+    const btn = ov ? ov.querySelector('#rev-confirm') : null;
+    if (sel && btn) {
+      R.tarjetaOk = true;
+      sel.value = '4';
+      btn.click();
+      R.tarjetaGrado = __t.val('im_grado');
+      R.tarjetaMarca = !!(window.esqSevManual && window.esqSevManual.im);
+      __t.set('im_ai_area','50');                  // el recalculo no puede pisarla
+      R.tarjetaGradoTrasRecalc = __t.val('im_grado');
+    }
+    const ov2 = document.getElementById('pdf-review-overlay');
+    if (ov2) ov2.remove();
+    try { delete window.esqSevManual.im; } catch (e) {}
+    try { if (typeof _sevManualSync === 'function') _sevManualSync(); } catch (e) {}
+  }
+
+  /* ── 5 · LIMITE DECLARADO: en NATIVA el grado rancio se conserva ──
+     Es preexistente y mas ancho, y retirarlo alcanza a todo estudio donde se borre el ultimo
+     parametro —donde «no queda nada cargado» y «esta valvula no se gradua» no son lo mismo—.
+     Se fija por el lado que NO se toco para que cambiarlo sea deliberado. */
+  base();
+  __t.set('vm_morf','Reumática'); __t.set('im_vc','8');
+  R.natSevAntes = __t.val('im_grado');
+  __t.set('im_vc','');
+  R.natSevDespues = __t.val('im_grado');
+
+  /* ── 6 y 7 · El Excel exporta el DVI que decidio el informe ──
+     VTI mitral CW 60 / VTI TSVI 20 = 3.00 calculado, contra 1.20 tipeado. Los dos dentro de sus
+     bandas: con el VTI fuera de banda vmProtEOA no calcula y la condicion no distinguiria. */
+  base();
+  __t.set('peso','80'); __t.set('talla','180');
+  __t.set('vm_morf','Prótesis mecánica');
+  __t.set('em_dtsvi','20'); __t.set('em_vtitsvi','20'); __t.set('em_vtimit','60');
+  __t.set('vm_dvi','1.20');
+  const pCalc = vmProtEOA();
+  R.dviCalc = pCalc.dvi; R.dviFuente = pCalc.dviFuente; R.dviTipeado = __t.val('vm_dvi');
+  const cCalc = campos();
+  R.xlsCalc = _labExcelRow({ campos: cCalc, fecha_estudio: '2026-09-29' })['DVI mitral'];
+
+  /* Sin los dos VTI no hay DVI calculado: la columna cae a lo que exportaba antes. */
+  __t.set('em_vtimit','');
+  const pSin = vmProtEOA();
+  R.dviSinCalc = pSin.dvi; R.fuenteSinCalc = pSin.dviFuente;
+  R.xlsSinCalc = _labExcelRow({ campos: campos(), fecha_estudio: '2026-09-29' })['DVI mitral'];
+
+  /* ── 8 · EL DENOMINADOR DEL EXCEL: lee del ESTUDIO, no de la pantalla ──
+     _labExcelRow(inf) deriva TODO de inf.campos y corre sobre estudios que NO estan abiertos.
+     Con c y el DOM cargados con lo mismo, una implementacion que siguiera leyendo el DOM da el
+     MISMO numero y la condicion pasaria sin probar nada. Aca el registro difiere de la pantalla. */
+  __t.set('em_vtimit','60');                       // la pantalla vuelve a DVI 3.00
+  const cOtro = campos();
+  cOtro.em_vtimit = '40';                          // el registro dice DVI 2.00
+  R.dviPantalla = vmProtEOA().dvi;
+  R.dviRegistro = vmProtEOA(cOtro).dvi;
+  R.xlsOtro = _labExcelRow({ campos: cOtro, fecha_estudio: '2026-09-29' })['DVI mitral'];
+
+  /* Y el FALLBACK de verdad: sin VTI y con el tipeado fuera de banda, vmProtEOA devuelve null
+     y la columna tiene que seguir exportando lo que exportaba antes. Es la mitad que el pedido
+     nombra como «si no hay DVI calculado, exportar como esta hoy»: sin ella, un estudio con el
+     DVI cargado en otra escala perderia la celda en vez de conservarla. */
+  __t.set('em_vtimit',''); __t.set('vm_dvi','25');
+  const pFuera = vmProtEOA();
+  R.dviFueraBanda = pFuera.dvi;
+  R.xlsFueraBanda = _labExcelRow({ campos: campos(), fecha_estudio: '2026-09-29' })['DVI mitral'];
+  __t.set('em_vtimit','60'); __t.set('vm_dvi','1.20');
+
+  /* Y LA BANDA TAMBIEN SE APLICA SOBRE EL REGISTRO. Con el VTI mitral fuera de su banda [2,80]
+     —una medicion en otra escala— vmProtEOA no calcula y cae al consignado. La condicion exige
+     que la banda se evalue sobre el valor del ESTUDIO: con vPlaus(id) a secas se bandearia
+     contra la pantalla, que aca tiene un VTI perfectamente legible, y la columna publicaria un
+     DVI de 10.00 derivado de un numero ilegible. Es el motivo por el que existe _plausDe. */
+  const cVtiFuera = campos(); cVtiFuera.em_vtimit = '200';
+  R.dviVtiFuera = vmProtEOA(cVtiFuera).dvi;
+  R.fuenteVtiFuera = vmProtEOA(cVtiFuera).dviFuente;
+  R.xlsVtiFuera = _labExcelRow({ campos: cVtiFuera, fecha_estudio: '2026-09-29' })['DVI mitral'];
+
+  /* ── 9 · La compuerta de morfologia sigue en pie ──
+     Un DVI cargado y despues escondido al volver a valvula nativa no se publica: valvProtDato
+     gatea por morfologia y vmProtEOA devuelve esProt:false. */
+  const cNat = campos(); cNat.vm_morf = 'Reumática';
+  R.xlsNativa = _labExcelRow({ campos: cNat, fecha_estudio: '2026-09-29' })['DVI mitral'];
+
+  return { extra: [
+    ['DENOMINADOR: la nativa con jet 45 % da severa',
+      R.nativaGrado === '4' && R.nativaBadge.indexOf('Severa') >= 0,
+      'grado=' + R.nativaGrado + ' badge=' + JSON.stringify(R.nativaBadge)],
+    ['al pasar a PROTESIS sin datos propios el grado vuelve a 0',
+      R.protGrado === '0' && R.protSevFinal === '0',
+      'im_grado=' + R.protGrado + ' im_sev_final=' + R.protSevFinal],
+    ['y el badge deja de decir «Severa»',
+      R.protBadge.indexOf('Severa') < 0,
+      'badge=' + JSON.stringify(R.protBadge)],
+    ['el informe deja de publicar «IM severa»',
+      R.protInf.indexOf('IM severa') < 0 && R.protInf.indexOf('insuficiencia severa') < 0,
+      'informe=' + JSON.stringify(R.protInf.slice(0, 160))],
+    ['CON vena contracta protesica RECALCULA (leve), no queda en blanco',
+      R.recalcGrado === '1' && R.recalcBadge.indexOf('Leve') >= 0,
+      'grado=' + R.recalcGrado + ' badge=' + JSON.stringify(R.recalcBadge)],
+    ['la pill fijada por el medico NO se pisa',
+      R.manualGrado === '4',
+      'im_grado=' + R.manualGrado],
+    ['pero el badge automatico SI se repinta',
+      R.manualBadge.indexOf('Severa') < 0,
+      'badge=' + JSON.stringify(R.manualBadge)],
+    ['la marca quedo restaurada para los casos siguientes', R.marcaRestaurada, ''],
+    ['el desplegable «Severidad IM confirmada» marca la eleccion como manual',
+      R.selGradoAntes === '4' && R.selMarca,
+      'im_grado=' + R.selGradoAntes + ' marca=' + R.selMarca],
+    ['y esa eleccion sobrevive a tocar otro campo (no se convierte en su negacion)',
+      R.selGradoDespues === '4' && R.selVisible === '4',
+      'im_grado=' + R.selGradoDespues + ' desplegable=' + R.selVisible],
+    ['la marca viaja con el estudio en el espejo persistido',
+      R.selEspejo, 'sev_manual=' + JSON.stringify(__t.val('sev_manual'))],
+    ['DENOMINADOR: la tarjeta de revision se abrio y se confirmo', R.tarjetaOk, ''],
+    ['la tarjeta de revision marca lo que el medico CAMBIO ahi',
+      R.tarjetaGrado === '4' && R.tarjetaMarca && R.tarjetaGradoTrasRecalc === '4',
+      'grado=' + R.tarjetaGrado + ' marca=' + R.tarjetaMarca + ' trasRecalc=' + R.tarjetaGradoTrasRecalc],
+    ['LIMITE DECLARADO: en NATIVA el grado rancio se conserva',
+      R.natSevAntes === '4' && R.natSevDespues === '4',
+      'antes=' + R.natSevAntes + ' despues=' + R.natSevDespues],
+    ['DENOMINADOR: el DVI calculado difiere del tipeado',
+      R.dviCalc === 3 && R.dviFuente === 'calculado' && R.dviTipeado === '1.20',
+      'calculado=' + R.dviCalc + ' (' + R.dviFuente + ') tipeado=' + R.dviTipeado],
+    ['el Excel exporta el DVI CALCULADO, no el tipeado',
+      R.xlsCalc === 3,
+      'EXCEL=' + R.xlsCalc + ' (tipeado ' + R.dviTipeado + ')'],
+    ['sin los dos VTI la columna cae al consignado, como antes',
+      R.dviSinCalc === 1.2 && R.fuenteSinCalc === 'consignado' && R.xlsSinCalc === 1.2,
+      'dvi=' + R.dviSinCalc + ' (' + R.fuenteSinCalc + ') EXCEL=' + R.xlsSinCalc],
+    ['DENOMINADOR: el registro dice un DVI distinto del de la pantalla',
+      R.dviPantalla === 3 && R.dviRegistro === 2,
+      'pantalla=' + R.dviPantalla + ' registro=' + R.dviRegistro],
+    ['el Excel lee del ESTUDIO, no del paciente abierto en pantalla',
+      R.xlsOtro === 2,
+      'EXCEL=' + R.xlsOtro + ' (pantalla ' + R.dviPantalla + ')'],
+    ['sin DVI calculable la columna conserva el valor cargado (fallback)',
+      R.dviFueraBanda == null && R.xlsFueraBanda === 25,
+      'dvi=' + R.dviFueraBanda + ' EXCEL=' + R.xlsFueraBanda],
+    ['la banda se aplica sobre el VTI del REGISTRO, no sobre el de la pantalla',
+      R.dviVtiFuera === 1.2 && R.fuenteVtiFuera === 'consignado' && R.xlsVtiFuera === 1.2,
+      'dvi=' + R.dviVtiFuera + ' (' + R.fuenteVtiFuera + ') EXCEL=' + R.xlsVtiFuera],
+    ['con morfologia NATIVA no se publica ningun DVI protesico',
+      R.xlsNativa === '' || R.xlsNativa == null,
+      'EXCEL=' + JSON.stringify(R.xlsNativa)]
   ] };
 `);
 

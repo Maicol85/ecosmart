@@ -1,5 +1,188 @@
 # EcoSmart — trampas de este archivo
 
+## Mitral protésica: grado rancio y DVI del Excel (2026-09-29)
+
+Dos arreglos chicos con la misma forma —**una superficie publicaba un número que otra superficie
+del MISMO estudio ya había dejado de sostener**— y **cuatro defectos más que `/sharp-edges`
+encontró en mi propio diff**, uno de ellos CRÍTICO.
+
+### 1 · El «grado rancio»: `params.length === 0` salía por `return`
+
+Quedó declarado como límite en la tanda anterior y lo cierra ésta. Ese `return` estaba **antes**
+del badge `im-sev` y de la escritura de `im_grado`/`im_sev_final`, así que un grado ya escrito no
+se borraba cuando todos los parámetros dejaban de votar. Camino medido:
+
+| paso | `im_grado` | la fila del jet | el badge |
+|---|---|---|---|
+| nativa, jet 45 % | **4** | `45.0%` | Severa |
+| se corrige a **prótesis** | **4 ← rancio** | `45.0%  (Variable — no gradúa en prótesis)` | **Severa** |
+| hoy | **0** | ídem | **—** |
+
+**ES EL PATRÓN DE `emGradoAuto`: limpiar en vez de salir, y salir antes si la pill está fijada.**
+El `if` de la marca envuelve **sólo la escritura** —el badge se repinta igual—: `im-sev` es el
+veredicto AUTOMÁTICO, y dejarlo en «Severa» sobre cero parámetros es falso aunque el médico haya
+fijado el grado a mano. Lo que la marca protege es su elección, que vive en `im_grado`.
+
+**⚠️ LA PREMISA DEL PEDIDO ERA IMPRECISA, y la corrección decide dónde va el arreglo.** Decía
+«mismo patrón que ya se usó para limpiar `em_grado` **en el `onchange` de `vm_morf`**». Ese
+`onchange` **no limpia `em_grado`**: llama a `calcEM()`, y es **`emGradoAuto` —el CALCULADOR—**
+el que escribe el valor de fábrica. Por eso esto va en `calcIM_ESC` y no en el `onchange`: el
+calculador es el único que sabe si quedó algo que graduar, así que el caso «pasa a prótesis PERO
+ya tiene vena contracta cargada» **recalcula solo**, sin una segunda lista de excepciones que
+mantener. Medido: con VC 2 mm el grado sale **1 (Leve)**, no 0 y no 4.
+
+**SE CIERRA SÓLO DEL LADO PROTÉSICO, y es una decisión.** El agujero es preexistente y más ancho
+—borrar la única vena contracta de una NATIVA deja el grado igual, medido— pero hasta el commit
+del corte protésico `params` no podía ENCOGER: la morfología no era insumo de esta cascada. Lo
+que se arregla es la puerta que ese commit abrió. Retirarlo en toda nativa alcanza a un caso
+donde «no queda nada cargado» y «esta válvula no se gradúa» **no son lo mismo**, y eso es una
+decisión clínica. Fijado como límite en TC-316.
+
+### 2 · La columna «DVI mitral» del Excel exportaba el valor TIPEADO
+
+`vm_dvi` es el campo de carga manual; el informe concluye con `VTI_PrMV / VTI_TSVI` desde el
+commit del EOA. Medido: **calculado 3.00 contra tipeado 1.20**, y el que viajaba a
+**CeiboAnalytics** era el que el médico NO firmó.
+
+**`vmProtEOA` pasó a tener fuente inyectable (`src`)**, que era el enabler que la entrada anterior
+dejaba declarado. Sin `src` lee el DOM —correcto en pantalla y en el PDF, donde el formulario ES
+el estudio—; con `src` lee `campos` de un estudio guardado. Los tres helpers que consume ya la
+aceptaban: `emContMotivoNoVota`, `getBSA` y `getIMC`.
+
+**⚠️ Y LA BANDA SE APLICA SOBRE UN VALOR, NO SOBRE UN CAMPO.** `vPlaus(id)` lee el DOM, así que
+dentro de una función source-aware bandearía **contra la pantalla**: un VTI mitral de 200 en el
+registro y uno legible en pantalla publicaban un DVI de **10.00 derivado de un número ilegible**.
+Se extrajo **`_plausDe(id, valor)`** y `vPlaus(id)` quedó como `_plausDe(id, v(id))` —byte a byte
+equivalente, cero consumidores afectados—. La mutación que lo revierte imprime `dvi=10 (calculado)`.
+
+**⚠️ CON `src` NO SE PUEDE PREGUNTAR A `_imVmProt`**, aunque sea el dueño único de «¿esta mitral
+es protésica?». Aquél falla **cerrado a `true`** sobre un `#vm_morf` ausente, que es lo correcto
+para un DOM roto y lo contrario para un registro: marcaría como protésico **todo estudio sin
+morfología consignada**. Se pregunta a `valvEsProtesis`, que es lo que ya hace `valvProtDato` en
+esa misma columna, y ahí la ausencia significa «este estudio no tiene morfología».
+
+**El fallback no es decorativo:** `vmProtEOA` exige los dos VTI **y** en banda, así que un estudio
+con el DVI sólo tipeado —o con un VTI fuera de escala— tiene que seguir exportando lo que
+exportaba. `_base` se calcula **fuera** del `try`: si `vmProtEOA` lanza, queda el comportamiento
+anterior y no una celda vacía.
+
+### ⚠️ LO QUE `/sharp-edges` ENCONTRÓ EN ESTE MISMO DIFF — cuatro, y el primero era CRÍTICO
+
+**1 · LA LIMPIEZA CONVERTÍA EN SU NEGACIÓN LA ELECCIÓN EXPLÍCITA DEL MÉDICO.** El desplegable
+rotulado **«✅ Severidad IM confirmada — irá al informe y PDF»** **no ponía `esqSevManual.im`**:
+la marca sólo la escribían las pastillas (`esqPills.setLevel`) y `valvSevMenu`. Escenario, que es
+**el mismo que este commit vino a arreglar**: prótesis mitral, jet/AI en la banda Variable, cero
+parámetros cuantificados; el médico juzga la IM severa por criterio clínico y la elige a mano;
+después corrige el área de la AI —un `oninput` cualquiera— y **el desplegable vuelve a «Sin
+insuficiencia / no evaluada»**. Y en la reimpresión es peor: `_sevManualRestaurar` repone la marca
+**del estudio**, que para esos estudios está vacía, así que el PDF reimpreso salía **sin la IM** y
+distinto del firmado. Es literalmente el defecto que `emGradoManual` cerró para la EM el 28/09,
+por la puerta de al lado. Hoy el `onchange` va por **`imGradoManual()`**, que marca y **espeja en
+`sev_manual`** —sin el espejo la marca vive una sesión—. **NO se marca desde
+`autoCompletarSevIM`**: ahí el que escribe es el calculador, y marcar ahí congelaría el grado
+desde el primer cálculo.
+
+**2 · LA TARJETA DE REVISIÓN, que corre justo ANTES de guardar y de emitir el PDF, tampoco
+marcaba.** `im_grado` entra por `setGrade`, **no** por el bucle de `CLONADOS` —que sí marca desde
+el 28/09—, y asignar por `.value` no dispara el `onchange`: el `emContRefrescar()` del mismo
+bloque encadena hasta `calcIM_ESC` y convertía en «Sin insuficiencia» la severidad **en el mismo
+gesto de confirmarla**. Hoy `setGrade` marca **lo que cambió**, igual que `CLONADOS` y por el
+mismo motivo: marcar los tres convertiría «mirar la tarjeta» en «fijar los tres grados a mano».
+
+**3 · EL EXCEL EXPORTABA UN DERIVADO A UNA COLUMNA IMPORTABLE.** La entrada del importador seguía
+apuntando a `vm_dvi`, así que **reimportar un Excel exportado por la propia app escribía el DVI
+calculado dentro del campo de carga manual**. La corrupción es **muda** mientras los dos VTI
+sigan presentes —`vmProtEOA` prefiere el calculado— y se destapa después: al corregir un VTI, el
+informe firmado publica el valor viejo rotulado **«consignado»**, o sea procedencia fabricada,
+que es justo la garantía que ese bloque existe para sostener. Cerrado agregando `vm_dvi` a
+**`LAB_XLS_SOLO_EXPORT`**, que es la regla de la casa («un derivado no se importa»).
+**Capacidad que se pierde, declarada:** ya no se puede cargar un DVI mitral tipeando la celda del
+Excel; se sigue pudiendo en el formulario, que es de donde viene el caso real.
+
+**4 · `im_grado`/`ia_grado`/`it_grado` quedaron marcables en la tarjeta**, no sólo `im`. `ia` e
+`it` no están alcanzadas hoy —`calcIA_ESC` y `calcIT_ESC` siguen saliendo por `return`— y quedan
+armadas para el día que se extienda la limpieza.
+
+### Declarado y NO corregido
+
+- **La columna del Excel publica el DVI sin su PROCEDENCIA.** El narrativo y la cápsula
+  distinguen «consignado»; la planilla no, y ese archivo cruza a CeiboAnalytics **sin el informe
+  al lado**. Antes era homogénea —siempre el tipeado— y ahora es mixta: la interpretabilidad la
+  degradó este cambio. El arreglo es una columna `DVI mitral (fuente)` sólo-export, que mueve el
+  conteo de 433 a 434 y toca el contrato del Excel. **Fuera del «SOLO dos arreglos».**
+- **Con `vm_dvi` fuera de banda la columna exporta el número que el PDF marca «(revisar)».**
+  `vmProtEOA` lo bandea y devuelve null; la columna cae a `_base`, que no bandea. Es la mitad del
+  fallback que el pedido nombra —«si no hay DVI calculado, exportar como está hoy»— y está fijado
+  por su condición; lo que no llega a la planilla es la marca.
+- **«DVI tricuspídeo» quedó con otra semántica bajo la misma convención de nombre**: mitral
+  publica un derivado y tricúspide el campo tipeado, sin nada que lo diga. No es un defecto hoy
+  —la tricúspide no tiene calculador— pero es la asimetría que después se lee como comparable.
+- **El `catch` de la columna es mudo**: una falla sistémica de `vmProtEOA` revierte la corrección
+  en las N filas sin una línea en consola, y el archivo sale con el aspecto de siempre.
+
+### Verificación
+
+**Denominador declarado.** Control byte a byte contra HEAD sobre los **14 escenarios** de la
+tanda anterior, con hash FNV-1a **y longitud** de informe, EN SUMA y **la fila completa del
+Excel**: **42 mediciones, 33 hashes distintos, cero diferencias** —informes de 403-475 caracteres,
+EN SUMA de 8-131 y filas de Excel de 9789-9981—
+—corrido dos veces, antes y después de los arreglos de `/sharp-edges`—.
+
+**TC-316, 21 condiciones.** Los dos denominadores (la nativa da severa; el calculado difiere del
+tipeado), el retiro del grado, el badge, el informe que deja de publicar «IM severa», el
+**recálculo** con VC protésica, la pill respetada por los **dos** caminos reales —el desplegable
+con su evento y la tarjeta de revisión abierta y confirmada de verdad—, el espejo persistido, el
+**límite declarado** del lado nativo, el Excel con el calculado, el fallback sin VTI, el fallback
+con el tipeado fuera de banda, **que el Excel lea del ESTUDIO y no de la pantalla**, que la banda
+se aplique sobre el VTI del registro, y la compuerta de morfología.
+
+**DOCE mutaciones, las doce en rojo y cada una en SU condición.** La que más enseña es la 10 —el
+desplegable volviendo a no marcar—, cuyo diagnóstico imprime `im_grado=0 desplegable=0`: la
+elección del médico convertida en su negación.
+
+**Suite 313/331**, con **17 de esos rojos por el pendrive ausente** (ver abajo) y **TC-223**, el
+documentado. **Semgrep 125 / 0 ERROR**, el mismo número exacto que HEAD —corrido sobre los dos—.
+`detectar_huerfanos.py` sin huérfanos nuevos. `check_mobile` en los 2 ALTA de siempre.
+⚠️ **Y la primera corrida de Semgrep dio TIMEOUTS en catorce reglas sobre un árbol sano**: era
+competencia de CPU con la suite corriendo en paralelo. Su guarda hizo lo correcto —se negó a
+imprimir un resultado limpio— y la lectura correcta no era «el cambio rompió una regla» sino que
+**las mutaciones, la suite y el escáner no van juntos en la misma máquina**.
+
+**TC-314 SE PUSO EN ROJO Y ÉSA ES LA SEÑAL.** Ese caso fijaba el grado rancio como **límite
+declarado** —«el grado ya escrito NO se borra cuando el jet deja de votar»— que es exactamente la
+premisa que este commit deroga. **No se borró: se reapuntó** al invariante que sí es suyo y que
+el cierre vuelve observable —que el jet en la banda Variable **no vote**, medido hoy en el único
+lugar que decide, el grado—, con la cobertura completa del retiro en TC-316. Sostener la
+afirmación vieja habría empujado a reintroducir el defecto el día que alguien «la arreglara», que
+es lo que este archivo ya documenta con TC-296, TC-31 y TC-87. Verificado que no quedó vacua: la
+mutación que revierte el arreglo la pone en rojo.
+
+**⚠️ Y LA SUITE SE COLGÓ, QUE NO ES LO MISMO QUE IR LENTA.** 1 h 24 min **al 0,0 % de CPU** y la
+salida clavada en 279 de 331 casos, con **21 Chrome huérfanos** del harness acumulados de las
+tandas de mutación. El caso donde se detuvo —TC-241— **pasa aislado y en tiempo normal**, así que
+no era el cambio: era el entorno. Los huérfanos se identifican por la bandera propia del harness
+(`--remote-debugging-port=0`) y **no** por `user-data-dir`, que lo usan también los helpers de
+otras apps. Es la lección que este archivo ya tiene escrita, pagada de nuevo por correr las
+mutaciones y la suite sobre la misma máquina sin limpiar entre medio.
+
+**⚠️ Y EL PENDRIVE DEL VIVID SE DESCONECTÓ A MITAD DE SESIÓN.** Los **17** casos del visor y
+DICOM que dependen de `/Volumes/DISK_IMG` **pasaban en la corrida anterior** y en la final
+reportan fixture ausente; `diskutil list external` no devuelve nada, así que no se puede
+remontar. **Esos 17 quedan SIN VERIFICAR en esta tanda**, y un caso apagado por falta de fixture
+**no es cobertura**: mientras el pendrive no esté, un cambio puede pasarles por encima. Es el
+patrón que este archivo ya documenta —ante un rojo EN BLOQUE, mirar el fixture antes que el
+diff—, y la comprobación cuesta diez segundos.
+
+**Backticks dentro del cuerpo de un caso: TREINTA de una sola tanda**, todos en comentarios que
+acababa de escribir para explicar el caso. `node --check` los caza apuntando a la línea del
+`caso(`, doscientas líneas antes del culpable; el barrido acotado al cuerpo los cuenta de un
+saque y es lo que conviene correr **después de cada edición**, no una vez al final.
+
+**Y un `assert` de ancla única frenó dos ediciones a tiempo**: `R.bsa = … getBSA()` aparece **dos**
+veces en el archivo, y mi ancla del comentario `── 9 ·` no matcheaba porque la había escrito con
+guiones ASCII. En los dos casos **no se escribió nada** — que es lo que separa «no se aplicó» de
+«se aplicó mal».
+
 ## Prótesis mitral: EOA, DVI y PPM (2026-09-29)
 
 **⚠️ EL EOA YA ESTABA CALCULADO Y YA SALÍA EN EL INFORME FIRMADO.** La fórmula de la Sección III.B

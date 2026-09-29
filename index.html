@@ -3481,7 +3481,7 @@ window.cerrarSesionReal = cerrarSesionReal;
       </div>
       <div style="margin-top:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
         <label style="font-size:11px;font-weight:700;color:var(--accent2);display:block;margin-bottom:6px;">&#x2705; Severidad IM confirmada &mdash; ir&aacute; al informe y PDF</label>
-        <select id="im_sev_final" onchange="sincronizarGradoIM()" style="width:100%;">
+        <select id="im_sev_final" onchange="imGradoManual()" style="width:100%;">
           <option value="0">&mdash; Sin insuficiencia / no evaluada</option>
           <option value="1">Leve</option>
           <option value="2">Moderada</option>
@@ -16686,8 +16686,14 @@ function v(id) {
 
    `fuera` = medido y fuera de lo físicamente posible. NO es lo mismo que `val === null`, que es
    «no hay dato»: el primero tiene que DECIRSE y el segundo simplemente no se dibuja. */
-function vPlaus(id) {
-  const x = v(id);
+/* ⚠️ LA BANDA SE APLICA SOBRE UN VALOR, NO SOBRE UN CAMPO — y `vPlaus` es el caso particular
+   «el valor es el que está en pantalla». Existe porque el Excel corre sobre estudios GUARDADOS,
+   donde no hay DOM que leer: con `vPlaus(id)` a secas, la columna bandearía la fila con el
+   número del paciente ABIERTO EN PANTALLA. Es el defecto que este archivo ya documenta para
+   `valvProtDato` y para Pericardio —«una sola lectura que quede en `v()` hace que la columna
+   mezcle la fila con el paciente en pantalla, y eso parece correcto»—.
+   El `id` se sigue necesitando: es lo que resuelve QUÉ banda aplica. */
+function _plausDe(id, x) {
   if (x == null) return { val:null, fuera:false, sinBanda:false, crudo:null };
   let b = null;
   try { b = (typeof _labRango === 'function') ? _labRango(id) : null; } catch (e) { b = null; }
@@ -16699,6 +16705,7 @@ function vPlaus(id) {
   if (x < b[0] || x > b[1]) return { val:null, fuera:true, sinBanda:false, crudo:x, b:b };
   return { val:x, fuera:false, sinBanda:false, crudo:x };
 }
+function vPlaus(id) { return _plausDe(id, v(id)); }
 /* Valor para una fila de las tablas compactas del PDF. Devuelve `null` cuando no hay dato —y
    entonces `drawTablaCompacta` NO dibuja la fila, que es el comportamiento de siempre— y un
    texto explícito cuando el dato está pero es ilegible. Lo segundo NO puede ser `null`: borrar
@@ -21361,6 +21368,30 @@ window.calcEM = calcEM;
 
 // ══ SINCRONIZACIÓN DE SEVERIDADES CONFIRMADAS ══
 
+/* ⚠️ EL `onchange` DEL DESPLEGABLE VA POR ACÁ, NO POR `sincronizarGradoIM` A SECAS, y desde que
+   `calcIM_ESC` LIMPIA el grado protésico eso dejó de ser cosmético. Ese control se rotula
+   «✅ Severidad IM confirmada — irá al informe y PDF» y NO ponía `esqSevManual.im`: la marca sólo
+   la escribían las pastillas (`esqPills.setLevel`) y `valvSevMenu`. Consecuencia medida sobre el
+   caso que este mismo commit vino a arreglar —prótesis mitral, jet/AI en la banda Variable, cero
+   parámetros cuantificados—: el médico juzga la IM severa por criterio clínico, la elige a mano,
+   después corrige el área de la AI, y la limpieza le devuelve el desplegable a «Sin insuficiencia
+   / no evaluada». Su elección explícita convertida en su NEGACIÓN por el acto de tocar otro
+   campo. Y peor en la reimpresión: `_sevManualRestaurar` repone la marca DEL ESTUDIO, que para
+   esos estudios está vacía, así que el PDF reimpreso salía sin la IM y distinto del firmado.
+   Es el mismo defecto que `emGradoManual` cerró para la EM el 28/09, por la puerta de al lado.
+   ⚠️ NO se marca desde `autoCompletarSevIM`: ahí el que escribe es el CALCULADOR, y marcar ahí
+   haría que la app fijara su propio veredicto como si lo hubiera elegido una persona — el grado
+   quedaría congelado para siempre desde el primer cálculo. */
+function imGradoManual() {
+  window.esqSevManual = window.esqSevManual || {};
+  window.esqSevManual.im = true;
+  /* El espejo persistido es `#sev_manual`. Sin esto la marca vive una sesión y al reabrir el
+     estudio la limpieza pisaría el grado que el médico eligió — el mismo motivo que en la EM. */
+  try { if (typeof _sevManualSync === 'function') _sevManualSync(); } catch (e) {}
+  sincronizarGradoIM();
+}
+window.imGradoManual = imGradoManual;
+
 // IM: selector confirmado → im_grado (fuente de verdad para informe/PDF)
 function sincronizarGradoIM() {
   const sel = document.getElementById('im_sev_final');
@@ -22922,9 +22953,42 @@ function calcIM_ESC() {
      Cerrarlo es repintar `im-sev` a «—» y retirar el grado AUTO-derivado respetando
      `esqSevManual.im` —o sea decidir qué pasa con un grado que el médico eligió a mano—, que es
      una decisión clínica y no un arreglo: alcanza a TODO estudio donde se borre el último
-     parámetro, no sólo a los protésicos. Fuera del «SOLO tres arreglos» de este pedido, fijado
-     como límite en TC-314. */
-  if (params.length === 0) return;
+     parámetro, no sólo a los protésicos.
+
+     SE CIERRA SÓLO DEL LADO PROTÉSICO, Y ESO ES UNA DECISIÓN, NO UN OLVIDO. El agujero es
+     PREEXISTENTE y más ancho —borrar la única vena contracta de una NATIVA deja el grado igual,
+     medido— pero hasta el commit del corte protésico `params` no podía ENCOGER: la morfología no
+     era insumo de esta cascada. Lo que se arregla acá es la puerta que ese commit abrió. Retirar
+     el grado en TODO estudio donde se borre el último parámetro alcanza a la nativa, donde «no
+     queda ningún parámetro cargado» y «esta válvula no se gradúa» no son lo mismo, y eso es una
+     decisión clínica de Maicol. Queda declarado y fijado como límite en TC-316.
+
+     ES EL PATRÓN DE `emGradoAuto`, no un mecanismo nuevo: LIMPIAR en vez de salir, y salir antes
+     si la pill está fijada. El `if` de la marca envuelve sólo la ESCRITURA —el badge `im-sev` se
+     repinta igual—: `im-sev` es el veredicto AUTOMÁTICO y dejarlo en «Severa» sobre cero
+     parámetros es falso aunque el médico haya fijado el grado a mano. Lo que la marca protege es
+     su elección, que vive en `im_grado`/`im_sev_final`.
+
+     ⚠️ Y LA PRECISIÓN SOBRE DÓNDE VIVE, porque el pedido decía otra cosa: el `onchange` de
+     `vm_morf` NO limpia `em_grado` — llama a `calcEM()`, y es `emGradoAuto` (el CALCULADOR) el
+     que escribe el valor de fábrica. Por eso esto va acá y no en el `onchange`: el calculador es
+     el único que sabe si quedó algo que graduar, así que el caso «pasa a prótesis PERO ya tiene
+     vena contracta cargada» recalcula solo, sin una segunda lista de excepciones que mantener.
+     Verificado en TC-316. */
+  if (params.length === 0) {
+    if (_imVmProt()) {
+      document.getElementById('im-sev').innerHTML = '—';
+      if (!(window.esqSevManual && window.esqSevManual.im)) {   // pill fijada por el médico → no pisar
+        document.getElementById('im_grado').value = '0';
+        if (typeof autoCompletarSevIM === 'function') autoCompletarSevIM('0');
+      }
+      /* Mismo segundo repintado que la salida normal, y por el mismo motivo: `paramsDisc` ya se
+         borró arriba —`_sevsDisc.length > 1` es falso sin votos— pero el cruce con el método
+         volumétrico lee `im_grado`, que recién se escribió. */
+      imDiscordanciaPintar();
+    }
+    return;
+  }
   let sevBadge, gradoVal;
   /* ⚠️ UN SOLO PARÁMETRO EN SEVERA BASTA, y antes NO bastaba: caía en el `else` mudo del final y
      se publicaba «Moderada». Medido con el caso del censo —prótesis mitral, vena contracta 8 mm y
@@ -30405,12 +30469,33 @@ window.VM_PROT_PPM_CORTES = VM_PROT_PPM_CORTES;
 
 /* Devuelve DATOS, nunca HTML — el patrón de `emCategoria` y `popPatron`. Lo consumen la cápsula de
    pantalla, el narrativo y el EN SUMA, así que las tres no pueden divergir. */
-function vmProtEOA() {
+/* ⚠️ LA FUENTE ES INYECTABLE, Y NO ES UN DETALLE DE ESTILO. Sin `src` lee el DOM —que es lo
+   correcto en la pantalla y en el PDF, donde el formulario ES el estudio—; con `src` lee los
+   `campos` de un estudio GUARDADO, que es lo que necesita el Excel. Es el patrón que este
+   archivo ya documenta para `valvProtDato`, `emContValido` y el módulo de Pericardio, y la razón
+   es siempre la misma: `_labExcelRow(inf)` deriva TODO de `inf.campos`, así que una sola lectura
+   que quede en `v()` hace que la columna publique el número del paciente ABIERTO EN PANTALLA
+   repetido en las N filas — y eso se ve perfectamente correcto. Ese archivo va a CeiboAnalytics.
+   Los tres helpers que consume ya aceptaban `src`: `emContMotivoNoVota`, `getBSA` y `getIMC`. */
+function vmProtEOA(src) {
   const R = { esProt:false, eoa:null, dvi:null, dviFuente:null, eoaI:null, bsa:null, imc:null,
               obstr:null, ppm:null, valido:false, motivo:'', fuera:false, faltan:[] };
+  const nv = id => src ? _ccNv(id, src) : v(id);
+  /* La banda va sobre el VALOR y no sobre el campo: con `vPlaus(id)` a secas, la fila del Excel
+     se bandearía contra lo que haya en pantalla. `_plausDe` es el dueño único de esa tabla. */
+  const pl = id => _plausDe(id, nv(id));
   /* `_imVmProt()` y no un predicado propio: es el ÚNICO dueño de «¿esta mitral es protésica?» que
-     falla CERRADO sobre un `#vm_morf` ausente. Un segundo dueño diverge sin que nada lo señale. */
-  if (typeof _imVmProt !== 'function' || !_imVmProt()) return R;
+     falla CERRADO sobre un `#vm_morf` ausente. Un segundo dueño diverge sin que nada lo señale.
+     ⚠️ Con `src` NO se puede usar: aquél pregunta por el DOM. Se pregunta a `valvEsProtesis`, que
+     es el dueño de «¿este token es una prótesis?», y ahí la ausencia del campo significa «este
+     estudio no tiene morfología consignada» —un hecho del registro— y no «el DOM está roto», así
+     que el fail-closed a `true` de `_imVmProt` sería la respuesta equivocada: marcaría como
+     protésico todo estudio sin `vm_morf`. Es la misma pregunta que ya hace la columna del Excel
+     a través de `valvProtDato`, con el mismo dueño. */
+  const _esProt = src
+    ? (typeof valvEsProtesis === 'function' && valvEsProtesis(String(src.vm_morf == null ? '' : src.vm_morf)))
+    : (typeof _imVmProt === 'function' && _imVmProt());
+  if (!_esProt) return R;
   R.esProt = true;
 
   /* ⚠️ LA MISMA CASCADA QUE `calcEM`, NO LOS CAMPOS PELADOS. `em_dtsvi` y `em_vtitsvi` son campos
@@ -30422,9 +30507,9 @@ function vmProtEOA() {
      «Estimado por ASC» de `usarTSVIenEM` escribe `em_dtsvi` con `diam_tsvi` VACÍO, así que ahí el
      EOA, el DVI y el PPM quedaban mudos sobre un estudio donde la continuidad sí se calculó.
      Lo cazó `/sharp-edges`; mi comentario de arriba afirmaba que los insumos eran los mismos. */
-  const d = v('em_dtsvi') || v('diam_tsvi');
-  const tsvi = v('em_vtitsvi') || v('itv_tsvi');
-  const prmv = v('em_vtimit');
+  const d = nv('em_dtsvi') || nv('diam_tsvi');
+  const tsvi = nv('em_vtitsvi') || nv('itv_tsvi');
+  const prmv = nv('em_vtimit');
   if (d == null)    R.faltan.push('Ø TSVI');
   if (tsvi == null) R.faltan.push('VTI TSVI');
   if (prmv == null) R.faltan.push('VTI mitral CW');
@@ -30434,14 +30519,14 @@ function vmProtEOA() {
      publica un EOA de 0,016 cm² — «obstrucción significativa» fabricada por un dedazo, y con un
      número que se ve perfectamente plausible como resultado. Es el mismo escenario que la Fase 1 de
      la IM midió para el volumen sistólico. Fuera de banda NO se clasifica y se declara. */
-  [(v('em_dtsvi') != null ? 'em_dtsvi' : 'diam_tsvi'),
-   (v('em_vtitsvi') != null ? 'em_vtitsvi' : 'itv_tsvi'), 'em_vtimit'].forEach(function (id) {
-    try { if (typeof vPlaus === 'function' && vPlaus(id).fuera) R.fuera = true; } catch (e) {}
+  [(nv('em_dtsvi') != null ? 'em_dtsvi' : 'diam_tsvi'),
+   (nv('em_vtitsvi') != null ? 'em_vtitsvi' : 'itv_tsvi'), 'em_vtimit'].forEach(function (id) {
+    try { if (pl(id).fuera) R.fuera = true; } catch (e) {}
   });
 
   /* El motivo sale de `emContMotivoNoVota`, el mismo que pinta el aviso de la continuidad: con un
      texto propio acá, la pantalla diría dos cosas distintas sobre el mismo número. */
-  if (typeof emContMotivoNoVota === 'function') R.motivo = emContMotivoNoVota();
+  if (typeof emContMotivoNoVota === 'function') R.motivo = emContMotivoNoVota(src);
   R.valido = !R.fuera && R.motivo === '' && !R.faltan.length;
 
   /* ⚠️ EL DVI SE CALCULA AUNQUE EL EOA NO SEA VÁLIDO —es un COCIENTE de dos VTI y no usa el volumen
@@ -30450,8 +30535,7 @@ function vmProtEOA() {
      la colisión de las Tablas 11 y 13. Lo que sí lo alcanza siempre es la banda de los dos VTI. */
   if (tsvi != null && prmv != null && tsvi > 0) {
     const bandaDvi = (function () {
-      try { return typeof vPlaus === 'function' &&
-        (vPlaus(v('em_vtitsvi') != null ? 'em_vtitsvi' : 'itv_tsvi').fuera || vPlaus('em_vtimit').fuera); }
+      try { return pl(nv('em_vtitsvi') != null ? 'em_vtitsvi' : 'itv_tsvi').fuera || pl('em_vtimit').fuera; }
       catch (e) { return false; }
     })();
     if (!bandaDvi) { R.dvi = PF((prmv / tsvi).toFixed(2)); R.dviFuente = 'calculado'; }
@@ -30461,14 +30545,14 @@ function vmProtEOA() {
      no alcanzan. Publicar un DVI sin decir de dónde salió es lo que el módulo POP ya resolvió con
      `icFuente`: dos fuentes del mismo número que pueden diferir sobre el mismo paciente. */
   if (R.dvi == null) {
-    const manual = v('vm_dvi');
+    const manual = nv('vm_dvi');
     /* ⚠️ EL CONSIGNADO TAMBIÉN BANDEA, y la primera versión sólo bandeaba el calculado. Un 2,5
        tipeado como 25 publicaba «obstrucción (DVI 25.00)» en el informe firmado mientras la tabla
        del MISMO PDF imprimía «25.00 (revisar)» —`_protPdf` sí delega en `vPdf`—: la app marcaba el
        número como ilegible en una superficie y concluía sobre él en la otra. Y ensanchar la banda
        a 10 amplía el rango que entraría sin filtro. */
     let _manFuera = false;
-    try { _manFuera = typeof vPlaus === 'function' && vPlaus('vm_dvi').fuera; } catch (e) {}
+    try { _manFuera = pl('vm_dvi').fuera; } catch (e) {}
     if (manual != null && manual > 0 && !_manFuera) { R.dvi = PF(manual.toFixed(2)); R.dviFuente = 'consignado'; }
     else if (_manFuera) R.dviFuera = true;
   }
@@ -30506,12 +30590,12 @@ function vmProtEOA() {
   R.porEoa = porEoa; R.porDvi = porDvi;
 
   /* ── Tabla 7: PPM. AUTOMÁTICO (decisión de Maicol) y sólo con EOA válido. ── */
-  R.bsa = (typeof getBSA === 'function') ? getBSA() : null;
+  R.bsa = (typeof getBSA === 'function') ? getBSA(src) : null;
   /* SE CLASIFICA EL REDONDEADO, que es el que las dos superficies imprimen con `.toFixed(1)`. Con
      29,96 el encabezado del PDF dice «30.0 kg/m2» y la rama cruda aplicaba los cortes de < 30: el
      mismo documento mostraba un IMC de 30,0 y usaba la tabla del otro lado. Es la regla de la casa
      desde el AVA de 1,00, y la que este mismo bloque ya aplica al EOA y al indexado. */
-  const _imcN = (typeof getIMC === 'function') ? getIMC() : null;
+  const _imcN = (typeof getIMC === 'function') ? getIMC(src) : null;
   R.imc = _imcN == null ? null : PF(_imcN.toFixed(1));
   if (R.eoa != null && R.bsa) {
     R.eoaI = PF((R.eoa / R.bsa).toFixed(2));
@@ -31536,7 +31620,25 @@ function mostrarCardSeveridadValvular(onConfirm) {
   ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
   ov.querySelector('#rev-cancel').onclick = () => ov.remove();
   ov.querySelector('#rev-confirm').onclick = () => {
-    const setGrade = (hid, rev) => { const el = document.getElementById(hid), r = ov.querySelector('#' + rev); if (el && r) el.value = r.value; };
+    /* ⚠️ MARCA LO QUE CAMBIÓ, igual que el bucle de `CLONADOS` de abajo y por el mismo motivo:
+       asignar por `.value` no dispara el `onchange`, así que la elección hecha ACÁ no quedaba
+       marcada como manual. Mientras `calcIM_ESC` salía por `return` con `params` vacío daba
+       igual; desde que LIMPIA el grado protésico, el `emContRefrescar()` de más abajo —que
+       encadena hasta `calcIM_ESC`— convertía en «Sin insuficiencia» la severidad que el médico
+       acababa de confirmar, en el mismo gesto de confirmarla y justo antes de firmar. Es el
+       defecto que esa misma tarjeta ya pagó con `em_grado` el 28/09.
+       Se marca sólo el que CAMBIÓ: marcar los tres convertiría «mirar la tarjeta» en «fijar los
+       tres grados a mano» y los dejaría rancios para siempre. */
+    const setGrade = (hid, rev) => {
+      const el = document.getElementById(hid), r = ov.querySelector('#' + rev);
+      if (!el || !r) return;
+      const cambio = String(el.value) !== String(r.value);
+      el.value = r.value;
+      if (cambio) {
+        window.esqSevManual = window.esqSevManual || {};
+        window.esqSevManual[hid.replace('_grado','')] = true;
+      }
+    };
     setGrade('im_grado','rev-im'); setGrade('ia_grado','rev-ia'); setGrade('it_grado','rev-it');
     /* ⚠️ ÉSTE ES EL TERCER ESCRITOR DE `im_grado`/`ia_grado`, y es el PEOR de los tres: corre
        justo ANTES de guardar y de emitir el PDF, o sea que lo que escriba acá es lo que queda
@@ -69137,7 +69239,22 @@ function _labExcelRow(inf) {
     /* DVI y AT de prótesis, Fase 1 (2026-09-27). Van al Excel y al PDF porque son MEDICIONES que
        el médico tomó: dejarlas sólo en `campos` haría un campo que se llena y no sobrevive al
        informe, que es justo el huérfano que `detectar_huerfanos` persigue. Todavía no gradúan. */
-    'DVI mitral': rnd(valvProtDato('vm_morf','vm_dvi',c),2),
+    /* ⚠️ EL DVI QUE DECIDIÓ EL INFORME, NO EL TIPEADO. `vm_dvi` es el campo de carga manual y
+       existe desde la Fase 1; desde que `vmProtEOA` calcula `VTI_PrMV / VTI_TSVI` y CONCLUYE con
+       él, el informe firmado y esta columna publicaban dos números distintos del mismo paciente
+       —medido: calculado 3.00 contra tipeado 1.20— y el que viajaba a CeiboAnalytics era el que
+       el médico NO firmó. `vmProtEOA` ya prefiere el calculado y cae al consignado cuando faltan
+       los dos VTI, así que preguntar acá por el mismo dueño cierra la divergencia por
+       construcción en vez de reimplementar la precedencia.
+       El fallback NO es decorativo: `vmProtEOA` exige que los dos VTI estén Y en banda, así que
+       un estudio con el DVI sólo tipeado —o con un VTI fuera de escala— tiene que seguir
+       exportando lo que exportaba. Y `valvProtDato` sigue siendo la compuerta de morfología: un
+       DVI cargado y después escondido al cambiar a válvula nativa no se publica. */
+    'DVI mitral': (function () {
+      const _base = rnd(valvProtDato('vm_morf','vm_dvi',c),2);
+      try { const _p = vmProtEOA(c); if (_p.esProt && _p.dvi != null) return rnd(_p.dvi,2); } catch (e) {}
+      return _base;
+    })(),
     'Morfología mitral': c.vm_morf || '', 'IM grado': gIM,
     'IM_I (Leve)': bin(gIM,'leve'), 'IM_II (Moderada)': bin(gIM,'moderada'), 'IM_III (Severa)': bin(gIM,'severa'),
     'VC IM (mm)': rnd(num('im_vc','vc_mitral'),1),
@@ -70386,7 +70503,19 @@ function _labPreguntarAnonimo(cb) {
    columnas era peor: el informe imprimía «Task Force 2010: 2 puntos» sobre una fila que sostenía
    4. Lo que se importa es la fuente; los espejos se recalculan. */
 const LAB_XLS_SOLO_EXPORT = new Set(['pmad', 'avm_thp', 'gmax_calc', 'psap_calc', 'pap_med', 'et_avt',
-  'mch_tvns', 'tdf_tv', 'mca_v_may', 'mca_v_men1', 'mca_v_men2']);
+  'mch_tvns', 'tdf_tv', 'mca_v_may', 'mca_v_men1', 'mca_v_men2',
+  /* ⚠️ `vm_dvi` ENTRA ACÁ EL DÍA QUE LA COLUMNA PASA A EMITIR EL DVI CALCULADO, y es el arreglo
+     del arreglo. «DVI mitral» exporta ahora `VTI_PrMV / VTI_TSVI` —el que decide el informe— y
+     su entrada del importador apuntaba a `vm_dvi`, que es el campo de CARGA MANUAL: reimportar
+     un Excel exportado por la propia app escribía un DERIVADO adentro de ese campo. La
+     corrupción es MUDA mientras los dos VTI sigan presentes —`vmProtEOA` prefiere el calculado—
+     y se destapa después, cuando el médico corrige un VTI o uno cae fuera de banda: ahí el
+     informe firmado publica el valor viejo rotulado «consignado», o sea PROCEDENCIA FABRICADA,
+     que es justo la garantía que ese bloque existe para sostener.
+     CAPACIDAD QUE SE PIERDE, declarada: ya no se puede cargar un DVI mitral tipeando la celda
+     del Excel. Se sigue pudiendo cargar en el formulario, que es de donde viene el caso real
+     —un DVI traído de otro laboratorio—. Es la regla de la casa: un derivado no se importa. */
+  'vm_dvi']);
 
 /* ── Severidad valvular fijada a mano ──
    `window.esqSevManual` marca qué grados NO debe pisar el autocálculo. Vivía sólo en memoria,
@@ -84118,8 +84247,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260929-0141';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790656917376;                 /* eco-build-ms */
+const ECO_BUILD    = '20260929-0938';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790685539000;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -84205,7 +84334,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-0141</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-0938</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
