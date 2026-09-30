@@ -40251,6 +40251,54 @@ function _indCtrlHTML(ctrl){
   }).join('') + '</div>';
 }
 
+/* ══ EL MECANISMO VIVE FUERA DE LAS SECCIONES, PORQUE APAGA A LA QUE LO CONTENÍA ══════════════
+   Hasta el 2026-09-30 el control era una FILA de `_indIM`. Contestar «Secundaria» hace que
+   `_indIM` devuelva `null`, así que el control DESAPARECÍA EN EL MISMO REPINTADO en que se lo
+   tocaba, y la fila «Mecanismo» de `_indIMS` —la tarjeta que pasa a gobernar— es de solo lectura:
+   un toque equivocado no tenía cómo deshacerse EN EL LUGAR. Se recuperaba cerrando y reabriendo el
+   panel, que además llama a `_indClinLimpiar` y se lleva TODAS las demás respuestas clínicas del
+   paciente. Un control que se borra al usarse es peor que no tenerlo: el médico ve que la tarjeta
+   cambió y no encuentra dónde volver atrás.
+
+   ⚠️ NO ES UN SEGUNDO DUEÑO. La respuesta sigue siendo `_indClin['im.mecanismo']` y se sigue leyendo
+   con `_indOrigen`; lo único que se movió es DÓNDE se dibuja la botonera. Por eso la fila de `_indIM`
+   pasó a solo lectura en el mismo cambio: con las dos pintando control habría dos botoneras para el
+   mismo dato, que es exactamente la segunda fuente que `_indOrigen` existe para evitar.
+
+   ⚠️ LAS COMPUERTAS SON LAS DE LAS SECCIONES QUE GOBIERNA, no unas nuevas. Con prótesis no se
+   muestra —ninguna de las dos tarjetas nativas aplica— y sin `im_sev_final === '4'` tampoco, que es
+   la condición que `_indIM` y `_indIMS` exigen LAS DOS. Pintarlo siempre ponía una pregunta sobre la
+   insuficiencia mitral en el panel de un paciente que no tiene insuficiencia mitral y, peor,
+   contestarla no habría tenido ningún efecto visible: el modo de falla mudo de este panel.
+
+   ⚠️ VA DENTRO DE `#indic-cuerpo`. El listener de los controles está delegado AHÍ (`_indClinCablear`)
+   y `_indRepintarConservando` busca el foco dentro de ese contenedor. Un bloque hermano en el HTML
+   estático se vería igual y no respondería a un solo clic. */
+function _indMecanismoHTML(){
+  if (_indFn('vmEsProtesis') && vmEsProtesis()) return '';
+  if (_indS('im_sev_final') !== '4') return '';
+  const o = _indOrigen(_indS('teer_tipo_im'), 'im.mecanismo');
+  const txt = o.val === 'primaria' ? 'Primaria (orgánica)'
+            : (o.val === 'secundaria' ? 'Secundaria (funcional)' : '—');
+  /* Con el dato en el estudio NO se dibuja botonera: `_indOrigen` le da prioridad al estudio, así
+     que una botonera acá se dejaría tocar y no cambiaría nada. Se muestra el valor y dónde se edita. */
+  const cuerpo = o.deEstudio
+    ? '<div style="font-size:12px;font-weight:700;color:var(--text);">' + _critEsc(txt) + '</div>'
+    : _indCtrlHTML({ clave:'im.mecanismo',
+        ops:[{v:'primaria',t:'Primaria'},{v:'secundaria',t:'Secundaria'}] });
+  const pie = o.deEstudio
+    ? 'Cargado en el estudio (ETE → TEER): se cambia ahí.'
+    : ((o.val == null
+        ? 'Sin esta respuesta no se puede afirmar que los umbrales de una u otra correspondan. Si ya está cargado en ETE → TEER, aparece acá solo.'
+        : 'Decide cuál de las dos tarjetas mitrales gobierna. Se puede cambiar acá, o volver a tocar la opción marcada para dejarlo sin definir.')
+      + ' Contestado en este panel: no se guarda con el estudio.');
+  return '<div style="margin:0 0 10px;padding:9px 11px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;">' +
+    '<div style="font-size:11.5px;font-weight:700;color:var(--text2);margin-bottom:6px;">Mecanismo de la insuficiencia mitral</div>' +
+    cuerpo +
+    '<div style="font-size:10.5px;color:var(--text2);line-height:1.5;margin-top:6px;">' + _critEsc(pie) + '</div>' +
+    '</div>';
+}
+
 function _indFilaHTML(f){
   const M = IND_MARCA[f.marca] || IND_MARCA.none;
   return '<tr style="border-top:1px solid var(--border);">' +
@@ -41157,14 +41205,20 @@ function _indIM(){
      cambio, y borrarlas convertiría una compuerta reversible en una pérdida de texto verificado.
      Quedan declaradas como código muerto en CLAUDE.md. */
   if (oMec.val === 'secundaria') return null;
+  /* ⚠️ SOLO LECTURA DESDE EL 2026-09-30: LA BOTONERA SE MUDÓ A `_indMecanismoHTML`. Era un
+     `_indFilaOrigen`, o sea que dibujaba el control acá cuando el dato no venía del estudio — y la
+     compuerta de tres líneas más arriba hace que contestar «Secundaria» se lleve la tarjeta entera,
+     control incluido, sin dejar dónde volver atrás. Los TRES textos son los mismos que pintaba
+     aquel `pinta(val)`, carácter por carácter: lo que cambió es quién deja tocarlos, no lo que
+     dicen. Las ramas de `'secundaria'` siguen siendo el código muerto que declara el comentario de
+     la compuerta, y se conservan por el mismo motivo. */
   const filas = [
-    _indFilaOrigen('Mecanismo', oMec, [{v:'primaria',t:'Primaria'},{v:'secundaria',t:'Secundaria'}],
-      function(val){ return {
-        txt: val === 'primaria' ? 'Primaria (orgánica)' : (val === 'secundaria' ? 'Secundaria (funcional)' : 'No consignado'),
-        marca: val === 'primaria' ? 'ok' : (val === 'secundaria' ? 'warn' : 'ask'),
-        nota: val === 'primaria' ? 'los umbrales de abajo le corresponden'
-        : val === 'secundaria' ? 'los umbrales de abajo son de insuficiencia PRIMARIA y no se aplican a ésta'
-        : 'se registra en ETE → TEER · sin él no se puede afirmar que los umbrales de abajo correspondan' }; }),
+    _indFila('Mecanismo',
+      oMec.val === 'primaria' ? 'Primaria (orgánica)' : (oMec.val === 'secundaria' ? 'Secundaria (funcional)' : 'No consignado'),
+      oMec.val === 'primaria' ? 'ok' : (oMec.val === 'secundaria' ? 'warn' : 'ask'),
+      oMec.val === 'primaria' ? 'los umbrales de abajo le corresponden'
+      : oMec.val === 'secundaria' ? 'los umbrales de abajo son de insuficiencia PRIMARIA y no se aplican a ésta'
+      : 'se registra en ETE → TEER · sin él no se puede afirmar que los umbrales de abajo correspondan'),
     _indFila('Grado de insuficiencia mitral', 'Severa', 'ok', 'severidad confirmada en el estudio')
   ];
   /* ⚠️ LA FILA DE FEVI NO SE APAGA POR `UMBRAL_FEVI_NORMAL`. El criterio de la guía es el 60 % de
@@ -44787,6 +44841,11 @@ function indicRender(){
   /* Sin bibliografía al pie: cada sección trae la suya. La leyenda de las marcas SÍ se queda acá —
      es una sola para las trece y repetirla por sección la volvería ruido. */
   else h = _indLeyendaHTML() + h;
+  /* ⚠️ FUERA DEL `if/else`, y arriba de todo. Es una PREGUNTA, no un resultado: va antes de las
+     tarjetas que su respuesta enciende y apaga. Y tiene que sobrevivir a la rama «sin criterios»
+     —una sección puede lanzar y dejar `n` en 0—, porque es justo cuando el médico necesita poder
+     deshacer el toque que lo trajo hasta acá. Sus propias compuertas deciden si se pinta. */
+  h = _indMecanismoHTML() + h;
   if (fallos) h += '<div style="font-size:11px;color:#DC2626;margin-top:10px;line-height:1.5;">' +
     fallos + (fallos === 1 ? ' sección no se pudo evaluar' : ' secciones no se pudieron evaluar') +
     ' — el resto del panel es válido, pero falta información. Revisar la consola.</div>';
@@ -86591,8 +86650,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260930-1135';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790778946427;                 /* eco-build-ms */
+const ECO_BUILD    = '20260930-1241';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790782896931;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -86678,7 +86737,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260930-1135</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260930-1241</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
