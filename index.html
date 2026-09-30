@@ -30789,6 +30789,11 @@ window.VM_PROT_EOA_OBSTR_MAX = VM_PROT_EOA_OBSTR_MAX;
 window.VM_PROT_DVI_NORMAL_MAX = VM_PROT_DVI_NORMAL_MAX;
 window.VM_PROT_DVI_SIGNIF_MIN = VM_PROT_DVI_SIGNIF_MIN;
 window.VM_PROT_PPM_CORTES = VM_PROT_PPM_CORTES;
+/* ⚠️ ESTABA DECLARADA Y NO EXPORTADA, y el panel resuelve por `window`: el assert de la sección de
+   prótesis mitral la habría leído `undefined` y GRITADO EN CADA ARRANQUE sobre una app sana. Un
+   assert que avisa sin motivo deja de leerse, que es la forma de fallar de un chequeo. Es el mismo
+   caso de `UMBRAL_FAC_VD_SEVERA`, que este archivo ya documenta. */
+window.VM_PROT_IMC_OBESIDAD = VM_PROT_IMC_OBESIDAD;
 
 /* Devuelve DATOS, nunca HTML — el patrón de `emCategoria` y `popPatron`. Lo consumen la cápsula de
    pantalla, el narrativo y el EN SUMA, así que las tres no pueden divergir. */
@@ -42234,7 +42239,15 @@ const PROTM_EST_2024 = Object.freeze({
   gmed_norm: 5,     // mmHg — «≤5» normal
   gmed_sig:  10,    // mmHg — «>10» sugiere estenosis significativa
   thp_norm:  130,   // ms — «<130» normal
-  thp_sig:   200    // ms — «>200» sugiere estenosis significativa
+  thp_sig:   200,   // ms — «>200» sugiere estenosis significativa
+  /* ⚠️ EL CORTE DE VELOCIDAD DE LA TABLA **12** ES OTRO, y no es un detalle: 1,9 m/s (S 90 %,
+     E 89 %), no los 2,5 de la Tabla 11. La primera versión de la fila del patrón de regurgitación
+     usaba el 2,5, o sea que se contradecía con la entrada bibliográfica que este mismo cambio
+     agrega — ahí el 1,9 está transcrito. Consecuencia medida: velocidad pico 2,1 m/s con THP de
+     100 ms y sin gradiente ni relación VTI cargados —el transtorácico corriente— NO pintaba la
+     fila, y el panel publicaba «posible estenosis» sobre un patrón que la Tabla 12 atribuye a
+     REGURGITACIÓN. Justo lo que la nota 7 de la sección advierte que se pasa por alto. */
+  vmax_t12:  1.9    // m/s — «≥1.9» con THP normal orienta a regurgitación (Tabla 12)
 });
 /* Tabla 13, p. 30. ⚠️ LA TABLA ESTÁ EN **cm**, y el campo `im_vc` de esta app está en **mm**: el
    corte se publica en las dos unidades y se compara contra el milímetro, que es lo que el médico
@@ -42339,10 +42352,19 @@ function _protmRecom(D){
         fuente:PROTM_FUENTE_ESC, ref:PROTM_REF_ESC,
         nota:'La decisión entre cierre transcatéter y cierre quirúrgico es del Heart Team (Clase I · Nivel C): evalúa el riesgo del paciente, la morfología de la fuga y la experiencia del centro.' };
       /* ⚠️ LA SEGUNDA FILA, NO UNA NOTA. Tiene clase IIa y NIVEL B —mejor evidencia que la I · C de
-         arriba— así que va al slot que la imprime como recomendación, con su propia cita. */
+         arriba— así que va al slot que la imprime como recomendación, con su propia cita.
+         ⚠️ Y POR ESO `PROTM_REC_AHA_2020.reg_cx` QUEDA SIN PUBLICARSE, declarado y no corregido.
+         Esa fila —«Cirugía RECOMENDADA ante hemólisis intratable o insuficiencia cardíaca por
+         fuga», Clase 1 · Nivel B-NR— respalda la MISMA conducta que la europea llama I · C y con
+         MEJOR nivel, y este paciente cumple su condición textual. Meterla en la `nota` del padre
+         la publicaría como una clase de guía SIN CORCHETE que la cite, porque en esta rama la
+         ACC/AHA no entra a la bibliografía de la sección —el slot `mod`, que es el único que lleva
+         `ref` propio, ya lo ocupa el cierre transcatéter—. Una clase sin decir de dónde sale es el
+         defecto que este panel persigue; publicarla exige un segundo slot de recomendación, que
+         es un cambio del contrato de `_indRecomHTML` y no de esta sección. */
       o.mod = { tit:'También aplica', txt:PROTM_REC_2025.pvl_tc.t, clase:PROTM_REC_2025.pvl_tc.c,
         fuente:PROTM_FUENTE_ESC, ref:PROTM_REF_ESC,
-        nota:'La ACC/AHA 2020 coincide y agrega condiciones: el cierre percutáneo es razonable (Clase 2a · Nivel B-NR) cuando el riesgo quirúrgico es alto o prohibitivo y la anatomía es apta, en un centro de referencia.' };
+        nota:'La ACC/AHA 2020 coincide y agrega condiciones: el cierre percutáneo es razonable (' + PROTM_REC_AHA_2020.reg_perc.c + ') cuando el riesgo quirúrgico es alto o prohibitivo y la anatomía es apta, en un centro de referencia.' };
       return o;
     }
     return { tipo:'ind', tit:'Recomendación de la guía', txt:PROTM_REC_2025.pvl_ht.t, clase:PROTM_REC_2025.pvl_ht.c,
@@ -42378,6 +42400,15 @@ function _protmRecom(D){
     }
     return o;
   }
+
+  /* ⚠️ Y ACÁ LA COMPUERTA DE DISFUNCIÓN, DESPUÉS de la fuga periprotésica y de la trombosis —que
+     tienen filas propias con su propia condición— y ANTES de las cuatro transvalvulares, que son
+     las que la exigen textualmente.
+     ⚠️ CORTA HACIA `falta`, NUNCA HACIA `no`. Con la prótesis sin medir, «sin fila de intervención
+     para este paciente» sería una negación publicada sobre cero evidencia —el defecto de los tres
+     selects del TEER— y encima la más tranquilizadora posible. «Falta el dato» es lo que es. */
+  if (!D.disf) return fal('Las filas de reoperación y de valve-in-valve exigen, en su propio texto, DISFUNCIÓN PROTÉSICA SIGNIFICATIVA, y este estudio no la documenta: ni obstrucción por EOA o relación VTI, ni regurgitación severa, ni velocidad pico, gradiente medio o THP por encima del corte. Sin eso ninguna de las cuatro aplica — y no haberla medido no es haberla descartado.',
+    ['Disfunción protésica significativa']);
 
   if (sx == null) return fal('Las filas de reoperación y de valve-in-valve son del paciente SINTOMÁTICO; la de reoperación en el asintomático es otra fila, con otra clase.',
     ['Síntomas']);
@@ -42429,6 +42460,20 @@ function _indProtM(){
 
   const tipo = _protmTipo();
   const tipoTxt = tipo === 'mec' ? 'Prótesis mecánica' : (tipo === 'bio' ? 'Prótesis biológica' : 'Prótesis, tipo no consignado');
+
+  /* ⚠️ LA COMPUERTA DE LA SECCIÓN TIENE DOS PUERTAS Y LOS NÚMEROS TIENEN UNA. `vmEsProtesis()`
+     —la que decide si esta tarjeta existe— pregunta por `vm_morf` **o** por `ete_etiologia`, y
+     falla cerrada, que es lo correcto. Pero `vmProtEOA()` y los cortes protésicos de `calcIM_ESC`
+     preguntan a `_imVmProt()`, que mira SÓLO `#vm_morf`. En el estado asimétrico —el ETE dice
+     prótesis y Válvulas una morfología nativa— la tarjeta se pinta, el EOA, la relación VTI y el
+     PPM salen los tres vacíos, y la fila del grado de insuficiencia afirmaría que «la graduación
+     ya usa los cortes de PRÓTESIS»: falso justo en el único estado donde importa.
+     NO se unifican los predicados —eso cambia el alcance de la Fase A, que está declarado y es
+     otro cambio—: se DECLARA, en el `aviso` y en la fila que lo afirmaba.
+     ⚠️ NO SE ALCANZA TIPEANDO: el `onchange` de `ete_etiologia` llama a `eteVmPropagar`, que pisa
+     `vm_morf`. Llega por import de Excel, por backup JSON y por estudio legado, que reponen con
+     `.value` sin disparar evento. */
+  const _protDom = _indFn('_imVmProt') && _imVmProt();
 
   /* ⚠️ LOS NÚMEROS SALEN DE `vmProtEOA()`, QUE ES EL DUEÑO. Esa función ya aplica la Tabla 11 al
      EOA y al DVI, ya retira el EOA cuando hay regurgitación significativa —porque el volumen
@@ -42513,11 +42558,21 @@ function _indProtM(){
      especificidad para regurgitación protésica significativa «is close to 100%» (nota * de la
      Tabla 12). Por eso es una fila `warn` y no una nota al pie: cambia el diagnóstico. */
   const thpNormal = (thp != null && thp < E.thp_norm);
-  const flujoAlto = (vmax != null && vmax >= E.vmax_sig) || (!gmL.fuera && gmed != null && gmed >= E.gmed_norm)
-                 || (dvi != null && UDS != null && dvi >= UDS);
+  /* Cada parámetro con SU corte de la Tabla 12: velocidad ≥1,9 · gradiente medio ≥5 · relación
+     VTI ≥2,5. El de la velocidad NO es el de la Tabla 11 — ver la nota de `vmax_t12`. */
+  const t12vel = (vmax != null && vmax >= E.vmax_t12);
+  const t12vti = (dvi != null && UDS != null && dvi >= UDS);
+  const flujoAlto = t12vel || (!gmL.fuera && gmed != null && gmed >= E.gmed_norm) || t12vti;
   if (thpNormal && flujoAlto) {
+    /* ⚠️ LA FRASE DE LA ESPECIFICIDAD SE CONDICIONA, porque la nota * de la Tabla 12 la ata a que
+       la velocidad pico Y la relación VTI estén altas A LA VEZ. El predicado de arriba es un OR,
+       así que la fila también se pinta con el gradiente medio solo — que es el criterio MENOS
+       específico de los tres (E 70 % contra 89 % y 91 %). Afirmar «cerca del 100 %» ahí sería
+       texto que dice más que el código. */
     filas.push(_indFila('Gradiente alto con THP normal', 'Patrón de la Tabla 12', 'warn',
-      'con el THP normal, la velocidad pico, el gradiente medio y la relación VTI elevados orientan a REGURGITACIÓN protésica significativa y no a estenosis. Con velocidad pico y relación VTI altas a la vez, la especificidad se acerca al 100 %. Confirmar por ETE',
+      'con el THP normal, la velocidad pico, el gradiente medio y la relación VTI elevados orientan a REGURGITACIÓN protésica significativa y no a estenosis'
+      + ((t12vel && t12vti) ? '. Con la velocidad pico y la relación VTI altas a la vez, la especificidad se acerca al 100 %' : '')
+      + '. Confirmar por ETE',
       [PROTM_REF_ASE]));
   }
 
@@ -42525,8 +42580,18 @@ function _indProtM(){
   const imSev = _indS('im_sev_final');
   filas.push(_indFila('Grado de insuficiencia mitral',
     imSev === '4' ? 'Severa' : (imSev === '3' ? 'Moderada-severa' : (imSev === '2' ? 'Moderada' : (imSev === '1' ? 'Leve' : (imSev === '0' ? 'Sin insuficiencia' : '—')))),
-    imSev === '4' ? 'ok' : 'none',
-    'la graduación de esta aplicación ya usa los cortes de PRÓTESIS para la relación jet/AI y para la relación VTI; los parámetros cuantitativos de abajo son los de la Tabla 13',
+    /* ⚠️ LA CADENA VACÍA NO ES «SIN INSUFICIENCIA»: es un estudio importado sin esa columna, o sea
+       AUSENCIA DE DATO. Colapsarla en `none` la publicaba con la marca de «evaluado y no cumple»
+       —y con la nota que afirma que la graduación se hizo— sobre la válvula donde la nota 7 de
+       esta misma sección advierte que la regurgitación significativa se pasa por alto en el
+       transtorácico. El `'0'` sí es una respuesta: es el valor de fábrica, y en el flujo de esta
+       app significa «valorada como normal». */
+    imSev === '4' ? 'ok' : (imSev === '' || imSev == null ? 'ask' : 'none'),
+    (imSev === '' || imSev == null)
+      ? 'no consta en este estudio. La regurgitación protésica se evalúa mejor por ETE, sobre todo en las mecánicas'
+      : (_protDom
+         ? 'la graduación de esta aplicación ya usa los cortes de PRÓTESIS para la relación jet/AI y para la relación VTI; los parámetros cuantitativos de abajo son los de la Tabla 13'
+         : 'se graduó con los cortes de válvula NATIVA: la prótesis está consignada en el ETE y no en la pestaña Válvulas, que es de donde lee el graduador. Los parámetros de abajo son los de la Tabla 13'),
     [PROTM_REF_ASE]));
   filas.push(_indFila('Ancho de vena contracta',
     vcL.fuera ? _indNum(vcL.crudo, 1, 'mm') : _indNum(vc, 1, 'mm'),
@@ -42559,8 +42624,14 @@ function _indProtM(){
      sección es la trombosis DE LA PRÓTESIS, que se pregunta aparte—. */
   const oaiT = _indS('oai_trombo');
   if (oaiT === 'si' || oaiT === 'sospecha') {
-    filas.push(_indFila('Trombo en aurícula izquierda',
-      oaiT === 'si' ? 'Confirmado' : 'Sospecha', 'alarm',
+    /* ⚠️ EL RÓTULO SALE DE `EM_LBL_TROMBO`, que existe como rótulo ÚNICO precisamente porque ya
+       divergió una vez: la misma tarjeta mostraba la fila con un nombre y «Falta contestar» con
+       otro. Escribir el literal acá lo convertía en la tercera copia, en otra sección.
+       ⚠️ Y LA SOSPECHA VA `warn`, NO `alarm` — que es lo que hace `_indEM` con el mismo campo.
+       Con `alarm` la misma respuesta del mismo campo pesaba distinto según qué tarjeta la pintara,
+       y de paso abría la sección sola sobre una sospecha no confirmada. */
+    filas.push(_indFila((typeof EM_LBL_TROMBO === 'string' ? EM_LBL_TROMBO : 'Trombo en aurícula izquierda'),
+      oaiT === 'si' ? 'Confirmado' : 'Sospecha', oaiT === 'si' ? 'alarm' : 'warn',
       oaiT === 'si'
         ? 'exige anticoagulación por sí mismo, con independencia de lo que se decida sobre la prótesis. Ante la sospecha de trombosis protésica, la guía indica ETE y/o TC-4D para confirmar el diagnóstico'
         : 'sospecha no confirmada: la guía indica ETE y/o TC-4D para confirmar o descartar',
@@ -42586,15 +42657,21 @@ function _indProtM(){
       _tromb === 'si' ? 'ok' : (_tromb === 'no' ? 'none' : 'ask'),
       'las dos filas de reoperación exigen textualmente que la disfunción NO sea atribuible a trombosis; ante la sospecha, la guía indica ETE y/o TC-4D para confirmarla',
       [PROTM_REF_ESC]),
+    /* ⚠️ LA MARCA ES POR RESPUESTA, NO POR «ESTÁ CONTESTADO». La leyenda define ✅ como «este dato
+       alcanza un criterio de la guía», y `_rq ? 'ok'` pintaba ✅ sobre **Bajo**, que es justamente
+       la respuesta con la que la fila del valve-in-valve NO aplica. Se pinta una cosa y se cuenta
+       la otra — los otros cuatro controles de esta sección ya usan la forma de tres estados. */
     _indFilaCtrl('Riesgo quirúrgico', 'protm.riesgo', [{v:'bajo',t:'Bajo'},{v:'alto',t:'Intermedio o alto'}],
-      _rq ? 'ok' : 'ask',
+      _rq === 'alto' ? 'ok' : (_rq === 'bajo' ? 'none' : 'ask'),
       'la fila del asintomático exige riesgo BAJO; la de valve-in-valve transvenoso mitral exige riesgo INTERMEDIO O ALTO',
       [PROTM_REF_ESC])
   ];
   if (_peri === 'si') {
     clinica.push(_indFilaCtrl('Repercusión de la fuga periprotésica', 'protm.hemol',
       [{v:'si',t:'Alguna de las tres'},{v:'no',t:'Ninguna'}],
-      _hemol ? 'ok' : 'ask',
+      /* Mismo motivo que el control de riesgo: «Ninguna» es la respuesta con la que la fila de
+         reoperación NO aplica —cae en `pvl_ht`— así que no puede salir ✅. */
+      _hemol === 'si' ? 'ok' : (_hemol === 'no' ? 'none' : 'ask'),
       'la fila de reoperación exige endocarditis, o hemólisis que exige transfusiones repetidas, o síntomas de insuficiencia cardíaca. No alcanza con que haya hemólisis',
       [PROTM_REF_ESC]));
   }
@@ -42605,8 +42682,34 @@ function _indProtM(){
       [PROTM_REF_ESC]));
   }
 
+  /* ⚠️⚠️ LA COMPUERTA DE DISFUNCIÓN, Y ES LA QUE FALTABA. Las cuatro filas transvalvulares de la
+     Table 17 dicen, en su propio texto, «con DISFUNCIÓN SIGNIFICATIVA» — y hasta acá esa
+     precondición vivía SÓLO en la prosa de la recomendación: `_protmRecom` recibía el tipo de
+     prótesis y nada más, así que decidía con las cuatro pastillas clínicas y con ningún número.
+     Medido antes de cerrarlo: prótesis mecánica con EOA 2,51 cm², gradiente medio 3 mmHg, THP
+     95 ms y sin insuficiencia —o sea las nueve filas en «normal» o «sin medir»— más cuatro toques
+     (sin fuga, sin trombosis, con síntomas, riesgo alto) publicaba **«Reoperación RECOMENDADA —
+     Clase I · Nivel C»** y el valve-in-valve IIa · B, con la tarjeta ABIERTA SOLA. Idéntico con
+     CERO mediciones cargadas. Un paciente disneico por EPOC con una prótesis sana recibía una
+     indicación quirúrgica de Clase I.
+     A diferencia de las otras secciones mitrales, la compuerta de SECCIÓN no la aporta: `_indIM`
+     gatea en `im_sev_final === '4'` y `_indEM` en el grado; ésta gatea en «es una prótesis», que
+     no es un criterio de severidad. La cascada no heredaba nada.
+     Se arma con lo que la sección YA LEYÓ —`P.obstr` es el veredicto de `vmProtEOA`, no un
+     recálculo— y con `_ge`/`_gt`, nunca con comparaciones crudas: `null >= 0` es `true` y la
+     compuerta fallaría ABIERTA, que es el lado que esto viene a cerrar. */
+  const disf = (P && P.obstr === 'significativa')
+            || imSev === '4'
+            || (!vcL.fuera && _ge(vc, PROTM_REG_2024.vc_sev_cm * 10))
+            || (!gmL.fuera && _gt(gmed, E.gmed_sig))
+            || _ge(vmax, E.vmax_sig)
+            || _gt(thp, E.thp_sig);
+
   return { filas: filas, clinica: clinica,
-    recom: _protmRecom({ tipo: tipo }),
+    aviso: _protDom ? '' :
+      'El ETE consigna una prótesis mitral y la pestaña Válvulas no (' + (_indS('vm_morf') || 'sin morfología consignada') +
+      '). Con esa discordancia el EOA, la relación VTI y el PPM no se calculan, y el grado de insuficiencia se graduó con los cortes de válvula NATIVA. Corregir la morfología en Válvulas.',
+    recom: _protmRecom({ tipo: tipo, disf: disf }),
     guia: { ref:PROTM_REF_ESC,
       txt:'En la disfunción protésica significativa la reoperación es Clase I · Nivel C en el paciente sintomático, y el valve-in-valve transvenoso mitral es Clase IIa · Nivel B con riesgo quirúrgico intermedio o alto. Ninguna de las dos domina a la otra.' },
     notas: [
@@ -42651,7 +42754,25 @@ function _protmAssertUmbrales(){
     ['PROTM_EST_2024.vmax_sig', PROTM_EST_2024.vmax_sig,      2.5,  '2,5 m/s'],
     ['PROTM_EST_2024.gmed_sig', PROTM_EST_2024.gmed_sig,      10,   '10 mmHg'],
     ['PROTM_EST_2024.thp_sig',  PROTM_EST_2024.thp_sig,       200,  '200 ms'],
-    ['PROTM_REG_2024.vc_sev_cm', PROTM_REG_2024.vc_sev_cm,    0.7,  '0,7 cm (7 mm)']
+    ['PROTM_REG_2024.vc_sev_cm', PROTM_REG_2024.vc_sev_cm,    0.7,  '0,7 cm (7 mm)'],
+    /* ⚠️ LA PRIMERA VERSIÓN VIGILABA SIETE Y LA PROSA TIENE CABLEADOS QUINCE. Los que faltaban,
+       cada uno escrito a mano en el texto de una fila o de una nota: los cuatro cortes de las
+       ramas «normal» y «posible», el corte de la Tabla 12 —que es el que más fácil se confunde
+       con el de la Tabla 11— y, sobre todo, los CINCO del PPM, que la nota 8 transcribe enteros
+       («normal por encima de 1,2 y severo hasta 0,90; con IMC de 30 o más, normal por encima de
+       1,0 y severo hasta 0,75») y cuyo dueño vive en otro bloque. Mover `VM_PROT_PPM_CORTES`
+       dejaba esa nota publicando los cortes viejos con una cita numerada de la ASE al lado y sin
+       una sola señal — que es literalmente el modo de falla que este assert existe para cerrar. */
+    ['PROTM_EST_2024.vmax_norm', PROTM_EST_2024.vmax_norm,    1.9,  '1,9 m/s'],
+    ['PROTM_EST_2024.vmax_t12',  PROTM_EST_2024.vmax_t12,     1.9,  '1,9 m/s (Tabla 12)'],
+    ['PROTM_EST_2024.gmed_norm', PROTM_EST_2024.gmed_norm,    5,    '5 mmHg'],
+    ['PROTM_EST_2024.thp_norm',  PROTM_EST_2024.thp_norm,     130,  '130 ms'],
+    ['PROTM_REG_2024.vc_mod_cm', PROTM_REG_2024.vc_mod_cm,    0.3,  '0,3 cm (3 mm)'],
+    ['VM_PROT_IMC_OBESIDAD',     window.VM_PROT_IMC_OBESIDAD, 30,   'IMC de 30'],
+    ['VM_PROT_PPM_CORTES.imcBajo.normalMin',  (window.VM_PROT_PPM_CORTES || {}).imcBajo ? window.VM_PROT_PPM_CORTES.imcBajo.normalMin  : null, 1.2,  '1,2 cm²/m²'],
+    ['VM_PROT_PPM_CORTES.imcBajo.severoMax',  (window.VM_PROT_PPM_CORTES || {}).imcBajo ? window.VM_PROT_PPM_CORTES.imcBajo.severoMax  : null, 0.90, '0,90 cm²/m²'],
+    ['VM_PROT_PPM_CORTES.imcAlto.normalMin',  (window.VM_PROT_PPM_CORTES || {}).imcAlto ? window.VM_PROT_PPM_CORTES.imcAlto.normalMin  : null, 1.0,  '1,0 cm²/m²'],
+    ['VM_PROT_PPM_CORTES.imcAlto.severoMax',  (window.VM_PROT_PPM_CORTES || {}).imcAlto ? window.VM_PROT_PPM_CORTES.imcAlto.severoMax  : null, 0.75, '0,75 cm²/m²']
   ];
   const mal = esp.filter(e => e[1] !== e[2])
     .map(e => e[0] + ' = ' + e[1] + ' pero los textos de la sección de prótesis mitral dicen ' + e[3]);
@@ -86470,8 +86591,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260930-1027';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790774878181;                 /* eco-build-ms */
+const ECO_BUILD    = '20260930-1135';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790778946427;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -86557,7 +86678,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260930-1027</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260930-1135</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

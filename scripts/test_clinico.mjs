@@ -30849,11 +30849,18 @@ caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declara
         (!rCal || pl(rNor.txt) !== pl(rCal.txt)),
         rNor ? (rNor.tipo + ' / ' + (rNor.faltan || []).join(' | ')) : 'null']);
 
-      /* Una protesis mitral entra a esta seccion por el area medida y tampoco es candidata. */
-      esc(Object.assign({ vm_morf:'Pr\u00f3tesis mec\u00e1nica' }, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN));
-      const rPro = rec();
-      ex.push(['una protesis mitral tampoco recibe la cascada de comisurotomia',
-        !!rPro && rPro.tipo === 'no', rPro ? rPro.tipo : 'null']);
+      /* \u26a0\ufe0f REAPUNTADA (2026-09-30): antes esta condicion exigia que la cascada devolviera
+         tipo \u00abno\u00bb sobre una protesis. Desde que _indEM lleva compuerta de protesis, la SECCION
+         ENTERA no existe para ese paciente \u2014 que es un invariante MAS FUERTE que el anterior: no
+         hay cascada que pueda ofrecer nada. Mantener la afirmacion vieja habria empujado a
+         quitarle la compuerta el dia que alguien la \u00abarreglara\u00bb, que es lo que este archivo ya
+         documenta con TC-296, TC-31 y TC-87.
+         Sin marcas: con la seccion apagada sus controles no existen, y pedirlos ensuciaria el
+         denominador de clics sin que eso signifique nada. */
+      esc(Object.assign({ vm_morf:'Pr\u00f3tesis mec\u00e1nica' }, W8), null);
+      const sPro = (function(){ try { return window._indEM(); } catch (e) { return 'ERR'; } })();
+      ex.push(['una protesis mitral no recibe la cascada de comisurotomia: la seccion NO se pinta',
+        sPro === null, 'seccion=' + (sPro === null ? 'null' : (sPro === 'ERR' ? 'ERR' : 'OBJETO'))]);
 
       // ══ 2 · «VARIAS» NO ES UNA ══════════════════════════════════════════════════════════
       esc(Object.assign({}, REU, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'una' }, SIN));
@@ -30949,14 +30956,29 @@ caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declara
       const rTrNor = rec();
       esc({ vm_morf:'Calcificada', oai_trombo:'si' }, { 'em.sintomas':'si', 'em.clin':'fav' });
       const rTrCal = rec();
-      esc({ vm_morf:'Pr\u00f3tesis mec\u00e1nica', oai_trombo:'si' }, { 'em.sintomas':'si', 'em.clin':'fav' });
-      const rTrPro = rec();
+      /* \u26a0\ufe0f LA PROTESIS SALIO DE ACA Y SU ALARMA NO SE PERDIO: CAMBIO DE TARJETA. _indEM ya no se
+         pinta con una protesis, asi que su cascada no puede publicar nada; la alarma de trombo
+         \u2014que pide anticoagulacion por su cuenta, y en una mecanica es el hallazgo que mas conducta
+         cambia\u2014 la repone _indProtM como fila propia. Se verifica LO MISMO que antes: que el
+         hallazgo siga estando. Lo que cambia es donde mirarlo. */
+      esc({ vm_morf:'Pr\u00f3tesis mec\u00e1nica', oai_trombo:'si' }, null);
+      const sTrPro = (function(){ try { return window._indEM(); } catch (e) { return 'ERR'; } })();
+      const fTrPro = (function(){
+        try { const s = window._indProtM(); if (!s || !s.filas) return null;
+          for (let i = 0; i < s.filas.length; i++)
+            if (pl(s.filas[i].lbl).indexOf('trombo') > -1) return s.filas[i];
+          return null; } catch (e) { return 'ERR'; }
+      })();
       ex.push(['sin morfologia consignada, el trombo confirmado sigue siendo la ALARMA y no «falta un dato»',
         !!rTrNor && rTrNor.tipo === 'alarma' && pl(rTrNor.tit).indexOf('trombo confirmado') > -1,
         rTrNor ? (rTrNor.tipo + ' / ' + rTrNor.tit) : 'null']);
       ex.push(['con etiologia NO reumatica tampoco se tapa: el trombo manda igual',
-        !!rTrCal && rTrCal.tipo === 'alarma' && !!rTrPro && rTrPro.tipo === 'alarma',
-        'calcificada=' + (rTrCal ? rTrCal.tipo : '?') + ' protesis=' + (rTrPro ? rTrPro.tipo : '?')]);
+        !!rTrCal && rTrCal.tipo === 'alarma',
+        'calcificada=' + (rTrCal ? rTrCal.tipo : '?')]);
+      ex.push(['y en la PROTESIS la alarma no se pierde: esta seccion no se pinta y la repone la de protesis mitral',
+        sTrPro === null && !!fTrPro && fTrPro !== 'ERR' && fTrPro.marca === 'alarm',
+        'seccionEM=' + (sTrPro === null ? 'null' : 'OBJETO') +
+        ' filaProtesis=' + (fTrPro && fTrPro !== 'ERR' ? fTrPro.lbl + '[' + fTrPro.marca + ']' : String(fTrPro))]);
       /* Y las contraindicaciones evaluables tampoco: el area por encima del corte sigue cortando
          antes que la morfologia sin consignar. */
       esc({ vm_morf:'Normal', em_grado:'severa', avm_plan:'1.8' }, { 'em.sintomas':'si', 'em.clin':'fav', 'em.trombo':'no' });
@@ -30969,17 +30991,16 @@ caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declara
          degenerativa: con un texto unico, una protesis obstruida recibia un razonamiento sobre
          estenosis degenerativa y se le ofrecia el implante transcateter para calcificacion anular,
          que no le toca. */
-      esc({ vm_morf:'Pr\u00f3tesis mec\u00e1nica' }, Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN));
-      const rProt = rec();
       esc({ vm_morf:'Calcificada' }, Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN));
       const rCalc = rec();
-      ex.push(['a una protesis NO se le ofrece el implante transcateter de la calcificacion anular',
-        !!rProt && pl(rProt.txt).indexOf('protesis mitral no aplica ninguna fila') > -1 &&
-        pl(rProt.txt).indexOf('calcificacion anular extensa') === -1,
-        rProt ? String(rProt.txt).slice(60, 200) : 'null']);
+      /* \u26a0\ufe0f EL TEXTO DE LA PROTESIS QUEDO INALCANZABLE, y esta condicion lo fija POR AUSENCIA.
+         Desde la compuerta, _indEM no se pinta con una protesis, asi que su rama de motivo por
+         morfologia protesica ya no se puede alcanzar \u2014 no hay forma de que le ofrezca el implante
+         transcateter de la calcificacion anular porque no hay tarjeta. Lo que se comprueba es que
+         la calcificada SI lo reciba: sin esa mitad, \u00abla protesis no lo recibe\u00bb se cumpliria
+         tambien con la rama borrada para todos. */
       ex.push(['y a la calcificada SI, que es la etiologia para la que la guia la escribe',
-        !!rCalc && pl(rCalc.txt).indexOf('calcificacion anular extensa') > -1 &&
-        rCalc.txt !== (rProt ? rProt.txt : null),
+        !!rCalc && pl(rCalc.txt).indexOf('calcificacion anular extensa') > -1,
         rCalc ? String(rCalc.txt).slice(60, 200) : 'null']);
       ex.push(['el bloque que transcribe una clase en prosa CITA su documento con corchete',
         !!rCalc && rCalc.ref === 'esc2025vc' && !rCalc.clase,
@@ -41044,6 +41065,59 @@ caso('TC-331', 'Protesis mitral: la seccion publica los cortes de la ASE 2024 y 
     R.trFila  = !!fila(oTr, 'trombo en auricula');
     R.trMarca = (fila(oTr, 'trombo en auricula') || {}).marca;
 
+    // ── (9b) LA COMPUERTA DE DISFUNCION — el hallazgo mas grave del /sharp-edges ──────────────
+    /* ⚠️ Las cuatro filas transvalvulares de la Table 17 dicen «con DISFUNCION SIGNIFICATIVA» en
+       su propio texto, y esa precondicion vivia SOLO en la prosa: _protmRecom decidia con las
+       cuatro pastillas clinicas y con ningun numero. Medido antes de cerrarlo: protesis con EOA
+       2,51 cm², gradiente 3 mmHg, THP 95 ms y sin insuficiencia —las nueve filas en normal— mas
+       cuatro toques publicaba «Reoperacion RECOMENDADA — Clase I · Nivel C» con la tarjeta abierta
+       sola. Y con CERO mediciones, lo mismo.
+       Se prueban los DOS lados: la protesis sana no recibe indicacion, y la disfuncionante SI —sin
+       esa segunda mitad, una compuerta que cortara siempre pasaria en verde. */
+    const oSana = escenario(Object.assign({}, PROT, {
+      em_vmax: '1.4', em_gmedio: '3', thp: '95',
+      em_dtsvi: '20', em_vtitsvi: '20', em_vtimit: '25', peso: '80', talla: '180'
+    }), [['protm.peri','no'], ['protm.tromb','no'], ['protm.sintomas','si'], ['protm.riesgo','alto']]);
+    R.sanaTipo  = oSana && oSana.recom ? oSana.recom.tipo : null;
+    R.sanaClase = oSana && oSana.recom ? (oSana.recom.clase || null) : null;
+    R.sanaFalta = oSana && oSana.recom && oSana.recom.faltan ? pl(oSana.recom.faltan.join(' ')) : '';
+
+    const oVacia = escenario(Object.assign({}, PROT, {}),
+      [['protm.peri','no'], ['protm.tromb','no'], ['protm.sintomas','si'], ['protm.riesgo','alto']]);
+    R.vaciaTipo  = oVacia && oVacia.recom ? oVacia.recom.tipo : null;
+    R.vaciaClase = oVacia && oVacia.recom ? (oVacia.recom.clase || null) : null;
+
+    // ── (9c) El corte de la Tabla 12 es 1,9 — NO el 2,5 de la Tabla 11 ───────────────────────
+    /* Velocidad 2,1 con THP 100 y sin gradiente ni relacion VTI: el transtoracico corriente. Con
+       el corte equivocado la fila no se pintaba y el panel publicaba «posible estenosis» sobre un
+       patron que la Tabla 12 atribuye a REGURGITACION. */
+    const oT12 = escenario(Object.assign({}, PROT, { em_vmax: '2.1', thp: '100', peso: '80', talla: '180' }));
+    R.t12Hay  = !!fila(oT12, 'gradiente alto con thp normal');
+    R.t12Nota = pl((fila(oT12, 'gradiente alto con thp normal') || {}).nota || '');
+    /* Y con la velocidad Y la relacion VTI altas a la vez SI se afirma la especificidad, que es la
+       condicion que pone la nota * de la Tabla 12. Con el OR pelado se afirmaba siempre. */
+    const oT12b = escenario(Object.assign({}, PROT, {
+      em_vmax: '2.4', thp: '100', em_dtsvi: '20', em_vtitsvi: '18', em_vtimit: '70', peso: '80', talla: '180' }));
+    R.t12bNota = pl((fila(oT12b, 'gradiente alto con thp normal') || {}).nota || '');
+
+    // ── (9d) Las marcas de los dos controles que pintaban ✅ sobre la respuesta que NO cumple ──
+    const oMarcas = escenario(Object.assign({}, PROT, {
+      em_vmax: '2.8', em_gmedio: '12', thp: '240', peso: '80', talla: '180'
+    }), [['protm.peri','si'], ['protm.hemol','no'], ['protm.riesgo','bajo']]);
+    const ctrl = function(o, rot){
+      if (!o || !o.clinica) return null;
+      const t = pl(rot);
+      for (let i = 0; i < o.clinica.length; i++) if (pl(o.clinica[i].lbl).indexOf(t) >= 0) return o.clinica[i];
+      return null;
+    };
+    R.mRiesgo = (ctrl(oMarcas, 'riesgo quirurgico') || {}).marca;
+    R.mHemol  = (ctrl(oMarcas, 'repercusion de la fuga') || {}).marca;
+
+    // ── (9e) La SOSPECHA de trombo pesa como en _indEM: warn, no alarm ───────────────────────
+    const oSosp = escenario(Object.assign({}, PROT, {
+      em_vmax: '2.6', em_gmedio: '11', thp: '210', oai_trombo: 'sospecha', peso: '80', talla: '180' }));
+    R.sospMarca = (fila(oSosp, 'trombo') || {}).marca;
+
     // ── (10) LA PARTICION: con protesis, las tres nativas devuelven null ──────────────────────
     /* ⚠️ VAN EN DOS SUB-ESCENARIOS Y NO EN UNO, y la primera version los junto: ahi _indIM salia
        null igual —lo corta su PROPIA compuerta de mecanismo secundario, que no tiene nada que ver
@@ -41149,8 +41223,29 @@ caso('TC-331', 'Protesis mitral: la seccion publica los cortes de la ASE 2024 y 
       ['y la nota dice por que no aplica, en vez de callarlo',
         R.bajoNota.indexOf('valve-in-valve') >= 0, 'nota=«' + R.bajoNota.slice(0, 120) + '»'],
 
-      ['TROMBO: la alarma de la oreuela se repone en esta seccion',
+      ['TROMBO: la alarma de la orejuela se repone en esta seccion',
         R.trFila === true && R.trMarca === 'alarm', 'hay=' + R.trFila + ' marca=' + R.trMarca],
+      ['y la SOSPECHA pesa como en _indEM — warn, no alarm: la misma respuesta del mismo campo no puede valer distinto segun la tarjeta',
+        R.sospMarca === 'warn', 'marca=' + R.sospMarca],
+
+      ['⚠️ DISFUNCION: una protesis NORMOFUNCIONANTE no recibe indicacion, por sintomatico y de riesgo alto que sea',
+        R.sanaTipo === 'falta' && R.sanaClase == null && R.sanaFalta.indexOf('disfuncion') >= 0,
+        'tipo=' + R.sanaTipo + ' clase=' + R.sanaClase + ' faltan=«' + R.sanaFalta + '»'],
+      ['y con CERO mediciones tampoco — y corta hacia «falta», nunca hacia «sin fila de intervencion»',
+        R.vaciaTipo === 'falta' && R.vaciaClase == null,
+        'tipo=' + R.vaciaTipo + ' clase=' + R.vaciaClase],
+      ['DENOMINADOR: con disfuncion documentada SI publica — si no, una compuerta que corte siempre pasaria igual',
+        R.ccClase === 'Clase I · Nivel C', 'clase=' + R.ccClase],
+
+      ['TABLA 12: el corte de velocidad es 1,9 y no el 2,5 de la Tabla 11',
+        R.t12Hay === true, 'fila con vmax 2,1 y THP 100: ' + R.t12Hay],
+      ['y la especificidad cercana al 100 % se afirma SOLO con velocidad y relacion VTI altas a la vez',
+        R.t12Nota.indexOf('especificidad') < 0 && R.t12bNota.indexOf('especificidad') >= 0,
+        'soloVel=' + (R.t12Nota.indexOf('especificidad') >= 0) + ' velYvti=' + (R.t12bNota.indexOf('especificidad') >= 0)],
+
+      ['los controles marcan por RESPUESTA y no por «esta contestado»: «Bajo» y «Ninguna» no son ✅',
+        R.mRiesgo === 'none' && R.mHemol === 'none',
+        'riesgo=' + R.mRiesgo + ' hemolisis=' + R.mHemol],
 
       ['DENOMINADOR: con mitral NATIVA se pintan _indIM y _indEM, y la de protesis NO',
         R.imNativa === true && R.emNativa === true && R.protNativa === false,

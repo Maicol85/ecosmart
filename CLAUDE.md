@@ -188,6 +188,149 @@ Costó una corrida. **Al elegir un valor para un escenario, mirar primero si el 
 en dos rondas, todos en comentarios que acababa de escribir — y la segunda ronda fue en el
 comentario que explicaba la primera.
 
+### ⚠️ LO QUE `/sharp-edges` ENCONTRÓ SOBRE ESTE MISMO DIFF — y el primero publicaba una CLASE I
+
+Nueve hallazgos. Siete corregidos, dos declarados. El patrón: **una precondición que vive en la
+PROSA de la recomendación y no en el código no es una precondición.**
+
+**1 · CRÍTICO — LA CASCADA PUBLICABA «Reoperación RECOMENDADA — Clase I · Nivel C» SOBRE UNA
+PRÓTESIS SANA.** Las cuatro filas transvalvulares de la Table 17 dicen, en su propio texto, «con
+disfunción significativa» — y `_protmRecom` recibía `{tipo}` y nada más: decidía con las cuatro
+pastillas clínicas y **con ningún número**. Y la compuerta de sección no lo aportaba: `_indIM`
+gatea en `im_sev_final === '4'` y `_indEM` en el grado; ésta gatea en «es una prótesis», que no es
+un criterio de severidad.
+
+Medido antes de corregirlo, con tres escenarios:
+
+| escenario | antes | hoy |
+|---|---|---|
+| EOA 2,51 cm² · gradiente 3 · THP 95 · sin IM (las nueve filas en normal) + síntomas + riesgo alto | **Clase I · Nivel C** + ViV IIa · B, **tarjeta abierta sola** | `falta` — «Disfunción protésica significativa» |
+| **cero mediciones** + síntomas + riesgo alto | **Clase I · Nivel C** | `falta` |
+| normofuncionante + asintomático + riesgo bajo | **Clase IIa · Nivel C** + AHA 2a · B-NR | `falta` |
+
+O sea: un paciente disneico por EPOC o por FA, con una prótesis normal, recibía una indicación
+quirúrgica de Clase I. Hoy `disf` se arma con lo que la sección **YA LEYÓ** —`P.obstr` es el
+veredicto de `vmProtEOA`, no un recálculo— y con `_ge`/`_gt`, nunca crudo: `null >= 0` es `true`
+y la compuerta fallaría **abierta**, que es justo lo que viene a cerrar.
+
+**⚠️ Y CORTA HACIA `falta`, NUNCA HACIA `no`.** Con la prótesis sin medir, «sin fila de
+intervención para este paciente» sería una negación publicada sobre cero evidencia —el defecto de
+los tres selects del TEER— y encima la más tranquilizadora posible. Hay una mutación por cada
+lado: borrar la compuerta, y hacerla cortar hacia `no`.
+
+**2 · La compuerta de la sección tiene DOS puertas y los números tienen UNA.** `vmEsProtesis()`
+pregunta por `vm_morf` **o** por `ete_etiologia`; `vmProtEOA()` y los cortes protésicos de
+`calcIM_ESC` preguntan a `_imVmProt()`, que mira **sólo `#vm_morf`**. En el estado asimétrico la
+tarjeta se pinta, el EOA / la relación VTI / el PPM salen los tres vacíos, y la fila del grado
+afirmaba «la graduación ya usa los cortes de PRÓTESIS» — falso justo ahí. **No se unificaron los
+predicados** (eso cambia el alcance de la Fase A): se declara, en el `aviso` y en esa fila.
+⚠️ **NO se alcanza tipeando** —el `onchange` de `ete_etiologia` llama a `eteVmPropagar`, que pisa
+`vm_morf`— así que la condición «asimétrico» de TC-331 mide un estado **propagado**, no el
+asimétrico real. Llega por import de Excel, backup JSON o estudio legado, que reponen con
+`.value` sin evento. Queda dicho para no leer esa condición como más fuerte de lo que es.
+
+**3 · EL CORTE DE VELOCIDAD DE LA TABLA 12 ES 1,9 Y YO HABÍA PUESTO EL 2,5 DE LA TABLA 11** — o
+sea que el código se contradecía con la entrada bibliográfica que este mismo cambio agrega, donde
+el 1,9 está transcrito. Medido: velocidad pico **2,1 m/s con THP de 100 ms** y sin gradiente ni
+relación VTI —el transtorácico corriente— **no pintaba la fila**, y el panel publicaba «posible
+estenosis» sobre un patrón que la Tabla 12 atribuye a REGURGITACIÓN. Justo lo que la nota 7 de la
+sección advierte que se pasa por alto.
+
+**4 · Y el texto de esa fila afirmaba más que su predicado.** Decía «con velocidad pico y relación
+VTI altas a la vez la especificidad se acerca al 100 %» mientras el predicado es un **OR**: la
+fila se pinta con el gradiente medio solo, que es el criterio **menos** específico de los tres
+(E 70 % contra 89 % y 91 %). Hoy la frase se condiciona a que las dos estén altas.
+
+**5 · `im_sev_final` vacío salía `none`, que en la leyenda es «evaluado y no cumple».** La cadena
+vacía sólo puede venir de un estudio importado sin esa columna, o sea ausencia de dato — y la fila
+lo publicaba con la nota que afirma que la graduación se hizo. El `'0'` **sí** es una respuesta:
+es el valor de fábrica, y en el flujo de esta app significa «valorada como normal».
+
+**6 · Dos controles pintaban ✅ sobre la respuesta que NO cumple.** `_rq ? 'ok'` marcaba **«Bajo»**
+—la respuesta con la que la fila del valve-in-valve no aplica— y `_hemol ? 'ok'` marcaba
+**«Ninguna»**, que es donde la reoperación cae en `pvl_ht`. Los otros cuatro controles ya usaban
+la forma de tres estados. Se pintaba una cosa y se contaba la otra.
+
+**7 · El rótulo del trombo era la TERCERA copia, y la sospecha pesaba distinto según la tarjeta.**
+`EM_LBL_TROMBO` existe como rótulo único porque ya divergió una vez; acá se escribió el literal.
+Y `_indEM` marca la sospecha como `warn` mientras `_indProtM` la marcaba `alarm` — la misma
+respuesta del mismo campo con dos pesos, y de paso abriendo la sección sola sobre una sospecha no
+confirmada.
+
+**8 · El assert vigilaba SIETE constantes y la prosa tiene quince cableadas.** Faltaban los cuatro
+cortes de las ramas «normal», el de la Tabla 12 y —sobre todo— **los cinco del PPM**, que la nota 8
+transcribe enteros y cuyo dueño vive en otro bloque. Mover `VM_PROT_PPM_CORTES` dejaba esa nota
+publicando los cortes viejos con una cita numerada de la ASE al lado y sin ninguna señal.
+⚠️ **Y al ampliarlo apareció que `VM_PROT_IMC_OBESIDAD` estaba declarada y NO exportada**: el
+assert la habría leído `undefined` y **gritado en cada arranque sobre una app sana**. Un assert
+que avisa sin motivo deja de leerse — es el caso de `UMBRAL_FAC_VD_SEVERA`, que este archivo ya
+documenta. Se exportó.
+
+### Lo que la auditoría encontró y se decidió NO tocar
+
+- **⚠️ `em_vmax` y `thp` VOTAN SIN BANDA DE PLAUSIBILIDAD.** La sección lo declara en el texto de
+  las dos filas, y declararlo no impide que voten. Medido: **`em_vmax = 250`** (cm/s por m/s) sale
+  «250,0 m/s ✅ — sugiere estenosis protésica significativa»; y **`thp = 0,12`** (segundos por ms)
+  dispara la fila `warn` de la Tabla 12, o sea que **un dedazo de unidad invierte el diagnóstico**
+  publicado sobre una prótesis obstruida. En el sentido contrario es mudo: un THP de 95 tipeado
+  950 hace desaparecer esa fila sin señal.
+  **No se agregó la banda**, y el motivo es de alcance, no de criterio: `DCM_RANGO` lo consume
+  **el importador** —una fila con el valor fuera de banda se rechaza ENTERA— y `em_vmax` además lo
+  lee `calcEM`. O sea que tocarlo es tocar el Excel y un cálculo, las dos cosas prohibidas por el
+  encuadre de este cambio. **El precedente dice que la salida correcta es agregar la banda**
+  (`vp_gmax`, con estas mismas palabras). Queda como la deuda más concreta de esta sección.
+- **`PROTM_REC_AHA_2020.reg_cx` no se publica** — «Cirugía RECOMENDADA ante hemólisis intratable o
+  insuficiencia cardíaca por fuga», **Clase 1 · Nivel B-NR**, o sea la MISMA conducta que la
+  europea llama I · C y con MEJOR nivel. Meterla en la `nota` del padre la publicaría como una
+  clase de guía **sin corchete que la cite**, porque en esa rama la ACC/AHA no entra a la
+  bibliografía: el slot `mod` —el único que lleva `ref` propio— ya lo ocupa el cierre transcatéter.
+  Publicarla bien exige un segundo slot de recomendación, que es un cambio del contrato de
+  `_indRecomHTML`. Se probó, se revirtió y se declaró: **una cita sin corchete es peor que la
+  ausencia**, y ésta es la sección que publica dos filas concurrentes justamente para no esconder
+  la de mejor evidencia.
+- **`tromb_halt`, `est_reop`, `est_tromb` y `tromb_emb` están definidas y no se leen** — su
+  contenido está retipeado a mano dentro de notas en prosa. Lo mismo `PROTM_REG_2024.rvol_*`,
+  `rf_*`, `eroa_*` y `PROTM_PPM_TXTO_2024`: constante y prosa son dos copias desde el día uno.
+
+### Verificación
+
+**Suite 346/346 menos TC-223**, o sea **345/346**, y el único rojo es el documentado —fija
+`StudyDate:'20260921'` contra un `#fecha` que nace con la fecha de hoy, así que pasaba por
+coincidencia del calendario el día que se escribió—. **Con el pendrive montado**, así que los 17
+casos del visor y DICOM y los dos del CHM corrieron de verdad: no son cobertura apagada.
+
+**DIECINUEVE mutaciones, las DIECINUEVE en rojo y cada una en su condición.** Las cuatro
+compuertas, las cuatro de recomendación —incluida la que borra la compuerta de disfunción y la que
+la hace cortar hacia `no`—, el corte de la Tabla 12, la frase de la especificidad, el control
+desaparecido, las tres filas, las dos marcas, la sospecha de trombo, el corte del PPM movido
+—que cae por el assert— y la referencia apuntando a una clave no registrada, que cae en TC-322.
+
+**A/B contra la línea base de `main` (`a62daec`): 11 escenarios × 3 superficies = 33 mediciones,
+CERO diferencias**, corrido dos veces —antes y después de los arreglos de `/sharp-edges`—. Con
+denominador declarado (11 hashes de informe distintos de 11, informes de 408 a 858 caracteres, 434
+columnas de Excel en los dos árboles, cero 404 en los dos) y **con control negativo**: un canario
+que baja la FEVI mueve las tres superficies, así que el «idéntico» no es una sonda muda.
+
+**El PDF se MIDIÓ, no se razonó**: content stream de los dos escenarios que más lo ejercen
+—prótesis con estenosis y EM nativa severa— con **el panel de Evidencia ABIERTO durante la
+generación**, que es donde una fuga aparecería. 64 y 59 objetos de texto, 1 página, hashes
+idénticos a la base y distintos entre sí. Más el barrido estructural: `#indic-cuerpo` tiene
+**tres lectores** y los tres son del propio panel (`_indClinCablear`, `_indRepintarConservando`,
+`indicRender`); ninguna de las once piezas nuevas se nombra en un emisor de PDF, PPT o Excel.
+
+**Semgrep 125 / 0 ERROR**, el mismo número exacto que la línea base —corrido sobre los dos
+árboles—. `detectar_huerfanos.py` sin huérfanos nuevos. `check_mobile` en 43/52 con los **2 ALTA**
+de siempre. `node --check` por bloque: fallan **sólo** los bloques 0 y 1, la línea base del
+extractor.
+
+**TC-323 se puso en rojo y ésa era la señal.** Tres de sus condiciones llamaban a `_indEM()` sobre
+una prótesis esperando que la cascada devolviera `tipo:'no'`; con la compuerta, la sección **no
+existe** para ese paciente. Se reapuntaron al invariante que sobrevive y que es **más fuerte** —no
+hay cascada que pueda ofrecer nada— y la del trombo pasó a verificar que el hallazgo **cambió de
+tarjeta**: `_indEM()` es `null` y la fila `alarm` la publica `_indProtM`. Mantener la afirmación
+vieja habría empujado a quitar la compuerta el día que alguien «la arreglara», que es lo que este
+archivo ya documenta con TC-296, TC-31 y TC-87.
+
 ### Reportado y NO corregido
 
 - **Con prótesis mecánica el panel también pintaba «Válvula tricúspide», y NO es un defecto.**
