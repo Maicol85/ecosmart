@@ -21045,9 +21045,14 @@ function emThpMotivoNoVota(src){
    el corte y degrada a «probablemente severa» una estenosis severa real. Se banda el INSUMO, que es
    donde el error de unidad se puede leer; bandear el derivado exigiría una banda de áreas que
    confundiría «área imposible» con «área normal».
-   La rama `src` existe por el mismo motivo que en la continuidad: el exportador a Excel no tiene
-   formulario. Y `emThpValido` sigue siendo el ÚNICO dueño del voto, así que la pantalla, el informe
-   y el Excel preguntan lo mismo. */
+   ⚠️ LA RAMA `src` NO TIENE NINGÚN LLAMADOR HOY, y la primera versión de este comentario afirmaba
+   una simetría con la continuidad que no existe. Lo midió `/sharp-edges`: la columna «AVm
+   continuidad (cm²)» del Excel SÍ se vacía por `emContValido(c)`, y la columna «AVm (cm²)» exporta
+   `rnd(num('avm_thp'),2)` CRUDO, sin preguntarle a nadie. O sea que la pantalla y el informe
+   preguntan por `emThpValido` y el libro que cruza a CeiboAnalytics no. La rama se conserva porque
+   cablearla es de una línea el día que se decida, y porque borrarla invita a re-implementar la
+   lectura por `src` en el exportador; pero **es código muerto y queda declarado como tal**.
+   Cerrarlo toca el contrato del Excel, que está fuera del alcance de este cambio. */
 function emThpFueraBanda(src){
   const n = src ? PF(src['thp']) : v('thp');
   const x = (n == null || isNaN(n)) ? null : n;
@@ -21225,10 +21230,26 @@ function emCategoria(){
   const _pos = x => x != null && x > 0;
   /* Devuelve `true` si el campo TENÍA un valor —plausible o no—, para que el llamador distinga
      «no se midió» de «se midió y no se puede usar». */
-  const _tomar = (id, fuente, vota) => {
+  /* ⚠️ `insumo` — LA BANDA DEL DATO DE ENTRADA CUENTA COMO «REVISAR», NO COMO SILENCIO. Lo cazó
+     `/sharp-edges` sobre el diff que agregó la banda del THP, y la primera versión de esa banda
+     tenía el defecto: `emFueraBanda(id)` mira la banda del ÁREA —y `avm_thp` no tiene entrada en
+     `_labRango`, o sea que falla abierto—, así que el rechazo entraba por `vota()`, y esa rama no
+     empuja a NINGUNA lista. Medido con `thp = 0,12` como única medición mitral: `fuentes` y
+     `revisar` quedaban las dos vacías y la cápsula caía en «—», que este mismo bloque define como
+     «nadie midió nada». O sea que un THP ilegible se leía igual que una mitral nunca interrogada,
+     mientras la planimetría fuera de banda —el hermano que SÍ tiene banda de tabla— decía «Sin
+     clasificar — revisar unidad». La asimetría estaba dentro de la misma función.
+     Es la mitad que faltaba del precedente que la banda dice copiar: `etEstado` mete lo fuera de
+     banda en `fuera[]` Y en `hayDatos`, con el comentario «sin eso, un THP de 4000 ms salía por el
+     return temprano y desaparecía del informe sin que nadie lo nombrara».
+     ⚠️ Y SE ANOTA EL INSUMO, NO EL DERIVADO: lo que el médico tiene que corregir es el THP de 0,12,
+     no el área de 1833 cm² que sale de él. La cápsula imprime `fuente` y `avm`, así que publicar
+     el área mandaría a revisar la unidad de un número que el médico no tipeó. */
+  const _tomar = (id, fuente, vota, insumo) => {
     const x = v(id);
     if (!_pos(x)) return false;
     if (emFueraBanda(id)) { revisar.push({ avm:x, fuente:fuente, id:id }); return true; }
+    if (insumo) { const _r = insumo(); if (_r) { revisar.push(_r); return true; } }
     if (vota && !vota()) return true;
     fuentes.push({ avm:x, fuente:fuente });
     return true;
@@ -21239,7 +21260,8 @@ function emCategoria(){
      VOTE — y el 150 sigue visible con su marca. */
   const _hayPlan = _tomar('avm_plan', 'planimetría');
   if (!fuentes.length) _tomar('avm_ete', 'planimetría por ETE');
-  _tomar('avm_thp',  'THP',          emThpValido);
+  _tomar('avm_thp',  'THP',          emThpValido,
+    function(){ return emThpFueraBanda() ? { avm:v('thp'), fuente:'THP', id:'thp' } : null; });
   _tomar('avm_cont', 'continuidad',  emContValido);
 
   const sev   = fuentes.filter(function(f){ return emAvmSevera(f.avm); });
@@ -21353,11 +21375,16 @@ function calcEM() {
     const avmStr = avm_thp_val.toFixed(2);
     /* ⚠️ Y SE CLASIFICA EL REDONDEADO. Ver la nota grande de la cascada, más abajo. */
     avm_thp_val = PF(avmStr);
-    /* ⚠️ LA MARCA VA EN LOS DISPLAYS Y **NO** EN `avm_thp`. El valor de ese input se exporta al
-       Excel (`rnd(num('avm_thp'),2)`, columna «AVm (cm²)») y se imprime en el PDF firmado por
-       `vPdf('avm_thp',' cm2')`: pegarle « (revisar)» al valor guardado le mete texto a una celda
-       numérica y cambia dos superficies que este cambio no viene a tocar. La continuidad puede
-       hacerlo al revés —`setv('avm_cont', … + _marca)`— porque `avm_cont` no es de esos.
+    /* ⚠️ LA MARCA VA EN LOS DISPLAYS Y **NO** EN `avm_thp`. El valor de ese input viaja a TRES
+       superficies —el conteo de la primera versión de este comentario decía dos y lo corrigió
+       `/sharp-edges`—: el Excel (`rnd(num('avm_thp'),2)`, columna «AVm (cm²)»), la fila «AVm THP»
+       del PDF firmado (`vPdf('avm_thp',' cm2')`) y **`emAvmPdfVal()`**, que arma la fila «AVm» del
+       mismo PDF. Pegarle « (revisar)» al valor guardado le mete texto a una celda numérica y cambia
+       las tres. La continuidad puede hacerlo al revés —`setv('avm_cont', … + _marca)`— porque
+       `avm_cont` no es de esas.
+       ⚠️ DECLARADO Y NO CORREGIDO: `emAvmPdfVal()` imprime el THP **sin compuerta** —«THP: 1833.33
+       cm2» con `thp = 0,12`— mientras la continuidad, en la misma función y tres líneas más abajo,
+       sí la tiene. Cerrarlo es tocar el PDF, que está fuera del alcance de este cambio.
        Se marcan los TRES lugares donde el médico lo lee, el THP incluido: el número ilegible es
        ÉSE, y el área es sólo su consecuencia. */
     const _mt = emThpFueraBanda() ? ' (revisar)' : '';
@@ -21563,10 +21590,17 @@ function calcEM() {
 
   if (badgeEl) {
     if (protNoGradua('vm_morf')) badgeEl.textContent = PROT_SIN_GRADO_TXT;
-    /* `|| emThpBandaTxt()` y no una rama aparte: los dos motivos retiran el MISMO voto y el badge
-       tiene un solo renglón. El orden importa — la IAo severa es un hallazgo clínico y la banda es
-       un dedazo, así que si el valor es ilegible Y hay IAo severa manda el clínico. */
-    else if (v('avm_thp') != null && !emThpValido()) badgeEl.textContent = emThpMotivoNoVota() || emThpBandaTxt();
+    /* ⚠️ EL ORDEN ES POR TIPO DE MOTIVO, NO POR EL ORDEN DE LAS FUNCIONES, y la primera versión
+       —`emThpMotivoNoVota() || emThpBandaTxt()`— nombraba la causa equivocada. `emThpMotivoNoVota`
+       devuelve DOS cosas y sólo una es un hallazgo clínico: la IAo SEVERA lo es; «no se pudo
+       verificar la IAo» es otro fallo de LECTURA, igual que la banda. Con `thp = 0,12` y un
+       `ia_grado` ilegible el badge mandaba a revisar la IAo y callaba la unidad del THP: un mensaje
+       que manda a revisar lo que está sano. Hoy manda el hallazgo clínico, después la banda —que es
+       el dato que el médico tipeó mal y puede corregir ya— y al final el de verificación.
+       Lo cazó `/sharp-edges`. */
+    else if (v('avm_thp') != null && !emThpValido())
+      badgeEl.textContent = (emThpMotivoNoVota() === EM_THP_IA_TXT) ? EM_THP_IA_TXT
+        : (emThpFueraBanda() ? emThpBandaTxt() : emThpMotivoNoVota());
     else if (window.esqSevManual && window.esqSevManual.em) badgeEl.textContent = 'Grado fijado a mano — el autocálculo no lo pisa.';
     else if (!cat.fuentes.length && cat.gm == null) badgeEl.textContent = '';
     else badgeEl.textContent = 'Leve y moderada las elige el médico; «severa» la completa la app cuando el AVm es \u22641,5 cm².';
@@ -45038,8 +45072,18 @@ function indicRender(){
   /* ⚠️ FUERA DEL `if/else`, y arriba de todo. Es una PREGUNTA, no un resultado: va antes de las
      tarjetas que su respuesta enciende y apaga. Y tiene que sobrevivir a la rama «sin criterios»
      —una sección puede lanzar y dejar `n` en 0—, porque es justo cuando el médico necesita poder
-     deshacer el toque que lo trajo hasta acá. Sus propias compuertas deciden si se pinta. */
-  h = _indMecanismoHTML() + h;
+     deshacer el toque que lo trajo hasta acá. Sus propias compuertas deciden si se pinta.
+     ⚠️ Y CON SU PROPIA RED, por la misma regla que el `try` de las secciones de arriba: esta
+     función se llama DESPUÉS del bucle y ANTES del `innerHTML`, así que un throw acá tenía las dos
+     salidas que ese comentario declara cerradas —por `indicAbrir` el panel no se abre y el botón
+     no hace nada; por `_indRepintarConservando` el cuerpo conserva el pintado ANTERIOR—. Y acá la
+     segunda pesa más que en una sección: la respuesta al mecanismo decide QUÉ TARJETA MITRAL
+     GOBIERNA, así que el médico quedaría viendo la tarjeta de IM primaria después de haber
+     contestado «Secundaria», con `_indClin` ya cambiado. Lo cazó `/sharp-edges`. */
+  let _hMec = '';
+  try { _hMec = _indMecanismoHTML(); }
+  catch (e) { console.error('[IND] el bloque de mecanismo lanzó y no se pinta:', e); }
+  h = _hMec + h;
   if (fallos) h += '<div style="font-size:11px;color:#DC2626;margin-top:10px;line-height:1.5;">' +
     fallos + (fallos === 1 ? ' sección no se pudo evaluar' : ' secciones no se pudieron evaluar') +
     ' — el resto del panel es válido, pero falta información. Revisar la consola.</div>';
@@ -86844,8 +86888,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260930-1312';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790784764147;                 /* eco-build-ms */
+const ECO_BUILD    = '20260930-1350';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790787056661;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -86931,7 +86975,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260930-1312</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260930-1350</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -89088,7 +89132,7 @@ const ECO_AYUDA = [
 <table class="mTbl"><tr><th>Situación</th><th>Criterio</th><th>Guía</th></tr>
 <tr><td>Insuficiencia mitral primaria severa, asintomática</td><td>DTSI ≥ 40 mm o FEVI ≤ 60 % (Clase I)</td><td>ESC/EACTS 2021</td></tr>
 <tr><td>IM — onda E como signo de soporte<br><span style="font-size:11px;color:var(--text2);">Sólo soporte: no gradúa. El signo <b>específico</b> es el opuesto — la onda A dominante prácticamente descarta IM severa. Válido sin estenosis mitral (la guía dice que incluso la leve altera la onda E), calcificación anular, anillo protésico ni fibrilación auricular; menos específico en IM secundaria; más aplicable en mayores de 50 años.</span></td><td>onda E ≥ 120 cm/s apoya severa · onda A dominante la descarta</td><td>ASE 2017 (Zoghbi, JASE 30:303-371, Tabla 8)</td></tr>
-<tr><td>IM — cociente VTI mitral / VTI TSVI<br><span style="font-size:11px;color:var(--text2);"><b>Requiere ausencia de insuficiencia aórtica moderada o severa:</b> la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir. Con IAo moderada o mayor la app no calcula la fila.<br>El corte sale de la <b>ASE 2023 de cardiopatía reumática</b> (Pandian et al., JASE 2023;36:3-28), Key Points de IM reumática: &gt; 1,4 sugiere IM severa y &lt; 1 leve. <b>La ESC/EACTS 2025 también lo publica</b>, con el mismo corte: Figura 10, pág. 4672, recuadro de criterios ecocardiográficos de IM severa, entre los <b>semicuantitativos</b> — «VTI mitral / VTI LVOT &gt; 1,4». <b>No figura en ASE 2017 ni en ESC/EACTS 2021.</b><br>⚠️ Ninguna de las dos guías dice <b>con qué modalidad</b> se mide ese VTI mitral. La app usa el de entrada por Doppler pulsado anterógrado —no el del chorro de la insuficiencia—, que es lo correcto, pero es criterio de la aplicación y no algo que las guías respalden.<br>⚠️ El estudio original que la guía cita (Tribouilloy, Eur Heart J 1994;15:1335-9) da ≥ <b>1,3</b> con sensibilidad 87 % y especificidad 91 %, y el 1,4 se rastrea además a un artículo del E-Journal de la ESC que cita esas mismas dos cifras. O sea que la guía publica 1,4 sobre un primario que dice 1,3, y eso no distingue entre haberlo validado y haber propagado el mismo error. Se conserva el 1,4 que la app venía usando y se declaran las dos cosas.<br>⚠️ <b>Con PRÓTESIS mitral el corte es otro: ≥ 2,5.</b> Sale de la <b>ASE 2024 de prótesis</b> (Zoghbi et al., JASE 2024;37(1):2-63), <b>Tabla 12, pág. 28</b> — «hallazgos de ETT que sugieren IM protésica significativa en válvulas mecánicas con THP normal»: VTI protésico / VTI TSVI ≥ 2,5, sensibilidad 89 %, especificidad 91 %. El 1,4 es de válvula <b>nativa</b> y aplicarlo a una prótesis daba «apoya IM severa» sobre cocientes muy por debajo de lo que la tabla protésica considera sugestivo. La app elige el corte por la morfología de la válvula mitral.<br>⚠️ Esa tabla define el corte <b>para válvulas mecánicas y con THP normal</b>, y la app <b>no verifica ninguna de las dos condiciones</b>: lo aplica a cualquier prótesis mitral y no cruza el tiempo de hemipresión.</span></td><td>nativa &gt; 1,4 · prótesis ≥ 2,5</td><td>nativa: ASE 2023 (Pandian, JASE 36:3-28) — el primario da 1,3 · prótesis: ASE 2024 (Zoghbi), Tabla 12 p. 28</td></tr>
+<tr><td>IM — cociente VTI mitral / VTI TSVI<br><span style="font-size:11px;color:var(--text2);"><b>Requiere ausencia de insuficiencia aórtica moderada o severa:</b> la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir. Con IAo moderada o mayor la app no calcula la fila.<br>El corte sale de la <b>ASE 2023 de cardiopatía reumática</b> (Pandian et al., JASE 2023;36:3-28), Key Points de IM reumática: &gt; 1,4 sugiere IM severa y &lt; 1 leve. <b>La ESC/EACTS 2025 también lo publica</b>, con el mismo corte: Figura 10, pág. 4672, recuadro de criterios ecocardiográficos de IM severa, entre los <b>semicuantitativos</b> — «VTI mitral / VTI LVOT &gt; 1,4». <b>No figura en ASE 2017 ni en ESC/EACTS 2021.</b><br>⚠️ Ninguna de las dos guías dice <b>con qué modalidad</b> se mide ese VTI mitral. La app usa el de entrada por Doppler pulsado anterógrado —no el del chorro de la insuficiencia—, que es lo correcto, pero es criterio de la aplicación y no algo que las guías respalden.<br>⚠️ El estudio original que la guía cita (Tribouilloy, Eur Heart J 1994;15:1335-9) da ≥ <b>1,3</b> con sensibilidad 87 % y especificidad 91 %, y el 1,4 se rastrea además a un artículo del E-Journal de la ESC que cita esas mismas dos cifras. O sea que la guía publica 1,4 sobre un primario que dice 1,3, y eso no distingue entre haberlo validado y haber propagado el mismo error. Se conserva el 1,4 que la app venía usando y se declaran las dos cosas.<br>⚠️ <b>Con PRÓTESIS mitral el corte es otro: ≥ 2,5.</b> Sale de la <b>ASE 2024 de prótesis</b> (Zoghbi et al., JASE 2024;37(1):2-63), <b>Tabla 12, pág. 28</b> — «hallazgos de ETT que sugieren IM protésica significativa en válvulas mecánicas con THP normal»: VTI protésico / VTI TSVI ≥ 2,5, sensibilidad 89 %, especificidad 91 %. El 1,4 es de válvula <b>nativa</b> y aplicarlo a una prótesis daba «apoya IM severa» sobre cocientes muy por debajo de lo que la tabla protésica considera sugestivo. La app elige el corte por la morfología de la válvula mitral.<br>⚠️ Esa tabla define el corte <b>para válvulas mecánicas y con THP normal</b>, y la app <b>no verifica ninguna de las dos condiciones</b>: lo aplica a cualquier prótesis mitral y no cruza el tiempo de hemipresión.</span></td><td>nativa &gt; 1,4 · prótesis ≥ 2,5</td><td>nativa: ASE 2023 (Pandian, JASE 36:3-28) y ESC/EACTS 2025 (Figura 10, p. 4672) — el primario da 1,3 · prótesis: ASE 2024 (Zoghbi), Tabla 12 p. 28</td></tr>
 <tr><td>IM — cociente jet/AI (%)<br><span style="font-size:11px;color:var(--text2);">⚠️ <b>Dos cortes según la morfología.</b> En válvula <b>nativa</b>: &lt; 20 % leve, ≤ 40 % moderada, &gt; 40 % severa.<br>⚠️ <b>Con PRÓTESIS mitral el corte de severa es &gt; 50 %</b>, y entre 20 y 50 % la <b>ASE 2024 de prótesis</b> (Zoghbi et al., JASE 2024;37(1):2-63), <b>Tabla 13, pág. 30</b>, dice «<b>Variable</b>»: ahí el parámetro <b>no gradúa</b> y la app se abstiene en vez de inventar una banda moderada. La fila de pantalla lo declara en vez de descontar el parámetro en silencio.<br>⚠️ Los <b>cortes absolutos</b> de esa misma tabla (área del jet &lt; 4 cm² leve / &gt; 8 cm² severa) <b>no se implementan</b>: la guía los da como alternativa al porcentaje («usually … or …») y aplicarlos exigiría decidir qué manda cuando los dos discrepan.<br>⚠️ Y la nota al pie de la tabla exige un <b>Nyquist de 50-60 cm/s</b> para que el porcentaje valga; la app <b>no registra ese dato</b>, así que ninguno de los dos regímenes puede verificar la condición en la que su corte está definido.</span></td><td>nativa &lt; 20 / ≤ 40 / &gt; 40 % · prótesis &lt; 20 % leve · &gt; 50 % severa</td><td>nativa: ASE 2017 (Zoghbi, JASE 30:303-371) · prótesis: ASE 2024 (Zoghbi), Tabla 13 p. 30</td></tr>
 <tr><td>Insuficiencia aórtica severa, asintomática</td><td>FEVI ≤ 50 % · DTSI &gt; 50 mm o &gt; 25 mm/m² (Clase I)</td><td>ESC/EACTS 2021</td></tr>
 <tr><td>Estenosis aórtica severa sintomática</td><td>intervención Clase I; modalidad por edad y riesgo (corte 75 años)</td><td>ESC/EACTS 2021</td></tr>

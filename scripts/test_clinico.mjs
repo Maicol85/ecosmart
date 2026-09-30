@@ -31146,12 +31146,27 @@ caso('TC-283', 'Insuficiencia mitral primaria: el tres-de-cuatro se cuenta, y el
     try {
       const ex = [];
 
-      // ── DENOMINADOR: sin el mecanismo en ETE hay CINCO controles ──
+      /* ── DENOMINADOR: la SECCION tiene CUATRO controles, y el mecanismo ya no es uno de ellos ──
+         REAPUNTADO el 2026-09-30. Hasta esa fecha eran cinco: el mecanismo se dibujaba como fila
+         de _indIM. Se mudo a un bloque fijo del panel (_indMecanismoHTML) porque contestar
+         «Secundaria» hace que _indIM devuelva null, o sea que el control desaparecia en el mismo
+         repintado en que se lo tocaba y no habia como volver atras. Ver TC-332.
+         La condicion NO se debilito a «cuatro»: se parte en dos mitades que juntas son MAS fuertes
+         que la de antes —la seccion tiene exactamente los cuatro, Y el mecanismo sigue existiendo y
+         clicable dentro de #indic-cuerpo—. Sin la segunda mitad, borrar el bloque entero dejaria
+         este caso en verde. */
       esc({}, {});
       const c0 = ctrls();
-      ex.push(['DENOMINADOR: sin el mecanismo en ETE hay CINCO controles, los cinco esperados',
-        c0.length === 5 && ${IM_CLAVES}.every(k => c0.indexOf(k) > -1),
+      const CUATRO = ${IM_CLAVES}.filter(k => k !== 'im.mecanismo');
+      const mecEnPanel = (function(){
+        const c = document.getElementById('indic-cuerpo');
+        return c ? c.querySelectorAll('[data-ind-clin="im.mecanismo"]').length : -1;
+      })();
+      ex.push(['DENOMINADOR: la seccion tiene CUATRO controles, los cuatro esperados, y el mecanismo NO es uno',
+        c0.length === 4 && CUATRO.every(k => c0.indexOf(k) > -1) && c0.indexOf('im.mecanismo') === -1,
         'controles=' + c0.join(',')]);
+      ex.push(['y el mecanismo sigue existiendo en el panel, fuera de la seccion: dos opciones clicables',
+        mecEnPanel === 2, 'botones im.mecanismo en #indic-cuerpo=' + mecEnPanel]);
 
       // ── CAMINO (a): el mecanismo se LEE de ETE y su control manual no se dibuja ──
       esc({ teer_tipo_im:'primaria' }, {});
@@ -33564,7 +33579,14 @@ caso('TC-293', 'Panel de Evidencia: el detalle largo nace COLAPSADO, hay un solo
        justo el salto que «_indRepintarConservando» existe para evitar. Se ejerce de verdad: se abre
        el primer detalle, se contesta un control y se mira si sigue abierto y si los demas no se
        abrieron solos. */
-    const btn = cu.querySelector('[data-ind-clin]');
+    /* ⚠️ EL CONTROL TIENE QUE SER UNO DE DENTRO DE UNA SECCION, y por eso el selector dice
+       «details [data-ind-clin]». Desde el 2026-09-30 el panel tiene un control FUERA de toda
+       seccion —el selector de mecanismo de IM, en el bloque fijo de indicRender— y es el PRIMERO
+       del cuerpo, asi que un querySelector de [data-ind-clin] pelado lo agarraba a el y el
+       «closest('details')» de abajo devolvia null. Lo que esta condicion ejerce es la conservacion
+       del <details> abierto al repintar, que solo tiene sentido para un control que viva adentro
+       de uno. */
+    const btn = cu.querySelector('details [data-ind-clin]');
     if (btn && typeof _indRepintarConservando === 'function') {
       const secTit = btn.closest('details').querySelector('summary').textContent;
       const dPri = btn.closest('details').querySelector('details');
@@ -41267,6 +41289,406 @@ caso('TC-331', 'Protesis mitral: la seccion publica los cortes de la ASE 2024 y 
 
       ['los umbrales de la seccion coinciden con lo que declara su prosa',
         Array.isArray(R.assert) && R.assert.length === 0, JSON.stringify(R.assert)]
+    ] };
+  })();
+`);
+
+caso('TC-332', 'Panel: el selector de mecanismo de IM vive FUERA de _indIM, sobrevive a contestar «Secundaria» y el toque se deshace en el lugar', `
+  return (async () => {
+    const R = {};
+    /* Se cuentan los ATRIBUTOS dentro de #indic-cuerpo y no el texto visible: el invariante es que
+       la botonera EXISTA y sea clicable, y el listener esta delegado en ese contenedor. Medir el
+       textContent daria verde sobre un bloque pintado FUERA de el, que es justo el diseno que no
+       funciona — es la leccion del dataset de TC-320. */
+    const botones = function(){
+      const c = document.getElementById('indic-cuerpo');
+      return c ? c.querySelectorAll('[data-ind-clin="im.mecanismo"]').length : -1;
+    };
+    const tocar = function(val){
+      const c = document.getElementById('indic-cuerpo');
+      const b = c && c.querySelector('[data-ind-clin="im.mecanismo"][data-ind-val="' + val + '"]');
+      if (!b) return false;
+      b.click();
+      return true;
+    };
+    const abrir = function(campos){
+      try { __t.limpiar(); } catch (e) {}
+      try { indicCerrar(); } catch (e) {}
+      Object.keys(campos).forEach(function(id){ __t.set(id, campos[id]); });
+      try { indicAbrir(); return true; } catch (e) { return false; }
+    };
+    const im  = function(){ try { return _indIM();  } catch (e) { return 'LANZO'; } };
+    const ims = function(){ try { return _indIMS(); } catch (e) { return 'LANZO'; } };
+    const BASE = { nombre: 'Sel Mec', ci: '9', edad: '68', sexo: 'M', peso: '80', talla: '175',
+                   fevi: '55', vm_morf: 'Mixomatosa', im_sev_final: '4' };
+
+    // -- (1) DENOMINADOR: sin elegir, el bloque esta y la tarjeta primaria se pinta ------------
+    abrir(BASE);
+    R.aBot = botones();
+    R.aIm  = im() !== null;
+    R.aIms = ims() === null;
+    const f0 = (im() && im().filas) ? im().filas[0] : null;
+    R.aFilaCtrl = !!(f0 && f0.ctrl);
+    R.aFilaLbl  = f0 ? f0.lbl : null;
+    R.aFilaVal  = f0 ? f0.val : null;
+
+    // -- (2) «Primaria» -----------------------------------------------------------------------
+    R.bToco  = tocar('primaria');
+    R.bBot   = botones();
+    R.bIm    = im() !== null;
+    R.bStore = _indClinGet('im.mecanismo');
+    const f1 = (im() && im().filas) ? im().filas[0] : null;
+    R.bFilaVal = f1 ? f1.val : null;
+
+    // -- (3) «Secundaria»: ACA es donde el control desaparecia con el diseno viejo -------------
+    tocar('secundaria');
+    R.cBot    = botones();
+    R.cImNull = im() === null;
+    R.cImsHay = ims() !== null;
+    R.cStore  = _indClinGet('im.mecanismo');
+
+    // -- (4) volver atras SIN cerrar el panel, que es lo que no se podia hacer -----------------
+    R.dToco  = tocar('primaria');
+    R.dBot   = botones();
+    R.dIm    = im() !== null;
+    R.dStore = _indClinGet('im.mecanismo');
+
+    // -- (5) segundo toque sobre la activa = sin definir ---------------------------------------
+    tocar('primaria');
+    R.eStore = _indClinGet('im.mecanismo');
+    R.eIm    = im() !== null;
+
+    // -- (6) COMPUERTAS -----------------------------------------------------------------------
+    abrir(Object.assign({}, BASE, { vm_morf: 'Prótesis mecánica' }));
+    R.fBot  = botones();
+    R.fHtml = (function(){ try { return _indMecanismoHTML(); } catch (e) { return 'LANZO'; } })();
+    abrir(Object.assign({}, BASE, { im_sev_final: '2' }));
+    R.gBot  = botones();
+    R.gHtml = (function(){ try { return _indMecanismoHTML(); } catch (e) { return 'LANZO'; } })();
+
+    // -- (7) con el dato en el ESTUDIO: bloque SI, botonera NO ---------------------------------
+    abrir(Object.assign({}, BASE, { teer_tipo_im: 'secundaria' }));
+    R.hBot    = botones();
+    R.hBloque = (function(){ try { return _indMecanismoHTML().indexOf('Mecanismo de la insuficiencia mitral') >= 0; } catch (e) { return 'LANZO'; } })();
+    R.hIms    = ims() !== null;
+
+    /* -- (8) si el bloque LANZA, el panel se pinta igual ---------------------------------------
+       Es la red que indicRender le puso: sin ella una excepcion aca tiene dos salidas y las dos son
+       peores que perder el bloque —el panel no abre, o conserva el pintado anterior con la
+       respuesta ya cambiada en _indClin—. Se ejerce de verdad, pisando la funcion global. */
+    /* ⚠️ NO SE MIDE A TRAVES DE abrir(): esa funcion tiene su propio try y se traga la excepcion,
+       asi que iAbrio salia true pasara lo que pasara. Y peor: si indicRender lanza, #indic-cuerpo
+       CONSERVA el pintado anterior, o sea que contar secciones daba un numero sano leido de un
+       cuerpo rancio. La primera version de esta condicion sobrevivio a la mutacion por las dos
+       cosas a la vez. Hoy se llama a indicRender PELADO —para ver si lanza— y se deja un centinela
+       en el cuerpo: si sigue ahi, no se repinto nada y lo que se conto es del escenario anterior. */
+    abrir(BASE);
+    const _origMec = window._indMecanismoHTML;
+    window._indMecanismoHTML = function(){ throw new Error('prueba de la red'); };
+    const _cu = document.getElementById('indic-cuerpo');
+    if (_cu) _cu.innerHTML = '<div id="centinela-red"></div>';
+    let iLanzo = false;
+    try { indicRender(); } catch (e) { iLanzo = true; }
+    R.iLanzo     = iLanzo;
+    R.iCentinela = !!document.getElementById('centinela-red');
+    R.iSecs      = _cu ? _cu.querySelectorAll(':scope > details').length : -1;
+    window._indMecanismoHTML = _origMec;
+    // y el denominador: con el bloque sano el panel pinta las MISMAS secciones
+    abrir(BASE);
+    R.iSecsSano = (function(){ const c = document.getElementById('indic-cuerpo');
+      return c ? c.querySelectorAll(':scope > details').length : -1; })();
+
+    return { extra: [
+      ['DENOMINADOR: sin elegir, el bloque pinta sus DOS opciones y _indIM se pinta',
+        R.aBot === 2 && R.aIm === true && R.aIms === true,
+        'bot=' + R.aBot + ' im=' + R.aIm + ' ims=' + R.aIms],
+      ['y la fila «Mecanismo» de _indIM ya NO dibuja control: un solo dueno de la respuesta',
+        R.aFilaCtrl === false && R.aFilaLbl === 'Mecanismo' && R.aFilaVal === 'No consignado',
+        'ctrl=' + R.aFilaCtrl + ' lbl=' + R.aFilaLbl + ' val=' + R.aFilaVal],
+      ['«Primaria» se guarda, _indIM sigue pintando y su fila lo dice',
+        R.bToco === true && R.bStore === 'primaria' && R.bIm === true && R.bFilaVal === 'Primaria (orgánica)',
+        'store=' + R.bStore + ' im=' + R.bIm + ' val=' + R.bFilaVal],
+      ['CONTESTAR «SECUNDARIA» APAGA _indIM Y ENCIENDE _indIMS, Y EL SELECTOR SIGUE AHI',
+        R.cImNull === true && R.cImsHay === true && R.cBot === 2 && R.cStore === 'secundaria',
+        'imNull=' + R.cImNull + ' ims=' + R.cImsHay + ' bot=' + R.cBot],
+      ['y el toque equivocado SE DESHACE EN EL LUGAR, sin cerrar y reabrir el panel',
+        R.dToco === true && R.dStore === 'primaria' && R.dIm === true && R.dBot === 2,
+        'toco=' + R.dToco + ' store=' + R.dStore + ' im=' + R.dIm],
+      ['segundo toque sobre la opcion activa: vuelve a «sin definir»',
+        R.eStore === null && R.eIm === true, 'store=' + R.eStore + ' im=' + R.eIm],
+      ['con PROTESIS el bloque NO se pinta: ninguna de las dos tarjetas nativas aplica',
+        R.fBot === 0 && R.fHtml === '', 'bot=' + R.fBot + ' html=«' + String(R.fHtml).slice(0, 40) + '»'],
+      ['sin IM severa tampoco: es la condicion que _indIM y _indIMS exigen LAS DOS',
+        R.gBot === 0 && R.gHtml === '', 'bot=' + R.gBot + ' html=«' + String(R.gHtml).slice(0, 40) + '»'],
+      ['con el mecanismo cargado en el ESTUDIO el bloque se muestra SIN botonera: el estudio manda',
+        R.hBot === 0 && R.hBloque === true && R.hIms === true,
+        'bot=' + R.hBot + ' bloque=' + R.hBloque + ' ims=' + R.hIms],
+      ['si el bloque LANZA, indicRender NO lanza, repinta de verdad y pinta las mismas secciones',
+        R.iLanzo === false && R.iCentinela === false && R.iSecs > 0 && R.iSecs === R.iSecsSano,
+        'lanzo=' + R.iLanzo + ' centinela sobrevivio=' + R.iCentinela +
+        ' secciones con el bloque roto=' + R.iSecs + ' · sano=' + R.iSecsSano]
+    ] };
+  })();
+`);
+
+caso('TC-333', 'IM: el ⓘ y la ayuda del cociente VTI mitral/TSVI atribuyen el 1,4 a la ESC/EACTS 2025 Figura 10 y NO afirman la modalidad', `
+  return (async () => {
+    const R = {};
+    /* El ⓘ se lee del ATRIBUTO title —que es donde vive el texto— y la ayuda del DOM RENDERIZADO,
+       no del const ECO_AYUDA: leer el dato probaria el dato, no que llegue a la pantalla. */
+    const val  = document.getElementById('im-vti-ratio');
+    const fila = val ? val.closest('.calc-row') : null;
+    const lbl  = fila ? fila.querySelector('.calc-lbl') : null;
+    R.ttl = lbl ? (lbl.getAttribute('title') || '') : null;
+
+    let seccion = -1;
+    try {
+      for (let i = 0; i < ECO_AYUDA.length; i++)
+        if (ECO_AYUDA[i].html.indexOf('cociente VTI mitral') >= 0) seccion = i;
+      abrirAyudaEco();
+      if (seccion >= 0) renderAyudaEco(seccion);
+    } catch (e) { R.ERR = e.message; }
+    R.seccion = seccion;
+    R.ayuda = (function(){
+      const trs = document.querySelectorAll('tr');
+      for (let i = 0; i < trs.length; i++) {
+        const tx = trs[i].textContent || '';
+        if (tx.indexOf('cociente VTI mitral') >= 0) return trs[i].innerHTML;
+      }
+      return null;
+    })();
+    /* ⚠️ LA COLUMNA «GUIA» SE MIDE APARTE, y es el <td> de mas a la derecha. Mirar el innerHTML del
+       <tr> entero no sirve: «Figura 10» aparece en el CUERPO de la fila, asi que la condicion daba
+       verde con la columna de atribucion sin actualizar — y la mutacion que la revierte sobrevivio.
+       Es la columna de escaneo rapido, o sea la que se lee sin desplegar nada. */
+    R.guia = (function(){
+      const trs = document.querySelectorAll('tr');
+      for (let i = 0; i < trs.length; i++) {
+        const tx = trs[i].textContent || '';
+        if (tx.indexOf('cociente VTI mitral') >= 0) {
+          const tds = trs[i].querySelectorAll('td');
+          return tds.length ? String(tds[tds.length - 1].textContent) : '';
+        }
+      }
+      return null;
+    })();
+    /* Se cierra el modal: el harness avisa que un overlay abierto se lo come el caso siguiente. */
+    try { cerrarAyudaEco(); } catch (e) {}
+
+    const T = R.ttl || '', A = R.ayuda || '';
+    return { extra: [
+      ['DENOMINADOR: el ⓘ de la fila y la fila de la ayuda existen y llegaron al DOM',
+        T.length > 200 && R.ayuda !== null && A.length > 200,
+        'ttl=' + T.length + ' ayuda=' + (R.ayuda === null ? 'NULL' : A.length) + ' secc=' + R.seccion],
+      ['el ⓘ atribuye el 1,4 a la ESC/EACTS 2025, que es lo que antes negaba',
+        T.indexOf('ESC/EACTS 2025') >= 0 && A.indexOf('ESC/EACTS 2025') >= 0,
+        'ttl=' + (T.indexOf('ESC/EACTS 2025') >= 0) + ' ayuda=' + (A.indexOf('ESC/EACTS 2025') >= 0)],
+      ['con la figura y la pagina de revista exactas: Figura 10, pag. 4672',
+        T.indexOf('Figura 10') >= 0 && T.indexOf('4672') >= 0 &&
+        A.indexOf('Figura 10') >= 0 && A.indexOf('4672') >= 0,
+        'ttl fig=' + (T.indexOf('Figura 10') >= 0) + ' pag=' + (T.indexOf('4672') >= 0)],
+      ['y con su grupo, que es el semicuantitativo y no el cuantitativo',
+        T.indexOf('semicuantitativ') >= 0 && A.indexOf('semicuantitativ') >= 0,
+        'ttl=' + (T.indexOf('semicuantitativ') >= 0) + ' ayuda=' + (A.indexOf('semicuantitativ') >= 0)],
+      ['NO se afirma la modalidad: la ayuda declara que el Doppler pulsado anterogrado es criterio de la APP',
+        A.indexOf('modalidad') >= 0 && A.indexOf('criterio de la aplicaci') >= 0,
+        'modalidad=' + (A.indexOf('modalidad') >= 0) + ' criterioApp=' + (A.indexOf('criterio de la aplicaci') >= 0)],
+      ['sigue en pie que NO figura en ASE 2017 ni en ESC/EACTS 2021',
+        T.indexOf('ASE 2017') >= 0 && T.indexOf('ESC/EACTS 2021') >= 0 &&
+        A.indexOf('ASE 2017') >= 0 && A.indexOf('ESC/EACTS 2021') >= 0,
+        'ttl=' + (T.indexOf('ESC/EACTS 2021') >= 0) + ' ayuda=' + (A.indexOf('ESC/EACTS 2021') >= 0)],
+      ['y la columna «Guia» —la de escaneo rapido— tambien nombra a la ESC/EACTS 2025, no solo el cuerpo',
+        (R.guia || '').indexOf('ESC/EACTS 2025') >= 0 && (R.guia || '').indexOf('4672') >= 0,
+        'guia=«' + String(R.guia).slice(0, 110) + '»'],
+      ['y sigue declarado que el primario (Tribouilloy) da 1,3, con los dos cortes de la app intactos',
+        T.indexOf('1,3') >= 0 && T.indexOf('1,4') >= 0 && T.indexOf('2,5') >= 0 &&
+        A.indexOf('1,3') >= 0 && A.indexOf('2,5') >= 0,
+        'ttl 1,3=' + (T.indexOf('1,3') >= 0) + ' 1,4=' + (T.indexOf('1,4') >= 0) + ' 2,5=' + (T.indexOf('2,5') >= 0)]
+    ] };
+  })();
+`);
+
+caso('TC-334', 'EM: em_vmax y thp tienen banda de plausibilidad LOCAL — fuera de banda no votan ni en el panel de protesis ni en calcEM, y el valor que va al Excel no se toca', `
+  return (async () => {
+    const R = {};
+    /* ⚠️ calcEM() AL FINAL, Y NO ES DECORATIVO. ia_grado es un <input type="hidden"> sin
+       oninput: sembrarlo con __t.set despacha los eventos pero NADIE recalcula, asi que el badge
+       seguia mostrando el estado de cuando se sembro thp —varios campos antes— y la condicion
+       media OTRA rama. Es la trampa del orden de siembra, y da rojo sobre codigo sano. */
+    const cargar = function(campos){
+      try { __t.limpiar(); } catch (e) {}
+      try { indicCerrar(); } catch (e) {}
+      Object.keys(campos).forEach(function(id){ __t.set(id, campos[id]); });
+      try { calcEM(); } catch (e) {}
+    };
+    const panel = function(campos){
+      cargar(campos);
+      try { indicAbrir(); } catch (e) { return { ERR: e.message }; }
+      try { return _indProtM(); } catch (e) { return { ERR: e.message }; }
+    };
+    const fila = function(o, rotulo){
+      if (!o || !o.filas) return null;
+      for (let i = 0; i < o.filas.length; i++)
+        if (String(o.filas[i].lbl).toLowerCase().indexOf(rotulo) >= 0) return o.filas[i];
+      return null;
+    };
+    const vdom = function(id){ const e = document.getElementById(id); return e ? e.value : null; };
+    const PROT = { vm_morf: 'Prótesis mecánica', ia_grado: '0', peso: '80', talla: '175' };
+    const NAT  = { vm_morf: 'Reumática',         ia_grado: '0', peso: '80', talla: '175' };
+
+    // -- la tabla, y que este CABLEADA: sin ella las filas dirian «sin medir» sobre campos llenos
+    R.tabla = (function(){ try { return JSON.parse(JSON.stringify(EM_BANDA_PLAUS)); } catch (e) { return 'NO EXISTE'; } })();
+
+    // -- (1) DENTRO de banda los dos votan, que es el denominador -----------------------------
+    const oIn = panel(Object.assign({}, PROT, { em_vmax: '2.8', thp: '240' }));
+    R.inVmax = (fila(oIn, 'velocidad pico') || {}).marca;
+    R.inThp  = (fila(oIn, 'thp') || {}).marca;
+
+    // -- (2) em_vmax en cm/s: 250 deja de «sugerir estenosis significativa» --------------------
+    const oV = panel(Object.assign({}, PROT, { em_vmax: '250', thp: '240' }));
+    const fV = fila(oV, 'velocidad pico') || {};
+    R.vMarca = fV.marca;
+    R.vVal   = String(fV.val || '');
+    R.vNota  = String(fV.nota || '');
+
+    // -- (3) thp en SEGUNDOS: 0,12 deja de contar como «THP normal» ---------------------------
+    const oT = panel(Object.assign({}, PROT, { em_vmax: '2.1', thp: '0.12', em_gmedio: '8' }));
+    const fT = fila(oT, 'thp') || {};
+    R.tMarca = fT.marca;
+    R.tVal   = String(fT.val || '');
+    R.tT12   = !!fila(oT, 'gradiente alto con thp normal');
+    // el MISMO escenario con el THP legible SI dibuja la fila: sin esto «no se dibuja» no prueba nada
+    const oT2 = panel(Object.assign({}, PROT, { em_vmax: '2.1', thp: '100', em_gmedio: '8' }));
+    R.t2T12  = !!fila(oT2, 'gradiente alto con thp normal');
+
+    // -- (4) la compuerta disf: un valor ilegible no sostiene «disfuncion significativa» -------
+    const oD = panel(Object.assign({}, PROT, { em_vmax: '250' }));
+    R.dTipo  = oD && oD.recom ? oD.recom.tipo : null;
+    R.dClase = oD && oD.recom ? (oD.recom.clase || null) : null;
+
+    // -- (5) LA INVERSION en la mitral NATIVA: 220/0,12 = 1833 cm² entraba como fuente VALIDA --
+    cargar(Object.assign({}, NAT, { avm_plan: '1.2', thp: '240' }));
+    const c1 = emCategoria();
+    R.c1Clave = c1.clave;
+    R.c1Thp   = emThpValido();
+    cargar(Object.assign({}, NAT, { avm_plan: '1.2', thp: '0.12' }));
+    const c2 = emCategoria();
+    R.c2Clave   = c2.clave;
+    R.c2Fuentes = c2.fuentes.map(function(f){ return f.fuente; }).join(',');
+    R.c2Thp     = emThpValido();
+    R.c2Banda   = emThpFueraBanda();
+    R.c2Badge   = (function(){ const b = document.getElementById('em-thp-badge'); return b ? String(b.textContent) : ''; })();
+    /* El THP ilegible tiene que quedar ANOTADO, no desaparecer: si no entra ni a fuentes ni a
+       revisar, la capsula cae en «—», que es el estado de «nadie midio nada». */
+    R.c2Revisar = c2.revisar.map(function(r){ return r.id + ':' + r.avm; }).join(',');
+    R.c2Caps    = (function(){ const e = document.getElementById('em-sev-integrada'); return e ? String(e.textContent) : ''; })();
+    /* El valor GUARDADO no se marca: se exporta al Excel y se imprime por vPdf. Si alguien mueve
+       la marca de los displays al setv(), esta condicion cae. */
+    R.c2AvmGuardado = vdom('avm_thp');
+    R.c2AvmDisplay  = vdom('em_avm_thp_display');
+    R.c2ThpDisplay  = vdom('em_thp_display');
+
+    // -- (6) el gradiente maximo se MARCA, no se borra -----------------------------------------
+    cargar(Object.assign({}, NAT, { em_vmax: '250' }));
+    R.gFuera = vdom('em_gmax');
+    cargar(Object.assign({}, NAT, { em_vmax: '2.8' }));
+    R.gDentro = vdom('em_gmax');
+
+    /* -- (7) el badge nombra la BANDA y no la verificacion de la IAo -------------------------
+       Sin ia_grado, emThpMotivoNoVota devuelve EM_THP_NOVERIF_TXT, que NO es un hallazgo clinico
+       sino otro fallo de lectura. Con el THP ademas ilegible, un badge que nombrara la IAo manda a
+       revisar lo que esta sano. */
+    /* ⚠️ «no se pudo verificar la IAo» NO se alcanza dejando el campo vacio: ia_grado es un input
+       OCULTO con value="0" y _emRegurgGrado devuelve 0 para el vacio. Solo da null con un texto
+       que no sepa interpretar, que es como llega desde un import. De ahi el 'xx'. */
+    const badge = function(){ const b = document.getElementById('em-thp-badge'); return b ? String(b.textContent) : ''; };
+    cargar({ vm_morf: 'Reumática', avm_plan: '1.2', thp: '0.12', ia_grado: 'xx', peso: '80', talla: '175' });
+    R.badgeBanda = badge();
+    cargar({ vm_morf: 'Reumática', avm_plan: '1.2', thp: '240', ia_grado: 'xx', peso: '80', talla: '175' });
+    R.badgeNoverif = badge();
+    // y la IAo SEVERA si manda sobre la banda: es un hallazgo clinico, no un dedazo
+    cargar({ vm_morf: 'Reumática', avm_plan: '1.2', thp: '0.12', ia_grado: '4', peso: '80', talla: '175' });
+    R.badgeIa = badge();
+
+    /* -- (7b) LA CAPSULA, en el escenario donde la rama revisar es la que pinta --------------
+       Solo corre con clave 'nada': con una planimetria severa arriba, la capsula publica la
+       severidad y esta condicion medía otra rama. El escenario es el del hallazgo: un THP ilegible
+       como UNICA medicion mitral, que es cuando el panel caia en «—» = «nadie midio nada». */
+    cargar({ vm_morf: 'Reumática', thp: '0.12', ia_grado: '0', peso: '80', talla: '175' });
+    R.soloThpClave = emCategoria().clave;
+    R.soloThpRev   = emCategoria().revisar.map(function(r){ return r.id + ':' + r.avm; }).join(',');
+    R.soloThpCaps  = (function(){ const e = document.getElementById('em-sev-integrada'); return e ? String(e.textContent) : ''; })();
+    cargar({ vm_morf: 'Reumática', ia_grado: '0', peso: '80', talla: '175' });
+    R.nadaCaps = (function(){ const e = document.getElementById('em-sev-integrada'); return e ? String(e.textContent) : ''; })();
+
+    // -- (8) la banda no rechaza al paciente grave REAL, que es a quien una banda mal puesta calla
+    R.graves = (function(){
+      const f = emFueraBandaLocal;
+      return [f('thp', 400), f('thp', 300), f('thp', 35),
+              f('em_vmax', 2.8), f('em_vmax', 3.5), f('em_vmax', 0.5)]
+             .filter(function(x){ return x !== null; }).length;
+    })();
+    R.errores = (function(){
+      const f = emFueraBandaLocal;
+      return [f('thp', 0.12), f('thp', 2400), f('em_vmax', 250), f('em_vmax', 0.02)]
+             .filter(function(x){ return x !== null; }).length;
+    })();
+
+    return { extra: [
+      ['la banda esta cableada con los pares que declara su comentario',
+        JSON.stringify(R.tabla) === JSON.stringify({ em_vmax: [0.2, 8], thp: [20, 600] }),
+        'tabla=' + JSON.stringify(R.tabla)],
+      ['DENOMINADOR: dentro de banda los dos siguen votando',
+        R.inVmax === 'ok' && R.inThp === 'ok', 'vmax=' + R.inVmax + ' thp=' + R.inThp],
+      ['em_vmax 250 (cm/s donde van m/s) deja de afirmar estenosis significativa',
+        R.vMarca === 'ask' && R.vNota.indexOf('fuera de rango medible') >= 0,
+        'marca=' + R.vMarca + ' nota=«' + R.vNota.slice(0, 70) + '»'],
+      ['y el numero se sigue VIENDO: se marca, no se borra',
+        R.vVal.indexOf('250') >= 0, 'val=«' + R.vVal + '»'],
+      ['thp 0,12 (segundos donde van ms) deja de contar como «THP normal» y no dibuja la Tabla 12',
+        R.tMarca === 'ask' && R.tT12 === false, 'marca=' + R.tMarca + ' t12=' + R.tT12],
+      ['DENOMINADOR: con el THP legible el patron de la Tabla 12 SI se dibuja',
+        R.t2T12 === true, 't12=' + R.t2T12],
+      ['y el THP se imprime con decimales: con 0 el 0,12 salia «0 ms» y el error no se veia',
+        R.tVal.indexOf('0,12') >= 0 || R.tVal.indexOf('0.12') >= 0, 'val=«' + R.tVal + '»'],
+      ['la compuerta de disfuncion no se sostiene con una velocidad ilegible',
+        R.dTipo === 'falta' && R.dClase == null, 'tipo=' + R.dTipo + ' clase=' + R.dClase],
+      ['DENOMINADOR: con THP legible la planimetria severa sale «severa» y el THP vota',
+        R.c1Clave === 'severa' && R.c1Thp === true, 'clave=' + R.c1Clave + ' thp=' + R.c1Thp],
+      ['LA INVERSION: con thp en segundos la estenosis severa YA NO se degrada a «probable»',
+        R.c2Clave === 'severa' && R.c2Fuentes === 'planimetría' && R.c2Thp === false && R.c2Banda === true,
+        'clave=' + R.c2Clave + ' fuentes=«' + R.c2Fuentes + '» valido=' + R.c2Thp],
+      ['y el badge NO queda mudo: nombra el campo y el valor, no una cadena vacia',
+        R.c2Badge.indexOf('0.12') >= 0 && R.c2Badge.indexOf('fuera del rango') >= 0,
+        'badge=«' + R.c2Badge.slice(0, 90) + '»'],
+      ['el THP ilegible queda ANOTADO en revisar —con el INSUMO, no con el area derivada— y no desaparece',
+        R.c2Revisar === 'thp:0.12', 'revisar=«' + R.c2Revisar + '»'],
+      ['con el THP ilegible como UNICA medicion, la capsula lo declara en vez de caer en el «—» de «nadie midio nada»',
+        R.soloThpClave === 'nada' && R.soloThpRev === 'thp:0.12' &&
+        R.soloThpCaps.indexOf('revisar unidad') >= 0 && R.soloThpCaps.indexOf('THP 0.12') >= 0,
+        'clave=' + R.soloThpClave + ' revisar=«' + R.soloThpRev + '» capsula=«' + R.soloThpCaps.slice(0, 70) + '»'],
+      ['DENOMINADOR: sin NINGUNA medicion mitral la capsula si es la raya — los dos estados siguen distintos',
+        R.nadaCaps.trim() === '—', 'capsula=«' + R.nadaCaps.slice(0, 40) + '»'],
+      ['el badge nombra la BANDA y no la verificacion de la IAo: no manda a revisar lo que esta sano',
+        R.badgeBanda.indexOf('fuera del rango') >= 0 && R.badgeBanda.indexOf('no se pudo verificar') < 0,
+        'badge=«' + R.badgeBanda.slice(0, 80) + '»'],
+      ['DENOMINADOR: con el THP legible y sin IAo consignada, el badge SI dice que no se pudo verificar',
+        R.badgeNoverif.indexOf('no se pudo verificar') >= 0, 'badge=«' + R.badgeNoverif.slice(0, 80) + '»'],
+      ['y la IAo SEVERA manda sobre la banda: es un hallazgo clinico, no un dedazo',
+        R.badgeIa.indexOf('insuficiencia aórtica severa') >= 0, 'badge=«' + R.badgeIa.slice(0, 80) + '»'],
+      ['la marca va en los DISPLAYS y no en avm_thp, que se exporta al Excel y se imprime por vPdf',
+        String(R.c2AvmGuardado).indexOf('revisar') < 0 &&
+        String(R.c2AvmDisplay).indexOf('(revisar)') >= 0 &&
+        String(R.c2ThpDisplay).indexOf('(revisar)') >= 0,
+        'guardado=«' + R.c2AvmGuardado + '» display=«' + R.c2AvmDisplay + '» thp=«' + R.c2ThpDisplay + '»'],
+      ['el gradiente maximo se marca sin borrarse, y dentro de banda sale limpio',
+        String(R.gFuera).indexOf('250000') >= 0 && String(R.gFuera).indexOf('(revisar)') >= 0 &&
+        String(R.gDentro).indexOf('(revisar)') < 0,
+        'fuera=«' + R.gFuera + '» dentro=«' + R.gDentro + '»'],
+      ['la banda no rechaza NINGUNA medicion real de paciente grave (THP 400/300/35, Vmax 2,8/3,5/0,5)',
+        R.graves === 0, 'rechazados=' + R.graves],
+      ['y atrapa los CUATRO errores de unidad',
+        R.errores === 4, 'atrapados=' + R.errores]
     ] };
   })();
 `);
