@@ -38903,6 +38903,133 @@ caso('TC-324', 'Evidencia: tres valvulopatias a la vez, cada seccion con su nume
    La compuerta de cada seccion se leyo del codigo, no se adivino: `ep_grado`/`ep_nivel` para la
    pulmonar y `et_gmedio` (>= ET_GMEDIO_SIGNIF, dentro de la banda 0-40) para la tricuspidea, que
    vive DENTRO de la seccion de valvula tricuspide y tiene constante propia (ET_REF). */
+/* La bibliografia de IM primaria dejo de citar UN solo documento. Las tres estan leidas en texto
+   completo —ASE 2017 Tabla 8 p.332 y ACC/AHA 2020 Tablas 16/17 p.e113/e121, sobre el PDF— y el caso
+   fija tres cosas distintas: que las tres claves esten REGISTRADAS, que las tres se PINTEN en la
+   seccion de IM, y que la bibliografia de esa seccion liste EXACTAMENTE esas tres y ninguna mas.
+   ⚠️ Y QUE LA NOTA DEL TEER SIGA SIN CITA. No es un olvido: la ESC/EACTS 2025 DESMIENTE su ultima
+   frase —la columna 2021 de su Tabla 4 dice «inoperables O de alto riesgo», o sea una disyuncion,
+   asi que 2021 nunca exigio inoperabilidad—. Ponerle un corchete seria usar una cita verificada
+   para respaldar lo que la fuente niega. Si alguien se lo agrega, este caso se pone en rojo. */
+caso('TC-326', 'Evidencia IM: la bibliografia cita TRES documentos verificados, y la nota del TEER sigue sin cita', `
+  return (async () => {
+    const R = {}, ex = [];
+    const pl = x => String(x == null ? '' : x).toLowerCase().normalize('NFD')
+      .split('').filter(function(ch){ const c = ch.charCodeAt(0); return c < 768 || c > 879; }).join('');
+    const cuerpo = () => document.getElementById('indic-cuerpo');
+    const cuenta = (h, sub) => h.split(sub).length - 1;
+    const CLAVES = ['esc2025vc', 'aseVr2017', 'ahaVc2020'];
+
+    /* Las tres claves viven en el registro: si una se borra de IND_REFS, el corchete sale en rojo
+       y la bibliografia publica «sin documento». Se mide antes de pintar nada. */
+    R.registradas = CLAVES.map(function(k){ return _indRefValida(k); });
+    R.docs = CLAVES.map(function(k){ const d = _indRefDoc(k); return d ? d.full.length : 0; });
+    /* Cada full tiene que nombrar su TABLA y su PAGINA: una cita sin pagina obliga a leer un
+       documento de 70 o 156 hojas, que es lo mismo que no citarlo. */
+    R.conPagina = CLAVES.map(function(k){
+      const f = pl((_indRefDoc(k) || {}).full || '');
+      return f.indexOf('tabla') > -1 && (f.indexOf('p. ') > -1 || f.indexOf('pag') > -1);
+    });
+
+    __t.limpiar();
+    const CAMPOS = { peso:'80', talla:'180', edad:'68', sexo:'M', fevi:'55', dsfvi:'42', ddfvi:'58',
+      ai_vol:'70', ai_diam:'58', im_sev_final:'4', im_vc:'8', it_grado:'2' };
+    R.faltan = [];
+    Object.keys(CAMPOS).forEach(function(k){
+      const e = document.getElementById(k);
+      if (!e) { R.faltan.push(k); return; }
+      try { __t.set(k, CAMPOS[k]); } catch (e2) { R.faltan.push(k + ':' + e2.message); }
+    });
+    indicAbrir();
+    await new Promise(r => setTimeout(r, 520));
+    for (let i = 0; i < 60; i++) {
+      const pend = Array.prototype.slice.call(cuerpo().querySelectorAll('[data-ind-clin][data-ind-val]'))
+        .filter(function(b){ return _indClinGet(b.getAttribute('data-ind-clin')) == null; });
+      if (!pend.length) break;
+      pend[0].click();
+    }
+
+    const secIM = Array.prototype.slice.call(cuerpo().querySelectorAll(':scope > details'))
+      .filter(function(d){ return pl(d.querySelector('summary').textContent).indexOf('mitral primaria') > -1; })[0];
+    R.hayIM = !!secIM;
+    const H = secIM ? secIM.innerHTML : '';
+    R.pintadas = CLAVES.map(function(k){ return cuenta(H, 'data-ind-ref="' + k + '"'); });
+    /* La bibliografia de ESTA seccion: exactamente las tres, en el orden de primera aparicion, y
+       numeradas 1-2-3 desde el uno. Ni una cuarta —una entrada sin corchete se lee como «hay una
+       cita mas que no encontras»— ni una repetida. */
+    const bib = secIM ? secIM.querySelector('[data-ind-biblio]') : null;
+    R.items = bib ? Array.prototype.slice.call(bib.querySelectorAll('[data-ind-refitem]'))
+      .map(function(e){ return e.getAttribute('data-ind-refitem'); }) : [];
+    R.nums = bib ? Array.prototype.slice.call(bib.querySelectorAll('[data-ind-refitem]'))
+      .map(function(e){ const t = e.textContent.trim(); return t.slice(0, t.indexOf(']') + 1); }) : [];
+    R.sinNumerar = cuenta(cuerpo().innerHTML, 'cita sin numerar');
+    R.noRegistrada = cuenta(cuerpo().innerHTML, 'referencia no registrada');
+
+    /* La nota del TEER: presente, y SIN ningun corchete pegado. Se aisla su propio div del detalle
+       para no mirar los corchetes de las notas vecinas. */
+    R.teer = (function(){
+      if (!secIM) return null;
+      /* SOLO los div HOJA: details div div matchea tambien a los ancestros, asi que el mismo
+         texto se encontraba TRES veces y la condicion se caia sobre un arbol correcto. */
+      const divs = Array.prototype.slice.call(secIM.querySelectorAll('details div div'))
+        .filter(function(d){ return d.querySelectorAll('div').length === 0; });
+      const cand = divs.filter(function(d){ return pl(d.textContent).indexOf('dejo de exigir que fuera inoperable') > -1; });
+      if (cand.length !== 1) return { n:cand.length };
+      return { n:1, conCorchete: cand[0].querySelectorAll('[data-ind-ref]').length };
+    })();
+
+    ex.push(['DENOMINADOR: la seccion de IM se pinto y sus controles se contestaron',
+      R.hayIM && R.faltan.length === 0 && cuenta(H, 'data-ind-ref="') >= 5,
+      'hayIM=' + R.hayIM + ' faltan=' + JSON.stringify(R.faltan) +
+      ' corchetes=' + cuenta(H, 'data-ind-ref="')]);
+
+    ex.push(['las TRES claves estan registradas y su cita nombra tabla y pagina',
+      R.registradas.every(Boolean) && R.docs.every(function(x){ return x > 120; }) &&
+      R.conPagina.every(Boolean),
+      'registradas=' + JSON.stringify(R.registradas) + ' largos=' + JSON.stringify(R.docs) +
+      ' conPagina=' + JSON.stringify(R.conPagina)]);
+
+    ex.push(['las TRES se pintan dentro de la seccion de IM',
+      R.pintadas.every(function(x){ return x >= 1; }),
+      'pintadas=' + JSON.stringify(R.pintadas) + ' claves=' + JSON.stringify(CLAVES)]);
+
+    ex.push(['su bibliografia lista EXACTAMENTE esas tres, numeradas desde [1]',
+      R.items.length === 3 &&
+      JSON.stringify(R.items) === JSON.stringify(['esc2025vc', 'aseVr2017', 'ahaVc2020']) &&
+      JSON.stringify(R.nums) === JSON.stringify(['[1]', '[2]', '[3]']) &&
+      R.sinNumerar === 0 && R.noRegistrada === 0,
+      'items=' + JSON.stringify(R.items) + ' nums=' + JSON.stringify(R.nums) +
+      ' sinNumerar=' + R.sinNumerar + ' noRegistrada=' + R.noRegistrada]);
+
+    /* ⚠️ CADA NOTA QUE NOMBRA UNA SEGUNDA GUIA LLEVA SU CORCHETE, y sin esto no se medía: sacarle
+       la cita de la ACC/AHA a la nota del tres-de-cuatro SOBREVIVIA porque esa clave sigue citada
+       en otra nota, asi que la bibliografia seguia teniendo sus tres entradas. Lo que importa no es
+       que el documento este en la lista: es que la frase que afirma algo SOBRE ese documento lo
+       cite. Una discrepancia entre guias sin la referencia de la guia que discrepa es una
+       afirmacion sin respaldo. */
+    R.notasAHA = (function(){
+      if (!secIM) return null;
+      /* Y FUERA LA BIBLIOGRAFIA: su propia entrada dice «2020 ACC/AHA Guideline...» y tambien es
+         un div hoja, asi que contaba como una nota sin corchete y daba 3 sobre un arbol correcto. */
+      const hojas = Array.prototype.slice.call(secIM.querySelectorAll('details div div'))
+        .filter(function(d){ return d.querySelectorAll('div').length === 0 && !d.closest('[data-ind-biblio]'); });
+      const nom = hojas.filter(function(d){ return d.textContent.indexOf('ACC/AHA') > -1; });
+      return { n: nom.length,
+               conCita: nom.filter(function(d){ return d.querySelectorAll('[data-ind-ref="ahaVc2020"]').length > 0; }).length };
+    })();
+
+    ex.push(['cada nota que nombra a la ACC/AHA 2020 lleva SU corchete, no el de la lista',
+      !!R.notasAHA && R.notasAHA.n >= 2 && R.notasAHA.conCita === R.notasAHA.n,
+      JSON.stringify(R.notasAHA)]);
+
+    ex.push(['la nota del TEER esta, y NO lleva cita: la fuente desmiente su ultima frase',
+      !!R.teer && R.teer.n === 1 && R.teer.conCorchete === 0,
+      JSON.stringify(R.teer)]);
+
+    return { resumen: JSON.stringify({ items: R.items, nums: R.nums, teer: R.teer }), extra: ex };
+  })();
+`);
+
 caso('TC-325', 'Evidencia: las SEIS constantes X_REF ejercidas — ninguna recomendacion con clase sin su clave', `
   return (async () => {
     const R = {}, ex = [];
@@ -39430,17 +39557,37 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
     R.marcadas = sel.length;
     R.marcada = sel.length ? sel[0].getAttribute('data-ind-refitem') : null;
     R.marcadaCorrecta = clave != null && R.marcada === clave;
+    /* El nombre de la seccion de la marca, capturado ANTES del repintado: es el denominador de la
+       condicion de abajo. Sin el, «sigue marcada» no distingue la seccion correcta de otra. */
+    const seccionMarcada = (function(){
+      if (!sel.length) return null;
+      const bib = sel[0].closest('details');
+      const sec = bib && bib.parentElement && bib.parentElement.closest('details');
+      const su = sec && sec.querySelector('summary');
+      return su ? su.textContent : null;
+    })();
 
-    /* Lo que SI sobrevive a un repintado es el desplegable ABIERTO: _indRepintarConservando
-       conserva el estado de cada <details> por el texto de su summary, y «Bibliografia» es unico.
-       La MARCA no sobrevive, y es aceptable: es una senal de «este es el que tocaste», no estado
-       clinico. Queda fijado por los dos lados para que la diferencia sea deliberada y no un
-       descubrimiento. */
+    /* ⚠️ REAPUNTADO: LA MARCA AHORA SÍ SOBREVIVE AL REPINTADO. Antes este caso afirmaba lo
+       contrario —«no sobrevive, y es la decision declarada»— y era aceptable con UNA entrada por
+       bibliografia. Con varias citas por seccion el resultado era una bibliografia abierta, cinco
+       entradas y ninguna resaltada, o sea el medico volviendo a buscar cual habia pedido.
+       Se mide por DOS lados, porque restaurar de mas es peor que no restaurar: que siga habiendo
+       UNA sola marca en todo el panel, y que este en LA MISMA seccion —la clave esc2025vc vive en
+       seis, asi que restaurar solo por clave marcaria la entrada de otra valvula—. */
     _indSyncDebounced();
     await new Promise(r2 => setTimeout(r2, 520));
     const det3 = cuerpo() ? cuerpo().querySelector('[data-ind-biblio]') : null;
     R.detTrasRepintado = det3 ? det3.open : null;
-    R.marcadasTrasRepintado = cuerpo() ? cuerpo().querySelectorAll('[data-ind-refsel]').length : -1;
+    const selTras = cuerpo() ? cuerpo().querySelectorAll('[data-ind-refsel]') : [];
+    R.marcadasTrasRepintado = selTras.length;
+    R.marcaTrasRepintado = selTras.length ? selTras[0].getAttribute('data-ind-refitem') : null;
+    R.marcaEnSuSeccionTrasRepintado = (function(){
+      if (selTras.length !== 1) return false;
+      const bib = selTras[0].closest('details');
+      const sec = bib && bib.parentElement && bib.parentElement.closest('details');
+      const su = sec && sec.querySelector('summary');
+      return !!(su && seccionMarcada != null && su.textContent === seccionMarcada);
+    })();
     R.biblioTrasRepintado = cuerpo() ? cuerpo().querySelectorAll('[data-ind-refitem]').length : -1;
     /* Se vuelve a marcar para que la condicion de la clave ajena mida sobre un estado conocido. */
     const br2 = cuerpo() ? cuerpo().querySelectorAll('[data-ind-ref]') : [];
@@ -39543,8 +39690,11 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
       ['un repintado del panel CONSERVA la bibliografia abierta y sus entradas',
         R.detTrasRepintado === true && R.biblioTrasRepintado === 2,
         'open=' + R.detTrasRepintado + ' items=' + R.biblioTrasRepintado],
-      ['la marca del corchete NO sobrevive al repintado, y es la decision declarada',
-        R.marcadasTrasRepintado === 0, 'marcadas=' + R.marcadasTrasRepintado],
+      ['la marca del corchete SOBREVIVE al repintado, UNA sola y en SU seccion',
+        R.marcadasTrasRepintado === 1 && R.marcaTrasRepintado === clave &&
+        R.marcaEnSuSeccionTrasRepintado === true,
+        'marcadas=' + R.marcadasTrasRepintado + ' clave=' + R.marcaTrasRepintado +
+        ' esperada=' + clave + ' enSuSeccion=' + R.marcaEnSuSeccionTrasRepintado],
       ['EN AISLAMIENTO: un criterio vacio lo DECLARA en vez de publicar el corchete solo',
         R.vacioDeclara === true && R.vacioCorchete === true,
         'declara=' + R.vacioDeclara + ' corchete=' + R.vacioCorchete],

@@ -39453,9 +39453,18 @@ window.mcaScore = mcaScore; window.mcaCatI = mcaCatI; window.mcaVI = mcaVI;
    bibliográfica inventada es peor que una incompleta, y se ve igual de bien. */
 const IND_REFS = Object.freeze([
   { k:'esc2025vc',
+    /* ⚠️ LA EDICIÓN IMPORTA Y FALTABA. El documento verificado es la TRADUCCIÓN de la Sociedad
+       Española de Cardiología (125 páginas, numeración propia, página impresa = página de PDF − 1),
+       no el original del European Heart Journal: las páginas 4.6xx que este archivo arrastra de una
+       referencia secundaria NO son verificables sobre lo que hay. No se ponen páginas de lesión acá
+       porque esta entrada la comparten SEIS secciones; cada una cita su propia tabla en su texto. */
     full:'ESC/EACTS 2025 — Guía de práctica clínica para el manejo de las valvulopatías. ' +
          'Sociedad Europea de Cardiología y Asociación Europea de Cirugía Cardiotorácica. ' +
-         'Tablas de recomendaciones por lesión.' },
+         'Original: 2025 ESC/EACTS Guidelines for the management of valvular heart disease, ' +
+         'doi:10.1093/eurheartj/ehaf194. Verificada sobre la traducción de la Sociedad Española de ' +
+         'Cardiología (SEC: 2025-L), 125 páginas. Tablas de recomendaciones por lesión: la mitral ' +
+         'primaria es la Tabla 6 de Recomendaciones (p. 44) y la estenosis mitral la Tabla 8 ' +
+         'de Recomendaciones con su tabla de contraindicaciones (p. 52).' },
   { k:'esc2020guch',
     full:'Baumgartner H, De Backer J, Babu-Narayan SV, et al. 2020 ESC Guidelines for the ' +
          'management of adult congenital heart disease. Eur Heart J 2021;42(6):563-645. ' +
@@ -39521,7 +39530,29 @@ const IND_REFS = Object.freeze([
      recomendación es una invención de EcoSmart. */
   { k:'ecosmart',
     full:'Criterio EcoSmart: decisión clínica de la aplicación cuando la evidencia no ofrece un ' +
-         'único corte aplicable.' }
+         'único corte aplicable.' },
+  /* ── AÑADIDAS 2026-09-30, LAS DOS LEÍDAS EN TEXTO COMPLETO SOBRE EL PDF, no de un resumen ni de
+     memoria. Cada `full` lleva tabla Y página porque la promesa de este registro es que el médico
+     pueda ir a buscarlo: una cita sin página obliga a leer un documento de 70 o 156 hojas.
+     ⚠️ LA PÁGINA QUE SE CITA ES LA DE LA EDICIÓN QUE SE LEYÓ. En la ESC/EACTS 2025 el archivo
+     disponible es la TRADUCCIÓN de la Sociedad Española de Cardiología, de 125 páginas y con su
+     propia numeración: no tiene las páginas 4.6xx del European Heart Journal, así que los «p. 4682»
+     que este archivo arrastra de una referencia secundaria NO son verificables acá. Las dos de
+     abajo sí se leyeron en su original en inglés. */
+  { k:'aseVr2017',
+    full:'Zoghbi WA, Adams D, Bonow RO, et al. Recommendations for Noninvasive Evaluation of ' +
+         'Native Valvular Regurgitation. A Report from the American Society of Echocardiography. ' +
+         'J Am Soc Echocardiogr 2017;30(4):303-371. doi:10.1016/j.echo.2017.01.007. ' +
+         'Tabla 8 «Grading the severity of chronic MR by echocardiography», p. 332 — insuficiencia ' +
+         'mitral severa: vena contracta ≥ 0,7 cm (> 0,8 cm en biplano), AEOR por PISA 2D ≥ 0,40 cm², ' +
+         'volumen regurgitante ≥ 60 ml y fracción regurgitante ≥ 50 %. Los cortes están en cm² y cm, ' +
+         'no en mm² y mm.' },
+  { k:'ahaVc2020',
+    full:'Otto CM, Nishimura RA, Bonow RO, et al. 2020 ACC/AHA Guideline for the Management of ' +
+         'Patients With Valvular Heart Disease. Circulation 2021;143:e72-e227. ' +
+         'doi:10.1161/CIR.0000000000000923. Tabla 17 «Stages of Chronic Primary MR», p. e121; ' +
+         'recomendaciones de intervención en la insuficiencia mitral primaria, p. e124; ' +
+         'Tabla 16 «Stages of MS», p. e113; recomendaciones de estenosis mitral reumática, p. e116.' }
 ]);
 
 /* Clave → número. Se arma UNA vez desde `IND_REFS`.
@@ -39909,6 +39940,25 @@ function _indRepintarConservando(claveFoco, valFoco){
     const ps = pa && pa.querySelector('summary');
     if (s) abiertas[(ps ? ps.textContent + ' ▸ ' : '') + s.textContent] = d.open;
   });
+  /* ⚠️ LA MARCA DEL CORCHETE TAMBIÉN SE CONSERVA, y hasta esta ronda NO. El `open` sobrevivía al
+     repintado y la marca no, así que con VARIAS entradas por bibliografía el médico terminaba con
+     la bibliografía abierta, cinco entradas y ninguna resaltada: tenía que volver a buscar cuál
+     había pedido. Con una sola entrada por sección era inocuo y quedó declarado como pendiente en
+     el commit de la bibliografía por sección; con las citas nuevas dejó de serlo.
+     ⚠️ Y LA CLAVE LLEVA LA SECCIÓN, no sólo la clave de documento: la MISMA clave —`esc2025vc` está
+     en seis secciones— aparece en varias bibliografías, así que restaurar sólo por clave marcaría
+     la entrada de la primera sección que la tenga, o sea confirmaría un corchete que el médico no
+     tocó. Se captura del DOM igual que el `open`, sin variable de módulo: si el panel se cerró y se
+     volvió a abrir no hay marca que leer y no hay nada que restaurar, gratis. */
+  let marcada = null;
+  const mSel = c.querySelector('[data-ind-refitem][data-ind-refsel]');
+  if (mSel) {
+    const mBib = mSel.closest ? mSel.closest('details') : null;
+    const mSec = mBib && mBib.parentElement && mBib.parentElement.closest
+      ? mBib.parentElement.closest('details') : null;
+    const mSum = mSec && mSec.querySelector('summary');
+    marcada = { sec: mSum ? mSum.textContent : null, k: mSel.getAttribute('data-ind-refitem') };
+  }
   const y = c.scrollTop;
   indicRender();
   Array.prototype.forEach.call(c.querySelectorAll('details'), function(d){
@@ -39920,6 +39970,21 @@ function _indRepintarConservando(claveFoco, valFoco){
     const k = s ? (ps ? ps.textContent + ' ▸ ' : '') + s.textContent : null;
     if (k && Object.prototype.hasOwnProperty.call(abiertas, k)) d.open = abiertas[k];
   });
+  if (marcada && marcada.k) {
+    /* El ámbito se resuelve por el summary de la SECCIÓN. Sin sección capturada —no debería
+       pasar, toda entrada vive en una bibliografía dentro de una sección— se cae al panel: es el
+       mismo compromiso declarado en `_indRefAbrir` y acá no afirma nada clínico, sólo resalta. */
+    let amb = c;
+    if (marcada.sec != null) {
+      const cand = Array.prototype.filter.call(c.querySelectorAll(':scope > details'), function(d){
+        const su = d.querySelector('summary');
+        return su && su.textContent === marcada.sec;
+      });
+      if (cand.length === 1) amb = cand[0]; else amb = null;
+    }
+    const it = amb ? amb.querySelector('[data-ind-refitem="' + marcada.k + '"]') : null;
+    if (it) { it.setAttribute('data-ind-refsel', '1'); it.style.background = 'rgba(167,139,250,.12)'; }
+  }
   c.scrollTop = y;
   if (claveFoco == null) return;
   const bs = c.querySelectorAll('[data-ind-clin]');
@@ -40088,15 +40153,29 @@ const IND_RECOM_COL = { ind:'#10B981', alarma:'#DC2626', falta:'#94A3B8', no:'#9
 
    UN SOLO CONTROL, y sale de UN SOLO armador: `_indSecHTML` es el único llamador, así que «el mismo
    patrón en las trece secciones» queda garantizado por construcción y no por revisión. */
+/* ⚠️ UNA NOTA PUEDE LLEVAR SUS CITAS, y hasta esta ronda no podía. El texto pasa por `_critEsc`,
+   así que un corchete embebido en el string salía como marcado LITERAL: la única forma de citar una
+   nota era no escapar el texto, que es abrir un XSS por comodidad. La extensión es aditiva y NO
+   toca quién numera —`_indRefNum` sigue siendo el único dueño—: un item puede ser un string, como
+   los ~50 que ya existen, o `{txt, refs:['k1','k2']}`. Hace falta para lo que este panel tiene que
+   decir: cuando la app difiere del corte de una guía, o cuando dos fuentes discrepan, la nota lleva
+   LAS DOS referencias numeradas, y sin esto la discrepancia se afirmaba sin respaldo de ninguna. */
 function _indDetalleHTML(items){
-  const xs = (items || []).filter(function(x){ return x && String(x.txt || '').trim(); });
+  const norm = (items || []).map(function(x){
+    return (typeof x === 'string') ? { txt:x, refs:null } : x;
+  });
+  const xs = norm.filter(function(x){ return x && String(x.txt || '').trim(); });
   if (!xs.length) return '';
   let h = '<details style="margin-top:7px;">';
   h += '<summary style="cursor:pointer;font-size:10.5px;font-weight:700;color:var(--accent2);' +
        'list-style:revert;">&#9432; Ver detalle</summary>';
   h += '<div style="font-size:11px;line-height:1.55;color:var(--text2);margin-top:6px;">';
   h += xs.map(function(x){
-    return '<div style="margin-top:6px;">' + _critEsc(x.txt) + '</div>';
+    /* Los corchetes van DESPUÉS del texto escapado, en el orden en que la nota los declara: ese
+       orden ES el de la bibliografía de la sección. `_indRefMarca` valida la clave y pinta en rojo
+       la que no esté registrada, así que una clave mal tipeada no pasa callada. */
+    const cit = (x.refs || []).map(function(k){ return _indRefMarca(k); }).join('');
+    return '<div style="margin-top:6px;">' + _critEsc(x.txt) + cit + '</div>';
   }).join('');
   return h + '</div></details>';
 }
@@ -40250,7 +40329,10 @@ function _indSecHTMLCuerpo(tit, r){
   if (r.recom) h += _indRecomHTML(r.recom);
   /* Sólo los párrafos de contexto del final van al detalle. Sin rótulo y sin mezclarse con nada:
      al quedar `r.nota` visible, no hay dos orígenes que puedan confundirse. */
-  const det = (r.notas || []).filter(Boolean).map(function(n){ return { txt:n }; });
+  /* Las dos formas: string (la mayoría) u objeto `{txt, refs}` para las notas que citan. */
+  const det = (r.notas || []).filter(Boolean).map(function(n){
+    return (typeof n === 'string') ? { txt:n, refs:null } : { txt:n.txt, refs:n.refs || null };
+  });
   /* EL CRITERIO y su corchete quedan SIEMPRE VISIBLES, y el detalle cuelga de ellos. El criterio,
      el corchete y la glosa los reparte `_indGuiaHTML`.
      ⚠️ EL DOCUMENTO Y SU EDICIÓN YA NO SE VEN ACÁ, y el comentario anterior —«la cita de guía queda
@@ -41015,10 +41097,27 @@ function _indIM(){
     recom: _indIMRecom(D),
     guia: { ref:'esc2025vc',
       txt:'Cirugía Clase I · Nivel B en el paciente sintomático operable, y en el asintomático con disfunción ventricular: diámetro telesistólico ≥ 40 mm, o indexado ≥ 20 mm/m², o FEVI ≤ 60 %.' },
+    /* ⚠️ CADA NOTA LLEVA LAS CITAS DE LO QUE AFIRMA, Y DOS NO LLEVAN NINGUNA A PROPÓSITO.
+       · La del TEER: la ESC/EACTS 2025 DESMIENTE su última frase. La columna 2021 de la Tabla 4 de
+         recomendaciones revisadas (impresa 14) dice «inoperables O de alto riesgo quirúrgico» —una
+         disyunción—, así que 2021 NUNCA exigió inoperabilidad. Lo que 2025 eliminó es otra cosa:
+         los «criterios ecocardiográficos de elegibilidad» y la cláusula de futilidad. Estamparle
+         `esc2025vc` sería usar una cita verificada para respaldar lo que esa misma fuente niega, que
+         es el defecto que este archivo persigue desde el 0,38. Queda SIN corchete y REPORTADO.
+       · La última es comportamiento de la aplicación, no una afirmación clínica: no lleva fuente
+         porque no hay documento que la sostenga ni que la pueda desmentir. */
     notas: [
-      'El diámetro telesistólico INDEXADO ≥ 20 mm/m² es criterio NUEVO de 2025: la edición 2021 sólo tenía el absoluto. El corte de 45 mm que se cita a veces es de la ESC 2017.',
-      'La Clase I nueva de 2025 exige AL MENOS TRES de cuatro criterios —fibrilación auricular, PAPs en reposo > 50 mmHg, dilatación auricular (≥ 60 ml/m² o ≥ 55 mm), insuficiencia tricuspídea secundaria al menos moderada— MÁS riesgo bajo, ausencia de disfunción en los tres parámetros y reparación duradera probable. Con uno o dos criterios baja a Clase IIa.',
-      'La dilatación auricular sola, y la hipertensión pulmonar o la fibrilación secundarias a la insuficiencia solas, son Clase IIa · Nivel B, no Clase I. La de dilatación auricular exige además riesgo bajo, centro con experiencia y reparación duradera probable.',
+      { txt:'Los tres criterios cuantitativos de insuficiencia mitral severa coinciden en las tres guías: AEOR ≥ 40 mm², volumen regurgitante ≥ 60 ml y fracción regurgitante ≥ 50 %; la vena contracta severa es ≥ 7 mm.',
+        refs:['aseVr2017','ahaVc2020','esc2025vc'] },
+      { txt:'El diámetro telesistólico INDEXADO ≥ 20 mm/m² es criterio NUEVO de 2025: la edición 2021 sólo tenía el absoluto. La ACC/AHA 2020 no tiene criterio indexado en la mitral —sólo lo usa en la aorta y en el anillo tricuspídeo—, así que ese corte no está corroborado por una segunda guía.',
+        refs:['esc2025vc','ahaVc2020'] },
+      { txt:'El corte de 45 mm que se cita a veces es de la ESC 2017, una edición que esta aplicación no tiene verificada: se nombra para que nadie lo confunda con el vigente, y no lleva cita.' },
+      { txt:'La Clase I nueva de 2025 exige AL MENOS TRES de cuatro criterios —fibrilación auricular, PAPs en reposo > 50 mmHg, dilatación auricular (≥ 60 ml/m² o ≥ 55 mm), insuficiencia tricuspídea secundaria al menos moderada— MÁS riesgo bajo, ausencia de disfunción en los tres parámetros y reparación duradera probable. Con uno o dos criterios baja a Clase IIa. La ACC/AHA 2020 no tiene ningún esquema de conteo: en el asintomático se apoya sólo en FEVI, diámetro telesistólico y progresión en estudios seriados.',
+        refs:['esc2025vc','ahaVc2020'] },
+      { txt:'La dilatación auricular sola, y la hipertensión pulmonar o la fibrilación secundarias a la insuficiencia solas, son Clase IIa · Nivel B, no Clase I. La de dilatación auricular exige además riesgo bajo, centro con experiencia y reparación duradera probable.',
+        refs:['esc2025vc'] },
+      { txt:'La fibrilación de esta sección NUNCA es «de nueva aparición»: en el tres-de-cuatro es fibrilación a secas y en la Clase IIa es secundaria a la insuficiencia. El «de nueva aparición» pertenece a la estenosis mitral.',
+        refs:['esc2025vc'] },
       'El TEER en la insuficiencia primaria subió en 2025 a Clase IIa · Nivel B para el sintomático anatómicamente apto con riesgo quirúrgico alto: dejó de exigir que fuera inoperable.',
       'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
     ] };
@@ -85349,8 +85448,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260929-2303';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790733820294;                 /* eco-build-ms */
+const ECO_BUILD    = '20260929-2348';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790736526354;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -85436,7 +85535,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-2303</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-2348</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
