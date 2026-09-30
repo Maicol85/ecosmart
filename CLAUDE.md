@@ -1,5 +1,178 @@
 # EcoSmart — trampas de este archivo
 
+## Cierre de la mitral: selector de mecanismo, el ⓘ del cociente y las bandas de `em_vmax` y `thp` (2026-09-30)
+
+Tres pendientes declarados en rondas anteriores, en una sola tanda. Cuatro commits: `086a1a5`
+(selector), `9e7c1fa` (ⓘ), `c790775` (bandas) y `9fcce78` (cobertura + `/sharp-edges`).
+
+### 1 · El control que se borraba al usarse
+
+`im.mecanismo` era una FILA de `_indIM`. La compuerta de esa sección devuelve `null` con mecanismo
+secundario, así que **contestar «Secundaria» hacía desaparecer el control en el mismo repintado en
+que se lo tocaba** — y la fila «Mecanismo» de `_indIMS`, la tarjeta que pasa a gobernar, es de solo
+lectura. Se recuperaba cerrando y reabriendo el panel, que llama a `_indClinLimpiar` y se lleva
+**todas** las demás respuestas clínicas del paciente.
+
+Hoy vive en `_indMecanismoHTML()`, bloque fijo de `indicRender`, con el precedente de
+`_indLeyendaHTML`. **Va dentro de `#indic-cuerpo`**: el listener de los controles está delegado ahí
+y `_indRepintarConservando` busca el foco en ese contenedor — un bloque hermano en el HTML estático
+se vería igual y no respondería a un solo clic.
+
+**No hay segundo dueño**: la respuesta sigue siendo `_indClin['im.mecanismo']` leída con
+`_indOrigen`; lo único que se movió es dónde se dibuja la botonera, y por eso la fila de `_indIM`
+pasó a solo lectura en el mismo cambio, con sus tres textos idénticos carácter por carácter.
+Las compuertas son las de las secciones que gobierna —`vmEsProtesis()` y `im_sev_final === '4'`—,
+no unas nuevas: pintarlo siempre ponía una pregunta sobre la insuficiencia mitral en el panel de un
+paciente que no la tiene y, peor, contestarla no habría tenido ningún efecto visible.
+
+### 2 · «No figura en guía europea» dejó de ser cierto, y la coordenada del PDF miente
+
+El ⓘ y `ECO_AYUDA` decían que el cociente VTI mitral/TSVI >1,4 «no figura en ASE 2017 ni en
+ESC/EACTS 2021». Exacto para esas dos ediciones e **incompleto desde que salió la siguiente**: la
+**ESC/EACTS 2025 lo publica con el mismo 1,4**. Verificado en el original inglés (`ehaf194.pdf`),
+**Figura 10, pág. de revista 4672** (folio = PDF + 4634), recuadro «Echocardiographic criteria for
+severe MR», grupo **Semi-quantitative**, cuarta viñeta: «VTI mitral / VTI LVOT >1.4».
+
+**⚠️ LA FIGURA NO SE PUEDE MEDIR POR COORDENADAS.** La fuente va subseteada sin ToUnicode —el texto
+sale como `/gid00xxx`— y hay que decodificarla a mano (mapeo derivado de tres cadenas que sí se
+decodifican en la misma página: minúsculas = código−33, mayúsculas y dígitos = código−31,
+espacio = 1). Hecho eso, **la posición `y` que informa el extractor pone esa viñeta debajo de
+«Quantitative», o sea en el grupo equivocado**, mientras el orden del content stream la pone en
+«Semi-quantitative». Se resolvió **renderizando la página con CoreGraphics y mirándola**. Quien
+vuelva a verificar esto: no le crea a la coordenada.
+
+**La modalidad NO se afirma.** La Figura 10 dice «VTI mitral» y no especifica con qué se mide; la
+app usa el de entrada por Doppler pulsado anterógrado, que es lo correcto, pero es criterio de la
+aplicación y ninguna fuente leída lo respalda. La ayuda lo dice con esas palabras.
+
+### 3 · Las bandas, y por qué NO van en `DCM_RANGO`
+
+`em_vmax` y `thp` votaban crudos. Medido contra HEAD con la misma sonda:
+
+| escenario | HEAD | ahora |
+|---|---|---|
+| `em_vmax = 250` (cm/s donde van m/s) | fila **«250,0 m/s ✅ alcanza 2.5 — sugiere estenosis significativa»**, y `em_gmax` = 250 000 mmHg sin una palabra | ❓ «fuera de rango medible (0.2–8 m/s)» |
+| `thp = 0,12` (segundos donde van ms) | fila **«0 ms — menor que 130 ms, normal»** — con 0 decimales el valor ni se veía | ❓ «0,12 ms — fuera de rango (20–600 ms)» |
+| Tabla 12 con `thp = 0,12` | **pintaba el patrón de REGURGITACIÓN protésica** | no lo pinta |
+| planimetría severa + `thp = 0,12` | informe firmado: «AVm 1833.33 cm² por THP, **probablemente** severa» | «con estenosis severa (AVm 1.20 cm² por planimetría)» |
+
+**⚠️ EL MOTIVO QUE ESTE ARCHIVO DABA PARA NO HACERLO ERA FALSO, Y LAS DOS MITADES.** La entrada
+anterior decía «`DCM_RANGO` lo consume el importador y `em_vmax` lo lee `calcEM`». Verificado campo
+por campo: **ninguno de los dos tiene columna en `LAB_XLS_MAP`**, así que el importador nunca les
+pregunta al rango, y `calcEM` los lee con `v()` crudo sin consultar la tabla. Lo que SÍ pasaba era
+otra cosa y sólo con el THP: **`thp` se imprime en el PDF FIRMADO por `vPdf('thp',' ms')`**, y
+`vPdf` marca «(revisar)» con lo que publique `_labRango`. Meterlo en `DCM_RANGO` cambiaba una
+superficie firmada que el pedido no nombraba. Por eso la banda es local.
+
+El patrón no se inventó: es el de **`etEstado`, que bandea `et_thp` en `[50,400]` localmente** —la
+misma magnitud— pese a que ese campo sí tiene columna de Excel.
+
+**Los límites son criterio EcoSmart de plausibilidad.** Ninguna de las tres fuentes leídas (ASE
+2024, ESC/EACTS 2025, ACC/AHA 2020) publica un rango de valores POSIBLES: publican cortes de
+severidad, que es otra cosa. Se anclan en los hermanos de la propia app:
+- **`em_vmax [0.2, 8]` m/s** — las tres velocidades en m/s de `DCM_RANGO` son `vmax_it [0.5,8]`,
+  `vmax_ao [0.5,8]` y `vp_vmax [0.2,8]`. Techo común; piso el más permisivo, para no rechazar al
+  paciente de bajo gasto.
+- **`thp [20, 600]` ms** — hermano `et_thp [50,400]`, ensanchado por los dos lados: el piso a 20
+  porque el llenado restrictivo acorta la bajada de la E mucho más que en la tricúspide (un DT de
+  70 ms da THP ~20) y ahí el valor es real; el techo a 600 porque `220/600` da 0,37 cm², por debajo
+  de cualquier área publicada.
+
+**Verificado contra el paciente GRAVE, que es a quien una banda mal puesta silencia**: THP 400, THP
+300, THP 35, Vmax 2,8 y Vmax 3,5 pasan los cinco. Hay una mutación —M12, el techo del THP a 250—
+que existe sólo para fijar eso.
+
+**La marca va en los DISPLAYS y no en `avm_thp`**: ese input viaja a TRES superficies —el Excel, la
+fila «AVm THP» del PDF por `vPdf`, y `emAvmPdfVal()`—, así que pegarle « (revisar)» le mete texto a
+una celda numérica. Verificado: el valor guardado sale idéntico a HEAD en los dos escenarios.
+
+### ⚠️ LO QUE `/sharp-edges` ENCONTRÓ SOBRE ESTE DIFF — y el primero era mío y grave
+
+**1 · EL THP FUERA DE BANDA DESAPARECÍA, Y ESO ES PEOR QUE PUBLICARLO MAL.** `emCategoria` lo
+rechazaba por la rama `vota()`, **que no empuja a ninguna lista**: `emFueraBanda('avm_thp')` falla
+abierto porque el ÁREA no tiene entrada en `_labRango`. Medido con `thp = 0,12` como única medición
+mitral: `fuentes` y `revisar` quedaban las dos vacías y la cápsula caía en **«—»**, que ese mismo
+bloque define como «nadie midió nada». **Un THP ilegible se leía igual que una mitral nunca
+interrogada**, mientras la planimetría fuera de banda —el hermano que sí tiene banda de tabla—
+decía «Sin clasificar — revisar unidad». La asimetría estaba dentro de la misma función.
+
+Y era **la mitad que faltaba del precedente que mi propio comentario citaba**: `etEstado` mete lo
+fuera de banda en `fuera[]` **y** en `hayDatos`, con el comentario «sin eso, un THP de 4000 ms salía
+por el return temprano y desaparecía del informe sin que nadie lo nombrara». Copié la mitad.
+
+Cerrado con un cuarto parámetro `insumo` en `_tomar`, que anota **el insumo y no el derivado**: lo
+que el médico tiene que corregir es el THP de 0,12, no el área de 1833 cm² que sale de él.
+
+**2 · El bloque de mecanismo se llamaba FUERA del `try` de `indicRender`**, y el comentario cuatro
+líneas arriba declara ese modo de falla como ya cerrado para las secciones. Acá pesa más: la
+respuesta al mecanismo decide **qué tarjeta mitral gobierna**, así que un throw dejaba al médico
+viendo la tarjeta de IM primaria después de contestar «Secundaria», con `_indClin` ya cambiado.
+
+**3 · El badge nombraba la causa equivocada.** `emThpMotivoNoVota` devuelve DOS cosas y sólo la IAo
+SEVERA es un hallazgo clínico: «no se pudo verificar la IAo» es otro fallo de lectura, igual que la
+banda. Con `thp = 0,12` y un `ia_grado` ilegible mandaba a revisar la IAo y callaba la unidad del
+THP. Hoy el orden es hallazgo clínico → banda → verificación.
+
+**4 · La columna «Guía» de `ECO_AYUDA`** —la de escaneo rápido— seguía sin la ESC/EACTS 2025, en
+una tarea cuyo objeto ERA la atribución.
+
+**Dos comentarios míos que afirmaban de más, corregidos:** el censo de superficies de `avm_thp`
+decía DOS y son TRES (falta `emAvmPdfVal()`); y la rama `src` de `emThpValido` **no tiene ningún
+llamador**, así que la simetría con la continuidad que el comentario prometía no existe.
+
+### Declarado y NO corregido
+
+- **`emAvmPdfVal()` imprime el THP sin compuerta** —«THP: 1833.33 cm2» con `thp = 0,12`— mientras la
+  continuidad, en la misma función y tres líneas más abajo, sí la tiene. Cerrarlo toca el PDF.
+- **La columna «AVm (cm²)» del Excel exporta `avm_thp` crudo**, mientras «AVm continuidad» sí se
+  gatea por `emContValido(c)`. Cerrarlo toca el contrato del Excel.
+- **`em_vmax` viaja crudo al informe** en la línea de prótesis mitral, en la misma oración donde
+  `avm_cont` sí está gateado. Preexistente; el cambio lo vuelve una asimetría visible.
+- **El informe narrativo niega sobre un valor fuera de banda.** Con la única medición mitral
+  ilegible sale «sin estenosis ni insuficiencia». **Es preexistente y uniforme** —medido en HEAD con
+  `avm_plan = 150`, que ya tenía banda, da la misma frase—, pero ahora el THP también cae ahí. Lo
+  que el arreglo 1 sí devuelve es la declaración en PANTALLA.
+- **`_indProtM` no distingue `sinBanda` de «sin medir»** en las filas nuevas, igual que su fila
+  hermana del gradiente medio. `_indIM` sí tiene el texto correcto (`porQue`). Sólo se alcanza si
+  murió el bloque entero que define `v()`.
+
+### Verificación
+
+**Suite 331/349** — los 18 rojos son los **17 del pendrive por FIXTURE AUSENTE** (`DISK_IMG` no
+estaba montado en esta tanda) más TC-223, el documentado. **25 mutaciones, LAS 25 EN ROJO.**
+**A/B contra `d07b765`: 68 mediciones** de informe + EN SUMA + fila completa del Excel, **3
+diferencias y las 3 en el escenario FUERA de banda**, con denominador de 15 hashes distintos sobre
+17 escenarios y 434 columnas de los dos lados. **PDF firmado con el panel de Evidencia ABIERTO: los
+5 escenarios dentro de banda con content stream idéntico**, 50-64 objetos de texto, 1 página.
+**Semgrep 125 / 0 ERROR**, la línea base. Sin huérfanos nuevos. `node --check` por bloque falla sólo
+en los bloques 4 y 5 del extractor, idéntico a HEAD.
+
+### ⚠️ DOS DE MIS CONDICIONES ERAN VERDES POR VACÍO, y lo dijo la mutación
+
+De la primera tanda de 25 sobrevivieron dos, y **las dos eran agujeros del caso, no del código**:
+
+- **La red del `try`**: mi condición medía a través de `abrir()`, que tiene su propio `try` y **se
+  traga la excepción**, así que «abrió» daba `true` pasara lo que pasara. Y peor: si `indicRender`
+  lanza, `#indic-cuerpo` **conserva el pintado anterior**, o sea que contar secciones daba un número
+  sano leído de un cuerpo **rancio**. Hoy llama a `indicRender` pelado y deja un **centinela** en el
+  cuerpo: si sigue ahí, no se repintó nada.
+- **La columna «Guía»**: miraba el `innerHTML` del `<tr>` entero, donde «Figura 10» aparece igual en
+  el cuerpo de la fila. Hoy mide el `<td>` de más a la derecha.
+
+### Trampas del propio arnés
+
+- **`ia_grado` es un `<input type="hidden">` con `value="0"`**, y `_emRegurgGrado` devuelve 0 para el
+  vacío: «no se pudo verificar la IAo» **sólo se alcanza con un texto que no sepa interpretar**, como
+  llega desde un import. Un escenario que deja el campo vacío mide otra rama.
+- **Sembrar un campo oculto no recalcula nada.** `__t.set` despacha los eventos, pero `ia_grado` no
+  tiene `oninput`: el badge seguía mostrando el estado de cuando se sembró `thp`, varios campos
+  antes. Hace falta un `calcEM()` explícito al final. Da rojo sobre código sano.
+- **La cápsula sólo usa la rama `revisar` con clave `nada`.** Con una planimetría severa arriba
+  publica la severidad, así que una condición sobre «revisar unidad» ahí mide otra rama.
+- **`_indFila` guarda el valor en `val`, no en `txt`.** Una sonda que lea `.txt` devuelve `undefined`
+  y parece un defecto del código.
+- **Backticks dentro de los cuerpos de caso: 15 más en esta tanda, acumulado 169.**
+
 ## Prótesis mitral: la sección nueva, y las tres nativas que publicaban sobre una válvula que ya no está (2026-09-30)
 
 Decimosexta sección del panel de Evidencia, y la primera que **apaga** otras tres. Con una prótesis
