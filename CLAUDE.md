@@ -146,6 +146,48 @@ ramas.** `_indProtM` lo consigue citando la ASE sólo en las filas, la ESC desde
 clínico y la ACC/AHA recién en la recomendación o las notas. Medido: `aseProtM2024=[1]`,
 `esc2025vc=[2]`, `ahaProtM2020=[3]` en todos los escenarios.
 
+### Cobertura (TC-331) — y las CUATRO mutaciones que sobrevivieron a la primera tanda
+
+**23 condiciones, leyendo el OBJETO de `_indProtM()` y nunca el `textContent` de la tarjeta.** La
+línea de criterio de la sección aporta por su cuenta las cadenas «Clase I · Nivel C» y «Clase IIa ·
+Nivel B» —están escritas en su campo `guia`— así que buscarlas en la pantalla da **verde con la
+recomendación mutada**: el texto está en la tarjeta por otro motivo. Es la lección de TC-329 palabra
+por palabra. Lo mismo las filas: se compara la **marca**, que es el dato, no el color pintado.
+
+**DOCE MUTACIONES, LAS DOCE EN ROJO Y CADA UNA EN SU CONDICIÓN** — una por compuerta (las cuatro),
+por recomendación (la cascada cortada en Clase I, la fuga sin su `mod`, el ViV transfemoral aórtico
+citado para la mitral), por control (`protm.riesgo` desaparecido), por fila (Tabla 12, trombo, PPM) y
+por referencia (`aseProtM2024` apuntando a una clave no registrada, que cae en **TC-322**).
+
+**⚠️ PERO LA PRIMERA TANDA DIO 8/12, Y LAS CUATRO VIVAS ERAN LAS DE LAS COMPUERTAS —o sea justo lo
+que este commit viene a construir—.** Dos causas distintas, y las dos valen:
+
+1. **DOS MUTACIONES ESTABAN MAL ESCRITAS Y ERAN NO-OPS.** Insertaban `if (false) return null;`
+   **antes** del comentario de cabecera y dejaban la compuerta real intacta cuatro líneas más abajo.
+   El `assert` de ancla única pasó —el ancla existía y era única— así que el script informó
+   «aplicada» sobre un archivo que seguía haciendo exactamente lo mismo. **Un `assert` de ancla no
+   comprueba que la mutación cambie el COMPORTAMIENTO**, sólo que el texto se haya escrito. Al mutar
+   una compuerta, la mutación tiene que **borrar la línea**, no agregar otra.
+   Y la línea `if (_indFn('vmEsProtesis') && vmEsProtesis()) return null;` aparece **tres veces**
+   —una por sección nativa—, así que hay que anclar con el final del comentario de cada una.
+2. **DOS ERAN HUECOS DEL CASO, y el patrón es el de siempre: una condición que mide una función
+   cortada por OTRA razón no mide nada.**
+   - **`_indIM` salía `null` igual** porque yo contestaba «Secundaria» en el mismo escenario, y eso
+     lo corta por su **propia** compuerta de mecanismo —que no tiene nada que ver con la prótesis—.
+     Hoy van **dos sub-escenarios**: uno sin contestar el mecanismo, que mide `_indIM` y `_indEM`, y
+     otro contestándolo, que mide `_indIMS`.
+   - **Faltaba el denominador de `_indProtM`**: medía que la sección se pinte con prótesis y **nunca**
+     que NO se pinte con nativa, así que borrarle la compuerta no movía una sola condición.
+
+**Y el VTI mitral del escenario de PPM tuvo que bajar de 95 a 70.** La banda de `em_vtimit` es
+**[2,80]**: con 95 el valor cae fuera, `vmProtEOA` no valida, no hay EOA y por lo tanto tampoco EOA
+indexada — la fila del PPM sale en «—» y el caso da rojo **sobre una sección perfectamente sana**.
+Costó una corrida. **Al elegir un valor para un escenario, mirar primero si el campo tiene banda.**
+
+**Backticks dentro del cuerpo de un caso: van CIENTO CINCUENTA Y CUATRO**, cincuenta de esta tanda
+en dos rondas, todos en comentarios que acababa de escribir — y la segunda ronda fue en el
+comentario que explicaba la primera.
+
 ### Reportado y NO corregido
 
 - **Con prótesis mecánica el panel también pintaba «Válvula tricúspide», y NO es un defecto.**

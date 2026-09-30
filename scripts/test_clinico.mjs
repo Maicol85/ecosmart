@@ -40035,6 +40035,12 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
          abre, que es su compuerta y esta cubierta aparte por TC-329. */
       ['Insuficiencia mitral secundaria',     { im_sev_final:'4', teer_tipo_im:'secundaria' },      'esc2025vc'],
       ['Estenosis mitral',                    { avm_plan:'1.2' },                                   'esc2025vc'],
+      /* ⚠️ SU COMPUERTA ES LA MORFOLOGIA Y NADA MAS: vmEsProtesis() alcanza y no hace falta ninguna
+         medicion. Y su guia cita la ESC/EACTS 2025 —la linea de criterio afirma clases de la
+         Recommendation Table 17— mientras su PRIMER corchete es la ASE 2024, que es la que pone los
+         cortes de las filas. Por eso es la unica seccion cuyo guia.ref NO sale [1], y por eso la
+         condicion arrancanEn1 tuvo que reapuntarse al invariante de verdad. */
+      ['Protesis mitral',                     { vm_morf:'Prótesis mecánica' },                      'esc2025vc'],
       ['Insuficiencia aortica',               { ia_sev_final:'4' },                                 'esc2025vc'],
       ['Valvula tricuspide',                  { it_grado:'4' },                                     'esc2025vc'],
       ['Estenosis pulmonar',                  { vp_gmax:'70' },                                     'esc2020guch'],
@@ -40090,6 +40096,10 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
         esObj: !!(g && typeof g === 'object'),
         ref: ref,
         num: num,
+        /* Que la numeracion de ESTA seccion arranque en 1, que es lo que «por seccion» significa.
+           Se mide sobre el corchete DIBUJADO y no sobre el objeto: con el indice global, una
+           seccion pintada despues de otra empezaria en 2 y esto se pone en rojo. */
+        hayUno: html.indexOf('[1]') >= 0,
         ok: ref === esperado,
         /* El corchete tiene que estar DIBUJADO con ese numero, no solo declarado en el objeto. */
         corchete: num != null && html.indexOf('[' + num + ']') >= 0,
@@ -40173,8 +40183,18 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
        cualquiera es [1] sin importar cuantas otras haya en pantalla.
        No se borro: se reapunto. Sostener la afirmacion vieja empujaria a volver al indice global el
        dia que alguien «la arregle», que es lo que este archivo ya documenta con TC-277 y TC-288. */
-    const nums2025 = nombres.filter(k => S[k].ref === 'esc2025vc').map(k => S[k].num);
-    R.arrancanEn1 = nombres.length >= 10 && nombres.every(k => S[k].num === 1);
+    /* ⚠️ REAPUNTADA OTRA VEZ (2026-09-30), y el motivo es que la version anterior fijaba un caso
+       PARTICULAR disfrazado de invariante. Exigia que el numero de guia.ref fuera 1 en todas, y eso
+       se cumplia solo porque cada seccion citaba UN documento, o porque el de su guia era casualmente
+       el primero que aparecia. «Protesis mitral» lo rompe de forma legitima: su linea de criterio
+       afirma clases de la ESC/EACTS 2025 —ponerle la ASE seria una cita falsa— y su primer corchete
+       es la ASE 2024, que es la que pone los cortes de las filas. Su guia sale [2], y esta bien.
+       El invariante de VERDAD de «numeracion por seccion» es que cada seccion DIBUJE un [1] propio:
+       eso es lo que se rompe si alguien vuelve al indice global, y no depende de que la guia sea la
+       primera fuente citada. Se agrega que el ref de la guia este numerado —cualquier numero— para
+       no perder la mitad que cazaba un corchete sin numero. */
+    R.arrancanEn1 = nombres.length >= 10 && nombres.every(k => S[k].hayUno === true)
+                    && nombres.every(k => typeof S[k].num === 'number' && S[k].num >= 1);
 
     /* Las dos ramas de fallo visible se ejercen EN AISLAMIENTO: ninguna es alcanzable mientras las
        trece secciones esten bien escritas, y una defensa que ningun caso ejerce es una capa que
@@ -40395,9 +40415,9 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
         R.corchetesVisibles === true, JSON.stringify(nombres.filter(k => !S[k].corcheteVisible))],
       ['el criterio de la IM ofrece sus tres alternativas como DISYUNCION, no como conjuncion',
         R.disyIM === 2, 'disyunciones=' + R.disyIM],
-      ['CADA SECCION ARRANCA SU NUMERACION EN [1] — reemplaza al numero global por documento',
-        R.arrancanEn1 === true, JSON.stringify(nombres.map(k => k + '=' + S[k].num)) +
-        ' nums2025=' + JSON.stringify(nums2025)],
+      ['CADA SECCION DIBUJA SU PROPIO [1] — reemplaza al numero global por documento',
+        R.arrancanEn1 === true,
+        JSON.stringify(nombres.map(k => k + ': hay[1]=' + S[k].hayUno + ' guia=' + S[k].num))],
       ['la bibliografia se dibuja DENTRO de cada seccion',
         R.A_biblio === true && R.A_biblios === 1, 'biblio=' + R.A_biblio + ' cuantas=' + R.A_biblios],
       ['y NINGUNA al pie del panel: la global se elimino',
@@ -40870,6 +40890,288 @@ caso('TC-330', 'Wilkins: Referencias y la calculadora de Calculadoras publican e
         })(),
         'fuenteSinComentarios=«' + R.cxFuente.replace(/\\/\\*[\\s\\S]*?\\*\\//g, ' ').replace(/\\/\\/[^\\n]*/g, ' ')
           .replace(/\\s+/g, ' ').slice(0, 260) + '»']
+    ] };
+  })();
+`);
+
+/* ⚠️ LAS CONDICIONES LEEN EL OBJETO QUE DEVUELVE `_indProtM()`, NO EL `textContent` DE LA TARJETA,
+   y esa distincion es la que separa este caso de uno decorativo. La linea de criterio de la seccion
+   aporta las cadenas «Clase I · Nivel C» y «Clase IIa · Nivel B» POR SU CUENTA —esta escrita en el
+   campo `guia`— asi que buscar esos textos en la pantalla da verde con la recomendacion mutada: el
+   texto buscado esta en la tarjeta por otro motivo. Es la leccion que TC-329 ya pago entera.
+   Lo mismo con las filas: se compara la MARCA de cada una, que es el dato, y no el color pintado. */
+caso('TC-331', 'Protesis mitral: la seccion publica los cortes de la ASE 2024 y la cascada de la Table 17, y apaga las tres secciones mitrales nativas', `
+  return (async () => {
+    const R = {};
+    const pl = x => String(x == null ? '' : x).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+
+    /* Pone los campos, abre el panel y devuelve el objeto de la seccion. El orden importa:
+       indicAbrir() llama a _indClinLimpiar(), asi que sembrar DESPUES de abrir perderia las
+       respuestas de los controles. Y los campos van antes de abrir para que el debounce de 400 ms
+       de _indSyncDebounced no repinte a mitad de la medicion. */
+    const escenario = function(campos, clics){
+      try { __t.limpiar(); } catch (e) {}
+      try { indicCerrar(); } catch (e) {}
+      Object.keys(campos).forEach(function(id){ __t.set(id, campos[id]); });
+      try { indicAbrir(); } catch (e) { return { ERR: e.message }; }
+      (clics || []).forEach(function(par){
+        const b = document.querySelector('[data-ind-clin="' + par[0] + '"][data-ind-val="' + par[1] + '"]');
+        if (b) b.click();
+      });
+      try { return _indProtM(); } catch (e) { return { ERR: e.message }; }
+    };
+    /* Los titulos de las secciones PINTADAS. Se excluye la bibliografia por su marca, igual que
+       TC-293 y TC-322: es un <details> hijo del cuerpo y contaria como una seccion mas. */
+    const secs = function(){
+      const c = document.getElementById('indic-cuerpo');
+      if (!c) return [];
+      return Array.prototype.slice.call(c.querySelectorAll(':scope > details'))
+        .filter(function(d){ return !d.hasAttribute('data-ind-biblio'); })
+        .map(function(d){ const s = d.querySelector(':scope > summary'); return s ? pl(s.textContent).replace(/\\s+/g, ' ').trim() : '?'; });
+    };
+    const fila = function(o, rotulo){
+      if (!o || !o.filas) return null;
+      const t = pl(rotulo);
+      for (let i = 0; i < o.filas.length; i++) if (pl(o.filas[i].lbl).indexOf(t) >= 0) return o.filas[i];
+      return null;
+    };
+    const PROT = { vm_morf: 'Prótesis mecánica' };
+
+    // ── (1) PROTESIS NORMOFUNCIONANTE — el denominador de toda la seccion ─────────────────────
+    /* Sin este escenario, «con estenosis las filas se marcan» no distingue una seccion que
+       clasifica de una que marca todo en verde siempre. */
+    const oNorm = escenario(Object.assign({}, PROT, {
+      em_vmax: '1.4', em_gmedio: '3', thp: '95',
+      em_dtsvi: '20', em_vtitsvi: '20', em_vtimit: '25', peso: '80', talla: '180'
+    }));
+    R.normHay   = !!(oNorm && oNorm.filas);
+    R.normSecs  = secs();
+    R.normVmax  = (fila(oNorm, 'velocidad pico') || {}).marca;
+    R.normGmed  = (fila(oNorm, 'gradiente medio') || {}).marca;
+    R.normThp   = (fila(oNorm, 'thp') || {}).marca;
+    R.normEoa   = (fila(oNorm, 'eoa por continuidad') || {}).marca;
+    R.normTipo  = (fila(oNorm, 'valvula mitral') || {}).val;
+
+    // ── (2) ESTENOSIS PROTESICA — Tabla 11, los tres parametros que la guia lista ─────────────
+    const oEst = escenario(Object.assign({}, PROT, {
+      em_vmax: '2.8', em_gmedio: '12', thp: '240',
+      em_dtsvi: '20', em_vtitsvi: '18', em_vtimit: '70', peso: '80', talla: '180'
+    }));
+    R.estVmax = (fila(oEst, 'velocidad pico') || {}).marca;
+    R.estGmed = (fila(oEst, 'gradiente medio') || {}).marca;
+    R.estThp  = (fila(oEst, 'thp') || {}).marca;
+    R.estEoa  = (fila(oEst, 'eoa por continuidad') || {}).marca;
+
+    // ── (3) REGURGITACION CENTRAL — la fila de la Tabla 12, que es la que cambia el diagnostico ─
+    /* Gradiente y velocidad altos CON EL THP NORMAL: eso orienta a regurgitacion y no a estenosis.
+       Sin esta fila, los tres parametros de arriba se leen como obstruccion. */
+    const oReg = escenario(Object.assign({}, PROT, {
+      em_vmax: '2.6', em_gmedio: '8', thp: '110',
+      em_dtsvi: '20', em_vtitsvi: '16', em_vtimit: '45', im_vc: '8', im_sev_final: '4',
+      peso: '80', talla: '180'
+    }));
+    R.regT12  = !!fila(oReg, 'gradiente alto con thp normal');
+    R.regT12M = (fila(oReg, 'gradiente alto con thp normal') || {}).marca;
+    R.regVc   = (fila(oReg, 'vena contracta') || {}).marca;
+    R.regIm   = (fila(oReg, 'grado de insuficiencia') || {}).marca;
+    /* El EOA se RETIRA con regurgitacion significativa: el volumen sistolico del TSVI deja de medir
+       el flujo anterogrado. Lo decide vmProtEOA, y la seccion lo lee en vez de recalcularlo. */
+    R.regEoaVal = (fila(oReg, 'eoa por continuidad') || {}).val;
+
+    // ── (4) FUGA PERIPROTESICA — las DOS filas, no la de mejor clase ──────────────────────────
+    const oPeri = escenario(Object.assign({}, PROT, {
+      em_vmax: '2.1', em_gmedio: '6', thp: '115', im_vc: '9', im_sev_final: '4',
+      peso: '80', talla: '180'
+    }), [['protm.sintomas','si'], ['protm.peri','si'], ['protm.hemol','si']]);
+    R.periClase = oPeri && oPeri.recom ? oPeri.recom.clase : null;
+    R.periMod   = oPeri && oPeri.recom && oPeri.recom.mod ? oPeri.recom.mod.clase : null;
+    R.periTipo  = oPeri && oPeri.recom ? oPeri.recom.tipo : null;
+    R.periNota  = oPeri && oPeri.recom && oPeri.recom.mod ? pl(oPeri.recom.mod.nota || '') : '';
+
+    // ── (5) PPM — la EOA indexada, con la Tabla 7 estratificada por IMC ───────────────────────
+    /* peso 95 / talla 165 da IMC 34.9, o sea la rama de IMC >= 30 de la Tabla 7. Y la regurgitacion
+       queda en «sin insuficiencia» a proposito: con IM significativa el EOA se retira y el PPM no
+       se puede calcular, que es el escenario (3).
+       ⚠️ EL VTI MITRAL VA EN 70 Y NO EN 95, Y ESO NO ES COSMETICO: la banda de plausibilidad de
+       em_vtimit es [2,80], asi que un 95 cae FUERA, vmProtEOA no valida, no hay EOA y por lo tanto
+       tampoco EOA indexada — la fila del PPM sale en «—» y el caso da rojo sobre una seccion
+       perfectamente sana. Costo una corrida. Al elegir un valor para un escenario, mirar primero si
+       el campo tiene banda. */
+    const oPpm = escenario(Object.assign({}, PROT, {
+      em_vmax: '2.0', em_gmedio: '8', thp: '150',
+      em_dtsvi: '20', em_vtitsvi: '20', em_vtimit: '70', peso: '95', talla: '165'
+    }));
+    R.ppmMarca = (fila(oPpm, 'ppm') || {}).marca;
+    R.ppmVal   = pl((fila(oPpm, 'ppm') || {}).val || '');
+
+    // ── (6) OTRA VALVULA CARGADA A LA VEZ ────────────────────────────────────────────────────
+    /* _indVT se gatea por it_grado / vmax_it, que son de la tricuspide y no tienen nada que
+       ver con la mitral: las dos secciones tienen que convivir. Si alguna vez la compuerta nueva
+       se llevara puesta a la tricuspide, esto cae. */
+    const oDos = escenario(Object.assign({}, PROT, {
+      em_vmax: '2.8', em_gmedio: '12', thp: '240',
+      it_grado: '4', vmax_it: '3.8', vci_diam: '24', peso: '80', talla: '180'
+    }));
+    R.dosSecs = secs();
+    R.dosHay  = !!(oDos && oDos.filas);
+
+    // ── (7) LAS DOS FILAS CONCURRENTES — sintomatico con riesgo alto ──────────────────────────
+    /* ⚠️ EL CASO QUE MAS IMPORTA. Cumple reoperacion (Clase I · Nivel C) Y valve-in-valve
+       transvenoso mitral (Clase IIa · Nivel B), y NINGUNA domina: la primera tiene mejor clase y la
+       segunda mejor nivel de evidencia. Cortar la cascada en la Clase I le esconde al medico la
+       alternativa percutanea justo en el paciente de riesgo alto, que es a quien la guia se la
+       ofrece. Es la trampa del TEER, otra vez. */
+    const oDos2 = escenario(Object.assign({}, PROT, {
+      em_vmax: '2.8', em_gmedio: '12', thp: '240',
+      em_dtsvi: '20', em_vtitsvi: '18', em_vtimit: '70', peso: '80', talla: '180'
+    }), [['protm.peri','no'], ['protm.tromb','no'], ['protm.sintomas','si'], ['protm.riesgo','alto']]);
+    R.ccClase = oDos2 && oDos2.recom ? oDos2.recom.clase : null;
+    R.ccMod   = oDos2 && oDos2.recom && oDos2.recom.mod ? oDos2.recom.mod.clase : null;
+    R.ccTxt   = oDos2 && oDos2.recom && oDos2.recom.mod ? pl(oDos2.recom.mod.txt || '') : '';
+
+    // ── (8) RIESGO BAJO: la fila de valve-in-valve NO aplica ──────────────────────────────────
+    const oBajo = escenario(Object.assign({}, PROT, {
+      em_vmax: '2.8', em_gmedio: '12', thp: '240', peso: '80', talla: '180'
+    }), [['protm.peri','no'], ['protm.tromb','no'], ['protm.sintomas','si'], ['protm.riesgo','bajo']]);
+    R.bajoClase = oBajo && oBajo.recom ? oBajo.recom.clase : null;
+    R.bajoMod   = oBajo && oBajo.recom && oBajo.recom.mod ? oBajo.recom.mod.clase : null;
+    R.bajoNota  = oBajo && oBajo.recom ? pl(oBajo.recom.nota || '') : '';
+
+    // ── (9) TROMBO DE OREJUELA — la alarma que la compuerta de _indEM se llevaba ────────────
+    const oTr = escenario(Object.assign({}, PROT, {
+      em_vmax: '2.6', em_gmedio: '11', thp: '210', oai_trombo: 'si', peso: '80', talla: '180'
+    }));
+    R.trFila  = !!fila(oTr, 'trombo en auricula');
+    R.trMarca = (fila(oTr, 'trombo en auricula') || {}).marca;
+
+    // ── (10) LA PARTICION: con protesis, las tres nativas devuelven null ──────────────────────
+    /* ⚠️ VAN EN DOS SUB-ESCENARIOS Y NO EN UNO, y la primera version los junto: ahi _indIM salia
+       null igual —lo corta su PROPIA compuerta de mecanismo secundario, que no tiene nada que ver
+       con la protesis— asi que la mutacion que le saca la linea de protesis SOBREVIVIA. Una
+       condicion que mide una funcion cortada por otra razon no mide nada.
+       · 10a — SIN contestar el mecanismo: mide _indIM y _indEM, mas el denominador que faltaba
+         («con NATIVA la seccion de protesis NO se pinta»), sin el cual la mutacion que borra la
+         compuerta de _indProtM tambien sobrevivia.
+       · 10b — contestando «Secundaria»: mide _indIMS, que es la que se olvida. Su gate lee
+         _indOrigen, o sea que se cumple con el campo del estudio O con la respuesta del panel.
+         La morfologia se cambia DESPUES del clic y sin reabrir: indicAbrir() llama a
+         _indClinLimpiar() y borraria la respuesta. */
+    try { __t.limpiar(); indicCerrar(); } catch (e) {}
+    __t.set('im_sev_final', '4'); __t.set('vm_morf', 'Reumática');
+    __t.set('avm_plan', '1.1'); __t.set('em_gmedio', '12');
+    try { indicAbrir(); } catch (e) {}
+    R.imNativa   = (function(){ try { return _indIM()    !== null; } catch (e) { return 'ERR'; } })();
+    R.emNativa   = (function(){ try { return _indEM()    !== null; } catch (e) { return 'ERR'; } })();
+    R.protNativa = (function(){ try { return _indProtM() !== null; } catch (e) { return 'ERR'; } })();
+    __t.set('vm_morf', 'Prótesis mecánica');
+    R.imProt  = (function(){ try { return _indIM()    !== null; } catch (e) { return 'ERR'; } })();
+    R.emProt  = (function(){ try { return _indEM()    !== null; } catch (e) { return 'ERR'; } })();
+    R.protHay = (function(){ try { return _indProtM() !== null; } catch (e) { return 'ERR'; } })();
+
+    try { __t.limpiar(); indicCerrar(); } catch (e) {}
+    __t.set('im_sev_final', '4'); __t.set('vm_morf', 'Reumática');
+    __t.set('fevi', '38'); __t.set('ddfvi', '62'); __t.set('sexo', 'M');
+    try { indicAbrir(); } catch (e) {}
+    const bMec = document.querySelector('[data-ind-clin="im.mecanismo"][data-ind-val="secundaria"]');
+    R.hayBotonMec = !!bMec;
+    if (bMec) bMec.click();
+    R.imsNativa = (function(){ try { return _indIMS() !== null; } catch (e) { return 'ERR'; } })();
+    __t.set('vm_morf', 'Prótesis mecánica');
+    R.imsProt = (function(){ try { return _indIMS() !== null; } catch (e) { return 'ERR'; } })();
+
+    // ── (11) ASIMETRICO: el ETE dice protesis y Valvulas dice nativa — fail-closed ────────────
+    try { __t.limpiar(); indicCerrar(); } catch (e) {}
+    __t.set('vm_morf', 'Reumática'); __t.chk('ete-es-ete', true); __t.set('ete_etiologia', 'prot_mec');
+    __t.set('avm_plan', '1.1'); __t.set('em_gmedio', '12'); __t.set('peso', '80'); __t.set('talla', '180');
+    try { indicAbrir(); } catch (e) {}
+    R.asimProt = (function(){ try { return _indProtM() !== null; } catch (e) { return 'ERR'; } })();
+    R.asimEm   = (function(){ try { return _indEM()   !== null; } catch (e) { return 'ERR'; } })();
+
+    // ── (12) Los asserts de arranque de la seccion ────────────────────────────────────────────
+    R.assert = (function(){ try { return _protmAssertUmbrales(); } catch (e) { return ['LANZO: ' + e.message]; } })();
+
+    try { indicCerrar(); __t.limpiar(); } catch (e) {}
+
+    return { extra: [
+      ['DENOMINADOR: la seccion se pinta con una protesis normofuncionante',
+        R.normHay === true && R.normSecs.length === 1 && R.normSecs[0].indexOf('protesis mitral') >= 0,
+        JSON.stringify(R.normSecs)],
+      ['y con la protesis normal NINGUNA fila de estenosis marca criterio cumplido',
+        R.normVmax === 'none' && R.normGmed === 'none' && R.normThp === 'none' && R.normEoa === 'none',
+        'vmax=' + R.normVmax + ' gmed=' + R.normGmed + ' thp=' + R.normThp + ' eoa=' + R.normEoa],
+      ['la primera fila declara el TIPO de protesis, que es la compuerta de la seccion',
+        String(R.normTipo || '').indexOf('mecánica') >= 0, 'tipo=' + R.normTipo],
+
+      ['ESTENOSIS: los tres parametros de la Tabla 11 marcan criterio cumplido',
+        R.estVmax === 'ok' && R.estGmed === 'ok' && R.estThp === 'ok',
+        'vmax=' + R.estVmax + ' gmed=' + R.estGmed + ' thp=' + R.estThp],
+      ['y el EOA por continuidad tambien, con los insumos cargados',
+        R.estEoa === 'ok', 'eoa=' + R.estEoa],
+
+      ['REGURGITACION: con el THP NORMAL y el flujo alto sale la fila de la Tabla 12',
+        R.regT12 === true && R.regT12M === 'warn', 'hay=' + R.regT12 + ' marca=' + R.regT12M],
+      ['la vena contracta de 8 mm alcanza el corte de regurgitacion SEVERA',
+        R.regVc === 'ok', 'vc=' + R.regVc],
+      ['y el grado severo de la aplicacion se declara como criterio cumplido',
+        R.regIm === 'ok', 'im=' + R.regIm],
+      ['con regurgitacion significativa el EOA NO se publica: lo retira vmProtEOA',
+        R.regEoaVal === '—', 'eoa=«' + R.regEoaVal + '»'],
+
+      ['FUGA PERIPROTESICA con repercusion: reoperacion Clase I · Nivel C',
+        R.periTipo === 'ind' && R.periClase === 'Clase I · Nivel C',
+        'tipo=' + R.periTipo + ' clase=' + R.periClase],
+      ['y el cierre transcatetere sale ADEMAS, con su Clase IIa · Nivel B',
+        R.periMod === 'Clase IIa · Nivel B', 'mod=' + R.periMod],
+      ['la nota del cierre nombra a la ACC/AHA como segunda voz',
+        R.periNota.indexOf('acc/aha') >= 0, 'nota=«' + R.periNota.slice(0, 120) + '»'],
+
+      ['PPM: la EOA indexada se publica con su clasificacion de la Tabla 7',
+        R.ppmMarca === 'ok' && R.ppmVal.indexOf('severo') >= 0,
+        'marca=' + R.ppmMarca + ' val=«' + R.ppmVal + '»'],
+
+      ['OTRA VALVULA: protesis mitral y tricuspide se pintan las dos',
+        R.dosSecs.length === 2 && R.dosHay === true &&
+        R.dosSecs.some(function(s){ return s.indexOf('protesis mitral') >= 0; }) &&
+        R.dosSecs.some(function(s){ return s.indexOf('tricuspide') >= 0; }),
+        JSON.stringify(R.dosSecs)],
+
+      ['⚠️ DOS FILAS CONCURRENTES: sintomatico con riesgo alto publica la reoperacion Clase I · Nivel C',
+        R.ccClase === 'Clase I · Nivel C', 'clase=' + R.ccClase],
+      ['Y TAMBIEN el valve-in-valve transvenoso mitral, Clase IIa · Nivel B — ninguna domina',
+        R.ccMod === 'Clase IIa · Nivel B', 'mod=' + R.ccMod],
+      ['el valve-in-valve que se cita es el TRANSVENOSO, no el transfemoral aortico',
+        R.ccTxt.indexOf('transvenoso') >= 0 && R.ccTxt.indexOf('transfemoral') < 0,
+        'txt=«' + R.ccTxt.slice(0, 120) + '»'],
+
+      ['RIESGO BAJO: la reoperacion sigue, y el valve-in-valve NO aplica',
+        R.bajoClase === 'Clase I · Nivel C' && R.bajoMod == null,
+        'clase=' + R.bajoClase + ' mod=' + R.bajoMod],
+      ['y la nota dice por que no aplica, en vez de callarlo',
+        R.bajoNota.indexOf('valve-in-valve') >= 0, 'nota=«' + R.bajoNota.slice(0, 120) + '»'],
+
+      ['TROMBO: la alarma de la oreuela se repone en esta seccion',
+        R.trFila === true && R.trMarca === 'alarm', 'hay=' + R.trFila + ' marca=' + R.trMarca],
+
+      ['DENOMINADOR: con mitral NATIVA se pintan _indIM y _indEM, y la de protesis NO',
+        R.imNativa === true && R.emNativa === true && R.protNativa === false,
+        'im=' + R.imNativa + ' em=' + R.emNativa + ' protesis=' + R.protNativa],
+      ['⚠️ con protesis, _indIM y _indEM devuelven null',
+        R.imProt === false && R.emProt === false,
+        'im=' + R.imProt + ' em=' + R.emProt],
+      ['y en su lugar se pinta la seccion de protesis',
+        R.protHay === true, 'protesis=' + R.protHay],
+      ['DENOMINADOR: contestado «Secundaria» con mitral NATIVA, _indIMS SI se pinta',
+        R.hayBotonMec === true && R.imsNativa === true,
+        'boton=' + R.hayBotonMec + ' ims=' + R.imsNativa],
+      ['⚠️ y con protesis _indIMS tambien devuelve null — es la compuerta que se olvida',
+        R.imsProt === false, 'ims=' + R.imsProt],
+
+      ['ASIMETRICO: el ETE dice protesis y Valvulas dice nativa — la compuerta falla CERRADA',
+        R.asimProt === true && R.asimEm === false,
+        'protesis=' + R.asimProt + ' em=' + R.asimEm],
+
+      ['los umbrales de la seccion coinciden con lo que declara su prosa',
+        Array.isArray(R.assert) && R.assert.length === 0, JSON.stringify(R.assert)]
     ] };
   })();
 `);
