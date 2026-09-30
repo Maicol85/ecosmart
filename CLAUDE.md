@@ -1,5 +1,164 @@
 # EcoSmart — trampas de este archivo
 
+## Prótesis mitral: la sección nueva, y las tres nativas que publicaban sobre una válvula que ya no está (2026-09-30)
+
+Decimosexta sección del panel de Evidencia, y la primera que **apaga** otras tres. Con una prótesis
+mitral, `_indIM`, `_indIMS` y `_indEM` devuelven `null` y en su lugar se pinta «Prótesis mitral».
+
+### ⚠️ LO QUE CIERRA, MEDIDO ANTES DE ESCRIBIR UNA LÍNEA
+
+Con `vm_morf = 'Prótesis mecánica'`, área 1,1 cm² y gradiente medio 12 mmHg, el panel publicaba
+**«Comisurotomía mitral percutánea RECOMENDADA — Clase I»** —un procedimiento que abre la fusión
+comisural de una válvula que ya no está— y los cortes de IM **primaria** sobre una regurgitación
+protésica. **Idéntico al control nativo reumático con los mismos números**, mientras el resto de la
+app se niega a graduarla desde la Fase 1 (`PROT_SIN_GRADO_TXT`): el panel contradecía a la
+calculadora del mismo archivo.
+
+**La partición hoy es exacta**, medida en Chrome con `indicAbrir()`:
+
+| estado | secciones que pinta |
+|---|---|
+| prótesis mecánica, cualquier escenario | **sólo** «Prótesis mitral» |
+| mitral nativa reumática (control) | «Insuficiencia mitral primaria» · «Estenosis mitral» |
+| prótesis **aórtica** sola | «Estenosis aórtica» — la mitral no aparece |
+| prótesis mitral + tricúspide cargada | «Prótesis mitral» · «Válvula tricúspide» |
+| **asimétrico**: `ete_etiologia = prot_mec` con `vm_morf = 'Reumática'` | **«Prótesis mitral»** — fail-closed |
+
+Nunca las dos, nunca ninguna.
+
+### La compuerta es `vmEsProtesis()` en las CUATRO, y por eso la partición es por construcción
+
+No hay cuatro predicados: hay uno. `vmEsProtesis()` ya preguntaba por los **dos orígenes**
+—`protNoGradua('vm_morf')` y `ete_etiologia` vía `_eteVmEsProt`— y falla **cerrada** sobre un
+`#vm_morf` ausente. Cubre la pestaña Válvulas, que es la alcanzable en **Modo Básico**, y el ETE.
+Escribir un predicado propio habría sido el segundo dueño que diverge sin que nada lo señale.
+
+**⚠️ `_indIMS` TAMBIÉN LA LLEVA, y ésa es la que se olvida.** Su compuerta lee `_indOrigen`, o sea
+que se cumple **con el campo del estudio o con la respuesta del control manual del panel**:
+contestar «Secundaria» en esa pastilla —un toque de dos segundos— abría la tarjeta y publicaba
+**TEER Clase I · Nivel A** sobre una válvula reemplazada. Las tres nativas llevan la línea, no sólo
+las dos que leen un campo.
+
+**⚠️ EN `_indIM` VA PRIMERA, ANTES DEL `im_sev_final`.** `calcIM_ESC` **sí** gradúa la regurgitación
+protésica —usa los cortes de prótesis para el jet/AI y la relación VTI desde el 2026-09-29— así que
+un `im_sev_final` de 4 es perfectamente alcanzable y no puede ser la compuerta.
+
+**⚠️ EN `_indEM` VA ARRIBA DE TODO, al revés que su compuerta de etiología.** Este archivo documenta
+haber tenido que **bajar** aquélla para no tapar la alarma de trombo. No es una contradicción:
+aquélla corta la CASCADA dentro de una sección que se sigue pintando; ésta decide que la sección
+**no existe** para este paciente, y ahí no hay nada que tapar porque no hay tarjeta.
+
+### ⚠️ GATEAR `_indEM` SE LLEVABA LA ALARMA DE TROMBO, Y HUBO QUE REPONERLA
+
+El comentario de `_indEMRecom` dice —con razón— que el trombo auricular **pide anticoagulación por
+su cuenta**, «sea la válvula reumática, degenerativa o protésica». La compuerta se lo llevaba, y en
+una prótesis **mecánica** es el hallazgo que más conducta cambia. `_indProtM` lee `oai_trombo` y
+publica su propia fila `alarm`: el hallazgo no desaparece, **cambia de tarjeta**.
+
+Se lee **directo y no por `_indOrigen`**: aquél dibuja un control manual cuando el campo está vacío,
+y ese control comparte la clave `em.trombo` con una sección que en este paciente **no se pinta** —dos
+tarjetas escribiendo la misma respuesta, una invisible—.
+
+### Las TRES fuentes, leídas en texto completo (documento, año, tabla y página)
+
+Ninguna alcanza sola y **cada bloque dice de dónde sale**:
+
+- **ASE 2024** (Zoghbi, JASE 2024;37(1):2-63) — los CORTES. Folio = PDF + 1. Tabla 11 (estenosis,
+  p. 27), Tabla 12 (regurgitación con THP normal, p. 28), Tabla 13 (regurgitación, p. 30), Tabla 7
+  (PPM, p. 20), y el texto de las pp. 10 y 11.
+- **ESC/EACTS 2025** (Praz, EHJ 2025;46(44):4635-4736) — la CONDUCTA. Folio = PDF + 4634.
+  Recommendation Table 17, p. 4700. **No publica cortes ecocardiográficos** de severidad protésica:
+  dice «significant valve dysfunction» y deja la cuantificación a la ASE.
+- **ACC/AHA 2020** (Otto, Circulation 2021;143:e72-e227) — segunda voz. Folio = PDF + 71.
+  §11.8.2 (p. e152) y §11.9.3 (p. e154).
+
+**⚠️ EL valve-in-valve DE LA MITRAL ES LA FILA TRANSVENOSA.** La Table 17 tiene **dos** filas de ViV
+con la misma clase y el mismo nivel (IIa · B) y sólo una es mitral: «transfemoral **in the aortic
+position**» NO, «transcatheter **transvenous mitral or tricuspid**» SÍ. Citar la primera para una
+mitral es estampar una clase real sobre la posición equivocada.
+
+**⚠️ Y VUELVE LA TRAMPA DEL TEER: DOS FILAS CONCURRENTES Y NINGUNA DOMINA.** Un paciente
+**sintomático con riesgo quirúrgico intermedio o alto** cumple las dos: reoperación **I · C** y ViV
+mitral **IIa · B**. La primera tiene mejor CLASE; la segunda, mejor NIVEL (B > C). La guía no dice
+cuál prevalece. **Se publican las dos** —la segunda por el slot `mod`—. Verificado en Chrome: ese
+escenario sale `Clase I · Nivel C` con `MOD: Clase IIa · Nivel B`.
+
+**⚠️ LA TABLA 9 DE LA ASE NO ES DE ESTA SECCIÓN.** Es «Potential role of CT in various complications
+of prosthetic **AORTIC** valves» (p. 26), y el corte de 145 UH para trombo vs pannus vive ahí dentro,
+descrito para la posición aórtica. Usarlo en mitral es **extrapolación de posición, no una cita**. No
+se encontró fuente con cortes de TC para trombo vs pannus mitral en las tres leídas, así que **el
+punto se omite**; lo único verificado y mitral es cualitativo y está en una nota.
+
+### La discrepancia de PPM es real, y ahora son TRES voces
+
+| fuente | qué dice |
+|---|---|
+| ASE 2024, **texto p. 10** | moderado `< 1,2` · severo `≤ 0,9` cm²/m² — **sin estratificar por IMC** |
+| ASE 2024, **Tabla 7 p. 20** | estratificada: IMC < 30 → normal `> 1,2`, severo `≤ 0,90`; IMC ≥ 30 → normal `> 1,0`, severo `≤ 0,75` |
+| **ESC/EACTS 2025 §14.4.2.1 p. 4698** | «Less is known about the prevalence and consequences of PPM in the mitral and tricuspid positions, and **established definitions are lacking**» |
+
+Para IMC < 30 las dos de la ASE coinciden; **para IMC ≥ 30 se contradicen**: una EOA indexada de
+1,1 cm²/m² es *moderada* por el texto y *normal* por la tabla. **La calculadora usa la Tabla 7** y la
+sección publica las tres con sus citas, declarando cuál está aplicada. El PPM **no tiene fila en la
+Table 17**: es hallazgo, no indicación.
+
+### Los números NO se recalculan: salen de `vmProtEOA()`
+
+Esa función ya aplica la Tabla 11 al EOA y al DVI, ya **retira el EOA con regurgitación
+significativa** —el volumen sistólico del TSVI deja de medir el flujo anterógrado— y ya clasifica el
+PPM con la Tabla 7. Recalcular acá daría un segundo resultado del mismo dato: la cápsula de
+pantalla, el informe y este panel publicarían tres EOA del mismo paciente. **Se LEE.**
+Lo mismo los tres cortes que ya tienen dueño (`VM_PROT_EOA_OBSTR_MAX`, `VM_PROT_DVI_NORMAL_MAX`,
+`VM_PROT_DVI_SIGNIF_MIN`): no se copian. Lo único que se declara es lo que la Tabla 11 tiene y la app
+no tenía —velocidad pico, gradiente medio y THP— más los cortes de la Tabla 13.
+
+**⚠️ LA TABLA 12 ES LA QUE RESUELVE EL PROBLEMA CLÍNICO, y los cortes no la pedían.** Los tres
+primeros parámetros de la Tabla 11 **también son anormales con regurgitación protésica
+significativa** —lo dice su propia nota ‡—, así que un gradiente alto, solo, no distingue. Lo que los
+separa es el THP: **normal con gradiente o velocidad altos orienta a REGURGITACIÓN, no a estenosis**,
+y con velocidad pico y relación VTI elevadas a la vez la especificidad «is close to 100 %». Por eso
+es una fila `warn` y no una nota al pie: **cambia el diagnóstico**.
+
+**Y el volumen y la fracción regurgitantes por comparación de flujos NO se pueden calcular acá**, cita
+literal de la p. 11: «mitral inflow cannot be measured using Doppler because of the mitral
+prosthesis». Sirven para la aórtica y la pulmonar, no para ésta.
+
+### La bibliografía: dos entradas nuevas, y por qué no se reusó ninguna
+
+`aseProtAo` **no se puede reusar**: su pie dice «Tabla 5 — prótesis aórtica quirúrgica», así que
+colgarle las Tablas 7/11/12/13 le pondría pie de tabla **aórtica** a citas **mitrales**. Y `ahaVc2020`
+tampoco: su `full` enumera las tablas de IM y EM **nativas** y no menciona prótesis. Son
+`aseProtM2024` y `ahaProtM2020`, dos entradas del mismo documento con claves distintas — el
+precedente que el registro ya tiene declarado con `esc2020guch` y `escGuchCiv`. `esc2025vc` **sí** se
+reusa: su propio `full` dice que la comparten seis secciones y que cada una cita su tabla en su texto.
+
+### ⚠️ EL COMENTARIO DE LA NUMERACIÓN POR SECCIÓN ESTABA VIEJO, Y DESDE EL MISMO DÍA
+
+Afirmaba que «las trece citan un solo documento cada una, así que todas muestran [1] y el caso no es
+alcanzable — pero llega en cuanto se agreguen fuentes, que es el prompt siguiente». **Ya era falso**:
+la estenosis mitral cita **cinco** y la IM secundaria **tres**, desde esa misma jornada. Y en la
+estenosis mitral el número de `wilkins1988` **ya se mueve con el paciente** —[2] con score
+desfavorable, [5] sin él—, que es lo que TC-327 y TC-328 fijan cada uno contra SU escenario.
+Corregido.
+
+**Al escribir una sección con varias fuentes, que el orden de primera aparición sea ESTABLE entre
+ramas.** `_indProtM` lo consigue citando la ASE sólo en las filas, la ESC desde el primer control
+clínico y la ACC/AHA recién en la recomendación o las notas. Medido: `aseProtM2024=[1]`,
+`esc2025vc=[2]`, `ahaProtM2020=[3]` en todos los escenarios.
+
+### Reportado y NO corregido
+
+- **Con prótesis mecánica el panel también pintaba «Válvula tricúspide», y NO es un defecto.**
+  `_indVT` se gatea por `it_grado`/`vmax_it`, que son de la tricúspide y no tienen nada que ver con
+  la mitral. En el censo del intento anterior apareció con la mecánica y no con la biológica porque
+  el escenario de la mecánica tenía `it_grado` cargado y el otro no — o sea que lo que variaba era
+  el escenario, no la morfología mitral. Medido: prótesis mitral + `it_grado = 4` → «Prótesis
+  mitral» + «Válvula tricúspide», que es lo correcto.
+- **Ninguna fuente contradijo a la calculadora.** La única discrepancia es interna de la ASE (el PPM
+  del texto contra el de la Tabla 7) y la app ya usa la Tabla 7 declarándolo en su tooltip.
+- **`_indEM` es un SEGUNDO dueño** de «¿este área alcanza el corte?» y de la validez de la
+  continuidad — ya declarado en la entrada de EM nativa. La compuerta de prótesis no lo toca.
+
 ## Estenosis mitral: la comisurotomía es de la REUMÁTICA, y «varias» no es una (2026-09-29)
 
 Tres correcciones a `_indEM`/`_indEMRecom`, salidas del censo clínico contra la ESC/EACTS 2025.
