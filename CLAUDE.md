@@ -21893,6 +21893,176 @@ recupera. A/B sobre el mismo estudio pesado (MCH + MCA integradas), con `generar
 hoja. Un estudio exactamente en el borde sí podría volcar, y eso es inherente a «una línea por
 criterio». Si aparece, la palanca es juntar las salvedades con la línea de la AHA.
 
+## Sección «Prótesis mitral» del panel de Evidencia — INVESTIGACIÓN CERRADA, NADA CONSTRUIDO (2026-09-30)
+
+**Estado: `index.html` NO se tocó.** Este bloque es sólo la investigación verificada, para que la
+próxima sesión no vuelva a leer los PDF. Se paró antes de escribir la sección porque no quedaba
+contexto para hacerla completa —sección + citas + caso de test + mutaciones + A/B + suite—, y media
+sección clínica es peor que ninguna.
+
+### ⚠️ HALLAZGO 1, EL QUE NECESITA DECISIÓN DE MAICOL: las secciones NATIVAS sí publican conducta sobre una prótesis
+
+La premisa del prompt («confirmá que las secciones de EM e IM nativa no publican conducta sobre
+ella») es **falsa**. Medido en Chrome con `vm_morf = 'Prótesis mecánica'`, área 1,1 cm², gradiente
+medio 12 mmHg e IM severa consignada, el panel publica:
+
+| | secciones que pinta |
+|---|---|
+| **prótesis mecánica** | Insuficiencia mitral primaria · Estenosis mitral · Válvula tricúspide |
+| **prótesis biológica** | Insuficiencia mitral primaria · Estenosis mitral |
+| **control nativo reumático, mismos números** | Insuficiencia mitral primaria · Estenosis mitral · Válvula tricúspide |
+
+**Idéntico al control nativo.** Ni `_indEM` ni `_indIM` miran si la mitral es una prótesis: publican
+comisurotomía percutánea y cortes de IM primaria sobre una válvula protésica. Es lo contrario de lo
+que hace el resto de la app, que se niega a graduarla («No graduada: los cortes de válvula nativa no
+aplican a prótesis», `PROT_SIN_GRADO_TXT`). **El panel contradice a la calculadora de la misma app.**
+`_indIMS` sí queda afuera, porque su compuerta exige `teer_tipo_im === 'secundaria'`.
+
+**Qué puede causar:** un médico con una prótesis mitral obstruida recibe hoy «Comisurotomía mitral
+percutánea RECOMENDADA — Clase I», que es un procedimiento para una válvula que ya no está. Y cuando
+la sección de prótesis exista, van a pintarse **TRES tarjetas mitrales** con contenido contradictorio.
+
+**No se corrigió**: gatear `_indEM`/`_indIM` es tocar secciones nativas, que el prompt prohíbe.
+**Decisión pendiente:** o se les agrega una compuerta `if (vmEsProtesis()) return null` —el espejo de
+lo que se hizo con `_indIM` para IM secundaria— o la sección nueva lo declara en su `aviso`.
+
+### La compuerta de la sección nueva: `vmEsProtesis()`, ya existe y ya es la correcta
+
+No hay que construir una lectura de doble origen: `vmEsProtesis()` (≈L30980) ya pregunta
+`protNoGradua('vm_morf')` **o** `ete_etiologia` vía `_eteVmEsProt`, así que cubre la pestaña Válvulas
+—alcanzable en **Modo Básico**— y el ETE. Es la misma que gatea la hoja de Wilkins del PDF.
+Medido: en el estado asimétrico (`ete_etiologia = prot_mec` con `vm_morf = 'Reumática'`)
+`vmEsProtesis()` da **true** y `protNoGradua('vm_morf')` da **false** — la primera es la fail-closed.
+
+**⚠️ Los valores del select NO son el texto legible.** `vm_morf` usa `'Prótesis biológica'` /
+`'Prótesis mecánica'`; `ete_etiologia` usa claves: **`prot_bio`** / **`prot_mec`**. La primera
+medición pasó el texto legible al select de ETE, el select lo rechazó y dio «`esProt: false`» — que
+se lee como defecto de la compuerta y no lo era. Es la trampa de «emitir los tokens del formulario».
+
+### Citas VERIFICADAS en texto completo (documento, año, tabla y página leídos)
+
+Zoghbi WA (Chair), Jone PN (Co-Chair), Chamsi-Pasha MA, Chen T, Collins KA, Desai MY, Grayburn P,
+Groves DW, Hahn RT, Little SH, Kruse E, Sanborn D, Shah SB, Sugeng L, Swaminathan M, Thaden J,
+Thavendiranathan P, Tsang W, Weir-McCall JR, Gill E. *Guidelines for the Evaluation of Prosthetic
+Valve Function With Cardiovascular Imaging: A Report From the American Society of Echocardiography
+Developed in Collaboration With the Society for Cardiovascular Magnetic Resonance and the Society of
+Cardiovascular Computed Tomography.* JASE 2024;37(1):2-63. **El folio de revista = página del PDF + 1**
+(verificado en tres puntos: PDF 1→2, PDF 6→7, PDF 26→27).
+
+**Tabla 11 — estenosis mitral protésica (p. 27).** Normal / posible / sugiere significativa:
+velocidad pico `<1,9` / `1,9-2,5` / `≥2,5` m/s · gradiente medio `≤5` / `6-10` / `>10` mmHg ·
+VTI_prót/VTI_TSVI `<2,2` / `2,2-2,5` / `>2,5` · EOA `≥2,0` / `1-2` / `<1` cm² · THP `<130` /
+`130-200` / `>200` ms. Notas al pie, literales: vale para mecánicas y biológicas y «la exactitud
+diagnóstica es mejor si la mayoría de los parámetros son normales o anormales»; los valores
+intermedios «deben motivar una evaluación más detallada» por flujo aumentado, frecuencia o PPM;
+**los tres primeros también son anormales con regurgitación protésica significativa**; y algunas
+biológicas muestran cortes «algo más altos».
+
+**Tabla 12 — IM protésica significativa en válvulas mecánicas CON THP NORMAL (p. 28).** Ésta el
+prompt no la pedía y es la que resuelve el problema clínico: velocidad pico `≥1,9` m/s (S 90 %,
+E 89 %), VTI_prót/VTI_TSVI `≥2,5` (S 89 %, E 91 %), gradiente medio `≥5` mmHg (S 90 %, E 70 %),
+velocidad pico de IT `>3` m/s (S 80 %, E 71 %). Datos de Olmos et al. (ref 33 de la guía).
+**Regla: gradiente alto con THP normal orienta a REGURGITACIÓN, no a estenosis.**
+
+**Tabla 13 — severidad de regurgitación mitral protésica, ETT + ETE (p. 30).** Leve / moderada /
+severa: ancho de vena contracta `<0,3` / `0,3-0,69` / `≥0,7` cm · volumen regurgitante `<30` /
+`30-59` / `≥60` mL · fracción regurgitante `<30` / `30-49` / `≥50` % · EROA `<0,20` / `0,20-0,39` /
+`≥0,40` cm². Nota al pie ††, literal: «estos parámetros cuantitativos están **menos validados** que
+en la IM nativa». Nota ‡: se evalúan mejor por ETE, sobre todo en mecánicas. Nota §: define
+**periprotésica** por dehiscencia o balanceo («dehiscence or rocking») y **central/valvular** por
+oclusor inmóvil o engrosamiento/prolapso de velos.
+
+**Tabla 7 — PPM aórtico y mitral (p. 20).** Mitral, indexada: normal `>1,2` (IMC <30) / `>1,0`
+(IMC ≥30) · moderado `1,2-0,91` / `1,0-0,76` · severo `≤0,90` / `≤0,75` cm²/m².
+
+**⚠️ LA DISCREPANCIA INTERNA DE LA GUÍA: CONFIRMADA.** El texto de la **p. 10** dice literalmente
+«Moderate mitral PPM is deﬁned as <1.2 cm2/m2, and severe mitral PPM is deﬁned as ≤0.9 cm2/m2»
+(refs 2, 54) y **no estratifica por IMC en ninguna parte**. La Tabla 7 (p. 20) sí. Para IMC <30 las
+dos coinciden; **para IMC ≥30 se contradicen**: una EOA indexada de 1,1 cm²/m² es *moderada* por el
+texto y *normal* por la tabla. **La calculadora de EcoSmart usa la Tabla 7**, estratificada, y su
+tooltip (L3245) ya lo declara. Al construir la sección hay que mostrar las dos versiones con sus dos
+citas, como pidió Maicol.
+
+**El THP NUNCA para calcular área — cita exacta, p. 10:** «Calculation of indexed EOA for mitral
+prostheses is best done using the continuity equation; it should be emphasized that calculation of
+EOA using the pressure half-time (PHT) method is frequently inaccurate and leads to overestimation of
+EOA, particularly in normal valves» (refs 52, 53). En la Tabla 11 el THP es una **fila comparativa**,
+no un insumo de cálculo.
+
+**⚠️ LA TABLA 9 NO ES DE TROMBO vs PANNUS NI ES MITRAL.** Es «Potential role of CT in various
+complications of prosthetic **aortic** valves» (p. 26). El corte de **145 UH** vive ahí dentro, con
+S 87,5 % y E 96 % (ref 121 de la guía), y descrito para la posición aórtica: «thrombus … adherent
+usually to the **aortic side of an aortic valve prosthesis**, and has lower attenuation (<200 HU)»;
+«pannus … usually located on the ventricular side, and has higher attenuation (>200 HU)». Aplicarlo
+a una mitral es una **extrapolación de posición**, no una cita. Si se menciona, va como criterio de
+**TC** y declarando que se publicó para la aórtica. Lo mitral verificado es más pobre y es esto
+(p. 26): «TEE and CT are more accurate in identifying the etiology of prosthetic mitral stenosis
+compared with TTE; CT is more sensitive in the identiﬁcation of pannus as the cause of valve
+obstruction». Causas de estenosis mitral protésica (p. 25): degeneración, trombosis, pannus y
+vegetaciones grandes.
+
+**ESC/EACTS 2025 — Recommendation Table 17, «management of prosthetic valve dysfunction», p. 4700**
+(PDF `ehaf194.pdf` pág. 66; **folio = PDF + 4634**). Filas leídas en la inglesa:
+
+| fila | clase · nivel |
+|---|---|
+| Decisión entre cierre transcatéter o quirúrgico de una fuga periprotésica clínicamente significativa, por Heart Team (riesgo, morfología de la fuga, experiencia local) | **I · C** |
+| Reoperación si la fuga se asocia a endocarditis, o causa hemólisis con transfusiones repetidas, o produce síntomas de IC | **I · C** |
+| Cierre transcatéter a considerar en fugas aptas con regurgitación y/o hemólisis clínicamente significativas | **IIa · B** |
+| Prótesis **mecánica**: reoperación en **sintomáticos** con disfunción significativa **no atribuible a trombosis** | **I · C** |
+| Prótesis **biológica**: reintervención en sintomáticos con disfunción significativa **no atribuible a trombosis** | **I · C** |
+| **Valve-in-valve transvenoso MITRAL** o tricuspídeo, a considerar con disfunción significativa y riesgo quirúrgico **intermedio o alto**, si la anatomía es apta | **IIa · B** |
+| Reoperación a considerar en **asintomáticos** con disfunción protésica significativa **si el riesgo quirúrgico es bajo** | **IIa · C** |
+| ETE y/o TC-4D para confirmar el diagnóstico ante sospecha de trombosis | **I · C** |
+| Trombosis **mecánica** obstructiva con IC aguda (NYHA III-IV): evaluación por Heart Team para decidir entre re-reemplazo o fibrinólisis en infusión lenta a dosis baja | **I · B** |
+| Cirugía a considerar en trombo protésico grande (>10 mm) complicado con embolia | **IIa · C** |
+| Trombosis **biológica**: anticoagulación oral con AVK antes de considerar reintervención | **I · B** |
+| Engrosamiento de velos con movilidad reducida y gradientes elevados: anticoagulación a considerar, al menos hasta la resolución | **IIa · B** |
+
+**⚠️ EL valve-in-valve AÓRTICO ES OTRA FILA** («transfemoral … in the **aortic** position», IIa · B):
+no se puede citar para la mitral. La mitral es la fila **transvenosa**.
+
+**⚠️ Y ACÁ ESTÁ LA TRAMPA DE «IM SECUNDARIA», OTRA VEZ:** un paciente **sintomático con riesgo
+quirúrgico alto** cumple DOS filas —reoperación **I · C** y valve-in-valve mitral **IIa · B**—, y la
+guía no dice cuál prevalece. Ninguna domina a la otra: la primera es clase superior, la segunda tiene
+**nivel de evidencia mejor** (B > C). **Hay que publicar las dos**; cortar la cascada en la Clase I
+esconde la que tiene mejor evidencia, que es exactamente el defecto que se pagó con el TEER.
+Y las preguntas tienen que decir lo que dice la fila: «**va a reoperación / es candidato a Heart
+Team**», «la disfunción **no es atribuible a trombosis**», «el riesgo quirúrgico es bajo /
+intermedio-alto», «la hemólisis exige transfusiones repetidas». No «tiene hemólisis».
+
+### Ausente en la guía — declarar, no inventar
+- **La ESC/EACTS 2025 no pone cortes ecocardiográficos** de severidad para estenosis o regurgitación
+  protésica: dice «significant valve dysfunction» y deja la cuantificación a la ASE. Las dos fuentes
+  son complementarias y la sección tiene que decir de dónde sale cada cosa.
+- **Las filas de fuga periprotésica son genéricas**, no mitrales: hablan de «PVLs» sin posición.
+- **No hay recomendación sobre PPM** en la Table 17. El PPM es hallazgo, no indicación.
+
+### La autoría que Cowork marcó como mala NO EXISTE en la app
+`grep -rn "Vandervoort|Gentile|Zaidi"` sobre todo el repo: **cero coincidencias**. La entrada
+`aseProtAo` de `IND_REFS` dice «Zoghbi WA, et al.», que es correcto. La advertencia de Cowork
+describe un estado que ya no está. **No hay nada que corregir** — y antes de reabrir un hallazgo hay
+que mirar qué hay HOY, que es la lección que este archivo ya documenta dos veces.
+
+**⚠️ Pero `aseProtAo` NO SE PUEDE REUSAR para la sección mitral:** su `full` termina en «Tabla 5 —
+prótesis aórtica quirúrgica; no son los cortes de válvula nativa», y la cita hoy `eaProtNarrativa`
+(L31419). Colgarle las Tablas 7/11/12/13 le pondría pie de tabla aórtica a citas mitrales. Hace falta
+una entrada nueva.
+
+### Bibliografía verificada disponible: DOS
+ASE 2024 (Zoghbi) y ESC/EACTS 2025 (`ehaf194.pdf`). No son cinco y no se rellena: la ACC/AHA 2020 de
+prótesis **no se leyó** —no está en la biblioteca local— y el Zoghbi 2017 que sí está es de
+regurgitación **nativa**, así que no aplica. Con dos alcanza para todos los bloques planificados.
+
+### Qué falta hacer (nada de esto está empezado)
+1. Escribir `_indProtM()` con compuerta `if (!vmEsProtesis()) return null`, los cuatro bloques y la
+   cascada de conducta con las dos filas concurrentes publicadas juntas.
+2. Entrada nueva en `IND_REFS` para la ASE 2024 mitral, sin reusar `aseProtAo`.
+3. Registrarla en `IND_SECS`.
+4. Caso de test que lea el **objeto** de la recomendación (`clase`, `nota`), no el `textContent`.
+5. Mutaciones: una por ref, recomendación, compuerta y control.
+6. A/B, suite, Semgrep, `/sharp-edges`.
+
 ## Deuda conocida sin resolver
 
 ### Reabrir un estudio deja tres capsulas en «—» (TC-GR-13, abierto)
