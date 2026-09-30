@@ -41035,6 +41035,30 @@ function _indIM(){
      numérico — o sea de dibujar un control manual al lado de un campo del estudio que SÍ tiene
      valor, que es la segunda fuente que el helper existe para evitar. */
   const oMec = _indOrigen(_indS('teer_tipo_im'), 'im.mecanismo');
+  /* ⚠️ COMPUERTA: CON MECANISMO SECUNDARIO ESTA SECCIÓN NO SE PINTA (decisión de Maicol, 2026-09-30).
+     Su `recom` ya se abstenía —«Fuera del alcance de esta tabla»—, así que no había dos
+     recomendaciones contradictorias; lo que quedaba eran sus FILAS con ✅ calculadas con los
+     umbrales de la PRIMARIA y su línea de criterio en negrita, pegadas a la tarjeta de `_indIMS`,
+     que es la que sí gobierna. Dos tarjetas mitrales seguidas, y la que no corresponde llena de
+     criterios cumplidos: el médico no tiene cómo saber cuál leer.
+
+     Es el ESPEJO exacto de la compuerta de `_indIMS` (`if (oMec.val !== 'secundaria') return null`),
+     y va a propósito ACÁ y no arriba: reusa el `oMec` que ya se leyó en vez de abrir una segunda
+     lectura del mecanismo que podría divergir de la que pinta la fila. Todo lo de arriba son
+     lecturas sin efecto, así que salir en este punto no deja nada a medias.
+
+     ⚠️ CUBRE LOS DOS ORÍGENES. `_indOrigen` devuelve el valor de ETE si está y la respuesta del
+     panel si no, así que contestar «Secundaria» en el control manual esconde la tarjeta igual que
+     cargarlo en el estudio. Gatear sólo por `_indS('teer_tipo_im')` dejaría al médico en Modo
+     Básico —que no tiene esa pestaña— viendo las dos tarjetas, que es justo el caso que el control
+     manual existe para cubrir.
+
+     ⚠️ ESTO VUELVE INALCANZABLES las tres ramas de abajo que hablan de mecanismo secundario: la
+     `marca:'warn'` y la `nota` de la fila Mecanismo, el `aviso` de la sección y el `recom` «fuera
+     del alcance». NO se borran: tocar el CONTENIDO de `_indIM` está fuera del alcance de este
+     cambio, y borrarlas convertiría una compuerta reversible en una pérdida de texto verificado.
+     Quedan declaradas como código muerto en CLAUDE.md. */
+  if (oMec.val === 'secundaria') return null;
   const filas = [
     _indFilaOrigen('Mecanismo', oMec, [{v:'primaria',t:'Primaria'},{v:'secundaria',t:'Secundaria'}],
       function(val){ return {

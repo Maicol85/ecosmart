@@ -248,24 +248,101 @@ Los encontró `/sharp-edges` sobre el diff. Están corregidos, y valen como patr
 6. **Mecanismo y grado llevaban `ok`**, que es «criterio cumplido», así que la sección entraba
    SIEMPRE a la apertura automática y «se abre sola» dejaba de significar algo. Hoy `none`.
 
-### ⚠️ ESTADO: SEIS MUTACIONES SOBREVIVEN Y LA COBERTURA ESTÁ INCOMPLETA
+### [CERRADO 2026-09-30] Cobertura: las catorce mutaciones mueren
 
-Suite **343/344** (único rojo TC-223), A/B **idéntico byte a byte** contra HEAD con control negativo,
-Semgrep **125 / 0 ERROR**, y la sección medida en Chrome en los dos tipos. Pero de trece mutaciones
-**seis sobreviven**: la clase de la fila de TEER (MS4), la compuerta del tratamiento médico (MS8), y
-las cuatro de los arreglos de arriba (MS10 a MS13). Todas viven en el camino **ventricular sin
-CABG**, que es el que TC-329 no llega a ejercer: su helper `responder()` clickea controles que el
-repintado vuelve a dibujar, y las respuestas encadenadas no quedan puestas.
+**⚠️ EL DIAGNÓSTICO DE LA BITÁCORA ERA FALSO.** Decía que las mutaciones sobrevivían porque el
+helper `responder()` de TC-329 «clickea controles que el repintado vuelve a dibujar y las respuestas
+encadenadas no quedan puestas». Medido en Chrome con las cinco respuestas del camino ventricular sin
+CABG: **quedan puestas, todas**. `_indRepintarConservando` llama a `indicRender` de forma **síncrona**,
+así que al volver del `.click()` el DOM ya está rehecho y `_indClinGet` devuelve el valor. No había
+nada que drenar. Arreglar lo que la bitácora pedía no habría movido ni una mutación.
 
-**Por eso esto va a `wip/im-secundaria` y no a `main`.** Lo que falta es la cobertura, no el arreglo.
+**La causa real era el ORÁCULO, no el estímulo: las condiciones leían el `textContent` de la
+sección.** Y ahí adentro la **línea de criterio** aporta el texto «Clase I · Nivel A» y cualquier
+rama conclusiva aporta «Recomendación de la guía», así que la condición daba verde con la
+recomendación mutada — el texto buscado estaba en la tarjeta por otro motivo. Hoy TC-329 lee el
+**objeto**: `window._indIMS().recom`, y compara `rVen.clase`, `rVen.mod.clase`, `rVen.mod.nota`,
+`rAur.clase` y `recom.faltan` con `faltaNombra()`. Seis bloques nuevos (5 a 10) ejercen el camino
+ventricular sin CABG completo, las tres compuertas (TMO, síntomas, candidato a cirugía), el
+asintomático, la FEVI 62 % y el DDVI sin sexo.
 
-### Convivencia de las dos secciones mitrales — declarada, no resuelta
+**Moraleja, que ya es un patrón de este proyecto:** *buscar una cadena en el `textContent` de un
+contenedor no es una aserción sobre la recomendación* — es una aserción sobre la unión de todo lo que
+el contenedor dibuja, y la línea de criterio dibuja exactamente las cadenas que uno quiere comprobar.
+Leer el objeto, no la pantalla.
 
-Con mecanismo secundario se pintan LAS DOS: `_indIM` sigue abriéndose con `im_sev_final === '4'` sin
-mirar el mecanismo. Su `recom` **sí se abstiene** («Fuera del alcance de esta tabla»), así que no hay
-dos recomendaciones contradictorias; lo que queda son sus filas con ✅ calculadas con umbrales de la
-primaria y su línea de criterio en negrita. Es preexistente de `_indIM`, que este prompt prohíbe
-tocar, pero el cambio lo vuelve adyacente: ahora son dos tarjetas mitrales seguidas.
+**Resultado, con el md5 verificado antes de aplicar y después de revertir cada una:**
+**14 de 14 mueren, ninguna sobrevive**, y el archivo vuelve a `05bc985e...` intacto. Las trece de la
+sección por `/tmp/mut2.txt`; MS14 —la compuerta nueva— cae por **los dos** casos (0/2).
+
+**⚠️ Los números «seis» y «diez» NO son comparables.** Mi juego de mutaciones es más estricto que el
+que produjo el «seis» de la bitácora, y **ese juego original nunca quedó registrado**, así que no hay
+forma de cruzarlos. Lo único afirmable es que las seis que la bitácora nombra están cubiertas: la
+clase de la fila de TEER (MS4), la compuerta del tratamiento médico (MS8) y los cuatro arreglos de
+`/sharp-edges` (MS10 a MS13). De paso: **MS10 —el defecto 1— moría desde el principio**, así que la
+bitácora la nombró de más.
+
+**⚠️ Salvedad del denominador: los 17 rojos de pendrive no son cobertura.** El pendrive
+`/Volumes/DISK_IMG` se desmontó a mitad de la suite y no se puede remontar (`diskutil list external`
+no devuelve nada), así que TC-181…TC-197 quedan en rojo con el diagnóstico «no se encontró
+/Volumes/DISK_IMG/GEMS_IMG: quedó SIN verificar con archivos del ecógrafo». Es el patrón de línea
+base ya documentado, no una regresión — pero **mientras el pendrive esté afuera esos casos no
+prueban nada**. Suite **326/344** = 17 de pendrive + TC-223.
+
+### [CERRADO 2026-09-30] Convivencia de las dos tarjetas mitrales — compuerta en `_indIM`
+
+**Decisión de Maicol:** con mecanismo secundario la tarjeta de IM primaria **no se pinta**. Una línea
+en `_indIM`, justo después de su `const oMec`:
+
+```js
+if (oMec.val === 'secundaria') return null;
+```
+
+**Va gateado por MECANISMO y no por `teer_tipo_im`, a propósito.** Reusa el `oMec` que la función ya
+leyó con `_indOrigen`, así que cubre **los dos orígenes** —campo del estudio y respuesta manual del
+panel— con una sola lectura, y no puede divergir de la que dibuja la fila. Gatear sólo por el campo
+dejaría al médico en **Modo Básico**, que no tiene la pestaña de ETE, viendo las dos tarjetas. Y va
+**ahí** y no arriba porque todo lo anterior son lecturas sin efecto (`getBSA` es pura; `_indLeer`,
+`_indUmb`, `_indN`, `_indS`, `_indFn` y `_indBanda` no escriben), así que salir en ese punto no deja
+nada a medias.
+
+**La partición es exacta, medida:** `''` → sólo primaria; `'primaria'` → sólo primaria; `'secundaria'`
+→ sólo secundaria. Nunca las dos, nunca ninguna. Es el espejo de la compuerta de `_indIMS`
+(`if (oMec.val !== 'secundaria') return null`). **Precedencia preservada:** el estudio sigue ganando
+—con el panel en `secundaria` y `teer_tipo_im = 'primaria'` la primaria reaparece y la respuesta del
+panel queda intacta—. Valores que no son opción (`'Secundaria'`, `'secundaria '`, `'constructor'`,
+`'__proto__'`) el `<select>` los rechaza y quedan en `''` → sólo primaria, el comportamiento de antes;
+no hay camino de contaminación de prototipo.
+
+**⚠️ TRES RAMAS DE `_indIM` QUEDARON INALCANZABLES — son código muerto, no lógica viva.** `oMec` es
+`const` y las ramas leen `oMec.val`, así que después del `return` ningún camino las alcanza:
+1. la `marca:'warn'` y la `nota` («los umbrales de abajo son de insuficiencia PRIMARIA…») de la fila
+   Mecanismo, en su ternario `val === 'secundaria'`;
+2. el `aviso` de la sección con `oMec.val === 'secundaria'`;
+3. el `recom` que se abstenía con «Fuera del alcance de esta tabla».
+
+**No se borran**: tocar el CONTENIDO de `_indIM` estaba fuera del alcance. Quedan declaradas acá para
+que nadie las lea como vivas ni razone sobre ellas. La lista de opciones del control
+(`{v:'secundaria',t:'Secundaria'}`) **sí sigue viva**: es el camino por el que el médico llega a la
+compuerta.
+
+**⚠️ BORDE NUEVO, DECLARADO Y NO ARREGLADO — contestar «Secundaria» borra el control que lo contestó.**
+El control del mecanismo vive **dentro de `_indIM`**. Medido: al clickear «Secundaria» quedan **cero**
+controles `im.mecanismo` en todo el panel, y la tarjeta secundaria trae una fila «Mecanismo» de
+**lectura**, no un control. Así que un toque equivocado **no se deshace en el lugar** y nada en
+pantalla dice cómo. Se recupera cerrando y reabriendo el panel —`indicAbrir` e `indicCerrar` llaman a
+`_indClinLimpiar()`— o cargando `teer_tipo_im` en la pestaña de ETE. El control confirma que el borde
+es nuevo: con la compuerta simulada apagada el botón sobrevive. **No se arregla porque arreglarlo
+exige mover el control o tocar `_indIMS`**, las dos cosas fuera del alcance. Severidad media por
+irreversibilidad, no clínica: la tarjeta secundaria que aparece es la correcta y gatea sobre sus
+propias entradas.
+
+**⚠️ Y LAS DOS COMPUERTAS SON COMPLEMENTOS EXACTOS, así que si `_indIMS` lanza no queda NINGUNA
+tarjeta mitral** — antes `_indIM` pintaba igual y cubría el hueco. Reproducido parcheando
+`IND_SECS[i].fn` (reemplazar `window._indIMS` **no intercepta**: el array capturó la referencia
+directa a la función). Severidad baja porque **está declarado, no es silencioso**: sale el aviso «no
+se pudo evaluar», `console.error` nombra la sección y el botón sigue apareciendo. Y hoy `_indIMS` no
+tiene camino para lanzar.
 
 ### El rótulo de la banda 9-11 del score de Wilkins (decisión de Maicol, 2026-09-30)
 

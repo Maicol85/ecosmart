@@ -31141,25 +31141,47 @@ caso('TC-283', 'Insuficiencia mitral primaria: el tres-de-cuatro se cuenta, y el
         (fMecE ? fMecE.marca + ' «' + fMecE.val + '» ctrl=' + (!!fMecE.ctrl) : 'NO HAY FILA') +
         ' · controles=' + cE.join(',')]);
 
-      // ── El mecanismo SECUNDARIO leido del estudio saca la seccion del alcance de la tabla ──
-      esc({ teer_tipo_im:'secundaria' }, { 'im.sintomas':'si' });
-      const rSec = rec();
-      ex.push(['el mecanismo secundario leido del estudio saca estas filas del alcance, aun con sintomas',
-        !!rSec && rSec.tipo === 'no' && pl(rSec.tit).indexOf('fuera del alcance') > -1,
-        clase()]);
+      /* ── ⚠️ EL MECANISMO SECUNDARIO SACA LA SECCION ENTERA, NO SOLO SU RECOMENDACION ──
+         REAPUNTADO el 2026-09-30 por decision de Maicol. Hasta esa fecha esta condicion fijaba que
+         la recomendacion se ABSTUVIERA («Fuera del alcance de esta tabla») y la seccion siguiera
+         pintandose; hoy _indIM devuelve null. El motivo esta en CLAUDE.md: la abstencion evitaba
+         dos recomendaciones contradictorias y NO evitaba que las FILAS salieran con ✅ calculadas
+         con umbrales de la PRIMARIA, con su linea de criterio en negrita, pegadas a la tarjeta de
+         _indIMS —la que si gobierna—. Dos tarjetas mitrales seguidas y la que no corresponde
+         llena de criterios cumplidos.
+         La condicion NO se borro: se reapunto al invariante mas fuerte —la seccion no se muestra—
+         y sigue midiendo lo mismo que antes, que los sintomas no la rescatan. Los sintomas se
+         contestan ANTES de cargar el mecanismo, porque con la seccion ausente su control no existe
+         y clic lo reportaria como boton faltante: el denominador del caso se pondria rojo por el
+         andamio y no por el producto. */
+      esc({}, { 'im.sintomas':'si' });
+      const conSx = clase();
+      set({ teer_tipo_im:'secundaria' });
+      ex.push(['el mecanismo secundario leido del estudio saca la SECCION ENTERA, aun con sintomas contestados',
+        conSx === 'ind / Clase I · Nivel B' && window._indIM() === null &&
+        _indClinGet('im.sintomas') === 'si',
+        'con sintomas y sin mecanismo: ' + conSx + ' · tras cargar secundaria: ' +
+        (window._indIM() === null ? 'seccion AUSENTE' : clase())]);
 
       /* ── ⚠️ LA LECTURA TIENE PRIORIDAD SOBRE EL CONTROL MANUAL ──
          Se contesta «secundaria» en el panel y DESPUES aparece «primaria» en ETE: el estudio manda
          y la recomendacion vuelve a la tabla de la primaria. Una implementacion que diera
-         precedencia al panel pasa todas las condiciones de arriba y cae aca. */
+         precedencia al panel pasa todas las condiciones de arriba y cae aca.
+         REAPUNTADO el 2026-09-30: la compuerta nueva hace que con el panel en «secundaria» la
+         seccion este AUSENTE en vez de publicar una recomendacion abstenida, asi que el «antes» se
+         mide por ausencia. Queda mas fuerte: la seccion REAPARECE al cargar el estudio, y eso una
+         implementacion que le diera precedencia al panel no lo puede producir.
+         ⚠️ Y CUBRE QUE LA COMPUERTA MIRE LOS DOS ORIGENES: el panel basta para esconderla, que es
+         el caso del medico en Modo Basico, que no tiene la pestaña ETE. */
       esc({}, { 'im.sintomas':'si', 'im.mecanismo':'secundaria' });
-      const antesPrio = clase();
+      const ausentePorPanel = window._indIM() === null;
       set({ teer_tipo_im:'primaria' });
       const fPrio = fila('Mecanismo');
-      ex.push(['el control manual NO pisa el mecanismo del estudio: con ETE cargado la fila es lectura y manda primaria',
-        antesPrio.indexOf('no /') === 0 && !!fPrio && !fPrio.ctrl &&
+      ex.push(['el control manual NO pisa el mecanismo del estudio: esconde la seccion, y con ETO en primaria REAPARECE como lectura',
+        ausentePorPanel === true && !!fPrio && !fPrio.ctrl &&
         clase() === 'ind / Clase I · Nivel B' && _indClinGet('im.mecanismo') === 'secundaria',
-        'antes: ' + antesPrio + ' · despues: ' + clase() + ' · panel sigue en ' + _indClinGet('im.mecanismo')]);
+        'antes (panel secundaria): ' + (ausentePorPanel ? 'seccion AUSENTE' : clase()) +
+        ' · despues: ' + clase() + ' · panel sigue en ' + _indClinGet('im.mecanismo')]);
 
       // ── Clase I por SINTOMAS, con independencia de los numeros del ventriculo ──
       esc(Object.assign({}, SIN_DISF, { teer_tipo_im:'primaria' }), { 'im.sintomas':'si' });
@@ -39032,6 +39054,44 @@ caso('TC-329', 'Evidencia IM secundaria: auricular y ventricular, cada una a su 
     const bibDe = d => d && d.querySelector('[data-ind-biblio]')
       ? Array.prototype.slice.call(d.querySelectorAll('[data-ind-refitem]')).map(function(e){ return e.getAttribute('data-ind-refitem'); }) : [];
 
+    /* ══ LA RECOMENDACION SE LEE DEL OBJETO, NO DEL textContent DE LA SECCION ══════════════════
+       ⚠️ ESTO ES LO QUE DEJABA VIVAS DIEZ DE TRECE MUTACIONES, y la bitacora del commit anterior
+       atribuia el problema al helper responder() —«clickea controles que el repintado vuelve a
+       dibujar y las respuestas encadenadas no quedan puestas»—. SE MIDIO EN CHROME y es falso: el
+       repintado es SINCRONO (indicRender dentro del mismo listener del clic), asi que re-consultar
+       el DOM en cada llamada alcanza y las cinco respuestas quedan puestas.
+
+       La causa real es otra: la LINEA DEL CRITERIO de la seccion nombra «Clase I · Nivel A»
+       siempre que el tipo sea ventricular, y el bloque de recomendacion lleva el titulo
+       «Recomendacion de la guia» en toda rama que concluya. Buscar esas dos cadenas en el
+       textContent de la seccion entera da verde por frases que NO son la indicacion publicada:
+       cambiar la clase de la fila de TEER de I·A a IIb·B no movia una sola condicion.
+
+       El propio caso ya tenia esa trampa DECLARADA para la condicion del tipo sin contestar y no
+       se habia aplicado al resto. Hoy todo lo que afirme una clase, un texto o una modalidad lee
+       window._indIMS().recom, que es el MISMO objeto que pinta _indRecomHTML. */
+    const rec = () => { const s = window._indIMS(); return (s && s.recom) ? s.recom : null; };
+    const guiaTxt = () => { const s = window._indIMS(); return pl(s && s.guia ? s.guia.txt : ''); };
+    const filaDe = function(lbl){ const s = window._indIMS(); if (!s) return null;
+      return (s.filas || []).concat(s.clinica || []).filter(function(f){ return pl(f.lbl).indexOf(pl(lbl)) > -1; })[0] || null; };
+    const faltaNombra = function(r, frag){ return !!r && Array.isArray(r.faltan) &&
+      r.faltan.some(function(f){ return pl(f).indexOf(pl(frag)) > -1; }); };
+
+    /* ⚠️ responder() VERIFICA CON _indClinGet, no confia en el clic. Tres motivos medidos: un
+       segundo toque sobre la opcion activa la DESMARCA —_indClinCablear lo hace a proposito—, el
+       control puede no estar dibujado todavia —ims.cabg solo existe con el tipo en ventricular— y
+       un id mal escrito no da error, deja la respuesta en null y la condicion mide otra cosa.
+       Lo que no quede puesto se ACUMULA y se afirma: sin eso, «no quedo puesta» se lee igual que
+       «la cascada no concluyo», que es el diagnostico equivocado que costo el commit anterior. */
+    const sinPoner = [];
+    const responder = function(k, v){
+      if (_indClinGet(k) === v) return;
+      const b = cuerpo().querySelector('[data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
+      if (!b) { sinPoner.push(k + '=' + v + ' SIN BOTON'); return; }
+      b.click();
+      if (_indClinGet(k) !== v) sinPoner.push(k + ' quedo en ' + _indClinGet(k));
+    };
+
     /* 1 · Con mecanismo PRIMARIO la seccion no existe. */
     R.enPrimaria = !!(await montar({ teer_tipo_im:'primaria', fevi:'55', ddfvi:'58', dsfvi:'42' }, null, true));
     R.primariaSigue = !!secDe('mitral primaria');
@@ -39042,26 +39102,42 @@ caso('TC-329', 'Evidencia IM secundaria: auricular y ventricular, cada una a su 
        seccion: la linea del CRITERIO nombra «Clase I · Nivel A» siempre, asi que buscarla en todo
        el textContent daba verde por una frase que no es una indicacion. Lo que distingue «pide el
        dato» de «eligio tabla» es el TITULO del bloque. */
+    const rSin = rec() || {};
     R.sinTipo = { hay: !!dSin, pide: txtDe(dSin).indexOf('sin el tipo no se puede elegir') > -1,
       titFalta: txtDe(dSin).indexOf('falta un dato para aplicar la guia') > -1,
-      concluyo: txtDe(dSin).indexOf('recomendacion de la guia') > -1 };
+      concluyo: txtDe(dSin).indexOf('recomendacion de la guia') > -1,
+      /* La compuerta nueva de _indIM: con mecanismo secundario la tarjeta de la PRIMARIA no se
+         pinta, aunque el tipo todavia no se haya elegido. */
+      primaria: !!secDe('mitral primaria') };
 
     /* 3 · VENTRICULAR con coronariopatia, y con una estenosis aortica severa cargada a la vez. */
     const dV = await montar({ teer_tipo_im:'secundaria', fevi:'35', ddfvi:'66', dsfvi:'52',
       ea_grado:'severa', vmax_ao:'4.5', gmedio_ao:'48', ava_cont:'0.80' }, 'ventricular', true);
+    const rVen = rec() || {};
     R.ven = { hay: !!dV, tipo: _indClinGet('ims.tipo'),
-      cabg: txtDe(dV).indexOf('revascularizacion coronaria') > -1,
-      clase: txtDe(dV).indexOf('clase i · nivel b') > -1,
-      bib: bibDe(dV), corchetes: dV ? (dV.innerHTML.split('data-ind-ref="').length - 1) : -1 };
+      cabg: pl(rVen.txt).indexOf('revascularizacion coronaria') > -1,
+      clase: rVen.clase || null, tipoRec: rVen.tipo,
+      /* La fila «Tambien aplica» de la angioplastia, con SU clase y SU condicion no verificada
+         —enfermedad coronaria NO compleja—: es lo unico que impide leerla como ya descartada. */
+      modClase: rVen.mod ? rVen.mod.clase : null,
+      modNoCompleja: rVen.mod ? (pl(rVen.mod.nota).indexOf('no compleja') > -1) : false,
+      bib: bibDe(dV), corchetes: dV ? (dV.innerHTML.split('data-ind-ref="').length - 1) : -1,
+      primaria: !!secDe('mitral primaria') };
     R.otraValvula = !!secDe('estenosis aortica');
 
     /* 4 · AURICULAR: otra tabla, otra clase. */
     const dA = await montar({ teer_tipo_im:'secundaria', fevi:'60', ddfvi:'50', dsfvi:'30' }, 'auricular', true);
+    const rAur = rec() || {};
     R.aur = { hay: !!dA, tipo: _indClinGet('ims.tipo'),
-      orejuela: txtDe(dA).indexOf('orejuela') > -1,
-      clase: txtDe(dA).indexOf('clase iia · nivel b') > -1,
-      noVentricular: txtDe(dA).indexOf('revascularizacion coronaria') === -1,
-      bib: bibDe(dA) };
+      orejuela: pl(rAur.txt).indexOf('orejuela') > -1,
+      clase: rAur.clase || null, tipoRec: rAur.tipo,
+      noVentricular: pl(rAur.txt).indexOf('revascularizacion coronaria') === -1,
+      /* ⚠️ LA LINEA DE CRITERIO SIGUE AL TIPO. Era estatica y publicaba la fila VENTRICULAR
+         —Clase I · Nivel A, en negrita— tambien en el paciente auricular. Buscar «clase iia» en
+         el textContent no lo caza: la recomendacion la aporta igual. */
+      guiaAur: guiaTxt().indexOf('auricular') > -1 && guiaTxt().indexOf('clase iia · nivel b') > -1,
+      guiaSinVen: guiaTxt().indexOf('clase i · nivel a') === -1,
+      bib: bibDe(dA), primaria: !!secDe('mitral primaria') };
     R.sinNumerar = cuerpo().innerHTML.split('cita sin numerar').length - 1;
     R.noRegistrada = cuerpo().innerHTML.split('referencia no registrada').length - 1;
 
@@ -39075,18 +39151,35 @@ caso('TC-329', 'Evidencia IM secundaria: auricular y ventricular, cada una a su 
       R.sinTipo.concluyo === false,
       JSON.stringify(R.sinTipo)]);
 
-    ex.push(['VENTRICULAR con coronariopatia rutea a la cirugia junto a la revascularizacion, Clase I · Nivel B',
-      R.ven.hay === true && R.ven.tipo === 'ventricular' && R.ven.cabg === true && R.ven.clase === true &&
-      R.ven.corchetes >= 10,
+    ex.push(['VENTRICULAR con coronariopatia rutea a la cirugia junto a la revascularizacion, Clase I · Nivel B leida de la RECOMENDACION',
+      R.ven.hay === true && R.ven.tipo === 'ventricular' && R.ven.tipoRec === 'ind' &&
+      R.ven.cabg === true && R.ven.clase === 'Clase I · Nivel B' && R.ven.corchetes >= 10,
       JSON.stringify({ tipo:R.ven.tipo, cabg:R.ven.cabg, clase:R.ven.clase, corchetes:R.ven.corchetes })]);
+
+    ex.push(['y la angioplastia sale como «Tambien aplica» con SU clase y nombrando la condicion que la app NO verifica',
+      R.ven.modClase === 'Clase IIb · Nivel C' && R.ven.modNoCompleja === true,
+      'modClase=' + R.ven.modClase + ' nombraNoCompleja=' + R.ven.modNoCompleja]);
 
     ex.push(['y convive con otra valvula cargada: la estenosis aortica sigue pintando su seccion',
       R.otraValvula === true, 'estenosisAortica=' + R.otraValvula]);
 
     ex.push(['AURICULAR rutea a OTRA tabla: cirugia con cierre de orejuela, Clase IIa · Nivel B, y sin la fila ventricular',
-      R.aur.hay === true && R.aur.tipo === 'auricular' && R.aur.orejuela === true &&
-      R.aur.clase === true && R.aur.noVentricular === true,
+      R.aur.hay === true && R.aur.tipo === 'auricular' && R.aur.tipoRec === 'ind' &&
+      R.aur.orejuela === true && R.aur.clase === 'Clase IIa · Nivel B' && R.aur.noVentricular === true,
       JSON.stringify({ tipo:R.aur.tipo, orejuela:R.aur.orejuela, clase:R.aur.clase, noVen:R.aur.noVentricular })]);
+
+    ex.push(['y la LINEA DE CRITERIO sigue al tipo: en la auricular nombra su Clase IIa y NO la Clase I · Nivel A de la ventricular',
+      R.aur.guiaAur === true && R.aur.guiaSinVen === true,
+      'nombraAuricularYIIa=' + R.aur.guiaAur + ' sinClaseIA=' + R.aur.guiaSinVen]);
+
+    /* ⚠️ LA COMPUERTA NUEVA DE _indIM (decision de Maicol, 2026-09-30). Con mecanismo secundario
+       la tarjeta de la PRIMARIA no se pinta: su recom ya se abstenia, pero sus filas salian con ✅
+       calculadas con umbrales de la PRIMARIA y su linea de criterio en negrita, pegadas a la
+       tarjeta que si gobierna. Se mide en los TRES estados secundarios —sin tipo, auricular y
+       ventricular— porque el estado sin contestar es el primero que el medico ve. */
+    ex.push(['con mecanismo SECUNDARIO la tarjeta de IM primaria NO se pinta, en los tres estados del tipo',
+      R.sinTipo.primaria === false && R.ven.primaria === false && R.aur.primaria === false,
+      'sinTipo=' + R.sinTipo.primaria + ' ventricular=' + R.ven.primaria + ' auricular=' + R.aur.primaria]);
 
     ex.push(['su bibliografia cita TRES documentos y no queda ninguna afirmacion sin numerar',
       R.ven.bib.length === 3 && R.aur.bib.length === 3 &&
@@ -39120,38 +39213,121 @@ caso('TC-329', 'Evidencia IM secundaria: auricular y ventricular, cada una a su 
       return tr.querySelectorAll('td')[2].querySelectorAll('[data-ind-ref="' + clave + '"]').length;
     };
 
-    /* 5 · VENTRICULAR sin coronariopatia y cumpliendo los criterios: Clase I · Nivel A. */
-    const dV2 = await montar({ teer_tipo_im:'secundaria', fevi:'35', ddfvi:'66', dsfvi:'52' }, 'ventricular', false);
-    const responder = function(k, v){
-      const b = cuerpo().querySelector('[data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
-      if (b) b.click();
-    };
+    /* 5 · VENTRICULAR sin coronariopatia y cumpliendo los criterios: Clase I · Nivel A, que es la
+       fila mas fuerte de la tabla. Es el camino que la primera tanda de mutacion no ejercia. */
+    await montar({ teer_tipo_im:'secundaria', fevi:'35', ddfvi:'66', dsfvi:'52' }, 'ventricular', false);
     responder('ims.sintomas', 'si'); responder('ims.tmo', 'si');
     responder('ims.cabg', 'no');     responder('ims.teercrit', 'si');
     const dV3 = secDe('mitral secundaria');
-    R.teerIA = { txt: txtDe(dV3).indexOf('teer recomendado') > -1,
-                 clase: txtDe(dV3).indexOf('clase i · nivel a') > -1 &&
-                        txtDe(dV3).indexOf('recomendacion de la guia') > -1,
-                 cabg: _indClinGet('ims.cabg'), crit: _indClinGet('ims.teercrit') };
+    const rIA = rec() || {};
+    R.teerIA = { tipoRec: rIA.tipo, clase: rIA.clase || null,
+                 teer: pl(rIA.txt).indexOf('teer recomendado') > -1,
+                 /* Sin CABG programada la fila NO lleva «Tambien aplica» de angioplastia: esa es la
+                    del paciente que YA va a revascularizacion. Si aparece, la cascada se corto
+                    antes de la fila de TEER —el defecto que /sharp-edges cerro— y la app publica
+                    una indicacion quirurgica suprimiendo la de mayor nivel de la seccion. */
+                 modCx: rIA.mod ? (rIA.mod.clase || 'sin clase') : null,
+                 cabg: _indClinGet('ims.cabg'), crit: _indClinGet('ims.teercrit'),
+                 sinPoner: sinPoner.slice() };
     R.umbral = notaCon(dV3, '30 mm', 'esc2025vc');
     R.aha    = notaCon(dV3, 'acc/aha', 'ahaVc2020');
     R.selRef = filaRef(dV3, 'tipo de insuficiencia secundaria', 'esc2025vc');
 
-    /* 6 · El tratamiento medico optimizado es compuerta: sin contestarlo la tabla NO concluye. */
-    const dT = await montar({ teer_tipo_im:'secundaria', fevi:'35', ddfvi:'66' }, 'ventricular', false);
+    /* 6 · El tratamiento medico optimizado es compuerta: sin contestarlo la tabla NO concluye, y
+       lo que PIDE es ese dato y no otro. La guia evalua la severidad DESPUES de optimizarlo. */
+    await montar({ teer_tipo_im:'secundaria', fevi:'35', ddfvi:'66' }, 'ventricular', false);
     responder('ims.sintomas', 'si');
-    const dT2 = secDe('mitral secundaria');
-    R.tmoGate = { pide: txtDe(dT2).indexOf('optimizar el tratamiento medico') > -1,
-                  concluyo: txtDe(dT2).indexOf('recomendacion de la guia') > -1,
-                  tmo: _indClinGet('ims.tmo') };
+    const rTmo = rec() || {};
+    R.tmoGate = { tmo: _indClinGet('ims.tmo'), tipoRec: rTmo.tipo,
+                  pideTmo: faltaNombra(rTmo, 'tratamiento medico optimizado'),
+                  faltan: Array.isArray(rTmo.faltan) ? rTmo.faltan : null };
 
-    ex.push(['VENTRICULAR sin coronariopatia y con los criterios cumplidos: TEER Clase I · Nivel A',
-      R.teerIA.cabg === 'no' && R.teerIA.crit === 'si' && R.teerIA.txt === true && R.teerIA.clase === true,
+    /* 7 · Los SINTOMAS son compuerta, y el ASINTOMATICO no recibe indicacion. Todas las filas de
+       esta tabla son del paciente sintomatico (NYHA II a IV). */
+    await montar({ teer_tipo_im:'secundaria', fevi:'35', ddfvi:'66' }, 'ventricular', false);
+    const rSx = rec() || {};
+    R.sxGate = { sx: _indClinGet('ims.sintomas'), tipoRec: rSx.tipo,
+                 pideSx: faltaNombra(rSx, 'sintomas') };
+    responder('ims.sintomas', 'no');
+    const rAsx = rec() || {};
+    R.asint = { sx: _indClinGet('ims.sintomas'), tipoRec: rAsx.tipo, clase: rAsx.clase || null,
+                tit: pl(rAsx.tit) };
+
+    /* 8 · LA FILA DE CLASE I · A AFIRMA «FEVI MENOR DE 50 %» Y HAY QUE COMPROBARLO. Con FEVI
+       conservada la tarjeta la publicaba mientras su propia fila de FEVI mostraba 62 %: se
+       desmentia a si misma. Es el defecto 2 de los seis de /sharp-edges. */
+    await montar({ teer_tipo_im:'secundaria', fevi:'62', ddfvi:'50', dsfvi:'30' }, 'ventricular', false);
+    responder('ims.sintomas', 'si'); responder('ims.tmo', 'si');
+    responder('ims.cabg', 'no');     responder('ims.teercrit', 'si');
+    const rFev = rec() || {};
+    R.feviOk = { tipoRec: rFev.tipo, clase: rFev.clase || null, tit: pl(rFev.tit),
+                 nombra62: pl(rFev.txt).indexOf('62') > -1,
+                 teer: pl(rFev.txt).indexOf('teer recomendado') > -1,
+                 crit: _indClinGet('ims.teercrit') };
+
+    /* 9 · AURICULAR: el candidato a cirugia es compuerta, y separa DOS filas con clases distintas
+       —cirugia IIa · B contra TEER IIb · B—. El bucle de auto-clic la contestaba siempre, asi que
+       la compuerta no se ejercia. */
+    await montar({ teer_tipo_im:'secundaria', fevi:'60', ddfvi:'50', dsfvi:'30' }, 'auricular', false);
+    responder('ims.sintomas', 'si'); responder('ims.tmo', 'si');
+    const rCx = rec() || {};
+    R.cxGate = { cx: _indClinGet('ims.cxcandidato'), tipoRec: rCx.tipo,
+                 pideCx: faltaNombra(rCx, 'candidato a cirugia') };
+    responder('ims.cxcandidato', 'no');
+    const rNoCx = rec() || {};
+    R.aurNoCx = { cx: _indClinGet('ims.cxcandidato'), clase: rNoCx.clase || null,
+                  teer: pl(rNoCx.txt).indexOf('teer a considerar') > -1 };
+
+    /* 10 · SIN SEXO CONSIGNADO EL DDVI NO SE CLASIFICA, y antes caia al corte de VARON. Una mujer
+       con 58 mm —dilatada por su corte de 56— salia «cavidad no dilatada, criterio de la
+       auricular»: el default empujaba hacia la tabla de cirugia IIa y alejaba de la de TEER I · A.
+       58 es el unico valor que separa las dos implementaciones: entre 56 y 63. */
+    await montar({ teer_tipo_im:'secundaria', sexo:'', fevi:'40', ddfvi:'58', dsfvi:'40' }, null, false);
+    const fDD = filaDe('DDVI');
+    R.sinSexo = { hay: !!fDD, marca: fDD ? fDD.marca : null,
+      losDosCortes: fDD ? (pl(fDD.nota).indexOf('56 mm') > -1 && pl(fDD.nota).indexOf('63 mm') > -1) : false,
+      diceSinSexo: fDD ? (pl(fDD.nota).indexOf('sexo no esta consignado') > -1) : false,
+      /* Lo que NO puede hacer es afirmar una clasificacion con el corte del varon. */
+      afirma: fDD ? (pl(fDD.nota).indexOf('cavidad no dilatada') > -1 ||
+                     pl(fDD.nota).indexOf('cavidad dilatada') > -1) : true,
+      sexoLeido: (document.getElementById('sexo') || {}).value };
+
+    ex.push(['DENOMINADOR: las cinco respuestas encadenadas del camino ventricular SI quedan puestas',
+      R.teerIA.sinPoner.length === 0 && R.teerIA.cabg === 'no' && R.teerIA.crit === 'si',
+      'sinPoner=' + JSON.stringify(R.teerIA.sinPoner) + ' cabg=' + R.teerIA.cabg + ' crit=' + R.teerIA.crit]);
+
+    ex.push(['VENTRICULAR sin coronariopatia y con los criterios cumplidos: TEER Clase I · Nivel A, exacta y leida de la RECOMENDACION',
+      R.teerIA.tipoRec === 'ind' && R.teerIA.teer === true &&
+      R.teerIA.clase === 'Clase I · Nivel A' && R.teerIA.modCx === null,
       JSON.stringify(R.teerIA)]);
 
-    ex.push(['el tratamiento medico optimizado es COMPUERTA: sin contestarlo no se publica ninguna recomendacion',
-      R.tmoGate.tmo == null && R.tmoGate.pide === true && R.tmoGate.concluyo === false,
+    ex.push(['el tratamiento medico optimizado es COMPUERTA: la tabla no concluye y PIDE ese dato',
+      R.tmoGate.tmo == null && R.tmoGate.tipoRec === 'falta' && R.tmoGate.pideTmo === true,
       JSON.stringify(R.tmoGate)]);
+
+    ex.push(['los SINTOMAS son compuerta: sin contestarlos se pide el dato',
+      R.sxGate.sx == null && R.sxGate.tipoRec === 'falta' && R.sxGate.pideSx === true,
+      JSON.stringify(R.sxGate)]);
+
+    ex.push(['y el ASINTOMATICO no recibe indicacion: la tabla es del sintomatico y no publica clase',
+      R.asint.sx === 'no' && R.asint.tipoRec === 'no' && R.asint.clase === null &&
+      R.asint.tit.indexOf('paciente sintomatico') > -1,
+      JSON.stringify(R.asint)]);
+
+    ex.push(['la fila de Clase I · A COMPRUEBA la FEVI menor de 50 %: con 62 % no aplica y lo dice con el valor medido',
+      R.feviOk.crit === 'si' && R.feviOk.tipoRec === 'no' && R.feviOk.clase === null &&
+      R.feviOk.teer === false && R.feviOk.nombra62 === true,
+      JSON.stringify(R.feviOk)]);
+
+    ex.push(['AURICULAR: el candidato a cirugia es compuerta y separa dos filas — sin contestar pide el dato, «no» da TEER IIb · B',
+      R.cxGate.cx == null && R.cxGate.tipoRec === 'falta' && R.cxGate.pideCx === true &&
+      R.aurNoCx.clase === 'Clase IIb · Nivel B' && R.aurNoCx.teer === true,
+      JSON.stringify({ gate:R.cxGate, noCx:R.aurNoCx })]);
+
+    ex.push(['SIN SEXO el DDVI no se clasifica: muestra los dos cortes, dice que falta y NO afirma dilatacion',
+      R.sinSexo.hay === true && R.sinSexo.sexoLeido === '' && R.sinSexo.marca === 'ask' &&
+      R.sinSexo.losDosCortes === true && R.sinSexo.diceSinSexo === true && R.sinSexo.afirma === false,
+      JSON.stringify(R.sinSexo)]);
 
     ex.push(['la nota de los umbrales de la secundaria lleva SU cita, y la del selector del tipo tambien',
       R.umbral.n === 1 && R.umbral.conCita === 1 && R.selRef === 1,
@@ -39162,7 +39338,7 @@ caso('TC-329', 'Evidencia IM secundaria: auricular y ventricular, cada una a su 
       JSON.stringify(R.aha)]);
 
     return { resumen: JSON.stringify({ ven:R.ven.bib, aur:R.aur.bib, sinTipo:R.sinTipo,
-      teerIA:R.teerIA, tmoGate:R.tmoGate }), extra: ex };
+      teerIA:R.teerIA, tmoGate:R.tmoGate, feviOk:R.feviOk, sinSexo:R.sinSexo }), extra: ex };
   })();
 `);
 
