@@ -205,6 +205,68 @@ bibliografía**: ESC/EACTS 2025 (Tabla 8 de Recomendaciones y su tabla de contra
 ACC/AHA 2020 (Tabla 16, p. e113; recomendaciones p. e116), EAE/ASE 2009 Baumgartner (Tabla 9, p. 17)
 y Wilkins 1988 (Tablas 1-2, p. 300; resultados p. 307).
 
+### Insuficiencia mitral SECUNDARIA — sección nueva (2026-09-30, rama `wip/im-secundaria`)
+
+Los DOS tipos que la ESC/EACTS 2025 separa, cada uno con su tabla. Todo leído en el ORIGINAL inglés
+(`ehaf194.pdf`, Eur Heart J 2025;46(44):4635-4736; **página de revista = página de PDF + 4634**).
+
+**TRES fuentes verificadas**, todas ya en el registro: **ESC/EACTS 2025** —Figura 12 p. 4676,
+sección 9.2.2 p. 4675, Tabla 7 p. 4678, Recommendation Table 7 p. 4679—, **ACC/AHA 2020** p. e129 y
+**ASE 2017** Tabla 8 p. 332. No se agregaron entradas nuevas a `IND_REFS` porque las tres ya estaban.
+
+**El tipo NO se clasifica solo.** La Figura 12 lo define con cuatro criterios unidos por Y más
+criterios clínicos que la app no recoge (fibrilación auricular, HFpEF, cardiopatía isquémica,
+miocardiopatía dilatada). Deducirlo de la FEVI rutearía a otra tabla con un solo número: la auricular
+es cirugía Clase IIa · B y la ventricular sin coronariopatía es TEER **Clase I · Nivel A**.
+
+**Umbrales de la secundaria: se PUBLICAN, no se aplican.** «An EROA of ≥30 mm2 and/or an RVol of
+≥45 mL has been identified as having a significant impact on outcomes» (p. 4675) — y ojo con el
+matiz: la guía dice «lower thresholds **may** apply», no define «severa» con ese número.
+**Verificado que `im_sev_final` vota con los cortes de la PRIMARIA y no consulta `teer_tipo_im` en
+ninguna rama.** Reportado, no corregido: es contenido clínico y toca el informe firmado.
+
+### ⚠️ SEIS DEFECTOS DE MI PROPIO CÓDIGO NUEVO, DOS DE ELLOS SOBRE UNA CLASE I
+
+Los encontró `/sharp-edges` sobre el diff. Están corregidos, y valen como patrón:
+
+1. **La pregunta no era la de la fila.** El control decía «¿Enfermedad coronaria concomitante?» y la
+   fila dice «undergoing CABG». Tener coronariopatía no es ir al quirófano: un paciente con
+   enfermedad no obstructiva recibía «Cirugía RECOMENDADA — Clase I · Nivel B». Y peor, ese `return`
+   **cortaba la cascada antes de la fila de TEER**, que es Clase I · Nivel A y es la que le
+   corresponde. **Fabricaba una indicación quirúrgica y suprimía la de mayor nivel de la sección.**
+2. **La fila de Clase I · Nivel A afirmaba «FEVI menor de 50 %» sin comprobarla.** Con FEVI 62 % la
+   tarjeta la publicaba mientras su propia fila de FEVI mostraba 62 %: se desmentía a sí misma.
+3. **La línea de criterio era estática** y publicaba la fila VENTRICULAR —en negrita, Clase I ·
+   Nivel A— también en el paciente auricular. Dos clases en la misma tarjeta y la más fuerte era la
+   que no le tocaba.
+4. **Sin sexo consignado el DDVI caía al corte de varón.** Una mujer con 58 mm salía «cavidad no
+   dilatada». El default no era neutro: empujaba hacia la tabla de cirugía IIa y alejaba de la de
+   TEER I · A. Hoy no se clasifica y se muestran los dos cortes, que es la regla que este archivo ya
+   fijó para el strain del VD.
+5. **La fila «También aplica» callaba su condición no verificada** (enfermedad coronaria NO
+   compleja). Hoy la nombra.
+6. **Mecanismo y grado llevaban `ok`**, que es «criterio cumplido», así que la sección entraba
+   SIEMPRE a la apertura automática y «se abre sola» dejaba de significar algo. Hoy `none`.
+
+### ⚠️ ESTADO: SEIS MUTACIONES SOBREVIVEN Y LA COBERTURA ESTÁ INCOMPLETA
+
+Suite **343/344** (único rojo TC-223), A/B **idéntico byte a byte** contra HEAD con control negativo,
+Semgrep **125 / 0 ERROR**, y la sección medida en Chrome en los dos tipos. Pero de trece mutaciones
+**seis sobreviven**: la clase de la fila de TEER (MS4), la compuerta del tratamiento médico (MS8), y
+las cuatro de los arreglos de arriba (MS10 a MS13). Todas viven en el camino **ventricular sin
+CABG**, que es el que TC-329 no llega a ejercer: su helper `responder()` clickea controles que el
+repintado vuelve a dibujar, y las respuestas encadenadas no quedan puestas.
+
+**Por eso esto va a `wip/im-secundaria` y no a `main`.** Lo que falta es la cobertura, no el arreglo.
+
+### Convivencia de las dos secciones mitrales — declarada, no resuelta
+
+Con mecanismo secundario se pintan LAS DOS: `_indIM` sigue abriéndose con `im_sev_final === '4'` sin
+mirar el mecanismo. Su `recom` **sí se abstiene** («Fuera del alcance de esta tabla»), así que no hay
+dos recomendaciones contradictorias; lo que queda son sus filas con ✅ calculadas con umbrales de la
+primaria y su línea de criterio en negrita. Es preexistente de `_indIM`, que este prompt prohíbe
+tocar, pero el cambio lo vuelve adyacente: ahora son dos tarjetas mitrales seguidas.
+
 ### El rótulo de la banda 9-11 del score de Wilkins (decisión de Maicol, 2026-09-30)
 
 Decía **«Resultado subóptimo probable»**, que AFIRMA un pronóstico que la fuente del score NIEGA.

@@ -41203,6 +41203,236 @@ function _indIM(){
     ] };
 }
 
+/* ══ INSUFICIENCIA MITRAL SECUNDARIA — AURICULAR Y VENTRICULAR ════════════════════════════════
+   Los DOS tipos que la ESC/EACTS 2025 separa, cada uno con sus propias filas. Todo verificado
+   sobre el ORIGINAL en inglés (ehaf194.pdf, Eur Heart J 2025;46(44):4635-4736).
+
+   ⚠️ EL TIPO NO SE CLASIFICA SOLO, Y ES UNA DECISIÓN. La Figura 12 (p. 4676) lo define con cuatro
+   criterios unidos por Y —FEVI, cavidad del VI, anillo mitral y aurícula— más criterios clínicos
+   que esta aplicación no recoge (fibrilación auricular, HFpEF, cardiopatía isquémica,
+   miocardiopatía dilatada). Deducirlo de la FEVI sola rutearía a una tabla de recomendaciones
+   distinta con un solo número, y las dos tablas no se parecen: la auricular es cirugía Clase IIa y
+   la ventricular sin coronariopatía es TEER Clase I · Nivel A. Lo elige el médico; el panel le
+   muestra los criterios y los datos que ya tiene cargados.
+
+   ⚠️ LOS UMBRALES DE SEVERIDAD DE LA SECUNDARIA SON MÁS BAJOS Y LA APP NO LOS APLICA. La sección
+   los PUBLICA con su cita y no toca la graduación: `im_sev_final` se vota con los cortes de la
+   primaria y no consulta `teer_tipo_im` en ninguna rama —verificado—. Corregirlo es contenido
+   clínico y toca el informe firmado.
+   ══════════════════════════════════════════════════════════════════════════════════════════ */
+const IMS_CRIT_2025 = Object.freeze({
+  eroa: 30,        // mm²  — «An EROA of ≥30 mm2 … significant impact on outcomes» (p. 4675)
+  volr: 45,        // ml   — «and/or an RVol of ≥45 mL» (p. 4675)
+  fevi_corte: 50,  // %    — Figura 12: auricular ≥ 50, ventricular < 50 (p. 4676)
+  ma_ap: 35,       // mm   — dilatación del anillo mitral, diámetro anteroposterior (Figura 12)
+  lavi: 34,        // ml/m² — aurícula agrandada (Figura 12)
+  ddvi_f: 56,      // mm   — cavidad no dilatada, mujeres (nota ^a de la Figura 12)
+  ddvi_m: 63,      // mm   — idem, varones
+  teer_fevi_min: 20, teer_fevi_max: 50, // %  — Tabla 7, p. 4678
+  teer_dtsvi: 70,  // mm   — Tabla 7
+  teer_psap: 70    // mmHg — Tabla 7
+});
+const IMS_FUENTE = 'ESC/EACTS 2025 — tabla de recomendaciones de insuficiencia mitral secundaria';
+const IMS_REF = 'esc2025vc';
+/* Transcripciones de la Recommendation Table 7, p. 4679. Clase y nivel leídos de esa tabla. */
+const IMS_REC_2025 = Object.freeze({
+  aur_cx:   { c:'Clase IIa · Nivel B',
+    t:'Cirugía de la válvula mitral A CONSIDERAR en el paciente sintomático con insuficiencia mitral secundaria AURICULAR severa bajo tratamiento médico óptimo, junto con ablación quirúrgica de la fibrilación auricular si está indicada y cierre de la orejuela izquierda.' },
+  aur_teer: { c:'Clase IIb · Nivel B',
+    t:'TEER A CONSIDERAR en el paciente sintomático con insuficiencia mitral secundaria AURICULAR severa que no es candidato a cirugía, tras optimizar el tratamiento médico incluido el control del ritmo cuando corresponda.' },
+  ven_cabg: { c:'Clase I · Nivel B',
+    t:'Cirugía de la válvula mitral RECOMENDADA en el paciente con insuficiencia mitral secundaria VENTRICULAR severa que va a cirugía de revascularización coronaria.' },
+  ven_pci:  { c:'Clase IIb · Nivel C',
+    t:'Angioplastia seguida de TEER, tras reevaluar la insuficiencia, A CONSIDERAR en el paciente sintomático con insuficiencia mitral secundaria ventricular severa crónica y enfermedad coronaria no compleja.' },
+  ven_teer: { c:'Clase I · Nivel A',
+    t:'TEER RECOMENDADO para reducir las hospitalizaciones por insuficiencia cardíaca y mejorar la calidad de vida en el paciente hemodinámicamente estable y sintomático, con FEVI menor de 50 % e insuficiencia mitral secundaria ventricular severa persistente pese a tratamiento médico optimizado y resincronización si estaba indicada, que cumple los criterios clínicos y ecocardiográficos específicos.' },
+  ven_teer_no: { c:'Clase IIb · Nivel B',
+    t:'TEER A CONSIDERAR para mejorar los síntomas en pacientes seleccionados con insuficiencia mitral secundaria ventricular severa que NO cumplen los criterios específicos, tras evaluar con cuidado la asistencia ventricular o el trasplante.' },
+  ven_cx:   { c:'Clase IIb · Nivel C',
+    t:'Cirugía de la válvula mitral A CONSIDERAR en el paciente sintomático con insuficiencia mitral secundaria ventricular severa sin insuficiencia cardíaca avanzada que no es candidato a TEER.' }
+});
+
+function _indIMSRecom(D){
+  const fal = function(txt, faltan){ return { tipo:'falta', tit:'Falta un dato para aplicar la guía', txt:txt, faltan:faltan }; };
+  const tipo = D.tipo, sx = _indClinGet('ims.sintomas'), tmo = _indClinGet('ims.tmo');
+  const cabg = _indClinGet('ims.cabg'), crit = _indClinGet('ims.teercrit'), cx = _indClinGet('ims.cxcandidato');
+  if (tipo == null) return fal('Las dos tablas de esta sección son distintas: la auricular indica cirugía Clase IIa y la ventricular sin coronariopatía indica TEER Clase I · Nivel A. Sin el tipo no se puede elegir cuál aplica.', ['Tipo de insuficiencia mitral secundaria']);
+  if (sx == null) return fal('Todas las filas de esta tabla son del paciente SINTOMÁTICO.', ['Síntomas']);
+  if (sx === 'no') return { tipo:'no', tit:'La tabla es del paciente sintomático',
+    txt:'Todas las filas de indicación de esta sección exigen síntomas. En el asintomático la conducta es tratamiento médico y seguimiento.',
+    fuente:IMS_FUENTE, ref:IMS_REF };
+  /* ⚠️ EL TRATAMIENTO MÉDICO ÓPTIMO ES CONDICIÓN DE TODAS LAS FILAS, y además la guía dice que la
+     severidad se evalúa DESPUÉS de optimizarlo. Publicar una indicación sobre una insuficiencia
+     medida antes de eso es indicar sobre un número que puede no ser el del paciente tratado. */
+  if (tmo == null) return fal('La guía evalúa la insuficiencia mitral secundaria DESPUÉS de optimizar el tratamiento médico y en estado euvolémico y normotenso. Todas las filas lo exigen.', ['Tratamiento médico optimizado']);
+  if (tmo === 'no') return { tipo:'no', tit:'Primero, optimizar el tratamiento médico',
+    txt:'La severidad se evalúa tras optimizar el tratamiento médico. Cerca del 40 % de la secundaria ventricular mejora su grado a los 1-3 meses.',
+    fuente:IMS_FUENTE, ref:IMS_REF };
+  if (tipo === 'auricular') {
+    if (cx == null) return fal('La tabla de la auricular separa dos filas según el paciente sea o no candidato a cirugía.', ['Candidato a cirugía']);
+    return (cx === 'si')
+      ? { tipo:'ind', tit:'Recomendación de la guía', txt:IMS_REC_2025.aur_cx.t, clase:IMS_REC_2025.aur_cx.c, fuente:IMS_FUENTE, ref:IMS_REF }
+      : { tipo:'ind', tit:'Recomendación de la guía', txt:IMS_REC_2025.aur_teer.t, clase:IMS_REC_2025.aur_teer.c, fuente:IMS_FUENTE, ref:IMS_REF };
+  }
+  /* ⚠️ LA PREGUNTA ES «¿VA A CIRUGÍA DE REVASCULARIZACIÓN?», NO «¿TIENE CORONARIOPATÍA?». La fila
+     de Clase I · Nivel B dice «undergoing CABG»: tener enfermedad coronaria no es ir al quirófano.
+     Con la pregunta anterior, un paciente con coronariopatía no obstructiva que no va a ninguna
+     cirugía recibía «Cirugía de la válvula mitral RECOMENDADA — Clase I · Nivel B», y peor: ese
+     `return` cortaba la cascada ANTES de `crit`, o sea borraba la fila de TEER, que es Clase I ·
+     Nivel A y es la que a ese paciente le corresponde. Fabricaba una indicación quirúrgica y
+     suprimía la de mayor nivel de evidencia de la sección. Lo encontró /sharp-edges. */
+  if (cabg == null) return fal('La fila quirúrgica de la ventricular es la del paciente que YA va a cirugía de revascularización coronaria, no la del que tiene enfermedad coronaria.', ['Cirugía de revascularización coronaria programada']);
+  if (cabg === 'si') {
+    const out = { tipo:'ind', tit:'Recomendación de la guía', txt:IMS_REC_2025.ven_cabg.t, clase:IMS_REC_2025.ven_cabg.c, fuente:IMS_FUENTE, ref:IMS_REF };
+    out.mod = { tit:'También aplica', txt:IMS_REC_2025.ven_pci.t, clase:IMS_REC_2025.ven_pci.c, fuente:IMS_FUENTE, ref:IMS_REF,
+      /* La condición que la app NO puede verificar se NOMBRA. Callarla se lee como descartada. */
+      nota:'Esta fila exige que la enfermedad coronaria sea NO COMPLEJA, y eso no se evalúa en esta aplicación. La guía tampoco dice cuál de las dos filas prevalece: la vía la elige el Heart Team.' };
+    return out;
+  }
+  if (crit == null) return fal('La fila de Clase I · Nivel A exige cumplir los criterios clínicos y ecocardiográficos específicos; sin ellos la tabla baja a Clase IIb.', ['Criterios específicos para TEER']);
+  /* ⚠️ ESA FILA AFIRMA «FEVI MENOR DE 50 %» Y HAY QUE COMPROBARLO. Sin esto, con una FEVI de 62 %
+     la tarjeta publicaba «TEER RECOMENDADO … con FEVI menor de 50 %» en Clase I · Nivel A mientras
+     la fila de FEVI de la MISMA tarjeta mostraba 62 %: la tarjeta se desmentía a sí misma. */
+  if (crit === 'si' && D.fevi == null)
+    return fal('La fila de Clase I · Nivel A afirma una FEVI menor de 50 %, y la FEVI no está medida.', ['FEVI']);
+  if (crit === 'si' && !_lt(D.fevi, IMS_CRIT_2025.fevi_corte))
+    return { tipo:'no', tit:'La fila de Clase I no aplica con esta FEVI',
+      txt:'La fila de TEER Clase I · Nivel A exige una FEVI menor de ' + IMS_CRIT_2025.fevi_corte + ' %, y la medida es de ' + _indNum(D.fevi, 0, '%') + '. Revisar el tipo consignado: con función conservada la tabla que corresponde suele ser la auricular.',
+      fuente:IMS_FUENTE, ref:IMS_REF };
+  if (crit === 'si') return { tipo:'ind', tit:'Recomendación de la guía', txt:IMS_REC_2025.ven_teer.t, clase:IMS_REC_2025.ven_teer.c, fuente:IMS_FUENTE, ref:IMS_REF };
+  const out2 = { tipo:'ind', tit:'Recomendación de la guía', txt:IMS_REC_2025.ven_teer_no.t, clase:IMS_REC_2025.ven_teer_no.c, fuente:IMS_FUENTE, ref:IMS_REF };
+  out2.mod = { tit:'También aplica', txt:IMS_REC_2025.ven_cx.t, clase:IMS_REC_2025.ven_cx.c, fuente:IMS_FUENTE, ref:IMS_REF,
+    nota:'Aplica al paciente sin insuficiencia cardíaca avanzada que no es candidato a TEER.' };
+  return out2;
+}
+
+function _indIMS(){
+  /* La sección se abre SÓLO con mecanismo secundario consignado. Sin eso no aparece: los umbrales
+     y las filas de acá no gobiernan la insuficiencia primaria. */
+  const oMec = _indOrigen(_indS('teer_tipo_im'), 'im.mecanismo');
+  if (oMec.val !== 'secundaria') return null;
+  if (_indS('im_sev_final') !== '4') return null;
+
+  const fev = _indLeer('fevi', 'fevi'), ddL = _indLeer('ddfvi', 'ddfvi');
+  const aiVolL = _indLeer('ai_vol', 'ai_vol'), aiDiamL = _indLeer('ai_diam', 'ai_diam');
+  const pes = _indLeer('peso', 'peso'), tal = _indLeer('talla', 'talla');
+  const getBsa = _indFn('getBSA'); let _bsa = null;
+  try { if (getBsa && !pes.fuera && !tal.fuera && !pes.sinBanda && !tal.sinBanda) _bsa = getBsa(); } catch (e) { _bsa = null; }
+  const bsa = (_bsa != null && isFinite(_bsa) && _bsa > 0) ? _bsa : null;
+  const fevi = fev.val, ddvi = ddL.val, aiDiam = aiDiamL.val;
+  const lavi = (aiVolL.val != null && bsa != null) ? aiVolL.val / bsa : null;
+  const sexo = _indS('sexo');
+  /* ⚠️ SIN SEXO NO SE CLASIFICA, y antes se caía al corte de VARÓN. Una mujer con 58 mm —cavidad
+     dilatada por su corte de 56— salía «no dilatada, criterio de la auricular»: el default empujaba
+     hacia la tabla de cirugía Clase IIa y alejaba de la de TEER Clase I · Nivel A. Es la regla que
+     este archivo ya fijó para el strain del VD: se muestran los dos cortes y se dice cuál falta. */
+  const ddviCorte = /^f/i.test(sexo) ? IMS_CRIT_2025.ddvi_f : (/^m/i.test(sexo) ? IMS_CRIT_2025.ddvi_m : null);
+
+  const filas = [
+    /* ⚠️ `none` Y NO `ok` EN LAS DOS: el mecanismo es la PRECONDICIÓN de que esta tabla aplique y el
+       grado es la compuerta, no criterios cumplidos. Con `ok` la sección entraba SIEMPRE a la
+       apertura automática de `_indSecHTML`, que se reserva para criterios cumplidos y alarmas, así
+       que «se abre sola» dejaba de significar algo. Mismo defecto que `_indEM` ya cerró. */
+    _indFila('Mecanismo', 'Secundaria (funcional)', 'none', 'los umbrales y las filas de esta sección le corresponden'),
+    _indFila('Grado de insuficiencia mitral', 'Severa', 'none',
+      'severidad confirmada en el estudio. ⚠️ La graduación de esta aplicación usa los cortes de la insuficiencia PRIMARIA y no consulta el mecanismo: los de la secundaria son más bajos y se publican abajo')
+  ];
+  /* Los datos que la Figura 12 usa, mostrados JUNTO al selector y sin concluir con ellos: son la
+     ayuda para que el médico elija, no una clasificación. */
+  filas.push(_indFila('FEVI', _indNum(fevi, 0, '%'),
+    fevi != null ? 'none' : 'ask',
+    fevi == null ? 'sin medir'
+    : (fevi >= IMS_CRIT_2025.fevi_corte
+       ? '≥ ' + IMS_CRIT_2025.fevi_corte + ' % — el criterio de la auricular, si además no hay alteraciones segmentarias'
+       : '< ' + IMS_CRIT_2025.fevi_corte + ' % — el criterio de la ventricular'),
+    ['esc2025vc']));
+  filas.push(_indFila('DDVI — diámetro telediastólico del VI', _indNum(ddvi, 0, 'mm'),
+    (ddvi != null && ddviCorte != null) ? 'none' : 'ask',
+    ddvi == null ? 'sin medir'
+    : ddviCorte == null
+      ? 'el corte depende del sexo —' + IMS_CRIT_2025.ddvi_f + ' mm en mujeres y ' + IMS_CRIT_2025.ddvi_m + ' mm en varones— y el sexo no está consignado, así que no se clasifica'
+      : (_lt(ddvi, ddviCorte)
+         ? 'menor que ' + ddviCorte + ' mm — cavidad no dilatada, que es el criterio de la auricular'
+         : 'alcanza ' + ddviCorte + ' mm — cavidad dilatada, que acompaña a la ventricular'),
+    ['esc2025vc']));
+  filas.push(_indFila('Aurícula izquierda',
+    (lavi != null ? _indNum(lavi, 1, 'ml/m²') : '—') + (aiDiam != null ? ' · ' + _indNum(aiDiam, 0, 'mm') : ''),
+    (lavi != null || aiDiam != null) ? 'none' : 'ask',
+    lavi != null && lavi > IMS_CRIT_2025.lavi
+      ? 'volumen indexado mayor que ' + IMS_CRIT_2025.lavi + ' ml/m² — aurícula agrandada, uno de los criterios de la auricular'
+      : (lavi != null || aiDiam != null) ? 'la auricular pide volumen indexado mayor que ' + IMS_CRIT_2025.lavi + ' ml/m²'
+      : 'requiere volumen de AI con peso y talla, o diámetro AP',
+    ['esc2025vc']));
+
+  const _tipo = _indClinGet('ims.tipo');
+  const _sx = _indClinGet('ims.sintomas'), _tmo = _indClinGet('ims.tmo');
+  const _cabg = _indClinGet('ims.cabg'), _crit = _indClinGet('ims.teercrit'), _cx = _indClinGet('ims.cxcandidato');
+  const clinica = [
+    /* ⚠️ EL TIPO LO ELIGE EL MÉDICO. Los criterios de la Figura 12 se unen con «Y» e incluyen
+       datos clínicos que esta aplicación no recoge, así que deducirlo sería inventar una
+       clasificación con los pocos números que hay. */
+    _indFilaCtrl('Tipo de insuficiencia secundaria', 'ims.tipo',
+      [{v:'auricular',t:'Auricular'},{v:'ventricular',t:'Ventricular'}],
+      _tipo ? 'ok' : 'ask',
+      'AURICULAR: FEVI ≥ 50 % sin alteraciones segmentarias, cavidad no dilatada y sin tracción de velos, anillo dilatado (AP mayor que 35 mm) y aurícula agrandada. VENTRICULAR: FEVI menor de 50 %, con o sin alteraciones segmentarias, y movimiento restrictivo con tracción de velos. Lo elige el médico: los criterios se unen con «y» e incluyen datos clínicos que esta aplicación no recoge',
+      ['esc2025vc']),
+    _indFilaCtrl('Síntomas', 'ims.sintomas', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      _sx === 'si' ? 'ok' : (_sx === 'no' ? 'none' : 'ask'),
+      'todas las filas de indicación son del paciente sintomático (clase NYHA II a IV)',
+      ['esc2025vc']),
+    _indFilaCtrl('Tratamiento médico optimizado', 'ims.tmo', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      _tmo === 'si' ? 'ok' : (_tmo === 'no' ? 'none' : 'ask'),
+      'la severidad se evalúa DESPUÉS de optimizarlo y en estado euvolémico y normotenso, e incluye la resincronización si estaba indicada',
+      ['esc2025vc'])
+  ];
+  if (_tipo === 'ventricular') {
+    clinica.push(_indFilaCtrl('Cirugía de revascularización coronaria programada', 'ims.cabg', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      _cabg ? 'ok' : 'ask',
+      'la fila quirúrgica es la del paciente que YA va a revascularización; tener enfermedad coronaria no alcanza',
+      ['esc2025vc']));
+    clinica.push(_indFilaCtrl('Criterios específicos para TEER', 'ims.teercrit', [{v:'si',t:'Los cumple'},{v:'no',t:'No los cumple'}],
+      _crit ? 'ok' : 'ask',
+      'anatomía apta, NYHA ≥ II, FEVI 20-50 %, DTSVI ≤ 70 mm, PAPs ≤ 70 mmHg, al menos una hospitalización por insuficiencia cardíaca en el año o péptidos elevados, sin disfunción severa del VD, sin insuficiencia cardíaca avanzada, sin coronariopatía que requiera revascularización, sin valvulopatía aórtica o tricuspídea severa y sin miocardiopatía hipertrófica, restrictiva ni infiltrativa',
+      ['esc2025vc','ahaVc2020']));
+  }
+  if (_tipo === 'auricular') {
+    clinica.push(_indFilaCtrl('Candidato a cirugía', 'ims.cxcandidato', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
+      _cx ? 'ok' : 'ask',
+      'separa la fila quirúrgica de la de TEER',
+      ['esc2025vc']));
+  }
+
+  return { filas: filas, clinica: clinica,
+    recom: _indIMSRecom({ tipo:_tipo, fevi:fevi }),
+    /* ⚠️ LA LÍNEA DE CRITERIO SIGUE AL TIPO. Era estática y publicaba la fila VENTRICULAR —Clase I ·
+       Nivel A— también en el paciente auricular, en negrita y al pie: dos clases en la misma
+       tarjeta, y la más fuerte era la que no le tocaba. */
+    guia: { ref:'esc2025vc',
+      txt: _tipo === 'auricular'
+        ? 'Cirugía de la válvula mitral Clase IIa · Nivel B en la insuficiencia mitral secundaria AURICULAR severa del paciente sintomático bajo tratamiento médico óptimo.'
+        : _tipo === 'ventricular'
+          ? 'TEER Clase I · Nivel A en la insuficiencia mitral secundaria VENTRICULAR severa persistente con FEVI menor de 50 %, sintomática pese a tratamiento médico optimizado y resincronización, que cumple los criterios específicos.'
+          : 'Dos tablas distintas según el tipo: la AURICULAR indica cirugía Clase IIa · Nivel B y la VENTRICULAR sin coronariopatía indica TEER Clase I · Nivel A.' },
+    notas: [
+      { txt:'En la secundaria pueden aplicar umbrales MÁS BAJOS que en la primaria: un AEOR ≥ 30 mm² y/o un volumen regurgitante ≥ 45 ml se identificaron como de impacto significativo en el pronóstico. La guía los presenta así, no como definición de severa.',
+        refs:['esc2025vc'] },
+      { txt:'La ASE 2017 ya lo señalaba: en la secundaria un AEOR ≥ 0,30 cm² puede corresponder a insuficiencia severa, por el orificio regurgitante elíptico y el bajo flujo.',
+        refs:['aseVr2017'] },
+      'La graduación de esta aplicación vota con los cortes de la insuficiencia PRIMARIA y no consulta el mecanismo en ninguna rama. Los umbrales de arriba se publican como criterio de la guía y no cambian el grado que la app calcula.',
+      { txt:'La severidad se evalúa DESPUÉS de optimizar el tratamiento médico y en estado euvolémico y normotenso.',
+        refs:['esc2025vc'] },
+      { txt:'Cerca del 40 % de la secundaria ventricular mejora su grado tras 1 a 3 meses de tratamiento médico optimizado.',
+        refs:['esc2025vc'] },
+      { txt:'La resincronización se considera parte del manejo de la insuficiencia cardíaca ANTES de intervenir la válvula, con los criterios de la guía de insuficiencia cardíaca: FEVI ≤ 35 % y QRS ancho.',
+        refs:['esc2025vc'] },
+      { txt:'Las dos guías coinciden en los números de elegibilidad para TEER: FEVI 20-50 %, diámetro telesistólico ≤ 70 mm y PAPs ≤ 70 mmHg.',
+        refs:['esc2025vc','ahaVc2020'] },
+      { txt:'Y discrepan en la auricular: la ESC/EACTS 2025 considera la cirugía en el paciente sintomático (Clase IIa · Nivel B); la ACC/AHA 2020 la considera sólo con síntomas severos —NYHA III o IV— y con clase más baja (2b · B-NR).',
+        refs:['esc2025vc','ahaVc2020'] },
+      'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
+    ] };
+}
+
 /* ══ ESTENOSIS MITRAL — LA RECOMENDACIÓN DE LA GUÍA, SELECCIONADA ═════════════════════════════
    Cuarta sección contestable, mismo mecanismo que las dos aórticas, más el DOBLE MECANISMO de
    `_indOrigen` para los dos campos que viven en la pestaña ETE (score y trombo de orejuela).
@@ -43744,6 +43974,7 @@ function _indCIV(){
 const IND_SECS = [
   { tit:'Estenosis aórtica',                     fn:_indEA },
   { tit:'Insuficiencia mitral primaria',         fn:_indIM },
+  { tit:'Insuficiencia mitral secundaria',       fn:_indIMS },
   { tit:'Estenosis mitral',                      fn:_indEM },
   { tit:'Insuficiencia aórtica',                 fn:_indIA },
   { tit:'Válvula tricúspide',                    fn:_indVT },
@@ -85600,8 +85831,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260930-0231';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790746312860;                 /* eco-build-ms */
+const ECO_BUILD    = '20260930-0326';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790749578259;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -85687,7 +85918,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260930-0231</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260930-0326</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

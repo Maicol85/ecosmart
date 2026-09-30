@@ -38989,6 +38989,183 @@ caso('TC-324', 'Evidencia: tres valvulopatias a la vez, cada seccion con su nume
    inoperable»— vivia en DOS lugares de la seccion de IM: la nota de `notas` y la nota de la
    recomendacion. Se corrigio el primero y la medicion en Chrome encontro el segundo diciendo lo
    mismo cuatro lineas abajo. Un caso que mire solo uno deja al panel contradiciendose. */
+/* IM SECUNDARIA: los DOS tipos, con otra valvula cargada a la vez. Lo que mide por los dos lados:
+   · la seccion NO aparece con mecanismo primario —sus umbrales y sus filas no gobiernan alla—,
+   · el TIPO no se deduce: sin contestarlo la recomendacion PIDE el dato en vez de elegir tabla,
+   · y cada tipo rutea a SU fila, que son distintas de verdad —auricular IIa B, ventricular con
+     coronariopatia I B—, asi que confundirlas cambia la conducta. */
+caso('TC-329', 'Evidencia IM secundaria: auricular y ventricular, cada una a su tabla, con otra valvula cargada', `
+  return (async () => {
+    const R = {}, ex = [];
+    const pl = x => String(x == null ? '' : x).toLowerCase().normalize('NFD')
+      .split('').filter(function(ch){ const c = ch.charCodeAt(0); return c < 768 || c > 879; }).join('');
+    const cuerpo = () => document.getElementById('indic-cuerpo');
+    const secDe = frag => Array.prototype.slice.call(cuerpo().querySelectorAll(':scope > details'))
+      .filter(function(d){ return pl(d.querySelector('summary').textContent).indexOf(pl(frag)) > -1; })[0] || null;
+    const BASE = { peso:'80', talla:'180', edad:'70', sexo:'M',
+      im_sev_final:'4', im_vc:'8', ai_vol:'80', ai_diam:'56', it_grado:'2' };
+
+    const montar = async function(extra, tipo, contestar){
+      __t.limpiar();
+      const campos = Object.assign({}, BASE, extra);
+      Object.keys(campos).forEach(function(k){
+        const e = document.getElementById(k); if (!e) { R.faltan = (R.faltan||[]).concat([k]); return; }
+        try { __t.set(k, campos[k]); } catch (e2) {}
+      });
+      indicAbrir();
+      await new Promise(r => setTimeout(r, 520));
+      if (tipo) {
+        const b = cuerpo().querySelector('[data-ind-clin="ims.tipo"][data-ind-val="' + tipo + '"]');
+        if (b) b.click();
+      }
+      if (contestar) {
+        for (let i = 0; i < 60; i++) {
+          const pend = Array.prototype.slice.call(cuerpo().querySelectorAll('[data-ind-clin][data-ind-val]'))
+            .filter(function(b){ return _indClinGet(b.getAttribute('data-ind-clin')) == null; });
+          if (!pend.length) break;
+          pend[0].click();
+        }
+      }
+      return secDe('mitral secundaria');
+    };
+    const txtDe = d => d ? pl(d.textContent) : '';
+    const bibDe = d => d && d.querySelector('[data-ind-biblio]')
+      ? Array.prototype.slice.call(d.querySelectorAll('[data-ind-refitem]')).map(function(e){ return e.getAttribute('data-ind-refitem'); }) : [];
+
+    /* 1 · Con mecanismo PRIMARIO la seccion no existe. */
+    R.enPrimaria = !!(await montar({ teer_tipo_im:'primaria', fevi:'55', ddfvi:'58', dsfvi:'42' }, null, true));
+    R.primariaSigue = !!secDe('mitral primaria');
+
+    /* 2 · Secundaria SIN contestar el tipo: pide el dato, no elige tabla. */
+    const dSin = await montar({ teer_tipo_im:'secundaria', fevi:'35', ddfvi:'66' }, null, false);
+    /* ⚠️ «NO PUBLICA NINGUNA CLASE» SE MIDE EN EL BLOQUE DE RECOMENDACION, no en el texto de la
+       seccion: la linea del CRITERIO nombra «Clase I · Nivel A» siempre, asi que buscarla en todo
+       el textContent daba verde por una frase que no es una indicacion. Lo que distingue «pide el
+       dato» de «eligio tabla» es el TITULO del bloque. */
+    R.sinTipo = { hay: !!dSin, pide: txtDe(dSin).indexOf('sin el tipo no se puede elegir') > -1,
+      titFalta: txtDe(dSin).indexOf('falta un dato para aplicar la guia') > -1,
+      concluyo: txtDe(dSin).indexOf('recomendacion de la guia') > -1 };
+
+    /* 3 · VENTRICULAR con coronariopatia, y con una estenosis aortica severa cargada a la vez. */
+    const dV = await montar({ teer_tipo_im:'secundaria', fevi:'35', ddfvi:'66', dsfvi:'52',
+      ea_grado:'severa', vmax_ao:'4.5', gmedio_ao:'48', ava_cont:'0.80' }, 'ventricular', true);
+    R.ven = { hay: !!dV, tipo: _indClinGet('ims.tipo'),
+      cabg: txtDe(dV).indexOf('revascularizacion coronaria') > -1,
+      clase: txtDe(dV).indexOf('clase i · nivel b') > -1,
+      bib: bibDe(dV), corchetes: dV ? (dV.innerHTML.split('data-ind-ref="').length - 1) : -1 };
+    R.otraValvula = !!secDe('estenosis aortica');
+
+    /* 4 · AURICULAR: otra tabla, otra clase. */
+    const dA = await montar({ teer_tipo_im:'secundaria', fevi:'60', ddfvi:'50', dsfvi:'30' }, 'auricular', true);
+    R.aur = { hay: !!dA, tipo: _indClinGet('ims.tipo'),
+      orejuela: txtDe(dA).indexOf('orejuela') > -1,
+      clase: txtDe(dA).indexOf('clase iia · nivel b') > -1,
+      noVentricular: txtDe(dA).indexOf('revascularizacion coronaria') === -1,
+      bib: bibDe(dA) };
+    R.sinNumerar = cuerpo().innerHTML.split('cita sin numerar').length - 1;
+    R.noRegistrada = cuerpo().innerHTML.split('referencia no registrada').length - 1;
+
+    ex.push(['DENOMINADOR: la seccion NO aparece con mecanismo primario, y la primaria sigue ahi',
+      R.enPrimaria === false && R.primariaSigue === true,
+      'secundariaEnPrimaria=' + R.enPrimaria + ' primariaSigue=' + R.primariaSigue +
+      ' faltan=' + JSON.stringify(R.faltan || [])]);
+
+    ex.push(['el TIPO no se deduce: sin contestarlo pide el dato y NO publica ninguna clase',
+      R.sinTipo.hay === true && R.sinTipo.pide === true && R.sinTipo.titFalta === true &&
+      R.sinTipo.concluyo === false,
+      JSON.stringify(R.sinTipo)]);
+
+    ex.push(['VENTRICULAR con coronariopatia rutea a la cirugia junto a la revascularizacion, Clase I · Nivel B',
+      R.ven.hay === true && R.ven.tipo === 'ventricular' && R.ven.cabg === true && R.ven.clase === true &&
+      R.ven.corchetes >= 10,
+      JSON.stringify({ tipo:R.ven.tipo, cabg:R.ven.cabg, clase:R.ven.clase, corchetes:R.ven.corchetes })]);
+
+    ex.push(['y convive con otra valvula cargada: la estenosis aortica sigue pintando su seccion',
+      R.otraValvula === true, 'estenosisAortica=' + R.otraValvula]);
+
+    ex.push(['AURICULAR rutea a OTRA tabla: cirugia con cierre de orejuela, Clase IIa · Nivel B, y sin la fila ventricular',
+      R.aur.hay === true && R.aur.tipo === 'auricular' && R.aur.orejuela === true &&
+      R.aur.clase === true && R.aur.noVentricular === true,
+      JSON.stringify({ tipo:R.aur.tipo, orejuela:R.aur.orejuela, clase:R.aur.clase, noVen:R.aur.noVentricular })]);
+
+    ex.push(['su bibliografia cita TRES documentos y no queda ninguna afirmacion sin numerar',
+      R.ven.bib.length === 3 && R.aur.bib.length === 3 &&
+      R.ven.bib.indexOf('esc2025vc') > -1 && R.ven.bib.indexOf('ahaVc2020') > -1 &&
+      R.ven.bib.indexOf('aseVr2017') > -1 &&
+      R.sinNumerar === 0 && R.noRegistrada === 0,
+      'ven=' + JSON.stringify(R.ven.bib) + ' aur=' + JSON.stringify(R.aur.bib) +
+      ' sinNumerar=' + R.sinNumerar + ' noRegistrada=' + R.noRegistrada]);
+
+    /* ── LAS CINCO QUE LA PRIMERA TANDA DE MUTACION DEJO PASAR ──
+       El bucle de auto-clic contesta la PRIMERA opcion de cada control, asi que la rama ventricular
+       SIN coronariopatia —la de Clase I · Nivel A, que es la mas fuerte de la tabla— no se ejercia,
+       ni la de tratamiento medico sin contestar. Y las citas de las notas no se miraban una por una:
+       alcanzaba con que la clave siguiera en la bibliografia por otra nota. */
+    const hojas = function(sec){
+      return sec ? Array.prototype.slice.call(sec.querySelectorAll('details div div'))
+        .filter(function(d){ return d.querySelectorAll('div').length === 0 && !d.closest('[data-ind-biblio]'); }) : [];
+    };
+    const notaCon = function(sec, frag, clave){
+      const ns = hojas(sec).filter(function(d){ return pl(d.textContent).indexOf(pl(frag)) > -1; });
+      return { n: ns.length,
+        conCita: ns.filter(function(d){ return d.querySelectorAll('[data-ind-ref="' + clave + '"]').length > 0; }).length };
+    };
+    /* La fila del selector: se busca por su rotulo y se mira el corchete de su celda de nota. */
+    const filaRef = function(sec, rot, clave){
+      if (!sec) return null;
+      const tr = Array.prototype.slice.call(sec.querySelectorAll('tr')).filter(function(t){
+        const td = t.querySelectorAll('td');
+        return td.length >= 3 && pl(td[0].textContent).indexOf(pl(rot)) > -1; })[0];
+      if (!tr) return null;
+      return tr.querySelectorAll('td')[2].querySelectorAll('[data-ind-ref="' + clave + '"]').length;
+    };
+
+    /* 5 · VENTRICULAR sin coronariopatia y cumpliendo los criterios: Clase I · Nivel A. */
+    const dV2 = await montar({ teer_tipo_im:'secundaria', fevi:'35', ddfvi:'66', dsfvi:'52' }, 'ventricular', false);
+    const responder = function(k, v){
+      const b = cuerpo().querySelector('[data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
+      if (b) b.click();
+    };
+    responder('ims.sintomas', 'si'); responder('ims.tmo', 'si');
+    responder('ims.cabg', 'no');     responder('ims.teercrit', 'si');
+    const dV3 = secDe('mitral secundaria');
+    R.teerIA = { txt: txtDe(dV3).indexOf('teer recomendado') > -1,
+                 clase: txtDe(dV3).indexOf('clase i · nivel a') > -1 &&
+                        txtDe(dV3).indexOf('recomendacion de la guia') > -1,
+                 cabg: _indClinGet('ims.cabg'), crit: _indClinGet('ims.teercrit') };
+    R.umbral = notaCon(dV3, '30 mm', 'esc2025vc');
+    R.aha    = notaCon(dV3, 'acc/aha', 'ahaVc2020');
+    R.selRef = filaRef(dV3, 'tipo de insuficiencia secundaria', 'esc2025vc');
+
+    /* 6 · El tratamiento medico optimizado es compuerta: sin contestarlo la tabla NO concluye. */
+    const dT = await montar({ teer_tipo_im:'secundaria', fevi:'35', ddfvi:'66' }, 'ventricular', false);
+    responder('ims.sintomas', 'si');
+    const dT2 = secDe('mitral secundaria');
+    R.tmoGate = { pide: txtDe(dT2).indexOf('optimizar el tratamiento medico') > -1,
+                  concluyo: txtDe(dT2).indexOf('recomendacion de la guia') > -1,
+                  tmo: _indClinGet('ims.tmo') };
+
+    ex.push(['VENTRICULAR sin coronariopatia y con los criterios cumplidos: TEER Clase I · Nivel A',
+      R.teerIA.cabg === 'no' && R.teerIA.crit === 'si' && R.teerIA.txt === true && R.teerIA.clase === true,
+      JSON.stringify(R.teerIA)]);
+
+    ex.push(['el tratamiento medico optimizado es COMPUERTA: sin contestarlo no se publica ninguna recomendacion',
+      R.tmoGate.tmo == null && R.tmoGate.pide === true && R.tmoGate.concluyo === false,
+      JSON.stringify(R.tmoGate)]);
+
+    ex.push(['la nota de los umbrales de la secundaria lleva SU cita, y la del selector del tipo tambien',
+      R.umbral.n === 1 && R.umbral.conCita === 1 && R.selRef === 1,
+      'umbral=' + JSON.stringify(R.umbral) + ' selectorRefs=' + R.selRef]);
+
+    ex.push(['cada nota que nombra a la ACC/AHA lleva SU corchete, no el de la lista',
+      R.aha.n >= 1 && R.aha.conCita === R.aha.n,
+      JSON.stringify(R.aha)]);
+
+    return { resumen: JSON.stringify({ ven:R.ven.bib, aur:R.aur.bib, sinTipo:R.sinTipo,
+      teerIA:R.teerIA, tmoGate:R.tmoGate }), extra: ex };
+  })();
+`);
+
 caso('TC-328', 'Evidencia: los cuatro textos corregidos contra el original ingles, cada uno con su cita', `
   return (async () => {
     const R = {}, ex = [];
@@ -39678,6 +39855,9 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
     const SEED = [
       ['Estenosis aortica',                   { vmax_ao:'4.5' },                                    'esc2025vc'],
       ['Insuficiencia mitral primaria',       { im_sev_final:'4' },                                 'esc2025vc'],
+      /* La secundaria pide TAMBIEN el mecanismo: sin teer_tipo_im en «secundaria» la seccion no
+         abre, que es su compuerta y esta cubierta aparte por TC-329. */
+      ['Insuficiencia mitral secundaria',     { im_sev_final:'4', teer_tipo_im:'secundaria' },      'esc2025vc'],
       ['Estenosis mitral',                    { avm_plan:'1.2' },                                   'esc2025vc'],
       ['Insuficiencia aortica',               { ia_sev_final:'4' },                                 'esc2025vc'],
       ['Valvula tricuspide',                  { it_grado:'4' },                                     'esc2025vc'],
