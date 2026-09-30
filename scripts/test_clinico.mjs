@@ -37267,7 +37267,7 @@ caso('TC-310', 'Mitral protesica: Carpentier, el mecanismo y el score de Wilkins
    hallazgo: `pdfDeInformeGuardado` y `editarInforme` buscan por `inf.id`, NO por `estudioId`; y
    `editarInforme` abre un MODAL y no carga nada hasta apretar «Cargar datos». Sin las dos cosas el
    formulario queda vacio y «la fila no sale» por un motivo que no es el que se mide. */
-caso('TC-311', 'IM nativa: las TRES rutas de restauracion del PDF imprimen la MISMA fila EROA/Vol-R —el resultado de PISA viaja congelado en el estudio, sin recalcular—, un estudio viejo sale identico a antes, no hay fuga entre pacientes, y el cociente VTI se retira con IAo moderada', `
+caso('TC-311', 'IM nativa: las TRES rutas de restauracion del PDF imprimen la MISMA fila EROA/Vol-R —el resultado de PISA viaja congelado en el estudio, sin recalcular—, un estudio viejo sale identico a antes, no hay fuga entre pacientes, y el cociente VTI nativo se retira SOLO con IAo severa —con moderada declara la divergencia en la fila— mientras la protesis conserva su regimen', `
   return (async () => {
     for (let i = 0; i < 40 && !(window.jspdf && window.jspdf.jsPDF); i++) await new Promise(r => setTimeout(r, 200));
     if (!(window.jspdf && window.jspdf.jsPDF))
@@ -37292,7 +37292,9 @@ caso('TC-311', 'IM nativa: las TRES rutas de restauracion del PDF imprimen la MI
       let m, txt = []; while ((m = re.exec(bin))) txt.push(m[1]);
       const fila = lbl => { const i = txt.findIndex(x => x.trim() === lbl);
         return i < 0 ? '(sin fila ' + lbl + ')' : txt.slice(i + 1, i + 3).join(' ').trim(); };
-      return { eroa: fila('EROA'), volr: fila('Vol.R'), n: txt.length };
+      /* «todo» es para barrer CADENAS en el papel —la salvedad del cociente no puede llegar ahi—.
+         Va aparte de eroa/volr, que son filas posicionales, y no cambia ninguna comparacion. */
+      return { eroa: fila('EROA'), volr: fila('Vol.R'), n: txt.length, todo: txt.join(' | ') };
     };
     const esperarPdfLibre = async () => {
       for (let k = 0; k < 120 && window._pdfGuardadoEnCurso; k++) await new Promise(r => setTimeout(r, 100));
@@ -37487,7 +37489,14 @@ caso('TC-311', 'IM nativa: las TRES rutas de restauracion del PDF imprimen la MI
       try { if (A && A.eid) await __t.borrar(A.eid); } catch (e) {}
     }
 
-    // ── COCIENTE VTI: se retira con IAo moderada o mayor ──
+    /* ── COCIENTE VTI EN NATIVA: se retira SOLO con IAo severa, y con moderada lleva la salvedad ──
+       ⚠️ ESTA TANDA DE CONDICIONES SE REAPUNTO EL 2026-09-30 Y LA VERSION ANTERIOR NO ESTABA
+       EQUIVOCADA: fijaba la regla del 2026-09-28, que retiraba el cociente desde la IAo moderada y
+       exigia la fila en «—» «sin texto nuevo» con esas palabras. Maicol REEMPLAZO esa decision.
+       Hoy la nativa calcula con los grados 2 y 3 —el mismo tramo que ya vota en el THP— y declara la
+       divergencia en la propia fila; se retira con el 4 y con un grado ilegible.
+       La PROTESIS conserva el regimen viejo (se retira desde la moderada) y eso NO se toca: el gate
+       tiene dos umbrales, y una sola constante habria movido el ≥2,5 de rebote. */
     sembrar('TC311C', true);
     __t.set('vtim','21'); __t.set('im_itv_tsvi','15');
     try { calcIM_ESC(); } catch (e) {}
@@ -37495,6 +37504,14 @@ caso('TC-311', 'IM nativa: las TRES rutas de restauracion del PDF imprimen la MI
     __t.set('ia_grado','2');
     try { calcIM_ESC(); } catch (e) {}
     const ratioIAmod = tx('im-vti-ratio');
+    /* El grado 3 es «moderada-severa» y la guia tambien lo excluye: si la salvedad solo saliera con
+       el 2, el 3 publicaria el numero SIN declarar nada, que es el peor de los dos mundos. */
+    __t.set('ia_grado','3');
+    try { calcIM_ESC(); } catch (e) {}
+    const ratioIAmodSev = tx('im-vti-ratio');
+    __t.set('ia_grado','4');
+    try { calcIM_ESC(); } catch (e) {}
+    const ratioIAsev = tx('im-vti-ratio');
     __t.set('ia_grado','1');
     try { calcIM_ESC(); } catch (e) {}
     const ratioIAleve = tx('im-vti-ratio');
@@ -37502,21 +37519,42 @@ caso('TC-311', 'IM nativa: las TRES rutas de restauracion del PDF imprimen la MI
     { const e = g('ia_grado'); if (e) e.value = 'zzz-desconocido'; }
     try { calcIM_ESC(); } catch (e) {}
     const ratioIArara = tx('im-vti-ratio');
-    /* ⚠️ EL ORDEN DE LOS DOS GATES IMPORTA. Con IAo moderada Y el VTI de entrada fuera de banda,
-       la fila tiene que decir «—» (no aplica) y NO «fuera de rango — verificar»: si el cociente no
-       aplica, no hay nada que verificar, y mandar al medico a revisar un VTI para una fila que no
-       se va a calcular es ruido. Sin esta condicion, invertir los dos gates sobrevive en verde. */
+    /* ⚠️ EL ORDEN DE LOS DOS GATES SIGUE IMPORTANDO, PERO EL ESCENARIO QUE LO MIDE CAMBIO. Con IAo
+       moderada el gate ya NO dispara, asi que ahi manda la banda y la fila debe decir «fuera de
+       rango»: si dijera «—» seria el gate viejo, sobreviviendo. El orden se mide con la SEVERA, que
+       es la que hoy retira: con IAo severa Y el VTI fuera de banda tiene que decir «—» (no aplica) y
+       NO «fuera de rango — verificar», porque si el cociente no aplica no hay nada que verificar y
+       mandar a revisar un VTI para una fila que no se calcula es ruido. */
     __t.set('ia_grado','2'); __t.set('vtim','999');
     try { calcIM_ESC(); } catch (e) {}
     const ratioIAmodYFuera = tx('im-vti-ratio');
+    __t.set('ia_grado','4');
+    try { calcIM_ESC(); } catch (e) {}
+    const ratioIAsevYFuera = tx('im-vti-ratio');
+    /* ⚠️ LA PROTESIS NO SE MOVIO — y sin esto, subir IM_RATIO_IA_MAX_PROT sobrevive en verde.
+       Con morfologia protesica e IAo moderada la fila tiene que seguir en «—», y la salvedad (que
+       cita a Pandian, fuente del 1,4 NATIVO) no puede aparecer nunca sobre una protesis. */
     __t.set('vtim','21');
+    const _morfPrev = vl('vm_morf');
+    __t.set('vm_morf','Prótesis mecánica'); __t.set('ia_grado','2');
+    try { calcIM_ESC(); } catch (e) {}
+    const ratioProtIAmod = tx('im-vti-ratio');
+    __t.set('vm_morf', _morfPrev === '(no existe)' ? '' : _morfPrev);
     __t.set('ia_grado','0');
     try { calcIM_ESC(); } catch (e) {}
-    /* El cociente NO llega al papel: es de pantalla. Se mide, no se asume. */
+    /* El cociente NO llega al papel: es de pantalla. Se mide, no se asume. Y la salvedad nueva
+       TAMPOCO: el informe y el PDF firmados no llevan notas metodologicas. Se mide con IAo moderada
+       puesta, que es el unico escenario donde esa cadena existe. */
+    __t.set('ia_grado','2');
+    try { calcIM_ESC(); } catch (e) {}
     const rC = __t.informe();
     const pdfC = await filasPdf(() => generarPDFReal());
-    const cocienteEnPapel = ['VTI mitral / VTI TSVI','Ratio VTI','apoya IM severa']
-      .filter(k => String(rC.inf).indexOf(k) > -1 || String(rC.suma).indexOf(k) > -1);
+    const cocienteEnPapel = ['VTI mitral / VTI TSVI','Ratio VTI','apoya IM severa',
+                             'criterio EcoSmart: se usa igual','ASE 2023 lo excluye']
+      .filter(k => String(rC.inf).indexOf(k) > -1 || String(rC.suma).indexOf(k) > -1 ||
+                   String(pdfC && pdfC.todo || '').indexOf(k) > -1);
+    __t.set('ia_grado','0');
+    try { calcIM_ESC(); } catch (e) {}
 
     const asserts = _labXlsAssertListas().concat(_labXlsAssertVocab());
     __t.limpiar();
@@ -37592,16 +37630,33 @@ caso('TC-311', 'IM nativa: las TRES rutas de restauracion del PDF imprimen la MI
         R.ocultoRestaurado, String(R.ocultoRestaurado)],
       ['DENOMINADOR de la fuga: la reimpresion de A OCURRIO de verdad (si sale por el guard de reentrada, «el oculto no cambio» se cumple solo)',
         !!R.reimpDeA && R.reimpDeA.eroa.indexOf('PISA: 50.3') > -1, R.reimpDeA ? R.reimpDeA.eroa : '(no corrio)'],
-      ['DENOMINADOR del cociente: sin IAo la fila se calcula como hasta hoy',
-        ratioSinIA !== '—' && ratioSinIA !== '(no existe)', ratioSinIA],
-      ['⚠️ con IAo MODERADA el cociente no aplica y la fila queda en «—», sin texto nuevo',
-        ratioIAmod === '—', ratioIAmod],
-      ['con IAo LEVE sigue saliendo: el corte es moderada, no cualquier IAo', ratioIAleve === ratioSinIA,
-        ratioIAleve],
+      ['DENOMINADOR del cociente: sin IAo la fila se calcula, con su valor y SIN texto extra',
+        ratioSinIA !== '—' && ratioSinIA !== '(no existe)' &&
+        ratioSinIA.indexOf('criterio EcoSmart') < 0, ratioSinIA],
+      ['con IAo LEVE sale IDENTICA a sin IAo: sin salvedad, porque la guia no la excluye',
+        ratioIAleve === ratioSinIA, ratioIAleve],
+      /* ⚠️ LA CONDICION QUE REEMPLAZA A LA DE «sin texto nuevo». Se exige que la fila traiga el
+         VALOR —no «—»— Y las DOS mitades de la salvedad: la guia y la decision propia. Con una sola
+         mitad el numero se lee como si Pandian lo respaldara con IAo moderada, que es lo contrario
+         de lo que dice. Sin la mitad «criterio EcoSmart», la divergencia queda sin dueño. */
+      ['⚠️ con IAo MODERADA la nativa SI calcula, y la fila declara la divergencia: guia + criterio EcoSmart',
+        ratioIAmod !== '—' && ratioIAmod.indexOf('1.40') > -1 &&
+        ratioIAmod.indexOf('ASE 2023 lo excluye con IAo moderada o severa') > -1 &&
+        ratioIAmod.indexOf('criterio EcoSmart: se usa igual') > -1, ratioIAmod],
+      ['⚠️ y con MODERADA-SEVERA (grado 3) tambien: la guia la excluye igual, asi que lleva la misma salvedad',
+        ratioIAmodSev === ratioIAmod, ratioIAmodSev],
+      ['⚠️ con IAo SEVERA se retira: la fila queda en «—» y sin salvedad (no hay numero que salvar)',
+        ratioIAsev === '—', ratioIAsev],
       ['⚠️ y FALLA CERRADO: un ia_grado ilegible tambien retira el cociente', ratioIArara === '—', ratioIArara],
-      ['⚠️ el gate de IAo va ANTES que la banda de plausibilidad: con IAo moderada y el VTI fuera de banda dice «—», no «fuera de rango»',
-        ratioIAmodYFuera === '—', ratioIAmodYFuera],
-      ['el cociente no llega al informe ni al EN SUMA ni al PDF: es de pantalla',
+      ['⚠️ con IAo moderada el gate ya NO dispara, asi que manda la banda: VTI fuera de rango dice «fuera de rango», no «—»',
+        ratioIAmodYFuera.indexOf('fuera de rango') > -1, ratioIAmodYFuera],
+      ['⚠️ el gate de IAo va ANTES que la banda: con IAo SEVERA y el VTI fuera de banda dice «—», no «fuera de rango»',
+        ratioIAsevYFuera === '—', ratioIAsevYFuera],
+      /* ⚠️ SIN ESTA CONDICION, MOVER EL UMBRAL PROTESICO SOBREVIVE EN VERDE. La protesis comparte la
+         funcion y el gate, y una sola constante habria cambiado el ≥2,5 de rebote. */
+      ['⚠️ la PROTESIS no se movio: con morfologia protesica e IAo moderada la fila sigue en «—», y nunca lleva la salvedad que cita a Pandian',
+        ratioProtIAmod === '—', ratioProtIAmod],
+      ['el cociente Y SU SALVEDAD no llegan al informe ni al EN SUMA ni al PDF: son de pantalla',
         cocienteEnPapel.length === 0 && pdfC.n > 50, cocienteEnPapel.join('/') || 'limpio (' + pdfC.n + ' fragmentos)'],
 
       ['_labXlsAssertListas() y _labXlsAssertVocab() en []', asserts.length === 0, asserts.join(' | ') || '[]']
@@ -40025,7 +40080,19 @@ caso('TC-326', 'Evidencia IM: la bibliografia cita CUATRO documentos verificados
                mismaNota: cond.length === 1 && fc.length === 1 && cond[0] === fc[0],
                refsCond: cond.length ? refsDe(cond[0]) : [],
                refsFc: fc.length ? refsDe(fc[0]) : [],
-               semi: cond.length ? pl(cond[0].textContent).indexOf('semicuantitativos') > -1 : null };
+               semi: cond.length ? pl(cond[0].textContent).indexOf('semicuantitativos') > -1 : null,
+               /* ⚠️ LA NOTA DE LA APP TIENE QUE DESCRIBIR LA REGLA VIGENTE, Y EL 2026-09-30 LA REGLA
+                  CAMBIO. Hasta ese dia la nota decia «con IAo moderada o mayor esta aplicacion no
+                  calcula el cociente», que hoy es FALSO: la nativa calcula con los grados 2 y 3.
+                  Se pinan las tres piezas de la regla nueva —que calcula igual con moderada, que se
+                  retira con la severa, y que es decision propia y mas permisiva que la guia— y se
+                  exige que la frase derogada NO haya quedado. Sin lo ultimo, agregar la regla nueva
+                  sin borrar la vieja deja el panel afirmando las dos cosas a la vez, y sobrevive. */
+               usaConModerada: fc.length ? pl(fc[0].textContent).indexOf('calcula el cociente igual con insuficiencia aortica moderada') > -1 : null,
+               retiraConSevera: fc.length ? pl(fc[0].textContent).indexOf('lo retira solo con la severa') > -1 : null,
+               esDecisionPropia: fc.length ? pl(fc[0].textContent).indexOf('mas permisiva que la guia') > -1 : null,
+               reglaVieja: hojas.filter(function(d){
+                 return pl(d.textContent).indexOf('no calcula el cociente') > -1; }).length };
     })();
 
     ex.push(['la nota del cociente VTI transcribe la condicion de la ASE 2023 y la cita, y la ubica entre los SEMICUANTITATIVOS',
@@ -40036,6 +40103,11 @@ caso('TC-326', 'Evidencia IM: la bibliografia cita CUATRO documentos verificados
     ex.push(['el fail-closed por grado de IAo ilegible va en OTRA nota y lleva el marcador ecosmart, porque no sale de ninguna guia',
       !!R.coc && R.coc.nFc === 1 && R.coc.mismaNota === false &&
       R.coc.refsFc.indexOf('ecosmart') > -1 && R.coc.refsFc.indexOf('asePandian2023') > -1,
+      JSON.stringify(R.coc)]);
+
+    ex.push(['⚠️ y esa nota describe la regla VIGENTE (2026-09-30): calcula igual con IAo moderada, se retira con la severa, y lo declara como decision propia mas permisiva que la guia —sin dejar la frase derogada—',
+      !!R.coc && R.coc.usaConModerada === true && R.coc.retiraConSevera === true &&
+      R.coc.esDecisionPropia === true && R.coc.reglaVieja === 0,
       JSON.stringify(R.coc)]);
 
     /* ⚠️ CADA NOTA QUE NOMBRA UNA SEGUNDA GUIA LLEVA SU CORCHETE, y sin esto no se medía: sacarle

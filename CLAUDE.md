@@ -1,5 +1,68 @@
 # EcoSmart — trampas de este archivo
 
+## El cociente VTI con IAo pasa a retirarse SÓLO con la severa, y el que no votaba sigue sin votar (2026-09-30)
+
+**Reemplaza la decisión del 2026-09-28** (la entrada «Cociente VTI mitral/aórtico: se retira con IAo
+MODERADA, y el THP con SEVERA», marcada como derogada en su primera mitad). Regla vigente, en válvula
+**NATIVA**: el cociente se calcula con IAo **moderada** (`ia_grado` 2) y **moderada-severa** (3), y se
+retira sólo con la **severa** (4) y con un grado ilegible (`null`, fail-closed). Es el **mismo
+criterio que ya regía al THP** (`EM_IA_SEVERA_MIN = 4`), donde la guía también dice «moderada o
+severa» y la app vota con 2 y 3: se usó como precedente de redacción y de citas.
+
+### Lo que la app publica ahora, y por qué no es afirmar de más
+La divergencia con la guía **se nombra en la propia fila**, no en el `title` —que en táctil no
+existe—: `2.00  (>1,4 — apoya IM severa)  (ASE 2023 lo excluye con IAo moderada o severa; criterio
+EcoSmart: se usa igual)`. Las **dos** mitades son obligatorias: con sólo la primera el número se lee
+como si Pandian lo respaldara con IAo moderada, que es lo contrario de lo que dice; con sólo la
+segunda la divergencia queda sin contra qué medirse. La salvedad **no cuelga de `_apoya`**: lo que la
+IAo pone en duda es el **valor** —su denominador—, no el veredicto, así que un 1,10 con IAo moderada
+está igual de inflado que un 1,62.
+
+**Cita verificada en texto completo**: Pandian et al., *JASE* 2023;36(1):3-28, «Key Points» de IM
+reumática, **folio 12** — *«…and mitral to aortic valve VTI ratio (>1.4 suggests severe MR and <1
+indicates mild MR⁴¹ in the absence of moderate or severe aortic valve regurgitation)»*.
+
+### ⚠️ EL PROMPT PEDÍA MEDIR UN VOTO QUE NO EXISTE, Y EL EFECTO REAL ES CERO EN EL PAPEL
+El pedido decía que con IAo moderada y cociente >1,4 «ahora suma un voto más a la severidad de IM» y
+pedía reportar la diferencia en el informe y el EN SUMA. **El cociente no vota, y nunca votó.** Tres
+hechos de código, no un comentario: el bloque del cociente tiene **cero** `scores.` y **cero**
+`params.push` —los 18 `params.push` de `calcIM_ESC` son de Jet/AI, EROA, Vol-R, FR, Onda S y Onda E—;
+el valor `ratio` es **local** y muere en el `textContent`; y el barrido de superficies que ya estaba
+declarado en el archivo (informe, EN SUMA, PDF, PPT, `LAB_XLS_MAP`, panel) da cero consumidores.
+
+Medido con A/B contra HEAD, seis escenarios (`ia_grado` 0/1/2/3/4/ilegible), hash+longitud del
+informe y del EN SUMA: **idénticos en los seis**, incluidos los dos donde la fila SÍ cambió (2 y 3), e
+`im_grado = 4` en los doce lados. Control negativo: los hashes **sí** difieren entre grados de IAo
+—420/427/431/438/429 de largo—, así que la sonda distingue escenarios y el «sin diferencias» no se
+cumple solo. Es la segunda vez en dos tandas que un parámetro de este calc-box resulta no votar (la
+otra fue la EROA por continuidad): **en este cuadro, «suma un voto» hay que medirlo, no asumirlo.**
+
+### La prótesis compartía el gate, y por eso hay DOS constantes
+El gate corre **antes** de bifurcar por morfología, así que la misma constante retiraba el 1,4 nativo
+y el **≥2,5 protésico** ([`index.html`] `const _apoya = _rProt ? (PF(ratio) >= 2.5) : (PF(ratio) >
+1.4);`). Mover una sola constante habría cambiado la prótesis **de rebote** —un ≥2,5 con IAo moderada
+pasaba a publicarse—, y eso no estaba decidido. Maicol lo dejó explícitamente afuera y pidió revisar
+el cociente protésico aparte. Resultado: `IM_RATIO_IA_MAX_NAT = 4` y `IM_RATIO_IA_MAX_PROT = 2`, un
+literal por régimen, y `_imVmProt()` se lee **una sola vez** para el umbral y para el corte —con dos
+llamadas, un `#vm_morf` que cambiara entre medio daría un gate y un corte de morfologías distintas—.
+TC-311 lo fija: sin esa condición, subir `IM_RATIO_IA_MAX_PROT` sobrevive en verde.
+
+### Las TRES superficies que afirmaban la regla vieja, y una de ellas era clínica
+Cambiar el predicado sin barrer los textos habría dejado la app **contradiciéndose sobre sí misma**:
+- el **`title` de la fila** decía «Con IAo moderada o mayor la fila no se calcula» — falso, y visible;
+- el **ⓘ de `ECO_AYUDA`** decía «Con IAo moderada o mayor la app no calcula la fila» — ídem;
+- la **nota del panel de Evidencia** decía «con IAo moderada o mayor esta aplicación no calcula el
+  cociente». Una nota del panel que describe una regla derogada es **peor que ninguna**: el médico la
+  lee como la conducta vigente. TC-326 ahora pina las tres piezas de la regla nueva **y** que la
+  frase derogada no haya quedado — sin lo último, agregar la nueva sin borrar la vieja sobrevive.
+
+### ⚠️ Y EL OFFSET DE FOLIOS DE PANDIAN QUE ESTE ARCHIVO PUBLICABA ERA FALSO
+La entrada de la etapa 1 decía «Folio de revista = página del PDF **+ 3**». Es **+ 2**, verificado
+sobre el **pie impreso** de tres páginas: PDF 6 → folio 8, PDF 7 → 9, PDF 10 → 12. Los folios citados
+en `IND_REFS` **sí estaban bien** —se leyeron del pie, no de la aritmética—, así que ninguna cita
+estaba mal; lo que estaba mal era la regla de conversión que el próximo lector iba a usar. Corregido
+con la verificación al lado. El pedido de esta tanda pedía la continuidad en «p. 9» y es **folio 8**.
+
 ## Cierre de la mitral: selector de mecanismo, el ⓘ del cociente y las bandas de `em_vmax` y `thp` (2026-09-30)
 
 Tres pendientes declarados en rondas anteriores, en una sola tanda. Cuatro commits: `086a1a5`
@@ -20552,6 +20615,14 @@ plausible**. Está escrito como condición para que nadie lo lea como cubierto.
   alteraciones significativas» del EN SUMA es cierto y no hace falta degradarlo.
 
 ##### Cociente VTI mitral/aórtico: se retira con IAo MODERADA, y el THP con SEVERA — a propósito
+> ⚠️ **DEROGADO EL 2026-09-30 EN SU PRIMERA MITAD. La regla del cociente ya NO es ésta.** Maicol
+> decidió que en válvula **NATIVA** el cociente **se usa con IAo moderada y moderada-severa** y se
+> retira **sólo con la severa**, declarando la divergencia con la guía en la propia fila. O sea que
+> los dos umbrales, que esta entrada separaba a propósito, **hoy coinciden** — y siguen siendo dos
+> constantes distintas, por el mismo motivo que esta entrada da. La mitad del **THP no cambió**.
+> La **prótesis mitral (≥2,5) conserva el régimen de esta entrada**: se retira desde la moderada.
+> Ver «El cociente VTI con IAo pasa a retirarse sólo con la severa» al tope de este archivo.
+
 Decisión de Maicol (2026-09-28), para cuando se implemente el prompt de las rutas del PDF y el
 cociente. **Los dos umbrales son distintos y no se unifican**: *«cada medición se distorsiona por un
 mecanismo fisiológico distinto frente a la IAo, y no hay razón para que compartan umbral»*.

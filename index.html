@@ -3519,7 +3519,7 @@ window.cerrarSesionReal = cerrarSesionReal;
              equivocado; el orden del content stream la pone en «Semi-quantitative». Se resolvió
              RENDERIZANDO la página y mirándola, que es lo único que no se puede discutir. Quien
              vuelva a verificar esto: no le crea a la coordenada. -->
-        <div class="calc-row"><span class="calc-lbl" title="Requiere ausencia de insuficiencia aórtica moderada o severa: la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir (ASE 2023). Con IAo moderada o mayor la fila no se calcula. DOS CORTES SEGÚN LA MORFOLOGÍA: en válvula NATIVA, &gt;1,4 apoya IM severa — ASE 2023, cardiopatía reumática (Pandian, JASE 36:3-28), y también ESC/EACTS 2025 (Figura 10, pág. 4672), entre los criterios semicuantitativos de IM severa; no figura en ASE 2017 ni en ESC/EACTS 2021, y el estudio original (Tribouilloy, Eur Heart J 1994) da 1,3. En PRÓTESIS mitral el corte es ≥2,5 — ASE 2024, Tabla 12, pág. 28 (Zoghbi, JASE 2024;37(1):2-63), «hallazgos de ETT que sugieren IM protésica significativa en válvulas mecánicas con THP normal»: sensibilidad 89 %, especificidad 91 %. Esa tabla lo define para válvulas MECÁNICAS con THP normal, y la app NO verifica ninguna de las dos condiciones: el ≥2,5 se aplica a toda prótesis mitral, biológica incluida, y el THP no se cruza. Ver «Referencia clínica» en la ayuda.">Ratio VTI mitral / VTI TSVI (nativa &gt;1.4 · prótesis ≥2.5) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-vti-ratio">—</span></div>
+        <div class="calc-row"><span class="calc-lbl" title="La ASE 2023 lo da en ausencia de insuficiencia aórtica moderada o severa: la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir. En válvula NATIVA esta aplicación lo usa IGUAL con IAo moderada y moderada-severa —y lo declara en la propia fila— y lo retira sólo con IAo severa: es criterio EcoSmart (2026-09-30), no lo que dice la guía. En PRÓTESIS se retira desde la IAo moderada. Con un grado de IAo que no se puede interpretar se retira en los dos casos. DOS CORTES SEGÚN LA MORFOLOGÍA: en válvula NATIVA, &gt;1,4 apoya IM severa — ASE 2023, cardiopatía reumática (Pandian, JASE 36:3-28), y también ESC/EACTS 2025 (Figura 10, pág. 4672), entre los criterios semicuantitativos de IM severa; no figura en ASE 2017 ni en ESC/EACTS 2021, y el estudio original (Tribouilloy, Eur Heart J 1994) da 1,3. En PRÓTESIS mitral el corte es ≥2,5 — ASE 2024, Tabla 12, pág. 28 (Zoghbi, JASE 2024;37(1):2-63), «hallazgos de ETT que sugieren IM protésica significativa en válvulas mecánicas con THP normal»: sensibilidad 89 %, especificidad 91 %. Esa tabla lo define para válvulas MECÁNICAS con THP normal, y la app NO verifica ninguna de las dos condiciones: el ≥2,5 se aplica a toda prótesis mitral, biológica incluida, y el THP no se cruza. Ver «Referencia clínica» en la ayuda.">Ratio VTI mitral / VTI TSVI (nativa &gt;1.4 · prótesis ≥2.5) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-vti-ratio">—</span></div>
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad IM integrada (ESC 2021)</span><span id="im-sev">—</span></div>
         <div class="calc-row"><span id="im-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
       </div>
@@ -23341,25 +23341,49 @@ function calcIM_ESC() {
   const _pVtimR  = vPlaus('vtim');
   const _vtsRatio = v('im_itv_tsvi') || v('itv_tsvi');
   const ratioEl = document.getElementById('im-vti-ratio');
-  /* ⚠️ EL COCIENTE NO APLICA CON IAo MODERADA O MAYOR, y por eso va ANTES que la banda de
+  /* ⚠️ EN LA NATIVA EL COCIENTE SE RETIRA SÓLO CON IAo SEVERA, y el gate va ANTES que la banda de
      plausibilidad: si no aplica, no hay nada que verificar y la fila es «—» (no aplica), no
      «VTI de entrada fuera de rango».
-     El motivo es el DENOMINADOR: el cociente es VTI mitral / VTI TSVI, y la IAo infla el VTI
-     aórtico directamente, así que el cociente deja de medir lo que dice medir en cuanto la
-     regurgitación es hemodinámicamente relevante. Es la propia condición que la fuente del 1,4
-     pone —ASE 2023, «en ausencia de IAo moderada o severa»—. Decisión de Maicol 2026-09-28.
+     El motivo del gate es el DENOMINADOR: el cociente es VTI mitral / VTI TSVI, y la IAo infla el
+     VTI aórtico directamente, así que el cociente deja de medir lo que dice medir en cuanto la
+     regurgitación es hemodinámicamente relevante.
+     ⚠️ Y ACÁ LA APP DIVERGE DE LA GUÍA A PROPÓSITO — NO ES UNA LECTURA DEL DOCUMENTO. Pandian 2023
+     (ASE, cardiopatía reumática, JASE 2023;36(1):3-28), Puntos clave del **folio 12**, publica el
+     1,4 «in the absence of moderate or severe aortic valve regurgitation»: lo excluye DESDE la
+     moderada. La app lo usa igual con IAo moderada y con moderada-severa, y lo retira sólo con la
+     severa. Es una DECISIÓN CLÍNICA DE MAICOL (2026-09-30) que REEMPLAZA la del 2026-09-28 —que lo
+     retiraba desde moderada—, y por eso está escrita acá y en CLAUDE.md en vez de quedar en el
+     código como si fuera lo que dice la fuente. La divergencia NO se esconde: se nombra en la
+     propia fila, ver `IM_RATIO_IA_MOD_TXT`.
+     Es el MISMO criterio, la misma dirección y el mismo precedente de redacción que ya rige al THP
+     con IAo (`EM_IA_SEVERA_MIN`): ahí la ASE 2023 también dice «moderada o severa» y la app vota
+     con los grados 2 y 3. Por eso acá el grado 3 TAMBIÉN se calcula.
      ⚠️ SE PREGUNTA POR EL GRADO FINAL (`ia_grado`), que es el número que se imprime, y se lee con
      `_emRegurgGrado` —el único dueño de «cómo se lee un grado», que interpreta número y texto—.
-     Derivar acá una segunda definición de «IAo moderada» es la fórmula duplicada de siempre.
-     ⚠️ UMBRAL PROPIO Y NO `EM_CONT_REGURG_MIN`, aunque hoy los dos valgan 2. Son reglas
-     independientes sobre mecanismos distintos —allá la continuidad mitral, acá un denominador
-     aórtico— y Maicol las declaró explícitamente no unificables: con la constante compartida,
-     cambiar el umbral de la EM movería este corte en silencio.
+     Derivar acá una segunda definición de «IAo severa» es la fórmula duplicada de siempre.
+     ⚠️ DOS UMBRALES Y NO UNO, PORQUE LA PRÓTESIS NO SE TOCA. Este gate corre ANTES de bifurcar por
+     morfología, así que hasta hoy la MISMA constante retiraba el 1,4 nativo y el ≥2,5 protésico.
+     Mover una sola constante habría cambiado la prótesis de rebote —un ≥2,5 con IAo moderada pasaba
+     a publicarse—, y eso NO está decidido: Maicol lo dejó explícitamente afuera el 2026-09-30 y
+     pidió revisar el cociente protésico aparte. La prótesis conserva EXACTAMENTE el régimen de
+     antes: se retira desde la moderada. El literal no se duplica — cada régimen tiene su constante.
+     ⚠️ UMBRALES PROPIOS Y NO `EM_CONT_REGURG_MIN` NI `EM_IA_SEVERA_MIN`, aunque hoy los números
+     coincidan. Son reglas independientes sobre mecanismos distintos —allá la continuidad mitral y
+     el THP, acá un denominador aórtico— y Maicol las declaró explícitamente no unificables: con la
+     constante compartida, cambiar el umbral de la EM movería este corte en silencio.
      ⚠️ FALLA CERRADO: un `ia_grado` ilegible —texto desconocido de un import— da `null` y el
-     cociente se retira igual. Publicar «>1,4 — apoya IM severa» sobre un cociente que quizá esté
-     corrompido es una AFIRMACIÓN; retirarlo es una omisión, y el número sigue en pantalla en sus
-     dos insumos. Es la misma dirección que eligió `emContMotivoNoVota`. */
-  const IM_RATIO_IA_MAX = 2;
+     cociente se retira igual, en los DOS regímenes. Publicar «>1,4 — apoya IM severa» sobre un
+     cociente que quizá esté corrompido es una AFIRMACIÓN; retirarlo es una omisión, y el número
+     sigue en pantalla en sus dos insumos. Es la misma dirección que eligió `emContMotivoNoVota`. */
+  const IM_RATIO_IA_MAX_NAT  = 4;   // nativa: sólo la IAo severa lo retira (decisión 2026-09-30)
+  const IM_RATIO_IA_MAX_PROT = 2;   // prótesis: SIN CAMBIOS — se retira desde la IAo moderada
+  const IM_RATIO_IA_MOD_MIN  = 2;   // desde qué grado hay que declarar la divergencia con la guía
+  /* ⚠️ EL TEXTO DE LA DIVERGENCIA VA EN LA FILA, NO EN EL `title`. La fila publica un número que la
+     guía no avala para este paciente: callarlo sería afirmar de más, y el `title` en táctil no
+     existe —es la misma deuda que este bloque ya declaró para el «—» pelado—. Corto, una línea, y
+     dice las DOS cosas —lo que dice la guía y lo que decidió la app—: con una sola, el número se
+     lee como si la guía lo respaldara. */
+  const IM_RATIO_IA_MOD_TXT  = '  (ASE 2023 lo excluye con IAo moderada o severa; criterio EcoSmart: se usa igual)';
   /* ⚠️ LLAMADA PELADA, SIN `typeof`, Y ES LA CUARTA VEZ QUE ESTE ARCHIVO PAGA ESTO. `_emRegurgGrado`
      es una declaración de función del MISMO bloque `<script>`: se hoistea, el `typeof` daría
      `'function'` siempre —aunque el script haya muerto— y la otra rama es código muerto. Peor: el
@@ -23368,22 +23392,28 @@ function calcIM_ESC() {
      `/sharp-edges` sobre este diff, igual que con `protNoGradua` en la Fase A y con `vmEsProtesis`
      en el commit anterior. Pelada, si alguien la mueve a otro bloque falla RUIDOSA. */
   const _iaRatio = _emRegurgGrado('ia_grado');
-  const _ratioNoAplica = (_iaRatio === null || _iaRatio >= IM_RATIO_IA_MAX);
+  /* ⚠️ UNA SOLA LECTURA DE LA MORFOLOGÍA PARA LAS DOS DECISIONES —el umbral de IAo y el corte—. Con
+     dos llamadas a `_imVmProt()` un `#vm_morf` que cambiara entre medio daría un gate y un corte de
+     morfologías distintas: el régimen protésico decidiendo si la fila sale, y el nativo decidiendo
+     con qué corte. Es la fórmula duplicada de siempre, pero sobre el predicado. */
+  const _rProt = _imVmProt();
+  const _ratioNoAplica = (_iaRatio === null ||
+                          _iaRatio >= (_rProt ? IM_RATIO_IA_MAX_PROT : IM_RATIO_IA_MAX_NAT));
   if (ratioEl) {
     if (_ratioNoAplica) {
-      /* ⚠️ LA FILA QUEDA EN «—» PELADO, Y ESO ESTÁ DECIDIDO — NO ES UNA DEUDA PENDIENTE.
-         TC-311 lo fija con TRES condiciones que comparan contra «—» exacto, y UNA de las tres lleva
-         además la frase «sin texto nuevo» con esas palabras: es una decisión del pedido que creó
-         este gate, no una expectativa que se olvidó de actualizar.
-         El 2026-09-30 se intentó nombrar el motivo acá —«no aplica con IAo moderada o mayor»— para
-         cerrar la deuda que este archivo declara («"—" significa tres cosas y el porqué vive en el
-         `title`, que en táctil no existe») y el caso se puso en rojo en las tres. Se revirtió: el
-         costo está declarado y la salida es una decisión de Maicol, no un arreglo de paso.
-         Quien la retome: el cambio es de UNA línea acá y reapuntar esas tres condiciones de
-         TC-311; lo que NO se puede es hacerlo sin decidirlo, porque el caso lo dice explícito.
-         Mientras tanto el porqué se publica en el panel de Evidencia, que sí es alcanzable con el
-         dedo: `_indIM.notas` lo explica con sus dos citas numeradas —la condición de la ASE 2023 y
-         el marcador `ecosmart` para el fail-closed, que ninguna guía contempla—. */
+      /* ⚠️ LA FILA QUEDA EN «—» PELADO, Y ESO SIGUE SIENDO UNA DECISIÓN, NO UNA DEUDA DE PASO.
+         Lo que cambió el 2026-09-30 es CUÁNDO se llega acá, no qué se escribe: en la nativa sólo
+         con IAo severa o con un grado ilegible; en la prótesis, desde la moderada.
+         El «—» sigue significando más de una cosa —no aplica por IAo, o los insumos no están— y el
+         porqué sigue viviendo en el `title` y en el panel de Evidencia. Lo que se ganó es que el
+         caso VISIBLE y frecuente —IAo moderada— ya no cae acá: publica el número CON su salvedad
+         (`IM_RATIO_IA_MOD_TXT`), que es donde estaba el costo real de este «—».
+         El 2026-09-28 se intentó nombrar el motivo acá —«no aplica con IAo moderada o mayor»— y se
+         revirtió porque TC-311 lo prohibía con la frase «sin texto nuevo». Esa condición la
+         REEMPLAZÓ Maicol el 2026-09-30 y está reapuntada: hoy TC-311 fija los cuatro tramos (sin
+         IAo y leve sin texto extra; moderada con valor + paréntesis; severa retirado).
+         Quien retome el «—» pelado: el cambio es de UNA línea acá; lo que NO se puede es hacerlo
+         sin decidirlo, porque el caso lo dice explícito. */
       ratioEl.textContent = '—';
     } else if (_pVtimR.fuera) {
       ratioEl.textContent = 'VTI de entrada fuera de rango — verificar';
@@ -23411,9 +23441,21 @@ function calcIM_ESC() {
          aplicó. **Si Maicol decide restringir el ≥2,5 a mecánicas, la bioprótesis pasa a publicar
          el número pelado, igual que el jet/AI en su banda variable.** */
       const ratio = (_pVtimR.val / _vtsRatio).toFixed(2);
-      const _rProt = _imVmProt();
       const _apoya = _rProt ? (PF(ratio) >= 2.5) : (PF(ratio) > 1.4);
-      ratioEl.textContent = ratio + (_apoya ? (_rProt ? '  (≥2,5 — apoya IM severa)' : '  (>1,4 — apoya IM severa)') : '');
+      /* ⚠️ LA SALVEDAD SE PEGA AL NÚMERO SIEMPRE QUE HAYA IAo ≥ MODERADA, APOYE O NO. No cuelga de
+         `_apoya`: lo que la IAo pone en duda es el VALOR —su denominador—, no el veredicto, así que
+         un 1,10 con IAo moderada está igual de inflado que un 1,62 y callarlo ahí sería declarar la
+         divergencia sólo cuando conviene. Se ve, por ejemplo: «1.62  (>1,4 — apoya IM severa)
+         (ASE 2023 lo excluye…)».
+         ⚠️ `!_rProt` ES CINTURÓN Y TIRANTES, Y SE DECLARA. Hoy es inalcanzable con prótesis —el
+         gate protésico retira la fila desde el grado 2, así que con `_rProt` no se llega acá con
+         `_iaRatio >= 2`—, pero sin el predicado, el día que alguien suba `IM_RATIO_IA_MAX_PROT` la
+         fila protésica publicaría una salvedad que cita a Pandian, que es la fuente del 1,4 NATIVO
+         reumático y no dice una palabra del ≥2,5 de la ASE 2024. Sería atribuirle a una guía una
+         condición que no puso. */
+      ratioEl.textContent = ratio
+        + (_apoya ? (_rProt ? '  (≥2,5 — apoya IM severa)' : '  (>1,4 — apoya IM severa)') : '')
+        + ((!_rProt && _iaRatio >= IM_RATIO_IA_MOD_MIN) ? IM_RATIO_IA_MOD_TXT : '');
     } else {
       ratioEl.textContent = '\u2014';
     }
@@ -39895,7 +39937,10 @@ const IND_REFS = Object.freeze([
          'Echocardiography in the Evaluation of Rheumatic Heart Disease: A Report from the ' +
          'American Society of Echocardiography. J Am Soc Echocardiogr 2023;36(1):3-28. ' +
          'doi:10.1016/j.echo.2022.10.009. Cardiopatía REUMÁTICA. Folio de revista = página del ' +
-         'PDF + 3. Tabla 1 «Classification of Mitral Stenosis Severity», p. 8 — área valvular ' +
+         'PDF + 2 (verificado sobre el pie impreso en tres páginas: PDF 6 → folio 8, PDF 7 → 9, ' +
+         'PDF 10 → 12; la versión anterior de esta entrada decía «+ 3» y era falsa, aunque los ' +
+         'folios citados abajo sí están bien porque se leyeron del pie y no de la aritmética). ' +
+         'Tabla 1 «Classification of Mitral Stenosis Severity», p. 8 — área valvular ' +
          '> 2,5 / 2,5-1,6 / ≤ 1,5 cm²; tiempo de hemipresión < 100 / 100-149 / ≥ 150 ms; ' +
          'gradiente medio < 5 / 5-9 / ≥ 10 mmHg, con su nota «a una frecuencia cardíaca de ' +
          '60-80 lpm»; presión pulmonar sistólica < 30 / 30-49 / ≥ 50 mmHg. Puntos clave, p. 10 — ' +
@@ -41607,22 +41652,30 @@ function _indIM(){
       { txt:'La ASE 2023 de cardiopatía REUMÁTICA publica esos mismos cuatro cortes para la insuficiencia mitral reumática severa, y agrega uno que esta aplicación no recoge: el ÁREA de la vena contracta por Doppler color 3D ≥ 0,40 cm², que lista como parámetro semicuantitativo junto con la vena contracta lineal. Es una cuarta voz sobre los mismos números, no un criterio distinto, y su alcance es la etiología reumática.',
         refs:['asePandian2023'] },
       /* ⚠️ EL COCIENTE VTI MITRAL/TSVI Y LA IAo — LA NOTA DESCRIBE LO QUE LA APP HACE HOY, NO UNA
-         DECISIÓN PENDIENTE. Medido en `calcIM_ESC`: `_ratioNoAplica = (_iaRatio === null ||
-         _iaRatio >= IM_RATIO_IA_MAX)` con `IM_RATIO_IA_MAX = 2`, o sea que el cociente se RETIRA
-         con IAo de grado moderado o mayor — exactamente la condición que publica Pandian, no una
-         más permisiva. Esa es la conducta vigente desde el 2026-09-28 y está declarada en la
-         entrada de este archivo del cociente 0,38.
-         El segundo brazo del predicado —`_iaRatio === null`, o sea un grado de IAo que
-         `_emRegurgGrado` no puede interpretar— NO sale de ninguna guía: es el fail-closed de la
-         aplicación, y por eso lleva el marcador `ecosmart` y no una cita. La guía dice «en
-         ausencia de IAo moderada o severa» y no contempla el caso de un grado ilegible, que es el
-         que llega desde un import de Excel o un backup editado.
+         DECISIÓN PENDIENTE, Y LO QUE HACE HOY CAMBIÓ EL 2026-09-30. Medido en `calcIM_ESC`:
+         `_ratioNoAplica = (_iaRatio === null || _iaRatio >= (_rProt ? IM_RATIO_IA_MAX_PROT :
+         IM_RATIO_IA_MAX_NAT))`, con `IM_RATIO_IA_MAX_NAT = 4`. O sea que en la NATIVA el cociente
+         se calcula con IAo moderada y con moderada-severa, y se retira sólo con la SEVERA: la app
+         es más permisiva que Pandian, que lo excluye desde la moderada. Es una decisión de Maicol
+         que REEMPLAZA la del 2026-09-28 —la que lo retiraba desde moderada—, y por eso la
+         divergencia va con el marcador `ecosmart` y NO bajo el corchete de Pandian.
+         ⚠️ LA NOTA ANTERIOR DECÍA LO CONTRARIO («con IAo moderada o mayor esta aplicación no
+         calcula el cociente») Y HABRÍA QUEDADO FALSA. Una nota del panel que describe una regla
+         derogada es peor que ninguna: el médico la lee como la conducta vigente.
+         El otro brazo del predicado —`_iaRatio === null`, o sea un grado de IAo que
+         `_emRegurgGrado` no puede interpretar— tampoco sale de ninguna guía: es el fail-closed de
+         la aplicación, y va en el mismo marcador. La guía no contempla el caso de un grado
+         ilegible, que es el que llega desde un import de Excel o un backup editado.
+         ⚠️ LA NOTA NO HABLA DE LA PRÓTESIS, y es deliberado: el cociente protésico conserva el
+         régimen viejo (se retira desde la moderada) y esta sección se gatea por `im_sev_final`, no
+         por la morfología. Nombrar acá los dos regímenes sin poder decir cuál le toca a ESTE
+         paciente sería ruido; el `title` de la fila, que sí sabe la morfología, lo dice.
          ⚠️ Y VA EN `_indIM` AUNQUE PANDIAN SEA REUMÁTICA: esta sección no mira la etiología, así
          que la nota declara su alcance en el texto igual que la de los cuatro cortes de arriba.
          No se gatea por `etio` porque acá ese dato no existe. */
       { txt:'El cociente VTI mitral/VTI del tracto de salida izquierdo —el del cuadro «Insuficiencia mitral» de la pestaña del estudio, no de esta tarjeta— sólo vale en ausencia de insuficiencia aórtica moderada o severa: el VTI del tracto de salida es su denominador, la IAo lo aumenta, y el cociente deja de medir lo que dice medir. La ASE 2023 de cardiopatía REUMÁTICA lo publica con esa condición explícita y lo lista entre los parámetros SEMICUANTITATIVOS, no entre los cuantitativos de arriba.',
         refs:['asePandian2023'] },
-      { txt:'Con insuficiencia aórtica de grado moderado o mayor esta aplicación no calcula el cociente y esa fila queda en «—». También se abstiene cuando el grado de insuficiencia aórtica no se puede interpretar —un valor que llega de una importación y que el desplegable no reconoce—: la guía no contempla ese caso, y abstenerse ante un dato ilegible es una decisión de la aplicación, no de la fuente. El cociente es un marcador de apoyo: no participa del grado integrado de insuficiencia mitral, que sale de la vena contracta, el jet sobre área auricular, el EROA por PISA con sus derivados y la onda S pulmonar.',
+      { txt:'En válvula nativa esta aplicación calcula el cociente IGUAL con insuficiencia aórtica moderada y moderada-severa, y lo retira sólo con la severa. Es una decisión clínica de la aplicación, más permisiva que la guía, y la fila la declara en pantalla junto al valor. Con insuficiencia aórtica severa la fila queda en «—». También se abstiene cuando el grado de insuficiencia aórtica no se puede interpretar —un valor que llega de una importación y que el desplegable no reconoce—: la guía no contempla ese caso, y abstenerse ante un dato ilegible es una decisión de la aplicación, no de la fuente. El cociente es un marcador de apoyo: no participa del grado integrado de insuficiencia mitral, que sale de la vena contracta, el jet sobre área auricular, el EROA por PISA con sus derivados y la onda S pulmonar.',
         refs:['asePandian2023','ecosmart'] },
       { txt:'El diámetro telesistólico INDEXADO ≥ 20 mm/m² es criterio NUEVO de 2025: la edición 2021 sólo tenía el absoluto. La ACC/AHA 2020 no tiene criterio indexado en la mitral —sólo lo usa en la aorta y en el anillo tricuspídeo—, así que ese corte no está corroborado por una segunda guía.',
         refs:['esc2025vc','ahaVc2020'] },
@@ -89246,7 +89299,7 @@ const ECO_AYUDA = [
 <table class="mTbl"><tr><th>Situación</th><th>Criterio</th><th>Guía</th></tr>
 <tr><td>Insuficiencia mitral primaria severa, asintomática</td><td>DTSI ≥ 40 mm o FEVI ≤ 60 % (Clase I)</td><td>ESC/EACTS 2021</td></tr>
 <tr><td>IM — onda E como signo de soporte<br><span style="font-size:11px;color:var(--text2);">Sólo soporte: no gradúa. El signo <b>específico</b> es el opuesto — la onda A dominante prácticamente descarta IM severa. Válido sin estenosis mitral (la guía dice que incluso la leve altera la onda E), calcificación anular, anillo protésico ni fibrilación auricular; menos específico en IM secundaria; más aplicable en mayores de 50 años.</span></td><td>onda E ≥ 120 cm/s apoya severa · onda A dominante la descarta</td><td>ASE 2017 (Zoghbi, JASE 30:303-371, Tabla 8)</td></tr>
-<tr><td>IM — cociente VTI mitral / VTI TSVI<br><span style="font-size:11px;color:var(--text2);"><b>Requiere ausencia de insuficiencia aórtica moderada o severa:</b> la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir. Con IAo moderada o mayor la app no calcula la fila.<br>El corte sale de la <b>ASE 2023 de cardiopatía reumática</b> (Pandian et al., JASE 2023;36:3-28), Key Points de IM reumática: &gt; 1,4 sugiere IM severa y &lt; 1 leve. <b>La ESC/EACTS 2025 también lo publica</b>, con el mismo corte: Figura 10, pág. 4672, recuadro de criterios ecocardiográficos de IM severa, entre los <b>semicuantitativos</b> — «VTI mitral / VTI LVOT &gt; 1,4». <b>No figura en ASE 2017 ni en ESC/EACTS 2021.</b><br>⚠️ Ninguna de las dos guías dice <b>con qué modalidad</b> se mide ese VTI mitral. La app usa el de entrada por Doppler pulsado anterógrado —no el del chorro de la insuficiencia—, que es lo correcto, pero es criterio de la aplicación y no algo que las guías respalden.<br>⚠️ El estudio original que la guía cita (Tribouilloy, Eur Heart J 1994;15:1335-9) da ≥ <b>1,3</b> con sensibilidad 87 % y especificidad 91 %, y el 1,4 se rastrea además a un artículo del E-Journal de la ESC que cita esas mismas dos cifras. O sea que la guía publica 1,4 sobre un primario que dice 1,3, y eso no distingue entre haberlo validado y haber propagado el mismo error. Se conserva el 1,4 que la app venía usando y se declaran las dos cosas.<br>⚠️ <b>Con PRÓTESIS mitral el corte es otro: ≥ 2,5.</b> Sale de la <b>ASE 2024 de prótesis</b> (Zoghbi et al., JASE 2024;37(1):2-63), <b>Tabla 12, pág. 28</b> — «hallazgos de ETT que sugieren IM protésica significativa en válvulas mecánicas con THP normal»: VTI protésico / VTI TSVI ≥ 2,5, sensibilidad 89 %, especificidad 91 %. El 1,4 es de válvula <b>nativa</b> y aplicarlo a una prótesis daba «apoya IM severa» sobre cocientes muy por debajo de lo que la tabla protésica considera sugestivo. La app elige el corte por la morfología de la válvula mitral.<br>⚠️ Esa tabla define el corte <b>para válvulas mecánicas y con THP normal</b>, y la app <b>no verifica ninguna de las dos condiciones</b>: lo aplica a cualquier prótesis mitral y no cruza el tiempo de hemipresión.</span></td><td>nativa &gt; 1,4 · prótesis ≥ 2,5</td><td>nativa: ASE 2023 (Pandian, JASE 36:3-28) y ESC/EACTS 2025 (Figura 10, p. 4672) — el primario da 1,3 · prótesis: ASE 2024 (Zoghbi), Tabla 12 p. 28</td></tr>
+<tr><td>IM — cociente VTI mitral / VTI TSVI<br><span style="font-size:11px;color:var(--text2);"><b>La guía lo da en ausencia de insuficiencia aórtica moderada o severa:</b> la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir.<br>⚠️ <b>Acá la app diverge de la guía a propósito, y lo dice en la fila.</b> En válvula <b>nativa</b> calcula el cociente igual con IAo <b>moderada</b> y <b>moderada-severa</b> —agregando en la fila la salvedad «la ASE 2023 lo excluye con IAo moderada o severa; criterio EcoSmart: se usa igual»— y lo retira sólo con IAo <b>severa</b>. Es criterio de la aplicación (decisión del 30/09/2026), no lo que dice el documento. Es la misma dirección que la app ya aplica al THP con IAo, donde la guía también dice «moderada o severa» y la app sólo se retira con la severa. Con <b>prótesis</b> la fila se retira desde la IAo moderada, sin cambios. Con un grado de IAo que no se puede interpretar se retira en los dos casos.<br>El corte sale de la <b>ASE 2023 de cardiopatía reumática</b> (Pandian et al., JASE 2023;36:3-28), Key Points de IM reumática: &gt; 1,4 sugiere IM severa y &lt; 1 leve. <b>La ESC/EACTS 2025 también lo publica</b>, con el mismo corte: Figura 10, pág. 4672, recuadro de criterios ecocardiográficos de IM severa, entre los <b>semicuantitativos</b> — «VTI mitral / VTI LVOT &gt; 1,4». <b>No figura en ASE 2017 ni en ESC/EACTS 2021.</b><br>⚠️ Ninguna de las dos guías dice <b>con qué modalidad</b> se mide ese VTI mitral. La app usa el de entrada por Doppler pulsado anterógrado —no el del chorro de la insuficiencia—, que es lo correcto, pero es criterio de la aplicación y no algo que las guías respalden.<br>⚠️ El estudio original que la guía cita (Tribouilloy, Eur Heart J 1994;15:1335-9) da ≥ <b>1,3</b> con sensibilidad 87 % y especificidad 91 %, y el 1,4 se rastrea además a un artículo del E-Journal de la ESC que cita esas mismas dos cifras. O sea que la guía publica 1,4 sobre un primario que dice 1,3, y eso no distingue entre haberlo validado y haber propagado el mismo error. Se conserva el 1,4 que la app venía usando y se declaran las dos cosas.<br>⚠️ <b>Con PRÓTESIS mitral el corte es otro: ≥ 2,5.</b> Sale de la <b>ASE 2024 de prótesis</b> (Zoghbi et al., JASE 2024;37(1):2-63), <b>Tabla 12, pág. 28</b> — «hallazgos de ETT que sugieren IM protésica significativa en válvulas mecánicas con THP normal»: VTI protésico / VTI TSVI ≥ 2,5, sensibilidad 89 %, especificidad 91 %. El 1,4 es de válvula <b>nativa</b> y aplicarlo a una prótesis daba «apoya IM severa» sobre cocientes muy por debajo de lo que la tabla protésica considera sugestivo. La app elige el corte por la morfología de la válvula mitral.<br>⚠️ Esa tabla define el corte <b>para válvulas mecánicas y con THP normal</b>, y la app <b>no verifica ninguna de las dos condiciones</b>: lo aplica a cualquier prótesis mitral y no cruza el tiempo de hemipresión.</span></td><td>nativa &gt; 1,4 · prótesis ≥ 2,5</td><td>nativa: ASE 2023 (Pandian, JASE 36:3-28) y ESC/EACTS 2025 (Figura 10, p. 4672) — el primario da 1,3 · prótesis: ASE 2024 (Zoghbi), Tabla 12 p. 28</td></tr>
 <tr><td>IM — cociente jet/AI (%)<br><span style="font-size:11px;color:var(--text2);">⚠️ <b>Dos cortes según la morfología.</b> En válvula <b>nativa</b>: &lt; 20 % leve, ≤ 40 % moderada, &gt; 40 % severa.<br>⚠️ <b>Con PRÓTESIS mitral el corte de severa es &gt; 50 %</b>, y entre 20 y 50 % la <b>ASE 2024 de prótesis</b> (Zoghbi et al., JASE 2024;37(1):2-63), <b>Tabla 13, pág. 30</b>, dice «<b>Variable</b>»: ahí el parámetro <b>no gradúa</b> y la app se abstiene en vez de inventar una banda moderada. La fila de pantalla lo declara en vez de descontar el parámetro en silencio.<br>⚠️ Los <b>cortes absolutos</b> de esa misma tabla (área del jet &lt; 4 cm² leve / &gt; 8 cm² severa) <b>no se implementan</b>: la guía los da como alternativa al porcentaje («usually … or …») y aplicarlos exigiría decidir qué manda cuando los dos discrepan.<br>⚠️ Y la nota al pie de la tabla exige un <b>Nyquist de 50-60 cm/s</b> para que el porcentaje valga; la app <b>no registra ese dato</b>, así que ninguno de los dos regímenes puede verificar la condición en la que su corte está definido.</span></td><td>nativa &lt; 20 / ≤ 40 / &gt; 40 % · prótesis &lt; 20 % leve · &gt; 50 % severa</td><td>nativa: ASE 2017 (Zoghbi, JASE 30:303-371) · prótesis: ASE 2024 (Zoghbi), Tabla 13 p. 30</td></tr>
 <tr><td>IM — EROA por continuidad y Vol-R<br><span style="font-size:11px;color:var(--text2);">La EROA por continuidad es <b>Vol-R ÷ VTI del chorro de IM por CW</b>. Los dos cortes de severidad de la guía —<b>EROA ≥ 40 mm²</b> y <b>Vol-R ≥ 60 ml</b>— describen al mismo paciente sólo cuando el VTI del chorro vale <b>150 cm</b>, porque 60 ÷ 0,40 = 150. Con un VTI de 100 cm, un Vol-R justo en el corte da una EROA de 60 mm², o sea severa con holgura; con 200 cm da 30 mm², por debajo del corte con el Vol-R ya severo.<br>⚠️ Eso es <b>aritmética de la fórmula, no una discrepancia entre guías</b>: los dos cortes son correctos y se refieren al mismo hallazgo medido por dos caminos con distinta sensibilidad a la duración del chorro. Por eso esta fila no lleva atribución de guía.<br>⚠️ <b>Esta EROA no vota.</b> El grado integrado de IM sale de la vena contracta, el jet sobre área auricular, el <b>EROA por PISA</b> con sus derivados y la onda S pulmonar. El volumen regurgitante y la fracción regurgitante <i>por continuidad</i> gradúan sólo la cápsula «Severidad (continuidad)» de ese mismo cuadro, que tampoco vota. El EROA de PISA es otra medición y aparece en la misma pantalla: conviene no confundirlas.</span></td><td>coinciden sólo con VTI del chorro = 150 cm</td><td>aritmética de la fórmula — no es una cita</td></tr>
 <tr><td>Insuficiencia aórtica severa, asintomática</td><td>FEVI ≤ 50 % · DTSI &gt; 50 mm o &gt; 25 mm/m² (Clase I)</td><td>ESC/EACTS 2021</td></tr>
