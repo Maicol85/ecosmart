@@ -39460,11 +39460,13 @@ const IND_REFS = Object.freeze([
        porque esta entrada la comparten SEIS secciones; cada una cita su propia tabla en su texto. */
     full:'ESC/EACTS 2025 — Guía de práctica clínica para el manejo de las valvulopatías. ' +
          'Sociedad Europea de Cardiología y Asociación Europea de Cirugía Cardiotorácica. ' +
-         'Original: 2025 ESC/EACTS Guidelines for the management of valvular heart disease, ' +
-         'doi:10.1093/eurheartj/ehaf194. Verificada sobre la traducción de la Sociedad Española de ' +
-         'Cardiología (SEC: 2025-L), 125 páginas. Tablas de recomendaciones por lesión: la mitral ' +
-         'primaria es la Tabla 6 de Recomendaciones (p. 44) y la estenosis mitral la Tabla 8 ' +
-         'de Recomendaciones con su tabla de contraindicaciones (p. 52).' },
+         'Praz F, et al. Eur Heart J 2025;46(44):4635-4736. doi:10.1093/eurheartj/ehaf194. ' +
+         'Verificada sobre el ORIGINAL en inglés. Páginas de revista: Tabla 4 (recomendaciones ' +
+         'revisadas, la fila del TEER) p. 4647; Figura 10 (criterios ecocardiográficos de ' +
+         'insuficiencia mitral) p. 4672; Tabla 6 de Recomendaciones (insuficiencia mitral ' +
+         'primaria) p. 4674-4675; Figura 12 p. 4676; Figura 14 p. 4681; Tabla 8 de ' +
+         'Recomendaciones y Tabla 8 de contraindicaciones de la comisurotomía, con sus notas ' +
+         'a y b, p. 4682.' },
   { k:'esc2020guch',
     full:'Baumgartner H, De Backer J, Babu-Narayan SV, et al. 2020 ESC Guidelines for the ' +
          'management of adult congenital heart disease. Eur Heart J 2021;42(6):563-645. ' +
@@ -39874,7 +39876,13 @@ function _indNum(n, dec, uni){
   if (n == null) return '—';
   return n.toFixed(dec == null ? 1 : dec).replace('.', ',') + (uni ? ' ' + uni : '');
 }
-function _indFila(lbl, val, marca, nota){ return { lbl:lbl, val:val, marca:marca || 'none', nota:nota || '' }; }
+/* `refs` opcional y al final: las llamadas viejas siguen valiendo tal cual. */
+/* ⚠️ `ref` (string) EN `guia` Y `refs` (array) ACÁ: un carácter de diferencia. Pasar el string
+   hacía que `(f.refs||[]).map` tirara TypeError, `indicRender` lo contara como fallo y la sección
+   ENTERA desapareciera con un «revisar la consola» que no tenía nada escrito. Se normaliza acá, en
+   el único lugar por donde pasan las dos formas. Lo encontró /sharp-edges. */
+function _indRefsNorm(refs){ return Array.isArray(refs) ? refs : (refs ? [refs] : null); }
+function _indFila(lbl, val, marca, nota, refs){ return { lbl:lbl, val:val, marca:marca || 'none', nota:nota || '', refs:_indRefsNorm(refs) }; }
 /* Fila de umbral ausente. Existe para que la regla 4 tenga una sola forma de expresarse. */
 function _indSinUmbral(lbl){ return _indFila(lbl, '—', 'ask', 'umbral no disponible — recargar la aplicación'); }
 
@@ -40027,8 +40035,8 @@ function _indRepintarConservando(claveFoco, valFoco){
 /* Fila con controles. `ops` es `[{v, t}]` — el valor que se guarda y lo que se pinta.
    La MARCA la decide el llamador, no esta función: qué significa una respuesta depende del
    criterio, y acá `ok` sigue queriendo decir «alcanza un criterio de la guía», no «contestada». */
-function _indFilaCtrl(lbl, clave, ops, marca, nota){
-  return { lbl:lbl, ctrl:{ clave:clave, ops:ops }, marca:marca || 'ask', nota:nota || '' };
+function _indFilaCtrl(lbl, clave, ops, marca, nota, refs){
+  return { lbl:lbl, ctrl:{ clave:clave, ops:ops }, marca:marca || 'ask', nota:nota || '', refs:_indRefsNorm(refs) };
 }
 
 /* ══ EL DATO DEL ESTUDIO, O CONTESTADO ACÁ ════════════════════════════════════════════════════
@@ -40077,11 +40085,15 @@ function _indFilaOrigen(lbl, o, ops, pinta){
   const txt   = ok && p.txt != null ? p.txt : '—';
   const marca = ok && p.marca ? p.marca : 'ask';
   const nota  = ok && p.nota ? p.nota : '';
-  if (o.deEstudio) return _indFila(lbl, txt, marca, nota);
+  /* La cita viaja por las DOS ramas: la fila es la misma afirmación venga el dato del estudio o
+     se conteste acá, y dejarla sólo en una haría que el corchete apareciera y desapareciera según
+     dónde esté cargado el dato — que es la clase de intermitencia que este panel ya pagó cara. */
+  const refs  = ok && p.refs ? p.refs : null;
+  if (o.deEstudio) return _indFila(lbl, txt, marca, nota, refs);
   return _indFilaCtrl(lbl, o.clave, ops, o.val == null ? 'ask' : marca,
     (nota ? nota + ' ' : '') +
     '— contestado en este panel: no se guarda con el estudio' +
-    (o.val == null ? '. Si ya está cargado en su pestaña, aparece acá solo.' : '.'));
+    (o.val == null ? '. Si ya está cargado en su pestaña, aparece acá solo.' : '.'), refs);
 }
 
 /* ══ PLAUSIBILIDAD: UN VALOR ILEGIBLE NO SOSTIENE NI NIEGA UN CRITERIO ════════════════════════
@@ -40140,8 +40152,15 @@ function _indFilaHTML(f){
       ' style="padding:5px 8px;font-size:11.5px;font-weight:700;vertical-align:top;' +
       (f.ctrl ? '' : 'white-space:nowrap;') + '">' +
       (f.ctrl ? _indCtrlHTML(f.ctrl) : _critEsc(f.val)) + '</td>' +
+    /* ⚠️ UNA FILA PUEDE LLEVAR SUS CITAS, misma extensión aditiva que la de las notas y por el
+       mismo motivo: la nota pasa por `_critEsc`, así que un corchete embebido en el string saldría
+       como marcado LITERAL y la única alternativa sería no escapar, o sea un XSS por comodidad.
+       `refs` es opcional: las ~90 filas que no lo traen se pintan exactamente igual. */
     '<td style="padding:5px 8px;font-size:11px;vertical-align:top;line-height:1.45;color:' + M.col + ';">' +
-      M.ico + (f.nota ? ' ' + _critEsc(f.nota) : '') + '</td></tr>';
+      M.ico + (f.nota ? ' ' + _critEsc(f.nota) : '') +
+      /* SIN NOTA NO HAY CITA: un corchete pelado pegado al icono de marca se lee como si citara el
+         VALOR o la marca, que es la misma forma en que el `txt` vacío del criterio se coló antes. */
+      (f.nota ? (f.refs || []).map(function(k){ return _indRefMarca(k); }).join('') : '') + '</td></tr>';
 }
 
 /* ── Bloque de recomendación ───────────────────────────────────────────────────────────────
@@ -40861,7 +40880,12 @@ function _indIMRecom(D){
       nota:'La reparación es Clase I · Nivel B sólo cuando se espera un resultado duradero. El TEER es Clase IIa · Nivel B en el sintomático anatómicamente apto con riesgo quirúrgico alto.' };
     return { txt:IM_REC_2025.reparar.t, clase:IM_REC_2025.reparar.c, fuente:IM_FUENTE, ref:IM_REF,
       nota:(rep == null ? 'Esta fila condiciona a que se espere un resultado duradero, y eso no está consignado. ' : '') +
-        'Y si el riesgo quirúrgico es alto y la anatomía es apta, el TEER es Clase IIa · Nivel B — en 2025 subió desde Clase IIb y dejó de exigir que el paciente fuera inoperable.' };
+        /* ⚠️ SEGUNDA APARICIÓN DE LA MISMA AFIRMACIÓN FALSA, y la encontró la medición en Chrome,
+           no la lectura: el texto corregido era el de `notas` y éste decía lo mismo cuatro líneas
+           más abajo, en la nota de la recomendación. Dejar el gemelo en pie hubiera puesto al panel
+           a contradecirse consigo mismo sobre el mismo documento. Va sin corchete porque la nota de
+           abajo ya lo lleva y repetirlo en la misma tarjeta no agrega nada. */
+        'Y si el riesgo quirúrgico es alto y la anatomía es apta, el TEER es Clase IIa · Nivel B — en 2025 subió desde Clase IIb; la fila de 2021 ya admitía al inoperable O al de riesgo alto.' };
   };
   if (D.mec.val === 'secundaria') return { tipo:'no', tit:'Fuera del alcance de esta tabla',
     txt:'El mecanismo consignado es SECUNDARIO (funcional). Las filas de esta sección son las de la insuficiencia mitral PRIMARIA y no gobiernan esa situación: la conducta en la secundaria depende del tratamiento médico óptimo y de la evaluación por Heart Team.' };
@@ -41146,7 +41170,15 @@ function _indIM(){
         refs:['esc2025vc'] },
       { txt:'La fibrilación de esta sección NUNCA es «de nueva aparición»: en el tres-de-cuatro es fibrilación a secas y en la Clase IIa es secundaria a la insuficiencia. El «de nueva aparición» pertenece a la estenosis mitral.',
         refs:['esc2025vc'] },
-      'El TEER en la insuficiencia primaria subió en 2025 a Clase IIa · Nivel B para el sintomático anatómicamente apto con riesgo quirúrgico alto: dejó de exigir que fuera inoperable.',
+      /* ⚠️ CORREGIDO 2026-09-30 SOBRE EL ORIGINAL INGLÉS, y ya lleva cita: la versión anterior
+         decía «dejó de exigir que fuera inoperable» y eso era FALSO —la fila 2021 admitía
+         «inoperable OR at high surgical risk», una disyunción— así que la nota quedaba sin
+         corchete por no poder respaldarla. Verificado en la Tabla 4 (recomendaciones revisadas),
+         p. 4647: «TEER may be considered in symptomatic patients who fulfil the echocardiographic
+         criteria of eligibility, are judged inoperable or at high surgical risk by the Heart Team,
+         and for whom the procedure is not considered futile. IIb B». */
+      { txt:'El TEER en la insuficiencia primaria subió en 2025 a Clase IIa · Nivel B para el sintomático anatómicamente apto con riesgo quirúrgico alto. En 2021 ya admitía al paciente inoperable O de riesgo quirúrgico alto —era una disyunción, no sólo el inoperable—: lo que cambió es la clase, y que dejaron de exigirse los criterios ecocardiográficos de elegibilidad y la cláusula de futilidad.',
+        refs:['esc2025vc'] },
       'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
     ] };
 }
@@ -41204,6 +41236,10 @@ const EM_CRIT_2025 = Object.freeze({
    posible, porque la compuerta pasaría a cortar la cascada de TODOS los pacientes, incluidos los
    reumáticos. Lo vigila `_emAssertUmbrales` contra el DOM. */
 const EM_ETIO_CMP = 'Reumática';
+/* Rótulo ÚNICO del trombo: lo usan la fila del panel y la lista de faltantes de la recomendación.
+   La contraindicación que la guía lista es el trombo AURICULAR; la condicionalidad de su nota al
+   pie se acota a la orejuela, y nombrar la excepción en el rótulo la hacía pasar por regla. */
+const EM_LBL_TROMBO = 'Trombo en aurícula izquierda';
 const EM_REC_2025 = Object.freeze({
   sint_fav:    { c:'Clase I · Nivel B',
     t:'Comisurotomía mitral percutánea RECOMENDADA en el paciente sintomático, en ausencia de características desfavorables para el procedimiento.' },
@@ -41325,7 +41361,13 @@ function _indEMRecom(D){
   if (D.avmMax == null) prev.push(D.avmIleg.length
     ? 'Área valvular mitral: ' + D.avmIleg.join(' y ') + ' fuera de rango medible — revisar la unidad'
     : 'Área valvular mitral (ninguna de las cuatro fuentes tiene valor)');
-  if (D.trombo.val == null) prev.push('Trombo en orejuela izquierda');
+  /* ⚠️ EL MISMO LITERAL QUE LA FILA, Y NO UNA SEGUNDA COPIA. Cuando el rótulo de la fila pasó a
+     «aurícula izquierda», esta lista quedó con el viejo y la MISMA tarjeta mostraba la fila con un
+     nombre y «Falta contestar» con el otro. Y es la rama MÁS frecuente, no un borde: `oai_trombo`
+     vive en la pestaña ETE, que en Modo Básico no existe, así que sin contestar es el estado
+     habitual — o sea que la superficie con el rótulo derogado era justo la que el médico lee
+     cuando tiene que ir a contestarlo. Lo encontró /sharp-edges. */
+  if (D.trombo.val == null) prev.push(EM_LBL_TROMBO);
   if (prev.length) return fal('La tabla de la estenosis mitral se apoya en el área valvular y en haber descartado trombo auricular: las dos son contraindicaciones del procedimiento.', prev);
   if (sx == null) return fal('Los síntomas son lo que separa la Clase I de la vigilancia en la estenosis mitral clínicamente significativa.', ['Síntomas']);
 
@@ -41492,9 +41534,15 @@ function _indEM(){
       if (x.L.val == null) return;
       filas.push(_indFila('AVm — ' + x.lbl, _indNum(x.L.val, 2, 'cm²'),
         _le(x.L.val, US) ? 'ok' : 'none',
+        /* ⚠️ LA CONTRAINDICACIÓN POR ÁREA TIENE SU PROPIA EXCEPCIÓN Y EL PANEL NO LA DECÍA:
+           afirmaba «contraindicación del procedimiento» a secas sobre un área de 1,6 cm², donde la
+           guía deja una puerta abierta. Nota ^a de la Tabla 8 de contraindicaciones, p. 4682: «PMC
+           may be considered in patients with MVA of >1.5 cm2 with symptoms that cannot be explained
+           by another cause and if the anatomy is favourable». */
         (_le(x.L.val, US) ? '≤ ' + _indNum(US, 1) + ' cm² — estenosis clínicamente significativa'
-         : 'mayor que ' + _indNum(US, 1) + ' cm² — por encima del corte de significación clínica, y contraindicación del procedimiento')
-        + (x.conBanda ? '' : ' · esta fuente no tiene banda de plausibilidad declarada en la app, así que el valor se toma como viene')));
+         : 'mayor que ' + _indNum(US, 1) + ' cm² — por encima del corte de significación clínica, y contraindicación del procedimiento; puede considerarse si hay síntomas sin otra causa y anatomía favorable')
+        + (x.conBanda ? '' : ' · esta fuente no tiene banda de plausibilidad declarada en la app, así que el valor se toma como viene'),
+        _le(x.L.val, US) ? null : ['esc2025vc']));
     });
   }
 
@@ -41509,10 +41557,16 @@ function _indEM(){
       return { txt: val === 'desfav' ? '> ' + EM_CRIT_2025.score_desfav + detalle
                   : val === 'fav' ? '≤ ' + EM_CRIT_2025.score_desfav + detalle : '—',
         marca: val == null ? 'ask' : (val === 'desfav' ? 'warn' : 'none'),
+        /* ⚠️ LAS DOS CITAS EN LA MISMA FILA, porque son dos documentos que dicen cosas distintas
+           sobre el mismo número: el > 8 es de la ESC y el artículo original no lo menciona —separa
+           en < 9 óptimo y > 11 subóptimo, y declara que entre 9 y 11 el score NO predijo el
+           resultado (p. 307)—. Decir sólo el > 8 deja creer que la franja 9-11 tiene un pronóstico
+           conocido, que es justo lo que el trabajo que inventó el score se cuidó de no afirmar. */
         nota: val === 'desfav'
-          ? 'UNA de las características anatómicas desfavorables, junto con la calcificación de Cormier 3 y la insuficiencia tricuspídea severa. No descalifica por sí sola: rutea a la fila de Clase IIa, no fuera del procedimiento.'
+          ? 'desfavorable según la guía: UNA de las características anatómicas, junto con la calcificación de Cormier 3 y la insuficiencia tricuspídea severa. No descalifica por sí sola: rutea a la fila de Clase IIa, no fuera del procedimiento. En el trabajo original, entre 9 y 11 el score no predijo el resultado.'
           : val === 'fav' ? 'no figura entre las características anatómicas desfavorables'
-          : 'la guía lo llama «score ecocardiográfico», no «Wilkins»; se puntúa en la pestaña ETE' };
+          : 'la guía lo llama «score ecocardiográfico», no «Wilkins»; se puntúa en la pestaña ETE',
+        refs: val === 'desfav' ? ['esc2025vc','wilkins1988'] : (val === 'fav' ? ['esc2025vc'] : null) };
     }));
   if (W && W.puntuados && W.puntuados < 4)
     filas.push(_indFila('Score — puntuación parcial', W.puntuados + ' de 4 criterios', 'ask',
@@ -41520,16 +41574,29 @@ function _indEM(){
 
   /* ── Trombo de orejuela: leído del ETE, o contestado acá ── */
   const oTrombo = _indOrigen(_indS('oai_trombo'), 'em.trombo');
-  filas.push(_indFilaOrigen('Trombo en orejuela izquierda', oTrombo,
+  /* ⚠️ EL RÓTULO VISIBLE PASÓ A «aurícula izquierda» Y EL id NO SE TOCÓ. La contraindicación que
+     la guía lista es «LA thrombus» —la aurícula entera— y la condicionalidad de la nota ^b es la
+     que se acota a la OREJUELA; el rótulo anterior nombraba la excepción como si fuera la regla.
+     El campo sigue siendo `oai_trombo` y la clave `em.trombo`: acá cambia lo que el médico lee. */
+  filas.push(_indFilaOrigen(EM_LBL_TROMBO, oTrombo,
     [{v:'no',t:'No se observó'},{v:'si',t:'Confirmado'},{v:'sospecha',t:'Sospecha'}],
     function(val){
       return { txt: val === 'si' ? 'Confirmado' : (val === 'sospecha' ? 'Sospecha' : (val === 'no' ? 'No se observó' : 'No evaluado')),
         marca: val === 'si' ? 'alarm' : (val === 'sospecha' ? 'warn' : (val === 'no' ? 'none' : 'ask')),
-        /* ⚠️ CONDICIONAL Y NO ABSOLUTA, y justo para la localización que mide este campo. */
-        nota: val === 'si' ? 'contraindicación — pero en la OREJUELA la guía admite considerar el procedimiento con anticoagulación 1-3 meses y ETE que confirme la resolución'
+        /* ⚠️ CONDICIONAL Y NO ABSOLUTA, y la excepción es SÓLO para la orejuela. Verificado sobre
+           el original inglés, Tabla 8 «Contraindications for percutaneous mitral commissurotomy in
+           rheumatic mitral stenosis», nota ^b, p. 4682: «When the thrombus is located in the LA
+           appendage, PMC may be considered in patients with contraindications to surgery or those
+           without urgent need for intervention, in whom OAC can be safely given for 1-3 months,
+           provided repeat TOE confirms resolution of thrombus».
+           ⚠️ Y LA TRADUCCIÓN ESPAÑOLA SE COMIÓ «appendage»: dice sólo «cuando el trombo se localiza
+           en la AI». Sobre ella este texto parecía atribuirle a la guía una restricción que no
+           tenía, y así se reportó el 2026-09-29. El original la tiene. */
+        nota: val === 'si' ? 'contraindicación — si está en la OREJUELA puede considerarse con contraindicación quirúrgica o sin urgencia, anticoagulando 1-3 meses y con un ETE que confirme la resolución'
         : val === 'sospecha' ? 'resolver antes de indicar el procedimiento'
         : val === 'no' ? 'la contraindicación de la guía es el trombo en la aurícula, no sólo en la orejuela'
-        : 'la indicación exige haber descartado trombo auricular, y el ETE es el estudio que lo hace' };
+        : 'la indicación exige haber descartado trombo auricular, y el ETE es el estudio que lo hace',
+        refs: ['esc2025vc'] };
     }));
 
   /* ── Insuficiencia mitral asociada: «más que leve» es contraindicación ── */
@@ -41642,7 +41709,15 @@ function _indEM(){
       'Contraindicaciones: AVm > ' + (US != null ? _indNum(US,1) : '1,5') + ' cm²; trombo en aurícula izquierda; insuficiencia mitral MÁS QUE LEVE —no «moderada o más»—; calcificación severa o bicomisural; ausencia de fusión comisural; valvulopatía aórtica severa o enfermedad tricuspídea combinada severa con indicación quirúrgica; coronariopatía que requiera revascularización quirúrgica. Esta sección evalúa las tres primeras; las otras cuatro no tienen campo y la recomendación las nombra.',
       { txt:'Que la insuficiencia mitral MÁS QUE LEVE contraindica el procedimiento lo dicen las dos guías: la ACC/AHA 2020 lo escribe con esas palabras —«MR that is more than mild is a contraindication to PMBC»— aunque sus propias filas operen con «menos que moderada».',
         refs:['ahaVc2020','esc2025vc'] },
-      { txt:'Con trombo en la aurícula izquierda la contraindicación es CONDICIONAL: la guía admite considerar el procedimiento con contraindicación quirúrgica o sin urgencia, anticoagulando 1-3 meses y con un ETE de control que confirme la resolución.',
+      /* ⚠️ ESTA NOTA ESTABA MAL Y SE COMMITEÓ MAL, y conviene saber cómo. Decía que con trombo «en
+         la aurícula izquierda» la contraindicación es CONDICIONAL, y no es así: lo que la guía
+         lista como contraindicación es el trombo auricular a secas, y la condicionalidad de la nota
+         ^b se acota a la OREJUELA. La afirmación ensanchaba la excepción a toda la aurícula, que es
+         el error más peligroso de los dos posibles. Verificado sobre el original inglés, p. 4682:
+         «When the thrombus is located in the LA APPENDAGE, PMC may be considered in patients with
+         contraindications to surgery or those without urgent need for intervention, in whom OAC can
+         be safely given for 1-3 months, provided repeat TOE confirms resolution of thrombus». */
+      { txt:'La contraindicación de la lista es el trombo auricular. La excepción es SÓLO para la orejuela: ahí puede considerarse el procedimiento con contraindicación quirúrgica o sin urgencia, anticoagulando 1-3 meses y con un ETE de control que confirme la resolución.',
         refs:['esc2025vc'] },
       'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
     ] };
@@ -43685,7 +43760,12 @@ function indicRender(){
        este bloque decía aplicar y aplicaba a medias. Lo encontró /sharp-edges; es preexistente y
        más ancho que esta ronda. */
     let hs = '';
-    try { r = s.fn(); if (r) hs = _indSecHTML(s.tit, r); } catch (e) { fallos++; return; }
+    /* ⚠️ EL AVISO MANDABA A UNA CONSOLA VACÍA. El `catch` contaba el fallo y la sección
+       desaparecía con «revisar la consola», donde no había NADA escrito: el médico veía una válvula
+       menos y el que fuera a mirar no encontraba ni el nombre de la sección. Lo encontró
+       /sharp-edges sobre este diff. */
+    try { r = s.fn(); if (r) hs = _indSecHTML(s.tit, r); }
+    catch (e) { fallos++; console.error('[IND] la sección «' + s.tit + '» lanzó y no se pinta:', e); return; }
     if (!r) return;
     n++;
     h += hs;
@@ -85498,8 +85578,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260930-0025';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790738738945;                 /* eco-build-ms */
+const ECO_BUILD    = '20260930-0150';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790743855128;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -85585,7 +85665,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260930-0025</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260930-0150</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

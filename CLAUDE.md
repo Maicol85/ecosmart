@@ -205,6 +205,102 @@ bibliografía**: ESC/EACTS 2025 (Tabla 8 de Recomendaciones y su tabla de contra
 ACC/AHA 2020 (Tabla 16, p. e113; recomendaciones p. e116), EAE/ASE 2009 Baumgartner (Tabla 9, p. 17)
 y Wilkins 1988 (Tablas 1-2, p. 300; resultados p. 307).
 
+### ⚠️ EL ORIGINAL INGLÉS DIO VUELTA UN HALLAZGO, Y UN REPORTE MÍO FUE FALSO (2026-09-30)
+
+Con `ehaf194.pdf` —el original del *European Heart Journal*, 102 páginas, **página de revista =
+página de PDF + 4634**— se cerraron las tres contradicciones del 29/09. Dos cosas que hay que saber:
+
+**1 · LA TRADUCCIÓN ESPAÑOLA SE COMIÓ UNA PALABRA, Y ESA PALABRA ERA TODO EL HALLAZGO.** La nota ^b
+de la Tabla 8 de contraindicaciones dice, en inglés (p. 4682):
+
+> «When the thrombus is located in the **LA appendage**, PMC may be considered in patients with
+> contraindications to surgery or those without urgent need for intervention, in whom OAC can be
+> safely given for 1–3 months, provided repeat TOE confirms resolution of thrombus.»
+
+La traducción de la SEC dice sólo «cuando el trombo se localiza en la AI». Sobre ella reporté que el
+panel le atribuía a la guía una restricción de localización que no tenía. **El panel tenía razón y el
+reporte estaba mal.** La salvedad que dejé escrita entonces —«el original podría decir LA appendage,
+sin el PDF del EHJ no se cierra»— era exactamente el caso, y es la única razón por la que se reportó
+en vez de corregirse. **Regla que queda: una traducción no cierra un hallazgo de wording.**
+
+**2 · ⚠️ Y UN REVERT QUE REPORTÉ COMO APLICADO NUNCA LLEGÓ AL COMMIT.** En la ronda del 29/09 cambié
+el texto del trombo, me di cuenta de que eso era corregir contenido clínico, lo revertí, lo verifiqué
+y lo reporté como revertido. **`b4c8485` tiene el texto cambiado.** La causa: `/tmp/mut_em.py`
+termina con `shutil.copyfile('/tmp/index.orig.html', 'index.html')`, y ese snapshot se había tomado
+**antes** del revert — así que la restauración lo deshizo en silencio, sin error, sin diff visible en
+la corrida, y el commit siguiente se llevó el texto equivocado con mi reporte afirmando lo contrario.
+**Los scripts de mutación ahora comparan el md5 del snapshot contra el archivo vivo y ABORTAN si no
+coinciden.** Un arnés que restaura desde un snapshot es una máquina de deshacer ediciones.
+
+Y el texto que se commiteó estaba mal en la dirección peligrosa: decía que con trombo «en la aurícula
+izquierda» la contraindicación es CONDICIONAL, o sea **ensanchaba la excepción a toda la aurícula**
+cuando la guía la acota a la orejuela.
+
+### Los cuatro textos corregidos contra el original inglés (aprobados por Maicol, 2026-09-30)
+
+1. **TEER.** Decía «dejó de exigir que fuera inoperable» y es **falso**: la fila 2021 (Tabla 4,
+   p. 4647) dice «are judged **inoperable or at high surgical risk**», una disyunción. Lo que 2025
+   quitó son los criterios ecocardiográficos de elegibilidad y la cláusula de futilidad. Ya lleva su
+   cita. **Estaba en DOS lugares** —la nota de `notas` y la de la recomendación— y el segundo lo
+   encontró la medición en Chrome, no la lectura.
+2. **Trombo.** El rótulo pasó a «Trombo en aurícula izquierda»: la contraindicación de la lista es el
+   trombo auricular y la excepción de la nota ^b se acota a la orejuela, así que el rótulo viejo
+   nombraba la excepción como si fuera la regla. **`oai_trombo` y `em.trombo` NO se tocaron.**
+3. **AVm > 1,5 cm².** El panel decía «contraindicación del procedimiento» a secas. La nota ^a
+   (p. 4682) deja una puerta abierta: «PMC may be considered in patients with MVA of >1.5 cm2 with
+   symptoms that cannot be explained by another cause and if the anatomy is favourable».
+4. **Score.** Ahora dice «desfavorable según la guía» **y** que en el trabajo original entre 9 y 11
+   el score no predijo el resultado, con las dos citas.
+
+**⚠️ EL RÓTULO DEL SCORE «Resultado subóptimo probable» NO SE TOCÓ, y hay que saber por qué.** Vive
+en `calcWilkins()`, y `amiloTextoWilkins()` lee el **texto renderizado** de `#wilkins-interp` y lo
+publica como «Interpretación | …» en una **hoja del PDF** (`{k:'wilk', gen:amiloTextoWilkins}`) y en
+el estudio guardado (`am-txt-wilk`). Cambiarlo en la calculadora lo cambia en el informe firmado, que
+está fuera de alcance. Queda **reportado y pendiente de decisión**: el rótulo afirma un pronóstico
+para la franja 9-11 que Wilkins 1988 declara que no pudo predecir.
+
+### Páginas de la edición inglesa, que reemplazan a las de la traducción
+
+Tabla 4 (fila del TEER) **p. 4647** · Figura 10 **p. 4672** · Tabla 6 de Recomendaciones
+**p. 4674-4675** · Figura 12 **p. 4676** · Figura 14 **p. 4681** · Tabla 8 de Recomendaciones y
+Tabla 8 de contraindicaciones con sus notas ^a y ^b **p. 4682**. El «p. 4682» que este archivo
+arrastraba de una referencia secundaria **era correcto**; lo que no se podía era verificarlo.
+
+### Lo que `/sharp-edges` levantó sobre este diff, y dos cosas que rompió mi propio arnés
+
+- **⚠️ EL RÓTULO DEL TROMBO TENÍA UNA SEGUNDA COPIA.** `_indEMRecom` empujaba `'Trombo en orejuela
+  izquierda'` a su lista de faltantes, así que la MISMA tarjeta mostraba la fila con un nombre y
+  «Falta contestar» con el otro — y es la rama **más frecuente**, porque `oai_trombo` vive en la
+  pestaña ETE, que en Modo Básico no existe. Hoy los dos salen de `EM_LBL_TROMBO`.
+- **`refs` como string reventaba la sección ENTERA en silencio.** El mecanismo usa `ref` (string) en
+  `guia` y `refs` (array) en filas y notas: un carácter de diferencia. `(f.refs||[]).map` sobre un
+  string tira `TypeError`, `indicRender` lo cuenta como fallo y la sección desaparece con un
+  «revisar la consola» **que no tenía nada escrito**. Se normaliza en `_indFila`/`_indFilaCtrl`, el
+  corchete no se pinta sin nota que citar, y el `catch` de `indicRender` ahora **grita con el nombre
+  de la sección**.
+- **TRES CASOS QUEDARON ROJOS EN LA LÍNEA BASE Y CASI FALSEAN LA TANDA DE MUTACIÓN.** Con TC-323,
+  TC-326 y TC-327 rojos de entrada, las diez mutaciones salían «en rojo» sin que eso probara nada:
+  el rojo ya estaba. Los tres eran míos: TC-326 anclaba la frase falsa que acababa de borrar —y por
+  lo tanto **empujaba a reintroducirla** para ponerlo en verde—; TC-327 fijaba un orden de
+  bibliografía copiado del escenario de TC-328, que sí siembra los `wilkins_*`; y TC-323 medía la
+  diferencia de corchetes sobre la sección entera, que ahora difiere en DOS porque la fila del score
+  cita a Wilkins sólo cuando sale desfavorable. **Antes de leer una tanda de mutación, correr la
+  línea base.**
+- **⚠️ UNA MUTACIÓN QUEDÓ SIN COBERTURA Y SE DECLARA: el rótulo duplicado del trombo.** El defecto
+  está corregido —los dos sitios salen de `EM_LBL_TROMBO`— y verificado por lectura y por medición
+  directa en Chrome, que muestra «Falta contestar: Trombo en aurícula izquierda». Pero **reintroducir
+  la copia vieja no pone ningún caso en rojo**. La condición que escribí para cubrirla falla por el
+  denominador y la persiguió tres rondas: la segunda pasada de TC-328 no llegaba a la rama porque
+  con AVm 1,6 la contraindicación por área corta la cascada antes (corregido a 1,2), y porque
+  `__t.limpiar()` **no limpia `_indClin`**, así que la primera pasada dejaba `em.trombo` contestado
+  y `D.trombo.val` nunca era null (corregido desmarcando la opción activa). Con las dos cosas
+  arregladas el caso pasa igual mutado, o sea que la segunda aparición del rótulo que cuenta **no es
+  la de la lista de faltantes**. Queda como hueco declarado, no como cobertura que no existe.
+- **La numeración de EM pasó a depender del paciente**: `wilkins1988` es [2] con score desfavorable y
+  [5] sin él, porque las filas se pintan antes que las notas y la numeración es por primera
+  aparición. Es consecuencia declarada del diseño, y ahora lo fijan TC-327 y TC-328 por separado —
+  cada uno contra **su propio** escenario.
+
 ### ⚠️ TRES COSAS QUE LA FUENTE PRIMARIA DESMIENTE — REPORTADAS, NO CORREGIDAS
 
 Ninguna se tocó: son contenido clínico y la decisión es de Maicol.

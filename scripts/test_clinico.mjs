@@ -30857,11 +30857,22 @@ caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declara
       const secDe = lbl => Array.prototype.filter.call(
         document.querySelectorAll('#indic-cuerpo > details'),
         d => { const su = d.querySelector('summary'); return !!su && su.textContent === lbl; })[0] || null;
+      /* ⚠️ SE CUENTAN LOS CORCHETES QUE **NO** ESTAN EN UNA FILA. Los dos escenarios difieren en la
+         anatomia (score 8 vs 10), y desde que la fila del score cita a Wilkins solo cuando sale
+         «desfavorable», la seccion entera difiere en DOS corchetes y no en uno: el de la segunda
+         fila de recomendacion mas el de Wilkins. Lo que este caso mide es el aporte de la SEGUNDA
+         FILA, asi que se restan los de la tabla y queda aislado. */
+      const fueraDeFila = d => { if (!d) return -1;
+        const tot = d.querySelectorAll('[data-ind-ref]').length;
+        let enFilas = 0;
+        Array.prototype.forEach.call(d.querySelectorAll('tr'), function(tr){
+          enFilas += tr.querySelectorAll('[data-ind-ref]').length; });
+        return tot - enFilas; };
       const dDob = secDe('Estenosis mitral');
-      const nDob = dDob ? dDob.querySelectorAll('[data-ind-ref]').length : -1;
+      const nDob = fueraDeFila(dDob);
       esc(Object.assign({}, REU, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN));
       const dUno = secDe('Estenosis mitral');
-      const nUno = dUno ? dUno.querySelectorAll('[data-ind-ref]').length : -1;
+      const nUno = fueraDeFila(dUno);
       /* ⚠️ LA DIFERENCIA, NO EL ABSOLUTO. Este caso fijaba «3 y 2», que eran los corchetes que la
          seccion tenia cuando se escribio; al ampliarse la bibliografia a cuatro documentos pasaron a
          20 y 19 y el caso se puso rojo sin que nada del desdoble se hubiera roto. Lo que mide de
@@ -38925,6 +38936,191 @@ caso('TC-324', 'Evidencia: tres valvulopatias a la vez, cada seccion con su nume
    · El «> 8» del score es de la ESC, NO de Wilkins. El articulo original no menciona ningun 8:
      separa en < 9 y > 11 y declara que entre 9 y 11 el score no predijo nada. La nota que lo aclara
      lleva las dos citas, y sin ella la app estaria atribuyendo a Wilkins un corte que no escribio. */
+/* Los CUATRO textos que Maicol aprobo el 30/09/2026 despues de leer el original ingles
+   (ehaf194.pdf, Eur Heart J 2025;46(44):4635-4736). Cada uno se fija por el TEXTO VISIBLE y por SU
+   corchete, porque los dos se pueden perder por separado: una correccion sin cita no se puede
+   auditar, y una cita sobre el texto viejo respalda lo que la fuente niega.
+   ⚠️ EL DEL TEER SE MIDE EN SUS DOS APARICIONES. La frase falsa —«dejo de exigir que fuera
+   inoperable»— vivia en DOS lugares de la seccion de IM: la nota de `notas` y la nota de la
+   recomendacion. Se corrigio el primero y la medicion en Chrome encontro el segundo diciendo lo
+   mismo cuatro lineas abajo. Un caso que mire solo uno deja al panel contradiciendose. */
+caso('TC-328', 'Evidencia: los cuatro textos corregidos contra el original ingles, cada uno con su cita', `
+  return (async () => {
+    const R = {}, ex = [];
+    const pl = x => String(x == null ? '' : x).toLowerCase().normalize('NFD')
+      .split('').filter(function(ch){ const c = ch.charCodeAt(0); return c < 768 || c > 879; }).join('');
+    const cuerpo = () => document.getElementById('indic-cuerpo');
+    const secDe = frag => Array.prototype.slice.call(cuerpo().querySelectorAll(':scope > details'))
+      .filter(function(d){ return pl(d.querySelector('summary').textContent).indexOf(pl(frag)) > -1; })[0] || null;
+
+    __t.limpiar();
+    /* AVm 1,6 para que la fila caiga en la rama de «mayor que el corte», que es la que lleva la
+       excepcion de la nota a. Y el score en 11 para que caiga en «desfavorable». */
+    const CAMPOS = { peso:'80', talla:'180', edad:'68', sexo:'M', fevi:'55', dsfvi:'42', ddfvi:'58',
+      ai_vol:'70', ai_diam:'58', im_sev_final:'4', im_vc:'8', it_grado:'2',
+      vm_morf:'Reum\u00e1tica', avm_plan:'1.6', em_grado:'severa',
+      wilkins_movilidad:'3', wilkins_engrosamiento:'3', wilkins_calcificacion:'2', wilkins_subvalvular:'3',
+      oai_trombo:'si' };
+    R.faltan = [];
+    Object.keys(CAMPOS).forEach(function(k){
+      const e = document.getElementById(k);
+      if (!e) { R.faltan.push(k); return; }
+      try { __t.set(k, CAMPOS[k]); } catch (e2) { R.faltan.push(k + ':' + e2.message); }
+    });
+    if (typeof calcWilkins === 'function') calcWilkins();
+    indicAbrir();
+    await new Promise(r => setTimeout(r, 520));
+    for (let i = 0; i < 60; i++) {
+      const pend = Array.prototype.slice.call(cuerpo().querySelectorAll('[data-ind-clin][data-ind-val]'))
+        .filter(function(b){ return _indClinGet(b.getAttribute('data-ind-clin')) == null; });
+      if (!pend.length) break;
+      pend[0].click();
+    }
+
+    const secIM = secDe('mitral primaria'), secEM = secDe('estenosis mitral');
+    R.hayIM = !!secIM; R.hayEM = !!secEM;
+
+    /* Una fila por su rotulo: se devuelve el texto de la celda de nota y las claves citadas ahi. */
+    const fila = function(sec, rot){
+      if (!sec) return null;
+      const tr = Array.prototype.slice.call(sec.querySelectorAll('tr')).filter(function(t){
+        const td = t.querySelectorAll('td');
+        return td.length >= 3 && pl(td[0].textContent).indexOf(pl(rot)) > -1;
+      })[0];
+      if (!tr) return null;
+      const td = tr.querySelectorAll('td');
+      return { lbl: td[0].textContent.trim(), nota: pl(td[2].textContent),
+        refs: Array.prototype.slice.call(td[2].querySelectorAll('[data-ind-ref]'))
+          .map(function(x){ return x.getAttribute('data-ind-ref'); }) };
+    };
+    /* Las notas hoja, sin la bibliografia: sus entradas tambien son div hoja. */
+    const hojas = function(sec){
+      return sec ? Array.prototype.slice.call(sec.querySelectorAll('details div div'))
+        .filter(function(d){ return d.querySelectorAll('div').length === 0 && !d.closest('[data-ind-biblio]'); }) : [];
+    };
+    const notasCon = function(sec, frag){
+      return hojas(sec).filter(function(d){ return pl(d.textContent).indexOf(pl(frag)) > -1; })
+        .map(function(d){ return { txt: pl(d.textContent),
+          refs: Array.prototype.slice.call(d.querySelectorAll('[data-ind-ref]'))
+            .map(function(x){ return x.getAttribute('data-ind-ref'); }) }; });
+    };
+
+    // ── 1 · TEER: la frase falsa NO esta en ninguna parte, y la corregida lleva su cita ──
+    R.teerFalso = hojas(secIM).filter(function(d){
+      return pl(d.textContent).indexOf('dejo de exigir que fuera inoperable') > -1 ||
+             pl(d.textContent).indexOf('dejo de exigir que el paciente fuera inoperable') > -1; }).length;
+    R.teer = notasCon(secIM, 'teer');
+    R.teerConCita = R.teer.filter(function(n){ return n.refs.indexOf('esc2025vc') > -1; }).length;
+    R.teerDisy = R.teer.filter(function(n){
+      return n.txt.indexOf('inoperable o') > -1 || n.txt.indexOf('al inoperable o al de riesgo alto') > -1; }).length;
+
+    // ── 2 · Trombo: rotulo visible nuevo, id intacto, texto con la excepcion y su cita ──
+    R.trombo = fila(secEM, 'trombo');
+    R.tromboIdIntacto = !!document.getElementById('oai_trombo');
+    R.tromboClaveIntacta = !!cuerpo().querySelector('[data-ind-clin="em.trombo"]') ||
+      _indClinGet('em.trombo') !== undefined;
+
+    // ── 3 · AVm > 1,5: la excepcion de la nota a, con su cita ──
+    R.avm = fila(secEM, 'avm');
+
+    // ── 4 · Score: las dos citas y la franja 9-11 ──
+    R.score = fila(secEM, 'score ecocardiografico');
+
+    ex.push(['DENOMINADOR: las dos secciones pintadas con sus filas y sus controles contestados',
+      R.hayIM && R.hayEM && R.faltan.length === 0 && !!R.trombo && !!R.avm && !!R.score,
+      'IM=' + R.hayIM + ' EM=' + R.hayEM + ' faltan=' + JSON.stringify(R.faltan) +
+      ' trombo=' + !!R.trombo + ' avm=' + !!R.avm + ' score=' + !!R.score]);
+
+    ex.push(['1 · TEER: la frase falsa NO sobrevive en ninguna de sus dos apariciones, y la corregida cita',
+      R.teerFalso === 0 && R.teer.length >= 2 && R.teerConCita >= 1 && R.teerDisy >= 2,
+      'falsas=' + R.teerFalso + ' notas=' + R.teer.length + ' conCita=' + R.teerConCita +
+      ' conDisyuncion=' + R.teerDisy]);
+
+    ex.push(['2 · Trombo: rotulo «auricula izquierda», excepcion de la orejuela, cita, y el id SIN tocar',
+      !!R.trombo && pl(R.trombo.lbl).indexOf('auricula izquierda') > -1 &&
+      pl(R.trombo.lbl).indexOf('orejuela') === -1 &&
+      R.trombo.nota.indexOf('orejuela') > -1 && R.trombo.nota.indexOf('1-3 meses') > -1 &&
+      R.trombo.nota.indexOf('ete') > -1 && R.trombo.refs.indexOf('esc2025vc') > -1 &&
+      R.tromboIdIntacto === true,
+      'lbl=«' + (R.trombo ? R.trombo.lbl : '-') + '» refs=' + JSON.stringify(R.trombo ? R.trombo.refs : []) +
+      ' idIntacto=' + R.tromboIdIntacto]);
+
+    ex.push(['3 · AVm > 1,5: dice la excepcion —sintomas sin otra causa y anatomia favorable— y cita',
+      !!R.avm && R.avm.nota.indexOf('contraindicacion del procedimiento') > -1 &&
+      R.avm.nota.indexOf('sintomas sin otra causa') > -1 &&
+      R.avm.nota.indexOf('anatomia favorable') > -1 &&
+      R.avm.refs.indexOf('esc2025vc') > -1,
+      'nota=«' + (R.avm ? R.avm.nota.slice(0, 120) : '-') + '» refs=' + JSON.stringify(R.avm ? R.avm.refs : [])]);
+
+    ex.push(['4 · Score: desfavorable por la guia MAS la franja 9-11 de Wilkins, con las DOS citas',
+      !!R.score && R.score.nota.indexOf('desfavorable segun la guia') > -1 &&
+      R.score.nota.indexOf('entre 9 y 11 el score no predijo') > -1 &&
+      R.score.refs.indexOf('esc2025vc') > -1 && R.score.refs.indexOf('wilkins1988') > -1,
+      'nota=«' + (R.score ? R.score.nota.slice(0, 130) : '-') + '» refs=' + JSON.stringify(R.score ? R.score.refs : [])]);
+
+    /* ── SEGUNDA PASADA: EL ROTULO DEL TROMBO SIN CONTESTAR ──
+       ⚠️ ESTA CONDICION EXISTE PORQUE LA MUTACION LO PIDIO: duplicar el rotulo en la lista de
+       faltantes de _indEMRecom SOBREVIVIA a todo el resto del caso. Y es la rama MAS frecuente,
+       no un borde: oai_trombo vive en la pestana ETE, que en Modo Basico no existe, asi que sin
+       contestar es el estado habitual — la misma tarjeta mostraba la fila con un nombre y «Falta
+       contestar» con el otro, y el que quedaba con el rotulo derogado era justo el que manda al
+       medico a cargarlo. Se mide con el campo VACIO, que es lo unico que enciende esa rama. */
+    __t.limpiar();
+    /* ⚠️ AVm 1,2 Y NO 1,6 EN ESTA PASADA. Con el area POR ENCIMA del corte la contraindicacion por
+       area corta la cascada antes y nunca se llega a la lista de faltantes: la mutacion que duplica
+       el rotulo SOBREVIVIA con la condicion puesta, verde sobre una rama que no se ejercia. */
+    const SIN_TROMBO = Object.assign({}, CAMPOS, { avm_plan:'1.2' });
+    delete SIN_TROMBO.oai_trombo;
+    Object.keys(SIN_TROMBO).forEach(function(k){
+      const e = document.getElementById(k); if (!e) return;
+      try { __t.set(k, SIN_TROMBO[k]); } catch (e2) {}
+    });
+    if (typeof calcWilkins === 'function') calcWilkins();
+    indicAbrir();
+    await new Promise(r => setTimeout(r, 520));
+    for (let i = 0; i < 60; i++) {
+      const pend = Array.prototype.slice.call(cuerpo().querySelectorAll('[data-ind-clin][data-ind-val]'))
+        .filter(function(b){ const k = b.getAttribute('data-ind-clin');
+          return k !== 'em.trombo' && _indClinGet(k) == null; });
+      if (!pend.length) break;
+      pend[0].click();
+    }
+    /* ⚠️ __t.limpiar() NO LIMPIA _indClin, y la PRIMERA pasada ya contesto em.trombo. Sin
+       desmarcarlo, D.trombo.val no es null, la cascada no llega a la lista de faltantes y la
+       condicion de abajo quedaba VERDE sobre una rama que no se ejercia — la mutacion que duplica
+       el rotulo sobrevivio dos tandas por esto. Un segundo toque sobre la opcion ACTIVA la
+       desmarca, que es el unico camino que el panel ofrece para volver a null. */
+    for (let i = 0; i < 6 && _indClinGet('em.trombo') != null; i++) {
+      const act = cuerpo().querySelector('[data-ind-clin="em.trombo"][data-ind-val="' +
+        _indClinGet('em.trombo') + '"]');
+      if (!act) break;
+      act.click();
+    }
+    R.tromboDesmarcado = _indClinGet('em.trombo');
+    const secEM2 = secDe('estenosis mitral');
+    R.sinTrombo = (function(){
+      if (!secEM2) return null;
+      const t = pl(secEM2.textContent);
+      return { viejo: t.indexOf('trombo en orejuela izquierda') > -1,
+               nuevo: (t.split('trombo en auricula izquierda').length - 1),
+               declara: t.indexOf('falta') > -1 };
+    })();
+
+    ex.push(['con el trombo SIN contestar, el rotulo derogado no reaparece en la lista de faltantes',
+      /* DOS apariciones del rotulo nuevo: la de la FILA y la de la lista de faltantes. Esa segunda
+         es la rama que se quiere ejercer, y con la mutacion pasa a decir «orejuela», o sea
+         viejo true y nuevo 1. El declara que habia aca era un cinturon redundante y ademas
+         daba falso: lo que prueba la rama es la segunda aparicion, no la palabra «falta». */
+      R.tromboDesmarcado == null && !!R.sinTrombo && R.sinTrombo.viejo === false &&
+      R.sinTrombo.nuevo >= 2,
+      'desmarcado=' + R.tromboDesmarcado + ' ' + JSON.stringify(R.sinTrombo)]);
+
+    return { resumen: JSON.stringify({ teerFalso: R.teerFalso, trombo: R.trombo && R.trombo.lbl,
+      avmRefs: R.avm && R.avm.refs, scoreRefs: R.score && R.score.refs,
+      sinTrombo: R.sinTrombo }), extra: ex };
+  })();
+`);
+
 caso('TC-327', 'Evidencia EM: cuatro documentos verificados, y las dos discrepancias citadas por las DOS fuentes', `
   return (async () => {
     const R = {}, ex = [];
@@ -38941,7 +39137,7 @@ caso('TC-327', 'Evidencia EM: cuatro documentos verificados, y las dos discrepan
        DOS tablas, asi que sacarle la Tabla 9 y su pagina SOBREVIVIA con la Tabla 8 intacta. Se exige
        el DATO EXACTO que cada cita existe para transportar — el que un lector iria a buscar —, que
        es lo unico que distingue una referencia util de una decorativa. */
-    const ANCLAS = { esc2025vc:['tabla 6 de recomendaciones', 'traduccion de la sociedad espanola'],
+    const ANCLAS = { esc2025vc:['tabla 6 de recomendaciones', '4635-4736', 'p. 4682'],
                      ahaVc2020:['tabla 16', 'e113', 'e116'],
                      eaeAseEst2009:['tabla 9', 'p. 17', '< 1,0 cm'],
                      wilkins1988:['p. 300', '0 a 16', '> 11', '< 9', 'p. 307'] };
@@ -39006,6 +39202,13 @@ caso('TC-327', 'Evidencia EM: cuatro documentos verificados, y las dos discrepan
 
     ex.push(['su bibliografia lista los CUATRO documentos mas el marcador de criterio propio',
       R.items.length === 5 &&
+      /* ⚠️ ESTE ORDEN ES EL DE **ESTE** ESCENARIO, y me equivoque una vez copiando el de TC-328.
+         Aca NO se siembran los wilkins_*, asi que el score queda sin puntuar, el bucle contesta la
+         primera opcion —«≤ 8»— y la fila del score cita SOLO a la ESC: Wilkins recien aparece en la
+         nota del final y por eso es [5]. En TC-328, que si siembra 3/3/2/3, la fila sale
+         «desfavorable», cita a Wilkins y lo sube a [2]. Las dos cosas son correctas porque la
+         numeracion es por PRIMERA APARICION — y que dependa del paciente es la consecuencia, no un
+         defecto. Verificar contra el escenario propio, no contra el del caso de al lado. */
       JSON.stringify(R.items) === JSON.stringify(['esc2025vc','ahaVc2020','eaeAseEst2009','ecosmart','wilkins1988']) &&
       R.sinNumerar === 0 && R.noRegistrada === 0,
       'items=' + JSON.stringify(R.items) + ' sinNumerar=' + R.sinNumerar +
@@ -39041,7 +39244,7 @@ caso('TC-327', 'Evidencia EM: cuatro documentos verificados, y las dos discrepan
   })();
 `);
 
-caso('TC-326', 'Evidencia IM: la bibliografia cita TRES documentos verificados, y la nota del TEER sigue sin cita', `
+caso('TC-326', 'Evidencia IM: la bibliografia cita TRES documentos verificados, y la nota del TEER cita la disyuncion', `
   return (async () => {
     const R = {}, ex = [];
     const pl = x => String(x == null ? '' : x).toLowerCase().normalize('NFD')
@@ -39097,15 +39300,26 @@ caso('TC-326', 'Evidencia IM: la bibliografia cita TRES documentos verificados, 
 
     /* La nota del TEER: presente, y SIN ningun corchete pegado. Se aisla su propio div del detalle
        para no mirar los corchetes de las notas vecinas. */
+    /* ⚠️ REAPUNTADO 2026-09-30: LA PREMISA DE ESTA CONDICION QUEDO DEROGADA. Este caso afirmaba
+       que la nota del TEER seguia SIN cita, y era correcto mientras su texto dijera «dejo de exigir
+       que fuera inoperable» —una frase que la ESC/EACTS 2025 desmiente—. Con el original ingles a
+       la vista (p. 4647) el texto se corrigio a la disyuncion y la nota RECUPERO su cita. Dejar la
+       condicion vieja habria empujado a reintroducir la frase falsa para ponerla en verde, que es
+       el modo de falla que este archivo documenta con TC-45, TC-288, TC-314 y TC-177. Hoy mide lo
+       contrario y por los dos lados: la frase falsa NO esta, y la corregida SI cita. */
     R.teer = (function(){
       if (!secIM) return null;
       /* SOLO los div HOJA: details div div matchea tambien a los ancestros, asi que el mismo
          texto se encontraba TRES veces y la condicion se caia sobre un arbol correcto. */
       const divs = Array.prototype.slice.call(secIM.querySelectorAll('details div div'))
         .filter(function(d){ return d.querySelectorAll('div').length === 0; });
-      const cand = divs.filter(function(d){ return pl(d.textContent).indexOf('dejo de exigir que fuera inoperable') > -1; });
-      if (cand.length !== 1) return { n:cand.length };
-      return { n:1, conCorchete: cand[0].querySelectorAll('[data-ind-ref]').length };
+      const falsa = divs.filter(function(d){
+        return pl(d.textContent).indexOf('dejo de exigir que fuera inoperable') > -1 ||
+               pl(d.textContent).indexOf('dejo de exigir que el paciente fuera inoperable') > -1; });
+      const buena = divs.filter(function(d){ return pl(d.textContent).indexOf('teer') > -1 &&
+               pl(d.textContent).indexOf('inoperable o') > -1; });
+      return { falsas: falsa.length, buenas: buena.length,
+        conCorchete: buena.filter(function(d){ return d.querySelectorAll('[data-ind-ref="esc2025vc"]').length > 0; }).length };
     })();
 
     ex.push(['DENOMINADOR: la seccion de IM se pinto y sus controles se contestaron',
@@ -39152,8 +39366,8 @@ caso('TC-326', 'Evidencia IM: la bibliografia cita TRES documentos verificados, 
       !!R.notasAHA && R.notasAHA.n >= 2 && R.notasAHA.conCita === R.notasAHA.n,
       JSON.stringify(R.notasAHA)]);
 
-    ex.push(['la nota del TEER esta, y NO lleva cita: la fuente desmiente su ultima frase',
-      !!R.teer && R.teer.n === 1 && R.teer.conCorchete === 0,
+    ex.push(['la nota del TEER dice la DISYUNCION y lleva su cita; la frase falsa no sobrevive',
+      !!R.teer && R.teer.falsas === 0 && R.teer.buenas >= 1 && R.teer.conCorchete >= 1,
       JSON.stringify(R.teer)]);
 
     return { resumen: JSON.stringify({ items: R.items, nums: R.nums, teer: R.teer }), extra: ex };
