@@ -3566,7 +3566,18 @@ window.cerrarSesionReal = cerrarSesionReal;
       <!-- Fila 2: resultados -->
       <div class="grid-4">
         <div class="fg">
-          <label>EROA continuidad (mm²) — auto</label>
+          <!-- ⚠️ LA RELACIÓN ENTRE LOS DOS CORTES ES ARITMÉTICA, NO UNA CITA, y por eso el texto no
+               lleva corchete ni guía: `EROA = Vol-R ÷ VTI del chorro`, así que los dos umbrales de
+               severidad —EROA ≥ 40 mm² y Vol-R ≥ 60 ml— describen al MISMO paciente sólo cuando el
+               VTI del chorro vale 150 cm (60 ÷ 0,40). Con 100 cm un Vol-R justo en el corte da una
+               EROA de 60 mm², o sea severa con holgura; con 200 cm da 30 mm², o sea por debajo del
+               corte con el Vol-R ya severo. Publicar los dos números sin ese reparo invita a leer
+               una discordancia donde lo que hay es la fórmula.
+               ⚠️ Y LA SEGUNDA MITAD DE LA FRASE ESTÁ VERIFICADA, no supuesta: esta EROA NO vota el
+               grado. El único EROA que entra a `scores`/`params` en `calcIM_ESC` es el de PISA
+               (`eroa-val`, 2πr²·Vali/Vmax); `im_eroa_cont` tiene tres lectores y los tres son del
+               PDF —el mapa `_PDF_METODOS`, `_imMetodoPdfVal` y el gate de la casilla—. -->
+          <label title="EROA = Vol-R ÷ VTI del chorro de IM por CW. Los dos cortes de severidad de la guía —EROA ≥ 40 mm² y Vol-R ≥ 60 ml— sólo coinciden con un VTI de chorro de 150 cm, porque 60 ÷ 0,40 = 150. Con un VTI menor la EROA sale inflada respecto del Vol-R y con uno mayor sale reducida: es aritmética de la fórmula, no una discrepancia entre guías. Esta EROA NO vota. El grado integrado de IM sale de la vena contracta, el jet sobre área auricular, el EROA por PISA con sus derivados y la onda S pulmonar; el Vol-R y la fracción regurgitante por continuidad gradúan sólo la cápsula «Severidad (continuidad)» de este mismo cuadro, que tampoco vota. Ver «Referencia clínica» en la ayuda.">EROA continuidad (mm²) — auto <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></label>
           <input type="text" id="im_eroa_cont" readonly style="font-weight:700;">
         </div>
         <div class="fg">
@@ -23360,8 +23371,19 @@ function calcIM_ESC() {
   const _ratioNoAplica = (_iaRatio === null || _iaRatio >= IM_RATIO_IA_MAX);
   if (ratioEl) {
     if (_ratioNoAplica) {
-      /* «—» a secas, SIN texto nuevo: el pedido prohíbe agregar copy, y el porqué vive en el ⓘ
-         de la fila, que es donde el resto de las salvedades de este calc-box ya viven. */
+      /* ⚠️ LA FILA QUEDA EN «—» PELADO, Y ESO ESTÁ DECIDIDO — NO ES UNA DEUDA PENDIENTE.
+         TC-311 lo fija con TRES condiciones que comparan contra «—» exacto, y UNA de las tres lleva
+         además la frase «sin texto nuevo» con esas palabras: es una decisión del pedido que creó
+         este gate, no una expectativa que se olvidó de actualizar.
+         El 2026-09-30 se intentó nombrar el motivo acá —«no aplica con IAo moderada o mayor»— para
+         cerrar la deuda que este archivo declara («"—" significa tres cosas y el porqué vive en el
+         `title`, que en táctil no existe») y el caso se puso en rojo en las tres. Se revirtió: el
+         costo está declarado y la salida es una decisión de Maicol, no un arreglo de paso.
+         Quien la retome: el cambio es de UNA línea acá y reapuntar esas tres condiciones de
+         TC-311; lo que NO se puede es hacerlo sin decidirlo, porque el caso lo dice explícito.
+         Mientras tanto el porqué se publica en el panel de Evidencia, que sí es alcanzable con el
+         dedo: `_indIM.notas` lo explica con sus dos citas numeradas —la condición de la ASE 2023 y
+         el marcador `ecosmart` para el fail-closed, que ninguna guía contempla—. */
       ratioEl.textContent = '—';
     } else if (_pVtimR.fuera) {
       ratioEl.textContent = 'VTI de entrada fuera de rango — verificar';
@@ -39849,7 +39871,47 @@ const IND_REFS = Object.freeze([
          'percutáneo de la fuga periprotésica razonable con hemólisis intratable o NYHA III-IV, ' +
          'riesgo alto o prohibitivo y anatomía apta, en un centro de referencia (Clase 2a · ' +
          'Nivel B-NR). ⚠️ Su fila de valve-in-valve percutáneo está escrita para la prótesis ' +
-         'AÓRTICA y no se cita para la mitral.' }
+         'AÓRTICA y no se cita para la mitral.' },
+  /* ── AÑADIDA 2026-09-30 PARA LA MITRAL REUMÁTICA. Leída en texto completo sobre el PDF, con
+     tabla y página releídas antes de escribir la cita. El folio de revista coincide con la
+     página impresa del PDF (folio = índice de página del PDF + 3).
+     ⚠️ ES DE CARDIOPATÍA REUMÁTICA, y eso acota dónde se la puede citar. Sus cortes de estenosis
+     son para la EM REUMÁTICA —la sección del panel ya tiene compuerta por etiología— y sus
+     cuantitativos de regurgitación son para la IM REUMÁTICA. Prestársela a una estenosis
+     degenerativa o a una insuficiencia de otro mecanismo sería atribuirle a la fuente un alcance
+     que no tiene, que es lo que este registro persigue desde la nota del NT-proBNP.
+     ⚠️ Y SE CONTRADICE CONSIGO MISMA EN EL OPERADOR DEL ÁREA: el cuerpo de la p. 7 dice «MVA less
+     than 1.5 cm2 is considered severe MS» —o sea `<` estricto— y la Tabla 1 de la p. 8 publica
+     «#1.5», o sea `≤`. MANDA LA TABLA 1, que es la normativa y la que coincide con las otras dos
+     guías. Queda dicho para que nadie «corrija» el operador con ese párrafo en la mano.
+     ⚠️ LA FE DE ERRATAS NO AFECTA NINGUNA CIFRA CITADA. JASE 2023;36(4):445 corrige UNA frase de
+     la p. 8 —«The rate of decay of the MV pressure gradient…» pasa a «The pressure half-time
+     (which increases with a slower rate of decay of the MV pressure gradient)…»— que es prosa
+     sobre el concepto del THP: no mueve un solo número de la Tabla 1 ni de los Puntos clave.
+     (Esa misma errata corrige además la EAE/ASE 2009 de Baumgartner, que este registro cita como
+     `eaeAseEst2009`: su Tabla 8 debía decir «directly proportional to MVA». Tampoco mueve cifras.) */
+  { k:'asePandian2023',
+    full:'Pandian NG, Kim JK, Arias-Godinez JA, et al. Recommendations for the Use of ' +
+         'Echocardiography in the Evaluation of Rheumatic Heart Disease: A Report from the ' +
+         'American Society of Echocardiography. J Am Soc Echocardiogr 2023;36(1):3-28. ' +
+         'doi:10.1016/j.echo.2022.10.009. Cardiopatía REUMÁTICA. Folio de revista = página del ' +
+         'PDF + 3. Tabla 1 «Classification of Mitral Stenosis Severity», p. 8 — área valvular ' +
+         '> 2,5 / 2,5-1,6 / ≤ 1,5 cm²; tiempo de hemipresión < 100 / 100-149 / ≥ 150 ms; ' +
+         'gradiente medio < 5 / 5-9 / ≥ 10 mmHg, con su nota «a una frecuencia cardíaca de ' +
+         '60-80 lpm»; presión pulmonar sistólica < 30 / 30-49 / ≥ 50 mmHg. Puntos clave, p. 10 — ' +
+         '«Severe rheumatic MS is indicated by MVA ≤ 1.5 cm², PHT ≥ 150 msec, and transmitral ' +
+         'mean gradient ≥ 10 mmHg», y la definición de estenosis mitral REUMÁTICA como gradiente ' +
+         'medio > 4 mmHg más cambios morfológicos típicos. p. 8 — la ecuación de continuidad para ' +
+         'el área mitral «is not well validated and is infrequently used» y «should not be used ' +
+         'when significant aortic or mitral regurgitation is present». p. 11 — insuficiencia ' +
+         'mitral reumática severa con vena contracta ≥ 0,7 cm, área de vena contracta ≥ 0,40 cm², ' +
+         'volumen regurgitante ≥ 60 ml, fracción regurgitante ≥ 50 % y orificio regurgitante ' +
+         '≥ 0,40 cm². Puntos clave, p. 12 — el cociente VTI mitral/aórtico «> 1.4 suggests severe ' +
+         'MR and < 1 indicates mild MR en ausencia de insuficiencia aórtica moderada o severa», ' +
+         'listado entre los parámetros SEMICUANTITATIVOS. ⚠️ El cuerpo de la p. 7 dice «less than ' +
+         '1.5 cm2» y la Tabla 1 dice «≤ 1,5»: se aplica la tabla. Fe de erratas JASE ' +
+         '2023;36(4):445, que corrige una frase de prosa sobre el tiempo de hemipresión y no ' +
+         'mueve ninguna de las cifras citadas.' }
 ]);
 
 /* Clave → número. Se arma UNA vez desde `IND_REFS`.
@@ -41537,6 +41599,31 @@ function _indIM(){
     notas: [
       { txt:'Los tres criterios cuantitativos de insuficiencia mitral severa coinciden en las tres guías: AEOR ≥ 40 mm², volumen regurgitante ≥ 60 ml y fracción regurgitante ≥ 50 %; la vena contracta severa es ≥ 7 mm.',
         refs:['aseVr2017','ahaVc2020','esc2025vc'] },
+      /* ⚠️ CUARTA CONCORDANCIA, Y SE DECLARA SU ALCANCE. Pandian es una guía de cardiopatía
+         REUMÁTICA, y esta sección NO mira la etiología —se gatea por `im_sev_final === '4'`—, así
+         que la nota no puede insinuar que este paciente lo sea. Lo que aporta es que los mismos
+         cuatro cortes vuelven a publicarse en un cuarto documento, más un parámetro que esta
+         aplicación no recoge. No es un criterio nuevo: es respaldo del que ya está. */
+      { txt:'La ASE 2023 de cardiopatía REUMÁTICA publica esos mismos cuatro cortes para la insuficiencia mitral reumática severa, y agrega uno que esta aplicación no recoge: el ÁREA de la vena contracta por Doppler color 3D ≥ 0,40 cm², que lista como parámetro semicuantitativo junto con la vena contracta lineal. Es una cuarta voz sobre los mismos números, no un criterio distinto, y su alcance es la etiología reumática.',
+        refs:['asePandian2023'] },
+      /* ⚠️ EL COCIENTE VTI MITRAL/TSVI Y LA IAo — LA NOTA DESCRIBE LO QUE LA APP HACE HOY, NO UNA
+         DECISIÓN PENDIENTE. Medido en `calcIM_ESC`: `_ratioNoAplica = (_iaRatio === null ||
+         _iaRatio >= IM_RATIO_IA_MAX)` con `IM_RATIO_IA_MAX = 2`, o sea que el cociente se RETIRA
+         con IAo de grado moderado o mayor — exactamente la condición que publica Pandian, no una
+         más permisiva. Esa es la conducta vigente desde el 2026-09-28 y está declarada en la
+         entrada de este archivo del cociente 0,38.
+         El segundo brazo del predicado —`_iaRatio === null`, o sea un grado de IAo que
+         `_emRegurgGrado` no puede interpretar— NO sale de ninguna guía: es el fail-closed de la
+         aplicación, y por eso lleva el marcador `ecosmart` y no una cita. La guía dice «en
+         ausencia de IAo moderada o severa» y no contempla el caso de un grado ilegible, que es el
+         que llega desde un import de Excel o un backup editado.
+         ⚠️ Y VA EN `_indIM` AUNQUE PANDIAN SEA REUMÁTICA: esta sección no mira la etiología, así
+         que la nota declara su alcance en el texto igual que la de los cuatro cortes de arriba.
+         No se gatea por `etio` porque acá ese dato no existe. */
+      { txt:'El cociente VTI mitral/VTI del tracto de salida izquierdo —el del cuadro «Insuficiencia mitral» de la pestaña del estudio, no de esta tarjeta— sólo vale en ausencia de insuficiencia aórtica moderada o severa: el VTI del tracto de salida es su denominador, la IAo lo aumenta, y el cociente deja de medir lo que dice medir. La ASE 2023 de cardiopatía REUMÁTICA lo publica con esa condición explícita y lo lista entre los parámetros SEMICUANTITATIVOS, no entre los cuantitativos de arriba.',
+        refs:['asePandian2023'] },
+      { txt:'Con insuficiencia aórtica de grado moderado o mayor esta aplicación no calcula el cociente y esa fila queda en «—». También se abstiene cuando el grado de insuficiencia aórtica no se puede interpretar —un valor que llega de una importación y que el desplegable no reconoce—: la guía no contempla ese caso, y abstenerse ante un dato ilegible es una decisión de la aplicación, no de la fuente. El cociente es un marcador de apoyo: no participa del grado integrado de insuficiencia mitral, que sale de la vena contracta, el jet sobre área auricular, el EROA por PISA con sus derivados y la onda S pulmonar.',
+        refs:['asePandian2023','ecosmart'] },
       { txt:'El diámetro telesistólico INDEXADO ≥ 20 mm/m² es criterio NUEVO de 2025: la edición 2021 sólo tenía el absoluto. La ACC/AHA 2020 no tiene criterio indexado en la mitral —sólo lo usa en la aorta y en el anillo tricuspídeo—, así que ese corte no está corroborado por una segunda guía.',
         refs:['esc2025vc','ahaVc2020'] },
       { txt:'El corte de 45 mm que se cita a veces es de la ESC 2017, una edición que esta aplicación no tiene verificada: se nombra para que nadie lo confunda con el vigente, y no lleva cita.' },
@@ -42167,9 +42254,16 @@ function _indEM(){
            may be considered in patients with MVA of >1.5 cm2 with symptoms that cannot be explained
            by another cause and if the anatomy is favourable». */
         (_le(x.L.val, US) ? '≤ ' + _indNum(US, 1) + ' cm² — estenosis clínicamente significativa'
+           /* ⚠️ LA CITA DE PANDIAN VA SÓLO CON ETIOLOGÍA REUMÁTICA, y no es prolijidad: esa guía es
+              de cardiopatía REUMÁTICA y su Tabla 1 gradúa la estenosis mitral de esa etiología.
+              La sección se pinta igual sobre una calcificada —la compuerta de etiología corta la
+              CASCADA de conducta, no las filas— así que colgarle el corchete ahí le atribuiría a
+              la fuente un alcance que no tiene. El corte ≤ 1,5 de la guía vigente sí aplica a
+              cualquier etiología, y por eso `esc2025vc` va en las dos ramas. */
+           + (etio === 'reumatica' ? ' · la ASE 2023 de cardiopatía REUMÁTICA llama SEVERA a este mismo corte de área. Esa guía lo publica JUNTO CON un tiempo de hemipresión ≥ 150 ms y un gradiente medio ≥ 10 mmHg a 60-80 lpm, que esta sección NO evalúa: acá se gradúa por ÁREA sola' : '')
          : 'mayor que ' + _indNum(US, 1) + ' cm² — por encima del corte de significación clínica, y contraindicación del procedimiento; puede considerarse si hay síntomas sin otra causa y anatomía favorable')
         + (x.conBanda ? '' : ' · esta fuente no tiene banda de plausibilidad declarada en la app, así que el valor se toma como viene'),
-        _le(x.L.val, US) ? null : ['esc2025vc']));
+        _le(x.L.val, US) ? (etio === 'reumatica' ? ['esc2025vc','asePandian2023'] : ['esc2025vc']) : ['esc2025vc']));
     });
   }
 
@@ -42316,6 +42410,26 @@ function _indEM(){
          y decidir cuándo intervenir— y el panel tiene que decir cuál está aplicando. */
       { txt:'AVm ≤ ' + (US != null ? _indNum(US,1) : '1,5') + ' cm² es el corte ÚNICO de significación clínica de la guía vigente, que NO gradúa la estenosis mitral por área en leve, moderada y severa; la ACC/AHA 2020 usa el mismo corte. Las bandas de la pantalla del estudio son la graduación de la EAE/ASE 2009, que llama SEVERA a < 1,0 cm² y moderada a 1,0-1,5: por esa escala un área de 1,2 cm² es moderada y por la guía vigente ya es clínicamente significativa.',
         refs:['esc2025vc','ahaVc2020','eaeAseEst2009'] },
+      /* ⚠️ LA TERCERA ESCALA DE ÁREA, Y ES LA QUE DESEMPATA. La nota de arriba dejaba al médico con
+         dos: la de 2009 (severa < 1,0) y el corte único de la guía vigente (≤ 1,5). La ASE 2023
+         de cardiopatía reumática SÍ gradúa por área —> 2,5 leve, 2,5-1,6 moderada, ≤ 1,5 severa—
+         y su corte de severa coincide con el de significación clínica de la ESC/EACTS 2025, o sea
+         que dos de las tres ponen la severidad en 1,5 y la de 2009 es la que queda sola.
+         Sólo se publica con etiología reumática: es de dónde salió la escala. */
+      etio === 'reumatica' ? { txt:'La ASE 2023 de cardiopatía REUMÁTICA sí gradúa por área y pone la severa en el mismo ≤ ' + (US != null ? _indNum(US,1) : '1,5') + ' cm²: > 2,5 leve, 2,5-1,6 moderada. O sea que de las tres escalas que conviven, dos ponen la severidad en ese corte y la de 2009 es la que difiere. En esa guía la estenosis mitral reumática se DEFINE por un gradiente medio > 4 mmHg más cambios morfológicos típicos —velos engrosados, fusión comisural, movilidad restringida, domo diastólico del velo anterior o engrosamiento y calcificación de las cuerdas—, y la SEVERA por área ≤ ' + (US != null ? _indNum(US,1) : '1,5') + ' cm², tiempo de hemipresión ≥ 150 ms y gradiente medio ≥ 10 mmHg. ⚠️ Esos dos últimos son criterios DE ESA GUÍA que esta aplicación no evalúa: acá la severidad se gradúa por ÁREA sola, y por eso la nota de abajo sigue diciendo que el gradiente medio no es criterio de severidad para las otras dos fuentes. Y ojo con el tiempo de hemipresión: el área por Hatle es 220 ÷ THP, así que el corte de área de esta aplicación equivale a un THP de 146,7 ms y no a los 150 ms que publica la ASE — un THP de 148 produce un área ya marcada como significativa.',
+        refs:['asePandian2023','esc2025vc','eaeAseEst2009'] } : '',
+      /* ⚠️ ESTA NOTA CITA UNA COMPUERTA QUE ESTA SECCIÓN NO APLICA, Y LO DICE. `emContValido` retira
+         el AVm por continuidad con regurgitación mitral o aórtica significativa, pero eso vive en
+         `emCategoria`, `calcEM`, el informe y el Excel — NO acá: `_indEM` arma sus áreas con
+         `_indLeer` crudo y ni siquiera lee `ia_grado`.
+         ⚠️ LA PRIMERA VERSIÓN DE ESTA NOTA DECÍA «esta aplicación ya retira el voto de esa fuente en
+         esa situación» Y ERA FALSO. Lo encontró `/sharp-edges` sobre este mismo diff. El caso: con
+         `vm_morf` reumática, `ia_grado` moderada y el AVm por continuidad en 1,2 cm² como única
+         fuente, el informe retira ese valor y el panel lo publica igual con su ✅ —y encima con una
+         frase asegurando que se había retirado—. Una reaseguración falsa es peor que el silencio:
+         la divergencia estaba declarada en CLAUDE.md y la nota la negaba. */
+      etio === 'reumatica' ? { txt:'El área por ecuación de continuidad es la más débil de las cuatro fuentes: la ASE 2023 dice que «no está bien validada y se usa poco», y que NO debe usarse con insuficiencia aórtica o mitral significativa. ⚠️ El informe y el Excel de esta aplicación retiran ese valor en esa situación; ESTA SECCIÓN todavía no lo hace, así que el área por continuidad de arriba puede estar en ese estado y hay que mirar los grados de insuficiencia antes de apoyarse en ella. La misma guía prefiere la planimetría al nivel de las puntas de los velos, y advierte que el tiempo de hemipresión no es fiable con insuficiencia mitral significativa, tras valvuloplastia o con alteración de la distensibilidad auricular o ventricular.',
+        refs:['asePandian2023'] } : '',
       { txt:'El área sola no alcanza: la guía dice «en combinación con ciertos factores clínicos» —síntomas, riesgo tromboembólico o de descompensación— para hablar de estenosis clínicamente grave.',
         refs:['esc2025vc'] },
       { txt:'El gradiente medio y la presión pulmonar NO son criterios de severidad. La EAE/ASE 2009 los publica como signos de APOYO que «no pueden considerarse marcadores indirectos de la severidad», y la ACC/AHA 2020 excluyó el gradiente medio de sus criterios de forma explícita, por su variabilidad con la frecuencia y el flujo.',
@@ -86888,8 +87002,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260930-1350';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790787056661;                 /* eco-build-ms */
+const ECO_BUILD    = '20260930-1636';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790796998626;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -86975,7 +87089,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260930-1350</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260930-1636</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -89134,6 +89248,7 @@ const ECO_AYUDA = [
 <tr><td>IM — onda E como signo de soporte<br><span style="font-size:11px;color:var(--text2);">Sólo soporte: no gradúa. El signo <b>específico</b> es el opuesto — la onda A dominante prácticamente descarta IM severa. Válido sin estenosis mitral (la guía dice que incluso la leve altera la onda E), calcificación anular, anillo protésico ni fibrilación auricular; menos específico en IM secundaria; más aplicable en mayores de 50 años.</span></td><td>onda E ≥ 120 cm/s apoya severa · onda A dominante la descarta</td><td>ASE 2017 (Zoghbi, JASE 30:303-371, Tabla 8)</td></tr>
 <tr><td>IM — cociente VTI mitral / VTI TSVI<br><span style="font-size:11px;color:var(--text2);"><b>Requiere ausencia de insuficiencia aórtica moderada o severa:</b> la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir. Con IAo moderada o mayor la app no calcula la fila.<br>El corte sale de la <b>ASE 2023 de cardiopatía reumática</b> (Pandian et al., JASE 2023;36:3-28), Key Points de IM reumática: &gt; 1,4 sugiere IM severa y &lt; 1 leve. <b>La ESC/EACTS 2025 también lo publica</b>, con el mismo corte: Figura 10, pág. 4672, recuadro de criterios ecocardiográficos de IM severa, entre los <b>semicuantitativos</b> — «VTI mitral / VTI LVOT &gt; 1,4». <b>No figura en ASE 2017 ni en ESC/EACTS 2021.</b><br>⚠️ Ninguna de las dos guías dice <b>con qué modalidad</b> se mide ese VTI mitral. La app usa el de entrada por Doppler pulsado anterógrado —no el del chorro de la insuficiencia—, que es lo correcto, pero es criterio de la aplicación y no algo que las guías respalden.<br>⚠️ El estudio original que la guía cita (Tribouilloy, Eur Heart J 1994;15:1335-9) da ≥ <b>1,3</b> con sensibilidad 87 % y especificidad 91 %, y el 1,4 se rastrea además a un artículo del E-Journal de la ESC que cita esas mismas dos cifras. O sea que la guía publica 1,4 sobre un primario que dice 1,3, y eso no distingue entre haberlo validado y haber propagado el mismo error. Se conserva el 1,4 que la app venía usando y se declaran las dos cosas.<br>⚠️ <b>Con PRÓTESIS mitral el corte es otro: ≥ 2,5.</b> Sale de la <b>ASE 2024 de prótesis</b> (Zoghbi et al., JASE 2024;37(1):2-63), <b>Tabla 12, pág. 28</b> — «hallazgos de ETT que sugieren IM protésica significativa en válvulas mecánicas con THP normal»: VTI protésico / VTI TSVI ≥ 2,5, sensibilidad 89 %, especificidad 91 %. El 1,4 es de válvula <b>nativa</b> y aplicarlo a una prótesis daba «apoya IM severa» sobre cocientes muy por debajo de lo que la tabla protésica considera sugestivo. La app elige el corte por la morfología de la válvula mitral.<br>⚠️ Esa tabla define el corte <b>para válvulas mecánicas y con THP normal</b>, y la app <b>no verifica ninguna de las dos condiciones</b>: lo aplica a cualquier prótesis mitral y no cruza el tiempo de hemipresión.</span></td><td>nativa &gt; 1,4 · prótesis ≥ 2,5</td><td>nativa: ASE 2023 (Pandian, JASE 36:3-28) y ESC/EACTS 2025 (Figura 10, p. 4672) — el primario da 1,3 · prótesis: ASE 2024 (Zoghbi), Tabla 12 p. 28</td></tr>
 <tr><td>IM — cociente jet/AI (%)<br><span style="font-size:11px;color:var(--text2);">⚠️ <b>Dos cortes según la morfología.</b> En válvula <b>nativa</b>: &lt; 20 % leve, ≤ 40 % moderada, &gt; 40 % severa.<br>⚠️ <b>Con PRÓTESIS mitral el corte de severa es &gt; 50 %</b>, y entre 20 y 50 % la <b>ASE 2024 de prótesis</b> (Zoghbi et al., JASE 2024;37(1):2-63), <b>Tabla 13, pág. 30</b>, dice «<b>Variable</b>»: ahí el parámetro <b>no gradúa</b> y la app se abstiene en vez de inventar una banda moderada. La fila de pantalla lo declara en vez de descontar el parámetro en silencio.<br>⚠️ Los <b>cortes absolutos</b> de esa misma tabla (área del jet &lt; 4 cm² leve / &gt; 8 cm² severa) <b>no se implementan</b>: la guía los da como alternativa al porcentaje («usually … or …») y aplicarlos exigiría decidir qué manda cuando los dos discrepan.<br>⚠️ Y la nota al pie de la tabla exige un <b>Nyquist de 50-60 cm/s</b> para que el porcentaje valga; la app <b>no registra ese dato</b>, así que ninguno de los dos regímenes puede verificar la condición en la que su corte está definido.</span></td><td>nativa &lt; 20 / ≤ 40 / &gt; 40 % · prótesis &lt; 20 % leve · &gt; 50 % severa</td><td>nativa: ASE 2017 (Zoghbi, JASE 30:303-371) · prótesis: ASE 2024 (Zoghbi), Tabla 13 p. 30</td></tr>
+<tr><td>IM — EROA por continuidad y Vol-R<br><span style="font-size:11px;color:var(--text2);">La EROA por continuidad es <b>Vol-R ÷ VTI del chorro de IM por CW</b>. Los dos cortes de severidad de la guía —<b>EROA ≥ 40 mm²</b> y <b>Vol-R ≥ 60 ml</b>— describen al mismo paciente sólo cuando el VTI del chorro vale <b>150 cm</b>, porque 60 ÷ 0,40 = 150. Con un VTI de 100 cm, un Vol-R justo en el corte da una EROA de 60 mm², o sea severa con holgura; con 200 cm da 30 mm², por debajo del corte con el Vol-R ya severo.<br>⚠️ Eso es <b>aritmética de la fórmula, no una discrepancia entre guías</b>: los dos cortes son correctos y se refieren al mismo hallazgo medido por dos caminos con distinta sensibilidad a la duración del chorro. Por eso esta fila no lleva atribución de guía.<br>⚠️ <b>Esta EROA no vota.</b> El grado integrado de IM sale de la vena contracta, el jet sobre área auricular, el <b>EROA por PISA</b> con sus derivados y la onda S pulmonar. El volumen regurgitante y la fracción regurgitante <i>por continuidad</i> gradúan sólo la cápsula «Severidad (continuidad)» de ese mismo cuadro, que tampoco vota. El EROA de PISA es otra medición y aparece en la misma pantalla: conviene no confundirlas.</span></td><td>coinciden sólo con VTI del chorro = 150 cm</td><td>aritmética de la fórmula — no es una cita</td></tr>
 <tr><td>Insuficiencia aórtica severa, asintomática</td><td>FEVI ≤ 50 % · DTSI &gt; 50 mm o &gt; 25 mm/m² (Clase I)</td><td>ESC/EACTS 2021</td></tr>
 <tr><td>Estenosis aórtica severa sintomática</td><td>intervención Clase I; modalidad por edad y riesgo (corte 75 años)</td><td>ESC/EACTS 2021</td></tr>
 <tr><td>TEER — inclusión COAPT</td><td>FEVI 20–50 % · DTSVI ≤ 70 mm</td><td>COAPT</td></tr></table>
@@ -89291,6 +89406,13 @@ function _manualAplanar(html) {
     /* ul/ol/table CIERRAN con salto. Sin esto el último <li> queda pegado al párrafo
        siguiente y el párrafo absorbido se imprime como si fuera parte de la viñeta. */
     .replace(/<\/(p|div|h\d|ul|ol|table)>/g, '\n\n')
+    /* ⚠️ EL <br> IBA AL CATCH-ALL Y SE COMÍA EL SEPARADOR. Lo encontró `/sharp-edges` el
+       2026-09-30: un `…con el Vol-R ya severo.<br>⚠️ Eso es…` salía en el PDF del manual como
+       «severo.Eso es» —el ⚠️ además lo borra `_pdfSafe`, así que no quedaba ni la marca—. Es
+       preexistente y alcanza a las tres filas de «Referencia clínica» que usan `<br>` para separar
+       párrafos dentro de una celda. Un espacio y no un salto: dentro de una celda de tabla el
+       `\n\n` partiría el bloque y el texto quedaría suelto, fuera de su fila. */
+    .replace(/<br\s*\/?>/gi, ' ')
     .replace(/<[^>]+>/g, '')
     .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
     .replace(/&aacute;/g, 'á').replace(/&amp;/g, '&')

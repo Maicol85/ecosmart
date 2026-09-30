@@ -39562,14 +39562,14 @@ caso('TC-328', 'Evidencia: los cuatro textos corregidos contra el original ingle
   })();
 `);
 
-caso('TC-327', 'Evidencia EM: cuatro documentos verificados, y las dos discrepancias citadas por las DOS fuentes', `
+caso('TC-327', 'Evidencia EM: CINCO documentos verificados, las discrepancias con sus dos citas, y Pandian solo con etiologia reumatica', `
   return (async () => {
     const R = {}, ex = [];
     const pl = x => String(x == null ? '' : x).toLowerCase().normalize('NFD')
       .split('').filter(function(ch){ const c = ch.charCodeAt(0); return c < 768 || c > 879; }).join('');
     const cuerpo = () => document.getElementById('indic-cuerpo');
     const cuenta = (h, sub) => h.split(sub).length - 1;
-    const FUENTES = ['esc2025vc', 'ahaVc2020', 'eaeAseEst2009', 'wilkins1988'];
+    const FUENTES = ['esc2025vc', 'ahaVc2020', 'eaeAseEst2009', 'wilkins1988', 'asePandian2023'];
 
     R.registradas = FUENTES.concat(['ecosmart']).map(function(k){ return _indRefValida(k); });
     /* Cada documento con su tabla y su pagina. El marcador de criterio propio NO: no es un
@@ -39581,7 +39581,16 @@ caso('TC-327', 'Evidencia EM: cuatro documentos verificados, y las dos discrepan
     const ANCLAS = { esc2025vc:['tabla 6 de recomendaciones', '4635-4736', 'p. 4682'],
                      ahaVc2020:['tabla 16', 'e113', 'e116'],
                      eaeAseEst2009:['tabla 9', 'p. 17', '< 1,0 cm'],
-                     wilkins1988:['p. 300', '0 a 16', '> 11', '< 9', 'p. 307'] };
+                     wilkins1988:['p. 300', '0 a 16', '> 11', '< 9', 'p. 307'],
+                     /* Pandian se cita desde TRES sitios distintos del mismo documento —la tabla de
+                        severidad, los puntos clave y el parrafo de la continuidad— asi que las
+                        anclas piden los tres: con una sola, sacarle dos sobrevivia. */
+                     /* ⚠️ LA CITA DE LA CONTINUIDAD ESTA EN INGLES EN EL CAMPO full —es literal del
+                        documento— y la primera version de este ancla la buscaba en espanol, asi
+                        que daba rojo sobre una entrada correcta. Al anclar sobre una cita textual,
+                        copiarla del registro y no traducirla. */
+                     asePandian2023:['classification of mitral stenosis severity', 'p. 8', 'p. 10',
+                                     '36(1):3-28', '≤ 1,5 cm', 'is not well validated'] };
     R.conPagina = FUENTES.map(function(k){
       const f = pl((_indRefDoc(k) || {}).full || '');
       return (ANCLAS[k] || []).every(function(x){ return f.indexOf(pl(x)) > -1; });
@@ -39637,12 +39646,17 @@ caso('TC-327', 'Evidencia EM: cuatro documentos verificados, y las dos discrepan
       'hayEM=' + R.hayEM + ' faltan=' + JSON.stringify(R.faltan) +
       ' corchetes=' + cuenta(H, 'data-ind-ref="')]);
 
-    ex.push(['los cuatro documentos estan registrados y cada uno nombra su tabla y su pagina',
+    ex.push(['los CINCO documentos estan registrados y cada uno nombra su tabla y su pagina',
       R.registradas.every(Boolean) && R.conPagina.every(Boolean),
       'registradas=' + JSON.stringify(R.registradas) + ' conPagina=' + JSON.stringify(R.conPagina)]);
 
-    ex.push(['su bibliografia lista los CUATRO documentos mas el marcador de criterio propio',
-      R.items.length === 5 &&
+    /* ⚠️ ESTE CONTEO SE ACTUALIZO DE 5 A 6 EL 2026-09-30, y es la senal de siempre: fijaba el
+       INVENTARIO del dia en que se escribio, asi que se pone rojo en cuanto la seccion gana una
+       fuente legitima. No se aflojo —eso lo volveria una condicion que pasa con cualquier cosa—:
+       se actualizo el inventario Y se agrego abajo el invariante que la fuente nueva trae, que es
+       que Pandian solo se cita con etiologia REUMATICA. */
+    ex.push(['su bibliografia lista los CINCO documentos mas el marcador de criterio propio',
+      R.items.length === 6 &&
       /* ⚠️ ESTE ORDEN ES EL DE **ESTE** ESCENARIO, y me equivoque una vez copiando el de TC-328.
          Aca NO se siembran los wilkins_*, asi que el score queda sin puntuar, el bucle contesta la
          primera opcion —«≤ 8»— y la fila del score cita SOLO a la ESC: Wilkins recien aparece en la
@@ -39650,7 +39664,7 @@ caso('TC-327', 'Evidencia EM: cuatro documentos verificados, y las dos discrepan
          «desfavorable», cita a Wilkins y lo sube a [2]. Las dos cosas son correctas porque la
          numeracion es por PRIMERA APARICION — y que dependa del paciente es la consecuencia, no un
          defecto. Verificar contra el escenario propio, no contra el del caso de al lado. */
-      JSON.stringify(R.items) === JSON.stringify(['esc2025vc','ahaVc2020','eaeAseEst2009','ecosmart','wilkins1988']) &&
+      JSON.stringify(R.items) === JSON.stringify(['esc2025vc','asePandian2023','ahaVc2020','eaeAseEst2009','ecosmart','wilkins1988']) &&
       R.sinNumerar === 0 && R.noRegistrada === 0,
       'items=' + JSON.stringify(R.items) + ' sinNumerar=' + R.sinNumerar +
       ' noRegistrada=' + R.noRegistrada]);
@@ -39681,20 +39695,182 @@ caso('TC-327', 'Evidencia EM: cuatro documentos verificados, y las dos discrepan
       R.score.n === 1 && R.score.esc === 1 && R.score.wil === 1,
       JSON.stringify(R.score)]);
 
-    return { resumen: JSON.stringify({ items: R.items, corte: R.corte, score: R.score }), extra: ex };
+    /* ⚠️ EL ALCANCE DE LA FUENTE NUEVA, Y ES LA CONDICION QUE DE VERDAD IMPORTA. Pandian es una
+       guia de cardiopatia REUMATICA: su Tabla 1 gradua la estenosis mitral de esa etiologia. Esta
+       seccion se pinta igual sobre una calcificada —la compuerta de etiologia corta la CASCADA de
+       conducta, no las filas— asi que colgarle el corchete ahi le atribuiria un alcance que la
+       fuente no tiene, que es el defecto que este archivo persigue desde la nota del NT-proBNP.
+       Se mide CAMBIANDO la morfologia y repintando: leer solo el escenario reumatico no distingue
+       «se cita con alcance» de «se cita siempre». El resto de la bibliografia tiene que seguir
+       ahi, o la condicion pasaria tambien con una seccion que dejo de citar todo. */
+    __t.set('vm_morf', 'Calcificada');
+    indicRender();
+    const secNR = Array.prototype.slice.call(cuerpo().querySelectorAll(':scope > details'))
+      .filter(function(d){ return pl(d.querySelector('summary').textContent).indexOf('estenosis mitral') > -1; })[0];
+    const bibNR = secNR ? secNR.querySelector('[data-ind-biblio]') : null;
+    R.itemsNoReum = bibNR ? Array.prototype.slice.call(bibNR.querySelectorAll('[data-ind-refitem]'))
+      .map(function(e){ return e.getAttribute('data-ind-refitem'); }) : [];
+    R.pandianTxtNoReum = secNR ? (secNR.textContent.indexOf('Pandian') > -1) : null;
+
+    ex.push(['con etiologia NO reumatica, Pandian NO se cita ni aparece en la bibliografia',
+      !!secNR && R.itemsNoReum.length > 0 &&
+      R.itemsNoReum.indexOf('asePandian2023') === -1 && R.pandianTxtNoReum === false &&
+      R.itemsNoReum.indexOf('esc2025vc') > -1,
+      'haySeccion=' + !!secNR + ' items=' + JSON.stringify(R.itemsNoReum) +
+      ' PandianEnTexto=' + R.pandianTxtNoReum]);
+
+    return { resumen: JSON.stringify({ items: R.items, itemsNoReum: R.itemsNoReum,
+      corte: R.corte, score: R.score }), extra: ex };
   })();
 `);
 
-caso('TC-326', 'Evidencia IM: la bibliografia cita TRES documentos verificados, y la nota del TEER cita la disyuncion', `
+/* ═══ TC-335 · La EROA por continuidad NO vota, y su reparo es aritmetico ═════════════════════
+   El pedido era «una linea breve en el ⓘ», y lo que hay que fijar no es el texto sino las dos
+   afirmaciones que ese texto hace. La primera —que esta EROA no gradua— se verifica midiendo; la
+   segunda —que la relacion entre los dos cortes es aritmetica de la formula y no una discrepancia
+   entre guias— se verifica exigiendo que la fila de la ayuda NO lleve atribucion de guia.
+
+   ⚠️ EL ESCENARIO ESTA ELEGIDO PARA QUE LOS DOS CAMINOS DISCREPEN, que es lo unico que hace
+   discriminante la condicion. Con Vol-R y FR MODERADOS y un VTI de chorro corto, la EROA sale
+   SEVERA: si votara, el badge del metodo volumetrico diria «Severa». Con los tres parametros del
+   mismo lado del corte, cualquier implementacion pasa.
+
+   Aritmetica del escenario, cerrada a mano:
+     Ø anillo 30 mm  -> area = PI*(30/20)^2 = 7,0686 cm2
+     VTI entrada 13  -> Vol mitral = 91,89 ml
+     Ø TSVI 20 mm    -> area = PI*(20/20)^2 = 3,1416 cm2
+     VTI TSVI 18     -> VS TSVI = 56,55 ml
+     Vol-R = 91,89 - 56,55 = 35,3 ml  (MODERADA: 30-60)
+     FR    = 35,3 / 91,89 = 38 %      (MODERADA: 30-50)
+     EROA  = 35,3 / 50 * 100 = 70,7 mm2  (SEVERA por ese parametro: >= 40)
+   Y el corte donde los dos coincidirian es un VTI de chorro de 150 cm: 60 / 0,40 = 150. ══════ */
+caso('TC-335', 'IM: la EROA por continuidad se publica pero NO vota, y el reparo declara que la relacion con el Vol-R es aritmetica', `
+  return (async () => {
+    const R = {}, ex = [];
+    const pl = x => String(x == null ? '' : x).toLowerCase().normalize('NFD')
+      .split('').filter(function(ch){ const c = ch.charCodeAt(0); return c < 768 || c > 879; }).join('');
+    const num = t => { const m = String(t == null ? '' : t).match(/-?[0-9]+([.,][0-9]+)?/);
+      return m ? parseFloat(m[0].replace(',', '.')) : null; };
+
+    __t.limpiar();
+    /* im_sev_final se siembra PRIMERO y en «Leve»: es lo que el caso afirma que no se mueve, y
+       dejarlo en el valor de fabrica no distingue «no se movio» de «nunca tuvo nada». */
+    __t.set('im_sev_final', '1');
+    const CAMPOS = { diam_mit:'30', vtim:'13', diam_tsvi:'20', itv_tsvi:'18', im_itv:'50' };
+    R.faltan = [];
+    Object.keys(CAMPOS).forEach(function(k){
+      const e = document.getElementById(k);
+      if (!e) { R.faltan.push(k); return; }
+      try { __t.set(k, CAMPOS[k]); } catch (e2) { R.faltan.push(k + ':' + e2.message); }
+    });
+    try { calcContIM(); } catch (e) { R.err = e.message; }
+
+    R.eroa = num((document.getElementById('im_eroa_cont') || {}).value);
+    R.volR = num((document.getElementById('vr_cont') || {}).value);
+    R.fr   = num((document.getElementById('im_fr_cont') || {}).value);
+    const sEl = document.getElementById('im-cont-severidad');
+    R.badge = sEl ? sEl.textContent.trim() : null;
+    R.gradoVolum = sEl ? (sEl.dataset.gradoVolum || null) : null;
+    R.imGrado = (document.getElementById('im_grado') || {}).value;
+    R.imSevFinal = (document.getElementById('im_sev_final') || {}).value;
+
+    ex.push(['DENOMINADOR: los cinco insumos entraron y la EROA por continuidad se calculo',
+      R.faltan.length === 0 && !R.err && R.eroa != null,
+      'faltan=' + JSON.stringify(R.faltan) + ' err=' + R.err + ' eroa=' + R.eroa]);
+
+    /* ⚠️ ESTE ES EL DENOMINADOR QUE HACE DISCRIMINANTE A TODO LO DE ABAJO: la EROA tiene que estar
+       del lado SEVERO del corte mientras el Vol-R y la FR estan del MODERADO. Sin esta condicion,
+       «el badge dice Moderada» se cumple igual con la EROA votando. */
+    ex.push(['la EROA cae del lado SEVERO (>= 40 mm2) y el Vol-R y la FR del MODERADO',
+      R.eroa >= 40 && R.volR >= 30 && R.volR < 60 && R.fr >= 30 && R.fr < 50,
+      'eroa=' + R.eroa + ' volR=' + R.volR + ' fr=' + R.fr]);
+
+    /* La aritmetica se verifica contra el numero cerrado y contra la FUENTE del denominador: la
+       EROA sale del VTI del CHORRO (im_itv = 50) y no del VTI de ENTRADA (vtim = 13), que es el
+       defecto historico de los 483 mm2 que el comentario de calcContIM documenta. Con vtim el
+       mismo Vol-R daria 271,8 mm2. */
+    ex.push(['la EROA es Vol-R / VTI del CHORRO, no del VTI de entrada',
+      Math.abs(R.eroa - 70.7) < 0.6 && Math.abs(R.eroa - 271.8) > 100,
+      'eroa=' + R.eroa + ' esperado=70.7 conVtimDaria=271.8']);
+
+    /* ⚠️ SE MIDE dataset.gradoVolum Y NO SOLO EL TEXTO, y guarda la ETIQUETA («Moderada»), no un
+       numero — mi primera version comparaba contra '2' y daba rojo sobre un badge correcto. El
+       atributo es el DATO: es lo que lee imDiscordanciaPintar para comparar los dos grados, y
+       medirlo ahi es mas fuerte que buscar una palabra en el texto pintado. */
+    ex.push(['el badge del metodo volumetrico dice MODERADA: la EROA no entra en su cascada',
+      /: *Moderada/.test(R.badge || '') && !/: *Severa/.test(R.badge || '') &&
+      R.gradoVolum === 'Moderada',
+      'badge=' + JSON.stringify(R.badge) + ' gradoVolum=' + R.gradoVolum]);
+
+    ex.push(['el grado que firma el informe no se movio a severa',
+      R.imGrado !== '4' && R.imSevFinal !== '4',
+      'im_grado=' + R.imGrado + ' im_sev_final=' + R.imSevFinal]);
+
+    /* ── El reparo, en las dos superficies ── */
+    const lbls = Array.prototype.slice.call(document.querySelectorAll('label'))
+      .filter(function(l){ return /EROA continuidad/.test(l.textContent); });
+    R.nLabels = lbls.length;
+    const ti = lbls[0] ? (lbls[0].getAttribute('title') || '') : '';
+    R.tiene150 = /150 cm/.test(ti);
+    /* ⚠️ REAPUNTADO EL 2026-09-30, y el rojo fue la senal. sharp-edges encontro que la
+       redaccion anterior —«la severidad integrada de la app sale del Vol-R y de la fraccion
+       regurgitante, y el EROA que si vota es el de PISA»— se contradecia dentro de la misma
+       oracion y enumeraba mal los votantes: son SEIS (vena contracta, jet/AI, EROA-PISA y sus dos
+       derivados, y la onda S), y vr_cont/im_fr_cont tampoco votan. Lo que se pina ahora es el
+       HECHO —que el rotulo diga que esta EROA no vota y que nombre el EROA de PISA como el que si
+       participa del grado— y no la oracion, que es lo que obliga a tocar el caso cada vez que el
+       texto se corrige a proposito. */
+    R.tieneNoVota = /Esta EROA NO vota/.test(ti);
+    R.tienePisa = /EROA por PISA/.test(ti);
+    R.tieneInfo = !!(lbls[0] && lbls[0].querySelector('[onclick]'));
+
+    ex.push(['el rotulo lleva su reparo: los 150 cm, que no vota, y que el que vota es el de PISA',
+      R.nLabels === 1 && R.tiene150 && R.tieneNoVota && R.tienePisa && R.tieneInfo,
+      'labels=' + R.nLabels + ' 150=' + R.tiene150 + ' noVota=' + R.tieneNoVota +
+      ' pisa=' + R.tienePisa + ' info=' + R.tieneInfo]);
+
+    abrirAyudaEco();
+    const iRef = ECO_AYUDA.map(function(s){ return s.tab; })
+      .findIndex(function(t){ return /Referencia cl/.test(t); });
+    renderAyudaEco(iRef);
+    const cont = document.getElementById('ecoAyudaContenido');
+    const T = cont ? cont.textContent : '';
+    R.ayudaLargo = T.length;
+    R.ayFila = /EROA por continuidad y Vol-R/.test(T);
+    R.ay150  = /60 . 0,40 = 150/.test(T);
+    /* ⚠️ EN MINUSCULAS: se aplica sobre pl(T), que ya bajo el texto. Con la mayuscula de EROA la
+       condicion daba false sobre una ayuda correcta — un regex que no puede matchear nunca es una
+       condicion que pasa a ser decorativa el dia que alguien la invierta. */
+    R.ayPisa = pl(T).indexOf('eroa por pisa') > -1 && pl(T).indexOf('esta eroa no vota') > -1;
+    /* ⚠️ Y ESTA ES LA CONDICION DEL PUNTO 4 DEL PEDIDO: la relacion es aritmetica, asi que la fila
+       NO puede llevar atribucion de guia. Una cita ahi convertiria una consecuencia de la formula
+       en una recomendacion, que es lo que este archivo persigue desde la nota del NT-proBNP. */
+    R.aySinCita = /aritmetica de la formula . no es una cita/.test(pl(T));
+
+    ex.push(['la ayuda trae la fila, la aritmetica de los 150 cm y la distincion con PISA',
+      R.ayudaLargo > 500 && R.ayFila && R.ay150 && R.ayPisa,
+      'largo=' + R.ayudaLargo + ' fila=' + R.ayFila + ' 150=' + R.ay150 + ' pisa=' + R.ayPisa]);
+
+    ex.push(['esa fila NO se atribuye a ninguna guia: se declara como aritmetica de la formula',
+      R.aySinCita, 'declaraAritmetica=' + R.aySinCita]);
+
+    try { cerrarAyudaEco(); } catch (e) {}
+
+    return { resumen: JSON.stringify({ eroa:R.eroa, volR:R.volR, fr:R.fr,
+      badge:R.badge, imGrado:R.imGrado }), extra: ex };
+  })();
+`);
+
+caso('TC-326', 'Evidencia IM: la bibliografia cita CUATRO documentos verificados, la nota del TEER cita la disyuncion y la cuarta fuente declara su alcance', `
   return (async () => {
     const R = {}, ex = [];
     const pl = x => String(x == null ? '' : x).toLowerCase().normalize('NFD')
       .split('').filter(function(ch){ const c = ch.charCodeAt(0); return c < 768 || c > 879; }).join('');
     const cuerpo = () => document.getElementById('indic-cuerpo');
     const cuenta = (h, sub) => h.split(sub).length - 1;
-    const CLAVES = ['esc2025vc', 'aseVr2017', 'ahaVc2020'];
+    const CLAVES = ['esc2025vc', 'aseVr2017', 'ahaVc2020', 'asePandian2023'];
 
-    /* Las tres claves viven en el registro: si una se borra de IND_REFS, el corchete sale en rojo
+    /* Las cuatro claves viven en el registro: si una se borra de IND_REFS, el corchete sale en rojo
        y la bibliografia publica «sin documento». Se mide antes de pintar nada. */
     R.registradas = CLAVES.map(function(k){ return _indRefValida(k); });
     R.docs = CLAVES.map(function(k){ const d = _indRefDoc(k); return d ? d.full.length : 0; });
@@ -39768,23 +39944,99 @@ caso('TC-326', 'Evidencia IM: la bibliografia cita TRES documentos verificados, 
       'hayIM=' + R.hayIM + ' faltan=' + JSON.stringify(R.faltan) +
       ' corchetes=' + cuenta(H, 'data-ind-ref="')]);
 
-    ex.push(['las TRES claves estan registradas y su cita nombra tabla y pagina',
+    ex.push(['las CUATRO claves estan registradas y su cita nombra tabla y pagina',
       R.registradas.every(Boolean) && R.docs.every(function(x){ return x > 120; }) &&
       R.conPagina.every(Boolean),
       'registradas=' + JSON.stringify(R.registradas) + ' largos=' + JSON.stringify(R.docs) +
       ' conPagina=' + JSON.stringify(R.conPagina)]);
 
-    ex.push(['las TRES se pintan dentro de la seccion de IM',
+    ex.push(['las CUATRO se pintan dentro de la seccion de IM',
       R.pintadas.every(function(x){ return x >= 1; }),
       'pintadas=' + JSON.stringify(R.pintadas) + ' claves=' + JSON.stringify(CLAVES)]);
 
-    ex.push(['su bibliografia lista EXACTAMENTE esas tres, numeradas desde [1]',
-      R.items.length === 3 &&
-      JSON.stringify(R.items) === JSON.stringify(['esc2025vc', 'aseVr2017', 'ahaVc2020']) &&
-      JSON.stringify(R.nums) === JSON.stringify(['[1]', '[2]', '[3]']) &&
+    /* ⚠️ DE TRES A CUATRO EL 2026-09-30. Fijaba el inventario del dia y se puso rojo al entrar una
+       fuente legitima, que es la senal. No se aflojo el conteo: se actualizo, y abajo se agrego la
+       condicion que la fuente nueva trae — que su nota DECLARE que su alcance es la etiologia
+       reumatica, porque esta seccion NO mira la etiologia y sin esa frase la cita insinuaria algo
+       sobre el paciente que el panel no sabe. */
+    /* ⚠️ Y EL QUINTO ES EL MARCADOR EcoSmart, QUE NO ES UN DOCUMENTO. Entro el 2026-09-30 con la
+       nota del fail-closed del cociente: la app se abstiene con un grado de IAo ilegible y eso no
+       lo dice ninguna guia, asi que va con el marcador. Es el mismo arreglo que la seccion de
+       estenosis mitral ya tiene desde que publica su corte propio, y por eso el titulo del caso
+       sigue diciendo CUATRO documentos: el marcador se lista en la bibliografia y no cuenta como
+       fuente. Va ULTIMO porque la numeracion es por primera aparicion y sus dos notas van despues
+       de las cuatro citas clinicas. */
+    ex.push(['su bibliografia lista los CUATRO documentos mas el marcador EcoSmart, numerados desde [1]',
+      R.items.length === 5 &&
+      JSON.stringify(R.items) === JSON.stringify(['esc2025vc', 'aseVr2017', 'ahaVc2020', 'asePandian2023', 'ecosmart']) &&
+      JSON.stringify(R.nums) === JSON.stringify(['[1]', '[2]', '[3]', '[4]', '[5]']) &&
       R.sinNumerar === 0 && R.noRegistrada === 0,
       'items=' + JSON.stringify(R.items) + ' nums=' + JSON.stringify(R.nums) +
       ' sinNumerar=' + R.sinNumerar + ' noRegistrada=' + R.noRegistrada]);
+
+    /* ⚠️ LA CONDICION QUE SEPARA UNA CITA HONESTA DE UNA QUE ATRIBUYE DE MAS. Esta seccion se
+       gatea por im_sev_final === 4 y NO lee la morfologia, asi que Pandian —una guia de
+       cardiopatia REUMATICA— se cita sobre pacientes de cualquier mecanismo. Lo que lo vuelve
+       aceptable no es el corchete: es que la nota diga las dos cosas —que su alcance es la
+       etiologia reumatica, y que lo que aporta es respaldo de los mismos cortes y no un criterio
+       distinto—. Sin esas dos frases, la cita se lee como si el paciente fuera reumatico. */
+    /* ⚠️ NO SE PINA EL NUMERO DE NOTAS QUE CITAN A PANDIAN. La version anterior exigia n === 1 y
+       eso es el inventario del dia en que se escribio, no el invariante: al agregar las dos notas
+       del cociente VTI —que citan la MISMA fuente— el caso se puso en rojo sobre un panel
+       perfectamente sano. Es el literal 53 otra vez. Lo que importa es que la frase de alcance
+       EXISTA y que la fuente este citada al menos una vez. */
+    R.pandian = (function(){
+      if (!secIM) return null;
+      const hojas = Array.prototype.slice.call(secIM.querySelectorAll('details div div'))
+        .filter(function(d){ return d.querySelectorAll('div').length === 0 && !d.closest('[data-ind-biblio]'); });
+      const nom = hojas.filter(function(d){ return d.querySelectorAll('[data-ind-ref="asePandian2023"]').length > 0; });
+      const t = nom.map(function(d){ return pl(d.textContent); }).join(' ');
+      return { n: nom.length,
+               declaraAlcance: t.indexOf('su alcance es la etiologia reumatica') > -1,
+               declaraNoEsNuevo: t.indexOf('no un criterio distinto') > -1 };
+    })();
+
+    ex.push(['la nota de Pandian DECLARA su alcance reumatico y que no es un criterio nuevo',
+      !!R.pandian && R.pandian.n >= 1 && R.pandian.declaraAlcance && R.pandian.declaraNoEsNuevo,
+      JSON.stringify(R.pandian)]);
+
+    /* ⚠️ LA CONDICION DEL COCIENTE VTI: LO QUE SE MIDE ES LA SEPARACION ENTRE LA GUIA Y LA APP.
+       Son DOS notas y no una a proposito, y por eso hay dos condiciones:
+         · la primera transcribe la condicion de Pandian —en ausencia de IAo moderada o severa— y
+           lleva SU sola cita. Es la afirmacion sobre la fuente;
+         · la segunda describe lo que hace ESTA aplicacion, que ademas se abstiene con un grado de
+           IAo ilegible. Ese segundo brazo NO sale de ninguna guia, asi que la nota lleva la clave
+           de Pandian Y el marcador ecosmart. Sin el marcador, una decision propia quedaria
+           publicada bajo el corchete de una guia que no la dice, que es exactamente lo que este
+           archivo persigue desde la nota del NT-proBNP.
+       Y se exige que sean notas DISTINTAS: colapsarlas en una sola haria que la cita de Pandian
+       respalde tambien el fail-closed. */
+    R.coc = (function(){
+      if (!secIM) return null;
+      const hojas = Array.prototype.slice.call(secIM.querySelectorAll('details div div'))
+        .filter(function(d){ return d.querySelectorAll('div').length === 0 && !d.closest('[data-ind-biblio]'); });
+      const cond = hojas.filter(function(d){
+        return pl(d.textContent).indexOf('ausencia de insuficiencia aortica moderada o severa') > -1; });
+      const fc = hojas.filter(function(d){
+        return pl(d.textContent).indexOf('no se puede interpretar') > -1; });
+      const refsDe = d => Array.prototype.slice.call(d.querySelectorAll('[data-ind-ref]'))
+        .map(function(r){ return r.getAttribute('data-ind-ref'); });
+      return { nCond: cond.length, nFc: fc.length,
+               mismaNota: cond.length === 1 && fc.length === 1 && cond[0] === fc[0],
+               refsCond: cond.length ? refsDe(cond[0]) : [],
+               refsFc: fc.length ? refsDe(fc[0]) : [],
+               semi: cond.length ? pl(cond[0].textContent).indexOf('semicuantitativos') > -1 : null };
+    })();
+
+    ex.push(['la nota del cociente VTI transcribe la condicion de la ASE 2023 y la cita, y la ubica entre los SEMICUANTITATIVOS',
+      !!R.coc && R.coc.nCond === 1 && R.coc.semi === true &&
+      R.coc.refsCond.length === 1 && R.coc.refsCond[0] === 'asePandian2023',
+      JSON.stringify(R.coc)]);
+
+    ex.push(['el fail-closed por grado de IAo ilegible va en OTRA nota y lleva el marcador ecosmart, porque no sale de ninguna guia',
+      !!R.coc && R.coc.nFc === 1 && R.coc.mismaNota === false &&
+      R.coc.refsFc.indexOf('ecosmart') > -1 && R.coc.refsFc.indexOf('asePandian2023') > -1,
+      JSON.stringify(R.coc)]);
 
     /* ⚠️ CADA NOTA QUE NOMBRA UNA SEGUNDA GUIA LLEVA SU CORCHETE, y sin esto no se medía: sacarle
        la cita de la ACC/AHA a la nota del tres-de-cuatro SOBREVIVIA porque esa clave sigue citada
