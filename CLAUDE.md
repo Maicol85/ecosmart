@@ -205,6 +205,69 @@ bibliografía**: ESC/EACTS 2025 (Tabla 8 de Recomendaciones y su tabla de contra
 ACC/AHA 2020 (Tabla 16, p. e113; recomendaciones p. e116), EAE/ASE 2009 Baumgartner (Tabla 9, p. 17)
 y Wilkins 1988 (Tablas 1-2, p. 300; resultados p. 307).
 
+### El rótulo de la banda 9-11 del score de Wilkins (decisión de Maicol, 2026-09-30)
+
+Decía **«Resultado subóptimo probable»**, que AFIRMA un pronóstico que la fuente del score NIEGA.
+Wilkins 1988, p. 307: «All patients with a total echocardiographic score > 11 had a suboptimal result
+while all those with a score < 9 had an optimal result. **The score failed to predict outcome in
+those with scores of 9 to 11**». Hoy dice **«El score no predice el resultado»**. Los cortes
+—≤ 8 / 9-11 / > 11— coinciden con el original y **no se tocaron**: lo único que estaba mal era el
+nombre de la banda del medio. Sin cita y sin nota metodológica, por la regla del informe: es una
+línea de un documento firmado y el respaldo vive en el panel de Evidencia.
+
+**Una constante, `WILK_9_11`, y no un literal repetido.** Lo publican DOS superficies: el badge de
+`calcWilkins`, que `amiloTextoWilkins` lee **del DOM renderizado** y manda a la hoja
+«SCORE DE WILKINS - ESTENOSIS MITRAL» del PDF y al estudio guardado (`am-txt-wilk`), y la barra del
+Laboratorio. El comentario de esa barra ya exigía que «el agregado no puede contradecir el informe
+individual», así que con el literal duplicado corregir una sola lo rompía.
+
+**⚠️ Y LA CONSTANTE VIVE CON LAS OTRAS CONSTANTES, NO AL LADO DE `wilkinsScore`.** Declarada allá
+quedaba 3.400 líneas DESPUÉS de `_autosaveInit`, cuya rama `else` llama a `calcWilkins()` de forma
+síncrona: si esa rama llegara a dispararse —hoy no lo hace porque el bloque arranca a mitad del
+documento y `readyState` es «loading»— la banda 9-11 tiraría `ReferenceError` por TDZ. Y la llamada
+de `limpiarCampos` la envuelve un **`catch (e) {}` mudo**, así que «Nuevo estudio» habría dejado de
+limpiar la banda del paciente anterior sin decir una palabra. Lo levantó `/sharp-edges`.
+
+### Estudios ya guardados: NO se migró, y esto es lo que hace cada camino (medido)
+
+| camino | qué muestra |
+|---|---|
+| **Reimpresión** de un estudio guardado antes | el rótulo **VIEJO** — el texto queda congelado, que es el diseño |
+| **Abrir para editar / cargar por QR** | el rótulo **VIEJO** al restaurar |
+| **…y que algo dispare el refresco** (la cadena de `calcOAI`/orejuela) | **regenera con el rótulo NUEVO** y, si se guarda, persiste |
+
+O sea: reimprimir no toca nada, pero **reabrir un estudio integrado y tocar la orejuela reescribe
+`am-txt-wilk`**. La dirección es hacia el texto correcto, pero es una mutación silenciosa de un
+estudio firmado y queda declarada, no descubierta.
+
+### Dos superficies que SIGUEN con el rótulo viejo — reportadas, fuera de alcance
+
+- **La tarjeta de Referencias** (`#ref-em`) dice «Score Wilkins: ≤8 → favorable para PMV · >8 →
+  resultado subóptimo». Usa el rótulo retirado **y** mete la banda 9-11 dentro de «resultado
+  subóptimo», que es justo lo que la fuente niega. Contradice al badge, a la hoja del PDF y al panel
+  de Evidencia, que dice literal «entre 9 y 11 el score NO predijo el resultado». Y el comentario de
+  esa misma tarjeta afirma que fue «reemplazada por la regla vigente, con cada cifra atribuida a la
+  fuente que SÍ la publica»: se auditó el bloque el 28/09 y ese `<div>` quedó afuera.
+- **La SEGUNDA implementación del score**, `cxWilkins` (`cx_wilk_*`, pestaña Calculadoras): mismos
+  cortes, rótulo propio «resultado intermedio», y **no** lee `WILK_9_11`. Es la que un
+  `grep wilkins_*` no encuentra. Atenuante verificado: su bloque de PDF emite las cuatro subescalas
+  y el total, **no el rótulo**, así que la divergencia es de pantalla y no llega al informe firmado.
+
+### Lo que no cambió, verificado por A/B
+
+Informe narrativo, EN SUMA y Excel: **idénticos byte a byte** en los cuatro escenarios —sin Wilkins,
+score 8, score 10 y score 12—. La hoja del PDF sólo difiere en el escenario 9-11, y la diferencia es
+exactamente el rótulo. El rótulo **no llega** al narrativo (que imprime sólo el total), ni al Excel
+(subescalas y total), ni al PPT.
+
+### ⚠️ MEDIR EN PARALELO CON UNA TANDA DE MUTACIÓN DA UNA MEDICIÓN FALSA Y PLAUSIBLE
+
+Corrí la sonda de estudios guardados mientras la batería estaba mutando `index.html` en el sitio, y
+me devolvió `badgeActual: "Score 10 — Resultado subóptimo probable"` — el rótulo viejo, sobre un
+árbol mutado. Iba a reportarlo como «el estudio guardado muestra el texto viejo», que es una
+conclusión sobre persistencia, cuando era mi sonda leyendo un archivo que otro proceso estaba
+reescribiendo. **Antes de medir, `diff index.html /tmp/index.orig.html`.**
+
 ### ⚠️ EL ORIGINAL INGLÉS DIO VUELTA UN HALLAZGO, Y UN REPORTE MÍO FUE FALSO (2026-09-30)
 
 Con `ehaf194.pdf` —el original del *European Heart Journal*, 102 páginas, **página de revista =

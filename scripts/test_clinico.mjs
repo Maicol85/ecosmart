@@ -878,15 +878,60 @@ caso('TC-43', 'EM por planimetria 1.2 cm²: severa con el area y su metodo, con 
 `);
 
 /* Wilkins: <=8 favorable, 9-11 suboptimo, >=12 no favorable. El total se pinta sobre 16. */
-caso('TC-44', 'Score de Wilkins: 6 favorable / 13 no favorable', `
+caso('TC-44', 'Score de Wilkins: las TRES bandas, y la del medio NO afirma un pronostico', `
+  /* Se devuelve tambien la linea de la HOJA DEL PDF, que es la superficie que importa: el texto del
+     badge no se queda en pantalla — amiloTextoWilkins lo lee del DOM RENDERIZADO y lo publica como
+     «Interpretacion | ...» en la hoja «SCORE DE WILKINS - ESTENOSIS MITRAL» y en el estudio guardado
+     (am-txt-wilk). Medir solo el badge dejaria sin cubrir el documento firmado. */
   function w(a,b,c,d) { __t.limpiar();
     __t.set('wilkins_movilidad',a); __t.set('wilkins_engrosamiento',b);
     __t.set('wilkins_calcificacion',c); __t.set('wilkins_subvalvular',d);
-    return { total: __t.txt('wilkins-total'), interp: __t.txt('wilkins-interp') }; }
-  const f = w(1,1,2,2), n = w(4,3,3,3);
+    const pdf = (typeof amiloTextoWilkins === 'function')
+      /* SIN EL ESCAPE: el cuerpo del caso es un template literal y se come el \n, que llega como
+         salto REAL y parte la cadena. String.fromCharCode(10) no tiene ese problema. */
+      ? (amiloTextoWilkins().split(String.fromCharCode(10)).filter(function(l){ return l.indexOf('Interpretación') === 0; })[0] || '')
+      : '';
+    return { total: __t.txt('wilkins-total'), interp: __t.txt('wilkins-interp'), pdf: pdf }; }
+  const f = w(1,1,2,2), n = w(4,3,3,3), m9 = w(3,2,2,2), m11 = w(3,3,3,2);
+  const NUEVO = 'El score no predice el resultado';
+  const VIEJO = 'Resultado subóptimo probable';
   return { extra: [
     ['6/16 favorable',    f.total === '6 / 16' && f.interp.indexOf('Favorable para valvuloplastia percutánea') > -1],
-    ['13/16 no favorable', n.total === '13 / 16' && n.interp.indexOf('No favorable para valvuloplastia') > -1]
+    ['13/16 no favorable', n.total === '13 / 16' && n.interp.indexOf('No favorable para valvuloplastia') > -1],
+    /* ⚠️ LA BANDA 9-11 NO PUEDE AFIRMAR UN PRONOSTICO, y hasta hoy decia «Resultado suboptimo
+       probable». Wilkins 1988, p. 307: «The score FAILED TO PREDICT outcome in those with scores of
+       9 to 11». Los DOS bordes de la banda, porque un corte mal movido se ve igual en uno solo. */
+    ['los dos bordes de la banda 9-11 dicen que el score no predice',
+      m9.total === '9 / 16' && m11.total === '11 / 16' &&
+      m9.interp.indexOf(NUEVO) > -1 && m11.interp.indexOf(NUEVO) > -1,
+      '9=«' + m9.interp + '» 11=«' + m11.interp + '»'],
+    ['el rotulo que AFIRMABA el pronostico no sobrevive en ninguna de las cuatro',
+      [f, n, m9, m11].every(function(x){ return x.interp.indexOf(VIEJO) === -1; }),
+      JSON.stringify([f.interp, n.interp, m9.interp, m11.interp])],
+    /* La hoja del PDF lleva EL MISMO texto: si alguien corrige el badge y deja el literal viejo en
+       otra superficie, el informe firmado sigue afirmando lo que la fuente niega. */
+    /* ⚠️ LA BARRA DEL LABORATORIO SE ARMA CON LA CONSTANTE, NO CON UN LITERAL, y esta condicion
+       existe porque la mutacion lo pidio: devolver esa barra a «9-11 — resultado suboptimo» pasaba
+       la suite ENTERA en verde. Y su propio comentario dice que el agregado no puede contradecir al
+       informe individual, asi que el hueco era justo el que la constante vino a cerrar.
+       Se mira el FUENTE de la funcion y no su pintado: la barra necesita estudios guardados y la
+       vista del Laboratorio abierta, y montar eso para leer una etiqueta seria un caso caro y
+       fragil. Lo que importa es que no haya un segundo literal, y eso el fuente lo dice. */
+    ['la barra del Laboratorio usa la constante y no un literal propio',
+      typeof labEteRender === 'function' &&
+      labEteRender.toString().indexOf('WILK_9_11') > -1 &&
+      labEteRender.toString().indexOf('subóptimo') === -1,
+      'usaConstante=' + (typeof labEteRender === 'function' && labEteRender.toString().indexOf('WILK_9_11') > -1) +
+      ' literalViejo=' + (typeof labEteRender === 'function' && labEteRender.toString().indexOf('subóptimo') > -1)],
+    /* Y la constante llega desde el ambito global a las dos, que es lo que la hace UNICA. */
+    ['la constante existe, es la del rotulo aprobado y esta declarada ANTES de sus consumidores',
+      typeof WILK_9_11 === 'string' && WILK_9_11 === NUEVO,
+      'WILK_9_11=«' + (typeof WILK_9_11 === 'string' ? WILK_9_11 : '(no existe)') + '»'],
+    ['la hoja del PDF publica el mismo rotulo que el badge, en las tres bandas',
+      m9.pdf.indexOf(NUEVO) > -1 && m11.pdf.indexOf(NUEVO) > -1 && m9.pdf.indexOf(VIEJO) === -1 &&
+      f.pdf.indexOf('Favorable para valvuloplastia percutánea') > -1 &&
+      n.pdf.indexOf('No favorable para valvuloplastia') > -1,
+      'pdf9=«' + m9.pdf + '» pdf8=«' + f.pdf + '»']
   ] };
 `);
 

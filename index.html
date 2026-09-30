@@ -16638,6 +16638,26 @@ const AO_SEGS = Object.freeze([
   Object.freeze({ k:'diam_cayado',      lbl:'cayado aórtico',            lblC:'Cayado aórtico',            med:'cayado',                   ref:AO_REF.cay,  leve:45, mod:50, min:10, max:80, m:true }),
   Object.freeze({ k:'diam_ao_toracica', lbl:'aorta torácica descendente', lblC:'Ao torácica descendente',  med:'aorta torácica descendente', ref:AO_REF.desc, leve:40, mod:45, min:8,  max:70 })
 ]);
+/* ⚠️ RÓTULO ÚNICO DE LA BANDA 9-11 DEL SCORE, Y ESTE TEXTO LLEGA AL INFORME FIRMADO.
+   Decía «Resultado subóptimo probable», que AFIRMA un pronóstico que la fuente del score NIEGA:
+   Wilkins 1988, p. 307 — «All patients with a total echocardiographic score > 11 had a suboptimal
+   result while all those with a score < 9 had an optimal result. THE SCORE FAILED TO PREDICT
+   OUTCOME IN THOSE WITH SCORES OF 9 TO 11». Los cortes (≤ 8 / 9-11 / > 11) coinciden con el
+   original y NO se tocan: lo único que estaba mal era el nombre de la banda del medio.
+   ⚠️ UNA CONSTANTE Y NO UN LITERAL REPETIDO. Lo publican DOS superficies —el badge de la
+   calculadora, que `amiloTextoWilkins` lee del DOM RENDERIZADO y manda a la hoja del PDF y al
+   estudio guardado, y la barra del Laboratorio—. Con el literal duplicado, corregir una dejaba al
+   agregado contradiciendo al informe individual, que es lo que el comentario de esa barra prohíbe.
+   ⚠️ Y VIVE ACÁ, CON LAS OTRAS CONSTANTES, NO AL LADO DE `wilkinsScore`. Declarada allá quedaba
+   3.400 líneas DESPUÉS de `_autosaveInit`, que en su rama `else` llama a `calcWilkins()` de forma
+   síncrona: si esa rama llegara a dispararse —hoy no lo hace porque el bloque arranca a mitad del
+   documento y `readyState` es «loading»—, la banda 9-11 tiraría `ReferenceError` por TDZ. Y la
+   llamada de `limpiarCampos` la envuelve un `catch (e) {}` MUDO, así que «Nuevo estudio» dejaría
+   de limpiar la banda del paciente anterior sin decir una palabra. Acá está antes de todo eso.
+   ⚠️ SIN CITA Y SIN NOTA METODOLÓGICA, por la regla del informe: es una línea de un documento
+   firmado. El respaldo con sus dos referencias numeradas vive en el panel de Evidencia. */
+const WILK_9_11 = 'El score no predice el resultado';
+
 /* Assert de arranque: `ref < leve` y, si hay banda moderada, `leve < mod`. Sin esto, un segmento
    nuevo con las bandas invertidas imprime un rango dado vuelta —«Dilat. leve (34-30mm)»— sin
    error. Y `mod` ausente se comporta igual que `mod:null` (salta de leve a severa), así que la
@@ -35226,7 +35246,7 @@ function calcWilkins() {
   if (intEl) intEl.dataset.banda = W.banda;
   let interp;
   if (W.banda === 'favorable')      interp = badge('green',  `Score ${total} — Favorable para valvuloplastia percutánea`);
-  else if (W.banda === 'suboptimo') interp = badge('yellow', `Score ${total} — Resultado subóptimo probable`);
+  else if (W.banda === 'suboptimo') interp = badge('yellow', `Score ${total} — ${WILK_9_11}`);
   else                              interp = badge('red',    `Score ${total} — No favorable para valvuloplastia`);
   if (intEl) intEl.innerHTML = interp;
 }
@@ -50651,7 +50671,7 @@ function amiloTextoWilkins() {
     ? (document.getElementById('wilkins-interp').dataset.banda || '') : '';
   const _wHayScore = !!_amTxt('wilkins-total') && _wBanda && _wBanda !== 'incompleto';
   /* El trombo NO se condiciona a la banda del score: es contraindicación ABSOLUTA, y atarla
-     a «favorable» dejaba sin aviso la franja 9-11 —«resultado subóptimo probable»—, que es
+     a «favorable» dejaba sin aviso la franja 9-11 —la que el score NO predice—, que es
      justo donde la valvuloplastia se sigue discutiendo caso por caso. El propio texto dice
      «con independencia del score» y dependía del score. */
   if (_wHayScore && _wTrombo === 'si') {
@@ -83167,7 +83187,9 @@ function labEteRender(infs, n) {
       stat('Excluidos por incompletos', wParciales ? String(wParciales) : '—'));
     labBarras('lab-ete-wilkins-bars', [
       { lbl: '≤8 — favorable (n=' + opt + ')',                n: opt, total: wTot.length, color: '#3ecf8e' },
-      { lbl: '9-11 — resultado subóptimo (n=' + bor + ')',    n: bor, total: wTot.length, color: '#f5c842' },
+      /* MISMA constante que el badge: el comentario de arriba exige que el agregado no contradiga
+         al informe individual, y con el literal duplicado corregir uno solo lo rompía. */
+      { lbl: '9-11 — ' + WILK_9_11 + ' (n=' + bor + ')',      n: bor, total: wTot.length, color: '#f5c842' },
       { lbl: '≥12 — no favorable (n=' + no + ')',             n: no,  total: wTot.length, color: '#f05454' }
     ]);
   }
@@ -85578,8 +85600,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260930-0150';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790743855128;                 /* eco-build-ms */
+const ECO_BUILD    = '20260930-0231';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790746312860;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -85665,7 +85687,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260930-0150</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260930-0231</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
