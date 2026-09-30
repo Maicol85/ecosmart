@@ -39552,7 +39552,35 @@ const IND_REFS = Object.freeze([
          'Patients With Valvular Heart Disease. Circulation 2021;143:e72-e227. ' +
          'doi:10.1161/CIR.0000000000000923. Tabla 17 «Stages of Chronic Primary MR», p. e121; ' +
          'recomendaciones de intervención en la insuficiencia mitral primaria, p. e124; ' +
-         'Tabla 16 «Stages of MS», p. e113; recomendaciones de estenosis mitral reumática, p. e116.' }
+         'Tabla 16 «Stages of MS», p. e113; recomendaciones de estenosis mitral reumática, p. e116.' },
+  /* ── AÑADIDAS 2026-09-30 PARA LA ESTENOSIS MITRAL, las dos leídas en texto completo.
+     La de Baumgartner porque es la ÚNICA fuente primaria verificada que gradúa la estenosis mitral
+     en leve / moderada / severa: es la escala que la pantalla del estudio viene usando y que hasta
+     hoy no tenía de dónde colgarse. Y DISCREPA con las otras dos en el corte central —severa es
+     < 1,0 cm² allá y ≤ 1,5 cm² acá— así que la sección lo dice con las dos citas, que es la regla.
+     La de Wilkins porque el score que la app calcula es suyo, y leerlo desmintió el corte que todo
+     el mundo le atribuye. Sus tablas son IMÁGENES dentro del PDF: el texto extraído sólo trae
+     título y notas al pie, así que los valores se leyeron sobre la página renderizada. */
+  { k:'eaeAseEst2009',
+    full:'Baumgartner H, Hung J, Bermejo J, et al. Echocardiographic Assessment of Valve Stenosis: ' +
+         'EAE/ASE Recommendations for Clinical Practice. J Am Soc Echocardiogr 2009;22(1):1-23. ' +
+         'Tabla 9 «Recommendations for classification of mitral stenosis severity», p. 17 — área ' +
+         'valvular > 1,5 cm² leve, 1,0-1,5 cm² moderada y < 1,0 cm² SEVERA; gradiente medio < 5 / ' +
+         '5-10 / > 10 mmHg y presión pulmonar < 30 / 30-50 / > 50 mmHg, los dos como signos de ' +
+         'APOYO: «cannot be considered as surrogate markers of the severity of MS» (p. 16). ' +
+         'El área por tiempo de hemipresión es 220/T½ (Tabla 8, p. 17; la constante se discute en ' +
+         'la p. 13). No define «estenosis mitral muy severa»: cero apariciones en el documento.' },
+  { k:'wilkins1988',
+    full:'Wilkins GT, Weyman AE, Abascal VM, Block PC, Palacios IF. Percutaneous balloon ' +
+         'dilatation of the mitral valve: an analysis of echocardiographic variables related to ' +
+         'outcome and the mechanism of dilatation. Br Heart J 1988;60(4):299-308. ' +
+         'doi:10.1136/hrt.60.4.299. Tabla 2, p. 300 — los cuatro componentes (movilidad, ' +
+         'engrosamiento valvular, engrosamiento subvalvular y calcificación) se gradúan de 0 a 4 y ' +
+         'el total va de 0 a 16. ⚠️ EL CORTE DE 8 NO ESTÁ EN ESTE ARTÍCULO: lo que dice la p. 307 ' +
+         'es «All patients with a total echocardiographic score > 11 had a suboptimal result while ' +
+         'all those with a score < 9 had an optimal result. The score failed to predict outcome in ' +
+         'those with scores of 9 to 11». El «> 8» que usa esta sección es de la ESC/EACTS 2025, que ' +
+         'lo publica sin atribuírselo a Wilkins.' }
 ]);
 
 /* Clave → número. Se arma UNA vez desde `IND_REFS`.
@@ -41588,12 +41616,34 @@ function _indEM(){
     guia: { ref:'esc2025vc',
       txt:'Comisurotomía mitral percutánea Clase I · Nivel B en el paciente SINTOMÁTICO en ausencia de características desfavorables, y Clase I · Nivel C en cualquier sintomático con contraindicación o riesgo alto para cirugía.' },
     notas: [
-      'AVm ≤ ' + (US != null ? _indNum(US,1) : '1,5') + ' cm² es el corte ÚNICO de significación clínica: la guía NO gradúa la estenosis mitral por área en leve, moderada y severa. Las bandas de la pantalla del estudio son la graduación habitual de la práctica, no una fila de esta tabla.',
+      /* ⚠️ LA DISCREPANCIA DEL CORTE CENTRAL VA CON LAS DOS CITAS, que es la regla de esta casa.
+         La EAE/ASE 2009 gradúa por área y llama SEVERA a < 1,0 cm²; la ESC/EACTS 2025 y la ACC/AHA
+         2020 usan ≤ 1,5 cm². No es que una esté mal: son dos preguntas distintas —graduar la lesión
+         y decidir cuándo intervenir— y el panel tiene que decir cuál está aplicando. */
+      { txt:'AVm ≤ ' + (US != null ? _indNum(US,1) : '1,5') + ' cm² es el corte ÚNICO de significación clínica de la guía vigente, que NO gradúa la estenosis mitral por área en leve, moderada y severa; la ACC/AHA 2020 usa el mismo corte. Las bandas de la pantalla del estudio son la graduación de la EAE/ASE 2009, que llama SEVERA a < 1,0 cm² y moderada a 1,0-1,5: por esa escala un área de 1,2 cm² es moderada y por la guía vigente ya es clínicamente significativa.',
+        refs:['esc2025vc','ahaVc2020','eaeAseEst2009'] },
+      { txt:'El área sola no alcanza: la guía dice «en combinación con ciertos factores clínicos» —síntomas, riesgo tromboembólico o de descompensación— para hablar de estenosis clínicamente grave.',
+        refs:['esc2025vc'] },
+      { txt:'El gradiente medio y la presión pulmonar NO son criterios de severidad. La EAE/ASE 2009 los publica como signos de APOYO que «no pueden considerarse marcadores indirectos de la severidad», y la ACC/AHA 2020 excluyó el gradiente medio de sus criterios de forma explícita, por su variabilidad con la frecuencia y el flujo.',
+        refs:['eaeAseEst2009','ahaVc2020'] },
+      { txt:'Ninguna de las tres guías define «estenosis mitral MUY severa»: no existe esa categoría por gradiente, por presión pulmonar ni por tiempo de hemipresión. La única «muy grave» de la ESC/EACTS 2025 es aórtica.',
+        refs:['esc2025vc','ahaVc2020','eaeAseEst2009'] },
       'Las filas de comisurotomía de esta tabla son las de la estenosis mitral REUMÁTICA: viven en el capítulo de esa etiología, la figura de manejo y la tabla de contraindicaciones lo dicen en su título, y el texto agrega que la estenosis degenerativa no es susceptible del procedimiento porque no hay fusión comisural que abrir. Para la degenerativa con calcificación anular extensa la guía tiene una fila propia —implante transcatéter, Clase IIb · Nivel C— que esta aplicación no implementa.',
-      'Las características clínicas desfavorables son «varias de las siguientes» y la guía NO dice cuántas. Esta aplicación exige ' + EM_CRIT_2025.clin_desfav_min + ' o más: con un solo factor la fila que se publica sigue siendo la que afirma la ausencia, y el factor se declara. Ese número es un criterio de la aplicación, no de la guía.',
-      'El score ecocardiográfico > ' + EM_CRIT_2025.score_desfav + ' es UNA de varias características desfavorables —clínicas y anatómicas— agrupadas con un «varias de las siguientes» que la guía NO cuantifica. Un score aislado no descalifica a nadie, y la propia guía señala que esos pacientes pueden beneficiarse igual, sobre todo con riesgo quirúrgico aumentado.',
+      { txt:'Las características clínicas desfavorables son «varias de las siguientes» y la guía NO dice cuántas. Esta aplicación exige ' + EM_CRIT_2025.clin_desfav_min + ' o más: con un solo factor la fila que se publica sigue siendo la que afirma la ausencia, y el factor se declara. Ese número es un criterio de la aplicación, no de la guía.',
+        refs:['esc2025vc','ecosmart'] },
+      /* ⚠️ EL «> 8» ES DE LA GUÍA, NO DE WILKINS, y ahora se puede demostrar. El artículo original
+         da DOS cortes con una zona gris en el medio y no menciona el 8 en ninguna parte. La app usa
+         las bandas del original —≤ 8, 9-11 y > 11— así que sus umbrales coinciden; lo que no
+         coincide es el rótulo de la banda del medio, y eso se declara abajo. */
+      { txt:'El score ecocardiográfico > ' + EM_CRIT_2025.score_desfav + ' es UNA de varias características desfavorables —clínicas y anatómicas— agrupadas con un «varias de las siguientes» que la guía NO cuantifica. Un score aislado no descalifica a nadie, y la propia guía señala que esos pacientes pueden beneficiarse igual, sobre todo con riesgo quirúrgico aumentado.',
+        refs:['esc2025vc'] },
+      { txt:'Ese > 8 es el corte de la guía y NO el del artículo original del score, que no menciona ningún 8: Wilkins separa en < 9 resultado óptimo y > 11 subóptimo, y dice que entre 9 y 11 el score NO predijo el resultado. Sus cuatro componentes van de 0 a 4 y el total de 0 a 16.',
+        refs:['esc2025vc','wilkins1988'] },
       'Contraindicaciones: AVm > ' + (US != null ? _indNum(US,1) : '1,5') + ' cm²; trombo en aurícula izquierda; insuficiencia mitral MÁS QUE LEVE —no «moderada o más»—; calcificación severa o bicomisural; ausencia de fusión comisural; valvulopatía aórtica severa o enfermedad tricuspídea combinada severa con indicación quirúrgica; coronariopatía que requiera revascularización quirúrgica. Esta sección evalúa las tres primeras; las otras cuatro no tienen campo y la recomendación las nombra.',
-      'Con trombo en la OREJUELA la contraindicación es CONDICIONAL: la guía admite considerar el procedimiento con contraindicación quirúrgica o sin urgencia, anticoagulando 1-3 meses y con un ETE de control que confirme la resolución.',
+      { txt:'Que la insuficiencia mitral MÁS QUE LEVE contraindica el procedimiento lo dicen las dos guías: la ACC/AHA 2020 lo escribe con esas palabras —«MR that is more than mild is a contraindication to PMBC»— aunque sus propias filas operen con «menos que moderada».',
+        refs:['ahaVc2020','esc2025vc'] },
+      { txt:'Con trombo en la aurícula izquierda la contraindicación es CONDICIONAL: la guía admite considerar el procedimiento con contraindicación quirúrgica o sin urgencia, anticoagulando 1-3 meses y con un ETE de control que confirme la resolución.',
+        refs:['esc2025vc'] },
       'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
     ] };
 }
@@ -85448,8 +85498,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260929-2348';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790736526354;                 /* eco-build-ms */
+const ECO_BUILD    = '20260930-0025';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790738738945;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -85535,7 +85585,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-2348</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260930-0025</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

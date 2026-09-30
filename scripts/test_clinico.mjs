@@ -30862,8 +30862,14 @@ caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declara
       esc(Object.assign({}, REU, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN));
       const dUno = secDe('Estenosis mitral');
       const nUno = dUno ? dUno.querySelectorAll('[data-ind-ref]').length : -1;
+      /* ⚠️ LA DIFERENCIA, NO EL ABSOLUTO. Este caso fijaba «3 y 2», que eran los corchetes que la
+         seccion tenia cuando se escribio; al ampliarse la bibliografia a cuatro documentos pasaron a
+         20 y 19 y el caso se puso rojo sin que nada del desdoble se hubiera roto. Lo que mide de
+         verdad es que la segunda fila APORTE su corchete, o sea exactamente uno mas — y eso no
+         cambia porque las notas citen mas. El denominador va al lado: si las dos dieran cero, la
+         resta tambien daria cero y el caso pasaria sobre una seccion sin pintar. */
       ex.push(['los dos corchetes se DIBUJAN: con dos filas hay uno mas que con una',
-        nDob === 3 && nUno === 2, 'dos filas=' + nDob + ' una fila=' + nUno]);
+        nUno > 0 && nDob === nUno + 1, 'dos filas=' + nDob + ' una fila=' + nUno]);
 
       /* Sin contestar el riesgo quirurgico no se inventa la segunda fila: se dice que quedo sin
          evaluar. Es la mitad que impide que el desdoble se lea como automatico. */
@@ -38911,6 +38917,130 @@ caso('TC-324', 'Evidencia: tres valvulopatias a la vez, cada seccion con su nume
    frase —la columna 2021 de su Tabla 4 dice «inoperables O de alto riesgo», o sea una disyuncion,
    asi que 2021 nunca exigio inoperabilidad—. Ponerle un corchete seria usar una cita verificada
    para respaldar lo que la fuente niega. Si alguien se lo agrega, este caso se pone en rojo. */
+/* La estenosis mitral cita CUATRO documentos verificados mas el marcador de criterio propio.
+   Las dos condiciones que importan de verdad son las ultimas dos, y las dos son sobre DISCREPANCIAS:
+   · El corte central esta en disputa entre fuentes primarias —la EAE/ASE 2009 llama SEVERA a
+     < 1,0 cm² y la guia vigente usa ≤ 1,5— asi que esa nota lleva las TRES citas. Publicar el corte
+     de una guia con el nombre de otra al lado es la cita falsa que este archivo persigue.
+   · El «> 8» del score es de la ESC, NO de Wilkins. El articulo original no menciona ningun 8:
+     separa en < 9 y > 11 y declara que entre 9 y 11 el score no predijo nada. La nota que lo aclara
+     lleva las dos citas, y sin ella la app estaria atribuyendo a Wilkins un corte que no escribio. */
+caso('TC-327', 'Evidencia EM: cuatro documentos verificados, y las dos discrepancias citadas por las DOS fuentes', `
+  return (async () => {
+    const R = {}, ex = [];
+    const pl = x => String(x == null ? '' : x).toLowerCase().normalize('NFD')
+      .split('').filter(function(ch){ const c = ch.charCodeAt(0); return c < 768 || c > 879; }).join('');
+    const cuerpo = () => document.getElementById('indic-cuerpo');
+    const cuenta = (h, sub) => h.split(sub).length - 1;
+    const FUENTES = ['esc2025vc', 'ahaVc2020', 'eaeAseEst2009', 'wilkins1988'];
+
+    R.registradas = FUENTES.concat(['ecosmart']).map(function(k){ return _indRefValida(k); });
+    /* Cada documento con su tabla y su pagina. El marcador de criterio propio NO: no es un
+       documento y no tiene donde mandar al medico a buscar. */
+    /* ⚠️ «CONTIENE la palabra tabla y una pagina» NO MEDIA NADA: la entrada de Baumgartner nombra
+       DOS tablas, asi que sacarle la Tabla 9 y su pagina SOBREVIVIA con la Tabla 8 intacta. Se exige
+       el DATO EXACTO que cada cita existe para transportar — el que un lector iria a buscar —, que
+       es lo unico que distingue una referencia util de una decorativa. */
+    const ANCLAS = { esc2025vc:['tabla 6 de recomendaciones', 'traduccion de la sociedad espanola'],
+                     ahaVc2020:['tabla 16', 'e113', 'e116'],
+                     eaeAseEst2009:['tabla 9', 'p. 17', '< 1,0 cm'],
+                     wilkins1988:['p. 300', '0 a 16', '> 11', '< 9', 'p. 307'] };
+    R.conPagina = FUENTES.map(function(k){
+      const f = pl((_indRefDoc(k) || {}).full || '');
+      return (ANCLAS[k] || []).every(function(x){ return f.indexOf(pl(x)) > -1; });
+    });
+
+    __t.limpiar();
+    const CAMPOS = { peso:'80', talla:'180', edad:'62', sexo:'F', fevi:'60',
+      vm_morf:'Reum\u00e1tica', avm_plan:'1.2', em_grado:'severa' };
+    R.faltan = [];
+    Object.keys(CAMPOS).forEach(function(k){
+      const e = document.getElementById(k);
+      if (!e) { R.faltan.push(k); return; }
+      try { __t.set(k, CAMPOS[k]); } catch (e2) { R.faltan.push(k + ':' + e2.message); }
+    });
+    indicAbrir();
+    await new Promise(r => setTimeout(r, 520));
+    for (let i = 0; i < 60; i++) {
+      const pend = Array.prototype.slice.call(cuerpo().querySelectorAll('[data-ind-clin][data-ind-val]'))
+        .filter(function(b){ return _indClinGet(b.getAttribute('data-ind-clin')) == null; });
+      if (!pend.length) break;
+      pend[0].click();
+    }
+
+    const secEM = Array.prototype.slice.call(cuerpo().querySelectorAll(':scope > details'))
+      .filter(function(d){ return pl(d.querySelector('summary').textContent).indexOf('estenosis mitral') > -1; })[0];
+    R.hayEM = !!secEM;
+    const H = secEM ? secEM.innerHTML : '';
+    const bib = secEM ? secEM.querySelector('[data-ind-biblio]') : null;
+    R.items = bib ? Array.prototype.slice.call(bib.querySelectorAll('[data-ind-refitem]'))
+      .map(function(e){ return e.getAttribute('data-ind-refitem'); }) : [];
+    R.sinNumerar = cuenta(cuerpo().innerHTML, 'cita sin numerar');
+    R.noRegistrada = cuenta(cuerpo().innerHTML, 'referencia no registrada');
+
+    /* Las notas hoja de ESTA seccion, sin la bibliografia —sus entradas tambien son div hoja y
+       nombran los documentos, asi que sin excluirla el denominador cuenta de mas. */
+    const hojas = secEM ? Array.prototype.slice.call(secEM.querySelectorAll('details div div'))
+      .filter(function(d){ return d.querySelectorAll('div').length === 0 && !d.closest('[data-ind-biblio]'); }) : [];
+    const conTexto = function(frag){
+      return hojas.filter(function(d){ return pl(d.textContent).indexOf(pl(frag)) > -1; });
+    };
+    const citaN = function(nodos, clave){
+      return nodos.filter(function(d){ return d.querySelectorAll('[data-ind-ref="' + clave + '"]').length > 0; }).length;
+    };
+
+    const nCorte = conTexto('1,0');
+    R.corte = { n:nCorte.length, esc:citaN(nCorte, 'esc2025vc'),
+                aha:citaN(nCorte, 'ahaVc2020'), eae:citaN(nCorte, 'eaeAseEst2009') };
+    const nScore = conTexto('no predijo');
+    R.score = { n:nScore.length, esc:citaN(nScore, 'esc2025vc'), wil:citaN(nScore, 'wilkins1988') };
+
+    ex.push(['DENOMINADOR: la seccion de EM se pinto y sus controles se contestaron',
+      R.hayEM && R.faltan.length === 0 && cuenta(H, 'data-ind-ref="') >= 10,
+      'hayEM=' + R.hayEM + ' faltan=' + JSON.stringify(R.faltan) +
+      ' corchetes=' + cuenta(H, 'data-ind-ref="')]);
+
+    ex.push(['los cuatro documentos estan registrados y cada uno nombra su tabla y su pagina',
+      R.registradas.every(Boolean) && R.conPagina.every(Boolean),
+      'registradas=' + JSON.stringify(R.registradas) + ' conPagina=' + JSON.stringify(R.conPagina)]);
+
+    ex.push(['su bibliografia lista los CUATRO documentos mas el marcador de criterio propio',
+      R.items.length === 5 &&
+      JSON.stringify(R.items) === JSON.stringify(['esc2025vc','ahaVc2020','eaeAseEst2009','ecosmart','wilkins1988']) &&
+      R.sinNumerar === 0 && R.noRegistrada === 0,
+      'items=' + JSON.stringify(R.items) + ' sinNumerar=' + R.sinNumerar +
+      ' noRegistrada=' + R.noRegistrada]);
+
+    /* ⚠️ MISMO HUECO QUE EN TC-326: sacarle la cita a UNA nota sobrevivia porque la clave sigue
+       citada en otra y la bibliografia no se mueve. Lo que importa es que la frase que afirma algo
+       SOBRE un documento lo cite. Se barren las notas que nombran cada guia por su nombre. */
+    const porNombre = function(frag, clave){
+      const nom = hojas.filter(function(d){ return d.textContent.indexOf(frag) > -1; });
+      return { n:nom.length, conCita:citaN(nom, clave) };
+    };
+    R.nAHA = porNombre('ACC/AHA', 'ahaVc2020');
+    R.nEAE = porNombre('EAE/ASE', 'eaeAseEst2009');
+    R.nWil = porNombre('Wilkins', 'wilkins1988');
+
+    ex.push(['cada nota que nombra a la ACC/AHA, a la EAE/ASE o a Wilkins lleva SU corchete',
+      R.nAHA.n >= 2 && R.nAHA.conCita === R.nAHA.n &&
+      R.nEAE.n >= 2 && R.nEAE.conCita === R.nEAE.n &&
+      R.nWil.n >= 1 && R.nWil.conCita === R.nWil.n,
+      'AHA=' + JSON.stringify(R.nAHA) + ' EAE=' + JSON.stringify(R.nEAE) +
+      ' Wilkins=' + JSON.stringify(R.nWil)]);
+
+    ex.push(['la discrepancia del corte de area lleva las TRES citas en la MISMA nota',
+      R.corte.n === 1 && R.corte.esc === 1 && R.corte.aha === 1 && R.corte.eae === 1,
+      JSON.stringify(R.corte)]);
+
+    ex.push(['la aclaracion de que el >8 NO es de Wilkins lleva las DOS citas en la MISMA nota',
+      R.score.n === 1 && R.score.esc === 1 && R.score.wil === 1,
+      JSON.stringify(R.score)]);
+
+    return { resumen: JSON.stringify({ items: R.items, corte: R.corte, score: R.score }), extra: ex };
+  })();
+`);
+
 caso('TC-326', 'Evidencia IM: la bibliografia cita TRES documentos verificados, y la nota del TEER sigue sin cita', `
   return (async () => {
     const R = {}, ex = [];

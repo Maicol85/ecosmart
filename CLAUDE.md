@@ -189,6 +189,106 @@ garantiza que una referencia registrada y no citada no se publique.
    nivel es **opcional**: el documento del foramen usa GRADE y forzarle el molde sería inventarle
    una clase que no tiene.
 
+### Bibliografía de IM primaria y EM nativa — lo verificado y lo que NO (2026-09-30)
+
+**Regla que se aplicó sin excepción: «verificada» es texto completo leído, con documento, año, tabla
+y página.** Título o resumen no cuentan. Lo que no se pudo abrir NO se citó, aunque el dato sea de
+conocimiento corriente — es la misma regla que sacó el cociente 0,38.
+
+**Insuficiencia mitral primaria — TRES fuentes verificadas.** ESC/EACTS 2025 (Tabla 6 de
+Recomendaciones, p. 44), ASE 2017 Zoghbi (Tabla 8, p. 332) y ACC/AHA 2020 Otto/Nishimura (Tabla 17,
+p. e121; recomendaciones p. e124). Las tres concuerdan en los cuantitativos de IM severa —AEOR
+≥ 40 mm², VolR ≥ 60 ml, FR ≥ 50 %, VC ≥ 7 mm— y eso se dice con las tres citas.
+
+**Estenosis mitral — CUATRO fuentes verificadas**, más el marcador `ecosmart`, que **no cuenta como
+bibliografía**: ESC/EACTS 2025 (Tabla 8 de Recomendaciones y su tabla de contraindicaciones, p. 52),
+ACC/AHA 2020 (Tabla 16, p. e113; recomendaciones p. e116), EAE/ASE 2009 Baumgartner (Tabla 9, p. 17)
+y Wilkins 1988 (Tablas 1-2, p. 300; resultados p. 307).
+
+### ⚠️ TRES COSAS QUE LA FUENTE PRIMARIA DESMIENTE — REPORTADAS, NO CORREGIDAS
+
+Ninguna se tocó: son contenido clínico y la decisión es de Maicol.
+
+1. **«El TEER dejó de exigir que el paciente fuera inoperable» es FALSO.** La columna 2021 de la
+   Tabla 4 de recomendaciones revisadas de la ESC/EACTS 2025 (p. 14) dice «inoperables **O** de alto
+   riesgo quirúrgico» — una disyunción, así que 2021 nunca exigió inoperabilidad. Lo que 2025 sí
+   eliminó es otra cosa: los «criterios ecocardiográficos de elegibilidad» y la cláusula de
+   futilidad. **Esa nota quedó SIN corchete a propósito y lo fija TC-326**: estamparle `esc2025vc`
+   sería usar una cita verificada para respaldar lo que esa misma fuente niega.
+2. **El trombo: la guía dice «en la AI», no «en la OREJUELA».** La nota ^b de la tabla de
+   contraindicaciones (p. 52) dice «Cuando el trombo se localiza **en la AI**…», y la palabra
+   «orejuela» no aparece en toda la sección de estenosis mitral —sólo como OOAI, oclusión de
+   orejuela, en el capítulo de fibrilación—. El código y la nota del panel decían «cuando está en la
+   OREJUELA», que le atribuye a la guía una restricción de localización que no tiene. **Salvedad
+   honesta:** lo verificado es la TRADUCCIÓN española; el original inglés podría decir «LA
+   appendage» y ser un recorte del traductor. Sin el PDF del EHJ no se puede cerrar. **El texto NO se
+   cambió** —corregirlo sería tocar contenido clínico— y la nota quedó **sin corchete**, porque
+   citarla con `esc2025vc` respaldaría con una fuente verificada algo que esa fuente no dice.
+3. **La banda 9-11 del score: la app afirma donde el original dice que no pudo predecir.**
+   `wilkinsScore()` rotula 9-11 como «Resultado subóptimo probable». Wilkins 1988 (p. 307, leído
+   sobre la página renderizada) dice: «All patients with a total echocardiographic score > 11 had a
+   suboptimal result while all those with a score < 9 had an optimal result. **The score failed to
+   predict outcome in those with scores of 9 to 11**». Los tres cortes de la app coinciden con el
+   original —≤ 8, 9-11, > 11— pero el rótulo del medio afirma una predicción que el artículo niega.
+
+**Y dos cosas menores del score, del mismo artículo:** el rango original es **0 a 16** con cada
+componente de **0 a 4** (Tabla 2, p. 300), no 4-16 como repiten las fuentes secundarias —incluida la
+Tabla 5 de Baumgartner 2009—; y `wilkinsScore()` trata el 0 de un componente como «sin puntuar»,
+así que un velo genuinamente normal no se puede registrar como 0.
+
+### La discrepancia del corte de área de la EM, que ahora está citada por las dos partes
+
+**La EAE/ASE 2009 llama SEVERA a un área < 1,0 cm² y moderada a 1,0-1,5** (Tabla 9, p. 17). La
+ESC/EACTS 2025 y la ACC/AHA 2020 usan **≤ 1,5 cm²**. No es que una esté mal: son dos preguntas
+—graduar la lesión y decidir cuándo intervenir— y hasta hoy el panel usaba una escala sin decir
+cuál. Un área de 1,2 cm² es «moderada» por la de 2009 y ya clínicamente significativa por la
+vigente. La nota lo dice con las **tres** citas.
+
+Del mismo barrido, tres ausencias verificadas que el panel ahora afirma con respaldo: **el gradiente
+medio y la presión pulmonar NO son criterios de severidad** —la EAE/ASE 2009 los llama signos de
+apoyo que «cannot be considered as surrogate markers of the severity of MS» (p. 16) y la ACC/AHA
+2020 excluyó el gradiente medio explícitamente (Tabla 16, p. e113)—; **no existe «estenosis mitral
+muy severa»** en ninguna de las tres; y **la ACC/AHA 2020 no tiene criterio indexado ni esquema de
+«tres de cuatro»** en la mitral, lo que deja al ≥ 20 mm/m² sin corroboración de una segunda guía.
+
+### Lo que NO se pudo verificar, y por eso no se citó
+
+- **Hatle 1979** (la constante 220 del tiempo de hemipresión). Circulation 1979;60(5):1096-1104 es de
+  suscripción; Unpaywall da `is_oa: false` y cero localizaciones abiertas. **La fórmula sí se citó,
+  pero por Baumgartner 2009** (Tabla 8, p. 17, con la constante discutida en la p. 13), que es donde
+  se leyó: es la fuente de la práctica actual, no la verificación de qué dijo Hatle.
+- **Lancellotti EACVI 2013** (Eur Heart J Cardiovasc Imaging 2013;14(7):611-644). Europe PMC lo da
+  como `isOpenAccess: N` y el PDF del editor está detrás de Cloudflare. **No se citó.** Importa
+  porque es el único documento que, según una lectura que no pude reproducir, especifica que el
+  cociente ITV mitral/ITV TSVI > 1,4 se mide por **Doppler pulsado anterógrado**, en las puntas de
+  los velos y con el flujo aórtico en el anillo. Eso responde la pregunta que quedó abierta el
+  2026-09-29 — pero **como no lo abrí yo, no entra al panel**.
+- **La fe de erratas de la ESC/EACTS 2025 SÍ se leyó** (`ehag625`, EHJ, 6 de agosto de 2026) y
+  **no afecta ninguna cifra citada**: su único ítem corrige «NYHA class II–V» por «NYHA class II–IV»
+  en la sección 9.2.4.2, que es insuficiencia mitral SECUNDARIA. Hay una segunda errata en
+  *Eur J Cardiothorac Surg* 2026;68(7):ezag193, que corrige un párrafo duplicado sobre anticoagulación
+  en el embarazo. Ninguna de las dos toca un umbral.
+
+### ⚠️ EL PDF DE LA ESC/EACTS 2025 QUE HAY EN DISCO ES LA TRADUCCIÓN, NO EL ORIGINAL
+
+125 páginas, numeración propia (**página impresa = página de PDF − 1**), sin la paginación 4.6xx del
+European Heart Journal. Los «p. 4682» que este archivo arrastra de una referencia secundaria **no
+son verificables sobre lo que tenemos**, y el registro de citas ahora lo declara. Consecuencia
+práctica: no se puede citar en inglés original ni por página de revista, y el **Material
+suplementario Tabla S3** —que es justamente donde vive la definición de la «puntuación
+ecocardiográfica > 8» y la de Cormier— no está incluido.
+
+### Dos trampas de método de esta ronda
+
+- **⚠️ LA BÚSQUEDA LITERAL EN UN PDF DA FALSOS NEGATIVOS POR EL GUIÓN DE FIN DE LÍNEA.** Busqué
+  «contraindication to PMBC» en la ACC/AHA 2020 y di **cero páginas**; estuve a punto de reportar que
+  un agente se había inventado la cita. Está en la p. e114, partida como «contrain- dication». El
+  helper de búsqueda des-hifena antes de comparar. El error iba a costar caro en la dirección
+  contraria a la habitual: acusar de falsa una cita verdadera.
+- **Las tablas de Baumgartner 2009 son IMÁGENES dentro del PDF.** El texto extraído trae el título
+  y las notas al pie y **ni un solo valor**: buscar «1.0» devuelve nada y parece que la tabla no
+  existe. Hay que renderizar la página. Lo mismo con Wilkins 1988, que es un escaneo de 1988 entero.
+
 ### Bibliografía POR SECCIÓN — DECISIÓN DE MAICOL, 2026-09-29 (revierte las reglas 1 y 2)
 
 **Cada válvula lleva su propia bibliografía, debajo de su sección, con numeración propia que arranca
