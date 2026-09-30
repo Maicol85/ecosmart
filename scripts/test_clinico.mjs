@@ -30,7 +30,10 @@ import { fileURLToPath } from 'node:url';
 
 const RAIZ = dirname(dirname(fileURLToPath(import.meta.url)));
 const VER  = process.argv.includes('--ver');
-const SOLO = (() => { const i = process.argv.indexOf('--solo'); return i > -1 ? process.argv[i + 1] : null; })();
+/* `--solo` acepta una LISTA separada por comas (--solo TC-322,TC-324). Con un solo id cada
+   verificacion por mutacion costaba una suite completa por caso que queria mirar. */
+const SOLO = (() => { const i = process.argv.indexOf('--solo');
+  return i > -1 ? new Set(String(process.argv[i + 1]).split(',').map(x => x.trim()).filter(Boolean)) : null; })();
 
 const CHROMES = [
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
@@ -30839,10 +30842,15 @@ caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declara
         pl(rDob.mod.nota || '').indexOf('dos filas') > -1 &&
         pl(rDob.mod.nota).indexOf('no dice cual prevalece') > -1,
         rDob && rDob.mod ? (rDob.mod.tit + ' / ' + String(rDob.mod.nota || '').slice(0, 90)) : 'null']);
+      /* _indRefValida Y NO _indRefNum: con la numeracion POR SECCION el contexto se abre y se
+         cierra dentro de _indSecHTML, asi que aca afuera _indRefNum da null por diseno y la
+         condicion se caia sin que nada estuviera roto. Lo que este caso quiere saber es si la
+         clave esta en el registro; que el corchete se DIBUJE se mide abajo, sobre el HTML. */
       ex.push(['las dos citan por CLAVE del registro, y la clave esta registrada',
         !!rDob && rDob.ref === 'esc2025vc' && !!rDob.mod && rDob.mod.ref === 'esc2025vc' &&
-        _indRefNum('esc2025vc') != null,
-        rDob ? ('ref=' + rDob.ref + ' modRef=' + (rDob.mod ? rDob.mod.ref : '-') + ' n=' + _indRefNum('esc2025vc')) : 'null']);
+        _indRefValida('esc2025vc'),
+        rDob ? ('ref=' + rDob.ref + ' modRef=' + (rDob.mod ? rDob.mod.ref : '-') +
+                ' valida=' + _indRefValida('esc2025vc')) : 'null']);
 
       /* El corchete tiene que estar DIBUJADO, no solo en el objeto. Se cuenta dentro de la seccion
          de estenosis mitral para no sumar los de las otras. */
@@ -33333,7 +33341,12 @@ caso('TC-293', 'Panel de Evidencia: el detalle largo nace COLAPSADO, hay un solo
        posicion — al pie hoy, pero eso no es un invariante. */
     const secs = [].slice.call(cu.querySelectorAll(':scope > details'))
       .filter(function(d){ return !d.hasAttribute('data-ind-biblio'); });
-    const det = [].slice.call(cu.querySelectorAll('details details'));
+    /* ⚠️ Y TAMPOCO ES UN CONTROL DE DETALLE. Con la bibliografia POR SECCION este contador daba
+       catorce donde hay siete —un detalle + una bibliografia por seccion— y tiraba el denominador
+       y el conteo de rotulos a la vez. Misma marca, misma exclusion: el comentario de arriba
+       decia «al pie hoy, pero eso no es un invariante», y efectivamente dejo de estarlo. */
+    const det = [].slice.call(cu.querySelectorAll('details details'))
+      .filter(function(d){ return !d.hasAttribute('data-ind-biblio'); });
 
     ex.push(['DENOMINADOR: el escenario enciende varias secciones y cada una trae su control de detalle',
       secs.length >= 5 && det.length === secs.length,
@@ -38644,9 +38657,503 @@ caso('TC-318', 'El panel de metodos de EM no se filtra entre pacientes: Nuevo es
    ⚠️ SE MIDE EL DOM RENDERIZADO Y NO EL FUENTE: el comentario que explica la eliminacion
    TRANSCRIBE el numero, asi que un grep sobre index.html lo sigue encontrando. Lo que importa
    es lo que el medico ve.                                                                      */
-caso('TC-322', 'Evidencia: sistema de citas numeradas con un solo dueno de la numeracion', `
+/* ══ TC-324 ═══════════════════════════════════════════════════════════════════════════════════
+   EL CASO MULTI-VALVULA, QUE NUNCA ESTUVO CUBIERTO. TC-273 y TC-322 recorren IND_SECS con UN
+   escenario por seccion y barren los campos entre una y otra, asi que ninguna corrida del suite
+   tuvo nunca dos valvulopatias en el panel a la vez — y es el paciente corriente. Todo lo que este
+   caso mide era invisible: que cada seccion numere desde 1 sin que las otras la muevan, que cada
+   una tenga SU bibliografia, y que el clic de un corchete abra la de SU seccion y no la de arriba.
+   Se entra por indicAbrir(), no por indicRender(): el listener delegado lo cablea _indClinCablear,
+   que solo corre desde ahi. Con indicRender() los clics sobre los controles clinicos no registran
+   NADA y el caso mide un panel sin recomendaciones resueltas — se pago una vuelta de diagnostico
+   por eso durante el censo. */
+caso('TC-324', 'Evidencia: tres valvulopatias a la vez, cada seccion con su numeracion y su bibliografia', `
+  return (async () => {
+    const R = {};
+    /* ⚠️ NADA DE REGEX EN EL CUERPO DE UN CASO. El cuerpo es un template literal, asi que se come
+       los escapes: un [\\d] llega como [d] y un \\/ cierra el literal antes de tiempo. La primera
+       version de este caso murio con «Invalid regular expression flags» apuntando a la linea del
+       caso(, cien lineas antes del culpable — la trampa que este archivo documenta desde la quinta
+       vez y que recomienda resolver con indexOf. */
+    const numDe = function(h, k){
+      const i = h.indexOf('data-ind-ref="' + k + '"');
+      if (i < 0) return null;
+      const a = h.indexOf('[', i), b = h.indexOf(']', a);
+      return (a < 0 || b < 0) ? null : h.slice(a + 1, b);
+    };
+    const itemsDe = function(h){
+      return h.split('data-ind-refitem="').slice(1).map(function(x){ return x.slice(0, x.indexOf('"')); });
+    };
+    const numsBibDe = function(h){
+      return h.split('<b>[').slice(1).map(function(x){ return x.slice(0, x.indexOf(']')); });
+    };
+    const cuerpo = () => document.getElementById('indic-cuerpo');
+    const secs = () => cuerpo()
+      ? Array.prototype.slice.call(cuerpo().querySelectorAll(':scope > details:not([data-ind-biblio])'))
+      : [];
+
+    /* Estenosis mitral + insuficiencia mitral + estenosis aortica, que es el escenario del reporte.
+       Los datos son los minimos que cruzan las tres compuertas, leidos de las compuertas. */
+    __t.limpiar();
+    const CAMPOS = { peso:'80', talla:'180', edad:'72', sexo:'M', fevi:'55', dsfvi:'42',
+      vm_morf:'Reum\u00e1tica', avm_plan:'1.2',
+      im_sev_final:'4',
+      ea_grado:'severa', vmax_ao:'4.5', gmedio_ao:'48', ava_cont:'0.80' };
+    R.faltan = [];
+    Object.keys(CAMPOS).forEach(function(k){
+      const e = document.getElementById(k);
+      if (!e) { R.faltan.push(k); return; }
+      try { __t.set(k, CAMPOS[k]); } catch (e2) { R.faltan.push(k + ':' + e2.message); }
+    });
+
+    indicAbrir();
+    /* El debounce de 400 ms que __t.set deja armado repinta el cuerpo al vencer y se lleva la marca
+       del corchete. Se drena ANTES de medir, igual que TC-322. */
+    await new Promise(r => setTimeout(r, 520));
+
+    /* Se contestan TODOS los controles clinicos para que las recomendaciones se RESUELVAN: sin
+       esto las tres salen en tipo «falta», que no publica clase, y el caso no mediria ningun
+       corchete de recomendacion — que es justo el hueco que este cambio vino a cerrar.
+       Se toma la PRIMERA opcion de cada grupo todavia sin contestar y se re-consulta el DOM en cada
+       vuelta: cada clic repinta el cuerpo, asi que una lista capturada al principio queda
+       desprendida. Un segundo toque sobre la opcion activa DESMARCA, asi que se filtra por las que
+       siguen en null. */
+    R.clin = 0;
+    for (let i = 0; i < 90; i++) {
+      const pend = Array.prototype.slice.call(cuerpo().querySelectorAll('[data-ind-clin][data-ind-val]'))
+        .filter(function(b){ return _indClinGet(b.getAttribute('data-ind-clin')) == null; });
+      if (!pend.length) break;
+      pend[0].click(); R.clin++;
+    }
+
+    const ds = secs();
+    R.secciones = ds.length;
+    R.titulos = ds.map(function(d){ const s2 = d.querySelector('summary'); return s2 ? s2.textContent : '?'; });
+    R.alPie = cuerpo().querySelectorAll(':scope > [data-ind-biblio]').length;
+    R.biblios = cuerpo().querySelectorAll('[data-ind-biblio]').length;
+
+    /* Ningun aviso rojo. Los tres son distintos y cada uno nombra otra causa:
+       «sin numerar» = una afirmacion con clase y sin ref (el defecto que este cambio cerro),
+       «fuera de seccion» = un corchete pintado sin contexto de numeracion abierto,
+       «no registrada» = una clave que no esta en IND_REFS. */
+    const H = cuerpo().innerHTML;
+    R.sinNumerar    = H.split('[cita sin numerar]').length - 1;
+    R.fueraSeccion  = H.split('[cita fuera de secci\u00f3n]').length - 1;
+    R.noRegistrada  = H.split('[referencia no registrada]').length - 1;
+
+    R.porSec = ds.map(function(d){
+      const b = d.querySelector('[data-ind-biblio]');
+      const cor = Array.prototype.slice.call(d.querySelectorAll('[data-ind-ref]'));
+      const items = b ? Array.prototype.slice.call(b.querySelectorAll('[data-ind-refitem]')) : [];
+      return {
+        tit: (d.querySelector('summary') || {}).textContent,
+        corchetes: cor.map(function(x){ return x.textContent.trim(); }),
+        /* Toda afirmacion con clase de recomendacion tiene que llevar corchete. Se cuentan los
+           renglones que empiezan con «Clase » en negrita, que es como los pinta _indRecomHTML. */
+        conClase: d.innerHTML.split('<b>Clase ').length - 1,
+        bibliosPropias: d.querySelectorAll('[data-ind-biblio]').length,
+        /* closest() EMPIEZA EN EL PROPIO ELEMENTO, y la bibliografia ES un <details>: se devolvia
+           a si misma y la condicion daba hija=false sobre un arbol correcto. Se sube del PADRE. */
+        hija: !!(b && b.parentElement && b.parentElement.closest('details') === d),
+        cerrada: b ? !b.hasAttribute('open') : null,
+        entradas: items.map(function(x){
+          const n = x.querySelector('b');
+          return (n ? n.textContent : '?') + ' ' + x.getAttribute('data-ind-refitem');
+        })
+      };
+    });
+
+    /* ── El clic abre la bibliografia de SU seccion, no la de la primera ──────────────────────
+       Es el fallo mas caro del cambio y el unico completamente mudo: con el ambito en el panel,
+       _indRefAbrir toma la PRIMERA bibliografia y el corchete de la tercera seccion abriria la de
+       la primera marcando una entrada ajena. Abre algo, marca algo, y es de otra valvula. */
+    const ULT = ds.length - 1;
+    ds.forEach(function(d){ const b = d.querySelector('[data-ind-biblio]'); if (b) b.open = false; });
+    const brUlt = ds[ULT] ? ds[ULT].querySelector('[data-ind-ref]') : null;
+    R.hayCorcheteUlt = !!brUlt;
+    if (brUlt) { brUlt.click(); await new Promise(r => setTimeout(r, 40)); }
+    const abiertas = ds.map(function(d){
+      const b = d.querySelector('[data-ind-biblio]');
+      return b ? b.hasAttribute('open') || b.open === true : null;
+    });
+    R.abiertas = abiertas;
+    R.soloLaSuyaAbrio = abiertas.length >= 3 && abiertas[ULT] === true &&
+      abiertas.slice(0, ULT).every(function(x){ return x === false; });
+    /* Y la marca cae DENTRO de esa seccion, no en otra. */
+    const marcadas = Array.prototype.slice.call(cuerpo().querySelectorAll('[data-ind-refsel]'));
+    R.marcadas = marcadas.length;
+    R.marcaEnLaSuya = marcadas.length === 1 && ds[ULT] && ds[ULT].contains(marcadas[0]);
+
+    /* ── EN AISLAMIENTO: la numeracion por orden de aparicion ────────────────────────────────
+       Hoy cada seccion cita UN solo documento, asi que todas muestran [1] y el mecanismo de
+       «segundo documento -> [2]» no es alcanzable por ningun escenario clinico. Una numeracion que
+       ningun caso ejerce es una capa que nadie sabe si existe: se ejerce con una seccion sintetica
+       que cita DOS documentos distintos, y se verifica el orden, la reutilizacion del mismo numero
+       para la misma clave, y que la bibliografia de esa seccion liste las dos en ese orden. */
+    const rSint = {
+      filas: [ _indFila('Una fila cualquiera', '1', 'none', '') ],
+      recom: { tipo:'ind', tit:'Recomendacion', txt:'Texto de la recomendacion.',
+               clase:'Clase I \u00b7 Nivel B', fuente:'Documento de la recomendacion', ref:'esc2020guch' },
+      guia:  { ref:'esc2025vc', txt:'Criterio de la guia, largo lo suficiente para pasar el filtro.' }
+    };
+    const hSint = _indSecHTML('Seccion sintetica', rSint);
+    /* La recomendacion se pinta ANTES del criterio, asi que su documento es el [1] y el del
+       criterio el [2]. El orden importa: si alguien mueve el bloque del criterio arriba de la
+       recomendacion, los numeros se dan vuelta y esta condicion lo dice. */
+    R.sintGuchNum = numDe(hSint, 'esc2020guch');
+    R.sintVcNum   = numDe(hSint, 'esc2025vc');
+    R.sintCorchetes = 'guch=' + R.sintGuchNum + ' vc=' + R.sintVcNum;
+    R.sintGuch1 = R.sintGuchNum === '1';
+    R.sintVc2   = R.sintVcNum === '2';
+    R.sintItems = itemsDe(hSint);
+    R.sintNums  = numsBibDe(hSint);
+
+    /* La MISMA clave dos veces dentro de una seccion tiene que devolver el MISMO numero, o la
+       bibliografia tendria dos entradas del mismo documento con numeros distintos. */
+    const rSint2 = {
+      filas: [ _indFila('Fila', '1', 'none', '') ],
+      recom: { tipo:'ind', tit:'Recomendacion', txt:'Texto.', clase:'Clase I \u00b7 Nivel B',
+               fuente:'Mismo documento', ref:'esc2025vc' },
+      guia:  { ref:'esc2025vc', txt:'Criterio de la misma guia, con largo suficiente para el filtro.' }
+    };
+    const hSint2 = _indSecHTML('Seccion sintetica 2', rSint2);
+    /* Las DOS apariciones de la misma clave: se parten los corchetes y se lee el numero de cada
+       uno, que es lo que distingue «mismo numero» de «dos numeros». */
+    R.sint2Nums = hSint2.split('data-ind-ref="esc2025vc"').slice(1).map(function(x){
+      const a = x.indexOf('['), b = x.indexOf(']', a);
+      return (a < 0 || b < 0) ? '?' : x.slice(a + 1, b);
+    });
+    R.sint2Items = itemsDe(hSint2).length;
+
+    /* El contexto se CIERRA al salir: dos secciones seguidas no comparten acumulador. Si el
+       finally de _indSecHTML se cayera, la segunda arrancaria en [2]. */
+    R.ctxCerrado = _indRefCtx === null;
+
+    /* Y el ambito: una clave valida SIGUE siendo valida fuera de un pintado —es la allowlist— pero
+       no tiene numero. Partir las dos preguntas es lo que mantiene vivo el clic del corchete. */
+    R.validaFuera = _indRefValida('esc2025vc') === true;
+    R.numFuera = _indRefNum('esc2025vc');
+
+    indicCerrar();
+    __t.limpiar();
+
+    const conClaseTotal = R.porSec.reduce(function(a, x){ return a + x.conClase; }, 0);
+    const corTotal = R.porSec.reduce(function(a, x){ return a + x.corchetes.length; }, 0);
+
+    return { resumen: JSON.stringify({ secciones: R.secciones, biblios: R.biblios,
+      clin: R.clin, conClase: conClaseTotal, corchetes: corTotal,
+      sinNumerar: R.sinNumerar, titulos: R.titulos }), extra: [
+      ['DENOMINADOR: los campos existen y las TRES secciones estan en el panel',
+        R.faltan.length === 0 && R.secciones === 3,
+        'faltan=' + JSON.stringify(R.faltan) + ' secciones=' + R.secciones + ' ' + JSON.stringify(R.titulos)],
+      ['DENOMINADOR: se contestaron controles clinicos, o las recomendaciones no se resuelven',
+        R.clin >= 6, 'contestados=' + R.clin],
+      ['DENOMINADOR: hay afirmaciones con clase de recomendacion que medir',
+        conClaseTotal >= 4, 'conClase=' + conClaseTotal + ' ' +
+        JSON.stringify(R.porSec.map(function(x){ return x.tit + '=' + x.conClase; }))],
+      ['CADA SECCION TIENE SU PROPIA BIBLIOGRAFIA: tres secciones, tres bibliografias',
+        R.biblios === 3 && R.porSec.every(function(x){ return x.bibliosPropias === 1; }),
+        'biblios=' + R.biblios + ' ' + JSON.stringify(R.porSec.map(function(x){ return x.bibliosPropias; }))],
+      ['y NINGUNA al pie del panel',
+        R.alPie === 0, 'alPie=' + R.alPie],
+      ['cada una es HIJA de su seccion y nace CERRADA',
+        R.porSec.every(function(x){ return x.hija === true && x.cerrada === true; }),
+        JSON.stringify(R.porSec.map(function(x){ return x.tit + ' hija=' + x.hija + ' cerrada=' + x.cerrada; }))],
+      ['CADA SECCION NUMERA DESDE [1], sin que las otras dos la muevan',
+        R.porSec.every(function(x){ return x.corchetes.length > 0 && x.corchetes[0] === '[1]'; }),
+        JSON.stringify(R.porSec.map(function(x){ return x.tit + '=' + JSON.stringify(x.corchetes); }))],
+      ['UNA AFIRMACION CON CLASE = UN CORCHETE: ninguna queda sin cita',
+        R.sinNumerar === 0 && corTotal >= conClaseTotal,
+        'sinNumerar=' + R.sinNumerar + ' conClase=' + conClaseTotal + ' corchetes=' + corTotal + ' ' +
+        JSON.stringify(R.porSec.map(function(x){ return x.tit + ': clase=' + x.conClase + ' cor=' + x.corchetes.length; }))],
+      ['ningun corchete se pinta fuera de un contexto de seccion',
+        R.fueraSeccion === 0 && R.noRegistrada === 0,
+        'fueraSeccion=' + R.fueraSeccion + ' noRegistrada=' + R.noRegistrada],
+      ['cada bibliografia lista SOLO lo citado en su seccion, arrancando en [1]',
+        R.porSec.every(function(x){ return x.entradas.length >= 1 && x.entradas[0].indexOf('[1] ') === 0; }),
+        JSON.stringify(R.porSec.map(function(x){ return x.tit + '=' + JSON.stringify(x.entradas); }))],
+      ['DENOMINADOR: la ultima seccion tiene un corchete que clickear',
+        R.hayCorcheteUlt === true, 'hay=' + R.hayCorcheteUlt],
+      ['EL CLIC ABRE LA BIBLIOGRAFIA DE SU SECCION, no la de la primera',
+        R.soloLaSuyaAbrio === true, 'abiertas=' + JSON.stringify(R.abiertas)],
+      ['y la marca cae DENTRO de esa seccion, una sola',
+        R.marcadas === 1 && R.marcaEnLaSuya === true,
+        'marcadas=' + R.marcadas + ' enLaSuya=' + R.marcaEnLaSuya],
+      ['EN AISLAMIENTO: una seccion con DOS documentos numera 1 y 2 por orden de aparicion',
+        R.sintGuch1 === true && R.sintVc2 === true,
+        'corchetes=' + JSON.stringify(R.sintCorchetes)],
+      ['y su bibliografia lista las dos, en ese orden',
+        R.sintItems.length === 2 && R.sintItems[0] === 'esc2020guch' &&
+        R.sintItems[1] === 'esc2025vc' && JSON.stringify(R.sintNums) === JSON.stringify(['1','2']),
+        'items=' + JSON.stringify(R.sintItems) + ' nums=' + JSON.stringify(R.sintNums)],
+      ['la MISMA clave dos veces en una seccion da el MISMO numero y UNA entrada',
+        JSON.stringify(R.sint2Nums) === JSON.stringify(['1','1']) && R.sint2Items === 1,
+        'nums=' + JSON.stringify(R.sint2Nums) + ' items=' + R.sint2Items],
+      ['el contexto se CIERRA al salir de la seccion: dos seguidas no comparten acumulador',
+        R.ctxCerrado === true && R.numFuera === null && R.validaFuera === true,
+        'ctx=' + R.ctxCerrado + ' numFuera=' + R.numFuera + ' validaFuera=' + R.validaFuera]
+    ] };
+  })();
+`);
+
+/* Este caso existe porque LAS MUTACIONES LO PIDIERON. Sacarle el `ref` a las recomendaciones de
+   IA, VT, ET y EP no ponia NINGUN caso en rojo: el escenario de TC-324 es EM + IM + EA, asi que
+   esas cuatro secciones no se abren y su centinela `[cita sin numerar]` nunca se pinta. Un arreglo
+   sin cobertura se deshace sin que nadie se entere.
+   La compuerta de cada seccion se leyo del codigo, no se adivino: `ep_grado`/`ep_nivel` para la
+   pulmonar y `et_gmedio` (>= ET_GMEDIO_SIGNIF, dentro de la banda 0-40) para la tricuspidea, que
+   vive DENTRO de la seccion de valvula tricuspide y tiene constante propia (ET_REF). */
+caso('TC-325', 'Evidencia: las SEIS constantes X_REF ejercidas — ninguna recomendacion con clase sin su clave', `
+  return (async () => {
+    const R = {}, ex = [];
+    /* pl no existe en el contexto de la pagina bajo este contrato — se define local. Y SIN REGEX:
+       los titulos llevan «aortica» con tilde, y el rango de diacriticos escrito como literal se lo
+       come el template literal del caso. Se filtra por codigo de caracter. */
+    const pl = x => String(x == null ? '' : x).toLowerCase().normalize('NFD')
+      .split('').filter(function(ch){ const c = ch.charCodeAt(0); return c < 768 || c > 879; }).join('');
+    const cuerpo = () => document.getElementById('indic-cuerpo');
+    const secs = () => cuerpo()
+      ? Array.prototype.slice.call(cuerpo().querySelectorAll(':scope > details:not([data-ind-biblio])'))
+      : [];
+    const cuenta = (h, sub) => h.split(sub).length - 1;
+
+    __t.limpiar();
+    const CAMPOS = { peso:'80', talla:'180', edad:'70', sexo:'M', fevi:'55', dsfvi:'42', ddfvi:'58',
+      ea_grado:'severa', vmax_ao:'4.5', gmedio_ao:'48', ava_cont:'0.80',
+      diam_tsvi:'20', itv_tsvi:'20', itv_ao:'53',
+      im_sev_final:'4', im_vc:'8',
+      vm_morf:'Reumática', avm_plan:'1.2', em_grado:'severa',
+      ia_sev_final:'4', ao_sin:'52',
+      it_grado:'4', it_vc:'8', et_gmedio:'7', et_thp:'220', et_vti_diast:'60',
+      tsvd_diametro:'28', vti_tsvd:'22',
+      ep_grado:'Severa', ep_nivel:'Valvular', vp_gmax:'70', vp_vmax:'4.2' };
+    R.faltan = [];
+    Object.keys(CAMPOS).forEach(function(k){
+      const e = document.getElementById(k);
+      if (!e) { R.faltan.push(k); return; }
+      try { __t.set(k, CAMPOS[k]); } catch (e2) { R.faltan.push(k + ':' + e2.message); }
+    });
+
+    indicAbrir();
+    await new Promise(r => setTimeout(r, 520));
+
+    /* Se contestan TODOS los controles, re-consultando el DOM en cada vuelta. SIN ESTO las
+       recomendaciones no se resuelven, no publican clase, y el centinela no tiene nada que marcar:
+       el caso daria verde por vacio. Medido: sin contestar hay 7 corchetes, contestando hay 15. */
+    R.clin = 0;
+    for (let i = 0; i < 90; i++) {
+      const pend = Array.prototype.slice.call(cuerpo().querySelectorAll('[data-ind-clin][data-ind-val]'))
+        .filter(function(b){ return _indClinGet(b.getAttribute('data-ind-clin')) == null; });
+      if (!pend.length) break;
+      pend[0].click(); R.clin++;
+    }
+
+    const H = cuerpo() ? cuerpo().innerHTML : '';
+    const titulos = secs().map(function(d){ return d.querySelector('summary').textContent; });
+    const tieneSec = t => titulos.filter(function(x){ return pl(x).indexOf(pl(t)) > -1; }).length === 1;
+
+    R.seisAbiertas = ['Estenosis a', 'Insuficiencia mitral', 'Estenosis mitral',
+                      'Insuficiencia a', 'tricusp', 'Estenosis pulmonar'].map(tieneSec);
+    R.corchetes = cuenta(H, 'data-ind-ref="');
+    R.nSecs = secs().length;
+
+    /* Por seccion: el corchete del criterio MAS al menos uno de recomendacion. Es el denominador
+       que distingue «ninguna sin clave» de «no habia ninguna». */
+    R.porSeccion = secs().map(function(d){
+      return d.querySelector('summary').textContent.trim().slice(0, 26) + '=' +
+             cuenta(d.innerHTML, 'data-ind-ref="');
+    });
+    /* ⚠️ LA ESTENOSIS MITRAL NO ENTRA EN ESTE RECUENTO, y no es un descuido: su recomendacion ya
+       citaba por clave antes de este cambio —ninguna de las seis constantes nuevas es suya— y la
+       cubre TC-323, que la ejerce por las DOS filas. Medido: en este escenario su seccion publica
+       un solo corchete, el del criterio, asi que exigirle dos seria pedirle al caso que arregle un
+       escenario en vez de medir la clave. */
+    const CON_CLAVE_NUEVA = ['estenosis a', 'insuficiencia mitral',
+                             'insuficiencia a', 'tricusp', 'estenosis pulmonar'];
+    R.valvulares = secs().filter(function(d){
+      const t = pl(d.querySelector('summary').textContent);
+      return CON_CLAVE_NUEVA.some(function(x){ return t.indexOf(x) > -1; });
+    });
+    R.valvConRecom = R.valvulares.filter(function(d){ return cuenta(d.innerHTML, 'data-ind-ref="') >= 2; }).length;
+    /* ⚠️ ET_REF NO SE EJERCE EN ESTE ESCENARIO, Y NO ES UN HUECO DEL CASO: es estructural.
+       _indVTRecom abre con if (!itSev && !itMod) return recEt; — la seccion publica UNA sola
+       recomendacion, asi que con insuficiencia tricuspidea severa la estenosis aparece solo como
+       nota dentro de la fila de la insuficiencia, sin corchete propio. Exigirle TRES corchetes a
+       la tricuspide era pedir algo que el codigo no puede dar. ET_REF se mide en la SEGUNDA PASADA,
+       con estenosis significativa y sin insuficiencia. */
+    R.sinNumerar     = cuenta(H, 'cita sin numerar');
+    R.fueraDeSeccion = cuenta(H, 'cita fuera de secci');
+    R.noRegistrada   = cuenta(H, 'referencia no registrada');
+
+    /* Las seis constantes existen, valen una clave REGISTRADA, y la pulmonar cita otro documento
+       —ESC 2020 de congenitas— que es lo que la separa de las otras cinco. */
+    /* IDENTIFICADOR DESNUDO Y NO window.X: son const de nivel superior de un script clasico, que
+       crean binding en el ambito lexico global y NO propiedad de window — leerlas por window
+       daba los seis undefined y la condicion se caia sin que faltara ninguna constante. El
+       typeof evita el ReferenceError si alguna desaparece: se quiere rojo, no excepcion. */
+    const leer = n => { try { return eval('typeof ' + n + " === 'undefined' ? null : " + n); }
+                        catch (e) { return null; } };
+    R.constantes = ['EA_REF','IM_REF','IA_REF','VT_REF','ET_REF','EP_REF'].map(leer);
+    R.todasValidas = R.constantes.every(function(k){ return !!k && _indRefValida(k); });
+    R.epOtroDoc = R.constantes[5] !== R.constantes[0];
+
+    ex.push(['DENOMINADOR: las seis secciones valvulares estan abiertas y sus controles contestados',
+      R.seisAbiertas.every(Boolean) && R.clin >= 20,
+      'abiertas=' + R.seisAbiertas.filter(Boolean).length + '/6 controles=' + R.clin +
+      ' faltan=' + JSON.stringify(R.faltan)]);
+
+    ex.push(['DENOMINADOR: hay corchetes DE RECOMENDACION, no solo los del criterio',
+      R.corchetes > R.nSecs && R.valvConRecom === 5,
+      'corchetes=' + R.corchetes + ' secciones=' + R.nSecs +
+      ' con clave nueva y recomendacion=' + R.valvConRecom + '/5 -> ' + R.porSeccion.join(' ')]);
+
+    ex.push(['ninguna recomendacion con clase se publica sin su clave',
+      R.sinNumerar === 0,
+      'sin numerar=' + R.sinNumerar]);
+
+    ex.push(['ningun corchete cae fuera de su seccion ni apunta a un documento no registrado',
+      R.fueraDeSeccion === 0 && R.noRegistrada === 0,
+      'fuera=' + R.fueraDeSeccion + ' no registrada=' + R.noRegistrada]);
+
+    ex.push(['las seis constantes X_REF citan por clave REGISTRADA, y la pulmonar cita otro documento',
+      R.todasValidas && R.epOtroDoc,
+      JSON.stringify(R.constantes) + ' epOtroDoc=' + R.epOtroDoc]);
+    /* ── SEGUNDA PASADA: ET_REF ── Estenosis tricuspidea significativa y NINGUNA insuficiencia,
+       que es la unica forma de que recEt llegue a publicarse. El gradiente va en 7 mmHg: la guia
+       2025 pide MAS de 5 con operador estricto, y 7 esta dentro de la banda de plausibilidad 0-40
+       que exige etEstado(). */
+    __t.limpiar();
+    const SOLO_ET = { peso:'80', talla:'180', edad:'70', sexo:'M', fevi:'58',
+      et_gmedio:'7', et_thp:'220', et_vti_diast:'60', tsvd_diametro:'28', vti_tsvd:'22' };
+    R.faltan2 = [];
+    Object.keys(SOLO_ET).forEach(function(k){
+      const e = document.getElementById(k);
+      if (!e) { R.faltan2.push(k); return; }
+      try { __t.set(k, SOLO_ET[k]); } catch (e2) { R.faltan2.push(k + ':' + e2.message); }
+    });
+    indicAbrir();
+    await new Promise(r => setTimeout(r, 520));
+    R.clin2 = 0;
+    for (let i = 0; i < 40; i++) {
+      const pend = Array.prototype.slice.call(cuerpo().querySelectorAll('[data-ind-clin][data-ind-val]'))
+        .filter(function(b){ return _indClinGet(b.getAttribute('data-ind-clin')) == null; });
+      if (!pend.length) break;
+      pend[0].click(); R.clin2++;
+    }
+    const H2 = cuerpo() ? cuerpo().innerHTML : '';
+    R.secs2 = secs().map(function(d){ return d.querySelector('summary').textContent.trim().slice(0, 26); });
+    R.vtSola = (function(){
+      const d = secs().filter(function(x){ return pl(x.querySelector('summary').textContent).indexOf('tricusp') > -1; })[0];
+      return d ? cuenta(d.innerHTML, 'data-ind-ref="') : -1;
+    })();
+    R.sinNumerar2 = cuenta(H2, 'cita sin numerar');
+
+    ex.push(['ET_REF: con estenosis tricuspidea SOLA la seccion publica su recomendacion, con clave',
+      R.vtSola >= 2 && R.sinNumerar2 === 0 && R.faltan2.length === 0,
+      'corchetes de la tricuspide=' + R.vtSola + ' sin numerar=' + R.sinNumerar2 +
+      ' controles=' + R.clin2 + ' secciones=' + JSON.stringify(R.secs2) +
+      ' faltan=' + JSON.stringify(R.faltan2)]);
+
+    /* ── TERCERA PASADA: el slot mod con clase VACIA ── Con la compuerta vieja (solo r.mod.clase)
+       estos textos transcribian clases de la guia SIN linea de fuente y SIN corchete. Se fuerza la
+       rama clickeando la opcion exacta, no la primera del grupo: im.reparable=no es la que arma
+       modRep con clase vacia. */
+    __t.limpiar();
+    const SOLO_IM = { peso:'80', talla:'180', edad:'68', sexo:'M', fevi:'55', dsfvi:'42',
+      im_sev_final:'4', im_vc:'8' };
+    R.faltan3 = [];
+    Object.keys(SOLO_IM).forEach(function(k){
+      const e = document.getElementById(k);
+      if (!e) { R.faltan3.push(k); return; }
+      try { __t.set(k, SOLO_IM[k]); } catch (e2) { R.faltan3.push(k + ':' + e2.message); }
+    });
+    indicAbrir();
+    await new Promise(r => setTimeout(r, 520));
+    for (let i = 0; i < 40; i++) {
+      const pend = Array.prototype.slice.call(cuerpo().querySelectorAll('[data-ind-clin][data-ind-val]'))
+        .filter(function(b){ return _indClinGet(b.getAttribute('data-ind-clin')) == null; });
+      if (!pend.length) break;
+      pend[0].click();
+    }
+    /* La opcion EXACTA, re-consultando el DOM: un segundo toque sobre la activa DESMARCA, asi que
+       se verifica que quedo en 'no' y no que se apago. */
+    const btnNo = cuerpo().querySelector('[data-ind-clin="im.reparable"][data-ind-val="no"]');
+    R.hayBtnNo = !!btnNo;
+    if (btnNo && _indClinGet('im.reparable') !== 'no') btnNo.click();
+    R.reparableNo = _indClinGet('im.reparable');
+    const H3 = cuerpo() ? cuerpo().innerHTML : '';
+    R.bVacio = cuenta(H3, '<b></b>');
+    R.sinNumerar3 = cuenta(H3, 'cita sin numerar');
+    R.imCorchetes = (function(){
+      const d = secs().filter(function(x){ return pl(x.querySelector('summary').textContent).indexOf('insuficiencia mitral') > -1; })[0];
+      return d ? cuenta(d.innerHTML, 'data-ind-ref="') : -1;
+    })();
+    /* ⚠️ imCorchetes >= 2 NO MEDIA NADA: se satisface con el corchete del criterio mas el de la
+       recomendacion padre, sin la linea del mod. La mutacion que revierte la compuerta a solo
+       r.mod.clase SOBREVIVIO con esa condicion en verde. Se mide la FIRMA DE ESTILO de la linea
+       del mod, que es unica —la del nota lleva line-height ademas— y se cuenta dentro de la
+       seccion de la IM para no sumar las de otras. */
+    R.modLinea = (function(){
+      const d = secs().filter(function(x){ return pl(x.querySelector('summary').textContent).indexOf('insuficiencia mitral') > -1; })[0];
+      if (!d) return -1;
+      /* getAttribute devuelve el atributo CRUDO, sin espacios normalizados: buscar
+         «font-size: 11px» con espacio daba 0 sobre un arbol correcto. */
+      let n = 0;
+      Array.prototype.forEach.call(d.querySelectorAll('div'), function(e){
+        const st = e.getAttribute('style') || '';
+        if (st.indexOf('font-size:11px') > -1 && st.indexOf('margin-top:4px') > -1 &&
+            st.indexOf('line-height') === -1) n++;
+      });
+      return n;
+    })();
+
+    ex.push(['el slot mod con clase VACIA publica su fuente CON corchete, y sin un <b></b> hueco',
+      R.reparableNo === 'no' && R.modLinea >= 1 && R.imCorchetes >= 3 && R.bVacio === 0 &&
+      R.sinNumerar3 === 0 && R.faltan3.length === 0,
+      'reparable=' + R.reparableNo + ' linea del mod=' + R.modLinea +
+      ' corchetes IM=' + R.imCorchetes + ' b vacios=' + R.bVacio +
+      ' sin numerar=' + R.sinNumerar3 + ' faltan=' + JSON.stringify(R.faltan3)]);
+
+    /* ── Los tres textos VISIBLES que declaran el ambito por seccion ── Son el unico lugar donde el
+       medico se entera de que el [1] de una seccion no es el [1] de otra. Un cambio que los saque
+       deja la perdida sin declarar en ninguna superficie. */
+    R.tituloCorchete = H3.indexOf('al pie de esta secci') > -1;
+    R.tituloViejo    = H3.indexOf('al pie del panel') > -1;
+    /* ⚠️ «de esta secci» TAMBIEN ESTA EN EL TOOLTIP, asi que buscarlo en todo el HTML daba verde
+       con el rotulo pelado: la mutacion que se lo saca al summary SOBREVIVIO. Se lee el texto del
+       summary de la bibliografia, y de ninguna otra parte. */
+    R.rotuloBiblio = (function(){
+      const b = cuerpo() ? cuerpo().querySelector('[data-ind-biblio] > summary') : null;
+      if (!b) return false;
+      const t = pl(b.textContent);
+      return t.indexOf('bibliograf') > -1 && t.indexOf('de esta seccion') > -1;
+    })();
+    R.leyendaAmbito  = H3.indexOf('DENTRO de cada secci') > -1;
+
+    ex.push(['el ambito por seccion se declara en pantalla: tooltip, rotulo y leyenda',
+      R.tituloCorchete && !R.tituloViejo && R.rotuloBiblio && R.leyendaAmbito,
+      'tooltip=' + R.tituloCorchete + ' tooltipViejo=' + R.tituloViejo +
+      ' rotulo=' + R.rotuloBiblio + ' leyenda=' + R.leyendaAmbito]);
+
+    return { resumen: JSON.stringify({ secciones: R.nSecs, corchetes: R.corchetes,
+      valvularesConRecom: R.valvConRecom, sinNumerar: R.sinNumerar, clin: R.clin,
+      porSeccion: R.porSeccion }), extra: ex };
+  })();
+`);
+
+caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la numeracion', `
   return (async () => {
     const R = { secs: {}, err: [] };
+    /* El numero del corchete se lee con indexOf y NO con una regex: dentro del cuerpo de un caso
+       —que es un template literal— los escapes se consumen, asi que el patron deja de matchear y
+       daba num=null en las trece sobre un panel perfecto. Es lo que este archivo recomienda desde
+       la quinta vez que paso. */
+    const numDe = function(h, k){
+      const i2 = h.indexOf('data-ind-ref="' + k + '"');
+      if (i2 < 0) return null;
+      const a = h.indexOf('[', i2), b = h.indexOf(']', a);
+      return (a < 0 || b < 0) ? null : Number(h.slice(a + 1, b));
+    };
 
     /* Un escenario por seccion. El campo de cada fila es el MINIMO que abre su compuerta, leido
        de la propia compuerta y no de memoria. Si alguno deja de abrir, la condicion del
@@ -38701,7 +39208,11 @@ caso('TC-322', 'Evidencia: sistema de citas numeradas con un solo dueno de la nu
       catch (e) { R.err.push(pref + ' LANZO: ' + e.message); continue; }
       const g = r && r.guia;
       const ref = (g && typeof g === 'object') ? g.ref : null;
-      const num = ref ? _indRefNum(ref) : null;
+      /* ⚠️ EL NUMERO SE LEE DEL HTML PINTADO, Y ANTES SE PEDIA A _indRefNum. Con la numeracion
+         por seccion (2026-09-29) esa llamada corre DESPUES de _indSecHTML, o sea con el contexto
+         ya cerrado, y devuelve null: la condicion daria rojo sobre un panel perfecto. El invariante
+         que vale es el DIBUJADO, no el que la funcion devuelva fuera de su ambito. */
+      const num = ref ? numDe(html, ref) : null;
       R.secs[pref] = {
         abrio: !!r,
         esObj: !!(g && typeof g === 'object'),
@@ -38783,16 +39294,32 @@ caso('TC-322', 'Evidencia: sistema de citas numeradas con un solo dueno de la nu
       return cola.split(' o ').length - 1;
     })();
 
-    /* Las cinco que citan la ESC/EACTS 2025 tienen que dar el MISMO numero: es una referencia,
-       no una por seccion. */
+    /* ⚠️ CONDICION REEMPLAZADA (2026-09-29, decision de Maicol). Antes exigia que las cinco
+       secciones que citan la ESC/EACTS 2025 compartieran el MISMO numero —«es una referencia, no
+       una por seccion»—, que es justo la regla que se revirtio. Hoy el invariante es el contrario y
+       mas fuerte: CADA seccion arranca su numeracion en [1], asi que el primer corchete de
+       cualquiera es [1] sin importar cuantas otras haya en pantalla.
+       No se borro: se reapunto. Sostener la afirmacion vieja empujaria a volver al indice global el
+       dia que alguien «la arregle», que es lo que este archivo ya documenta con TC-277 y TC-288. */
     const nums2025 = nombres.filter(k => S[k].ref === 'esc2025vc').map(k => S[k].num);
-    R.mismo2025 = nums2025.length >= 4 && nums2025.every(n => n === nums2025[0]);
+    R.arrancanEn1 = nombres.length >= 10 && nombres.every(k => S[k].num === 1);
 
     /* Las dos ramas de fallo visible se ejercen EN AISLAMIENTO: ninguna es alcanzable mientras las
        trece secciones esten bien escritas, y una defensa que ningun caso ejerce es una capa que
        nadie sabe si existe. */
-    R.vacioDeclara  = _indGuiaHTML({ ref:'esc2025vc', txt:'' }).indexOf('criterio no cargado') >= 0;
-    R.vacioCorchete = _indGuiaHTML({ ref:'esc2025vc', txt:'' }).indexOf('data-ind-ref=') >= 0;
+    /* ⚠️ SE EJERCE DENTRO DE UNA SECCION, y antes se llamaba a _indGuiaHTML pelada. Con la
+       numeracion por seccion el corchete necesita el contexto abierto, asi que fuera de
+       _indSecHTML no hay data-ind-ref y la condicion daba rojo sobre una defensa intacta. Se pasa
+       por la puerta real, que ademas es mas fiel a como se pinta en el panel. */
+    const hVacio = _indSecHTML('Vacia', {
+      filas: [ _indFila('Fila', '1', 'none', '') ],
+      guia: { ref:'esc2025vc', txt:'' } });
+    R.vacioDeclara  = hVacio.indexOf('criterio no cargado') >= 0;
+    R.vacioCorchete = hVacio.indexOf('data-ind-ref=') >= 0;
+    /* Y la rama NUEVA que abrio la particion validar/numerar: un corchete pedido FUERA de una
+       seccion lo DECLARA en vez de pintar un numero inventado. */
+    R.fueraDeclara = _indGuiaHTML({ ref:'esc2025vc', txt:'Criterio con largo suficiente para el filtro.' })
+      .indexOf('fuera de secci\u00f3n') >= 0;
     R.stringDeclara = _indGuiaHTML('ESC/EACTS 2025 — texto suelto a la vieja').indexOf('cita sin numerar') >= 0;
     R.refMalaDeclara = _indGuiaHTML({ ref:'no-existe', txt:'Criterio cualquiera' }).indexOf('referencia no registrada') >= 0;
     /* Y las claves del registro tienen que ser UNICAS: con una repetida el indice se queda con la
@@ -38802,17 +39329,20 @@ caso('TC-322', 'Evidencia: sistema de citas numeradas con un solo dueno de la nu
     /* ── Nivel panel: bibliografia, estabilidad y el clic ─────────────────────────────────── */
     const cuerpo = () => document.getElementById('indic-cuerpo');
 
-    /* Render A: solo una seccion aortica -> la bibliografia lleva UNA entrada. */
+    /* Render A: solo una seccion aortica -> UNA bibliografia, la suya, con UNA entrada. */
     sembrar({ vmax_ao:'4.5' });
     indicAbrir();
     const hA = cuerpo() ? cuerpo().innerHTML : '';
     R.A_biblio  = hA.indexOf('data-ind-biblio') >= 0;
+    /* ⚠️ Y NINGUNA AL PIE DEL PANEL. Es la mitad negativa de la reversion: sin ella, agregar una
+       bibliografia global ADEMAS de las por seccion pasaria en verde con todo lo de abajo. */
+    R.A_alPie = cuerpo() ? cuerpo().querySelectorAll(':scope > [data-ind-biblio]').length : -1;
+    R.A_biblios = cuerpo() ? cuerpo().querySelectorAll('[data-ind-biblio]').length : -1;
     R.A_items   = (hA.match(/data-ind-refitem=/g) || []).length;
     R.A_tiene25 = hA.indexOf('data-ind-refitem="esc2025vc"') >= 0;
     R.A_tieneGuch = hA.indexOf('data-ind-refitem="esc2020guch"') >= 0;
     /* El numero de la ESC/EACTS 2025 con UNA sola seccion en pantalla. */
-    const mA = hA.match(/\\[(\\d+)\\]/);
-    R.A_num = mA ? Number(mA[1]) : null;
+    R.A_num = numDe(hA, 'esc2025vc');
     indicCerrar();
 
     /* Render B: aortica + una congenita -> DOS entradas, y el numero de la 2025 NO cambia.
@@ -38829,25 +39359,58 @@ caso('TC-322', 'Evidencia: sistema de citas numeradas con un solo dueno de la nu
     await new Promise(r2 => setTimeout(r2, 520));
     const hB = cuerpo() ? cuerpo().innerHTML : '';
     R.B_items = (hB.match(/data-ind-refitem=/g) || []).length;
+    /* DOS secciones -> DOS bibliografias, cada una HIJA de su seccion y con UNA entrada. */
+    R.B_biblios = cuerpo() ? cuerpo().querySelectorAll('[data-ind-biblio]').length : -1;
+    R.B_alPie   = cuerpo() ? cuerpo().querySelectorAll(':scope > [data-ind-biblio]').length : -1;
+    R.B_secs    = cuerpo() ? cuerpo().querySelectorAll(':scope > details:not([data-ind-biblio])').length : -1;
+    R.B_cadaUna = (function(){
+      const ds = cuerpo() ? Array.prototype.slice.call(
+        cuerpo().querySelectorAll(':scope > details:not([data-ind-biblio])')) : [];
+      return ds.map(function(d){
+        const b = d.querySelector('[data-ind-biblio]');
+        return { propias: d.querySelectorAll('[data-ind-biblio]').length,
+                 hija: !!(b && b.parentElement && b.parentElement.closest('details') === d),
+                 cerrada: b ? !b.hasAttribute('open') : null,
+                 items: b ? b.querySelectorAll('[data-ind-refitem]').length : -1,
+                 primer: b && b.querySelector('[data-ind-refitem] b') ?
+                         b.querySelector('[data-ind-refitem] b').textContent : null };
+      });
+    })();
     R.B_tiene25   = hB.indexOf('data-ind-refitem="esc2025vc"') >= 0;
     R.B_tieneMioc = hB.indexOf('data-ind-refitem="esc2023mioc"') >= 0;
     /* El corchete de la seccion aortica en el render B. Se toma el primero, que es el suyo. */
-    const mB = hB.match(/data-ind-ref="esc2025vc"[^>]*>\\[(\\d+)\\]/);
-    R.B_num = mB ? Number(mB[1]) : null;
-    R.estable = R.A_num != null && R.A_num === R.B_num;
+    R.B_num = numDe(hB, 'esc2025vc');
+    /* ⚠️ «EL NUMERO NO CAMBIA al cambiar que secciones se muestran» SE CONSERVA, y con la
+       numeracion por seccion pasa a ser cierto por una razon distinta y mas fuerte: el ambito del
+       numero ya no es el pintado, es la seccion, asi que agregar o quitar OTRAS secciones no puede
+       moverlo. Antes lo garantizaba el indice global; hoy, el aislamiento. */
+    R.estable = R.A_num === 1 && R.B_num === 1;
 
     /* La 14a: registrada y SIN corchete en pantalla, porque su unico emisor es codigo muerto.
        Si algun dia se la cita, esta condicion se pone en rojo y hay que venir a decidir. */
-    /* Dos entradas de la bibliografia no pueden compartir numero: un registro que devolviera
-       siempre el mismo dejaria el panel con dos [1] apuntando a documentos distintos, y todas las
-       condiciones de arriba seguirian en verde. */
-    R.numsBiblio = (hB.match(/<b>\\[(\\d+)\\]<\\/b>/g) || []).map(x => x.replace(/\\D/g,''));
-    R.numsDistintos = R.numsBiblio.length >= 2 &&
-      R.numsBiblio.length === (new Set(R.numsBiblio)).size;
+    /* ⚠️ EL AMBITO DE LA UNICIDAD CAMBIO (2026-09-29). Antes: «dos entradas de la bibliografia no
+       pueden compartir numero», medido sobre el panel entero. Hoy DOS bibliografias distintas
+       llevan legitimamente un [1] cada una —es el punto de la reversion— asi que medirlo sobre el
+       panel pondria en rojo el comportamiento pedido. La unicidad se exige DENTRO de cada
+       bibliografia, que es donde un numero repetido si es un defecto: dos entradas con el mismo
+       numero dejan el corchete sin saber a cual apunta. */
+    R.numsBiblio = hB.split('<b>[').slice(1).map(function(x){ return x.slice(0, x.indexOf(']')); });
+    R.numsUnicosPorBiblio = (function(){
+      const bs = cuerpo() ? Array.prototype.slice.call(cuerpo().querySelectorAll('[data-ind-biblio]')) : [];
+      if (!bs.length) return false;
+      return bs.every(function(b){
+        const ns = Array.prototype.slice.call(b.querySelectorAll('[data-ind-refitem] b'))
+          .map(function(x){ return x.textContent; });
+        return ns.length > 0 && ns.length === (new Set(ns)).size;
+      });
+    })();
 
-    R.prot_registrada = _indRefNum('aseProtAo') != null;
+    /* ⚠️ _indRefValida Y NO _indRefNum: esto corre fuera de todo pintado, donde el contexto de
+       numeracion esta cerrado y _indRefNum devuelve null por diseno. Con la funcion vieja la
+       condicion diria «no esta registrada» sobre una entrada que si lo esta. */
+    R.prot_registrada = _indRefValida('aseProtAo');
     R.prot_enBiblio   = hB.indexOf('data-ind-refitem="aseProtAo"') >= 0;
-    R.ecosmart_registrada = _indRefNum('ecosmart') != null;
+    R.ecosmart_registrada = _indRefValida('ecosmart');
     R.ecosmart_enBiblio  = hB.indexOf('data-ind-refitem="ecosmart"') >= 0;
 
     /* El clic: abre el desplegable y marca la entrada que corresponde, no otra. */
@@ -38940,20 +39503,29 @@ caso('TC-322', 'Evidencia: sistema de citas numeradas con un solo dueno de la nu
         R.corchetesVisibles === true, JSON.stringify(nombres.filter(k => !S[k].corcheteVisible))],
       ['el criterio de la IM ofrece sus tres alternativas como DISYUNCION, no como conjuncion',
         R.disyIM === 2, 'disyunciones=' + R.disyIM],
-      ['las secciones que citan la misma guia comparten el MISMO numero',
-        R.mismo2025 === true, 'nums2025=' + JSON.stringify(nums2025)],
-      ['la bibliografia se dibuja al pie del panel',
-        R.A_biblio === true, 'biblio=' + R.A_biblio],
+      ['CADA SECCION ARRANCA SU NUMERACION EN [1] — reemplaza al numero global por documento',
+        R.arrancanEn1 === true, JSON.stringify(nombres.map(k => k + '=' + S[k].num)) +
+        ' nums2025=' + JSON.stringify(nums2025)],
+      ['la bibliografia se dibuja DENTRO de cada seccion',
+        R.A_biblio === true && R.A_biblios === 1, 'biblio=' + R.A_biblio + ' cuantas=' + R.A_biblios],
+      ['y NINGUNA al pie del panel: la global se elimino',
+        R.A_alPie === 0 && R.B_alPie === 0, 'A=' + R.A_alPie + ' B=' + R.B_alPie],
       ['y lista SOLO lo citado: con una seccion aortica, UNA entrada',
         R.A_items === 1 && R.A_tiene25 === true && R.A_tieneGuch === false,
         'items=' + R.A_items + ' 2025=' + R.A_tiene25 + ' guch=' + R.A_tieneGuch],
-      ['con dos secciones de guias distintas, DOS entradas',
-        R.B_items === 2 && R.B_tiene25 === true && R.B_tieneMioc === true,
-        'items=' + R.B_items + ' 2025=' + R.B_tiene25 + ' mioc=' + R.B_tieneMioc],
+      ['DOS secciones de guias distintas dan DOS bibliografias, una por seccion',
+        R.B_biblios === 2 && R.B_secs === 2 && R.B_items === 2 &&
+        R.B_tiene25 === true && R.B_tieneMioc === true,
+        'biblios=' + R.B_biblios + ' secs=' + R.B_secs + ' items=' + R.B_items],
+      ['cada una es HIJA de su seccion, nace CERRADA y su primera entrada es [1]',
+        R.B_cadaUna.length === 2 && R.B_cadaUna.every(function(x){
+          return x.propias === 1 && x.hija === true && x.cerrada === true &&
+                 x.items === 1 && x.primer === '[1]'; }),
+        JSON.stringify(R.B_cadaUna)],
       ['EL NUMERO NO CAMBIA al cambiar qué secciones se muestran',
         R.estable === true, 'A=' + R.A_num + ' B=' + R.B_num],
-      ['y dos entradas de la bibliografia nunca comparten numero',
-        R.numsDistintos === true, 'nums=' + JSON.stringify(R.numsBiblio)],
+      ['y dentro de UNA bibliografia dos entradas nunca comparten numero',
+        R.numsUnicosPorBiblio === true, 'nums=' + JSON.stringify(R.numsBiblio)],
       ['la 14a referencia esta REGISTRADA y sin corchete que la invoque',
         R.prot_registrada === true && R.prot_enBiblio === false,
         'registrada=' + R.prot_registrada + ' enBiblio=' + R.prot_enBiblio],
@@ -38976,6 +39548,8 @@ caso('TC-322', 'Evidencia: sistema de citas numeradas con un solo dueno de la nu
       ['EN AISLAMIENTO: un criterio vacio lo DECLARA en vez de publicar el corchete solo',
         R.vacioDeclara === true && R.vacioCorchete === true,
         'declara=' + R.vacioDeclara + ' corchete=' + R.vacioCorchete],
+      ['EN AISLAMIENTO: un corchete pedido fuera de una seccion lo declara, no inventa un numero',
+        R.fueraDeclara === true, 'declara=' + R.fueraDeclara],
       ['una cita que quedo como string suelto se marca sin numerar, no se ve igual que antes',
         R.stringDeclara === true, 'declara=' + R.stringDeclara],
       ['y una clave que no esta en el registro sale en rojo',
@@ -39357,7 +39931,7 @@ try {
 
   let ok = 0; const rotos = [], abiertos = [], arreglados = [];
   for (const c of CASOS) {
-    if (SOLO && c.id !== SOLO) continue;
+    if (SOLO && !SOLO.has(c.id)) continue;
     /* El visor vuelve al estado de arranque ANTES de cada caso. Ver `__t.resetVisor`: desde que
        cerrar conserva lo medido, la vista B y las sesiones sobreviven al caso que las creo. Va
        acá y no dentro de los casos para que ninguno pueda olvidarse — un caso que hereda estado
@@ -39380,7 +39954,7 @@ try {
   }
 
   console.log(L);
-  const sel   = CASOS.filter(c => !SOLO || c.id === SOLO);
+  const sel   = CASOS.filter(c => !SOLO || SOLO.has(c.id));
   const total = sel.filter(c => !c.abierto).length;
   if (rotos.length) {
     console.log('  RESULTADO: %d/%d  —  %d CON FALLAS', ok, total, rotos.length);

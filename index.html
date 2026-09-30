@@ -39526,11 +39526,15 @@ const IND_REFS = Object.freeze([
 
 /* Clave → número. Se arma UNA vez desde `IND_REFS`.
    ⚠️ LA CLAVE DUPLICADA ES LA ÚNICA DISCREPANCIA QUE LA CONSTRUCCIÓN NO IMPIDE, y el comentario
-   anterior afirmaba que no había ninguna. Con `k` repetida este `forEach` se queda con la ÚLTIMA,
-   mientras `_indBiblioHTML` filtra `IND_REFS` —no las claves—, así que las DOS filas pasan el
-   filtro y las dos imprimen el mismo número: la bibliografía publica «[3] Documento A» y «[3]
-   Documento B» y el corchete no distingue a cuál apunta. Peor, `_indRefAbrir` resuelve con
-   `querySelector`, que devuelve la PRIMERA, o sea la fila cuyo número no le corresponde. El
+   anterior afirmaba que no había ninguna. Con `k` repetida este `forEach` se queda con la ÚLTIMA.
+   ⚠️ Y CON LA BIBLIOGRAFÍA POR SECCIÓN EL SÍNTOMA VISIBLE DESAPARECIÓ. El texto que estaba acá
+   describía el mecanismo VIEJO y sus tres afirmaciones pasaron a ser falsas: hoy `_indBiblioHTML`
+   recorre `ctx.orden`, que son CLAVES y no filas de `IND_REFS`, así que se publica UNA sola entrada,
+   y `_indRefDoc` la resuelve por `IND_REF_IDX[k]`, o sea por el ÚLTIMO duplicado. Antes las dos
+   filas con el mismo número delataban la ambigüedad EN PANTALLA; ahora se publicaría en silencio el
+   documento de la fila de abajo. Por eso la entrada lleva su propio aviso rojo cuando la clave está
+   repetida (ver `_indBiblioHTML`): la señal visible se repuso a mano, porque la construcción dejó de
+   darla. Lo encontró /sharp-edges. El
    registro ya tiene dos entradas del mismo documento por una razón declarada (`esc2020guch` y
    `escGuchCiv`), así que el día que se resuelva la divergencia de la CIV esto es alcanzable.
    Grita al arrancar; no se corta el arranque porque el panel sigue siendo usable.
@@ -39548,21 +39552,78 @@ const IND_REF_IDX = (function(){
   return m;
 })();
 
-/* Devuelve el número de una clave, o `null` si no está registrada. Es la ÚNICA lectura del
-   índice: todo lo demás pasa por acá, así que validar una clave y numerarla son la misma
-   operación y no pueden divergir. */
+/* ══ NUMERACIÓN POR SECCIÓN ═══════════════════════════════════════════════════════════════════
+   DECISIÓN DE MAICOL (2026-09-29): cada sección lleva SU numeración —arranca en [1]— y SU
+   bibliografía debajo. Reemplaza la regla anterior, que numeraba por posición en `IND_REFS` y
+   publicaba una sola bibliografía al pie del panel. **Es una reversión pedida, no un defecto
+   corregido**, y el argumento que sostenía la regla vieja —«[1] sería la ESC/EACTS 2025 en un
+   paciente y la ESC 2020 en el siguiente, porque qué secciones se muestran depende del estudio»—
+   **deja de aplicar al numerar por sección**: el ámbito ya no es el pintado, es la sección, y qué
+   documentos cita una sección no depende de qué OTRAS secciones estén en pantalla.
+
+   ⚠️ LO QUE SÍ SE PIERDE, Y SE DECLARA: el número ya NO identifica al documento entre secciones.
+   Dos secciones que citan la ESC/EACTS 2025 muestran las dos «[1]» y son dos entradas distintas
+   de dos bibliografías distintas. Quien compare corchetes ENTRE secciones se equivoca; el ámbito
+   de un número es su sección y nada más.
+
+   ⚠️ Y EL NÚMERO PUEDE MOVERSE DENTRO DE UNA SECCIÓN si esa sección cita más de un documento y
+   las ramas alcanzadas cambian el orden de primera aparición. Hoy las trece citan un solo
+   documento cada una, así que todas muestran «[1]» y el caso no es alcanzable — pero llega en
+   cuanto se agreguen fuentes, que es el prompt siguiente. Si eso molesta, la salida es ordenar
+   por una lista declarada por sección, NO volver al índice global.
+
+   UN SOLO DUEÑO: `_indRefCtx`. Se abre en `_indSecHTML` y se cierra en su `finally`; `_indRefNum`
+   es lo único que asigna, y `_indBiblioHTML` sólo LEE. Con dos dueños —uno que numere al pintar y
+   otro que numere al armar la bibliografía— el corchete y la entrada se separan en cuanto una
+   rama nueva pinte en otro orden, y eso no da error: da un [2] que apunta a la entrada [1]. */
+var _indRefCtx = null;
+
+/* El acumulador de una sección: el ORDEN de primera aparición y el número de cada clave. */
+function _indRefCtxNuevo(){ return { orden:[], num:Object.create(null) }; }
+
+/* ALLOWLIST. Contesta «¿esta clave es un documento registrado?» y NO numera — la partición es
+   nueva y es obligatoria: antes `_indRefNum` hacía las dos cosas, y `_indRefAbrir` la usaba como
+   validación desde un CLIC, o sea FUERA de todo pintado. Con la numeración por sección ahí no hay
+   contexto, así que `_indRefNum` devolvería `null` y el corchete dejaría de abrir la bibliografía
+   —un fallo mudo: el médico toca el número y no pasa nada—. Son dos preguntas distintas. */
+function _indRefValida(k){
+  return Object.prototype.hasOwnProperty.call(IND_REF_IDX, k);
+}
+
+/* El objeto de la referencia. Se deriva de `IND_REF_IDX`, que guarda `i + 1`, en vez de agregar
+   un segundo mapa clave→objeto que haya que mantener en paralelo. */
+function _indRefDoc(k){
+  const i = IND_REF_IDX[k];
+  return (typeof i === 'number' && isFinite(i)) ? IND_REFS[i - 1] : null;
+}
+
+/* El número DENTRO de la sección que se está pintando. Asigna por orden de primera aparición y
+   es el ÚNICO sitio que escribe en el acumulador. */
 function _indRefNum(k){
-  const n = IND_REF_IDX[k];
-  return (typeof n === 'number' && isFinite(n)) ? n : null;
+  if (!_indRefValida(k) || !_indRefCtx) return null;
+  if (!Object.prototype.hasOwnProperty.call(_indRefCtx.num, k)) {
+    _indRefCtx.orden.push(k);
+    _indRefCtx.num[k] = _indRefCtx.orden.length;
+  }
+  return _indRefCtx.num[k];
 }
 
 /* El corchete. Regla 4 de la cabecera: una clave que no está en el registro NO se pinta como si
    todo estuviera bien. Un corchete que no abre nada es peor que un aviso, porque se lee como una
    cita verificada. */
 function _indRefMarca(k){
+  /* ⚠️ DOS MOTIVOS DISTINTOS PARA NO PINTAR UN NÚMERO, Y COLAPSARLOS MANDA A REVISAR LO QUE ESTÁ
+     SANO. «No registrada» es una clave mal escrita —se arregla en la sección—; «fuera de sección»
+     es que alguien llamó a `_indGuiaHTML` o a `_indRecomHTML` sin pasar por `_indSecHTML`, o sea
+     que el contexto de numeración no está abierto: eso es un defecto de cableado y se arregla en
+     otro lado. Con un solo mensaje, el segundo manda a buscar una clave que está perfecta. */
+  if (!_indRefValida(k))
+    return ' <span style="color:#DC2626;font-weight:400;">[referencia no registrada]</span>';
   const n = _indRefNum(k);
   return n == null
-    ? ' <span style="color:#DC2626;font-weight:400;">[referencia no registrada]</span>'
+    ? (console.error('[IND_REFS] corchete fuera de una sección: ' + k +
+        ' — `_indRefCtx` no está abierto; ver `_indSecHTML`'),
+       ' <span style="color:#DC2626;font-weight:400;">[cita fuera de sección]</span>')
     /* ⚠️ NO LLEGA A LOS 44 px DE LA REGLA TÁCTIL, Y SE DECLARA. El corchete vive inline dentro de
        la oración del criterio: un objetivo de 44 px de alto rompe el renglón, y la regla global no
        lo alcanza sola porque `min-width`/`min-height` no aplican a un inline no reemplazado. Se
@@ -39575,7 +39636,12 @@ function _indRefMarca(k){
        blanco es chico, la salida es que la bibliografía nazca abierta —que hoy está decidido al
        revés, ver `_indSecHTML`— y NO engordar el corchete, que rompe el renglón del criterio. */
     : ' <span data-ind-ref="' + k + '" role="button" tabindex="0" ' +
-      'title="Ver la referencia al pie del panel" ' +
+      /* ⚠️ «DE ESTA SECCIÓN» Y NO «DEL PANEL». Era el ÚNICO texto visible de la app que le decía
+         al médico dónde está la referencia, y con la bibliografía por sección pasó a ser falso —y
+         no falso a secas: reforzaba justo el modelo mental equivocado, «hay una sola bibliografía,
+         así que el [1] de la aórtica y el [1] de la pulmonar son el mismo documento». Lo encontró
+         /sharp-edges. En táctil el `title` ni se ve, así que el rótulo de abajo lo dice también. */
+      'title="Ver la referencia al pie de esta secci\u00f3n" ' +
       'style="cursor:pointer;color:var(--accent2);font-weight:700;padding:3px 5px;' +
       'margin:-3px -2px;border-radius:4px;">[' + n + ']</span>';
 }
@@ -39613,21 +39679,37 @@ function _indGuiaHTML(g){
   return h;
 }
 
-/* La bibliografía. Recorre `IND_REFS` —no las claves usadas— para que las entradas salgan en
-   orden de número ascendente sin ordenar nada a mano. */
-function _indBiblioHTML(usadas){
-  const xs = IND_REFS.filter(function(r){
-    return Object.prototype.hasOwnProperty.call(usadas, r.k);
-  });
-  if (!xs.length) return '';
+/* La bibliografía DE UNA SECCIÓN. Recibe el acumulador que `_indSecHTML` abrió y recorre
+   `ctx.orden`, que YA está en orden de número ascendente por construcción —el número ES la
+   posición en ese array— así que no hay nada que ordenar ni ninguna segunda lista que se pueda
+   desalinear del corchete.
+   ⚠️ SÓLO LEE. No llama a `_indRefNum`, que ASIGNA: una función de lectura que numera agregaría
+   al acumulador la clave que venga a mirar, y con eso la bibliografía podría publicar una entrada
+   que ningún corchete del texto invoca. La numeración tiene un solo dueño.
+   Nace COLAPSADA, como el «ⓘ Ver detalle» de al lado. Eso conserva la decisión del 2026-09-29 que
+   ya estaba tomada para la bibliografía global: el corchete la abre en un clic y marca su entrada.
+   Lo que cambia es el ÁMBITO, no si nace abierta. */
+function _indBiblioHTML(ctx){
+  if (!ctx || !ctx.orden.length) return '';
   let h = '<details data-ind-biblio style="margin:10px 0 0;border:1px solid var(--border);' +
           'border-radius:9px;background:var(--bg3);overflow:hidden;">';
   h += '<summary style="cursor:pointer;padding:8px 12px;font-size:11px;font-weight:700;' +
-       'color:var(--accent2);list-style:revert;">&#9432; Bibliografía</summary>';
+       'color:var(--accent2);list-style:revert;">&#9432; Bibliograf\u00eda de esta secci\u00f3n</summary>';
   h += '<div style="padding:2px 12px 10px;font-size:10.5px;line-height:1.6;color:var(--text2);">';
-  h += xs.map(function(r){
-    return '<div data-ind-refitem="' + r.k + '" style="margin-top:7px;padding:4px 6px;' +
-      'border-radius:6px;"><b>[' + _indRefNum(r.k) + ']</b> ' + _critEsc(r.full) + '</div>';
+  h += ctx.orden.map(function(k){
+    const r = _indRefDoc(k);
+    /* Inalcanzable: `_indRefNum` sólo deja entrar claves que `_indRefValida` aprobó, y ésa es la
+       misma comprobación que resuelve el documento. Se declara en vez de publicar «undefined»
+       como texto de una referencia, que se lee como una cita corrupta. */
+    if (!r) return '<div style="color:#DC2626;">[referencia ' + _critEsc(k) + ' sin documento]</div>';
+    /* La clave repetida ya no produce dos entradas con el mismo número —hoy se publica UNA, la del
+       ÚLTIMO duplicado— así que el aviso va acá o no va a ninguna superficie visible. Sin esto el
+       único rastro es el `console.error` del arranque, que el médico no mira. */
+    const dup = IND_REFS.filter(function(x){ return x.k === k; }).length > 1
+      ? ' <span style="color:#DC2626;font-weight:700;">[clave repetida en el registro \u2014 esta '
+        + 'entrada puede no ser el documento que cita el corchete]</span>' : '';
+    return '<div data-ind-refitem="' + k + '" style="margin-top:7px;padding:4px 6px;' +
+      'border-radius:6px;"><b>[' + ctx.num[k] + ']</b> ' + _critEsc(r.full) + dup + '</div>';
   }).join('');
   return h + '</div></details>';
 }
@@ -39639,19 +39721,48 @@ function _indBiblioHTML(usadas){
    que son la interacción principal—. `_indRefNum` es a la vez la numeración y la allowlist: sólo
    pasan las claves que están en `IND_REFS`, así que el selector nunca se arma con algo ajeno. Es
    el mismo saneo en el borde que `csNumId` en CardioSalud. */
-function _indRefAbrir(c, k){
-  if (!c || _indRefNum(k) == null) return;
-  const det = c.querySelector('[data-ind-biblio]');
+function _indRefAbrir(c, k, desde){
+  /* ⚠️ `_indRefValida` Y NO `_indRefNum`: esto corre desde un CLIC, o sea fuera de todo pintado,
+     donde `_indRefCtx` es null y el número no existe. Con `_indRefNum` la guarda cortaría SIEMPRE
+     y el corchete dejaría de abrir la bibliografía, en silencio. */
+  if (!c || !_indRefValida(k)) return;
+  /* ⚠️ EL ÁMBITO ES LA SECCIÓN DEL CORCHETE, NO EL PANEL, y con una bibliografía por sección esto
+     es lo único que impide el peor fallo del cambio: `c.querySelector` devuelve la PRIMERA
+     bibliografía del panel, así que un clic en el corchete de la séptima sección abriría la de la
+     primera y marcaría una entrada AJENA. Abre algo, marca algo, y es de otra válvula — no hay
+     ningún síntoma que lo delate.
+     Se sube hasta el `<details>` que sea hijo directo del cuerpo, no al `closest('details')` a
+     secas: si algún día el corchete queda dentro de un sub-detalle, aquél devolvería ese
+     sub-detalle —que no contiene ninguna bibliografía— y el clic no haría nada. Sin `desde`, o si
+     no se encuentra la sección, se cae al panel entero: degradar al comportamiento anterior es
+     peor que el ámbito correcto y mejor que no abrir nada. */
+  let sec = (desde && desde.closest) ? desde.closest('details') : null;
+  while (sec && sec.parentElement !== c) {
+    sec = sec.parentElement && sec.parentElement.closest ? sec.parentElement.closest('details') : null;
+  }
+  /* ⚠️ ESTE FALLBACK ES EL PEOR FALLO DE LA FUNCIÓN: abre la bibliografía de la PRIMERA sección
+     y marca una entrada ajena, o sea confirma un documento que no es el que el corchete cita, sin
+     ningún síntoma visible. Hoy es inalcanzable —los dos caminos del listener pasan el nodo y todo
+     corchete vive dentro del `<details>` de su sección, hijo directo del cuerpo— pero `_indRefMarca`
+     grita cuando le falta el contexto y esta rama, que es peor porque AFIRMA, no gritaba. */
+  const amb = (sec && c.contains(sec)) ? sec : c;
+  if (amb === c) console.error('[IND_REFS] `_indRefAbrir` no encontr\u00f3 la secci\u00f3n del corchete ' +
+    k + ' — el \u00e1mbito degrad\u00f3 al panel y la marca puede caer en otra v\u00e1lvula');
+  const det = amb.querySelector('[data-ind-biblio]');
   if (det) det.open = true;
   /* La marca es un ATRIBUTO y un estilo persistente, no una animación. Una transición CSS no
      avanza en un navegador headless, así que un resaltado que se desvanece no se puede verificar
      —el archivo ya se comió ese falso negativo— y además el médico que hace scroll y vuelve
-     perdería la marca. Se limpia la anterior para que haya UNA sola entrada señalada. */
+     perdería la marca. Se limpia la anterior para que haya UNA sola entrada señalada.
+     ⚠️ LA LIMPIEZA SIGUE SIENDO DEL PANEL ENTERO, a propósito, y es la única cosa de esta función
+     que NO se acota a la sección: «una sola entrada señalada» tiene que valer en todo el panel, o
+     con trece bibliografías quedarían trece marcas encendidas y ninguna diría cuál fue la última
+     que el médico pidió. El que se ACOTA es el destino; el que no, el borrado. */
   Array.prototype.forEach.call(c.querySelectorAll('[data-ind-refsel]'), function(el){
     el.removeAttribute('data-ind-refsel');
     el.style.background = '';
   });
-  const it = c.querySelector('[data-ind-refitem="' + k + '"]');
+  const it = amb.querySelector('[data-ind-refitem="' + k + '"]');
   if (!it) return;
   it.setAttribute('data-ind-refsel', '1');
   it.style.background = 'rgba(167,139,250,.12)';
@@ -39673,6 +39784,15 @@ const IND_MARCA = {
 function _indLeyendaHTML(){
   return '<div style="font-size:10.5px;color:var(--text2);line-height:1.6;margin:0 0 10px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;">' +
     ['ok','alarm','warn','ask','none'].map(k => IND_MARCA[k].ico + ' ' + _critEsc(IND_MARCA[k].ley)).join(' &nbsp;·&nbsp; ') +
+    /* ⚠️ EL ÁMBITO DE LOS NÚMEROS VA EN LA PANTALLA, no sólo en un comentario del código. La
+       numeración por sección hace que el [1] de la aórtica y el [1] de la pulmonar sean documentos
+       DISTINTOS en el mismo panel del mismo paciente, y un médico que compare corchetes entre
+       secciones se equivoca. Por el estándar de este archivo —el denominador de las valvulopatías,
+       la salvedad de la PSAP, el descargo quemado en el PNG del bull's eye— un número que cambió de
+       significado lleva su reparo al lado. Lo encontró /sharp-edges. */
+    '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);">' +
+    '[n] numera las citas DENTRO de cada secci\u00f3n: el [1] de una secci\u00f3n no es el mismo ' +
+    'documento que el [1] de otra. Cada secci\u00f3n lleva su bibliograf\u00eda al pie.</div>' +
     '</div>';
 }
 
@@ -39736,7 +39856,9 @@ function _indClinCablear(){
        bloque de la cita, que no está dentro de ningún control, así que no hay ancestro que
        colisione — el `return` está para que siga siendo cierto si el pie se reestructura. */
     const cita = ev.target && ev.target.closest ? ev.target.closest('[data-ind-ref]') : null;
-    if (cita && c.contains(cita)) { _indRefAbrir(c, cita.getAttribute('data-ind-ref')); return; }
+    /* El NODO del corchete viaja como tercer argumento: es lo que le dice a `_indRefAbrir` de qué
+       sección es la bibliografía que hay que abrir. Sin él cae al panel y abre la de la primera. */
+    if (cita && c.contains(cita)) { _indRefAbrir(c, cita.getAttribute('data-ind-ref'), cita); return; }
     /* (la rama de teclado va en su propio listener, más abajo: ver el comentario de `keydown`) */
     const b = ev.target && ev.target.closest ? ev.target.closest('[data-ind-clin]') : null;
     if (!b || !c.contains(b)) return;
@@ -39759,7 +39881,9 @@ function _indClinCablear(){
     const cita = ev.target && ev.target.closest ? ev.target.closest('[data-ind-ref]') : null;
     if (!cita || !c.contains(cita)) return;
     ev.preventDefault();
-    _indRefAbrir(c, cita.getAttribute('data-ind-ref'));
+    /* La MISMA llamada que la rama del clic, con el nodo incluido: arreglar un solo camino deja el
+       teclado abriendo la bibliografía de otra sección, que es la mitad muda del defecto. */
+    _indRefAbrir(c, cita.getAttribute('data-ind-ref'), cita);
   });
   _indClinCableado = true;
 }
@@ -39994,9 +40118,20 @@ function _indRecomHTML(r){
      IIb en prosa— y sin este renglón quedaba como el único texto de la sección que cita sin decir
      de dónde. Las que no traen ninguno de los dos siguen saliendo sin renglón, que es el
      comportamiento de las doce secciones que no citan por recomendación. Lo encontró /sharp-edges. */
+  /* ⚠️ UNA `fuente` SIN `ref` AHORA GRITA, Y ANTES CALLABA — y ése es el cambio que impide que este
+     cableado quede a medias. El comentario anterior decía «una ausente no se pinta», y era correcto
+     mientras doce de las trece secciones citaran sólo por `guia`: el hueco era el estado normal.
+     Desde que las seis secciones con recomendación cablean su `ref` (2026-09-29), una `fuente` sin
+     `ref` es un DEFECTO — una afirmación con clase de recomendación sin cita numerada— y hay ~30
+     objetos de recomendación repartidos en seis funciones, así que olvidar una rama es el modo de
+     falla probable. Mudo, eso queda como una línea que nombra la guía y no ofrece número, que es
+     justo lo que el censo encontró desde la pantalla y nadie había visto en un año de código.
+     Ruidoso, la primera vez que esa rama se alcanza sale en rojo. */
   if (r.clase || r.fuente) h += '<div style="font-size:11px;margin-top:5px;color:var(--text2);">' +
        (r.clase ? '<b>' + _critEsc(r.clase) + '</b> · ' : '') + _critEsc(r.fuente || '') +
-       (r.ref ? _indRefMarca(r.ref) : '') + '</div>';
+       (r.ref ? _indRefMarca(r.ref)
+              : (r.fuente ? ' <span style="color:#DC2626;font-weight:400;">[cita sin numerar]</span>' : '')) +
+       '</div>';
   if (r.faltan && r.faltan.length) h += '<div style="font-size:11px;margin-top:5px;color:#D97706;">' +
        'Falta contestar: ' + _critEsc(r.faltan.join(' · ')) + '</div>';
   /* ⚠️ ESTA NOTA SE QUEDA VISIBLE, Y LA PRIMERA VERSIÓN DE ESTA RONDA LA MANDÓ AL DETALLE.
@@ -40031,9 +40166,29 @@ function _indRecomHTML(r){
     /* La fuente viene DENTRO del objeto y no de una constante de más abajo: este render es
        genérico y `EA_FUENTE` se declara ~120 líneas después. Hoy resolvería igual —al llamarse
        ya está inicializada— pero ataría un helper compartido a una constante de una sección. */
-    if (r.mod.clase) h += '<div style="font-size:11px;margin-top:4px;color:var(--text2);"><b>' +
-         _critEsc(r.mod.clase) + '</b> · ' + _critEsc(r.mod.fuente || r.fuente || '') +
-         (r.mod.ref ? _indRefMarca(r.mod.ref) : '') + '</div>';
+    /* ⚠️ EL `ref` SE HEREDA SÓLO SI TAMBIÉN SE HEREDA LA `fuente`, y esa condición es todo el punto.
+       El texto ya caía a `r.fuente` cuando el `mod` no trae una propia —`_indEAModalidad` es así—
+       y ahí el número tiene que ser el MISMO, porque es el mismo documento. Pero un `mod` que trae
+       `fuente` PROPIA —`_indVTModalidad` es así— puede nombrar otro documento: heredar el `ref` del
+       padre ahí estamparía el número de una guía sobre el nombre de otra, que es peor que no tener
+       número. Sin `fuente` propia hereda; con `fuente` propia exige `ref` propio y, si falta, cae en
+       la marca roja de abajo. */
+    /* ⚠️ `clase || fuente`, IGUAL QUE EL RENGLÓN DEL PADRE — y el hueco que cierra es clínico.
+       Con la compuerta sólo por `clase` había TRES `mod` con `clase:''` cuyo `ref` era INALCANZABLE
+       (`modRep` de la IM en la rama «no reparable» y las dos ramas de `tmo` de `_indVTModalidad`), y
+       lo que eso tapaba es que sus textos TRANSCRIBEN clases con nivel —«La reparación es Clase I ·
+       Nivel B…», «El TEER es Clase IIa · Nivel B…»— sin una línea de fuente y sin corchete: dos
+       clases de guía sin decir de dónde salen. Es el mismo defecto que el padre ya cerró con
+       `r.clase || r.fuente`, dejado abierto en el slot hermano de la misma caja. El ternario de la
+       clase evita el `<b></b>` vacío. Lo encontró /sharp-edges. */
+    if (r.mod.clase || r.mod.fuente) {
+      const modRef = r.mod.ref || (r.mod.fuente ? null : r.ref);
+      h += '<div style="font-size:11px;margin-top:4px;color:var(--text2);">' +
+         (r.mod.clase ? '<b>' + _critEsc(r.mod.clase) + '</b> \u00b7 ' : '') +
+         _critEsc(r.mod.fuente || r.fuente || '') +
+         (modRef ? _indRefMarca(modRef)
+                 : ' <span style="color:#DC2626;font-weight:400;">[cita sin numerar]</span>') + '</div>';
+    }
     /* Ídem: `_indEAModalidad` pone acá que «la Clase I A de TAVI está escrita para la válvula
        tricúspide y no se aplica», que es la condición de la fila que se está publicando. */
     if (r.mod.nota) h += '<div style="font-size:11px;margin-top:4px;color:var(--text2);line-height:1.5;">' +
@@ -40055,6 +40210,24 @@ function _indRecomHTML(r){
    claves escrita a mano contra una función que tiene dieciséis y puede sumar la diecisiete.
    Un aviso también abre, porque si no la advertencia queda tapada por el propio acordeón. */
 function _indSecHTML(tit, r){
+  /* ══ EL CONTEXTO DE NUMERACIÓN DE ESTA SECCIÓN ══════════════════════════════════════════════
+     Se abre acá y se cierra en el `finally`, que es el idioma de `_pcCon` y `_vCon` de este mismo
+     archivo. Dos cosas que no son opcionales:
+     · **Se GUARDA el anterior y se repone.** Hoy nadie anida secciones, así que `prev` es siempre
+       null; se hace igual porque el día que una sección pinte otra —o que alguien llame a
+       `_indSecHTML` desde un `catch`— sin reponer quedaría el contexto de la hija abierto para la
+       madre, y el corchete de la madre numeraría en el acumulador equivocado. No da error: da un
+       número que apunta a la bibliografía de otra sección.
+     · **El `finally` va aunque nada de esto lance.** Si `_indRecomHTML` lanza y el contexto queda
+       abierto, la sección siguiente hereda el acumulador de la que se cayó y su primer corchete
+       sale [2]. `indicRender` atrapa la excepción por sección, así que ese escenario es
+       alcanzable. */
+  const prevCtx = _indRefCtx;
+  _indRefCtx = _indRefCtxNuevo();
+  try { return _indSecHTMLCuerpo(tit, r); } finally { _indRefCtx = prevCtx; }
+}
+
+function _indSecHTMLCuerpo(tit, r){
   /* Una recomendación alcanzada también abre: es lo único de la sección que puede aparecer
      DESPUÉS del primer pintado, cuando el médico contesta. La traen las cinco secciones
      contestables —las dos aórticas y las dos mitrales, más la alarma de trombo de la estenosis
@@ -40096,6 +40269,18 @@ function _indSecHTML(tit, r){
      desplegable nace cerrado» y «el clic en el corchete lo ABRE». */
   h += '<div style="font-size:11px;line-height:1.55;color:var(--text2);margin-top:11px;padding-top:8px;border-top:1px dashed var(--border);">' +
        _indGuiaHTML(r.guia) + _indDetalleHTML(det) + '</div>';
+  /* ⚠️ LA BIBLIOGRAFÍA VA ÚLTIMA, Y EL ORDEN ES LO QUE LA HACE CORRECTA. El acumulador se puebla
+     mientras se pinta —`_indRecomHTML` primero, `_indGuiaHTML` después— así que armarla antes de
+     esas dos líneas la dejaría VACÍA: `ctx.orden` todavía no tiene ninguna clave y la función
+     devuelve cadena vacía. No sería un error visible, sería una sección sin bibliografía.
+     Y va DENTRO del `<div>` del cuerpo, o sea como hija del `<details>` de la sección. Eso no es
+     estético: `_indRepintarConservando` indexa cada detalle por «summary del padre ▸ summary», así
+     que siendo hija su clave es «Estenosis aórtica ▸ ⓘ Bibliografía» y es ÚNICA. Como hermana de
+     las secciones, las trece compartirían la clave «ⓘ Bibliografía» y ganaría la última escritura:
+     contestar un control abriría o cerraría las trece a la vez, que es exactamente el defecto que
+     esa función ya pagó con los trece «ⓘ Ver detalle». El arreglo de aquella pasada cubre esto
+     GRATIS, y sólo porque la bibliografía es hija. */
+  h += _indBiblioHTML(_indRefCtx);
   return h + '</div></details>';
 }
 
@@ -40154,6 +40339,11 @@ const EA_REC_2025 = Object.freeze({
     t:'TAVI PUEDE CONSIDERARSE en la estenosis de válvula aórtica bicúspide en pacientes con riesgo quirúrgico aumentado, si la anatomía es apta.' }
 });
 const EA_FUENTE = 'ESC/EACTS 2025 — tabla de recomendaciones de estenosis aórtica';
+/* La CLAVE del documento, pegada a la fuente que lo nombra: verificado que el texto de
+   `EA_FUENTE` y el `full` de `esc2025vc` son el mismo documento (ESC/EACTS 2025). Van juntas para
+   que mover una obligue a mirar la otra — un `ref` que apunte a otra guía que la que el texto
+   nombra es una cita falsa, y las dos viven en la misma línea. */
+const EA_REF = 'esc2025vc';
 
 /* ⚠️ LOS TEXTOS DE `EA_REC_2025` SON TRANSCRIPCIONES DE LA GUÍA, ASÍ QUE LLEVAN SUS NÚMEROS
    ESCRITOS. Eso es correcto —interpolar una constante de la app dentro de una cita la volvería
@@ -40313,7 +40503,7 @@ function _indEARecom(esc){
   }
 
   const rec = EA_REC_2025[r.k];
-  const out = { tipo:'ind', tit:'Recomendación de la guía', txt:rec.t, clase:rec.c, fuente:EA_FUENTE };
+  const out = { tipo:'ind', tit:'Recomendación de la guía', txt:rec.t, clase:rec.c, fuente:EA_FUENTE, ref:EA_REF };
   const notas = [];
   if (r.por) notas.push(r.por);
   if (r.sinErgo) notas.push('La prueba de esfuerzo figura como NO REALIZADA: la guía la pide «si es factible», así que no bloquea, pero esta recomendación queda con una de sus tres condiciones sin verificar.');
@@ -40337,7 +40527,15 @@ function _indEARecom(esc){
   if (vida === 'no') notas.push('Expectativa de vida estimada NO mayor de 1 año: la guía reserva la intervención precoz para quienes la superan. En la edición 2025 esto es texto del cuerpo, sin clase asignada, y entra en la decisión del Heart Team (Clase I · Nivel C).');
   if (notas.length) out.nota = notas.join(' ');
   out.mod = _indEAModalidad(rq);
+
+  /* ⚠️ EL `ref` VIAJA PEGADO A LA `fuente`, Y ACÁ LA FUENTE SE ASIGNA DESPUÉS: `_indEAModalidad`
+     no la trae, se la pone este llamador. Con la fuente asignada y el ref no, el bloque de
+     modalidad publica su clase nombrando la guía y SIN corchete — y desde que una `fuente` sin
+     `ref` sale en rojo, eso es visible. Fue exactamente lo que salió en la primera medición de
+     este cambio, en EA y en IA: el replace mecánico cubrió los 35 literales `fuente:X_FUENTE` y
+     no estas dos asignaciones. Es el mismo documento que el padre, así que la clave es la misma. */
   out.mod.fuente = EA_FUENTE;
+  out.mod.ref = EA_REF;
   return out;
 }
 
@@ -40536,6 +40734,7 @@ const IM_REC_2025 = Object.freeze({
     t:'TEER A CONSIDERAR en el paciente sintomático con insuficiencia mitral primaria severa anatómicamente apto y con riesgo quirúrgico alto según el Heart Team.' }
 });
 const IM_FUENTE = 'ESC/EACTS 2025 — tabla de recomendaciones de insuficiencia mitral primaria';
+const IM_REF = 'esc2025vc';
 
 function _indIMRecom(D){
   const fal = function(txt, faltan){ return { tipo:'falta', tit:'Falta un dato para aplicar la guía', txt:txt, faltan:faltan }; };
@@ -40548,16 +40747,16 @@ function _indIMRecom(D){
      fila. Contestada en contra, la fila deja de aplicar y se dice. */
   const modRep = function(){
     if (rep === 'no') return { txt:'La reparación NO se espera duradera según lo consignado, así que esa fila no aplica: la elección entre reemplazo valvular y TEER pasa al Heart Team.',
-      clase:'', fuente:IM_FUENTE,
+      clase:'', fuente:IM_FUENTE, ref:IM_REF,
       nota:'La reparación es Clase I · Nivel B sólo cuando se espera un resultado duradero. El TEER es Clase IIa · Nivel B en el sintomático anatómicamente apto con riesgo quirúrgico alto.' };
-    return { txt:IM_REC_2025.reparar.t, clase:IM_REC_2025.reparar.c, fuente:IM_FUENTE,
+    return { txt:IM_REC_2025.reparar.t, clase:IM_REC_2025.reparar.c, fuente:IM_FUENTE, ref:IM_REF,
       nota:(rep == null ? 'Esta fila condiciona a que se espere un resultado duradero, y eso no está consignado. ' : '') +
         'Y si el riesgo quirúrgico es alto y la anatomía es apta, el TEER es Clase IIa · Nivel B — en 2025 subió desde Clase IIb y dejó de exigir que el paciente fuera inoperable.' };
   };
   if (D.mec.val === 'secundaria') return { tipo:'no', tit:'Fuera del alcance de esta tabla',
     txt:'El mecanismo consignado es SECUNDARIO (funcional). Las filas de esta sección son las de la insuficiencia mitral PRIMARIA y no gobiernan esa situación: la conducta en la secundaria depende del tratamiento médico óptimo y de la evaluación por Heart Team.' };
   if (sx === 'si') {
-    const out = { tipo:'ind', tit:'Recomendación de la guía', txt:IM_REC_2025.sint.t, clase:IM_REC_2025.sint.c, fuente:IM_FUENTE };
+    const out = { tipo:'ind', tit:'Recomendación de la guía', txt:IM_REC_2025.sint.t, clase:IM_REC_2025.sint.c, fuente:IM_FUENTE, ref:IM_REF };
     out.mod = modRep();
     if (D.mec.val == null) out.nota = 'El mecanismo no está consignado: estas filas son las de la insuficiencia PRIMARIA.';
     return out;
@@ -40569,7 +40768,7 @@ function _indIMRecom(D){
     const por = D.disf.dtsvi ? 'diámetro telesistólico ≥ ' + IM_CRIT_2025.dtsvi + ' mm'
       : D.disf.idx ? 'telesistólico indexado ≥ ' + IM_CRIT_2025.dtsvi_idx + ' mm/m²'
       : 'FEVI ≤ ' + IM_CRIT_2025.fevi + ' %';
-    const out = { tipo:'ind', tit:'Recomendación de la guía', txt:IM_REC_2025.asint_dvi.t, clase:IM_REC_2025.asint_dvi.c, fuente:IM_FUENTE,
+    const out = { tipo:'ind', tit:'Recomendación de la guía', txt:IM_REC_2025.asint_dvi.t, clase:IM_REC_2025.asint_dvi.c, fuente:IM_FUENTE, ref:IM_REF,
       nota:'Parámetro presente: ' + por + '. Los tres se unen con «o»: alcanza con uno.' };
     out.mod = modRep();
     return out;
@@ -40582,7 +40781,7 @@ function _indIMRecom(D){
     if (rq == null || rep == null) return fal('La Clase I del asintomático sin disfunción exige además riesgo quirúrgico BAJO y que sea probable una reparación duradera.',
       [rq == null ? 'Riesgo quirúrgico' : null, rep == null ? 'Reparación duradera probable' : null].filter(Boolean));
     if (rq === 'bajo' && rep === 'si') {
-      const out = { tipo:'ind', tit:'Recomendación de la guía', txt:IM_REC_2025.asint_3de4.t, clase:IM_REC_2025.asint_3de4.c, fuente:IM_FUENTE,
+      const out = { tipo:'ind', tit:'Recomendación de la guía', txt:IM_REC_2025.asint_3de4.t, clase:IM_REC_2025.asint_3de4.c, fuente:IM_FUENTE, ref:IM_REF,
         nota:'Se cumplen ' + n + ' de los cuatro criterios: ' + D.tres.cumplidos.join(', ') + '.' };
       return out;
     }
@@ -40593,7 +40792,7 @@ function _indIMRecom(D){
      condición declarada en la nota de la fila y dada por cumplida por la recomendación. Hoy
      `im.fa` distingue las dos, y el tres-de-cuatro sigue contando la FA a secas, que es lo que esa
      otra fila pide. */
-  if (D.tres.psap || D.tres.faSec) return { tipo:'ind', tit:'Recomendación de la guía', txt:IM_REC_2025.asint_iia.t, clase:IM_REC_2025.asint_iia.c, fuente:IM_FUENTE,
+  if (D.tres.psap || D.tres.faSec) return { tipo:'ind', tit:'Recomendación de la guía', txt:IM_REC_2025.asint_iia.t, clase:IM_REC_2025.asint_iia.c, fuente:IM_FUENTE, ref:IM_REF,
     nota:(n >= 3 ? 'Se cumplen ' + n + ' de los cuatro criterios de la Clase I, pero esa fila exige además riesgo bajo y reparación duradera probable, y acá no están los dos. ' : '') +
       'Disparador presente: ' + (D.tres.psap ? 'PAPs en reposo > ' + IM_CRIT_2025.spap + ' mmHg' : 'fibrilación auricular secundaria a la insuficiencia') + '.' };
   /* ⚠️ LA FILA DE DILATACIÓN AURICULAR EXIGE RIESGO BAJO Y REPARACIÓN DURADERA, y su texto los
@@ -40603,7 +40802,7 @@ function _indIMRecom(D){
   if (D.tres.ai) {
     if (rq == null || rep == null) return fal('La fila de dilatación auricular del asintomático exige riesgo quirúrgico BAJO y que sea probable una reparación duradera.',
       [rq == null ? 'Riesgo quirúrgico' : null, rep == null ? 'Reparación duradera probable' : null].filter(Boolean));
-    if (rq === 'bajo' && rep === 'si') return { tipo:'ind', tit:'Recomendación de la guía', txt:IM_REC_2025.asint_ai.t, clase:IM_REC_2025.asint_ai.c, fuente:IM_FUENTE,
+    if (rq === 'bajo' && rep === 'si') return { tipo:'ind', tit:'Recomendación de la guía', txt:IM_REC_2025.asint_ai.t, clase:IM_REC_2025.asint_ai.c, fuente:IM_FUENTE, ref:IM_REF,
       nota:'Dilatación auricular significativa, riesgo bajo y reparación duradera probable. La guía pide además un centro con experiencia.' };
     return { tipo:'no', tit:'Sin criterio de intervención',
       txt:'Hay dilatación auricular significativa, pero la fila que la usa exige riesgo quirúrgico bajo Y que sea probable una reparación duradera, y eso no se cumple con lo consignado. Corresponde vigilancia en un centro con experiencia.',
@@ -41465,6 +41664,7 @@ const IA_REC_2025 = Object.freeze({
     t:'Con indicación de cirugía valvular aórtica establecida y riesgo quirúrgico bajo, A CONSIDERAR el reemplazo de la raíz aórtica o de la aorta ascendente si el diámetro máximo es ≥ 45 mm.' }
 });
 const IA_FUENTE = 'ESC/EACTS 2025 — tabla de recomendaciones de insuficiencia aórtica';
+const IA_REF = 'esc2025vc';
 
 /* Mismo assert que `_eaAssertUmbrales` y por el mismo motivo: los textos de arriba son
    transcripciones y llevan sus números escritos, así que si la constante viva se mueve por otro
@@ -41759,7 +41959,7 @@ function _indIARecom(D){
   else return fal('Los síntomas son lo que separa la Clase I —que en la insuficiencia aórtica severa es independiente de la función del ventrículo izquierdo— de los criterios de tamaño y función del asintomático.', ['Síntomas']);
 
   const rec = IA_REC_2025[r.k];
-  const out = { tipo:'ind', tit:'Recomendación de la guía', txt:rec.t, clase:rec.c, fuente:IA_FUENTE };
+  const out = { tipo:'ind', tit:'Recomendación de la guía', txt:rec.t, clase:rec.c, fuente:IA_FUENTE, ref:IA_REF };
   const notas = [];
   if (r.por) notas.push(r.por);
   /* Un sintomático que además va a otra cirugía: la fila que se publica es la de Nivel B, y la
@@ -41787,7 +41987,15 @@ function _indIARecom(D){
   if (D.aoFuera.length) notas.push('Fuera de rango medible: ' + D.aoFuera.join(' y ') + '. Ese valor no entra en el diámetro máximo que decide el reemplazo concomitante de la aorta.');
   if (notas.length) out.nota = notas.join(' ');
   out.mod = _indIAModalidad(D, cand, rq, sintomatico);
+
+  /* ⚠️ EL `ref` VIAJA PEGADO A LA `fuente`, Y ACÁ LA FUENTE SE ASIGNA DESPUÉS: `_indIAModalidad`
+     no la trae, se la pone este llamador. Con la fuente asignada y el ref no, el bloque de
+     modalidad publica su clase nombrando la guía y SIN corchete — y desde que una `fuente` sin
+     `ref` sale en rojo, eso es visible. Fue exactamente lo que salió en la primera medición de
+     este cambio, en EA y en IA: el replace mecánico cubrió los 35 literales `fuente:X_FUENTE` y
+     no estas dos asignaciones. Es el mismo documento que el padre, así que la clave es la misma. */
   out.mod.fuente = IA_FUENTE;
+  out.mod.ref = IA_REF;
   return out;
 }
 
@@ -42323,6 +42531,10 @@ const EP_REC_2020 = Object.freeze({
     t:'En la estenosis pulmonar VALVULAR, la valvuloplastia con balón es la técnica de elección si la válvula es anatómicamente apta.' }
 });
 const EP_FUENTE = 'ESC 2020 (cardiopatías congénitas del adulto) — tabla de recomendaciones de obstrucción del tracto de salida derecho';
+/* ⚠️ ÉSTA NO ES `esc2025vc`. La estenosis pulmonar la gobierna la ESC 2020 de congénitas del
+   adulto, no la guía de valvulopatías: el texto de `EP_FUENTE` lo dice y la clave tiene que
+   decir lo mismo. Es la única de las seis que apunta a otro documento. */
+const EP_REF = 'esc2020guch';
 /* La PSVD de la fila del asintomático es el único número de esta tabla que no vive ya en una
    constante de la app. No se compara contra él —`psap_calc` no tiene banda— pero el texto lo
    nombra, así que queda anclado y entra en el arranque igual que los demás. */
@@ -42430,7 +42642,7 @@ function _indEPRecom(D, sev, mod, gmax, UM, valvular, nivelDicho, ramas){
   if (ramas) {
     return { tipo:'no', tit:'Fuera del alcance de estas filas — la obstrucción es de ramas pulmonares',
       txt:'La estenosis pulmonar PERIFÉRICA tiene su propia fila en la tabla: Clase IIa C cuando hay más del 50 % de estrechamiento del diámetro y una PSVD mayor de 50 mmHg. Esta app no mide el porcentaje de estrechamiento, así que la fila no se puede evaluar. El umbral de gradiente de las otras filas es para la obstrucción del tracto de salida, no para las ramas.',
-      fuente:EP_FUENTE };
+      fuente:EP_FUENTE, ref:EP_REF };
   }
   /* ── EL HUECO DEL 64 EXACTO ──
      La severidad es «> UM» y la fila de Clase IIa es «< UM». El valor exacto no está en ninguna,
@@ -42438,7 +42650,7 @@ function _indEPRecom(D, sev, mod, gmax, UM, valvular, nivelDicho, ramas){
   if (UM != null && gmax != null && gmax === UM) {
     return { tipo:'no', tit:'El texto de la guía no cubre este valor exacto',
       txt:'El gradiente máximo es de exactamente ' + _indNum(gmax, 0, 'mmHg') + '. La guía define la estenosis severa como MÁS de ' + UM + ' mmHg y su fila de Clase IIa como MENOS de ' + UM + ': el valor exacto no cae en ninguna de las dos. La app lo clasifica como moderada. La conducta acá no sale de la tabla.',
-      fuente:EP_FUENTE };
+      fuente:EP_FUENTE, ref:EP_REF };
   }
   const shuntDI = _epShuntDI(D.shunt.val);
   /* La confirmación que pide la nota al pie «a» no se puede hacer, y eso acompaña a toda
@@ -42456,7 +42668,7 @@ function _indEPRecom(D, sev, mod, gmax, UM, valvular, nivelDicho, ramas){
      separar los dos caminos. Es el mismo defecto que ya aparecio en la mitral con la reparacion y
      en la aortica con el TAVI. Con la pregunta en null SI se publica, porque ahi nada la niega. */
   const balon = (valvular && D.sust !== 'si')
-    ? { txt:EP_REC_2020.balon.t, clase:EP_REC_2020.balon.c, fuente:EP_FUENTE,
+    ? { txt:EP_REC_2020.balon.t, clase:EP_REC_2020.balon.c, fuente:EP_FUENTE, ref:EP_REF,
         nota:'El calificador oficial de la fila es «si es anatómicamente apta», sin más precisión. Que una válvula displásica responda mal al balón es cierto y clínicamente importante, pero no está en el texto de la recomendación: circula en comentarios editoriales sobre la guía, no en la guía.' }
     : null;
 
@@ -42464,10 +42676,10 @@ function _indEPRecom(D, sev, mod, gmax, UM, valvular, nivelDicho, ramas){
     if (!D.sust) return fal('La estenosis es severa. La tabla se parte en tres filas según si el procedimiento posible requiere un sustituto valvular, porque el umbral de intervención es más alto cuando hace falta.' + conf,
       ['Requiere sustituto valvular']);
     if (D.sust === 'no') return { tipo:'ind', tit:'Estenosis severa sin necesidad de sustituto valvular',
-      txt:EP_REC_2020.sin_sust.t, clase:EP_REC_2020.sin_sust.c, fuente:EP_FUENTE,
+      txt:EP_REC_2020.sin_sust.t, clase:EP_REC_2020.sin_sust.c, fuente:EP_FUENTE, ref:EP_REF,
       nota:'Esta es la única fila que no mira los síntomas, y sólo porque no hace falta un sustituto.' + conf, mod:balon };
     if (D.sx === 'si') return { tipo:'ind', tit:'Estenosis severa sintomática, con sustituto valvular necesario',
-      txt:EP_REC_2020.sust_sint.t, clase:EP_REC_2020.sust_sint.c, fuente:EP_FUENTE,
+      txt:EP_REC_2020.sust_sint.t, clase:EP_REC_2020.sust_sint.c, fuente:EP_FUENTE, ref:EP_REF,
       nota:'El umbral de intervención es más alto cuando hace falta un sustituto, por el riesgo de endocarditis y de reintervención: por eso acá los síntomas son condición.' + conf, mod:balon };
     if (!D.sx) return fal('La estenosis es severa y el procedimiento requiere un sustituto valvular. En ese escenario la fila pide síntomas, o bien uno de cuatro criterios en el asintomático.' + conf, ['Síntomas']);
     /* Asintomático con sustituto: la fila pide AL MENOS UNO de cuatro. Se enumeran los que se
@@ -42483,7 +42695,7 @@ function _indEPRecom(D, sev, mod, gmax, UM, valvular, nivelDicho, ramas){
     /* La PSVD > 80 es el cuarto criterio y NO se evalúa: sin banda de plausibilidad el valor no
        se usa. Nunca entra en `cumple`, y entra siempre en lo no evaluado. */
     if (cumple.length) return { tipo:'ind', tit:'Estenosis severa asintomática con criterio de intervención',
-      txt:EP_REC_2020.sust_asint.t, clase:EP_REC_2020.sust_asint.c, fuente:EP_FUENTE,
+      txt:EP_REC_2020.sust_asint.t, clase:EP_REC_2020.sust_asint.c, fuente:EP_FUENTE, ref:EP_REF,
       nota:'Se cumple: ' + cumple.join('; ') + '. Alcanza con uno.' + conf, mod:balon };
     if (sinResp.length) return fal('La estenosis es severa, el procedimiento requiere un sustituto valvular y el paciente está asintomático. La fila pide al menos uno de cuatro criterios, y quedan sin contestar los de abajo.' + conf, sinResp);
     /* El titular decía «sin ninguno de los criterios» y el texto, dos líneas abajo, «ninguno de
@@ -42491,7 +42703,7 @@ function _indEPRecom(D, sev, mod, gmax, UM, valvular, nivelDicho, ramas){
        mayúsculas arriba de todo: es lo que se lee. La afirmación sale del texto. */
     return { tipo:'no', tit:'Estenosis severa asintomática sin ninguno de los tres criterios evaluables',
       txt:'La estenosis es severa, el procedimiento requiere un sustituto valvular, el paciente está asintomático y ninguno de los criterios contestados se cumple. La guía reserva la intervención para ese escenario. Queda sin evaluar el cuarto criterio, la PSVD mayor de ' + EP_PSVD_ASINT + ' mmHg: esta app no la puede usar porque la PSAP estimada no tiene banda de plausibilidad.' + conf,
-      fuente:EP_FUENTE };
+      fuente:EP_FUENTE, ref:EP_REF };
   }
 
   /* ── POR DEBAJO DEL UMBRAL: Clase IIa, y son TRES criterios, no cuatro ──
@@ -42511,12 +42723,12 @@ function _indEPRecom(D, sev, mod, gmax, UM, valvular, nivelDicho, ramas){
   if (shuntDI === true) c2.push('shunt derecha-izquierda');
   else if (shuntDI == null) s2.push('Shunt derecha-izquierda por CIA o CIV');
   if (c2.length) return { tipo:'ind', tit:'Por debajo del umbral de severidad, con criterio de intervención',
-    txt:EP_REC_2020.submax.t, clase:EP_REC_2020.submax.c, fuente:EP_FUENTE,
+    txt:EP_REC_2020.submax.t, clase:EP_REC_2020.submax.c, fuente:EP_FUENTE, ref:EP_REF,
     nota:'Se cumple: ' + c2.join('; ') + '. Alcanza con uno. Los síntomas de esta fila tienen que ser ATRIBUIBLES a la estenosis pulmonar, no cualquier síntoma.', mod:balon };
   if (s2.length) return fal('El gradiente está por debajo del umbral de severidad. La fila de Clase IIa pide al menos uno de tres criterios, y quedan sin contestar los de abajo.', s2);
   return { tipo:'no', tit:'Por debajo del umbral, sin ninguno de los tres criterios',
     txt:'El gradiente no alcanza el umbral de severidad y ninguno de los tres criterios de la fila de Clase IIa se cumple. El escenario es de seguimiento.',
-    fuente:EP_FUENTE };
+    fuente:EP_FUENTE, ref:EP_REF };
 }
 
 function _indEP(){
@@ -42762,6 +42974,7 @@ const VT_REC_2025 = Object.freeze({
     t:'Tratamiento tricuspídeo TRANSCATÉTER A CONSIDERAR para mejorar la calidad de vida y el remodelado del ventrículo derecho en el paciente de ALTO RIESGO quirúrgico, sintomático, con insuficiencia severa a pesar de tratamiento médico óptimo, y en ausencia de disfunción ventricular derecha severa y de hipertensión pulmonar pre-capilar.' }
 });
 const VT_FUENTE = 'ESC/EACTS 2025 — tabla de recomendaciones de insuficiencia tricuspídea';
+const VT_REF = 'esc2025vc';
 const ET_REC_2025 = Object.freeze({
   sint:   { c:'Clase I · Nivel C',
     t:'Cirugía RECOMENDADA en el paciente SINTOMÁTICO con estenosis tricuspídea severa.' },
@@ -42769,6 +42982,9 @@ const ET_REC_2025 = Object.freeze({
     t:'Cirugía RECOMENDADA en la estenosis tricuspídea severa del paciente que va a una intervención valvular izquierda.' }
 });
 const ET_FUENTE = 'ESC/EACTS 2025 — tabla de recomendaciones de estenosis tricuspídea';
+/* La estenosis tricuspídea vive DENTRO de la sección de válvula tricúspide y cita el mismo
+   documento que la insuficiencia; la constante es propia porque el texto de la tabla es otro. */
+const ET_REF = 'esc2025vc';
 /* Los textos de arriba nombran umbrales. Si una constante se mueve y el texto no, el panel
    publica una cifra que el código no aplica — el mismo arranque que ya tienen EA, IA, EM e IM. */
 function _vtAssertUmbrales(){
@@ -42859,18 +43075,18 @@ function _indVTModalidad(D){
      equivocada manda a revisar lo que está sano. Lo encontró /sharp-edges. */
   if (D.tmo === 'no') {
     return { txt:'El paciente es de riesgo quirúrgico alto y está sintomático, pero la insuficiencia NO persiste a pesar de tratamiento médico óptimo. La fila del tratamiento transcatéter lo exige de forma explícita, así que no aplica.',
-      clase:'', fuente:VT_FUENTE };
+      clase:'', fuente:VT_FUENTE, ref:VT_REF };
   }
   if (D.tmo == null) {
     return { txt:'El paciente es de riesgo quirúrgico alto y está sintomático. La fila del tratamiento transcatéter exige además que la insuficiencia persista A PESAR de tratamiento médico óptimo, y eso no está contestado.',
-      clase:'', fuente:VT_FUENTE };
+      clase:'', fuente:VT_FUENTE, ref:VT_REF };
   }
   /* REDUNDANTE POR CONSTRUCCIÓN, dicho por el mismo motivo: `_indVTRecom` calcula `mod` y luego
      retorna por `D.vdSev` SIN adjuntarlo, así que el resultado de esta línea no llega a ninguna
      superficie. Se conserva porque la fila del transcatéter excluye la disfunción severa por su
      cuenta y esta función no debe depender de que su llamador lo recuerde. */
   if (D.vdSev) return null;
-  return { txt:VT_REC_2025.transcat.t, clase:VT_REC_2025.transcat.c, fuente:VT_FUENTE,
+  return { txt:VT_REC_2025.transcat.t, clase:VT_REC_2025.transcat.c, fuente:VT_FUENTE, ref:VT_REF,
     nota:'Subió de Clase IIb Nivel C en la ESC/EACTS 2021 a Clase IIa Nivel A en la 2025. La fila también excluye la hipertensión pulmonar PRE-CAPILAR, que es invasiva por definición y esta app no la mide: queda como condición no verificada.' };
 }
 
@@ -42897,7 +43113,7 @@ function _indVTRecom(D, itSev, itMod, etSev, etSig, E, UG){
           txt:'La app marca estenosis tricuspídea significativa por ' + cual.join(' y ') + ' — criterio de la EAE/ASE 2009. La ESC/EACTS 2025 define la estenosis severa con UN solo criterio —gradiente medio diastólico mayor de ' + (UG != null ? UG : 5) + ' mmHg a frecuencia cardíaca normal— y no menciona ni el tiempo de hemipresión ni el área valvular. '
             + (E.gmOk ? 'El gradiente medio medido es de ' + _indNum(E.gm, 0, 'mmHg') + ', que no supera el corte.' : 'El gradiente medio no está medido, así que el único criterio de la guía no se puede evaluar.')
             + ' No hay fila de la guía que aplicar: el hallazgo es real y la recomendación no sale de esta tabla.',
-          fuente:ET_FUENTE };
+          fuente:ET_FUENTE, ref:ET_REF };
       }
       /* ⚠️ SIN UMBRAL NO SE CONCLUYE (regla 4). Con `UG == null`, `_gt(x, null)` es `false` para
          TODO gradiente, así que esta rama se alcanzaba con un gm de 12 y afirmaba «no es estenosis
@@ -42905,21 +43121,21 @@ function _indVTRecom(D, itSev, itMod, etSev, etSig, E, UG){
          `_indSinUmbral`; la recomendación tenía que hacer lo mismo. Lo encontró /sharp-edges. */
       if (UG == null) return { tipo:'falta', tit:'Falta el umbral de la guía',
         txt:'El umbral de severidad de la estenosis tricuspídea no está disponible: recargar la aplicación. Sin él esta sección no puede decir si el gradiente medio alcanza el criterio.',
-        fuente:ET_FUENTE };
+        fuente:ET_FUENTE, ref:ET_REF };
       /* El `return null` con que cierra esta función interna es REDUNDANTE por construcción: se
          alcanzaría con `etSig && !porOtro && !E.cGm`, y `etSig` es `cGm || cThp || cAvt`, así que
          `!cGm && !porOtro` implica `!cThp && !cAvt`, o sea `!etSig` — contradicción. Queda por la
          regla 4, y se declara para que la próxima tanda de mutación no lo lea como sobreviviente. */
       if (E && E.cGm) return { tipo:'no', tit:'El valor exacto no alcanza el criterio de la guía',
         txt:'El gradiente medio es de ' + _indNum(E.gm, 0, 'mmHg') + '. La app lo cuenta como significativo porque aplica «mayor o igual», pero la ESC/EACTS 2025 pide MÁS de ' + (UG != null ? UG : 5) + ' mmHg: con este valor no es estenosis severa para la guía, y sus dos filas piden estenosis severa.',
-        fuente:ET_FUENTE,
+        fuente:ET_FUENTE, ref:ET_REF,
         nota:'La pantalla y el informe siguen usando el criterio de la app, que no se tocó: cambiarlo movería el grado consignado en estudios ya firmados.' };
       return null;
     }
-    if (D.sx === 'si')    return { tipo:'ind', tit:'Estenosis tricuspídea severa sintomática', txt:ET_REC_2025.sint.t, clase:ET_REC_2025.sint.c, fuente:ET_FUENTE };
-    if (D.cxizq === 'si') return { tipo:'ind', tit:'Estenosis tricuspídea severa con cirugía izquierda programada', txt:ET_REC_2025.cx_izq.t, clase:ET_REC_2025.cx_izq.c, fuente:ET_FUENTE };
+    if (D.sx === 'si')    return { tipo:'ind', tit:'Estenosis tricuspídea severa sintomática', txt:ET_REC_2025.sint.t, clase:ET_REC_2025.sint.c, fuente:ET_FUENTE, ref:ET_REF };
+    if (D.cxizq === 'si') return { tipo:'ind', tit:'Estenosis tricuspídea severa con cirugía izquierda programada', txt:ET_REC_2025.cx_izq.t, clase:ET_REC_2025.cx_izq.c, fuente:ET_FUENTE, ref:ET_REF };
     if (D.sx === 'no' && D.cxizq === 'no')
-      return { tipo:'no', tit:'Estenosis severa sin ninguno de los dos disparadores', txt:'El gradiente medio supera el corte de severidad, pero el paciente está asintomático y no va a una intervención valvular izquierda. Las dos únicas filas de la tabla de estenosis tricuspídea piden una de esas dos condiciones.', fuente:ET_FUENTE };
+      return { tipo:'no', tit:'Estenosis severa sin ninguno de los dos disparadores', txt:'El gradiente medio supera el corte de severidad, pero el paciente está asintomático y no va a una intervención valvular izquierda. Las dos únicas filas de la tabla de estenosis tricuspídea piden una de esas dos condiciones.', fuente:ET_FUENTE, ref:ET_REF };
     return fal('El gradiente medio supera el corte de severidad de la guía. Las dos filas de la tabla se separan por los síntomas y por la cirugía izquierda programada.',
       [D.sx ? null : 'Síntomas', D.cxizq ? null : 'Cirugía valvular izquierda programada'].filter(Boolean));
   })();
@@ -42933,7 +43149,7 @@ function _indVTRecom(D, itSev, itMod, etSev, etSig, E, UG){
     return { tipo:'ind',
       tit: itSev ? 'Insuficiencia severa con cirugía valvular izquierda programada'
                  : 'Insuficiencia moderada con cirugía valvular izquierda programada',
-      txt:r.t, clase:r.c, fuente:VT_FUENTE,
+      txt:r.t, clase:r.c, fuente:VT_FUENTE, ref:VT_REF,
       nota: (itSev ? 'La 2025 fusionó en esta única fila Nivel B las dos que traía la 2021 —primaria severa I C y secundaria severa I B—, así que el mecanismo no cambia la clase. '
                    : 'La guía no tiene una fila para «moderada-severa»: el grado ' + _indS('it_grado') + ' consignado por la app se resolvió hacia la fila de la MODERADA, que es Nivel B igual pero Clase IIa en vez de I. Si el grado es en realidad severo, la fila que aplica es la de arriba. ')
         + 'La nota al pie de la tabla dice «reparación valvular siempre que sea posible».'
@@ -42948,7 +43164,7 @@ function _indVTRecom(D, itSev, itMod, etSev, etSig, E, UG){
     if (!itMod) return recEt;
     if (D.cxizq === 'no') return { tipo:'no', tit:'La insuficiencia moderada entra en la tabla sólo con cirugía izquierda',
       txt:'La insuficiencia tricuspídea consignada es moderada. La única fila que la 2025 le dedica es la reparación concomitante del paciente que va a cirugía valvular izquierda, y no es el caso. Las filas de la insuficiencia aislada piden insuficiencia SEVERA.',
-      fuente:VT_FUENTE,
+      fuente:VT_FUENTE, ref:VT_REF,
       nota:'Con insuficiencia LEVE secundaria y anillo dilatado hay otra fila, Clase IIb B, que esta app no puede evaluar porque no tiene campo de anillo tricuspídeo.' };
     return fal('La insuficiencia tricuspídea consignada es moderada, y la única fila que la guía le dedica es la de la reparación concomitante en cirugía valvular izquierda.',
       ['Cirugía valvular izquierda programada']);
@@ -42978,7 +43194,7 @@ function _indVTRecom(D, itSev, itMod, etSev, etSig, E, UG){
        y que «falta validación robusta». Publicar esto como un «no se opera» diría más que la guía. */
     return { tipo:'no', tit:'Alto riesgo — disfunción ventricular derecha severa',
       txt:'Las tres filas que quedan cuando no hay cirugía izquierda programada, y también la del tratamiento transcatéter, exigen la AUSENCIA de disfunción ventricular derecha severa. Acá está presente: ' + cual.join(' y ') + ', por la Figura 15 de la guía. La decisión sale de la tabla y pasa a ser individual.',
-      fuente:VT_FUENTE,
+      fuente:VT_FUENTE, ref:VT_REF,
       nota:'La guía es explícita sobre el peso de estos cortes: están para señalar una intervención de ALTO RIESGO o posiblemente FÚTIL, no como contraindicación absoluta, se eligieron deliberadamente conservadores porque la función del ventrículo derecho se SOBRESTIMA en la insuficiencia tricuspídea severa, y el propio texto dice que «falta validación robusta».'
         + (D.fac != null && D.facSev && _indUmb('UMBRAL_FAC_VD_SEVERA') != null && _lt(D.fac, _indUmb('UMBRAL_FAC_VD_SEVERA')) ? '' : '')
         + ' La FEVD 3D no entra en esta evaluación: no tiene banda de plausibilidad en esta app.' };
@@ -43037,22 +43253,22 @@ function _indVTRecom(D, itSev, itMod, etSev, etSig, E, UG){
 
   if (D.mec === 'prim') {
     if (D.sx === 'si') return { tipo:'ind', tit:'Insuficiencia primaria severa sintomática, aislada',
-      txt:VT_REC_2025.prim_sint.t, clase:VT_REC_2025.prim_sint.c, fuente:VT_FUENTE,
+      txt:VT_REC_2025.prim_sint.t, clase:VT_REC_2025.prim_sint.c, fuente:VT_FUENTE, ref:VT_REF,
       nota:htp + ' ' + vdNota + etNota, mod:mod };
     /* Asintomática: la fila IIa pide ADEMÁS dilatación o deterioro del VD. Sin diámetros
        medidos no se puede afirmar ni negar, y la fila no se publica. */
     if (D.dilat) return { tipo:'ind', tit:'Insuficiencia primaria severa asintomática con ventrículo derecho dilatado',
-      txt:VT_REC_2025.prim_asint.t, clase:VT_REC_2025.prim_asint.c, fuente:VT_FUENTE,
+      txt:VT_REC_2025.prim_asint.t, clase:VT_REC_2025.prim_asint.c, fuente:VT_FUENTE, ref:VT_REF,
       nota:'La dilatación sale de los tres diámetros del ventrículo derecho, con la misma función que gobierna la pantalla: ' + _indVTDils(D) + '. ' + htp + ' ' + vdNota + etNota, mod:mod };
     if (!D.dilMedido) return fal('La insuficiencia primaria severa asintomática entra en la tabla sólo si hay dilatación o deterioro de la función del ventrículo derecho. No hay ningún diámetro del VD medido, así que no se puede afirmar ni descartar.',
       ['Diámetros del ventrículo derecho']);
     return { tipo:'no', tit:'Insuficiencia primaria severa asintomática, sin dilatación del ventrículo derecho',
       txt:'Los diámetros medidos del ventrículo derecho están dentro de lo normal (' + _indVTDils(D) + ') y el paciente está asintomático. La fila Clase IIa pide dilatación o deterioro progresivo de la función del VD, así que hoy el escenario es de seguimiento. El «deterioro progresivo» es una comparación con estudios previos que esta sección no hace.',
-      fuente:VT_FUENTE, mod:mod };
+      fuente:VT_FUENTE, ref:VT_REF, mod:mod };
   }
   /* Secundaria: una sola fila, IIa B, y se satisface con síntomas O con dilatación/deterioro. */
   if (D.sx === 'si' || D.dilat) return { tipo:'ind', tit:'Insuficiencia secundaria severa',
-    txt:VT_REC_2025.sec.t, clase:VT_REC_2025.sec.c, fuente:VT_FUENTE,
+    txt:VT_REC_2025.sec.t, clase:VT_REC_2025.sec.c, fuente:VT_FUENTE, ref:VT_REF,
     nota:(D.sx === 'si' ? 'El paciente está sintomático, que ya satisface la fila. ' : 'El ventrículo derecho está dilatado (' + _indVTDils(D) + '), que satisface la fila sin necesidad de síntomas. ')
       + htp + ' ' + vdNota + etNota
       + ' La guía NO usa el fenotipo auricular o ventricular de la insuficiencia secundaria para decidir: dice que falta evidencia de que cambie el manejo.', mod:mod };
@@ -43060,7 +43276,7 @@ function _indVTRecom(D, itSev, itMod, etSev, etSig, E, UG){
     ['Diámetros del ventrículo derecho']);
   return { tipo:'no', tit:'Insuficiencia secundaria severa asintomática, sin dilatación del ventrículo derecho',
     txt:'Los diámetros medidos del ventrículo derecho están dentro de lo normal (' + _indVTDils(D) + ') y el paciente está asintomático. La única fila de la insuficiencia secundaria severa sin cirugía izquierda pide una de las dos cosas.',
-    fuente:VT_FUENTE, mod:mod };
+    fuente:VT_FUENTE, ref:VT_REF, mod:mod };
 }
 /* Enumera los diámetros MEDIDOS con su veredicto, para que la afirmación de dilatación —o de su
    ausencia— diga sobre qué se apoya. Sin esto el texto negaba sobre un denominador invisible. */
@@ -43299,9 +43515,12 @@ const IND_SECS = [
 
 function indicRender(){
   let h = '', n = 0, fallos = 0;
-  /* Las claves citadas EN ESTE PINTADO. Prototipo nulo por el patrón de la casa: se consulta con
-     `hasOwnProperty` y un `{}` arrastraría las del prototipo. */
-  const usadas = Object.create(null);
+  /* ⚠️ ACÁ YA NO SE RECOLECTA NINGUNA CLAVE, y el acumulador `usadas` de esta función se ELIMINÓ
+     con la bibliografía global (decisión de Maicol, 2026-09-29). Cada sección arma la suya desde
+     `_indRefCtx`, que se puebla al PINTAR, así que la garantía que las tres líneas de recolección
+     daban a mano —«sólo se anota si la sección se pintó de verdad»— ahora es por construcción: una
+     sección que lanza no llega a pintar ningún corchete y su contexto muere vacío en el `finally`.
+     No volver a agregar una recolección acá: sería un segundo dueño de la numeración. */
   IND_SECS.forEach(function(s){
     /* Una sección que lanza NO puede llevarse el panel entero: el resto de las indicaciones
        desaparecería sin decir por qué, que es el modo de falla contra el que este archivo
@@ -43321,26 +43540,13 @@ function indicRender(){
     if (!r) return;
     n++;
     h += hs;
-    /* La clave se anota DESPUÉS del `try` y del `if (!r)`, o sea sólo si la sección se pintó de
-       verdad: una que lanzó se declara caída al pie y no puede aportar una entrada a la
-       bibliografía — sería numerar una cita que no está en pantalla. */
-    if (r.guia && r.guia.ref) usadas[r.guia.ref] = true;
-    /* ⚠️ Y LAS DE LAS RECOMENDACIONES TAMBIÉN, desde que el corchete puede salir ahí. Sin esto, una
-       recomendación que cite un documento distinto del del pie publicaría un número sin entrada en
-       la bibliografía: un corchete que abre el desplegable y no marca nada. Hoy la de estenosis
-       mitral cita el mismo, así que es defensa en profundidad, no un caso vivo. */
-    /* ⚠️ LA CONDICIÓN TIENE QUE SER LA MISMA QUE DIBUJA EL CORCHETE, y la primera versión era más
-       ancha: `_indRecomHTML` emite el corchete dentro del renglón de la clase, así que una
-       recomendación con `ref` y SIN `clase` aportaba su entrada numerada a la bibliografía sin
-       ningún corchete que la invoque — la regla 2 del registro, «una entrada sin corchete se lee
-       como que hay una cita más que no encontrás». Lo encontró /sharp-edges. */
-    if (r.recom && r.recom.ref && (r.recom.clase || r.recom.fuente)) usadas[r.recom.ref] = true;
-    if (r.recom && r.recom.mod && r.recom.mod.ref && (r.recom.mod.clase || r.recom.mod.fuente)) usadas[r.recom.mod.ref] = true;
   });
   if (!n) h = '<div style="padding:22px 6px;text-align:center;font-size:12px;color:var(--text2);line-height:1.6;">' +
     'Sin criterios de intervención detectados con los datos actuales.' +
     '<div style="font-size:11px;margin-top:8px;">El panel sólo muestra las secciones cuyos umbrales alcanzan el estudio cargado. Que no aparezca ninguna no descarta patología: puede faltar la medición que la activa.</div></div>';
-  else h = _indLeyendaHTML() + h + _indBiblioHTML(usadas);
+  /* Sin bibliografía al pie: cada sección trae la suya. La leyenda de las marcas SÍ se queda acá —
+     es una sola para las trece y repetirla por sección la volvería ruido. */
+  else h = _indLeyendaHTML() + h;
   if (fallos) h += '<div style="font-size:11px;color:#DC2626;margin-top:10px;line-height:1.5;">' +
     fallos + (fallos === 1 ? ' sección no se pudo evaluar' : ' secciones no se pudieron evaluar') +
     ' — el resto del panel es válido, pero falta información. Revisar la consola.</div>';
@@ -85143,8 +85349,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260929-1821';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790716864963;                 /* eco-build-ms */
+const ECO_BUILD    = '20260929-2303';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790733820294;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -85230,7 +85436,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-1821</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260929-2303</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -163,20 +163,166 @@ garantiza que una referencia registrada y no citada no se publique.
 
 ### Tres reglas del mecanismo
 
-1. **Los números son ESTABLES, no por orden de aparición.** Numerar en el orden en que las
+> ⚠️ **LAS REGLAS 1 Y 2 FUERON REVERTIDAS EL 2026-09-29 POR DECISIÓN EXPLÍCITA DE MAICOL.** Lo que
+> sigue en esta sección es el texto original, que se conserva porque explica **qué se perdió** al
+> cambiarlas. **La regla vigente está abajo, en «Bibliografía POR SECCIÓN».** Antes de «arreglar»
+> que [1] ya no identifica siempre el mismo documento, leer esa sección: está decidido, no pendiente.
+
+1. ~~**Los números son ESTABLES, no por orden de aparición.**~~ Numerar en el orden en que las
    secciones salen haría que [1] fuera la ESC/EACTS 2025 en un paciente y la ESC 2020 en el
    siguiente, porque qué secciones se muestran depende del estudio. El precio son huecos en la
    bibliografía de un estudio concreto, y es el precio correcto: un hueco no afirma nada, un número
    que cambia de documento sí. **Las entradas nuevas van AL FINAL** — la lista ya tiene una metida
    en el medio (`escGuchCiv`), así que el precedente empuja a insertar donde queda prolijo.
-2. **La bibliografía lista SÓLO lo citado en ese pintado.** Listar todo publicaría una entrada
+   → **Reemplazada**: hoy la numeración es **por sección**, por orden de primera aparición dentro de
+   esa sección, y arranca en [1] en cada una. `IND_REF_IDX` sigue existiendo pero **ya no da el
+   número**: sólo dice si una clave está registrada.
+2. ~~**La bibliografía lista SÓLO lo citado en ese pintado.**~~ Listar todo publicaría una entrada
    numerada sin ningún corchete que la invoque, y hay un caso real esperando (`aseProtAo`). Una
    entrada sin corchete se lee como «hay una cita más que no encontrás».
+   → **Reemplazada**: hay **una bibliografía por sección**, debajo de cada una, y lista sólo lo que
+   esa sección cita. La garantía «sólo lo citado» se conserva y se reforzó: ahora es por
+   construcción, no por un acumulador a mano.
 3. **La clase y el nivel NO viven en el registro.** Son propiedad de la RECOMENDACIÓN: seis
    secciones citan la ESC/EACTS 2025 con clases distintas. Van en el `txt`, con el formato único
    `Clase I · Nivel B` —el mismo de los 46 campos `c:` de las constantes de recomendación—. Y el
    nivel es **opcional**: el documento del foramen usa GRADE y forzarle el molde sería inventarle
    una clase que no tiene.
+
+### Bibliografía POR SECCIÓN — DECISIÓN DE MAICOL, 2026-09-29 (revierte las reglas 1 y 2)
+
+**Cada válvula lleva su propia bibliografía, debajo de su sección, con numeración propia que arranca
+en [1].** No es el default: es una reversión explícita de lo que se había decidido horas antes, y se
+toma sabiendo el precio.
+
+**Qué se pierde, dicho sin suavizar:** el número **ya no identifica un documento**. [1] es la
+ESC/EACTS 2025 en la sección de estenosis aórtica y la ESC 2020 de congénitas en la de estenosis
+pulmonar, en el **mismo panel del mismo paciente**. Un médico que lee «Clase I · Nivel B [1]» en dos
+secciones y asume que citan lo mismo se equivoca. Lo que lo hace tolerable —y lo que la decisión
+apuesta— es que el número ahora se lee **junto a su bibliografía, que está tres centímetros más
+abajo**, y nunca cruzando secciones. La numeración global resolvía el problema contrario: el número
+era único pero la bibliografía estaba al pie de todo el panel, a varias secciones de distancia.
+
+**El dueño de la numeración es `_indRefCtx`, y es uno solo.** Se abre y se cierra en `_indSecHTML`,
+con `try/finally`, y `_indRefNum` es la única función que le asigna un número. `_indBiblioHTML` **lee
+y no asigna** — esa separación es lo que garantiza que la bibliografía no pueda listar una entrada
+que ningún corchete invocó. El `finally` no es decorativo: sin él una sección que lanza se lleva el
+contexto de la siguiente, y los números de la sección de al lado arrancarían en 4.
+
+**Por construcción, no a mano.** La versión anterior recolectaba las claves con tres líneas en
+`indicRender` y un acumulador `usadas`; esas líneas se **eliminaron**. Hoy una sección que lanza no
+llega a pintar ningún corchete y su contexto muere vacío en el `finally`, así que la garantía «sólo
+se lista lo que se pintó de verdad» dejó de depender de que alguien se acuerde de recolectar.
+
+**`_indRefAbrir` pasó a ser de ÁMBITO DE SECCIÓN.** Recibe el nodo del corchete, sube hasta el
+`<details>` que es hijo directo del cuerpo, y abre la bibliografía **de ahí**. Con el ámbito viejo
+—`querySelector` sobre todo el panel— un clic en el [1] de la pulmonar abría la bibliografía de la
+aórtica y marcaba su entrada: el corchete confirmaría un documento que no es el que cita. La limpieza
+de `[data-ind-refsel]` sí sigue siendo de todo el panel, a propósito: si no, quedan dos marcas.
+
+**Lo que NO se tocó:** las claves de documento son las mismas ocho, `IND_REFS` no creció (las fuentes
+nuevas van en otro prompt), y ni los cortes de severidad ni los cálculos ni el informe ni EN SUMA ni
+el PDF ni el Excel se movieron — verificado byte a byte contra HEAD, con control negativo de la sonda.
+
+**`_indRepintarConservando` regala la unicidad.** Keyea cada `<details>` por `parentSummary ▸
+summary`, así que «Estenosis aórtica ▸ ⓘ Bibliografía» y «Estenosis pulmonar ▸ ⓘ Bibliografía» no
+chocan aunque el rótulo sea idéntico. Con la bibliografía global esto hubo que razonarlo (era
+**hermana** de las secciones, no hija); ahora sale gratis.
+
+**TC-322 se REAPUNTÓ, no se borró** — «citas numeradas POR SECCIÓN, con un solo dueño de la
+numeración». Sus condiciones de estabilidad pasaron a medir lo contrario: `arrancanEn1` en vez de
+`mismo2025`, y `numsUnicosPorBiblio` en vez de `numsDistintos` a secas.
+
+### ⚠️ CUATRO CLAVES QUEDABAN SIN NINGUNA COBERTURA, Y LO DIJO LA MUTACIÓN
+
+Se cablearon seis constantes nuevas (`EA_REF`, `IM_REF`, `IA_REF`, `VT_REF`, `ET_REF`, `EP_REF`) y al
+mutarlas de a una, **cuatro sobrevivieron**: IA, VT, ET y EP. El escenario de TC-324 es
+EM + IM + EA, así que esas secciones **no se abren** y su centinela `[cita sin numerar]` nunca se
+pinta. El arreglo estaba hecho y no lo miraba nadie, que es exactamente cómo se deshace sin que nadie
+se entere. Salió **TC-325**, con las seis ejercidas. Tres cosas que costaron:
+
+- **Sin contestar los controles clínicos el caso es verde por vacío.** Las recomendaciones no se
+  resuelven, no publican clase, y el centinela no tiene qué marcar. Medido: **7 corchetes sin
+  contestar, 15 contestando** los 30 controles. Ese es el denominador y va en la condición.
+- **La estenosis mitral NO entra en el recuento, y no es un descuido.** Ninguna de las seis
+  constantes es suya —ya citaba por clave— y la cubre TC-323 por las dos filas. En el escenario de
+  TC-325 su sección publica **un solo** corchete, el del criterio; exigirle dos sería pedirle al caso
+  que arregle un escenario en vez de medir una clave.
+- **`ET_REF` no se puede ejercer junto con la insuficiencia tricuspídea, y es estructural.**
+  `_indVTRecom` abre con `if (!itSev && !itMod) return recEt;` — la sección publica **una sola**
+  recomendación, así que con IT severa la estenosis aparece sólo como `nota` dentro de la fila de la
+  insuficiencia, **sin corchete propio**. Pedirle tres corchetes a la tricúspide era pedir algo que
+  el código no puede dar. Va en una **segunda pasada** del caso, con estenosis sola.
+
+### Seis hallazgos de `/sharp-edges` sobre mi propio diff — dos textos falsos y una cita faltante
+
+- **⚠️ EL TOOLTIP DEL CORCHETE DECÍA «Ver la referencia al pie del panel» Y PASÓ A SER FALSO.** Era el
+  **único texto visible de toda la app** que le decía al médico dónde está la referencia, y no
+  quedaba falso a secas: reforzaba exactamente el modelo mental equivocado —«hay una sola
+  bibliografía, así que el [1] de la aórtica y el [1] de la pulmonar son el mismo documento»—. Mudo
+  por construcción: un `title` no rompe nada, ningún caso lo mira, y en táctil ni se ve.
+- **⚠️ EL ÁMBITO POR SECCIÓN NO SE DECLARABA EN NINGUNA SUPERFICIE VISIBLE.** La pérdida estaba
+  escrita con todas las letras en un comentario del código y en ningún lado de la pantalla: la
+  leyenda explica las cinco marcas y no decía una palabra del corchete, y el rótulo era «ⓘ
+  Bibliografía» pelado. Por el estándar de este archivo —el denominador de las valvulopatías, la
+  salvedad de la PSAP, el descargo quemado en el PNG del bull's eye— **un número que cambió de
+  significado lleva su reparo al lado, en la pantalla.** Hoy: rótulo «Bibliografía de esta sección»,
+  tooltip «al pie de esta sección», y una línea en la leyenda que lo dice explícito.
+- **⚠️ TRES `ref` NUEVOS ERAN INALCANZABLES, Y ESO TAPABA UNA CITA FALTANTE DE VERDAD.** El renglón de
+  fuente del slot `mod` estaba gateado **sólo** por `r.mod.clase`, y tres objetos tienen `clase:''`
+  —`modRep` de la IM en la rama «no reparable» y las dos ramas de `tmo` de `_indVTModalidad`—. El
+  `ref` que les cablé no se podía renderizar nunca. Lo dañino no es eso: es que **esos tres textos
+  TRANSCRIBEN clases con nivel** —«La reparación es Clase I · Nivel B…», «El TEER es Clase IIa ·
+  Nivel B…»— **sin una línea de fuente y sin corchete**. Dos clases de guía sin decir de dónde
+  salen, que es el mismo defecto que el renglón del padre ya había cerrado con `r.clase || r.fuente`,
+  dejado abierto en el slot hermano de la misma caja. Hoy la compuerta es `clase || fuente`, con el
+  ternario de la clase para no imprimir un `<b></b>` hueco.
+- **La clave duplicada pasó de RUIDOSA a MUDA, y su comentario quedó falso en las tres
+  afirmaciones.** Describía el mecanismo viejo: hoy `_indBiblioHTML` recorre `ctx.orden` —que son
+  CLAVES, no filas de `IND_REFS`— así que se publica **UNA** entrada, resuelta por `IND_REF_IDX[k]`,
+  o sea el **último** duplicado. Antes las dos filas con el mismo número delataban la ambigüedad en
+  pantalla; ahora se publicaría en silencio el documento de abajo. La señal visible **se repuso a
+  mano** (aviso rojo en la entrada cuando la clave está repetida), porque la construcción dejó de
+  darla.
+- **El fallback de `_indRefAbrir` es el peor fallo de la función y no gritaba.** Si degrada a `amb =
+  c` abre la bibliografía de la PRIMERA sección y marca una entrada ajena, o sea **confirma un
+  documento que no es el que el corchete cita**, sin ningún síntoma. `_indRefMarca` sí grita cuando
+  le falta el contexto; esta rama, que es peor porque AFIRMA, no. Ahora lleva su `console.error`.
+- **La marca se pierde en el repintado mientras el `open` sobrevive, y eso va a doler cuando se
+  agreguen fuentes.** Hoy es inocuo porque las trece bibliografías tienen **una** entrada. Con
+  varias, el resultado tras un repintado —lo dispara el debounce de 400 ms de `_indSyncDebounced`— es
+  una bibliografía **abierta, con varias entradas y ninguna resaltada**, y el médico tiene que volver
+  a buscar cuál pidió. **No se implementó acá**: se declara para resolverlo en el prompt de las
+  fuentes, que es cuando pasa a ser alcanzable.
+
+### DOS MUTACIONES QUE SOBREVIVEN A PROPÓSITO — son ramas inalcanzables, y eso es el hallazgo
+
+No son huecos de cobertura: hoy **no hay entrada que las alcance**, y forzarlas exigiría romper un
+invariante que otro caso ya defiende. Se dejan escritas para que la próxima tanda de mutación no las
+lea como olvido.
+
+- **El aviso de clave repetida** (`dup` en `_indBiblioHTML`) exige una clave duplicada en
+  `IND_REFS`, y TC-322 afirma `clavesUnicas`. El registro tiene dos entradas del **mismo documento**
+  pero con **claves distintas** (`esc2020guch` y `escGuchCiv`), que no es el caso que dispara el
+  aviso. Pasa a ser alcanzable el día que se resuelva la divergencia de la CIV.
+- **El `console.error` del fallback de `_indRefAbrir`** exige que el ámbito degrade al panel, y los
+  **dos** caminos del listener —`click` y `keydown`— pasan el nodo; todo corchete vive dentro del
+  `<details>` de su sección, que es hijo directo del cuerpo. El walk-up sube estrictamente en cada
+  vuelta, así que termina, y hoy no itera ni una vez.
+
+### ⚠️ DOS DE MIS PROPIAS CONDICIONES ERAN VERDES POR VACÍO, y sólo lo dijo la mutación
+
+Las dos pasaban sobre el arreglo **y también sobre su reversión**:
+
+- **`imCorchetes >= 2` no medía nada.** Se satisface con el corchete del criterio más el de la
+  recomendación padre, **sin la línea del `mod`**. Hoy mide la **firma de estilo** de esa línea, que
+  es única —la del `nota` lleva `line-height` además— y exige `>= 3` corchetes en la sección.
+- **`H.indexOf('de esta secci')` matcheaba el TOOLTIP.** Buscar la frase en todo el HTML daba verde
+  con el rótulo pelado, porque el tooltip la contiene. Hoy se lee el `textContent` del
+  `[data-ind-biblio] > summary` y de ningún otro lado.
+
+Y al medir la firma de estilo: **`getAttribute('style')` devuelve el atributo CRUDO**, sin espacios
+normalizados. Buscar `font-size: 11px` con espacio da **cero** sobre un árbol perfectamente correcto.
 
 ### ⚠️ UN CAMBIO DE FORMA DE N CAMPOS NO CAMBIA EL CONTENIDO DE NINGUNO — y se me cayó un «o»
 
@@ -247,7 +393,23 @@ esto primero. Lo fija TC-322 por los **dos** lados —«el desplegable nace cerr
 corchete lo ABRE»—, así que abrirla por defecto pone el caso en rojo y obliga a pensarlo en vez de
 descubrirlo.
 
-### Lo que rompió el cambio de contrato, y por qué cada rojo era la señal
+### Lo que rompió la bibliografía POR SECCIÓN, y por qué cada rojo era la señal
+
+Dos casos se pusieron en rojo, los dos midiendo una premisa que el cambio invalidó:
+
+- **TC-323 pedía `_indRefNum('esc2025vc') != null` FUERA DE TODO PINTADO.** Con la numeración por
+  sección el contexto se abre y se cierra dentro de `_indSecHTML`, así que ahí afuera `_indRefNum`
+  devuelve `null` **por diseño** y la condición se caía sin que nada estuviera roto. Lo que ese caso
+  quiere saber es si la clave está **registrada**, o sea `_indRefValida`; que el corchete se DIBUJE
+  ya lo mide abajo, sobre el HTML.
+- **TC-293 contaba la bibliografía como un segundo control de detalle.** Su `details details` daba
+  **catorce** donde hay siete —un detalle + una bibliografía por sección— y tiraba el denominador y
+  el conteo de rótulos a la vez. Se excluye por la misma marca `data-ind-biblio` con la que ya se
+  excluía del conteo de secciones. **El comentario que estaba ahí decía «al pie hoy, pero eso no es
+  un invariante», y efectivamente dejó de estarlo** — lo escribí con la bibliografía global y se
+  cumplió en la ronda siguiente.
+
+### Lo que rompió el cambio de contrato de `guia`, y por qué cada rojo era la señal
 
 Cuatro sitios del suite leían `r.guia` **como string**: TC-277 (`secG.guia.indexOf is not a
 function`), TC-284 (`[object object]`) y las dos copias de `todoElTexto`. Los cuatro se reapuntaron
@@ -293,6 +455,51 @@ que acababa de escribir para explicar las trampas de arriba.
 **Y un lote de edición abortó en su primer `rep` por un argumento faltante, no escribió nada, y el
 `node --check` + la corrida siguiente dieron VERDE sobre el archivo sin tocar** — el falso éxito que
 este archivo ya documenta. Desde entonces el lote compara el md5 antes y después.
+
+### Verificación de la bibliografía POR SECCIÓN (2026-09-29)
+
+Suite **339/340**, **único rojo TC-223**, la línea base (el pendrive estaba montado en esta tanda, así
+que los 17 de `/Volumes/DISK_IMG` corrieron en verde). Dos casos nuevos —TC-324 y TC-325— y cuatro
+reapuntados. Medido en Chrome con `indicAbrir()` a 1, 3, 5 y **7** secciones con los 30 controles
+clínicos contestados: cada sección con su `[1]`, su bibliografía **hija** y nacida **cerrada**, cero
+al pie del panel, `sinNumerar=0`, `fueraDeSeccion=0`, `noRegistrada=0`.
+
+**Dieciséis mutaciones.** Doce en rojo: los cuatro mecanismos (numeración por sección, bibliografía
+por sección, el `finally` de `_indSecHTML`, el ámbito de `_indRefAbrir`), las **seis** claves nuevas,
+las dos ramas `out.mod.ref`, la compuerta `clase || fuente`, y los tres textos visibles del ámbito.
+**Dos sobreviven a propósito** —ramas inalcanzables, arriba— y **dos sobrevivieron por condición mía
+mal puesta**, corregidas y vueltas a mutar en rojo.
+
+**A/B contra HEAD**: informe + EN SUMA + la **fila completa del Excel** (434 columnas), hash FNV-1a y
+longitud, sobre tres escenarios —multiválvula, normal y congénitas—: **idéntico byte a byte**, con los
+dos árboles sirviendo **los mismos archivos** (`404 = []` en los dos: la primera corrida tenía el
+árbol de HEAD sin la fuente Inter y no era la misma comparación) y **con control negativo**: bajar la
+estenosis aórtica a leve mueve los tres hashes, así que el «idéntico» no es una sonda muda.
+**El PDF no se midió: se verificó estructuralmente**, y con grep, no de memoria — cero intersecciones
+entre las seis piezas del panel (`indic-cuerpo`, `_indSecHTML`, `_indBiblioHTML`, `_indRefMarca`,
+`_indLeyendaHTML`, `indicRender`) y cualquier emisor de PDF (`jsPDF`, `.save(`, `doc.text`,
+`addPage`, `html2canvas`). El panel es sólo pantalla.
+
+**Semgrep 125 / 0 ERROR**, el mismo número exacto que HEAD (corrido sobre los dos).
+`detectar_huerfanos.py` sin huérfanos nuevos. **`check_mobile` idéntico a HEAD renglón por renglón**
+—43 hallazgos a 360 px y 52 a 390, 1 ALTA en cada uno— o sea que el rótulo nuevo y la línea de leyenda
+no agregaron nada. `node --check` por bloque: fallan **sólo** los bloques 0 y 1, la línea base.
+
+**Y dos trampas de instrumentación, las dos mías:**
+
+- **⚠️ MI SERVIDOR HTTP MANDABA EL 200 ANTES DE LEER EL ARCHIVO.** `rs.writeHead(200)` corre antes de
+  que `readFile` rechace, así que un archivo faltante mandaba cabeceras, el `catch` intentaba el 404
+  sobre cabeceras ya enviadas, y el proceso **moría dejando stdout vacío**. Con los dos lados vacíos
+  el `diff` dice «sin diferencias» y se lee como éxito. Hoy el `readFile` va primero y los 404 se
+  registran y se imprimen, porque un árbol que no sirve un recurso que el otro sí tiene no está
+  comparando lo mismo. **Y siempre se mira el tamaño de los dos archivos antes de creerle al diff.**
+- **⚠️ EL ARNÉS NUNCA SALÍA.** `cdp.close()` + `proc.kill()` no alcanzan: el servidor HTTP sigue
+  escuchando y el event loop sigue vivo, así que el proceso quedaba colgado **después de haber medido
+  bien**. Se juntaron **cinco zombies de tres horas**, cada uno reteniendo su Chrome, y —lo caro— una
+  corrida A/B encadenada **nunca llegaba al segundo lado**: el primero medía, escribía el archivo y
+  no terminaba, así que el `until` esperaba para siempre y parecía que el A/B era lentísimo. Se
+  diagnosticó al ver cinco `cdp.mjs` viejos en `ps`, y el `pkill` con que los limpié se llevó mi
+  propia corrida en curso. Hoy cierra el servidor y llama a `process.exit(0)`.
 
 ## Mitral: se elimina el cociente 0,38, que no tenía fuente (2026-09-29)
 
