@@ -20771,11 +20771,78 @@ try {
   else calcVenaPulm();
 } catch (e) {}
 
+/* ══ BANDA DE PLAUSIBILIDAD LOCAL — `em_vmax` Y `thp`, LOS DOS QUE VOTABAN CRUDOS ══════════════
+   Los levantó la sección de prótesis mitral del panel de Evidencia (2026-09-30). Medido antes de
+   escribir esto, y las dos direcciones terminan en una afirmación clínica:
+     · `em_vmax = 250` —cm/s tipeados donde van m/s— publica «sugiere estenosis protésica
+       significativa» y además un gradiente máximo de 250 000 mmHg;
+     · `thp = 0,12` —segundos donde van ms— da `220/0,12` = 1833 cm² de área por THP, que entra a
+       `emCategoria` como una fuente VÁLIDA que NO alcanza el corte: degrada a «probablemente
+       severa» una estenosis que la planimetría marca severa. **INVIERTE el diagnóstico publicado**,
+       y en la dirección de negar la enfermedad.
+
+   ⚠️ NO VA EN `DCM_RANGO`, Y ESO ES UNA DECISIÓN MEDIDA, no una comodidad. La entrada de CLAUDE.md
+   decía que no se había hecho porque «`DCM_RANGO` lo consume el importador y `em_vmax` lo lee
+   `calcEM`». Verificado campo por campo, **ninguna de las dos consecuencias era cierta para estos
+   dos**: no tienen columna en `LAB_XLS_MAP`, así que el importador nunca les pregunta al rango, y
+   `calcEM` los lee con `v()` crudo sin consultar la tabla. Lo que SÍ pasaba era otra cosa y sólo
+   con el THP: **`thp` se imprime en el PDF firmado por `vPdf('thp',' ms')`**, y `vPdf` marca
+   «(revisar)» con lo que publique `_labRango`. Meterlo en `DCM_RANGO` cambiaba una superficie
+   firmada que este pedido no nombraba. Por eso la banda vive acá.
+
+   El patrón no se inventa: es el de `etEstado`, que bandea `et_thp` en [50,400] localmente —la
+   MISMA magnitud— pese a que ese campo sí tiene columna de Excel. «Fuera de banda se declara y no
+   vota» es la regla de esta casa, acá por el lado que `_labRango` no cubre.
+
+   ══ LOS LÍMITES ══ Son de PLAUSIBILIDAD FISIOLÓGICA, no cortes clínicos: atrapan el error de un
+   orden de magnitud —la unidad equivocada— y no lo anormal. Ninguna de las tres fuentes leídas
+   (ASE 2024, ESC/EACTS 2025, ACC/AHA 2020) publica un rango de valores POSIBLES para estas dos
+   mediciones: publican cortes de severidad, que es otra cosa. Los dos son **criterio EcoSmart de
+   plausibilidad**, anclados en las bandas de los campos hermanos de esta misma app:
+     · `em_vmax [0.2, 8]` m/s — las tres velocidades en m/s de `DCM_RANGO` son `vmax_it [0.5,8]`,
+       `vmax_ao [0.5,8]` y `vp_vmax [0.2,8]`. Techo 8, el de las tres; piso 0,2, el más permisivo,
+       para no rechazar al paciente de bajo gasto. Una Vmax mitral real no pasa de ~3,5 m/s ni en
+       la estenosis más crítica ni en una prótesis obstruida, así que el techo no muerde nada
+       medible y el error de unidad queda dos órdenes afuera.
+     · `thp [20, 600]` ms — hermano directo: `et_thp [50,400]`. Se ensancha por los DOS lados para
+       la mitral. El piso a 20 porque el llenado restrictivo acorta la bajada de la E mucho más que
+       en la tricúspide (un DT de 70 ms da THP ~20), y ahí el valor es real. El techo a 600 porque
+       `220/600` da 0,37 cm², por debajo de cualquier área publicada, así que tampoco rechaza nada
+       medible. La EM severa vive en 220-400 ms y la prótesis obstruida arriba de 200: los dos muy
+       adentro.
+   Verificado contra el paciente GRAVE, que es el que una banda mal puesta silencia: THP de EM
+   crítica 400, THP protésico obstruido 300, Vmax de EM crítica 2,8 m/s, Vmax protésica 3,5 m/s —
+   los cuatro pasan.
+
+   ⚠️ VA ANTES DE `calcTHP` POR TDZ. Este bloque `<script>` ejecuta cosas en tiempo de parseo
+   (`calcVenaPulm` acá arriba), y un `const` leído antes de su línea no da «undefined»: LANZA y se
+   lleva el bloque entero. Ver la nota de `PROT_SIN_GRADO_TXT`. */
+const EM_BANDA_PLAUS = Object.freeze({
+  em_vmax: Object.freeze([0.2, 8]),   // m/s
+  thp:     Object.freeze([20, 600])   // ms
+});
+/* Accesor con la MISMA forma que `_labRango`: devuelve el par o `undefined`. Que las dos tablas se
+   consulten igual es lo que deja que `_indBanda` caiga de una a la otra sin una rama por campo. */
+function emBandaPlaus(id){ return EM_BANDA_PLAUS[id]; }
+/* Un solo dueño de «¿este número es legible?» para los dos campos, y devuelve el MOTIVO en forma de
+   par para que quien marque pueda nombrar el rango. `null` = sin dato o dentro de banda. */
+function emFueraBandaLocal(id, x){
+  const b = EM_BANDA_PLAUS[id];
+  if (!b || x == null || !isFinite(x)) return null;
+  return (x < b[0] || x > b[1]) ? b : null;
+}
+window.EM_BANDA_PLAUS = EM_BANDA_PLAUS;
+window.emBandaPlaus = emBandaPlaus;
+window.emFueraBandaLocal = emFueraBandaLocal;
+
 function calcTHP() {
   const thp = v('thp');
   // Sincronizar display en bloque EM
   const disp = document.getElementById('em_thp_display');
-  if (disp) disp.value = thp ? thp + ' ms' : '';
+  /* La misma marca que pone `calcEM` unas líneas más abajo. Es redundante en el camino feliz
+     —`calcEM()` se llama al final de esta función y reescribe el display— y no lo es si `calcEM`
+     lanza: sin esto, ahí quedaría el THP ilegible sin una palabra. */
+  if (disp) disp.value = thp ? (thp + ' ms' + (emThpFueraBanda() ? ' (revisar)' : '')) : '';
   if (!thp) { setv('avm_thp',''); return; }
   /* Extracción pura: el `toFixed(2)` se conserva y se cae a la expresión anterior si el helper
      devolviera `null`, para que sacar la fórmula de acá no pueda cambiar lo que se publica. */
@@ -20949,13 +21016,44 @@ window.EM_CONT_NOVERIF_TXT = EM_CONT_NOVERIF_TXT;
 const EM_IA_SEVERA_MIN   = 4;
 const EM_THP_IA_TXT      = 'AVm por THP no válido con insuficiencia aórtica severa';
 const EM_THP_NOVERIF_TXT = 'AVm por THP: no se pudo verificar la IAo — revisar';
+/* ⚠️ EL BADGE PROMETE DECIR POR QUÉ EL THP NO VOTA, y la banda lo habría dejado MUDO. Esa línea es
+   `badgeEl.textContent = emThpMotivoNoVota()`, y el motivo de banda no vive ahí —vive en el
+   «(revisar)» del número—, así que con `thp` fuera de rango el área se descontaba en silencio y el
+   badge quedaba en cadena vacía: exactamente «un área publicada y silenciosamente descontada», que
+   es lo que el comentario de esa línea dice venir a evitar. Por eso hay un texto propio.
+   NOMBRA EL CAMPO Y EL VALOR, que es la regla de esta casa para los avisos de banda: un genérico
+   manda a revisar todo el bloque cuando el que está mal es uno, y el error que la banda atrapa ES
+   de unidad, así que «0,12 ms» se lee solo. */
+function emThpBandaTxt(){
+  const b = EM_BANDA_PLAUS.thp, x = v('thp');
+  return 'AVm por THP no válido: el THP cargado (' + (x == null ? '—' : x) + ' ms) está fuera del rango medible ('
+    + b[0] + '–' + b[1] + ' ms) — revisar la unidad';
+}
 function emThpMotivoNoVota(src){
   const ia = _emRegurgGrado('ia_grado', src);
   if (ia === null) return EM_THP_NOVERIF_TXT;
   if (ia >= EM_IA_SEVERA_MIN) return EM_THP_IA_TXT;
   return '';
 }
-function emThpValido(src){ return emThpMotivoNoVota(src) === ''; }
+/* ⚠️ LA BANDA DEL THP VA APARTE DEL MOTIVO, y es el espejo exacto de `emContFueraBanda`. No se
+   suma a `emThpMotivoNoVota` porque ese texto se imprime en el renglón de abajo y la banda YA se
+   declara con «(revisar)» pegado al número: juntarlas diría dos veces lo mismo, que es lo que la
+   nota de `emContValido` fija para la continuidad.
+   Lo que cierra: `emCategoria` llama `_tomar('avm_thp','THP', emThpValido)` sobre el ÁREA derivada,
+   y `avm_thp` no tiene entrada en `_labRango`, así que `emFueraBanda('avm_thp')` falla abierto y
+   nunca la rechazaba. Con `thp = 0,12` el área da 1833 cm², entra como fuente válida que no alcanza
+   el corte y degrada a «probablemente severa» una estenosis severa real. Se banda el INSUMO, que es
+   donde el error de unidad se puede leer; bandear el derivado exigiría una banda de áreas que
+   confundiría «área imposible» con «área normal».
+   La rama `src` existe por el mismo motivo que en la continuidad: el exportador a Excel no tiene
+   formulario. Y `emThpValido` sigue siendo el ÚNICO dueño del voto, así que la pantalla, el informe
+   y el Excel preguntan lo mismo. */
+function emThpFueraBanda(src){
+  const n = src ? PF(src['thp']) : v('thp');
+  const x = (n == null || isNaN(n)) ? null : n;
+  return emFueraBandaLocal('thp', x) !== null;
+}
+function emThpValido(src){ return !emThpFueraBanda(src) && emThpMotivoNoVota(src) === ''; }
 
 /* ══ ¿ESTE AVm POR CONTINUIDAD VALE? — UNA SOLA FUNCIÓN DUEÑA ══════════════════════════════════
    Dos motivos independientes lo invalidan y los dos ya existían sueltos dentro de `calcEM`:
@@ -20984,6 +21082,7 @@ function emContFueraBanda(src){
 }
 function emContValido(src){ return !emContFueraBanda(src) && emContMotivoNoVota(src) === ''; }
 window.emThpValido = emThpValido; window.emThpMotivoNoVota = emThpMotivoNoVota;
+window.emThpFueraBanda = emThpFueraBanda;
 window.emContValido = emContValido; window.emContFueraBanda = emContFueraBanda;
 
 /* ══ LA CATEGORÍA DE LA ESTENOSIS MITRAL NATIVA — LA FUNCIÓN DUEÑA ═════════════════════════════
@@ -21224,9 +21323,15 @@ function calcEM() {
   // G. máximo
   if (vmax) {
     const gmax = (4 * vmax * vmax).toFixed(0);
+    /* MARCAR SIN BORRAR, la misma decisión que el AVm por continuidad: fuera de banda el gradiente
+       se calcula y se publica igual, con «(revisar)» pegado al número. La marca va en el MISMO
+       string que el valor a propósito — separarlos deja que una superficie copie el número y pierda
+       la marca, que es cómo un dato dudoso se vuelve un dato a secas.
+       Acá se lee solo: una Vmax de 250 (cm/s donde van m/s) publica 250 000 mmHg. */
+    const _mv = emFueraBandaLocal('em_vmax', vmax) ? ' (revisar)' : '';
     const el = document.getElementById('em_gmax');
-    if (el) el.value = gmax + ' mmHg';
-    document.getElementById('em-gmax-row').textContent = gmax + ' mmHg';
+    if (el) el.value = gmax + ' mmHg' + _mv;
+    document.getElementById('em-gmax-row').textContent = gmax + ' mmHg' + _mv;
   } else {
     const el = document.getElementById('em_gmax'); if (el) el.value = '';
     document.getElementById('em-gmax-row').textContent = '—';
@@ -21248,12 +21353,20 @@ function calcEM() {
     const avmStr = avm_thp_val.toFixed(2);
     /* ⚠️ Y SE CLASIFICA EL REDONDEADO. Ver la nota grande de la cascada, más abajo. */
     avm_thp_val = PF(avmStr);
+    /* ⚠️ LA MARCA VA EN LOS DISPLAYS Y **NO** EN `avm_thp`. El valor de ese input se exporta al
+       Excel (`rnd(num('avm_thp'),2)`, columna «AVm (cm²)») y se imprime en el PDF firmado por
+       `vPdf('avm_thp',' cm2')`: pegarle « (revisar)» al valor guardado le mete texto a una celda
+       numérica y cambia dos superficies que este cambio no viene a tocar. La continuidad puede
+       hacerlo al revés —`setv('avm_cont', … + _marca)`— porque `avm_cont` no es de esos.
+       Se marcan los TRES lugares donde el médico lo lee, el THP incluido: el número ilegible es
+       ÉSE, y el área es sólo su consecuencia. */
+    const _mt = emThpFueraBanda() ? ' (revisar)' : '';
     // Sincronizar display en bloque EM
     const thpDisp = document.getElementById('em_thp_display');
-    if (thpDisp) thpDisp.value = thpRaw + ' ms';
+    if (thpDisp) thpDisp.value = thpRaw + ' ms' + _mt;
     const avmDisp = document.getElementById('em_avm_thp_display');
-    if (avmDisp) avmDisp.value = avmStr + ' cm²';
-    document.getElementById('em-thp-row').textContent = avmStr + ' cm²';
+    if (avmDisp) avmDisp.value = avmStr + ' cm²' + _mt;
+    document.getElementById('em-thp-row').textContent = avmStr + ' cm²' + _mt;
   } else {
     document.getElementById('em-thp-row').textContent = '—';
   }
@@ -21450,7 +21563,10 @@ function calcEM() {
 
   if (badgeEl) {
     if (protNoGradua('vm_morf')) badgeEl.textContent = PROT_SIN_GRADO_TXT;
-    else if (v('avm_thp') != null && !emThpValido()) badgeEl.textContent = emThpMotivoNoVota();
+    /* `|| emThpBandaTxt()` y no una rama aparte: los dos motivos retiran el MISMO voto y el badge
+       tiene un solo renglón. El orden importa — la IAo severa es un hallazgo clínico y la banda es
+       un dedazo, así que si el valor es ilegible Y hay IAo severa manda el clínico. */
+    else if (v('avm_thp') != null && !emThpValido()) badgeEl.textContent = emThpMotivoNoVota() || emThpBandaTxt();
     else if (window.esqSevManual && window.esqSevManual.em) badgeEl.textContent = 'Grado fijado a mano — el autocálculo no lo pisa.';
     else if (!cat.fuentes.length && cat.gm == null) badgeEl.textContent = '';
     else badgeEl.textContent = 'Leve y moderada las elige el médico; «severa» la completa la app cuando el AVm es \u22641,5 cm².';
@@ -40235,9 +40351,19 @@ function _indFilaOrigen(lbl, o, ops, pinta){
    Excel)—. Un solo dueño por campo. ══════════════════════════════════════════════════════════ */
 function _indBanda(k){
   const rgF = _indFn('_labRango');
-  if (!rgF) return null;
   let b = null;
-  try { b = rgF(k); } catch (e) { return null; }
+  if (rgF) { try { b = rgF(k); } catch (e) { b = null; } }
+  /* ⚠️ Y SI LA TABLA MERGEADA NO TIENE ESE CAMPO, LA BANDA LOCAL. `EM_BANDA_PLAUS` cubre los dos
+     que no pueden entrar a `DCM_RANGO` sin cambiar el PDF firmado (`thp` se imprime por `vPdf`) —
+     ver la nota grande de esa tabla. Se consulta DESPUÉS y nunca antes: `_labRango` sigue siendo el
+     dueño de todo campo que tenga entrada ahí, así que esto no le pisa ninguna banda y no puede
+     crear el defecto de «dos superficies acotando el mismo campo con bandas distintas» que el
+     comentario de arriba nombra. Con el `try` va por `_indFn`, así que si ese bloque no cargó el
+     panel queda `sinBanda` en vez de romperse — la regla 4, igual que con `_labRango`. */
+  if (b == null) {
+    const lf = _indFn('emBandaPlaus');
+    if (lf) { try { b = lf(k); } catch (e) { b = null; } }
+  }
   /* ⚠️ UNA BANDA MALFORMADA NO PUEDE DESACTIVAR LA PLAUSIBILIDAD EN SILENCIO. Con `['a','b']` los
      dos lados de la comparación dan `false` y todo valor pasaría como medido, que es la dirección
      peligrosa; con los límites invertidos la fila imprimiría el rango al revés. Se exige lo que la
@@ -42559,11 +42685,17 @@ function _indProtM(){
 
   const E = PROTM_EST_2024;
   const UO = _indUmb('VM_PROT_EOA_OBSTR_MAX'), UDN = _indUmb('VM_PROT_DVI_NORMAL_MAX'), UDS = _indUmb('VM_PROT_DVI_SIGNIF_MIN');
-  /* `em_gmedio` e `im_vc` SÍ están en la tabla de plausibilidad; `em_vmax` y `thp` NO, y eso se
-     declara en vez de prestarles la banda de otro campo. Es la regla que `_indEM` ya aplica a
-     `avm_ete` y `avm_thp`, y `_indIM` a `psap_calc`. */
+  /* ⚠️ LOS CUATRO PASAN POR SU BANDA DESDE EL 2026-09-30, y `em_vmax` y `thp` no la tenían. Esta
+     sección fue la que los delató: los dos VOTABAN CRUDOS en la compuerta `disf` y en el predicado
+     de la Tabla 12, así que `em_vmax = 250` —cm/s donde van m/s— publicaba «sugiere estenosis
+     protésica significativa» y `thp = 0,12` —segundos donde van ms— cumplía «THP normal» y dibujaba
+     la fila de regurgitación. Las dos cosas son afirmaciones clínicas sobre un número ilegible.
+     `em_gmedio` e `im_vc` salen de `_labRango`; `em_vmax` y `thp`, de la tabla LOCAL
+     `EM_BANDA_PLAUS`, que `_indBanda` consulta cuando la mergeada no tiene el campo. Los cuatro se
+     leen igual y las cuatro filas marcan igual: quien agregue la quinta no tiene que elegir tabla. */
   const gmL = _indLeer('em_gmedio', 'em_gmedio'), vcL = _indLeer('im_vc', 'im_vc');
-  const vmax = _indN('em_vmax'), thp = _indN('thp');
+  const vmaxL = _indLeer('em_vmax', 'em_vmax'), thpL = _indLeer('thp', 'thp');
+  const vmax = vmaxL.val, thp = thpL.val;
   const gmed = gmL.val, vc = vcL.val;
 
   const filas = [];
@@ -42576,13 +42708,14 @@ function _indProtM(){
          : 'las filas de conducta se separan por tipo de prótesis, mecánica o biológica. Se elige en la pestaña Válvulas o en el ETE'));
 
   /* ── Tabla 11: estenosis protésica ── */
-  filas.push(_indFila('Velocidad pico transprotésica', _indNum(vmax, 1, 'm/s'),
-    vmax == null ? 'ask' : (vmax >= E.vmax_sig ? 'ok' : 'none'),
-    vmax == null ? 'sin medir — se carga en el bloque de Estenosis Mitral'
+  filas.push(_indFila('Velocidad pico transprotésica',
+    vmaxL.fuera ? _indNum(vmaxL.crudo, 1, 'm/s') : _indNum(vmax, 1, 'm/s'),
+    vmaxL.fuera ? 'ask' : (vmax == null ? 'ask' : (vmax >= E.vmax_sig ? 'ok' : 'none')),
+    vmaxL.fuera ? 'fuera de rango medible (' + vmaxL.b[0] + '–' + vmaxL.b[1] + ' m/s) — revisar la unidad: un valor ilegible no sostiene ni descarta el criterio'
+    : vmax == null ? 'sin medir — se carga en el bloque de Estenosis Mitral'
     : (vmax >= E.vmax_sig ? 'alcanza ' + E.vmax_sig + ' m/s — sugiere estenosis protésica significativa'
        : (vmax < E.vmax_norm ? 'menor que ' + E.vmax_norm + ' m/s — normal'
-          : 'entre ' + E.vmax_norm + ' y ' + E.vmax_sig + ' m/s — posible estenosis, motiva una evaluación más detallada'))
-    + '. Este campo no tiene banda de plausibilidad en esta aplicación',
+          : 'entre ' + E.vmax_norm + ' y ' + E.vmax_sig + ' m/s — posible estenosis, motiva una evaluación más detallada')),
     [PROTM_REF_ASE]));
   filas.push(_indFila('Gradiente medio transprotésico',
     gmL.fuera ? _indNum(gmL.crudo, 1, 'mmHg') : _indNum(gmed, 1, 'mmHg'),
@@ -42615,13 +42748,15 @@ function _indProtM(){
      de esta app: «calculation of EOA using the pressure half-time (PHT) method is frequently
      inaccurate and leads to overestimation of EOA, particularly in normal valves» (p. 10). En la
      Tabla 11 el THP aparece como un parámetro más; usarlo para derivar el área sobrestima. */
-  filas.push(_indFila('THP — tiempo de hemipresión', _indNum(thp, 0, 'ms'),
-    thp == null ? 'ask' : (thp > E.thp_sig ? 'ok' : 'none'),
-    (thp == null ? 'sin medir — se carga en Doppler Mitral'
+  filas.push(_indFila('THP — tiempo de hemipresión',
+    thpL.fuera ? _indNum(thpL.crudo, 2, 'ms') : _indNum(thp, 0, 'ms'),
+    thpL.fuera ? 'ask' : (thp == null ? 'ask' : (thp > E.thp_sig ? 'ok' : 'none')),
+    (thpL.fuera ? 'fuera de rango medible (' + thpL.b[0] + '–' + thpL.b[1] + ' ms) — revisar la unidad: un valor ilegible no sostiene ni descarta el criterio'
+     : thp == null ? 'sin medir — se carga en Doppler Mitral'
      : (thp > E.thp_sig ? 'mayor que ' + E.thp_sig + ' ms — sugiere estenosis protésica significativa'
         : (thp < E.thp_norm ? 'menor que ' + E.thp_norm + ' ms — normal'
            : 'entre ' + E.thp_norm + ' y ' + E.thp_sig + ' ms — posible estenosis')))
-    + '. El THP NO calcula el área de una prótesis: la sobrestima, sobre todo en válvulas normales. El área sale de la ecuación de continuidad. Este campo no tiene banda de plausibilidad en esta aplicación',
+    + '. El THP NO calcula el área de una prótesis: la sobrestima, sobre todo en válvulas normales. El área sale de la ecuación de continuidad',
     [PROTM_REF_ASE]));
 
   /* ⚠️ LA TABLA 12 ES LA QUE RESUELVE EL PROBLEMA CLÍNICO DE ESTA SECCIÓN, y no la pedían los
@@ -42631,6 +42766,18 @@ function _indProtM(){
      regurgitación, no la estenosis. Con velocidad pico y relación VTI elevadas y THP normal, la
      especificidad para regurgitación protésica significativa «is close to 100%» (nota * de la
      Tabla 12). Por eso es una fila `warn` y no una nota al pie: cambia el diagnóstico. */
+  /* ⚠️ LA BANDA ENTRA ACÁ POR `!= null`, Y ESO HAY QUE ESCRIBIRLO PORQUE NO SE VE. `thp` y `vmax`
+     son `thpL.val` y `vmaxL.val`, y `_indLeer` devuelve `val: null` cuando el valor está FUERA de
+     banda —el número queda en `crudo`—. O sea que estos tres predicados y la compuerta `disf` de
+     más abajo ya dejan de votar con un valor ilegible, sin una condición extra.
+     **Quien cambie `thp` por `thpL.crudo` acá para «mostrar el número» reabre el defecto entero y
+     nada se lo va a avisar**: con `thp = 0,12` volvería a cumplirse `thpNormal` y esta fila
+     afirmaría un patrón de regurgitación sobre un dedazo. El valor crudo se imprime en la FILA, que
+     es donde tiene que verse; los predicados usan `val`.
+     (Si la tabla de bandas no cargara, `_indLeer` también da `val: null` y la fila dice «sin
+     medir» en vez de «no se pudo cargar la banda». Es lo mismo que hace hoy la fila hermana del
+     gradiente medio, y sólo pasa si murió el bloque entero que define `v()`, o sea con la app ya
+     inservible. Queda declarado.) */
   const thpNormal = (thp != null && thp < E.thp_norm);
   /* Cada parámetro con SU corte de la Tabla 12: velocidad ≥1,9 · gradiente medio ≥5 · relación
      VTI ≥2,5. El de la velocidad NO es el de la Tabla 11 — ver la nota de `vmax_t12`. */
@@ -42772,12 +42919,20 @@ function _indProtM(){
      Se arma con lo que la sección YA LEYÓ —`P.obstr` es el veredicto de `vmProtEOA`, no un
      recálculo— y con `_ge`/`_gt`, nunca con comparaciones crudas: `null >= 0` es `true` y la
      compuerta fallaría ABIERTA, que es el lado que esto viene a cerrar. */
+  /* ⚠️ LOS CUATRO `!L.fuera` SON REDUNDANTES A PROPÓSITO, y conviene saberlo antes de «limpiarlos».
+     `_indLeer` ya devuelve `val: null` fuera de banda y `_ge`/`_gt` son nulo-seguros, así que la
+     compuerta no votaría igual. Están porque el patrón que este archivo usa tres líneas más arriba
+     —`_pVtimit.fuera ? _pVtimit.crudo : _pVtimit.val`, en `calcEM`— es exactamente el cambio que
+     reabriría el defecto en silencio: basta que alguien quiera «mostrar el número» acá. Con el
+     guardia explícito, esa edición sigue siendo segura.
+     Consecuencia declarada: una mutación que borre uno de estos cuatro `!L.fuera` SOBREVIVE, y eso
+     es lo esperado — el invariante real lo fija la mutación que vacía la banda. */
   const disf = (P && P.obstr === 'significativa')
             || imSev === '4'
             || (!vcL.fuera && _ge(vc, PROTM_REG_2024.vc_sev_cm * 10))
             || (!gmL.fuera && _gt(gmed, E.gmed_sig))
-            || _ge(vmax, E.vmax_sig)
-            || _gt(thp, E.thp_sig);
+            || (!vmaxL.fuera && _ge(vmax, E.vmax_sig))
+            || (!thpL.fuera && _gt(thp, E.thp_sig));
 
   return { filas: filas, clinica: clinica,
     aviso: _protDom ? '' :
@@ -42848,11 +43003,30 @@ function _protmAssertUmbrales(){
     ['VM_PROT_PPM_CORTES.imcAlto.normalMin',  (window.VM_PROT_PPM_CORTES || {}).imcAlto ? window.VM_PROT_PPM_CORTES.imcAlto.normalMin  : null, 1.0,  '1,0 cm²/m²'],
     ['VM_PROT_PPM_CORTES.imcAlto.severoMax',  (window.VM_PROT_PPM_CORTES || {}).imcAlto ? window.VM_PROT_PPM_CORTES.imcAlto.severoMax  : null, 0.75, '0,75 cm²/m²']
   ];
+  /* ⚠️ Y LA BANDA LOCAL TAMBIÉN SE VIGILA, porque su modo de falla es el PEOR de todos: si
+     `EM_BANDA_PLAUS` no llega —bloque que no carga, campo renombrado, `window` sin el accesor—,
+     `_indBanda` devuelve `null`, `_indLeer` marca `sinBanda` y las filas del THP y de la velocidad
+     pico dicen «sin medir» sobre un campo lleno. La sección se ve IGUAL de sana que con la banda
+     puesta y el paciente queda sin sus dos parámetros. Un `console.error` al arrancar es la
+     diferencia entre eso y enterarse. Se comprueban los dos pares, no sólo que el objeto exista:
+     un `[]` o un `[0, Infinity]` pasarían la prueba de existencia y no bandearían nada. */
+  const _bandaEsp = [['em_vmax', 0.2, 8, 'm/s'], ['thp', 20, 600, 'ms']];
+  const _bmal = [];
+  for (const [id, lo, hi, uni] of _bandaEsp) {
+    let b = null;
+    try { b = (typeof emBandaPlaus === 'function') ? emBandaPlaus(id) : null; } catch (e) { b = null; }
+    if (!Array.isArray(b) || b.length !== 2 || b[0] !== lo || b[1] !== hi)
+      _bmal.push('la banda de plausibilidad de `' + id + '` deberia ser [' + lo + ', ' + hi + '] ' + uni +
+        ' y llega como ' + JSON.stringify(b));
+  }
+  if (_bmal.length) console.error('[PROTM] La banda local de plausibilidad no esta cableada. Las filas ' +
+    'de velocidad pico y THP van a decir «sin medir» sobre campos llenos:\n  ' + _bmal.join('\n  '));
+
   const mal = esp.filter(e => e[1] !== e[2])
     .map(e => e[0] + ' = ' + e[1] + ' pero los textos de la sección de prótesis mitral dicen ' + e[3]);
   if (mal.length) console.error('[PROTM] Los textos de la Tabla 11/13 quedaron viejos respecto de ' +
     'las constantes. Releer la ASE 2024 antes de tocar nada:\n  ' + mal.join('\n  '));
-  return mal;
+  return mal.concat(_bmal);
 }
 /* ⚠️ EL DOBLE MECANISMO SÓLO VALE PARA CAMPOS QUE EL MÉDICO NO PUEDE ALCANZAR, y hasta hoy esa
    regla vivía SÓLO EN PROSA, en la cabecera de `_indOrigen`. `_indOrigen` no sabe dónde vive el
@@ -86670,8 +86844,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260930-1259';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790783992099;                 /* eco-build-ms */
+const ECO_BUILD    = '20260930-1312';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790784764147;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -86757,7 +86931,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260930-1259</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260930-1312</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
