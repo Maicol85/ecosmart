@@ -354,11 +354,12 @@ those with scores of 9 to 11**». Hoy dice **«El score no predice el resultado�
 nombre de la banda del medio. Sin cita y sin nota metodológica, por la regla del informe: es una
 línea de un documento firmado y el respaldo vive en el panel de Evidencia.
 
-**Una constante, `WILK_9_11`, y no un literal repetido.** Lo publican DOS superficies: el badge de
+**Una constante, `WILK_9_11`, y no un literal repetido.** La publican TRES superficies: el badge de
 `calcWilkins`, que `amiloTextoWilkins` lee **del DOM renderizado** y manda a la hoja
-«SCORE DE WILKINS - ESTENOSIS MITRAL» del PDF y al estudio guardado (`am-txt-wilk`), y la barra del
-Laboratorio. El comentario de esa barra ya exigía que «el agregado no puede contradecir el informe
-individual», así que con el literal duplicado corregir una sola lo rompía.
+«SCORE DE WILKINS - ESTENOSIS MITRAL» del PDF y al estudio guardado (`am-txt-wilk`); la barra del
+Laboratorio; y —desde el 30/09— la banda 9-11 de `cxWilkins`. El comentario de esa barra ya exigía
+que «el agregado no puede contradecir el informe individual», así que con el literal duplicado
+corregir una sola lo rompía. **Y hay una cuarta que no puede usarla: `#ref-em` es HTML estático.**
 
 **⚠️ Y LA CONSTANTE VIVE CON LAS OTRAS CONSTANTES, NO AL LADO DE `wilkinsScore`.** Declarada allá
 quedaba 3.400 líneas DESPUÉS de `_autosaveInit`, cuya rama `else` llama a `calcWilkins()` de forma
@@ -379,18 +380,73 @@ O sea: reimprimir no toca nada, pero **reabrir un estudio integrado y tocar la o
 `am-txt-wilk`**. La dirección es hacia el texto correcto, pero es una mutación silenciosa de un
 estudio firmado y queda declarada, no descubierta.
 
-### Dos superficies que SIGUEN con el rótulo viejo — reportadas, fuera de alcance
+### [CERRADO 2026-09-30] Las dos superficies que seguían con el rótulo viejo
 
-- **La tarjeta de Referencias** (`#ref-em`) dice «Score Wilkins: ≤8 → favorable para PMV · >8 →
-  resultado subóptimo». Usa el rótulo retirado **y** mete la banda 9-11 dentro de «resultado
-  subóptimo», que es justo lo que la fuente niega. Contradice al badge, a la hoja del PDF y al panel
-  de Evidencia, que dice literal «entre 9 y 11 el score NO predijo el resultado». Y el comentario de
-  esa misma tarjeta afirma que fue «reemplazada por la regla vigente, con cada cifra atribuida a la
-  fuente que SÍ la publica»: se auditó el bloque el 28/09 y ese `<div>` quedó afuera.
-- **La SEGUNDA implementación del score**, `cxWilkins` (`cx_wilk_*`, pestaña Calculadoras): mismos
-  cortes, rótulo propio «resultado intermedio», y **no** lee `WILK_9_11`. Es la que un
-  `grep wilkins_*` no encuentra. Atenuante verificado: su bloque de PDF emite las cuatro subescalas
-  y el total, **no el rótulo**, así que la divergencia es de pantalla y no llega al informe firmado.
+Dos líneas, y nada más que dos líneas (decisión de Maicol, 30/09/2026):
+
+| superficie | antes | hoy |
+|---|---|---|
+| `#ref-em` (Referencias) | «≤8 → favorable para PMV · >8 → resultado subóptimo» | «≤8 favorable · 9-11 el score no predice el resultado · >11 subóptimo» |
+| `cxWilkins`, banda 9-11 | literal propio «resultado intermedio» | `txt = WILK_9_11` |
+
+Medido en Chrome con la tarjeta de Referencias **abierta de verdad** (454 px de alto, no sólo
+`textContent`) y las cinco bandas de la calculadora: 5 y 8 → «favorable para valvuloplastia
+percutánea»; 9 y 11 → el rótulo de la constante; 12 → «desfavorable para valvuloplastia». **Sólo la
+banda del medio cambió.** Seis mutaciones, las seis en rojo — una por texto corregido, dos por las
+bandas que NO debían moverse, una por el corte, y una que duplica el literal con el MISMO texto de
+salida (esa la caza sólo la condición que mira el fuente).
+
+**El cambio es de PANTALLA: no llega al informe firmado, y esta vez se midió con la hoja
+encendida.** La hoja «SCORE DE WILKINS» del PDF de `cxWilkins` sólo se emite con
+`wilkins_incluir_pdf === '1'` y sin prótesis mitral, así que un A/B sin encender ese toggle habría
+dado «idéntico» sobre una hoja que nunca se dibujó — justo en la superficie que el cambio toca.
+Encendida, la hoja imprime **sólo números**: `Movilidad: 3/4 · … · Total: 9/16`, ni una palabra de
+interpretación. El badge entra al bloque únicamente como **guarda de presencia** (`!_cxVacio(_wt)`),
+y las filas se re-derivan de los cuatro `<select>`. A/B contra `fb9e2e9`: **52 comparaciones
+(13 escenarios × 4 superficies), 0 diferencias**, con la hoja dibujada en 4 escenarios, sus 4 hashes
+de PDF distintos entre sí, cero rótulos de interpretación dentro del PDF en los 13, y el control
+negativo distinguiendo en las cuatro superficies.
+
+**⚠️ `#ref-em` NO puede usar la constante: es HTML estático.** No es orden de declaración — no hay
+ámbito de JS donde interpolarla. La alternativa era un `<span>` vacío rellenado en runtime, y eso le
+pone a una **tarjeta de referencia** un hueco silencioso el día que ese init no corra. Se decidió al
+revés: el texto queda literal y **la unicidad la sostiene TC-330**, que lo compara contra
+`WILK_9_11`. Si una cambia sin la otra, el caso se pone en rojo. Es el único eslabón entre los dos.
+
+**⚠️ `cxWilkins` no tiene TDZ, verificado y no supuesto.** `WILK_9_11` está en la línea ~16659, con
+las otras constantes y en el nivel superior; `cxWilkins` está en la ~17660 y sus tres llamadores de
+carga en 56305, 56528 y 57320 — todos después. Los `onchange` de los cuatro selectores sólo pueden
+disparar post-carga. Pero **esto es nuevo**: antes esa función usaba un literal y no podía tirar
+`ReferenceError`; ahora depende de una declaración que vive 1.000 líneas más arriba, y la llamada de
+56305 **no** está envuelta en `try`. Severidad baja —el orden está verificado y TC-44 + TC-330
+afirman que la constante existe— pero queda declarado.
+
+**⚠️ DOS VECES EL MISMO ERROR AL ESCRIBIR TC-330: `Function.prototype.toString` devuelve el cuerpo
+CON los comentarios.** La condición que comprueba «usa la constante y no un literal propio» se
+satisfizo por el COMENTARIO en las dos direcciones: primero roja con el arreglo bien hecho (el
+comentario nombra «resultado intermedio» al explicar por qué se lo saca), después verde con el
+literal duplicado (el comentario nombra `WILK_9_11` al explicar que se reusa). Hoy la condición
+**quita los comentarios antes de mirar el fuente**. Si se escribe otra condición sobre `toString()`,
+empezar por ahí.
+
+### Lo reportado y NO corregido (fuera del alcance de este prompt)
+
+- **La leyenda «Score ≤8 → favorable para valvuloplastia percutánea» no tiene la fuente que
+  aparenta.** Wilkins 1988 **no menciona ningún 8**: separa en `< 9` resultado óptimo y `> 11`
+  subóptimo. El `≤ 8` es el corte de la **guía** (ESC/EACTS), no del artículo original del score —y
+  el propio panel de Evidencia ya lo dice con esas palabras. Así que la leyenda mezcla el umbral de
+  una fuente con el nombre de otra. Decidir si se atribuye o se cambia el corte; no se tocó.
+- **Los selectores dicen «(1-4)» y la escala del original es 0-4.** Wilkins 1988 p. 300 califica
+  cada uno de los cuatro componentes **de 0 a 4**, así que el total va de **0 a 16** y no de 4 a 16.
+  Con el mínimo en 1, una válvula normal en un componente no se puede consignar y el total arranca
+  sesgado hacia arriba. La app ya escribe «/16» en las dos calculadoras, que es coherente con 0-4 y
+  no con 1-4. Prohibido tocar la escala en este prompt; queda como la deuda más concreta de las tres.
+- **Hay DOS implementaciones del mismo score**: `calcWilkins` (`wilkins_*`, pestaña ETE, la que va al
+  informe y al PDF de amiloidosis) y `cxWilkins` (`cx_wilk_*`, tarjeta Calculadoras, con su propia
+  hoja de PDF por el toggle `wilkins_incluir_pdf`). Mismos cortes, ids distintos, guardas de
+  parcialidad escritas por separado y hasta hoy rótulos distintos. **Un censo por nombre de campo no
+  encuentra la segunda** — es la trampa que este archivo ya documenta con `em_grado`. Unificarlas
+  estaba prohibido acá; mientras no se haga, cualquier cambio al score se aplica DOS veces.
 
 ### Lo que no cambió, verificado por A/B
 

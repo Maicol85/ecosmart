@@ -12734,7 +12734,16 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             • La <b>ecuación de continuidad</b> no vale con regurgitación mitral o aórtica significativa, y el <b>THP</b> no es confiable con insuficiencia aórtica moderada o severa (ASE 2023). La app retira el voto y lo dice.
           </div>
           <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
-            <b style="color:var(--accent2);">Score Wilkins:</b> ≤8 → favorable para PMV · &gt;8 → resultado subóptimo<br>
+            <!-- ⚠️ EL «>8 → resultado subóptimo» DE ANTES METÍA LA BANDA 9-11 DENTRO DE UNA AFIRMACIÓN
+                 QUE WILKINS 1988 (p. 307) NIEGA: «The score failed to predict outcome in those with
+                 scores of 9 to 11». Las tres bandas ≤8 / 9-11 / >11 son las del original y no se tocan.
+                 ⚠️ ESTE TEXTO NO PUEDE USAR `WILK_9_11`: es HTML estático y la constante es un `const`
+                 de JS (línea ~16659), así que acá no hay ámbito donde interpolarla. Rellenarlo en
+                 runtime desde un `<span>` vacío sería la única forma, y le pondría a una TARJETA DE
+                 REFERENCIA un hueco silencioso el día que ese init no corra. La unicidad se sostiene
+                 desde TC-330, que compara este texto contra la constante: si una cambia sin la otra,
+                 el caso se pone en rojo. No duplicar el literal a mano en ninguna otra superficie. -->
+            <b style="color:var(--accent2);">Score Wilkins:</b> ≤8 favorable · 9-11 el score no predice el resultado · &gt;11 subóptimo<br>
             • <b>Clase I:</b> EM severa sintomática + Wilkins ≤8 + sin trombo AI → PMV<br>
             • <b>Clase IIa:</b> EM severa asintomática + Wilkins ≤8 + FA nueva o PSAP &gt;50mmHg → PMV
           </div>
@@ -16644,10 +16653,16 @@ const AO_SEGS = Object.freeze([
    result while all those with a score < 9 had an optimal result. THE SCORE FAILED TO PREDICT
    OUTCOME IN THOSE WITH SCORES OF 9 TO 11». Los cortes (≤ 8 / 9-11 / > 11) coinciden con el
    original y NO se tocan: lo único que estaba mal era el nombre de la banda del medio.
-   ⚠️ UNA CONSTANTE Y NO UN LITERAL REPETIDO. Lo publican DOS superficies —el badge de la
-   calculadora, que `amiloTextoWilkins` lee del DOM RENDERIZADO y manda a la hoja del PDF y al
-   estudio guardado, y la barra del Laboratorio—. Con el literal duplicado, corregir una dejaba al
-   agregado contradiciendo al informe individual, que es lo que el comentario de esa barra prohíbe.
+   ⚠️ UNA CONSTANTE Y NO UN LITERAL REPETIDO. La publican TRES superficies —el badge de la
+   calculadora de ETE, que `amiloTextoWilkins` lee del DOM RENDERIZADO y manda a la hoja del PDF y
+   al estudio guardado; la barra del Laboratorio; y la banda 9-11 de `cxWilkins`, la SEGUNDA
+   implementación del score, la de la tarjeta Calculadoras—. Con el literal duplicado, corregir una
+   dejaba al agregado contradiciendo al informe individual, que es lo que el comentario de esa barra
+   prohíbe.
+   ⚠️ Y HAY UNA CUARTA QUE NO PUEDE USARLA: la tarjeta de Referencias (`#ref-em`) es HTML estático,
+   sin ámbito donde interpolar una constante de JS. Su texto es el único duplicado que queda, y la
+   unicidad la sostiene TC-330, que lo compara contra esta constante: si una cambia sin la otra, el
+   caso se pone en rojo. Al editar este valor, mirar también ese texto.
    ⚠️ Y VIVE ACÁ, CON LAS OTRAS CONSTANTES, NO AL LADO DE `wilkinsScore`. Declarada allá quedaba
    3.400 líneas DESPUÉS de `_autosaveInit`, que en su rama `else` llama a `calcWilkins()` de forma
    síncrona: si esa rama llegara a dispararse —hoy no lo hace porque el bloque arranca a mitad del
@@ -17653,7 +17668,12 @@ function cxWilkins(){
   }
   let cls, txt;
   if (total <= 8) { cls = 'green'; txt = 'favorable para valvuloplastia percutánea'; }
-  else if (total <= 11) { cls = 'yellow'; txt = 'resultado intermedio'; }
+  /* ⚠️ «resultado intermedio» era un rótulo PROPIO de esta segunda implementación, y afirmaba un
+     punto medio del pronóstico donde la fuente no afirma nada: entre 9 y 11 el score NO predijo el
+     resultado (Wilkins 1988, p. 307). Se reusa `WILK_9_11` —declarada en la línea ~16659, o sea
+     ANTES de esta función y antes de sus tres llamadores de carga (56305, 56528 y 57320), así que no
+     hay TDZ—. Las bandas ≤8 y >11 no se tocan: son las del original. */
+  else if (total <= 11) { cls = 'yellow'; txt = WILK_9_11; }
   else { cls = 'red'; txt = 'desfavorable para valvuloplastia'; }
   el.innerHTML = total + '/16 ' + badge(cls, txt);
 }

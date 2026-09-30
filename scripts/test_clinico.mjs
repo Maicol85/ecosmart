@@ -40781,6 +40781,99 @@ caso('TC-320', 'IM: un votante fuera de banda no gradua, se muestra marcado y se
   })();
 `);
 
+/* ⚠️ TC-44 cubre el Wilkins de la pestaña ETE, la hoja del PDF, la barra del Laboratorio y la
+   constante. NO cubria las OTRAS DOS superficies que publican el mismo score con rotulo propio: la
+   tarjeta de Referencias y la calculadora de la tarjeta Calculadoras, que es una SEGUNDA
+   implementacion con sus propios ids (cx_wilk_*). Las dos seguian afirmando un pronostico en la
+   banda 9-11 —«>8 resultado suboptimo» y «resultado intermedio»— despues de que el badge de ETE ya
+   decia que el score no predice. Este caso las ata a la MISMA constante.
+   ⚠️ El texto de Referencias es HTML estatico y no puede interpolar WILK_9_11, asi que la unicidad
+   la sostiene ESTE caso: si la constante cambia y el HTML no, la condicion de abajo se pone roja.
+   Es el unico eslabon entre los dos, y por eso se compara contra la constante y no contra un
+   literal repetido aca. */
+caso('TC-330', 'Wilkins: Referencias y la calculadora de Calculadoras publican el MISMO rotulo que el badge de ETE en la banda 9-11, y las bandas ≤8 y >11 no se movieron', `
+  return (async () => {
+    const R = {};
+    const pl = x => String(x == null ? '' : x).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+
+    // ── (1) LA TARJETA DE REFERENCIAS — se lee el textContent, sirve con la tarjeta colapsada ──
+    const ref = document.getElementById('ref-em');
+    R.refTxt = pl(ref ? ref.textContent : '');
+
+    // ── (2) LA CALCULADORA cx_wilk_* — las cuatro bandas por su total ─────────────────────────
+    /* La escala de los selectores es 1-4, asi que el minimo alcanzable es 4 y el maximo 16. No se
+       usa 1,1,1,1: esa combinacion cae en la guarda «sin puntuar — reingresa los cuatro criterios»
+       y no interpreta, que es correcto pero no mide ninguna banda. */
+    const cx = function(a, b, c, d){
+      __t.set('cx_wilk_mov', String(a)); __t.set('cx_wilk_eng', String(b));
+      __t.set('cx_wilk_cal', String(c)); __t.set('cx_wilk_sub', String(d));
+      try { cxWilkins(); } catch (e) { return 'LANZO: ' + e.message; }
+      const el = document.getElementById('cx-wilkins-total');
+      return el ? el.textContent.trim() : '(NO EXISTE)';
+    };
+    R.cx8  = cx(2,2,2,2);   // 8  → banda ≤8
+    R.cx9  = cx(3,2,2,2);   // 9  → banda 9-11
+    R.cx11 = cx(3,3,3,2);   // 11 → banda 9-11
+    R.cx12 = cx(3,3,3,3);   // 12 → banda >11
+
+    // ── (3) La constante, y el fuente de las dos implementaciones ─────────────────────────────
+    R.K = (typeof WILK_9_11 === 'string') ? WILK_9_11 : null;
+    R.cxFuente = (typeof cxWilkins === 'function') ? cxWilkins.toString() : '';
+
+    const kpl = pl(R.K);
+    const tiene = (s, frag) => pl(s).indexOf(pl(frag)) > -1;
+
+    return { extra: [
+      /* DENOMINADOR. Sin esto, «no dice el rotulo viejo» pasa con la tarjeta vacia y con la
+         calculadora devolviendo la raya de «sin datos»: cero coincidencias y todo verde. */
+      ['DENOMINADOR: la tarjeta de Referencias tiene contenido real y la calculadora interpreta',
+        R.refTxt.length > 200 && R.cx8.indexOf('8/16') === 0 && R.cx12.indexOf('12/16') === 0,
+        'largoRef=' + R.refTxt.length + ' cx8=«' + R.cx8 + '» cx12=«' + R.cx12 + '»'],
+      ['la constante existe y es la del rotulo aprobado',
+        !!R.K && kpl.indexOf('no predice el resultado') > -1, 'WILK_9_11=«' + R.K + '»'],
+
+      // ── Referencias ────────────────────────────────────────────────────────────────────────
+      ['Referencias nombra las TRES bandas del original, sin fusionar 9-11 con >11',
+        R.refTxt.indexOf('≤8') > -1 && R.refTxt.indexOf('9-11') > -1 && R.refTxt.indexOf('>11') > -1,
+        '«' + R.refTxt.slice(R.refTxt.indexOf('score wilkins'), R.refTxt.indexOf('score wilkins') + 130) + '»'],
+      ['Referencias publica EL MISMO rotulo que la constante en la banda 9-11',
+        !!R.K && R.refTxt.indexOf(kpl) > -1,
+        'busca=«' + kpl + '» en «' + R.refTxt.slice(R.refTxt.indexOf('score wilkins'), R.refTxt.indexOf('score wilkins') + 130) + '»'],
+      ['y NO sobrevive el «resultado suboptimo» que metia la banda 9-11 en una afirmacion',
+        R.refTxt.indexOf('resultado suboptimo') === -1 && R.refTxt.indexOf('favorable para pmv') === -1,
+        '«' + R.refTxt.slice(R.refTxt.indexOf('score wilkins'), R.refTxt.indexOf('score wilkins') + 130) + '»'],
+
+      // ── La segunda calculadora ─────────────────────────────────────────────────────────────
+      ['la calculadora dice el MISMO rotulo que la constante en los DOS bordes de la banda 9-11',
+        !!R.K && tiene(R.cx9, R.K) && tiene(R.cx11, R.K),
+        '9=«' + R.cx9 + '» 11=«' + R.cx11 + '»'],
+      ['y su rotulo propio «resultado intermedio» no sobrevive en ninguna de las cuatro',
+        [R.cx8, R.cx9, R.cx11, R.cx12].every(function(s){ return pl(s).indexOf('resultado intermedio') === -1; }),
+        JSON.stringify([R.cx8, R.cx9, R.cx11, R.cx12])],
+      ['las bandas ≤8 y >11 de la calculadora NO se movieron',
+        tiene(R.cx8, 'favorable para valvuloplastia percutanea') &&
+        tiene(R.cx12, 'desfavorable para valvuloplastia') &&
+        !tiene(R.cx8, R.K || 'xxx') && !tiene(R.cx12, R.K || 'xxx'),
+        '8=«' + R.cx8 + '» 12=«' + R.cx12 + '»'],
+      /* Que use la CONSTANTE y no una copia del mismo texto: con un literal propio TODAS las
+         condiciones de arriba pasan igual —la salida es identica— y la unicidad se pierde en
+         silencio. Esta es la unica condicion que lo caza, y la mutacion lo pidio.
+         ⚠️ SE MIRA EL FUENTE SIN COMENTARIOS. Function.prototype.toString devuelve el cuerpo CON
+         los comentarios, y el comentario que documenta este arreglo nombra las dos cosas que se
+         buscan: la constante y el rotulo viejo. Sin sacarlos, la condicion se satisface por el
+         COMENTARIO en las dos direcciones — verde con el literal duplicado y roja con el arreglo
+         bien hecho. Ya paso las dos veces al escribir este caso. */
+      ['la calculadora arma la banda 9-11 con la constante, no con un literal propio',
+        (function(){
+          const codigo = R.cxFuente.replace(/\\/\\*[\\s\\S]*?\\*\\//g, ' ').replace(/\\/\\/[^\\n]*/g, ' ');
+          return codigo.indexOf('WILK_9_11') > -1 && pl(codigo).indexOf('resultado intermedio') === -1;
+        })(),
+        'fuenteSinComentarios=«' + R.cxFuente.replace(/\\/\\*[\\s\\S]*?\\*\\//g, ' ').replace(/\\/\\/[^\\n]*/g, ' ')
+          .replace(/\\s+/g, ' ').slice(0, 260) + '»']
+    ] };
+  })();
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────
