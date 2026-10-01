@@ -22827,8 +22827,28 @@ function calcEADetalle() {
        área normal. clasificarEA_Vmax usa 'sin' para el mismo caso. */
     if (avaR >= 1.5)      { sev='Sin estenosis / leve'; color='#3ecf8e'; gradoStr='sin'; }
     else if (avaEsModerada(avaR)) { sev='Moderada';       color='#f59e0b'; gradoStr='moderada'; }
-    else                 { sev='Severa';                color='var(--red)'; gradoStr='severa'; }
+    /* ⚠️ EL `else` INCONDICIONAL MANDABA A «SEVERA» TODO AVA NO POSITIVO, y ésta es la tercera vez
+       que el mismo fail-open aparece en la aórtica. La guarda de arriba —`else if (ava)`— entra por
+       TRUTHY, así que un AVA de 0,004 pasa; `avaR` es el REDONDEADO y vale 0; `avaR >= 1.5` es
+       falso y `avaEsModerada(0)` es falso —exige `> AVA_SEVERA_MAX`—, de modo que las dos bandas
+       fallan y el `else` escribía `gradoStr = 'severa'`.
+       Medido con Ø TSVI 0,5 · VTI TSVI 2 · VTI Ao 1 (AVA 0,0039): `ea_grado` quedaba en «severa» y
+       las CUATRO superficies lo publicaban —narrativo «con estenosis severa», EN SUMA «EAo
+       severa.», PDF «EA grado: Severa» y Excel `EAo_III (Severa)=1`— mientras el badge de al lado,
+       que lo escribe `sugerirSeveridadEA`, decía «AVA no valuable — el grado NO se actualizó
+       automáticamente». Las dos mitades del mismo cálculo, contiguas en pantalla, diciendo cosas
+       opuestas: es textualmente el defecto que el comentario de `calcAo` ya describe para su badge.
+       Se cierra con la MISMA convención que `calcAo` y `sugerirSeveridadEA`: la banda severa se
+       pregunta por su predicado —`avaEsSevera`, que falla CERRADO ante vacío, NaN, 0 y <0— y el
+       `else` se ABSTIENE. Abstenerse es dejar `gradoStr` en `null`, que es lo que hace que el
+       `if (sel && gradoStr)` de abajo no escriba: el grado anterior no se borra —la regla del
+       archivo es marcar sin borrar— y se DICE que no se actualizó, con el mismo texto que publica
+       `sugerirSeveridadEA`, para que las dos mitades sigan diciendo lo mismo carácter por carácter. */
+    else if (avaEsSevera(avaR)) { sev='Severa';          color='var(--red)'; gradoStr='severa'; }
+    else { sev='AVA no valuable'; color='var(--text2)'; gradoStr=null; }
     if (sevEl) sevEl.innerHTML = `<span style="color:${color};font-weight:700;">${sev}</span>`;
+    if (!gradoStr) { const _b = document.getElementById('ea-ava-badge');
+      if (_b) _b.textContent = 'AVA no valuable — el grado NO se actualizó automáticamente; revisá la severidad aórtica antes de firmar.'; }
   /* ⚠️ ACÁ HABÍA UNA LLAMADA AL ESPEJO Y SE SACÓ. Estaba DENTRO de la rama `else if (ava)` —la que
      corre sólo cuando NO hay Vmax— mientras su comentario decía que corría «también acá porque ésta
      es la función que escribe `ea_dvi_display`». En el camino común, que es toda estenosis aórtica
@@ -24025,10 +24045,28 @@ function calcIA_ESC() {
 
   if (params.length === 0) return;
   let sevBadge, gradoVal;
-  if (scores.severa >= 2 || (scores.severa === 1 && scores.moderada >= 1)) {
+  /* ⚠️ UN SOLO PARÁMETRO EN SEVERA BASTA — la MISMA semántica que `calcIM_ESC` desde `8b143e6`,
+     replicada acá tal cual. Antes no bastaba: un voto severo con CERO moderados no matcheaba
+     `severa >= 2` ni `severa === 1 && moderada >= 1`, caía en el `else` mudo del final y se
+     publicaba «Moderada — evaluar integrado» con `gradoVal = '2'`. Medido con el caso del censo
+     —vena contracta de 8 mm como único dato—: el informe firmado y el EN SUMA salían
+     «IAo moderada.» sobre una VC que la cascada de arriba acaba de votar SEVERA.
+     ⚠️ Y APAGABA EL PANEL DE CONDUCTA, que es lo que lo vuelve un defecto de seguridad y no de
+     rótulo: `_indIA` abre con `if (_indS('ia_sev_final') !== '4') return null;`, así que ese '2'
+     se llevaba puesta la indicación de cirugía entera, en silencio.
+     ⚠️ LA SEGUNDA CLÁUSULA ERA CÓDIGO MUERTO, igual que en `calcIM_ESC`: `severa === 1 &&
+     moderada >= 1` ya está contenida en `severa >= 1`. Se lee como si tratara un caso aparte y
+     lo que hacía era nada.
+     Es el `else` fail-open que este archivo ya documenta para `epGradoPorGmax` y `avaEsSevera`:
+     la última rama de una cascada sin predicado se come lo que ninguna clasificó, y acá se lo
+     comía hacia el lado tranquilizador. */
+  if (scores.severa >= 1) {
     sevBadge = badge('red','Severa'); gradoVal = '4';
   } else if (scores.moderada >= 2) {
     sevBadge = badge('orange','Moderada'); gradoVal = '2';
+  /* `scores.severa === 0` es REDUNDANTE desde que la primera rama se lleva todo `severa >= 1`, y
+     se conserva declarándolo: es lo que hace que esta banda siga fallando cerrada el día que
+     alguien afloje la condición de arriba. Es la misma línea que `calcIM_ESC`. */
   } else if (scores.leve >= 1 && scores.moderada === 0 && scores.severa === 0) {
     sevBadge = badge('green','Leve'); gradoVal = '1';
   } else {
@@ -24709,10 +24747,19 @@ function calcIT_ESC() {
 
   if (params.length === 0) return;
   let sevBadge, gradoVal;
-  if (scores.severa >= 2 || (scores.severa === 1 && scores.moderada >= 1)) {
+  /* ⚠️ MISMO FAIL-OPEN QUE `calcIA_ESC` Y MISMO ARREGLO: la aritmética de votos de esta función
+     es la de aquélla, así que un voto severo con cero moderados caía en el `else` y publicaba
+     «Moderada — evaluar integrado» con `gradoVal = '2'`. Medido: vena contracta de 8 mm como
+     único dato —que la cascada de arriba vota severa por `> 7`— salía grado 2.
+     La semántica es la de `calcIM_ESC`: `severa >= 1` basta. La segunda cláusula del `else if`
+     anterior era código muerto, ya contenida en esta condición.
+     Se corrige acá aunque el pedido sea de la aórtica porque es la MISMA condición, y dejar una
+     de las dos es garantizar que vuelva por el lado que no se miró. */
+  if (scores.severa >= 1) {
     sevBadge = badge('red','Severa'); gradoVal = '4';
   } else if (scores.moderada >= 2) {
     sevBadge = badge('orange','Moderada'); gradoVal = '2';
+  /* `scores.severa === 0` redundante y conservado a propósito: ver `calcIM_ESC`/`calcIA_ESC`. */
   } else if (scores.leve >= 1 && scores.moderada === 0 && scores.severa === 0) {
     sevBadge = badge('green','Leve'); gradoVal = '1';
   } else {
@@ -27283,6 +27330,17 @@ function generarInforme(opts) {
          estenosis aórtica con su área y su gradiente. El silencio pedido es «no listarla», no
          «negarla». Es el mismo defecto que ya se cerró con la CIA. */
       ccMarcarParrafo();
+    /* ⚠️ CON PRÓTESIS EL GRADO NATIVO NO SE RESUME. `ea_grado` sobrevive al cambio de morfología
+       —a propósito: ver `eaGradoNoPublica`— y esta línea lo publicaba con la escala equivocada,
+       de modo que el EN SUMA salía «EAo severa.» inmediatamente seguido de «Prótesis aórtica: sin
+       criterios de estenosis protésica.». Dos frases consecutivas que se contradicen, y la primera
+       es la que grepea el buscador del Laboratorio por palabras de severidad, así que además
+       contaba el estudio como una estenosis severa.
+       La línea del veredicto protésico se emite más abajo, en la rama de `_eaProtN`; acá sólo se
+       calla la nativa. No se usa `_eaProtN` como condición porque eso ataría el silencio a que
+       `eaProtNarrativa` haya devuelto algo: la pregunta es por la MORFOLOGÍA, y así falla cerrado. */
+    } else if (eaGradoNoPublica(vaMorf)) {
+      ccMarcarParrafo();
     } else {
       if (eaDesc) suma.push(`EAo ${eaDesc}.`); else if (estE) suma.push('Estenosis aórtica.');
     }
@@ -27305,10 +27363,20 @@ function generarInforme(opts) {
          suggested for native valves»— y los cortes que la app aplica ya coinciden con los de esa
          tabla en todo lo que mide. Lo que NO aplica a una prótesis es la escala de ESTENOSIS. */
       const _pIns = insE ? ', ' + insE : '';
+      /* ⚠️ LA VARIANTE NARRATIVA NOMBRABA LA PRÓTESIS DOS VECES. `_vaEs` y `_vaAdj` son las dos
+         formas de la MISMA entrada de `VALV_MORF_FRASE` —«presenta una prótesis biológica» y «con
+         prótesis biológica»— así que ponerlas seguidas imprimía en el informe firmado «La válvula
+         aórtica presenta una prótesis biológica con prótesis biológica, sin datos suficientes para
+         graduar la estenosis protésica». Medido en las tres opciones: biológica, mecánica y TAVI
+         («…tipo TAVI con prótesis transcatéter tipo TAVI»).
+         Las ramas hermanas usan UNA sola: la de esclerosis y la del `else` final van con `_vaAdj`
+         entre paréntesis, y la de «sin hallazgos» con `_vaEs` suelto. Acá alcanza `_vaEs`, que ya
+         es una oración con verbo y concuerda con el resto de la frase. Los otros dos estilos
+         —conciso y estándar— usaban `_vaAdj` solo y NO se tocan: no tenían la duplicación. */
       inf.push(estiloPick(
         `VAo ${_vaAdj}, ${_eaProtN.frase}${_pIns}.`,
         `Válvula aórtica ${_vaAdj}, ${_eaProtN.frase}${_pIns}.`,
-        `La válvula aórtica ${_vaEs} ${_vaAdj}, ${_eaProtN.frase}${_pIns}.`));
+        `La válvula aórtica ${_vaEs}, ${_eaProtN.frase}${_pIns}.`));
       /* ⚠️ LAS SALVEDADES Y LA CITA YA NO VAN AL INFORME (decisión de Maicol, 2026-09-28). Eran
          justificación metodológica y estado interno de la app —número de tabla, autores, año,
          por qué un parámetro no se evalúa, qué no registra el programa—, y eso pertenece al panel
@@ -31067,6 +31135,52 @@ function valvEsProtesis(val){
 window.VALV_PROT_OPCIONES = VALV_PROT_OPCIONES;
 window.valvEsProtesis = valvEsProtesis;
 
+/* ⚠️ «¿SE PUBLICA EL GRADO AÓRTICO?» — UN SOLO DUEÑO, HOY APLICADO EN TRES DE OCHO SUPERFICIES.
+   `clasificarEA_Vmax` y `sugerirSeveridadEA` se ABSTIENEN con morfología protésica, pero ninguna
+   de las dos LIMPIA `ea_grado`, y está bien que no lo hagan: la regla del archivo es marcar sin
+   borrar, y si el médico vuelve a nativa el dato medido tiene que seguir ahí. El precio es que
+   queda un grado residual, calculado con cortes NATIVOS, que las superficies seguían publicando.
+   Medido en el recorrido nativa severa → biológica → mecánica → TAVI: `ea_grado` se quedaba en
+   «severa» y el EN SUMA emitía «EAo severa.» pegado a «Prótesis aórtica: …», el PDF imprimía
+   «EA grado: Severa» y el Excel exportaba `EAo_III (Severa)=1`. Las tres afirmaban una estenosis
+   severa con la escala equivocada, al lado del veredicto protésico que dice otra cosa.
+   Se resuelve DEL LADO DEL QUE PUBLICA —la misma distinción que `calcVD` hizo con la FAC y que el
+   bloque de prótesis mitral del PDF ya declara— y no borrando el campo: así volver a nativa
+   recalcula solo, por el camino de siempre, sin migrar nada.
+   TOMA LA MORFOLOGÍA POR PARÁMETRO Y NO DEL DOM a propósito: `_labExcelRow` corre SIN DOM —deriva
+   todo de `inf.campos`— así que un predicado que leyera `sv('va_morf')` bandearía la fila del
+   Excel contra el paciente que está en pantalla. Es la misma trampa que `_plausDe`/`vPlaus` ya
+   documentan para las bandas.
+   La aórtica NO entra en `PROT_SIN_GRADO_VALVS` y eso sigue siendo correcto: esta válvula SÍ se
+   gradúa sobre prótesis, con las tablas de la ASE 2024, y ese veredicto lo publica
+   `eaProtNarrativa` por su propia rama. Lo que acá se calla es la lectura con cortes nativos.
+
+   ⚠️ CENSO, PORQUE ESTE ARREGLO ESTÁ INCOMPLETO Y NO HAY QUE CREERLE QUE NO. `ea_grado` lo leen
+   OCHO superficies de salida. Esta tanda cubre TRES —el EN SUMA de `generarInforme`, la fila
+   «EA grado» de `generarPDFReal` y `gEA` en `_labExcelRow`— porque eran las tres del pedido.
+   Siguen publicando el grado con cortes NATIVOS sobre una prótesis, y están medidas, no supuestas
+   (`/sharp-edges`, 2026-10-01):
+     · `_pptSel('ea_grado')` en el armado de hallazgos del PPT → «EAo: severa» en la diapositiva.
+     · `VALVSIG` en el export a CeiboAnalytics → `sig = 1` por `/severa|moderada/` sobre `c.ea_grado`.
+     · `_labEstenSev(i,'ea_grado')` en el PDF de auditoría del Laboratorio.
+     · el indicador automático «EA moderada-severa sin gradiente documentado» del Laboratorio.
+     · `_tieneValv`/`_labValvCounts`/`sevTable` — buscador, filtro clínico y distribución.
+   Las cinco se cierran con una línea cada una, y por eso este predicado toma la morfología por
+   parámetro: `inf.campos.va_morf` está disponible en todas. NO se hicieron acá para no mover
+   estadísticas del Laboratorio ni el PPT en la misma tanda que el informe firmado — queda en
+   `docs/PENDIENTES.md`. El que agregue la sexta, que actualice este censo.
+
+   ⚠️ Y LA LISTA QUE LO GOBIERNA NO TIENE ASSERT. `VALV_PROT_OPCIONES` es una lista literal
+   paralela a los cuatro selects de morfología, y es la única que no tiene un `_assert` como los de
+   `_labXlsAssertListas` o `_eteVmAssertPares`. Una opción de prótesis nueva o renombrada apaga de
+   un golpe las tres guardas de acá MÁS las de `clasificarEA_Vmax`, `sugerirSeveridadEA`,
+   `calcEADetalle` y `_indEA`, sin error ni caso rojo: el caso que parece cubrirlo compara el
+   predicado contra sí mismo. También en `docs/PENDIENTES.md`. */
+function eaGradoNoPublica(morf){
+  return valvEsProtesis(morf);
+}
+window.eaGradoNoPublica = eaGradoNoPublica;
+
 /* ⚠️ `protNoGradua` / `protNoGraduaPintar` / `PROT_SIN_GRADO_TXT` VIVÍAN ACÁ y se MUDARON arriba,
    al lado de `sugerirSeveridadEM`, que es su primer llamador. El motivo es TDZ, no estética: sus
    dos `const` quedaban declaradas ~8.400 líneas DESPUÉS de las funciones que las usan, y una
@@ -34491,12 +34605,31 @@ function generarPDFReal(_aj) {
     ]},
     {titulo:'Válvula Aórtica', items:[
       {lbl:'Morf.',         ref:'', val:sv('va_morf')||null},
-      {lbl:'EA grado',      ref:'', val:eaReal?_cap(sv('ea_grado')):null},
+      /* ⚠️ CON PRÓTESIS NO SE IMPRIME EL GRADO, y SÓLO esta fila se calla. `ea_grado` queda con la
+         lectura de cortes nativos cuando el médico pasa a prótesis (ver `eaGradoNoPublica`), y el
+         papel firmado publicaba «EA grado: Severa» al lado de la cápsula protésica que dice que no
+         hay criterios de estenosis. Las filas de AVA, V. max y G. medio NO se tocan: son datos
+         MEDIDOS, y son justamente los que sostienen el veredicto protésico de la Tabla 5 — callar
+         el grado no es callar la medición. Por eso no se endurece `eaReal`, que gatea las cuatro. */
+      {lbl:'EA grado',      ref:'', val:(eaReal && !eaGradoNoPublica(sv('va_morf')))?_cap(sv('ea_grado')):null},
       {lbl:'AVA',           ref:'(>1.5 / >' + AVA_SEVERA_MAX.toFixed(1) + '–1.49 / ≤' + AVA_SEVERA_MAX.toFixed(1) + ') cm²', val:eaReal&&avaC?avaC+' cm2':null},
       /* Mismas bandas que las filas del bloque de gradientes: sin esto, un mismo PDF decia
          «V. máx Ao: fuera de rango» arriba y «V. max: 280 m/s» dos bloques mas abajo. */
-      {lbl:'V. max',        ref:'(<3 / 3–4 / >4) m/s', val:eaReal?vPdf('vmax_ao',' m/s'):null},
-      {lbl:'G. medio',      ref:'(<20 / 20–40 / >40) mmHg', val:eaReal?vPdf('gmedio_ao',' mmHg'):null},
+      /* ⚠️ EL BORDE DEL RANGO SEVERO SALE DE `EA_CRIT`, Y EL OPERADOR ERA EL EQUIVOCADO. El papel
+         decía «>4» y «>40» mientras el motor decide con `>=` —`vmax >= EA_CRIT.vmax` y
+         `gmedio >= EA_CRIT.gmed`, en `eaEscenario` y en `clasificarEA_Vmax`—, así que una Vmax de
+         exactamente 4,0 m/s o un gradiente medio de exactamente 40 mmHg se graduaban SEVEROS por
+         una escala impresa que los excluye. El médico que controla el grado contra la columna de
+         referencia del PDF encontraba que no cerraba, justo en el borde.
+         Los números se DERIVAN de `EA_CRIT` en vez de escribirse a mano: eran la quinta y sexta
+         copia del mismo corte, y es el defecto que este archivo ya pagó con los rótulos del AVA
+         que seguían diciendo «< 1,0» después de mover el umbral. Cortes y operador SIN CAMBIAR:
+         esto corrige lo que el papel DICE, no lo que la app decide.
+         `≥` se escribe tal cual —igual que el `≤` de la fila AVA de arriba— y `amiloSanPDF` lo
+         translitera a «>=» al dibujar, porque helvetica/WinAnsi destroza el glifo. Verificado en el
+         flujo real de jsPDF. Fuente: ESC/EACTS 2025, Tabla 4. */
+      {lbl:'V. max',        ref:'(<3 / 3–4 / ≥' + EA_CRIT.vmax.toFixed(1).replace('.', ',') + ') m/s', val:eaReal?vPdf('vmax_ao',' m/s'):null},
+      {lbl:'G. medio',      ref:'(<20 / 20–40 / ≥' + EA_CRIT.gmed + ') mmHg', val:eaReal?vPdf('gmedio_ao',' mmHg'):null},
       {lbl:'IAo',           ref:'', val:iaG?GT[iaG]:null},
       {lbl:'VC IAo',        ref:'(<3 / 3–6 / >6) mm', val:vPdf('ia_vc',' mm')},
       {lbl:'PHT',           ref:'(>500 / 200–500 / <200) ms', val:vPdf('ia_pht',' ms')},
@@ -72592,7 +72725,20 @@ function _labExcelRow(inf) {
   const gdTxt = { III:'Grado III', II:'Grado II', I:'Grado I', sin:'Sin disfunción' }[gd] || '';
   // Grados valvulares (texto) + binarizador — se conserva el texto y se agregan columnas 0/1
   const gIM = _labGradoTxt(inf,'im_grado'), gIA = _labGradoTxt(inf,'ia_grado'), gIT = _labGradoTxt(inf,'it_grado');
-  const gEA = _labGradoTxt(inf,'ea_grado'), gEM = _labGradoTxt(inf,'em_grado');
+  /* ⚠️ CON PRÓTESIS AÓRTICA EL GRADO NO SE EXPORTA. `ea_grado` conserva la lectura con cortes
+     NATIVOS cuando el médico pasa a prótesis (ver `eaGradoNoPublica`), y esta fila la publicaba en
+     CUATRO columnas: «EA grado», `EAo_I`, `EAo_II` y `EAo_III`. Medido: una prótesis con un
+     «severa» nativo residual exportaba `EAo_III (Severa)=1`, y esta planilla cruza a
+     CeiboAnalytics SIN el informe al lado, así que ahí no hay nada que matice el número.
+     Se suprimen las CUATRO y no sólo el binario —decisión de Maicol, 2026-10-01—: dejar la columna
+     de texto diciendo «Severa» con los binarios en 0 es la misma contradicción movida de lugar.
+     `gEA` se vacía UNA vez acá, que es de donde salen las cuatro: una guarda por columna es la
+     forma de que la que se olvide siga publicando.
+     ⚠️ PRECIO ACEPTADO Y DECLARADO: las cuatro columnas se REIMPORTAN a `ea_grado` (su entrada en
+     `LAB_XLS_MAP` y el grupo binario de `LAB_XLS_BIN`), así que un estudio con prótesis exportado
+     y reimportado vuelve SIN grado aórtico. No se migra ni se reescribe nada de lo guardado: el
+     campo sigue intacto en el estudio, lo que cambia es sólo lo que sale en la planilla. */
+  const gEA = eaGradoNoPublica(c.va_morf) ? '' : _labGradoTxt(inf,'ea_grado'), gEM = _labGradoTxt(inf,'em_grado');
   const psapV = num('psap_calc');
   /* ══ DVI MITRAL: EL VALOR Y SU PROCEDENCIA, DE UNA SOLA DERIVACIÓN ═══════════════════════════
      Desde el commit del DVI calculado la columna dejó de ser homogénea —antes siempre era el
@@ -87752,8 +87898,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261001-1502';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790877730734;                 /* eco-build-ms */
+const ECO_BUILD    = '20261001-1701';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790884881330;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -87839,7 +87985,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261001-1502</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261001-1701</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

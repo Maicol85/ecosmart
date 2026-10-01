@@ -42982,6 +42982,282 @@ caso('TC-341', 'EM: con el THP fuera de banda el panel dice lo MISMO que el PDF 
   })();
 `);
 
+// ═══ GRUPO 27 — Aortica 1/3: fail-open de severidad y lo que se publica ═════════════════════
+/* Los seis casos de la tanda del 2026-10-01. Cubren cinco defectos que fallaban hacia lo
+   TRANQUILIZADOR —un grado menor del que los datos sostienen, o un grado publicado con la escala
+   equivocada— y por eso cada uno mira la superficie que se FIRMA, no solo el campo.
+   Todos traen control negativo: un escenario donde el arreglo NO debe actuar. Sin eso, una
+   funcion que devolviera «severa» siempre pasaria los seis. */
+
+caso('TC-342', 'IAo: UN voto severo con cero moderados gradua SEVERA (no «Moderada — evaluar integrado»), baja al informe y al EN SUMA, y NO apaga el panel de conducta', `
+  const prev = (typeof estiloInforme !== 'undefined') ? estiloInforme : null;
+  const esc = (sem) => { __t.limpiar(); window.esqSevManual = {};
+    __t.set('nombre','TC342'); sem();
+    try { calcIA_ESC(); } catch (e) {}
+    const r = __t.informe();
+    let apagado = null; try { apagado = (_indIA() === null); } catch (e) { apagado = 'ERR ' + e.message; }
+    return { grado: __t.val('ia_grado'), sevFinal: __t.val('ia_sev_final'),
+             badge: __t.txt('ia-sev'), suma: r.suma, inf: r.inf, indIAApagado: apagado }; };
+  /* El caso del censo: vena contracta de 8 mm como UNICO dato. La cascada la vota severa por
+     ser mayor que 6, y moderada queda en cero. */
+  const sev  = esc(() => __t.set('ia_vc','8'));
+  // Controles: un unico voto moderado y un unico voto leve no se mueven.
+  const mod  = esc(() => __t.set('ia_vc','5'));
+  const leve = esc(() => __t.set('ia_vc','2'));
+  // DENOMINADOR: sin ningun voto la funcion sale temprano y no escribe nada.
+  const nada = esc(() => {});
+  __t.limpiar(); window.esqSevManual = {};
+  if (prev) { try { setEstiloInforme(prev); } catch (e) {} }
+  return { extra: [
+    ['DENOMINADOR: sin insumos no se escribe grado (sale por params.length === 0)',
+      nada.grado === '0' && nada.badge === '—', 'grado=' + nada.grado + ' badge=' + nada.badge],
+    ['un voto severo y cero moderados -> grado 4 y badge Severa',
+      sev.grado === '4' && sev.badge.toLowerCase().indexOf('severa') > -1 &&
+      sev.badge.toLowerCase().indexOf('evaluar integrado') === -1,
+      'grado=' + sev.grado + ' badge=' + sev.badge],
+    ['  y la cascada de sincronia lo propaga a ia_sev_final',
+      sev.sevFinal === '4', 'ia_sev_final=' + sev.sevFinal],
+    ['  EN SUMA dice IAo severa y NO IAo moderada',
+      sev.suma.indexOf('IAo severa.') > -1 && sev.suma.indexOf('IAo moderada') === -1,
+      'suma=' + sev.suma],
+    ['  el informe narrativo dice insuficiencia severa',
+      sev.inf.indexOf('insuficiencia severa') > -1, 'inf no la trae'],
+    ['⚠️ y el PANEL DE CONDUCTA no queda apagado: _indIA abre exigiendo ia_sev_final === 4',
+      sev.indIAApagado === false, 'indIAApagado=' + sev.indIAApagado],
+    ['CONTROL: un unico voto moderado SIGUE en grado 2 con su texto de evaluar integrado',
+      mod.grado === '2' && mod.badge.indexOf('evaluar integrado') > -1,
+      'grado=' + mod.grado + ' badge=' + mod.badge],
+    ['CONTROL: un unico voto leve sigue en grado 1',
+      leve.grado === '1' && leve.badge.toLowerCase().indexOf('leve') > -1,
+      'grado=' + leve.grado + ' badge=' + leve.badge],
+  ] };
+`);
+
+caso('TC-343', 'IT: la MISMA aritmetica de votos que la IAo — un voto severo con cero moderados gradua severa y baja al informe y al EN SUMA', `
+  const esc = (sem) => { __t.limpiar(); window.esqSevManual = {};
+    __t.set('nombre','TC343'); sem();
+    try { calcIT_ESC(); } catch (e) {}
+    const r = __t.informe();
+    return { grado: __t.val('it_grado'), badge: __t.txt('it-sev'), suma: r.suma, inf: r.inf }; };
+  // VC de 8 mm: la vota severa por ser mayor que 7, y moderada queda en cero.
+  const sev  = esc(() => __t.set('it_vc','8'));
+  const mod  = esc(() => __t.set('it_vc','5'));
+  const leve = esc(() => __t.set('it_vc','2'));
+  // DENOMINADOR: it_grado NUNCA esta vacio —nace en 0— asi que se verifica que sin insumos siga en 0.
+  const nada = esc(() => {});
+  __t.limpiar(); window.esqSevManual = {};
+  return { extra: [
+    ['DENOMINADOR: sin insumos it_grado queda en 0 y el badge no afirma',
+      nada.grado === '0', 'grado=' + nada.grado + ' badge=' + nada.badge],
+    ['un voto severo y cero moderados -> grado 4 y badge Severa',
+      sev.grado === '4' && sev.badge.toLowerCase().indexOf('severa') > -1 &&
+      sev.badge.indexOf('evaluar integrado') === -1,
+      'grado=' + sev.grado + ' badge=' + sev.badge],
+    ['  EN SUMA dice IT severa y NO IT moderada',
+      sev.suma.indexOf('IT severa.') > -1 && sev.suma.indexOf('IT moderada') === -1,
+      'suma=' + sev.suma],
+    ['  el informe narrativo dice tricuspidea severa',
+      sev.inf.toLowerCase().indexOf('tricuspídea severa') > -1 ||
+      sev.inf.toLowerCase().indexOf('tricuspidea severa') > -1, 'inf no la trae'],
+    ['CONTROL: un unico voto moderado sigue en grado 2',
+      mod.grado === '2' && mod.badge.indexOf('evaluar integrado') > -1,
+      'grado=' + mod.grado + ' badge=' + mod.badge],
+    ['CONTROL: un unico voto leve sigue en grado 1',
+      leve.grado === '1', 'grado=' + leve.grado],
+  ] };
+`);
+
+caso('TC-344', 'EA: un AVA que redondea a 0 NO se gradua severa — calcEADetalle se abstiene como calcAo y sugerirSeveridadEA, y el EN SUMA no afirma estenosis', `
+  const esc = (d, it, ia) => { __t.limpiar(); window.esqSevManual = {};
+    __t.set('nombre','TC344');
+    __t.set('ea_dtsvi', d); __t.set('ea_vtitsvi', it); __t.set('ea_vtiao', ia);
+    try { syncEADesdeValvulas(); } catch (e) {}
+    try { calcEADetalle(); } catch (e) {}
+    const r = __t.informe();
+    return { grado: __t.val('ea_grado'), ava: __t.val('ava_cont'),
+             det: __t.txt('ea-det-sev'), suma: r.suma, inf: r.inf }; };
+  /* Sin Vmax se entra por la rama else-if del AVA. Con Ø TSVI 0,5 · VTI TSVI 2 · VTI Ao 1 el AVA
+     crudo es 0,0039: TRUTHY, asi que cruza la guarda, y redondeado es 0,00. */
+  const cero = esc('0.5','2','1');
+  // CONTROLES: por la MISMA rama, un AVA valuable sigue graduando en las tres bandas.
+  const severa   = esc('20','15','60');   // 0,79 -> severa de verdad
+  const moderada = esc('20','15','40');   // 1,18 -> moderada
+  const sinEst   = esc('20','20','20');   // 3,14 -> sin estenosis
+  __t.limpiar(); window.esqSevManual = {};
+  return { extra: [
+    ['DENOMINADOR: el escenario entra por la rama del AVA y publica un AVA de 0.00',
+      cero.ava === '0.00', 'ava_cont=' + cero.ava],
+    ['⚠️ con AVA no valuable NO se escribe severa en ea_grado',
+      cero.grado !== 'severa', 'ea_grado=' + cero.grado],
+    ['  y la pantalla lo DICE en vez de afirmar un grado',
+      cero.det.toLowerCase().indexOf('no valuable') > -1, 'ea-det-sev=' + cero.det],
+    ['  el EN SUMA no afirma EAo severa',
+      cero.suma.indexOf('EAo severa') === -1, 'suma=' + cero.suma],
+    ['  y el informe narrativo tampoco dice estenosis severa',
+      cero.inf.indexOf('estenosis severa') === -1, 'inf la trae'],
+    ['CONTROL: por la misma rama, AVA 0,79 SIGUE graduando severa',
+      severa.grado === 'severa' && severa.ava === '0.79',
+      'grado=' + severa.grado + ' ava=' + severa.ava],
+    ['CONTROL: AVA 1,18 sigue moderada',
+      moderada.grado === 'moderada', 'grado=' + moderada.grado + ' ava=' + moderada.ava],
+    ['CONTROL: AVA 3,14 sigue sin estenosis',
+      sinEst.grado === 'sin', 'grado=' + sinEst.grado + ' ava=' + sinEst.ava],
+  ] };
+`);
+
+caso('TC-345', 'EA protesica: el grado nativo residual NO se publica en EN SUMA, PDF ni Excel — sin borrar el campo, y al volver a nativa se recalcula', `
+  const prev = (typeof estiloInforme !== 'undefined') ? estiloInforme : null;
+  /* jsPDF 2.x cuelga text de la INSTANCIA, no del prototipo, asi que se envuelve el constructor,
+     que generarPDFReal relee de window.jspdf en cada llamada. Se corre el MISMO emisor que el
+     boton, en modo medir, que si dibuja el cuerpo. */
+  const pdfTxt = function () {
+    const ns = window.jspdf;
+    if (!ns || typeof ns.jsPDF !== 'function') return 'NO HAY jsPDF';
+    const Orig = ns.jsPDF; const cap = [];
+    function Env() { const dd = new Orig(...arguments); const t = dd.text;
+      dd.text = function (x) { try { cap.push(Array.isArray(x) ? x.join(' ') : String(x)); } catch (e) {}
+        return t.apply(dd, arguments); }; return dd; }
+    Env.API = Orig.API;
+    try { ns.jsPDF = Env;
+      const paso = (window._PDF_A4_PASOS && window._PDF_A4_PASOS[0]) || { sp: 3, fs: 9 };
+      generarPDFReal({ sp: paso.sp, fs: paso.fs, __a4: true, medir: true });
+    } catch (e) {} finally { ns.jsPDF = Orig; }
+    if (!cap.length) return 'SONDA VACIA';
+    return cap.join(' | '); };
+  /* El Excel se arma con el emisor REAL, que deriva todo de inf.campos y nada del DOM vivo. */
+  const excelRow = function () { const campos = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (e) {
+      campos[e.id] = (e.type === 'checkbox' || e.type === 'radio') ? (e.checked ? '1' : '') : e.value; });
+    try { return _labExcelRow({ campos: campos }); } catch (e) { return { ERROR: e.message }; } };
+  const mirar = function (morf) { __t.set('va_morf', morf);
+    const r = __t.informe(); const p = pdfTxt(); const x = excelRow();
+    const partes = String(p).split(' | ');
+    return { grado: __t.val('ea_grado'), suma: r.suma, inf: r.inf,
+             pdfTieneFila: partes.some(function (t) { return t.trim() === 'EA grado'; }),
+             xlsGrado: x['EA grado'], xlsIII: x['EAo_III (Severa)'],
+             xlsI: x['EAo_I (Leve)'], xlsII: x['EAo_II (Moderada)'],
+             vmaxSigue: __t.val('vmax_ao') }; };
+  try { setEstiloInforme('narrativo'); } catch (e) {}
+  __t.limpiar(); window.esqSevManual = {};
+  __t.set('nombre','TC345'); __t.set('vmax_ao','4.5'); __t.set('gmedio_ao','45');
+  try { calcAo(); } catch (e) {}
+  const nat1 = mirar('Trivalva normal');
+  const bio  = mirar('Prótesis biológica');
+  const mec  = mirar('Prótesis mecánica');
+  const tav  = mirar('TAVI');
+  __t.set('va_morf','Trivalva normal'); try { calcAo(); } catch (e) {}
+  const nat2 = mirar('Trivalva normal');
+  __t.limpiar(); window.esqSevManual = {};
+  if (prev) { try { setEstiloInforme(prev); } catch (e) {} }
+  const prots = [['biologica', bio], ['mecanica', mec], ['TAVI', tav]];
+  const cond = [
+    ['DENOMINADOR 1: con morfologia NATIVA la app publica la estenosis severa en las tres superficies',
+      nat1.suma.indexOf('EAo severa.') > -1 && nat1.pdfTieneFila === true && nat1.xlsIII === 1,
+      'suma=' + nat1.suma + ' pdfFila=' + nat1.pdfTieneFila + ' xlsIII=' + nat1.xlsIII],
+    ['DENOMINADOR 2: la sonda del PDF capturo algo (no se cuenta sobre un flujo vacio)',
+      nat1.pdfTieneFila === true, 'no se encontro la fila EA grado ni con valvula nativa'],
+  ];
+  prots.forEach(function (par) {
+    const k = par[0], d = par[1];
+    cond.push(['⚠️ ' + k + ': el EN SUMA no emite EAo severa',
+      d.suma.indexOf('EAo severa') === -1, 'suma=' + d.suma]);
+    cond.push(['  ' + k + ': el PDF no imprime la fila EA grado',
+      d.pdfTieneFila === false, 'la fila sigue en el PDF']);
+    cond.push(['  ' + k + ': el Excel no exporta grado ni EAo_III',
+      d.xlsGrado === '' && d.xlsIII === 0 && d.xlsI === 0 && d.xlsII === 0,
+      'EAgrado=' + d.xlsGrado + ' I=' + d.xlsI + ' II=' + d.xlsII + ' III=' + d.xlsIII]);
+    cond.push(['  ' + k + ': y el CAMPO ea_grado NO se borro, ni el dato medido',
+      d.grado === 'severa' && d.vmaxSigue === '4.5',
+      'ea_grado=' + d.grado + ' vmax=' + d.vmaxSigue]);
+  });
+  cond.push(['al VOLVER a nativa el grado se vuelve a publicar en las tres superficies',
+    nat2.suma.indexOf('EAo severa.') > -1 && nat2.pdfTieneFila === true &&
+    nat2.xlsGrado === 'severa' && nat2.xlsIII === 1,
+    'suma=' + nat2.suma + ' pdfFila=' + nat2.pdfTieneFila + ' xlsIII=' + nat2.xlsIII]);
+  return { extra: cond };
+`);
+
+caso('TC-346', 'Protesis aortica en estilo Narrativo: la morfologia se nombra UNA sola vez — no «presenta una protesis biologica con protesis biologica»', `
+  const prev = (typeof estiloInforme !== 'undefined') ? estiloInforme : null;
+  const linea = function (est, morf) {
+    try { setEstiloInforme(est); } catch (e) {}
+    __t.limpiar(); window.esqSevManual = {};
+    __t.set('nombre','TC346'); __t.set('vmax_ao','3.2'); __t.set('gmedio_ao','25');
+    try { calcAo(); } catch (e) {}
+    __t.set('va_morf', morf);
+    const inf = __t.informe().inf;
+    return inf.split('\\n').filter(function (l) {
+      return l.indexOf('VAo') > -1 || l.toLowerCase().indexOf('aórtica') > -1; }).join(' / '); };
+  const MORFS = [['Prótesis biológica','prótesis biológica'],
+                 ['Prótesis mecánica','prótesis mecánica'],
+                 ['TAVI','prótesis transcatéter tipo TAVI']];
+  const cond = [];
+  MORFS.forEach(function (par) {
+    const morf = par[0], frase = par[1];
+    const nar = linea('narrativo', morf);
+    // cuantas veces aparece el nombre de la protesis en la oracion del narrativo
+    const n = nar.split(frase).length - 1;
+    cond.push(['DENOMINADOR ' + morf + ': la oracion del narrativo existe y nombra la protesis',
+      nar.length > 20 && n >= 1, 'linea=«' + nar + '»']);
+    cond.push(['⚠️ ' + morf + ': la nombra UNA sola vez en estilo Narrativo',
+      n === 1, n + ' menciones de «' + frase + '» en «' + nar + '»']);
+    cond.push(['  ' + morf + ': y no queda el pegado «' + frase + ' con ' + frase + '»',
+      nar.indexOf(frase + ' con ' + frase) === -1, 'sigue el texto duplicado']);
+    // CONTROL: los otros dos estilos usaban UNA sola mencion y no se tocaron
+    ['conciso','estandar'].forEach(function (est) {
+      const l = linea(est, morf);
+      cond.push(['CONTROL [' + est + '] ' + morf + ': sigue con una sola mencion',
+        (l.split(frase).length - 1) === 1, 'linea=«' + l + '»']);
+    });
+  });
+  // CONTROL: una valvula nativa en Narrativo no cambia de frase
+  const nat = linea('narrativo','Trivalva normal');
+  cond.push(['CONTROL: la valvula nativa en Narrativo conserva su construccion con parentesis',
+    nat.indexOf('(trivalva normal)') > -1, 'linea=«' + nat + '»']);
+  __t.limpiar(); window.esqSevManual = {};
+  if (prev) { try { setEstiloInforme(prev); } catch (e) {} }
+  return { extra: cond };
+`);
+
+caso('TC-347', 'PDF: el borde del rango severo de Vmax y gradiente medio sale de EA_CRIT y con el operador del motor (>=), no «>4» / «>40»', `
+  const pdfTxt = function () {
+    const ns = window.jspdf;
+    if (!ns || typeof ns.jsPDF !== 'function') return 'NO HAY jsPDF';
+    const Orig = ns.jsPDF; const cap = [];
+    function Env() { const dd = new Orig(...arguments); const t = dd.text;
+      dd.text = function (x) { try { cap.push(Array.isArray(x) ? x.join(' ') : String(x)); } catch (e) {}
+        return t.apply(dd, arguments); }; return dd; }
+    Env.API = Orig.API;
+    try { ns.jsPDF = Env;
+      const paso = (window._PDF_A4_PASOS && window._PDF_A4_PASOS[0]) || { sp: 3, fs: 9 };
+      generarPDFReal({ sp: paso.sp, fs: paso.fs, __a4: true, medir: true });
+    } catch (e) {} finally { ns.jsPDF = Orig; }
+    if (!cap.length) return 'SONDA VACIA';
+    return cap.join(' | '); };
+  __t.limpiar(); window.esqSevManual = {};
+  __t.set('nombre','TC347'); __t.set('vmax_ao','4.5'); __t.set('gmedio_ao','45');
+  try { calcAo(); } catch (e) {}
+  const p = pdfTxt();
+  const EC = window.EA_CRIT || {};
+  __t.limpiar();
+  /* amiloSanPDF translitera el glifo a >= al dibujar, porque helvetica/WinAnsi lo destroza; por
+     eso se busca >= y no el caracter, que es lo que de verdad queda en el papel. */
+  return { extra: [
+    ['DENOMINADOR: la sonda capturo el flujo de texto del PDF y trae el bloque aortico',
+      p !== 'SONDA VACIA' && p.indexOf('V. max') > -1 && p.indexOf('G. medio') > -1,
+      'flujo=' + String(p).slice(0, 120)],
+    ['los cortes NO se movieron: EA_CRIT sigue en 4,0 m/s y 40 mmHg',
+      EC.vmax === 4.0 && EC.gmed === 40, 'vmax=' + EC.vmax + ' gmed=' + EC.gmed],
+    ['⚠️ la escala de Vmax imprime el borde severo con >= y el valor de EA_CRIT',
+      p.indexOf('/ >=4,0) m/s') > -1, 'no aparece la escala nueva de Vmax'],
+    ['⚠️ la escala del gradiente medio imprime >= y el valor de EA_CRIT',
+      p.indexOf('/ >=40)') > -1, 'no aparece la escala nueva del gradiente'],
+    ['y ya no queda el borde viejo con > estricto en ninguna de las dos',
+      p.indexOf('/ >4) m/s') === -1 && p.indexOf('/ >40)') === -1,
+      'sigue el texto viejo en el papel'],
+  ] };
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────
