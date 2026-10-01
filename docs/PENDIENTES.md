@@ -28,18 +28,53 @@
 Lo de abajo está **medido en Chrome**, no supuesto, y **espera decisión de Maicol**: son cortes,
 fórmulas y rótulos clínicos, que por la regla del repo se reportan y no se tocan.
 
-- **🔴 La fracción regurgitante de la IAo usa el denominador equivocado, y falla hacia «menos
-  severa».** El código hace `volR/(volR+vsv)`, donde `vsv` es el volumen sistólico del TSVI. La ASE
-  2017 (Zoghbi, **folio 311**) define *«RF is then derived as the RVol divided by the SV through the
-  regurgitant valve. Thus, RVol = SV_RegValv − SV_CompValv; RF = RVol/SV_RegValv»*, y la **Tabla 14**
-  (**folio 339**) da el método para la IAo: *«SV method: RVol = SV_LVOT − SV_MV»*. O sea que en la IAo
-  la válvula regurgitante **es la aórtica** y su SV se mide en el TSVI: `vsv` **ya contiene** el
-  volumen regurgitante, y el denominador correcto es `vsv` solo. Sumarle `volR` lo cuenta dos veces.
-  La fórmula del código es la correcta para la **IM** (ahí `vsv` sí es el flujo anterógrado), y
-  parece copiada de ahí. **Medido** con EROA 20 mm², VTI 200 cm, Ø TSVI 20 mm y VTI TSVI 20 cm:
-  VolR 40,0 ml, `vsv` 62,83 ml → la app publica **39 %** (vota *moderada*) y la fórmula de Zoghbi da
-  **64 %** (vota *severa*). Dos bandas de diferencia sobre los mismos datos. **NO se corrigió**: la
-  fórmula es contenido clínico.
+- **[CORREGIDO 2026-10-01, tanda 2b] La fracción regurgitante de la IAo usaba el denominador
+  equivocado y fallaba hacia «menos severa».** Hacía `volR/(volR+vsv)`, donde `vsv` es el volumen
+  sistólico del TSVI. La ASE 2017 (Zoghbi, **folio 311**) define *«RF is then derived as the RVol
+  divided by the SV through the regurgitant valve. Thus, RVol = SV_RegValv − SV_CompValv;
+  RF = RVol/SV_RegValv»*, y la **Tabla 14** (**folio 339**) da el método de la IAo: *«SV method:
+  RVol = SV_LVOT − SV_MV»*. En la IAo la válvula regurgitante **es la aórtica** y su SV se mide en el
+  TSVI: `vsv` **ya contiene** el regurgitante. Hoy es `volR/vsv`, con guarda `vsv > 0`.
+  Medido antes/después con EROA 20 mm², VTI del jet 200 cm, Ø TSVI 20 mm y VTI TSVI 20 cm:
+  **39 % → 64 %**, y el grado integrado **moderada → severa** en las cuatro superficies. Fijado por
+  **TC-350**. ⚠️ **No es una duplicación con la mitral:** `calcIM_ESC` usa `volR/(volR+vsv)` y ahí
+  **está bien**, porque el SV mitral *es* `volR + vsv`; `calcContIM` ya usaba `volR/vmit` con guarda
+  `> 0`, que es la forma correcta. Un «dueño único» de la cuenta sería el error.
+- **🔴 `itv_tsvi` y `diam_tsvi` NO llaman a `calcIA_ESC`, y la tanda 2b lo volvió mucho más caro.**
+  Sus `oninput` llaman `calcAo(); … imSyncSiExiste(); emSyncSiExiste()` — la **mitral** sí se enganchó
+  (`imSyncSiExiste` existe exactamente para esto), la aórtica no. Antes `vsv` estaba diluido en
+  `volR+vsv`; ahora **`FR ∝ 1/vsv`**, así que corregir el Ø del TSVI de 20 a 22 mm deja en pantalla la
+  FR del valor viejo **y no recalcula `ia-sev` ni `ia_grado`**, que es lo único de este bloque que baja
+  al informe, al EN SUMA, al PDF y al Excel, y lo que gobierna `_indIA`. También queda obsoleto
+  `ia-jet-ratio`, que lee `diam_tsvi`. Se cierra con un `iaSyncSiExiste()` calcado de
+  `imSyncSiExiste` en los dos `oninput`. **No se hizo acá**: es cableado nuevo, merece su propio
+  commit y su propia mutación. Lo encontró `/sharp-edges` sobre el diff de 2b.
+- **La FR de la IAo perdió la cota implícita del 100 %.** `volR/(volR+vsv)` no podía pasar de 100 %;
+  `volR/vsv` sí. Con el error de unidad que este repo ya documenta —Ø TSVI tipeado en cm, 2 por 20—
+  `vsv` da 0,628 ml y la FR sale **6369 %**, impresa bajo el rótulo «Fracción regurgitante (%)», y
+  vota severa. Con la fórmula vieja el mismo error daba 98 %. La IAo **sigue sin banda de
+  plausibilidad** (`CHM_RANGO` no cubre `ia_pisa_r`, `ia_pisa_val`, `ia_vmax_cw`, `ia_vti`,
+  `itv_tsvi` ni `diam_tsvi`), mientras la mitral publica con `MARCA_REVISAR` y **retira el voto**
+  (`if (!_frDud)`). Opciones: tratar `fr > 100` como no valorable —precedente: `calcContIM` con
+  «No valorable — revisar mediciones»—, o extender la banda y copiar el patrón `_frDud`. **Es
+  decisión clínica de Maicol**, por eso quedó declarado y no resuelto.
+- **Los calc-val de la IAo no se limpian cuando el insumo desaparece.** `ia-eroa`, `ia-volr` y
+  `ia-jet-ratio` no tienen `else`: borrar el radio del PISA deja la fila afirmando el número
+  retirado, y reimprimir un estudio sin PISA encima de otro que sí lo tenía conserva los del
+  paciente anterior (`cargarEstudioPorId` corre `calcIA_ESC()` sin barrer los span). La mitral lo
+  resolvió con `_pisaLimpiar`. Atenuante **medido**: ningún emisor lee esos tres span —el PDF de
+  IAo imprime VC, PHT y AT; el Excel sólo `PHT IAo`—, así que queda en pantalla. Pero en pantalla
+  es donde se decide. `limpiarCampos` sí los barre, así que «Nuevo estudio» no arrastra.
+- **El VTI del TSVI negativo sigue llegando al PPT.** La tanda 2b lo cerró en `calcIA_ESC`, pero
+  `calcAo` hace `if (dtsvi && itsvi)` sin `> 0` y publica `vs-val`, que el PPT entrega como «Volumen
+  sistólico». Los inputs no tienen `min`. Queda la app diciendo dos cosas del mismo dato: en IAo
+  «no valorable», en el PPT un número negativo. **No se tocó** — fuera del alcance de este diff.
+- **⚠️ EFECTO RETROACTIVO SOBRE ESTUDIOS GUARDADOS — segunda entrada (la primera es la del corte de
+  velocidad telediastólica, tanda 2/3).** No se migró nada, pero `cargarEstudioPorId` vuelve a correr
+  `calcIA_ESC()` al reabrir, así que **la FR se recalcula**. La FR vieja era **siempre menor** que la
+  nueva —el denominador era mayor—, de modo que un estudio archivado puede **subir** de grado al
+  reabrirse y **nunca bajar**. Sumado al corte de 2/3, un mismo estudio reabierto hoy puede decir
+  «severa» donde el papel impreso decía «moderada». Queda declarado, no migrado.
 - **El grado 3 («Moderada-severa») lo ofrece el `select` `ia_sev_final` y `calcIA_ESC` no lo emite
   nunca.** La cascada solo produce `'4'`, `'2'` y `'1'`. Solo se llega a 3 eligiéndolo a mano, y
   hacerlo **apaga el panel de conducta**, que abre con `ia_sev_final === '4'`. La categoría sí existe

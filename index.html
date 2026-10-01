@@ -24078,14 +24078,54 @@ function calcIA_ESC() {
       const vsv = atsvi*itsvi;
       const volR = (PF(eroa)/100*vtiIA).toFixed(1);
       document.getElementById('ia-volr').textContent = volR + ' ml';
-      const fr = (PF(volR)/(PF(volR)+vsv)*100).toFixed(0);
-      document.getElementById('ia-freg').textContent = fr + '%';
+      /* ⚠️ EL DENOMINADOR ES `vsv` SOLO, Y NO `volR + vsv` COMO EN LA MITRAL. `vsv` es el volumen
+         sistólico del TSVI —`π·(Ø TSVI/20)²·VTI TSVI`—, o sea el SV que cruza la válvula AÓRTICA,
+         que es la regurgitante. La ASE 2017 (Zoghbi, folio 311) define «RF is then derived as the
+         RVol divided by the SV through the regurgitant valve … RF = RVol/SV_RegValv», y su Tabla 14
+         (folio 339) da el método de la IAo: «SV method: RVol = SV_LVOT − SV_MV». Si el RVol se
+         obtiene RESTANDO el mitral del TSVI, entonces el del TSVI ya lo CONTIENE: sumárselo otra
+         vez lo cuenta dos veces e infla el denominador.
+         ⚠️ `calcIM_ESC` usa `volR/(volR+vsv)` y ESO ESTÁ BIEN AHÍ — no es una copia que haya que
+         unificar. En la IM la válvula regurgitante es la mitral y `vsv` es el flujo ANTERÓGRADO,
+         así que el SV mitral es `volR + vsv` y la fórmula sale igual. Las dos expresiones se ven
+         idénticas y dicen cosas distintas porque `vsv` ocupa un rol distinto en cada válvula; de
+         ahí salió el defecto, que es la mitral copiada a la aórtica. Un «dueño único» de esta
+         cuenta sería el error, no el arreglo.
+         ⚠️ CAMBIA LO QUE IMPRIME UN INFORME YA GUARDADO. No se migró nada —la regla del repo es que
+         un cambio de criterio NO sale a reescribir el disco—, pero `cargarEstudioPorId` vuelve a
+         correr `calcIA_ESC()` al reabrir, así que la FR se RECALCULA. Medido: EROA 20 mm², VTI del
+         jet 200 cm, Ø TSVI 20 mm y VTI TSVI 20 cm daban FR 39 % y «IAo moderada» en las cuatro
+         superficies, y ahora dan 64 % y «IAo severa». La FR vieja SIEMPRE era menor que la nueva
+         —el denominador era mayor—, así que todo lo archivado puede subir de grado, nunca bajar.
+         ⚠️ Y SE EXIGE `vsv > 0` ANTES DE DIVIDIR. La guarda de arriba (`itsvi && dtsvi`) descarta el
+         cero pero NO el negativo, y un VTI del TSVI con signo —el equipo lo muestra así— daba una
+         FR de −175 % que además VOTABA leve, porque −175 < 30. Un porcentaje imposible que empuja
+         el grado hacia el lado tranquilizador. Sin `vsv` utilizable no hay FR: el renglón queda en
+         «—» y el parámetro NO vota, que es lo que hacen los hermanos cuando el insumo no sirve. */
+      /* ⚠️ SE VALIDA EL RESULTADO, NO SOLO EL DENOMINADOR — `vsv > 0` solo no alcanza, y lo cazó
+         `/sharp-edges` sobre este mismo diff. `v()` descarta `NaN` pero NO `Infinity`, y
+         `Infinity > 0` es `true`: un Ø TSVI desbordado daba `vsv = Infinity`, `fr = '0'` y un voto
+         LEVE sobre una división que no significa nada. Por el otro lado, `volR` infinito deja
+         `fr = 'Infinity'` o `'NaN'`, que fallan las DOS comparaciones del voto y caen en el `else`
+         → severa. Es el idioma que este archivo ya usa (`!isFinite(v) || v<=0`).
+         ⚠️ Y SE VALIDA `vsv` APARTE DEL COCIENTE, porque mirar sólo el cociente NO alcanza: con
+         `vsv = Infinity` el cociente da **0**, que es finito y pasa el filtro, y ahí volvía el voto
+         LEVE con un «0 %» en pantalla. La primera versión de esta guarda tenía ese agujero y lo
+         encontró el propio caso de prueba, no la lectura. Hacen falta las dos comprobaciones: `vsv`
+         finito y positivo —denominador utilizable— y el cociente finito, que es lo que atrapa un
+         `volR` desbordado. */
+      const frNum = PF(volR)/vsv*100;
+      const frOk = Number.isFinite(vsv) && vsv > 0 && Number.isFinite(frNum);
+      const fr = frOk ? frNum.toFixed(0) : null;
+      document.getElementById('ia-freg').textContent = frOk ? fr + '%' : '—';
       if (volR < 30) { scores.leve++; params.push({p:'Vol-R',sev:'leve'}); }
       else if (volR < 60) { scores.moderada++; params.push({p:'Vol-R',sev:'moderada'}); }
       else { scores.severa++; params.push({p:'Vol-R',sev:'severa'}); }
-      if (fr < 30) { scores.leve++; params.push({p:'FR',sev:'leve'}); }
-      else if (fr < 50) { scores.moderada++; params.push({p:'FR',sev:'moderada'}); }
-      else { scores.severa++; params.push({p:'FR',sev:'severa'}); }
+      if (frOk) {
+        if (fr < 30) { scores.leve++; params.push({p:'FR',sev:'leve'}); }
+        else if (fr < 50) { scores.moderada++; params.push({p:'FR',sev:'moderada'}); }
+        else { scores.severa++; params.push({p:'FR',sev:'severa'}); }
+      }
     }
   }
 
@@ -87955,8 +87995,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261001-1917';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790893050551;                 /* eco-build-ms */
+const ECO_BUILD    = '20261001-2049';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790898543425;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -88042,7 +88082,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261001-1917</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261001-2049</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -133,10 +133,26 @@ declarados en el panel con el marcador `ecosmart` — lee: `ia_vc`, `ia_jet_diam
 `ia_vti_desc`, `ia_pisa_r`, `ia_pisa_val`, `ia_vmax_cw`, `ia_vti`, `itv_tsvi`; escribe: `ia-jet-ratio`,
 `ia-pht-interp`, `ia-vtd-interp`, `ia-vti-desc-interp`, `ia-eroa`, `ia-volr`, `ia-freg`, grado vía
 `autoCompletarSevIA`.
-⚠️ **La fracción regurgitante usa `volR/(volR+vsv)`, y `vsv` es el volumen sistólico del TSVI.** La
-ASE 2017 (Zoghbi, folio 311) define `RF = RVol/SV_RegValv`, y en la IAo la válvula regurgitante es la
-aórtica, cuyo SV se mide en el TSVI: el denominador correcto sería `vsv` solo. **Reportado, NO
-corregido** — ver `docs/PENDIENTES.md`.
+⚠️ **La fracción regurgitante es `volR/vsv`, con guarda `vsv > 0`** (corregido en la tanda 2b; antes
+era `volR/(volR+vsv)`). `vsv` es el volumen sistólico del TSVI — `π·(Ø TSVI/20)²·VTI TSVI` —, o sea el
+SV de la válvula **aórtica**, que es la regurgitante: ASE 2017 (Zoghbi, folio 311) `RF =
+RVol/SV_RegValv`, y Tabla 14 (folio 339) `RVol = SV_LVOT − SV_MV`, de donde el SV del TSVI ya contiene
+el regurgitante. Sin `vsv` positivo el renglón queda en «—» y la FR **no vota**. Fijado por TC-350.
+
+**Las tres FR de la app, que se parecen y no son la misma cuenta** — no unificar:
+
+| Función | Fórmula | Por qué |
+|---|---|---|
+| `calcIA_ESC` (IAo, PISA) | `volR/vsv` | `vsv` es el SV de la válvula regurgitante (la aórtica) |
+| `calcIM_ESC` (IM, PISA) | `volR/(volR+vsv)` | ahí `vsv` es el flujo **anterógrado**, y el SV mitral *es* `volR+vsv` |
+| `calcContIM` (IM, continuidad) | `volR/vmit` con `vmit > 0` | la forma directa de Zoghbi; es el precedente de la guarda |
+
+El defecto de la IAo fue la fórmula de `calcIM_ESC` copiada a otra válvula. **Un «dueño único» de la
+cuenta sería el error, no el arreglo.**
+
+⚠️ **Borde del voto severo: la app usa `fr >= 50` y las dos guías no coinciden entre sí.** La ASE 2017
+(tabla de IAo, folio 340) publica **`≥ 50 %`** —la app coincide— y la ESC/EACTS 2025 (Figura 4, folio
+4659) publica **`RF >50% (echo)`**. Difieren sólo en el 50 exacto. **No se tocó.**
 
 `eaProtVeredicto()` — Tabla 5 ASE 2024 (obstrucción protésica aórtica): normal/posible/significativa;
 `null` si `va_morf` no es prótesis; distingue TAVI; el DVI se lee de `dvi-val` antes que de

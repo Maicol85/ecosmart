@@ -43429,6 +43429,125 @@ caso('TC-349', 'IAo: el VTI del flujo reverso en Ao desc. vota con cortes de la 
   ] };
 `);
 
+caso('TC-350', 'IAo: la fraccion regurgitante es RVol/SV TSVI (ASE 2017 folio 311), no RVol/(RVol+SV TSVI) — el SV del TSVI YA contiene el regurgitante', `
+  const prev = (typeof estiloInforme !== 'undefined') ? estiloInforme : null;
+  const pdfTxt = function () {
+    const ns = window.jspdf;
+    if (!ns || typeof ns.jsPDF !== 'function') return 'NO HAY jsPDF';
+    const Orig = ns.jsPDF; const cap = [];
+    function Env() { const dd = new Orig(...arguments); const t = dd.text;
+      dd.text = function (x) { try { cap.push(Array.isArray(x) ? x.join(' ') : String(x)); } catch (e) {}
+        return t.apply(dd, arguments); }; return dd; }
+    Env.API = Orig.API;
+    try { ns.jsPDF = Env;
+      const paso = (window._PDF_A4_PASOS && window._PDF_A4_PASOS[0]) || { sp: 3, fs: 9 };
+      generarPDFReal({ sp: paso.sp, fs: paso.fs, __a4: true, medir: true });
+    } catch (e) {} finally { ns.jsPDF = Orig; }
+    if (!cap.length) return 'SONDA VACIA';
+    return cap.join(' | '); };
+  const excelRow = function () { const campos = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (e) {
+      campos[e.id] = (e.type === 'checkbox' || e.type === 'radio') ? (e.checked ? '1' : '') : e.value; });
+    try { return _labExcelRow({ campos: campos }); } catch (e) { return { ERROR: e.message }; } };
+  /* PISA r=10 mm, Valiasing 15.9155, Vmax CW 500 -> EROA 20.0 mm2 exactos.
+     Para EROA 15.0 mm2 se baja el aliasing a 11.9366. Es la calibracion que usa el pedido. */
+  const esc = (val, vtiJet, dt, it) => { __t.limpiar(); window.esqSevManual = {};
+    __t.set('nombre','TC350');
+    __t.set('ia_pisa_r','10'); __t.set('ia_pisa_val', val); __t.set('ia_vmax_cw','500');
+    if (vtiJet !== null) __t.set('ia_vti', vtiJet);
+    if (dt !== null) __t.set('diam_tsvi', dt);
+    if (it !== null) __t.set('itv_tsvi', it);
+    try { calcIA_ESC(); } catch (e) {}
+    const r = __t.informe(); const p = pdfTxt(); const x = excelRow();
+    return { eroa: __t.txt('ia-eroa'), volr: __t.txt('ia-volr'), freg: __t.txt('ia-freg'),
+             /* El voto se OBSERVA en la linea de discordancia, que imprime params uno por uno.
+                Mirar solo el grado no alcanza: con vsv negativo el voto espurio es «leve» y el
+                integrado queda en 2 lo mismo que sin el, asi que una condicion sobre el grado no
+                puede fallar. Lo encontro el barrido de mutaciones (M3 sobrevivio). */
+             disc: __t.txt('ia-discordancia'),
+             grado: __t.val('ia_grado'), badge: __t.txt('ia-sev'),
+             inf: r.inf, suma: r.suma, pdf: String(p),
+             xlsGrado: x['IAo grado'], xlsII: x['IAo_II (Moderada)'], xlsIII: x['IAo_III (Severa)'] }; };
+  try { setEstiloInforme('narrativo'); } catch (e) {}
+  // El caso del pedido: EROA 20 mm2, VTI del jet 200 cm, O TSVI 20 mm, VTI TSVI 20 cm.
+  const ctx = esc('15.9155','200','20','20');
+  // Moderado verdadero: EROA 15 mm2, mismo TSVI. La FR cambia de valor pero NO de banda.
+  const mod = esc('11.9366','200','20','20');
+  // vsv NO medible: sin VTI del TSVI la FR no se puede calcular.
+  const sinVsv = esc('15.9155','200','20', null);
+  // vsv negativo: el VTI del TSVI con signo da un denominador imposible.
+  const vsvNeg = esc('15.9155','200','20','-20');
+  /* vsv = Infinity: v() descarta NaN pero NO infinito, y «Infinity > 0» es true. Sin validar el
+     COCIENTE, la FR salia '0%' y votaba LEVE sobre una division sin sentido. Lo cazo /sharp-edges. */
+  const vsvInf = esc('15.9155','200','1e200','20');
+  /* CONTROL NEGATIVO: sin datos de PISA la FR no interviene en absoluto. Las cuatro superficies
+     tienen que ser IDENTICAS antes y despues del arreglo; si la sonda las ve distintas aca,
+     esta midiendo otra cosa. */
+  __t.limpiar(); window.esqSevManual = {};
+  __t.set('nombre','TC350n'); __t.set('ia_vc','8');
+  try { calcIA_ESC(); } catch (e) {}
+  const rN = __t.informe();
+  const ctrl = { grado: __t.val('ia_grado'), freg: __t.txt('ia-freg'),
+                 suma: rN.suma, inf: rN.inf };
+  __t.limpiar(); window.esqSevManual = {};
+  if (prev) { try { setEstiloInforme(prev); } catch (e) {} }
+  return { extra: [
+    ['DENOMINADOR: la calibracion del PISA da los EROA pedidos (20.0 y 15.0 mm²)',
+      ctx.eroa.indexOf('20.0') > -1 && mod.eroa.indexOf('15.0') > -1,
+      'eroa_ctx=' + ctx.eroa + ' eroa_mod=' + mod.eroa],
+    ['DENOMINADOR: la sonda del PDF capturo texto (no se cuenta sobre un flujo vacio)',
+      ctx.pdf !== 'SONDA VACIA' && ctx.pdf !== 'NO HAY jsPDF' && ctx.pdf.length > 50,
+      'pdf=' + ctx.pdf.slice(0, 120)],
+    ['DENOMINADOR: el VolR del caso del pedido es 40.0 ml (EROA 20 mm² x VTI 200 cm)',
+      ctx.volr.indexOf('40.0') > -1, 'volr=' + ctx.volr],
+    /* El numero del hallazgo. SV TSVI = pi*(20/20)^2*20 = 62.83 ml. 40/62.83 = 64 %. */
+    ['⚠️ CASO DEL PEDIDO — la FR es 64 % (RVol/SV TSVI), no 39 % (RVol/(RVol+SV TSVI))',
+      ctx.freg.indexOf('64') > -1 && ctx.freg.indexOf('39') === -1, 'ia-freg=' + ctx.freg],
+    ['  y con 64 % el voto de FR es SEVERO, asi que el integrado pasa a severa',
+      ctx.grado === '4' && ctx.badge.toLowerCase().indexOf('severa') > -1,
+      'grado=' + ctx.grado + ' badge=' + ctx.badge],
+    ['  SUPERFICIE 1 — informe narrativo: dice insuficiencia severa',
+      ctx.inf.indexOf('insuficiencia severa') > -1, 'inf no la trae'],
+    ['  SUPERFICIE 2 — EN SUMA: dice IAo severa y ya no IAo moderada',
+      ctx.suma.indexOf('IAo severa.') > -1 && ctx.suma.indexOf('IAo moderada') === -1,
+      'suma=' + ctx.suma],
+    ['  SUPERFICIE 3 — PDF: el papel trae severa',
+      ctx.pdf.indexOf('severa') > -1, 'pdf=' + ctx.pdf.slice(0, 200)],
+    ['  SUPERFICIE 4 — Excel: IAo grado severa, III en 1 y II en 0',
+      String(ctx.xlsGrado).toLowerCase() === 'severa' && ctx.xlsIII === 1 && ctx.xlsII === 0,
+      'IAograd=' + ctx.xlsGrado + ' II=' + ctx.xlsII + ' III=' + ctx.xlsIII],
+    /* MODERADO VERDADERO: la FR sube de 32 % a 48 % y sigue en la MISMA banda. Es el control que
+       prueba que el arreglo no empuja todo hacia severa. */
+    ['CASO MODERADO (EROA 15 mm²) — la FR nueva es 48 % y NO cruza el corte de 50',
+      mod.freg.indexOf('48') > -1, 'ia-freg=' + mod.freg],
+    ['  y el grado sigue siendo moderada en las cuatro superficies',
+      mod.grado === '2' && mod.suma.indexOf('IAo moderada') > -1 &&
+      mod.suma.indexOf('IAo severa') === -1 && mod.xlsII === 1 && mod.xlsIII === 0,
+      'grado=' + mod.grado + ' suma=' + mod.suma + ' II=' + mod.xlsII + ' III=' + mod.xlsIII],
+    /* vsv no utilizable: no se divide, no se publica numero y no se vota. */
+    ['⚠️ sin VTI del TSVI no hay FR: el renglon queda en — y no se publica un porcentaje',
+      sinVsv.freg === '—', 'ia-freg=' + sinVsv.freg],
+    ['⚠️ con un SV del TSVI no positivo tampoco hay FR (ni Infinity, ni NaN, ni negativo)',
+      vsvNeg.freg === '—', 'ia-freg=' + vsvNeg.freg],
+    ['⚠️ con el SV del TSVI desbordado a Infinity tampoco hay FR: no sale un 0 % tranquilizador',
+      vsvInf.freg === '—', 'ia-freg=' + vsvInf.freg],
+    ['  y ese escenario tampoco vota FR',
+      vsvInf.disc.indexOf('FR:') === -1, 'ia-discordancia=' + vsvInf.disc],
+    ['DENOMINADOR DEL VOTO: cuando la FR SI es utilizable, aparece en la linea de discordancia',
+      ctx.disc.indexOf('FR:severa') > -1, 'ia-discordancia=' + ctx.disc],
+    ['⚠️ y con el denominador no utilizable la FR NO vota: no figura en la discordancia',
+      vsvNeg.disc.indexOf('FR:') === -1, 'ia-discordancia=' + vsvNeg.disc],
+    ['  el grado de ese escenario sale de los otros parametros, no de una division rota',
+      vsvNeg.grado === '2' && vsvNeg.freg === '—', 'grado=' + vsvNeg.grado + ' freg=' + vsvNeg.freg],
+    /* CONTROL NEGATIVO. Si esto se moviera, la sonda no estaria distinguiendo escenarios. */
+    ['CONTROL NEGATIVO — sin PISA la FR no interviene y el renglon queda en —',
+      ctrl.freg === '—', 'ia-freg=' + ctrl.freg],
+    ['CONTROL NEGATIVO — ese escenario grada severa por la VC sola, igual que antes del arreglo',
+      ctrl.grado === '4' && ctrl.suma.indexOf('IAo severa.') > -1,
+      'grado=' + ctrl.grado + ' suma=' + ctrl.suma],
+  ] };
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────
