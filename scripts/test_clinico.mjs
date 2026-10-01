@@ -42143,6 +42143,240 @@ caso('TC-336', 'IM secundaria: el calc-box avisa que gradua con cortes de PRIMAR
   })();
 `);
 
+/* ═══ TC-337 · El THP y la Vmax mitral fuera de banda NO llegan al papel firmado ═════════════
+   Decision de Maicol (2026-09-30). TC-334 ya fija que esos dos no VOTAN; este fija que tampoco se
+   IMPRIMEN, y fija la mitad que NO se toca: el Excel sigue exportando el valor crudo.
+
+   ⚠️ SE MIDEN LAS DOS FILAS DEL PDF, NO UNA. El papel publica el area por THP dos veces —«AVm» en
+   la tabla de Estenosis mitral y «AVm THP» en la de Flujo transmitral— y cerrar una sola dejaba el
+   documento firmado contradiciendose consigo mismo. Con una sola condicion, revertir la fila que
+   no se mide pasa en verde.
+
+   ⚠️ Y SE MIDE LA LINEA DEL INFORME, QUE ES LA INVERSION. Con thp = 0,12 como unica medicion
+   mitral el informe firmado decia «sin estenosis ni insuficiencia»: palabra por palabra lo mismo
+   que una mitral nunca interrogada. Cerrar la compuerta SIN la linea empeora eso, porque el dato
+   desaparece del documento entero. Por eso las dos condiciones van juntas en el mismo caso.
+
+   ⚠️ DENOMINADOR EN TODO: cada condicion de «no sale» tiene su gemela de «dentro de banda SI
+   sale». Sin eso, borrar la fila entera del PDF tambien pasaria en verde. */
+caso('TC-337', 'EM: con thp o em_vmax fuera de banda las DOS filas del PDF dicen «no evaluable», el informe lo NOMBRA en vez de negar, y el Excel no se mueve', `
+  return (async () => {
+    const R = {};
+    const cargar = function(campos){
+      try { __t.limpiar(); } catch (e) {}
+      try { indicCerrar(); } catch (e) {}
+      Object.keys(campos).forEach(function(id){ __t.set(id, campos[id]); });
+      /* calcEM() AL FINAL, por lo mismo que TC-334: ia_grado es un oculto sin oninput y sembrarlo
+         no recalcula nada. Sin esta llamada, avm_thp queda del paciente anterior. */
+      try { calcEM(); } catch (e) {}
+    };
+    const papel = function(){
+      return { avm:    String(emAvmPdfVal()),
+               avmThp: String((typeof emAvmThpPdfTxt === 'function') ? emAvmThpPdfTxt() : vPdf('avm_thp',' cm2')),
+               thp:    String(vPdf('thp',' ms')) };
+    };
+    const texto = function(){ generarInforme();
+      return { inf: String(__t.val('informe_texto') || ''), suma: String(__t.val('en_suma') || '') }; };
+    /* El recorte del runner vive en Node; aca hace falta uno propio para que el diagnostico de un
+       rojo quepa en una linea en vez de volcar el informe entero. */
+    const recorteN = function(s){ return String(s || '(vacio)').replace(/\\n/g, ' | ').slice(0, 170); };
+    const BASE = { nombre:'Banda THP', ci:'1234567-8', peso:'80', talla:'175', ia_grado:'0' };
+    const NAT  = function(x){ return Object.assign({}, BASE, { vm_morf:'Reumática' }, x || {}); };
+    const PROT = function(x){ return Object.assign({}, BASE, { vm_morf:'Prótesis mecánica' }, x || {}); };
+    /* SINGULAR y PLURAL son dos cadenas distintas a proposito: el sujeto de «no evaluable» es el
+       DATO y no la valvula, asi que con dos datos el adjetivo concuerda. Medir solo una de las dos
+       dejaba la otra sin cobertura. */
+    const LINEA  = 'fuera de rango — dato no evaluable, revisar unidades';
+    const LINEA2 = 'fuera de rango — datos no evaluables, revisar unidades';
+
+    // ── (1) DENTRO DE BANDA: el denominador de TODO lo de abajo ──────────────────────────────
+    cargar(NAT({ thp: '240' }));
+    R.inPapel = papel();
+    R.inTexto = texto();
+    cargar(PROT({ thp: '240', em_vmax: '2.8' }));
+    R.inProtPapel = papel();
+    R.inProtTexto = texto();
+
+    // ── (2) THP FUERA DE BANDA: las dos filas del PDF, mismo texto ───────────────────────────
+    cargar(NAT({ thp: '0.12' }));
+    R.fuPapel = papel();
+    R.fuTexto = texto();
+    R.fuAvmGuardado = __t.val('avm_thp');   // el input NO se toca: va al Excel
+    // el otro lado de la banda, que es el error de unidad simetrico
+    cargar(NAT({ thp: '2400' }));
+    R.altoPapel = papel();
+
+    // ── (3) Vmax FUERA DE BANDA en la linea de PROTESIS ──────────────────────────────────────
+    cargar(PROT({ em_vmax: '250' }));
+    R.vmaxPapel = papel();
+    R.vmaxTexto = texto();
+    // dentro de banda la MISMA protesis si publica la velocidad
+    cargar(PROT({ em_vmax: '2.8' }));
+    R.vmaxOkTexto = texto();
+
+    // ── (4) LOS DOS JUNTOS: una sola linea que nombra los dos ────────────────────────────────
+    cargar(PROT({ thp: '0.12', em_vmax: '250' }));
+    R.dosPapel = papel();
+    R.dosTexto = texto();
+
+    // ── (5) THP fuera de banda CON una planimetria valida arriba ─────────────────────────────
+    /* La severidad la sostiene la planimetria y la frase NO es una negacion; igual el THP
+       ilegible tiene que quedar nombrado, porque si no desaparece del documento. */
+    cargar(NAT({ avm_plan: '1.2', thp: '0.12' }));
+    R.mixtoPapel = papel();
+    R.mixtoTexto = texto();
+
+    // ── (6) EL CERO NO ES UNA MEDICION: no se anuncia una supresion que no ocurrio ──────────
+    /* Con thp = 0, calcTHP ya vacia avm_thp y no hay area que retirar. La primera version del
+       cambio ponia DOS filas «no evaluable» en el papel donde antes no habia ninguna, y encima
+       sin numero al lado —vPdf descarta el 0 por truthiness, asi que la fila del THP tampoco
+       salia—. Lo mismo con em_vmax = 0 y la linea del informe. */
+    cargar(NAT({ thp: '0' }));
+    R.ceroPapel = papel();
+    R.ceroTexto = texto();
+    cargar(PROT({ em_vmax: '0' }));
+    R.ceroVmaxTexto = texto();
+
+    // ── (7) EL EXCEL NO SE MUEVE. Es la mitad que la decision deja intacta ───────────────────
+    R.xls = (function(){
+      try {
+        const f = _labExcelRow({ id:1, fecha_estudio:'2026-09-30',
+          campos:{ vm_morf:'Reumática', thp:'0.12', avm_thp:'1833.33', em_vmax:'250' } });
+        const cols = _labOrdenarCols(Object.keys(f));
+        /* thp y em_vmax NO son columnas del Excel —medido: cero ocurrencias en el armador de la
+           fila—, asi que toda la superficie del libro que esta decision toca es ESTA, la que sale
+           de avm_thp. Por eso se mide el valor y no solo el conteo. */
+        return { n: cols.length, avm: f['AVm (cm²)'],
+                 hayThp: cols.indexOf('THP (ms)') >= 0, hayVmax: cols.indexOf('Vmax mitral (m/s)') >= 0 };
+      } catch (e) { return { ERR: e.message }; }
+    })();
+
+    /* ── (8) EL PAPEL DE VERDAD, NO EL EMISOR ────────────────────────────────────────────────
+       ⚠️ LA PRIMERA VERSION DE ESTE CASO MEDIA emAvmThpPdfTxt() DIRECTO, y por eso revertir el
+       CABLEADO de la fila «AVm THP» a vPdf('avm_thp') pasaba en VERDE: la mutacion sobrevivio en
+       el barrido. Es el denominador equivocado en su forma mas pura — medir la funcion de la que
+       sale el dato en vez de la superficie que el medico firma. Aca se lee el content stream del
+       PDF real, que es el unico oraculo de lo que dice el papel.
+       Se cuenta sobre el stream con las BARRAS SACADAS: jsPDF escapa los parentesis, y una regex
+       de literales que no lo contempla devuelve cero sobre un PDF que si trae el texto. */
+    R.pdf = await (async function(){
+      for (let i = 0; i < 100 && (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF); i++)
+        await new Promise(function(r){ setTimeout(r, 100); });
+      if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) return { SIN_CDN: true };
+      const Orig = window.jspdf.jsPDF;
+      let ultimo = null;
+      function Envuelto(){ const d = new Orig(...arguments);
+        /* save() es propiedad de la INSTANCIA: se anula aca o el caso deja una descarga. */
+        d.save = function(){ return Promise.resolve(); }; ultimo = d; return d; }
+      Envuelto.prototype = Orig.prototype;
+      window.jspdf.jsPDF = Envuelto;
+      const medir = async function(campos){
+        cargar(campos); generarInforme();
+        ultimo = null;
+        try { await generarPDFReal({}); } catch (e) { return { ERR: String(e && e.message) }; }
+        if (!ultimo) return { ERR: 'no se genero el PDF' };
+        /* Las barras se sacan con split/join y no con una regex: el cuerpo del caso pasa por DOS
+           niveles de escape (template literal del runner y parser del navegador) y una regex de
+           una sola barra sale rota del otro lado. String.fromCharCode(92) no tiene ese problema. */
+        const plano = atob(ultimo.output('datauristring').split(',')[1])
+          .split(String.fromCharCode(92)).join('');
+        const n = function(t){ return plano.split(t).length - 1; };
+        return { celdas: n('evaluable (THP fuera de rango'), area1833: n('1833'),
+                 celdasOk: n('0.92 cm2'), largo: plano.length };
+      };
+      const out = {};
+      out.dentro = await medir(NAT({ thp: '240', fevi: '60' }));
+      out.fuera  = await medir(NAT({ thp: '0.12', fevi: '60' }));
+      window.jspdf.jsPDF = Orig;
+      return out;
+    })();
+
+    const tiene = function(s, t){ return String(s).indexOf(t) >= 0; };
+
+    return { extra: [
+      // ── el PDF, dentro de banda ───────────────────────────────────────────────────────────
+      ['DENOMINADOR: con el THP legible las DOS filas del PDF publican el area',
+        tiene(R.inPapel.avm, 'THP: 0.92 cm2') && R.inPapel.avmThp === '0.92 cm2',
+        'avm=«' + R.inPapel.avm + '» avmThp=«' + R.inPapel.avmThp + '»'],
+      // ── el PDF, fuera de banda: LAS DOS, y con el MISMO texto ─────────────────────────────
+      ['⚠️ la fila «AVm» del PDF no publica el area de un THP ilegible',
+        tiene(R.fuPapel.avm, 'no evaluable') && !tiene(R.fuPapel.avm, '1833'),
+        'avm=«' + R.fuPapel.avm + '»'],
+      ['⚠️ y la fila «AVm THP», que es la OTRA del mismo papel, tampoco',
+        tiene(R.fuPapel.avmThp, 'no evaluable') && !tiene(R.fuPapel.avmThp, '1833'),
+        'avmThp=«' + R.fuPapel.avmThp + '»'],
+      ['⚠️ y las dos publican el MISMO literal, caracter por caracter: una fila firmada diciendo «no evaluable» y la otra el area es peor que no cerrar ninguna',
+        R.fuPapel.avm === R.fuPapel.avmThp && R.fuPapel.avmThp === 'no evaluable (THP fuera de rango)',
+        'avm=«' + R.fuPapel.avm + '» avmThp=«' + R.fuPapel.avmThp + '»'],
+      ['⚠️ y el texto NOMBRA el campo: en la tabla, «THP 0.12 ms» sale SIN «(revisar)» —thp no esta en _labRango— asi que un «fuera de rango» pelado se atribuia al area',
+        R.fuPapel.avmThp.indexOf('THP fuera de rango') >= 0 && R.fuPapel.avm.indexOf('THP: no evaluable') < 0,
+        'avm=«' + R.fuPapel.avm + '»'],
+      ['el otro lado de la banda (THP 2400 ms) cierra igual las dos filas',
+        tiene(R.altoPapel.avm, 'no evaluable') && tiene(R.altoPapel.avmThp, 'no evaluable'),
+        'avm=«' + R.altoPapel.avm + '» avmThp=«' + R.altoPapel.avmThp + '»'],
+      ['el THP CRUDO se sigue imprimiendo: se retira el area derivada, no la medicion',
+        tiene(R.fuPapel.thp, '0.12'), 'thp=«' + R.fuPapel.thp + '»'],
+      // ── el informe ────────────────────────────────────────────────────────────────────────
+      ['⚠️ LA INVERSION: con el THP ilegible como unica medicion el informe ya NO se lee igual que una mitral nunca interrogada',
+        tiene(R.fuTexto.inf, 'THP 0.12 ms ' + LINEA), 'inf=«' + recorteN(R.fuTexto.inf) + '»'],
+      ['DENOMINADOR: con el THP legible esa linea NO aparece',
+        !tiene(R.inTexto.inf, 'fuera de rango —') && !tiene(R.inProtTexto.inf, 'fuera de rango —'),
+        'nat=«' + recorteN(R.inTexto.inf) + '»'],
+      ['⚠️ la linea de PROTESIS deja de publicar el area de un THP ilegible, y lo nombra',
+        !tiene(R.dosTexto.inf, 'cm² por THP') && tiene(R.dosTexto.inf, 'THP 0.12 ms'),
+        'inf=«' + recorteN(R.dosTexto.inf) + '»'],
+      ['DENOMINADOR: con el THP legible la protesis SI publica el area por THP',
+        tiene(R.inProtTexto.inf, 'cm² por THP'), 'inf=«' + recorteN(R.inProtTexto.inf) + '»'],
+      ['⚠️ la linea de PROTESIS deja de publicar una Vmax de 250 m/s, y la nombra',
+        !tiene(R.vmaxTexto.inf, 'Vmax 250 m/s)') && !tiene(R.vmaxTexto.inf, 'Vmax 250 m/s,') &&
+        tiene(R.vmaxTexto.inf, 'Vmax 250 m/s ' + LINEA),
+        'inf=«' + recorteN(R.vmaxTexto.inf) + '»'],
+      ['DENOMINADOR: con la Vmax legible la protesis SI la publica, y sin la linea',
+        tiene(R.vmaxOkTexto.inf, 'Vmax 2.8 m/s') && !tiene(R.vmaxOkTexto.inf, 'fuera de rango —'),
+        'inf=«' + recorteN(R.vmaxOkTexto.inf) + '»'],
+      ['⚠️ el adjetivo concuerda: con UN dato es singular, y el sujeto es el dato y no la valvula —con una planimetria valida arriba, «mitral no evaluable» contradecia al «estenosis severa» del renglon anterior',
+        tiene(R.mixtoTexto.inf, 'dato no evaluable') && !tiene(R.mixtoTexto.inf, 'datos no evaluables'),
+        'inf=«' + recorteN(R.mixtoTexto.inf) + '»'],
+      ['⚠️ con los DOS fuera de banda sale UNA sola linea que nombra a los dos',
+        tiene(R.dosTexto.inf, 'THP 0.12 ms y Vmax 250 m/s ' + LINEA2) &&
+        R.dosTexto.inf.split('fuera de rango —').length === 2,
+        'inf=«' + recorteN(R.dosTexto.inf) + '»'],
+      ['con una planimetria valida arriba, el THP ilegible igual queda nombrado y no se publica su area',
+        tiene(R.mixtoTexto.inf, 'THP 0.12 ms ' + LINEA) && !tiene(R.mixtoTexto.inf, '1833'),
+        'inf=«' + recorteN(R.mixtoTexto.inf) + '»'],
+      ['DENOMINADOR: el informe se genero de verdad —no es un textarea vacio contandose como «no aparece»—',
+        R.fuTexto.inf.length > 200 && R.inTexto.inf.length > 200,
+        'fuera=' + R.fuTexto.inf.length + ' dentro=' + R.inTexto.inf.length],
+      ['la linea NO sube al EN SUMA: el resumen no es la superficie de esta salvedad',
+        !tiene(R.fuTexto.suma, 'fuera de rango —') && !tiene(R.dosTexto.suma, 'fuera de rango —'),
+        'suma=«' + recorteN(R.dosTexto.suma) + '»'],
+      // ── lo que NO se toca ─────────────────────────────────────────────────────────────────
+      ['⚠️ el input avm_thp NO se toca: es el que viaja al Excel',
+        String(R.fuAvmGuardado).indexOf('1833') >= 0 && String(R.fuAvmGuardado).indexOf('evaluable') < 0,
+        'avm_thp=«' + R.fuAvmGuardado + '»'],
+      ['⚠️ el CERO no es una medicion: no hay area que retirar, asi que el papel no gana dos filas «no evaluable» sin un numero al lado',
+        R.ceroPapel.avm === 'null' && R.ceroPapel.avmThp === 'null' && R.ceroPapel.thp === 'null',
+        'avm=«' + R.ceroPapel.avm + '» avmThp=«' + R.ceroPapel.avmThp + '» thp=«' + R.ceroPapel.thp + '»'],
+      ['⚠️ y el informe no manda a «revisar unidades» un THP 0 ni una Vmax 0, que el medico no midio',
+        !tiene(R.ceroTexto.inf, 'fuera de rango —') && !tiene(R.ceroVmaxTexto.inf, 'fuera de rango —'),
+        'thp0=«' + recorteN(R.ceroTexto.inf) + '»'],
+      // ── EL PAPEL DE VERDAD ────────────────────────────────────────────────────────────────
+      ['DENOMINADOR del papel: el PDF se genero y, con el THP legible, las DOS filas imprimen el area',
+        !!R.pdf && !R.pdf.SIN_CDN && R.pdf.dentro && R.pdf.dentro.largo > 5000 && R.pdf.dentro.celdasOk >= 2,
+        JSON.stringify(R.pdf && R.pdf.dentro)],
+      ['⚠️ EN EL PDF REAL, las DOS celdas dicen «no evaluable» — y es la condicion que cubre el CABLEADO de las dos filas, no solo su emisor',
+        !!R.pdf && !R.pdf.SIN_CDN && R.pdf.fuera && R.pdf.fuera.celdas === 2,
+        JSON.stringify(R.pdf && R.pdf.fuera)],
+      ['⚠️ y el area de 1833 cm² NO aparece en NINGUNA parte del documento firmado',
+        !!R.pdf && !R.pdf.SIN_CDN && R.pdf.fuera && R.pdf.fuera.area1833 === 0,
+        JSON.stringify(R.pdf && R.pdf.fuera)],
+      ['⚠️ y el Excel sigue exportando el valor CRUDO, en sus 434 columnas',
+        R.xls.n === 434 && R.xls.avm === 1833.33 && R.xls.hayThp === false && R.xls.hayVmax === false,
+        JSON.stringify(R.xls)]
+    ] };
+  })();
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

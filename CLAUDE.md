@@ -1,20 +1,112 @@
 # EcoSmart — trampas de este archivo
 
-## ⏸️ ESTADO: cierre de la mitral — etapas A y B HECHAS, C/D/E SIN EMPEZAR (2026-09-30)
+## ⏸️ ESTADO: cierre de la mitral — A, B y C HECHAS; D y E sin empezar (2026-10-01)
 
-Rama `wip/pandian-eroa`. **Main NO se movió** (sigue en `417b5c9`) y la rama **no está en el remoto**
-—`origin/wip/pandian-eroa` no existe; el pedido decía que ya se había subido y es falso—.
+Todo en **`main`**. El estado anterior decía «main sigue en `417b5c9`» y **ya era falso**: A y B
+están mergeadas.
 
 | etapa | estado | commit |
 |---|---|---|
-| A · cociente con IAo | **hecha y verificada** | `fa58adf` |
-| B · aviso de IM secundaria | **hecha y verificada** | `0b309d2` |
-| C · THP y Vmax fuera de banda | **censo hecho, SIN implementar** | — |
+| A · cociente con IAo | hecha y verificada | `fa58adf` |
+| B · aviso de IM secundaria | hecha y verificada | `0b309d2` |
+| C · THP y Vmax fuera de banda | **hecha y verificada** | ver abajo |
 | D · AVm por continuidad en el panel | sin empezar | — |
-| E · mutaciones + merge + push | sin empezar | — |
+| E · mutaciones de la tanda 2 + push | mutaciones de C hechas; las de la tanda 2 **siguen sin correr** | — |
 
-Suite **350/351** (único rojo TC-223, el documentado). Semgrep **125 / 0 ERROR**, la línea base.
-Las mutaciones de la etapa 2 de la tanda anterior **siguen sin correr** y se suman a la etapa E.
+Línea base medida contra un checkout limpio de HEAD, no de memoria: suite **350/351** (único rojo
+TC-223, el documentado — falla por la fecha, `encontrado: 2026-10-01`) y Semgrep **125 / 0 ERROR**.
+Con la etapa C: **351/352**, mismo único rojo, y Semgrep **125 / 0 ERROR**.
+
+## Etapa C — el THP y la Vmax mitral fuera de banda no llegan al papel (2026-10-01)
+
+Decisión de Maicol: con `thp` fuera de `[20,600]` ms o `em_vmax` fuera de `[0.2,8]` m/s, el valor
+**no se imprime en el PDF ni en el informe**. El **Excel queda con el valor crudo, sin un cambio**.
+«Ni entra a la severidad» ya estaba hecho (TC-334). Cobertura: **TC-337**.
+
+### Qué se tocó, y por qué en esos tres lugares
+- **`emAvmThpPdfTxt()`** (`index.html:~22275`), **dueño único de las DOS filas del PDF**. El papel
+  publica el área por THP dos veces —«AVm» en Estenosis mitral y «AVm THP» en Flujo transmitral—
+  y cerrar una sola dejaba el documento firmado contradiciéndose. Las dos leen de acá.
+- **La línea de prótesis del informe** (`~26880`): `_aThp` y `_vmaxM` pasan por la banda. Antes la
+  continuidad de al lado sí preguntaba y esas dos no.
+- **Una línea breve nueva en el informe** (`~26965`), que cubre la rama nativa y la protésica.
+
+### Las redacciones, y por qué son ésas
+- **PDF, las dos celdas**: `no evaluable (THP fuera de rango)`. **Nombra el campo** y la fila «AVm»
+  NO le antepone «THP: ». La primera versión decía «no evaluable (fuera de rango)» y en la tabla
+  salía pegada a «THP | 0.12 ms» —que va **sin «(revisar)»**, porque `thp` no tiene entrada en
+  `_labRango` y `vPdf` sólo consulta esa tabla—, así que «fuera de rango» se leía como si el malo
+  fuera **el área**.
+- **Informe**: `Válvula mitral: <lista> fuera de rango — dato no evaluable / datos no evaluables,
+  revisar unidades.` **El sujeto es el DATO, no la válvula**, y eso no es cosmético: la primera
+  versión decía «Válvula mitral … no evaluable» y con una planimetría válida arriba el informe
+  firmado decía «estenosis severa» en un renglón y «mitral no evaluable» en el siguiente. El
+  adjetivo concuerda por caso, igual que `fraseEI` elige «y»/«e».
+
+### ⚠️ EL CERO NO ES UNA MEDICIÓN, Y LA PRIMERA VERSIÓN LO TRATABA COMO UN DEDAZO
+`v('thp')` devuelve `0` para un «0» tipeado y la banda lo da por fuera. Pero `calcTHP` ya vacía
+`avm_thp` y sale, así que **no hay área que suprimir**: anunciarla ponía en el papel DOS filas «no
+evaluable» donde antes no había **ninguna**, y encima sin número al lado —`vPdf` descarta el 0 por
+truthiness, así que la fila del THP tampoco salía—. Medido contra HEAD: `null → «THP: no
+evaluable»`. Hoy la compuerta del PDF exige `v('avm_thp')` y la del informe `> 0`. Lo cazó
+`/sharp-edges` sobre el propio diff.
+
+### ⚠️ EL CASO DE PRUEBA MEDÍA EL EMISOR Y NO EL PAPEL — UNA MUTACIÓN SOBREVIVIÓ POR ESO
+TC-337 llamaba a `emAvmThpPdfTxt()` directo, así que **revertir el CABLEADO de la fila «AVm THP» a
+`vPdf('avm_thp')` pasaba en verde**. Lo cazó el barrido, no la lectura. Hoy el caso lee el **content
+stream del PDF real** y cuenta las ocurrencias: 2 celdas fuera de banda, 0 dentro.
+Y al leerlo: **jsPDF escapa los paréntesis**, así que una regex de literales `(...) Tj` que no lo
+contemple devuelve **cero sobre un PDF que sí trae el texto**. La primera sonda dio exactamente eso
+y pareció que la celda salía vacía. Se cuenta sobre el stream con las barras sacadas.
+
+### Lo medido, con denominador
+- **Sonda A/B contra HEAD, 20 escenarios**: los **9 dentro de banda, idénticos byte a byte** —
+  informe en los tres estilos, EN SUMA, las dos filas del PDF, la fila del THP crudo, los displays,
+  la cápsula, el badge, el panel y la **fila de 434 columnas del Excel**—. Incluye los bordes
+  exactos de la banda (20/600 ms y 0,2/8 m/s), que siguen adentro.
+- **El Excel, idéntico en los 20**, dentro y fuera de banda. `thp` y `em_vmax` **no son columnas**;
+  la única que toca el tema es «AVm (cm²)», y no se consulta desde el papel.
+- **PDF real**: fuera de banda, 2 celdas «no evaluable» y **cero ocurrencias de «1833»** en todo el
+  documento. Dentro de banda, 0 y 0.
+- **11 mutaciones, 11 en rojo**, md5 antes/después/revert en cada una.
+
+### ⚠️ EL EN SUMA SÍ CAMBIA FUERA DE BANDA, Y NO ES UNA LÍNEA NUEVA
+Con prótesis, el EN SUMA **reutiliza la oración del cuerpo** (TC-303/TC-313), así que sacarle el
+«AVm 1833.33 cm² por THP» al cuerpo se lo saca también al resumen. **La línea nueva NO sube al EN
+SUMA** — eso está medido y cubierto.
+
+### ⚠️ REIMPRIMIR UN GUARDADO DE ANTES: LA TABLA SE REGENERA, EL NARRATIVO NO. NO SE MIGRÓ NADA
+Medido en Chrome, guardando y reimprimiendo de verdad:
+- **Nativo**: las dos filas dicen «no evaluable», el 1833 no aparece, y el narrativo congelado sigue
+  diciendo «sin estenosis ni insuficiencia» **sin la línea nueva**. Retira el número, no gana la
+  explicación.
+- **Prótesis — el caso peor**: la tabla dice «no evaluable» y el narrativo congelado publica
+  **«(AVm 1833.33 cm² por THP, Vmax 250 m/s)»**. El mismo PDF firmado publica el área y la declara
+  no evaluable. Verificado: `1833` aparece **1 vez** en ese documento.
+- **Y `pdfDeInformeGuardado` toma `id`, NO `estudioId`.** Pasándole el otro no encuentra nada, **no
+  lanza**, y la captura queda vacía — se lee igual que un PDF que no se generó. Dos corridas se
+  perdieron ahí.
+
+### ⚠️ REPORTADO Y NO TOCADO — espera decisión de Maicol
+1. **El panel «🖨️ Incluir en el informe» contradice al PDF.** `_pdfMetodoSpan('em-pdf-thp-val',
+   v('avm_thp'))` (`~22235`) no consulta la banda: con `thp = 0,12` el panel dice «AVm por THP —
+   1833.33 cm² — siempre incluida» y el PDF dice «no evaluable». El panel existe para declarar qué
+   sale en el papel. Es de pantalla, o sea fuera del alcance «PDF e informe».
+2. **La negación tranquilizadora sigue viva para los otros tres campos.** `cat.revisar` recoge
+   cinco: `avm_plan`, `avm_ete`, `avm_cont`, el THP y `em_gmedio`. Con `avm_plan = 150` y nada más,
+   el informe firmado sigue diciendo «sin estenosis ni insuficiencia». El pedido lo declara
+   preexistente y pide sólo reportarlo. Derivar la línea de `cat.revisar` lo cerraría para los cinco.
+3. **`avm_idx` es una CUARTA superficie del área por THP**, y el censo de `calcTHP` decía tres:
+   `avmMejor = avm_plan || avm_cont_val || avm_thp_val` alimenta `#avm_idx` y la columna «AVm
+   indexada (cm²/m²)» del Excel. Con `thp = 0,12` y BSA 2,0 publica «916.67 cm²/m²» sin marca.
+4. **`em_vmax = 0` deja de publicarse en silencio.** HEAD imprimía «(Vmax 0 m/s)» en el informe
+   firmado; hoy se omite y **no** sale la línea de «revisar unidades» (un 0 no es un error de
+   unidad). Es la dirección correcta, pero es una remoción silenciosa.
+5. **La continuidad inválida se sigue omitiendo sin nombrarse.** La línea nueva cubre el THP y la
+   Vmax; el `AVm por continuidad` de dos renglones más arriba se omite callado, como antes.
+6. **El piso de 20 ms.** Un llenado restrictivo con DT < 70 ms da un THP real por debajo del piso:
+   ahí el papel diría «revisar unidades» sobre una medición correcta **y le retiraría el área**. La
+   banda es preexistente; lo nuevo es que ahora **retira contenido del informe firmado**.
 
 ### Censo de la etapa C, ya medido — NO hay que volver a buscarlo
 Bandas: `EM_BANDA_PLAUS.em_vmax = [0.2, 8]` m/s y `thp = [20, 600]` ms (`index.html:20836`).
@@ -40,6 +132,10 @@ Bandas: `EM_BANDA_PLAUS.em_vmax = [0.2, 8]` m/s y `thp = [20, 600]` ms (`index.h
   (`index.html:21279`) y un THP fuera de banda **ya no vota** — cae en `revisar`. Lo fija TC-334.
   O sea que de «no se imprime **ni entra a la severidad**», la segunda mitad ya está hecha.
 
+### ⚠️ [RESUELTO 2026-10-01] DECISIÓN QUE FRENABA LA ETAPA C: el PDF imprime el área en DOS filas
+**Se cerraron las DOS**, que era la opción recomendada. El texto de las dos celdas sale del mismo
+dueño (`emAvmThpPdfTxt`), así que no pueden divergir. Lo de abajo queda como registro de por qué
+la etapa estuvo frenada.
 ### ⚠️ DECISIÓN QUE FRENA LA ETAPA C: el PDF imprime el área del THP en DOS filas, no en una
 El pedido nombra sólo `emAvmPdfVal`. Pero el comentario de `index.html:21397` censa **tres**
 superficies para `avm_thp`, y dos son del PDF: `emAvmPdfVal()` (fila «AVm») **y**

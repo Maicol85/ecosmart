@@ -21394,13 +21394,19 @@ function calcEM() {
     /* ⚠️ LA MARCA VA EN LOS DISPLAYS Y **NO** EN `avm_thp`. El valor de ese input viaja a TRES
        superficies —el conteo de la primera versión de este comentario decía dos y lo corrigió
        `/sharp-edges`—: el Excel (`rnd(num('avm_thp'),2)`, columna «AVm (cm²)»), la fila «AVm THP»
-       del PDF firmado (`vPdf('avm_thp',' cm2')`) y **`emAvmPdfVal()`**, que arma la fila «AVm» del
-       mismo PDF. Pegarle « (revisar)» al valor guardado le mete texto a una celda numérica y cambia
-       las tres. La continuidad puede hacerlo al revés —`setv('avm_cont', … + _marca)`— porque
-       `avm_cont` no es de esas.
-       ⚠️ DECLARADO Y NO CORREGIDO: `emAvmPdfVal()` imprime el THP **sin compuerta** —«THP: 1833.33
-       cm2» con `thp = 0,12`— mientras la continuidad, en la misma función y tres líneas más abajo,
-       sí la tiene. Cerrarlo es tocar el PDF, que está fuera del alcance de este cambio.
+       del PDF firmado y la fila «AVm» del mismo PDF (`emAvmPdfVal()`). Pegarle « (revisar)» al
+       valor guardado le mete texto a una celda numérica y cambia las tres. La continuidad puede
+       hacerlo al revés —`setv('avm_cont', … + _marca)`— porque `avm_cont` no es de esas.
+       ⚠️ LAS DOS DEL PDF YA ESTÁN CERRADAS (2026-09-30), y la tercera NO. Las dos filas del papel
+       pasan hoy por `emAvmThpPdfTxt()` —ver su nota—, que con el THP fuera de banda publica «no
+       evaluable» en vez del área. La del Excel sigue exportando el valor crudo, que es la decisión
+       de Maicol: el libro guarda lo que se midió y el papel firmado no lo interpreta.
+       ⚠️ Y EL CENSO DE «TRES» SIGUE CORTO: son CUATRO, porque `avm_thp_val` alimenta además
+       `avmMejor` unas líneas más abajo, y de ahí salen `#avm_idx` en pantalla y la columna «AVm
+       indexada (cm²/m²)» del Excel. Con `thp = 0,12` y BSA 2,0 eso publica «916.67 cm²/m²» sin una
+       marca. Las dos quedan REPORTADAS y no tocadas: la del Excel por la misma decisión de arriba,
+       y la de pantalla porque mover `avmMejor` toca el AVm indexado de las otras fuentes. Lo cazó
+       `/sharp-edges` sobre el diff de la etapa C.
        Se marcan los TRES lugares donde el médico lo lee, el THP incluido: el número ilegible es
        ÉSE, y el área es sólo su consecuencia. */
     const _mt = emThpFueraBanda() ? ' (revisar)' : '';
@@ -22241,6 +22247,64 @@ function emPdfValsSync() {
 }
 window.emPdfValsSync = emPdfValsSync;
 
+/* ══ EL ÁREA POR THP EN EL PAPEL FIRMADO — UN SOLO DUEÑO PARA LAS DOS FILAS ═══════════════════
+   Decisión de Maicol (2026-09-30): con el THP fuera de la banda de plausibilidad, el área que
+   sale de él NO se imprime en el PDF. El Excel queda con el valor CRUDO, sin ningún cambio —la
+   columna «AVm (cm²)» sigue siendo `rnd(num('avm_thp'),2)` y nadie la consulta desde acá—.
+
+   ⚠️ VA EN UNA FUNCIÓN PORQUE EL PDF IMPRIME ESTA ÁREA DOS VECES, NO UNA. Son dos filas de dos
+   tablas distintas del mismo documento: «AVm» en Estenosis mitral (`emAvmPdfVal`, con el prefijo
+   «THP: » porque comparte celda con la continuidad y la planimetría) y «AVm THP» en Flujo
+   transmitral. Cerrar sólo una dejaba el papel FIRMADO contradiciéndose consigo mismo —una fila
+   diciendo que el dato no es evaluable y la otra publicando «1833.33 cm2»—, que es peor que no
+   cerrar ninguna. Con las dos leyendo de acá no pueden divergir, que es el punto.
+
+   ⚠️ LA SIMETRÍA ES CON EL MECANISMO REAL DE LA CONTINUIDAD, NO CON UNA COMPUERTA QUE NO EXISTE.
+   `emAvmPdfVal` NO le pregunta nada a la continuidad: la continuidad se gatea AGUAS ARRIBA
+   —`calcEM` vacía `avm_cont` cuando `emContValido()` es falso—, así que ahí su rama no imprime
+   porque el input llega vacío. El THP no tiene ese camino y no puede tenerlo: `calcEM` escribe
+   `avm_thp` igual porque ese input viaja al Excel, y por eso la marca «(revisar)» va en los
+   displays y no en el valor guardado (ver la nota de `calcTHP`). O sea que para el THP la
+   compuerta tiene que estar en el EMISOR, que es acá.
+
+   Se consulta `emThpFueraBanda()`, el mismo dueño que decide el «(revisar)» de los displays y el
+   descuento del voto en `emCategoria`. Un `< 20 || > 600` copiado acá sería la cuarta lectura de
+   la misma banda, y afinarla dejaría una fila publicando lo que la otra retiró.
+
+   SIN GUARDA `typeof`: las tres funciones viven en el bloque `<script>` 8, son declaraciones
+   hoisteadas y la guarda sería código muerto — uno que encima promete un «falla cerrado» que no
+   puede cumplir, porque sin el predicado la rama cae en imprimir el número.
+
+   SE DICE, NO SE BORRA. Devolver `null` sacaría las dos filas del papel y el lector no sabría que
+   se cargó un THP: es la misma regla de «marcar sin borrar» que `vPdf` aplica con «(revisar)».
+
+   ⚠️ PERO SÓLO SE ANUNCIA LO QUE DE VERDAD SE RETIRÓ, y por eso la guarda es `v('avm_thp')` y no
+   sólo la banda. Con `thp = 0` —que no es una medición y que la banda da por fuera— `calcTHP` ya
+   vacía `avm_thp` y sale sin recalcular nada, así que no hay área que suprimir: anunciarla ponía
+   en el papel DOS filas «no evaluable» donde antes no había ninguna, y encima sin número al lado,
+   porque `vPdf('thp')` descarta el 0 por truthiness y la fila del THP tampoco salía. Medido en
+   Chrome contra HEAD (`null` → «THP: no evaluable»). Es la misma regla que `emCategoria` ya
+   escribe para sus fuentes: «el cero se rechaza donde no puede ser una medición». Lo cazó
+   `/sharp-edges` sobre este diff.
+
+   ⚠️ EL TEXTO NOMBRA EL CAMPO. La primera versión decía «no evaluable (fuera de rango)» y lo
+   dejaba a la deducción: en la tabla salen contiguas «THP | 0.12 ms» —sin «(revisar)», porque
+   `thp` no tiene entrada en `_labRango` y `vPdf` sólo consulta esa tabla— y «AVm THP | no
+   evaluable (fuera de rango)», así que «fuera de rango» se atribuía al ÁREA y el THP quedaba
+   presentado como una medición válida. Nombrándolo, la fila dice cuál de los dos números es el
+   que está mal. Y por eso la fila «AVm» NO le antepone «THP: » a este texto: ya lo nombra, y el
+   prefijo lo habría dicho dos veces. Las dos filas publican el MISMO literal, carácter por
+   carácter, que es lo único que garantiza que el papel no se contradiga. */
+const EM_AVM_THP_NOEVAL_PDF = 'no evaluable (THP fuera de rango)';
+function emAvmThpPdfTxt() {
+  if (emThpFueraBanda() && v('avm_thp')) return EM_AVM_THP_NOEVAL_PDF;
+  /* Se delega en `vPdf` y no se arma el texto a mano: es lo que la fila «AVm THP» ya llamaba, así
+     que dentro de banda las dos filas salen byte a byte como antes, y el día que `avm_thp` tenga
+     entrada en la tabla de rangos su «(revisar)» sigue llegando a las dos. */
+  return vPdf('avm_thp', ' cm2');
+}
+window.emAvmThpPdfTxt = emAvmThpPdfTxt;
+
 /* Valor de la fila «AVm» de la tabla del PDF.
    THP se imprime SIEMPRE que tenga valor, sin consultar su casilla. No es sólo por el «no
    desmarcable» de la interfaz: los estudios guardados antes de este selector no traen
@@ -22266,8 +22330,13 @@ function emAvmPdfVal() {
      rotularse «AVm THP»: en fibrilación auricular o post-valvuloplastia el THP no es válido
      y el médico mide sólo planimetría. Con el rótulo viejo, esa celda decía «AVm THP» sobre
      un número que no era THP. */
-  const thp = v('avm_thp');
-  if (thp) partes.push('THP: ' + thp + ' cm2');
+  /* El texto lo decide `emAvmThpPdfTxt()`, que es también lo que imprime la fila «AVm THP» de la
+     tabla de Flujo transmitral. Ver su nota: la compuerta de banda es una sola para las dos.
+     ⚠️ EL PREFIJO «THP: » NO SE LE PONE AL TEXTO DE «NO EVALUABLE», que ya nombra el campo: con
+     prefijo salía «THP: no evaluable (THP fuera de rango)». Se compara contra la constante y no
+     contra un `indexOf`, para que renombrar el literal no deje el prefijo colgado. */
+  const _thpTxt = emAvmThpPdfTxt();
+  if (_thpTxt) partes.push(_thpTxt === EM_AVM_THP_NOEVAL_PDF ? _thpTxt : 'THP: ' + _thpTxt);
   if (marcado('em_pdf_cont')) { const x = v('avm_cont'); if (x) partes.push('Cont: ' + x.toFixed(2) + ' cm2'); }
   if (marcado('em_pdf_plan')) { const x = v('avm_plan') || v('avm_ete'); if (x) partes.push('Plan: ' + x.toFixed(2) + ' cm2'); }
   return partes.length ? partes.join(' · ') : null;
@@ -26823,9 +26892,22 @@ function generarInforme(opts) {
          número, no publicar uno que nadie pudo validar. */
       if (_aCont !== null && typeof emContValido === 'function' && emContValido())
         _vmVals.push(`AVm ${_aCont} cm² por continuidad`);
-      if (_aThp !== null)       _vmVals.push(`AVm ${_aThp} cm² por THP`);
+      /* ⚠️ LAS DOS DE AL LADO NO LE PREGUNTABAN NADA A NADIE, Y LA DE ARRIBA SÍ. La asimetría
+         estaba dentro de la misma lista: la continuidad se omitía por no poder validarse y, dos
+         líneas más abajo, el THP publicaba «AVm 1833.33 cm² por THP» y la velocidad «Vmax 250 m/s»
+         en el informe FIRMADO. Decisión de Maicol (2026-09-30): con el THP o la Vmax fuera de la
+         banda de plausibilidad, el número no sube al papel.
+         La banda es la LOCAL que ya existe (`EM_BANDA_PLAUS`) consultada por sus dueños
+         —`emThpFueraBanda()` y `emFueraBandaLocal()`—, no un par de literales copiados acá: el
+         THP ya pasa por esa función en `calcEM`, en `emCategoria` y ahora en el PDF, y una cuarta
+         lectura es cómo el informe y la pantalla empiezan a discrepar sobre el mismo paciente.
+         El número omitido se NOMBRA en la línea de abajo, que cubre esta rama y la nativa. */
+      if (_aThp !== null && !emThpFueraBanda())
+        _vmVals.push(`AVm ${_aThp} cm² por THP`);
       const _gmedM = v('em_gmedio'); if (_gmedM !== null) _vmVals.push(`gradiente medio ${_gmedM} mmHg`);
-      const _vmaxM = v('em_vmax');   if (_vmaxM !== null) _vmVals.push(`Vmax ${_vmaxM} m/s`);
+      const _vmaxM = v('em_vmax');
+      if (_vmaxM !== null && !emFueraBandaLocal('em_vmax', _vmaxM))
+        _vmVals.push(`Vmax ${_vmaxM} m/s`);
       const _vmValsTxt = _vmVals.length ? ` (${_vmVals.join(', ')})` : '';
       /* Une con «y»/«e» siguiendo la misma regla de `fraseEI`, que elige por la vocal inicial. */
       const _unir = (a) => a.length === 2
@@ -26898,6 +26980,59 @@ function generarInforme(opts) {
       vmSent += ' ' + _fr;
     }
     inf.push(vmSent);
+
+    /* ══ LO QUE SE RETIRÓ DEL PAPEL SE NOMBRA ══════════════════════════════════════════════════
+       Decisión de Maicol (2026-09-30). Sin esta línea, `thp = 0,12` como ÚNICA medición mitral
+       dejaba el informe firmado diciendo «sin estenosis ni insuficiencia» —en Conciso, «VM
+       normal.»—: palabra por palabra lo mismo que una mitral nunca interrogada. El dato ya no
+       entra a la severidad (TC-334) y desde hoy tampoco al PDF, así que sin nombrarlo
+       DESAPARECERÍA del documento entero y el médico no tendría de dónde enterarse de que midió
+       algo ilegible. Es el mismo argumento de `etEstado`, que mete lo fuera de banda en `fuera[]`
+       para que «un THP de 4000 ms» no salga por el return temprano sin que nadie lo nombre.
+       UNA SOLA LÍNEA PARA LAS DOS RAMAS —la nativa y la de prótesis—: la pregunta es la misma y
+       dos líneas separadas se desincronizan, que es lo que este archivo ya pagó con el predicado
+       del mecanismo de IM escrito dos veces.
+       ⚠️ Y CUBRE DOS CAMPOS DE CINCO, QUE NO ES LO MISMO QUE CUBRIR LA PREGUNTA. `emCategoria`
+       ya recoge en `cat.revisar` cinco cosas fuera de banda: `avm_plan`, `avm_ete`, `avm_cont`,
+       el THP y `em_gmedio`. Esta línea mira sólo el THP y `em_vmax` —que ni siquiera está en esa
+       lista, porque no es fuente de área— porque es lo único que esta decisión autoriza. Medido:
+       con `avm_plan = 150` (mm² donde van cm²) y nada más, el informe firmado SIGUE diciendo «sin
+       estenosis ni insuficiencia», que es palabra por palabra el defecto que esta línea cierra
+       para el THP. Queda REPORTADO y no tocado; derivar la lista de `cat.revisar` lo cerraría de
+       una vez para los cinco y es de pocas líneas, pero mueve el papel firmado en tres campos que
+       nadie pidió. Lo cazó `/sharp-edges` sobre este diff.
+       La redacción es la de la casa para los valores fuera de banda («… fuera de rango — revisar
+       unidades», la que usan las nueve congénitas y la miocardiopatía arritmogénica), recortada a
+       un renglón. NO afirma nada clínico nuevo: nombra el campo, el valor y la unidad, que es lo
+       único que el médico puede corregir.
+       ⚠️ EL SUJETO DE «NO EVALUABLE» ES EL DATO, NO LA VÁLVULA, y la primera versión decía
+       «Válvula mitral … no evaluable». Con una planimetría válida arriba —AVm 1,2 cm² y un THP en
+       segundos— el informe firmado habría dicho «estenosis severa» en un renglón y «mitral no
+       evaluable» en el siguiente: dos afirmaciones que se contradicen sobre el mismo estudio, y
+       la segunda es la falsa, porque la planimetría SÍ la evaluó. Lo único no evaluable es el
+       número que está fuera de banda. Por eso se pluraliza por caso, igual que `fraseEI` elige
+       «y»/«e»: un adjetivo mal concordado delata que la frase se armó por pedazos.
+       ⚠️ NO EMPUJA AL EN SUMA NI LLAMA A `ccMarcarParrafo()`, y queda DECLARADO como residuo: el
+       resumen puede seguir diciendo «sin alteraciones significativas» sobre un estudio cuya única
+       medición mitral fue ilegible. Cerrarlo mueve una superficie firmada que este cambio no tiene
+       autorizada; se reporta, no se toca. */
+    {
+      /* ⚠️ `> 0` Y NO `!== null`: el CERO no es una medición, y la banda lo da por fuera igual. Con
+         `thp = 0` o `em_vmax = 0` la primera versión publicaba «THP 0 ms fuera de rango — revisar
+         unidades» en el papel firmado, que manda a revisar la unidad de un número que el médico no
+         midió. Es la regla que `emCategoria` ya escribe para sus fuentes (`_pos`): «el cero se
+         rechaza donde no puede ser una medición». Medido en Chrome contra HEAD. */
+      const _emFuera = [];
+      const _thpCrudo = v('thp');
+      if (_thpCrudo > 0 && emThpFueraBanda()) _emFuera.push('THP ' + _thpCrudo + ' ms');
+      const _vmaxCrudo = v('em_vmax');
+      if (_vmaxCrudo > 0 && emFueraBandaLocal('em_vmax', _vmaxCrudo))
+        _emFuera.push('Vmax ' + _vmaxCrudo + ' m/s');
+      if (_emFuera.length)
+        inf.push('Válvula mitral: ' + _emFuera.join(' y ') + ' fuera de rango — ' +
+                 (_emFuera.length > 1 ? 'datos no evaluables' : 'dato no evaluable') +
+                 ', revisar unidades.');
+    }
 
     /* ══ PRÓTESIS MITRAL: OBSTRUCCIÓN Y PPM — UNA LÍNEA CADA UNO ═══════════════════════════════
        ⚠️ EL EOA YA ESTABA EN EL PAPEL: la oración de arriba imprime «AVm X cm² por continuidad»,
@@ -34013,7 +34148,10 @@ function generarPDFReal(_aj) {
       {lbl:'TDA',       ref:'',  val:vPdf('tde',' ms')},
       {lbl:'TRIV',      ref:'',  val:vPdf('triv',' ms')},
       {lbl:'THP',       ref:'',  val:vPdf('thp',' ms')},
-      {lbl:'AVm THP',   ref:'',  val:vPdf('avm_thp',' cm2')},
+      /* `emAvmThpPdfTxt()` y no `vPdf('avm_thp',' cm2')`: la fila «AVm» de la tabla de Estenosis
+         mitral imprime ESTA MISMA área, así que la compuerta de banda del THP tiene un solo dueño
+         y las dos filas no pueden contradecirse en el papel firmado. Ver su nota. */
+      {lbl:'AVm THP',   ref:'',  val:emAvmThpPdfTxt()},
     ],
     /* ⚠️ SUB-COLUMNA DERECHA: VENA PULMONAR. Va como `items2` de ESTA sección y no como una
        cuarta columna — ver la nota larga en `drawTablaCompacta`—: así «DTI mitral» y
