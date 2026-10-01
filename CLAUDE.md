@@ -1,5 +1,60 @@
 # EcoSmart — trampas de este archivo
 
+## ⏸️ ESTADO: cierre de la mitral — etapas A y B HECHAS, C/D/E SIN EMPEZAR (2026-09-30)
+
+Rama `wip/pandian-eroa`. **Main NO se movió** (sigue en `417b5c9`) y la rama **no está en el remoto**
+—`origin/wip/pandian-eroa` no existe; el pedido decía que ya se había subido y es falso—.
+
+| etapa | estado | commit |
+|---|---|---|
+| A · cociente con IAo | **hecha y verificada** | `fa58adf` |
+| B · aviso de IM secundaria | **hecha y verificada** | `0b309d2` |
+| C · THP y Vmax fuera de banda | **censo hecho, SIN implementar** | — |
+| D · AVm por continuidad en el panel | sin empezar | — |
+| E · mutaciones + merge + push | sin empezar | — |
+
+Suite **350/351** (único rojo TC-223, el documentado). Semgrep **125 / 0 ERROR**, la línea base.
+Las mutaciones de la etapa 2 de la tanda anterior **siguen sin correr** y se suman a la etapa E.
+
+### Censo de la etapa C, ya medido — NO hay que volver a buscarlo
+Bandas: `EM_BANDA_PLAUS.em_vmax = [0.2, 8]` m/s y `thp = [20, 600]` ms (`index.html:20836`).
+- **`emAvmPdfVal()`** (`index.html:22262`) — fila «AVm» del PDF. `const thp = v('avm_thp'); if (thp)
+  partes.push('THP: ' + thp + ' cm2')`, **sin compuerta**: con `thp = 0,12` imprime «THP: 1833.33
+  cm2». Ya estaba **declarado y no corregido** en el comentario de `index.html:21401`.
+  ⚠️ **La «compuerta de la continuidad ya existente en `emAvmPdfVal`» que menciona el pedido NO está
+  ahí.** La continuidad se gatea **aguas arriba**: `calcEM` vacía `avm_cont` cuando `emContValido()`
+  es falso, así que en esta función la rama de continuidad no imprime *porque el input está vacío*.
+  La simetría que hay que escribir es con **ese** mecanismo, no con una llamada que no existe.
+- **El informe, línea de PRÓTESIS** (`index.html:26827-26828`) — y es **asimétrica**: la continuidad
+  sí pregunta (`if (_aCont !== null && typeof emContValido === 'function' && emContValido())`), y las
+  dos de al lado **no**: `if (_aThp !== null) _vmVals.push(...)` y `const _vmaxM = v('em_vmax'); if
+  (_vmaxM !== null) _vmVals.push('Vmax …')`.
+- **La negación**: `index.html:26662` → `if (!est && !ins) return 'sin estenosis ni insuficiencia';`
+  Los comentarios de `26711`, `26785` y `26844` ya declaran esa negación como el daño conocido.
+- **Excel, columna «AVm (cm²)»**: `index.html:72133` → `rnd(num('avm_thp'),2)`. **No se toca.**
+  Y la reimportación **no es un riesgo**: `avm_thp` está en `LAB_XLS_SOLO_EXPORT` (`index.html:73386`),
+  o sea que la columna se exporta y **no se reimporta** — el mapa de `73547` no la trae de vuelta.
+- **`em_vmax` llega al informe por UN solo lugar**, la línea de prótesis de `26828`. No hay línea
+  nativa que lo publique, así que el alcance es menor de lo que el pedido supone.
+- **La severidad ya está cerrada**: `emCategoria` llama `_tomar('avm_thp','THP', emThpValido, …)`
+  (`index.html:21279`) y un THP fuera de banda **ya no vota** — cae en `revisar`. Lo fija TC-334.
+  O sea que de «no se imprime **ni entra a la severidad**», la segunda mitad ya está hecha.
+
+### ⚠️ DECISIÓN QUE FRENA LA ETAPA C: el PDF imprime el área del THP en DOS filas, no en una
+El pedido nombra sólo `emAvmPdfVal`. Pero el comentario de `index.html:21397` censa **tres**
+superficies para `avm_thp`, y dos son del PDF: `emAvmPdfVal()` (fila «AVm») **y**
+`index.html:34016` → `{lbl:'AVm THP', ref:'', val:vPdf('avm_thp',' cm2')}` (fila «AVm THP»).
+Cerrar sólo la primera deja el **PDF firmado contradiciéndose consigo mismo**: una fila diciendo que
+el dato no es evaluable y la otra imprimiendo «1833.33 cm2». Eso es peor que no tocar nada.
+**No se implementó nada de la etapa C por esto** — la regla del pedido es «si tocar el PDF obliga a
+tocar algo más que lo descrito, NO lo hagas: reportá el alcance y esperá decisión». Las opciones son
+cerrar las **dos** filas del PDF (recomendado, es la única que deja el papel coherente) o ninguna.
+
+### ⚠️ Y UN HALLAZGO QUE NO ES DE NINGUNA ETAPA, REPORTADO SIN TOCAR
+Ver la entrada de la etapa B: la fila «Grado de insuficiencia mitral» de `_indIMS` publica «los de la
+secundaria son más bajos» **sin cita**, y eso es la posición de la ESC presentada como hecho — la
+ACC/AHA 2020, folio e127, dice lo contrario. Espera decisión.
+
 ## El calc-box de IM avisa que gradúa una secundaria con cortes de primaria (2026-09-30)
 
 Decisión de Maicol: **se dejan los cortes de la primaria y se agrega un aviso visible**. No se tocan
