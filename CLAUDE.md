@@ -14,9 +14,13 @@ La tabla de abajo usa la numeración de la **tanda 3** y nombra el equivalente v
 | D1/D2 | panel «Incluir en el informe» y AVm indexada con THP fuera de banda | eran los reportados 1 y 3 | **hechas y verificadas** |
 | E | mutaciones (tanda 3 + las pendientes de la tanda 2) | era «E» | **hecha** · 31 corridas, 29 en rojo, 2 declaradas |
 
-⚠️ **El `git push` de la etapa 1 quedó BLOQUEADO** por el clasificador de permisos del entorno, no
-por git: el commit `a5877d2` está en `main` local y **sin subir**. Lo mismo puede pasar con el de la
-etapa 2. Hay que correr el push a mano.
+Las tres etapas están **pusheadas** a `origin/main` (`301518f..d2a4586`). Los commits son
+`a5877d2` (A y B), `01c3abf` (C y D) y `d2a4586` (mutaciones + los arreglos de `/sharp-edges`).
+
+⚠️ **Los push de las etapas 1 y 2 quedaron BLOQUEADOS en el momento** por el clasificador de
+permisos del entorno —no por git ni por el remoto—, igual que un `pkill` y un `git commit` con
+heredoc. El del cierre pasó y se llevó los tres commits de una. Si vuelve a pasar: el commit queda
+en `main` local y basta correr el push después; **no** hay que rehacer nada ni reescribir historia.
 
 Ya cerradas en tandas anteriores: cociente con IAo (`fa58adf`), aviso de IM secundaria (`0b309d2`)
 y THP/Vmax fuera de banda en PDF e informe (`301518f`).
