@@ -42377,6 +42377,204 @@ caso('TC-337', 'EM: con thp o em_vmax fuera de banda las DOS filas del PDF dicen
   })();
 `);
 
+/* ═══ TC-338 · El panel de EM aplica la MISMA regla que el informe para el AVm por continuidad ══
+   Decision de Maicol (2026-09-30). La fila «AVm — ecuacion de continuidad» de _indEM publicaba su
+   ✅ con regurgitacion significativa, mientras el informe y el Excel RETIRABAN el mismo numero. El
+   panel existe para declarar que sostiene cada criterio, asi que la divergencia era una afirmacion
+   clinica falsa.
+
+   ⚠️ LA CONDICION CENTRAL ES LA COINCIDENCIA, NO LA MARCA SUELTA. Se mide
+   (marca === ok) === (el papel publica Cont:) en los SEIS escenarios. Con una condicion que solo
+   mire la marca, borrar la compuerta del informe tambien pasaria en verde.
+
+   ⚠️ Y SE LEE EL OBJETO, NO EL textContent de la seccion. La fila de criterio aporta las mismas
+   cadenas que la nota, asi que contar sobre el HTML no distingue una fila de la otra.
+
+   ⚠️ DENOMINADOR EN TODO: IAo ausente y leve tienen que seguir dando ✅. Sin ese lado, apagar la
+   fila entera —o devolver ask siempre— pasaria en verde. */
+caso('TC-338', 'EM: la fila del AVm por continuidad del panel aplica emContValido, coincide con el papel y cita a Pandian solo donde la regla es de Pandian', `
+  return (async () => {
+    const R = {};
+    /* Continuidad como UNICA fuente del area: sin planimetria, sin ETE y sin THP.
+       dtsvi 20 mm + VTI TSVI 18 cm + VTI mitral 40 cm -> ATSVI 3,1416 cm2 -> AVm 1,41 cm2,
+       que cae por debajo del corte de 1,5 y por eso la fila es la que llevaba el ✅. */
+    const BASE = { nombre:'Panel AVm', ci:'1-1', peso:'80', talla:'175',
+                   vm_morf:'Reumática', em_dtsvi:'20', em_vtitsvi:'18', em_vtimit:'40' };
+    const cargar = function(extra){
+      try { __t.limpiar(); } catch (e) {}
+      try { indicCerrar(); } catch (e) {}
+      const C = Object.assign({}, BASE, extra || {});
+      Object.keys(C).forEach(function(k){ __t.set(k, C[k]); });
+      /* calcEM() AL FINAL: ia_grado e im_grado son ocultos sin oninput, igual que en TC-334 y
+         TC-337. Sin esta llamada avm_cont queda del escenario anterior. */
+      try { calcEM(); } catch (e) {}
+    };
+    const medir = function(extra){
+      cargar(extra);
+      let S = null, err = '';
+      try { S = _indEM(); } catch (e) { err = 'LANZO ' + e.message; }
+      const f = (S && S.filas) ? S.filas.filter(function(x){ return String(x.lbl).indexOf('continuidad') >= 0; })[0] : null;
+      const notas = (S && S.notas ? S.notas : []).map(function(n){ return typeof n === 'string' ? n : (n && n.txt) || ''; }).join(' ');
+      return { err: err, secNull: S === null,
+               marca: f ? f.marca : '(sin fila)', nota: f ? String(f.nota) : '',
+               refs: f ? (f.refs || []).join(',') : '',
+               val: f ? String(f.val) : '',
+               /* las OTRAS fuentes, que no se tocaron */
+               otras: (S && S.filas ? S.filas : []).filter(function(x){
+                 return String(x.lbl).indexOf('AVm — ') === 0 && String(x.lbl).indexOf('continuidad') < 0;
+               }).map(function(x){ return x.lbl + '/' + x.marca; }).join(' | '),
+               notaVieja: notas.indexOf('todavía no lo hace') >= 0,
+               // EL PAPEL, que es con quien tiene que coincidir
+               papel: String(emAvmPdfVal()),
+               contValido: emContValido() };
+    };
+    R.sin   = medir({ ia_grado:'0' });
+    R.leve  = medir({ ia_grado:'1' });
+    R.mod   = medir({ ia_grado:'2' });
+    R.sev   = medir({ ia_grado:'4' });
+    R.imMod = medir({ ia_grado:'0', im_grado:'2' });
+    // motivo NO VERIFICABLE: un grado en texto que _emRegurgGrado no sabe leer
+    R.nover = medir({ ia_grado:'???' });
+    // VTI mitral fuera de su banda [2,80]: emContValido tambien es falso, por OTRO motivo
+    R.vti   = medir({ ia_grado:'0', em_vtimit:'130' });
+    // con planimetria ADEMAS: la otra fuente sigue sosteniendo su criterio
+    R.conPlan = medir({ ia_grado:'2', avm_plan:'1.2' });
+
+    const ESC = ['sin','leve','mod','sev','imMod','nover','vti'];
+    const coincide = ESC.filter(function(k){
+      return (R[k].marca === 'ok') === (R[k].papel.indexOf('Cont:') >= 0);
+    }).length;
+    const tiene = function(s, t){ return String(s).indexOf(t) >= 0; };
+
+    return { extra: [
+      ['DENOMINADOR: la seccion se pinta y la fila existe en los ocho escenarios',
+        ESC.concat(['conPlan']).every(function(k){ return !R[k].secNull && !R[k].err && R[k].marca !== '(sin fila)'; }),
+        ESC.concat(['conPlan']).map(function(k){ return k + '=' + R[k].marca + (R[k].err || ''); }).join(' ')],
+      ['DENOMINADOR: sin IAo y con IAo LEVE la continuidad SIGUE sosteniendo el criterio con su ✅',
+        R.sin.marca === 'ok' && R.leve.marca === 'ok',
+        'sin=' + R.sin.marca + ' leve=' + R.leve.marca],
+      ['⚠️ con IAo MODERADA la fila deja de publicar el criterio: era el escenario exacto de la divergencia',
+        R.mod.marca === 'ask' && !tiene(R.mod.nota, '≤ 1,5 cm² — estenosis'),
+        'marca=' + R.mod.marca + ' nota=' + R.mod.nota.slice(0, 90)],
+      ['⚠️ y con IAo SEVERA y con IM moderada tampoco',
+        R.sev.marca === 'ask' && R.imMod.marca === 'ask',
+        'sev=' + R.sev.marca + ' imMod=' + R.imMod.marca],
+      ['⚠️ LA CONDICION CENTRAL: el panel y el papel coinciden en los SIETE escenarios — la marca ✅ sale si y solo si el papel publica el metodo',
+        coincide === 7,
+        ESC.map(function(k){ return k + ':' + (R[k].marca === 'ok' ? 'ok' : 'no') + '/' + (R[k].papel.indexOf('Cont:') >= 0 ? 'papel' : 'sin'); }).join(' ')],
+      ['la fila dice NO EVALUABLE y nombra la regurgitacion cuando ese es el motivo',
+        tiene(R.mod.nota, 'no evaluable') && tiene(R.mod.nota, 'regurgitación mitral o aórtica significativa'),
+        'nota=' + R.mod.nota.slice(0, 130)],
+      ['⚠️ el MOTIVO decide el texto: con los grados ilegibles dice que no se pudieron leer, no que haya regurgitacion',
+        tiene(R.nover.nota, 'no se pudieron leer') || tiene(R.nover.nota, 'No se pudieron leer'),
+        'nota=' + R.nover.nota.slice(0, 130)],
+      ['⚠️ y con el VTI mitral fuera de banda nombra el VTI — un texto fijo mandaba a revisar el grado equivocado',
+        tiene(R.vti.nota, 'VTI mitral') && !tiene(R.vti.nota, 'Hay regurgitación'),
+        'nota=' + R.vti.nota.slice(0, 130)],
+      ['⚠️ LA CITA NO SE SOBRE-APLICA: Pandian va en las dos razones de regurgitacion y NO en la banda de plausibilidad de la app, que es criterio propio',
+        tiene(R.mod.refs, 'asePandian2023') && tiene(R.nover.refs, 'asePandian2023') &&
+        R.vti.refs === 'ecosmart',
+        'mod=' + R.mod.refs + ' nover=' + R.nover.refs + ' vti=' + R.vti.refs],
+      ['SE MARCA SIN BORRAR: el numero medido sigue en la fila',
+        tiene(R.mod.val, '1,41') && tiene(R.vti.val, '0,43'),
+        'mod=' + R.mod.val + ' vti=' + R.vti.val],
+      ['DENOMINADOR: las OTRAS fuentes no se tocaron — con IAo moderada la planimetria sigue sosteniendo su criterio',
+        tiene(R.conPlan.otras, 'planimetría/ok') && R.conPlan.marca === 'ask',
+        'otras=' + R.conPlan.otras + ' cont=' + R.conPlan.marca],
+      ['la nota de la seccion ya no manda a mirar los grados a mano: decia «esta seccion todavia no lo hace»',
+        ESC.every(function(k){ return !R[k].notaVieja; }),
+        'notaVieja=' + ESC.filter(function(k){ return R[k].notaVieja; }).join(',')]
+    ] };
+  })();
+`);
+
+/* ═══ TC-339 · La fila de grado de IM secundaria presenta LAS DOS posiciones, cada una citada ═══
+   Decision de Maicol (2026-09-30). La fila publicaba «los de la secundaria son mas bajos» como un
+   HECHO y sin una sola cita. Eso es la posicion de la ESC/EACTS 2025; la ACC/AHA 2020 dice lo
+   contrario —folio e127, la definicion recomendada de secundaria severa es la MISMA que la de la
+   primaria— o sea que los cortes que la app usa son los que esa guia recomienda.
+
+   ⚠️ NO SE TOCAN CORTES NI EL GRADO PUBLICADO: la fila sigue diciendo «Severa» con marca none.
+   Las dos ultimas condiciones son ese denominador.
+
+   ⚠️ Y SE MIDE QUE EL NUMERO MAS BAJO QUEDE CONDICIONAL. Publicar «EROA ≥ 30 mm2» pelado seria un
+   corte incondicional que la guia NO da: en la Figura 10 el ≥ 30 cuelga de que el orificio sea
+   eliptico, y en §9.2.2 de ese orificio y/o del bajo flujo. */
+caso('TC-339', 'Evidencia IM secundaria: la fila del grado presenta la posicion de CADA guia con su cita, y el corte mas bajo queda declarado como condicional', `
+  return (async () => {
+    const R = {};
+    try { __t.limpiar(); } catch (e) {}
+    try { indicCerrar(); } catch (e) {}
+    /* La seccion exige las tres cosas: mitral NATIVA, mecanismo secundario y IM severa. */
+    const C = { nombre:'IMS cita', ci:'2-2', peso:'80', talla:'180', edad:'68', sexo:'M',
+                fevi:'35', ddfvi:'62', dsfvi:'48', ai_vol:'70', ai_diam:'52',
+                im_sev_final:'4', im_vc:'8', teer_tipo_im:'secundaria' };
+    R.faltan = [];
+    Object.keys(C).forEach(function(k){
+      const r = __t.set(k, C[k]); if (r !== 1) R.faltan.push(k + ':' + r);
+    });
+    let S = null;
+    try { S = _indIMS(); } catch (e) { R.err = 'LANZO ' + e.message; }
+    R.secNull = S === null;
+    const f = (S && S.filas) ? S.filas.filter(function(x){ return String(x.lbl).indexOf('Grado de insuficiencia') === 0; })[0] : null;
+    R.fila = f ? { val:String(f.val), marca:f.marca, refs:(f.refs || []).join(','), nota:String(f.nota) } : null;
+
+    /* La seccion PINTADA, para la bibliografia y los corchetes. Se arma con el mismo dueno que
+       usa el panel (_indSecHTML), asi que los numeros salen del recorrido real y no de un conteo
+       propio — que seria la segunda numeracion que la nota de NUMERACION POR SECCION prohibe. */
+    let html = '';
+    try { html = _indSecHTML('Insuficiencia mitral secundaria', S); } catch (e) { html = 'ERR ' + e.message; }
+    const plano = html.replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ');
+    const orden = []; const re = /data-ind-ref="([^"]+)"/g; let m;
+    while ((m = re.exec(html))) if (orden.indexOf(m[1]) < 0) orden.push(m[1]);
+    R.orden = orden.join(',');
+    R.numESC = orden.indexOf('esc2025vc') + 1;
+    R.numAHA = orden.indexOf('ahaVc2020') + 1;
+    R.biblioAHA = plano.indexOf('Otto') >= 0;
+    R.biblioESC = plano.indexOf('Praz') >= 0;
+    R.htmlLargo = html.length;
+
+    const N = R.fila ? R.fila.nota : '';
+    const tiene = function(t){ return N.indexOf(t) >= 0; };
+
+    return { extra: [
+      ['DENOMINADOR: la seccion se pinta y la fila del grado existe',
+        !R.secNull && !R.err && !!R.fila && R.faltan.length === 0,
+        'secNull=' + R.secNull + ' err=' + (R.err || '-') + ' faltan=' + R.faltan.join(',')],
+      ['⚠️ la fila cita LAS DOS guias — antes se pintaba con _indFila de cuatro argumentos, sin una sola cita',
+        !!R.fila && R.fila.refs.indexOf('esc2025vc') >= 0 && R.fila.refs.indexOf('ahaVc2020') >= 0,
+        'refs=' + (R.fila ? R.fila.refs : '(sin fila)')],
+      ['⚠️ y la frase que afirmaba la posicion de UNA guia como un hecho ya no esta',
+        !tiene('los de la secundaria son más bajos'),
+        'nota=' + N.slice(0, 120)],
+      ['el texto NOMBRA a cada guia, que es lo que hace inequivoca la atribucion: el corchete se pinta al final de la nota y no puede ir embebido',
+        tiene('ESC/EACTS 2025') && tiene('ACC/AHA 2020'),
+        'nota=' + N.slice(0, 160)],
+      ['la posicion de la ESC va como lo que es —umbrales que PUEDEN aplicarse— y con sus dos numeros',
+        tiene('pueden aplicarse') && tiene('30 mm²') && tiene('45 ml'),
+        'nota=' + N.slice(0, 220)],
+      ['⚠️ y el corte mas bajo queda CONDICIONAL: la Figura 10 pone el corte en 40 mm² y el 30 cuelga del orificio eliptico',
+        tiene('40 mm²') && tiene('elíptico') && tiene('condicional'),
+        'nota=' + N.slice(0, 260)],
+      ['la posicion de la ACC/AHA va con sus dos numeros: la definicion recomendada es la MISMA que la de la primaria',
+        tiene('MISMA que la de la primaria') && tiene('0,4 cm²') && tiene('60 ml'),
+        'nota=' + N.slice(0, 260)],
+      ['y se dice que los cortes de ESTA aplicacion son los que la ACC/AHA recomienda, que es el dato que faltaba',
+        tiene('los cortes de esta aplicación son los que esa guía recomienda'),
+        'nota=' + N.slice(-170)],
+      ['la bibliografia de la seccion lista los DOS documentos',
+        R.biblioESC && R.biblioAHA && R.htmlLargo > 2000,
+        'ESC=' + R.biblioESC + ' AHA=' + R.biblioAHA + ' largo=' + R.htmlLargo],
+      ['la ESC se queda en [1] y la ACC/AHA entra numerada: el orden del array de refs es el que fija eso',
+        R.numESC === 1 && R.numAHA === 2,
+        'orden=' + R.orden + ' ESC=' + R.numESC + ' AHA=' + R.numAHA],
+      ['⚠️ DENOMINADOR: NO se movio el grado publicado ni la marca — esto cambia lo que se lee, no lo que se gradua',
+        !!R.fila && R.fila.val === 'Severa' && R.fila.marca === 'none',
+        'val=' + (R.fila ? R.fila.val : '?') + ' marca=' + (R.fila ? R.fila.marca : '?')]
+    ] };
+  })();
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

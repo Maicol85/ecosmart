@@ -1,21 +1,145 @@
 # EcoSmart — trampas de este archivo
 
-## ⏸️ ESTADO: cierre de la mitral — A, B y C HECHAS; D y E sin empezar (2026-10-01)
+## ⏸️ ESTADO: cierre de la mitral — tanda 3 en curso (2026-10-01)
 
-Todo en **`main`**. El estado anterior decía «main sigue en `417b5c9`» y **ya era falso**: A y B
-están mergeadas.
+Todo en **`main`**. ⚠️ **La numeración de etapas CAMBIÓ entre tandas y es una trampa de lectura.**
+La tanda 2 tenía A/B/C/D/E; la tanda 3 renombró sus pedidos, así que «A» no es lo mismo en las dos.
+La tabla de abajo usa la numeración de la **tanda 3** y nombra el equivalente viejo.
 
-| etapa | estado | commit |
-|---|---|---|
-| A · cociente con IAo | hecha y verificada | `fa58adf` |
-| B · aviso de IM secundaria | hecha y verificada | `0b309d2` |
-| C · THP y Vmax fuera de banda | **hecha y verificada** | ver abajo |
-| D · AVm por continuidad en el panel | sin empezar | — |
-| E · mutaciones de la tanda 2 + push | mutaciones de C hechas; las de la tanda 2 **siguen sin correr** | — |
+| tanda 3 | qué es | = tanda 2 | estado |
+|---|---|---|---|
+| A | AVm por continuidad en el **panel de Evidencia** (`_indEM`) | era «D» | **hecha y verificada** |
+| B | texto de IM secundaria en `_indIMS` con las dos guías | nueva | **hecha y verificada** |
+| C | «Nuevo estudio» limpia `_indClin` | nueva | sin empezar |
+| D1/D2 | panel «Incluir en el informe» y AVm indexada con THP fuera de banda | eran los reportados 1 y 3 | sin empezar |
+| E | mutaciones (tanda 3 + las pendientes de la tanda 2) | era «E» | sin empezar |
 
-Línea base medida contra un checkout limpio de HEAD, no de memoria: suite **350/351** (único rojo
-TC-223, el documentado — falla por la fecha, `encontrado: 2026-10-01`) y Semgrep **125 / 0 ERROR**.
-Con la etapa C: **351/352**, mismo único rojo, y Semgrep **125 / 0 ERROR**.
+Ya cerradas en tandas anteriores: cociente con IAo (`fa58adf`), aviso de IM secundaria (`0b309d2`)
+y THP/Vmax fuera de banda en PDF e informe (`301518f`).
+
+Línea base medida contra un checkout limpio de `301518f`, no de memoria: suite **351/352** (único
+rojo TC-223, el documentado — falla por la fecha) y Semgrep **125 / 0 ERROR**.
+
+## Etapa A (tanda 3) — el panel de EM aplica `emContValido` para el AVm por continuidad (2026-10-01)
+
+Cobertura: **TC-338**. La fila «AVm — ecuación de continuidad» de `_indEM` publicaba su **✅** con
+regurgitación significativa mientras el informe y el Excel **retiraban el mismo número**. El panel
+existe para declarar qué sostiene cada criterio, así que era una afirmación clínica falsa.
+
+### ⚠️ EL PEDIDO DECÍA «el panel» Y HAY DOS PANELES. NO ES EL DEL 🖨️
+Medido antes de tocar nada, y la primera lectura fue la equivocada: el selector
+**«🖨️ Incluir en el informe»** —el de `_pdfMetodoSpan`/`em_pdf_cont`— **ya se comporta bien** con la
+continuidad inválida: `contAuto:false` no la auto-marca y encima la **baja** si el médico no la
+resolvió. Medido en los siete escenarios: con IAo moderada la casilla queda desmarcada y
+`emAvmPdfVal()` da `null`. El ✅ del pedido es el del **panel de Evidencia**, que es otra cosa.
+Lo que sí sigue abierto en el selector del 🖨️ está reportado abajo.
+
+### Lo que se tocó
+Un solo lugar: el `leidas.forEach` de `_indEM`. `id` pasa a viajar en `leidas` —identificar la
+fuente por su **rótulo** pondría la identidad de un campo en una cadena de interfaz, y renombrar el
+rótulo apagaría la compuerta en silencio—, y la fila cae en `ask` con el número a la vista.
+`emContValido()` se **consulta** por `_indFn`; escribir acá la composición sería la **quinta**
+lectura de la misma regla.
+
+### ⚠️ EL MOTIVO DECIDE EL TEXTO, Y UN TEXTO FIJO MANDABA A REVISAR EL GRADO EQUIVOCADO
+`emContValido()` es falso por **cuatro** razones distintas. La primera versión ponía la misma frase
+de regurgitación en las cuatro, así que sobre un VTI mitral de 130 cm el renglón decía «el VTI está
+fuera de rango» y enseguida «la continuidad no se usa con regurgitación significativa» — que ahí no
+explica nada. Hoy cada razón trae su frase, por el mismo argumento que `calcEM` ya aplica al pintar
+el motivo y no un texto fijo.
+
+### ⚠️ Y LA CITA NO SE SOBRE-APLICA — lo advirtió la lectura del PDF, no el código
+`asePandian2023` va **sólo** en las dos razones de regurgitación, que es donde la regla es de esa
+guía (folio 8: la continuidad «should not be used when significant aortic or mitral regurgitation is
+present»). El **VTI fuera de banda es criterio de ESTA aplicación** y lleva `ecosmart`: colgarle el
+corchete de la ASE le atribuiría a la guía un umbral que no da.
+⚠️ **El mismo documento dice lo CONTRARIO para la aórtica** —folio 20: con IAo y EAo coexistentes el
+AVA por continuidad «remains applicable»—, así que esta cita es de la **mitral** y no se puede
+reusar como compuerta genérica de «continuidad».
+Folio 8 re-verificado sobre el **pie impreso** (`8 Pandian et al … January 2023`, misma página que
+la Tabla 1): PDF 6 → folio 8, o sea **folio = página del PDF + 2**, que es lo que ya declaraba la
+entrada del registro.
+
+### ⚠️ UN COMENTARIO DEL PROPIO ARCHIVO ERA FALSO, Y ERA EL QUE DESCRIBÍA EL MECANISMO
+`index.html:22263` afirmaba que «`calcEM` vacía `avm_cont` cuando `emContValido()` es falso». **No
+lo hace**: `calcEM` vacía ese input sólo cuando faltan los insumos geométricos (`dtsvi && itsvi &&
+vtimit`), y `_contNoVota` se calcula **después**. Lo que retira la continuidad del papel es la
+**casilla** del selector, no un input vacío. Medido: con IAo moderada `avm_cont` vale `1.41 cm²` y el
+PDF no la imprime. Queda **reportado y no corregido** —es un comentario de la zona del PDF, que esta
+tanda no toca—, pero quien lea esa nota para razonar sobre la continuidad va a razonar sobre un
+mecanismo que no existe.
+
+### Lo medido, con denominador
+- **Siete escenarios**: IAo ausente/leve → `ok` con ✅; IAo moderada/mod-sev/severa, IM moderada,
+  grados ilegibles y VTI fuera de banda → `ask`. La condición central es la **coincidencia**
+  `(marca==='ok') === (el papel publica «Cont:»)`, en los siete: con una condición que sólo mire la
+  marca, borrar la compuerta del informe también pasaría en verde.
+- **A/B contra `301518f`, 10 escenarios**: informe en los **tres estilos**, EN SUMA, las dos filas
+  del PDF, la fila de **434 columnas** del Excel y los displays — **idénticos, sin una diferencia**.
+  Control negativo de la sonda: **9/10** hashes de informe distintos y **10/10** filas de Excel
+  distintas, así que la sonda distingue escenarios y el «sin diferencias» significa algo.
+- Las **otras tres fuentes** del área no se tocaron: con IAo moderada la planimetría sigue
+  sosteniendo su criterio con ✅.
+
+### ⚠️ REPORTADO Y NO TOCADO
+1. **El área inválida sigue alimentando `medidas` → `avmMax` → la contraindicación.** La fila dejó
+   de publicar el ✅, pero `avm_cont` sigue entrando al juego que decide «la mayor de las áreas
+   medidas supera 1,5 cm²» y al aviso de discordancia. Sacarla de ahí **cambia la recomendación**,
+   o sea el voto de un parámetro, que el pedido prohíbe explícitamente. Es la mitad grande de «no se
+   publica como criterio» y **espera decisión**.
+2. **El selector del 🖨️ ofrece la continuidad inválida y el médico la puede imprimir.** La casilla
+   queda **habilitada** y el `<span>` publica «— 1,41 cm²» sin marca; tildándola, el PDF firmado sale
+   con `Cont: 1.41 cm2`. Medido. Y `dataset.tocado`/`desdeEstudio` la protegen, así que quien tildó
+   la casilla con IAo leve y **después** graduó la IAo se queda con el ✅ puesto — ése es el camino por
+   el que el ✅ del selector sí es alcanzable.
+3. **`emPdfValsSync` habilita esa casilla en las rutas de restauración** sin consultar la validez.
+
+## Etapa B (tanda 3) — la fila de grado de IM secundaria presenta LAS DOS posiciones (2026-10-01)
+
+Cobertura: **TC-339**. La fila «Grado de insuficiencia mitral» de `_indIMS` decía «**los de la
+secundaria son más bajos**» como un hecho y **sin una sola cita** (`_indFila` con cuatro argumentos).
+Eso es la posición de la **ESC**; la **ACC/AHA 2020** dice lo contrario, o sea que los cortes que la
+app usa son los que **esa** guía recomienda. Presentar la discrepancia como un hecho dejaba la app
+pareciendo equivocada sobre una conducta que una guía vigente avala.
+**No se tocaron cortes, ni el voto, ni el grado publicado**: la fila sigue diciendo «Severa» con
+marca `none`. Cambia lo que el médico lee sobre **por qué** se graduó así.
+
+### Las tres fuentes, leídas en texto completo y contra el pie impreso
+- **ACC/AHA 2020** (Otto et al, *Circulation* 2021;143:e72-e227), **§7.3.1, folio e127**: *«the
+  recommended definition of severe secondary MR is now the same as for primary MR (ERO ≥0.4 cm2 and
+  regurgitant volume ≥60 mL)»*. Offset verificado sobre el encabezado impreso: **folio = índice
+  0-based del PDF + 72** (idx 55 → e127, con e126 y e128 a los costados).
+- **ESC/EACTS 2025** (`ehaf194`), **§9.2.2 «Evaluation», folio 4675**: *«When quantifying EROA and
+  RVol in SMR, lower thresholds may apply to define severe regurgitation because of the potential
+  elliptical regurgitant orifice and/or the low-flow state. An EROA of ≥30 mm2 and/or an RVol of
+  ≥45 mL has been identified as having a significant impact on outcomes»*. Offset confirmado:
+  **folio = página 1-based + 4634** (PDF 41 → 4675).
+- **ESC/EACTS 2025, Figura 10, folio 4672** (PDF 1-based 38), rama «Quantitative»: *«EROA ≥40 mm2
+  (or ≥30 mm2 if elliptical regurgitant orifice area)»*.
+
+### ⚠️ EL «MAY APPLY» NO ES UN CORTE NUEVO, Y ESO ES EL CONTENIDO DE LA FILA
+Dar el **≥ 30 mm² pelado** publicaría un corte incondicional que la guía **no da**. En la Figura 10 el
+corte sigue siendo ≥ 40 mm² y el ≥ 30 cuelga de que el orificio sea **elíptico**; en §9.2.2 las
+condiciones son el orificio elíptico **y/o** el bajo flujo — y al leer el pasaje completo se ve que
+esa cláusula **no es contexto, es la razón del umbral**. La fila nombra la condición, no el número
+suelto, y cierra diciendo que el número más bajo es **condicional**.
+
+### ⚠️ ESTA FILA RENUMERA LA SECCIÓN, Y MI PRIMER COMENTARIO AFIRMÓ QUE NO
+Escribí que «con la ESC primero los dos números quedan donde estaban». **Falso, y lo cazó la medición
+A/B, no la lectura.** La sección cita **tres** documentos y yo había censado dos: `aseVr2017` también
+está. Medido contra `301518f` en el escenario de IM secundaria severa con FEVI 35 y DDVI 62:
+`esc2025vc · aseVr2017 · ahaVc2020` pasa a `esc2025vc · ahaVc2020 · aseVr2017`, o sea que **la
+ACC/AHA se mueve de [3] a [2] y la ASE 2017 de [2] a [3]**. No rompe nada —el corchete y la entrada
+de la bibliografía salen del **mismo** recorrido, así que se mueven juntos— y está declarado en la
+nota de «NUMERACIÓN POR SECCIÓN». La ESC se queda en [1] porque ya era la primera; **invertir el
+array habría movido los tres**. Lección: antes de afirmar que una cita nueva no renumera, **censar
+los refs de la sección midiendo, no grepeando las claves que uno espera**.
+
+### ⚠️ Y LOS CORCHETES NO PUEDEN IR EMBEBIDOS EN EL TEXTO
+`_indFilaHTML` pasa la nota por `_critEsc`, así que un `[1]` escrito en el string saldría como
+**marcado literal**; la única alternativa sería no escapar, o sea un XSS por comodidad. Por eso la
+atribución se hace **nombrando cada guía en la prosa** y los dos corchetes se pintan al final de la
+nota. Quien venga a querer un corchete por oración tiene que cambiar `_indFilaHTML`, no el texto.
 
 ## Etapa C — el THP y la Vmax mitral fuera de banda no llegan al papel (2026-10-01)
 

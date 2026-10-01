@@ -42096,8 +42096,48 @@ function _indIMS(){
        apertura automática de `_indSecHTML`, que se reserva para criterios cumplidos y alarmas, así
        que «se abre sola» dejaba de significar algo. Mismo defecto que `_indEM` ya cerró. */
     _indFila('Mecanismo', 'Secundaria (funcional)', 'none', 'los umbrales y las filas de esta sección le corresponden'),
+    /* ⚠️ ACÁ SE PUBLICABA LA POSICIÓN DE UNA GUÍA COMO SI FUERA UN HECHO, Y SIN UNA SOLA CITA.
+       El texto anterior decía «los de la secundaria son más bajos» a secas. Eso es lo que sostiene
+       la ESC/EACTS 2025; la ACC/AHA 2020 dice lo contrario —folio e127: la definición recomendada
+       de secundaria severa «is now the same as for primary MR»—, o sea que los cortes que esta
+       aplicación usa son los que esa guía recomienda. Presentar la discrepancia como un hecho
+       dejaba la app pareciendo equivocada sobre una conducta que una guía vigente avala.
+       Hoy se publica LA POSICIÓN DE CADA UNA, con su cita. No cambia ni los cortes, ni el voto, ni
+       el grado publicado: cambia lo que el médico lee sobre por qué se graduó así.
+
+       LAS TRES FUENTES, LEÍDAS EN TEXTO COMPLETO SOBRE EL PDF Y CONTRA EL PIE IMPRESO:
+       · ACC/AHA 2020 (Otto et al, Circulation 2021;143:e72-e227), §7.3.1, **folio e127** —
+         «the recommended definition of severe secondary MR is now the same as for primary MR
+         (ERO ≥0.4 cm2 and regurgitant volume ≥60 mL)». Offset verificado: folio = índice 0-based
+         del PDF + 72 (idx 55 → e127, con e126 y e128 a los costados).
+       · ESC/EACTS 2025 (`ehaf194`), §9.2.2 «Evaluation», **folio 4675** — «When quantifying EROA
+         and RVol in SMR, lower thresholds may apply to define severe regurgitation because of the
+         potential elliptical regurgitant orifice and/or the low-flow state. An EROA of ≥30 mm2
+         and/or an RVol of ≥45 mL has been identified as having a significant impact on outcomes».
+         Offset verificado: folio = página 1-based del PDF + 4634 (PDF 41 → 4675).
+       · ESC/EACTS 2025, **Figura 10, folio 4672** (PDF 1-based 38), rama «Quantitative» —
+         «EROA ≥40 mm2 (or ≥30 mm2 if elliptical regurgitant orifice area)».
+
+       ⚠️ EL «MAY APPLY» NO ES UN CORTE NUEVO, Y LA DIFERENCIA ES EL CONTENIDO DE ESTA FILA. En la
+       Figura 10 el corte de la ESC sigue siendo ≥ 40 mm² y el ≥ 30 cuelga de que el orificio sea
+       ELÍPTICO; en §9.2.2 las condiciones son el orificio elíptico Y/O el bajo flujo. Dar el 30
+       pelado publicaría un corte incondicional que la guía no da — por eso la fila nombra la
+       condición en vez del número suelto.
+
+       ⚠️ EL ORDEN DE LOS `refs` ES LOAD-BEARING, Y ESTA FILA SÍ RENUMERA LA SECCIÓN. La numeración
+       es POR SECCIÓN y por orden de PRIMERA APARICIÓN, y esta fila es la segunda de todas: pasa a
+       ser la primera que cita. Medido contra HEAD en el escenario de IM secundaria severa con FEVI
+       35 y DDVI 62: el orden era `esc2025vc` · `aseVr2017` · `ahaVc2020` y pasa a ser `esc2025vc` ·
+       `ahaVc2020` · `aseVr2017`, o sea que **la ACC/AHA se mueve de [3] a [2] y la ASE 2017 de [2]
+       a [3]**. La ESC se queda en [1] porque ya era la primera.
+       Eso NO es un defecto y no rompe nada: el corchete y la entrada de la bibliografía salen del
+       MISMO recorrido (`_indRefCtx`), así que se mueven juntos — el total sigue siendo tres y cada
+       número sigue apuntando a su documento. Está declarado en la nota de «NUMERACIÓN POR SECCIÓN».
+       Con la ESC primera en el array el [1] queda quieto, que es el único número que se podía
+       conservar; invertirlo habría movido los tres. */
     _indFila('Grado de insuficiencia mitral', 'Severa', 'none',
-      'severidad confirmada en el estudio. ⚠️ La graduación de esta aplicación usa los cortes de la insuficiencia PRIMARIA y no consulta el mecanismo: los de la secundaria son más bajos y se publican abajo')
+      'severidad confirmada en el estudio. ⚠️ Esta aplicación gradúa con los cortes de la insuficiencia PRIMARIA y no consulta el mecanismo. Las dos guías no sostienen lo mismo sobre eso. La ESC/EACTS 2025 admite umbrales más bajos: dice que «pueden aplicarse» un EROA ≥ 30 mm² y/o un volumen regurgitante ≥ 45 ml, por el orificio regurgitante potencialmente elíptico o el bajo flujo. En su Figura 10 el corte es EROA ≥ 40 mm², y el ≥ 30 mm² va SÓLO si ese orificio es elíptico. La ACC/AHA 2020 sostiene la posición contraria: la definición recomendada de secundaria severa es la MISMA que la de la primaria, ERO ≥ 0,4 cm² y volumen regurgitante ≥ 60 ml. O sea que los cortes de esta aplicación son los que esa guía recomienda, y el número más bajo de la otra es condicional, no un corte nuevo.',
+      ['esc2025vc','ahaVc2020'])
   ];
   /* Los datos que la Figura 12 usa, mostrados JUNTO al selector y sin concluir con ellos: son la
      ayuda para que el médico elija, no una clasificación. */
@@ -42533,8 +42573,34 @@ function _indEM(){
      crearía la segunda fuente que `_indOrigen` existe para evitar. */
   const leidas = FUENTES.map(function(f){
     const L = f[2] ? _indLeer(f[0], f[2]) : { val:_indN(f[0]), fuera:false, sinBanda:true, crudo:_indN(f[0]) };
-    return { lbl:f[1], L:L, conBanda:!!f[2] };
+    /* `id` VIAJA: la compuerta de la continuidad de abajo tiene que saber CUÁL de las cuatro
+       fuentes es, y hacerlo por el rótulo («ecuación de continuidad») pondría la identidad de un
+       campo en una cadena de interfaz — renombrar el rótulo apagaría la compuerta en silencio. */
+    return { id:f[0], lbl:f[1], L:L, conBanda:!!f[2] };
   });
+  /* ══ ¿VALE EL ÁREA POR CONTINUIDAD? SE CONSULTA AL DUEÑO, NO SE COPIA LA REGLA ═══════════════
+     Decisión de Maicol (2026-09-30). `emContValido()` es el dueño único de esa pregunta y ya lo
+     consumen `calcEM`, `emCategoria`, el informe y el Excel. Escribir acá la composición
+     —`im_grado >= 2 || ia_grado >= 2 || VTI fuera de banda`— sería la QUINTA lectura de la misma
+     regla, y el día que una se afine el panel volvería a publicar con ✅ lo que el informe retira:
+     que es exactamente el defecto que esta compuerta cierra.
+
+     ⚠️ VIVE EN OTRO BLOQUE `<script>`, así que va por `_indFn` y no pelada. Una llamada pelada
+     tiraría `ReferenceError` y se llevaría puesto el panel entero.
+
+     ⚠️ FAIL-CLOSED, Y ACÁ LA DIRECCIÓN IMPORTA. Sin el predicado no se puede afirmar que el área
+     valga, y AFIRMARLO es el daño: el ✅ de este panel significa «este dato alcanza un criterio de
+     la guía». Por eso la ausencia de la función deja la fila en «no evaluable» y lo DICE, en vez de
+     caer en publicar el ✅. Es la misma dirección que `emContMotivoNoVota` ya eligió para los grados
+     de regurgitación ilegibles.
+
+     El MOTIVO se lee aparte del booleano porque son textos distintos para el médico —«hay
+     regurgitación significativa» y «no pude leer la regurgitación» no se corrigen igual—, que es
+     la misma razón por la que `calcEM` pinta el motivo y no un texto fijo. */
+  const _emContValFn = _indFn('emContValido');
+  const _emContMotFn = _indFn('emContMotivoNoVota');
+  const _contVale    = _emContValFn ? !!_emContValFn() : false;
+  const _contMotivo  = _emContMotFn ? String(_emContMotFn() || '') : '';
   const medidas = leidas.filter(function(x){ return x.L.val != null; }).map(function(x){ return [x.lbl, x.L.val, x.conBanda]; });
   const avmIleg = leidas.filter(function(x){ return x.L.fuera; }).map(function(x){ return x.lbl; });
   if (!(grado === 'moderada' || grado === 'severa' || medidas.some(m => _le(m[1], US)))) return null;
@@ -42558,6 +42624,50 @@ function _indEM(){
       if (x.L.fuera) { filas.push(_indFila('AVm — ' + x.lbl, _indNum(x.L.crudo, 2, 'cm²'), 'ask',
         'fuera de rango medible (' + x.L.b[0] + '–' + x.L.b[1] + ' cm²) — revisar la unidad: un valor ilegible no sostiene ni descarta el criterio')); return; }
       if (x.L.val == null) return;
+      /* ⚠️ LA CONTINUIDAD QUE NO VALE NO SE PUBLICA COMO CRITERIO NI CON ✅. Era LA divergencia de
+         esta sección: con `vm_morf` reumática, `ia_grado` moderada y el AVm por continuidad como
+         única fuente, el informe retiraba el valor y esta fila lo afirmaba igual con su ✅ y una
+         nota que aseguraba —falsamente— que la aplicación ya lo había retirado.
+         `ask` y no `none`: el dato EXISTE y no se puede interpretar, que es lo que esa marca
+         significa en la leyenda de este panel. `none` lo leería como «medido y no alcanza el
+         criterio», que es una afirmación que acá no se puede hacer.
+         SE MUESTRA EL NÚMERO, NO SE BORRA: es la misma regla de «marcar sin borrar» que el resto
+         del archivo aplica, y borrarlo escondería que la medición se hizo.
+         Va DESPUÉS de las dos guardas de arriba: un área ilegible por su propia banda ya tiene
+         nota más específica, y sin valor no hay fila. */
+      if (x.id === 'avm_cont' && !_contVale) {
+        /* El motivo decide el texto. Las cuatro razones no se corrigen igual, y un texto fijo
+           mandaría a revisar la regurgitación a un paciente cuyo problema es el VTI. Se compara
+           contra las constantes y no contra literales retipeados, para que renombrarlas no deje
+           esta cascada cayendo siempre en la última rama.
+
+           ⚠️ Y LA CITA VA SÓLO DONDE LA REGLA ES DE PANDIAN. Las dos razones de REGURGITACIÓN
+           salen de esa guía —folio 8: la continuidad «should not be used when significant aortic
+           or mitral regurgitation is present»—; el VTI fuera de banda es una banda de plausibilidad
+           de ESTA aplicación, y colgarle el corchete de la ASE le atribuiría a la guía un criterio
+           que no da. La primera versión ponía la misma cita y la misma frase de regurgitación en
+           las cuatro ramas: sobre un VTI de 130 cm el renglón decía «el VTI está fuera de rango» y
+           enseguida «la continuidad no se usa con regurgitación significativa», que ahí no explica
+           nada y manda a mirar el grado equivocado.
+           ⚠️ El mismo documento dice lo CONTRARIO para la válvula aórtica —folio 20: con IAo y
+           EAo coexistentes el AVA por continuidad «remains applicable»—, así que esta cita es de
+           la MITRAL y no se puede reusar como compuerta genérica de «continuidad». */
+        const _esRegurg = !!_contMotivo && (_contMotivo === window.EM_CONT_AVISO_TXT ||
+                                            _contMotivo === window.EM_CONT_NOVERIF_TXT);
+        const _razon = !_emContValFn
+            ? 'La aplicación no pudo verificar la condición.'
+          : (_contMotivo === window.EM_CONT_AVISO_TXT)
+            ? 'Hay regurgitación mitral o aórtica significativa. La continuidad no se usa con regurgitación significativa.'
+          : (_contMotivo === window.EM_CONT_NOVERIF_TXT)
+            ? 'No se pudieron leer los grados de insuficiencia mitral y aórtica. La continuidad no se usa con regurgitación significativa, así que sin esos grados no se puede sostener.'
+          : _contMotivo ? _contMotivo + '.'
+            : 'El VTI mitral está fuera de rango medible: es el denominador de la cuenta.';
+        filas.push(_indFila('AVm — ' + x.lbl, _indNum(x.L.val, 2, 'cm²'), 'ask',
+          'no evaluable — no entra como criterio. ' + _razon +
+          ' El informe y el Excel ya retiran este valor en esta situación.',
+          _esRegurg ? ['asePandian2023'] : ['ecosmart']));
+        return;
+      }
       filas.push(_indFila('AVm — ' + x.lbl, _indNum(x.L.val, 2, 'cm²'),
         _le(x.L.val, US) ? 'ok' : 'none',
         /* ⚠️ LA CONTRAINDICACIÓN POR ÁREA TIENE SU PROPIA EXCEPCIÓN Y EL PANEL NO LA DECÍA:
@@ -42730,17 +42840,18 @@ function _indEM(){
          Sólo se publica con etiología reumática: es de dónde salió la escala. */
       etio === 'reumatica' ? { txt:'La ASE 2023 de cardiopatía REUMÁTICA sí gradúa por área y pone la severa en el mismo ≤ ' + (US != null ? _indNum(US,1) : '1,5') + ' cm²: > 2,5 leve, 2,5-1,6 moderada. O sea que de las tres escalas que conviven, dos ponen la severidad en ese corte y la de 2009 es la que difiere. En esa guía la estenosis mitral reumática se DEFINE por un gradiente medio > 4 mmHg más cambios morfológicos típicos —velos engrosados, fusión comisural, movilidad restringida, domo diastólico del velo anterior o engrosamiento y calcificación de las cuerdas—, y la SEVERA por área ≤ ' + (US != null ? _indNum(US,1) : '1,5') + ' cm², tiempo de hemipresión ≥ 150 ms y gradiente medio ≥ 10 mmHg. ⚠️ Esos dos últimos son criterios DE ESA GUÍA que esta aplicación no evalúa: acá la severidad se gradúa por ÁREA sola, y por eso la nota de abajo sigue diciendo que el gradiente medio no es criterio de severidad para las otras dos fuentes. Y ojo con el tiempo de hemipresión: el área por Hatle es 220 ÷ THP, así que el corte de área de esta aplicación equivale a un THP de 146,7 ms y no a los 150 ms que publica la ASE — un THP de 148 produce un área ya marcada como significativa.',
         refs:['asePandian2023','esc2025vc','eaeAseEst2009'] } : '',
-      /* ⚠️ ESTA NOTA CITA UNA COMPUERTA QUE ESTA SECCIÓN NO APLICA, Y LO DICE. `emContValido` retira
-         el AVm por continuidad con regurgitación mitral o aórtica significativa, pero eso vive en
-         `emCategoria`, `calcEM`, el informe y el Excel — NO acá: `_indEM` arma sus áreas con
-         `_indLeer` crudo y ni siquiera lee `ia_grado`.
-         ⚠️ LA PRIMERA VERSIÓN DE ESTA NOTA DECÍA «esta aplicación ya retira el voto de esa fuente en
-         esa situación» Y ERA FALSO. Lo encontró `/sharp-edges` sobre este mismo diff. El caso: con
-         `vm_morf` reumática, `ia_grado` moderada y el AVm por continuidad en 1,2 cm² como única
-         fuente, el informe retira ese valor y el panel lo publica igual con su ✅ —y encima con una
-         frase asegurando que se había retirado—. Una reaseguración falsa es peor que el silencio:
-         la divergencia estaba declarada en CLAUDE.md y la nota la negaba. */
-      etio === 'reumatica' ? { txt:'El área por ecuación de continuidad es la más débil de las cuatro fuentes: la ASE 2023 dice que «no está bien validada y se usa poco», y que NO debe usarse con insuficiencia aórtica o mitral significativa. ⚠️ El informe y el Excel de esta aplicación retiran ese valor en esa situación; ESTA SECCIÓN todavía no lo hace, así que el área por continuidad de arriba puede estar en ese estado y hay que mirar los grados de insuficiencia antes de apoyarse en ella. La misma guía prefiere la planimetría al nivel de las puntas de los velos, y advierte que el tiempo de hemipresión no es fiable con insuficiencia mitral significativa, tras valvuloplastia o con alteración de la distensibilidad auricular o ventricular.',
+      /* ⚠️ ESTA NOTA YA NO DESCRIBE UNA DIVERGENCIA: LA SECCIÓN APLICA LA COMPUERTA (2026-10-01).
+         Las dos versiones anteriores de este texto fueron falsas en direcciones OPUESTAS, y por eso
+         conviene saber la historia antes de volver a redactarlo:
+           · la primera afirmaba que «esta aplicación ya retira el voto de esa fuente», y era falso
+             —el panel publicaba el ✅ igual—. Una reaseguración falsa es peor que el silencio;
+           · la segunda lo corrigió a «ESTA SECCIÓN todavía no lo hace», que era cierto ese día y
+             quedó viejo en cuanto la fila pasó a consultar `emContValido()`.
+         Hoy la fila «AVm — ecuación de continuidad» de arriba cae en «no evaluable» cuando ese
+         predicado es falso, así que la nota ya no tiene que mandar al médico a mirar los grados a
+         mano: la fila lo dice en su propio renglón. Si alguien vuelve a tocar esto, el orden es
+         mirar la compuerta de `leidas.forEach` ANTES de reescribir la nota. */
+      etio === 'reumatica' ? { txt:'El área por ecuación de continuidad es la más débil de las cuatro fuentes: la ASE 2023 dice que «no está bien validada y se usa poco», y que NO debe usarse con insuficiencia aórtica o mitral significativa. Esta aplicación retira ese valor en esa situación: el informe, el Excel y la fila de arriba, que queda como «no evaluable» en vez de sostener el criterio. La misma guía prefiere la planimetría al nivel de las puntas de los velos, y advierte que el tiempo de hemipresión no es fiable con insuficiencia mitral significativa, tras valvuloplastia o con alteración de la distensibilidad auricular o ventricular.',
         refs:['asePandian2023'] } : '',
       { txt:'El área sola no alcanza: la guía dice «en combinación con ciertos factores clínicos» —síntomas, riesgo tromboembólico o de descompensación— para hablar de estenosis clínicamente grave.',
         refs:['esc2025vc'] },
