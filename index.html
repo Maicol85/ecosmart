@@ -3802,7 +3802,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="fg"><label>PHT (ms)</label><input type="number" id="ia_pht" placeholder="ms" oninput="calcIA_ESC()"></div>
       </div>
       <div class="grid-2" style="margin-top:8px;">
-        <div class="fg"><label>Vmax telediastólica IAo en Ao desc. (cm/s)</label><input type="number" id="ia_vmax_td" placeholder="cm/s" oninput="calcIA_ESC()"></div>
+        <div class="fg"><label>Vmax telediastólica IAo en Ao desc. (cm/s)</label><input type="number" id="ia_vmax_td" placeholder="cm/s" oninput="calcIA_ESC()"><div style="font-size:10px;color:var(--text2);margin-top:3px;">Reversi&oacute;n holodiast&oacute;lica &ge;20 cm/s &rarr; severa. Es el &uacute;nico corte que publica la gu&iacute;a: por debajo, el par&aacute;metro no grad&uacute;a.</div></div>
         <div class="fg"><label>VTI IAo en Ao torácica desc. (cm)</label><input type="number" id="ia_vti_desc" placeholder="cm" oninput="calcIA_ESC()"></div>
       </div>
       <div class="grid-4" style="margin-top:8px;">
@@ -12838,8 +12838,18 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
             <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">PHT (ms)</td><td style="padding:5px 8px;text-align:center;">&gt;500</td><td style="padding:5px 8px;text-align:center;">200–500</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&lt;200</td></tr>
             <tr style="border-bottom:1px solid var(--border);background:var(--bg3);"><td style="padding:5px 8px;color:var(--text2);">EROA (mm²)</td><td style="padding:5px 8px;text-align:center;">&lt;10</td><td style="padding:5px 8px;text-align:center;">10–29</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≥30</td></tr>
             <tr style="border-bottom:1px solid var(--border);"><td style="padding:5px 8px;color:var(--text2);">Vol-R (ml)</td><td style="padding:5px 8px;text-align:center;">&lt;30</td><td style="padding:5px 8px;text-align:center;">30–59</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">≥60</td></tr>
-            <tr><td style="padding:5px 8px;color:var(--text2);">Vmax telediastólica Ao desc.</td><td style="padding:5px 8px;text-align:center;">&lt;100 cm/s</td><td style="padding:5px 8px;text-align:center;">100–200</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&gt;200 cm/s</td></tr>
+            <!-- Las dos primeras celdas van con «—» Y CON EL MOTIVO AL PIE, no en blanco: una celda
+                 vacía en una tabla cuyas otras seis filas tienen los tres grados se lee como un dato
+                 que falta cargar, no como una banda que la guía decidió no publicar. -->
+            <tr><td style="padding:5px 8px;color:var(--text2);">Vmax telediastólica Ao desc.</td><td style="padding:5px 8px;text-align:center;color:var(--text2);">&mdash;</td><td style="padding:5px 8px;text-align:center;color:var(--text2);">&mdash;</td><td style="padding:5px 8px;text-align:center;color:#3ecf8e;font-weight:700;">&ge;20 cm/s</td></tr>
           </table>
+          <div style="margin-top:8px;font-size:11px;color:var(--text2);line-height:1.6;">
+            La <b>Vmax telediast&oacute;lica en aorta descendente</b> es el &uacute;nico par&aacute;metro de esta tabla con
+            un solo corte: la ESC/EACTS 2025 (Figura 4, folio 4659) la publica dentro del recuadro
+            <i>&laquo;Criteria for severe AR&raquo;</i> como <i>&laquo;Holodiastolic flow reversal in descending aorta
+            (EDV &ge;20 cm/s)&raquo;</i>, y no da bandas de leve ni de moderada. Por debajo de 20 cm/s el
+            par&aacute;metro <b>no grad&uacute;a</b> y la severidad la deciden los otros votantes.
+          </div>
           <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.8;">
             • <b>Clase I:</b> IAo severa sintomática → cirugía<br>
             • <b>Clase I:</b> IAo severa asintomática con FEVI ≤50% → cirugía<br>
@@ -16568,6 +16578,29 @@ window.UMBRAL_PSAP_ELEVADA = UMBRAL_PSAP_ELEVADA;
    ⚠️ CAMBIA LO QUE IMPRIME UN INFORME: el mismo estudio reimpreso antes y después de este commit
    puede decir «severa» donde decía «moderada». Es intencional y coincide con la guía. */
 const AVA_SEVERA_MAX = 1.0;   // AVA ≤ 1.0 → severa;  1.0 < AVA < 1.5 → moderada
+/* Velocidad TELEDIASTÓLICA del flujo reverso en la aorta descendente, insuficiencia aórtica.
+   ESC/EACTS 2025, Figura 4, folio 4659 — recuadro «Criteria for severe AR», viñeta
+   «Holodiastolic flow reversal in descending aorta (EDV ≥20 cm/s)». Leída sobre el PDF inglés
+   (`ehaf194.pdf`, PDF 25): la figura es una IMAGEN y el texto extraído sólo devuelve los «≥», así
+   que hubo que renderizar la página.
+   ⚠️ ES EL ÚNICO CORTE QUE LA FUENTE PUBLICA PARA ESTE PARÁMETRO. La figura entera cuelga de
+   «Criteria for severe AR»: no hay banda de leve ni de moderada que copiar. Por eso `calcIA_ESC`
+   vota severa con `>=` y SE ABSTIENE por debajo, en vez de repartir las otras dos categorías.
+   Inventarlas sería publicar cortes que la guía no da.
+   ⚠️ CAMBIA LO QUE IMPRIME UN INFORME YA GUARDADO, y acá pesa más que en `AVA_SEVERA_MAX`. No se
+   migró nada —la regla del repo es que un cambio de criterio NO sale a reescribir el disco—, pero
+   `cargarEstudioPorId` vuelve a correr `calcIA_ESC()` al reabrir, así que el grado se RECALCULA con
+   el corte nuevo. Qué muestra cada camino con lo viejo, medido y no estimado: un estudio archivado
+   bajo la banda anterior con `ia_vmax_td = 150` se reimprime SEVERA donde decía «Moderada — evaluar
+   integrado», y uno con 12 pasa de «Leve» a no votar. Bajo la UI anterior el campo pedía cm/s con
+   bandas 100/200, así que casi cualquier valor archivado de buena fe cruza el corte nuevo. El
+   `_sevManualRestaurar()` no lo frena: ningún estudio anterior trae la marca `esqSevManual`.
+   ⚠️ EL LITERAL 20 EXISTE EN UN SEGUNDO SITIO y NO deriva de esta constante: `holoSevero` del
+   módulo TAVI (`velT >= 20`, regurgitación paravalvular) usa el mismo número para el mismo criterio
+   físico. No se unificaron porque no son el mismo territorio —acá «Ao desc.», allá aorta abdominal—
+   ni la misma fuente —ESC/EACTS 2025 contra VARC-3/ASE 2019—, y fundirlos es decisión clínica de
+   Maicol, no una refactorización. Se declara para que mover ESTE número no deje aquél atrás. */
+const IA_VMAX_TD_SEVERA = 20;  // cm/s — ≥ 20 → severa; por debajo el parámetro no vota
 /* Mismo endurecimiento que pcpNagueh, y por el mismo motivo: `isNaN('')` es false, así que
    la versión anterior devolvía TRUE —severa— ante un campo vacío. Y `isNaN('0,95')` es true,
    o sea que con coma decimal devolvía false. Fallaba abierta con vacío y cerrada con coma:
@@ -24009,10 +24042,23 @@ function calcIA_ESC() {
     else { scores.severa++; params.push({p:'PHT',sev:'severa'}); document.getElementById('ia-pht-interp').innerHTML = badge('red','Severa (<200ms)'); }
   }
 
+  /* ⚠️ ESTE PARÁMETRO VOTA SÓLO SEVERA, Y ÉSA ES LA FORMA DE LA FUENTE, no una abstención
+     defensiva. La ESC/EACTS 2025, Figura 4 (folio 4659), publica la velocidad telediastólica
+     del flujo reverso en la aorta descendente DENTRO del recuadro «Criteria for severe AR»:
+     «Holodiastolic flow reversal in descending aorta (EDV ≥20 cm/s)». La figura entera cuelga
+     de ese título, así que para este parámetro la guía da UN corte —el de severa— y no publica
+     banda de leve ni de moderada. Por debajo de 20 cm/s no hay criterio que aplicar: el
+     parámetro se abstiene y la severidad la deciden los otros votantes.
+     ⚠️ LAS BANDAS ANTERIORES —<100 leve / 100-200 moderada / >200 severa— ERAN UN ORDEN DE
+     MAGNITUD MÁS ALTAS QUE EL CORTE PUBLICADO, y el defecto que causaban no era de rótulo: una
+     velocidad de 25 cm/s, que la guía llama SEVERA, votaba LEVE y empujaba el integrado hacia
+     el lado tranquilizador. Con ese techo de 200 cm/s el parámetro no podía votar severa en
+     ningún caso clínico real. Decisión de Maicol del 2026-10-01. */
   if (vmaxTD) {
-    if (vmaxTD < 100) { scores.leve++; params.push({p:'Vmax-TD',sev:'leve'}); document.getElementById('ia-vtd-interp').innerHTML = badge('green','Leve (<100 cm/s)'); }
-    else if (vmaxTD < 200) { scores.moderada++; params.push({p:'Vmax-TD',sev:'moderada'}); document.getElementById('ia-vtd-interp').innerHTML = badge('yellow','Moderada (100-200 cm/s)'); }
-    else { scores.severa++; params.push({p:'Vmax-TD',sev:'severa'}); document.getElementById('ia-vtd-interp').innerHTML = badge('red','Severa (>200 cm/s)'); }
+    if (vmaxTD >= IA_VMAX_TD_SEVERA) { scores.severa++; params.push({p:'Vmax-TD',sev:'severa'}); document.getElementById('ia-vtd-interp').innerHTML = badge('red','Severa (≥' + IA_VMAX_TD_SEVERA + ' cm/s) — reversión holodiastólica'); }
+    /* No es `badge('green', …)`: no clasificar NO es «leve». Verde sobre un parámetro que la
+       guía no gradúa se lee como un hallazgo tranquilizador que nadie afirmó. */
+    else { document.getElementById('ia-vtd-interp').innerHTML = badge('gray','No gradúa (< ' + IA_VMAX_TD_SEVERA + ' cm/s) — la guía sólo publica el corte de severa'); }
   }
 
   if (vtiDesc) {
@@ -44551,6 +44597,17 @@ function _indIA(){
       'El diámetro TELEDIASTÓLICO no es criterio de esta tabla. El > 65 mm que se cita es texto del cuerpo, sin clase, y exige progresión de los diámetros o caída de la FEVI en el seguimiento — no se resuelve con un estudio aislado.',
       'La reparación valvular subió en 2025 de Clase IIb · Nivel C a Clase IIa · Nivel B, y el TAVI para insuficiencia aórtica es fila nueva (Clase IIb · Nivel B), sólo para el sintomático no elegible para cirugía.',
       'El aneurisma AISLADO de raíz o ascendente —sin indicación valvular— se rige por la guía de aorta, no por esta tabla. Sí es fila de acá el reemplazo CONCOMITANTE desde 45 mm cuando la cirugía valvular ya está indicada y el riesgo es bajo.',
+      /* ⚠️ ESTA NOTA DECLARA UN CORTE QUE NO TIENE FUENTE, y por eso existe. La ESC/EACTS 2025
+         publica el flujo reverso de la aorta descendente SÓLO por velocidad telediastólica
+         (Figura 4, folio 4659: «EDV ≥20 cm/s»); del VTI de ese flujo reverso no da ningún corte
+         —el único VTI que nombra la sección aórtica, en el folio 4663, es el cociente TSVI/válvula
+         de la ESTENOSIS, que es otro parámetro y otra lesión—. La ASE 2017 tampoco lo gradúa.
+         Los tres cortes de abajo son de la aplicación, así que se dicen con el marcador `ecosmart`
+         y NO con una cita de guía: colgarles un [1] de la ESC afirmaría que la guía los respalda.
+         El parámetro sigue votando como hasta hoy —decisión de Maicol del 2026-10-01—: lo que
+         cambia es que el panel ya no deja creer que ese voto sale de un documento. */
+      { txt:'El VTI del flujo reverso en la aorta descendente se muestra y VOTA con los cortes de la aplicación (< 15 cm sin inversión significativa, 15 a 25 cm inversión moderada, ≥ 25 cm inversión holodiastólica), pero ninguna de las guías verificadas publica un corte de VTI para ese flujo: la ESC/EACTS 2025 gradúa la reversión holodiastólica por VELOCIDAD telediastólica (≥ 20 cm/s) y no por su integral, y la ASE 2017 no la cuantifica. Esos tres cortes son una decisión de la aplicación y no están respaldados por ninguna de las dos fuentes.',
+        refs:['ecosmart'] },
       'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
     ] };
 }
@@ -87898,8 +87955,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261001-1701';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790884881330;                 /* eco-build-ms */
+const ECO_BUILD    = '20261001-1917';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790893050551;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -87985,7 +88042,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261001-1701</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261001-1917</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

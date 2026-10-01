@@ -43258,6 +43258,177 @@ caso('TC-347', 'PDF: el borde del rango severo de Vmax y gradiente medio sale de
   ] };
 `);
 
+caso('TC-348', 'IAo Vmax telediastolica en Ao desc.: vota SOLO severa desde 20 cm/s y por debajo NO grada — informe, EN SUMA, PDF y Excel, una por una', `
+  const prev = (typeof estiloInforme !== 'undefined') ? estiloInforme : null;
+  /* Mismo envoltorio de jsPDF que TC-345: la instancia cuelga text de si misma, no del prototipo. */
+  const pdfTxt = function () {
+    const ns = window.jspdf;
+    if (!ns || typeof ns.jsPDF !== 'function') return 'NO HAY jsPDF';
+    const Orig = ns.jsPDF; const cap = [];
+    function Env() { const dd = new Orig(...arguments); const t = dd.text;
+      dd.text = function (x) { try { cap.push(Array.isArray(x) ? x.join(' ') : String(x)); } catch (e) {}
+        return t.apply(dd, arguments); }; return dd; }
+    Env.API = Orig.API;
+    try { ns.jsPDF = Env;
+      const paso = (window._PDF_A4_PASOS && window._PDF_A4_PASOS[0]) || { sp: 3, fs: 9 };
+      generarPDFReal({ sp: paso.sp, fs: paso.fs, __a4: true, medir: true });
+    } catch (e) {} finally { ns.jsPDF = Orig; }
+    if (!cap.length) return 'SONDA VACIA';
+    return cap.join(' | '); };
+  const excelRow = function () { const campos = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (e) {
+      campos[e.id] = (e.type === 'checkbox' || e.type === 'radio') ? (e.checked ? '1' : '') : e.value; });
+    try { return _labExcelRow({ campos: campos }); } catch (e) { return { ERROR: e.message }; } };
+  /* La Vmax telediastolica va como UNICO insumo a proposito: asi el grado integrado es su voto y
+     nada mas, y cualquier cambio de banda se ve sin que otro votante lo tape. */
+  const esc = (vtd) => { __t.limpiar(); window.esqSevManual = {};
+    __t.set('nombre','TC348');
+    if (vtd !== null) __t.set('ia_vmax_td', vtd);
+    try { calcIA_ESC(); } catch (e) {}
+    const r = __t.informe(); const p = pdfTxt(); const x = excelRow();
+    return { grado: __t.val('ia_grado'), sevFinal: __t.val('ia_sev_final'),
+             interp: __t.txt('ia-vtd-interp'), badge: __t.txt('ia-sev'),
+             inf: r.inf, suma: r.suma, pdf: String(p),
+             xlsGrado: x['IAo grado'], xlsI: x['IAo_I (Leve)'], xlsIII: x['IAo_III (Severa)'] }; };
+  try { setEstiloInforme('narrativo'); } catch (e) {}
+  const v15 = esc('15');
+  const v20 = esc('20');
+  const v25 = esc('25');
+  const nada = esc(null);
+  /* 150 y 12 son los valores que un estudio GUARDADO bajo la banda vieja puede traer: con
+     100/200 vigentes, 150 era «moderada» y 12 era «leve». No se migro nada, pero reabrir corre
+     calcIA_ESC otra vez, asi que el grado se recalcula con el corte nuevo. Se fija lo que hace
+     cada camino con lo viejo — es la declaracion que pide la regla de estudios guardados. */
+  const vViejoMod  = esc('150');
+  const vViejoLeve = esc('12');
+  /* GRADO RANCIO — LIMITE DECLARADO Y DECISION TOMADA (index.html, comentario de calcIM_ESC):
+     retirar el grado auto-derivado en nativa es decision clinica de Maicol y NO se toca. Se fija
+     aca para que el limite sea visible y no cambie en silencio: 25 -> 15 SIN limpiar deja el
+     grado severo en pie, porque params queda vacio y el early return sale antes de reescribirlo. */
+  __t.limpiar(); window.esqSevManual = {};
+  __t.set('nombre','TC348r'); __t.set('ia_vmax_td','25');
+  try { calcIA_ESC(); } catch (e) {}
+  const rancioAntes = __t.val('ia_grado');
+  __t.set('ia_vmax_td','15');
+  try { calcIA_ESC(); } catch (e) {}
+  const rancioDespues = __t.val('ia_grado');
+  const rancioInterp = __t.txt('ia-vtd-interp');
+  __t.limpiar(); window.esqSevManual = {};
+  if (prev) { try { setEstiloInforme(prev); } catch (e) {} }
+  return { extra: [
+    ['DENOMINADOR: la sonda del PDF capturo texto con el voto severo (no se cuenta sobre un flujo vacio)',
+      v25.pdf !== 'SONDA VACIA' && v25.pdf !== 'NO HAY jsPDF' && v25.pdf.length > 50,
+      'pdf=' + v25.pdf.slice(0, 120)],
+    ['DENOMINADOR: sin el campo cargado no se escribe grado alguno',
+      nada.grado === '0' && nada.badge === '—', 'grado=' + nada.grado + ' badge=' + nada.badge],
+    ['⚠️ 20 cm/s es el BORDE y vota severa (la guia dice >= 20, no > 20)',
+      v20.grado === '4', 'grado=' + v20.grado + ' interp=' + v20.interp],
+    ['  y la constante del codigo es la de la figura',
+      typeof IA_VMAX_TD_SEVERA !== 'undefined' && IA_VMAX_TD_SEVERA === 20,
+      'IA_VMAX_TD_SEVERA=' + (typeof IA_VMAX_TD_SEVERA !== 'undefined' ? IA_VMAX_TD_SEVERA : 'NO EXISTE')],
+    ['25 cm/s vota severa y la pantalla lo dice',
+      v25.grado === '4' && v25.interp.toLowerCase().indexOf('severa') > -1,
+      'grado=' + v25.grado + ' interp=' + v25.interp],
+    ['  SUPERFICIE 1 — informe narrativo: dice insuficiencia severa',
+      v25.inf.indexOf('insuficiencia severa') > -1, 'inf no la trae'],
+    ['  SUPERFICIE 2 — EN SUMA: dice IAo severa y no IAo leve',
+      v25.suma.indexOf('IAo severa.') > -1 && v25.suma.indexOf('IAo leve') === -1,
+      'suma=' + v25.suma],
+    ['  SUPERFICIE 3 — PDF: el papel trae severa y no leve en la insuficiencia aortica',
+      v25.pdf.indexOf('severa') > -1, 'pdf=' + v25.pdf.slice(0, 200)],
+    ['  SUPERFICIE 4 — Excel: IAo grado severa, columna III en 1 y columna I en 0',
+      String(v25.xlsGrado).toLowerCase() === 'severa' && v25.xlsIII === 1 && v25.xlsI === 0,
+      'IAograd=' + v25.xlsGrado + ' I=' + v25.xlsI + ' III=' + v25.xlsIII],
+    /* CONTROL NEGATIVO. Es la mitad del cambio y la que prueba que la sonda distingue: con la banda
+       vieja 15 cm/s votaba LEVE y arrastraba las cuatro superficies a «IAo leve». */
+    ['⚠️ CONTROL NEGATIVO — 15 cm/s NO grada: no vota leve ni nada',
+      v15.grado === '0' && v15.badge === '—', 'grado=' + v15.grado + ' badge=' + v15.badge],
+    ['  y la pantalla lo DICE en vez de pintar un verde tranquilizador',
+      v15.interp.indexOf('No grad') > -1 && v15.interp.toLowerCase().indexOf('leve') === -1,
+      'ia-vtd-interp=' + v15.interp],
+    ['  CONTROL en las cuatro superficies: con 15 cm/s ninguna afirma un grado de IAo',
+      v15.inf.indexOf('insuficiencia severa') === -1 &&
+      v15.suma.indexOf('IAo leve') === -1 && v15.suma.indexOf('IAo severa') === -1 &&
+      v15.xlsI === 0 && v15.xlsIII === 0,
+      'inf/suma=' + v15.suma + ' xlsI=' + v15.xlsI + ' xlsIII=' + v15.xlsIII],
+    ['⚠️ la banda VIEJA quedo retirada: 15 cm/s no cae en «Leve (<100 cm/s)»',
+      v15.interp.indexOf('100') === -1 && v25.interp.indexOf('200') === -1,
+      'v15=' + v15.interp + ' v25=' + v25.interp],
+    ['y la tabla de referencia de la tarjeta IAo ya no publica los cortes de leve y moderada',
+      (function () { const t = document.body.innerHTML;
+        return t.indexOf('100–200') === -1 && t.indexOf('&gt;200 cm/s') === -1 &&
+               t.indexOf('≥20 cm/s') > -1; })(),
+      'la tarjeta sigue mostrando 100/200'],
+    /* ── Lo que el cambio le hace a lo YA GUARDADO. No es un arreglo: es la declaracion medida. ── */
+    ['DECLARADO — un guardado viejo con 150 cm/s (era «moderada») se reimprime SEVERA',
+      vViejoMod.grado === '4' && vViejoMod.suma.indexOf('IAo severa.') > -1,
+      'grado=' + vViejoMod.grado + ' suma=' + vViejoMod.suma],
+    ['DECLARADO — un guardado viejo con 12 cm/s (era «leve») pasa a NO votar',
+      vViejoLeve.grado === '0' && vViejoLeve.suma.indexOf('IAo leve') === -1,
+      'grado=' + vViejoLeve.grado + ' suma=' + vViejoLeve.suma],
+    /* ── Limite declarado, decision de Maicol: el grado rancio NO se retira en nativa. ── */
+    ['DENOMINADOR del rancio: 25 cm/s dejo el grado en severa antes de bajar a 15',
+      rancioAntes === '4', 'grado tras 25 = ' + rancioAntes],
+    ['LIMITE DECLARADO — al bajar 25 -> 15 sin limpiar, el grado severo SOBREVIVE (early return)',
+      rancioDespues === '4', 'grado tras 15 = ' + rancioDespues],
+    ['  y la pantalla queda contradiciendose: el renglon dice «No grada» sobre un grado severo',
+      rancioInterp.indexOf('No grad') > -1, 'ia-vtd-interp=' + rancioInterp],
+  ] };
+`);
+
+caso('TC-349', 'IAo: el VTI del flujo reverso en Ao desc. vota con cortes de la app y el panel lo DECLARA como Criterio EcoSmart, sin colgarle una cita de guia', `
+  __t.limpiar(); window.esqSevManual = {};
+  __t.set('nombre','TC349');
+  // El panel de conducta abre solo con la severidad confirmada en 4.
+  __t.set('ia_vc','8'); try { calcIA_ESC(); } catch (e) {}
+  let R = null, err = '';
+  try { R = _indIA(); } catch (e) { err = 'ERR ' + e.message; }
+  const notas = (R && R.notas) || [];
+  const obj = notas.filter(function (n) { return n && typeof n === 'object' && n.txt &&
+    n.txt.indexOf('VTI del flujo reverso') > -1; })[0] || null;
+  // El HTML renderizado: es donde el medico lee el corchete y la bibliografia.
+  let html = '';
+  try { html = _indSecHTML('Insuficiencia aórtica', R) || ''; } catch (e) { html = 'ERR ' + e.message; }
+  // El voto NO se toca: 30 cm sigue votando severa por el VTI.
+  __t.limpiar(); window.esqSevManual = {};
+  __t.set('nombre','TC349b'); __t.set('ia_vti_desc','30');
+  try { calcIA_ESC(); } catch (e) {}
+  const votaSev = __t.val('ia_grado');
+  const interpSev = __t.txt('ia-vti-desc-interp');
+  __t.limpiar(); window.esqSevManual = {};
+  __t.set('nombre','TC349c'); __t.set('ia_vti_desc','10');
+  try { calcIA_ESC(); } catch (e) {}
+  const votaLeve = __t.val('ia_grado');
+  __t.limpiar(); window.esqSevManual = {};
+  return { extra: [
+    ['DENOMINADOR: el panel de IAo abrio y trae notas (no se cuenta sobre un panel apagado)',
+      R !== null && notas.length > 0, 'R=' + (R === null ? 'null ' + err : 'ok') + ' notas=' + notas.length],
+    ['⚠️ existe la nota que declara los cortes del VTI del flujo reverso',
+      obj !== null, 'no esta la nota entre las ' + notas.length + ' del panel'],
+    ['  y va con el marcador ecosmart, NO con una cita de guia',
+      obj !== null && Array.isArray(obj.refs) && obj.refs.length === 1 && obj.refs[0] === 'ecosmart',
+      'refs=' + JSON.stringify(obj && obj.refs)],
+    ['  la nota dice que ninguna guia verificada publica un corte de VTI',
+      obj !== null && obj.txt.indexOf('ninguna de las guías verificadas publica un corte de VTI') > -1,
+      'txt=' + (obj && obj.txt || '').slice(0, 160)],
+    ['  y nombra el corte que la ESC si publica (la VELOCIDAD, 20 cm/s) para que no se confundan',
+      obj !== null && obj.txt.indexOf('20 cm/s') > -1, 'txt no nombra el 20 cm/s'],
+    ['SUPERFICIE — el panel renderizado imprime la frase de Criterio EcoSmart al pie',
+      html.indexOf('Criterio EcoSmart: decisión clínica de la aplicación cuando la evidencia no ofrece un único corte aplicable.') > -1,
+      'html=' + html.slice(0, 120)],
+    ['  y la nota sale con corchete de cita, no suelta',
+      html.indexOf('VTI del flujo reverso') > -1 && /\\[\\d+\\]/.test(html) &&
+      html.indexOf('cita fuera de sección') === -1,
+      'la nota no se rendereo con su corchete'],
+    /* CONTROL NEGATIVO del voto: decision B es declarar, NO cambiar el voto. */
+    ['⚠️ CONTROL — el VOTO del VTI no se toco: 30 cm sigue votando severa',
+      votaSev === '4' && interpSev.toLowerCase().indexOf('holodiast') > -1,
+      'grado=' + votaSev + ' interp=' + interpSev],
+    ['  CONTROL — y 10 cm sigue votando leve',
+      votaLeve === '1', 'grado=' + votaLeve],
+  ] };
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

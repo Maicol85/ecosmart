@@ -23,6 +23,52 @@
 - Wilkins: unificar `calcWilkins` y `cxWilkins`; al hacerlo, atribuir el ≤8 de la leyenda a la
   guía ESC; la escala (1-4) de los selectores NO se cambia.
 
+## Aórtica — declarado en la tanda 2/3 (2026-10-01) y NO arreglado
+
+Lo de abajo está **medido en Chrome**, no supuesto, y **espera decisión de Maicol**: son cortes,
+fórmulas y rótulos clínicos, que por la regla del repo se reportan y no se tocan.
+
+- **🔴 La fracción regurgitante de la IAo usa el denominador equivocado, y falla hacia «menos
+  severa».** El código hace `volR/(volR+vsv)`, donde `vsv` es el volumen sistólico del TSVI. La ASE
+  2017 (Zoghbi, **folio 311**) define *«RF is then derived as the RVol divided by the SV through the
+  regurgitant valve. Thus, RVol = SV_RegValv − SV_CompValv; RF = RVol/SV_RegValv»*, y la **Tabla 14**
+  (**folio 339**) da el método para la IAo: *«SV method: RVol = SV_LVOT − SV_MV»*. O sea que en la IAo
+  la válvula regurgitante **es la aórtica** y su SV se mide en el TSVI: `vsv` **ya contiene** el
+  volumen regurgitante, y el denominador correcto es `vsv` solo. Sumarle `volR` lo cuenta dos veces.
+  La fórmula del código es la correcta para la **IM** (ahí `vsv` sí es el flujo anterógrado), y
+  parece copiada de ahí. **Medido** con EROA 20 mm², VTI 200 cm, Ø TSVI 20 mm y VTI TSVI 20 cm:
+  VolR 40,0 ml, `vsv` 62,83 ml → la app publica **39 %** (vota *moderada*) y la fórmula de Zoghbi da
+  **64 %** (vota *severa*). Dos bandas de diferencia sobre los mismos datos. **NO se corrigió**: la
+  fórmula es contenido clínico.
+- **El grado 3 («Moderada-severa») lo ofrece el `select` `ia_sev_final` y `calcIA_ESC` no lo emite
+  nunca.** La cascada solo produce `'4'`, `'2'` y `'1'`. Solo se llega a 3 eligiéndolo a mano, y
+  hacerlo **apaga el panel de conducta**, que abre con `ia_sev_final === '4'`. La categoría sí existe
+  en la ASE 2017 (tabla de IAo, folio 340, con cuatro columnas), así que la opción no es inventada:
+  lo que falta es que la integración sepa emitirla, o que se retire del `select`.
+- **Fail-open por unidad en `ia_vmax_td`, agravado por el corte nuevo.** El campo **no tiene banda de
+  plausibilidad** (`CHM_RANGO` cubre `ia_vmax_cw` y `ia_pht`, no éste). Una velocidad tipeada en m/s
+  —`0,25` en vez de `25`— cruza la guarda `if (vmaxTD)`, no alcanza los 20 y la pantalla contesta
+  «No gradúa (< 20 cm/s) — la guía sólo publica el corte de severa»: un criterio de severa cumplido
+  se pierde detrás de una frase con autoridad de guía. Toda la banda fisiológica en m/s (0,2-0,6)
+  cae en esa ventana muerta. Igual con negativos (el equipo muestra la reversión con signo).
+- **`if (vmaxTD)` descarta el cero medido.** «Busqué la reversión y no hay» se trata como «no hay
+  dato». El módulo TAVI ya resolvió esta distinción con `cero()` y `_medidoCero`, y usa
+  `velT != null`: dos lectores del mismo parámetro físico con guardas distintas.
+- **El rótulo dice «Vmax telediastólica» y la guía pide EDV** (velocidad *al final* de la diástole),
+  no el pico del flujo reverso. Son números distintos del mismo trazado y el pico siempre es mayor.
+  Con el techo viejo de 200 cm/s la confusión era inofensiva; con el corte en 20 decide el grado, y
+  hacia severa. Además el badge **afirma** «reversión holodiastólica» a partir de una sola velocidad,
+  mientras el módulo TAVI exige la conjunción (`flujo==='holo' && velT>=20`, con un `select` propio).
+- **`ia_vmax_td` no sale en el PDF, ni en el Excel, ni en el importador.** Con `severa >= 1` puede ser
+  el **único** votante del grado que firma el informe: un papel que dice «insuficiencia aórtica
+  severa» sin la fila que lo sostiene, y un round-trip de Excel que pierde el dato. Era deuda barata
+  mientras el parámetro casi no podía votar severa; ahora no lo es.
+- **Grado rancio en la IAo, límite ya declarado.** Bajar 25 → 15 cm/s sin limpiar deja el grado
+  severo en pie (`params` vacío → early return antes de reescribirlo) y la pantalla se contradice:
+  el renglón dice «No gradúa» sobre un grado severo. Retirar el grado auto-derivado en nativa es
+  **decisión tomada de Maicol — «NO se toca»** (comentario de `calcIM_ESC`). Queda fijado por TC-348
+  para que el límite sea visible y no cambie en silencio.
+
 ## Aórtica — declarado en la tanda 1/3 (2026-10-01) y NO arreglado
 
 Sale de `/sharp-edges` sobre el diff de esa tanda. Está medido, no supuesto.

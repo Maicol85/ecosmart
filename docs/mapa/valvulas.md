@@ -119,11 +119,24 @@ escribe `vli_calc` y `vli-interp`, **también en la rama sin datos** (se vacía)
 `calcTango()` — AVA proyectada de Tango — lee: `tango_te`, `tango_tac`, `vmax_ao`; escribe:
 `tango-ava`, `tango-ratio`.
 
-`calcIA_ESC` — integración de IAo por votos (`severa>=2`, o `severa==1 && moderada>=1`, o `moderada>=2`);
-cortes inline VC `<3`/`<=6`/`>6` mm · jet/TSVI `<25`/`<65`/resto % · PHT `>500` leve/`>=200`
-moderada/`<200` severa — lee: `ia_vc`, `ia_jet_diam`, `diam_tsvi`, `ia_pht`, `ia_vmax_td`,
+`calcIA_ESC` — integración de IAo por votos: **`severa>=1`** desde `8b143e6` (un solo voto severo
+basta), si no `moderada>=2`, si no `leve>=1` con los otros dos en cero, y el `else` publica
+«Moderada — evaluar integrado». ⚠️ **El grado 3 («Moderada-severa») lo ofrece el `select`
+`ia_sev_final` y `calcIA_ESC` NO lo emite nunca**: solo sale de `'4'`, `'2'` y `'1'`. Elegirlo a mano
+apaga el panel de conducta, que abre con `ia_sev_final === '4'`.
+Cortes inline VC `<3`/`<=6`/`>6` mm · jet/TSVI `<25`/`<65`/resto % · PHT `>500` leve/`>=200`
+moderada/`<200` severa · **Vmax telediastólica en Ao desc. `>= IA_VMAX_TD_SEVERA` (20 cm/s) vota
+severa y por debajo NO vota** —la ESC/EACTS 2025, Figura 4, folio 4659, publica solo el corte de
+severa— · VTI Ao desc. `<15`/`<25`/`>=25` cm, que **no tiene fuente**: son cortes de la app,
+declarados en el panel con el marcador `ecosmart` — lee: `ia_vc`, `ia_jet_diam`, `diam_tsvi`,
+`ia_pht`, `ia_vmax_td`,
 `ia_vti_desc`, `ia_pisa_r`, `ia_pisa_val`, `ia_vmax_cw`, `ia_vti`, `itv_tsvi`; escribe: `ia-jet-ratio`,
-`ia-pht-interp`, grado vía `autoCompletarSevIA`.
+`ia-pht-interp`, `ia-vtd-interp`, `ia-vti-desc-interp`, `ia-eroa`, `ia-volr`, `ia-freg`, grado vía
+`autoCompletarSevIA`.
+⚠️ **La fracción regurgitante usa `volR/(volR+vsv)`, y `vsv` es el volumen sistólico del TSVI.** La
+ASE 2017 (Zoghbi, folio 311) define `RF = RVol/SV_RegValv`, y en la IAo la válvula regurgitante es la
+aórtica, cuyo SV se mide en el TSVI: el denominador correcto sería `vsv` solo. **Reportado, NO
+corregido** — ver `docs/PENDIENTES.md`.
 
 `eaProtVeredicto()` — Tabla 5 ASE 2024 (obstrucción protésica aórtica): normal/posible/significativa;
 `null` si `va_morf` no es prótesis; distingue TAVI; el DVI se lee de `dvi-val` antes que de
@@ -218,6 +231,12 @@ gradúa?» (una SAVR es prótesis y la aórtica sí se gradúa); cuerpo no leíd
   · `savr_dvi_normal_min 0.35` (⚠️ estricto, **no** el 0,30 de la Figura 13) · `savr_dvi_signif_max 0.25`.
 - `EA_PROT_VS_MIN = 50` / `EA_PROT_VS_MAX = 90` mL — el VS que la nota `‡` exige para usar la Vmax.
 - `AT_PROT_NORMAL_MAX = 80` / `AT_PROT_POSIBLE_MAX = 100` ms — `<80` normal, 80-100 posible, `>100` signif.
+- `IA_VMAX_TD_SEVERA = 20` cm/s — velocidad **telediastólica** del flujo reverso en aorta descendente.
+  `>= 20` vota severa; por debajo el parámetro **no vota**. Es el único corte que la ESC/EACTS 2025
+  publica para ese parámetro (Figura 4, folio 4659, recuadro «Criteria for severe AR»): no hay banda
+  de leve ni de moderada que copiar. ⚠️ El literal `20` está **también** en `holoSevero` del módulo
+  TAVI (`velT >= 20`), que no deriva de esta constante — otro territorio (aorta abdominal) y otra
+  fuente (VARC-3/ASE 2019); unificarlos es decisión clínica, no refactorización.
 - `EASV_MEDIO_SEVERO = 40` mmHg — supravalvular severa (ESC 2020, a flujo normal).
 - ⚠️ **Tabla 6** (deterioro) declarada y **sin implementar**: compara contra un basal post-implante. La
   app gradúa obstrucción, no deterioro.

@@ -70,6 +70,8 @@ páginas de lesión en el `full`: cada sección cita su propia tabla en su texto
 | Qué | Folio | Dato verificado |
 |---|---|---|
 | Tabla 4, recomendaciones revisadas, fila del TEER | 4647 | la fila que cambió de clase para el TEER |
+| **Figura 4**, evaluación por imagen de la IAo (PDF 25) | **4659** | recuadro **«Criteria for severe AR»** — semicuantitativos: *«Vena contracta >6 mm»*, *«PHT <200 ms»*, *«Large central jet (≥65% of LVOT diameter)»*, *«Holodiastolic flow reversal in descending aorta (EDV ≥20 cm/s)»*; cuantitativos: *«EROA ≥30 mm2»*, *«RVol ≥60 mL/beat»*, *«RF >50% (echo)»*, *«RF >40% (CMR)»* |
+| §11.2.2, parámetros adicionales de la IAo | 4663 | el único VTI de la sección aórtica es el cociente TSVI/válvula (índice adimensional) — es de la **estenosis**, no del flujo reverso |
 | **Figura 10**, criterios ecocardiográficos de IM | **4672** | rama «Quantitative»: *«EROA ≥40 mm2 (or ≥30 mm2 if elliptical regurgitant orifice area)»* |
 | **§9.2.2 «Evaluation»** | **4675** | en IM secundaria pueden aplicar cortes más bajos *«because of the potential elliptical regurgitant orifice and/or the low-flow state»*; menciona EROA ≥30 mm² y/o VolR ≥45 mL por impacto en desenlaces |
 | Tabla 6 de Recomendaciones, IM primaria | 4674-4675 | recomendaciones de intervención en IM primaria |
@@ -107,6 +109,23 @@ doi:10.1016/j.echo.2017.01.007.
   regurgitante **≥ 60 ml**, fracción regurgitante **≥ 50 %**.
 - ⚠️ **Los cortes están en cm² y cm, no en mm² y mm.** Transcribirlos sin convertir mueve el umbral
   dos órdenes de magnitud.
+
+**Folio = página del PDF + 302** (PDF 9 → 311 · PDF 30 → 332 · PDF 38 → 340), leído del pie impreso.
+
+| Qué | Folio | Dato verificado |
+|---|---|---|
+| **Definición general de fracción regurgitante** | **311** | *«RF is then derived as the RVol divided by the SV through the regurgitant valve. Thus, RVol = SV_RegValv − SV_CompValv; RF = RVol/SV_RegValv»* |
+| **Tabla 14**, métodos de cuantificación de la IAo | **339** | *«SV method: RVol = SV_LVOT − SV_MV»* — en la IAo la válvula regurgitante es la aórtica y su SV se mide en el **TSVI** |
+| Tabla de severidad de la **IAo**, cuatro columnas | 340 | VCW `<0.3` / `0.3-0.6` / `>0.6` cm · jet/TSVI `<25` / `25-45` / `46-64` / `≥65` % · RVol `<30` / `30-44` / `45-59` / `≥60` ml · RF `<30` / `30-39` / `40-49` / `≥50` % · EROA `<0.10` / `0.10-0.19` / `0.20-0.29` / `≥0.30` cm² |
+| Figura 25, algoritmo de integración de la IAo | 344 | los cuatro grados, con «Specific Criteria for Severe AR» y «for Mild AR» |
+| Método directo por CMR | 341 | *«RF (reverse volume/forward volume * 100%)»* — el denominador es el flujo anterógrado **total** |
+
+⚠️ **De acá sale el hallazgo de la fracción regurgitante de la IAo** (`docs/PENDIENTES.md`): el
+denominador de la app es `volR + vsv` y el de la fuente es `vsv` solo, porque en la IAo el volumen
+sistólico del TSVI **ya contiene** el regurgitante. **Reportado, no corregido.**
+
+⚠️ **Esta tabla tiene CUATRO columnas**, no tres: existe la banda intermedia que el `select`
+`ia_sev_final` llama «Moderada-severa» y que `calcIA_ESC` nunca emite.
 
 ### `ahaVc2020` — ACC/AHA 2020, valvulopatías (válvula nativa)
 Otto CM, Nishimura RA, Bonow RO, et al. *Circulation* 2021;143:e72-e227.
