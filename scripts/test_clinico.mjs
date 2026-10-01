@@ -42575,6 +42575,181 @@ caso('TC-339', 'Evidencia IM secundaria: la fila del grado presenta la posicion 
   })();
 `);
 
+/* ═══ TC-340 · «Nuevo estudio» se lleva las respuestas del panel de Evidencia ═══════════════════
+   Decision de Maicol (2026-09-30). `_indClin` guarda lo que el medico contesto A MANO en el panel
+   y lo limpiaban SOLO indicAbrir e indicCerrar, asi que una respuesta sobrevivia a «Nuevo estudio»
+   mientras el panel quedara abierto — es un overlay y el modal se abre ENCIMA.
+
+   ⚠️ LA CONDICION QUE IMPORTA NO ES QUE EL OBJETO QUEDE VACIO: ES A QUE TABLA VA EL PACIENTE
+   SIGUIENTE. Medido contra HEAD: el PACIENTE B, a quien NUNCA se le contesto el mecanismo, salia
+   ruteado a la tabla de IM SECUNDARIA —con su recomendacion publicada— y la de primaria apagada,
+   por la respuesta del PACIENTE A. Un caso que solo mirara Object.keys(_indClin) pasaria en verde
+   con un _indClinLimpiar que corriera en el momento equivocado.
+
+   ⚠️ Y EL PANEL VA ABIERTO, que es la precondicion de la fuga. Con el panel cerrado indicCerrar ya
+   limpiaba, asi que un caso que no lo abra no prueba nada. */
+caso('TC-340', 'Nuevo estudio: las respuestas del panel de Evidencia no pasan al paciente siguiente, y el que no contesto el mecanismo no va a la tabla de IM secundaria', `
+  return (async () => {
+    const R = {};
+    const A = { nombre:'PACIENTE A', ci:'1-1', peso:'80', talla:'180', edad:'68', sexo:'M',
+                fevi:'35', ddfvi:'62', dsfvi:'48', ai_vol:'70', im_sev_final:'4', im_vc:'8' };
+    /* B tiene IM severa TAMBIEN —si no, la compuerta de grado apaga la seccion y la fuga queda
+       invisible— pero NUNCA se le contesto el mecanismo. */
+    const B = { nombre:'PACIENTE B', ci:'2-2', peso:'70', talla:'170', edad:'55', sexo:'F',
+                fevi:'60', ddfvi:'50', dsfvi:'32', ai_vol:'55', im_sev_final:'4', im_vc:'8' };
+    try { __t.limpiar(); } catch (e) {}
+    try { indicCerrar(); } catch (e) {}
+    Object.keys(A).forEach(function(k){ __t.set(k, A[k]); });
+    try { indicAbrir(); } catch (e) { R.errAbrir = e.message; }
+    R.panelAbierto = (function(){ const o = document.getElementById('indic-overlay');
+      return o ? o.style.display : '(sin overlay)'; })();
+    const bot = document.querySelector('[data-ind-clin="im.mecanismo"][data-ind-val="secundaria"]');
+    R.hayBoton = !!bot;
+    if (bot) bot.click();
+    const secs = function(){
+      return { ims:(function(){ try { return _indIMS() !== null; } catch (e) { return 'ERR'; } })(),
+               imPrim:(function(){ try { return _indIM() !== null; } catch (e) { return 'ERR'; } })(),
+               mec:String(typeof _indClinGet === 'function' ? _indClinGet('im.mecanismo') : 'SINFN'),
+               claves:(typeof _indClin === 'object' && _indClin) ? Object.keys(_indClin).join(',') : '?' };
+    };
+    R.antes = secs();
+    // «Nuevo estudio» por la funcion REAL, con el panel abierto
+    try { neContinuarSinGuardar(); } catch (e) { R.errNuevo = e.message; }
+    R.vacio = secs();
+    // y ahora el paciente siguiente
+    Object.keys(B).forEach(function(k){ __t.set(k, B[k]); });
+    try { if (typeof imSecAvisoPintar === 'function') imSecAvisoPintar(); } catch (e) {}
+    R.B = secs();
+    R.avisoB = String(__t.txt('im-sec-aviso') || '');
+    R.nombreB = __t.val('nombre');
+    try { indicCerrar(); } catch (e) {}
+
+    return { extra: [
+      ['DENOMINADOR: el control del mecanismo existe, el panel quedo ABIERTO y el PACIENTE A si queda en la tabla de secundaria',
+        R.hayBoton && R.panelAbierto === 'block' && R.antes.mec === 'secundaria' &&
+        R.antes.ims === true && R.antes.imPrim === false,
+        'boton=' + R.hayBoton + ' overlay=' + R.panelAbierto + ' ' + JSON.stringify(R.antes)],
+      ['⚠️ «Nuevo estudio» se lleva la respuesta: antes sobrevivia porque solo la limpiaban indicAbrir e indicCerrar',
+        R.vacio.mec === 'null' && R.vacio.claves === '',
+        'mec=' + R.vacio.mec + ' claves=«' + R.vacio.claves + '»'],
+      ['⚠️ LA CONSECUENCIA: el PACIENTE B, con IM severa y SIN mecanismo contestado, NO va a la tabla de secundaria',
+        R.B.ims === false && R.B.mec === 'null',
+        'nombre=' + R.nombreB + ' ' + JSON.stringify(R.B)],
+      ['⚠️ y SI va a la de primaria, que es la que le corresponde — apagar las dos seria otra forma de romperlo',
+        R.B.imPrim === true,
+        JSON.stringify(R.B)],
+      ['el aviso de mecanismo secundario no se le pinta al paciente que no lo tiene',
+        R.avisoB === '',
+        'aviso=«' + R.avisoB.slice(0, 90) + '»'],
+      ['DENOMINADOR: el formulario se limpio de verdad y despues se cargo B',
+        R.nombreB === 'PACIENTE B' && !R.errNuevo && !R.errAbrir,
+        'nombre=' + R.nombreB + ' errNuevo=' + (R.errNuevo || '-')]
+    ] };
+  })();
+`);
+
+/* ═══ TC-341 · Los DOS displays del THP fuera de banda, sin mover nada de lo guardado ══════════
+   Decision de Maicol (2026-09-30). Son los reportados 1 y 3 de la etapa C: el panel «🖨️ Incluir en
+   el informe» contradecia al PDF, y la AVm indexada publicaba un absurdo sin marca.
+
+   ⚠️ TODO LO DE AFUERA TIENE QUE QUEDAR QUIETO, y por eso la mitad de las condiciones son de
+   «identico»: estos dos cambios son de PANTALLA. El informe, el EN SUMA, las dos filas del PDF y la
+   fila de 434 columnas del Excel se miden dentro Y fuera de banda.
+
+   ⚠️ LOS BORDES EXACTOS (20 y 600 ms) SIGUEN ADENTRO: sin esa condicion, correr la banda un milimetro
+   pasaria en verde. Y el CERO no es una medicion: ahi el papel no retira nada, asi que el panel
+   tampoco debe anunciar una supresion que no ocurrio. */
+caso('TC-341', 'EM: con el THP fuera de banda el panel dice lo MISMO que el PDF y la AVm indexada queda marcada — y el Excel, el informe y el papel no se mueven', `
+  return (async () => {
+    const R = {};
+    const BASE = { nombre:'Display THP', ci:'9-9', peso:'80', talla:'175', fevi:'60',
+                   vm_morf:'Reumática', ia_grado:'0' };
+    const cargar = function(extra){
+      try { __t.limpiar(); } catch (e) {}
+      try { indicCerrar(); } catch (e) {}
+      const C = Object.assign({}, BASE, extra || {});
+      Object.keys(C).forEach(function(k){ __t.set(k, C[k]); });
+      try { calcEM(); } catch (e) {}
+    };
+    const leer = function(extra){
+      cargar(extra);
+      let inf = '';
+      try { generarInforme(); inf = String(__t.val('informe_texto') || ''); } catch (e) { inf = 'ERR'; }
+      let xls = null;
+      try {
+        const c = {};
+        ['input','select','textarea'].forEach(function(t){
+          Array.prototype.forEach.call(document.querySelectorAll(t + '[id]'), function(e){
+            if (e.type === 'checkbox') c[e.id + '__chk'] = e.checked ? '1' : '0'; else c[e.id] = e.value; }); });
+        const row = _labExcelRow({ id:1, campos:c, fecha_estudio:'2026-09-30', nombre:c.nombre, ci:c.ci });
+        const ks = _labOrdenarCols(Object.keys(row));
+        xls = { cols:ks.length, avmIdx:String(row['AVm indexada (cm²/m²)']), avm:String(row['AVm (cm²)']) };
+      } catch (e) { xls = { ERR:e.message }; }
+      return { span: String(__t.txt('em-pdf-thp-val') || ''),
+               pdfThp: String((typeof emAvmThpPdfTxt === 'function') ? emAvmThpPdfTxt() : 'SINFN'),
+               pdfAvm: String(emAvmPdfVal()),
+               idx: String(__t.val('avm_idx')), avmThp: String(__t.val('avm_thp')),
+               infTiene1833: inf.indexOf('1833') >= 0, xls: xls };
+    };
+    R.dentro = leer({ thp:'240' });
+    R.b20    = leer({ thp:'20' });
+    R.b600   = leer({ thp:'600' });
+    R.bajo   = leer({ thp:'0.12' });
+    R.alto   = leer({ thp:'2400' });
+    R.cero   = leer({ thp:'0' });
+    R.conPlan = leer({ thp:'0.12', avm_plan:'1.2' });
+    // la ruta de RESTAURACION es el OTRO escritor del panel: si queda con el pintor viejo, el
+    // panel dice una cosa tras un recalculo y otra tras reabrir un estudio.
+    cargar({ thp:'0.12' });
+    try { emPdfValsSync(); } catch (e) {}
+    R.trasSync = String(__t.txt('em-pdf-thp-val') || '');
+
+    const NOEVAL = 'no evaluable (THP fuera de rango)';
+    const tiene = function(s, t){ return String(s).indexOf(t) >= 0; };
+
+    return { extra: [
+      ['⚠️ D1: con el THP fuera de banda el panel dice LO MISMO que el PDF, en los dos lados de la banda',
+        R.bajo.span === '— ' + NOEVAL && R.alto.span === '— ' + NOEVAL &&
+        R.bajo.pdfThp === NOEVAL && R.alto.pdfThp === NOEVAL,
+        'bajo=«' + R.bajo.span + '» alto=«' + R.alto.span + '»'],
+      ['⚠️ y el panel ya no publica el area de 1833 cm² que el papel retira',
+        !tiene(R.bajo.span, '1833'),
+        'span=«' + R.bajo.span + '»'],
+      ['⚠️ D1 por la ruta de RESTAURACION tambien: los DOS escritores del panel pasan por el mismo dueno',
+        R.trasSync === '— ' + NOEVAL,
+        'trasSync=«' + R.trasSync + '»'],
+      ['DENOMINADOR: DENTRO de banda el panel sigue publicando el area, con su «cm²» y no el «cm2» del papel',
+        R.dentro.span === '— 0.92 cm²' && R.b20.span === '— 11.00 cm²' && R.b600.span === '— 0.37 cm²',
+        'dentro=«' + R.dentro.span + '» b20=«' + R.b20.span + '» b600=«' + R.b600.span + '»'],
+      ['⚠️ el CERO no es una medicion: el papel no retira nada, asi que el panel no anuncia una supresion que no ocurrio',
+        R.cero.span === '— sin valor' && R.cero.pdfThp === 'null',
+        'span=«' + R.cero.span + '» pdfThp=' + R.cero.pdfThp],
+      ['⚠️ D2: la AVm indexada queda MARCADA fuera de banda, en los dos lados',
+        tiene(R.bajo.idx, '(revisar)') && tiene(R.alto.idx, '(revisar)'),
+        'bajo=«' + R.bajo.idx + '» alto=«' + R.alto.idx + '»'],
+      ['SE MARCA SIN BORRAR: el numero sigue a la vista',
+        tiene(R.bajo.idx, '929.67') && tiene(R.alto.idx, '0.05'),
+        'bajo=«' + R.bajo.idx + '» alto=«' + R.alto.idx + '»'],
+      ['DENOMINADOR: DENTRO de banda la indexada NO lleva marca',
+        !tiene(R.dentro.idx, 'revisar') && !tiene(R.b20.idx, 'revisar') && !tiene(R.b600.idx, 'revisar'),
+        'dentro=«' + R.dentro.idx + '» b20=«' + R.b20.idx + '» b600=«' + R.b600.idx + '»'],
+      ['⚠️ y con una planimetria valida arriba la indexada NO sale del THP, asi que NO se marca — marcarla seria mandar a revisar un numero correcto',
+        !tiene(R.conPlan.idx, 'revisar') && tiene(R.conPlan.idx, '0.61'),
+        'conPlan=«' + R.conPlan.idx + '»'],
+      ['⚠️ EL EXCEL NO SE MUEVE: la marca entra al string guardado pero el exportador parsea con parseFloat, asi que la celda sigue siendo el numero crudo',
+        R.bajo.xls.avmIdx === '929.67' && R.alto.xls.avmIdx === '0.05' &&
+        R.dentro.xls.avmIdx === '0.47' && R.bajo.xls.cols === 434,
+        'bajo=' + JSON.stringify(R.bajo.xls) + ' dentro=' + JSON.stringify(R.dentro.xls)],
+      ['⚠️ y la columna «AVm (cm²)» sigue exportando el valor CRUDO del THP',
+        R.bajo.xls.avm === '1833.33' && !tiene(R.bajo.avmThp, 'evaluable') && !tiene(R.bajo.avmThp, 'revisar'),
+        'avm=' + R.bajo.xls.avm + ' input=«' + R.bajo.avmThp + '»'],
+      ['DENOMINADOR: el papel sigue sin publicar el area ilegible — estos dos cambios son de PANTALLA y no tocaron el PDF',
+        R.bajo.pdfAvm === NOEVAL && !R.bajo.infTiene1833 && R.dentro.pdfAvm.indexOf('THP: 0.92 cm2') >= 0,
+        'pdfAvm=«' + R.bajo.pdfAvm + '» inf1833=' + R.bajo.infTiene1833]
+    ] };
+  })();
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

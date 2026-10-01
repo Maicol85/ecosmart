@@ -8,11 +8,15 @@ La tabla de abajo usa la numeración de la **tanda 3** y nombra el equivalente v
 
 | tanda 3 | qué es | = tanda 2 | estado |
 |---|---|---|---|
-| A | AVm por continuidad en el **panel de Evidencia** (`_indEM`) | era «D» | **hecha y verificada** |
-| B | texto de IM secundaria en `_indIMS` con las dos guías | nueva | **hecha y verificada** |
-| C | «Nuevo estudio» limpia `_indClin` | nueva | sin empezar |
-| D1/D2 | panel «Incluir en el informe» y AVm indexada con THP fuera de banda | eran los reportados 1 y 3 | sin empezar |
+| A | AVm por continuidad en el **panel de Evidencia** (`_indEM`) | era «D» | **hecha y verificada** · `a5877d2` |
+| B | texto de IM secundaria en `_indIMS` con las dos guías | nueva | **hecha y verificada** · `a5877d2` |
+| C | «Nuevo estudio» limpia `_indClin` | nueva | **hecha y verificada** |
+| D1/D2 | panel «Incluir en el informe» y AVm indexada con THP fuera de banda | eran los reportados 1 y 3 | **hechas y verificadas** |
 | E | mutaciones (tanda 3 + las pendientes de la tanda 2) | era «E» | sin empezar |
+
+⚠️ **El `git push` de la etapa 1 quedó BLOQUEADO** por el clasificador de permisos del entorno, no
+por git: el commit `a5877d2` está en `main` local y **sin subir**. Lo mismo puede pasar con el de la
+etapa 2. Hay que correr el push a mano.
 
 Ya cerradas en tandas anteriores: cociente con IAo (`fa58adf`), aviso de IM secundaria (`0b309d2`)
 y THP/Vmax fuera de banda en PDF e informe (`301518f`).
@@ -93,6 +97,99 @@ mecanismo que no existe.
    la casilla con IAo leve y **después** graduó la IAo se queda con el ✅ puesto — ése es el camino por
    el que el ✅ del selector sí es alcanzable.
 3. **`emPdfValsSync` habilita esa casilla en las rutas de restauración** sin consultar la validez.
+
+## Etapa C (tanda 3) — «Nuevo estudio» se lleva las respuestas del panel de Evidencia (2026-10-01)
+
+Cobertura: **TC-340**. `_indClin` guarda lo que el médico contestó **a mano** en el panel —mecanismo
+de la IM, síntomas, trombo, score, riesgo embólico— y lo limpiaban **sólo** `indicAbrir` e
+`indicCerrar`. El panel es un **overlay** y el modal de «Nuevo estudio» se abre **encima** sin
+cerrarlo, así que la respuesta sobrevivía.
+
+### ⚠️ VA EN LOS DOS CAMINOS DE «NUEVO ESTUDIO» Y **NO** EN `limpiarCampos`
+Es el mismo argumento —y el mismo lugar— que `imgVaciar`, que ya estaba resuelto así: `limpiarCampos`
+corre **también** al abrir un estudio con «Editar» y por el QR, y ahí limpiar es **otra decisión**.
+Los dos caminos son `neGuardarYContinuar` y `neContinuarSinGuardar`; con uno solo, «Guardar y
+continuar» seguía arrastrando. El dueño es `_indClinVaciar()`, una función, para que un tercer camino
+no pueda escribir su propia copia.
+
+### ⚠️ VA **ANTES** DE `limpiarCampos`, Y LA DIRECCIÓN IMPORTA
+En la ruta del cierre de sesión la llamada a `limpiarCampos` la envuelve un **`catch` mudo** (lo
+declara su propio comentario), así que con el orden invertido una excepción ahí dejaría las
+respuestas vivas y sin una sola señal. Limpiar primero no puede perder nada: los únicos escritores
+de `_indClin` son clics del médico en el panel.
+
+### ⚠️ LA CONDICIÓN QUE IMPORTA NO ES QUE EL OBJETO QUEDE VACÍO: ES A QUÉ TABLA VA EL SIGUIENTE
+Medido contra `301518f`, y es lo que convierte esto de «estado sucio» en fuga clínica. Con el panel
+abierto, contestar «Secundaria» en el PACIENTE A y apretar «Nuevo estudio»:
+- **HEAD** — el PACIENTE B, con IM severa y a quien **nunca** se le contestó el mecanismo, salía con
+  `_indClin['im.mecanismo'] = 'secundaria'`, la tarjeta de **IM secundaria pintada**, la de
+  **primaria apagada**, el aviso de mecanismo secundario puesto y una **recomendación publicada**
+  («las dos tablas de esta sección son distintas: la auricular indica cirugía Clase…»).
+- **Con el arreglo** — `mec: null`, `_indIMS()` null, `_indIM()` **sí** pinta, aviso vacío.
+
+Un caso que sólo mirara `Object.keys(_indClin)` pasaría en verde con un `_indClinLimpiar` que
+corriera en el momento equivocado; por eso TC-340 mide el **ruteo del paciente siguiente**. Y el
+panel va **abierto** en el caso, que es la precondición: cerrado, `indicCerrar` ya limpiaba.
+
+### ⚠️ ABRIR UN ESTUDIO GUARDADO **SIGUE ARRASTRANDO** — reportado, no tocado
+Medido: tras `limpiarCampos(true)` —que es lo que hacen por dentro `editarInforme` y
+`cargarEstudioPorId`— `_indClinGet('im.mecanismo')` sigue devolviendo `'secundaria'`, igual que en
+HEAD. O sea que **abrir el estudio de otro paciente con el panel abierto conserva las respuestas del
+anterior**. El pedido lo dejó explícitamente fuera («reportá … sin cambiarlo»). Cerrarlo es una línea
+en `limpiarCampos`, pero cambia las tres rutas de restauración a la vez y eso es otro alcance.
+
+## Etapa D (tanda 3) — los dos displays del THP fuera de banda (2026-10-01)
+
+Cobertura: **TC-341**. Son los **reportados 1 y 3** de la etapa C de la tanda 2. Los dos son de
+**pantalla**: el informe, el EN SUMA, las dos filas del PDF y la fila de **434 columnas** del Excel
+quedan **idénticos** dentro y fuera de banda — medido en los siete escenarios.
+
+### D1 · el panel «🖨️ Incluir en el informe» decía lo contrario que el papel
+Decía «AVm por THP — **1833.33 cm²** — siempre incluida» mientras el PDF, en sus **dos** filas, decía
+«no evaluable (THP fuera de rango)». Ese panel existe para declarar **qué sale en el papel**.
+
+- **Se pregunta por el TEXTO, no por la banda.** El dueño es `emAvmThpPdfTxt()`. Un
+  `emThpFueraBanda()` copiado al panel habría sido la **cuarta** lectura de la misma banda — y más
+  fino: la compuerta del papel no es sólo la banda, es `emThpFueraBanda() && v('avm_thp')`, porque con
+  `thp = 0` **no hay área que retirar**. Preguntando por el texto esa sutileza se hereda gratis;
+  copiando la banda, el panel habría dicho «no evaluable» con un THP de 0 donde el papel no dice nada.
+  Medido: con `thp = 0` el panel sigue en «— sin valor», igual que HEAD.
+- **Dentro de banda NO se vuelca el texto del PDF**, y por eso la sustitución es condicional: ese
+  texto sale de `vPdf('avm_thp',' cm2')` y dice «**cm2**», mientras el panel escribe «**cm²**» como
+  toda la pantalla. Volcarlo siempre le cambiaba la unidad al 99 % de los estudios. Medido: dentro de
+  banda y en los **bordes exactos** (20 y 600 ms) el span sale byte a byte como antes.
+- **Los DOS escritores del panel pasan por el mismo dueño** (`emPdfMetodosUI` y `emPdfValsSync`). Con
+  uno solo, el panel decía una cosa tras un recálculo y otra tras **reabrir un estudio**, sobre el
+  mismo THP — que es la divergencia pantalla/pantalla que este archivo ya pagó.
+- «— siempre incluida» **no se tocó** y sigue siendo cierto: la fila se imprime igual, lo que cambia
+  es que dice «no evaluable». Queda declarado que esa leyenda habla de la **fila** y no del número.
+
+### D2 · la AVm indexada publicaba un absurdo sin marca
+Con `thp = 0,12` y BSA 1,97 el `#avm_idx` decía «**929.67 cm²/m²**» sin una marca, al lado de un panel
+y un papel que ya decían «no evaluable». Un absurdo sin marca se lee como una medición.
+
+- **Sólo si el número viene del THP.** `avmMejor` es una precedencia —planimetría › continuidad ›
+  THP—, así que con una planimetría válida arriba el indexado **no** sale del THP y marcarlo sería
+  mandar a revisar un número correcto. Medido: con `avm_plan = 1,2` la indexada sale «0.61 cm²/m²»
+  **sin marca**.
+- **La marca la decide `emThpFueraBanda()`**, el mismo dueño del «(revisar)» de los otros displays.
+- **Se marca, no se borra**, y los dos lados de la banda quedan cubiertos (`0,12` → 929.67 y `2400`
+  → 0.05, las dos marcadas).
+
+### ⚠️ `avm_idx` NO TIENE DISPLAY PROPIO, Y ESO ES LO QUE HAY QUE SABER DE D2
+A diferencia de `avm_thp` —que tiene `em_avm_thp_display` aparte, y por eso el input queda limpio—,
+este `readonly` **es** el display **y** es lo que se guarda **y** lo que lee la columna «AVm indexada
+(cm²/m²)». O sea que **la marca sí entra al string guardado**, y la letra del pedido decía «nunca en
+el valor guardado». No hay forma de cumplirla sin agregar un display nuevo.
+**No cambia el libro, y está medido, no deducido**: el exportador parsea con `parseFloat`, que corta
+en el primer carácter no numérico, y el valor **ya traía « cm²/m²» pegado desde siempre** — la celda
+nunca salió de otra forma. Es exactamente lo que `avm_cont` ya hace con su « (revisar)», que también
+viaja al Excel. Verificado: `avmIdx` = 929.67 / 0.05 / 0.47 y la fila de 434 columnas con **hash
+idéntico** a HEAD en los siete escenarios. **Si alguna vez el exportador deja de usar `parseFloat`,
+esta marca es lo primero que hay que mirar.**
+
+### Control negativo de las sondas de esta etapa
+7/7 filas de Excel **distintas entre escenarios**, así que el «idéntico contra HEAD» significa algo.
 
 ## Etapa B (tanda 3) — la fila de grado de IM secundaria presenta LAS DOS posiciones (2026-10-01)
 
@@ -212,17 +309,18 @@ Medido en Chrome, guardando y reimprimiendo de verdad:
   perdieron ahí.
 
 ### ⚠️ REPORTADO Y NO TOCADO — espera decisión de Maicol
-1. **El panel «🖨️ Incluir en el informe» contradice al PDF.** `_pdfMetodoSpan('em-pdf-thp-val',
-   v('avm_thp'))` (`~22235`) no consulta la banda: con `thp = 0,12` el panel dice «AVm por THP —
-   1833.33 cm² — siempre incluida» y el PDF dice «no evaluable». El panel existe para declarar qué
-   sale en el papel. Es de pantalla, o sea fuera del alcance «PDF e informe».
+1. ~~**El panel «🖨️ Incluir en el informe» contradice al PDF.**~~ **[CERRADO 2026-10-01 — etapa D1
+   de la tanda 3, TC-341.]** El span lo escribe ahora `_emPdfThpSpanSync`, que pregunta por
+   `emAvmThpPdfTxt()`. Ver la entrada de la etapa D.
 2. **La negación tranquilizadora sigue viva para los otros tres campos.** `cat.revisar` recoge
    cinco: `avm_plan`, `avm_ete`, `avm_cont`, el THP y `em_gmedio`. Con `avm_plan = 150` y nada más,
    el informe firmado sigue diciendo «sin estenosis ni insuficiencia». El pedido lo declara
    preexistente y pide sólo reportarlo. Derivar la línea de `cat.revisar` lo cerraría para los cinco.
-3. **`avm_idx` es una CUARTA superficie del área por THP**, y el censo de `calcTHP` decía tres:
-   `avmMejor = avm_plan || avm_cont_val || avm_thp_val` alimenta `#avm_idx` y la columna «AVm
-   indexada (cm²/m²)» del Excel. Con `thp = 0,12` y BSA 2,0 publica «916.67 cm²/m²» sin marca.
+3. ~~**`avm_idx` es una CUARTA superficie del área por THP**~~ **[CERRADO 2026-10-01 — etapa D2 de
+   la tanda 3, TC-341.]** Sigue siendo una cuarta superficie —el censo de `calcTHP` decía tres— pero
+   el display ya va marcado con «(revisar)» cuando el número sale de un THP fuera de banda. La
+   columna del Excel **no se movió**. Ver la entrada de la etapa D, que explica por qué la marca
+   entra al valor guardado y por qué igual no cambia el libro.
 4. **`em_vmax = 0` deja de publicarse en silencio.** HEAD imprimía «(Vmax 0 m/s)» en el informe
    firmado; hoy se omite y **no** sale la línea de «revisar unidades» (un 0 no es un error de
    unidad). Es la dirección correcta, pero es una remoción silenciosa.

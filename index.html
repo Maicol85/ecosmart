@@ -21517,7 +21517,35 @@ function calcEM() {
   if (avmMejor && bsa) {
     const idx = (avmMejor / bsa).toFixed(2);
     const elIdx = document.getElementById('avm_idx');
-    if (elIdx) elIdx.value = idx + ' cm²/m²';
+    /* ⚠️ `avm_idx` ES LA CUARTA SUPERFICIE DEL ÁREA POR THP, y el censo de `calcTHP` decía tres.
+       Decisión de Maicol (2026-09-30): con el THP fuera de banda este indexado publicaba «916.67
+       cm²/m²» SIN UNA MARCA, al lado de un panel y un papel que ya decían «no evaluable». Un
+       absurdo sin marca se lee como una medición.
+
+       SE MARCA, NO SE BORRA ni se suprime: es la misma regla que `vPdf` y `avm_cont` aplican, y la
+       que este archivo fijó cuando borrar fuera de banda sacó del informe un septum de 36 mm real.
+
+       ⚠️ SÓLO SI EL NÚMERO VIENE DEL THP. `avmMejor` es una precedencia —planimetría, continuidad,
+       THP— así que con una planimetría válida arriba el indexado no sale del THP y marcarlo sería
+       mandar a revisar un número correcto. La condición repite la precedencia de la línea de arriba
+       en vez de preguntar «¿hay THP?».
+
+       ⚠️ Y LA MARCA LA DECIDE `emThpFueraBanda()`, el mismo dueño que el «(revisar)» de los
+       displays del THP y el descuento del voto en `emCategoria`. Un `< 20 || > 600` acá sería la
+       quinta lectura de esa banda.
+
+       ⚠️ EL EXCEL NO SE MUEVE, Y ACÁ ESTÁ LA PARTE QUE HAY QUE SABER. A diferencia de `avm_thp`
+       —que tiene `em_avm_thp_display` aparte y por eso el input queda limpio—, `avm_idx` NO tiene
+       display propio: este `readonly` ES el display Y es lo que se guarda y lo que lee la columna
+       «AVm indexada (cm²/m²)». O sea que la marca SÍ entra al string guardado. No cambia el libro
+       porque el Excel parsea con `parseFloat`, que corta en el primer carácter no numérico — y el
+       valor ya traía « cm²/m²» pegado desde siempre, así que la celda nunca salió de otra forma.
+       Es exactamente lo que `avm_cont` ya hace con su « (revisar)», que también viaja al Excel.
+       Está MEDIDO contra HEAD, no deducido: la fila de 434 columnas no se mueve. Si alguna vez el
+       exportador deja de usar `parseFloat`, esta marca es lo primero que hay que mirar. */
+    const _idxDeThp = !avm_plan && !avm_cont_val && avm_thp_val;
+    const _idxMarca = (_idxDeThp && emThpFueraBanda()) ? ' (revisar)' : '';
+    if (elIdx) elIdx.value = idx + ' cm²/m²' + _idxMarca;
   }
 
   /* ══ CATEGORÍA DE LA ESTENOSIS MITRAL NATIVA ═══════════════════════════════════════════════
@@ -22162,7 +22190,10 @@ function _emPdfChk(idChk, idSpan, val) { return _pdfMetodoChk(idChk, idSpan, val
    Se mantiene el valor en el `<span>` en los dos casos: «no se marca» no es «no se mide». */
 function emPdfMetodosUI(thpVal, contVal, planVal, contAuto) {
   // THP no lleva guarda de «tocado»: su casilla no se puede desmarcar, sólo informa el valor.
-  _pdfMetodoSpan('em-pdf-thp-val', thpVal);
+  // El texto sale de `_emPdfThpSpanSync`, que con el THP fuera de banda publica lo MISMO que el
+  // papel. Los DOS escritores del panel pasan por ahí: si uno quedaba con `_pdfMetodoSpan` pelado,
+  // el panel decía una cosa tras un recálculo y otra tras reabrir un estudio, sobre el mismo THP.
+  _emPdfThpSpanSync(thpVal);
   _pdfMetodoChk('em_pdf_cont', 'em-pdf-cont-val', contVal, { auto: contAuto !== false });
   /* ⚠️ ABSTENERSE DE SUBIRLA NO ALCANZA: HAY QUE BAJARLA. `auto:false` sólo evita PONER el tilde,
      y el orden real de trabajo la deja puesta igual — el médico carga primero la EM (ahí la
@@ -22238,7 +22269,7 @@ function emPdfValsSync() {
      IM no lo tiene porque su `_pdfMetodoChk` hace `cb.disabled = false` cuando hay valor, y TC-312
      lo declara como «capacidad nueva en la ruta del QR». Decision de Maicol, 2026-09-29. */
   const hab = (idChk, hay) => { const cb = document.getElementById(idChk); if (cb) cb.disabled = !hay; };
-  _pdfMetodoSpan('em-pdf-thp-val',  v('avm_thp'));   // el THP no se puede desmarcar: no lleva guarda
+  _emPdfThpSpanSync(v('avm_thp'));   // el THP no se puede desmarcar: no lleva guarda
   hab('em_pdf_cont', _pdfMetodoSpan('em-pdf-cont-val', v('avm_cont')));
   /* Misma precedencia que `em-plan-row` y que `emAvmPdfVal`: planimetria transtoracica y, si no
      hay, el area por ETE. Derivar otra aca dejaria el panel ofreciendo un metodo distinto del
@@ -22304,6 +22335,48 @@ function emAvmThpPdfTxt() {
   return vPdf('avm_thp', ' cm2');
 }
 window.emAvmThpPdfTxt = emAvmThpPdfTxt;
+
+/* ══ EL <span> DEL THP EN EL PANEL «🖨️ Incluir en el informe» DICE LO MISMO QUE EL PAPEL ═══════
+   Decisión de Maicol (2026-09-30). El panel publicaba «AVm por THP — 1833.33 cm² — siempre
+   incluida» mientras el PDF, en las dos filas, decía «no evaluable (THP fuera de rango)». Ese panel
+   existe para declarar QUÉ SALE en el papel: contradecirlo es peor que no tenerlo, porque el médico
+   decide sobre lo que ahí lee.
+
+   ⚠️ EL DUEÑO DEL TEXTO ES `emAvmThpPdfTxt()`, Y SE PREGUNTA POR LA RESPUESTA, NO POR LA BANDA. Un
+   `emThpFueraBanda()` copiado acá sería la CUARTA lectura de la misma banda, y afinarla dejaría el
+   panel anunciando lo que el papel publica —o al revés—. Más fino que eso: la compuerta del papel
+   no es sólo la banda, es `emThpFueraBanda() && v('avm_thp')`, porque con `thp = 0` no hay área que
+   retirar. Preguntando por el TEXTO esa sutileza se hereda gratis; copiando la banda, el panel
+   habría dicho «no evaluable» con un THP de 0 donde el papel no dice nada.
+
+   ⚠️ DENTRO DE BANDA NO SE TOCA NADA, y por eso NO se vuelca el texto del PDF siempre. Ese texto
+   viene de `vPdf('avm_thp',' cm2')` y dice «cm2», mientras el panel escribe «cm²» con el superíndice
+   que usa toda la pantalla. Volcarlo siempre le cambiaba la unidad al panel en el caso normal, que
+   es el 99 % de los estudios. Sólo se sustituye cuando el papel RETIRÓ el valor.
+
+   ⚠️ «— siempre incluida» NO SE TOCA Y SIGUE SIENDO CIERTO: la fila se imprime igual, lo que cambia
+   es que dice «no evaluable». Que esa leyenda hable de la FILA y no del número está declarado acá
+   para que nadie la lea como «el área se incluye siempre».
+
+   El `try` no es decorativo: `EM_AVM_THP_NOEVAL_PDF` es un `const` de este mismo bloque, declarado
+   ARRIBA de esta función pero inicializado cuando la ejecución llega a su línea. Hoy ningún llamador
+   corre antes de eso —los dos cuelgan de `calcEM` y de las rutas de restauración, todas por
+   evento—, pero este archivo ya se quedó sin script por una TDZ que el hoisting disimulaba. Si
+   alguna vez pasa, el panel cae en el comportamiento de antes en vez de llevarse puesto el bloque. */
+function _emPdfThpSpanSync(thpVal) {
+  try {
+    if (typeof emAvmThpPdfTxt === 'function' && emAvmThpPdfTxt() === EM_AVM_THP_NOEVAL_PDF) {
+      const sp = document.getElementById('em-pdf-thp-val');
+      if (sp) sp.textContent = '— ' + EM_AVM_THP_NOEVAL_PDF;
+      /* `false` = «no hay valor publicable», que es lo que el nombre de la variable del llamador
+         significa. Hoy los dos llamadores ignoran el retorno del THP —su casilla no se puede
+         desmarcar— pero devolver `true` acá sería mentirle al próximo que lo use. */
+      return false;
+    }
+  } catch (e) { console.warn('[emPdfThpSpan]', e); }
+  return _pdfMetodoSpan('em-pdf-thp-val', thpVal);
+}
+window._emPdfThpSpanSync = _emPdfThpSpanSync;
 
 /* Valor de la fila «AVm» de la tabla del PDF.
    THP se imprime SIEMPRE que tenga valor, sin consultar su casilla. No es sólo por el «no
@@ -30043,13 +30116,15 @@ function limpiarCampos(silencioso) {
      significa nada.
      ⚠️ Y NO SE LLAMA AL PINTOR ACÁ, que fue la primera versión y habría metido una fuga entre
      pacientes. El pintor lee `imMecanismoIM()`, que cae en `_indClin['im.mecanismo']` cuando el
-     campo de ETE está vacío — y `_indClin` NO lo limpia `limpiarCampos`: lo limpian `indicAbrir` y
-     `indicCerrar`. Con el pintor acá, una respuesta manual que sobreviviera a «Nuevo estudio»
-     pintaría el aviso del paciente ANTERIOR sobre un estudio en blanco. Vaciar el span es
-     determinista y no depende del estado del panel.
-     (Que `_indClin` sobreviva a «Nuevo estudio» es muy estrecho —el panel es un overlay y cerrarlo
-     lo limpia, así que hay que apretar «Nuevo estudio» con el panel abierto— y es PREEXISTENTE:
-     queda REPORTADO, no tocado, porque limpiar estado del panel desde acá es otro alcance.) */
+     campo de ETE está vacío — y `_indClin` NO lo limpia ESTA función. Con el pintor acá, una
+     respuesta manual que sobreviviera pintaría el aviso del paciente ANTERIOR sobre un estudio en
+     blanco. Vaciar el span es determinista y no depende del estado del panel.
+     ⚠️ [ACTUALIZADO 2026-10-01] `_indClin` ya NO sobrevive a «Nuevo estudio»: lo vacía
+     `_indClinVaciar()`, que corre en los DOS caminos de ese botón —ver su comentario—, además de
+     `indicAbrir` e `indicCerrar`. Lo que sigue siendo cierto es la frase de arriba: no lo limpia
+     `limpiarCampos`, y por eso el pintor sigue sin poder llamarse desde acá. Esta función TAMBIÉN
+     corre al abrir un estudio con «Editar» y por el QR, y en esas dos rutas las respuestas del
+     panel SÍ sobreviven — queda REPORTADO y no tocado, es otro alcance. */
   { const _sa = document.getElementById('im-sec-aviso'); if (_sa) _sa.textContent = ''; }
   // Badges de sugerencia automática (THP, AVA, VP, etc.)
   document.querySelectorAll('[id$="-badge"]').forEach(el => el.textContent = '');
@@ -30405,14 +30480,47 @@ function neGuardarYContinuar() {
   // Vía callback: el guardado puede quedar esperando la card de severidades, y en ese caso
   // el valor de retorno todavía es false. Sólo se limpia cuando el guardado fue efectivo
   // (evita perder datos si falta el paciente o si se cancela la card).
-  guardarInforme(ok => { if (ok) { limpiarCampos(); imgVaciar(); _neSalir(); } });
+  guardarInforme(ok => { if (ok) { _indClinVaciar(); limpiarCampos(); imgVaciar(); _neSalir(); } });
 }
 function neContinuarSinGuardar() {
   _neCerrar();
+  _indClinVaciar();
   limpiarCampos();
   imgVaciar();
   _neSalir();
 }
+/* ══ LAS RESPUESTAS DEL PANEL DE EVIDENCIA SE BORRAN EN «NUEVO ESTUDIO» ════════════════════════
+   Decisión de Maicol (2026-09-30). Mismo argumento —y mismo lugar— que `imgVaciar`, acá abajo:
+   va en los DOS caminos de «Nuevo estudio» y NO dentro de `limpiarCampos`, que también corre al
+   abrir un estudio con «Editar» y por el QR.
+
+   QUÉ CIERRA. `_indClin` guarda lo que el médico contestó A MANO en el panel —mecanismo de la IM,
+   síntomas, trombo, score, riesgo embólico—. Lo limpiaban SÓLO `indicAbrir` e `indicCerrar`, así
+   que una respuesta sobrevivía a «Nuevo estudio» mientras el panel quedara abierto: es un overlay
+   y el modal de «Nuevo estudio» se abre ENCIMA, sin cerrarlo. La respuesta del paciente anterior
+   volvía a gobernar sobre un estudio en blanco, y no es cosmético: `im.mecanismo` es el único
+   camino en Modo Básico para encender `_indIMS`, que publica TEER Clase I · Nivel A.
+
+   ⚠️ VA ANTES DE `limpiarCampos`, NO DESPUÉS, Y LA DIRECCIÓN IMPORTA. En la ruta del cierre de
+   sesión la llamada a `limpiarCampos` la envuelve un `catch` MUDO (ver su comentario), así que con
+   el orden invertido una excepción ahí dejaría las respuestas vivas y sin una sola señal. Limpiar
+   primero no puede perder nada: los únicos escritores de `_indClin` son clics del médico en el
+   panel, y acá no corre ninguno.
+
+   ⚠️ NO SE LLAMA AL PINTOR DEL AVISO. `limpiarCampos` vacía `#im-sec-aviso` A MANO justamente
+   porque el pintor lee `_indClin['im.mecanismo']` (ver su comentario). Con `_indClin` ya vacío ese
+   vaciado a mano sigue siendo el correcto —es determinista y no depende del panel— y ahora además
+   es coherente: antes el span se vaciaba mientras el dato que lo producía seguía puesto.
+
+   `typeof` porque `_indClinLimpiar` vive en el bloque `<script>` del panel. Falla hacia NO limpiar
+   —el comportamiento de hoy— y GRITA, porque un «no limpié» silencioso es justo la fuga. */
+function _indClinVaciar() {
+  try {
+    if (typeof _indClinLimpiar === 'function') _indClinLimpiar();
+    else console.warn('[nuevoEstudio] falta _indClinLimpiar: las respuestas del panel de Evidencia sobreviven al estudio nuevo');
+  } catch (e) { console.warn('[nuevoEstudio] _indClinLimpiar', e); }
+}
+window._indClinVaciar = _indClinVaciar;
 /* Vacía las imágenes adjuntas. Va en los DOS caminos de «Nuevo estudio» y NO dentro de
    limpiarCampos, que también corre al abrir un estudio con «Editar» — ahí borrarlas sería
    destruir dato irrecuperable, porque las imágenes no se persisten con el estudio.
