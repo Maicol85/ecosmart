@@ -3521,6 +3521,11 @@ window.cerrarSesionReal = cerrarSesionReal;
              vuelva a verificar esto: no le crea a la coordenada. -->
         <div class="calc-row"><span class="calc-lbl" title="La ASE 2023 lo da en ausencia de insuficiencia aórtica moderada o severa: la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir. En válvula NATIVA esta aplicación lo usa IGUAL con IAo moderada y moderada-severa —y lo declara en la propia fila— y lo retira sólo con IAo severa: es criterio EcoSmart (2026-09-30), no lo que dice la guía. En PRÓTESIS se retira desde la IAo moderada. Con un grado de IAo que no se puede interpretar se retira en los dos casos. DOS CORTES SEGÚN LA MORFOLOGÍA: en válvula NATIVA, &gt;1,4 apoya IM severa — ASE 2023, cardiopatía reumática (Pandian, JASE 36:3-28), y también ESC/EACTS 2025 (Figura 10, pág. 4672), entre los criterios semicuantitativos de IM severa; no figura en ASE 2017 ni en ESC/EACTS 2021, y el estudio original (Tribouilloy, Eur Heart J 1994) da 1,3. En PRÓTESIS mitral el corte es ≥2,5 — ASE 2024, Tabla 12, pág. 28 (Zoghbi, JASE 2024;37(1):2-63), «hallazgos de ETT que sugieren IM protésica significativa en válvulas mecánicas con THP normal»: sensibilidad 89 %, especificidad 91 %. Esa tabla lo define para válvulas MECÁNICAS con THP normal, y la app NO verifica ninguna de las dos condiciones: el ≥2,5 se aplica a toda prótesis mitral, biológica incluida, y el THP no se cruza. Ver «Referencia clínica» en la ayuda.">Ratio VTI mitral / VTI TSVI (nativa &gt;1.4 · prótesis ≥2.5) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-vti-ratio">—</span></div>
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad IM integrada (ESC 2021)</span><span id="im-sev">—</span></div>
+        <!-- Aviso de mecanismo SECUNDARIO. Va pegado al badge de severidad porque es una salvedad
+             SOBRE ese grado, no un hallazgo aparte. Vacío por defecto: lo escribe imSecAvisoPintar()
+             y sólo con mecanismo secundario consignado. NO cambia cortes, votos ni grado, y no llega
+             al informe, EN SUMA, PDF ni Excel. -->
+        <div class="calc-row"><span id="im-sec-aviso" style="color:var(--yellow);font-size:11px;"></span></div>
         <div class="calc-row"><span id="im-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
       </div>
       <div style="margin-top:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
@@ -23045,7 +23050,74 @@ function _imVmProt() {
    parametros. Retirar el grado auto-derivado tambien en nativa es una DECISION CLINICA de Maicol
    —«no queda ningun parametro cargado» y «esta valvula no se gradua» no son lo mismo— y esta
    tomada: NO se toca. Lo que se corrige aca es la afirmacion. */
+/* ══ AVISO DE MECANISMO SECUNDARIO EN EL CALC-BOX ════════════════════════════════════════════════
+   SÓLO PANTALLA. No toca cortes, ni votos, ni `im_grado`, ni `im_sev_final`, y no llega al informe,
+   al EN SUMA, al PDF ni al Excel. Lo que cierra es que la calculadora gradúa una IM secundaria con
+   los cortes de la primaria SIN decirlo en el lugar donde el médico lee el grado: el panel de
+   Evidencia ya lo declaraba, pero el panel es otra pantalla y hay que ir a buscarlo.
+
+   ⚠️ LAS DOS GUÍAS NO DICEN LO MISMO, Y ESO ES EL CONTENIDO DEL AVISO, no un detalle. La ACC/AHA
+   2020 RESPALDA los cortes que la app usa; la ESC/EACTS 2025 advierte que pueden ser altos para la
+   secundaria. Publicar sólo la segunda leería como si la app estuviera equivocada; publicar sólo la
+   primera esconde la advertencia. Citas verificadas en texto completo:
+     · ACC/AHA 2020 (Otto et al, Circulation 2021;143:e72-e227), folio **e127**: «the recommended
+       definition of severe secondary MR is now the same as for primary MR (ERO ≥0.4 cm2 and
+       regurgitant volume ≥60 mL)».
+     · ESC/EACTS 2025 (ehaf194), §9.2.2 «Evaluation», folio **4675**: «When quantifying EROA and
+       RVol in SMR, lower thresholds may apply … An EROA of ≥30 mm2 and/or an RVol of ≥45 mL has
+       been identified as having a significant impact on outcomes».
+     · ESC/EACTS 2025, **Figura 10, folio 4672**: «≥40 mm2 (or ≥30 mm2 if elliptical regurgitant
+       orifice area)» — el ≥30 va con la condición del orificio elíptico, y por eso el aviso la
+       nombra en vez de dar el número pelado.
+   ⚠️ EL FOLIO DE §9.2.2 ES 4675 Y NO 4674. Verificado sobre el pie impreso de cuatro páginas
+   consecutivas (PDF 38→4672, 39→4673, 40→4674, 41→4675; offset = PDF + 4634). El pedido de esta
+   tanda decía 4674 y una nota de sesión anterior «corregía» 4675 a 4674: las dos estaban mal.
+
+   ⚠️ PINTOR PROPIO Y NO UNA LÍNEA DENTRO DE `calcIM_ESC`, y el motivo es el disparador. El mecanismo
+   se puede contestar en el PANEL de Evidencia, que NO llama a `calcIM_ESC`: con el aviso adentro de
+   esa función, contestar «Secundaria» en la pastilla dejaba el calc-box mudo hasta que el médico
+   tocara cualquier campo de IM. Es «un consumidor nuevo sin su disparador», el patrón que este
+   archivo ya pagó cuatro veces (`im_itv`, `im_dtsvi`/`im_itv_tsvi`, el PISA del selector y la fila
+   de la onda E). Por eso se llama desde los TRES caminos que pueden mover el mecanismo:
+   `calcIM_ESC`, `_indRepintarConservando` (respuesta manual) y `calcTEER` (campo de la pestaña ETE).
+
+   ⚠️ Y VA ANTES DEL `return` TEMPRANO DE `calcIM_ESC`, a propósito: ese `return` sale cuando no hay
+   ningún parámetro que vote, y el mecanismo no depende de que haya parámetros. Adentro de la parte
+   de abajo, un estudio con mecanismo secundario y sin mediciones no mostraba el aviso.
+
+   ⚠️ `typeof` ACÁ SÍ HACE FALTA, Y ES LO CONTRARIO DE LO QUE PIDE `_emRegurgGrado`. Ese caso es una
+   declaración de función del MISMO bloque `<script>` —se hoistea, y el `typeof` daría `'function'`
+   siempre—. `imEsSecundariaIM` vive en el bloque del PANEL, o sea otro `<script>`: si ese bloque
+   muere o todavía no se parseó, la llamada pelada tiraría `ReferenceError` y se llevaría puesto
+   este bloque. Falla hacia NO pintar, que para un aviso informativo es la dirección barata: el
+   grado que se publica no cambia, y callar de más no afirma nada. */
+const IM_SEC_AVISO_TXT =
+  '⚠️ Mecanismo secundario. Los cortes de esta calculadora son los de la IM PRIMARIA. ' +
+  'La ACC/AHA 2020 recomienda eso mismo: define la secundaria severa igual que la primaria ' +
+  '(EROA ≥ 0,40 cm² y volumen regurgitante ≥ 60 ml). La ESC/EACTS 2025 advierte que en la ' +
+  'secundaria pueden aplicar umbrales MÁS BAJOS: EROA ≥ 30 mm² y/o volumen regurgitante ≥ 45 ml. ' +
+  'Su Figura 10 pone el ≥ 30 mm² sólo si el orificio regurgitante es elíptico. ' +
+  'Este aviso no cambia el grado: la app sigue graduando con los cortes de siempre.';
+function imSecAvisoPintar() {
+  const el = document.getElementById('im-sec-aviso');
+  if (!el) return;
+  let sec = false;
+  try { if (typeof imEsSecundariaIM === 'function') sec = !!imEsSecundariaIM(); }
+  catch (e) { console.warn('[imSecAviso] no se pudo leer el mecanismo', e); sec = false; }
+  /* `textContent` y no `innerHTML`: el texto es una constante de este archivo y no lleva marcado,
+     así que no hay nada que interpretar — y es una frontera menos. */
+  el.textContent = sec ? IM_SEC_AVISO_TXT : '';
+}
+function imSecAvisoSiExiste(){ if (typeof imSecAvisoPintar === 'function') {
+  try { imSecAvisoPintar(); } catch (e) { console.warn('[imSecAviso]', e); } } }
+window.IM_SEC_AVISO_TXT   = IM_SEC_AVISO_TXT;
+window.imSecAvisoPintar   = imSecAvisoPintar;
+window.imSecAvisoSiExiste = imSecAvisoSiExiste;
+
 function calcIM_ESC() {
+  /* El aviso de mecanismo secundario, ARRIBA de todo: no depende de un solo parámetro medido y el
+     `return` temprano de más abajo saldría antes de pintarlo. Ver `imSecAvisoPintar`. */
+  imSecAvisoSiExiste();
   const _pVc = vPlaus('im_vc'), _pJetA = vPlaus('im_jet_area');
   const _pPr = vPlaus('pisa_r'), _pPv = vPlaus('pisa_val'), _pVm = vPlaus('im_vmax'), _pIt = vPlaus('im_itv');
   /* `val` viene en `null` fuera de banda y el numero esta en `crudo`: se toma el crudo para que
@@ -29830,6 +29902,20 @@ function limpiarCampos(silencioso) {
   { const _bm = document.getElementById('bloque-masa'); if (_bm) _bm.style.display = 'none'; }
   // Displays calculados / interpretativos → —
   document.querySelectorAll('.calc-box .calc-row span[id]:not(.calc-lbl)').forEach(el => el.innerHTML = '—');
+  /* ⚠️ EL AVISO DE MECANISMO SECUNDARIO SE VACÍA A MANO, NO SE DEJA EN «—» NI SE RE-DERIVA. El
+     barrido de arriba lo alcanza —es un `span[id]` dentro de un `.calc-row`— pero lo pone en «—», y
+     un guión en un renglón de advertencia amarillo es ruido: no significa «no hay dato», no
+     significa nada.
+     ⚠️ Y NO SE LLAMA AL PINTOR ACÁ, que fue la primera versión y habría metido una fuga entre
+     pacientes. El pintor lee `imMecanismoIM()`, que cae en `_indClin['im.mecanismo']` cuando el
+     campo de ETE está vacío — y `_indClin` NO lo limpia `limpiarCampos`: lo limpian `indicAbrir` y
+     `indicCerrar`. Con el pintor acá, una respuesta manual que sobreviviera a «Nuevo estudio»
+     pintaría el aviso del paciente ANTERIOR sobre un estudio en blanco. Vaciar el span es
+     determinista y no depende del estado del panel.
+     (Que `_indClin` sobreviva a «Nuevo estudio» es muy estrecho —el panel es un overlay y cerrarlo
+     lo limpia, así que hay que apretar «Nuevo estudio» con el panel abierto— y es PREEXISTENTE:
+     queda REPORTADO, no tocado, porque limpiar estado del panel desde acá es otro alcance.) */
+  { const _sa = document.getElementById('im-sec-aviso'); if (_sa) _sa.textContent = ''; }
   // Badges de sugerencia automática (THP, AVA, VP, etc.)
   document.querySelectorAll('[id$="-badge"]').forEach(el => el.textContent = '');
   // Válvulas: pills a estado neutro + ocultar bloques desplegados + limpiar preferencia
@@ -35713,6 +35799,11 @@ function calcTEER() {
   /* La interfaz sigue al tipo de IM. Se OCULTA, no se deshabilita ni se borra: los valores se
      conservan —cambiar de «secundaria» a «primaria» y volver no puede perder lo cargado— y lo
      que decide si cuentan es el gate de `teerEstado`, no esta línea. */
+  /* ⚠️ EL TERCER DISPARADOR DEL AVISO DEL CALC-BOX. `teer_tipo_im` es el campo de origen que
+     `imMecanismoIM()` lee primero, y su `onchange` es ESTA función: sin la línea, cargar
+     «Secundaria» en la pestaña ETE dejaba la calculadora de severidad muda. Los otros dos caminos
+     son `calcIM_ESC` y la respuesta manual del panel. Ver `imSecAvisoPintar`. */
+  if (typeof imSecAvisoSiExiste === 'function') imSecAvisoSiExiste();
   const _mostrar = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
   _mostrar('teer-bloque-primaria',   !r.esSec);
   _mostrar('teer-bloque-secundaria', !r.esPrim);
@@ -40319,6 +40410,13 @@ function _indClinCablear(){
        salvo cerrarlo. Mismo criterio que el selector de origen del SGL. */
     _indClin[k] = (_indClinGet(k) === v) ? null : v;
     _indRepintarConservando(k, v);
+    /* ⚠️ EL AVISO DEL CALC-BOX VIVE FUERA DEL PANEL, así que el repintado del panel no lo alcanza.
+       Sin esta línea, contestar «Secundaria» acá escondía la tarjeta primaria —el panel se repinta—
+       y dejaba la calculadora de severidad MUDA hasta que el médico tocara un campo de IM. Es el
+       único camino en Modo Básico, donde la pestaña ETE no existe. Va acá y no dentro de
+       `_indRepintarConservando` porque ésta es la función que ESCRIBE la respuesta; aquélla sólo
+       redibuja, y también la llaman caminos que no tocaron el mecanismo. */
+    if (typeof imSecAvisoSiExiste === 'function') imSecAvisoSiExiste();
   });
   /* ⚠️ UN `role="button"` NO DISPARA `click` CON ENTER NI CON ESPACIO — eso es gratis sólo en un
      `<button>` real. El corchete se anuncia como botón y entra al orden de tabulación, así que sin
@@ -40448,6 +40546,21 @@ function _indOrigen(valorOrigen, claveManual){
   return { val: hay ? valorOrigen : _indClinGet(claveManual),
            deEstudio: hay, clave: claveManual };
 }
+/* ══ EL MECANISMO DE LA IM: UN SOLO DUEÑO, Y DESDE HOY TAMBIÉN LO CONSULTA EL CALC-BOX ══════════
+   Hasta el 2026-09-30 la pregunta «¿es secundaria?» estaba escrita DOS veces —la compuerta de
+   `_indIM` y la de `_indIMS`, cada una con su propio `oMec.val`—, y el aviso del calc-box habría
+   sido la tercera. Tres copias del mismo predicado es cómo dos superficies terminan discrepando
+   sobre el mismo paciente: el panel escondiendo la tarjeta primaria y la calculadora sin avisar.
+   ⚠️ CUBRE LOS DOS ORÍGENES, y eso es la razón de pasar por `_indOrigen` en vez de leer el campo.
+   `_indOrigen` devuelve el valor de ETE si está y la respuesta del control manual del panel si no,
+   así que el predicado se cumple tanto cargándolo en la pestaña ETE como contestándolo a mano —que
+   es el único camino en **Modo Básico**, donde esa pestaña no existe—.
+   ⚠️ NO ES UN CUARTO LECTOR: las dos compuertas de abajo DELEGAN acá, no se suman. `oMec` sigue
+   existiendo en las dos para el texto de la fila y para `deEstudio`, que son otra cosa. */
+function imMecanismoIM(){ return _indOrigen(_indS('teer_tipo_im'), 'im.mecanismo').val; }
+function imEsSecundariaIM(){ return imMecanismoIM() === 'secundaria'; }
+window.imMecanismoIM   = imMecanismoIM;
+window.imEsSecundariaIM = imEsSecundariaIM;
 /* Arma la fila según de dónde salió el dato: leída del estudio, o contestable acá.
    `pinta(val)` devuelve `{txt, marca, nota}` y es la MISMA para los dos caminos, así que el
    veredicto no puede depender de por dónde entró el dato — sólo se le agrega de dónde vino.
@@ -41490,8 +41603,14 @@ function _indIM(){
      `marca:'warn'` y la `nota` de la fila Mecanismo, el `aviso` de la sección y el `recom` «fuera
      del alcance». NO se borran: tocar el CONTENIDO de `_indIM` está fuera del alcance de este
      cambio, y borrarlas convertiría una compuerta reversible en una pérdida de texto verificado.
-     Quedan declaradas como código muerto en CLAUDE.md. */
-  if (oMec.val === 'secundaria') return null;
+     Quedan declaradas como código muerto en CLAUDE.md.
+
+     ⚠️ DELEGA EN `imEsSecundariaIM()` DESDE EL 2026-09-30, y es el MISMO predicado carácter por
+     carácter: ese dueño es `_indOrigen(_indS('teer_tipo_im'), 'im.mecanismo').val === 'secundaria'`,
+     que es exactamente lo que decía esta línea. Se centralizó porque el aviso del calc-box —que vive
+     en OTRO bloque `<script>`— tenía que hacer la misma pregunta, y tres copias del predicado es
+     cómo el panel y la calculadora terminan discrepando sobre el mismo paciente. */
+  if (imEsSecundariaIM()) return null;
   /* ⚠️ SOLO LECTURA DESDE EL 2026-09-30: LA BOTONERA SE MUDÓ A `_indMecanismoHTML`. Era un
      `_indFilaOrigen`, o sea que dibujaba el control acá cuando el dato no venía del estudio — y la
      compuerta de tres líneas más arriba hace que contestar «Secundaria» se lleve la tarjeta entera,
@@ -41813,7 +41932,9 @@ function _indIMS(){
   /* La sección se abre SÓLO con mecanismo secundario consignado. Sin eso no aparece: los umbrales
      y las filas de acá no gobiernan la insuficiencia primaria. */
   const oMec = _indOrigen(_indS('teer_tipo_im'), 'im.mecanismo');
-  if (oMec.val !== 'secundaria') return null;
+  /* Delega en el mismo dueño que la compuerta espejo de `_indIM` — ver `imEsSecundariaIM`. `oMec`
+     se conserva porque las filas de abajo usan su texto, que es otra cosa que el predicado. */
+  if (!imEsSecundariaIM()) return null;
   if (_indS('im_sev_final') !== '4') return null;
 
   const fev = _indLeer('fevi', 'fevi'), ddL = _indLeer('ddfvi', 'ddfvi');

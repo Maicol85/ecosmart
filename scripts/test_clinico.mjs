@@ -42017,6 +42017,132 @@ caso('TC-334', 'EM: em_vmax y thp tienen banda de plausibilidad LOCAL — fuera 
   })();
 `);
 
+/* TC-336 — el aviso de IM SECUNDARIA en el calc-box.
+   Lo que cierra: la calculadora gradua una IM secundaria con los cortes de la PRIMARIA y hasta hoy
+   no lo decia en la pantalla donde el medico lee el grado. El panel de Evidencia si lo declaraba,
+   pero el panel es otra pantalla.
+   ⚠️ LOS DOS ORIGENES SE MIDEN POR SEPARADO. El mecanismo puede venir del campo `teer_tipo_im` de la
+   pestaña ETE o de la respuesta MANUAL del panel (`_indClin['im.mecanismo']`), que es el UNICO camino
+   en Modo Basico —ahi la pestaña ETE no existe—. Gatear solo por el campo dejaba muda la mitad de los
+   casos, y medir solo el campo dejaba esa mitad sin cobertura.
+   ⚠️ Y SE MIDE QUE EL AVISO NO MUEVE EL GRADO. Es la condicion que separa un aviso de un cambio de
+   cortes: im_grado e im_sev_final tienen que salir IDENTICOS con mecanismo primario y secundario. */
+caso('TC-336', 'IM secundaria: el calc-box avisa que gradua con cortes de PRIMARIA, por los dos origenes del mecanismo, sin mover el grado ni llegar al papel', `
+  return (async () => {
+    const g  = id => document.getElementById(id);
+    const tx = id => { const e = g(id); return e ? String(e.textContent||'').trim() : '(no existe)'; };
+    const av = () => tx('im-sec-aviso');
+    const R = {};
+
+    const sembrar = () => {
+      __t.limpiar();
+      __t.set('nombre','TC336'); __t.set('edad','66'); __t.set('peso','80'); __t.set('talla','175');
+      try { toggleValvPill('mitral','insuf'); } catch (e) {}
+      __t.set('vm_morf','Normal');
+      [['diam_tsvi','21'],['itv_tsvi','18'],['im_vc','8'],['pisa_r','10'],['pisa_val','40'],
+       ['im_vmax','500'],['im_itv','130']].forEach(kv => __t.set(kv[0], kv[1]));
+      try { calcIM_ESC(); } catch (e) {}
+    };
+
+    // (1) sin mecanismo consignado -> mudo. Es el estado de fabrica y NO puede avisar nada.
+    sembrar();
+    R.sinMec = av();
+    R.gradoSinMec = __t.val('im_grado') + '/' + __t.val('im_sev_final');
+
+    // (2) mecanismo PRIMARIO por el campo de ETE -> sigue mudo
+    __t.set('teer_tipo_im','primaria');
+    try { calcIM_ESC(); } catch (e) {}
+    R.prim = av();
+    R.gradoPrim = __t.val('im_grado') + '/' + __t.val('im_sev_final');
+
+    // (3) mecanismo SECUNDARIO por el campo de ETE -> avisa
+    __t.set('teer_tipo_im','secundaria');
+    try { calcIM_ESC(); } catch (e) {}
+    R.secCampo = av();
+    R.gradoSec = __t.val('im_grado') + '/' + __t.val('im_sev_final');
+
+    /* ⚠️ EL DISPARADOR DEL CAMPO DE ETE SE MIDE APARTE. __t.set dispara el onchange, que es
+       calcTEER: si el aviso solo colgara de calcIM_ESC, cargar el campo y NO tocar ningun campo de
+       IM dejaria el calc-box mudo. Se vacia a mano y se re-dispara solo el onchange. */
+    { const e = g('im-sec-aviso'); if (e) e.textContent = ''; }
+    __t.set('teer_tipo_im','secundaria');
+    R.secPorCalcTEER = av();
+
+    /* (4) mecanismo SECUNDARIO por la respuesta MANUAL del panel — el camino de Modo Basico.
+       Se limpia el campo de ETE para que _indOrigen caiga en _indClin, que es el escenario real. */
+    __t.set('teer_tipo_im','');
+    try { calcIM_ESC(); } catch (e) {}
+    R.trasBorrarCampo = av();
+    try { window._indClinLimpiar && window._indClinLimpiar(); } catch (e) {}
+    /* Se escribe por la MISMA puerta que el panel: el boton delegado hace _indClin[k] = v. No hay
+       setter publico, asi que se usa indicAbrir + el click real sobre el control del mecanismo. */
+    R.manualVia = 'click real en el control del panel';
+    try { indicAbrir(); } catch (e) {}
+    const btnSec = (function(){
+      const c = g('indic-cuerpo'); if (!c) return null;
+      return Array.prototype.slice.call(c.querySelectorAll('[data-ind-clin="im.mecanismo"]'))
+        .filter(function(b){ return b.getAttribute('data-ind-val') === 'secundaria'; })[0] || null;
+    })();
+    R.hayBtn = !!btnSec;
+    if (btnSec) btnSec.click();
+    R.secManual = av();
+    try { indicCerrar(); } catch (e) {}
+
+    /* (5) el aviso NO llega al papel. Se mide con el mecanismo secundario PUESTO, que es el unico
+       escenario donde la cadena existe. Se vuelve a poner por el campo, que no depende del panel. */
+    __t.set('teer_tipo_im','secundaria');
+    try { calcIM_ESC(); } catch (e) {}
+    R.avisoAntesDelPapel = av();
+    const r = __t.informe();
+    const CLAVES = ['Mecanismo secundario','cortes de esta calculadora','umbrales MÁS BAJOS',
+                    'orificio regurgitante es elíptico','ACC/AHA 2020'];
+    R.enPapel = CLAVES.filter(function(k){
+      return String(r.inf).indexOf(k) > -1 || String(r.suma).indexOf(k) > -1; }).join('/');
+    R.largoInf = String(r.inf).length;
+
+    // (6) «Nuevo estudio» lo deja VACIO, no en «—»: un guion en un renglon de alerta es ruido.
+    __t.limpiar();
+    R.trasLimpiar = av();
+
+    return { extra: [
+      ['DENOMINADOR: el estudio produjo grado de IM (sin esto, «el grado no cambio» se cumple solo)',
+        R.gradoSinMec !== '/' && R.gradoSinMec.indexOf('4') > -1, R.gradoSinMec],
+      ['sin mecanismo consignado el calc-box esta MUDO: el estado de fabrica no afirma nada',
+        R.sinMec === '', '«' + R.sinMec + '»'],
+      ['con mecanismo PRIMARIO sigue mudo: el aviso es de la secundaria',
+        R.prim === '', '«' + R.prim + '»'],
+      /* Las tres piezas, y las tres hacen falta: sin la ACC/AHA el aviso se lee como si la app
+         estuviera equivocada; sin la ESC no hay advertencia; sin la condicion del orificio eliptico
+         el ≥30 mm² queda como un corte incondicional, que NO es lo que dice la Figura 10. */
+      ['⚠️ con mecanismo SECUNDARIO avisa, y dice las TRES cosas: cortes de primaria + respaldo ACC/AHA 2020 + umbrales mas bajos de la ESC/EACTS 2025 con la condicion del orificio eliptico',
+        R.secCampo.indexOf('Mecanismo secundario') > -1 &&
+        R.secCampo.indexOf('IM PRIMARIA') > -1 &&
+        R.secCampo.indexOf('ACC/AHA 2020') > -1 &&
+        R.secCampo.indexOf('30 mm²') > -1 && R.secCampo.indexOf('45 ml') > -1 &&
+        R.secCampo.indexOf('elíptico') > -1, R.secCampo],
+      ['⚠️ y el campo de ETE lo dispara SOLO (por calcTEER): sin eso, cargar el mecanismo y no tocar IM deja el calc-box mudo',
+        R.secPorCalcTEER === R.secCampo && R.secPorCalcTEER !== '', '«' + R.secPorCalcTEER + '»'],
+      ['al borrar el campo de ETE y sin respuesta manual vuelve a callar',
+        R.trasBorrarCampo === '', '«' + R.trasBorrarCampo + '»'],
+      ['DENOMINADOR del camino manual: el control del mecanismo EXISTE en el panel',
+        R.hayBtn === true, String(R.hayBtn)],
+      ['⚠️ el SEGUNDO origen tambien avisa: contestar «Secundaria» en el panel (unico camino en Modo Basico) pinta el mismo texto',
+        R.secManual === R.secCampo && R.secManual !== '', '«' + R.secManual + '»'],
+      /* ⚠️ LA CONDICION QUE SEPARA UN AVISO DE UN CAMBIO DE CORTES. Si alguien «mejora» esto
+         bajando los umbrales de la secundaria, esta cae. */
+      ['⚠️ el aviso NO mueve el grado: im_grado e im_sev_final identicos con primario y con secundario',
+        R.gradoPrim === R.gradoSec && R.gradoSinMec === R.gradoPrim,
+        'sinMec=' + R.gradoSinMec + ' prim=' + R.gradoPrim + ' sec=' + R.gradoSec],
+      ['DENOMINADOR del papel: el aviso estaba pintado cuando se genero el informe',
+        R.avisoAntesDelPapel !== '', '«' + R.avisoAntesDelPapel + '»'],
+      ['⚠️ y no llega al informe ni al EN SUMA: es de pantalla',
+        R.enPapel === '' && R.largoInf > 100, R.enPapel || 'limpio (informe de ' + R.largoInf + ' car.)'],
+      ['«Nuevo estudio» lo deja VACIO y no en «—»: el barrido del calc-box pondria un guion',
+        R.trasLimpiar === '', '«' + R.trasLimpiar + '»']
+    ] };
+  })();
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

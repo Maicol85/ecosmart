@@ -1,5 +1,90 @@
 # EcoSmart — trampas de este archivo
 
+## El calc-box de IM avisa que gradúa una secundaria con cortes de primaria (2026-09-30)
+
+Decisión de Maicol: **se dejan los cortes de la primaria y se agrega un aviso visible**. No se tocan
+cortes, ni votos, ni el grado publicado. El aviso es **sólo pantalla** —no va al informe, al EN SUMA,
+al PDF ni al Excel— y vive pegado al badge «⚖️ Severidad IM integrada», porque es una salvedad
+**sobre ese grado** y no un hallazgo aparte.
+
+### Las dos guías no dicen lo mismo, y eso ES el contenido del aviso
+Publicar sólo la ESC leería como si la app estuviera equivocada; publicar sólo la ACC/AHA esconde la
+advertencia. Las tres citas, verificadas en texto completo (no de resúmenes):
+- **ACC/AHA 2020** (Otto et al, *Circulation* 2021;143:e72–e227), **folio e127**: *«the recommended
+  definition of severe secondary MR is now the same as for primary MR (ERO ≥0.4 cm2 and regurgitant
+  volume ≥60 mL)»*. O sea que **respalda los cortes que la app usa.**
+- **ESC/EACTS 2025** (`ehaf194`), **§9.2.2 «Evaluation», folio 4675**: *«When quantifying EROA and
+  RVol in SMR, lower thresholds may apply … An EROA of ≥30 mm2 and/or an RVol of ≥45 mL has been
+  identified as having a significant impact on outcomes»*.
+- **ESC/EACTS 2025, Figura 10, folio 4672**: *«≥40 mm2 (or ≥30 mm2 if elliptical regurgitant orifice
+  area)»*. El ≥30 va **con** la condición del orificio elíptico, y por eso el aviso la nombra en vez
+  de dar el número pelado — en §9.2.2 el orificio elíptico es el *motivo*, no una condición pegada
+  al número, y confundir las dos cosas sería publicar un corte incondicional que la guía no da.
+
+⚠️ **El folio de §9.2.2 es 4675, no 4674.** Verificado sobre el **pie impreso** de cuatro páginas
+consecutivas (PDF 38→4672, 39→4673, 40→4674, 41→4675; offset = PDF + 4634). El pedido de esta tanda
+decía 4674 **y una nota de sesión anterior «corregía» el 4675 a 4674**: las dos estaban mal. Cuando
+una nota de sesión dice «no es X, es Y», eso también hay que re-verificarlo contra el pie.
+
+### ⚠️ EL PREDICADO DEL MECANISMO ESTABA ESCRITO DOS VECES, Y EL AVISO HABRÍA SIDO LA TERCERA
+`_indIM` y `_indIMS` tenían cada una su `oMec.val === 'secundaria'` / `!== 'secundaria'`. Tres copias
+es cómo el panel y la calculadora terminan discrepando sobre el mismo paciente. Se centralizó en
+`imEsSecundariaIM()` —`_indOrigen(_indS('teer_tipo_im'), 'im.mecanismo').val === 'secundaria'`, el
+mismo carácter por carácter— y las dos compuertas **delegan**; `oMec` sigue existiendo en las dos
+para el texto de la fila y `deEstudio`, que es otra cosa que el predicado.
+
+**Cubre los DOS orígenes**, y por eso pasa por `_indOrigen` en vez de leer el campo: vale el valor de
+la pestaña ETE **y** la respuesta manual del panel, que es el **único camino en Modo Básico**.
+
+### ⚠️ TRES DISPARADORES, PORQUE EL MECANISMO SE PUEDE CONTESTAR FUERA DE `calcIM_ESC`
+Con el aviso adentro de `calcIM_ESC` y nada más, contestar «Secundaria» **en el panel** dejaba el
+calc-box **mudo** hasta que el médico tocara cualquier campo de IM. Es «un consumidor nuevo sin su
+disparador», que este archivo ya pagó cuatro veces. Los tres caminos: `calcIM_ESC`, el escritor de la
+respuesta manual (`_indClin[k] = …`, **no** `_indRepintarConservando` — ésa sólo redibuja y también la
+llaman caminos que no tocaron el mecanismo) y `calcTEER`, que es el `onchange` de `teer_tipo_im`.
+
+Y el pintor va **ANTES del `return` temprano** de `calcIM_ESC`: ese `return` sale cuando no hay ningún
+parámetro que vote, y el mecanismo no depende de que haya mediciones.
+
+### ⚠️ `typeof` ACÁ SÍ HACE FALTA — ES LO CONTRARIO DE LO QUE PIDE `_emRegurgGrado`
+Ese caso es una declaración del **mismo** bloque `<script>`: se hoistea, el `typeof` daría
+`'function'` siempre y la otra rama sería código muerto. `imEsSecundariaIM` vive en el bloque del
+**panel**, o sea otro `<script>`: la llamada pelada tiraría `ReferenceError` y se llevaría puesto el
+bloque de los cálculos. Falla hacia **no pintar**, que para un aviso informativo es la dirección
+barata — el grado publicado no cambia y callar de más no afirma nada.
+
+### ⚠️ LLAMAR AL PINTOR EN `limpiarCampos` ERA UNA FUGA ENTRE PACIENTES, Y FUE LA PRIMERA VERSIÓN
+El barrido `.calc-box .calc-row span[id]` alcanza el span pero lo deja en «—», y un guión en un
+renglón de alerta amarillo no significa «no hay dato»: no significa nada. La primera versión llamaba
+al pintor para re-derivarlo — y el pintor cae en `_indClin['im.mecanismo']` cuando el campo de ETE
+está vacío, **y `_indClin` NO lo limpia `limpiarCampos`**: lo limpian `indicAbrir` e `indicCerrar`.
+Una respuesta manual que sobreviviera a «Nuevo estudio» habría pintado el aviso del paciente anterior
+sobre un estudio en blanco. Se vacía el span **a mano**, que es determinista y no depende del panel.
+
+**Queda REPORTADO y no tocado**: que `_indClin` sobreviva a «Nuevo estudio» es PREEXISTENTE y muy
+estrecho —hay que apretar «Nuevo estudio» con el panel abierto, y es un overlay— y limpiar estado del
+panel desde `limpiarCampos` es otro alcance.
+
+### ⚠️ Y EL PANEL DE IM SECUNDARIA PUBLICA UNA AFIRMACIÓN QUE UNA GUÍA QUE ÉL MISMO CITA DESMIENTE
+**Reportado, NO corregido** — espera decisión. La fila «Grado de insuficiencia mitral» de `_indIMS`
+dice: *«⚠️ La graduación de esta aplicación usa los cortes de la insuficiencia PRIMARIA y no consulta
+el mecanismo: **los de la secundaria son más bajos** y se publican abajo»*, y se pinta **sin una sola
+cita** (`_indFila` con cuatro argumentos, sin `refs`). Dos problemas:
+1. «los de la secundaria son más bajos» es la posición de la **ESC**, publicada como si fuera un
+   hecho. La **ACC/AHA 2020, folio e127**, dice lo contrario: la definición recomendada de secundaria
+   severa *es la misma* que la de la primaria.
+2. `_indIMS` **sí cita** `ahaVc2020` — tres veces —, pero en los números de elegibilidad para TEER y
+   en la discrepancia sobre la IM auricular. **En ninguna de las tres cita la definición de severa**,
+   que es justamente donde las dos guías se separan. Una discrepancia entre guías sin la referencia
+   de la guía que discrepa es una afirmación sin respaldo.
+
+### Sobre agregar una línea al informe: la recomendación es NO
+No se implementó y no se recomienda. El grado **no cambia**, y la ACC/AHA 2020 **respalda** los cortes
+que se usan: una línea en el informe firmado sería una nota metodológica sobre una conducta que una
+guía vigente avala, y este proyecto fija que el informe y el PDF firmados no llevan citas ni notas
+metodológicas. Si en algún momento la app adoptara los umbrales de la ESC para la secundaria, ahí sí
+el informe tendría que decir con qué cortes graduó — pero eso es cambiar cortes, no avisar.
+
 ## El cociente VTI con IAo pasa a retirarse SÓLO con la severa, y el que no votaba sigue sin votar (2026-09-30)
 
 **Reemplaza la decisión del 2026-09-28** (la entrada «Cociente VTI mitral/aórtico: se retira con IAo
