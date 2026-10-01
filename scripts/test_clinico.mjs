@@ -11393,6 +11393,11 @@ caso('TC-263', 'Recorte del margen negro del cineloop: un solo recorte, sin esti
       try { cineCerrar(); } catch (e) {}
       await new Promise(r => setTimeout(r, 120));
       _cineAbrir([{ nombre:'sint2.dcm', cuadros: frames.length, d: armar(frames) }]);
+      /* ⚠️ SE VUELVE A ENCENDER LA MEDICION, porque desde el modo minimo (2026-10-01) el visor
+         arranca en minimo TAMBIEN al reabrir, y la capa de trazos nace escondida. Lo que este
+         caso mide dos lineas mas abajo es el RECT de cine-med contra el de la imagen: con la capa
+         en display:none da todo en cero y el calce se cumple solo — cero contra cero. */
+      if (!_medOn) medToggle();
       cineIr(5);
       await new Promise(r => setTimeout(r, 900));
       const cuadroTrasEsperar = _cineDatos ? _cineDatos.cuadro : -1;
@@ -16284,6 +16289,12 @@ caso('TC-192', 'Simpson cruzando dos imagenes: la sesion sobrevive y cada trazad
         const rg = Object.assign({}, reg, { dx: reg.dx * factor, dy: reg.dy * factor });
         _cineAbrir([{ nombre, cuadros: d0.frags.length,
           d: { frags: d0.frags, cols: d0.cols, filas: d0.filas, msCuadro: d0.msCuadro, regiones: [rg] } }]);
+        /* ⚠️ EL ENCENDIDO VA ADENTRO DEL HELPER desde el modo minimo (2026-10-01): el visor
+           arranca en minimo en CADA apertura, reapertura incluida, asi que el toggle de afuera
+           —que corria una sola vez, despues del primer montar— dejaba las siguientes imagenes
+           sin medicion. Se notaba como un null en _medEscalaEn, o sea la escala de una vista que
+           no estaba midiendo. */
+        if (!_medOn) medToggle();
       };
       montar('vista-A.dcm', 1);
       await new Promise(r => setTimeout(r, 250));
@@ -24989,10 +25000,19 @@ caso('TC-235', 'Detalle del guardado: galeria de lo que va al PDF y panel de vid
 /* == TC-236 - Columna derecha del visor y el estado de calibracion =========================
    Dos cosas que este caso existe para fijar, y ninguna es cosmetica:
 
-   · «Medir» dejo de ser una COMPUERTA. Elegir una herramienta ya encendia la medicion, asi que
-     ese boton solo servia para APAGARLA: un control rotulado «Medir» que significaba lo
-     contrario. Hoy nace oculto y aparece, ya rotulado como salida, solo con la medicion
-     encendida. No se borro: sin el no habria forma de salir sin cerrar el visor.
+   · «Medir» ES EL INTERRUPTOR DEL MODO MINIMO (decision de Maicol, 2026-10-01). Fue compuerta de
+     entrada, paso a ser solo salida —y por eso nacia oculto, que es lo que este caso exigia
+     hasta esa fecha— y hoy esta SIEMPRE visible: con la medicion apagada dice «Medir» y la
+     enciende; con la medicion encendida dice «Salir de medicion» y vuelve al modo minimo. La
+     condicion «y desaparece al apagarla» se dio vuelta, no se relajo: desaparecer lo dejaria sin
+     forma de volver a entrar.
+   · EL VISOR ABRE EN MODO MINIMO, y eso REVIERTE el «abre listo para medir» anterior. Al abrir se
+     ven cuatro cosas —play con su barra y su contador, Capturar, Medir y la cruz del
+     encabezado— y el resto aparece al tocar Medir. El modo es del VISOR y se DERIVA de medOn: no
+     hay una segunda bandera que pueda quedar en desacuerdo.
+   · Y volver a minimo ESCONDE, no apaga: la herramienta elegida, la calibracion manual y las
+     mediciones trazadas siguen ahi al volver. Implementado con medApagar en vez de medToggle,
+     las tres condiciones de conservacion se caen juntas — por eso estan.
    · «+ Vista» y «Cerrar» SE MUDARON del pie del modal a la columna derecha del panel A,
      CONSERVANDO sus ids. Dejarlos tambien en el pie habria dejado ids DUPLICADOS, y ahi
      getElementById devuelve el primero y el otro se dibuja sin responder — el defecto que la
@@ -25008,6 +25028,14 @@ caso('TC-236', 'Visor: columna derecha, y la calibracion se explica antes de med
     window.alert = () => {}; window.confirm = () => true; window.toast = () => {};
     const vis = id => { const e = document.getElementById(id);
       return !e ? 'NO EXISTE' : (getComputedStyle(e).display !== 'none'); };
+    /* ⚠️ vis LEE EL display PROPIO Y NO SIRVE PARA UN HIJO DE UN CONTENEDOR ESCONDIDO.
+       getComputedStyle de un elemento dentro de un subarbol en display:none devuelve SU valor
+       —inline-flex— y no 'none', asi que «+ Vista» y «Cerrar», que viven dentro del grupo
+       .cine-grp-vista, daban visibles con el grupo escondido. Medido: la primera corrida de
+       este caso fallo justo ahi. offsetParent es null cuando el elemento no se renderiza, por
+       si mismo o por un ancestro, y es la misma prueba que fija que no queden enfocables. */
+    const rend = id => { const e = document.getElementById(id);
+      return !e ? 'NO EXISTE' : (e.offsetParent !== null); };
     const barra = () => { const b = document.getElementById('cine-med-barra');
       return b ? (b.textContent || '').replace(/[ ]+/g, ' ').trim() : '(sin barra)'; };
     const JPG1 = new Uint8Array([255,216,255,224,0,16,74,70,73,70,0,1,1,1,0,96,0,96,0,0,255,219,0,67,0,8,6,6,7,6,5,8,7,7,7,9,9,8,10,12,20,13,12,11,11,12,25,18,19,15,20,29,26,31,30,29,26,28,28,32,36,46,39,32,34,44,35,28,28,40,55,41,44,48,49,52,52,52,31,39,57,61,56,50,60,46,51,52,50,255,192,0,11,8,0,1,0,1,1,1,17,0,255,196,0,20,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,255,196,0,20,16,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,218,0,8,1,1,0,0,63,0,42,159,255,217]);
@@ -25020,15 +25048,51 @@ caso('TC-236', 'Visor: columna derecha, y la calibracion se explica antes de med
       _cineAbrir([loop([])]);
       await esperar(800);
       R.modal = !!document.getElementById('cine-ov');
-      R.addB = vis('cine-add-b');
-      R.cerrar = vis('cine-cerrar');
       R.seps = document.querySelectorAll('#cine-ov .cine-sep').length;
-      /* IDS UNICOS: si quedaran los del pie, estos contarian 2 y el segundo estaria muerto. */
+      /* IDS UNICOS: si quedaran los del pie, estos contarian 2 y el segundo estaria muerto.
+         Se cuentan NODOS, no visibilidad, asi que el modo minimo no los altera. */
       R.nAddB = document.querySelectorAll('#cine-ov [id="cine-add-b"]').length;
       R.nCerrar = document.querySelectorAll('#cine-ov [id="cine-cerrar"]').length;
 
+      /* ── MODO MINIMO: asi ABRE el visor (decision de Maicol, 2026-10-01) ──
+         Los cuatro que se ven y una muestra de los que NO. Se mide ANTES de encender nada:
+         medido despues, _medOn ya esta en true y el modo minimo no se ejercita — es el
+         denominador de todas las condiciones de abajo. */
+      R.minClase   = document.getElementById('cine-ov').classList.contains('cine-min');
+      R.minPlay    = rend('cine-play');
+      R.minSlider  = rend('cine-slider');
+      R.minNum     = rend('cine-num');
+      R.minCap     = rend('cine-cap');
+      R.minMedir   = rend('cine-medir');
+      R.minCruz    = rend('cine-cerrar-todo');
+      R.minRot     = (document.getElementById('cine-medir').textContent || '').trim();
+      R.minPressed = document.getElementById('cine-medir').getAttribute('aria-pressed');
+      R.minSide    = rend('cine-side');
+      R.minAyuda   = rend('cine-ayuda');
+      R.minRecal   = rend('cine-med-recal');
+      R.minGuardar = rend('cine-guardar');
+      R.minMedCap  = rend('cine-med-cap');
+      R.minAddB    = rend('cine-add-b');
+      R.minEtiq    = rend('cine-cap-etiq');
+      R.minCerrar  = rend('cine-cerrar');
+      /* Y NO quedan enfocables con Tab: display:none los saca del orden de tabulacion.
+         Se comprueba por offsetParent, que es null justo cuando el elemento no se renderiza. */
+      R.minNoFocusables = ['cine-med-recal','cine-guardar','cine-med-cap','cine-add-b','cine-cerrar']
+        .every(id => { const e = document.getElementById(id); return !!e && e.offsetParent === null; });
+
       if (!_medOn) medToggle();
       await esperar(300);
+      /* ── MODO MEDICION: aparece TODO ── */
+      R.medClase   = document.getElementById('cine-ov').classList.contains('cine-min');
+      R.medSide    = rend('cine-side');
+      R.medAyuda   = rend('cine-ayuda');
+      R.medGuardar = rend('cine-guardar');
+      R.medMedCap  = rend('cine-med-cap');
+      R.medEtiq    = rend('cine-cap-etiq');
+      R.addB       = rend('cine-add-b');
+      R.cerrar     = rend('cine-cerrar');
+      R.medRot     = (document.getElementById('cine-medir').textContent || '').trim();
+      R.medPressed = document.getElementById('cine-medir').getAttribute('aria-pressed');
       medHerramienta('dist');
       await esperar(400);
       R.sinCalPred = _medSinCalibrar();
@@ -25043,10 +25107,37 @@ caso('TC-236', 'Visor: columna derecha, y la calibracion se explica antes de med
       R.sinCalTxt = barra();
       R.sinCalRecal = vis('cine-med-recal');
       R.sinCalBorrar = vis('cine-med-borrar');
-      R.salidaConMedicionOn = vis('cine-medir');
-      if (_medOn) medToggle();
+      R.salidaConMedicionOn = rend('cine-medir');
+
+      /* ── IDA Y VUELTA POR EL INTERRUPTOR, QUE ES LA MITAD QUE IMPORTA ──
+         El boton es el unico camino real del medico, asi que se ejerce _vModoToggle y no
+         medToggle pelado. Lo que se fija es que volver a minimo NO destruye: la herramienta
+         elegida, la calibracion manual y las mediciones trazadas tienen que seguir ahi al
+         volver. Sin esto el modo minimo podria estar implementado con medApagar —que esconde
+         igual de bien y borra el trabajo— y el caso no notaria la diferencia. */
+      medHerramienta('area');                          // una herramienta que NO es la de fabrica
+      await esperar(250);
+      _medCalib = { mmPorPx: 0.2, mmPorPxY: 0.2 };     // calibracion manual puesta a mano
+      _medLineas.push({ a:{x:1,y:1}, b:{x:9,y:9}, mm:10 });
+      const herrAntes = _medHerr, calAntes = _medCalib, nLinAntes = _medLineas.length;
+      _vModoToggle();                                   // → minimo
       await esperar(300);
-      R.salidaConMedicionOff = vis('cine-medir');
+      R.vueltaMinClase = document.getElementById('cine-ov').classList.contains('cine-min');
+      R.vueltaMinOff   = _medOn === false;
+      R.vueltaMinSide  = rend('cine-side');
+      R.salidaConMedicionOff = rend('cine-medir');        // el boton NO desaparece: es el interruptor
+      R.vueltaMinRot   = (document.getElementById('cine-medir').textContent || '').trim();
+      _vModoToggle();                                   // → medicion otra vez
+      await esperar(300);
+      R.vueltaMedOn    = _medOn === true;
+      R.vueltaMedClase = document.getElementById('cine-ov').classList.contains('cine-min');
+      R.conservaHerr   = _medHerr === herrAntes;
+      R.conservaCalib  = _medCalib === calAntes;
+      R.conservaLineas = _medLineas.length === nLinAntes;
+      R.diagVuelta = 'herr=' + _medHerr + '/' + herrAntes + ' calib=' + !!_medCalib +
+                     ' lineas=' + _medLineas.length + '/' + nLinAntes;
+      medBorrar(); _medCalib = null; medHerramienta('dist');
+      await esperar(200);
 
       /* ── CON escala del archivo ── */
       _cineAbrir([loop(conEscala)]);
@@ -25079,8 +25170,55 @@ caso('TC-236', 'Visor: columna derecha, y la calibracion se explica antes de med
                                                      T1.indexOf('distancia conocida') >= 0, T1.slice(0,110)],
       ['y de los de medicion queda solo Recalibrar', R.sinCalRecal === true && R.sinCalBorrar === false,
                                                      'recal=' + R.sinCalRecal + ' borrar=' + R.sinCalBorrar],
-      ['la salida aparece con la medicion ENCENDIDA', R.salidaConMedicionOn === true, R.salidaConMedicionOn],
-      ['y desaparece al apagarla',                    R.salidaConMedicionOff === false, R.salidaConMedicionOff],
+      ['el interruptor se ve con la medicion ENCENDIDA', R.salidaConMedicionOn === true, R.salidaConMedicionOn],
+      /* ⚠️ ESTA CONDICION SE DIO VUELTA EL 2026-10-01 y no se relajo: antes exigia que el boton
+         DESAPARECIERA al apagar la medicion, porque era solo la salida. Desde el modo minimo es
+         el INTERRUPTOR, asi que desaparecer lo dejaria sin forma de volver a entrar. */
+      ['y SIGUE visible al apagarla: es el interruptor', R.salidaConMedicionOff === true, R.salidaConMedicionOff],
+
+      /* ── MODO MINIMO ───────────────────────────────────────────────────────────────────── */
+      ['MINIMO: el visor abre con la clase puesta',   R.minClase === true, R.minClase],
+      ['y se ven los CUATRO: play, barra, contador, Capturar, Medir y la cruz',
+                                                      R.minPlay === true && R.minSlider === true &&
+                                                      R.minNum === true && R.minCap === true &&
+                                                      R.minMedir === true && R.minCruz === true,
+                                                      'play=' + R.minPlay + ' slider=' + R.minSlider +
+                                                      ' num=' + R.minNum + ' cap=' + R.minCap +
+                                                      ' medir=' + R.minMedir + ' cruz=' + R.minCruz],
+      ['el boton dice «Medir» y no esta apretado',     R.minRot.indexOf('Medir') >= 0 &&
+                                                      R.minRot.indexOf('Salir') < 0 &&
+                                                      R.minPressed === 'false',
+                                                      'rot=' + R.minRot + ' pressed=' + R.minPressed],
+      ['y NO se ve nada de medicion',                 R.minSide === false && R.minAyuda === false &&
+                                                      R.minRecal === false && R.minGuardar === false &&
+                                                      R.minMedCap === false && R.minAddB === false &&
+                                                      R.minCerrar === false && R.minEtiq === false,
+                                                      'side=' + R.minSide + ' ayuda=' + R.minAyuda +
+                                                      ' recal=' + R.minRecal + ' guardar=' + R.minGuardar +
+                                                      ' medcap=' + R.minMedCap + ' addB=' + R.minAddB +
+                                                      ' cerrar=' + R.minCerrar + ' etiq=' + R.minEtiq],
+      ['los escondidos NO quedan enfocables con Tab',  R.minNoFocusables === true, R.minNoFocusables],
+      ['MEDICION: la clase se saca y aparece todo',    R.medClase === false && R.medSide === true &&
+                                                      R.medAyuda === true && R.medGuardar === true &&
+                                                      R.medMedCap === true && R.medEtiq === true,
+                                                      'clase=' + R.medClase + ' side=' + R.medSide +
+                                                      ' ayuda=' + R.medAyuda + ' guardar=' + R.medGuardar +
+                                                      ' medcap=' + R.medMedCap + ' etiq=' + R.medEtiq],
+      ['y el boton pasa a «Salir» y queda apretado',   R.medRot.indexOf('Salir') >= 0 &&
+                                                      R.medPressed === 'true',
+                                                      'rot=' + R.medRot + ' pressed=' + R.medPressed],
+      ['el interruptor vuelve a minimo',               R.vueltaMinClase === true && R.vueltaMinOff === true &&
+                                                      R.vueltaMinSide === false &&
+                                                      R.vueltaMinRot.indexOf('Medir') >= 0,
+                                                      'clase=' + R.vueltaMinClase + ' off=' + R.vueltaMinOff +
+                                                      ' side=' + R.vueltaMinSide + ' rot=' + R.vueltaMinRot],
+      ['y vuelve a medicion',                          R.vueltaMedOn === true && R.vueltaMedClase === false,
+                                                      'on=' + R.vueltaMedOn + ' clase=' + R.vueltaMedClase],
+      /* La mitad que distingue «esconder» de «apagar»: con medApagar en vez de medToggle las
+         tres de abajo se caen juntas. */
+      ['la ida y vuelta CONSERVA herramienta, calibracion y mediciones',
+                                                      R.conservaHerr === true && R.conservaCalib === true &&
+                                                      R.conservaLineas === true, R.diagVuelta],
       ['DENOMINADOR: la otra imagen SI trae escala',  R.conCalPred === false, R.conCalPred],
       ['calibrado, la instruccion desaparece',        T2.indexOf('Antes de medir') < 0, T2.slice(0,110)],
       ['y dice donde recalibrar',                     T2.indexOf('Si necesitas recalibrar') >= 0 ||

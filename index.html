@@ -170,6 +170,46 @@
   #cine-paneles.cine-2v .cine-acc > .cine-sep {
     width: 1px !important; height: auto !important; align-self: stretch; margin: 0 2px !important;
   }
+  /* ══ MODO MÍNIMO DEL VISOR ════════════════════════════════════════════════════════════════
+     Al abrir un cineloop o una imagen se ven SOLO cuatro cosas: Reproducir con su barra y su
+     contador, 📸 Capturar, 📏 Medir y la ✕ de arriba. Todo lo demás —las nueve herramientas, la
+     calibración, el guardado, la etiqueta, los cajones 2D y Doppler, el panel guía, el biplano y
+     la tabla de Simpson— aparece al tocar Medir. Decisión de Maicol (2026-10-01).
+
+     ⚠️ LA CLASE SE DERIVA, NO SE GUARDA: la pone `_vModoSync` desde `¿alguna vista tiene
+     `medOn`?`, que es el estado que YA existía y que ya gobernaba el canvas de trazos. Un
+     segundo booleano «modo» podría quedar en desacuerdo con `medOn` —la medición se enciende
+     también desde `medHerramienta`, desde `_vActivarMedicion` y desde los casos del suite, que
+     llaman a `medToggle` pelado— y entonces la pantalla mostraría controles muertos o
+     esconderían los de una medición encendida. Es la misma regla que `_vAccionesSync`, que
+     cuenta los paneles del DOM en vez de leer `_vistaB`.
+
+     ⚠️ `!important` NO ES PEREZA: `_vPanelHTML` emite estos controles con estilos EN LÍNEA y
+     `_medFijosSync`, `_medBarra`, `_dopRender` y `_d2Render` les escriben `style.display` a
+     mano. Un estilo en línea le gana a la hoja sin importar la especificidad, así que sin esto
+     la clase aplicaría y los controles seguirían a la vista — el mismo defecto que este archivo
+     ya documenta para `[hidden]`, para el banner de versión y para la media query del visor.
+     Y la contrapartida: al salir del modo mínimo la regla deja de aplicar y vuelve a mandar el
+     `display` en línea, o sea el estado que `_medFijosSync` había decidido. Nada se destruye ni
+     se mueve: los oyentes, los valores de los campos y la herramienta elegida siguen ahí.
+
+     `display:none` —y no `visibility` ni `opacity`— porque además saca los botones del orden de
+     tabulación: un control que no se ve pero se enfoca con Tab es peor que uno visible. */
+  #cine-ov.cine-min [id$="cine-side"],
+  #cine-ov.cine-min [id$="cine-ayuda"],
+  #cine-ov.cine-min [id$="cine-med-recal"],
+  #cine-ov.cine-min [id$="cine-med-borrar"],
+  #cine-ov.cine-min [id$="cine-guardar"],
+  #cine-ov.cine-min [id$="cine-med-cap"],
+  #cine-ov.cine-min [id$="cine-med-barra"],
+  #cine-ov.cine-min .cine-etiq,
+  #cine-ov.cine-min .cine-grp-vista,
+  #cine-ov.cine-min .cine-sep,
+  #cine-ov.cine-min #cine-biplano,
+  #cine-ov.cine-min #cine-simp-uni,
+  #cine-ov.cine-min #cine-sync,
+  #cine-ov.cine-min #dop-cajon,
+  #cine-ov.cine-min #d2-cajon { display: none !important; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     background: var(--bg);
@@ -60481,12 +60521,19 @@ function _vPanelHTML(p, esB) {
         '<div id="' + p + 'cine-acciones" class="cine-acc" style="flex:0 0 118px;min-width:0;display:flex;' +
           'flex-direction:column;gap:4px;align-items:stretch;">' +
           '<div id="' + p + 'cine-grp-med" style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-start;">' +
-            /* Nace OCULTO: ver `_medFijosSync`. Sin calibrar no hay nada que medir, y con la
-               medición encendida su trabajo es SALIR, no entrar. */
-            /* `white-space:normal`: `.btn` trae `nowrap`, y el min-content de este rótulo son
+            /* ⚠️ VUELVE A SER LA COMPUERTA, Y AHORA EN LOS DOS SENTIDOS. Nació como entrada, pasó
+               a ser sólo salida —y por eso nacía oculto— y desde el modo mínimo (2026-10-01) es
+               un INTERRUPTOR: con la medición apagada dice «📏 Medir» y la enciende; con la
+               medición encendida dice «✕ Salir de medición» y vuelve al modo mínimo sin perder
+               lo medido, la calibración ni la herramienta elegida.
+               Nace VISIBLE porque es uno de los cuatro controles del modo mínimo, y nace con el
+               rótulo de «apagado» porque el visor SIEMPRE abre en mínimo. El rótulo, el
+               `aria-pressed` y la clase los pone `_vModoSync`, que es el único que los escribe:
+               escribirlos desde dos lados ya dejó a `_medFijosSync` peleando con `medToggle`.
+               `white-space:normal`: `.btn` trae `nowrap`, y el min-content del rótulo largo son
                ~125 px contra los 118 de la columna — el único de los nueve que desbordaba. El
                piso táctil de 44 px lo sostiene igual con dos renglones. */
-            btn('cine-medir', 'btn-ghost', '✕ Salir de medición', 'display:none;white-space:normal;line-height:1.15;', 'Apaga el modo medición sobre esta vista.') +
+            btn('cine-medir', 'btn-ghost', '📏 Medir', 'white-space:normal;line-height:1.15;', 'Muestra las herramientas de medición y calibración.') +
             btn('cine-med-recal', 'btn-ghost', 'Recalibrar', '', 'Fija la escala a mano sobre una referencia conocida de la imagen.') +
             btn('cine-med-borrar', 'btn-ghost', 'Borrar', '', 'Borra las mediciones de esta vista. La calibración manual se conserva.') +
           '</div>' +
@@ -60501,7 +60548,10 @@ function _vPanelHTML(p, esB) {
              cableados— es lo que fija el ancho mínimo de toda la columna. Medido: con eso la
              columna salía en 199 px contra los 118 de la lateral izquierda, así que la simetría
              que este cambio vino a conseguir se rompía por un solo control. */
-          '<div style="display:flex;flex-direction:column;gap:2px;">' +
+          /* `cine-etiq` es el gancho del modo mínimo. Va como CLASE y no como id porque el
+             envoltorio se emite una vez por vista y dos ids iguales dejarían al segundo muerto —
+             el defecto que la barra de la vista B ya pagó. */
+          '<div class="cine-etiq" style="display:flex;flex-direction:column;gap:2px;">' +
             '<label for="' + p + 'cine-cap-etiq" style="font-size:10.5px;color:var(--text2);">Etiqueta:</label>' +
             '<input type="text" id="' + p + 'cine-cap-etiq" maxlength="' + _CAP_ETIQ_MAX + '" ' +
               'placeholder="TAPSE, DDVI…" ' +
@@ -60511,7 +60561,10 @@ function _vPanelHTML(p, esB) {
           '</div>' +
           (esB ? '' :
             '<div class="cine-sep" style="width:100%;height:1px;background:var(--border);margin:2px 0;"></div>' +
-            '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-start;">' +
+            /* `cine-grp-vista` es el gancho del modo mínimo: «➕ Vista» y «Cerrar» quedan dentro
+               del modo de medición (decisión de Maicol, 2026-10-01). La ✕ del encabezado es la
+               que SIEMPRE está, así que esconder este «Cerrar» no deja a nadie atrapado. */
+            '<div class="cine-grp-vista" style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-start;">' +
               '<button type="button" class="btn btn-ghost" id="cine-add-b" style="padding:3px 9px;font-size:10.5px;" ' +
                 'title="Abre una segunda vista al lado de ésta, sin cerrar la actual.">➕ Vista</button>' +
               '<button type="button" class="btn btn-ghost" id="cine-cerrar" style="padding:3px 9px;font-size:10.5px;" ' +
@@ -60606,7 +60659,11 @@ function _vCablear(V) {
   const q = id => document.getElementById(V.pfx + id);
   const on = (id, fn) => { const e = q(id); if (e) e.onclick = _vBind(V, fn); };
   on('cine-play',    cineToggle);
-  on('cine-medir',   medToggle);
+  /* ⚠️ VA A `_vModoToggle` Y NO A `medToggle` PELADO. El botón ya no apaga la medición de UNA
+     vista: cambia el modo del VISOR, que es lo que esconde o muestra la columna entera. Atado a
+     `medToggle` con dos vistas abiertas, apagar la A dejaba el modo en «medición» —porque la B
+     seguía midiendo— y el rótulo del botón de la A mintiendo. */
+  on('cine-medir',   _vModoToggle);
   on('cine-guardar', cineGuardarActual);
   on('cine-cap',     cineCapturar);
   on('cine-prev',    () => cineLoop(-1));
@@ -60825,10 +60882,27 @@ function _cineAbrir(loops) {
   _vObservarAncho();
   _vToggleSync();
   _cineCargarLoop();
-  /* TAREA 2: el visor abre LISTO PARA MEDIR, igual que la vista B. `medToggle` ya entra solo
-     en modo calibrar cuando el archivo no declara ninguna región medible, así que la rama
-     «sin escala → calibración» no se escribe acá: se hereda. */
-  _vActivarMedicion(_vistaA);
+  /* ⚠️ EL VISOR ABRE EN MODO MÍNIMO, SIEMPRE. Decisión de Maicol (2026-10-01), y REVIERTE el
+     «abre listo para medir» que había acá: lo que se ve al abrir son cuatro controles
+     —▶ Reproducir con su barra y su contador, 📸 Capturar, 📏 Medir y la ✕ del encabezado— y el
+     resto aparece al tocar Medir. La razón es la pantalla chica, que es donde el visor se usa:
+     entre las dos columnas y los grupos de abajo, la ecografía quedaba en una franja.
+
+     «Siempre» incluye el REABRIR y el cambio de archivo desde la tira: `_cineAbrir` es la puerta
+     única de los tres caminos (`dcmImgImportar`, `medImagenAbrir`, `medFijaAbrirGuardada`), así
+     que apagar acá cubre los tres sin una regla por camino.
+
+     ⚠️ APAGAR NO ES BORRAR, y por eso se apaga con `medToggle` y no con `medApagar`: aquélla
+     suelta los oyentes del canvas, esconde la capa de trazos y vacía el panel guía, pero NO toca
+     `medLineas`, `medAreas`, `medCalib`, `medHerr` ni las sesiones de Simpson y strain — que es
+     justo lo que el ✕ del visor se ocupa de conservar desde el 2026-09-26. `medApagar` acá
+     destruiría el trabajo del médico al cambiar de cineloop.
+
+     Se apagan las DOS vistas porque el modo es del visor. Lo que se perdió con esto es la rama
+     «sin escala → entra solo en calibración», que vivía en `medToggle`: hoy el médico la alcanza
+     al tocar Medir, un toque después. */
+  _vTodas().forEach(V => _vCon(V, () => { if (_medOn) medToggle(); }));
+  _vModoSync();
   /* El cajón Doppler se muda a la ranura del visor. `_vActivarMedicion` ya dispara `_medEstado`,
      que repinta el cajón — esta línea cubre el caso en que la medición NO se encienda (sin
      `_cineDatos` esa función sale por su guarda): sin ella el cajón se quedaría en la pestaña
@@ -60871,6 +60945,74 @@ function _vActivarMedicion(V) {
   });
 }
 window._vActivarMedicion = _vActivarMedicion;
+
+/* ══ MODO MÍNIMO / MODO MEDICIÓN DEL VISOR ═══════════════════════════════════════════════════
+   Al abrir un cineloop o una imagen se ven SOLO cuatro cosas: ▶ Reproducir con su barra y su
+   contador, 📸 Capturar, 📏 Medir y la ✕ del encabezado. El resto aparece al tocar Medir.
+   Decisión de Maicol (2026-10-01).
+
+   ⚠️ NO HAY UN SEGUNDO ESTADO: el modo se DERIVA de `medOn`, que es el booleano que ya existía
+   y que ya gobierna el canvas de trazos. Guardar un `_vModo` aparte sería un dato que puede
+   quedar en desacuerdo con `medOn` —la medición también se enciende desde `medHerramienta`,
+   desde `_vActivarMedicion`, desde `vistaBAbrir` y desde las decenas de casos del suite que
+   llaman a `medToggle` pelado— y entonces la pantalla mostraría la barra lateral de una
+   medición apagada, o esconderían los controles de una encendida. Es la misma regla que
+   `_vAccionesSync`, que cuenta los paneles del DOM en vez de leer `_vistaB`, y por la misma
+   razón: derivado no hay forma de que los dos discrepen.
+
+   ⚠️ EL MODO ES DEL VISOR, NO DE LA VISTA (`some`, no `every`). Con las dos vistas abiertas y
+   sólo la A midiendo, los controles se ven en las DOS: esconderlos en la B dejaría a la columna
+   de una vista distinta de la otra sin que nada en la pantalla lo explique. */
+function _vModoMidiendo() { return _vTodas().some(V => V && V.medOn === true); }
+
+function _vModoSync() {
+  const ov = document.getElementById('cine-ov');
+  if (!ov) return;
+  const midiendo = _vModoMidiendo();
+  ov.classList.toggle('cine-min', !midiendo);
+  /* El botón muestra el estado por TEXTO y por COLOR, no sólo por color: la columna se usa con
+     el dedo y en modo mínimo el resto de los botones es `btn-ghost` transparente, así que un
+     matiz de fondo solo no se lee. `aria-pressed` lo dice para el lector de pantalla. */
+  _vTodas().forEach(V => {
+    const b = document.getElementById(V.pfx + 'cine-medir');
+    if (!b) return;
+    b.textContent = midiendo ? '✕ Salir de medición' : '📏 Medir';
+    b.title = midiendo
+      ? 'Vuelve al modo mínimo. Lo medido, la calibración y la herramienta elegida se conservan.'
+      : 'Muestra las herramientas de medición y calibración.';
+    b.setAttribute('aria-pressed', midiendo ? 'true' : 'false');
+    b.classList.toggle('btn-primary', midiendo);
+    b.classList.toggle('btn-ghost', !midiendo);
+  });
+}
+window._vModoSync = _vModoSync;
+
+/* El interruptor. ÚNICA función que cambia de modo, y lo hace moviendo `medOn` — no una
+   bandera paralela.
+
+   ⚠️ AL ENTRAR NO PASA POR `_vActivarMedicion`, y es deliberado: aquélla fuerza `_medHerr =
+   'dist'` y `_medGrupo = '2d'` cuando la medición está apagada, que es correcto al ABRIR un
+   archivo y es un defecto acá. El pedido dice que volver del modo mínimo conserva la
+   herramienta elegida; con `_vActivarMedicion` el médico que eligió Simpson, salió a mínimo
+   para mirar el loop corriendo y volvió, se encontraría en Distancia y en silencio.
+   `medToggle` por sí solo no toca la herramienta: la de fábrica ya es `'dist'` (`_vNueva`).
+
+   ⚠️ AL SALIR SE APAGAN LAS DOS VISTAS, porque el modo es del visor. `medToggle` apagando sólo
+   suelta los oyentes del canvas, esconde la capa de trazos y vacía el panel guía: NO toca
+   `medLineas`, `medAreas`, `medCalib`, `medCalibVel`, `medHerr` ni las sesiones de Simpson y
+   strain. Por eso volver a entrar reaparece con todo donde estaba. */
+function _vModoToggle() {
+  if (_vModoMidiendo()) _vTodas().forEach(V => _vCon(V, () => { if (_medOn) medToggle(); }));
+  else _vCon(_V, () => { if (!_medOn) { medToggle(); _medEstado(); } });
+  _vModoSync();
+  /* Los dos cajones se gobiernan por `medHerr`/`medGrupo` —que el modo mínimo NO resetea—, así
+     que sin esto el cajón 2D se quedaba en `display:block` debajo de la clase. La clase ya lo
+     esconde; esto repinta el caso simétrico, el de volver a medición con la herramienta
+     Distancia puesta de antes. Guarda `typeof`: viven en otro bloque `<script>`. */
+  try { if (typeof _dopRender === 'function') _dopRender(); } catch (e) {}
+  try { if (typeof _d2Render === 'function') _d2Render(); } catch (e) {}
+}
+window._vModoToggle = _vModoToggle;
 
 /* ══ RECORTE DEL MARGEN NEGRO DEL CINELOOP ════════════════════════════════════════════════
    El cuadro que exporta el ecógrafo es un lienzo más grande que la imagen: alrededor sobra
@@ -65145,13 +65287,12 @@ function _medFijosSync() {
       ? 'Fija a mano la escala de VELOCIDAD, marcando la línea de base y una marca conocida.'
       : 'Vuelve a fijar la escala de distancia sobre una referencia conocida.';
   }
-  /* ⚠️ «Medir» DEJÓ DE SER UNA COMPUERTA. Antes había que apretarlo antes de poder medir, y
-     desde que elegir una herramienta enciende la medición sola ese botón sólo servía para
-     APAGARLA — un control rotulado «Medir» que en la práctica significaba lo contrario.
-     Hoy nace oculto y aparece, ya rotulado como salida, sólo con la medición encendida.
-     No se borró: sin él no habría forma de salir del modo medición sin cerrar el visor. */
-  const b2 = _medEl('cine-medir');
-  if (b2) b2.style.display = _medOn ? '' : 'none';
+  /* ⚠️ «Medir» YA NO SE TOCA ACÁ. Fue compuerta de entrada, pasó a ser sólo salida —y por eso
+     nacía oculto y esta función lo mostraba— y desde el modo mínimo (2026-10-01) es el
+     INTERRUPTOR del visor: está SIEMPRE visible y lo único que cambia es el rótulo, que escribe
+     `_vModoSync` derivándolo de `medOn`. Dos escribientes del mismo atributo ya se pelearon una
+     vez acá —esta función contra `medToggle`, ganando la última en correr—, así que la línea no
+     se adaptó: se sacó. */
   /* SIN CALIBRAR, de los controles de medición queda SÓLO «Recalibrar»: no hay nada medido que
      borrar, y ofrecerlo al lado del único botón que sirve compite con él. Los grupos de captura
      y de vista no se tocan — guardar el cineloop o cerrar el visor no dependen de la escala. */
@@ -65711,15 +65852,17 @@ function medToggle() {
   if (!_cineDatos) return;
   _medObservar();
   _medOn = !_medOn;
-  const cv = _medEl('cine-med'), b = _medEl('cine-medir');
+  const cv = _medEl('cine-med');
   if (!cv) return;
   cv.style.display = _medOn ? '' : 'none';
-  /* ⚠️ ACÁ SE DECIDE LA VISIBILIDAD, NO EL RÓTULO. El rótulo es estático —«✕ Salir de
-     medición»— desde que el botón dejó de ser la compuerta de entrada: escribirlo desde dos
-     lados dejaba a `_medFijosSync` peleando con esta línea, y ganaba la última en correr.
-     La rama de apagado NO pasa por `_medEstado`, así que sin esto el botón de salida quedaba
-     visible con la medición ya apagada — medido. */
-  if (b) b.style.display = _medOn ? '' : 'none';
+  /* ⚠️ ACÁ YA NO SE DECIDE NI LA VISIBILIDAD NI EL RÓTULO DEL BOTÓN: los dos los pone
+     `_vModoSync`, que es el único escribiente. El botón pasó a ser el INTERRUPTOR del modo
+     mínimo (2026-10-01), así que está SIEMPRE visible y lo que cambia es el rótulo.
+     La llamada va acá —y no sólo en `_vModoToggle`— porque ésta es la función que mueve `medOn`,
+     y el modo se deriva de `medOn`: `medHerramienta`, `_vActivarMedicion`, `vistaBAbrir` y las
+     decenas de casos del suite encienden la medición entrando por acá, sin pasar por el botón.
+     Sincronizar en el único escribiente del estado es lo que impide que el modo y la medición
+     discrepen. Va al final, con `medOn` ya en su valor nuevo. */
   if (_medOn) {
     /* Se pausa: medir sobre un cineloop corriendo es marcar un punto en un cuadro y el otro
        en el siguiente. */
@@ -65743,6 +65886,7 @@ function medToggle() {
     _medTrazo = null;
     _medBarra('');
   }
+  _vModoSync();
 }
 window.medToggle = medToggle;
 
@@ -65909,10 +66053,12 @@ function medCerrarVisor() {
   _medPuntos = []; _medLineas = []; _medAreas = []; _medTrazo = null;
   _medVels = []; _medTiempos = []; _medVtis = []; _medHerr = 'dist';
   _strainRecs = null; _strainRevocarThumbs();
-  const cv = _medEl('cine-med'), b = _medEl('cine-medir');
+  const cv = _medEl('cine-med');
   if (cv) { cv.style.display = 'none'; cv.onclick = null; cv.onmousedown = null; cv.onmousemove = null; }
   if (_vArrastre === _V) _vArrastre = null;
-  if (b) b.textContent = '📏 Medir';
+  /* El rótulo del botón lo pone `_vModoSync` derivándolo de `medOn`, que esta función acaba de
+     bajar. Escribirlo acá a mano era la tercera copia de la misma decisión. */
+  _vModoSync();
   _medSideRender();
   _medBarra('');
 }
@@ -65926,10 +66072,10 @@ function medApagar() {
   _simp = null;                      // otra imagen: los cuatro trazados no aplican
   _strain = null; _lars = null; _vd = null;
   _strainRecs = null; _strainRevocarThumbs();
-  const cv = _medEl('cine-med'), b = _medEl('cine-medir');
+  const cv = _medEl('cine-med');
   if (cv) { cv.style.display = 'none'; cv.onclick = null; cv.onmousedown = null; cv.onmousemove = null; }
   if (_vArrastre === _V) _vArrastre = null;   // el oyente es compartido: no se quita, se desmarca
-  if (b) b.textContent = '📏 Medir';
+  _vModoSync();                              // el rótulo del botón se deriva de `medOn`, que ya bajó
   _medSideRender();                          // sin esto queda resaltada la herramienta de antes
   _medBarra('');
 }
@@ -87596,8 +87742,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20260930-1636';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790796998626;                 /* eco-build-ms */
+const ECO_BUILD    = '20261001-0841';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790854917313;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -87683,7 +87829,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20260930-1636</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261001-0841</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
