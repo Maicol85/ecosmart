@@ -12,7 +12,7 @@ La tabla de abajo usa la numeración de la **tanda 3** y nombra el equivalente v
 | B | texto de IM secundaria en `_indIMS` con las dos guías | nueva | **hecha y verificada** · `a5877d2` |
 | C | «Nuevo estudio» limpia `_indClin` | nueva | **hecha y verificada** |
 | D1/D2 | panel «Incluir en el informe» y AVm indexada con THP fuera de banda | eran los reportados 1 y 3 | **hechas y verificadas** |
-| E | mutaciones (tanda 3 + las pendientes de la tanda 2) | era «E» | sin empezar |
+| E | mutaciones (tanda 3 + las pendientes de la tanda 2) | era «E» | **hecha** · 31 corridas, 29 en rojo, 2 declaradas |
 
 ⚠️ **El `git push` de la etapa 1 quedó BLOQUEADO** por el clasificador de permisos del entorno, no
 por git: el commit `a5877d2` está en `main` local y **sin subir**. Lo mismo puede pasar con el de la
@@ -97,6 +97,112 @@ mecanismo que no existe.
    la casilla con IAo leve y **después** graduó la IAo se queda con el ✅ puesto — ése es el camino por
    el que el ✅ del selector sí es alcanzable.
 3. **`emPdfValsSync` habilita esa casilla en las rutas de restauración** sin consultar la validez.
+
+## Etapa E (tanda 3) — el barrido de mutaciones, y lo que encontró (2026-10-01)
+
+**31 corridas, 29 en rojo, 2 declaradas como rama inalcanzable.** md5 antes/después/revert en cada
+una; `index.html` volvió al original en las 31. Nada se midió en Chrome mientras corría el barrido.
+
+Cubiertas: A (6), B (5), C (2), D1 (3), D2 (2) y las **seis pendientes de la tanda 2** —
+`IM_RATIO_IA_MAX_NAT`, `IM_RATIO_IA_MAX_PROT`, el paréntesis con IAo moderada, el mismo paréntesis
+con grado 3, y los **tres disparadores** del aviso de IM secundaria.
+
+### ⚠️ MI PROPIO ARNÉS DE MUTACIONES TENÍA EL DENOMINADOR MAL, Y REPORTÓ 7 FALSOS «SOBREVIVIÓ»
+El veredicto era `rojo = ('✗' in stdout) or ('CON FALLAS' in stdout)`. Cuando un **acento grave en un
+comentario del cuerpo de un caso** cerró el template literal, `test_clinico.mjs` dejó de parsear, el
+suite **no arrancó**, stdout quedó vacío → ningún `✗` → **las 7 mutaciones salieron «sobrevivió» de
+una sola vez**. Es indistinguible de «no hay cobertura».
+Lo delató que **dos de esas 7 eran condiciones que yo acababa de escribir y ver en verde**. Hoy el
+arnés exige `'RESULTADO' in stdout` antes de puntuar y, si no está, reporta `NO CORRIÓ`.
+Es el mismo error de denominador que este repo ya pagó dos veces —el escáner que no escaneó, la
+sonda que contaba cero inyecciones sobre un contenedor vacío— y esta vez estaba **en la herramienta
+con la que yo verificaba mi propio trabajo**. El primer barrido de 24 **no** está afectado: el
+archivo parseó todo el tiempo y los 2 supervivientes se diagnosticaron leyendo el caso.
+
+### ⚠️ Y EL ACENTO GRAVE ME LO COMÍ DOS VECES EN LA MISMA SESIÓN
+`caso()` lo avisa en mayúsculas («NO USES ACENTOS GRAVES ADENTRO, ni siquiera dentro de un
+comentario») y lo pisé igual, las dos veces citando un identificador en un comentario del cuerpo.
+La primera avisó con un `SyntaxError` inmediato; la segunda se disfrazó de resultado de mutación.
+
+### Las dos que SOBREVIVIERON y se cerraron
+- **fail-open sin el predicado** (rama `_emContValFn ? … : false`). Era **inalcanzable bajo test**
+  porque `window.emContValido` siempre existe. Se cerró ejerciéndola de verdad: `_indFn` resuelve
+  `window[nombre]`, así que el caso **anula esa propiedad** y reproduce el escenario real —el bloque
+  del panel cargado y los export del bloque 8 no, que es lo que pasa si el bloque 8 muere antes de
+  su línea 21107—. Se **asigna** `undefined` y no se usa `delete`: una declaración de función global
+  crea la propiedad con `configurable:false`. Se repone en un `finally`, con su propia condición de
+  denominador. Hoy está en rojo.
+- **el disparador de `calcIM_ESC` del aviso de IM secundaria** (tanda 2). TC-336 aislaba el
+  disparador de `calcTEER` y **nunca el de `calcIM_ESC`**: todas sus lecturas del aviso vienen
+  después de un `__t.set('teer_tipo_im', …)`, que dispara `calcTEER` y **ya deja el span pintado**,
+  así que sacarle el pintor a `calcIM_ESC` pasaba en verde. Se cerró con el espejo de la condición
+  que ya existía: vaciar el span a mano y correr **sólo** `calcIM_ESC()`. Hoy está en rojo.
+  El comentario de la tanda 2 decía «TRES DISPARADORES» y había **dos** con cobertura.
+
+### La que quedó DECLARADA y no cubierta
+- **el fallback «ningún motivo legible»** de la cascada de `_razon` (M27-A). Es **inalcanzable por
+  construcción**: se entra a esa rama sólo con `!_contVale`, y con el predicado presente eso implica
+  que `emContFueraBanda()` o `emContMotivoNoVota()` ya dieron motivo, o sea que alguno de los `push`
+  corrió. El único hueco pediría `window.emContValido` sin `window.emContFueraBanda`, y las dos se
+  exportan en la misma línea. **No se escribió un test para un estado imposible**: se declara en el
+  código, como la rama `src` de `emThpFueraBanda`.
+
+## Hallazgos de /sharp-edges sobre el diff de esta tanda, y qué se hizo con cada uno
+
+Corrido sobre el diff completo contra `301518f`. **Encontró dos afirmaciones falsas que yo
+introduje**, y las dos eran del tipo que este archivo persigue.
+
+### CORREGIDOS
+1. **La fila nueva REASEGURABA EN FALSO.** Decía «El informe y el Excel ya retiran este valor en
+   esta situación» — y es falso en **dos** superficies que yo mismo había medido: la columna «AVm
+   indexada (cm²/m²)» del Excel sale de `avmMejor`, que toma la continuidad, y el PDF la imprime si
+   la casilla está tildada (`dataset.tocado` la protege). Y lo peor: el bloque de recomendación de
+   **esa misma tarjeta** publica Clase I apoyado en ese número. O sea que la versión 3 de esa nota
+   era **peor que la versión 2**, que era incompleta pero mandaba a VERIFICAR. Hoy la fila nombra lo
+   que sí se retira y **advierte que la recomendación todavía usa el valor**. Cubierto por M25-A y
+   M26-A. La nota de la sección se corrigió igual. **Regla para la cuarta versión: enumerar las
+   superficies UNA POR UNA; «el informe y el Excel» en bloque es lo que falló las dos veces.**
+2. **La cascada de `_razon` era EXCLUSIVA y los motivos no lo son.** `emContValido()` es
+   `!emContFueraBanda() && emContMotivoNoVota() === ''`: los dos son independientes y se dan juntos.
+   Con `em_vtimit = 130` —el VTI del chorro, el error de carga habitual— **más** IAo moderada, el
+   ternario nombraba sólo la regurgitación y dejaba sin declarar que el **denominador** de la cuenta
+   era ilegible. Y el área resultante (~0,19 cm²) cae **dentro** de la banda de `avm_cont`, así que
+   la guarda `x.L.fuera` no la agarra: esa fila era la única superficie que podía decirlo. Hoy los
+   motivos se **concatenan**. Cubierto por M4b-A.
+3. **Mi comentario justificaba el orden de `_indClinVaciar` con un `catch` que no está en ese
+   camino.** El `catch` mudo existe, pero vive en la rama `hay === false` de `cerrarSesion()`, que
+   **no** pasa por el modal; en los dos caminos de «Nuevo estudio» `limpiarCampos()` va **sin** `try`.
+   El orden sigue siendo el correcto y conveniente; el **porqué** era falso y se reescribió.
+4. **`ecosmart` como cita de la banda del VTI.** El `full` de esa entrada dice «decisión clínica
+   cuando la evidencia no ofrece un único corte», y una banda de plausibilidad es un rango de lo
+   medible: otra cosa. Y un corchete sobre «no pude verificar» se lee como si hubiera un criterio
+   detrás. Hoy esas dos razones van **sin cita**. Cubierto por M3b-A.
+5. **`typeof emAvmThpPdfTxt === 'function'` era código muerto** — declaración del mismo bloque,
+   hoisteada— y la nota de la función hermana declara ese `typeof` como el antipatrón a evitar. Se
+   sacó; el `try` queda, que es lo que sí cubre algo.
+6. **El texto de B se acortó** y apunta al detalle: la posición de la ESC **ya vivía** en `notas[0]`
+   con su cita, así que la fila no tiene que repetirla entera.
+
+### REPORTADOS Y NO TOCADOS (fuera del alcance de esta tanda)
+- **El selector del 🖨️ sigue ofreciendo la continuidad inválida**, con la casilla habilitada y el
+  valor sin marca; tildándola, el PDF firmado sale con `Cont: 1.41 cm2`. D1 hizo que el THP de ese
+  panel siga al papel y dejó **la fila de al lado** sin seguir a nada — la asimetría ahora es
+  visible dentro del mismo recuadro de tres renglones. Cerrarlo toca la ruta del PDF.
+- **D2 no marca el indexado cuando viene de la CONTINUIDAD** con el VTI fuera de banda: `avm_cont`
+  lleva su « (revisar)» y `#avm_idx` sale limpio. La decisión D nombró el THP; extenderlo es una
+  línea (`_idxDeCont && _pVtimit.fuera`) pero cambia un display que nadie pidió.
+- **`#avm_idx` no tiene rama `else`**: si el médico borra el THP, el campo conserva el valor — y
+  ahora el string rancio puede llevar la marca. Es preexistente y `limpiarCampos` sí lo barre, así
+  que no cruza pacientes.
+- **`cerrarSesionReal()` no limpia `_indClin`**, y es el embudo que sí limpia otros cuatro estados de
+  módulo con el argumento de que «el invariante no puede depender en silencio de una línea
+  enterrada». No se encontró una fuga alcanzable hoy.
+- **«— siempre incluida» queda pegado a «no evaluable»** en el panel. Una palabra lo cerraría, pero
+  esa leyenda es estática y tocarla **cambiaría también el display dentro de banda**, que D exige
+  idéntico a HEAD.
+- **El cambio A renumera los refs de `_indEM`** en el escenario donde la continuidad es la única
+  fuente y no vale (`esc2025vc` se corre a [2]). La numeración de esa sección ya está declarada como
+  dependiente del paciente; TC-327/TC-328 no se mueven porque siembran `avm_plan`.
 
 ## Etapa C (tanda 3) — «Nuevo estudio» se lleva las respuestas del panel de Evidencia (2026-10-01)
 

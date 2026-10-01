@@ -42068,6 +42068,17 @@ caso('TC-336', 'IM secundaria: el calc-box avisa que gradua con cortes de PRIMAR
     __t.set('teer_tipo_im','secundaria');
     R.secPorCalcTEER = av();
 
+    /* ⚠️ Y EL DISPARADOR DE calcIM_ESC SE MIDE AISLADO TAMBIEN — es el espejo del de arriba, y
+       FALTABA. Todas las lecturas anteriores vienen despues de un __t.set('teer_tipo_im'), que
+       dispara calcTEER y YA deja el aviso pintado; con eso, sacarle el pintor a calcIM_ESC pasa en
+       VERDE porque el span lo lleno el otro disparador. No es una hipotesis: la mutacion
+       SOBREVIVIO el barrido del 2026-10-01 y asi se encontro.
+       Se vacia el span a mano y se corre SOLO calcIM_ESC, que es lo que pasa cuando el medico
+       edita cualquier campo de IM con el mecanismo ya consignado. */
+    { const e = g('im-sec-aviso'); if (e) e.textContent = ''; }
+    try { calcIM_ESC(); } catch (e) {}
+    R.secPorCalcIM = av();
+
     /* (4) mecanismo SECUNDARIO por la respuesta MANUAL del panel — el camino de Modo Basico.
        Se limpia el campo de ETE para que _indOrigen caiga en _indClin, que es el escenario real. */
     __t.set('teer_tipo_im','');
@@ -42122,6 +42133,8 @@ caso('TC-336', 'IM secundaria: el calc-box avisa que gradua con cortes de PRIMAR
         R.secCampo.indexOf('elíptico') > -1, R.secCampo],
       ['⚠️ y el campo de ETE lo dispara SOLO (por calcTEER): sin eso, cargar el mecanismo y no tocar IM deja el calc-box mudo',
         R.secPorCalcTEER === R.secCampo && R.secPorCalcTEER !== '', '«' + R.secPorCalcTEER + '»'],
+      ['⚠️ y calcIM_ESC lo dispara SOLO: con el mecanismo ya consignado, editar un campo de IM repinta el aviso — sin esta condicion, sacarle el pintor a calcIM_ESC SOBREVIVE el barrido de mutaciones',
+        R.secPorCalcIM === R.secCampo && R.secPorCalcIM !== '', '«' + R.secPorCalcIM + '»'],
       ['al borrar el campo de ETE y sin respuesta manual vuelve a callar',
         R.trasBorrarCampo === '', '«' + R.trasBorrarCampo + '»'],
       ['DENOMINADOR del camino manual: el control del mecanismo EXISTE en el panel',
@@ -42437,10 +42450,41 @@ caso('TC-338', 'EM: la fila del AVm por continuidad del panel aplica emContValid
     R.nover = medir({ ia_grado:'???' });
     // VTI mitral fuera de su banda [2,80]: emContValido tambien es falso, por OTRO motivo
     R.vti   = medir({ ia_grado:'0', em_vtimit:'130' });
+    /* ⚠️ LOS DOS MOTIVOS A LA VEZ, que es donde un ternario encadenado nombra solo uno. Con el VTI
+       del chorro (130 cm) Y la IAo moderada, el texto tiene que nombrar LAS DOS cosas: mandar a
+       revisar solo el grado deja al medico sin saber que el denominador de la cuenta es ilegible.
+       Y el area resultante (~0,19 cm²) cae DENTRO de la banda de avm_cont, asi que la guarda de
+       x.L.fuera no la agarra y esta es la unica superficie que lo dice. */
+    R.ambos = medir({ ia_grado:'2', em_vtimit:'130' });
     // con planimetria ADEMAS: la otra fuente sigue sosteniendo su criterio
     R.conPlan = medir({ ia_grado:'2', avm_plan:'1.2' });
 
-    const ESC = ['sin','leve','mod','sev','imMod','nover','vti'];
+    /* ⚠️ EL FAIL-CLOSED, EJERCIDO DE VERDAD — sin esto la rama es INALCANZABLE y la mutacion que la
+       invierte a fail-open SOBREVIVE. No es hipotetico: sobrevivio el barrido del 2026-10-01.
+       _indFn resuelve window[nombre], asi que anulando esa propiedad se reproduce el escenario
+       REAL: el bloque del panel cargado y los export del bloque 8 no — que es lo que pasa si el
+       bloque 8 muere antes de su linea de window.emContValido, y este archivo ya se quedo sin
+       script por una TDZ que el hoisting disimulaba.
+       Se ASIGNA undefined y no se usa delete: una declaracion de funcion global crea la propiedad
+       con configurable:false, asi que delete no la saca.
+       El escenario de partida es la continuidad VALIDA (IAo 0), o sea el ✅: si el fail-closed no
+       estuviera, la fila seguiria publicando el criterio y la condicion cae.
+       Se restaura en un finally — sin eso el resto de la suite corre sin el predicado. */
+    R.sinPredicado = (function(){
+      cargar({ ia_grado:'0' });
+      const guardado = window.emContValido;
+      try {
+        window.emContValido = undefined;
+        let S = null;
+        try { S = _indEM(); } catch (e) { return { ERR:'LANZO ' + e.message }; }
+        const f = (S && S.filas) ? S.filas.filter(function(x){ return String(x.lbl).indexOf('continuidad') >= 0; })[0] : null;
+        return f ? { marca:f.marca, nota:String(f.nota).slice(0, 120), refs:(f.refs || []).join(',') }
+                 : { ERR:'sin fila' };
+      } finally { window.emContValido = guardado; }
+    })();
+    R.predicadoRepuesto = (typeof window.emContValido === 'function');
+
+    const ESC = ['sin','leve','mod','sev','imMod','nover','vti','ambos'];
     const coincide = ESC.filter(function(k){
       return (R[k].marca === 'ok') === (R[k].papel.indexOf('Cont:') >= 0);
     }).length;
@@ -42459,8 +42503,8 @@ caso('TC-338', 'EM: la fila del AVm por continuidad del panel aplica emContValid
       ['⚠️ y con IAo SEVERA y con IM moderada tampoco',
         R.sev.marca === 'ask' && R.imMod.marca === 'ask',
         'sev=' + R.sev.marca + ' imMod=' + R.imMod.marca],
-      ['⚠️ LA CONDICION CENTRAL: el panel y el papel coinciden en los SIETE escenarios — la marca ✅ sale si y solo si el papel publica el metodo',
-        coincide === 7,
+      ['⚠️ LA CONDICION CENTRAL: el panel y el papel coinciden en los OCHO escenarios — la marca ✅ sale si y solo si el papel publica el metodo',
+        coincide === 8,
         ESC.map(function(k){ return k + ':' + (R[k].marca === 'ok' ? 'ok' : 'no') + '/' + (R[k].papel.indexOf('Cont:') >= 0 ? 'papel' : 'sin'); }).join(' ')],
       ['la fila dice NO EVALUABLE y nombra la regurgitacion cuando ese es el motivo',
         tiene(R.mod.nota, 'no evaluable') && tiene(R.mod.nota, 'regurgitación mitral o aórtica significativa'),
@@ -42471,19 +42515,40 @@ caso('TC-338', 'EM: la fila del AVm por continuidad del panel aplica emContValid
       ['⚠️ y con el VTI mitral fuera de banda nombra el VTI — un texto fijo mandaba a revisar el grado equivocado',
         tiene(R.vti.nota, 'VTI mitral') && !tiene(R.vti.nota, 'Hay regurgitación'),
         'nota=' + R.vti.nota.slice(0, 130)],
-      ['⚠️ LA CITA NO SE SOBRE-APLICA: Pandian va en las dos razones de regurgitacion y NO en la banda de plausibilidad de la app, que es criterio propio',
+      ['⚠️ LA CITA NO SE SOBRE-APLICA: Pandian va en las dos razones de regurgitacion y la banda de plausibilidad de la app queda SIN cita — no es un criterio de ninguna guia',
         tiene(R.mod.refs, 'asePandian2023') && tiene(R.nover.refs, 'asePandian2023') &&
-        R.vti.refs === 'ecosmart',
-        'mod=' + R.mod.refs + ' nover=' + R.nover.refs + ' vti=' + R.vti.refs],
+        R.vti.refs === '',
+        'mod=' + R.mod.refs + ' nover=' + R.nover.refs + ' vti=«' + R.vti.refs + '»'],
+      ['⚠️ LOS DOS MOTIVOS A LA VEZ se nombran LOS DOS: un ternario encadenado nombraba solo la regurgitacion y dejaba al VTI ilegible sin declarar',
+        tiene(R.ambos.nota, 'VTI mitral') && tiene(R.ambos.nota, 'regurgitación mitral o aórtica significativa') &&
+        R.ambos.marca === 'ask',
+        'nota=' + R.ambos.nota.slice(0, 200)],
       ['SE MARCA SIN BORRAR: el numero medido sigue en la fila',
         tiene(R.mod.val, '1,41') && tiene(R.vti.val, '0,43'),
         'mod=' + R.mod.val + ' vti=' + R.vti.val],
+      /* ⚠️ LA MITAD QUE NO SE CERRO, DICHA EN LA PANTALLA Y NO SOLO EN LA BITACORA. El area
+         invalida sigue alimentando medidas -> avmMax -> la contraindicacion por area, y sacarla
+         de ahi cambia el VOTO, que el pedido prohibe. Mientras siga asi, la fila NO puede
+         reasegurar: la primera version decia «el informe y el Excel ya retiran este valor» al lado
+         de un bloque que publica Clase I con ese mismo numero. Sin esta condicion, volver a la
+         frase tranquilizadora pasa en verde. */
+      ['⚠️ la fila NO reasegura de mas: nombra lo que SI se retira y advierte que la recomendacion de la tarjeta todavia usa el valor',
+        tiene(R.mod.nota, 'El informe narrativo y la columna «AVm continuidad» del Excel ya lo retiran') &&
+        tiene(R.mod.nota, 'TODAVÍA lo usa para la contraindicación por área') &&
+        !tiene(R.mod.nota, 'El informe y el Excel ya retiran este valor'),
+        'nota=' + R.mod.nota.slice(-170)],
       ['DENOMINADOR: las OTRAS fuentes no se tocaron — con IAo moderada la planimetria sigue sosteniendo su criterio',
         tiene(R.conPlan.otras, 'planimetría/ok') && R.conPlan.marca === 'ask',
         'otras=' + R.conPlan.otras + ' cont=' + R.conPlan.marca],
       ['la nota de la seccion ya no manda a mirar los grados a mano: decia «esta seccion todavia no lo hace»',
         ESC.every(function(k){ return !R[k].notaVieja; }),
-        'notaVieja=' + ESC.filter(function(k){ return R[k].notaVieja; }).join(',')]
+        'notaVieja=' + ESC.filter(function(k){ return R[k].notaVieja; }).join(',')],
+      ['⚠️ FAIL-CLOSED: sin el predicado la fila NO cae en publicar el ✅ — sobre un escenario donde la continuidad SI valia. Es la rama que, sin esta condicion, deja sobrevivir la mutacion a fail-open',
+        R.sinPredicado.marca === 'ask' && String(R.sinPredicado.nota).indexOf('no pudo verificar') >= 0,
+        JSON.stringify(R.sinPredicado)],
+      ['DENOMINADOR: el predicado se repuso, para no dejar al resto de la suite corriendo sin el',
+        R.predicadoRepuesto === true && emContValido() === true,
+        'repuesto=' + R.predicadoRepuesto]
     ] };
   })();
 `);
@@ -42624,6 +42689,29 @@ caso('TC-340', 'Nuevo estudio: las respuestas del panel de Evidencia no pasan al
     R.nombreB = __t.val('nombre');
     try { indicCerrar(); } catch (e) {}
 
+    /* ⚠️ EL OTRO CAMINO DE «NUEVO ESTUDIO», que es el que se olvida. El modal tiene DOS botones
+       —«Guardar y continuar» y «Continuar sin guardar»— y son dos funciones distintas. Sin esta
+       condicion, sacarle el vaciado a neGuardarYContinuar sobrevive en verde, y es justo el
+       camino que usa el medico que no quiere perder el estudio.
+       guardarInforme exige nombre o documento y la primera vez muestra la card de severidades;
+       se confirma apretando #rev-confirm, igual que __t.guardar.
+       (Sin acentos graves: el cuerpo de un caso es un template literal — ver el aviso de caso().) */
+    try { __t.limpiar(); } catch (e) {}
+    try { indicCerrar(); } catch (e) {}
+    Object.keys(A).forEach(function(k){ __t.set(k, A[k]); });
+    try { indicAbrir(); } catch (e) {}
+    const bot2 = document.querySelector('[data-ind-clin="im.mecanismo"][data-ind-val="secundaria"]');
+    if (bot2) bot2.click();
+    R.antes2 = secs();
+    window._ettEditandoId = null;
+    try { neGuardarYContinuar(); } catch (e) { R.errGuardar = e.message; }
+    { const cf = document.getElementById('rev-confirm'); if (cf) cf.click(); }
+    for (let i = 0; i < 40 && String(__t.val('nombre') || '') !== ''; i++)
+      await new Promise(function(r){ setTimeout(r, 100); });
+    R.guardarLimpio = String(__t.val('nombre') || '') === '';
+    R.trasGuardar = secs();
+    try { indicCerrar(); } catch (e) {}
+
     return { extra: [
       ['DENOMINADOR: el control del mecanismo existe, el panel quedo ABIERTO y el PACIENTE A si queda en la tabla de secundaria',
         R.hayBoton && R.panelAbierto === 'block' && R.antes.mec === 'secundaria' &&
@@ -42643,7 +42731,13 @@ caso('TC-340', 'Nuevo estudio: las respuestas del panel de Evidencia no pasan al
         'aviso=«' + R.avisoB.slice(0, 90) + '»'],
       ['DENOMINADOR: el formulario se limpio de verdad y despues se cargo B',
         R.nombreB === 'PACIENTE B' && !R.errNuevo && !R.errAbrir,
-        'nombre=' + R.nombreB + ' errNuevo=' + (R.errNuevo || '-')]
+        'nombre=' + R.nombreB + ' errNuevo=' + (R.errNuevo || '-')],
+      ['DENOMINADOR del segundo camino: «Guardar y continuar» guardo y limpio el formulario',
+        R.guardarLimpio && R.antes2.mec === 'secundaria' && !R.errGuardar,
+        'limpio=' + R.guardarLimpio + ' antes2=' + JSON.stringify(R.antes2) + ' err=' + (R.errGuardar || '-')],
+      ['⚠️ y «Guardar y continuar» TAMBIEN se lleva la respuesta: son dos funciones distintas y la segunda se olvida',
+        R.trasGuardar.mec === 'null' && R.trasGuardar.claves === '',
+        'mec=' + R.trasGuardar.mec + ' claves=«' + R.trasGuardar.claves + '»']
     ] };
   })();
 `);

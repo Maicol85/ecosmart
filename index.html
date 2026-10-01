@@ -22365,7 +22365,11 @@ window.emAvmThpPdfTxt = emAvmThpPdfTxt;
    alguna vez pasa, el panel cae en el comportamiento de antes en vez de llevarse puesto el bloque. */
 function _emPdfThpSpanSync(thpVal) {
   try {
-    if (typeof emAvmThpPdfTxt === 'function' && emAvmThpPdfTxt() === EM_AVM_THP_NOEVAL_PDF) {
+    /* SIN GUARDA `typeof`: `emAvmThpPdfTxt` es una declaración de este MISMO bloque, hoisteada, así
+       que la guarda sería código muerto — y su propia nota, sesenta líneas arriba, declara ese
+       `typeof` como el antipatrón a evitar. La primera versión lo llevaba igual. Lo cazó
+       /sharp-edges. El `try` queda, que es lo que sí cubre algo (ver abajo). */
+    if (emAvmThpPdfTxt() === EM_AVM_THP_NOEVAL_PDF) {
       const sp = document.getElementById('em-pdf-thp-val');
       if (sp) sp.textContent = '— ' + EM_AVM_THP_NOEVAL_PDF;
       /* `false` = «no hay valor publicable», que es lo que el nombre de la variable del llamador
@@ -30501,11 +30505,23 @@ function neContinuarSinGuardar() {
    volvía a gobernar sobre un estudio en blanco, y no es cosmético: `im.mecanismo` es el único
    camino en Modo Básico para encender `_indIMS`, que publica TEER Clase I · Nivel A.
 
-   ⚠️ VA ANTES DE `limpiarCampos`, NO DESPUÉS, Y LA DIRECCIÓN IMPORTA. En la ruta del cierre de
-   sesión la llamada a `limpiarCampos` la envuelve un `catch` MUDO (ver su comentario), así que con
-   el orden invertido una excepción ahí dejaría las respuestas vivas y sin una sola señal. Limpiar
-   primero no puede perder nada: los únicos escritores de `_indClin` son clics del médico en el
-   panel, y acá no corre ninguno.
+   VA ANTES DE `limpiarCampos` por si esa llamada lanza: así las respuestas ya están limpias.
+   Limpiar primero no puede perder nada, porque los únicos escritores de `_indClin` son clics del
+   médico en el panel y acá no corre ninguno.
+   ⚠️ LA PRIMERA VERSIÓN DE ESTE PÁRRAFO JUSTIFICABA EL ORDEN CON UN `catch` QUE NO ESTÁ EN ESTE
+   CAMINO. Decía «en la ruta del cierre de sesión la llamada a `limpiarCampos` la envuelve un
+   `catch` mudo». Ese `catch` existe, pero vive en la rama `hay === false` de `cerrarSesion()`, que
+   **no pasa por acá**; en los dos caminos de este modal `limpiarCampos()` va **sin** `try`. O sea
+   que el orden es inofensivo y conveniente, pero el motivo que estaba escrito era falso. Lo cazó
+   `/sharp-edges`. Se deja el orden y se corrige el porqué.
+
+   ⚠️ Y `cerrarSesionReal()` NO LIMPIA `_indClin` — REPORTADO, NO TOCADO. Esa función es el embudo
+   único que limpia cuatro estados de módulo (`labCohorteLimpiar`, `_dopLimpiar`, `_d2Limpiar`,
+   `labAsocLibreReset`) con el argumento de que «el invariante del cierre de sesión no puede
+   depender EN SILENCIO de una línea enterrada». `_indClin` —que es el estado capaz de publicar
+   TEER Clase I · Nivel A— no está en esa lista, y hay dos caminos que llegan ahí sin pasar por
+   este modal: `hay === false` y `hay === null`. No se encontró una fuga alcanzable hoy
+   (`indicAbrir`/`indicCerrar` limpian), así que queda declarado y fuera del alcance de esta tanda.
 
    ⚠️ NO SE LLAMA AL PINTOR DEL AVISO. `limpiarCampos` vacía `#im-sec-aviso` A MANO justamente
    porque el pintor lee `_indClin['im.mecanismo']` (ver su comentario). Con `_indClin` ya vacío ese
@@ -42244,7 +42260,7 @@ function _indIMS(){
        Con la ESC primera en el array el [1] queda quieto, que es el único número que se podía
        conservar; invertirlo habría movido los tres. */
     _indFila('Grado de insuficiencia mitral', 'Severa', 'none',
-      'severidad confirmada en el estudio. ⚠️ Esta aplicación gradúa con los cortes de la insuficiencia PRIMARIA y no consulta el mecanismo. Las dos guías no sostienen lo mismo sobre eso. La ESC/EACTS 2025 admite umbrales más bajos: dice que «pueden aplicarse» un EROA ≥ 30 mm² y/o un volumen regurgitante ≥ 45 ml, por el orificio regurgitante potencialmente elíptico o el bajo flujo. En su Figura 10 el corte es EROA ≥ 40 mm², y el ≥ 30 mm² va SÓLO si ese orificio es elíptico. La ACC/AHA 2020 sostiene la posición contraria: la definición recomendada de secundaria severa es la MISMA que la de la primaria, ERO ≥ 0,4 cm² y volumen regurgitante ≥ 60 ml. O sea que los cortes de esta aplicación son los que esa guía recomienda, y el número más bajo de la otra es condicional, no un corte nuevo.',
+      'severidad confirmada en el estudio. ⚠️ Esta aplicación gradúa con los cortes de la insuficiencia PRIMARIA y no consulta el mecanismo. Las dos guías no sostienen lo mismo. La ESC/EACTS 2025 dice que en la secundaria «pueden aplicarse» umbrales más bajos: EROA ≥ 30 mm² y/o volumen regurgitante ≥ 45 ml. Su Figura 10 deja el corte en ≥ 40 mm² y condiciona el ≥ 30 mm² a un orificio regurgitante elíptico. La ACC/AHA 2020 sostiene la posición contraria: la definición recomendada de secundaria severa es la MISMA que la de la primaria, ERO ≥ 0,4 cm² y volumen regurgitante ≥ 60 ml. O sea que los cortes de esta aplicación son los que esa guía recomienda, y el número más bajo de la otra es condicional, no un corte nuevo. El detalle de abajo lo amplía.',
       ['esc2025vc','ahaVc2020'])
   ];
   /* Los datos que la Figura 12 usa, mostrados JUNTO al selector y sin concluir con ellos: son la
@@ -42762,18 +42778,56 @@ function _indEM(){
            la MITRAL y no se puede reusar como compuerta genérica de «continuidad». */
         const _esRegurg = !!_contMotivo && (_contMotivo === window.EM_CONT_AVISO_TXT ||
                                             _contMotivo === window.EM_CONT_NOVERIF_TXT);
-        const _razon = !_emContValFn
-            ? 'La aplicación no pudo verificar la condición.'
-          : (_contMotivo === window.EM_CONT_AVISO_TXT)
-            ? 'Hay regurgitación mitral o aórtica significativa. La continuidad no se usa con regurgitación significativa.'
-          : (_contMotivo === window.EM_CONT_NOVERIF_TXT)
-            ? 'No se pudieron leer los grados de insuficiencia mitral y aórtica. La continuidad no se usa con regurgitación significativa, así que sin esos grados no se puede sostener.'
-          : _contMotivo ? _contMotivo + '.'
-            : 'El VTI mitral está fuera de rango medible: es el denominador de la cuenta.';
+        /* ⚠️ LOS MOTIVOS SE CONCATENAN, NO SE ELIGE UNO, y la primera versión era un ternario
+           encadenado sobre `_contMotivo` solo. `emContValido()` es
+           `!emContFueraBanda() && emContMotivoNoVota() === ''`: los dos motivos son INDEPENDIENTES
+           y pueden darse juntos. Con `em_vtimit = 130` —el VTI del chorro en vez del de entrada, que
+           este archivo documenta como el error de carga habitual— MÁS `ia_grado` moderada, el
+           ternario nombraba sólo la regurgitación y mandaba a revisar el grado mientras el
+           DENOMINADOR de la cuenta era ilegible. Y el área mostrada no lo delata: con VTI 130 da
+           ~0,19 cm², que cae DENTRO de la banda de `avm_cont`, así que la guarda `x.L.fuera` de más
+           arriba no entra. Es el mismo defecto que el `aviso` de esta sección ya documenta haber
+           tenido como ternario. Lo encontró /sharp-edges sobre este diff. */
+        const _vtiFueraFn = _indFn('emContFueraBanda');
+        const _razones = [];
+        if (!_emContValFn) _razones.push('La aplicación no pudo verificar la condición.');
+        if (_vtiFueraFn && _vtiFueraFn())
+          _razones.push('El VTI mitral está fuera de rango medible: es el denominador de la cuenta.');
+        if (_contMotivo === window.EM_CONT_AVISO_TXT)
+          _razones.push('Hay regurgitación mitral o aórtica significativa. La continuidad no se usa con regurgitación significativa.');
+        else if (_contMotivo === window.EM_CONT_NOVERIF_TXT)
+          _razones.push('No se pudieron leer los grados de insuficiencia mitral y aórtica. La continuidad no se usa con regurgitación significativa, así que sin esos grados no se puede sostener.');
+        else if (_contMotivo) _razones.push(_contMotivo + '.');
+        /* Sin ningún motivo legible no se calla: el predicado dijo que no vale y hay que decir algo.
+           Es la misma dirección fail-closed del booleano.
+           ⚠️ PERO ESTA RAMA ES HOY INALCANZABLE, Y QUEDA DECLARADA COMO TAL. Se entra acá sólo con
+           `!_contVale`; con el predicado presente eso implica `emContFueraBanda() ||
+           emContMotivoNoVota() !== ''`, o sea que alguno de los dos `push` de arriba ya corrió. El
+           único hueco sería que existiera `window.emContValido` y NO `window.emContFueraBanda`, y
+           las dos se exportan en la MISMA línea (`index.html:21107`), así que no pueden divergir.
+           La mutación que la anula (M27-A) SOBREVIVIÓ el barrido del 2026-10-01, y eso es el
+           hallazgo: no es cobertura que falte, es una rama que ninguna entrada alcanza. Se conserva
+           porque es una línea y porque borrarla invita a que la cascada vuelva a poder quedar muda,
+           no porque tape algo hoy. Mismo tratamiento que la rama `src` de `emThpFueraBanda`. */
+        if (!_razones.length) _razones.push('La aplicación no pudo verificar la condición.');
+        /* ⚠️ LA ÚLTIMA ORACIÓN DICE SÓLO LO VERIFICADO, Y LA PRIMERA VERSIÓN AFIRMABA DE MÁS.
+           Decía «el informe y el Excel ya retiran este valor», y es falso en DOS superficies que yo
+           mismo medí: la columna «AVm indexada (cm²/m²)» del Excel sale de `avmMejor`, que toma la
+           continuidad, y el PDF la imprime igual si el médico tildó la casilla (`dataset.tocado`).
+           Esta nota ya fue falsa dos veces en direcciones opuestas —ver el comentario de la nota de
+           la sección—; una reaseguración falsa es peor que el silencio, sobre todo al lado de un
+           bloque de recomendación que publica Clase I apoyado en este mismo número. Así que se
+           nombra lo que SÍ retira y se advierte lo que NO. Lo encontró /sharp-edges. */
         filas.push(_indFila('AVm — ' + x.lbl, _indNum(x.L.val, 2, 'cm²'), 'ask',
-          'no evaluable — no entra como criterio. ' + _razon +
-          ' El informe y el Excel ya retiran este valor en esta situación.',
-          _esRegurg ? ['asePandian2023'] : ['ecosmart']));
+          'no evaluable — no entra como criterio de área. ' + _razones.join(' ') +
+          ' El informe narrativo y la columna «AVm continuidad» del Excel ya lo retiran. ' +
+          '⚠️ El bloque de recomendación de esta tarjeta TODAVÍA lo usa para la contraindicación por área.',
+          /* La cita va sólo donde la regla es de Pandian. Las otras dos razones NO llevan `ecosmart`
+             ni ninguna otra: la banda del VTI es un rango de lo medible, y esa entrada
+             describe «una decisión clínica cuando la evidencia no ofrece un único corte», que es
+             otra cosa; y un corchete de bibliografía sobre «no pude verificar» se leería como si
+             hubiera un criterio detrás. Sin nota no hay cita, y sin criterio tampoco. */
+          _esRegurg ? ['asePandian2023'] : null));
         return;
       }
       filas.push(_indFila('AVm — ' + x.lbl, _indNum(x.L.val, 2, 'cm²'),
@@ -42955,11 +43009,20 @@ function _indEM(){
              —el panel publicaba el ✅ igual—. Una reaseguración falsa es peor que el silencio;
            · la segunda lo corrigió a «ESTA SECCIÓN todavía no lo hace», que era cierto ese día y
              quedó viejo en cuanto la fila pasó a consultar `emContValido()`.
-         Hoy la fila «AVm — ecuación de continuidad» de arriba cae en «no evaluable» cuando ese
-         predicado es falso, así que la nota ya no tiene que mandar al médico a mirar los grados a
-         mano: la fila lo dice en su propio renglón. Si alguien vuelve a tocar esto, el orden es
-         mirar la compuerta de `leidas.forEach` ANTES de reescribir la nota. */
-      etio === 'reumatica' ? { txt:'El área por ecuación de continuidad es la más débil de las cuatro fuentes: la ASE 2023 dice que «no está bien validada y se usa poco», y que NO debe usarse con insuficiencia aórtica o mitral significativa. Esta aplicación retira ese valor en esa situación: el informe, el Excel y la fila de arriba, que queda como «no evaluable» en vez de sostener el criterio. La misma guía prefiere la planimetría al nivel de las puntas de los velos, y advierte que el tiempo de hemipresión no es fiable con insuficiencia mitral significativa, tras valvuloplastia o con alteración de la distensibilidad auricular o ventricular.',
+         ⚠️ Y LA TERCERA TAMBIÉN EMPEZÓ FALSA, en la dirección de la primera. Decía «Esta aplicación
+         retira ese valor en esa situación: el informe, el Excel y la fila de arriba». Lo cazó
+         `/sharp-edges` sobre el MISMO diff que la escribió. Dos superficies NO lo retiran: la
+         columna «AVm indexada (cm²/m²)» del Excel —sale de `avmMejor`, que toma la continuidad— y
+         el PDF cuando la casilla del selector está tildada (`dataset.tocado` la protege). Y lo
+         peor: el bloque de recomendación de ESTA tarjeta publica Clase I apoyado en ese mismo
+         número, así que reasegurar era PEOR que la versión 2 — aquélla era incompleta pero mandaba
+         a VERIFICAR.
+         Hoy la fila de arriba cae en «no evaluable» cuando el predicado es falso, y esta nota
+         nombra lo que sí se retira, advierte lo que no, y sigue mandando a mirar los grados.
+         SI HAY UNA CUARTA VERSIÓN: enumerar las superficies UNA POR UNA antes de escribirla. «El
+         informe y el Excel» en bloque es lo que falló las dos veces — son varias columnas y varias
+         rutas, y no se comportan igual. Y mirar la compuerta de `leidas.forEach` ANTES de redactar. */
+      etio === 'reumatica' ? { txt:'El área por ecuación de continuidad es la más débil de las cuatro fuentes: la ASE 2023 dice que «no está bien validada y se usa poco», y que NO debe usarse con insuficiencia aórtica o mitral significativa. En esa situación la fila de arriba la marca como no evaluable, y el informe narrativo y la columna «AVm continuidad» del Excel ya la retiran. ⚠️ Pero el bloque de recomendación de esta tarjeta todavía la usa para la contraindicación por área, y el PDF la imprime si la casilla del selector está tildada: conviene mirar los grados de insuficiencia antes de apoyarse en ella. La misma guía prefiere la planimetría al nivel de las puntas de los velos, y advierte que el tiempo de hemipresión no es fiable con insuficiencia mitral significativa, tras valvuloplastia o con alteración de la distensibilidad auricular o ventricular.',
         refs:['asePandian2023'] } : '',
       { txt:'El área sola no alcanza: la guía dice «en combinación con ciertos factores clínicos» —síntomas, riesgo tromboembólico o de descompensación— para hablar de estenosis clínicamente grave.',
         refs:['esc2025vc'] },
