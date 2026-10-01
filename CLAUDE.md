@@ -13,13 +13,32 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 
 ### Según la tarea, leé este archivo
 
+**Dos reglas que ahorran la mayor parte del contexto:**
+- **Antes de leer `index.html` para ubicar una función, abrí el mapa del área.** Está por nombre de
+  función y constante, no por línea; grepear a ciegas un archivo de 90.000 líneas cuesta turnos.
+- **Antes de leer un PDF de una guía, mirá `docs/fuentes/FUENTES.md`. Si el dato ya está verificado,
+  no lo releas.**
+
 | Si la tarea es… | Leé |
 |---|---|
 | Qué falta hacer / próximo paso | `docs/PENDIENTES.md` |
+| **Ubicar un cálculo de severidad, un corte o una banda** | `docs/mapa/valvulas.md` |
+| **Tocar el panel de Evidencia: agregar una cita o una sección** | `docs/mapa/panel-evidencia.md` |
+| **Ver por dónde sale un dato** (informe narrativo, EN SUMA, PDF, Excel) | `docs/mapa/informe-pdf-excel.md` |
+| **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` |
+| **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
+| **Orientarse en otro módulo** (Congénitas, Laboratorio, PPT, Cardio-Onco, Pericardio) | `docs/mapa/congenitas-otros.md` |
+| **Citar un dato de una guía** (documento, folio, frase verificada) | `docs/fuentes/FUENTES.md` |
+| **Citar un dato de PRÓTESIS valvular** | `docs/fuentes/FUENTES-protesis.md` |
+| **Empezar una válvula nueva**: qué fuentes faltan y cómo se agrega una | `docs/fuentes/PENDIENTES_FUENTES.md` |
 | Por qué algo está así, historia de una decisión | `grep` en `docs/historial/CLAUDE_historial_2026-10-01.md` |
 | Estado de la última sesión (todas las apps) | `grep` en `~/Desktop/APLICACIONES/CEIBO_SESSION.md` |
 | Seguridad de la suite (XSS, Semgrep, claves) | `~/Desktop/APLICACIONES/CLAUDE.md` |
 | Reglas de trabajo de EcoSmart | este archivo |
+
+Los mapas y el registro de fuentes **no se cargan solos** — se abren a demanda, uno a la vez. Cada
+uno pesa menos de 20 KB (≈ 5k tokens). Están armados sobre un commit y **no guardan números de
+línea** a propósito: la línea cambia en cada edición, el nombre de la función no.
 
 Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la ventana.
 
