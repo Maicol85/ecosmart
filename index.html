@@ -65877,8 +65877,18 @@ function medToggle() {
     cv.onmousedown = _vBind(V, _medAreaDown);
     cv.onmousemove = _vBind(V, _medAreaMove);
     _vMontarUp();
-    const regs = _medRegs();
-    if (!regs.filter(_dcmImgRegionMedible).length && !_medCalib) _medCalibrando = true;
+    /* ⚠️ LA MISMA CONDICION QUE `medCambioDeImagen`, Y NO ES COSMETICA. Acá vivía la versión
+       AMPLIA —«ninguna región MEDIBLE»—, que sobre una imagen de SOLO Doppler es verdadera:
+       sus regiones son espectrales, ninguna es 2D. Con el modo mínimo el médico entra a medir
+       tocando «Medir» sobre la imagen ya abierta, así que esa rama pasó a correr en la
+       PRIMERA apertura de un Doppler: se abría el modo calibrar y el primer clic se consumía
+       como punto de calibración, en vez de que `_medEscalaEn` lo rechazara explicando que ahí
+       el eje horizontal es TIEMPO. El trazo seguía rechazándose; lo que se perdía era el
+       motivo. Medido: ponía en rojo TC-199, TC-204 y TC-205.
+       `_medAutoCalibrar` exige que el archivo no traiga NINGUNA región: con regiones presentes
+       cada herramienta ya da su propio rechazo explicado y el modo calibrar sobra. Un solo
+       lugar escribe la regla, así que no pueden volver a divergir. */
+    _medAutoCalibrar();
     _medPintar(); _medEstado();
   } else {
     cv.onclick = null; cv.onmousedown = null; cv.onmousemove = null;
@@ -87742,8 +87752,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261001-0841';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790854917313;                 /* eco-build-ms */
+const ECO_BUILD    = '20261001-1502';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790877730734;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -87829,7 +87839,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261001-0841</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261001-1502</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
