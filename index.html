@@ -23165,6 +23165,9 @@ const AO_BANDA_PLAUS = Object.freeze({
        veredictos según por qué puerta entró. Atrapa el área tipeada en mm² (80, 150).
      Criterio EcoSmart de plausibilidad: es un rango de lo medible, no un corte de severidad, así
      que no lleva cita y no aparece en el panel de Evidencia. */
+  /* ⚠️ Y LA ASIMETRÍA CON LA MITRAL QUEDA ESCRITA, porque es la trampa exacta para quien extienda
+     esto: su gemela de nombre `avm_plan` SÍ VOTA la severidad de la estenosis mitral. Los dos
+     campos se llaman igual y hacen cosas opuestas — decisión de Maicol para la aórtica, 2026-10-02. */
   ava_plan: Object.freeze([0.2, 8]),
   /* Tiempo eyectivo total del VI, en ms. Denominador del índice de Tango y de la relación AT/ET.
      · piso 80 ms: atrapa el TE tipeado en segundos (0,3 por 300) y en centisegundos (30 por 300),
@@ -23791,9 +23794,15 @@ const EA_GRADO_COLOR = Object.freeze({ sin:'var(--text2)', esclerosis:'var(--tex
    distintas y confundirlas es lo que hace que una app afirme que no hay estenosis cuando lo que
    pasa es que nadie midió. */
 function _eaPeorGrado(a, b){
-  if (!a) return b || null;
-  if (!b) return a;
-  return (EA_GRADO_ORDEN[b] > EA_GRADO_ORDEN[a]) ? b : a;
+  /* ⚠️ UN TOKEN QUE NO ESTÁ EN LA TABLA SE DESCARTA, y no se trata como el más leve. Con
+     `EA_GRADO_ORDEN[x]` en `undefined`, toda comparación da `false`, así que un grado desconocido
+     NUNCA perdía cuando venía como `a` y podía salir devuelto — y de acá sale lo que se escribe en el
+     `<select>`. Lo encontró /sharp-edges. */
+  const va = EA_GRADO_ORDEN[a] === undefined ? null : a;
+  const vb = EA_GRADO_ORDEN[b] === undefined ? null : b;
+  if (!va) return vb;
+  if (!vb) return va;
+  return (EA_GRADO_ORDEN[vb] > EA_GRADO_ORDEN[va]) ? vb : va;
 }
 function eaGradoCalculado() {
   const vmax = v('vmax_ao'), gmedio = v('gmedio_ao'), avaCrudo = v('ava_cont');
@@ -23868,14 +23877,29 @@ function _eaCap(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 function _eaPintarRecuadroDoppler(avaHtml) {
   const el = document.getElementById('ea-sev');
   if (!el) return;
-  const R = eaGradoCalculado();
+  /* ⚠️ LA MISMA GUARDA QUE EL AVISO ROJO, Y POR EL MISMO ARGUMENTO. Lo encontro /sharp-edges sobre
+     este diff: esta funcion llamaba a `eaGradoCalculado()` pelado, y la llama `calcAo` ANTES de
+     `clasificarEA_Vmax`, que es donde vive el `return` protesico. Resultado medido: una protesis de
+     21 mm normal mostraba «Severa — por velocidad (Vmax ≥4,0 m/s …)» a dos centimetros del badge
+     que dice «Morfologia protesica: el grado NO se sugiere automaticamente — los cortes de este
+     selector son de valvula nativa»; y con el Ø TSVI en cm, «Severa» al lado de «el grado NO se
+     actualizo; verificar la unidad». Es el defecto de las dos mitades contradiciendose en pantalla
+     que la aortica ya cerro cinco veces, reabierto por la superficie nueva.
+     Se pregunta por `sevCalcPublicable` —no por una tercera copia del predicado— porque es el unico
+     lugar que decide que grado calculado la app esta dispuesta a NOMBRAR. La linea del AVA se sigue
+     pintando: ese badge tiene sus propias guardas y su propio texto de fuera de banda. */
+  const _bloqueado = sevCalcPublicable('ea') === null && (function(){
+    try { return !!(SEV_SINC.ea.bloqueado && SEV_SINC.ea.bloqueado()); } catch (e) { return true; } })();
+  const R = _bloqueado ? { gVelGrad:null, gAva:null, criterioVelGrad:'velocidad' } : eaGradoCalculado();
   const linea1 = R.gVelGrad
     ? '<span style="color:' + EA_GRADO_COLOR[R.gVelGrad] + ';font-weight:700;">' +
       EA_GRADO_LBL[R.gVelGrad] + '</span>' +
       '<span style="color:var(--text2);font-size:10px;"> &mdash; por ' + R.criterioVelGrad +
       ' (Vm&aacute;x &ge;4,0 m/s &middot; G. medio &ge;40 mmHg)</span>'
     : '<span style="color:var(--text2);">&mdash;</span>' +
-      '<span style="color:var(--text2);font-size:10px;"> &mdash; sin Vmax ni gradiente medio cargados</span>';
+      '<span style="color:var(--text2);font-size:10px;"> &mdash; ' + (_bloqueado
+        ? 'no se gradúa con estos datos &mdash; ver el aviso del cuadro de Estenosis Aórtica'
+        : 'sin Vmax ni gradiente medio cargados') + '</span>';
   const linea2 = avaHtml ? '<div style="margin-top:3px;">' + avaHtml + '</div>' : '';
   /* La oración sólo aparece con los DOS grados presentes: con uno solo no hay nada que comparar, y
      un aviso de discrepancia sobre un dato ausente manda a revisar lo que no se midió. */
@@ -23884,6 +23908,19 @@ function _eaPintarRecuadroDoppler(avaHtml) {
       EA_GRADO_TXT[R.gVelGrad] + ' por ' + R.criterioVelGrad + ', ' + EA_GRADO_TXT[R.gAva] +
       ' por AVA (revisar)</div>'
     : '';
+  /* ⚠️ `innerHTML` CON UN INVARIANTE ESCRITO, porque Semgrep lo marca —`ceibo-xss-innerhtml-concat`—
+     y la marca es correcta: acá entra marcado. Lo que lo hace seguro es QUÉ entra, y queda declarado
+     para que el día que alguien agregue una cuarta línea sepa contra qué chequearla:
+       · `linea1` y `disc` interpolan SÓLO `EA_GRADO_COLOR`, `EA_GRADO_LBL` y `EA_GRADO_TXT` —tres
+         tablas `Object.freeze` con cinco claves fijas— y `R.criterioVelGrad`, que es uno de dos
+         literales ('velocidad' / 'gradiente'). Cero dato del paciente, por construcción.
+       · `linea2` es el badge que arma `calcAo`, y es el único que trae valores medidos: números
+         formateados con `toFixed`, más la lista de insumos fuera de banda, que desde este commit pasa
+         por `_critEsc`. Ningún `.value` crudo llega hasta acá.
+     NO se reescribe con nodos: el requisito de R2 es conservar el badge del AVA tal cual —con sus
+     cortes impresos— y eso es HTML que viene armado de otra función. Partirlo en `textContent` + un
+     fragmento HTML dejaría dos convenciones en el mismo nodo, que es peor. La regla para quien siga:
+     cualquier valor del paciente que entre acá va escapado en su origen, como ya lo hace `calcAo`. */
   el.innerHTML = '<div>' + linea1 + '</div>' + linea2 + disc;
 }
 window._eaPintarRecuadroDoppler = _eaPintarRecuadroDoppler;
@@ -23924,6 +23961,17 @@ window._sevCalcAlFijar = window._sevCalcAlFijar || {};
 const SEV_SINC = Object.freeze({
   ea: Object.freeze({ tipo:'esten', valv:'aortica', select:'ea_grado', aviso:'ea-manual-aviso',
     ayuda: null, nombre:'Estenosis aórtica',
+    /* ⚠️ EL RANGO DEL PROVEEDOR, QUE ES MÁS CHICO QUE EL DEL `<select>`, Y HAY QUE DECLARARLO.
+       `eaGradoCalculado` NUNCA emite 'esclerosis': el `<select>` tiene cinco opciones y el cálculo
+       puede producir cuatro. Lo encontró /sharp-edges sobre este diff, y el daño es el que este
+       archivo ya declara arreglado en `calcEADetalle`: «elegir Esclerosis se perdía en el primer
+       recálculo […] con lo cual la esclerosis aórtica desaparecía del informe firmado». La guarda de
+       manual lo protegía, y R6 lo reabría por el otro lado — un grado que el cálculo no puede emitir
+       es permanentemente «distinto del calculado», así que (a) mostraba un aviso rojo que no se
+       podía resolver corrigiendo nada, y (b) en cuanto el calculado se moviera, R6 lo soltaba y lo
+       sobrescribía. Con `calculables` declarado, un grado de fuera del rango no se compara: no hay
+       aviso y no se suelta nunca. Misma dirección de falla que la foto ausente. */
+    calculables: Object.freeze(['sin','leve','moderada','severa']),
     /* El proveedor devuelve el grado calculado en el MISMO vocabulario que el `<select>`. */
     calcular: function(){ return eaGradoCalculado().grado; },
     /* ⚠️ «¿HAY GRADO CALCULADO?» NO ES LO MISMO QUE «¿LOS NÚMEROS DAN UN GRADO?», y separarlas es lo
@@ -23944,11 +23992,25 @@ const SEV_SINC = Object.freeze({
       try {
         if (typeof valvEsProtesis === 'function' && valvEsProtesis(sv('va_morf'))) return true;
         return !!_eaInsumoFueraDeBanda();
-      } catch (e) { return false; }
+      /* ⚠️ `true` Y NO `false`: ante una excepcion la app NO SABE si el numero es legible, y «no se»
+         es abstenerse. Con `false` una falla de `aoPlaus` o de `sv` evaporaba en silencio la unica
+         proteccion de banda que tiene el aviso. Lo encontro /sharp-edges. */
+      } catch (e) { return true; }
     },
     etiqueta: function(g){ return EA_GRADO_LBL[g] || g; } }),
   ia: Object.freeze({ tipo:'insuf', valv:'aortica', select:'ia_sev_final', aviso:'ia-manual-aviso',
     ayuda:'ia-auto-ayuda', nombre:'Insuficiencia aórtica',
+    /* Mismo recorte que en la EA, y acá el grado que queda afuera tiene conducta propia:
+       `calcIA_ESC` sólo produce '4', '2' y '1' —nunca '0' ni '3'—, así que una IAo fijada a mano en
+       «Moderada-severa» no se compara contra nada y no se suelta. Sin esto, el grado 3 se perdía en
+       el primer cambio del calculado y la app colapsaba su vocabulario de cinco grados a tres. */
+    calculables: Object.freeze(['1','2','4']),
+    /* ⚠️ DECLARADO EXPLÍCITAMENTE EN `false`, y no omitido. La IAo PROTÉSICA SÍ se gradúa —ASE 2024,
+       Tabla 13, es el mismo reparto que `calcIM_ESC` ya documenta— así que la morfología no la
+       bloquea, al revés que la estenosis. Y el fuera de banda lo resuelve su propio proveedor:
+       `calcIA_ESC` deja `window._iaGradoCalc = null` en el `return` de «nadie cuantificó». Queda
+       escrito para que la ausencia no se lea como un olvido, que es lo que era. */
+    bloqueado: function(){ return false; },
     /* ⚠️ LA IAo NO TIENE PROVEEDOR PURO Y SE LEE DE UNA FOTO, y hace falta declararlo. Su grado sale
        de contar votos sobre nueve parámetros dentro de `calcIA_ESC` —no es una cascada de cortes que
        se pueda recalcular sola— así que esa función deja el resultado en `window._iaGradoCalc` y acá
@@ -23968,8 +24030,23 @@ const SEV_SINC = Object.freeze({
 function sevCalcPublicable(clave) {
   const C = SEV_SINC[clave];
   if (!C) return null;
-  if (C.bloqueado && C.bloqueado()) return null;
-  return C.calcular() || null;
+  /* ⚠️ `bloqueado` ES OBLIGATORIO Y SU AUSENCIA BLOQUEA. Lo encontro /sharp-edges: con
+     `C.bloqueado && …` la ausencia de la propiedad era indistinguible de «no bloqueado», asi que la
+     mitral que el comentario de `SEV_SINC` invita a registrar —«agregar dos entradas»— publicaria
+     grado con cortes nativos sobre una protesis mitral sin que nada avise. Falla CERRADO: una
+     entrada sin `bloqueado` no nombra grado, y el `console.error` lo dice en voz alta en vez de
+     degradar en silencio. */
+  if (typeof C.bloqueado !== 'function') {
+    console.error('SEV_SINC[' + clave + '] no declara bloqueado(): no se nombra grado calculado');
+    return null;
+  }
+  if (C.bloqueado()) return null;
+  /* `=== null/undefined/''` y NO `|| null`: `0` y `''` son grados legitimos en otros vocabularios de
+     este archivo —los hidden `im/ia/it_grado` se resetean a `'0'`— asi que colapsar todo lo falsy a
+     `null` haria que un proveedor futuro no pudiera distinguir «el calculo dice que no hay» de «no
+     hay con que calcular». El CONTRATO es: el proveedor devuelve `null` para abstenerse, nada mas. */
+  const g = C.calcular();
+  return (g === null || g === undefined || g === '') ? null : g;
 }
 window.sevCalcPublicable = sevCalcPublicable;
 /* Repinta la pastilla y el aviso de UNA clave, y suelta el manual si el calculado cambió (R6).
@@ -23981,10 +24058,20 @@ function sevSincronizar(clave) {
   if (!sel) return null;
   const manual = !!(window.esqSevManual && window.esqSevManual[clave]);
   const calc = sevCalcPublicable(clave);
+  /* ¿El grado que el médico fijó es uno que el cálculo PUEDE emitir? Si no, no hay nada que
+     comparar: no se pinta aviso y no se suelta. Ver `calculables` en el registro. */
+  const comparable = !C.calculables || C.calculables.indexOf(String(sel.value)) > -1;
   let soltado = false;
-  if (manual) {
+  if (manual && comparable) {
     const foto = window._sevCalcAlFijar[clave];
-    if (foto === undefined) {
+    /* ⚠️ `== null` Y NO `=== undefined`, y lo encontró TC-371 sobre este mismo diff. `aplicar()`
+       guarda la foto con `sevCalcPublicable`, que devuelve `null` cuando el grado está bloqueado, de
+       modo que fijar el grado a mano MIENTRAS un insumo está fuera de banda dejaba la foto en `null`
+       —no en `undefined`—. Con la comparación estricta, `null` caía en la rama de abajo, al corregir
+       la unidad aparecía un grado calculado, `'severa' !== null` daba verdadero y el manual se
+       soltaba: corregir una unidad le borraba al médico la decisión que acababa de tomar. Las DOS
+       ausencias significan lo mismo —«todavía no sé desde dónde comparar»— y tienen que leerse igual. */
+    if (foto == null) {
       /* Estudio reabierto: se fija el origen y no se toca el grado. ⚠️ SÓLO SI HAY GRADO: guardar
          `null` como foto haría que el primer grado calculado que aparezca —al corregir la unidad, o
          al cargar el primer dato— contara como «cambió» y le soltara al médico su grado manual. Con
@@ -23997,6 +24084,18 @@ function sevSincronizar(clave) {
       delete window.esqSevManual[clave];
       delete window._sevCalcAlFijar[clave];
       if (typeof _sevManualSync === 'function') _sevManualSync();
+      /* ⚠️ SE VALIDA CONTRA LAS `<option>` ANTES DE ESCRIBIR, y es la guarda más barata del módulo.
+         Asignar a un `<select>` un valor que no existe lo deja en `selectedIndex -1` y `.value === ''`:
+         el grado DESAPARECE de las cuatro superficies sin evento y sin rastro, y encima esta función
+         informaría `soltado: true`, así que una prueba que afirme sobre el gesto pasaría en verde. Es
+         el modo de falla más caro posible —un informe firmado sin grado donde el médico había fijado
+         uno— y basta que un proveedor nuevo devuelva su vocabulario propio. Falla RUIDOSA. */
+      const _existe = Array.prototype.some.call(sel.options, function(o){ return o.value === String(calc); });
+      if (!_existe) {
+        console.error('SEV_SINC[' + clave + '].calcular() devolvió «' + calc +
+          '», que no es una opción de #' + C.select + ': no se escribe nada');
+        return { manual: true, calc: calc, final: sel.value, discrepa: false, soltado: false };
+      }
       sel.value = calc;
       if (clave === 'ea') _eaMarcarSugerido(sel, calc);
       else { sel.dataset.sugerido = calc;
@@ -24009,7 +24108,7 @@ function sevSincronizar(clave) {
   /* ⚠️ `textContent` Y NO `innerHTML`: el texto arma dos etiquetas de grado, y aunque hoy salgan de
      tablas congeladas, un nodo de aviso que acepta marcado es la clase de atajo que esta app ya
      pagó once veces en CardioSalud. */
-  const discrepa = sigueManual && !!calc && calc !== sel.value;
+  const discrepa = sigueManual && comparable && !!calc && calc !== sel.value;
   if (avisoEl) avisoEl.textContent = discrepa
     ? '⚠️ ' + C.etiqueta(sel.value) + ' (ajuste manual) · cálculo automático: ' + C.etiqueta(calc)
     : '';
@@ -31288,6 +31387,18 @@ function limpiarCampos(silencioso) {
   valvSevConfirmada = false;
   // Nuevo estudio: resetear los flags de severidad fijada manualmente (las pills vuelven a autocalcularse)
   window.esqSevManual = {};
+  /* ⚠️ Y LOS DOS GLOBALES DE «Aortica 4a» CON ELLOS, que no son DOM y por eso no los alcanza
+     ningun barrido de abajo. Lo encontro /sharp-edges sobre este mismo diff, y es una fuga entre
+     pacientes de la misma familia que la del `data-params-disc` que este archivo ya documenta:
+       · `_sevCalcAlFijar` es la foto del grado calculado al fijar uno a mano. Sobreviviendo, el
+         paciente B toma como origen el grado calculado del paciente A, y en el primer insumo que se
+         cargue R6 ve que «cambio» y le SUELTA el grado manual al medico, sin ningun mensaje.
+       · `_iaGradoCalc` es el grado calculado de la IAo. Sobreviviendo, el aviso rojo del paciente B
+         nombra «calculo automatico: Severa» sobre un estudio que no tiene un solo dato de IAo.
+     Van ACA, al lado de `esqSevManual`, porque son las tres piezas del mismo mecanismo y separarlas
+     es como se olvida una. */
+  window._sevCalcAlFijar = {};
+  window._iaGradoCalc = null;
   if (typeof _sevManualSync === 'function') _sevManualSync();
   /* El dataset.banda de Wilkins tiene vida más larga que el texto del que salió:
      limpiarCampos resetea los spans a «—» pero no los atributos, así que la banda del
@@ -31475,6 +31586,14 @@ function limpiarCampos(silencioso) {
   { const _sa = document.getElementById('im-sec-aviso'); if (_sa) _sa.textContent = ''; }
   // Badges de sugerencia automática (THP, AVA, VP, etc.)
   document.querySelectorAll('[id$="-badge"]').forEach(el => el.textContent = '');
+  /* ⚠️ Y LOS AVISOS, POR SUFIJO Y NO POR LISTA. Los tres que agrego «Aortica 4a»
+     —`ea-manual-aviso`, `ia-manual-aviso` y `ava-plan-aviso`— son `div` que no estan en una
+     `.calc-row` ni terminan en `-badge`, asi que los esquivaban los dos barridos de arriba: es
+     exactamente por lo que `im-sec-aviso` necesito su linea a mano doce lineas mas arriba. Medido
+     por /sharp-edges: el aviso ROJO de grado manual del paciente A quedaba visible debajo del
+     `<select>` que alimenta el informe firmado del paciente B, nombrando un grado que ese estudio no
+     tiene. Por SUFIJO para que el proximo aviso quede cubierto sin que nadie se acuerde. */
+  document.querySelectorAll('[id$="-aviso"]').forEach(el => el.textContent = '');
   // Válvulas: pills a estado neutro + ocultar bloques desplegados + limpiar preferencia
   document.querySelectorAll('.valv-pill').forEach(b => { b.classList.remove('btn-primary'); b.classList.add('btn-ghost'); });
   if (window.valvSev) window.valvSev.refrescarTodo();   // sub-botones de severidad → "🟡 Severidad ▼"
@@ -51560,6 +51679,12 @@ function editarInforme(id) {
        bloque guardado como «Score de Wilkins | no calculado» y BORRABA el aviso de
        contraindicación por trombo, justo al cargarlo. */
     if (typeof calcWilkins === 'function') calcWilkins();
+    /* ⚠️ Y EL AVISO DE BANDA DEL AVA POR PLANIMETRÍA, por el MISMO argumento que `calcWilkins` dos
+       líneas arriba: `el.value = …` no dispara eventos, así que al reabrir un estudio el único
+       llamador de `avaPlanPintar` —el `oninput` del campo— ya pasó. Sin esto, un área guardada en
+       mm² (150) volvía sin ninguna marca: el valor implausible quedaba legible y sin aviso, que es
+       la negación tranquilizadora que las bandas vinieron a cerrar. Lo encontró /sharp-edges. */
+    if (typeof avaPlanPintar === 'function') { try { avaPlanPintar(); } catch (e) {} }
     if (typeof amiloRestaurarDesdeCampos === 'function') amiloRestaurarDesdeCampos(inf.campos);
     if (typeof renderCentroField === 'function') renderCentroField(inf.campos.centro_nombre);
     // Cargar un estudio inicia una sesión nueva: resetear flags de severidad manual (las pills
@@ -51676,6 +51801,7 @@ function cargarEstudioPorId(id) {
   if (typeof _restaurarContractilidad === 'function') _restaurarContractilidad(inf.campos);
   if (typeof _restaurarStrain === 'function') _restaurarStrain(inf.campos);
   if (typeof calcWilkins === 'function') calcWilkins();   // ver nota en editarInforme
+  if (typeof avaPlanPintar === 'function') { try { avaPlanPintar(); } catch (e) {} }   // idem
   if (typeof amiloRestaurarDesdeCampos === 'function') amiloRestaurarDesdeCampos(inf.campos);
   valvSevConfirmada = false;   // estudio cargado por URL/QR: vuelve a pedir confirmación
   /* Tercera columna de `_sevManualRestaurar`: tenía dos —autosave y `editarInforme`— y faltaba
@@ -89322,8 +89448,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261002-1233';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790955186291;                 /* eco-build-ms */
+const ECO_BUILD    = '20261002-1335';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790958928238;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -89409,7 +89535,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-1233</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-1335</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

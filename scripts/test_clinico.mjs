@@ -44632,6 +44632,788 @@ return (async () => {
 })();
 `);
 
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   «Aortica 4a» (2026-10-02) — TC-367 a TC-372. Seis casos para la regla del peor, el recuadro de
+   Doppler a dos lineas, el AVA por planimetria, los tres displays, el aviso de grado manual y el
+   cierre del cajon. Todas las condiciones leen el VALOR del campo o el objeto que lo decide
+   —nunca el textContent de una seccion— por la razon que el arnes ya documenta: un render que sale
+   temprano deja la seccion vacia y contar sobre vacio da cero y parece seguro.
+   ══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+caso('TC-367', 'EA: el grado calculado es el PEOR de velocidad, gradiente y AVA — el gradiente y el area AGRAVAN y nunca suavizan, y las cuatro superficies publican ese grado', `
+  const excelRow = function () { const campos = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (e) {
+      campos[e.id] = (e.type === 'checkbox' || e.type === 'radio') ? (e.checked ? '1' : '') : e.value; });
+    try { return _labExcelRow({ campos: campos }); } catch (e) { return { ERROR: e.message }; } };
+  /* Las CUATRO superficies una por una, mas el objeto del duenio del grado. El PDF se arma con la
+     MISMA expresion de generarPDFReal (eaReal + eaGradoNoPublica + capitalizar), no con su texto. */
+  const sup = function () {
+    const r = __t.informe(); const x = excelRow(); const g = String(__t.val('ea_grado') || '');
+    const real = g && ['sin','normal','—',''].indexOf(g.trim()) === -1;
+    let noPub = false; try { noPub = eaGradoNoPublica(sv('va_morf')); } catch (e) {}
+    let R = null; try { R = eaGradoCalculado(); } catch (e) { R = { grado:'ERR:' + e.message }; }
+    return { grado: g, calc: String(R.grado), criterio: String(R.criterio),
+             gVel: String(R.gVel), gGrad: String(R.gGrad), gAva: String(R.gAva),
+             inf: r.inf, suma: r.suma,
+             pdf: (real && !noPub) ? (g.charAt(0).toUpperCase() + g.slice(1)) : '(no sale)',
+             xlsGrado: String(x['EA grado']),
+             xlsBin: [x['EAo_I (Leve)'], x['EAo_II (Moderada)'], x['EAo_III (Severa)']].join('/') }; };
+  /* El cajon de Estenosis Aortica tiene que estar ABIERTO: calcEADetalle se gatea por su
+     visibilidad, y medir con el cerrado mide otra cosa. DENOMINADOR. */
+  const abrir = function () {
+    const p = document.getElementById('pill-esten-aortica');
+    if (p && !p.classList.contains('btn-primary')) toggleValvPill('aortica','esten');
+    return (document.getElementById('bloque-ea-detalle') || { style:{} }).style.display; };
+  const escena = function (datos) {
+    __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {};
+    const s = document.getElementById('ea_grado'); if (s) delete s.dataset.sugerido;
+    abrir(); __t.set('nombre','TC367');
+    Object.keys(datos).forEach(function (k) { __t.set(k, datos[k]); });
+    try { sincronizarEADesdeGlobal(); } catch (e) {}
+    return sup(); };
+
+  const cajon = abrir();
+  /* (a) velocidad sola: los cuatro cortes de siempre, intactos. */
+  const vLeve = escena({ vmax_ao:'2.6' });
+  const vMod  = escena({ vmax_ao:'3.5' });
+  const vSev  = escena({ vmax_ao:'4.1' });
+  const vSin  = escena({ vmax_ao:'1.5' });
+  /* (b) el gradiente por debajo de 40 NO vota: el codigo no tiene cortes de leve ni moderada para
+     esa magnitud, asi que se ABSTIENE en vez de votar al lado tranquilizador. */
+  const gNoVota = escena({ vmax_ao:'2.6', gmedio_ao:'20' });
+  /* (c) el gradiente severo AGRAVA una velocidad leve y una moderada. */
+  const gAgravaLeve = escena({ vmax_ao:'2.6', gmedio_ao:'45' });
+  const gAgravaMod  = escena({ vmax_ao:'3.5', gmedio_ao:'45' });
+  /* (d) el gradiente solo, sin Vmax ni AVA: antes de esta tanda nadie graduaba. */
+  const gSolo = escena({ gmedio_ao:'45' });
+  /* (e) AVA concordante, y AVA que discrepa en las DOS direcciones. */
+  const avaConc     = escena({ vmax_ao:'4.2', gmedio_ao:'45', diam_tsvi:'21', itv_tsvi:'18', itv_ao:'95' });
+  const avaAgrava   = escena({ vmax_ao:'3.5', diam_tsvi:'20', itv_tsvi:'20', itv_ao:'78' });
+  const avaNoSuaviza = escena({ vmax_ao:'4.5', diam_tsvi:'22', itv_tsvi:'20', itv_ao:'63' });
+  /* (f) sin Vmax: el AVA sola gradua, y un area normal vota 'sin' y NO 'leve'. Ese borde es la
+     contradiccion que esta tanda reconcilio —sugerirSeveridadEA escribia 'leve' y calcEADetalle
+     'sin' sobre el mismo dato, y ganaba una u otra segun si el cajon estaba abierto—. */
+  const avaSola   = escena({ diam_tsvi:'20', itv_tsvi:'20', itv_ao:'78' });
+  const avaNormal = escena({ diam_tsvi:'22', itv_tsvi:'20', itv_ao:'42' });
+  /* (g) nada cargado: 'null' y no 'sin'. Son dos cosas distintas y confundirlas es lo que hace que
+     una app afirme que no hay estenosis cuando lo que pasa es que nadie midio. */
+  const nada = escena({});
+
+  return { extra: [
+    ['DENOMINADOR: el cajon de Estenosis Aortica esta abierto', cajon === 'block', 'display=' + cajon],
+
+    ['(a) velocidad sola: los cuatro cortes intactos (1,5 sin · 2,6 leve · 3,5 moderada · 4,1 severa)',
+      vSin.calc === 'sin' && vLeve.calc === 'leve' && vMod.calc === 'moderada' && vSev.calc === 'severa',
+      [vSin.calc, vLeve.calc, vMod.calc, vSev.calc].join(' / ')],
+    ['  y el grado del select es el calculado en los cuatro',
+      vSin.grado === 'sin' && vLeve.grado === 'leve' && vMod.grado === 'moderada' && vSev.grado === 'severa',
+      [vSin.grado, vLeve.grado, vMod.grado, vSev.grado].join(' / ')],
+
+    ['(b) un gradiente de 20 mmHg NO vota: se abstiene, y el grado sigue siendo el de la velocidad',
+      gNoVota.gGrad === 'null' && gNoVota.calc === 'leve' && gNoVota.criterio === 'velocidad',
+      'gGrad=' + gNoVota.gGrad + ' calc=' + gNoVota.calc + ' criterio=' + gNoVota.criterio],
+
+    ['(c) ⚠️ un gradiente de 45 mmHg AGRAVA una Vmax leve a SEVERA, y el criterio lo dice',
+      gAgravaLeve.calc === 'severa' && gAgravaLeve.gVel === 'leve' && gAgravaLeve.criterio === 'gradiente',
+      'calc=' + gAgravaLeve.calc + ' gVel=' + gAgravaLeve.gVel + ' criterio=' + gAgravaLeve.criterio],
+    ['  las CUATRO superficies publican SEVERA: informe, EN SUMA, PDF y fila de Excel',
+      gAgravaLeve.inf.indexOf('estenosis severa') > -1 && gAgravaLeve.suma.indexOf('EAo severa') > -1 &&
+      gAgravaLeve.pdf === 'Severa' && gAgravaLeve.xlsGrado === 'severa' && gAgravaLeve.xlsBin === '0/0/1',
+      'pdf=' + gAgravaLeve.pdf + ' xls=' + gAgravaLeve.xlsGrado + ' bin=' + gAgravaLeve.xlsBin +
+      ' suma=' + gAgravaLeve.suma],
+    ['  y tambien agrava una Vmax MODERADA',
+      gAgravaMod.calc === 'severa' && gAgravaMod.gVel === 'moderada' && gAgravaMod.xlsBin === '0/0/1',
+      'calc=' + gAgravaMod.calc + ' bin=' + gAgravaMod.xlsBin],
+
+    ['(d) el gradiente SOLO gradua, sin Vmax ni AVA — antes de esta tanda nadie lo hacia',
+      gSolo.calc === 'severa' && gSolo.gVel === 'null' && gSolo.gAva === 'null' && gSolo.grado === 'severa',
+      'calc=' + gSolo.calc + ' gVel=' + gSolo.gVel + ' gAva=' + gSolo.gAva + ' grado=' + gSolo.grado],
+    ['  y baja al papel: PDF «Severa» y EAo_III en 1',
+      gSolo.pdf === 'Severa' && gSolo.xlsBin === '0/0/1', 'pdf=' + gSolo.pdf + ' bin=' + gSolo.xlsBin],
+
+    ['(e) AVA concordante con Vmax severa: los tres criterios dicen severa',
+      avaConc.gVel === 'severa' && avaConc.gGrad === 'severa' && avaConc.gAva === 'severa' &&
+      avaConc.calc === 'severa', 'vel/grad/ava=' + [avaConc.gVel, avaConc.gGrad, avaConc.gAva].join('/')],
+    ['  ⚠️ un AVA severa AGRAVA una Vmax moderada (el criterio es AVA)',
+      avaAgrava.calc === 'severa' && avaAgrava.gVel === 'moderada' && avaAgrava.gAva === 'severa' &&
+      avaAgrava.criterio === 'AVA',
+      'calc=' + avaAgrava.calc + ' gVel=' + avaAgrava.gVel + ' criterio=' + avaAgrava.criterio],
+    ['  ⚠️ y un AVA MODERADA no suaviza una Vmax severa: sigue severa, por velocidad',
+      avaNoSuaviza.calc === 'severa' && avaNoSuaviza.gAva === 'moderada' &&
+      avaNoSuaviza.criterio === 'velocidad' && avaNoSuaviza.xlsBin === '0/0/1',
+      'calc=' + avaNoSuaviza.calc + ' gAva=' + avaNoSuaviza.gAva + ' bin=' + avaNoSuaviza.xlsBin],
+
+    ['(f) sin Vmax, el AVA sola gradua severa y baja a las cuatro superficies',
+      avaSola.calc === 'severa' && avaSola.gVel === 'null' && avaSola.pdf === 'Severa' &&
+      avaSola.xlsBin === '0/0/1' && avaSola.suma.indexOf('EAo severa') > -1,
+      'calc=' + avaSola.calc + ' pdf=' + avaSola.pdf + ' bin=' + avaSola.xlsBin],
+    ['  ⚠️ y un AVA de area NORMAL vota «sin» y no «leve» — el informe no afirma una estenosis leve',
+      avaNormal.gAva === 'sin' && avaNormal.calc === 'sin' && avaNormal.grado === 'sin' &&
+      avaNormal.inf.indexOf('estenosis leve') === -1 && avaNormal.xlsBin === '0/0/0',
+      'gAva=' + avaNormal.gAva + ' grado=' + avaNormal.grado + ' bin=' + avaNormal.xlsBin],
+
+    ['(g) sin ningun dato el grado calculado es NULL y no «sin»: no hay grado, que no es «no hay estenosis»',
+      nada.calc === 'null' && nada.criterio === 'null' && nada.pdf === '(no sale)',
+      'calc=' + nada.calc + ' criterio=' + nada.criterio + ' pdf=' + nada.pdf],
+  ] };
+`);
+
+
+caso('TC-368', 'EA: el recuadro de la pestania DOPPLER muestra el grado por velocidad/gradiente SIN depender del AVA, agrega la linea del AVA cuando esta calculada, y DICE la discrepancia', `
+  const abrir = function () {
+    const p = document.getElementById('pill-esten-aortica');
+    if (p && !p.classList.contains('btn-primary')) toggleValvPill('aortica','esten'); };
+  /* Se mide el HTML del recuadro, que es lo que el medico ve, pero las CONDICIONES se escriben
+     contra el objeto de eaGradoCalculado: el texto se compara solo para la oracion amarilla, que
+     es literal y la fijo Maicol palabra por palabra. */
+  const escena = function (datos) {
+    __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {};
+    const s = document.getElementById('ea_grado'); if (s) delete s.dataset.sugerido;
+    abrir(); __t.set('nombre','TC368');
+    Object.keys(datos).forEach(function (k) { __t.set(k, datos[k]); });
+    try { sincronizarEADesdeGlobal(); } catch (e) {}
+    const el = document.getElementById('ea-sev');
+    let R = null; try { R = eaGradoCalculado(); } catch (e) { R = {}; }
+    return { html: el ? el.innerHTML : 'NO EXISTE', txt: el ? (el.textContent || '') : '',
+             lineas: el ? el.querySelectorAll('div').length : 0,
+             gVelGrad: String(R.gVelGrad), gAva: String(R.gAva),
+             amarillo: el ? !!el.querySelector('div[style*="--yellow"]') : false }; };
+
+  /* (1) UNA linea: Vmax severa sin los insumos del AVA. Es el sintoma (1) del 2026-10-02 — este
+     recuadro quedaba en «—» porque leia SOLO el AVA. */
+  const soloVmax = escena({ vmax_ao:'4.1' });
+  /* (2) DOS lineas concordantes: no hay oracion amarilla. */
+  const dos = escena({ vmax_ao:'4.2', gmedio_ao:'45', diam_tsvi:'21', itv_tsvi:'18', itv_ao:'95' });
+  /* (3) DOS lineas que discrepan: severa por velocidad, moderada por AVA. Es el ejemplo literal
+     del pedido de Maicol. */
+  const disc = escena({ vmax_ao:'4.5', diam_tsvi:'22', itv_tsvi:'20', itv_ao:'63' });
+  /* (4) la discrepancia por el otro lado: moderada por velocidad, severa por AVA. */
+  const disc2 = escena({ vmax_ao:'3.5', diam_tsvi:'20', itv_tsvi:'20', itv_ao:'78' });
+  /* (5) por GRADIENTE y no por velocidad: la oracion tiene que nombrar el criterio que de verdad
+     fijo el grado de la pareja, no «velocidad» por defecto. */
+  const porGrad = escena({ vmax_ao:'2.6', gmedio_ao:'45', diam_tsvi:'22', itv_tsvi:'20', itv_ao:'42' });
+  /* (6) solo AVA: la primera linea lo DICE en vez de inventar un grado. */
+  const soloAva = escena({ diam_tsvi:'20', itv_tsvi:'20', itv_ao:'78' });
+  /* (7) el texto de «AVA no valuable» se conserva, con sus cortes impresos. */
+  const noValuable = escena({ vmax_ao:'4.1', diam_tsvi:'0.5', itv_tsvi:'2', itv_ao:'1' });
+
+  /* (8) ⚠️ CON PROTESIS Y CON UN INSUMO FUERA DE BANDA EL RECUADRO SE ABSTIENE. Lo encontro
+     /sharp-edges sobre el diff de esta tanda: la superficie nueva llamaba al calculo pelado y
+     publicaba «Severa — por velocidad» a dos centimetros del badge que dice que los cortes son de
+     valvula nativa, o del que dice que el grado no se actualizo por la unidad. */
+  const prot = escena({ va_morf:'Prótesis biológica', vmax_ao:'4.2', gmedio_ao:'45' });
+  const fuera = escena({ vmax_ao:'4.5', gmedio_ao:'45', itv_ao:'100', itv_tsvi:'20', diam_tsvi:'2' });
+
+  return { extra: [
+    ['(1) con Vmax 4,1 y sin los insumos del AVA el recuadro YA NO queda en «—»: dice Severa',
+      soloVmax.gVelGrad === 'severa' && soloVmax.txt.indexOf('Severa') > -1 && soloVmax.txt !== '—',
+      'gVelGrad=' + soloVmax.gVelGrad + ' txt=' + soloVmax.txt.slice(0,110)],
+    ['  y NO hay segunda linea ni oracion amarilla: no hay AVA con que comparar',
+      soloVmax.gAva === 'null' && soloVmax.amarillo === false,
+      'gAva=' + soloVmax.gAva + ' amarillo=' + soloVmax.amarillo],
+
+    ['(2) con AVA concordante hay DOS lineas y NINGUNA oracion amarilla',
+      dos.gVelGrad === 'severa' && dos.gAva === 'severa' && dos.amarillo === false &&
+      dos.txt.indexOf('Severa (≤1.0cm²)') > -1,
+      'amarillo=' + dos.amarillo + ' txt=' + dos.txt.slice(0,140)],
+
+    ['(3) ⚠️ severa por velocidad y moderada por AVA: la oracion amarilla con el formato EXACTO que fijo Maicol',
+      disc.amarillo === true &&
+      disc.txt.indexOf('Discrepancia: EAo severa por velocidad, moderada por AVA (revisar)') > -1,
+      'txt=' + disc.txt.slice(0,220)],
+    ['  y SIN sugerencias de que revisar: la oracion termina en «(revisar)»',
+      disc.txt.indexOf('(revisar)') > -1 && disc.txt.toLowerCase().indexOf('revisar el diametro') === -1 &&
+      disc.txt.toLowerCase().indexOf('condiciones de flujo') === -1,
+      'txt=' + disc.txt.slice(0,220)],
+    ['(4) la discrepancia por el otro lado: moderada por velocidad, severa por AVA',
+      disc2.amarillo === true &&
+      disc2.txt.indexOf('Discrepancia: EAo moderada por velocidad, severa por AVA (revisar)') > -1,
+      'txt=' + disc2.txt.slice(0,220)],
+    ['(5) ⚠️ cuando el grado de la pareja lo fija el GRADIENTE, la oracion nombra el gradiente',
+      porGrad.gVelGrad === 'severa' && porGrad.gAva === 'sin' &&
+      porGrad.txt.indexOf('Discrepancia: EAo severa por gradiente, sin estenosis por AVA (revisar)') > -1,
+      'txt=' + porGrad.txt.slice(0,220)],
+
+    ['(6) sin Vmax ni gradiente la primera linea lo DICE, en vez de inventar un grado',
+      soloAva.gVelGrad === 'null' && soloAva.txt.indexOf('sin Vmax ni gradiente medio cargados') > -1,
+      'txt=' + soloAva.txt.slice(0,160)],
+    ['  y la linea del AVA sigue ahi con su corte impreso',
+      soloAva.txt.indexOf('Severa (≤1.0cm²)') > -1, 'txt=' + soloAva.txt.slice(0,160)],
+
+    ['(8) ⚠️ con morfologia PROTESICA el recuadro NO publica un grado con cortes nativos',
+      prot.txt.indexOf('Severa') === -1 && prot.txt.indexOf('no se gradúa con estos datos') > -1,
+      'txt=' + prot.txt.slice(0,180)],
+    ['  y con un insumo FUERA DE BANDA tampoco — no contradice al cuadro de al lado',
+      fuera.txt.indexOf('Severa —') === -1 && fuera.txt.indexOf('no se gradúa con estos datos') > -1,
+      'txt=' + fuera.txt.slice(0,180)],
+
+    ['(7) el texto de AVA no valuable se CONSERVA, nombrando los tres insumos a revisar',
+      noValuable.txt.indexOf('AVA no') > -1 &&
+      (noValuable.txt.indexOf('TSVI') > -1 || noValuable.txt.indexOf('rango') > -1),
+      'txt=' + noValuable.txt.slice(0,200)],
+  ] };
+`);
+
+
+caso('TC-369', 'EA: el AVA por planimetria se carga y se guarda, tiene banda de plausibilidad, y NO vota el grado ni entra al Excel ni a la reimportacion', `
+  /* ASYNC: el guardado real es asincrono (IndexedDB con respaldo en localStorage), y el arnes
+     evalua el cuerpo como funcion comun — de ahi el envoltorio, que es el mismo de TC-106. */
+  return (async () => {
+  const abrir = function () {
+    const p = document.getElementById('pill-esten-aortica');
+    if (p && !p.classList.contains('btn-primary')) toggleValvPill('aortica','esten'); };
+  __t.limpiar(); window.esqSevManual = {};
+  abrir(); __t.set('nombre','TC369'); __t.set('ci','369');
+
+  const existe = !!document.getElementById('ava_plan');
+  /* ⚠️ EL ID DE LA MITRAL ES OTRO Y NO SE TOCA: avm_plan tiene que seguir existiendo. */
+  const mitralIntacta = !!document.getElementById('avm_plan');
+
+  /* ── (1) NO VOTA. Se carga un area SEVERA por planimetria sobre una Vmax LEVE y el grado no se
+     mueve. Es la condicion central de la decision de Maicol: el campo se mide y se guarda, pero no
+     participa de ninguna derivacion. ── */
+  __t.set('vmax_ao','2.6');
+  try { sincronizarEADesdeGlobal(); } catch (e) {}
+  const gradoAntes = String(__t.val('ea_grado'));
+  let calcAntes = ''; try { calcAntes = String(eaGradoCalculado().grado); } catch (e) {}
+  __t.set('ava_plan','0.6');
+  const gradoDespues = String(__t.val('ea_grado'));
+  let calcDespues = ''; try { calcDespues = String(eaGradoCalculado().grado); } catch (e) {}
+
+  /* ⚠️ Y EL DUENIO DEL GRADO NO MIRA EL CAMPO, no solo «no cambia el resultado». La condicion de
+     arriba la pasa igual un codigo que lea ava_plan y lo empate con lo que ya habia; esta mira el
+     objeto de eaGradoCalculado, que es donde apareceria el voto: sus tres criterios son velocidad,
+     gradiente y AVA por CONTINUIDAD, y ninguno puede venir de la planimetria. Se prueba con una
+     planimetria SEVERA y el AVA por continuidad AUSENTE, que es el unico escenario en que un voto
+     clandestino se veria: si gAva deja de ser null, alguien lo cableo. */
+  let RPlan = null;
+  try { RPlan = eaGradoCalculado(); } catch (e) { RPlan = { gAva:'ERR:' + e.message }; }
+
+  /* ── (2) NO ES INSUMO: un valor fuera de banda acá no puede retirar el grado auto-sugerido. ── */
+  let enInsumos = true;
+  try { enInsumos = EA_GRADO_INSUMOS.indexOf('ava_plan') > -1; } catch (e) {}
+  __t.set('ava_plan','80');
+  const gradoTrasFuera = String(__t.val('ea_grado'));
+
+  /* ── (3) LA BANDA, por los DOS lados y en los bordes EXACTOS. El piso y el techo SI son
+     plausibles; lo de afuera no. Un umbral probado por un solo lado no esta probado. ── */
+  const banda = function (val) { __t.set('ava_plan', val);
+    let fuera = null; try { fuera = aoPlaus('ava_plan').fuera; } catch (e) { fuera = 'ERR'; }
+    return { fuera: fuera, aviso: String(__t.txt('ava-plan-aviso') || '') }; };
+  const b_piso      = banda('0.2');
+  const b_techo     = banda('8');
+  const b_bajoPiso  = banda('0.19');
+  const b_sobreTecho = banda('8.01');
+  const b_mm2       = banda('80');
+  const b_vacio     = banda('');
+
+  /* ── (4) NO ESTA EN EL EXCEL ni en el mapa de reimportacion. Se barre la fila ENTERA en vez de
+     listar columnas, para que una columna nueva caiga aca. ── */
+  let cols = [], total = 0, mencionPlanAo = [];
+  try { const fila = _labExcelRow({ id:0, campos:{ ava_plan:'0.6' } });
+    cols = Object.keys(fila); total = cols.length;
+    /* «AVm planimetria» es de la MITRAL y tiene que seguir estando: se excluye por el prefijo. */
+    mencionPlanAo = cols.filter(function (k) { return /planimetr/i.test(k) && !/AVm/i.test(k); });
+  } catch (e) { mencionPlanAo = ['ERR:' + e.message]; }
+  let enImport = true;
+  try { enImport = Object.values(LAB_XLS_MAP).indexOf('ava_plan') > -1; } catch (e) {}
+
+  /* ── (5) SE GUARDA CON EL ESTUDIO y vuelve al reabrir, por las funciones REALES. ── */
+  __t.limpiar(); window.esqSevManual = {};
+  abrir(); __t.set('nombre','TC369b'); __t.set('ci','3691');
+  __t.set('vmax_ao','4.2'); __t.set('ava_plan','0.85');
+  try { sincronizarEADesdeGlobal(); } catch (e) {}
+  const antesGuardar = String(__t.val('ava_plan'));
+  const g = await __t.guardar();
+  __t.nuevoEstudio();
+  const trasLimpiar = String(__t.val('ava_plan'));
+  if (g.estudioId) __t.reabrir(g.estudioId);
+  await new Promise(function (r) { setTimeout(r, 400); });
+  abrir();
+  const trasReabrir = String(__t.val('ava_plan'));
+  if (g.estudioId) await __t.borrar(g.estudioId);
+
+  return { extra: [
+    ['el campo «AVA por planimetria» existe con id ava_plan, y el de la mitral (avm_plan) sigue intacto',
+      existe && mitralIntacta, 'ava_plan=' + existe + ' avm_plan=' + mitralIntacta],
+
+    ['⚠️ NO VOTA: un area severa por planimetria sobre una Vmax leve deja el grado en «leve»',
+      gradoAntes === 'leve' && gradoDespues === 'leve' && calcAntes === 'leve' && calcDespues === 'leve',
+      'grado ' + gradoAntes + ' → ' + gradoDespues + ' · calculado ' + calcAntes + ' → ' + calcDespues],
+    ['⚠️ el DUENIO del grado no mira ava_plan: con planimetria 0,6 y el AVA por continuidad ausente, gAva sigue en null',
+      String(RPlan.gAva) === 'null' && String(RPlan.criterio) === 'velocidad' &&
+      String(RPlan.grado) === 'leve',
+      'gAva=' + RPlan.gAva + ' criterio=' + RPlan.criterio + ' grado=' + RPlan.grado +
+      ' (ava_cont=«' + String(__t.val('ava_cont')) + '»)'],
+    ['no es un insumo vigilado, asi que un valor fuera de banda NO retira el grado auto-sugerido',
+      enInsumos === false && gradoTrasFuera === 'leve',
+      'en EA_GRADO_INSUMOS=' + enInsumos + ' grado=' + gradoTrasFuera],
+
+    ['la banda [0,2-8] cm² acepta el piso y el techo EXACTOS',
+      b_piso.fuera === false && b_techo.fuera === false,
+      'piso 0.2 fuera=' + b_piso.fuera + ' · techo 8 fuera=' + b_techo.fuera],
+    ['y rechaza por los DOS lados, nombrando el valor y la unidad',
+      b_bajoPiso.fuera === true && b_sobreTecho.fuera === true && b_mm2.fuera === true &&
+      b_mm2.aviso.indexOf('80') > -1 && b_mm2.aviso.indexOf('unidad') > -1,
+      '0.19=' + b_bajoPiso.fuera + ' 8.01=' + b_sobreTecho.fuera + ' 80=' + b_mm2.fuera +
+      ' aviso=' + b_mm2.aviso],
+    ['vacio NO es fuera de banda y no deja aviso colgado',
+      b_vacio.fuera === false && b_vacio.aviso === '',
+      'fuera=' + b_vacio.fuera + ' aviso=«' + b_vacio.aviso + '»'],
+
+    ['NO entra al Excel: ninguna columna nueva de planimetria aortica, y la fila sigue teniendo 434',
+      mencionPlanAo.length === 0 && total === 434,
+      'columnas=' + total + ' planimetria aortica=' + (mencionPlanAo.join(', ') || 'ninguna')],
+    ['NO entra a la reimportacion: no hay entrada en LAB_XLS_MAP',
+      enImport === false, 'en LAB_XLS_MAP=' + enImport],
+
+    ['SE GUARDA con el estudio y vuelve al reabrir — y «Nuevo estudio» lo limpia',
+      antesGuardar === '0.85' && trasLimpiar === '' && trasReabrir === '0.85',
+      'antes=' + antesGuardar + ' tras limpiar=«' + trasLimpiar + '» tras reabrir=' + trasReabrir],
+  ] };
+  })();
+`);
+
+
+caso('TC-370', 'EA: en modo automatico la pastilla, el select y los DOS recuadros muestran el mismo grado y cambian juntos — la pastilla se repinta sin despachar eventos que borren la marca', `
+  const abrir = function () {
+    const p = document.getElementById('pill-esten-aortica');
+    if (p && !p.classList.contains('btn-primary')) toggleValvPill('aortica','esten');
+    return (document.getElementById('bloque-ea-detalle') || { style:{} }).style.display; };
+  /* La pastilla se compara contra lo que el modulo valvSev TIENE que mostrar para ese value, no
+     contra un literal copiado: «sin» y vacio apagan el sub-boton, el resto lo prende con su nivel. */
+  const esperadaDe = function (g) {
+    return (!g || /^sin/i.test(g)) ? '🟡 Severidad ▼'
+      : (g.charAt(0).toUpperCase() + g.slice(1)) + ' ▼'; };
+  const foto = function () {
+    const g = String(__t.val('ea_grado') || '');
+    const btn = document.getElementById('sevbtn-esten-aortica');
+    let R = null; try { R = eaGradoCalculado(); } catch (e) { R = {}; }
+    const sel = document.getElementById('ea_grado');
+    return { grado: g, calc: String(R.grado),
+             pastilla: btn ? (btn.textContent || '').trim() : 'NO EXISTE',
+             nivel: btn ? String(btn.className) : '',
+             esperada: esperadaDe(g),
+             doppler: String(__t.txt('ea-sev') || ''),
+             valvulas: String(__t.txt('ea-det-sev') || ''),
+             marca: (sel && sel.dataset.sugerido !== undefined) ? String(sel.dataset.sugerido) : 'SIN MARCA' }; };
+  const escena = function (datos) {
+    __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {};
+    const s = document.getElementById('ea_grado'); if (s) delete s.dataset.sugerido;
+    abrir(); __t.set('nombre','TC370');
+    Object.keys(datos).forEach(function (k) { __t.set(k, datos[k]); });
+    try { sincronizarEADesdeGlobal(); } catch (e) {}
+    return foto(); };
+
+  const cajon = abrir();
+  const leve  = escena({ vmax_ao:'2.6' });
+  const mod   = escena({ vmax_ao:'3.5' });
+  const sev   = escena({ vmax_ao:'4.1' });
+  const porGrad = escena({ vmax_ao:'2.6', gmedio_ao:'45' });
+  const gradSolo = escena({ gmedio_ao:'45' });
+  const avaSola  = escena({ diam_tsvi:'20', itv_tsvi:'20', itv_ao:'78' });
+  const nada  = escena({});
+  const todos = [leve, mod, sev, porGrad, gradSolo, avaSola, nada];
+  /* Y CAMBIAN JUNTOS: se mueve UN dato sobre la misma escena y los cuatro siguen de acuerdo. */
+  __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {};
+  abrir(); __t.set('nombre','TC370b'); __t.set('vmax_ao','2.6');
+  try { sincronizarEADesdeGlobal(); } catch (e) {}
+  const paso1 = foto();
+  __t.set('vmax_ao','4.1');
+  const paso2 = foto();
+
+  return { extra: [
+    ['DENOMINADOR: el cajon esta abierto', cajon === 'block', 'display=' + cajon],
+
+    ['la pastilla muestra el grado del select en los SIETE escenarios — nunca «🟡 Severidad ▼» sobre un grado',
+      todos.every(function (f) { return f.pastilla === f.esperada; }),
+      todos.map(function (f) { return f.grado + '→«' + f.pastilla + '»'; }).join(' · ')],
+    ['y lleva la clase de nivel que le toca (nivel1 leve, nivel2 moderada, nivel3 severa)',
+      leve.nivel.indexOf('nivel1') > -1 && mod.nivel.indexOf('nivel2') > -1 &&
+      sev.nivel.indexOf('nivel3') > -1 && nada.nivel.indexOf('nivel') === -1,
+      'leve=' + leve.nivel + ' mod=' + mod.nivel + ' sev=' + sev.nivel + ' nada=' + nada.nivel],
+
+    ['el select es el grado calculado en los siete',
+      todos.every(function (f) { return f.calc === 'null' ? true : f.grado === f.calc; }),
+      todos.map(function (f) { return f.grado + '/' + f.calc; }).join(' · ')],
+
+    ['el recuadro de VALVULAS nombra el mismo grado (incluido el gradiente solo, que antes quedaba en «—»)',
+      sev.valvulas.indexOf('Severa') > -1 && mod.valvulas.indexOf('Moderada') > -1 &&
+      leve.valvulas.indexOf('Leve') > -1 && gradSolo.valvulas.indexOf('Severa') > -1,
+      'gradSolo=«' + gradSolo.valvulas + '» sev=«' + sev.valvulas + '»'],
+    ['el recuadro de DOPPLER tambien, y ya no queda en «—» con una Vmax severa sola',
+      sev.doppler.indexOf('Severa') > -1 && sev.doppler !== '—' &&
+      gradSolo.doppler.indexOf('Severa') > -1,
+      'sev=«' + sev.doppler.slice(0,80) + '» gradSolo=«' + gradSolo.doppler.slice(0,80) + '»'],
+
+    ['⚠️ LA MARCA «lo escribio el autocalculo» SOBREVIVE al repintado de la pastilla',
+      leve.marca === 'leve' && sev.marca === 'severa' && porGrad.marca === 'severa',
+      'leve=' + leve.marca + ' sev=' + sev.marca + ' porGrad=' + porGrad.marca],
+
+    ['CAMBIAN JUNTOS: al mover la Vmax de 2,6 a 4,1 los cuatro pasan de leve a severa en el mismo gesto',
+      paso1.grado === 'leve' && paso1.pastilla === 'Leve ▼' &&
+      paso2.grado === 'severa' && paso2.pastilla === 'Severa ▼' &&
+      paso2.doppler.indexOf('Severa') > -1 && paso2.valvulas.indexOf('Severa') > -1,
+      'paso1=' + paso1.grado + '/«' + paso1.pastilla + '» paso2=' + paso2.grado + '/«' + paso2.pastilla + '»'],
+  ] };
+`);
+
+
+caso('TC-371', 'EA e IAo: el aviso ROJO de grado manual aparece cuando discrepa del calculado y desaparece cuando el calculado CAMBIA — un dato que no mueve el grado no suelta el manual', `
+  const abrir = function (tipo) {
+    const p = document.getElementById('pill-' + tipo + '-aortica');
+    if (p && !p.classList.contains('btn-primary')) toggleValvPill('aortica', tipo); };
+  const resetEA = function () {
+    __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {};
+    const s = document.getElementById('ea_grado'); if (s) delete s.dataset.sugerido;
+    abrir('esten'); __t.set('nombre','TC371'); };
+  /* Las condiciones leen el VALOR del select, la bandera esqSevManual y el grado publicable — el
+     textContent del aviso solo se compara para el formato, que Maicol fijo literal. */
+  const foto = function () {
+    let pub = null; try { pub = sevCalcPublicable('ea'); } catch (e) { pub = 'ERR'; }
+    return { select: String(__t.val('ea_grado') || ''),
+             manual: !!(window.esqSevManual && window.esqSevManual.ea),
+             pub: String(pub),
+             foto: String(window._sevCalcAlFijar ? window._sevCalcAlFijar.ea : 'sin objeto'),
+             aviso: String(__t.txt('ea-manual-aviso') || ''),
+             valvulas: String(__t.txt('ea-det-sev') || '') }; };
+
+  /* ── (1) aparece ── */
+  resetEA(); __t.set('vmax_ao','2.6');
+  try { sincronizarEADesdeGlobal(); } catch (e) {}
+  const auto = foto();
+  valvSev.aplicar('esten','aortica','severa');
+  const conAviso = foto();
+  /* ── (2) un dato que NO cambia el grado calculado no suelta el manual (2,6 → 2,7 sigue leve) ── */
+  __t.set('vmax_ao','2.7');
+  const noSuelta = foto();
+  /* ── (3) el calculado CAMBIA (leve → moderada): vuelve a automatico y el aviso desaparece ── */
+  __t.set('vmax_ao','3.8');
+  const soltado = foto();
+  /* ── (4) manual IGUAL al calculado: no hay discrepancia, asi que no hay aviso ── */
+  resetEA(); __t.set('vmax_ao','2.6');
+  try { sincronizarEADesdeGlobal(); } catch (e) {}
+  valvSev.aplicar('esten','aortica','leve');
+  const manualIgual = foto();
+  /* ── (5) el manual mas severo que el calculado, y el mas LEVE: las dos direcciones ── */
+  resetEA(); __t.set('vmax_ao','5');
+  try { sincronizarEADesdeGlobal(); } catch (e) {}
+  valvSev.aplicar('esten','aortica','sin');
+  const manualMasLeve = foto();
+  /* ── (6) ⚠️ SIN GRADO CALCULADO PUBLICABLE no se suelta el manual ni se pinta aviso: con el Ø TSVI
+     tipeado en cm el grado saldria de una medicion que la app declara ilegible. ── */
+  resetEA();
+  __t.set('vmax_ao','4.5'); __t.set('gmedio_ao','45'); __t.set('itv_ao','100');
+  __t.set('itv_tsvi','20'); __t.set('diam_tsvi','20');
+  try { sincronizarEADesdeGlobal(); } catch (e) {}
+  valvSev.aplicar('esten','aortica','moderada');
+  const manualEnBanda = foto();
+  __t.set('diam_tsvi','2');
+  const manualFueraBanda = foto();
+
+  /* ── (7) ⚠️ TIPEAR EL GRADO EN EL SELECT NO ES MODO MANUAL, asi que NO pinta aviso rojo. El
+     aviso cuelga de esqSevManual, que lo enciende SOLO el menu ▼ de la pastilla — es la regla que
+     «Aortica 3b» fijo por escrito. Sin esta condicion, aflojar el aviso a «difieren → avisar» sin
+     mirar la marca pasaba inadvertido: en modo automatico el select SIEMPRE coincide con el
+     calculado, asi que la diferencia no se ve por ningun otro escenario. ── */
+  resetEA(); __t.set('vmax_ao','2.6');
+  try { sincronizarEADesdeGlobal(); } catch (e) {}
+  __t.set('ea_grado','severa');
+  const tipeadoEnSelect = foto();
+
+  /* ── (8) ⚠️ FIJAR EL GRADO A MANO MIENTRAS UN INSUMO ESTA FUERA DE BANDA, y despues CORREGIR la
+     unidad. La foto tiene que quedar en «no se» —no en el grado ilegible— porque si no, al volver a
+     banda el calculado «cambia» y le suelta al medico la decision que acababa de tomar. ── */
+  resetEA();
+  __t.set('vmax_ao','4.5'); __t.set('gmedio_ao','45'); __t.set('itv_ao','100');
+  __t.set('itv_tsvi','20'); __t.set('diam_tsvi','2');
+  try { sincronizarEADesdeGlobal(); } catch (e) {}
+  valvSev.aplicar('esten','aortica','leve');
+  const fijadoFueraDeBanda = foto();
+  __t.set('diam_tsvi','20');
+  try { sincronizarEADesdeGlobal(); } catch (e) {}
+  const corregidaLaUnidad = foto();
+
+  /* ── (9) ⚠️ ESTUDIO REABIERTO: esqSevManual SE PERSISTE y la foto NO. Se simula el estado exacto
+     —marca puesta, foto ausente— y lo que tiene que pasar es que el grado del medico NO se toque:
+     la ausencia de foto es «todavia no se desde donde comparar», no «cambio». Si se tratara como
+     cambio, el primer recalculo le borraria al medico el grado que firmo, en silencio y sobre un
+     estudio archivado. ── */
+  resetEA(); __t.set('vmax_ao','2.6');
+  try { sincronizarEADesdeGlobal(); } catch (e) {}
+  __t.set('ea_grado','severa');
+  window.esqSevManual = window.esqSevManual || {}; window.esqSevManual.ea = true;
+  delete window._sevCalcAlFijar.ea;
+  const reabiertoAntes = foto();
+  try { sevSincronizar('ea'); } catch (e) {}
+  const reabiertoDespues = foto();
+  /* y a partir de ahi, un cambio REAL del calculado si lo suelta */
+  __t.set('vmax_ao','4.1');
+  const reabiertoTrasCambio = foto();
+
+  /* ── (10) ⚠️ UN GRADO QUE EL CALCULO NO PUEDE EMITIR NO SE COMPARA NI SE SUELTA. «Esclerosis» es
+     una de las cinco opciones del select y eaGradoCalculado solo produce cuatro, asi que sin la
+     declaracion de calculables quedaba permanentemente «distinta del calculado»: aviso rojo
+     irresoluble, y destruida en cuanto el calculado se moviera. Es el defecto que calcEADetalle ya
+     declara arreglado —«elegir Esclerosis se perdia en el primer recalculo»— reabierto por R6. ── */
+  resetEA(); __t.set('vmax_ao','2.6');
+  try { sincronizarEADesdeGlobal(); } catch (e) {}
+  valvSev.aplicar('esten','aortica','esclerosis');
+  const esclerosis = foto();
+  __t.set('vmax_ao','4.1');
+  try { sincronizarEADesdeGlobal(); } catch (e) {}
+  const esclerosisTrasCambio = foto();
+
+  /* ── (11) ⚠️ FUGA ENTRE PACIENTES: la foto del calculado y el grado calculado de la IAo no son DOM,
+     asi que ningun barrido de limpiarCampos los alcanzaba. Se comprueba que «Nuevo estudio» los
+     resetea y que los tres avisos quedan vacios. ── */
+  resetEA(); __t.set('vmax_ao','2.6');
+  try { sincronizarEADesdeGlobal(); } catch (e) {}
+  valvSev.aplicar('esten','aortica','severa');
+  __t.set('ia_vc','8'); try { calcIA_ESC(); } catch (e) {}
+  const antesDeNuevoEstudio = { foto: String(window._sevCalcAlFijar.ea),
+                                iaCalc: String(window._iaGradoCalc),
+                                aviso: String(__t.txt('ea-manual-aviso') || '') };
+  __t.nuevoEstudio();
+  const trasNuevoEstudio = { foto: String(window._sevCalcAlFijar ? window._sevCalcAlFijar.ea : 'sin objeto'),
+                             iaCalc: String(window._iaGradoCalc),
+                             avisoEA: String(__t.txt('ea-manual-aviso') || ''),
+                             avisoIA: String(__t.txt('ia-manual-aviso') || ''),
+                             avisoPlan: String(__t.txt('ava-plan-aviso') || '') };
+
+  /* ── (12) IAo: el mismo mecanismo sobre ia_sev_final, con la vena contracta ── */
+  const fotoIA = function () {
+    let pub = null; try { pub = sevCalcPublicable('ia'); } catch (e) { pub = 'ERR'; }
+    const ay = document.getElementById('ia-auto-ayuda');
+    return { select: String(__t.val('ia_sev_final') || ''), hid: String(__t.val('ia_grado') || ''),
+             manual: !!(window.esqSevManual && window.esqSevManual.ia), pub: String(pub),
+             aviso: String(__t.txt('ia-manual-aviso') || ''),
+             ayudaVisible: ay ? (ay.style.display !== 'none') : null }; };
+  __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {}; window._iaGradoCalc = null;
+  abrir('insuf'); __t.set('nombre','TC371ia'); __t.set('ia_vc','2');
+  try { calcIA_ESC(); } catch (e) {}
+  const iaAuto = fotoIA();
+  valvSev.aplicar('insuf','aortica','4');
+  const iaAviso = fotoIA();
+  __t.set('ia_vc','2.5');
+  try { calcIA_ESC(); } catch (e) {}
+  const iaNoSuelta = fotoIA();
+  __t.set('ia_vc','8');
+  try { calcIA_ESC(); } catch (e) {}
+  const iaSoltado = fotoIA();
+
+  return { extra: [
+    ['en modo automatico NO hay aviso rojo y no hay marca manual',
+      auto.aviso === '' && auto.manual === false && auto.select === 'leve',
+      'aviso=«' + auto.aviso + '» manual=' + auto.manual + ' select=' + auto.select],
+
+    ['⚠️ fijar «Severa» a mano con Vmax 2,6 pinta el aviso ROJO con el formato que fijo Maicol',
+      conAviso.manual === true && conAviso.select === 'severa' &&
+      conAviso.aviso.indexOf('Severa (ajuste manual) · cálculo automático: Leve') > -1,
+      'aviso=«' + conAviso.aviso + '»'],
+    ['  y el recuadro descriptivo sigue mostrando el CALCULADO, no el manual',
+      conAviso.valvulas.indexOf('Leve') > -1 && conAviso.valvulas.indexOf('Severa') === -1,
+      'valvulas=«' + conAviso.valvulas + '»'],
+    ['  la foto del calculado al fijarlo quedo guardada: es contra ella que se decide soltar',
+      conAviso.foto === 'leve', 'foto=' + conAviso.foto],
+
+    ['⚠️ un dato que NO cambia el grado calculado (2,6 → 2,7, sigue leve) NO suelta el manual',
+      noSuelta.manual === true && noSuelta.select === 'severa' && noSuelta.pub === 'leve' &&
+      noSuelta.aviso.indexOf('ajuste manual') > -1,
+      'manual=' + noSuelta.manual + ' select=' + noSuelta.select + ' pub=' + noSuelta.pub],
+
+    ['⚠️ cuando el calculado CAMBIA (leve → moderada) el grado vuelve al calculado y el aviso desaparece',
+      soltado.manual === false && soltado.select === 'moderada' && soltado.aviso === '' &&
+      soltado.foto === 'undefined',
+      'manual=' + soltado.manual + ' select=' + soltado.select + ' aviso=«' + soltado.aviso + '» foto=' + soltado.foto],
+
+    ['un manual IGUAL al calculado no es una discrepancia: no hay aviso',
+      manualIgual.manual === true && manualIgual.select === 'leve' && manualIgual.pub === 'leve' &&
+      manualIgual.aviso === '',
+      'select=' + manualIgual.select + ' pub=' + manualIgual.pub + ' aviso=«' + manualIgual.aviso + '»'],
+    ['y el aviso tambien aparece cuando el manual es MAS LEVE que el calculado',
+      manualMasLeve.select === 'sin' && manualMasLeve.pub === 'severa' &&
+      manualMasLeve.aviso.indexOf('Sin estenosis (ajuste manual) · cálculo automático: Severa') > -1,
+      'aviso=«' + manualMasLeve.aviso + '»'],
+
+    ['⚠️ SIN grado calculado publicable (un insumo fuera de banda) el aviso se APAGA — no nombra un grado que la app se niega a publicar',
+      manualEnBanda.aviso.indexOf('cálculo automático: Severa') > -1 &&
+      manualFueraBanda.pub === 'null' && manualFueraBanda.aviso === '',
+      'en banda=«' + manualEnBanda.aviso + '» || fuera=«' + manualFueraBanda.aviso + '» pub=' + manualFueraBanda.pub],
+    ['  y el grado fijado a mano NO se suelta ni se borra por eso',
+      manualFueraBanda.manual === true && manualFueraBanda.select === 'moderada',
+      'manual=' + manualFueraBanda.manual + ' select=' + manualFueraBanda.select],
+
+    ['⚠️ tipear el grado en el SELECT no es modo manual: no enciende la marca y NO pinta aviso rojo',
+      tipeadoEnSelect.select === 'severa' && tipeadoEnSelect.manual === false &&
+      tipeadoEnSelect.pub === 'leve' && tipeadoEnSelect.aviso === '',
+      'select=' + tipeadoEnSelect.select + ' manual=' + tipeadoEnSelect.manual +
+      ' pub=' + tipeadoEnSelect.pub + ' aviso=«' + tipeadoEnSelect.aviso + '»'],
+
+    ['⚠️ fijado a mano con un insumo FUERA de banda, la foto queda en «no se» y no en el grado ilegible',
+      fijadoFueraDeBanda.manual === true && fijadoFueraDeBanda.pub === 'null' &&
+      fijadoFueraDeBanda.foto === 'null',
+      'pub=' + fijadoFueraDeBanda.pub + ' foto=' + fijadoFueraDeBanda.foto],
+    ['  y al CORREGIR la unidad el grado del medico se conserva — corregir una unidad no es cambiar el grado',
+      corregidaLaUnidad.manual === true && corregidaLaUnidad.select === 'leve' &&
+      corregidaLaUnidad.pub === 'severa' &&
+      corregidaLaUnidad.aviso.indexOf('Leve (ajuste manual) · cálculo automático: Severa') > -1,
+      'manual=' + corregidaLaUnidad.manual + ' select=' + corregidaLaUnidad.select +
+      ' pub=' + corregidaLaUnidad.pub + ' aviso=«' + corregidaLaUnidad.aviso + '»'],
+
+    ['⚠️ ESTUDIO REABIERTO (marca puesta, foto ausente): el grado fijado a mano NO se toca',
+      reabiertoAntes.foto === 'undefined' && reabiertoDespues.manual === true &&
+      reabiertoDespues.select === 'severa',
+      'foto antes=' + reabiertoAntes.foto + ' · despues manual=' + reabiertoDespues.manual +
+      ' select=' + reabiertoDespues.select],
+    ['  y desde ahi se fija el origen, asi que un cambio REAL del calculado si lo suelta',
+      reabiertoDespues.foto === 'leve' && reabiertoTrasCambio.manual === false &&
+      reabiertoTrasCambio.select === 'severa' && reabiertoTrasCambio.aviso === '',
+      'foto=' + reabiertoDespues.foto + ' · tras cambio manual=' + reabiertoTrasCambio.manual +
+      ' select=' + reabiertoTrasCambio.select],
+
+    ['⚠️ «Esclerosis» no es un grado que el calculo pueda emitir: no se compara y NO pinta aviso',
+      esclerosis.select === 'esclerosis' && esclerosis.manual === true && esclerosis.aviso === '',
+      'select=' + esclerosis.select + ' aviso=«' + esclerosis.aviso + '»'],
+    ['  y NO se destruye cuando el grado calculado cambia — la esclerosis sigue en el informe firmado',
+      esclerosisTrasCambio.select === 'esclerosis' && esclerosisTrasCambio.manual === true,
+      'select=' + esclerosisTrasCambio.select + ' manual=' + esclerosisTrasCambio.manual],
+
+    ['⚠️ FUGA ENTRE PACIENTES: «Nuevo estudio» resetea la foto del calculado y el grado calculado de la IAo',
+      antesDeNuevoEstudio.foto === 'leve' && antesDeNuevoEstudio.iaCalc === '4' &&
+      trasNuevoEstudio.foto === 'undefined' && trasNuevoEstudio.iaCalc === 'null',
+      'antes foto=' + antesDeNuevoEstudio.foto + ' iaCalc=' + antesDeNuevoEstudio.iaCalc +
+      ' || despues foto=' + trasNuevoEstudio.foto + ' iaCalc=' + trasNuevoEstudio.iaCalc],
+    ['  y los TRES avisos nuevos quedan vacios: no sobreviven al paciente anterior',
+      antesDeNuevoEstudio.aviso.indexOf('ajuste manual') > -1 &&
+      trasNuevoEstudio.avisoEA === '' && trasNuevoEstudio.avisoIA === '' && trasNuevoEstudio.avisoPlan === '',
+      'antes=«' + antesDeNuevoEstudio.aviso + '» || EA=«' + trasNuevoEstudio.avisoEA +
+      '» IA=«' + trasNuevoEstudio.avisoIA + '» plan=«' + trasNuevoEstudio.avisoPlan + '»'],
+
+    ['IAo: el mismo mecanismo — aviso al fijar «Severa» con la VC votando leve',
+      iaAuto.aviso === '' && iaAviso.manual === true && iaAviso.select === '4' &&
+      iaAviso.aviso.indexOf('Severa (ajuste manual) · cálculo automático: Leve') > -1,
+      'auto=«' + iaAuto.aviso + '» manual=«' + iaAviso.aviso + '»'],
+    ['IAo: el texto «se completa automaticamente» se APAGA en modo manual y vuelve al soltarse',
+      iaAuto.ayudaVisible === true && iaAviso.ayudaVisible === false && iaSoltado.ayudaVisible === true,
+      'auto=' + iaAuto.ayudaVisible + ' manual=' + iaAviso.ayudaVisible + ' soltado=' + iaSoltado.ayudaVisible],
+    ['IAo: un dato que no mueve el grado no suelta el manual, y uno que lo mueve si',
+      iaNoSuelta.manual === true && iaNoSuelta.select === '4' &&
+      iaSoltado.manual === false && iaSoltado.select === '4' && iaSoltado.hid === '4' &&
+      iaSoltado.aviso === '',
+      'noSuelta manual=' + iaNoSuelta.manual + ' · soltado manual=' + iaSoltado.manual +
+      ' select=' + iaSoltado.select + ' hid=' + iaSoltado.hid],
+  ] };
+`);
+
+
+caso('TC-372', 'EA e IAo: cerrar el boton de la valvula ya NO borra el grado, las opciones del select no citan la velocidad, y los rotulos dicen ESC/EACTS 2025', `
+  const pillOnDe = function (tipo) {
+    const p = document.getElementById('pill-' + tipo + '-aortica');
+    return p ? p.classList.contains('btn-primary') : null; };
+  const abrir = function (tipo) { if (pillOnDe(tipo) === false) toggleValvPill('aortica', tipo); };
+
+  /* ── (1) ESTENOSIS: cerrar el cajon conserva el grado y la marca manual ── */
+  __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {};
+  abrir('esten'); __t.set('nombre','TC372'); __t.set('vmax_ao','4.1');
+  try { sincronizarEADesdeGlobal(); } catch (e) {}
+  const antes = { grado: String(__t.val('ea_grado')), pill: pillOnDe('esten'),
+                  pastilla: String(__t.txt('sevbtn-esten-aortica') || '') };
+  toggleValvPill('aortica','esten');
+  const cerrado = { grado: String(__t.val('ea_grado')), pill: pillOnDe('esten'),
+                    cajon: (document.getElementById('bloque-ea-detalle') || { style:{} }).style.display,
+                    pastilla: String(__t.txt('sevbtn-esten-aortica') || ''),
+                    inf: __t.informe().inf };
+  /* ── (2) y tampoco borra un grado fijado A MANO ── */
+  abrir('esten');
+  valvSev.aplicar('esten','aortica','moderada');
+  const manualAbierto = { grado: String(__t.val('ea_grado')),
+                          manual: !!(window.esqSevManual && window.esqSevManual.ea) };
+  toggleValvPill('aortica','esten');
+  const manualCerrado = { grado: String(__t.val('ea_grado')),
+                          manual: !!(window.esqSevManual && window.esqSevManual.ea) };
+
+  /* ── (3) INSUFICIENCIA: lo mismo sobre ia_sev_final y su hidden ── */
+  __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {}; window._iaGradoCalc = null;
+  abrir('insuf'); __t.set('nombre','TC372ia'); __t.set('ia_vc','8');
+  try { calcIA_ESC(); } catch (e) {}
+  const iaAntes = { sel: String(__t.val('ia_sev_final')), hid: String(__t.val('ia_grado')) };
+  toggleValvPill('aortica','insuf');
+  const iaCerrado = { sel: String(__t.val('ia_sev_final')), hid: String(__t.val('ia_grado')),
+                      pill: pillOnDe('insuf') };
+
+  /* ── (4) LA MITRAL NO CAMBIO. Es una costura declarada: toggleValvPill gobierna las seis
+     pastillas y esta tanda solo autorizo la aortica. El dia que la mitral reciba el mismo trato
+     esta condicion es la que hay que dar vuelta — no borrar. ── */
+  __t.limpiar(); window.esqSevManual = {};
+  const pm = document.getElementById('pill-esten-mitral');
+  if (pm && !pm.classList.contains('btn-primary')) toggleValvPill('mitral','esten');
+  __t.set('nombre','TC372m'); __t.set('em_grado','moderada');
+  const emAntes = String(__t.val('em_grado'));
+  toggleValvPill('mitral','esten');
+  const emCerrado = String(__t.val('em_grado'));
+
+  /* ── (5) opciones y rotulos. Se leen del DOM, no de un literal. ── */
+  const opts = Array.from((document.getElementById('ea_grado') || { options:[] }).options)
+    .map(function (o) { return o.value + '|' + o.textContent.trim(); });
+  const menu = (function () {
+    try { window.valvSev.menu('esten','aortica', null);
+      const m = document.getElementById('sevmenu-esten-aortica');
+      const r = Array.from(m.querySelectorAll('button')).map(function (b) { return b.textContent; });
+      document.body.click(); return r; } catch (e) { return ['ERR:' + e.message]; } })();
+  const lblEA = (function () { const s = document.getElementById('ea_grado');
+    const fg = s && s.closest('.fg'); const l = fg && fg.querySelector('label');
+    return l ? l.textContent.trim() : 'NO EXISTE'; })();
+  const lblIA = (function () { const s = document.getElementById('ia_sev_final');
+    const l = s && s.parentElement && s.parentElement.querySelector('label');
+    return l ? l.textContent.trim() : 'NO EXISTE'; })();
+  const rotEA = String(__t.txt('ea-det-sev-lbl') || '');
+  const rotIA = (function () { const e = document.getElementById('ia-sev');
+    const f = e && e.closest('.calc-row'); const l = f && f.querySelector('.calc-lbl');
+    return l ? l.textContent.trim() : 'NO EXISTE'; })();
+
+  return { extra: [
+    ['⚠️ cerrar el boton «Estenosis» CIERRA el cajon y NO borra el grado',
+      antes.grado === 'severa' && cerrado.grado === 'severa' &&
+      cerrado.pill === false && cerrado.cajon === 'none',
+      'grado ' + antes.grado + ' → ' + cerrado.grado + ' · pill=' + cerrado.pill + ' cajon=' + cerrado.cajon],
+    ['  y la pastilla sigue mostrando el grado que quedo, en vez de volver a «🟡 Severidad ▼»',
+      cerrado.pastilla.indexOf('Severa') > -1,
+      'pastilla antes=«' + antes.pastilla + '» despues=«' + cerrado.pastilla + '»'],
+    ['  asi que el informe firmado sigue publicando la estenosis severa con el cajon cerrado',
+      cerrado.inf.indexOf('estenosis severa') > -1, 'inf sin la frase'],
+    ['tampoco borra un grado fijado A MANO ni su marca',
+      manualAbierto.grado === 'moderada' && manualCerrado.grado === 'moderada' &&
+      manualAbierto.manual === true && manualCerrado.manual === true,
+      'grado ' + manualAbierto.grado + ' → ' + manualCerrado.grado +
+      ' · manual ' + manualAbierto.manual + ' → ' + manualCerrado.manual],
+
+    ['cerrar el boton «Insuficiencia» tampoco borra el grado ni su hidden',
+      iaAntes.sel === '4' && iaCerrado.sel === '4' && iaCerrado.hid === '4' && iaCerrado.pill === false,
+      'sel ' + iaAntes.sel + ' → ' + iaCerrado.sel + ' · hid=' + iaCerrado.hid],
+
+    ['COSTURA DECLARADA: la MITRAL sigue borrando su grado al cerrar — esta tanda no la toco',
+      emAntes === 'moderada' && emCerrado !== 'moderada',
+      'em_grado ' + emAntes + ' → ' + emCerrado + ' (si esto se pone verde al reves, la mitral cambio)'],
+
+    ['las opciones de ea_grado NO citan la velocidad, y los cinco value quedan intactos',
+      opts.join(' ') === 'sin|Sin estenosis esclerosis|Esclerosis leve|Leve moderada|Moderada severa|Severa',
+      opts.join(' / ')],
+    ['y el menu ▼ de la pastilla las muestra sin el parentesis',
+      menu.join(' / ') === 'Esclerosis / Leve / Moderada / Severa', menu.join(' / ')],
+
+    ['los dos selects dicen «grado final al informe»',
+      lblEA === 'Estenosis aórtica — grado final al informe' &&
+      lblIA === 'Insuficiencia aórtica — grado final al informe',
+      'EA=«' + lblEA + '» IA=«' + lblIA + '»'],
+    ['los rotulos de los cuadros calculados citan la ESC/EACTS 2025 y ya no «ESC 2021»',
+      rotEA.indexOf('ESC/EACTS 2025') > -1 && rotEA.indexOf('ESC 2021') === -1 &&
+      rotIA.indexOf('ESC/EACTS 2025') > -1 && rotIA.indexOf('ESC 2021') === -1,
+      'EA=«' + rotEA + '» IA=«' + rotIA + '»'],
+  ] };
+`);
+
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────
