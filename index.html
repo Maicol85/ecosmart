@@ -3721,7 +3721,7 @@ window.cerrarSesionReal = cerrarSesionReal;
              porque ahora envuelve al AT en su nueva casa. -->
         <div id="bloque-esten-aortica" style="display:none;">
         <div class="fg"><label>Estenosis a&oacute;rtica &mdash; grado final</label>
-          <select id="ea_grado"><option value="sin">Sin estenosis</option><option value="esclerosis">Esclerosis</option><option value="leve">Leve (Vmax 2-3 m/s)</option><option value="moderada">Moderada (Vmax 3-4 m/s)</option><option value="severa">Severa (Vmax &gt;4 m/s)</option></select>
+          <select id="ea_grado" onchange="_gradoManoBorraMarca(this, event)"><option value="sin">Sin estenosis</option><option value="esclerosis">Esclerosis</option><option value="leve">Leve (Vmax 2-3 m/s)</option><option value="moderada">Moderada (Vmax 3-4 m/s)</option><option value="severa">Severa (Vmax &gt;4 m/s)</option></select>
           <div id="ea-ava-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
         </div>
         </div>
@@ -3824,7 +3824,7 @@ window.cerrarSesionReal = cerrarSesionReal;
       </div>
       <div style="margin-top:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
         <label style="font-size:11px;font-weight:700;color:var(--accent2);display:block;margin-bottom:6px;">&#x2705; Severidad IAo confirmada &mdash; ir&aacute; al informe y PDF</label>
-        <select id="ia_sev_final" onchange="sincronizarGradoIA()" style="width:100%;">
+        <select id="ia_sev_final" onchange="_gradoManoBorraMarca(this, event);sincronizarGradoIA()" style="width:100%;">
           <option value="0">&mdash; Sin insuficiencia / no evaluada</option>
           <option value="1">Leve</option>
           <option value="2">Moderada</option>
@@ -21803,7 +21803,9 @@ window.autoCompletarSevIM = autoCompletarSevIM;
 function autoCompletarSevIA(gradoVal) {
   if (window.esqSevManual && window.esqSevManual.ia) return;   // pill fijada por el médico → no pisar
   const sel = document.getElementById('ia_sev_final');
-  if (sel) { sel.value = gradoVal; sincronizarGradoIA(); }
+  /* Misma constancia que en la aortica: deja escrito que este grado lo puso el autocalculo,
+     para que `_iaRetirarGradoSugerido` pueda distinguirlo de uno elegido por el medico. */
+  if (sel) { sel.value = gradoVal; sel.dataset.sugerido = gradoVal; sincronizarGradoIA(); }
 }
 window.autoCompletarSevIA = autoCompletarSevIA;
 
@@ -22927,7 +22929,7 @@ function calcEADetalle() {
     if (sevEl) sevEl.innerHTML = `<span style="color:${color};font-weight:700;">${sev}</span>` +
       (_eaDetDud ? `<div style="margin-top:4px;color:var(--yellow);font-size:11px;font-weight:600;">⚠️ Fuera de rango: ${_critEsc(_eaDetFuera.join(' · '))} — el grado NO se actualizó; verificar la unidad</div>` : '') +
       (eaAdvBajoGrad ? `<div style="margin-top:4px;color:var(--red);font-size:11px;font-weight:600;">${eaAdvBajoGrad}</div>` : '');
-    if (sel && gradoStr) sel.value = gradoStr;
+    if (sel && gradoStr) { sel.value = gradoStr; _eaMarcarSugerido(sel, gradoStr); }
     const badge = document.getElementById('ea-ava-badge');
     if (badge) badge.textContent = _eaDetDud
       ? 'Fuera de rango: ' + _eaDetFuera.join(' · ') + ' — el grado NO se actualizó automáticamente; verificar la unidad de la medición antes de firmar.'
@@ -22971,8 +22973,14 @@ function calcEADetalle() {
      el comentario afirmaba. Hoy el espejo corre desde `calcAo` DESPUÉS de `sincronizarEADesdeGlobal`
      —que es la que llama a esta función— así que el orden queda garantizado por el llamador y una
      llamada acá sería una tercera copia del mismo disparo. Lo encontró /sharp-edges. */
-    if (sel && gradoStr) sel.value = gradoStr;
+    if (sel && gradoStr) { sel.value = gradoStr; _eaMarcarSugerido(sel, gradoStr); }
   }
+  /* ⚠️ Y HACE FALTA ACA TAMBIEN, aparte del final de `calcAo`, por el orden de los dos
+     caminos: `syncEADesdeValvulas` llama `calcAo()` y DESPUES `calcEADetalle()`, asi que el
+     retiro del final de aquella corre ANTES de que esta escriba. Esta funcion es la que gana
+     (corre ultima en la cascada), asi que es la que tiene que cerrar. Es el mismo argumento
+     que el bloqueo de las escrituras ya declara: bloquear dos de tres no bloquea nada. */
+  if (typeof _eaRetirarGradoSugerido === 'function') _eaRetirarGradoSugerido();
 }
 window.calcEADetalle = calcEADetalle;
 window.usarTSVIenEM = usarTSVIenEM;
@@ -23175,6 +23183,148 @@ function _aoFueraTxt(lista){
 function _aoFuera(p, rotulo, uni){
   return p.fuera ? rotulo + ' ' + p.crudo + (uni ? ' ' + uni : '') : null;
 }
+
+/* ══ RETIRO DEL GRADO AUTO-SUGERIDO CUANDO UN INSUMO QUEDA FUERA DE BANDA ═══════════════════
+   La tanda 3/3 dejó las escrituras bloqueadas: fuera de banda la app no escribe grado nuevo. Lo
+   que NO hacía era borrar el anterior, y medido en el navegador eso deja el informe FIRMADO
+   diciendo «estenosis severa» de una medición que ya no existe: basta cargar la Vmax 4,5 —que
+   hace que `clasificarEA_Vmax` escriba 'severa' en ese keystroke— y después tipear el Ø TSVI en
+   centímetros. El badge avisa al lado, pero el `<select>` es lo que baja al narrativo, al EN SUMA,
+   al PDF, al Excel y al Laboratorio. DECISIÓN DE MAICOL (2026-10-02): se retira el grado que la
+   app sugirió ELLA MISMA; el que el médico fijó a mano no se toca.
+
+   ⚠️ LA BANDERA ES `dataset.sugerido`, EL PATRÓN DE `calcVP`, Y NO `esqSevManual.ea` SOLA. El censo
+   del 2026-10-02 midió por qué: `esqSevManual.ea` existe y las tres escritoras ya la respetan,
+   pero la pone SÓLO el menú de la pastilla de severidad —`ea_grado` no tiene `onchange` en el
+   marcado—, así que un grado tipeado directamente en el `<select>` no la enciende. Retirar por esa
+   bandera sola BORRARÍA un grado que el médico escribió a mano, que es exactamente lo que esta
+   decisión excluye. `dataset.sugerido` contesta la pregunta correcta —«¿este valor es el que
+   escribí yo?»— y falla del lado seguro en los tres casos ajenos:
+     · elegido con la pastilla → además `esqSevManual.ea`, que acá se consulta aparte;
+     · tipeado en el `<select>` → el valor deja de coincidir con la marca y no se retira;
+     · traído de un estudio reabierto → la marca no se persiste (no hay `__sugerido` en `campos`) y
+       `limpiarCampos` la borra con el resto de las marcas derivadas, así que un estudio archivado
+       JAMÁS coincide y su grado no se toca. Es el mismo argumento escrito en `calcVP`.
+
+   ⚠️ SE CONSULTA `esqSevManual` IGUAL, y no es redundante. El caso que lo exige: la app sugiere
+   «severa» y el médico CONFIRMA «severa» con la pastilla. Ahí `aplicar()` reescribe el mismo
+   valor, así que la marca sigue coincidiendo y sin esta guarda se retiraría una severidad que el
+   médico acaba de ratificar. Falla cerrado: ante cualquier señal de decisión humana, no se toca. */
+const EA_GRADO_INSUMOS = Object.freeze(
+  ['vmax_ao', 'gmedio_ao', 'itv_ao', 'itv_tsvi', 'diam_tsvi', 'ava_cont']);
+/* `ava_cont` entra aunque sea DERIVADO, y es el que cierra el caso de los errores que se
+   compensan: con el Ø TSVI en cm (2) y el VTI aórtico en metros (1) los dos errores se anulan y el
+   AVA cae en 0,63 cm² —dentro de banda y falso—, de modo que `clasificarEA_Vmax` no ve ninguna
+   banda violada y escribe «severa». Lo que lo atrapa es mirar los INSUMOS, no sólo el derivado. */
+function _eaInsumoFueraDeBanda(){
+  return EA_GRADO_INSUMOS.some(function (id) {
+    try { return aoPlaus(id).fuera; } catch (e) { return false; }
+  });
+}
+/* Deja constancia de que el grado del `<select>` lo escribió el autocálculo. Se llama en las
+   CUATRO escrituras de `ea_grado` (una en `sugerirSeveridadEA`, dos en `clasificarEA_Vmax`, una en
+   `calcEADetalle`): una escritura sin marcar queda inmune al retiro y el defecto sobrevive por ese
+   camino, que es el mismo argumento de «bloquear dos de tres no bloquea nada». */
+function _eaMarcarSugerido(sel, val){
+  if (sel) sel.dataset.sugerido = val;
+}
+/* ⚠️ Y LA MARCA SE APAGA CUANDO EL MÉDICO TOCA EL `<select>`, que es la mitad que faltaba. El
+   predicado `sel.value === sel.dataset.sugerido` no contesta «¿esto lo escribí yo?» sino «¿esto es
+   IGUAL al último valor que escribí yo?», y las dos preguntas se separan en un gesto que es
+   clínicamente el más común de todos: la app sugiere «severa», el médico baja a «moderada» porque
+   lee bajo flujo, lo piensa de nuevo y VUELVE a «severa» a mano. Ahí el valor vuelve a coincidir
+   con la marca y, sin esta línea, el retiro borraba su decisión y encima publicaba «se RETIRÓ el
+   grado que LA APLICACIÓN había sugerido» sobre un grado que la aplicación no había puesto.
+   Lo encontró `/sharp-edges` sobre este mismo diff, y es la condición que Maicol enunció al
+   aprobar la bandera: «editar el select a mano apaga la marca». Fijado por TC-362.
+
+   ⚠️ NO SE FILTRA POR `isTrusted`, y la primera versión de esto lo hacía. Dos razones, las dos
+   medidas. (a) Lo volvía INVERIFICABLE: un evento despachado por el arnés —o por cualquier código—
+   tiene `isTrusted === false`, así que el filtro apagaba el handler justo en la prueba que lo
+   defiende, y un comportamiento que no se puede poner en rojo no está probado. (b) No hacía falta:
+   los escritores automáticos asignan `.value` SIN despachar nada, así que no pasan por acá y su
+   marca sobrevive. El único camino que despacha un `change` sintético sobre estos dos `<select>` es
+   `aplicar()` —el menú de la pastilla—, y ahí borrar la marca es inocuo porque `aplicar()` pone
+   `esqSevManual` ANTES de despachar: el retiro ya queda bloqueado por la otra guarda.
+   ⚠️ Y LA DIRECCIÓN DE LA FALLA ES LA ELEGIDA, no la cómoda: si alguna vez un camino automático
+   despachara `change` acá, la marca se perdería y el grado NO se retiraría —o sea volvería el
+   defecto de publicar una severidad obsoleta—. Se acepta a propósito, porque la decisión de Maicol
+   fija la prioridad al revés: el grado que el médico fijó a mano no se toca, ni por las dudas. */
+function _gradoManoBorraMarca(el, ev){
+  if (!el) return;
+  delete el.dataset.sugerido;
+}
+window._gradoManoBorraMarca = _gradoManoBorraMarca;
+/* Rótulo y unidad de cada insumo, para que el aviso NOMBRE el campo y el valor. Un aviso genérico
+   manda al médico a revisar seis casillas y la que está mal es una. */
+const EA_GRADO_ROTULOS = Object.freeze({
+  vmax_ao:   ['Vmax aórtica', 'm/s'],
+  gmedio_ao: ['gradiente medio', 'mmHg'],
+  itv_ao:    ['VTI aórtico', 'cm'],
+  itv_tsvi:  ['VTI TSVI', 'cm'],
+  diam_tsvi: ['Ø TSVI', 'mm'],
+  ava_cont:  ['AVA por continuidad', 'cm²']
+});
+function _eaInsumosFueraTxt(){
+  return EA_GRADO_INSUMOS.map(function (id) {
+    let p; try { p = aoPlaus(id); } catch (e) { return null; }
+    const r = EA_GRADO_ROTULOS[id];
+    return (p && p.fuera && r) ? _aoFuera(p, r[0], r[1]) : null;
+  }).filter(Boolean);
+}
+function _eaRetirarGradoSugerido(){
+  const sel = document.getElementById('ea_grado');
+  if (!sel) return false;
+  if (window.esqSevManual && window.esqSevManual.ea) return false;
+  const sug = sel.dataset.sugerido;
+  if (!sug || sel.value !== sug) return false;
+  if (!_eaInsumoFueraDeBanda()) return false;
+  /* ⚠️ Y SE REESCRIBE EL BADGE, porque si no el retiro queda MUDO y encima desmentido. Medido con
+     TC-358 en el caso de los errores que se compensan: ahí ninguna de las bandas que
+     `clasificarEA_Vmax` consulta está violada —el AVA cae en 0,63 cm², dentro de banda—, así que
+     esa función escribe su badge normal, «Sugerido por Vmax aórtica 4.5 m/s — ESC 2021 (concordante
+     con AVA 0.63 cm²). Editable manualmente», y el retiro corre DESPUÉS. El resultado era un
+     `<select>` vaciado al lado de un cartel que afirmaba haber sugerido un grado concordante: peor
+     que no retirar, porque el médico lee que la app calculó y no ve con qué. Se escribe acá —en el
+     único lugar que SABE que hubo retiro— y nombrando los insumos, que es la conducta a corregir. */
+  const fuera = _eaInsumosFueraTxt();
+  const badgeEl = document.getElementById('ea-ava-badge');
+  if (badgeEl) badgeEl.textContent = '⚠️ Fuera de rango, no gradúa: ' + fuera.join(' · ') +
+    ' — se RETIRÓ el grado que la aplicación había sugerido automáticamente, porque salió de una ' +
+    'medición que el método no puede medir. Verificar la unidad y volver a cargarla. Un grado ' +
+    'fijado a mano no se retira.';
+  /* 'sin' y no `''`: es el valor de fábrica del `<select>` —el que deja `limpiarCampos`— y el que
+     `eaReal` ya descarta junto con la cadena vacía, así que las cuatro superficies lo tratan como
+     «no hay grado» y no como la afirmación «sin estenosis». Vaciar un `<select>` que no tiene
+     opción vacía lo dejaría en `selectedIndex -1`, un estado que el resto de la app no contempla.
+     Es el mismo valor al que vuelve `calcVP`. */
+  sel.value = 'sin';
+  delete sel.dataset.sugerido;
+  return true;
+}
+/* IAo: el grado vive en `ia_sev_final` y `sincronizarGradoIA` lo copia al hidden `ia_grado`. Se
+   marca en `autoCompletarSevIA`, que es el único escritor automático, y se retira a '0' —«Sin
+   insuficiencia / no evaluada», la primera opción del `<select>`—. No se escribe el hidden a mano:
+   se delega en `sincronizarGradoIA`, que es su dueño, para no tener dos caminos que lo pisen. */
+function _iaRetirarGradoSugerido(){
+  const sel = document.getElementById('ia_sev_final');
+  if (!sel) return false;
+  if (window.esqSevManual && window.esqSevManual.ia) return false;
+  const sug = sel.dataset.sugerido;
+  if (!sug || sel.value !== sug) return false;
+  /* ⚠️ EL ORDEN DE ESTAS TRES LÍNEAS ES LO QUE ACOTA LA REENTRADA, y por eso se declara: la marca
+     se borra ANTES de sincronizar. `sincronizarGradoIA` arrastra `emContRefrescar` → `calcEM`, y
+     aunque hoy ese camino no vuelve a `calcIA_ESC`, invertir las dos líneas abriría la recursión el
+     día que alguien lo encadene. Con la marca ya borrada, una segunda entrada sale por la guarda de
+     arriba. */
+  sel.value = '0';
+  delete sel.dataset.sugerido;
+  if (typeof sincronizarGradoIA === 'function') sincronizarGradoIA();
+  return true;
+}
+window._eaRetirarGradoSugerido = _eaRetirarGradoSugerido;
+window._iaRetirarGradoSugerido = _iaRetirarGradoSugerido;
+window._eaInsumoFueraDeBanda = _eaInsumoFueraDeBanda;
 
 function calcTango() {
   /* Los TRES insumos pasan por banda: los tres se multiplican o se dividen entre sí, así que un
@@ -23432,6 +23582,14 @@ function calcAo() {
   if (typeof eaTaviEspejar === 'function') { try { eaTaviEspejar(); } catch (e) {} }
   if (typeof calcHemo === 'function') calcHemo();
   if (typeof cxCont === 'function') cxCont();
+  /* ⚠️ EL RETIRO VA AL FINAL Y NO EN LA RAMA DE LA BANDA, y es el orden lo que importa:
+     `calcAo` llama a `clasificarEA_Vmax` mas arriba, y esa funcion consulta SOLO las bandas de
+     `vmax_ao`, `gmedio_ao` y `ava_cont`. En el caso de los errores que se compensan —O TSVI en
+     cm y VTI aortico en metros, AVA 0,63 dentro de banda— no ve ninguna violada y ESCRIBE
+     «severa». Si el retiro corriera antes, esa escritura lo pisaria y el grado quedaria igual.
+     Aca corre despues de todas las escrituras de esta cascada, y es idempotente: si no hay
+     marca propia, o si algun insumo volvio a banda, no hace nada. */
+  if (typeof _eaRetirarGradoSugerido === 'function') _eaRetirarGradoSugerido();
 }
 
 // Clasificación de estenosis aórtica por Vmax (ESC 2021)
@@ -23485,6 +23643,10 @@ function clasificarEA_Vmax() {
       _aoFuera(_pcVmax, 'Vmax aórtica', 'm/s'), _aoFuera(_pcGmed, 'gradiente medio', 'mmHg'),
       _aoFuera(_pcAva, 'AVA por continuidad', 'cm²')
     ].filter(Boolean)) + ' — no se sugiere grado de estenosis aórtica; el grado queda en lo consignado.';
+    /* «El grado queda en lo consignado» sigue siendo cierto para lo que el medico fijo; lo que
+       se retira es lo que sugirio la app. Va acá y no sólo al final de `calcAo` porque esta
+       funcion esta exportada a `window` y la llaman otros caminos sin pasar por `calcAo`. */
+    if (typeof _eaRetirarGradoSugerido === 'function') _eaRetirarGradoSugerido();
     return;
   }
 
@@ -23503,6 +23665,7 @@ function clasificarEA_Vmax() {
   // No se degrada el grado: se mantiene severa (por AVA) y se marca la discordancia.
   if (avaSevera && !velSevera && !gradSevero) {
     sel.value = 'severa';
+    _eaMarcarSugerido(sel, 'severa');
     if (badgeEl) badgeEl.textContent = `EA discordante — AVA ${ava.toFixed(2)} cm² (severa) con Vmax ${vmax} m/s${gmedio !== null ? ` / grad. medio ${gmedio} mmHg` : ''} no severos. Evaluar estenosis aórtica de bajo flujo / bajo gradiente (ESC/EACVI). Grado mantenido por AVA; no se asigna grado automático por Vmax.`;
     return;
   }
@@ -23529,6 +23692,7 @@ function clasificarEA_Vmax() {
 
   // Concordante (o sin AVA disponible): asignar grado por Vmax.
   sel.value = velVal;
+  _eaMarcarSugerido(sel, velVal);
   if (badgeEl) badgeEl.textContent = vmax < 2.0
     ? `Vmax ${vmax} m/s (<2.0) — no configura estenosis (ESC 2021).`
     : `Sugerido por Vmax aórtica ${vmax} m/s — ESC 2021${ava !== null ? ` (concordante con AVA ${ava.toFixed(2)} cm²)` : ''}. Editable manualmente.`;
@@ -23563,6 +23727,11 @@ function sugerirSeveridadEA(ava) {
   else if (avaEsModerada(ava)) val = 'moderada';
   else val = 'severa';
   sel.value = val;
+  /* Queda constancia de que este valor lo escribió el autocálculo, para que una medición que
+     después cae fuera de banda pueda RETIRARLO (ver `_eaRetirarGradoSugerido`). El badge de abajo
+     ya decía «Sugerido automáticamente… podés cambiarlo manualmente», pero eso es texto: no había
+     ningún dato que distinguiera este grado de uno tipeado por el médico. */
+  _eaMarcarSugerido(sel, val);
   if (badgeEl) badgeEl.textContent = `Sugerido automáticamente por AVA continuidad (${ava.toFixed(2)} cm²). Podés cambiarlo manualmente si lo creés necesario.`;
 }
 window.sugerirSeveridadEA = sugerirSeveridadEA;
@@ -24620,7 +24789,18 @@ function calcIA_ESC() {
      Es el único escritor de `ia-discordancia`, así que se compone la cadena entera de una vez y
      no hace falta el `dataset` que la IM necesita por tener tres. */
   const _dElIA = document.getElementById('ia-discordancia');
-  if (params.length === 0) { if (_dElIA) _dElIA.textContent = _aoFueraTxt(_iaFuera); return; }
+  if (params.length === 0) {
+    if (_dElIA) _dElIA.textContent = _aoFueraTxt(_iaFuera);
+    /* ⚠️ NADIE CUANTIFICO Y HAY ALGO FUERA DE BANDA: se retira el grado que la app sugirio.
+       Se exige `_iaFuera.length` y no basta `params.length === 0`, porque ese cero tambien es
+       el caso «todavia no se cargo nada» y «el medico borro los campos», que son otra
+       conversacion y no la que esta decision abre. Si quedo ALGUN voto, la cascada de abajo
+       reescribe el grado como siempre y no hay nada que retirar.
+       ⚠️ Y VA DESPUES del aviso: el `textContent` de arriba es lo que explica en pantalla por
+       que el grado desaparecio. Retirar en silencio es peor que no retirar. */
+    if (_iaFuera.length && typeof _iaRetirarGradoSugerido === 'function') _iaRetirarGradoSugerido();
+    return;
+  }
   let sevBadge, gradoVal;
   /* ⚠️ UN SOLO PARÁMETRO EN SEVERA BASTA — la MISMA semántica que `calcIM_ESC` desde `8b143e6`,
      replicada acá tal cual. Antes no bastaba: un voto severo con CERO moderados no matcheaba
@@ -58695,7 +58875,15 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
          marcas—, así que la reimpresión salía distinta del papel firmado.
      Es el defecto que el comentario de arriba describe para la PASP, entrando por los cuatro ids
      que la fase 5 agregó al registro y no agregó acá. Derivarla lo cierra por construcción. */
-  const _MARCAS_DERIV = ['vp_gmax','ep_grado'].concat(_ESPEJOS_TODOS.map(function (p) { return p[1]; }));
+  /* ⚠️ `ea_grado` e `ia_sev_final` ENTRAN ACÁ desde que llevan `dataset.sugerido` (2026-10-02), y
+     es el mismo motivo por el que están `vp_gmax` y `ep_grado`: esta ventana corre `calcAo()` y
+     `calcIA_ESC()` con los datos del estudio REIMPRESO, así que sin respaldar la marca se fuga
+     en las dos direcciones — la marca viva del paciente en pantalla entra a la ventana y puede
+     disparar un retiro sobre el grado que se firmó, y el recálculo de la ventana sobreescribe la
+     marca con el grado del OTRO estudio, dejándola apuntando a nada al volver. Es textualmente
+     el defecto que el comentario de arriba documenta para `teer_fevi`: ids nuevos en el
+     mecanismo y no agregados al respaldo. Lo cazó `/sharp-edges` sobre el diff. */
+  const _MARCAS_DERIV = ['vp_gmax','ep_grado','ea_grado','ia_sev_final'].concat(_ESPEJOS_TODOS.map(function (p) { return p[1]; }));
   /* Las dos filas de IM que la reimpresión pisa. Van aparte de `_MARCAS_DERIV` porque eso respalda
      `dataset` de INPUTS y esto es texto de `span`/`div` más dos atributos; meterlas ahí obligaría
      a que el respaldo supiera de dos formas distintas. */
@@ -88575,8 +88763,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261002-0809';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790939388246;                 /* eco-build-ms */
+const ECO_BUILD    = '20261002-0915';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790943327677;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -88662,7 +88850,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-0809</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-0915</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

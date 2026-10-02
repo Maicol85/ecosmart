@@ -44023,6 +44023,412 @@ caso('TC-357', 'IAo: borrar un insumo LIMPIA su calc-val — el ratio, el EROA, 
 `);
 
 
+/* ══ Aortica 3b — retiro del grado AUTO-SUGERIDO cuando un insumo queda fuera de banda ═══════
+   Los tres escenarios que pidio Maicol (i), (ii) y (iii), con las cuatro superficies UNA POR UNA.
+   La sonda del PDF y la de la fila de Excel son las mismas de TC-350. */
+const AO3B_SONDAS = `
+  const pdfTxt = function () {
+    const ns = window.jspdf;
+    if (!ns || typeof ns.jsPDF !== 'function') return 'NO HAY jsPDF';
+    const Orig = ns.jsPDF; const cap = [];
+    function Env() { const dd = new Orig(...arguments); const t = dd.text;
+      dd.text = function (x) { try { cap.push(Array.isArray(x) ? x.join(' ') : String(x)); } catch (e) {}
+        return t.apply(dd, arguments); }; return dd; }
+    Env.API = Orig.API;
+    try { ns.jsPDF = Env;
+      const paso = (window._PDF_A4_PASOS && window._PDF_A4_PASOS[0]) || { sp: 3, fs: 9 };
+      generarPDFReal({ sp: paso.sp, fs: paso.fs, __a4: true, medir: true });
+    } catch (e) {} finally { ns.jsPDF = Orig; }
+    if (!cap.length) return 'SONDA VACIA';
+    return cap.join(' | '); };
+  const excelRow = function () { const campos = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (e) {
+      campos[e.id] = (e.type === 'checkbox' || e.type === 'radio') ? (e.checked ? '1' : '') : e.value; });
+    try { return _labExcelRow({ campos: campos }); } catch (e) { return { ERROR: e.message }; } };
+  /* Las CUATRO superficies de una vez, mas el grado y la marca. El grado y la marca se leen del
+     DOM/dataset —el objeto—, no del texto de una seccion. */
+  const sup = function () { const r = __t.informe(); const g = document.getElementById('ea_grado');
+    const x = excelRow();
+    return { grado: __t.val('ea_grado'),
+             marca: (g && g.dataset.sugerido !== undefined) ? String(g.dataset.sugerido) : 'SIN MARCA',
+             badge: String(__t.txt('ea-ava-badge')),
+             inf: r.inf, suma: r.suma, pdf: String(pdfTxt()),
+             xlsGrado: String(x['EA grado']), xlsI: x['EAo_I (Leve)'],
+             xlsII: x['EAo_II (Moderada)'], xlsIII: x['EAo_III (Severa)'] }; };
+  /* La medicion valida de la que parten los tres escenarios: Vmax 4,5 / Gmedio 45 / VTI Ao 100 /
+     VTI TSVI 20 / O TSVI 20 -> AVA 0,63 cm², DVI 0,20, grado auto «severa».
+     Se carga CON eventos y en este orden a proposito: es la secuencia que produce el medico, y es
+     la que escribe el grado (la Vmax sola ya lo pone en severa por clasificarEA_Vmax). */
+  const cargarValido = function () { __t.limpiar(); window.esqSevManual = {};
+    __t.set('nombre','TC35x');
+    __t.set('vmax_ao','4.5'); __t.set('gmedio_ao','45'); __t.set('itv_ao','100');
+    __t.set('itv_tsvi','20'); __t.set('diam_tsvi','20');
+    try { syncEADesdeValvulas(); } catch (e) {} };
+`;
+
+caso('TC-358', 'EA (i): con un insumo fuera de banda se RETIRA el grado que la app sugirio sola — el informe firmado deja de decir «estenosis severa» en las cuatro superficies', `
+  ${AO3B_SONDAS}
+  cargarValido();
+  const antes = sup();
+  /* El O TSVI pasa a centimetros. El AVA se fabrica en 0,01 cm². */
+  __t.set('diam_tsvi','2');
+  const despues = sup();
+  /* ⚠️ ERRORES QUE SE COMPENSAN: O TSVI en cm (2) Y VTI aortico en metros (1) a la vez. El AVA
+     vuelve a caer en 0,63 cm² —DENTRO de banda y falso—, asi que clasificarEA_Vmax no ve ninguna
+     banda violada y escribe «severa». Lo que lo atrapa es que el retiro mira los INSUMOS, no el
+     derivado. Antes de este cambio el narrativo firmado publicaba «estenosis severa (AVA 0.63)». */
+  cargarValido();
+  __t.set('diam_tsvi','2'); __t.set('itv_ao','1');
+  const comp = sup();
+  /* ⚠️ ESCENARIO SIN Vmax, Y ES EL QUE AISLA LA MARCA DE sugerirSeveridadEA. Las cuatro escrituras
+     de ea_grado marcan, asi que mientras DOS escriban el mismo valor la marca de una es redundante
+     y sacarla no rompe nada —medido: la mutacion N6 sobrevivio a los escenarios de arriba, porque
+     ahi el que escribe y marca es clasificarEA_Vmax—. Sin Vmax esa funcion sale temprano
+     (vmax === null) y sugerirSeveridadEA queda como UNICA escritora: si su marca falta, el retiro
+     no tiene con que reconocer el grado como propio y el defecto sobrevive por ese camino.
+     AVA = pi*(20/20)^2*20/60 = 1,047 cm² -> moderada. Al pasar el O TSVI a cm el AVA cae a 0,01,
+     fuera de su banda [0.1,8], y el retiro tiene que actuar igual que con la Vmax cargada. */
+  __t.limpiar(); window.esqSevManual = {};
+  __t.set('nombre','TC358b');
+  __t.set('itv_ao','60'); __t.set('itv_tsvi','20'); __t.set('diam_tsvi','20');
+  const sinVmaxAntes = sup();
+  __t.set('diam_tsvi','2');
+  const sinVmaxDespues = sup();
+  __t.limpiar(); window.esqSevManual = {};
+  return { extra: [
+    ['DENOMINADOR: la sonda del PDF capturo texto en los dos lados',
+      antes.pdf !== 'SONDA VACIA' && antes.pdf !== 'NO HAY jsPDF' && antes.pdf.length > 50 &&
+      despues.pdf !== 'SONDA VACIA' && despues.pdf !== 'NO HAY jsPDF',
+      'antes=' + antes.pdf.slice(0,80) + ' || despues=' + despues.pdf.slice(0,80)],
+    ['DENOMINADOR: la medicion valida deja el grado en severa Y MARCADO como auto-sugerido',
+      antes.grado === 'severa' && antes.marca === 'severa',
+      'grado=' + antes.grado + ' dataset.sugerido=' + antes.marca],
+    ['DENOMINADOR — SUPERFICIE 1: antes, el informe narrativo dice estenosis severa',
+      antes.inf.indexOf('estenosis severa') > -1, 'inf no la trae'],
+    ['DENOMINADOR — SUPERFICIE 2: antes, el EN SUMA dice EAo severa',
+      antes.suma.indexOf('EAo severa') > -1, 'suma=' + antes.suma],
+    ['DENOMINADOR — SUPERFICIE 3: antes, el PDF trae severa',
+      antes.pdf.indexOf('severa') > -1, 'pdf=' + antes.pdf.slice(0,150)],
+    ['DENOMINADOR — SUPERFICIE 4: antes, el Excel trae EA grado Severa y EAo_III en 1',
+      antes.xlsGrado.toLowerCase() === 'severa' && antes.xlsIII === 1,
+      'EAgrado=' + antes.xlsGrado + ' III=' + antes.xlsIII],
+    ['⚠️ el grado AUTO-SUGERIDO se RETIRA: queda en sin y la marca se borra',
+      despues.grado === 'sin' && despues.marca === 'SIN MARCA',
+      'grado=' + despues.grado + ' dataset.sugerido=' + despues.marca],
+    /* ⚠️ EL AVISO LO ESCRIBE EL RETIRO, y esa es la razon por la que lo escribe el retiro. Medido:
+       el ultimo escritor del badge en este escenario NO es calcEADetalle —el bloque de detalle esta
+       colapsado en el arnes, asi que no corre— sino clasificarEA_Vmax, y en el caso de los errores
+       que se compensan esa funcion no ve ninguna banda violada y escribia su cartel normal
+       «Sugerido por Vmax aortica 4.5 — ESC 2021 (concordante con AVA 0.63)». O sea un select
+       vaciado al lado de un aviso que afirmaba lo contrario. El retiro reescribe el badge porque es
+       el unico lugar que SABE que hubo retiro. */
+    ['  y el aviso de pantalla DICE que se retiro el grado, y nombra el insumo',
+      despues.badge.indexOf('se RETIRÓ el grado') > -1 &&
+      despues.badge.indexOf('Fuera de rango') > -1 &&
+      despues.badge.indexOf('Ø TSVI 2 mm') > -1,
+      'badge=' + despues.badge],
+    ['  y aclara que un grado fijado a mano no se retira',
+      despues.badge.indexOf('fijado a mano no se retira') > -1, 'badge=' + despues.badge],
+    ['⚠️ SUPERFICIE 1 — el informe narrativo YA NO dice estenosis severa',
+      despues.inf.indexOf('estenosis severa') === -1, 'inf la sigue trayendo'],
+    ['⚠️ SUPERFICIE 2 — el EN SUMA ya no dice EAo severa',
+      despues.suma.indexOf('EAo severa') === -1, 'suma=' + despues.suma],
+    ['⚠️ SUPERFICIE 3 — el PDF firmado ya no trae la estenosis severa',
+      despues.pdf.indexOf('EAo severa') === -1 && despues.pdf.indexOf('estenosis severa') === -1,
+      'pdf=' + despues.pdf.slice(0,200)],
+    ['⚠️ SUPERFICIE 4 — el Excel: EA grado deja de ser Severa y EAo_III baja de 1',
+      despues.xlsGrado.toLowerCase() !== 'severa' && despues.xlsIII !== 1,
+      'EAgrado=' + despues.xlsGrado + ' I=' + despues.xlsI + ' II=' + despues.xlsII +
+      ' III=' + despues.xlsIII],
+    ['⚠️ ERRORES QUE SE COMPENSAN: con el AVA fabricado en 0,63 (dentro de banda) tampoco se gradua',
+      comp.grado === 'sin' && comp.marca === 'SIN MARCA',
+      'grado=' + comp.grado + ' marca=' + comp.marca],
+    ['  y el informe no afirma la estenosis severa sobre el AVA compensado',
+      comp.inf.indexOf('estenosis severa') === -1 && comp.suma.indexOf('EAo severa') === -1,
+      'suma=' + comp.suma],
+    ['DENOMINADOR: sin Vmax, sugerirSeveridadEA es la UNICA escritora y deja el grado moderada marcado',
+      sinVmaxAntes.grado === 'moderada' && sinVmaxAntes.marca === 'moderada',
+      'grado=' + sinVmaxAntes.grado + ' marca=' + sinVmaxAntes.marca],
+    ['⚠️ y por ESE camino el grado auto-sugerido tambien se retira',
+      sinVmaxDespues.grado === 'sin' && sinVmaxDespues.marca === 'SIN MARCA',
+      'grado=' + sinVmaxDespues.grado + ' marca=' + sinVmaxDespues.marca],
+    ['  el aviso nombra los DOS campos, no uno, y ya no afirma haber sugerido nada',
+      comp.badge.indexOf('Ø TSVI 2 mm') > -1 && comp.badge.indexOf('VTI aórtico 1 cm') > -1 &&
+      comp.badge.indexOf('se RETIRÓ el grado') > -1 &&
+      comp.badge.indexOf('Sugerido por Vmax') === -1,
+      'badge=' + comp.badge],
+  ] };
+`);
+
+caso('TC-359', 'EA (ii): el grado FIJADO A MANO no se toca — ni el de la pastilla, ni el tipeado en el select, ni el de un estudio reabierto', `
+  ${AO3B_SONDAS}
+  /* (ii-a) LA PASTILLA. El caso que obliga a consultar esqSevManual aparte de la marca: la app
+     sugiere «severa» y el medico CONFIRMA «severa», asi que el valor sigue coincidiendo con la
+     marca. Sin esa guarda se retiraria una severidad que el medico acaba de ratificar. */
+  cargarValido();
+  window.esqSevManual = window.esqSevManual || {}; window.esqSevManual.ea = true;
+  __t.set('diam_tsvi','2');
+  const pastilla = sup();
+  /* (ii-b) EL SELECT TIPEADO A MANO. Es el camino que esqSevManual.ea NO enciende —ea_grado no
+     tiene onchange en el marcado—, y es la razon por la que la bandera del retiro es
+     dataset.sugerido y no esa: el valor deja de coincidir con la marca y no se retira. */
+  cargarValido();
+  const selEl = document.getElementById('ea_grado');
+  selEl.value = 'moderada';
+  __t.set('diam_tsvi','2');
+  const aMano = sup();
+  /* (ii-c) ESTUDIO REABIERTO. La marca no se persiste y limpiarCampos la borra, asi que al
+     reabrir nunca coincide: el grado archivado no se toca. Es la contracara de «no migrar
+     estudios guardados» — reabrir RECALCULA, y el retiro tiene que abstenerse igual. */
+  cargarValido();
+  __t.set('diam_tsvi','2');
+  const g1 = __t.val('ea_grado');
+  /* Se vuelve a poner un grado a mano para tener algo que conservar en el archivo. */
+  document.getElementById('ea_grado').value = 'severa';
+  return (async () => {
+    const gu = await __t.guardar();
+    let reab = null, marcaReab = 'NO SE REABRIO';
+    if (gu.ok) {
+      __t.limpiar(); window.esqSevManual = {};
+      await __t.reabrir(gu.estudioId);
+      const g = document.getElementById('ea_grado');
+      marcaReab = (g && g.dataset.sugerido !== undefined) ? String(g.dataset.sugerido) : 'SIN MARCA';
+      reab = sup();
+      await __t.borrar(gu.estudioId);
+    }
+    __t.limpiar(); window.esqSevManual = {};
+    return { extra: [
+      ['DENOMINADOR: el escenario de la pastilla parte de un grado severa',
+        pastilla.grado !== '' , 'grado=' + pastilla.grado],
+      ['⚠️ (ii-a) con esqSevManual.ea puesto el grado se CONSERVA: sigue en severa',
+        pastilla.grado === 'severa', 'grado=' + pastilla.grado],
+      ['  y el informe lo sigue publicando, porque es la decision del medico',
+        pastilla.inf.indexOf('estenosis severa') > -1 && pastilla.suma.indexOf('EAo severa') > -1,
+        'suma=' + pastilla.suma],
+      ['  el Excel tambien lo conserva',
+        pastilla.xlsGrado.toLowerCase() === 'severa' && pastilla.xlsIII === 1,
+        'EAgrado=' + pastilla.xlsGrado + ' III=' + pastilla.xlsIII],
+      ['⚠️ (ii-b) el grado tipeado en el select se CONSERVA: sigue en moderada, no se retira',
+        aMano.grado === 'moderada', 'grado=' + aMano.grado],
+      ['  y el Excel publica moderada, no la borra',
+        aMano.xlsGrado.toLowerCase() === 'moderada' && aMano.xlsII === 1,
+        'EAgrado=' + aMano.xlsGrado + ' II=' + aMano.xlsII],
+      ['  CONTROL: ese mismo escenario SIN tocar el select a mano SI se retira (TC-358)',
+        g1 === 'sin', 'grado tras el retiro automatico=' + g1],
+      ['DENOMINADOR: el estudio se guardo y se reabrio',
+        gu.ok && reab !== null, 'guardar=' + JSON.stringify(gu)],
+      ['⚠️ (ii-c) al reabrir, el grado archivado se CONSERVA — la marca no viaja al disco',
+        reab !== null && reab.grado === 'severa' && marcaReab === 'SIN MARCA',
+        'grado=' + (reab && reab.grado) + ' dataset.sugerido=' + marcaReab],
+      ['  y el informe del estudio reabierto lo sigue publicando',
+        reab !== null && reab.suma.indexOf('EAo severa') > -1,
+        'suma=' + (reab && reab.suma)],
+    ] };
+  })();
+`);
+
+caso('TC-360', 'EA (iii): al volver a valores dentro de banda el grado se RECALCULA solo — el retiro no deja la aortica muda para siempre', `
+  ${AO3B_SONDAS}
+  cargarValido();
+  const antes = sup();
+  __t.set('diam_tsvi','2');
+  const retirado = sup();
+  /* Vuelta al valor correcto: 20 mm. */
+  __t.set('diam_tsvi','20');
+  const vuelta = sup();
+  /* Y un segundo viaje, con el OTRO insumo, para que no sea el unico camino probado. */
+  __t.set('itv_ao','1');
+  const retirado2 = sup();
+  __t.set('itv_ao','100');
+  const vuelta2 = sup();
+  __t.limpiar(); window.esqSevManual = {};
+  return { extra: [
+    ['DENOMINADOR: la medicion valida gradua severa y el AVA es 0.63',
+      antes.grado === 'severa' && __t.val('ava_cont') !== null,
+      'grado=' + antes.grado],
+    ['DENOMINADOR: fuera de banda el grado se retiro (si no, no hay nada que recalcular)',
+      retirado.grado === 'sin', 'grado=' + retirado.grado],
+    ['⚠️ de vuelta en banda el grado se RECALCULA a severa, y vuelve a quedar marcado',
+      vuelta.grado === 'severa' && vuelta.marca === 'severa',
+      'grado=' + vuelta.grado + ' marca=' + vuelta.marca],
+    ['  SUPERFICIE 1 y 2 — el informe y el EN SUMA vuelven a decirlo',
+      vuelta.inf.indexOf('estenosis severa') > -1 && vuelta.suma.indexOf('EAo severa') > -1,
+      'suma=' + vuelta.suma],
+    ['  SUPERFICIE 4 — y el Excel vuelve a EA grado Severa con EAo_III en 1',
+      vuelta.xlsGrado.toLowerCase() === 'severa' && vuelta.xlsIII === 1,
+      'EAgrado=' + vuelta.xlsGrado + ' III=' + vuelta.xlsIII],
+    /* CONTROL NEGATIVO del viaje completo: la vuelta deja las cuatro superficies IGUALES a como
+       estaban antes del retiro. Si quedara algo distinto, el retiro habria dejado estado pegado. */
+    ['CONTROL NEGATIVO — la vuelta deja el informe, el EN SUMA y el Excel IGUALES al estado inicial',
+      vuelta.inf === antes.inf && vuelta.suma === antes.suma &&
+      vuelta.xlsGrado === antes.xlsGrado && vuelta.xlsIII === antes.xlsIII,
+      'suma_antes=' + antes.suma + ' || suma_vuelta=' + vuelta.suma],
+    ['⚠️ el mismo viaje por el OTRO insumo (VTI aortico): se retira y se recalcula',
+      retirado2.grado === 'sin' && vuelta2.grado === 'severa',
+      'retirado=' + retirado2.grado + ' vuelta=' + vuelta2.grado],
+    ['  y tambien deja las superficies iguales al estado inicial',
+      vuelta2.suma === antes.suma && vuelta2.xlsGrado === antes.xlsGrado,
+      'suma=' + vuelta2.suma],
+  ] };
+`);
+
+
+caso('TC-361', 'IAo: el grado auto-sugerido tambien se RETIRA cuando el unico insumo cargado queda fuera de banda, y el fijado a mano se conserva', `
+  const excelRow = function () { const campos = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (e) {
+      campos[e.id] = (e.type === 'checkbox' || e.type === 'radio') ? (e.checked ? '1' : '') : e.value; });
+    try { return _labExcelRow({ campos: campos }); } catch (e) { return { ERROR: e.message }; } };
+  const sup = function () { const r = __t.informe();
+    const sel = document.getElementById('ia_sev_final'); const x = excelRow();
+    return { grado: __t.val('ia_grado'), sevFinal: __t.val('ia_sev_final'),
+             marca: (sel && sel.dataset.sugerido !== undefined) ? String(sel.dataset.sugerido) : 'SIN MARCA',
+             disc: String(__t.txt('ia-discordancia')),
+             inf: r.inf, suma: r.suma,
+             xlsGrado: String(x['IAo grado']), xlsIII: x['IAo_III (Severa)'] }; };
+  /* La vena contracta de 8 mm es el caso del censo: UNICO dato cargado, vota severa y gradua
+     severa. Al pasarla a centimetros (0,8) cae por debajo del piso 1 mm de su banda, nadie vota, y
+     calcIA_ESC sale por su return temprano de params.length === 0. */
+  const cargar = function () { __t.limpiar(); window.esqSevManual = {};
+    __t.set('nombre','TC361'); __t.set('ia_vc','8');
+    try { calcIA_ESC(); } catch (e) {} };
+  cargar();
+  const antes = sup();
+  __t.set('ia_vc','0.8');
+  try { calcIA_ESC(); } catch (e) {}
+  const despues = sup();
+  /* El grado fijado a mano: esqSevManual.ia es lo que pone la pastilla de severidad. */
+  cargar();
+  window.esqSevManual = window.esqSevManual || {}; window.esqSevManual.ia = true;
+  __t.set('ia_vc','0.8');
+  try { calcIA_ESC(); } catch (e) {}
+  const manual = sup();
+  /* Y el select tipeado a mano, que no enciende esqSevManual: el valor deja de coincidir con la
+     marca y tampoco se retira. */
+  cargar();
+  /* ⚠️ CON __t.set Y NO .value A SECAS: asignar .value a un select NO dispara onchange, asi que
+     sincronizarGradoIA no corre y el hidden ia_grado se queda con el valor anterior —medido:
+     sev_final=2 con grado=4—. El medico que toca el select SI dispara el evento, asi que el
+     escenario tiene que dispararlo tambien o esta midiendo otra cosa. */
+  __t.set('ia_sev_final','2');
+  __t.set('ia_vc','0.8');
+  try { calcIA_ESC(); } catch (e) {}
+  const aMano = sup();
+  /* CONTROL: de vuelta en banda se recalcula. */
+  cargar();
+  __t.set('ia_vc','0.8');
+  try { calcIA_ESC(); } catch (e) {}
+  __t.set('ia_vc','8');
+  try { calcIA_ESC(); } catch (e) {}
+  const vuelta = sup();
+  __t.limpiar(); window.esqSevManual = {};
+  return { extra: [
+    ['DENOMINADOR: la VC de 8 mm gradua severa y queda MARCADA como auto-sugerida',
+      antes.grado === '4' && antes.sevFinal === '4' && antes.marca === '4',
+      'grado=' + antes.grado + ' sev_final=' + antes.sevFinal + ' marca=' + antes.marca],
+    ['DENOMINADOR: y las superficies lo publican (informe, EN SUMA y Excel)',
+      antes.inf.indexOf('insuficiencia severa') > -1 && antes.suma.indexOf('IAo severa') > -1 &&
+      antes.xlsGrado.toLowerCase() === 'severa' && antes.xlsIII === 1,
+      'suma=' + antes.suma + ' EAgrado=' + antes.xlsGrado],
+    ['⚠️ con la VC fuera de banda el grado auto-sugerido se RETIRA a 0 y la marca se borra',
+      despues.grado === '0' && despues.sevFinal === '0' && despues.marca === 'SIN MARCA',
+      'grado=' + despues.grado + ' sev_final=' + despues.sevFinal + ' marca=' + despues.marca],
+    ['  y el aviso en pantalla sigue nombrando el campo (el retiro no es mudo)',
+      despues.disc.indexOf('VC 0.8 mm') > -1, 'disc=' + despues.disc],
+    ['  SUPERFICIE 1 y 2 — el informe y el EN SUMA dejan de afirmar la IAo severa',
+      despues.inf.indexOf('insuficiencia severa') === -1 &&
+      despues.suma.indexOf('IAo severa') === -1, 'suma=' + despues.suma],
+    ['  SUPERFICIE 4 — el Excel deja de publicar severa',
+      despues.xlsGrado.toLowerCase() !== 'severa' && despues.xlsIII !== 1,
+      'IAograd=' + despues.xlsGrado + ' III=' + despues.xlsIII],
+    ['⚠️ con esqSevManual.ia puesto NO se retira: el grado del medico se conserva',
+      manual.grado === '4' && manual.suma.indexOf('IAo severa') > -1,
+      'grado=' + manual.grado + ' suma=' + manual.suma],
+    ['⚠️ el select tipeado a mano tampoco se retira: sigue en 2 (moderada)',
+      aMano.grado === '2' && aMano.sevFinal === '2',
+      'grado=' + aMano.grado + ' sev_final=' + aMano.sevFinal],
+    ['CONTROL — de vuelta en banda el grado se RECALCULA a severa y vuelve a marcarse',
+      vuelta.grado === '4' && vuelta.marca === '4' && vuelta.suma === antes.suma,
+      'grado=' + vuelta.grado + ' marca=' + vuelta.marca + ' suma=' + vuelta.suma],
+  ] };
+`);
+
+
+caso('TC-362', 'EA e IAo: volver A MANO al mismo grado que la app habia sugerido APAGA la marca — el retiro no le borra al medico una decision que coincide con la sugerencia', `
+  /* ⚠️ EL GESTO QUE ESTE CASO DEFIENDE es el mas comun de todos y el que rompia la bandera: la app
+     sugiere «severa», el medico baja a «moderada» porque lee bajo flujo, lo piensa de nuevo y VUELVE
+     a «severa» a mano. El predicado del retiro es sel.value === dataset.sugerido, que contesta «es
+     IGUAL al ultimo valor que escribi yo», no «lo escribi yo»: al volver, el valor coincide otra vez
+     con la marca y el retiro borraba la decision del medico, publicando ademas «se RETIRO el grado
+     que LA APLICACION habia sugerido» sobre un grado que la aplicacion no habia puesto.
+     Lo encontro /sharp-edges sobre el diff. Lo que lo cierra es que una edicion HUMANA del select
+     apague la marca (onchange -> _gradoManoBorraMarca, solo con event.isTrusted). */
+  const marcaDe = (id) => { const e = document.getElementById(id);
+    return (e && e.dataset.sugerido !== undefined) ? String(e.dataset.sugerido) : 'SIN MARCA'; };
+  // ── EA ──
+  __t.limpiar(); window.esqSevManual = {};
+  __t.set('nombre','TC362');
+  __t.set('vmax_ao','4.5'); __t.set('gmedio_ao','45'); __t.set('itv_ao','100');
+  __t.set('itv_tsvi','20'); __t.set('diam_tsvi','20');
+  const eaSugerido = __t.val('ea_grado'), eaMarca1 = marcaDe('ea_grado');
+  /* El medico baja a moderada. __t.set despacha change, y el evento de CDP es de confianza. */
+  __t.set('ea_grado','moderada');
+  const eaMarca2 = marcaDe('ea_grado');
+  /* Y vuelve a severa a mano: el valor coincide otra vez con lo que la app habia sugerido. */
+  __t.set('ea_grado','severa');
+  const eaMarca3 = marcaDe('ea_grado');
+  /* Ahora el insumo se va de banda. El grado tiene que QUEDARSE. */
+  __t.set('diam_tsvi','2');
+  const eaFinal = __t.val('ea_grado');
+  const eaBadge = String(__t.txt('ea-ava-badge'));
+  const eaInf = __t.informe();
+  // ── IAo, el mismo gesto sobre ia_sev_final ──
+  __t.limpiar(); window.esqSevManual = {};
+  __t.set('nombre','TC362b'); __t.set('ia_vc','8');
+  try { calcIA_ESC(); } catch (e) {}
+  const iaSugerido = __t.val('ia_sev_final'), iaMarca1 = marcaDe('ia_sev_final');
+  __t.set('ia_sev_final','2');
+  __t.set('ia_sev_final','4');
+  const iaMarca3 = marcaDe('ia_sev_final');
+  __t.set('ia_vc','0.8');
+  try { calcIA_ESC(); } catch (e) {}
+  const iaFinal = __t.val('ia_sev_final'), iaFinalHid = __t.val('ia_grado');
+  /* ── CONTROL NEGATIVO: sin tocar el select a mano, el MISMO escenario SI se retira. Es lo que
+     prueba que esta sonda distingue los dos gestos y no esta diciendo «se conserva» a todo. ── */
+  __t.limpiar(); window.esqSevManual = {};
+  __t.set('nombre','TC362c');
+  __t.set('vmax_ao','4.5'); __t.set('gmedio_ao','45'); __t.set('itv_ao','100');
+  __t.set('itv_tsvi','20'); __t.set('diam_tsvi','20');
+  const ctrlMarca = marcaDe('ea_grado');
+  __t.set('diam_tsvi','2');
+  const ctrlFinal = __t.val('ea_grado');
+  __t.limpiar(); window.esqSevManual = {};
+  return { extra: [
+    ['DENOMINADOR: la app sugirio severa y la MARCO',
+      eaSugerido === 'severa' && eaMarca1 === 'severa',
+      'grado=' + eaSugerido + ' marca=' + eaMarca1],
+    ['⚠️ al bajar a moderada A MANO la marca se APAGA',
+      eaMarca2 === 'SIN MARCA', 'marca=' + eaMarca2],
+    ['⚠️ y al VOLVER a severa a mano sigue apagada (es el gesto que rompia la bandera)',
+      eaMarca3 === 'SIN MARCA', 'marca=' + eaMarca3],
+    ['⚠️ con el insumo fuera de banda el grado del medico se CONSERVA en severa',
+      eaFinal === 'severa', 'ea_grado=' + eaFinal],
+    ['  y el aviso NO afirma haber retirado un grado que la app no habia puesto',
+      eaBadge.indexOf('se RETIRÓ el grado') === -1, 'badge=' + eaBadge],
+    ['  el informe sigue publicando la estenosis severa que el medico consigno',
+      eaInf.inf.indexOf('estenosis severa') > -1 && eaInf.suma.indexOf('EAo severa') > -1,
+      'suma=' + eaInf.suma],
+    ['DENOMINADOR IAo: la app sugirio 4 (severa) y la marco',
+      iaSugerido === '4' && iaMarca1 === '4', 'sev_final=' + iaSugerido + ' marca=' + iaMarca1],
+    ['⚠️ IAo: volver a 4 a mano apaga la marca, y el grado se CONSERVA fuera de banda',
+      iaMarca3 === 'SIN MARCA' && iaFinal === '4' && iaFinalHid === '4',
+      'marca=' + iaMarca3 + ' sev_final=' + iaFinal + ' ia_grado=' + iaFinalHid],
+    ['CONTROL NEGATIVO — sin tocar el select, el MISMO escenario SI retira el grado',
+      ctrlMarca === 'severa' && ctrlFinal === 'sin',
+      'marca=' + ctrlMarca + ' grado_final=' + ctrlFinal],
+  ] };
+`);
+
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────
