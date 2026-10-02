@@ -45756,7 +45756,19 @@ caso('TC-375', 'El informe usa SOLO el grado final: con «Sin estenosis» dice s
   prep(); abrir('insuf'); __t.set('ia_sev_final','0');
   const insufAbierta = cuatro();
 
-  /* ── (3) CONTROL NEGATIVO: con grado de verdad el informe no cambio nada ── */
+  /* ── (3) ⚠️ EL CAJON POBLADO SIN DISCREPANCIA NO APORTA NADA. sevFundamento lo vacia en cuanto
+         la discrepancia desaparece, asi que en la practica no deberia poder quedar poblado — pero
+         el emisor del informe pregunta igual por sevDiscrepa, y esa es la segunda linea. Se puebla
+         A MANO en modo automatico para ejercitarla: sin ella, la mutacion que la saca sobrevive. */
+  prep(); abrir('esten'); __t.set('vmax_ao','4.1');
+  (function () { ['ea_fund_bfbg_cons','ea_fund_plan','ea_fund_otsvi'].forEach(function (id) {
+      const e = document.getElementById(id); if (e) e.checked = true; });
+    const n = document.getElementById('ea_fund_nota'); if (n) n.value = 'motivo colado'; })();
+  const pobladoSinDiscrepa = { discrepa: sevDiscrepa('ea'),
+    fund: (typeof eaFundamentoInforme === 'function') ? eaFundamentoInforme() : 'NO EXISTE',
+    foto: cuatro() };
+
+  /* ── (4) CONTROL NEGATIVO: con grado de verdad el informe no cambio nada ── */
   prep(); abrir('esten'); __t.set('vmax_ao','4.1');
   const conGrado = cuatro();
   prep(); abrir('esten'); __t.set('vmax_ao','2.6');
@@ -45785,6 +45797,18 @@ caso('TC-375', 'El informe usa SOLO el grado final: con «Sin estenosis» dice s
       insufAbierta.inf.indexOf('con insuficiencia') === -1 &&
       insufAbierta.suma.indexOf('Insuficiencia aórtica.') === -1,
       'inf=«' + insufAbierta.inf + '» suma=«' + insufAbierta.suma.replace(/\\n/g,' | ') + '»'],
+
+    ['⚠️ un cajon POBLADO sin discrepancia no manda NADA al informe: el emisor pregunta por sevDiscrepa',
+      pobladoSinDiscrepa.discrepa === false && pobladoSinDiscrepa.fund === null &&
+      pobladoSinDiscrepa.foto.inf.indexOf('bajo flujo') === -1 &&
+      pobladoSinDiscrepa.foto.inf.indexOf('planimetr') === -1 &&
+      pobladoSinDiscrepa.foto.inf.indexOf('subaórtica') === -1 &&
+      pobladoSinDiscrepa.foto.inf.indexOf('motivo colado') === -1,
+      'discrepa=' + pobladoSinDiscrepa.discrepa + ' fund=' + JSON.stringify(pobladoSinDiscrepa.fund) +
+      ' inf=«' + pobladoSinDiscrepa.foto.inf + '»'],
+    ['  DENOMINADOR: y las casillas estaban de verdad tildadas al preguntar',
+      document.getElementById('ea_fund_bfbg_cons') !== null,
+      'no existe la casilla'],
 
     ['CONTROL NEGATIVO: con grado severo real las cuatro superficies siguen publicandolo',
       conGrado.grado === 'severa' && conGrado.inf.indexOf('con estenosis severa') > -1 &&
@@ -46078,13 +46102,52 @@ caso('TC-377', 'El O TSVI deja los mismos espejos por las dos puertas (Aorta y D
         'firmada=«' + firmada + '» reabierta=«' + reabierta + '»'],
       ['  DENOMINADOR: tras «Nuevo estudio» la frase NO es la firmada, asi que la igualdad no es trivial',
         enBlanco !== firmada, 'en blanco=«' + enBlanco + '»'],
+      ['⚠️ los TRES caminos de restauracion llaman a sevFundRestaurar',
+        (function () {
+          /* Cableado, no comportamiento: el round-trip de arriba no distingue si falta UNO de los
+             tres caminos —el borrador del autosave puede reponerlo por el otro lado— asi que sin
+             esta condicion la mutacion que saca la llamada de cargarEstudioPorId sobrevive. */
+          const faltan = ['cargarEstudioPorId','editarInforme','_autosaveRestore'].filter(function (f) {
+            return typeof window[f] !== 'function' ||
+                   String(window[f]).indexOf('sevFundRestaurar') === -1; });
+          return faltan.length === 0;
+        })(),
+        'sin la llamada: ' + ['cargarEstudioPorId','editarInforme','_autosaveRestore'].filter(function (f) {
+          return typeof window[f] !== 'function' ||
+                 String(window[f]).indexOf('sevFundRestaurar') === -1; }).join(', ')],
+      ['⚠️ sevFundRestaurar SINCRONIZA ANTES de reponer: sin discrepancia no repone nada',
+        (function () {
+          /* El orden es parte del contrato. Con la reposicion delante del sincronizado, un estudio
+             SIN discrepancia volveria con el cajon poblado — una justificacion clinica sobre un
+             ajuste que no existe. Se prueba en modo AUTOMATICO, que es donde se nota. */
+          __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {};
+          __t.set('nombre','TC377-ORD'); __t.set('vmax_ao','4.1');
+          sevFundRestaurar({ ea_fund_bfbg_cons__chk: '1', ea_fund_plan__chk: '1',
+                             ea_fund_nota: 'no deberia volver' });
+          return sevDiscrepa('ea') === false &&
+                 document.getElementById('ea_fund_bfbg_cons').checked === false &&
+                 document.getElementById('ea_fund_plan').checked === false &&
+                 document.getElementById('ea_fund_nota').value === '';
+        })(),
+        'repuso el cajon sin discrepancia: chk=' +
+        document.getElementById('ea_fund_bfbg_cons').checked + ' nota=«' +
+        document.getElementById('ea_fund_nota').value + '»'],
       ['⚠️ una casilla guardada por el AUTOSAVE (clave pelada, booleano) tambien se repone',
         (function () {
           /* El autosave persiste data[id] = !!checked; guardarInforme persiste id+'__chk' = '1'.
              sevFundRestaurar corre en los TRES caminos, asi que tiene que entender las dos formas:
              leyendo solo __chk, recuperar un borrador reponia la nota SIN la clausula clinica. */
+          /* Se rearma la discrepancia: la condicion anterior dejo la app en modo AUTOMATICO a
+             proposito, y sin discrepancia sevFundRestaurar no repone nada — que es justo lo que esa
+             condicion prueba. Cada condicion monta su escena. */
+          __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {};
+          const pp = document.getElementById('pill-esten-aortica');
+          if (pp && !pp.classList.contains('btn-primary')) toggleValvPill('aortica','esten');
+          __t.set('nombre','TC377-AS'); __t.set('vmax_ao','2.6');
+          valvSev.aplicar('esten','aortica','severa');
           const e = document.getElementById('ea_fund_bfbg_cons');
           e.checked = false;
+          document.getElementById('ea_fund_nota').value = '';
           sevFundRestaurar({ ea_fund_bfbg_cons: true, ea_fund_nota: 'desde el autosave' });
           const ok = e.checked === true &&
             document.getElementById('ea_fund_nota').value === 'desde el autosave';
