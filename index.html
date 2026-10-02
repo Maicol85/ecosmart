@@ -3739,6 +3739,48 @@ window.cerrarSesionReal = cerrarSesionReal;
                es un aviso permanente mientras la discrepancia exista, no una alarma. -->
           <div id="ea-manual-aviso" style="font-size:11px;font-weight:700;color:var(--red);margin-top:4px;"></div>
           <div id="ea-ava-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
+          <!-- ═══ FUNDAMENTO DEL AJUSTE (F) — OPCIONAL, NUNCA BLOQUEA ═══════════════════════
+               Aparece SOLO cuando el grado fijado a mano discrepa del calculado, que es el MISMO
+               estado que enciende `ea-manual-aviso`: lo decide `sevDiscrepa('ea')`, un solo dueño.
+               Al volver a automático o al coincidir se oculta Y SE VACÍA (`sevFundLimpiar`): un
+               fundamento que sobrevive a la discrepancia que lo justificaba es una frase clínica
+               huérfana esperando salir en el informe del próximo paciente.
+               ⚠️ LAS OPCIONES SE DIVIDEN POR EL SENTIDO DEL AJUSTE y NO se muestran las dos listas
+               juntas: «bajo flujo y bajo gradiente» explica por qué el grado SUBE y «obstrucción
+               subaórtica» por qué BAJA; ofrecer las cuatro siempre deja elegir una combinación que
+               se contradice con el gesto que el médico acaba de hacer.
+               `flex-wrap` y no una media query: en pantalla ancha el cuadro de texto queda a la
+               derecha de las opciones y en celular baja solo, sin un breakpoint que haya que
+               mantener de acuerdo con `check_mobile.js`. -->
+          <div id="ea-fund" style="display:none;margin-top:8px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;">
+            <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;">Fundamento del ajuste</div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-start;">
+              <div style="flex:1 1 240px;min-width:0;">
+                <!-- Juego del ajuste que SUBE el grado (manual &gt; calculado) -->
+                <div id="ea-fund-sube" style="display:none;">
+                  <label style="display:block;font-size:11px;font-weight:400;margin:0 0 4px;cursor:pointer;line-height:1.4;"><input type="checkbox" id="ea_fund_bfbg_red" onchange="eaFundCambio(this)" style="margin-right:5px;vertical-align:middle;">Bajo flujo y bajo gradiente con FEVI reducida</label>
+                  <label style="display:block;font-size:11px;font-weight:400;margin:0 0 4px;cursor:pointer;line-height:1.4;"><input type="checkbox" id="ea_fund_bfbg_cons" onchange="eaFundCambio(this)" style="margin-right:5px;vertical-align:middle;">Bajo flujo y bajo gradiente con FEVI conservada</label>
+                  <label style="display:block;font-size:11px;font-weight:400;margin:0 0 4px;cursor:pointer;line-height:1.4;"><input type="checkbox" id="ea_fund_plan" onchange="eaFundCambio(this)" style="margin-right:5px;vertical-align:middle;">AVA por planimetr&iacute;a</label>
+                </div>
+                <!-- Juego del ajuste que BAJA el grado (manual &lt; calculado, incluido «Sin estenosis») -->
+                <div id="ea-fund-baja" style="display:none;">
+                  <label style="display:block;font-size:11px;font-weight:400;margin:0 0 4px;cursor:pointer;line-height:1.4;"><input type="checkbox" id="ea_fund_otsvi" onchange="eaFundCambio(this)" style="margin-right:5px;vertical-align:middle;">Obstrucci&oacute;n suba&oacute;rtica (OTSVI)</label>
+                </div>
+                <!-- «Otro» es UNO y vive FUERA de los dos juegos: está en los dos, así que un
+                     cambio de sentido no tiene por qué apagarlo. No aporta texto al informe —de
+                     «Otro» sólo viaja la nota, si hay— y sirve para que el médico marque que su
+                     motivo no está en la lista. -->
+                <label style="display:block;font-size:11px;font-weight:400;margin:0;cursor:pointer;line-height:1.4;"><input type="checkbox" id="ea_fund_otro" onchange="eaFundCambio(this)" style="margin-right:5px;vertical-align:middle;">Otro</label>
+              </div>
+              <div style="flex:1 1 210px;min-width:0;">
+                <label for="ea_fund_nota" style="display:block;font-size:11px;font-weight:400;color:var(--text2);margin:0 0 3px;">Motivo del ajuste (opcional)</label>
+                <!-- maxlength=100 en el atributo: el navegador no deja escribir el 101. La poda a
+                     100 se repite igual en el emisor del informe, porque un estudio reabierto puede
+                     traer el campo más largo desde un JSON editado a mano. -->
+                <input type="text" id="ea_fund_nota" maxlength="100" placeholder="Ej.: calcio valvular 2400 UA" oninput="eaFundCambio(this)" style="width:100%;">
+              </div>
+            </div>
+          </div>
         </div>
         </div>
       </div>
@@ -3880,6 +3922,16 @@ window.cerrarSesionReal = cerrarSesionReal;
              justo cuando es falso—. Decisión de Maicol (2026-10-02): se muestra SÓLO en modo
              automático. Sin un id no había forma de apagarlo. -->
         <div id="ia-auto-ayuda" style="font-size:10px;color:var(--text2);margin-top:4px;">Se completa autom&aacute;ticamente con la severidad calculada. Editable manualmente.</div>
+        <!-- ═══ FUNDAMENTO DEL AJUSTE — INSUFICIENCIA (F) ═══════════════════════════════════
+             Hermano de `ea-fund` y gobernado por el MISMO `sevFundamento`. Acá NO hay opciones:
+             decisión de Maicol (2026-10-02). Sólo el cuadro de texto, con el mismo título, el mismo
+             rótulo y los mismos 100 caracteres — la lista de opciones de la estenosis sale de los
+             escenarios de bajo gradiente, que no tienen equivalente en la regurgitación. -->
+        <div id="ia-fund" style="display:none;margin-top:8px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;">
+          <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;">Fundamento del ajuste</div>
+          <label for="ia_fund_nota" style="display:block;font-size:11px;font-weight:400;color:var(--text2);margin:0 0 3px;">Motivo del ajuste (opcional)</label>
+          <input type="text" id="ia_fund_nota" maxlength="100" placeholder="Ej.: jet exc&eacute;ntrico, vena contracta no medible" style="width:100%;">
+        </div>
       </div>
       </div>
       <div class="fg" style="margin-top:8px;"><label>Notas aórtica</label>
@@ -23960,6 +24012,7 @@ window._eaPintarRecuadroDoppler = _eaPintarRecuadroDoppler;
 window._sevCalcAlFijar = window._sevCalcAlFijar || {};
 const SEV_SINC = Object.freeze({
   ea: Object.freeze({ tipo:'esten', valv:'aortica', select:'ea_grado', aviso:'ea-manual-aviso',
+    fundamento:'ea-fund',
     ayuda: null, nombre:'Estenosis aórtica',
     /* ⚠️ EL RANGO DEL PROVEEDOR, QUE ES MÁS CHICO QUE EL DEL `<select>`, Y HAY QUE DECLARARLO.
        `eaGradoCalculado` NUNCA emite 'esclerosis': el `<select>` tiene cinco opciones y el cálculo
@@ -23999,7 +24052,7 @@ const SEV_SINC = Object.freeze({
     },
     etiqueta: function(g){ return EA_GRADO_LBL[g] || g; } }),
   ia: Object.freeze({ tipo:'insuf', valv:'aortica', select:'ia_sev_final', aviso:'ia-manual-aviso',
-    ayuda:'ia-auto-ayuda', nombre:'Insuficiencia aórtica',
+    ayuda:'ia-auto-ayuda', nombre:'Insuficiencia aórtica', fundamento:'ia-fund',
     /* Mismo recorte que en la EA, y acá el grado que queda afuera tiene conducta propia:
        `calcIA_ESC` sólo produce '4', '2' y '1' —nunca '0' ni '3'—, así que una IAo fijada a mano en
        «Moderada-severa» no se compara contra nada y no se suelta. Sin esto, el grado 3 se perdía en
@@ -24049,6 +24102,212 @@ function sevCalcPublicable(clave) {
   return (g === null || g === undefined || g === '') ? null : g;
 }
 window.sevCalcPublicable = sevCalcPublicable;
+
+/* ══ «¿HAY DISCREPANCIA?» — UN SOLO DUEÑO, Y ES EL QUE GOBIERNA TRES COSAS ════════════════════
+   El aviso rojo (R5), la aparición del cajón «Fundamento del ajuste» (F) y la frase que ese cajón
+   manda al informe (G) tienen que encenderse y apagarse EXACTAMENTE juntos. Con la condición
+   escrita tres veces, el día que una cambie el informe firmado puede quedar con una frase de
+   fundamento sobre un grado que ya volvió a automático — una justificación clínica sin el hecho
+   que justificaba.
+   ⚠️ Y EL EMISOR DEL INFORME LLAMA A ESTO, NO MIRA `style.display` DEL CAJÓN. Es la regla que este
+   archivo ya declara dos veces: «el texto del informe no puede depender de la pantalla». Un cajón
+   que quedó visible por un repintado que no corrió no puede meter una frase en un PDF firmado. */
+function sevDiscrepa(clave) {
+  const C = SEV_SINC[clave];
+  if (!C) return false;
+  const sel = document.getElementById(C.select);
+  if (!sel) return false;
+  if (!(window.esqSevManual && window.esqSevManual[clave])) return false;
+  if (C.calculables && C.calculables.indexOf(String(sel.value)) === -1) return false;
+  const calc = sevCalcPublicable(clave);
+  return !!calc && calc !== String(sel.value);
+}
+window.sevDiscrepa = sevDiscrepa;
+
+/* Sentido del ajuste: 'sube' si el grado fijado a mano es MÁS severo que el calculado, 'baja' si es
+   menos. `null` cuando no hay discrepancia o cuando alguno de los dos grados no está en la tabla de
+   orden — que es la dirección segura: sin sentido, el cajón no ofrece ninguna de las dos listas.
+   Sólo la estenosis tiene orden declarado; la insuficiencia no usa sentido porque su cajón no tiene
+   opciones (decisión de Maicol), así que devuelve `null` y nadie se lo pregunta. */
+function sevSentido(clave) {
+  if (clave !== 'ea') return null;
+  if (!sevDiscrepa('ea')) return null;
+  const sel = document.getElementById('ea_grado');
+  const calc = sevCalcPublicable('ea');
+  const oMan = EA_GRADO_ORDEN[String(sel.value)], oCal = EA_GRADO_ORDEN[String(calc)];
+  if (oMan === undefined || oCal === undefined) return null;
+  return oMan > oCal ? 'sube' : (oMan < oCal ? 'baja' : null);
+}
+window.sevSentido = sevSentido;
+
+/* Los cuatro checkbox del cajón de la estenosis, agrupados por el sentido al que pertenecen.
+   `ea_fund_otro` NO está acá: vive en los dos juegos, así que un cambio de sentido no lo apaga. */
+const EA_FUND_OPC = Object.freeze({
+  sube: Object.freeze(['ea_fund_bfbg_red', 'ea_fund_bfbg_cons', 'ea_fund_plan']),
+  baja: Object.freeze(['ea_fund_otsvi'])
+});
+/* Ejemplo en gris, por sentido. NO va al informe: es un `placeholder`, y desaparece al escribir
+   porque eso es lo que hace un placeholder — no hace falta ningún JS que lo borre. */
+const EA_FUND_EJEMPLO = Object.freeze({
+  sube: 'Ej.: calcio valvular 2400 UA',
+  baja: 'Ej.: membrana subaórtica · hipertrofia septal con obstrucción dinámica · recuperación de presión, raíz aórtica pequeña'
+});
+const IA_FUND_EJEMPLO = 'Ej.: jet excéntrico, vena contracta no medible';
+
+/* Vacía el cajón de una clave: los checkbox que se le digan (o todos) y, si se pide, la nota.
+   ⚠️ SE VACÍA DE VERDAD, NO SE OCULTA. Un cajón oculto con «Bajo flujo y bajo gradiente» tildado
+   adentro sigue siendo un campo del estudio: `guardarInforme` barre todos los checkbox y lo guarda,
+   y el emisor del informe sólo pregunta por `sevDiscrepa` — así que la siguiente vez que aparezca
+   una discrepancia, por cualquier motivo, saldría al informe una justificación que nadie eligió
+   para ese grado. */
+function sevFundVaciar(ids, nota) {
+  (ids || []).forEach(function(id){ const e = document.getElementById(id); if (e) e.checked = false; });
+  if (nota) { const n = document.getElementById(nota); if (n) n.value = ''; }
+}
+/* Apaga y vacía los DOS cajones. La llama `limpiarCampos` («Nuevo estudio»): sin esto el motivo
+   escrito para un paciente sobrevive al siguiente, que es la misma fuga entre pacientes que
+   /sharp-edges encontró con `_sevCalcAlFijar` en la tanda anterior. */
+function sevFundLimpiar() {
+  ['ea-fund', 'ia-fund'].forEach(function(id){
+    const c = document.getElementById(id); if (c) c.style.display = 'none'; });
+  sevFundVaciar(EA_FUND_OPC.sube.concat(EA_FUND_OPC.baja, ['ea_fund_otro']), 'ea_fund_nota');
+  sevFundVaciar([], 'ia_fund_nota');
+}
+window.sevFundLimpiar = sevFundLimpiar;
+
+/* ══ REPONER EL CAJÓN AL REABRIR UN ESTUDIO ═══════════════════════════════════════════════════
+   ⚠️ HACE FALTA UNA FUNCIÓN, Y LO ENCONTRÓ LA MEDICIÓN DEL ROUND-TRIP, NO EL RAZONAMIENTO.
+   `guardarInforme` barre TODOS los checkbox con id y los persiste como `<id>__chk`, así que los
+   cuatro del cajón se guardan solos. **Reponerlos no lo hace nadie**: en esta app no existe un
+   restaurador genérico de `__chk` — cada módulo tiene el suyo (`_restaurarChkInclusion`,
+   `_restaurarChecklistPaciente`, `imEspejosRestaurar`…) y el bucle de restauración sólo hace
+   `el.value = val`, que en un checkbox escribe el ATRIBUTO y no el estado marcado. Medido antes de
+   escribir esto: un estudio guardado con «Bajo flujo y bajo gradiente con FEVI conservada» y «AVA
+   por planimetría» tildadas volvía con el cajón vacío, de modo que REIMPRIMIR el informe daba un
+   texto DISTINTO del que se firmó — sin la frase del fundamento y sin nada que lo avisara.
+
+   ⚠️ EL ORDEN ES PARTE DEL CONTRATO: PRIMERO `sevSincronizar` Y DESPUÉS REPONER. `sevFundamento`
+   vacía el cajón cuando no hay discrepancia, así que reponer antes de sincronizar es escribir para
+   que lo borren tres líneas después. Y reponer sólo el juego del sentido vigente es lo mismo que
+   hace el cambio de sentido en vivo: si el grado calculado del estudio reabierto no es el mismo que
+   el día que se guardó, el sentido pudo darse vuelta, y entonces la opción guardada ya no aplica. */
+function sevFundRestaurar(campos) {
+  if (!campos) return null;
+  const vEA = sevSincronizar('ea'), vIA = sevSincronizar('ia');
+  if (vEA && vEA.discrepa) {
+    const s = sevSentido('ea');
+    const ids = (s === 'sube') ? EA_FUND_OPC.sube.slice() : (s === 'baja' ? EA_FUND_OPC.baja.slice() : []);
+    ids.concat(['ea_fund_otro']).forEach(function(id){
+      const e = document.getElementById(id);
+      if (e && campos[id + '__chk'] === '1') e.checked = true;
+    });
+    const n = document.getElementById('ea_fund_nota');
+    if (n && campos['ea_fund_nota']) n.value = String(campos['ea_fund_nota']).slice(0, 100);
+  }
+  if (vIA && vIA.discrepa) {
+    const n = document.getElementById('ia_fund_nota');
+    if (n && campos['ia_fund_nota']) n.value = String(campos['ia_fund_nota']).slice(0, 100);
+  }
+  return { ea: vEA, ia: vIA };
+}
+window.sevFundRestaurar = sevFundRestaurar;
+
+/* Muestra / oculta / vacía el cajón de UNA clave según la discrepancia y el sentido. La llama
+   `sevSincronizar`, o sea el mismo punto único que pinta el aviso rojo. */
+function sevFundamento(clave) {
+  const C = SEV_SINC[clave];
+  if (!C || !C.fundamento) return null;
+  const caj = document.getElementById(C.fundamento);
+  if (!caj) return null;
+  const hay = sevDiscrepa(clave);
+  if (!hay) {
+    caj.style.display = 'none';
+    if (clave === 'ea') sevFundVaciar(EA_FUND_OPC.sube.concat(EA_FUND_OPC.baja, ['ea_fund_otro']), 'ea_fund_nota');
+    else sevFundVaciar([], C.fundamento === 'ia-fund' ? 'ia_fund_nota' : null);
+    return { visible: false, sentido: null };
+  }
+  caj.style.display = '';
+  if (clave !== 'ea') return { visible: true, sentido: null };
+  const sentido = sevSentido('ea');
+  const gS = document.getElementById('ea-fund-sube'), gB = document.getElementById('ea-fund-baja');
+  if (gS) gS.style.display = (sentido === 'sube') ? '' : 'none';
+  if (gB) gB.style.display = (sentido === 'baja') ? '' : 'none';
+  /* «Si el sentido cambia, las opciones del otro conjunto se vacían» (F). La nota NO: es texto libre
+     del médico y no pertenece a ninguno de los dos juegos. */
+  if (sentido === 'sube') sevFundVaciar(EA_FUND_OPC.baja, null);
+  else if (sentido === 'baja') sevFundVaciar(EA_FUND_OPC.sube, null);
+  else sevFundVaciar(EA_FUND_OPC.sube.concat(EA_FUND_OPC.baja), null);
+  const n = document.getElementById('ea_fund_nota');
+  if (n && sentido) n.placeholder = EA_FUND_EJEMPLO[sentido];
+  return { visible: true, sentido: sentido };
+}
+window.sevFundamento = sevFundamento;
+
+/* Las dos de «bajo flujo y bajo gradiente» son EXCLUYENTES (F): tildar una apaga la otra. Asignar
+   `.checked` por código no dispara `change`, así que no hay recursión. «AVA por planimetría» es
+   combinable con una de ellas y por eso no entra acá. */
+function eaFundCambio(el) {
+  if (!el) return;
+  if (el.id === 'ea_fund_bfbg_red' && el.checked) sevFundVaciar(['ea_fund_bfbg_cons'], null);
+  if (el.id === 'ea_fund_bfbg_cons' && el.checked) sevFundVaciar(['ea_fund_bfbg_red'], null);
+}
+window.eaFundCambio = eaFundCambio;
+
+/* ══ LO QUE EL FUNDAMENTO MANDA AL INFORME (G) ════════════════════════════════════════════════
+   Devuelve `null` —y el informe queda IDÉNTICO a antes de esta tanda— cuando no hay discrepancia o
+   cuando el cajón está vacío. Dos destinos, y la diferencia es de semántica, no de estética:
+     · `enGrado` MODIFICA la estenosis y va pegado al grado («estenosis severa de bajo flujo…»).
+       Son los motivos del ajuste que SUBE: describen a esa estenosis.
+     · `enCola` es un hallazgo APARTE y va al final de la oración («…; obstrucción subaórtica»).
+       La OTSVI no es valvular, así que no puede ir adentro del slot de «estenosis»: con grado «Sin
+       estenosis» ese slot no existe y la frase se perdería entera.
+   La NOTA sigue al sentido: con «sube» califica a la estenosis y con «baja» califica al motivo por
+   el que se bajó, que es donde el médico la escribió.
+   ⚠️ «Otro» NO APORTA TEXTO. Es una marca de «mi motivo no está en la lista»; de ahí sólo viaja la
+   nota. Si está tildado y no hay nota, esta función devuelve `null` y al informe va sólo el grado. */
+function eaFundamentoInforme() {
+  if (!sevDiscrepa('ea')) return null;
+  const chk = function(id){ const e = document.getElementById(id); return !!(e && e.checked); };
+  const sentido = sevSentido('ea');
+  const notaEl = document.getElementById('ea_fund_nota');
+  const nota = notaEl ? String(notaEl.value || '').trim().replace(/\s+/g, ' ').slice(0, 100) : '';
+  const parens = nota ? ' (' + nota + ')' : '';
+  if (sentido === 'sube') {
+    const mods = [];
+    if (chk('ea_fund_bfbg_red')) mods.push('de bajo flujo y bajo gradiente con fracción de eyección reducida');
+    else if (chk('ea_fund_bfbg_cons')) mods.push('de bajo flujo y bajo gradiente con fracción de eyección conservada');
+    if (chk('ea_fund_plan')) {
+      /* El valor se cita sólo si está cargado, y con el mismo punto decimal que usa el resto del
+         narrativo («Vmax 4.1 m/s»): una coma decimal acá dejaría el mismo informe con los dos
+         estilos. `ava_plan` no vota el grado —eso quedó fijado en la tanda anterior— pero sí puede
+         ser el motivo por el que el médico lo subió a mano, que es para lo que se cargó. */
+      const ap = (typeof v === 'function') ? v('ava_plan') : null;
+      mods.push('con área valvular por planimetría' + (ap !== null ? ' de ' + ap.toFixed(2) + ' cm²' : ''));
+    }
+    if (!mods.length && !nota) return null;
+    return { enGrado: (mods.length ? ' ' + mods.join(', ') : '') + parens, enCola: '' };
+  }
+  if (sentido === 'baja') {
+    const suelta = chk('ea_fund_otsvi') ? '; obstrucción subaórtica' : '';
+    if (!suelta && !nota) return null;
+    return { enGrado: '', enCola: suelta + parens };
+  }
+  /* Sin sentido —no debería pasar con discrepancia, porque los dos grados salen de la misma tabla—
+     sólo la nota puede salir, y va a la cola: no hay un juego de opciones que la ancle al grado. */
+  if (!nota) return null;
+  return { enGrado: '', enCola: parens };
+}
+window.eaFundamentoInforme = eaFundamentoInforme;
+
+/* Insuficiencia: sólo la nota, pegada al grado («insuficiencia severa (jet excéntrico…)»). */
+function iaFundamentoInforme() {
+  if (!sevDiscrepa('ia')) return null;
+  const el = document.getElementById('ia_fund_nota');
+  const nota = el ? String(el.value || '').trim().replace(/\s+/g, ' ').slice(0, 100) : '';
+  return nota ? { enGrado: ' (' + nota + ')', enCola: '' } : null;
+}
+window.iaFundamentoInforme = iaFundamentoInforme;
+
 /* Repinta la pastilla y el aviso de UNA clave, y suelta el manual si el calculado cambió (R6).
    Devuelve lo que hizo, para que las pruebas puedan afirmar sobre el gesto y no sobre un textContent. */
 function sevSincronizar(clave) {
@@ -24108,10 +24367,19 @@ function sevSincronizar(clave) {
   /* ⚠️ `textContent` Y NO `innerHTML`: el texto arma dos etiquetas de grado, y aunque hoy salgan de
      tablas congeladas, un nodo de aviso que acepta marcado es la clase de atajo que esta app ya
      pagó once veces en CardioSalud. */
-  const discrepa = sigueManual && comparable && !!calc && calc !== sel.value;
+  /* ⚠️ LA CONDICIÓN LA DECIDE `sevDiscrepa`, NO ESTA FUNCIÓN. Estaba escrita acá en línea, y desde
+     esta tanda la miran tres cosas: el aviso rojo, el cajón de fundamento y el emisor del informe.
+     Con la condición duplicada, el día que una cambie el informe firmado puede llevar una frase de
+     fundamento sobre un grado que ya volvió a automático. Lee el estado vivo, o sea después de la
+     posible liberación de R6 de arriba: es exactamente lo que valía `sigueManual && comparable &&
+     !!calc && calc !== sel.value` en este punto. */
+  const discrepa = sevDiscrepa(clave);
   if (avisoEl) avisoEl.textContent = discrepa
     ? '⚠️ ' + C.etiqueta(sel.value) + ' (ajuste manual) · cálculo automático: ' + C.etiqueta(calc)
     : '';
+  /* El cajón «Fundamento del ajuste» aparece y se vacía en el MISMO punto que pinta el aviso: son
+     dos caras del mismo estado y no pueden desincronizarse (F). */
+  try { sevFundamento(clave); } catch (e) {}
   /* El texto «se completa automáticamente» se apaga en modo manual (R4): afirmaba lo contrario de lo
      que pasaba justo cuando el médico acababa de fijar el grado a mano. */
   const ayudaEl = C.ayuda ? document.getElementById(C.ayuda) : null;
@@ -28589,10 +28857,38 @@ function generarInforme(opts) {
     // FIX: comparar contra el VALUE del <select> ('sin'/'esclerosis'), no contra el texto de la opción.
     const esclerosis = eaG === 'esclerosis';
     const eaDesc = (eaG && eaG !== 'sin' && eaG !== 'esclerosis') ? eaG.toLowerCase() : null;
-    const estE = eaDesc ? `estenosis ${eaDesc}` : ((!esclerosis && pillOn('aortica','esten')) ? 'estenosis' : null);
-    const insE = (iaG > 0) ? `insuficiencia ${imTxt[iaG]}` : (pillOn('aortica','insuf') ? 'insuficiencia' : null);
-    const estC = eaDesc ? `EAo ${eaDesc}` : ((!esclerosis && pillOn('aortica','esten')) ? 'estenosis' : null);
-    const insC = (iaG > 0) ? `IAo ${imTxt[iaG]}` : (pillOn('aortica','insuf') ? 'insuficiencia' : null);
+    /* ⚠️ EL INFORME USA SOLO EL GRADO FINAL — DECISIÓN DE MAICOL (2026-10-02, H). Lo que había acá
+       era `… : ((!esclerosis && pillOn('aortica','esten')) ? 'estenosis' : null)`, o sea un respaldo
+       que afirmaba una estenosis a partir del ESTADO DE UN CAJÓN DE INTERFAZ cuando no había grado.
+       Medido en Chrome antes de tocar, con Vmax 4,1 y el grado fijado a mano en «Sin estenosis»:
+         · narrativo → «Válvula aórtica trivalva normal, con estenosis, sin insuficiencia (…)»
+         · EN SUMA   → «Estenosis aórtica.»
+         · tabla del PDF → el grado NO sale
+         · fila de Excel → `EA grado = sin`, y los tres binarios EAo_I/II/III en 0
+       O sea: dos superficies afirmaban una estenosis que las otras dos negaban, sobre el mismo
+       estudio, y la que decidía era si el botón «Estenosis» estaba apretado. Cerrar el cajón —el
+       mismo dato— devolvía «sin estenosis ni insuficiencia». Desde R7 el cajón ya no borra el grado,
+       así que esa combinación dejó de ser rara: es el gesto normal de mirar los números y después
+       afirmar que no hay estenosis.
+       La INSUFICIENCIA tenía el MISMO patrón —`pillOn('aortica','insuf')` con `ia_sev_final = 0`
+       producía «con insuficiencia» y «Insuficiencia aórtica.» con el Excel en cero— así que recibe
+       el mismo trato, que es lo que pide H para ese caso.
+       Consecuencia buscada: con grado «Sin estenosis» el informe dice sin estenosis, esté el cajón
+       abierto o cerrado. Y consecuencia COLATERAL declarada: las dos ramas `else if (estE)` /
+       `else if (insE)` del EN SUMA quedan inalcanzables —`estE` es verdadero exactamente cuando
+       `eaDesc` lo es— y se dejan como están, porque son la forma de la cascada hermana de la mitral
+       y borrarlas no cambia una sola salida. */
+    const estEBase = eaDesc ? `estenosis ${eaDesc}` : null;
+    const estCBase = eaDesc ? `EAo ${eaDesc}` : null;
+    /* La nota del fundamento de la IAo va pegada al grado: «insuficiencia severa (jet excéntrico,
+       vena contracta no medible)». Sólo sale con discrepancia manual y con el cuadro escrito (G). */
+    const _iaFund = (typeof iaFundamentoInforme === 'function') ? iaFundamentoInforme() : null;
+    const _iaFundG = (_iaFund && _iaFund.enGrado) ? _iaFund.enGrado : '';
+    const insE = (iaG > 0) ? `insuficiencia ${imTxt[iaG]}${_iaFundG}` : null;
+    const insC = (iaG > 0) ? `IAo ${imTxt[iaG]}${_iaFundG}` : null;
+    /* `let` y no `const`: la cláusula del fundamento de la ESTENOSIS se engancha unas líneas más
+       abajo, en cuanto se conoce `_eaDiscordante` — ver ahí el por qué. */
+    let estE = estEBase, estC = estCBase;
     /* DISCORDANCIA AVA / gradiente. El motor ya la detecta —mantiene el grado por área y
        escribe la explicación en el badge de pantalla— pero nada la llevaba al informe: el
        PDF firmado decía «estenosis severa» y «EAo severa.» a secas, con el añadido de
@@ -28631,6 +28927,26 @@ function generarInforme(opts) {
        se contradicen. Ese caso lo cubre ahora `discordanciaGrado`, que dice lo que pasa en vez
        de publicar las dos. */
     const _eaDiscordante = !!(_eaR && _eaR.clave === 'discordante' && eaG === 'severa');
+    /* ══ FUNDAMENTO DEL AJUSTE → INFORME (G) ════════════════════════════════════════════════════
+       Se engancha ACÁ y no arriba porque depende de `_eaDiscordante`: cuando el escenario de bajo
+       gradiente ya corre, el informe YA dice de dónde viene la severidad —«Estenosis aórtica severa
+       por AVA, de bajo flujo y bajo gradiente (BF/BG clásica), dado FEVI reducida…», con su propia
+       línea en el EN SUMA— y la cláusula del cajón imprimiría la misma cosa dos veces en oraciones
+       consecutivas. Es el aviso explícito de Maicol: «no dupliques lo que el informe ya dice cuando
+       los datos muestran bajo flujo».
+       ⚠️ SE SUPRIME SÓLO `enGrado`, NO `enCola`. `enGrado` es el motivo del ajuste que SUBE —bajo
+       flujo, planimetría— y es justo lo que el párrafo del escenario repite. `enCola` es la OTSVI,
+       que sólo existe con sentido «baja», y ahí `_eaDiscordante` es falso por construcción (exige
+       `eaG === 'severa'` y un grado calculado MENOS severo que severa). La nota de texto libre viaja
+       con el sentido, así que con «sube» y escenario de bajo gradiente se suprime junto con la
+       cláusula: es la misma oración, y el médico ya tiene el párrafo entero explicándolo. Queda
+       declarado porque es la única cosa que el cajón puede perder, y no es un olvido. */
+    const _eaFund = (typeof eaFundamentoInforme === 'function') ? eaFundamentoInforme() : null;
+    const _eaFundCola = (_eaFund && _eaFund.enCola) ? _eaFund.enCola : '';
+    if (_eaFund && _eaFund.enGrado && eaDesc && !_eaDiscordante) {
+      estE = estEBase + _eaFund.enGrado;
+      estC = estCBase + _eaFund.enGrado;
+    }
     /* Con discordancia NO se emite «EAo severa.» por separado: quien lea o copie sólo esa
        línea se lleva una severidad afirmada de plano que el párrafo siguiente pide confirmar,
        y el buscador del Laboratorio grepea el EN SUMA por palabras de severidad, así que
@@ -28736,10 +29052,16 @@ function generarInforme(opts) {
         `Válvula aórtica ${_vaAdj}, con esclerosis valvular, sin estenosis significativa ni insuficiencia.`,
         `La válvula aórtica (${_vaAdj}) presenta esclerosis valvular, sin estenosis significativa ni insuficiencia.`));
     } else if (!estE && !insE) {
+      /* ⚠️ CON FUNDAMENTO CARGADO, EL CONCISO NO PUEDE DECIR «VAo normal». Esta rama es la que toma
+         el caso que Maicol pidió nombrar: grado fijado a mano en «Sin estenosis» sobre un calculado
+         mayor, con «Obstrucción subaórtica (OTSVI)» tildada. La obstrucción NO es valvular, así que
+         «sin estenosis ni insuficiencia significativas; obstrucción subaórtica» no se contradice
+         —niega la estenosis VALVULAR y nombra la subvalvular— pero «normal» sí: el conciso borra el
+         hallazgo entero. Con la cola vacía los tres estilos quedan textualmente como estaban. */
       inf.push(estiloPick(
-        `VAo normal.`,
-        `Válvula aórtica ${_vaAdj}, ${cE}.`,
-        `La válvula aórtica ${_vaEs}, ${cE} significativas.`));
+        _eaFundCola ? `VAo ${cC}${_eaFundCola}.` : `VAo normal.`,
+        `Válvula aórtica ${_vaAdj}, ${cE}${_eaFundCola}.`,
+        `La válvula aórtica ${_vaEs}, ${cE} significativas${_eaFundCola}.`));
     } else {
       const escC = esclerosis ? 'esclerosis valvular; ' : '';
       /* Los números que SOSTIENEN la estenosis van en la misma oración que la nombra. Antes el
@@ -28760,10 +29082,12 @@ function generarInforme(opts) {
          Medido: sin esta guarda el informe imprimía la misma lista de seis valores en dos
          oraciones consecutivas. */
       const medEAp = (estE && _eaR && !_eaDiscordante) ? eaDatosTxt(_eaR, false) : '';
+      /* `_eaFundCola` al FINAL, después de los números: es un hallazgo aparte (la OTSVI) y su nota,
+         no un modificador del grado — el modificador ya entró en `estE`/`estC` arriba. */
       inf.push(estiloPick(
-        `VAo ${escC}${cC}${medEAp}.`,
-        `Válvula aórtica ${_vaAdj}, ${escC}${cE}${medEAp}.`,
-        `La válvula aórtica (${_vaAdj}), ${escC}${cE}${medEAp}.`));
+        `VAo ${escC}${cC}${medEAp}${_eaFundCola}.`,
+        `Válvula aórtica ${_vaAdj}, ${escC}${cE}${medEAp}${_eaFundCola}.`,
+        `La válvula aórtica (${_vaAdj}), ${escC}${cE}${medEAp}${_eaFundCola}.`));
     }
     /* ── Escenario hemodinámico del bajo gradiente ──
        Se DESCRIBE el escenario y se nombra el estudio que lo confirma. No se sugiere conducta
@@ -31594,6 +31918,12 @@ function limpiarCampos(silencioso) {
      `<select>` que alimenta el informe firmado del paciente B, nombrando un grado que ese estudio no
      tiene. Por SUFIJO para que el proximo aviso quede cubierto sin que nadie se acuerde. */
   document.querySelectorAll('[id$="-aviso"]').forEach(el => el.textContent = '');
+  /* Los dos cajones «Fundamento del ajuste» se apagan Y se vacían. El barrido de campos de arriba
+     alcanza a la nota y a los checkbox, pero NO al `style.display` de los contenedores: sin esto el
+     cajón del paciente anterior quedaba abierto sobre un estudio nuevo sin discrepancia. Y la
+     llamada explícita no sobra — vaciar el motivo escrito para otro paciente es la misma fuga que
+     /sharp-edges encontró con `_sevCalcAlFijar`. */
+  if (typeof sevFundLimpiar === 'function') sevFundLimpiar();
   // Válvulas: pills a estado neutro + ocultar bloques desplegados + limpiar preferencia
   document.querySelectorAll('.valv-pill').forEach(b => { b.classList.remove('btn-primary'); b.classList.add('btn-ghost'); });
   if (window.valvSev) window.valvSev.refrescarTodo();   // sub-botones de severidad → "🟡 Severidad ▼"
@@ -33917,6 +34247,7 @@ function _autosaveRestore(){
        sincronías que corren ahí adentro son las que pueden dejar el oculto sellado. */
     let _espejosRepuestos = false;
     if (typeof imEspejosRestaurar === 'function') { try { imEspejosRestaurar(data); _espejosRepuestos = true; } catch (e) { console.warn('[imEspejos/autosave]', e); } }
+    if (typeof sevFundRestaurar === 'function') { try { sevFundRestaurar(data); } catch (e) { console.warn('[sevFund/autosave]', e); } }
     /* Y se SELLA: el borrador se persiste entero cada vez, así que si el oculto no queda escrito
        acá, una sesión que no toca ninguno de los cinco orígenes de IM lo guarda vacío y el propio
        borrador vuelve pareciendo anterior al mecanismo — el fallback inferiría sobre datos que
@@ -51742,6 +52073,7 @@ function editarInforme(id) {
        la clave `im_espejos` no viene en los datos. Va DESPUÉS de `_recalcModulos` porque las
        sincronías que corren ahí adentro son las que pueden dejar el oculto sellado. */
     if (typeof imEspejosRestaurar === 'function') { try { imEspejosRestaurar(inf.campos); } catch (e) { console.warn('[imEspejos/editar]', e); } }
+    if (typeof sevFundRestaurar === 'function') { try { sevFundRestaurar(inf.campos); } catch (e) { console.warn('[sevFund/editar]', e); } }
     // Guardar id del informe siendo editado
     window._ettEditandoId = id;
     eeCurrentInformeId = inf.estudioId || null;   // el QR del PDF apuntará a este estudio
@@ -51859,6 +52191,7 @@ function cargarEstudioPorId(id) {
      la clave `im_espejos` no viene en los datos. Va DESPUÉS de `_recalcModulos` porque las
      sincronías que corren ahí adentro son las que pueden dejar el oculto sellado. */
   if (typeof imEspejosRestaurar === 'function') { try { imEspejosRestaurar(inf.campos); } catch (e) { console.warn('[imEspejos/cargar]', e); } }
+  if (typeof sevFundRestaurar === 'function') { try { sevFundRestaurar(inf.campos); } catch (e) { console.warn('[sevFund/cargar]', e); } }
   window._ettEditandoId = inf.id;
   infBaseDesdeDOM(inf.campos);   // ver nota en editarInforme: base = la guardada, o lo que quedó
   if (typeof imgRestaurar === 'function') imgRestaurar(inf.uuid);
@@ -89448,8 +89781,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261002-1335';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790958928238;                 /* eco-build-ms */
+const ECO_BUILD    = '20261002-1747';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790974046076;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -89535,7 +89868,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-1335</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-1747</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
