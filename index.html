@@ -66,6 +66,16 @@
     --yellow: #f5c842;
     --red: #f05454;
     --orange: #f59e42;
+    /* ⚠️ VARIABLE PROPIA, Y NO `--orange` — la pregunta la hizo Maicol y la respuesta es medida.
+       `--orange` es un color de PRIMER PLANO: se usa en ~25 lugares como texto, como borde y como
+       `border-left` de aviso, y vale `#f59e42` de noche y `#d97b1f` de día. Acá hace falta un FONDO
+       pastel detrás de texto oscuro, hermano de los tres que ya existen (`#dcfce7`, `#fef3c7`,
+       `#fee2e2`): `#d97b1f` detrás de `#7c2d12` da 1,9:1, ilegible. Y repuntar `--orange` a un
+       pastel rompería los otros 25 usos, donde es el trazo y no el fondo.
+       Se declara UNA sola vez y el modo Día NO la pisa a propósito: la paleta de la pastilla de
+       severidad es la MISMA en los dos temas —los tres niveles están cableados en hex, no en
+       variables— así que darle a `nivel2` un valor por tema la volvería la única que cambia. */
+    --sev-naranja: #fdba74;
     --purple: #9b7fe8;
     --section-head: #232840;
     --ete-traza: #e2e8f0;
@@ -1345,7 +1355,14 @@
 #tab-valvulas .valv-sev-btn:hover{filter:brightness(.96);}
 /* Con severidad elegida, el sub-botón toma el color del nivel (el principal queda celeste) */
 #tab-valvulas .valv-sev-btn.nivel1{background:#dcfce7;border-color:#16a34a;color:#166534;}
-#tab-valvulas .valv-sev-btn.nivel2{background:#fef3c7;border-color:#ca8a04;color:#78350f;}
+/* ⚠️ MODERADA ERA EL MISMO AMARILLO QUE «SIN DATO», no uno parecido. Medido en Chrome con
+   `getComputedStyle`, en los DOS temas: `.nivel2` pintaba `rgb(254,243,199)` y la regla base
+   —la pastilla sin severidad, «🟡 Severidad ▼»— pintaba `rgb(254,243,199)`. El MISMO byte.
+   Sólo diferían el borde (`#ca8a04` vs `#b45309`) y el texto (`#78350f` vs `#92400e`), dos
+   marrones a un paso uno del otro: de reojo, una estenosis moderada y un estudio sin graduar se
+   veían idénticos. Decisión de Maicol (2026-10-02, I): moderada pasa a NARANJA. Es cambio de
+   PANTALLA — el texto de la pastilla no se toca y ninguna superficie de salida lee el color. */
+#tab-valvulas .valv-sev-btn.nivel2{background:var(--sev-naranja);border-color:#c2410c;color:#7c2d12;}
 #tab-valvulas .valv-sev-btn.nivel3{background:#fee2e2;border-color:#dc2626;color:#7f1d1d;}
 #tab-valvulas .valv-sev-menu{display:none;position:absolute;top:100%;right:0;z-index:60;margin-top:4px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:4px;min-width:170px;max-width:260px;box-shadow:0 10px 28px rgba(0,0,0,.45);}
 #tab-valvulas .valv-sev-menu.open{display:block;}
@@ -16608,6 +16625,9 @@ function showTab(id) {
   // Abrir automáticamente los acordeones de sección que ya tengan datos cargados
   if (typeof secAutoOpen === 'function') secAutoOpen('tab-' + id);
   if (typeof cardAutoOpen === 'function') cardAutoOpen('tab-' + id);
+  /* Las pastillas de válvula no son `.sacc` ni llevan `data-autoopen`, así que ninguna de las dos
+     funciones de arriba las ve. Ver `valvAutoAbrirAortica` para por qué va acá y qué respeta. */
+  if (id === 'valvulas' && typeof valvAutoAbrirAortica === 'function') valvAutoAbrirAortica();
   /* El botón de Orthanc depende de una preferencia que vive en localStorage y que se puede
      haber movido en OTRA pestaña del navegador, donde este documento no se entera. Se repinta
      al entrar, que es el único momento en que importa. */
@@ -49812,6 +49832,53 @@ function pillOn(valvula, tipo) {
   return b ? b.classList.contains('btn-primary') : false;
 }
 window.pillOn = pillOn;
+
+/* ══ J — APERTURA AUTOMÁTICA DEL CAJÓN DE LA AÓRTICA (decisión de Maicol, 2026-10-02) ══════════
+   Al entrar a Válvulas, si hay grado de estenosis leve o mayor queda marcado el botón «Estenosis»
+   y abierto su cajón; igual para «Insuficiencia». Medido antes de escribir esto: con `ea_grado =
+   severa` y `ia_sev_final = 4`, entrar a la pestaña dejaba las dos pastillas apagadas y los dos
+   cajones en `display:none`, mientras el sub-botón mostraba «Severa ▼» — o sea el grado a la vista
+   y los números que lo sostienen escondidos, que es la misma clase de defecto que ya se cerró con
+   la tricúspide en `cargarValvPills`.
+
+   ⚠️ NO SE INVENTA UN MECANISMO PARALELO, Y «EL MÉDICO YA DECIDIÓ» NO ES UN FLAG NUEVO: es la clave
+   que `toggleValvPill` YA escribe en cada clic. El censo encontró que `secAutoOpen` y `cardAutoOpen`
+   no recorren estas secciones —no son `.sacc` ni llevan `data-autoopen`— y que el estado de las seis
+   pastillas lo gobiernan `toggleValvPill` + `cargarValvPills` sobre `valv-pill-<tipo>-<valvula>`.
+   Esa clave tiene exactamente los tres estados que J necesita:
+     · ausente (`null`) → nadie tocó esta pastilla en este estudio → se puede abrir sola;
+     · `'0'` → el médico la CERRÓ a mano → no se reabre, ni ahora ni al volver a entrar;
+     · `'1'` → ya está abierta → no hay nada que hacer.
+   Y el reinicio en un estudio nuevo tampoco hace falta escribirlo: `limpiarCampos` ya borra las seis
+   claves, así que «Nuevo estudio» devuelve el permiso. Reabrir un estudio guardado pasa por
+   `limpiarCampos` también, así que el cajón se abre según el grado GUARDADO y sin pisarlo — abrir un
+   cajón no escribe ningún campo.
+
+   ⚠️ NO SE TOCA «Severidad ▼». `toggleValvPill` repinta el sub-botón vía `sevSincronizar` con el
+   MISMO grado que ya mostraba: la apertura es un gesto de visibilidad, no de severidad. */
+const VALV_AUTO_GRADO = Object.freeze({
+  /* Los vocabularios son distintos y por eso se listan, no se comparan con `>=`: la estenosis usa
+     tokens ('leve'…) y la insuficiencia números en texto. «esclerosis» y «sin» quedan afuera a
+     propósito — son hallazgos que no abren nada, que es lo que J pide. */
+  esten: Object.freeze(['leve', 'moderada', 'severa']),
+  insuf: Object.freeze(['1', '2', '3', '4'])
+});
+function valvAutoAbrirAortica() {
+  [['esten', 'ea_grado'], ['insuf', 'ia_sev_final']].forEach(function(par){
+    const tipo = par[0], sel = document.getElementById(par[1]);
+    if (!sel) return;
+    let guardado = null;
+    /* Un `localStorage` que tira —modo privado, cuota— no puede abrir cajones por su cuenta: sin
+       poder leer la decisión del médico, la dirección segura es no hacer nada. */
+    try { guardado = localStorage.getItem('valv-pill-' + tipo + '-aortica'); } catch (e) { return; }
+    if (guardado !== null) return;
+    if (VALV_AUTO_GRADO[tipo].indexOf(String(sel.value || '')) === -1) return;
+    if (pillOn('aortica', tipo)) return;
+    toggleValvPill('aortica', tipo);
+  });
+}
+window.valvAutoAbrirAortica = valvAutoAbrirAortica;
+
 setTimeout(cargarValvPills, 150);
 
 /* ══ COLOR DEL PDF — FUENTE ÚNICA ══════════════════════════════════════════
@@ -89781,8 +89848,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261002-1747';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790974046076;                 /* eco-build-ms */
+const ECO_BUILD    = '20261002-1752';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790974360822;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -89868,7 +89935,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-1747</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-1752</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
