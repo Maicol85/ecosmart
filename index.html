@@ -3720,8 +3720,24 @@ window.cerrarSesionReal = cerrarSesionReal;
              El wrapper `bloque-prot-va` sigue existiendo y lo sigue gobernando `valvProtSync`,
              porque ahora envuelve al AT en su nueva casa. -->
         <div id="bloque-esten-aortica" style="display:none;">
-        <div class="fg"><label>Estenosis a&oacute;rtica &mdash; grado final</label>
-          <select id="ea_grado" onchange="_gradoManoBorraMarca(this, event)"><option value="sin">Sin estenosis</option><option value="esclerosis">Esclerosis</option><option value="leve">Leve (Vmax 2-3 m/s)</option><option value="moderada">Moderada (Vmax 3-4 m/s)</option><option value="severa">Severa (Vmax &gt;4 m/s)</option></select>
+        <div class="fg"><label>Estenosis a&oacute;rtica &mdash; grado final al informe</label>
+          <!-- ⚠️ LAS OPCIONES YA NO LLEVAN LA VELOCIDAD, y el motivo es que desde hoy el grado NO
+               sale sólo de la Vmax: sale del PEOR de velocidad, gradiente y AVA (ver
+               `eaGradoCalculado`). Un `<option>` que dice «Severa (Vmax >4 m/s)» sobre un grado que
+               ganó por gradiente o por área afirma el criterio equivocado, y es el rótulo que el
+               médico lee al fijarlo a mano. Decisión de Maicol (2026-10-02).
+               Los `value` NO se tocan: los diez consumidores de salida leen el `value` —el EN SUMA,
+               `eaReal` y la fila del PDF, `_labExcelRow`, `VALVSIG`, `_labEstenSev`, los indicadores
+               del Laboratorio y `eaEscenario`—, así que el informe, el PDF y el Excel salen
+               idénticos. Los tres que leen el TEXTO quedan mejor: `_pptSel` ya recortaba el
+               paréntesis en su consumidor (la salida del PPT no cambia), el ▼ de la pastilla ahora
+               muestra «Leve» en vez de «Leve (Vmax 2-3 m/s)», y la tarjeta previa al PDF clona este
+               `innerHTML` y asigna por `value`. -->
+          <select id="ea_grado" onchange="_gradoManoBorraMarca(this, event)"><option value="sin">Sin estenosis</option><option value="esclerosis">Esclerosis</option><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option></select>
+          <!-- Aviso de grado fijado a mano que discrepa del calculado (R5). Lo gobierna
+               `_eaAvisoManual`; vacío queda sin alto y no deja hueco. SIN titileo ni animación:
+               es un aviso permanente mientras la discrepancia exista, no una alarma. -->
+          <div id="ea-manual-aviso" style="font-size:11px;font-weight:700;color:var(--red);margin-top:4px;"></div>
           <div id="ea-ava-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
         </div>
         </div>
@@ -3732,7 +3748,15 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="divider"></div>
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:8px 0 6px;">&#x1F4CA; Estenosis A&oacute;rtica &mdash; Datos del Doppler</div>
         <div style="font-size:10px;color:var(--text2);margin-bottom:8px;">Los valores se sincronizan autom&aacute;ticamente desde el m&oacute;dulo Doppler A&oacute;rtico. Si no fueron ingresados antes, ingresal&oacute;s ac&aacute; directamente.</div>
-        <div class="grid-4" style="margin-bottom:6px;">
+        <!-- ⚠️ ORDEN DE LAS TRES FILAS — DECISIÓN DE MAICOL (2026-10-02). Se movieron los `div.fg`
+             COMPLETOS, sin tocar un solo `id`, `name` ni listener: los cinco campos tipeables
+             comparten `syncEADesdeValvulas()` y no hay un `tabindex` en todo el bloque, así que el
+             orden del DOM ES el orden de tabulación y mover el wrapper es todo el cambio.
+             El criterio del orden nuevo es que cada medición quede al lado de lo que la consume:
+             fila 1 lo que se mide directo con el Doppler, fila 2 los tres insumos del AVA con su
+             DVI al lado, fila 3 las dos áreas —la calculada y la planimetrada— para poder
+             compararlas de un vistazo. -->
+        <div class="grid-3" style="margin-bottom:6px;">
           <div class="fg">
             <label>Vmax ao (m/s) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
             <input type="number" id="ea_vmax" placeholder="m/s" step="0.1" oninput="syncEADesdeValvulas()">
@@ -3745,12 +3769,12 @@ window.cerrarSesionReal = cerrarSesionReal;
             <label>G. medio (mmHg) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
             <input type="number" id="ea_gmedio" placeholder="mmHg" oninput="syncEADesdeValvulas()">
           </div>
-          <div class="fg">
-            <label>AVA continuidad (cm&sup2;) &mdash; auto</label>
-            <input type="text" id="ea_ava_display" readonly style="font-weight:700;">
-          </div>
         </div>
         <div class="grid-4" style="margin-bottom:6px;">
+          <div class="fg">
+            <label>&Oslash; TSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
+            <input type="number" id="ea_dtsvi" placeholder="mm" oninput="syncEADesdeValvulas()">
+          </div>
           <div class="fg">
             <label>VTI TSVI (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
             <input type="number" id="ea_vtitsvi" placeholder="cm" oninput="syncEADesdeValvulas()">
@@ -3760,12 +3784,26 @@ window.cerrarSesionReal = cerrarSesionReal;
             <input type="number" id="ea_vtiao" placeholder="cm" oninput="syncEADesdeValvulas()">
           </div>
           <div class="fg">
-            <label>&Oslash; TSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
-            <input type="number" id="ea_dtsvi" placeholder="mm" oninput="syncEADesdeValvulas()">
-          </div>
-          <div class="fg">
             <label>DVI (ratio TSVI/Ao) &mdash; auto</label>
             <input type="text" id="ea_dvi_display" readonly>
+          </div>
+        </div>
+        <div class="grid-2" style="margin-bottom:6px;">
+          <div class="fg">
+            <label>AVA continuidad (cm&sup2;) &mdash; auto</label>
+            <input type="text" id="ea_ava_display" readonly style="font-weight:700;">
+          </div>
+          <!-- ⚠️ `ava_plan` NO VOTA EL GRADO Y NO ENTRA AL EXCEL — decisión de Maicol (2026-10-02).
+               Es una medición independiente del AVA por continuidad: se carga a mano por planimetría
+               y en 4a su único destino es el estudio guardado (lo toma el barrido de `input[id]` de
+               `guardarInforme`, sin una línea de código). No está en `EA_GRADO_INSUMOS`, así que un
+               valor fuera de banda acá NO retira el grado auto-sugerido —no participa de ninguna
+               derivación—, y no tiene columna en `_labExcelRow` ni entrada en `LAB_XLS_MAP`.
+               El id está libre: el de la mitral es `avm_plan` y es otro campo, que no se toca. -->
+          <div class="fg">
+            <label>AVA por planimetr&iacute;a (cm&sup2;)</label>
+            <input type="number" id="ava_plan" placeholder="cm&sup2;" step="0.01" oninput="avaPlanPintar()">
+            <div id="ava-plan-aviso" style="font-size:10px;color:var(--yellow);margin-top:4px;min-height:0;"></div>
           </div>
         </div>
         <!-- AT — sólo con prótesis, y por eso en su propia fila con su propio wrapper: el tiempo de
@@ -3786,7 +3824,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           <!-- La fila del AT se esconde con la misma regla que su campo: sin prótesis no aplica. -->
           <div class="calc-row" id="ea-det-at-row"><span class="calc-lbl">AT &mdash; tiempo de aceleraci&oacute;n</span><span id="ea-det-at">&#8212;</span></div>
           <div id="ea-det-at-nota" style="font-size:10px;color:var(--text2);line-height:1.45;margin:-2px 0 4px;display:none;"></div>
-          <div class="calc-row"><span class="calc-lbl" id="ea-det-sev-lbl" style="font-weight:700;">&#x2696;&#xFE0F; Severidad EA (ESC 2021)</span><span id="ea-det-sev">&#8212;</span></div>
+          <div class="calc-row"><span class="calc-lbl" id="ea-det-sev-lbl" style="font-weight:700;">&#x2696;&#xFE0F; Severidad EA (ESC/EACTS 2025)</span><span id="ea-det-sev">&#8212;</span></div>
           <!-- Salvedades del veredicto PROTÉSICO. Con válvula nativa queda oculta. -->
           <div id="ea-det-sev-nota" style="font-size:10px;color:var(--text2);line-height:1.45;margin:-2px 0 4px;display:none;"></div>
         </div>
@@ -3819,11 +3857,11 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="calc-row"><span class="calc-lbl">PHT — interpretación</span><span id="ia-pht-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Vmax telediastólica</span><span id="ia-vtd-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl">VTI Ao desc. — inversión diastólica</span><span id="ia-vti-desc-interp">—</span></div>
-        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad IAo integrada (ESC 2021)</span><span id="ia-sev">—</span></div>
+        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad IAo integrada (ESC/EACTS 2025)</span><span id="ia-sev">—</span></div>
         <div class="calc-row"><span id="ia-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
       </div>
       <div style="margin-top:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
-        <label style="font-size:11px;font-weight:700;color:var(--accent2);display:block;margin-bottom:6px;">&#x2705; Severidad IAo confirmada &mdash; ir&aacute; al informe y PDF</label>
+        <label style="font-size:11px;font-weight:700;color:var(--accent2);display:block;margin-bottom:6px;">Insuficiencia a&oacute;rtica &mdash; grado final al informe</label>
         <select id="ia_sev_final" onchange="_gradoManoBorraMarca(this, event);sincronizarGradoIA()" style="width:100%;">
           <option value="0">&mdash; Sin insuficiencia / no evaluada</option>
           <option value="1">Leve</option>
@@ -3831,7 +3869,17 @@ window.cerrarSesionReal = cerrarSesionReal;
           <option value="3">Moderada-severa</option>
           <option value="4">Severa</option>
         </select>
-        <div style="font-size:10px;color:var(--text2);margin-top:4px;">Se completa autom&aacute;ticamente con la severidad calculada. Editable manualmente.</div>
+        <!-- Aviso de grado fijado a mano que discrepa del calculado (R5), hermano de
+             `ea-manual-aviso`. Va ARRIBA del texto de ayuda a propósito: el aviso explica por qué
+             el `<select>` no dice lo que dice el cuadro, y el de abajo explica de dónde sale el
+             valor cuando NO hay aviso; en ese orden se leen como una sola frase. -->
+        <div id="ia-manual-aviso" style="font-size:11px;font-weight:700;color:var(--red);margin-top:4px;"></div>
+        <!-- ⚠️ ESTE TEXTO DEJÓ DE SER HTML ESTÁTICO Y AHORA LO GOBIERNA EL JS (`_iaAvisoManual`).
+             Era un `<div>` sin id, SIEMPRE visible, y afirmaba «Se completa automáticamente con la
+             severidad calculada» también cuando el médico acababa de fijar el grado a mano —o sea
+             justo cuando es falso—. Decisión de Maicol (2026-10-02): se muestra SÓLO en modo
+             automático. Sin un id no había forma de apagarlo. -->
+        <div id="ia-auto-ayuda" style="font-size:10px;color:var(--text2);margin-top:4px;">Se completa autom&aacute;ticamente con la severidad calculada. Editable manualmente.</div>
       </div>
       </div>
       <div class="fg" style="margin-top:8px;"><label>Notas aórtica</label>
@@ -23071,6 +23119,18 @@ const AO_BANDA_PLAUS = Object.freeze({
        atrapa el mismo VTI tipeado en milímetros (250 por 25) sin silenciar al paciente grave,
        que es el que una banda mal puesta silencia. Criterio EcoSmart de plausibilidad. */
   itv_ao: Object.freeze([5, 200]),
+  /* Área valvular aórtica medida por PLANIMETRÍA, en cm². No es un insumo de nada: no está en
+     `EA_GRADO_INSUMOS`, no vota el grado y no tiene columna en el Excel, así que esta banda no
+     protege ninguna derivación — protege la lectura, que es el único destino que el campo tiene.
+     · piso 0,2 cm²: un área aórtica por debajo de eso no es compatible con la vida; atrapa el
+       área tipeada en mm² (80 por 0,80 queda arriba, pero 0,008 por 0,8 cae acá) y el decimal
+       corrido una posición de más.
+     · techo 8 cm²: el MISMO techo que `ava_cont` ya declara en `LAB_XLS_RANGO_PROPIO`, porque es
+       la misma magnitud física medida por otro método — el mismo número no puede tener dos
+       veredictos según por qué puerta entró. Atrapa el área tipeada en mm² (80, 150).
+     Criterio EcoSmart de plausibilidad: es un rango de lo medible, no un corte de severidad, así
+     que no lleva cita y no aparece en el panel de Evidencia. */
+  ava_plan: Object.freeze([0.2, 8]),
   /* Tiempo eyectivo total del VI, en ms. Denominador del índice de Tango y de la relación AT/ET.
      · piso 80 ms: atrapa el TE tipeado en segundos (0,3 por 300) y en centisegundos (30 por 300),
        que son los dos errores que produce esta casilla. Medido antes de la banda: con TE 0,3 la
@@ -23170,6 +23230,20 @@ function _aoPlausDe(id, x){
 }
 /* El caso «el valor es el que está en pantalla», igual que `vPlaus` frente a `_plausDe`. */
 function aoPlaus(id){ return _aoPlausDe(id, (typeof v === 'function') ? v(id) : null); }
+/* AVA por planimetría: lo ÚNICO que hace es decir si el valor cargado es plausible. No recalcula
+   nada, no llama a ninguna cascada y no toca `ea_grado` — si lo hiciera estaría votando, que es
+   exactamente lo que la decisión de Maicol excluye. El aviso se escribe con `textContent` y no con
+   `innerHTML`: el texto lleva el valor CRUDO que tipeó el médico, o sea un dato de usuario. */
+function avaPlanPintar(){
+  const el = document.getElementById('ava-plan-aviso');
+  if (!el) return;
+  let p; try { p = aoPlaus('ava_plan'); } catch (e) { el.textContent = ''; return; }
+  const b = aoBandaPlaus('ava_plan');
+  el.textContent = (p && p.fuera && b)
+    ? '⚠️ Fuera de rango (' + b[0] + '-' + b[1] + ' cm²): ' + p.crudo + ' cm² — verificar la unidad.'
+    : '';
+}
+window.avaPlanPintar = avaPlanPintar;
 window.AO_BANDA_PLAUS = AO_BANDA_PLAUS;
 window.aoBandaPlaus = aoBandaPlaus;
 window.aoPlaus = aoPlaus;
@@ -32993,7 +33067,7 @@ function _eaProtNotaOcultar(){
      el cuadro diciendo «Severidad EA protésica (ASE 2024)» sobre un veredicto de la ESC 2021: la
      cita falsa espejada. Un rótulo que cambia en un sentido tiene que cambiar en los dos. */
   const lbl = document.getElementById('ea-det-sev-lbl');
-  if (lbl) lbl.textContent = '⚖️ Severidad EA (ESC 2021)';
+  if (lbl) lbl.textContent = '⚖️ Severidad EA (ESC/EACTS 2025)';
 }
 window._eaProtNotaOcultar = _eaProtNotaOcultar;
 window._eaProtPintar = _eaProtPintar;
@@ -88835,8 +88909,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261002-1012';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790946730998;                 /* eco-build-ms */
+const ECO_BUILD    = '20261002-1209';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790953761977;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -88922,7 +88996,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-1012</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-1209</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

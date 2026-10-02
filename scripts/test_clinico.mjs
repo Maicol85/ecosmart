@@ -32819,11 +32819,22 @@ caso('TC-287', 'AVA, AVAi y DVI aorticos son UN solo calculo: identicos en Valvu
         distintos.length === 0,
         Object.keys(trios).map(function(k){ return k + '=[' + trios[k].join(' | ') + ']'; }).join(' · ')]);
 
-      /* ── ⚠️ NADIE TIPEA UN DVI NI UN AVA AORTICO A MANO ──
+      /* ── ⚠️ NADIE TIPEA UN DVI NI UN AVA AORTICO *DERIVADO* A MANO ──
          Los seis campos son readonly. Y «va_dvi» no existe: era el tercero y el unico tipeable.
-         Se barre el DOM en vez de listarlos, para que un campo nuevo tipeable caiga aca. */
+         Se barre el DOM en vez de listarlos, para que un campo nuevo tipeable caiga aca.
+
+         ⚠️ CONTRATO ACTUALIZADO EL 2026-10-02 («Aortica 4a»): «ava_plan» queda EXCLUIDO del
+         barrido. La pregunta que esta condicion defiende es «¿se puede tipear a mano un valor que
+         la app DERIVA?», y el AVA por planimetria no se deriva de nada: es una medicion
+         independiente que el medico toma sobre la imagen, igual que su hermana mitral «avm_plan»
+         —que este mismo filtro ya excluye por el prefijo «vm_»—. Lo que se defiende sigue intacto:
+         «ava_cont», «ea_ava_display», «ea_dvi_display», «ava-idx» y los tres del TAVI siguen
+         barridos, y un campo DERIVADO nuevo que sea tipeable sigue cayendo aca.
+         Lo que ava_plan NO hace esta fijado aparte, por TC-369: no vota el grado, no esta en
+         «EA_GRADO_INSUMOS» y no tiene columna en el Excel. */
       const tipeables = [].slice.call(document.querySelectorAll('input'))
         .filter(function(e){ return /dvi|ava/i.test(e.id) &&
+          e.id !== 'ava_plan' &&
           !/^(vm_|vt_|vp_|tep_|rwt|evol|cx_)|shunt/.test(e.id); })
         .filter(function(e){ return !e.readOnly; })
         .map(function(e){ return e.id; });
@@ -33399,9 +33410,13 @@ caso('TC-291', 'La severidad protesica llega al INFORME FIRMADO: ea_grado no se 
     const lblProt = __t.txt('ea-det-sev-lbl');
     esc({ va_morf:'Trivalva normal', diam_tsvi:'21', itv_tsvi:'18', itv_ao:'40', vmax_ao:'2.6', gmedio_ao:'14' });
     const lblVuelta = __t.txt('ea-det-sev-lbl');
-    ex.push(['el rotulo del cuadro cita la ASE 2024 con protesis y vuelve a la ESC 2021 con valvula nativa',
-      pl(lblNat).indexOf('esc 2021') > -1 && pl(lblProt).indexOf('ase 2024') > -1 &&
-      pl(lblProt).indexOf('protesica') > -1 && pl(lblVuelta).indexOf('esc 2021') > -1,
+    /* ⚠️ CONTRATO ACTUALIZADO EL 2026-10-02 («Aortica 4a», pendiente 4): el rotulo nativo dice
+       «ESC/EACTS 2025» y no «ESC 2021». Cambio de ROTULO, no de corte: los cortes de la Tabla 4 que
+       la app usa son los mismos y la guia es la misma familia de documentos, actualizada. Lo que
+       esta condicion defiende —que el rotulo cambie en los DOS sentidos— queda intacto. */
+    ex.push(['el rotulo del cuadro cita la ASE 2024 con protesis y vuelve a la ESC/EACTS 2025 con valvula nativa',
+      pl(lblNat).indexOf('esc/eacts 2025') > -1 && pl(lblProt).indexOf('ase 2024') > -1 &&
+      pl(lblProt).indexOf('protesica') > -1 && pl(lblVuelta).indexOf('esc/eacts 2025') > -1,
       'nativa=«' + lblNat + '» protesis=«' + lblProt + '» vuelta=«' + lblVuelta + '»']);
 
     /* ── EL DVI NO SE APAGA POR EL DIAMETRO DEL TSVI ──
