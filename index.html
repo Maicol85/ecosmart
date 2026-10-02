@@ -24567,15 +24567,36 @@ function calcIA_ESC() {
          VSV los dos dentro de banda pueden darla, porque la banda acota cada factor por separado y
          no su producto—. Una fracción no puede exceder el total: no es un corte clínico, es
          aritmética, así que va sin cita. */
-      const frOk = Number.isFinite(vsv) && vsv > 0 && Number.isFinite(frNum) && frNum <= 100 && !_volRDud;
+      /* ⚠️ Y LOS DOS INSUMOS DEL DENOMINADOR TAMBIÉN RETIRAN EL VOTO, que es lo que faltaba. `vsv`
+         sale de `dtsvi` e `itsvi` tomados PELADOS (`p.crudo`), así que hasta acá la banda de esos
+         dos NOMBRABA el campo en el aviso y no tocaba el voto: `_volRDud` sólo mira el PISA
+         (`_eroaDud || _pVti.fuera`). Medido antes de este arreglo, con el PISA calibrado en
+         EROA 125,7 mm² y VTI del jet 200 cm:
+           · `itv_tsvi` 600 cm (techo 60) → `ia-freg` 13 % y la discordancia publicando FR:leve;
+           · `diam_tsvi` 450 mm (techo 45) → 1 % y el mismo FR:leve.
+         O sea un porcentaje fabricado sobre un denominador que la app acababa de declarar
+         ilegible, votando hacia el lado tranquilizador y nombrado en el aviso como si no votara.
+         ⚠️ LA COTA DEL 100 % TAPABA SÓLO EL LADO BAJO, y por casualidad: con el TSVI tipeado en
+         cm el denominador se hunde, el cociente se dispara arriba de 1 y lo ataja la cota
+         (medido: 40012 %). Por arriba del techo el denominador CRECE, el cociente BAJA y queda
+         dentro del 100 %, así que ahí no hay invariante aritmético que lo ataje — lo único que lo
+         cierra es mirar la banda de los insumos. Son dos capas distintas y las dos hacen falta.
+         DECISIÓN DE MAICOL (2026-10-02): un dato fuera de banda no vota, que es el mismo criterio
+         que la tanda 3/3 aplicó a los otros nueve campos. Fijado por TC-351. */
+      const _frTsviDud = _pIts.fuera || _pDts.fuera;
+      const frOk = Number.isFinite(vsv) && vsv > 0 && Number.isFinite(frNum) && frNum <= 100 && !_volRDud && !_frTsviDud;
       const fr = frOk ? frNum.toFixed(0) : null;
       /* Se DICE por qué no hay FR en vez de poner un guion mudo: un «—» sobre una fila que el
          médico acaba de llenar se lee como «todavía falta un dato», que es lo contrario de lo que
-         pasa. Se distinguen las dos causas porque la conducta es distinta: una se arregla
-         cambiando la unidad y la otra revisando el VSV. */
+         pasa. Se distinguen las TRES causas porque la conducta es distinta: una se arregla
+         cambiando la unidad del PISA, otra la del TSVI y la otra revisando el VSV. La del TSVI se
+         pregunta ANTES que la del PISA porque nombra el campo que el médico tiene que corregir, y
+         DESPUÉS de la cota porque con el TSVI en cm las dos son verdad y el número imposible es la
+         pista más corta. */
       _iaSet('ia-freg', frOk ? fr + '%'
         : (Number.isFinite(frNum) && frNum > 100)
           ? '—  (' + frNum.toFixed(0) + ' % imposible: una fracción regurgitante no puede exceder el 100 % — revisar Ø y VTI del TSVI)'
+          : _frTsviDud ? '—  (revisar la unidad del TSVI: ' + [_aoFuera(_pDts, 'Ø TSVI', 'mm'), _aoFuera(_pIts, 'VTI TSVI', 'cm')].filter(Boolean).join(' · ') + ')'
           : _volRDud ? '—  (revisar la unidad de los insumos del PISA)' : '—');
       if (!_volRDud) {
         if (volR < 30) { scores.leve++; params.push({p:'Vol-R',sev:'leve'}); }
@@ -88554,8 +88575,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261001-2211';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790903499838;                 /* eco-build-ms */
+const ECO_BUILD    = '20261002-0809';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790939388246;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -88641,7 +88662,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261001-2211</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-0809</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

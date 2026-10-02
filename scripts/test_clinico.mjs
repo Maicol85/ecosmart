@@ -43449,6 +43449,9 @@ caso('TC-350', 'IAo: la fraccion regurgitante es RVol/SV TSVI (ASE 2017 folio 31
     document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (e) {
       campos[e.id] = (e.type === 'checkbox' || e.type === 'radio') ? (e.checked ? '1' : '') : e.value; });
     try { return _labExcelRow({ campos: campos }); } catch (e) { return { ERROR: e.message }; } };
+  /* «La fila no publica un porcentaje»: empieza con el guion y no trae ningun numero seguido de %.
+     Es la forma de afirmar «no hay FR» sin fijar el texto que la explica (ver su comentario abajo). */
+  const _sinPorcent = (s) => String(s).indexOf('—') === 0 && !/[0-9]\\s*%/.test(String(s));
   /* PISA r=10 mm, Valiasing 15.9155, Vmax CW 500 -> EROA 20.0 mm2 exactos.
      Para EROA 15.0 mm2 se baja el aliasing a 11.9366. Es la calibracion que usa el pedido. */
   const esc = (val, vtiJet, dt, it) => { __t.limpiar(); window.esqSevManual = {};
@@ -43527,10 +43530,18 @@ caso('TC-350', 'IAo: la fraccion regurgitante es RVol/SV TSVI (ASE 2017 folio 31
     /* vsv no utilizable: no se divide, no se publica numero y no se vota. */
     ['⚠️ sin VTI del TSVI no hay FR: el renglon queda en — y no se publica un porcentaje',
       sinVsv.freg === '—', 'ia-freg=' + sinVsv.freg],
+    /* ⚠️ ESTAS DOS SE AFIRMAN POR «NO PUBLICA PORCENTAJE» Y NO POR EL GUION EXACTO, y el cambio es
+       del 2026-10-02. Los dos valores que arman estos escenarios —VTI TSVI -20 y O TSVI 1e200—
+       estan ADEMAS fuera de la banda de plausibilidad, asi que desde que la banda del TSVI retira
+       el voto de la FR (TC-351) la fila NOMBRA el campo en vez de poner un guion mudo. El
+       invariante que este caso defiende es que NO se publique un numero y que el parametro NO
+       vote; el texto literal era la forma de escribirlo, no el invariante. Se afloja lo justo: se
+       exige que la fila EMPIECE con el guion y que no traiga ningun porcentaje, que es lo que
+       haria fallar al caso si volviera a salir el 0 % tranquilizador que vino a cerrar. */
     ['⚠️ con un SV del TSVI no positivo tampoco hay FR (ni Infinity, ni NaN, ni negativo)',
-      vsvNeg.freg === '—', 'ia-freg=' + vsvNeg.freg],
+      _sinPorcent(vsvNeg.freg), 'ia-freg=' + vsvNeg.freg],
     ['⚠️ con el SV del TSVI desbordado a Infinity tampoco hay FR: no sale un 0 % tranquilizador',
-      vsvInf.freg === '—', 'ia-freg=' + vsvInf.freg],
+      _sinPorcent(vsvInf.freg), 'ia-freg=' + vsvInf.freg],
     ['  y ese escenario tampoco vota FR',
       vsvInf.disc.indexOf('FR:') === -1, 'ia-discordancia=' + vsvInf.disc],
     ['DENOMINADOR DEL VOTO: cuando la FR SI es utilizable, aparece en la linea de discordancia',
@@ -43538,7 +43549,8 @@ caso('TC-350', 'IAo: la fraccion regurgitante es RVol/SV TSVI (ASE 2017 folio 31
     ['⚠️ y con el denominador no utilizable la FR NO vota: no figura en la discordancia',
       vsvNeg.disc.indexOf('FR:') === -1, 'ia-discordancia=' + vsvNeg.disc],
     ['  el grado de ese escenario sale de los otros parametros, no de una division rota',
-      vsvNeg.grado === '2' && vsvNeg.freg === '—', 'grado=' + vsvNeg.grado + ' freg=' + vsvNeg.freg],
+      vsvNeg.grado === '2' && _sinPorcent(vsvNeg.freg),
+      'grado=' + vsvNeg.grado + ' freg=' + vsvNeg.freg],
     /* CONTROL NEGATIVO. Si esto se moviera, la sonda no estaria distinguiendo escenarios. */
     ['CONTROL NEGATIVO — sin PISA la FR no interviene y el renglon queda en —',
       ctrl.freg === '—', 'ia-freg=' + ctrl.freg],
@@ -43547,6 +43559,79 @@ caso('TC-350', 'IAo: la fraccion regurgitante es RVol/SV TSVI (ASE 2017 folio 31
       'grado=' + ctrl.grado + ' suma=' + ctrl.suma],
   ] };
 `);
+
+// ═══ GRUPO 28 — Aortica 3b: bandas que no votan y retiro del grado auto-sugerido ═════════════
+
+caso('TC-351', 'IAo: el O TSVI y el VTI TSVI fuera de banda retiran el voto de la FR — el denominador ilegible ya no fabrica un porcentaje que vota', `
+  /* Calibracion de TC-350: PISA r=10 mm, Valiasing 15.9155, Vmax CW 500 -> EROA 20.0 mm2;
+     VTI del jet 300 cm -> VolR 60.0 ml. Con O TSVI 20 mm y VTI TSVI 20 cm el SV del TSVI es
+     62.83 ml y la FR 95 %, que vota SEVERA. Es el escenario valido del que se parte.
+     ⚠️ EL VTI DEL JET ES 300 Y NO 200 A PROPOSITO, y es una condicion de DENOMINADOR del caso:
+     la discordancia solo imprime params cuando hay DOS severidades distintas (sevs.length > 1).
+     Con VolR 40 ml votan EROA:moderada y Vol-R:moderada, o sea UNA sola, y la linea sale VACIA —
+     con lo cual «no figura FR:» se cumple porque no figura NADA, y la condicion no sabria
+     distinguir «la FR no voto» de «no se imprimio ninguna». Con VolR 60 ml el Vol-R vota SEVERA,
+     hay dos severidades, params se imprime en los DOS lados del arreglo, y la ausencia de FR: es
+     un hallazgo y no un artefacto. Medido: antes del arreglo la linea traia FR:leve. */
+  const esc = (dt, it) => { __t.limpiar(); window.esqSevManual = {};
+    __t.set('nombre','TC351');
+    __t.set('ia_pisa_r','10'); __t.set('ia_pisa_val','15.9155'); __t.set('ia_vmax_cw','500');
+    __t.set('ia_vti','300');
+    __t.set('diam_tsvi', dt); __t.set('itv_tsvi', it);
+    try { calcIA_ESC(); } catch (e) {}
+    const r = __t.informe();
+    return { eroa: __t.txt('ia-eroa'), volr: __t.txt('ia-volr'), freg: __t.txt('ia-freg'),
+             /* El voto se OBSERVA en la discordancia, que imprime params uno por uno. Mirar el
+                grado no alcanza y aca se mide por que: con el TSVI fuera de banda el voto espurio
+                es leve, y EROA y VolR ya votan moderada las dos, asi que el integrado queda en 2
+                con el voto espurio y sin el. Una condicion sobre el grado NO podria fallar. */
+             disc: __t.txt('ia-discordancia'), grado: __t.val('ia_grado'),
+             inf: r.inf, suma: r.suma }; };
+  const ok     = esc('20','20');
+  const itAlto = esc('20','600');    // techo de itv_tsvi es 60 cm
+  const dtAlto = esc('450','20');    // techo de diam_tsvi es 45 mm
+  const itBajo = esc('20','0.2');    // piso 2 cm — este lado lo ataja la cota del 100 %
+  __t.limpiar(); window.esqSevManual = {};
+  return { extra: [
+    ['DENOMINADOR: la calibracion del PISA da EROA 20.0 mm² y VolR 60.0 ml',
+      ok.eroa.indexOf('20.0') > -1 && ok.volr.indexOf('60.0') > -1,
+      'eroa=' + ok.eroa + ' volr=' + ok.volr],
+    ['DENOMINADOR: dentro de banda la FR vale 95 % y VOTA severa (si no, no hay voto que retirar)',
+      ok.freg.indexOf('95') > -1 && ok.disc.indexOf('FR:severa') > -1,
+      'freg=' + ok.freg + ' disc=' + ok.disc],
+    ['⚠️ VTI TSVI 600 cm (techo 60): la FR NO vota — no figura en la discordancia',
+      itAlto.disc.indexOf('FR:') === -1, 'disc=' + itAlto.disc],
+    ['  y la fila no publica un porcentaje: dice que hay que revisar la unidad del TSVI',
+      itAlto.freg.indexOf('%)') === -1 && itAlto.freg.indexOf('VTI TSVI 600') > -1,
+      'ia-freg=' + itAlto.freg],
+    ['  el aviso de fuera de banda sigue NOMBRANDO el campo',
+      itAlto.disc.indexOf('VTI TSVI 600') > -1, 'disc=' + itAlto.disc],
+    ['⚠️ O TSVI 450 mm (techo 45): la FR NO vota',
+      dtAlto.disc.indexOf('FR:') === -1, 'disc=' + dtAlto.disc],
+    ['  y la fila nombra el O TSVI en vez de publicar el porcentaje',
+      dtAlto.freg.indexOf('%)') === -1 && dtAlto.freg.indexOf('Ø TSVI 450') > -1,
+      'ia-freg=' + dtAlto.freg],
+    ['  el lado BAJO sigue atajado por la cota del 100 %, que es la otra capa',
+      itBajo.freg.indexOf('imposible') > -1 && itBajo.disc.indexOf('FR:') === -1,
+      'ia-freg=' + itBajo.freg + ' disc=' + itBajo.disc],
+    /* CONTROL NEGATIVO: dentro de banda nada se movio. Si esto cambiara, el arreglo estaria
+       retirando el voto de la FR en el escenario valido, que es lo contrario de lo que hace. */
+    ['CONTROL NEGATIVO — dentro de banda el grado sigue siendo severa por la FR',
+      ok.grado === '4', 'grado=' + ok.grado],
+    ['CONTROL NEGATIVO — dentro de banda el informe y el EN SUMA siguen diciendo severa',
+      ok.inf.indexOf('insuficiencia severa') > -1 && ok.suma.indexOf('IAo severa.') > -1,
+      'suma=' + ok.suma],
+    /* Esta es la condicion que vuelve util a la de arriba: params SE IMPRIME con el TSVI fuera de
+       banda, asi que la ausencia de FR: es una ausencia medida y no una linea vacia. */
+    ['CONTROL NEGATIVO — fuera de banda EROA y VolR SIGUEN votando: se retira la FR, no el PISA',
+      itAlto.disc.indexOf('EROA:') > -1 && itAlto.disc.indexOf('Vol-R:') > -1,
+      'disc=' + itAlto.disc],
+    ['CONTROL NEGATIVO — lo mismo con el O TSVI: params se imprime y solo falta la FR',
+      dtAlto.disc.indexOf('EROA:') > -1 && dtAlto.disc.indexOf('Vol-R:') > -1,
+      'disc=' + dtAlto.disc],
+  ] };
+`);
+
 
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
