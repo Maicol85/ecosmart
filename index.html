@@ -23362,6 +23362,19 @@ function _eaMarcarSugerido(sel, val){
 function _gradoManoBorraMarca(el, ev){
   if (!el) return;
   delete el.dataset.sugerido;
+  /* ⚠️ Y LA PASTILLA SE REPINTA TAMBIÉN POR ESTE CAMINO (R3). Es el `onchange` de los dos `<select>`,
+     así que cubre el gesto que el ▼ no cubre: tipear el grado directamente en el selector. Sin esto
+     el sub-botón se quedaba con el grado anterior y la pantalla se contradecía igual que en el
+     síntoma (1), sólo que por el otro camino.
+     NO enciende `esqSevManual` —eso lo hace sólo el ▼, y es la regla que «Aórtica 3b» fijó por
+     escrito— así que acá no puede aparecer el aviso rojo: `sevSincronizar` lo condiciona a que la
+     marca esté puesta. Lo único que pasa es que el sub-botón dice lo que dice el selector.
+     `aplicar()` despacha un `change` sintético que pasa por acá y después llama a `sevSincronizar`
+     igual: la segunda llamada es idempotente. */
+  if (typeof sevSincronizar === 'function') {
+    const clave = { ea_grado:'ea', ia_sev_final:'ia' }[el.id];
+    if (clave) sevSincronizar(clave);
+  }
 }
 window._gradoManoBorraMarca = _gradoManoBorraMarca;
 /* Rótulo y unidad de cada insumo, para que el aviso NOMBRE el campo y el valor. Un aviso genérico
@@ -23913,6 +23926,26 @@ const SEV_SINC = Object.freeze({
     ayuda: null, nombre:'Estenosis aórtica',
     /* El proveedor devuelve el grado calculado en el MISMO vocabulario que el `<select>`. */
     calcular: function(){ return eaGradoCalculado().grado; },
+    /* ⚠️ «¿HAY GRADO CALCULADO?» NO ES LO MISMO QUE «¿LOS NÚMEROS DAN UN GRADO?», y separarlas es lo
+       que impide que el aviso rojo afirme algo que el resto de la app se niega a publicar. Medido en
+       la etapa 4, caso R8 d: con el Ø TSVI tipeado en cm y un grado manual «Moderada», el aviso
+       decía «cálculo automático: Severa» —un grado derivado de una medición que la propia app acaba
+       de declarar ilegible— al lado del recuadro diciendo «el grado NO se actualizó; verificar la
+       unidad». Las dos mitades del mismo cálculo contradiciéndose en pantalla, que es el defecto que
+       este archivo ya cerró cinco veces en la aórtica.
+       Las DOS condiciones son las mismas que bloquean las escrituras automáticas, y por el mismo
+       motivo: con morfología protésica los cortes de este vocabulario no aplican (es el bug de
+       TC-290/291, que publicaba un grado nativo sobre una prótesis) y con un insumo fuera de banda
+       el grado saldría de un número que el método no puede medir.
+       Bloqueado ⇒ `sevSincronizar` lo trata como `null`: NO suelta el manual —que es lo que R6 pide
+       textualmente para este caso— y NO pinta aviso. Lo que explica la situación es la convención que
+       ya existe: el aviso de fuera de banda del recuadro y el badge de «Aórtica 3b». Sin textos nuevos. */
+    bloqueado: function(){
+      try {
+        if (typeof valvEsProtesis === 'function' && valvEsProtesis(sv('va_morf'))) return true;
+        return !!_eaInsumoFueraDeBanda();
+      } catch (e) { return false; }
+    },
     etiqueta: function(g){ return EA_GRADO_LBL[g] || g; } }),
   ia: Object.freeze({ tipo:'insuf', valv:'aortica', select:'ia_sev_final', aviso:'ia-manual-aviso',
     ayuda:'ia-auto-ayuda', nombre:'Insuficiencia aórtica',
@@ -23928,6 +23961,17 @@ const SEV_SINC = Object.freeze({
     etiqueta: function(g){ return ({ '0':'Sin insuficiencia', '1':'Leve', '2':'Moderada',
       '3':'Moderada-severa', '4':'Severa' })[String(g)] || String(g); } })
 });
+/* El grado calculado que la app está dispuesta a NOMBRAR, que es el único con el que se puede
+   comparar un grado manual. Un solo lugar lo decide, y lo usan los DOS que miran la foto:
+   `valvSev.aplicar` al tomarla y `sevSincronizar` al compararla. Devuelve `null` cuando el grado
+   está bloqueado, que es «no sé» y no «sin estenosis». */
+function sevCalcPublicable(clave) {
+  const C = SEV_SINC[clave];
+  if (!C) return null;
+  if (C.bloqueado && C.bloqueado()) return null;
+  return C.calcular() || null;
+}
+window.sevCalcPublicable = sevCalcPublicable;
 /* Repinta la pastilla y el aviso de UNA clave, y suelta el manual si el calculado cambió (R6).
    Devuelve lo que hizo, para que las pruebas puedan afirmar sobre el gesto y no sobre un textContent. */
 function sevSincronizar(clave) {
@@ -23936,12 +23980,17 @@ function sevSincronizar(clave) {
   const sel = document.getElementById(C.select);
   if (!sel) return null;
   const manual = !!(window.esqSevManual && window.esqSevManual[clave]);
-  const calc = C.calcular();
+  const calc = sevCalcPublicable(clave);
   let soltado = false;
   if (manual) {
     const foto = window._sevCalcAlFijar[clave];
     if (foto === undefined) {
-      window._sevCalcAlFijar[clave] = calc;            // estudio reabierto: se fija el origen, no se toca el grado
+      /* Estudio reabierto: se fija el origen y no se toca el grado. ⚠️ SÓLO SI HAY GRADO: guardar
+         `null` como foto haría que el primer grado calculado que aparezca —al corregir la unidad, o
+         al cargar el primer dato— contara como «cambió» y le soltara al médico su grado manual. Con
+         la foto en `undefined` seguimos diciendo «todavía no sé desde dónde comparar», que es la
+         dirección segura de la falla. */
+      if (calc) window._sevCalcAlFijar[clave] = calc;
     } else if (calc && calc !== foto) {
       /* VUELTA A AUTOMÁTICO, SIN NINGÚN MENSAJE (R6). Se apaga la marca, se escribe el calculado y
          se vuelve a marcar como sugerido para que el retiro fuera de banda lo siga alcanzando. */
@@ -25173,6 +25222,13 @@ function calcIA_ESC() {
        ⚠️ Y VA DESPUES del aviso: el `textContent` de arriba es lo que explica en pantalla por
        que el grado desaparecio. Retirar en silencio es peor que no retirar. */
     if (_iaFuera.length && typeof _iaRetirarGradoSugerido === 'function') _iaRetirarGradoSugerido();
+    /* ⚠️ Y LA FOTO SE BORRA ACÁ, que es el equivalente del `bloqueado` de la EA para la IAo. Por este
+       `return` se sale cuando NADIE cuantificó —o cuando todo lo cargado quedó fuera de banda— así
+       que no hay grado calculado. Dejar `window._iaGradoCalc` con el valor del cálculo ANTERIOR haría
+       que el aviso rojo nombrara un grado que ya no existe, y que R6 soltara el manual comparando
+       contra una medición que el médico acaba de borrar. `null` es «no sé», no «sin insuficiencia». */
+    window._iaGradoCalc = null;
+    if (typeof sevSincronizar === 'function') sevSincronizar('ia');
     return;
   }
   let sevBadge, gradoVal;
@@ -25204,10 +25260,21 @@ function calcIA_ESC() {
     sevBadge = badge('yellow','Moderada — evaluar integrado'); gradoVal = '2';
   }
   document.getElementById('ia-sev').innerHTML = sevBadge;
+  /* ⚠️ LA FOTO DEL GRADO CALCULADO DE LA IAo SE DEJA ACÁ, Y FUERA DE LA GUARDA DE MANUAL. Es la que
+     lee el proveedor de `SEV_SINC.ia`, y tiene que actualizarse TAMBIÉN cuando hay grado manual:
+     justamente el caso en que el aviso rojo la necesita para decir «cálculo automático: Leve», y el
+     que R6 mira para soltar el manual cuando el calculado cambia. Dentro de la guarda la foto se
+     congelaría en el momento en que el médico fijó el grado y las dos cosas dejarían de funcionar.
+     La IAo no tiene proveedor puro —su grado sale de contar votos sobre nueve parámetros, no de una
+     cascada de cortes— así que la foto es el mecanismo, no un atajo. */
+  window._iaGradoCalc = gradoVal;
   if (!(window.esqSevManual && window.esqSevManual.ia)) {   // pill fijada por el médico → no pisar
     document.getElementById('ia_grado').value = gradoVal;
     if (typeof autoCompletarSevIA === 'function') autoCompletarSevIA(gradoVal);
   }
+  /* R3/R5/R6 para la IAo: repinta la pastilla, pinta o apaga el aviso rojo y suelta el manual si el
+     grado calculado cambió. Va FUERA de la guarda por el mismo motivo que la foto. */
+  if (typeof sevSincronizar === 'function') sevSincronizar('ia');
   const sevs = [...new Set(params.map(p=>p.sev))];
   /* Los DOS avisos en el mismo nodo y los dos completos: el que está fuera de banda no aparece en
      `params` —no votó—, así que la discordancia no lo nombra y sin esta línea su valor ilegible no
@@ -49060,8 +49127,25 @@ function toggleValvPill(valvula, tipo) {
   if (activo) {
     pill.classList.remove('btn-primary'); pill.classList.add('btn-ghost');
     bloque.style.display = 'none';
-    // Apagar la válvula limpia su severidad: el informe se arma desde el campo, no desde el botón.
-    if (window.valvSev) window.valvSev.limpiar(tipo, valvula);
+    /* ⚠️ CERRAR EL CAJÓN DE LA AÓRTICA YA NO BORRA LA SEVERIDAD — DECISIÓN DE MAICOL (2026-10-02, R7).
+       Lo que había acá era `valvSev.limpiar(tipo, valvula)`, que deja el `<select>` en
+       `selectedIndex 0` —o sea `ea_grado = 'sin'`— y borra `esqSevManual`. Medido el 2026-10-02:
+       con Vmax 4,1 y el grado en «Severa», apretar el botón «Estenosis» dejaba el grado en «sin» y
+       la pastilla en «🟡 Severidad ▼». Borrar la severidad que va al informe firmado al cerrar un
+       cajón de interfaz no tiene sentido clínico: son dos gestos distintos, y el médico que quiere
+       afirmar «sin estenosis» lo dice con el ▼ de la pastilla —y eso dispara el aviso de R5—.
+       ⚠️ SE GATEA POR VÁLVULA, Y ES UNA COSTURA DECLARADA, NO UN DESCUIDO. `toggleValvPill` gobierna
+       las SEIS pastillas, así que sacar la llamada a secas le cambiaría el comportamiento a la
+       mitral y a la tricúspide — y la orden de esta tanda es explícita: no aplicar nada de esto a la
+       mitral ni a otras válvulas antes de que Maicol lo pida. Mientras la costura exista, cerrar el
+       cajón de la MITRAL sigue borrando su grado y cerrar el de la AÓRTICA no. Cuando la mitral
+       reciba el mismo trato, lo que se borra es la condición, no se agrega otra rama. */
+    if (window.valvSev && valvula !== 'aortica') window.valvSev.limpiar(tipo, valvula);
+    /* La aórtica igual repinta: el cajón se cerró y la pastilla tiene que seguir mostrando el grado
+       que quedó —que es el punto de R7— en vez de quedarse con lo que mostraba antes. */
+    if (valvula === 'aortica' && typeof sevSincronizar === 'function') {
+      sevSincronizar(tipo === 'esten' ? 'ea' : 'ia');
+    }
     // Ocultar bloque detalle EM si corresponde
     if (valvula === 'mitral' && tipo === 'esten') {
       const det = document.getElementById('bloque-em-detalle');
@@ -49177,7 +49261,27 @@ window.valvSev = (function(){
     const campo = CAMPO[tipo][valv], el = g(campo);
     if (!el) return;
     window.esqSevManual = window.esqSevManual || {};
-    window.esqSevManual[campo.replace('_grado','')] = true;   // manual gana sobre el autocálculo
+    const clave = campo.replace('_grado','').replace('_sev_final','');
+    window.esqSevManual[clave] = true;   // manual gana sobre el autocálculo
+    /* ⚠️ LA FOTO DEL GRADO CALCULADO SE TOMA ACÁ, Y ANTES DE ESCRIBIR EL `<select>` (R6). Es contra
+       esta foto —y no contra el valor de ahora— que `sevSincronizar` decide si suelta el grado
+       manual: lo suelta cuando el calculado CAMBIA respecto de lo que valía en el momento en que el
+       médico lo fijó, no cuando difiere de lo que el médico eligió. Si fuera «difieren → soltar», el
+       gesto entero sería imposible: con Vmax 2,6 y manual «Severa» hay discrepancia permanente y el
+       manual se perdería en el primer recálculo.
+       ⚠️ ANTES DE ESCRIBIR, porque el proveedor de la IAo lee `window._iaGradoCalc`, que es la foto
+       del último `calcIA_ESC`; y el de la EA es puro pero lee `ava_cont`, que esta función no toca.
+       Tomarla después de los `dispatchEvent` de abajo la dejaría contaminada por el recálculo que
+       esos eventos pudieran arrastrar. */
+    /* ⚠️ POR `sevCalcPublicable` Y NO POR `calcular()` PELADO: tiene que ser el MISMO número contra
+       el que `sevSincronizar` va a comparar después. Con `calcular()` crudo, fijar el grado a mano
+       mientras un insumo está fuera de banda guardaba la foto del grado ilegible, y al corregir la
+       unidad ese grado «cambiaba» y le soltaba al médico su decisión. Dos funciones preguntando lo
+       mismo de dos maneras siempre terminan discrepando en la banda que nadie probó. */
+    if (window.SEV_SINC && window.SEV_SINC[clave]) {
+      window._sevCalcAlFijar = window._sevCalcAlFijar || {};
+      window._sevCalcAlFijar[clave] = sevCalcPublicable(clave);
+    }
     if (typeof _sevManualSync === 'function') _sevManualSync();
     if (tipo === 'insuf') {
       // IM e IAo pasan por su selector "severidad confirmada", que sincroniza el hidden.
@@ -49191,7 +49295,11 @@ window.valvSev = (function(){
     el.dispatchEvent(new Event('input',{bubbles:true}));
     const pill = g('pill-' + tipo + '-' + valv);
     if (pill && !pill.classList.contains('btn-primary')) toggleValvPill(valv, tipo);
-    refrescar(tipo, valv);
+    /* Para las claves registradas se pasa por `sevSincronizar`, que repinta la pastilla Y pinta el
+       aviso rojo de discrepancia (R5). `refrescar` sola deja el aviso con el texto de la elección
+       anterior, que es la clase de desfase que esta tanda vino a cerrar. */
+    if (window.SEV_SINC && window.SEV_SINC[clave] && typeof sevSincronizar === 'function') sevSincronizar(clave);
+    else refrescar(tipo, valv);
   }
 
   // Apagar el botón principal: vuelve a "sin severidad" y sale del informe.
@@ -49208,9 +49316,14 @@ window.valvSev = (function(){
       el.dispatchEvent(new Event('change',{bubbles:true}));
       el.dispatchEvent(new Event('input',{bubbles:true}));
     }
-    if (window.esqSevManual) delete window.esqSevManual[campo.replace('_grado','')];
+    const claveL = campo.replace('_grado','').replace('_sev_final','');
+    if (window.esqSevManual) delete window.esqSevManual[claveL];
+    /* La foto se borra junto con la marca, y es lo simétrico de `aplicar()`: dejarla viva haría que
+       el próximo manual se comparara contra el calculado de HACE DOS gestos. */
+    if (window._sevCalcAlFijar) delete window._sevCalcAlFijar[claveL];
     if (typeof _sevManualSync === 'function') _sevManualSync();   // simétrico con aplicar()
-    refrescar(tipo, valv);
+    if (window.SEV_SINC && window.SEV_SINC[claveL] && typeof sevSincronizar === 'function') sevSincronizar(claveL);
+    else refrescar(tipo, valv);
   }
 
   // Refleja en el sub-botón lo que hay en el campo (venga de acá o del autocálculo).
@@ -89209,8 +89322,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261002-1223';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790954595400;                 /* eco-build-ms */
+const ECO_BUILD    = '20261002-1233';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790955186291;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -89296,7 +89409,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-1223</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-1233</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
