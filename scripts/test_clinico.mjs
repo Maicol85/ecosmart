@@ -43633,6 +43633,396 @@ caso('TC-351', 'IAo: el O TSVI y el VTI TSVI fuera de banda retiran el voto de l
 `);
 
 
+caso('TC-352', 'EA: con el O TSVI en cm o el VTI aortico en m no se escribe ea_grado, el badge lo DICE, el panel no publica conducta y el informe no afirma estenosis severa ni DI', `
+  /* ⚠️ LOS CAMPOS SE CARGAN SIN DISPARAR EVENTOS, y es una condicion del caso, no una comodidad.
+     __t.set despacha input, asi que cargar la Vmax 4,5 ANTES del O TSVI hace que clasificarEA_Vmax
+     escriba 'severa' en ese keystroke intermedio —medido— y despues la banda ya no puede escribir
+     pero tampoco borra. Ese escenario es real y es el que mide TC-358; ACA lo que se defiende es
+     otra cosa: que con un insumo fuera de banda las tres escritoras NO escriban. Para aislarlo hay
+     que evaluar la cascada UNA sola vez, sin estados intermedios validos. */
+  const sinEventos = (m) => { const faltan = [];
+    Object.keys(m).forEach(k => { const e = document.getElementById(k);
+      if (!e) faltan.push(k); else e.value = m[k]; });
+    return faltan; };
+  const esc = (mut) => { __t.limpiar(); window.esqSevManual = {};
+    __t.set('nombre','TC352');
+    const base = { vmax_ao:'4.5', gmedio_ao:'45', itv_ao:'100', itv_tsvi:'20', diam_tsvi:'20' };
+    Object.keys(mut).forEach(k => base[k] = mut[k]);
+    const faltan = sinEventos(base);
+    try { calcAo(); } catch (e) {}
+    try { clasificarEA_Vmax(); } catch (e) {}
+    try { calcEADetalle(); } catch (e) {}
+    const r = __t.informe();
+    let ind = null; try { ind = _indEA(); } catch (e) {}
+    /* ⚠️ eaEscenario SE INTERROGA APARTE Y POR EL OBJETO, no por el informe. Es la duena de las
+       cuatro superficies firmadas (eaDatosTxt imprime M.ava, M.vmax, M.gmed y M.di), y su banda
+       es PROPIA: no alcanza con mirar el DI del narrativo, porque ese sale de ea_dvi_display, que
+       calcEADetalle ya vacia por su cuenta. Medido con una mutacion: sacarle la banda del VTI
+       aortico a eaEscenario dejaba el caso en VERDE —el narrativo seguia sin DI— mientras el
+       objeto volvia a entregar un DI de 20. Sin esta condicion la banda de eaEscenario no tiene
+       cobertura y se puede deshacer sin que nada se ponga en rojo. */
+    let escn = null; try { escn = eaEscenario(); } catch (e) {}
+    return { faltan: faltan.join(','), grado: __t.val('ea_grado'), ava: __t.val('ava_cont'),
+             escDi: escn && escn.M ? String(escn.M.di) : 'SIN ESCENARIO',
+             escCritDi: escn && escn.crit ? String(escn.crit.di) : 'SIN ESCENARIO',
+             escAva: escn && escn.M ? String(escn.M.ava) : 'SIN ESCENARIO',
+             badge: String(__t.txt('ea-ava-badge')),
+             dviDisp: __t.val('ea_dvi_display'),
+             indTipo: ind ? (ind.recom ? String(ind.recom.tipo) : 'SINRECOM') : 'NULL',
+             indTit: ind && ind.recom ? String(ind.recom.tit) : '',
+             inf: r.inf, suma: r.suma }; };
+  /* CONTROL: la MISMA carga, toda dentro de banda, SI gradua severa. Sin esto el caso no
+     distingue «la banda retiro el grado» de «esta sonda nunca gradua». */
+  const ok   = esc({});
+  const cm   = esc({ diam_tsvi: '2' });    // O TSVI tipeado en cm: banda [5,45] -> AVA 0,01
+  const metr = esc({ itv_ao: '1' });       // VTI aortico tipeado en m: banda [5,200] -> AVA 62,83
+  __t.limpiar(); window.esqSevManual = {};
+  return { extra: [
+    ['DENOMINADOR: los cinco campos del escenario existen',
+      ok.faltan === '', 'no existen: ' + ok.faltan],
+    ['DENOMINADOR / CONTROL: dentro de banda el AVA es 0.63 y el grado SI sale severa',
+      ok.ava === '0.63' && ok.grado === 'severa', 'ava=' + ok.ava + ' grado=' + ok.grado],
+    ['  y dentro de banda el informe SI dice estenosis severa (la sonda sabe decir que si)',
+      ok.inf.indexOf('estenosis severa') > -1, 'inf no la trae'],
+    ['⚠️ O TSVI en cm: el AVA se fabrica en 0.01 y NO se escribe grado — queda en el de fabrica',
+      cm.ava === '0.01' && cm.grado === 'sin', 'ava=' + cm.ava + ' ea_grado=' + cm.grado],
+    ['  el badge lo DICE: nombra el campo y avisa que el grado no se actualizo',
+      cm.badge.indexOf('Fuera de rango') > -1 && cm.badge.indexOf('Ø TSVI 2 mm') > -1 &&
+      cm.badge.indexOf('NO se actualizó') > -1, 'badge=' + cm.badge],
+    ['  el panel de conducta devuelve la recomendacion tipo no, no SAVR recomendado',
+      cm.indTipo === 'no' && cm.indTit.indexOf('fuera de rango') > -1,
+      'tipo=' + cm.indTipo + ' tit=' + cm.indTit],
+    ['  el informe NO dice estenosis severa',
+      cm.inf.indexOf('estenosis severa') === -1, 'inf la trae'],
+    ['  y el EN SUMA no afirma EAo severa',
+      cm.suma.indexOf('EAo severa') === -1, 'suma=' + cm.suma],
+    ['⚠️ VTI aortico en m: el AVA se fabrica en 62.83 y NO se escribe grado',
+      metr.ava === '62.83' && metr.grado === 'sin', 'ava=' + metr.ava + ' ea_grado=' + metr.grado],
+    ['  el badge nombra el VTI aortico',
+      metr.badge.indexOf('VTI aórtico 1 cm') > -1, 'badge=' + metr.badge],
+    ['  el panel tampoco publica conducta',
+      metr.indTipo === 'no', 'tipo=' + metr.indTipo],
+    /* El hallazgo del A/B de 3/3: dvi-val ya decia «revisar la unidad» y el narrativo FIRMADO
+       seguia publicando «DI 20.00». ea_dvi_display es la fuente de ese DI, y se vacia. */
+    ['⚠️ y el informe NO publica el DI: ea_dvi_display queda vacio, no con el 20.00 fabricado',
+      metr.dviDisp === '' && !/DI 20/.test(metr.inf),
+      'ea_dvi_display=' + metr.dviDisp + ' DI en inf=' + (metr.inf.match(/DI [0-9.]+/) || ['no'])[0]],
+    ['  CONTROL: dentro de banda el DI SI se publica (0.20)',
+      ok.dviDisp === '0.20' && /DI 0.20/.test(ok.inf), 'ea_dvi_display=' + ok.dviDisp],
+    /* La banda PROPIA de eaEscenario, leida del objeto. Ver el comentario de arriba. */
+    ['⚠️ eaEscenario descarta el DI como no medido: M.di y crit.di vuelven null, no 20',
+      metr.escDi === 'null' && metr.escCritDi === 'null',
+      'M.di=' + metr.escDi + ' crit.di=' + metr.escCritDi],
+    ['  y descarta el AVA fabricado de 62.83 por la banda de sus insumos',
+      metr.escAva === 'null', 'M.ava=' + metr.escAva],
+    ['  CONTROL: dentro de banda eaEscenario SI entrega el DI (0.2) y el AVA (0.63)',
+      ok.escDi === '0.2' && ok.escAva === '0.63',
+      'M.di=' + ok.escDi + ' M.ava=' + ok.escAva],
+  ] };
+`);
+
+caso('TC-353', 'Tango: con el TE en segundos o el TAC en segundos el indice no interpreta — badge gris, sin «sugiere severidad» y sin la negacion tranquilizadora', `
+  const esc = (te, tac) => { __t.limpiar(); window.esqSevManual = {};
+    __t.set('nombre','TC353'); __t.set('vmax_ao','4.5');
+    __t.set('tango_te', te); __t.set('tango_tac', tac);
+    try { calcTango(); } catch (e) {}
+    const rt = document.getElementById('tango-ratio');
+    return { ava: String(__t.txt('tango-ava')),
+             ratio: rt ? String(rt.textContent).replace(/\\s+/g, ' ') : 'NO EXISTE tango-ratio' }; };
+  /* CONTROL: Vmax 4,5 / TE 300 / TAC 90 -> indice 0,74 y ratio 0,30 «sin signos de severidad».
+     Es el escenario del comentario de AO_BANDA_PLAUS, medido. */
+  const ok    = esc('300','90');
+  const teSeg = esc('0.3','90');    // TE en segundos: banda [80,600] ms. Antes: ratio 300,00 y ROJO
+  const tacSeg= esc('300','0.09');  // TAC en segundos: banda [10,300] ms. Antes: ratio 0,00 y VERDE
+  __t.limpiar(); window.esqSevManual = {};
+  return { extra: [
+    ['DENOMINADOR / CONTROL: dentro de banda el indice vale 0.74 y el ratio se interpreta',
+      ok.ava.indexOf('0.74') > -1 && ok.ratio.indexOf('TAC/TE 0.30') > -1,
+      'ava=' + ok.ava + ' ratio=' + ok.ratio],
+    ['  y dentro de banda la interpretacion es la negativa legitima',
+      ok.ratio.indexOf('sin signos de severidad') > -1, 'ratio=' + ok.ratio],
+    /* ⚠️ EL TE EN SEGUNDOS ES EL ERROR QUE EMPUJA AL LADO ROJO: medido antes de la banda, el ratio
+       TAC/TE salia 300,00 y el badge decia «sugiere severidad de la estenosis aortica». */
+    ['⚠️ TE en segundos: el ratio NO dice que sugiere severidad',
+      teSeg.ratio.indexOf('sugiere severidad') === -1, 'ratio=' + teSeg.ratio],
+    ['  dice que esta fuera de rango y NOMBRA el campo con su valor',
+      teSeg.ratio.indexOf('Fuera de rango, no gradúa') > -1 && teSeg.ratio.indexOf('TE 0.3') > -1,
+      'ratio=' + teSeg.ratio],
+    ['  el indice se sigue mostrando (marcar sin borrar) pero marcado',
+      teSeg.ava.indexOf('(revisar)') > -1, 'tango-ava=' + teSeg.ava],
+    /* ⚠️ Y EL TAC EN SEGUNDOS ES LA MITAD PELIGROSA: el ratio salia 0,00 y el badge VERDE «sin
+       signos de severidad por este indice», o sea la negacion tranquilizadora sobre un numero
+       ilegible. Es la direccion que una banda mal puesta silencia. */
+    ['⚠️ TAC en segundos: el ratio NO publica la negacion tranquilizadora',
+      tacSeg.ratio.indexOf('sin signos de severidad') === -1, 'ratio=' + tacSeg.ratio],
+    ['  y nombra el TAC con su valor',
+      tacSeg.ratio.indexOf('TAC 0.09') > -1, 'ratio=' + tacSeg.ratio],
+    ['  con el indice marcado, no borrado',
+      tacSeg.ava.indexOf('(revisar)') > -1, 'tango-ava=' + tacSeg.ava],
+  ] };
+`);
+
+caso('TC-354', 'IAo: los ONCE campos con banda, dirigido por tabla — por debajo del piso y por encima del techo NO votan y el aviso los nombra; el piso y el techo exactos SI votan', `
+  /* La tabla: campo, rotulo con que el aviso lo nombra, piso, techo, companeros que hacen falta
+     para que ese campo pueda votar, y las excepciones DECLARADAS (ver abajo). */
+  const TABLA = [
+    ['ia_vc','VC',1,20,{},{}],
+    ['ia_jet_diam','Ø jet en TSVI',1,45,{diam_tsvi:'20'},{}],
+    ['ia_pht','PHT',50,1500,{},{}],
+    /* ⚠️ EXCEPCION DECLARADA — el PISO de ia_vmax_td esta EN banda y NO vota, y no es un defecto:
+       el unico corte que la ESC/EACTS 2025 publica para este parametro es el de severa (>= 20
+       cm/s) y por debajo NO gradua. O sea «en banda» y «vota» son dos cosas distintas solo aca.
+       Lo que el caso exige en el piso es la OTRA fila gris: «No gradua (< 20 cm/s)», que es
+       distinta de la de fuera de banda — es justo lo que el codigo dice que no hay que fundir. */
+    ['ia_vmax_td','Vmax telediast.',2,150,{},{pisoNoVota:1,pisoDice:'No gradúa (< 20'}],
+    ['ia_vti_desc','VTI Ao desc.',1,100,{},{}],
+    ['ia_pisa_r','radio PISA',1,30,{ia_pisa_val:'100',ia_vmax_cw:'500'},{}],
+    ['ia_pisa_val','Valiasing',5,150,{ia_pisa_r:'10',ia_vmax_cw:'500'},{}],
+    ['ia_vmax_cw','Vmax IAo CW',50,800,{ia_pisa_r:'10',ia_pisa_val:'100'},{}],
+    /* ⚠️ EXCEPCION DECLARADA — ia_vti NO SE PUEDE AISLAR por el grado: para que el Vol-R exista
+       hace falta un EROA, y el EROA vota solo. Asi que fuera de banda el grado NO vuelve a 0 y la
+       condicion del voto no sirve. Se observa por su propia fila derivada: el Vol-R desaparece de
+       params, que es exactamente el voto de este campo. ia_vc 8 mm va de companero por lo mismo
+       que en itv_tsvi: garantiza DOS severidades para que params se imprima siempre.
+       ⚠️ Y EL O TSVI Y EL VTI TSVI TAMBIEN SON COMPANEROS OBLIGADOS, aunque el Vol-R no los use:
+       el bloque que lo calcula esta gateado en (vtiIA && itsvi && dtsvi) porque comparte cuerpo
+       con la FR, que SI los necesita. Medido: sin ellos el Vol-R no vota ni con el VTI del jet en
+       el techo, y el DENOMINADOR del caso no existia. Queda ANOTADO como acoplamiento del codigo,
+       no corregido: que el voto del Vol-R dependa de dos campos ajenos es un defecto aparte. */
+    ['ia_vti','VTI del jet',20,500,
+      {ia_pisa_r:'10',ia_pisa_val:'15.9155',ia_vmax_cw:'500',ia_vc:'8',
+       diam_tsvi:'20',itv_tsvi:'20'},
+      {noAisla:1,param:'Vol-R'}],
+    ['diam_tsvi','Ø TSVI',5,45,{ia_jet_diam:'8'},{}],
+    /* ⚠️ EXCEPCION DECLARADA — igual que ia_vti: para que la FR exista hace falta todo el PISA, y
+       el PISA vota solo. Se observa por la ausencia de FR en params. Este es el campo que el
+       commit 1/3 de esta tanda arreglo: antes votaba FR:leve estando fuera de banda.
+       ⚠️ LA CALIBRACION DE LOS COMPANEROS ES PARTE DEL CASO. El VTI del jet es 30 —no 300— para
+       que el VolR sea 6 ml y la FR quede DENTRO del 100 % en el piso (vsv 6,28 -> 96 %) y en el
+       techo (vsv 188,5 -> 3 %): con VolR 377 ml la cota del 100 % retiraba la FR en el techo y el
+       DENOMINADOR del caso no existia. Y ia_vc 8 mm vota severa al lado de un EROA moderado para
+       que haya DOS severidades distintas SIEMPRE: la discordancia solo imprime params con
+       sevs.length > 1, asi que sin ese voto la linea sale vacia fuera de banda y «no figura FR:»
+       se cumpliria por no figurar NADA. */
+    ['itv_tsvi','VTI TSVI',2,60,
+      {ia_pisa_r:'10',ia_pisa_val:'15.9155',ia_vmax_cw:'500',ia_vti:'30',diam_tsvi:'20',ia_vc:'8'},
+      {noAisla:1,param:'FR'}]
+  ];
+  const corrida = (campo, comps, valor) => { __t.limpiar(); window.esqSevManual = {};
+    __t.set('nombre','TC354');
+    const faltan = [];
+    Object.keys(comps).forEach(k => { if (__t.set(k, comps[k]) !== 1) faltan.push(k); });
+    if (__t.set(campo, String(valor)) !== 1) faltan.push(campo);
+    try { calcIA_ESC(); } catch (e) {}
+    return { faltan: faltan.join(','), grado: __t.val('ia_grado'),
+             disc: String(__t.txt('ia-discordancia')),
+             vtd: String(document.getElementById('ia-vtd-interp')
+                   ? document.getElementById('ia-vtd-interp').textContent : '') }; };
+  const fallas = [];
+  const ok = (desc, cond, diag) => { if (!cond) fallas.push(desc + ' [' + diag + ']'); };
+  TABLA.forEach(function (fila) {
+    const campo = fila[0], rot = fila[1], piso = fila[2], techo = fila[3];
+    const comps = fila[4], exc = fila[5];
+    /* Por debajo del piso se usa un decimo del piso y por encima del techo diez veces el techo:
+       es un orden de magnitud, que es exactamente lo que estas bandas atrapan. */
+    const bajo = corrida(campo, comps, piso / 10);
+    const enPiso = corrida(campo, comps, piso);
+    const enTecho = corrida(campo, comps, techo);
+    const alto = corrida(campo, comps, techo * 10);
+    const nombra = (r) => r.disc.indexOf(rot) > -1;
+    ok(campo + ': DENOMINADOR, el campo y sus companeros existen', bajo.faltan === '',
+       'no existen: ' + bajo.faltan);
+    // Fuera de banda, por los DOS lados: el aviso lo nombra.
+    ok(campo + ': por debajo del piso el aviso lo NOMBRA', nombra(bajo), 'disc=' + bajo.disc);
+    ok(campo + ': por encima del techo el aviso lo NOMBRA', nombra(alto), 'disc=' + alto.disc);
+    // En banda, en los dos bordes exactos: el aviso NO lo nombra.
+    ok(campo + ': en el piso exacto el aviso NO lo nombra', !nombra(enPiso), 'disc=' + enPiso.disc);
+    ok(campo + ': en el techo exacto el aviso NO lo nombra', !nombra(enTecho), 'disc=' + enTecho.disc);
+    if (exc.noAisla) {
+      /* No se puede mirar el grado: se mira que SU voto desaparezca de params. */
+      ok(campo + ': fuera de banda su voto (' + exc.param + ') desaparece de params',
+         bajo.disc.indexOf(exc.param + ':') === -1 && alto.disc.indexOf(exc.param + ':') === -1,
+         'bajo=' + bajo.disc + ' || alto=' + alto.disc);
+      ok(campo + ': DENOMINADOR, en el techo exacto su voto (' + exc.param + ') SI esta en params',
+         enTecho.disc.indexOf(exc.param + ':') > -1, 'disc=' + enTecho.disc);
+    } else {
+      // Aislable: fuera de banda nadie vota, asi que el grado no se escribe y queda en 0.
+      ok(campo + ': por debajo del piso NO vota (el grado queda sin escribir)', bajo.grado === '0',
+         'ia_grado=' + bajo.grado);
+      ok(campo + ': por encima del techo NO vota', alto.grado === '0', 'ia_grado=' + alto.grado);
+      ok(campo + ': en el techo exacto SI vota', enTecho.grado !== '0', 'ia_grado=' + enTecho.grado);
+      if (exc.pisoNoVota) {
+        ok(campo + ': en el piso NO vota por el CORTE, y la fila lo dice distinto que fuera de banda',
+           enPiso.grado === '0' && enPiso.vtd.indexOf(exc.pisoDice) > -1 &&
+           enPiso.vtd.indexOf('fuera de rango') === -1, 'vtd=' + enPiso.vtd);
+      } else {
+        ok(campo + ': en el piso exacto SI vota', enPiso.grado !== '0', 'ia_grado=' + enPiso.grado);
+      }
+    }
+  });
+  __t.limpiar(); window.esqSevManual = {};
+  return { extra: [
+    ['DENOMINADOR: la tabla recorrio los ONCE campos con banda', TABLA.length === 11,
+      'campos=' + TABLA.length],
+    ['⚠️ los once campos: fuera de banda no votan y el aviso los nombra; en el piso y el techo votan',
+      fallas.length === 0, fallas.length + ' fallas:\\n      ' + fallas.join('\\n      ')],
+  ] };
+`);
+
+caso('TC-355', 'IAo: con la IAo cargada por PISA, cambiar el VTI TSVI y el O TSVI recalcula FR, ratio jet/TSVI y grado por los TRES caminos de entrada', `
+  /* Calibracion: EROA 20 mm² (r 10, Valiasing 15.9155, CW 500), VTI del jet 200 -> VolR 40 ml.
+     O jet 8 mm. Con O TSVI 20 y VTI TSVI 20: ratio 40 %, vsv 62,83 ml, FR 64 % -> vota SEVERA.
+     ⚠️ EL VTI DEL JET ES 200 Y NO 300 A PROPOSITO: con 300 el VolR es 60 ml y vota severa EL
+     TAMBIEN, asi que el grado queda en 4 antes y despues y la condicion sobre el grado no puede
+     fallar —medido—. Con 40 ml el VolR vota moderada y la FR es el UNICO voto severo, de modo que
+     al recalcularse el grado baja de verdad: es lo que vuelve observable el enganche. */
+  const base = () => { __t.limpiar(); window.esqSevManual = {};
+    __t.set('nombre','TC355');
+    __t.set('ia_pisa_r','10'); __t.set('ia_pisa_val','15.9155'); __t.set('ia_vmax_cw','500');
+    __t.set('ia_vti','200'); __t.set('ia_jet_diam','8');
+    __t.set('diam_tsvi','20'); __t.set('itv_tsvi','20');
+    try { calcIA_ESC(); } catch (e) {}
+    return leer(); };
+  const leer = () => ({ ratio: String(__t.txt('ia-jet-ratio')), freg: String(__t.txt('ia-freg')),
+                        grado: __t.val('ia_grado'), disc: String(__t.txt('ia-discordancia')) });
+  /* CAMINO 1 — el oninput del marcado. __t.set despacha input, que es lo que el medico produce
+     tipeando en el cajon Doppler. */
+  const ini1 = base();
+  __t.set('itv_tsvi','40'); __t.set('diam_tsvi','30');
+  const c1 = leer();
+  /* CAMINO 2 — syncEADesdeValvulas, que escribe los destinos con .value y por eso NO dispara
+     input: el enganche necesita su propia llamada adentro. Es el bloque expandido de Estenosis
+     Aortica. */
+  const ini2 = base();
+  __t.set('ea_vtitsvi','40'); __t.set('ea_dtsvi','30');
+  try { syncEADesdeValvulas(); } catch (e) {}
+  const c2 = leer();
+  /* CAMINO 3 — syncTSVI, el tercer camino del O TSVI (diam_tsvi_ao -> diam_tsvi con setv). */
+  const ini3 = base();
+  __t.set('itv_tsvi','40');
+  __t.set('diam_tsvi_ao','30');
+  try { syncTSVI(); } catch (e) {}
+  const c3 = leer();
+  __t.limpiar(); window.esqSevManual = {};
+  /* Despues del cambio: ratio 8/30 = 26,7 %, vsv = pi*(30/20)^2*40 = 282,7 ml, FR 40/282,7 = 14 %.
+     O sea el ratio baja de 40,0 a 26,7, la FR de 64 a 14 y su voto de severa a leve: el grado baja
+     de 4 (severa por la FR) a 2. Si el enganche no corriera, los tres quedarian en los valores de
+     ini —que es exactamente lo que se midio antes de 3/3—. */
+  const movio = (ini, c) => c.ratio.indexOf('26.7') > -1 && c.freg.indexOf('14%') > -1 &&
+                            c.ratio !== ini.ratio && c.freg !== ini.freg;
+  return { extra: [
+    ['DENOMINADOR: el escenario inicial da ratio 40.0 %, FR 64 % y grado severa por la FR',
+      ini1.ratio.indexOf('40.0') > -1 && ini1.freg.indexOf('64%') > -1 && ini1.grado === '4',
+      'ratio=' + ini1.ratio + ' freg=' + ini1.freg + ' grado=' + ini1.grado],
+    ['DENOMINADOR: y la FR VOTA severa en el inicial (si no, no hay grado que recalcular)',
+      ini1.disc.indexOf('FR:severa') > -1, 'disc=' + ini1.disc],
+    ['⚠️ CAMINO 1 (oninput del cajon Doppler): el ratio y la FR se recalculan',
+      movio(ini1, c1), 'ratio=' + c1.ratio + ' freg=' + c1.freg],
+    ['  y el grado baja de severa a moderada porque la FR dejo de votar severa',
+      c1.grado === '2' && c1.disc.indexOf('FR:leve') > -1,
+      'grado=' + c1.grado + ' disc=' + c1.disc],
+    ['⚠️ CAMINO 2 (syncEADesdeValvulas, que escribe .value sin disparar input)',
+      movio(ini2, c2), 'ratio=' + c2.ratio + ' freg=' + c2.freg],
+    ['  con el mismo grado recalculado', c2.grado === '2', 'grado=' + c2.grado],
+    ['⚠️ CAMINO 3 (syncTSVI, el O TSVI por diam_tsvi_ao con setv)',
+      movio(ini3, c3), 'ratio=' + c3.ratio + ' freg=' + c3.freg],
+    ['  con el mismo grado recalculado', c3.grado === '2', 'grado=' + c3.grado],
+    ['  los TRES caminos dejan el MISMO resultado: ninguno queda a mitad de camino',
+      c1.ratio === c2.ratio && c2.ratio === c3.ratio && c1.freg === c2.freg && c2.freg === c3.freg,
+      'c1=' + c1.ratio + '/' + c1.freg + ' c2=' + c2.ratio + '/' + c2.freg +
+      ' c3=' + c3.ratio + '/' + c3.freg],
+  ] };
+`);
+
+caso('TC-356', 'IAo: una fraccion regurgitante calculada por encima del 100 % no vota y se muestra como no evaluable, diciendo el numero imposible', `
+  /* ⚠️ LOS CUATRO INSUMOS VAN DENTRO DE BANDA A PROPOSITO, y es lo que vuelve util a este caso.
+     El escenario del censo era el O TSVI tipeado en cm (2 por 20), que daba 9804 % votando SEVERA;
+     pero ese 2 esta ADEMAS fuera de la banda [5,45], asi que desde el commit 1/3 de esta tanda la
+     banda del TSVI ya retira la FR y la COTA no es lo que la detiene. Medido con una mutacion:
+     subir la cota a 1e9 dejaba el caso en VERDE. Lo que aisla a la cota es el caso que su propio
+     comentario declara —«un VTI del jet y un VSV los dos dentro de banda pueden darla, porque la
+     banda acota cada factor por separado y no su PRODUCTO»—: O TSVI 5 mm y VTI TSVI 2 cm son los
+     dos PISOS exactos, en banda, y dan vsv = pi*(5/20)^2*2 = 0,393 ml; con EROA 20 mm² y VTI del
+     jet 20 cm (su piso) el VolR es 4 ml y la FR 1018 %. Ningun insumo esta fuera de banda. */
+  const esc = (dt, it, vti) => { __t.limpiar(); window.esqSevManual = {};
+    __t.set('nombre','TC356');
+    __t.set('ia_pisa_r','10'); __t.set('ia_pisa_val','15.9155'); __t.set('ia_vmax_cw','500');
+    __t.set('ia_vti', vti); __t.set('diam_tsvi', dt); __t.set('itv_tsvi', it);
+    try { calcIA_ESC(); } catch (e) {}
+    return { freg: String(__t.txt('ia-freg')), grado: __t.val('ia_grado'),
+             disc: String(__t.txt('ia-discordancia')), volr: String(__t.txt('ia-volr')) }; };
+  const ok = esc('20','20','200');  // FR 64 %: dentro del 100 %, vota severa
+  const cm = esc('5','2','20');     // los cuatro EN banda y la FR en 1018 %
+  __t.limpiar(); window.esqSevManual = {};
+  return { extra: [
+    ['DENOMINADOR: dentro del 100 % la FR vale 64 %, se publica y VOTA severa',
+      ok.freg.indexOf('64%') > -1 && ok.disc.indexOf('FR:severa') > -1,
+      'freg=' + ok.freg + ' disc=' + ok.disc],
+    ['DENOMINADOR: el VolR del escenario de la cota existe y vale 4.0 ml',
+      cm.volr.indexOf('4.0') > -1, 'volr=' + cm.volr],
+    /* ⚠️ CONDICION DE AISLAMIENTO: si alguno de los cuatro estuviera fuera de banda, la que
+       retiraria la FR seria la BANDA y no la cota, y la mutacion de la cota sobreviviria. */
+    ['DENOMINADOR: ningun insumo esta fuera de banda — el aviso de banda NO nombra a nadie',
+      cm.disc.indexOf('Fuera de rango') === -1, 'disc=' + cm.disc],
+    ['⚠️ con la FR por encima del 100 % NO se publica un porcentaje',
+      !/[0-9]\\s*%\\)?$/.test(cm.freg.trim()) && cm.freg.indexOf('—') === 0, 'ia-freg=' + cm.freg],
+    ['  se DICE que es imposible y se da el numero, en vez de un guion mudo',
+      cm.freg.indexOf('imposible') > -1 && cm.freg.indexOf('no puede exceder el 100') > -1,
+      'ia-freg=' + cm.freg],
+    ['⚠️ y NO vota: la FR no figura en params',
+      cm.disc.indexOf('FR:') === -1, 'disc=' + cm.disc],
+    /* params SE IMPRIME en este escenario (EROA moderada + Vol-R leve son dos severidades), asi
+       que la ausencia de FR: arriba es una ausencia medida y no una linea vacia. */
+    ['DENOMINADOR: EROA y Vol-R SI votan, asi que la discordancia no esta vacia',
+      cm.disc.indexOf('EROA:') > -1 && cm.disc.indexOf('Vol-R:') > -1, 'disc=' + cm.disc],
+  ] };
+`);
+
+caso('TC-357', 'IAo: borrar un insumo LIMPIA su calc-val — el ratio, el EROA, el Vol-R y la FR no quedan pegados con el numero de la medicion anterior', `
+  __t.limpiar(); window.esqSevManual = {};
+  __t.set('nombre','TC357');
+  __t.set('ia_jet_diam','8'); __t.set('diam_tsvi','20');
+  __t.set('ia_pisa_r','10'); __t.set('ia_pisa_val','15.9155'); __t.set('ia_vmax_cw','500');
+  __t.set('ia_vti','300'); __t.set('itv_tsvi','20');
+  try { calcIA_ESC(); } catch (e) {}
+  const leer = () => ({ ratio: String(__t.txt('ia-jet-ratio')), eroa: String(__t.txt('ia-eroa')),
+                        volr: String(__t.txt('ia-volr')), freg: String(__t.txt('ia-freg')) });
+  const lleno = leer();
+  /* Se borra UNO POR UNO y se mira SOLO el calc-val que ese insumo sostiene, porque las filas
+     estan encadenadas: el EROA sostiene al Vol-R y el Vol-R a la FR. Borrar el radio del PISA
+     tiene que limpiar los tres de esa cadena; borrar el O del jet, solo el ratio. */
+  __t.set('ia_jet_diam','');
+  try { calcIA_ESC(); } catch (e) {}
+  const sinJet = leer();
+  __t.set('ia_vti','');
+  try { calcIA_ESC(); } catch (e) {}
+  const sinVti = leer();
+  __t.set('ia_pisa_r','');
+  try { calcIA_ESC(); } catch (e) {}
+  const sinPisa = leer();
+  __t.limpiar(); window.esqSevManual = {};
+  return { extra: [
+    ['DENOMINADOR: con todo cargado los CUATRO calc-val traen numero',
+      lleno.ratio.indexOf('40.0') > -1 && lleno.eroa.indexOf('20.0') > -1 &&
+      lleno.volr.indexOf('60.0') > -1 && lleno.freg.indexOf('95%') > -1,
+      'ratio=' + lleno.ratio + ' eroa=' + lleno.eroa + ' volr=' + lleno.volr + ' freg=' + lleno.freg],
+    ['⚠️ borrado el O del jet, el ratio jet/TSVI se LIMPIA (no queda el 40.0 anterior)',
+      sinJet.ratio === '—', 'ia-jet-ratio=' + sinJet.ratio],
+    ['  CONTROL: y las otras tres filas NO se limpian, que es lo que separa limpiar de borrar todo',
+      sinJet.eroa.indexOf('20.0') > -1 && sinJet.volr.indexOf('60.0') > -1,
+      'eroa=' + sinJet.eroa + ' volr=' + sinJet.volr],
+    ['⚠️ borrado el VTI del jet, el Vol-R y la FR se LIMPIAN (el Vol-R sale de el)',
+      sinVti.volr === '—' && sinVti.freg === '—',
+      'volr=' + sinVti.volr + ' freg=' + sinVti.freg],
+    ['  CONTROL: el EROA sigue, porque no depende del VTI del jet',
+      sinVti.eroa.indexOf('20.0') > -1, 'eroa=' + sinVti.eroa],
+    ['⚠️ borrado el radio del PISA, los TRES de la cadena se LIMPIAN',
+      sinPisa.eroa === '—' && sinPisa.volr === '—' && sinPisa.freg === '—',
+      'eroa=' + sinPisa.eroa + ' volr=' + sinPisa.volr + ' freg=' + sinPisa.freg],
+  ] };
+`);
+
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────
