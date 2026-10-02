@@ -16627,7 +16627,13 @@ function showTab(id) {
   if (typeof cardAutoOpen === 'function') cardAutoOpen('tab-' + id);
   /* Las pastillas de válvula no son `.sacc` ni llevan `data-autoopen`, así que ninguna de las dos
      funciones de arriba las ve. Ver `valvAutoAbrirAortica` para por qué va acá y qué respeta. */
-  if (id === 'valvulas' && typeof valvAutoAbrirAortica === 'function') valvAutoAbrirAortica();
+  /* En `try` y no a secas: `toggleValvPill` hace `localStorage.setItem` sin guarda —código previo a
+     esta tanda— y con la cuota llena eso lanza. Antes hacía falta un clic del médico para llegar
+     ahí; ahora corre al entrar a la pestaña, así que una excepción cortaría el RESTO de `showTab`
+     (entre otras cosas el repintado del botón de Orthanc). Lo marcó /sharp-edges. */
+  if (id === 'valvulas' && typeof valvAutoAbrirAortica === 'function') {
+    try { valvAutoAbrirAortica(); } catch (e) { console.warn('[valvAutoAbrir]', e); }
+  }
   /* El botón de Orthanc depende de una preferencia que vive en localStorage y que se puede
      haber movido en OTRA pestaña del navegador, donde este documento no se entera. Se repinta
      al entrar, que es el único momento en que importa. */
@@ -23171,11 +23177,26 @@ window.mostrarTSVIEstimado = mostrarTSVIEstimado;
 function syncTSVI() {
   const val = v('diam_tsvi_ao');
   setv('diam_tsvi', val || '');
+  /* ══ LAS SEIS, LAS MISMAS QUE EL `oninput` DE `diam_tsvi` (K — autorizado por Maicol 2026-10-02) ══
+     `setv` escribe `.value` sin disparar `input`, así que esta puerta tiene que llamar a mano a todo
+     lo que la otra dispara. Llamaba a DOS de las seis, y la divergencia se midió en Chrome con el
+     MISMO dato (Ø TSVI 21 mm) cargado por cada puerta:
+       · por la pestaña DOPPLER → ea_dtsvi 21 · em_dtsvi 21 · im_dtsvi 21 · AVA 0,73
+       · por la pestaña AORTA   → ea_dtsvi 21 · em_dtsvi VACÍO · im_dtsvi VACÍO · AVA 0,73
+     O sea: cargar el diámetro por Aorta actualizaba la aórtica y la IAo y dejaba los espejos de la
+     estenosis y de la insuficiencia MITRALES en blanco. El médico ve las casillas «auto» de la
+     mitral vacías con el dato cargado dos pestañas más allá, y no hay nada que lo avise.
+     ⚠️ ES EL ÚNICO CAMBIO DE ESTA TANDA QUE TOCA LA MITRAL, y es el que Maicol autorizó explícitamente
+     (punto 3 de PENDIENTES, reportado con medición en «Aórtica 4a» y aprobado para esta). El orden es
+     el del `oninput`, no uno nuevo: si alguna vez importara, que importe igual por las dos puertas.
+     ⚠️ Y LA LISTA SIGUE SIENDO DOS COPIAS. Esto no unifica nada: el `oninput` del campo tiene las seis
+     escritas en el atributo HTML y acá hay seis llamadas. Queda declarado — la séptima que se agregue
+     allá hay que agregarla acá, y nada lo va a avisar. */
   calcAo();
-  /* Tercer camino de entrada del Ø TSVI, y `setv` escribe `.value` sin disparar `input`: mismo
-     argumento que en `syncEADesdeValvulas`. Los tres caminos tienen que refrescar la IAo o la FR
-     queda obsoleta según por dónde se cargó el diámetro, que es la divergencia que este archivo
-     persigue. */
+  if (typeof mostrarTSVIEstimado === 'function') mostrarTSVIEstimado();
+  if (typeof eteShuntSyncSiExiste === 'function') eteShuntSyncSiExiste();
+  if (typeof imSyncSiExiste === 'function') imSyncSiExiste();
+  if (typeof emSyncSiExiste === 'function') emSyncSiExiste();
   if (typeof iaSyncSiExiste === 'function') iaSyncSiExiste();
 }
 
@@ -24032,7 +24053,7 @@ window._eaPintarRecuadroDoppler = _eaPintarRecuadroDoppler;
 window._sevCalcAlFijar = window._sevCalcAlFijar || {};
 const SEV_SINC = Object.freeze({
   ea: Object.freeze({ tipo:'esten', valv:'aortica', select:'ea_grado', aviso:'ea-manual-aviso',
-    fundamento:'ea-fund',
+    fundamento:'ea-fund', nota:'ea_fund_nota',
     ayuda: null, nombre:'Estenosis aórtica',
     /* ⚠️ EL RANGO DEL PROVEEDOR, QUE ES MÁS CHICO QUE EL DEL `<select>`, Y HAY QUE DECLARARLO.
        `eaGradoCalculado` NUNCA emite 'esclerosis': el `<select>` tiene cinco opciones y el cálculo
@@ -24072,7 +24093,7 @@ const SEV_SINC = Object.freeze({
     },
     etiqueta: function(g){ return EA_GRADO_LBL[g] || g; } }),
   ia: Object.freeze({ tipo:'insuf', valv:'aortica', select:'ia_sev_final', aviso:'ia-manual-aviso',
-    ayuda:'ia-auto-ayuda', nombre:'Insuficiencia aórtica', fundamento:'ia-fund',
+    ayuda:'ia-auto-ayuda', nombre:'Insuficiencia aórtica', fundamento:'ia-fund', nota:'ia_fund_nota',
     /* Mismo recorte que en la EA, y acá el grado que queda afuera tiene conducta propia:
        `calcIA_ESC` sólo produce '4', '2' y '1' —nunca '0' ni '3'—, así que una IAo fijada a mano en
        «Moderada-severa» no se compara contra nada y no se suelta. Sin esto, el grado 3 se perdía en
@@ -24188,10 +24209,18 @@ function sevFundVaciar(ids, nota) {
    escrito para un paciente sobrevive al siguiente, que es la misma fuga entre pacientes que
    /sharp-edges encontró con `_sevCalcAlFijar` en la tanda anterior. */
 function sevFundLimpiar() {
-  ['ea-fund', 'ia-fund'].forEach(function(id){
-    const c = document.getElementById(id); if (c) c.style.display = 'none'; });
-  sevFundVaciar(EA_FUND_OPC.sube.concat(EA_FUND_OPC.baja, ['ea_fund_otro']), 'ea_fund_nota');
-  sevFundVaciar([], 'ia_fund_nota');
+  /* ⚠️ SE DERIVA DE `SEV_SINC`, NO DE UN LITERAL `['ea-fund','ia-fund']`. Lo encontró /sharp-edges:
+     con la lista escrita a mano, el día que la mitral reciba su `fundamento:` —que es el plan— su
+     cajón se MOSTRARÍA (eso sale del registro) y no se vaciaría nunca, porque este barrido no lo
+     conoce. O sea: el motivo escrito para un paciente sobreviviría al siguiente, por omisión y
+     fallando ABIERTO. Mismo criterio que `bloqueado`: lo que el registro declara, el barrido lo usa. */
+  Object.keys(SEV_SINC).forEach(function(k){
+    const C = SEV_SINC[k];
+    if (!C.fundamento) return;
+    const c = document.getElementById(C.fundamento); if (c) c.style.display = 'none';
+    sevFundVaciar(k === 'ea' ? EA_FUND_OPC.sube.concat(EA_FUND_OPC.baja, ['ea_fund_otro']) : [],
+                  C.nota || null);
+  });
 }
 window.sevFundLimpiar = sevFundLimpiar;
 
@@ -24211,6 +24240,17 @@ window.sevFundLimpiar = sevFundLimpiar;
    que lo borren tres líneas después. Y reponer sólo el juego del sentido vigente es lo mismo que
    hace el cambio de sentido en vivo: si el grado calculado del estudio reabierto no es el mismo que
    el día que se guardó, el sentido pudo darse vuelta, y entonces la opción guardada ya no aplica. */
+/* ⚠️ UNA CASILLA GUARDADA TIENE DOS FORMAS EN ESTA APP, Y LAS DOS LLEGAN ACÁ. Lo encontró
+   /sharp-edges: `guardarInforme` persiste `<id>__chk` con '1'/'0' (string), y el AUTOSAVE persiste
+   `<id>` con `true`/`false` (booleano, clave pelada). `sevFundRestaurar` corre en los TRES caminos,
+   así que leer sólo `__chk` dejaba la recuperación del borrador —la que usa el médico cuando se le
+   cerró el navegador— reponiendo la nota SIN las opciones: el informe regenerado salía con el
+   motivo entre paréntesis y sin la cláusula clínica que lo acompañaba. */
+function _sevChkGuardado(campos, id) {
+  if (!campos) return false;
+  if (campos[id + '__chk'] === '1') return true;        // guardarInforme / cargarEstudioPorId
+  return campos[id] === true || campos[id] === 'true';  // autosave
+}
 function sevFundRestaurar(campos) {
   if (!campos) return null;
   const vEA = sevSincronizar('ea'), vIA = sevSincronizar('ia');
@@ -24219,14 +24259,14 @@ function sevFundRestaurar(campos) {
     const ids = (s === 'sube') ? EA_FUND_OPC.sube.slice() : (s === 'baja' ? EA_FUND_OPC.baja.slice() : []);
     ids.concat(['ea_fund_otro']).forEach(function(id){
       const e = document.getElementById(id);
-      if (e && campos[id + '__chk'] === '1') e.checked = true;
+      if (e && _sevChkGuardado(campos, id)) e.checked = true;
     });
-    const n = document.getElementById('ea_fund_nota');
-    if (n && campos['ea_fund_nota']) n.value = String(campos['ea_fund_nota']).slice(0, 100);
+    const n = document.getElementById(SEV_SINC.ea.nota);
+    if (n && campos[SEV_SINC.ea.nota]) n.value = String(campos[SEV_SINC.ea.nota]).slice(0, 100);
   }
   if (vIA && vIA.discrepa) {
-    const n = document.getElementById('ia_fund_nota');
-    if (n && campos['ia_fund_nota']) n.value = String(campos['ia_fund_nota']).slice(0, 100);
+    const n = document.getElementById(SEV_SINC.ia.nota);
+    if (n && campos[SEV_SINC.ia.nota]) n.value = String(campos[SEV_SINC.ia.nota]).slice(0, 100);
   }
   return { ea: vEA, ia: vIA };
 }
@@ -24242,8 +24282,10 @@ function sevFundamento(clave) {
   const hay = sevDiscrepa(clave);
   if (!hay) {
     caj.style.display = 'none';
-    if (clave === 'ea') sevFundVaciar(EA_FUND_OPC.sube.concat(EA_FUND_OPC.baja, ['ea_fund_otro']), 'ea_fund_nota');
-    else sevFundVaciar([], C.fundamento === 'ia-fund' ? 'ia_fund_nota' : null);
+    /* `C.nota` y no `C.fundamento === 'ia-fund' ? … : null`, por lo mismo que `sevFundLimpiar`:
+       ese ternario dejaba sin vaciar la nota de cualquier clave futura, en silencio. */
+    sevFundVaciar(clave === 'ea' ? EA_FUND_OPC.sube.concat(EA_FUND_OPC.baja, ['ea_fund_otro']) : [],
+                  C.nota || null);
     return { visible: false, sentido: null };
   }
   caj.style.display = '';
@@ -24399,7 +24441,11 @@ function sevSincronizar(clave) {
     : '';
   /* El cajón «Fundamento del ajuste» aparece y se vacía en el MISMO punto que pinta el aviso: son
      dos caras del mismo estado y no pueden desincronizarse (F). */
-  try { sevFundamento(clave); } catch (e) {}
+  /* ⚠️ EL `catch` AVISA EN VOZ ALTA, no se traga el error. Lo marcó /sharp-edges: ésta es la única
+     función que VACÍA el cajón, así que si lanza queda visible y poblado mientras el emisor del
+     informe —que sólo pregunta por `sevDiscrepa`— ya no lo acompaña. Un cajón silenciosamente
+     huérfano es exactamente lo que este mecanismo vino a evitar. */
+  try { sevFundamento(clave); } catch (e) { console.warn('[sevFundamento]', clave, e); }
   /* El texto «se completa automáticamente» se apaga en modo manual (R4): afirmaba lo contrario de lo
      que pasaba justo cuando el médico acababa de fijar el grado a mano. */
   const ayudaEl = C.ayuda ? document.getElementById(C.ayuda) : null;
@@ -49851,8 +49897,23 @@ window.pillOn = pillOn;
      · `'1'` → ya está abierta → no hay nada que hacer.
    Y el reinicio en un estudio nuevo tampoco hace falta escribirlo: `limpiarCampos` ya borra las seis
    claves, así que «Nuevo estudio» devuelve el permiso. Reabrir un estudio guardado pasa por
-   `limpiarCampos` también, así que el cajón se abre según el grado GUARDADO y sin pisarlo — abrir un
-   cajón no escribe ningún campo.
+   `limpiarCampos` también, así que el cajón se abre según el grado GUARDADO.
+
+   ⚠️ ABRIR SÍ ESCRIBE CAMPOS, Y ACÁ DECÍA QUE NO. Lo marcó /sharp-edges y se midió: `toggleValvPill`
+   llama a `sincronizarEADesdeGlobal()`, que recopia los cinco espejos `ea_vmax`, `ea_gmedio`,
+   `ea_dtsvi`, `ea_vtitsvi` y `ea_vtiao` desde el Doppler global, y después a `calcEADetalle()`. Antes
+   eso exigía un clic; desde esta tanda corre al entrar a la pestaña. Qué se midió, con los espejos
+   puestos a propósito en valores DISTINTOS del Doppler:
+     · los cinco espejos pasan a valer lo que dice el Doppler (9.9 → 4.1, 99 → 45, 99 → 21…). Es la
+       dirección correcta: son copias rotuladas «auto» de otra pestaña, y `sincronizarEADesdeGlobal`
+       escribe sólo cuando el ORIGEN no está vacío;
+     · con el Doppler global VACÍO —la forma de una fila de Excel reimportada, que trae los espejos y
+       no el Doppler— los espejos SOBREVIVEN enteros y `ea_grado` no se mueve. Esa era la pérdida que
+       había que descartar, y no ocurre;
+     · con grado fijado a mano y cajón cargado, entrar a la pestaña deja el grado, la marca manual, el
+       cajón y la frase del informe EXACTAMENTE iguales.
+   O sea: no pisa lo guardado, pero no es cierto que no escriba nada. Queda medido y fijado por un
+   caso, que es la diferencia entre un comentario y una garantía.
 
    ⚠️ NO SE TOCA «Severidad ▼». `toggleValvPill` repinta el sub-botón vía `sevSincronizar` con el
    MISMO grado que ya mostraba: la apertura es un gesto de visibilidad, no de severidad. */
@@ -89848,8 +89909,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261002-1752';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790974360822;                 /* eco-build-ms */
+const ECO_BUILD    = '20261002-1827';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790976430870;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -89935,7 +89996,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-1752</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-1827</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -45413,6 +45413,694 @@ caso('TC-372', 'EA e IAo: cerrar el boton de la valvula ya NO borra el grado, la
   ] };
 `);
 
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   «Aortica 4b» (2026-10-02) — TC-373 a TC-377. Cinco casos para el cajon «Fundamento del
+   ajuste», sus frases en el informe, el informe que usa SOLO el grado final, el naranja de
+   moderada, la apertura automatica y el O TSVI por las dos puertas.
+   ⚠️ SIN ACENTOS GRAVES EN NINGUN CUERPO: el cuerpo es un template literal y un solo acento grave
+      —aunque este dentro de un comentario— cierra la cadena y el archivo deja de parsear con un
+      SyntaxError que apunta decenas de lineas ANTES del culpable. Pasado dos veces.
+   ⚠️ LAS CONDICIONES LEEN EL VALOR O EL OBJETO, no el textContent de una seccion: sevDiscrepa,
+      sevSentido y eaFundamentoInforme devuelven dato, y el informe se lee del textarea.
+   ══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+caso('TC-373', 'El cajon «Fundamento del ajuste» aparece SOLO con discrepancia manual, ofrece el juego del sentido del ajuste, y se VACIA al coincidir o al volver a automatico', `
+  const vis = function (id) { const e = document.getElementById(id);
+    return e ? (e.style.display !== 'none') : null; };
+  const chk = function (id, on) { const e = document.getElementById(id); if (!e) return;
+    e.checked = !!on; e.dispatchEvent(new Event('change', { bubbles: true })); };
+  const marcados = function () {
+    return ['ea_fund_bfbg_red','ea_fund_bfbg_cons','ea_fund_plan','ea_fund_otsvi','ea_fund_otro']
+      .filter(function (id) { const e = document.getElementById(id); return !!(e && e.checked); }); };
+  const nota = function () { const e = document.getElementById('ea_fund_nota'); return e ? e.value : null; };
+  const base = function (vmax) {
+    __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {};
+    const p = document.getElementById('pill-esten-aortica');
+    if (p && !p.classList.contains('btn-primary')) toggleValvPill('aortica', 'esten');
+    __t.set('nombre','TC373'); __t.set('vmax_ao', vmax); };
+
+  /* ── (1) sin discrepancia: no aparece ── */
+  base('4.1');
+  const limpio = { discrepa: sevDiscrepa('ea'), cajon: vis('ea-fund'), ia: vis('ia-fund') };
+
+  /* ── (2) SUBE: aparece, con el juego de arriba y el ejemplo en gris que le toca ── */
+  base('2.6'); valvSev.aplicar('esten','aortica','severa');
+  const sube = { discrepa: sevDiscrepa('ea'), sentido: sevSentido('ea'), cajon: vis('ea-fund'),
+    juegoSube: vis('ea-fund-sube'), juegoBaja: vis('ea-fund-baja'),
+    ejemplo: (document.getElementById('ea_fund_nota')||{}).placeholder,
+    max: (document.getElementById('ea_fund_nota')||{}).getAttribute('maxlength'),
+    rotulo: ((document.querySelector('label[for="ea_fund_nota"]')||{}).textContent || ''),
+    titulo: ((document.getElementById('ea-fund')||{}).textContent || '').trim().indexOf('Fundamento del ajuste') };
+
+  /* ── (3) las dos de bajo flujo son EXCLUYENTES, y la planimetria es combinable ── */
+  chk('ea_fund_bfbg_red', true); chk('ea_fund_bfbg_cons', true);
+  const exc1 = marcados().slice();
+  chk('ea_fund_bfbg_red', true);
+  const exc2 = marcados().slice();
+  chk('ea_fund_plan', true);
+  const combinable = marcados().slice();
+
+  /* ── (4) BAJA: el otro juego, el otro ejemplo, y las opciones del juego anterior VACIAS ── */
+  document.getElementById('ea_fund_nota').value = 'mi motivo propio';
+  valvSev.aplicar('esten','aortica','sin');
+  const baja = { sentido: sevSentido('ea'), juegoSube: vis('ea-fund-sube'), juegoBaja: vis('ea-fund-baja'),
+    ejemplo: (document.getElementById('ea_fund_nota')||{}).placeholder,
+    marcados: marcados().slice(), nota: nota() };
+
+  /* ── (5) al COINCIDIR el manual con el calculado: se oculta y se VACIA ── */
+  base('2.6'); valvSev.aplicar('esten','aortica','severa');
+  chk('ea_fund_bfbg_cons', true); document.getElementById('ea_fund_nota').value = 'algo';
+  const lleno = { marcados: marcados().slice(), nota: nota() };
+  __t.set('vmax_ao','4.6');
+  const coincide = { discrepa: sevDiscrepa('ea'), cajon: vis('ea-fund'),
+    marcados: marcados().slice(), nota: nota() };
+
+  /* ── (6) VUELTA A AUTOMATICO (R6: el calculado cambia): se oculta y se vacia ── */
+  base('2.6'); valvSev.aplicar('esten','aortica','severa');
+  chk('ea_fund_bfbg_cons', true); document.getElementById('ea_fund_nota').value = 'algo';
+  __t.set('vmax_ao','3.2');
+  const auto = { grado: String(__t.val('ea_grado')), manual: !!(window.esqSevManual||{}).ea,
+    cajon: vis('ea-fund'), marcados: marcados().slice(), nota: nota() };
+
+  /* ── (7) «Nuevo estudio» no deja nada del paciente anterior ── */
+  base('2.6'); valvSev.aplicar('esten','aortica','severa');
+  chk('ea_fund_bfbg_cons', true); document.getElementById('ea_fund_nota').value = 'paciente anterior';
+  __t.limpiar();
+  const nuevo = { cajon: vis('ea-fund'), marcados: marcados().slice(), nota: nota(),
+    iaCajon: vis('ia-fund'), iaNota: (document.getElementById('ia_fund_nota')||{}).value };
+
+  /* ── (8) INSUFICIENCIA: solo el cuadro de texto, con el mismo titulo y rotulo ── */
+  __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {}; window._iaGradoCalc = null;
+  const pi = document.getElementById('pill-insuf-aortica');
+  if (pi && !pi.classList.contains('btn-primary')) toggleValvPill('aortica','insuf');
+  __t.set('nombre','TC373'); __t.set('ia_vc','2');
+  try { calcIA_ESC(); } catch (e) {}
+  const iaAuto = { calc: window._iaGradoCalc, cajon: vis('ia-fund') };
+  valvSev.aplicar('insuf','aortica','4');
+  const iaMan = { discrepa: sevDiscrepa('ia'), cajon: vis('ia-fund'),
+    titulo: ((document.getElementById('ia-fund')||{}).textContent || '').trim().indexOf('Fundamento del ajuste'),
+    rotulo: ((document.querySelector('label[for="ia_fund_nota"]')||{}).textContent || ''),
+    max: (document.getElementById('ia_fund_nota')||{}).getAttribute('maxlength'),
+    ejemplo: (document.getElementById('ia_fund_nota')||{}).placeholder,
+    opciones: document.querySelectorAll('#ia-fund input[type=checkbox]').length };
+
+  return { extra: [
+    ['sin discrepancia el cajon NO existe en pantalla, ni el de la EA ni el de la IAo',
+      limpio.discrepa === false && limpio.cajon === false && limpio.ia === false,
+      'discrepa=' + limpio.discrepa + ' cajonEA=' + limpio.cajon + ' cajonIA=' + limpio.ia],
+
+    ['con el grado manual MAS severo que el calculado aparece, y el sentido es «sube»',
+      sube.discrepa === true && sube.sentido === 'sube' && sube.cajon === true,
+      'discrepa=' + sube.discrepa + ' sentido=' + sube.sentido + ' cajon=' + sube.cajon],
+    ['  y ofrece el juego de «sube», NO el de «baja»',
+      sube.juegoSube === true && sube.juegoBaja === false,
+      'sube=' + sube.juegoSube + ' baja=' + sube.juegoBaja],
+    ['  el titulo es exactamente «Fundamento del ajuste» y el rotulo «Motivo del ajuste (opcional)»',
+      sube.titulo === 0 && sube.rotulo === 'Motivo del ajuste (opcional)',
+      'titulo idx=' + sube.titulo + ' rotulo=«' + sube.rotulo + '»'],
+    ['  el cuadro admite 100 caracteres y trae el ejemplo en gris del ajuste que SUBE',
+      sube.max === '100' && sube.ejemplo === 'Ej.: calcio valvular 2400 UA',
+      'max=' + sube.max + ' ejemplo=«' + sube.ejemplo + '»'],
+
+    ['las dos de bajo flujo / bajo gradiente son EXCLUYENTES entre si, en los dos ordenes',
+      exc1.length === 1 && exc1[0] === 'ea_fund_bfbg_cons' &&
+      exc2.length === 1 && exc2[0] === 'ea_fund_bfbg_red',
+      'primero [' + exc1.join(',') + '] despues [' + exc2.join(',') + ']'],
+    ['  y «AVA por planimetria» SI se combina con una de ellas',
+      combinable.length === 2 && combinable.indexOf('ea_fund_plan') > -1 &&
+      combinable.indexOf('ea_fund_bfbg_red') > -1,
+      'marcados [' + combinable.join(',') + ']'],
+
+    ['con el grado manual MENOS severo el sentido es «baja» y cambia el juego ofrecido',
+      baja.sentido === 'baja' && baja.juegoSube === false && baja.juegoBaja === true,
+      'sentido=' + baja.sentido + ' sube=' + baja.juegoSube + ' baja=' + baja.juegoBaja],
+    ['  cambiar de sentido VACIA las opciones del otro juego',
+      baja.marcados.length === 0, 'quedaron marcados [' + baja.marcados.join(',') + ']'],
+    ['  pero NO la nota, que es texto libre y no pertenece a ningun juego',
+      baja.nota === 'mi motivo propio', 'nota=«' + baja.nota + '»'],
+    ['  y el ejemplo en gris pasa al del ajuste que BAJA',
+      baja.ejemplo.indexOf('membrana subaórtica') > -1, 'ejemplo=«' + baja.ejemplo + '»'],
+
+    ['⚠️ al COINCIDIR el manual con el calculado el cajon desaparece Y SE VACIA, opciones y nota',
+      lleno.marcados.length === 1 && coincide.discrepa === false && coincide.cajon === false &&
+      coincide.marcados.length === 0 && coincide.nota === '',
+      'antes [' + lleno.marcados.join(',') + '] «' + lleno.nota + '» → despues [' +
+      coincide.marcados.join(',') + '] «' + coincide.nota + '»'],
+
+    ['⚠️ al volver a automatico (R6) tambien: se suelta el manual y el cajon queda vacio',
+      auto.grado === 'moderada' && auto.manual === false && auto.cajon === false &&
+      auto.marcados.length === 0 && auto.nota === '',
+      'grado=' + auto.grado + ' manual=' + auto.manual + ' cajon=' + auto.cajon +
+      ' marcados=' + auto.marcados.length + ' nota=«' + auto.nota + '»'],
+
+    ['⚠️ «Nuevo estudio» no deja ni una opcion ni una nota del paciente anterior (los DOS cajones)',
+      nuevo.cajon === false && nuevo.marcados.length === 0 && nuevo.nota === '' &&
+      nuevo.iaCajon === false && nuevo.iaNota === '',
+      'EA cajon=' + nuevo.cajon + ' marcados=' + nuevo.marcados.length + ' nota=«' + nuevo.nota +
+      '» · IA cajon=' + nuevo.iaCajon + ' nota=«' + nuevo.iaNota + '»'],
+
+    ['la IAo tambien tiene cajon, con el MISMO titulo, rotulo y limite de 100',
+      iaAuto.calc === '1' && iaAuto.cajon === false && iaMan.discrepa === true &&
+      iaMan.cajon === true && iaMan.titulo === 0 &&
+      iaMan.rotulo === 'Motivo del ajuste (opcional)' && iaMan.max === '100',
+      'calc=' + iaAuto.calc + ' cajonAuto=' + iaAuto.cajon + ' cajonMan=' + iaMan.cajon +
+      ' titulo=' + iaMan.titulo + ' max=' + iaMan.max],
+    ['  y NO tiene opciones: solo el cuadro de texto, con su propio ejemplo en gris',
+      iaMan.opciones === 0 && iaMan.ejemplo.indexOf('jet excéntrico') > -1,
+      'checkbox=' + iaMan.opciones + ' ejemplo=«' + iaMan.ejemplo + '»'],
+    ['  (el ejemplo de la IAo nombra el jet y la vena contracta)',
+      iaMan.ejemplo.indexOf('vena contracta no medible') > -1, 'ejemplo=«' + iaMan.ejemplo + '»'],
+  ] };
+`);
+
+caso('TC-374', 'Las frases del fundamento llegan al informe sin decir «manual» y sin la palabra «Otro» — cada combinacion, el valor de la planimetria, y los 100 caracteres', `
+  const chk = function (id, on) { const e = document.getElementById(id); if (!e) return;
+    e.checked = !!on; e.dispatchEvent(new Event('change', { bubbles: true })); };
+  const notaSet = function (t) { const e = document.getElementById('ea_fund_nota'); if (!e) return;
+    e.value = t; e.dispatchEvent(new Event('input', { bubbles: true })); };
+  /* La frase se lee del textarea del informe, no del cajon: lo que importa es lo que se FIRMA. */
+  const vao = function () { const i = __t.informe().inf;
+    const m = i.match(/[^.\\n]*[Vv][aá]lvula a[oó]rtica[^\\n]*?\\.(?= |$|\\n)/);
+    return m ? m[0].trim() : '(sin frase)'; };
+  const sube = function () {
+    __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {};
+    const p = document.getElementById('pill-esten-aortica');
+    if (p && !p.classList.contains('btn-primary')) toggleValvPill('aortica','esten');
+    __t.set('nombre','TC374'); __t.set('vmax_ao','2.6');
+    valvSev.aplicar('esten','aortica','severa'); };
+  const baja = function (g) {
+    __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {};
+    const p = document.getElementById('pill-esten-aortica');
+    if (p && !p.classList.contains('btn-primary')) toggleValvPill('aortica','esten');
+    __t.set('nombre','TC374'); __t.set('vmax_ao','4.1');
+    valvSev.aplicar('esten','aortica', g); };
+
+  sube(); const sinNada = vao();
+  sube(); chk('ea_fund_bfbg_red', true);  const fbfgRed = vao();
+  sube(); chk('ea_fund_bfbg_cons', true); const fbfgCons = vao();
+  sube(); chk('ea_fund_plan', true);      const fplanSin = vao();
+  sube(); chk('ea_fund_plan', true); __t.set('ava_plan','0.8'); const fplanCon = vao();
+  sube(); chk('ea_fund_otro', true);      const fotro = vao();
+  sube(); notaSet('calcio valvular 2400 UA'); const fsoloNota = vao();
+  sube(); chk('ea_fund_bfbg_cons', true); notaSet('calcio valvular 2400 UA'); const fOpcNota = vao();
+  sube(); chk('ea_fund_bfbg_cons', true); chk('ea_fund_plan', true); __t.set('ava_plan','0.75');
+  const fcombi = vao();
+  sube(); chk('ea_fund_otro', true); notaSet('score de calcio 3100 UA'); const fotroNota = vao();
+
+  /* 100 y 101: el atributo frena al 101 escrito a mano, y el emisor poda igual lo que llegue
+     mas largo desde un estudio editado a mano. */
+  sube(); notaSet(new Array(101).join('a')); const n100 = (vao().match(/\\(a+\\)/) || [''])[0].length - 2;
+  sube();
+  (function () { const e = document.getElementById('ea_fund_nota');
+    e.value = new Array(102).join('b'); e.dispatchEvent(new Event('input', { bubbles: true })); })();
+  const n101 = { dom: document.getElementById('ea_fund_nota').value.length,
+    frase: (vao().match(/\\(b+\\)/) || [''])[0].length - 2 };
+
+  baja('moderada'); const bModSin = vao();
+  baja('moderada'); chk('ea_fund_otsvi', true); const bModOtsvi = vao();
+  baja('sin'); chk('ea_fund_otsvi', true); const bSinOtsvi = vao();
+  baja('sin'); chk('ea_fund_otsvi', true); notaSet('membrana subaortica'); const bSinOtsviNota = vao();
+  baja('sin'); notaSet('recuperacion de presion'); const bSinSoloNota = vao();
+
+  /* Acentos, simbolos y marcado: el informe lo muestra literal y el saneador del PDF transforma
+     lo que la helvetica de jsPDF descarta. Y nada se inyecta como HTML en el cajon. */
+  sube(); notaSet('aeiou · >=40 ±2 — <b>x</b> & q');
+  const sim = { inf: vao(),
+    pdf: (typeof amiloSanPDFml === 'function') ? amiloSanPDFml(vao()) : 'NO EXISTE',
+    bEnCajon: document.getElementById('ea-fund').querySelectorAll('b').length };
+
+  /* INSUFICIENCIA: solo la nota, pegada al grado */
+  __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {}; window._iaGradoCalc = null;
+  const pi = document.getElementById('pill-insuf-aortica');
+  if (pi && !pi.classList.contains('btn-primary')) toggleValvPill('aortica','insuf');
+  __t.set('nombre','TC374'); __t.set('ia_vc','2');
+  try { calcIA_ESC(); } catch (e) {}
+  valvSev.aplicar('insuf','aortica','4');
+  const iaSin = vao();
+  (function () { const e = document.getElementById('ia_fund_nota');
+    e.value = 'jet excentrico, vena contracta no medible';
+    e.dispatchEvent(new Event('input', { bubbles: true })); })();
+  const iaCon = vao();
+  const iaSuma = __t.informe().suma;
+
+  return { extra: [
+    ['con el cajon VACIO el informe no agrega nada: solo el grado',
+      sinNada === 'Válvula aórtica trivalva normal, con estenosis severa, sin insuficiencia (Vmax 2.6 m/s).',
+      'inf=«' + sinNada + '»'],
+
+    ['«bajo flujo y bajo gradiente con FEVI reducida» entra pegado al grado',
+      fbfgRed.indexOf('estenosis severa de bajo flujo y bajo gradiente con fracción de eyección reducida') > -1,
+      'inf=«' + fbfgRed + '»'],
+    ['«… con FEVI conservada» idem, con la redaccion completa y no la abreviada',
+      fbfgCons.indexOf('estenosis severa de bajo flujo y bajo gradiente con fracción de eyección conservada') > -1 &&
+      fbfgCons.indexOf('FEVI') === -1,
+      'inf=«' + fbfgCons + '»'],
+    ['«AVA por planimetria» sin valor cargado nombra el criterio y no inventa un numero',
+      fplanSin.indexOf('con área valvular por planimetría,') > -1 &&
+      /planimetr[ií]a de/.test(fplanSin) === false,
+      'inf=«' + fplanSin + '»'],
+    ['  y con el campo ava_plan cargado CITA el valor, con el punto decimal del resto del informe',
+      fplanCon.indexOf('con área valvular por planimetría de 0.80 cm²') > -1,
+      'inf=«' + fplanCon + '»'],
+    ['planimetria COMBINADA con una de bajo flujo: las dos, en una sola oracion',
+      fcombi.indexOf('de bajo flujo y bajo gradiente con fracción de eyección conservada, con área valvular por planimetría de 0.75 cm²') > -1,
+      'inf=«' + fcombi + '»'],
+
+    ['⚠️ «Otro» NUNCA va al informe: tildado y sin nota, sale solo el grado',
+      fotro === sinNada && fotro.indexOf('Otro') === -1 && fotro.indexOf('otro') === -1,
+      'inf=«' + fotro + '»'],
+    ['  y con nota va SOLO la nota, nunca la palabra «Otro»',
+      fotroNota.indexOf('(score de calcio 3100 UA)') > -1 && fotroNota.indexOf('Otro') === -1,
+      'inf=«' + fotroNota + '»'],
+    ['⚠️ y en ningun caso el informe dice «manual» ni «ajuste»',
+      [sinNada, fbfgRed, fbfgCons, fplanCon, fotroNota, fcombi, fOpcNota, bSinOtsviNota]
+        .every(function (s) { return s.indexOf('manual') === -1 && s.indexOf('ajuste') === -1; }),
+      'alguna frase nombra el ajuste manual'],
+
+    ['solo nota: entre parentesis detras del grado',
+      fsoloNota.indexOf('con estenosis severa (calcio valvular 2400 UA), sin insuficiencia') > -1,
+      'inf=«' + fsoloNota + '»'],
+    ['opcion mas nota: la opcion primero y la nota entre parentesis detras',
+      fOpcNota.indexOf('con fracción de eyección conservada (calcio valvular 2400 UA)') > -1,
+      'inf=«' + fOpcNota + '»'],
+    ['100 caracteres entran enteros, y 101 escritos por codigo se podan a 100 en el informe',
+      n100 === 100 && n101.dom === 101 && n101.frase === 100,
+      '100 → ' + n100 + ' · 101 dom=' + n101.dom + ' frase=' + n101.frase],
+
+    ['el ajuste que BAJA sin nada tildado no agrega nada',
+      bModSin === 'Válvula aórtica trivalva normal, con estenosis moderada, sin insuficiencia (Vmax 4.1 m/s).',
+      'inf=«' + bModSin + '»'],
+    ['la obstruccion subaortica va al FINAL de la oracion, no adentro del slot de la estenosis',
+      /; obstrucción subaórtica\\.$/.test(bModOtsvi) === true,
+      'inf=«' + bModOtsvi + '»'],
+    ['⚠️ con grado «Sin estenosis» la obstruccion subaortica sigue saliendo — es el caso que no tenia donde ir',
+      bSinOtsvi === 'Válvula aórtica trivalva normal, sin estenosis ni insuficiencia; obstrucción subaórtica.',
+      'inf=«' + bSinOtsvi + '»'],
+    ['  y con nota, la nota califica a la obstruccion y no al grado',
+      bSinOtsviNota.indexOf('; obstrucción subaórtica (membrana subaortica).') > -1,
+      'inf=«' + bSinOtsviNota + '»'],
+    ['  solo nota, bajando a «Sin estenosis»: la nota sale igual',
+      bSinSoloNota.indexOf('sin estenosis ni insuficiencia (recuperacion de presion).') > -1,
+      'inf=«' + bSinSoloNota + '»'],
+
+    ['acentos y simbolos salen literales en el informe y saneados en el PDF',
+      sim.inf.indexOf('aeiou · >=40 ±2 — <b>x</b> & q') > -1 &&
+      sim.pdf.indexOf('aeiou · >=40 +/-2 - <b>x</b> & q') > -1,
+      'inf=«' + sim.inf + '» pdf=«' + sim.pdf + '»'],
+    ['  y el marcado del motivo NO se interpreta como HTML en el cajon',
+      sim.bEnCajon === 0, 'b encontrados=' + sim.bEnCajon],
+
+    ['la IAo: sin nota el informe queda igual, con nota la nota va pegada al grado',
+      iaSin.indexOf('con insuficiencia severa.') > -1 &&
+      iaCon.indexOf('con insuficiencia severa (jet excentrico, vena contracta no medible).') > -1,
+      'sin=«' + iaSin + '» con=«' + iaCon + '»'],
+    ['  y el EN SUMA de la IAo NO lleva el fundamento: el resumen publica el grado y nada mas',
+      iaSuma.indexOf('IAo severa.') > -1 && iaSuma.indexOf('jet excentrico') === -1,
+      'suma=«' + iaSuma.replace(/\\n/g,' | ') + '»'],
+  ] };
+`);
+
+caso('TC-375', 'El informe usa SOLO el grado final: con «Sin estenosis» dice sin estenosis aunque el cajon este abierto, y la pastilla ya no afirma una valvulopatia por su cuenta', `
+  const pill = function (tipo) { const p = document.getElementById('pill-' + tipo + '-aortica');
+    return p ? p.classList.contains('btn-primary') : null; };
+  const abrir = function (tipo) { if (pill(tipo) === false) toggleValvPill('aortica', tipo); };
+  const cerrar = function (tipo) { if (pill(tipo) === true) toggleValvPill('aortica', tipo); };
+  const cuatro = function () {
+    const r = __t.informe();
+    const g = String(__t.val('ea_grado'));
+    const eaReal = g && ['sin','normal','—',''].indexOf(g.trim()) === -1;
+    let pdf = '(no sale)';
+    try { pdf = (eaReal && !eaGradoNoPublica(sv('va_morf'))) ? g : '(no sale)'; } catch (e) { pdf = 'ERR'; }
+    let xls = {};
+    try { const campos = {};
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (e) {
+        campos[e.id] = (e.type === 'checkbox' || e.type === 'radio') ? (e.checked ? '1' : '') : e.value; });
+      const f = _labExcelRow({ id: 0, campos: campos });
+      xls = { g: f['EA grado'], I: f['EAo_I (Leve)'], II: f['EAo_II (Moderada)'],
+              III: f['EAo_III (Severa)'], n: Object.keys(f).length };
+    } catch (e) { xls = { ERR: String(e.message) }; }
+    const m = r.inf.match(/[^.\\n]*[Vv][aá]lvula a[oó]rtica[^\\n]*?\\.(?= |$|\\n)/);
+    return { grado: g, inf: m ? m[0].trim() : '(sin frase)', suma: r.suma, pdf: pdf, xls: xls }; };
+  const prep = function () {
+    __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {}; window._iaGradoCalc = null;
+    __t.set('nombre','TC375'); __t.set('ci','375'); };
+
+  /* ── (1) grado manual «Sin estenosis» con el cajon ABIERTO y con el cajon CERRADO ── */
+  prep(); abrir('esten'); __t.set('vmax_ao','4.1');
+  valvSev.aplicar('esten','aortica','sin');
+  const abiertoS = cuatro();
+  cerrar('esten');
+  const cerradoS = cuatro();
+
+  /* ── (2) la INSUFICIENCIA tenia el mismo patron: pastilla abierta con grado 0 ── */
+  prep(); abrir('insuf'); __t.set('ia_sev_final','0');
+  const insufAbierta = cuatro();
+
+  /* ── (3) CONTROL NEGATIVO: con grado de verdad el informe no cambio nada ── */
+  prep(); abrir('esten'); __t.set('vmax_ao','4.1');
+  const conGrado = cuatro();
+  prep(); abrir('esten'); __t.set('vmax_ao','2.6');
+  const conLeve = cuatro();
+
+  return { extra: [
+    ['⚠️ con grado «Sin estenosis» el narrativo dice SIN estenosis aunque el cajon este abierto',
+      abiertoS.grado === 'sin' && abiertoS.inf.indexOf('sin estenosis') > -1 &&
+      abiertoS.inf.indexOf('con estenosis') === -1,
+      'inf=«' + abiertoS.inf + '»'],
+    ['  y el EN SUMA tampoco afirma una estenosis que el Excel niega',
+      abiertoS.suma.indexOf('Estenosis aórtica.') === -1,
+      'suma=«' + abiertoS.suma.replace(/\\n/g,' | ') + '»'],
+    ['⚠️ las CUATRO superficies dicen lo mismo con el cajon abierto y con el cajon cerrado',
+      abiertoS.inf === cerradoS.inf && abiertoS.suma === cerradoS.suma &&
+      abiertoS.pdf === cerradoS.pdf && abiertoS.pdf === '(no sale)' &&
+      JSON.stringify(abiertoS.xls) === JSON.stringify(cerradoS.xls),
+      'abierto pdf=' + abiertoS.pdf + ' xls=' + JSON.stringify(abiertoS.xls) +
+      ' · cerrado pdf=' + cerradoS.pdf + ' xls=' + JSON.stringify(cerradoS.xls)],
+    ['  y la fila de Excel sigue teniendo 434 columnas, con los tres binarios en cero',
+      abiertoS.xls.n === 434 && abiertoS.xls.g === 'sin' &&
+      abiertoS.xls.I === 0 && abiertoS.xls.II === 0 && abiertoS.xls.III === 0,
+      'xls=' + JSON.stringify(abiertoS.xls)],
+
+    ['la INSUFICIENCIA recibe el mismo trato: pastilla abierta con grado 0 no afirma nada',
+      insufAbierta.inf.indexOf('con insuficiencia') === -1 &&
+      insufAbierta.suma.indexOf('Insuficiencia aórtica.') === -1,
+      'inf=«' + insufAbierta.inf + '» suma=«' + insufAbierta.suma.replace(/\\n/g,' | ') + '»'],
+
+    ['CONTROL NEGATIVO: con grado severo real las cuatro superficies siguen publicandolo',
+      conGrado.grado === 'severa' && conGrado.inf.indexOf('con estenosis severa') > -1 &&
+      conGrado.suma.indexOf('EAo severa.') > -1 && conGrado.pdf === 'severa' &&
+      conGrado.xls.g === 'severa' && conGrado.xls.III === 1,
+      'inf=«' + conGrado.inf + '» pdf=' + conGrado.pdf + ' xls=' + JSON.stringify(conGrado.xls)],
+    ['CONTROL NEGATIVO: y con grado leve tambien, que es el que el EN SUMA calla a proposito',
+      conLeve.grado === 'leve' && conLeve.inf.indexOf('con estenosis leve') > -1 &&
+      conLeve.pdf === 'leve' && conLeve.xls.I === 1,
+      'inf=«' + conLeve.inf + '» pdf=' + conLeve.pdf + ' xls=' + JSON.stringify(conLeve.xls)],
+  ] };
+`);
+
+caso('TC-376', 'La pastilla de severidad pinta MODERADA en naranja —distinta del amarillo de «sin dato»— en los dos temas, y el cajon de la aortica se abre solo al entrar a Valvulas sin reabrirse si el medico lo cerro', `
+  const btn = document.getElementById('sevbtn-esten-aortica');
+  const rgb = function (s) { const m = String(s).match(/(\\d+),\\s*(\\d+),\\s*(\\d+)/);
+    return m ? [+m[1], +m[2], +m[3]] : null; };
+  const lum = function (c) { const f = c.map(function (x) { x = x / 255;
+    return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); });
+    return 0.2126 * f[0] + 0.7152 * f[1] + 0.0722 * f[2]; };
+  const contraste = function (a, b) { const la = lum(a), lb = lum(b);
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05); };
+  const dist = function (a, b) { return Math.sqrt(a.reduce(function (s, x, i) {
+    return s + (x - b[i]) * (x - b[i]); }, 0)); };
+  const paleta = function () { const o = {};
+    ['base','nivel1','nivel2','nivel3'].forEach(function (cl) {
+      btn.classList.remove('nivel1','nivel2','nivel3');
+      if (cl !== 'base') btn.classList.add(cl);
+      const cs = getComputedStyle(btn);
+      o[cl] = { bg: rgb(cs.backgroundColor), txt: rgb(cs.color) }; });
+    btn.classList.remove('nivel1','nivel2','nivel3');
+    return o; };
+  const html = document.documentElement;
+  const eraDia = html.classList.contains('light-mode');
+  html.classList.remove('light-mode');
+  const pOsc = paleta();
+  html.classList.add('light-mode');
+  const pDia = paleta();
+  if (!eraDia) html.classList.remove('light-mode');
+
+  /* El texto de la pastilla no cambia con el color: lo escribe valvSev.refrescar. */
+  __t.limpiar(); window.esqSevManual = {};
+  __t.set('nombre','TC376'); __t.set('vmax_ao','3.5');
+  const moderada = { grado: String(__t.val('ea_grado')), txt: btn.textContent.trim(),
+    clase: btn.className };
+
+  /* ── APERTURA AUTOMATICA ── */
+  const pill = function (tipo) { const p = document.getElementById('pill-' + tipo + '-aortica');
+    return p ? p.classList.contains('btn-primary') : null; };
+  const resetJ = function () {
+    ['esten','insuf'].forEach(function (t) {
+      if (pill(t) === true) toggleValvPill('aortica', t);
+      try { localStorage.removeItem('valv-pill-' + t + '-aortica'); } catch (e) {} }); };
+  const foto = function () { return { esten: pill('esten'), insuf: pill('insuf'),
+    cajon: (document.getElementById('bloque-esten-aortica')||{style:{}}).style.display,
+    detalle: (document.getElementById('bloque-ea-detalle')||{style:{}}).style.display,
+    dtsvi: String(__t.val('ea_dtsvi') || ''),
+    ls: localStorage.getItem('valv-pill-esten-aortica') }; };
+
+  __t.limpiar(); __t.set('nombre','TC376J');
+  __t.set('diam_tsvi','21'); __t.set('itv_tsvi','20'); __t.set('itv_ao','95');
+  __t.set('ia_sev_final','4');
+  resetJ(); showTab('valvulas');
+  const severo = foto();
+
+  toggleValvPill('aortica','esten');          // el medico lo CIERRA
+  const cerradoAMano = foto();
+  showTab('datos'); showTab('valvulas');
+  const noReabre = foto();
+
+  __t.limpiar(); __t.set('nombre','TC376J'); resetJ(); showTab('valvulas');
+  const sinGrado = foto();
+
+  __t.limpiar(); __t.set('nombre','TC376J'); __t.set('ea_grado','esclerosis');
+  resetJ(); showTab('valvulas');
+  const escler = { esten: pill('esten'), grado: String(__t.val('ea_grado')) };
+
+  __t.limpiar(); __t.set('nombre','TC376J'); __t.set('vmax_ao','2.5');
+  resetJ(); showTab('valvulas');
+  const leve = { esten: pill('esten'), grado: String(__t.val('ea_grado')) };
+
+  toggleValvPill('aortica','esten');           // cerrado a mano...
+  const lsCerrado = localStorage.getItem('valv-pill-esten-aortica');
+  __t.limpiar();                               // ...y «Nuevo estudio» devuelve el permiso
+  const lsNuevo = localStorage.getItem('valv-pill-esten-aortica');
+  __t.set('nombre','TC376J'); __t.set('vmax_ao','4.2'); showTab('valvulas');
+  const trasNuevo = foto();
+
+  __t.limpiar(); __t.set('nombre','TC376J'); __t.set('vmax_ao','4.2');
+  resetJ(); showTab('doppler');
+  const otraTab = foto();
+  showTab('valvulas');
+
+  /* ⚠️ ABRIR SOLO NO PUEDE PISAR LO GUARDADO, y abrir SI escribe campos: toggleValvPill llama a
+     sincronizarEADesdeGlobal. Lo marco /sharp-edges y se midio. Los dos casos que importan:
+       (a) con el Doppler global VACIO y los espejos cargados —la forma de una fila de Excel
+           reimportada— los espejos y el grado tienen que sobrevivir;
+       (b) con grado fijado a mano y cajon cargado, entrar a la pestania no puede mover nada. */
+  const ponerSinEventos = function (id, val) { const e = document.getElementById(id);
+    if (e) e.value = val; };
+  const fotoCampos = function () { const o = {};
+    document.querySelectorAll('input[id], select[id]').forEach(function (e) {
+      o[e.id] = (e.type === 'checkbox' || e.type === 'radio') ? (e.checked ? '1' : '0') : e.value; });
+    return o; };
+  const difDe = function (a, b, ids) { return ids.filter(function (k) {
+    return String(a[k]) !== String(b[k]); }); };
+
+  __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {};
+  __t.set('nombre','TC376J');
+  ['ea_dtsvi','ea_vmax','ea_gmedio'].forEach(function (id, i) {
+    ponerSinEventos(id, ['21','4.1','45'][i]); });
+  ponerSinEventos('ea_grado','severa');
+  resetJ();
+  const impAntes = fotoCampos();
+  showTab('valvulas');
+  const impDespues = fotoCampos();
+  const impPerdidos = difDe(impAntes, impDespues, ['ea_dtsvi','ea_vmax','ea_gmedio','ea_grado']);
+
+  __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {};
+  if (pill('esten') === false) toggleValvPill('aortica','esten');
+  __t.set('nombre','TC376J'); __t.set('vmax_ao','2.6');
+  valvSev.aplicar('esten','aortica','severa');
+  (function () { const e = document.getElementById('ea_fund_bfbg_cons'); e.checked = true;
+    e.dispatchEvent(new Event('change', { bubbles: true })); })();
+  __t.set('ea_fund_nota','calcio valvular 2400 UA');
+  resetJ();
+  const vaoJ = function () { const i = __t.informe().inf;
+    const m = i.match(/[^.\\n]*[Vv][aá]lvula a[oó]rtica[^\\n]*?\\.(?= |$|\\n)/);
+    return m ? m[0].trim() : '(sin frase)'; };
+  const manAntes = { frase: vaoJ(), grado: String(__t.val('ea_grado')),
+    manual: !!(window.esqSevManual||{}).ea, nota: document.getElementById('ea_fund_nota').value,
+    chk: document.getElementById('ea_fund_bfbg_cons').checked };
+  showTab('valvulas');
+  const manDespues = { frase: vaoJ(), grado: String(__t.val('ea_grado')),
+    manual: !!(window.esqSevManual||{}).ea, nota: document.getElementById('ea_fund_nota').value,
+    chk: document.getElementById('ea_fund_bfbg_cons').checked };
+
+  return { extra: [
+    ['⚠️ moderada ya NO pinta el mismo fondo que «sin dato»: antes eran el MISMO rgb(254,243,199)',
+      pOsc.nivel2.bg.join(',') !== pOsc.base.bg.join(',') &&
+      dist(pOsc.nivel2.bg, pOsc.base.bg) > 60,
+      'nivel2=' + pOsc.nivel2.bg.join(',') + ' base=' + pOsc.base.bg.join(',') +
+      ' distancia=' + Math.round(dist(pOsc.nivel2.bg, pOsc.base.bg))],
+    ['  y es un NARANJA, o sea distinto del verde de leve y del rojo de severa',
+      dist(pOsc.nivel2.bg, pOsc.nivel1.bg) > 60 && dist(pOsc.nivel2.bg, pOsc.nivel3.bg) > 60 &&
+      pOsc.nivel2.bg[0] > pOsc.nivel2.bg[1] && pOsc.nivel2.bg[1] > pOsc.nivel2.bg[2],
+      'vs leve=' + Math.round(dist(pOsc.nivel2.bg, pOsc.nivel1.bg)) +
+      ' vs severa=' + Math.round(dist(pOsc.nivel2.bg, pOsc.nivel3.bg))],
+    ['  el texto sobre ese naranja pasa AA (4,5:1)',
+      contraste(pOsc.nivel2.txt, pOsc.nivel2.bg) >= 4.5,
+      'contraste=' + (Math.round(contraste(pOsc.nivel2.txt, pOsc.nivel2.bg) * 100) / 100)],
+    ['  y los dos temas pintan los cuatro niveles igual: la paleta de la pastilla no es por tema',
+      JSON.stringify(pOsc) === JSON.stringify(pDia),
+      'oscuro=' + JSON.stringify(pOsc.nivel2) + ' dia=' + JSON.stringify(pDia.nivel2)],
+    ['  el TEXTO de la pastilla no cambio: sigue diciendo «Moderada ▼» con su clase nivel2',
+      moderada.grado === 'moderada' && moderada.txt === 'Moderada ▼' &&
+      moderada.clase.indexOf('nivel2') > -1,
+      'txt=«' + moderada.txt + '» clase=«' + moderada.clase + '»'],
+
+    ['al entrar a Valvulas con estenosis severa queda abierto el cajon, CON sus datos adentro',
+      severo.esten === true && severo.cajon !== 'none' && severo.detalle !== 'none' &&
+      severo.dtsvi === '21',
+      'esten=' + severo.esten + ' cajon=' + severo.cajon + ' detalle=' + severo.detalle +
+      ' ea_dtsvi=«' + severo.dtsvi + '»'],
+    ['  y la insuficiencia con grado severo tambien',
+      severo.insuf === true, 'insuf=' + severo.insuf],
+    ['⚠️ si el medico lo CIERRA no se reabre al volver a entrar a la pestania',
+      cerradoAMano.esten === false && cerradoAMano.ls === '0' &&
+      noReabre.esten === false && noReabre.cajon === 'none',
+      'tras cerrar esten=' + cerradoAMano.esten + ' ls=' + cerradoAMano.ls +
+      ' · al reentrar esten=' + noReabre.esten],
+    ['con grado vacio no se abre nada',
+      sinGrado.esten === false && sinGrado.insuf === false && sinGrado.ls === null,
+      'esten=' + sinGrado.esten + ' insuf=' + sinGrado.insuf + ' ls=' + sinGrado.ls],
+    ['con «esclerosis» tampoco: no es un grado que abra el cajon',
+      escler.grado === 'esclerosis' && escler.esten === false,
+      'grado=' + escler.grado + ' esten=' + escler.esten],
+    ['con «leve» SI se abre — es el borde de abajo del rango',
+      leve.grado === 'leve' && leve.esten === true,
+      'grado=' + leve.grado + ' esten=' + leve.esten],
+    ['«Nuevo estudio» borra la decision y devuelve el permiso de abrir solo',
+      lsCerrado === '0' && lsNuevo === null && trasNuevo.esten === true,
+      'ls cerrado=' + lsCerrado + ' tras nuevo=' + lsNuevo + ' esten=' + trasNuevo.esten],
+    ['CONTROL NEGATIVO: entrar a OTRA pestania no abre ningun cajon de valvula',
+      otraTab.esten === false && otraTab.insuf === false && otraTab.ls === null,
+      'esten=' + otraTab.esten + ' insuf=' + otraTab.insuf + ' ls=' + otraTab.ls],
+
+    ['⚠️ abrir solo NO pisa lo guardado: con el Doppler global vacio los espejos y el grado sobreviven',
+      impPerdidos.length === 0 && impDespues.ea_grado === 'severa' && impDespues.ea_dtsvi === '21',
+      'cambiaron [' + impPerdidos.join(',') + '] · grado=' + impDespues.ea_grado +
+      ' ea_dtsvi=«' + impDespues.ea_dtsvi + '»'],
+    ['  DENOMINADOR: y la apertura ocurrio de verdad, o la igualdad de arriba no prueba nada',
+      pill('esten') === true || impDespues.ea_grado === 'severa',
+      'pill=' + pill('esten')],
+    ['⚠️ con grado manual y cajon cargado, entrar a Valvulas no mueve el grado, la marca, el cajon ni la frase',
+      manDespues.frase === manAntes.frase && manDespues.grado === 'severa' &&
+      manDespues.manual === true && manDespues.chk === true &&
+      manDespues.nota === 'calcio valvular 2400 UA',
+      'antes=«' + manAntes.frase + '» despues=«' + manDespues.frase + '» grado=' +
+      manDespues.grado + ' manual=' + manDespues.manual + ' chk=' + manDespues.chk +
+      ' nota=«' + manDespues.nota + '»'],
+    ['  DENOMINADOR: la frase de partida llevaba la clausula del fundamento',
+      manAntes.frase.indexOf('fracción de eyección conservada (calcio valvular 2400 UA)') > -1,
+      'antes=«' + manAntes.frase + '»'],
+  ] };
+`);
+
+caso('TC-377', 'El O TSVI deja los mismos espejos por las dos puertas (Aorta y Doppler), y el cajon de fundamento sobrevive al guardar y reabrir con la frase IDENTICA', `
+  const abrirTodo = function () {
+    ['mitral','aortica'].forEach(function (v) { ['esten','insuf'].forEach(function (t) {
+      const p = document.getElementById('pill-' + t + '-' + v);
+      if (p && !p.classList.contains('btn-primary')) toggleValvPill(v, t); }); }); };
+  const espejos = function () { return {
+    diam_tsvi: String(__t.val('diam_tsvi') || ''), ea: String(__t.val('ea_dtsvi') || ''),
+    em: String(__t.val('em_dtsvi') || ''), im: String(__t.val('im_dtsvi') || ''),
+    ava: String(__t.val('ava_cont') || '') }; };
+
+  __t.limpiar(); abrirTodo(); __t.set('nombre','TC377');
+  __t.set('itv_tsvi','20'); __t.set('itv_ao','95'); __t.set('diam_tsvi','21');
+  const porDoppler = espejos();
+
+  __t.limpiar(); abrirTodo(); __t.set('nombre','TC377');
+  __t.set('itv_tsvi','20'); __t.set('itv_ao','95'); __t.set('diam_tsvi_ao','21');
+  const porAorta = espejos();
+
+  /* CONTROL NEGATIVO: sin diametro, las dos puertas dejan los espejos vacios. Sin esto, una sonda
+     que compare dos objetos vacios dice «identicos» y no esta probando nada. */
+  __t.limpiar(); abrirTodo(); __t.set('nombre','TC377');
+  __t.set('itv_tsvi','20'); __t.set('itv_ao','95');
+  const sinDiametro = espejos();
+
+  /* El cableado leido del codigo vivo: las dos puertas tienen que llamar a las mismas seis. */
+  const seis = ['calcAo','mostrarTSVIEstimado','eteShuntSyncSiExiste','imSyncSiExiste',
+                'emSyncSiExiste','iaSyncSiExiste'];
+  const onInput = String((document.getElementById('diam_tsvi')||{}).getAttribute
+    ? (document.getElementById('diam_tsvi').getAttribute('oninput') || '') : '');
+  const cuerpo = (typeof syncTSVI === 'function') ? String(syncTSVI) : '';
+  const faltanEnSync = seis.filter(function (f) { return cuerpo.indexOf(f) === -1; });
+  const faltanEnInput = seis.filter(function (f) { return onInput.indexOf(f) === -1; });
+
+  return (async () => {
+    const dormir = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+    /* ── ROUND-TRIP del cajon: lo que se firma tiene que volver igual al reabrir ── */
+    __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {};
+    const p = document.getElementById('pill-esten-aortica');
+    if (p && !p.classList.contains('btn-primary')) toggleValvPill('aortica','esten');
+    __t.set('nombre','TC377-RT'); __t.set('ci','377'); __t.set('vmax_ao','2.6');
+    valvSev.aplicar('esten','aortica','severa');
+    ['ea_fund_bfbg_cons','ea_fund_plan'].forEach(function (id) {
+      const e = document.getElementById(id); e.checked = true;
+      e.dispatchEvent(new Event('change', { bubbles: true })); });
+    __t.set('ava_plan','0.8');
+    (function () { const e = document.getElementById('ea_fund_nota');
+      e.value = 'calcio valvular 2400 UA'; e.dispatchEvent(new Event('input', { bubbles: true })); })();
+    const vao = function () { const i = __t.informe().inf;
+      const m = i.match(/[^.\\n]*[Vv][aá]lvula a[oó]rtica[^\\n]*?\\.(?= |$|\\n)/);
+      return m ? m[0].trim() : '(sin frase)'; };
+    const firmada = vao();
+    const g = await __t.guardar();
+    const id = g.estudioId;
+    __t.nuevoEstudio();
+    const enBlanco = vao();
+    __t.reabrir(id);
+    await dormir(700);
+    const reabierta = vao();
+    await __t.borrar(id);
+    const repuesto = { marcados: ['ea_fund_bfbg_red','ea_fund_bfbg_cons','ea_fund_plan',
+      'ea_fund_otsvi','ea_fund_otro'].filter(function (x) {
+        const e = document.getElementById(x); return !!(e && e.checked); }),
+      nota: (document.getElementById('ea_fund_nota')||{}).value,
+      grado: String(__t.val('ea_grado')), discrepa: sevDiscrepa('ea') };
+
+    return { extra: [
+      ['el O TSVI cargado por DOPPLER llena los cuatro espejos',
+        porDoppler.ea === '21' && porDoppler.em === '21' && porDoppler.im === '21' &&
+        porDoppler.ava === '0.73',
+        JSON.stringify(porDoppler)],
+      ['⚠️ y cargado por AORTA deja EXACTAMENTE los mismos: antes em_dtsvi e im_dtsvi quedaban VACIOS',
+        JSON.stringify(porDoppler) === JSON.stringify(porAorta),
+        'Doppler=' + JSON.stringify(porDoppler) + ' Aorta=' + JSON.stringify(porAorta)],
+      ['  DENOMINADOR: sin diametro los espejos estan vacios, asi que la igualdad de arriba cuenta algo',
+        sinDiametro.ea === '' && sinDiametro.em === '' && sinDiametro.im === '',
+        JSON.stringify(sinDiametro)],
+      ['syncTSVI llama a las MISMAS seis funciones que el oninput del campo',
+        faltanEnSync.length === 0 && faltanEnInput.length === 0,
+        'faltan en syncTSVI [' + faltanEnSync.join(',') + '] · faltan en oninput [' +
+        faltanEnInput.join(',') + ']'],
+
+      ['⚠️ el informe firmado con fundamento vuelve IDENTICO al reabrir el estudio guardado',
+        reabierta === firmada && firmada.indexOf('fracción de eyección conservada') > -1,
+        'firmada=«' + firmada + '» reabierta=«' + reabierta + '»'],
+      ['  DENOMINADOR: tras «Nuevo estudio» la frase NO es la firmada, asi que la igualdad no es trivial',
+        enBlanco !== firmada, 'en blanco=«' + enBlanco + '»'],
+      ['⚠️ una casilla guardada por el AUTOSAVE (clave pelada, booleano) tambien se repone',
+        (function () {
+          /* El autosave persiste data[id] = !!checked; guardarInforme persiste id+'__chk' = '1'.
+             sevFundRestaurar corre en los TRES caminos, asi que tiene que entender las dos formas:
+             leyendo solo __chk, recuperar un borrador reponia la nota SIN la clausula clinica. */
+          const e = document.getElementById('ea_fund_bfbg_cons');
+          e.checked = false;
+          sevFundRestaurar({ ea_fund_bfbg_cons: true, ea_fund_nota: 'desde el autosave' });
+          const ok = e.checked === true &&
+            document.getElementById('ea_fund_nota').value === 'desde el autosave';
+          return ok;
+        })(),
+        'la forma del autosave no se repuso'],
+      ['  y lo repuesto es el estado del cajon, no solo el texto',
+        repuesto.grado === 'severa' && repuesto.discrepa === true &&
+        repuesto.marcados.length === 2 && repuesto.marcados.indexOf('ea_fund_plan') > -1 &&
+        repuesto.nota === 'calcio valvular 2400 UA',
+        'marcados [' + repuesto.marcados.join(',') + '] nota=«' + repuesto.nota + '» grado=' +
+        repuesto.grado + ' discrepa=' + repuesto.discrepa],
+    ] };
+  })();
+`);
+
 
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
