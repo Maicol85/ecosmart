@@ -44429,6 +44429,194 @@ caso('TC-362', 'EA e IAo: volver A MANO al mismo grado que la app habia sugerido
 `);
 
 
+
+/* ═══ GRUPO — vab_tipo: un solo dueño del texto del Consenso VAB 2021 ═══════════════════════
+   La migracion Sievers -> Consenso 2021 del 2026-09-15 se hizo en el <select> y en el cargador
+   de estudios guardados (`_VAB_SIEVERS`), pero quedaron tres consumidores con las claves viejas,
+   y `_ccLbl` devuelve '' y NO la clave cruda: fallaban los tres EN SILENCIO. «Ver detalle» omitia
+   la fila entera, la columna de Excel salia vacia para los siete valores, y el vocabulario de
+   reimportacion devolvia `t1rl`/`t0`, que el <select> de hoy ya no tiene — un <select> rechaza en
+   silencio un value que no es una de sus opciones, asi que la columna entraba y el dato se perdia
+   igual. Lo que estos cuatro casos fijan es que el texto salga de UN solo mapa (`VAB_TIPO_LBL`) y
+   que el ida y vuelta del Excel cierre. */
+const VAB_SIETE = { fused_rl:'Fused R-L', fused_rn:'Fused R-N', fused_ln:'Fused L-N',
+  dos_senos_ll:'2-sinus latero-lateral', dos_senos_ap:'2-sinus antero-posterior',
+  partial:'Partial (forme fruste)', no_clasif:'No clasificable' };
+
+caso('TC-363', 'vab_tipo: las SIETE claves del Consenso 2021 dan texto no vacio en «Ver detalle» y en las DOS columnas de Excel, con la etiqueta corta del Consenso — y un valor desconocido sigue omitiendo la fila y vaciando la celda', `
+return (async () => {
+  const SIETE = ${JSON.stringify(VAB_SIETE)};
+  const fallas = [], guardados = [];
+  let filasMedidas = 0;
+  for (const v of Object.keys(SIETE)) {
+    const r = _labExcelRow({ id:0, campos:{ vab_tipo: v } });
+    if (r['VAB tipo (Consenso 2021)'] !== SIETE[v]) fallas.push('Excel Consenso ' + v + '=' + JSON.stringify(r['VAB tipo (Consenso 2021)']));
+    if (r['VAB tipo de fusión'] !== SIETE[v]) fallas.push('Excel fusion ' + v + '=' + JSON.stringify(r['VAB tipo de fusión']));
+    __t.limpiar();
+    __t.set('nombre', 'TC363'); __t.set('vab_fenotipo', 'raiz'); __t.set('vab_tipo', v);
+    if (__t.val('vab_tipo') !== v) { fallas.push('el <select> RECHAZO ' + v); continue; }
+    const g = await __t.guardar();
+    if (!g.ok) { fallas.push('no guardo ' + v + ': ' + g.error); continue; }
+    guardados.push(g.estudioId);
+    const inf = getInformes().find(i => i.estudioId === g.estudioId);
+    if (!inf) { fallas.push('no aparece en getInformes(): ' + v); continue; }
+    verDetalleInforme(inf.id);
+    const sec = Array.from(document.querySelectorAll('.ig-detalle-sec'))
+      .find(s => /bic.spide/i.test((s.querySelector('.card-head') || { textContent:'' }).textContent));
+    if (!sec) { fallas.push('SIN seccion VAB en Ver detalle: ' + v); continue; }
+    const filas = Array.from(sec.querySelectorAll('.calc-row')).map(x =>
+      [x.querySelector('.calc-lbl').textContent.trim(), x.lastElementChild.textContent.trim()]);
+    filasMedidas += filas.length;
+    const fil = filas.find(x => /Tipo de fusi/i.test(x[0]));
+    if (!fil) fallas.push('FILA AUSENTE en Ver detalle: ' + v + ' (la seccion tenia ' + filas.length + ' filas)');
+    else if (fil[1] !== SIETE[v]) fallas.push('Ver detalle ' + v + '=' + JSON.stringify(fil[1]));
+  }
+  for (const id of guardados) await __t.borrar(id);
+  /* CONTROL NEGATIVO — la sonda tiene que saber decir NO. Un valor que no es del Consenso ni de
+     Sievers deja las dos celdas vacias y omite la fila: sin esto, un mapa que devolviera siempre
+     algo (un «|| k») pasaria este caso en verde imprimiendo el token crudo al medico. */
+  const rX = _labExcelRow({ id:0, campos:{ vab_tipo: 'xx_no_existe' } });
+  let ctrlFila = 'NO MEDIDO';
+  __t.limpiar(); __t.set('nombre', 'TC363n'); __t.set('vab_fenotipo', 'raiz');
+  const gn = await __t.guardar();
+  if (gn.ok) {
+    const infn = getInformes().find(i => i.estudioId === gn.estudioId);
+    if (infn) {
+      verDetalleInforme(infn.id);
+      const secn = Array.from(document.querySelectorAll('.ig-detalle-sec'))
+        .find(s => /bic.spide/i.test((s.querySelector('.card-head') || { textContent:'' }).textContent));
+      ctrlFila = !secn ? 'SIN SECCION'
+        : (Array.from(secn.querySelectorAll('.calc-lbl')).some(e => /Tipo de fusi/i.test(e.textContent))
+           ? 'PRESENTE' : 'omitida sobre ' + secn.querySelectorAll('.calc-row').length + ' filas');
+    }
+    await __t.borrar(gn.estudioId);
+  }
+  __t.limpiar();
+  return { extra: [
+    ['las siete claves dan el texto del Consenso en Ver detalle y en las dos columnas',
+      fallas.length === 0, fallas.join(' ;; ')],
+    ['DENOMINADOR — se midieron filas de verdad, no secciones vacias',
+      filasMedidas >= 14, 'filas acumuladas en las siete pasadas: ' + filasMedidas],
+    ['CONTROL NEGATIVO — un vab_tipo desconocido deja las DOS celdas vacias',
+      rX['VAB tipo (Consenso 2021)'] === '' && rX['VAB tipo de fusión'] === '',
+      JSON.stringify([rX['VAB tipo (Consenso 2021)'], rX['VAB tipo de fusión']])],
+    ['CONTROL NEGATIVO — sin vab_tipo la fila de tipo de fusion NO se dibuja',
+      /^omitida/.test(ctrlFila), ctrlFila],
+  ] };
+})();
+`);
+
+caso('TC-364', 'vab_tipo: round-trip de los siete valores — la etiqueta que el Excel exporta vuelve al MISMO value, y la ayuda de la plantilla lista exactamente lo que el importador acepta', `
+const SIETE = ${JSON.stringify(VAB_SIETE)};
+const claves = Object.keys(SIETE), fallas = [];
+claves.forEach(v => {
+  const etq = _labExcelRow({ id:0, campos:{ vab_tipo: v } })['VAB tipo (Consenso 2021)'];
+  if (!etq) { fallas.push(v + ': el Excel exporto celda VACIA'); return; }
+  const vuelta = _labXlsVocab('vab_tipo', etq);
+  if (vuelta !== v) fallas.push(v + ' -> ' + JSON.stringify(etq) + ' -> ' + JSON.stringify(vuelta));
+});
+/* La ayuda de la plantilla y lo que el importador acepta son la MISMA lista o el medico copia de
+   la plantilla un formato que se le rechaza. Antes LAB_XLS_OPCIONES.vab_tipo estaba escrita a
+   mano con las etiquetas del Consenso mientras el vocabulario solo aceptaba las de Sievers. */
+const ayuda = LAB_XLS_OPCIONES['vab_tipo'] || '';
+const noAceptadas = ayuda.split(' · ').map(s => s.trim()).filter(s => s && _labXlsVocab('vab_tipo', s) === null);
+/* El vocabulario no puede devolver NINGUN value que el <select> de hoy no tenga: ese es el modo de
+   falla original — entraba la columna y el <select> la descartaba sin un solo error. */
+const opts = Array.from(document.getElementById('vab_tipo').options).map(o => o.value).filter(Boolean);
+const valores = Array.from(new Set(Object.values(LAB_XLS_VOCAB.vab_tipo)));
+const huerfanos = valores.filter(v => opts.indexOf(v) < 0);
+return { extra: [
+  ['el round-trip cierra para los siete valores del Consenso', fallas.length === 0, fallas.join(' ;; ')],
+  ['DENOMINADOR — se probaron los siete y el <select> los ofrece todos',
+    claves.length === 7 && opts.length === 7 && claves.every(k => opts.indexOf(k) >= 0),
+    'claves=' + claves.length + ' options=' + JSON.stringify(opts)],
+  ['la ayuda de la plantilla lista solo etiquetas que el importador acepta',
+    ayuda !== '' && noAceptadas.length === 0, 'ayuda=' + JSON.stringify(ayuda) + ' rechazadas=' + JSON.stringify(noAceptadas)],
+  ['el vocabulario no devuelve ningun value ausente del <select>',
+    valores.length > 0 && huerfanos.length === 0, 'huerfanos=' + JSON.stringify(huerfanos) + ' de ' + JSON.stringify(valores)],
+  ['CONTROL NEGATIVO — un texto que no es del vocabulario se rechaza con null',
+    _labXlsVocab('vab_tipo', 'tipo 7 inventado') === null,
+    JSON.stringify(_labXlsVocab('vab_tipo', 'tipo 7 inventado'))],
+] };
+`);
+
+caso('TC-365', 'vab_tipo: un Excel con las etiquetas VIEJAS de Sievers importa el value NUEVO equivalente — el mismo destino que _VAB_SIEVERS le da al estudio guardado — y «unicuspide», que no tiene equivalente, NO se importa', `
+/* Las planillas ya generadas traen «Tipo 1 R-L» y los tokens t1rl/t0. Si el vocabulario los
+   rechazara, cada reimportacion de un Excel viejo perderia el campo; si los tradujera a los value
+   Sievers, el <select> los descartaria en silencio. El destino tiene que ser el mismo que el del
+   cargador de estudios guardados, o un estudio reabierto y el mismo estudio reimportado mostrarian
+   tipos distintos. */
+const EQUIV = { t0:'dos_senos_ll', t1rl:'fused_rl', t1rn:'fused_rn', t1nl:'fused_ln', t2:'no_clasif' };
+const ETIQ_VIEJAS = { 'Tipo 0':'dos_senos_ll', 'Tipo 0 (sin rafe)':'dos_senos_ll', 'sin rafe':'dos_senos_ll',
+  'Tipo 1 R-L':'fused_rl', 'R-L':'fused_rl', 'derecha-izquierda':'fused_rl',
+  'Tipo 1 R-N':'fused_rn', 'R-N':'fused_rn', 'Tipo 1 N-L':'fused_ln', 'N-L':'fused_ln', 'Tipo 2':'no_clasif' };
+const fallas = [];
+Object.keys(EQUIV).forEach(k => {
+  const got = _labXlsVocab('vab_tipo', k);
+  if (got !== EQUIV[k]) fallas.push('token ' + k + ' -> ' + JSON.stringify(got) + ' (esperado ' + EQUIV[k] + ')');
+});
+Object.keys(ETIQ_VIEJAS).forEach(k => {
+  const got = _labXlsVocab('vab_tipo', k);
+  if (got !== ETIQ_VIEJAS[k]) fallas.push('etiqueta ' + JSON.stringify(k) + ' -> ' + JSON.stringify(got) + ' (esperado ' + ETIQ_VIEJAS[k] + ')');
+});
+/* «unicuspide (funcional)» era un alias de t2 y nombra OTRA entidad, no otro nombre de una
+   fusion del Consenso. Aceptarla pondria en el campo una afirmacion que nadie escribio, asi que
+   queda SIN importar a proposito y el importador la rechaza. Si alguna vez se la acepta, es una
+   decision clinica de Maicol y este caso tiene que cambiar con ella. */
+const uni = [_labXlsVocab('vab_tipo', 'unicuspide'), _labXlsVocab('vab_tipo', 'unicuspide funcional')];
+/* Un estudio guardado ANTES del 2026-09-15 conserva t1rl en disco y ni «Ver detalle» ni
+   _labExcelRow pasan por _migrarCamposLegacy (corre en cargarEstudioPorId): las dos
+   superficies tienen que mostrarlo en la nomenclatura de hoy igual que lo mostraria migrado. */
+const viejo = _labExcelRow({ id:0, campos:{ vab_tipo:'t1rl' } });
+return { extra: [
+  ['las etiquetas y tokens viejos dan el value nuevo equivalente', fallas.length === 0, fallas.join(' ;; ')],
+  ['DENOMINADOR — se probaron los cinco tokens y once etiquetas viejas',
+    Object.keys(EQUIV).length === 5 && Object.keys(ETIQ_VIEJAS).length === 11,
+    Object.keys(EQUIV).length + ' / ' + Object.keys(ETIQ_VIEJAS).length],
+  ['«unicuspide» NO se importa: no tiene equivalente exacto en el Consenso 2021',
+    uni[0] === null && uni[1] === null, JSON.stringify(uni)],
+  ['un estudio guardado con t1rl sale en las DOS columnas con la etiqueta del Consenso',
+    viejo['VAB tipo (Consenso 2021)'] === 'Fused R-L' && viejo['VAB tipo de fusión'] === 'Fused R-L',
+    JSON.stringify([viejo['VAB tipo (Consenso 2021)'], viejo['VAB tipo de fusión']])],
+] };
+`);
+
+caso('TC-366', 'VAB: «Ver detalle» muestra la fila de simetria de los senos cuando esta cargada y la OMITE cuando esta vacia — el dato lo usaba solo el narrativo y desaparecia de esta superficie', `
+return (async () => {
+  const leer = async (cargar) => {
+    __t.limpiar();
+    __t.set('nombre', 'TC366'); __t.set('vab_fenotipo', 'raiz');
+    if (cargar) __t.set('vab_simetria', 'asimetrica');
+    const g = await __t.guardar();
+    if (!g.ok) return { err: 'no guardo: ' + g.error };
+    const inf = getInformes().find(i => i.estudioId === g.estudioId);
+    if (!inf) { await __t.borrar(g.estudioId); return { err: 'no aparece en getInformes()' }; }
+    verDetalleInforme(inf.id);
+    const sec = Array.from(document.querySelectorAll('.ig-detalle-sec'))
+      .find(s => /bic.spide/i.test((s.querySelector('.card-head') || { textContent:'' }).textContent));
+    if (!sec) { await __t.borrar(g.estudioId); return { err: 'SIN seccion VAB' }; }
+    const filas = Array.from(sec.querySelectorAll('.calc-row')).map(x =>
+      [x.querySelector('.calc-lbl').textContent.trim(), x.lastElementChild.textContent.trim()]);
+    await __t.borrar(g.estudioId);
+    return { filas: filas, sim: (filas.find(x => /Simetr/i.test(x[0])) || [null, null])[1] };
+  };
+  const con = await leer(true), sin = await leer(false);
+  __t.limpiar();
+  return { extra: [
+    ['con el dato cargado, la fila de simetria aparece con el texto de VAB_SIMETRIA_TXT',
+      !con.err && con.sim === 'asimétrica', con.err || JSON.stringify(con.sim)],
+    ['DENOMINADOR — la seccion VAB se dibujo y tenia mas de una fila en los dos escenarios',
+      !con.err && !sin.err && con.filas.length >= 2 && sin.filas.length >= 1,
+      (con.err || '') + ' ' + (sin.err || '') + ' filas: ' + (con.filas || []).length + ' / ' + (sin.filas || []).length],
+    ['CONTROL NEGATIVO — vacia, la fila NO se dibuja (se omite como las demas)',
+      !sin.err && sin.sim === null, sin.err || JSON.stringify(sin.sim)],
+    ['la fila de simetria es la UNICA diferencia entre los dos escenarios',
+      !con.err && !sin.err && con.filas.length === sin.filas.length + 1,
+      JSON.stringify([(con.filas || []).map(x => x[0]), (sin.filas || []).map(x => x[0])])],
+  ] };
+})();
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

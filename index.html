@@ -38412,6 +38412,42 @@ const VAB_TIPO_TXT = {
   dos_senos_ll:'2-sinus type latero-lateral', dos_senos_ap:'2-sinus type antero-posterior',
   partial:'partial type (forme fruste)', no_clasif:'no clasificable'
 };
+/* Etiqueta CORTA del Consenso 2021 — dueño del texto de `vab_tipo` en CUATRO superficies:
+   «Ver detalle» (`_IG_SECTIONS`), las DOS columnas de Excel de `_labExcelRow` y, derivadas de
+   `LAB_XLS_ETIQ.vab_tipo`, la ayuda de la plantilla (`LAB_XLS_OPCIONES`) y el vocabulario de
+   reimportación. Tres de esas tenían las claves Sievers retiradas el 2026-09-15 y con un
+   `vab_tipo` del Consenso devolvían '' — la fila y la celda desaparecían sin un solo error en
+   consola, que es el modo de falla de `_ccLbl`.
+   ⚠️ NO es el dueño único del archivo, y los otros dos quedan DECLARADOS, no corregidos (quedaron
+   fuera del pedido, y el wording es decisión clínica de Maicol):
+   · `VAB_TIPOS_LBL` —a una «S» de distancia, 44.000 líneas abajo— con OTRA redacción, que leen la
+     diapositiva del PPT y el PDF de auditoría vía `_lblDe`, cuyo fallback es **`'Otro'`**;
+   · el mapa literal de las barras `lab-cc-vab-bars`, que ante una clave desconocida descarta el
+     estudio del conteo pero NO del denominador.
+   Los dos tienen las siete claves del Consenso y ninguna de Sievers, y las rutas de agregación
+   leen `getInformes()` CRUDO: un estudio guardado antes del 2026-09-15 y nunca reabierto sale
+   «Otro» en un papel firmado. No mueve grado ni conducta —`vabConclusion` usa `tipo` sólo por
+   truthiness—, pero sí el rótulo. Si se unifican, el lugar es acá.
+   Va ACÁ, al lado de `VAB_TIPO_TXT`, y no junto a `LAB_XLS_ETIQ` 37.000 líneas más abajo, porque
+   `_IG_SECTIONS` es un `const` que se evalúa ANTES: leerlo desde arriba no da `undefined`, LANZA
+   —es la zona muerta que este archivo ya documenta para `_lblDe`— y se lleva el bloque <script>. */
+const VAB_TIPO_LBL = {
+  fused_rl:'Fused R-L', fused_rn:'Fused R-N', fused_ln:'Fused L-N',
+  dos_senos_ll:'2-sinus latero-lateral', dos_senos_ap:'2-sinus antero-posterior',
+  partial:'Partial (forme fruste)', no_clasif:'No clasificable'
+};
+/* Lo mismo, admitiendo además las cinco claves Sievers de un estudio guardado ANTES del
+   2026-09-15, con la etiqueta del Consenso que mostraría ese mismo estudio ya migrado — el mismo
+   destino que les da `_VAB_SIEVERS`, así que una serie mezclada imprime UNA sola nomenclatura.
+   Hace falta porque `verDetalleInforme` y `_labExcelRow` leen `inf.campos` CRUDO: la traducción de
+   `_migrarCamposLegacy` corre en `cargarEstudioPorId`, y ninguno de los dos pasa por ahí.
+   NO se usa para `LAB_XLS_ETIQ`: ahí cada clave publica la etiqueta que el importador acepta, y
+   dos claves con la MISMA etiqueta dejarían el vocabulario derivado atado al orden de las
+   propiedades del objeto. */
+const VAB_TIPO_LBL_LEGACY = Object.assign({
+  t0:   VAB_TIPO_LBL.dos_senos_ll, t1rl: VAB_TIPO_LBL.fused_rl, t1rn: VAB_TIPO_LBL.fused_rn,
+  t1nl: VAB_TIPO_LBL.fused_ln,     t2:   VAB_TIPO_LBL.no_clasif
+}, VAB_TIPO_LBL);
 const VAB_SIMETRIA_TXT = { simetrica:'simétrica', asimetrica:'asimétrica', no_val:'no valorable' };
 const VAB_FUNC_TXT = { normal:'normofuncionante', estenosis:'con estenosis', insuficiencia:'con insuficiencia', mixta:'con lesión mixta' };
 const VAB_FENO_TXT = { sin:'sin dilatación', raiz:'de raíz', tubular:'tubular (ascendente)', arco:'extendido (con compromiso del arco)' };
@@ -56119,8 +56155,13 @@ const _IG_SECTIONS = [
     {id:'fop_acv',lbl:'ACV criptogénico',map:_IG_SN},{id:'fop_trombofilia',lbl:'Trombofilia',map:_IG_SN}
   ]},
   { titulo:'🫀 Válvula aórtica bicúspide', fields:[
-    {id:'vab_tipo',lbl:'Tipo de fusión',map:{t0:'Tipo 0 (sin rafe)',t1rl:'Tipo 1 R-L',t1rn:'Tipo 1 R-N',t1nl:'Tipo 1 N-L',t2:'Tipo 2'}},
+    {id:'vab_tipo',lbl:'Tipo de fusión',map:VAB_TIPO_LBL_LEGACY},
     {id:'vab_rafe',lbl:'Rafe calcificado',map:_IG_SN},
+    /* La simetría la usaba sólo el narrativo (`VAB_SIMETRIA_TXT`): «Ver detalle» de un estudio
+       guardado no la mostraba, así que un dato cargado desaparecía de esta superficie. Reusa el
+       mapa del narrativo y no una copia, y por eso el texto va en minúscula: ahí se lee dentro de
+       la frase «Senos asimétricos». Se omite vacía por el mismo camino que las demás filas. */
+    {id:'vab_simetria',lbl:'Simetría de los senos',map:VAB_SIMETRIA_TXT},
     {id:'vab_funcion',lbl:'Función valvular',map:{normal:'Normofuncionante',estenosis:'Estenosis',insuficiencia:'Insuficiencia',mixta:'Mixta'}},
     {id:'vab_fenotipo',lbl:'Fenotipo aortopático',map:{sin:'Sin dilatación',raiz:'De raíz',tubular:'Tubular',arco:'Extendido'}},
     {id:'vab_cx_valvular',lbl:'Cirugía valvular prevista',map:_IG_SN},
@@ -73909,7 +73950,13 @@ function _labExcelRow(inf) {
     'Coartación G. pico-pico invasivo (mmHg)': rnd(num('coa_gradiente_picopico'),0),
     'Coartación estenosis relativa (%)': rnd(num('coa_estenosis_relativa'),0),
     'Coartación HTA confirmada': _labXlsEtiq('coa_hta', c.coa_hta),
-    'VAB tipo (Consenso 2021)': ({fused_rl:'Fused R-L',fused_rn:'Fused R-N',fused_ln:'Fused L-N',dos_senos_ll:'2-sinus latero-lateral',dos_senos_ap:'2-sinus antero-posterior',partial:'Partial (forme fruste)',no_clasif:'No clasificable'}[c.vab_tipo] || ''),
+    /* ⚠️ `vab_tipo` SALE EN DOS COLUMNAS, ésta y «VAB tipo de fusión» treinta líneas más abajo.
+       Las dos llevan hoy el MISMO texto porque son el mismo dato: la de abajo quedó con el mapa
+       Sievers y exportaba la celda vacía para los siete valores del Consenso. No se unifican ni se
+       borra una porque cambiaría el número de columnas (434) y un Excel ya exportado perdería la
+       que falte en silencio. Sólo ÉSTA se reimporta —es la única de las dos que está en
+       `LAB_XLS_MAP`—. Queda declarado para Maicol, no corregido. */
+    'VAB tipo (Consenso 2021)': _ccLbl(VAB_TIPO_LBL_LEGACY, c.vab_tipo),
     'VAB rafe': ({presente:'Presente',ausente:'Ausente',no_val:'No valorable'}[c.vab_rafe] || ''),
     'VAB simetría de senos': _labXlsEtiq('vab_simetria', c.vab_simetria),
     'VAB aorta ascendente (mm)': rnd(num('ao_tub'),1),
@@ -73937,7 +73984,8 @@ function _labExcelRow(inf) {
     'FOP trombofilia': _cc3e(c.fop_trombofilia),
     'Incluir coartación en informe': c['coart_incluir_chk__chk']  === '1' ? 1 : 0,
     'Incluir VAP en informe':        c['vap_incluir_chk__chk']    === '1' ? 1 : 0,
-    'VAB tipo de fusión': _ccLbl({t0:'Tipo 0',t1rl:'Tipo 1 R-L',t1rn:'Tipo 1 R-N',t1nl:'Tipo 1 N-L',t2:'Tipo 2'}, c.vab_tipo),
+    // El mismo dato y el mismo dueño que «VAB tipo (Consenso 2021)» — ver la nota de allá arriba.
+    'VAB tipo de fusión': _ccLbl(VAB_TIPO_LBL_LEGACY, c.vab_tipo),
     'VAB rafe calcificado': _cc3e(c.vab_rafe),
     'VAB función valvular': _ccLbl({normal:'Normofuncionante',estenosis:'Estenosis',insuficiencia:'Insuficiencia',mixta:'Mixta'}, c.vab_funcion),
     'VAB fenotipo aortopático': _ccLbl({sin:'Sin dilatación',raiz:'De raíz',tubular:'Tubular',arco:'Extendido'}, c.vab_fenotipo),
@@ -75774,6 +75822,12 @@ LAB_XLS_ETIQ.cvpa_htp  = { no:'Sin HTP', leve:'Leve', moderada:'Moderada', sever
 LAB_XLS_ETIQ.cvpa_sintomas = { asintomatico:'Asintomatico', disnea:'Disnea de esfuerzo',
                                palpitaciones:'Palpitaciones', ic_derecha:'IC derecha', otro:'Otro' };
 LAB_XLS_ETIQ.vab_simetria     = { simetrica:'Simétrica', asimetrica:'Asimétrica', no_val:'No valorable' };
+/* Las siete etiquetas del Consenso 2021, del dueño único y no copiadas. Declararlas acá es lo que
+   hace que los dos bucles del cierre deriven de ellas la ayuda de la plantilla
+   (`LAB_XLS_OPCIONES.vab_tipo`, que estaba escrita A MANO) y las sume al vocabulario de
+   reimportación — que es el defecto que tenía el campo: el Excel exportaba «Fused R-L» y el
+   importador lo RECHAZABA, porque su vocabulario seguía siendo el de Sievers. */
+LAB_XLS_ETIQ.vab_tipo         = VAB_TIPO_LBL;
 LAB_XLS_ETIQ.marfan_sindrome  = { marfan:'Marfan', lds:'Loeys-Dietz', turner:'Turner',
                                   ehat:'EHAT no sindrómica', otro:'Otro' };
 LAB_XLS_ETIQ.marfan_factores_riesgo = { no:'No', si:'Sí' };
@@ -75986,11 +76040,26 @@ Object.keys(_CC_3E_ALIAS).forEach(function(k){
  'vab_fr_longitud','vab_fr_cx','vab_fr_embarazo'].forEach(function(k){
   LAB_XLS_VOCAB[k] = Object.assign({}, LAB_XLS_VOCAB_3E);
 });
-LAB_XLS_VOCAB.vab_tipo = { t0:'t0', 'tipo 0':'t0', 'tipo 0 sin rafe':'t0', 'sin rafe':'t0',
-  t1rl:'t1rl', 'tipo 1 r-l':'t1rl', 'r-l':'t1rl', 'rl':'t1rl', 'derecha-izquierda':'t1rl',
-  t1rn:'t1rn', 'tipo 1 r-n':'t1rn', 'r-n':'t1rn', 'rn':'t1rn',
-  t1nl:'t1nl', 'tipo 1 n-l':'t1nl', 'n-l':'t1nl', 'nl':'t1nl',
-  t2:'t2', 'tipo 2':'t2', unicuspide:'t2', 'unicuspide funcional':'t2' };
+/* Los VALORES son los `value` del <select> de HOY (Consenso 2021). Antes devolvía los de Sievers
+   (`t1rl`, `t0`…), que el <select> ya no tiene: un <select> RECHAZA EN SILENCIO un value que no es
+   una de sus opciones y queda vacío, así que la columna entraba y el dato se perdía igual.
+   Las siete etiquetas que el Excel exporta hoy NO están acá: las agrega el bucle de
+   `LAB_XLS_ETIQ`, para que la ayuda de la plantilla y lo que el importador acepta no puedan
+   divergir. Acá van los tokens y las etiquetas VIEJAS, para que una planilla generada antes del
+   2026-09-15 siga entrando, con el mismo destino que `_VAB_SIEVERS` le da al estudio guardado.
+   ⚠️ «unicúspide (funcional)» NO está, y es a propósito: era un alias de `t2` y nombra OTRA
+   entidad, no otro nombre de una fusión del Consenso. Aceptarla pondría en el campo una afirmación
+   que nadie escribió; queda sin importar y el importador la rechaza listando los siete valores que
+   sí acepta. Agregarla es decisión clínica de Maicol, no una equivalencia que se deduzca. */
+LAB_XLS_VOCAB.vab_tipo = {
+  fused_rl:'fused_rl', fused_rn:'fused_rn', fused_ln:'fused_ln',
+  dos_senos_ll:'dos_senos_ll', dos_senos_ap:'dos_senos_ap',
+  partial:'partial', no_clasif:'no_clasif',
+  t0:'dos_senos_ll', 'tipo 0':'dos_senos_ll', 'tipo 0 sin rafe':'dos_senos_ll', 'sin rafe':'dos_senos_ll',
+  t1rl:'fused_rl', 'tipo 1 r-l':'fused_rl', 'r-l':'fused_rl', 'rl':'fused_rl', 'derecha-izquierda':'fused_rl',
+  t1rn:'fused_rn', 'tipo 1 r-n':'fused_rn', 'r-n':'fused_rn', 'rn':'fused_rn',
+  t1nl:'fused_ln', 'tipo 1 n-l':'fused_ln', 'n-l':'fused_ln', 'nl':'fused_ln',
+  t2:'no_clasif', 'tipo 2':'no_clasif' };
 LAB_XLS_VOCAB.vab_funcion = { normal:'normal', normofuncionante:'normal',
   estenosis:'estenosis', 'estenosis aortica':'estenosis',
   insuficiencia:'insuficiencia', 'insuficiencia aortica':'insuficiencia',
@@ -76202,7 +76271,10 @@ const LAB_XLS_OPCIONES = {
   fop_burbujas:'Pocas (<5) · Moderado (5-20) · Abundante (>20)',
   fop_acv:'Sí · No · No consta',
   fop_trombofilia:'Sí · No · No consta',
-  vab_tipo:'Fused R-L · Fused R-N · Fused L-N · 2-sinus latero-lateral · 2-sinus antero-posterior · Partial (forme fruste) · No clasificable',
+  /* `vab_tipo` NO va acá: se deriva de `LAB_XLS_ETIQ.vab_tipo` en el bucle del cierre, que es lo
+     que garantiza que la ayuda liste exactamente lo que el importador acepta. Escrita a mano,
+     enseñaba las siete etiquetas del Consenso mientras el vocabulario sólo aceptaba las de
+     Sievers — el médico copiaba el formato de la plantilla para que se lo rechazaran. */
   vab_funcion:'Normofuncionante · Estenosis · Insuficiencia · Mixta',
   vab_fenotipo:'Sin dilatación · De raíz · Tubular · Extendido',
   vab_rafe:'Sí · No · No evaluado',
@@ -88763,8 +88835,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261002-0915';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790943327677;                 /* eco-build-ms */
+const ECO_BUILD    = '20261002-1012';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790946730998;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -88850,7 +88922,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-0915</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-1012</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
