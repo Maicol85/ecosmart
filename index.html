@@ -22936,11 +22936,16 @@ function calcEADetalle() {
   // Se resetea al entrar: se asignaba en un solo camino y las salidas por «sin vmax» dejaban
   // el valor del cálculo anterior, o sea el del paciente anterior.
   window._eaBajoGradiente = null;
+  /* ⚠️ EL GRADO DE ESTE RECUADRO ES EL GRADO CALCULADO, EL MISMO (R3, 2026-10-02). Acá había la
+     CUARTA cascada del archivo y era la que GANABA, porque esta función corre última. Hoy el número
+     sale del dueño único y lo que queda propio del recuadro son sus anotaciones —el párrafo de bajo
+     gradiente y el «⚠️ AVA no concuerda»— que explican el grado sin cambiarlo. Es lo que hace que
+     la pastilla, el `<select>` y los dos recuadros digan lo mismo en modo automático. */
+  const _RCalc = eaGradoCalculado();
   if (vmax) {
-    if (vmax < 2.0)      { sev='Sin estenosis';  color='var(--text2)';  gradoStr='sin'; }
-    else if (vmax < 3.0) { sev='Leve';           color='#3ecf8e';       gradoStr='leve'; }
-    else if (vmax < 4.0) { sev='Moderada';       color='#f59e0b';       gradoStr='moderada'; }
-    else                 { sev='Severa';          color='var(--red)';    gradoStr='severa'; }
+    gradoStr = _RCalc.grado;
+    sev = gradoStr ? EA_GRADO_LBL[gradoStr] : 'Sin datos para graduar';
+    color = gradoStr ? EA_GRADO_COLOR[gradoStr] : 'var(--text2)';
     // Confirmar con AVA si disponible
     /* ECOS-12: el caso central del bajo gradiente —AVA <1.0 con Vmax 3.0–3.9 o gradiente
        medio <40— no estaba en ninguna de las dos discordancias que se miraban acá, así que
@@ -22967,8 +22972,16 @@ function calcEADetalle() {
           'en rango moderado. Considerar flujo, AVAi, DVI y contexto clínico para clasificación definitiva.';
         sev = 'Severa por AVA ⚠️ bajo gradiente';
         color = 'var(--red)';
-        gradoStr = 'severa';
+        /* `gradoStr` NO se fuerza acá: la regla del peor ya devolvió 'severa' por el AVA, que es
+           precisamente este escenario. Dejarlo asignado sería una quinta copia del mismo criterio y
+           la que se quedaría atrás el día que el corte se mueva. Se afirma con una condición, no
+           con una asignación: si el dueño no dijo severa, este párrafo no corresponde. */
       } else if (avaR >= 1.5 && gradoStr === 'severa') { sev += ' ⚠️ AVA no concuerda'; color='#f59e0b'; }
+      /* ⚠️ LA TERCERA RAMA YA NO PUEDE ENTRAR CON gradoStr==='leve', y se conserva igual. Bajo la
+         regla del peor un AVA severo arrastra el grado a severa, así que «AVA severa con grado leve»
+         es un estado que el dueño no emite. Queda escrita porque es la que avisa si alguien afloja
+         la regla: la condición es sobre el grado, no sobre el criterio, así que sigue siendo cierta
+         cualquiera sea el camino. */
       else if (avaEsSevera(avaR) && gradoStr === 'leve') { sev += ' ⚠️ AVA no concuerda'; color='#f59e0b'; }
     }
     /* El aviso de banda va DENTRO del mismo nodo del veredicto y no en uno aparte: es la línea que
@@ -22983,15 +22996,22 @@ function calcEADetalle() {
       ? 'Fuera de rango: ' + _eaDetFuera.join(' · ') + ' — el grado NO se actualizó automáticamente; verificar la unidad de la medición antes de firmar.'
       : eaAdvBajoGrad
       ? `AVA ${ava.toFixed(2)} cm² (severa) con Vmax ${vmax} m/s${gmedio !== null ? ` / grad. medio ${gmedio} mmHg` : ''} no severos — estenosis aórtica de bajo gradiente. Grado mantenido por AVA.`
-      : (ava ? `Vmax ${vmax} m/s · AVA ${ava.toFixed(2)} cm² — ESC 2021.` : `Sugerido por Vmax ${vmax} m/s — ESC 2021. Editable manualmente.`);
+      : _eaBadgeAuto(_RCalc);
     window._eaBajoGradiente = eaAdvBajoGrad || null;
   } else if (ava) {
     /* `gradoStr='sin'` y no 'leve': la pantalla decía «Sin estenosis / leve» pero lo que
        bajaba al <select> —y de ahí al informe firmado y al buscador del Laboratorio, que
        grepea el EN SUMA por palabras de severidad— era «EAo leve.» sobre una válvula con
        área normal. clasificarEA_Vmax usa 'sin' para el mismo caso. */
-    if (avaR >= 1.5)      { sev='Sin estenosis / leve'; color='#3ecf8e'; gradoStr='sin'; }
-    else if (avaEsModerada(avaR)) { sev='Moderada';       color='#f59e0b'; gradoStr='moderada'; }
+    /* ⚠️ ESTA CASCADA TAMBIÉN DELEGA AHORA, y era la que discrepaba con `sugerirSeveridadEA` en el
+       borde del 1,5: ésta escribía 'sin' y aquélla 'leve' sobre el MISMO AVA, y cuál ganaba
+       dependía de si el bloque de detalle estaba abierto. El dueño adoptó 'sin', que es el valor que
+       el comentario de abajo defiende. Las etiquetas de pantalla se conservan tal cual —incluida
+       «Sin estenosis / leve», que lleva los dos nombres porque un AVA normal no distingue entre no
+       tener estenosis y tenerla leve— y lo que se unificó es el `value` que baja al informe. */
+    gradoStr = _RCalc.grado;
+    if (avaR >= 1.5)      { sev='Sin estenosis / leve'; color='#3ecf8e'; }
+    else if (avaEsModerada(avaR)) { sev='Moderada';       color='#f59e0b'; }
     /* ⚠️ EL `else` INCONDICIONAL MANDABA A «SEVERA» TODO AVA NO POSITIVO, y ésta es la tercera vez
        que el mismo fail-open aparece en la aórtica. La guarda de arriba —`else if (ava)`— entra por
        TRUTHY, así que un AVA de 0,004 pasa; `avaR` es el REDONDEADO y vale 0; `avaR >= 1.5` es
@@ -23009,7 +23029,7 @@ function calcEADetalle() {
        `if (sel && gradoStr)` de abajo no escriba: el grado anterior no se borra —la regla del
        archivo es marcar sin borrar— y se DICE que no se actualizó, con el mismo texto que publica
        `sugerirSeveridadEA`, para que las dos mitades sigan diciendo lo mismo carácter por carácter. */
-    else if (avaEsSevera(avaR)) { sev='Severa';          color='var(--red)'; gradoStr='severa'; }
+    else if (avaEsSevera(avaR)) { sev='Severa';          color='var(--red)'; }
     else { sev='AVA no valuable'; color='var(--text2)'; gradoStr=null; }
     if (sevEl) sevEl.innerHTML = `<span style="color:${color};font-weight:700;">${sev}</span>`;
     if (!gradoStr) { const _b = document.getElementById('ea-ava-badge');
@@ -23022,6 +23042,18 @@ function calcEADetalle() {
      —que es la que llama a esta función— así que el orden queda garantizado por el llamador y una
      llamada acá sería una tercera copia del mismo disparo. Lo encontró /sharp-edges. */
     if (sel && gradoStr) { sel.value = gradoStr; _eaMarcarSugerido(sel, gradoStr); }
+  } else if (_RCalc.grado) {
+    /* ⚠️ TERCERA RAMA, NUEVA (R3, 2026-10-02). Las dos de arriba son «hay Vmax» y «hay AVA», y
+       entre las dos NO cubren el caso que la regla del peor acaba de hacer graduable: el gradiente
+       medio solo. Medido en la tabla de escenarios de esta etapa —G. medio 45 sin Vmax ni AVA—: el
+       `<select>`, la pastilla y el recuadro de Doppler decian «Severa» y ESTE recuadro seguia en
+       «—», o sea el mismo desfase del sintoma (1) movido de lugar. Pinta el grado calculado y nada
+       mas: no hay AVA ni Vmax que anotar, asi que no hay anotacion que agregar. */
+    sev = EA_GRADO_LBL[_RCalc.grado]; color = EA_GRADO_COLOR[_RCalc.grado]; gradoStr = _RCalc.grado;
+    if (sevEl) sevEl.innerHTML = `<span style="color:${color};font-weight:700;">${sev}</span>`;
+    const _bG = document.getElementById('ea-ava-badge');
+    if (_bG && !_eaDetDud) _bG.textContent = _eaBadgeAuto(_RCalc);
+    if (sel && gradoStr) { sel.value = gradoStr; _eaMarcarSugerido(sel, gradoStr); }
   }
   /* ⚠️ Y HACE FALTA ACA TAMBIEN, aparte del final de `calcAo`, por el orden de los dos
      caminos: `syncEADesdeValvulas` llama `calcAo()` y DESPUES `calcEADetalle()`, asi que el
@@ -23029,6 +23061,9 @@ function calcEADetalle() {
      (corre ultima en la cascada), asi que es la que tiene que cerrar. Es el mismo argumento
      que el bloqueo de las escrituras ya declara: bloquear dos de tres no bloquea nada. */
   if (typeof _eaRetirarGradoSugerido === 'function') _eaRetirarGradoSugerido();
+  /* Mismo argumento que la cola de `calcAo`: despues del retiro. Esta funcion es la que corre
+     ULTIMA de la cascada, asi que es la que deja la pantalla como el medico la ve. */
+  _eaSincronizarPantalla();
 }
 window.calcEADetalle = calcEADetalle;
 window.usarTSVIenEM = usarTSVIenEM;
@@ -23566,7 +23601,12 @@ function calcAo() {
        tres predicados de severidad se evaluarían antes y el primero que matcheara ganaría: con el
        Ø TSVI en cm el AVA da 0,01 y `avaEsSevera` dice «Severa» — exactamente el badge que este
        bloque existe para no publicar. */
-    if (_avaDud) sev = badge('gray', 'AVA no graduable — fuera de rango: ' + _fueraLista.join(' · ') + ' — verificar la unidad de la medición');
+    /* `_critEsc` sobre la lista: el texto lleva los valores CRUDOS que tipeó el médico y este nodo
+       se escribe por `innerHTML`. Hoy no es explotable —los seis insumos son `input[type=number]` y
+       el setter de `.value` descarta lo que no parsea— pero es el mismo endurecimiento que el otro
+       recuadro ya aplica sobre la misma lista, y un campo que mañana pase a `type="text"` no debería
+       abrir un XSS por el camino de un aviso de unidades. */
+    if (_avaDud) sev = badge('gray', 'AVA no graduable — fuera de rango: ' + _critEsc(_fueraLista.join(' · ')) + ' — verificar la unidad de la medición');
     else if (PF(ava) >= 1.5) sev = badge('green', 'Sin estenosis / leve (≥1.5cm²)');
     else if (avaEsModerada(PF(ava))) sev = badge('yellow', 'Moderada (>' + AVA_SEVERA_MAX.toFixed(1) + '-1.49cm²)');
     else if (avaEsSevera(PF(ava))) sev = badge('red', 'Severa (≤' + AVA_SEVERA_MAX.toFixed(1) + 'cm²)');
@@ -23575,7 +23615,7 @@ function calcAo() {
        líneas más abajo— se abstenía correctamente. Las dos mitades del mismo cálculo,
        contiguas en pantalla, diciendo cosas distintas. */
     else sev = badge('gray', 'AVA no valuable — revisá diámetro TSVI, ITV-TSVI e ITV-Ao');
-    document.getElementById('ea-sev').innerHTML = sev;
+    _eaPintarRecuadroDoppler(sev);
     /* ⚠️ CON UN INSUMO FUERA DE BANDA NO SE SUGIERE GRADO, y es la mitad que importa: el badge es
        pantalla, pero `sugerirSeveridadEA` escribe `ea_grado`, que es de donde salen el informe
        narrativo, el EN SUMA, el PDF firmado, la columna del Excel y el Laboratorio. Sin esta
@@ -23626,7 +23666,12 @@ function calcAo() {
     }
   } else {
     setv('ava_cont', '');
-    const sevEl = document.getElementById('ea-sev'); if (sevEl) sevEl.innerHTML = '—';
+    /* ⚠️ ESTA RAMA DEJABA EL RECUADRO EN «—» Y ERA LA MITAD DEL SÍNTOMA (1) DEL 2026-10-02: con
+       Vmax 4,1 y sin Ø TSVI ni VTI no hay AVA, se entra acá, y el recuadro «Estenosis aórtica —
+       severidad» de la pestaña Doppler quedaba vacío al lado de un `<select>` que decía «Severa».
+       El recuadro sólo sabía de AVA. Desde R2 la primera línea es el grado por velocidad/gradiente,
+       que no depende del AVA, así que acá se pinta igual y lo que falta es la SEGUNDA línea. */
+    _eaPintarRecuadroDoppler(null);
     const idxEl = document.getElementById('ava-idx'); if (idxEl) idxEl.textContent = '—';
     /* El DVI NO se limpia acá: lo gobierna su propio `if/else` de arriba, con sus propios insumos.
        Esta línea era la segunda mitad del defecto — sin el diámetro se entra por este `else` y
@@ -23664,19 +23709,291 @@ function calcAo() {
      Aca corre despues de todas las escrituras de esta cascada, y es idempotente: si no hay
      marca propia, o si algun insumo volvio a banda, no hace nada. */
   if (typeof _eaRetirarGradoSugerido === 'function') _eaRetirarGradoSugerido();
+  /* Y LA PANTALLA SE SINCRONIZA DESPUES DEL RETIRO, no antes (R3). El retiro deja `ea_grado` en
+     'sin', asi que una pastilla repintada antes se queda mostrando el grado que acaba de
+     desaparecer — que es el mismo desfase que esta tanda vino a cerrar, espejado. */
+  _eaSincronizarPantalla();
 }
 
-// Clasificación de estenosis aórtica por Vmax (ESC 2021)
-// FIX clínico: Vmax NO debe degradar una AVA severa. Si AVA < AVA_SEVERA_MAX con Vmax/gradiente
-// no severos → EA discordante (bajo flujo/bajo gradiente); sólo se asigna grado automático
-// por Vmax cuando AVA y Vmax son concordantes.
+/* ══ GRADO CALCULADO DE LA ESTENOSIS AÓRTICA — UN SOLO DUEÑO (R1, DECISIÓN DE MAICOL 2026-10-02) ══
+   LA REGLA ES EL PEOR DE LOS CRITERIOS DISPONIBLES: velocidad (Vmax), gradiente (G. medio) y AVA
+   por continuidad si está calculada. Si cualquiera da severa, el grado calculado es severa.
+
+   ⚠️ POR QUÉ UNA FUNCIÓN PURA Y SEPARADA, Y NO TRES CASCADAS. Antes de esto el grado lo decidían
+   TRES funciones con tres cascadas distintas —`clasificarEA_Vmax`, `sugerirSeveridadEA` y
+   `calcEADetalle`— y la que ganaba era la que corría última, que depende de si el bloque de detalle
+   está abierto. Medido el 2026-10-02: con la Vmax vacía y un AVA de 1,8 cm², `sugerirSeveridadEA`
+   escribía 'leve' y `calcEADetalle` escribía 'sin' sobre el MISMO dato — o sea el informe firmado
+   decía «estenosis leve» o no decía nada según el estado de un botón de interfaz. Acá el grado se
+   decide UNA vez; las tres siguen escribiendo el `<select>` porque cada una la llaman caminos
+   distintos, pero ya no deciden: son espejos del mismo número.
+
+   ⚠️ LOS CORTES NO CAMBIAN, y es la única cosa que esta tanda NO estaba autorizada a tocar. Son los
+   de la ESC/EACTS 2025, Tabla 4, los mismos que el archivo ya tenía: Vmáx ≥4,0 m/s, G. medio ≥40
+   mmHg, AVA ≤1,0 cm² (`AVA_SEVERA_MAX`), y para leve/moderada los que ya estaban escritos. Las
+   bandas se preguntan por los predicados compartidos (`avaEsSevera`, `avaEsModerada`) y no por una
+   copia del número, que es la regla que este archivo ya pagó cuatro veces.
+
+   ⚠️ EL GRADIENTE SÓLO SABE DECIR «SEVERA», Y SE DECLARA. El código tiene el corte severo del
+   gradiente (≥40) y NO tiene cortes de leve ni de moderada para esa magnitud, así que con un
+   gradiente de 20 mmHg este criterio SE ABSTIENE en vez de votar «leve». Inventarle cortes sería
+   tocar contenido clínico, que es decisión de Maicol. La consecuencia es la deseada: el gradiente
+   puede AGRAVAR el grado y nunca puede suavizarlo, que es el lado seguro de la regla del peor.
+
+   ⚠️ UN AVA ≥1,5 VOTA 'sin' Y NO 'leve'. Las dos escrituras existían y discrepaban: `calcEADetalle`
+   ya usaba 'sin' con el motivo escrito —«la pantalla decía Sin estenosis / leve pero lo que bajaba
+   al `<select>` era EAo leve sobre una válvula con área normal»— y `sugerirSeveridadEA` seguía
+   escribiendo 'leve'. Se adopta el que el propio archivo documenta como el arreglo. En la regla del
+   peor da igual para el resultado —'sin' es el más leve de los cinco y nunca gana— pero sí cambia
+   el caso «AVA sola, sin Vmax ni gradiente», que es donde la contradicción se veía.
+
+   ⚠️ SEGUNDA OPINIÓN DE LA GUÍA, LEÍDA EN TEXTO COMPLETO: ESC/EACTS 2025 (`ehaf194.pdf`, PDF 29 =
+   folio 4663) respalda la regla por un lado y la contradice por el otro, y se implementa igual
+   porque la decisión es de Maicol:
+     · a favor — «Discordant high-gradient AS is considered severe if not caused by a reversible
+       high-flow status» (gradiente ≥40 con AVA >1 cm²): es exactamente el gradiente agravando;
+     · en contra — «Patients with discordant normal-flow, low-gradient AS usually have moderate
+       stenosis» (gradiente <40 con AVA ≤1 y flujo normal): ahí la guía gradúa MODERADA y la regla
+       del peor gradúa severa. La app ya hacía eso ANTES de esta tanda —es la rama de bajo gradiente
+       de `clasificarEA_Vmax`, que mantiene «severa por AVA» a propósito— así que esta regla no
+       introduce la discrepancia: la hereda. El párrafo de bajo flujo / bajo gradiente del informe
+       sigue siendo lo que la matiza, y el flujo (SVi) no se consulta acá.
+
+   NO consulta `esqSevManual` ni la morfología protésica ni las bandas: es el grado que los números
+   dan. Quién tiene permitido ESCRIBIRLO es decisión de los tres llamadores, que ya tienen esas
+   guardas puestas. Mezclarlas acá volvería la función impura y haría que «el grado calculado» —que
+   es lo que el aviso de discrepancia de R5 compara contra el manual— dependiera del modo. */
+const EA_GRADO_ORDEN = Object.freeze({ sin:0, esclerosis:1, leve:2, moderada:3, severa:4 });
+const EA_GRADO_TXT = Object.freeze({ sin:'sin estenosis', esclerosis:'esclerosis', leve:'leve',
+                                     moderada:'moderada', severa:'severa' });
+/* Etiqueta y color de cada grado, UNA vez. Los cuatro colores son los que el recuadro de Válvulas
+   ya usaba, byte por byte: no es un cambio de paleta, es la misma tabla sacada de dentro de una
+   cascada para que los dos recuadros no puedan pintar el mismo grado de dos colores. */
+const EA_GRADO_LBL = Object.freeze({ sin:'Sin estenosis', esclerosis:'Esclerosis', leve:'Leve',
+                                     moderada:'Moderada', severa:'Severa' });
+const EA_GRADO_COLOR = Object.freeze({ sin:'var(--text2)', esclerosis:'var(--text2)',
+  leve:'#3ecf8e', moderada:'#f59e0b', severa:'var(--red)' });
+/* El peor de dos grados, tratando `null` como «este criterio no se pronuncia». Con los dos en
+   `null` devuelve `null`, que es «no hay grado calculado» y NO «sin estenosis»: son dos cosas
+   distintas y confundirlas es lo que hace que una app afirme que no hay estenosis cuando lo que
+   pasa es que nadie midió. */
+function _eaPeorGrado(a, b){
+  if (!a) return b || null;
+  if (!b) return a;
+  return (EA_GRADO_ORDEN[b] > EA_GRADO_ORDEN[a]) ? b : a;
+}
+function eaGradoCalculado() {
+  const vmax = v('vmax_ao'), gmedio = v('gmedio_ao'), avaCrudo = v('ava_cont');
+  /* `avaEsValida` falla CERRADO ante vacío, NaN, 0 y negativos, que es el fail-open que la aórtica
+     ya cerró tres veces: un AVA que redondea a 0 no es «severa», es «no se puede graduar». */
+  const ava = avaEsValida(avaCrudo) ? _avaNum(avaCrudo) : null;
+  let gVel = null;
+  if (vmax !== null) {
+    if (vmax < 2.0)      gVel = 'sin';
+    else if (vmax < 3.0) gVel = 'leve';
+    else if (vmax < 4.0) gVel = 'moderada';
+    else                 gVel = 'severa';
+  }
+  const gGrad = (gmedio !== null && gmedio >= 40) ? 'severa' : null;
+  let gAva = null;
+  if (ava !== null) {
+    if (ava >= 1.5)             gAva = 'sin';
+    else if (avaEsModerada(ava)) gAva = 'moderada';
+    else if (avaEsSevera(ava))   gAva = 'severa';
+  }
+  const gVelGrad = _eaPeorGrado(gVel, gGrad);
+  /* Cuál de los dos fijó el grado de la pareja velocidad/gradiente, para que la oración de
+     discrepancia de R2 nombre el criterio que de verdad lo decidió y no «velocidad» por defecto. */
+  const criterioVelGrad = (gGrad && gVelGrad === gGrad &&
+      (gVel === null || EA_GRADO_ORDEN[gGrad] > EA_GRADO_ORDEN[gVel])) ? 'gradiente' : 'velocidad';
+  const grado = _eaPeorGrado(gVelGrad, gAva);
+  let criterio = null;
+  if (grado) criterio = (gAva && grado === gAva && (!gVelGrad || EA_GRADO_ORDEN[gAva] > EA_GRADO_ORDEN[gVelGrad]))
+    ? 'AVA' : criterioVelGrad;
+  return { grado: grado, criterio: criterio, gVel: gVel, gGrad: gGrad, gAva: gAva,
+           gVelGrad: gVelGrad, criterioVelGrad: criterioVelGrad,
+           vmax: vmax, gmedio: gmedio, ava: ava };
+}
+window.eaGradoCalculado = eaGradoCalculado;
+window.EA_GRADO_ORDEN = EA_GRADO_ORDEN;
+/* Texto único del badge en modo automático. UNO, y no uno por función, porque la regla de este
+   archivo es que las dos mitades del mismo cálculo digan lo mismo carácter por carácter — y antes
+   de esto había cuatro redacciones distintas de «sugerido por», cada una nombrando sólo el criterio
+   que esa función miraba. Nombra TODOS los criterios cargados con su veredicto, porque el grado
+   ahora sale del peor y un badge que nombra uno solo oculta cuál ganó. */
+function _eaBadgeAuto(R) {
+  if (!R.grado) return 'No alcanza para graduar la estenosis aórtica automáticamente: cargá la Vmax, ' +
+    'el gradiente medio o los tres insumos del AVA por continuidad.';
+  const partes = [];
+  if (R.vmax !== null)   partes.push('Vmax ' + R.vmax + ' m/s (' + EA_GRADO_TXT[R.gVel] + ')');
+  if (R.gmedio !== null) partes.push('G. medio ' + R.gmedio + ' mmHg (' +
+    (R.gGrad ? EA_GRADO_TXT[R.gGrad] : 'no gradúa por debajo de 40') + ')');
+  if (R.ava !== null)    partes.push('AVA ' + R.ava.toFixed(2) + ' cm² (' + EA_GRADO_TXT[R.gAva] + ')');
+  return 'Grado calculado: ' + _eaCap(EA_GRADO_TXT[R.grado]) + ' — el peor de los criterios cargados, por ' +
+    R.criterio + '. ' + partes.join(' · ') + '. ESC/EACTS 2025. Editable manualmente.';
+}
+function _eaCap(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+/* ══ RECUADRO «ESTENOSIS AÓRTICA — SEVERIDAD» DE LA PESTAÑA DOPPLER (R2, 2026-10-02) ═══════════
+   DOS LÍNEAS, y son dos lecturas distintas del mismo paciente — no dos vistas del mismo número:
+     línea 1 — el grado por VELOCIDAD / GRADIENTE, que NO depende del AVA;
+     línea 2 — el grado por AVA, cuando el AVA está calculado, con el texto y los cortes impresos
+               que este recuadro ya tenía (incluido «AVA no valuable — revisá diámetro TSVI, ITV-TSVI
+               e ITV-Ao», que es la frase que el médico ya conoce).
+   Si las dos difieren, una oración AMARILLA con la convención que la app ya usa en `ia-discordancia`.
+   SIN sugerencias de qué revisar: el texto dice qué discrepa y nada más — decisión de Maicol.
+
+   ⚠️ ANTES ESTE RECUADRO LEÍA SÓLO EL AVA, y por eso quedaba en «—» con una Vmax severa cargada.
+   Igualarlo al recuadro de Válvulas habría sido peor: haría desaparecer de la pestaña Doppler la
+   lectura del AVA aislada, que es un dato clínico propio. La solución es que muestre las dos y
+   DIGA cuándo no coinciden, que es la información que faltaba.
+   ⚠️ LA LÍNEA 1 NO ES EL GRADO CALCULADO FINAL. El grado final es el peor de los TRES e incluye el
+   AVA; esta línea es a propósito la pareja velocidad/gradiente sola, porque la segunda línea es la
+   del AVA y sumarle el AVA a la primera dejaría la discrepancia invisible —las dos líneas dirían lo
+   mismo justo cuando hay algo que mirar—. El grado final vive en el `<select>`, en la pastilla y en
+   el recuadro de Válvulas. */
+function _eaPintarRecuadroDoppler(avaHtml) {
+  const el = document.getElementById('ea-sev');
+  if (!el) return;
+  const R = eaGradoCalculado();
+  const linea1 = R.gVelGrad
+    ? '<span style="color:' + EA_GRADO_COLOR[R.gVelGrad] + ';font-weight:700;">' +
+      EA_GRADO_LBL[R.gVelGrad] + '</span>' +
+      '<span style="color:var(--text2);font-size:10px;"> &mdash; por ' + R.criterioVelGrad +
+      ' (Vm&aacute;x &ge;4,0 m/s &middot; G. medio &ge;40 mmHg)</span>'
+    : '<span style="color:var(--text2);">&mdash;</span>' +
+      '<span style="color:var(--text2);font-size:10px;"> &mdash; sin Vmax ni gradiente medio cargados</span>';
+  const linea2 = avaHtml ? '<div style="margin-top:3px;">' + avaHtml + '</div>' : '';
+  /* La oración sólo aparece con los DOS grados presentes: con uno solo no hay nada que comparar, y
+     un aviso de discrepancia sobre un dato ausente manda a revisar lo que no se midió. */
+  const disc = (R.gVelGrad && R.gAva && R.gVelGrad !== R.gAva)
+    ? '<div style="margin-top:4px;color:var(--yellow);font-size:11px;font-weight:600;">Discrepancia: EAo ' +
+      EA_GRADO_TXT[R.gVelGrad] + ' por ' + R.criterioVelGrad + ', ' + EA_GRADO_TXT[R.gAva] +
+      ' por AVA (revisar)</div>'
+    : '';
+  el.innerHTML = '<div>' + linea1 + '</div>' + linea2 + disc;
+}
+window._eaPintarRecuadroDoppler = _eaPintarRecuadroDoppler;
+
+/* ══ CALCULADO vs MANUAL — MECANISMO GENÉRICO, REGISTRADO SÓLO PARA LA AÓRTICA ════════════════
+   Decisión de Maicol (2026-10-02): Maicol quiere el MISMO comportamiento en la mitral nativa más
+   adelante, así que esto se escribe genérico desde el principio —recibiendo el `<select>`, la
+   pastilla y el PROVEEDOR del grado calculado— y se registra sólo para `ea` e `ia`. Extenderlo a la
+   mitral es agregar dos entradas a `SEV_SINC`, no reescribir nada.
+   ⚠️ EN ESTA TANDA NO SE REGISTRÓ NADA DE LA MITRAL, a propósito: `em_grado`/`im_grado` tienen su
+   propio par (`emGradoAuto`/`emGradoManual`) y mezclarlos es otra tanda con su propia verificación.
+
+   Las tres cosas que hace, y por qué están juntas:
+     (a) R3 — repinta la pastilla después de una escritura AUTOMÁTICA. No puede hacerse despachando
+         un evento: `_gradoManoBorraMarca` cuelga del `change` de estos dos `<select>` y borraría
+         `dataset.sugerido`, que es la bandera del retiro fuera de banda de «Aórtica 3b».
+     (b) R5 — pinta el aviso ROJO cuando el grado fijado a mano discrepa del calculado.
+     (c) R6 — suelta el grado manual cuando el GRADO CALCULADO cambia.
+
+   ⚠️ (c) SE DECIDE CONTRA UNA FOTO, NO CONTRA EL VALOR DE AHORA. Lo que suelta el manual es que el
+   calculado CAMBIE respecto de lo que valía cuando el médico fijó el grado —no que difiera de él—.
+   La diferencia es todo el pedido: con Vmax 2,6 (leve) y manual «Severa» hay discrepancia
+   permanente, y si la regla fuera «difieren → soltar» el manual se perdería en el primer recálculo.
+   La foto se toma en `aplicar()` y vive en `_sevCalcAlFijar`.
+   ⚠️ Y SIN FOTO NO SE SUELTA NADA, que es la dirección segura de la falla. `_sevCalcAlFijar` NO se
+   persiste con el estudio —`esqSevManual` sí, por el hidden `#sev_manual`—, así que al REABRIR un
+   estudio con grado manual la foto no existe. Si la ausencia se tratara como «cambió», el primer
+   recálculo le borraría al médico el grado que firmó, en silencio y sobre un estudio archivado. Acá
+   la ausencia se trata como «todavía no sé desde dónde comparar»: se GUARDA la foto de ahora y no se
+   toca el grado. Desde ese momento un cambio real sí lo suelta. Es el mismo argumento con que
+   `_eaRetirarGradoSugerido` se abstiene ante un estudio reabierto.
+   ⚠️ TAMPOCO SE SUELTA SIN GRADO CALCULADO (R6, última frase): con `null` —datos insuficientes, o un
+   insumo fuera de banda que ya retiró el grado auto-sugerido— no hay con qué comparar, así que el
+   manual se conserva y el aviso se apaga. Un `null` tratado como cambio convertiría el retiro de
+   «Aórtica 3b» en una máquina de borrar grados fijados a mano, que es exactamente lo que esa tanda
+   decidió no hacer. */
+window._sevCalcAlFijar = window._sevCalcAlFijar || {};
+const SEV_SINC = Object.freeze({
+  ea: Object.freeze({ tipo:'esten', valv:'aortica', select:'ea_grado', aviso:'ea-manual-aviso',
+    ayuda: null, nombre:'Estenosis aórtica',
+    /* El proveedor devuelve el grado calculado en el MISMO vocabulario que el `<select>`. */
+    calcular: function(){ return eaGradoCalculado().grado; },
+    etiqueta: function(g){ return EA_GRADO_LBL[g] || g; } }),
+  ia: Object.freeze({ tipo:'insuf', valv:'aortica', select:'ia_sev_final', aviso:'ia-manual-aviso',
+    ayuda:'ia-auto-ayuda', nombre:'Insuficiencia aórtica',
+    /* ⚠️ LA IAo NO TIENE PROVEEDOR PURO Y SE LEE DE UNA FOTO, y hace falta declararlo. Su grado sale
+       de contar votos sobre nueve parámetros dentro de `calcIA_ESC` —no es una cascada de cortes que
+       se pueda recalcular sola— así que esa función deja el resultado en `window._iaGradoCalc` y acá
+       se lee. La consecuencia es que el aviso de la IAo refleja el ÚLTIMO cálculo, no uno nuevo; en
+       la práctica es lo mismo porque `calcIA_ESC` corre con cada cambio de sus insumos. */
+    calcular: function(){ return window._iaGradoCalc || null; },
+    /* Los cinco rótulos, copiados del `<select>` de `ia_sev_final`. No se leen de sus `<option>` a
+       propósito: el aviso tiene que poder nombrar el grado CALCULADO, y ése puede no estar
+       seleccionado en ese momento — leer `options[selectedIndex]` daría el manual dos veces. */
+    etiqueta: function(g){ return ({ '0':'Sin insuficiencia', '1':'Leve', '2':'Moderada',
+      '3':'Moderada-severa', '4':'Severa' })[String(g)] || String(g); } })
+});
+/* Repinta la pastilla y el aviso de UNA clave, y suelta el manual si el calculado cambió (R6).
+   Devuelve lo que hizo, para que las pruebas puedan afirmar sobre el gesto y no sobre un textContent. */
+function sevSincronizar(clave) {
+  const C = SEV_SINC[clave];
+  if (!C) return null;
+  const sel = document.getElementById(C.select);
+  if (!sel) return null;
+  const manual = !!(window.esqSevManual && window.esqSevManual[clave]);
+  const calc = C.calcular();
+  let soltado = false;
+  if (manual) {
+    const foto = window._sevCalcAlFijar[clave];
+    if (foto === undefined) {
+      window._sevCalcAlFijar[clave] = calc;            // estudio reabierto: se fija el origen, no se toca el grado
+    } else if (calc && calc !== foto) {
+      /* VUELTA A AUTOMÁTICO, SIN NINGÚN MENSAJE (R6). Se apaga la marca, se escribe el calculado y
+         se vuelve a marcar como sugerido para que el retiro fuera de banda lo siga alcanzando. */
+      delete window.esqSevManual[clave];
+      delete window._sevCalcAlFijar[clave];
+      if (typeof _sevManualSync === 'function') _sevManualSync();
+      sel.value = calc;
+      if (clave === 'ea') _eaMarcarSugerido(sel, calc);
+      else { sel.dataset.sugerido = calc;
+             if (typeof sincronizarGradoIA === 'function') sincronizarGradoIA(); }
+      soltado = true;
+    }
+  }
+  const sigueManual = !!(window.esqSevManual && window.esqSevManual[clave]);
+  const avisoEl = document.getElementById(C.aviso);
+  /* ⚠️ `textContent` Y NO `innerHTML`: el texto arma dos etiquetas de grado, y aunque hoy salgan de
+     tablas congeladas, un nodo de aviso que acepta marcado es la clase de atajo que esta app ya
+     pagó once veces en CardioSalud. */
+  const discrepa = sigueManual && !!calc && calc !== sel.value;
+  if (avisoEl) avisoEl.textContent = discrepa
+    ? '⚠️ ' + C.etiqueta(sel.value) + ' (ajuste manual) · cálculo automático: ' + C.etiqueta(calc)
+    : '';
+  /* El texto «se completa automáticamente» se apaga en modo manual (R4): afirmaba lo contrario de lo
+     que pasaba justo cuando el médico acababa de fijar el grado a mano. */
+  const ayudaEl = C.ayuda ? document.getElementById(C.ayuda) : null;
+  if (ayudaEl) ayudaEl.style.display = sigueManual ? 'none' : '';
+  if (window.valvSev) { try { window.valvSev.refrescar(C.tipo, C.valv); } catch (e) {} }
+  return { manual: sigueManual, calc: calc, final: sel.value, discrepa: discrepa, soltado: soltado };
+}
+window.sevSincronizar = sevSincronizar;
+window.SEV_SINC = SEV_SINC;
+/* Atajo de la aórtica, que es el que llaman las tres escritoras. Un solo punto de llamada por
+   escritura, que es lo que R3 pide: sin esto la pastilla no se entera de un grado automático. */
+function _eaSincronizarPantalla(){ return sevSincronizar('ea'); }
+window._eaSincronizarPantalla = _eaSincronizarPantalla;
+
+/* Clasificación de estenosis aórtica — PRIMER espejo del grado calculado (ver `eaGradoCalculado`).
+   Mantiene sus tres guardas, que son las que deciden si tiene PERMISO de escribir: morfología
+   protésica, grado fijado a mano e insumo fuera de banda. Lo que ya no tiene es una cascada propia:
+   el grado lo decide el dueño único. */
 function clasificarEA_Vmax() {
   const vmax = v('vmax_ao');
   const gmedio = v('gmedio_ao');
   const ava = v('ava_cont');
   const sel = document.getElementById('ea_grado');
   const badgeEl = document.getElementById('ea-ava-badge');
-  if (!sel || vmax === null) return;
+  /* ⚠️ YA NO SE SALE CON LA Vmax VACÍA, y es parte de R1. La regla del peor toma el gradiente y el
+     AVA aunque no haya velocidad, así que salir acá dejaba sin grado un caso que ahora SÍ gradúa:
+     gradiente medio 45 mmHg sin Vmax ni AVA — medido antes del cambio, el `<select>` quedaba en
+     «Sin estenosis» y ninguna de las cuatro superficies decía nada. Con `grado` en `null` no se
+     escribe igual, que es la abstención de siempre. */
+  if (!sel) return;
   /* ⚠️ CON PRÓTESIS NO SE AUTO-GRADÚA, y ésta es la mitad del bug que la cápsula NO cerraba.
      `calcEADetalle` corre ÚLTIMA (syncEADesdeValvulas → calcAo → clasificarEA_Vmax →
      calcEADetalle), así que su `return` protésico cortaba DESPUÉS de que esta función y
@@ -23724,52 +24041,29 @@ function clasificarEA_Vmax() {
     return;
   }
 
-  // Grado sugerido por Vmax (ESC 2021) — usa los value del <select> (sin/leve/moderada/severa)
-  let velVal;
-  if (vmax < 2.0) velVal = 'sin';
-  else if (vmax < 3.0) velVal = 'leve';
-  else if (vmax < 4.0) velVal = 'moderada';
-  else velVal = 'severa';
-
-  const avaSevera  = avaEsSevera(ava);
-  const velSevera  = vmax >= 4.0;
-  const gradSevero = gmedio !== null && gmedio >= 40;
-
-  // EA discordante: AVA severa por área (< AVA_SEVERA_MAX) con Vmax y gradiente NO severos.
-  // No se degrada el grado: se mantiene severa (por AVA) y se marca la discordancia.
-  if (avaSevera && !velSevera && !gradSevero) {
-    sel.value = 'severa';
-    _eaMarcarSugerido(sel, 'severa');
-    if (badgeEl) badgeEl.textContent = `EA discordante — AVA ${ava.toFixed(2)} cm² (severa) con Vmax ${vmax} m/s${gmedio !== null ? ` / grad. medio ${gmedio} mmHg` : ''} no severos. Evaluar estenosis aórtica de bajo flujo / bajo gradiente (ESC/EACVI). Grado mantenido por AVA; no se asigna grado automático por Vmax.`;
-    return;
-  }
-
-  // Con AVA disponible, sólo asignar grado por Vmax si AVA y Vmax son concordantes.
-  if (ava !== null) {
-    /* ⚠️ POR EL PREDICADO COMPARTIDO Y NO POR UNA COPIA DE LA BANDA. Era la CUARTA escritura del
-       mismo corte —`>= AVA_SEVERA_MAX`— y al mover el borde a `≤` se quedaba atrás: un AVA de
-       1,00 pasaba a ser severa arriba y seguía contando como moderada acá, o sea que la
-       concordancia AVA/Vmax se evaluaba contra una banda que ya no existía. */
-    const avaModerada  = avaEsModerada(ava);
-    const avaLeveMenos = ava >= 1.5;
-    const velModerada  = vmax >= 3.0 && vmax < 4.0;
-    const velLeveMenos = vmax < 3.0;
-    const concordante =
-      (avaSevera && velSevera) ||
-      (avaModerada && velModerada) ||
-      (avaLeveMenos && velLeveMenos);
-    if (!concordante) {
-      if (badgeEl) badgeEl.textContent = `Discordancia AVA/Vmax — AVA ${ava.toFixed(2)} cm² vs Vmax ${vmax} m/s. Grado mantenido por AVA; revisar condiciones de flujo. No se asigna grado automático por Vmax.`;
-      return;
-    }
-  }
-
-  // Concordante (o sin AVA disponible): asignar grado por Vmax.
-  sel.value = velVal;
-  _eaMarcarSugerido(sel, velVal);
-  if (badgeEl) badgeEl.textContent = vmax < 2.0
-    ? `Vmax ${vmax} m/s (<2.0) — no configura estenosis (ESC 2021).`
-    : `Sugerido por Vmax aórtica ${vmax} m/s — ESC 2021${ava !== null ? ` (concordante con AVA ${ava.toFixed(2)} cm²)` : ''}. Editable manualmente.`;
+  /* ⚠️ ACÁ VIVÍAN LA CASCADA POR Vmax Y LAS DOS RAMAS DE DISCORDANCIA, Y LAS TRES SE FUERON (R1,
+     2026-10-02). Lo que hacían ahora lo hace la regla del peor, y mejor:
+       · la cascada por Vmax es `R.gVel`, idéntica, con los mismos cuatro cortes;
+       · la rama «EA discordante — AVA severa con Vmax y gradiente no severos» mantenía «severa» por
+         AVA, que es exactamente lo que el peor de los tres devuelve sin una rama especial;
+       · la rama «Discordancia AVA/Vmax» NO ESCRIBÍA NADA y se iba con un `return`, y ése era el
+         defecto: dejaba el grado anterior en pie —o ninguno— y el médico leía «Grado mantenido por
+         AVA» sobre un `<select>` que podía no tener grado de AVA ni de nada. Medido: gradiente 45
+         con Vmax 2,6 y AVA 0,8 salía 'leve', con las cuatro superficies publicando una estenosis
+         leve sobre un gradiente severo. Ahora sale 'severa' y la discrepancia se DICE, en el
+         recuadro de Doppler y con el formato que fijó Maicol, en vez de servir de excusa para no
+         graduar. El aviso de bajo flujo / bajo gradiente no se perdió: lo sigue escribiendo
+         `calcEADetalle`, que es su dueño, y sigue colgando de que el grado sea 'severa'. */
+  const R = eaGradoCalculado();
+  if (R.grado) { sel.value = R.grado; _eaMarcarSugerido(sel, R.grado); }
+  if (badgeEl) badgeEl.textContent = _eaBadgeAuto(R);
+  /* La pastilla se repinta ACÁ y no por un evento (R3). Las escrituras automáticas asignan `.value`
+     sin despachar `change` ni `input` —a propósito: despacharlos borraría `dataset.sugerido` por
+     `_gradoManoBorraMarca`— así que el único modo de que el sub-botón se entere es llamarlo.
+     Ése era el síntoma (1) del 2026-10-02: con Vmax 4,1 el `<select>` decía «Severa» y la pastilla
+     seguía en «🟡 Severidad ▼», porque `refrescar()` sólo tenía tres llamadores y ninguno era un
+     camino automático. */
+  _eaSincronizarPantalla();
 }
 window.clasificarEA_Vmax = clasificarEA_Vmax;
 
@@ -23795,18 +24089,24 @@ function sugerirSeveridadEA(ava) {
      que en calcIM_ESC/calcIA_ESC/calcIT_ESC. Sin esto, tocar cualquier campo del Doppler
      aórtico cambiaba el <select> de «Severa» a lo que diera la Vmax, sin avisar. */
   if (window.esqSevManual && window.esqSevManual.ea) return;
-  // Usa los value del <select> (sin/leve/moderada/severa), no el texto de la opción.
-  let val;
-  if (ava >= 1.5) val = 'leve';
-  else if (avaEsModerada(ava)) val = 'moderada';
-  else val = 'severa';
-  sel.value = val;
+  /* ⚠️ ACÁ VIVÍA LA TERCERA CASCADA DEL GRADO Y SE FUE (R1, 2026-10-02). Escribía el grado mirando
+     SÓLO el AVA, así que con una Vmax severa cargada al lado podía degradar a 'leve' por un área
+     normal, y además discrepaba de `calcEADetalle` en el borde: ésta escribía 'leve' para un AVA
+     ≥1,5 y aquélla 'sin', sobre el mismo dato. Ahora las dos leen el mismo dueño.
+     El argumento `ava` queda para el badge y para las guardas de arriba —la función está exportada a
+     `window` tomando un número crudo y hay casos que la llaman así— pero YA NO DECIDE el grado: el
+     grado se lee de `eaGradoCalculado()`, que mira los tres criterios. Si los dos no coincidieran,
+     el que manda es el dueño. */
+  const R = eaGradoCalculado();
+  if (!R.grado) return;
+  sel.value = R.grado;
   /* Queda constancia de que este valor lo escribió el autocálculo, para que una medición que
      después cae fuera de banda pueda RETIRARLO (ver `_eaRetirarGradoSugerido`). El badge de abajo
      ya decía «Sugerido automáticamente… podés cambiarlo manualmente», pero eso es texto: no había
      ningún dato que distinguiera este grado de uno tipeado por el médico. */
-  _eaMarcarSugerido(sel, val);
-  if (badgeEl) badgeEl.textContent = `Sugerido automáticamente por AVA continuidad (${ava.toFixed(2)} cm²). Podés cambiarlo manualmente si lo creés necesario.`;
+  _eaMarcarSugerido(sel, R.grado);
+  if (badgeEl) badgeEl.textContent = _eaBadgeAuto(R);
+  _eaSincronizarPantalla();
 }
 window.sugerirSeveridadEA = sugerirSeveridadEA;
 
@@ -88909,8 +89209,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261002-1209';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790953761977;                 /* eco-build-ms */
+const ECO_BUILD    = '20261002-1223';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790954595400;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -88996,7 +89296,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-1209</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-1223</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
