@@ -3097,14 +3097,14 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div class="fg">
           <label>Ø TSVI (mm)</label>
-          <input type="number" id="diam_tsvi" placeholder="mm" oninput="calcAo();mostrarTSVIEstimado();eteShuntSyncSiExiste();imSyncSiExiste();emSyncSiExiste();">
+          <input type="number" id="diam_tsvi" placeholder="mm" oninput="calcAo();mostrarTSVIEstimado();eteShuntSyncSiExiste();imSyncSiExiste();emSyncSiExiste();iaSyncSiExiste();">
           <div id="tsvi-estimado-box" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
         </div>
       </div>
       <div class="grid-4" style="margin-top:8px;">
         <div class="fg">
           <label>VTI TSVI (cm)</label>
-          <input type="number" id="itv_tsvi" placeholder="cm" oninput="calcAo();eteShuntSyncSiExiste();imSyncSiExiste();emSyncSiExiste()">
+          <input type="number" id="itv_tsvi" placeholder="cm" oninput="calcAo();eteShuntSyncSiExiste();imSyncSiExiste();emSyncSiExiste();iaSyncSiExiste()">
         </div>
         <div class="fg">
           <label>VTI Vao (cm)</label>
@@ -22175,6 +22175,29 @@ function imSyncSiExiste(){ if (typeof sincronizarIMDesdeGlobal === 'function') {
   try { sincronizarIMDesdeGlobal(); } catch(e){ console.warn('[imSync]', e); } } }
 window.imSyncSiExiste = imSyncSiExiste;
 
+/* ══ IAo: EL MISMO DEFECTO QUE LA MITRAL TENÍA, EN LA OTRA VÁLVULA DEL MISMO TSVI ═════════════
+   `diam_tsvi` e `itv_tsvi` son insumos de `calcIA_ESC` —el VS del TSVI es el DENOMINADOR de la
+   fracción regurgitante de la IAo desde la tanda 2b, y el Ø TSVI es el DENOMINADOR del ratio
+   jet/TSVI—, y su `oninput` llamaba a `calcAo`, a los dos espejos de IM y al de EM, pero NUNCA a
+   `calcIA_ESC`. Medido antes del arreglo, con la IAo cargada por PISA (Ø TSVI 20 mm, VTI TSVI
+   20 cm): cambiar el VTI del TSVI a 40 —el doble, o sea la FR a la mitad— dejó la FR y el ratio en
+   «—»; cambiar el Ø TSVI a 30 tampoco movió nada; y recién al tocar un campo de IAo aparecieron
+   «22 %» y «40,0 %». O sea que la FR, el ratio jet/TSVI y el GRADO de la IAo quedaban obsoletos
+   hasta que el médico tocara otra casilla, y el grado es lo que sale al informe firmado.
+   Con la fórmula vieja (`volR/(volR+vsv)`) el daño era menor porque el TSVI pesaba menos en el
+   cociente; con `volR/vsv` el TSVI manda, y por eso se cierra ahora. DECISIÓN DE MAICOL
+   (2026-10-01): se engancha con el MISMO patrón de la mitral, no con uno nuevo.
+
+   Con guarda `typeof` y `try/catch` por lo mismo que `imSyncSiExiste`: el `oninput` vive en el
+   MARCADO y sobrevive aunque este bloque deje de parsear; sin la guarda un `ReferenceError` acá
+   se llevaría las llamadas que van detrás en el mismo atributo.
+   Sin riesgo de bucle, y no es por suerte: `calcIA_ESC` no escribe `diam_tsvi` ni `itv_tsvi`
+   —escribe `ia-*`, `ia_grado` y `ia_sev_final`— y no llama a `calcAo` ni a esta sincronía.
+   Recorrido su cuerpo, no supuesto. */
+function iaSyncSiExiste(){ if (typeof calcIA_ESC === 'function') {
+  try { calcIA_ESC(); } catch(e){ console.warn('[iaSync]', e); } } }
+window.iaSyncSiExiste = iaSyncSiExiste;
+
 /* ══ Selector de métodos de AVm que van al PDF ══
    Un método sin valor calculado no se puede imprimir, así que su casilla queda desmarcada y
    DESHABILITADA: una casilla marcable que no imprime nada es una promesa que el informe no
@@ -22697,6 +22720,13 @@ function syncEADesdeValvulas() {
   });
   if (typeof calcAo === 'function') calcAo();
   calcEADetalle();
+  /* La misma razón que el `iaSyncSiExiste()` del `oninput` de `diam_tsvi` e `itv_tsvi`, y acá
+     hace falta APARTE: esta función escribe los dos destinos con `el.value = …`, y asignar
+     `.value` por JS NO dispara `input`, así que el enganche del marcado no se re-dispara. Sin
+     esta línea, cargar el TSVI por el bloque expandido de Estenosis Aórtica dejaría la FR de la
+     IAo y el ratio jet/TSVI con el valor de la medición anterior — el mismo defecto por el otro
+     camino de entrada. */
+  if (typeof iaSyncSiExiste === 'function') iaSyncSiExiste();
 }
 window.syncEADesdeValvulas = syncEADesdeValvulas;
 
@@ -22708,6 +22738,30 @@ function calcEADetalle() {
   const itvao  = PF(document.getElementById('ea_vtiao')  ? document.getElementById('ea_vtiao').value  : '') || PF(document.getElementById('itv_ao')    ? document.getElementById('itv_ao').value   : '') || null;
   const dtsvi  = PF(document.getElementById('ea_dtsvi')  ? document.getElementById('ea_dtsvi').value  : '') || PF(document.getElementById('diam_tsvi') ? document.getElementById('diam_tsvi').value: '') || null;
   const bsa    = getBSA();
+  /* ⚠️ BANDA DE LA MAGNITUD Y NO DE LA CASILLA, porque los cinco llegan por CASCADA
+     (`ea_vmax || vmax_ao`). Se valida el valor ELEGIDO contra la banda del campo del cajón
+     Doppler, que es la que `_labRango`/`AO_BANDA_PLAUS` declaran: validar casilla por casilla
+     haría que la banda mordiera SOLO cuando el médico no tocó la del bloque expandido, que es al
+     revés de lo que hace falta. Es exactamente el patrón de `_imFueraBanda`, y acá sale gratis
+     porque `_aoPlausDe` ya toma el valor aparte del id.
+     ⚠️ POR QUÉ HACE FALTA ACÁ TAMBIÉN, con `calcAo` ya bandeado: esta cápsula escribe
+     `ea_dvi_display`, y de ahí —no de `dvi-val`— sale el «DI» del INFORME NARRATIVO FIRMADO y la
+     primera fuente de `eaProtVeredicto`. Medido en el A/B: con el VTI aórtico tipeado en metros,
+     `dvi-val` ya decía «revisar la unidad» y el narrativo seguía publicando «DI 20.00». La mitad
+     muda del mismo defecto, en la superficie que se firma. */
+  const _pdVmax  = _aoPlausDe('vmax_ao',   vmax);
+  const _pdGmed  = _aoPlausDe('gmedio_ao', gmedio);
+  const _pdItsvi = _aoPlausDe('itv_tsvi',  itsvi);
+  const _pdItvao = _aoPlausDe('itv_ao',    itvao);
+  const _pdDtsvi = _aoPlausDe('diam_tsvi', dtsvi);
+  const _eaDetDviDud = _pdItsvi.fuera || _pdItvao.fuera;
+  const _eaDetAvaDud = _eaDetDviDud || _pdDtsvi.fuera;
+  const _eaDetDud    = _eaDetAvaDud || _pdVmax.fuera || _pdGmed.fuera;
+  const _eaDetFuera  = [
+    _aoFuera(_pdVmax, 'Vmax aórtica', 'm/s'), _aoFuera(_pdGmed, 'gradiente medio', 'mmHg'),
+    _aoFuera(_pdItsvi, 'VTI TSVI', 'cm'), _aoFuera(_pdItvao, 'VTI aórtico', 'cm'),
+    _aoFuera(_pdDtsvi, 'Ø TSVI', 'mm')
+  ].filter(Boolean);
 
   // G. máximo
   if (vmax) {
@@ -22743,8 +22797,13 @@ function calcEADetalle() {
     ava = (_avaN != null) ? _avaN : (Math.PI * ((dtsvi/20)**2) * itsvi / itvao);
     const avaStr = ava.toFixed(2);
     avaR = PF(avaStr);
+    /* ⚠️ `ea_ava_display` NO SE MARCA, Y ES LA DIFERENCIA CON EL `<span>` DE AL LADO. Es un
+       `input[id]`, así que `guardarInforme` lo barre y viaja dentro de `campos` al estudio, al
+       backup y al Excel: pegarle « (revisar)» cambiaría el DATO GUARDADO, que es justo lo que esta
+       tanda no toca. La marca va al `<span>`, que es pantalla. Es la misma línea que separa
+       `vs-val` (span, se marca) de `vs_calc` (input, queda crudo). */
     const el = document.getElementById('ea_ava_display'); if (el) el.value = avaStr + ' cm²';
-    document.getElementById('ea-det-ava').textContent = avaStr + ' cm²';
+    document.getElementById('ea-det-ava').textContent = avaStr + ' cm²' + (_eaDetAvaDud ? MARCA_REVISAR : '');
     if (bsa) {
       /* ⚠️ SE INDEXA EL AVA REDONDEADO, NO EL CRUDO, Y ACÁ SÍ CAMBIA UN NÚMERO PUBLICADO. Esta
          línea hacía `ava/bsa` sobre el float crudo mientras `calcAo` —y `eaEscenario`, que es el
@@ -22758,8 +22817,16 @@ function calcEADetalle() {
       document.getElementById('ea-det-avai').textContent = avai + ' cm²/m²';
     }
     const dvi = (itsvi/itvao).toFixed(2);
-    const dviEl = document.getElementById('ea_dvi_display'); if (dviEl) dviEl.value = dvi;
-    document.getElementById('ea-det-dvi').textContent = dvi;
+    /* El MISMO argumento que en `calcAo` para `dvi-val`, y acá pesa más: de este `input` sale el
+       «DI» del informe narrativo firmado y es la PRIMERA fuente que lee `eaProtVeredicto`, con
+       `parseFloat`. Pegarle « (revisar)» dejaría la marca decorativa —el número sigue parseando—,
+       así que se publica un texto que no parsea y las dos superficies caen en su propio «falta un
+       dato», que es fail-closed. Mismo recurso que el EOA protésico de la mitral.
+       `ea-det-dvi` es un `<span>` de pantalla y ahí sí vale marcar sin borrar: el número se ve y
+       la marca dice que no se lo crea. */
+    const dviEl = document.getElementById('ea_dvi_display');
+    if (dviEl) dviEl.value = _eaDetDviDud ? '' : dvi;
+    document.getElementById('ea-det-dvi').textContent = dvi + (_eaDetDviDud ? MARCA_REVISAR : '');
   } else {
     ['ea-det-ava','ea-det-avai','ea-det-dvi'].forEach(id => { document.getElementById(id).textContent = '—'; });
     /* ⚠️ LOS DOS `input readonly` TAMBIÉN SE LIMPIAN. Esta rama vaciaba los tres `<span>` y dejaba
@@ -22805,7 +22872,16 @@ function calcEADetalle() {
      Se blindan sólo las ESCRITURAS: los textos de pantalla se siguen actualizando, porque el
      badge es lo único que muestra sobre qué números se calculó. */
   const _eaManual = !!(window.esqSevManual && window.esqSevManual.ea);
-  const sel   = _eaManual ? null : document.getElementById('ea_grado');
+  /* ⚠️ UN INSUMO FUERA DE BANDA SE TRATA COMO UN GRADO MANUAL: `sel` queda en `null` y la cascada
+     de abajo pinta los textos pero NO escribe `ea_grado`. Se cuelga de este mismo chokepoint —y no
+     de un `return` nuevo— por lo que el comentario de arriba ya declara: «se blindan sólo las
+     ESCRITURAS; los textos de pantalla se siguen actualizando, porque el badge es lo único que
+     muestra sobre qué números se calculó». Un `return` acá apagaría además el badge y el párrafo
+     de bajo gradiente, o sea taparía el aviso justo cuando hace falta.
+     Y hace falta ACÁ aparte de en `calcAo` y en `clasificarEA_Vmax`: las TRES escriben el mismo
+     `<select>` y ésta corre ÚLTIMA (syncEADesdeValvulas → calcAo → clasificarEA_Vmax →
+     calcEADetalle), así que es la que gana. Bloquear dos de tres no bloquea nada. */
+  const sel   = (_eaManual || _eaDetDud) ? null : document.getElementById('ea_grado');
   let sev = null, color = null, gradoStr = null;
   // Se resetea al entrar: se asignaba en un solo camino y las salidas por «sin vmax» dejaban
   // el valor del cálculo anterior, o sea el del paciente anterior.
@@ -22845,11 +22921,17 @@ function calcEADetalle() {
       } else if (avaR >= 1.5 && gradoStr === 'severa') { sev += ' ⚠️ AVA no concuerda'; color='#f59e0b'; }
       else if (avaEsSevera(avaR) && gradoStr === 'leve') { sev += ' ⚠️ AVA no concuerda'; color='#f59e0b'; }
     }
+    /* El aviso de banda va DENTRO del mismo nodo del veredicto y no en uno aparte: es la línea que
+       explica por qué el `<select>` de al lado no se movió. Separado, el médico lee el grado y el
+       aviso en dos sitios distintos y puede ver uno sin el otro. */
     if (sevEl) sevEl.innerHTML = `<span style="color:${color};font-weight:700;">${sev}</span>` +
+      (_eaDetDud ? `<div style="margin-top:4px;color:var(--yellow);font-size:11px;font-weight:600;">⚠️ Fuera de rango: ${_critEsc(_eaDetFuera.join(' · '))} — el grado NO se actualizó; verificar la unidad</div>` : '') +
       (eaAdvBajoGrad ? `<div style="margin-top:4px;color:var(--red);font-size:11px;font-weight:600;">${eaAdvBajoGrad}</div>` : '');
     if (sel && gradoStr) sel.value = gradoStr;
     const badge = document.getElementById('ea-ava-badge');
-    if (badge) badge.textContent = eaAdvBajoGrad
+    if (badge) badge.textContent = _eaDetDud
+      ? 'Fuera de rango: ' + _eaDetFuera.join(' · ') + ' — el grado NO se actualizó automáticamente; verificar la unidad de la medición antes de firmar.'
+      : eaAdvBajoGrad
       ? `AVA ${ava.toFixed(2)} cm² (severa) con Vmax ${vmax} m/s${gmedio !== null ? ` / grad. medio ${gmedio} mmHg` : ''} no severos — estenosis aórtica de bajo gradiente. Grado mantenido por AVA.`
       : (ava ? `Vmax ${vmax} m/s · AVA ${ava.toFixed(2)} cm² — ESC 2021.` : `Sugerido por Vmax ${vmax} m/s — ESC 2021. Editable manualmente.`);
     window._eaBajoGradiente = eaAdvBajoGrad || null;
@@ -22927,22 +23009,205 @@ function syncTSVI() {
   const val = v('diam_tsvi_ao');
   setv('diam_tsvi', val || '');
   calcAo();
+  /* Tercer camino de entrada del Ø TSVI, y `setv` escribe `.value` sin disparar `input`: mismo
+     argumento que en `syncEADesdeValvulas`. Los tres caminos tienen que refrescar la IAo o la FR
+     queda obsoleta según por dónde se cargó el diámetro, que es la divergencia que este archivo
+     persigue. */
+  if (typeof iaSyncSiExiste === 'function') iaSyncSiExiste();
 }
 
 // ══ AORTICO ══
+
+/* ══ BANDAS DE PLAUSIBILIDAD DE LA AÓRTICA — LOCALES, Y FUERA DE `DCM_RANGO` A PROPÓSITO ══════
+   Mismo mecanismo y mismo motivo que `EM_BANDA_PLAUS` (ver su comentario, ~2000 líneas arriba):
+   estos campos NO pueden entrar a `DCM_RANGO` ni a `CHM_RANGO` sin cambiar la superficie del
+   importador —`DCM_RANGO` gobierna el camino DICOM y `CHM_RANGO` el XML del ecógrafo, y un campo
+   fuera de banda ahí hace que el importador DESCARTE la fila entera—. Acá la banda decide si el
+   parámetro VOTA, no si la fila se guarda.
+
+   ⚠️ SON LÍMITES DE PLAUSIBILIDAD FISIOLÓGICA, NO CORTES CLÍNICOS. El criterio es el mismo que
+   declara `DCM_RANGO`: **atrapan el error de un orden de magnitud —la unidad equivocada—, no lo
+   clínicamente raro**. Un valor fuera de banda no es «normal» ni «anormal»: es ilegible.
+
+   ⚠️ NINGUNA GUÍA PUBLICA ESTOS RANGOS. Se buscó: la ESC/EACTS 2025, la ASE 2017 (Zoghbi) y la
+   ASE 2024 publican CORTES de severidad, no el rango de lo medible. Así que cada límite de acá es
+   **Criterio EcoSmart de plausibilidad** y va SIN cita — un corchete sobre «no pude verificar» se
+   leería como si hubiera una fuente detrás. Donde el valor sale de una tabla que la app ya tiene
+   se dice de dónde, y eso no es una cita: es un solo dueño del número.
+
+   Campos que NO entran acá porque `_labRango` ya los acota, y que por eso quedan con un solo
+   veredicto: `vmax_ao [0.5,8]`, `gmedio_ao [1,150]`, `itv_tsvi [2,60]`, `diam_tsvi [5,45]`,
+   `tango_tac [10,300]` (los cinco de `DCM_RANGO`) y `ava_cont [0.1,8]` (de
+   `LAB_XLS_RANGO_PROPIO`). Lo que les faltaba no era la banda: era que estas funciones la
+   CONSULTARAN.
+
+   ⚠️ `va_dvi` NO ESTÁ EN ESTA TABLA PORQUE EL CAMPO NO EXISTE. El censo del 2026-10-01 lo listó
+   como «quedó sin banda»; se midió en el navegador y `document.getElementById('va_dvi')` es
+   `null`. Se borró el 2026-09-27, el mismo día que se agregó (ver el comentario del marcado al
+   lado de `va_morf`). Los tres DVI aórticos que SÍ existen —`dvi-val`, `ea_dvi_display` y
+   `ete_tavi_dvi`— son los TRES readonly y derivados del cociente `VTI TSVI / VTI Ao`, así que
+   quedan cubiertos por las bandas de sus dos insumos y una banda propia sería un segundo dueño
+   del mismo número. Agregar una entrada para un id inexistente es peor que no tenerla: parece
+   cobertura y no muerde nada. */
+const AO_BANDA_PLAUS = Object.freeze({
+  /* VTI de la válvula aórtica, en cm. DENOMINADOR del AVA y del DVI, así que un error de unidad
+     acá no degrada el resultado: lo fabrica, y en las DOS direcciones (medido: con el VTI aórtico
+     tipeado en metros —1 por 100— el AVA salta a 62,83 cm² y la app publica «Sin estenosis /
+     leve» sobre una Vmax de 4,5 m/s).
+     · piso 5 cm: un VTI aórtico tipeado en metros (0,25 por 25) cae acá. El VTI aórtico real más
+       bajo imaginable —bajo flujo con válvula casi normal— ronda 15-20 cm, así que 5 no rechaza
+       nada medible. No se usa el piso 2 de su hermano `itv_tsvi` porque acá no hace falta tanto
+       margen y 2 dejaría pasar un error de ×10 sobre un VTI de 20.
+     · techo 200 cm: en la estenosis severa el VTI aórtico sube mucho (Vmax 6 m/s con tiempo
+       eyectivo largo da del orden de 150 cm), así que el techo tiene que dejarlo pasar; 200
+       atrapa el mismo VTI tipeado en milímetros (250 por 25) sin silenciar al paciente grave,
+       que es el que una banda mal puesta silencia. Criterio EcoSmart de plausibilidad. */
+  itv_ao: Object.freeze([5, 200]),
+  /* Tiempo eyectivo total del VI, en ms. Denominador del índice de Tango y de la relación AT/ET.
+     · piso 80 ms: atrapa el TE tipeado en segundos (0,3 por 300) y en centisegundos (30 por 300),
+       que son los dos errores que produce esta casilla. Medido antes de la banda: con TE 0,3 la
+       relación TAC/TE sale 300,00 y la app publica «sugiere severidad de la estenosis aórtica».
+     · techo 600 ms: el MISMO techo que la app ya usa para `thp`, y por el mismo argumento — es un
+       tiempo que el ciclo cardíaco no da, y atrapa el 3000. El TE real va 250-450 ms y se alarga
+       en la estenosis severa, que es el caso que no se puede perder.
+     Su hermano `tango_tac` NO entra acá: ya está en `DCM_RANGO [10,300]` y lo único que faltaba
+     era que `calcTango` lo consultara. Criterio EcoSmart de plausibilidad. */
+  tango_te: Object.freeze([80, 600]),
+  /* ── Insuficiencia aórtica: los nueve votantes de `calcIA_ESC` ──────────────────────────────
+     Ninguno tenía banda ni `min`/`max` en el marcado. Donde `CHM_RANGO` o `DCM_RANGO` ya acotan
+     la MISMA magnitud se copia su par EXACTO y se dice de dónde: el mismo número medido no puede
+     tener dos veredictos según por qué puerta entró, que es la regla que `_labRango` declara. */
+  /* Vena contracta de la IAo, en mm. Piso 1: atrapa la VC tipeada en centímetros (0,6 por 6),
+     que hoy vota «leve» —el corte de leve es `<3`—, o sea el error empuja al lado tranquilizador.
+     NO se copia el piso 0 de `im_vc`: ese 0 está forzado porque `im_vc` tiene columna importable
+     y fuera de banda el importador descarta la fila entera (ver su comentario en `DCM_RANGO`);
+     `ia_vc` no se importa por ninguna puerta, así que acá el piso sí se puede subir. Techo 20 mm:
+     el mismo de `im_vc`, y una vena contracta más ancha que el TSVI que la contiene es imposible.
+     Criterio EcoSmart de plausibilidad. */
+  ia_vc: Object.freeze([1, 20]),
+  /* Diámetro del jet de IAo en el TSVI, en mm. NUMERADOR del ratio jet/TSVI. Piso 1: atrapa los
+     centímetros (0,8 por 8), que votan «leve» (corte `<25 %`). Techo 45: el techo de `diam_tsvi`
+     en `DCM_RANGO`, porque el jet no puede ser más ancho que el tracto que lo mide — el ratio es
+     justamente un porcentaje de ese diámetro. Criterio EcoSmart de plausibilidad. */
+  ia_jet_diam: Object.freeze([1, 45]),
+  /* PHT de la IAo, en ms. `[50,1500]` es el par EXACTO que `CHM_RANGO` ya aplica a este mismo
+     campo cuando entra por el XML del ecógrafo; se copia para que tipearlo a mano dé el mismo
+     veredicto que importarlo. No es un corte: los cortes son `>500` leve / `>=200` moderada. */
+  ia_pht: Object.freeze([50, 1500]),
+  /* Vmax telediastólica del flujo reverso en aorta descendente, en cm/s. El corte de severa es
+     `>= 20` (`IA_VMAX_TD_SEVERA`, ESC/EACTS 2025 Figura 4) y por debajo el parámetro NO vota, así
+     que el error peligroso es el que lo mete abajo del corte: piso 2 cm/s atrapa el valor tipeado
+     en m/s (0,25 por 25 — un hallazgo que la guía llama SEVERO y que así se abstiene). Techo 150:
+     una velocidad DIASTÓLICA no se acerca a las sistólicas, y atrapa los mm/s (250 por 25).
+     Criterio EcoSmart de plausibilidad. */
+  ia_vmax_td: Object.freeze([2, 150]),
+  /* VTI del flujo reverso en aorta torácica descendente, en cm. Piso 1: atrapa los metros (0,2
+     por 20), que votan «leve» (corte `<15`). Techo 100: el doble del mayor valor que los cortes
+     de la app contemplan (`>=25` ya es holodiastólica), y atrapa los mm. ⚠️ Los cortes de este
+     parámetro son del propio EcoSmart y no tienen fuente (ver el panel de Evidencia); la banda
+     tampoco. Criterio EcoSmart de plausibilidad. */
+  ia_vti_desc: Object.freeze([1, 100]),
+  /* Radio PISA de la IAo, en mm. `[1,30]` es el par EXACTO de `pisa_r` en `DCM_RANGO` — la misma
+     magnitud en la otra válvula, con el mismo argumento ya escrito ahí: atrapa el radio en cm
+     (0,9 por 9) y los radios reales van 3-12 mm. Un solo número, dos campos. */
+  ia_pisa_r: Object.freeze([1, 30]),
+  /* Velocidad de aliasing de la IAo, en cm/s. `[5,150]` es el par EXACTO de `pisa_val` en
+     `DCM_RANGO`, por lo mismo: atrapa los m/s (0,4 por 40) y el equipo llega a ~80-100. */
+  ia_pisa_val: Object.freeze([5, 150]),
+  /* Vmax de la IAo por CW, en cm/s. `[50,800]` es el par EXACTO que `CHM_RANGO` ya aplica a este
+     mismo campo por el XML. DIVISOR del EROA, y el cociente `pisaVal/vmaxCW` exige que los dos
+     estén en la MISMA unidad: con la Vmax tipeada en m/s (4 por 400) el EROA sale CIEN VECES
+     mayor. Es el mismo defecto que el comentario de `im_vmax` documenta. */
+  ia_vmax_cw: Object.freeze([50, 800]),
+  /* VTI del jet de IAo, en cm. MULTIPLICA al EROA para dar el Vol-R, y el Vol-R da la FR: un
+     error acá se propaga a tres filas. Piso 20: atrapa el VTI tipeado en metros (2 por 200), que
+     hunde el Vol-R y vota «leve». Es el mismo piso que `im_itv` en `DCM_RANGO`. Techo 500 y no
+     el 400 de `im_itv`: la diástole aórtica es más larga que la sístole mitral, así que el VTI de
+     un jet aórtico holodiastólico llega más alto; 500 sigue atrapando un orden de magnitud sobre
+     los 200-300 cm reales. Criterio EcoSmart de plausibilidad. */
+  ia_vti: Object.freeze([20, 500])
+});
+/* Accesor con la MISMA forma que `_labRango` y que `emBandaPlaus`: devuelve el par o `undefined`.
+   Que las tres tablas se consulten igual es lo que deja que el lector caiga de una a la otra sin
+   una rama por campo. */
+function aoBandaPlaus(id){ return AO_BANDA_PLAUS[id]; }
+
+/* Banda efectiva de un campo aórtico: `_labRango` PRIMERO y la tabla local DESPUÉS, nunca al
+   revés. `_labRango` sigue siendo el dueño de todo campo que tenga entrada ahí, así que esto no
+   le pisa ninguna banda y no puede crear el defecto de «dos superficies acotando el mismo campo
+   con bandas distintas». Es la misma cascada que `_indBanda` ya hace con `emBandaPlaus`. */
+function _aoBanda(id){
+  let b = null;
+  try { b = (typeof _labRango === 'function') ? _labRango(id) : null; } catch (e) { b = null; }
+  if (b == null) b = AO_BANDA_PLAUS[id];
+  /* ⚠️ UNA BANDA MALFORMADA NO PUEDE DESACTIVAR LA PLAUSIBILIDAD EN SILENCIO. Con `['a','b']` los
+     dos lados de la comparación dan `false` y todo valor pasaría como medido, que es la dirección
+     peligrosa. Misma exigencia que `_plausDe` y `_indBanda`: dos números finitos y en orden. */
+  if (!Array.isArray(b) || b.length !== 2) return null;
+  if (!isFinite(b[0]) || !isFinite(b[1]) || !(b[0] <= b[1])) return null;
+  return b;
+}
+/* Mismo CONTRATO que `_plausDe` —`{val, fuera, sinBanda, crudo, b}`— para que los sitios de uso se
+   escriban igual que los de la mitral: `p.crudo` para seguir calculando y mostrando, `p.fuera`
+   para decidir si vota. No se modificó `_plausDe` para que cayera a esta tabla: `vPlaus` lo
+   consumen el PDF, el narrativo y una veintena de cajones más, y darle bandas nuevas a todos de
+   un saque es un radio que este cambio no midió. Acá el lector es local y el radio es el de las
+   tres funciones de la aórtica. */
+function _aoPlausDe(id, x){
+  const b = _aoBanda(id);
+  if (x == null) return { val:null, fuera:false, sinBanda:(b == null), crudo:null };
+  if (b == null) return { val:x, fuera:false, sinBanda:true, crudo:x };
+  if (x < b[0] || x > b[1]) return { val:null, fuera:true, sinBanda:false, crudo:x, b:b };
+  return { val:x, fuera:false, sinBanda:false, crudo:x, b:b };
+}
+/* El caso «el valor es el que está en pantalla», igual que `vPlaus` frente a `_plausDe`. */
+function aoPlaus(id){ return _aoPlausDe(id, (typeof v === 'function') ? v(id) : null); }
+window.AO_BANDA_PLAUS = AO_BANDA_PLAUS;
+window.aoBandaPlaus = aoBandaPlaus;
+window.aoPlaus = aoPlaus;
+
+/* Texto único del valor ilegible, para que las tres funciones de la aórtica digan lo MISMO que
+   dicen las filas con banda del panel y del EOA protésico: NOMBRA el campo y el valor, porque un
+   aviso genérico manda al médico a revisar diez casillas y la que está mal es una. */
+function _aoFueraTxt(lista){
+  return lista.length ? '⚠️ Fuera de rango, no gradúa: ' + lista.join(' · ') + ' — verificar la unidad de la medición' : '';
+}
+function _aoFuera(p, rotulo, uni){
+  return p.fuera ? rotulo + ' ' + p.crudo + (uni ? ' ' + uni : '') : null;
+}
+
 function calcTango() {
-  const te = v('tango_te'), tac = v('tango_tac'), vmax = v('vmax_ao');
+  /* Los TRES insumos pasan por banda: los tres se multiplican o se dividen entre sí, así que un
+     error de unidad no degrada el índice — lo fabrica, y en las dos direcciones. Medido antes de
+     la banda, con Vmax 4,5 / TE 300 / TAC 90 (índice 0,74, ratio 0,30 «sin signos de severidad»):
+     · TE tipeado en segundos (0,3) → ratio TAC/TE **300,00** y badge ROJO «sugiere severidad»;
+     · TAC tipeado en segundos (0,09) → ratio **0,00** y badge VERDE «sin signos de severidad por
+       este índice», que es la negación tranquilizadora sobre un número ilegible.
+     `tango_tac` y `vmax_ao` YA tenían banda en `DCM_RANGO` ([10,300] y [0.5,8]): lo único que
+     faltaba era que esta función la consultara. */
+  const _pTe = aoPlaus('tango_te'), _pTac = aoPlaus('tango_tac'), _pVmaxT = aoPlaus('vmax_ao');
+  const te = _pTe.crudo, tac = _pTac.crudo, vmax = _pVmaxT.crudo;
   const el = document.getElementById('tango-ava');
   const ratioEl = document.getElementById('tango-ratio');
   if (!el) return;
   if (!te || !tac || !vmax) { el.textContent = '—'; if (ratioEl) ratioEl.innerHTML = '—'; return; }
+  const _dud = _pTe.fuera || _pTac.fuera || _pVmaxT.fuera;
   const indiceAVA = (te / (vmax * tac)).toFixed(2);
-  el.textContent = indiceAVA + ' (índice)';
+  /* MARCAR SIN BORRAR: el índice se sigue publicando con el valor crudo —así el médico ve de qué
+     número salió— y lo que se retira es la INTERPRETACIÓN, que es lo que gradúa. */
+  el.textContent = indiceAVA + ' (índice)' + (_dud ? MARCA_REVISAR : '');
   setv('tango_ava_val', indiceAVA);
 
   const ratio = (tac / te).toFixed(2);
   let interp;
-  if (ratio > 0.35) {
+  if (_dud) {
+    /* Ni verde ni rojo: la cascada de abajo NO se evalúa. Un badge de color sobre un ratio
+       sostenido por una unidad equivocada afirma algo que nadie midió, y el verde es la
+       dirección peligrosa. Mismo criterio que el badge gris del AVA no valuable. */
+    interp = badge('gray', _aoFueraTxt([
+      _aoFuera(_pTe, 'TE', 'ms'), _aoFuera(_pTac, 'TAC', 'ms'), _aoFuera(_pVmaxT, 'Vmax aórtica', 'm/s')
+    ].filter(Boolean)));
+  } else if (ratio > 0.35) {
     interp = badge('red', `TAC/TE ${ratio} — sugiere severidad de la estenosis aórtica`);
   } else if (ratio > 0.32) {
     interp = badge('yellow', `TAC/TE ${ratio} — marca peor pronóstico en el seguimiento`);
@@ -22995,8 +23260,37 @@ function _avmPorPHT(phtMs) {
 window._avmPorPHT = _avmPorPHT;
 
 function calcAo() {
-  const vmax = v('vmax_ao'), gmedio = v('gmedio_ao'), itvao = v('itv_ao');
-  const itsvi = v('itv_tsvi'), dtsvi = v('diam_tsvi');
+  /* ⚠️ LOS CINCO INSUMOS PASAN POR BANDA DE PLAUSIBILIDAD (ver `AO_BANDA_PLAUS`). Cuatro ya
+     estaban acotados en `DCM_RANGO` y el quinto —`itv_ao`— no estaba en ninguna tabla; lo que
+     faltaba en los cuatro era que ESTA función consultara la banda. Lo que el agujero producía,
+     medido antes del arreglo con Vmax 4,5 / Gmedio 45 / VTI Ao 100 / VTI TSVI 20 / Ø TSVI 20
+     (AVA 0,63 cm², «Severa», DVI 0,20):
+       · Ø TSVI tipeado en cm (2 por 20) → AVA **0,01 cm²** y badge «Severa (≤1.0cm²)», o sea una
+         estenosis crítica FABRICADA, con `ea_grado` escrito en «severa»;
+       · VTI Ao tipeado en metros (1 por 100) → AVA **62,83 cm²**, badge «Sin estenosis / leve» y
+         `ea_grado` en «leve» sobre una Vmax de 4,5 m/s. Ésta es la dirección peligrosa: el error
+         de unidad NIEGA una estenosis severa y el informe firmado sale tranquilizador.
+     Se toma `p.crudo` PELADO —no el ternario `p.fuera ? p.crudo : p.val`— por lo mismo que lo
+     documenta `calcIM_ESC`: `_aoPlausDe` devuelve `crudo` en todas sus ramas con dato, así que el
+     ternario da lo mismo y sólo invita a «simplificarlo» hacia `p.val`, que SÍ cambia el
+     comportamiento —borraría el número en vez de marcarlo—. MARCAR SIN BORRAR: la banda decide si
+     el valor GRADÚA, no si se muestra. */
+  const _pVmax = aoPlaus('vmax_ao'), _pGmed = aoPlaus('gmedio_ao'), _pItvAo = aoPlaus('itv_ao');
+  const _pItsvi = aoPlaus('itv_tsvi'), _pDtsvi = aoPlaus('diam_tsvi');
+  const vmax = _pVmax.crudo, gmedio = _pGmed.crudo, itvao = _pItvAo.crudo;
+  const itsvi = _pItsvi.crudo, dtsvi = _pDtsvi.crudo;
+  /* El DVI es el cociente de los DOS VTI y nada más —es adimensional justamente para no depender
+     del diámetro—, así que su duda sale de sus propios dos insumos y no del Ø TSVI. El AVA sí
+     hereda las tres, porque las multiplica. Es el mismo reparto que `calcIM_ESC` hace entre el
+     EROA y el VS del TSVI. */
+  const _dviDud = _pItsvi.fuera || _pItvAo.fuera;
+  const _avaDud = _dviDud || _pDtsvi.fuera;
+  const _vsDud  = _pItsvi.fuera || _pDtsvi.fuera;
+  const _fueraLista = [
+    _aoFuera(_pVmax, 'Vmax aórtica', 'm/s'), _aoFuera(_pGmed, 'gradiente medio', 'mmHg'),
+    _aoFuera(_pItvAo, 'VTI aórtico', 'cm'), _aoFuera(_pItsvi, 'VTI TSVI', 'cm'),
+    _aoFuera(_pDtsvi, 'Ø TSVI', 'mm')
+  ].filter(Boolean);
   const bsa = getBSA();
   if (typeof mostrarTSVIEstimado === 'function') mostrarTSVIEstimado();
 
@@ -23013,7 +23307,17 @@ function calcAo() {
      flujo-independiente disponible estaba medido y era calculable. El fail-closed se disparaba por
      un insumo ajeno, y justo en el caso para el que el DVI existe. Lo encontró /sharp-edges. */
   if (itsvi && itvao) {
-    document.getElementById('dvi-val').textContent = (itsvi / itvao).toFixed(2);
+    /* ⚠️ ACÁ NO ALCANZA CON PEGARLE `MARCA_REVISAR` AL NÚMERO, Y ÉSTA ES LA EXCEPCIÓN MEDIDA A
+       «marcar sin borrar». `eaProtVeredicto` LEE ESTE NODO (`n('dvi-val')`) para aplicar la Tabla 5
+       de la ASE 2024, y lo lee con `parseFloat`: «0.20 (revisar)» parsea a 0,20 igual que antes, o
+       sea que el veredicto protésico seguiría graduando sobre el valor ilegible y la marca sería
+       decorativa. Acá el número EN PANTALLA es el canal por el que el dato vota, así que se
+       publica un texto que no parsea como número y el veredicto cae en su propio «falta un dato»,
+       que es fail-closed y la dirección segura. Es exactamente lo que el EOA protésico de la
+       mitral ya hace con `'—  (revisar la unidad de los insumos)'`. */
+    document.getElementById('dvi-val').textContent = _dviDud
+      ? '—  (revisar la unidad: ' + [_aoFuera(_pItsvi, 'VTI TSVI', 'cm'), _aoFuera(_pItvAo, 'VTI aórtico', 'cm')].filter(Boolean).join(' · ') + ')'
+      : (itsvi / itvao).toFixed(2);
   } else {
     const _dv = document.getElementById('dvi-val'); if (_dv) _dv.textContent = '—';
   }
@@ -23026,9 +23330,20 @@ function calcAo() {
        truthy por el `if`— pero se cae a la expresión anterior por si alguna vez lo es, para
        que la extracción no pueda cambiar lo que se publica. */
     const ava = (_avaN != null ? _avaN : (Math.PI * ((dtsvi / 20) ** 2) * itsvi / itvao)).toFixed(2);
+    /* `ava_cont` se sigue escribiendo con el valor CRUDO y eso es a propósito: es lo que el
+       estudio guarda y lo que sale por la columna del Excel, y la regla de este cambio es que el
+       dato almacenado no se toca. Lo que la banda retira es el GRADO —el badge y
+       `sugerirSeveridadEA`—, no el número. Y el panel de Evidencia lo relee con su propia banda
+       (`ava_cont [0.1,8]` en `LAB_XLS_RANGO_PROPIO`), así que un AVA fabricado tampoco sostiene
+       ahí una indicación quirúrgica. */
     setv('ava_cont', ava);
     let sev;
-    if (PF(ava) >= 1.5) sev = badge('green', 'Sin estenosis / leve (≥1.5cm²)');
+    /* ⚠️ LA RAMA DE LA BANDA VA PRIMERO Y CORTA LA CASCADA ENTERA. Si fuera el último `else`, los
+       tres predicados de severidad se evaluarían antes y el primero que matcheara ganaría: con el
+       Ø TSVI en cm el AVA da 0,01 y `avaEsSevera` dice «Severa» — exactamente el badge que este
+       bloque existe para no publicar. */
+    if (_avaDud) sev = badge('gray', 'AVA no graduable — fuera de rango: ' + _fueraLista.join(' · ') + ' — verificar la unidad de la medición');
+    else if (PF(ava) >= 1.5) sev = badge('green', 'Sin estenosis / leve (≥1.5cm²)');
     else if (avaEsModerada(PF(ava))) sev = badge('yellow', 'Moderada (>' + AVA_SEVERA_MAX.toFixed(1) + '-1.49cm²)');
     else if (avaEsSevera(PF(ava))) sev = badge('red', 'Severa (≤' + AVA_SEVERA_MAX.toFixed(1) + 'cm²)');
     /* El `else` incondicional mandaba a «Severa» todo AVA <= 0: con un TSVI tipeado 0,5 el
@@ -23037,10 +23352,34 @@ function calcAo() {
        contiguas en pantalla, diciendo cosas distintas. */
     else sev = badge('gray', 'AVA no valuable — revisá diámetro TSVI, ITV-TSVI e ITV-Ao');
     document.getElementById('ea-sev').innerHTML = sev;
-    sugerirSeveridadEA(PF(ava));
+    /* ⚠️ CON UN INSUMO FUERA DE BANDA NO SE SUGIERE GRADO, y es la mitad que importa: el badge es
+       pantalla, pero `sugerirSeveridadEA` escribe `ea_grado`, que es de donde salen el informe
+       narrativo, el EN SUMA, el PDF firmado, la columna del Excel y el Laboratorio. Sin esta
+       guarda las dos mitades del mismo cálculo, contiguas en pantalla, dirían cosas distintas
+       —el badge «revisar la unidad» y el `<select>` «severa»— y la que viaja al papel es la
+       segunda. No se borra el grado que ya hubiera: igual que `sugerirSeveridadEA` con un AVA no
+       válida, acá tampoco se pisa un veredicto previo; simplemente no se escribe uno nuevo. */
+    if (!_avaDud) sugerirSeveridadEA(PF(ava));
+    /* ⚠️ Y SE DICE QUE NO SE ACTUALIZÓ, en vez de saltearse en silencio. Saltear a
+       `sugerirSeveridadEA` deja el badge con el texto de la medición ANTERIOR, y ese texto afirma
+       que el grado del `<select>` viene de un AVA que ya no es el que está en pantalla —medido en
+       el A/B: con la Vmax vacía y el Ø TSVI en cm, el badge seguía diciendo «concordante con AVA
+       0,63 cm²» sobre un AVA de 0,01—. Es el defecto que `sugerirSeveridadEA` documenta para su
+       propia rama de AVA no válida, reaparecido por el camino nuevo. `clasificarEA_Vmax` escribe
+       este mismo nodo y corre DESPUÉS, así que pisa esto cuando tiene algo mejor que decir; lo que
+       esta línea garantiza es que no quede el texto viejo cuando aquélla sale temprano —sin Vmax,
+       o con morfología protésica—. */
+    if (_avaDud && document.getElementById('ea-ava-badge')) {
+      document.getElementById('ea-ava-badge').textContent =
+        'Fuera de rango: ' + _fueraLista.join(' · ') + ' — el grado NO se actualizó automáticamente; ' +
+        'verificar la unidad de la medición antes de firmar.';
+    }
     if (bsa) {
       const avai = (PF(ava) / bsa).toFixed(2);
-      document.getElementById('ava-idx').textContent = avai + ' cm²/m²';
+      /* El AVA indexado hereda la duda de su numerador: es el MISMO número dividido por la BSA,
+         y dejarlo limpio al lado de un AVA marcado deja un criterio de severidad (`avai 0,6` de
+         `EA_CRIT`) sostenido por el valor que acabamos de declarar ilegible. */
+      document.getElementById('ava-idx').textContent = avai + ' cm²/m²' + (_avaDud ? MARCA_REVISAR : '');
     }
     /* El módulo TAVI espeja estos mismos números, y se repinta ACÁ porque `calcAo` es el que los
        acaba de escribir: sin esto el bloque de TAVI queda con los de la medición anterior hasta que
@@ -23050,7 +23389,14 @@ function calcAo() {
       const atsvi2 = Math.PI * ((dtsvi/20)**2);
       const vs = (atsvi2 * itsvi).toFixed(1);
       const vsEl = document.getElementById('vs-val');
-      if (vsEl) vsEl.textContent = vs + ' ml';
+      /* Se marca el VS por SUS dos insumos y no por los tres del AVA: es una medición
+         independiente —no usa el VTI aórtico— y ensuciarla con la duda de ése diría que está mal
+         algo que no lo está. Mismo reparto que `calcIM_ESC` entre el EROA y el VS del TSVI.
+         ⚠️ `vs_calc` NO se marca: es un `input[type=number]` y meterle texto lo deja en `''`, con
+         lo que `vliCalc` perdería el volumen latido en vez de marcarlo. Queda crudo —que es
+         además la regla del dato guardado—, y lo que eso DEJA ABIERTO está declarado en el reporte
+         de esta tanda: el VLI y el PPT siguen leyendo el crudo sin saber que es ilegible. */
+      if (vsEl) vsEl.textContent = vs + ' ml' + (_vsDud ? MARCA_REVISAR : '');
       const vsCalc = document.getElementById('vs_calc');
       if (vsCalc) vsCalc.value = vs;
     }
@@ -23120,6 +23466,27 @@ function clasificarEA_Vmax() {
      que en calcIM_ESC/calcIA_ESC/calcIT_ESC. Sin esto, tocar cualquier campo del Doppler
      aórtico cambiaba el <select> de «Severa» a lo que diera la Vmax, sin avisar. */
   if (window.esqSevManual && window.esqSevManual.ea) return;
+
+  /* ⚠️ Y UN INSUMO FUERA DE BANDA TAMPOCO SUGIERE GRADO, por el mismo argumento que la rama
+     protésica de arriba: esta función escribe `sel.value` —`ea_grado`—, que es de donde salen el
+     informe narrativo, el EN SUMA, el PDF firmado, el Excel y el Laboratorio. `calcAo` ya se
+     abstiene de llamar a `sugerirSeveridadEA`, pero ESTA es la otra escritora del mismo
+     `<select>` y corre inmediatamente después, así que sin esta guarda el bloqueo de allá no
+     sirve de nada: el grado se escribiría igual, por el otro camino.
+     Los TRES se consultan, y `ava_cont` también aunque sea derivado: es precisamente el derivado
+     que el error de unidad fabrica (medido: Ø TSVI en cm → AVA 0,01 cm² → «severa»; VTI aórtico
+     en metros → AVA 62,83 cm² → «leve» sobre una Vmax de 4,5 m/s). Su banda sale de
+     `LAB_XLS_RANGO_PROPIO` (`ava_cont [0.1,8]`), que es la que la app ya declara para ese campo.
+     NO se borra el grado que hubiera: igual que la rama protésica, se deja lo consignado y se
+     dice por qué no se sugirió nada. Un `<select>` vaciado en silencio es peor que uno viejo. */
+  const _pcVmax = aoPlaus('vmax_ao'), _pcGmed = aoPlaus('gmedio_ao'), _pcAva = aoPlaus('ava_cont');
+  if (_pcVmax.fuera || _pcGmed.fuera || _pcAva.fuera) {
+    if (badgeEl) badgeEl.textContent = _aoFueraTxt([
+      _aoFuera(_pcVmax, 'Vmax aórtica', 'm/s'), _aoFuera(_pcGmed, 'gradiente medio', 'mmHg'),
+      _aoFuera(_pcAva, 'AVA por continuidad', 'cm²')
+    ].filter(Boolean)) + ' — no se sugiere grado de estenosis aórtica; el grado queda en lo consignado.';
+    return;
+  }
 
   // Grado sugerido por Vmax (ESC 2021) — usa los value del <select> (sin/leve/moderada/severa)
   let velVal;
@@ -24010,37 +24377,93 @@ function imDiscordanciaPintar() {
 window.imDiscordanciaPintar = imDiscordanciaPintar;
 
 function calcIA_ESC() {
-  const vc = v('ia_vc');
-  const jetDiam = v('ia_jet_diam');
-  const tsviDiam = v('diam_tsvi');
-  const pht = v('ia_pht');
-  const vmaxTD = v('ia_vmax_td');
-  const vtiDesc = v('ia_vti_desc');
-  const pisaR = v('ia_pisa_r'), pisaVal = v('ia_pisa_val'), vmaxCW = v('ia_vmax_cw'), vtiIA = v('ia_vti');
-  const itsvi = v('itv_tsvi'), dtsvi = v('diam_tsvi');
+  /* ⚠️ LOS ONCE INSUMOS PASAN POR BANDA DE PLAUSIBILIDAD (ver `AO_BANDA_PLAUS`). Antes de este
+     cambio, los NUEVE campos de IAo no tenían banda en ninguna tabla ni `min`/`max` en el marcado,
+     y esta función nunca llamaba a `vPlaus`: un error de unidad entraba crudo al voto. Los dos que
+     llegan del cajón Doppler —`diam_tsvi` y `itv_tsvi`— sí tenían banda en `DCM_RANGO` y lo que
+     faltaba era que esta función la consultara.
+     `CHM_RANGO` bandeaba `ia_vmax_cw` y `ia_pht`, pero SÓLO para el importador de XML del
+     ecógrafo: tipeados a mano no se bandeaban. Los pares de esos dos se copian EXACTOS en la tabla
+     local justamente para que el mismo número dé el mismo veredicto por las dos puertas.
+     `p.crudo` pelado y MARCAR SIN BORRAR, igual que `calcIM_ESC` y `calcAo`: la fila se sigue
+     calculando y se marca; lo que la banda retira es el VOTO. */
+  const _pVc = aoPlaus('ia_vc'), _pJet = aoPlaus('ia_jet_diam'), _pPht = aoPlaus('ia_pht');
+  const _pVtd = aoPlaus('ia_vmax_td'), _pVtiD = aoPlaus('ia_vti_desc');
+  const _pPr = aoPlaus('ia_pisa_r'), _pPv = aoPlaus('ia_pisa_val');
+  const _pVcw = aoPlaus('ia_vmax_cw'), _pVti = aoPlaus('ia_vti');
+  const _pDts = aoPlaus('diam_tsvi'), _pIts = aoPlaus('itv_tsvi');
+  const vc = _pVc.crudo;
+  const jetDiam = _pJet.crudo;
+  /* `tsviDiam` y `dtsvi` eran DOS lecturas del MISMO campo (`v('diam_tsvi')` dos veces) con dos
+     nombres. Se unifican sobre una sola plausibilidad: con dos, una banda puesta en un sitio y no
+     en el otro dejaría el ratio jet/TSVI y la FR discrepando sobre el mismo número. */
+  const tsviDiam = _pDts.crudo;
+  const pht = _pPht.crudo;
+  const vmaxTD = _pVtd.crudo;
+  const vtiDesc = _pVtiD.crudo;
+  const pisaR = _pPr.crudo, pisaVal = _pPv.crudo, vmaxCW = _pVcw.crudo, vtiIA = _pVti.crudo;
+  const itsvi = _pIts.crudo, dtsvi = _pDts.crudo;
 
   let scores = { leve:0, moderada:0, severa:0 };
   let params = [];
+  /* Se arma una sola vez y se publica abajo, FUERA del `return` temprano de `params.length === 0`
+     (ver su comentario): si los únicos datos cargados están todos fuera de banda, no hay votos y
+     esta función se iría sin decir una palabra — que es el caso en el que el médico MÁS necesita
+     el aviso. El orden es el de carga del formulario, no el de gravedad: con varios fuera de
+     rango, ordenarlos por un criterio inventado sugiere una prioridad que nadie fijó. */
+  const _iaFuera = [
+    _aoFuera(_pVc,  'VC',               'mm'),
+    _aoFuera(_pJet, 'Ø jet en TSVI',    'mm'),
+    _aoFuera(_pPht, 'PHT',              'ms'),
+    _aoFuera(_pVtd, 'Vmax telediast.',  'cm/s'),
+    _aoFuera(_pVtiD,'VTI Ao desc.',     'cm'),
+    _aoFuera(_pPr,  'radio PISA',       'mm'),
+    _aoFuera(_pPv,  'Valiasing',        'cm/s'),
+    _aoFuera(_pVcw, 'Vmax IAo CW',      'cm/s'),
+    _aoFuera(_pVti, 'VTI del jet',      'cm'),
+    _aoFuera(_pDts, 'Ø TSVI',           'mm'),
+    _aoFuera(_pIts, 'VTI TSVI',         'cm')
+  ].filter(Boolean);
 
-  if (vc) {
+  /* La VC es el ÚNICO votante sin fila de resultado propia —su valor se ve en su input y nada
+     más—, así que su marca no puede ir pegada a un span: va al aviso de `_iaFuera`. Es el mismo
+     reparto que `calcIM_ESC` hace con la VC mitral. */
+  if (vc && !_pVc.fuera) {
     if (vc < 3) { scores.leve++; params.push({p:'VC',sev:'leve'}); }
     else if (vc <= 6) { scores.moderada++; params.push({p:'VC',sev:'moderada'}); }
     else { scores.severa++; params.push({p:'VC',sev:'severa'}); }
   }
 
+  /* ⚠️ CADA `calc-val` DE ESTE BLOQUE LLEVA SU `else` QUE LIMPIA, y los cuatro no lo tenían.
+     Sin él, borrar un insumo dejaba el número ANTERIOR en pantalla: `calcIA_ESC` vuelve a correr,
+     entra por el `if` en falso y no toca el nodo, así que el ratio, el EROA, el Vol-R y la FR
+     quedaban pegados sin un solo dato que los sostenga —y los tres últimos salen al PDF y al
+     narrativo por otras vías—. Es el fantasma del gradiente pulmonar que este archivo ya documenta
+     y lo mismo que `_vliPintar` resolvió repintando en las DOS ramas. */
+  const _iaSet = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
+  const _iaSetH = (id, html) => { const e = document.getElementById(id); if (e) e.innerHTML = html; };
+
   if (jetDiam && tsviDiam) {
     const ratio = (jetDiam/tsviDiam*100).toFixed(1);
-    document.getElementById('ia-jet-ratio').textContent = ratio + '%';
-    if (ratio < 25) { scores.leve++; params.push({p:'Jet/TSVI',sev:'leve'}); }
-    else if (ratio < 65) { scores.moderada++; params.push({p:'Jet/TSVI',sev:'moderada'}); }
-    else { scores.severa++; params.push({p:'Jet/TSVI',sev:'severa'}); }
-  }
+    const _ratioDud = _pJet.fuera || _pDts.fuera;
+    _iaSet('ia-jet-ratio', ratio + '%' + (_ratioDud ? MARCA_REVISAR : ''));
+    if (!_ratioDud) {
+      if (ratio < 25) { scores.leve++; params.push({p:'Jet/TSVI',sev:'leve'}); }
+      else if (ratio < 65) { scores.moderada++; params.push({p:'Jet/TSVI',sev:'moderada'}); }
+      else { scores.severa++; params.push({p:'Jet/TSVI',sev:'severa'}); }
+    }
+  } else { _iaSet('ia-jet-ratio', '—'); }
 
   if (pht) {
-    if (pht > 500) { scores.leve++; params.push({p:'PHT',sev:'leve'}); document.getElementById('ia-pht-interp').innerHTML = badge('green','Leve (>500ms)'); }
-    else if (pht >= 200) { scores.moderada++; params.push({p:'PHT',sev:'moderada'}); document.getElementById('ia-pht-interp').innerHTML = badge('yellow','Moderada (200-500ms)'); }
-    else { scores.severa++; params.push({p:'PHT',sev:'severa'}); document.getElementById('ia-pht-interp').innerHTML = badge('red','Severa (<200ms)'); }
-  }
+    /* Gris y no verde/rojo: no clasificar NO es «leve». Un badge de color sobre un PHT con la
+       unidad equivocada afirma un hallazgo que nadie midió, y el verde es la dirección peligrosa
+       —el corte de leve es `>500`, justo donde cae un PHT inflado—. Mismo criterio que el gris
+       que la Vmax telediastólica ya usa cuando la guía no gradúa. */
+    if (_pPht.fuera) _iaSetH('ia-pht-interp', badge('gray','PHT ' + _pPht.crudo + ' ms fuera de rango medible (' + _pPht.b[0] + '–' + _pPht.b[1] + ' ms) — no gradúa; verificar la unidad'));
+    else if (pht > 500) { scores.leve++; params.push({p:'PHT',sev:'leve'}); _iaSetH('ia-pht-interp', badge('green','Leve (>500ms)')); }
+    else if (pht >= 200) { scores.moderada++; params.push({p:'PHT',sev:'moderada'}); _iaSetH('ia-pht-interp', badge('yellow','Moderada (200-500ms)')); }
+    else { scores.severa++; params.push({p:'PHT',sev:'severa'}); _iaSetH('ia-pht-interp', badge('red','Severa (<200ms)')); }
+  } else { _iaSetH('ia-pht-interp', '—'); }
 
   /* ⚠️ ESTE PARÁMETRO VOTA SÓLO SEVERA, Y ÉSA ES LA FORMA DE LA FUENTE, no una abstención
      defensiva. La ESC/EACTS 2025, Figura 4 (folio 4659), publica la velocidad telediastólica
@@ -24055,29 +24478,45 @@ function calcIA_ESC() {
      el lado tranquilizador. Con ese techo de 200 cm/s el parámetro no podía votar severa en
      ningún caso clínico real. Decisión de Maicol del 2026-10-01. */
   if (vmaxTD) {
-    if (vmaxTD >= IA_VMAX_TD_SEVERA) { scores.severa++; params.push({p:'Vmax-TD',sev:'severa'}); document.getElementById('ia-vtd-interp').innerHTML = badge('red','Severa (≥' + IA_VMAX_TD_SEVERA + ' cm/s) — reversión holodiastólica'); }
+    /* ⚠️ LA BANDA VA PRIMERO Y POR DELANTE DEL CORTE. El error que atrapa es el que mete el valor
+       ABAJO del corte de severa (la Vmax telediastólica tipeada en m/s: 0,25 por 25), y si esta
+       rama fuera después, ese 0,25 caería en el `else` gris «No gradúa (< 20 cm/s)» — que es
+       cierto como aritmética y falso como hallazgo: la guía llama SEVERO a ese paciente. Las dos
+       filas son grises y dicen cosas DISTINTAS, y por eso no se funden. */
+    if (_pVtd.fuera) _iaSetH('ia-vtd-interp', badge('gray','Vmax telediastólica ' + _pVtd.crudo + ' cm/s fuera de rango medible (' + _pVtd.b[0] + '–' + _pVtd.b[1] + ' cm/s) — no gradúa; verificar la unidad'));
+    else if (vmaxTD >= IA_VMAX_TD_SEVERA) { scores.severa++; params.push({p:'Vmax-TD',sev:'severa'}); _iaSetH('ia-vtd-interp', badge('red','Severa (≥' + IA_VMAX_TD_SEVERA + ' cm/s) — reversión holodiastólica')); }
     /* No es `badge('green', …)`: no clasificar NO es «leve». Verde sobre un parámetro que la
        guía no gradúa se lee como un hallazgo tranquilizador que nadie afirmó. */
-    else { document.getElementById('ia-vtd-interp').innerHTML = badge('gray','No gradúa (< ' + IA_VMAX_TD_SEVERA + ' cm/s) — la guía sólo publica el corte de severa'); }
-  }
+    else { _iaSetH('ia-vtd-interp', badge('gray','No gradúa (< ' + IA_VMAX_TD_SEVERA + ' cm/s) — la guía sólo publica el corte de severa')); }
+  } else { _iaSetH('ia-vtd-interp', '—'); }
 
   if (vtiDesc) {
-    if (vtiDesc < 15) { scores.leve++; params.push({p:'VTI-Desc',sev:'leve'}); document.getElementById('ia-vti-desc-interp').innerHTML = badge('green','Sin inversión significativa'); }
-    else if (vtiDesc < 25) { scores.moderada++; params.push({p:'VTI-Desc',sev:'moderada'}); document.getElementById('ia-vti-desc-interp').innerHTML = badge('yellow','Inversión moderada'); }
-    else { scores.severa++; params.push({p:'VTI-Desc',sev:'severa'}); document.getElementById('ia-vti-desc-interp').innerHTML = badge('red','Inversión holodiastólica — severa'); }
-  }
+    if (_pVtiD.fuera) _iaSetH('ia-vti-desc-interp', badge('gray','VTI Ao desc. ' + _pVtiD.crudo + ' cm fuera de rango medible (' + _pVtiD.b[0] + '–' + _pVtiD.b[1] + ' cm) — no gradúa; verificar la unidad'));
+    else if (vtiDesc < 15) { scores.leve++; params.push({p:'VTI-Desc',sev:'leve'}); _iaSetH('ia-vti-desc-interp', badge('green','Sin inversión significativa')); }
+    else if (vtiDesc < 25) { scores.moderada++; params.push({p:'VTI-Desc',sev:'moderada'}); _iaSetH('ia-vti-desc-interp', badge('yellow','Inversión moderada')); }
+    else { scores.severa++; params.push({p:'VTI-Desc',sev:'severa'}); _iaSetH('ia-vti-desc-interp', badge('red','Inversión holodiastólica — severa')); }
+  } else { _iaSetH('ia-vti-desc-interp', '—'); }
 
   if (pisaR && pisaVal && vmaxCW) {
     const eroa = (2*Math.PI*(pisaR/10)**2*pisaVal/vmaxCW*100).toFixed(1);
-    document.getElementById('ia-eroa').textContent = eroa + ' mm²';
-    if (eroa < 10) { scores.leve++; params.push({p:'EROA',sev:'leve'}); }
-    else if (eroa < 30) { scores.moderada++; params.push({p:'EROA',sev:'moderada'}); }
-    else { scores.severa++; params.push({p:'EROA',sev:'severa'}); }
+    /* ⚠️ LAS TRES FILAS DEL PISA ESTÁN ENCADENADAS —el Vol-R sale del EROA y la FR sale del
+       Vol-R—, así que un insumo ilegible arriba contamina los TRES números, no uno. Marcar sólo
+       la fila del campo dudoso dejaría dos derivados limpios en pantalla sostenidos por el mismo
+       valor imposible, y los dos votarían. Es el mismo encadenamiento que `calcIM_ESC` resuelve
+       así y que el PDF ya resuelve así en el E/e'. */
+    const _eroaDud = _pPr.fuera || _pPv.fuera || _pVcw.fuera;
+    _iaSet('ia-eroa', eroa + ' mm²' + (_eroaDud ? MARCA_REVISAR : ''));
+    if (!_eroaDud) {
+      if (eroa < 10) { scores.leve++; params.push({p:'EROA',sev:'leve'}); }
+      else if (eroa < 30) { scores.moderada++; params.push({p:'EROA',sev:'moderada'}); }
+      else { scores.severa++; params.push({p:'EROA',sev:'severa'}); }
+    }
     if (vtiIA && itsvi && dtsvi) {
       const atsvi = Math.PI*((dtsvi/20)**2);
       const vsv = atsvi*itsvi;
       const volR = (PF(eroa)/100*vtiIA).toFixed(1);
-      document.getElementById('ia-volr').textContent = volR + ' ml';
+      const _volRDud = _eroaDud || _pVti.fuera;
+      _iaSet('ia-volr', volR + ' ml' + (_volRDud ? MARCA_REVISAR : ''));
       /* ⚠️ EL DENOMINADOR ES `vsv` SOLO, Y NO `volR + vsv` COMO EN LA MITRAL. `vsv` es el volumen
          sistólico del TSVI —`π·(Ø TSVI/20)²·VTI TSVI`—, o sea el SV que cruza la válvula AÓRTICA,
          que es la regurgitante. La ASE 2017 (Zoghbi, folio 311) define «RF is then derived as the
@@ -24115,21 +24554,52 @@ function calcIA_ESC() {
          finito y positivo —denominador utilizable— y el cociente finito, que es lo que atrapa un
          `volR` desbordado. */
       const frNum = PF(volR)/vsv*100;
-      const frOk = Number.isFinite(vsv) && vsv > 0 && Number.isFinite(frNum);
+      /* ⚠️ Y SE ACOTA LA FR AL 100 %, QUE ES LA COTA QUE LA FÓRMULA VIEJA TENÍA SIN DECIRLO. Con
+         `volR/(volR+vsv)` el denominador contenía al numerador, así que el cociente no podía pasar
+         de 1 por construcción: cualquier insumo absurdo daba como máximo «98 %» y la cota era un
+         efecto secundario de la aritmética. Al corregir la fórmula a `volR/vsv` (tanda 2b, ASE
+         2017) esa red se fue con ella, y lo medido en el navegador antes de este arreglo es: con
+         Ø TSVI tipeado en cm (2 por 20) la FR pasó de 98 % a **9804 %**, votó SEVERA —9804 ≥ 50—,
+         el badge salió «Severa», `ia_grado` quedó en '4' y `ia-discordancia` estaba VACÍO. Un
+         porcentaje imposible decidiendo el grado del informe firmado sin una sola señal.
+         Son DOS capas y las dos hacen falta: la banda del Ø TSVI atrapa ESE error, y la cota
+         atrapa cualquier otra combinación que empuje el cociente arriba de 1 —un VTI del jet y un
+         VSV los dos dentro de banda pueden darla, porque la banda acota cada factor por separado y
+         no su producto—. Una fracción no puede exceder el total: no es un corte clínico, es
+         aritmética, así que va sin cita. */
+      const frOk = Number.isFinite(vsv) && vsv > 0 && Number.isFinite(frNum) && frNum <= 100 && !_volRDud;
       const fr = frOk ? frNum.toFixed(0) : null;
-      document.getElementById('ia-freg').textContent = frOk ? fr + '%' : '—';
-      if (volR < 30) { scores.leve++; params.push({p:'Vol-R',sev:'leve'}); }
-      else if (volR < 60) { scores.moderada++; params.push({p:'Vol-R',sev:'moderada'}); }
-      else { scores.severa++; params.push({p:'Vol-R',sev:'severa'}); }
+      /* Se DICE por qué no hay FR en vez de poner un guion mudo: un «—» sobre una fila que el
+         médico acaba de llenar se lee como «todavía falta un dato», que es lo contrario de lo que
+         pasa. Se distinguen las dos causas porque la conducta es distinta: una se arregla
+         cambiando la unidad y la otra revisando el VSV. */
+      _iaSet('ia-freg', frOk ? fr + '%'
+        : (Number.isFinite(frNum) && frNum > 100)
+          ? '—  (' + frNum.toFixed(0) + ' % imposible: una fracción regurgitante no puede exceder el 100 % — revisar Ø y VTI del TSVI)'
+          : _volRDud ? '—  (revisar la unidad de los insumos del PISA)' : '—');
+      if (!_volRDud) {
+        if (volR < 30) { scores.leve++; params.push({p:'Vol-R',sev:'leve'}); }
+        else if (volR < 60) { scores.moderada++; params.push({p:'Vol-R',sev:'moderada'}); }
+        else { scores.severa++; params.push({p:'Vol-R',sev:'severa'}); }
+      }
       if (frOk) {
         if (fr < 30) { scores.leve++; params.push({p:'FR',sev:'leve'}); }
         else if (fr < 50) { scores.moderada++; params.push({p:'FR',sev:'moderada'}); }
         else { scores.severa++; params.push({p:'FR',sev:'severa'}); }
       }
-    }
-  }
+    } else { _iaSet('ia-volr', '—'); _iaSet('ia-freg', '—'); }
+  } else { _iaSet('ia-eroa', '—'); _iaSet('ia-volr', '—'); _iaSet('ia-freg', '—'); }
 
-  if (params.length === 0) return;
+  /* ⚠️ EL AVISO DE FUERA DE BANDA SE PUBLICA ANTES DEL `return` TEMPRANO, y ése es el punto.
+     `params.length === 0` significa «nadie cuantificó esta válvula», y con las bandas puestas hay
+     un camino nuevo para llegar ahí: que TODO lo cargado esté fuera de rango. Si el aviso se
+     escribiera abajo, junto a la discordancia, ese caso saldría de la función en silencio —el
+     médico cargó cinco números y la app no dice nada—, que es exactamente la negación
+     tranquilizadora que esta tanda vino a cerrar. Se escribe acá, y el `return` queda después.
+     Es el único escritor de `ia-discordancia`, así que se compone la cadena entera de una vez y
+     no hace falta el `dataset` que la IM necesita por tener tres. */
+  const _dElIA = document.getElementById('ia-discordancia');
+  if (params.length === 0) { if (_dElIA) _dElIA.textContent = _aoFueraTxt(_iaFuera); return; }
   let sevBadge, gradoVal;
   /* ⚠️ UN SOLO PARÁMETRO EN SEVERA BASTA — la MISMA semántica que `calcIM_ESC` desde `8b143e6`,
      replicada acá tal cual. Antes no bastaba: un voto severo con CERO moderados no matcheaba
@@ -24164,7 +24634,14 @@ function calcIA_ESC() {
     if (typeof autoCompletarSevIA === 'function') autoCompletarSevIA(gradoVal);
   }
   const sevs = [...new Set(params.map(p=>p.sev))];
-  document.getElementById('ia-discordancia').textContent = sevs.length > 1 ? '⚠️ Discordancia: ' + params.map(p=>`${p.p}:${p.sev}`).join(', ') : '';
+  /* Los DOS avisos en el mismo nodo y los dos completos: el que está fuera de banda no aparece en
+     `params` —no votó—, así que la discordancia no lo nombra y sin esta línea su valor ilegible no
+     se declararía en ningún lado. Se dice CUÁL y CON QUÉ VALOR: un aviso genérico manda al médico
+     a revisar nueve campos y el que está mal es uno. Las unidades van en el texto porque el error
+     que la banda atrapa ES de unidad — «Ø TSVI 2 mm» se lee solo. */
+  const _discTxt = sevs.length > 1 ? '⚠️ Discordancia: ' + params.map(p=>`${p.p}:${p.sev}`).join(', ') : '';
+  const _fueraTxtIA = _aoFueraTxt(_iaFuera);
+  if (_dElIA) _dElIA.textContent = [_fueraTxtIA, _discTxt].filter(Boolean).join('  |  ');
 }
 
 /* ══ MORFOLOGÍA VALVULAR: ALGUNAS OPCIONES SON ETIOLOGÍAS, NO MORFOLOGÍAS ═══════════════════
@@ -24343,14 +24820,44 @@ function eaEscenario() {
        · `v('ava_cont')` devuelve 0 con un Ø TSVI tipeado 0,5, y `0 <= 1.0` es true: el informe
          firmado describía un escenario de bajo flujo con «(AVA 0.00 cm²)».
      Las bandas salen de `avaEsSevera` / `avaEsModerada`, que son la fuente única. */
-  const ava   = (typeof _avaNum === 'function') ? _avaNum(v('ava_cont')) : v('ava_cont');
+  /* ⚠️ Y AHORA TAMBIÉN POR BANDA DE PLAUSIBILIDAD, PORQUE ÉSTA ES LA DUEÑA DE LAS CUATRO
+     SUPERFICIES FIRMADAS. El filtro de positividad de abajo atrapa el 0 y el negativo; lo que NO
+     atrapaba era la unidad equivocada, que entra positiva y finita. `eaEscenario` es lo que leen
+     el informe narrativo, el EN SUMA, el PDF y la cápsula —`eaDatosTxt` imprime `M.ava`, `M.vmax`,
+     `M.gmed` y `M.di`— así que bandear `calcAo` y `calcEADetalle` sin bandear esto cierra la
+     pantalla y deja el PAPEL afirmando el número. Medido en el A/B: con el VTI aórtico tipeado en
+     metros, `dvi-val` ya decía «revisar la unidad» y el narrativo firmado seguía publicando
+     «DI 20.00» — exactamente el defecto que la mitral pagó con `avm_plan`.
+     Fuera de banda el valor vuelve `null`, o sea «no medido», y eso es lo correcto acá y no una
+     marca: el contrato declarado de `eaDatosTxt` es «sólo lo MEDIDO», y la alternativa —imprimir
+     «DI 20.00 (revisar)» en un informe firmado— publica el número igual. El aviso vive en las
+     pantallas de cálculo, que es donde el médico puede corregirlo; el papel no afirma. */
+  /* ⚠️ EL AVA SE DESCARTA POR SU PROPIA BANDA **Y** POR LA DE SUS TRES INSUMOS, y los dos
+     controles hacen falta. `ava_cont [0.1,8]` atrapa el AVA fabricado cuando el error lo saca de
+     rango (Ø TSVI en cm → 0,01), pero la banda acota cada FACTOR por separado y no su PRODUCTO:
+     con el Ø TSVI en cm (2) y el VTI aórtico en metros (1) los dos errores se compensan y el AVA
+     cae en 0,63 cm² —dentro de banda, y falso—. Medido en el A/B: el narrativo firmado publicaba
+     «estenosis severa (AVA 0.63 cm²)» con las dos unidades equivocadas. Es el mismo agujero que
+     la cota del 100 % cierra para la fracción regurgitante de la IAo, y acá no hay un invariante
+     aritmético equivalente: lo único que lo cierra es mirar de qué insumos salió. */
+  const _pAva = (typeof aoPlaus === 'function') ? aoPlaus('ava_cont') : { crudo:v('ava_cont'), fuera:false };
+  const _avaInsumoFuera = aoPlaus('diam_tsvi').fuera || aoPlaus('itv_tsvi').fuera || aoPlaus('itv_ao').fuera;
+  const ava   = (_pAva.fuera || _avaInsumoFuera) ? null
+              : ((typeof _avaNum === 'function') ? _avaNum(v('ava_cont')) : v('ava_cont'));
   /* Mismo criterio para el gradiente y la velocidad: un 0 no es una medición, es un campo mal
      llenado, y tomarlo por «medido y no severo» habilitaba la rama de bajo gradiente. */
   const _pos  = x => (x !== null && isFinite(x) && x > 0) ? x : null;
-  const vmax  = _pos(v('vmax_ao')), gmed = _pos(v('gmedio_ao'));
+  const _pvM  = aoPlaus('vmax_ao'), _pgM = aoPlaus('gmedio_ao');
+  const vmax  = _pvM.fuera ? null : _pos(v('vmax_ao'));
+  const gmed  = _pgM.fuera ? null : _pos(v('gmedio_ao'));
   const bsa   = getBSA();
   const avai  = (ava !== null && bsa) ? ava / bsa : null;
-  const itsvi = v('itv_tsvi'), itvao = v('itv_ao');
+  /* El DVI se calcula ACÁ y no se lee de ninguna de las tres superficies que lo publican, así que
+     su banda tiene que estar ACÁ: los dos insumos, y el AVA hereda además la del Ø TSVI por venir
+     de `ava_cont`, que ya pasó por la suya arriba. */
+  const _piM  = aoPlaus('itv_tsvi'), _paM = aoPlaus('itv_ao');
+  const itsvi = _piM.fuera ? null : v('itv_tsvi');
+  const itvao = _paM.fuera ? null : v('itv_ao');
   const di    = (itsvi !== null && itvao !== null && itvao > 0) ? itsvi / itvao : null;
   const vli   = (typeof vliCalc === 'function') ? vliCalc() : null;
   const grado = sv('ea_grado') || '';
@@ -41752,10 +42259,42 @@ function _indEARecom(esc){
 function _indEA(){
   const UA = _indUmb('AVA_SEVERA_MAX'), UF = _indUmb('UMBRAL_FEVI_NORMAL');
   const esSev = _indFn('avaEsSevera'), esMod = _indFn('avaEsModerada');
-  const ava = _indN('ava_cont'), gm = _indN('gmedio_ao'), vmax = _indN('vmax_ao'), fevi = _indN('fevi');
+  /* ⚠️ LOS CUATRO PASAN POR `_indLeer`, QUE ES LA PUERTA CON BANDA, y hasta el 2026-10-01 esta
+     sección era la ÚNICA de las cinco valvulares que leía con `_indN` crudo: `_indIM`, `_indIA` y
+     `_indEP` ya usaban `_indLeer`. El costo de la divergencia no era de estilo — este panel
+     publica INDICACIONES QUIRÚRGICAS, y las tres mediciones de arriba son sus disparadores. Con un
+     Ø TSVI tipeado en centímetros el AVA sale 0,01 cm², `_le(ava, 1.0)` da true y la sección abría
+     con «SAVR recomendado — Clase I · Nivel B» sostenida por un número que no existe; con el VTI
+     aórtico en metros sale 62,83 cm² y la tarjeta publicaba «no alcanza el criterio de severidad»
+     sobre una Vmax de 4,5 m/s, que es la mitad tranquilizadora del mismo agujero.
+     Las bandas NO son nuevas: son las que la app ya declara para estos cuatro campos
+     (`ava_cont [0.1,8]` de `LAB_XLS_RANGO_PROPIO`; `gmedio_ao [1,150]`, `vmax_ao [0.5,8]` y `fevi`
+     de `DCM_RANGO`). Lo único que faltaba era consultarlas. */
+  const avaL = _indLeer('ava_cont', 'ava_cont'), gmL = _indLeer('gmedio_ao', 'gmedio_ao');
+  const vmaxL = _indLeer('vmax_ao', 'vmax_ao'), feviL = _indLeer('fevi', 'fevi');
+  const ava = avaL.val, gm = gmL.val, vmax = vmaxL.val, fevi = feviL.val;
   const avaSev = !!(esSev && ava != null && esSev(ava));
   const avaMod = !!(esMod && ava != null && esMod(ava));
-  if (!(_indS('ea_grado') === 'severa' || _ge(vmax, 4) || _ge(gm, 40) || _le(ava, UA))) return null;
+  /* ⚠️ UN INSUMO FUERA DE BANDA ABRE LA SECCIÓN, NO LA CIERRA. Con `_indLeer` los tres valores
+     vuelven en `null` fuera de banda, así que los tres disparadores del gate dan `false` y la
+     tarjeta DESAPARECERÍA — sin una palabra, sobre un estudio donde el médico acaba de cargar una
+     Vmax de 4,5. Eso es fail-closed en el veredicto y fail-silent en el aviso, y acá se necesitan
+     los dos: no publicar conducta Y decir por qué. Es la misma forma que la rama protésica de
+     abajo usa para el caso análogo. */
+  const _eaFueraLista = [
+    vmaxL.fuera ? 'Vmax aórtica ' + _indNum(vmaxL.crudo, 2) + ' m/s' : null,
+    gmL.fuera   ? 'gradiente medio ' + _indNum(gmL.crudo, 0) + ' mmHg' : null,
+    avaL.fuera  ? 'AVA por continuidad ' + _indNum(avaL.crudo, 2) + ' cm²' : null,
+    feviL.fuera ? 'FEVI ' + _indNum(feviL.crudo, 0) + ' %' : null
+  ].filter(Boolean);
+  const _eaInsumoFuera = vmaxL.fuera || gmL.fuera || avaL.fuera;
+  if (!(_indS('ea_grado') === 'severa' || _ge(vmax, 4) || _ge(gm, 40) || _le(ava, UA) || _eaInsumoFuera)) return null;
+  /* La nota que cada fila imprime cuando SU valor es ilegible. Palabra por palabra la misma que
+     `_indIA` ya usa en sus tres filas con banda: «un valor ilegible no sostiene ni descarta el
+     criterio» es la frase que impide leer el guion como un «no». */
+  const _eaNotaFuera = (L, dec, uni) => 'el valor cargado (' + _indNum(L.crudo, dec) +
+    ') está fuera de rango medible (' + L.b[0] + '–' + L.b[1] + ' ' + uni +
+    ') — revisar la unidad: un valor ilegible no sostiene ni descarta el criterio';
 
   /* ⚠️ CON PRÓTESIS ESTA SECCIÓN NO PUBLICA CONDUCTA, Y ES UN ADELANTO DE LA FASE 3.
      Sus filas son la cascada de la ESC/EACTS 2025 para estenosis aórtica de válvula NATIVA —SAVR
@@ -41781,6 +42320,7 @@ function _indEA(){
 
   const filas = [];
   filas.push(UA == null ? _indSinUmbral('AVA por continuidad')
+    : avaL.fuera ? _indFila('AVA por continuidad', '—', 'ask', _eaNotaFuera(avaL, 2, 'cm²'))
     : _indFila('AVA por continuidad', _indNum(ava, 2, 'cm²'),
         avaSev ? 'ok' : (avaMod ? 'warn' : (ava != null ? 'none' : 'ask')),
         /* ⚠️ «≤» Y NO «menor que»: el predicado es `avaEsSevera`, que desde el 2026-09-25 incluye el
@@ -41796,11 +42336,13 @@ function _indEA(){
      gradiente» dentro de esta misma tarjeta. Sin la constante se dice, no se supone un número. */
   const EC = (typeof window.EA_CRIT === 'object' && window.EA_CRIT) ? window.EA_CRIT : null;
   filas.push(!EC ? _indSinUmbral('Gradiente medio')
+    : gmL.fuera ? _indFila('Gradiente medio', '—', 'ask', _eaNotaFuera(gmL, 0, 'mmHg'))
     : _indFila('Gradiente medio', _indNum(gm, 0, 'mmHg'),
       _ge(gm, EC.gmed) ? 'ok' : (gm != null ? 'none' : 'ask'),
       _ge(gm, EC.gmed) ? '≥ ' + EC.gmed + ' mmHg — criterio de estenosis severa'
       : (gm != null ? 'no alcanza ' + EC.gmed + ' mmHg' : 'sin medir')));
   filas.push(!EC ? _indSinUmbral('Vmax aórtica')
+    : vmaxL.fuera ? _indFila('Vmax aórtica', '—', 'ask', _eaNotaFuera(vmaxL, 2, 'm/s'))
     : _indFila('Vmax aórtica', _indNum(vmax, 2, 'm/s'),
       _ge(vmax, EC.vmax) ? 'ok' : (vmax != null ? 'none' : 'ask'),
       _ge(vmax, EC.vmax) ? '≥ ' + _indNum(EC.vmax, 1) + ' m/s — criterio de estenosis severa'
@@ -41809,6 +42351,7 @@ function _indEA(){
      no puede llevar ✅: con la leyenda nueva eso significaría «alcanza un criterio de la guía».
      Está acá porque una FEVI baja cambia cómo se leen los otros tres números. */
   filas.push(UF == null ? _indSinUmbral('FEVI')
+    : feviL.fuera ? _indFila('FEVI', '—', 'ask', _eaNotaFuera(feviL, 0, '%'))
     : _indFila('FEVI', _indNum(fevi, 0, '%'),
         _gt(fevi, UF) ? 'none' : (fevi != null ? 'warn' : 'ask'),
         _gt(fevi, UF) ? 'conservada (> ' + UF + ' %) — no es criterio de la indicación'
@@ -41869,7 +42412,23 @@ function _indEA(){
 
   return { filas: filas,
     clinica: clinica,
-    recom: _indEARecom(esc),
+    /* ⚠️ CON UN INSUMO FUERA DE BANDA NO SE PUBLICA CONDUCTA, Y LAS FILAS SE QUEDAN. Las cuatro
+       mediciones de arriba ya dicen cada una lo suyo; lo que no puede salir es la RECOMENDACIÓN,
+       porque `_indEARecom` la deriva de `eaEscenario`, que lee `ava_cont`, `vmax_ao`, `gmedio_ao`
+       y los dos VTI con su propio filtro de positividad y SIN banda —así que un AVA de 0,01 cm²
+       le entra como «severa de alto gradiente» y sale «SAVR recomendado — Clase I · Nivel B»—.
+       Misma dirección y mismo formato que la rama protésica y que `_indEAModalidad` cuando le
+       falta la edad: se declara y no se recomienda nada. */
+    recom: _eaInsumoFuera
+      ? { tipo:'no', tit:'Medición fuera de rango: no se publica conducta',
+          txt:'No se aplica ninguna recomendación de la ESC/EACTS 2025 porque al menos uno de los ' +
+            'números que las disparan está fuera del rango que el método puede medir: ' +
+            _eaFueraLista.join(' · ') + '. Un valor ilegible no sostiene ni descarta un criterio ' +
+            'quirúrgico, así que no se gradúa la estenosis ni se elige modalidad.',
+          nota:'Las bandas de plausibilidad son las que la aplicación ya declara para estos campos y ' +
+            'atrapan el error de un orden de magnitud —la unidad equivocada—, no lo clínicamente raro. ' +
+            'Verificar la unidad de la medición y volver a cargarla.' }
+      : _indEARecom(esc),
     guia: { ref:'esc2025vc',
       txt:'Intervención Clase I · Nivel B en el paciente sintomático con estenosis aórtica severa de alto gradiente: gradiente medio ≥ 40 mmHg, Vmax ≥ 4,0 m/s y AVA ≤ 1,0 cm² o ≤ 0,6 cm²/m².',
       nota:'La definición de severidad no cambió respecto de la edición 2021.' },
@@ -87995,8 +88554,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261001-2049';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790898543425;                 /* eco-build-ms */
+const ECO_BUILD    = '20261001-2211';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790903499838;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -88082,7 +88641,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261001-2049</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261001-2211</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
