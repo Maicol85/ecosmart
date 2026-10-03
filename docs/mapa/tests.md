@@ -203,12 +203,50 @@ python3 scripts/sellar_version.py             # ANTES de cada git add
 
 ---
 
+## Los dos juegos de helpers de válvulas, y por qué son dos
+
+Desde el 2026-10-03 hay **dos** preámbulos para los casos de válvulas, y elegir mal el juego hace
+que el caso mida otra cosa:
+
+| Juego | Cómo fija la pastilla | Para qué sirve |
+|---|---|---|
+| `SINGRADO_HELPERS` (`_P`, `_G`, `_M`, `_escena`) | escribe la **clase** del botón y el `display` a mano; el grado por `.value` **sin** disparar `change` | «dado este ESTADO, qué dice el informe». Aísla el emisor de la UI |
+| `APAGA_HELPERS` (`aOn`, `aVis`, `aAlto`, `aDen`, `aReset`, `aFoto`) | llama a `toggleValvPill`, a `valvSev.aplicar` y al `set` del desplegable | «quién MUEVE el botón». Es el único que puede medir una regla de gesto |
+
+`SINGRADO_HELPERS` **no puede** medir la tanda de «Sin apaga el botón»: al escribir la clase
+directamente se saltea la regla que se quiere probar. Al revés, `APAGA_HELPERS` no sirve para
+pinear una frase sobre un estado imposible de alcanzar por la UI.
+
+**`aDen()` es obligatorio en todo caso que mida geometría o visibilidad.** La pestaña Válvulas
+arranca oculta y cada válvula vive en un acordeón propio `#ete-seccion-valv-<valv>` que gobierna
+**`toggleEteSeccion`** (recibe el token sin el prefijo `ete-seccion-`) y **no** `secToggle`, que
+construye `'sacc-' + id` y no resuelve. Y `limpiarCampos` saca la pestaña, así que el denominador
+**se repone después de cada reset**, no una vez al principio. Armarlo mal cuesta corridas enteras:
+la sonda de esta tanda midió «el bloque no se ve» en las 26 escenas tres veces seguidas, sobre la
+app cerrada.
+
+---
+
 ## Arneses de A/B y de mutación
 
-**No hay arnés de mutación versionado en `scripts/` al 2026-10-01; el procedimiento es manual
-(copia del archivo, mutar la copia, md5 antes y después).** Lo mismo para el A/B contra HEAD: no
-hay script versionado. `git ls-files` lista exactamente cuatro archivos bajo `scripts/`, y ninguno
-muta ni compara.
+**Desde el 2026-10-03 sí hay arneses versionados**, los de la tanda de «Sin apaga el botón», con el
+prefijo `_` porque son temporales y no infraestructura:
+
+- **`scripts/_mut_sinapaga.py`** — arnés de mutación con las reglas del procedimiento
+  **implementadas y no comentadas**: md5 del vivo contra su snapshot **antes** de aplicar y aborto
+  si no coinciden; md5 antes, después y tras revertir; `RESULTADO` exigido en la salida antes de
+  puntuar (sin eso el veredicto es `NO CORRIÓ`, no «sobrevivió»); y cada mutación declara **qué caso
+  le corresponde** y corre sólo ése. `python3 scripts/_mut_sinapaga.py M3` corre una sola.
+- **`scripts/_probe_sinapaga.mjs`** — sonda de 35 escenas que entra por el **gesto** (no por el
+  estado): `valvSev.aplicar`, `toggleValvPill` y el `set` del desplegable. Trae `culpable(id)`, que
+  devuelve **qué ancestro** oculta un nodo en vez de un booleano — es lo que destapó que el
+  denominador estaba mal tres corridas seguidas.
+- **`scripts/_probe_singrado.mjs`** — la sonda de la tanda anterior, 47 escenas con PDF real
+  (interceptando `doc.text`) y fila de Excel por `_labExcelRow`. Es la que sirve para el **A/B
+  contra HEAD**: se guarda el `index.html` nuevo, se hace `git show <ref>:index.html > index.html`,
+  se corre, se restaura y **se verifica el md5**.
+
+El procedimiento manual sigue valiendo para lo que esos dos no cubren.
 
 Lo que sí existe son los **artefactos de corridas pasadas en `/tmp`** (`mut*.py`, `mut*.sh`,
 `mut*.mjs`, `ab_*.json`, `ab_*.txt`, `/tmp/index.orig.html`). Son de un solo uso, no están

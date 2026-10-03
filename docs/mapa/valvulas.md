@@ -219,6 +219,58 @@ publica con sufijo «(sin PmAD)» — lee: `ip_vmax`, `ip_vtd`, `pmad`; escribe:
 
 ## Compartido
 
+### «Sin» apaga el botón, y quién decide que el bloque de grado se vea (2026-10-03)
+
+El invariante: **botón prendido = «hay valvulopatía»**. Antes el botón significaba «el cajón está
+abierto», que es estado de interfaz, y por eso podía contradecir al grado.
+
+`SEV_TOKEN_SIN` — `{esten:'sin', insuf:'0'}`, dueño único del token de «no hay». `sevEsSin(tipo,
+valor)` lo consulta; lo usan el menú ▼, los tres `onchange` y la regla de visibilidad.
+
+`SEV_SIN_APAGA_VALVS` — `['aortica','mitral']`. La costura por válvula: la tricúspide y la pulmonar
+quedan fuera por orden expresa. Tiene que coincidir con `SIN_EN_MENU` dentro de `valvSev`.
+
+`sevSinApagaPastilla(tipo, valv, valor)` — apaga la pastilla si el valor es «Sin». **Idempotente**:
+«apagá si está prendida», porque `valvSev.aplicar` despacha un `change` que ya corrió el `onchange`
+del desplegable y las dos puertas piden lo mismo en el mismo gesto. Escrito como «alterná», el botón
+volvía a encenderse.
+
+`sevSinApagaDesdeSelect(selectId)` — la misma regla entrando por el `onchange` de un desplegable;
+deriva `tipo`/`valv` del registro por `C.select`. Llamadores: `_gradoManoBorraMarca` (las dos
+aórticas), `emGradoManual`, `imGradoManual`. **No enciende `esqSevManual`** en la aórtica: «Aórtica
+3b» intacta.
+
+`sevBloqueGradoDe(tipo, valv)` — el nodo del grado final: `gf-insuf-<valv>` o
+`bloque-esten-<valv>`. ⚠️ Son **hermanos** de la cuantificación, no padres: ésta vive en
+`bloque-insuf-<valv>` y en `bloque-<em|ea>-detalle`, y sigue colgando sólo del botón.
+
+`valvGradoVisSync(tipo, valv)` — **dueño único de la visibilidad** del bloque de grado:
+`abierta || discrepa || hayGrado`. La tercera mitad existe para que no haya un grado publicado en
+el informe con su bloque invisible. Llamado desde las dos ramas de `toggleValvPill` —**dentro** de
+cada rama, donde estaba la escritura que reemplaza— y desde el final de `sevSincronizar`.
+⚠️ **El orden importa**: `sincronizarEMDesdeGlobal` corre tres líneas después de abrir la pastilla,
+así que con la llamada movida al final los espejos de EM quedaban vacíos (TC-301, TC-390).
+⚠️ Sin clave registrada, `hayGrado` es `false` a propósito: negarlo dejaba el bloque de la
+tricúspide visible para siempre.
+
+### El escalón aórtico «botón abierto y sin grado» — cinco compuertas
+
+`EA_ESCALON_SIN_GRADO = true` desde el 2026-10-03. `_eaSinGrado` / `_iaSinGrado` exigen:
+
+1. `!eaDesc` / `!(iaG > 0)` — no hay grado;
+2. `!esclerosis` (sólo la estenosis) — la esclerosis ya tiene su propio token;
+3. `!_eaManualS` / `!_iaManualS` — sin marca manual. Hoy es la segunda compuerta, para los grados
+   que llegan marcados **sin** botón (un estudio importado);
+4. `!_aoBloqueado(clave)` — con **insumo fuera de banda** la app no afirma. Es lo que distingue «no
+   se puede medir» de «no se contestó»: con el formulario vacío `bloqueado()` es `false` y el
+   escalón sí dispara. Falla cerrada;
+5. `!_aoEsProt` (sólo la insuficiencia) — con **prótesis** calla, porque la frase protésica tiene
+   otra forma y el token quedaba colgado. Se pregunta por la **morfología**, no por `_eaProtN`.
+
+Y `sevSincronizar` apaga el botón **dentro de la rama de R6** cuando el cálculo soltado es «sin» —
+no en el cuerpo de la función, porque eso apagaría el botón del estado 2 y el escalón no dispararía
+nunca.
+
 `_plausDe(id, x)` — dueño único de la plausibilidad → `{val, fuera, sinBanda, crudo, b?}`. ⚠️ **La banda
 se aplica sobre un valor, no sobre un campo**: el Excel corre sin DOM y con `vPlaus(id)` bandearía la
 fila contra el paciente en pantalla.

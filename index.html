@@ -30071,8 +30071,32 @@ function generarInforme(opts) {
     };
     const _eaSinGrado = EA_ESCALON_SIN_GRADO && !eaDesc && !esclerosis && !_eaManualS &&
       _pillA('esten') && !_aoBloqueado('ea');
+    /* ⚠️ QUINTA COMPUERTA, Y SÓLO PARA LA INSUFICIENCIA: CON PRÓTESIS EL ESCALÓN CALLA. Lo destapó
+       el A/B de las 47 escenas contra `42a1f0e` —escena H11-prot-ia—, no la lectura. La frase
+       protésica tiene OTRA FORMA: la rama de `_eaProtN` compone
+       `Válvula aórtica <morf>, <veredicto protésico><, insuficiencia …>`, sin el «con» que en la
+       nativa carga el token. Con el escalón encendido el informe FIRMADO salía:
+         «Válvula aórtica con prótesis biológica, sin datos suficientes para graduar la estenosis
+          protésica, insuficiencia.»
+       o sea un sustantivo colgado donde la nativa dice «con insuficiencia». La decisión de Maicol
+       fija el texto del estado 2 como «con insuficiencia»; esa forma no entra en esta oración, y
+       escribir una variante nueva sería inventar una frase de informe firmado — que es decisión de
+       Maicol, no mía. Así que la prótesis queda EXACTAMENTE como en `42a1f0e` y el hueco se
+       reporta: una prótesis aórtica con la pastilla de insuficiencia abierta y sin grado sigue sin
+       afirmar nada. La regurgitación protésica se sigue GRADUANDO como siempre (ASE 2024, Tabla 8,
+       remite a los cortes nativos): lo único que no corre es el escalón sin grado.
+       ⚠️ SE PREGUNTA POR LA MORFOLOGÍA, NO POR `_eaProtN`, y el archivo ya documenta por qué tres
+       bloques más abajo: atar el silencio a que `eaProtNarrativa` haya devuelto algo lo vuelve
+       dependiente de que esa función tenga datos. Falla CERRADA —ante excepción, prótesis— porque
+       la dirección segura es no afirmar la valvulopatía.
+       La mitad de ESTENOSIS no necesita esta compuerta: su `bloqueado()` ya devuelve `true` con
+       morfología protésica, así que `_aoBloqueado('ea')` la frena desde la cuarta. */
+    const _aoEsProt = (function(){
+      try { return (typeof valvEsProtesis === 'function') ? !!valvEsProtesis(vaMorf) : true; }
+      catch (e) { return true; }
+    })();
     const _iaSinGrado = EA_ESCALON_SIN_GRADO && !(iaG > 0) && !_iaManualS &&
-      _pillA('insuf') && !_aoBloqueado('ia');
+      _pillA('insuf') && !_aoBloqueado('ia') && !_aoEsProt;
     const estEBase = eaDesc ? `estenosis ${eaDesc}` : (_eaSinGrado ? 'estenosis' : null);
     const estCBase = eaDesc ? `EAo ${eaDesc}` : (_eaSinGrado ? 'estenosis' : null);
     /* La nota del fundamento de la IAo va pegada al grado: «insuficiencia severa (jet excéntrico,
@@ -91266,8 +91290,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261003-1332';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791045147354;                 /* eco-build-ms */
+const ECO_BUILD    = '20261003-1412';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791047561434;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -91353,7 +91377,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261003-1332</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261003-1412</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

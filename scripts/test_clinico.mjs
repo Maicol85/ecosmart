@@ -48256,6 +48256,516 @@ caso('TC-401', 'El fundamento de la aortica llega al EN SUMA con sus frases cort
   ] };
 `);
 
+/* ══ TC-402 … TC-407 — «Sin apaga el boton» (2026-10-03, decision de Maicol) ═══════════════════
+   ⚠️ ESTOS CASOS ENTRAN POR EL GESTO, NO POR EL ESTADO, y es la diferencia que los hace servir.
+   SINGRADO_HELPERS fija la pastilla escribiendo su CLASE (_P), que es lo correcto para medir «dado
+   este estado, que dice el informe» — y es justamente lo que NO puede medir esta tanda, donde la
+   pregunta es QUIEN mueve el boton. Por eso estos helpers llaman a toggleValvPill, a
+   valvSev.aplicar y al set del desplegable: los tres gestos reales.
+   El denominador tambien es distinto: la pestania Valvulas arranca oculta y cada valvula vive en
+   un acordeon propio que gobierna toggleEteSeccion (NO secToggle, que construye otro id). Sin eso
+   toda medicion de visibilidad da «no se ve» sobre la app cerrada — costo tres corridas de la sonda
+   antes de detectarlo. */
+const APAGA_HELPERS = `
+  /* Aplanado del EN SUMA para el diagnostico. Vive tambien en SINGRADO_HELPERS, y hay que
+     repetirlo porque los cuerpos de caso no comparten ambito: TC-406 nacio llamandolo sin tenerlo
+     y murio con «recorteJS is not defined» — ruidoso, por suerte, y no en verde. */
+  const recorteJS = function (s) { return !s ? '(vacio)' : String(s).replace(/\\n/g, ' | ').slice(0, 200); };
+  const aTxt = function (id) { const e = document.getElementById(id);
+    return e ? e.textContent.trim().replace(/\\s+/g, ' ') : 'NO ' + id; };
+  const aOn = function (valv, tipo) { return pillOn(valv, tipo) === true; };
+  /* Visible de VERDAD: se sube por los ancestros. Un hijo con display propio dentro de un padre
+     oculto no tiene geometria, y mirar solo su style miente. */
+  const aVis = function (id) { let n = document.getElementById(id); if (!n) return 'NO ' + id;
+    while (n && n.nodeType === 1) { if (getComputedStyle(n).display === 'none') return false; n = n.parentNode; }
+    return true; };
+  const aAlto = function (id) { const e = document.getElementById(id);
+    return e ? Math.round(e.getBoundingClientRect().height) : -1; };
+  const aDen = function () {
+    try { showTab('valvulas'); } catch (e) {}
+    ['valv-mitral','valv-aortica','valv-tricuspide','valv-pulmonar'].forEach(function (tok) {
+      const s = document.getElementById('ete-seccion-' + tok);
+      if (s && s.style.display === 'none') { try { toggleEteSeccion(tok); } catch (e) {} } });
+    const t = document.getElementById('tab-valvulas');
+    return (!!t && getComputedStyle(t).display !== 'none') &&
+      ['valv-mitral','valv-aortica','valv-tricuspide','valv-pulmonar'].every(function (tok) {
+        const s = document.getElementById('ete-seccion-' + tok);
+        return s && getComputedStyle(s).display !== 'none'; }); };
+  const aReset = function () {
+    __t.nuevoEstudio();
+    window.esqSevManual = {}; window._sevCalcAlFijar = {}; window._iaGradoCalc = null; window._imGradoCalc = null;
+    try { if (typeof _sevManualSync === 'function') _sevManualSync(); } catch (e) {}
+    ['aortica','mitral','tricuspide'].forEach(function (v) { ['esten','insuf'].forEach(function (t) {
+      try { localStorage.removeItem('valv-pill-' + t + '-' + v); } catch (e) {}
+      if (aOn(v, t)) toggleValvPill(v, t); }); });
+    __t.set('nombre', 'TCAPAGA');
+    return aDen(); };
+  /* La foto de UNA clave del registro, por su nombre, derivando los nodos del propio registro. */
+  const aFoto = function (clave) {
+    const C = window.SEV_SINC[clave];
+    const wrap = C.tipo === 'insuf' ? ('gf-insuf-' + C.valv) : ('bloque-esten-' + C.valv);
+    return { pill: aOn(C.valv, C.tipo), sel: String(__t.val(C.select) || ''),
+      oculto: C.tipo === 'insuf' ? String(__t.val(C.valv === 'aortica' ? 'ia_grado' : 'im_grado') || '') : null,
+      man: !!(window.esqSevManual && window.esqSevManual[clave]),
+      disc: sevDiscrepa(clave), aviso: aTxt(C.aviso),
+      bloq: aVis(wrap), alto: aAlto(wrap),
+      fund: C.fundamento ? aVis(C.fundamento) : null,
+      past: aTxt('sevbtn-' + C.tipo + '-' + C.valv) }; };
+`;
+
+/* TC-402 — El invariante entero, en las CUATRO claves y por los DOS gestos. Es el caso que
+   sostiene los puntos (a), (b) y (d) de la verificacion: «Sin» sin calculo apaga y no avisa;
+   «Sin» con calculo apaga y DEJA el bloque completo; y cerrar a mano conserva el grado. */
+caso('TC-402', '«Sin» APAGA el boton en las cuatro claves y por los dos gestos; con discrepancia el bloque completo sobrevive al boton apagado, y cerrar a mano no borra el grado', `
+  ${APAGA_HELPERS}
+  /* Mediciones que producen un calculado SEVERO en cada clave, para el lado «con calculo». */
+  const MED = { ea:[['vmax_ao','4.2'],['gmedio_ao','45']], ia:[['ia_vc','7']],
+                em:[['avm_plan','1.2']], im:[['im_vc','8']] };
+  const SIN = { ea:'sin', ia:'0', em:'sin', im:'0' };
+  const den = [], sinCalc = {}, conCalc = {}, porSelect = {}, negativo = {}, cerrado = {};
+  Object.keys(window.SEV_SINC || {}).forEach(function (k) {});
+  ['ea','ia','em','im'].forEach(function (k) {
+    const C = window.SEV_SINC[k];
+    /* (a) SIN calculo: se abre el boton a mano y se elige «Sin» en el menu ▼. */
+    den.push(aReset());
+    toggleValvPill(C.valv, C.tipo);
+    valvSev.aplicar(C.tipo, C.valv, SIN[k]);
+    sinCalc[k] = aFoto(k);
+    /* (b) CON calculo: el mismo gesto con un calculado severo detras. */
+    den.push(aReset());
+    MED[k].forEach(function (p) { __t.set(p[0], p[1]); });
+    toggleValvPill(C.valv, C.tipo);
+    valvSev.aplicar(C.tipo, C.valv, SIN[k]);
+    conCalc[k] = aFoto(k);
+    /* El OTRO gesto: «Sin» elegido en el desplegable de grado final, con su change real. */
+    den.push(aReset());
+    MED[k].forEach(function (p) { __t.set(p[0], p[1]); });
+    toggleValvPill(C.valv, C.tipo);
+    __t.set(C.select, SIN[k]);
+    porSelect[k] = aFoto(k);
+    /* CONTROL NEGATIVO: un grado REAL por el mismo menu NO apaga el boton. Sin esto el caso no
+       distingue «apaga con Sin» de «apaga siempre», que es decir que si a todo. */
+    den.push(aReset());
+    MED[k].forEach(function (p) { __t.set(p[0], p[1]); });
+    toggleValvPill(C.valv, C.tipo);
+    valvSev.aplicar(C.tipo, C.valv, C.tipo === 'esten' ? 'severa' : '4');
+    negativo[k] = aFoto(k);
+    /* (d) Cerrar el boton A MANO con un grado puesto NO borra el grado, y con discrepancia el
+       bloque completo queda a la vista. */
+    den.push(aReset());
+    MED[k].forEach(function (p) { __t.set(p[0], p[1]); });
+    toggleValvPill(C.valv, C.tipo);
+    valvSev.aplicar(C.tipo, C.valv, C.tipo === 'esten' ? 'leve' : '1');
+    toggleValvPill(C.valv, C.tipo);
+    cerrado[k] = aFoto(k);
+  });
+  const dg = function (o) { return ['ea','ia','em','im'].map(function (k) {
+    return k + '{pill=' + o[k].pill + ' sel=' + o[k].sel + ' man=' + o[k].man + ' disc=' + o[k].disc +
+      ' bloq=' + o[k].bloq + ' h=' + o[k].alto + ' fund=' + o[k].fund + '}'; }).join(' '); };
+  const todas = ['ea','ia','em','im'];
+  return { extra: [
+    ['DENOMINADOR: la pestania y las cuatro secciones estaban abiertas en las 20 escenas',
+      den.length === 20 && den.every(function (x) { return x === true; }),
+      den.length + ' escenas, falsos=' + den.filter(function (x) { return x !== true; }).length],
+    /* DENOMINADOR del lado «con calculo»: si el calculado no existiera, no habria discrepancia que
+       mostrar y las condiciones de bloque visible pasarian por el motivo equivocado. */
+    ['DENOMINADOR: las cuatro claves produjeron un grado calculado con sus mediciones',
+      todas.every(function (k) { return conCalc[k].disc === true; }), dg(conCalc)],
+
+    // (a) «Sin» SIN calculo: apaga, no avisa, y el bloque se oculta porque no hay nada que mostrar
+    ['(a) «Sin» por el menu SIN calculo apaga los cuatro botones',
+      todas.every(function (k) { return sinCalc[k].pill === false; }), dg(sinCalc)],
+    ['(a) y no muestra aviso ni cajon: no hay con que discrepar',
+      todas.every(function (k) { return sinCalc[k].aviso === '' && sinCalc[k].disc === false &&
+        sinCalc[k].fund === false && sinCalc[k].bloq === false; }), dg(sinCalc)],
+
+    // (b) «Sin» CON calculo: apaga igual, y el bloque COMPLETO queda a la vista
+    ['(b) «Sin» por el menu CON calculo apaga los cuatro botones igual',
+      todas.every(function (k) { return conCalc[k].pill === false; }), dg(conCalc)],
+    ['(b) y el bloque completo SOBREVIVE al boton apagado: visible, con alto, aviso y cajon',
+      todas.every(function (k) { return conCalc[k].bloq === true && conCalc[k].alto > 0 &&
+        conCalc[k].aviso.indexOf('ajuste manual') > -1 && conCalc[k].fund === true; }), dg(conCalc)],
+
+    // El otro gesto: el desplegable apaga tambien, y es lo que hace seguro al escalon aortico
+    ['«Sin» por el DESPLEGABLE apaga los cuatro botones',
+      todas.every(function (k) { return porSelect[k].pill === false; }), dg(porSelect)],
+    /* La asimetria DECLARADA: en la mitral el onchange marca, asi que hay discrepancia y el bloque
+       queda; en la aortica _gradoManoBorraMarca no marca —«Aortica 3b»— y el bloque se oculta.
+       Va como condicion para que un cambio futuro en cualquiera de las dos salga en rojo. */
+    ['la mitral marca por el desplegable y conserva su bloque; la aortica no marca y lo oculta',
+      porSelect.em.man === true && porSelect.im.man === true && porSelect.em.bloq === true &&
+      porSelect.ea.man === false && porSelect.ia.man === false && porSelect.ea.bloq === false,
+      dg(porSelect)],
+
+    // CONTROL NEGATIVO
+    ['CONTROL NEGATIVO: un grado REAL por el mismo menu NO apaga ninguno de los cuatro',
+      todas.every(function (k) { return negativo[k].pill === true; }), dg(negativo)],
+
+    // (d) cerrar a mano conserva el grado
+    ['(d) cerrar el boton a mano NO borra el grado ni la marca en las cuatro claves',
+      todas.every(function (k) { return negativo[k].man === true; }) &&
+      cerrado.ea.sel === 'leve' && cerrado.em.sel === 'leve' &&
+      cerrado.ia.sel === '1' && cerrado.im.sel === '1' &&
+      todas.every(function (k) { return cerrado[k].man === true; }), dg(cerrado)],
+    ['(d) y con la discrepancia viva el bloque sigue a la vista con el boton cerrado',
+      todas.every(function (k) { return cerrado[k].pill === false && cerrado[k].disc === true &&
+        cerrado[k].bloq === true && cerrado[k].alto > 0 && cerrado[k].fund === true; }), dg(cerrado)],
+  ] };
+`);
+
+/* TC-403 — Punto (f): la tarjeta pre-PDF deja el select y el oculto IGUALES. El defecto de la IM
+   lo cerro 5602597 y TC-393; el de la IAo quedo abierto y declarado, y se cierra el 2026-10-03.
+   Lo que firma el PDF y lo que va a las 434 columnas es el OCULTO; lo que leen el aviso rojo, el
+   cajon y la pastilla es el SELECT. Divergentes, la pantalla y el papel dicen cosas distintas. */
+caso('TC-403', '(f) La tarjeta pre-PDF deja select y oculto IGUALES en la IAo —no solo en la IM— y repinta la pastilla, el aviso y el cajon de la AORTICA', `
+  ${APAGA_HELPERS}
+  const tarjeta = function (control, valor) {
+    mostrarCardSeveridadValvular(function () {});
+    const ov = document.getElementById('pdf-review-overlay');
+    if (!ov) return 'no abrio la tarjeta';
+    const el = ov.querySelector('#' + control) || ov.querySelector('select[data-target="' + control + '"]');
+    if (!el) { ov.remove(); return 'no existe el control ' + control; }
+    const antes = el.value;
+    el.value = valor;
+    /* DENOMINADOR: un select rechaza en silencio un valor que no sea una de sus opciones y queda
+       vacio, asi que la escena mediria un formulario en blanco y pasaria en verde sobre nada. */
+    if (String(el.value) !== String(valor)) { ov.remove(); return 'el select rechazo ' + valor; }
+    ov.querySelector('#rev-confirm').click();
+    return { antes: antes, cerro: !document.getElementById('pdf-review-overlay') }; };
+
+  // IAo calculada severa (vena contracta 7 mm) y el medico la baja a «Moderada» en la tarjeta
+  const d1 = aReset(); __t.set('ia_vc','7'); toggleValvPill('aortica','insuf');
+  const t1 = tarjeta('rev-ia','2');
+  const ia = aFoto('ia');
+  // EAo calculada severa y el medico la baja a «Leve» en el clon de la tarjeta
+  const d2 = aReset(); __t.set('vmax_ao','4.2'); __t.set('gmedio_ao','45'); toggleValvPill('aortica','esten');
+  const t2 = tarjeta('ea_grado','leve');
+  const ea = aFoto('ea');
+  // CONTROL POSITIVO: la IM, que ya estaba arreglada. Si sale distinta, el harness miente.
+  const d3 = aReset(); __t.set('im_vc','8'); toggleValvPill('mitral','insuf');
+  const t3 = tarjeta('rev-im','2');
+  const im = aFoto('im');
+  const dgf = function (n, o) { return n + '{sel=' + o.sel + ' oculto=' + o.oculto + ' disc=' + o.disc +
+    ' past=' + o.past + ' aviso=' + (o.aviso || '(vacio)') + ' fund=' + o.fund + '}'; };
+  return { extra: [
+    ['DENOMINADOR: las tres escenas armaron su denominador y la tarjeta abrio y cerro',
+      d1 === true && d2 === true && d3 === true &&
+      typeof t1 === 'object' && t1.cerro === true && typeof t2 === 'object' && t2.cerro === true &&
+      typeof t3 === 'object' && t3.cerro === true,
+      'den=' + [d1,d2,d3].join('/') + ' t1=' + JSON.stringify(t1) + ' t2=' + JSON.stringify(t2) + ' t3=' + JSON.stringify(t3)],
+    /* DENOMINADOR del gesto: la tarjeta tenia que ofrecer «Severa», o sea el calculo llego. Sin
+       esto, corregir a «Moderada» sobre un formulario vacio no corrige nada. */
+    ['DENOMINADOR: la tarjeta ofrecia el grado calculado antes de corregirlo',
+      t1.antes === '4' && t2.antes === 'severa' && t3.antes === '4',
+      'ia=' + t1.antes + ' ea=' + t2.antes + ' im=' + t3.antes],
+
+    ['(f) IAo: el select visible y el oculto quedan IGUALES —en «2», el grado corregido—',
+      ia.sel === '2' && ia.oculto === '2', dgf('ia', ia)],
+    ['(f) IAo: y por eso la discrepancia se VE — aviso, cajon y pastilla repintados',
+      ia.disc === true && ia.aviso.indexOf('Moderada') > -1 && ia.aviso.indexOf('Severa') > -1 &&
+      ia.fund === true && ia.past.indexOf('Moderada') > -1, dgf('ia', ia)],
+    ['(f) EAo: la pastilla y el aviso se repintan, que es la otra mitad del mismo defecto',
+      ea.sel === 'leve' && ea.disc === true && ea.past.indexOf('Leve') > -1 &&
+      ea.aviso.indexOf('Leve') > -1 && ea.fund === true, dgf('ea', ea)],
+    ['CONTROL POSITIVO: la IM sale igual que siempre',
+      im.sel === '2' && im.oculto === '2' && im.disc === true && im.fund === true, dgf('im', im)],
+  ] };
+`);
+
+/* TC-404 — Punto (e): guardar y reabrir conserva grado, marca, aviso y cajon en la AORTICA.
+   La IM lo recibio por TC-391; la IAo no tenia recalcular y su proveedor lee una FOTO de proceso
+   (window._iaGradoCalc) que no se persiste. El daño es el peor de este modulo: sevFundamento
+   VACIA el cajon, asi que se pierde el motivo que acompania a un grado ya FIRMADO. */
+caso('TC-404', '(e) Guardar y reabrir conserva grado, marca, aviso y cajon de la AORTICA —IAo e EAo— que es lo que la foto de proceso de la IAo perdia', `
+  ${APAGA_HELPERS}
+  return (async () => {
+    const guardarReabrir = async function (prep, clave, nota) {
+      const den = aReset();
+      prep();
+      const antes = aFoto(clave);
+      if (nota) __t.set(nota[0], nota[1]);
+      const notaAntes = nota ? String(__t.val(nota[0]) || '') : '';
+      const g = await __t.guardar();
+      if (!g.ok || !g.estudioId) return { den: den, error: 'no guardo: ' + JSON.stringify(g) };
+      aReset();
+      await __t.reabrir(g.estudioId);
+      await new Promise(function (r) { setTimeout(r, 400); });
+      aDen();
+      const desp = aFoto(clave);
+      const notaDesp = nota ? String(__t.val(nota[0]) || '') : '';
+      await __t.borrar(g.estudioId);
+      return { den: den, antes: antes, desp: desp, notaAntes: notaAntes, notaDesp: notaDesp }; };
+
+    // IAo: calculado severa, el medico baja a «Leve» por el menu, y escribe el motivo
+    const ia = await guardarReabrir(function () {
+      __t.set('ia_vc','7'); toggleValvPill('aortica','insuf');
+      valvSev.aplicar('insuf','aortica','1'); }, 'ia', ['ia_fund_nota','jet excentrico']);
+    // EAo: proveedor PURO (lee ava_cont del DOM), o sea el control de que el harness distingue
+    const ea = await guardarReabrir(function () {
+      __t.set('vmax_ao','4.2'); __t.set('gmedio_ao','45'); toggleValvPill('aortica','esten');
+      valvSev.aplicar('esten','aortica','leve'); }, 'ea', ['ea_fund_nota','criterio clinico']);
+    // CONTROL POSITIVO: la IM, que ya lo tenia
+    const im = await guardarReabrir(function () {
+      __t.set('im_vc','8'); toggleValvPill('mitral','insuf');
+      valvSev.aplicar('insuf','mitral','1'); }, 'im', ['im_fund_nota','jet excentrico']);
+
+    const dgr = function (n, o) { return !o || o.error ? (n + ' ERROR ' + (o && o.error)) :
+      n + '{antes: sel=' + o.antes.sel + ' disc=' + o.antes.disc + ' fund=' + o.antes.fund +
+      ' | desp: sel=' + o.desp.sel + ' man=' + o.desp.man + ' disc=' + o.desp.disc +
+      ' aviso=' + (o.desp.aviso || '(vacio)') + ' fund=' + o.desp.fund + ' nota=' + o.notaDesp + '}'; };
+    return { extra: [
+      ['DENOMINADOR: las tres escenas guardaron, reabrieron y armaron su denominador',
+        ia.den === true && ea.den === true && im.den === true && !ia.error && !ea.error && !im.error,
+        dgr('ia', ia) + ' ' + dgr('ea', ea) + ' ' + dgr('im', im)],
+      /* DENOMINADOR que no se puede omitir: si el aviso y el cajon no estaban ANTES de guardar, que
+         falten despues de reabrir no prueba nada — es el caso del contenedor vacio. */
+      ['DENOMINADOR: antes de guardar, las tres tenian discrepancia, aviso y cajon',
+        [ia,ea,im].every(function (o) { return o.antes.disc === true && o.antes.fund === true &&
+          o.antes.aviso.indexOf('ajuste manual') > -1; }) &&
+        ia.notaAntes === 'jet excentrico' && ea.notaAntes === 'criterio clinico',
+        dgr('ia', ia) + ' ' + dgr('ea', ea)],
+
+      ['(e) IAo: al reabrir vuelven el grado, la marca, la discrepancia, el aviso y el cajon',
+        ia.desp.sel === '1' && ia.desp.man === true && ia.desp.disc === true &&
+        ia.desp.aviso.indexOf('ajuste manual') > -1 && ia.desp.fund === true, dgr('ia', ia)],
+      ['(e) IAo: y el motivo FIRMADO sigue en el cajon, que es lo que sevFundamento vaciaba',
+        ia.notaDesp === 'jet excentrico', dgr('ia', ia)],
+      ['(e) EAo: lo mismo, y su proveedor es puro —no necesita recalcular y no se le agrego—',
+        ea.desp.sel === 'leve' && ea.desp.man === true && ea.desp.disc === true &&
+        ea.desp.fund === true && ea.notaDesp === 'criterio clinico', dgr('ea', ea)],
+      ['CONTROL POSITIVO: la IM sale igual que en TC-391',
+        im.desp.sel === '1' && im.desp.man === true && im.desp.disc === true && im.desp.fund === true,
+        dgr('im', im)],
+    ] };
+  })();
+`);
+
+/* TC-405 — Punto (g): la TRICUSPIDE y la PULMONAR no se enteran de nada de esta tanda. La orden
+   las excluye explicitamente, y la costura se gatea por valvula en DOS lugares (el menu ▼ y la
+   regla de apagado). Un caso que lo mida es lo que impide que un «borremos la condicion» futuro
+   les cambie el comportamiento sin que nadie lo note. */
+caso('TC-405', '(g) Tricuspide y pulmonar SIN diferencias: su menu no ofrece «Sin», su boton no se apaga por regla, y su bloque sigue colgando solo del boton', `
+  ${APAGA_HELPERS}
+  const den = aReset();
+  /* El menu se arma al abrirlo: valvSev.menu puebla el contenedor con un boton por opcion. */
+  const opcionesDe = function (tipo, valv) {
+    valvSev.menu(tipo, valv, null);
+    const m = document.getElementById('sevmenu-' + tipo + '-' + valv);
+    const txt = m ? Array.from(m.querySelectorAll('button')).map(function (b) { return b.textContent.trim(); }) : ['NO MENU'];
+    try { document.body.click(); } catch (e) {}
+    return txt; };
+  const etOpc = opcionesDe('esten','tricuspide');
+  const itOpc = opcionesDe('insuf','tricuspide');
+  const eaOpc = opcionesDe('esten','aortica');
+  const emOpc = opcionesDe('esten','mitral');
+
+  /* El boton de la tricuspide: se abre, se pone el grado en «Sin estenosis» por su desplegable
+     —el camino que en la aortica y en la mitral apaga— y se mira si se apago. */
+  aReset();
+  toggleValvPill('tricuspide','esten');
+  const etAbierto = aOn('tricuspide','esten');
+  __t.set('et_grado','Sin estenosis');
+  const etTrasSin = { pill: aOn('tricuspide','esten'), grado: String(__t.val('et_grado') || ''),
+    bloq: aVis('bloque-esten-tricuspide') };
+  /* Y la regla de apagado, invocada A MANO sobre la tricuspide: tiene que devolver null, que es
+     «esta valvula no esta en el mecanismo». Es la condicion que se pone en rojo si alguien borra
+     la lista de valvulas en vez de agregarle una. */
+  const etRegla = sevSinApagaPastilla('esten','tricuspide','sin');
+  const itRegla = sevSinApagaPastilla('insuf','tricuspide','0');
+  /* La pulmonar no tiene pastilla: su visibilidad la gobierna vpSync por el grado. */
+  aReset();
+  __t.set('ep_grado','Leve');
+  const epDet = aVis('bloque-ep-detalle');
+  __t.set('ep_grado','sin');
+  const epDetSin = aVis('bloque-ep-detalle');
+  /* Y la tricuspide sigue colgando SOLO del boton: con el boton cerrado su bloque se oculta
+     aunque haya grado, porque no esta registrada y la mitad «hayGrado» no la alcanza. */
+  aReset();
+  toggleValvPill('tricuspide','esten');
+  __t.set('et_grado','Moderada');
+  const etConGrado = { pill: aOn('tricuspide','esten'), bloq: aVis('bloque-esten-tricuspide') };
+  toggleValvPill('tricuspide','esten');
+  const etCerrado = { pill: aOn('tricuspide','esten'), bloq: aVis('bloque-esten-tricuspide'),
+    grado: String(__t.val('et_grado') || '') };
+  return { extra: [
+    ['DENOMINADOR: la pestania y las cuatro secciones estaban abiertas', den === true, String(den)],
+    /* DENOMINADOR del menu: si los cuatro menus salieran vacios, «no ofrece Sin» pasaria en verde
+       sobre un contenedor sin botones. */
+    ['DENOMINADOR: los cuatro menus se poblaron con opciones',
+      [etOpc,itOpc,eaOpc,emOpc].every(function (o) { return o.length > 1 && o[0] !== 'NO MENU'; }),
+      'et=' + etOpc.join('/') + ' it=' + itOpc.join('/') + ' ea=' + eaOpc.join('/') + ' em=' + emOpc.join('/')],
+
+    ['(g) el menu de la TRICUSPIDE no ofrece «Sin», ni en estenosis ni en insuficiencia',
+      !etOpc.some(function (t) { return /^Sin/i.test(t); }) && !itOpc.some(function (t) { return /^Sin/i.test(t); }),
+      'et=' + etOpc.join('/') + ' it=' + itOpc.join('/')],
+    /* CONTROL POSITIVO del mismo menu: la aortica y la mitral SI lo ofrecen. Sin esto, un menu
+       roto que no ofreciera nada a nadie pasaria la condicion de arriba. */
+    ['CONTROL POSITIVO: la aortica y la mitral SI ofrecen «Sin» en el mismo menu',
+      eaOpc.some(function (t) { return /^Sin/i.test(t); }) && emOpc.some(function (t) { return /^Sin/i.test(t); }),
+      'ea=' + eaOpc.join('/') + ' em=' + emOpc.join('/')],
+
+    ['(g) «Sin estenosis» en el desplegable de la TRICUSPIDE no apaga su boton',
+      etAbierto === true && etTrasSin.pill === true && etTrasSin.grado === 'Sin estenosis',
+      JSON.stringify(etTrasSin) + ' abierto=' + etAbierto],
+    ['(g) y la regla de apagado se abstiene sobre la tricuspide: devuelve null en las dos mitades',
+      etRegla === null && itRegla === null,
+      'esten=' + JSON.stringify(etRegla) + ' insuf=' + JSON.stringify(itRegla)],
+    ['(g) el bloque de la tricuspide sigue colgando SOLO del boton: con grado y boton cerrado, oculto',
+      etConGrado.pill === true && etConGrado.bloq === true &&
+      etCerrado.pill === false && etCerrado.bloq === false,
+      'abierto=' + JSON.stringify(etConGrado) + ' cerrado=' + JSON.stringify(etCerrado)],
+    /* ⚠ DEFECTO CONOCIDO DE LA TRICUSPIDE, MEDIDO Y NO CORREGIDO — decision de Maicol del
+       2026-10-03, punto 5: «cerrar su cajon borra grado y marca (ya reportado). Medir y reportar,
+       no cambiar». toggleValvPill sigue llamando a valvSev.limpiar SOLO para la tricuspide, y eso
+       deja el select en selectedIndex 0, o sea «Sin estenosis».
+       La condicion afirma el comportamiento DEFECTUOSO a proposito: asi queda pineado y el dia que
+       alguien lo arregle este caso se pone en ROJO y tiene que actualizarlo deliberadamente, en vez
+       de que el arreglo entre sin que nadie lo note. Mi primera version de esta condicion esperaba
+       que el grado sobreviviera —como en la aortica y la mitral desde el 4b— y salio en rojo: la
+       expectativa estaba mal, la app no.
+       El sintoma clinico, para que no haya que re-derivarlo: una ET graduada «Moderada» que se
+       cierra y se reabre pasa a figurar como «Estenosis tricuspidea.» sin grado en el informe. */
+    ['(g) y cerrar el cajon de la tricuspide SIGUE borrandole el grado —defecto reportado, no corregido—',
+      etCerrado.grado === 'Sin estenosis',
+      'quedo «' + etCerrado.grado + '» (si esto dice Moderada, el defecto se corrigio: actualizar el caso)'],
+    ['(g) la PULMONAR sigue gobernada por su grado via vpSync, sin pastilla',
+      epDet === true && epDetSin === false, 'conGrado=' + epDet + ' sinGrado=' + epDetSin],
+  ] };
+`);
+
+/* TC-406 — Los dos caminos AUTOMATICOS que /sharp-edges encontro sobre el diff de esta tanda, y
+   que son las dos peores regresiones que el escalon encendido podia producir: ninguno es un gesto
+   del medico, los dos dejaban grado «sin» + sin marca + boton prendido, y el informe FIRMADO
+   afirmaba la valvulopatia. Los dos estan medidos en el commit que los cerro. */
+caso('TC-406', 'El escalon NO afirma por los caminos automaticos: R6 que suelta a «sin» apaga el boton, y con un insumo fuera de banda la app se abstiene', `
+  ${APAGA_HELPERS}
+  const frase = function () { generarInforme();
+    const t = (document.getElementById('informe_texto') || {}).value || '';
+    const m = t.match(/V[aá]lvula a[oó]rtica[^\\n]*/i);
+    return { inf: m ? m[0].trim() : '(sin frase ao)',
+             suma: (document.getElementById('en_suma') || {}).value || '' }; };
+
+  /* ── R6: el calculo CAMBIA y pasa a decir «sin» ──
+     Vmax 4,5 gradua «severa» sola · el medico baja a «Moderada» por el ▼ (marca + foto «severa»)
+     · se da cuenta de que la Vmax fue un tipeo y la corrige a 1,8. R6 suelta el manual y escribe
+     «sin» SIN despachar change, asi que ningun onchange se enteraba y el boton quedaba prendido. */
+  const d1 = aReset(); __t.set('vmax_ao','4.5');
+  toggleValvPill('aortica','esten');
+  valvSev.aplicar('esten','aortica','moderada');
+  const r6Antes = aFoto('ea');
+  __t.set('vmax_ao','1.8');
+  const r6 = aFoto('ea'); const r6Txt = frase();
+
+  /* CONTROL NEGATIVO: la misma correccion a un valor que SIGUE graduando. Ahi R6 tambien suelta,
+     pero escribe un grado REAL y la regla no aplica: el boton queda prendido y el informe gradua.
+     Sin esto el caso no distingue «apaga cuando el calculo dice que no hay» de «apaga siempre». */
+  const d2 = aReset(); __t.set('vmax_ao','4.5');
+  toggleValvPill('aortica','esten');
+  valvSev.aplicar('esten','aortica','moderada');
+  __t.set('vmax_ao','3.5');
+  const r6neg = aFoto('ea'); const r6negTxt = frase();
+
+  /* ── Insumo FUERA DE BANDA: el Ø TSVI tipeado en centimetros ──
+     El retiro escribe «sin» y sale por su guarda si hay marca, o sea que SIEMPRE deja grado «sin»
+     sin marca, con la pastilla como la dejo el medico. El badge dice «no gradua» y el informe
+     afirmaba «con estenosis»: las dos mitades del mismo calculo contradiciendose. */
+  const d3 = aReset(); __t.set('vmax_ao','4.5');
+  toggleValvPill('aortica','esten');
+  __t.set('diam_tsvi','2');
+  const ret = aFoto('ea'); const retTxt = frase();
+
+  /* CONTROL NEGATIVO del fuera de banda: el estado 2 LEGITIMO —formulario vacio, boton abierto—
+     donde bloqueado() es false y el escalon SI tiene que disparar. Es lo que distingue «no se
+     puede medir» de «no se contesto», y sin esta condicion la cuarta compuerta podria estar
+     apagando el escalon siempre y el caso pasaria igual. */
+  const d4 = aReset();
+  toggleValvPill('aortica','esten');
+  const e2 = aFoto('ea'); const e2Txt = frase();
+  return { extra: [
+    ['DENOMINADOR: las cuatro escenas armaron pestania y secciones',
+      d1 === true && d2 === true && d3 === true && d4 === true, [d1,d2,d3,d4].join('/')],
+    /* DENOMINADOR de R6: tiene que haber habido un grado manual con discrepancia ANTES de corregir
+       la Vmax, o «R6 solto» no describe nada. */
+    ['DENOMINADOR: antes de corregir la Vmax habia grado manual «moderada» con su marca',
+      r6Antes.sel === 'moderada' && r6Antes.man === true, JSON.stringify(r6Antes)],
+    ['DENOMINADOR: R6 solto el manual en las dos escenas —la marca ya no esta—',
+      r6.man === false && r6neg.man === false,
+      'sin=' + JSON.stringify(r6) + ' real=' + JSON.stringify(r6neg)],
+
+    ['R6 que suelta a «sin» APAGA el boton, y el informe no afirma la estenosis',
+      r6.sel === 'sin' && r6.pill === false &&
+      r6Txt.inf.indexOf('sin estenosis') > -1 && r6Txt.suma.indexOf('EAo') === -1,
+      JSON.stringify(r6) + ' // ' + r6Txt.inf + ' // ' + recorteJS(r6Txt.suma)],
+    ['CONTROL NEGATIVO: R6 que suelta a un grado REAL no apaga nada y el informe gradua',
+      r6neg.sel === 'moderada' && r6neg.pill === true &&
+      r6negTxt.suma.indexOf('EAo moderada.') > -1,
+      JSON.stringify(r6neg) + ' // ' + r6negTxt.inf + ' // ' + recorteJS(r6negTxt.suma)],
+
+    /* ⚠ ESTA CONDICION NACIO COMO TAUTOLOGIA («… ? true : true») y la habria pasado en verde sobre
+       cualquier cosa. Es el estado que el retiro deja: grado «sin», sin marca y el boton PRENDIDO
+       —el retiro no toca la pastilla a proposito—, que es justamente la combinacion que antes
+       disparaba el escalon. Lo que lo frena es la cuarta compuerta, no el boton. */
+    ['DENOMINADOR del fuera de banda: grado «sin», sin marca y el boton quedo PRENDIDO',
+      ret.sel === 'sin' && ret.man === false && ret.pill === true, JSON.stringify(ret)],
+    ['y el texto lo confirma: el informe niega y el EN SUMA calla, con el boton PRENDIDO',
+      retTxt.inf.indexOf('sin estenosis') > -1 && retTxt.suma.indexOf('EAo') === -1 && ret.pill === true,
+      JSON.stringify(ret) + ' // ' + retTxt.inf + ' // ' + recorteJS(retTxt.suma)],
+    ['CONTROL NEGATIVO: el estado 2 legitimo —formulario vacio— SI dispara el escalon',
+      e2.pill === true && e2.sel === 'sin' && e2.man === false &&
+      e2Txt.inf.indexOf('con estenosis') > -1 && e2Txt.suma.indexOf('EAo.') > -1,
+      JSON.stringify(e2) + ' // ' + e2Txt.inf + ' // ' + recorteJS(e2Txt.suma)],
+  ] };
+`);
+
+/* TC-407 — El gate de sincronizarEMDesdeGlobal. Su comentario declara que el style.display de
+   bloque-esten-mitral SIGNIFICA «la pastilla de EM esta encendida», y esta tanda rompio esa
+   equivalencia: valvGradoVisSync escribe «block» en ese nodo con la pastilla CERRADA cuando hay
+   discrepancia. El daño medido: los dos espejos de EM se llenaban dentro de bloque-em-detalle,
+   que esta oculto, y guardarInforme barre input[id] sin mirar visibilidad — o sea que viajaban
+   al Excel. Ahora el gate pregunta por pillOn, que es el dueño propio de esa pregunta. */
+caso('TC-407', 'El gate de los espejos de EM pregunta por el BOTON y no por un display que cambio de dueño: con la pastilla cerrada no se llenan, aunque el bloque este visible por discrepancia', `
+  ${APAGA_HELPERS}
+  const espejos = function () { return { dtsvi: String(__t.val('em_dtsvi') || ''),
+                                         vtitsvi: String(__t.val('em_vtitsvi') || '') }; };
+  /* Discrepancia viva: AVm 1,2 gradua severa y el medico baja a «leve» por el ▼. Despues cierra
+     el boton. El bloque de GRADO queda visible —es el punto de esta tanda— y el de CUANTIFICACION
+     tiene que seguir oculto, con los espejos sin llenarse. */
+  const d1 = aReset(); __t.set('avm_plan','1.2');
+  toggleValvPill('mitral','esten');
+  valvSev.aplicar('esten','mitral','leve');
+  toggleValvPill('mitral','esten');
+  const cerrado = aFoto('em');
+  const dispCrudo = (document.getElementById('bloque-esten-mitral') || { style:{} }).style.display;
+  const detalle = aVis('bloque-em-detalle');
+  __t.set('diam_tsvi','20'); __t.set('itv_tsvi','25');
+  const esp = espejos();
+
+  /* CONTROL POSITIVO: con la pastilla ABIERTA los espejos SI se llenan. Es el denominador del
+     mecanismo —si no se llenaran nunca, la condicion de arriba pasaria por el motivo equivocado—
+     y es lo que TC-301 y TC-390 miden desde el otro lado. */
+  const d2 = aReset(); __t.set('avm_plan','1.2');
+  toggleValvPill('mitral','esten');
+  __t.set('diam_tsvi','20'); __t.set('itv_tsvi','25');
+  const espAbierto = espejos();
+  return { extra: [
+    ['DENOMINADOR: las dos escenas armaron pestania y secciones', d1 === true && d2 === true, d1 + '/' + d2],
+    /* DENOMINADOR del escenario: tiene que haber discrepancia, porque es la unica razon por la que
+       el nodo queda en «block» con la pastilla cerrada. Sin discrepancia la escena no prueba nada. */
+    ['DENOMINADOR: la discrepancia estaba viva y el boton quedo cerrado',
+      cerrado.disc === true && cerrado.pill === false, JSON.stringify(cerrado)],
+    ['DENOMINADOR: y el nodo que el gate leia quedo en «block» con la pastilla apagada',
+      dispCrudo === 'block', 'display=' + dispCrudo],
+
+    ['el bloque de GRADO esta visible —el punto de esta tanda— y el de CUANTIFICACION oculto',
+      cerrado.bloq === true && cerrado.alto > 0 && detalle === false,
+      'grado=' + cerrado.bloq + ' alto=' + cerrado.alto + ' detalle=' + detalle],
+    ['con el boton CERRADO los espejos de EM NO se llenan, aunque el bloque se vea',
+      esp.dtsvi === '' && esp.vtitsvi === '', JSON.stringify(esp)],
+    ['CONTROL POSITIVO: con el boton ABIERTO los dos espejos SI se llenan',
+      espAbierto.dtsvi === '20' && espAbierto.vtitsvi === '25', JSON.stringify(espAbierto)],
+  ] };
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

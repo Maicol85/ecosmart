@@ -201,26 +201,37 @@ impecable.
 
 ## Estado vigente
 
-- `main` local en **`c808e69`**, con **nueve commits sin pushear** (`origin/main` en `2e017a1`).
-  El clasificador de permisos del entorno bloquea `git push`: lo corre Maicol, no hay que rehacer
-  nada.
-- Línea base medida el **2026-10-03 después de la tanda de «valvulopatía sin grado»**: suite
-  **414/415** (único rojo **TC-223**, el documentado, que falla por la fecha) **más un defecto
-  abierto, TC-397 (⊘)**, y Semgrep **127 / 0 ERROR**. Los casos **TC-398 … TC-401** son de esta
-  tanda. Los números viejos de este archivo —351/352, 402/403, 408/409, 410/411— quedaron atrás:
-  la suite crece en cada tanda, así que **antes de leer una tanda de mutaciones hay que volver a
-  medir la línea base**, no creerle a este renglón.
+- `main` local en el commit de cierre de la tanda «Sin apaga el botón», con **doce commits sin
+  pushear** (`origin/main` en `2e017a1`). El clasificador de permisos del entorno bloquea
+  `git push`: lo corre Maicol, no hay que rehacer nada.
+- Línea base medida el **2026-10-03 al cierre de la tanda «Sin apaga el botón»**: suite
+  **421/422** (único rojo **TC-223**, el documentado, que falla por la fecha), **sin ningún defecto
+  abierto** —TC-397 se promovió— y Semgrep **127 / 0 ERROR**. Los casos **TC-402 … TC-407** son de
+  esta tanda. Los números viejos de este archivo —351/352, 408/409, 414/415— quedaron atrás: la
+  suite crece en cada tanda, así que **antes de leer una tanda de mutaciones hay que volver a medir
+  la línea base**, no creerle a este renglón.
 - **Mitral: cerrada.** Etapas 3 y 4 (`5602597`, `57970a1`) más los cuatro estados de «valvulopatía
   consignada sin grado» (`c808e69`). Las ocho valvulopatías leves figuran en el EN SUMA y el
   fundamento de la aórtica manda sus frases cortas al resumen.
-- **⛔ LA AÓRTICA ESPERA UNA DECISIÓN DE MAICOL.** El escalón «botón abierto y sin grado» está
-  escrito y **apagado** en `EA_ESCALON_SIN_GRADO = false`, porque sus dos `<select>` de grado pasan
-  por `_gradoManoBorraMarca`, que **borra** `esqSevManual` en vez de encenderla (regla «Aórtica
-  3b»). Medido: con el escalón encendido, elegir «Sin estenosis» en el desplegable publicaba «con
-  estenosis» en el informe FIRMADO. El detalle y las dos salidas están en `CEIBO_SESSION.md` y en
-  `docs/PENDIENTES.md`. **TC-397 es el defecto abierto que lo registra.**
-- Arneses temporales de esa tanda, versionados por si se retoma: `scripts/_probe_singrado.mjs` y
-  `scripts/_mut_singrado.py`.
+- **✅ LA AÓRTICA ENTRÓ (`23eb4e2`, `e8b03c5`).** La decisión de Maicol no fue ninguna de las dos
+  salidas que `docs/PENDIENTES.md` ofrecía: el invariante es **«botón prendido = hay
+  valvulopatía»**, y elegir «Sin» **apaga el botón** por los dos gestos —el menú ▼ y el desplegable
+  de grado final—. Con eso el estado 3 llega al emisor con la pastilla cerrada,
+  `EA_ESCALON_SIN_GRADO` pasó a `true` **sin tocar la regla de la marca** y «Aórtica 3b» quedó
+  intacta. `valvGradoVisSync` es el dueño único de la visibilidad del bloque de grado
+  (`abierta || discrepa || hayGrado`).
+- **El escalón aórtico tiene CINCO compuertas, no tres.** Las dos últimas las encontró
+  `/sharp-edges` sobre el propio diff, y las dos estaban produciendo un informe FIRMADO equivocado:
+  con un **insumo fuera de banda** publicaba «EAo.» mientras el badge decía «no gradúa», y con
+  **prótesis** metía un sustantivo colgado en la frase protésica. El censo está en
+  `docs/mapa/valvulas.md`.
+- Arneses temporales versionados: `scripts/_probe_sinapaga.mjs` (35 escenas por el **gesto**, más
+  la pasada de maquetación a 1200/756/300 px), `scripts/_mut_sinapaga.py` (**12/12 mutaciones
+  muertas**, con el aborto por md5 y la exigencia de `RESULTADO` implementados y no comentados), y
+  los dos de la tanda anterior, `scripts/_probe_singrado.mjs` y `scripts/_mut_singrado.py`.
+- **Dos huecos declarados de la aórtica**, medidos y NO corregidos porque son decisión de Maicol:
+  «Sin» en el desplegable **no es durable** —reabrir el botón corre `calcAo` y regrada a «severa»—
+  y con **prótesis** el escalón de insuficiencia calla. Están en `docs/PENDIENTES.md`.
 - **Qué sigue: `docs/PENDIENTES.md`.**
 
 ## Procedencia — dónde está el origen de cada regla

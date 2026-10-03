@@ -385,6 +385,14 @@ push({ id: 'H-EMGATE-neg', desc: 'CONTROL NEGATIVO: sin discrepancia y boton cer
        abrir: [['mitral','esten']], cerrar: [['mitral','esten']],
        luego: [['diam_tsvi','20'],['itv_tsvi','25']], fotos: ['em'], espejosEM: 1 });
 
+// ── H. Maquetacion del bloque a 1200, 756 y 300 px ──────────────────────────────────────────
+/* El bloque de grado final cambio de REGLA de visibilidad, no de maquetacion — pero desde esta
+   tanda aparece en un estado que antes no existia: visible con el boton APAGADO. Esa combinacion
+   nunca se midio, y es la que puede desbordar: el contenedor padre tiene el otro bloque cerrado,
+   asi que el ancho disponible no es el mismo que con la pastilla abierta.
+   Se mide con el override de metricas de CDP, que es lo unico que da geometria real. */
+const ANCHOS = [1200, 756, 300];
+
 // ── Main ────────────────────────────────────────────────────────────────────────────────────
 let servidor, chrome;
 try {
@@ -525,6 +533,55 @@ try {
     salida.escenas.push(r);
     process.stderr.write('  ' + e.id.padEnd(18) + (r.error ? 'ERROR ' + r.error : 'ok') + '\n');
   }
+  /* ── Pasada de maquetacion: el bloque VISIBLE con el boton APAGADO, a tres anchos ──────────
+     Es el estado nuevo de esta tanda y el unico que no se habia medido nunca. Se arma la
+     discrepancia en las cuatro claves, se cierra el boton, y se mide la caja de cada bloque y la
+     de su cajon de fundamento contra el ancho del viewport. */
+  salida.layout = [];
+  for (const w of ANCHOS) {
+    await cdp.send('Emulation.setDeviceMetricsOverride',
+      { width: w, height: 900, deviceScaleFactor: 1, mobile: w < 500 }, sessionId);
+    await new Promise(r => setTimeout(r, 250));
+    const med = await ev(`return (async () => {
+      const MED = { ea:[['vmax_ao','4.2'],['gmedio_ao','45']], ia:[['ia_vc','7']],
+                    em:[['avm_plan','1.2']], im:[['im_vc','8']] };
+      const GR  = { ea:'leve', ia:'1', em:'leve', im:'1' };
+      const out = { ancho: window.innerWidth, claves: {} };
+      for (const k of ['ea','ia','em','im']) {
+        const C = window.SEV_SINC[k];
+        window.__q.limpiar(); const den = window.__q.denominador();
+        window.__q.set('nombre','Layout');
+        MED[k].forEach(function(p){ window.__q.set(p[0], p[1]); });
+        if (window.__q.pill(C.valv, C.tipo) !== true) window.__q.clicPill(C.valv, C.tipo);
+        window.valvSev.aplicar(C.tipo, C.valv, GR[k]);
+        if (window.__q.pill(C.valv, C.tipo) === true) window.__q.clicPill(C.valv, C.tipo);
+        const wrap = C.tipo === 'insuf' ? ('gf-insuf-' + C.valv) : ('bloque-esten-' + C.valv);
+        const n = document.getElementById(wrap);
+        const r = n ? n.getBoundingClientRect() : null;
+        const f = C.fundamento ? document.getElementById(C.fundamento) : null;
+        const rf = (f && getComputedStyle(f).display !== 'none') ? f.getBoundingClientRect() : null;
+        const sel = document.getElementById(C.select);
+        const rs = sel ? sel.getBoundingClientRect() : null;
+        out.claves[k] = { den: den.tab && den.secciones === 4,
+          pill: window.__q.pill(C.valv, C.tipo), disc: window.sevDiscrepa(k),
+          vis: window.__q.vis(wrap),
+          caja: r ? { x: Math.round(r.left), w: Math.round(r.width), h: Math.round(r.height) } : null,
+          fund: rf ? { x: Math.round(rf.left), w: Math.round(rf.width), h: Math.round(rf.height) } : null,
+          select: rs ? { w: Math.round(rs.width), h: Math.round(rs.height) } : null,
+          /* Desborde: cualquier parte del bloque o del cajon fuera del viewport. */
+          desborda: !!(r && (r.left < -1 || r.right > window.innerWidth + 1)) ||
+                    !!(rf && (rf.left < -1 || rf.right > window.innerWidth + 1)) };
+      }
+      return out;
+    })();`);
+    salida.layout.push(med);
+    process.stderr.write('  layout ' + w + 'px — ' + Object.keys(med.claves).map(function(k){
+      const c = med.claves[k];
+      return k + (c.desborda ? ' DESBORDA' : ' ok') + '(' + (c.caja ? c.caja.w + 'x' + c.caja.h : '-') + ')';
+    }).join(' ') + '\n');
+  }
+  await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
+
   console.log(JSON.stringify(salida, null, 1));
   cdp.close();
 } catch (e) {
