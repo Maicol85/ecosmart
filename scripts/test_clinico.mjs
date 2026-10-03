@@ -47405,6 +47405,109 @@ caso('TC-393', 'La tarjeta pre-PDF ya no publica un grado de IM distinto del gra
   ] };
 `);
 
+caso('TC-394', 'Los CUATRO rotulos de grado final dicen lo mismo y prometen lo mismo: «<valvula> — grado final al informe», y la mitral ya no dice «confirmada» ni «lo elige el medico»', `
+  ${MIT_FUND_PRE}
+  mReset();
+  const sec = document.getElementById('ete-seccion-valv-aortica');
+  if (sec && sec.style.display === 'none') {
+    try { toggleEteSeccion('valv-aortica', document.querySelector('[onclick*="valv-aortica"]')); } catch (e) {}
+  }
+  ['insuf','esten'].forEach(function (t) { const b = document.getElementById('pill-' + t + '-aortica');
+    if (b && !b.classList.contains('btn-primary')) toggleValvPill('aortica', t); });
+
+  /* El rotulo de cada grado final: el «label» que gobierna al select, buscado desde el select y no
+     por un id —ninguno de los cuatro tiene id— ni por posicion en el documento. Se sube hasta el
+     contenedor que el CSS reconoce («.valv-gf-caja» o el «bloque-esten-*») y se toma su primer
+     «label» directo, que es exactamente el nodo que las cuatro reglas del CSS apuntan. */
+  const rotulo = function (selId) {
+    const s = document.getElementById(selId);
+    if (!s) return 'NO ' + selId;
+    let n = s.closest('.valv-gf-caja') || s.closest('[id^=bloque-esten-]');
+    if (!n) return 'sin contenedor';
+    const l = n.querySelector(':scope > label');
+    return l ? l.textContent.trim().replace(/\\s+/g, ' ') : 'sin label';
+  };
+  const R = { im: rotulo('im_sev_final'), em: rotulo('em_grado'),
+              ia: rotulo('ia_sev_final'), ea: rotulo('ea_grado') };
+  /* Y que el CSS los siga tratando igual a los cuatro: 11 px, negrita, color de acento. El rotulo
+     de la IM salio de «.valv-gf-caja > label» y el de la EM paso de «.fg > label» a «> label», asi
+     que si alguno quedo fuera de las cuatro reglas escritas UNA POR UNA, se ve aca. */
+  const estilo = function (selId) {
+    const s = document.getElementById(selId);
+    let n = s && (s.closest('.valv-gf-caja') || s.closest('[id^=bloque-esten-]'));
+    const l = n && n.querySelector(':scope > label');
+    if (!l) return 'sin label';
+    const c = getComputedStyle(l);
+    return c.fontSize + '/' + c.fontWeight + '/' + c.display;
+  };
+  const E = { im: estilo('im_sev_final'), em: estilo('em_grado'),
+              ia: estilo('ia_sev_final'), ea: estilo('ea_grado') };
+  /* Los dos select siguen arrancando en el MISMO pixel: sacarle el «✅» al rotulo de la IM cambia
+     la altura de su caja de linea, que es justo lo que el «line-height:15px» del CSS fijaba. */
+  const topes = (function () {
+    const a = document.getElementById('im_sev_final'), b = document.getElementById('em_grado');
+    if (!a || !b) return 'faltan selects';
+    return { im: Math.round(a.getBoundingClientRect().top), em: Math.round(b.getBoundingClientRect().top) };
+  })();
+
+  const dg = JSON.stringify(R) + ' · estilos=' + JSON.stringify(E) + ' · topes=' + JSON.stringify(topes);
+  return { extra: [
+    ['DENOMINADOR: los cuatro rotulos se encontraron desde su propio select',
+      Object.keys(R).every(function (k) { return !/^NO |^sin /.test(R[k]); }), dg],
+
+    ['la INSUFICIENCIA MITRAL dice «Insuficiencia mitral — grado final al informe»',
+      R.im === 'Insuficiencia mitral — grado final al informe', 'im=«' + R.im + '»'],
+    ['  y ya no dice «confirmada», ni promete solo dos de las cuatro superficies, ni lleva el ✅',
+      R.im.indexOf('confirmada') === -1 && R.im.indexOf('PDF') === -1 &&
+      R.im.indexOf('\\u2705') === -1, 'im=«' + R.im + '»'],
+
+    ['la ESTENOSIS MITRAL dice «Estenosis mitral — grado final al informe»',
+      R.em === 'Estenosis mitral — grado final al informe', 'em=«' + R.em + '»'],
+    /* El parentesis afirmaba lo contrario de lo que pasa desde el punto A: la pastilla sigue sola
+       al calculo y «emGradoAuto» escribe «severa» por su cuenta. */
+    ['  y ya no dice «lo elige el medico», que desde el punto A era falso',
+      R.em.indexOf('elige') === -1, 'em=«' + R.em + '»'],
+
+    /* CONTROL NEGATIVO / AISLAMIENTO: los dos de la AORTICA no se tocaron en esta etapa, y son el
+       molde del que salen los dos de arriba. Si esta tanda les hubiera cambiado una letra, se ve. */
+    ['AISLAMIENTO: los dos rotulos de la AORTICA siguen intactos —son el molde, no se tocaron—',
+      R.ia === 'Insuficiencia aórtica — grado final al informe' &&
+      R.ea === 'Estenosis aórtica — grado final al informe',
+      'ia=«' + R.ia + '» ea=«' + R.ea + '»'],
+
+    ['los CUATRO terminan en «— grado final al informe» y ninguno promete una superficie de menos',
+      Object.keys(R).every(function (k) { return /— grado final al informe$/.test(R[k]); }), dg],
+
+    ['y el CSS los trata igual a los cuatro: 11 px, negrita, en bloque',
+      E.im === E.em && E.em === E.ia && E.ia === E.ea && /^11px\\/700\\/block$/.test(E.im), dg],
+
+    ['y los dos selects de la mitral siguen arrancando en el MISMO pixel sin el ✅',
+      typeof topes === 'object' && topes.im === topes.em, 'topes=' + JSON.stringify(topes)],
+
+    /* ── DECISION 2 DE MAICOL, rama «no coinciden» ────────────────────────────────────────────
+       El rotulo de la severidad integrada de IM decia «(ESC 2021)», que no tiene respaldo en
+       FUENTES.md. Se leyo la ESC/EACTS 2025 inglesa antes de elegir: ese documento NO publica una
+       tabla de graduacion de IM —solo criterios BINARIOS de severa, Figura 10, folio 4672— y dos
+       de los votantes de la app (area del jet/AI y «onda S embotada = moderada») no estan en esa
+       guia. Asi que se rotula con la fuente que SI cubre la graduacion completa: ASE 2017,
+       Zoghbi, Tabla 8, folio 332. NINGUN corte se movio. */
+    ['el rotulo de la severidad integrada de IM nombra la ASE 2017, la fuente verificada',
+      (function () { const e = document.getElementById('im-sev');
+        const l = e && e.parentElement && e.parentElement.querySelector('.calc-lbl');
+        /* indexOf y no una expresion regular: el cuerpo del caso es un template literal, asi que
+           «\(» se colapsa a «(» antes de compilar el patron y el grupo de captura hacia que el
+           parentesis dejara de exigirse. Lo mostro la primera corrida, con el rotulo ya correcto. */
+        return !!l && l.textContent.indexOf('Severidad IM integrada (ASE 2017)') > -1; })(),
+      (function () { const e = document.getElementById('im-sev');
+        const l = e && e.parentElement && e.parentElement.querySelector('.calc-lbl');
+        return 'rotulo=«' + (l ? l.textContent.trim() : 'NO EXISTE') + '»'; })()],
+    ['y ya NO dice «ESC 2021», que no tenia respaldo en FUENTES.md',
+      (function () { const e = document.getElementById('im-sev');
+        const l = e && e.parentElement && e.parentElement.querySelector('.calc-lbl');
+        return !!l && l.textContent.indexOf('ESC') === -1; })(), 'ver arriba'],
+  ] };
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

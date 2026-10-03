@@ -3393,7 +3393,18 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="valv-gf-col">
           <div id="gf-insuf-mitral" style="display:none;">
       <div class="valv-gf-caja">
-        <label style="font-size:11px;font-weight:700;color:var(--accent2);display:block;margin-bottom:6px;">&#x2705; Severidad IM confirmada &mdash; ir&aacute; al informe y PDF</label>
+        <!-- ⚠️ EL RÓTULO CAMBIÓ Y PERDIÓ EL «✅» (etapa 4, 2026-10-03, decisión de Maicol). Era
+             «✅ Severidad IM confirmada — irá al informe y PDF». Tres cosas que arregla: decía
+             «confirmada» de un valor que casi siempre lo escribe el autocálculo, prometía DOS
+             superficies de cuatro —el EN SUMA y el Excel también lo publican— y era el único de
+             los cuatro rótulos de grado final con una forma distinta. Ahora los cuatro dicen
+             «<válvula> — grado final al informe».
+             ⚠️ EL `line-height:15px` DEL CSS SE QUEDA, aunque su comentario hable del emoji. Ese
+             comentario explicaba POR QUÉ hacía falta (el cuadro de un «✅» es más alto que el de
+             una letra y desalineaba los dos select en 1 px); sin el emoji la regla ya no es
+             necesaria, pero tampoco molesta, y sacarla es mover la maquetación en la etapa de los
+             rótulos. Lo que sostiene la alineación es TC-379, que la mide en píxeles. -->
+        <label style="font-size:11px;font-weight:700;color:var(--accent2);display:block;margin-bottom:6px;">Insuficiencia mitral &mdash; grado final al informe</label>
         <!-- ═══ CAJÓN COMPACTO — MISMA MAQUETACIÓN QUE LA AÓRTICA (etapa 3, 2026-10-03) ══════════
              El `<select>` del grado final queda a la mitad de su columna y el cajón del fundamento
              a su derecha; a columna angosta apila solo. NI UN número nuevo: las dos primitivas
@@ -3442,7 +3453,12 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div class="valv-gf-col">
         <div id="bloque-esten-mitral" style="display:none;">
-        <label>Estenosis mitral — grado final (lo elige el médico)</label>
+        <!-- ⚠️ «(lo elige el médico)» SALIÓ DEL RÓTULO (etapa 4, 2026-10-03, decisión de Maicol), y
+             no es sólo uniformidad: desde el punto A la pastilla SIGUE SOLA al cálculo y
+             `emGradoAuto` escribe «severa» por su cuenta, así que el paréntesis afirmaba lo
+             contrario de lo que pasa —el médico puede cambiarlo, no es él quien lo elige—. Queda
+             igual que sus tres hermanos: «<válvula> — grado final al informe». -->
+        <label>Estenosis mitral &mdash; grado final al informe</label>
         <!-- ═══ CAJÓN COMPACTO — MISMA MAQUETACIÓN QUE LA AÓRTICA (etapa 3, 2026-10-03) ══════════
              El rótulo SALE del `.fg` y pasa a ser hijo directo de `bloque-esten-mitral`, que es
              exactamente dónde vive el de la estenosis aórtica. No es cosmético: el CSS de la tanda
@@ -3770,7 +3786,27 @@ window.cerrarSesionReal = cerrarSesionReal;
              RENDERIZANDO la página y mirándola, que es lo único que no se puede discutir. Quien
              vuelva a verificar esto: no le crea a la coordenada. -->
         <div class="calc-row"><span class="calc-lbl" title="La ASE 2023 lo da en ausencia de insuficiencia aórtica moderada o severa: la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir. En válvula NATIVA esta aplicación lo usa IGUAL con IAo moderada y moderada-severa —y lo declara en la propia fila— y lo retira sólo con IAo severa: es criterio EcoSmart (2026-09-30), no lo que dice la guía. En PRÓTESIS se retira desde la IAo moderada. Con un grado de IAo que no se puede interpretar se retira en los dos casos. DOS CORTES SEGÚN LA MORFOLOGÍA: en válvula NATIVA, &gt;1,4 apoya IM severa — ASE 2023, cardiopatía reumática (Pandian, JASE 36:3-28), y también ESC/EACTS 2025 (Figura 10, pág. 4672), entre los criterios semicuantitativos de IM severa; no figura en ASE 2017 ni en ESC/EACTS 2021, y el estudio original (Tribouilloy, Eur Heart J 1994) da 1,3. En PRÓTESIS mitral el corte es ≥2,5 — ASE 2024, Tabla 12, pág. 28 (Zoghbi, JASE 2024;37(1):2-63), «hallazgos de ETT que sugieren IM protésica significativa en válvulas mecánicas con THP normal»: sensibilidad 89 %, especificidad 91 %. Esa tabla lo define para válvulas MECÁNICAS con THP normal, y la app NO verifica ninguna de las dos condiciones: el ≥2,5 se aplica a toda prótesis mitral, biológica incluida, y el THP no se cruza. Ver «Referencia clínica» en la ayuda.">Ratio VTI mitral / VTI TSVI (nativa &gt;1.4 · prótesis ≥2.5) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-vti-ratio">—</span></div>
-        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad IM integrada (ESC 2021)</span><span id="im-sev">—</span></div>
+        <!-- ⚠️ EL RÓTULO DICE «ASE 2017» Y NO «ESC/EACTS 2025» — DECISIÓN 2 DE MAICOL, RAMA «NO
+             COINCIDEN» (etapa 4, 2026-10-03). Era «(ESC 2021)», que NO tenía respaldo: `FUENTES.md`
+             no registra ninguna guía valvular ESC 2021. Se leyó la ESC/EACTS 2025 inglesa
+             (`ehaf194.pdf`) en texto completo y con la Figura 10 renderizada —folio 4672— antes de
+             elegir, y la conclusión es que NO se puede rotular con ella:
+               · ese documento NO publica una tabla de graduación de IM. Lo único que da es
+                 «Echocardiographic criteria for severe MR»: criterios BINARIOS de severa. No hay
+                 un solo corte de «leve» ni de «moderada» en las 102 páginas, y esta función tiene
+                 tres bandas en cinco de sus votantes;
+               · el ÁREA DEL JET / ÁREA DE LA AI, que acá VOTA, no aparece en ningún lugar de esa
+                 guía — es de la ASE;
+               · «onda S embotada = moderada» tampoco: la guía publica sólo la inversión sistólica.
+             Lo que SÍ coincide es el borde de severa de VC (≥7 mm), EROA (≥40 mm²), Vol-R (≥60 mL),
+             FR (≥50 %) y el cociente VTI (>1,4). O sea: la ESC/EACTS 2025 respalda la mitad de
+             arriba y no la de abajo, y un rótulo que la nombrara entera afirmaría cortes que esa
+             fuente no da. Se rotula con la que SÍ cubre la graduación completa —ASE 2017, Zoghbi,
+             Tabla 8, folio 332—, que es la que `calcIM_ESC` ya tenía documentada.
+             ⚠️ NO SE TOCÓ NINGÚN CORTE. Las cinco diferencias halladas van reportadas, que es lo
+             que manda la regla: «discrepancia entre la fuente y la app: no se corrige, se reporta
+             y se espera». -->
+        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad IM integrada (ASE 2017)</span><span id="im-sev">—</span></div>
         <!-- Aviso de mecanismo SECUNDARIO. Va pegado al badge de severidad porque es una salvedad
              SOBRE ese grado, no un hallazgo aparte. Vacío por defecto: lo escribe imSecAvisoPintar()
              y sólo con mecanismo secundario consignado. NO cambia cortes, votos ni grado, y no llega
@@ -90649,8 +90685,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261003-0144';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791002674713;                 /* eco-build-ms */
+const ECO_BUILD    = '20261003-0156';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791003383324;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -90736,7 +90772,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261003-0144</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261003-0156</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
