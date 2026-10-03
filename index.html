@@ -1366,6 +1366,31 @@
 #tab-valvulas .valv-sev-btn.nivel3{background:#fee2e2;border-color:#dc2626;color:#7f1d1d;}
 #tab-valvulas .valv-sev-menu{display:none;position:absolute;top:100%;right:0;z-index:60;margin-top:4px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:4px;min-width:170px;max-width:260px;box-shadow:0 10px 28px rgba(0,0,0,.45);}
 #tab-valvulas .valv-sev-menu.open{display:block;}
+/* ⚠️ EL MENÚ LO RECORTABA `.card{overflow:hidden}` (línea 506), NO UN CONTEXTO DE APILAMIENTO.
+   Medido en Chrome sobre los SEIS menús con los dos botones apagados —la tarjeta baja—, y la
+   premisa de que pasaba sólo en la aórtica y la tricúspide era falsa: recorta en las TRES
+   válvulas que tienen menú. Cuánto sobresale el menú del borde inferior de su tarjeta:
+   mitral 11 px (los dos), aórtica 19 px insuficiencia y 48 px estenosis, tricúspide 17 px.
+   El único ancestro con overflow distinto de `visible` en toda la cadena es `.card`; nadie tiene
+   `transform`, `contain` ni `isolation`, así que el `z-index:60` de arriba ya funcionaba.
+   ⚠️ Y «sobresale N px» NO es el síntoma: es geometría, y NO cambia con este arreglo. Lo que
+   cambia es si se PINTA. Medido por hit-testing (elementFromPoint, que sí respeta el recorte):
+   antes se perdían 3 opciones, las tres en la AÓRTICA —«Moderada» y «Severa» de estenosis y la
+   última de insuficiencia—; en la mitral y la tricúspide el recorte se come el relleno inferior
+   y el borde, así que se ven cortadas pero sus opciones siguen siendo clickeables. Después: las
+   23 opciones de los seis menús alcanzables.
+   Se eligió SOBRESALIR, y con `:has()` en vez de un `overflow:visible` pelado, porque así la
+   tarjeta vuelve a `hidden` en cuanto el menú se cierra: la regla sólo está viva mientras hay un
+   menú abierto, y ninguna otra tarjeta de la app cambia. Las otras dos opciones se descartaron
+   midiendo: abrir hacia arriba es JS —el menú tendría que calcular el espacio libre— para un
+   problema que es puro recorte; y un alto mínimo mientras está abierto empuja el contenido de
+   abajo cada vez que se despliega, y necesita un número por menú porque miden 97, 126 y 155 px.
+   Control negativo medido: con los dos botones ENCENDIDOS la tarjeta ya es alta, el menú entra
+   solo (sobresale 0) y esta regla no cambia nada — ni antes ni después se pierde una opción.
+   ⚠️ Al medir esto: el overlay de login intercepta elementFromPoint y da «nada alcanzable» en
+   TODOS los escenarios, y con las cuatro secciones abiertas los menús caen abajo del pliegue y
+   elementFromPoint devuelve null. Las dos cosas se leen como «el arreglo no sirve». */
+#tab-valvulas .card:has(.valv-sev-menu.open){overflow:visible;}
 #tab-valvulas .valv-sev-menu button{display:block;width:100%;min-height:0;min-width:0;text-align:left;font-size:12px;padding:7px 10px;background:none;border:none;color:var(--text);cursor:pointer;border-radius:6px;font-family:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 #tab-valvulas .valv-sev-menu button:hover{background:var(--bg3);}
 /* La fila separada de pills se reemplazó por el sub-botón integrado. Se mantiene en el DOM
@@ -1458,13 +1483,28 @@ html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
    aparece con discrepancia—, y un `basis` del 50 % sin `grow` deja el `<select>` a media columna
    TAMBIÉN cuando está solo. A 300 px eso daba un desplegable de grado final de 106 px con el resto
    de la fila vacío: la mitad de los rótulos («Moderada-severa») no entran.
-   Con `1 1 150px` en los dos: cajón cerrado → el select es el único ítem y `grow` lo lleva al ancho
-   entero de la columna; cajón abierto y columna ≥ 310 px → las dos bases son iguales y el espacio
-   libre se reparte 1:1, o sea EXACTAMENTE la mitad cada uno; columna < 310 px → no entran las dos
-   bases y la fila envuelve, que es el apilado pedido. Un solo número (150) gobierna las tres cosas.
-   Medido a 1200 px: 223 px cada uno sobre una columna de 457. */
+   Con base `150px` en los dos: cajón cerrado → el select es el único ítem y `grow` lo lleva al
+   ancho entero de la columna; cajón abierto y columna ≥ 310 px → las dos bases entran y el espacio
+   libre se reparte según el `grow`; columna < 310 px → no entran las dos bases y la fila envuelve,
+   que es el apilado pedido.
+   ⚠️ EL REPARTO YA NO ES 1:1, Y ESO PARTE EN DOS LO QUE ANTES GOBERNABA UN SOLO NÚMERO. Hasta el
+   2026-10-03 los dos eran `1 1 150px` y el cajón quedaba apretado: 272 px con la fila en 553.
+   Ahora el cajón lleva `grow:2` y el select sigue en `grow:1`, o sea 2:1 del espacio LIBRE — no
+   de la fila, porque las dos bases de 150 se reparten antes. Medido a 1200 px: el cajón pasa de
+   272 a 312 px y el select de 272 a 231. La BASE sigue siendo 150 en los dos a propósito: así el
+   umbral de apilado queda donde estaba (310 px) y los casos del cajón cerrado y de los 300 px no
+   se mueven ni un píxel — lo único que cambia es el reparto con el cajón ABIERTO.
+   Los dos números que hay que leer juntos ahora son la BASE (150, que gobierna el apilado y el
+   caso cerrado) y el GROW (2:1, que gobierna sólo el reparto con el cajón abierto).
+   ⚠️ `grow:3` se probó y se descartó POR MEDICIÓN, no por gusto: deja el select en 211 px y la
+   opción más larga de `im_sev_final` («— Sin insuficiencia / no evaluada», 197 px) deja de entrar
+   a 1200 px. El criterio que ata es «Moderada-severa», que mide 106 px y existe sólo en ese
+   select: entra con margen en los tres anchos (útil 199 a 1200, 125 a 756 y 212 a 300).
+   ⚠️ Defecto PREVIO que destapó esta medición y NO se tocó: esa opción más larga de 197 px ya no
+   entraba a 756 px antes de este cambio, y sigue sin entrar. Es un rótulo clínico — decisión de
+   Maicol—, así que se reporta y se espera. */
 #tab-valvulas .valv-fund-row > .valv-fund-sel{flex:1 1 150px;min-width:0;margin-bottom:0;}
-#tab-valvulas .valv-fund-row > .valv-fund-box{flex:1 1 150px;min-width:0;margin-top:0;}
+#tab-valvulas .valv-fund-row > .valv-fund-box{flex:2 1 150px;min-width:0;margin-top:0;}
 /* Opciones en dos columnas por multi-columna y no por grid: la lista cambia de largo con el
    sentido del ajuste (tres opciones con «sube», una con «baja») y `columns` reparte lo que haya. */
 /* ⚠️ `columns:95px 2` Y NO `columns:2`. Con el conteo pelado las dos columnas son
@@ -1473,7 +1513,10 @@ html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
    153 px, o sea dos columnas de ~62 px para una etiqueta de ~220 px de texto. Con el ancho mínimo
    el navegador baja a UNA columna solo, con el mismo número gobernando las dos cosas que el `150`
    de `.valv-fund-sel`. El 95 sale de medir: a 1200 px el cajón tiene ~206 px útiles y entran las
-   dos columnas pedidas; por debajo de ~200 px útiles, una sola. */
+   dos columnas pedidas; por debajo de ~200 px útiles, una sola.
+   ⚠️ El `grow:2` del 2026-10-03 NO toca este número: con el cajón más ancho (312 px en vez de 272)
+   quedan ~292 px útiles, así que las dos columnas entran con MÁS margen que antes, y a 756 px el
+   cajón sigue en 164 px y sigue bajando a una sola. Re-medido en los cinco anchos, no deducido. */
 #tab-valvulas .valv-fund-opc{columns:95px 2;column-gap:10px;}
 #tab-valvulas .valv-fund-box{padding:6px 8px;}
 #tab-valvulas .valv-fund-box .valv-fund-tit{font-size:10px;margin-bottom:4px;}
@@ -90685,8 +90728,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261003-0157';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791003458194;                 /* eco-build-ms */
+const ECO_BUILD    = '20261003-0934';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791030853121;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -90772,7 +90815,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261003-0157</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261003-0934</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

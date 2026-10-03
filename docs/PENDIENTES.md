@@ -156,6 +156,37 @@ Sale de `/sharp-edges` sobre el diff de esa tanda. Está medido, no supuesto.
   por AVA continuidad (1,85 cm²)» mientras el recuadro dice «Sin estenosis / leve»: revisar.
 - Rótulos «ESC 2021» en las etiquetas de severidad (guía vigente: ESC/EACTS 2025).
 
+## Maquetación de Válvulas — declarado en la tanda del 2026-10-03 y NO arreglado
+
+- **El menú de severidad depende de `:has()`, y sin soporte vuelve el recorte EN SILENCIO.**
+  La regla `#tab-valvulas .card:has(.valv-sev-menu.open){overflow:visible;}` es lo único que evita
+  que `.card{overflow:hidden}` corte el menú. `:has()` existe en Chrome 105+, Safari 15.4+ y
+  **Firefox 121+**; en un navegador anterior la regla se descarta sin error ni aviso y vuelven a
+  perderse tres opciones de la aórtica —«Moderada» y «Severa» de estenosis, y la última de
+  insuficiencia—. El modo de fallo es «el médico elige Severa y no pasa nada», indistinguible de
+  un clic mal dado. **La suite no puede detectarlo**: TC-395 corre por CDP contra el Chrome del
+  sistema, así que es cobertura en Chrome, no cobertura del arreglo en otro navegador. La app se
+  usa en Chrome, así que hoy no es un defecto activo — pero la dependencia queda declarada.
+  Si alguna vez hay que soportar Firefox viejo o iOS <15.4, el camino ya resuelto en la app es el
+  de `.igio-menu`: `position:fixed` + `max-height`, que además arregla el menú abierto por debajo
+  del pliegue, algo que `:has()` no toca.
+
+- **El rótulo por defecto del grado final quedó con 2 px de margen a 1200 px.**
+  «— Sin insuficiencia / no evaluada» mide 197 px y es la opción seleccionada de fábrica de
+  `im_sev_final` e `ia_sev_final`. Con el reparto 1:1 viejo le sobraban ~43 px; con el `grow:2` del
+  cajón le quedan 2. **Sigue entrando** y está pineado por TC-396, así que si se trunca el caso se
+  pone en rojo en vez de descubrirse en un informe. Las dos salidas son decisión de Maicol:
+  acortar el rótulo —es texto clínico— o bajar el `grow`. No se tocó.
+
+- **A 756 px ese mismo rótulo de 197 px NO entra, y eso es PREVIO a esta tanda.** Con el reparto
+  1:1 el select medía 161 px (útil 129) y ya truncaba; con `grow:2` mide 157 (útil 125). El cambio
+  no lo causó ni lo arregló. Mismo par de salidas que el punto anterior.
+
+- **El cajón de la IA es el único sin lista de opciones** (sólo título, label y un input de texto),
+  así que el `grow:2` le saca 41 px al select para dárselos a un cajón que no los necesita para
+  repartir columnas. Se dejó uniforme en las cuatro filas a propósito —una sola regla— y ahora
+  TC-396 lo mide. Si alguna vez molesta, el reparto se acota a los cajones con `.valv-fund-opc`.
+
 ## Visor de imágenes (cineloop)
 
 - Modo mínimo: al abrir solo Reproducir, Capturar, Medir y la cruz de cierre; Medir es un

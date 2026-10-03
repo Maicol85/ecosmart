@@ -46406,7 +46406,7 @@ caso('TC-380', 'A 300 px la fila de grado final se apila en una sola columna y n
 `);
 
 
-caso('TC-381', 'El cajon «Fundamento del ajuste» va a la DERECHA del select, el select baja a la mitad de su columna, las opciones van en dos columnas en ancho, y en angosto todo baja a una sola', `
+caso('TC-381', 'El cajon «Fundamento del ajuste» va a la DERECHA del select y se lleva dos tercios del sobrante, las opciones van en dos columnas en ancho, y en angosto todo baja a una sola', `
   const tab = document.getElementById('tab-valvulas');
   const ancho = function (px) {
     if (px) tab.style.setProperty('width', px + 'px', 'important');
@@ -46459,7 +46459,17 @@ caso('TC-381', 'El cajon «Fundamento del ajuste» va a la DERECHA del select, e
   const filaAncho = (function () { const c = document.getElementById('ea-fund');
     const f = c && c.closest('.valv-fund-row');
     return f ? Math.round(f.getBoundingClientRect().width) : null; })();
-  ancho(500);
+  /* ⚠️ ERA 500 px Y SE MOVIO A 756 A PROPOSITO EL 2026-10-03, CON EL NUMERO MEDIDO.
+     Este es el control negativo de «columns:95px 2» —que las dos columnas COLAPSEN a una— y a
+     500 px dejo de valer cuando el cajon paso a grow:2: ahi el cajon pasa de 217 a 239 px y 239
+     ya le alcanza para dos columnas, asi que el control daba 2 y se ponia rojo sin que hubiera
+     ninguna regresion. El umbral de colapso esta entre 212 y 239 px de cajon (barrido de catorce
+     anchos). A 756 px el cajon queda en 164 px y colapsa a una columna ANTES y DESPUES del
+     cambio — y ademas 756 es uno de los tres anchos que el pedido exige medir.
+     ⚠️ El ancho de la FILA no crece con el de la pestana: a 500 px la fila mide 444 y a 756 mide
+     331, porque a 500 la fila de grado final ya se apilo y cada columna toma el ancho entero.
+     Elegir el ancho del control «por ser mas chico» es elegir mal. */
+  ancho(756);
   const flacaCols = cols();
   ancho(300);
   const flacaSel = geo('ea_grado'), flacaCaj = geo('ea-fund');
@@ -46476,8 +46486,16 @@ caso('TC-381', 'El cajon «Fundamento del ajuste» va a la DERECHA del select, e
       discrepa === true && sentido === 'sube' && obj(anchaCaj), 'discrepa=' + discrepa + ' sentido=' + sentido + ' · ' + dg],
     ['el cajon va a la DERECHA del select y en la MISMA fila',
       obj(anchaSel) && obj(anchaCaj) && anchaCaj.left > anchaSel.left && anchaCaj.top === anchaSel.top, dg],
-    ['el select ocupa la mitad de su columna (la fila menos el gap de 10 px, repartida en dos)',
-      obj(anchaSel) && filaAncho !== null && Math.abs(anchaSel.w - (filaAncho - 10) / 2) <= 2, dg],
+    /* ⚠️ ACTUALIZADA A PROPOSITO EL 2026-10-03 — NO «ARREGLADA». Decia «el select ocupa la mitad
+       de su columna» y era verdad del reparto 1:1 viejo. El cajon paso a grow:2, asi que el
+       sobrante sobre las dos bases de 150 px se reparte en tres y el cajon se lleva dos tercios.
+       Medido a 1100 px: fila 503, select 214, cajon 279 — sobrantes de 64 y 129.
+       El select SIGUE gobernando el caso del cajon cerrado (base 150 y grow 1, sin tocar), y eso
+       lo fija la ultima condicion de abajo, que es la que no hay que perder. */
+    ['el sobrante sobre la base de 150 px se reparte 2:1 a favor del cajon, y el cajon es el ancho',
+      obj(anchaSel) && obj(anchaCaj) && filaAncho !== null && anchaCaj.w > anchaSel.w &&
+      Math.abs((anchaCaj.w - 150) - 2 * (anchaSel.w - 150)) <= 2 &&
+      Math.abs(anchaSel.w - (150 + (filaAncho - 10 - 300) / 3)) <= 2, dg],
     ['el aviso rojo y la linea del grado calculado quedan DEBAJO del select, no del cajon',
       obj(anchaAviso) && obj(anchaBadge) && obj(anchaSel) &&
       anchaAviso.left === anchaSel.left && anchaBadge.left === anchaSel.left &&
@@ -46486,7 +46504,7 @@ caso('TC-381', 'El cajon «Fundamento del ajuste» va a la DERECHA del select, e
       obj(anchaCols) && anchaCols.n === 2 && anchaCols.casillas === 3, dg],
     /* CONTROL NEGATIVO de las columnas: con el cajon angosto tienen que bajar a UNA. Un
        columns:2 pelado nunca colapsa, y sin esta condicion la de arriba sola lo deja pasar. */
-    ['CONTROL NEGATIVO: con el cajon angosto bajan a UNA sola columna',
+    ['CONTROL NEGATIVO: a 756 px el cajon queda en 164 px y las opciones bajan a UNA sola columna',
       obj(flacaCols) && flacaCols.n === 1, dg],
     ['a 300 px el cajon baja debajo del select y el select toma la columna entera',
       obj(flacaSel) && obj(flacaCaj) && flacaCaj.top > flacaSel.top &&
@@ -47274,9 +47292,17 @@ caso('TC-392', 'El cajon de fundamento de la MITRAL se maqueta como el de la aor
     ['DENOMINADOR: los dos cajones de la mitral estaban ABIERTOS —si no, no hay geometria que medir—',
       abiertos === 'visible/visible', abiertos],
     ['a 1200 px el cajon va a la DERECHA del select, en las dos mitades', alLado(a), dg],
-    ['a 1200 px el select baja a la mitad de su columna —el cajon mide parecido, no un sobrante—',
-      obj(a.imSel) && obj(a.imCaj) && Math.abs(a.imSel.w - a.imCaj.w) <= 30 &&
-      Math.abs(a.emSel.w - a.emCaj.w) <= 30,
+    /* ⚠️ ESTA CONDICION SE ACTUALIZO A PROPOSITO EL 2026-10-03, NO SE «ARREGLO» HASTA QUE PASARA.
+       Afirmaba el reparto 1:1 («el cajon mide parecido», tolerancia 30 px) y eso era verdad de la
+       decision VIEJA. El cajon paso a grow:2 porque a 1200 px quedaba apretado, asi que ahora el
+       sobrante sobre la base de 150 px se reparte 2:1 a favor del cajon. Medido con el cambio
+       puesto: imSel=231 imCaj=312 — sobrantes de 81 y 162, exactamente el doble.
+       Se afirma el REPARTO y no los dos anchos sueltos: los anchos dependen de cuanto mida la
+       fila, el reparto no. Y se exige ademas que el cajon sea el MAS ancho, que es lo pedido. */
+    ['a 1200 px el cajon es MAS ancho que el select y el sobrante sobre la base de 150 se reparte 2:1',
+      obj(a.imSel) && obj(a.imCaj) && a.imCaj.w > a.imSel.w && a.emCaj.w > a.emSel.w &&
+      Math.abs((a.imCaj.w - 150) - 2 * (a.imSel.w - 150)) <= 2 &&
+      Math.abs((a.emCaj.w - 150) - 2 * (a.emSel.w - 150)) <= 2,
       'imSel=' + a.imSel.w + ' imCaj=' + a.imCaj.w + ' emSel=' + a.emSel.w + ' emCaj=' + a.emCaj.w],
     ['a 756 px siguen a la derecha —es el ancho donde las dos columnas de valvula entran justas—',
       alLado(b), dg],
@@ -47402,6 +47428,268 @@ caso('TC-393', 'La tarjeta pre-PDF ya no publica un grado de IM distinto del gra
       cerradaPorMedico.pIM === false && trasAuto2 === false, dg],
     ['CONTROL NEGATIVO: sin grado no se abre nada, y la TRICUSPIDE nunca se abre sola',
       sinGrado.pIM === false && sinGrado.pEM === false && sinGrado.pIT === false, dg],
+  ] };
+`);
+
+
+/* ══ MAQUETACION DE LA PESTANA VALVULAS — tanda del 2026-10-03 (TC-395, TC-396) ════════════════
+   TC-395 cubre el menu de severidad recortado por la tarjeta; TC-396, el ancho del cajon de
+   fundamento. Los dos nacen de una medicion que dio vuelta la premisa del pedido, y las dos
+   premisas falsas estan escritas adentro de cada caso para que no se re-deriven. */
+
+caso('TC-395', 'El menu de severidad no lo recorta la tarjeta: las opciones de los SEIS menus se pueden clickear con los dos botones apagados, y con la tarjeta alta nada cambia', `
+  /* ⚠️ TRES DENOMINADORES, Y LOS TRES DIERON «TODO ROTO» ANTES DE PONERLOS.
+     1) El overlay de login tapa la pagina entera: elementFromPoint devuelve login-overlay en
+        todos los puntos, o sea cero alcanzables en todos los escenarios, control incluido.
+     2) elementFromPoint es relativo al VIEWPORT: con las cuatro secciones abiertas la pagina mide
+        miles de px y los menus caen abajo del pliegue, donde devuelve null.
+     3) Lo que esta en display:none no tiene geometria: hay que abrir la pestana y las secciones.
+     Los tres se leen igual: «el arreglo no sirve». */
+  __t.limpiar();
+  try { document.getElementById('login-overlay').style.display = 'none'; } catch (e) {}
+  try { showTab('valvulas'); } catch (e) {}
+  const VALVS = ['mitral', 'aortica', 'tricuspide', 'pulmonar'];
+  VALVS.forEach(function (v) {
+    const s = document.getElementById('ete-seccion-valv-' + v);
+    if (s && s.style.display === 'none') {
+      try { toggleEteSeccion('valv-' + v, document.querySelector('[onclick*="valv-' + v + '"]')); } catch (e) {}
+    }
+  });
+  const pills = function (encender) {
+    VALVS.forEach(function (v) { ['insuf', 'esten'].forEach(function (t) {
+      const p = document.getElementById('pill-' + t + '-' + v);
+      if (!p) return;
+      const on = p.classList.contains('btn-primary');
+      if (on !== encender) { try { toggleValvPill(v, t); } catch (e) {} }
+    }); });
+  };
+
+  const MENUS = Array.from(document.querySelectorAll('#tab-valvulas .valv-sev-menu'))
+    .map(function (m) { return m.id; });
+
+  /* Por cada menu: cuantas de sus opciones devuelve elementFromPoint en su propio centro.
+     Esta es la metrica honesta — «sobresale N px» es GEOMETRIA y no cambia con el arreglo,
+     porque el menu sigue saliendose de la tarjeta; lo que cambia es si se PINTA. */
+  const barrer = function () {
+    let total = 0, alcanzables = 0, fueraVP = 0, overflows = {};
+    const perdidas = [];
+    MENUS.forEach(function (mid) {
+      const partes = mid.replace('sevmenu-', '').split('-');
+      const m = document.getElementById(mid);
+      const card = m.closest('.card');
+      try { valvSev.menu(partes[0], partes[1], null); } catch (e) {}
+      const sb = document.getElementById('sevbtn-' + partes[0] + '-' + partes[1]);
+      if (sb) sb.scrollIntoView({ block: 'center' });
+      overflows[mid] = getComputedStyle(card).overflowY;
+      Array.from(m.querySelectorAll('button')).forEach(function (b) {
+        const r = b.getBoundingClientRect();
+        const x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
+        total++;
+        if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) { fueraVP++; return; }
+        const hit = document.elementFromPoint(x, y);
+        if (hit && (hit === b || b.contains(hit) || hit.closest('#' + mid))) alcanzables++;
+        else perdidas.push(mid + ':' + b.textContent.trim().slice(0, 14));
+      });
+      try { document.body.click(); } catch (e) {}
+      /* Con el menu cerrado la tarjeta tiene que VOLVER a recortar: la regla usa :has(.open), y
+         si quedara en visible seria un cambio permanente de todas las tarjetas de la pestana. */
+      overflows[mid + '/cerrado'] = getComputedStyle(card).overflowY;
+    });
+    return { total: total, alcanzables: alcanzables, perdidas: perdidas,
+             fueraVP: fueraVP, overflows: overflows };
+  };
+
+  pills(false);
+  const apagados = barrer();
+  pills(true);
+  const encendidos = barrer();
+  pills(false);
+
+  const abiertos = function (r) { return MENUS.map(function (m) { return r.overflows[m]; }); };
+  const cerrados = function (r) { return MENUS.map(function (m) { return r.overflows[m + '/cerrado']; }); };
+  const dg = 'apagados=' + apagados.alcanzables + '/' + apagados.total +
+             ' perdidas=' + JSON.stringify(apagados.perdidas) +
+             ' encendidos=' + encendidos.alcanzables + '/' + encendidos.total +
+             ' ovfAbierto=' + JSON.stringify(abiertos(apagados)) +
+             ' ovfCerrado=' + JSON.stringify(cerrados(apagados));
+
+  return { extra: [
+    ['DENOMINADOR: hay SEIS menus y ninguna opcion quedo fuera del viewport ni sin medir',
+      MENUS.length === 6 && apagados.total === 23 && apagados.fueraVP === 0 &&
+      encendidos.total === 23 && encendidos.fueraVP === 0,
+      'menus=' + MENUS.length + ' total=' + apagados.total + ' fueraVP=' + apagados.fueraVP + ' · ' + dg],
+    /* El numero que importa: con los dos botones apagados —la tarjeta baja, que es el sintoma—
+       antes se perdian TRES opciones, las tres en la aortica. Ahora, cero. */
+    ['con los dos botones APAGADOS las 23 opciones de los seis menus son clickeables',
+      apagados.alcanzables === 23 && apagados.perdidas.length === 0, dg],
+    ['mientras hay un menu abierto su tarjeta deja de recortar',
+      abiertos(apagados).every(function (o) { return o === 'visible'; }), dg],
+    /* Sin esta mitad, un overflow:visible pelado sobre .card pasaria igual — y seria un cambio
+       permanente de todas las tarjetas de la pestana, no solo mientras el menu esta desplegado. */
+    ['y al cerrarlo VUELVE a recortar: la regla vive solo mientras el menu esta abierto',
+      cerrados(apagados).every(function (o) { return o === 'hidden'; }), dg],
+    /* CONTROL NEGATIVO: con los dos botones ENCENDIDOS la tarjeta ya era alta y el menu entraba
+       solo. Ahi el arreglo no tiene nada que arreglar. Si esta condicion y la de arriba dieran
+       lo mismo siempre, la sonda estaria diciendo que si a todo y no probaria nada. */
+    ['CONTROL NEGATIVO: con los dos botones ENCENDIDOS tambien estan las 23, que ya era cierto antes',
+      encendidos.alcanzables === 23, dg],
+  ] };
+`);
+
+
+caso('TC-396', 'El cajon «Fundamento del ajuste» se lleva dos tercios del sobrante y sigue entrando «Moderada-severa»: a 1200, 756 y 300 px, abierto y cerrado, sin desborde', `
+  __t.limpiar();
+  try { document.getElementById('login-overlay').style.display = 'none'; } catch (e) {}
+  try { showTab('valvulas'); } catch (e) {}
+  ['mitral', 'aortica'].forEach(function (v) {
+    const s = document.getElementById('ete-seccion-valv-' + v);
+    if (s && s.style.display === 'none') {
+      try { toggleEteSeccion('valv-' + v, document.querySelector('[onclick*="valv-' + v + '"]')); } catch (e) {}
+    }
+  });
+  const tab = document.getElementById('tab-valvulas');
+  const ancho = function (px) {
+    if (px) tab.style.setProperty('width', px + 'px', 'important');
+    else tab.style.removeProperty('width');
+  };
+  const W = function (id) { const e = document.getElementById(id);
+    if (!e) return 'falta ' + id;
+    if (getComputedStyle(e).display === 'none') return 'oculto';
+    const r = e.getBoundingClientRect();
+    return r.width ? Math.round(r.width) : 'sin geometria'; };
+  const fila = function (cid) { const c = document.getElementById(cid);
+    const f = c && c.closest('.valv-fund-row');
+    return f ? Math.round(f.getBoundingClientRect().width) : null; };
+  /* Desborde de verdad: algun descendiente de la fila que se salga de los bordes de la fila. */
+  const desborde = function (cid) { const c = document.getElementById(cid);
+    const f = c && c.closest('.valv-fund-row'); if (!f) return 99;
+    const fr = f.getBoundingClientRect(); let n = 0;
+    f.querySelectorAll('*').forEach(function (e) {
+      if (getComputedStyle(e).display === 'none') return;
+      const r = e.getBoundingClientRect(); if (!r.width && !r.height) return;
+      if (r.right > fr.right + 1 || r.left < fr.left - 1) n++; });
+    return n; };
+  /* ⚠️ EL CRITERIO ES «Moderada-severa», QUE MIDE 106 px Y EXISTE SOLO EN im_sev_final.
+     NO se mide la opcion mas larga del select: esa es «— Sin insuficiencia / no evaluada», mide
+     197 px y YA no entraba a 756 px antes de este cambio. Es un rotulo clinico y no se toca —
+     queda reportado. Medir por la mas larga confundiria ese defecto previo con una regresion. */
+  const entra = function (selId, texto) {
+    const s = document.getElementById(selId);
+    if (!s || !s.options) return 'no es select';
+    if (getComputedStyle(s).display === 'none') return 'oculto';
+    const hay = Array.from(s.options).some(function (o) { return o.textContent.trim() === texto; });
+    if (!hay) return 'la opcion no existe en ' + selId;
+    const cs = getComputedStyle(s);
+    const cv = document.createElement('canvas').getContext('2d');
+    cv.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+    const util = s.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 20;
+    return util >= cv.measureText(texto).width; };
+
+  /* Discrepancia por el camino de la app en las dos valvulas, con los dos botones encendidos:
+     es el escenario de TC-379/TC-381, el que tiene las dos columnas de grado final presentes. */
+  const set = function (id, v) { const e = document.getElementById(id); if (!e) return;
+    e.value = v; e.dispatchEvent(new Event('input', {bubbles:true}));
+    e.dispatchEvent(new Event('change', {bubbles:true})); };
+  set('nombre', 'TC396');
+  ['mitral', 'aortica'].forEach(function (v) { ['insuf', 'esten'].forEach(function (t) {
+    const p = document.getElementById('pill-' + t + '-' + v);
+    if (p && !p.classList.contains('btn-primary')) { try { toggleValvPill(v, t); } catch (e) {} }
+  }); });
+  window.esqSevManual = window.esqSevManual || {};
+  set('ea_vmax', '2.5'); set('ea_grado', 'severa'); window.esqSevManual.ea = true;
+  /* La IA tambien, para que su cajon se abra: vena contracta 7 mm calcula severa y el medico
+     baja a leve. Sin esto ia-fund queda en display:none, W() devuelve el string «oculto» y las
+     condiciones de abajo lo cazan por num() — no pasarian en silencio, pero tampoco medirian. */
+  set('ia_vc', '7'); set('ia_sev_final', '1'); window.esqSevManual.ia = true;
+  try { sevSincronizar('ia'); } catch (e) {}
+  try { sevSincronizar('ea'); } catch (e) {}
+  set('im_vc', '8');
+  try { valvSev.aplicar('insuf', 'mitral', '2'); } catch (e) {}
+
+  const foto = function (px) {
+    ancho(px);
+    const ab = { eaSel: W('ea_grado'), eaCaj: W('ea-fund'), eaFila: fila('ea-fund'),
+                 imSel: W('im_sev_final'), imCaj: W('im-fund'), imFila: fila('im-fund'),
+                 /* ⚠️ LA IA ENTRA PORQUE ES EL PEOR CASO DEL REPARTO, y no la medía nadie —
+                    TC-396 medía ea+im, TC-392 im+em, TC-381 ea—. Su cajón es el único SIN lista
+                    de opciones (sólo título, label y un input de texto), así que el grow:2 le
+                    saca ancho al select para dárselo a un cajón que no lo necesita para columnas.
+                    Si algún día el reparto se acota a los cajones con valv-fund-opc, es acá
+                    donde se ve. Medido: se comporta igual que ea e im (231 / 312 a 1200 px). */
+                 iaSel: W('ia_sev_final'), iaCaj: W('ia-fund'), iaFila: fila('ia-fund'),
+                 desb: desborde('ea-fund') + desborde('im-fund') + desborde('ia-fund'),
+                 modSev: entra('im_sev_final', 'Moderada-severa'),
+                 /* ⚠️ EL ROTULO POR DEFECTO, QUE NO ES EL MISMO CRITERIO QUE «Moderada-severa».
+                    «— Sin insuficiencia / no evaluada» mide 197 px y es la opcion SELECCIONADA DE
+                    FABRICA de los dos selects de insuficiencia. Con el reparto 1:1 viejo tenia
+                    ~43 px de sobra a 1200 px; con el grow:2 le quedan 2. Sigue entrando, y por eso
+                    se PINEA en vez de reportarse: sin esta condicion, tres pixeles de padding o un
+                    fallback de fuente lo truncan y la suite sigue verde. Si se pone en rojo, la
+                    decision —achicar el rotulo, que es texto clinico de Maicol, o bajar el grow—
+                    se toma mirando, no por descubrimiento. */
+                 rotDef: entra('im_sev_final', '— Sin insuficiencia / no evaluada') };
+    /* CAJON CERRADO: se oculta SOLO para medir el reparto y se restaura enseguida. Es el caso que
+       no hay que romper — el select tiene que tomar la columna ENTERA, no media. */
+    const prev = {};
+    ['ea-fund', 'im-fund'].forEach(function (id) {
+      const e = document.getElementById(id); prev[id] = e.style.display; e.style.display = 'none'; });
+    const ce = { eaSel: W('ea_grado'), eaFila: fila('ea-fund'),
+                 imSel: W('im_sev_final'), imFila: fila('im-fund'),
+                 desb: desborde('ea-fund') + desborde('im-fund'),
+                 modSev: entra('im_sev_final', 'Moderada-severa') };
+    ['ea-fund', 'im-fund'].forEach(function (id) {
+      document.getElementById(id).style.display = prev[id]; });
+    return { abierto: ab, cerrado: ce };
+  };
+
+  const a = foto(1200), b = foto(756), c = foto(300);
+  ancho(null);
+  const devuelto = tab.style.width === '';
+
+  const num = function (x) { return typeof x === 'number'; };
+  /* El sobrante sobre las DOS bases de 150 px se reparte 2:1 a favor del cajon. */
+  const reparto = function (s) {
+    return ['ea', 'im', 'ia'].every(function (k) {
+      const sel = s[k + 'Sel'], caj = s[k + 'Caj'];
+      return num(sel) && num(caj) && caj > sel &&
+             Math.abs((caj - 150) - 2 * (sel - 150)) <= 2; }); };
+  const dg = '1200=' + JSON.stringify(a) + ' · 756=' + JSON.stringify(b) + ' · 300=' + JSON.stringify(c);
+
+  return { extra: [
+    ['DENOMINADOR: los TRES cajones estaban ABIERTOS a los tres anchos —si no, no hay nada que medir—',
+      [a, b, c].every(function (f) {
+        return ['ea', 'im', 'ia'].every(function (k) { return num(f.abierto[k + 'Caj']); }); }), dg],
+    /* El punto del pedido: a 1200 px el cajon dejo de estar apretado. Medido: 272 -> 312. */
+    ['a 1200 px el cajon es MAS ancho que el select y se lleva dos tercios del sobrante',
+      reparto(a.abierto), dg],
+    /* ⚠️ LOS PIXELES ABSOLUTOS VAN APARTE DEL INVARIANTE, A PROPOSITO. El reparto 2:1 no depende
+       del ancho de la fila; estos 312 px si —se mueven con el padding de la tarjeta, el gap de la
+       grilla o el rail—. Mezclados en una sola condicion, cualquier cambio ajeno pone en rojo un
+       caso titulado «se lleva dos tercios del sobrante» apuntando al reparto, que estaria intacto,
+       y el rojo se «arregla» actualizando el numero sin mirar que se movio. */
+    ['y las tres filas miden lo mismo a 1200 px: cajon de 312 px sobre un select de 231',
+      a.abierto.eaCaj === 312 && a.abierto.imCaj === 312 && a.abierto.iaCaj === 312 &&
+      a.abierto.eaSel === 231 && a.abierto.imSel === 231 && a.abierto.iaSel === 231, dg],
+    /* El margen que este cambio redujo de ~43 px a 2. Ver la nota de rotDef arriba. */
+    ['el rotulo POR DEFECTO «— Sin insuficiencia / no evaluada» sigue entrando a 1200 px',
+      a.abierto.rotDef === true, dg],
+    ['a 756 px siguen lado a lado y el cajon sigue siendo el mas ancho', reparto(b.abierto), dg],
+    /* ⚠️ A 300 px NO HAY REPARTO QUE MEDIR: la fila envuelve y los dos toman la columna entera.
+       Eso es lo pedido, y es lo que la base de 150 px —que NO se movio— sigue gobernando. */
+    ['a 300 px la fila apila y los dos toman la columna entera, sin reparto',
+      num(c.abierto.eaSel) && num(c.abierto.eaCaj) && c.abierto.eaSel === c.abierto.eaCaj &&
+      c.abierto.eaSel === c.abierto.eaFila, dg],
+    /* EL CASO QUE NO HAY QUE ROMPER, y el motivo por el que esto es grow y no basis. */
+    ['CON EL CAJON CERRADO el select toma la columna ENTERA a los tres anchos, no media',
+      c.cerrado.imSel === c.cerrado.imFila && b.cerrado.imSel === b.cerrado.imFila &&
+      a.cerrado.imSel === a.cerrado.imFila, dg],
+    ['«Moderada-severa» entra en el select a los tres anchos, abierto y cerrado',
+      a.abierto.modSev === true && b.abierto.modSev === true && c.abierto.modSev === true &&
+      a.cerrado.modSev === true && b.cerrado.modSev === true && c.cerrado.modSev === true, dg],
+    ['nada se sale de la fila a ningun ancho, con el cajon abierto ni cerrado',
+      a.abierto.desb === 0 && b.abierto.desb === 0 && c.abierto.desb === 0 &&
+      a.cerrado.desb === 0 && b.cerrado.desb === 0 && c.cerrado.desb === 0, dg],
+    ['el ancho forzado se devolvio', devuelto, 'width=«' + tab.style.width + '»'],
   ] };
 `);
 
