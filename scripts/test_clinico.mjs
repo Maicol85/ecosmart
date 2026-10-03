@@ -45361,12 +45361,22 @@ caso('TC-372', 'EA e IAo: cerrar el boton de la valvula ya NO borra el grado, la
       const m = document.getElementById('sevmenu-esten-aortica');
       const r = Array.from(m.querySelectorAll('button')).map(function (b) { return b.textContent; });
       document.body.click(); return r; } catch (e) { return ['ERR:' + e.message]; } })();
-  const lblEA = (function () { const s = document.getElementById('ea_grado');
-    const fg = s && s.closest('.fg'); const l = fg && fg.querySelector('label');
-    return l ? l.textContent.trim() : 'NO EXISTE'; })();
-  const lblIA = (function () { const s = document.getElementById('ia_sev_final');
-    const l = s && s.parentElement && s.parentElement.querySelector('label');
-    return l ? l.textContent.trim() : 'NO EXISTE'; })();
+  /* ⚠️ LOS DOS ROTULOS SE BUSCAN POR SU CONTENEDOR CON id, NO POR closest('.fg') NI POR
+     parentElement, Y ESO SE PAGO. La version anterior hacia ea_grado.closest('.fg') y
+     ia_sev_final.parentElement, o sea que dependia de cuantos <div> hay entre el select y su
+     rotulo. La tanda de maquetacion del 2026-10-02 metio uno —el rotulo de la EA quedo FUERA de
+     la mitad izquierda para no partirse en dos lineas, y el de la IA quedo arriba de la fila— y
+     este caso se puso rojo con «NO EXISTE» en los dos, afirmando que faltaban rotulos que estaban
+     ahi con el texto IDENTICO. Un caso que falla por la forma del arbol y no por lo que dice el
+     rotulo manda a buscar una regresion que no existe. El contenedor con id es lo estable:
+     bloque-esten-aortica y gf-insuf-aortica son los que gobierna toggleValvPill. */
+  const rotuloDe = function (idCaja) {
+    const c = document.getElementById(idCaja);
+    const l = c && c.querySelector('label');
+    return l ? l.textContent.trim() : 'NO EXISTE';
+  };
+  const lblEA = rotuloDe('bloque-esten-aortica');
+  const lblIA = rotuloDe('gf-insuf-aortica');
   const rotEA = String(__t.txt('ea-det-sev-lbl') || '');
   const rotIA = (function () { const e = document.getElementById('ia-sev');
     const f = e && e.closest('.calc-row'); const l = f && f.querySelector('.calc-lbl');
@@ -46162,6 +46172,313 @@ caso('TC-377', 'El O TSVI deja los mismos espejos por las dos puertas (Aorta y D
         repuesto.grado + ' discrepa=' + repuesto.discrepa],
     ] };
   })();
+`);
+
+
+/* ══ GRUPO — MAQUETACION DE LA PESTANA VALVULAS (2026-10-02) ═══════════════════════════════════
+   Los tres casos de abajo defienden MAQUETACION y nada mas: ninguno mira el informe, el EN SUMA,
+   el PDF ni el Excel, porque esa tanda no los toca —el A/B de las 16 escenas del 4b salio
+   16/16 identico con las 434 columnas iguales en los dos arboles—. Lo que fijan es la geometria,
+   que es lo unico que cambio y lo unico que ningun otro caso de la suite mira.
+
+   ⚠️ EL ANCHO SE FUERZA SOBRE EL CONTENEDOR, NO SOBRE LA VENTANA. Un cuerpo de caso corre DENTRO
+   de la pagina y no puede redimensionar el viewport —eso es Emulation.setDeviceMetricsOverride,
+   del lado del runner—, asi que estos casos le ponen un width en linea a #tab-valvulas. No es un
+   atajo: el apilado lo decide el flex-wrap contra el ancho del CONTENEDOR, que es exactamente lo
+   que se esta midiendo. El arnes corre a ~756 px, donde la fila NO apila, asi que sin forzar el
+   ancho el caso de los 300 px no podria existir.
+   ⚠️ Y EL ANCHO SE DEVUELVE. Un width:300px que sobreviva al caso deja a los ~100 casos
+   siguientes midiendo sobre una pagina de 300 px, y el diagnostico apuntaria a cualquier parte
+   menos aca. La devolucion es una condicion del caso, no un gesto de buena voluntad. */
+
+caso('TC-378', 'La morfologia va ANTES de la fila de botones Insuficiencia/Estenosis en las cuatro valvulas, y la pulmonar declara que no tiene esa fila en vez de pasar en verde por omision', `
+  const MORF = { mitral:'vm_morf', aortica:'va_morf', tricuspide:'vt_morf', pulmonar:'vp_morf' };
+  /* 'antes' = b viene DESPUES de a en el DOM, o sea a esta primero. */
+  const rel = function (a, b) {
+    const ea = document.getElementById(a), eb = document.getElementById(b);
+    if (!ea) return 'falta ' + a;
+    if (!eb) return 'falta ' + b;
+    return (ea.compareDocumentPosition(eb) & Node.DOCUMENT_POSITION_FOLLOWING) ? 'antes' : 'despues';
+  };
+  const orden = {};
+  Object.keys(MORF).forEach(function (v) {
+    const b = document.getElementById('pill-insuf-' + v);
+    orden[v] = b ? rel(MORF[v], 'pill-insuf-' + v) : 'sin fila de botones';
+  });
+  const existen = Object.keys(MORF).filter(function (v) { return !!document.getElementById(MORF[v]); });
+  /* La pulmonar no tiene fila de botones: usa dos SOLAPAS. Se afirma explicitamente para que el
+     dia que alguien le agregue los botones este caso se ponga rojo y haya que decidir, en vez de
+     que la valvula se quede fuera del invariante sin que nadie se entere. */
+  const pulmSinFila = !document.getElementById('pill-insuf-pulmonar') &&
+                      !document.getElementById('pill-esten-pulmonar');
+  /* La morfologia pulmonar es lo primero del panel de su solapa. */
+  const pane = document.getElementById('vp-pane-morf');
+  const primerCampo = pane ? pane.querySelector('select, input') : null;
+  return { extra: [
+    ['DENOMINADOR: los cuatro selects de morfologia existen', existen.length === 4,
+      'existen ' + existen.join(',')],
+    ['mitral: morfologia antes de los botones', orden.mitral === 'antes', 'da ' + orden.mitral],
+    ['aortica: morfologia antes de los botones', orden.aortica === 'antes', 'da ' + orden.aortica],
+    ['tricuspide: morfologia antes de los botones', orden.tricuspide === 'antes', 'da ' + orden.tricuspide],
+    ['pulmonar: NO tiene fila de botones (usa solapas)', pulmSinFila && orden.pulmonar === 'sin fila de botones',
+      'da ' + orden.pulmonar],
+    ['pulmonar: la morfologia es el primer campo de su solapa',
+      !!primerCampo && primerCampo.id === 'vp_morf',
+      'el primer campo es ' + (primerCampo ? primerCampo.id : '(ninguno)')],
+    /* CONTROL NEGATIVO de la sonda: la misma funcion tiene que saber contestar 'despues'. El
+       grado final de insuficiencia va DESPUES de los botones, y asi debe seguir. Sin esto, un
+       rel() que devolviera 'antes' siempre dejaria las cuatro condiciones de arriba en verde. */
+    ['CONTROL NEGATIVO: la sonda sabe decir «despues»',
+      rel('im_sev_final', 'pill-insuf-mitral') === 'despues',
+      'rel(im_sev_final, pill) da ' + rel('im_sev_final', 'pill-insuf-mitral')],
+  ] };
+`);
+
+caso('TC-379', 'Los dos selects de grado final quedan en la MISMA fila y arrancan en el mismo pixel con los dos botones activos, en mitral y en aortica', `
+  const tab = document.getElementById('tab-valvulas');
+  const ancho = function (px) {
+    if (px) tab.style.setProperty('width', px + 'px', 'important');
+    else tab.style.removeProperty('width');
+  };
+  const abrir = function (v, t) {
+    const p = document.getElementById('pill-' + t + '-' + v);
+    if (p && !p.classList.contains('btn-primary')) toggleValvPill(v, t);
+    return !!(p && p.classList.contains('btn-primary'));
+  };
+  /* ⚠️ HAY QUE ABRIR LA PESTANA Y LAS DOS SECCIONES, Y ESTE CASO YA SE EQUIVOCO UNA VEZ POR NO
+     HACERLO. El arnes arranca en otra pestana y las cuatro valvulas vienen colapsadas, asi que
+     getBoundingClientRect devolvia 0 en todo y el caso leia cuatro cajas de 0x0 como si fueran
+     cuatro cajas alineadas: top 0 === top 0. Es el denominador de CLAUDE.md —lo que esta en
+     display:none no tiene geometria— y la primera version de la condicion de denominador lo dejo
+     pasar porque preguntaba por display del PROPIO select, que no es none: el que esta oculto es
+     un ancestro. De ahi el rechazo explicito del 0x0 en geo(). */
+  const abrirTodo = function () {
+    try { showTab('valvulas'); } catch (e) {}
+    ['valv-mitral','valv-aortica'].forEach(function (k) {
+      const sec = document.getElementById('ete-seccion-' + k);
+      if (sec && sec.style.display === 'none') {
+        try { toggleEteSeccion(k, document.querySelector('[onclick*="' + k + '"]')); } catch (e) {}
+      }
+    });
+  };
+  const geo = function (id) {
+    const e = document.getElementById(id);
+    if (!e) return 'falta ' + id;
+    const r = e.getBoundingClientRect();
+    /* 0x0 NO es una caja: es un ancestro en display:none. Se rechaza con nombre propio para que el
+       diagnostico diga «sin geometria» y no mienta con un top de 0. */
+    if (!r.width && !r.height) return 'sin geometria';
+    return { top: Math.round(r.top), left: Math.round(r.left), w: Math.round(r.width) };
+  };
+  /* Primero se ENCIENDE y despues se limpia, para que la condicion de abajo tenga denominador:
+     sobre pastillas ya apagadas, «quedo oculto» no prueba nada. */
+  abrirTodo();
+  ['mitral','aortica'].forEach(function (v) { abrir(v, 'insuf'); });
+  const antesDeLimpiar = ['gf-insuf-mitral','gf-insuf-aortica'].filter(function (id) {
+    const e = document.getElementById(id); return e && getComputedStyle(e).display !== 'none'; });
+  __t.limpiar();
+  /* ⚠️ «Nuevo estudio» tiene que apagar TAMBIEN el cajon de arriba. limpiarCampos barre por
+     prefijo y gf-insuf- no empieza con bloque-, asi que la primera version de esta tanda dejaba el
+     desplegable que dice «Severidad IM confirmada — ira al informe y PDF» ABIERTO sobre un estudio
+     vacio, con la pastilla apagada. El narrativo publica por im_grado > 0 sin preguntarle a la
+     pastilla, o sea que un grado elegido ahi entraba al informe firmado. */
+  const trasLimpiar = ['gf-insuf-mitral','gf-insuf-aortica'].filter(function (id) {
+    const e = document.getElementById(id); return e && getComputedStyle(e).display !== 'none'; });
+  abrirTodo();
+  const on = [];
+  ['mitral','aortica'].forEach(function (v) { ['insuf','esten'].forEach(function (t) {
+    if (abrir(v, t)) on.push(t + '-' + v); }); });
+  ancho(1100);
+  const g = { em: geo('em_grado'), im: geo('im_sev_final'), ea: geo('ea_grado'), ia: geo('ia_sev_final') };
+  ancho(null);
+  const devuelto = tab.style.width === '';
+  const obj = function (x) { return x && typeof x === 'object'; };
+  const mismaFila = function (a, b) { return obj(a) && obj(b) && a.top === b.top && a.left !== b.left; };
+  const izqEsInsuf = function (ins, est) { return obj(ins) && obj(est) && ins.left < est.left; };
+  const diag = JSON.stringify(g);
+  return { extra: [
+    ['DENOMINADOR: los cuatro botones quedaron encendidos', on.length === 4, 'encendidos ' + on.join(',')],
+    ['DENOMINADOR: los cuatro selects tienen geometria de verdad (no 0x0)',
+      obj(g.em) && obj(g.im) && obj(g.ea) && obj(g.ia), diag],
+    ['mitral: los dos arrancan en el mismo pixel y en columnas distintas', mismaFila(g.im, g.em), diag],
+    ['mitral: insuficiencia a la izquierda, estenosis a la derecha', izqEsInsuf(g.im, g.em), diag],
+    ['aortica: los dos arrancan en el mismo pixel y en columnas distintas', mismaFila(g.ia, g.ea), diag],
+    ['aortica: insuficiencia a la izquierda, estenosis a la derecha', izqEsInsuf(g.ia, g.ea), diag],
+    ['DENOMINADOR: los dos cajones de grado final estaban ABIERTOS antes de «Nuevo estudio»',
+      antesDeLimpiar.length === 2, 'abiertos antes: ' + antesDeLimpiar.join(',')],
+    ['«Nuevo estudio» apaga tambien el cajon de grado final de arriba, no solo la cuantificacion',
+      trasLimpiar.length === 0, 'quedaron abiertos: ' + trasLimpiar.join(',')],
+    ['el ancho forzado se devolvio', devuelto, 'quedo width=' + tab.style.width],
+  ] };
+`);
+
+caso('TC-380', 'A 300 px la fila de grado final se apila en una sola columna y ninguno de los cuatro selects se sale de su fila, y a 1100 px NO esta apilada', `
+  const tab = document.getElementById('tab-valvulas');
+  const ancho = function (px) {
+    if (px) tab.style.setProperty('width', px + 'px', 'important');
+    else tab.style.removeProperty('width');
+  };
+  const abrir = function (v, t) {
+    const p = document.getElementById('pill-' + t + '-' + v);
+    if (p && !p.classList.contains('btn-primary')) toggleValvPill(v, t);
+    return !!(p && p.classList.contains('btn-primary'));
+  };
+  /* ⚠️ HAY QUE ABRIR LA PESTANA Y LAS DOS SECCIONES, Y ESTE CASO YA SE EQUIVOCO UNA VEZ POR NO
+     HACERLO. El arnes arranca en otra pestana y las cuatro valvulas vienen colapsadas, asi que
+     getBoundingClientRect devolvia 0 en todo y el caso leia cuatro cajas de 0x0 como si fueran
+     cuatro cajas alineadas: top 0 === top 0. Es el denominador de CLAUDE.md —lo que esta en
+     display:none no tiene geometria— y la primera version de la condicion de denominador lo dejo
+     pasar porque preguntaba por display del PROPIO select, que no es none: el que esta oculto es
+     un ancestro. De ahi el rechazo explicito del 0x0 en geo(). */
+  const abrirTodo = function () {
+    try { showTab('valvulas'); } catch (e) {}
+    ['valv-mitral','valv-aortica'].forEach(function (k) {
+      const sec = document.getElementById('ete-seccion-' + k);
+      if (sec && sec.style.display === 'none') {
+        try { toggleEteSeccion(k, document.querySelector('[onclick*="' + k + '"]')); } catch (e) {}
+      }
+    });
+  };
+  const geo = function (id) {
+    const e = document.getElementById(id);
+    if (!e) return 'falta ' + id;
+    const r = e.getBoundingClientRect();
+    if (!r.width && !r.height) return 'sin geometria';
+    return { top: Math.round(r.top), left: Math.round(r.left), right: Math.round(r.right) };
+  };
+  /* Borde derecho de la fila que contiene a ese select: el desborde se mide contra el contenedor
+     que lo gobierna y NO contra el viewport, que aca sigue valiendo ~756 px porque lo que se
+     fuerza es el ancho de #tab-valvulas. Medirlo contra innerWidth daria «sin desborde» siempre. */
+  const filaDer = function (id) {
+    const e = document.getElementById(id); if (!e) return null;
+    const f = e.closest('.valv-gf-row'); if (!f) return null;
+    return Math.round(f.getBoundingClientRect().right);
+  };
+  __t.limpiar();
+  abrirTodo();
+  const on = [];
+  ['mitral','aortica'].forEach(function (v) { ['insuf','esten'].forEach(function (t) {
+    if (abrir(v, t)) on.push(t + '-' + v); }); });
+
+  ancho(1100);
+  const ancha = { em: geo('em_grado'), im: geo('im_sev_final'), ea: geo('ea_grado'), ia: geo('ia_sev_final') };
+  ancho(300);
+  const flaca = { em: geo('em_grado'), im: geo('im_sev_final'), ea: geo('ea_grado'), ia: geo('ia_sev_final') };
+  const der = { em: filaDer('em_grado'), im: filaDer('im_sev_final'),
+                ea: filaDer('ea_grado'), ia: filaDer('ia_sev_final') };
+  ancho(null);
+  const devuelto = tab.style.width === '';
+
+  const obj = function (x) { return x && typeof x === 'object'; };
+  const apilado = function (a, b) { return obj(a) && obj(b) && a.left === b.left && a.top !== b.top; };
+  const dentro = function (k) { return obj(flaca[k]) && der[k] !== null && flaca[k].right <= der[k] + 1; };
+  const dg = 'a300=' + JSON.stringify(flaca) + ' bordes=' + JSON.stringify(der) +
+             ' a1100=' + JSON.stringify(ancha);
+  return { extra: [
+    ['DENOMINADOR: los cuatro botones quedaron encendidos', on.length === 4, 'encendidos ' + on.join(',')],
+    ['DENOMINADOR: los cuatro selects tienen geometria de verdad a 300 px (no 0x0)',
+      obj(flaca.em) && obj(flaca.im) && obj(flaca.ea) && obj(flaca.ia), dg],
+    ['mitral: a 300 px los dos quedan en la misma columna, uno debajo del otro', apilado(flaca.im, flaca.em), dg],
+    ['aortica: a 300 px los dos quedan en la misma columna, uno debajo del otro', apilado(flaca.ia, flaca.ea), dg],
+    ['a 300 px ninguno de los cuatro se sale de su fila',
+      dentro('em') && dentro('im') && dentro('ea') && dentro('ia'), dg],
+    /* CONTROL NEGATIVO: la misma sonda, a 1100 px, tiene que decir que NO esta apilado. Sin esta
+       condicion un apilado() roto —o una fila que apila SIEMPRE, que seria el defecto de verdad—
+       dejaria las de arriba en verde. */
+    ['CONTROL NEGATIVO: a 1100 px NO esta apilado',
+      !apilado(ancha.im, ancha.em) && !apilado(ancha.ia, ancha.ea), dg],
+    ['el ancho forzado se devolvio', devuelto, 'quedo width=' + tab.style.width],
+  ] };
+`);
+
+
+caso('TC-381', 'El cajon «Fundamento del ajuste» va a la DERECHA del select, el select baja a la mitad de su columna, las opciones van en dos columnas en ancho, y en angosto todo baja a una sola', `
+  const tab = document.getElementById('tab-valvulas');
+  const ancho = function (px) {
+    if (px) tab.style.setProperty('width', px + 'px', 'important');
+    else tab.style.removeProperty('width');
+  };
+  const geo = function (id) {
+    const e = document.getElementById(id);
+    if (!e) return 'falta ' + id;
+    const r = e.getBoundingClientRect();
+    if (!r.width && !r.height) return 'sin geometria';
+    return { top: Math.round(r.top), left: Math.round(r.left), w: Math.round(r.width) };
+  };
+  /* Columnas de las OPCIONES: cuantos valores distintos de left tienen las casillas visibles del
+     juego que esta mostrandose. 2 = dos columnas, 1 = una. */
+  const cols = function () {
+    const g = document.getElementById('ea-fund-sube');
+    if (!g || getComputedStyle(g).display === 'none') return 'el juego «sube» no se ve';
+    const ls = Array.from(g.querySelectorAll('input[type=checkbox]'))
+      .map(function (e) { return Math.round(e.getBoundingClientRect().left); })
+      .filter(function (x) { return x > 0; });
+    if (!ls.length) return 'sin casillas';
+    return { n: new Set(ls).size, casillas: ls.length };
+  };
+  __t.limpiar();
+  try { showTab('valvulas'); } catch (e) {}
+  const sec = document.getElementById('ete-seccion-valv-aortica');
+  if (sec && sec.style.display === 'none') {
+    try { toggleEteSeccion('valv-aortica', document.querySelector('[onclick*="valv-aortica"]')); } catch (e) {}
+  }
+  const p = document.getElementById('pill-esten-aortica');
+  if (p && !p.classList.contains('btn-primary')) toggleValvPill('aortica', 'esten');
+  /* Discrepancia de verdad y por el camino de la app: Vmax 2,5 calcula LEVE y el medico fija
+     SEVERA. Sentido «sube», que es el juego de tres opciones. Nada de display:block a mano: lo que
+     se mide es que el cajon se abra solo, igual que en produccion. */
+  __t.set('nombre','TC381'); __t.set('ea_vmax','2.5');
+  window.esqSevManual = window.esqSevManual || {};
+  __t.set('ea_grado','severa'); window.esqSevManual.ea = true;
+  try { sevSincronizar('ea'); } catch (e) {}
+  const discrepa = (typeof sevDiscrepa === 'function') ? sevDiscrepa('ea') : null;
+  const sentido  = (typeof sevSentido === 'function') ? sevSentido('ea') : null;
+
+  ancho(1100);
+  const anchaSel = geo('ea_grado'), anchaCaj = geo('ea-fund');
+  const anchaAviso = geo('ea-manual-aviso'), anchaBadge = geo('ea-ava-badge');
+  const anchaCols = cols();
+  /* ⚠️ SE MIDE CONTRA LA FILA, NO CONTRA LA COLUMNA. El getBoundingClientRect de .valv-gf-col es
+     el borde EXTERNO: incluye los 24 px de padding y los 2 de borde, asi que «la mitad de la
+     columna» da 17 px de mas y la condicion fallaba por medir dos cosas distintas. La fila
+     .valv-fund-row es exactamente el espacio que los dos se reparten, menos el gap de 10 px. */
+  const filaAncho = (function () { const c = document.getElementById('ea-fund');
+    const f = c && c.closest('.valv-fund-row');
+    return f ? Math.round(f.getBoundingClientRect().width) : null; })();
+  ancho(500);
+  const flacaCols = cols();
+  ancho(300);
+  const flacaSel = geo('ea_grado'), flacaCaj = geo('ea-fund');
+  ancho(null);
+  const devuelto = tab.style.width === '';
+
+  const obj = function (x) { return x && typeof x === 'object'; };
+  const dg = 'sel=' + JSON.stringify(anchaSel) + ' cajon=' + JSON.stringify(anchaCaj) +
+             ' filaAncho=' + filaAncho + ' cols1100=' + JSON.stringify(anchaCols) +
+             ' cols500=' + JSON.stringify(flacaCols) +
+             ' sel300=' + JSON.stringify(flacaSel) + ' cajon300=' + JSON.stringify(flacaCaj);
+  return { extra: [
+    ['DENOMINADOR: hay discrepancia de verdad y el cajon se abrio SOLO',
+      discrepa === true && sentido === 'sube' && obj(anchaCaj), 'discrepa=' + discrepa + ' sentido=' + sentido + ' · ' + dg],
+    ['el cajon va a la DERECHA del select y en la MISMA fila',
+      obj(anchaSel) && obj(anchaCaj) && anchaCaj.left > anchaSel.left && anchaCaj.top === anchaSel.top, dg],
+    ['el select ocupa la mitad de su columna (la fila menos el gap de 10 px, repartida en dos)',
+      obj(anchaSel) && filaAncho !== null && Math.abs(anchaSel.w - (filaAncho - 10) / 2) <= 2, dg],
+    ['el aviso rojo y la linea del grado calculado quedan DEBAJO del select, no del cajon',
+      obj(anchaAviso) && obj(anchaBadge) && obj(anchaSel) &&
+      anchaAviso.left === anchaSel.left && anchaBadge.left === anchaSel.left &&
+      anchaAviso.top > anchaSel.top && anchaBadge.top > anchaAviso.top, dg],
+    ['las opciones van en DOS columnas con el cajon ancho',
+      obj(anchaCols) && anchaCols.n === 2 && anchaCols.casillas === 3, dg],
+    /* CONTROL NEGATIVO de las columnas: con el cajon angosto tienen que bajar a UNA. Un
+       columns:2 pelado nunca colapsa, y sin esta condicion la de arriba sola lo deja pasar. */
+    ['CONTROL NEGATIVO: con el cajon angosto bajan a UNA sola columna',
+      obj(flacaCols) && flacaCols.n === 1, dg],
+    ['a 300 px el cajon baja debajo del select y el select toma la columna entera',
+      obj(flacaSel) && obj(flacaCaj) && flacaCaj.top > flacaSel.top &&
+      flacaCaj.left === flacaSel.left && flacaSel.w > 150, dg],
+    ['el ancho forzado se devolvio', devuelto, 'quedo width=' + tab.style.width],
+  ] };
 `);
 
 

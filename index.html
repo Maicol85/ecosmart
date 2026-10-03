@@ -1390,6 +1390,96 @@ html.light-mode #tab-valvulas .sev-lvl1{color:#166534;}
 html.light-mode #tab-valvulas .sev-lvl2{color:#78350f;}
 html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
 
+/* ═══ MAQUETACIÓN DE LA PESTAÑA VÁLVULAS (2026-10-02) ════════════════════════════════════════
+   Tres primitivas de layout y nada más: NI UN cambio de lógica, de rótulo ni de cálculo. Las tres
+   usan `flex-wrap` con una base en px y NINGUNA media query, por el mismo motivo que ya documenta
+   el cajón `ea-fund`: un breakpoint hay que mantenerlo de acuerdo con `check_mobile.js` y se
+   desincroniza en silencio, mientras que la base en px apila sola en cuanto no entra.
+   ⚠️ NINGUNA de estas reglas declara `display` sobre un contenedor que el JS muestre con
+   `style.display = ''` —`sevFundamento` hace exactamente eso con `ea-fund` e `ia-fund`—. Si alguna
+   vez se le pone `display:none` por clase a `.valv-fund-box`, el cajón deja de abrirse y el síntoma
+   es «la apertura automática se rompió», que no apunta al CSS. */
+
+/* (2) Morfología arriba, pegada a la izquierda. No ocupa el ancho entero: el select de morfología
+   con 978 px de ancho era una barra que no dice nada más que con 420. */
+#tab-valvulas .valv-morf-row{display:flex;flex-wrap:wrap;gap:8px 12px;margin-bottom:12px;}
+#tab-valvulas .valv-morf-row > .fg{flex:0 1 420px;min-width:0;margin-bottom:0;}
+
+/* (3) Fila de grado final: insuficiencia a la izquierda (bajo su botón), estenosis a la derecha,
+   a la misma altura. `align-items:flex-start` y no `stretch`: con el cajón del fundamento abierto
+   la columna de la estenosis crece, y estirar la otra dejaría una caja vacía del mismo alto.
+   Base 320 px: a 756 px de ancho útil entran las dos (≈342 cada una) y a 538 px ya no, así que
+   apila sin que ningún número esté escrito dos veces. */
+#tab-valvulas .valv-gf-row{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-start;}
+#tab-valvulas .valv-gf-col{flex:1 1 320px;min-width:0;}
+/* La caja —fondo, borde y padding— la pone la COLUMNA y no el contenido, y eso es lo que hace que
+   los dos `<select>` queden a la misma altura. Antes el de insuficiencia venía envuelto en un
+   `<div>` con `padding:10px 12px` inline y el de estenosis en un `.fg` pelado: los dos selects
+   arrancaban a 17 px de diferencia, que de reojo se lee como dos filas distintas. Medido.
+   El rótulo también se normaliza acá, por lo mismo: 11 px en negrita de acento en los dos lados,
+   sin tocar UNA LETRA del texto de ninguno de los dos. */
+/* ⚠️ LA CAJA VA EN EL HIJO, NO EN LA COLUMNA, Y TAMBIÉN LO ENCONTRÓ /sharp-edges. Puesta en
+   `.valv-gf-col` se pintaba SIEMPRE, y el único hijo de cada columna es un `<div>` que arranca en
+   `display:none`: con las dos pastillas apagadas —el estado después de «Nuevo estudio»— la
+   mitral y la aórtica mostraban cada una dos cajas vacías con borde y 22 px de alto, en la primera
+   pantalla de la pestaña. En el hijo, la caja desaparece con él y no hace falta un segundo
+   mecanismo. Los dos hijos directos reciben el MISMO padding, que es lo que sostiene la
+   alineación de los dos `<select>` — re-medido en Chrome después de mover esto, no deducido. */
+#tab-valvulas .valv-gf-col > div{padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);}
+#tab-valvulas .valv-gf-col > .fg,#tab-valvulas .valv-gf-caja{margin-bottom:0;}
+/* ⚠️ `gap:0` Y TAMBIÉN SE MIDIÓ. `.fg` es `display:flex;flex-direction:column;gap:3px` (línea 688),
+   así que el lado de la ESTENOSIS metía 3 px entre el rótulo y el `<select>` que el lado de la
+   INSUFICIENCIA —un `<div>` normal— no tenía: 490 contra 493. El rótulo ya trae su propio
+   `margin-bottom:6px`, así que el gap no estaba separando nada que no estuviera separado. */
+#tab-valvulas .valv-gf-col > div > .fg{gap:0;}
+/* ⚠️ LOS CUATRO CAMINOS SE ESCRIBEN UNO POR UNO, y NO con un `.valv-gf-col label:first-child`.
+   Ese atajo también pescaría los `label` de las opciones del cajón del fundamento —que son
+   `:first-child` de su propio `div`— y les pisaría los 10 px compactos de la etapa 4 con 11 px en
+   negrita de acento. Los cuatro son: insuficiencia mitral y aórtica (`> gf-insuf-* > .valv-gf-caja
+   > label`), estenosis mitral (`> bloque-esten-mitral > .fg > label`) y estenosis aórtica
+   (`> bloque-esten-aortica > label`, que es directo porque su rótulo quedó FUERA de la mitad
+   izquierda para que no se parta en dos líneas dentro de 242 px). */
+#tab-valvulas .valv-gf-col > div > .valv-gf-caja > label,
+#tab-valvulas .valv-gf-col > div > .fg > label,
+#tab-valvulas .valv-gf-col > div > label{display:block;font-size:11px;font-weight:700;color:var(--accent2);margin:0 0 6px;line-height:15px;}
+/* ⚠️ EL `line-height:15px` DE ARRIBA NO ES DECORACIÓN: SIN ÉL SOBRA UN PÍXEL, Y SE MIDIÓ.
+   El rótulo de la izquierda en la mitral arranca con «✅», y el cuadro de un emoji es más alto que
+   el de una letra: con `line-height` libre la caja de ese `label` crecía 1 px y los dos `<select>`
+   quedaban a 393 y 394. Fijando el `line-height` la altura de línea deja de depender del glifo y
+   los dos arrancan en el mismo píxel. NO se toca el texto del rótulo —es decisión de Maicol— y por
+   eso el arreglo va del lado del CSS. */
+
+/* (4) Cajón «Fundamento del ajuste» compacto: el select baja a la mitad de su columna y el cajón
+   va a su derecha. El aviso rojo y la línea del grado calculado viven DENTRO de `.valv-fund-sel`,
+   o sea debajo del select y no del cajón — es el select lo que explican. */
+#tab-valvulas .valv-fund-row{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-start;}
+/* ⚠️ LA MITAD SE CONSIGUE CON DOS BASES IGUALES Y `grow:1`, NO CON `flex:0 1 50%`.
+   El `50%` lo probé primero y tiene un defecto medido: el cajón está oculto casi siempre —sólo
+   aparece con discrepancia—, y un `basis` del 50 % sin `grow` deja el `<select>` a media columna
+   TAMBIÉN cuando está solo. A 300 px eso daba un desplegable de grado final de 106 px con el resto
+   de la fila vacío: la mitad de los rótulos («Moderada-severa») no entran.
+   Con `1 1 150px` en los dos: cajón cerrado → el select es el único ítem y `grow` lo lleva al ancho
+   entero de la columna; cajón abierto y columna ≥ 310 px → las dos bases son iguales y el espacio
+   libre se reparte 1:1, o sea EXACTAMENTE la mitad cada uno; columna < 310 px → no entran las dos
+   bases y la fila envuelve, que es el apilado pedido. Un solo número (150) gobierna las tres cosas.
+   Medido a 1200 px: 223 px cada uno sobre una columna de 457. */
+#tab-valvulas .valv-fund-row > .valv-fund-sel{flex:1 1 150px;min-width:0;margin-bottom:0;}
+#tab-valvulas .valv-fund-row > .valv-fund-box{flex:1 1 150px;min-width:0;margin-top:0;}
+/* Opciones en dos columnas por multi-columna y no por grid: la lista cambia de largo con el
+   sentido del ajuste (tres opciones con «sube», una con «baja») y `columns` reparte lo que haya. */
+/* ⚠️ `columns:95px 2` Y NO `columns:2`. Con el conteo pelado las dos columnas son
+   INCONDICIONALES: no colapsan a ningún ancho, y era la única de las cuatro primitivas de esta
+   tanda que no cumplía su propia regla de arriba. Medido: a 756 px el cajón de la aórtica queda en
+   153 px, o sea dos columnas de ~62 px para una etiqueta de ~220 px de texto. Con el ancho mínimo
+   el navegador baja a UNA columna solo, con el mismo número gobernando las dos cosas que el `150`
+   de `.valv-fund-sel`. El 95 sale de medir: a 1200 px el cajón tiene ~206 px útiles y entran las
+   dos columnas pedidas; por debajo de ~200 px útiles, una sola. */
+#tab-valvulas .valv-fund-opc{columns:95px 2;column-gap:10px;}
+#tab-valvulas .valv-fund-box{padding:6px 8px;}
+#tab-valvulas .valv-fund-box .valv-fund-tit{font-size:10px;margin-bottom:4px;}
+#tab-valvulas .valv-fund-box label{font-size:10px;line-height:1.3;margin:0 0 2px;break-inside:avoid;}
+#tab-valvulas .valv-fund-box input[type="text"]{font-size:10px;padding:3px 5px;}
+
 /* Fix 4: letras negras en acordeones del tab SGL */
 #tab-sgl .card-head{color:var(--text)!important;}
 #tab-sgl details summary{color:var(--text)!important;}
@@ -3240,20 +3330,13 @@ window.cerrarSesionReal = cerrarSesionReal;
   <div id="ete-seccion-valv-mitral" style="display:none;">
   <div class="card">
     <div class="card-body">
-      <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <div class="valv-btn-wrap">
-          <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-mitral" onclick="toggleValvPill('mitral','insuf')">Insuficiencia</button>
-          <button type="button" class="valv-sev-btn" id="sevbtn-insuf-mitral" onclick="valvSevMenu('insuf','mitral',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
-          <div class="valv-sev-menu" id="sevmenu-insuf-mitral" role="menu"></div>
-        </div>
-        <div class="valv-btn-wrap">
-          <button type="button" class="btn btn-ghost valv-pill" id="pill-esten-mitral" onclick="toggleValvPill('mitral','esten')">Estenosis</button>
-          <button type="button" class="valv-sev-btn" id="sevbtn-esten-mitral" onclick="valvSevMenu('esten','mitral',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
-          <div class="valv-sev-menu" id="sevmenu-esten-mitral" role="menu"></div>
-        </div>
-      </div>
-      <div class="sev-pills" id="sevpills-mitral"></div>
-      <div class="grid-2" style="margin-bottom:8px;">
+      <!-- ═══ MORFOLOGÍA ARRIBA (etapa 2, 2026-10-02) — DECISIÓN DE MAICOL ═══════════════════
+           El `div.fg` entero se mudó desde el `grid-2` de abajo hasta acá, entre el encabezado
+           colapsable y la fila de botones. Se movió el WRAPPER, sin tocar un solo `id`, `name`
+           ni listener: el `onchange` del select viaja adentro. El orden del DOM es además el
+           orden de tabulación —no hay un `tabindex` en todo el bloque—, así que ahora se tabula
+           morfología → Insuficiencia → Estenosis, que es el orden en que se carga el caso. -->
+      <div class="valv-morf-row">
         <div class="fg"><label>Morfología VM</label>
           <!-- Las dos últimas son ETIOLOGÍAS, no morfologías, y por eso el narrativo NO las mete
                en «de morfología …»: ver `VALV_MORF_ETIOL`. Van al final para no mover el orden
@@ -3278,6 +3361,68 @@ window.cerrarSesionReal = cerrarSesionReal;
           <select id="vm_morf" onchange="showProlapsoPanel();valvProtSync();imOndaESiExiste();eteVmPropagar('vm');calcIM_ESC();calcEM()"><option>Normal</option><option>Mixomatosa / Barlow</option><option>Calcificada</option><option>Reumática</option><option>Prolapso / EVMS</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Endocarditis</option><option>Isquémica (disfunción/rotura músculo papilar)</option></select>
           <div id="vm-ete-aviso" style="display:none;font-size:11px;color:var(--red);margin-top:3px;"></div>
         </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <div class="valv-btn-wrap">
+          <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-mitral" onclick="toggleValvPill('mitral','insuf')">Insuficiencia</button>
+          <button type="button" class="valv-sev-btn" id="sevbtn-insuf-mitral" onclick="valvSevMenu('insuf','mitral',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          <div class="valv-sev-menu" id="sevmenu-insuf-mitral" role="menu"></div>
+        </div>
+        <div class="valv-btn-wrap">
+          <button type="button" class="btn btn-ghost valv-pill" id="pill-esten-mitral" onclick="toggleValvPill('mitral','esten')">Estenosis</button>
+          <button type="button" class="valv-sev-btn" id="sevbtn-esten-mitral" onclick="valvSevMenu('esten','mitral',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          <div class="valv-sev-menu" id="sevmenu-esten-mitral" role="menu"></div>
+        </div>
+      </div>
+      <div class="sev-pills" id="sevpills-mitral"></div>
+      <!-- ═══ FILA DE GRADO FINAL (etapa 3, 2026-10-02) — DECISIÓN DE MAICOL ═══════════════════
+           Los dos `<select>` de grado final quedan en la fila inmediatamente debajo de los
+           botones: insuficiencia a la izquierda (bajo su botón) y estenosis a la derecha, a la
+           misma altura. Antes el de insuficiencia vivía al final de su cuantificación —a 960 px
+           de scroll del botón que lo enciende— y el de estenosis arriba: dos grados que el
+           médico decide juntos, en dos lugares distintos de la pantalla.
+           ⚠️ LA VISIBILIDAD SIGUE SIENDO LA MISMA Y LA SIGUE GOBERNANDO `toggleValvPill`. El
+           cajón de la ESTENOSIS es el mismo `bloque-esten-*` que el toggle ya mostraba, movido
+           entero. El de la INSUFICIENCIA tuvo que salir de adentro de `bloque-insuf-*` —que se
+           queda abajo con la cuantificación, sin cambios—, así que ahora hay DOS nodos con UN
+           solo estado: el wrapper `gf-insuf-*` de acá y el `bloque-insuf-*` de abajo. Los mueve
+           juntos el companion de `toggleValvPill` (ver ahí). Los `id` de los dos `<select>` y de
+           todo lo que los rodea quedan intactos: el informe, el EN SUMA, el PDF y las 434
+           columnas del Excel salen idénticos. -->
+      <div class="valv-gf-row" style="margin-bottom:8px;">
+        <div class="valv-gf-col">
+          <div id="gf-insuf-mitral" style="display:none;">
+      <div class="valv-gf-caja">
+        <label style="font-size:11px;font-weight:700;color:var(--accent2);display:block;margin-bottom:6px;">&#x2705; Severidad IM confirmada &mdash; ir&aacute; al informe y PDF</label>
+        <select id="im_sev_final" onchange="imGradoManual()" style="width:100%;">
+          <option value="0">&mdash; Sin insuficiencia / no evaluada</option>
+          <option value="1">Leve</option>
+          <option value="2">Moderada</option>
+          <option value="3">Moderada-severa</option>
+          <option value="4">Severa</option>
+        </select>
+        <div style="font-size:10px;color:var(--text2);margin-top:4px;">Se completa autom&aacute;ticamente con la severidad calculada. Editable manualmente.</div>
+      </div>
+          </div>
+        </div>
+        <div class="valv-gf-col">
+        <div id="bloque-esten-mitral" style="display:none;">
+        <div class="fg"><label>Estenosis mitral — grado final (lo elige el médico)</label>
+          <!-- El `onchange` es de la fase 2 y NO toca `calcEM`: solo repinta la fila de onda E de
+               IM, que se apaga con estenosis documentada. Sin esto el medico gradua la estenosis y
+               la fila de al lado sigue afirmando un signo que la guia invalida.
+               ⚠️ LAS ETIQUETAS PERDIERON SU BANDA DE AREA, y no es cosmetico: desde el 28/09 el
+               grado NO se autocompleta y el area ya no lo define, asi que «Leve (AVm 2.51-3.99)»
+               era una regla impresa que ninguna funcion aplica. Los `value` NO se tocan —sacar u
+               nombrar distinto una opcion deja `selectedIndex = -1` y el hueco se persiste— y el
+               PPT sale igual, porque `_pptSel` ya recorta el parentesis final. -->
+          <select id="em_grado" onchange="emGradoManual()"><option value="sin">Sin estenosis</option><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option></select>
+          <div id="em-thp-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
+        </div>
+        </div>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-bottom:8px;">
         <!-- Campos de PRÓTESIS (Fase 1, 2026-09-27). Se muestran sólo con una de las tres
              opciones de prótesis y NO calculan nada todavía: la graduación es la Fase 2. -->
         <div id="bloque-prot-vm" class="fg" style="display:none;">
@@ -3330,20 +3475,6 @@ window.cerrarSesionReal = cerrarSesionReal;
             <label><input type="checkbox" id="vm_engros_valvar"> Engrosamiento valvar &gt;5mm</label>
             <label><input type="checkbox" id="vm_exceso_tejido"> Exceso de tejido</label>
           </div>
-        </div>
-        <div id="bloque-esten-mitral" style="display:none;">
-        <div class="fg"><label>Estenosis mitral — grado final (lo elige el médico)</label>
-          <!-- El `onchange` es de la fase 2 y NO toca `calcEM`: solo repinta la fila de onda E de
-               IM, que se apaga con estenosis documentada. Sin esto el medico gradua la estenosis y
-               la fila de al lado sigue afirmando un signo que la guia invalida.
-               ⚠️ LAS ETIQUETAS PERDIERON SU BANDA DE AREA, y no es cosmetico: desde el 28/09 el
-               grado NO se autocompleta y el area ya no lo define, asi que «Leve (AVm 2.51-3.99)»
-               era una regla impresa que ninguna funcion aplica. Los `value` NO se tocan —sacar u
-               nombrar distinto una opcion deja `selectedIndex = -1` y el hueco se persiste— y el
-               PPT sale igual, porque `_pptSel` ya recorta el parentesis final. -->
-          <select id="em_grado" onchange="emGradoManual()"><option value="sin">Sin estenosis</option><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option></select>
-          <div id="em-thp-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
-        </div>
         </div>
       </div>
 
@@ -3585,17 +3716,6 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="calc-row"><span id="im-sec-aviso" style="color:var(--yellow);font-size:11px;"></span></div>
         <div class="calc-row"><span id="im-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
       </div>
-      <div style="margin-top:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
-        <label style="font-size:11px;font-weight:700;color:var(--accent2);display:block;margin-bottom:6px;">&#x2705; Severidad IM confirmada &mdash; ir&aacute; al informe y PDF</label>
-        <select id="im_sev_final" onchange="imGradoManual()" style="width:100%;">
-          <option value="0">&mdash; Sin insuficiencia / no evaluada</option>
-          <option value="1">Leve</option>
-          <option value="2">Moderada</option>
-          <option value="3">Moderada-severa</option>
-          <option value="4">Severa</option>
-        </select>
-        <div style="font-size:10px;color:var(--text2);margin-top:4px;">Se completa autom&aacute;ticamente con la severidad calculada. Editable manualmente.</div>
-      </div>
 
       <!-- ═══ ECUACIÓN DE CONTINUIDAD IM ═══ -->
       <div class="divider"></div>
@@ -3703,6 +3823,24 @@ window.cerrarSesionReal = cerrarSesionReal;
   <div id="ete-seccion-valv-aortica" style="display:none;">
   <div class="card">
     <div class="card-body">
+      <!-- ═══ MORFOLOGÍA ARRIBA (etapa 2, 2026-10-02) — DECISIÓN DE MAICOL ═══════════════════
+           El `div.fg` entero se mudó desde el `grid-2` de abajo hasta acá, entre el encabezado
+           colapsable y la fila de botones. Se movió el WRAPPER, sin tocar un solo `id`, `name`
+           ni listener: el `onchange` del select viaja adentro. El orden del DOM es además el
+           orden de tabulación —no hay un `tabindex` en todo el bloque—, así que ahora se tabula
+           morfología → Insuficiencia → Estenosis, que es el orden en que se carga el caso. -->
+      <div class="valv-morf-row">
+        <div class="fg"><label>Morfología VA</label>
+          <!-- ⚠️ ACÁ Y SÓLO ACÁ la etiqueta lleva «(SAVR)», y es la ÚNICA excepción del archivo a la
+               convención que declara el comentario de `vt_morf`: una nota didáctica no va dentro de
+               la etiqueta de una opción. Se justifica porque TAVI existe SÓLO en este select, y el
+               paréntesis es lo que distingue la vía quirúrgica de la percutánea —que también es una
+               bioprótesis—. En las otras tres se sacó (2026-09-27) porque ahí no hay nada con qué
+               confundirse. Lo que impide que el paréntesis llegue al dato es el `value` explícito;
+               antes de tocar cualquiera de los dos, leer `VALV_PROT_OPCIONES`. Lo fija TC-289. -->
+          <select id="va_morf" onchange="valvProtSync()"><option>Trivalva normal</option><option>Bicúspide</option><option>Calcificada</option><option>Reumática</option><option value="Prótesis biológica">Prótesis biológica (SAVR)</option><option value="Prótesis mecánica">Prótesis mecánica (SAVR)</option><option>TAVI</option><option>Endocarditis</option><option>Carcinoide</option></select>
+        </div>
+      </div>
       <div style="display:flex;gap:8px;margin-bottom:12px;">
         <div class="valv-btn-wrap">
           <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-aortica" onclick="toggleValvPill('aortica','insuf')">Insuficiencia</button>
@@ -3716,28 +3854,79 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
       </div>
       <div class="sev-pills" id="sevpills-aortica"></div>
-      <div class="grid-2" style="margin-bottom:8px;">
-        <div class="fg"><label>Morfología VA</label>
-          <!-- ⚠️ ACÁ Y SÓLO ACÁ la etiqueta lleva «(SAVR)», y es la ÚNICA excepción del archivo a la
-               convención que declara el comentario de `vt_morf`: una nota didáctica no va dentro de
-               la etiqueta de una opción. Se justifica porque TAVI existe SÓLO en este select, y el
-               paréntesis es lo que distingue la vía quirúrgica de la percutánea —que también es una
-               bioprótesis—. En las otras tres se sacó (2026-09-27) porque ahí no hay nada con qué
-               confundirse. Lo que impide que el paréntesis llegue al dato es el `value` explícito;
-               antes de tocar cualquiera de los dos, leer `VALV_PROT_OPCIONES`. Lo fija TC-289. -->
-          <select id="va_morf" onchange="valvProtSync()"><option>Trivalva normal</option><option>Bicúspide</option><option>Calcificada</option><option>Reumática</option><option value="Prótesis biológica">Prótesis biológica (SAVR)</option><option value="Prótesis mecánica">Prótesis mecánica (SAVR)</option><option>TAVI</option><option>Endocarditis</option><option>Carcinoide</option></select>
+      <!-- ═══ FILA DE GRADO FINAL (etapa 3, 2026-10-02) — DECISIÓN DE MAICOL ═══════════════════
+           Los dos `<select>` de grado final quedan en la fila inmediatamente debajo de los
+           botones: insuficiencia a la izquierda (bajo su botón) y estenosis a la derecha, a la
+           misma altura. Antes el de insuficiencia vivía al final de su cuantificación —a 960 px
+           de scroll del botón que lo enciende— y el de estenosis arriba: dos grados que el
+           médico decide juntos, en dos lugares distintos de la pantalla.
+           ⚠️ LA VISIBILIDAD SIGUE SIENDO LA MISMA Y LA SIGUE GOBERNANDO `toggleValvPill`. El
+           cajón de la ESTENOSIS es el mismo `bloque-esten-*` que el toggle ya mostraba, movido
+           entero. El de la INSUFICIENCIA tuvo que salir de adentro de `bloque-insuf-*` —que se
+           queda abajo con la cuantificación, sin cambios—, así que ahora hay DOS nodos con UN
+           solo estado: el wrapper `gf-insuf-*` de acá y el `bloque-insuf-*` de abajo. Los mueve
+           juntos el companion de `toggleValvPill` (ver ahí). Los `id` de los dos `<select>` y de
+           todo lo que los rodea quedan intactos: el informe, el EN SUMA, el PDF y las 434
+           columnas del Excel salen idénticos. -->
+      <div class="valv-gf-row" style="margin-bottom:8px;">
+        <div class="valv-gf-col">
+          <div id="gf-insuf-aortica" style="display:none;">
+      <div class="valv-gf-caja">
+        <label style="font-size:11px;font-weight:700;color:var(--accent2);display:block;margin-bottom:6px;">Insuficiencia a&oacute;rtica &mdash; grado final al informe</label>
+        <!-- ═══ CAJÓN COMPACTO (etapa 4, 2026-10-02) ══════════════════════════════════════════
+             Mismo tratamiento que la estenosis: el select a la mitad de su columna y el cajón a su
+             derecha. El rótulo queda ARRIBA de la fila y no dentro de `.valv-fund-sel`, porque
+             nombra el grado final, no la mitad izquierda. El aviso rojo y el texto de ayuda sí van
+             adentro, debajo del select, que es lo que explican. -->
+        <div class="valv-fund-row">
+        <div class="valv-fund-sel">
+        <select id="ia_sev_final" onchange="_gradoManoBorraMarca(this, event);sincronizarGradoIA()" style="width:100%;">
+          <option value="0">&mdash; Sin insuficiencia / no evaluada</option>
+          <option value="1">Leve</option>
+          <option value="2">Moderada</option>
+          <option value="3">Moderada-severa</option>
+          <option value="4">Severa</option>
+        </select>
+        <!-- Aviso de grado fijado a mano que discrepa del calculado (R5), hermano de
+             `ea-manual-aviso`. Va ARRIBA del texto de ayuda a propósito: el aviso explica por qué
+             el `<select>` no dice lo que dice el cuadro, y el de abajo explica de dónde sale el
+             valor cuando NO hay aviso; en ese orden se leen como una sola frase. -->
+        <div id="ia-manual-aviso" style="font-size:11px;font-weight:700;color:var(--red);margin-top:4px;"></div>
+        <!-- ⚠️ ESTE TEXTO DEJÓ DE SER HTML ESTÁTICO Y AHORA LO GOBIERNA EL JS (`_iaAvisoManual`).
+             Era un `<div>` sin id, SIEMPRE visible, y afirmaba «Se completa automáticamente con la
+             severidad calculada» también cuando el médico acababa de fijar el grado a mano —o sea
+             justo cuando es falso—. Decisión de Maicol (2026-10-02): se muestra SÓLO en modo
+             automático. Sin un id no había forma de apagarlo. -->
+        <div id="ia-auto-ayuda" style="font-size:10px;color:var(--text2);margin-top:4px;">Se completa autom&aacute;ticamente con la severidad calculada. Editable manualmente.</div>
         </div>
-        <!-- ⚠️ ACÁ VIVÍAN LOS CAMPOS DE PRÓTESIS DE LA FASE 1 Y LOS DOS SE FUERON (2026-09-27).
-             · `va_dvi` se BORRÓ el mismo día que se agregó: era el tercer campo de DVI aórtico y el
-               único tipeable, y el DVI ya se calcula por continuidad.
-             · `va_at` se MUDÓ al bloque expandido de Estenosis Aórtica, debajo del VTI TSVI, que es
-               donde están sus vecinos de medición y su cuadro de resultados. Acá arriba quedaba en
-               una caja flotante al lado del botón «Estenosis», desconectado de todo: el médico
-               cargaba un AT de 110 ms y no pasaba absolutamente nada.
-             El wrapper `bloque-prot-va` sigue existiendo y lo sigue gobernando `valvProtSync`,
-             porque ahora envuelve al AT en su nueva casa. -->
+        <!-- ═══ FUNDAMENTO DEL AJUSTE — INSUFICIENCIA (F) ═══════════════════════════════════
+             Hermano de `ea-fund` y gobernado por el MISMO `sevFundamento`. Acá NO hay opciones:
+             decisión de Maicol (2026-10-02). Sólo el cuadro de texto, con el mismo título, el mismo
+             rótulo y los mismos 100 caracteres — la lista de opciones de la estenosis sale de los
+             escenarios de bajo gradiente, que no tienen equivalente en la regurgitación.
+             ⚠️ Igual que `ea-fund`: NO se le pone `display` por clase. `sevFundamento` lo abre con
+             `style.display = ''`. -->
+        <div id="ia-fund" class="valv-fund-box" style="display:none;background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;">
+          <div class="valv-fund-tit" style="font-weight:700;color:var(--accent2);">Fundamento del ajuste</div>
+          <label for="ia_fund_nota" style="display:block;font-weight:400;color:var(--text2);margin:0 0 2px;">Motivo del ajuste (opcional)</label>
+          <input type="text" id="ia_fund_nota" maxlength="100" placeholder="Ej.: jet exc&eacute;ntrico, vena contracta no medible" style="width:100%;">
+        </div>
+        </div>
+      </div>
+          </div>
+        </div>
+        <div class="valv-gf-col">
         <div id="bloque-esten-aortica" style="display:none;">
-        <div class="fg"><label>Estenosis a&oacute;rtica &mdash; grado final al informe</label>
+        <!-- ═══ CAJÓN COMPACTO (etapa 4, 2026-10-02) — DECISIÓN DE MAICOL ════════════════════════
+             El `<select>` del grado final baja a la MITAD de su columna (`flex:0 1 50%`) y el cajón
+             del fundamento va a su derecha, en la misma fila. El aviso rojo y la línea del grado
+             calculado se quedan DENTRO de `.valv-fund-sel`, o sea debajo del select: es el select lo
+             que explican, no el cajón.
+             `flex-wrap` con base en px y NINGUNA media query, igual que ya hacía el interior de
+             `ea-fund`: en cuanto la columna no da para los dos, el cajón baja solo. -->
+        <label>Estenosis a&oacute;rtica &mdash; grado final al informe</label>
+        <div class="valv-fund-row">
+        <div class="fg valv-fund-sel">
           <!-- ⚠️ LAS OPCIONES YA NO LLEVAN LA VELOCIDAD, y el motivo es que desde hoy el grado NO
                sale sólo de la Vmax: sale del PEOR de velocidad, gradiente y AVA (ver
                `eaGradoCalculado`). Un `<option>` que dice «Severa (Vmax >4 m/s)» sobre un grado que
@@ -3756,6 +3945,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                es un aviso permanente mientras la discrepancia exista, no una alarma. -->
           <div id="ea-manual-aviso" style="font-size:11px;font-weight:700;color:var(--red);margin-top:4px;"></div>
           <div id="ea-ava-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
+        </div>
           <!-- ═══ FUNDAMENTO DEL AJUSTE (F) — OPCIONAL, NUNCA BLOQUEA ═══════════════════════
                Aparece SOLO cuando el grado fijado a mano discrepa del calculado, que es el MISMO
                estado que enciende `ea-manual-aviso`: lo decide `sevDiscrepa('ea')`, un solo dueño.
@@ -3766,41 +3956,62 @@ window.cerrarSesionReal = cerrarSesionReal;
                juntas: «bajo flujo y bajo gradiente» explica por qué el grado SUBE y «obstrucción
                subaórtica» por qué BAJA; ofrecer las cuatro siempre deja elegir una combinación que
                se contradice con el gesto que el médico acaba de hacer.
-               `flex-wrap` y no una media query: en pantalla ancha el cuadro de texto queda a la
-               derecha de las opciones y en celular baja solo, sin un breakpoint que haya que
-               mantener de acuerdo con `check_mobile.js`. -->
-          <div id="ea-fund" style="display:none;margin-top:8px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;">
-            <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;">Fundamento del ajuste</div>
-            <div style="display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-start;">
-              <div style="flex:1 1 240px;min-width:0;">
+               ⚠️ EL INTERIOR DEJÓ DE SER UN FLEX DE DOS COLUMNAS (etapa 4, 2026-10-02). Antes las
+               opciones iban a la izquierda y la nota a la derecha; ahora el cajón ENTERO es la
+               columna derecha del grado final, así que adentro va en vertical: opciones arriba en
+               DOS COLUMNAS (`.valv-fund-opc`, `columns:2`) y la nota abajo. Se usa multi-columna y
+               no un grid de dos celdas porque la lista cambia de largo con el sentido del ajuste
+               —tres opciones con «sube», una con «baja»— y `columns` reparte lo que haya en vez de
+               dejar una celda vacía. `break-inside:avoid` en los `label` está en el CSS: sin eso
+               una opción se parte al medio entre las dos columnas.
+               ⚠️ NO SE LE PONE `display` POR CLASE a este div: `sevFundamento` lo abre con
+               `style.display = ''`, así que una clase con `display:none` lo dejaría cerrado para
+               siempre y el síntoma sería «se rompió la apertura automática». -->
+          <div id="ea-fund" class="valv-fund-box" style="display:none;background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;">
+            <div class="valv-fund-tit" style="font-weight:700;color:var(--accent2);">Fundamento del ajuste</div>
+            <div class="valv-fund-opc">
                 <!-- Juego del ajuste que SUBE el grado (manual &gt; calculado) -->
                 <div id="ea-fund-sube" style="display:none;">
-                  <label style="display:block;font-size:11px;font-weight:400;margin:0 0 4px;cursor:pointer;line-height:1.4;"><input type="checkbox" id="ea_fund_bfbg_red" onchange="eaFundCambio(this)" style="margin-right:5px;vertical-align:middle;">Bajo flujo y bajo gradiente con FEVI reducida</label>
-                  <label style="display:block;font-size:11px;font-weight:400;margin:0 0 4px;cursor:pointer;line-height:1.4;"><input type="checkbox" id="ea_fund_bfbg_cons" onchange="eaFundCambio(this)" style="margin-right:5px;vertical-align:middle;">Bajo flujo y bajo gradiente con FEVI conservada</label>
-                  <label style="display:block;font-size:11px;font-weight:400;margin:0 0 4px;cursor:pointer;line-height:1.4;"><input type="checkbox" id="ea_fund_plan" onchange="eaFundCambio(this)" style="margin-right:5px;vertical-align:middle;">AVA por planimetr&iacute;a</label>
+                  <label style="display:block;font-weight:400;cursor:pointer;"><input type="checkbox" id="ea_fund_bfbg_red" onchange="eaFundCambio(this)" style="margin-right:4px;vertical-align:middle;">Bajo flujo y bajo gradiente con FEVI reducida</label>
+                  <label style="display:block;font-weight:400;cursor:pointer;"><input type="checkbox" id="ea_fund_bfbg_cons" onchange="eaFundCambio(this)" style="margin-right:4px;vertical-align:middle;">Bajo flujo y bajo gradiente con FEVI conservada</label>
+                  <label style="display:block;font-weight:400;cursor:pointer;"><input type="checkbox" id="ea_fund_plan" onchange="eaFundCambio(this)" style="margin-right:4px;vertical-align:middle;">AVA por planimetr&iacute;a</label>
                 </div>
                 <!-- Juego del ajuste que BAJA el grado (manual &lt; calculado, incluido «Sin estenosis») -->
                 <div id="ea-fund-baja" style="display:none;">
-                  <label style="display:block;font-size:11px;font-weight:400;margin:0 0 4px;cursor:pointer;line-height:1.4;"><input type="checkbox" id="ea_fund_otsvi" onchange="eaFundCambio(this)" style="margin-right:5px;vertical-align:middle;">Obstrucci&oacute;n suba&oacute;rtica (OTSVI)</label>
+                  <label style="display:block;font-weight:400;cursor:pointer;"><input type="checkbox" id="ea_fund_otsvi" onchange="eaFundCambio(this)" style="margin-right:4px;vertical-align:middle;">Obstrucci&oacute;n suba&oacute;rtica (OTSVI)</label>
                 </div>
                 <!-- «Otro» es UNO y vive FUERA de los dos juegos: está en los dos, así que un
                      cambio de sentido no tiene por qué apagarlo. No aporta texto al informe —de
                      «Otro» sólo viaja la nota, si hay— y sirve para que el médico marque que su
                      motivo no está en la lista. -->
-                <label style="display:block;font-size:11px;font-weight:400;margin:0;cursor:pointer;line-height:1.4;"><input type="checkbox" id="ea_fund_otro" onchange="eaFundCambio(this)" style="margin-right:5px;vertical-align:middle;">Otro</label>
-              </div>
-              <div style="flex:1 1 210px;min-width:0;">
-                <label for="ea_fund_nota" style="display:block;font-size:11px;font-weight:400;color:var(--text2);margin:0 0 3px;">Motivo del ajuste (opcional)</label>
+                <label style="display:block;font-weight:400;cursor:pointer;"><input type="checkbox" id="ea_fund_otro" onchange="eaFundCambio(this)" style="margin-right:4px;vertical-align:middle;">Otro</label>
+            </div>
+            <div style="margin-top:4px;">
+                <label for="ea_fund_nota" style="display:block;font-weight:400;color:var(--text2);margin:0 0 2px;">Motivo del ajuste (opcional)</label>
                 <!-- maxlength=100 en el atributo: el navegador no deja escribir el 101. La poda a
                      100 se repite igual en el emisor del informe, porque un estudio reabierto puede
                      traer el campo más largo desde un JSON editado a mano. -->
                 <input type="text" id="ea_fund_nota" maxlength="100" placeholder="Ej.: calcio valvular 2400 UA" oninput="eaFundCambio(this)" style="width:100%;">
-              </div>
             </div>
           </div>
         </div>
         </div>
+        </div>
       </div>
+      <!-- ⚠️ ACÁ VIVÍAN LOS CAMPOS DE PRÓTESIS DE LA FASE 1 Y LOS DOS SE FUERON (2026-09-27).
+             · `va_dvi` se BORRÓ el mismo día que se agregó: era el tercer campo de DVI aórtico y el
+               único tipeable, y el DVI ya se calcula por continuidad.
+             · `va_at` se MUDÓ al bloque expandido de Estenosis Aórtica, debajo del VTI TSVI, que es
+               donde están sus vecinos de medición y su cuadro de resultados. Acá arriba quedaba en
+               una caja flotante al lado del botón «Estenosis», desconectado de todo: el médico
+               cargaba un AT de 110 ms y no pasaba absolutamente nada.
+             El wrapper `bloque-prot-va` sigue existiendo y lo sigue gobernando `valvProtSync`,
+             porque ahora envuelve al AT en su nueva casa.
+             ⚠️ Y DESDE EL 2026-10-02 EL `grid-2` QUE LOS CONTENÍA TAMPOCO ESTÁ. La morfología —su
+             último ocupante— subió arriba de los botones, así que quedaba un contenedor con cero
+             hijos y `margin-bottom:8px`: 8 px de nada, y un comentario que seguía nombrando «el
+             grid de la aórtica» para el próximo que quisiera agregarle un campo. El comentario
+             queda porque la historia de `va_dvi` y `va_at` sigue siendo cierta; el `<div>` no. -->
 
       <!-- ═══ BLOQUE ESTENOSIS AÓRTICA EXPANDIDO ═══ -->
       <div id="bloque-ea-detalle" style="display:none;">
@@ -3919,37 +4130,6 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad IAo integrada (ESC/EACTS 2025)</span><span id="ia-sev">—</span></div>
         <div class="calc-row"><span id="ia-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
       </div>
-      <div style="margin-top:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
-        <label style="font-size:11px;font-weight:700;color:var(--accent2);display:block;margin-bottom:6px;">Insuficiencia a&oacute;rtica &mdash; grado final al informe</label>
-        <select id="ia_sev_final" onchange="_gradoManoBorraMarca(this, event);sincronizarGradoIA()" style="width:100%;">
-          <option value="0">&mdash; Sin insuficiencia / no evaluada</option>
-          <option value="1">Leve</option>
-          <option value="2">Moderada</option>
-          <option value="3">Moderada-severa</option>
-          <option value="4">Severa</option>
-        </select>
-        <!-- Aviso de grado fijado a mano que discrepa del calculado (R5), hermano de
-             `ea-manual-aviso`. Va ARRIBA del texto de ayuda a propósito: el aviso explica por qué
-             el `<select>` no dice lo que dice el cuadro, y el de abajo explica de dónde sale el
-             valor cuando NO hay aviso; en ese orden se leen como una sola frase. -->
-        <div id="ia-manual-aviso" style="font-size:11px;font-weight:700;color:var(--red);margin-top:4px;"></div>
-        <!-- ⚠️ ESTE TEXTO DEJÓ DE SER HTML ESTÁTICO Y AHORA LO GOBIERNA EL JS (`_iaAvisoManual`).
-             Era un `<div>` sin id, SIEMPRE visible, y afirmaba «Se completa automáticamente con la
-             severidad calculada» también cuando el médico acababa de fijar el grado a mano —o sea
-             justo cuando es falso—. Decisión de Maicol (2026-10-02): se muestra SÓLO en modo
-             automático. Sin un id no había forma de apagarlo. -->
-        <div id="ia-auto-ayuda" style="font-size:10px;color:var(--text2);margin-top:4px;">Se completa autom&aacute;ticamente con la severidad calculada. Editable manualmente.</div>
-        <!-- ═══ FUNDAMENTO DEL AJUSTE — INSUFICIENCIA (F) ═══════════════════════════════════
-             Hermano de `ea-fund` y gobernado por el MISMO `sevFundamento`. Acá NO hay opciones:
-             decisión de Maicol (2026-10-02). Sólo el cuadro de texto, con el mismo título, el mismo
-             rótulo y los mismos 100 caracteres — la lista de opciones de la estenosis sale de los
-             escenarios de bajo gradiente, que no tienen equivalente en la regurgitación. -->
-        <div id="ia-fund" style="display:none;margin-top:8px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;">
-          <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:6px;">Fundamento del ajuste</div>
-          <label for="ia_fund_nota" style="display:block;font-size:11px;font-weight:400;color:var(--text2);margin:0 0 3px;">Motivo del ajuste (opcional)</label>
-          <input type="text" id="ia_fund_nota" maxlength="100" placeholder="Ej.: jet exc&eacute;ntrico, vena contracta no medible" style="width:100%;">
-        </div>
-      </div>
       </div>
       <div class="fg" style="margin-top:8px;"><label>Notas aórtica</label>
         <textarea id="va_notas" placeholder="Ej: bicúspide, mecanismo..."></textarea>
@@ -3968,6 +4148,22 @@ window.cerrarSesionReal = cerrarSesionReal;
   <div id="ete-seccion-valv-tricuspide" style="display:none;">
   <div class="card">
     <div class="card-body">
+      <!-- ═══ MORFOLOGÍA ARRIBA (etapa 2, 2026-10-02) — DECISIÓN DE MAICOL ═══════════════════
+           El `div.fg` entero se mudó desde el `grid-2` de abajo hasta acá, entre el encabezado
+           colapsable y la fila de botones. Se movió el WRAPPER, sin tocar un solo `id`, `name`
+           ni listener: el `onchange` del select viaja adentro. El orden del DOM es además el
+           orden de tabulación —no hay un `tabindex` en todo el bloque—, así que ahora se tabula
+           morfología → Insuficiencia → Estenosis, que es el orden en que se carga el caso. -->
+      <div class="valv-morf-row">
+        <div class="fg"><label>Morfología VT</label>
+          <select id="vt_morf" onchange="valvProtSync()"><option>Normal</option><option>Mixomatosa</option><option>Reumática</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Carcinoide</option><option>Endocarditis</option><option>Funcional / dilatación VD</option></select>
+          <!-- La nota didáctica va ACÁ y no dentro de la etiqueta de la opción. El valor de la
+               opción es lo que se persiste, lo que imprime la tabla del PDF y lo que viaja al
+               Excel: «Funcional / dilatación VD (causa más frecuente de IT)» habría puesto una
+               frase de manual dentro de un documento firmado y dentro de una celda de datos. -->
+          <span style="font-size:10px;color:var(--text2);">Funcional / dilatación VD es la causa más frecuente de insuficiencia tricuspídea.</span>
+        </div>
+      </div>
       <div style="display:flex;gap:8px;margin-bottom:12px;">
         <div class="valv-btn-wrap">
           <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-tricuspide" onclick="toggleValvPill('tricuspide','insuf')">Insuficiencia</button>
@@ -3982,14 +4178,6 @@ window.cerrarSesionReal = cerrarSesionReal;
       </div>
       <div class="sev-pills" id="sevpills-tricuspide"></div>
       <div class="grid-2" style="margin-bottom:8px;">
-        <div class="fg"><label>Morfología VT</label>
-          <select id="vt_morf" onchange="valvProtSync()"><option>Normal</option><option>Mixomatosa</option><option>Reumática</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Carcinoide</option><option>Endocarditis</option><option>Funcional / dilatación VD</option></select>
-          <!-- La nota didáctica va ACÁ y no dentro de la etiqueta de la opción. El valor de la
-               opción es lo que se persiste, lo que imprime la tabla del PDF y lo que viaja al
-               Excel: «Funcional / dilatación VD (causa más frecuente de IT)» habría puesto una
-               frase de manual dentro de un documento firmado y dentro de una celda de datos. -->
-          <span style="font-size:10px;color:var(--text2);">Funcional / dilatación VD es la causa más frecuente de insuficiencia tricuspídea.</span>
-        </div>
         <!-- Campos de PRÓTESIS tricuspídea (Fase 1). -->
         <div id="bloque-prot-vt" class="fg" style="display:none;">
           <label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label>
@@ -4097,8 +4285,16 @@ window.cerrarSesionReal = cerrarSesionReal;
            vive en el Doppler Pulmonar). Los valores viejos los traduce `_migrarCamposLegacy`:
            sacar una opción sin migrar hace que el estudio reabra con el select en BLANCO
            —`selectedIndex = -1`, no la primera opción— y ese hueco se persiste al guardar. -->
+      <!-- ═══ MORFOLOGÍA ARRIBA (etapa 2, 2026-10-02) ═══════════════════════════════════════
+           ⚠️ LA PULMONAR NO TIENE FILA DE BOTONES Insuficiencia/Estenosis — no existen
+           `pill-insuf-pulmonar` ni `pill-esten-pulmonar`: esta válvula usa dos SOLAPAS
+           («Morfología y etiologías» / «Mediciones»). Así que «entre el encabezado y la fila
+           de botones» no tiene referente acá, y la morfología YA era lo primero del panel.
+           Lo único que cambia es que deja de ocupar el ancho entero (978 px a 1200). -->
+      <div class="valv-morf-row">
       <div class="fg"><label>Morfología pulmonar</label>
         <select id="vp_morf" onchange="vpSync();valvProtSync()"><option>Normal</option><option>Displásica (congénita)</option><option>Reumática</option><option>Carcinoide</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>No especificada</option></select>
+      </div>
       </div>
       <!-- Campos de PRÓTESIS pulmonar (Fase 1). -->
       <div id="bloque-prot-vp" class="fg" style="display:none;">
@@ -31993,7 +32189,17 @@ function limpiarCampos(silencioso) {
   // Válvulas: pills a estado neutro + ocultar bloques desplegados + limpiar preferencia
   document.querySelectorAll('.valv-pill').forEach(b => { b.classList.remove('btn-primary'); b.classList.add('btn-ghost'); });
   if (window.valvSev) window.valvSev.refrescarTodo();   // sub-botones de severidad → "🟡 Severidad ▼"
-  document.querySelectorAll('[id^="bloque-insuf-"], [id^="bloque-esten-"]').forEach(el => el.style.display = 'none');
+  /* ⚠️ EL TERCER PREFIJO NO ES DECORATIVO, Y LO ENCONTRÓ /sharp-edges SOBRE EL DIFF DE LA TANDA DE
+     MAQUETACIÓN. Desde que el grado final de insuficiencia vive arriba, en `gf-insuf-<valvula>`,
+     el estado de la pastilla gobierna DOS nodos; `toggleValvPill` los mueve juntos, pero este
+     barrido iba por prefijo y `gf-insuf-` no empieza con `bloque-`. Resultado medido: «Nuevo
+     estudio» apagaba la pastilla y ocultaba la cuantificación, y el desplegable que dice
+     «✅ Severidad IM confirmada — irá al informe y PDF» quedaba ABIERTO sobre un estudio vacío.
+     No es cosmético: el narrativo publica la insuficiencia por `im_grado > 0` sin preguntarle a la
+     pastilla, así que un grado elegido en ese desplegable huérfano entra al informe firmado.
+     Es la falla ABIERTA de una lista escrita a mano — el mismo motivo por el que `sevFundLimpiar`
+     deriva su barrido de `SEV_SINC` en vez de literales. */
+  document.querySelectorAll('[id^="bloque-insuf-"], [id^="bloque-esten-"], [id^="gf-insuf-"]').forEach(el => el.style.display = 'none');
   ['mitral','aortica','tricuspide'].forEach(vv => ['insuf','esten'].forEach(t => { try { localStorage.removeItem('valv-pill-' + t + '-' + vv); } catch(e){} }));
   // Fechas del estudio que NO son la del estudio en sí. El barrido de arriba sólo toca
   // input[type=text] y [type=number], así que estas sobrevivían con el valor del
@@ -49640,6 +49846,19 @@ function toggleValvPill(valvula, tipo) {
   const bloque = document.getElementById('bloque-' + tipo + '-' + valvula);
   if (!pill || !bloque) return;
   const activo = pill.classList.contains('btn-primary');
+  /* ══ COMPANION DE MAQUETACIÓN (etapa 3, 2026-10-02) ═════════════════════════════════════════
+     Desde que el `<select>` de grado final de INSUFICIENCIA vive arriba —en la fila de dos
+     columnas debajo de los botones— y la cuantificación se quedó abajo, el botón gobierna DOS
+     nodos en vez de uno: `gf-insuf-<valvula>` acá arriba y `bloque-insuf-<valvula>` abajo.
+     ⚠️ NO ES UN ESTADO NUEVO: es el MISMO estado —`activo`— aplicado a un segundo contenedor, y
+     por eso va antes del if/else y no duplicado en las dos ramas. Se gatea por existencia
+     (`if (gf)`), así que la mitral y la aórtica lo usan y la tricúspide —que no tiene grado final
+     de insuficiencia y por eso no recibió la fila— no se entera. `cargarValvPills` lo restaura
+     gratis, porque restaura llamando a esta misma función.
+     La ESTENOSIS no necesita companion: su cajón de grado final ES el `bloque-esten-*` que este
+     toggle ya mostraba, movido entero de lugar. */
+  const gf = document.getElementById('gf-' + tipo + '-' + valvula);
+  if (gf) gf.style.display = activo ? 'none' : '';
   if (activo) {
     pill.classList.remove('btn-primary'); pill.classList.add('btn-ghost');
     bloque.style.display = 'none';
@@ -89909,8 +90128,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261002-1913';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790979215214;                 /* eco-build-ms */
+const ECO_BUILD    = '20261002-2137';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790987841809;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -89996,7 +90215,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-1913</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-2137</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
