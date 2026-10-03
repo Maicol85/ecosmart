@@ -3394,6 +3394,16 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div id="gf-insuf-mitral" style="display:none;">
       <div class="valv-gf-caja">
         <label style="font-size:11px;font-weight:700;color:var(--accent2);display:block;margin-bottom:6px;">&#x2705; Severidad IM confirmada &mdash; ir&aacute; al informe y PDF</label>
+        <!-- ═══ CAJÓN COMPACTO — MISMA MAQUETACIÓN QUE LA AÓRTICA (etapa 3, 2026-10-03) ══════════
+             El `<select>` del grado final queda a la mitad de su columna y el cajón del fundamento
+             a su derecha; a columna angosta apila solo. NI UN número nuevo: las dos primitivas
+             (`.valv-fund-row` y `.valv-fund-sel` / `.valv-fund-box`) ya existen y son genéricas
+             —el CSS de la tanda del 2026-10-02 no nombra ninguna válvula—, así que acá sólo se
+             envuelve. El rótulo queda ARRIBA de la fila por el mismo motivo que en la aórtica:
+             nombra el grado final, no la mitad izquierda. El aviso rojo y el texto de ayuda sí van
+             adentro, debajo del select, que es lo que explican. -->
+        <div class="valv-fund-row">
+        <div class="valv-fund-sel">
         <select id="im_sev_final" onchange="imGradoManual()" style="width:100%;">
           <option value="0">&mdash; Sin insuficiencia / no evaluada</option>
           <option value="1">Leve</option>
@@ -3412,12 +3422,36 @@ window.cerrarSesionReal = cerrarSesionReal;
              médico acababa de fijar el grado a mano — o sea justo cuando es falso. Sin un id no
              había forma de apagarlo; lo apaga `sevSincronizar` vía `SEV_SINC.im.ayuda`. -->
         <div id="im-auto-ayuda" style="font-size:10px;color:var(--text2);margin-top:4px;">Se completa autom&aacute;ticamente con la severidad calculada. Editable manualmente.</div>
+        </div>
+        <!-- ═══ FUNDAMENTO DEL AJUSTE — INSUFICIENCIA MITRAL (etapa 3, 2026-10-03) ══════════════
+             Hermano de `ia-fund` y gobernado por el MISMO `sevFundamento` (clave `im`). SÓLO TEXTO,
+             sin opciones: es la decisión de Maicol para la insuficiencia —las listas de la
+             estenosis aórtica salen de los escenarios de bajo gradiente, que no tienen equivalente
+             en una regurgitación— y acá se repite tal cual.
+             ⚠️ Igual que `ea-fund` e `ia-fund`: NO se le pone `display` por clase. `sevFundamento`
+             lo abre con `style.display = ''`, así que una regla de CSS con `display:none` sobre
+             `.valv-fund-box` lo dejaría cerrado para siempre y el síntoma no apuntaría al CSS. -->
+        <div id="im-fund" class="valv-fund-box" style="display:none;background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;">
+          <div class="valv-fund-tit" style="font-weight:700;color:var(--accent2);">Fundamento del ajuste</div>
+          <label for="im_fund_nota" style="display:block;font-weight:400;color:var(--text2);margin:0 0 2px;">Motivo del ajuste (opcional)</label>
+          <input type="text" id="im_fund_nota" maxlength="100" placeholder="Ej.: jet exc&eacute;ntrico, vena contracta no medible" style="width:100%;">
+        </div>
+        </div>
       </div>
           </div>
         </div>
         <div class="valv-gf-col">
         <div id="bloque-esten-mitral" style="display:none;">
-        <div class="fg"><label>Estenosis mitral — grado final (lo elige el médico)</label>
+        <label>Estenosis mitral — grado final (lo elige el médico)</label>
+        <!-- ═══ CAJÓN COMPACTO — MISMA MAQUETACIÓN QUE LA AÓRTICA (etapa 3, 2026-10-03) ══════════
+             El rótulo SALE del `.fg` y pasa a ser hijo directo de `bloque-esten-mitral`, que es
+             exactamente dónde vive el de la estenosis aórtica. No es cosmético: el CSS de la tanda
+             del 2026-10-02 escribe los cuatro caminos del rótulo UNO POR UNO
+             (`> div > .fg > label` y `> div > label` entre ellos), así que mover el `label` sin
+             mover su selector lo dejaría con el tamaño y el color de otro sitio. Con esto el
+             rótulo nombra la fila entera —select + cajón— en vez de la mitad izquierda. -->
+        <div class="valv-fund-row">
+        <div class="fg valv-fund-sel">
           <!-- El `onchange` es de la fase 2 y NO toca `calcEM`: solo repinta la fila de onda E de
                IM, que se apaga con estenosis documentada. Sin esto el medico gradua la estenosis y
                la fila de al lado sigue afirmando un signo que la guia invalida.
@@ -3432,6 +3466,20 @@ window.cerrarSesionReal = cerrarSesionReal;
                del THP: el aviso habla del grado que está justo encima, el badge del método. -->
           <div id="em-manual-aviso" style="font-size:11px;font-weight:700;color:var(--red);margin-top:4px;"></div>
           <div id="em-thp-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
+        </div>
+        <!-- ═══ FUNDAMENTO DEL AJUSTE — ESTENOSIS MITRAL (etapa 3, 2026-10-03) ══════════════════
+             ⚠️ SÓLO TEXTO, Y ACÁ NO ES LA DECISIÓN DE LA INSUFICIENCIA: ES QUE NO HAY LISTA QUE
+             COPIAR. La orden de esta etapa es «solo con texto, para IM y EM». Las cuatro opciones
+             de `ea-fund` son los escenarios de bajo flujo / bajo gradiente de la ESTENOSIS
+             AÓRTICA, con su propio cálculo (`eaEscenario`) detrás; la EM no tiene ese módulo, y
+             fabricarle una lista de motivos sería contenido clínico inventado, que es lo que esta
+             app no hace. Si alguna vez hay lista, el sitio es éste y el patrón es `EA_FUND_OPC`.
+             ⚠️ Igual que sus tres hermanos: NO se le pone `display` por clase. -->
+        <div id="em-fund" class="valv-fund-box" style="display:none;background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;">
+          <div class="valv-fund-tit" style="font-weight:700;color:var(--accent2);">Fundamento del ajuste</div>
+          <label for="em_fund_nota" style="display:block;font-weight:400;color:var(--text2);margin:0 0 2px;">Motivo del ajuste (opcional)</label>
+          <input type="text" id="em_fund_nota" maxlength="100" placeholder="Ej.: AVm no planimetrable, regurgitaci&oacute;n significativa" style="width:100%;">
+        </div>
         </div>
         </div>
         </div>
@@ -24377,6 +24425,13 @@ const SEV_SINC = Object.freeze({
      manual se mantiene mientras el CALCULADO no cambie, y cuando cambia vuelve a automático. */
   im: Object.freeze({ tipo:'insuf', valv:'mitral', select:'im_sev_final', aviso:'im-manual-aviso',
     ayuda:'im-auto-ayuda', nombre:'Insuficiencia mitral',
+    /* ⚠️ ESTAS DOS LÍNEAS SON TODO EL CAJÓN (etapa 3, 2026-10-03), y es lo que el comentario de
+       `sevFundLimpiar` anticipaba: «el día que la mitral reciba su `fundamento:` —que es el plan—».
+       Declararlas acá enciende de una sola vez el mostrar/ocultar (`sevFundamento`), el vaciado de
+       «Nuevo estudio» (`sevFundLimpiar`), la reposición al reabrir (`sevFundRestaurar`) y la frase
+       del informe (`sevNotaInforme`), porque los cuatro se derivan del registro y ninguno lleva
+       una lista escrita a mano. */
+    fundamento:'im-fund', nota:'im_fund_nota',
     /* Mismo recorte que la IAo y por el mismo motivo: `calcIM_ESC` vota y emite '4', '2' y '1' —
        nunca '3' ni '0'—, así que un «Moderada-severa» no se compara contra nada y no se suelta. */
     calculables: Object.freeze(['1','2','4']),
@@ -24403,6 +24458,26 @@ const SEV_SINC = Object.freeze({
        último parámetro NO retire el grado (punto I): con `calc` en `null` no hay con qué comparar,
        así que no se suelta el manual y no se pinta aviso. */
     calcular: function(){ const g = window._imGradoCalc; return (g === null || g === undefined || g === '') ? null : g; },
+    /* ══ ⚠️ REFRESCO DE LA FOTO AL REABRIR — LO DESTAPÓ TC-391, NO LA LECTURA ══════════════════
+       `window._imGradoCalc` es memoria de proceso: NO se persiste con el estudio, y nada lo
+       recalcula al reabrir uno. Medido el 2026-10-03, guardando una IM con «Moderada» fijado a
+       mano sobre un cálculo «Severa» y su motivo escrito, y reabriéndola:
+         · `_imGradoCalc` volvía en `null` ⇒ `sevCalcPublicable('im')` en `null` ⇒ `sevDiscrepa`
+           en `false`: el aviso rojo NO aparecía y el cajón quedaba cerrado sobre un grado manual
+           que sí discrepaba;
+         · y peor, `sevFundamento` VACÍA el cajón cuando no hay discrepancia —lo hace a propósito,
+           para que un motivo no sobreviva al paciente siguiente—, así que al reabrir BORRABA la
+           nota que se había firmado y el informe reimpreso salía «…con insuficiencia moderada.»
+           sin el «(jet excéntrico)» del original. Un informe reimpreso distinto del firmado, que
+           es exactamente lo que `sevFundRestaurar` existe para evitar.
+       La EM no lo sufre porque su proveedor lee `emCategoria()`, que se recalcula sola de los
+       campos; el daño es de los proveedores que leen una FOTO.
+       ⚠️ SÓLO SE LLAMA CON GRADO MANUAL PUESTO, y eso es lo que hace que sea seguro: con
+       `esqSevManual.im` la compuerta de `calcIM_ESC` no escribe `im_grado` ni `im_sev_final` —sólo
+       repuebla `window._imGradoCalc`, que se guarda FUERA de esa compuerta a propósito—. Sin la
+       condición, reabrir un estudio viejo SIN marca manual re-derivaría el grado del informe
+       firmado, que es migrar un estudio guardado en silencio. Ver `sevFundRestaurar`. */
+    recalcular: function(){ if (typeof calcIM_ESC === 'function') calcIM_ESC(); },
     /* ⚠️ `sincronizarGradoIM` Y NO `sincronizarGradoIA`, que es lo que la versión genérica anterior
        habría llamado. `im_sev_final` es el `<select>` visible y `im_grado` el hidden, y **el hidden
        es el que leen el narrativo, el EN SUMA, el PDF y el Excel**: sin este espejo, soltar el
@@ -24413,6 +24488,12 @@ const SEV_SINC = Object.freeze({
       '3':'Moderada-severa', '4':'Severa' })[String(g)] || String(g); } }),
   em: Object.freeze({ tipo:'esten', valv:'mitral', select:'em_grado', aviso:'em-manual-aviso',
     ayuda: null, nombre:'Estenosis mitral',
+    /* Mismo par que la `im`, y la MISMA forma «sólo texto» aunque ésta sea una estenosis: la lista
+       de `ea-fund` es de escenarios de bajo gradiente aórtico y no existe para la EM (ver el
+       comentario de `em-fund` en el marcado). `sevFundamento` ya trata el juego de opciones como
+       propiedad EXCLUSIVA de la clave `ea` (`if (clave !== 'ea') return …`), así que registrar
+       esta entrada no le agrega una rama a nadie. */
+    fundamento:'em-fund', nota:'em_fund_nota',
     /* ⚠️ EL PROVEEDOR EMITE UN SOLO GRADO, Y NO ES UN RECORTE: ES TODO LO QUE LA APP SABE DECIR.
        `emGradoAuto` —el único escritor de `em_grado`— escribe «severa» o «sin», y desde el 28/09
        «leve» y «moderada» NO se autocompletan nunca. Así que el único veredicto calculado que
@@ -24618,24 +24699,56 @@ function _sevChkGuardado(campos, id) {
   if (campos[id + '__chk'] === '1') return true;        // guardarInforme / cargarEstudioPorId
   return campos[id] === true || campos[id] === 'true';  // autosave
 }
+/* ⚠️ `'ea'` E `'ia'` ESTABAN ESCRITOS A MANO ACÁ, Y ERA EL ÚLTIMO DE LOS CUATRO BARRIDOS QUE NO
+   SE DERIVABA DEL REGISTRO (punto E de la etapa 3, 2026-10-03). Medido antes de tocar: con la
+   mitral registrada y su `fundamento:` puesto, reabrir un estudio con un «Moderada» de IM fijado a
+   mano y su motivo escrito reponía el motivo de la AÓRTICA y no el de la mitral — porque esta
+   función no nombraba `im` ni `em`—, y además NO llamaba a `sevSincronizar('im')`/`('em')`, así que
+   el aviso rojo y el cajón de la mitral quedaban apagados sobre un grado manual discrepante. O sea
+   la misma falla ABIERTA, por omisión y en silencio, que ya habían tenido `sevFundLimpiar`,
+   `sevFundamento` y el `else` de `sevSincronizar`. Es la cuarta vez en la misma tanda: lo que el
+   registro declara, el barrido lo usa.
+   El ORDEN del contrato no cambia —primero `sevSincronizar`, después reponer— y el juego de
+   CASILLAS sigue siendo exclusivo de `ea`: es la única clave con opciones y con sentido.
+   Devuelve un objeto con una entrada por clave (no sólo `ea`/`ia`), que es lo que leen las pruebas. */
 function sevFundRestaurar(campos) {
   if (!campos) return null;
-  const vEA = sevSincronizar('ea'), vIA = sevSincronizar('ia');
-  if (vEA && vEA.discrepa) {
-    const s = sevSentido('ea');
-    const ids = (s === 'sube') ? EA_FUND_OPC.sube.slice() : (s === 'baja' ? EA_FUND_OPC.baja.slice() : []);
-    ids.concat(['ea_fund_otro']).forEach(function(id){
-      const e = document.getElementById(id);
-      if (e && _sevChkGuardado(campos, id)) e.checked = true;
-    });
-    const n = document.getElementById(SEV_SINC.ea.nota);
-    if (n && campos[SEV_SINC.ea.nota]) n.value = String(campos[SEV_SINC.ea.nota]).slice(0, 100);
-  }
-  if (vIA && vIA.discrepa) {
-    const n = document.getElementById(SEV_SINC.ia.nota);
-    if (n && campos[SEV_SINC.ia.nota]) n.value = String(campos[SEV_SINC.ia.nota]).slice(0, 100);
-  }
-  return { ea: vEA, ia: vIA };
+  const out = {};
+  Object.keys(SEV_SINC).forEach(function(k){
+    const C = SEV_SINC[k];
+    /* ⚠️ PRIMERO SE REFRESCA LA FOTO DEL PROVEEDOR, Y SÓLO SI HAY GRADO MANUAL. Los proveedores
+       que leen `window._<x>GradoCalc` vuelven en `null` tras reabrir un estudio —esa variable no
+       se persiste— y entonces `sevDiscrepa` dice `false` sobre una discrepancia que existe: no se
+       pinta el aviso y, peor, `sevFundamento` VACÍA el cajón y se pierde el motivo firmado. Ver el
+       comentario de `recalcular` en la entrada `im`, con la medición.
+       La condición de manual es la que lo hace seguro: sin ella esto re-derivaría el grado de un
+       estudio guardado SIN marca, que es migrarlo en silencio. Opcional y en `try`: una entrada sin
+       `recalcular` —`ea` y `em`, cuyos proveedores son puros— pasa por acá sin cambiar en nada. */
+    if (typeof C.recalcular === 'function' && window.esqSevManual && window.esqSevManual[k]) {
+      try { C.recalcular(); } catch (e) { console.warn('[sevFundRestaurar] recalcular ' + k, e); }
+    }
+    /* Se sincronizan TODAS las claves registradas, con o sin cajón: `sevSincronizar` es lo que
+       repinta el aviso y la pastilla al reabrir, y una clave sin `fundamento` igual lo necesita. */
+    const v = sevSincronizar(k);
+    out[k] = v;
+    if (!C.fundamento || !v || !v.discrepa) return;
+    if (k === 'ea') {
+      /* Sólo el juego del sentido VIGENTE, por lo que dice el comentario de arriba: si el grado
+         calculado cambió desde que se guardó, el sentido pudo darse vuelta y la opción guardada ya
+         no aplica. `ea_fund_otro` vive en los dos juegos y por eso va siempre. */
+      const s = sevSentido('ea');
+      const ids = (s === 'sube') ? EA_FUND_OPC.sube.slice() : (s === 'baja' ? EA_FUND_OPC.baja.slice() : []);
+      ids.concat(['ea_fund_otro']).forEach(function(id){
+        const e = document.getElementById(id);
+        if (e && _sevChkGuardado(campos, id)) e.checked = true;
+      });
+    }
+    if (C.nota) {
+      const n = document.getElementById(C.nota);
+      if (n && campos[C.nota]) n.value = String(campos[C.nota]).slice(0, 100);
+    }
+  });
+  return out;
 }
 window.sevFundRestaurar = sevFundRestaurar;
 
@@ -24728,14 +24841,37 @@ function eaFundamentoInforme() {
 }
 window.eaFundamentoInforme = eaFundamentoInforme;
 
-/* Insuficiencia: sólo la nota, pegada al grado («insuficiencia severa (jet excéntrico…)»). */
-function iaFundamentoInforme() {
-  if (!sevDiscrepa('ia')) return null;
-  const el = document.getElementById('ia_fund_nota');
+/* ══ CAJÓN DE SÓLO TEXTO → INFORME, PARA LAS TRES CLAVES QUE NO TIENEN OPCIONES ═══════════════
+   Sólo la nota, pegada al grado («insuficiencia severa (jet excéntrico…)»). La usan `ia`, `im` y
+   `em`; `ea` NO, porque su cajón tiene cuatro opciones y un sentido, y de eso se ocupa
+   `eaFundamentoInforme`.
+   ⚠️ SE ESCRIBE UNA VEZ Y SE DERIVA LA NOTA DEL REGISTRO, en vez de copiar estas cuatro líneas
+   por válvula. Es la misma lección que este módulo ya pagó tres veces en una sola tanda:
+   `sevFundLimpiar` con `['ea-fund','ia-fund']` a mano, `sevFundamento` con el ternario sobre
+   `C.fundamento === 'ia-fund'`, y el `else` de `sevSincronizar` escrito para la IAo. Las tres
+   fallaban ABIERTO al registrarse la mitral —el cajón se mostraba y nadie lo vaciaba, o el grado
+   iba al hidden de otra válvula— y ninguna lo decía en voz alta. Con un emisor único, registrar la
+   tricúspide el día que toque no deja una cuarta copia sin enterarse.
+   ⚠️ FALLA CERRADO: sin `nota` en el registro no hay de dónde sacar texto y el informe queda
+   IDÉNTICO a antes, que es la dirección segura — una clave mal registrada no inventa paréntesis. */
+function sevNotaInforme(clave) {
+  const C = SEV_SINC[clave];
+  if (!C || !C.nota) return null;
+  if (!sevDiscrepa(clave)) return null;
+  const el = document.getElementById(C.nota);
   const nota = el ? String(el.value || '').trim().replace(/\s+/g, ' ').slice(0, 100) : '';
   return nota ? { enGrado: ' (' + nota + ')', enCola: '' } : null;
 }
+window.sevNotaInforme = sevNotaInforme;
+/* Los tres atajos con el nombre que ya usan los emisores del informe. `iaFundamentoInforme`
+   delega y NO cambia una coma de su salida: el cuerpo que tenía era exactamente este, con
+   `'ia_fund_nota'` escrito a mano en vez de leído de `SEV_SINC.ia.nota` —que vale eso mismo—. */
+function iaFundamentoInforme() { return sevNotaInforme('ia'); }
 window.iaFundamentoInforme = iaFundamentoInforme;
+function imFundamentoInforme() { return sevNotaInforme('im'); }
+window.imFundamentoInforme = imFundamentoInforme;
+function emFundamentoInforme() { return sevNotaInforme('em'); }
+window.emFundamentoInforme = emFundamentoInforme;
 
 /* Repinta la pastilla y el aviso de UNA clave, y suelta el manual si el calculado cambió (R6).
    Devuelve lo que hizo, para que las pruebas puedan afirmar sobre el gesto y no sobre un textContent. */
@@ -29098,14 +29234,50 @@ function generarInforme(opts) {
       gradiente:    () => 'EM con gradiente elevado.',
       gradiente_im: () => 'Gradiente transmitral elevado.'
     };
-    const estE = emDesc ? `estenosis ${emDesc}`
+    /* ══ EL INFORME USA SOLO EL GRADO FINAL — DECISIÓN DE MAICOL (2026-10-03) ═══════════════════
+       Lo que había en las cuatro líneas de abajo era, en el último escalón de cada cascada,
+       `((!emSinExplicito && pillOn('mitral','esten')) ? 'estenosis' : null)` y
+       `(pillOn('mitral','insuf') ? 'insuficiencia' : null)`: un respaldo que afirmaba una estenosis
+       o una insuficiencia a partir del ESTADO DE UN CAJÓN DE INTERFAZ cuando no había grado. Es
+       EXACTAMENTE el defecto que la aórtica ya borró en su etapa 4b (ver el comentario gemelo en el
+       bloque de la válvula aórtica, con la medición de las cuatro superficies), y acá estaba
+       disimulado por otra cosa: hasta el punto E, cerrar el botón BORRABA el grado, así que las dos
+       cosas se apagaban juntas y la combinación «botón abierto, sin grado» era rara. Desde que
+       cerrar el botón conserva el grado, abrir el botón para mirar los números y después afirmar
+       que no hay valvulopatía es el gesto NORMAL — y producía un informe firmado que decía
+       «con estenosis» y un EN SUMA que decía «Estenosis mitral.» mientras la tabla del PDF y las
+       434 columnas del Excel no traían ningún grado.
+       ⚠️ `_emCatAct` SE QUEDA, y no es una inconsistencia con «sólo el grado final»: no sale de la
+       pantalla, sale de `emCategoria()` —el mismo cálculo que vota la severidad— y publica el AVm
+       con su método. Lo que se borró es el escalón que leía un botón, no el que lee un cálculo.
+       Consecuencia COLATERAL declarada: las dos ramas `else if (estE)` / `else if (insE)` del EN
+       SUMA, unas líneas más abajo, quedan INALCANZABLES —`estE` en ese punto es verdadero
+       exactamente cuando `emDesc` o `_emCatAct` lo son, y las dos ya tienen su propia rama—. Se
+       dejan como están, igual que hizo la aórtica: borrarlas no cambia una sola salida y son la
+       forma de la cascada hermana. */
+    /* La nota del cajón «Fundamento del ajuste» va PEGADA AL GRADO y entre paréntesis
+       («insuficiencia moderada (jet excéntrico…)»), que es la forma que ya usa la IAo. Sólo sale
+       con discrepancia manual y con el cuadro escrito; `sevNotaInforme` devuelve `null` en
+       cualquier otro caso y el informe queda idéntico a antes de esta etapa.
+       ⚠️ SIN SLOT DE GRADO LA NOTA NO VIAJA, Y ESTÁ DECLARADO. Con «Sin insuficiencia» (imG 0) o
+       «Sin estenosis» elegidos a mano sobre un cálculo que dice otra cosa, el cajón SÍ aparece
+       —hay discrepancia— pero la oración no tiene dónde colgar el paréntesis: `insE`/`estE` son
+       `null` y `fraseEI` redacta la negación. Es el mismo comportamiento que la aórtica tiene hoy
+       para `enGrado` (su `if` exige `eaDesc`), y la alternativa —una cola suelta como la `enCola`
+       de la OTSVI— es una forma de oración nueva en un informe firmado, que no es lo que esta
+       etapa pidió. Queda reportado como lo único que el cajón puede perder. */
+    const _imFund = (typeof imFundamentoInforme === 'function') ? imFundamentoInforme() : null;
+    const _imFundG = (_imFund && _imFund.enGrado) ? _imFund.enGrado : '';
+    const _emFund = (typeof emFundamentoInforme === 'function') ? emFundamentoInforme() : null;
+    const _emFundG = (_emFund && _emFund.enGrado) ? _emFund.enGrado : '';
+    const estE = emDesc ? `estenosis ${emDesc}${_emFundG}`
                : _emCatAct ? EM_CAT_EST[emCat.clave]()
-               : ((!emSinExplicito && pillOn('mitral','esten')) ? 'estenosis' : null);
-    const insE = (imG > 0) ? `insuficiencia ${imTxt[imG]}` : (pillOn('mitral','insuf') ? 'insuficiencia' : null);
-    const estC = emDesc ? `EM ${emDesc}`
+               : null;
+    const insE = (imG > 0) ? `insuficiencia ${imTxt[imG]}${_imFundG}` : null;
+    const estC = emDesc ? `EM ${emDesc}${_emFundG}`
                : _emCatAct ? EM_CAT_CORTO[emCat.clave]()
-               : ((!emSinExplicito && pillOn('mitral','esten')) ? 'estenosis' : null);
-    const insC = (imG > 0) ? `IM ${imTxt[imG]}` : (pillOn('mitral','insuf') ? 'insuficiencia' : null);
+               : null;
+    const insC = (imG > 0) ? `IM ${imTxt[imG]}${_imFundG}` : null;
     if (emDesc) suma.push(`EM ${emDesc}.`);
     else if (_emCatAct) suma.push(EM_CAT_SUMA[emCat.clave]());
     else if (estE) suma.push('Estenosis mitral.');
@@ -34893,17 +35065,38 @@ function mostrarCardSeveridadValvular(onConfirm) {
        defecto que esa misma tarjeta ya pagó con `em_grado` el 28/09.
        Se marca sólo el que CAMBIÓ: marcar los tres convertiría «mirar la tarjeta» en «fijar los
        tres grados a mano» y los dejaría rancios para siempre. */
-    const setGrade = (hid, rev) => {
+    /* ⚠️ `vis` ES NUEVO (etapa 3, 2026-10-03) Y CIERRA UNA DIVERGENCIA MEDIDA ENTRE EL HIDDEN Y SU
+       `<select>`. Este escritor escribía SÓLO el oculto `im_grado`, y desde que la mitral está en
+       `SEV_SINC` el `<select>` visible `im_sev_final` es lo que leen `sevDiscrepa`, el aviso rojo,
+       el cajón del fundamento y la pastilla. Medido: con IM calculada «Severa» (vena contracta
+       8 mm), apretar «Generar PDF» y corregir la IM a «Moderada» en la tarjeta dejaba
+       `im_grado = 2` —que es lo que firma el PDF y lo que va a las 434 columnas— y
+       `im_sev_final = 4`; o sea el aviso rojo comparaba el grado EQUIVOCADO (no había discrepancia
+       que mostrar entre 4 y 4), el cajón del fundamento no se abría, la pastilla seguía diciendo
+       «Severa» y el narrativo decía «insuficiencia moderada». La marca manual que la línea de abajo
+       pone impide además que `calcIM_ESC` vuelva a igualarlos, así que la divergencia es
+       PERMANENTE. Es la misma familia que el `else` de `sevSincronizar`: dos mitades del mismo
+       grado, una en pantalla y otra en el papel.
+       Se escribe el `<select>` PRIMERO y el hidden después, por el mismo orden que usa
+       `sincronizarGradoIM`. Se gatea por existencia, así que `it_grado` —que no tiene `<select>` de
+       grado final ni entrada en el registro— pasa por acá sin cambiar en nada: la tricúspide no se
+       toca en esta tanda.
+       ⚠️ LA IAo TIENE EL DEFECTO IDÉNTICO (`ia_grado` vs `ia_sev_final`) Y NO SE TOCA: la orden de
+       esta tanda excluye la aórtica. Reportado el 2026-10-03, no corregido. Cuando se corrija,
+       alcanza con pasarle su `'ia_sev_final'` acá. */
+    const setGrade = (hid, rev, vis) => {
       const el = document.getElementById(hid), r = ov.querySelector('#' + rev);
       if (!el || !r) return;
       const cambio = String(el.value) !== String(r.value);
+      const sel = vis ? document.getElementById(vis) : null;
+      if (sel) sel.value = r.value;
       el.value = r.value;
       if (cambio) {
         window.esqSevManual = window.esqSevManual || {};
         window.esqSevManual[hid.replace('_grado','')] = true;
       }
     };
-    setGrade('im_grado','rev-im'); setGrade('ia_grado','rev-ia'); setGrade('it_grado','rev-it');
+    setGrade('im_grado','rev-im','im_sev_final'); setGrade('ia_grado','rev-ia'); setGrade('it_grado','rev-it');
     /* ⚠️ ÉSTE ES EL TERCER ESCRITOR DE `im_grado`/`ia_grado`, y es el PEOR de los tres: corre
        justo ANTES de guardar y de emitir el PDF, o sea que lo que escriba acá es lo que queda
        firmado. No pasa por `sincronizarGradoIM`/`IA`, así que no arrastraba el recálculo de la EM.
@@ -34951,6 +35144,24 @@ function mostrarCardSeveridadValvular(onConfirm) {
        superficie donde la elección del médico SÍ se protege es el desplegable de la pestaña
        Válvulas y la pastilla de severidad. */
     if (typeof emContRefrescar === 'function') emContRefrescar();
+    /* ⚠️ Y HAY QUE REPINTAR, QUE ES LA OTRA MITAD DEL MISMO DEFECTO (etapa 3, 2026-10-03). Lo
+       destapó TC-393: con el hidden y el `<select>` ya sincronizados por `setGrade`, corregir la IM
+       en la tarjeta CREA una discrepancia real —`sevDiscrepa('im')` pasa a `true`— y nadie la
+       pintaba: el aviso rojo quedaba vacío y el cajón del fundamento cerrado, así que el médico no
+       tenía ni el aviso ni dónde escribir el motivo del ajuste que acababa de hacer. Es exactamente
+       la desincronización entre «el estado» y «las dos caras del estado» que este módulo existe
+       para evitar, y se cierra por el punto ÚNICO que ya la gobierna.
+       ⚠️ VA AL FINAL, DESPUÉS DE `emContRefrescar()`: ése recalcula la EM y puede mover su grado,
+       así que repintar antes dejaría la pastilla de la estenosis con el valor previo.
+       ⚠️ NO SUELTA EL GRADO QUE EL MÉDICO ACABA DE CONFIRMAR. La tarjeta no toma la foto
+       (`_sevCalcAlFijar`), así que `sevSincronizar` entra por su rama `foto == null` —«todavía no sé
+       desde dónde comparar»—, guarda la foto de ahora y no toca el grado. Es la misma dirección
+       segura de la falla que el estudio reabierto.
+       ⚠️ SÓLO LAS DOS CLAVES DE LA MITRAL, y no un barrido de `SEV_SINC`. `CLONADOS` incluye
+       `ea_grado`, así que la AÓRTICA tiene la misma pastilla rancia por el mismo camino — pero la
+       orden de esta tanda la excluye. Reportado el 2026-10-03, no corregido. */
+    if (typeof _imSincronizarPantalla === 'function') _imSincronizarPantalla();
+    if (typeof _emSincronizarPantalla === 'function') _emSincronizarPantalla();
     ov.remove();
     if (onConfirm) onConfirm();
   };
@@ -50428,20 +50639,45 @@ const VALV_AUTO_GRADO = Object.freeze({
   esten: Object.freeze(['leve', 'moderada', 'severa']),
   insuf: Object.freeze(['1', '2', '3', '4'])
 });
-function valvAutoAbrirAortica() {
-  [['esten', 'ea_grado'], ['insuf', 'ia_sev_final']].forEach(function(par){
-    const tipo = par[0], sel = document.getElementById(par[1]);
+/* ⚠️ EL PAR `[tipo, select]` SE DERIVA DE `SEV_SINC` Y YA NO ESTÁ ESCRITO A MANO (etapa 3,
+   2026-10-03). Era `[['esten','ea_grado'], ['insuf','ia_sev_final']]` con `'aortica'` literal en
+   tres líneas, o sea la QUINTA lista paralela al registro de esta tanda. Derivarla extiende J a la
+   MITRAL —que es lo que la etapa 3 pide: «con el mecanismo de apertura automática existente»— sin
+   agregar una rama, y deja a la tricúspide y a la pulmonar afuera por el mismo motivo que al resto
+   del mecanismo: no están registradas.
+   ⚠️ LOS DOS VOCABULARIOS SIGUEN SEPARADOS y por eso `VALV_AUTO_GRADO` se indexa por `tipo` y no
+   por clave: la estenosis mitral usa los MISMOS tokens que la aórtica ('leve'…'severa') y la
+   insuficiencia mitral los MISMOS números que la aórtica ('1'…'4'), así que la tabla no cambia.
+   La única cosa que la mitral NO comparte es «esclerosis», que sólo existe en el `<select>`
+   aórtico y ya estaba afuera a propósito.
+   ⚠️ Y ABRIR LA MITRAL SÍ ESCRIBE CAMPOS, igual que la aórtica: `toggleValvPill` llama a
+   `sincronizarEMDesdeGlobal()` en la estenosis y a `sincronizarIMDesdeGlobal()` en la
+   insuficiencia. Los dos copian espejos del Doppler global y los dos pasan por `_syncSiVacio` /
+   `_syncDerivado`, que escriben sólo sobre un destino vacío o sobre una copia que sigue siendo
+   copia — no pisan un número tipeado por el médico. Medido, no deducido: ver el caso de esta etapa.
+   El nombre viejo se conserva como alias porque lo llama `showTab` y porque un rename sin alias es
+   un «no es una función» en consola al entrar a la pestaña. */
+function valvAutoAbrirCajones() {
+  Object.keys(SEV_SINC).forEach(function(k){
+    const C = SEV_SINC[k];
+    const tipo = C.tipo, valv = C.valv;
+    if (!VALV_AUTO_GRADO[tipo]) return;
+    const sel = document.getElementById(C.select);
     if (!sel) return;
     let guardado = null;
     /* Un `localStorage` que tira —modo privado, cuota— no puede abrir cajones por su cuenta: sin
-       poder leer la decisión del médico, la dirección segura es no hacer nada. */
-    try { guardado = localStorage.getItem('valv-pill-' + tipo + '-aortica'); } catch (e) { return; }
+       poder leer la decisión del médico, la dirección segura es no hacer nada. `return` y no
+       `throw`: se saltea ESTA pastilla y las otras siguen intentándolo, que es lo mismo que hacía
+       la versión de dos entradas. */
+    try { guardado = localStorage.getItem('valv-pill-' + tipo + '-' + valv); } catch (e) { return; }
     if (guardado !== null) return;
     if (VALV_AUTO_GRADO[tipo].indexOf(String(sel.value || '')) === -1) return;
-    if (pillOn('aortica', tipo)) return;
-    toggleValvPill('aortica', tipo);
+    if (pillOn(valv, tipo)) return;
+    toggleValvPill(valv, tipo);
   });
 }
+window.valvAutoAbrirCajones = valvAutoAbrirCajones;
+function valvAutoAbrirAortica() { return valvAutoAbrirCajones(); }
 window.valvAutoAbrirAortica = valvAutoAbrirAortica;
 
 setTimeout(cargarValvPills, 150);
@@ -90413,8 +90649,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261003-0042';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790998922262;                 /* eco-build-ms */
+const ECO_BUILD    = '20261003-0144';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791002674713;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -90500,7 +90736,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261003-0042</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261003-0144</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -46926,6 +46926,485 @@ caso('TC-388', 'Mitral: el grado manual se mantiene y vuelve SOLO a automatico c
 `);
 
 
+/* ══ MITRAL NATIVA — etapa 3 de la tanda del 2026-10-03 (TC-389 … TC-392) ══════════════════════
+   Lo que fija cada uno:
+     · TC-389 — el aviso rojo y el cajon «Fundamento del ajuste» aparecen SOLO con discrepancia, en
+       IM y en EM, y NO con EM sin clasificar ni con protesis mitral (punto a y punto G).
+     · TC-390 — el informe lee SOLO el grado final: se borro el fallback que afirmaba una
+       valvulopatia a partir del BOTON, y la nota del cajon entra entre parentesis tras el grado sin
+       llegar al EN SUMA (puntos b y c).
+     · TC-391 — guardar y reabrir conserva grado, marca y cajon de la mitral, que es lo que
+       «sevFundRestaurar» dejaba afuera con «'ea'» e «'ia'» escritos a mano (punto e).
+     · TC-392 — el cajon de la mitral se maqueta como el de la aortica a 1200, 756 y 300 px.
+   Los literales salen de la corrida de /tmp/probe del 2026-10-03 contra el Chrome del sistema, y
+   el A/B contra HEAD esta en el mensaje del commit: no son redacciones reconstruidas. */
+const MIT_FUND_PRE = MIT_PRE + `
+  const mVis = function (id) { const e = document.getElementById(id);
+    return e ? (e.style.display === 'none' ? 'oculto' : 'visible') : 'NO-EXISTE'; };
+  /* Las CUATRO superficies en una foto. La frase de la mitral se recorta del narrativo con el
+     mismo patron que usa TC-375 para la aortica; el Excel se arma por «_labExcelRow», o sea sin
+     DOM, que es la unica forma de ver las 434 columnas. */
+  const mFoto = function () {
+    const r = __t.informe();
+    const m = r.inf.match(/[^.\\n]*[Vv][aá]lvula mitral[^\\n]*?\\.(?= |$|\\n)/);
+    let xls = {};
+    try { const campos = {};
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (e) {
+        campos[e.id] = (e.type === 'checkbox' || e.type === 'radio') ? (e.checked ? '1' : '') : e.value; });
+      const f = _labExcelRow({ id: 0, campos: campos });
+      xls = { n: Object.keys(f).length, em: f['EM grado'], im: f['IM grado'] };
+    } catch (e) { xls = { ERR: String(e.message) }; }
+    return { inf: m ? m[0].trim() : '(sin frase)', suma: r.suma.replace(/\\n/g, ' | '),
+             imFund: mVis('im-fund'), emFund: mVis('em-fund'),
+             avIM: mTxt('im-manual-aviso'), avEM: mTxt('em-manual-aviso'),
+             dIM: sevDiscrepa('im'), dEM: sevDiscrepa('em'),
+             imSel: __t.val('im_sev_final'), imHid: __t.val('im_grado'),
+             emSel: __t.val('em_grado'), xls: xls };
+  };
+`;
+
+caso('TC-389', 'El aviso rojo y el cajon «Fundamento del ajuste» de la mitral aparecen SOLO con discrepancia —IM y EM— y callan con EM sin clasificar y con protesis', `
+  ${MIT_FUND_PRE}
+
+  /* ── (1) IM: calculado Severa (vena contracta 8 mm) y el medico baja a Moderada ── */
+  mReset(); mSet('im_vc','8');
+  valvSev.aplicar('insuf','mitral','2');
+  const imDisc = mFoto();
+
+  /* ── (2) EM: calculado Severa (AVm 1,20 por planimetria) y el medico baja a Moderada ── */
+  mReset(); mSet('avm_plan','1.2');
+  valvSev.aplicar('esten','mitral','moderada');
+  const emDisc = mFoto();
+
+  /* ── (3) CONTROL NEGATIVO con el calculo CORRIENDO: el medico CONFIRMA el grado calculado ──
+     Es la mitad que distingue «hay grado manual» de «hay discrepancia». Sin ella una sonda que
+     dijera «cajon visible» en cuanto «esqSevManual» existe saldria verde. */
+  mReset(); mSet('im_vc','8');
+  valvSev.aplicar('insuf','mitral','4');
+  const imCoincide = mFoto();
+
+  /* ── (4) CONTROL NEGATIVO: EM SIN CLASIFICAR ── AVm 2,0 con gradiente medio 5 mmHg cae en la
+     categoria «gradiente», que NO es un grado: el proveedor devuelve null y por eso un «Moderada»
+     fijado a mano no discrepa contra nada (decision 4: sin calculo no hay aviso). */
+  mReset(); mSet('avm_plan','2.0'); mSet('em_gmedio','5');
+  valvSev.aplicar('esten','mitral','moderada');
+  const emSinClasif = mFoto();
+  const emCat = emCategoria().clave + '/' + String(sevCalcPublicable('em'));
+
+  /* ── (5) CONTROL NEGATIVO: PROTESIS MITRAL CON GRADO CONSIGNADO ── silencio TOTAL, tambien en la
+     IM (punto G). Es la unica entrada del registro donde «bloqueado» es una DECISION de Maicol y
+     no una deduccion: la IAo protesica SI se gradua y declara «false». */
+  mReset(); mSet('vm_morf','Prótesis mecánica'); mSet('im_vc','8'); mSet('avm_plan','1.2');
+  valvSev.aplicar('insuf','mitral','2'); valvSev.aplicar('esten','mitral','moderada');
+  const prot = mFoto();
+  const protMorf = String(valvEsProtesis(sv('vm_morf')));
+
+  const dg = 'imDisc=' + JSON.stringify(imDisc) + ' · emDisc=' + JSON.stringify(emDisc) +
+             ' · coincide=' + JSON.stringify(imCoincide) + ' · sinClasif=' + JSON.stringify(emSinClasif) +
+             ' · prot=' + JSON.stringify(prot);
+  return { extra: [
+    ['DENOMINADOR: los dos cajones EXISTEN en el marcado (si no, todo lo de abajo mide la nada)',
+      imDisc.imFund !== 'NO-EXISTE' && imDisc.emFund !== 'NO-EXISTE',
+      'im-fund=' + imDisc.imFund + ' em-fund=' + imDisc.emFund],
+
+    ['IM: con «Moderada» a mano sobre un calculo Severa hay discrepancia, aviso ROJO y cajon',
+      imDisc.dIM === true && imDisc.imFund === 'visible' &&
+      imDisc.avIM === '⚠️ Moderada (ajuste manual) · cálculo automático: Severa', dg],
+    /* AISLAMIENTO ENTRE LAS DOS MITADES de la misma valvula: la IM no enciende el cajon de la EM. */
+    ['  y el cajon de la ESTENOSIS sigue cerrado y sin aviso —son dos estados independientes—',
+      imDisc.emFund === 'oculto' && imDisc.avEM === '' && imDisc.dEM === false, dg],
+
+    ['EM: con «Moderada» a mano sobre un calculo Severa hay discrepancia, aviso ROJO y cajon',
+      emDisc.dEM === true && emDisc.emFund === 'visible' &&
+      emDisc.avEM === '⚠️ Moderada (ajuste manual) · cálculo automático: Severa', dg],
+    ['  y el cajon de la INSUFICIENCIA sigue cerrado y sin aviso',
+      emDisc.imFund === 'oculto' && emDisc.avIM === '' && emDisc.dIM === false, dg],
+
+    ['CONTROL NEGATIVO: CONFIRMAR el grado calculado no abre nada —grado manual no es discrepancia—',
+      imCoincide.imSel === '4' && imCoincide.dIM === false &&
+      imCoincide.imFund === 'oculto' && imCoincide.avIM === '', dg],
+
+    ['CONTROL NEGATIVO: una EM sin clasificar (categoria «gradiente») no produce grado calculado',
+      emCat === 'gradiente/null', 'cat=' + emCat],
+    ['  asi que el «Moderada» a mano NO discrepa, no avisa y no abre el cajon',
+      emSinClasif.dEM === false && emSinClasif.emFund === 'oculto' &&
+      emSinClasif.avEM === '' && emSinClasif.emSel === 'moderada', dg],
+
+    ['CONTROL NEGATIVO: con PROTESIS mitral el silencio es total en las DOS mitades (punto G)',
+      protMorf === 'true' && prot.dIM === false && prot.dEM === false &&
+      prot.imFund === 'oculto' && prot.emFund === 'oculto' &&
+      prot.avIM === '' && prot.avEM === '', dg],
+    /* El grado consignado NO se retira: el silencio es del aviso, no del grado. */
+    ['  y los grados que el medico consigno sobre la protesis siguen ahi',
+      prot.imSel === '2' && prot.imHid === '2' && prot.emSel === 'moderada', dg],
+
+    ['y las 434 columnas del Excel salen enteras en las cinco escenas',
+      imDisc.xls.n === 434 && emDisc.xls.n === 434 && imCoincide.xls.n === 434 &&
+      emSinClasif.xls.n === 434 && prot.xls.n === 434,
+      'n=' + [imDisc.xls.n, emDisc.xls.n, imCoincide.xls.n, emSinClasif.xls.n, prot.xls.n].join('/')],
+  ] };
+`);
+
+caso('TC-390', 'El informe de la mitral usa SOLO el grado final —el boton ya no afirma una valvulopatia— y la nota del fundamento entra entre parentesis tras el grado SIN llegar al EN SUMA', `
+  ${MIT_FUND_PRE}
+
+  /* ── (1) ⚠️ LA ESCENA QUE BORRA EL FALLBACK: los dos botones ABIERTOS y ningun grado ──
+     Medido contra HEAD el 2026-10-03, misma escena byte a byte:
+       narrativo → «Válvula mitral de morfología normal, con estenosis e insuficiencia.»
+       EN SUMA   → «Estenosis mitral. | Insuficiencia mitral.»
+       Excel     → 434 columnas con «EM grado = sin» e «IM grado = 0»
+     O sea dos superficies afirmaban dos valvulopatias que las otras dos negaban, y lo que lo
+     decidia era si el boton estaba apretado. */
+  mReset();
+  const abiertoSinGrado = mFoto();
+  const pills = String(mPillOn('insuf')) + '/' + String(mPillOn('esten'));
+
+  /* ── (2) La nota de la IM entra entre parentesis TRAS el grado, y el EN SUMA no la lleva ── */
+  mReset(); mSet('im_vc','8');
+  valvSev.aplicar('insuf','mitral','2');
+  mSet('im_fund_nota','jet excentrico, vena contracta no medible');
+  const notaIM = mFoto();
+
+  /* ── (3) Lo mismo en la EM ── */
+  mReset(); mSet('avm_plan','1.2');
+  valvSev.aplicar('esten','mitral','moderada');
+  mSet('em_fund_nota','AVm no planimetrable');
+  const notaEM = mFoto();
+
+  /* ── (4) CONTROL NEGATIVO: cajon POBLADO sin discrepancia no manda NADA ── el emisor pregunta
+     por «sevDiscrepa», no por el «style.display» del cajon. Se puebla a mano en modo automatico
+     porque «sevFundamento» lo vacia en cuanto la discrepancia desaparece: sin esta mitad, la
+     mutacion que le saca la guarda a «sevNotaInforme» sobrevive. */
+  mReset(); mSet('im_vc','8');
+  mSet('im_fund_nota','motivo colado'); mSet('em_fund_nota','otro colado');
+  /* ⚠️ EL DENOMINADOR SE LEE ACA Y NO DESPUES DE mFoto(), y lo pedi mal la primera vez: generar el
+     informe recalcula, «sevSincronizar» llama a «sevFundamento» y ese VACIA el cajon de verdad
+     cuando no hay discrepancia —es su contrato, para que un motivo no sobreviva al paciente
+     siguiente—. Leido despues, las dos notas dan '' y el caso parecia estar probando que no se
+     colaron cuando en realidad probaba que ya no estaban. */
+  const denomColado = __t.val('im_fund_nota') + '/' + __t.val('em_fund_nota');
+  const fundNulo = JSON.stringify(imFundamentoInforme()) + '/' + JSON.stringify(emFundamentoInforme());
+  const pobladoSinDisc = mFoto();
+
+  /* ── (5) CONTROL NEGATIVO: con grado de verdad el informe sigue publicandolo ── */
+  mReset(); mSet('im_vc','8'); mSet('avm_plan','1.2');
+  const conGrado = mFoto();
+
+  const dg = 'abierto=' + JSON.stringify(abiertoSinGrado) + ' · notaIM=' + JSON.stringify(notaIM) +
+             ' · notaEM=' + JSON.stringify(notaEM) + ' · colado=' + JSON.stringify(pobladoSinDisc) +
+             ' · conGrado=' + JSON.stringify(conGrado);
+  return { extra: [
+    ['DENOMINADOR: los dos botones de la mitral estaban ABIERTOS al medir', pills === 'true/true', pills],
+
+    ['⚠️ con los botones abiertos y SIN grado el narrativo dice «sin estenosis ni insuficiencia»',
+      abiertoSinGrado.inf === 'Válvula mitral de morfología normal, sin estenosis ni insuficiencia.', dg],
+    ['  y el EN SUMA ya no dice «Estenosis mitral.» ni «Insuficiencia mitral.» a secas',
+      abiertoSinGrado.suma.indexOf('Estenosis mitral.') === -1 &&
+      abiertoSinGrado.suma.indexOf('Insuficiencia mitral.') === -1, dg],
+    ['  y las cuatro superficies coinciden: el Excel tambien niega las dos',
+      abiertoSinGrado.xls.n === 434 && abiertoSinGrado.xls.em === 'sin' &&
+      String(abiertoSinGrado.xls.im) === 'Ausente', 'xls=' + JSON.stringify(abiertoSinGrado.xls)],
+
+    ['IM: la nota va ENTRE PARENTESIS pegada al grado, no antes ni al final de la oracion',
+      notaIM.inf === 'Válvula mitral de morfología normal, sin estenosis, con insuficiencia moderada (jet excentrico, vena contracta no medible).', dg],
+    ['IM: y el EN SUMA NO la lleva —«IM moderada.» pelado—',
+      notaIM.suma === 'IM moderada.', dg],
+
+    ['EM: la nota va ENTRE PARENTESIS pegada al grado',
+      notaEM.inf === 'Válvula mitral de morfología normal, con estenosis moderada (AVm no planimetrable), sin insuficiencia.', dg],
+    ['EM: y el EN SUMA NO la lleva —«EM moderada.» pelado—',
+      notaEM.suma === 'EM moderada.', dg],
+
+    ['CONTROL NEGATIVO: un cajon poblado SIN discrepancia no manda nada al informe',
+      fundNulo === 'null/null' && pobladoSinDisc.inf.indexOf('colado') === -1 &&
+      pobladoSinDisc.suma.indexOf('colado') === -1, 'fund=' + fundNulo + ' ' + dg],
+    ['  DENOMINADOR: y las dos notas estaban de verdad escritas al preguntar',
+      denomColado === 'motivo colado/otro colado', 'notas=«' + denomColado + '»'],
+    /* Y la otra mitad de ese contrato: el cajon no solo no manda nada al informe, se VACIA. */
+    ['  y el cajon sin discrepancia no queda poblado: «sevFundamento» lo vacia de verdad',
+      __t.val('im_fund_nota') === '' && __t.val('em_fund_nota') === '',
+      'im=«' + __t.val('im_fund_nota') + '» em=«' + __t.val('em_fund_nota') + '»'],
+
+    ['CONTROL NEGATIVO: con grados calculados de verdad el informe los sigue publicando',
+      conGrado.inf.indexOf('con estenosis severa') > -1 &&
+      conGrado.inf.indexOf('insuficiencia severa') > -1 &&
+      conGrado.suma.indexOf('IM severa.') > -1, dg],
+  ] };
+`);
+
+caso('TC-391', 'Guardar y reabrir conserva el grado, la marca y el cajon de la MITRAL —las dos mitades— que es lo que sevFundRestaurar dejaba afuera', `
+  ${MIT_FUND_PRE}
+  return (async () => {
+    mReset();
+    __t.set('ci','TC391');
+    mSet('im_vc','8'); mSet('avm_plan','1.2');
+    valvSev.aplicar('insuf','mitral','2');             // Moderada sobre un calculo Severa
+    valvSev.aplicar('esten','mitral','moderada');      // idem en la estenosis
+    mSet('im_fund_nota','jet excentrico'); mSet('em_fund_nota','AVm no planimetrable');
+    const antes = { imSel: __t.val('im_sev_final'), imHid: __t.val('im_grado'),
+      emSel: __t.val('em_grado'), dIM: sevDiscrepa('im'), dEM: sevDiscrepa('em'),
+      imFund: mVis('im-fund'), emFund: mVis('em-fund'),
+      imNota: __t.val('im_fund_nota'), emNota: __t.val('em_fund_nota'),
+      avIM: mTxt('im-manual-aviso'), avEM: mTxt('em-manual-aviso') };
+    const g = await __t.guardar();
+    if (!g.ok) return { extra: [['el estudio se guardo', false, 'guardar fallo: ' + g.error]] };
+    mReset();
+    const limpio = { imSel: __t.val('im_sev_final'), emSel: __t.val('em_grado'),
+      imFund: mVis('im-fund'), emFund: mVis('em-fund'),
+      imNota: __t.val('im_fund_nota'), emNota: __t.val('em_fund_nota'),
+      vc: __t.val('im_vc'), avm: __t.val('avm_plan'),
+      mIM: !!(window.esqSevManual || {}).im, mEM: !!(window.esqSevManual || {}).em,
+      dIM: sevDiscrepa('im'), dEM: sevDiscrepa('em') };
+    await __t.reabrir(g.estudioId);
+    const despues = { imSel: __t.val('im_sev_final'), imHid: __t.val('im_grado'),
+      emSel: __t.val('em_grado'), dIM: sevDiscrepa('im'), dEM: sevDiscrepa('em'),
+      imFund: mVis('im-fund'), emFund: mVis('em-fund'),
+      imNota: __t.val('im_fund_nota'), emNota: __t.val('em_fund_nota'),
+      avIM: mTxt('im-manual-aviso'), avEM: mTxt('em-manual-aviso'),
+      mIM: !!(window.esqSevManual || {}).im, mEM: !!(window.esqSevManual || {}).em };
+    /* La cuarta superficie del reabierto: el informe tiene que volver IDENTICO al que se firmo, con
+       las dos notas entre parentesis. Reimprimir un informe distinto del firmado es el defecto que
+       «sevFundRestaurar» existe para evitar. */
+    const infDespues = mFoto();
+    await __t.borrar(g.estudioId);
+
+    /* ── ⚠️ EL CAMINO DEL AUTOSAVE, QUE ES EL QUE ESTA RAMA GOBIERNA DE VERDAD ──────────────────
+       Lo pidio el barrido de mutaciones: hacer que «sevFundRestaurar» vuelva a atender solo ea/ia
+       SOBREVIVIA a la mitad de arriba, y no porque falte cobertura — es que el estudio REABIERTO
+       repone «im_fund_nota»/«em_fund_nota» por el restaurador GENERICO de «cargarEstudioPorId»
+       (son dos input con id, y «guardarInforme» los barre solos). Es la misma correccion que el
+       archivo ya documenta para las casillas de la aortica.
+       El camino que NO tiene restaurador generico es el AUTOSAVE: persiste la clave PELADA, y ahi
+       el unico que repone es este. Se llama directo con un objeto con la forma del borrador, igual
+       que hace TC-377 con la aortica. Sin esta mitad, el titulo del caso prometeria un round-trip
+       que una de las dos puertas no esta midiendo. */
+    mReset(); mSet('im_vc','8'); mSet('avm_plan','1.2');
+    valvSev.aplicar('insuf','mitral','2');
+    valvSev.aplicar('esten','mitral','moderada');
+    mSet('im_fund_nota',''); mSet('em_fund_nota','');
+    const vaciasAntes = __t.val('im_fund_nota') + '/' + __t.val('em_fund_nota');
+    let repuesto = 'no corrio';
+    try { repuesto = JSON.stringify(Object.keys(sevFundRestaurar(
+      { im_fund_nota: 'desde el autosave IM', em_fund_nota: 'desde el autosave EM' }) || {}).sort()); }
+    catch (e) { repuesto = 'ERR:' + e.message; }
+    const borrador = { im: __t.val('im_fund_nota'), em: __t.val('em_fund_nota'),
+                       imFund: mVis('im-fund'), emFund: mVis('em-fund') };
+
+    const dg = 'antes=' + JSON.stringify(antes) + ' limpio=' + JSON.stringify(limpio) +
+               ' despues=' + JSON.stringify(despues);
+    return { extra: [
+      ['DENOMINADOR: antes de guardar habia grado manual, discrepancia, cajon y nota en las DOS',
+        antes.imSel === '2' && antes.emSel === 'moderada' && antes.dIM === true &&
+        antes.dEM === true && antes.imFund === 'visible' && antes.emFund === 'visible' &&
+        antes.imNota === 'jet excentrico' && antes.emNota === 'AVm no planimetrable', dg],
+      /* CONTROL NEGATIVO: el reset borro TODO lo que el caso va a buscar despues. Sin esto,
+         «despues» podria ser lo que quedo en pantalla y el caso pasaria sin reabrir nada. */
+      ['CONTROL NEGATIVO: el reset borro grados, notas, cajones, insumos y las dos marcas',
+        limpio.imSel === '0' && limpio.emSel === 'sin' && limpio.imNota === '' &&
+        limpio.emNota === '' && limpio.imFund === 'oculto' && limpio.emFund === 'oculto' &&
+        limpio.vc === '' && limpio.avm === '' && limpio.mIM === false && limpio.mEM === false &&
+        limpio.dIM === false && limpio.dEM === false, dg],
+      ['al reabrir vuelven los DOS grados con su marca de manual y su discrepancia',
+        despues.imSel === '2' && despues.imHid === '2' && despues.emSel === 'moderada' &&
+        despues.mIM === true && despues.mEM === true &&
+        despues.dIM === true && despues.dEM === true, dg],
+      ['al reabrir vuelven los DOS cajones con la nota que se firmo',
+        despues.imFund === 'visible' && despues.emFund === 'visible' &&
+        despues.imNota === 'jet excentrico' && despues.emNota === 'AVm no planimetrable', dg],
+      ['y los dos avisos rojos vuelven con el mismo texto que antes de guardar',
+        despues.avIM === antes.avIM && despues.avEM === antes.avEM &&
+        /ajuste manual/.test(despues.avIM) && /ajuste manual/.test(despues.avEM), dg],
+      ['y el informe reimpreso trae las DOS notas entre parentesis, como el que se firmo',
+        infDespues.inf === 'Válvula mitral de morfología normal, con estenosis moderada (AVm no planimetrable) e insuficiencia moderada (jet excentrico).',
+        'inf=«' + infDespues.inf + '»'],
+
+      ['DENOMINADOR del autosave: las dos notas estaban VACIAS antes de reponer',
+        vaciasAntes === '/', 'notas=«' + vaciasAntes + '»'],
+      ['sevFundRestaurar atiende las CUATRO claves registradas, no solo ea e ia',
+        repuesto === '["ea","em","ia","im"]', 'claves=' + repuesto],
+      ['y repone las notas de la MITRAL desde la forma del borrador (clave pelada)',
+        borrador.im === 'desde el autosave IM' && borrador.em === 'desde el autosave EM' &&
+        borrador.imFund === 'visible' && borrador.emFund === 'visible',
+        'borrador=' + JSON.stringify(borrador)],
+    ] };
+  })();
+`);
+
+caso('TC-392', 'El cajon de fundamento de la MITRAL se maqueta como el de la aortica: a la derecha del select a 1200 y 756 px, y apilado a 300 px', `
+  ${MIT_FUND_PRE}
+  const tab = document.getElementById('tab-valvulas');
+  const ancho = function (px) {
+    if (px) tab.style.setProperty('width', px + 'px', 'important');
+    else tab.style.removeProperty('width');
+  };
+  const geo = function (id) {
+    const e = document.getElementById(id);
+    if (!e) return 'falta ' + id;
+    const r = e.getBoundingClientRect();
+    if (!r.width && !r.height) return 'sin geometria';
+    return { top: Math.round(r.top), left: Math.round(r.left), w: Math.round(r.width) };
+  };
+  /* Discrepancia en las DOS mitades y por el camino de la app, para que los dos cajones esten
+     abiertos de verdad: nada de «display:block» a mano. */
+  mReset(); mSet('im_vc','8'); mSet('avm_plan','1.2');
+  valvSev.aplicar('insuf','mitral','2');
+  valvSev.aplicar('esten','mitral','moderada');
+  const abiertos = mVis('im-fund') + '/' + mVis('em-fund');
+
+  ancho(1200);
+  const a = { imSel: geo('im_sev_final'), imCaj: geo('im-fund'),
+              emSel: geo('em_grado'), emCaj: geo('em-fund') };
+  ancho(756);
+  const b = { imSel: geo('im_sev_final'), imCaj: geo('im-fund'),
+              emSel: geo('em_grado'), emCaj: geo('em-fund') };
+  ancho(300);
+  const c = { imSel: geo('im_sev_final'), imCaj: geo('im-fund'),
+              emSel: geo('em_grado'), emCaj: geo('em-fund') };
+  ancho(null);
+  const devuelto = tab.style.width === '';
+
+  const obj = function (x) { return x && typeof x === 'object'; };
+  const alLado = function (s) { return obj(s.imSel) && obj(s.imCaj) && obj(s.emSel) && obj(s.emCaj) &&
+    s.imCaj.left > s.imSel.left && s.emCaj.left > s.emSel.left; };
+  const apilado = function (s) { return obj(s.imSel) && obj(s.imCaj) && obj(s.emSel) && obj(s.emCaj) &&
+    s.imCaj.top > s.imSel.top && s.emCaj.top > s.emSel.top &&
+    s.imCaj.left === s.imSel.left && s.emCaj.left === s.emSel.left; };
+  const dg = '1200=' + JSON.stringify(a) + ' · 756=' + JSON.stringify(b) + ' · 300=' + JSON.stringify(c);
+  return { extra: [
+    ['DENOMINADOR: los dos cajones de la mitral estaban ABIERTOS —si no, no hay geometria que medir—',
+      abiertos === 'visible/visible', abiertos],
+    ['a 1200 px el cajon va a la DERECHA del select, en las dos mitades', alLado(a), dg],
+    ['a 1200 px el select baja a la mitad de su columna —el cajon mide parecido, no un sobrante—',
+      obj(a.imSel) && obj(a.imCaj) && Math.abs(a.imSel.w - a.imCaj.w) <= 30 &&
+      Math.abs(a.emSel.w - a.emCaj.w) <= 30,
+      'imSel=' + a.imSel.w + ' imCaj=' + a.imCaj.w + ' emSel=' + a.emSel.w + ' emCaj=' + a.emCaj.w],
+    ['a 756 px siguen a la derecha —es el ancho donde las dos columnas de valvula entran justas—',
+      alLado(b), dg],
+    ['⚠️ a 300 px APILA: el cajon baja debajo del select y los dos arrancan en el mismo left',
+      apilado(c), dg],
+    ['y a 300 px ningun select se sale de su fila',
+      obj(c.imSel) && obj(c.emSel) && c.imSel.w > 60 && c.emSel.w > 60,
+      'imSel=' + JSON.stringify(c.imSel) + ' emSel=' + JSON.stringify(c.emSel)],
+    ['y el ancho forzado se devolvio al salir —si no, los casos de abajo miden una pestana angosta—',
+      devuelto === true, 'width=«' + tab.style.width + '»'],
+  ] };
+`);
+
+caso('TC-393', 'La tarjeta pre-PDF ya no publica un grado de IM distinto del grado final, y el cajon de la MITRAL se abre solo al entrar a Valvulas sin reabrirse si el medico lo cerro', `
+  ${MIT_FUND_PRE}
+  /* ── (1) PUNTO d — EL TERCER ESCRITOR DE im_grado ──────────────────────────────────────────
+     «mostrarCardSeveridadValvular» corre JUSTO ANTES de guardar y de emitir el PDF, asi que lo que
+     escriba es lo que queda firmado. Escribia SOLO el oculto «im_grado» y dejaba el select visible
+     «im_sev_final» con el valor viejo — y desde que la mitral esta en SEV_SINC ese select es lo que
+     leen sevDiscrepa, el aviso rojo, el cajon del fundamento y la pastilla. Medido contra HEAD:
+     corregir la IM de Severa a Moderada en la tarjeta dejaba im_grado=2 (lo que firma el PDF) con
+     im_sev_final=4 (lo que ve el medico), y la marca manual que la tarjeta pone impide que
+     calcIM_ESC vuelva a igualarlos: la divergencia era PERMANENTE. */
+  const tarjeta = function (valorIM) {
+    try { mostrarCardSeveridadValvular(function () {}); } catch (e) { return 'ERR:' + e.message; }
+    const ov = document.getElementById('pdf-review-overlay');
+    if (!ov) return 'no abrio la tarjeta';
+    const r = ov.querySelector('#rev-im');
+    if (!r) return 'no hay #rev-im';
+    if (valorIM !== null) r.value = valorIM;
+    ov.querySelector('#rev-confirm').click();
+    return document.getElementById('pdf-review-overlay') ? 'quedo abierta' : 1;
+  };
+
+  mReset(); mSet('im_vc','8');
+  const antesTarjeta = { sel: __t.val('im_sev_final'), hid: __t.val('im_grado'),
+                         manual: !!(window.esqSevManual || {}).im };
+  const abrio = tarjeta('2');
+  const trasTarjeta = { sel: __t.val('im_sev_final'), hid: __t.val('im_grado'),
+                        manual: !!(window.esqSevManual || {}).im, dIM: sevDiscrepa('im'),
+                        aviso: mTxt('im-manual-aviso'), fund: mVis('im-fund') };
+
+  /* CONTROL NEGATIVO: confirmar SIN tocar nada no fija ningun grado a mano. Sin esta mitad, una
+     sonda que marcara manual en cuanto se abre la tarjeta saldria verde — y marcar los tres grados
+     por mirar la tarjeta los dejaria rancios para siempre. */
+  mReset(); mSet('im_vc','8');
+  const abrio2 = tarjeta(null);
+  const sinTocar = { sel: __t.val('im_sev_final'), hid: __t.val('im_grado'),
+                     manual: !!(window.esqSevManual || {}).im, dIM: sevDiscrepa('im') };
+
+  /* AISLAMIENTO: la TRICUSPIDE no entro en esta tanda — no tiene select de grado final ni entrada
+     en el registro, asi que su hidden se sigue escribiendo solo, igual que antes. */
+  mReset();
+  try { mostrarCardSeveridadValvular(function () {}); } catch (e) {}
+  const ovT = document.getElementById('pdf-review-overlay');
+  if (ovT) { ovT.querySelector('#rev-it').value = '2'; ovT.querySelector('#rev-confirm').click(); }
+  const tric = { hid: __t.val('it_grado'), haySelect: !!document.getElementById('it_sev_final') };
+
+  /* ── (2) APERTURA AUTOMATICA DE LA MITRAL ──────────────────────────────────────────────────
+     «valvAutoAbrirCajones» deriva los pares del registro, asi que la mitral entro sin una rama
+     nueva. Los tres estados de la clave «valv-pill-<tipo>-<valvula>» son los que ya escribe
+     toggleValvPill: ausente = nadie la toco, '0' = el medico la cerro, '1' = ya esta abierta. */
+  try { limpiarCampos(true); } catch (e) {}
+  window.esqSevManual = {}; window._sevCalcAlFijar = {}; window._imGradoCalc = null;
+  try { showTab('valvulas'); } catch (e) {}
+  const llaves = function () {
+    return ['insuf','esten'].map(function (t) {
+      let x = 'ERR'; try { x = String(localStorage.getItem('valv-pill-' + t + '-mitral')); } catch (e) {}
+      return t + '=' + x; }).join(' ');
+  };
+  const limpias = llaves();
+  __t.set('im_sev_final','4'); __t.set('em_grado','severa');
+  const antesAuto = { pIM: mPillOn('insuf'), pEM: mPillOn('esten') };
+  try { valvAutoAbrirCajones(); } catch (e) {}
+  const trasAuto = { pIM: mPillOn('insuf'), pEM: mPillOn('esten') };
+
+  /* CONTROL NEGATIVO 1: el medico la CERRO ('0') y no se reabre. */
+  toggleValvPill('mitral','insuf');
+  const cerradaPorMedico = { pIM: mPillOn('insuf'), llave: llaves() };
+  try { valvAutoAbrirCajones(); } catch (e) {}
+  const trasAuto2 = mPillOn('insuf');
+
+  /* CONTROL NEGATIVO 2: sin grado no se abre nada —«Sin insuficiencia» y «Sin estenosis» quedan
+     fuera de VALV_AUTO_GRADO a proposito—. Y la TRICUSPIDE nunca se abre sola: no esta registrada. */
+  try { limpiarCampos(true); } catch (e) {}
+  try { showTab('valvulas'); } catch (e) {}
+  __t.set('im_sev_final','0'); __t.set('em_grado','sin'); __t.set('it_grado','4');
+  try { valvAutoAbrirCajones(); } catch (e) {}
+  const sinGrado = { pIM: mPillOn('insuf'), pEM: mPillOn('esten'),
+                     pIT: mPillOn('insuf','tricuspide') };
+
+  const dg = 'tarjeta=' + JSON.stringify(trasTarjeta) + ' · sinTocar=' + JSON.stringify(sinTocar) +
+             ' · auto ' + JSON.stringify(antesAuto) + '→' + JSON.stringify(trasAuto) +
+             ' · cerrada=' + JSON.stringify(cerradaPorMedico) + '→' + trasAuto2 +
+             ' · sinGrado=' + JSON.stringify(sinGrado);
+  return { extra: [
+    ['DENOMINADOR: la tarjeta pre-PDF se abrio y se confirmo las dos veces',
+      abrio === 1 && abrio2 === 1, 'abrio=' + abrio + ' / ' + abrio2],
+    ['DENOMINADOR: antes de la tarjeta el calculo habia puesto Severa en el select Y en el hidden',
+      antesTarjeta.sel === '4' && antesTarjeta.hid === '4' && antesTarjeta.manual === false,
+      JSON.stringify(antesTarjeta)],
+
+    ['⚠️ PUNTO d: corregir la IM en la tarjeta mueve el HIDDEN Y EL SELECT juntos —ya no divergen—',
+      trasTarjeta.hid === '2' && trasTarjeta.sel === '2' && trasTarjeta.manual === true, dg],
+    ['  y por eso el aviso rojo compara el grado BUENO y el cajon se abre',
+      trasTarjeta.dIM === true && trasTarjeta.fund === 'visible' &&
+      trasTarjeta.aviso === '⚠️ Moderada (ajuste manual) · cálculo automático: Severa', dg],
+
+    ['CONTROL NEGATIVO: confirmar la tarjeta SIN tocar nada no fija el grado a mano ni discrepa',
+      sinTocar.sel === '4' && sinTocar.hid === '4' && sinTocar.manual === false &&
+      sinTocar.dIM === false, dg],
+
+    ['AISLAMIENTO: la tricuspide no tiene select de grado final y su hidden se sigue escribiendo solo',
+      tric.haySelect === false && tric.hid === '2', 'tric=' + JSON.stringify(tric)],
+
+    ['DENOMINADOR: el reset dejo las dos llaves de pastilla de la mitral en null',
+      limpias === 'insuf=null esten=null', limpias],
+    ['DENOMINADOR: y las dos pastillas arrancaban CERRADAS',
+      antesAuto.pIM === false && antesAuto.pEM === false, dg],
+    ['con grado leve o mayor, entrar a Valvulas abre SOLAS las dos pastillas de la mitral',
+      trasAuto.pIM === true && trasAuto.pEM === true, dg],
+    ['CONTROL NEGATIVO: si el medico la cerro, no se reabre',
+      cerradaPorMedico.pIM === false && trasAuto2 === false, dg],
+    ['CONTROL NEGATIVO: sin grado no se abre nada, y la TRICUSPIDE nunca se abre sola',
+      sinGrado.pIM === false && sinGrado.pEM === false && sinGrado.pIT === false, dg],
+  ] };
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────
