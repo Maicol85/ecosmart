@@ -3401,7 +3401,17 @@ window.cerrarSesionReal = cerrarSesionReal;
           <option value="3">Moderada-severa</option>
           <option value="4">Severa</option>
         </select>
-        <div style="font-size:10px;color:var(--text2);margin-top:4px;">Se completa autom&aacute;ticamente con la severidad calculada. Editable manualmente.</div>
+        <!-- Aviso de grado fijado a mano que discrepa del calculado, hermano de `ia-manual-aviso`
+             y gobernado por el MISMO `sevSincronizar` (clave `im`). Va ARRIBA del texto de ayuda
+             por el mismo motivo que en la aórtica: el aviso explica por qué el desplegable no dice
+             lo que dice el cuadro de arriba, y el de abajo explica de dónde sale el valor cuando
+             NO hay aviso. Vacío no tiene alto y no deja hueco; sin titileo ni animación. -->
+        <div id="im-manual-aviso" style="font-size:11px;font-weight:700;color:var(--red);margin-top:4px;"></div>
+        <!-- ⚠️ ESTE TEXTO DEJÓ DE SER HTML MUDO Y AHORA LO APAGA EL JS, igual que `ia-auto-ayuda`.
+             Afirmaba «Se completa automáticamente con la severidad calculada» también cuando el
+             médico acababa de fijar el grado a mano — o sea justo cuando es falso. Sin un id no
+             había forma de apagarlo; lo apaga `sevSincronizar` vía `SEV_SINC.im.ayuda`. -->
+        <div id="im-auto-ayuda" style="font-size:10px;color:var(--text2);margin-top:4px;">Se completa autom&aacute;ticamente con la severidad calculada. Editable manualmente.</div>
       </div>
           </div>
         </div>
@@ -3417,6 +3427,10 @@ window.cerrarSesionReal = cerrarSesionReal;
                nombrar distinto una opcion deja `selectedIndex = -1` y el hueco se persiste— y el
                PPT sale igual, porque `_pptSel` ya recorta el parentesis final. -->
           <select id="em_grado" onchange="emGradoManual()"><option value="sin">Sin estenosis</option><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option></select>
+          <!-- Aviso de grado fijado a mano que discrepa del calculado, hermano de
+               `ea-manual-aviso` y gobernado por `sevSincronizar` (clave `em`). Va ARRIBA del badge
+               del THP: el aviso habla del grado que está justo encima, el badge del método. -->
+          <div id="em-manual-aviso" style="font-size:11px;font-weight:700;color:var(--red);margin-top:4px;"></div>
           <div id="em-thp-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
         </div>
         </div>
@@ -21732,6 +21746,8 @@ function emGradoManual(){
      el médico eligió — que es exactamente el defecto que ese espejo vino a cerrar. */
   try { if (typeof _sevManualSync === 'function') _sevManualSync(); } catch (e) {}
   if (typeof imOndaESiExiste === 'function') imOndaESiExiste();
+  /* Misma foto, mismo motivo que en `imGradoManual`. */
+  _emSincronizarPantalla();
 }
 window.emGradoManual = emGradoManual;
 
@@ -21965,6 +21981,15 @@ function calcEM() {
   /* ESCRIBE `em_grado`, y es el ÚNICO que lo hace. Va ANTES de pintar para que la pantalla y el
      campo no puedan quedar desfasados dentro de la misma corrida. */
   emGradoAuto(cat);
+  /* ⚠️ INMEDIATAMENTE DESPUÉS DEL ESCRITOR Y FUERA DE SU COMPUERTA DE MANUAL (puntos A y B).
+     `emGradoAuto` sale temprano con `esqSevManual.em` puesto, así que colgar esto de adentro
+     dejaría a la regla del grado manual sin enterarse nunca de que el calculado cambió — que es
+     justo el gesto que tiene que detectar. Y repinta la pastilla, que hasta hoy se quedaba en
+     «🟡 Severidad ▼» con la categoría diciendo «Estenosis mitral severa» (medido en la Etapa 1).
+     El proveedor del registro lee `emCategoria()` y no `em_grado`, así que el orden respecto de
+     esta línea no cambia el resultado; se deja acá por simetría con la IM y para que un lector
+     encuentre el repintado al lado de la escritura. */
+  _emSincronizarPantalla();
 
   if (sevEl) {
     if (cat.clave === 'protesis') {
@@ -22092,6 +22117,15 @@ function imGradoManual() {
      estudio la limpieza pisaría el grado que el médico eligió — el mismo motivo que en la EM. */
   try { if (typeof _sevManualSync === 'function') _sevManualSync(); } catch (e) {}
   sincronizarGradoIM();
+  /* ⚠️ ACÁ SE TOMA LA FOTO DEL GRADO CALCULADO, Y POR ESO LA LLAMADA NO ES OPCIONAL. La regla del
+     grado manual compara contra lo que el cálculo valía CUANDO el médico fijó el grado, no contra
+     el valor de ahora; sin esa foto, con un calculado «Severa» y un manual «Moderada» habría
+     discrepancia permanente y el primer recálculo le soltaría la decisión. `valvSev.aplicar` la
+     toma antes de escribir, pero este camino —elegir directo en el desplegable— no pasa por ahí, y
+     en la mitral ese camino SÍ marca `esqSevManual` (al revés que en la aórtica, donde sólo el ▼
+     lo hace). `sevSincronizar` la guarda en su rama `foto == null`, que es la misma por la que
+     entra un estudio reabierto. */
+  _imSincronizarPantalla();
 }
 window.imGradoManual = imGradoManual;
 
@@ -24287,6 +24321,10 @@ const SEV_SINC = Object.freeze({
          proteccion de banda que tiene el aviso. Lo encontro /sharp-edges. */
       } catch (e) { return true; }
     },
+    /* Qué hay que hacer DESPUÉS de que R6 escribe el grado calculado en el `<select>`. Vive en el
+       registro y no en `sevSincronizar` porque es lo único de ese paso que depende de la válvula:
+       cada `<select>` tiene su propia marca de «lo puso el autocálculo» y su propio espejo. */
+    trasEscribir: function(sel, calc){ _eaMarcarSugerido(sel, calc); },
     etiqueta: function(g){ return EA_GRADO_LBL[g] || g; } }),
   ia: Object.freeze({ tipo:'insuf', valv:'aortica', select:'ia_sev_final', aviso:'ia-manual-aviso',
     ayuda:'ia-auto-ayuda', nombre:'Insuficiencia aórtica', fundamento:'ia-fund', nota:'ia_fund_nota',
@@ -24317,11 +24355,104 @@ const SEV_SINC = Object.freeze({
        se lee. La consecuencia es que el aviso de la IAo refleja el ÚLTIMO cálculo, no uno nuevo; en
        la práctica es lo mismo porque `calcIA_ESC` corre con cada cambio de sus insumos. */
     calcular: function(){ return window._iaGradoCalc || null; },
+    /* Exactamente lo que hacía el `else` de `sevSincronizar` antes de generalizarse: la marca de
+       sugerido y el espejo al hidden `ia_grado`, que es el que leen las cuatro superficies. */
+    trasEscribir: function(sel, calc){ sel.dataset.sugerido = calc;
+      if (typeof sincronizarGradoIA === 'function') sincronizarGradoIA(); },
     /* Los cinco rótulos, copiados del `<select>` de `ia_sev_final`. No se leen de sus `<option>` a
        propósito: el aviso tiene que poder nombrar el grado CALCULADO, y ése puede no estar
        seleccionado en ese momento — leer `options[selectedIndex]` daría el manual dos veces. */
     etiqueta: function(g){ return ({ '0':'Sin insuficiencia', '1':'Leve', '2':'Moderada',
-      '3':'Moderada-severa', '4':'Severa' })[String(g)] || String(g); } })
+      '3':'Moderada-severa', '4':'Severa' })[String(g)] || String(g); } }),
+  /* ══ MITRAL NATIVA — LAS DOS ENTRADAS QUE EL COMENTARIO DE ARRIBA ANUNCIABA (2026-10-03) ══════
+     Decisión de Maicol. Es exactamente lo que `docs/mapa/aortica-censo-2026-10-02.md` §11 dejó
+     previsto —«extenderla a la mitral sea agregar dos entradas y no reescribirla»— y no se tocó
+     NI UNA línea de `sevSincronizar`, `sevDiscrepa`, `sevComparable` ni `valvSev`. Lo único que
+     hizo falta fuera de acá es que los calculadores de la mitral llamen a `sevSincronizar`, que es
+     el mismo cableado que la aórtica ya tiene con `_eaSincronizarPantalla`.
+     ⚠️ LA REGLA DEL GRADO MANUAL SE DA VUELTA, Y ES EL PUNTO DEL PEDIDO. Medido antes de tocar
+     (Etapa 1, Chrome): hoy la mitral usa la regla CONTRARIA a la aórtica —el autocálculo nunca
+     pisa un grado manual, así que un «Moderada» fijado a mano sobrevive para siempre aunque el
+     cálculo pase de Severa a Leve, y sin ningún aviso—. Desde esta tanda rige la regla del 4b: el
+     manual se mantiene mientras el CALCULADO no cambie, y cuando cambia vuelve a automático. */
+  im: Object.freeze({ tipo:'insuf', valv:'mitral', select:'im_sev_final', aviso:'im-manual-aviso',
+    ayuda:'im-auto-ayuda', nombre:'Insuficiencia mitral',
+    /* Mismo recorte que la IAo y por el mismo motivo: `calcIM_ESC` vota y emite '4', '2' y '1' —
+       nunca '3' ni '0'—, así que un «Moderada-severa» no se compara contra nada y no se suelta. */
+    calculables: Object.freeze(['1','2','4']),
+    /* '0' entra acá y no en `calculables` por lo mismo que en la IAo: desde que «Sin» está en el
+       menú de la pastilla, un '0' fijado A MANO sobre un cálculo de «Severa» es un ajuste a la baja
+       como cualquier otro y le corresponden el aviso y el cajón. '3' sigue afuera de las dos. */
+    comparables: Object.freeze(['0','1','2','4']),
+    /* ⚠️ PRÓTESIS MITRAL ⇒ SILENCIO TOTAL (decisión de Maicol, punto G), Y ES LO CONTRARIO DE LO
+       QUE HACE LA IAo. La entrada `ia` declara `bloqueado: false` con el argumento de que la
+       regurgitación protésica SÍ se gradúa (ASE 2024, Tabla 13, el mismo reparto que `calcIM_ESC`
+       documenta) — o sea que por evidencia esta entrada «debería» ser `false` también. Se declara
+       `true` porque la orden es explícita: con prótesis mitral y grado consignado no va ni aviso ni
+       cajón. Queda escrito que es una DECISIÓN y no una deducción, para que la próxima lectura no
+       lo «arregle» hacia la simetría con la IAo. Reportado el 2026-10-03.
+       `true` ante excepción por el mismo motivo que la EA: «no sé» es abstenerse. */
+    bloqueado: function(){
+      try { return !!(typeof valvEsProtesis === 'function' && valvEsProtesis(sv('vm_morf'))); }
+      catch (e) { return true; }
+    },
+    /* ⚠️ LA IM TAMPOCO TIENE PROVEEDOR PURO: su grado sale de CONTAR VOTOS sobre vena contracta,
+       jet/AI y onda S pulmonar dentro de `calcIM_ESC`, no de una cascada de cortes recalculable.
+       Misma solución que la IAo: esa función deja el resultado en `window._imGradoCalc` y acá se
+       lee. Y deja `null` —no '0'— en sus dos salidas sin votos, que es lo que hace que borrar el
+       último parámetro NO retire el grado (punto I): con `calc` en `null` no hay con qué comparar,
+       así que no se suelta el manual y no se pinta aviso. */
+    calcular: function(){ const g = window._imGradoCalc; return (g === null || g === undefined || g === '') ? null : g; },
+    /* ⚠️ `sincronizarGradoIM` Y NO `sincronizarGradoIA`, que es lo que la versión genérica anterior
+       habría llamado. `im_sev_final` es el `<select>` visible y `im_grado` el hidden, y **el hidden
+       es el que leen el narrativo, el EN SUMA, el PDF y el Excel**: sin este espejo, soltar el
+       grado manual dejaba la pantalla con el calculado y el informe firmado con el manual viejo. */
+    trasEscribir: function(sel, calc){ sel.dataset.sugerido = calc;
+      if (typeof sincronizarGradoIM === 'function') sincronizarGradoIM(); },
+    etiqueta: function(g){ return ({ '0':'Sin insuficiencia', '1':'Leve', '2':'Moderada',
+      '3':'Moderada-severa', '4':'Severa' })[String(g)] || String(g); } }),
+  em: Object.freeze({ tipo:'esten', valv:'mitral', select:'em_grado', aviso:'em-manual-aviso',
+    ayuda: null, nombre:'Estenosis mitral',
+    /* ⚠️ EL PROVEEDOR EMITE UN SOLO GRADO, Y NO ES UN RECORTE: ES TODO LO QUE LA APP SABE DECIR.
+       `emGradoAuto` —el único escritor de `em_grado`— escribe «severa» o «sin», y desde el 28/09
+       «leve» y «moderada» NO se autocompletan nunca. Así que el único veredicto calculado que
+       existe para la EM es «severa». */
+    calculables: Object.freeze(['severa']),
+    /* Los cuatro `<option>` del `<select>`: cualquiera de ellos fijado a mano por debajo de un
+       «severa» calculado es un ajuste a la baja con derecho a aviso y cajón, «Sin estenosis»
+       incluido. */
+    comparables: Object.freeze(['sin','leve','moderada','severa']),
+    /* Declarado aunque `emCategoria()` ya devuelva `clave:'protesis'` por su cuenta: `bloqueado` es
+       obligatorio —`sevCalcPublicable` falla cerrado y grita si falta— y escribirlo deja el punto G
+       visible en el registro en vez de escondido dentro del calculador. */
+    bloqueado: function(){
+      try { return !!(typeof valvEsProtesis === 'function' && valvEsProtesis(sv('vm_morf'))); }
+      catch (e) { return true; }
+    },
+    /* ⚠️ «LA APP NO GRADUÓ» DEVUELVE `null`, Y ASÍ EL PUNTO G SALE SIN UNA LISTA DE EXCEPCIONES.
+       `emGradoAuto` escribe «sin» en CUATRO situaciones que no significan lo mismo: prótesis,
+       «EM con gradiente elevado», «gradiente transmitral elevado» y «nadie midió nada». Ese «sin»
+       es el valor de fábrica del campo, no una conclusión — es el mismo argumento con que el
+       narrativo exige `esqSevManual.em` antes de leerlo como respuesta. Si esta función lo
+       publicara como grado calculado, una EM sin clasificar (AVm >1,5 y gradiente >4) generaría
+       discrepancia contra cualquier grado manual, que es justo lo que G prohíbe.
+       Se lee de `emCategoria()` y no de `em_grado`: el campo es la SALIDA del calculador y
+       compararlo contra sí mismo nunca daría discrepancia. */
+    calcular: function(){
+      try {
+        if (typeof emCategoria !== 'function') return null;
+        const c = emCategoria();
+        return (c && (c.clave === 'severa' || c.clave === 'probable')) ? 'severa' : null;
+      } catch (e) { return null; }
+    },
+    /* `em_grado` NO tiene hidden espejo —el narrativo, el PDF y el Excel lo leen directo— así que
+       acá no hay nada que sincronizar. Lo que sí hace falta es repintar la fila de onda E de la
+       IM, que se apaga con estenosis documentada: es lo mismo que hace el `onchange` del
+       desplegable, y escribir el `<select>` por código no dispara ese evento. */
+    trasEscribir: function(sel, calc){ sel.dataset.sugerido = calc;
+      if (typeof imOndaESiExiste === 'function') imOndaESiExiste(); },
+    etiqueta: function(g){ return ({ sin:'Sin estenosis', leve:'Leve', moderada:'Moderada',
+      severa:'Severa' })[String(g)] || String(g); } })
 });
 /* El grado calculado que la app está dispuesta a NOMBRAR, que es el único con el que se puede
    comparar un grado manual. Un solo lugar lo decide, y lo usan los DOS que miran la foto:
@@ -24654,9 +24785,21 @@ function sevSincronizar(clave) {
         return { manual: true, calc: calc, final: sel.value, discrepa: false, soltado: false };
       }
       sel.value = calc;
-      if (clave === 'ea') _eaMarcarSugerido(sel, calc);
-      else { sel.dataset.sugerido = calc;
-             if (typeof sincronizarGradoIA === 'function') sincronizarGradoIA(); }
+      /* ⚠️ ESTO ERA `if (clave === 'ea') … else { … sincronizarGradoIA() }` Y CON LA MITRAL
+         REGISTRADA SE VOLVÍA UN DEFECTO SILENCIOSO. El `else` estaba escrito para la IAo y era
+         correcto mientras las claves fueran dos; con `im` adentro, soltar un grado manual de la
+         IM escribía `im_sev_final` y después llamaba a `sincronizarGradoIA` —la sincronía de la
+         AÓRTICA—, así que el hidden `im_grado` se quedaba con el grado manual viejo. Y `im_grado`
+         es lo que leen el narrativo, el EN SUMA, el PDF y el Excel: el informe firmado habría
+         publicado el grado que el médico había puesto mientras la pantalla mostraba otro, sin un
+         evento ni un error que lo delatara. La `em` habría arrastrado el mismo error a la aórtica
+         por el mismo camino. Lo encontró la revisión del propio diff, antes de medir.
+         El cableado post-escritura pasa a ser propiedad de cada entrada del registro, que es donde
+         vive todo lo demás que es específico de una válvula. */
+      if (typeof C.trasEscribir === 'function') {
+        try { C.trasEscribir(sel, calc); }
+        catch (e) { console.warn('[sevSincronizar] trasEscribir ' + clave, e); }
+      }
       soltado = true;
     }
   }
@@ -24695,6 +24838,32 @@ window.SEV_SINC = SEV_SINC;
    escritura, que es lo que R3 pide: sin esto la pastilla no se entera de un grado automático. */
 function _eaSincronizarPantalla(){ return sevSincronizar('ea'); }
 window._eaSincronizarPantalla = _eaSincronizarPantalla;
+/* Los mismos atajos para la mitral, que es lo único que hizo falta fuera del registro. Van en
+   `try` porque los llaman los CALCULADORES: un throw acá se llevaría el badge y las filas que esas
+   funciones estaban pintando, y el síntoma sería «se rompió el cálculo de la mitral». */
+function _imSincronizarPantalla(){
+  try { return sevSincronizar('im'); } catch (e) { console.warn('[sevSincronizar] im', e); return null; }
+}
+function _emSincronizarPantalla(){
+  try { return sevSincronizar('em'); } catch (e) { console.warn('[sevSincronizar] em', e); return null; }
+}
+window._imSincronizarPantalla = _imSincronizarPantalla;
+window._emSincronizarPantalla = _emSincronizarPantalla;
+
+/* ¿Qué clave de `SEV_SINC` gobierna este par botón/válvula? SE DERIVA DEL REGISTRO y no se escribe
+   como un mapa literal `{mitral:{esten:'em'…}}`: ese mapa sería una tercera lista paralela a
+   `SEV_SINC` y a `CAMPO`, y el día que entre la tricúspide habría que acordarse de las tres. Con
+   esto, registrar una entrada alcanza. Devuelve `null` para un par no registrado, que es lo que
+   mantiene a la tricúspide y a la pulmonar fuera de todo este mecanismo. */
+function sevClaveDe(tipo, valv) {
+  const ks = Object.keys(SEV_SINC);
+  for (let i = 0; i < ks.length; i++) {
+    const C = SEV_SINC[ks[i]];
+    if (C.tipo === tipo && C.valv === valv) return ks[i];
+  }
+  return null;
+}
+window.sevClaveDe = sevClaveDe;
 
 /* Clasificación de estenosis aórtica — PRIMER espejo del grado calculado (ver `eaGradoCalculado`).
    Mantiene sus tres guardas, que son las que deciden si tiene PERMISO de escribir: morfología
@@ -25436,6 +25605,15 @@ function calcIM_ESC() {
      vena contracta cargada» recalcula solo, sin una segunda lista de excepciones que mantener.
      Verificado en TC-316. */
   if (params.length === 0) {
+    /* ⚠️ `null` Y NO '0', Y DE ESTO DEPENDE EL PUNTO I. Sin ningún parámetro que vote, la app no
+       sabe graduar: no es «no hay insuficiencia». Publicar '0' acá haría que BORRAR el último dato
+       —la vena contracta, por ejemplo— apareciera ante `sevSincronizar` como un grado calculado
+       nuevo, le soltara al médico su grado manual y lo sobrescribiera con «Sin insuficiencia». Con
+       `null` no hay con qué comparar: el grado se conserva y no se pinta aviso, que es la decisión
+       vigente («borrar el dato que produjo un grado calculado NO retira el grado»).
+       Va ANTES del `if (_imVmProt())` a propósito: las dos salidas sin votos —protésica y nativa—
+       significan lo mismo para el grado calculado, y la rama protésica sólo agrega el repintado. */
+    window._imGradoCalc = null;
     if (_imVmProt()) {
       document.getElementById('im-sev').innerHTML = '—';
       if (!(window.esqSevManual && window.esqSevManual.im)) {   // pill fijada por el médico → no pisar
@@ -25447,6 +25625,9 @@ function calcIM_ESC() {
          volumétrico lee `im_grado`, que recién se escribió. */
       imDiscordanciaPintar();
     }
+    /* La pastilla y el aviso se repintan TAMBIÉN por esta salida. Sin esto, vaciar el último
+       parámetro dejaba el sub-botón con el grado de la medición anterior. */
+    _imSincronizarPantalla();
     return;
   }
   let sevBadge, gradoVal;
@@ -25483,6 +25664,13 @@ function calcIM_ESC() {
     sevBadge = badge('yellow','Moderada — evaluar integrado'); gradoVal = '2';
   }
   document.getElementById('im-sev').innerHTML = sevBadge;
+  /* ⚠️ LA FOTO DEL GRADO CALCULADO SE GUARDA SIEMPRE, FUERA DE LA COMPUERTA DE MANUAL. Es la
+     diferencia entre «qué publica la app» y «qué calculó la app», y mezclarlas rompe la regla del
+     grado manual por los dos lados: con la asignación adentro del `if`, un grado fijado a mano
+     congelaba también el veredicto automático, así que el calculado nunca «cambiaba» y nunca
+     soltaba el manual. El `if` de abajo sigue protegiendo lo único que tiene que proteger, que es
+     la ESCRITURA del campo que va al informe. Mismo reparto que `window._iaGradoCalc`. */
+  window._imGradoCalc = gradoVal;
   if (!(window.esqSevManual && window.esqSevManual.im)) {   // pill fijada por el médico → no pisar
     document.getElementById('im_grado').value = gradoVal;
     if (typeof autoCompletarSevIM === 'function') autoCompletarSevIM(gradoVal);
@@ -25492,6 +25680,13 @@ function calcIM_ESC() {
      `textContent` porque el elemento lo comparte con el otro aviso y el que escribiera último
      borraba al primero; `imDiscordanciaPintar` es el único que toca el texto. */
   imDiscordanciaPintar();
+  /* ⚠️ VA AL FINAL Y FUERA DE LA COMPUERTA DE MANUAL (punto A y punto B). Es el cableado que la
+     aórtica ya tiene y que la mitral no tenía: medido en la Etapa 1, con la vena contracta en 8 mm
+     el badge decía «Severa», el campo decía 4 y el sub-botón seguía en «🟡 Severidad ▼», porque
+     `valvSev.refrescar` sólo la llamaba el ▼. Acá hace las dos cosas de una: repinta la pastilla
+     con el grado que acaba de calcularse Y corre la regla del grado manual, que necesita enterarse
+     del cambio del CALCULADO aunque el campo no se haya tocado. */
+  _imSincronizarPantalla();
 }
 
 /* ⚠️ ESTA FILA ESTUVO MUERTA. `im-ondae-interp` se declaraba UNA vez en el marcado y nadie lo
@@ -49915,11 +50110,27 @@ function toggleValvPill(valvula, tipo) {
        mitral ni a otras válvulas antes de que Maicol lo pida. Mientras la costura exista, cerrar el
        cajón de la MITRAL sigue borrando su grado y cerrar el de la AÓRTICA no. Cuando la mitral
        reciba el mismo trato, lo que se borra es la condición, no se agrega otra rama. */
-    if (window.valvSev && valvula !== 'aortica') window.valvSev.limpiar(tipo, valvula);
-    /* La aórtica igual repinta: el cajón se cerró y la pastilla tiene que seguir mostrando el grado
-       que quedó —que es el punto de R7— en vez de quedarse con lo que mostraba antes. */
-    if (valvula === 'aortica' && typeof sevSincronizar === 'function') {
-      sevSincronizar(tipo === 'esten' ? 'ea' : 'ia');
+    /* ⚠️ LA MITRAL ENTRA EN LA MISMA REGLA (2026-10-03, punto E) Y LA CONDICIÓN SE DA VUELTA.
+       Era `valvula !== 'aortica'`, o sea «todas menos la aórtica borran»; ahora es «sólo la
+       tricúspide borra». No se borra la condición entera —que es lo que el comentario anterior
+       anticipaba— porque la orden de esta tanda excluye explícitamente a la tricúspide y a la
+       pulmonar. Se escribe por lo que HACE y no por lo que excluye.
+       Lo que esto cierra es el defecto más caro que midió la Etapa 1: con un «Moderada» fijado a
+       mano, cerrar el botón «Estenosis» no dejaba el informe sin grado — lo devolvía a «estenosis
+       severa (AVm 1.20 cm² por planimetría)» en el narrativo Y en el EN SUMA, porque `limpiar()`
+       borraba `em_grado` Y la marca `esqSevManual.em`, y sin la marca `emSinExplicito` ya no podía
+       silenciar a `emCategoria()`. Un grado MÁS GRAVE que el firmado, producido por cerrar un
+       cajón de interfaz. El hermano en la IM era más leve pero de la misma familia: cerrar y
+       reabrir reemplazaba el «Moderada» del médico por el «Severa» calculado. */
+    if (window.valvSev && valvula === 'tricuspide') window.valvSev.limpiar(tipo, valvula);
+    /* Las válvulas registradas igual repintan: el cajón se cerró y la pastilla tiene que seguir
+       mostrando el grado que quedó —que es el punto de R7— en vez de quedarse con lo que mostraba
+       antes. La clave se DERIVA del registro (`sevClaveDe`) en vez del ternario
+       `tipo === 'esten' ? 'ea' : 'ia'`, que ya era un mapa escrito a mano y con la mitral adentro
+       habría que haberlo convertido en cuatro ramas. */
+    if (typeof sevClaveDe === 'function' && typeof sevSincronizar === 'function') {
+      const _k = sevClaveDe(tipo, valvula);
+      if (_k) sevSincronizar(_k);
     }
     // Ocultar bloque detalle EM si corresponde
     if (valvula === 'mitral' && tipo === 'esten') {
@@ -50018,7 +50229,14 @@ window.valvSev = (function(){
      «🟡 Severidad ▼» — que es lo que `refrescar` ya hacía con 'sin' y con '0', así que «Sin» y
      «todavía no dije nada» se ven IGUAL. Es lo decidido (2026-10-03): el aviso y el cajón son los
      que distinguen el caso cuando importa, y no se agrega un rótulo nuevo a la pastilla. */
-  const SIN_EN_MENU = valv => valv === 'aortica';
+  /* ⚠️ LA COSTURA SE AFLOJA A LA MITRAL, NO SE BORRA (2026-10-03). El comentario de arriba decía
+     «cuando Maicol las pida, lo que se borra es la condición». Maicol pidió la MITRAL y dejó
+     explícito que la tricúspide y la pulmonar no se tocan, así que la condición sigue existiendo
+     con una válvula más. Borrarla entera le daría «Sin» a la tricúspide en el mismo gesto.
+     En la mitral los dos `value` ya existen y no se inventa ningún grado: `im_sev_final` tiene
+     `value="0"` («— Sin insuficiencia / no evaluada») y `em_grado` tiene `value="sin"` («Sin
+     estenosis»), que es la primera `<option>` que el `.slice(1)` venía tirando. */
+  const SIN_EN_MENU = valv => valv === 'aortica' || valv === 'mitral';
   function opciones(tipo, valv){
     if (tipo === 'insuf') {
       const base = INSUF_OPTS.slice();
@@ -90195,8 +90413,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261002-2247';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790992052583;                 /* eco-build-ms */
+const ECO_BUILD    = '20261003-0042';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790998922262;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -90282,7 +90500,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-2247</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261003-0042</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -45402,9 +45402,14 @@ caso('TC-372', 'EA e IAo: cerrar el boton de la valvula ya NO borra el grado, la
       iaAntes.sel === '4' && iaCerrado.sel === '4' && iaCerrado.hid === '4' && iaCerrado.pill === false,
       'sel ' + iaAntes.sel + ' → ' + iaCerrado.sel + ' · hid=' + iaCerrado.hid],
 
-    ['COSTURA DECLARADA: la MITRAL sigue borrando su grado al cerrar — esta tanda no la toco',
-      emAntes === 'moderada' && emCerrado !== 'moderada',
-      'em_grado ' + emAntes + ' → ' + emCerrado + ' (si esto se pone verde al reves, la mitral cambio)'],
+    /* ⚠️ LA COSTURA SE CERRO (2026-10-03, punto E de la tanda mitral). Esta condicion decia «la
+       MITRAL sigue borrando su grado al cerrar» y traia escrito «si esto se pone verde al reves,
+       la mitral cambio»: se puso rojo el dia que la mitral cambio, que es para lo que estaba. Hoy
+       afirma lo contrario, y el aislamiento que queda —la unica valvula que SIGUE borrando— es la
+       tricuspide, que lo fija TC-388. */
+    ['la MITRAL tampoco borra ya su grado al cerrar',
+      emAntes === 'moderada' && emCerrado === 'moderada',
+      'em_grado ' + emAntes + ' → ' + emCerrado],
 
     ['las opciones de ea_grado NO citan la velocidad, y los cinco value quedan intactos',
       opts.join(' ') === 'sin|Sin estenosis esclerosis|Esclerosis leve|Leve moderada|Moderada severa|Severa',
@@ -46581,7 +46586,7 @@ caso('TC-383', 'El grado manual de la IAo se mantiene mientras el calculado no c
   ] };
 `);
 
-caso('TC-384', 'Los menus de la pastilla aortica ofrecen «Sin» PRIMERO —estenosis e insuficiencia— y la mitral y la tricuspide siguen sin ofrecerlo', `
+caso('TC-384', 'Los menus de la aortica y de la MITRAL ofrecen «Sin» PRIMERO —estenosis e insuficiencia— y la tricuspide sigue sin ofrecerlo', `
   ${PAST_PRE}
   pastReset();
   /* Las otras dos valvulas tambien se abren: un menu que no se puede desplegar devuelve [] y
@@ -46610,10 +46615,21 @@ caso('TC-384', 'Los menus de la pastilla aortica ofrecen «Sin» PRIMERO —este
     ['aortica estenosis: Sin, Esclerosis, Leve, Moderada, Severa (se preservo Esclerosis)',
       aoE.join('|') === 'Sin estenosis|Esclerosis|Leve|Moderada|Severa', dg],
     ['«Sin» va PRIMERO en los dos', empiezaSin(aoI) && empiezaSin(aoE), dg],
+    /* ⚠️ LA MITRAL CAMBIO DE LADO (2026-10-03, punto D de la tanda mitral). Esta condicion decia
+       «mitral y tricuspide NO ofrecen Sin» y era el aislamiento de la tanda aortica; Maicol pidio
+       la mitral y dejo explicito que la tricuspide y la pulmonar no se tocan, asi que la mitral
+       pasa a la afirmacion y la tricuspide se queda sosteniendo el aislamiento. El caso se puso
+       ROJO solo al aplicar el cambio, que es exactamente para lo que se habia escrito. */
+    ['mitral insuficiencia: Sin, Leve, Moderada, Severa',
+      miI.join('|') === 'Sin insuficiencia|Leve|Moderada|Severa', dg],
+    /* El select de em_grado tiene CUATRO opciones y no cinco: no hay «Esclerosis» mitral. */
+    ['mitral estenosis: Sin, Leve, Moderada, Severa',
+      miE.join('|') === 'Sin estenosis|Leve|Moderada|Severa', dg],
+    ['«Sin» va PRIMERO tambien en los dos de la mitral', empiezaSin(miI) && empiezaSin(miE), dg],
     /* CONTROL NEGATIVO y AISLAMIENTO en la misma condicion: la sonda sabe decir «no tiene Sin», y
-       las otras dos valvulas no lo tienen. Esta tanda es solo de la aortica. */
-    ['AISLAMIENTO: mitral y tricuspide NO ofrecen «Sin» en ninguno de sus cuatro menus',
-      !tieneSin(miI) && !tieneSin(miE) && !tieneSin(trI) && !tieneSin(trE), dg],
+       la tricuspide —la unica que queda fuera— sigue sin tenerlo. */
+    ['AISLAMIENTO: la tricuspide NO ofrece «Sin» en ninguno de sus dos menus',
+      !tieneSin(trI) && !tieneSin(trE), dg],
   ] };
 `);
 
@@ -46709,6 +46725,184 @@ caso('TC-386', 'Guardar y reabrir conserva la pastilla, el grado y el cajon de l
       ['y la pastilla vuelve al mismo estado que antes de guardar', despues.pill === antes.pill, dg],
     ] };
   })();
+`);
+
+/* ══ MITRAL NATIVA — etapa 2 de la tanda del 2026-10-03 (TC-387, TC-388) ═══════════════════════
+   Lo que fija cada uno: TC-387 el punto A (la pastilla sigue sola al calculo, en IM y en EM) y el
+   punto I (borrar el dato NO retira el grado); TC-388 el punto B (regla del grado manual), el D
+   («Sin») y el E (cerrar el boton conserva el grado), con la TRICUSPIDE como aislamiento vivo.
+   Medido en Chrome antes de escribirlos, no reconstruido: los literales de abajo salen de la
+   corrida de /tmp/e2_probe.mjs del 2026-10-03. */
+const MIT_PRE = `
+  const mSet = function (id, v) { const e = document.getElementById(id); if (!e) return 'NO ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', {bubbles:true}));
+    e.dispatchEvent(new Event('change', {bubbles:true})); return 1; };
+  const mTxt = function (id) { const e = document.getElementById(id);
+    return e ? e.textContent.trim().replace(/\\s+/g, ' ') : 'NO ' + id; };
+  const mPast = function (t) { return mTxt('sevbtn-' + t + '-mitral'); };
+  const mPillOn = function (t, v) { const b = document.getElementById('pill-' + t + '-' + (v || 'mitral'));
+    return b ? b.classList.contains('btn-primary') : null; };
+  /* ⚠️ ABRE PESTANA, SECCION Y LAS DOS PASTILLAS ANTES DE MEDIR. Sin esto el bloque esta en
+     display:none, el sub-boton no se repinta y todo sale «sin grado» con cara de correcto. */
+  const mReset = function () {
+    try { limpiarCampos(true); } catch (e) {}
+    window.esqSevManual = {}; window._sevCalcAlFijar = {}; window._imGradoCalc = null;
+    try { if (typeof _sevManualSync === 'function') _sevManualSync(); } catch (e) {}
+    try { showTab('valvulas'); } catch (e) {}
+    const sec = document.getElementById('ete-seccion-valv-mitral');
+    if (sec && sec.style.display === 'none') {
+      try { toggleEteSeccion('valv-mitral', document.querySelector('[onclick*="valv-mitral"]')); } catch (e) {}
+    }
+    ['insuf','esten'].forEach(function (t) { const b = document.getElementById('pill-' + t + '-mitral');
+      if (b && !b.classList.contains('btn-primary')) toggleValvPill('mitral', t); });
+    mSet('nombre', 'TCMIT');
+  };
+`;
+
+caso('TC-387', 'La pastilla mitral sigue SOLA al calculo —IM por vena contracta y EM por AVm— y borrar el dato NO retira el grado fijado a mano', `
+  ${MIT_PRE}
+  mReset();
+  const den = { sec: (document.getElementById('ete-seccion-valv-mitral')||{}).style.display,
+                pIM: mPillOn('insuf'), pEM: mPillOn('esten') };
+  const vacio = { im: mPast('insuf'), em: mPast('esten') };
+
+  /* ── (1) IM: la vena contracta mueve la pastilla sin que nadie toque el desplegable ── */
+  mSet('im_vc','8');
+  const vc8 = { past: mPast('insuf'), sel: __t.val('im_sev_final'), hid: __t.val('im_grado'),
+                badge: mTxt('im-sev'), manual: !!(window.esqSevManual||{}).im };
+  mSet('im_vc','2');
+  const vc2 = { past: mPast('insuf'), sel: __t.val('im_sev_final'), hid: __t.val('im_grado') };
+
+  /* ── (2) EM: idem por AVm, con CONTROL NEGATIVO ── AVm 2,5 no produce grado calculado (la app
+     no autocompleta leve ni moderada desde el 28/09), asi que la pastilla tiene que VOLVER al
+     neutro. Sin esta mitad, una sonda que dijera «Severa» a todo saldria verde. */
+  mReset();
+  mSet('avm_plan','1.2');
+  const avmSev = { past: mPast('esten'), sel: __t.val('em_grado'),
+                   calc: String(sevCalcPublicable('em')), cat: emCategoria().clave };
+  mSet('avm_plan','2.5');
+  const avmNo = { past: mPast('esten'), sel: __t.val('em_grado'),
+                  calc: String(sevCalcPublicable('em')), cat: emCategoria().clave };
+
+  /* ── (3) PUNTO I: borrar el unico parametro que produjo el grado NO lo retira ── */
+  mReset();
+  mSet('im_vc','8');
+  valvSev.aplicar('insuf','mitral','2');
+  const antesBorrar = { sel: __t.val('im_sev_final'), hid: __t.val('im_grado') };
+  mSet('im_vc','');
+  const trasBorrar = { sel: __t.val('im_sev_final'), hid: __t.val('im_grado'),
+                       manual: !!(window.esqSevManual||{}).im,
+                       calc: String(window._imGradoCalc) };
+
+  const dg = 'IM ' + vc8.past + '/' + vc2.past + ' · EM ' + avmSev.past + '/' + avmNo.past +
+             ' · borrar ' + antesBorrar.sel + '→' + trasBorrar.sel + ' calc=' + trasBorrar.calc;
+  return { extra: [
+    ['DENOMINADOR: la seccion mitral esta abierta y las dos pastillas encendidas',
+      den.sec === 'block' && den.pIM === true && den.pEM === true,
+      'sec=' + den.sec + ' pIM=' + den.pIM + ' pEM=' + den.pEM],
+    ['y las dos pastillas arrancan en el neutro «Severidad»',
+      /Severidad/.test(vacio.im) && /Severidad/.test(vacio.em), vacio.im + ' / ' + vacio.em],
+    ['IM: vena contracta 8 mm deja la pastilla en «Severa» y el grado en 4, SIN marca manual',
+      /Severa/.test(vc8.past) && vc8.sel === '4' && vc8.hid === '4' && vc8.manual === false, dg],
+    ['IM: bajar la vena contracta a 2 mm la sigue hasta «Leve» y el hidden va con ella',
+      /Leve/.test(vc2.past) && vc2.sel === '1' && vc2.hid === '1', dg],
+    ['EM: AVm 1,20 por planimetria deja la pastilla en «Severa» y el grado calculado publicable',
+      /Severa/.test(avmSev.past) && avmSev.sel === 'severa' && avmSev.calc === 'severa' &&
+      avmSev.cat === 'severa', dg],
+    /* CONTROL NEGATIVO: la sonda sabe decir que NO. */
+    ['CONTROL NEGATIVO: con AVm 2,50 la app no gradua, la pastilla vuelve al neutro y el calculado es null',
+      /Severidad/.test(avmNo.past) && avmNo.sel === 'sin' && avmNo.calc === 'null', dg],
+    ['PUNTO I: borrar la unica vena contracta NO retira el «Moderada» fijado a mano',
+      antesBorrar.sel === '2' && trasBorrar.sel === '2' && trasBorrar.hid === '2' &&
+      trasBorrar.manual === true, dg],
+    ['y el grado CALCULADO pasa a null —no a 0—, que es lo que impide que lo suelte',
+      trasBorrar.calc === 'null', dg],
+  ] };
+`);
+
+caso('TC-388', 'Mitral: el grado manual se mantiene y vuelve SOLO a automatico cuando el calculado cambia; «Sin» en los dos menus; cerrar el boton conserva el grado — y la tricuspide sigue borrando', `
+  ${MIT_PRE}
+
+  /* ── (1) PUNTO B en la IM: se mantiene con ruido, se suelta con un cambio real del calculado ── */
+  mReset();
+  mSet('im_vc','8');                             // calculado = 4
+  valvSev.aplicar('insuf','mitral','2');         // manual = Moderada
+  const foto = String((window._sevCalcAlFijar||{}).im);
+  mSet('im_ai_area','30');                       // ruido: no cambia el calculado
+  const ruido = { sel: __t.val('im_sev_final'), manual: !!(window.esqSevManual||{}).im };
+  mSet('im_vc','2');                             // el calculado CAMBIA a 1
+  const soltado = { sel: __t.val('im_sev_final'), hid: __t.val('im_grado'),
+                    past: mPast('insuf'), manual: !!(window.esqSevManual||{}).im };
+
+  /* ── (2) PUNTO B en la EM, con la mitad que NO suelta: calculado que pasa a null ── */
+  mReset();
+  mSet('avm_plan','1.2');
+  valvSev.aplicar('esten','mitral','moderada');
+  mSet('avm_plan','2.5');                        // el calculado pasa a null, no a otro grado
+  const emNull = { sel: __t.val('em_grado'), manual: !!(window.esqSevManual||{}).em,
+                   calc: String(sevCalcPublicable('em')) };
+
+  /* ── (3) PUNTO D: «Sin» con calculo discrepa; sin calculo queda neutro y mudo ── */
+  mReset();
+  mSet('im_vc','8');
+  valvSev.aplicar('insuf','mitral','0');
+  const sinCon = { discrepa: sevDiscrepa('im'), aviso: mTxt('im-manual-aviso'), past: mPast('insuf') };
+  mReset();
+  valvSev.aplicar('insuf','mitral','0');
+  const sinSin = { discrepa: sevDiscrepa('im'), aviso: mTxt('im-manual-aviso'), past: mPast('insuf') };
+
+  /* ── (4) PUNTO E: cerrar y reabrir conserva el grado del medico en las dos ── */
+  mReset();
+  mSet('im_vc','8'); mSet('avm_plan','1.2');
+  valvSev.aplicar('insuf','mitral','2');
+  valvSev.aplicar('esten','mitral','moderada');
+  toggleValvPill('mitral','insuf'); toggleValvPill('mitral','esten');
+  const cerrado = { im: __t.val('im_sev_final'), imHid: __t.val('im_grado'), em: __t.val('em_grado'),
+                    pIM: mPillOn('insuf'), pEM: mPillOn('esten') };
+  toggleValvPill('mitral','insuf'); toggleValvPill('mitral','esten');
+  const reabierto = { im: __t.val('im_sev_final'), em: __t.val('em_grado') };
+
+  /* ── (5) AISLAMIENTO VIVO: la tricuspide SIGUE borrando al cerrar ── es el control negativo de
+     E y lo que prueba que la sonda distingue valvulas en vez de decir que si a todo. */
+  try { limpiarCampos(true); } catch (e) {}
+  window.esqSevManual = {};
+  try { showTab('valvulas'); } catch (e) {}
+  const secT = document.getElementById('ete-seccion-valv-tricuspide');
+  if (secT && secT.style.display === 'none') {
+    try { toggleEteSeccion('valv-tricuspide', document.querySelector('[onclick*="valv-tricuspide"]')); } catch (e) {}
+  }
+  if (!mPillOn('insuf','tricuspide')) toggleValvPill('tricuspide','insuf');
+  valvSev.aplicar('insuf','tricuspide','2');
+  const trAntes = { sel: __t.val('it_grado'), pill: mPillOn('insuf','tricuspide') };
+  toggleValvPill('tricuspide','insuf');
+  const trDespues = __t.val('it_grado');
+
+  const dg = 'IM soltado ' + soltado.sel + ' manual=' + soltado.manual +
+             ' · EM null ' + emNull.sel + ' · cerrar im=' + cerrado.im + ' em=' + cerrado.em +
+             ' · tric ' + trAntes.sel + '→' + trDespues;
+  return { extra: [
+    ['DENOMINADOR: la foto del calculado se tomo al fijar el grado a mano', foto === '4', 'foto=' + foto],
+    ['B/IM: con el calculado quieto, el «Moderada» del medico se mantiene',
+      ruido.sel === '2' && ruido.manual === true, dg],
+    ['B/IM: cuando el calculado CAMBIA, vuelve solo a automatico —grado, hidden y pastilla juntos—',
+      soltado.sel === '1' && soltado.hid === '1' && /Leve/.test(soltado.past) && soltado.manual === false, dg],
+    /* El hidden es lo que leen el narrativo, el EN SUMA, el PDF y el Excel: si se queda atras, la
+       pantalla dice una cosa y el informe firmado otra. Es el defecto que trasEscribir cerro. */
+    ['CONTROL NEGATIVO de B: un calculado que pasa a null NO suelta el grado manual de la EM',
+      emNull.sel === 'moderada' && emNull.manual === true && emNull.calc === 'null', dg],
+    ['D: «Sin» con grado calculado es un ajuste a la baja, con aviso rojo',
+      sinCon.discrepa === true && /Sin insuficiencia/.test(sinCon.aviso) &&
+      /Severa/.test(sinCon.aviso), sinCon.aviso],
+    ['D: «Sin» sin grado calculado no discrepa, no avisa y deja la pastilla en el neutro',
+      sinSin.discrepa === false && sinSin.aviso === '' && /Severidad/.test(sinSin.past), dg],
+    ['E: cerrar las dos pastillas conserva el grado y su hidden, con los botones apagados',
+      cerrado.im === '2' && cerrado.imHid === '2' && cerrado.em === 'moderada' &&
+      cerrado.pIM === false && cerrado.pEM === false, dg],
+    ['E: y reabrirlas devuelve el grado del MEDICO, no el calculado',
+      reabierto.im === '2' && reabierto.em === 'moderada', dg],
+    ['AISLAMIENTO: la TRICUSPIDE sigue borrando su grado al cerrar — esta tanda no la toco',
+      trAntes.sel === '2' && trDespues === '0', dg],
+  ] };
 `);
 
 
