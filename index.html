@@ -29713,8 +29713,8 @@ function generarInforme(opts) {
                             (emCat.fuentes.length || emCat.gm != null);
     if (emDesc) suma.push(`EM ${emDesc}.`);
     else if (_emCatAct) suma.push(EM_CAT_SUMA[emCat.clave]());
-    else if (estE && !_vmProt && !_emSinVeredicto) suma.push('EM.');
-    if (imG > 0) suma.push(`IM ${imTxt[imG]}.`); else if (insE) suma.push('IM.');
+    else if (estE && !_vmProt && !_emSinVeredicto) suma.push('EM presente.');  // v2: regla 6 (EM_CAT_SUMA calculada NO se toca)
+    if (imG > 0) suma.push(`IM ${imTxt[imG]}.`); else if (insE) suma.push('IM presente.');  // v2: regla 6
     const cE = fraseEI(estE, insE), cC = fraseEI(estC, insC);
     /* ══ PRÓTESIS: LA FRASE SE ARMA CON LO QUE LA APP PUEDE SOSTENER, Y NADA MÁS ════════════════
        ⚠️ EL PROBLEMA NO ES SÓLO «sin insuficiencia»: es que `fraseEI` NIEGA LAS DOS MITADES. Con
@@ -30107,8 +30107,14 @@ function generarInforme(opts) {
       try { return (typeof valvEsProtesis === 'function') ? !!valvEsProtesis(vaMorf) : true; }
       catch (e) { return true; }
     })();
+    /* v2 (2026-10-03, regla 6: «vale IGUAL con prótesis»): se QUITA el gate `!_aoEsProt`. Antes la
+       prótesis silenciaba el escalón de insuficiencia porque la frase protésica dejaba el sustantivo
+       colgado («…, insuficiencia.»); ahora `_pIns` lleva «con» y queda bien formada, así que con
+       prótesis + botón de IAo abierto + sin grado el informe afirma «…, con insuficiencia.» y el
+       EN SUMA «IAo presente.», igual que en la nativa. `_aoEsProt` sigue frenando la ESTENOSIS
+       (vía `_eaProtN`/`eaProtNarrativa`), que es lo que no aplica a una prótesis. */
     const _iaSinGrado = EA_ESCALON_SIN_GRADO && !(iaG > 0) && !_iaManualS &&
-      _pillA('insuf') && !_aoBloqueado('ia') && !_aoEsProt;
+      _pillA('insuf') && !_aoBloqueado('ia');
     const estEBase = eaDesc ? `estenosis ${eaDesc}` : (_eaSinGrado ? 'estenosis' : null);
     const estCBase = eaDesc ? `EAo ${eaDesc}` : (_eaSinGrado ? 'estenosis' : null);
     /* La nota del fundamento de la IAo va pegada al grado: «insuficiencia severa (jet excéntrico,
@@ -30237,7 +30243,7 @@ function generarInforme(opts) {
       /* SÓLO LA SIGLA cuando no hay grado (decisión de Maicol): «EAo.», no «Estenosis aórtica.».
          Ver el comentario gemelo del EN SUMA mitral: cualquier palabra de más es un grado
          encubierto sobre un estudio donde el médico no puso ninguno. */
-      if (eaDesc) suma.push(`EAo ${eaDesc}${_eaFundSumaG}.`); else if (estE) suma.push('EAo.');
+      if (eaDesc) suma.push(`EAo ${eaDesc}${_eaFundSumaG}.`); else if (estE) suma.push('EAo presente.');  // v2: regla 6
     }
     /* La OTSVI es un hallazgo APARTE y por eso es línea propia y no una cola: no es valvular, así
        que no cuelga del grado de estenosis — y con «Sin estenosis» a mano, que es justo cuando se
@@ -30256,7 +30262,7 @@ function generarInforme(opts) {
       suma.push(`EAo: el grado consignado (${_GT[_eaR.grado] || _eaR.grado}) no coincide con las mediciones `
         + `(corresponderían ${_GT[_eaR.esperado] || _eaR.esperado}) - revisar.`);
     }
-    if (iaG > 0) suma.push(`IAo ${imTxt[iaG]}.`); else if (insE) suma.push('IAo.');
+    if (iaG > 0) suma.push(`IAo ${imTxt[iaG]}.`); else if (insE) suma.push('IAo presente.');  // v2: regla 6
     if (esclerosis) suma.push('Esclerosis aórtica.');
     const cE = fraseEI(estE, insE), cC = fraseEI(estC, insC);
     if (_eaProtN) {
@@ -30265,7 +30271,11 @@ function generarInforme(opts) {
          —«Classification of intra- and paravalvular prosthetic AR severity is similar to that
          suggested for native valves»— y los cortes que la app aplica ya coinciden con los de esa
          tabla en todo lo que mide. Lo que NO aplica a una prótesis es la escala de ESTENOSIS. */
-      const _pIns = insE ? ', ' + insE : '';
+      /* v2 (2026-10-03): «, con ' + insE» —antes era «, ' + insE», que dejaba el sustantivo colgado
+         («…, insuficiencia.»)—. «con» es el mismo conector que `fraseEI` antepone en la nativa, así
+         que el literal se arma de fragmentos existentes: «Válvula aórtica <morf>, <veredicto>, con
+         insuficiencia [grado].» */
+      const _pIns = insE ? ', con ' + insE : '';
       /* ⚠️ LA VARIANTE NARRATIVA NOMBRABA LA PRÓTESIS DOS VECES. `_vaEs` y `_vaAdj` son las dos
          formas de la MISMA entrada de `VALV_MORF_FRASE` —«presenta una prótesis biológica» y «con
          prótesis biológica»— así que ponerlas seguidas imprimía en el informe firmado «La válvula
@@ -30447,7 +30457,7 @@ function generarInforme(opts) {
       ? ` Valor fuera de rango en ${_et.fuera.join(' y ')}: revisar antes de concluir.` : '';
     if (etDesc) suma.push(`ET ${etDesc}${etSignif ? ', significativa' : ''}.`);
     else if (etSignif) suma.push('ET significativa.');
-    else if (etPill) suma.push('Estenosis tricuspídea.');
+    else if (etPill) suma.push('ET presente.');  // v2: sigla en el EN SUMA (regla 6); «ET <grado>, significativa.» (con grado) NO se toca
     /* Con datos y sin ningún criterio cumplido se DECLARA que no alcanzan, en vez de callar: el
        médico midió tres cosas y el informe tiene que decir qué dieron. Al EN SUMA no sube — no
        es un hallazgo— pero en el cuerpo se dice. Sin ningún dato, silencio, como hasta hoy. */
@@ -30656,7 +30666,7 @@ function generarInforme(opts) {
          decir «Sin OTRAS alteraciones» en vez de negar el párrafo que acaba de escribirse.
          Guion corto, no raya em: el En Suma se dibuja con jsPDF y la helvetica WinAnsi descarta
          la raya en silencio — el PDF firmado salía «VP  Estenosis moderada.» con doble espacio. */
-      if (epHay) suma.push(`Estenosis pulmonar ${epG.toLowerCase()}${epNivelTxt}.`);
+      if (epHay) suma.push(`EP ${epG.toLowerCase()}${epNivelTxt}.`);  // v2: sigla (reglas 6/11)
       if (vpMorfHay || epHay) ccMarcarParrafo();
     }
 
@@ -30709,13 +30719,21 @@ function generarInforme(opts) {
            La ETIOLOGÍA no sube, y eso no cambió: el cuerpo dice «de etiología X» y el resumen
            lleva sólo grado. Lo que se publica acá es `ipDesc`, el grado ya desarmado del prefijo
            «IP» y en minúscula — no el token crudo del desplegable. */
-        suma.push(`Insuficiencia pulmonar ${ipDesc}.`);
+        /* v2 (2026-10-03, reglas 6/11): el EN SUMA va en SIGLA, no en la frase larga (que queda en
+           el narrativo de arriba). «Estudio sin alteraciones…» no puede salir si la IP figura acá. */
+        suma.push(`IP ${ipDesc}.`);
         ccMarcarParrafo();
       } else {
         inf.push(estiloPick(
           `IP presente${presP}.${faltaPmad}`,
           `Insuficiencia pulmonar presente${presP}.${faltaPmad}`,
           `Se observa insuficiencia pulmonar${presP}.${faltaPmad}`));
+        /* ⚠️ v2 (2026-10-03) — EL BUG GRAVE: la IP «presente» (velocidad cargada, sin grado elegido)
+           llegaba al narrativo pero NO al EN SUMA, así que el mismo estudio decía «Insuficiencia
+           pulmonar presente.» arriba y «Estudio sin alteraciones…» en la conclusión, y el Laboratorio
+           (_labTxt lee el EN SUMA) no la veía. Se agrega la sigla, patrón único con la IT. */
+        suma.push('IP presente.');
+        ccMarcarParrafo();
       }
     }
   }
