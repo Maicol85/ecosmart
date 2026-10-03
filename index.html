@@ -24893,11 +24893,31 @@ function eaFundamentoInforme() {
   const notaEl = document.getElementById('ea_fund_nota');
   const nota = notaEl ? String(notaEl.value || '').trim().replace(/\s+/g, ' ').slice(0, 100) : '';
   const parens = nota ? ' (' + nota + ')' : '';
+  /* ══ Y LO QUE MANDA AL EN SUMA (decisión de Maicol, 2026-10-03) ═════════════════════════════
+     Las frases del resumen son MÁS CORTAS que las del cuerpo y las dicta Maicol literalmente:
+     «de BF y BG con FEVI reducida» / «con FEVI conservada» / «por planimetría», y «Obstrucción
+     subaórtica» como línea propia. No son las del cuerpo abreviadas por una regla: son otro
+     texto, así que se escriben al lado del suyo y en la MISMA función. Una segunda función que
+     volviera a leer los cuatro checkbox es la tercera copia del criterio que este módulo ya pagó
+     con `sevFundLimpiar`, `sevFundamento` y el `else` de `sevSincronizar`.
+     ⚠️ LA NOTA NO ENTRA, Y «OTRO» TAMPOCO. «Otro» es una marca de «mi motivo no está en la
+     lista» y la nota es texto libre de hasta 100 caracteres: en el cuerpo del informe cabe entre
+     paréntesis, en una conclusión de una línea es un párrafo. Decisión explícita de Maicol.
+     Consecuencia: con sólo «Otro» + nota, `sumaGrado` queda vacío y el EN SUMA dice «EAo severa.»
+     tal cual hoy, aunque `enGrado` sí lleve el paréntesis al cuerpo.
+     ⚠️ LA FRASE DE LA FEVI NO SE VERIFICA CONTRA LA FEVI CARGADA, y es deliberado: es una
+     declaración del médico sobre por qué subió el grado, no una lectura de un campo. Maicol lo
+     pidió así y sin aviso. Si algún día se quisiera avisar, el lugar es la pantalla, no el papel.
+     ⚠️ SE COMPONE CON « y » cuando hay dos motivos («de BF y BG con FEVI reducida y por
+     planimetría»): las dos de bajo flujo son excluyentes entre sí —`eaFundCambio` lo garantiza—
+     pero la planimetría es combinable con una de ellas. Es una composición mía, no una frase
+     dictada: queda REPORTADA. */
   if (sentido === 'sube') {
-    const mods = [];
-    if (chk('ea_fund_bfbg_red')) mods.push('de bajo flujo y bajo gradiente con fracción de eyección reducida');
-    else if (chk('ea_fund_bfbg_cons')) mods.push('de bajo flujo y bajo gradiente con fracción de eyección conservada');
+    const mods = [], modsSuma = [];
+    if (chk('ea_fund_bfbg_red')) { mods.push('de bajo flujo y bajo gradiente con fracción de eyección reducida'); modsSuma.push('de BF y BG con FEVI reducida'); }
+    else if (chk('ea_fund_bfbg_cons')) { mods.push('de bajo flujo y bajo gradiente con fracción de eyección conservada'); modsSuma.push('de BF y BG con FEVI conservada'); }
     if (chk('ea_fund_plan')) {
+      modsSuma.push('por planimetría');
       /* El valor se cita sólo si está cargado, y con el mismo punto decimal que usa el resto del
          narrativo («Vmax 4.1 m/s»): una coma decimal acá dejaría el mismo informe con los dos
          estilos. `ava_plan` no vota el grado —eso quedó fijado en la tanda anterior— pero sí puede
@@ -24906,17 +24926,20 @@ function eaFundamentoInforme() {
       mods.push('con área valvular por planimetría' + (ap !== null ? ' de ' + ap.toFixed(2) + ' cm²' : ''));
     }
     if (!mods.length && !nota) return null;
-    return { enGrado: (mods.length ? ' ' + mods.join(', ') : '') + parens, enCola: '' };
+    return { enGrado: (mods.length ? ' ' + mods.join(', ') : '') + parens, enCola: '',
+             sumaGrado: (modsSuma.length ? ' ' + modsSuma.join(' y ') : ''), sumaSuelta: '' };
   }
   if (sentido === 'baja') {
     const suelta = chk('ea_fund_otsvi') ? '; obstrucción subaórtica' : '';
     if (!suelta && !nota) return null;
-    return { enGrado: '', enCola: suelta + parens };
+    /* Mayúscula inicial y punto: en el EN SUMA es una LÍNEA, no la cola de otra oración. */
+    return { enGrado: '', enCola: suelta + parens,
+             sumaGrado: '', sumaSuelta: suelta ? 'Obstrucción subaórtica.' : '' };
   }
   /* Sin sentido —no debería pasar con discrepancia, porque los dos grados salen de la misma tabla—
      sólo la nota puede salir, y va a la cola: no hay un juego de opciones que la ancle al grado. */
   if (!nota) return null;
-  return { enGrado: '', enCola: parens };
+  return { enGrado: '', enCola: parens, sumaGrado: '', sumaSuelta: '' };
 }
 window.eaFundamentoInforme = eaFundamentoInforme;
 
@@ -24939,7 +24962,14 @@ function sevNotaInforme(clave) {
   if (!sevDiscrepa(clave)) return null;
   const el = document.getElementById(C.nota);
   const nota = el ? String(el.value || '').trim().replace(/\s+/g, ' ').slice(0, 100) : '';
-  return nota ? { enGrado: ' (' + nota + ')', enCola: '' } : null;
+  /* ⚠️ `sumaGrado` y `sumaSuelta` en VACÍO, y no ausentes. Son los dos campos que
+     `eaFundamentoInforme` agregó para el EN SUMA; esta función es el cuerpo de las OTRAS TRES de
+     la familia (`ia`, `im`, `em`), se llaman igual y se consumen en el mismo bloque. Con la forma
+     del objeto distinta, la próxima tanda que extienda el resumen a la IM por simetría escribe
+     `_imFund.sumaGrado` sin `|| ''` y el EN SUMA FIRMADO sale «IM moderadaundefined.».
+     Cadena vacía falla cerrado: concatena a nada. Lo cazó `/sharp-edges` sobre este diff; no mueve
+     ninguna salida de hoy, porque hoy nadie los lee en estas tres claves. */
+  return nota ? { enGrado: ' (' + nota + ')', enCola: '', sumaGrado: '', sumaSuelta: '' } : null;
 }
 window.sevNotaInforme = sevNotaInforme;
 /* Los tres atajos con el nombre que ya usan los emisores del informe. `iaFundamentoInforme`
@@ -29349,18 +29379,95 @@ function generarInforme(opts) {
     const _imFundG = (_imFund && _imFund.enGrado) ? _imFund.enGrado : '';
     const _emFund = (typeof emFundamentoInforme === 'function') ? emFundamentoInforme() : null;
     const _emFundG = (_emFund && _emFund.enGrado) ? _emFund.enGrado : '';
-    const estE = emDesc ? `estenosis ${emDesc}${_emFundG}`
-               : _emCatAct ? EM_CAT_EST[emCat.clave]()
-               : null;
-    const insE = (imG > 0) ? `insuficiencia ${imTxt[imG]}${_imFundG}` : null;
-    const estC = emDesc ? `EM ${emDesc}${_emFundG}`
-               : _emCatAct ? EM_CAT_CORTO[emCat.clave]()
-               : null;
-    const insC = (imG > 0) ? `IM ${imTxt[imG]}${_imFundG}` : null;
+    const estEGrado = emDesc ? `estenosis ${emDesc}${_emFundG}`
+                    : _emCatAct ? EM_CAT_EST[emCat.clave]()
+                    : null;
+    const estCGrado = emDesc ? `EM ${emDesc}${_emFundG}`
+                    : _emCatAct ? EM_CAT_CORTO[emCat.clave]()
+                    : null;
+    /* ══ CUATRO ESTADOS, Y EL DISCRIMINADOR ES LA MARCA MANUAL — DECISIÓN DE MAICOL (2026-10-03) ═
+       La etapa 4b borró el escalón `pillOn()` de las cuatro cascadas porque afirmaba una
+       valvulopatía que el Excel y la tabla del PDF negaban. Medido hoy, el remedio dejó un
+       defecto peor: los estados 2, 3 y 4 salen IDÉNTICOS carácter por carácter en los tres
+       estilos y en el EN SUMA, así que «abrí el botón y no puse grado» y «no cargué nada» se
+       publican los dos como «sin estenosis ni insuficiencia» / «Estudio sin alteraciones
+       estructurales ni funcionales significativas». Una negación sobre una valvulopatía que el
+       médico consignó.
+       Lo que faltaba en 4b no era borrar el escalón: era GATEARLO. El estado que 4b midió —grado
+       «Sin estenosis» fijado a mano con el botón abierto— se distingue del «no puse nada» por la
+       marca que ya existe, y sólo por ella:
+         · hay grado                → la cascada de arriba (`estEGrado`), como siempre;
+         · `esqSevManual.em`        → el médico respondió «Sin», y su negación gana: `null`, y
+                                      `fraseEI` redacta «sin estenosis». Es el caso de 4b;
+         · pastilla abierta y nada  → «con estenosis», sin grado;
+         · pastilla cerrada y nada  → `null`, «sin estenosis ni insuficiencia», como hoy.
+       `!_emManual` y no `!emSinExplicito`: son la misma condición acá —`emSinExplicito` exige
+       además `emG === 'sin'`, y con cualquier otro grado `emDesc` no es nulo y este escalón no se
+       alcanza— pero la marca sola no depende de qué token traiga el desplegable.
+       ⚠️ Y EL DISCRIMINADOR ES UNA AUSENCIA, QUE ES EL ESTADO DE FÁBRICA DE TODO. Una versión
+       anterior de este comentario decía que «un `em_grado` vacío de un estudio legado tampoco
+       inventa una estenosis», y es FALSO: la marca se persiste recién desde que existe el oculto
+       `#sev_manual`, y este archivo ya declara en otra parte que «ningún estudio anterior trae la
+       marca `esqSevManual`». Un estudio legado no tiene marca por construcción, así que abrir el
+       cajón para leer los números basta para que el escalón corra. Lo que hoy lo frena es otra
+       cosa —que `limpiarCampos` borre las seis claves `valv-pill-*` y que `valvAutoAbrirCajones`
+       sólo abra con grado leve o mayor—, y las dos son frágiles frente a un clic. Queda DECLARADO,
+       no corregido: exigir evidencia positiva en vez de ausencia de negación es rediseñar el
+       mecanismo que la decisión de Maicol manda reusar. Un comentario que promete una protección
+       inexistente es peor que no tener comentario.
+       ⚠️ Y LA PASTILLA ES ESTADO DEL NAVEGADOR, NO DEL ESTUDIO: `toggleValvPill` la persiste en
+       `localStorage` (`valv-pill-<tipo>-<valvula>`) y `limpiarCampos` la borra, así que NO viaja
+       con el estudio guardado. Consecuencia declarada: el mismo estudio puede firmar «con
+       estenosis» hoy y «sin estenosis ni insuficiencia» al reabrirlo mañana, y nada en el estudio
+       explica la diferencia. También es de `/sharp-edges` sobre este diff, también queda reportado
+       y no corregido: hacerlo viajar es agregar un campo al estudio, que nadie pidió.
+       ⚠️ FALLA CERRADO: sin `pillOn` no hay fallback y el informe queda como antes de esta etapa.
+       ⚠️ Y EL ESCALÓN NO ENTRA EN LAS DOS RAMAS QUE PUBLICAN NÚMEROS. Ver `estEGrado` abajo: la de
+       prótesis y la de «valores medidos sin veredicto» siguen preguntando por el GRADO, no por el
+       botón, así que su texto queda byte a byte igual al de hoy. En las dos, los valores medidos
+       dicen más que «con estenosis» y la de prótesis tiene una regla propia y explícita —la app se
+       abstiene de graduar con cortes nativos— que un botón de interfaz no puede levantar. */
+    const _imManual = !!(window.esqSevManual && window.esqSevManual.im);
+    const _pillM = (t) => (typeof pillOn === 'function') && pillOn('mitral', t);
+    const _emSinGrado = !estEGrado && !_emManual && _pillM('esten');
+    const _imSinGrado = !(imG > 0) && !_imManual && _pillM('insuf');
+    const estE = estEGrado || (_emSinGrado ? 'estenosis' : null);
+    const estC = estCGrado || (_emSinGrado ? 'estenosis' : null);
+    const insE = (imG > 0) ? `insuficiencia ${imTxt[imG]}${_imFundG}` : (_imSinGrado ? 'insuficiencia' : null);
+    const insC = (imG > 0) ? `IM ${imTxt[imG]}${_imFundG}` : (_imSinGrado ? 'insuficiencia' : null);
+    /* El EN SUMA de una valvulopatía sin grado es SÓLO LA SIGLA (decisión de Maicol): «EM.», no
+       «Estenosis mitral.». Lo que la conclusión afirma es que la válvula está comprometida, y
+       cualquier palabra de más —«significativa», «presente»— es un grado encubierto sobre un
+       estudio donde el médico justamente no puso ninguno. El punto final se conserva porque las
+       otras ocho líneas del resumen lo llevan.
+       ⚠️ Estas dos ramas estaban declaradas INALCANZABLES por el comentario de 4b, y volvieron a
+       serlo: `estE` es verdadero sin que `emDesc` ni `_emCatAct` lo sean exactamente en el estado
+       nuevo. No son código muerto reanimado por casualidad — son su destino. */
+    /* ⚠️ LAS DOS COMPUERTAS DEL CUERPO FALTABAN ACÁ, Y EL RESUMEN AFIRMABA LO QUE EL CUERPO CALLA.
+       Las cazó `/sharp-edges` sobre este propio diff y se midieron en Chrome antes de corregir:
+         · PRÓTESIS mitral mecánica, pastilla abierta y sin grado → cuerpo «Válvula mitral con
+           prótesis mecánica.» (sin nombrar estenosis, que es lo correcto desde la Fase A) y
+           EN SUMA «EM.». La compuerta del cuerpo es `_vmProt`, que se calculaba 18 líneas MÁS
+           ABAJO que esta cascada, así que el resumen corría sin ella. Y el buscador del
+           Laboratorio grepea el EN SUMA por palabras de severidad.
+         · AVm 2,0 cm² por planimetría, pastilla abierta y sin grado → cuerpo «Válvula mitral de
+           morfología normal (AVm 2.00 cm² por planimetría).» —la rama que ELIGE no graduar— y
+           EN SUMA «EM.». La condición del cuerpo es `!estEGrado`; acá se leía `estE`, y desde que
+           este diff las separó dejaron de ser la misma pregunta.
+       Las dos se cierran con el MISMO predicado que usa el cuerpo, subido antes de la cascada en
+       vez de reescrito: `_vmProt` se calcula de `vm_morf` y no depende de nada del bloque, y
+       `_emSinVeredicto` es la condición de la rama de abajo con nombre. Una segunda copia de
+       cualquiera de las dos es la lista paralela que este archivo ya pagó tres veces.
+       La INSUFICIENCIA mitral SÍ se resume sobre una prótesis —ASE 2024, los criterios de
+       regurgitación protésica son los de la válvula nativa— que es la misma asimetría que `_pE`
+       aplica en el cuerpo dejando pasar `insE`. */
+    const _vmProt = (typeof protNoGradua === 'function') && protNoGradua('vm_morf');
+    const _emSinVeredicto = !estEGrado && emCat.clave === 'nada' &&
+                            (emCat.fuentes.length || emCat.gm != null);
     if (emDesc) suma.push(`EM ${emDesc}.`);
     else if (_emCatAct) suma.push(EM_CAT_SUMA[emCat.clave]());
-    else if (estE) suma.push('Estenosis mitral.');
-    if (imG > 0) suma.push(`IM ${imTxt[imG]}.`); else if (insE) suma.push('Insuficiencia mitral.');
+    else if (estE && !_vmProt && !_emSinVeredicto) suma.push('EM.');
+    if (imG > 0) suma.push(`IM ${imTxt[imG]}.`); else if (insE) suma.push('IM.');
     const cE = fraseEI(estE, insE), cC = fraseEI(estC, insC);
     /* ══ PRÓTESIS: LA FRASE SE ARMA CON LO QUE LA APP PUEDE SOSTENER, Y NADA MÁS ════════════════
        ⚠️ EL PROBLEMA NO ES SÓLO «sin insuficiencia»: es que `fraseEI` NIEGA LAS DOS MITADES. Con
@@ -29377,7 +29484,8 @@ function generarInforme(opts) {
        dos no se dice nada de más: quedan el tipo de prótesis y los valores medidos.
        La AÓRTICA no pasa por acá —tiene `eaProtNarrativa`, con las tablas protésicas de la ASE
        2024— y las NATIVAS tampoco: `protNoGradua` devuelve `false` para las dos. */
-    const _vmProt = (typeof protNoGradua === 'function') && protNoGradua('vm_morf');
+    /* `_vmProt` se declara AHORA arriba, junto a la cascada del EN SUMA: las dos superficies tienen
+       que preguntar lo mismo y con una declaración por superficie se desincronizan. */
     let vmSent;
     if (_vmProt) {
       /* Los valores medidos SUSTITUYEN al grado, así que si no hay ninguno la oración queda con el
@@ -29426,14 +29534,26 @@ function generarInforme(opts) {
       /* Une con «y»/«e» siguiendo la misma regla de `fraseEI`, que elige por la vocal inicial. */
       const _unir = (a) => a.length === 2
         ? a[0] + (/^[aeiouáéíóúAEIOU]/.test(a[1]) ? ' e ' : ' y ') + a[1] : a[0];
-      const _pE = [estE, insE].filter(Boolean), _pC = [estC, insC].filter(Boolean);
+      /* ⚠️ `estEGrado` Y NO `estE`: la regla de esta rama es que sobre una prótesis la estenosis
+         entra «únicamente si hay un grado explícito», y un botón abierto no es un grado. Con
+         `estE` acá, abrir la pastilla sobre una prótesis mitral publicaba «con estenosis» en el
+         informe firmado — exactamente la escala nativa que la Fase A sacó de esta válvula. La
+         INSUFICIENCIA sí usa `insE`: ésa la app la gradúa sobre prótesis (ASE 2024) y el botón
+         abierto es la declaración del médico, no un corte nativo. */
+      const _pE = [estEGrado, insE].filter(Boolean), _pC = [estCGrado, insC].filter(Boolean);
       const _fE = _pE.length ? `, con ${_unir(_pE)}` : '';
       const _fC = _pC.length ? `, con ${_unir(_pC)}` : '';
       vmSent = estiloPick(
         `VM ${_vmDe}${_fC}${_vmValsTxt}.`,
         `Válvula mitral ${_vmDe}${_fE}${_vmValsTxt}.`,
         `La válvula mitral presenta ${_vmPres}${_fE}${_vmValsTxt}.`);
-    } else if (!estE && emCat.clave === 'nada' && (emCat.fuentes.length || emCat.gm != null)) {
+    /* ⚠️ `!estEGrado` Y NO `!estE`: esta rama publica el AVm y el gradiente medidos SIN veredicto,
+       y eso dice más que «con estenosis». Con `!estE` dejaba de entrar en cuanto el médico abría
+       la pastilla y los dos números desaparecían del informe firmado, que es justo la negación
+       sobre una válvula medida que esta rama vino a cerrar el 2026-09-28. Su texto queda byte a
+       byte igual al de hoy. Lo único que se pierde es el token «con estenosis» en ese escenario,
+       y está declarado: los valores lo reemplazan con creces. */
+    } else if (_emSinVeredicto) {
       /* ⚠️ LOS VALORES MEDIDOS, SIN VEREDICTO. Decisión de Maicol (2026-09-28) sobre un hallazgo de
          `/sharp-edges`: con la graduación automática derogada, un estudio con AVm 2,0 cm² por
          planimetría y gradiente medio 3 mmHg caía en la rama de abajo y el informe FIRMADO decía
@@ -29626,14 +29746,60 @@ function generarInforme(opts) {
        `else if (insE)` del EN SUMA quedan inalcanzables —`estE` es verdadero exactamente cuando
        `eaDesc` lo es— y se dejan como están, porque son la forma de la cascada hermana de la mitral
        y borrarlas no cambia una sola salida. */
-    const estEBase = eaDesc ? `estenosis ${eaDesc}` : null;
-    const estCBase = eaDesc ? `EAo ${eaDesc}` : null;
+    /* ══ CUATRO ESTADOS — DECISIÓN DE MAICOL (2026-10-03). Ver el comentario gemelo en el bloque
+       de la válvula MITRAL, con la medición de los tres estilos y del EN SUMA: el escalón que 4b
+       borró vuelve, pero GATEADO por la marca manual, que es lo único que separa «el médico
+       respondió Sin» de «el médico no respondió». El caso que 4b midió —grado «Sin estenosis»
+       fijado a mano con el botón abierto y Vmax 4,1— sigue dando «sin estenosis» en las cuatro
+       superficies, porque ese grado lo fijó una persona y la marca está puesta.
+       ⚠️ LA IMPORTACIÓN MARCA `esqSevManual.ea` (ver más abajo, en la salvedad de discordancia), y
+       eso NO es un efecto colateral: un estudio importado con `EA grado = sin` trae una respuesta
+       explícita en la planilla, así que leerla como «Sin» a propósito es correcto. Y falla en la
+       dirección segura: lo que no se afirma es la valvulopatía.
+       `!esclerosis` se conserva del código de 4b: con esclerosis consignada la oración ya tiene su
+       propio token y «con esclerosis valvular, con estenosis» es la duplicación que esa rama
+       evita. */
+    /* ⛔ LA AÓRTICA QUEDA EN ESPERA, Y NO ES UN OLVIDO: LA PREMISA DEL PEDIDO ES FALSA ACÁ.
+       La decisión dice «usá la marca manual que ya existe». En la MITRAL existe: sus dos `<select>`
+       de grado pasan por `emGradoManual` / `imGradoManual`, que encienden `esqSevManual`. En la
+       AÓRTICA **no**: los dos `<select>` (`ea_grado`, `ia_sev_final`) pasan por
+       `_gradoManoBorraMarca`, que la BORRA, y su propio comentario lo dice por escrito — «NO
+       enciende `esqSevManual` —eso lo hace sólo el ▼, y es la regla que "Aórtica 3b" fijó por
+       escrito—». O sea que en la aórtica sólo el menú ▼ deja marca.
+       MEDIDO EN CHROME el 2026-10-03, con el escalón encendido y por el camino REAL de la UI
+       (`change` sobre el `<select>`, no la marca puesta a mano):
+         · «Sin estenosis» elegido en `ea_grado` con Vmax 4,1 y la pastilla abierta
+             → narrativo «Válvula aórtica trivalva normal, con estenosis, sin insuficiencia
+               (Vmax 4.1 m/s)» · EN SUMA «EAo.»
+         · «Sin insuficiencia» elegido en `ia_sev_final` → «sin estenosis, con insuficiencia» · «IAo.»
+         · control negativo, el MISMO grado por el menú ▼ → «sin estenosis ni insuficiencia» y el
+           EN SUMA callado, que es lo correcto.
+       Y el `<select>` de estenosis vive DENTRO de `bloque-esten-aortica`, el cajón que el botón
+       abre: para elegir «Sin estenosis» por ahí la pastilla TIENE que estar abierta. O sea que el
+       gesto más común de responder «Sin» satisface las dos mitades de la condición y reabre
+       exactamente el defecto que la etapa 4b cerró — en el informe FIRMADO.
+       Instalar la señal que falta NO es parte de esta tanda: encender `esqSevManual` en
+       `_gradoManoBorraMarca` da simetría real con la mitral, pero también hace aparecer el aviso
+       rojo R5 y el cajón de fundamento por ese camino —los tres cuelgan de `sevDiscrepa`— y eso es
+       justo lo que «Aórtica 3b» excluyó por decisión. Es decisión de Maicol, no mía.
+       Por eso el escalón queda ESCRITO y APAGADO en una sola constante: el día que la marca se
+       encienda en la aórtica, esto es poner `true` y correr TC-397 y TC-399, que ya existen y hoy
+       están registrados como defecto abierto (⊘). Apagarlo deja el informe aórtico EXACTAMENTE
+       como está en `589f7bb`. Lo cazó `/sharp-edges` sobre este propio diff. */
+    const EA_ESCALON_SIN_GRADO = false;
+    const _eaManualS = !!(window.esqSevManual && window.esqSevManual.ea);
+    const _iaManualS = !!(window.esqSevManual && window.esqSevManual.ia);
+    const _pillA = (t) => (typeof pillOn === 'function') && pillOn('aortica', t);
+    const _eaSinGrado = EA_ESCALON_SIN_GRADO && !eaDesc && !esclerosis && !_eaManualS && _pillA('esten');
+    const _iaSinGrado = EA_ESCALON_SIN_GRADO && !(iaG > 0) && !_iaManualS && _pillA('insuf');
+    const estEBase = eaDesc ? `estenosis ${eaDesc}` : (_eaSinGrado ? 'estenosis' : null);
+    const estCBase = eaDesc ? `EAo ${eaDesc}` : (_eaSinGrado ? 'estenosis' : null);
     /* La nota del fundamento de la IAo va pegada al grado: «insuficiencia severa (jet excéntrico,
        vena contracta no medible)». Sólo sale con discrepancia manual y con el cuadro escrito (G). */
     const _iaFund = (typeof iaFundamentoInforme === 'function') ? iaFundamentoInforme() : null;
     const _iaFundG = (_iaFund && _iaFund.enGrado) ? _iaFund.enGrado : '';
-    const insE = (iaG > 0) ? `insuficiencia ${imTxt[iaG]}${_iaFundG}` : null;
-    const insC = (iaG > 0) ? `IAo ${imTxt[iaG]}${_iaFundG}` : null;
+    const insE = (iaG > 0) ? `insuficiencia ${imTxt[iaG]}${_iaFundG}` : (_iaSinGrado ? 'insuficiencia' : null);
+    const insC = (iaG > 0) ? `IAo ${imTxt[iaG]}${_iaFundG}` : (_iaSinGrado ? 'insuficiencia' : null);
     /* `let` y no `const`: la cláusula del fundamento de la ESTENOSIS se engancha unas líneas más
        abajo, en cuanto se conoce `_eaDiscordante` — ver ahí el por qué. */
     let estE = estEBase, estC = estCBase;
@@ -29691,9 +29857,16 @@ function generarInforme(opts) {
        declarado porque es la única cosa que el cajón puede perder, y no es un olvido. */
     const _eaFund = (typeof eaFundamentoInforme === 'function') ? eaFundamentoInforme() : null;
     const _eaFundCola = (_eaFund && _eaFund.enCola) ? _eaFund.enCola : '';
+    /* `_eaFundSumaG` sale de la MISMA compuerta que `enGrado` y no de una propia: con escenario de
+       bajo gradiente el EN SUMA ya publica su línea `_SUMA_SUB` —«EAo severa por AVA, BF/BG
+       clásica - FEVI reducida.»— y agregar el fundamento ahí imprimiría el motivo dos veces en la
+       misma conclusión. Es el mismo argumento que ya rige para el cuerpo, aplicado a la otra
+       superficie: una segunda condición escrita a mano acá se desincroniza en la próxima tanda. */
+    let _eaFundSumaG = '';
     if (_eaFund && _eaFund.enGrado && eaDesc && !_eaDiscordante) {
       estE = estEBase + _eaFund.enGrado;
       estC = estCBase + _eaFund.enGrado;
+      _eaFundSumaG = _eaFund.sumaGrado || '';
     }
     /* Con discordancia NO se emite «EAo severa.» por separado: quien lea o copie sólo esa
        línea se lleva una severidad afirmada de plano que el párrafo siguiente pide confirmar,
@@ -29716,18 +29889,22 @@ function generarInforme(opts) {
       /* Guion corto, no raya em: el EN SUMA se dibuja en generarPDFReal, la única ruta de PDF
          sin saneador, y la helvetica WinAnsi de jsPDF descarta la raya en silencio. */
       suma.push(_SUMA_SUB[_eaR.sub] || 'EAo severa por AVA con gradiente no severo - severidad a confirmar.');
-    } else if (eaDesc === 'leve') {
-      /* La estenosis aórtica LEVE no va al En Suma. Es la misma regla que la geometría normal
-         del VI o la AI de dimensiones normales: el En Suma lista lo que cambia la conducta, y
-         una EAo leve es un hallazgo de seguimiento que el cuerpo del informe ya describe con
-         sus números. Pedido explícito de Maicol (escenario 4). Sigue saliendo en el narrativo.
-
-         Pero se MARCA el párrafo: sin esto, un estudio cuyo único hallazgo era la EAo leve
-         dejaba el En Suma vacío y el fallback escribía «Estudio sin alteraciones estructurales
-         ni funcionales significativas» sobre un informe que dos líneas arriba describe una
-         estenosis aórtica con su área y su gradiente. El silencio pedido es «no listarla», no
-         «negarla». Es el mismo defecto que ya se cerró con la CIA. */
-      ccMarcarParrafo();
+    /* ══ LA EAo LEVE VUELVE AL EN SUMA — DECISIÓN DE MAICOL (2026-10-03) ════════════════════════
+       Acá había una rama `else if (eaDesc === 'leve')` que la suprimía y sólo marcaba párrafo, por
+       el pedido del «escenario 4»: «el En Suma lista lo que cambia la conducta». Esa regla se
+       revierte: las valvulopatías leves de TODAS las válvulas figuran.
+       El motivo de la reversión es la ASIMETRÍA, y se midió antes de tocar: la EAo leve era la
+       única de las cinco con pastilla que no quedaba —IAo leve, EM leve, IM leve, IT leve y ET
+       leve sí—, así que un lector del resumen que veía «IAo leve.» y nada de la aórtica no podía
+       distinguir «no hay estenosis» de «hay una leve que no se lista». El silencio selectivo de
+       una sola válvula se lee como ausencia, no como omisión.
+       ⚠️ Y NO ERA LA ÚNICA: la medición encontró TRES. La estenosis y la insuficiencia PULMONARES
+       leves también se suprimían, con el mismo argumento y en su propio bloque (sección 10). Las
+       tres se abren en el mismo commit, porque abrir una y dejar dos reproduce la asimetría que
+       esto viene a cerrar.
+       Sin la rama, `eaDesc === 'leve'` cae en el `else` de abajo y escribe «EAo leve.»; el
+       `ccMarcarParrafo()` que tenía deja de hacer falta —gobernaba sólo el texto del fallback, y
+       con una línea en el resumen el fallback no corre—. */
     /* ⚠️ CON PRÓTESIS EL GRADO NATIVO NO SE RESUME. `ea_grado` sobrevive al cambio de morfología
        —a propósito: ver `eaGradoNoPublica`— y esta línea lo publicaba con la escala equivocada,
        de modo que el EN SUMA salía «EAo severa.» inmediatamente seguido de «Prótesis aórtica: sin
@@ -29740,8 +29917,19 @@ function generarInforme(opts) {
     } else if (eaGradoNoPublica(vaMorf)) {
       ccMarcarParrafo();
     } else {
-      if (eaDesc) suma.push(`EAo ${eaDesc}.`); else if (estE) suma.push('Estenosis aórtica.');
+      /* SÓLO LA SIGLA cuando no hay grado (decisión de Maicol): «EAo.», no «Estenosis aórtica.».
+         Ver el comentario gemelo del EN SUMA mitral: cualquier palabra de más es un grado
+         encubierto sobre un estudio donde el médico no puso ninguno. */
+      if (eaDesc) suma.push(`EAo ${eaDesc}${_eaFundSumaG}.`); else if (estE) suma.push('EAo.');
     }
+    /* La OTSVI es un hallazgo APARTE y por eso es línea propia y no una cola: no es valvular, así
+       que no cuelga del grado de estenosis — y con «Sin estenosis» a mano, que es justo cuando se
+       tilda, no hay grado del que colgar. Medido antes de tocar: el cuerpo decía «…sin estenosis
+       ni insuficiencia; obstrucción subaórtica» y el EN SUMA «Estudio sin alteraciones
+       estructurales ni funcionales significativas», o sea el resumen negaba lo que el cuerpo
+       acababa de describir. Va fuera de la cascada de arriba porque no compite con el grado:
+       pueden coexistir una EAo moderada y una obstrucción subaórtica. */
+    if (_eaFund && _eaFund.sumaSuelta) suma.push(_eaFund.sumaSuelta);
     /* La contradicción entre la pastilla y las mediciones se publica, no se resuelve en
        silencio: el grado lo fija el médico y el informe lo respeta, pero callar que el área
        está en rango severo mientras el informe dice «moderada» es esconder el dato que haría
@@ -29751,7 +29939,7 @@ function generarInforme(opts) {
       suma.push(`EAo: el grado consignado (${_GT[_eaR.grado] || _eaR.grado}) no coincide con las mediciones `
         + `(corresponderían ${_GT[_eaR.esperado] || _eaR.esperado}) - revisar.`);
     }
-    if (iaG > 0) suma.push(`IAo ${imTxt[iaG]}.`); else if (insE) suma.push('Insuficiencia aórtica.');
+    if (iaG > 0) suma.push(`IAo ${imTxt[iaG]}.`); else if (insE) suma.push('IAo.');
     if (esclerosis) suma.push('Esclerosis aórtica.');
     const cE = fraseEI(estE, insE), cC = fraseEI(estC, insC);
     if (_eaProtN) {
@@ -30140,13 +30328,18 @@ function generarInforme(opts) {
         inf.push(estiloPick(`VP${_norm}${datosVPp}.`, `Válvula pulmonar${_norm}${datosVPp}.`,
           `La válvula pulmonar${_norm ? ' es normal y' : ''} presenta${datosVPp}.`));
       }
-      /* AL EN SUMA SÓLO LA ESTENOSIS MODERADA O MAYOR. La leve no es un hallazgo de conclusión,
-         igual que la IP leve. Y la MORFOLOGÍA no sube —simetría con mitral, aórtica y
-         tricúspide, donde tampoco sube— pero sí marca que hubo párrafo, para que el fallback no
-         termine negando lo que el cuerpo acaba de describir.
+      /* ══ TAMBIÉN LA LEVE — DECISIÓN DE MAICOL (2026-10-03) ════════════════════════════════════
+         El filtro era `/moderada|severa/`, con el argumento de que «la leve no es un hallazgo de
+         conclusión, igual que la IP leve». Se revierte junto con la EAo leve y por el mismo
+         motivo: las leves de TODAS las válvulas figuran, y la asimetría —IT leve y ET leve sí,
+         EP leve no— se lee como ausencia de hallazgo y no como omisión deliberada.
+         La MORFOLOGÍA sigue sin subir: eso no cambió —simetría con mitral, aórtica y tricúspide,
+         donde tampoco sube— y por eso el `ccMarcarParrafo()` de abajo se queda; con morfología
+         anormal y sin grado de estenosis, el resumen sigue sin línea y el fallback tiene que
+         decir «Sin OTRAS alteraciones» en vez de negar el párrafo que acaba de escribirse.
          Guion corto, no raya em: el En Suma se dibuja con jsPDF y la helvetica WinAnsi descarta
          la raya en silencio — el PDF firmado salía «VP  Estenosis moderada.» con doble espacio. */
-      if (epHay && /moderada|severa/i.test(epG)) suma.push(`Estenosis pulmonar ${epG.toLowerCase()}${epNivelTxt}.`);
+      if (epHay) suma.push(`Estenosis pulmonar ${epG.toLowerCase()}${epNivelTxt}.`);
       if (vpMorfHay || epHay) ccMarcarParrafo();
     }
 
@@ -30192,10 +30385,14 @@ function generarInforme(opts) {
           `IP ${ipDesc}${ipEtioTxt}${presP}.${faltaPmad}`,
           `Insuficiencia pulmonar ${ipDesc}${ipEtioTxt}${presP}.${faltaPmad}`,
           `Se observa insuficiencia pulmonar ${ipDesc}${ipEtioTxt}${presP}.${faltaPmad}`));
-        /* Al EN SUMA sólo moderada o severa. Antes el filtro era `/leve|fisiol/`, que dependía de
-           que la palabra «fisiológica» viniera DENTRO del grado; hoy la etiología es campo propio
-           y el grado dice sólo el grado, así que la regla se escribe sobre lo que la regla mira. */
-        if (/moderada|severa/i.test(ipDesc)) suma.push(`Insuficiencia pulmonar ${ipDesc}.`);
+        /* ══ TAMBIÉN LA LEVE — DECISIÓN DE MAICOL (2026-10-03) ══════════════════════════════════
+           Era `/moderada|severa/`, la tercera de las tres leves que la medición del 2026-10-03
+           encontró suprimidas (EAo, EP e IP). Se abre con las otras dos: una leve que figura en
+           cinco válvulas y no en tres no es una regla, es una inconsistencia.
+           La ETIOLOGÍA no sube, y eso no cambió: el cuerpo dice «de etiología X» y el resumen
+           lleva sólo grado. Lo que se publica acá es `ipDesc`, el grado ya desarmado del prefijo
+           «IP» y en minúscula — no el token crudo del desplegable. */
+        suma.push(`Insuficiencia pulmonar ${ipDesc}.`);
         ccMarcarParrafo();
       } else {
         inf.push(estiloPick(
@@ -90728,8 +90925,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261003-0934';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791030853121;                 /* eco-build-ms */
+const ECO_BUILD    = '20261003-1117';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791037077178;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -90815,7 +91012,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261003-0934</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261003-1117</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

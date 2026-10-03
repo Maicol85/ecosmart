@@ -1089,7 +1089,11 @@ caso('TC-51', 'Estenosis pulmonar: las cuatro bandas de Gmax en sus cortes', `
       /Válvula pulmonar normal/.test(a.r.inf) && a.r.suma.indexOf('stenosis pulmonar') === -1, a.sel],
     ['Gmax 10.2 leve',     b.g === '10.2' && b.sel === 'Leve' &&
       b.r.inf.indexOf('con estenosis leve') > -1, b.sel + ' | ' + b.g],
-    ['y la LEVE no sube al EN SUMA', b.r.suma.indexOf('stenosis pulmonar') === -1, b.r.suma],
+    /* ⚠ ACTUALIZADO A PROPOSITO el 2026-10-03: antes exigia que la LEVE no subiera. Decision de
+       Maicol: las valvulopatias leves de TODAS las valvulas figuran en el EN SUMA, y la medicion
+       encontro que faltaban tres (EAo, EP e IP). Lo que el caso defiende ahora es que suba CON SU
+       GRADO, no que suba a secas: un «Estenosis pulmonar.» pelado seria el grado perdido. */
+    ['y la LEVE sube al EN SUMA con su grado', b.r.suma.indexOf('Estenosis pulmonar leve.') > -1, b.r.suma],
     ['Gmax 38.4 moderada', c.g === '38.4' && c.sel === 'Moderada' &&
       c.r.suma.indexOf('Estenosis pulmonar moderada.') > -1, c.sel],
     ['Gmax 64 sigue moderada (corte <=64)', d.g === '64' && d.sel === 'Moderada' &&
@@ -7115,9 +7119,12 @@ caso('TC-139', 'Valvula pulmonar: morfologia, EP con nivel y etiologia, IP con e
       ipMod.li],
     ['y sube al EN SUMA', ipMod.suma.indexOf('Insuficiencia pulmonar moderada.') > -1, ipMod.suma],
 
-    // 5 · QUE SUBE Y QUE NO. Moderada o mas; la leve se describe y se calla.
-    ['EP leve NO sube', epLeve.suma.indexOf('stenosis pulmonar') === -1, epLeve.suma],
-    ['IP leve NO sube', ipLeve.suma.indexOf('nsuficiencia pulmonar') === -1, ipLeve.suma],
+    /* 5 · QUE SUBE. ⚠ ACTUALIZADO A PROPOSITO el 2026-10-03: estas dos condiciones exigian que la
+       leve NO subiera («moderada o mas; la leve se describe y se calla»). Decision de Maicol: las
+       leves de TODAS las valvulas figuran. Siguen pineando el GRADO, que es lo que no se puede
+       perder: la pulmonar es la unica que escribe la frase larga y no la sigla. */
+    ['EP leve sube con su grado', epLeve.suma.indexOf('Estenosis pulmonar leve.') > -1, epLeve.suma],
+    ['IP leve sube con su grado', ipLeve.suma.indexOf('Insuficiencia pulmonar leve.') > -1, ipLeve.suma],
     ['EP moderada-severa SI sube',
       epModSev.suma.indexOf('Estenosis pulmonar moderada-severa.') > -1, epModSev.suma],
     ['pero ninguna de las dos leves queda NEGADA por el fallback',
@@ -45776,9 +45783,20 @@ caso('TC-375', 'El informe usa SOLO el grado final: con «Sin estenosis» dice s
   cerrar('esten');
   const cerradoS = cuatro();
 
-  /* ── (2) la INSUFICIENCIA tenia el mismo patron: pastilla abierta con grado 0 ── */
+  /* ── (2) la INSUFICIENCIA: pastilla abierta con grado 0 ──
+     ⚠ ACTUALIZADO A PROPOSITO el 2026-10-03. Este escenario pineaba el comportamiento de 4b («no
+     afirma nada»), y la decision de Maicol lo PARTE EN DOS: con la pastilla abierta y sin grado el
+     informe dice «con insuficiencia» (es el estado 2, el gesto normal de abrir para mirar), y solo
+     con un «Sin insuficiencia» elegido A MANO la niega (estado 3, que es el caso que 4b vino a
+     cerrar y que sigue cerrado). Lo que 4b protegia era el SEGUNDO, y este caso lo sigue
+     protegiendo — ahora con su gemelo al lado, para que la distincion no se pueda perder.
+     El discriminador es esqSevManual.ia, que prep() limpia y que valvSev.aplicar enciende. */
   prep(); abrir('insuf'); __t.set('ia_sev_final','0');
   const insufAbierta = cuatro();
+  const insufAbiertaMan = !!(window.esqSevManual && window.esqSevManual.ia);
+  prep(); abrir('insuf'); valvSev.aplicar('insuf','aortica','0');
+  const insufSinManual = cuatro();
+  const insufSinManualMan = !!(window.esqSevManual && window.esqSevManual.ia);
 
   /* ── (3) ⚠️ EL CAJON POBLADO SIN DISCREPANCIA NO APORTA NADA. sevFundamento lo vacia en cuanto
          la discrepancia desaparece, asi que en la practica no deberia poder quedar poblado — pero
@@ -45817,10 +45835,24 @@ caso('TC-375', 'El informe usa SOLO el grado final: con «Sin estenosis» dice s
       abiertoS.xls.I === 0 && abiertoS.xls.II === 0 && abiertoS.xls.III === 0,
       'xls=' + JSON.stringify(abiertoS.xls)],
 
-    ['la INSUFICIENCIA recibe el mismo trato: pastilla abierta con grado 0 no afirma nada',
+    /* DENOMINADOR de la distincion: las dos escenas tienen que diferir en la MARCA, que es el
+       unico discriminador. Sin esta condicion las dos de abajo podrian estar midiendo el mismo
+       estado y pasarian las dos por casualidad. */
+    ['denominador: la escena 2 NO tiene la marca manual y la escena 3 SI',
+      insufAbiertaMan === false && insufSinManualMan === true,
+      'abierta=' + insufAbiertaMan + ' aMano=' + insufSinManualMan],
+    /* ⛔ ESTADO 2 CON LA AORTICA EN ESPERA: EA_ESCALON_SIN_GRADO esta en false, asi que la pastilla
+       abierta sin grado sigue sin afirmar nada — el comportamiento de 4b, intacto. El motivo (su
+       <select> no deja marca) esta en TC-397, registrado como defecto abierto. */
+    ['ESTADO 2 · pastilla de insuficiencia abierta y sin grado: la AORTICA sigue sin afirmar nada (escalon apagado)',
       insufAbierta.inf.indexOf('con insuficiencia') === -1 &&
-      insufAbierta.suma.indexOf('Insuficiencia aórtica.') === -1,
+      insufAbierta.suma.indexOf('Insuficiencia aórtica.') === -1 &&
+      insufAbierta.suma.indexOf('IAo') === -1,
       'inf=«' + insufAbierta.inf + '» suma=«' + insufAbierta.suma.replace(/\\n/g,' | ') + '»'],
+    ['ESTADO 3 · «Sin insuficiencia» elegido A MANO: la niega, y es lo que 4b vino a cerrar',
+      insufSinManual.inf.indexOf('con insuficiencia') === -1 &&
+      insufSinManual.suma.indexOf('IAo') === -1,
+      'inf=«' + insufSinManual.inf + '» suma=«' + insufSinManual.suma.replace(/\\n/g,' | ') + '»'],
 
     ['⚠️ un cajon POBLADO sin discrepancia no manda NADA al informe: el emisor pregunta por sevDiscrepa',
       pobladoSinDiscrepa.discrepa === false && pobladoSinDiscrepa.fund === null &&
@@ -47075,6 +47107,16 @@ caso('TC-390', 'El informe de la mitral usa SOLO el grado final —el boton ya n
      decidia era si el boton estaba apretado. */
   mReset();
   const abiertoSinGrado = mFoto();
+  const abiertoSinGradoMan = JSON.stringify(window.esqSevManual || {});
+  /* ── (1b) ⚠ EL GEMELO QUE FALTABA, Y ES EL QUE SOSTIENE LA DISTINCION (2026-10-03) ──
+     Los dos grados puestos en «Sin» A MANO. Es el estado 3, y es lo que la etapa 4b vino a
+     cerrar: ahi la negacion del medico gana y el informe la publica. Sin esta escena, el caso
+     mide «el boton afirma» y nada impide que un futuro vuelva a unificar los dos estados —que es
+     exactamente el defecto que 4b creo al borrar el escalon en vez de gatearlo. */
+  mReset();
+  valvSev.aplicar('esten','mitral','sin'); valvSev.aplicar('insuf','mitral','0');
+  const sinAMano = mFoto();
+  const sinAManoMan = JSON.stringify(window.esqSevManual || {});
   const pills = String(mPillOn('insuf')) + '/' + String(mPillOn('esten'));
 
   /* ── (2) La nota de la IM entra entre parentesis TRAS el grado, y el EN SUMA no la lleva ── */
@@ -47114,24 +47156,57 @@ caso('TC-390', 'El informe de la mitral usa SOLO el grado final —el boton ya n
   return { extra: [
     ['DENOMINADOR: los dos botones de la mitral estaban ABIERTOS al medir', pills === 'true/true', pills],
 
-    ['⚠️ con los botones abiertos y SIN grado el narrativo dice «sin estenosis ni insuficiencia»',
-      abiertoSinGrado.inf === 'Válvula mitral de morfología normal, sin estenosis ni insuficiencia.', dg],
-    ['  y el EN SUMA ya no dice «Estenosis mitral.» ni «Insuficiencia mitral.» a secas',
+    /* ⚠ ACTUALIZADO A PROPOSITO el 2026-10-03. Estas dos condiciones pineaban el comportamiento
+       de 4b —«con los botones abiertos y sin grado el narrativo NIEGA las dos mitades»— y la
+       decision de Maicol lo revierte: ese estado es el gesto normal de abrir para mirar los
+       numeros, y negarlo es publicar una negacion sobre una valvulopatia consignada. Lo que 4b
+       protegia era el OTRO estado —«Sin» elegido a mano—, y lo protege la escena (1b) de abajo.
+       El EN SUMA sigue sin decir «Estenosis mitral.»: ahora dice la sigla sola, «EM.». */
+    ['denominador de la distincion: la escena (1) NO tiene marca manual y la (1b) la tiene en las dos mitades',
+      abiertoSinGradoMan === '{}' &&
+      sinAManoMan.indexOf('"em":true') > -1 && sinAManoMan.indexOf('"im":true') > -1,
+      'abierta=' + abiertoSinGradoMan + ' aMano=' + sinAManoMan],
+    ['ESTADO 2 · botones abiertos y SIN grado: el narrativo dice «con estenosis e insuficiencia», sin grado',
+      abiertoSinGrado.inf === 'Válvula mitral de morfología normal, con estenosis e insuficiencia.', dg],
+    ['  y el EN SUMA es SOLO las siglas, sin «Estenosis mitral.» ni «Insuficiencia mitral.» ni palabra de grado',
+      abiertoSinGrado.suma.indexOf('EM.') > -1 && abiertoSinGrado.suma.indexOf('IM.') > -1 &&
       abiertoSinGrado.suma.indexOf('Estenosis mitral.') === -1 &&
-      abiertoSinGrado.suma.indexOf('Insuficiencia mitral.') === -1, dg],
+      abiertoSinGrado.suma.indexOf('Insuficiencia mitral.') === -1 &&
+      !/leve|moderada|severa/i.test(abiertoSinGrado.suma), dg],
+    ['ESTADO 3 · los dos grados en «Sin» A MANO: el narrativo NIEGA las dos mitades (lo que 4b cerro)',
+      sinAMano.inf === 'Válvula mitral de morfología normal, sin estenosis ni insuficiencia.',
+      'sinAMano=' + JSON.stringify(sinAMano)],
+    ['  y el EN SUMA no nombra ninguna de las dos',
+      sinAMano.suma.indexOf('EM') === -1 && sinAMano.suma.indexOf('IM') === -1,
+      'sinAMano=' + JSON.stringify(sinAMano)],
+    ['  y los dos estados se LEEN DISTINTO: es el invariante que estaba roto',
+      abiertoSinGrado.inf !== sinAMano.inf && abiertoSinGrado.suma !== sinAMano.suma,
+      'siguen identicos: ' + abiertoSinGrado.inf],
+    /* El Excel NO distingue los dos estados —los dos llevan «sin» y «Ausente»— y eso es correcto:
+       el grado final es el mismo, lo que cambia es quien lo dijo. Se afirma explicitamente para
+       que no se lea como un olvido. */
+    ['  y el Excel sigue igual en los DOS estados: el grado final no cambio, solo quien lo dijo',
+      JSON.stringify(abiertoSinGrado.xls) === JSON.stringify(sinAMano.xls),
+      'abierto=' + JSON.stringify(abiertoSinGrado.xls) + ' aMano=' + JSON.stringify(sinAMano.xls)],
     ['  y las cuatro superficies coinciden: el Excel tambien niega las dos',
       abiertoSinGrado.xls.n === 434 && abiertoSinGrado.xls.em === 'sin' &&
       String(abiertoSinGrado.xls.im) === 'Ausente', 'xls=' + JSON.stringify(abiertoSinGrado.xls)],
 
+    /* ⚠ LAS CUATRO DE ABAJO, ACTUALIZADAS A PROPOSITO el 2026-10-03, y el cambio NO esta en la
+       nota: esta en la OTRA mitad del par. En estas dos escenas valvSev.aplicar marca como manual
+       solo la mitad que se ajusta, asi que la otra queda con su boton abierto y sin grado —el
+       estado 2— y aporta su «con estenosis» / «e insuficiencia». La nota sigue EXACTAMENTE donde
+       tiene que estar: entre parentesis, pegada a su grado, y sin subir al EN SUMA, que es lo que
+       estas condiciones defienden. */
     ['IM: la nota va ENTRE PARENTESIS pegada al grado, no antes ni al final de la oracion',
-      notaIM.inf === 'Válvula mitral de morfología normal, sin estenosis, con insuficiencia moderada (jet excentrico, vena contracta no medible).', dg],
-    ['IM: y el EN SUMA NO la lleva —«IM moderada.» pelado—',
-      notaIM.suma === 'IM moderada.', dg],
+      notaIM.inf === 'Válvula mitral de morfología normal, con estenosis e insuficiencia moderada (jet excentrico, vena contracta no medible).', dg],
+    ['IM: y el EN SUMA NO la lleva —«IM moderada.» pelado, al lado de la sigla de la otra mitad—',
+      notaIM.suma === 'EM. | IM moderada.', dg],
 
     ['EM: la nota va ENTRE PARENTESIS pegada al grado',
-      notaEM.inf === 'Válvula mitral de morfología normal, con estenosis moderada (AVm no planimetrable), sin insuficiencia.', dg],
+      notaEM.inf === 'Válvula mitral de morfología normal, con estenosis moderada (AVm no planimetrable) e insuficiencia.', dg],
     ['EM: y el EN SUMA NO la lleva —«EM moderada.» pelado—',
-      notaEM.suma === 'EM moderada.', dg],
+      notaEM.suma === 'EM moderada. | IM.', dg],
 
     ['CONTROL NEGATIVO: un cajon poblado SIN discrepancia no manda nada al informe',
       fundNulo === 'null/null' && pobladoSinDisc.inf.indexOf('colado') === -1 &&
@@ -47793,6 +47868,334 @@ caso('TC-394', 'Los CUATRO rotulos de grado final dicen lo mismo y prometen lo m
       (function () { const e = document.getElementById('im-sev');
         const l = e && e.parentElement && e.parentElement.querySelector('.calc-lbl');
         return !!l && l.textContent.indexOf('ESC') === -1; })(), 'ver arriba'],
+  ] };
+`);
+
+/* ═══ GRUPO — VALVULOPATIA CONSIGNADA SIN GRADO, LEVES Y FUNDAMENTO (2026-10-03) ═══════════════
+   Los cuatro estados de la decision de Maicol: hay grado / boton abierto y sin grado / «Sin»
+   elegido a proposito / boton cerrado y nada cargado. Antes de esta tanda los TRES ultimos salian
+   identicos caracter por caracter en los tres estilos Y en el EN SUMA, asi que «abri el boton y
+   no puse grado» se publicaba como «sin estenosis ni insuficiencia» en el informe FIRMADO.
+
+   ⚠ CADA CASO RESTAURA EL ESTILO «estandar» AL SALIR. `setEstiloInforme` persiste en localStorage,
+   asi que un caso que sale en «narrativo» le cambia el informe a los 400 casos siguientes — es la
+   misma clase de fuga de aislamiento que resetVisor cierra para el visor.
+   ⚠ Y EL ESTILO SE PONE ANTES de leer: `estiloPick` lee la variable de modulo, no el DOM. */
+const SINGRADO_HELPERS = `
+  const _P = function(valv, tipo, on) {
+    const b = document.getElementById('pill-' + tipo + '-' + valv);
+    if (!b) return 'NO EXISTE pill-' + tipo + '-' + valv;
+    b.classList.toggle('btn-primary', !!on); b.classList.toggle('btn-ghost', !on);
+    const bl = document.getElementById('bloque-' + tipo + '-' + valv);
+    if (bl) bl.style.display = on ? 'block' : 'none';
+    return 1; };
+  /* Grado por .value y SIN disparar change: asi se fija el grado sin que la cascada lo pise ni se
+     marque como manual por su propio onchange. Devuelve lo que QUEDO, porque un select rechaza en
+     silencio un valor que no sea una de sus opciones y deja el value vacio. */
+  const _G = function(id, v) { const e = document.getElementById(id);
+    if (!e) return 'NO EXISTE ' + id; e.value = v; return String(e.value); };
+  const _M = function(o) { window.esqSevManual = o || {};
+    const h = document.getElementById('sev_manual');
+    if (h) h.value = JSON.stringify(window.esqSevManual); return 1; };
+  const _VALVS = ['aortica','mitral','tricuspide'];
+  /* Diagnostico legible de un textarea multilinea: el EN SUMA son varias lineas y sin aplanarlo
+     el reporte del caso corta en la primera. */
+  const recorteJS = function(s) { return !s ? '(vacio)' : String(s).replace(/\\n/g, ' | ').slice(0, 200); };
+  const _escena = function(cfg) {
+    __t.nuevoEstudio();
+    _VALVS.forEach(function(v){ ['esten','insuf'].forEach(function(t){ _P(v,t,false); }); });
+    (cfg.c || []).forEach(function(p){ __t.set(p[0], p[1]); });
+    (cfg.k || []).forEach(function(p){ __t.chk(p[0], p[1]); });
+    const gq = (cfg.g || []).map(function(p){ return p[0] + '=' + _G(p[0], p[1]); });
+    (cfg.p || []).forEach(function(p){ _P(p[0], p[1], p[2]); });
+    _M(cfg.m || {});
+    /* c2 corre DESPUES del grado, de las pastillas y de la marca: la nota del cajon solo
+       sobrevive con la discrepancia ya establecida — sevFundamento la vacia en cuanto no hay—,
+       asi que escribirla en c la perdia en silencio y el caso se quedaba sin denominador. */
+    (cfg.c2 || []).forEach(function(p){ __t.set(p[0], p[1]); });
+    const r = { gq: gq.join(',') };
+    ['conciso','estandar','narrativo'].forEach(function(st){
+      setEstiloInforme(st); generarInforme();
+      r[st] = (document.getElementById('informe_texto') || {}).value || ''; });
+    r.suma = (document.getElementById('en_suma') || {}).value || '';
+    /* Lo que quedo en los campos de c2, leido DENTRO de la escena: preguntarlo al final del caso
+       da el estado de la ULTIMA escena, que es como un denominador se vuelve una mentira. */
+    r.c2q = (cfg.c2 || []).map(function(p){ return p[0] + '=' + String(__t.val(p[0]) || ''); }).join(',');
+    setEstiloInforme('estandar');
+    return r; };
+`;
+
+/* TC-397 — Los cuatro estados de la ESTENOSIS AORTICA, en los tres estilos y en el EN SUMA.
+   El invariante que manda no es cada frase por separado: es que los estados 2, 3 y 4 SEAN
+   DISTINGUIBLES. Por eso hay condiciones de desigualdad y no solo de contenido — con las tres
+   frases pineadas a mano, un futuro que las volviera a unificar pasaria en verde si alguien
+   actualizara una sola de las tres esperadas. */
+casoAbierto('TC-397', 'EAo: los cuatro estados se distinguen — grado / boton abierto sin grado / «Sin» a mano / cerrado y vacio',
+  'LA AORTICA QUEDA EN ESPERA (2026-10-03). El escalon «boton abierto y sin grado → con estenosis» esta escrito y APAGADO ' +
+  'en EA_ESCALON_SIN_GRADO, porque la premisa de la decision es falsa en esta valvula: sus dos <select> de grado pasan por ' +
+  '_gradoManoBorraMarca, que BORRA esqSevManual en vez de encenderla —regla «Aortica 3b», por escrito—. Medido en Chrome por ' +
+  'el camino real de la UI: «Sin estenosis» elegido en ea_grado con Vmax 4,1 y la pastilla abierta publicaba «con estenosis» ' +
+  'y «EAo.» en el informe FIRMADO, o sea reabria el defecto que la etapa 4b cerro. Instalar la señal que falta hace aparecer ' +
+  'tambien el aviso rojo R5 y el cajon de fundamento por ese camino, y eso es decision de Maicol. Cuando se decida: poner ' +
+  'EA_ESCALON_SIN_GRADO en true y promover este caso y TC-399 a caso().', `
+  ${SINGRADO_HELPERS}
+  const e1 = _escena({ g:[['ea_grado','moderada']], m:{ea:true}, p:[['aortica','esten',true]] });
+  const e2 = _escena({ g:[['ea_grado','sin']],      m:{},        p:[['aortica','esten',true]] });
+  const e3 = _escena({ g:[['ea_grado','sin']],      m:{ea:true}, p:[['aortica','esten',true]] });
+  const e4 = _escena({ g:[['ea_grado','sin']],      m:{},        p:[['aortica','esten',false]] });
+  const L = function(txt, pat) { return (txt||'').split('\\n').filter(function(l){ return pat.test(l); }).join(' | '); };
+  const AO = /a[oó]rtica|^VAo/i;
+  return { extra: [
+    /* DENOMINADOR: sin esto, un generarInforme que saliera temprano daria cuatro cadenas vacias y
+       todas las desigualdades de abajo serian falsas por igual — y el caso pasaria en verde sobre
+       un informe que no se escribio. */
+    ['denominador: las cuatro escenas escribieron linea de valvula aortica en los tres estilos',
+      [e1,e2,e3,e4].every(function(e){ return ['conciso','estandar','narrativo'].every(function(s){ return L(e[s], AO).length > 10; }); }),
+      'e1=' + L(e1.estandar, AO) + ' // e2=' + L(e2.estandar, AO)],
+    ['denominador: los cuatro grados quedaron escritos en el select',
+      [e1,e2,e3,e4].every(function(e){ return e.gq.indexOf('=') > -1 && e.gq.indexOf('NO EXISTE') === -1; }),
+      e1.gq + ' / ' + e2.gq + ' / ' + e3.gq + ' / ' + e4.gq],
+
+    // ESTADO 1 — hay grado: como siempre
+    ['1 grado · conciso dice EAo moderada',   L(e1.conciso, AO).indexOf('VAo con EAo moderada, sin insuficiencia.') > -1, L(e1.conciso, AO)],
+    ['1 grado · estandar dice estenosis moderada', L(e1.estandar, AO).indexOf('con estenosis moderada, sin insuficiencia.') > -1, L(e1.estandar, AO)],
+    ['1 grado · narrativo dice estenosis moderada', L(e1.narrativo, AO).indexOf('con estenosis moderada, sin insuficiencia.') > -1, L(e1.narrativo, AO)],
+    ['1 grado · EN SUMA dice EAo moderada',   e1.suma.indexOf('EAo moderada.') > -1, recorteJS(e1.suma)],
+
+    // ESTADO 2 — boton abierto y sin grado: «con estenosis», SIN grado, y la sigla sola en el resumen
+    ['2 abierto · conciso dice con estenosis y NO dice normal',
+      L(e2.conciso, AO).indexOf('VAo con estenosis, sin insuficiencia.') > -1 && L(e2.conciso, AO).indexOf('VAo normal') === -1, L(e2.conciso, AO)],
+    ['2 abierto · estandar dice con estenosis y NO la niega',
+      L(e2.estandar, AO).indexOf('con estenosis, sin insuficiencia.') > -1 && L(e2.estandar, AO).indexOf('sin estenosis') === -1, L(e2.estandar, AO)],
+    ['2 abierto · narrativo dice con estenosis y NO la niega',
+      L(e2.narrativo, AO).indexOf('con estenosis, sin insuficiencia.') > -1 && L(e2.narrativo, AO).indexOf('sin estenosis') === -1, L(e2.narrativo, AO)],
+    ['2 abierto · EN SUMA es SOLO la sigla EAo. y ya no dice «Estudio sin alteraciones»',
+      e2.suma.indexOf('EAo.') > -1 && e2.suma.indexOf('Estudio sin alteraciones') === -1 && e2.suma.indexOf('Estenosis a') === -1, recorteJS(e2.suma)],
+    /* Ni «severa», ni «moderada», ni «leve», ni «significativa»: el estado 2 es justamente el que
+       NO tiene grado, y cualquier palabra de grado ahi seria inventada. */
+    ['2 abierto · no se cuela ninguna palabra de grado en ninguna superficie',
+      !/leve|moderada|severa|significativ/i.test(L(e2.conciso,AO) + L(e2.estandar,AO) + L(e2.narrativo,AO) + e2.suma),
+      L(e2.estandar, AO) + ' // ' + recorteJS(e2.suma)],
+
+    // ESTADO 3 — «Sin» a proposito: la negacion del medico gana (es el caso que 4b vino a cerrar)
+    ['3 «Sin» a mano · estandar NIEGA la estenosis', L(e3.estandar, AO).indexOf('sin estenosis ni insuficiencia') > -1, L(e3.estandar, AO)],
+    ['3 «Sin» a mano · conciso dice VAo normal',     L(e3.conciso, AO).indexOf('VAo normal.') > -1, L(e3.conciso, AO)],
+    ['3 «Sin» a mano · el EN SUMA no dice nada de la aortica',
+      e3.suma.indexOf('EAo') === -1 && e3.suma.indexOf('Estenosis a') === -1, recorteJS(e3.suma)],
+
+    // ESTADO 4 — cerrado y vacio: como antes de esta tanda
+    ['4 cerrado y vacio · estandar NIEGA las dos mitades', L(e4.estandar, AO).indexOf('sin estenosis ni insuficiencia') > -1, L(e4.estandar, AO)],
+    ['4 cerrado y vacio · EN SUMA dice «Estudio sin alteraciones»', e4.suma.indexOf('Estudio sin alteraciones') > -1, recorteJS(e4.suma)],
+
+    /* ⚠ EL INVARIANTE DE FONDO. Es lo que estaba roto: los tres ultimos estados eran IGUALES.
+       Va como desigualdad y no como texto esperado para que ninguna reunificacion futura pueda
+       pasar en verde cambiando las frases de arriba de a una. */
+    ['el estado 2 NO se lee igual que el 3 en los tres estilos',
+      e2.conciso !== e3.conciso && e2.estandar !== e3.estandar && e2.narrativo !== e3.narrativo, 'siguen identicos'],
+    ['el estado 2 NO se lee igual que el 4 en el EN SUMA', e2.suma !== e4.suma, 'siguen identicos: ' + recorteJS(e2.suma)],
+    /* CONTROL NEGATIVO: los estados 3 y 4 SI tienen que ser iguales —el medico nego, o no cargo
+       nada, y en las dos la app no afirma—. Si esta condicion falla, la sonda no esta midiendo
+       «distingue estados»: esta diciendo que si a todo. */
+    ['control negativo: los estados 3 y 4 son iguales entre si en las cuatro superficies',
+      e3.conciso === e4.conciso && e3.estandar === e4.estandar && e3.narrativo === e4.narrativo && e3.suma === e4.suma,
+      'se separaron, y no deberian'],
+  ] };
+`);
+
+/* TC-398 — Lo mismo en la MITRAL, estenosis e insuficiencia, mas las dos ramas que publican
+   numeros. Esas dos son las que el arreglo podia romper: si el escalon del boton entrara en
+   ellas, «con estenosis» reemplazaria al AVm con su metodo en el informe firmado. */
+caso('TC-398', 'Mitral: los cuatro estados de EM y de IM, y el boton abierto NO pisa las dos ramas que publican el AVm medido', `
+  ${SINGRADO_HELPERS}
+  const m2 = _escena({ g:[['em_grado','sin']], m:{},        p:[['mitral','esten',true]] });
+  const m3 = _escena({ g:[['em_grado','sin']], m:{em:true}, p:[['mitral','esten',true]] });
+  const m4 = _escena({ g:[['em_grado','sin']], m:{},        p:[['mitral','esten',false]] });
+  const i2 = _escena({ g:[['im_grado','0']],   m:{},        p:[['mitral','insuf',true]] });
+  const i3 = _escena({ g:[['im_grado','0']],   m:{im:true}, p:[['mitral','insuf',true]] });
+  /* La rama de «valores medidos sin veredicto»: AVm 2,0 por planimetria no alcanza ningun corte,
+     asi que emCategoria devuelve 'nada' con fuentes. Con el boton abierto y sin grado, esta rama
+     tiene que seguir publicando el numero y NO degradarse a «con estenosis». */
+  const vm = _escena({ c:[['avm_plan','2.0']], g:[['em_grado','sin']], m:{}, p:[['mitral','esten',true]] });
+  /* Y la rama de PROTESIS, donde la app se abstiene de graduar con cortes nativos: un boton
+     abierto no puede levantar esa abstencion. */
+  const pr = _escena({ c:[['vm_morf','Pr\u00f3tesis mec\u00e1nica']], g:[['em_grado','sin']], m:{}, p:[['mitral','esten',true]] });
+  const L = function(txt, pat) { return (txt||'').split('\\n').filter(function(l){ return pat.test(l); }).join(' | '); };
+  const MI = /mitral|^VM /i;
+  return { extra: [
+    ['denominador: las siete escenas escribieron linea de valvula mitral',
+      [m2,m3,m4,i2,i3,vm,pr].every(function(e){ return L(e.estandar, MI).length > 10; }),
+      [m2,m3,m4,i2,i3,vm,pr].map(function(e){ return L(e.estandar, MI).slice(0,40); }).join(' // ')],
+
+    ['EM 2 abierto · estandar dice con estenosis sin grado',
+      L(m2.estandar, MI).indexOf('con estenosis, sin insuficiencia.') > -1, L(m2.estandar, MI)],
+    ['EM 2 abierto · conciso dice VM con estenosis', L(m2.conciso, MI).indexOf('VM con estenosis, sin insuficiencia.') > -1, L(m2.conciso, MI)],
+    ['EM 2 abierto · narrativo dice con estenosis', L(m2.narrativo, MI).indexOf('con estenosis, sin insuficiencia;') > -1, L(m2.narrativo, MI)],
+    ['EM 2 abierto · EN SUMA es solo «EM.»', m2.suma.indexOf('EM.') > -1 && m2.suma.indexOf('Estenosis mitral') === -1 && m2.suma.indexOf('Estudio sin alteraciones') === -1, recorteJS(m2.suma)],
+    ['EM 3 «Sin» a mano · niega y el resumen calla', L(m3.estandar, MI).indexOf('sin estenosis ni insuficiencia') > -1 && m3.suma.indexOf('EM') === -1, L(m3.estandar, MI) + ' // ' + recorteJS(m3.suma)],
+    ['EM · el estado 2 se distingue del 3 y del 4 en las cuatro superficies',
+      m2.estandar !== m3.estandar && m2.conciso !== m3.conciso && m2.narrativo !== m3.narrativo && m2.suma !== m4.suma, 'siguen identicos'],
+    ['control negativo EM: los estados 3 y 4 siguen siendo iguales',
+      m3.estandar === m4.estandar && m3.suma === m4.suma, 'se separaron, y no deberian'],
+
+    ['IM 2 abierto · estandar dice con insuficiencia sin grado',
+      L(i2.estandar, MI).indexOf('sin estenosis, con insuficiencia.') > -1, L(i2.estandar, MI)],
+    ['IM 2 abierto · EN SUMA es solo «IM.»', i2.suma.indexOf('IM.') > -1 && i2.suma.indexOf('Insuficiencia mitral') === -1, recorteJS(i2.suma)],
+    ['IM 2 abierto · no se cuela palabra de grado', !/leve|moderada|severa/i.test(L(i2.estandar, MI) + i2.suma), L(i2.estandar, MI) + ' // ' + recorteJS(i2.suma)],
+    ['IM 3 «Sin» a mano · niega', L(i3.estandar, MI).indexOf('sin estenosis ni insuficiencia') > -1 && i3.suma.indexOf('IM') === -1, L(i3.estandar, MI) + ' // ' + recorteJS(i3.suma)],
+
+    /* Estas dos defienden estEGrado: si el escalon del boton se cableara a estE en vez de a
+       estEGrado, el AVm de 2,0 desapareceria del informe FIRMADO y la protesis volveria a
+       recibir una palabra de estenosis que la app no puede sostener. */
+    ['la rama de valores medidos sin veredicto sigue publicando el AVm con el boton abierto',
+      L(vm.estandar, MI).indexOf('AVm 2.00 cm') > -1 && L(vm.estandar, MI).indexOf('con estenosis,') === -1,
+      L(vm.estandar, MI)],
+    ['con PROTESIS mitral el boton abierto NO agrega una palabra de estenosis',
+      L(pr.estandar, MI).indexOf('estenosis') === -1, L(pr.estandar, MI)],
+    ['denominador de la protesis: la oracion nombra la protesis', /pr[oó]tesis/i.test(L(pr.estandar, MI)), L(pr.estandar, MI)],
+    /* ⚠ Y EL EN SUMA TAMBIEN, que es donde el arreglo se habia olvidado las dos compuertas: la
+       cascada del resumen corria ANTES de calcularse _vmProt y leia estE en vez de estEGrado, asi
+       que publicaba «EM.» mientras el cuerpo callaba. Las dos medidas en Chrome el 2026-10-03,
+       cazadas por /sharp-edges sobre el propio diff. */
+    ['y el EN SUMA de la PROTESIS tampoco dice «EM.»: la conclusion no afirma lo que el cuerpo calla',
+      pr.suma.indexOf('EM.') === -1, recorteJS(pr.suma)],
+    ['y el EN SUMA de los valores medidos sin veredicto tampoco dice «EM.»',
+      vm.suma.indexOf('EM.') === -1, recorteJS(vm.suma)],
+  ] };
+`);
+
+/* TC-399 — La IAo sin grado, y la regla «la app nunca escribe mixta»: con las dos mitades
+   consignadas salen las dos con su grado, y una mitad con grado conviviendo con la otra sin. */
+caso('TC-399', 'IAo abierta sin grado da «con insuficiencia» y «IAo.»; con las dos mitades consignadas van las DOS con su grado y nunca «mixta»', `
+  ${SINGRADO_HELPERS}
+  const a2 = _escena({ g:[['ia_grado','0']], m:{},        p:[['aortica','insuf',true]] });
+  const a3 = _escena({ g:[['ia_grado','0']], m:{ia:true}, p:[['aortica','insuf',true]] });
+  const mx = _escena({ g:[['ea_grado','leve'],['ia_grado','1']], m:{ea:true,ia:true},
+                       p:[['aortica','esten',true],['aortica','insuf',true]] });
+  const mm = _escena({ g:[['em_grado','moderada'],['im_grado','4']], m:{em:true,im:true},
+                       p:[['mitral','esten',true],['mitral','insuf',true]] });
+  /* Mitad con grado y mitad sin, en la MISMA valvula: el estado 1 y el estado 2 conviviendo. */
+  const md = _escena({ g:[['ea_grado','moderada'],['ia_grado','0']], m:{ea:true},
+                       p:[['aortica','esten',true],['aortica','insuf',true]] });
+  const L = function(txt, pat) { return (txt||'').split('\\n').filter(function(l){ return pat.test(l); }).join(' | '); };
+  const AO = /a[oó]rtica|^VAo/i, MI = /mitral|^VM /i;
+  return { extra: [
+    ['denominador: las cinco escenas escribieron su linea de valvula',
+      L(a2.estandar,AO).length > 10 && L(a3.estandar,AO).length > 10 && L(mx.estandar,AO).length > 10 && L(mm.estandar,MI).length > 10 && L(md.estandar,AO).length > 10,
+      L(a2.estandar,AO) + ' // ' + L(mm.estandar,MI)],
+    /* ⛔ LA AORTICA QUEDA EN ESPERA — ver el motivo completo en TC-397, que es el defecto abierto.
+       Mientras EA_ESCALON_SIN_GRADO este en false, los estados 2 y 3 de la IAo SIGUEN SIENDO
+       IGUALES y las dos niegan: es el comportamiento de 589f7bb, byte a byte. Este caso lo pinea
+       a proposito para que el dia que se enciendan no se enciendan SIN ENTERARSE — y entonces
+       TC-397 pasa a ▲ y estas dos condiciones se invierten junto con el. */
+    ['AORTICA EN ESPERA: la IAo con la pastilla abierta y sin grado sigue NEGANDO (como en 589f7bb)',
+      L(a2.estandar, AO).indexOf('sin estenosis ni insuficiencia') > -1 && a2.suma.indexOf('IAo') === -1,
+      L(a2.estandar, AO) + ' // ' + recorteJS(a2.suma)],
+    ['AORTICA EN ESPERA: y los estados 2 y 3 todavia se leen igual — el dia que se separen, TC-397 pasa a ▲',
+      a2.estandar === a3.estandar && a2.suma === a3.suma,
+      'se separaron: 2=«' + L(a2.estandar, AO) + '» 3=«' + L(a3.estandar, AO) + '»'],
+
+    ['aortica con las dos mitades: las DOS con su grado en el cuerpo',
+      L(mx.estandar, AO).indexOf('con estenosis leve e insuficiencia leve.') > -1, L(mx.estandar, AO)],
+    ['aortica con las dos mitades: DOS lineas en el EN SUMA, cada una con su grado',
+      mx.suma.indexOf('EAo leve.') > -1 && mx.suma.indexOf('IAo leve.') > -1, recorteJS(mx.suma)],
+    ['mitral con las dos mitades: las DOS con su grado',
+      L(mm.estandar, MI).indexOf('con estenosis moderada e insuficiencia severa.') > -1 && mm.suma.indexOf('EM moderada.') > -1 && mm.suma.indexOf('IM severa.') > -1,
+      L(mm.estandar, MI) + ' // ' + recorteJS(mm.suma)],
+    /* La palabra prohibida, en las cuatro superficies de las dos valvulas. */
+    ['la app NUNCA escribe «mixta» ni «mixto»',
+      !/mixt[ao]/i.test(mx.conciso + mx.estandar + mx.narrativo + mx.suma + mm.conciso + mm.estandar + mm.narrativo + mm.suma),
+      'aparecio: ' + recorteJS(mx.suma + ' / ' + mm.suma)],
+    /* Con la aortica en espera, la mitad SIN grado no aporta token y la oracion queda con el grado
+       solo. Lo que el caso defiende es que el grado de la OTRA mitad no se pierde. */
+    ['AORTICA EN ESPERA: con EAo moderada y la IAo abierta sin grado, sale el grado y nada mas',
+      L(md.estandar, AO).indexOf('con estenosis moderada, sin insuficiencia.') > -1, L(md.estandar, AO)],
+    ['y el EN SUMA lleva «EAo moderada.» sin inventar una linea de IAo',
+      md.suma.indexOf('EAo moderada.') > -1 && md.suma.indexOf('IAo') === -1, recorteJS(md.suma)],
+  ] };
+`);
+
+/* TC-400 — Las OCHO valvulopatias LEVES en el EN SUMA. Antes de esta tanda faltaban TRES: la EAo
+   leve, la estenosis pulmonar leve y la insuficiencia pulmonar leve. Las tres estaban suprimidas
+   con comentario explicito, asi que este caso defiende una decision que ya se revirtio una vez. */
+caso('TC-400', 'Las OCHO valvulopatias leves figuran en el EN SUMA: EAo, IAo, EM, IM, ET, IT, EP e IP', `
+  ${SINGRADO_HELPERS}
+  /* ⚠ Los tokens de ep_grado / ip_grado / et_grado son «Leve» CON MAYUSCULA: un select rechaza en
+     silencio 'leve' y deja el value vacio, asi que la escena mediria un formulario en blanco y el
+     caso pasaria en verde sobre nada. De ahi la condicion de denominador sobre gq. */
+  const L8 = [
+    ['EAo', { g:[['ea_grado','leve']], m:{ea:true}, p:[['aortica','esten',true]] },   'EAo leve.'],
+    ['IAo', { g:[['ia_grado','1']],    m:{ia:true}, p:[['aortica','insuf',true]] },   'IAo leve.'],
+    ['EM',  { g:[['em_grado','leve']], m:{em:true}, p:[['mitral','esten',true]] },    'EM leve.'],
+    ['IM',  { g:[['im_grado','1']],    m:{im:true}, p:[['mitral','insuf',true]] },    'IM leve.'],
+    ['ET',  { g:[['et_grado','Leve']], m:{},        p:[['tricuspide','esten',true]] },'ET leve.'],
+    ['IT',  { g:[['it_grado','1']],    m:{it:true}, p:[['tricuspide','insuf',true]] },'IT leve.'],
+    ['EP',  { g:[['ep_grado','Leve']], m:{} },                                        'Estenosis pulmonar leve.'],
+    ['IP',  { g:[['ip_grado','Leve']], m:{} },                                        'Insuficiencia pulmonar leve.'],
+  ];
+  const faltan = [], vacios = [], diag = [];
+  L8.forEach(function(t){
+    const r = _escena(t[1]);
+    diag.push(t[0] + ' gq[' + r.gq + '] suma[' + String(r.suma).replace(/\\n/g, ' | ') + ']');
+    if (r.gq.indexOf('NO EXISTE') > -1 || /=$/.test(r.gq)) vacios.push(t[0]);
+    if (String(r.suma).indexOf(t[2]) === -1) faltan.push(t[0] + ' esperaba [' + t[2] + ']');
+  });
+  /* CONTROL NEGATIVO: sin ninguna valvulopatia cargada, el resumen NO lista ninguna leve. Sin
+     esta condicion, un EN SUMA que imprimiera las ocho siempre pasaria el caso de arriba. */
+  const cero = _escena({ m:{} });
+  return { extra: [
+    ['denominador: los ocho grados quedaron escritos en su select (ninguno rechazado)', vacios.length === 0, 'rechazados: ' + vacios.join(', ') + ' // ' + diag.join(' ;; ')],
+    ['las ocho leves figuran en el EN SUMA', faltan.length === 0, faltan.join(' ;; ') + ' // ' + diag.join(' ;; ')],
+    ['control negativo: sin valvulopatia cargada no se lista ninguna leve',
+      !/leve/i.test(cero.suma) && cero.suma.indexOf('Estudio sin alteraciones') > -1, recorteJS(cero.suma)],
+  ] };
+`);
+
+/* TC-401 — Las frases del fundamento aortico en el EN SUMA. Son texto DICTADO por Maicol, mas
+   corto que el del cuerpo, asi que se pinean literales: una abreviatura distinta en el resumen y
+   en el cuerpo del mismo informe es la clase de discrepancia que este archivo persigue. */
+caso('TC-401', 'El fundamento de la aortica llega al EN SUMA con sus frases cortas; «Otro» y la nota NO suben, y sin discrepancia no sube nada', `
+  ${SINGRADO_HELPERS}
+  /* Vmax 3,2 / Gm 25 calculan menos que severa, y el grado se fija en «severa» a mano: eso es la
+     DISCREPANCIA que abre el cajon. Sin ella, sevDiscrepa devuelve false y el cajon no aporta. */
+  const DISC = [['vmax_ao','3.2'],['gmedio_ao','25']];
+  const red  = _escena({ c:DISC, g:[['ea_grado','severa']], m:{ea:true}, p:[['aortica','esten',true]], k:[['ea_fund_bfbg_red',true]] });
+  const cons = _escena({ c:DISC, g:[['ea_grado','severa']], m:{ea:true}, p:[['aortica','esten',true]], k:[['ea_fund_bfbg_cons',true]] });
+  const plan = _escena({ c:DISC.concat([['ava_plan','0.8']]), g:[['ea_grado','severa']], m:{ea:true}, p:[['aortica','esten',true]], k:[['ea_fund_plan',true]] });
+  const comb = _escena({ c:DISC.concat([['ava_plan','0.8']]), g:[['ea_grado','severa']], m:{ea:true}, p:[['aortica','esten',true]], k:[['ea_fund_bfbg_red',true],['ea_fund_plan',true]] });
+  /* OTSVI: «Sin estenosis» a mano sobre un calculado severo es el sentido «baja» del cajon. */
+  const ots  = _escena({ c:[['vmax_ao','4.2'],['gmedio_ao','45']], g:[['ea_grado','sin']], m:{ea:true}, p:[['aortica','esten',true]], k:[['ea_fund_otsvi',true]] });
+  /* ⚠ CON LA NOTA ESCRITA DE VERDAD, y es el denominador que faltaba: sin nota, parens queda
+     vacio y la mutacion que cuela la nota al EN SUMA SOBREVIVE — medido el 2026-10-03, M17 del
+     barrido. Un caso que no puede ver la fuga no la esta probando. */
+  const otro = _escena({ c:DISC, g:[['ea_grado','severa']], m:{ea:true}, p:[['aortica','esten',true]],
+                         k:[['ea_fund_otro',true]], c2:[['ea_fund_nota','motivo colado']] });
+  /* CONTROL NEGATIVO: casillas tildadas y SIN discrepancia (el grado coincide con el calculado).
+     Si sevDiscrepa fallara abierto, el informe firmado publicaria un fundamento sobre un grado
+     que nadie ajusto. */
+  const neg  = _escena({ c:[['vmax_ao','4.2'],['gmedio_ao','45']], g:[['ea_grado','severa']], m:{ea:true}, p:[['aortica','esten',true]], k:[['ea_fund_bfbg_red',true],['ea_fund_otsvi',true]] });
+  const L = function(txt, pat) { return (txt||'').split('\\n').filter(function(l){ return pat.test(l); }).join(' | '); };
+  const AO = /a[oó]rtica|^VAo/i;
+  return { extra: [
+    ['denominador: las siete escenas escribieron linea de valvula aortica',
+      [red,cons,plan,comb,ots,otro,neg].every(function(e){ return L(e.estandar, AO).length > 10; }),
+      [red,cons,plan,comb,ots,otro,neg].map(function(e){ return L(e.estandar,AO).slice(0,30); }).join(' // ')],
+    ['BF/BG con FEVI reducida', red.suma.indexOf('EAo severa de BF y BG con FEVI reducida.') > -1, recorteJS(red.suma)],
+    ['BF/BG con FEVI conservada', cons.suma.indexOf('EAo severa de BF y BG con FEVI conservada.') > -1, recorteJS(cons.suma)],
+    ['por planimetria', plan.suma.indexOf('EAo severa por planimetria') > -1 || plan.suma.indexOf('EAo severa por planimetr') > -1, recorteJS(plan.suma)],
+    ['las dos a la vez se unen con « y »', comb.suma.indexOf('de BF y BG con FEVI reducida y por planimetr') > -1, recorteJS(comb.suma)],
+    ['Obstruccion subaortica es LINEA PROPIA del resumen, y ya no dice «Estudio sin alteraciones»',
+      /Obstrucci[oó]n suba[oó]rtica\\./.test(ots.suma) && ots.suma.indexOf('Estudio sin alteraciones') === -1, recorteJS(ots.suma)],
+    /* Lo que el cuerpo SI dice y el resumen NO: la nota de texto libre. */
+    ['DENOMINADOR: la nota quedo escrita de verdad en el cajon al generar el informe',
+      otro.c2q === 'ea_fund_nota=motivo colado', 'c2q=«' + otro.c2q + '»'],
+    ['la nota de «Otro» va al cuerpo entre parentesis',
+      L(otro.estandar, AO).indexOf('(motivo colado)') > -1, L(otro.estandar, AO)],
+    ['«Otro» y la nota NO suben al EN SUMA: queda «EAo severa.» pelada',
+      otro.suma.indexOf('EAo severa.') > -1 && otro.suma.indexOf('motivo colado') === -1 && otro.suma.indexOf('(') === -1,
+      recorteJS(otro.suma)],
+    ['control negativo: casillas tildadas SIN discrepancia no aportan ni una palabra',
+      neg.suma.indexOf('EAo severa.') > -1 && neg.suma.indexOf('BF y BG') === -1 && !/Obstrucci[oó]n/.test(neg.suma),
+      recorteJS(neg.suma) + ' // ' + L(neg.estandar, AO)],
   ] };
 `);
 
