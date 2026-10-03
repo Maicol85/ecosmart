@@ -46842,7 +46842,20 @@ caso('TC-388', 'Mitral: el grado manual se mantiene y vuelve SOLO a automatico c
   const emNull = { sel: __t.val('em_grado'), manual: !!(window.esqSevManual||{}).em,
                    calc: String(sevCalcPublicable('em')) };
 
-  /* ── (3) PUNTO D: «Sin» con calculo discrepa; sin calculo queda neutro y mudo ── */
+  /* ── (3) PUNTO D ── Primero que el menu lo OFREZCA, y despues que haga lo que tiene que hacer.
+     ⚠️ ESTAS DOS CONDICIONES LAS AGREGO PORQUE EL BARRIDO DE MUTACIONES LAS PIDIO. M5 —sacarle
+     «Sin» a la mitral en SIN_EN_MENU— SOBREVIVIO a este caso: el titulo prometia «Sin en los dos
+     menus» y el cuerpo nunca abria un menu, llamaba a valvSev.aplicar(...,'0') directo. Lo mataba
+     TC-384, asi que cobertura habia, pero este caso afirmaba algo que no estaba midiendo — que es
+     como un titulo deja de ser verdad sin que nadie se entere. */
+  mReset();
+  const abrirMenu = function (t) {
+    try { valvSev.menu(t, 'mitral', null);
+      const m = document.getElementById('sevmenu-' + t + '-mitral');
+      const r = Array.from(m.querySelectorAll('button')).map(function (b) { return b.textContent.trim(); });
+      document.body.click(); return r; } catch (e) { return ['ERR:' + e.message]; } };
+  const menuIM = abrirMenu('insuf'), menuEM = abrirMenu('esten');
+
   mReset();
   mSet('im_vc','8');
   valvSev.aplicar('insuf','mitral','0');
@@ -46890,6 +46903,13 @@ caso('TC-388', 'Mitral: el grado manual se mantiene y vuelve SOLO a automatico c
        pantalla dice una cosa y el informe firmado otra. Es el defecto que trasEscribir cerro. */
     ['CONTROL NEGATIVO de B: un calculado que pasa a null NO suelta el grado manual de la EM',
       emNull.sel === 'moderada' && emNull.manual === true && emNull.calc === 'null', dg],
+    ['DENOMINADOR: los dos menus de la mitral se desplegaron',
+      menuIM.length > 0 && menuEM.length > 0 && !/^ERR/.test(menuIM[0]) && !/^ERR/.test(menuEM[0]),
+      'IM=' + menuIM.join('/') + ' EM=' + menuEM.join('/')],
+    ['D: los dos menus de la mitral ofrecen «Sin» PRIMERO',
+      menuIM.join('|') === 'Sin insuficiencia|Leve|Moderada|Severa' &&
+      menuEM.join('|') === 'Sin estenosis|Leve|Moderada|Severa',
+      'IM=' + menuIM.join('/') + ' EM=' + menuEM.join('/')],
     ['D: «Sin» con grado calculado es un ajuste a la baja, con aviso rojo',
       sinCon.discrepa === true && /Sin insuficiencia/.test(sinCon.aviso) &&
       /Severa/.test(sinCon.aviso), sinCon.aviso],
