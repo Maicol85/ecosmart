@@ -201,9 +201,12 @@ impecable.
 
 ## Estado vigente
 
-- `main` local en el commit de cierre de la tanda «Sin apaga el botón», con **doce commits sin
-  pushear** (`origin/main` en `2e017a1`). El clasificador de permisos del entorno bloquea
-  `git push`: lo corre Maicol, no hay que rehacer nada.
+- `main` local en **`43b3f93`**, con **tres commits sin pushear** —`23eb4e2`, `e8b03c5`, `43b3f93`—
+  y `origin/main` en **`42a1f0e`**. El clasificador de permisos del entorno bloquea `git push`: lo
+  corre Maicol, no hay que rehacer nada.
+  ⚠️ **Este renglón se escribió mal una vez**: decía «doce commits sin pushear, `origin/main` en
+  `2e017a1`», copiado del estado anterior sin mirar. `origin/main` había avanzado. Antes de
+  escribirlo, `git rev-parse --short origin/main` y `git log --oneline origin/main..HEAD`.
 - Línea base medida el **2026-10-03 al cierre de la tanda «Sin apaga el botón»**: suite
   **421/422** (único rojo **TC-223**, el documentado, que falla por la fecha), **sin ningún defecto
   abierto** —TC-397 se promovió— y Semgrep **127 / 0 ERROR**. Los casos **TC-402 … TC-407** son de
