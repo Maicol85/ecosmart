@@ -4389,6 +4389,16 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad IT integrada (ESC 2021)</span><span id="it-sev">—</span></div>
         <div class="calc-row"><span id="it-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
       </div>
+      <!-- v2 (E2c): aviso de discrepancia + cajón de la IT, hermanos de los de la mitral y
+           gobernados por el MISMO `sevSincronizar` (clave `it`). Sólo se ven con grado manual que
+           discrepa del autogrado de `calcIT_ESC`. Viven dentro del bloque de cuantificación, que se
+           ve con la pastilla de IT prendida. -->
+      <div id="it-manual-aviso" style="font-size:11px;font-weight:700;color:var(--red);margin-top:4px;"></div>
+      <div id="it-fund" class="valv-fund-box" style="display:none;background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;">
+        <div class="valv-fund-tit" style="font-weight:700;color:var(--accent2);">Fundamento del ajuste</div>
+        <label for="it_fund_nota" style="display:block;font-weight:400;color:var(--text2);margin:0 0 2px;">Motivo del ajuste (opcional)</label>
+        <input type="text" id="it_fund_nota" maxlength="100" placeholder="Ej.: jet exc&eacute;ntrico, vena contracta no medible" style="width:100%;">
+      </div>
       </div>
       <input type="hidden" id="it_grado" value="0">
     </div>
@@ -4443,7 +4453,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <input type="number" id="vp_dvi" step="0.01" placeholder="—">
       </div>
       <div class="fg"><label>Estenosis pulmonar</label>
-        <select id="ep_grado" onchange="vpSync()">
+        <select id="ep_grado" onchange="epGradoManual()">
           <option value="sin">&mdash; grado &mdash;</option>
           <option>Leve</option>
           <option>Moderada</option>
@@ -4451,6 +4461,15 @@ window.cerrarSesionReal = cerrarSesionReal;
           <option>Severa</option>
         </select>
         <div id="vp-sev-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
+        <!-- v2 (E2c): aviso de discrepancia + cajón de la EP, hermanos de los de la mitral y
+             gobernados por el MISMO `sevSincronizar` (clave `ep`). Sólo se ven con grado manual que
+             discrepa del autogrado de `calcVP`. -->
+        <div id="ep-manual-aviso" style="font-size:11px;font-weight:700;color:var(--red);margin-top:4px;"></div>
+        <div id="ep-fund" class="valv-fund-box" style="display:none;background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;">
+          <div class="valv-fund-tit" style="font-weight:700;color:var(--accent2);">Fundamento del ajuste</div>
+          <label for="ep_fund_nota" style="display:block;font-weight:400;color:var(--text2);margin:0 0 2px;">Motivo del ajuste (opcional)</label>
+          <input type="text" id="ep_fund_nota" maxlength="100" placeholder="Ej.: gradiente dudoso, ventana sub&oacute;ptima" style="width:100%;">
+        </div>
       </div>
       <!-- Nivel y etiología sólo con estenosis consignada: preguntarle al médico la etiología de
            una estenosis que declaró ausente es pedir un dato que no existe, y un select visible
@@ -24689,7 +24708,43 @@ const SEV_SINC = Object.freeze({
     trasEscribir: function(sel, calc){ sel.dataset.sugerido = calc;
       if (typeof imOndaESiExiste === 'function') imOndaESiExiste(); },
     etiqueta: function(g){ return ({ sin:'Sin estenosis', leve:'Leve', moderada:'Moderada',
-      severa:'Severa' })[String(g)] || String(g); } })
+      severa:'Severa' })[String(g)] || String(g); } }),
+  /* ══ TRICÚSPIDE Y PULMONAR — E2c (2026-10-03) ══════════════════════════════════════════════════
+     Entran al registro SÓLO las dos lesiones que AUTOGRADÚAN (it por calcIT_ESC, ep por
+     epGradoPorGmax), que son las únicas donde el aviso de discrepancia §5 tiene sujeto. La estenosis
+     tricuspídea (significativa, sin leve/mod/severa) y la insuficiencia pulmonar (grado sólo manual)
+     NO autogradúan → no se registran (no hay contra qué discrepar). La maquinaria común no se tocó
+     salvo una guarda <input> en sevSincronizar (no-op para <select>). */
+  it: Object.freeze({ tipo:'insuf', valv:'tricuspide', select:'it_grado', aviso:'it-manual-aviso',
+    ayuda:null, nombre:'Insuficiencia tricuspídea', fundamento:'it-fund', nota:'it_fund_nota',
+    /* calcIT_ESC vota y emite '4'/'2'/'1' (nunca '0' ni '3'); el '0' entra en comparables, como la
+       IAo/IM, para que un grado a mano por debajo del calculado tenga aviso y cajón. */
+    calculables: Object.freeze(['1','2','4']),
+    comparables: Object.freeze(['0','1','2','4']),
+    /* Protésica ⇒ no se gradúa (vt_morf); true ante excepción, porque «no sé» es abstenerse. */
+    bloqueado: function(){ try { return !!(typeof valvEsProtesis === 'function' && valvEsProtesis(sv('vt_morf'))); } catch (e) { return true; } },
+    /* Como la IM: calcIT_ESC deja la foto en window._itGradoCalc (memoria de proceso) y acá se lee. */
+    calcular: function(){ const g = window._itGradoCalc; return (g === null || g === undefined || g === '') ? null : g; },
+    recalcular: function(){ if (typeof calcIT_ESC === 'function') calcIT_ESC(); },
+    /* it_grado es un <input hidden>: no hay desplegable visible ni espejo que sincronizar. */
+    trasEscribir: function(sel, calc){ try { sel.dataset.sugerido = calc; } catch (e) {} },
+    etiqueta: function(g){ return ({ '0':'Sin insuficiencia','1':'Leve','2':'Moderada','3':'Moderada-severa','4':'Severa' })[String(g)] || String(g); } }),
+  ep: Object.freeze({ tipo:'esten', valv:'pulmonar', select:'ep_grado', aviso:'ep-manual-aviso',
+    ayuda:null, nombre:'Estenosis pulmonar', fundamento:'ep-fund', nota:'ep_fund_nota',
+    /* epGradoPorGmax emite Leve/Moderada/Severa; «Moderada-severa» es sólo manual (entra en
+       comparables para el aviso, no en calculables). «sin» (Normal) también en comparables. */
+    calculables: Object.freeze(['Leve','Moderada','Severa']),
+    comparables: Object.freeze(['sin','Leve','Moderada','Moderada-severa','Severa']),
+    bloqueado: function(){ try { return !!(typeof valvEsProtesis === 'function' && valvEsProtesis(sv('vp_morf'))); } catch (e) { return true; } },
+    /* Proveedor PURO: traduce el autogrado de epGradoPorGmax(vp_gmax) al vocabulario del <select>.
+       'Normal' → 'sin' (no-enfermedad); null si el gradiente no es utilizable. */
+    calcular: function(){ try { if (typeof epGradoPorGmax !== 'function') return null;
+      var r = epGradoPorGmax(v('vp_gmax'));
+      return ({ 'Normal':'sin','Estenosis leve':'Leve','Estenosis moderada':'Moderada','Estenosis severa':'Severa' })[r] || null;
+    } catch (e) { return null; } },
+    recalcular: function(){ if (typeof calcVP === 'function') calcVP(); },
+    trasEscribir: function(sel, calc){ try { sel.dataset.sugerido = calc; } catch (e) {} },
+    etiqueta: function(g){ return ({ sin:'Sin estenosis', Leve:'Leve', Moderada:'Moderada', 'Moderada-severa':'Moderada-severa', Severa:'Severa' })[String(g)] || String(g); } })
 });
 /* El grado calculado que la app está dispuesta a NOMBRAR, que es el único con el que se puede
    comparar un grado manual. Un solo lugar lo decide, y lo usan los DOS que miran la foto:
@@ -25100,11 +25155,16 @@ function sevSincronizar(clave) {
          informaría `soltado: true`, así que una prueba que afirme sobre el gesto pasaría en verde. Es
          el modo de falla más caro posible —un informe firmado sin grado donde el médico había fijado
          uno— y basta que un proveedor nuevo devuelva su vocabulario propio. Falla RUIDOSA. */
-      const _existe = Array.prototype.some.call(sel.options, function(o){ return o.value === String(calc); });
-      if (!_existe) {
-        console.error('SEV_SINC[' + clave + '].calcular() devolvió «' + calc +
-          '», que no es una opción de #' + C.select + ': no se escribe nada');
-        return { manual: true, calc: calc, final: sel.value, discrepa: false, soltado: false };
+      /* v2 (E2c, 2026-10-03): la guarda «¿el calc es una <option>?» sólo aplica a <select>. La
+         tricúspide insuf registra `it_grado`, que es un <input hidden> SIN `.options`; para ésa se
+         escribe directo. NO cambia nada para ea/ia/em/im, que son <select> con opciones. */
+      if (sel.tagName === 'SELECT' && sel.options) {
+        const _existe = Array.prototype.some.call(sel.options, function(o){ return o.value === String(calc); });
+        if (!_existe) {
+          console.error('SEV_SINC[' + clave + '].calcular() devolvió «' + calc +
+            '», que no es una opción de #' + C.select + ': no se escribe nada');
+          return { manual: true, calc: calc, final: sel.value, discrepa: false, soltado: false };
+        }
       }
       sel.value = calc;
       /* ⚠️ ESTO ERA `if (clave === 'ea') … else { … sincronizarGradoIA() }` Y CON LA MITRAL
@@ -27024,7 +27084,11 @@ function calcVP() {
      carga. Un grado elegido a mano no se toca — incluida «Moderada-severa», que el auto-grado
      NO puede producir (ver abajo) y que por lo tanto nunca es `dataset.sugerido`. */
   const _sug = sel && sel.dataset.sugerido;
-  const _pisable = !!sel && (sel.value === '' || sel.value === 'sin' || (_sug && sel.value === _sug));
+  /* v2 (E2c): con `ep` en el registro, el grado manual lo gobierna `sevSincronizar` (R6: se mantiene
+     hasta que el calculado cambie, igual que ea/ia/em/im). Por eso calcVP NO pisa cuando hay marca
+     manual. INERTE hasta que `epGradoManual` ponga `esqSevManual.ep` —nadie más lo pone—, así que no
+     cambia nada del comportamiento previo. */
+  const _pisable = !!sel && !(window.esqSevManual && window.esqSevManual.ep) && (sel.value === '' || sel.value === 'sin' || (_sug && sel.value === _sug));
 
   /* `opcion === null` cubre el gradiente ausente Y el no clasificable en una sola guarda: la
      función de clasificación es la única que decide qué es un gradiente, y acá no se repite el
@@ -27059,7 +27123,14 @@ function calcVP() {
      select tiene cuatro. Partir la banda 36-64 exigiría un corte que ninguna guía publica, y el
      informe lo citaría al lado de «ESC/ASE». Queda para elección manual, declarado en pantalla
      para que su ausencia no se lea como que el cálculo la descartó. */
-  if (badgeEl) badgeEl.textContent = (_pisable
+  /* ⚠️ v2 (E2c): el texto del badge se decide con la marca manual TAL COMO QUEDÓ tras `vpSync`
+     —que llama a `sevSincronizar('ep')`, el cual puede SOLTAR la marca (R6) cuando el calculado
+     cambió—. Antes se usaba `_pisable`, foto de ANTES del release: el badge decía «se respeta la
+     opción elegida a mano» sobre un grado que acababa de volver a automático, escondiendo el
+     release. Ahora, soltada la marca, el badge dice «Sugerido automáticamente», que es cómo el
+     médico NOTA que su elección volvió al auto (además del propio <select> cambiando de valor). */
+  const _epManualAun = !!(window.esqSevManual && window.esqSevManual.ep);
+  if (badgeEl) badgeEl.textContent = (!_epManualAun
     ? `Sugerido automáticamente por ${origen}. Podés cambiarlo manualmente si lo creés necesario.`
     : `Por ${origen} correspondería «${opcion}», pero se respeta la opción elegida a mano.`)
     + ' El auto-grado sólo alcanza Leve, Moderada o Severa: «Moderada-severa» es elección manual.';
@@ -27105,8 +27176,25 @@ function vpSync(){
   const ep = g('ep_grado');
   ver('bloque-ep-detalle', !!(ep && ep !== 'sin'));
   ver('bloque-ip-detalle', typeof ipHayInsuf === 'function' ? ipHayInsuf(g('ip_grado')) : false);
+  /* v2 (E2c): repinta el aviso de discrepancia de la EP (registro `ep`). Inerte si no hay marca
+     manual. NO recursa: `ep.trasEscribir` del registro no llama a vpSync. */
+  if (typeof sevSincronizar === 'function') { try { sevSincronizar('ep'); } catch (e) {} }
 }
 window.vpSync = vpSync;
+/* v2 (E2c): elegir un grado de EP A MANO en el desplegable lo marca como manual —como `emGradoManual`
+   para la EM— para que el aviso de discrepancia §5 pueda dispararse contra el autogrado de `calcVP`.
+   calcVP deja de pisar `ep_grado` mientras la marca esté puesta; `sevSincronizar('ep')` (vía vpSync)
+   la suelta cuando el calculado cambia (R6), igual que las demás válvulas. */
+function epGradoManual(){
+  window.esqSevManual = window.esqSevManual || {};
+  window.esqSevManual.ep = true;
+  if (typeof _sevManualSync === 'function') _sevManualSync();
+  /* calcVP (no sólo vpSync) para que el badge «se respeta la opción elegida a mano» se repinte en
+     el mismo gesto; calcVP respeta la marca (no pisa ep_grado) y llama a vpSync→sevSincronizar('ep')
+     al final, que pinta el aviso rojo de discrepancia. */
+  if (typeof calcVP === 'function') calcVP(); else vpSync();
+}
+window.epGradoManual = epGradoManual;
 
 /* ══ ¿HAY INSUFICIENCIA PULMONAR? UN SOLO PREDICADO ══════════════════════════════════════════
    `ip_grado` era el ÚNICO de los siete grados valvulares cuya primera opción llevaba
@@ -27302,6 +27390,7 @@ window.ET_THP_SIGNIF = ET_THP_SIGNIF;
 window.ET_AVT_SIGNIF = ET_AVT_SIGNIF;
 
 function calcIT_ESC() {
+  window._itGradoCalc = null;   // v2 (E2c): se repuebla con el grado calculado; null si no hay datos (como _imGradoCalc)
   const vc = v('it_vc');
   const pisaR = v('it_pisa_r'), pisaVal = v('it_pisa_val'), vmaxCW = v('it_vmax_cw'), vtiIT = v('it_vti');
   const densidad = sv('it_densidad');
@@ -27357,9 +27446,11 @@ function calcIT_ESC() {
     sevBadge = badge('yellow','Moderada — evaluar integrado'); gradoVal = '2';
   }
   document.getElementById('it-sev').innerHTML = sevBadge;
+  window._itGradoCalc = gradoVal;   // v2 (E2c): foto del grado calculado para el aviso de discrepancia (registro `it`)
   if (!(window.esqSevManual && window.esqSevManual.it)) document.getElementById('it_grado').value = gradoVal;   // pill fijada → no pisar
   const sevs = [...new Set(params.map(p=>p.sev))];
   document.getElementById('it-discordancia').textContent = sevs.length > 1 ? '⚠️ Discordancia: ' + params.map(p=>`${p.p}:${p.sev}`).join(', ') : '';
+  if (typeof sevSincronizar === 'function') { try { sevSincronizar('it'); } catch (e) {} }   // v2 (E2c): repinta aviso/pastilla de la IT
 }
 
 // ══ MODO COMPARATIVO ══

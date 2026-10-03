@@ -31617,7 +31617,15 @@ caso('TC-284', 'Estenosis pulmonar: la precondicion del sustituto parte la tabla
     if (typeof indicAbrir !== 'function' || typeof window._indEP !== 'function')
       return { extra:[['existen indicAbrir y _indEP', false, '']] };
     const IDS = ${EP_IDS};
-    const limpiar = () => IDS.forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+    /* v2 (E2c): la EP y la IT entraron a SEV_SINC, asi que ahora llevan marca manual y foto del
+       calculado. Esta limpieza de campos tiene que barrerlas tambien, o la foto de un escenario
+       filtra al siguiente y R6 suelta el grado manual que el escenario acababa de fijar (lo que
+       antes no pasaba porque la pulmonar no tenia marca). Es aislamiento, no un cambio de contrato:
+       cada esc() parte de cero, igual que con limpiarCampos real. */
+    const limpiar = () => { IDS.forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+      ['ep','it'].forEach(k => { if (window.esqSevManual) delete window.esqSevManual[k];
+        if (window._sevCalcAlFijar) delete window._sevCalcAlFijar[k]; });
+      window._itGradoCalc = null; };
     const noEntraron = [];
     const set = o => Object.keys(o).forEach(id => { const e = document.getElementById(id);
       if (!e) { noEntraron.push('FALTA ' + id); return; }
@@ -47347,8 +47355,8 @@ caso('TC-391', 'Guardar y reabrir conserva el grado, la marca y el cajon de la M
 
       ['DENOMINADOR del autosave: las dos notas estaban VACIAS antes de reponer',
         vaciasAntes === '/', 'notas=«' + vaciasAntes + '»'],
-      ['sevFundRestaurar atiende las CUATRO claves registradas, no solo ea e ia',
-        repuesto === '["ea","em","ia","im"]', 'claves=' + repuesto],
+      ['sevFundRestaurar atiende las SEIS claves registradas, no solo ea e ia (v2 E2c: +ep, +it)',
+        repuesto === '["ea","em","ep","ia","im","it"]', 'claves=' + repuesto],
       ['y repone las notas de la MITRAL desde la forma del borrador (clave pelada)',
         borrador.im === 'desde el autosave IM' && borrador.em === 'desde el autosave EM' &&
         borrador.imFund === 'visible' && borrador.emFund === 'visible',
@@ -47462,8 +47470,9 @@ caso('TC-393', 'La tarjeta pre-PDF ya no publica un grado de IM distinto del gra
   const sinTocar = { sel: __t.val('im_sev_final'), hid: __t.val('im_grado'),
                      manual: !!(window.esqSevManual || {}).im, dIM: sevDiscrepa('im') };
 
-  /* AISLAMIENTO: la TRICUSPIDE no entro en esta tanda — no tiene select de grado final ni entrada
-     en el registro, asi que su hidden se sigue escribiendo solo, igual que antes. */
+  /* AISLAMIENTO: la TRICUSPIDE insuf SIGUE sin select de grado final visible (no hay it_sev_final):
+     la tarjeta pre-PDF escribe it_grado directo. v2 (E2c): aunque it ya entro al registro para el
+     aviso de discrepancia, sigue sin desplegable visible, asi que esta via no cambia. */
   mReset();
   try { mostrarCardSeveridadValvular(function () {}); } catch (e) {}
   const ovT = document.getElementById('pdf-review-overlay');
@@ -47495,18 +47504,27 @@ caso('TC-393', 'La tarjeta pre-PDF ya no publica un grado de IM distinto del gra
   const trasAuto2 = mPillOn('insuf');
 
   /* CONTROL NEGATIVO 2: sin grado no se abre nada —«Sin insuficiencia» y «Sin estenosis» quedan
-     fuera de VALV_AUTO_GRADO a proposito—. Y la TRICUSPIDE nunca se abre sola: no esta registrada. */
+     fuera de VALV_AUTO_GRADO a proposito—, NI la mitral NI la tricuspide (it_grado en '0'). */
   try { limpiarCampos(true); } catch (e) {}
   try { showTab('valvulas'); } catch (e) {}
-  __t.set('im_sev_final','0'); __t.set('em_grado','sin'); __t.set('it_grado','4');
+  __t.set('im_sev_final','0'); __t.set('em_grado','sin'); __t.set('it_grado','0');
   try { valvAutoAbrirCajones(); } catch (e) {}
   const sinGrado = { pIM: mPillOn('insuf'), pEM: mPillOn('esten'),
                      pIT: mPillOn('insuf','tricuspide') };
+  /* v2 (E2c): la TRICUSPIDE entro al registro, asi que ahora se comporta COMO LAS DEMAS: con un
+     grado (it_grado en VALV_AUTO_GRADO) se abre sola al entrar a Valvulas, igual que la mitral.
+     Antes NO se abria (no estaba registrada); el control negativo de arriba (sin grado, no se abre)
+     se conserva, y este mide el positivo que E2c agrega. */
+  try { limpiarCampos(true); } catch (e) {}
+  try { showTab('valvulas'); } catch (e) {}
+  __t.set('it_grado','4');
+  try { valvAutoAbrirCajones(); } catch (e) {}
+  const itConGrado = mPillOn('insuf','tricuspide');
 
   const dg = 'tarjeta=' + JSON.stringify(trasTarjeta) + ' · sinTocar=' + JSON.stringify(sinTocar) +
              ' · auto ' + JSON.stringify(antesAuto) + '→' + JSON.stringify(trasAuto) +
              ' · cerrada=' + JSON.stringify(cerradaPorMedico) + '→' + trasAuto2 +
-             ' · sinGrado=' + JSON.stringify(sinGrado);
+             ' · sinGrado=' + JSON.stringify(sinGrado) + ' · itConGrado=' + itConGrado;
   return { extra: [
     ['DENOMINADOR: la tarjeta pre-PDF se abrio y se confirmo las dos veces',
       abrio === 1 && abrio2 === 1, 'abrio=' + abrio + ' / ' + abrio2],
@@ -47535,8 +47553,10 @@ caso('TC-393', 'La tarjeta pre-PDF ya no publica un grado de IM distinto del gra
       trasAuto.pIM === true && trasAuto.pEM === true, dg],
     ['CONTROL NEGATIVO: si el medico la cerro, no se reabre',
       cerradaPorMedico.pIM === false && trasAuto2 === false, dg],
-    ['CONTROL NEGATIVO: sin grado no se abre nada, y la TRICUSPIDE nunca se abre sola',
+    ['CONTROL NEGATIVO: sin grado no se abre nada — ni mitral ni tricuspide (it_grado en 0)',
       sinGrado.pIM === false && sinGrado.pEM === false && sinGrado.pIT === false, dg],
+    ['v2 E2c: la TRICUSPIDE registrada se abre SOLA con grado al entrar a Valvulas, como las demas',
+      itConGrado === true, dg],
   ] };
 `);
 
