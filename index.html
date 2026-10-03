@@ -24528,6 +24528,25 @@ const SEV_SINC = Object.freeze({
        se lee. La consecuencia es que el aviso de la IAo refleja el ÚLTIMO cálculo, no uno nuevo; en
        la práctica es lo mismo porque `calcIA_ESC` corre con cada cambio de sus insumos. */
     calcular: function(){ return window._iaGradoCalc || null; },
+    /* ══ ⚠️ REFRESCO DE LA FOTO AL REABRIR — LA IAo LO NECESITABA Y NO LO TENÍA (2026-10-03) ═════
+       Es el hermano exacto del `recalcular` de la entrada `im`, y la asimetría era un olvido, no
+       una decisión: las dos leen una FOTO (`window._<x>GradoCalc`), esa variable es memoria de
+       proceso y nada la recalcula al reabrir un estudio. La `im` lo recibió por TC-391; la `ia`
+       quedó afuera.
+       Medido antes de tocar (sonda `_probe_sinapaga.mjs`, escena REAB-ia): guardando una IAo con
+       «Leve» fijado a mano sobre un cálculo «Severa» y su motivo escrito, y reabriéndola —
+         · ANTES de guardar: aviso «⚠️ Leve (ajuste manual) · cálculo automático: Severa» y cajón
+           del fundamento abierto, o sea el denominador estaba;
+         · al reabrir: `_iaGradoCalc` volvía en `null` ⇒ `sevCalcPublicable('ia')` en `null` ⇒
+           `sevDiscrepa('ia')` en `false` ⇒ el aviso quedaba VACÍO y `sevFundamento` VACIABA el
+           cajón, con el motivo firmado dentro.
+       Controles de la misma corrida: la `im`, que ya tiene `recalcular`, volvía con su aviso y su
+       cajón; la `ea`, cuyo proveedor es PURO (lee `ava_cont` del DOM y no una foto), también —y por
+       eso sigue sin declarar `recalcular`, que es lo correcto y no un olvido.
+       ⚠️ `sevFundRestaurar` lo gatea por marca manual puesta, y esa guarda es la que lo hace seguro:
+       sin ella esto re-derivaría el grado de un estudio guardado SIN marca, que es migrarlo en
+       silencio — y migrar estudios guardados está prohibido. */
+    recalcular: function(){ if (typeof calcIA_ESC === 'function') calcIA_ESC(); },
     /* Exactamente lo que hacía el `else` de `sevSincronizar` antes de generalizarse: la marca de
        sugerido y el espejo al hidden `ia_grado`, que es el que leen las cuatro superficies. */
     trasEscribir: function(sel, calc){ sel.dataset.sugerido = calc;
@@ -35634,7 +35653,21 @@ function mostrarCardSeveridadValvular(onConfirm) {
         window.esqSevManual[hid.replace('_grado','')] = true;
       }
     };
-    setGrade('im_grado','rev-im','im_sev_final'); setGrade('ia_grado','rev-ia'); setGrade('it_grado','rev-it');
+    /* ⚠️ LA IAo RECIBE SU `vis` (2026-10-03). Estaba `setGrade('ia_grado','rev-ia')` sin el tercer
+       argumento, y el comentario de arriba ya lo declaraba: «LA IAo TIENE EL DEFECTO IDÉNTICO
+       (`ia_grado` vs `ia_sev_final`) Y NO SE TOCA […] Cuando se corrija, alcanza con pasarle su
+       `ia_sev_final` acá». Es exactamente eso.
+       Medido antes de tocar (sonda `_probe_sinapaga.mjs`, escena CARD-ia): con una IAo calculada
+       severa (vena contracta 7 mm), apretar «Generar PDF» y corregir la IAo a «Moderada» en la
+       tarjeta dejaba `ia_grado = 2` —que es lo que firma el PDF y lo que va a las 434 columnas— y
+       `ia_sev_final = 4`. O sea el aviso rojo comparaba el grado EQUIVOCADO (no veía discrepancia
+       entre 4 y 4), el cajón del fundamento no se abría, la pastilla seguía diciendo «Severa ▼» y
+       el narrativo decía «insuficiencia moderada». Y la marca que pone la línea de abajo deja la
+       divergencia PERMANENTE. Control positivo de la misma corrida: la IM, arreglada en `5602597`,
+       salía con `sel=2 ocu=2` y su aviso puesto.
+       `it_grado` sigue sin tercer argumento y es correcto: la tricúspide no tiene `<select>` de
+       grado final ni entrada en el registro, y `setGrade` se gatea por existencia. */
+    setGrade('im_grado','rev-im','im_sev_final'); setGrade('ia_grado','rev-ia','ia_sev_final'); setGrade('it_grado','rev-it');
     /* ⚠️ ÉSTE ES EL TERCER ESCRITOR DE `im_grado`/`ia_grado`, y es el PEOR de los tres: corre
        justo ANTES de guardar y de emitir el PDF, o sea que lo que escriba acá es lo que queda
        firmado. No pasa por `sincronizarGradoIM`/`IA`, así que no arrastraba el recálculo de la EM.
@@ -35695,11 +35728,27 @@ function mostrarCardSeveridadValvular(onConfirm) {
        (`_sevCalcAlFijar`), así que `sevSincronizar` entra por su rama `foto == null` —«todavía no sé
        desde dónde comparar»—, guarda la foto de ahora y no toca el grado. Es la misma dirección
        segura de la falla que el estudio reabierto.
-       ⚠️ SÓLO LAS DOS CLAVES DE LA MITRAL, y no un barrido de `SEV_SINC`. `CLONADOS` incluye
-       `ea_grado`, así que la AÓRTICA tiene la misma pastilla rancia por el mismo camino — pero la
-       orden de esta tanda la excluye. Reportado el 2026-10-03, no corregido. */
-    if (typeof _imSincronizarPantalla === 'function') _imSincronizarPantalla();
-    if (typeof _emSincronizarPantalla === 'function') _emSincronizarPantalla();
+       ⚠️ Y AHORA ES UN BARRIDO DEL REGISTRO, QUE ES LA CUARTA VEZ QUE ESTE ARCHIVO HACE EL MISMO
+       CAMBIO (2026-10-03). Acá estaba `_imSincronizarPantalla()` + `_emSincronizarPantalla()` con
+       el comentario «SÓLO LAS DOS CLAVES DE LA MITRAL […] la AÓRTICA tiene la misma pastilla rancia
+       por el mismo camino — pero la orden de esta tanda la excluye». Ya no la excluye.
+       Medido antes de tocar (escena CARD-ea): corrigiendo la EAo a «leve» en el clon de la tarjeta
+       sobre un cálculo de «severa», `ea_grado` quedaba en «leve» y `sevDiscrepa('ea')` en `true`
+       —o sea la discrepancia EXISTÍA— mientras la pastilla seguía diciendo «Severa ▼» y el aviso
+       rojo estaba VACÍO: el médico no tenía ni el aviso ni dónde escribir el motivo del ajuste que
+       acababa de hacer, justo antes de firmar. Es el mismo defecto que TC-393 cerró para la IM.
+       Se barre `SEV_SINC` en vez de nombrar las cuatro claves por la regla que este módulo ya
+       aplicó en `sevFundLimpiar`, `sevFundamento`, `sevFundRestaurar` y el `else` de
+       `sevSincronizar`: lo que el registro declara, el barrido lo usa. El día que entre la
+       tricúspide, registrarla alcanza.
+       `sevSincronizar` es el mismo punto único que pinta el aviso, el cajón y —desde esta tanda— la
+       visibilidad del bloque, y no suelta el grado que el médico acaba de confirmar: la tarjeta no
+       toma la foto, así que entra por la rama `foto == null`. */
+    if (typeof SEV_SINC !== 'undefined' && typeof sevSincronizar === 'function') {
+      Object.keys(SEV_SINC).forEach(function (k) {
+        try { sevSincronizar(k); } catch (e) { console.warn('[tarjeta/sevSincronizar] ' + k, e); }
+      });
+    }
     ov.remove();
     if (onConfirm) onConfirm();
   };
@@ -91217,8 +91266,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261003-1322';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791044526700;                 /* eco-build-ms */
+const ECO_BUILD    = '20261003-1332';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791045147354;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -91304,7 +91353,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261003-1322</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261003-1332</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
