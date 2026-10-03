@@ -246,16 +246,23 @@ window.__A = {
     try { vpTab('med'); } catch(e) {}
     var pm = document.getElementById('vp-pane-morf');
     if (pm) pm.style.display = '';
-    var t = document.getElementById('tab-valvulas');
-    var ab = toks.filter(function(tok){
-      var s = document.getElementById('ete-seccion-' + tok);
-      return s && getComputedStyle(s).display !== 'none' });
     var vis = function(id){ var e = document.getElementById(id);
       return !!e && getComputedStyle(e).display !== 'none' };
-    var panes = vis('vp-pane-med') && vis('vp-pane-morf');
-    return { tab: !!t && getComputedStyle(t).display !== 'none', secciones: ab.length,
-             panesVP: panes,
-             ok: !!t && getComputedStyle(t).display !== 'none' && ab.length === 4 && panes } },
+    /* Censo GRANULAR, y queda REGISTRADO EN CADA ESCENA. Antes el denominador devolvia un conteo
+       (secciones) y un solo booleano (panesVP), y un pane cerrado se perdia en el agregado. Ahora
+       cada escena deja el estado de la pestaña, de cada acordeon y de cada pane anidado por
+       separado: vp-pane-med y vp-pane-morf (donde viven vp_vmax e ip_vmax) y los panes del Doppler
+       (dop-aortico y hermanos), donde viven vmax_ao y los recuadros de severidad. */
+    var acordeones = {};
+    toks.forEach(function(tok){ acordeones[tok.replace('valv-','')] = vis('ete-seccion-' + tok); });
+    var ab = Object.keys(acordeones).filter(function(k){ return acordeones[k] }).length;
+    var panes = { 'vp-pane-med': vis('vp-pane-med'), 'vp-pane-morf': vis('vp-pane-morf'),
+                  'dop-aortico': vis('dop-aortico'), 'dop-mitral': vis('dop-mitral'),
+                  'dop-tricusp': vis('dop-tricusp') };
+    var panesVP = panes['vp-pane-med'] && panes['vp-pane-morf'];
+    var tab = vis('tab-valvulas');
+    return { tab: tab, secciones: ab, acordeones: acordeones, panes: panes, panesVP: panesVP,
+             ok: tab && ab === 4 && panesVP } },
 
   /* «Nuevo estudio» de verdad, mas el reseteo de la memoria de proceso y de las claves de
      localStorage de las pastillas — que NO viajan con el estudio y contaminan la escena siguiente. */
@@ -599,6 +606,40 @@ const DOPPLER = [
   { id: 'DOP-em-2.8', campo: 'avm_plan', val: '2.8' },
 ];
 
+/* ══ Clasificación de errores de gesto: AUSENCIA (hallazgo) vs INSTRUMENTACIÓN (invalida) ══════
+   Un gesto puede fallar por dos motivos opuestos, y confundirlos es el defecto que esta tanda
+   endurece:
+   · AUSENCIA ESTRUCTURAL = el hallazgo, dato legítimo. La pulmonar no tiene botón ni sub-botón
+     (regla 15); la tricúspide no ofrece «Sin» en el menú ▼ ni su <select> tiene el token «sin»;
+     ni la tricúspide ni la pulmonar tienen cajón de fundamento. Son los 56 errores de gesto que la
+     auditoría declara como MEDICIÓN de ausencia, no como falla de la sonda.
+   · INSTRUMENTACIÓN = la sonda no pudo ejecutar un gesto donde el afordance SÍ existe: nodo sin
+     geometría, el tipeo no quedó, el menú no abrió, showTab/toggleEteSeccion tiraron, una
+     excepción. Eso INVALIDA la escena y jamás puede salir «ok» — es justo lo que pasaba en la
+     primera escena antes de la espera explícita.
+   La lista blanca de abajo es cerrada: lo que no matchee cuenta como instrumentación. Los patrones
+   están atados a la válvula concreta (pulmonar/tricúspide) para que un typo en un id de válvula con
+   registro —p. ej. #pill-esten-aortica— caiga como instrumentación y no se disfrace de ausencia. */
+const AUSENCIA_ESPERADA = [
+  /no existe #(pill|sevbtn)-(esten|insuf)-pulmonar/,          // la pulmonar no tiene botón ni ▼
+  /no existe sevmenu-(esten|insuf)-pulmonar/,
+  /abriendo el menú: no existe #sevbtn-(esten|insuf)-pulmonar/,
+  /el menu no ofrece (Sin estenosis|Sin insuficiencia)/,      // la tricúspide no ofrece «Sin» en el ▼
+  /EL SELECT RECHAZO (sin|0) \(opciones: Sin /,               // et_grado/it_grado: sus value son texto
+  /NO EXISTE cajón de fundamento para (et|it|ep|ip)/,         // tri/pulmonar sin cajón
+];
+const esAusenciaEsperada = (s) => AUSENCIA_ESPERADA.some((re) => re.test(s));
+/* Junta TODOS los strings de error de una escena: el .err de cada gesto (clic/tipear/menú/select) y
+   el aviso de «NO EXISTE cajón» que viaja en .nota sin campo .err. */
+function erroresDeEscena(out) {
+  const errs = [];
+  for (const g of (out.gestos || [])) {
+    if (g.err) errs.push(typeof g.err === 'string' ? g.err : JSON.stringify(g.err));
+    if (typeof g.nota === 'string' && /NO EXISTE cajón/.test(g.nota)) errs.push(g.nota);
+  }
+  return errs;
+}
+
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 let servidor = null, chrome = null;
 try {
@@ -731,14 +772,60 @@ try {
 
   /* Arranque: la app pide una clave en sessionStorage. */
   await ev(`try{sessionStorage.setItem('ett_auth','1');}catch(e){} location.reload(); return 1;`);
-  for (let i = 0; i < 80; i++) {
-    await pausa(250);
-    const listo = await ev(`return (typeof generarInforme === 'function') && !!document.getElementById('informe_texto');`).catch(() => false);
-    if (listo) break;
+  /* ── Espera EXPLÍCITA de inicialización — NO un tick ───────────────────────────────────────────
+     Primero el DOM: readyState 'complete' (que window.load disparó, o sea que los ~20 handlers de
+     DOMContentLoaded ya corrieron) + todas las funciones y globales que usa la sonda. Esperar sólo
+     a `generarInforme` —como hacía antes— no alcanzaba: se define temprano, con la página a medio
+     inicializar. Esto es condición necesaria; el calentamiento de gesto de más abajo es la que
+     cierra la carrera de verdad. */
+  const LISTO = `
+    if (document.readyState !== 'complete') return { listo:false, por:'readyState=' + document.readyState };
+    var faltan = ['generarInforme','pillOn','toggleEteSeccion','vpTab','showTab','limpiarCampos',
+                  'sevCalcPublicable','toggleCard','toggleValvPill']
+      .filter(function(f){ return typeof window[f] !== 'function' });
+    if (faltan.length) return { listo:false, por:'faltan funciones: ' + faltan.join(',') };
+    if (!window.SEV_SINC) return { listo:false, por:'SEV_SINC sin definir' };
+    if (!document.getElementById('informe_texto')) return { listo:false, por:'sin informe_texto' };
+    if (!document.getElementById('vmax_ao')) return { listo:false, por:'sin vmax_ao' };
+    return { listo:true };
+  `;
+  let est = null;
+  for (let i = 0; i < 160; i++) {
+    await pausa(100);
+    est = await ev(LISTO).catch((e) => ({ listo:false, por:'exc ' + e.message }));
+    if (est && est.listo) break;
   }
-  if (!await ev(`return typeof generarInforme === 'function';`)) throw new Error('la app no cargo');
+  if (!est || !est.listo) throw new Error('la app no termino de inicializar: ' + (est ? est.por : 'sin respuesta'));
   await ev(SONDA + ' return 1;');
   await ev(`try{ if (typeof cerrarAvisoEco==='function') cerrarAvisoEco(); }catch(e){} return 1;`);
+
+  /* ── CALENTAMIENTO EXPLÍCITO DE GESTO — acá se cierra la carrera de arranque ───────────────────
+     ⚠️ CAUSA MEDIDA. Correr `--solo R11` dos veces desde cero daba escenas[0] DISTINTAS, y la
+     primera fallaba en las dos corridas: la pastilla a veces no prendía (`quedo:false`), el menú
+     ▼ no abría («el menu no esta abierto») y el tipeo de `vmax_ao` salía «nodo sin geometria».
+     Pero NO es layout ni funciones: medido con una sonda aparte, a los 0 ms el DOM ya está armado
+     (pill 415×44, vmax_ao 256×27 apenas se abre #dop-aortico) y el PRIMER clic CDP sí registra.
+     Lo que falla es el PRIMER round-trip de gesto completo tras `location.reload()`: la primera
+     secuencia clic→revelar→tipear es flaky, y a partir de la segunda es estable —por eso en el
+     barrido completo R11-ea (que nunca es la primera escena) PASA y en `--solo R11` (donde sí lo
+     es) fallaba—. No se arregla con un `pausa` mayor (el tiempo no lo cambia: a los 5 s seguía
+     igual); se arregla ESPERANDO AL GESTO REAL: se repite clic en el pill + tipeo en `vmax_ao`
+     con lectura de vuelta hasta que un round-trip entra limpio, y recién ahí arranca el barrido.
+     Es el gesto que fallaba, verificado directo, no un retardo a ciegas. */
+  let calentado = null;
+  for (let i = 0; i < 25; i++) {
+    await ev(`window.__A.limpiar(); return 1;`);
+    await ev(`return window.__A.denominador();`);
+    const ec = await clicEn('pill-esten-aortica');
+    const et = await tipear('vmax_ao', '3.1');
+    const quedo = await ev(`return window.__A.val('vmax_ao');`);
+    const prendio = await ev(`return window.__A.pill('aortica','esten');`);
+    if (!ec && !et && String(quedo) === '3.1' && prendio === true) { calentado = i; break; }
+    await pausa(150);
+  }
+  await ev(`window.__A.limpiar(); return 1;`);
+  if (calentado === null) throw new Error('no se pudo calentar la sonda: el gesto clic+tipeo no round-trippea');
+  process.stderr.write(`  sonda calentada — round-trip de gesto limpio en el intento ${calentado + 1}\n`);
 
   const den0 = await ev(`return window.__A.denominador();`);
   process.stderr.write(`  denominador inicial — ${JSON.stringify(den0)}\n`);
@@ -929,8 +1016,24 @@ try {
           return x.estudioId !== ${JSON.stringify(out.guardado.id)} })); } catch(e){} return 1;`).catch(() => {});
       }
     } catch (err) { out.error = err.message; }
+    /* ── VEREDICTO DE VALIDEZ, separado del hallazgo ───────────────────────────────────────────
+       Cualquier error de tipeo, menú o clic que NO sea una ausencia esperada invalida la escena:
+       nunca sale «ok». El denominador de cada punto medido (inicial, tras tipeo, tras luego/borrar,
+       al reabrir, en nuevo estudio) tiene que estar ok — si alguno midió sobre geometría cero, la
+       escena tampoco vale. */
+    const _errs = erroresDeEscena(out);
+    out.hallazgosAusencia = _errs.filter(esAusenciaEsperada);
+    out.erroresInstrumentacion = _errs.filter((s) => !esAusenciaEsperada(s));
+    const _dens = [out.den, out.denTrasTipeo, out.denTrasLuego, out.denReabierto, out.denNuevo].filter(Boolean);
+    out.denOk = _dens.length > 0 && _dens.every((d) => d && d.ok === true);
+    out.valido = !out.error && out.denOk && out.erroresInstrumentacion.length === 0;
     salida.escenas.push(out);
-    process.stderr.write(`  ${out.id.padEnd(22)}${out.error ? 'ERROR ' + out.error : (out.den && out.den.ok ? 'ok' : 'DEN INCOMPLETO')}\n`);
+    process.stderr.write(`  ${out.id.padEnd(22)}${
+      out.error ? 'ERROR ' + out.error
+      : !out.denOk ? 'DEN INCOMPLETO ' + JSON.stringify((out.den && out.den.panes) || out.den || null)
+      : out.erroresInstrumentacion.length
+        ? 'INVÁLIDA — ' + out.erroresInstrumentacion.length + ' err instrumentación: ' + out.erroresInstrumentacion[0]
+      : 'ok' + (out.hallazgosAusencia.length ? ' (' + out.hallazgosAusencia.length + ' ausencias esperadas)' : '')}\n`);
   }
 
   /* ── Doppler: los recuadros de severidad, solo lectura ──────────────────────────────────── */
@@ -939,7 +1042,7 @@ try {
       try {
         await ev(`window.__A.limpiar(); return 1;`);
         const den = await ev(`return window.__A.denominador();`);
-        await tipear(d.campo, d.val);
+        const tipeoErr = await tipear(d.campo, d.val);
         /* Los recuadros viven en la pestaña Doppler, no en Válvulas: hay que ir. */
         const rec = await ev(`try{ showTab('doppler') }catch(e){}
           var out = { den: 1, cajas: {} };
@@ -958,12 +1061,15 @@ try {
               /leve|moderad|severa|normal|esclerosis/i.test(t) && /[≥>=]/.test(t) })
             .slice(0, 14);
           return out;`);
-        salida.doppler.push({ ...d, den, ...rec,
+        const dv = { ...d, den, tipeoErr, ...rec,
           grados: await ev(`return { ea_grado: window.__A.val('ea_grado'),
             em_grado: window.__A.val('em_grado'), ava_cont: window.__A.val('ava_cont'),
-            gmax_calc: window.__A.val('gmax_calc') };`) });
-        process.stderr.write(`  ${d.id.padEnd(22)}ok\n`);
-      } catch (err) { salida.doppler.push({ ...d, error: err.message }); }
+            gmax_calc: window.__A.val('gmax_calc') };`) };
+        dv.erroresInstrumentacion = (tipeoErr && !esAusenciaEsperada(tipeoErr)) ? [tipeoErr] : [];
+        dv.valido = !!(den && den.ok) && dv.erroresInstrumentacion.length === 0;
+        salida.doppler.push(dv);
+        process.stderr.write(`  ${d.id.padEnd(22)}${dv.valido ? 'ok' : 'INVÁLIDA — ' + (tipeoErr || 'den incompleto')}\n`);
+      } catch (err) { salida.doppler.push({ ...d, error: err.message, valido: false }); }
     }
   }
 
@@ -972,6 +1078,22 @@ try {
   salida.md5Despues = despues;
   salida.md5Igual = despues === MD5_ANTES;
   process.stderr.write(`  md5 index.html despues — ${despues} ${salida.md5Igual ? '(IGUAL ✓)' : '(⚠️ CAMBIO)'}\n`);
+
+  /* ── VEREDICTO GLOBAL: una sola escena inválida tumba la corrida ────────────────────────────
+     El barrido sale con código ≠ 0 si quedó alguna escena con error de instrumentación, con
+     denominador incompleto, con excepción de arnés, o si el md5 cambió. Nunca «ok» global tapando
+     una escena rota — que era el modo en que la sonda mentía antes de esta tanda. */
+  salida.invalidas = salida.escenas.filter((e) => e.valido === false)
+    .map((e) => ({ id: e.id, error: e.error || null,
+                   erroresInstrumentacion: e.erroresInstrumentacion || [], denOk: e.denOk }));
+  const dopInval = salida.doppler.filter((d) => d.valido === false)
+    .map((d) => ({ id: d.id, error: d.error || null, tipeoErr: d.tipeoErr || null }));
+  if (dopInval.length) salida.invalidasDoppler = dopInval;
+  salida.totalInvalidas = salida.invalidas.length + dopInval.length;
+  if (!salida.md5Igual) process.exitCode = 4;
+  else if (salida.totalInvalidas > 0) process.exitCode = 3;
+  process.stderr.write(`  VEREDICTO — ${salida.escenas.length} escenas (${salida.invalidas.length} inválidas), ` +
+    `${salida.doppler.length} doppler (${dopInval.length} inválidas), exitCode ${process.exitCode || 0}\n`);
 
   console.log(JSON.stringify(salida, null, 1));
   cdp.close();

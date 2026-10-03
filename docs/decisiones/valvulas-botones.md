@@ -250,8 +250,8 @@ calcados de la mitral. Es la tanda más grande de las tres y conviene que sea su
 
 ### 5.5 Pulmonar — el cálculo está, el modelo no (reglas 11 y 15)
 
-No existen `#pill-*-pulmonar` ni `#sevbtn-*-pulmonar`: los 19 + 9 errores de gesto de la corrida son
-todos eso, y es la medición de la regla 15. Pero el cálculo corre (§3.1), así que hay dos huecos de
+No existen `#pill-*-pulmonar` ni `#sevbtn-*-pulmonar`: los 56 errores de gesto de «no existe el botón
+ni el ▼» de la corrida son todos eso, y es la medición de la regla 15. Pero el cálculo corre (§3.1), así que hay dos huecos de
 **salida** que no se arreglan con el botón:
 
 - **El EN SUMA de la EP no usa la sigla.** Escena `R11-ep-leve`: EN SUMA «Estenosis pulmonar
@@ -361,9 +361,15 @@ responder**, no respondida que no. Si lo que te interesa es `#em-sev-integrada`,
 - `md5` de `index.html` **después**: `3d5887efb09bb24d96f00b6a66091ef7` — la sonda lo comprueba sola
   en cada corrida y lo deja en su JSON (`md5Igual: true`).
 - `git diff index.html` → vacío. No se tocaron la suite, el exportador ni los tests.
-- 183 escenas, **cero** denominadores incompletos (`den.ok` en las 183) y cero errores de arnés.
-  Los 56 errores de gesto que quedan **son** los hallazgos: 38 de «no existe el botón de la
-  pulmonar», 18 de «el menú no ofrece Sin» y del `<select>` de la tricúspide.
+- 183 escenas, **cero inválidas** con la sonda endurecida: cero denominadores incompletos (`den.ok`
+  en las 183) y **cero errores de instrumentación** (lo que antes se llamaba «errores de arnés»; la
+  sonda ahora los separa de los hallazgos y, si aparece uno, sale con `exitCode ≠ 0`). La corrida
+  salió con `exitCode 0`. Los **72** errores de gesto que quedan **son** los hallazgos de ausencia
+  estructural: **62 en la pulmonar** (56 de «no existe el botón ni el ▼», 6 de «no existe el cajón de
+  fundamento») y **10 en la tricúspide** (2 de «el menú no ofrece Sin», 1 del `<select>` que rechaza
+  el token «sin», 7 de «no existe el cajón»). El conteo anterior —56 (38 + 18)— era de la sonda
+  previa al arreglo del denominador (`d01e18e`, que medía la pulmonar sobre geometría cero) y a este
+  endurecimiento; **ningún veredicto de la tabla cambió**, sólo la forma de contar y clasificar.
 - `EA_ESCALON_SIN_GRADO` leído de la fuente: `true`.
 
 ### Tres veces que esta sonda mintió antes de medir bien
