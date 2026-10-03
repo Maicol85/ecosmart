@@ -35725,7 +35725,7 @@ function mostrarCardSeveridadValvular(onConfirm) {
     if (!el) return '<span style="color:var(--text2);">—</span>';
     return `<select data-target="${id}" style="width:100%;">${el.innerHTML}</select>`;
   };
-  const CLONADOS = ['em_grado','ea_grado','et_grado','vp_morf'];
+  const CLONADOS = ['em_grado','ea_grado','et_grado','ep_grado','ip_grado','vp_morf'];
   const ov = document.createElement('div');
   ov.id = 'pdf-review-overlay';
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
@@ -35741,6 +35741,8 @@ function mostrarCardSeveridadValvular(onConfirm) {
         '<div class="fg"><label>IT — Insuficiencia tricuspídea</label><select id="rev-it">' + optsInsuf(itG) + '</select></div>' +
         '<div class="fg"><label>ET — Estenosis tricuspídea</label>' + cloneSel('et_grado') + '</div>' +
         '<div class="fg"><label>Válvula pulmonar</label>' + cloneSel('vp_morf') + '</div>' +
+        '<div class="fg"><label>EP — Estenosis pulmonar</label>' + cloneSel('ep_grado') + '</div>' +
+        '<div class="fg"><label>IP — Insuficiencia pulmonar</label>' + cloneSel('ip_grado') + '</div>' +
       '</div>' +
       '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px;">' +
         '<button class="btn btn-ghost" id="rev-cancel">Cancelar</button>' +
