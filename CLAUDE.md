@@ -207,9 +207,17 @@ impecable.
   panel de Evidencia, texto de IM secundaria con las dos guías, «Nuevo estudio» limpiando
   `_indClin`, los dos displays del THP fuera de banda, y el barrido de mutaciones (31 corridas,
   29 en rojo, 2 declaradas como rama inalcanzable).
-- Línea base medida el 2026-10-03, no de memoria: suite **402/403** (único rojo **TC-223**, el
-  documentado, que falla por la fecha) y Semgrep **127 / 0 ERROR**. Los números viejos de este
-  archivo —351/352 y 125— estaban desactualizados: la suite creció y el conteo de Semgrep también.
+- Línea base medida el 2026-10-03 **después de las etapas 3 y 4 de la mitral**: suite **408/409**
+  (único rojo **TC-223**, el documentado, que falla por la fecha) y Semgrep **127 / 0 ERROR**. Los
+  casos **TC-389 … TC-394** son de esta tanda. Los números viejos de este archivo —351/352 y 125, y
+  después 402/403— quedaron atrás: la suite crece en cada tanda, así que **antes de leer una tanda
+  de mutaciones hay que volver a medir la línea base**, no creerle a este renglón.
+- **Mitral: etapas 3 y 4 cerradas** (`5602597`, `57970a1`). Cajón «Fundamento del ajuste» de IM y
+  EM, informe que lee sólo el grado final (fallback `pillOn()` borrado), la nota entre paréntesis
+  sin pasar al EN SUMA, los cuatro rótulos de grado final iguales y «Severidad IM integrada» con la
+  ASE 2017. Lo reportado y NO corregido —la aórtica con los mismos dos defectos de la tarjeta
+  pre-PDF, las cinco diferencias con la ESC/EACTS 2025 y lo que falta en `FUENTES.md`— está en
+  `~/Desktop/APLICACIONES/CEIBO_SESSION.md`.
 - **Qué sigue: `docs/PENDIENTES.md`** — pendientes de la etapa de cálculos (mitral), la válvula
   aórtica como próxima, el modo mínimo del visor de cineloop y las imágenes.
 
