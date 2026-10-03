@@ -3459,7 +3459,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="valv-fund-row">
         <div class="valv-fund-sel">
         <select id="im_sev_final" onchange="imGradoManual()" style="width:100%;">
-          <option value="0">&mdash; Sin insuficiencia / no evaluada</option>
+          <option value="0">&mdash; grado &mdash;</option>
           <option value="1">Leve</option>
           <option value="2">Moderada</option>
           <option value="3">Moderada-severa</option>
@@ -3519,7 +3519,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                era una regla impresa que ninguna funcion aplica. Los `value` NO se tocan —sacar u
                nombrar distinto una opcion deja `selectedIndex = -1` y el hueco se persiste— y el
                PPT sale igual, porque `_pptSel` ya recorta el parentesis final. -->
-          <select id="em_grado" onchange="emGradoManual()"><option value="sin">Sin estenosis</option><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option></select>
+          <select id="em_grado" onchange="emGradoManual()"><option value="sin">&mdash; grado &mdash;</option><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option></select>
           <!-- Aviso de grado fijado a mano que discrepa del calculado, hermano de
                `ea-manual-aviso` y gobernado por `sevSincronizar` (clave `em`). Va ARRIBA del badge
                del THP: el aviso habla del grado que está justo encima, el badge del método. -->
@@ -4022,7 +4022,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="valv-fund-row">
         <div class="valv-fund-sel">
         <select id="ia_sev_final" onchange="_gradoManoBorraMarca(this, event);sincronizarGradoIA()" style="width:100%;">
-          <option value="0">&mdash; Sin insuficiencia / no evaluada</option>
+          <option value="0">&mdash; grado &mdash;</option>
           <option value="1">Leve</option>
           <option value="2">Moderada</option>
           <option value="3">Moderada-severa</option>
@@ -4080,7 +4080,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                paréntesis en su consumidor (la salida del PPT no cambia), el ▼ de la pastilla ahora
                muestra «Leve» en vez de «Leve (Vmax 2-3 m/s)», y la tarjeta previa al PDF clona este
                `innerHTML` y asigna por `value`. -->
-          <select id="ea_grado" onchange="_gradoManoBorraMarca(this, event)"><option value="sin">Sin estenosis</option><option value="esclerosis">Esclerosis</option><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option></select>
+          <select id="ea_grado" onchange="_gradoManoBorraMarca(this, event)"><option value="sin">&mdash; grado &mdash;</option><option value="esclerosis">Esclerosis</option><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option></select>
           <!-- Aviso de grado fijado a mano que discrepa del calculado (R5). Lo gobierna
                `_eaAvisoManual`; vacío queda sin alto y no deja hueco. SIN titileo ni animación:
                es un aviso permanente mientras la discrepancia exista, no una alarma. -->
@@ -4328,7 +4328,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div class="grid-2" style="margin-bottom:8px;">
             <div class="fg"><label>Estenosis tricuspídea</label>
               <select id="et_grado">
-                <option>Sin estenosis</option>
+                <option value="Sin estenosis">&mdash; grado &mdash;</option>
                 <option>Leve</option>
                 <option>Moderada</option>
                 <option>Severa</option>
@@ -4444,7 +4444,7 @@ window.cerrarSesionReal = cerrarSesionReal;
       </div>
       <div class="fg"><label>Estenosis pulmonar</label>
         <select id="ep_grado" onchange="vpSync()">
-          <option value="sin">Sin estenosis</option>
+          <option value="sin">&mdash; grado &mdash;</option>
           <option>Leve</option>
           <option>Moderada</option>
           <option>Moderada-severa</option>
@@ -4508,7 +4508,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                moderada», y «fisiológica» era una ETIOLOGÍA metida dentro del grado — ahora vive
                en `ip_etiologia`. Los valores viejos los traduce `_migrarCamposLegacy`. -->
           <select id="ip_grado" style="min-width:180px;" onchange="vpSync()">
-            <option>Sin insuficiencia</option>
+            <option value="Sin insuficiencia">&mdash; grado &mdash;</option>
             <option>Leve</option>
             <option>Moderada</option>
             <option>Severa</option>
@@ -50961,16 +50961,14 @@ function toggleValvPill(valvula, tipo) {
        silenciar a `emCategoria()`. Un grado MÁS GRAVE que el firmado, producido por cerrar un
        cajón de interfaz. El hermano en la IM era más leve pero de la misma familia: cerrar y
        reabrir reemplazaba el «Moderada» del médico por el «Severa» calculado. */
-    if (window.valvSev && valvula === 'tricuspide') window.valvSev.limpiar(tipo, valvula);
-    /* Las válvulas registradas igual repintan: el cajón se cerró y la pastilla tiene que seguir
-       mostrando el grado que quedó —que es el punto de R7— en vez de quedarse con lo que mostraba
-       antes. La clave se DERIVA del registro (`sevClaveDe`) en vez del ternario
-       `tipo === 'esten' ? 'ea' : 'ia'`, que ya era un mapa escrito a mano y con la mitral adentro
-       habría que haberlo convertido en cuatro ramas. */
-    if (typeof sevClaveDe === 'function' && typeof sevSincronizar === 'function') {
-      const _k = sevClaveDe(tipo, valvula);
-      if (_k) sevSincronizar(_k);
-    }
+    /* ⚠️ v2 (2026-10-03, regla 7): APAGAR DESCARTA EL GRADO MANUAL Y EL FUNDAMENTO, en las CUATRO
+       válvulas. REVIERTE la decisión de la tanda anterior («cerrar conserva el grado», que sólo
+       dejaba limpiar a la tricúspide): ahora botón apagado = no hay valvulopatía, así que el grado y
+       el motivo escritos se descartan sin ventana. `limpiar` resetea el <select> al centinela de «no
+       hay», borra `esqSevManual` y la foto, repinta la pastilla y —para las claves registradas—
+       vuelve a correr `sevSincronizar` (que decide el aviso/cajón por discrepancia si el cálculo
+       indica otra cosa). Los datos numéricos (Doppler, cuantificación) NO se tocan. */
+    if (window.valvSev) window.valvSev.limpiar(tipo, valvula);
     // Ocultar bloque detalle EM si corresponde
     if (valvula === 'mitral' && tipo === 'esten') {
       const det = document.getElementById('bloque-em-detalle');
@@ -51035,8 +51033,8 @@ window.toggleValvPill = toggleValvPill;
 window.valvSev = (function(){
   const g = id => document.getElementById(id);
   const CAMPO = {
-    insuf: { mitral:'im_grado', aortica:'ia_grado', tricuspide:'it_grado' },
-    esten: { mitral:'em_grado', aortica:'ea_grado', tricuspide:'et_grado' }
+    insuf: { mitral:'im_grado', aortica:'ia_grado', tricuspide:'it_grado', pulmonar:'ip_grado' },
+    esten: { mitral:'em_grado', aortica:'ea_grado', tricuspide:'et_grado', pulmonar:'ep_grado' }
   };
   // Insuficiencias: im/ia/it_grado usan 5 niveles y "severa" es el 4.
   const INSUF_OPTS = [{v:'1',t:'Leve'},{v:'2',t:'Moderada'},{v:'4',t:'Severa'}];
@@ -51076,19 +51074,29 @@ window.valvSev = (function(){
      En la mitral los dos `value` ya existen y no se inventa ningún grado: `im_sev_final` tiene
      `value="0"` («— Sin insuficiencia / no evaluada») y `em_grado` tiene `value="sin"` («Sin
      estenosis»), que es la primera `<option>` que el `.slice(1)` venía tirando. */
-  const SIN_EN_MENU = valv => valv === 'aortica' || valv === 'mitral';
+  /* v2 (2026-10-03, regla 2): el menú ▼ YA NO ofrece «Sin», en NINGUNA válvula. «Sin»/«0» sigue
+     siendo el CENTINELA INTERNO de «no hay» que escriben los cálculos y leen el informe/EN SUMA/PDF/
+     Excel (decisión de Maicol: no reescribir esa plomería); lo que se quita es ofrecerlo como una
+     elección del médico. `NO_GRADO` es la lista de valores-centinela por vocabulario (incluye los
+     dos que la tricúspide y la pulmonar guardan como texto). Insuficiencia: aórtica/mitral/tricúspide
+     usan el vocabulario numérico `INSUF_OPTS` (1/2/4, sin el '3' que el cálculo no emite, igual que
+     antes); la pulmonar (`ip_grado`) es un <select> de texto propio. Estenosis: se leen las <option>
+     del <select>, descartando el placeholder «— grado —» por su valor-centinela. «Esclerosis»
+     (aórtica) y «Moderada-severa» (pulmonar EP) se conservan como antes. */
+  const NO_GRADO = ['', 'sin', '0', 'Sin estenosis', 'Sin insuficiencia'];
+  const esGrado = o => NO_GRADO.indexOf(o.v) === -1;
   function opciones(tipo, valv){
     if (tipo === 'insuf') {
-      const base = INSUF_OPTS.slice();
-      /* «Sin» va PRIMERO. El `value` es el '0' que `ia_sev_final` ya tiene: no hay grado nuevo. */
-      return SIN_EN_MENU(valv) ? [{v:'0',t:'Sin insuficiencia'}].concat(base) : base;
+      if (valv === 'pulmonar') {
+        const sel = g('ip_grado');
+        if (sel && sel.options && sel.options.length)
+          return Array.from(sel.options).map(o => ({ v:o.value, t:o.textContent.trim() })).filter(esGrado);
+      }
+      return INSUF_OPTS.slice();
     }
     const sel = g(CAMPO.esten[valv]);
-    if (!sel) return [];
-    /* La primera `<option>` ES «Sin estenosis»; el `.slice(1)` la tiraba. Se la conserva para la
-       aórtica y se la sigue salteando en las otras dos, con el texto que ya trae cada `<select>`. */
-    const desde = SIN_EN_MENU(valv) ? 0 : 1;
-    return Array.from(sel.options).slice(desde).map(o => ({ v:o.value, t:o.textContent.trim() }));
+    if (!sel || !sel.options) return [];
+    return Array.from(sel.options).map(o => ({ v:o.value, t:o.textContent.trim() })).filter(esGrado);
   }
 
   function cerrarMenus(){
@@ -51179,9 +51187,12 @@ window.valvSev = (function(){
     const campo = CAMPO[tipo][valv], el = g(campo);
     if (el) {
       if (tipo === 'insuf') {
-        const fin = g(campo.replace('_grado','_sev_final'));
+        /* aórtica/mitral: desplegable visible `*_sev_final` + hidden `*_grado` (input); tricúspide:
+           sólo el hidden `it_grado`; pulmonar: `ip_grado` es un <select> propio. Se resetea al
+           centinela de «no hay» (el placeholder «— grado —» / '0'). */
+        const fin = g(String(campo).replace('_grado','_sev_final'));
         if (fin) fin.value = '0';
-        el.value = '0';
+        if (el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = '0';
       } else {
         el.selectedIndex = 0;
       }
@@ -51204,12 +51215,16 @@ window.valvSev = (function(){
     const el = g(CAMPO[tipo][valv]);
     let txt = '', niv = 0;
     if (el) {
-      if (tipo === 'insuf') {
-        const n = parseInt(el.value) || 0;
-        if (n > 0) { txt = INSUF_TXT[n] || 'Severa'; niv = n >= 4 ? 3 : (n === 3 ? 3 : n); }
-      } else {
-        const v = String(el.value || '');
-        if (v && !/^sin/i.test(v)) { txt = corto(v); niv = nivelDe(v); }
+      /* v2: el valor puede ser numérico (im/ia/it_grado: 1-4) o texto (ep/ip_grado y los de
+         estenosis: «Leve»/«Severa»/…). Se resuelve por forma, así la pulmonar —un <select> de
+         texto— pinta su grado en la pastilla igual que las demás. El centinela de «no hay»
+         (vacío / «sin» / «0» / «Sin …») deja la pastilla en el neutro. */
+      const raw = String(el.value || '');
+      if (tipo === 'insuf' && /^\d+$/.test(raw)) {
+        const n = parseInt(raw, 10) || 0;
+        if (n > 0) { txt = INSUF_TXT[n] || 'Severa'; niv = n >= 3 ? 3 : n; }
+      } else if (raw && NO_GRADO.indexOf(raw) === -1 && !/^sin/i.test(raw)) {
+        txt = corto(raw); niv = nivelDe(raw);
       }
     }
     btn.classList.remove('nivel1','nivel2','nivel3');
@@ -51218,7 +51233,7 @@ window.valvSev = (function(){
   }
 
   function refrescarTodo(){
-    ['mitral','aortica','tricuspide'].forEach(v => ['insuf','esten'].forEach(t => refrescar(t, v)));
+    ['mitral','aortica','tricuspide','pulmonar'].forEach(v => ['insuf','esten'].forEach(t => refrescar(t, v)));
   }
 
   document.addEventListener('click', cerrarMenus);
