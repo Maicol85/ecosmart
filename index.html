@@ -24295,6 +24295,16 @@ const SEV_SINC = Object.freeze({
        «Moderada-severa» no se compara contra nada y no se suelta. Sin esto, el grado 3 se perdía en
        el primer cambio del calculado y la app colapsaba su vocabulario de cinco grados a tres. */
     calculables: Object.freeze(['1','2','4']),
+    /* ⚠️ «Sin insuficiencia» ('0') ENTRA ACÁ Y NO EN `calculables`, porque son dos preguntas
+       distintas: `calcIA_ESC` sigue sin poder emitir '0' —eso no cambió— pero desde que «Sin» está
+       en el menú de la pastilla (2026-10-03) un '0' fijado A MANO sobre un cálculo de «Severa» es
+       un ajuste a la baja como cualquier otro, y le corresponden el aviso rojo y el cajón.
+       '3' (Moderada-severa) sigue AFUERA de las dos listas, y es a propósito: el cálculo tampoco lo
+       emite y nadie lo elige desde la pastilla —el menú ofrece Sin/Leve/Moderada/Severa—, así que
+       un '3' sólo llega desde el `<select>` o desde un estudio reabierto. Compararlo daría un aviso
+       permanente que no se resuelve corrigiendo nada, que es el defecto que `calculables` vino a
+       cerrar del lado de «Esclerosis». */
+    comparables: Object.freeze(['0','1','2','4']),
     /* ⚠️ DECLARADO EXPLÍCITAMENTE EN `false`, y no omitido. La IAo PROTÉSICA SÍ se gradúa —ASE 2024,
        Tabla 13, es el mismo reparto que `calcIM_ESC` ya documenta— así que la morfología no la
        bloquea, al revés que la estenosis. Y el fuera de banda lo resuelve su propio proveedor:
@@ -24349,13 +24359,34 @@ window.sevCalcPublicable = sevCalcPublicable;
    ⚠️ Y EL EMISOR DEL INFORME LLAMA A ESTO, NO MIRA `style.display` DEL CAJÓN. Es la regla que este
    archivo ya declara dos veces: «el texto del informe no puede depender de la pantalla». Un cajón
    que quedó visible por un repintado que no corrió no puede meter una frase en un PDF firmado. */
+/* ¿Un grado fijado A MANO se puede comparar contra el calculado? Un solo dueño, porque la condición
+   estaba escrita dos veces —acá y en `sevSincronizar`— y gobierna cosas distintas: el aviso rojo y
+   el cajón de un lado, la liberación de R6 del otro. Duplicada, el día que una cambie el informe
+   firmado puede llevar una frase de fundamento sobre un grado que ya volvió a automático.
+
+   ⚠️ `comparables` NO ES `calculables`, Y LA DIFERENCIA APARECIÓ CON «Sin» (2026-10-03).
+   `calculables` documenta lo que el PROVEEDOR puede emitir; esto es lo que un grado MANUAL puede
+   comparar. En la estenosis coinciden —`eaGradoCalculado` emite 'sin'— y por eso alcanzaba con una
+   sola lista. En la insuficiencia NO: `calcIA_ESC` jamás emite '0' —sólo '4', '2' y '1'— pero desde
+   que «Sin» es elegible a mano, un '0' manual sobre un cálculo de «Severa» ES una discrepancia y
+   tiene que abrir el cajón. Ensanchar `calculables` con '0' habría hecho que el comentario que lo
+   explica dijera algo falso del proveedor, que es como se pierde la próxima lectura. `comparables`
+   es opcional y cae en `calculables`, así que la EA no cambia en nada. */
+function sevComparable(clave, valor) {
+  const C = SEV_SINC[clave];
+  if (!C) return false;
+  const lista = C.comparables || C.calculables;
+  return !lista || lista.indexOf(String(valor)) > -1;
+}
+window.sevComparable = sevComparable;
+
 function sevDiscrepa(clave) {
   const C = SEV_SINC[clave];
   if (!C) return false;
   const sel = document.getElementById(C.select);
   if (!sel) return false;
   if (!(window.esqSevManual && window.esqSevManual[clave])) return false;
-  if (C.calculables && C.calculables.indexOf(String(sel.value)) === -1) return false;
+  if (!sevComparable(clave, sel.value)) return false;
   const calc = sevCalcPublicable(clave);
   return !!calc && calc !== String(sel.value);
 }
@@ -24423,13 +24454,22 @@ window.sevFundLimpiar = sevFundLimpiar;
 /* ══ REPONER EL CAJÓN AL REABRIR UN ESTUDIO ═══════════════════════════════════════════════════
    ⚠️ HACE FALTA UNA FUNCIÓN, Y LO ENCONTRÓ LA MEDICIÓN DEL ROUND-TRIP, NO EL RAZONAMIENTO.
    `guardarInforme` barre TODOS los checkbox con id y los persiste como `<id>__chk`, así que los
-   cuatro del cajón se guardan solos. **Reponerlos no lo hace nadie**: en esta app no existe un
-   restaurador genérico de `__chk` — cada módulo tiene el suyo (`_restaurarChkInclusion`,
-   `_restaurarChecklistPaciente`, `imEspejosRestaurar`…) y el bucle de restauración sólo hace
-   `el.value = val`, que en un checkbox escribe el ATRIBUTO y no el estado marcado. Medido antes de
-   escribir esto: un estudio guardado con «Bajo flujo y bajo gradiente con FEVI conservada» y «AVA
-   por planimetría» tildadas volvía con el cajón vacío, de modo que REIMPRIMIR el informe daba un
-   texto DISTINTO del que se firmó — sin la frase del fundamento y sin nada que lo avisara.
+   cuatro del cajón se guardan solos. Medido antes de escribir esta función: un estudio guardado con
+   «Bajo flujo y bajo gradiente con FEVI conservada» y «AVA por planimetría» tildadas volvía con el
+   cajón vacío, de modo que REIMPRIMIR el informe daba un texto DISTINTO del que se firmó — sin la
+   frase del fundamento y sin nada que lo avisara.
+
+   ⚠️ CORRECCIÓN (2026-10-03): ESTE COMENTARIO AFIRMABA ALGO FALSO, y lo destapó una mutación que
+   SOBREVIVIÓ. Decía «reponerlos no lo hace nadie: en esta app no existe un restaurador genérico de
+   `__chk`». Sí existe: `cargarEstudioPorId` tiene la rama
+   `if (el.type === 'checkbox' || el.type === 'radio') { el.checked = (c[el.id + '__chk'] === '1'); }`.
+   Medido: desactivar el bucle de casillas de ACÁ no rompe el round-trip de guardar y reabrir —el
+   restaurador genérico lo cubre— así que por ESE camino esta función es redundante.
+   Lo que la sigue justificando es el OTRO camino, el que el comentario de `_sevChkGuardado` ya
+   describe: el AUTOSAVE persiste la clave pelada con un booleano, no `<id>__chk`, y ahí el
+   restaurador genérico no repone nada. O sea: la función hace falta, pero por el borrador
+   recuperado, no por el estudio reabierto. Un comentario que justifica código con una razón que no
+   es la verdadera es el que hace que alguien lo borre al comprobar que la razón no se sostiene.
 
    ⚠️ EL ORDEN ES PARTE DEL CONTRATO: PRIMERO `sevSincronizar` Y DESPUÉS REPONER. `sevFundamento`
    vacía el cajón cuando no hay discrepancia, así que reponer antes de sincronizar es escribir para
@@ -24576,8 +24616,8 @@ function sevSincronizar(clave) {
   const manual = !!(window.esqSevManual && window.esqSevManual[clave]);
   const calc = sevCalcPublicable(clave);
   /* ¿El grado que el médico fijó es uno que el cálculo PUEDE emitir? Si no, no hay nada que
-     comparar: no se pinta aviso y no se suelta. Ver `calculables` en el registro. */
-  const comparable = !C.calculables || C.calculables.indexOf(String(sel.value)) > -1;
+     comparar: no se pinta aviso y no se suelta. Ver `sevComparable` y `comparables` en el registro. */
+  const comparable = sevComparable(clave, sel.value);
   let soltado = false;
   if (manual && comparable) {
     const foto = window._sevCalcAlFijar[clave];
@@ -49958,12 +49998,39 @@ window.valvSev = (function(){
     if (!m) return String(t||''); const w = m[0].toLowerCase();
     return w.charAt(0).toUpperCase() + w.slice(1); };
 
-  // Estenosis: las opciones salen del propio <select> (así respeta "Esclerosis" de EAo y los
-  // textos de cada válvula). Se saltea la primera, que es "Sin estenosis" = apagado.
+  /* ══ «Sin» EN EL MENÚ — SÓLO LA AÓRTICA (2026-10-03) ════════════════════════════════════════
+     Decisión de Maicol: el médico tiene que poder AFIRMAR que no hay estenosis (o insuficiencia),
+     y hasta hoy no podía. El menú de estenosis salía de los `<option>` del propio `<select>` con un
+     `.slice(1)` que tiraba justo `value="sin"`, y el de insuficiencia de `INSUF_OPTS`, un literal
+     que arrancaba en «Leve». Medido antes de tocar: con una pastilla en «Moderada» no existía
+     NINGÚN camino de vuelta —apagar y encender el botón conserva el grado desde el 4b, y
+     `valvSev.limpiar()` hace exactamente lo que hace falta pero no está ofrecida en ningún lado—.
+
+     ⚠️ SE GATEA POR VÁLVULA, Y ES UNA COSTURA DECLARADA, NO UN DESCUIDO. Esta función gobierna los
+     SEIS menús; la orden de esta tanda es explícita: no tocar la mitral, la tricúspide ni la
+     pulmonar. Mientras la costura exista, la aórtica ofrece «Sin» y las otras dos no. Cuando
+     Maicol las pida, lo que se borra es la condición — no se agrega otra rama.
+
+     ⚠️ Y «Sin» NO ES «volver a automático». Elegirlo marca `esqSevManual` como cualquier otro
+     grado: es una afirmación clínica, no una cancelación. Con un grado calculado distinto es un
+     ajuste a la baja, con su aviso rojo y su cajón (lo decide `sevDiscrepa`, el mismo dueño de
+     siempre); sin grado calculado no hay con qué discrepar y la pastilla queda en el neutro
+     «🟡 Severidad ▼» — que es lo que `refrescar` ya hacía con 'sin' y con '0', así que «Sin» y
+     «todavía no dije nada» se ven IGUAL. Es lo decidido (2026-10-03): el aviso y el cajón son los
+     que distinguen el caso cuando importa, y no se agrega un rótulo nuevo a la pastilla. */
+  const SIN_EN_MENU = valv => valv === 'aortica';
   function opciones(tipo, valv){
-    if (tipo === 'insuf') return INSUF_OPTS.slice();
+    if (tipo === 'insuf') {
+      const base = INSUF_OPTS.slice();
+      /* «Sin» va PRIMERO. El `value` es el '0' que `ia_sev_final` ya tiene: no hay grado nuevo. */
+      return SIN_EN_MENU(valv) ? [{v:'0',t:'Sin insuficiencia'}].concat(base) : base;
+    }
     const sel = g(CAMPO.esten[valv]);
-    return sel ? Array.from(sel.options).slice(1).map(o => ({ v:o.value, t:o.textContent.trim() })) : [];
+    if (!sel) return [];
+    /* La primera `<option>` ES «Sin estenosis»; el `.slice(1)` la tiraba. Se la conserva para la
+       aórtica y se la sigue salteando en las otras dos, con el texto que ya trae cada `<select>`. */
+    const desde = SIN_EN_MENU(valv) ? 0 : 1;
+    return Array.from(sel.options).slice(desde).map(o => ({ v:o.value, t:o.textContent.trim() }));
   }
 
   function cerrarMenus(){
@@ -90128,8 +90195,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261002-2137';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1790987841809;                 /* eco-build-ms */
+const ECO_BUILD    = '20261002-2247';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1790992052583;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -90215,7 +90282,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-2137</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261002-2247</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

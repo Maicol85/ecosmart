@@ -45409,8 +45409,17 @@ caso('TC-372', 'EA e IAo: cerrar el boton de la valvula ya NO borra el grado, la
     ['las opciones de ea_grado NO citan la velocidad, y los cinco value quedan intactos',
       opts.join(' ') === 'sin|Sin estenosis esclerosis|Esclerosis leve|Leve moderada|Moderada severa|Severa',
       opts.join(' / ')],
+    /* ⚠️ «Sin estenosis» SE AGREGO AL FRENTE EL 2026-10-03 y este caso lo registraba sin el. No es
+       una regresion: es la tanda de las pastillas, que vino justamente a que el medico pueda
+       AFIRMAR que no hay estenosis. Lo que este caso defiende sigue intacto y es lo otro: que
+       NINGUNA entrada arrastre el criterio entre parentesis —«Leve (Vmax 2-3 m/s)»— que el
+       select tenia y que afirmaba el criterio equivocado cuando el grado ganaba por area.
+       Por eso ademas de la lista exacta se comprueba la ausencia de parentesis, que es el
+       invariante de verdad y el que no depende de cuantas entradas haya. El contrato nuevo del
+       menu lo fija TC-384, con el aislamiento de mitral y tricuspide. */
     ['y el menu ▼ de la pastilla las muestra sin el parentesis',
-      menu.join(' / ') === 'Esclerosis / Leve / Moderada / Severa', menu.join(' / ')],
+      menu.join(' / ') === 'Sin estenosis / Esclerosis / Leve / Moderada / Severa' &&
+      menu.every(function (x) { return x.indexOf('(') === -1; }), menu.join(' / ')],
 
     ['los dos selects dicen «grado final al informe»',
       lblEA === 'Estenosis aórtica — grado final al informe' &&
@@ -46479,6 +46488,227 @@ caso('TC-381', 'El cajon «Fundamento del ajuste» va a la DERECHA del select, e
       flacaCaj.left === flacaSel.left && flacaSel.w > 150, dg],
     ['el ancho forzado se devolvio', devuelto, 'quedo width=' + tab.style.width],
   ] };
+`);
+
+
+/* ══ GRUPO — PASTILLAS DE SEVERIDAD DE LA AORTICA (2026-10-03) ═════════════════════════════════
+   Helpers compartidos por los cinco casos de abajo. Van como constantes de modulo y se interpolan
+   con ${} dentro del cuerpo, igual que los EVID_*: repetir el preludio cinco veces es cinco
+   lugares donde corregir el dia que cambie un id. */
+const PAST_PRE = `
+  const pastSet = function (id, v) { const e = document.getElementById(id); if (!e) return 'NO ' + id;
+    e.value = v; e.dispatchEvent(new Event('input', {bubbles:true}));
+    e.dispatchEvent(new Event('change', {bubbles:true})); return 1; };
+  const pastTxt = function (id) { const e = document.getElementById(id);
+    return e ? e.textContent.trim().replace(/\\s+/g, ' ') : 'NO ' + id; };
+  const pastVis = function (id) { const e = document.getElementById(id); if (!e) return 'NO ' + id;
+    return getComputedStyle(e).display === 'none' ? 'oculto' : 'visible'; };
+  /* La PASTILLA es el sub-boton: se lee su texto, que es lo que ve el medico. */
+  const pastilla = function (t, v) { return pastTxt('sevbtn-' + t + '-' + (v || 'aortica')); };
+  const pastMenu = function (t, v) { v = v || 'aortica';
+    try { valvSev.menu(t, v, null);
+      const m = document.getElementById('sevmenu-' + t + '-' + v);
+      const r = Array.from(m.querySelectorAll('button')).map(function (b) { return b.textContent.trim(); });
+      document.body.click(); return r; } catch (e) { return ['ERR:' + e.message]; } };
+  /* ⚠️ ABRE LA PESTANA Y LA SECCION ANTES DE MEDIR. Lo que esta en display:none no tiene geometria
+     y el sub-boton no se repinta; sin esto los casos leen el estado de un arbol que no se dibujo. */
+  const pastReset = function () {
+    try { limpiarCampos(true); } catch (e) {}
+    window.esqSevManual = {}; window._sevCalcAlFijar = {}; window._iaGradoCalc = null;
+    try { if (typeof _sevManualSync === 'function') _sevManualSync(); } catch (e) {}
+    try { showTab('valvulas'); } catch (e) {}
+    const sec = document.getElementById('ete-seccion-valv-aortica');
+    if (sec && sec.style.display === 'none') {
+      try { toggleEteSeccion('valv-aortica', document.querySelector('[onclick*="valv-aortica"]')); } catch (e) {}
+    }
+    ['insuf','esten'].forEach(function (t) { const b = document.getElementById('pill-' + t + '-aortica');
+      if (b && !b.classList.contains('btn-primary')) toggleValvPill('aortica', t); });
+    pastSet('nombre', 'TCPAST');
+  };
+`;
+
+caso('TC-382', 'La pastilla de IAo sigue SOLA a la vena contracta, sin marca manual, y el grado final y su hidden van con ella', `
+  ${PAST_PRE}
+  pastReset();
+  const inicial = { pill: pastilla('insuf'), sel: __t.val('ia_sev_final'), calc: String(window._iaGradoCalc) };
+  pastSet('ia_vc','5');
+  const vc5 = { pill: pastilla('insuf'), sel: __t.val('ia_sev_final'), hid: __t.val('ia_grado'),
+    calc: String(window._iaGradoCalc), manual: !!(window.esqSevManual || {}).ia };
+  pastSet('ia_vc','8');
+  const vc8 = { pill: pastilla('insuf'), sel: __t.val('ia_sev_final'), hid: __t.val('ia_grado'),
+    calc: String(window._iaGradoCalc), manual: !!(window.esqSevManual || {}).ia };
+  const dg = 'inicial=' + JSON.stringify(inicial) + ' vc5=' + JSON.stringify(vc5) + ' vc8=' + JSON.stringify(vc8);
+  return { extra: [
+    ['DENOMINADOR: sin datos la pastilla arranca en el neutro «Severidad»',
+      /Severidad/.test(inicial.pill) && inicial.sel === '0', dg],
+    ['con vena contracta 5 mm la pastilla dice Moderada', /Moderada/.test(vc5.pill) && vc5.sel === '2', dg],
+    ['con vena contracta 8 mm la pastilla dice Severa', /Severa/.test(vc8.pill) && vc8.sel === '4', dg],
+    ['el hidden ia_grado va con el grado final por los dos pasos', vc5.hid === '2' && vc8.hid === '4', dg],
+    /* CONTROL NEGATIVO: siguio SOLA. Si el seguimiento viniera de marcar manual, esta condicion
+       se pone roja y las de arriba seguirian verdes sin probar lo que dicen probar. */
+    ['CONTROL NEGATIVO: lo hizo sin encender la marca de grado manual',
+      vc5.manual === false && vc8.manual === false, dg],
+  ] };
+`);
+
+caso('TC-383', 'El grado manual de la IAo se mantiene mientras el calculado no cambia, y vuelve SOLO a automatico cuando cambia — con el aviso y el cajon apagandose', `
+  ${PAST_PRE}
+  pastReset();
+  pastSet('ia_vc','8');                                  // calculado severa (4)
+  valvSev.aplicar('insuf','aortica','1');                // el medico fija Leve
+  const fijado = { sel: __t.val('ia_sev_final'), manual: !!(window.esqSevManual || {}).ia,
+    calc: String(window._iaGradoCalc), aviso: pastTxt('ia-manual-aviso'), cajon: pastVis('ia-fund') };
+  /* Otro insumo que NO mueve el grado calculado: el manual tiene que sobrevivir. Es la diferencia
+     entre «el calculado cambio» y «el calculado difiere del manual», que es todo R6. */
+  pastSet('ia_pht','600');
+  const mismo = { sel: __t.val('ia_sev_final'), manual: !!(window.esqSevManual || {}).ia,
+    calc: String(window._iaGradoCalc) };
+  pastSet('ia_vc','3');                                  // ahora el calculado SI cambia
+  const cambio = { sel: __t.val('ia_sev_final'), manual: !!(window.esqSevManual || {}).ia,
+    calc: String(window._iaGradoCalc), pill: pastilla('insuf'),
+    aviso: pastTxt('ia-manual-aviso'), cajon: pastVis('ia-fund') };
+  const dg = 'fijado=' + JSON.stringify(fijado) + ' mismo=' + JSON.stringify(mismo) + ' cambio=' + JSON.stringify(cambio);
+  return { extra: [
+    ['DENOMINADOR: el grado manual quedo fijado y con aviso de discrepancia',
+      fijado.sel === '1' && fijado.manual === true && fijado.calc === '4' &&
+      fijado.aviso.indexOf('ajuste manual') > -1 && fijado.cajon === 'visible', dg],
+    ['con el calculado IGUAL, el grado manual sobrevive al recalculo',
+      mismo.sel === '1' && mismo.manual === true && mismo.calc === '4', dg],
+    ['cuando el calculado CAMBIA, vuelve solo a automatico y escribe el calculado',
+      cambio.manual === false && cambio.sel === cambio.calc && cambio.sel !== '1', dg],
+    ['y al volver a automatico se apagan el aviso rojo y el cajon',
+      cambio.aviso === '' && cambio.cajon === 'oculto', dg],
+  ] };
+`);
+
+caso('TC-384', 'Los menus de la pastilla aortica ofrecen «Sin» PRIMERO —estenosis e insuficiencia— y la mitral y la tricuspide siguen sin ofrecerlo', `
+  ${PAST_PRE}
+  pastReset();
+  /* Las otras dos valvulas tambien se abren: un menu que no se puede desplegar devuelve [] y
+     «no ofrece Sin» saldria verde sin denominador. */
+  ['valv-mitral','valv-tricuspide'].forEach(function (k) {
+    const s = document.getElementById('ete-seccion-' + k);
+    if (s && s.style.display === 'none') {
+      try { toggleEteSeccion(k, document.querySelector('[onclick*="' + k + '"]')); } catch (e) {}
+    }
+  });
+  ['mitral','tricuspide'].forEach(function (v) { ['insuf','esten'].forEach(function (t) {
+    const b = document.getElementById('pill-' + t + '-' + v);
+    if (b && !b.classList.contains('btn-primary')) toggleValvPill(v, t); }); });
+  const aoI = pastMenu('insuf'), aoE = pastMenu('esten');
+  const miI = pastMenu('insuf','mitral'), miE = pastMenu('esten','mitral');
+  const trI = pastMenu('insuf','tricuspide'), trE = pastMenu('esten','tricuspide');
+  const empiezaSin = function (a) { return a.length > 0 && /^Sin/i.test(a[0]); };
+  const tieneSin = function (a) { return a.some(function (x) { return /^Sin/i.test(x); }); };
+  const dg = 'aoI=' + aoI.join('/') + ' aoE=' + aoE.join('/') + ' miI=' + miI.join('/') +
+             ' miE=' + miE.join('/') + ' trI=' + trI.join('/') + ' trE=' + trE.join('/');
+  return { extra: [
+    ['DENOMINADOR: los seis menus se desplegaron',
+      [aoI,aoE,miI,miE,trI,trE].every(function (a) { return a.length > 0 && !/^ERR/.test(a[0]); }), dg],
+    ['aortica insuficiencia: Sin, Leve, Moderada, Severa',
+      aoI.join('|') === 'Sin insuficiencia|Leve|Moderada|Severa', dg],
+    ['aortica estenosis: Sin, Esclerosis, Leve, Moderada, Severa (se preservo Esclerosis)',
+      aoE.join('|') === 'Sin estenosis|Esclerosis|Leve|Moderada|Severa', dg],
+    ['«Sin» va PRIMERO en los dos', empiezaSin(aoI) && empiezaSin(aoE), dg],
+    /* CONTROL NEGATIVO y AISLAMIENTO en la misma condicion: la sonda sabe decir «no tiene Sin», y
+       las otras dos valvulas no lo tienen. Esta tanda es solo de la aortica. */
+    ['AISLAMIENTO: mitral y tricuspide NO ofrecen «Sin» en ninguno de sus cuatro menus',
+      !tieneSin(miI) && !tieneSin(miE) && !tieneSin(trI) && !tieneSin(trE), dg],
+  ] };
+`);
+
+caso('TC-385', '«Sin» con grado calculado es un ajuste a la baja con aviso rojo y cajon; sin grado calculado deja la pastilla neutra y sin cajon; «Esclerosis» a mano NO abre cajon', `
+  ${PAST_PRE}
+  /* (1) IAo: «Sin» sobre un calculado severo */
+  pastReset(); pastSet('ia_vc','8');
+  valvSev.aplicar('insuf','aortica','0');
+  const iaCon = { sel: __t.val('ia_sev_final'), hid: __t.val('ia_grado'), pill: pastilla('insuf'),
+    discrepa: sevDiscrepa('ia'), cajon: pastVis('ia-fund'), aviso: pastTxt('ia-manual-aviso') };
+  /* (2) IAo: «Sin» sin ningun calculo */
+  pastReset();
+  valvSev.aplicar('insuf','aortica','0');
+  const iaSin = { sel: __t.val('ia_sev_final'), pill: pastilla('insuf'), discrepa: sevDiscrepa('ia'),
+    cajon: pastVis('ia-fund'), aviso: pastTxt('ia-manual-aviso'), calc: String(sevCalcPublicable('ia')) };
+  /* (3) EA: «Sin estenosis» sobre un calculado severo, por el menu */
+  pastReset(); pastSet('ea_vmax','4.5');
+  valvSev.aplicar('esten','aortica','sin');
+  const eaCon = { sel: __t.val('ea_grado'), pill: pastilla('esten'), discrepa: sevDiscrepa('ea'),
+    sentido: sevSentido('ea'), cajon: pastVis('ea-fund'), aviso: pastTxt('ea-manual-aviso'),
+    baja: pastVis('ea-fund-baja'), sube: pastVis('ea-fund-sube') };
+  /* (4) CONTROL NEGATIVO: Esclerosis es categoria clinica, no ajuste. No abre cajon. */
+  pastReset(); pastSet('ea_vmax','4.5');
+  valvSev.aplicar('esten','aortica','esclerosis');
+  const escl = { sel: __t.val('ea_grado'), pill: pastilla('esten'), discrepa: sevDiscrepa('ea'),
+    cajon: pastVis('ea-fund') };
+  const dg = 'iaCon=' + JSON.stringify(iaCon) + ' iaSin=' + JSON.stringify(iaSin) +
+             ' eaCon=' + JSON.stringify(eaCon) + ' escl=' + JSON.stringify(escl);
+  return { extra: [
+    ['IAo «Sin» deja el grado final en 0 y arrastra el hidden', iaCon.sel === '0' && iaCon.hid === '0', dg],
+    ['IAo «Sin» sobre un calculo severo discrepa, con aviso rojo y cajon',
+      iaCon.discrepa === true && iaCon.cajon === 'visible' &&
+      iaCon.aviso.indexOf('ajuste manual') > -1 && iaCon.aviso.indexOf('Severa') > -1, dg],
+    ['IAo «Sin» SIN calculo deja la pastilla neutra, sin aviso ni cajon',
+      iaSin.discrepa === false && iaSin.cajon === 'oculto' && iaSin.aviso === '' &&
+      /Severidad/.test(iaSin.pill) && iaSin.calc === 'null', dg],
+    ['EA «Sin estenosis» discrepa hacia ABAJO y abre el juego de baja (OTSVI), no el de sube',
+      eaCon.discrepa === true && eaCon.sentido === 'baja' && eaCon.cajon === 'visible' &&
+      eaCon.baja === 'visible' && eaCon.sube === 'oculto', dg],
+    ['CONTROL NEGATIVO: «Esclerosis» a mano NO discrepa y NO abre cajon',
+      escl.sel === 'esclerosis' && escl.discrepa === false && escl.cajon === 'oculto', dg],
+  ] };
+`);
+
+caso('TC-386', 'Guardar y reabrir conserva la pastilla, el grado y el cajon de la aortica — con «Sin» fijado a mano y su motivo', `
+  ${PAST_PRE}
+  return (async () => {
+    pastReset();
+    __t.set('ci','TC386');
+    pastSet('ea_vmax','4.5');
+    valvSev.aplicar('esten','aortica','sin');          // «Sin estenosis» sobre un calculo severo
+    __t.chk('ea_fund_otsvi', true);
+    pastSet('ea_fund_nota','membrana subaortica');
+    const antes = { sel: __t.val('ea_grado'), pill: pastilla('esten'), discrepa: sevDiscrepa('ea'),
+      cajon: pastVis('ea-fund'), otsvi: !!document.getElementById('ea_fund_otsvi').checked,
+      nota: __t.val('ea_fund_nota'), aviso: pastTxt('ea-manual-aviso') };
+    const g = await __t.guardar();
+    if (!g.ok) return { extra: [['el estudio se guardo', false, 'guardar fallo: ' + g.error]] };
+    pastReset();
+    const limpio = { sel: __t.val('ea_grado'), cajon: pastVis('ea-fund'), nota: __t.val('ea_fund_nota'),
+      vmax: __t.val('ea_vmax'), discrepa: sevDiscrepa('ea'), manual: !!(window.esqSevManual || {}).ea,
+      otsvi: !!document.getElementById('ea_fund_otsvi').checked };
+    await __t.reabrir(g.estudioId);
+    const despues = { sel: __t.val('ea_grado'), pill: pastilla('esten'), discrepa: sevDiscrepa('ea'),
+      cajon: pastVis('ea-fund'), otsvi: !!document.getElementById('ea_fund_otsvi').checked,
+      nota: __t.val('ea_fund_nota'), aviso: pastTxt('ea-manual-aviso') };
+    await __t.borrar(g.estudioId);
+    const dg = 'antes=' + JSON.stringify(antes) + ' limpio=' + JSON.stringify(limpio) +
+               ' despues=' + JSON.stringify(despues);
+    return { extra: [
+      ['DENOMINADOR: antes de guardar habia «Sin» a mano, discrepancia, cajon y motivo',
+        antes.sel === 'sin' && antes.discrepa === true && antes.cajon === 'visible' &&
+        antes.otsvi === true && antes.nota === 'membrana subaortica', dg],
+      /* CONTROL NEGATIVO: el reset de verdad borro TODO lo que el caso va a buscar despues. Sin
+         esto, «despues» podria ser lo que quedo en pantalla y no lo que volvio del disco, y el caso
+         pasaria sin reabrir nada.
+         ⚠️ SE MIRAN CINCO COSAS Y NO DOS, y la que faltaba importa: la primera version comprobaba
+         el cajon y la nota, pero no la Vmax, ni la marca de manual, ni la casilla. */
+      ['CONTROL NEGATIVO: el reset borro cajon, nota, casilla, Vmax y la marca de manual',
+        limpio.cajon === 'oculto' && limpio.nota === '' && limpio.vmax === '' &&
+        limpio.manual === false && limpio.discrepa === false && limpio.otsvi === false, dg],
+      /* ⚠️ La igualdad despues.sel === 'sin' SOLA NO PRUEBA NADA, Y SE MIDIO: 'sin' es tambien el valor por
+         defecto del select —limpiarCampos lo deja en selectedIndex 0— asi que esa igualdad se
+         cumple igual sobre un formulario vacio. Lo que sostiene la condicion es discrepa, que
+         exige que hayan vuelto las TRES cosas a la vez: la Vmax que da el calculo severo, la marca
+         de grado manual y el grado 'sin'. Por eso van juntas en la misma condicion. */
+      ['al reabrir vuelve el grado «Sin» con su marca de manual y su discrepancia',
+        despues.sel === 'sin' && despues.discrepa === true &&
+        !!(window.esqSevManual || {}).ea === true, dg],
+      ['al reabrir vuelve el cajon con la opcion y el motivo que se firmaron',
+        despues.cajon === 'visible' && despues.otsvi === true &&
+        despues.nota === 'membrana subaortica', dg],
+      ['y la pastilla vuelve al mismo estado que antes de guardar', despues.pill === antes.pill, dg],
+    ] };
+  })();
 `);
 
 
