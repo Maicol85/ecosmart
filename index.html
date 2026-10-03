@@ -21873,6 +21873,15 @@ function emGradoManual(){
      el médico eligió — que es exactamente el defecto que ese espejo vino a cerrar. */
   try { if (typeof _sevManualSync === 'function') _sevManualSync(); } catch (e) {}
   if (typeof imOndaESiExiste === 'function') imOndaESiExiste();
+  /* «Sin estenosis» elegido acá apaga el botón (2026-10-03). Mismo dueño que la aórtica y mismo
+     orden: antes de `_emSincronizarPantalla`, que repinta el bloque de grado leyendo `pillOn`.
+     ⚠️ ACÁ LA MARCA SÍ QUEDA PUESTA —las dos líneas de arriba—, así que con un cálculo que indique
+     estenosis el bloque NO se oculta: hay discrepancia, y `valvGradoVisSync` lo deja a la vista con
+     su aviso y su cajón aunque el botón quede apagado. Es la asimetría declarada con la aórtica,
+     donde `_gradoManoBorraMarca` no marca y por eso el bloque sí se oculta. */
+  if (typeof sevSinApagaDesdeSelect === 'function') {
+    try { sevSinApagaDesdeSelect('em_grado'); } catch (e) { console.warn('[sevSinApaga/em]', e); }
+  }
   /* Misma foto, mismo motivo que en `imGradoManual`. */
   _emSincronizarPantalla();
 }
@@ -22252,6 +22261,11 @@ function imGradoManual() {
      en la mitral ese camino SÍ marca `esqSevManual` (al revés que en la aórtica, donde sólo el ▼
      lo hace). `sevSincronizar` la guarda en su rama `foto == null`, que es la misma por la que
      entra un estudio reabierto. */
+  /* «Sin insuficiencia» elegido acá apaga el botón (2026-10-03). Ver el gemelo en `emGradoManual`,
+     con la asimetría declarada respecto de la aórtica. */
+  if (typeof sevSinApagaDesdeSelect === 'function') {
+    try { sevSinApagaDesdeSelect('im_sev_final'); } catch (e) { console.warn('[sevSinApaga/im]', e); }
+  }
   _imSincronizarPantalla();
 }
 window.imGradoManual = imGradoManual;
@@ -22389,8 +22403,25 @@ function sincronizarEMDesdeGlobal() {
      por el detalle dejaba el gate ABIERTO para siempre desde la primera vez que alguien abrió
      Estenosis Mitral en esa carga de la página — incluso después de «Nuevo estudio» y de reabrir
      otro paciente. Es el mismo bloque que gatea IM y por el mismo motivo. */
+  /* ⚠️ EL GATE PREGUNTA POR EL BOTÓN, NO POR EL `display` (2026-10-03). Era
+     `const oculto = !det || det.style.display === 'none'`, y el comentario de arriba declara que
+     ese `display` SIGNIFICA «la pastilla de EM está encendida». Eso dejó de ser cierto en esta
+     tanda: `valvGradoVisSync` escribe `'block'` en ese mismo nodo cuando hay discrepancia con la
+     pastilla CERRADA, que es la mitad nueva de la regla de visibilidad. Medido con el cambio
+     puesto: con una EM calculada severa bajada a «leve» a mano y el botón cerrado, tipear en
+     `diam_tsvi` e `itv_tsvi` llenaba los dos espejos (`em_dtsvi=20`, `em_vtitsvi=25`) DENTRO de
+     `bloque-em-detalle`, que está oculto — justo el daño que este gate existe para evitar, porque
+     `guardarInforme` barre `input[id]` sin mirar visibilidad y esos dos valores viajan al Excel.
+     Control negativo medido: sin discrepancia y con el botón cerrado el nodo queda en `'none'` y
+     los espejos siguen vacíos.
+     `pillOn` es el dueño propio de la pregunta que este gate quiere hacer, así que además deja de
+     depender del ORDEN en que se escriba el `display` — que es la otra cosa que se rompió en esta
+     tanda y que TC-301 y TC-390 marcaron. Se conserva la lectura del nodo como respaldo por si
+     `pillOn` no existiera. */
   const det = document.getElementById('bloque-esten-mitral');
-  const oculto = !det || det.style.display === 'none';
+  const oculto = (typeof pillOn === 'function')
+    ? !pillOn('mitral', 'esten')
+    : (!det || det.style.display === 'none');
   const pares = oculto ? _EM_ESPEJOS.filter(function(par){
     const el = document.getElementById(par[1]);
     return el && el.dataset.espejoDe !== undefined && el.dataset.espejoDe === el.value;
@@ -23815,6 +23846,21 @@ function _eaMarcarSugerido(sel, val){
 function _gradoManoBorraMarca(el, ev){
   if (!el) return;
   delete el.dataset.sugerido;
+  /* ⚠️ «Sin» ELEGIDO ACÁ APAGA EL BOTÓN, Y LA REGLA DE LA MARCA NO SE TOCÓ (2026-10-03, decisión
+     de Maicol). Lo de abajo sigue siendo cierto: esta función NO enciende `esqSevManual`, así que
+     por este camino tampoco aparecen el aviso rojo ni el cajón de fundamento — es «Aórtica 3b»
+     intacta. Lo que se agrega es otra cosa: el BOTÓN deja de afirmar «hay estenosis» cuando el
+     médico acaba de elegir «Sin estenosis» en el desplegable.
+     Y es la línea que hace seguro al escalón. Medido antes (escenas SEL-ea-sin y SEL-ia-sin): sin
+     esto, elegir «Sin» acá dejaba las tres mitades de la compuerta en verdadero —sin grado, sin
+     marca, botón prendido— y con `EA_ESCALON_SIN_GRADO = true` el informe FIRMADO publicaba «con
+     estenosis» y el EN SUMA «EAo.». Apagar el botón le quita la tercera mitad sin inventar una
+     marca que esta función tiene prohibido poner.
+     Va ANTES de `sevSincronizar`: esa llamada repinta el bloque de grado según `pillOn`, así que
+     tiene que ver el botón ya apagado. */
+  if (typeof sevSinApagaDesdeSelect === 'function') {
+    try { sevSinApagaDesdeSelect(el.id); } catch (e) { console.warn('[sevSinApaga/ao]', el.id, e); }
+  }
   /* ⚠️ Y LA PASTILLA SE REPINTA TAMBIÉN POR ESTE CAMINO (R3). Es el `onchange` de los dos `<select>`,
      así que cubre el gesto que el ▼ no cubre: tipear el grado directamente en el selector. Sin esto
      el sub-botón se quedaba con el grado anterior y la pantalla se contradecía igual que en el
@@ -25045,6 +25091,28 @@ function sevSincronizar(clave) {
         try { C.trasEscribir(sel, calc); }
         catch (e) { console.warn('[sevSincronizar] trasEscribir ' + clave, e); }
       }
+      /* ⚠️ Y SI LO QUE R6 ACABA DE ESCRIBIR ES «Sin», EL BOTÓN SE APAGA. Lo encontró
+         `/sharp-edges` sobre este propio diff y estaba MEDIDO: es la peor regresión que el escalón
+         encendido podía producir, porque no es un gesto del médico sino una consecuencia.
+         El camino, sin nada raro: Vmax 4,5 gradúa «severa» sola · el médico baja a «Moderada» por
+         el ▼ (marca puesta, foto «severa») · se da cuenta de que la Vmax fue un tipeo y la corrige
+         a 1,8 · R6 ve que el calculado cambió, suelta el manual —`delete esqSevManual`— y escribe
+         «sin». Y como esa escritura es `sel.value = calc` SIN despachar `change`, no pasaba por
+         ningún `onchange` y la pastilla quedaba prendida: grado «sin» + sin marca + botón prendido
+         son las TRES mitades de la compuerta del escalón. Medido: EN SUMA «EAo.» y el narrativo
+         «con estenosis» sobre un paciente con Vmax 1,8 m/s, con la pantalla diciendo lo contrario.
+         ⚠️ VA ACÁ DENTRO Y NO EN EL CUERPO DE `sevSincronizar`, y la diferencia es el estado 2.
+         Aplicar la regla en cada sincronía —«si el `<select>` dice Sin, apagá»— apagaría el botón
+         del médico que acaba de abrirlo para mirar los números y todavía no respondió, que es
+         exactamente el estado 2: el escalón no volvería a dispararse nunca y el defecto que esta
+         tanda cerró volvería por el otro lado. Acá sólo entra lo que R6 soltó, o sea un cambio del
+         CÁLCULO, y «el cálculo dice que no hay» sí es el invariante: botón apagado.
+         El control negativo está medido aparte: cuando R6 suelta a un grado REAL («moderada»), esto
+         no aplica, el botón queda prendido y el EN SUMA dice «EAo moderada.». */
+      if (typeof sevSinApagaPastilla === 'function') {
+        try { sevSinApagaPastilla(C.tipo, C.valv, calc); }
+        catch (e) { console.warn('[sevSinApaga/R6] ' + clave, e); }
+      }
       soltado = true;
     }
   }
@@ -25075,6 +25143,17 @@ function sevSincronizar(clave) {
   const ayudaEl = C.ayuda ? document.getElementById(C.ayuda) : null;
   if (ayudaEl) ayudaEl.style.display = sigueManual ? 'none' : '';
   if (window.valvSev) { try { window.valvSev.refrescar(C.tipo, C.valv); } catch (e) {} }
+  /* ⚠️ Y LA VISIBILIDAD DEL BLOQUE SE REPINTA ACÁ, QUE ES LA TERCERA CARA DEL MISMO ESTADO
+     (2026-10-03). El aviso rojo y el cajón ya se pintaban en este punto único; desde que la
+     decisión dice «con discrepancia el bloque queda a la vista aunque el botón esté apagado», la
+     aparición del bloque es tan parte de la discrepancia como las otras dos. Pintarla en otro lugar
+     la dejaría desincronizada del `sevDiscrepa` que acaba de decidir las dos primeras — que es
+     exactamente el defecto que este punto único existe para evitar.
+     Va DESPUÉS de la liberación de R6: si el grado manual se soltó, ya no hay discrepancia y el
+     bloque tiene que volver a depender sólo del botón. */
+  if (typeof valvGradoVisSync === 'function') {
+    try { valvGradoVisSync(C.tipo, C.valv); } catch (e) { console.warn('[valvGradoVisSync]', clave, e); }
+  }
   return { manual: sigueManual, calc: calc, final: sel.value, discrepa: discrepa, soltado: soltado };
 }
 window.sevSincronizar = sevSincronizar;
@@ -25109,6 +25188,143 @@ function sevClaveDe(tipo, valv) {
   return null;
 }
 window.sevClaveDe = sevClaveDe;
+
+/* ══ «SIN» APAGA EL BOTÓN, Y EL BOTÓN DEJA DE SER UN CAJÓN — DECISIÓN DE MAICOL (2026-10-03) ═══
+   El invariante que esta tanda instala es uno solo: **botón prendido = «hay valvulopatía»**. Hasta
+   hoy el botón significaba «el cajón está abierto», que es una propiedad de la interfaz, y por eso
+   podía contradecir al grado: medido el 2026-10-03, elegir «Sin» en el menú ▼ lo DEJABA prendido
+   —`valvSev.aplicar` tiene la línea contraria, lo enciende si estaba apagado— en las cuatro claves
+   registradas, con y sin cálculo.
+
+   ⚠️ SE APAGA EN LOS DOS GESTOS, NO SÓLO EN EL MENÚ ▼, Y ESO ES LO QUE HACE SEGURO AL ESCALÓN.
+   Medido antes de decidirlo (sonda `_probe_sinapaga.mjs`, escenas SEL-ea-sin y SEL-ia-sin): elegir
+   «Sin» en el DESPLEGABLE de grado final de la aórtica deja `esqSevManual` sin encender —lo dice
+   `_gradoManoBorraMarca` por escrito, es la regla «Aórtica 3b»— y el botón prendido, así que las
+   TRES mitades de la compuerta del escalón quedaban en verdadero y encenderlo publicaba «con
+   estenosis» en el informe FIRMADO. Los controles mitrales (SEL-em-ctrl, SEL-im-ctrl) daban lo
+   contrario porque su `onchange` sí marca. O sea: apagar el botón sólo desde el ▼ NO cerraba el
+   camino, y el discriminador de la decisión 3 —«el estado del botón»— no discriminaba.
+   La salida elegida por Maicol apaga el botón también por el desplegable y **no** enciende
+   `esqSevManual`: respeta el fondo de «Aórtica 3b» —por ese camino no aparecen el aviso rojo ni el
+   cajón de fundamento, que es lo que esa regla excluyó— y a la vez deja el escalón sin su tercera
+   mitad. No se tocó lo que `_gradoManoBorraMarca` gobierna: la marca sigue sin encenderse ahí.
+
+   ⚠️ ES IDEMPOTENTE A PROPÓSITO, Y SIN ESO SE APAGA Y SE VUELVE A PRENDER. `valvSev.aplicar`
+   escribe el `<select>` y despacha un `change`, así que el `onchange` del desplegable corre ANTES
+   de que `aplicar` llegue a su propia línea de pastilla: las dos puertas piden lo mismo en el mismo
+   gesto. Escrito como «apagá si está prendida» el segundo pedido no hace nada; escrito como
+   «alterná» el botón volvía a quedar encendido. */
+const SEV_SIN_APAGA_VALVS = Object.freeze(['aortica', 'mitral']);
+/* El token que significa «no hay» en cada vocabulario. La estenosis usa `'sin'` (el `value` de la
+   primera `<option>`) y la insuficiencia el `'0'` de «— Sin insuficiencia / no evaluada». Un solo
+   dueño: la misma pregunta se la hacen el menú ▼, los dos `onchange` y la regla de visibilidad, y
+   con el token escrito cuatro veces alcanza con que uno cambie para que el botón deje de apagarse
+   por un camino y nadie se entere. */
+const SEV_TOKEN_SIN = Object.freeze({ esten: 'sin', insuf: '0' });
+function sevEsSin(tipo, valor) { return String(valor) === SEV_TOKEN_SIN[tipo]; }
+window.sevEsSin = sevEsSin;
+/* Aplica la decisión: si el grado que se acaba de elegir es «Sin», el botón se apaga. Devuelve lo
+   que hizo para que las pruebas afirmen sobre el gesto y no sobre un `className`.
+   ⚠️ SE GATEA POR VÁLVULA, igual que `SIN_EN_MENU`: la orden de esta tanda excluye la tricúspide y
+   la pulmonar, y `toggleValvPill` gobierna las seis pastillas. */
+function sevSinApagaPastilla(tipo, valv, valor) {
+  if (SEV_SIN_APAGA_VALVS.indexOf(valv) === -1) return null;
+  if (!sevEsSin(tipo, valor)) return null;
+  if (typeof pillOn !== 'function' || typeof toggleValvPill !== 'function') return null;
+  if (!pillOn(valv, tipo)) return { apagada: false, yaEstaba: true };
+  toggleValvPill(valv, tipo);
+  return { apagada: !pillOn(valv, tipo), yaEstaba: false };
+}
+window.sevSinApagaPastilla = sevSinApagaPastilla;
+/* La misma regla, entrando por el OTRO gesto: el `onchange` de un desplegable de grado final. El
+   par `tipo`/`valv` y el valor se DERIVAN del registro y del propio `<select>`, no se pasan por
+   parámetro: los tres `onchange` que llaman acá (`_gradoManoBorraMarca` para las dos de la aórtica,
+   `emGradoManual` e `imGradoManual` para las de la mitral) tendrían que escribir cada uno su par, y
+   serían tres listas paralelas a `SEV_SINC` — que es el error que `sevClaveDe` ya vino a cerrar.
+   Un `<select>` que no esté registrado devuelve `null` y no pasa nada, que es lo que mantiene a la
+   tricúspide afuera incluso si algún día le cuelgan un `onchange`. */
+function sevSinApagaDesdeSelect(selectId) {
+  if (typeof SEV_SINC === 'undefined') return null;
+  const ks = Object.keys(SEV_SINC);
+  for (let i = 0; i < ks.length; i++) {
+    const C = SEV_SINC[ks[i]];
+    if (C.select !== selectId) continue;
+    const sel = document.getElementById(selectId);
+    if (!sel) return null;
+    return sevSinApagaPastilla(C.tipo, C.valv, sel.value);
+  }
+  return null;
+}
+window.sevSinApagaDesdeSelect = sevSinApagaDesdeSelect;
+
+/* ══ UN SOLO DUEÑO DE LA VISIBILIDAD DEL BLOQUE DE GRADO FINAL (decisión de Maicol, 2026-10-03) ══
+   El bloque de grado final —el `<select>`, el aviso rojo y el cajón del fundamento, los tres que la
+   decisión enumera— se ve cuando **la pastilla está abierta O hay una discrepancia que mostrar**.
+   Antes el único dueño era `toggleValvPill`, o sea el estado del botón, y eso producía el defecto
+   que la Etapa 1 midió en las cuatro válvulas: con un grado manual discrepante VIVO —grado
+   conservado, marca puesta, `sevDiscrepa` en `true`— cerrar el botón dejaba el bloque en alto 0, y
+   el aviso rojo y el cajón del fundamento desaparecían de la pantalla mientras el informe seguía
+   publicando «EAo leve.» y la salvedad «el grado consignado (leve) no coincide con las mediciones».
+   El médico perdía de vista el aviso y el lugar donde escribir el motivo de un ajuste que el papel
+   seguía afirmando.
+
+   ⚠️ EL NODO ES EL DEL GRADO FINAL, NO EL DE LA CUANTIFICACIÓN, y son hermanos y no padre/hijo.
+   Verificado en el marcado: `bloque-esten-<valv>` contiene exactamente el `<select>` de grado, el
+   aviso y el cajón, mientras la cuantificación vive en `bloque-<em|ea>-detalle`, que es un hermano
+   posterior; en la insuficiencia el reparto es `gf-insuf-<valv>` (grado) contra
+   `bloque-insuf-<valv>` (cuantificación). Así que mostrar el bloque de grado con la pastilla
+   cerrada NO arrastra las casillas de medición: ésas siguen colgando del botón, que es lo correcto
+   —el botón sigue siendo el que abre el cajón de trabajo—.
+
+   ⚠️ NO LLAMA A `toggleValvPill`, y por eso no hay recursión. `toggleValvPill` llama a
+   `sevSincronizar` al cerrar, y `sevSincronizar` llama acá: si esta función tocara el botón, el
+   ciclo no terminaría. Acá sólo se escribe `style.display`.
+   ⚠️ FALLA DEL LADO DE MOSTRAR: si `sevDiscrepa` lanza, se toma `false` y manda la pastilla, que es
+   el comportamiento anterior a esta tanda. Un bloque de más es un bloque vacío; un bloque de menos
+   es un aviso rojo invisible sobre un informe que ya lo publicó. */
+function sevBloqueGradoDe(tipo, valv) {
+  return document.getElementById(tipo === 'insuf' ? ('gf-insuf-' + valv) : ('bloque-esten-' + valv));
+}
+window.sevBloqueGradoDe = sevBloqueGradoDe;
+function valvGradoVisSync(tipo, valv) {
+  const nodo = sevBloqueGradoDe(tipo, valv);
+  if (!nodo) return null;
+  const abierta = (typeof pillOn === 'function') ? !!pillOn(valv, tipo) : false;
+  const clave = (typeof sevClaveDe === 'function') ? sevClaveDe(tipo, valv) : null;
+  let discrepa = false;
+  if (clave && typeof sevDiscrepa === 'function') {
+    try { discrepa = !!sevDiscrepa(clave); } catch (e) { discrepa = false; }
+  }
+  /* ⚠️ TERCERA MITAD: SI EL PAPEL LO AFIRMA, LA PANTALLA LO MUESTRA. La encontró `/sharp-edges`
+     sobre este propio diff, y es el agujero que abría apagar el botón por regla. Con sólo
+     `abierta || discrepa`, esta secuencia dejaba un grado publicado con su bloque invisible:
+     el médico elige «Sin estenosis» en el desplegable aórtico → el botón se apaga y la clave de
+     `localStorage` queda en `'0'`, que para `valvAutoAbrirCajones` significa «lo cerró a mano, no
+     reabrir» → después el autocálculo escribe «severa» (`clasificarEA_Vmax` no mira la pastilla, y
+     en la aórtica no hay marca que lo frene) → el informe FIRMADO publica «estenosis severa»
+     mientras `abierta` y `discrepa` son las dos `false` y el bloque está en `display:none`, sin
+     nada que lo vuelva a abrir. Antes de esta tanda no pasaba porque el botón quedaba prendido.
+     `hayGrado` usa el MISMO dueño que decide si es «Sin» (`sevEsSin`), así que no hay un cuarto
+     lugar donde el token se escriba a mano. */
+  /* ⚠️ `false` SIN CLAVE REGISTRADA, Y LA PRIMERA VERSIÓN DE ESTA LÍNEA LO TENÍA AL REVÉS. Escrita
+     como `!sevEsSin(tipo, sel && sel.value)` sin la guarda, un par no registrado daba
+     `sevEsSin(tipo, undefined)` → `'undefined' !== 'sin'` → `false` → negado, `hayGrado = true`, y
+     el bloque de la TRICÚSPIDE quedaba visible para siempre con el botón apagado. La ausencia de
+     clave significa «esta válvula no está en el mecanismo», y la dirección segura es que la regla
+     nueva no la alcance: su bloque sigue colgando sólo del botón, como antes de esta tanda. */
+  let hayGrado = false;
+  if (clave && typeof sevEsSin === 'function') {
+    const selG = document.getElementById(SEV_SINC[clave].select);
+    if (selG) hayGrado = !sevEsSin(tipo, selG.value);
+  }
+  const ver = abierta || discrepa || hayGrado;
+  /* `'block'` en la estenosis y `''` en la insuficiencia, que es lo que escribía cada rama de
+     `toggleValvPill` antes de esta tanda. Se conserva textual para que el A/B de maquetación mida
+     el cambio de REGLA y no un cambio de valor de `display`. */
+  nodo.style.display = ver ? (tipo === 'esten' ? 'block' : '') : 'none';
+  return { tipo: tipo, valv: valv, clave: clave, abierta: abierta, discrepa: discrepa, visible: ver };
+}
+window.valvGradoVisSync = valvGradoVisSync;
 
 /* Clasificación de estenosis aórtica — PRIMER espejo del grado calculado (ver `eaGradoCalculado`).
    Mantiene sus tres guardas, que son las que deciden si tiene PERMISO de escribir: morfología
@@ -29786,12 +30002,58 @@ function generarInforme(opts) {
        encienda en la aórtica, esto es poner `true` y correr TC-397 y TC-399, que ya existen y hoy
        están registrados como defecto abierto (⊘). Apagarlo deja el informe aórtico EXACTAMENTE
        como está en `589f7bb`. Lo cazó `/sharp-edges` sobre este propio diff. */
-    const EA_ESCALON_SIN_GRADO = false;
+    /* ══ ENCENDIDO (2026-10-03, decisión de Maicol) — Y LO QUE CAMBIÓ NO ES LA MARCA ═══════════
+       Todo el bloque de arriba sigue describiendo el hecho correctamente: en la aórtica
+       `_gradoManoBorraMarca` NO enciende `esqSevManual`, así que `!_eaManualS` no distingue «el
+       médico respondió Sin» de «el médico no respondió». Eso NO se tocó: «Aórtica 3b» queda como
+       estaba y por el desplegable siguen sin aparecer el aviso rojo ni el cajón.
+       Lo que cambió es la TERCERA mitad de la compuerta, `_pillA`. Desde esta tanda **elegir «Sin»
+       apaga el botón**, y lo hace por los DOS gestos —el menú ▼ en `valvSev.aplicar` y el
+       desplegable en `_gradoManoBorraMarca`—, así que el estado 3 llega acá con la pastilla
+       cerrada y la compuerta se cae por ahí, sin necesidad de la marca. Las dos salidas que
+       `docs/PENDIENTES.md` ofrecía —(a) encender la marca, (b) gatear por `dataset.sugerido`—
+       quedaron descartadas: ésta no mueve el aviso ni el cajón, que era el precio de (a), y no
+       depende de un atributo ausente en un formulario en blanco, que era el riesgo de (b).
+       Medido por el camino real de la UI antes y después (sonda `_probe_sinapaga.mjs`):
+         · estado 2, botón abierto y sin grado → «con estenosis» / «con insuficiencia», EN SUMA
+           «EAo.» / «IAo.»
+         · estado 3, «Sin» elegido por el ▼ o por el desplegable → botón apagado, «sin estenosis
+           ni insuficiencia», EN SUMA callado.
+       ⚠️ `!_eaManualS` SE CONSERVA aunque hoy sea redundante por el camino del ▼ —que apaga Y
+       marca—: es la segunda compuerta para los grados que llegan con marca y sin botón, como un
+       estudio importado, que la salvedad de discordancia marca `esqSevManual.ea` a propósito. */
+    const EA_ESCALON_SIN_GRADO = true;
     const _eaManualS = !!(window.esqSevManual && window.esqSevManual.ea);
     const _iaManualS = !!(window.esqSevManual && window.esqSevManual.ia);
     const _pillA = (t) => (typeof pillOn === 'function') && pillOn('aortica', t);
-    const _eaSinGrado = EA_ESCALON_SIN_GRADO && !eaDesc && !esclerosis && !_eaManualS && _pillA('esten');
-    const _iaSinGrado = EA_ESCALON_SIN_GRADO && !(iaG > 0) && !_iaManualS && _pillA('insuf');
+    /* ⚠️ CUARTA COMPUERTA: CON EL INSUMO FUERA DE BANDA EL ESCALÓN NO AFIRMA NADA. La encontró
+       `/sharp-edges` sobre este propio diff, y estaba MEDIDA. `_eaRetirarGradoSugerido` escribe
+       `ea_grado = 'sin'` cuando un insumo está fuera de banda —el Ø TSVI tipeado en centímetros es
+       su caso canónico— y sale por su guarda si hay marca, o sea que SIEMPRE deja grado «sin» y sin
+       marca, con la pastilla como la dejó el médico. Con el escalón encendido eso daba las tres
+       mitades en verdadero: medido, EN SUMA «EAo.» y narrativo «con estenosis» mientras el badge de
+       al lado decía, textual, «Fuera de rango, no gradúa … se RETIRÓ el grado que la aplicación
+       había sugerido». Las dos mitades del mismo cálculo afirmando lo contrario en la misma
+       pantalla, y la que viaja al papel firmado era la equivocada.
+       `bloqueado()` es el dueño que ya separa las dos preguntas —lo declara `sevCalcPublicable`—, y
+       es lo que distingue este caso del estado 2 legítimo: con el formulario vacío `bloqueado()` es
+       `false` (no hay insumo fuera de banda, no hay insumo) y el escalón sigue disparando; con un
+       número ilegible es `true` y la app se abstiene, que es lo que ya hace en todas las otras
+       superficies. Falla CERRADA por su propio `catch`: ante una excepción devuelve `true`, o sea
+       no afirmar.
+       La IAo NO lo necesita —su `bloqueado()` está declarado en `false` a propósito, porque su
+       proveedor resuelve el fuera de banda por dentro— pero se consulta igual por el registro, así
+       que el día que eso cambie la compuerta ya está puesta. */
+    const _aoBloqueado = (clave) => {
+      try {
+        const C = (typeof SEV_SINC !== 'undefined') ? SEV_SINC[clave] : null;
+        return !C || typeof C.bloqueado !== 'function' ? true : !!C.bloqueado();
+      } catch (e) { return true; }
+    };
+    const _eaSinGrado = EA_ESCALON_SIN_GRADO && !eaDesc && !esclerosis && !_eaManualS &&
+      _pillA('esten') && !_aoBloqueado('ea');
+    const _iaSinGrado = EA_ESCALON_SIN_GRADO && !(iaG > 0) && !_iaManualS &&
+      _pillA('insuf') && !_aoBloqueado('ia');
     const estEBase = eaDesc ? `estenosis ${eaDesc}` : (_eaSinGrado ? 'estenosis' : null);
     const estCBase = eaDesc ? `EAo ${eaDesc}` : (_eaSinGrado ? 'estenosis' : null);
     /* La nota del fundamento de la IAo va pegada al grado: «insuficiencia severa (jet excéntrico,
@@ -50579,11 +50841,28 @@ function toggleValvPill(valvula, tipo) {
      gratis, porque restaura llamando a esta misma función.
      La ESTENOSIS no necesita companion: su cajón de grado final ES el `bloque-esten-*` que este
      toggle ya mostraba, movido entero de lugar. */
-  const gf = document.getElementById('gf-' + tipo + '-' + valvula);
-  if (gf) gf.style.display = activo ? 'none' : '';
+  /* ⚠️ EL BLOQUE DE GRADO FINAL YA NO LO ESCRIBE ESTA FUNCIÓN (2026-10-03, decisión de Maicol).
+     Acá estaba `if (gf) gf.style.display = activo ? 'none' : '';` más el `bloque.style.display` de
+     las dos ramas de abajo, o sea tres escrituras del MISMO estado con el botón como único dueño.
+     Desde esta tanda el dueño es `valvGradoVisSync`, que suma la otra mitad de la regla —«o hay
+     discrepancia que mostrar»—. Se la llama DENTRO de cada rama, exactamente donde estaba la
+     escritura que reemplaza, y no una sola vez al final.
+     ⚠️ ESE ORDEN NO ES COSMÉTICO Y MOVERLO AL FINAL ROMPIÓ DOS CASOS. Primera versión de esta
+     tanda: con la llamada al final, `sincronizarEMDesdeGlobal` —que corre tres líneas más abajo al
+     abrir la pastilla— leía `bloque-esten-mitral` todavía en `display:none` y se iba por su rama de
+     gate cerrado, así que los dos espejos de EM (`em_dtsvi`, `em_vtitsvi`) quedaban vacíos al abrir
+     Estenosis Mitral con el Doppler cargado. Lo marcaron TC-301 («em_dtsvi= — · em_vtitsvi= —») y
+     TC-390 (su denominador de pastillas abiertas), y el comentario de la rama de IM ya lo advertía
+     por escrito para su gemelo: «la sincronía se gatea por la visibilidad del bloque, y con el
+     orden invertido saldría por su return». El gate de `sincronizarEMDesdeGlobal` mira ese nodo a
+     propósito —lo dice su propio comentario— así que la visibilidad tiene que estar escrita antes.
+     Lo que SIGUE colgando del botón es la CUANTIFICACIÓN (`bloque-insuf-*` acá abajo y los
+     `bloque-<em|ea>-detalle`), que es lo correcto: el botón sigue abriendo el cajón de trabajo; lo
+     que dejó de hacer es decidir si el grado y su aviso se ven. */
   if (activo) {
     pill.classList.remove('btn-primary'); pill.classList.add('btn-ghost');
-    bloque.style.display = 'none';
+    if (tipo === 'insuf') bloque.style.display = 'none';
+    valvGradoVisSync(tipo, valvula);
     /* ⚠️ CERRAR EL CAJÓN DE LA AÓRTICA YA NO BORRA LA SEVERIDAD — DECISIÓN DE MAICOL (2026-10-02, R7).
        Lo que había acá era `valvSev.limpiar(tipo, valvula)`, que deja el `<select>` en
        `selectedIndex 0` —o sea `ea_grado = 'sin'`— y borra `esqSevManual`. Medido el 2026-10-02:
@@ -50631,7 +50910,8 @@ function toggleValvPill(valvula, tipo) {
     }
   } else {
     pill.classList.remove('btn-ghost'); pill.classList.add('btn-primary');
-    bloque.style.display = 'block';
+    if (tipo === 'insuf') bloque.style.display = 'block';
+    valvGradoVisSync(tipo, valvula);
     // Mostrar bloque detalle EM si corresponde
     if (valvula === 'mitral' && tipo === 'esten') {
       const det = document.getElementById('bloque-em-detalle');
@@ -50800,8 +51080,20 @@ window.valvSev = (function(){
     }
     el.dispatchEvent(new Event('change',{bubbles:true}));
     el.dispatchEvent(new Event('input',{bubbles:true}));
-    const pill = g('pill-' + tipo + '-' + valv);
-    if (pill && !pill.classList.contains('btn-primary')) toggleValvPill(valv, tipo);
+    /* ⚠️ «Sin» APAGA EL BOTÓN; CUALQUIER OTRO GRADO LO ENCIENDE (2026-10-03, decisión de Maicol).
+       Acá estaba sólo la mitad de encender —`if (pill && !pill.classList.contains('btn-primary'))
+       toggleValvPill(...)`—, así que elegir «Sin» en el menú lo dejaba prendido e incluso lo
+       ENCENDÍA si estaba apagado: el botón afirmaba «hay valvulopatía» justo cuando el médico
+       acababa de decir que no. Medido en las cuatro claves, con y sin cálculo (escenas SIN-*).
+       Las dos mitades se escriben por separado y las dos son idempotentes, porque el `change` que
+       se despachó arriba ya hizo correr el `onchange` del desplegable, que pide lo mismo. */
+    const esSin = (typeof sevEsSin === 'function') && sevEsSin(tipo, valor);
+    if (esSin) {
+      if (typeof sevSinApagaPastilla === 'function') sevSinApagaPastilla(tipo, valv, valor);
+    } else {
+      const pill = g('pill-' + tipo + '-' + valv);
+      if (pill && !pill.classList.contains('btn-primary')) toggleValvPill(valv, tipo);
+    }
     /* Para las claves registradas se pasa por `sevSincronizar`, que repinta la pastilla Y pinta el
        aviso rojo de discrepancia (R5). `refrescar` sola deja el aviso con el texto de la elección
        anterior, que es la clase de desfase que esta tanda vino a cerrar. */
@@ -90925,8 +91217,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261003-1117';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791037077178;                 /* eco-build-ms */
+const ECO_BUILD    = '20261003-1322';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791044526700;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -91012,7 +91304,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261003-1117</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261003-1322</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

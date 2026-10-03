@@ -46031,11 +46031,31 @@ caso('TC-376', 'La pastilla de severidad pinta MODERADA en naranja —distinta d
       ' ea_dtsvi=«' + severo.dtsvi + '»'],
     ['  y la insuficiencia con grado severo tambien',
       severo.insuf === true, 'insuf=' + severo.insuf],
+    /* ⚠ ACTUALIZADO EL 2026-10-03, Y LO QUE CAMBIO ES LA REGLA DE VISIBILIDAD, NO ESTE CASO.
+       Pedia que noReabre.cajon fuera 'none', o sea que el bloque de grado final quedara oculto con
+       la pastilla cerrada. Esta escena tiene AVA por continuidad ~0,73 cm2, asi que ea_grado vale
+       «severa» y el informe FIRMADO publica «estenosis severa»: desde la tanda de «Sin apaga el
+       boton», valvGradoVisSync deja ese bloque A LA VISTA cuando hay grado, justamente para que no
+       exista un grado publicado con su bloque invisible. Lo que este caso defiende —el permiso de
+       apertura automatica— no cambio y se sigue midiendo por la pastilla y por la clave de
+       localStorage. Lo que SI tiene que seguir oculto es la CUANTIFICACION (bloque-ea-detalle),
+       que sigue colgando solo del boton; se agrega como condicion porque antes no se miraba y era
+       la mitad que de verdad distinguia «cerrado» de «abierto».
+       El diagnostico ahora imprime cajon y detalle: la version anterior no los imprimia, asi que
+       el rojo decia «al reentrar esten=false» —que es correcto— y no se veia cual era la mitad que
+       fallaba.
+       SIN ACENTOS GRAVES: cuerpo de caso, un backtick cierra el template literal. */
     ['⚠️ si el medico lo CIERRA no se reabre al volver a entrar a la pestania',
       cerradoAMano.esten === false && cerradoAMano.ls === '0' &&
-      noReabre.esten === false && noReabre.cajon === 'none',
+      noReabre.esten === false && noReabre.detalle === 'none',
       'tras cerrar esten=' + cerradoAMano.esten + ' ls=' + cerradoAMano.ls +
-      ' · al reentrar esten=' + noReabre.esten],
+      ' · al reentrar esten=' + noReabre.esten + ' cajon=' + noReabre.cajon +
+      ' detalle=' + noReabre.detalle],
+    /* La otra cara, y es el invariante nuevo: con grado «severa» el bloque de grado final queda
+       VISIBLE aunque la pastilla este cerrada, porque el informe lo esta publicando. */
+    ['con un grado publicado, el bloque de grado final NO queda oculto con la pastilla cerrada',
+      noReabre.cajon !== 'none' && String(__t.val('ea_grado')) !== 'sin',
+      'cajon=' + noReabre.cajon + ' ea_grado=' + String(__t.val('ea_grado'))],
     ['con grado vacio no se abre nada',
       sinGrado.esten === false && sinGrado.insuf === false && sinGrado.ls === null,
       'esten=' + sinGrado.esten + ' insuf=' + sinGrado.insuf + ' ls=' + sinGrado.ls],
@@ -47108,6 +47128,13 @@ caso('TC-390', 'El informe de la mitral usa SOLO el grado final —el boton ya n
   mReset();
   const abiertoSinGrado = mFoto();
   const abiertoSinGradoMan = JSON.stringify(window.esqSevManual || {});
+  /* El denominador del estado 2 se toma ACA, antes de que la escena (1b) elija «Sin»: desde el
+     2026-10-03 «Sin» APAGA el boton, asi que medir las pastillas despues de (1b) mide el estado 3
+     y no el 2. Es el error que tenia este caso: una sola variable pills leida al final servia de
+     denominador para las dos escenas, y cuando «Sin» empezo a apagar dio «false/false» — un
+     denominador en rojo sobre un comportamiento correcto.
+     SIN ACENTOS GRAVES ACA: el cuerpo es un template literal y un backtick cierra la cadena. */
+  const pillsAbierto = String(mPillOn('insuf')) + '/' + String(mPillOn('esten'));
   /* ── (1b) ⚠ EL GEMELO QUE FALTABA, Y ES EL QUE SOSTIENE LA DISTINCION (2026-10-03) ──
      Los dos grados puestos en «Sin» A MANO. Es el estado 3, y es lo que la etapa 4b vino a
      cerrar: ahi la negacion del medico gana y el informe la publica. Sin esta escena, el caso
@@ -47117,7 +47144,7 @@ caso('TC-390', 'El informe de la mitral usa SOLO el grado final —el boton ya n
   valvSev.aplicar('esten','mitral','sin'); valvSev.aplicar('insuf','mitral','0');
   const sinAMano = mFoto();
   const sinAManoMan = JSON.stringify(window.esqSevManual || {});
-  const pills = String(mPillOn('insuf')) + '/' + String(mPillOn('esten'));
+  const pillsSin = String(mPillOn('insuf')) + '/' + String(mPillOn('esten'));
 
   /* ── (2) La nota de la IM entra entre parentesis TRAS el grado, y el EN SUMA no la lleva ── */
   mReset(); mSet('im_vc','8');
@@ -47154,7 +47181,14 @@ caso('TC-390', 'El informe de la mitral usa SOLO el grado final —el boton ya n
              ' · notaEM=' + JSON.stringify(notaEM) + ' · colado=' + JSON.stringify(pobladoSinDisc) +
              ' · conGrado=' + JSON.stringify(conGrado);
   return { extra: [
-    ['DENOMINADOR: los dos botones de la mitral estaban ABIERTOS al medir', pills === 'true/true', pills],
+    ['DENOMINADOR: los dos botones de la mitral estaban ABIERTOS al medir el estado 2',
+      pillsAbierto === 'true/true', pillsAbierto],
+    /* ⚠ Y EL ESTADO 3 TIENE EL DENOMINADOR DADO VUELTA, QUE ES EL CAMBIO DE ESTA TANDA: elegir
+       «Sin» apaga los dos botones. Sin esta condicion, el caso no distinguiria «el informe niega
+       porque el medico dijo Sin» de «el informe niega porque el boton estaba cerrado por otra
+       razon», que son los dos estados que TC-397 y TC-398 existen para separar. */
+    ['«Sin» elegido en los dos menus APAGA los dos botones de la mitral',
+      pillsSin === 'false/false', pillsSin],
 
     /* ⚠ ACTUALIZADO A PROPOSITO el 2026-10-03. Estas dos condiciones pineaban el comportamiento
        de 4b —«con los botones abiertos y sin grado el narrativo NIEGA las dos mitades»— y la
@@ -47930,14 +47964,18 @@ const SINGRADO_HELPERS = `
    DISTINGUIBLES. Por eso hay condiciones de desigualdad y no solo de contenido — con las tres
    frases pineadas a mano, un futuro que las volviera a unificar pasaria en verde si alguien
    actualizara una sola de las tres esperadas. */
-casoAbierto('TC-397', 'EAo: los cuatro estados se distinguen — grado / boton abierto sin grado / «Sin» a mano / cerrado y vacio',
-  'LA AORTICA QUEDA EN ESPERA (2026-10-03). El escalon «boton abierto y sin grado → con estenosis» esta escrito y APAGADO ' +
-  'en EA_ESCALON_SIN_GRADO, porque la premisa de la decision es falsa en esta valvula: sus dos <select> de grado pasan por ' +
-  '_gradoManoBorraMarca, que BORRA esqSevManual en vez de encenderla —regla «Aortica 3b», por escrito—. Medido en Chrome por ' +
-  'el camino real de la UI: «Sin estenosis» elegido en ea_grado con Vmax 4,1 y la pastilla abierta publicaba «con estenosis» ' +
-  'y «EAo.» en el informe FIRMADO, o sea reabria el defecto que la etapa 4b cerro. Instalar la señal que falta hace aparecer ' +
-  'tambien el aviso rojo R5 y el cajon de fundamento por ese camino, y eso es decision de Maicol. Cuando se decida: poner ' +
-  'EA_ESCALON_SIN_GRADO en true y promover este caso y TC-399 a caso().', `
+/* ✅ PROMOVIDO DE casoAbierto A caso (2026-10-03). Nacio como defecto abierto (⊘) porque el
+   escalon estaba escrito y APAGADO en EA_ESCALON_SIN_GRADO: la premisa de la decision de entonces
+   —«usa la marca manual que ya existe»— era falsa en esta valvula, porque sus dos <select> pasan
+   por _gradoManoBorraMarca, que BORRA esqSevManual en vez de encenderla (regla «Aortica 3b»).
+   Lo que lo cerro NO fue encender la marca. Decision de Maicol del 2026-10-03: «Sin» APAGA EL
+   BOTON, y por los DOS gestos —el menu ▼ y el desplegable de grado final—, asi que el estado 3
+   llega al emisor con la pastilla cerrada y la compuerta del escalon se cae por ahi. «Aortica 3b»
+   queda intacta: por el desplegable sigue sin aparecer el aviso rojo ni el cajon de fundamento.
+   Medido antes de encender (sonda _probe_sinapaga.mjs, escenas SEL-ea-sin y SEL-ia-sin): sin esa
+   linea, elegir «Sin estenosis» en el desplegable dejaba las tres mitades de la compuerta en
+   verdadero y el informe FIRMADO publicaba «con estenosis» y «EAo.». */
+caso('TC-397', 'EAo: los cuatro estados se distinguen — grado / boton abierto sin grado / «Sin» a mano / cerrado y vacio', `
   ${SINGRADO_HELPERS}
   const e1 = _escena({ g:[['ea_grado','moderada']], m:{ea:true}, p:[['aortica','esten',true]] });
   const e2 = _escena({ g:[['ea_grado','sin']],      m:{},        p:[['aortica','esten',true]] });
@@ -48082,17 +48120,32 @@ caso('TC-399', 'IAo abierta sin grado da «con insuficiencia» y «IAo.»; con l
     ['denominador: las cinco escenas escribieron su linea de valvula',
       L(a2.estandar,AO).length > 10 && L(a3.estandar,AO).length > 10 && L(mx.estandar,AO).length > 10 && L(mm.estandar,MI).length > 10 && L(md.estandar,AO).length > 10,
       L(a2.estandar,AO) + ' // ' + L(mm.estandar,MI)],
-    /* ⛔ LA AORTICA QUEDA EN ESPERA — ver el motivo completo en TC-397, que es el defecto abierto.
-       Mientras EA_ESCALON_SIN_GRADO este en false, los estados 2 y 3 de la IAo SIGUEN SIENDO
-       IGUALES y las dos niegan: es el comportamiento de 589f7bb, byte a byte. Este caso lo pinea
-       a proposito para que el dia que se enciendan no se enciendan SIN ENTERARSE — y entonces
-       TC-397 pasa a ▲ y estas dos condiciones se invierten junto con el. */
-    ['AORTICA EN ESPERA: la IAo con la pastilla abierta y sin grado sigue NEGANDO (como en 589f7bb)',
-      L(a2.estandar, AO).indexOf('sin estenosis ni insuficiencia') > -1 && a2.suma.indexOf('IAo') === -1,
-      L(a2.estandar, AO) + ' // ' + recorteJS(a2.suma)],
-    ['AORTICA EN ESPERA: y los estados 2 y 3 todavia se leen igual — el dia que se separen, TC-397 pasa a ▲',
-      a2.estandar === a3.estandar && a2.suma === a3.suma,
-      'se separaron: 2=«' + L(a2.estandar, AO) + '» 3=«' + L(a3.estandar, AO) + '»'],
+    /* ✅ LA AORTICA ENTRO (2026-10-03). Estas condiciones estaban INVERTIDAS a proposito: pineaban
+       el comportamiento de 589f7bb mientras EA_ESCALON_SIN_GRADO estaba en false, para que el
+       encendido no pasara sin enterarse. Se enciende en esta tanda y se invierten junto con TC-397,
+       que pasa de casoAbierto a caso. Lo que lo hizo seguro NO fue encender esqSevManual —«Aortica
+       3b» sigue intacta— sino que «Sin» APAGUE EL BOTON por los dos gestos, el menu y el
+       desplegable: ver el comentario de sevSinApagaPastilla, con la medicion. */
+    ['2 abierto · la IAo con la pastilla abierta y sin grado dice «con insuficiencia» y NO la niega',
+      L(a2.estandar, AO).indexOf('sin estenosis, con insuficiencia.') > -1 &&
+      L(a2.estandar, AO).indexOf('sin insuficiencia') === -1,
+      L(a2.estandar, AO)],
+    ['2 abierto · el EN SUMA lleva la sigla IAo. sola, sin palabra de grado',
+      a2.suma.indexOf('IAo.') > -1 && a2.suma.indexOf('Estudio sin alteraciones') === -1 &&
+      !/IAo (leve|moderada|severa)/i.test(a2.suma),
+      recorteJS(a2.suma)],
+    /* El 3 es «Sin» a mano CON la marca puesta: el escalon se cae por su SEGUNDA compuerta
+       (!_iaManualS), que se conserva justamente para los grados que llegan marcados —un estudio
+       importado, por ejemplo— y no por el estado del boton. */
+    ['3 «Sin» a mano · NIEGA la insuficiencia y el EN SUMA calla',
+      L(a3.estandar, AO).indexOf('sin estenosis ni insuficiencia') > -1 && a3.suma.indexOf('IAo') === -1,
+      L(a3.estandar, AO) + ' // ' + recorteJS(a3.suma)],
+    /* ⚠ EL INVARIANTE DE FONDO, igual que en TC-397: va como DESIGUALDAD y no como texto esperado,
+       para que una reunificacion futura no pueda pasar en verde cambiando de a una las frases
+       esperadas de arriba. Es exactamente lo que estaba roto antes de esta tanda. */
+    ['el estado 2 NO se lee igual que el 3 — los dos se separaron',
+      a2.estandar !== a3.estandar && a2.suma !== a3.suma,
+      'siguen identicos: 2=«' + L(a2.estandar, AO) + '» 3=«' + L(a3.estandar, AO) + '»'],
 
     ['aortica con las dos mitades: las DOS con su grado en el cuerpo',
       L(mx.estandar, AO).indexOf('con estenosis leve e insuficiencia leve.') > -1, L(mx.estandar, AO)],
@@ -48105,12 +48158,16 @@ caso('TC-399', 'IAo abierta sin grado da «con insuficiencia» y «IAo.»; con l
     ['la app NUNCA escribe «mixta» ni «mixto»',
       !/mixt[ao]/i.test(mx.conciso + mx.estandar + mx.narrativo + mx.suma + mm.conciso + mm.estandar + mm.narrativo + mm.suma),
       'aparecio: ' + recorteJS(mx.suma + ' / ' + mm.suma)],
-    /* Con la aortica en espera, la mitad SIN grado no aporta token y la oracion queda con el grado
-       solo. Lo que el caso defiende es que el grado de la OTRA mitad no se pierde. */
-    ['AORTICA EN ESPERA: con EAo moderada y la IAo abierta sin grado, sale el grado y nada mas',
-      L(md.estandar, AO).indexOf('con estenosis moderada, sin insuficiencia.') > -1, L(md.estandar, AO)],
-    ['y el EN SUMA lleva «EAo moderada.» sin inventar una linea de IAo',
-      md.suma.indexOf('EAo moderada.') > -1 && md.suma.indexOf('IAo') === -1, recorteJS(md.suma)],
+    /* El estado 1 y el estado 2 CONVIVIENDO en la misma valvula: la EAo con grado y la IAo abierta
+       sin grado ni marca. Con el escalon encendido la mitad sin grado aporta su token sin grado y
+       la oracion lleva las dos. Lo que el caso defiende es que el grado de la OTRA mitad no se
+       pierde al aparecer el token, y que la mitad sin grado no se lleva una palabra de grado
+       prestada de su vecina — que es el modo de falla de una oracion que une dos mitades. */
+    ['con EAo moderada y la IAo abierta sin grado, salen las dos: el grado y el token sin grado',
+      L(md.estandar, AO).indexOf('con estenosis moderada e insuficiencia.') > -1, L(md.estandar, AO)],
+    ['y el EN SUMA lleva «EAo moderada.» mas la sigla «IAo.» sin grado prestado',
+      md.suma.indexOf('EAo moderada.') > -1 && md.suma.indexOf('IAo.') > -1 &&
+      !/IAo (leve|moderada|severa)/i.test(md.suma), recorteJS(md.suma)],
   ] };
 `);
 
