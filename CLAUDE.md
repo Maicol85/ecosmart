@@ -207,8 +207,9 @@ impecable.
   panel de Evidencia, texto de IM secundaria con las dos guías, «Nuevo estudio» limpiando
   `_indClin`, los dos displays del THP fuera de banda, y el barrido de mutaciones (31 corridas,
   29 en rojo, 2 declaradas como rama inalcanzable).
-- Línea base medida, no de memoria: suite **351/352** (único rojo **TC-223**, el documentado, que
-  falla por la fecha) y Semgrep **125 / 0 ERROR**.
+- Línea base medida el 2026-10-03, no de memoria: suite **402/403** (único rojo **TC-223**, el
+  documentado, que falla por la fecha) y Semgrep **127 / 0 ERROR**. Los números viejos de este
+  archivo —351/352 y 125— estaban desactualizados: la suite creció y el conteo de Semgrep también.
 - **Qué sigue: `docs/PENDIENTES.md`** — pendientes de la etapa de cálculos (mitral), la válvula
   aórtica como próxima, el modo mínimo del visor de cineloop y las imágenes.
 
