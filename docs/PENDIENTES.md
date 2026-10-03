@@ -1,5 +1,57 @@
 # EcoSmart — pendientes vivos
 
+## ⛔ DECISIÓN PENDIENTE DE MAICOL — la aórtica y el estado «botón abierto, sin grado»
+
+De la tanda del 2026-10-03 (`c808e69`). La mitral quedó con los cuatro estados; la aórtica no,
+porque **la premisa del pedido es falsa en esa válvula**.
+
+**El hecho medido.** `ea_grado` e `ia_sev_final` pasan por `_gradoManoBorraMarca`, que **borra**
+`esqSevManual` en vez de encenderla — la regla «Aórtica 3b» lo dice por escrito en el código. En la
+mitral sí la encienden (`emGradoManual`, `imGradoManual`). Con el escalón encendido y por el camino
+real de la UI, «Sin estenosis» elegido en el desplegable con Vmax 4,1 y la pastilla abierta
+publicaba en el informe **FIRMADO**: narrativo «Válvula aórtica trivalva normal, con estenosis, sin
+insuficiencia (Vmax 4.1 m/s)» y EN SUMA «EAo.». Control negativo: el mismo grado por el menú ▼ —que
+sí marca— negaba correctamente. Y el `<select>` vive **dentro** del cajón que el botón abre, así que
+el gesto de responder «Sin» satisface las dos mitades de la condición.
+
+**Las dos salidas, para que elijas.**
+- **(a) Encender `esqSevManual` en `_gradoManoBorraMarca`.** Da simetría real con la mitral. Precio:
+  el aviso rojo R5 y el cajón de fundamento empiezan a aparecer también por ese camino —los tres
+  cuelgan de `sevDiscrepa`—, que es exactamente lo que «Aórtica 3b» excluyó por decisión.
+- **(b) Gatear el escalón por `sel.dataset.sugerido`** en vez de por la marca. No mueve el aviso ni
+  el cajón. Precio: hay que verificar que un formulario en blanco —donde nadie sugirió nada y el
+  atributo está ausente— no cuente como «el médico respondió Sin», o el escalón nunca corre.
+
+**Cómo se ejecuta la decisión.** Poner `EA_ESCALON_SIN_GRADO = true`, correr `TC-397` (hoy
+registrado como defecto abierto, ⊘) y `TC-399`, y promover TC-397 a `caso()`. La mutación **M20** de
+`scripts/_mut_singrado.py` ya verifica que encenderlo se detecta.
+
+### Lo demás que esa tanda reportó y no corrigió
+- **La tricúspide tiene el mismo mecanismo sin gatear**: `etPill` y `hayIT` leen `pillOn` y no
+  consultan `esqSevManual.et` / `.it`, que existen y se escriben. `et_grado` no tiene `onchange`
+  (no marca, no repinta), el menú ▼ no ofrece «Sin» para esa válvula, y **cerrar su cajón borra el
+  grado Y la marca**, así que cerrar y reabrir convierte una ET graduada en «Estenosis tricuspídea.»
+  sin grado. Además su EN SUMA dice la frase larga donde la mitral ahora dice la sigla.
+- **La pastilla es estado del navegador, no del estudio.** `toggleValvPill` la persiste en
+  `localStorage` y `limpiarCampos` la borra; no viaja con el estudio guardado. Desde esta tanda ese
+  estado decide texto del informe firmado: **el mismo estudio puede firmar «con estenosis» hoy y
+  «sin estenosis ni insuficiencia» al reabrirlo mañana**, y nada en el estudio explica la
+  diferencia.
+- **El discriminador es una ausencia**, que es el estado de fábrica de todo estudio legado (la marca
+  se persiste recién desde que existe el oculto `#sev_manual`). Hoy lo frenan `limpiarCampos`
+  borrando las claves `valv-pill-*` y `valvAutoAbrirCajones` abriendo sólo con grado leve o mayor;
+  las dos son frágiles frente a un clic.
+- **La tarjeta pre-PDF marca sólo `if (cambio)`**: confirmar «Sin estenosis» sin tocarlo no deja
+  marca. La tarjeta que existe para evitar el defecto podría producirlo.
+- **R6 (`sevSincronizar`) suelta la marca sola y en silencio**, y `eaGradoCalculado` sí emite
+  `'sin'`: el camino automático puede dejar grado `'sin'` sin marca y con la pastilla abierta.
+- **Las leves pulmonares perdieron la lista blanca de vocabulario** que el filtro
+  `/moderada|severa/` hacía de refilón. El día que `ip_grado` recupere «Fisiológica» o «Trivial»,
+  el EN SUMA firmado dirá «Insuficiencia pulmonar fisiológica.» como hallazgo de conclusión sin que
+  nadie toque `generarInforme`.
+
+---
+
 ## Etapa de cálculos (mitral)
 
 - El AVm por continuidad inválido (IAo moderada o severa) sigue alimentando `avmMax` y la

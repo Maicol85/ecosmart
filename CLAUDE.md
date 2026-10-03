@@ -201,27 +201,27 @@ impecable.
 
 ## Estado vigente
 
-- `main` en **`d2a4586`** (`a5877d2` → `01c3abf` → `d2a4586`, los tres pusheados a `origin/main`),
-  más los commits de la reorganización de documentación del 2026-10-01 (`df8cc60` y este).
-- **Cierre de la mitral: completo.** Tanda 3 terminada y verificada — AVm por continuidad en el
-  panel de Evidencia, texto de IM secundaria con las dos guías, «Nuevo estudio» limpiando
-  `_indClin`, los dos displays del THP fuera de banda, y el barrido de mutaciones (31 corridas,
-  29 en rojo, 2 declaradas como rama inalcanzable).
-- Línea base medida el 2026-10-03 **después de las etapas 3 y 4 de la mitral**: suite **408/409**
-  (único rojo **TC-223**, el documentado, que falla por la fecha) y Semgrep **127 / 0 ERROR**. Los
-  casos **TC-389 … TC-394** son de esta tanda. Los números viejos de este archivo —351/352 y 125, y
-  después 402/403— quedaron atrás: la suite crece en cada tanda, así que **antes de leer una tanda
-  de mutaciones hay que volver a medir la línea base**, no creerle a este renglón.
-- **Mitral: etapas 3 y 4 cerradas** (`5602597`, `57970a1`). Cajón «Fundamento del ajuste» de IM y
-  EM, informe que lee sólo el grado final (fallback `pillOn()` borrado), la nota entre paréntesis
-  sin pasar al EN SUMA, los cuatro rótulos de grado final iguales y «Severidad IM integrada» con la
-  ASE 2017. Lo reportado y NO corregido —la aórtica con los mismos dos defectos de la tarjeta
-  pre-PDF, las cinco diferencias con la ESC/EACTS 2025 y lo que falta en `FUENTES.md`— está en
-  `~/Desktop/APLICACIONES/CEIBO_SESSION.md`.
-- **Qué sigue: `docs/PENDIENTES.md`** — pendientes de la etapa de cálculos (mitral), la válvula
-  aórtica como próxima, el modo mínimo del visor de cineloop y las imágenes.
-
----
+- `main` local en **`c808e69`**, con **nueve commits sin pushear** (`origin/main` en `2e017a1`).
+  El clasificador de permisos del entorno bloquea `git push`: lo corre Maicol, no hay que rehacer
+  nada.
+- Línea base medida el **2026-10-03 después de la tanda de «valvulopatía sin grado»**: suite
+  **414/415** (único rojo **TC-223**, el documentado, que falla por la fecha) **más un defecto
+  abierto, TC-397 (⊘)**, y Semgrep **127 / 0 ERROR**. Los casos **TC-398 … TC-401** son de esta
+  tanda. Los números viejos de este archivo —351/352, 402/403, 408/409, 410/411— quedaron atrás:
+  la suite crece en cada tanda, así que **antes de leer una tanda de mutaciones hay que volver a
+  medir la línea base**, no creerle a este renglón.
+- **Mitral: cerrada.** Etapas 3 y 4 (`5602597`, `57970a1`) más los cuatro estados de «valvulopatía
+  consignada sin grado» (`c808e69`). Las ocho valvulopatías leves figuran en el EN SUMA y el
+  fundamento de la aórtica manda sus frases cortas al resumen.
+- **⛔ LA AÓRTICA ESPERA UNA DECISIÓN DE MAICOL.** El escalón «botón abierto y sin grado» está
+  escrito y **apagado** en `EA_ESCALON_SIN_GRADO = false`, porque sus dos `<select>` de grado pasan
+  por `_gradoManoBorraMarca`, que **borra** `esqSevManual` en vez de encenderla (regla «Aórtica
+  3b»). Medido: con el escalón encendido, elegir «Sin estenosis» en el desplegable publicaba «con
+  estenosis» en el informe FIRMADO. El detalle y las dos salidas están en `CEIBO_SESSION.md` y en
+  `docs/PENDIENTES.md`. **TC-397 es el defecto abierto que lo registra.**
+- Arneses temporales de esa tanda, versionados por si se retoma: `scripts/_probe_singrado.mjs` y
+  `scripts/_mut_singrado.py`.
+- **Qué sigue: `docs/PENDIENTES.md`.**
 
 ## Procedencia — dónde está el origen de cada regla
 
