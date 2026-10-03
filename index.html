@@ -19853,6 +19853,18 @@ function calcPSAP() {
     }
     return;
   }
+  /* ⚠️ v2 (2026-10-03, regla 9): cargar la velocidad de la IT PRENDE la IT en Válvulas y abre su
+     bloque. La VRT es evidencia de que hay insuficiencia tricuspídea (acá se usa para la PSAP, pero
+     su presencia también afirma la IT). Se respeta el APAGADO MANUAL: si el médico cerró la pastilla
+     a mano (clave de `localStorage` en '0'), no se reprende; sólo lo hace un gesto suyo. Idempotente:
+     si ya está prendida no toca nada. Borrar la VRT NO la apaga (regla 11: borrar un dato no retira). */
+  try {
+    if (typeof pillOn === 'function' && typeof toggleValvPill === 'function'
+        && !pillOn('tricuspide', 'insuf')
+        && localStorage.getItem('valv-pill-insuf-tricuspide') !== '0') {
+      toggleValvPill('tricuspide', 'insuf');
+    }
+  } catch (e) {}
   // Dato primario: gradiente VD-AD = 4 × VRT²
   const gradIT = 4 * vit * vit;
   if (gradDisp) gradDisp.value = gradIT.toFixed(0) + ' mmHg';
