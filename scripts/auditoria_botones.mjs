@@ -238,12 +238,24 @@ window.__A = {
       var s = document.getElementById('ete-seccion-' + tok);
       if (s && s.style.display === 'none') { try { toggleEteSeccion(tok); } catch(e) {} }
     });
+    /* La pulmonar tiene un pane ANIDADO: vp_vmax e ip_vmax viven en #vp-pane-med, que arranca
+       cerrado y que toggleEteSeccion NO abre. Sin esto el tipeo pulmonar no agarra —"nodo sin
+       geometria"— y las escenas ep/ip miden sobre un denominador CERO: salen "sin alteraciones"
+       y la app parece impecable. Se abren los DOS panes a la vez (son divs independientes) para
+       no perder la geometria de vp_morf, que vive en el otro. */
+    try { vpTab('med'); } catch(e) {}
+    var pm = document.getElementById('vp-pane-morf');
+    if (pm) pm.style.display = '';
     var t = document.getElementById('tab-valvulas');
     var ab = toks.filter(function(tok){
       var s = document.getElementById('ete-seccion-' + tok);
       return s && getComputedStyle(s).display !== 'none' });
+    var vis = function(id){ var e = document.getElementById(id);
+      return !!e && getComputedStyle(e).display !== 'none' };
+    var panes = vis('vp-pane-med') && vis('vp-pane-morf');
     return { tab: !!t && getComputedStyle(t).display !== 'none', secciones: ab.length,
-             ok: !!t && getComputedStyle(t).display !== 'none' && ab.length === 4 } },
+             panesVP: panes,
+             ok: !!t && getComputedStyle(t).display !== 'none' && ab.length === 4 && panes } },
 
   /* «Nuevo estudio» de verdad, mas el reseteo de la memoria de proceso y de las claves de
      localStorage de las pastillas — que NO viajan con el estudio y contaminan la escena siguiente. */
