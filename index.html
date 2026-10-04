@@ -51103,6 +51103,27 @@ document.addEventListener('DOMContentLoaded', function(){
   try{ eteInclSync(); }catch(e){}
 });
 
+/* ══ APAGAR EL BOTÓN = «ELEGIR Sin», CON AVISO SI DISCREPA (E5b-0, 2026-10-03, regla 8) ══════════
+   Para una válvula REGISTRADA, apagar reusa el MISMO emisor que usaba el gesto «Sin» del menú en la
+   versión publicada —`valvSev.aplicar(tipo, valv, centinela)`—: marca la elección del médico, toma
+   la foto del grado calculado, escribe el centinela y corre `sevSincronizar`, que pinta el aviso
+   rojo «Sin X (ajuste manual) · cálculo automático: …» y el cajón de fundamento SÓLO si el cálculo
+   indica otra cosa. El botón ya quedó apagado antes de llamar acá, así que la rama «Sin apaga» de
+   `aplicar` es no-op (no re-prende ni recursa). Para una clave SIN cálculo contra el cual discrepar
+   (estenosis tricuspídea, insuficiencia pulmonar: no están en `SEV_SINC`) se borra en silencio con
+   `limpiar`, como antes — «sólo vale para las que tienen cálculo» (decisión de Maicol). */
+function valvApagarGrado(tipo, valvula) {
+  if (!window.valvSev) return;
+  const clave = (typeof sevClaveDe === 'function') ? sevClaveDe(tipo, valvula) : null;
+  const sent = (typeof SEV_TOKEN_SIN !== 'undefined') ? SEV_TOKEN_SIN[tipo] : null;
+  if (clave && typeof SEV_SINC !== 'undefined' && SEV_SINC[clave] && sent != null) {
+    window.valvSev.aplicar(tipo, valvula, sent);
+  } else {
+    window.valvSev.limpiar(tipo, valvula);
+  }
+}
+window.valvApagarGrado = valvApagarGrado;
+
 function toggleValvPill(valvula, tipo) {
   const pill = document.getElementById('pill-' + tipo + '-' + valvula);
   const bloque = document.getElementById('bloque-' + tipo + '-' + valvula);
@@ -51166,14 +51187,16 @@ function toggleValvPill(valvula, tipo) {
        silenciar a `emCategoria()`. Un grado MÁS GRAVE que el firmado, producido por cerrar un
        cajón de interfaz. El hermano en la IM era más leve pero de la misma familia: cerrar y
        reabrir reemplazaba el «Moderada» del médico por el «Severa» calculado. */
-    /* ⚠️ v2 (2026-10-03, regla 7): APAGAR DESCARTA EL GRADO MANUAL Y EL FUNDAMENTO, en las CUATRO
-       válvulas. REVIERTE la decisión de la tanda anterior («cerrar conserva el grado», que sólo
-       dejaba limpiar a la tricúspide): ahora botón apagado = no hay valvulopatía, así que el grado y
-       el motivo escritos se descartan sin ventana. `limpiar` resetea el <select> al centinela de «no
-       hay», borra `esqSevManual` y la foto, repinta la pastilla y —para las claves registradas—
-       vuelve a correr `sevSincronizar` (que decide el aviso/cajón por discrepancia si el cálculo
-       indica otra cosa). Los datos numéricos (Doppler, cuantificación) NO se tocan. */
-    if (window.valvSev) window.valvSev.limpiar(tipo, valvula);
+    /* ⚠️ v2 (E5b-0, 2026-10-03, decisión de Maicol — regla 8 TAL COMO ESTÁ ESCRITA): APAGAR borra el
+       grado y el fundamento, PERO deja la marca de elección del médico, así que «si el cálculo indica
+       otra cosa, aviso rojo y cajón» (regla 8, 2ª mitad) — con el botón apagado. Es el gesto «Sin»
+       que la versión publicada ofrecía en el menú ▼, ahora disparado por el botón, SIN reponer «Sin»
+       en el menú. Lo hace `valvApagarGrado`: para una clave registrada reusa `valvSev.aplicar(…,
+       centinela)` —el mismo emisor que usaba el menú— que marca, toma la foto del calculado, escribe
+       el centinela y corre `sevSincronizar` (aviso/cajón si discrepa). Para una clave SIN cálculo
+       (estenosis tricuspídea, insuficiencia pulmonar) borra en silencio con `limpiar`, como antes.
+       REVIERTE el «silencioso» que E2a había puesto por error. Los datos numéricos NO se tocan. */
+    valvApagarGrado(tipo, valvula);
     // Ocultar bloque detalle EM si corresponde
     if (valvula === 'mitral' && tipo === 'esten') {
       const det = document.getElementById('bloque-em-detalle');
@@ -91520,8 +91543,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261003-2119';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791073141201;                 /* eco-build-ms */
+const ECO_BUILD    = '20261003-2324';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791080675339;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -91607,7 +91630,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261003-2119</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261003-2324</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
