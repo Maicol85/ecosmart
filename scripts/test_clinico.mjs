@@ -49079,11 +49079,228 @@ caso('TC-411', 'Tricuspide: narrativo de UNA oracion («Valvula tricuspide de mo
   ] };
 `);
 
-/* TC-412 — PULMONAR NARRATIVO DE UNA ORACION (E5b-4, decision de Maicol, 2026-10-04). Con morfologia
-   normal y al menos una lesion, la EP y la IP se dicen en UNA oracion como la mitral: «Valvula
-   pulmonar de morfologia normal, con estenosis X e insuficiencia Y.». «Mixta» no se escribe sola.
+/* TC-413 — LA FUGA DE `localStorage` DE LA PULMONAR (P1, 2026-10-04). `cargarValvPills` restauraba
+   las OCHO pastillas desde `valv-pill-<tipo>-<valvula>` —la pulmonar entro en E5— pero el barrido
+   de `limpiarCampos` solo borraba SEIS claves: la tupla estaba escrita dos veces y se
+   desincronizo. Las dos de la pulmonar sobrevivian a «Nuevo estudio», en dos direcciones:
+     · clave en '0' -> `valvAutoPrenderEsten` sale por su `guardado !== null` PARA SIEMPRE, asi que
+       cargar Vmax 4 dejaba `ep_grado='Moderada'` con el boton APAGADO (el sintoma que reporto
+       Maicol, y que no caduca);
+     · clave en '1' -> `cargarValvPills` prendia las dos pastillas sobre un estudio VACIO y el
+       informe FIRMADO del paciente siguiente decia «con estenosis e insuficiencia» con el EN SUMA
+       «EP presente. / IP presente.» sin un solo dato pulmonar cargado.
+   Hoy la tupla es `VALV_PILL_VALVS`, una sola, usada por el que borra y por el que restaura.
+   El control negativo es la MITRAL, que ya se limpiaba bien: distingue «se arreglo la pulmonar» de
+   «el barrido dejo de correr». ⚠️ SIN ACENTOS GRAVES. */
+caso('TC-413', 'Pulmonar: las claves valv-pill-* NO sobreviven a «Nuevo estudio» (ni apagan el auto-prendido ni afirman una valvulopatia sobre un estudio vacio)', `
+  ${APAGA_HELPERS}
+  const clave = function (t, v) { try { return localStorage.getItem('valv-pill-' + t + '-' + v); } catch (e) { return 'EXC'; } };
+  const limpioTotal = function () {
+    __t.nuevoEstudio();
+    ['aortica','mitral','tricuspide','pulmonar'].forEach(function (v) {
+      ['esten','insuf'].forEach(function (t) {
+        try { localStorage.removeItem('valv-pill-' + t + '-' + v); } catch (e) {}
+        if (aOn(v, t)) toggleValvPill(v, t); }); });
+    window.esqSevManual = {};
+    aDen(); };
+
+  /* (a) el medico apaga la pastilla a mano -> clave en '0'; «Nuevo estudio» tiene que borrarla. */
+  limpioTotal();
+  toggleValvPill('pulmonar','esten'); toggleValvPill('pulmonar','esten');
+  const tras0 = clave('esten','pulmonar');
+  __t.nuevoEstudio();
+  const borrada0 = clave('esten','pulmonar');
+  aDen();
+  __t.set('vp_vmax', '4');
+  const a = { pill: aOn('pulmonar','esten'), sel: __t.val('ep_grado'), past: aTxt('sevbtn-esten-pulmonar') };
+
+  /* (b) la app prendio la pastilla por el dato -> clave en '1'; «Nuevo estudio» + la restauracion
+     real NO tienen que reponerla sobre un estudio vacio. */
+  limpioTotal();
+  __t.set('vp_vmax', '4.5');
+  const tras1 = clave('esten','pulmonar');
+  __t.nuevoEstudio();
+  const borrada1 = clave('esten','pulmonar');
+  cargarValvPills();
+  aDen();
+  const b = { pillE: aOn('pulmonar','esten'), pillI: aOn('pulmonar','insuf'), r: __t.informe() };
+
+  /* (c) CONTROL NEGATIVO: la mitral por el mismo camino ya funcionaba y tiene que seguir igual. */
+  limpioTotal();
+  toggleValvPill('mitral','esten'); toggleValvPill('mitral','esten');
+  __t.nuevoEstudio();
+  aDen();
+  __t.set('avm_plan', '1.2');
+  const c = { pill: aOn('mitral','esten'), sel: __t.val('em_grado'), clave: clave('esten','mitral') };
+
+  /* (d) censo directo de las OCHO claves despues de «Nuevo estudio». */
+  limpioTotal();
+  __t.set('vp_vmax','4.5'); __t.set('ip_vmax','3'); __t.set('avm_plan','1.2'); __t.set('vmax_ao','4.2');
+  __t.nuevoEstudio();
+  const vivas = [];
+  ['aortica','mitral','tricuspide','pulmonar'].forEach(function (v) {
+    ['esten','insuf'].forEach(function (t) { if (clave(t, v) !== null) vivas.push(t + '-' + v); }); });
+
+  return { extra: [
+    ['DENOMINADOR (a): el gesto a mano dejo la clave en 0', tras0 === '0', 'clave=' + String(tras0)],
+    ['(a) «Nuevo estudio» BORRA la clave de la pulmonar', borrada0 === null, 'clave=' + String(borrada0)],
+    ['(a) y por eso la Vmax vuelve a PRENDER el boton, con su grado',
+      a.pill === true && a.sel === 'Moderada', 'pill=' + a.pill + ' sel=' + a.sel + ' past=' + a.past],
+    ['DENOMINADOR (b): el dato habia dejado la clave en 1', tras1 === '1', 'clave=' + String(tras1)],
+    ['(b) «Nuevo estudio» la borra y la restauracion NO prende nada',
+      borrada1 === null && b.pillE === false && b.pillI === false,
+      'clave=' + String(borrada1) + ' pillE=' + b.pillE + ' pillI=' + b.pillI],
+    ['(b) el informe de un estudio vacio NO afirma estenosis ni insuficiencia pulmonar',
+      b.r.inf.indexOf('con estenosis') === -1 && b.r.inf.indexOf('con insuficiencia') === -1 &&
+      b.r.inf.indexOf('Válvula pulmonar normal') > -1, recorteJS(b.r.inf)],
+    ['(b) y el EN SUMA tampoco: ni «EP presente.» ni «IP presente.»',
+      b.r.suma.indexOf('EP presente.') === -1 && b.r.suma.indexOf('IP presente.') === -1,
+      recorteJS(b.r.suma)],
+    ['CONTROL NEGATIVO (c): la mitral sigue auto-prendiendose igual',
+      c.pill === true && c.sel === 'severa' && c.clave === '1',
+      'pill=' + c.pill + ' sel=' + c.sel + ' clave=' + String(c.clave)],
+    ['(d) ninguna de las OCHO claves sobrevive a «Nuevo estudio»',
+      vivas.length === 0, 'vivas=' + (vivas.join(',') || '(ninguna)')],
+  ] };
+`);
+
+/* TC-414 — LA ORACION UNICA DE LA PULMONAR EN EL ESTANDAR, CON MEDICIONES (P5, decision de Maicol,
+   2026-10-04). E5b-4 dejo la oracion unica acotada a «sin mediciones» y declaro que meter los
+   numeros adentro era otra decision de wording del informe firmado. Esta es esa decision.
+   Lo que el caso fija, todo aprobado por Maicol:
+     · la MORFOLOGIA abre la oracion y las frases van adentro (la morfologia no desaparece);
+     · las presiones cuelgan de la insuficiencia como «que permite estimar PAPm de X mmHg y PAPd de
+       Y mmHg», con las siglas PAPm/PAPd —las de la pantalla del Doppler—, y SOLO si estan
+       calculadas (sin PmAD no se publican: 4*V2 es el gradiente, no la presion);
+     · la frase «Para estimar las presiones pulmonares … falta la PmAD» se FUE del estandar;
+     · con el grado ajustado a mano los dos valores van con « y » y el motivo cuelga como
+       «, pero con <nota>»; con el grado automatico, con coma y sin motivo;
+     · la lesion va SIN el adjetivo «pulmonar» cuando la oracion abre con «Valvula pulmonar», y CON
+       el adjetivo cuando abre con «Se observa» (morfologia «No especificada», que no tiene sujeto).
+   ⚠️ EL CONTROL NEGATIVO ES EL CONCISO Y EL NARRATIVO: siguen diciendo «PAP media», siguen
+   emitiendo DOS oraciones y siguen trayendo la frase de la PmAD. Sin esa mitad, el caso no
+   distingue «se cambio el estandar» de «se cambiaron los tres estilos». ⚠️ SIN ACENTOS GRAVES. */
+caso('TC-414', 'Pulmonar: UNA oracion en el estandar con las mediciones adentro (PAPm/PAPd, nota del ajuste, morfologia que abre) y el conciso/narrativo intactos', `
+  ${APAGA_HELPERS}
+  const base = function () {
+    __t.nuevoEstudio();
+    ['esten','insuf'].forEach(function (t) {
+      try { localStorage.removeItem('valv-pill-' + t + '-pulmonar'); } catch (e) {}
+      if (aOn('pulmonar', t)) toggleValvPill('pulmonar', t); });
+    window.esqSevManual = {};
+    __t.set('nombre','TC414');
+    aDen(); };
+  const vpLinea = function () {
+    const r = __t.informe();
+    /* ⚠️ EL FILTRO ACEPTA SIGLAS. El conciso escribe «IP leve (PAP media 41 mmHg).» —sin la palabra
+       «pulmonar» y sin «VP»—, asi que un filtro por el nombre largo la da por inexistente y el
+       control negativo mide UNA oracion donde hay DOS. Es exactamente la trampa que
+       docs/decisiones/valvulas-botones.md §7 documenta del analizador de aquella auditoria. */
+    const ls = (r.inf || '').split(String.fromCharCode(10)).filter(function (l) {
+      return /pulmonar|^VP |^IP |^EP |Se observa (insuficiencia|estenosis)/i.test(l); });
+    return { vp: ls.join(' | '), n: ls.length, suma: r.suma }; };
+  const estilo = function (e) { try { setEstiloInforme(e); } catch (x) {} };
+
+  /* (1) morfologia normal + IP con las dos presiones + EP por el dato: UNA oracion. */
+  base();
+  __t.set('pmad','5'); __t.set('ip_vmax','3'); __t.set('ip_vtd','2'); __t.set('ip_grado','Leve');
+  __t.set('vp_vmax','4');
+  const c1 = vpLinea();
+
+  /* (2) una sola presion calculable (sin la telediastolica). */
+  base();
+  __t.set('pmad','5'); __t.set('ip_vmax','3'); __t.set('ip_grado','Leve');
+  const c2 = vpLinea();
+
+  /* (3) velocidades SIN PmAD: no se publica ninguna presion, y la frase de la PmAD no vuelve. */
+  base();
+  __t.set('ip_vmax','3'); __t.set('ip_grado','Leve');
+  const c3 = vpLinea();
+
+  /* (4) grado ajustado a mano CON nota: « y » entre los valores y el motivo al informe. */
+  base();
+  __t.set('vp_vmax','4'); __t.set('ep_grado','Severa'); __t.set('ep_fund_nota','ventana suboptima');
+  const c4aviso = aTxt('ep-manual-aviso'), c4cajon = aVis('ep-fund'), c4avisoVis = aVis('ep-manual-aviso');
+  const c4 = vpLinea();
+
+  /* (5) el mismo ajuste SIN nota: sin «pero» y sin motivo. */
+  base();
+  __t.set('vp_vmax','4'); __t.set('ep_grado','Severa');
+  const c5 = vpLinea();
+
+  /* (6) morfologia ANORMAL: abre con la morfologia y la lesion va sin adjetivo. */
+  base();
+  __t.set('vp_morf','Carcinoide'); __t.set('vp_vmax','4.5');
+  const c6 = vpLinea();
+
+  /* (7) morfologia «No especificada» (el valor al que MIGRAN los estudios viejos): «Se observa»,
+     y ahi la lesion SI lleva «pulmonar» porque la oracion no tiene sujeto. */
+  base();
+  __t.set('vp_morf','No especificada'); __t.set('vp_vmax','4');
+  const c7 = vpLinea();
+
+  /* (8) CONTROL NEGATIVO: la MISMA escena de (1) en conciso y en narrativo, intactos. */
+  base();
+  __t.set('pmad','5'); __t.set('ip_vmax','3'); __t.set('ip_vtd','2'); __t.set('ip_grado','Leve');
+  __t.set('vp_vmax','4');
+  estilo('conciso');   const cCon = vpLinea();
+  estilo('narrativo'); const cNar = vpLinea();
+  estilo('estandar');
+
+  return { extra: [
+    ['DENOMINADOR: las 7 escenas del estandar escribieron linea de pulmonar',
+      [c1,c2,c3,c4,c5,c6,c7].every(function (c) { return c.vp.indexOf('pulmonar') > -1; }),
+      c1.vp + ' /// ' + c7.vp],
+    ['1 UNA sola oracion, con las dos presiones y PAPm/PAPd',
+      c1.vp === 'Válvula pulmonar de morfología normal, con insuficiencia leve, que permite estimar PAPm de 41 mmHg y PAPd de 21 mmHg, y estenosis moderada (Vmax 4 m/s, Gmax 64 mmHg).',
+      c1.vp],
+    ['1 y es UNA linea, no dos (la IP no repite frase aparte)', c1.n === 1, 'n=' + c1.n],
+    ['2 con una sola presion calculable va solo esa',
+      c2.vp.indexOf('que permite estimar PAPm de 41 mmHg.') > -1 && c2.vp.indexOf('PAPd') === -1, c2.vp],
+    ['3 sin PmAD NO se publica presion, y la frase «falta la PmAD» NO vuelve',
+      c3.vp.indexOf('PAPm') === -1 && c3.vp.indexOf('PAPd') === -1 &&
+      c3.vp.indexOf('falta la PmAD') === -1 &&
+      c3.vp.indexOf('Válvula pulmonar de morfología normal, con insuficiencia leve.') > -1, c3.vp],
+    ['4 ajuste a mano CON nota: « y » entre los valores y «, pero con <nota>»',
+      c4.vp.indexOf('con estenosis severa (Vmax 4 m/s y Gmax 64 mmHg, pero con ventana suboptima).') > -1, c4.vp],
+    ['4 y el aviso rojo y el cajon estan VISIBLES, que es la misma senal que usa el informe',
+      /ajuste manual/i.test(c4aviso) && c4cajon === true && c4avisoVis === true,
+      'aviso=' + c4aviso + ' cajon=' + c4cajon + ' avisoVis=' + c4avisoVis],
+    ['5 el mismo ajuste SIN nota: sin «pero» y sin motivo',
+      c5.vp.indexOf('con estenosis severa (Vmax 4 m/s y Gmax 64 mmHg).') > -1 &&
+      c5.vp.indexOf('pero con') === -1, c5.vp],
+    ['6 morfologia anormal abre la oracion y la lesion va sin adjetivo',
+      c6.vp.indexOf('Válvula pulmonar con afectación carcinoide y estenosis severa (Vmax 4.5 m/s, Gmax 81 mmHg).') > -1 &&
+      c6.vp.indexOf('estenosis pulmonar') === -1, c6.vp],
+    ['7 «No especificada» → «Se observa estenosis pulmonar …», CON adjetivo y sin afirmar forma',
+      c7.vp.indexOf('Se observa estenosis pulmonar moderada (Vmax 4 m/s, Gmax 64 mmHg).') > -1 &&
+      c7.vp.indexOf('morfología normal') === -1, c7.vp],
+    ['el EN SUMA sigue en siglas y no cambia (P6)',
+      c1.suma.indexOf('EP moderada.') > -1 && c1.suma.indexOf('IP leve.') > -1 &&
+      c6.suma.indexOf('EP severa.') > -1, recorteJS(c1.suma) + ' /// ' + recorteJS(c6.suma)],
+    ['CONTROL NEGATIVO: el CONCISO sigue con «PAP media» y en DOS oraciones',
+      cCon.vp.indexOf('PAP media') > -1 && cCon.vp.indexOf('PAPm') === -1 && cCon.n === 2,
+      'n=' + cCon.n + ' // ' + cCon.vp],
+    ['CONTROL NEGATIVO: el NARRATIVO sigue con «PAP media» y en DOS oraciones',
+      cNar.vp.indexOf('PAP media') > -1 && cNar.vp.indexOf('PAPm') === -1 && cNar.n === 2,
+      'n=' + cNar.n + ' // ' + cNar.vp],
+  ] };
+`);
+
+/* TC-412 — PULMONAR NARRATIVO DE UNA ORACION. Con morfologia normal y al menos una lesion, la EP y
+   la IP se dicen en UNA oracion como la mitral. «Mixta» no se escribe sola.
+   ⚠️ CONTRATO ACTUALIZADO (P5, decision de Maicol, 2026-10-04). Antes era «con estenosis X e
+   insuficiencia Y.»; ahora la INSUFICIENCIA va primero y el nexo es « y »:
+   «Valvula pulmonar de morfologia normal, con insuficiencia Y y estenosis X.»
+   Dos cambios, los dos aprobados por Maicol:
+     · el ORDEN se invirtio (los ejemplos de P5 ponen la insuficiencia adelante);
+     · el nexo pasa de « e » a « y » PORQUE el segundo termino cambio: « e » va ante i-/hi-, y
+       «estenosis» empieza con e-. Con el orden viejo «e insuficiencia» era correcto; dado vuelta,
+       lo correcto es «y estenosis».
+   La lesion va SIN el adjetivo «pulmonar» cuando la oracion ya abre con «Valvula pulmonar»
+   (decision de Maicol: con el adjetivo el informe firmado decia «pulmonar» tres veces).
    Acotado a SIN mediciones (las 6 combinaciones de grado no las tienen). ⚠️ SIN ACENTOS GRAVES. */
-caso('TC-412', 'Pulmonar: narrativo de UNA oracion («Valvula pulmonar de morfologia normal, con estenosis X e insuficiencia Y.»), «Mixta» nunca sola — 6 combinaciones de grado', `
+caso('TC-412', 'Pulmonar: narrativo de UNA oracion («Valvula pulmonar de morfologia normal, con insuficiencia Y y estenosis X.»), «Mixta» nunca sola — 6 combinaciones de grado', `
   ${APAGA_HELPERS}
   const base = function(){
     __t.nuevoEstudio();
@@ -49115,14 +49332,14 @@ caso('TC-412', 'Pulmonar: narrativo de UNA oracion («Valvula pulmonar de morfol
       c1.vp.indexOf('Válvula pulmonar de morfología normal, con estenosis leve.') > -1 && c1.vp.indexOf('insuficiencia') === -1, c1.vp],
     ['2 solo insuficiencia → «con insuficiencia leve.» sin «estenosis»',
       c2.vp.indexOf('Válvula pulmonar de morfología normal, con insuficiencia leve.') > -1 && c2.vp.indexOf('estenosis') === -1, c2.vp],
-    ['3 ambas mismo grado → «con estenosis leve e insuficiencia leve.» (wording exacto)',
-      c3.vp.indexOf('Válvula pulmonar de morfología normal, con estenosis leve e insuficiencia leve.') > -1, c3.vp],
-    ['4 grados distintos → «con estenosis leve e insuficiencia severa.»',
-      c4.vp.indexOf('con estenosis leve e insuficiencia severa.') > -1, c4.vp],
-    ['5 est grado + insuf PRESENTE → «con estenosis leve e insuficiencia.» y EN SUMA «IP presente.»',
-      c5.vp.indexOf('con estenosis leve e insuficiencia.') > -1 && c5.suma.indexOf('IP presente.') > -1, c5.vp + ' // ' + recorteJS(c5.suma)],
-    ['6 ambas PRESENTE → «con estenosis e insuficiencia.» y EN SUMA «EP presente.»/«IP presente.»',
-      c6.vp.indexOf('con estenosis e insuficiencia.') > -1 && c6.suma.indexOf('EP presente.') > -1 && c6.suma.indexOf('IP presente.') > -1, c6.vp + ' // ' + recorteJS(c6.suma)],
+    ['3 ambas mismo grado → «con insuficiencia leve y estenosis leve.» (wording exacto)',
+      c3.vp.indexOf('Válvula pulmonar de morfología normal, con insuficiencia leve y estenosis leve.') > -1, c3.vp],
+    ['4 grados distintos → «con insuficiencia severa y estenosis leve.»',
+      c4.vp.indexOf('con insuficiencia severa y estenosis leve.') > -1, c4.vp],
+    ['5 est grado + insuf PRESENTE → «con insuficiencia y estenosis leve.» y EN SUMA «IP presente.»',
+      c5.vp.indexOf('con insuficiencia y estenosis leve.') > -1 && c5.suma.indexOf('IP presente.') > -1, c5.vp + ' // ' + recorteJS(c5.suma)],
+    ['6 ambas PRESENTE → «con insuficiencia y estenosis.» y EN SUMA «EP presente.»/«IP presente.»',
+      c6.vp.indexOf('con insuficiencia y estenosis.') > -1 && c6.suma.indexOf('EP presente.') > -1 && c6.suma.indexOf('IP presente.') > -1, c6.vp + ' // ' + recorteJS(c6.suma)],
     ['«Mixta» no aparece sola en ninguna de las 6', sinMixta === true, 'sinMixta='+sinMixta],
     ['UNA sola oracion de pulmonar (ni «Insuficiencia pulmonar» separada ni dos «Válvula pulmonar»)', unaOracion === true, c3.vp],
   ] };

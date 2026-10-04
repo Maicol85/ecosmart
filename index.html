@@ -1178,6 +1178,27 @@
   #pltz-grid .pltz-desc { font-size: 9px; color: var(--text2); line-height: 1.25; margin-top: 1px; }
   @media (max-width: 768px) { #pltz-grid { grid-template-columns: repeat(2, 1fr); } }
 
+  /* ══ PULMONAR — LAS DOS LESIONES, CADA UNA DEBAJO DE SU BOTÓN (P4, 2026-10-04) ══════════════
+     Decisión de Maicol: insuficiencia a la izquierda y estenosis a la derecha, en el mismo orden
+     que la fila de botones (que NO se toca), y apiladas por debajo de 768 px — el punto de corte
+     que ya usa toda la app.
+     ⚠️ LA COLUMNA VA FIJADA A MANO (`grid-column`), NO POR AUTO-PLACEMENT. Los dos bloques se
+     muestran y se ocultan por separado (`toggleValvPill` / `valvGradoVisSync`), y un hijo en
+     `display:none` NO es un ítem de grid: con colocación automática, al estar cerrada la
+     insuficiencia la estenosis se corría a la columna IZQUIERDA y quedaba debajo del botón de la
+     OTRA lesión, que es justamente lo que esta maquetación viene a arreglar.
+     ⚠️ Y POR ESO EL MEDIA QUERY TIENE QUE DEVOLVERLAS A LA COLUMNA 1: `grid-column:2` sobre una
+     grilla de una sola columna no se ignora, CREA una segunda columna implícita, así que sin esta
+     mitad el celular mostraba dos columnas igual y la de la izquierda vacía.
+     `align-items:start` para que el bloque corto no se estire al alto del largo. */
+  #vp-lesiones { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+  #vp-lesiones > #bloque-insuf-pulmonar { grid-column: 1; }
+  #vp-lesiones > #bloque-esten-pulmonar { grid-column: 2; }
+  @media (max-width: 768px) {
+    #vp-lesiones { grid-template-columns: 1fr; }
+    #vp-lesiones > #bloque-insuf-pulmonar,
+    #vp-lesiones > #bloque-esten-pulmonar { grid-column: 1; }
+  }
   /* ══ RESPONSIVE ══ */
   @media (max-width: 768px) {
     .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
@@ -4534,63 +4555,19 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
       </div>
       <div class="sev-pills" id="sevpills-pulmonar"></div>
-      <!-- `bloque-esten-pulmonar`: su visibilidad la gobierna `valvGradoVisSync('esten','pulmonar')`
-           (vía `sevSincronizar('ep')`), igual que `bloque-esten-mitral`/`-aortica`: se ve con el
-           botón abierto O con grado O con discrepancia. `bloque-ep-detalle` adentro (nivel/etiología)
-           lo sigue mostrando `vpSync` sólo con estenosis consignada. -->
-      <div id="bloque-esten-pulmonar" style="display:none;">
-      <div class="fg"><label>Estenosis pulmonar</label>
-        <select id="ep_grado" onchange="epGradoManual()">
-          <option value="sin">&mdash; grado &mdash;</option>
-          <option>Leve</option>
-          <option>Moderada</option>
-          <option>Moderada-severa</option>
-          <option>Severa</option>
-        </select>
-        <div id="vp-sev-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
-        <!-- v2 (E2c): aviso de discrepancia + cajón de la EP, hermanos de los de la mitral y
-             gobernados por el MISMO `sevSincronizar` (clave `ep`). Sólo se ven con grado manual que
-             discrepa del autogrado de `calcVP`. -->
-        <div id="ep-manual-aviso" style="font-size:11px;font-weight:700;color:var(--red);margin-top:4px;"></div>
-        <div id="ep-fund" class="valv-fund-box" style="display:none;background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;">
-          <div class="valv-fund-tit" style="font-weight:700;color:var(--accent2);">Fundamento del ajuste</div>
-          <label for="ep_fund_nota" style="display:block;font-weight:400;color:var(--text2);margin:0 0 2px;">Motivo del ajuste (opcional)</label>
-          <input type="text" id="ep_fund_nota" maxlength="100" placeholder="Ej.: gradiente dudoso, ventana sub&oacute;ptima" style="width:100%;">
-        </div>
-      </div>
-      <!-- Nivel y etiología sólo con estenosis consignada: preguntarle al médico la etiología de
-           una estenosis que declaró ausente es pedir un dato que no existe, y un select visible
-           con valor de fábrica es justamente cómo se cuela una afirmación que nadie hizo. -->
-      <div id="bloque-ep-detalle" style="display:none;">
-        <div class="grid-2">
-          <div class="fg"><label>Nivel de la obstrucción</label>
-            <select id="ep_nivel">
-              <option>No especificado</option>
-              <option>Valvular</option>
-              <option>Subvalvular (infundibular)</option>
-              <option>Supravalvular</option>
-              <option>Ramas pulmonares</option>
-              <option>Mixto</option>
-            </select>
-          </div>
-          <div class="fg"><label>Etiología de la estenosis</label>
-            <!-- «No especificada» PRIMERA: es el valor de fábrica y el que deja «Nuevo estudio».
-                 Con «Congénita valvular» en la opción 0, marcar una estenosis y no tocar este
-                 select publicaba «de etiología congénita valvular» en el informe firmado — una
-                 afirmación que nadie hizo. Es el defecto de los tres selects del TEER. -->
-            <select id="ep_etiologia">
-              <option>No especificada</option>
-              <option>Congénita valvular</option>
-              <option>Displasia valvular (Noonan)</option>
-              <option>Supravalvular (Williams)</option>
-              <option>Carcinoide</option>
-              <option>Post-quirúrgica</option>
-              <option>Ramas pulmonares</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      </div><!-- fin bloque-esten-pulmonar -->
+      <!-- ═══ P4 (2026-10-04) — LAS DOS LESIONES, UNA AL LADO DE LA OTRA ════════════════════════
+           Decisión de Maicol: insuficiencia a la IZQUIERDA y estenosis a la DERECHA, cada bloque
+           debajo de su propio botón (la fila de botones NO se toca: sigue «Insuficiencia | Estenosis»
+           como en las otras tres válvulas), y apiladas por debajo de 768 px. Las columnas las fija
+           `#vp-lesiones` en el CSS, a mano y no por auto-placement — ver el comentario de ahí.
+           ⚠️ EL BLOQUE DE INSUFICIENCIA SE MOVIÓ ANTES DEL DE ESTENOSIS EN EL DOM, no sólo en la
+           pantalla: con la grilla alcanzaba `grid-column`, pero el orden del código es el que manda
+           en el foco del teclado y en el apilado del celular, y los dos tienen que coincidir con el
+           orden de los botones. Se movió el NODO completo: ni un `id`, `onchange` ni `for` cambió.
+           ⚠️ Esto aparta a la pulmonar de la regla 15 (las otras tres siguen a ancho completo y
+           apiladas). Es decisión expresa de Maicol, que las va a llevar a este formato de a una.
+           Declarado acá para que no se lea como una divergencia que se colé sola. -->
+      <div id="vp-lesiones">
       <!-- `bloque-insuf-pulmonar`: lo muestra/oculta `toggleValvPill('pulmonar','insuf')` por el
            estado del botón (la IP no está en el registro, así que no hay `valvGradoVisSync` para
            ella). Envuelve la etiología (`bloque-ip-detalle`) y el grado (`ip_grado`). -->
@@ -4627,6 +4604,77 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
       </div>
       </div><!-- fin bloque-insuf-pulmonar -->
+      <!-- `bloque-esten-pulmonar`: su visibilidad la gobierna `valvGradoVisSync('esten','pulmonar')`
+           (vía `sevSincronizar('ep')`), igual que `bloque-esten-mitral`/`-aortica`: se ve con el
+           botón abierto O con grado O con discrepancia. `bloque-ep-detalle` adentro (nivel/etiología)
+           lo sigue mostrando `vpSync` sólo con estenosis consignada. -->
+      <div id="bloque-esten-pulmonar" style="display:none;">
+      <!-- ═══ P4 (2026-10-04) — ORDEN DE LOS CAMPOS, DECISIÓN DE MAICOL ════════════════════════
+           El aviso rojo y el cuadro «Fundamento del ajuste» van ARRIBA del grado, no debajo: lo que
+           avisa que el grado fue ajustado a mano se lee ANTES del grado que se está por corroborar.
+           Los dos salieron de dentro del `div.fg` del grado y pasaron a ser hermanos suyos; el badge
+           del auto-grado SÍ se queda pegado al `<select>`, porque explica de dónde salió ese valor.
+           Se movieron NODOS: ni un `id`, `onchange`, `maxlength` ni `for` cambió, así que
+           `sevSincronizar('ep')`, `sevNotaInforme('ep')` y `valvGradoVisSync` siguen encontrando
+           todo por `getElementById`, que no sabe de orden. -->
+        <!-- v2 (E2c): aviso de discrepancia + cajón de la EP, hermanos de los de la mitral y
+             gobernados por el MISMO `sevSincronizar` (clave `ep`). Sólo se ven con grado manual que
+             discrepa del autogrado de `calcVP`. -->
+        <div id="ep-manual-aviso" style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:4px;"></div>
+        <div id="ep-fund" class="valv-fund-box" style="display:none;background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;margin-bottom:8px;">
+          <div class="valv-fund-tit" style="font-weight:700;color:var(--accent2);">Fundamento del ajuste</div>
+          <label for="ep_fund_nota" style="display:block;font-weight:400;color:var(--text2);margin:0 0 2px;">Motivo del ajuste (opcional)</label>
+          <input type="text" id="ep_fund_nota" maxlength="100" placeholder="Ej.: gradiente dudoso, ventana sub&oacute;ptima" style="width:100%;">
+        </div>
+      <div class="fg"><label>Estenosis pulmonar <span style="font-weight:400;color:var(--text2);font-size:10px;">&mdash; grado final: es el que va al informe</span></label>
+        <select id="ep_grado" onchange="epGradoManual()">
+          <option value="sin">&mdash; grado &mdash;</option>
+          <option>Leve</option>
+          <option>Moderada</option>
+          <option>Moderada-severa</option>
+          <option>Severa</option>
+        </select>
+        <div id="vp-sev-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
+      </div>
+      <!-- Nivel y etiología sólo con estenosis consignada: preguntarle al médico la etiología de
+           una estenosis que declaró ausente es pedir un dato que no existe, y un select visible
+           con valor de fábrica es justamente cómo se cuela una afirmación que nadie hizo. -->
+      <!-- P4: el `grid-2` que ponía nivel y etiología UNO AL LADO DEL OTRO se quitó. Este bloque
+           ahora vive dentro de una columna de media pantalla, así que dos `<select>` en paralelo
+           quedaban de ~110 px con opciones como «Subvalvular (infundibular)» adentro. Apilados
+           ocupan el ancho de su columna y además quedan en el orden que pidió Maicol: nivel y
+           después etiología. En celular da lo mismo (el `grid-2` ya colapsaba a 768 px). -->
+      <div id="bloque-ep-detalle" style="display:none;">
+        <div>
+          <div class="fg"><label>Nivel de la obstrucción</label>
+            <select id="ep_nivel">
+              <option>No especificado</option>
+              <option>Valvular</option>
+              <option>Subvalvular (infundibular)</option>
+              <option>Supravalvular</option>
+              <option>Ramas pulmonares</option>
+              <option>Mixto</option>
+            </select>
+          </div>
+          <div class="fg"><label>Etiología de la estenosis</label>
+            <!-- «No especificada» PRIMERA: es el valor de fábrica y el que deja «Nuevo estudio».
+                 Con «Congénita valvular» en la opción 0, marcar una estenosis y no tocar este
+                 select publicaba «de etiología congénita valvular» en el informe firmado — una
+                 afirmación que nadie hizo. Es el defecto de los tres selects del TEER. -->
+            <select id="ep_etiologia">
+              <option>No especificada</option>
+              <option>Congénita valvular</option>
+              <option>Displasia valvular (Noonan)</option>
+              <option>Supravalvular (Williams)</option>
+              <option>Carcinoide</option>
+              <option>Post-quirúrgica</option>
+              <option>Ramas pulmonares</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      </div><!-- fin bloque-esten-pulmonar -->
+      </div><!-- fin vp-lesiones (P4) -->
       </div>
 <!-- vp-pane-med eliminado en E5b-1 (las mediciones viven en «Doppler Pulmonar»). -->
     </div>
@@ -30901,6 +30949,17 @@ function generarInforme(opts) {
        Misma regla que el bloque 10b: sólo con grado y distinta del valor de fábrica. */
     const _ipEtioU = (function(){ const e = ipHayInsuf(ipGrado) ? (sv('ip_etiologia') || '') : '';
       return (e && e !== 'No especificada') ? `, de etiología ${e}` : ''; })();
+
+    /* ══ LAS DOS PRESIONES, CALCULADAS UNA SOLA VEZ (2026-10-04) ═════════════════════════════════
+       4·V² + PmAD (Masuyama), la misma fórmula de `calcIP`, un solo nivel. Se suben acá porque
+       AHORA LAS LEEN DOS EMISORES —la oración única del estándar (P5) y el bloque 10b de los otros
+       dos estilos—, y una segunda copia de la fórmula en el segundo emisor es exactamente lo que
+       pudre los números: el comentario de 10b ya advierte de eso. `null` cuando no se pueden
+       calcular, que es la compuerta de «las presiones sólo aparecen si están calculadas»: sin PmAD,
+       4·V² es el GRADIENTE entre arteria pulmonar y ventrículo derecho, no la presión, y publicarlo
+       con nombre de presión es un número sistemáticamente bajo con el rótulo de otra cosa. */
+    const _papmNum = (ipProto !== null && ipPmad !== null) ? (4 * ipProto * ipProto + ipPmad).toFixed(0) : null;
+    const _papdNum = (ipTele  !== null && ipPmad !== null) ? (4 * ipTele  * ipTele  + ipPmad).toFixed(0) : null;
     const _epFragU = epHay ? `estenosis ${epG.toLowerCase()}${epNivelTxt}${epEtioTxt}`
                    : (_epSinGrado ? 'estenosis' : null);
     const _ipFragU = _ipDescU ? `insuficiencia ${_ipDescU}${_ipEtioU}` : (hayIP ? 'insuficiencia' : null);
@@ -30908,13 +30967,132 @@ function generarInforme(opts) {
       && !!(_epFragU || _ipFragU);
     let _ipEnOracion = false;
 
+    /* ══ v2 (P5, 2026-10-04, DECISIÓN DE MAICOL): UNA SOLA ORACIÓN PULMONAR EN EL ESTÁNDAR ════════
+       E5b-4 dejó la oración única acotada a «morfología Normal y SIN mediciones» y declaró por qué:
+       meter los números adentro era «otra decisión de wording del informe firmado, que es de Maicol
+       y no se toma acá». Ésta es esa decisión, tomada: con mediciones también va una sola oración.
+       ACOTADO AL ESTILO ESTÁNDAR. El conciso y el narrativo salen por el camino de siempre, byte por
+       byte — orden expresa de Maicol («si los otros estilos usan otra redacción, reportalo sin
+       cambiarlos»), así que acá quedan declaradas dos divergencias vivas, NO defectos:
+         · el conciso y el narrativo siguen diciendo «PAP media/PAP diastólica» —en palabras— donde
+           el estándar ahora usa las siglas «PAPm/PAPd», y siguen emitiendo DOS oraciones con EP+IP;
+         · la frase «Para estimar las presiones pulmonares … falta la PmAD» se va SÓLO del estándar;
+           sigue viva en los otros dos (es el mismo `faltaPmad` del bloque 10b).
+       La condición es la MISMA que usa `estiloPick` para elegir su segundo argumento (todo lo que no
+       es conciso ni narrativo), y no `=== 'estandar'`: si algún día se agrega un cuarto estilo que
+       cae en el slot del estándar, el texto de la oración y el del emisor no se separan en silencio.
+       PRÓTESIS: fuera. `_epEsProt` manda la válvula protésica al camino de hoy sin tocarla — orden
+       expresa («Prótesis: queda como está hoy, no la toques») y además es la compuerta que
+       /sharp-edges ya hizo valer en la aórtica. */
+    const _vpEstandar = (estiloInforme !== 'conciso' && estiloInforme !== 'narrativo');
+    /* El paréntesis de la estenosis. Dos formas, por orden de Maicol: con el grado AJUSTADO A MANO
+       los dos valores se separan con « y » y se les puede colgar el motivo («, pero con …»); con el
+       grado automático, con coma y sin motivo. `sevDiscrepa('ep')` es la MISMA señal que pinta el
+       aviso rojo y abre el cajón (registro `ep`, E2c), así que el informe y la pantalla no pueden
+       discordar: no hay un segundo criterio de «ajustado a mano» escrito acá. */
+    const _epDiscrepa = (function(){ try {
+      return (typeof sevDiscrepa === 'function') ? !!sevDiscrepa('ep') : false; } catch (e) { return false; } })();
+    /* La nota sale de `sevNotaInforme('ep')`, el emisor único del registro —que ya aplica «sólo si
+       discrepa», el trim, el colapso de espacios y el corte a 100— y se le quita el envoltorio
+       « (…)» que ese emisor agrega para las otras válvulas, porque acá el paréntesis es otro.
+       Falla CERRADO: sin nota, sin motivo y sin «pero». Y se le saca el punto final si el médico lo
+       escribió, que es lo pedido: la nota va tal cual, dentro de una oración que cierra después. */
+    const _epNotaTxt = (function(){ try {
+      if (typeof sevNotaInforme !== 'function') return '';
+      const n = sevNotaInforme('ep');
+      if (!n || !n.enGrado) return '';
+      return String(n.enGrado).trim().replace(/^\(/, '').replace(/\)$/, '').replace(/\.+$/, '').trim();
+    } catch (e) { return ''; } })();
+    const _epParenE = (function(){
+      const ps = [];
+      if (vpVmax) ps.push(`Vmax ${vpVmax} m/s`);
+      if (vpGmax) ps.push(`Gmax ${vpGmax} mmHg`);
+      let cuerpo = ps.join(_epDiscrepa ? ' y ' : ', ');
+      if (_epDiscrepa && _epNotaTxt) cuerpo += (cuerpo ? ', ' : '') + `pero con ${_epNotaTxt}`;
+      return cuerpo ? ` (${cuerpo})` : '';
+    })();
+    /* ⚠️ EL ADJETIVO «pulmonar» DEPENDE DE CÓMO ABRA LA ORACIÓN (decisión de Maicol, 2026-10-04).
+       Si la oración ya empieza por «Válvula pulmonar …», la lesión va SIN adjetivo —«con
+       insuficiencia leve … y estenosis moderada»—: con él, el informe firmado decía «pulmonar»
+       tres veces en una sola oración, que es lo que TC-139 defendía al pedir que no se repitiera.
+       Si abre por «Se observa …» (morfología «No especificada», que no tiene sujeto donde apoyar la
+       válvula), el adjetivo SÍ va: sin él la lesión quedaría sin válvula.
+       El nivel y la etiología se CONSERVAN —no estaban en el formato que pidió Maicol, y quitarlos
+       sería perder del informe firmado dos campos que la pantalla pide y el médico cargó—. */
+    const _vpConMorf = (vpMorf === 'Normal' || vpMorfHay);
+    const _adjE = _vpConMorf ? '' : ' pulmonar';
+    const _epFragE = epHay
+      ? `estenosis${_adjE} ${epG.toLowerCase()}${epNivelTxt}${epEtioTxt}${_epParenE}`
+      : (_epSinGrado ? `estenosis${_adjE}${_epParenE}` : null);
+    /* «que permite estimar …»: las presiones cuelgan de la insuficiencia porque es la señal que las
+       hace estimables, que es justo lo que la frase que se va («falta la PmAD») explicaba al revés.
+       Si sólo hay una de las dos, va sólo esa.
+       ⚠️ LAS SIGLAS SON `PAPm` y `PAPd`, no «PmAP/PdAP» (corrección de Maicol). No es una
+       preferencia: son las siglas que la app YA usa, y en la MISMA pantalla y con la MISMA fórmula
+       que esta oración —la fila del Doppler Pulmonar dice literalmente
+       «PAPm = 4 × Vmax-IP² + PmAD · PAPd = 4 × Vmax-TD-IP² + PmAD»—, y también la tarjeta pre-PDF
+       («PAPm (IP)» / «PAPd (IP)»). La presión de aurícula derecha es `PmAD`, que es la que esa misma
+       fórmula suma. Verificado contra el archivo, no de memoria: «PmAP»/«PdAP» no existen en ningún
+       texto emitido de esta app.
+       Las ETIQUETAS de los dos renglones de resultado dicen «PAP media» / «PAP diastólica» en
+       palabras, y así siguen: el conciso y el narrativo las escriben igual (ver arriba). */
+    const _ipPresE = (function(){
+      const ps = [];
+      if (_papmNum !== null) ps.push(`PAPm de ${_papmNum} mmHg`);
+      if (_papdNum !== null) ps.push(`PAPd de ${_papdNum} mmHg`);
+      return ps.length ? `, que permite estimar ${ps.join(' y ')}` : '';
+    })();
+    const _ipFragE = _ipDescU
+      ? `insuficiencia${_adjE} ${_ipDescU}${_ipEtioU}${_ipPresE}`
+      : (hayIP ? `insuficiencia${_adjE}${_ipPresE}` : null);
+    /* La insuficiencia va PRIMERO y la estenosis después (orden de los ejemplos de Maicol). El nexo
+       es «, y» cuando la cláusula de la insuficiencia ya trae una coma adentro —«…leve, que permite
+       estimar PAPm de 41 mmHg, y estenosis…»— y « y » cuando no.
+       ⚠️ NO se reusa `_unirEIp`: esa helper pone « e » ante vocal y acá el segundo término empieza
+       con «estenosis», así que habría escrito «insuficiencia leve e estenosis moderada». La « e »
+       va ante i-/hi-, no ante e-. En el orden de E5b-4 (estenosis primero) la helper acierta; en
+       este orden, no. Es la clase de detalle que se invierte solo al dar vuelta dos fragmentos. */
+    const _lesionesE = (function(){
+      const fr = [_ipFragE, _epFragE].filter(Boolean);
+      if (fr.length < 2) return fr[0] || '';
+      return fr[0] + (fr[0].indexOf(',') >= 0 ? ', y ' : ' y ') + fr[1];
+    })();
+    /* La MORFOLOGÍA abre la oración y las frases de P5 van adentro, sin cambiarlas (decisión de
+       Maicol al cerrar el hueco que su primer formato dejaba): la morfología y la prótesis no
+       desaparecen del informe firmado.
+         · «Normal»            → «Válvula pulmonar de morfología normal, con …»
+         · anormal             → «Válvula pulmonar con afectación carcinoide y …»
+         · «No especificada»   → «Se observa …», sin afirmar una forma que nadie valoró.
+       Por qué «Se observa …» casi no aparece en un estudio NUEVO: «Normal» es la opción 0 de
+       `vp_morf` y es lo que deja «Nuevo estudio», así que el médico que no toca el select cae en la
+       primera rama. «No especificada» es el valor al que MIGRAN los estudios viejos (el `vp_morf`
+       de antes mezclaba forma con severidad, así que no decía nada de la forma) y el que el médico
+       elige a mano cuando no la valoró. O sea: «Se observa …» es el camino de lo legado y del «no
+       la miré», no el de un estudio nuevo. Queda reportado. */
+    const _vpAperturaE = (function(){
+      if (vpMorf === 'Normal') return `Válvula pulmonar de morfología normal, con ${_lesionesE}.`;
+      if (vpMorfHay) return `Válvula pulmonar ${valvMorfDe(vpMorf)} y ${_lesionesE}.`;
+      return `Se observa ${_lesionesE}.`;   // «No especificada»: sin cláusula de forma
+    })();
+
     /* LA NORMALIDAD EXIGE «Normal» EXPLÍCITO, no «no es anormal». Con `!vpMorfHay` alcanzaba
        también «No especificada» —que es el valor al que MIGRAN los estudios viejos y el que
        elige el médico cuando no valoró la morfología— y el informe firmado salía «Válvula
        pulmonar normal.» sobre una válvula que nadie miró. Es la negación sin evidencia de
        siempre, y acá entraba por la puerta de la migración. Sin morfología consignada y sin
        ninguna medición, la válvula NO se nombra: mismo criterio que la aorta. */
-    if (_unifPulm) {
+    if (_vpEstandar && !_epEsProt && _lesionesE) {
+      /* P5: UNA oración con la morfología, la insuficiencia (con sus presiones si están calculadas)
+         y la estenosis (con sus valores). El EN SUMA se empuja EXACTAMENTE como en los otros dos
+         caminos —la EP acá, la IP en el bloque 10b— porque P6 pide que no cambie: sigla y grado,
+         sin tocar una coma. `_ipEnOracion` evita que 10b REPITA la frase; su `suma.push` sigue
+         corriendo, que es lo que mantiene «IP leve.» / «IP presente.» en la conclusión. */
+      inf.push(_vpAperturaE);
+      _ipEnOracion = true;
+      if (epHay) suma.push(`EP ${epG.toLowerCase()}${epNivelTxt}.`);
+      else if (_epSinGrado) suma.push('EP presente.');
+      ccMarcarParrafo();
+    } else if (_unifPulm) {
       const _cuerpoU = _unirEIp([_epFragU, _ipFragU].filter(Boolean));
       inf.push(estiloPick(
         `VP de morfología normal, con ${_cuerpoU}.`,
@@ -31003,8 +31181,8 @@ function generarInforme(opts) {
       const ipEtio = ipHayInsuf(ipGrado) ? (sv('ip_etiologia') || '') : '';
       const ipEtioTxt = (ipEtio && ipEtio !== 'No especificada') ? `, de etiología ${ipEtio}` : '';
       const pres = [];
-      if (ipProto !== null && ipPmad !== null) pres.push(`PAP media ${(4 * ipProto * ipProto + ipPmad).toFixed(0)} mmHg`);
-      if (ipTele  !== null && ipPmad !== null) pres.push(`PAP diastólica ${(4 * ipTele  * ipTele  + ipPmad).toFixed(0)} mmHg`);
+      if (_papmNum !== null) pres.push(`PAP media ${_papmNum} mmHg`);
+      if (_papdNum !== null) pres.push(`PAP diastólica ${_papdNum} mmHg`);
       /* Sin PmAD no se publican las presiones: 4·V² solo es el GRADIENTE entre arteria
          pulmonar y ventrículo derecho, no la presión pulmonar, y rotularlo «PAP media» sería
          un número sistemáticamente bajo con nombre de otra cosa. La pantalla lo muestra con la
@@ -33291,6 +33469,16 @@ let _estudioEpoca = 1;
 function _estEpoca() { return _estudioEpoca; }
 window._estEpoca = _estEpoca;
 
+/* ══ LAS VÁLVULAS QUE TIENEN PASTILLA, EN UN SOLO LUGAR (2026-10-04) ══════════════════════════
+   La tupla la comparten los DOS lados del ciclo de vida de `valv-pill-<tipo>-<valvula>`:
+   `cargarValvPills` (que restaura) y el barrido de `limpiarCampos` (que borra). Estaban escritas
+   por separado y se desincronizaron al registrar la pulmonar en E5 — restauraba cuatro válvulas y
+   borraba tres, que es la fuga medida en esta tanda. Se declara ACÁ, en el mismo bloque `<script>`
+   que `limpiarCampos` y por encima de él: `cargarValvPills` vive en un bloque POSTERIOR, y un
+   `const` de bloque posterior leído desde uno anterior es un ReferenceError por TDZ si alguna vez
+   se lo llama durante el parseo. En esta dirección no puede pasar. */
+const VALV_PILL_VALVS = Object.freeze(['mitral','aortica','tricuspide','pulmonar']);
+
 // ══ LIMPIAR ══
 /* `silencioso`: el toast «Formulario limpiado» es correcto cuando el médico aprieta «Nuevo
    estudio», y es ruido cuando la limpieza es un paso interno de cargar otro estudio — ahí el
@@ -33527,7 +33715,21 @@ function limpiarCampos(silencioso) {
      Es la falla ABIERTA de una lista escrita a mano — el mismo motivo por el que `sevFundLimpiar`
      deriva su barrido de `SEV_SINC` en vez de literales. */
   document.querySelectorAll('[id^="bloque-insuf-"], [id^="bloque-esten-"], [id^="gf-insuf-"]').forEach(el => el.style.display = 'none');
-  ['mitral','aortica','tricuspide'].forEach(vv => ['insuf','esten'].forEach(t => { try { localStorage.removeItem('valv-pill-' + t + '-' + vv); } catch(e){} }));
+  /* ⚠️ `'pulmonar'` FALTABA Y ERA LA CUARTA FALLA ABIERTA DE ESTA LISTA ESCRITA A MANO (2026-10-04).
+     `cargarValvPills` restaura las OCHO pastillas desde `valv-pill-<tipo>-<valvula>` —la pulmonar
+     entró en E5—, pero este barrido sólo borraba seis claves, así que las dos de la pulmonar
+     SOBREVIVÍAN a «Nuevo estudio». Medido, en las dos direcciones y con control negativo (la mitral
+     en el mismo camino vuelve a auto-prenderse):
+       · clave en '0' → `valvAutoPrenderEsten` sale por su `guardado !== null` para SIEMPRE: cargar
+         Vmax 4 m/s deja `ep_grado='Moderada'` y el sub-botón «Moderada ▼» con el botón APAGADO. Es
+         el síntoma que reportó Maicol, y no se cura solo: la clave no caduca.
+       · clave en '1' → `cargarValvPills` prende las dos pastillas sobre un estudio VACÍO y el
+         informe FIRMADO del paciente siguiente dice «con estenosis e insuficiencia» y el EN SUMA
+         «EP presente. / IP presente.» sin un solo dato pulmonar cargado.
+     Es exactamente el modo de falla que el comentario de arriba describe para `gf-insuf-`: la lista
+     escrita a mano que se queda corta cuando se registra una válvula nueva. Se deriva de la misma
+     tupla que usa `cargarValvPills` para que no vuelva a desincronizarse. */
+  VALV_PILL_VALVS.forEach(vv => ['insuf','esten'].forEach(t => { try { localStorage.removeItem('valv-pill-' + t + '-' + vv); } catch(e){} }));
   // Fechas del estudio que NO son la del estudio en sí. El barrido de arriba sólo toca
   // input[type=text] y [type=number], así que estas sobrevivían con el valor del
   // paciente anterior. Se limpian por id y no por [type=date] a propósito: ese selector
@@ -51387,7 +51589,9 @@ function cargarValvPills() {
   /* v2 (E5, 2026-10-03): la PULMONAR entra a la restauración como las otras tres. Sus dos pastillas
      —`pill-esten-pulmonar` / `pill-insuf-pulmonar`— y sus dos bloques —`bloque-esten-pulmonar` /
      `bloque-insuf-pulmonar`— existen desde E5, así que `toggleValvPill` ya no sale por su `return`. */
-  ['mitral','aortica','tricuspide','pulmonar'].forEach(valvula => {
+  /* La tupla sale de `VALV_PILL_VALVS` (declarada junto a `limpiarCampos`), que es el mismo origen
+     que usa el barrido que BORRA estas claves. Escritas por separado se desincronizaron una vez. */
+  VALV_PILL_VALVS.forEach(valvula => {
     ['insuf','esten'].forEach(tipo => {
       const guardado = localStorage.getItem('valv-pill-' + tipo + '-' + valvula);
       if (guardado === '1') toggleValvPill(valvula, tipo);
@@ -91751,8 +91955,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261004-0909';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791115747836;                 /* eco-build-ms */
+const ECO_BUILD    = '20261004-1306';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791129970214;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -91838,7 +92042,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-0909</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-1306</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
