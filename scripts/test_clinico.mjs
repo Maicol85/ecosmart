@@ -44090,6 +44090,19 @@ const AO3B_SONDAS = `
      Se carga CON eventos y en este orden a proposito: es la secuencia que produce el medico, y es
      la que escribe el grado (la Vmax sola ya lo pone en severa por clasificarEA_Vmax). */
   const cargarValido = function () { __t.limpiar(); window.esqSevManual = {};
+    /* v2 (E5b-0 punto 2): estos casos del RETIRO miden la aortica con el cajon de cuantificacion
+       COLAPSADO —ahi el ultimo escritor del badge es el retiro, no calcEADetalle—. Desde que el
+       autocalculo prende el boton al calcular (valvAutoPrenderEsten), cargar una EA valida abriria
+       el cajon y calcEADetalle pisaria el badge del retiro. Se deja el boton como apagado a mano
+       ('0') ANTES de cargar, que es un escenario real (el medico apago) y el que el retiro necesita:
+       con el boton apagado el autocalculo respeta el '0' y no abre el cajon. El grado lo sigue
+       escribiendo el autocalculo igual (no depende del boton), asi que la cobertura del retiro queda intacta. */
+    try { localStorage.setItem('valv-pill-esten-aortica', '0'); } catch (e) {}
+    /* Y SE CIERRA EL CAJON DE CUANTIFICACION, por si un caso ANTERIOR lo dejo abierto: desde el
+       punto 2, cargar una EA en otro caso prende el boton y abre este cajon, y limpiarCampos no lo
+       vuelve a cerrar. Con el cajon abierto calcEADetalle correria y pisaria el badge del retiro.
+       El '0' de arriba impide que se REABRA; esto lo cierra si venia abierto de otra escena. */
+    try { const _d = document.getElementById('bloque-ea-detalle'); if (_d) _d.style.display = 'none'; } catch (e) {}
     __t.set('nombre','TC35x');
     __t.set('vmax_ao','4.5'); __t.set('gmedio_ao','45'); __t.set('itv_ao','100');
     __t.set('itv_tsvi','20'); __t.set('diam_tsvi','20');
@@ -48505,7 +48518,11 @@ caso('TC-403', '(f) La tarjeta pre-PDF deja select y oculto IGUALES en la IAo �
   const t1 = tarjeta('rev-ia','2');
   const ia = aFoto('ia');
   // EAo calculada severa y el medico la baja a «Leve» en el clon de la tarjeta
-  const d2 = aReset(); __t.set('vmax_ao','4.2'); __t.set('gmedio_ao','45'); toggleValvPill('aortica','esten');
+  /* v2 (E5b-0 punto 2): el autocálculo ya prende el botón al cargar la Vmax, así que el click
+     explícito sería un segundo gesto que lo APAGARÍA (y borraría el grado). Se prende sólo si hiciera
+     falta — idempotente, como hace el médico, que no vuelve a tocar un botón ya prendido. */
+  const d2 = aReset(); __t.set('vmax_ao','4.2'); __t.set('gmedio_ao','45');
+  if (!pillOn('aortica','esten')) toggleValvPill('aortica','esten');
   const t2 = tarjeta('ea_grado','leve');
   const ea = aFoto('ea');
   // CONTROL POSITIVO: la IM, que ya estaba arreglada. Si sale distinta, el harness miente.
@@ -48797,8 +48814,11 @@ caso('TC-407', 'El gate de los espejos de EM pregunta por el BOTON y no por un d
   /* Discrepancia viva: AVm 1,2 gradua severa y el medico baja a «leve» por el ▼. Despues cierra
      el boton. El bloque de GRADO queda visible —es el punto de esta tanda— y el de CUANTIFICACION
      tiene que seguir oculto, con los espejos sin llenarse. */
+  /* v2 (E5b-0 punto 2): el autocalculo prende el boton al cargar el AVm; el click que antes lo
+     prendia es ahora redundante y lo apagaria, asi que se prende solo si hiciera falta. El segundo
+     toggleValvPill (el que CIERRA) se conserva: es el gesto que esta escena mide. */
   const d1 = aReset(); __t.set('avm_plan','1.2');
-  toggleValvPill('mitral','esten');
+  if (!pillOn('mitral','esten')) toggleValvPill('mitral','esten');
   valvSev.aplicar('esten','mitral','leve');
   toggleValvPill('mitral','esten');
   const cerrado = aFoto('em');
@@ -48811,7 +48831,7 @@ caso('TC-407', 'El gate de los espejos de EM pregunta por el BOTON y no por un d
      mecanismo —si no se llenaran nunca, la condicion de arriba pasaria por el motivo equivocado—
      y es lo que TC-301 y TC-390 miden desde el otro lado. */
   const d2 = aReset(); __t.set('avm_plan','1.2');
-  toggleValvPill('mitral','esten');
+  if (!pillOn('mitral','esten')) toggleValvPill('mitral','esten');   // v2 E5b-0 p2: ya prendido por el autocálculo
   __t.set('diam_tsvi','20'); __t.set('itv_tsvi','25');
   const espAbierto = espejos();
   return { extra: [

@@ -527,6 +527,22 @@ LESIONES.forEach((k) => {
          clic: [[v, k]] });
 });
 
+/* ══ E5b-0 — GESTO «cargar en Doppler → ir a Válvulas → mirar el botón» (2026-10-03) ════════════
+   Se tipea el insumo que gradúa SIN tocar el botón, y la foto mira si el botón quedó PRENDIDO. Para
+   la estenosis (aórtica/mitral/pulmonar) por el autocálculo que prende en el momento del cálculo
+   (`valvAutoPrenderEsten`); para la IT y la IP por sus disparadores (`calcPSAP`/`calcIP`). Sin este
+   gesto la sonda no veía el desfase «grado severa con el botón apagado» que Maicol encontró: el
+   grado seguía al cálculo y el botón no. `fotos:[les]` captura `pill` de la válvula/lesión. */
+[['ea', 'aortica',   'esten', [['vmax_ao', '4']]],
+ ['em', 'mitral',    'esten', [['avm_plan', '1.2']]],
+ ['ep', 'pulmonar',  'esten', [['vp_vmax', '4']]],
+ ['it', 'tricuspide','insuf', [['vmax_it', '4']]],
+ ['ip', 'pulmonar',  'insuf', [['ip_vmax', '3']]]].forEach(([les, v, tipo, med]) => {
+  push({ id: `DOPV-${les}`, regla: 'E5B0', valv: v, lesion: les, fotos: [les],
+         desc: `E5b-0 — cargar el Doppler que gradúa y mirar si el botón de ${v} (${tipo}) se prende SIN tocarlo`,
+         tipear: med });
+});
+
 /* R13 — «Mixta» nunca sola: se listan las dos lesiones. Se prenden los DOS botones de una
    válvula con grado en cada uno. Control negativo: una sola lesión → no debe decir «mixta». */
 ['aortica', 'mitral', 'tricuspide'].forEach((v) => {

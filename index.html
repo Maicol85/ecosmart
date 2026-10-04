@@ -22285,6 +22285,9 @@ function calcEM() {
      el mismo motivo, y esto sólo repinta tres `span` de otro módulo. Va en `try` porque un throw
      acá se llevaría el badge de arriba. */
   if (typeof vmProtEOAPintar === 'function') { try { vmProtEOAPintar(); } catch (e) {} }
+  /* v2 (E5b-0 punto 2): si el autocálculo dejó un grado graduable (p.ej. «severa» por AVm), prende
+     el botón de estenosis mitral en el momento del cálculo, respetando el apagado manual. */
+  if (typeof valvAutoPrenderEsten === 'function') valvAutoPrenderEsten('mitral');
 }
 function usarTSVIenEM(val) {
   setv('em_dtsvi', val);
@@ -24287,6 +24290,9 @@ function calcAo() {
      'sin', asi que una pastilla repintada antes se queda mostrando el grado que acaba de
      desaparecer — que es el mismo desfase que esta tanda vino a cerrar, espejado. */
   _eaSincronizarPantalla();
+  /* v2 (E5b-0 punto 2): el grado ya está final y sincronizado; si es graduable, prende el botón de
+     estenosis aórtica (respetando el apagado manual). Ver `valvAutoPrenderEsten`. */
+  if (typeof valvAutoPrenderEsten === 'function') valvAutoPrenderEsten('aortica');
 }
 
 /* ══ GRADO CALCULADO DE LA ESTENOSIS AÓRTICA — UN SOLO DUEÑO (R1, DECISIÓN DE MAICOL 2026-10-02) ══
@@ -27165,6 +27171,9 @@ function calcVP() {
     ? `Sugerido automáticamente por ${origen}. Podés cambiarlo manualmente si lo creés necesario.`
     : `Por ${origen} correspondería «${opcion}», pero se respeta la opción elegida a mano.`)
     + ' El auto-grado sólo alcanza Leve, Moderada o Severa: «Moderada-severa» es elección manual.';
+  /* v2 (E5b-0 punto 2): grado de EP graduable → prende el botón de estenosis pulmonar en el momento
+     del cálculo, igual que la aórtica y la mitral, respetando el apagado manual. */
+  if (typeof valvAutoPrenderEsten === 'function') valvAutoPrenderEsten('pulmonar');
 }
 window.calcVP = calcVP;
 
@@ -51544,6 +51553,32 @@ const VALV_AUTO_GRADO = Object.freeze({
    copia — no pisan un número tipeado por el médico. Medido, no deducido: ver el caso de esta etapa.
    El nombre viejo se conserva como alias porque lo llama `showTab` y porque un rename sin alias es
    un «no es una función» en consola al entrar a la pestaña. */
+/* ══ EL BOTÓN DE ESTENOSIS SE PRENDE EN EL MOMENTO DEL CÁLCULO (E5b-0 punto 2, 2026-10-03) ═══════
+   Decisión de Maicol. Como los disparadores de IT (`calcPSAP`) y de IP (`calcIP`), el autocálculo
+   de estenosis prende el botón ni bien calcula un grado graduable, SIN esperar a entrar a la
+   pestaña (la apertura automática de `showTab`). Así el botón sigue al cálculo y deja de haber
+   «grado severa con el botón apagado» cuando el dato llega estando ya en Válvulas. Mismo criterio
+   que `valvAutoAbrirCajones`, acotado a UNA válvula: sólo prende si el botón NO fue tocado en este
+   estudio (clave de `localStorage` ausente) —así respeta el apagado manual ('0') y no reabre lo que
+   el médico cerró— y si el grado del `<select>` es graduable (leve/moderada/severa; en minúscula
+   porque la pulmonar usa mayúscula inicial). Idempotente (sale si ya está prendido). Aórtica, mitral
+   y pulmonar, igual. */
+function valvAutoPrenderEsten(valv) {
+  try {
+    const selId = ({ aortica:'ea_grado', mitral:'em_grado', pulmonar:'ep_grado' })[valv];
+    const sel = selId && document.getElementById(selId);
+    if (!sel) return;
+    if (typeof pillOn !== 'function' || typeof toggleValvPill !== 'function') return;
+    if (pillOn(valv, 'esten')) return;                     // ya prendido
+    let guardado = null;
+    try { guardado = localStorage.getItem('valv-pill-esten-' + valv); } catch (e) { return; }
+    if (guardado !== null) return;                         // tocado (prendido o apagado a mano): no se auto-prende
+    if (VALV_AUTO_GRADO.esten.indexOf(String(sel.value || '').toLowerCase()) === -1) return; // no graduable
+    toggleValvPill(valv, 'esten');
+  } catch (e) {}
+}
+window.valvAutoPrenderEsten = valvAutoPrenderEsten;
+
 function valvAutoAbrirCajones() {
   Object.keys(SEV_SINC).forEach(function(k){
     const C = SEV_SINC[k];
@@ -91543,8 +91578,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261003-2324';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791080675339;                 /* eco-build-ms */
+const ECO_BUILD    = '20261004-0041';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791085305779;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -91630,7 +91665,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261003-2324</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-0041</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
