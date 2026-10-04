@@ -4372,13 +4372,19 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
       </div>
       <div class="sev-pills" id="sevpills-tricuspide"></div>
-      <div class="grid-2" style="margin-bottom:8px;">
-        <!-- Campos de PRÓTESIS tricuspídea (Fase 1). -->
-        <div id="bloque-prot-vt" class="fg" style="display:none;">
-          <label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label>
-          <input type="number" id="vt_dvi" step="0.01" placeholder="—">
-        </div>
-        <div id="bloque-esten-tricuspide" style="display:none;">
+      <!-- v2 (E5b-3, 2026-10-04): los campos de CADA lesión van DEBAJO de su propia pastilla y a
+           ancho completo, como la mitral y la aórtica. Antes prótesis + estenosis + «Densidad jet CW»
+           compartían un `grid-2`, así que prender «Estenosis» DESPLAZABA el campo de insuficiencia
+           (`it_densidad`) a la otra columna. Se quitó el wrapper: `bloque-prot-vt` y
+           `bloque-esten-tricuspide` son hermanos a ancho completo, y `it_densidad` —que es un insumo
+           de la IT, no de la estenosis— se mudó DENTRO de `bloque-insuf-tricuspide`. Se movieron
+           WRAPPERS: ni un `id`, `name`, listener ni opción cambió. -->
+      <!-- Campos de PRÓTESIS tricuspídea (Fase 1). -->
+      <div id="bloque-prot-vt" class="fg" style="display:none;margin-bottom:8px;">
+        <label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label>
+        <input type="number" id="vt_dvi" step="0.01" placeholder="—">
+      </div>
+      <div id="bloque-esten-tricuspide" style="display:none;">
           <div class="grid-2" style="margin-bottom:8px;">
             <div class="fg"><label>Estenosis tricuspídea</label>
               <select id="et_grado">
@@ -4419,15 +4425,6 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
           <div id="et-gmedio-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
         </div>
-        <div class="fg"><label>Densidad jet CW</label>
-          <select id="it_densidad" onchange="calcIT_ESC()">
-            <option value="">—</option>
-            <option value="debil">Débil / incompleto</option>
-            <option value="moderado">Moderado</option>
-            <option value="denso">Denso / triangular</option>
-          </select>
-        </div>
-      </div>
       <div id="bloque-insuf-tricuspide" style="display:none;">
       <div class="grid-4">
         <div class="fg"><label>Vena contracta (mm)</label><input type="number" id="it_vc" placeholder="mm" oninput="calcIT_ESC()"></div>
@@ -4435,6 +4432,17 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="fg"><label>Valiasing IT (cm/s)</label><input type="number" id="it_pisa_val" placeholder="cm/s" oninput="calcIT_ESC()"></div>
         <div class="fg"><label>Vmax IT CW (cm/s)</label><input type="number" id="it_vmax_cw" placeholder="cm/s" oninput="calcIT_ESC()"></div>
         <div class="fg"><label>VTI IT (cm)</label><input type="number" id="it_vti" placeholder="cm" oninput="calcIT_ESC()"></div>
+      </div>
+      <!-- v2 (E5b-3): «Densidad jet CW» es un insumo CUALITATIVO de la severidad de la IT, no de la
+           estenosis. Vive acá, dentro del bloque de insuficiencia —gateado por la pastilla de IT—, y
+           no en el `grid-2` de arriba donde la estenosis la desplazaba. Mismo `id` y `onchange`. -->
+      <div class="fg" style="margin-top:8px;"><label>Densidad jet CW</label>
+        <select id="it_densidad" onchange="calcIT_ESC()">
+          <option value="">—</option>
+          <option value="debil">Débil / incompleto</option>
+          <option value="moderado">Moderado</option>
+          <option value="denso">Denso / triangular</option>
+        </select>
       </div>
       <div class="calc-box" style="margin-top:10px;">
         <div class="calc-row"><span class="calc-lbl">EROA — PISA (mm²)</span><span class="calc-val" id="it-eroa">—</span></div>
@@ -91670,8 +91678,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261004-0207';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791090450751;                 /* eco-build-ms */
+const ECO_BUILD    = '20261004-0228';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791091711963;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -91757,7 +91765,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-0207</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-0228</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -48939,6 +48939,75 @@ caso('TC-409', 'EP presente no sobrevive a un gradiente corregido: Vmax 4 auto-p
   ] };
 `);
 
+/* TC-410 — TRICUSPIDE v2, DISPOSICION (E5b-3, decision de Maicol, 2026-10-04). Los campos de cada
+   lesion van DEBAJO de su propia pastilla y a ancho completo, como la mitral y la aortica: antes
+   protesis + estenosis + «Densidad jet CW» compartian un grid-2, asi que prender «Estenosis»
+   desplazaba it_densidad —un insumo de la IT— a la otra columna. Ahora it_densidad vive DENTRO del
+   bloque de insuficiencia y estenosis/insuficiencia son hermanos. Se verifica ademas, sin cambio de
+   codigo, que el Doppler (Vmax IT) prende la pastilla de IT (regla 9, ab18ac7) y que sin grado el
+   informe dice «Insuficiencia tricuspidea» / «IT presente.». ⚠️ SIN ACENTOS GRAVES EN EL CUERPO. */
+caso('TC-410', 'Tricuspide v2: los campos de cada lesion van debajo de su pastilla sin desplazarse —«Densidad jet CW» vive en el bloque de insuficiencia, no en la estenosis—; el Doppler (Vmax IT) prende la pastilla de IT; sin grado el informe dice «Insuficiencia tricuspidea» y el EN SUMA «IT presente.»', `
+  ${APAGA_HELPERS}
+  const reset = function(){
+    __t.nuevoEstudio();
+    ['esten','insuf'].forEach(function(t){
+      try { localStorage.removeItem('valv-pill-'+t+'-tricuspide'); } catch(e){}
+      if (aOn('tricuspide',t)) toggleValvPill('tricuspide',t); });
+    __t.set('nombre','TC410'); };
+  const den = (function(){ try { showTab('valvulas'); } catch(e){}
+    const s = document.getElementById('ete-seccion-valv-tricuspide');
+    if (s && s.style.display==='none') { try { toggleEteSeccion('valv-tricuspide'); } catch(e){} }
+    return !!(s && getComputedStyle(s).display!=='none'); })();
+
+  // LAYOUT: pertenencia de it_densidad y hermandad de los bloques.
+  const dens = document.getElementById('it_densidad');
+  const enInsuf = !!(dens && dens.closest('#bloque-insuf-tricuspide'));
+  const enEsten = !!(dens && dens.closest('#bloque-esten-tricuspide'));
+  const be = document.getElementById('bloque-esten-tricuspide');
+  const bi = document.getElementById('bloque-insuf-tricuspide');
+  const hermanos = !!(be && bi) && !be.contains(bi) && !bi.contains(be);
+
+  // NO DESPLAZAMIENTO: con la IT prendida el left de it_densidad no cambia al prender Estenosis.
+  reset();
+  if (!aOn('tricuspide','insuf')) toggleValvPill('tricuspide','insuf');
+  const visSolo = aVis('it_densidad');
+  const leftSolo = Math.round(dens.getBoundingClientRect().left);
+  if (!aOn('tricuspide','esten')) toggleValvPill('tricuspide','esten');
+  const leftConEsten = Math.round(dens.getBoundingClientRect().left);
+
+  // DOPPLER -> IT: Vmax IT prende la pastilla de insuficiencia (regla 9).
+  reset();
+  const antesDop = aOn('tricuspide','insuf');
+  __t.set('vmax_it','3');
+  const prendidoDop = aOn('tricuspide','insuf');
+
+  // IT PRESENTE: pastilla prendida sin grado -> informe + EN SUMA.
+  reset();
+  if (!aOn('tricuspide','insuf')) toggleValvPill('tricuspide','insuf');
+  const rPres = __t.informe();
+  const tric = (rPres.inf||'').split('\\n').filter(function(l){ return /tricusp|^IT /i.test(l); }).join(' | ');
+
+  // CONTROL NEGATIVO: sin IT ni pastilla, no hay «IT presente».
+  reset();
+  const rNeg = __t.informe();
+
+  return { extra: [
+    ['DENOMINADOR: la pestania y la seccion tricuspide quedaron visibles', den === true, 'den='+den],
+    ['LAYOUT · «Densidad jet CW» vive DENTRO del bloque de insuficiencia y NO en el de estenosis',
+      enInsuf === true && enEsten === false, 'enInsuf='+enInsuf+' enEsten='+enEsten],
+    ['LAYOUT · estenosis e insuficiencia son bloques HERMANOS (ninguno contiene al otro)',
+      hermanos === true, 'hermanos='+hermanos],
+    ['NO DESPLAZAMIENTO · el left de it_densidad no cambia al prender Estenosis (denominador: estaba visible)',
+      visSolo === true && leftSolo === leftConEsten, 'visSolo='+visSolo+' left solo='+leftSolo+' con esten='+leftConEsten],
+    ['DOPPLER -> IT · cargar Vmax IT prende la pastilla de insuficiencia (denominador: estaba apagada)',
+      antesDop === false && prendidoDop === true, 'antes='+antesDop+' prendido='+prendidoDop],
+    ['IT PRESENTE · sin grado el informe dice «Insuficiencia tricuspidea» y el EN SUMA «IT presente.»',
+      /Insuficiencia tricusp/i.test(tric) && rPres.suma.indexOf('IT presente.') > -1, tric + ' // ' + recorteJS(rPres.suma)],
+    ['CONTROL NEGATIVO · sin IT ni pastilla, no hay «IT presente»',
+      rNeg.suma.indexOf('IT presente') === -1, recorteJS(rNeg.suma)],
+  ] };
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────
