@@ -4475,12 +4475,12 @@ window.cerrarSesionReal = cerrarSesionReal;
            Las dos pestañas son .tab-btn del rail SIN data-mod, o sea el MISMO régimen de
            visibilidad: esta mudanza no cambia quién puede llegar a los campos, a diferencia de
            la de Pericardio que este archivo documenta. -->
-      <div class="subtabs-wrap" style="justify-content:flex-start;margin-bottom:12px;">
-        <div class="tabs-row">
-          <button type="button" class="tab-btn active" id="vp-tab-morf" onclick="vpTab('morf')">Morfología y etiologías</button>
-          <button type="button" class="tab-btn" id="vp-tab-med" onclick="vpTab('med')">Mediciones</button>
-        </div>
-      </div>
+      <!-- ═══ E5b-1 (2026-10-04) — DECISIÓN DE MAICOL: SIN SOLAPAS ════════════════════════════════
+           Se quitaron las solapas «Morfología y etiologías» / «Mediciones». Las mediciones se
+           mudaron al bloque «Doppler Pulmonar» (E5b-2), así que la pulmonar queda como las otras
+           válvulas: la morfología y los botones de insuficiencia/estenosis SIEMPRE visibles, sin
+           pestaña interna que los oculte. `vp-pane-morf` se conserva sólo como contenedor (ya no es
+           una solapa); `vp-pane-med` y la fila de pestañas se eliminaron. -->
       <div id="vp-pane-morf">
       <!-- MORFOLOGÍA, ESTENOSIS E INSUFICIENCIA SON TRES COSAS Y ANTES ERAN UN SOLO SELECT.
            `vp_morf` mezclaba las tres, así que elegir «Insuficiencia leve» borraba la
@@ -4620,9 +4620,7 @@ window.cerrarSesionReal = cerrarSesionReal;
       </div>
       </div><!-- fin bloque-insuf-pulmonar -->
       </div>
-      <!-- vp-pane-med: VACIADO en E5b-2. Las mediciones se mudaron al bloque «Doppler Pulmonar» de
-           la pestaña Doppler (mismos ids). Esta solapa y este pane se eliminan en E5b-1. -->
-      <div id="vp-pane-med" style="display:none;"></div>
+<!-- vp-pane-med eliminado en E5b-1 (las mediciones viven en «Doppler Pulmonar»). -->
     </div>
   </div>
   </div>
@@ -25358,7 +25356,7 @@ window.sevClaveDe = sevClaveDe;
    de que `aplicar` llegue a su propia línea de pastilla: las dos puertas piden lo mismo en el mismo
    gesto. Escrito como «apagá si está prendida» el segundo pedido no hace nada; escrito como
    «alterná» el botón volvía a quedar encendido. */
-const SEV_SIN_APAGA_VALVS = Object.freeze(['aortica', 'mitral']);
+const SEV_SIN_APAGA_VALVS = Object.freeze(['aortica', 'mitral', 'pulmonar']);  /* E5b-1: la EP entra (como la mitral): elegir «— grado —» con el botón prendido lo apaga. */
 /* El token que significa «no hay» en cada vocabulario. La estenosis usa `'sin'` (el `value` de la
    primera `<option>`) y la insuficiencia el `'0'` de «— Sin insuficiencia / no evaluada». Un solo
    dueño: la misma pregunta se la hacen el menú ▼, los dos `onchange` y la regla de visibilidad, y
@@ -27246,15 +27244,20 @@ function epGradoManual(){
   window.esqSevManual.ep = true;
   if (typeof _sevManualSync === 'function') _sevManualSync();
   /* v2 (E5, regla 3): elegir un grado REAL en el desplegable prende el botón de estenosis pulmonar
-     —«botón prendido = hay valvulopatía»—. El centinela «— grado —» (value 'sin') NO lo prende: es
-     «no hay grado», no una afirmación. Idempotente: si ya está prendido no hace nada. No se agrega
-     el apagado por «Sin» (la pulmonar no entra en `SEV_SIN_APAGA_VALVS`): queda reportado. */
+     —«botón prendido = hay valvulopatía»—.
+     v2 (E5b-1, regla 7/8 — decisión de Maicol): elegir el centinela «— grado —» (value 'sin') con el
+     botón prendido lo APAGA, igual que la mitral. Lo hace `sevSinApagaDesdeSelect('ep_grado')`, el
+     mismo embudo que usan la aórtica y la mitral, ahora que la pulmonar entró a `SEV_SIN_APAGA_VALVS`.
+     Si el cálculo discrepa, el apagado deja el aviso rojo y el cajón (valvApagarGrado, E5b-0). */
   try {
     const sel = document.getElementById('ep_grado');
-    if (sel && typeof sevEsSin === 'function' && !sevEsSin('esten', sel.value)
-        && typeof pillOn === 'function' && typeof toggleValvPill === 'function'
-        && !pillOn('pulmonar', 'esten')) {
-      toggleValvPill('pulmonar', 'esten');
+    if (sel && typeof sevEsSin === 'function') {
+      if (!sevEsSin('esten', sel.value)) {
+        if (typeof pillOn === 'function' && typeof toggleValvPill === 'function' && !pillOn('pulmonar', 'esten'))
+          toggleValvPill('pulmonar', 'esten');
+      } else if (typeof sevSinApagaDesdeSelect === 'function') {
+        sevSinApagaDesdeSelect('ep_grado');
+      }
     }
   } catch (e) {}
   /* calcVP (no sólo vpSync) para que el badge «se respeta la opción elegida a mano» se repinte en
@@ -91594,8 +91597,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261004-0100';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791086453123;                 /* eco-build-ms */
+const ECO_BUILD    = '20261004-0120';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791087614888;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -91681,7 +91684,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-0100</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-0120</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

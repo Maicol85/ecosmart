@@ -191,7 +191,9 @@ window.__A = {
         if (!ctrl) {
           /* Solapas internas cuyo handler NO nombra el pane. Declaradas una por una: adivinarlas
              es como se inventa un gesto que el medico no hace. */
-          var MAPA = { 'vp-pane-med': 'vp-tab-med', 'vp-pane-morf': 'vp-tab-morf' };
+          /* E5b-1: la pulmonar ya no tiene solapas internas, y los campos del Doppler Pulmonar los
+             abre la rama de arriba por su toggleCard. El mapa queda vacio. */
+          var MAPA = {};
           if (MAPA[oid] && document.getElementById(MAPA[oid])) ctrl = MAPA[oid];
         }
         if (!ctrl) return { err: 'oculto por ' + (oid ? ('#' + oid) : ('.' + String(oculto.className||'?'))) +
@@ -238,12 +240,10 @@ window.__A = {
       var s = document.getElementById('ete-seccion-' + tok);
       if (s && s.style.display === 'none') { try { toggleEteSeccion(tok); } catch(e) {} }
     });
-    /* La pulmonar tiene un pane ANIDADO: vp_vmax e ip_vmax viven en #vp-pane-med, que arranca
-       cerrado y que toggleEteSeccion NO abre. Sin esto el tipeo pulmonar no agarra —"nodo sin
-       geometria"— y las escenas ep/ip miden sobre un denominador CERO: salen "sin alteraciones"
-       y la app parece impecable. Se abren los DOS panes a la vez (son divs independientes) para
-       no perder la geometria de vp_morf, que vive en el otro. */
-    try { vpTab('med'); } catch(e) {}
+    /* E5b-1/E5b-2: la pulmonar ya NO tiene solapas. La morfologia y los botones viven en
+       vp-pane-morf (siempre visible); las mediciones (vp_vmax, ip_vmax…) se mudaron al bloque
+       «Doppler Pulmonar» de la pestania Doppler, que revelar() abre por su toggleCard igual que a
+       vmax_ao. Aca solo se asegura que vp-pane-morf este visible. */
     var pm = document.getElementById('vp-pane-morf');
     if (pm) pm.style.display = '';
     var vis = function(id){ var e = document.getElementById(id);
@@ -256,10 +256,10 @@ window.__A = {
     var acordeones = {};
     toks.forEach(function(tok){ acordeones[tok.replace('valv-','')] = vis('ete-seccion-' + tok); });
     var ab = Object.keys(acordeones).filter(function(k){ return acordeones[k] }).length;
-    var panes = { 'vp-pane-med': vis('vp-pane-med'), 'vp-pane-morf': vis('vp-pane-morf'),
+    var panes = { 'vp-pane-morf': vis('vp-pane-morf'), 'dop-pulmonar': vis('dop-pulmonar'),
                   'dop-aortico': vis('dop-aortico'), 'dop-mitral': vis('dop-mitral'),
                   'dop-tricusp': vis('dop-tricusp') };
-    var panesVP = panes['vp-pane-med'] && panes['vp-pane-morf'];
+    var panesVP = panes['vp-pane-morf'];
     var tab = vis('tab-valvulas');
     return { tab: tab, secciones: ab, acordeones: acordeones, panes: panes, panesVP: panesVP,
              ok: tab && ab === 4 && panesVP } },
