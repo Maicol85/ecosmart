@@ -1998,6 +1998,16 @@ function cerrarSesionReal() {
      anterior. Es exactamente el defecto que el renglón de arriba acaba de cerrar para la
      cohorte, reintroducido dos líneas después. */
   if (typeof labAsocLibreReset === 'function') { try { labAsocLibreReset(true); } catch (e) {} }
+  /* Y el VI 3D, por el MISMO motivo y en la misma puerta — es el quinto de esta lista.
+     ⚠️ ACÁ LA RED DE CONTENCIÓN DEL BUCLE NO LLEGA. `lv3dCuadro` se apaga solo cuando el canvas
+     pierde geometría (`offsetParent === null`), y `#login-overlay` es `position:fixed` con
+     z-index altísimo: TAPA la app pero no la saca del flujo, así que el canvas conserva su
+     `offsetParent` y el `requestAnimationFrame` se sigue encolando detrás de la pantalla de
+     bloqueo. Era la única de las cinco puertas que la red no cubría.
+     `lv3dCerrar` y no `lv3dDetener`: al reabrir sesión en una máquina compartida el panel no
+     puede estar abierto mostrando el ventrículo del turno anterior, que es justo lo que el
+     orden de apilamiento de este overlay existe para evitar. */
+  if (typeof lv3dCerrar === 'function') { try { lv3dCerrar(); } catch (e) {} }
   sessionStorage.removeItem('ett_auth');
   document.getElementById('login-pwd').value = '';
   document.getElementById('login-err').textContent = '';
@@ -5940,6 +5950,13 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div style="background:var(--bg3);border-radius:10px;padding:8px 6px 12px;text-align:center;width:280px;">
           <div style="font-size:12px;color:var(--accent2);margin-bottom:4px;font-weight:600;">Bull's Eye · 17 segmentos</div>
           <svg viewBox="0 0 320 320" id="contr-svg-bullseye"></svg>
+          <!-- VI 3D: el botón va centrado en la MISMA columna que el bull's eye, justo debajo.
+               Un toque abre, otro cierra. El panel del diagrama NO vive acá: vive en la tarjeta
+               «Hallazgos de motilidad», que es donde tiene ancho para ponerse al lado del texto. -->
+          <button type="button" class="btn btn-ghost" id="lv3d-btn" onclick="lv3dToggle()"
+                  aria-expanded="false" aria-controls="lv3d-panel"
+                  style="margin-top:10px;min-height:44px;min-width:44px;">🫀 Ver en 3D</button>
+          <div style="font-size:10.5px;color:var(--text2);margin-top:6px;line-height:1.45;">Modelo esquemático, ilustrativo: no es una imagen del paciente.</div>
         </div>
 
         <!-- DERECHA: territorio coronario -->
@@ -5954,8 +5971,65 @@ window.cerrarSesionReal = cerrarSesionReal;
 
       <div class="card" style="margin:0 0 12px;">
         <div class="card-body">
-          <div style="font-size:12px;color:var(--accent2);font-weight:600;margin-bottom:6px;">Hallazgos de motilidad</div>
-          <div id="contr-texto-informe" style="font-size:12px;color:var(--text);line-height:1.6;"></div>
+          <!-- ⚠️ CON EL 3D CERRADO ESTA TARJETA QUEDA EXACTAMENTE COMO ANTES.
+               `#lv3d-fila` arranca en `display:block`, así que sus dos hijos se maquetan como
+               bloques planos igual que el título y el texto sueltos de antes, y `#lv3d-panel`
+               está en `display:none` — no ocupa caja ni agrega el `gap` de un grid.
+               Al abrir, `lv3dToggle` le pone `display:grid` con dos columnas: texto a la
+               izquierda, diagrama a la derecha. Lo mide TC-408. -->
+          <div id="lv3d-fila" style="display:block;">
+            <div>
+              <div style="font-size:12px;color:var(--accent2);font-weight:600;margin-bottom:6px;">Hallazgos de motilidad</div>
+              <div id="contr-texto-informe" style="font-size:12px;color:var(--text);line-height:1.6;"></div>
+            </div>
+            <!-- ⚠️ LOS CONTROLES DE ACÁ LLEVAN DOS MARCAS, Y NINGUNA ES DECORATIVA.
+                 1) SIN `id`. El estudio y el Excel se arman con barridos genéricos de
+                    `input[id], select[id], textarea[id]` gobernados por DOS regex mantenidas por
+                    separado —`_noEsDelEstudio` y `_CAMPOS_FUERA_DEL_ESTUDIO`—, y encima tres de
+                    esos barridos no consultan ninguna de las dos (`autoSave` y el par de
+                    respaldo/restauración de la reimpresión). Sin `id` quedan fuera de TODOS de
+                    una sola vez, sin depender de que alguien se acuerde de tocar dos regex.
+                 2) `data-ui`. Hay un barrido más, `secAutoOpen`, que NO mira `id` sino `value` y
+                    `checked` para decidir si una sección tiene datos del paciente. Sin esta
+                    marca, los tres controles de abajo —dos `checked` y un `range` en 0— abrían
+                    el acordeón de Contractilidad solo, en todo paciente. Medido contra HEAD.
+                 Se los ubica por clase dentro del panel. -->
+            <div id="lv3d-panel" style="display:none;min-width:0;">
+              <canvas id="lv3d-canvas" width="680" height="380"
+                      aria-label="Modelo esquemático del ventrículo izquierdo con los 17 segmentos coloreados según su motilidad. Arrastrá para girar; tocá un segmento para cambiar su estado."
+                      style="width:100%;height:auto;display:block;touch-action:none;cursor:grab;background:var(--bg3);border-radius:10px;"></canvas>
+              <!-- Dice que el toque cambia el INFORME, no solo el dibujo. El gesto que el panel
+                   anuncia es girar, y el rótulo de abajo dice «ilustrativo»: sin esta línea, que
+                   tocar un segmento viaje al narrativo, al EN SUMA, al PDF y al PPT es una
+                   sorpresa. El rótulo que pidió Maicol queda intacto, debajo del botón. -->
+              <div id="lv3d-leido" aria-live="polite" style="font-size:11px;color:var(--text2);margin:6px 0 0;min-height:16px;">Arrastrá para girar. Tocá un segmento para cambiar su motilidad: el cambio va al informe.</div>
+
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+                <button type="button" class="btn btn-ghost lv3d-vista" data-lv3d-vista="frente" style="min-height:44px;font-size:11px;">Punta hacia mí</button>
+                <button type="button" class="btn btn-ghost lv3d-vista" data-lv3d-vista="der" style="min-height:44px;font-size:11px;">Punta a la derecha</button>
+                <button type="button" class="btn btn-ghost lv3d-vista" data-lv3d-vista="izq" style="min-height:44px;font-size:11px;">Punta a la izquierda</button>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;">
+                <button type="button" class="btn btn-ghost" id="lv3d-play" style="min-height:44px;font-size:11px;">⏸ Pausa</button>
+                <span style="font-size:11px;color:var(--text2);">Fase</span>
+                <input type="range" class="lv3d-fase" data-ui min="0" max="100" value="0" step="1"
+                       aria-label="Fase del ciclo cardíaco" style="flex:1;min-width:130px;min-height:44px;">
+                <span id="lv3d-fase-txt" style="font-size:11px;font-weight:600;min-width:118px;">Fin de diástole</span>
+              </div>
+
+              <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:4px;font-size:11px;color:var(--text2);">
+                <!-- El blanco táctil es el `label` entero —tocarlo conmuta la casilla—, así que es
+                     el label el que mide 44 px de alto y de ancho mínimo, no el cuadradito nativo.
+                     Igual se le sube a 20 px para que se pueda ver y apuntar con el dedo. -->
+                <label style="display:inline-flex;align-items:center;gap:7px;min-height:44px;min-width:44px;cursor:pointer;"><input type="checkbox" class="lv3d-fantasma" data-ui checked style="width:20px;height:20px;"> Diástole fantasma</label>
+                <label style="display:inline-flex;align-items:center;gap:7px;min-height:44px;min-width:44px;cursor:pointer;"><input type="checkbox" class="lv3d-aparato" data-ui checked style="width:20px;height:20px;"> Cuerdas y papilares</label>
+              </div>
+
+              <!-- P5: los datos de construcción, debajo del diagrama. El panel SOLO LEE. -->
+              <div id="lv3d-datos" style="margin-top:8px;"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -17075,6 +17149,12 @@ const PDF_FS_FIJO = 1.15;
 
 // ══ TABS ══
 function showTab(id) {
+  /* ⚠️ EL BUCLE DEL VI 3D SE APAGA AL CAMBIAR DE PESTAÑA, y va ANTES de mover las clases.
+     La pestaña que se deja pasa a `display:none`, así que el canvas queda sin geometría: seguir
+     animándolo es gastar batería dibujando lo que nadie ve. Se apaga el BUCLE, no el panel —al
+     volver a Contractilidad arranca de nuevo si el médico lo había dejado abierto—.
+     Mismo patrón que `_cineDetener`: se cancela y se olvida el identificador. */
+  if (typeof lv3dDetener === 'function') lv3dDetener();
   document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
@@ -17108,6 +17188,9 @@ function showTab(id) {
   /* El seguimiento de Cardio-Oncología está indexado por paciente, así que hay que
      repintarlo cada vez que se entra: dibujado una sola vez al arrancar, al cambiar de
      paciente seguía mostrando los controles del anterior. */
+  /* La otra mitad del apagado de arriba: al volver a Contractilidad, si el panel quedó abierto,
+     el bucle vuelve a arrancar. Sin esto el diagrama queda congelado en el cuadro que tenía. */
+  if (id === 'contractilidad' && typeof lv3dArrancar === 'function') lv3dArrancar();
   if (id === 'cardioOnco' && typeof renderSeguimientoLista === 'function') {
     /* Antes de pintar: si los controles se cargaron con el nombre y después se completó la
        cédula, se reubican bajo la clave del documento. Si no, quedarían en una clave que la
@@ -17920,6 +18003,11 @@ function calcVI() {
       if (typeof toast === 'function') toast('⚠️ HFA-PEFF retirado del informe: ' + g.msgUI);
     }
   }
+  /* El VI 3D LEE de `vdfvi`, `vsfvi`, `fevi` y `ddfvi`, y los cinco campos ya llaman a `calcVI`
+     en su `oninput`: colgarse de acá es lo que hace que el panel se actualice mientras el médico
+     tipea, sin agregarle un listener a cada campo —que es como uno se queda sin cablear—.
+     Con el panel cerrado no hace nada, así que no le cuesta nada al resto de la app. */
+  if (typeof lv3dAlCambiarEstado === 'function') lv3dAlCambiarEstado();
 }
 
 // ══ SGL ══
@@ -33484,6 +33572,12 @@ const VALV_PILL_VALVS = Object.freeze(['mitral','aortica','tricuspide','pulmonar
    estudio», y es ruido cuando la limpieza es un paso interno de cargar otro estudio — ahí el
    único mensaje que corresponde es el de la carga. */
 function limpiarCampos(silencioso) {
+  /* ⚠️ EL PANEL DEL VI 3D SE CIERRA AL LIMPIAR EL ESTUDIO, y el bucle con él. Es un dibujo
+     construido sobre los volúmenes y la motilidad del paciente que se está dejando: quedarse
+     abierto y animándose sobre campos recién vaciados es exactamente «el ventrículo del paciente
+     anterior» que este archivo ya documenta para los spans de `calcVI`.
+     Se cierra —no solo se detiene— porque no hay nada que mostrar hasta que alguien cargue. */
+  if (typeof lv3dCerrar === 'function') lv3dCerrar();
   // Nuevo estudio: la card de severidades vuelve a pedirse en la próxima acción
   valvSevConfirmada = false;
   // Nuevo estudio: resetear los flags de severidad fijada manualmente (las pills vuelven a autocalcularse)
@@ -53269,6 +53363,9 @@ function toggleTheme() {
   const isLight = document.documentElement.classList.toggle('light-mode');
   localStorage.setItem('ett_theme', isLight ? 'light' : 'dark');
   updateThemeBtn(isLight);
+  /* El canvas del VI 3D no hereda las variables CSS: hay que releerlas y repintar a mano, o la
+     brújula se queda con el color del tema anterior y en claro queda ilegible. */
+  if (typeof lv3dAlCambiarTema === 'function') lv3dAlCambiarTema();
 }
 function updateThemeBtn(isLight) {
   const btn = document.getElementById('theme-toggle-btn');
@@ -54482,6 +54579,13 @@ function secToggle(id) {
     body.style.overflow = 'hidden'; body.style.maxHeight = body.scrollHeight + 'px';
     void body.offsetHeight; body.style.maxHeight = '0';
   }
+  /* El VI 3D vive dentro del acordeón de Contractilidad. Cerrarlo no pone `display:none` —deja
+     `max-height:0` con `overflow:hidden`—, así que el canvas CONSERVA geometría y la red de
+     contención del bucle no lo ve: hay que apagarlo acá a mano. Al reabrir, vuelve a arrancar. */
+  if (id === 'contr'){
+    if (!open){ if (typeof lv3dDetener === 'function') lv3dDetener(); }
+    else { if (typeof lv3dArrancar === 'function') lv3dArrancar(); }
+  }
 }
 window.secToggle = secToggle;
 // Abre (sin animación) los acordeones de una tab que ya tengan datos cargados, para no ocultarlos.
@@ -54500,7 +54604,18 @@ function secAutoOpen(tabId) {
        contestar «No» en «TV documentada» escribía `'no'` en los dos select, que es
        `selectedIndex 2`, y al entrar a la pestaña se abrían solos los acordeones de
        miocardiopatía hipertrófica y de Fallot en un paciente que no tiene ninguna de las dos. */
-    const has = Array.from(acc.querySelectorAll('.sacc-body input:not([readonly]):not([data-espejo]), .sacc-body select:not([data-espejo]), .sacc-body textarea')).some(el => {
+    /* `[data-ui]` se suma el 2026-10-04, y es el MISMO defecto por TERCERA vez con una causa
+       nueva: un control que no es un dato del paciente contestando «acá hay datos».
+       Lo destapó el panel del VI 3D, que vive dentro de `#sacc-contr` y trae tres controles de
+       interfaz con valor por defecto —dos casillas con `checked` y un `range` con `value="0"`—.
+       Los tres dan `true` en el predicado de abajo SIN que nadie los toque, así que entrar a
+       Contractilidad abría la sección sola en todo paciente, incluido un estudio vacío. Medido
+       contra HEAD: antes `false`, después `true`.
+       ⚠️ Y ES LA GENERALIZACIÓN QUE FALTABA. Este barrido NO mira `id`, así que la regla «un
+       control sin id queda afuera» —que sí vale para los barridos que arman el estudio y el
+       Excel— acá no protege nada, y no hay regex donde registrar un prefijo. `data-ui` dice lo
+       que hay que decir una sola vez: esto es interfaz, no una medición del paciente. */
+    const has = Array.from(acc.querySelectorAll('.sacc-body input:not([readonly]):not([data-espejo]):not([data-ui]), .sacc-body select:not([data-espejo]):not([data-ui]), .sacc-body textarea:not([data-ui])')).some(el => {
       if (el.type === 'checkbox' || el.type === 'radio') return el.checked;
       if (el.tagName === 'SELECT') return el.selectedIndex > 0;
       return String(el.value || '').trim() !== '';
@@ -62524,20 +62639,68 @@ const CONTR_CARA_TEXTO = {
 const CONTR_NIVEL_TEXTO = {basal:"basal", mid:"medio", apical:"apical"};
 const contrEstado = {};
 
-function contrColorActual(id){ return CONTR_MOTILIDAD[contrEstado[id] || 0].color; }
+/* El `|| CONTR_MOTILIDAD[0]` iguala la guarda que ya tenían los otros dos lectores de color —el
+   del PDF y el del PPT—. Éste era el único de los tres sin ella, así que un índice fuera de rango
+   llegado de un estudio en disco tiraba acá y abortaba la restauración entera. Hoy `_contrNormIdx`
+   lo acota en el borde; esto es la segunda capa, para que un escritor nuevo no reabra el agujero. */
+function contrColorActual(id){ return (CONTR_MOTILIDAD[contrEstado[id] || 0] || CONTR_MOTILIDAD[0]).color; }
 function contrAplicar(id){
   document.querySelectorAll(`[data-contrseg="${id}"]`).forEach(el=>{
     el.setAttribute("fill", contrColorActual(id));
   });
 }
-function contrCiclar(id){
-  contrEstado[id] = ((contrEstado[id] || 0) + 1) % CONTR_MOTILIDAD.length;
+/* ⚠️ VÍA ÚNICA PARA CAMBIAR EL ESTADO DE UN SEGMENTO (2026-10-04).
+   `contrEstado` es un objeto pelado sin aviso de cambios: cualquiera podía escribirle encima
+   y el repintado quedaba a cargo del que escribía. Así es como una superficie se queda
+   mostrando el paciente anterior — el que agrega un llamador nuevo no tiene cómo enterarse de
+   que había tres cosas que repintar. Desde acá el que cambia un segmento NO repinta: llama a
+   `contrSetSegmento` y ella decide quiénes dependen del estado.
+   Hoy dependen tres: los cuatro SVG (A4C, A2C, A3C y el bull's eye), el texto de hallazgos, y
+   el VI 3D. El día que haya un cuarto se agrega en `contrNotificar` y lo heredan TODOS los
+   llamadores de una vez.
+   El EN SUMA y el informe narrativo NO se listan y no es un olvido: los emite
+   `contrFraseNarrativa()` bajo demanda al generar el informe, leyendo `contrEstado` en ese
+   momento. No hay nada cacheado que invalidar, y por eso el 3D los mueve sin tocarlos. */
+/* Normalizador ÚNICO del índice de motilidad. Está aparte de `contrSetSegmento` porque hay un
+   segundo escritor legítimo que NO puede notificar 17 veces: `_restaurarContractilidad`, que
+   pobla los 17 segmentos de un estudio y notifica una sola vez al final. Con la cuenta escrita
+   en los dos lados, uno de los dos se queda sin la guarda — y el que se quedaba sin ella era
+   justo el que lee de DISCO:
+     · `contrEstado[k] = Number(segs[k]) || 0` no acotaba, así que un estudio guardado (o un
+       backup JSON editado a mano, o un import) con `{"basal_anterior":12}` dejaba un 12 adentro,
+       y `CONTR_MOTILIDAD[12].color` tiraba TypeError ABORTANDO el resto de la restauración;
+     · y `Number.isFinite` no es adorno: `Math.trunc(Infinity) % 5` es NaN, y un NaN guardado
+       hace que `contrGetLineasInforme` tire sobre `CONTR_MOTILIDAD[NaN].nombre`, dejando el
+       texto de hallazgos congelado en el del paciente anterior. */
+function _contrNormIdx(x){
+  const L = CONTR_MOTILIDAD.length;
+  const n = Math.trunc(Number(x));
+  return Number.isFinite(n) ? ((n % L) + L) % L : 0;
+}
+function contrSetSegmento(id, idx){
+  if (!id) return;
+  contrEstado[id] = _contrNormIdx(idx);
+  contrNotificar(id);
+}
+/* Repinta lo que depende de UN segmento. */
+function contrNotificar(id){
   contrAplicar(id);
   contrRenderInforme();
+  if (typeof lv3dAlCambiarEstado === 'function') lv3dAlCambiarEstado();
 }
+/* Repinta lo que depende de TODOS. Va aparte de `contrNotificar` para que un cambio masivo
+   —reset, hipocontractilidad difusa, restaurar un estudio— no pague 17 veces el rearmado del
+   texto de hallazgos ni la remalla del 3D. */
+function contrNotificarTodos(){
+  contrAplicarTodos();
+  contrRenderInforme();
+  if (typeof lv3dAlCambiarEstado === 'function') lv3dAlCambiarEstado();
+}
+function contrCiclar(id){ contrSetSegmento(id, (contrEstado[id] || 0) + 1); }
 function contrAplicarTodos(){
   document.querySelectorAll("[data-contrseg]").forEach(el=> contrAplicar(el.getAttribute("data-contrseg")));
 }
+window.contrSetSegmento = contrSetSegmento;
 let contrDifusa = false, contrMultiple = false, contrDisqSep = false, contrSnapshot = null;
 /* ¿Hay contractilidad EVALUADA? `contrEstado` vacío hace que contrColorActual devuelva
    CONTR_MOTILIDAD[0] —«Normal»— para los 17 segmentos, así que un bull's eye entero verde
@@ -62560,8 +62723,7 @@ window.contrReset = function(){
   _contrBtnState('btn-contr-difusa', false);
   _contrBtnState('btn-contr-multiple', false);
   _contrBtnState('btn-contr-disq-sep', false);
-  contrAplicarTodos();
-  contrRenderInforme();
+  contrNotificarTodos();   // «Limpiar» limpia también el VI 3D
 };
 window.toggleContrDifusa = function(btn){
   contrDifusa = !contrDifusa;
@@ -62574,8 +62736,7 @@ window.toggleContrDifusa = function(btn){
     contrSnapshot = null;
   }
   _contrBtnState('btn-contr-difusa', contrDifusa);
-  contrAplicarTodos();
-  contrRenderInforme();
+  contrNotificarTodos();
 };
 window.toggleContrMultiple = function(btn){
   contrMultiple = !contrMultiple;
@@ -62626,15 +62787,17 @@ function _restaurarContractilidad(campos){
   contrDifusa = false; contrMultiple = false; contrDisqSep = false; contrSnapshot = null;
   let segs = campos && campos.contractilidad;
   if (typeof segs === 'string') { try { segs = JSON.parse(segs); } catch(e){ segs = null; } }
-  if (segs && typeof segs === 'object') Object.keys(segs).forEach(k=>{ contrEstado[k] = Number(segs[k]) || 0; });
+  /* Mismo normalizador que `contrSetSegmento`, sin notificar 17 veces: la notificación va una
+     sola vez al final de esta función. Lo que entra acá viene de DISCO, así que es la lectura
+     menos confiable de todas. */
+  if (segs && typeof segs === 'object') Object.keys(segs).forEach(k=>{ contrEstado[k] = _contrNormIdx(segs[k]); });
   let fl = campos && campos.contr_flags;
   if (typeof fl === 'string') { try { fl = JSON.parse(fl); } catch(e){ fl = null; } }
   if (fl && typeof fl === 'object') { contrDifusa = !!fl.difusa; contrMultiple = !!fl.multiple; contrDisqSep = !!fl.disqSep; }
   _contrBtnState('btn-contr-difusa', contrDifusa);
   _contrBtnState('btn-contr-multiple', contrMultiple);
   _contrBtnState('btn-contr-disq-sep', contrDisqSep);
-  if (typeof contrAplicarTodos === 'function') contrAplicarTodos();
-  if (typeof contrRenderInforme === 'function') contrRenderInforme();
+  if (typeof contrNotificarTodos === 'function') contrNotificarTodos();
 }
 window._restaurarContractilidad = _restaurarContractilidad;
 
@@ -62969,6 +63132,732 @@ function contrInit(){
   contrRenderInforme();
 }
 window.contrInit = contrInit;
+
+// ══════════════ VI 3D — DIAGRAMA DEL VENTRÍCULO IZQUIERDO (pestaña Contractilidad) ══════════════
+/* Canvas puro, sin librerías ni recursos externos (CSP). Reescrito a partir de
+   `docs/3d/1_demo_ventriculo_17_segmentos.html`, que es la referencia de ASPECTO y de
+   COMPORTAMIENTO y NO el código final:
+   · los colores y los rótulos NO se copian de la demo — salen de `CONTR_MOTILIDAD`, la misma
+     tabla que pinta el bull's eye. Por eso el rótulo es «Discinesia» y no «Disquinesia», y el
+     día que Maicol cambie un color cambian los dos dibujos juntos en vez de separarse;
+   · la demo usa íconos de una librería externa (`class="ti ti-player-pause"`, Tabler) que esta
+     app no carga y que la CSP no dejaría entrar: acá van los mismos emojis del cineloop,
+     «⏸ Pausa» / «▶ Reproducir»;
+   · las cuerdas y los papilares NO están en la demo 1 —no los dibuja— sino en las demos 2 y 3,
+     primitiva 'CHORD'; de ahí sale el estilo;
+   · sin ventrículo derecho (probado y descartado, ver la especificación).
+
+   ⚠️ ESTE MÓDULO SOLO LEE.
+   No escribe `fevi`, `vdfvi`, `vsfvi`, `ddfvi` ni `dsfvi`; no toca el informe narrativo, el
+   EN SUMA, el PDF, el PPT ni el Excel; y no escribe `contrEstado`: para cambiar un segmento
+   llama a `contrSetSegmento`, exactamente la misma puerta que usa el bull's eye.
+   Y NO calcula volúmenes por un método que la app no tenga. El DDVI escala el DIBUJO por dentro
+   y nada más: no hay Teichholz ni ningún volumen derivado de un diámetro. Decisión de Maicol
+   (2026-10-04), coherente con «Fracción de engrosamiento parietal — y por qué NO hay Teichholz»
+   del historial. Lo único que se calcula son dos restas entre campos que el médico ya cargó. */
+
+/* Numeración AHA de la demo (1..17) → los `data-contrseg` reales de la app. */
+const LV3D_SEG_ID = [null,
+  'basal_anterior','basal_anteroseptal','basal_inferoseptal','basal_inferior','basal_inferolateral','basal_anterolateral',
+  'mid_anterior','mid_anteroseptal','mid_inferoseptal','mid_inferior','mid_inferolateral','mid_anterolateral',
+  'apical_anterior','apical_septal','apical_inferior','apical_lateral','apex'];
+const LV3D_SEG_NOMBRE = [null,
+  'Anterior basal','Anteroseptal basal','Inferoseptal basal','Inferior basal','Inferolateral basal','Anterolateral basal',
+  'Anterior medio','Anteroseptal medio','Inferoseptal medio','Inferior medio','Inferolateral medio','Anterolateral medio',
+  'Anterior apical','Septal apical','Inferior apical','Lateral apical','Ápex'];
+
+/* Excursión radial RELATIVA de cada grado de motilidad. NO es un corte clínico: es cuánto se
+   mueve la pared en el dibujo respecto de una pared normal. El signo negativo de discinesia y
+   aneurisma es el abombamiento hacia AFUERA en sístole, que es lo que los distingue a ojo de un
+   aquinético. Escalar todo por la ganancia global deja el 0 en 0 y el negativo negativo: por eso
+   la FEVI puede mandar la amplitud total sin borrar el patrón segmentario. */
+const LV3D_K = [1, 0.5, 0, -0.4, -0.6];
+/* ⚠️ ACOPLAMIENTO POSICIONAL A `CONTR_MOTILIDAD`, Y ACÁ GRITA.
+   Los colores y los rótulos los toma el módulo de `CONTR_MOTILIDAD`, así que esos no se
+   desincronizan. La CINEMÁTICA sí: `LV3D_K` son cinco números escritos a mano en el mismo orden.
+   Agregar un grado al final deja `LV3D_K[5] === undefined`, la guarda de `lv3dGrillas` lo
+   convierte en 1 —excursión NORMAL— y el bull's eye pinta el color nuevo mientras el 3D dibuja
+   ese segmento contrayendo como si no pasara nada. Sin error y sin consola, que es el modo de
+   falla que este archivo persigue. Un grado insertado en el MEDIO es peor: corre todo.
+   Mismo patrón que `secToggle` con un id inexistente — avisar en vez de callar. */
+if (LV3D_K.length !== CONTR_MOTILIDAD.length){
+  console.error('[lv3d] LV3D_K tiene ' + LV3D_K.length + ' entradas y CONTR_MOTILIDAD tiene '
+    + CONTR_MOTILIDAD.length + ' — hay un grado de motilidad sin excursión definida, y el 3D lo '
+    + 'va a dibujar como normal. Agregar su entrada en LV3D_K.');
+}
+/* El abombamiento diastólico se decide por el VALOR de la excursión, no por el índice 4. Con
+   `idx === 4` escrito a mano, insertar un grado en el medio hacía que la discinesia empezara a
+   abombar y el aneurisma dejara de hacerlo. */
+const LV3D_K_ANEURISMA = -0.6;
+
+const LV3D_N = 20, LV3D_M = 72, LV3D_SX = 1.04, LV3D_SY = 0.96, LV3D_ESC = 26, LV3D_DIST = 32;
+const LV3D_W = 680, LV3D_H = 380;
+const LV3D_DD_REF = 48;                                       // mm — DDVI del preset «VI normal»
+const LV3D_BASE = { Red:2.6, Led:8.5, Res:1.75, Les:7.5 };    // unidades del modelo (demo 1)
+const LV3D_TP = 2*Math.PI;
+
+const _lv3d = { abierto:false, raf:null, cuadros:0, t0:null, off:0, fase:0, corriendo:true,
+                arrastre:null, cableado:false, R:[[1,0,0],[0,1,0],[0,0,1]],
+                Kg:null, Eg:null, MK:1, G:1, volD:1, aviso:'', pal:null, polis:[],
+                P:Object.assign({}, LV3D_BASE) };
+
+/* Sonda de solo lectura para el arnés de pruebas: deja medir que con el panel cerrado no queda
+   ningún cuadro dibujándose, sin exponer nada escribible. */
+window.lv3dDiag = function(){ return { abierto:_lv3d.abierto, raf:_lv3d.raf, cuadros:_lv3d.cuadros,
+                                       G:_lv3d.G, aviso:_lv3d.aviso }; };
+
+function lv3dCtl(sel){ const el = document.querySelector('#lv3d-panel ' + sel); return el ? el.checked : false; }
+
+/* ── Paleta: se LEE del tema vigente. El canvas no hereda variables CSS, así que los trazos y la
+   brújula tienen que pedirlas a mano. El FONDO sí lo pone el CSS del elemento (`var(--bg3)`) y
+   por eso el canvas se limpia transparente en vez de pintarse de un color fijo. ── */
+function lv3dPaleta(){
+  const cs = getComputedStyle(document.documentElement);
+  const g = (n, f) => ((cs.getPropertyValue(n) || '').trim() || f);
+  return { texto:g('--text','#e8ecf4'), texto2:g('--text2','#9aa3bc'), borde:g('--border','#2a3050') };
+}
+function lv3dRGB(h){
+  const s = String(h || '').trim();
+  const m = /^#([0-9a-f]{6})$/i.exec(s);
+  if (!m) return [128,128,128];
+  const n = parseInt(m[1], 16);
+  return [(n>>16)&255, (n>>8)&255, n&255];
+}
+
+// ── Geometría: qué segmento cae en (altura t, ángulo d en grados) ──
+function lv3dSegEn(t, d){
+  if (t >= 0.85) return 17;
+  if (t < 0.6){
+    let s;
+    if (d < 60) s = 6; else if (d < 120) s = 1; else if (d < 180) s = 2;
+    else if (d < 240) s = 3; else if (d < 300) s = 4; else s = 5;
+    return t < 0.3 ? s : s + 6;
+  }
+  if (d >= 45 && d < 135) return 13;
+  if (d >= 135 && d < 225) return 14;
+  if (d >= 225 && d < 315) return 15;
+  return 16;
+}
+
+/* Suavizado de la grilla: sin esto el borde entre dos segmentos con motilidad distinta es un
+   escalón recto, y una pared no se mueve así. */
+function lv3dSuavizar(g){
+  for (let p=0; p<3; p++){
+    const a = [];
+    for (let i=0;i<=LV3D_N;i++){
+      a.push([]);
+      for (let j=0;j<LV3D_M;j++)
+        a[i].push(0.25*g[Math.max(i-1,0)][j] + 0.5*g[i][j] + 0.25*g[Math.min(i+1,LV3D_N)][j]);
+    }
+    const b = [];
+    for (let i=0;i<=LV3D_N;i++){
+      b.push([]);
+      for (let j=0;j<LV3D_M;j++){
+        const jm = (j+LV3D_M-1)%LV3D_M, jp = (j+1)%LV3D_M;
+        b[i].push(0.25*a[i][jm] + 0.5*a[i][j] + 0.25*a[i][jp]);
+      }
+    }
+    g = b;
+  }
+  return g;
+}
+
+function lv3dGrillas(){
+  const rk = [], re = [];
+  for (let i=0;i<=LV3D_N;i++){
+    rk.push([]); re.push([]);
+    for (let j=0;j<LV3D_M;j++){
+      const sg = lv3dSegEn(i/LV3D_N + 0.001, j*360/LV3D_M + 0.01);
+      const idx = Number(contrEstado[LV3D_SEG_ID[sg]]) || 0;
+      const k = LV3D_K[idx] !== undefined ? LV3D_K[idx] : 1;
+      rk[i].push(k);
+      re[i].push(k <= LV3D_K_ANEURISMA ? 0.18 : 0);   // el aneurisma abomba ya en diástole
+    }
+  }
+  _lv3d.Kg = lv3dSuavizar(rk);
+  _lv3d.Eg = lv3dSuavizar(re);
+  let sum = 0, cnt = 0;
+  for (let i=0;i<=LV3D_N;i++) for (let j=0;j<LV3D_M;j++){ sum += _lv3d.Kg[i][j]; cnt++; }
+  _lv3d.MK = cnt ? Math.max(0, Math.min(1, sum/cnt)) : 1;
+}
+
+/* Radios del anillo `i` en la fase `v` con ganancia `G`. El piso del 12 % evita que una ganancia
+   grande cruce el radio a negativo y dé vuelta la malla; además acota la FEVI alcanzable, que es
+   justamente lo que hace existir la rama «inalcanzable». */
+function lv3dRing(i, v, G){
+  const o = [], t = i/LV3D_N, b = Math.sqrt(Math.max(0, 1 - t*t)), P = _lv3d.P;
+  const res = P.Res*b;
+  for (let j=0;j<=LV3D_M;j++){
+    const jj = j % LV3D_M;
+    const red = P.Red*b*(1 + _lv3d.Eg[i][jj]);
+    const k = _lv3d.Kg[i][jj]*G;
+    o.push(Math.max(0.12*red, red + (res - red)*v*k));
+  }
+  return o;
+}
+function lv3dLargo(v, G){
+  const P = _lv3d.P;
+  return P.Led + (P.Les - P.Led)*v*Math.max(0, Math.min(2.2, _lv3d.MK*G));
+}
+/* Volumen GEOMÉTRICO del modelo, en unidades del modelo. Existe SOLO para resolver la ganancia:
+   nunca se muestra ni se convierte a mililitros. El volumen que ve el médico sale de sus campos. */
+function lv3dVol(v, G){
+  const h = lv3dLargo(v, G)/LV3D_N, dA = Math.sin(LV3D_TP/LV3D_M);
+  let tot = 0;
+  for (let i=0;i<LV3D_N;i++){
+    const ra = lv3dRing(i, v, G), rb = lv3dRing(i+1, v, G);
+    let a = 0;
+    for (let j=0;j<LV3D_M;j++){
+      const r0 = (ra[j]+rb[j])/2, r1 = (ra[j+1]+rb[j+1])/2;
+      a += 0.5*r0*r1*LV3D_SX*LV3D_SY*dA;
+    }
+    tot += a*h;
+  }
+  return tot;
+}
+function lv3dEFModelo(G){
+  const s = lv3dVol(1, G);
+  return _lv3d.volD > 0 ? (_lv3d.volD - s)/_lv3d.volD*100 : 0;
+}
+
+/* ── AMPLITUD: la FEVI de la app manda el TOTAL, los segmentos mandan el PATRÓN ──
+   Se resuelve por bisección la ganancia global G tal que la FEVI geométrica del modelo equivalga
+   a la FEVI del estudio, preservando las diferencias relativas entre segmentos: un aquinético
+   sigue sin moverse y un discinético sigue abombando hacia afuera.
+   Si el patrón no puede llegar a esa FEVI —17 aquinéticos con FEVI 60 %— NO se dibuja una
+   contracción falsa: se vuelve a G=1 y el panel lo dice con todas las letras.
+   Sale una vez por cambio de estado, no por cuadro. Decisión de Maicol (2026-10-04). */
+function lv3dResolverGanancia(fevi){
+  if (fevi === null) return { G:1, aviso:'sinFevi' };
+  if (!(fevi >= 0)) return { G:1, aviso:'inalcanzable' };   // cubre NaN, negativos
+  const GMAX = 2.6, PASOS = 40;
+  /* ⚠️ `lv3dEFModelo` NO ES MONÓTONA, y probarlo en UN SOLO extremo daba falsos «inalcanzable».
+     Con segmentos discinéticos o aneurismáticos —excursión NEGATIVA en `LV3D_K`— subir la
+     ganancia los hace abombar MÁS y restar fracción de eyección, mientras los normales suman.
+     La curva tiene entonces un máximo interior. Medido con 8 discinéticos: el máximo está en
+     G≈2,275 con 28,90 % y en GMAX baja a 28,44 %. Para una FEVI en esa franja, el test del
+     extremo decía «esta motilidad no alcanza esa FEVI» —culpando al dato del paciente por un
+     techo del modelo— y la bisección arrancaba con su invariante violado, empujando `lo` hasta
+     GMAX y devolviendo una ganancia que no resuelve nada mientras la nota de abajo afirmaba que
+     el dibujo contrae hasta la FEVI.
+     Se barre la grilla para encontrar el máximo REAL y se bisecciona sólo en [0, Gtope], que
+     ahí sí es creciente. Cuesta 40 evaluaciones más, una vez por cambio de estado, no por
+     cuadro. */
+  let gTope = 0, efTope = -Infinity;
+  for (let i=0;i<=PASOS;i++){
+    const G = i*GMAX/PASOS, ef = lv3dEFModelo(G);
+    if (ef > efTope){ efTope = ef; gTope = G; }
+  }
+  if (efTope < fevi - 0.5) return { G:1, aviso:'inalcanzable' };
+  let lo = 0, hi = gTope;
+  for (let i=0;i<40;i++){ const m = (lo+hi)/2; if (lv3dEFModelo(m) < fevi) lo = m; else hi = m; }
+  return { G:(lo+hi)/2, aviso:'' };
+}
+
+/* El DDVI escala el DIBUJO y nada más. El eje corto sigue al diámetro de forma proporcional y el
+   largo se amortigua, porque un VI dilatado se ensancha más de lo que se alarga. Es una elección
+   de DIBUJO, no un criterio clínico: por eso el panel dice «tamaño del dibujo ajustado por el
+   DDVI» y no publica ningún número derivado de ahí. */
+function lv3dEscalaPorDD(dd){
+  if (dd === null) return 1;
+  return Math.max(0.72, Math.min(1.6, dd/LV3D_DD_REF));
+}
+
+/* ── P5: el panel SOLO LEE los campos que ya cargó el médico ──
+   Usa `v()`, el mismo lector del resto de la app, así que un campo vacío o ilegible da `null` y
+   no un 0 que dibujaría un ventrículo que nadie midió. */
+function lv3dLeerDatos(){
+  /* ⚠️ SE LEE CON BANDA DE PLAUSIBILIDAD (`vPlaus`), NO CON `v()` PELADO, y el motivo está
+     escrito en este archivo desde antes: un VSFVI de 0,06 —el volumen tipeado en litros— salía
+     «🟢 normal» en el calc-box mientras el panel de Evidencia lo rechazaba, y el mismo estudio
+     decía dos cosas distintas según la superficie.
+     Acá sería peor que un badge, porque el panel DERIVA: con ese VSFVI de 0,06 publicaba
+     «FEVI 100 % · CALCULADO», y con una FEVI de 120 publicaba «VSFVI −20 ml · CALCULADO». El
+     médico no puede transcribir al informe un número que el panel le dio, así que lo
+     implausible NO deriva y NO se dibuja — se muestra crudo y marcado, igual que `calcVI`.
+     Los cuatro campos tienen banda: fevi [5,90], ddfvi [20,100], vsfvi [3,500], vdfvi [3,500]. */
+  const lee = id => {
+    const p = (typeof vPlaus === 'function') ? vPlaus(id) : null;
+    if (!p) return { val:null, crudo:null, fuera:false, org:null };
+    return { val:p.val, crudo:p.crudo, fuera:!!p.fuera,
+             org:(p.crudo !== null && p.crudo !== undefined) ? 'medido' : null };
+  };
+  const d = { vdf:lee('vdfvi'), vsf:lee('vsfvi'), fevi:lee('fevi'), dd:lee('ddfvi'),
+              vs:{ val:null, crudo:null, fuera:false, org:null } };
+  /* Dos restas entre campos PLAUSIBLES. Ningún método nuevo, ningún volumen desde un diámetro.
+     Lo cargado SIEMPRE gana sobre lo calculado: si el médico puso VDF, VSF y FEVI y no cierran,
+     el panel muestra su FEVI, no una recalculada que lo contradiga. */
+  if (d.vdf.val !== null && d.vsf.val === null && !d.vsf.fuera && d.fevi.val !== null){
+    const x = d.vdf.val*(1 - d.fevi.val/100);
+    if (x >= 0){ d.vsf.val = x; d.vsf.crudo = x; d.vsf.org = 'calculado'; }
+  }
+  if (d.vdf.val !== null && d.vsf.val !== null && d.fevi.val === null && !d.fevi.fuera && d.vdf.val > 0){
+    const x = (d.vdf.val - d.vsf.val)/d.vdf.val*100;
+    if (x >= 0 && x <= 100){ d.fevi.val = x; d.fevi.crudo = x; d.fevi.org = 'calculado'; }
+  }
+  if (d.vdf.val !== null && d.vsf.val !== null){
+    const x = d.vdf.val - d.vsf.val;
+    /* Un volumen eyectado negativo es imposible: significa que VSF > VDF, o sea que uno de los
+       dos está mal cargado. Se calla el número en vez de publicar un absurdo con etiqueta. */
+    if (x >= 0){ d.vs.val = x; d.vs.crudo = x; d.vs.org = 'calculado'; }
+  }
+  return d;
+}
+
+function lv3dRenderDatos(d, aviso){
+  const box = document.getElementById('lv3d-datos');
+  if (!box) return;
+  /* El NÚMERO sale siempre que haya algo tipeado; lo que se suprime con un insumo fuera de banda
+     es la CLASIFICACIÓN —acá, el rótulo «medido»—, igual que `calcVI` suprime el badge y deja el
+     valor. Borrar la celda dejaría al médico sin saber que cargó algo, que es peor que decirlo. */
+  const fila = (lbl, c, un) => {
+    const hay = (c.crudo !== null && c.crudo !== undefined && isFinite(c.crudo));
+    const marca = !hay ? 'no cargado' : (c.fuera ? '⚠️ revisar la unidad' : c.org);
+    const col = (marca === 'medido') ? 'var(--accent2)' : 'var(--text2)';
+    return '<div style="background:var(--bg3);border-radius:8px;padding:6px 8px;">'
+      + '<div style="font-size:9.5px;color:var(--text2);line-height:1.25;">' + lbl + '</div>'
+      + '<div style="font-size:15px;font-weight:600;color:var(--text);line-height:1.3;">'
+      + (hay ? String(Math.round(c.crudo)) + ' <span style="font-size:10px;font-weight:400;">' + un + '</span>' : '—') + '</div>'
+      + '<div style="font-size:9px;letter-spacing:.4px;color:' + col + ';'
+      + (c.fuera ? '' : 'text-transform:uppercase;') + '">' + marca + '</div>'
+      + '</div>';
+  };
+  let html = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:6px;">'
+    + fila('VDFVI', d.vdf, 'ml')
+    + fila('VSFVI', d.vsf, 'ml')
+    + fila('FEVI', d.fevi, '%')
+    + fila('DDVI', d.dd, 'mm')
+    + fila('Volumen sistólico', d.vs, 'ml')
+    + '</div>';
+
+  const notas = [];
+  // 1) Tamaño del dibujo y por qué no hay volumen.
+  /* `_sinDD` distingue «no lo cargó» de «lo cargó fuera de lo medible»: el preset normal se usa
+     en los dos casos, pero decirle «no hay DDVI cargado» a quien acaba de tipear uno manda a
+     buscar el problema al lugar equivocado. */
+  const _ddFuera = d.dd.fuera, _ddHay = d.dd.val !== null;
+  const _presetTxt = _ddFuera
+    ? 'Tamaño del dibujo: preset de VI normal, porque el DDVI cargado está fuera de lo medible.'
+    : 'Tamaño del dibujo: preset de VI normal, porque no hay DDVI cargado.';
+  if (d.vdf.val === null){
+    notas.push(_ddHay
+      ? ['n', 'Tamaño del dibujo ajustado por el DDVI; volumen no calculado.']
+      : ['a', _presetTxt + ' Volumen no calculado.']);
+  } else if (_ddHay){
+    notas.push(['n', 'Tamaño del dibujo ajustado por el DDVI.']);
+  } else {
+    notas.push(['a', _presetTxt]);
+  }
+  // 2) Amplitud de la contracción: las cuatro condiciones de la decisión del 2026-10-04.
+  const hayAlterado = Object.keys(contrEstado).some(k => Number(contrEstado[k]) > 0);
+  /* ⚠️ TRES CAUSAS DISTINTAS, TRES FRASES DISTINTAS, y el orden importa.
+     «Fuera de banda» va PRIMERO y no se puede colgar del `aviso` del solver: con la FEVI fuera de
+     lo medible `val` queda en `null`, así que el solver contesta `sinFevi` y el panel decía «Sin
+     FEVI cargada» a quien acababa de tipear 700. Las otras dos frases también serían falsas acá:
+     «esta motilidad no alcanza esa FEVI» le echa la culpa al ventrículo del paciente por un
+     dedazo del operador. Lo encontró una asercion de esta misma tanda, después de que el primer
+     arreglo dejara la rama inalcanzable. */
+  if (d.fevi.fuera){
+    notas.push(['a', 'La FEVI cargada está fuera de lo medible, así que no se usó para la amplitud. '
+      + 'El dibujo muestra solo el patrón segmentario.']);
+  } else if (aviso === 'inalcanzable'){
+    notas.push(['a', 'La motilidad cargada no puede alcanzar una FEVI de ' + Math.round(d.fevi.val)
+      + ' %. El dibujo muestra el patrón segmentario; su amplitud NO representa la FEVI.']);
+  } else if (aviso === 'sinFevi'){
+    notas.push(['a', 'Sin FEVI cargada: la amplitud del dibujo sale solo de los segmentos. Es ilustrativa, no una FEVI medida.']);
+  } else if (!hayAlterado && d.fevi.val < UMBRAL_FEVI_NORMAL){
+    notas.push(['n', 'Contracción global reducida y uniforme: no hay segmentos con motilidad alterada, así que el dibujo no muestra colores de trastorno.']);
+  } else {
+    notas.push(['n', 'El dibujo contrae hasta la FEVI de la app y reparte ese movimiento según la motilidad de cada segmento.']);
+  }
+  /* 3) Qué falta cargar. No se inventa nada ni se dibuja un default en silencio.
+     ⚠️ Se pregunta por `crudo`, NO por `val`: un campo fuera de banda tiene `val === null` y
+     listarlo como «falta cargar» le diría «cargá la FEVI» a quien acaba de tipear 700. Esa celda
+     ya dice «⚠️ revisar la unidad», que es el mensaje correcto para ese caso. */
+  const faltan = [];
+  const _noCargado = c => (c.crudo === null || c.crudo === undefined);
+  if (_noCargado(d.vdf)) faltan.push('VDFVI');
+  if (_noCargado(d.vsf)) faltan.push('VSFVI');
+  if (_noCargado(d.fevi)) faltan.push('FEVI');
+  if (_noCargado(d.dd)) faltan.push('DDVI');
+  if (faltan.length) notas.push(['n', 'Para completar el panel falta cargar: ' + faltan.join(', ') + '.']);
+
+  html += notas.map(n =>
+    '<div style="font-size:10px;line-height:1.5;margin-top:5px;color:' + (n[0]==='a' ? 'var(--text)' : 'var(--text2)') + ';">'
+    + (n[0]==='a' ? '⚠️ ' : '') + n[1] + '</div>').join('');
+  box.innerHTML = html;
+}
+
+// ── Álgebra de rotación ──
+function lv3dMul(A,B){
+  const o = [[0,0,0],[0,0,0],[0,0,0]];
+  for (let i=0;i<3;i++) for (let j=0;j<3;j++) for (let k=0;k<3;k++) o[i][j] += A[i][k]*B[k][j];
+  return o;
+}
+function lv3dRotX(f){ const c=Math.cos(f), s=Math.sin(f); return [[1,0,0],[0,c,-s],[0,s,c]]; }
+function lv3dRotY(t){ const c=Math.cos(t), s=Math.sin(t); return [[c,0,s],[0,1,0],[-s,0,c]]; }
+function lv3dProy(p){
+  const R = _lv3d.R;
+  return { x:R[0][0]*p[0]+R[0][1]*p[1]+R[0][2]*p[2],
+           y:R[1][0]*p[0]+R[1][1]*p[1]+R[1][2]*p[2],
+           d:R[2][0]*p[0]+R[2][1]*p[1]+R[2][2]*p[2] };
+}
+function lv3dPant(p, cx, cy){
+  const f = LV3D_DIST/(LV3D_DIST - p.d);
+  return [cx + p.x*LV3D_ESC*f, cy - p.y*LV3D_ESC*f];
+}
+
+function lv3dMalla(v, fantasma){
+  const G = _lv3d.G, L = lv3dLargo(v, G), out = [], st = fantasma ? 2 : 1;
+  for (let k=0; k<LV3D_N; k+=st){
+    const ra = lv3dRing(k, v, G), rb = lv3dRing(k+st, v, G);
+    const z0 = L*k/LV3D_N - 4.5, z1 = L*(k+st)/LV3D_N - 4.5;
+    for (let j=0; j<LV3D_M; j+=st){
+      const a0 = LV3D_TP*j/LV3D_M, a1 = LV3D_TP*(j+st)/LV3D_M, am = (a0+a1)/2;
+      const vs = [[ra[j]*LV3D_SX*Math.cos(a0), ra[j]*LV3D_SY*Math.sin(a0), z0],
+                  [ra[j+st]*LV3D_SX*Math.cos(a1), ra[j+st]*LV3D_SY*Math.sin(a1), z0],
+                  [rb[j+st]*LV3D_SX*Math.cos(a1), rb[j+st]*LV3D_SY*Math.sin(a1), z1],
+                  [rb[j]*LV3D_SX*Math.cos(a0), rb[j]*LV3D_SY*Math.sin(a0), z1]];
+      const q = vs.map(lv3dProy);
+      let o = lv3dProy([Math.cos(am), Math.sin(am), 0.6*(2*k+st)/(2*LV3D_N)]);
+      const n = Math.sqrt(o.x*o.x + o.y*o.y + o.d*o.d) || 1;
+      o = { x:o.x/n, y:o.y/n, d:o.d/n };
+      out.push({ q:q, o:o, sg:lv3dSegEn((k+st/2)/LV3D_N, (j+st/2)*360/LV3D_M),
+                 d:(q[0].d+q[1].d+q[2].d+q[3].d)/4, g:fantasma });
+    }
+  }
+  return out;
+}
+
+/* Cuerdas tendinosas y músculos papilares, al estilo de las demos 2 y 3 (primitiva 'CHORD'): la
+   demo 1 no los dibuja. Dos papilares —anterolateral (~20°) y posteromedial (~290°)— nacen de la
+   pared a media altura y apuntan al plano del anillo, con un abanico de cuerdas desde cada punta.
+   Son ADORNO ANATÓMICO: no entran en el volumen ni en la amplitud.
+   ⚠️ SE DIBUJAN ENCIMA DE LA MALLA Y CON ALFA, a propósito. Ordenados por profundidad quedarían
+   detrás de la pared anterior, que es opaca, y no se verían nunca: media transparencia es lo que
+   los lee como «estructura interna». Se pueden apagar con su casilla. */
+function lv3dAparato(v){
+  const G = _lv3d.G, L = lv3dLargo(v, G), out = [];
+  const zDe = k => L*k/LV3D_N - 4.5;
+  const radioEn = (k, a) => {
+    const i = Math.max(0, Math.min(LV3D_N, Math.round(k)));
+    const anillo = lv3dRing(i, v, G);
+    const j = ((Math.round(a/LV3D_TP*LV3D_M) % LV3D_M) + LV3D_M) % LV3D_M;
+    return anillo[j];
+  };
+  [20, 290].forEach(gr => {
+    const a = gr*Math.PI/180, kBase = LV3D_N*0.60, kTip = LV3D_N*0.26, an = 0.17;
+    const rPared = radioEn(kBase, a), rTip = radioEn(kTip, a)*0.50;
+    const pt = (r, k, da) => [r*LV3D_SX*Math.cos(a+da), r*LV3D_SY*Math.sin(a+da), zDe(k)];
+    out.push({ t:'pap', q:[pt(rPared,kBase,-an), pt(rPared,kBase,an),
+                           pt(rTip,kTip,an*0.5), pt(rTip,kTip,-an*0.5)].map(lv3dProy) });
+    for (let c=-1; c<=1; c++){
+      const rAn = radioEn(0, a + c*0.5)*0.74;
+      out.push({ t:'cuerda',
+                 a:lv3dProy(pt(rTip, kTip, c*an*0.4)),
+                 b:lv3dProy([rAn*LV3D_SX*Math.cos(a+c*0.5), rAn*LV3D_SY*Math.sin(a+c*0.5), zDe(0)]) });
+    }
+  });
+  return out;
+}
+
+function lv3dDibujar(){
+  const cv = document.getElementById('lv3d-canvas');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  if (!ctx) return;
+  const dpr = window.devicePixelRatio || 1, W = LV3D_W, H = LV3D_H;
+  if (cv.width !== Math.round(W*dpr)){ cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr); }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);                 // transparente: el fondo lo pone var(--bg3) del CSS
+  const pal = _lv3d.pal || (_lv3d.pal = lv3dPaleta());
+  const cx = W/2, cy = H/2 - 8;
+  const LUZ = [-0.4, 0.5, 0.75];
+
+  let polis = lv3dMalla(_lv3d.fase, false);
+  if (lv3dCtl('.lv3d-fantasma')) polis = polis.concat(lv3dMalla(0, true));
+  polis.sort((a,b)=> a.d - b.d);
+
+  for (let i=0;i<polis.length;i++){
+    const p = polis[i];
+    p.s = [];
+    ctx.beginPath();
+    for (let k=0;k<4;k++){
+      const xy = lv3dPant(p.q[k], cx, cy);
+      p.s.push(xy);
+      if (k === 0) ctx.moveTo(xy[0], xy[1]); else ctx.lineTo(xy[0], xy[1]);
+    }
+    ctx.closePath();
+    if (p.g){
+      ctx.fillStyle = 'rgba(128,128,128,0.06)'; ctx.strokeStyle = 'rgba(128,128,128,0.30)';
+      ctx.lineWidth = 0.6; ctx.fill(); ctx.stroke();
+    } else {
+      const frente = p.o.d > 0;
+      const dot = Math.max(0, (frente?1:-1)*(p.o.x*LUZ[0] + p.o.y*LUZ[1] + p.o.d*LUZ[2]));
+      const sh = (0.6 + 0.4*dot)*(frente ? 1 : 0.55);
+      // ⚠️ El color se resuelve ACÁ, por cuadro, contra CONTR_MOTILIDAD y el estado vivo.
+      const idx = Number(contrEstado[LV3D_SEG_ID[p.sg]]) || 0;
+      const col = lv3dRGB((CONTR_MOTILIDAD[idx] || CONTR_MOTILIDAD[0]).color)
+                    .map(c => Math.round(Math.min(255, c*sh)));
+      ctx.fillStyle = 'rgb(' + col[0] + ',' + col[1] + ',' + col[2] + ')';
+      ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.7; ctx.fill(); ctx.stroke();
+    }
+  }
+  _lv3d.polis = polis;
+
+  if (lv3dCtl('.lv3d-aparato')){
+    const ap = lv3dAparato(_lv3d.fase);
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ap.forEach(o => {
+      if (o.t === 'pap'){
+        ctx.beginPath();
+        o.q.forEach((pp, k) => { const xy = lv3dPant(pp, cx, cy); if (k===0) ctx.moveTo(xy[0],xy[1]); else ctx.lineTo(xy[0],xy[1]); });
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(176,176,186,0.85)'; ctx.fill();
+      } else {
+        const A = lv3dPant(o.a, cx, cy), B = lv3dPant(o.b, cx, cy);
+        ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]);
+        ctx.strokeStyle = 'rgba(165,165,175,0.85)'; ctx.lineWidth = 1; ctx.stroke();
+      }
+    });
+    ctx.restore();
+  }
+
+  // ── Brújula. «Punta» es el eje fundamental: sin él no se sabe de qué lado se está mirando. ──
+  const ejes = [{v:[1,0,0],l:'Lat'}, {v:[-1,0,0],l:'Sep'}, {v:[0,1,0],l:'Ant'},
+                {v:[0,-1,0],l:'Inf'}, {v:[0,0,1],l:'Punta'}];
+  const ox = 58, oy = H - 48;
+  ctx.font = '12px sans-serif'; ctx.lineWidth = 2;
+  ejes.forEach(e => {
+    const r = lv3dProy(e.v), ex = ox + r.x*32, ey = oy - r.y*32;
+    const esPunta = (e.l === 'Punta');
+    ctx.strokeStyle = esPunta ? pal.texto : pal.texto2;
+    ctx.fillStyle   = esPunta ? pal.texto : pal.texto2;
+    ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.fillText(e.l, ex + (r.x>=0 ? 4 : -28), ey + (r.y>=0 ? -3 : 12));
+  });
+}
+
+// ── Toque sobre un segmento ──
+function lv3dDentro(pt, s){
+  let c = false;
+  for (let i=0, j=3; i<4; j=i++){
+    const xi=s[i][0], yi=s[i][1], xj=s[j][0], yj=s[j][1];
+    if (((yi>pt[1]) !== (yj>pt[1])) && (pt[0] < (xj-xi)*(pt[1]-yi)/(yj-yi) + xi)) c = !c;
+  }
+  return c;
+}
+function lv3dTocar(e){
+  const cv = document.getElementById('lv3d-canvas');
+  if (!cv) return;
+  const rc = cv.getBoundingClientRect();
+  if (!rc.width || !rc.height) return;
+  const pt = [(e.clientX-rc.left)*LV3D_W/rc.width, (e.clientY-rc.top)*LV3D_H/rc.height];
+  for (let i=_lv3d.polis.length-1; i>=0; i--){
+    const p = _lv3d.polis[i];
+    if (p.g || !p.s || !lv3dDentro(pt, p.s)) continue;
+    const id = LV3D_SEG_ID[p.sg];
+    /* ⚠️ NO se escribe `contrEstado`: se entra por la vía única, igual que el bull's eye. Ella
+       repinta los cuatro SVG, el texto de hallazgos y este mismo dibujo. */
+    contrSetSegmento(id, (Number(contrEstado[id]) || 0) + 1);
+    const grado = (CONTR_MOTILIDAD[Number(contrEstado[id]) || 0] || CONTR_MOTILIDAD[0]).nombre;
+    const dicho = 'Segmento ' + p.sg + ' · ' + LV3D_SEG_NOMBRE[p.sg] + ': ' + grado;
+    const leido = document.getElementById('lv3d-leido');
+    if (leido) leido.textContent = dicho;
+    /* Un `toast`, además del `aria-live`: este gesto mueve el informe FIRMADO y la línea gris de
+       11 px debajo del canvas no alcanza como acuse de recibo para eso. Es cómo avisa el resto
+       de la app. `textContent`/concatenación, nunca innerHTML: acá no entra dato del paciente,
+       pero el nombre del segmento sale de una tabla y no hay razón para abrir la puerta. */
+    if (typeof toast === 'function') toast('🫀 ' + dicho);
+    return;
+  }
+}
+
+function lv3dFaseTexto(){
+  const t = document.getElementById('lv3d-fase-txt');
+  if (!t) return;
+  t.textContent = _lv3d.fase < 0.05 ? 'Fin de diástole'
+                : (_lv3d.fase > 0.95 ? 'Fin de sístole' : Math.round(_lv3d.fase*100) + ' % hacia sístole');
+}
+function lv3dBotonPlay(){
+  const b = document.getElementById('lv3d-play');
+  if (b) b.textContent = _lv3d.corriendo ? '⏸ Pausa' : '▶ Reproducir';
+}
+
+/* ⚠️ APAGADO DE VERDAD, CON EL IDENTIFICADOR GUARDADO — mismo patrón que `_cineDetener`.
+   Sin esto el `requestAnimationFrame` se re-encola para siempre y el panel cerrado sigue
+   dibujando sobre un canvas que nadie ve, gastando batería en un celular.
+   Ojo al MEDIRLO: RAF no dispara con `document.hidden`, así que un contador leído con la pestaña
+   del navegador en segundo plano queda quieto y un bucle vivo parece apagado. */
+function lv3dDetener(){
+  if (_lv3d.raf !== null){ cancelAnimationFrame(_lv3d.raf); _lv3d.raf = null; }
+  _lv3d.t0 = null;
+}
+function lv3dArrancar(){
+  lv3dDetener();
+  if (!_lv3d.abierto) return;
+  _lv3d.raf = requestAnimationFrame(lv3dCuadro);
+}
+function lv3dCuadro(ts){
+  /* Red de contención por si el panel se ocultó por un camino que no enumeré —acordeón cerrado,
+     pestaña inactiva, un `display:none` de cualquier ancestro—: sin geometría no hay nada que
+     dibujar, y el bucle se apaga solo en vez de quedar girando invisible. */
+  const cv = document.getElementById('lv3d-canvas');
+  if (!_lv3d.abierto || !cv || cv.offsetParent === null){ lv3dDetener(); return; }
+  if (_lv3d.corriendo){
+    if (_lv3d.t0 === null){
+      _lv3d.t0 = ts;
+      _lv3d.off = Math.acos(Math.max(-1, Math.min(1, 1 - 2*_lv3d.fase)));
+    }
+    _lv3d.fase = 0.5 - 0.5*Math.cos(_lv3d.off + (ts - _lv3d.t0)/3200*LV3D_TP);
+    const sl = document.querySelector('#lv3d-panel .lv3d-fase');
+    if (sl) sl.value = String(Math.round(_lv3d.fase*100));
+  }
+  lv3dFaseTexto();
+  lv3dDibujar();
+  _lv3d.cuadros++;
+  _lv3d.raf = requestAnimationFrame(lv3dCuadro);
+}
+
+/* Rearma la grilla, resuelve la ganancia y repinta el panel de datos. Es lo que corre cuando
+   cambia un segmento o un campo, NO por cuadro. */
+function lv3dReconstruir(){
+  if (!_lv3d.abierto) return;
+  const d = lv3dLeerDatos();
+  const s = lv3dEscalaPorDD(d.dd.val), B = LV3D_BASE, amort = 1 + 0.38*(s - 1);
+  _lv3d.P = { Red:B.Red*s, Led:B.Led*amort, Res:B.Res*s, Les:B.Les*amort };
+  lv3dGrillas();
+  _lv3d.volD = lv3dVol(0, 1);
+  const r = lv3dResolverGanancia(d.fevi.val);
+  _lv3d.G = r.G; _lv3d.aviso = r.aviso;
+  lv3dRenderDatos(d, r.aviso);
+  /* ⚠️ SI EL BUCLE ESTÁ APAGADO, ESTA FUNCIÓN DEJABA EL PANEL CONTÁNDOSE DOS HISTORIAS: las
+     tarjetas de datos recién repintadas arriba de un canvas congelado en un cuadro viejo. Es el
+     estado más engañoso posible, porque el panel se ve completo.
+     Pasa cuando la red de contención apagó el bucle por un camino que no vuelve a arrancarlo. No
+     encontré hoy un camino vivo que lo dispare —lo busqué—, así que esto es rigidez estructural,
+     no un defecto medido: un cuadro suelto cuesta nada y la alternativa es confiar en haber
+     enumerado todas las puertas. */
+  if (_lv3d.raf === null) lv3dDibujar();
+}
+/* La llama `contrNotificar`/`contrNotificarTodos`. Con el panel cerrado no hace nada: es lo que
+   deja que el bull's eye siga funcionando igual cuando el 3D no existe en pantalla. */
+function lv3dAlCambiarEstado(){ if (_lv3d.abierto) lv3dReconstruir(); }
+/* El canvas no hereda las variables CSS: al cambiar de tema hay que volver a leerlas y repintar. */
+function lv3dAlCambiarTema(){
+  _lv3d.pal = lv3dPaleta();
+  if (_lv3d.abierto) lv3dDibujar();
+}
+window.lv3dAlCambiarEstado = lv3dAlCambiarEstado;
+window.lv3dAlCambiarTema = lv3dAlCambiarTema;
+
+function lv3dMaquetar(){
+  const fila = document.getElementById('lv3d-fila');
+  if (!fila) return;
+  if (!_lv3d.abierto){ fila.style.display = 'block'; fila.style.gap = ''; fila.style.gridTemplateColumns = ''; return; }
+  /* Por debajo de 768 px se apila en una sola columna. Se mide el viewport porque es el umbral
+     del pedido y el que usa `scripts/check_mobile.js`. */
+  const angosto = window.innerWidth < 768;
+  fila.style.display = 'grid';
+  fila.style.gap = '16px';
+  fila.style.alignItems = 'start';
+  fila.style.gridTemplateColumns = angosto ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(0,46%)';
+}
+
+function lv3dCablear(){
+  if (_lv3d.cableado) return;
+  const panel = document.getElementById('lv3d-panel');
+  const cv = document.getElementById('lv3d-canvas');
+  if (!panel || !cv) return;
+  _lv3d.cableado = true;
+
+  panel.querySelectorAll('.lv3d-vista').forEach(b => b.addEventListener('click', () => {
+    const q = b.getAttribute('data-lv3d-vista');
+    _lv3d.R = q === 'der' ? lv3dRotY(Math.PI/2) : q === 'izq' ? lv3dRotY(-Math.PI/2) : [[1,0,0],[0,1,0],[0,0,1]];
+  }));
+  const play = document.getElementById('lv3d-play');
+  if (play) play.addEventListener('click', () => { _lv3d.corriendo = !_lv3d.corriendo; _lv3d.t0 = null; lv3dBotonPlay(); });
+  const sl = panel.querySelector('.lv3d-fase');
+  if (sl) sl.addEventListener('input', e => { _lv3d.corriendo = false; _lv3d.fase = (Number(e.target.value)||0)/100; lv3dBotonPlay(); });
+  panel.querySelectorAll('.lv3d-fantasma, .lv3d-aparato').forEach(c => c.addEventListener('change', () => { if (_lv3d.abierto) lv3dDibujar(); }));
+
+  // Giro con el dedo o el mouse. Un gesto corto es un toque; uno largo es un giro.
+  cv.addEventListener('pointerdown', e => {
+    _lv3d.arrastre = { x:e.clientX, y:e.clientY, m:0, t:e.timeStamp };
+    /* El `catch` deja rastro: si la captura falla, soltar FUERA del canvas no dispara el
+       `pointerup` de acá, y sin la guarda de `e.buttons` de abajo el arrastre quedaba pegado
+       —pasar el mouse por encima giraba el modelo solo—. Un catch mudo esconde justo eso. */
+    try { cv.setPointerCapture(e.pointerId); } catch (err) { console.warn('[lv3d] sin captura de puntero', err); }
+    cv.style.cursor = 'grabbing';
+  });
+  cv.addEventListener('pointermove', e => {
+    if (!_lv3d.arrastre) return;
+    /* Sin botón apretado no hay arrastre: cubre el soltar afuera del canvas y el puntero perdido. */
+    if (e.buttons === 0){ _lv3d.arrastre = null; cv.style.cursor = 'grab'; return; }
+    const dx = e.clientX - _lv3d.arrastre.x, dy = e.clientY - _lv3d.arrastre.y;
+    _lv3d.arrastre.m += Math.abs(dx) + Math.abs(dy);
+    _lv3d.R = lv3dMul(lv3dRotY(dx*0.01), lv3dMul(lv3dRotX(dy*0.01), _lv3d.R));
+    _lv3d.arrastre.x = e.clientX; _lv3d.arrastre.y = e.clientY;
+  });
+  /* ⚠️ UN TOQUE ACÁ CAMBIA EL INFORME FIRMADO, así que el umbral importa.
+     El gesto que el panel anuncia es GIRAR, y el rótulo dice «ilustrativo»; pero tocar cicla la
+     motilidad y eso viaja al narrativo, al EN SUMA, al PDF y al PPT. Con «m < 6» a secas, una
+     corrección de 4 px con el dedo en una tablet contaba como toque y promovía un segmento sin
+     que el médico lo pidiera. Se le suma la cota de TIEMPO: un arrastre lento y corto es un
+     arrastre, no un toque. Y el acuse de recibo es un `toast`, que es cómo esta app avisa de
+     todo lo demás, en vez de sólo una línea gris de 11 px. */
+  const soltar = e => {
+    const a = _lv3d.arrastre;
+    _lv3d.arrastre = null;
+    cv.style.cursor = 'grab';
+    if (a && a.m < 10 && (e.timeStamp - a.t) < 400) lv3dTocar(e);
+  };
+  cv.addEventListener('pointerup', soltar);
+  cv.addEventListener('pointercancel', () => { _lv3d.arrastre = null; cv.style.cursor = 'grab'; });
+  /* El puntero puede soltarse afuera del canvas si la captura no se consiguió. */
+  window.addEventListener('pointerup', () => {
+    if (_lv3d.arrastre){ _lv3d.arrastre = null; cv.style.cursor = 'grab'; }
+  });
+  window.addEventListener('resize', () => { if (_lv3d.abierto) lv3dMaquetar(); });
+}
+
+function lv3dAbrir(){
+  const panel = document.getElementById('lv3d-panel'), btn = document.getElementById('lv3d-btn');
+  if (!panel) return;
+  lv3dCablear();
+  _lv3d.abierto = true;
+  panel.style.display = 'block';
+  lv3dMaquetar();
+  if (btn){
+    btn.textContent = '🫀 Ocultar el 3D';
+    btn.setAttribute('aria-expanded', 'true');
+    btn.classList.add('btn-primary'); btn.classList.remove('btn-ghost');
+  }
+  _lv3d.pal = lv3dPaleta();
+  _lv3d.corriendo = true;
+  lv3dBotonPlay();
+  lv3dReconstruir();
+  lv3dArrancar();
+}
+function lv3dCerrar(){
+  const panel = document.getElementById('lv3d-panel'), btn = document.getElementById('lv3d-btn');
+  _lv3d.abierto = false;
+  lv3dDetener();                      // primero el bucle, después la caja
+  if (panel) panel.style.display = 'none';
+  lv3dMaquetar();                     // devuelve la tarjeta a UNA columna, como estaba
+  if (btn){
+    btn.textContent = '🫀 Ver en 3D';
+    btn.setAttribute('aria-expanded', 'false');
+    btn.classList.remove('btn-primary'); btn.classList.add('btn-ghost');
+  }
+  _lv3d.polis = [];
+}
+function lv3dToggle(){ if (_lv3d.abierto) lv3dCerrar(); else lv3dAbrir(); }
+window.lv3dToggle = lv3dToggle;
+window.lv3dCerrar = lv3dCerrar;
+window.lv3dDetener = lv3dDetener;
+window.lv3dArrancar = lv3dArrancar;
 
 // ══════════════ SGL — STRAIN LONGITUDINAL (bull's eye 17 seg, escala 7 pasos) ══════════════
 const SGL_ESCALA = ['#c62828','#ef9a9a','#f8bbd0','#e1bee7','#90caf9','#1565c0'];
@@ -91955,8 +92844,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261004-1306';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791129970214;                 /* eco-build-ms */
+const ECO_BUILD    = '20261004-1602';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791140553067;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -92042,7 +92931,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-1306</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-1602</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
