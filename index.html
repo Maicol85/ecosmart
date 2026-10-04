@@ -27157,6 +27157,11 @@ function calcVP() {
     if (sel && _sug && sel.value === _sug) { sel.value = 'sin'; delete sel.dataset.sugerido; }
     if (badgeEl) badgeEl.textContent = '';
     if (typeof vpSync === 'function') vpSync();
+    /* Gemelo del auto-prendido: con el gradiente borrado/ilegible y el grado devuelto a «sin», se
+       apaga la pastilla que la app había prendido —si no, quedaba prendida sin grado y el informe
+       afirmaba «EP presente.» sin nada que lo sostenga (/sharp-edges). Respeta al médico: ver
+       `valvAutoApagarEsten`. */
+    if (typeof valvAutoApagarEsten === 'function') valvAutoApagarEsten('pulmonar');
     return;
   }
   const origen = (vmax !== null && vmax > 0) ? `Vmax ${vmax} m/s → Gmax ${gmax} mmHg` : `Gmax ${gmax} mmHg`;
@@ -27188,6 +27193,11 @@ function calcVP() {
   /* v2 (E5b-0 punto 2): grado de EP graduable → prende el botón de estenosis pulmonar en el momento
      del cálculo, igual que la aórtica y la mitral, respetando el apagado manual. */
   if (typeof valvAutoPrenderEsten === 'function') valvAutoPrenderEsten('pulmonar');
+  /* …y su gemelo para el gradiente NORMAL (opcion==='Normal' → grado «sin»): apaga la pastilla que la
+     app prendió, para que un Vmax corregido a 1,4 m/s no deje «EP presente.» en el informe firmado.
+     Los dos se auto-gatean por el grado, así que llamar a ambos es correcto: con grado graduable
+     prende y apaga sale; con grado «sin» apaga y prende sale (/sharp-edges, 2026-10-04). */
+  if (typeof valvAutoApagarEsten === 'function') valvAutoApagarEsten('pulmonar');
 }
 window.calcVP = calcVP;
 
@@ -30805,6 +30815,21 @@ function generarInforme(opts) {
        publicar que se evaluó algo que no se evaluó. */
     const epG = sv('ep_grado') || 'sin';
     const epHay = epG !== 'sin' && epG !== '';
+    /* v2 (E5b-1 — EP PRESENTE, decisión de Maicol, regla 9): botón de estenosis pulmonar prendido y
+       SIN grado → la estenosis está PRESENTE aunque no tenga grado, igual que la aórtica (estado 2).
+       ⚠️ COMPUERTA DE PRÓTESIS replicada de la aórtica: con prótesis pulmonar el escalón NO dispara
+       —la estenosis protésica se describe por su cuenta y colgarle «con estenosis» es el sustantivo
+       colgado que /sharp-edges cazó en la aórtica—. Falla CERRADA (ante excepción, se asume prótesis
+       y no se afirma). No hay marca manual que excluir: con la EP, elegir el centinela a mano APAGA el
+       botón (E5b-1), así que «botón prendido + sin grado» sólo ocurre al prender el botón directamente. */
+    const _epEsProt = (function(){ try { return (typeof valvEsProtesis === 'function') && !!valvEsProtesis(vpMorf); } catch (e) { return true; } })();
+    /* ⚠️ `!_epManualS` COMO EN LA AÓRTICA: un estudio IMPORTADO puede traer la marca manual puesta con
+       el botón prendido y el `<select>` en el centinela; ahí NO se afirma «presente» —el médico fijó
+       algo, no «hay sin grado»—. En el flujo normal no ocurre: elegir el centinela a mano apaga el
+       botón (E5b-1), así que «prendido + sin grado» sólo llega por un clic directo que no marca. */
+    const _epManualS = !!(window.esqSevManual && window.esqSevManual.ep);
+    const _epSinGrado = !epHay && !_epEsProt && !_epManualS &&
+      (typeof pillOn === 'function' ? pillOn('pulmonar', 'esten') === true : false);
     const vpMorfHay = vpMorf && vpMorf !== 'Normal' && vpMorf !== 'No especificada';
     const epNivel = epHay ? (sv('ep_nivel') || '') : '';
     const epEtio  = epHay ? (sv('ep_etiologia') || '') : '';
@@ -30823,9 +30848,9 @@ function generarInforme(opts) {
        pulmonar normal.» sobre una válvula que nadie miró. Es la negación sin evidencia de
        siempre, y acá entraba por la puerta de la migración. Sin morfología consignada y sin
        ninguna medición, la válvula NO se nombra: mismo criterio que la aorta. */
-    if (vpMorf === 'Normal' && !epHay && !vpVmax && !vpGmax && !hayIP) {
+    if (vpMorf === 'Normal' && !epHay && !_epSinGrado && !vpVmax && !vpGmax && !hayIP) {
       inf.push(estiloPick('VP normal.', 'Válvula pulmonar normal.', 'La válvula pulmonar presenta morfología y flujo dentro de límites normales.'));
-    } else if (!vpMorfHay && !epHay && !vpVmax && !vpGmax) {
+    } else if (!vpMorfHay && !epHay && !_epSinGrado && !vpVmax && !vpGmax) {
       /* Con IP cargada y sin datos de estenosis, la válvula se describe SÓLO por lo que se
          midió: la frase de la insuficiencia sale justo abajo y ésta sería redundante o
          contradictoria. No se escribe nada acá. */
@@ -30836,7 +30861,8 @@ function generarInforme(opts) {
       /* La preposición depende de si hay morfología delante: sola, la estenosis necesita «con»;
          detrás de una morfología que YA empieza con «con» —«con afectación carcinoide»— repetirla
          daba «con afectación carcinoide, con estenosis severa». */
-      const epCuerpo = epHay ? `estenosis ${epG.toLowerCase()}${epNivelTxt}${epEtioTxt}` : '';
+      const epCuerpo = epHay ? `estenosis ${epG.toLowerCase()}${epNivelTxt}${epEtioTxt}`
+                      : (_epSinGrado ? 'estenosis' : '');
       const cuerpo = (morfFrag && epCuerpo) ? `${morfFrag} y ${epCuerpo}`
                    : (epCuerpo ? `con ${epCuerpo}` : morfFrag);
       if (cuerpo) {
@@ -30868,7 +30894,8 @@ function generarInforme(opts) {
          Guion corto, no raya em: el En Suma se dibuja con jsPDF y la helvetica WinAnsi descarta
          la raya en silencio — el PDF firmado salía «VP  Estenosis moderada.» con doble espacio. */
       if (epHay) suma.push(`EP ${epG.toLowerCase()}${epNivelTxt}.`);  // v2: sigla (reglas 6/11)
-      if (vpMorfHay || epHay) ccMarcarParrafo();
+      else if (_epSinGrado) suma.push('EP presente.');  // v2 (E5b-1, regla 9): botón prendido sin grado
+      if (vpMorfHay || epHay || _epSinGrado) ccMarcarParrafo();
     }
 
     /* ── 10b) Insuficiencia pulmonar ──
@@ -51262,6 +51289,12 @@ function toggleValvPill(valvula, tipo) {
     }
   }
   localStorage.setItem('valv-pill-' + tipo + '-' + valvula, activo ? '0' : '1');
+  /* v2 (E5b/EP presente, 2026-10-04): un gesto del médico sobre la ESTENOSIS —prenda o apague— le
+     quita a la app la propiedad de esa pastilla, así que el auto-apagado por recálculo (`calcVP` →
+     `valvAutoApagarEsten`) ya no la toca. `valvAutoPrenderEsten`/`valvAutoApagarEsten` vuelven a
+     agregarla/quitarla ellos mismos cuando el gesto es suyo. Inerte salvo para la pulmonar: el Set
+     sólo lo lee `valvAutoApagarEsten('pulmonar')`. */
+  if (tipo === 'esten' && typeof VALV_ESTEN_AUTO !== 'undefined') VALV_ESTEN_AUTO.delete(valvula);
 }
 function cargarValvPills() {
   /* LAS SEIS PASTILLAS SE RESTAURAN. Había una exclusión explícita para tricúspide/estenosis
@@ -51582,6 +51615,16 @@ const VALV_AUTO_GRADO = Object.freeze({
    el médico cerró— y si el grado del `<select>` es graduable (leve/moderada/severa; en minúscula
    porque la pulmonar usa mayúscula inicial). Idempotente (sale si ya está prendido). Aórtica, mitral
    y pulmonar, igual. */
+/* ⚠️ QUIÉN PRENDIÓ LA PASTILLA, LA APP O EL MÉDICO (E5b/EP presente, 2026-10-04) ══════════════════
+   `localStorage` NO distingue el auto-prendido del clic manual: los dos dejan la clave en '1'. Para
+   poder APAGAR sólo lo que la app prendió —y nunca una afirmación del médico— se registra aparte, en
+   este Set vivo, qué pastillas de estenosis encendió `valvAutoPrenderEsten`. `toggleValvPill` lo
+   SUELTA ante cualquier gesto de estenosis (ver su cola): un clic del médico, prenda o apague, le
+   quita a la app la propiedad de esa pastilla. El Set lo LEE sólo `valvAutoApagarEsten`, y hoy sólo se
+   lo llama para la PULMONAR (`calcVP`), así que para la aórtica y la mitral esto es inerte —se agregan
+   y se borran entradas que nadie consulta, cero cambio de comportamiento, verificado en el A/B de 434
+   columnas—. No se persiste: un estudio reabierto arranca sin dueño, igual que la marca manual. */
+const VALV_ESTEN_AUTO = new Set();
 function valvAutoPrenderEsten(valv) {
   try {
     const selId = ({ aortica:'ea_grado', mitral:'em_grado', pulmonar:'ep_grado' })[valv];
@@ -51594,9 +51637,39 @@ function valvAutoPrenderEsten(valv) {
     if (guardado !== null) return;                         // tocado (prendido o apagado a mano): no se auto-prende
     if (VALV_AUTO_GRADO.esten.indexOf(String(sel.value || '').toLowerCase()) === -1) return; // no graduable
     toggleValvPill(valv, 'esten');
+    VALV_ESTEN_AUTO.add(valv);                             // la app es dueña de esta pastilla hasta que el médico la toque
   } catch (e) {}
 }
 window.valvAutoPrenderEsten = valvAutoPrenderEsten;
+
+/* ══ EL GEMELO DEL AUTO-PRENDIDO: AUTO-APAGADO (E5b/EP presente, 2026-10-04) ══════════════════════
+   Decisión de Maicol / hallazgo de /sharp-edges sobre el diff de «EP presente». `valvAutoPrenderEsten`
+   prende la pastilla cuando el cálculo da un grado graduable, pero NO tenía gemelo: si después el
+   gradiente se corregía a normal (Vmax 4 → 1,4) o se borraba, `calcVP` devolvía el grado a «sin» SIN
+   disparar `onchange` —escribe `sel.value` a mano—, así que ni `epGradoManual` ni
+   `sevSinApagaDesdeSelect` corrían y la pastilla quedaba PRENDIDA sin grado. El informe FIRMADO
+   afirmaba «con estenosis» / «EP presente.» con un gradiente normal —o sin ninguno— al lado: la
+   afirmación falsa que el escalón de la aórtica cierra con sus compuertas, reabierta por el
+   auto-prendido. Este gemelo restaura el invariante «botón prendido = hay valvulopatía»: apaga la
+   pastilla SÓLO si (a) la prendió la app —está en `VALV_ESTEN_AUTO`, no la afirmó el médico— y (b) el
+   grado quedó en «sin»/vacío —un grado manual que sobrevivió NO se apaga, es una afirmación—.
+   Idempotente (sale si ya está apagada). Acotado a la PULMONAR: sólo lo llama `calcVP`; la aórtica y
+   la mitral NO se tocan —su mismo defecto latente, introducido por el auto-prendido de E5b-0 punto 2,
+   queda REPORTADO, no corregido, porque tocar su informe firmado es decisión de Maicol—. */
+function valvAutoApagarEsten(valv) {
+  try {
+    if (typeof pillOn !== 'function' || typeof toggleValvPill !== 'function') return;
+    if (!pillOn(valv, 'esten')) return;                    // ya apagada
+    if (!VALV_ESTEN_AUTO.has(valv)) return;                // no la prendió la app: se respeta al médico
+    const selId = ({ aortica:'ea_grado', mitral:'em_grado', pulmonar:'ep_grado' })[valv];
+    const sel = selId && document.getElementById(selId);
+    const g = sel ? String(sel.value || '') : '';
+    if (g !== '' && g.toLowerCase() !== 'sin') return;     // hay un grado (auto o manual): no se apaga
+    toggleValvPill(valv, 'esten');
+    VALV_ESTEN_AUTO.delete(valv);
+  } catch (e) {}
+}
+window.valvAutoApagarEsten = valvAutoApagarEsten;
 
 function valvAutoAbrirCajones() {
   Object.keys(SEV_SINC).forEach(function(k){
@@ -91597,8 +91670,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261004-0120';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791087614888;                 /* eco-build-ms */
+const ECO_BUILD    = '20261004-0207';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791090450751;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -91684,7 +91757,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-0120</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-0207</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

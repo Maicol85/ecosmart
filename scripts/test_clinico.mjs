@@ -48853,6 +48853,92 @@ caso('TC-407', 'El gate de los espejos de EM pregunta por el BOTON y no por un d
   ] };
 `);
 
+/* TC-408 — EP PRESENTE (E5b-1, decision de Maicol). El escalon de la estenosis pulmonar, gemelo del
+   de la aortica: boton prendido y SIN grado afirma la estenosis como PRESENTE. Con la compuerta de
+   PROTESIS, que es la quinta de la aortica replicada: con protesis pulmonar el boton prendido NO
+   cuelga «con estenosis». ⚠️ SIN ACENTOS GRAVES EN EL CUERPO (template literal). */
+caso('TC-408', 'EP presente: el boton de estenosis pulmonar prendido y SIN grado dice «con estenosis» en el informe y «EP presente.» en el EN SUMA; con grado va el grado; con protesis NO afirma estenosis', `
+  ${SINGRADO_HELPERS}
+  const e_esc  = _escena({ g:[['ep_grado','sin']],      p:[['pulmonar','esten',true]] });
+  const e_grad = _escena({ g:[['ep_grado','Moderada']], p:[['pulmonar','esten',true]] });
+  const e_prot = _escena({ c:[['vp_morf','Prótesis mecánica']], g:[['ep_grado','sin']], p:[['pulmonar','esten',true]] });
+  const e_neg  = _escena({ g:[['ep_grado','sin']],      p:[['pulmonar','esten',false]] });
+  const L = function(txt){ return (txt||'').split('\\n').filter(function(l){ return /pulmonar|^VP /i.test(l); }).join(' | '); };
+  return { extra: [
+    ['denominador: el escenario escribio linea de valvula pulmonar y el grado se escribio',
+      L(e_esc.estandar).length > 5 && e_esc.gq.indexOf('NO EXISTE') === -1, L(e_esc.estandar) + ' // gq=' + e_esc.gq],
+    ['ESCALON · el informe dice «con estenosis» SIN grado, no «estenosis sin»',
+      L(e_esc.estandar).indexOf('con estenosis.') > -1 && L(e_esc.estandar).indexOf('estenosis sin') === -1, L(e_esc.estandar)],
+    ['ESCALON · el EN SUMA dice «EP presente.» y ya no «Estudio sin alteraciones»',
+      e_esc.suma.indexOf('EP presente.') > -1 && e_esc.suma.indexOf('Estudio sin alteraciones') === -1, recorteJS(e_esc.suma)],
+    ['CON GRADO · con «Moderada» va el grado en el informe y en el EN SUMA, no «presente»',
+      L(e_grad.estandar).indexOf('con estenosis moderada') > -1 && e_grad.suma.indexOf('EP moderada.') > -1 &&
+      e_grad.suma.indexOf('EP presente') === -1, L(e_grad.estandar) + ' // ' + recorteJS(e_grad.suma)],
+    ['CONTROL PROTESIS · con protesis pulmonar el boton prendido NO cuelga «con estenosis» ni «EP presente»',
+      L(e_prot.estandar).indexOf('con estenosis') === -1 && e_prot.suma.indexOf('EP presente') === -1 &&
+      /pr[oó]tesis/i.test(L(e_prot.estandar)), L(e_prot.estandar) + ' // ' + recorteJS(e_prot.suma)],
+    ['CONTROL NEGATIVO · con el boton APAGADO no afirma estenosis ni «EP presente»',
+      L(e_neg.estandar).indexOf('con estenosis') === -1 && e_neg.suma.indexOf('EP presente') === -1, L(e_neg.estandar) + ' // ' + recorteJS(e_neg.suma)],
+  ] };
+`);
+
+/* TC-409 — EP PRESENTE NO SOBREVIVE A UN GRADIENTE CORREGIDO (hallazgo de /sharp-edges sobre el diff
+   de «EP presente», 2026-10-04). `valvAutoPrenderEsten` prende el boton al calcular un grado
+   graduable; su gemelo `valvAutoApagarEsten` lo apaga cuando `calcVP` devuelve el grado a «sin»
+   —gradiente corregido a normal o borrado—, para que la pastilla prendida por la app no deje «con
+   estenosis» / «EP presente.» en el informe FIRMADO sin nada que lo sostenga. El control positivo
+   fija el limite: un boton prendido A MANO (sin medicion) sigue afirmando «EP presente», porque eso
+   es una afirmacion del medico y no se toca. ⚠️ SIN ACENTOS GRAVES EN EL CUERPO (template literal). */
+caso('TC-409', 'EP presente no sobrevive a un gradiente corregido: Vmax 4 auto-prende el boton, al bajar a 1,4 (normal) o al borrarlo el boton se AUTO-APAGA y el informe no dice «EP presente»; un boton prendido A MANO sin medicion si lo dice (se respeta al medico)', `
+  ${APAGA_HELPERS}
+  const infVP = function(){ const r = __t.informe();
+    const line = (r.inf||'').split('\\n').filter(function(l){ return /pulmonar|^VP /i.test(l); }).join(' | ');
+    return { line: line, suma: r.suma }; };
+  /* Reset con la PULMONAR incluida: aReset NO toca sus claves. Se apaga la pastilla, se borra su
+     clave de localStorage (asi el auto-prendido ve «nunca tocado») y se vacia el Set de propiedad. */
+  const limpioP = function(){
+    __t.nuevoEstudio();
+    try { if (aOn('pulmonar','esten')) toggleValvPill('pulmonar','esten'); } catch(e){}
+    try { localStorage.removeItem('valv-pill-esten-pulmonar'); } catch(e){}
+    try { if (typeof VALV_ESTEN_AUTO !== 'undefined') VALV_ESTEN_AUTO.clear(); } catch(e){}
+    __t.set('nombre','TC409'); };
+
+  // ESCENA A (Repro A): Vmax 4 auto-prende -> corregir a 1,4 (Gmax 7,8 = normal) -> auto-apaga.
+  limpioP();
+  __t.set('vp_vmax','4');
+  const pillAlto = aOn('pulmonar','esten'); const gradoAlto = String(__t.val('ep_grado')||'');
+  __t.set('vp_vmax','1.4');
+  const pillNormal = aOn('pulmonar','esten'); const gradoNormal = String(__t.val('ep_grado')||'');
+  const rA = infVP();
+
+  // ESCENA B (Repro B): Vmax 4 auto-prende -> BORRAR la velocidad -> auto-apaga.
+  limpioP();
+  __t.set('vp_vmax','4');
+  __t.set('vp_vmax','');
+  const pillBorrado = aOn('pulmonar','esten');
+  const rB = infVP();
+
+  // CONTROL POSITIVO: boton prendido A MANO, sin medicion -> queda «EP presente».
+  limpioP();
+  if (!aOn('pulmonar','esten')) toggleValvPill('pulmonar','esten');
+  const pillManual = aOn('pulmonar','esten');
+  const rMan = infVP();
+
+  return { extra: [
+    ['DENOMINADOR: Vmax 4 auto-prendio el boton y el grado quedo graduable',
+      pillAlto === true && /leve|moderada|severa/i.test(gradoAlto), 'pill='+pillAlto+' grado='+gradoAlto],
+    ['REPRO A · corregido a 1,4 el grado vuelve a «sin» y el boton se AUTO-APAGA',
+      pillNormal === false && (gradoNormal==='' || gradoNormal.toLowerCase()==='sin'), 'pill='+pillNormal+' grado='+gradoNormal],
+    ['REPRO A · el informe firmado NO dice «con estenosis» ni «EP presente»',
+      rA.line.indexOf('con estenosis') === -1 && rA.suma.indexOf('EP presente') === -1, rA.line + ' // ' + recorteJS(rA.suma)],
+    ['REPRO B · borrada la velocidad el boton se AUTO-APAGA y el informe no afirma estenosis',
+      pillBorrado === false && rB.line.indexOf('con estenosis') === -1 && rB.suma.indexOf('EP presente') === -1,
+      'pill='+pillBorrado+' // '+rB.line+' // '+recorteJS(rB.suma)],
+    ['CONTROL POSITIVO · boton prendido a mano sin medicion: sigue diciendo «EP presente» (se respeta al medico)',
+      pillManual === true && rMan.suma.indexOf('EP presente.') > -1, 'pill='+pillManual+' // '+recorteJS(rMan.suma)],
+  ] };
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────
