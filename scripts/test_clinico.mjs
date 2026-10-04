@@ -1086,20 +1086,22 @@ caso('TC-51', 'Estenosis pulmonar: las cuatro bandas de Gmax en sus cortes', `
   const a = ep(1.4), b = ep(1.6), c = ep(3.1), d = ep(4.0), e = ep(4.1);
   return { extra: [
     ['Gmax 7.8 normal',    a.g === '7.8'  && a.sel === 'sin' &&
-      /Válvula pulmonar normal/.test(a.r.inf) && a.r.suma.indexOf('stenosis pulmonar') === -1, a.sel],
+      /Válvula pulmonar normal/.test(a.r.inf) && a.r.suma.indexOf('EP ') === -1, a.sel],
     ['Gmax 10.2 leve',     b.g === '10.2' && b.sel === 'Leve' &&
       b.r.inf.indexOf('con estenosis leve') > -1, b.sel + ' | ' + b.g],
     /* ⚠ ACTUALIZADO A PROPOSITO el 2026-10-03: antes exigia que la LEVE no subiera. Decision de
        Maicol: las valvulopatias leves de TODAS las valvulas figuran en el EN SUMA, y la medicion
        encontro que faltaban tres (EAo, EP e IP). Lo que el caso defiende ahora es que suba CON SU
        GRADO, no que suba a secas: un «Estenosis pulmonar.» pelado seria el grado perdido. */
-    ['y la LEVE sube al EN SUMA con su grado', b.r.suma.indexOf('Estenosis pulmonar leve.') > -1, b.r.suma],
+    /* v2 (regla 11): EN SUMA en SIGLA («EP leve.»), no la frase larga. Antes «Estenosis pulmonar
+       leve.»; el grado se conserva, sólo cambia a sigla. */
+    ['y la LEVE sube al EN SUMA con su grado', b.r.suma.indexOf('EP leve.') > -1, b.r.suma],
     ['Gmax 38.4 moderada', c.g === '38.4' && c.sel === 'Moderada' &&
-      c.r.suma.indexOf('Estenosis pulmonar moderada.') > -1, c.sel],
+      c.r.suma.indexOf('EP moderada.') > -1, c.sel],
     ['Gmax 64 sigue moderada (corte <=64)', d.g === '64' && d.sel === 'Moderada' &&
-      d.r.suma.indexOf('Estenosis pulmonar moderada.') > -1, d.sel + ' | ' + d.g],
+      d.r.suma.indexOf('EP moderada.') > -1, d.sel + ' | ' + d.g],
     ['Gmax 67.2 severa',   e.g === '67.2' && e.sel === 'Severa' &&
-      e.r.suma.indexOf('Estenosis pulmonar severa.') > -1, e.sel],
+      e.r.suma.indexOf('EP severa.') > -1, e.sel],
     /* El auto-grado NO puede producir «Moderada-severa»: la guia tiene tres bandas y el select
        cuatro. Si alguna vez la produce, es que alguien invento un umbral. */
     ['ninguna banda automatica produce Moderada-severa',
@@ -4788,7 +4790,7 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
   const esc = function(gmed, grado){ __t.limpiar(); set('vd_bas','38'); set('et_gmedio', gmed);
     document.getElementById('et_grado').value = grado;
     const r = __t.informe();
-    const li = r.inf.split(String.fromCharCode(10)).filter(function(l){ return l.indexOf('ricusp') > -1; }).join(' // ');
+    const li = r.inf.split(String.fromCharCode(10)).filter(function(l){ return /tric[úu]sp/i.test(l); }).join(' // ');
     return { inf: li, suma: r.suma }; };
   const i3 = esc('3','Sin estenosis');
   const i6 = esc('6','Sin estenosis');
@@ -4853,8 +4855,11 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
       i3.inf.indexOf('Estenosis tricusp') === -1, i3.inf],
     ['y tampoco sube al EN SUMA', i3.suma.indexOf('ET ') === -1 &&
       i3.suma.indexOf('Estenosis tricusp') === -1, i3.suma],
+    /* v2 (E5b-4): el narrativo de la tricúspide es UNA oración; la ET significativa por gradiente,
+       con morfología normal, dice «…con estenosis significativa (gradiente medio 6 mmHg…)». El EN
+       SUMA «ET significativa.» no cambió (abajo). */
     ['6 mmHg con el grado en «Sin estenosis» NO queda en silencio',
-      i6.inf.indexOf('Estenosis tricuspídea significativa') > -1 &&
+      i6.inf.indexOf('con estenosis significativa') > -1 &&
       i6.inf.indexOf('6 mmHg') > -1, i6.inf],
     ['y sube al EN SUMA', i6.suma.indexOf('ET significativa.') > -1, i6.suma],
     ['con grado manual Y gradiente alto salen los dos',
@@ -4875,7 +4880,12 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
     // FIX 3 — el token, el predicado y la migracion.
     ['la opcion 0 de ip_grado ya no vale cadena vacia',
       op0.value === 'Sin insuficiencia', 'value=' + JSON.stringify(op0.value)],
-    ['y su value coincide con lo que el medico lee', op0.value === op0.textContent.trim()],
+    /* La opción 0 es un PLACEHOLDER «— grado —» (como ep_grado/et_grado): su value es el CENTINELA
+       interno «Sin insuficiencia», distinto de lo que el médico ve —y así tiene que ser, el
+       placeholder no es una elección—. Las opciones reales (Leve/Moderada/Severa) sí tienen
+       value===texto. */
+    ['la opcion 0 muestra el placeholder «— grado —» con el centinela como value',
+      /grado/.test(op0.textContent) && op0.value === 'Sin insuficiencia'],
     ['ipHayInsuf distingue las cuatro',
       ipHayInsuf('Sin insuficiencia') === false && ipHayInsuf('') === false &&
       ipHayInsuf('IP leve (fisiológica)') === true && ipHayInsuf('IP severa') === true],
@@ -4889,13 +4899,14 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
       vpOp0.inf.indexOf('Válvula pulmonar normal') > -1 ||
       vpOp0.inf.indexOf('morfología y flujo dentro de límites normales') > -1,
       vpOp0.inf.slice(0, 200)],
+    /* v2 (E5b-4): morfología normal + IP → oración única «…con insuficiencia severa.». */
     ['y con IP severa se describe la insuficiencia',
-      vpSev.inf.indexOf('nsuficiencia pulmonar severa') > -1, vpSev.inf.slice(0, 200)],
+      vpSev.inf.indexOf('con insuficiencia severa') > -1, vpSev.inf.slice(0, 200)],
     ['Fallot con la opcion 0 no arrastra un «Sin» suelto',
       tdfSin.inf.indexOf('Sin insuficiencia') === -1 && tdfSin.suma.indexOf('Sin insuficiencia') === -1,
       tdfSin.suma],
     ['y con IP severa Fallot sigue nombrandola',
-      tdfSev.inf.indexOf('nsuficiencia pulmonar severa') > -1, tdfSev.inf.slice(0, 250)],
+      tdfSev.inf.indexOf('con insuficiencia severa') > -1, tdfSev.inf.slice(0, 250)],
 
     // FIX 4 — la sexta pastilla.
     ['la pastilla de estenosis tricuspidea se restaura al reabrir',
@@ -6906,45 +6917,33 @@ caso('TC-141', 'ET completa: gradiente, THP y area por continuidad, los tres con
    · que no quede ningun huerfano de pulmonar en tab-doppler;
    · que los calculos, la limpieza y el barrido de guardado sigan alcanzandolos — cambio el
      HTML de lugar, no los ids, y getElementById no sabe de pestanas. */
-caso('TC-140', 'Valvula pulmonar: los siete campos se mudaron a tab-valvulas y quedaron en dos solapas', `
+caso('TC-140', 'Valvula pulmonar v2 (sin solapas): morfologia y grados en la seccion de la valvula (tab-valvulas), las seis mediciones Doppler en #dop-pulmonar (tab-doppler); calculos, limpieza y round-trip siguen alcanzandolas', `
   return (async () => {
     const SIETE = ['vp_vmax','vp_gmax','ip_vmax','ip_vtd','ip_papd','ip_pmad_display','ip_grado'];
     /* Devuelve el objeto SIEMPRE, con nulos adentro: las condiciones de un caso se evaluan
        todas al construir el array, asi que un return null hacia que la siguiente reventara con
        «cannot read properties of null» ANTES de que se reportara «falta este id». Un id perdido
        en la mudanza tiene que leerse como condicion roja, no como excepcion. */
+    /* v2 (E5b-1/E5b-2): la pulmonar YA NO tiene solapas. Las SEIS mediciones Doppler viven en
+       #dop-pulmonar (bajo el Doppler Tricuspídeo, en tab-doppler); el grado de la IP, la morfología
+       y el grado de la EP viven en la sección de la válvula (tab-valvulas). «donde» reporta el tab y
+       si el campo está dentro de #dop-pulmonar o de la sección de la válvula. */
+    const MED6 = ['vp_vmax','vp_gmax','ip_vmax','ip_vtd','ip_papd','ip_pmad_display'];
     const donde = function(id){ const e = document.getElementById(id);
-      if (!e) return { existe:false, tab:null, pane:null };
-      const t = e.closest('.tab-section'), p = e.closest('[id^=vp-pane-]');
-      return { existe:true, tab: t ? t.id : null, pane: p ? p.id : null }; };
+      if (!e) return { existe:false, tab:null, dop:false, valv:false };
+      const t = e.closest('.tab-section');
+      return { existe:true, tab: t ? t.id : null,
+        dop: !!e.closest('#dop-pulmonar'), valv: !!e.closest('#ete-seccion-valv-pulmonar') }; };
     const ubic = {}; SIETE.forEach(function(id){ ubic[id] = donde(id); });
     /* Las dos superficies que calcIP pinta viajan con las mediciones. */
     const spanM = donde('ip-papm-row'), spanD = donde('ip-papd-row');
 
-    const dop = document.getElementById('tab-doppler');
-    const restos = [].slice.call(dop.querySelectorAll('[id]')).map(function(x){ return x.id; })
-      .filter(function(i){ return i.indexOf('vp_') === 0 || i.indexOf('ip_') === 0 ||
-                                  i.indexOf('ip-pap') === 0 || i.indexOf('dop-pulmonar') === 0; });
-
-    /* SOLAPAS: el acordeon se abre a mano porque display:none no invalida getComputedStyle de los
-       hijos para esta comprobacion —se mide el estilo del pane, no su visibilidad efectiva—. */
-    const acc = document.getElementById('ete-seccion-valv-pulmonar');
-    const accPrev = acc.style.display; acc.style.display = 'block';
-    const dsp = function(id){ return getComputedStyle(document.getElementById(id)).display; };
-    vpTab('morf');
-    const m1 = dsp('vp-pane-morf'), m2 = dsp('vp-pane-med');
-    const mAct = document.getElementById('vp-tab-morf').classList.contains('active');
-    vpTab('med');
-    const d1 = dsp('vp-pane-morf'), d2 = dsp('vp-pane-med');
-    const dAct = document.getElementById('vp-tab-med').classList.contains('active');
-
-    /* LOS DATOS PERSISTEN AL CAMBIAR DE SOLAPA: los dos paneles estan siempre en el DOM y solo
-       cambia su display, asi que nada se pierde. */
-    __t.limpiar();
-    __t.set('vp_vmax','4.5'); __t.set('ip_vmax','2.1'); __t.set('ip_grado','Moderada');
-    vpTab('morf'); vpTab('med'); vpTab('morf');
-    const tras = SIETE.map(function(i){ return __t.val(i); });
-    const gmaxTrasSolapa = __t.val('vp_gmax'), epTrasSolapa = __t.val('ep_grado');
+    /* La pulmonar ya no tiene solapas: se quitaron las PESTAÑAS (vp-tab-med, vp-tab-morf) y el pane
+       de mediciones (vp-pane-med). (vp-pane-morf quedó como contenedor simple, ya no como pane de
+       solapa; y la función vpTab puede seguir declarada como código muerto, por eso no se la mira.) */
+    const sinSolapas = document.getElementById('vp-pane-med') === null &&
+      document.getElementById('vp-tab-med') === null &&
+      document.getElementById('vp-tab-morf') === null;
 
     /* CALCULOS desde la ubicacion nueva. */
     __t.limpiar();
@@ -6971,49 +6970,40 @@ caso('TC-140', 'Valvula pulmonar: los siete campos se mudaron a tab-valvulas y q
     const vueltos = SIETE.map(function(i){ return __t.val(i); });
     const ubicTrasReabrir = donde('vp_vmax');
     await __t.borrar(g.estudioId);
-    acc.style.display = accPrev;
     __t.limpiar();
 
     return { extra: [
-      // 1 · UBICACION. No alcanza con que existan: tienen que estar donde corresponde.
+      // 1 · UBICACION v2. No alcanza con que existan: tienen que estar donde corresponde HOY.
       ['los siete existen', SIETE.every(function(i){ return ubic[i].existe; }),
         'faltan: ' + SIETE.filter(function(i){ return !ubic[i].existe; }).join(',')],
-      ['y los siete estan en tab-valvulas',
-        SIETE.every(function(i){ return ubic[i].tab === 'tab-valvulas'; }),
-        SIETE.map(function(i){ return i + '=' + ubic[i].tab; }).join(' ')],
-      ['las seis mediciones en la solapa de mediciones',
-        ['vp_vmax','vp_gmax','ip_vmax','ip_vtd','ip_papd','ip_pmad_display']
-          .every(function(i){ return ubic[i].pane === 'vp-pane-med'; }),
-        SIETE.map(function(i){ return i + '=' + ubic[i].pane; }).join(' ')],
-      ['y el GRADO de la IP en la de morfologia y etiologias: es evaluacion, no medicion',
-        ubic['ip_grado'].pane === 'vp-pane-morf', ubic['ip_grado'].pane],
-      ['las dos filas de PAP viajaron con las mediciones',
-        spanM.pane === 'vp-pane-med' && spanD.pane === 'vp-pane-med',
-        spanM.pane + ' / ' + spanD.pane],
+      /* v2 (E5b-2): las seis mediciones Doppler viven en #dop-pulmonar, bajo el Doppler Tricuspídeo
+         (tab-doppler). Antes el caso las esperaba en tab-valvulas / vp-pane-med. */
+      ['las seis mediciones estan en #dop-pulmonar (tab-doppler)',
+        MED6.every(function(i){ return ubic[i].dop === true && ubic[i].tab === 'tab-doppler'; }),
+        MED6.map(function(i){ return i + '=' + ubic[i].tab + (ubic[i].dop ? '/dop' : ''); }).join(' ')],
+      ['las dos filas de PAP viajaron con las mediciones a #dop-pulmonar',
+        spanM.dop === true && spanD.dop === true, spanM.tab + ' / ' + spanD.tab],
+      /* v2 (E5b-1): el GRADO de la IP vive en la seccion de la valvula (tab-valvulas): es
+         evaluacion, no medicion. */
+      ['el grado de la IP esta en la seccion de la valvula pulmonar (tab-valvulas)',
+        ubic['ip_grado'].valv === true && ubic['ip_grado'].tab === 'tab-valvulas', ubic['ip_grado'].tab],
 
-      // 2 · NINGUN HUERFANO EN LA PESTANA DE ORIGEN.
-      ['tab-doppler no conserva ningun id de pulmonar', restos.length === 0, restos.join(', ')],
-      ['y el acordeon «Doppler Pulmonar» ya no existe',
-        document.getElementById('dop-pulmonar') === null],
+      // 2 · YA NO HAY SOLAPAS, y #dop-pulmonar SI existe (es el hogar nuevo).
+      ['v2: la pulmonar ya no tiene solapas (pestañas vp-tab-med/vp-tab-morf y pane vp-pane-med removidos)', sinSolapas,
+        'vp-pane-med=' + (document.getElementById('vp-pane-med') !== null) +
+        ' vp-tab-med=' + (document.getElementById('vp-tab-med') !== null) +
+        ' vp-tab-morf=' + (document.getElementById('vp-tab-morf') !== null)],
+      ['y el acordeon «Doppler Pulmonar» (#dop-pulmonar) SI existe',
+        document.getElementById('dop-pulmonar') !== null],
 
-      // 3 · LAS SOLAPAS.
-      ['la solapa de morfologia muestra su panel y oculta el otro',
-        m1 !== 'none' && m2 === 'none' && mAct === true, m1 + '/' + m2],
-      ['y la de mediciones al reves',
-        d1 === 'none' && d2 !== 'none' && dAct === true, d1 + '/' + d2],
-      ['cambiar de solapa NO pierde los datos',
-        tras[0] === '4.5' && tras[2] === '2.1' && tras[6] === 'Moderada', JSON.stringify(tras)],
-      ['y tampoco lo derivado', gmaxTrasSolapa === '81' && epTrasSolapa === 'Severa',
-        gmaxTrasSolapa + ' / ' + epTrasSolapa],
-
-      // 4 · LOS CALCULOS ALCANZAN LA UBICACION NUEVA.
-      ['calcVP deriva el gradiente y el grado desde la solapa de mediciones',
+      // 3 · LOS CALCULOS ALCANZAN LA UBICACION NUEVA (getElementById no sabe de pestañas).
+      ['calcVP deriva el gradiente y el grado desde #dop-pulmonar',
         gmax === '81' && epG === 'Severa', gmax + ' / ' + epG],
       ['calcIP calcula PmAD y PAP diastolica',
         pmad.indexOf('3') > -1 && papd.indexOf('mmHg') > -1 && papm.indexOf('mmHg') > -1,
         pmad + ' | ' + papd + ' | ' + papm],
 
-      // 5 · LIMPIAR Y GUARDAR siguen alcanzandolos.
+      // 4 · LIMPIAR Y GUARDAR siguen alcanzandolos.
       ['limpiarCampos deja los siete vacios',
         vacios.every(function(v, k){ return v === '' || (SIETE[k] === 'ip_grado' && v === 'Sin insuficiencia'); }),
         JSON.stringify(vacios)],
@@ -7021,8 +7011,8 @@ caso('TC-140', 'Valvula pulmonar: los siete campos se mudaron a tab-valvulas y q
       ['guardar y reabrir devuelve los siete',
         vueltos[0] === '4.5' && vueltos[2] === '2.1' && vueltos[3] === '1.5' && vueltos[6] === 'Moderada',
         JSON.stringify(vueltos)],
-      ['y siguen en su pestana despues de reabrir',
-        ubicTrasReabrir.tab === 'tab-valvulas' && ubicTrasReabrir.pane === 'vp-pane-med',
+      ['y las mediciones siguen en #dop-pulmonar despues de reabrir',
+        ubicTrasReabrir.tab === 'tab-doppler' && ubicTrasReabrir.dop === true,
         JSON.stringify(ubicTrasReabrir)]
     ] };
   })();
@@ -7101,8 +7091,9 @@ caso('TC-139', 'Valvula pulmonar: morfologia, EP con nivel y etiologia, IP con e
     ['morfologia, grado, nivel y etiologia salen juntos y sin repetir «Válvula pulmonar»',
       completo.li.indexOf('Válvula pulmonar con afectación carcinoide y estenosis severa a nivel valvular, de etiología Carcinoide.') > -1 &&
       completo.li.split('Válvula pulmonar').length - 1 === 1, completo.li],
+    /* v2 (regla 11): EN SUMA en sigla con el nivel. Antes «Estenosis pulmonar severa a nivel…». */
     ['y la severa sube al EN SUMA con su nivel',
-      completo.suma.indexOf('Estenosis pulmonar severa a nivel valvular.') > -1, completo.suma],
+      completo.suma.indexOf('EP severa a nivel valvular.') > -1, completo.suma],
 
     // 3 · EL DEFAULT CONSTANTE: la opcion 0 de cada etiologia NO puede imprimirse.
     /* ep_etiologia arrancaba en «Congénita valvular» e ip_etiologia en «Fisiológica (traza)»:
@@ -7114,19 +7105,23 @@ caso('TC-139', 'Valvula pulmonar: morfologia, EP con nivel y etiologia, IP con e
       epLeve.li.indexOf('con estenosis leve.') > -1 && epLeve.li.indexOf('etiología') === -1, epLeve.li],
 
     // 4 · IP con etiologia, y el acronimo intacto.
+    /* v2 (E5b-4): morfología normal + IP → oración única «Válvula pulmonar de morfología normal, con
+       insuficiencia moderada, de etiología HTP (dilatación anular).». La etiología viaja en la
+       oración única (regresión del E5b-4 corregida en E6: _ipFragU la había perdido). */
     ['IP moderada con su etiologia, en minuscula el grado y sin destrozar la sigla',
-      ipMod.li.indexOf('Insuficiencia pulmonar moderada, de etiología HTP (dilatación anular)') > -1,
+      ipMod.li.indexOf('con insuficiencia moderada, de etiología HTP (dilatación anular).') > -1,
       ipMod.li],
-    ['y sube al EN SUMA', ipMod.suma.indexOf('Insuficiencia pulmonar moderada.') > -1, ipMod.suma],
+    ['y sube al EN SUMA', ipMod.suma.indexOf('IP moderada.') > -1, ipMod.suma],
 
     /* 5 · QUE SUBE. ⚠ ACTUALIZADO A PROPOSITO el 2026-10-03: estas dos condiciones exigian que la
        leve NO subiera («moderada o mas; la leve se describe y se calla»). Decision de Maicol: las
        leves de TODAS las valvulas figuran. Siguen pineando el GRADO, que es lo que no se puede
-       perder: la pulmonar es la unica que escribe la frase larga y no la sigla. */
-    ['EP leve sube con su grado', epLeve.suma.indexOf('Estenosis pulmonar leve.') > -1, epLeve.suma],
-    ['IP leve sube con su grado', ipLeve.suma.indexOf('Insuficiencia pulmonar leve.') > -1, ipLeve.suma],
+       perder. v2 (regla 11): el EN SUMA de la pulmonar es SIGLA («EP leve.»/«IP leve.»), como las
+       otras siete — la frase larga queda sólo en el narrativo. */
+    ['EP leve sube con su grado', epLeve.suma.indexOf('EP leve.') > -1, epLeve.suma],
+    ['IP leve sube con su grado', ipLeve.suma.indexOf('IP leve.') > -1, ipLeve.suma],
     ['EP moderada-severa SI sube',
-      epModSev.suma.indexOf('Estenosis pulmonar moderada-severa.') > -1, epModSev.suma],
+      epModSev.suma.indexOf('EP moderada-severa.') > -1, epModSev.suma],
     ['pero ninguna de las dos leves queda NEGADA por el fallback',
       epLeve.suma.indexOf('Estudio sin alteraciones') === -1 &&
       ipLeve.suma.indexOf('Estudio sin alteraciones') === -1, epLeve.suma],
@@ -45337,7 +45332,7 @@ caso('TC-371', 'EA e IAo: el aviso ROJO de grado manual aparece cuando discrepa 
 `);
 
 
-caso('TC-372', 'EA e IAo: cerrar el boton de la valvula ya NO borra el grado, las opciones del select no citan la velocidad, y los rotulos dicen ESC/EACTS 2025', `
+caso('TC-372', 'EA e IAo: cerrar el boton BORRA el grado conservando la marca (regla 8); el menu ▼ no ofrece «Sin» ni cita la velocidad; los rotulos dicen ESC/EACTS 2025', `
   const pillOnDe = function (tipo) {
     const p = document.getElementById('pill-' + tipo + '-aortica');
     return p ? p.classList.contains('btn-primary') : null; };
@@ -45413,36 +45408,40 @@ caso('TC-372', 'EA e IAo: cerrar el boton de la valvula ya NO borra el grado, la
     return l ? l.textContent.trim() : 'NO EXISTE'; })();
 
   return { extra: [
-    ['⚠️ cerrar el boton «Estenosis» CIERRA el cajon y NO borra el grado',
-      antes.grado === 'severa' && cerrado.grado === 'severa' &&
+    /* ⚠️ v2 (regla 8 TAL COMO ESTA ESCRITA, E5b-0, 2026-10-03). Esta tanda fijaba el R7 anterior
+       («cerrar NO borra el grado», 2026-10-02); la regla 8 lo REVIRTIO: apagar el botón BORRA el
+       grado (vuelve al centinela) y la pastilla a «Severidad». La marca del médico QUEDA —y con ella
+       el aviso §5 si el cálculo discrepa, con el botón apagado—. Se invierten las condiciones. */
+    ['cerrar el boton «Estenosis» lo apaga y BORRA el grado (vuelve al centinela)',
+      antes.grado === 'severa' && cerrado.grado === 'sin' &&
       cerrado.pill === false && cerrado.cajon === 'none',
       'grado ' + antes.grado + ' → ' + cerrado.grado + ' · pill=' + cerrado.pill + ' cajon=' + cerrado.cajon],
-    ['  y la pastilla sigue mostrando el grado que quedo, en vez de volver a «🟡 Severidad ▼»',
-      cerrado.pastilla.indexOf('Severa') > -1,
+    ['  y la pastilla vuelve a «🟡 Severidad ▼», ya no muestra el grado borrado',
+      /Severidad/.test(cerrado.pastilla),
       'pastilla antes=«' + antes.pastilla + '» despues=«' + cerrado.pastilla + '»'],
-    ['  asi que el informe firmado sigue publicando la estenosis severa con el cajon cerrado',
-      cerrado.inf.indexOf('estenosis severa') > -1, 'inf sin la frase'],
-    ['tampoco borra un grado fijado A MANO ni su marca',
-      manualAbierto.grado === 'moderada' && manualCerrado.grado === 'moderada' &&
+    ['  asi que el informe firmado YA NO publica «estenosis severa» con el boton apagado',
+      cerrado.inf.indexOf('estenosis severa') === -1, 'inf: ' + cerrado.inf.slice(0, 140)],
+    ['un grado fijado A MANO: apagar BORRA el grado pero CONSERVA la marca del medico',
+      manualAbierto.grado === 'moderada' && manualCerrado.grado === 'sin' &&
       manualAbierto.manual === true && manualCerrado.manual === true,
       'grado ' + manualAbierto.grado + ' → ' + manualCerrado.grado +
       ' · manual ' + manualAbierto.manual + ' → ' + manualCerrado.manual],
 
-    ['cerrar el boton «Insuficiencia» tampoco borra el grado ni su hidden',
-      iaAntes.sel === '4' && iaCerrado.sel === '4' && iaCerrado.hid === '4' && iaCerrado.pill === false,
+    ['cerrar el boton «Insuficiencia» tambien BORRA el grado y su hidden (vuelven al centinela)',
+      iaAntes.sel === '4' && iaCerrado.sel === '0' && iaCerrado.hid === '0' && iaCerrado.pill === false,
       'sel ' + iaAntes.sel + ' → ' + iaCerrado.sel + ' · hid=' + iaCerrado.hid],
 
-    /* ⚠️ LA COSTURA SE CERRO (2026-10-03, punto E de la tanda mitral). Esta condicion decia «la
-       MITRAL sigue borrando su grado al cerrar» y traia escrito «si esto se pone verde al reves,
-       la mitral cambio»: se puso rojo el dia que la mitral cambio, que es para lo que estaba. Hoy
-       afirma lo contrario, y el aislamiento que queda —la unica valvula que SIGUE borrando— es la
-       tricuspide, que lo fija TC-388. */
-    ['la MITRAL tampoco borra ya su grado al cerrar',
-      emAntes === 'moderada' && emCerrado === 'moderada',
+    /* v2 (regla 8, punto E, 2026-10-03): la MITRAL entró en la misma regla y también borra el grado
+       al cerrar. La única que borra ADEMÁS la marca (no está registrada) es la tricúspide — TC-388. */
+    ['la MITRAL tambien BORRA su grado al cerrar (regla 8)',
+      emAntes === 'moderada' && emCerrado === 'sin',
       'em_grado ' + emAntes + ' → ' + emCerrado],
 
+    /* La opción 0 del <select> es un placeholder «— grado —» (su value sigue siendo el centinela
+       «sin»); el invariante que este caso protege es que NINGUNA opción cite la velocidad entre
+       paréntesis —«Leve (Vmax 2-3 m/s)»— que afirmaba el criterio equivocado cuando ganaba el área. */
     ['las opciones de ea_grado NO citan la velocidad, y los cinco value quedan intactos',
-      opts.join(' ') === 'sin|Sin estenosis esclerosis|Esclerosis leve|Leve moderada|Moderada severa|Severa',
+      opts.join(' ') === 'sin|— grado — esclerosis|Esclerosis leve|Leve moderada|Moderada severa|Severa',
       opts.join(' / ')],
     /* ⚠️ «Sin estenosis» SE AGREGO AL FRENTE EL 2026-10-03 y este caso lo registraba sin el. No es
        una regresion: es la tanda de las pastillas, que vino justamente a que el medico pueda
@@ -45452,8 +45451,10 @@ caso('TC-372', 'EA e IAo: cerrar el boton de la valvula ya NO borra el grado, la
        Por eso ademas de la lista exacta se comprueba la ausencia de parentesis, que es el
        invariante de verdad y el que no depende de cuantas entradas haya. El contrato nuevo del
        menu lo fija TC-384, con el aislamiento de mitral y tricuspide. */
-    ['y el menu ▼ de la pastilla las muestra sin el parentesis',
-      menu.join(' / ') === 'Sin estenosis / Esclerosis / Leve / Moderada / Severa' &&
+    /* v2 (regla 2): el menú ▼ muestra SOLO grados —sin «Sin estenosis»— y sin el paréntesis de la
+       velocidad. «Esclerosis» se conserva. El <select> de arriba sí mantiene «Sin estenosis». */
+    ['y el menu ▼ de la pastilla muestra solo grados, sin «Sin» y sin el parentesis de la velocidad',
+      menu.join(' / ') === 'Esclerosis / Leve / Moderada / Severa' &&
       menu.every(function (x) { return x.indexOf('(') === -1; }), menu.join(' / ')],
 
     ['los dos selects dicen «grado final al informe»',
@@ -45814,7 +45815,11 @@ caso('TC-375', 'El informe usa SOLO el grado final: con «Sin estenosis» dice s
      cerrar y que sigue cerrado). Lo que 4b protegia era el SEGUNDO, y este caso lo sigue
      protegiendo — ahora con su gemelo al lado, para que la distincion no se pueda perder.
      El discriminador es esqSevManual.ia, que prep() limpia y que valvSev.aplicar enciende. */
-  prep(); abrir('insuf'); __t.set('ia_sev_final','0');
+  /* ⚠️ Escena 2 ABRE la pastilla y NO toca el select —así queda sin marca—: desde que el escalón de
+     la aórtica está ENCENDIDO (EA_ESCALON_SIN_GRADO=true), ese es el estado 2 que AFIRMA «con
+     insuficiencia» / «IAo presente.». (Fijar ia_sev_final=0 por su onchange ahora MARCA, y eso
+     es el estado 3, que se mide abajo.) */
+  prep(); abrir('insuf');
   const insufAbierta = cuatro();
   const insufAbiertaMan = !!(window.esqSevManual && window.esqSevManual.ia);
   prep(); abrir('insuf'); valvSev.aplicar('insuf','aortica','0');
@@ -45864,13 +45869,12 @@ caso('TC-375', 'El informe usa SOLO el grado final: con «Sin estenosis» dice s
     ['denominador: la escena 2 NO tiene la marca manual y la escena 3 SI',
       insufAbiertaMan === false && insufSinManualMan === true,
       'abierta=' + insufAbiertaMan + ' aMano=' + insufSinManualMan],
-    /* ⛔ ESTADO 2 CON LA AORTICA EN ESPERA: EA_ESCALON_SIN_GRADO esta en false, asi que la pastilla
-       abierta sin grado sigue sin afirmar nada — el comportamiento de 4b, intacto. El motivo (su
-       <select> no deja marca) esta en TC-397, registrado como defecto abierto. */
-    ['ESTADO 2 · pastilla de insuficiencia abierta y sin grado: la AORTICA sigue sin afirmar nada (escalon apagado)',
-      insufAbierta.inf.indexOf('con insuficiencia') === -1 &&
-      insufAbierta.suma.indexOf('Insuficiencia aórtica.') === -1 &&
-      insufAbierta.suma.indexOf('IAo') === -1,
+    /* ✅ ESTADO 2 CON LA AORTICA ENCENDIDA: EA_ESCALON_SIN_GRADO está en TRUE (23eb4e2/e8b03c5), así
+       que la pastilla abierta y sin grado —SIN marca— afirma «con insuficiencia» y el EN SUMA la
+       sigla + «presente» (regla 9). Antes esta tanda pineaba el estado apagado de 4b; se invierte. */
+    ['ESTADO 2 · pastilla de insuficiencia abierta y sin grado (sin marca): la AORTICA afirma «con insuficiencia» y «IAo presente.»',
+      insufAbierta.inf.indexOf('con insuficiencia') > -1 &&
+      insufAbierta.suma.indexOf('IAo presente.') > -1,
       'inf=«' + insufAbierta.inf + '» suma=«' + insufAbierta.suma.replace(/\\n/g,' | ') + '»'],
     ['ESTADO 3 · «Sin insuficiencia» elegido A MANO: la niega, y es lo que 4b vino a cerrar',
       insufSinManual.inf.indexOf('con insuficiencia') === -1 &&
@@ -46280,7 +46284,7 @@ caso('TC-377', 'El O TSVI deja los mismos espejos por las dos puertas (Aorta y D
    siguientes midiendo sobre una pagina de 300 px, y el diagnostico apuntaria a cualquier parte
    menos aca. La devolucion es una condicion del caso, no un gesto de buena voluntad. */
 
-caso('TC-378', 'La morfologia va ANTES de la fila de botones Insuficiencia/Estenosis en las cuatro valvulas, y la pulmonar declara que no tiene esa fila en vez de pasar en verde por omision', `
+caso('TC-378', 'La morfologia va ANTES de la fila de botones Insuficiencia/Estenosis en las CUATRO valvulas —la pulmonar incluida, que ya tiene su fila (E5b-1)—', `
   const MORF = { mitral:'vm_morf', aortica:'va_morf', tricuspide:'vt_morf', pulmonar:'vp_morf' };
   /* 'antes' = b viene DESPUES de a en el DOM, o sea a esta primero. */
   const rel = function (a, b) {
@@ -46295,25 +46299,19 @@ caso('TC-378', 'La morfologia va ANTES de la fila de botones Insuficiencia/Esten
     orden[v] = b ? rel(MORF[v], 'pill-insuf-' + v) : 'sin fila de botones';
   });
   const existen = Object.keys(MORF).filter(function (v) { return !!document.getElementById(MORF[v]); });
-  /* La pulmonar no tiene fila de botones: usa dos SOLAPAS. Se afirma explicitamente para que el
-     dia que alguien le agregue los botones este caso se ponga rojo y haya que decidir, en vez de
-     que la valvula se quede fuera del invariante sin que nadie se entere. */
-  const pulmSinFila = !document.getElementById('pill-insuf-pulmonar') &&
-                      !document.getElementById('pill-esten-pulmonar');
-  /* La morfologia pulmonar es lo primero del panel de su solapa. */
-  const pane = document.getElementById('vp-pane-morf');
-  const primerCampo = pane ? pane.querySelector('select, input') : null;
+  /* v2 (E5b-1): la pulmonar YA tiene su fila de botones Insuficiencia/Estenosis, como las otras
+     tres —antes usaba solapas y declaraba «sin fila»—. Entra al mismo invariante: morfología antes
+     de la fila de botones. */
+  const pulmConFila = !!document.getElementById('pill-insuf-pulmonar') &&
+                      !!document.getElementById('pill-esten-pulmonar');
   return { extra: [
     ['DENOMINADOR: los cuatro selects de morfologia existen', existen.length === 4,
       'existen ' + existen.join(',')],
     ['mitral: morfologia antes de los botones', orden.mitral === 'antes', 'da ' + orden.mitral],
     ['aortica: morfologia antes de los botones', orden.aortica === 'antes', 'da ' + orden.aortica],
     ['tricuspide: morfologia antes de los botones', orden.tricuspide === 'antes', 'da ' + orden.tricuspide],
-    ['pulmonar: NO tiene fila de botones (usa solapas)', pulmSinFila && orden.pulmonar === 'sin fila de botones',
-      'da ' + orden.pulmonar],
-    ['pulmonar: la morfologia es el primer campo de su solapa',
-      !!primerCampo && primerCampo.id === 'vp_morf',
-      'el primer campo es ' + (primerCampo ? primerCampo.id : '(ninguno)')],
+    ['pulmonar: AHORA tiene fila de botones (E5b-1) y la morfologia va antes, como las otras',
+      pulmConFila && orden.pulmonar === 'antes', 'conFila=' + pulmConFila + ' orden=' + orden.pulmonar],
     /* CONTROL NEGATIVO de la sonda: la misma funcion tiene que saber contestar 'despues'. El
        grado final de insuficiencia va DESPUES de los botones, y asi debe seguir. Sin esto, un
        rel() que devolviera 'antes' siempre dejaria las cuatro condiciones de arriba en verde. */
@@ -46679,7 +46677,7 @@ caso('TC-383', 'El grado manual de la IAo se mantiene mientras el calculado no c
   ] };
 `);
 
-caso('TC-384', 'Los menus de la aortica y de la MITRAL ofrecen «Sin» PRIMERO —estenosis e insuficiencia— y la tricuspide sigue sin ofrecerlo', `
+caso('TC-384', 'El menu ▼ NO ofrece «Sin» en NINGUNA valvula (regla 2): aortica, mitral y tricuspide muestran solo grados; la aortica conserva «Esclerosis»', `
   ${PAST_PRE}
   pastReset();
   /* Las otras dos valvulas tambien se abren: un menu que no se puede desplegar devuelve [] y
@@ -46703,26 +46701,25 @@ caso('TC-384', 'Los menus de la aortica y de la MITRAL ofrecen «Sin» PRIMERO �
   return { extra: [
     ['DENOMINADOR: los seis menus se desplegaron',
       [aoI,aoE,miI,miE,trI,trE].every(function (a) { return a.length > 0 && !/^ERR/.test(a[0]); }), dg],
-    ['aortica insuficiencia: Sin, Leve, Moderada, Severa',
-      aoI.join('|') === 'Sin insuficiencia|Leve|Moderada|Severa', dg],
-    ['aortica estenosis: Sin, Esclerosis, Leve, Moderada, Severa (se preservo Esclerosis)',
-      aoE.join('|') === 'Sin estenosis|Esclerosis|Leve|Moderada|Severa', dg],
-    ['«Sin» va PRIMERO en los dos', empiezaSin(aoI) && empiezaSin(aoE), dg],
-    /* ⚠️ LA MITRAL CAMBIO DE LADO (2026-10-03, punto D de la tanda mitral). Esta condicion decia
-       «mitral y tricuspide NO ofrecen Sin» y era el aislamiento de la tanda aortica; Maicol pidio
-       la mitral y dejo explicito que la tricuspide y la pulmonar no se tocan, asi que la mitral
-       pasa a la afirmacion y la tricuspide se queda sosteniendo el aislamiento. El caso se puso
-       ROJO solo al aplicar el cambio, que es exactamente para lo que se habia escrito. */
-    ['mitral insuficiencia: Sin, Leve, Moderada, Severa',
-      miI.join('|') === 'Sin insuficiencia|Leve|Moderada|Severa', dg],
-    /* El select de em_grado tiene CUATRO opciones y no cinco: no hay «Esclerosis» mitral. */
-    ['mitral estenosis: Sin, Leve, Moderada, Severa',
-      miE.join('|') === 'Sin estenosis|Leve|Moderada|Severa', dg],
-    ['«Sin» va PRIMERO tambien en los dos de la mitral', empiezaSin(miI) && empiezaSin(miE), dg],
-    /* CONTROL NEGATIVO y AISLAMIENTO en la misma condicion: la sonda sabe decir «no tiene Sin», y
-       la tricuspide —la unica que queda fuera— sigue sin tenerlo. */
-    ['AISLAMIENTO: la tricuspide NO ofrece «Sin» en ninguno de sus dos menus',
+    /* ⚠️ v2 (REGLA 2, 2026-10-03): el menú ▼ YA NO ofrece «Sin» en NINGUNA válvula — sólo grados.
+       «Sin»/«0» quedó como CENTINELA interno (lo escriben los cálculos, lo leen informe/EN SUMA/
+       PDF/Excel) y el gesto de «no hay valvulopatía» es apagar el botón, no una opción del menú.
+       Antes estas condiciones exigían «Sin PRIMERO»; se invierten a «sólo grados». Esclerosis
+       (aórtica) y Moderada-severa (pulmonar) se conservan; «Esclerosis» no es mitral. */
+    ['aortica insuficiencia: solo grados, sin «Sin»',
+      aoI.join('|') === 'Leve|Moderada|Severa', dg],
+    ['aortica estenosis: Esclerosis, Leve, Moderada, Severa — se conserva Esclerosis, sin «Sin»',
+      aoE.join('|') === 'Esclerosis|Leve|Moderada|Severa', dg],
+    ['mitral insuficiencia: solo grados, sin «Sin»',
+      miI.join('|') === 'Leve|Moderada|Severa', dg],
+    ['mitral estenosis: solo grados, sin «Sin» (y sin «Esclerosis», que no es mitral)',
+      miE.join('|') === 'Leve|Moderada|Severa', dg],
+    ['la tricuspide tampoco ofrece «Sin», igual que las demas',
       !tieneSin(trI) && !tieneSin(trE), dg],
+    /* EL INVARIANTE DE LA REGLA 2: ninguno de los SEIS menús ofrece «Sin». Va como control de
+       conjunto para que una reposición futura de «Sin» en cualquier válvula ponga el caso en rojo. */
+    ['NINGUNO de los seis menus ofrece «Sin» (regla 2)',
+      ![aoI,aoE,miI,miE,trI,trE].some(tieneSin), dg],
   ] };
 `);
 
@@ -46913,7 +46910,7 @@ caso('TC-387', 'La pastilla mitral sigue SOLA al calculo —IM por vena contract
   ] };
 `);
 
-caso('TC-388', 'Mitral: el grado manual se mantiene y vuelve SOLO a automatico cuando el calculado cambia; «Sin» en los dos menus; cerrar el boton conserva el grado — y la tricuspide sigue borrando', `
+caso('TC-388', 'Mitral: el grado manual se mantiene y vuelve solo a automatico cuando el calculado cambia; el menu NO ofrece «Sin» (regla 2); cerrar el boton BORRA el grado conservando la marca (regla 8) — y la tricuspide tambien borra (y ademas la marca)', `
   ${MIT_PRE}
 
   /* ── (1) PUNTO B en la IM: se mantiene con ruido, se suelta con un cambio real del calculado ── */
@@ -46999,21 +46996,27 @@ caso('TC-388', 'Mitral: el grado manual se mantiene y vuelve SOLO a automatico c
     ['DENOMINADOR: los dos menus de la mitral se desplegaron',
       menuIM.length > 0 && menuEM.length > 0 && !/^ERR/.test(menuIM[0]) && !/^ERR/.test(menuEM[0]),
       'IM=' + menuIM.join('/') + ' EM=' + menuEM.join('/')],
-    ['D: los dos menus de la mitral ofrecen «Sin» PRIMERO',
-      menuIM.join('|') === 'Sin insuficiencia|Leve|Moderada|Severa' &&
-      menuEM.join('|') === 'Sin estenosis|Leve|Moderada|Severa',
+    /* v2 (regla 2): el menú ▼ de la mitral tampoco ofrece «Sin» — sólo grados. Antes «Sin PRIMERO». */
+    ['D: los dos menus de la mitral muestran SOLO grados, sin «Sin»',
+      menuIM.join('|') === 'Leve|Moderada|Severa' &&
+      menuEM.join('|') === 'Leve|Moderada|Severa',
       'IM=' + menuIM.join('/') + ' EM=' + menuEM.join('/')],
     ['D: «Sin» con grado calculado es un ajuste a la baja, con aviso rojo',
       sinCon.discrepa === true && /Sin insuficiencia/.test(sinCon.aviso) &&
       /Severa/.test(sinCon.aviso), sinCon.aviso],
     ['D: «Sin» sin grado calculado no discrepa, no avisa y deja la pastilla en el neutro',
       sinSin.discrepa === false && sinSin.aviso === '' && /Severidad/.test(sinSin.past), dg],
-    ['E: cerrar las dos pastillas conserva el grado y su hidden, con los botones apagados',
-      cerrado.im === '2' && cerrado.imHid === '2' && cerrado.em === 'moderada' &&
+    /* ⚠️ v2 (regla 8, punto E, 2026-10-03): la MITRAL entró en la misma regla y la condición se dio
+       vuelta. Cerrar el botón BORRA el grado —vuelve al centinela— conservando la marca del médico
+       (para que el aviso §5 siga si el cálculo discrepa). Antes exigía «conserva el grado». */
+    ['E: cerrar las dos pastillas BORRA el grado (vuelve al centinela), con los botones apagados',
+      cerrado.imHid === '0' && cerrado.em === 'sin' &&
       cerrado.pIM === false && cerrado.pEM === false, dg],
-    ['E: y reabrirlas devuelve el grado del MEDICO, no el calculado',
-      reabierto.im === '2' && reabierto.em === 'moderada', dg],
-    ['AISLAMIENTO: la TRICUSPIDE sigue borrando su grado al cerrar — esta tanda no la toco',
+    ['E: y reabrirlas NO repone el grado del medico —fue borrado al cerrar (regla 8)—',
+      (reabierto.im === '0' || reabierto.im === '') && cerrado.em === 'sin', dg],
+    /* La TRICÚSPIDE también borra el grado al cerrar; la diferencia es que ella además borra la
+       MARCA (no está registrada en SEV_SINC), mientras la mitral la conserva. Acá se mide el grado. */
+    ['la TRICUSPIDE tambien borra su grado al cerrar (no esta registrada: borra ademas la marca)',
       trAntes.sel === '2' && trDespues === '0', dg],
   ] };
 `);
@@ -47581,7 +47584,7 @@ caso('TC-393', 'La tarjeta pre-PDF ya no publica un grado de IM distinto del gra
    fundamento. Los dos nacen de una medicion que dio vuelta la premisa del pedido, y las dos
    premisas falsas estan escritas adentro de cada caso para que no se re-deriven. */
 
-caso('TC-395', 'El menu de severidad no lo recorta la tarjeta: las opciones de los SEIS menus se pueden clickear con los dos botones apagados, y con la tarjeta alta nada cambia', `
+caso('TC-395', 'El menu de severidad no lo recorta la tarjeta: las opciones de los OCHO menus (la pulmonar sumo los suyos) se pueden clickear con los dos botones apagados, y con la tarjeta alta nada cambia', `
   /* ⚠️ TRES DENOMINADORES, Y LOS TRES DIERON «TODO ROTO» ANTES DE PONERLOS.
      1) El overlay de login tapa la pagina entera: elementFromPoint devuelve login-overlay en
         todos los puntos, o sea cero alcanzables en todos los escenarios, control incluido.
@@ -47658,14 +47661,17 @@ caso('TC-395', 'El menu de severidad no lo recorta la tarjeta: las opciones de l
              ' ovfCerrado=' + JSON.stringify(cerrados(apagados));
 
   return { extra: [
-    ['DENOMINADOR: hay SEIS menus y ninguna opcion quedo fuera del viewport ni sin medir',
-      MENUS.length === 6 && apagados.total === 23 && apagados.fueraVP === 0 &&
-      encendidos.total === 23 && encendidos.fueraVP === 0,
+    /* v2 (E5b-1): la pulmonar sumó sus DOS menús (esten/insuf), así que ahora hay OCHO menús y 26
+       opciones (antes seis y 23). El comportamiento —nada fuera del viewport, todo clickeable— no
+       cambió; sólo los conteos. */
+    ['DENOMINADOR: hay OCHO menus y ninguna opcion quedo fuera del viewport ni sin medir',
+      MENUS.length === 8 && apagados.total === 26 && apagados.fueraVP === 0 &&
+      encendidos.total === 26 && encendidos.fueraVP === 0,
       'menus=' + MENUS.length + ' total=' + apagados.total + ' fueraVP=' + apagados.fueraVP + ' · ' + dg],
     /* El numero que importa: con los dos botones apagados —la tarjeta baja, que es el sintoma—
        antes se perdian TRES opciones, las tres en la aortica. Ahora, cero. */
-    ['con los dos botones APAGADOS las 23 opciones de los seis menus son clickeables',
-      apagados.alcanzables === 23 && apagados.perdidas.length === 0, dg],
+    ['con los dos botones APAGADOS las 26 opciones de los ocho menus son clickeables',
+      apagados.alcanzables === 26 && apagados.perdidas.length === 0, dg],
     ['mientras hay un menu abierto su tarjeta deja de recortar',
       abiertos(apagados).every(function (o) { return o === 'visible'; }), dg],
     /* Sin esta mitad, un overflow:visible pelado sobre .card pasaria igual — y seria un cambio
@@ -47675,8 +47681,8 @@ caso('TC-395', 'El menu de severidad no lo recorta la tarjeta: las opciones de l
     /* CONTROL NEGATIVO: con los dos botones ENCENDIDOS la tarjeta ya era alta y el menu entraba
        solo. Ahi el arreglo no tiene nada que arreglar. Si esta condicion y la de arriba dieran
        lo mismo siempre, la sonda estaria diciendo que si a todo y no probaria nada. */
-    ['CONTROL NEGATIVO: con los dos botones ENCENDIDOS tambien estan las 23, que ya era cierto antes',
-      encendidos.alcanzables === 23, dg],
+    ['CONTROL NEGATIVO: con los dos botones ENCENDIDOS tambien estan las 26, que ya era cierto antes',
+      encendidos.alcanzables === 26, dg],
   ] };
 `);
 
@@ -47763,15 +47769,11 @@ caso('TC-396', 'El cajon «Fundamento del ajuste» se lleva dos tercios del sobr
                  iaSel: W('ia_sev_final'), iaCaj: W('ia-fund'), iaFila: fila('ia-fund'),
                  desb: desborde('ea-fund') + desborde('im-fund') + desborde('ia-fund'),
                  modSev: entra('im_sev_final', 'Moderada-severa'),
-                 /* ⚠️ EL ROTULO POR DEFECTO, QUE NO ES EL MISMO CRITERIO QUE «Moderada-severa».
-                    «— Sin insuficiencia / no evaluada» mide 197 px y es la opcion SELECCIONADA DE
-                    FABRICA de los dos selects de insuficiencia. Con el reparto 1:1 viejo tenia
-                    ~43 px de sobra a 1200 px; con el grow:2 le quedan 2. Sigue entrando, y por eso
-                    se PINEA en vez de reportarse: sin esta condicion, tres pixeles de padding o un
-                    fallback de fuente lo truncan y la suite sigue verde. Si se pone en rojo, la
-                    decision —achicar el rotulo, que es texto clinico de Maicol, o bajar el grow—
-                    se toma mirando, no por descubrimiento. */
-                 rotDef: entra('im_sev_final', '— Sin insuficiencia / no evaluada') };
+                 /* ⚠️ EL ROTULO POR DEFECTO. v2: la opción seleccionada de fábrica de im_sev_final es
+                    ahora el placeholder «— grado —» (antes «— Sin insuficiencia / no evaluada», 197 px);
+                    el value centinela «0» no cambió. Se pinea igual que antes: que el rótulo por
+                    defecto entre al select a 1200 px con el reparto grow:2. */
+                 rotDef: entra('im_sev_final', '— grado —') };
     /* CAJON CERRADO: se oculta SOLO para medir el reparto y se restaura enseguida. Es el caso que
        no hay que romper — el select tiene que tomar la columna ENTERA, no media. */
     const prev = {};
@@ -47815,7 +47817,7 @@ caso('TC-396', 'El cajon «Fundamento del ajuste» se lleva dos tercios del sobr
       a.abierto.eaCaj === 312 && a.abierto.imCaj === 312 && a.abierto.iaCaj === 312 &&
       a.abierto.eaSel === 231 && a.abierto.imSel === 231 && a.abierto.iaSel === 231, dg],
     /* El margen que este cambio redujo de ~43 px a 2. Ver la nota de rotDef arriba. */
-    ['el rotulo POR DEFECTO «— Sin insuficiencia / no evaluada» sigue entrando a 1200 px',
+    ['el rotulo POR DEFECTO «— grado —» de im_sev_final entra a 1200 px',
       a.abierto.rotDef === true, dg],
     ['a 756 px siguen lado a lado y el cajon sigue siendo el mas ancho', reparto(b.abierto), dg],
     /* ⚠️ A 300 px NO HAY REPARTO QUE MEDIR: la fila envuelve y los dos toman la columna entera.
@@ -48042,8 +48044,10 @@ caso('TC-397', 'EAo: los cuatro estados se distinguen — grado / boton abierto 
       L(e2.estandar, AO).indexOf('con estenosis, sin insuficiencia.') > -1 && L(e2.estandar, AO).indexOf('sin estenosis') === -1, L(e2.estandar, AO)],
     ['2 abierto · narrativo dice con estenosis y NO la niega',
       L(e2.narrativo, AO).indexOf('con estenosis, sin insuficiencia.') > -1 && L(e2.narrativo, AO).indexOf('sin estenosis') === -1, L(e2.narrativo, AO)],
-    ['2 abierto · EN SUMA es SOLO la sigla EAo. y ya no dice «Estudio sin alteraciones»',
-      e2.suma.indexOf('EAo.') > -1 && e2.suma.indexOf('Estudio sin alteraciones') === -1 && e2.suma.indexOf('Estenosis a') === -1, recorteJS(e2.suma)],
+    /* v2 (regla 9): botón abierto sin grado → EN SUMA la sigla + «presente» («EAo presente.»). Antes
+       de la regla 9 era la sigla sola «EAo.»; se actualiza el texto esperado, el estado es el mismo. */
+    ['2 abierto · EN SUMA es la sigla «EAo presente.» y ya no dice «Estudio sin alteraciones»',
+      e2.suma.indexOf('EAo presente.') > -1 && e2.suma.indexOf('Estudio sin alteraciones') === -1 && e2.suma.indexOf('Estenosis a') === -1, recorteJS(e2.suma)],
     /* Ni «severa», ni «moderada», ni «leve», ni «significativa»: el estado 2 es justamente el que
        NO tiene grado, y cualquier palabra de grado ahi seria inventada. */
     ['2 abierto · no se cuela ninguna palabra de grado en ninguna superficie',
@@ -48103,7 +48107,8 @@ caso('TC-398', 'Mitral: los cuatro estados de EM y de IM, y el boton abierto NO 
       L(m2.estandar, MI).indexOf('con estenosis, sin insuficiencia.') > -1, L(m2.estandar, MI)],
     ['EM 2 abierto · conciso dice VM con estenosis', L(m2.conciso, MI).indexOf('VM con estenosis, sin insuficiencia.') > -1, L(m2.conciso, MI)],
     ['EM 2 abierto · narrativo dice con estenosis', L(m2.narrativo, MI).indexOf('con estenosis, sin insuficiencia;') > -1, L(m2.narrativo, MI)],
-    ['EM 2 abierto · EN SUMA es solo «EM.»', m2.suma.indexOf('EM.') > -1 && m2.suma.indexOf('Estenosis mitral') === -1 && m2.suma.indexOf('Estudio sin alteraciones') === -1, recorteJS(m2.suma)],
+    /* v2 (regla 9): botón abierto sin grado → sigla + «presente». Antes «EM.»; mismo estado. */
+    ['EM 2 abierto · EN SUMA es «EM presente.»', m2.suma.indexOf('EM presente.') > -1 && m2.suma.indexOf('Estenosis mitral') === -1 && m2.suma.indexOf('Estudio sin alteraciones') === -1, recorteJS(m2.suma)],
     ['EM 3 «Sin» a mano · niega y el resumen calla', L(m3.estandar, MI).indexOf('sin estenosis ni insuficiencia') > -1 && m3.suma.indexOf('EM') === -1, L(m3.estandar, MI) + ' // ' + recorteJS(m3.suma)],
     ['EM · el estado 2 se distingue del 3 y del 4 en las cuatro superficies',
       m2.estandar !== m3.estandar && m2.conciso !== m3.conciso && m2.narrativo !== m3.narrativo && m2.suma !== m4.suma, 'siguen identicos'],
@@ -48112,7 +48117,7 @@ caso('TC-398', 'Mitral: los cuatro estados de EM y de IM, y el boton abierto NO 
 
     ['IM 2 abierto · estandar dice con insuficiencia sin grado',
       L(i2.estandar, MI).indexOf('sin estenosis, con insuficiencia.') > -1, L(i2.estandar, MI)],
-    ['IM 2 abierto · EN SUMA es solo «IM.»', i2.suma.indexOf('IM.') > -1 && i2.suma.indexOf('Insuficiencia mitral') === -1, recorteJS(i2.suma)],
+    ['IM 2 abierto · EN SUMA es «IM presente.»', i2.suma.indexOf('IM presente.') > -1 && i2.suma.indexOf('Insuficiencia mitral') === -1, recorteJS(i2.suma)],
     ['IM 2 abierto · no se cuela palabra de grado', !/leve|moderada|severa/i.test(L(i2.estandar, MI) + i2.suma), L(i2.estandar, MI) + ' // ' + recorteJS(i2.suma)],
     ['IM 3 «Sin» a mano · niega', L(i3.estandar, MI).indexOf('sin estenosis ni insuficiencia') > -1 && i3.suma.indexOf('IM') === -1, L(i3.estandar, MI) + ' // ' + recorteJS(i3.suma)],
 
@@ -48129,10 +48134,10 @@ caso('TC-398', 'Mitral: los cuatro estados de EM y de IM, y el boton abierto NO 
        cascada del resumen corria ANTES de calcularse _vmProt y leia estE en vez de estEGrado, asi
        que publicaba «EM.» mientras el cuerpo callaba. Las dos medidas en Chrome el 2026-10-03,
        cazadas por /sharp-edges sobre el propio diff. */
-    ['y el EN SUMA de la PROTESIS tampoco dice «EM.»: la conclusion no afirma lo que el cuerpo calla',
-      pr.suma.indexOf('EM.') === -1, recorteJS(pr.suma)],
-    ['y el EN SUMA de los valores medidos sin veredicto tampoco dice «EM.»',
-      vm.suma.indexOf('EM.') === -1, recorteJS(vm.suma)],
+    ['y el EN SUMA de la PROTESIS tampoco dice «EM presente.»: la conclusion no afirma lo que el cuerpo calla',
+      pr.suma.indexOf('EM presente.') === -1 && pr.suma.indexOf('EM.') === -1, recorteJS(pr.suma)],
+    ['y el EN SUMA de los valores medidos sin veredicto tampoco dice «EM presente.»',
+      vm.suma.indexOf('EM presente.') === -1 && vm.suma.indexOf('EM.') === -1, recorteJS(vm.suma)],
   ] };
 `);
 
@@ -48165,8 +48170,9 @@ caso('TC-399', 'IAo abierta sin grado da «con insuficiencia» y «IAo.»; con l
       L(a2.estandar, AO).indexOf('sin estenosis, con insuficiencia.') > -1 &&
       L(a2.estandar, AO).indexOf('sin insuficiencia') === -1,
       L(a2.estandar, AO)],
-    ['2 abierto · el EN SUMA lleva la sigla IAo. sola, sin palabra de grado',
-      a2.suma.indexOf('IAo.') > -1 && a2.suma.indexOf('Estudio sin alteraciones') === -1 &&
+    /* v2 (regla 9): sigla + «presente». Antes «IAo.» sola; mismo estado, texto esperado actualizado. */
+    ['2 abierto · el EN SUMA lleva «IAo presente.», sin palabra de grado',
+      a2.suma.indexOf('IAo presente.') > -1 && a2.suma.indexOf('Estudio sin alteraciones') === -1 &&
       !/IAo (leve|moderada|severa)/i.test(a2.suma),
       recorteJS(a2.suma)],
     /* El 3 es «Sin» a mano CON la marca puesta: el escalon se cae por su SEGUNDA compuerta
@@ -48200,8 +48206,8 @@ caso('TC-399', 'IAo abierta sin grado da «con insuficiencia» y «IAo.»; con l
        prestada de su vecina — que es el modo de falla de una oracion que une dos mitades. */
     ['con EAo moderada y la IAo abierta sin grado, salen las dos: el grado y el token sin grado',
       L(md.estandar, AO).indexOf('con estenosis moderada e insuficiencia.') > -1, L(md.estandar, AO)],
-    ['y el EN SUMA lleva «EAo moderada.» mas la sigla «IAo.» sin grado prestado',
-      md.suma.indexOf('EAo moderada.') > -1 && md.suma.indexOf('IAo.') > -1 &&
+    ['y el EN SUMA lleva «EAo moderada.» mas «IAo presente.» sin grado prestado',
+      md.suma.indexOf('EAo moderada.') > -1 && md.suma.indexOf('IAo presente.') > -1 &&
       !/IAo (leve|moderada|severa)/i.test(md.suma), recorteJS(md.suma)],
   ] };
 `);
@@ -48221,8 +48227,8 @@ caso('TC-400', 'Las OCHO valvulopatias leves figuran en el EN SUMA: EAo, IAo, EM
     ['IM',  { g:[['im_grado','1']],    m:{im:true}, p:[['mitral','insuf',true]] },    'IM leve.'],
     ['ET',  { g:[['et_grado','Leve']], m:{},        p:[['tricuspide','esten',true]] },'ET leve.'],
     ['IT',  { g:[['it_grado','1']],    m:{it:true}, p:[['tricuspide','insuf',true]] },'IT leve.'],
-    ['EP',  { g:[['ep_grado','Leve']], m:{} },                                        'Estenosis pulmonar leve.'],
-    ['IP',  { g:[['ip_grado','Leve']], m:{} },                                        'Insuficiencia pulmonar leve.'],
+    ['EP',  { g:[['ep_grado','Leve']], m:{} },                                        'EP leve.'],
+    ['IP',  { g:[['ip_grado','Leve']], m:{} },                                        'IP leve.'],
   ];
   const faltan = [], vacios = [], diag = [];
   L8.forEach(function(t){
@@ -48420,7 +48426,7 @@ const V2_GESTO = `
    aviso rojo y cajon con el boton prendido; (3) APAGAR el boton (click en la pastilla) borra grado
    y fundamento y NO deja aviso —aunque el calculo siga severo— (regla 8, silencioso, decision de
    Maicol); (4) un grado que COINCIDE con el calculo no avisa. */
-caso('TC-402', 'El boton v2: elegir grado por el menu ▼ lo prende; un grado discrepante pinta aviso y cajon con el boton prendido; apagar (click) borra grado y fundamento SIN aviso aunque el calculo discrepe; y un grado que coincide no avisa', `
+caso('TC-402', 'El boton v2: elegir grado por el menu ▼ lo prende; un grado discrepante pinta aviso y cajon con el boton prendido; apagar (click) borra grado y fundamento SIN aviso PREVIO, pero conserva la marca y —si el calculo discrepa— deja el aviso rojo y el cajon con el boton apagado (regla 8 tal como esta escrita); y un grado que coincide no avisa', `
   ${V2_GESTO}
   /* Mediciones que producen un calculado SEVERO en cada clave. El gesto real es prender PRIMERO
      (abre el cajon y sincroniza los espejos del Doppler) y despues elegir el grado en el menu — que
@@ -48480,12 +48486,18 @@ caso('TC-402', 'El boton v2: elegir grado por el menu ▼ lo prende; un grado di
         disc[k].aviso.indexOf('ajuste manual') > -1 && disc[k].aviso.indexOf('Severa') > -1 &&
         disc[k].fund === true && disc[k].bloque === true; }), dg(disc)],
 
-    // (3) APAGAR borra, silencioso
+    // (3) APAGAR borra grado y fundamento SIN AVISO PREVIO, pero conserva la marca; si discrepa, aviso+cajon
     ['(3) APAGAR el boton (click) lo deja apagado y vuelve el grado al centinela en las cuatro',
       todas.every(function (k) { return apagado[k].pill === false && apagado[k].sel === SENT[k]; }), dg(apagado)],
-    ['(3) y borra el fundamento, la marca y el aviso: el bloque se oculta, SIN aviso previo (regla 8 silenciosa)',
-      todas.every(function (k) { return apagado[k].man === false && apagado[k].disc === false &&
-        apagado[k].aviso === '' && apagado[k].fund === false && apagado[k].bloque === false &&
+    /* ⚠️ REGLA 8 TAL COMO ESTA ESCRITA (decisión de Maicol; la aserción anterior «silenciosa» —man
+       false, disc false, aviso vacío— estaba al REVÉS). Apagar borra el GRADO (al centinela) y el
+       FUNDAMENTO sin aviso PREVIO (no hay confirmación antes de apagar), PERO la marca del médico
+       QUEDA; y como el cálculo sigue en Severa, discrepa → el aviso rojo §5 y el cajón APARECEN con
+       el botón apagado. Medido: aviso «… (ajuste manual) · cálculo automático: Severa». */
+    ['(3) apagar borra grado y fundamento SIN aviso previo, pero la marca QUEDA y —como el calculo discrepa— el aviso rojo y el cajon quedan VISIBLES con el boton apagado',
+      todas.every(function (k) { return apagado[k].man === true && apagado[k].disc === true &&
+        apagado[k].aviso.indexOf('ajuste manual') > -1 && apagado[k].aviso.indexOf('Severa') > -1 &&
+        apagado[k].fund === true && apagado[k].bloque === true &&
         /Severidad/.test(apagado[k].past); }), dg(apagado)],
 
     // (4) coincide: control negativo del aviso
@@ -48630,7 +48642,7 @@ caso('TC-404', '(e) Guardar y reabrir conserva grado, marca, aviso y cajon de la
    las excluye explicitamente, y la costura se gatea por valvula en DOS lugares (el menu ▼ y la
    regla de apagado). Un caso que lo mida es lo que impide que un «borremos la condicion» futuro
    les cambie el comportamiento sin que nadie lo note. */
-caso('TC-405', '(g) Tricuspide y pulmonar SIN diferencias: su menu no ofrece «Sin», su boton no se apaga por regla, y su bloque sigue colgando solo del boton', `
+caso('TC-405', '(g) Tricuspide sin el mecanismo §5 (no registrada): su menu no ofrece «Sin», su boton no se apaga por regla, su bloque cuelga del boton y cerrar le borra el grado; la pulmonar ya tiene pastillas (E5b-1) y su detalle lo gobierna el grado', `
   ${APAGA_HELPERS}
   const den = aReset();
   /* El menu se arma al abrirlo: valvSev.menu puebla el contenedor con un boton por opcion. */
@@ -48684,10 +48696,13 @@ caso('TC-405', '(g) Tricuspide y pulmonar SIN diferencias: su menu no ofrece «S
     ['(g) el menu de la TRICUSPIDE no ofrece «Sin», ni en estenosis ni en insuficiencia',
       !etOpc.some(function (t) { return /^Sin/i.test(t); }) && !itOpc.some(function (t) { return /^Sin/i.test(t); }),
       'et=' + etOpc.join('/') + ' it=' + itOpc.join('/')],
-    /* CONTROL POSITIVO del mismo menu: la aortica y la mitral SI lo ofrecen. Sin esto, un menu
-       roto que no ofreciera nada a nadie pasaria la condicion de arriba. */
-    ['CONTROL POSITIVO: la aortica y la mitral SI ofrecen «Sin» en el mismo menu',
-      eaOpc.some(function (t) { return /^Sin/i.test(t); }) && emOpc.some(function (t) { return /^Sin/i.test(t); }),
+    /* CONTROL POSITIVO (v2, regla 2): ya NINGÚN menú ofrece «Sin». El denominador ahora es que los
+       menús se poblaron con grados reales (Leve…) —prueba de que el menú funciona y no devuelve []
+       vacío— y que la aórtica/mitral tampoco ofrecen «Sin», igual que la tricúspide. Antes esta
+       condición exigía que ao/mi SÍ ofrecieran «Sin». */
+    ['CONTROL POSITIVO: los menus se poblaron con grados y NINGUNO (ni ao ni mi) ofrece «Sin»',
+      eaOpc.indexOf('Leve') > -1 && emOpc.indexOf('Leve') > -1 &&
+      !eaOpc.some(function (t) { return /^Sin/i.test(t); }) && !emOpc.some(function (t) { return /^Sin/i.test(t); }),
       'ea=' + eaOpc.join('/') + ' em=' + emOpc.join('/')],
 
     ['(g) «Sin estenosis» en el desplegable de la TRICUSPIDE no apaga su boton',
@@ -48714,7 +48729,9 @@ caso('TC-405', '(g) Tricuspide y pulmonar SIN diferencias: su menu no ofrece «S
     ['(g) y cerrar el cajon de la tricuspide SIGUE borrandole el grado —defecto reportado, no corregido—',
       etCerrado.grado === 'Sin estenosis',
       'quedo «' + etCerrado.grado + '» (si esto dice Moderada, el defecto se corrigio: actualizar el caso)'],
-    ['(g) la PULMONAR sigue gobernada por su grado via vpSync, sin pastilla',
+    /* v2 (E5b-1): la pulmonar YA tiene pastillas; lo que NO cambió es que el detalle de nivel/
+       etiología de la EP lo gobierna el GRADO vía vpSync (visible con grado, oculto sin grado). */
+    ['(g) el detalle de nivel/etiologia de la EP lo gobierna el grado via vpSync',
       epDet === true && epDetSin === false, 'conGrado=' + epDet + ' sinGrado=' + epDetSin],
   ] };
 `);

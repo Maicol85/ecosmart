@@ -30896,9 +30896,14 @@ function generarInforme(opts) {
     const _unirEIp = (fr) => fr.length === 2
       ? fr[0] + (/^[aeiouáéíóúAEIOU]/.test(fr[1]) ? ' e ' : ' y ') + fr[1] : fr[0];
     const _ipDescU = ipHayInsuf(ipGrado) ? ipGrado.replace(/^IP\s*/i, '').trim().toLowerCase() : '';
+    /* La etiología de la IP viaja en la oración única igual que el nivel/etiología de la EP: sin esto
+       la unificación la perdía del informe firmado (el `bloque 10b` la escribía y ahora no corre).
+       Misma regla que el bloque 10b: sólo con grado y distinta del valor de fábrica. */
+    const _ipEtioU = (function(){ const e = ipHayInsuf(ipGrado) ? (sv('ip_etiologia') || '') : '';
+      return (e && e !== 'No especificada') ? `, de etiología ${e}` : ''; })();
     const _epFragU = epHay ? `estenosis ${epG.toLowerCase()}${epNivelTxt}${epEtioTxt}`
                    : (_epSinGrado ? 'estenosis' : null);
-    const _ipFragU = _ipDescU ? `insuficiencia ${_ipDescU}` : (hayIP ? 'insuficiencia' : null);
+    const _ipFragU = _ipDescU ? `insuficiencia ${_ipDescU}${_ipEtioU}` : (hayIP ? 'insuficiencia' : null);
     const _unifPulm = vpMorf === 'Normal' && !datosVPp && ipProto === null && ipTele === null
       && !!(_epFragU || _ipFragU);
     let _ipEnOracion = false;
@@ -91746,8 +91751,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261004-0323';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791094995893;                 /* eco-build-ms */
+const ECO_BUILD    = '20261004-0909';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791115747836;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -91833,7 +91838,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-0323</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-0909</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
