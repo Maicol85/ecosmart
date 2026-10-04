@@ -3358,6 +3358,60 @@ window.cerrarSesionReal = cerrarSesionReal;
   </div>
   </div>
 
+  <!-- ═══ Doppler Pulmonar (E5b-2, 2026-10-04) — DECISIÓN DE MAICOL ═══════════════════════════════
+       Las mediciones pulmonares se mudaron ACÁ desde la solapa «Mediciones» del panel Válvulas, con
+       los MISMOS ids (vp_vmax, vp_gmax, ip_vmax, ip_pmad_display, ip_vtd, ip_papd, ip-papm-row,
+       ip-papd-row). `guardarInforme`/Excel/round-trip barren por id de TODO el documento, y
+       `calcVP`/`calcIP` leen por id, así que la mudanza es de PRESENTACIÓN: los estudios guardados
+       abren igual y las 434 columnas quedan idénticas. Mismo estilo que el Doppler Tricuspídeo. -->
+  <div class="card" style="margin-bottom:6px;">
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('dop-pulmonar',this)">〰️ Doppler Pulmonar<span id="dop-pulmonar-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
+  </div>
+  <div id="dop-pulmonar" style="display:none;">
+  <div class="card">
+    <div class="card-body">
+      <!-- Fila 1: Estenosis pulmonar -->
+      <div class="grid-2" style="margin-bottom:6px;">
+        <div class="fg">
+          <label>Vmax pulmonar (m/s) — Estenosis</label>
+          <input type="number" id="vp_vmax" placeholder="m/s" oninput="calcVP()">
+        </div>
+        <div class="fg">
+          <label>G. Máx pulmonar (mmHg) — auto</label>
+          <input type="number" id="vp_gmax" placeholder="mmHg" oninput="calcVP()">
+        </div>
+      </div>
+      <div class="divider"></div>
+      <!-- Fila 2: Insuficiencia pulmonar → PAP media y diastólica -->
+      <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:6px 0 4px;">💨 Insuficiencia Pulmonar — Presiones Pulmonares</div>
+      <div style="font-size:10px;color:var(--text2);margin-bottom:6px;">
+        PAPm = 4 × Vmax-IP² + PmAD &nbsp;·&nbsp; PAPd = 4 × Vmax-TD-IP² + PmAD
+      </div>
+      <div class="grid-4">
+        <div class="fg">
+          <label>Vmax proto-diast. IP (m/s) <span style="font-weight:400;color:var(--text2);font-size:10px;">Vmax-PD-IP</span></label>
+          <input type="number" id="ip_vmax" placeholder="m/s" step="0.1" oninput="calcIP()">
+        </div>
+        <div class="fg">
+          <label>PmAD (mmHg) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← VCI</span></label>
+          <input type="text" id="ip_pmad_display" readonly style="color:var(--accent2);" placeholder="— completar VCI">
+        </div>
+        <div class="fg">
+          <label>Vmax telediastólica IP (m/s)</label>
+          <input type="number" id="ip_vtd" placeholder="m/s" step="0.1" oninput="calcIP()">
+        </div>
+        <div class="fg">
+          <label>PAP diastólica — auto (mmHg)</label>
+          <input type="text" id="ip_papd" readonly style="font-weight:700;">
+        </div>
+      </div>
+      <div class="calc-box" style="margin-top:8px;">
+        <div class="calc-row"><span class="calc-lbl">PAP media (IP proto-diast.)</span><span class="calc-val" id="ip-papm-row">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">PAP diastólica (IP tele-diast.)</span><span class="calc-val" id="ip-papd-row">—</span></div>
+      </div>
+    </div>
+  </div>
+  </div>
 
 </div>
 
@@ -4566,47 +4620,9 @@ window.cerrarSesionReal = cerrarSesionReal;
       </div>
       </div><!-- fin bloque-insuf-pulmonar -->
       </div>
-      <div id="vp-pane-med" style="display:none;">
-      <!-- Fila 1: Estenosis pulmonar -->
-      <div class="grid-2" style="margin-bottom:6px;">
-        <div class="fg">
-          <label>Vmax pulmonar (m/s) — Estenosis</label>
-          <input type="number" id="vp_vmax" placeholder="m/s" oninput="calcVP()">
-        </div>
-        <div class="fg">
-          <label>G. Máx pulmonar (mmHg) — auto</label>
-          <input type="number" id="vp_gmax" placeholder="mmHg" oninput="calcVP()">
-        </div>
-      </div>
-      <div class="divider"></div>
-      <!-- Fila 2: Insuficiencia pulmonar → PAP media y diastólica -->
-      <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:6px 0 4px;">💨 Insuficiencia Pulmonar — Presiones Pulmonares</div>
-      <div style="font-size:10px;color:var(--text2);margin-bottom:6px;">
-        PAPm = 4 × Vmax-IP² + PmAD &nbsp;·&nbsp; PAPd = 4 × Vmax-TD-IP² + PmAD
-      </div>
-      <div class="grid-4">
-        <div class="fg">
-          <label>Vmax proto-diast. IP (m/s) <span style="font-weight:400;color:var(--text2);font-size:10px;">Vmax-PD-IP</span></label>
-          <input type="number" id="ip_vmax" placeholder="m/s" step="0.1" oninput="calcIP()">
-        </div>
-        <div class="fg">
-          <label>PmAD (mmHg) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← VCI</span></label>
-          <input type="text" id="ip_pmad_display" readonly style="color:var(--accent2);" placeholder="— completar VCI">
-        </div>
-        <div class="fg">
-          <label>Vmax telediastólica IP (m/s)</label>
-          <input type="number" id="ip_vtd" placeholder="m/s" step="0.1" oninput="calcIP()">
-        </div>
-        <div class="fg">
-          <label>PAP diastólica — auto (mmHg)</label>
-          <input type="text" id="ip_papd" readonly style="font-weight:700;">
-        </div>
-      </div>
-      <div class="calc-box" style="margin-top:8px;">
-        <div class="calc-row"><span class="calc-lbl">PAP media (IP proto-diast.)</span><span class="calc-val" id="ip-papm-row">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">PAP diastólica (IP tele-diast.)</span><span class="calc-val" id="ip-papd-row">—</span></div>
-      </div>
-      </div>
+      <!-- vp-pane-med: VACIADO en E5b-2. Las mediciones se mudaron al bloque «Doppler Pulmonar» de
+           la pestaña Doppler (mismos ids). Esta solapa y este pane se eliminan en E5b-1. -->
+      <div id="vp-pane-med" style="display:none;"></div>
     </div>
   </div>
   </div>
@@ -91578,8 +91594,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261004-0041';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791085305779;                 /* eco-build-ms */
+const ECO_BUILD    = '20261004-0100';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791086453123;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -91665,7 +91681,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-0041</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-0100</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
