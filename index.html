@@ -4452,6 +4452,31 @@ window.cerrarSesionReal = cerrarSesionReal;
         <label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label>
         <input type="number" id="vp_dvi" step="0.01" placeholder="—">
       </div>
+      <!-- ═══ FILA DE PASTILLAS (v2 E5, 2026-10-03) — la pulmonar entra al modelo de botones ════
+           Clonada de la mitral (reglas 1-3, 6-11). «Insuficiencia» → IP, «Estenosis» → EP, cada
+           una con su sub-botón ▼ (`valvSev` ya conoce la válvula: CAMPO/opciones/refrescarTodo la
+           incluyen). Los dos `<select>` de grado quedan envueltos abajo en `bloque-esten-pulmonar`
+           y `bloque-insuf-pulmonar`, que es lo que `toggleValvPill` exige para no salir por su
+           `return` temprano. La EP autogradúa (calcVP) y tiene su aviso rojo §5 (clave `ep` del
+           registro); la IP NO autogradúa y NO está en el registro, así que no lleva aviso rojo. -->
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <div class="valv-btn-wrap">
+          <button type="button" class="btn btn-ghost valv-pill" id="pill-insuf-pulmonar" onclick="toggleValvPill('pulmonar','insuf')">Insuficiencia</button>
+          <button type="button" class="valv-sev-btn" id="sevbtn-insuf-pulmonar" onclick="valvSevMenu('insuf','pulmonar',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          <div class="valv-sev-menu" id="sevmenu-insuf-pulmonar" role="menu"></div>
+        </div>
+        <div class="valv-btn-wrap">
+          <button type="button" class="btn btn-ghost valv-pill" id="pill-esten-pulmonar" onclick="toggleValvPill('pulmonar','esten')">Estenosis</button>
+          <button type="button" class="valv-sev-btn" id="sevbtn-esten-pulmonar" onclick="valvSevMenu('esten','pulmonar',event)" aria-haspopup="true" aria-expanded="false" title="Elegir severidad">🟡 Severidad ▼</button>
+          <div class="valv-sev-menu" id="sevmenu-esten-pulmonar" role="menu"></div>
+        </div>
+      </div>
+      <div class="sev-pills" id="sevpills-pulmonar"></div>
+      <!-- `bloque-esten-pulmonar`: su visibilidad la gobierna `valvGradoVisSync('esten','pulmonar')`
+           (vía `sevSincronizar('ep')`), igual que `bloque-esten-mitral`/`-aortica`: se ve con el
+           botón abierto O con grado O con discrepancia. `bloque-ep-detalle` adentro (nivel/etiología)
+           lo sigue mostrando `vpSync` sólo con estenosis consignada. -->
+      <div id="bloque-esten-pulmonar" style="display:none;">
       <div class="fg"><label>Estenosis pulmonar</label>
         <select id="ep_grado" onchange="epGradoManual()">
           <option value="sin">&mdash; grado &mdash;</option>
@@ -4503,6 +4528,11 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
         </div>
       </div>
+      </div><!-- fin bloque-esten-pulmonar -->
+      <!-- `bloque-insuf-pulmonar`: lo muestra/oculta `toggleValvPill('pulmonar','insuf')` por el
+           estado del botón (la IP no está en el registro, así que no hay `valvGradoVisSync` para
+           ella). Envuelve la etiología (`bloque-ip-detalle`) y el grado (`ip_grado`). -->
+      <div id="bloque-insuf-pulmonar" style="display:none;">
       <!-- La etiología de la INSUFICIENCIA vive acá aunque su grado esté en el Doppler Pulmonar:
            `ip_grado` no se mudó de pestaña en este commit (ver CLAUDE.md). `vpSync` la muestra
            leyendo ese grado, que está en otra tab pero en el mismo documento. -->
@@ -4526,7 +4556,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                desarmarlo con `replace(/^IP\s*/i,'')` para no escribir «insuficiencia pulmonar IP
                moderada», y «fisiológica» era una ETIOLOGÍA metida dentro del grado — ahora vive
                en `ip_etiologia`. Los valores viejos los traduce `_migrarCamposLegacy`. -->
-          <select id="ip_grado" style="min-width:180px;" onchange="vpSync()">
+          <select id="ip_grado" style="min-width:180px;" onchange="ipGradoManual()">
             <option value="Sin insuficiencia">&mdash; grado &mdash;</option>
             <option>Leve</option>
             <option>Moderada</option>
@@ -4534,6 +4564,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           </select>
         </div>
       </div>
+      </div><!-- fin bloque-insuf-pulmonar -->
       </div>
       <div id="vp-pane-med" style="display:none;">
       <!-- Fila 1: Estenosis pulmonar -->
@@ -27189,12 +27220,42 @@ function epGradoManual(){
   window.esqSevManual = window.esqSevManual || {};
   window.esqSevManual.ep = true;
   if (typeof _sevManualSync === 'function') _sevManualSync();
+  /* v2 (E5, regla 3): elegir un grado REAL en el desplegable prende el botón de estenosis pulmonar
+     —«botón prendido = hay valvulopatía»—. El centinela «— grado —» (value 'sin') NO lo prende: es
+     «no hay grado», no una afirmación. Idempotente: si ya está prendido no hace nada. No se agrega
+     el apagado por «Sin» (la pulmonar no entra en `SEV_SIN_APAGA_VALVS`): queda reportado. */
+  try {
+    const sel = document.getElementById('ep_grado');
+    if (sel && typeof sevEsSin === 'function' && !sevEsSin('esten', sel.value)
+        && typeof pillOn === 'function' && typeof toggleValvPill === 'function'
+        && !pillOn('pulmonar', 'esten')) {
+      toggleValvPill('pulmonar', 'esten');
+    }
+  } catch (e) {}
   /* calcVP (no sólo vpSync) para que el badge «se respeta la opción elegida a mano» se repinte en
      el mismo gesto; calcVP respeta la marca (no pisa ep_grado) y llama a vpSync→sevSincronizar('ep')
      al final, que pinta el aviso rojo de discrepancia. */
   if (typeof calcVP === 'function') calcVP(); else vpSync();
 }
 window.epGradoManual = epGradoManual;
+
+/* v2 (E5, regla 3): gemelo de `epGradoManual` para la INSUFICIENCIA pulmonar. La IP NO autogradúa y
+   NO está en el registro `SEV_SINC`, así que acá NO va `esqSevManual` ni aviso rojo: sólo prende el
+   botón cuando el médico elige un grado real, y repinta (vpSync → etiología + pastilla). Elegir el
+   centinela «— grado —» no prende. Reemplaza el `onchange="vpSync()"` anterior; `ipGradoManual`
+   termina llamando a `vpSync`, así que la etiología de la IP se sigue mostrando/ocultando igual. */
+function ipGradoManual(){
+  try {
+    const sel = document.getElementById('ip_grado');
+    if (sel && typeof ipHayInsuf === 'function' && ipHayInsuf(sel.value)
+        && typeof pillOn === 'function' && typeof toggleValvPill === 'function'
+        && !pillOn('pulmonar', 'insuf')) {
+      toggleValvPill('pulmonar', 'insuf');
+    }
+  } catch (e) {}
+  if (typeof vpSync === 'function') vpSync();
+}
+window.ipGradoManual = ipGradoManual;
 
 /* ══ ¿HAY INSUFICIENCIA PULMONAR? UN SOLO PREDICADO ══════════════════════════════════════════
    `ip_grado` era el ÚNICO de los siete grados valvulares cuya primera opción llevaba
@@ -27227,6 +27288,20 @@ function calcIP() {
   const vmax  = v('ip_vmax');   // Vmax proto-diastólica IP (m/s)
   const vtd   = v('ip_vtd');    // Vmax tele-diastólica IP (m/s)
   const pmad  = v('pmad');      // PmAD desde VCI (mmHg)
+
+  /* ⚠️ v2 (E5, 2026-10-03): cargar la Vmax proto-diastólica de la IP PRENDE la IP en Válvulas. La
+     señal regurgitante que alimenta las presiones pulmonares es también evidencia de que hay
+     insuficiencia pulmonar — el mismo criterio que el trigger de la IT en `calcPSAP` (ab18ac7), que
+     prende la IT al cargar la VRT. Se respeta el APAGADO MANUAL: si el médico cerró la pastilla a
+     mano (clave de `localStorage` en '0') no se reprende. Idempotente: si ya está prendida no toca
+     nada. Borrar la Vmax NO la apaga (regla 12: borrar un dato no retira). */
+  try {
+    if (vmax !== null && vmax > 0 && typeof pillOn === 'function' && typeof toggleValvPill === 'function'
+        && !pillOn('pulmonar', 'insuf')
+        && localStorage.getItem('valv-pill-insuf-pulmonar') !== '0') {
+      toggleValvPill('pulmonar', 'insuf');
+    }
+  } catch (e) {}
 
   const papmRow  = document.getElementById('ip-papm-row');
   const papdRow  = document.getElementById('ip-papd-row');
@@ -30686,7 +30761,14 @@ function generarInforme(opts) {
        («Sin insuficiencia» en vez de cadena vacía), `!!ipGrado` es SIEMPRE verdadero y esta
        compuerta dejaba de disparar — o sea que la frase de normalidad de la válvula pulmonar
        desaparecía de todos los informes. */
-    const hayIP = !!(ipHayInsuf(ipGrado) || ipProto !== null || ipTele !== null);
+    /* v2 (E5, reglas 1/9): se suma `pillOn('pulmonar','insuf')`, que es el término que `hayIT` ya
+       tiene y a `hayIP` le faltaba — así la IP queda IGUAL que la IT («se aprende una, se aprende
+       todas»). Es ADITIVO: sólo puede hacer `hayIP` MÁS verdadero, nunca menos, así que ningún
+       estudio que hoy nombra la IP deja de nombrarla (no migra lo guardado). Lo que agrega es la
+       regla 9: con el botón prendido y sin grado ni velocidad —p.ej. prendido a mano— el informe
+       dice «IP presente». El trigger de `calcIP` prende el botón al cargar la Vmax, de modo que un
+       estudio con velocidad sigue dando `hayIP` por los dos caminos. */
+    const hayIP = !!(ipHayInsuf(ipGrado) || ipProto !== null || ipTele !== null || (typeof pillOn === 'function' && pillOn('pulmonar','insuf')));
     /* ── MORFOLOGÍA Y ESTENOSIS, YA SEPARADAS ──────────────────────────────────────────────
        `vp_morf` dejó de graduar: hoy sólo describe la válvula. La estenosis vive en `ep_grado`,
        con su nivel y su etiología, y ninguno de los tres genera texto si está vacío.
@@ -51137,7 +51219,10 @@ function cargarValvPills() {
      al clickearlo, pero al recargar el bloque se cerraba y `et_gmedio` dejaba de verse. El
      grado seguía en `et_grado` y en el informe, así que el síntoma era un informe que dice
      «Estenosis tricuspídea moderada» con el gradiente que la sostiene fuera de la vista. */
-  ['mitral','aortica','tricuspide'].forEach(valvula => {
+  /* v2 (E5, 2026-10-03): la PULMONAR entra a la restauración como las otras tres. Sus dos pastillas
+     —`pill-esten-pulmonar` / `pill-insuf-pulmonar`— y sus dos bloques —`bloque-esten-pulmonar` /
+     `bloque-insuf-pulmonar`— existen desde E5, así que `toggleValvPill` ya no sale por su `return`. */
+  ['mitral','aortica','tricuspide','pulmonar'].forEach(valvula => {
     ['insuf','esten'].forEach(tipo => {
       const guardado = localStorage.getItem('valv-pill-' + tipo + '-' + valvula);
       if (guardado === '1') toggleValvPill(valvula, tipo);
@@ -51450,7 +51535,14 @@ function valvAutoAbrirCajones() {
        la versión de dos entradas. */
     try { guardado = localStorage.getItem('valv-pill-' + tipo + '-' + valv); } catch (e) { return; }
     if (guardado !== null) return;
-    if (VALV_AUTO_GRADO[tipo].indexOf(String(sel.value || '')) === -1) return;
+    /* ⚠️ COMPARACIÓN EN MINÚSCULA (v2 E5): `VALV_AUTO_GRADO.esten` guarda los tokens en minúscula
+       porque la aórtica y la mitral usan `ea_grado`/`em_grado` en minúscula; la PULMONAR usa
+       `ep_grado` con mayúscula inicial («Leve»/«Severa»), así que sin normalizar, un «Severa»
+       autograduado por `calcVP` nunca abría la pastilla de estenosis pulmonar y la válvula quedaba
+       fuera de la regla J. `toLowerCase()` es NO-OP para la aórtica y la mitral (ya están en
+       minúscula) y hace que la pulmonar entre con el mismo criterio. La insuficiencia usa números
+       ('1'..'4'), que `toLowerCase()` deja intactos. */
+    if (VALV_AUTO_GRADO[tipo].indexOf(String(sel.value || '').toLowerCase()) === -1) return;
     if (pillOn(valv, tipo)) return;
     toggleValvPill(valv, tipo);
   });
@@ -91428,8 +91520,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261003-1412';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791047561434;                 /* eco-build-ms */
+const ECO_BUILD    = '20261003-2119';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791073141201;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -91515,7 +91607,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261003-1412</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261003-2119</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
