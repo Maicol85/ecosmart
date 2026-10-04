@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Demo aprobada: válvula mitral 3D con score de Wilkins (versión 1)</title>
+<style>
+:root{--surface-1:#f1f4f9;--text-primary:#1a2233;--text-secondary:#5b667a;--radius:10px;--surface-2:#e3e8f1;--border:#c9d1de;--accent:#2f5fb3}
+@media (prefers-color-scheme:dark){:root{--surface-1:#1e2430;--text-primary:#e8ecf4;--text-secondary:#9aa5b8;--surface-2:#2a3242;--border:#3a455a}}
+body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:var(--surface-2);color:var(--text-primary);margin:0;padding:16px;max-width:760px}
+.nota{font-size:12px;color:var(--text-secondary);margin-bottom:10px}
+</style></head><body>
+<div class="nota">Demo aprobada: válvula mitral 3D con score de Wilkins (versión 1). Es una referencia de comportamiento y aspecto: no es el código final de EcoSmart.</div>
+<style>.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}#mv{width:100%;height:auto;display:block;touch-action:none;cursor:grab;background:var(--surface-1);border-radius:12px}.sl{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text-secondary);flex:1;min-width:250px}.sl label{min-width:104px}.sl input{flex:1}.sl b{font-weight:500;color:var(--text-primary);min-width:64px}.m{background:var(--surface-1);border-radius:var(--radius);padding:.6rem 1rem;display:inline-block;font-size:14px;color:var(--text-secondary)}.m b{font-size:20px;font-weight:500;color:var(--text-primary)}</style>
+<h2 class="sr">Modelo esquemático de la válvula mitral estenótica cuya morfología cambia según los cuatro componentes del score de Wilkins: movilidad, engrosamiento, calcificación y aparato subvalvular.</h2>
+<canvas id="mv" width="680" height="380" aria-label="Modelo 3D de la estenosis mitral según el score de Wilkins, arrastrá para girar"></canvas>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0">
+<button id="v0">Vista de cirujano</button>
+<button id="v1">Desde el ventrículo</button>
+<button id="v2">Corte lateral</button>
+</div>
+<div style="display:flex;align-items:center;gap:12px;margin:12px 0 6px;flex-wrap:wrap">
+<button id="pl"><i id="pi" class="ti ti-player-pause" aria-hidden="true"></i> <span id="pb">Pausar</span></button>
+<label for="ph" style="font-size:14px;color:var(--text-secondary)">Fase</label>
+<input type="range" id="ph" min="0" max="100" value="0" step="1" style="flex:1;min-width:160px">
+<span id="pt" style="font-size:14px;font-weight:500;min-width:190px">Sístole: válvula cerrada</span>
+</div>
+<div style="display:flex;gap:6px 18px;flex-wrap:wrap;margin:0 0 10px">
+<div class="sl"><label for="wm">Movilidad</label><input type="range" id="wm" min="1" max="4" value="2" step="1"><b id="wmv">2</b></div>
+<div class="sl"><label for="wt">Engrosamiento</label><input type="range" id="wt" min="1" max="4" value="3" step="1"><b id="wtv">3</b></div>
+<div class="sl"><label for="wc">Calcificación</label><input type="range" id="wc" min="1" max="4" value="2" step="1"><b id="wcv">2</b></div>
+<div class="sl"><label for="ws">Subvalvular</label><input type="range" id="ws" min="1" max="4" value="3" step="1"><b id="wsv">3</b></div>
+<div class="sl"><label for="av">AVm</label><input type="range" id="av" min="8" max="40" value="12" step="1"><b id="avv">1,2 cm²</b></div>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px">
+<span class="m">Wilkins <b id="wtot">10</b> / 16</span>
+<button id="e1">Wilkins 6</button>
+<button id="e2">Wilkins 10</button>
+<button id="e3">Wilkins 14</button>
+<button id="en">Válvula normal</button>
+<label style="font-size:14px;margin-left:8px"><input type="checkbox" id="lb" checked> Etiquetas</label>
+<label style="font-size:14px"><input type="checkbox" id="jt" checked> Flujo</label>
+</div>
+<div style="font-size:13px;color:var(--text-secondary)"><span style="display:inline-flex;align-items:center;gap:6px;margin-right:14px"><i style="width:10px;height:10px;border-radius:50%;background:#4CAF50;display:inline-block"></i>Calcificación</span><span style="display:inline-flex;align-items:center;gap:6px"><i style="width:10px;height:10px;border-radius:50%;background:#E9D9B5;display:inline-block"></i>Valva engrosada</span></div>
+<script>
+(function(){
+var cv=document.getElementById('mv'),ctx=cv.getContext('2d'),dpr=window.devicePixelRatio||1,W=680,H=380;
+cv.width=W*dpr;cv.height=H*dpr;
+var SG=['A1','A2','A3','P1','P2','P3'],RNG=[[0,0.30],[0.30,0.70],[0.70,1],[0,0.28],[0.28,0.72],[0.72,1]];
+var A_=1.7,B_=1.45,HS=0.25,S=46,DD=34,PI=Math.PI,TT=40,VV=10,CEN=[0,0,-2.1];
+var WM=2,WT=3,WC=2,WS=3,AVM=1.2,o=0,playing=true,t0=null,off=0,drag=null;
+var R=[[1,0,0],[0,1,0],[0,0,1]],Lg=[-0.4,0.5,0.75];
+function el(i){return document.getElementById(i);}
+function rgb(h){return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+function sm(a,b,x){var u=Math.max(0,Math.min(1,(x-a)/(b-a)));return u*u*(3-2*u);}
+function kst(){return Math.max(0.2,Math.min(1,AVM/4.0));}
+function mc(t){return sm(0,0.35,t)*sm(0,0.35,1-t);}
+function mob(){return [1,0.9,0.75,0.6][WM-1];}
+function hh(i,j,L){var x=Math.sin(i*12.9898+j*78.233+L*37.719)*43758.5453;return x-Math.floor(x);}
+function ann(th){var s=Math.sin(th);return [A_*Math.cos(th),(s>0?0.6:1)*B_*s,-HS*Math.cos(2*th)];}
+function annAt(L,t){return ann(L===0?PI*(1-t):PI*(1+t));}
+function coap(t){var s=Math.sin(PI*t);return [-A_*Math.cos(PI*t),-0.15+0.12*s,-0.2-0.45*s];}
+function openF(L,t){var k=kst();return mob()*(0.15+0.85*k)*(1-(1-k)*(1-mc(t)))*(L===1?0.7:1);}
+function edgeAt(L,t){var a=annAt(L,t),c=coap(t),sn=Math.pow(Math.max(0,Math.sin(PI*t)),0.7),dz=L===0?2.2:1.7;
+var e=[a[0]*0.92,a[1]*0.85,a[2]-dz*sn],of=o*openF(L,t),ss=of*of*(3-2*of);
+return [c[0]+ss*(e[0]-c[0]),c[1]+ss*(e[1]-c[1]),c[2]+ss*(e[2]-c[2])];}
+function vtx(L,t,v){var a=annAt(L,t),f=edgeAt(L,t),dz=0;
+if(L===0){dz-=[0.7,1.1,0.8,0.25][WM-1]*(0.4+0.6*(1-kst()))*Math.sin(PI*v)*Math.sin(PI*t)*o;}
+return [a[0]+v*(f[0]-a[0]),a[1]+v*(f[1]-a[1]),a[2]+v*(f[2]-a[2])+0.12*Math.sin(PI*v)*(1-0.7*o)+dz];}
+function mul(A,B){var r=[[0,0,0],[0,0,0],[0,0,0]],i,j,k;for(i=0;i<3;i++){for(j=0;j<3;j++){for(k=0;k<3;k++){r[i][j]+=A[i][k]*B[k][j];}}}return r;}
+function mrx(f){var c=Math.cos(f),s=Math.sin(f);return [[1,0,0],[0,c,-s],[0,s,c]];}
+function mry(t){var c=Math.cos(t),s=Math.sin(t);return [[c,0,s],[0,1,0],[-s,0,c]];}
+function dr(v){return {x:R[0][0]*v[0]+R[0][1]*v[1]+R[0][2]*v[2],y:R[1][0]*v[0]+R[1][1]*v[1]+R[1][2]*v[2],d:R[2][0]*v[0]+R[2][1]*v[1]+R[2][2]*v[2]};}
+function ap(v){return dr([v[0]-CEN[0],v[1]-CEN[1],v[2]-CEN[2]]);}
+function scr(p){var f=DD/(DD-p.d);return [W/2+p.x*S*f,H/2-p.y*S*f];}
+var TIPS=[[-1.25,-0.1,-3.8],[1.15,-0.3,-3.8]],BASES=[[-1.9,-0.2,-6.2],[1.7,-0.6,-6.2]],CH=[[0.08,0.2,0.32,0.44],[0.56,0.68,0.8,0.92]];
+function calcQ(L,i,j){var vm=(j+0.5)/VV,h=hh(i,j,L);
+if(WC===1){return L===0&&Math.abs((i+0.5)/TT-0.5)<0.06&&vm>0.8;}
+if(WC===2){return vm>0.75&&h<0.3;}
+if(WC===3){return vm>0.4&&h<0.35;}
+return vm>0.15&&h<0.55;}
+function build(){
+var P=[],L,i,j,g,q,ux,uy,uz,vx,vy,vz,nx,ny,nz,nn,k,m,t,e,tip,ang,tz=[0,0.1,0.5,1.2][WS-1],fr=[0.1,0.33,0.66,1.0][WS-1],wd,mid,tw=(WT-1)/3;
+function ln(a,b,c,w,off){var pa=ap(a),pb=ap(b);P.push({k:'l',a:pa,b:pb,d:(pa.d+pb.d)/2+(off||0),c:c,w:w});}
+for(L=0;L<2;L++){
+g=[];for(i=0;i<=TT;i++){g.push([]);for(j=0;j<=VV;j++){g[i].push(ap(vtx(L,i/TT,j/VV)));}}
+for(i=0;i<TT;i++){for(j=0;j<VV;j++){
+q=[g[i][j],g[i+1][j],g[i+1][j+1],g[i][j+1]];
+ux=q[1].x-q[0].x;uy=q[1].y-q[0].y;uz=q[1].d-q[0].d;vx=q[3].x-q[0].x;vy=q[3].y-q[0].y;vz=q[3].d-q[0].d;
+nx=uy*vz-uz*vy;ny=uz*vx-ux*vz;nz=ux*vy-uy*vx;nn=Math.sqrt(nx*nx+ny*ny+nz*nz)||1;
+var vmq=(j+0.5)/VV;
+wd=WT===1?0:(WT===2?(vmq>0.65?1.6:0):(WT===3?2.6:4.2));
+P.push({k:'q',q:q,n:[nx/nn,ny/nn,nz/nn],d:(q[0].d+q[1].d+q[2].d+q[3].d)/4,calc:calcQ(L,i,j),lw:0.7+wd});}}}
+ang=[];for(k=0;k<=72;k++){ang.push(ann(2*PI*k/72));}
+for(k=0;k<72;k++){ln(ang[k],ang[k+1],'RING',3.5,0.06);}
+for(m=0;m<2;m++){tip=[TIPS[m][0],TIPS[m][1],TIPS[m][2]+tz];ln(BASES[m],tip,'#A4635C',9,0);
+for(L=0;L<2;L++){for(k=0;k<CH[m].length;k++){t=CH[m][k];e=vtx(L,t,0.93);
+mid=[e[0]+fr*(tip[0]-e[0]),e[1]+fr*(tip[1]-e[1]),e[2]+fr*(tip[2]-e[2])];
+ln(e,mid,'rgba(176,140,96,0.95)',1+1.5*(WS-1),0);
+if(fr<1){ln(mid,tip,'CHORD',1,0);}}}}
+var ac=[0,1.75,0.35],u=[1,0,0],w=[0,0.96,-0.28],pts=[],aa;
+for(k=0;k<=40;k++){aa=2*PI*k/40;pts.push([ac[0]+0.95*(Math.cos(aa)*u[0]+Math.sin(aa)*w[0]),ac[1]+0.95*(Math.cos(aa)*u[1]+Math.sin(aa)*w[1]),ac[2]+0.95*(Math.cos(aa)*u[2]+Math.sin(aa)*w[2])]);}
+for(k=0;k<40;k++){ln(pts[k],pts[k+1],'AO',2.2,0);}
+[PI/2,PI/2+2*PI/3,PI/2+4*PI/3].forEach(function(a2){ln(ac,[ac[0]+0.95*(Math.cos(a2)*u[0]+Math.sin(a2)*w[0]),ac[1]+0.95*(Math.cos(a2)*u[1]+Math.sin(a2)*w[1]),ac[2]+0.95*(Math.cos(a2)*u[2]+Math.sin(a2)*w[2])],'AO',2.2,0);});
+var lc=[-3.0,0.35,0.25],lp=[];
+for(k=0;k<=30;k++){aa=2*PI*k/30;lp.push([lc[0]+0.55*Math.cos(aa),lc[1]+0.85*Math.sin(aa),lc[2]]);}
+for(k=0;k<30;k++){ln(lp[k],lp[k+1],'AO',2.2,0);}
+if(el('jt').checked&&o>0.3){
+var o2=edgeAt(0,0.5),o3=edgeAt(1,0.5),oc=[(o2[0]+o3[0])/2,(o2[1]+o3[1])/2,(o2[2]+o3[2])/2],kk=kst(),dxs=[-0.5,-0.25,0,0.25,0.5],a2=(0.55*sm(0.3,0.8,o)).toFixed(2),dx;
+for(k=0;k<5;k++){dx=dxs[k]*(0.5+1.6*kk);
+ln([oc[0]+dx*2.4,oc[1],1.9],[oc[0]+dx*0.4,oc[1],oc[2]],'rgba(59,125,216,'+a2+')',2.4,0.3);
+ln([oc[0]+dx*0.4,oc[1],oc[2]],[oc[0]+dx*0.2,oc[1],oc[2]-2.6],'rgba(59,125,216,'+a2+')',2.4,0.3);}}
+return P;}
+function fm(x){return x.toFixed(2).replace('.',',');}
+function draw(){
+ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+var cs=getComputedStyle(document.documentElement),tcl=cs.getPropertyValue('--text-secondary').trim()||'#888',sf=cs.getPropertyValue('--surface-1').trim()||'#fff',tpr=cs.getPropertyValue('--text-primary').trim()||'#222';
+var P=build();P.sort(function(a,b){return a.d-b.d;});
+var i,p,k,xy,c,sh,dot,col,pa,pb,b0=rgb('#E3C7B3'),b1=rgb('#E9D9B5'),tw=(WT-1)/3,tint=[b0[0]+(b1[0]-b0[0])*tw,b0[1]+(b1[1]-b0[1])*tw,b0[2]+(b1[2]-b0[2])*tw],cc=rgb('#4CAF50');
+for(i=0;i<P.length;i++){p=P[i];
+if(p.k==='q'){ctx.beginPath();for(k=0;k<4;k++){xy=scr(p.q[k]);if(k===0){ctx.moveTo(xy[0],xy[1]);}else{ctx.lineTo(xy[0],xy[1]);}}ctx.closePath();
+dot=Math.abs(p.n[0]*Lg[0]+p.n[1]*Lg[1]+p.n[2]*Lg[2]);sh=0.58+0.42*dot;
+col=(p.calc?cc:tint).map(function(v){return Math.round(Math.min(255,v*sh));});
+ctx.fillStyle='rgb('+col[0]+','+col[1]+','+col[2]+')';ctx.strokeStyle=ctx.fillStyle;ctx.lineWidth=p.lw;ctx.fill();ctx.stroke();}
+else{pa=scr(p.a);pb=scr(p.b);c=p.c==='RING'?tcl:(p.c==='CHORD'?'rgba(150,150,150,0.75)':(p.c==='AO'?'rgba(130,135,150,0.9)':p.c));
+ctx.strokeStyle=c;ctx.lineWidth=p.w;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(pa[0],pa[1]);ctx.lineTo(pb[0],pb[1]);ctx.stroke();}}
+ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineWidth=3;ctx.strokeStyle=sf;ctx.fillStyle=tpr;
+function lab(txt,v){var s=scr(ap(v));ctx.strokeText(txt,s[0],s[1]);ctx.fillText(txt,s[0],s[1]);}
+if(el('lb').checked){var L,tm;for(i=0;i<6;i++){L=i<3?0:1;tm=(RNG[i][0]+RNG[i][1])/2;lab(SG[i],vtx(L,tm,0.55));}
+lab('Ao',[0,2.95,0.35]);lab('LAA',[-3.0,1.4,0.25]);
+if(o>0.5){var q2=edgeAt(0,0.5),q3=edgeAt(1,0.5);lab('AVm '+fm(AVM)+' cm²',[(q2[0]+q3[0])/2,(q2[1]+q3[1])/2,(q2[2]+q3[2])/2+0.7]);}}
+var ax=[{v:[0,1,0],l:'Ant'},{v:[0,-1,0],l:'Post'},{v:[-1,0,0],l:'Lat'},{v:[1,0,0],l:'Med'},{v:[0,0,1],l:'Aur'}],ox=64,oy=H-56,a,r2,ex,ey;
+ctx.font='12px sans-serif';ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.lineWidth=2;ctx.strokeStyle=tcl;ctx.fillStyle=tcl;
+for(i=0;i<ax.length;i++){a=ax[i];r2=dr(a.v);ex=ox+r2.x*34;ey=oy-r2.y*34;ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ex,ey);ctx.stroke();ctx.fillText(a.l,ex+(r2.x>=0?4:-26),ey+(r2.y>=0?-3:12));}
+}
+function info(){el('wmv').textContent=WM;el('wtv').textContent=WT;el('wcv').textContent=WC;el('wsv').textContent=WS;el('avv').textContent=fm(AVM)+' cm²';el('wtot').textContent=WM+WT+WC+WS;}
+function lab2(){el('pt').textContent=o<0.05?'Sístole: válvula cerrada':(o>0.95?'Diástole: válvula abierta':Math.round(o*100)+' % hacia abierta');}
+function setBtn(){el('pi').className=playing?'ti ti-player-pause':'ti ti-player-play';el('pb').textContent=playing?'Pausar':'Reproducir';}
+function setAll(m,t,c,s,a){WM=m;WT=t;WC=c;WS=s;AVM=a;el('wm').value=m;el('wt').value=t;el('wc').value=c;el('ws').value=s;el('av').value=Math.round(a*10);info();}
+function frame(ts){
+if(playing){if(t0===null){t0=ts;off=Math.acos(Math.max(-1,Math.min(1,1-2*o)));}
+o=0.5-0.5*Math.cos(off+(ts-t0)/3600*2*PI);el('ph').value=Math.round(o*100);}
+lab2();draw();requestAnimationFrame(frame);}
+el('pl').addEventListener('click',function(){playing=!playing;t0=null;setBtn();});
+el('ph').addEventListener('input',function(e){playing=false;o=e.target.value/100;setBtn();});
+el('wm').addEventListener('input',function(e){WM=+e.target.value;info();});
+el('wt').addEventListener('input',function(e){WT=+e.target.value;info();});
+el('wc').addEventListener('input',function(e){WC=+e.target.value;info();});
+el('ws').addEventListener('input',function(e){WS=+e.target.value;info();});
+el('av').addEventListener('input',function(e){AVM=e.target.value/10;info();});
+el('e1').addEventListener('click',function(){setAll(1,2,1,2,1.6);});
+el('e2').addEventListener('click',function(){setAll(2,3,2,3,1.2);});
+el('e3').addEventListener('click',function(){setAll(4,4,3,3,0.9);});
+el('en').addEventListener('click',function(){setAll(1,1,1,1,4.0);});
+el('v0').addEventListener('click',function(){R=[[1,0,0],[0,1,0],[0,0,1]];});
+el('v1').addEventListener('click',function(){R=mry(PI);});
+el('v2').addEventListener('click',function(){R=mrx(-80*PI/180);});
+cv.addEventListener('pointerdown',function(e){drag={x:e.clientX,y:e.clientY};cv.setPointerCapture(e.pointerId);cv.style.cursor='grabbing';});
+cv.addEventListener('pointermove',function(e){if(!drag)return;var dx=e.clientX-drag.x,dy=e.clientY-drag.y;R=mul(mry(dx*0.01),mul(mrx(dy*0.01),R));drag.x=e.clientX;drag.y=e.clientY;});
+cv.addEventListener('pointerup',function(){drag=null;cv.style.cursor='grab';});
+info();setBtn();requestAnimationFrame(frame);
+})();
+</script>
+</body></html>
