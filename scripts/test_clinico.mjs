@@ -6793,7 +6793,7 @@ caso('TC-141', 'ET completa: gradiente, THP y area por continuidad, los tres con
     const r = __t.informe();
     const li = r.inf.split(String.fromCharCode(10))
       .filter(function(l){ return l.indexOf('ET signif') > -1 || l.indexOf('stenosis tricusp') > -1 ||
-                                  l.indexOf('criterios de ET') > -1; }).join(' // ');
+                                  l.indexOf('stenosis signif') > -1 || l.indexOf('criterios de ET') > -1; }).join(' // ');
     return { li: li, suma: r.suma, avt: __t.val('et_avt'), faltan: faltan }; };
 
   /* AREA: TSVD 25 mm + VTI-TSVD 12 cm + VTI diast 60 cm -> pi*(25/20)^2 = 4.909 cm², x12/60 = 0.98 */
@@ -6829,13 +6829,13 @@ caso('TC-141', 'ET completa: gradiente, THP y area por continuidad, los tres con
 
     // 1 · CADA CRITERIO SOLO ALCANZA. Ninguno manda sobre los otros.
     ['el gradiente solo publica ET significativa',
-      soloGm.li.indexOf('Estenosis tricuspídea significativa (gradiente medio 6 mmHg') > -1 &&
+      soloGm.li.indexOf('con estenosis significativa (gradiente medio 6 mmHg') > -1 &&
       soloGm.suma.indexOf('ET significativa.') > -1, soloGm.li],
     ['el THP solo tambien',
-      soloThp.li.indexOf('Estenosis tricuspídea significativa (THP 200 ms') > -1 &&
+      soloThp.li.indexOf('con estenosis significativa (THP 200 ms') > -1 &&
       soloThp.suma.indexOf('ET significativa.') > -1, soloThp.li],
     ['y el area sola tambien',
-      soloAvt.li.indexOf('Estenosis tricuspídea significativa (área valvular 0.98 cm²') > -1 &&
+      soloAvt.li.indexOf('con estenosis significativa (área valvular 0.98 cm²') > -1 &&
       soloAvt.suma.indexOf('ET significativa.') > -1, soloAvt.li],
 
     // 2 · CON LOS TRES, LOS TRES ENTRE PARENTESIS y una sola cita.
@@ -6858,7 +6858,7 @@ caso('TC-141', 'ET completa: gradiente, THP y area por continuidad, los tres con
        Segunda vez en la sesion que una palabra corta choca con la frase que viene a verificar. */
     ['un THP de 4000 ms no vota y se nombra',
       fuera.li.indexOf('fuera de rango en THP tricuspídeo') > -1 &&
-      fuera.li.indexOf('Estenosis tricuspídea significativa') === -1 &&
+      fuera.li.indexOf('con estenosis significativa') === -1 &&
       fuera.suma.indexOf('ET significativa') === -1, fuera.li],
 
     // 5 · LOS DOS LADOS DE CADA CORTE.
@@ -43086,9 +43086,11 @@ caso('TC-343', 'IT: la MISMA aritmetica de votos que la IAo — un voto severo c
     ['  EN SUMA dice IT severa y NO IT moderada',
       sev.suma.indexOf('IT severa.') > -1 && sev.suma.indexOf('IT moderada') === -1,
       'suma=' + sev.suma],
-    ['  el informe narrativo dice tricuspidea severa',
-      sev.inf.toLowerCase().indexOf('tricuspídea severa') > -1 ||
-      sev.inf.toLowerCase().indexOf('tricuspidea severa') > -1, 'inf no la trae'],
+    /* v2 (E5b-4): el narrativo de la tricúspide es ahora UNA oración como la mitral; con morfología
+       normal y sólo IT severa dice «Válvula tricúspide de morfología normal, con insuficiencia
+       severa.». La aritmética de votos (it_grado=4) y el EN SUMA «IT severa.» no cambiaron. */
+    ['  el informe narrativo dice insuficiencia severa (oración única v2)',
+      sev.inf.toLowerCase().indexOf('con insuficiencia severa') > -1, 'inf: ' + (sev.inf.split(String.fromCharCode(10)).filter(function(l){ return /tric[úu]sp/i.test(l); }).join(' | ') || 'no la trae')],
     ['CONTROL: un unico voto moderado sigue en grado 2',
       mod.grado === '2' && mod.badge.indexOf('evaluar integrado') > -1,
       'grado=' + mod.grado + ' badge=' + mod.badge],
@@ -48985,7 +48987,7 @@ caso('TC-410', 'Tricuspide v2: los campos de cada lesion van debajo de su pastil
   reset();
   if (!aOn('tricuspide','insuf')) toggleValvPill('tricuspide','insuf');
   const rPres = __t.informe();
-  const tric = (rPres.inf||'').split('\\n').filter(function(l){ return /tricusp|^IT /i.test(l); }).join(' | ');
+  const tric = (rPres.inf||'').split('\\n').filter(function(l){ return /tric[úu]sp|^IT /i.test(l); }).join(' | ');
 
   // CONTROL NEGATIVO: sin IT ni pastilla, no hay «IT presente».
   reset();
@@ -49001,10 +49003,111 @@ caso('TC-410', 'Tricuspide v2: los campos de cada lesion van debajo de su pastil
       visSolo === true && leftSolo === leftConEsten, 'visSolo='+visSolo+' left solo='+leftSolo+' con esten='+leftConEsten],
     ['DOPPLER -> IT · cargar Vmax IT prende la pastilla de insuficiencia (denominador: estaba apagada)',
       antesDop === false && prendidoDop === true, 'antes='+antesDop+' prendido='+prendidoDop],
-    ['IT PRESENTE · sin grado el informe dice «Insuficiencia tricuspidea» y el EN SUMA «IT presente.»',
-      /Insuficiencia tricusp/i.test(tric) && rPres.suma.indexOf('IT presente.') > -1, tric + ' // ' + recorteJS(rPres.suma)],
+    /* v2 (E5b-4): el narrativo es ahora UNA oración; IT presente sin grado dice «Válvula tricúspide
+       de morfología normal, con insuficiencia.». El EN SUMA sigue «IT presente.». */
+    ['IT PRESENTE · sin grado el informe dice «con insuficiencia» (oración única v2) y el EN SUMA «IT presente.»',
+      tric.indexOf('con insuficiencia.') > -1 && rPres.suma.indexOf('IT presente.') > -1, tric + ' // ' + recorteJS(rPres.suma)],
     ['CONTROL NEGATIVO · sin IT ni pastilla, no hay «IT presente»',
       rNeg.suma.indexOf('IT presente') === -1, recorteJS(rNeg.suma)],
+  ] };
+`);
+
+/* TC-411 — TRICUSPIDE NARRATIVO DE UNA ORACION (E5b-4, decision de Maicol, 2026-10-04). Con
+   morfologia normal y al menos una lesion, la tricuspide se describe en UNA oracion como la mitral:
+   «Valvula tricuspide de morfologia normal, con estenosis X e insuficiencia Y.», y la PSAP queda
+   APARTE. «Mixta» no se escribe sola. Se cubre la matriz de 6 combinaciones de grado. ⚠️ SIN
+   ACENTOS GRAVES EN EL CUERPO. */
+caso('TC-411', 'Tricuspide: narrativo de UNA oracion («Valvula tricuspide de morfologia normal, con estenosis X e insuficiencia Y.»), PSAP aparte, «Mixta» nunca sola — 6 combinaciones de grado', `
+  ${APAGA_HELPERS}
+  const base = function(){
+    __t.nuevoEstudio();
+    ['esten','insuf'].forEach(function(t){
+      try { localStorage.removeItem('valv-pill-'+t+'-tricuspide'); } catch(e){}
+      if (aOn('tricuspide',t)) toggleValvPill('tricuspide',t); });
+    __t.set('nombre','TC411'); __t.set('vt_morf','Normal'); };
+  const est = function(g){ __t.set('et_grado', g); if (!aOn('tricuspide','esten')) toggleValvPill('tricuspide','esten'); };
+  const estPres = function(){ __t.set('et_grado','Sin estenosis'); if (!aOn('tricuspide','esten')) toggleValvPill('tricuspide','esten'); };
+  const insf = function(v){ if (!aOn('tricuspide','insuf')) toggleValvPill('tricuspide','insuf'); __t.set('it_grado', v); };
+  const insPres = function(){ if (!aOn('tricuspide','insuf')) toggleValvPill('tricuspide','insuf'); __t.set('it_grado','0'); };
+  const linea = function(){ const r = __t.informe();
+    const tri = (r.inf||'').split('\\n').filter(function(l){ return /tric[úu]sp|Gradiente VD-AD|PSAP/i.test(l); }).join(' | ');
+    return { tri: tri, suma: r.suma }; };
+
+  base(); est('Leve');                 const c1 = linea();                 // solo estenosis
+  base(); insf('1');                   const c2 = linea();                 // solo insuficiencia
+  base(); est('Leve'); insf('1');      const c3 = linea();                 // ambas mismo grado
+  base(); est('Leve'); insf('4');      const c4 = linea();                 // grados distintos
+  base(); est('Leve'); insPres();      const c5 = linea();                 // est grado + insuf presente
+  base(); estPres(); insPres();        const c6 = linea();                 // ambas presente
+
+  const sinMixta = [c1,c2,c3,c4,c5,c6].every(function(c){ return !/mixta/i.test(c.tri); });
+  const psapAparte = [c1,c2,c3,c4,c5,c6].every(function(c){ return c.tri.indexOf(' con gradiente VD-AD') === -1 && !/insuficiencia[^.|]*PSAP/i.test(c.tri); });
+
+  return { extra: [
+    ['DENOMINADOR: las 6 escenas escribieron linea de tricuspide', [c1,c2,c3,c4,c5,c6].every(function(c){ return c.tri.indexOf('Válvula tricúspide') > -1; }), c1.tri + ' /// ' + c2.tri],
+    ['1 solo estenosis → «de morfologia normal, con estenosis leve.» sin «e insuficiencia»',
+      c1.tri.indexOf('Válvula tricúspide de morfología normal, con estenosis leve.') > -1 && c1.tri.indexOf('e insuficiencia') === -1, c1.tri],
+    ['2 solo insuficiencia → «con insuficiencia leve.» sin «estenosis»',
+      c2.tri.indexOf('Válvula tricúspide de morfología normal, con insuficiencia leve.') > -1 && c2.tri.indexOf('estenosis') === -1, c2.tri],
+    ['3 ambas mismo grado → «con estenosis leve e insuficiencia leve.» (wording exacto)',
+      c3.tri.indexOf('Válvula tricúspide de morfología normal, con estenosis leve e insuficiencia leve.') > -1, c3.tri],
+    ['4 grados distintos → «con estenosis leve e insuficiencia severa.»',
+      c4.tri.indexOf('con estenosis leve e insuficiencia severa.') > -1, c4.tri],
+    ['5 est grado + insuf PRESENTE → «con estenosis leve e insuficiencia.» y EN SUMA «IT presente.»',
+      c5.tri.indexOf('con estenosis leve e insuficiencia.') > -1 && c5.suma.indexOf('IT presente.') > -1, c5.tri + ' // ' + recorteJS(c5.suma)],
+    ['6 ambas PRESENTE → «con estenosis e insuficiencia.» y EN SUMA «ET presente.»/«IT presente.»',
+      c6.tri.indexOf('con estenosis e insuficiencia.') > -1 && c6.suma.indexOf('ET presente.') > -1 && c6.suma.indexOf('IT presente.') > -1, c6.tri + ' // ' + recorteJS(c6.suma)],
+    ['«Mixta» no aparece sola en ninguna de las 6', sinMixta === true, 'sinMixta='+sinMixta],
+    ['la PSAP es oracion APARTE (no fusionada con el grado de IT)', psapAparte === true, c3.tri],
+  ] };
+`);
+
+/* TC-412 — PULMONAR NARRATIVO DE UNA ORACION (E5b-4, decision de Maicol, 2026-10-04). Con morfologia
+   normal y al menos una lesion, la EP y la IP se dicen en UNA oracion como la mitral: «Valvula
+   pulmonar de morfologia normal, con estenosis X e insuficiencia Y.». «Mixta» no se escribe sola.
+   Acotado a SIN mediciones (las 6 combinaciones de grado no las tienen). ⚠️ SIN ACENTOS GRAVES. */
+caso('TC-412', 'Pulmonar: narrativo de UNA oracion («Valvula pulmonar de morfologia normal, con estenosis X e insuficiencia Y.»), «Mixta» nunca sola — 6 combinaciones de grado', `
+  ${APAGA_HELPERS}
+  const base = function(){
+    __t.nuevoEstudio();
+    ['esten','insuf'].forEach(function(t){
+      try { localStorage.removeItem('valv-pill-'+t+'-pulmonar'); } catch(e){}
+      if (aOn('pulmonar',t)) toggleValvPill('pulmonar',t); });
+    __t.set('nombre','TC412'); __t.set('vp_morf','Normal'); };
+  const est = function(g){ __t.set('ep_grado', g); if (!aOn('pulmonar','esten')) toggleValvPill('pulmonar','esten'); };
+  const estPres = function(){ if (!aOn('pulmonar','esten')) toggleValvPill('pulmonar','esten'); };   // presente: solo el boton, sin tocar el select
+  const insf = function(g){ __t.set('ip_grado', g); if (!aOn('pulmonar','insuf')) toggleValvPill('pulmonar','insuf'); };
+  const insPres = function(){ if (!aOn('pulmonar','insuf')) toggleValvPill('pulmonar','insuf'); };
+  const linea = function(){ const r = __t.informe();
+    const vp = (r.inf||'').split('\\n').filter(function(l){ return /pulmonar|^VP /i.test(l); }).join(' | ');
+    return { vp: vp, suma: r.suma }; };
+
+  base(); est('Leve');                 const c1 = linea();
+  base(); insf('Leve');                const c2 = linea();
+  base(); est('Leve'); insf('Leve');   const c3 = linea();
+  base(); est('Leve'); insf('Severa'); const c4 = linea();
+  base(); est('Leve'); insPres();      const c5 = linea();
+  base(); estPres(); insPres();        const c6 = linea();
+
+  const sinMixta = [c1,c2,c3,c4,c5,c6].every(function(c){ return !/mixta/i.test(c.vp); });
+  const unaOracion = [c1,c2,c3,c4,c5,c6].every(function(c){ return (c.vp.match(/Válvula pulmonar/g)||[]).length === 1 && c.vp.indexOf('Insuficiencia pulmonar') === -1; });
+
+  return { extra: [
+    ['DENOMINADOR: las 6 escenas escribieron linea de pulmonar', [c1,c2,c3,c4,c5,c6].every(function(c){ return c.vp.indexOf('Válvula pulmonar') > -1; }), c1.vp + ' /// ' + c2.vp],
+    ['1 solo estenosis → «de morfologia normal, con estenosis leve.» sin «insuficiencia»',
+      c1.vp.indexOf('Válvula pulmonar de morfología normal, con estenosis leve.') > -1 && c1.vp.indexOf('insuficiencia') === -1, c1.vp],
+    ['2 solo insuficiencia → «con insuficiencia leve.» sin «estenosis»',
+      c2.vp.indexOf('Válvula pulmonar de morfología normal, con insuficiencia leve.') > -1 && c2.vp.indexOf('estenosis') === -1, c2.vp],
+    ['3 ambas mismo grado → «con estenosis leve e insuficiencia leve.» (wording exacto)',
+      c3.vp.indexOf('Válvula pulmonar de morfología normal, con estenosis leve e insuficiencia leve.') > -1, c3.vp],
+    ['4 grados distintos → «con estenosis leve e insuficiencia severa.»',
+      c4.vp.indexOf('con estenosis leve e insuficiencia severa.') > -1, c4.vp],
+    ['5 est grado + insuf PRESENTE → «con estenosis leve e insuficiencia.» y EN SUMA «IP presente.»',
+      c5.vp.indexOf('con estenosis leve e insuficiencia.') > -1 && c5.suma.indexOf('IP presente.') > -1, c5.vp + ' // ' + recorteJS(c5.suma)],
+    ['6 ambas PRESENTE → «con estenosis e insuficiencia.» y EN SUMA «EP presente.»/«IP presente.»',
+      c6.vp.indexOf('con estenosis e insuficiencia.') > -1 && c6.suma.indexOf('EP presente.') > -1 && c6.suma.indexOf('IP presente.') > -1, c6.vp + ' // ' + recorteJS(c6.suma)],
+    ['«Mixta» no aparece sola en ninguna de las 6', sinMixta === true, 'sinMixta='+sinMixta],
+    ['UNA sola oracion de pulmonar (ni «Insuficiencia pulmonar» separada ni dos «Válvula pulmonar»)', unaOracion === true, c3.vp],
   ] };
 `);
 

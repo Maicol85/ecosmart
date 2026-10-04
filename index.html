@@ -30717,10 +30717,44 @@ function generarInforme(opts) {
       : (_vtProt ? `Válvula tricúspide${vtDe ? ' ' + vtDe : ''}${etParTxt}.`
       : `Válvula tricúspide${vtDe ? ' ' + vtDe + ',' : ''} sin insuficiencia valorable.`);
     const tapBajo = tap !== null && tap < 105;
+    /* ══ v2 (E5b-4, 2026-10-04, decisión de Maicol): UNA ORACIÓN POR VÁLVULA ════════════════════
+       Con morfología NORMAL y al menos una lesión (estenosis o insuficiencia), la tricúspide se
+       describe como la mitral y la aórtica: «Válvula tricúspide de morfología normal, con estenosis
+       X e insuficiencia Y.», y la frase de PSAP queda APARTE. «Mixta» no se escribe sola: la unión
+       nombra las dos lesiones por su nombre. Acotado a morfología Normal y válvula nativa — con
+       prótesis, funcional/dilatación VD, carcinoide, reumática, etc. y sin ninguna lesión cae al
+       camino de siempre, byte por byte (el A/B no difiere fuera de las escenas con lesión y
+       morfología normal). Los fragmentos reusan los grados y parámetros que ya existían: sólo cambia
+       el ENSAMBLADO, no un corte ni un rótulo. */
+    const _estFragU = etDesc ? `estenosis ${etDesc}${etSignif ? ', significativa' : ''}${etParTxt}`
+                    : (etSignif ? `estenosis significativa${etParTxt}`
+                    : (etPill ? 'estenosis' : null));
+    const _insFragU = (itG > 0) ? `insuficiencia ${imTxt[itG]}` : (hayIT ? 'insuficiencia' : null);
+    const _unifTric = vtMorf === 'Normal' && !_vtProt && !!(_estFragU || _insFragU);
+    /* El EN SUMA de la IT no cambia y se empuja en los dos caminos. */
+    if (hayIT) suma.push(itG > 0 ? `IT ${imTxt[itG]}.` : 'IT presente.');
     let tricLine;
-    if (hayIT) {
+    if (_unifTric) {
+      const _unirEI = (fr) => fr.length === 2
+        ? fr[0] + (/^[aeiouáéíóúAEIOU]/.test(fr[1]) ? ' e ' : ' y ') + fr[1] : fr[0];
+      let _s = `Válvula tricúspide de morfología normal, con ${_unirEI([_estFragU, _insFragU].filter(Boolean))}.${etFueraTxt}`;
+      /* PSAP, SIEMPRE como oración aparte (decisión de Maicol). Mismas palabras que el camino de
+         siempre, sin el prefijo «IT …» que ahora vive en la oración de arriba. */
+      if (hayIT) {
+        if (gradVDAD !== null && pmadV !== null && psap)
+          _s += ` Gradiente VD-AD de ${gradVDAD} mmHg, PSAP estimada de ${psap} mmHg (PmAD ${pmadV} mmHg).`;
+        else if (gradVDAD !== null)
+          _s += ` Gradiente VD-AD de ${gradVDAD} mmHg. PSAP no calculable sin medición de VCI.`;
+        else
+          _s += ` Sin registro de velocidad de regurgitación que permita estimar PSAP.`;
+      } else {
+        _s += ` No es posible estimar PSAP.`;
+      }
+      { const _ind = (typeof htpIndirectosFrase === 'function') ? htpIndirectosFrase() : '';
+        if (_ind) _s += ` Presenta elementos indirectos de HTP ${_ind}.`; }
+      tricLine = _s;
+    } else if (hayIT) {
       const itGrad = itG > 0 ? ` ${imTxt[itG]}` : '';
-      suma.push(itG > 0 ? `IT ${imTxt[itG]}.` : 'IT presente.');
       if (gradVDAD !== null && pmadV !== null && psap) {
         tricLine = `${vtFrag}${etFrag}IT${itGrad} con gradiente VD-AD de ${gradVDAD} mmHg, PSAP estimada de ${psap} mmHg (PmAD ${pmadV} mmHg).`;
       } else if (gradVDAD !== null) {
@@ -30850,13 +30884,43 @@ function generarInforme(opts) {
        traen un paréntesis —«Displasia valvular (Noonan)»— y anidarlos queda ilegible. */
     const epEtioTxt  = (epEtio  && epEtio  !== 'No especificada') ? `, de etiología ${epEtio}` : '';
 
+    /* ══ v2 (E5b-4, 2026-10-04, decisión de Maicol): UNA ORACIÓN POR VÁLVULA — pulmonar ══════════
+       Como la mitral/aórtica/tricúspide: con morfología NORMAL y al menos una lesión, la EP y la IP
+       se dicen en UNA sola oración —«Válvula pulmonar de morfología normal, con estenosis X e
+       insuficiencia Y.»— en vez de dos oraciones separadas. «Mixta» no se escribe sola: la unión
+       nombra las dos lesiones. Acotado a morfología Normal y SIN mediciones (sin Vmax/Gmax de EP ni
+       velocidades de IP): con mediciones o presiones pulmonares el camino es el de SIEMPRE —dos
+       oraciones, byte por byte—, porque esos números tienen su propio lugar y moverlos es otra
+       decisión de wording del informe firmado, que es de Maicol y no se toma acá. Queda declarado.
+       Los fragmentos reusan los grados que ya existían: sólo cambia el ENSAMBLADO. */
+    const _unirEIp = (fr) => fr.length === 2
+      ? fr[0] + (/^[aeiouáéíóúAEIOU]/.test(fr[1]) ? ' e ' : ' y ') + fr[1] : fr[0];
+    const _ipDescU = ipHayInsuf(ipGrado) ? ipGrado.replace(/^IP\s*/i, '').trim().toLowerCase() : '';
+    const _epFragU = epHay ? `estenosis ${epG.toLowerCase()}${epNivelTxt}${epEtioTxt}`
+                   : (_epSinGrado ? 'estenosis' : null);
+    const _ipFragU = _ipDescU ? `insuficiencia ${_ipDescU}` : (hayIP ? 'insuficiencia' : null);
+    const _unifPulm = vpMorf === 'Normal' && !datosVPp && ipProto === null && ipTele === null
+      && !!(_epFragU || _ipFragU);
+    let _ipEnOracion = false;
+
     /* LA NORMALIDAD EXIGE «Normal» EXPLÍCITO, no «no es anormal». Con `!vpMorfHay` alcanzaba
        también «No especificada» —que es el valor al que MIGRAN los estudios viejos y el que
        elige el médico cuando no valoró la morfología— y el informe firmado salía «Válvula
        pulmonar normal.» sobre una válvula que nadie miró. Es la negación sin evidencia de
        siempre, y acá entraba por la puerta de la migración. Sin morfología consignada y sin
        ninguna medición, la válvula NO se nombra: mismo criterio que la aorta. */
-    if (vpMorf === 'Normal' && !epHay && !_epSinGrado && !vpVmax && !vpGmax && !hayIP) {
+    if (_unifPulm) {
+      const _cuerpoU = _unirEIp([_epFragU, _ipFragU].filter(Boolean));
+      inf.push(estiloPick(
+        `VP de morfología normal, con ${_cuerpoU}.`,
+        `Válvula pulmonar de morfología normal, con ${_cuerpoU}.`,
+        `La válvula pulmonar presenta morfología normal, con ${_cuerpoU}.`));
+      _ipEnOracion = true;   // la IP ya está nombrada en esta oración: el bloque 10b no repite la frase
+      /* EN SUMA de la EP, igual que en el camino de siempre (la IP la empuja el bloque 10b). */
+      if (epHay) suma.push(`EP ${epG.toLowerCase()}${epNivelTxt}.`);
+      else if (_epSinGrado) suma.push('EP presente.');
+      ccMarcarParrafo();
+    } else if (vpMorf === 'Normal' && !epHay && !_epSinGrado && !vpVmax && !vpGmax && !hayIP) {
       inf.push(estiloPick('VP normal.', 'Válvula pulmonar normal.', 'La válvula pulmonar presenta morfología y flujo dentro de límites normales.'));
     } else if (!vpMorfHay && !epHay && !_epSinGrado && !vpVmax && !vpGmax) {
       /* Con IP cargada y sin datos de estenosis, la válvula se describe SÓLO por lo que se
@@ -30944,7 +31008,11 @@ function generarInforme(opts) {
       const faltaPmad = (ipProto !== null || ipTele !== null) && ipPmad === null
         ? ' Para estimar las presiones pulmonares por la insuficiencia pulmonar falta la PmAD (diámetro y colapso de la VCI).' : '';
       if (ipDesc) {
-        inf.push(estiloPick(
+        /* v2 (E5b-4): si la IP ya se nombró en la oración única de arriba (`_ipEnOracion`), acá NO se
+           repite la frase —sólo sube el EN SUMA—. `_ipEnOracion` sólo es true en el camino unificado,
+           que está acotado a SIN mediciones, así que `presP`/`faltaPmad` están vacíos y no se pierde
+           ningún número. */
+        if (!_ipEnOracion) inf.push(estiloPick(
           `IP ${ipDesc}${ipEtioTxt}${presP}.${faltaPmad}`,
           `Insuficiencia pulmonar ${ipDesc}${ipEtioTxt}${presP}.${faltaPmad}`,
           `Se observa insuficiencia pulmonar ${ipDesc}${ipEtioTxt}${presP}.${faltaPmad}`));
@@ -30960,7 +31028,7 @@ function generarInforme(opts) {
         suma.push(`IP ${ipDesc}.`);
         ccMarcarParrafo();
       } else {
-        inf.push(estiloPick(
+        if (!_ipEnOracion) inf.push(estiloPick(
           `IP presente${presP}.${faltaPmad}`,
           `Insuficiencia pulmonar presente${presP}.${faltaPmad}`,
           `Se observa insuficiencia pulmonar${presP}.${faltaPmad}`));
@@ -91678,8 +91746,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261004-0228';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791091711963;                 /* eco-build-ms */
+const ECO_BUILD    = '20261004-0323';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791094995893;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -91765,7 +91833,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-0228</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-0323</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
