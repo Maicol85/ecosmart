@@ -48333,103 +48333,150 @@ const APAGA_HELPERS = `
       past: aTxt('sevbtn-' + C.tipo + '-' + C.valv) }; };
 `;
 
-/* TC-402 — El invariante entero, en las CUATRO claves y por los DOS gestos. Es el caso que
-   sostiene los puntos (a), (b) y (d) de la verificacion: «Sin» sin calculo apaga y no avisa;
-   «Sin» con calculo apaga y DEJA el bloque completo; y cerrar a mano conserva el grado. */
-caso('TC-402', '«Sin» APAGA el boton en las cuatro claves y por los dos gestos; con discrepancia el bloque completo sobrevive al boton apagado, y cerrar a mano no borra el grado', `
-  ${APAGA_HELPERS}
-  /* Mediciones que producen un calculado SEVERO en cada clave, para el lado «con calculo». */
+/* ══ TC-402 … TC-407 — CONTRATO v2 DE LOS BOTONES, POR GESTO REAL (reescrito en E6, 2026-10-03) ══
+   La tanda vieja «Sin apaga el boton» probaba un «Sin» en el menu que v2 ELIMINO (regla 2: no
+   existe «Sin» en pantalla). El contrato v2, decidido por Maicol: elegir un grado prende el boton;
+   apagar el boton BORRA grado y fundamento, SIN aviso —aunque el calculo discrepe— (regla 8,
+   silencioso). Estos casos entran por el GESTO REAL —.click() sobre la pastilla y sobre el item del
+   menu ▼— y no por valvSev.aplicar/toggleValvPill, que saltean el onclick.
+   ⚠️ SIN ACENTOS GRAVES EN NINGUN CUERPO (template literal). */
+const V2_GESTO = `
+  const g = function (id) { const e = document.getElementById(id); return e ? String(e.value) : 'NO ' + id; };
+  const aTxt = function (id) { const e = document.getElementById(id);
+    return e ? e.textContent.trim().replace(/\\s+/g, ' ') : 'NO ' + id; };
+  const aOn = function (valv, tipo) { return pillOn(valv, tipo) === true; };
+  /* Visible de VERDAD: se sube por los ancestros. Un hijo con display propio dentro de un padre
+     oculto no tiene geometria, y mirar solo su style miente. */
+  const aVis = function (id) { let n = document.getElementById(id); if (!n) return 'NO ' + id;
+    while (n && n.nodeType === 1) { if (getComputedStyle(n).display === 'none') return false; n = n.parentNode; }
+    return true; };
+  const bloqueDe = function (valv, tipo) { return tipo === 'insuf' ? ('gf-insuf-' + valv) : ('bloque-esten-' + valv); };
+  const aDen = function () {
+    try { showTab('valvulas'); } catch (e) {}
+    ['valv-mitral','valv-aortica','valv-tricuspide','valv-pulmonar'].forEach(function (tok) {
+      const s = document.getElementById('ete-seccion-' + tok);
+      if (s && s.style.display === 'none') { try { toggleEteSeccion(tok); } catch (e) {} } });
+    const t = document.getElementById('tab-valvulas');
+    return (!!t && getComputedStyle(t).display !== 'none') &&
+      ['valv-mitral','valv-aortica','valv-tricuspide','valv-pulmonar'].every(function (tok) {
+        const s = document.getElementById('ete-seccion-' + tok);
+        return s && getComputedStyle(s).display !== 'none'; }); };
+  const aReset = function () {
+    __t.nuevoEstudio();
+    window.esqSevManual = {}; window._sevCalcAlFijar = {}; window._iaGradoCalc = null; window._imGradoCalc = null;
+    try { if (typeof _sevManualSync === 'function') _sevManualSync(); } catch (e) {}
+    ['aortica','mitral','tricuspide','pulmonar'].forEach(function (v) { ['esten','insuf'].forEach(function (t) {
+      try { localStorage.removeItem('valv-pill-' + t + '-' + v); } catch (e) {}
+      if (aOn(v, t)) { const p = document.getElementById('pill-' + t + '-' + v); if (p) p.click(); } }); });
+    __t.set('nombre', 'TCV2');
+    return aDen(); };
+  /* GESTOS REALES. clickPill = click sobre la pastilla (dispara onclick=toggleValvPill). clickMenu =
+     click sobre el sub-boton ▼ (abre el menu) y despues sobre el <button role=menuitem> buscado POR
+     SU TEXTO. Si el menu no ofrece la etiqueta, devuelve el motivo —que es justo lo que hay que
+     medir donde «Sin» ya no esta—. */
+  const clickPill = function (valv, tipo) { const p = document.getElementById('pill-' + tipo + '-' + valv);
+    if (!p) return 'NO pill-' + tipo + '-' + valv; p.click(); return 1; };
+  const clickMenu = function (valv, tipo, etiqueta) {
+    const sb = document.getElementById('sevbtn-' + tipo + '-' + valv); if (!sb) return 'NO sevbtn-' + tipo + '-' + valv;
+    sb.click();
+    const m = document.getElementById('sevmenu-' + tipo + '-' + valv); if (!m) return 'NO sevmenu-' + tipo + '-' + valv;
+    const items = Array.from(m.querySelectorAll('button'));
+    const b = items.find(function (x) { return x.textContent.trim() === etiqueta; });
+    if (!b) return 'NO item «' + etiqueta + '» en [' + items.map(function (x) { return x.textContent.trim(); }).join(',') + ']';
+    b.click(); return 1; };
+  const menuItems = function (valv, tipo) {
+    const sb = document.getElementById('sevbtn-' + tipo + '-' + valv); if (!sb) return ['NO sevbtn'];
+    sb.click();
+    const m = document.getElementById('sevmenu-' + tipo + '-' + valv); if (!m) return ['NO menu'];
+    const r = Array.from(m.querySelectorAll('button')).map(function (x) { return x.textContent.trim(); });
+    try { document.body.click(); } catch (e) {} return r; };
+  /* La foto de UNA clave del registro, por su nombre, derivando los nodos del propio registro. */
+  const aFoto = function (clave) {
+    const C = window.SEV_SINC[clave]; const wrap = bloqueDe(C.valv, C.tipo);
+    return { pill: aOn(C.valv, C.tipo), sel: String(__t.val(C.select) || ''),
+      man: !!(window.esqSevManual && window.esqSevManual[clave]),
+      disc: sevDiscrepa(clave), aviso: aTxt(C.aviso),
+      bloque: aVis(wrap), fund: C.fundamento ? aVis(C.fundamento) : null,
+      past: aTxt('sevbtn-' + C.tipo + '-' + C.valv) }; };
+`;
+
+/* TC-402 — El invariante del boton v2, en las CUATRO claves registradas y POR GESTO REAL:
+   (1) elegir un grado por el menu ▼ PRENDE el boton; (2) un grado discrepante del calculo pinta
+   aviso rojo y cajon con el boton prendido; (3) APAGAR el boton (click en la pastilla) borra grado
+   y fundamento y NO deja aviso —aunque el calculo siga severo— (regla 8, silencioso, decision de
+   Maicol); (4) un grado que COINCIDE con el calculo no avisa. */
+caso('TC-402', 'El boton v2: elegir grado por el menu ▼ lo prende; un grado discrepante pinta aviso y cajon con el boton prendido; apagar (click) borra grado y fundamento SIN aviso aunque el calculo discrepe; y un grado que coincide no avisa', `
+  ${V2_GESTO}
+  /* Mediciones que producen un calculado SEVERO en cada clave. El gesto real es prender PRIMERO
+     (abre el cajon y sincroniza los espejos del Doppler) y despues elegir el grado en el menu — que
+     es lo que hace el medico y lo que ve el proveedor del grado calculado al tomar la foto. */
   const MED = { ea:[['vmax_ao','4.2'],['gmedio_ao','45']], ia:[['ia_vc','7']],
                 em:[['avm_plan','1.2']], im:[['im_vc','8']] };
-  const SIN = { ea:'sin', ia:'0', em:'sin', im:'0' };
-  const den = [], sinCalc = {}, conCalc = {}, porSelect = {}, negativo = {}, cerrado = {};
-  Object.keys(window.SEV_SINC || {}).forEach(function (k) {});
-  ['ea','ia','em','im'].forEach(function (k) {
-    const C = window.SEV_SINC[k];
-    /* (a) SIN calculo: se abre el boton a mano y se elige «Sin» en el menu ▼. */
-    den.push(aReset());
-    toggleValvPill(C.valv, C.tipo);
-    valvSev.aplicar(C.tipo, C.valv, SIN[k]);
-    sinCalc[k] = aFoto(k);
-    /* (b) CON calculo: el mismo gesto con un calculado severo detras. */
-    den.push(aReset());
-    MED[k].forEach(function (p) { __t.set(p[0], p[1]); });
-    toggleValvPill(C.valv, C.tipo);
-    valvSev.aplicar(C.tipo, C.valv, SIN[k]);
-    conCalc[k] = aFoto(k);
-    /* El OTRO gesto: «Sin» elegido en el desplegable de grado final, con su change real. */
-    den.push(aReset());
-    MED[k].forEach(function (p) { __t.set(p[0], p[1]); });
-    toggleValvPill(C.valv, C.tipo);
-    __t.set(C.select, SIN[k]);
-    porSelect[k] = aFoto(k);
-    /* CONTROL NEGATIVO: un grado REAL por el mismo menu NO apaga el boton. Sin esto el caso no
-       distingue «apaga con Sin» de «apaga siempre», que es decir que si a todo. */
-    den.push(aReset());
-    MED[k].forEach(function (p) { __t.set(p[0], p[1]); });
-    toggleValvPill(C.valv, C.tipo);
-    valvSev.aplicar(C.tipo, C.valv, C.tipo === 'esten' ? 'severa' : '4');
-    negativo[k] = aFoto(k);
-    /* (d) Cerrar el boton A MANO con un grado puesto NO borra el grado, y con discrepancia el
-       bloque completo queda a la vista. */
-    den.push(aReset());
-    MED[k].forEach(function (p) { __t.set(p[0], p[1]); });
-    toggleValvPill(C.valv, C.tipo);
-    valvSev.aplicar(C.tipo, C.valv, C.tipo === 'esten' ? 'leve' : '1');
-    toggleValvPill(C.valv, C.tipo);
-    cerrado[k] = aFoto(k);
-  });
-  const dg = function (o) { return ['ea','ia','em','im'].map(function (k) {
-    return k + '{pill=' + o[k].pill + ' sel=' + o[k].sel + ' man=' + o[k].man + ' disc=' + o[k].disc +
-      ' bloq=' + o[k].bloq + ' h=' + o[k].alto + ' fund=' + o[k].fund + '}'; }).join(' '); };
+  const SENT = { ea:'sin', ia:'0', em:'sin', im:'0' };
   const todas = ['ea','ia','em','im'];
+  const den = [], prende = {}, disc = {}, apagado = {}, coincide = {}, gestos = [];
+  todas.forEach(function (k) {
+    const C = window.SEV_SINC[k];
+    /* (1) ELEGIR GRADO PRENDE: boton apagado, se elige «Severa» en el menu ▼, el boton queda ON. */
+    den.push(aReset());
+    MED[k].forEach(function (p) { __t.set(p[0], p[1]); });
+    gestos.push(clickMenu(C.valv, C.tipo, 'Severa'));
+    prende[k] = aFoto(k);
+    /* (2) DISCREPANCIA: con el boton ya prendido y los espejos sincronizados, se baja a «Leve» en
+       el menu — discrepa del calculo severo, asi que aviso rojo + cajon, con el boton PRENDIDO. */
+    den.push(aReset());
+    MED[k].forEach(function (p) { __t.set(p[0], p[1]); });
+    gestos.push(clickPill(C.valv, C.tipo));
+    gestos.push(clickMenu(C.valv, C.tipo, 'Leve'));
+    disc[k] = aFoto(k);
+    /* (3) APAGAR (click en la pastilla) BORRA grado y fundamento y NO deja aviso — aunque el
+       calculo siga severo. Se parte del estado (2), que tenia aviso y cajon vivos. */
+    gestos.push(clickPill(C.valv, C.tipo));
+    apagado[k] = aFoto(k);
+    /* (4) COINCIDE: se elige «Severa», el grado que el calculo sugiere — sin discrepancia, sin aviso. */
+    den.push(aReset());
+    MED[k].forEach(function (p) { __t.set(p[0], p[1]); });
+    gestos.push(clickPill(C.valv, C.tipo));
+    gestos.push(clickMenu(C.valv, C.tipo, 'Severa'));
+    coincide[k] = aFoto(k);
+  });
+  const dg = function (o) { return todas.map(function (k) {
+    return k + '{pill=' + o[k].pill + ' sel=' + o[k].sel + ' man=' + o[k].man + ' disc=' + o[k].disc +
+      ' bloq=' + o[k].bloque + ' fund=' + o[k].fund + ' aviso=' + (o[k].aviso || '(vacio)') + '}'; }).join(' '); };
   return { extra: [
-    ['DENOMINADOR: la pestania y las cuatro secciones estaban abiertas en las 20 escenas',
-      den.length === 20 && den.every(function (x) { return x === true; }),
+    ['DENOMINADOR: la pestania y las cuatro secciones se abrieron en las 12 escenas',
+      den.length === 12 && den.every(function (x) { return x === true; }),
       den.length + ' escenas, falsos=' + den.filter(function (x) { return x !== true; }).length],
-    /* DENOMINADOR del lado «con calculo»: si el calculado no existiera, no habria discrepancia que
-       mostrar y las condiciones de bloque visible pasarian por el motivo equivocado. */
-    ['DENOMINADOR: las cuatro claves produjeron un grado calculado con sus mediciones',
-      todas.every(function (k) { return conCalc[k].disc === true; }), dg(conCalc)],
+    ['DENOMINADOR: los gestos reales se completaron (ningun «NO item/pill/sevbtn»)',
+      gestos.every(function (x) { return x === 1; }),
+      'fallidos: ' + gestos.filter(function (x) { return x !== 1; }).join(' | ')],
 
-    // (a) «Sin» SIN calculo: apaga, no avisa, y el bloque se oculta porque no hay nada que mostrar
-    ['(a) «Sin» por el menu SIN calculo apaga los cuatro botones',
-      todas.every(function (k) { return sinCalc[k].pill === false; }), dg(sinCalc)],
-    ['(a) y no muestra aviso ni cajon: no hay con que discrepar',
-      todas.every(function (k) { return sinCalc[k].aviso === '' && sinCalc[k].disc === false &&
-        sinCalc[k].fund === false && sinCalc[k].bloq === false; }), dg(sinCalc)],
+    // (1) elegir grado prende el boton
+    ['(1) elegir «Severa» por el menu ▼ PRENDE el boton en las cuatro claves',
+      todas.every(function (k) { return prende[k].pill === true; }), dg(prende)],
+    ['(1) y la pastilla muestra el grado elegido, no el neutro «Severidad»',
+      todas.every(function (k) { return /Severa/.test(prende[k].past); }), dg(prende)],
 
-    // (b) «Sin» CON calculo: apaga igual, y el bloque COMPLETO queda a la vista
-    ['(b) «Sin» por el menu CON calculo apaga los cuatro botones igual',
-      todas.every(function (k) { return conCalc[k].pill === false; }), dg(conCalc)],
-    ['(b) y el bloque completo SOBREVIVE al boton apagado: visible, con alto, aviso y cajon',
-      todas.every(function (k) { return conCalc[k].bloq === true && conCalc[k].alto > 0 &&
-        conCalc[k].aviso.indexOf('ajuste manual') > -1 && conCalc[k].fund === true; }), dg(conCalc)],
+    // (2) discrepancia con el boton prendido
+    ['(2) un grado discrepante (Leve sobre calculo Severa) deja el boton PRENDIDO',
+      todas.every(function (k) { return disc[k].pill === true && disc[k].man === true; }), dg(disc)],
+    ['(2) y pinta el aviso rojo §5 y el cajon, con el formato que fijo Maicol',
+      todas.every(function (k) { return disc[k].disc === true &&
+        disc[k].aviso.indexOf('ajuste manual') > -1 && disc[k].aviso.indexOf('Severa') > -1 &&
+        disc[k].fund === true && disc[k].bloque === true; }), dg(disc)],
 
-    // El otro gesto: el desplegable apaga tambien, y es lo que hace seguro al escalon aortico
-    ['«Sin» por el DESPLEGABLE apaga los cuatro botones',
-      todas.every(function (k) { return porSelect[k].pill === false; }), dg(porSelect)],
-    /* La asimetria DECLARADA: en la mitral el onchange marca, asi que hay discrepancia y el bloque
-       queda; en la aortica _gradoManoBorraMarca no marca —«Aortica 3b»— y el bloque se oculta.
-       Va como condicion para que un cambio futuro en cualquiera de las dos salga en rojo. */
-    ['la mitral marca por el desplegable y conserva su bloque; la aortica no marca y lo oculta',
-      porSelect.em.man === true && porSelect.im.man === true && porSelect.em.bloq === true &&
-      porSelect.ea.man === false && porSelect.ia.man === false && porSelect.ea.bloq === false,
-      dg(porSelect)],
+    // (3) APAGAR borra, silencioso
+    ['(3) APAGAR el boton (click) lo deja apagado y vuelve el grado al centinela en las cuatro',
+      todas.every(function (k) { return apagado[k].pill === false && apagado[k].sel === SENT[k]; }), dg(apagado)],
+    ['(3) y borra el fundamento, la marca y el aviso: el bloque se oculta, SIN aviso previo (regla 8 silenciosa)',
+      todas.every(function (k) { return apagado[k].man === false && apagado[k].disc === false &&
+        apagado[k].aviso === '' && apagado[k].fund === false && apagado[k].bloque === false &&
+        /Severidad/.test(apagado[k].past); }), dg(apagado)],
 
-    // CONTROL NEGATIVO
-    ['CONTROL NEGATIVO: un grado REAL por el mismo menu NO apaga ninguno de los cuatro',
-      todas.every(function (k) { return negativo[k].pill === true; }), dg(negativo)],
-
-    // (d) cerrar a mano conserva el grado
-    ['(d) cerrar el boton a mano NO borra el grado ni la marca en las cuatro claves',
-      todas.every(function (k) { return negativo[k].man === true; }) &&
-      cerrado.ea.sel === 'leve' && cerrado.em.sel === 'leve' &&
-      cerrado.ia.sel === '1' && cerrado.im.sel === '1' &&
-      todas.every(function (k) { return cerrado[k].man === true; }), dg(cerrado)],
-    ['(d) y con la discrepancia viva el bloque sigue a la vista con el boton cerrado',
-      todas.every(function (k) { return cerrado[k].pill === false && cerrado[k].disc === true &&
-        cerrado[k].bloq === true && cerrado[k].alto > 0 && cerrado[k].fund === true; }), dg(cerrado)],
+    // (4) coincide: control negativo del aviso
+    ['(4) CONTROL NEGATIVO: un grado que COINCIDE con el calculo no discrepa y no abre el cajon',
+      todas.every(function (k) { return coincide[k].pill === true && coincide[k].disc === false &&
+        coincide[k].aviso === '' && coincide[k].fund === false; }), dg(coincide)],
   ] };
 `);
 
