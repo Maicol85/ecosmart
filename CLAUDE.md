@@ -201,12 +201,30 @@ impecable.
 
 ## Estado vigente
 
-- `main` local en **`43b3f93`**, con **tres commits sin pushear** —`23eb4e2`, `e8b03c5`, `43b3f93`—
-  y `origin/main` en **`42a1f0e`**. El clasificador de permisos del entorno bloquea `git push`: lo
-  corre Maicol, no hay que rehacer nada.
+- Al **empezar** la tanda 3D E2 (2026-10-04), `main` local y `origin/main` estaban los dos en
+  **`27b5d0f`**, sin nada sin pushear. El commit de esta tanda queda local; el push lo corre
+  Maicol.
   ⚠️ **Este renglón se escribió mal una vez**: decía «doce commits sin pushear, `origin/main` en
   `2e017a1`», copiado del estado anterior sin mirar. `origin/main` había avanzado. Antes de
   escribirlo, `git rev-parse --short origin/main` y `git log --oneline origin/main..HEAD`.
+- **Línea base al 2026-10-04 (tanda 3D E2): suite 425/429, Semgrep 127 / 0 ERROR, Excel 434
+  columnas.** Los cuatro rojos son los de entrada y NO son regresiones: **TC-223** (el documentado,
+  falla por la fecha), **TC-376**, **TC-390** y **TC-406**. ⚠️ El renglón de abajo decía «421/422,
+  único rojo TC-223» y ya no es cierto: son **cuatro** rojos sobre **429** casos. Volver a medir
+  antes de leer una tanda de mutaciones sigue siendo obligatorio.
+- **Las sondas del VI 3D son la ÚNICA cobertura del panel**: `grep lv3d scripts/test_clinico.mjs`
+  da **cero**. Ver `docs/PENDIENTES.md` → «3D E2 — declarado y NO arreglado».
+- ⚠️ **`firmaCanvas` de `scripts/_probe_vi3d.mjs` (tanda E1) está rota y da falsos de los dos
+  signos.** Hashea 1 de cada 997 bytes —~1.037 muestras de 1.033.600, y 997 no es múltiplo de 4,
+  así que va rotando de canal—. Medido: cinco lecturas seguidas sin tocar nada dieron dos valores
+  distintos, y después de un clic real en el bull's eye que **sí** cambió el dibujo la firma rala
+  no se movió. La aserción «bull's eye → 3D cambió el canvas» de esa tanda pasaba por suerte.
+  `_probe_vi3dcolor.mjs` hashea todos los bytes; si se reusa la vieja, arreglarla primero.
+- ⚠️ **El canvas del 3D tarda ~100 ms en asentarse al abrir el panel**: un repintado que mueve
+  12.213 de los ~17.100 píxeles pintados, y después queda estable para siempre. Medido **igual en
+  HEAD** —mismo número, mismo cuadro—, así que es el rasterizador y no una regresión. Pero ocurre
+  por TIEMPO y no por cuadros: esperar «N cuadros» lo cruza unas veces sí y otras no. Esperar
+  hasta que **dos firmas densas consecutivas coincidan** (`__p.asentar()` de la sonda nueva).
 - Línea base medida el **2026-10-03 al cierre de la tanda «Sin apaga el botón»**: suite
   **421/422** (único rojo **TC-223**, el documentado, que falla por la fecha), **sin ningún defecto
   abierto** —TC-397 se promovió— y Semgrep **127 / 0 ERROR**. Los casos **TC-402 … TC-407** son de
@@ -228,6 +246,17 @@ impecable.
   con un **insumo fuera de banda** publicaba «EAo.» mientras el badge decía «no gradúa», y con
   **prótesis** metía un sustantivo colgado en la frase protésica. El censo está en
   `docs/mapa/valvulas.md`.
+- **3D E2 — color por territorio y captura (2026-10-04).** El modo territorio lee
+  `CONTR_TERRITORIO`, que **se subió a nivel de módulo** al lado de `CONTR_MOTILIDAD` porque ahora
+  lo leen dos (era local de `contrDibujarBullseye`). Los cinco tonos salen de `LV3D_TONO`, medido
+  por ΔE2000 y no elegido a ojo: peor vecino **8,9**, peor tono contra un fondo **12,1**. El
+  borde de segmento usa **dos** grises elegidos por píxel según la luma del color ya sombreado
+  (un gris único cae a 6,4 ΔE2000 de algún tono). La captura vive **sólo en memoria**, se descarta
+  en `limpiarCampos` y en `cerrarSesionReal`, y **no está conectada al PDF, al PPT ni al Excel**:
+  lo único que la expone es `window.lv3dCaptura()`.
+  Arneses: `scripts/_probe_vi3dcolor.mjs` (**101/101**) y `scripts/_mut_vi3dcolor.py`
+  (**41/45 muertas**, 4 declaradas redundantes con el motivo medido, cero sin explicar; acepta
+  `--solo M27 M27b` para volver sobre una sin pagar las 45).
 - Arneses temporales versionados: `scripts/_probe_sinapaga.mjs` (35 escenas por el **gesto**, más
   la pasada de maquetación a 1200/756/300 px), `scripts/_mut_sinapaga.py` (**12/12 mutaciones
   muertas**, con el aborto por md5 y la exigencia de `RESULTADO` implementados y no comentados), y

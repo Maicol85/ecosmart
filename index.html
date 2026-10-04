@@ -2008,6 +2008,14 @@ function cerrarSesionReal() {
      puede estar abierto mostrando el ventrículo del turno anterior, que es justo lo que el
      orden de apilamiento de este overlay existe para evitar. */
   if (typeof lv3dCerrar === 'function') { try { lv3dCerrar(); } catch (e) {} }
+  /* ⚠️ Y LA CAPTURA, QUE `lv3dCerrar` NO BORRA, con su propia línea ACÁ y no sólo en
+     `limpiarCampos`: esta función se alcanza por caminos que NO limpian. `cerrarSesion` sólo llama
+     a `limpiarCampos` cuando `_hayAlgoSinGuardar()` contesta `false`; si contesta `null` —el
+     fallback documentado arriba, para cuando el bloque 12 no parseó— se cierra la sesión SIN
+     limpiar, y la captura del turno anterior quedaría viva detrás de la pantalla de bloqueo para
+     el médico siguiente de una máquina compartida. Es el mismo motivo por el que la línea de
+     arriba cierra el panel en vez de sólo detener el bucle. */
+  if (typeof lv3dNuevoPaciente === 'function') { try { lv3dNuevoPaciente(); } catch (e) {} }
   sessionStorage.removeItem('ett_auth');
   document.getElementById('login-pwd').value = '';
   document.getElementById('login-err').textContent = '';
@@ -6004,6 +6012,25 @@ window.cerrarSesionReal = cerrarSesionReal;
                    sorpresa. El rótulo que pidió Maicol queda intacto, debajo del botón. -->
               <div id="lv3d-leido" aria-live="polite" style="font-size:11px;color:var(--text2);margin:6px 0 0;min-height:16px;">Arrastrá para girar. Tocá un segmento para cambiar su motilidad: el cambio va al informe.</div>
 
+              <!-- ⚠️ EL SELECTOR DE COLOR ES DOS BOTONES Y NO UN <select>, Y NO ES ESTÉTICA.
+                   `limpiarCampos` barre `document.querySelectorAll('select')` COMPLETO, sin
+                   filtrar por `id` —a diferencia del barrido de casillas, que sí filtra—, así que
+                   un <select> acá volvería solo a su primera opción en cada «Nuevo estudio» y en
+                   cada carga de estudio SIN avisarle a `_lv3d.modo`: el panel quedaría mostrando
+                   «territorio» con el motor pintando motilidad, o al revés. Es el mismo motivo por
+                   el que el modal de PDF usa botones, y está escrito en este archivo desde antes.
+                   Sin `id`, como los tres controles de más abajo: se los ubica por clase. -->
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+                <button type="button" class="btn btn-primary lv3d-color" data-lv3d-color="motilidad"
+                        aria-pressed="true" style="min-height:44px;font-size:11px;">Color por motilidad</button>
+                <button type="button" class="btn btn-ghost lv3d-color" data-lv3d-color="territorio"
+                        aria-pressed="false" style="min-height:44px;font-size:11px;">Color por territorio coronario</button>
+              </div>
+              <!-- Leyenda del modo territorio. La dibuja `lv3dLeyendaRender` desde
+                   `CONTR_TERRITORIO` + `CONTR_MOTILIDAD` + `LV3D_TONO`: ni un nombre ni un color
+                   escrito acá, para que no haya una cuarta copia que se desincronice. -->
+              <div id="lv3d-leyenda" style="display:none;margin-top:7px;"></div>
+
               <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
                 <button type="button" class="btn btn-ghost lv3d-vista" data-lv3d-vista="frente" style="min-height:44px;font-size:11px;">Punta hacia mí</button>
                 <button type="button" class="btn btn-ghost lv3d-vista" data-lv3d-vista="der" style="min-height:44px;font-size:11px;">Punta a la derecha</button>
@@ -6024,6 +6051,23 @@ window.cerrarSesionReal = cerrarSesionReal;
                      Igual se le sube a 20 px para que se pueda ver y apuntar con el dedo. -->
                 <label style="display:inline-flex;align-items:center;gap:7px;min-height:44px;min-width:44px;cursor:pointer;"><input type="checkbox" class="lv3d-fantasma" data-ui checked style="width:20px;height:20px;"> Diástole fantasma</label>
                 <label style="display:inline-flex;align-items:center;gap:7px;min-height:44px;min-width:44px;cursor:pointer;"><input type="checkbox" class="lv3d-aparato" data-ui checked style="width:20px;height:20px;"> Cuerdas y papilares</label>
+              </div>
+
+              <!-- ⚠️ CAPTURA: UNA SOLA, Y SÓLO EN MEMORIA.
+                   No entra al estudio, no entra a `localStorage`, no sale al Excel y NO está
+                   conectada al PDF, al PPT ni al Excel: eso es el trabajo siguiente, y hasta
+                   entonces lo único que la expone es `window.lv3dCaptura()`.
+                   Sobrevive al cambio de pestaña a propósito —hay que poder armar el informe desde
+                   otra pestaña— y por eso mismo es exactamente el tipo de cosa que aparece en el
+                   informe del paciente SIGUIENTE: se descarta en `limpiarCampos` y en
+                   `cerrarSesionReal`, que son las dos puertas que cubren los cuatro casos.
+                   Los dos botones van sin `id`; el <img> tampoco lleva `id` ni `name`, y ningún
+                   barrido de la app mira <img>, así que queda fuera de los seis por construcción. -->
+              <div id="lv3d-cap" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;">
+                <button type="button" class="btn btn-ghost lv3d-cap-tomar" style="min-height:44px;font-size:11px;">📷 Capturar imagen</button>
+                <button type="button" class="btn btn-ghost lv3d-cap-quitar" style="min-height:44px;font-size:11px;display:none;">Quitar</button>
+                <img class="lv3d-cap-img" alt="Miniatura de la captura del diagrama 3D" style="display:none;width:72px;height:auto;border:1px solid var(--border);border-radius:5px;">
+                <span class="lv3d-cap-txt" style="font-size:10.5px;color:var(--text2);line-height:1.35;">Sin captura.</span>
               </div>
 
               <!-- P5: los datos de construcción, debajo del diagrama. El panel SOLO LEE. -->
@@ -33578,6 +33622,16 @@ function limpiarCampos(silencioso) {
      anterior» que este archivo ya documenta para los spans de `calcVI`.
      Se cierra —no solo se detiene— porque no hay nada que mostrar hasta que alguien cargue. */
   if (typeof lv3dCerrar === 'function') lv3dCerrar();
+  /* ⚠️ Y LA CAPTURA DEL 3D CON ÉL, que es la parte que `lv3dCerrar` NO hace.
+     La captura vive en memoria y sobrevive al cierre del panel A PROPÓSITO —hay que poder armar el
+     informe desde otra pestaña—, así que es exactamente el tipo de cosa que termina en el informe
+     del paciente SIGUIENTE. Misma familia que el PISA congelado de más abajo y que la cola de
+     cineloops pendientes, con píxeles en vez de números.
+     Esta puerta cubre TRES de los cuatro casos del pedido —«Nuevo estudio», «Limpiar» y abrir otro
+     estudio— porque los tres pasan por acá. El cuarto, cerrar sesión, tiene su propia línea en
+     `cerrarSesionReal`: `cerrarSesion` sólo llama a `limpiarCampos` cuando no hay nada sin
+     guardar. */
+  if (typeof lv3dNuevoPaciente === 'function') lv3dNuevoPaciente();
   // Nuevo estudio: la card de severidades vuelve a pedirse en la próxima acción
   valvSevConfirmada = false;
   // Nuevo estudio: resetear los flags de severidad fijada manualmente (las pills vuelven a autocalcularse)
@@ -62630,6 +62684,42 @@ const CONTR_MOTILIDAD = [
   {nombre:"Discinesia",    color:"#e04545"},
   {nombre:"Aneurisma",     color:"#8a5fd4"},
 ];
+
+/* ══ TERRITORIO CORONARIO POR SEGMENTO — SUBIDO ACÁ PORQUE AHORA LO LEEN DOS (2026-10-04) ══════
+   Era un `const` LOCAL de `contrDibujarBullseye`, así que el VI 3D no tenía cómo pedirlo: la
+   única salida era una segunda copia de los diecisiete pares, y dos copias del mismo mapa se
+   separan sin que nadie se entere. El día que alguien mueva un segmento de la CD a la CX, el
+   bull's eye y el 3D dirían cosas distintas sobre el MISMO paciente, sin error y sin consola.
+   Se sube con los MISMOS valores y la MISMA forma —id de segmento → color— así que los cuatro
+   usos del bull's eye no cambian ni de expresión: el bull's eye no cambia en nada.
+   ⚠️ Es el borde de un TERRITORIO, no una atribución clínica. Lo que este archivo ya declara para
+   el bull's eye del Laboratorio vale igual acá: un mismo segmento puede repartirse entre dos
+   arterias según la dominancia y la longitud de la DA. El diagrama muestra los territorios; la
+   atribución la hace el médico. */
+const CONTR_TERRITORIO = {
+  basal_anterior:'#3ea8ff', basal_anteroseptal:'#3ea8ff', mid_anterior:'#3ea8ff', mid_anteroseptal:'#3ea8ff', apical_anterior:'#3ea8ff', apical_septal:'#3ea8ff', apex:'#3ea8ff',
+  basal_inferoseptal:'#3ecf8e', basal_inferior:'#3ecf8e', mid_inferoseptal:'#3ecf8e', mid_inferior:'#3ecf8e', apical_inferior:'#3ecf8e',
+  basal_inferolateral:'#ff7ab8', basal_anterolateral:'#ff7ab8', mid_inferolateral:'#ff7ab8', mid_anterolateral:'#ff7ab8', apical_lateral:'#ff7ab8',
+};
+/* El NOMBRE de la arteria va aparte y no adentro del mapa, para no cambiarle la forma a lo que el
+   bull's eye ya consumía. La leyenda del 3D lo necesita; el bull's eye lo tiene escrito en su
+   propio recuadro de la derecha, que es HTML estático y no se toca. */
+const CONTR_TERRITORIO_NOMBRE = { '#3ea8ff':'DA', '#3ecf8e':'CD', '#ff7ab8':'CX' };
+/* Guarda del mismo tipo que la de `LV3D_K`: avisar en vez de callar. Un color de territorio sin
+   nombre deja una fila FUERA de la leyenda del 3D sin tirar y sin consola —el médico ve cuatro
+   tonos de una arteria que la leyenda no nombra—, que es el modo de falla que este archivo
+   persigue. Y al revés: un nombre que ya nadie usa queda señalado antes de que alguien lo cite. */
+(function(){
+  const sinNombre = Object.keys(CONTR_TERRITORIO).filter(k => !CONTR_TERRITORIO_NOMBRE[CONTR_TERRITORIO[k]]);
+  if (sinNombre.length) console.error('[contr] territorio sin nombre de arteria en CONTR_TERRITORIO_NOMBRE: '
+    + sinNombre.join(', ') + ' — esos segmentos quedan fuera de la leyenda del 3D.');
+  const usados = {};
+  Object.keys(CONTR_TERRITORIO).forEach(k => { usados[CONTR_TERRITORIO[k]] = 1; });
+  const huerfanos = Object.keys(CONTR_TERRITORIO_NOMBRE).filter(h => !usados[h]);
+  if (huerfanos.length) console.error('[contr] CONTR_TERRITORIO_NOMBRE nombra colores que ningún '
+    + 'segmento usa: ' + huerfanos.join(', '));
+})();
+
 const CONTR_CARA_TEXTO = {
   anterior:"anterior", inferior:"inferior",
   anteroseptal:"anteroseptal", inferoseptal:"inferoseptal",
@@ -62979,11 +63069,8 @@ function contrDibujarBullseye(){
   const toRad = a => (a-90) * Math.PI/180;
   const posTexto = (r,a) => [cx + r*Math.cos(toRad(a)), cy + r*Math.sin(toRad(a))];
 
-  const CONTR_TERRITORIO = {
-    basal_anterior:'#3ea8ff', basal_anteroseptal:'#3ea8ff', mid_anterior:'#3ea8ff', mid_anteroseptal:'#3ea8ff', apical_anterior:'#3ea8ff', apical_septal:'#3ea8ff', apex:'#3ea8ff',
-    basal_inferoseptal:'#3ecf8e', basal_inferior:'#3ecf8e', mid_inferoseptal:'#3ecf8e', mid_inferior:'#3ecf8e', apical_inferior:'#3ecf8e',
-    basal_inferolateral:'#ff7ab8', basal_anterolateral:'#ff7ab8', mid_inferolateral:'#ff7ab8', mid_anterolateral:'#ff7ab8', apical_lateral:'#ff7ab8',
-  };
+  /* `CONTR_TERRITORIO` vive arriba, al lado de `CONTR_MOTILIDAD`: lo lee también el VI 3D y dos
+     copias del mismo mapa se separan. Mismos valores, misma forma, mismas cuatro líneas de abajo. */
   let html="";
   seis.forEach(w=> html += `<path class="contr-seg" data-contrseg="basal_${w.id}" style="cursor:pointer" stroke="${CONTR_TERRITORIO['basal_'+w.id]}" stroke-width="3" d="${contrDescribirCuna(cx,cy,rBI,rBE,w.centro-30,w.centro+30)}"/>`);
   seis.forEach(w=> html += `<path class="contr-seg" data-contrseg="mid_${w.id}" style="cursor:pointer" stroke="${CONTR_TERRITORIO['mid_'+w.id]}" stroke-width="3" d="${contrDescribirCuna(cx,cy,rMI,rBI,w.centro-30,w.centro+30)}"/>`);
@@ -63185,6 +63272,57 @@ if (LV3D_K.length !== CONTR_MOTILIDAD.length){
     + CONTR_MOTILIDAD.length + ' — hay un grado de motilidad sin excursión definida, y el 3D lo '
     + 'va a dibujar como normal. Agregar su entrada en LV3D_K.');
 }
+
+/* ══ MODO «COLOR POR TERRITORIO CORONARIO»: LOS CINCO TONOS ════════════════════════════════════
+   En este modo el COLOR dice la arteria —el mismo de `CONTR_TERRITORIO`, que es el del borde del
+   bull's eye— y el TONO dice el estado del segmento. Cada número es una mezcla en sRGB sobre el
+   color base: positivo hacia blanco, negativo hacia negro. Normal es 0 porque «Normal = color
+   base» es la regla del pedido.
+
+   ⚠️ LOS CINCO VALORES SON MEDIDOS, NO ELEGIDOS A OJO, y la métrica es ΔE2000 —«se ve distinto»
+   no es una medición—. Salen de una búsqueda en grilla sobre los cuatro factores, maximizando la
+   separación del PEOR par de vecinos en orden de luminancia (Aneurisma · Discinesia · Normal ·
+   Hipoquinesia · Aquinesia) con la restricción de que los quince tonos queden a ΔE2000 ≥ 12 de
+   los DOS fondos de la app (`--bg3`: #1e2333 de noche, #eef1f6 de día). Resultado medido:
+     · peor vecino        8,9 ΔE2000  (CD, Normal ↔ Hipoquinesia — la CD es el caso apretado,
+                                       porque su base ya es el más claro de los tres: L* 74,6);
+     · peor par cualquiera 8,9 ΔE2000;
+     · peor tono contra un fondo 12,1 ΔE2000 (Aquinesia de la DA contra el fondo claro).
+
+   ⚠️ Y LA MÉTRICA IMPORTA MÁS QUE EL NÚMERO. Medido con CONTRASTE WCAG, Aquinesia da 1,19:1
+   contra el fondo del tema claro y parece ilegible; pero el contraste WCAG sólo mira LUMINANCIA, y
+   acá el fondo es un gris neutro y el tono es azul/verde/rosa saturado: lo que separa un relleno
+   de su fondo es ΔE2000, no la razón de luminancias. La prueba de que WCAG es la métrica
+   equivocada para esto es que la propia app ya publica la pastilla de territorio de la DA sobre
+   `--bg3` claro a 2,25:1 y nadie la reportó nunca como invisible. Aun así el borde del modo
+   —abajo— y el marco de la leyenda están ahí para que el límite no dependa del relleno.
+   Si alguien cambia estos cinco números, lo que hay que volver a medir es el ΔE2000 del peor
+   vecino: ninguna de las dos restricciones se ve en el código. */
+const LV3D_TONO = [0, 0.38, 0.67, -0.47, -0.63];
+if (LV3D_TONO.length !== CONTR_MOTILIDAD.length){
+  console.error('[lv3d] LV3D_TONO tiene ' + LV3D_TONO.length + ' entradas y CONTR_MOTILIDAD tiene '
+    + CONTR_MOTILIDAD.length + ' — hay un grado de motilidad sin tono de territorio, y el modo '
+    + 'territorio lo va a pintar con el color BASE, o sea igual que un segmento normal. '
+    + 'Agregar su entrada en LV3D_TONO.');
+}
+
+/* ── Borde de segmento del modo territorio: fino, neutro y SIN números (regla del pedido) ──
+   HAY DOS GRISES Y LA ELECCIÓN ES POR PÍXEL, no por segmento, y eso es lo que lo hace funcionar.
+   Un único gris no alcanza: la escalera de tonos va de L* 25 a L* 91 y encima el sombreado del
+   motor multiplica cada uno por un factor de 0,33 a 1, así que el mejor gris único medido queda a
+   6,4 ΔE2000 de algún tono —invisible justo donde más hace falta, entre dos segmentos del MISMO
+   territorio y el MISMO grado, que es el par que no tiene ninguna otra diferencia—. Decidiendo
+   contra el color ya sombreado del propio cuadro, el peor caso medido sube a 26,6 ΔE2000.
+   El umbral es la luma barata de toda la vida (0,299·R + 0,587·G + 0,114·B) y no L*: se calcula
+   para ~1.440 cuadros por fotograma y `Math.pow` ahí se paga 60 veces por segundo. El valor 120
+   es el óptimo medido del barrido 100…170; con 100 el peor caso cae a 18,1 y con 170 a 13,3. */
+const LV3D_BORDE_CLARO = '#ced3de', LV3D_BORDE_OSCURO = '#2f343f', LV3D_BORDE_LUMA = 120;
+
+/* Las dos frases del renglón de abajo del canvas. La del modo territorio es la «frase corta» que
+   pidió Maicol: el toque en ese modo no cambia nada y hay que decirlo donde se mira, no en la
+   ayuda. Se escriben UNA vez y el HTML estático arranca con la de motilidad, literal. */
+const LV3D_TXT_MOTILIDAD  = 'Arrastrá para girar. Tocá un segmento para cambiar su motilidad: el cambio va al informe.';
+const LV3D_TXT_TERRITORIO = 'Arrastrá para girar. En este modo tocar un segmento NO lo cambia: es solo para mirar. Para editar, volvé a «Color por motilidad».';
 /* El abombamiento diastólico se decide por el VALOR de la excursión, no por el índice 4. Con
    `idx === 4` escrito a mano, insertar un grado en el medio hacía que la discinesia empezara a
    abombar y el aneurisma dejara de hacerlo. */
@@ -63199,12 +63337,17 @@ const LV3D_TP = 2*Math.PI;
 const _lv3d = { abierto:false, raf:null, cuadros:0, t0:null, off:0, fase:0, corriendo:true,
                 arrastre:null, cableado:false, R:[[1,0,0],[0,1,0],[0,0,1]],
                 Kg:null, Eg:null, MK:1, G:1, volD:1, aviso:'', pal:null, polis:[],
+                /* `modo`: 'motilidad' (como hasta hoy, y el default del pedido) o 'territorio'.
+                   `cap`: la ÚNICA captura, en memoria. Las dos son estado de módulo y por eso
+                   las dos tienen que morir en `lv3dNuevoPaciente`. */
+                modo:'motilidad', cap:null,
                 P:Object.assign({}, LV3D_BASE) };
 
 /* Sonda de solo lectura para el arnés de pruebas: deja medir que con el panel cerrado no queda
    ningún cuadro dibujándose, sin exponer nada escribible. */
 window.lv3dDiag = function(){ return { abierto:_lv3d.abierto, raf:_lv3d.raf, cuadros:_lv3d.cuadros,
-                                       G:_lv3d.G, aviso:_lv3d.aviso,
+                                       G:_lv3d.G, aviso:_lv3d.aviso, modo:_lv3d.modo,
+                                       hayCaptura:!!_lv3d.cap,
                                        hayTamano:_lv3d.hayTamano, msgSinDatos:_lv3d.msgSinDatos }; };
 
 function lv3dCtl(sel){ const el = document.querySelector('#lv3d-panel ' + sel); return el ? el.checked : false; }
@@ -63215,7 +63358,13 @@ function lv3dCtl(sel){ const el = document.querySelector('#lv3d-panel ' + sel); 
 function lv3dPaleta(){
   const cs = getComputedStyle(document.documentElement);
   const g = (n, f) => ((cs.getPropertyValue(n) || '').trim() || f);
-  return { texto:g('--text','#e8ecf4'), texto2:g('--text2','#9aa3bc'), borde:g('--border','#2a3050') };
+  /* `fondo` lo agrega la captura (2026-10-04) y entra ACÁ, no en `lv3dCapturar`: ésta es la única
+     función que lee variables CSS del tema, y la única que `lv3dAlCambiarTema` refresca. Leyendo
+     `--bg3` por separado desde la captura habría DOS lectores del tema con vidas distintas —uno
+     cacheado y otro no—, que es exactamente cómo un PNG termina con el fondo de un tema y el texto
+     del otro. En pantalla `fondo` NO se usa: ahí lo pone el CSS del canvas. */
+  return { texto:g('--text','#e8ecf4'), texto2:g('--text2','#9aa3bc'), borde:g('--border','#2a3050'),
+           fondo:g('--bg3','#1e2333') };
 }
 function lv3dRGB(h){
   const s = String(h || '').trim();
@@ -63223,6 +63372,30 @@ function lv3dRGB(h){
   if (!m) return [128,128,128];
   const n = parseInt(m[1], 16);
   return [(n>>16)&255, (n>>8)&255, n&255];
+}
+function lv3dHex(c){
+  return '#' + c.map(v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2,'0')).join('');
+}
+/* Un grado de motilidad sin entrada en `LV3D_TONO` cae en 0 —el color base—, igual que
+   `lv3dGrillas` lo hace caer en excursión normal. La guarda de arriba es la que avisa. */
+function lv3dTonoRGB(base, idx){
+  const f = (LV3D_TONO[idx] !== undefined) ? LV3D_TONO[idx] : 0;
+  return f >= 0 ? base.map(v => v + (255 - v)*f) : base.map(v => v*(1 + f));
+}
+function lv3dTonoHex(hexBase, idx){ return lv3dHex(lv3dTonoRGB(lv3dRGB(hexBase), idx)); }
+function lv3dEsTerritorio(){ return _lv3d.modo === 'territorio'; }
+
+/* ⚠️ EL ÚNICO LUGAR QUE DECIDE EL COLOR DE UN SEGMENTO, para los dos modos y para las dos
+   superficies —el canvas de pantalla y el PNG de la captura—. Con dos resolutores se
+   desincronizan, y el que se desincroniza es el que el médico NO está mirando: el que termina en
+   el informe. Es la misma regla de «UN SOLO DIBUJANTE» del documento de especificación.
+   El índice se lee igual que antes (`Number(...) || 0`): no se cambia a `_contrNormIdx` acá para
+   que el modo motilidad siga pintando exactamente el mismo píxel que en HEAD. */
+function lv3dColorSeg(sg){
+  const id = LV3D_SEG_ID[sg];
+  const idx = Number(contrEstado[id]) || 0;
+  if (!lv3dEsTerritorio()) return lv3dRGB((CONTR_MOTILIDAD[idx] || CONTR_MOTILIDAD[0]).color);
+  return lv3dTonoRGB(lv3dRGB(CONTR_TERRITORIO[id] || ''), idx);
 }
 
 // ── Geometría: qué segmento cae en (altura t, ángulo d en grados) ──
@@ -63535,6 +63708,11 @@ function lv3dPant(p, cx, cy){
 
 function lv3dMalla(v, fantasma){
   const G = _lv3d.G, L = lv3dLargo(v, G), out = [], st = fantasma ? 2 : 1;
+  /* Los límites de segmento sólo se calculan en modo territorio: ahí el único dato que el dibujo
+     NO publica son los números, así que el borde es lo que dice dónde empieza el segmento de al
+     lado. En modo motilidad queda todo exactamente como hoy —ni este bloque corre—. */
+  const bordes = !fantasma && lv3dEsTerritorio();
+  const angDe = j => ((((j % LV3D_M) + LV3D_M) % LV3D_M) + st/2)*360/LV3D_M;
   for (let k=0; k<LV3D_N; k+=st){
     const ra = lv3dRing(k, v, G), rb = lv3dRing(k+st, v, G);
     const z0 = L*k/LV3D_N - 4.5, z1 = L*(k+st)/LV3D_N - 4.5;
@@ -63548,8 +63726,24 @@ function lv3dMalla(v, fantasma){
       let o = lv3dProy([Math.cos(am), Math.sin(am), 0.6*(2*k+st)/(2*LV3D_N)]);
       const n = Math.sqrt(o.x*o.x + o.y*o.y + o.d*o.d) || 1;
       o = { x:o.x/n, y:o.y/n, d:o.d/n };
-      out.push({ q:q, o:o, sg:lv3dSegEn((k+st/2)/LV3D_N, (j+st/2)*360/LV3D_M),
-                 d:(q[0].d+q[1].d+q[2].d+q[3].d)/4, g:fantasma });
+      const sg = lv3dSegEn((k+st/2)/LV3D_N, (j+st/2)*360/LV3D_M);
+      const p = { q:q, o:o, sg:sg, d:(q[0].d+q[1].d+q[2].d+q[3].d)/4, g:fantasma };
+      if (bordes){
+        /* ⚠️ CADA ARISTA LA DIBUJAN LOS DOS CUADROS QUE LA COMPARTEN, no uno solo, y es a
+           propósito. Los cuadros se pintan ordenados por profundidad y cada uno repasa su propio
+           contorno con su color de relleno para tapar el serrucho del antialias: si la arista la
+           trazara sólo el cuadro de un lado, el del otro lado —dibujado después— le pasaría ese
+           repaso por encima y se comería medio borde. Trazándola los dos, el último en pintar la
+           deja escrita. Cuesta un trazo repetido y nada más.
+           El ángulo se pide con módulo porque `lv3dSegEn` compara contra 60/120/…/360 crudos: con
+           j+st en la última columna, 360+ caía en el `else` final y marcaba un borde falso ahí. */
+        const t = (k+st/2)/LV3D_N, aq = (j+st/2)*360/LV3D_M;
+        p.bU = (k - st >= 0)      && lv3dSegEn((k-st+st/2)/LV3D_N, aq) !== sg;
+        p.bD = (k + st < LV3D_N)  && lv3dSegEn((k+st+st/2)/LV3D_N, aq) !== sg;
+        p.bL = lv3dSegEn(t, angDe(j-st)) !== sg;
+        p.bR = lv3dSegEn(t, angDe(j+st)) !== sg;
+      }
+      out.push(p);
     }
   }
   return out;
@@ -63620,16 +63814,17 @@ function lv3dMensajeEnRecuadro(ctx, W, H, pal, texto){
   ctx.textBaseline = 'alphabetic';
 }
 
-function lv3dDibujar(){
-  const cv = document.getElementById('lv3d-canvas');
-  if (!cv) return;
-  const ctx = cv.getContext('2d');
-  if (!ctx) return;
-  const dpr = window.devicePixelRatio || 1, W = LV3D_W, H = LV3D_H;
-  if (cv.width !== Math.round(W*dpr)){ cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr); }
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, W, H);                 // transparente: el fondo lo pone var(--bg3) del CSS
-  const pal = _lv3d.pal || (_lv3d.pal = lv3dPaleta());
+/* ⚠️ UN SOLO DIBUJANTE PARA LA PANTALLA Y PARA LA CAPTURA, parametrizado por el contexto.
+   Con dos —uno para el canvas visible y otro para el PNG del informe— se desincronizan, y el que
+   se desincroniza es el que el médico NO está mirando: el que termina en el papel firmado. Es la
+   regla que el propio documento de especificación pide («UN SOLO DIBUJANTE»), y acá se cumple
+   dibujando siempre en el mismo sistema de coordenadas lógicas de LV3D_W × LV3D_H.
+   `limpiar`: en pantalla se limpia transparente porque el fondo lo pone `var(--bg3)` del CSS; en
+   la captura el llamador ya pintó un fondo OPACO y un `clearRect` acá lo borraría.
+   Devuelve los polígonos con sus coordenadas de pantalla. El ÚNICO que los guarda en
+   `_lv3d.polis` es `lv3dDibujar`: la captura no puede pisar el blanco del toque. */
+function lv3dPintar(ctx, W, H, pal, limpiar){
+  if (limpiar) ctx.clearRect(0, 0, W, H);
   const cx = W/2, cy = H/2 - 8;
   const LUZ = [-0.4, 0.5, 0.75];
 
@@ -63642,10 +63837,10 @@ function lv3dDibujar(){
      se pinta una sola vez. */
   if (!_lv3d.hayTamano){
     lv3dMensajeEnRecuadro(ctx, W, H, pal, _lv3d.msgSinDatos || LV3D_MSG_SIN_DATOS);
-    _lv3d.polis = [];                        // sin polígonos no hay nada que se pueda tocar
-    return;
+    return [];                               // sin polígonos no hay nada que se pueda tocar
   }
 
+  const terr = lv3dEsTerritorio();
   let polis = lv3dMalla(_lv3d.fase, false);
   if (lv3dCtl('.lv3d-fantasma')) polis = polis.concat(lv3dMalla(0, true));
   polis.sort((a,b)=> a.d - b.d);
@@ -63667,15 +63862,26 @@ function lv3dDibujar(){
       const frente = p.o.d > 0;
       const dot = Math.max(0, (frente?1:-1)*(p.o.x*LUZ[0] + p.o.y*LUZ[1] + p.o.d*LUZ[2]));
       const sh = (0.6 + 0.4*dot)*(frente ? 1 : 0.55);
-      // ⚠️ El color se resuelve ACÁ, por cuadro, contra CONTR_MOTILIDAD y el estado vivo.
-      const idx = Number(contrEstado[LV3D_SEG_ID[p.sg]]) || 0;
-      const col = lv3dRGB((CONTR_MOTILIDAD[idx] || CONTR_MOTILIDAD[0]).color)
-                    .map(c => Math.round(Math.min(255, c*sh)));
+      /* ⚠️ El color se resuelve ACÁ, por cuadro, contra el estado vivo. Qué paleta sale de ahí
+         —motilidad o tono de territorio— lo decide `lv3dColorSeg`, que es el único que lo sabe. */
+      const col = lv3dColorSeg(p.sg).map(c => Math.round(Math.min(255, c*sh)));
       ctx.fillStyle = 'rgb(' + col[0] + ',' + col[1] + ',' + col[2] + ')';
       ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.7; ctx.fill(); ctx.stroke();
+      /* Límite de segmento: gris neutro elegido contra ESTE píxel ya sombreado, fino y sin
+         números. Va después del repaso de contorno de arriba, que es con el color de relleno. */
+      if (terr && (p.bU || p.bD || p.bL || p.bR)){
+        const luma = 0.299*col[0] + 0.587*col[1] + 0.114*col[2];
+        ctx.strokeStyle = (luma >= LV3D_BORDE_LUMA) ? LV3D_BORDE_OSCURO : LV3D_BORDE_CLARO;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        if (p.bU){ ctx.moveTo(p.s[0][0],p.s[0][1]); ctx.lineTo(p.s[1][0],p.s[1][1]); }
+        if (p.bR){ ctx.moveTo(p.s[1][0],p.s[1][1]); ctx.lineTo(p.s[2][0],p.s[2][1]); }
+        if (p.bD){ ctx.moveTo(p.s[3][0],p.s[3][1]); ctx.lineTo(p.s[2][0],p.s[2][1]); }
+        if (p.bL){ ctx.moveTo(p.s[0][0],p.s[0][1]); ctx.lineTo(p.s[3][0],p.s[3][1]); }
+        ctx.stroke();
+      }
     }
   }
-  _lv3d.polis = polis;
 
   if (lv3dCtl('.lv3d-aparato')){
     const ap = lv3dAparato(_lv3d.fase);
@@ -63709,6 +63915,19 @@ function lv3dDibujar(){
     ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ex, ey); ctx.stroke();
     ctx.fillText(e.l, ex + (r.x>=0 ? 4 : -28), ey + (r.y>=0 ? -3 : 12));
   });
+  return polis;
+}
+
+function lv3dDibujar(){
+  const cv = document.getElementById('lv3d-canvas');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  if (!ctx) return;
+  const dpr = window.devicePixelRatio || 1, W = LV3D_W, H = LV3D_H;
+  if (cv.width !== Math.round(W*dpr)){ cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr); }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const pal = _lv3d.pal || (_lv3d.pal = lv3dPaleta());
+  _lv3d.polis = lv3dPintar(ctx, W, H, pal, true);
 }
 
 // ── Toque sobre un segmento ──
@@ -63730,6 +63949,23 @@ function lv3dTocar(e){
     const p = _lv3d.polis[i];
     if (p.g || !p.s || !lv3dDentro(pt, p.s)) continue;
     const id = LV3D_SEG_ID[p.sg];
+    /* ⚠️ EN MODO TERRITORIO EL TOQUE NO ESCRIBE NADA, y la salida va ANTES de `contrSetSegmento`.
+       En ese modo el color dice la ARTERIA: si el toque siguiera ciclando la motilidad, el médico
+       movería el informe FIRMADO con un gesto cuyo efecto el dibujo apenas insinúa —cambia el
+       tono, no el color— y encima el badge del bull's eye no está al lado para desmentirlo.
+       Decisión del pedido: para editar se vuelve al modo motilidad.
+       Se contesta QUÉ segmento es, que es para lo que el modo existe, y NO se emite `toast`: en
+       esta app el toast acusa recibo de un cambio que viaja al informe, y acá no hay ninguno —un
+       toast sobre un gesto sin efecto es justamente lo que haría creer que tuvo uno—. */
+    if (lv3dEsTerritorio()){
+      const idxT = Number(contrEstado[id]) || 0;
+      const terT = CONTR_TERRITORIO_NOMBRE[CONTR_TERRITORIO[id]] || '—';
+      const leidoT = document.getElementById('lv3d-leido');
+      if (leidoT) leidoT.textContent = 'Segmento ' + p.sg + ' · ' + LV3D_SEG_NOMBRE[p.sg]
+        + ' — territorio ' + terT + ' · ' + (CONTR_MOTILIDAD[idxT] || CONTR_MOTILIDAD[0]).nombre
+        + '. Solo lectura: para cambiarlo, volvé a «Color por motilidad».';
+      return;
+    }
     /* ⚠️ NO se escribe `contrEstado`: se entra por la vía única, igual que el bull's eye. Ella
        repinta los cuatro SVG, el texto de hallazgos y este mismo dibujo. */
     contrSetSegmento(id, (Number(contrEstado[id]) || 0) + 1);
@@ -63746,11 +63982,17 @@ function lv3dTocar(e){
   }
 }
 
+/* El rótulo de la fase se escribe UNA vez: lo muestra el panel y lo escribe la captura ADENTRO
+   del PNG. Con dos redacciones, la imagen que va al informe podría decir una fase y la pantalla
+   otra sobre el mismo cuadro. */
+function lv3dFaseRotulo(){
+  return _lv3d.fase < 0.05 ? 'Fin de diástole'
+       : (_lv3d.fase > 0.95 ? 'Fin de sístole' : Math.round(_lv3d.fase*100) + ' % hacia sístole');
+}
 function lv3dFaseTexto(){
   const t = document.getElementById('lv3d-fase-txt');
   if (!t) return;
-  t.textContent = _lv3d.fase < 0.05 ? 'Fin de diástole'
-                : (_lv3d.fase > 0.95 ? 'Fin de sístole' : Math.round(_lv3d.fase*100) + ' % hacia sístole');
+  t.textContent = lv3dFaseRotulo();
 }
 function lv3dBotonPlay(){
   const b = document.getElementById('lv3d-play');
@@ -63835,7 +64077,15 @@ function lv3dReconstruir(){
 }
 /* La llama `contrNotificar`/`contrNotificarTodos`. Con el panel cerrado no hace nada: es lo que
    deja que el bull's eye siga funcionando igual cuando el 3D no existe en pantalla. */
-function lv3dAlCambiarEstado(){ if (_lv3d.abierto) lv3dReconstruir(); }
+function lv3dAlCambiarEstado(){
+  /* ⚠️ LA MARCA DE «DESACTUALIZADA» VA ANTES DEL `if (abierto)`, Y NO ADENTRO.
+     La captura vive en memoria y sobrevive al cierre del panel: si la marca se decidiera sólo con
+     el panel abierto, cerrar el panel, cambiar un volumen y reabrirlo dejaría una miniatura
+     presentándose como al día sobre datos que ya no son los suyos. Y es barato: sin captura —el
+     caso normal— no hace nada. */
+  if (_lv3d.cap) lv3dCapRender();
+  if (_lv3d.abierto) lv3dReconstruir();
+}
 /* El canvas no hereda las variables CSS: al cambiar de tema hay que volver a leerlas y repintar. */
 function lv3dAlCambiarTema(){
   _lv3d.pal = lv3dPaleta();
@@ -63843,6 +64093,269 @@ function lv3dAlCambiarTema(){
 }
 window.lv3dAlCambiarEstado = lv3dAlCambiarEstado;
 window.lv3dAlCambiarTema = lv3dAlCambiarTema;
+
+/* ══ P1 · MODO DE COLOR ════════════════════════════════════════════════════════════════════════ */
+/* Los territorios, DERIVADOS y no escritos: recorriendo los segmentos 1..17 en orden, el orden de
+   primera aparición es DA (seg 1), CD (seg 3) y CX (seg 5) — el mismo del recuadro del bull's eye.
+   El día que se mueva un segmento de una arteria a otra, la leyenda se mueve con él. */
+function lv3dTerritorios(){
+  const orden = [], por = {};
+  for (let s=1; s<=17; s++){
+    const hex = CONTR_TERRITORIO[LV3D_SEG_ID[s]];
+    if (!hex) continue;
+    if (!por[hex]){ por[hex] = []; orden.push(hex); }
+    por[hex].push(s);
+  }
+  return orden.map(hex => ({ hex:hex, nombre:(CONTR_TERRITORIO_NOMBRE[hex] || '?'), segs:por[hex] }));
+}
+
+/* ── P3 · Leyenda del modo territorio ───────────────────────────────────────────────────────────
+   LA FORMA QUE OCUPA MENOS DE LAS QUE SE MIDIERON: una cabecera con los cinco estados y una fila
+   por arteria, con los cinco tonos PEGADOS formando UNA barra. Pegados y no en cinco pastillas
+   sueltas por dos motivos medidos: ahorra los cuatro espacios de separación —a 360 px eso es lo
+   que decide si «Hipoquinesia» entra en su columna— y la barra se lee como lo que es, una
+   escalera, en vez de cinco cosas distintas.
+   Lleva un marco de 1 px alrededor de la barra: el tono de Aquinesia queda a 12 ΔE2000 del fondo
+   del tema claro, así que sin marco su borde se pierde contra el panel.
+   NO repite los números de segmento: están en el recuadro «Territorio coronario (borde)» del
+   bull's eye, que en esta pestaña está en la misma pantalla. Van en el `title` de cada fila, que
+   no ocupa ni un píxel. */
+function lv3dLeyendaRender(box){
+  const caja = box || document.getElementById('lv3d-leyenda');
+  if (!caja) return;
+  const ROTW = '30px';
+  let h = '<div style="display:flex;align-items:flex-end;">'
+        + '<div style="flex:0 0 ' + ROTW + ';"></div>';
+  CONTR_MOTILIDAD.forEach(m => {
+    /* ⚠️ `hyphens:auto` ANTES que `overflow-wrap:anywhere`, y los dos hacen falta.
+       MEDIDO a 360 px: la columna da 47,6 px y «Hipoquinesia» necesita 45,5 px a 7 px de fuente —
+       o sea que los cinco rótulos enteros en una línea sólo entran a un tamaño que no se lee—.
+       Con `overflow-wrap` solo, el navegador parte donde le toca y sale «Hipoquine / sia», sin
+       guion y en mitad de la sílaba. `hyphens:auto` con `lang="es"` —que el documento ya declara—
+       parte por sílaba y con guion. `overflow-wrap` queda DEBAJO como red: si algún día no hay
+       diccionario de guionado, la palabra se parte feo pero NO desborda la columna, que es lo
+       que romperia la grilla. */
+    h += '<div data-lv3d-grado style="flex:1 1 0;min-width:0;font-size:9px;line-height:1.15;'
+       + 'color:var(--text2);text-align:center;padding:0 1px;'
+       + 'hyphens:auto;-webkit-hyphens:auto;overflow-wrap:anywhere;">'
+       + m.nombre + '</div>';
+  });
+  h += '</div>';
+  lv3dTerritorios().forEach(t => {
+    h += '<div data-lv3d-ter="' + t.nombre + '" title="Segmentos ' + t.segs.join(', ') + '"'
+       + ' style="display:flex;align-items:center;margin-top:3px;">'
+       + '<div style="flex:0 0 ' + ROTW + ';font-size:10.5px;font-weight:700;color:var(--text);">'
+       + t.nombre + '</div>'
+       + '<div style="flex:1 1 0;min-width:0;display:flex;height:15px;border:1px solid var(--border);'
+       + 'border-radius:4px;overflow:hidden;">';
+    for (let i=0;i<CONTR_MOTILIDAD.length;i++)
+      h += '<div data-lv3d-tono style="flex:1 1 0;background:' + lv3dTonoHex(t.hex, i) + ';"></div>';
+    h += '</div></div>';
+  });
+  caja.innerHTML = h;
+}
+
+/* La pastilla del botón activo, la leyenda y la frase de abajo del canvas se mueven JUNTAS: las
+   tres dicen el mismo modo, y separarlas es como una queda contradiciendo a la otra.
+   `conTexto` existe porque `#lv3d-leido` también lo escribe el toque: abrir el panel no tiene por
+   qué pisarle al médico el nombre del segmento que acaba de tocar. */
+function lv3dModoUI(conTexto){
+  const panel = document.getElementById('lv3d-panel');
+  if (!panel) return;
+  const terr = lv3dEsTerritorio();
+  panel.querySelectorAll('.lv3d-color').forEach(b => {
+    const on = (b.getAttribute('data-lv3d-color') === _lv3d.modo);
+    b.classList.toggle('btn-primary', on);
+    b.classList.toggle('btn-ghost', !on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  const ley = document.getElementById('lv3d-leyenda');
+  if (ley){
+    ley.style.display = terr ? 'block' : 'none';
+    if (terr) lv3dLeyendaRender(ley);
+  }
+  if (conTexto){
+    const leido = document.getElementById('lv3d-leido');
+    if (leido) leido.textContent = terr ? LV3D_TXT_TERRITORIO : LV3D_TXT_MOTILIDAD;
+  }
+}
+function lv3dSetModo(m){
+  const nuevo = (m === 'territorio') ? 'territorio' : 'motilidad';
+  if (nuevo === _lv3d.modo) return;
+  _lv3d.modo = nuevo;
+  lv3dModoUI(true);
+  /* El modo es una forma de MIRAR: no marca la captura como desactualizada —la captura registra en
+     qué modo se tomó— y no toca un solo dato del paciente. El bull's eye no se entera. */
+  if (_lv3d.abierto) lv3dDibujar();
+}
+
+/* ══ P4 · CAPTURA DE IMAGEN ════════════════════════════════════════════════════════════════════
+   UNA sola captura, en memoria y nada más: no entra al estudio, no entra a `localStorage`, no sale
+   al Excel, y NO está conectada al PDF, al PPT ni al Excel —eso es el trabajo siguiente—. Lo único
+   que la expone es `window.lv3dCaptura()`, que devuelve una copia. */
+const LV3D_CAP_FRASE = 'Modelo esquemático, no imagen del paciente';
+const LV3D_CAP_ESC = 2;          // el PNG sale al doble para que no se vea pixelado en el papel
+
+/* ⚠️ FIRMA DE LO QUE EL DIBUJO DEPENDE, y no un flag.
+   `lv3dAlCambiarEstado` la llama `calcVI`, que cuelga del `oninput` de MUCHOS campos que el 3D no
+   mira: con un flag que se prende al primer aviso, tipear la aurícula marcaba la captura como
+   vieja sin que el dibujo hubiera cambiado un píxel — y una advertencia que salta cuando no
+   corresponde es una advertencia que se deja de leer. Comparando la firma, se marca sólo si cambió
+   uno de los cuatro campos que el panel lee o uno de los 17 estados.
+   Tiene un segundo efecto, y es correcto: deshacer el cambio devuelve la miniatura a «al día»,
+   porque volvió a estarlo. Lo que NO hace es borrarla sola, que es la regla del pedido. */
+function lv3dFirmaDatos(){
+  const g = id => { const e = document.getElementById(id); return e ? String(e.value || '') : ''; };
+  let s = g('vdfvi') + '|' + g('vsfvi') + '|' + g('fevi') + '|' + g('ddfvi') + '|';
+  for (let i=1;i<=17;i++) s += (Number(contrEstado[LV3D_SEG_ID[i]]) || 0) + ',';
+  return s;
+}
+
+function lv3dCapturar(){
+  /* La compuerta de tamaño vale igual para el PNG: un recuadro que dice «no hay datos» no es una
+     imagen para pegar en un informe, y una captura vacía en el PDF se lee como un hallazgo. */
+  if (!_lv3d.hayTamano){
+    if (typeof toast === 'function') toast('⚠️ No hay diagrama para capturar: falta cargar el DDVI o el VDFVI.');
+    return;
+  }
+  const terr = lv3dEsTerritorio();
+  const pal  = _lv3d.pal || (_lv3d.pal = lv3dPaleta());
+  const ters = terr ? lv3dTerritorios() : [];
+  const W = LV3D_W;
+  const ALTO_PIE = 32;                                      // separador + la línea de texto
+  const ALTO_LEY = terr ? (13 + ters.length*17 + 6) : 0;
+  const H = LV3D_H + ALTO_PIE + ALTO_LEY + 10;
+  const k = LV3D_CAP_ESC;
+  const cv = document.createElement('canvas');
+  cv.width = Math.round(W*k); cv.height = Math.round(H*k);
+  const ctx = cv.getContext('2d');
+  if (!ctx) return;
+  ctx.setTransform(k, 0, 0, k, 0, 0);
+
+  /* ⚠️ FONDO OPACO, PINTADO ACÁ. El canvas de pantalla se limpia TRANSPARENTE y el color lo pone
+     el CSS (`var(--bg3)`), así que un PNG hecho del mismo modo saldría con fondo transparente — y
+     sobre la hoja blanca del PDF el tono de Aquinesia, que está a 12 ΔE2000 del fondo claro, se
+     perdería. El marco de 1 px va por lo mismo: en tema claro el fondo es #eef1f6 y sin marco el
+     borde de la imagen sobre blanco no existe. */
+  ctx.fillStyle = pal.fondo;
+  ctx.fillRect(0, 0, W, H);
+
+  lv3dPintar(ctx, W, LV3D_H, pal, false);
+
+  let y = LV3D_H + 6;
+  ctx.strokeStyle = pal.borde; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(12, y + 0.5); ctx.lineTo(W - 12, y + 0.5); ctx.stroke();
+  y += 18;
+  ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = pal.texto;
+  ctx.font = '600 14px -apple-system, Segoe UI, Roboto, sans-serif';
+  ctx.fillText('Fase: ' + lv3dFaseRotulo(), 14, y);
+  ctx.fillStyle = pal.texto2;
+  ctx.font = '12px -apple-system, Segoe UI, Roboto, sans-serif';
+  ctx.textAlign = 'end';
+  ctx.fillText(LV3D_CAP_FRASE, W - 14, y);
+  ctx.textAlign = 'start';
+  y = LV3D_H + ALTO_PIE;
+
+  if (terr){
+    /* La MISMA leyenda que la pantalla, dibujada en canvas: sin ella el PNG tendría cinco tonos de
+       tres colores y nada que diga qué significan. Los tonos salen de `lv3dTonoHex`, el mismo que
+       usa la leyenda HTML, así que no se pueden separar. */
+    const ROTW = 34, X0 = 14;
+    const colW = (W - 2*X0 - ROTW)/CONTR_MOTILIDAD.length;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = pal.texto2;
+    ctx.font = '9px -apple-system, Segoe UI, Roboto, sans-serif';
+    CONTR_MOTILIDAD.forEach((m, i) => ctx.fillText(m.nombre, X0 + ROTW + colW*(i + 0.5), y + 9));
+    y += 13;
+    ters.forEach(t => {
+      ctx.textAlign = 'start';
+      ctx.fillStyle = pal.texto;
+      ctx.font = '700 10px -apple-system, Segoe UI, Roboto, sans-serif';
+      ctx.fillText(t.nombre, X0, y + 11);
+      for (let i=0;i<CONTR_MOTILIDAD.length;i++){
+        ctx.fillStyle = lv3dTonoHex(t.hex, i);
+        ctx.fillRect(X0 + ROTW + colW*i, y + 2, colW + 0.5, 12);
+      }
+      ctx.strokeStyle = pal.borde; ctx.lineWidth = 1;
+      ctx.strokeRect(X0 + ROTW + 0.5, y + 2.5, colW*CONTR_MOTILIDAD.length - 1, 11);
+      y += 17;
+    });
+    ctx.textAlign = 'start';
+  }
+
+  ctx.strokeStyle = pal.borde; ctx.lineWidth = 1;
+  ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+
+  /* UNA sola: se sobreescribe. Capturar de nuevo reemplaza, que es la regla del pedido. */
+  _lv3d.cap = { url: cv.toDataURL('image/png'),
+                fase: lv3dFaseRotulo(),
+                modo: terr ? 'territorio' : 'motilidad',
+                tema: document.documentElement.classList.contains('light-mode') ? 'claro' : 'oscuro',
+                ancho: cv.width, alto: cv.height,
+                firma: lv3dFirmaDatos() };
+  lv3dCapRender();
+  if (typeof toast === 'function') toast('📷 Imagen del 3D capturada (' + _lv3d.cap.fase + ')');
+}
+
+function lv3dCapRender(){
+  const fila = document.getElementById('lv3d-cap');
+  if (!fila) return;
+  const img = fila.querySelector('.lv3d-cap-img');
+  const txt = fila.querySelector('.lv3d-cap-txt');
+  const qui = fila.querySelector('.lv3d-cap-quitar');
+  const c = _lv3d.cap;
+  if (!c){
+    if (img){ img.removeAttribute('src'); img.style.display = 'none'; }
+    if (txt){ txt.textContent = 'Sin captura.'; txt.style.color = 'var(--text2)'; }
+    if (qui) qui.style.display = 'none';
+    return;
+  }
+  const vieja = (c.firma !== lv3dFirmaDatos());
+  /* `img.src = ...`, NUNCA innerHTML con la URL adentro: acá no entra dato del paciente, pero una
+     dataURL interpolada en HTML es la forma de abrir esa puerta sin darse cuenta. */
+  if (img){ img.src = c.url; img.style.display = 'block'; }
+  if (txt){
+    txt.textContent = (vieja ? '⚠️ Desactualizada · ' : 'Captura · ')
+      + c.fase + ' · ' + (c.modo === 'territorio' ? 'territorio coronario' : 'motilidad');
+    txt.style.color = vieja ? 'var(--text)' : 'var(--text2)';
+  }
+  if (qui) qui.style.display = '';
+}
+function lv3dCapQuitar(){
+  if (!_lv3d.cap) return;
+  _lv3d.cap = null;
+  lv3dCapRender();
+  if (typeof toast === 'function') toast('Captura del 3D descartada');
+}
+
+/* ⚠️ LO QUE EL 3D TIENE QUE OLVIDAR CUANDO CAMBIA EL PACIENTE.
+   La captura son los píxeles del ventrículo de quien se está dejando, y vive en memoria A
+   PROPÓSITO —tiene que sobrevivir al cambio de pestaña para poder armar el informe—, así que es
+   exactamente el tipo de cosa que aparece en el informe del paciente SIGUIENTE. Misma familia que
+   el PISA congelado y la cola de cineloops pendientes, con píxeles en vez de números.
+   El modo de color vuelve a motilidad, que es el default del panel: un diagrama de solo lectura
+   para un estudio recién abierto no se explica solo.
+   Entra por DOS puertas y las dos hacen falta: `limpiarCampos` —que cubre «Nuevo estudio»,
+   «Limpiar» y abrir otro estudio, porque los tres pasan por ahí— y `cerrarSesionReal`, porque
+   `cerrarSesion` sólo llama a `limpiarCampos` cuando no hay nada sin guardar. */
+function lv3dNuevoPaciente(){
+  _lv3d.cap = null;
+  _lv3d.modo = 'motilidad';
+  lv3dModoUI(true);
+  lv3dCapRender();
+}
+window.lv3dNuevoPaciente = lv3dNuevoPaciente;
+
+/* Para el trabajo SIGUIENTE (el PDF). Devuelve una COPIA: quien la consuma no puede marcarla como
+   al día ni cambiarle la fase. Hoy NADIE la llama — no está conectada al PDF, al PPT ni al Excel,
+   que es lo que pidió Maicol. */
+window.lv3dCaptura = function(){
+  const c = _lv3d.cap;
+  if (!c) return null;
+  return { url:c.url, fase:c.fase, modo:c.modo, tema:c.tema, ancho:c.ancho, alto:c.alto,
+           desactualizada: (c.firma !== lv3dFirmaDatos()) };
+};
 
 function lv3dMaquetar(){
   const fila = document.getElementById('lv3d-fila');
@@ -63873,6 +64386,13 @@ function lv3dCablear(){
   const sl = panel.querySelector('.lv3d-fase');
   if (sl) sl.addEventListener('input', e => { _lv3d.corriendo = false; _lv3d.fase = (Number(e.target.value)||0)/100; lv3dBotonPlay(); });
   panel.querySelectorAll('.lv3d-fantasma, .lv3d-aparato').forEach(c => c.addEventListener('change', () => { if (_lv3d.abierto) lv3dDibujar(); }));
+  panel.querySelectorAll('.lv3d-color').forEach(b => b.addEventListener('click', () => {
+    lv3dSetModo(b.getAttribute('data-lv3d-color'));
+  }));
+  const capT = panel.querySelector('.lv3d-cap-tomar');
+  if (capT) capT.addEventListener('click', lv3dCapturar);
+  const capQ = panel.querySelector('.lv3d-cap-quitar');
+  if (capQ) capQ.addEventListener('click', lv3dCapQuitar);
 
   // Giro con el dedo o el mouse. Un gesto corto es un toque; uno largo es un giro.
   cv.addEventListener('pointerdown', e => {
@@ -63929,6 +64449,11 @@ function lv3dAbrir(){
   _lv3d.pal = lv3dPaleta();
   _lv3d.corriendo = true;
   lv3dBotonPlay();
+  /* Sin `conTexto`: abrir el panel no pisa el renglón de abajo del canvas, que puede traer el
+     nombre del último segmento tocado. La pastilla, la leyenda y la miniatura sí se ponen al día,
+     porque el panel estuvo cerrado y pudieron cambiar. */
+  lv3dModoUI(false);
+  lv3dCapRender();
   /* Sólo `lv3dReconstruir`: su última línea ya llama a `lv3dArrancar`, que es el dueño único de
      la decisión «bucle o un cuadro con el mensaje». Llamarlo también desde acá reiniciaba el
      latido una vez de más al abrir — inofensivo, pero deja dos dueños de la misma decisión. */
@@ -92938,8 +93463,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261004-1638';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791142715650;                 /* eco-build-ms */
+const ECO_BUILD    = '20261004-2045';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791157506408;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -93025,7 +93550,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-1638</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-2045</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

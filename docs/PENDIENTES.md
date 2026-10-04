@@ -1,5 +1,39 @@
 # EcoSmart — pendientes vivos
 
+## 3D E2 (2026-10-04) — declarado y NO arreglado
+
+De la tanda «color por territorio coronario + captura». Nada de esto es un defecto introducido:
+son cosas medidas durante el trabajo que quedan abiertas porque están fuera del alcance del pedido
+o porque son decisión de Maicol.
+
+- **El VI 3D no tiene ni un caso en `test_clinico.mjs`.** `grep lv3d scripts/test_clinico.mjs` da
+  **cero**: los 429 casos no tocan el panel. Toda su cobertura vive en sondas temporales
+  —`scripts/_probe_vi3d.mjs` (tanda E1) y `scripts/_probe_vi3dcolor.mjs` (ésta, 101 aserciones)—
+  que están versionadas pero **nadie corre automáticamente**. Es exactamente el patrón de EcoSmart
+  S3/S4: cerrados pero sin cobertura automática, que es cómo un arreglo se deshace sin que nadie
+  se entere. Pasar las aserciones a la suite es un trabajo aparte.
+- **La brújula se corta y se superpone en la vista por defecto.** «Sep» se dibuja con x negativa y
+  se recorta contra el borde izquierdo, y «Punta» pisa a «Lat» porque con la rotación identidad el
+  eje de la punta proyecta sobre el origen de la brújula. Es **preexistente** (el código de la
+  brújula viene de E1 y no se tocó), pero ahora queda horneado dentro del PNG de la captura, que
+  es una imagen pensada para un informe. Se ve en `/tmp/vi3d_*_{claro,oscuro}.png`.
+- **El comentario de `index.html` sobre la tarjeta del 3D dice «Lo mide TC-408» y es falso.**
+  TC-408 es el escalón de estenosis pulmonar. El caso que mediría la maquetación de esa tarjeta no
+  existe. Referencia cruzada rota de la tanda E1.
+- **`scripts/check_mobile.js` no abre el panel del 3D**, así que no mide ninguno de sus controles.
+  Su informe salió **byte a byte idéntico** a HEAD, pero para los controles nuevos eso es un cero
+  sin denominador, no un aprobado: lo táctil del panel lo mide `_probe_vi3dcolor.mjs` (`LAY-2`,
+  con el panel abierto a 1200/768/390/360 px).
+- **La escalera de tonos tiene un paso apretado, y es el de la CD.** Normal ↔ Hipoquinesia de la
+  circunfleja derecha da **8,9 ΔE2000**, el peor de los doce pares vecinos. No es «demasiado
+  parecido» —8,9 se distingue cómodo— pero es el que menos margen tiene, porque la base de la CD
+  (`#3ecf8e`, L\* 74,6) ya es la más clara de las tres y deja poco techo para dos pasos más claros.
+  Separarlos más obliga a bajar el extremo oscuro o a mover el color base: **decisión de Maicol**.
+- **`_lv3d.fase` sobrevive a `limpiarCampos`.** Abrir un estudio nuevo arranca el latido donde lo
+  dejó el anterior en vez de en fin de diástole. No es fuga de dato del paciente —es estado de
+  vista y la animación corre igual— pero sí hizo fallar dos veces la sonda, que creía estar
+  midiendo con la fase congelada en 0. Si alguna vez molesta, se resetea en `lv3dNuevoPaciente`.
+
 ## ✅ CERRADO 2026-10-03 — la aórtica entró, y por una tercera salida
 
 La decisión de Maicol no fue ninguna de las dos que este archivo ofrecía. **El invariante es
