@@ -63204,7 +63204,8 @@ const _lv3d = { abierto:false, raf:null, cuadros:0, t0:null, off:0, fase:0, corr
 /* Sonda de solo lectura para el arnés de pruebas: deja medir que con el panel cerrado no queda
    ningún cuadro dibujándose, sin exponer nada escribible. */
 window.lv3dDiag = function(){ return { abierto:_lv3d.abierto, raf:_lv3d.raf, cuadros:_lv3d.cuadros,
-                                       G:_lv3d.G, aviso:_lv3d.aviso }; };
+                                       G:_lv3d.G, aviso:_lv3d.aviso,
+                                       hayTamano:_lv3d.hayTamano, msgSinDatos:_lv3d.msgSinDatos }; };
 
 function lv3dCtl(sel){ const el = document.querySelector('#lv3d-panel ' + sel); return el ? el.checked : false; }
 
@@ -63404,6 +63405,15 @@ function lv3dLeerDatos(){
   return d;
 }
 
+/* Un solo emisor para las notas del panel. Estaba escrito dos veces —una en el camino normal y
+   otra en el de la compuerta cerrada— y dos copias del mismo formato se separan sin que nadie se
+   entere. `n[0]` es 'a' para aviso (con triangulo) y 'n' para nota al pie. */
+function lv3dNotasHTML(notas){
+  return notas.map(n =>
+    '<div style="font-size:10px;line-height:1.5;margin-top:5px;color:'
+    + (n[0] === 'a' ? 'var(--text)' : 'var(--text2)') + ';">'
+    + (n[0] === 'a' ? '\u26a0\ufe0f ' : '') + n[1] + '</div>').join('');
+}
 function lv3dRenderDatos(d, aviso){
   const box = document.getElementById('lv3d-datos');
   if (!box) return;
@@ -63431,25 +63441,43 @@ function lv3dRenderDatos(d, aviso){
     + '</div>';
 
   const notas = [];
-  // 1) Tamaño del dibujo y por qué no hay volumen.
-  /* `_sinDD` distingue «no lo cargó» de «lo cargó fuera de lo medible»: el preset normal se usa
-     en los dos casos, pero decirle «no hay DDVI cargado» a quien acaba de tipear uno manda a
-     buscar el problema al lugar equivocado. */
-  const _ddFuera = d.dd.fuera, _ddHay = d.dd.val !== null;
-  const _presetTxt = _ddFuera
-    ? 'Tamaño del dibujo: preset de VI normal, porque el DDVI cargado está fuera de lo medible.'
-    : 'Tamaño del dibujo: preset de VI normal, porque no hay DDVI cargado.';
-  if (d.vdf.val === null){
-    notas.push(_ddHay
-      ? ['n', 'Tamaño del dibujo ajustado por el DDVI; volumen no calculado.']
-      : ['a', _presetTxt + ' Volumen no calculado.']);
-  } else if (_ddHay){
-    notas.push(['n', 'Tamaño del dibujo ajustado por el DDVI.']);
+  /* 1) Tamaño del dibujo, y la compuerta.
+     Los tres estados de la regla de Maicol (2026-10-04):
+       · sin DDVI ni VDFVI  → NO se dibuja; el recuadro lleva el mensaje y acá va el eco corto;
+       · con VDFVI y sin DDVI → se dibuja, pero el tamaño es el preset: el VDFVI alcanza para
+         decidir QUE se dibuja y no para dimensionar el modelo. Se declara, porque un ventrículo
+         con preset es indistinguible de uno dimensionado;
+       · con DDVI            → el DDVI da el tamaño. */
+  const _ddHay = d.dd.val !== null, _vdfHay = d.vdf.val !== null;
+  if (!_ddHay && !_vdfHay){
+    notas.push(['a', (d.dd.fuera || d.vdf.fuera)
+      ? 'No se dibuja el ventrículo: el DDVI y el VDFVI cargados están fuera de lo medible.'
+      : 'No se dibuja el ventrículo: falta cargar el DDVI o el VDFVI.']);
+  } else if (!_ddHay){
+    notas.push(['a', 'Tamaño del dibujo: preset de VI normal. El VDFVI no dimensiona el modelo; '
+      + 'eso lo hace el DDVI.' + (_vdfHay ? '' : ' Volumen no calculado.')]);
   } else {
-    notas.push(['a', _presetTxt]);
+    /* Literal de Maicol para el caso sin volumen, con el punto y coma: «Tamaño del dibujo
+       ajustado por el DDVI; volumen no calculado.» */
+    notas.push(['n', _vdfHay
+      ? 'Tamaño del dibujo ajustado por el DDVI.'
+      : 'Tamaño del dibujo ajustado por el DDVI; volumen no calculado.']);
   }
-  // 2) Amplitud de la contracción: las cuatro condiciones de la decisión del 2026-10-04.
+  /* 2) Amplitud de la contracción: las cuatro condiciones de la decisión del 2026-10-04.
+     Con la compuerta cerrada no se habla de amplitud: no hay dibujo del que hablar, y una nota
+     sobre cómo contrae un ventrículo que no se dibujó es ruido que contradice al recuadro. */
   const hayAlterado = Object.keys(contrEstado).some(k => Number(contrEstado[k]) > 0);
+  if (!_ddHay && !_vdfHay){
+    const faltanG = [];
+    if (d.dd.crudo === null || d.dd.crudo === undefined) faltanG.push('DDVI');
+    if (d.vdf.crudo === null || d.vdf.crudo === undefined) faltanG.push('VDFVI');
+    if (faltanG.length) notas.push(['n', 'Para completar el panel falta cargar: ' + faltanG.join(', ') + '.']);
+    /* La TABLA se deja igual: el médico tiene que poder ver qué cargó y qué no, incluso —sobre
+       todo— cuando no alcanza para dibujar. Lo que se recorta son las notas sobre el dibujo. */
+    html += lv3dNotasHTML(notas);
+    box.innerHTML = html;
+    return;
+  }
   /* ⚠️ TRES CAUSAS DISTINTAS, TRES FRASES DISTINTAS, y el orden importa.
      «Fuera de banda» va PRIMERO y no se puede colgar del `aviso` del solver: con la FEVI fuera de
      lo medible `val` queda en `null`, así que el solver contesta `sinFevi` y el panel decía «Sin
@@ -63482,9 +63510,7 @@ function lv3dRenderDatos(d, aviso){
   if (_noCargado(d.dd)) faltan.push('DDVI');
   if (faltan.length) notas.push(['n', 'Para completar el panel falta cargar: ' + faltan.join(', ') + '.']);
 
-  html += notas.map(n =>
-    '<div style="font-size:10px;line-height:1.5;margin-top:5px;color:' + (n[0]==='a' ? 'var(--text)' : 'var(--text2)') + ';">'
-    + (n[0]==='a' ? '⚠️ ' : '') + n[1] + '</div>').join('');
+  html += lv3dNotasHTML(notas);
   box.innerHTML = html;
 }
 
@@ -63561,6 +63587,39 @@ function lv3dAparato(v){
   return out;
 }
 
+/* Texto de la compuerta de tamaño. Literal de Maicol (2026-10-04): se escribe una sola vez y el
+   mensaje de la pantalla y el del panel de datos salen de acá, para que no se separen. */
+const LV3D_MSG_SIN_DATOS = 'No hay datos cargados para representar el ventrículo en 3D. '
+  + 'Cargá el DDVI o el VDFVI en AI/VI.';
+/* Variante para cuando el dato SÍ se cargó pero está fuera de lo medible: decirle «cargá el
+   DDVI» a quien acaba de tipear uno manda a buscar el problema al lugar equivocado. Mismo
+   criterio que la nota de la FEVI fuera de banda. */
+const LV3D_MSG_FUERA_BANDA = 'No se puede representar el ventrículo en 3D: el DDVI y el VDFVI '
+  + 'cargados están fuera de lo medible. Revisá la unidad en AI/VI.';
+
+/* Mensaje centrado y partido por palabras dentro del recuadro. `measureText` por palabra, porque
+   el canvas no envuelve solo y una línea larga se sale del cuadro sin aviso. */
+function lv3dMensajeEnRecuadro(ctx, W, H, pal, texto){
+  const ancho = Math.min(W - 72, 460);
+  ctx.font = '600 15px -apple-system, Segoe UI, Roboto, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const palabras = String(texto).split(' ');
+  const lineas = [];
+  let linea = '';
+  for (let i=0;i<palabras.length;i++){
+    const tent = linea ? (linea + ' ' + palabras[i]) : palabras[i];
+    if (ctx.measureText(tent).width > ancho && linea){ lineas.push(linea); linea = palabras[i]; }
+    else linea = tent;
+  }
+  if (linea) lineas.push(linea);
+  const alto = 23, y0 = H/2 - ((lineas.length - 1)*alto)/2;
+  ctx.fillStyle = pal.texto2;
+  lineas.forEach((l, i) => ctx.fillText(l, W/2, y0 + i*alto));
+  ctx.textAlign = 'start';
+  ctx.textBaseline = 'alphabetic';
+}
+
 function lv3dDibujar(){
   const cv = document.getElementById('lv3d-canvas');
   if (!cv) return;
@@ -63573,6 +63632,19 @@ function lv3dDibujar(){
   const pal = _lv3d.pal || (_lv3d.pal = lv3dPaleta());
   const cx = W/2, cy = H/2 - 8;
   const LUZ = [-0.4, 0.5, 0.75];
+
+  /* ⚠️ COMPUERTA DE TAMAÑO: sin DDVI ni VDFVI no se dibuja NADA.
+     El mensaje va DENTRO del recuadro del diagrama y no como un aviso aparte, a propósito: un
+     ventrículo dibujado con el preset normal es indistinguible de uno medido, y el aviso de al
+     lado se lee después —o no se lee—. Un recuadro que explica por qué está vacío no se puede
+     confundir con un hallazgo. Regla de Maicol (2026-10-04).
+     El bucle de animación no corre en este estado: lo apaga `lv3dArrancar`, así que este cuadro
+     se pinta una sola vez. */
+  if (!_lv3d.hayTamano){
+    lv3dMensajeEnRecuadro(ctx, W, H, pal, _lv3d.msgSinDatos || LV3D_MSG_SIN_DATOS);
+    _lv3d.polis = [];                        // sin polígonos no hay nada que se pueda tocar
+    return;
+  }
 
   let polis = lv3dMalla(_lv3d.fase, false);
   if (lv3dCtl('.lv3d-fantasma')) polis = polis.concat(lv3dMalla(0, true));
@@ -63697,6 +63769,12 @@ function lv3dDetener(){
 function lv3dArrancar(){
   lv3dDetener();
   if (!_lv3d.abierto) return;
+  /* ⚠️ LA COMPUERTA DE TAMAÑO SE DECIDE ACÁ, Y NO EN CADA LLAMADOR.
+     Sin DDVI ni VDFVI no hay animación que correr: se pinta UN cuadro con el mensaje y el bucle
+     queda apagado. Va centralizado porque `lv3dArrancar` tiene cuatro puertas de entrada
+     —abrir el panel, volver a la pestaña, reabrir el acordeón y el rearme de `lv3dReconstruir`—
+     y repetir la condición en las cuatro es como una se queda sin ella. */
+  if (!_lv3d.hayTamano){ lv3dDibujar(); return; }
   _lv3d.raf = requestAnimationFrame(lv3dCuadro);
 }
 function lv3dCuadro(ts){
@@ -63725,6 +63803,11 @@ function lv3dCuadro(ts){
 function lv3dReconstruir(){
   if (!_lv3d.abierto) return;
   const d = lv3dLeerDatos();
+  /* ⚠️ «HAY TAMAÑO» ES DDVI **O** VDFVI, y se mide con `.val` —o sea, sólo lo plausible—: un
+     DDVI de 700 está cargado pero no sirve para dimensionar nada, así que no cuenta como tamaño.
+     Por eso hay dos mensajes: uno dice «cargá», el otro dice «revisá la unidad». */
+  _lv3d.hayTamano = (d.dd.val !== null) || (d.vdf.val !== null);
+  _lv3d.msgSinDatos = (d.dd.fuera || d.vdf.fuera) ? LV3D_MSG_FUERA_BANDA : LV3D_MSG_SIN_DATOS;
   const s = lv3dEscalaPorDD(d.dd.val), B = LV3D_BASE, amort = 1 + 0.38*(s - 1);
   _lv3d.P = { Red:B.Red*s, Led:B.Led*amort, Res:B.Res*s, Les:B.Les*amort };
   lv3dGrillas();
@@ -63738,8 +63821,17 @@ function lv3dReconstruir(){
      Pasa cuando la red de contención apagó el bucle por un camino que no vuelve a arrancarlo. No
      encontré hoy un camino vivo que lo dispare —lo busqué—, así que esto es rigidez estructural,
      no un defecto medido: un cuadro suelto cuesta nada y la alternativa es confiar en haber
-     enumerado todas las puertas. */
-  if (_lv3d.raf === null) lv3dDibujar();
+     enumerado todas las puertas.
+     Y es también el rearme de la compuerta de tamaño en los DOS sentidos: tipear un DDVI con el
+     panel abierto llega acá por `calcVI`, y `lv3dArrancar` decide si corresponde bucle o un
+     cuadro con el mensaje. Sin esto, cargar el DDVI dejaba el recuadro con el texto puesto.
+     ⚠️ EL `!hayTamano` DEL OR NO ES REDUNDANTE. Cubre el sentido inverso —borrar el DDVI con el
+     panel ABIERTO y animándose—: ahí `raf` no es null, la condición de la derecha es falsa, y sin
+     el término de la izquierda el bucle seguía vivo repintando el mensaje estático a 60 cuadros
+     por segundo. `lv3dArrancar` abre con `lv3dDetener`, así que llamarlo es lo que lo apaga.
+     Con tamaño y el bucle ya corriendo NO se llama, para no reiniciar la fase del latido en cada
+     tecla que toque el médico. */
+  if (!_lv3d.hayTamano || _lv3d.raf === null) lv3dArrancar();
 }
 /* La llama `contrNotificar`/`contrNotificarTodos`. Con el panel cerrado no hace nada: es lo que
    deja que el bull's eye siga funcionando igual cuando el 3D no existe en pantalla. */
@@ -63837,8 +63929,10 @@ function lv3dAbrir(){
   _lv3d.pal = lv3dPaleta();
   _lv3d.corriendo = true;
   lv3dBotonPlay();
+  /* Sólo `lv3dReconstruir`: su última línea ya llama a `lv3dArrancar`, que es el dueño único de
+     la decisión «bucle o un cuadro con el mensaje». Llamarlo también desde acá reiniciaba el
+     latido una vez de más al abrir — inofensivo, pero deja dos dueños de la misma decisión. */
   lv3dReconstruir();
-  lv3dArrancar();
 }
 function lv3dCerrar(){
   const panel = document.getElementById('lv3d-panel'), btn = document.getElementById('lv3d-btn');
@@ -92844,8 +92938,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261004-1602';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791140553067;                 /* eco-build-ms */
+const ECO_BUILD    = '20261004-1638';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791142715650;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -92931,7 +93025,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-1602</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-1638</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

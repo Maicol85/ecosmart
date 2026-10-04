@@ -512,6 +512,12 @@ try {
     { k:'c_FEVI_DD',      campos:[['fevi','45'],['ddfvi','58']] },
     { k:'d_solo_FEVI',    campos:[['fevi','35']] },
     { k:'e_nada',         campos:[] },
+    /* Los tres estados de la compuerta de tamaño (regla de Maicol, 2026-10-04). */
+    { k:'g1_sin_tamano',  campos:[['fevi','40']] },                              // ni DDVI ni VDFVI
+    { k:'g2_tamano_sin_fevi', campos:[['ddfvi','54']] },                         // tamaño, sin FEVI
+    { k:'g3_tamano_y_fevi',   campos:[['ddfvi','54'],['fevi','40']] },           // completo
+    { k:'g2b_solo_VDFVI', campos:[['vdfvi','150']] },                            // tamaño por VDFVI
+    { k:'g1b_dd_fuera_banda', campos:[['ddfvi','700'],['fevi','40']] },          // cargado e ilegible
   ];
   salida.C_panel = {};
   for (const c of CASOS) {
@@ -523,12 +529,51 @@ try {
       await new Promise(function(r){ requestAnimationFrame(function(){ requestAnimationFrame(r); }); });
       const p = window.__p.panel();
       p.pixelesPintados = window.__p.pixelesPintados();
+      /* ⚠️ MEDICION SEMANTICA, no por cantidad de tinta: cuantos pixeles tienen la razon r:g:b
+         del verde de CONTR_MOTILIDAD. El mensaje de la compuerta se pinta con --text2, que es un
+         gris (razon ~1:1:1), asi que no puede confundirse con el ventriculo. Contar pixeles
+         totales daba 4431 contra 15936 —28 %—, un umbral arbitrario que habria que recalibrar
+         con cada cambio de tipografia; esto contesta «se dibujo el ventriculo o no», que es la
+         pregunta real. */
+      p.pxMotilidad = window.__p.pixelesDeColor(CONTR_MOTILIDAD[0].color);
       window.__p.cerrar3d();
       return p;
     })();`);
     const p = salida.C_panel[c.k];
     process.stderr.write('  C ' + c.k + ' — ' + p.celdas.map(x=>x.campo+'='+x.valor+'['+x.org+']').join(' ') + '\n');
   }
+
+  /* ───────── C2) La compuerta de tamaño EN TRANSICION, en los dos sentidos ─────────
+     Es la secuencia real: el medico tiene el panel abierto y animandose, borra el DDVI, y lo
+     vuelve a cargar. Los dos cruces tienen que mover el bucle, y es lo UNICO que cubre el termino
+     `!hayTamano` del rearme: en el camino de APERTURA `raf` ya es null, asi que ahi la condicion
+     no se distingue. Sin esta escena, borrar el DDVI dejaba el bucle vivo repintando un texto
+     estatico a 60 cuadros por segundo. */
+  salida.C2_transicion = await ev(`return (async () => {
+    const dosCuadros = function(){ return new Promise(function(r){ requestAnimationFrame(function(){ requestAnimationFrame(r); }); }); };
+    const foto = async function(){
+      await dosCuadros();
+      const a = window.lv3dDiag().cuadros;
+      await new Promise(function(r){ setTimeout(r, 350); });
+      const d = window.lv3dDiag();
+      return { hayTamano:d.hayTamano, raf:d.raf, delta:d.cuadros - a,
+               pxMotilidad: window.__p.pixelesDeColor(CONTR_MOTILIDAD[0].color),
+               pxTotal: window.__p.pixelesPintados() };
+    };
+    window.__p.limpiar();
+    window.__p.set('ddfvi','54'); window.__p.set('fevi','40');
+    window.__p.abrir3d();
+    const conDD = await foto();
+    window.__p.set('ddfvi','');            // el medico borra el DDVI con el panel ABIERTO
+    const sinDD = await foto();
+    window.__p.set('ddfvi','54');          // y lo vuelve a cargar
+    const reDD = await foto();
+    window.__p.cerrar3d();
+    return { conDD: conDD, sinDD: sinDD, reDD: reDD, hidden: document.hidden };
+  })();`);
+  process.stderr.write('  C2 transicion — conDD: ' + JSON.stringify(salida.C2_transicion.conDD)
+    + '\n                  sinDD: ' + JSON.stringify(salida.C2_transicion.sinDD)
+    + '\n                  reDD:  ' + JSON.stringify(salida.C2_transicion.reDD) + '\n');
 
   // ───────── D) Los cuatro casos de amplitud ─────────
   const AMPL = [
@@ -807,10 +852,66 @@ try {
       celda('c_FEVI_DD','VSFVI').org === 'no cargado' && celda('c_FEVI_DD','Volumen sistólico').org === 'no cargado');
   chk('P5-c no nombra Teichholz en ninguna parte', !/[Tt]eich/.test(notas(C.c_FEVI_DD)));
   chk('P5-d solo FEVI: avisa que falta el DDVI', /falta cargar/.test(notas(C.d_solo_FEVI)) && /DDVI/.test(notas(C.d_solo_FEVI)));
-  chk('P5-d solo FEVI: preset normal declarado', /preset de VI normal/.test(notas(C.d_solo_FEVI)));
   chk('P5-e nada cargado: las cinco celdas en «no cargado»',
       C.e_nada.celdas.length === 5 && C.e_nada.celdas.every(x => x.org === 'no cargado'));
-  chk('P5-e nada cargado: igual dibuja y lo declara', C.e_nada.pixelesPintados > 5000 && /preset de VI normal/.test(notas(C.e_nada)));
+
+  /* ⚠️ LOS UMBRALES DE `pxMotilidad` SON CATEGORICOS (0 contra no-cero), Y NO UN NUMERO GRANDE.
+     El area proyectada del ventriculo cambia con la FASE del latido, asi que el conteo varia:
+     medido 4654 en una fase y 1585 en otra, sobre el MISMO dibujo completo. Un umbral de 2000
+     daba una prueba intermitente que fallaba segun el cuadro que tocara. Lo que la compuerta
+     tiene que distinguir es «se dibujo el ventriculo» de «no se dibujo», y eso es 0 contra
+     cualquier cosa: el mensaje se pinta con un gris de razon 1:1:1 y no aporta ni un pixel a
+     este conteo. */
+  /* ── COMPUERTA DE TAMAÑO: los tres estados de la regla del 2026-10-04 ──
+     El denominador de este bloque es `g3`: si el caso completo NO dibujara, los ceros de g1
+     no significarian «la compuerta funciona» sino «nada dibuja nunca». */
+  chk('GATE-0 DENOMINADOR: el caso completo SI dibuja el ventriculo, con la paleta de motilidad',
+      C.g3_tamano_y_fevi.pxMotilidad > 300 && C.g3_tamano_y_fevi.diag.hayTamano === true);
+  chk('GATE-1 sin DDVI ni VDFVI la compuerta se cierra', C.g1_sin_tamano.diag.hayTamano === false);
+  chk('GATE-1b y NO se dibuja el ventriculo: CERO pixeles de la paleta de motilidad',
+      C.g1_sin_tamano.pxMotilidad === 0);
+  chk('GATE-1b2 pero el recuadro NO queda vacio: el mensaje esta pintado',
+      C.g1_sin_tamano.pixelesPintados > 500);
+  chk('GATE-1c y no queda ningun cuadro corriendo', C.g1_sin_tamano.diag.raf === null);
+  chk('GATE-1d el mensaje es el literal de Maicol',
+      C.g1_sin_tamano.diag.msgSinDatos === 'No hay datos cargados para representar el ventrículo en 3D. Cargá el DDVI o el VDFVI en AI/VI.');
+  /* ⚠️ LA REGEX DE ESTA ASERCION ERA DEMASIADO ESTRECHA Y DEJO SOBREVIVIR UNA MUTACION (M27).
+     Nombraba «amplitud», «ilustrativa» y «contrae hasta», y la nota que se colaba con la compuerta
+     cerrada era otra: «Contraccion global reducida y uniforme: ... el dibujo no muestra colores de
+     trastorno», que no contiene ninguna de las tres. Ahora se pregunta por el CAMPO SEMANTICO
+     completo: cualquier nota que hable de como contrae, o de que colores muestra, un dibujo que no
+     existe. */
+  chk('GATE-1e el panel de datos NO habla del dibujo cuando no dibuja',
+      /No se dibuja el ventrículo/.test(notas(C.g1_sin_tamano))
+      && !/[Cc]ontracción|[Cc]ontrae|amplitud|ilustrativa|colores de trastorno|patrón segmentario/
+            .test(notas(C.g1_sin_tamano)));
+  chk('GATE-1f pero la tabla sigue mostrando qué se cargó y qué no', C.g1_sin_tamano.celdas.length === 5);
+  chk('GATE-2 con tamaño y sin FEVI SI dibuja',
+      C.g2_tamano_sin_fevi.diag.hayTamano === true && C.g2_tamano_sin_fevi.pxMotilidad > 300);
+  chk('GATE-2b y se marca ilustrativa', C.g2_tamano_sin_fevi.diag.aviso === 'sinFevi'
+      && /ilustrativa, no una FEVI medida/.test(notas(C.g2_tamano_sin_fevi)));
+  chk('GATE-2c el VDFVI solo tambien abre la compuerta', C.g2b_solo_VDFVI.diag.hayTamano === true
+      && C.g2b_solo_VDFVI.pxMotilidad > 300);
+  chk('GATE-2d y declara que el VDFVI no dimensiona el modelo',
+      /El VDFVI no dimensiona el modelo/.test(notas(C.g2b_solo_VDFVI)));
+  chk('GATE-3 con tamaño y FEVI el acortamiento sale de la FEVI',
+      C.g3_tamano_y_fevi.diag.aviso === '' && C.g3_tamano_y_fevi.diag.G > 0 && C.g3_tamano_y_fevi.diag.G < 1
+      && /ajustado por el DDVI/.test(notas(C.g3_tamano_y_fevi)));
+  // La compuerta en TRANSICION: los dos cruces, con el panel abierto.
+  const T = salida.C2_transicion;
+  chk('GATE-T0 DENOMINADOR: la medicion no se hizo con la pestaña oculta', T.hidden === false);
+  chk('GATE-T1 con DDVI el bucle corre y se dibuja el ventriculo',
+      T.conDD.hayTamano === true && T.conDD.raf !== null && T.conDD.delta > 5 && T.conDD.pxMotilidad > 300);
+  chk('GATE-T2 borrar el DDVI con el panel abierto APAGA el bucle',
+      T.sinDD.hayTamano === false && T.sinDD.raf === null && T.sinDD.delta === 0);
+  chk('GATE-T3 y deja de dibujar el ventriculo, pero el mensaje queda pintado',
+      T.sinDD.pxMotilidad === 0 && T.sinDD.pxTotal > 500);
+  chk('GATE-T4 volver a cargar el DDVI rearma el bucle y el ventriculo',
+      T.reDD.hayTamano === true && T.reDD.raf !== null && T.reDD.delta > 5 && T.reDD.pxMotilidad > 300);
+  chk('GATE-4 un DDVI fuera de banda cierra la compuerta con el OTRO mensaje',
+      C.g1b_dd_fuera_banda.diag.hayTamano === false
+      && /fuera de lo medible/.test(String(C.g1b_dd_fuera_banda.diag.msgSinDatos))
+      && !/Cargá el DDVI/.test(String(C.g1b_dd_fuera_banda.diag.msgSinDatos)));
 
   // Amplitud — las cuatro condiciones de la decision del 2026-10-04
   chk('AMP-1 FEVI 30 con todo normal: ganancia reducida', D.fevi30_todo_normal.diag.G < 0.6 && D.fevi30_todo_normal.diag.aviso === '');

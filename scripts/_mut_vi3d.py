@@ -173,6 +173,37 @@ MUTACIONES = [
      "  if (d.fevi.fuera){\n    notas.push(['a', 'La FEVI cargada está fuera de lo medible, así que no se usó para la amplitud. '\n      + 'El dibujo muestra solo el patrón segmentario.']);\n  } else if (aviso === 'inalcanzable'){",
      "  if (false){\n    notas.push(['a', 'La FEVI cargada está fuera de lo medible, así que no se usó para la amplitud. '\n      + 'El dibujo muestra solo el patrón segmentario.']);\n  } else if (aviso === 'inalcanzable'){",
      ['SHARP-8']),
+
+    # ── Compuerta de tamaño (regla de Maicol, 2026-10-04) ──
+    ('M22 se pierde la compuerta: dibuja el ventriculo sin DDVI ni VDFVI',
+     "  if (!_lv3d.hayTamano){\n    lv3dMensajeEnRecuadro(ctx, W, H, pal, _lv3d.msgSinDatos || LV3D_MSG_SIN_DATOS);",
+     "  if (false){\n    lv3dMensajeEnRecuadro(ctx, W, H, pal, _lv3d.msgSinDatos || LV3D_MSG_SIN_DATOS);",
+     ['GATE-1b', 'GATE-T3']),
+
+    ('M23 «hay tamaño» siempre verdadero (la compuerta nunca cierra)',
+     "  _lv3d.hayTamano = (d.dd.val !== null) || (d.vdf.val !== null);",
+     "  _lv3d.hayTamano = true;",
+     ['GATE-1', 'GATE-T2']),
+
+    ('M24 «hay tamaño» mira solo el DDVI y se olvida del VDFVI',
+     "  _lv3d.hayTamano = (d.dd.val !== null) || (d.vdf.val !== null);\n  _lv3d.msgSinDatos =",
+     "  _lv3d.hayTamano = (d.dd.val !== null);\n  _lv3d.msgSinDatos =",
+     ['GATE-2c', 'GATE-2d']),
+
+    ('M25 el rearme no cubre el sentido inverso: borrar el DDVI deja el bucle vivo',
+     "  if (!_lv3d.hayTamano || _lv3d.raf === null) lv3dArrancar();",
+     "  if (_lv3d.raf === null) lv3dArrancar();",
+     ['GATE-T2']),
+
+    ('M26 un DDVI fuera de banda recibe el mensaje de «no hay datos cargados»',
+     "  _lv3d.msgSinDatos = (d.dd.fuera || d.vdf.fuera) ? LV3D_MSG_FUERA_BANDA : LV3D_MSG_SIN_DATOS;",
+     "  _lv3d.msgSinDatos = LV3D_MSG_SIN_DATOS;",
+     ['GATE-4']),
+
+    ('M27 el panel vuelve a hablar de amplitud sobre un ventriculo que no dibujo',
+     "  if (!_ddHay && !_vdfHay){\n    const faltanG = [];",
+     "  if (false){\n    const faltanG = [];",
+     ['GATE-1e']),
 ]
 
 
