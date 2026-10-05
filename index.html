@@ -6054,20 +6054,27 @@ window.cerrarSesionReal = cerrarSesionReal;
               </div>
 
               <!-- ⚠️ CAPTURA: UNA SOLA, Y SÓLO EN MEMORIA.
-                   No entra al estudio, no entra a `localStorage`, no sale al Excel y NO está
-                   conectada al PDF, al PPT ni al Excel: eso es el trabajo siguiente, y hasta
-                   entonces lo único que la expone es `window.lv3dCaptura()`.
+                   No entra al estudio, no entra a `localStorage` y no sale al Excel ni al PPT. Al
+                   PDF sí, desde el 2026-10-04, y SÓLO si la casilla de acá abajo está marcada: la
+                   única puerta es `window.lv3dCapturaParaPDF()`, que exige las dos cosas.
                    Sobrevive al cambio de pestaña a propósito —hay que poder armar el informe desde
                    otra pestaña— y por eso mismo es exactamente el tipo de cosa que aparece en el
                    informe del paciente SIGUIENTE: se descarta en `limpiarCampos` y en
                    `cerrarSesionReal`, que son las dos puertas que cubren los cuatro casos.
-                   Los dos botones van sin `id`; el <img> tampoco lleva `id` ni `name`, y ningún
-                   barrido de la app mira <img>, así que queda fuera de los seis por construcción. -->
+                   Los tres controles van sin `id` —la casilla del PDF tampoco lo lleva, y además
+                   `data-ui`, igual que las otras dos del panel: no es un dato del estudio, no se
+                   guarda, no sale al Excel y no cuenta para «la sección tiene datos»—. El <img> no
+                   lleva `id` ni `name`, y ningún barrido de la app mira <img>. -->
               <div id="lv3d-cap" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;">
                 <button type="button" class="btn btn-ghost lv3d-cap-tomar" style="min-height:44px;font-size:11px;">📷 Capturar imagen</button>
                 <button type="button" class="btn btn-ghost lv3d-cap-quitar" style="min-height:44px;font-size:11px;display:none;">Quitar</button>
                 <img class="lv3d-cap-img" alt="Miniatura de la captura del diagrama 3D" style="display:none;width:72px;height:auto;border:1px solid var(--border);border-radius:5px;">
                 <span class="lv3d-cap-txt" style="font-size:10.5px;color:var(--text2);line-height:1.35;">Sin captura.</span>
+                <!-- Arranca `disabled` en el HTML y no sólo por JS: entre que el documento se parsea
+                     y que corre `lv3dCapRender`, una casilla habilitada sin captura detrás es una
+                     casilla que se puede marcar. Y el único momento en que no hay captura es el
+                     arranque, así que el estado inicial es justo el que importa. -->
+                <label class="lv3d-cap-pdf-lbl" style="display:inline-flex;align-items:center;gap:7px;min-height:44px;min-width:44px;cursor:pointer;font-size:10.5px;opacity:0.5;"><input type="checkbox" class="lv3d-cap-pdf" data-ui disabled style="width:20px;height:20px;"> Incluir diagrama 3D en el PDF</label>
               </div>
 
               <!-- P5: los datos de construcción, debajo del diagrama. El panel SOLO LEE. -->
@@ -38817,41 +38824,122 @@ function generarPDFReal(_aj) {
      dianas a 54, así que el mismo informe mostraba dos diagramas circulares de tamaños distintos
      sin ninguna razón clínica. Una sola constante, para que no vuelvan a separarse. */
   const _PDF_DIANA_LADO = 54;
-  if ((_incContr || _incSgl) && typeof bullseyeDataURL === 'function') {
-    // Columnas: cada una con su bull's eye arriba y su texto debajo
-    const _cols = [];
-    if (_incContr) {
+  /* Tope de ALTO para la captura del 3D, en mm, y es un RESPALDO: hoy no actúa nunca. Con el tope
+     de ancho de abajo la captura más alta —territorio, tres territorios— mide 105,2 mm, bien por
+     debajo de 170. Está porque el alto sale de una proporción que depende del pie y de la leyenda
+     del PNG, y esos dos ya crecieron una vez en esta misma tanda: sin tope, un PNG más alto se
+     dibuja pasado el MediaBox y el visor lo recorta SIN avisar, que es el modo de falla que el
+     comentario del cuerpo de más abajo describe para el texto.
+     Cuando actúa, se re-deriva el ANCHO desde el alto: la imagen se achica, nunca se achata ni se
+     recorta. Medido: sin el tope de ancho, esa misma captura llegaba a 166,5 mm. */
+  const _PDF_CAP_ALTO_MAX = 170;
+  /* ⚠️ TOPE DE ANCHO DE LA CAPTURA, Y EL MOTIVO ES TIPOGRÁFICO, no de maquetación.
+     El PNG trae su texto DIBUJADO ADENTRO, así que el cuerpo de letra impreso no lo decide el PDF:
+     sale del ancho al que se escala la imagen. Sin tope, la captura sola se estiraba a los 192 mm
+     de la hoja y su pie salía a 20,6 pt —más del doble que los títulos del informe (7,5) y que el
+     cuerpo (8)—, mientras la MISMA captura compartiendo fila con el bull's eye salía a 9,6. El
+     mismo PNG con dos tamaños de letra según con quién comparta hoja.
+     A 120 mm el pie cae a 13,0 pt y la leyenda de tonos a 8,5, que es el cuerpo del informe, y la
+     imagen sigue siendo un 35 % más grande que en columna compartida. Medido en el PDF generado.
+     Decisión de Maicol del 2026-10-04. */
+  const _PDF_CAP_ANCHO_MAX = 120;
+  /* ⚠️ LA CAPTURA DEL 3D, Y NO HAY SEGUNDA COMPUERTA QUE OLVIDAR.
+     `lv3dCapturaParaPDF()` ya exige las DOS cosas —captura en memoria Y casilla marcada— y devuelve
+     `null` si falta cualquiera, así que acá no se vuelve a preguntar nada: preguntar de nuevo sería
+     un segundo lugar donde la condición puede quedar escrita al revés. A diferencia de los dos
+     toggles de arriba, la casilla NO vive en `localStorage` y no sobrevive al cambio de paciente:
+     la captura muere en `lv3dNuevoPaciente` y la casilla se apaga por no haber captura, que es
+     exactamente la falla que los dos comentarios de arriba describen y que acá no puede pasar.
+     El `typeof` cubre el caso de que el módulo 3D no exista (la app abierta sin esa sección). */
+  const _cap3d = (typeof window.lv3dCapturaParaPDF === 'function') ? window.lv3dCapturaParaPDF() : null;
+  const _hayBE = typeof bullseyeDataURL === 'function';
+  if (((_incContr || _incSgl) && _hayBE) || _cap3d) {
+    // Columnas: cada una con su imagen arriba y su texto debajo
+    let _colContr = null, _colSgl = null, _colCap = null;
+    if (_incContr && _hayBE) {
       if (typeof contrRenderInforme === 'function') contrRenderInforme();
       const _ctLineas = (typeof contrGetLineasInforme === 'function') ? contrGetLineasInforme() : [];
       const _ct = _ctLineas.join('\n');
-      const _leyenda = CONTR_MOTILIDAD.map(m => m.nombre).join(' · ');
-      _cols.push({
+      _colContr = {
         title: 'Contractilidad segmentaria',
+        rotulo: 'CONTRACTILIDAD',
         data: bullseyeDataURL(id => (CONTR_MOTILIDAD[(contrEstado[id]||0)] || CONTR_MOTILIDAD[0]).color),
         heading: _ct ? 'Hallazgos de motilidad:' : '',
         body: _ct,
         leyenda: CONTR_MOTILIDAD
-      });
+      };
     }
-    if (_incSgl) {
+    if (_incSgl && _hayBE) {
       const _gls = (typeof sv === 'function') ? sv('sgl_gls').trim() : '';
       const _nt  = (typeof sv === 'function') ? sv('sgl_notas').trim() : '';
       const _body = [ _gls ? ('SGL global: ' + _gls + ' %') : '', _nt ].filter(Boolean).join('\n');
-      _cols.push({
+      _colSgl = {
         title: 'Strain longitudinal (SGL)',
+        rotulo: 'STRAIN (SGL)',
         data: bullseyeDataURL(id => strainColor(id)),
         heading: _body ? 'Strain longitudinal (SGL):' : '',
         body: _body,
         leyenda: GE_STRAIN
-      });
+      };
     }
-    if (_cols.length) {
-      checkPage(88);
-      drawBar(_cols.length === 2 ? 'CONTRACTILIDAD Y STRAIN (SGL)' : _cols[0].title.toUpperCase());
-      y += _aire(3);
+    if (_cap3d) {
+      /* ⚠️ `ar` (alto/ancho) es lo que marca la diferencia entre esta columna y las dos dianas, y
+         es lo que impide que la imagen se deforme. Las dianas son CUADRADAS por construcción y el
+         código viejo escribía el mismo valor como ancho y como alto; el PNG del 3D no lo es —mide
+         680 × (380 + pie + leyenda), así que su proporción cambia según el modo— y escalarlo con
+         `_szImg, _szImg` lo habría achatado hasta volver esférico un ventrículo dilatado, que es
+         exactamente lo único que el diagrama afirma.
+         `leyenda` va SIN definir a propósito: la del 3D está pintada DENTRO del PNG (es la misma
+         que la de pantalla, por `lv3dTonoHex`), así que esta columna no reserva los 34 mm laterales
+         y usa todo su ancho — que es también lo que hace que el texto del pie se pueda leer. */
+      _colCap = {
+        title: 'Diagrama 3D del ventrículo izquierdo',
+        rotulo: 'DIAGRAMA 3D',
+        data: _cap3d.url,
+        ar: (_cap3d.alto && _cap3d.ancho) ? (_cap3d.alto / _cap3d.ancho) : 1,
+        heading: '',
+        body: ''
+      };
+    }
+    /* ⚠️ DISPOSICIÓN — DECISIÓN DE MAICOL DEL 2026-10-04, y la regla es UNA, no cuatro casos.
+       Fila 1 toma hasta dos columnas entre [bull's eye de motilidad, captura del 3D]. Si queda una
+       sola, el strain ocupa la segunda columna de esa misma fila, que es cómo salía hasta hoy; si
+       la fila 1 ya tiene dos, el strain baja a una fila propia debajo.
+       Escrito así porque la lista de casos del pedido cubría cuatro de las ocho combinaciones
+       posibles de tres casillas independientes, y las cuatro que faltaban —empezando por «captura
+       marcada y bull's eye NO marcado»— son alcanzables con un clic: las dos casillas siguen
+       independientes, ninguna prende ni apaga a la otra. Una regla cubre las ocho; una lista de
+       casos deja agujeros que se descubren con el PDF ya firmado. Se verifican los ocho. */
+    const _fila1 = [_colContr, _colCap].filter(Boolean);
+    const _fila2 = [];
+    if (_colSgl) { if (_fila1.length >= 2) _fila2.push(_colSgl); else _fila1.push(_colSgl); }
+    const _todas = _fila1.concat(_fila2);
+
+    /* Alto de imagen de una fila, para presupuestar el `checkPage`. El viejo `checkPage(88)` daba
+       por sentado que la imagen medía 54 y alcanzaba: la captura sola mide 105,2 mm de alto, que
+       con el bloque arrancando en y≈65 todavía entra en la hoja — así que HOY este cálculo no
+       cambia ninguna decisión, y así está medido en el arnés de mutaciones (M29 y M30 sobreviven,
+       declaradas). Se calcula igual porque el presupuesto de 88 era una coincidencia, no una
+       cota: con el bloque empezando más abajo —un informe con ETE, con imágenes, o con un texto
+       de motilidad largo— el sobrante se dibuja pasado el MediaBox y el visor lo recorta SIN
+       avisar, que es el mismo modo de falla que el comentario del cuerpo describe para el texto.
+       Tiene que dar lo MISMO que el cálculo de `_dibujarFila`, así que el día que cambie uno hay
+       que cambiar los dos: es el precio de presupuestar antes de dibujar. */
+    const _altoImgFila = (cols, colW) => cols.reduce((mx, col) => {
+      const legW = col.leyenda ? 34 : 0;
+      const dispo = colW - legW - 2;
+      const w = col.ar ? Math.min(_PDF_CAP_ANCHO_MAX, dispo) : Math.min(_PDF_DIANA_LADO, dispo);
+      return Math.max(mx, Math.min(w * (col.ar || 1), _PDF_CAP_ALTO_MAX));
+    }, 0);
+    const _anchoCol = cols => (pgW - (cols.length - 1) * 10) / cols.length;
+
+    const _dibujarFila = (_cols, _conSalto) => {
       const _n = _cols.length, _gap = 10;
       const _colW = (pgW - (_n - 1) * _gap) / _n;
-      const _sz = Math.min(_colW, _PDF_DIANA_LADO);  // bull's eye cuadrado, centrado en su columna
+      /* La segunda fila no trae banda propia —es el mismo bloque— pero sí tiene que caber: sin
+         este `checkPage` el strain de abajo se dibujaba sobre la firma cuando la fila de arriba
+         llegaba larga. Con salto, arranca la hoja nueva en el margen de siempre. */
+      if (_conSalto) { checkPage(2 + _altoImgFila(_cols, _colW) + 20); y += _aire(2); }
       const _startY = y;
       /* Cada columna arranca en la MISMA página, no en la que dejó la anterior.
          `_cols.map` compartía la página actual del documento: si el cuerpo de la columna 0
@@ -38874,8 +38962,20 @@ function generarPDFReal(_aj) {
         fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(col.title, _ccx, _cy, { align:'center' }); _cy += 2;
         const _imgY = _cy;
         const _legW = col.leyenda ? 34 : 0;
-        const _szImg = Math.min(_PDF_DIANA_LADO, _colW - _legW - 2);
-        const _imgX = _cx0 + _legW + (_colW - _legW - _szImg) / 2;
+        /* Ancho disponible y alto POR PROPORCIÓN. Para las dianas (`ar` sin definir) da exactamente
+           lo de antes: `min(54, _colW - _legW - 2)` y un alto igual al ancho. Para la captura usa
+           todo el ancho libre y deriva el alto de `ar`, con un tope de alto para que una captura en
+           columna única no se salga de la hoja; si el tope actúa, se re-deriva el ANCHO —nunca se
+           recorta ni se achata—.
+           ⚠️ El centrado divide `_colW - _legW`, SIN los 2 mm de aire, y no `_dispo`. Es como estaba
+           y hay que dejarlo así: centrar sobre `_dispo` corre la diana 1 mm a la izquierda, lo que
+           no se ve en una hoja pero hace distinto cada byte del PDF de todos los estudios que ya
+           salían bien — y entonces el A/B contra HEAD deja de poder distinguir un cambio real. */
+        const _dispo = _colW - _legW - 2;
+        let _imgW = col.ar ? Math.min(_PDF_CAP_ANCHO_MAX, _dispo) : Math.min(_PDF_DIANA_LADO, _dispo);
+        let _imgH = _imgW * (col.ar || 1);
+        if (_imgH > _PDF_CAP_ALTO_MAX) { _imgH = _PDF_CAP_ALTO_MAX; _imgW = _imgH / (col.ar || 1); }
+        const _imgX = _cx0 + _legW + (_colW - _legW - _imgW) / 2;
         if (col.leyenda) {
           const _lx = _cx0;
           let _ly = _imgY + 4;
@@ -38896,12 +38996,12 @@ function generarPDFReal(_aj) {
             }
           });
         }
-        doc.addImage(col.data, 'PNG', _imgX, _imgY, _szImg, _szImg);
-        _cy = _imgY + _szImg + 5;
+        doc.addImage(col.data, 'PNG', _imgX, _imgY, _imgW, _imgH);
+        _cy = _imgY + _imgH + 5;
         if (col.body) {
           fb(7.5); tc(TEMA[0],TEMA[1],TEMA[2]); doc.text(col.heading, _cx0, _cy); _cy += 5.2;
           fn(8); tc(30,30,30);
-          /* El checkPage(88) de arriba presupuesta la diana y deja ~9 mm para el cuerpo.
+          /* El checkPage de arriba presupuesta la imagen y deja ~9 mm para el cuerpo.
              Un post-IAM con varios territorios emite una frase por grupo y necesita 40-60:
              sin tope, el sobrante se dibujaba encima de la firma y, pasados los 297 mm,
              fuera del MediaBox — el visor lo recorta sin avisar y el informe sale firmado
@@ -38926,6 +39026,20 @@ function generarPDFReal(_aj) {
          coordenadas de páginas distintas. */
       doc.setPage(_pagFin);
       y = Math.max.apply(null, _bottoms.filter(b => b.pag === _pagFin).map(b => b.y)) + 4;
+    };
+
+    if (_todas.length) {
+      /* El rótulo de la banda: con UNA sola columna es su título en mayúsculas, como antes; con
+         varias se arman los `rotulo` cortos. Para contractilidad + strain eso devuelve
+         'CONTRACTILIDAD Y STRAIN (SGL)', idéntico a la cadena literal que había acá — por eso el
+         PDF de los casos que ya existían sale byte por byte igual que en HEAD. */
+      const _rs = _todas.map(c => c.rotulo);
+      checkPage(Math.max(88, 2 + _altoImgFila(_fila1, _anchoCol(_fila1)) + 20));
+      drawBar(_todas.length === 1 ? _todas[0].title.toUpperCase()
+              : (_rs.slice(0, -1).join(', ') + ' Y ' + _rs[_rs.length - 1]));
+      y += _aire(3);
+      _dibujarFila(_fila1);
+      if (_fila2.length) _dibujarFila(_fila2, true);
     }
   }
 
@@ -63348,23 +63462,35 @@ const _lv3d = { abierto:false, raf:null, cuadros:0, t0:null, off:0, fase:0, corr
 window.lv3dDiag = function(){ return { abierto:_lv3d.abierto, raf:_lv3d.raf, cuadros:_lv3d.cuadros,
                                        G:_lv3d.G, aviso:_lv3d.aviso, modo:_lv3d.modo,
                                        hayCaptura:!!_lv3d.cap,
+                                       /* Estado CRUDO de la casilla, para que el arnés pueda
+                                          distinguir «marcada» de «deshabilitada»: el getter del PDF
+                                          devuelve null en los dos casos y no deja ver cuál es. */
+                                       capPdfMarcada:lv3dCtl('.lv3d-cap-pdf'),
+                                       capPdfActiva:(function(){ const e = document.querySelector('#lv3d-cap .lv3d-cap-pdf'); return !!e && !e.disabled; })(),
+                                       /* Geometria de las bandas del PNG, para que el arnes mida
+                                          por franja sin copiar los numeros a mano. */
+                                       capAltoPie:LV3D_CAP_ALTO_PIE,
+                                       capLeyCab:LV3D_CAP_LEY_CAB, capLeyFila:LV3D_CAP_LEY_FILA,
+                                       /* Cuerpos de letra del PNG. El arnes los necesita para
+                                          calcular a cuantos PUNTOS caen impresos, que es la
+                                          magnitud que la decision de Maicol fija. */
+                                       capFuentes:{ fase:LV3D_CAP_F_FASE, frase:LV3D_CAP_F_FRASE,
+                                                    grado:LV3D_CAP_F_GRADO, ter:LV3D_CAP_F_TER },
                                        hayTamano:_lv3d.hayTamano, msgSinDatos:_lv3d.msgSinDatos }; };
 
 function lv3dCtl(sel){ const el = document.querySelector('#lv3d-panel ' + sel); return el ? el.checked : false; }
 
-/* ── Paleta: se LEE del tema vigente. El canvas no hereda variables CSS, así que los trazos y la
-   brújula tienen que pedirlas a mano. El FONDO sí lo pone el CSS del elemento (`var(--bg3)`) y
-   por eso el canvas se limpia transparente en vez de pintarse de un color fijo. ── */
+/* ── Paleta DE PANTALLA: se LEE del tema vigente. El canvas no hereda variables CSS, así que los
+   trazos y la brújula tienen que pedirlas a mano. El FONDO sí lo pone el CSS del elemento
+   (`var(--bg3)`) y por eso el canvas se limpia transparente en vez de pintarse de un color fijo.
+   ⚠️ Esta paleta NO la usa la captura. Entre el 2026-10-04 devolvió además un `fondo:` leído de
+   `--bg3` para que el PNG no tuviera un segundo lector del tema; desde que la captura es de fondo
+   BLANCO FIJO (`LV3D_CAP_PAL`) ese campo no tiene consumidor y se sacó, para que nadie lo vuelva a
+   cablear y devuelva el PNG a depender del tema sin querer. ── */
 function lv3dPaleta(){
   const cs = getComputedStyle(document.documentElement);
   const g = (n, f) => ((cs.getPropertyValue(n) || '').trim() || f);
-  /* `fondo` lo agrega la captura (2026-10-04) y entra ACÁ, no en `lv3dCapturar`: ésta es la única
-     función que lee variables CSS del tema, y la única que `lv3dAlCambiarTema` refresca. Leyendo
-     `--bg3` por separado desde la captura habría DOS lectores del tema con vidas distintas —uno
-     cacheado y otro no—, que es exactamente cómo un PNG termina con el fondo de un tema y el texto
-     del otro. En pantalla `fondo` NO se usa: ahí lo pone el CSS del canvas. */
-  return { texto:g('--text','#e8ecf4'), texto2:g('--text2','#9aa3bc'), borde:g('--border','#2a3050'),
-           fondo:g('--bg3','#1e2333') };
+  return { texto:g('--text','#e8ecf4'), texto2:g('--text2','#9aa3bc'), borde:g('--border','#2a3050') };
 }
 function lv3dRGB(h){
   const s = String(h || '').trim();
@@ -64078,12 +64204,10 @@ function lv3dReconstruir(){
 /* La llama `contrNotificar`/`contrNotificarTodos`. Con el panel cerrado no hace nada: es lo que
    deja que el bull's eye siga funcionando igual cuando el 3D no existe en pantalla. */
 function lv3dAlCambiarEstado(){
-  /* ⚠️ LA MARCA DE «DESACTUALIZADA» VA ANTES DEL `if (abierto)`, Y NO ADENTRO.
-     La captura vive en memoria y sobrevive al cierre del panel: si la marca se decidiera sólo con
-     el panel abierto, cerrar el panel, cambiar un volumen y reabrirlo dejaría una miniatura
-     presentándose como al día sobre datos que ya no son los suyos. Y es barato: sin captura —el
-     caso normal— no hace nada. */
-  if (_lv3d.cap) lv3dCapRender();
+  /* Acá había un `if (_lv3d.cap) lv3dCapRender();` fuera del `if (abierto)`, y era la mitad de la
+     lógica del aviso «desactualizada»: lo único que hacía era recalcular esa marca cuando cambiaba
+     un dato con el panel cerrado. Sin aviso no queda nada que recalcular —la miniatura sólo dice
+     fase y modo, que un cambio de dato no toca— así que se sacó en vez de dejarlo repintando. */
   if (_lv3d.abierto) lv3dReconstruir();
 }
 /* El canvas no hereda las variables CSS: al cambiar de tema hay que volver a leerlas y repintar. */
@@ -64190,26 +64314,61 @@ function lv3dSetModo(m){
 }
 
 /* ══ P4 · CAPTURA DE IMAGEN ════════════════════════════════════════════════════════════════════
-   UNA sola captura, en memoria y nada más: no entra al estudio, no entra a `localStorage`, no sale
-   al Excel, y NO está conectada al PDF, al PPT ni al Excel —eso es el trabajo siguiente—. Lo único
-   que la expone es `window.lv3dCaptura()`, que devuelve una copia. */
+   UNA sola captura, en memoria y nada más: no entra al estudio, no entra a `localStorage` y no sale
+   al Excel ni al PPT. Al PDF entra desde el 2026-10-04 y SÓLO por `window.lv3dCapturaParaPDF()`,
+   que exige captura en memoria Y la casilla marcada. `window.lv3dCaptura()` devuelve la copia sin
+   mirar la casilla y la usa el arnés; el emisor del PDF no la llama. */
 const LV3D_CAP_FRASE = 'Modelo esquemático, no imagen del paciente';
 const LV3D_CAP_ESC = 2;          // el PNG sale al doble para que no se vea pixelado en el papel
 
-/* ⚠️ FIRMA DE LO QUE EL DIBUJO DEPENDE, y no un flag.
-   `lv3dAlCambiarEstado` la llama `calcVI`, que cuelga del `oninput` de MUCHOS campos que el 3D no
-   mira: con un flag que se prende al primer aviso, tipear la aurícula marcaba la captura como
-   vieja sin que el dibujo hubiera cambiado un píxel — y una advertencia que salta cuando no
-   corresponde es una advertencia que se deja de leer. Comparando la firma, se marca sólo si cambió
-   uno de los cuatro campos que el panel lee o uno de los 17 estados.
-   Tiene un segundo efecto, y es correcto: deshacer el cambio devuelve la miniatura a «al día»,
-   porque volvió a estarlo. Lo que NO hace es borrarla sola, que es la regla del pedido. */
-function lv3dFirmaDatos(){
-  const g = id => { const e = document.getElementById(id); return e ? String(e.value || '') : ''; };
-  let s = g('vdfvi') + '|' + g('vsfvi') + '|' + g('fevi') + '|' + g('ddfvi') + '|';
-  for (let i=1;i<=17;i++) s += (Number(contrEstado[LV3D_SEG_ID[i]]) || 0) + ',';
-  return s;
-}
+/* ⚠️ PALETA FIJA DE LA CAPTURA — BLANCA, Y A PROPÓSITO NO SALE DEL TEMA.
+   La captura es papel, no pantalla: termina pegada en un PDF de fondo blanco. Mientras leyó
+   `--bg3` producía DOS PNG distintos para el mismo paciente según cómo tuviera el médico su app,
+   y el del tema oscuro llegaba al informe firmado como un rectángulo negro con el texto claro
+   invertido respecto de todo lo que lo rodea. El blanco es el MISMO `#ffffff` que pinta
+   `bullseyeDataURL`, y el borde el MISMO `#cfd6e6` con el que esa función perfila cada cuña: el
+   bull's eye y el diagrama 3D salen uno al lado del otro en la misma hoja, así que compartir los
+   dos colores es lo que hace que se lean como un par y no como dos imágenes de orígenes distintos.
+   Los textos van al `#1e1e1e` del `tc(30,30,30)` que usan las leyendas del PDF, por lo mismo.
+   `lv3dPintar` sólo toca `texto`/`texto2` (la brújula): el color de cada segmento lo decide
+   `lv3dColorSeg`, que no mira el tema, así que con esta paleta el PNG sale idéntico en claro y en
+   oscuro — que es la regla del pedido, verificable comparando las dos dataURL. */
+const LV3D_CAP_PAL = { fondo:'#ffffff', texto:'#1e1e1e', texto2:'#4a5163', borde:'#cfd6e6' };
+
+/* ⚠️ CUERPOS DE LETRA DEL PIE Y DE LA LEYENDA DEL PNG — DIMENSIONADOS CONTRA EL PAPEL, NO CONTRA
+   LA PANTALLA, y por eso parecen enormes leyendo el código.
+   La captura se escala por el ANCHO de su columna del PDF. Compartiendo fila con el bull's eye esa
+   columna mide 89 mm sobre los 680 px lógicos del PNG, o sea 0,131 mm por píxel: con los cuerpos
+   originales —12 px la frase, 9 px los rótulos de grado— el texto caía impreso en 4,5 y 3,3 pt,
+   la MITAD del cuerpo más chico del propio informe (las leyendas del PDF van a 7 pt). Medido en el
+   PDF generado, no estimado. Con estos valores la misma columna de 89 mm da 9,6 / 8,5 / 7,1 / 6,3
+   pt, que es el rango del resto de la hoja.
+   El precio es el caso de la captura SOLA, que a 190 mm de ancho sube a 20,6 / 18,2 pt: grande,
+   pero legible es el requisito y chico es el defecto.
+   ⚠️ EL PIE PASÓ A DOS LÍNEAS, Y NO ES ESTÉTICA. A 26 y 23 px, «Fase: …» ocupa ~294 px y la frase
+   ~450 sobre 680: en una sola línea —como estaban, una a la izquierda y otra a la derecha— se
+   SUPERPONEN. Dos líneas es lo que entra.
+   Nada de esto toca la pantalla: el canvas del panel y la leyenda HTML tienen sus propios cuerpos,
+   y la miniatura son 72 px de ancho pase lo que pase. */
+const LV3D_CAP_F_FASE = 26, LV3D_CAP_F_FRASE = 23;   // pie
+const LV3D_CAP_F_GRADO = 17, LV3D_CAP_F_TER = 19;    // cabecera y filas de la leyenda de tonos
+/* Altos de las dos bandas de abajo del modelo, EN CONSTANTES Y NO ESCRITOS adentro de la función:
+   el arnés necesita saber dónde empieza cada banda para contar píxeles de texto por franja, y con
+   el número suelto en el cuerpo la sonda se quedó con el 32 viejo cuando el pie pasó a 76 —medía
+   la segunda línea del pie como si fuera leyenda y daba rojo sobre una captura correcta—.
+   `LV3D_CAP_ALTO_PIE`: separador (6) + dos líneas de 30 + aire (10).
+   `LV3D_CAP_LEY_CAB` / `LV3D_CAP_LEY_FILA`: cabecera de grados y alto de la fila de un territorio.
+   Se publican en `lv3dDiag()`, que es solo lectura. */
+const LV3D_CAP_ALTO_PIE = 76, LV3D_CAP_LEY_CAB = 24, LV3D_CAP_LEY_FILA = 32;
+
+/* ⚠️ LA CAPTURA NO SE MARCA NUNCA COMO «DESACTUALIZADA» — regla de Maicol del 2026-10-04.
+   Hasta esta tanda existía `lv3dFirmaDatos()` —los cuatro campos que el panel lee más los 17
+   estados— y la miniatura se rotulaba «⚠️ Desactualizada» cuando la firma del momento no coincidía
+   con la del momento de capturar. Se sacó entero, con su firma: una captura es una FOTO, y una
+   foto no envejece porque el modelo se mueva. Lo que el médico pegue en el informe es lo que
+   capturó; si quiere otra cosa, captura de nuevo y la nueva reemplaza a la vieja.
+   Consecuencia buscada: el campo `firma` desapareció del objeto `_lv3d.cap` y el campo
+   `desactualizada` del getter, así que no queda ningún consumidor al que convenga resucitarlos. */
 
 function lv3dCapturar(){
   /* La compuerta de tamaño vale igual para el PNG: un recuadro que dice «no hay datos» no es una
@@ -64219,11 +64378,15 @@ function lv3dCapturar(){
     return;
   }
   const terr = lv3dEsTerritorio();
-  const pal  = _lv3d.pal || (_lv3d.pal = lv3dPaleta());
+  const pal  = LV3D_CAP_PAL;          // fija y blanca: el PNG no depende del tema de la app
   const ters = terr ? lv3dTerritorios() : [];
   const W = LV3D_W;
-  const ALTO_PIE = 32;                                      // separador + la línea de texto
-  const ALTO_LEY = terr ? (13 + ters.length*17 + 6) : 0;
+  /* El pie: separador (6) + dos líneas de 30 + aire (10). La leyenda: cabecera (24) + una fila de
+     32 por territorio + aire (10). Los dos crecieron con los cuerpos de letra y los dos crecen
+     SÓLO HACIA ABAJO: `lv3dPintar` recibe `LV3D_H` como alto y dibuja el ventrículo y la brújula
+     dentro de esa banda, así que el modelo sale completo y del mismo tamaño que antes. */
+  const ALTO_PIE = LV3D_CAP_ALTO_PIE;
+  const ALTO_LEY = terr ? (LV3D_CAP_LEY_CAB + ters.length*LV3D_CAP_LEY_FILA + 10) : 0;
   const H = LV3D_H + ALTO_PIE + ALTO_LEY + 10;
   const k = LV3D_CAP_ESC;
   const cv = document.createElement('canvas');
@@ -64233,10 +64396,10 @@ function lv3dCapturar(){
   ctx.setTransform(k, 0, 0, k, 0, 0);
 
   /* ⚠️ FONDO OPACO, PINTADO ACÁ. El canvas de pantalla se limpia TRANSPARENTE y el color lo pone
-     el CSS (`var(--bg3)`), así que un PNG hecho del mismo modo saldría con fondo transparente — y
-     sobre la hoja blanca del PDF el tono de Aquinesia, que está a 12 ΔE2000 del fondo claro, se
-     perdería. El marco de 1 px va por lo mismo: en tema claro el fondo es #eef1f6 y sin marco el
-     borde de la imagen sobre blanco no existe. */
+     el CSS (`var(--bg3)`), así que un PNG hecho del mismo modo saldría con fondo transparente, y
+     un PNG transparente sobre la hoja del PDF no se ve roto: se ve como una imagen sin marco, con
+     el tono claro de Aquinesia perdido contra el papel. El marco de 1 px del final va por lo
+     mismo: siendo el fondo blanco igual que la hoja, sin marco la imagen no tiene borde. */
   ctx.fillStyle = pal.fondo;
   ctx.fillRect(0, 0, W, H);
 
@@ -64245,41 +64408,45 @@ function lv3dCapturar(){
   let y = LV3D_H + 6;
   ctx.strokeStyle = pal.borde; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(12, y + 0.5); ctx.lineTo(W - 12, y + 0.5); ctx.stroke();
-  y += 18;
+  /* Las DOS líneas van alineadas a la izquierda, una debajo de la otra. La frase estaba alineada
+     a la derecha para compartir renglón con la fase; a los cuerpos nuevos no comparten renglón, y
+     dejarla a la derecha sola la separaría de lo único con lo que se lee junto. */
   ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+  y += 28;
   ctx.fillStyle = pal.texto;
-  ctx.font = '600 14px -apple-system, Segoe UI, Roboto, sans-serif';
+  ctx.font = '600 ' + LV3D_CAP_F_FASE + 'px -apple-system, Segoe UI, Roboto, sans-serif';
   ctx.fillText('Fase: ' + lv3dFaseRotulo(), 14, y);
+  y += 30;
   ctx.fillStyle = pal.texto2;
-  ctx.font = '12px -apple-system, Segoe UI, Roboto, sans-serif';
-  ctx.textAlign = 'end';
-  ctx.fillText(LV3D_CAP_FRASE, W - 14, y);
-  ctx.textAlign = 'start';
+  ctx.font = LV3D_CAP_F_FRASE + 'px -apple-system, Segoe UI, Roboto, sans-serif';
+  ctx.fillText(LV3D_CAP_FRASE, 14, y);
   y = LV3D_H + ALTO_PIE;
 
   if (terr){
     /* La MISMA leyenda que la pantalla, dibujada en canvas: sin ella el PNG tendría cinco tonos de
        tres colores y nada que diga qué significan. Los tonos salen de `lv3dTonoHex`, el mismo que
        usa la leyenda HTML, así que no se pueden separar. */
-    const ROTW = 34, X0 = 14;
+    /* `ROTW` subió de 34 a 60 con el cuerpo de los rótulos: «DA» a 700 19px mide ~25 px y la
+       columna tiene que dejarle aire antes de la primera muestra, o el nombre toca el color. */
+    const ROTW = 60, X0 = 14;
     const colW = (W - 2*X0 - ROTW)/CONTR_MOTILIDAD.length;
     ctx.textAlign = 'center';
     ctx.fillStyle = pal.texto2;
-    ctx.font = '9px -apple-system, Segoe UI, Roboto, sans-serif';
-    CONTR_MOTILIDAD.forEach((m, i) => ctx.fillText(m.nombre, X0 + ROTW + colW*(i + 0.5), y + 9));
-    y += 13;
+    ctx.font = LV3D_CAP_F_GRADO + 'px -apple-system, Segoe UI, Roboto, sans-serif';
+    CONTR_MOTILIDAD.forEach((m, i) => ctx.fillText(m.nombre, X0 + ROTW + colW*(i + 0.5), y + 17));
+    y += LV3D_CAP_LEY_CAB;
     ters.forEach(t => {
       ctx.textAlign = 'start';
       ctx.fillStyle = pal.texto;
-      ctx.font = '700 10px -apple-system, Segoe UI, Roboto, sans-serif';
-      ctx.fillText(t.nombre, X0, y + 11);
+      ctx.font = '700 ' + LV3D_CAP_F_TER + 'px -apple-system, Segoe UI, Roboto, sans-serif';
+      ctx.fillText(t.nombre, X0, y + 21);
       for (let i=0;i<CONTR_MOTILIDAD.length;i++){
         ctx.fillStyle = lv3dTonoHex(t.hex, i);
-        ctx.fillRect(X0 + ROTW + colW*i, y + 2, colW + 0.5, 12);
+        ctx.fillRect(X0 + ROTW + colW*i, y + 4, colW + 0.5, 23);
       }
       ctx.strokeStyle = pal.borde; ctx.lineWidth = 1;
-      ctx.strokeRect(X0 + ROTW + 0.5, y + 2.5, colW*CONTR_MOTILIDAD.length - 1, 11);
-      y += 17;
+      ctx.strokeRect(X0 + ROTW + 0.5, y + 4.5, colW*CONTR_MOTILIDAD.length - 1, 22);
+      y += LV3D_CAP_LEY_FILA;
     });
     ctx.textAlign = 'start';
   }
@@ -64287,40 +64454,57 @@ function lv3dCapturar(){
   ctx.strokeStyle = pal.borde; ctx.lineWidth = 1;
   ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
 
-  /* UNA sola: se sobreescribe. Capturar de nuevo reemplaza, que es la regla del pedido. */
+  /* UNA sola: se sobreescribe. Capturar de nuevo reemplaza, que es la regla del pedido.
+     ⚠️ `tema` registra el tema que tenía LA APP al capturar, y nada más. NO describe la imagen
+     —la imagen es siempre blanca, `LV3D_CAP_PAL`— y NO se usa para decidir nada del PDF: ningún
+     camino lo lee para elegir color, tamaño ni disposición. Queda como metadato de diagnóstico. */
   _lv3d.cap = { url: cv.toDataURL('image/png'),
                 fase: lv3dFaseRotulo(),
                 modo: terr ? 'territorio' : 'motilidad',
                 tema: document.documentElement.classList.contains('light-mode') ? 'claro' : 'oscuro',
-                ancho: cv.width, alto: cv.height,
-                firma: lv3dFirmaDatos() };
+                ancho: cv.width, alto: cv.height };
   lv3dCapRender();
   if (typeof toast === 'function') toast('📷 Imagen del 3D capturada (' + _lv3d.cap.fase + ')');
 }
 
+/* ⚠️ EL ÚNICO ESCRITOR DEL ESTADO DE LA CASILLA DEL PDF, y por eso el único lugar donde hay que
+   mirar para saber si la casilla puede quedar marcada sin captura detrás. Lo llaman `lv3dCapturar`,
+   `lv3dCapQuitar`, `lv3dNuevoPaciente` —que cubre «Nuevo estudio», «Limpiar», abrir otro estudio y
+   cerrar sesión— y `lv3dAbrir`. Con captura NO toca `checked`: esa es la mitad de la regla que
+   dice «queda como la deje el médico», y es también por qué capturar de nuevo no la desmarca. */
 function lv3dCapRender(){
   const fila = document.getElementById('lv3d-cap');
   if (!fila) return;
   const img = fila.querySelector('.lv3d-cap-img');
   const txt = fila.querySelector('.lv3d-cap-txt');
   const qui = fila.querySelector('.lv3d-cap-quitar');
+  const pdf = fila.querySelector('.lv3d-cap-pdf');
+  const lbl = fila.querySelector('.lv3d-cap-pdf-lbl');
   const c = _lv3d.cap;
   if (!c){
     if (img){ img.removeAttribute('src'); img.style.display = 'none'; }
     if (txt){ txt.textContent = 'Sin captura.'; txt.style.color = 'var(--text2)'; }
     if (qui) qui.style.display = 'none';
+    /* ⚠️ DESMARCAR ACÁ NO ES COSMÉTICA: es la segunda mitad de la compuerta del PDF.
+       Si la casilla quedara marcada después de descartar la captura, bastaría con que un camino
+       futuro leyera sólo la casilla para que el informe de un paciente saliera pidiendo una imagen
+       que ya no existe —o, peor, la del anterior si alguien decidiera «conservarla por las dudas»—.
+       Con `checked = false` acá y el getter exigiendo las DOS cosas, los dos fallan cerrado. */
+    if (pdf){ pdf.checked = false; pdf.disabled = true; }
+    if (lbl) lbl.style.opacity = '0.5';
     return;
   }
-  const vieja = (c.firma !== lv3dFirmaDatos());
   /* `img.src = ...`, NUNCA innerHTML con la URL adentro: acá no entra dato del paciente, pero una
      dataURL interpolada en HTML es la forma de abrir esa puerta sin darse cuenta. */
   if (img){ img.src = c.url; img.style.display = 'block'; }
   if (txt){
-    txt.textContent = (vieja ? '⚠️ Desactualizada · ' : 'Captura · ')
-      + c.fase + ' · ' + (c.modo === 'territorio' ? 'territorio coronario' : 'motilidad');
-    txt.style.color = vieja ? 'var(--text)' : 'var(--text2)';
+    txt.textContent = 'Captura · ' + c.fase + ' · '
+      + (c.modo === 'territorio' ? 'territorio coronario' : 'motilidad');
+    txt.style.color = 'var(--text2)';
   }
   if (qui) qui.style.display = '';
+  if (pdf) pdf.disabled = false;      // `checked` NO se toca: lo decide el médico
+  if (lbl) lbl.style.opacity = '';
 }
 function lv3dCapQuitar(){
   if (!_lv3d.cap) return;
@@ -64343,18 +64527,34 @@ function lv3dNuevoPaciente(){
   _lv3d.cap = null;
   _lv3d.modo = 'motilidad';
   lv3dModoUI(true);
+  /* `lv3dCapRender` con `cap` en null es también lo que desmarca y deshabilita la casilla del PDF:
+     el orden importa —primero se borra la captura, después se repinta— porque la casilla se apaga
+     por NO haber captura, no por una orden aparte que se pueda olvidar en una de las dos puertas. */
   lv3dCapRender();
 }
 window.lv3dNuevoPaciente = lv3dNuevoPaciente;
 
-/* Para el trabajo SIGUIENTE (el PDF). Devuelve una COPIA: quien la consuma no puede marcarla como
-   al día ni cambiarle la fase. Hoy NADIE la llama — no está conectada al PDF, al PPT ni al Excel,
-   que es lo que pidió Maicol. */
+/* Devuelve una COPIA: quien la consuma no puede cambiarle la fase ni el modo registrados. */
 window.lv3dCaptura = function(){
   const c = _lv3d.cap;
   if (!c) return null;
-  return { url:c.url, fase:c.fase, modo:c.modo, tema:c.tema, ancho:c.ancho, alto:c.alto,
-           desactualizada: (c.firma !== lv3dFirmaDatos()) };
+  return { url:c.url, fase:c.fase, modo:c.modo, tema:c.tema, ancho:c.ancho, alto:c.alto };
+};
+
+/* ⚠️ LA ÚNICA PUERTA POR LA QUE LA CAPTURA LLEGA AL PDF, y exige LAS DOS COSAS: que haya captura
+   en memoria Y que la casilla esté marcada. Con dos compuertas separadas en el emisor del PDF
+   —una para la casilla y otra para la imagen— alcanza con olvidar una para que el informe firmado
+   de un paciente salga con la imagen del anterior; acá no hay dónde olvidarse, porque el único
+   valor que sale es la captura ya autorizada o `null`.
+   El orden importa: `_lv3d.cap` primero. La casilla es DOM y el DOM sobrevive a cosas que la
+   memoria no —`lv3dCapRender` la desmarca, pero si alguna vez ese llamado se perdiera, el
+   `_lv3d.cap` en null sigue cerrando la puerta igual—. Fallar cerrado por los dos lados.
+   Nadie más que el PDF la llama, y NO está conectada al PPT ni al Excel. */
+window.lv3dCapturaParaPDF = function(){
+  if (!_lv3d.cap) return null;
+  const pdf = document.querySelector('#lv3d-cap .lv3d-cap-pdf');
+  if (!pdf || !pdf.checked) return null;
+  return window.lv3dCaptura();
 };
 
 function lv3dMaquetar(){
@@ -93463,8 +93663,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261004-2045';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791157506408;                 /* eco-build-ms */
+const ECO_BUILD    = '20261004-2254';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791165283134;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -93550,7 +93750,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-2045</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-2254</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
