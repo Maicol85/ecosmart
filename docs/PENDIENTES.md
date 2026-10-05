@@ -1,5 +1,74 @@
 # EcoSmart — pendientes vivos
 
+## EN SUMA · morfología y prótesis (2026-10-05, parte D) — declarado y NO arreglado
+
+De la tanda «EN SUMA: morfología y prótesis en una línea (pulmonar y tricúspide)». Nada de esto es
+un defecto introducido por esa tanda: los tres están **medidos en HEAD y en el cambio con el mismo
+resultado**. Los encontró `/sharp-edges` corriendo sobre el propio diff.
+
+### ⚠️ El grado calculado con cortes NATIVOS sobrevive al cambio a prótesis
+
+**Qué se midió.** Dos gestos, en el orden del día a día:
+
+| gesto | pulmonar | tricúspide |
+|---|---|---|
+| 1 · cargar el dato con la válvula nativa | `vp_vmax = 3.5` → `calcVP` escribe `ep_grado = 'Moderada'` | `et_gmedio = 6` → `calcET` escribe `et_grado = 'Significativa'` |
+| 2 · elegir la prótesis en Válvulas | `ep_grado` sigue en `'Moderada'` | `et_grado` sigue en `'Significativa'` |
+
+El `onchange` de `vp_morf` es `vpSync();valvProtSync()` y el de `vt_morf` es `valvProtSync()`:
+ninguno limpia el `<select>` de grado ni vuelve a llamar al calculador — y si lo llamara, saldría
+por `protNoGraduaPintar` **antes** de tocarlo.
+
+**Qué causa.** El informe firmado gradúa con cortes de válvula nativa lo que la app se niega a
+graduar. Y **el cuerpo ya lo hacía en HEAD**: imprime «Válvula pulmonar con prótesis biológica y
+estenosis moderada (Vmax 3.5 m/s, Gmax 49 mmHg)». Lo que cambió con D es sólo el renglón del
+resumen, que pasó de «EP moderada.» a «VP protésica biológica con estenosis moderada.» — o sea que
+D hizo el resumen **coherente con el cuerpo**; la fuga está aguas arriba, en el campo de grado.
+
+**Peor en la pulmonar:** el badge `vp-sev-badge` sigue diciendo «Sugerido automáticamente por Vmax
+3.5 m/s → Gmax 49 mmHg…» sobre una válvula cuyo badge debería decir `PROT_SIN_GRADO_TXT`, porque
+`calcVP` sólo corre desde el `oninput` del Doppler. La pantalla se contradice con su propia regla.
+
+**Por qué no se corrigió.** Retirar el grado residual al cambiar de morfología cambia el criterio
+de una válvula protésica en el informe firmado —decisión de Maicol— y el `onchange` es código
+compartido con el resto de la sincronización de válvulas. **Alternativas, sin elegir ninguna:**
+(a) que el `onchange` de la morfología devuelva el grado al centinela cuando pasa a prótesis — el
+gesto más honesto, pero reescribe un campo que el médico pudo haber fijado a mano;
+(b) que el emisor no publique grado de estenosis con prótesis (ni en el cuerpo ni en el resumen),
+dejando `VP protésica biológica.` y los valores medidos — no toca ningún campo, pero borra del
+papel un grado que el médico quizá fijó a propósito;
+(c) repintar el badge al cambiar la morfología y dejar el grado como está — arregla la pantalla y
+no el papel.
+
+### ⚠️ «VT protésica biológica con estenosis no significativa.»
+
+El grado de la ET es binario y `No significativa` es un valor elegible a mano (o traído por un
+legado), así que la línea única puede decirlo. Es una frase **por la negativa** y, sobre una
+prótesis, una afirmación de función conservada construida con cortes que la app declara
+inaplicables — justo lo que la compuerta (3b) del bloque de «normofuncionante» existe para
+impedir. En HEAD el mismo estado salía como `ET no significativa.`, así que no es nuevo.
+No se tocó: es redacción clínica. Alternativa, sin elegir: en la rama protésica empujar la lesión
+sólo con grado afirmativo y callar con «No significativa» (callar no es negar).
+
+### ⚠️ El nivel de la EP se cae del EN SUMA con prótesis (no del cuerpo)
+
+Medido: con `vp_morf = 'Prótesis biológica'`, `ep_grado = 'Moderada'` y `ep_nivel = 'Supravalvular'`,
+el EN SUMA pasa de «EP moderada a nivel supravalvular.» (HEAD) a «VP protésica biológica con
+estenosis moderada.». El **cuerpo lo conserva** («…y estenosis moderada a nivel supravalvular.»),
+así que no desaparece del papel; desaparece de la superficie que se copia al resumen de alta.
+El formato que Maicol escribió para la línea única no lleva nivel, y agregarlo es cambiar ese
+formato. Alternativa: `«VP protésica biológica con estenosis moderada a nivel supravalvular.»`.
+
+### Lo que NO es alcanzable y queda dicho, para no reabrirlo
+
+- **`VP protésica transcatéter tipo TAVI.`** — `VALV_MORF_FRASE` tiene la entrada `TAVI`, así que
+  `sumaProtLinea` la redactaría; pero `TAVI` **no es una `<option>`** de `vp_morf` ni de `vt_morf`,
+  y el importador descarta la fila entera ante un valor que no está en la lista. No se agregó
+  ninguna guarda: agregarla sería código para un estado que no se alcanza.
+- **«con estenosis» sin grado en la PULMONAR protésica** — `_epSinGrado` lleva `!_epEsProt` adentro
+  desde E5b-1, así que el escalón «botón prendido sin grado» no afirma estenosis en ninguna
+  superficie. La tricúspide sí lo alcanza, por `etPill`. Lo fija TC-419 como límite declarado.
+
 ## 3D E2 (2026-10-04) — declarado y NO arreglado
 
 De la tanda «color por territorio coronario + captura». Nada de esto es un defecto introducido:

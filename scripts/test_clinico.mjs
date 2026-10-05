@@ -34220,8 +34220,15 @@ caso('TC-289', 'Cierre de la Fase 1: el area mitral se clasifica como se imprime
         pl(lineas['mitral']).indexOf('protesis mecanica') > -1 &&
         pl(lineas['aórtica']).indexOf('tavi') > -1 &&
         pl(lineas['aórtica']).indexOf('sin graduacion de estenosis protesica') > -1 &&
-        pl(lineas['tricuspídea']).indexOf('protesis biologica') > -1 &&
-        pl(lineas['pulmonar']).indexOf('protesis mecanica') > -1 &&
+        /* ⚠️ v3 (2026-10-05, D): «protesica», NO «protesis», en estas DOS. Desde D la tricuspide y
+           la pulmonar no reusan la oracion del cuerpo —que decia «con prótesis biológica»— sino su
+           linea propia, «VT protésica biológica.» / «VP protésica mecánica.». El sustantivo paso a
+           adjetivo y el substring viejo dejo de matchear. La MITRAL y la AORTICA siguen con el
+           literal de antes porque D no las toca: ahi el resumen sigue reusando la linea del cuerpo.
+           Lo que la condicion exige no cambio: nombrar la protesis, con su tipo, sin
+           «normofuncionante» y sin caer en la negacion global. */
+        pl(lineas['tricuspídea']).indexOf('protesica biologica') > -1 &&
+        pl(lineas['pulmonar']).indexOf('protesica mecanica') > -1 &&
         Object.keys(lineas).every(function(k){ return pl(lineas[k]).indexOf('sin alteraciones estructurales') === -1; }),
         Object.keys(lineas).map(function(k){ return k + ': «' + lineas[k] + '»'; }).join(' · ')]);
 
@@ -34258,7 +34265,15 @@ caso('TC-289', 'Cierre de la Fase 1: el area mitral se clasifica como se imprime
          funcionar». Sin ese segundo control, romper el calculo del AVm por THP dejaria esta
          condicion en verde. */
       ex.push(['ninguno de los tres caminos por los que el narrativo afirma algo de una valvula —la pildora de IT, la regurgitacion del modulo TAVI y la cascada con cortes nativos— queda con un «normofuncionante» contradiciendolo debajo; y el tercero ya no escribe grado: se queda en fabrica con el AVm igual de medido',
-        pl(cPildora).indexOf('it ') > -1 && pl(cPildora).indexOf('normofuncionante') === -1 &&
+        /* ⚠️ v3 (2026-10-05, D): LA AFIRMACION DE LA PILDORA VIAJA ADENTRO DE LA LINEA UNICA. El
+           escenario es el mismo —vmax_it 2,5 prende la pildora de IT y el grado queda en fabrica—
+           pero el resumen ya no emite la sigla «IT presente.» en renglon propio: la protesis dice
+           «VT protésica biológica con insuficiencia.», sin grado, que es lo que el cuerpo tambien
+           hace. Se busca esa afirmacion en vez del substring «it », que sobre la linea nueva no
+           existe. Lo que la condicion defiende es identico: la pildora afirma, y el resumen no la
+           contradice con un «normofuncionante» debajo. */
+        pl(cPildora).indexOf('con insuficiencia') > -1 &&
+        pl(cPildora).indexOf('normofuncionante') === -1 &&
         pl(cTavi).indexOf('rpv') > -1 && pl(cTavi).indexOf('normofuncionante') === -1 &&
         cNativa.grado === 'sin' && parseFloat(cNativa.avm) > 2.4 && parseFloat(cNativa.avm) < 2.5 &&
         pl(cNativa.suma).indexOf('normofuncionante') === -1,
@@ -35008,8 +35023,16 @@ caso('TC-303', 'El EN SUMA no afirma «protesis normofuncionante» donde la app 
       ['SAVR a la que le falta el DVI: el cuerpo dice «sin datos suficientes» y el resumen no afirma normofuncion',
         !faltan.nf && faltan.suma.indexOf('sin datos suficientes') > -1,
         faltan.suma.split(NL).join(' | ')],
-      ['⚠️ el cuerpo dice «protesis pulmonar y estenosis leve» y el resumen YA NO dice lo contrario',
-        !pulm.nf && pulm.lineas.indexOf(lineaCuerpoPulm) > -1,
+      /* ⚠️ v3 (2026-10-05, D): LA PULMONAR YA NO REUSA LA LINEA DEL CUERPO, Y ESO ES EL ARREGLO.
+         Hasta D, suprimir «normofuncionante» se compensaba empujando la oracion entera del cuerpo
+         —«Válvula pulmonar con prótesis biológica (Vmax 1.5 m/s, Gmax 9 mmHg)»— al EN SUMA: con
+         numeros y todo, en el renglon que se copia al resumen de alta. D le da a la pulmonar su
+         propia linea corta, asi que el reuso ya no corre. La intencion de la condicion no cambia
+         —el resumen no puede afirmar normofuncion ni quedarse MUDO— y se refuerza: ahora exige
+         ademas que la linea del cuerpo NO este, que es lo que antes se pedia al contrario. */
+      ['⚠️ la protesis pulmonar: el resumen NO dice «normofuncionante», la nombra en su linea corta, y NO copia la del cuerpo',
+        !pulm.nf && pulm.suma.indexOf('VP protésica biológica') > -1 &&
+        pulm.suma.indexOf(lineaCuerpoPulm) === -1,
         'cuerpo=«' + lineaCuerpoPulm + '» · suma=«' + pulm.suma.split(NL).join(' | ') + '»'],
       ['con todo normal y protesis NO TAVI el EN SUMA queda IDENTICO a antes del cambio',
         bioN.suma.trim() === IGUAL_AO && mecN.suma.trim() === IGUAL_AO,
@@ -35022,9 +35045,13 @@ caso('TC-303', 'El EN SUMA no afirma «protesis normofuncionante» donde la app 
          protesis funcionan bien, por el mismo criterio que ya se le aplicaba a la TAVI. Ver la nota
          larga de TC-289. */
       ['la protesis TRICUSPIDE ya no afirma «normofuncionante» y el resumen la nombra igual',
-        /* «tric» y no «tricuspide»: el resumen escribe «tricúspide» CON TILDE y toLowerCase no
-           quita acentos, asi que la condicion daba rojo sobre un resumen correcto. */
-        !tric.nf && tric.suma.toLowerCase().indexOf('tric') > -1,
+        /* ⚠️ v3 (2026-10-05, D): SE BUSCA «VT protésica» Y NO «tric». Desde D la linea de la
+           protesis tricuspidea es «VT protésica mecánica.» —sigla, como las de lesion— y NO
+           contiene la palabra «tricúspide», asi que el substring viejo daba rojo sobre un resumen
+           correcto. Se conserva la nota de la tilde porque sigue valiendo para las NATIVAS, cuyo
+           cuerpo escribe «tricúspide» con acento y toLowerCase no lo quita.
+           La intencion es la misma: el resumen nombra la valvula en vez de callarse. */
+        !tric.nf && tric.suma.indexOf('VT protésica') > -1,
         tric.suma.split(NL).join(' | ')],
       ['la protesis MITRAL con solo el DVI medido tampoco la afirma, y el resumen la nombra',
         !mitNeg.nf && mitNeg.suma.toLowerCase().indexOf('mitral') > -1,
@@ -38254,8 +38281,17 @@ caso('TC-313', 'Protesis mitral SIN un solo parametro medido: el EN SUMA reutili
     // ── DENOMINADORES NEGATIVOS: el arreglo esta ACOTADO a la mitral ──
     ['la AORTICA sin nada NO cambio: sigue con «Sin otras alteraciones… ver el cuerpo»',
       aortica.suma.indexOf('Sin otras alteraciones estructurales') === 0, aortica.suma],
-    ['la PULMONAR sin nada NO cambio',
-      pulmonar.suma.indexOf('Sin otras alteraciones estructurales') === 0, pulmonar.suma],
+    /* ⚠️ LA PULMONAR SI CAMBIO, EN D (2026-10-05), Y LA CONDICION SE DA VUELTA EN VEZ DE BORRARSE.
+       Lo que este caso defiende es que el arreglo de la MITRAL no se derrame a las otras tres; lo
+       que cambio la pulmonar es otro trabajo —la linea unica de protesis—, no un derrame. Se
+       afirma la forma NUEVA y, sobre todo, que la pulmonar NO cae en la negacion global ni reusa
+       la linea del cuerpo: si se hubiera borrado la condicion, el caso dejaria de notar el dia que
+       esta valvula vuelva a «Estudio sin alteraciones» o a duplicar el renglon del cuerpo. */
+    ['la PULMONAR ya no cae en la negacion global: dice su linea unica de protesis, y NO la del cuerpo',
+      pulmonar.suma.indexOf('Sin otras alteraciones estructurales') === -1 &&
+      pulmonar.suma.indexOf('Estudio sin alteraciones') === -1 &&
+      pulmonar.suma.indexOf('VP protésica mecánica.') > -1 &&
+      pulmonar.suma.indexOf('Válvula pulmonar') === -1, pulmonar.suma],
 
     /* ⚠️ LIMITE DECLARADO A PROPOSITO, no es el comportamiento deseado. La tricuspide tiene el
        MISMO defecto que la mitral y queda sin cerrar por el «SOLO» del pedido. Esta condicion
@@ -38269,9 +38305,17 @@ caso('TC-313', 'Protesis mitral SIN un solo parametro medido: el EN SUMA reutili
        condicion no se borra ni se da vuelta a «arreglado»: se parte en dos —ya no niega, y TAMPOCO
        reusa— para que el estado real quede escrito y cerrarlo siga siendo deliberado.
        OJO CON EL DENOMINADOR al leer esto: medido en una escena con vt_morf en «Prótesis
-       mecánica» y SIN ningun parametro cargado, que es la del caso. */
-    ['la TRICUSPIDE ya no cae en «Estudio sin alteraciones» — pero por la linea de A5, no por el arreglo',
-      !tricusp.niega && tricusp.suma.indexOf('VT con prótesis mecánica.') > -1, tricusp.suma],
+       mecánica» y SIN ningun parametro cargado, que es la del caso.
+       ⚠️ v3 (2026-10-05, D): la linea de A5 se REEMPLAZO por la linea unica de protesis
+       —«VT protésica mecánica.»—, asi que el literal que esta condicion afirmaba ya no se emite.
+       Lo que la condicion defiende no cambio: que la tricuspide NO caiga en la negacion global, y
+       que lo que la saca de ahi sea su propia linea y no el reuso de la del cuerpo (que es el
+       defecto de fondo, todavia sin cerrar por otra via). Se actualiza el literal, no la
+       intencion, y se agrega que la forma vieja ya no aparece: sin eso, el dia que alguien
+       reintroduzca las dos lineas el caso pasaria igual. */
+    ['la TRICUSPIDE ya no cae en «Estudio sin alteraciones» — por su linea unica de protesis (D), no por el reuso',
+      !tricusp.niega && tricusp.suma.indexOf('VT protésica mecánica.') > -1 &&
+      tricusp.suma.indexOf('VT con prótesis mecánica.') === -1, tricusp.suma],
     ['LIMITE DECLARADO: y sigue SIN reusar la linea del cuerpo como la mitral (defecto abierto)',
       tricusp.suma.indexOf('No es posible estimar PSAP') === -1 &&
       tricusp.suma.indexOf('no se gradúa') === -1, tricusp.suma]
@@ -50170,10 +50214,21 @@ caso('TC-417', 'Tricuspide — la tabla de textos: 15 escenas del informe (presi
         .map(function(c){ return c.tri; }).join(' /// ')],
 
     // ── A5 · LA MORFOLOGIA EN EL EN SUMA, EN LINEA PROPIA Y ANTES DE LAS LESIONES ─────────────
-    ['A5: «VT <morfologia>.» sube al EN SUMA',
+    /* ⚠️ LA PROTESIS SALIO DE ESTA CONDICION (D, 2026-10-05) Y NO SE PERDIO COBERTURA: desde D la
+       protesis NO lleva linea de morfologia mas lineas de lesion, sino UNA SOLA que las reemplaza
+       —«VT protésica biológica con insuficiencia severa.»—, asi que «VT con prótesis biológica.»
+       dejo de emitirse a proposito. La intencion de esta condicion es que la MORFOLOGIA suba en
+       linea propia, y eso sigue valiendo para las NATIVAS, que son las que quedan aca. La
+       afirmacion de la protesis se mudo a la linea de abajo, donde se verifica su forma nueva Y
+       que la vieja ya no aparece — si se hubiera borrado sin reemplazo, el caso dejaria de poder
+       distinguir «cambio a propósito» de «se cayo del EN SUMA». */
+    ['A5: «VT <morfologia>.» sube al EN SUMA (NATIVAS)',
       carcIT.suma.indexOf('VT con afectación carcinoide.') > -1 &&
-      endoIT.suma.indexOf('VT con endocarditis.') > -1 &&
-      pbioIT.suma.indexOf('VT con prótesis biológica.') > -1, recorteJS(carcIT.suma)],
+      endoIT.suma.indexOf('VT con endocarditis.') > -1, recorteJS(carcIT.suma)],
+    ['D: la PROTESIS va en UNA sola linea que reemplaza morfologia + lesion, y la forma vieja ya no sale',
+      pbioIT.suma.indexOf('VT protésica biológica con insuficiencia severa.') > -1 &&
+      pbioIT.suma.indexOf('VT con prótesis biológica.') === -1 &&
+      pbioIT.suma.indexOf('IT severa.') === -1, recorteJS(pbioIT.suma)],
     ['y la funcional usa la forma corta «VT funcional.», no la linea larga',
       funcIT.suma.indexOf('VT funcional.') > -1 &&
       funcIT.suma.indexOf('dilatación del ventrículo derecho') === -1, recorteJS(funcIT.suma)],
@@ -50362,6 +50417,237 @@ caso('TC-412', 'Pulmonar: narrativo de UNA oracion («Valvula pulmonar de morfol
       c6.vp.indexOf('con insuficiencia y estenosis.') > -1 && c6.suma.indexOf('EP presente.') > -1 && c6.suma.indexOf('IP presente.') > -1, c6.vp + ' // ' + recorteJS(c6.suma)],
     ['«Mixta» no aparece sola en ninguna de las 6', sinMixta === true, 'sinMixta='+sinMixta],
     ['UNA sola oracion de pulmonar (ni «Insuficiencia pulmonar» separada ni dos «Válvula pulmonar»)', unaOracion === true, c3.vp],
+  ] };
+`);
+
+/* TC-419 — EL EN SUMA DE LA MORFOLOGIA Y DE LAS PROTESIS (parte D, 2026-10-05, decision de Maicol)
+   Tres reglas, dos valvulas:
+     1) nativa SIN etiologia (Normal / No especificada) → ninguna linea de morfologia;
+     2) nativa CON etiologia → linea propia ANTES de las de lesion, con la palabra de valvMorfAdj;
+     3) PROTESIS → UNA linea que reemplaza TODO lo de esa valvula, sin siglas de lesion y sin
+        numeros, con el grado opcional en cada lesion.
+   EL DENOMINADOR ES EXPLICITO Y VA PRIMERO: cada escena tiene que producir un EN SUMA DISTINTO.
+   Sin ese recuento, una tabla de filas iguales —o un informe que no se genero— se leeria como
+   cobertura, que es el modo en que este repo ya se engano varias veces.
+   ⚠️ Y EL CASO INCLUYE LAS ESCENAS CON UN PARAMETRO MEDIDO (DVI, Vmax, gradiente medio). Son las
+   unicas que ejercitan el bloque de «normofuncionante» del final —su compuerta (1) exige que haya
+   algo medido— y por lo tanto las unicas donde HEAD DUPLICABA: «VT con prótesis biológica.» mas la
+   oracion entera del cuerpo. Un caso sin ellas verificaria la linea nueva sobre un camino que
+   nunca corre y dejaria el defecto principal sin cobertura. */
+caso('TC-419', 'EN SUMA: la morfologia sube en linea propia y la PROTESIS va en UNA sola linea sin siglas de lesion ni numeros (pulmonar y tricuspide)', `
+  ${APAGA_HELPERS}
+  const base = function(v){
+    __t.nuevoEstudio();
+    ['esten','insuf'].forEach(function(t){
+      ['pulmonar','tricuspide'].forEach(function(x){
+        try { localStorage.removeItem('valv-pill-'+t+'-'+x); } catch(e){}
+        if (aOn(x,t)) toggleValvPill(x,t); }); });
+    if (window.esqSevManual) { delete window.esqSevManual.ep; delete window.esqSevManual.et;
+                               delete window.esqSevManual.it; }
+    __t.set('nombre','TC419');
+    return v; };
+  /* Las lineas del EN SUMA de UNA valvula, por separado. Las cuatro superficies no se mezclan:
+     aca se lee el EN SUMA; el cuerpo se lee en «cuerpo» y se afirma que NO cambia. */
+  const lin = function(re){ const r = __t.informe();
+    const fil = function(t){ return (t||'').split(String.fromCharCode(10))
+      .map(function(s){ return s.trim(); }).filter(function(s){ return s && re.test(s); }); };
+    return { suma: fil(r.suma).join(' | '), cuerpo: fil(r.inf).join(' | '),
+             sumaEntero: r.suma || '' }; };
+  const VP = /\\bVP\\b|\\bIP\\b|\\bEP\\b|pulmonar/i;
+  const VT = /\\bVT\\b|\\bIT\\b|\\bET\\b|tric/i;
+  /* ⚠️ LAS SIGLAS VAN EN LA CLASE, Y SIN ELLAS EL CONTROL NEGATIVO SE MEDIA SOBRE UNA CADENA
+     VACIA. El EN SUMA escribe «IM moderada.» / «EAo severa.», NO las palabras «mitral» ni
+     «aórtica» —esas solo salen en el CUERPO—, asi que con la clase sola el filtro devolvia nada en
+     las dos escenas y la comparacion «identicas» se cumplia por empate de vacios. Lo caza la
+     condicion de DENOMINADOR que esta justo antes, que es para lo que existe. */
+  const OTRAS = /\\bIM\\b|\\bEM\\b|\\bIAo\\b|\\bEAo\\b|mitral|a[oó]rtic/i;
+
+  // ── REGLA 1 · NATIVA SIN ETIOLOGIA: ninguna linea de morfologia ────────────────────────────
+  base(); __t.set('vp_morf','Normal');           const vpNormal = lin(VP);
+  base(); __t.set('vp_morf','No especificada');  const vpNoEsp  = lin(VP);
+  base(); __t.set('vt_morf','Normal');           const vtNormal = lin(VT);
+  /* Con una lesion cargada, la linea de lesion sigue saliendo sola: la regla 1 saca la morfologia,
+     no la lesion. Es la mitad que distingue «no agrega linea» de «borra el hallazgo». */
+  base(); __t.set('vp_morf','Normal'); __t.set('ip_grado','Leve');          const vpNormalIP = lin(VP);
+  base(); __t.set('vp_morf','No especificada'); __t.set('ip_grado','Leve'); const vpNoEspIP  = lin(VP);
+  base(); __t.set('vt_morf','Normal'); __t.set('it_grado','1');             const vtNormalIT = lin(VT);
+
+  // ── REGLA 2 · NATIVA CON ETIOLOGIA: linea propia, ANTES de la lesion ──────────────────────
+  base(); __t.set('vp_morf','Displásica (congénita)'); const vpDisp = lin(VP);
+  base(); __t.set('vp_morf','Reumática');              const vpReum = lin(VP);
+  base(); __t.set('vp_morf','Carcinoide');             const vpCarc = lin(VP);
+  base(); __t.set('vp_morf','Carcinoide'); __t.set('ip_grado','Leve'); const vpCarcIP = lin(VP);
+  base(); __t.set('vt_morf','Mixomatosa');             const vtMixo = lin(VT);
+
+  // ── REGLA 3 · PROTESIS: UNA sola linea ────────────────────────────────────────────────────
+  base(); __t.set('vp_morf','Prótesis biológica');  const pb0 = lin(VP);
+  base(); __t.set('vp_morf','Prótesis mecánica');   const pm0 = lin(VP);
+  base(); __t.set('vp_morf','Prótesis biológica'); __t.set('ip_grado','Leve');   const pbIP = lin(VP);
+  base(); __t.set('vp_morf','Prótesis biológica'); __t.set('ep_grado','Moderada'); const pbEP = lin(VP);
+  base(); __t.set('vp_morf','Prótesis biológica'); __t.set('ip_grado','Leve');
+          __t.set('ep_grado','Moderada');                                        const pbAmbas = lin(VP);
+  base(); __t.set('vt_morf','Prótesis biológica');  const tb0 = lin(VT);
+  base(); __t.set('vt_morf','Prótesis mecánica');   const tm0 = lin(VT);
+  base(); __t.set('vt_morf','Prótesis biológica'); __t.set('it_grado','2');  const tbIT = lin(VT);
+  base(); __t.set('vt_morf','Prótesis biológica'); __t.set('et_grado','Significativa'); const tbET = lin(VT);
+  base(); __t.set('vt_morf','Prótesis biológica'); __t.set('it_grado','2');
+          __t.set('et_grado','Significativa');                               const tbAmbas = lin(VT);
+  /* SIN GRADO EN NINGUNA: las dos pastillas prendidas y los dos selects en fabrica. En la
+     tricuspide es alcanzable por «etPill»; en la pulmonar la estenosis NO, porque «_epSinGrado»
+     lleva «!_epEsProt» adentro desde E5b-1 — eso se afirma como LIMITE mas abajo. */
+  base(); __t.set('vt_morf','Prótesis biológica');
+          if (!aOn('tricuspide','insuf')) toggleValvPill('tricuspide','insuf');
+          if (!aOn('tricuspide','esten')) toggleValvPill('tricuspide','esten');
+          const tbSinGrado = lin(VT);
+  base(); __t.set('vp_morf','Prótesis biológica');
+          if (!aOn('pulmonar','esten')) toggleValvPill('pulmonar','esten');
+          const pbEstenSinGrado = lin(VP);
+
+  // ── REGLA 5 · VELOCIDAD CARGADA Y BOTON APAGADO → «con insuficiencia» SIN grado ───────────
+  base(); __t.set('vp_morf','Prótesis biológica'); __t.set('ip_vmax','2.5');
+          if (aOn('pulmonar','insuf')) toggleValvPill('pulmonar','insuf');
+          const pbVmaxOff = lin(VP);
+  base(); __t.set('vt_morf','Prótesis biológica'); __t.set('vmax_it','2.5');
+          if (aOn('tricuspide','insuf')) toggleValvPill('tricuspide','insuf');
+          const tbVmaxOff = lin(VT);
+
+  // ── ⚠️ EL DEFECTO PRINCIPAL: PROTESIS CON UN PARAMETRO MEDIDO ────────────────────────────
+  base(); __t.set('vp_morf','Prótesis biológica'); __t.set('vp_vmax','3.0');  const pbMed = lin(VP);
+  base(); __t.set('vp_morf','Prótesis biológica'); __t.set('vp_dvi','0.35');  const pbDvi = lin(VP);
+  base(); __t.set('vt_morf','Prótesis biológica'); __t.set('et_gmedio','3');  const tbMed = lin(VT);
+  base(); __t.set('vt_morf','Prótesis biológica'); __t.set('vt_dvi','0.35');  const tbDvi = lin(VT);
+
+  // ── CONTROL NEGATIVO · MITRAL Y AORTICA, con denominador ─────────────────────────────────
+  base(); __t.set('vm_morf','Mixomatosa'); __t.set('im_grado','2');
+          __t.set('va_morf','Trivalva normal'); __t.set('vmax_ao','4.2');
+          const otrasSolas = lin(OTRAS);
+  base(); __t.set('vm_morf','Mixomatosa'); __t.set('im_grado','2');
+          __t.set('va_morf','Trivalva normal'); __t.set('vmax_ao','4.2');
+          __t.set('vp_morf','Prótesis biológica'); __t.set('vt_morf','Prótesis mecánica');
+          const otrasConProt = lin(OTRAS);
+
+  // ── DENOMINADOR ──────────────────────────────────────────────────────────────────────────
+  const todas = [vpNormal,vpNoEsp,vtNormal,vpNormalIP,vpNoEspIP,vtNormalIT,
+                 vpDisp,vpReum,vpCarc,vpCarcIP,vtMixo,
+                 pb0,pm0,pbIP,pbEP,pbAmbas,tb0,tm0,tbIT,tbET,tbAmbas,
+                 tbSinGrado,pbEstenSinGrado,pbVmaxOff,tbVmaxOff,pbMed,pbDvi,tbMed,tbDvi];
+  const sumas = todas.map(function(x){ return x.suma; });
+  const distintas = sumas.filter(function(s,i){ return sumas.indexOf(s) === i; }).length;
+  const conTexto = sumas.filter(function(s){ return !!s; }).length;
+
+  return { extra: [
+    // ── DENOMINADOR PRIMERO ────────────────────────────────────────────────────────────────
+    ['DENOMINADOR: las 29 escenas producen al menos 16 EN SUMA distintos y 25 no vacios (una tabla de filas iguales no es cobertura)',
+      todas.length === 29 && distintas >= 16 && conTexto >= 25,
+      'escenas=' + todas.length + ' distintas=' + distintas + ' conTexto=' + conTexto],
+
+    // ── REGLA 1 · CONTROLES NEGATIVOS DE LA MORFOLOGIA ─────────────────────────────────────
+    ['CONTROL NEGATIVO 1: «Normal» y «No especificada» NO agregan linea de morfologia en ninguna de las dos valvulas',
+      vpNormal.suma === '' && vpNoEsp.suma === '' && vtNormal.suma === '',
+      'vpNormal=«'+vpNormal.suma+'» vpNoEsp=«'+vpNoEsp.suma+'» vtNormal=«'+vtNormal.suma+'»'],
+    ['CONTROL NEGATIVO 1 bis: y con una lesion cargada sale la LESION SOLA — la regla saca la morfologia, no el hallazgo',
+      vpNormalIP.suma === 'IP leve.' && vpNoEspIP.suma === 'IP leve.' &&
+      vtNormalIT.suma === 'IT leve.',
+      [vpNormalIP.suma, vpNoEspIP.suma, vtNormalIT.suma].join(' // ')],
+
+    // ── REGLA 2 · LA MORFOLOGIA NATIVA, CON LA PALABRA DE LA APP ───────────────────────────
+    ['REGLA 2: la morfologia nativa sube con la palabra de valvMorfAdj, sin vocabulario nuevo',
+      vpDisp.suma === 'VP displásica (congénita).' && vpReum.suma === 'VP reumática.' &&
+      vpCarc.suma === 'VP con afectación carcinoide.' && vtMixo.suma === 'VT mixomatosa.',
+      [vpDisp.suma, vpReum.suma, vpCarc.suma, vtMixo.suma].join(' // ')],
+    /* EL ORDEN ES PARTE DE LA REGLA: la morfologia ANTES de la lesion. Se mide por el INDICE de
+       cada linea y no por su presencia, que es el defecto que la tricuspide ya tuvo en A5. */
+    ['REGLA 2: y va ANTES de la linea de lesion, medido por indice',
+      vpCarcIP.sumaEntero.indexOf('VP con afectación carcinoide.') > -1 &&
+      vpCarcIP.sumaEntero.indexOf('IP leve.') > -1 &&
+      vpCarcIP.sumaEntero.indexOf('VP con afectación carcinoide.') <
+      vpCarcIP.sumaEntero.indexOf('IP leve.'), vpCarcIP.suma],
+
+    // ── REGLA 3 · LA PROTESIS, UNA SOLA LINEA ──────────────────────────────────────────────
+    ['REGLA 3: protesis sin lesion → UNA linea, un solo renglon, en las dos valvulas',
+      pb0.suma === 'VP protésica biológica.' && pm0.suma === 'VP protésica mecánica.' &&
+      tb0.suma === 'VT protésica biológica.' && tm0.suma === 'VT protésica mecánica.',
+      [pb0.suma, pm0.suma, tb0.suma, tm0.suma].join(' // ')],
+    ['REGLA 3: con UNA lesion y grado',
+      pbIP.suma === 'VP protésica biológica con insuficiencia leve.' &&
+      pbEP.suma === 'VP protésica biológica con estenosis moderada.' &&
+      tbIT.suma === 'VT protésica biológica con insuficiencia moderada.' &&
+      tbET.suma === 'VT protésica biológica con estenosis significativa.',
+      [pbIP.suma, pbEP.suma, tbIT.suma, tbET.suma].join(' // ')],
+    ['REGLA 3: con las DOS lesiones, insuficiencia primero y unidas por « y »',
+      pbAmbas.suma === 'VP protésica biológica con insuficiencia leve y estenosis moderada.' &&
+      tbAmbas.suma === 'VT protésica biológica con insuficiencia moderada y estenosis significativa.',
+      pbAmbas.suma + ' // ' + tbAmbas.suma],
+    ['REGLA 3: con las dos SIN grado (tricuspide) → «con insuficiencia y estenosis», sin grados inventados',
+      tbSinGrado.suma === 'VT protésica biológica con insuficiencia y estenosis.', tbSinGrado.suma],
+    /* ⚠️ LIMITE DECLARADO Y MEDIDO, no un olvido: «_epSinGrado» lleva «!_epEsProt» adentro desde
+       E5b-1, asi que con protesis pulmonar el escalon «boton prendido sin grado» no afirma
+       estenosis en NINGUNA superficie —tampoco en el cuerpo—. Darle una senal propia aca seria un
+       criterio nuevo, que el pedido prohibe. Si algun dia se decide, esta condicion se da vuelta. */
+    ['LIMITE DECLARADO: en la PULMONAR «estenosis sin grado» no existe con protesis (_epSinGrado veta por _epEsProt), ni en el EN SUMA ni en el cuerpo',
+      pbEstenSinGrado.suma === 'VP protésica biológica.' &&
+      pbEstenSinGrado.cuerpo.indexOf('estenosis') === -1,
+      'suma=«'+pbEstenSinGrado.suma+'» cuerpo=«'+pbEstenSinGrado.cuerpo+'»'],
+    /* NI SIGLAS DE LESION NI NUMEROS: las dos prohibiciones explicitas de la regla 3. Se prueban
+       sobre el EN SUMA ENTERO —no sobre las lineas filtradas— porque lo que se prohibe es que
+       exista el renglon, no que la linea lo contenga. */
+    ['REGLA 3: la protesis NO emite siglas de lesion aparte («IP »/«EP »/«IT »/«ET ») en ninguna de las 11 escenas protesicas',
+      [pb0,pm0,pbIP,pbEP,pbAmbas,tb0,tm0,tbIT,tbET,tbAmbas,tbSinGrado].every(function(x){
+        return !/(^|\\n)\\s*(IP|EP|IT|ET)\\s/.test(x.sumaEntero); }),
+      [pb0,pm0,pbIP,pbEP,pbAmbas,tb0,tm0,tbIT,tbET,tbAmbas,tbSinGrado]
+        .filter(function(x){ return /(^|\\n)\\s*(IP|EP|IT|ET)\\s/.test(x.sumaEntero); })
+        .map(function(x){ return x.suma; }).join(' // ') || '(ninguna)'],
+    ['REGLA 3: y NO lleva gradientes, velocidades ni unidades',
+      [pbMed,pbDvi,tbMed,tbDvi,pbVmaxOff,tbVmaxOff].every(function(x){
+        return !/m\\/s|mmHg|cm²|\\d/.test(x.suma); }),
+      [pbMed,pbDvi,tbMed,tbDvi,pbVmaxOff,tbVmaxOff].map(function(x){ return x.suma; }).join(' // ')],
+
+    // ── REGLA 5 · VELOCIDAD CON BOTON APAGADO ──────────────────────────────────────────────
+    ['REGLA 5: con la Vmax cargada y el boton APAGADO entra como «con insuficiencia» SIN grado, en las dos',
+      pbVmaxOff.suma === 'VP protésica biológica con insuficiencia.' &&
+      tbVmaxOff.suma === 'VT protésica biológica con insuficiencia.',
+      pbVmaxOff.suma + ' // ' + tbVmaxOff.suma],
+
+    // ── ⚠️ EL DEFECTO PRINCIPAL ────────────────────────────────────────────────────────────
+    /* HEAD, medido: la pulmonar publicaba «Válvula pulmonar con prótesis biológica (Vmax 3 m/s,
+       Gmax 36 mmHg).» —la oracion entera del cuerpo, con los numeros— y la tricuspide publicaba
+       DOS renglones: «VT con prótesis biológica.» mas «Válvula tricúspide con prótesis biológica
+       (gradiente medio 3 mmHg). No es posible estimar PSAP.». */
+    ['DEFECTO PRINCIPAL: con un parametro MEDIDO el EN SUMA ya NO copia la oracion del cuerpo (ni la duplica)',
+      [pbMed,pbDvi,tbMed,tbDvi].every(function(x){
+        return x.sumaEntero.indexOf('Válvula pulmonar') === -1 &&
+               x.sumaEntero.indexOf('Válvula tricúspide') === -1 &&
+               x.sumaEntero.indexOf('No es posible estimar PSAP') === -1; }),
+      [pbMed,pbDvi,tbMed,tbDvi].map(function(x){ return '«'+x.suma+'»'; }).join(' // ')],
+    ['DEFECTO PRINCIPAL: y es UN solo renglon por valvula, no dos',
+      [pbMed,pbDvi,tbMed,tbDvi].every(function(x){ return x.suma.indexOf(' | ') === -1; }),
+      [pbMed,pbDvi,tbMed,tbDvi].map(function(x){ return '«'+x.suma+'»'; }).join(' // ')],
+    ['DEFECTO PRINCIPAL: tampoco reaparece «normofuncionante», que la Fase A ya habia retirado',
+      [pbMed,pbDvi,tbMed,tbDvi].every(function(x){
+        return x.sumaEntero.indexOf('normofuncionante') === -1; }),
+      [pbMed,pbDvi,tbMed,tbDvi].map(function(x){ return '«'+x.suma+'»'; }).join(' // ')],
+    /* Y NO se cae en la negacion global: suprimir no es callarse (la leccion de caf4be8). */
+    ['DEFECTO PRINCIPAL: y ninguna de las escenas protesicas cae en «Estudio sin alteraciones»',
+      [pb0,pm0,tb0,tm0,pbMed,pbDvi,tbMed,tbDvi].every(function(x){
+        return x.sumaEntero.indexOf('Estudio sin alteraciones') === -1; }),
+      [pb0,pm0,tb0,tm0,pbMed,pbDvi,tbMed,tbDvi]
+        .filter(function(x){ return x.sumaEntero.indexOf('Estudio sin alteraciones') > -1; })
+        .map(function(x){ return '«'+x.sumaEntero+'»'; }).join(' // ') || '(ninguna)'],
+
+    // ── CONTROL NEGATIVO · MITRAL Y AORTICA ────────────────────────────────────────────────
+    ['DENOMINADOR del control negativo: mitral y aortica dicen algo en las dos escenas',
+      otrasSolas.suma !== '' && otrasConProt.suma !== '',
+      'solas=«'+otrasSolas.suma+'» conProt=«'+otrasConProt.suma+'»'],
+    ['CONTROL NEGATIVO 2: agregar las dos protesis NO cambia ni una letra de mitral ni de aortica',
+      otrasSolas.suma === otrasConProt.suma && otrasSolas.cuerpo === otrasConProt.cuerpo,
+      'suma: «'+otrasSolas.suma+'» vs «'+otrasConProt.suma+'»'],
+    /* La mitral y la aortica NO tienen linea «VM »/«VAo » de morfologia: la regla 2 se aplico
+       SOLO a las dos valvulas del pedido. Esta condicion es lo que hace que extenderla sea
+       deliberado el dia que se decida. */
+    ['CONTROL NEGATIVO 3: la morfologia de la mitral y de la aortica sigue SIN subir al EN SUMA',
+      otrasSolas.sumaEntero.indexOf('VM ') === -1 &&
+      otrasSolas.sumaEntero.indexOf('VAo ') === -1 &&
+      otrasSolas.sumaEntero.indexOf('VM mixomatosa') === -1, recorteJS(otrasSolas.sumaEntero)],
   ] };
 `);
 

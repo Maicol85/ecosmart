@@ -27231,12 +27231,19 @@ const VALV_MORF_FRASE = Object.freeze({
   'TAVI':               { de:'con prótesis transcatéter tipo TAVI', presenta:'una prótesis transcatéter tipo TAVI',
     adj:'con prótesis transcatéter tipo TAVI', es:'presenta una prótesis transcatéter tipo TAVI' }
 });
-/* ⚠️ DECISIÓN PENDIENTE, DECLARADA Y NO TOMADA: hoy una prótesis NO llama a `ccMarcarParrafo()`,
-   así que un estudio cuyo único hallazgo es una prótesis mecánica sale con EN SUMA «Estudio sin
-   alteraciones estructurales ni funcionales significativas». La decisión anterior fue deliberada
-   —«descriptores crónicos que esta app nunca resumió»— pero se tomó cuando la opción era una sola y
-   vaga. Con las tres nombradas, y sin informes viejos que proteger, hay que decidir si una prótesis
-   es un hallazgo que el resumen debe nombrar. No se cambia acá: sería conducta, no vocabulario. */
+/* ⚠️ DECISIÓN PARCIALMENTE TOMADA — ver abajo. El texto original decía: «hoy una prótesis NO llama
+   a `ccMarcarParrafo()`, así que un estudio cuyo único hallazgo es una prótesis mecánica sale con
+   EN SUMA "Estudio sin alteraciones estructurales ni funcionales significativas" […] hay que
+   decidir si una prótesis es un hallazgo que el resumen debe nombrar. No se cambia acá: sería
+   conducta, no vocabulario.»
+   ⚠️ SE TOMÓ PARA LA PULMONAR Y LA TRICÚSPIDE (D, 2026-10-05, decisión de Maicol): esas dos SÍ se
+   nombran, con o sin lesión y con o sin un solo parámetro medido, en una línea propia
+   (`sumaProtLinea`). Las otras dos quedan como estaban y la asimetría es deliberada, no un olvido:
+   la MITRAL ya se nombraba reusando la línea del cuerpo (`reusaSinEvidencia`) y la AÓRTICA tiene su
+   propio veredicto protésico (`eaProtVeredicto`), así que ninguna de las dos caía en la negación
+   global. El pedido de D acotaba el trabajo a la pulmonar y la tricúspide, y extenderlo habría
+   cambiado el EN SUMA de dos válvulas que no estaban rotas. Si algún día se unifican las cuatro,
+   es agregar su `morf` a `SUMA_PROT_SIGLA` y su emisor. */
 function _valvMorfF(val){
   const k = String(val == null ? '' : val).trim();
   const e = Object.prototype.hasOwnProperty.call(VALV_MORF_ETIOL, k) ? VALV_MORF_ETIOL[k]
@@ -27252,6 +27259,50 @@ function valvMorfEs(v){ return _valvMorfF(v).es; }
 window.valvMorfDe = valvMorfDe; window.valvMorfPresenta = valvMorfPresenta;
 window.valvMorfAdj = valvMorfAdj; window.valvMorfEs = valvMorfEs;
 window.VALV_MORF_ETIOL = VALV_MORF_ETIOL;
+
+/* ══ LA LÍNEA DEL EN SUMA DE UNA PRÓTESIS (D, 2026-10-05, decisión de Maicol) ═══════════════════
+   Una prótesis de la PULMONAR o de la TRICÚSPIDE se resume en UNA sola línea que reemplaza todo
+   lo que esa válvula decía —la morfología y las siglas de lesión—, sin gradientes ni velocidades.
+   ⚠️ LA SIGLA VIVE ACÁ Y NO EN LOS DOS EMISORES, y no es orden: `generarInforme` la ESCRIBE y el
+   bloque de «prótesis normofuncionante» del final la LEE —es un token de `yaDicho`, que es lo que
+   impide que ese bloque empuje ADEMÁS la línea entera del cuerpo por `reusar`—. Con el literal
+   repetido en los dos lugares, un cambio de redacción en el emisor rompe la compuerta del lector
+   en silencio y el resumen vuelve a salir con dos renglones sobre la misma válvula. Y la falla NO
+   sería simétrica: la tricúspide reescrita seguiría matcheando por su token «tricúspide», pero la
+   pulmonar no matchea ninguno de los otros («EP », «IP », «Estenosis pulmonar», «pulmonar»), así
+   que fallaría UNA de las dos — la peor forma. Lo marcó `/sharp-edges` sobre el diff de D.
+   ⚠️ LA MITRAL Y LA AÓRTICA NO ESTÁN ACÁ A PROPÓSITO: no emiten esta línea. La mitral reusa la del
+   cuerpo (`reusaSinEvidencia`) y la aórtica tiene su propio veredicto protésico (`eaProtVeredicto`),
+   que son dos conductas ya decididas. Sumarlas es agregar su `morf` a este mapa y su emisor. */
+const SUMA_PROT_SIGLA = Object.freeze({ vt_morf: 'VT protésica', vp_morf: 'VP protésica' });
+/* El tipo corto («biológica» / «mecánica»), derivado de `VALV_MORF_FRASE` — que ya tiene la forma
+   larga de cada opción— y no de una lista propia: una enumeración paralela de las opciones nace
+   desincronizada el día que se agregue una, que es lo que el comentario de esa tabla pide evitar.
+   Es la MISMA derivación que usa `tipoDe` en el bloque del final.
+   ⚠️ `hasOwnProperty` Y NO INDEXACIÓN CRUDA, igual que `_valvMorfF`: con una clave heredada
+   —`constructor`, `__proto__`, que el import de backup JSON acepta— la indexación devuelve algo
+   que no es una frase. Hoy el `|| ''` de abajo lo neutraliza y el valor llega de un `<select>`,
+   así que no es explotable; la guarda está para que la próxima copia no herede el patrón sin él.
+   Cadena vacía ⇒ el llamador cae al camino de siempre (fail-closed, sin inventar una etiqueta). */
+function sumaProtTipo(val) {
+  const k = String(val == null ? '' : val).trim();
+  if (typeof VALV_MORF_FRASE !== 'object' || !VALV_MORF_FRASE) return '';
+  if (!Object.prototype.hasOwnProperty.call(VALV_MORF_FRASE, k)) return '';
+  const f = VALV_MORF_FRASE[k];
+  return String((f && f.presenta) || '').replace(/^una\s+/, '').replace(/^prótesis\s*/i, '').trim();
+}
+/* `lesiones` llega YA redactada por el emisor de cada válvula —que es el único que sabe qué
+   señales tiene y con qué palabras las nombra— y se une con « y », en el orden en que venga.
+   Devuelve '' cuando no hay sigla o no hay tipo: el llamador decide qué hacer con eso. */
+function sumaProtLinea(morfId, val, lesiones) {
+  const sigla = Object.prototype.hasOwnProperty.call(SUMA_PROT_SIGLA, String(morfId))
+    ? SUMA_PROT_SIGLA[morfId] : '';
+  const tipo = sumaProtTipo(val);
+  if (!sigla || !tipo) return '';
+  const l = (lesiones || []).filter(Boolean);
+  return `${sigla} ${tipo}${l.length ? ' con ' + l.join(' y ') : ''}.`;
+}
+window.SUMA_PROT_SIGLA = SUMA_PROT_SIGLA; window.sumaProtLinea = sumaProtLinea;
 
 /* Estenosis pulmonar por gradiente pico (ESC/ASE): leve <36 mmHg · moderada 36-64 · severa
    >64. Los cortes por velocidad que suelen citarse —3 y 4 m/s— son EXACTAMENTE éstos vistos
@@ -31413,8 +31464,11 @@ function generarInforme(opts) {
        válvula. `detectar_huerfanos` no lo marcaba porque el id sí está nombrado; lo que no
        tenía era destino narrativo, que es la distinción que ese script declara no poder hacer.
        Se nombra sólo cuando NO es «Normal»: una tricúspide de morfología normal no es un
-       hallazgo, igual que la geometría normal del VI o la AI de dimensiones normales. Y NO sube
-       al EN SUMA, por simetría con la mitral y la aórtica, donde la morfología tampoco sube. */
+       hallazgo, igual que la geometría normal del VI o la AI de dimensiones normales.
+       ⚠️ «Y NO sube al EN SUMA, por simetría con la mitral y la aórtica» — ESO YA NO ES CIERTO y
+       era lo que decía acá. La morfología SÍ sube, en línea propia y antes de las lesiones, desde
+       A5 (2026-10-05); la simetría con la mitral y la aórtica se rompió a propósito, primero en la
+       tricúspide y después en la pulmonar (D). Ver el bloque de A5 unas líneas más abajo. */
     const vtMorf = sv('vt_morf') || '';
     const vtDe = (vtMorf && vtMorf !== 'Normal') ? valvMorfDe(vtMorf) : '';
     /* «Funcional / dilatación VD» NO es una morfología suelta: es el MECANISMO de una
@@ -31514,15 +31568,57 @@ function generarInforme(opts) {
        repite la palabra «insuficiencia» que la línea de al lado («IT severa.») ya dice. Es la ÚNICA
        de las siete que no sale de la tabla, y se escribe como excepción nombrada en vez de tocar
        `VALV_MORF_ETIOL`, que gobierna la mitral y la aórtica además de ésta. */
-    if (vtMorf && vtMorf !== 'Normal') {
-      suma.push(vtMorf === 'Funcional / dilatación VD'
-        ? 'VT funcional.' : `VT ${valvMorfAdj(vtMorf)}.`);
+    /* ══ D · LA PRÓTESIS ES UNA SOLA LÍNEA (decisión de Maicol, 2026-10-05) ════════════════════
+       Reemplaza TODO lo que esta válvula decía: la línea de morfología («VT con prótesis
+       biológica.»), las dos de lesión («ET …», «IT …») y la línea del cuerpo que el bloque de
+       «normofuncionante» reusaba al final. Medido en HEAD: una prótesis tricuspídea con el
+       gradiente medio cargado publicaba las DOS —«VT con prótesis biológica.» y «Válvula
+       tricúspide con prótesis biológica (gradiente medio 3 mmHg).»—, dos renglones diciendo lo
+       mismo, uno de ellos con un número que el resumen no gradúa.
+       SIN siglas de lesión y SIN gradientes ni velocidades: el cuerpo ya los publica.
+       ⚠️ LAS SEÑALES SON LAS QUE LA APP YA USA, no criterios nuevos ni los de la nativa: `hayIT` /
+       `itG` para la insuficiencia y `etDesc` / `etPill` para la estenosis — los mismos cuatro
+       predicados que empujaban las dos siglas acá mismo. La app NO gradúa la estenosis de una
+       prótesis (`protNoGradua` apaga `calcET`), así que el grado que se nombra es el que el médico
+       o un estudio legado dejaron en el `<select>`.
+       ⚠️ HAY UNA TERCERA FUENTE, Y ESTE COMENTARIO DECÍA «nunca uno calculado», QUE ES FALSO. El
+       auto-grado escrito mientras la válvula era NATIVA sobrevive al cambio de morfología: el
+       `onchange` de `vt_morf` es sólo `valvProtSync()`, que no limpia `et_grado` ni vuelve a
+       llamar a `calcET` —y si lo llamara saldría por `protNoGraduaPintar` antes de tocar el
+       select—. Medido en dos gestos: `et_gmedio = 6` deja `et_grado = 'Significativa'`, y elegir
+       después «Prótesis biológica» lo conserva. MISMA MEDICIÓN EN HEAD, así que NO es de D: en
+       HEAD eso salía como «ET significativa.» en el EN SUMA y el CUERPO ya decía lo mismo. La
+       pulmonar tiene el defecto gemelo, con el badge de pantalla además contradiciéndose. Lo marcó
+       `/sharp-edges` sobre el diff de D. Queda REPORTADO Y NO CORREGIDO: retirar el grado residual
+       al cambiar de morfología es tocar el criterio de una válvula protésica en el informe firmado
+       —decisión de Maicol— y el `onchange` es código compartido. Ver `docs/PENDIENTES.md`.
+       ⚠️ LA SIGLA Y EL TIPO SALEN DE `sumaProtLinea`, QUE ES EL EMISOR COMPARTIDO con la pulmonar
+       y el dueño del literal que el bloque del final lee como token de `yaDicho`. Acá sólo se
+       redactan las LESIONES, que es lo único propio de esta válvula. Si la opción no tiene frase
+       en `VALV_MORF_FRASE`, devuelve '' y se cae al camino de HEAD — fail-closed. */
+    const _vtProtLinea = (function(){
+      if (!_vtProt) return '';
+      /* La insuficiencia primero y la estenosis después, que es el orden de los ejemplos y el
+         mismo que ya usa la oración única de la pulmonar. El grado es OPCIONAL en cada una. */
+      const _les = [];
+      if (hayIT)   _les.push('insuficiencia' + (itG > 0 ? ' ' + imTxt[itG] : ''));
+      if (etDesc)  _les.push('estenosis ' + etDesc);
+      else if (etPill) _les.push('estenosis');
+      try { return sumaProtLinea('vt_morf', vtMorf, _les); } catch (e) { return ''; }
+    })();
+    if (_vtProtLinea) {
+      suma.push(_vtProtLinea);
+    } else {
+      if (vtMorf && vtMorf !== 'Normal') {
+        suma.push(vtMorf === 'Funcional / dilatación VD'
+          ? 'VT funcional.' : `VT ${valvMorfAdj(vtMorf)}.`);
+      }
+      /* Las dos lesiones, DESPUÉS de la morfología, que es el orden que A5 pide. */
+      if (etDesc) suma.push(`ET ${etDesc}.`);
+      else if (etPill) suma.push('ET presente.');
+      /* El EN SUMA de la IT no cambia. */
+      if (hayIT) suma.push(itG > 0 ? `IT ${imTxt[itG]}.` : 'IT presente.');
     }
-    /* Las dos lesiones, DESPUÉS de la morfología, que es el orden que A5 pide. */
-    if (etDesc) suma.push(`ET ${etDesc}.`);
-    else if (etPill) suma.push('ET presente.');
-    /* El EN SUMA de la IT no cambia. */
-    if (hayIT) suma.push(itG > 0 ? `IT ${imTxt[itG]}.` : 'IT presente.');
     let tricLine;
     if (_vtProt || vtFuncSinIT) {
       /* ⚠️ LAS DOS RAMAS QUE NO SE TOCAN, Y NO ES UN OLVIDO. La PRÓTESIS publica los valores
@@ -31825,6 +31921,69 @@ function generarInforme(opts) {
       return `Se observa ${_lesionesE}.`;   // «No especificada»: sin cláusula de forma
     })();
 
+    /* ══ D · LA PULMONAR EN EL EN SUMA: MORFOLOGÍA Y PRÓTESIS ═══════════════════════════════════
+       (decisión de Maicol, 2026-10-05; el mismo reglamento que la tricúspide recibió en A5/D.)
+
+       `_vpProtTipo` — el tipo de prótesis, derivado de `VALV_MORF_FRASE` igual que en la
+       tricúspide y que en el bloque de «normofuncionante» del final: ni una cuarta lista paralela
+       de las opciones. Vacío ⇒ se cae al camino de HEAD (fail-closed).
+
+       LAS DOS LÍNEAS SE EMPUJAN ACÁ, ANTES DE LA CASCADA DE RAMAS, y no es un lugar arbitrario:
+       los `suma.push` de la EP viven en TRES ramas distintas y el de la IP en el bloque 10b, así
+       que éste es el único punto por el que pasan los cuatro caminos. Puesto adentro de una rama,
+       la morfología saldría DESPUÉS de una sigla de lesión en los otros tres — que es exactamente
+       el defecto de orden que la tricúspide ya tuvo que corregir en A5.
+
+       (1) NATIVA CON ETIOLOGÍA → línea propia antes de las lesiones. `vpMorfHay` ya excluye
+           «Normal» y «No especificada», que son los dos valores que no describen una forma (el
+           segundo es el de MIGRACIÓN: afirmarlo sería publicar que se evaluó algo que no se
+           evaluó). La palabra sale de `valvMorfAdj`, la misma tabla de la que sale la redacción
+           del cuerpo: no hay un segundo vocabulario.
+       (2) PRÓTESIS → UNA SOLA LÍNEA que reemplaza todo lo de esta válvula: la morfología, las
+           siglas «EP»/«IP» y la línea del cuerpo que el bloque del final reusaba. Medido en HEAD:
+           una bioprótesis pulmonar con la Vmax cargada y sin lesiones resumía «Válvula pulmonar
+           con prótesis biológica (Vmax 3 m/s, Gmax 36 mmHg)» — la línea del cuerpo entera, con
+           números, repetida en el renglón que se copia al resumen de alta.
+           SIN siglas de lesión y SIN gradientes ni velocidades.
+       ⚠️ LAS SEÑALES SON LAS QUE LA APP YA USA: `hayIP`/`ipGrado` para la insuficiencia y `epHay`/
+           `epG` para la estenosis — los mismos predicados que empujan las siglas hoy. La app NO
+           gradúa la estenosis protésica (`protNoGradua` apaga `calcVP`), así que el grado que se
+           nombra es el que el médico o un legado dejaron en el `<select>` — O EL QUE EL AUTO-GRADO
+           ESCRIBIÓ MIENTRAS LA VÁLVULA ERA NATIVA, que es el defecto gemelo del de la tricúspide:
+           medido, `vp_vmax = 3.5` deja `ep_grado = 'Moderada'` y elegir después «Prótesis
+           biológica» lo conserva, porque el `onchange` de `vp_morf` (`vpSync();valvProtSync()`) no
+           lo retira. Acá es PEOR que en la tricúspide: el badge `vp-sev-badge` sigue diciendo
+           «Sugerido automáticamente por Vmax 3.5 m/s → Gmax 49 mmHg» sobre una válvula cuyo badge
+           debería decir `PROT_SIN_GRADO_TXT`, porque `calcVP` sólo corre desde el `oninput` del
+           Doppler. MISMA MEDICIÓN EN HEAD —ahí el EN SUMA decía «EP moderada.» y el cuerpo ya decía
+           «con prótesis biológica y estenosis moderada (Vmax 3.5 m/s, Gmax 49 mmHg)»—, así que NO
+           es de D. REPORTADO Y NO CORREGIDO: es criterio del informe firmado y código compartido.
+       ⚠️ «con estenosis» SIN GRADO NO ES ALCANZABLE EN LA PULMONAR, y se deja así a propósito:
+           `_epSinGrado` lleva `!_epEsProt` adentro desde E5b-1, o sea que con prótesis el escalón
+           «botón prendido sin grado» no afirma estenosis en ninguna superficie. Inventarle una
+           señal acá sería un criterio nuevo. La tricúspide sí la alcanza, por `etPill`. Declarado.
+       ⚠️ LA INSUFICIENCIA CON VELOCIDAD Y BOTÓN APAGADO ENTRA SIN GRADO, que es lo que el cuerpo
+           ya hace: `hayIP` la da por `ip_vmax`/`ip_vtd` y `ipHayInsuf(ipGrado)` es falso, así que
+           sale «con insuficiencia» pelada. No se cambió un predicado para conseguirlo. */
+    const _vpProtLinea = (function(){
+      if (!_epEsProt) return '';
+      /* Insuficiencia primero y estenosis después, el orden de los ejemplos y el de `_lesionesE`
+         en el cuerpo. El grado es OPCIONAL en cada una.
+         ⚠️ EL NIVEL (`epNivelTxt`) NO ENTRA, y es una PÉRDIDA DECLARADA respecto de HEAD, no un
+         olvido: la sigla que esta línea reemplaza lo llevaba —«EP moderada a nivel supravalvular.»—
+         y el formato que Maicol escribió para la línea única no lo tiene. El cuerpo lo CONSERVA
+         («…y estenosis moderada a nivel supravalvular.»), así que no se cae del papel: se cae de la
+         superficie que se copia al resumen de alta. Agregarlo es cambiar el formato pedido, que es
+         decisión de Maicol. Medido y reportado. */
+      const _les = [];
+      if (hayIP) _les.push('insuficiencia' + (_ipDescU ? ' ' + _ipDescU : ''));
+      if (epHay) _les.push('estenosis ' + epG.toLowerCase());
+      try { return sumaProtLinea('vp_morf', vpMorf, _les); } catch (e) { return ''; }
+    })();
+    const _vpProtSuma = !!_vpProtLinea;
+    if (_vpProtSuma) suma.push(_vpProtLinea);
+    else if (vpMorfHay) suma.push(`VP ${valvMorfAdj(vpMorf)}.`);
+
     /* LA NORMALIDAD EXIGE «Normal» EXPLÍCITO, no «no es anormal». Con `!vpMorfHay` alcanzaba
        también «No especificada» —que es el valor al que MIGRAN los estudios viejos y el que
        elige el médico cuando no valoró la morfología— y el informe firmado salía «Válvula
@@ -31892,14 +32051,32 @@ function generarInforme(opts) {
          conclusión, igual que la IP leve». Se revierte junto con la EAo leve y por el mismo
          motivo: las leves de TODAS las válvulas figuran, y la asimetría —IT leve y ET leve sí,
          EP leve no— se lee como ausencia de hallazgo y no como omisión deliberada.
-         La MORFOLOGÍA sigue sin subir: eso no cambió —simetría con mitral, aórtica y tricúspide,
-         donde tampoco sube— y por eso el `ccMarcarParrafo()` de abajo se queda; con morfología
-         anormal y sin grado de estenosis, el resumen sigue sin línea y el fallback tiene que
-         decir «Sin OTRAS alteraciones» en vez de negar el párrafo que acaba de escribirse.
+         ⚠️ «La MORFOLOGÍA sigue sin subir: eso no cambió» — FALSO DESDE D (2026-10-05). La
+         morfología de la pulmonar sube en línea propia (`VP <adj>.`), arriba, antes de la cascada
+         de ramas. El `ccMarcarParrafo()` de abajo se queda igual, pero el razonamiento que lo
+         justificaba ya no corre: con morfología anormal el resumen AHORA tiene línea, así que el
+         fallback no se alcanza por ese camino. Se conserva porque sigue siendo correcto para la
+         morfología «No especificada» con mediciones y sin grado, que no emite línea.
          Guion corto, no raya em: el En Suma se dibuja con jsPDF y la helvetica WinAnsi descarta
          la raya en silencio — el PDF firmado salía «VP  Estenosis moderada.» con doble espacio. */
-      if (epHay) suma.push(`EP ${epG.toLowerCase()}${epNivelTxt}.`);  // v2: sigla (reglas 6/11)
-      else if (_epSinGrado) suma.push('EP presente.');  // v2 (E5b-1, regla 9): botón prendido sin grado
+      /* ⚠️ D · CON PRÓTESIS LA SIGLA NO SALE: la línea única de arriba ya nombró la estenosis
+         dentro de ella, y «VP protésica biológica con estenosis moderada.» más «EP moderada.»
+         son dos renglones sobre la misma lesión. ESTE es el único de los tres `suma.push` de la
+         EP que hay que guardar —los otros dos viven en ramas que exigen `!_epEsProt` o
+         `vpMorf === 'Normal'`, así que con prótesis no se alcanzan—; guardarlos también sería
+         código muerto que la próxima lectura cree que gobierna algo. Medido rama por rama.
+         `ccMarcarParrafo()` NO se toca: el cuerpo escribió su párrafo igual.
+         ⚠️ LA GUARDA ENVUELVE, NO ABRE LA CADENA, y la primera versión de D la tenía al revés: un
+         `if (_vpProtSuma) { }` de cuerpo VACÍO seguido de `else if (epHay)`. Eso no protege el
+         `suma.push` — protege su POSICIÓN —, así que borrar el bloque vacío (lo que cualquier
+         linter con `no-empty` marca como código muerto que hay que limpiar) reactivaba la sigla y
+         devolvía el renglón duplicado que D vino a cerrar, sin que nada en la línea borrada dijera
+         que gobernaba algo. Lo marcó `/sharp-edges` sobre este diff. Envuelta, borrar la guarda es
+         visible. Y así los tres sitios —éste y los dos de la IP en 10b— usan la MISMA forma. */
+      if (!_vpProtSuma) {
+        if (epHay) suma.push(`EP ${epG.toLowerCase()}${epNivelTxt}.`);  // v2: sigla (reglas 6/11)
+        else if (_epSinGrado) suma.push('EP presente.');  // v2 (E5b-1, regla 9): botón prendido sin grado
+      }
       if (vpMorfHay || epHay || _epSinGrado) ccMarcarParrafo();
     }
 
@@ -31958,7 +32135,9 @@ function generarInforme(opts) {
            «IP» y en minúscula — no el token crudo del desplegable. */
         /* v2 (2026-10-03, reglas 6/11): el EN SUMA va en SIGLA, no en la frase larga (que queda en
            el narrativo de arriba). «Estudio sin alteraciones…» no puede salir si la IP figura acá. */
-        suma.push(`IP ${ipDesc}.`);
+        /* ⚠️ D · CON PRÓTESIS NO, por lo mismo que la EP: la línea única ya dijo «con insuficiencia
+           leve» adentro. `ccMarcarParrafo()` se queda — el cuerpo sí escribió la frase larga. */
+        if (!_vpProtSuma) suma.push(`IP ${ipDesc}.`);
         ccMarcarParrafo();
       } else {
         if (!_ipEnOracion) inf.push(estiloPick(
@@ -31969,7 +32148,8 @@ function generarInforme(opts) {
            llegaba al narrativo pero NO al EN SUMA, así que el mismo estudio decía «Insuficiencia
            pulmonar presente.» arriba y «Estudio sin alteraciones…» en la conclusión, y el Laboratorio
            (_labTxt lee el EN SUMA) no la veía. Se agrega la sigla, patrón único con la IT. */
-        suma.push('IP presente.');
+        /* ⚠️ D · CON PRÓTESIS NO: la línea única ya dijo «con insuficiencia» (sin grado). */
+        if (!_vpProtSuma) suma.push('IP presente.');
         ccMarcarParrafo();
       }
     }
@@ -33303,11 +33483,24 @@ function generarInforme(opts) {
       { adj:'aórtica',     morf:'va_morf', mide:['gmedio_ao','vmax_ao','ava_cont','ea_dvi_display','va_at','ete_tavi_gmedio','ete_tavi_vmax'],
         yaDicho:['EAo','IAo','Estenosis aórtica','Insuficiencia aórtica','TAVI','RPV','aórtica'],
         enCuerpo:['VAo','Válvula aórtica','La válvula aórtica'] },
+      /* ⚠️ `SUMA_PROT_SIGLA` ENTRA COMO TOKEN DE `yaDicho`, Y SIN ESO EL ARREGLO DE D NO CIERRA.
+         La línea única de D no contiene «tricúspide», «tricuspídea» ni «pulmonar» —es «VT protésica
+         biológica con insuficiencia leve.»—, así que la compuerta (2) no la reconocía y este bloque
+         empujaba ADEMÁS la línea entera del cuerpo por `reusar`: el resumen quedaba con los dos
+         renglones, que es justo el defecto que D viene a cerrar. Medido: sin el token, prótesis
+         pulmonar con la Vmax cargada daba «VP protésica biológica.» + «Válvula pulmonar con
+         prótesis biológica (Vmax 3 m/s, Gmax 36 mmHg)».
+         ⚠️ POR LA CONSTANTE Y NO POR EL LITERAL: el dueño del texto es `sumaProtLinea`, ~4.000
+         líneas arriba, y con el literal copiado acá un cambio de redacción allá rompe esta
+         compuerta en silencio. Sólo en estas dos filas: la mitral y la aórtica no emiten esa línea
+         (ver el comentario de `SUMA_PROT_SIGLA`). */
       { adj:'tricuspídea', morf:'vt_morf', mide:['et_gmedio','et_avt','vt_dvi','it_vc'],
-        yaDicho:['ET ','IT ','Estenosis tricuspídea','Insuficiencia tricuspídea','tricúspide','tricuspídea'],
+        yaDicho:['ET ','IT ','Estenosis tricuspídea','Insuficiencia tricuspídea','tricúspide','tricuspídea',
+                 SUMA_PROT_SIGLA.vt_morf],
         enCuerpo:['VT','Válvula tricúspide','La válvula tricúspide'] },
       { adj:'pulmonar',    morf:'vp_morf', mide:['vp_gmax','vp_vmax','vp_dvi'],
-        yaDicho:['EP ','IP ','Estenosis pulmonar','Insuficiencia pulmonar','pulmonar'],
+        yaDicho:['EP ','IP ','Estenosis pulmonar','Insuficiencia pulmonar','pulmonar',
+                 SUMA_PROT_SIGLA.vp_morf],
         enCuerpo:['VP','Válvula pulmonar','La válvula pulmonar',
                   'IP ','EP ','Insuficiencia pulmonar','Estenosis pulmonar','insuficiencia pulmonar'] }
     ];
@@ -33401,15 +33594,20 @@ function generarInforme(opts) {
          alcanzable —`vmSent` se arma siempre en la rama protésica del narrativo— y por eso no
          lleva frase de respaldo, a diferencia de (3b), donde sí hay válvulas que pueden quedar
          sin línea.
-         ⚠️ ALCANCE MEDIDO, y NO es el mismo para las cuatro. Con prótesis y nada medido:
+         ⚠️ ALCANCE MEDIDO EN SU MOMENTO, y NO era el mismo para las cuatro. Con prótesis y nada
+         medido:
            · mitral     → «Estudio sin alteraciones…»          ← el defecto, se cierra acá
            · tricúspide → «Estudio sin alteraciones…»          ← EL MISMO DEFECTO, SIN CERRAR
            · aórtica    → «Sin OTRAS alteraciones… ver el cuerpo»   (ya marcaba párrafo)
            · pulmonar   → «Sin OTRAS alteraciones… ver el cuerpo»   (ya marcaba párrafo)
          Por eso la marca es por fila y no un `if` global: un `reusar` incondicional acá le
-         cambiaría el EN SUMA a la AÓRTICA, que el pedido prohíbe tocar, y a la pulmonar, que no
-         está rota. La tricúspide queda DECLARADA y sin tocar por el «SOLO» del pedido: cerrarla
-         es agregarle `reusaSinEvidencia:true` a su fila y una condición al caso. */
+         cambiaría el EN SUMA a la AÓRTICA, que el pedido prohíbe tocar.
+         ⚠️ LAS DOS FILAS DE ABAJO DE ESA TABLA YA NO SE ALCANZAN (D, 2026-10-05): la tricúspide y
+         la pulmonar protésicas emiten su propia línea en `generarInforme`, así que `suma` nunca
+         queda vacío y ninguna de las dos puede caer en la negación global. La tricúspide, que
+         quedaba DECLARADA y sin cerrar por el «SOLO» del pedido anterior, quedó cerrada de rebote
+         —por su línea propia, NO por `reusaSinEvidencia`, que sigue siendo sólo de la mitral—. La
+         tabla se conserva como registro de por qué la marca es por fila. */
       /* (2) Si el resumen ya habla de esta válvula, la conducta la describe esa línea. Se compara
          sobre lo que hay en `suma` en este momento — el bloque corre último, después de todos los
          `suma.push` de las válvulas, y por eso puede preguntarlo.
@@ -94581,8 +94779,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261005-1041';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791207708176;                 /* eco-build-ms */
+const ECO_BUILD    = '20261005-1243';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791214989155;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -94668,7 +94866,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261005-1041</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261005-1243</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
