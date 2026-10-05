@@ -207,11 +207,53 @@ impecable.
   ⚠️ **Este renglón se escribió mal una vez**: decía «doce commits sin pushear, `origin/main` en
   `2e017a1`», copiado del estado anterior sin mirar. `origin/main` había avanzado. Antes de
   escribirlo, `git rev-parse --short origin/main` y `git log --oneline origin/main..HEAD`.
-- **Línea base al 2026-10-04 (tanda 3D E2): suite 425/429, Semgrep 127 / 0 ERROR, Excel 434
-  columnas.** Los cuatro rojos son los de entrada y NO son regresiones: **TC-223** (el documentado,
-  falla por la fecha), **TC-376**, **TC-390** y **TC-406**. ⚠️ El renglón de abajo decía «421/422,
-  único rojo TC-223» y ya no es cierto: son **cuatro** rojos sobre **429** casos. Volver a medir
-  antes de leer una tanda de mutaciones sigue siendo obligatorio.
+- **Línea base al 2026-10-05 (tanda tricúspide P2/P3): suite 425/429, Semgrep 127 / 0 ERROR, Excel
+  434 columnas.** Los cuatro rojos son los de entrada y NO son regresiones: **TC-223** (el
+  documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**. ⚠️ El renglón de abajo decía
+  «421/422, único rojo TC-223» y ya no es cierto: son **cuatro** rojos sobre **429** casos. Volver a
+  medir antes de leer una tanda de mutaciones sigue siendo obligatorio.
+
+### Tricúspide — `it_grado` es un `<select>` y el grado 3 quedó inalcanzable (2026-10-05)
+
+- **`it_grado` dejó de ser `<input type="hidden">`**: es el `<select>` VISIBLE del grado final de la
+  IT, con cuatro opciones (`0 — grado —`, `1 Leve`, `2 Moderada`, `4 Severa`). Mismo `id` y mismos
+  `value`, así que es **un dato con dos controles** —el desplegable y la pastilla «Severidad ▼»—, no
+  dos fuentes. No tiene espejo `it_sev_final`: a diferencia de la IM y la IAo, desplegable y campo
+  son el MISMO nodo, así que el defecto `*_grado` vs `*_sev_final` no existe acá por construcción.
+- **Su `onchange` llama a `valvSev.aplicar` y eso obligó a una guarda de re-entrada.** `aplicar`
+  despacha `change` sobre el campo; con el campo hecho `<select>` eso vuelve a entrar a `aplicar`.
+  La guarda (`_aplicando`) descarta la llamada anidada. `valvSev.limpiar` despacha su `change`
+  **con la guarda puesta**, porque si no se deshacía a sí misma (ponía marca y foto nuevas que las
+  líneas siguientes borraban: el estado final coincidía sólo por el ORDEN de dos líneas).
+- ⚠️ **EL GRADO 3 («Moderada-severa») YA NO SE PUEDE ELEGIR EN LA IT, y eso estrechó un corte
+  clínico sin tocar ninguna constante.** `DT_IT_SIGNIF` sigue en **3**, pero como el único grado
+  alcanzable que lo cumple es el 4, **la salvedad diastólica («La insuficiencia tricuspídea
+  significativa puede invalidar estos parámetros de llenado (ASE).») pasó a exigir IT SEVERA.**
+  **DECISIÓN PENDIENTE DE MAICOL, declarada y NO implementada: quiere que también aparezca con IT
+  moderada (grado 2).** Eso es bajar `DT_IT_SIGNIF` a 2 y va en un trabajo aparte. Medido: con el
+  corte en 2 aparecería en exactamente tres escenas más —relajación, pseudonormal y restrictivo,
+  todas con grado 2—; los patrones normal e indeterminado siguen callados a cualquier grado.
+- **El 3 sigue vivo en el resto de la app y no se tocó**: la mitral y la aórtica lo ofrecen en su
+  `<option value="3">`, la estenosis pulmonar tiene su «Moderada-severa», y la etiqueta y su mapeo
+  existen en `INSUF_TXT`, `imTxt`, `GTX`, `GT`, `_ESC04`, las seis tablas `ITT` de los módulos
+  congénitos y el vocabulario 0-4 del Excel. **Se sacan de a una, por orden expresa.**
+- **Dos casos se adaptaron** (los dos estaban VERDES en HEAD y se pusieron rojos por el cambio):
+  **TC-136** repuntado de `it_grado='3'` a `'4'` —el caso ahora prueba MENOS: la banda 2 quedó sin
+  cobertura de esa salvedad, y está dicho en el caso—; **TC-285** perdió sólo las aserciones del
+  grado 3 y conserva las del 2, la clase/nivel de la fila y la nota.
+- ⚠️ **`comparables` de `it` ya excluía el '3'** (`['0','1','2','4']`), así que un 3 fijado a mano
+  nunca levantaba el aviso de discrepancia. No es nuevo de esta tanda.
+- ⚠️ **El PPT coincide con HEAD por un empate frágil, no por diseño.** `_pptSel` devuelve el TEXTO
+  de la opción cuando el nodo es un `<select>`, así que la IT ya no entra por el `/^\d+$/`; lo que
+  iguala la salida es el `.toLowerCase()` de dos líneas más abajo, porque los textos de las tres
+  opciones son exactamente `_ESC04[1,2,4]` capitalizados. **Renombrar una de esas opciones cambia
+  la franja del PPT sin que nada más se mueva.** Verificado valor por valor (0, 1, 2 y 4).
+- **Un estudio guardado con `it_grado='3'`** reabre con el `<select>` en `selectedIndex -1` y el
+  informe degrada a «insuficiencia.» / `IT presente.` (no a «ausente»). Maicol declaró que no hay
+  estudios así, así que **no se migró nada ni se agregó aviso**.
+- Arnés de esta tanda: `scripts/_probe_tricusp.mjs`, A/B de solo lectura con `--file` para correr
+  contra una copia de HEAD. **0 diferencias** en informe (3 estilos), EN SUMA (3 estilos), Excel 434
+  y campos guardados, en 5 escenas más un control negativo de las otras tres válvulas.
 - **Las sondas del VI 3D son la ÚNICA cobertura del panel**: `grep lv3d scripts/test_clinico.mjs`
   da **cero**. Ver `docs/PENDIENTES.md` → «3D E2 — declarado y NO arreglado».
 - ⚠️ **`firmaCanvas` de `scripts/_probe_vi3d.mjs` (tanda E1) está rota y da falsos de los dos

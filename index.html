@@ -1199,6 +1199,28 @@
     #vp-lesiones > #bloque-insuf-pulmonar,
     #vp-lesiones > #bloque-esten-pulmonar { grid-column: 1; }
   }
+  /* ══ TRICÚSPIDE: LAS DOS LESIONES LADO A LADO (2026-10-04) ════════════════════════════════════
+     Mismo patrón que `#vp-lesiones`, por la MISMA razón y con los dos mismos cuidados: la columna
+     va fijada a mano porque los dos bloques se muestran por separado y un hijo en `display:none`
+     no es ítem de grid, y el media query los devuelve a la columna 1 porque `grid-column:2` sobre
+     una grilla de una columna CREA una segunda implícita en vez de ignorarse.
+     Se copia el patrón de maquetación y NADA más: la pulmonar no comparte con la tricúspide ni un
+     corte, ni un rótulo, ni un criterio clínico. */
+  #vt-lesiones { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+  #vt-lesiones > #bloque-insuf-tricuspide { grid-column: 1; }
+  #vt-lesiones > #bloque-esten-tricuspide { grid-column: 2; }
+  /* Los parámetros van en filas de 3 (insuficiencia) y de 2 (estenosis) DENTRO de media columna,
+     así que a partir de ~900 px de ventana el rótulo más largo deja de entrar. El `grid-3` baja a
+     2 columnas por ancho mínimo y no por un breakpoint nuevo: la base en px apila sola en cuanto
+     no entra, que es la regla que ya fijó el cajón `ea-fund` y evita un número que mantener
+     sincronizado con `check_mobile.js`. */
+  #vt-lesiones .grid-3 { grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); }
+  #vt-lesiones .grid-2 { grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); }
+  @media (max-width: 768px) {
+    #vt-lesiones { grid-template-columns: 1fr; }
+    #vt-lesiones > #bloque-insuf-tricuspide,
+    #vt-lesiones > #bloque-esten-tricuspide { grid-column: 1; }
+  }
   /* ══ RESPONSIVE ══ */
   @media (max-width: 768px) {
     .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
@@ -4418,71 +4440,95 @@ window.cerrarSesionReal = cerrarSesionReal;
            `bloque-esten-tricuspide` son hermanos a ancho completo, y `it_densidad` —que es un insumo
            de la IT, no de la estenosis— se mudó DENTRO de `bloque-insuf-tricuspide`. Se movieron
            WRAPPERS: ni un `id`, `name`, listener ni opción cambió. -->
-      <!-- Campos de PRÓTESIS tricuspídea (Fase 1). -->
+      <!-- Campos de PRÓTESIS tricuspídea (Fase 1).
+           ⚠️ QUEDA FUERA de `#vt-lesiones` y a ancho completo A PROPÓSITO: el DVI no es un insumo de
+           la insuficiencia ni de la estenosis, es de la PRÓTESIS, y lo gobierna `valvProtSync` por
+           la morfología —no las pastillas—. Metido en una de las dos columnas habría quedado
+           colgando de un botón que no lo manda. -->
       <div id="bloque-prot-vt" class="fg" style="display:none;margin-bottom:8px;">
         <label>DVI <span style="font-weight:400;color:var(--text2);font-size:10px;">— índice de velocidad Doppler</span></label>
         <input type="number" id="vt_dvi" step="0.01" placeholder="—">
       </div>
-      <div id="bloque-esten-tricuspide" style="display:none;">
-          <div class="grid-2" style="margin-bottom:8px;">
-            <div class="fg"><label>Estenosis tricuspídea</label>
-              <select id="et_grado">
-                <option value="Sin estenosis">&mdash; grado &mdash;</option>
-                <option>Leve</option>
-                <option>Moderada</option>
-                <option>Severa</option>
-              </select>
-            </div>
-            <div class="fg"><label>Gradiente medio ET (mmHg)</label>
-              <input type="number" id="et_gmedio" placeholder="mmHg" oninput="calcET()">
-            </div>
-          </div>
-          <div class="grid-2" style="margin-bottom:8px;">
-            <div class="fg"><label>THP tricuspídeo (ms)</label>
-              <input type="number" id="et_thp" placeholder="ms" oninput="calcET()">
-              <span style="font-size:10px;color:var(--text2);">THP ≥ 190 ms sugiere ET significativa (EAE/ASE 2009).</span>
-            </div>
-            <div class="fg"><label>VTI diastólico tricuspídeo (cm)</label>
-              <input type="number" id="et_vti_diast" placeholder="cm" step="0.1" oninput="calcET()">
-              <!-- El aviso NO es decorativo: `it_vti` está a quince líneas de acá, en el bloque de
-                   INSUFICIENCIA, y es el VTI del jet de regurgitación — otra medición, mismas
-                   unidades y rango parecido. Cargar uno donde va el otro no da error: da un área
-                   por continuidad plausible y equivocada. -->
-              <span style="font-size:10px;color:var(--text2);">Flujo anterógrado de entrada. NO es el «VTI IT» del bloque de insuficiencia.</span>
-            </div>
-          </div>
-          <div class="fg"><label>Área valvular tricuspídea — auto (cm²)</label>
-            <input type="text" id="et_avt" readonly style="color:var(--accent2);" placeholder="— completar Ø y VTI del TSVD">
-            <!-- Los dos insumos del numerador viven en la pestaña VD. Se NOMBRA la fuente y no su
-                 posición: este archivo ya pagó tres cadenas que decían «el campo de arriba»
-                 cuando el bloque cambió de pestaña. -->
-            <span style="font-size:10px;color:var(--text2);">Continuidad: área del TSVD × VTI-TSVD ÷ VTI diastólico tricuspídeo. El Ø y el VTI del TSVD se cargan en la pestaña VD. Normal &gt;1 cm² · significativa ≤1 cm².</span>
-          </div>
-          <div class="calc-box">
-            <div class="calc-row"><span class="calc-lbl">Referencia</span><span style="font-size:11px;color:var(--text2);">ET significativa con CUALQUIERA de: gradiente medio ≥5 mmHg · THP ≥190 ms · área ≤1 cm² (EAE/ASE 2009 · ESC/EACTS 2021). La guía no gradúa la ET: es binaria.</span></div>
-            <div class="calc-row"><span class="calc-lbl">Severidad sugerida</span><span id="et-sev">—</span></div>
-          </div>
-          <div id="et-gmedio-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
-        </div>
+      <!-- ═══ LAS DOS LESIONES, UNA BAJO CADA BOTÓN (2026-10-04) ═════════════════════════════════
+           Insuficiencia a la IZQUIERDA (bajo su botón) y estenosis a la DERECHA, apiladas por
+           debajo de 768 px. La maquetación la hace `#vt-lesiones` en el CSS — ver ahí los dos
+           cuidados del `grid-column` fijado a mano.
+           ⚠️ EL ORDEN DEL CÓDIGO CAMBIÓ Y ESO ES LO QUE MANDA EN LA TABULACIÓN. Antes la ESTENOSIS
+           venía primera en el DOM y la insuficiencia después; con la grilla alcanzaba `grid-column`
+           para verlas en el orden pedido, pero no hay un solo `tabindex` en el bloque, así que se
+           tabulaba estenosis → insuficiencia, al revés de como se lee. Ahora el DOM dice lo mismo
+           que la pantalla. Se movieron WRAPPERS: ni un `id`, `name`, listener ni `<option>` de la
+           estenosis cambió. -->
+      <div id="vt-lesiones">
       <div id="bloque-insuf-tricuspide" style="display:none;">
-      <div class="grid-4">
+      <!-- ── 1) GRADO PARA EL INFORME ──────────────────────────────────────────────────────────
+           `it_grado` pasó de `<input type="hidden">` a `<select>` VISIBLE (2026-10-04, decisión de
+           Maicol). Mismo `id`, mismos `value`: es el MISMO dato que ya leían el informe, el EN
+           SUMA, el PDF, el Excel y el PPT, y la pastilla «Severidad ▼» de arriba escribe en este
+           mismo nodo. No hay una segunda fuente de verdad — hay un dato con dos controles.
+           ⚠️ EL `onchange` VA POR `valvSev.aplicar` Y NO ESCRIBE NADA POR SU CUENTA. Si sólo
+           cambiara el `value`, `calcIT_ESC` lo pisaría en el próximo `oninput` de cualquiera de los
+           seis parámetros —la marca `esqSevManual.it` es lo único que lo frena (ver su línea en
+           `calcIT_ESC`)—: el grado elegido a mano se evaporaría sin un aviso, y el informe firmado
+           saldría con el calculado. `aplicar` es el que pone la marca, toma la foto del calculado
+           para el aviso de discrepancia y enciende/apaga la pastilla.
+           ⚠️ SIN «Moderada-severa» (value 3), por decisión de Maicol de esta tanda. `calcIT_ESC`
+           emite sólo '4'/'2'/'1', `valvSev` sólo 1/2/4 y `esqPills` sólo [0,1,2,4]: ningún camino
+           automático escribe 3. El único que podía era la tarjeta de revisión previa al PDF, que se
+           corrigió en el mismo commit. Las otras válvulas lo siguen ofreciendo — se sacan de a una. -->
+      <div class="valv-fund-row" style="margin-bottom:8px;">
+        <div class="fg valv-fund-sel"><label>Insuficiencia tricusp&iacute;dea &mdash; grado final al informe</label>
+          <select id="it_grado" onchange="valvSev.aplicar('insuf','tricuspide',this.value)">
+            <option value="0">&mdash; grado &mdash;</option>
+            <option value="1">Leve</option>
+            <option value="2">Moderada</option>
+            <option value="4">Severa</option>
+          </select>
+          <!-- Aviso de grado fijado a mano que discrepa del calculado. SE MOVIÓ de abajo del
+               `calc-box` a acá, junto al grado que explica — es lo que ya hacen la mitral y la
+               aórtica. Lo pinta el MISMO `sevSincronizar` (clave `it`) y la condición de cuándo
+               aparece NO se tocó: sigue siendo `sevDiscrepa('it')`, su único dueño. Vacío no tiene
+               alto y no deja hueco. -->
+          <div id="it-manual-aviso" style="font-size:11px;font-weight:700;color:var(--red);margin-top:4px;"></div>
+        </div>
+        <!-- El cajón de la nota va A LA DERECHA del grado cuando hay discrepancia, y se apila solo
+             en celular: `.valv-fund-row` es `flex-wrap` con base en px, sin media query (misma
+             primitiva ya medida que usan `ea-fund` e `ia-fund`).
+             ⚠️ NO se le pone `display` por clase: `sevFundamento` lo abre con `style.display = ''`,
+             así que un `display:none` en el CSS lo dejaría cerrado para siempre y el síntoma sería
+             «la apertura automática se rompió», que no apunta al CSS. -->
+        <div id="it-fund" class="valv-fund-box" style="display:none;background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;">
+          <div class="valv-fund-tit" style="font-weight:700;color:var(--accent2);">Fundamento del ajuste</div>
+          <label for="it_fund_nota" style="display:block;font-weight:400;color:var(--text2);margin:0 0 2px;">Motivo del ajuste (opcional)</label>
+          <input type="text" id="it_fund_nota" maxlength="100" placeholder="Ej.: jet exc&eacute;ntrico, vena contracta no medible" style="width:100%;">
+        </div>
+      </div>
+      <!-- ── 2) PARÁMETROS — dos filas de tres ────────────────────────────────────────────────
+           Era un `grid-4` con cinco campos (así que el quinto caía solo en una segunda fila) más
+           «Densidad jet CW» en un `.fg` aparte. Ahora son 3 + 3, con la densidad cerrando la
+           segunda fila: sigue siendo el mismo insumo cualitativo de la IT, con el mismo `id`, el
+           mismo `onchange` y las mismas cuatro opciones. -->
+      <div class="grid-3" style="margin-bottom:8px;">
         <div class="fg"><label>Vena contracta (mm)</label><input type="number" id="it_vc" placeholder="mm" oninput="calcIT_ESC()"></div>
         <div class="fg"><label>Radio PISA IT (mm)</label><input type="number" id="it_pisa_r" placeholder="mm" oninput="calcIT_ESC()"></div>
         <div class="fg"><label>Valiasing IT (cm/s)</label><input type="number" id="it_pisa_val" placeholder="cm/s" oninput="calcIT_ESC()"></div>
+      </div>
+      <div class="grid-3" style="margin-bottom:8px;">
         <div class="fg"><label>Vmax IT CW (cm/s)</label><input type="number" id="it_vmax_cw" placeholder="cm/s" oninput="calcIT_ESC()"></div>
         <div class="fg"><label>VTI IT (cm)</label><input type="number" id="it_vti" placeholder="cm" oninput="calcIT_ESC()"></div>
+        <div class="fg"><label>Densidad jet CW</label>
+          <select id="it_densidad" onchange="calcIT_ESC()">
+            <option value="">—</option>
+            <option value="debil">Débil / incompleto</option>
+            <option value="moderado">Moderado</option>
+            <option value="denso">Denso / triangular</option>
+          </select>
+        </div>
       </div>
-      <!-- v2 (E5b-3): «Densidad jet CW» es un insumo CUALITATIVO de la severidad de la IT, no de la
-           estenosis. Vive acá, dentro del bloque de insuficiencia —gateado por la pastilla de IT—, y
-           no en el `grid-2` de arriba donde la estenosis la desplazaba. Mismo `id` y `onchange`. -->
-      <div class="fg" style="margin-top:8px;"><label>Densidad jet CW</label>
-        <select id="it_densidad" onchange="calcIT_ESC()">
-          <option value="">—</option>
-          <option value="debil">Débil / incompleto</option>
-          <option value="moderado">Moderado</option>
-          <option value="denso">Denso / triangular</option>
-        </select>
-      </div>
+      <!-- ── 3) UN SOLO CUADRO de cálculo y referencia ────────────────────────────────────────
+           EROA, volumen regurgitante, densidad y la severidad integrada ESC 2021 ya vivían en este
+           mismo `calc-box`: no se partió ni se duplicó nada. El aviso rojo y el cajón de la nota se
+           fueron de acá ARRIBA, junto al grado que explican. -->
       <div class="calc-box" style="margin-top:10px;">
         <div class="calc-row"><span class="calc-lbl">EROA — PISA (mm²)</span><span class="calc-val" id="it-eroa">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Vol regurgitante (ml)</span><span class="calc-val" id="it-volr">—</span></div>
@@ -4490,18 +4536,62 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad IT integrada (ESC 2021)</span><span id="it-sev">—</span></div>
         <div class="calc-row"><span id="it-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
       </div>
-      <!-- v2 (E2c): aviso de discrepancia + cajón de la IT, hermanos de los de la mitral y
-           gobernados por el MISMO `sevSincronizar` (clave `it`). Sólo se ven con grado manual que
-           discrepa del autogrado de `calcIT_ESC`. Viven dentro del bloque de cuantificación, que se
-           ve con la pastilla de IT prendida. -->
-      <div id="it-manual-aviso" style="font-size:11px;font-weight:700;color:var(--red);margin-top:4px;"></div>
-      <div id="it-fund" class="valv-fund-box" style="display:none;background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;">
-        <div class="valv-fund-tit" style="font-weight:700;color:var(--accent2);">Fundamento del ajuste</div>
-        <label for="it_fund_nota" style="display:block;font-weight:400;color:var(--text2);margin:0 0 2px;">Motivo del ajuste (opcional)</label>
-        <input type="text" id="it_fund_nota" maxlength="100" placeholder="Ej.: jet exc&eacute;ntrico, vena contracta no medible" style="width:100%;">
       </div>
-      </div>
-      <input type="hidden" id="it_grado" value="0">
+      <div id="bloque-esten-tricuspide" style="display:none;">
+          <!-- ── 1) GRADO PARA EL INFORME ──────────────────────────────────────────────────────
+               `et_grado` SÓLO SE REUBICÓ: salió del `grid-2` que compartía con el gradiente medio y
+               quedó solo, encabezando la columna. Ni el `id`, ni los cuatro `value`, ni el texto de
+               una sola `<option>` cambiaron — la versión binaria (significativa / no significativa)
+               es un trabajo siguiente, por orden expresa.
+               ⚠️ ACÁ NO HAY AVISO DE AJUSTE MANUAL NI CAJÓN DE NOTA, y no es un olvido: `et` NO
+               está registrada en `SEV_SINC` (las claves son ea, ia, im, em, it, ep) porque la
+               estenosis tricuspídea NO autogradúa —la guía la define binaria—, así que no hay un
+               grado calculado contra el que discrepar. No existen `et-manual-aviso`, `et-fund` ni
+               `et_fund_nota`: no había nada que reubicar. Crearlos sería lógica nueva. -->
+          <div class="fg" style="margin-bottom:8px;"><label>Estenosis tricusp&iacute;dea &mdash; grado final al informe</label>
+            <select id="et_grado">
+              <option value="Sin estenosis">&mdash; grado &mdash;</option>
+              <option>Leve</option>
+              <option>Moderada</option>
+              <option>Severa</option>
+            </select>
+          </div>
+          <!-- ── 2) PARÁMETROS (4) ──────────────────────────────────────────────────────────── -->
+          <div class="grid-2" style="margin-bottom:8px;">
+            <div class="fg"><label>Gradiente medio ET (mmHg)</label>
+              <input type="number" id="et_gmedio" placeholder="mmHg" oninput="calcET()">
+            </div>
+            <div class="fg"><label>THP tricuspídeo (ms)</label>
+              <input type="number" id="et_thp" placeholder="ms" oninput="calcET()">
+              <span style="font-size:10px;color:var(--text2);">THP ≥ 190 ms sugiere ET significativa (EAE/ASE 2009).</span>
+            </div>
+          </div>
+          <div class="grid-2" style="margin-bottom:8px;">
+            <div class="fg"><label>VTI diastólico tricuspídeo (cm)</label>
+              <input type="number" id="et_vti_diast" placeholder="cm" step="0.1" oninput="calcET()">
+              <!-- El aviso NO es decorativo: `it_vti` vive en el bloque de INSUFICIENCIA —ahora la
+                   columna de al lado— y es el VTI del jet de regurgitación: otra medición, mismas
+                   unidades y rango parecido. Cargar uno donde va el otro no da error: da un área
+                   por continuidad plausible y equivocada. Se NOMBRA el bloque y no su posición,
+                   que es lo que sobrevive a la próxima mudanza. -->
+              <span style="font-size:10px;color:var(--text2);">Flujo anterógrado de entrada. NO es el «VTI IT» del bloque de insuficiencia.</span>
+            </div>
+            <div class="fg"><label>Área valvular tricuspídea — auto (cm²)</label>
+              <input type="text" id="et_avt" readonly style="color:var(--accent2);" placeholder="— completar Ø y VTI del TSVD">
+              <!-- Los dos insumos del numerador viven en la pestaña VD. Se NOMBRA la fuente y no su
+                   posición: este archivo ya pagó tres cadenas que decían «el campo de arriba»
+                   cuando el bloque cambió de pestaña. -->
+              <span style="font-size:10px;color:var(--text2);">Continuidad: área del TSVD × VTI-TSVD ÷ VTI diastólico tricuspídeo. El Ø y el VTI del TSVD se cargan en la pestaña VD. Normal &gt;1 cm² · significativa ≤1 cm².</span>
+            </div>
+          </div>
+          <!-- ── 3) UN SOLO CUADRO de referencia, con la severidad sugerida ─────────────────── -->
+          <div class="calc-box">
+            <div class="calc-row"><span class="calc-lbl">Referencia</span><span style="font-size:11px;color:var(--text2);">ET significativa con CUALQUIERA de: gradiente medio ≥5 mmHg · THP ≥190 ms · área ≤1 cm² (EAE/ASE 2009 · ESC/EACTS 2021). La guía no gradúa la ET: es binaria.</span></div>
+            <div class="calc-row"><span class="calc-lbl">Severidad sugerida</span><span id="et-sev">—</span></div>
+          </div>
+          <div id="et-gmedio-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
+        </div>
+      </div><!-- fin #vt-lesiones -->
     </div>
   </div>
   </div>
@@ -20002,9 +20092,16 @@ window.calcDopTric = calcDopTric;
    engañar — el criterio del «a flujo normal» de la estenosis subaórtica. No bloquea: un gate que
    grita de más se deja de leer. */
 const DT_EA_RELAJ = 0.8, DT_EA_RESTR = 2.1, DT_EEP_ELEV = 6;
-/* `it_grado` es el hidden de la pastilla: 0 sin · 1 Leve · 2 Moderada · 3 Mod-severa · 4 Severa
-   (`INSUF_TXT`). «Significativa» arranca en mod-severa: con el corte en «moderada» la salvedad
-   saldría en buena parte de los estudios y dejaría de leerse. */
+/* `it_grado` es el campo de grado de la IT —desde el 2026-10-04 un `<select>` VISIBLE, antes el
+   hidden de la pastilla—: 0 sin · 1 Leve · 2 Moderada · 3 Mod-severa · 4 Severa (`INSUF_TXT`).
+   «Significativa» arranca en mod-severa: con el corte en «moderada» la salvedad saldría en buena
+   parte de los estudios y dejaría de leerse.
+   ⚠️ EL UMBRAL NO SE TOCÓ Y SU ALCANCE EFECTIVO CAMBIÓ — REPORTADO, NO CORREGIDO (2026-10-04).
+   La decisión de Maicol de sacar «Moderada-severa» (código 3) de la IT dejó el 3 INALCANZABLE: las
+   opciones del select son 0/1/2/4 y la tarjeta de revisión previa al PDF ya no lo ofrece. Así que
+   `itG >= 3` hoy equivale a `itG === 4`, o sea que esta salvedad pasó a exigir IT SEVERA en vez de
+   mod-severa-o-más. La constante queda en 3 a propósito: mover un corte clínico es decisión de
+   Maicol, y además 3 sigue siendo el valor correcto si algún día la opción vuelve. */
 const DT_IT_SIGNIF = 3;
 
 function dtDiastEstado(src){
@@ -24972,7 +25069,10 @@ const SEV_SINC = Object.freeze({
     /* Como la IM: calcIT_ESC deja la foto en window._itGradoCalc (memoria de proceso) y acá se lee. */
     calcular: function(){ const g = window._itGradoCalc; return (g === null || g === undefined || g === '') ? null : g; },
     recalcular: function(){ if (typeof calcIT_ESC === 'function') calcIT_ESC(); },
-    /* it_grado es un <input hidden>: no hay desplegable visible ni espejo que sincronizar. */
+    /* v3 (2026-10-04): `it_grado` YA NO ES UN `<input hidden>` — es el `<select>` VISIBLE del grado
+       final de la IT, con cuatro opciones (0/1/2/4). Sigue sin ESPEJO: a diferencia de la IM y la
+       IAo no hay un `it_sev_final` aparte, el desplegable y el campo que leen las cinco superficies
+       son EL MISMO nodo, así que no hay nada que sincronizar — sólo marcar el sugerido. */
     trasEscribir: function(sel, calc){ try { sel.dataset.sugerido = calc; } catch (e) {} },
     etiqueta: function(g){ return ({ '0':'Sin insuficiencia','1':'Leve','2':'Moderada','3':'Moderada-severa','4':'Severa' })[String(g)] || String(g); } }),
   ep: Object.freeze({ tipo:'esten', valv:'pulmonar', select:'ep_grado', aviso:'ep-manual-aviso',
@@ -25401,9 +25501,14 @@ function sevSincronizar(clave) {
          informaría `soltado: true`, así que una prueba que afirme sobre el gesto pasaría en verde. Es
          el modo de falla más caro posible —un informe firmado sin grado donde el médico había fijado
          uno— y basta que un proveedor nuevo devuelva su vocabulario propio. Falla RUIDOSA. */
-      /* v2 (E2c, 2026-10-03): la guarda «¿el calc es una <option>?» sólo aplica a <select>. La
-         tricúspide insuf registra `it_grado`, que es un <input hidden> SIN `.options`; para ésa se
-         escribe directo. NO cambia nada para ea/ia/em/im, que son <select> con opciones. */
+      /* v2 (E2c, 2026-10-03): la guarda «¿el calc es una <option>?» sólo aplica a <select>; la
+         rama del `else` existía para `it_grado`, que entonces era un <input hidden> SIN `.options`.
+         v3 (2026-10-04): `it_grado` PASÓ A SER UN `<select>`, así que ahora las SEIS claves entran
+         por la rama de arriba y la guarda las cubre a todas. Se verificó que los tres valores que
+         `calcIT_ESC` puede emitir —'1', '2' y '4'— existen como `<option>` del select nuevo: si
+         alguno faltara, esta guarda lo diría por consola en vez de dejar el grado en blanco.
+         La rama del `else` se CONSERVA: sigue siendo el camino de cualquier entrada futura que
+         registre un nodo sin opciones, y quitarla volvería obligatorio el `<select>` sin decirlo. */
       if (sel.tagName === 'SELECT' && sel.options) {
         const _existe = Array.prototype.some.call(sel.options, function(o){ return o.value === String(calc); });
         if (!_existe) {
@@ -33663,7 +33768,11 @@ function limpiarCampos(silencioso) {
   if (window.esqPills) try { esqPills.refresh(); } catch(e) {}
   // Inputs (incluye readonly calculados)
   document.querySelectorAll('input[type=text], input[type=number]').forEach(el => { el.value = ''; });
-  // Grados de severidad ocultos → 0
+  /* Grados de severidad por código numérico → 0. `im_grado` e `ia_grado` siguen siendo `<input
+     type="hidden">`; `it_grado` es un `<select>` desde el 2026-10-04 y por eso este barrido
+     EXPLÍCITO es el único que lo repone: el `querySelectorAll('input[type=text], input[type=number]')`
+     de arriba nunca lo alcanzó (era hidden) y ahora tampoco (es un select). `value = '0'` sobre el
+     select selecciona el placeholder «— grado —», que es su opción de «no hay». */
   ['im_grado','ia_grado','it_grado'].forEach(id => { const el = document.getElementById(id); if (el) el.value = '0'; });
   /* `defaultValue` y no '': hoy todos los textarea tienen '' por defecto —la plantilla del
      ETE pasó a ser `placeholder`—, así que no cambia nada, pero deja el reset alineado con
@@ -36295,6 +36404,28 @@ function mostrarCardSeveridadValvular(onConfirm) {
   const iaG = parseInt(sv('ia_grado')) || 0;
   const itG = parseInt(sv('it_grado')) || 0;
   const optsInsuf = (sel) => GTX.map((t,i) => `<option value="${i}" ${i===sel?'selected':''}>${i} · ${t}</option>`).join('');
+  /* ══ LA IT NO OFRECE «moderada-severa» (código 3) — 2026-10-04, DECISIÓN DE MAICOL ════════════
+     Esta tarjeta ERA EL ÚNICO ESCRITOR DE `3` EN `it_grado` de toda la app, y se midió antes de
+     tocar: `calcIT_ESC` emite sólo '4'/'2'/'1' (nunca '0' ni '3', sale por un `return` temprano sin
+     parámetros), `valvSev` ofrece 1/2/4 por `INSUF_OPTS` y `esqPills` escribe `INS_GRADO=[0,1,2,4]`.
+     O sea: ningún camino AUTOMÁTICO escribía 3; el médico sólo podía elegirlo acá.
+     Hace falta sacarlo justamente porque desde esta tanda `it_grado` es un `<select>` con cuatro
+     opciones (0/1/2/4): dejar el 3 en esta tarjeta le permitiría escribir en el campo un valor que
+     no es ninguna de sus `<option>`, y eso lo deja en `selectedIndex -1` con `.value === ''` — el
+     grado DESAPARECE de las cuatro superficies sin evento y sin rastro. Es el modo de falla que
+     `sevSincronizar` ya documenta y la razón por la que valida contra las `<option>` antes de
+     escribir; acá se cierra en el origen.
+     ⚠️ SÓLO LA IT: `optsInsuf` sigue intacta y la siguen usando `rev-im` y `rev-ia`, que mantienen
+     sus cinco niveles porque la mitral y la aórtica todavía ofrecen «Moderada-severa» (se sacan
+     después, de a una, por orden expresa). Filtrar dentro de `optsInsuf` habría cambiado las tres.
+     ⚠️ Y NO SE MIGRA NADA: no hay estudios guardados con 3 (confirmado por Maicol), así que no se
+     agrega ni aviso ni una opción de compatibilidad. Si algún día apareciera uno, el camino de
+     restauración (`el.value = val`, un `<select>` sin esa opción) lo dejaría en blanco y el PPT lo
+     diría en voz alta con «IT: sin clasificar» — falla ruidosa, no silenciosa. */
+  const IT_SIN_MODSEV = 3;
+  const optsInsufIT = (sel) => GTX.map((t,i) => ({t:t,i:i}))
+    .filter(o => o.i !== IT_SIN_MODSEV)
+    .map(o => `<option value="${o.i}" ${o.i===sel?'selected':''}>${o.i} · ${o.t}</option>`).join('');
   const cloneSel = (id) => {
     const el = document.getElementById(id);
     if (!el) return '<span style="color:var(--text2);">—</span>';
@@ -36313,7 +36444,7 @@ function mostrarCardSeveridadValvular(onConfirm) {
         '<div class="fg"><label>EM — Estenosis mitral</label>' + cloneSel('em_grado') + '</div>' +
         '<div class="fg"><label>IAo — Insuficiencia aórtica</label><select id="rev-ia">' + optsInsuf(iaG) + '</select></div>' +
         '<div class="fg"><label>EAo — Estenosis aórtica</label>' + cloneSel('ea_grado') + '</div>' +
-        '<div class="fg"><label>IT — Insuficiencia tricuspídea</label><select id="rev-it">' + optsInsuf(itG) + '</select></div>' +
+        '<div class="fg"><label>IT — Insuficiencia tricuspídea</label><select id="rev-it">' + optsInsufIT(itG) + '</select></div>' +
         '<div class="fg"><label>ET — Estenosis tricuspídea</label>' + cloneSel('et_grado') + '</div>' +
         '<div class="fg"><label>Válvula pulmonar</label>' + cloneSel('vp_morf') + '</div>' +
         '<div class="fg"><label>EP — Estenosis pulmonar</label>' + cloneSel('ep_grado') + '</div>' +
@@ -36387,8 +36518,14 @@ function mostrarCardSeveridadValvular(onConfirm) {
        el narrativo decía «insuficiencia moderada». Y la marca que pone la línea de abajo deja la
        divergencia PERMANENTE. Control positivo de la misma corrida: la IM, arreglada en `5602597`,
        salía con `sel=2 ocu=2` y su aviso puesto.
-       `it_grado` sigue sin tercer argumento y es correcto: la tricúspide no tiene `<select>` de
-       grado final ni entrada en el registro, y `setGrade` se gatea por existencia. */
+       `it_grado` sigue sin tercer argumento Y SIGUE SIENDO CORRECTO, pero el motivo CAMBIÓ y la
+       razón que decía acá ya no es cierta (decía «la tricúspide no tiene `<select>` de grado final
+       ni entrada en el registro»: tiene las dos — está en `SEV_SINC` desde E2c y su `<select>`
+       visible existe desde el 2026-10-04). El tercer argumento sirve para las válvulas donde el
+       grado vive en DOS nodos —el hidden `*_grado` y el desplegable `*_sev_final`— y hay que
+       escribir los dos. En la tricúspide el desplegable y el campo son EL MISMO nodo, así que no
+       hay segunda mitad que pueda divergir: el defecto que esta tanda arregló en la IM y la IAo no
+       existe acá por construcción. */
     setGrade('im_grado','rev-im','im_sev_final'); setGrade('ia_grado','rev-ia','ia_sev_final'); setGrade('it_grado','rev-it');
     /* ⚠️ ÉSTE ES EL TERCER ESCRITOR DE `im_grado`/`ia_grado`, y es el PEOR de los tres: corre
        justo ANTES de guardar y de emitir el PDF, o sea que lo que escriba acá es lo que queda
@@ -49602,6 +49739,14 @@ function _indVT(){
   const E = etF ? etF() : null;
   const it = _indS('it_grado');
   const itSev = it === '4';
+  /* ⚠️ EL '3' QUEDÓ INALCANZABLE PARA LA IT (2026-10-04) — REPORTADO, NO CORREGIDO. Maicol sacó
+     «Moderada-severa» de las opciones de `it_grado` y de la tarjeta de revisión previa al PDF, así
+     que hoy `itMod` equivale a `it === '2'`. Se CONSERVA el '3' en la condición: es la lectura
+     correcta del vocabulario (que sigue teniendo cinco códigos, y las otras válvulas los usan) y
+     sacarlo no cambiaría ninguna salida. Consecuencia a la vista en la nota de `cx_izq_mod`, que
+     empieza con «La guía no tiene una fila para moderada-severa»: ese preámbulo ya salía con el
+     grado 2 antes de esta tanda —no es nuevo—, pero ahora es el ÚNICO caso que lo produce. Tocar
+     esa frase es decisión de Maicol. */
   const itMod = it === '2' || it === '3';
   const etSig = !!(E && E.signif);
   const UG = _indUmb('ET_GMEDIO_SIGNIF'), UT = _indUmb('ET_THP_SIGNIF'), UA = _indUmb('ET_AVT_SIGNIF');
@@ -51964,7 +52109,26 @@ window.valvSev = (function(){
     if (btn) btn.setAttribute('aria-expanded','true');
   }
 
+  /* ══ GUARDA DE RE-ENTRADA — LA PIDE EL DESPLEGABLE VISIBLE DE LA IT (2026-10-04) ═════════════
+     `aplicar` escribe el campo y despacha `change` sobre él. Mientras `it_grado` era un
+     `<input type="hidden">` eso no despertaba a nadie; desde que es un `<select>` con
+     `onchange="valvSev.aplicar(...)"`, ese `change` vuelve a entrar acá y el gesto se repetiría
+     indefinidamente — pila desbordada en el primer clic del menú ▼.
+     Se resuelve con un flag y NO quitando el `dispatchEvent`: ese `change` es lo que hace correr el
+     `onchange` del desplegable de las otras válvulas, y el comentario de `SEV_SIN_APAGA_VALVS` ya
+     documenta que las dos puertas de la pastilla cuentan con él («es idempotente a propósito»).
+     La llamada ANIDADA es la que se descarta: la de afuera sigue y termina el trabajo completo
+     (marca, foto del calculado, pastilla y `sevSincronizar`), así que no se pierde ni un paso.
+     `try/finally` para que una excepción de cualquiera de los cableados no deje el flag trabado —
+     con el flag en `true` para siempre, el menú ▼ dejaría de responder y el síntoma sería «la
+     pastilla no hace nada», que no apunta acá. */
+  let _aplicando = false;
   function aplicar(tipo, valv, valor){
+    if (_aplicando) return;
+    _aplicando = true;
+    try { _aplicarInterno(tipo, valv, valor); } finally { _aplicando = false; }
+  }
+  function _aplicarInterno(tipo, valv, valor){
     const campo = CAMPO[tipo][valv], el = g(campo);
     if (!el) return;
     window.esqSevManual = window.esqSevManual || {};
@@ -52027,16 +52191,29 @@ window.valvSev = (function(){
     if (el) {
       if (tipo === 'insuf') {
         /* aórtica/mitral: desplegable visible `*_sev_final` + hidden `*_grado` (input); tricúspide:
-           sólo el hidden `it_grado`; pulmonar: `ip_grado` es un <select> propio. Se resetea al
-           centinela de «no hay» (el placeholder «— grado —» / '0'). */
+           `it_grado`, que desde el 2026-10-04 es el `<select>` visible y único (sin espejo);
+           pulmonar: `ip_grado` es un <select> propio. Se resetea al centinela de «no hay» (el
+           placeholder «— grado —» / '0'), y la rama `tagName === 'SELECT'` de abajo —que ya estaba
+           escrita— es la que ahora toma la tricúspide. */
         const fin = g(String(campo).replace('_grado','_sev_final'));
         if (fin) fin.value = '0';
         if (el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = '0';
       } else {
         el.selectedIndex = 0;
       }
-      el.dispatchEvent(new Event('change',{bubbles:true}));
-      el.dispatchEvent(new Event('input',{bubbles:true}));
+      /* ⚠️ EL `change` SE DESPACHA CON LA GUARDA PUESTA, y sin esto apagar el botón de la IT se
+         DESHACÍA a sí mismo. Desde que `it_grado` es un `<select>` con `onchange`, este `change`
+         entra a `aplicar`, que es justo lo contrario de lo que esta función hace: pondría
+         `esqSevManual.it` y una foto nuevas, y recién después las líneas de abajo las borrarían.
+         El estado final coincidía por el ORDEN, lo cual es exactamente la clase de empate que se
+         rompe el día que alguien reordena dos líneas. Con la guarda, la llamada anidada se
+         descarta y `limpiar` queda idéntica a como era con el `<input hidden>`.
+         Las otras cinco válvulas no cambian: sus `onchange` no llaman a `aplicar`. */
+      _aplicando = true;
+      try {
+        el.dispatchEvent(new Event('change',{bubbles:true}));
+        el.dispatchEvent(new Event('input',{bubbles:true}));
+      } finally { _aplicando = false; }
     }
     const claveL = campo.replace('_grado','').replace('_sev_final','');
     if (window.esqSevManual) delete window.esqSevManual[claveL];
@@ -54412,8 +54589,10 @@ function editarInforme(id) {
       pisa_tricusp: 'it_pisa_r',
     };
     // Claves de severidad cualitativa que NO se inyectan al form en importados:
-    // im_grado/ia_grado/it_grado son <input hidden> con código numérico (0-4) manejado por
-    // sincronizarGrado*(); meterles texto ("moderada") corrompería el motor de severidad y el PDF.
+    // im_grado/ia_grado llevan código numérico (0-4) en un <input hidden> y it_grado el MISMO
+    // código en un <select> visible (2026-10-04); los tres los maneja sincronizarGrado*() y
+    // meterles texto ("moderada") corrompería el motor de severidad y el PDF. En it_grado, además,
+    // un texto no corresponde a ninguna <option> y lo dejaría en blanco: un grado más que se pierde.
     // Su valor cualitativo queda igual en campos (lo usan el detalle y el PDF). em_grado/ea_grado/
     // pericardio son <select> reales de id homónimo → se cargan por el fallback (MAP_IMPORT[k]||k).
     const MAP_SKIP = new Set(['im_grado', 'ia_grado', 'it_grado']);
@@ -61015,9 +61194,21 @@ function _pptDesdeFormulario(inf, tema, presentador){
        tabla ocupaban un tercio de la diapositiva. Se nombran SÓLO las que tienen hallazgo:
        enumerar «IM: sin | EAo: sin | IAo: sin …» gastaba la línea entera en decir seis veces
        que no hay nada, y las dos que sí importaban quedaban perdidas en el medio.
-       im/ia/it_grado son <input type="hidden"> con el CÓDIGO 0-4, así que _pptSel devuelve
+       im/ia_grado son <input type="hidden"> con el CÓDIGO 0-4, así que _pptSel devuelve
        «0» y la franja decía «IM: 0» —que proyectado se lee como una medición y no como
-       «ausente»—. Se traduce con la misma escala que usa el Laboratorio. */
+       «ausente»—. Se traduce con la misma escala que usa el Laboratorio.
+       ⚠️ `it_grado` PASÓ A SER UN `<select>` (2026-10-04) Y LA FRANJA NO CAMBIÓ NI UN BYTE, pero no
+       por este bloque: `_pptSel` devuelve el TEXTO de la opción cuando el nodo es un `<select>` con
+       `selectedIndex > 0`, así que para la IT ya no entra por el `/^\d+$/` de abajo —devuelve
+       «Leve»/«Moderada»/«Severa» en vez de «1»/«2»/«4»—. Lo que las iguala es el
+       `.toLowerCase()` de unas líneas más abajo, porque los textos de esas tres `<option>` son
+       exactamente `_ESC04[1]`, `_ESC04[2]` y `_ESC04[4]` con mayúscula inicial. Verificado valor por
+       valor contra HEAD (0, 1, 2 y 4); el 0 sigue entrando por el `/^\d+$/` porque con
+       `selectedIndex === 0` `_pptSel` devuelve el `value` y no el texto, y «ausente» cae en
+       `_VALV_SIN` y se omite, igual que antes.
+       ⚠️ ES UN EMPATE FRÁGIL Y QUEDA DECLARADO: si alguien renombra una de esas tres `<option>`
+       —«Mod.» en vez de «Moderada»— la franja del PPT cambia sin que nada más se mueva. El rótulo
+       de la opción es decisión clínica de Maicol, así que no se blinda acá; se deja dicho. */
     const _ESC04 = ['ausente','leve','moderada','moderada-severa','severa'];
     /* Predicado POSITIVO de «no hay nada». Escrito al revés —«todo lo que no sea patológico
        es normal»— cualquier valor nuevo o mal escrito caería en normal y la diapositiva
@@ -80560,7 +80751,8 @@ const LAB_XLS_BIN = [
                                       ['EM_II (Moderada)','EM_II','EM_moderada'],
                                       ['EM_III (Severa)','EM_III','EM_severa']] },
 ];
-// im/ia/it son <input hidden> con código numérico; em/ea son <select> con texto.
+// im/ia son <input hidden> con código numérico, it es un <select> con el MISMO código numérico
+// (2026-10-04); em/ea son <select> con texto. Lo que importa acá es el VOCABULARIO, no el tag.
 /* Columnas DERIVADAS que van intercaladas inmediatamente DESPUÉS de la columna que describen.
    Sólo la consume `_labOrdenarCols` —ver la nota de ahí—: no es importable, no entra al mapa y
    no toca ninguna otra decisión del Excel. La clave es el RÓTULO de la columna del mapa, no el
@@ -80753,11 +80945,12 @@ const LAB_XLS_VOCAB = {
               esclerosis:'esclerosis', 'esclerosis aortica':'esclerosis',
               leve:'leve', '1':'leve', moderada:'moderada', moderado:'moderada', '2':'moderada',
               'moderada-severa':'moderada', '3':'moderada', severa:'severa', severo:'severa', '4':'severa' },
-  /* im/ia/it_grado son <input type="hidden"> con CÓDIGO NUMÉRICO 0-4 que maneja
-     sincronizarGrado*(). El propio código advierte que meterles texto «corromperia el
-     motor de severidad y el PDF», y su guarda (MAP_SKIP) sólo actúa sobre estudios
-     marcados como importados de PDF, así que no cubre esta vía: hay que emitir el
-     número. */
+  /* im/ia/it_grado llevan CÓDIGO NUMÉRICO 0-4 que maneja sincronizarGrado*() — los dos primeros en
+     un <input type="hidden">, `it_grado` en un <select> visible desde el 2026-10-04, con los mismos
+     `value`. El propio código advierte que meterles texto «corromperia el motor de severidad y el
+     PDF», y su guarda (MAP_SKIP) sólo actúa sobre estudios marcados como importados de PDF, así que
+     no cubre esta vía: hay que emitir el número. Para `it_grado` el argumento es más fuerte todavía,
+     porque un texto no es ninguna de sus <option> y lo dejaría en `selectedIndex -1`. */
   _grado04: { '0':'0', ausente:'0', sin:'0', no:'0', normal:'0',
               '1':'1', leve:'1', '2':'2', moderada:'2', moderado:'2',
               '3':'3', 'moderada-severa':'3', 'moderada severa':'3',
@@ -88675,7 +88868,8 @@ window.labHemoRender = labHemoRender;
    nada: la escala es ordinal, no una magnitud.
 
    ── LA SALVEDAD DE it_grado ──
-   `it_grado` es un `<input type="hidden" value="0">` que viaja en TODO estudio guardado, así que
+   `it_grado` nace en «0» y viaja en TODO estudio guardado —era un `<input type="hidden" value="0">`
+   y desde el 2026-10-04 es un `<select>` cuya primera opción vale «0»; lo que importa acá no cambió:
    «0» no distingue «no hay insuficiencia» de «nadie miró la válvula». Los bloques de Ebstein,
    Fallot y TGA cuentan sólo los grados 1-4 y declaran el denominador; el 0 se reporta aparte
    como «sin IT o no evaluada», que es lo único que el dato sostiene. */
@@ -93663,8 +93857,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261004-2254';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791165283134;                 /* eco-build-ms */
+const ECO_BUILD    = '20261005-0134';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791174845937;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -93750,7 +93944,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261004-2254</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261005-0134</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -4645,9 +4645,23 @@ caso('TC-136', 'Diastolica del VD: el patron sale del E/A, el E/e desempata solo
   const ea211 = esc(con({ dt_onda_e:'190', dt_onda_a:'90',  dt_eprime_lat:'5' })); // 2.11 -> restrictivo
   const ee60  = esc(con({ dt_onda_e:'60',  dt_onda_a:'50',  dt_eprime_lat:'10' })); // E/e 6.0 -> normal
   const ee61  = esc(con({ dt_onda_e:'61',  dt_onda_a:'50',  dt_eprime_lat:'10' })); // E/e 6.1 -> pseudonormal
-  /* SALVEDAD DE IT SIGNIFICATIVA (it_grado 3 = mod-severa). */
+  /* SALVEDAD DE IT SIGNIFICATIVA.
+     ⚠️ EL ESCENARIO PASO DE it_grado '3' A '4' (2026-10-04), Y NO ES COSMETICO: ESTE CASO AHORA
+     PRUEBA MENOS QUE ANTES. Maicol saco «Moderada-severa» (codigo 3) de las opciones de la IT
+     tricuspidea y de la tarjeta de revision previa al PDF, asi que el 3 quedo INALCANZABLE: al
+     asignarlo, el <select> queda en selectedIndex -1 con .value vacio y la salvedad no sale.
+     El corte de la app sigue siendo DT_IT_SIGNIF = 3 —no se toco ninguna constante clinica—, pero
+     como el unico grado alcanzable que lo cumple es el 4, la salvedad hoy se dispara SOLO CON IT
+     SEVERA en vez de con mod-severa-o-mas. Por eso el escenario usa '4': es el unico valor que
+     puede probar que la salvedad existe.
+     DECISION PENDIENTE DE MAICOL (declarada, no implementada): quiere que la salvedad aparezca
+     TAMBIEN con IT moderada (grado 2). Eso es bajar DT_IT_SIGNIF a 2 y va en un trabajo aparte.
+     Mientras no se haga, la banda 2 queda SIN cobertura de esta salvedad y el caso no lo disimula.
+     ⚠️ No colisiona con itNormal, que tambien usa '4': ese escenario tiene patron NORMAL y
+     prueba la otra mitad —que sobre un patron normal la salvedad NO sale—. Lo que los distingue
+     es el patron, no el grado. */
   __t.limpiar(); V(con({ dt_onda_e:'100', dt_onda_a:'40', dt_eprime_lat:'11' }));
-  __t.set('it_grado','3'); const itSig = __t.informe();
+  __t.set('it_grado','4'); const itSig = __t.informe();
   __t.limpiar(); V(con({ dt_onda_e:'100', dt_onda_a:'40', dt_eprime_lat:'11' }));
   __t.set('it_grado','1'); const itLeve = __t.informe();
   __t.limpiar(); V(con({ dt_onda_e:'50', dt_onda_a:'50', dt_eprime_lat:'12.5' }));
@@ -4744,7 +4758,9 @@ caso('TC-136', 'Diastolica del VD: el patron sale del E/A, el E/e desempata solo
       ee61.vd + ' // ' + ee60.vd],
 
     // 9 · LA SALVEDAD DE LA IT SIGNIFICATIVA (ASE: estos parametros pueden no ser validos).
-    ['con IT mod-severa y patron anormal se imprime la salvedad',
+    /* El rotulo decia «con IT mod-severa» y era FALSO desde que el grado 3 quedo inalcanzable:
+       el escenario ahora carga grado 4. Ver la nota larga del escenario itSig arriba. */
+    ['con IT severa (4) y patron anormal se imprime la salvedad',
       itSig.inf.indexOf(SALV) > -1, itSig.inf.slice(0, 200)],
     ['con IT leve NO se imprime', itLeve.inf.indexOf(SALV) === -1],
     ['y sobre un patron NORMAL tampoco, aunque la IT sea severa',
@@ -32366,20 +32382,33 @@ caso('TC-285', 'Valvula tricuspide: la tabla de 2025, el operador del gradiente,
         pl(rVI.nota).indexOf('figura 15 no tiene fila de ventriculo izquierdo') > -1,
         (rVI ? String(rVI.nota).slice(-260) : 'null')]);
 
-      /* (3) EL CODIGO 3 ES MODERADA-SEVERA EN TODA LA APP —INSUF_TXT, imTxt, _labRegurgSev, el
-         propio pintor— y esta seccion lo imprimia «Moderada»: el medico leia «Moderada» y no podia
-         saber que la app habia leido un 3. Y la rama de la moderada no decia en que bin cayo. */
-      esc({}, { 'vt.cxizq':'si' }, '3');
-      const f3 = filaDe('Insuficiencia tricuspidea'), r3 = rec();
+      /* (3) LA FILA DE LA IT MODERADA: su etiqueta, su clase y la nota que dice hacia que bin cayo.
+         ⚠️ LAS ASERCIONES DEL GRADO 3 SE QUITARON (2026-10-04, decision de Maicol). Este bloque
+         probaba que el codigo 3 se imprime «Moderada-severa» —porque la seccion lo imprimia
+         «Moderada» y el medico no podia saber que la app habia leido un 3—. Maicol saco
+         «Moderada-severa» de las opciones de la IT tricuspidea y de la tarjeta de revision previa
+         al PDF, asi que el 3 ya NO SE PUEDE ELEGIR: el escenario quedaba asignando un valor que no
+         es ninguna <option>, el <select> caia en selectedIndex -1 y la fila desaparecia. No es una
+         regresion del pintor; es un estado que dejo de existir.
+         NO se toco la etiqueta «Moderada-severa» ni su mapeo: la mitral, la aortica y la estenosis
+         pulmonar la siguen usando y la siguen necesitando.
+         Lo que SOBREVIVE y se conserva: la etiqueta del grado 2, la clase/nivel de la fila y la
+         nota —las tres salen de la MISMA rama cx_izq_mod, que el grado 2 alcanza igual—, asi que
+         la cobertura de esta fila no baja.
+         ⚠️ Y LA NOTA ARRANCA CON «no tiene una fila para moderada-severa» TAMBIEN CON EL GRADO 2.
+         Ya pasaba antes de esta tanda —la rama es la misma para 2 y 3— pero ahora es el UNICO caso
+         que la produce, asi que el preambulo quedo sin referente. Se asierta tal cual porque es lo
+         que la app emite hoy y es identico a HEAD; cambiar esa frase es decision de Maicol. */
       esc({}, { 'vt.cxizq':'si' }, '2');
-      const f2 = filaDe('Insuficiencia tricuspidea');
-      ex.push(['el grado 3 se imprime Moderada-severa como en el resto de la app, el 2 se imprime Moderada, y la rama dice hacia que fila se resolvio el 3',
-        !!f3 && pl(f3.val) === 'moderada-severa' && !!f2 && pl(f2.val) === 'moderada' &&
-        !!r3 && r3.clase === 'Clase IIa · Nivel B' &&
-        pl(r3.nota).indexOf('no tiene una fila para «moderada-severa»') > -1 &&
-        pl(r3.nota).indexOf('se resolvio hacia la fila de la moderada') > -1,
-        'grado 3: «' + (f3 ? f3.val : 'NO HAY') + '» / grado 2: «' + (f2 ? f2.val : 'NO HAY') +
-        '» · nota: ' + (r3 ? String(r3.nota).slice(0, 170) : 'null')]);
+      const f2 = filaDe('Insuficiencia tricuspidea'), r2 = rec();
+      ex.push(['el grado 2 se imprime Moderada, la fila es Clase IIa Nivel B y la nota dice hacia que fila se resolvio',
+        !!f2 && pl(f2.val) === 'moderada' &&
+        !!r2 && r2.clase === 'Clase IIa · Nivel B' &&
+        pl(r2.nota).indexOf('no tiene una fila para «moderada-severa»') > -1 &&
+        pl(r2.nota).indexOf('se resolvio hacia la fila de la moderada') > -1,
+        'grado 2: «' + (f2 ? f2.val : 'NO HAY') +
+        '» · clase: ' + (r2 ? r2.clase : 'null') +
+        ' · nota: ' + (r2 ? String(r2.nota).slice(0, 170) : 'null')]);
 
       /* (4) SIN UMBRAL NO SE CONCLUYE (regla 4). _gt(x, null) es false para TODO gradiente, asi
          que con la constante ausente esta rama se alcanzaba con un gm de 12 y afirmaba «no es
