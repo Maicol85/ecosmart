@@ -1061,9 +1061,22 @@ caso('TC-49', 'TAP < 105 ms sin IT: elementos indirectos de HTP, sin inventar PS
     /* La redaccion cambio el 2026-09-16: las dos ramas de esta linea y el EN SUMA pasaron a usar
        UNA sola frase (htpIndirectosFrase), que ademas incluye el TRIV tricuspideo. Antes el TAP
        estaba escrito a mano en cada rama con dos redacciones distintas. */
-    debe: ['No se obtiene valor de PSAP por ausencia de insuficiencia tricuspídea valorable',
+    /* v2 (2026-10-05, A4): la frase de normalidad de la tricuspide se reescribio. Donde decia
+       «No se obtiene valor de PSAP por ausencia de insuficiencia tricuspídea valorable» ahora dice
+       «sin estenosis ni insuficiencia, por lo que no es posible estimar la PSAP». LA INTENCION DEL
+       CASO NO CAMBIA: los elementos indirectos de HTP se nombran y la PSAP no se inventa. Lo
+       segundo pasa a afirmarse con DIENTES —por la ausencia de «PSAP estimada» y de «mmHg» en la
+       linea de la tricuspide— en vez de depender de una frase concreta: asi el caso sigue cazando
+       una PSAP inventada aunque la redaccion vuelva a cambiar. */
+    debe: ['sin estenosis ni insuficiencia, por lo que no es posible estimar la PSAP.',
            'Presenta elementos indirectos de HTP (TAP < 105 ms).'],
-    debeSuma: ['Presenta elementos indirectos de HTP (TAP < 105 ms), sin PSAP estimable.'] };
+    debeSuma: ['Presenta elementos indirectos de HTP (TAP < 105 ms), sin PSAP estimable.'],
+    extra: [['y NO se inventa ninguna PSAP ni gradiente: la linea de la tricuspide no trae numeros',
+      (function(){ const li = r.inf.split(String.fromCharCode(10))
+        .filter(function(l){ return /tric[úu]sp/i.test(l); }).join(' // ');
+        return li.indexOf('PSAP estimada') === -1 && li.indexOf('VD-AD') === -1 &&
+               li.indexOf('mmHg') === -1; })(),
+      r.inf.split(String.fromCharCode(10)).filter(function(l){ return /tric[úu]sp/i.test(l); }).join(' // ')]] };
 `);
 
 caso('TC-50', 'IT con PSAP: la PSAP alta sube al EN SUMA', `
@@ -1071,9 +1084,23 @@ caso('TC-50', 'IT con PSAP: la PSAP alta sube al EN SUMA', `
   __t.set('vci_diam','23'); __t.set('vci_col','<50'); __t.set('vmax_it','3.5');
   const r = __t.informe();
   return { inf: r.inf, suma: r.suma,
-    debe: ['PSAP estimada de 64 mmHg (PmAD 15 mmHg)'],
+    /* v2 (2026-10-05, A2): las presiones pasaron a ser una SUBORDINADA de la insuficiencia —«…con
+       insuficiencia severa, que permite estimar un gradiente VD-AD de 49 mmHg y una PSAP de 64
+       mmHg.»— en vez de una oracion propia «Gradiente VD-AD de 49 mmHg, PSAP estimada de 64 mmHg
+       (PmAD 15 mmHg).». LA INTENCION NO CAMBIA: la PSAP se calcula bien y la alta sube al EN SUMA.
+       ⚠️ SE PERDIO «(PmAD 15 mmHg)» DE LA ORACION, y se afirma que se perdio en vez de dejarlo sin
+       medir: el dato sigue en el PDF y en el Excel, pero el narrativo ya no dice de que PmAD salio
+       la PSAP. Queda reportado para Maicol; el caso lo fija para que el dia que vuelva no sea en
+       silencio. */
+    debe: ['que permite estimar un gradiente VD-AD de 49 mmHg y una PSAP de 64 mmHg.'],
     debeSuma: ['PSAP estimada 64 mmHg.'],
-    extra: [['PSAP = 4·3.5² + 15', __t.val('psap_calc') === '64']] };
+    extra: [['PSAP = 4·3.5² + 15', __t.val('psap_calc') === '64'],
+      ['el gradiente VD-AD = 4·3.5² sale en la misma oracion',
+        r.inf.indexOf('gradiente VD-AD de 49 mmHg') > -1],
+      ['LIMITE DECLARADO: la PmAD ya NO se nombra en la linea de la tricuspide',
+        r.inf.split(String.fromCharCode(10))
+          .filter(function(l){ return /tric[úu]sp/i.test(l); }).join(' // ').indexOf('PmAD') === -1,
+        r.inf.split(String.fromCharCode(10)).filter(function(l){ return /tric[úu]sp/i.test(l); }).join(' // ')]] };
 `);
 
 /* epGradoPorGmax: <9 normal, <36 leve, <=64 moderada, >64 severa. Los cuatro cortes. */
@@ -4896,17 +4923,36 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
     /* v2 (E5b-4): el narrativo de la tricúspide es UNA oración; la ET significativa por gradiente,
        con morfología normal, dice «…con estenosis significativa (gradiente medio 6 mmHg…)». El EN
        SUMA «ET significativa.» no cambió (abajo). */
+    /* ⚠️ v4 (2026-10-05, A3): ACA CAMBIO LA AFIRMACION Y HAY QUE LEER POR QUE. La regla nueva es
+       «MANDA EL GRADO; el botón sólo decide cuando no hay grado». Con el grado FORZADO al centinela
+       —que es lo que esta escena arma, y que en la app sólo se alcanza con una prótesis o un estudio
+       legado, porque a 6 mmHg calcET escribe «Significativa»— el único que queda hablando es el
+       botón, y el botón no tiene grado: dice «con estenosis.» y el EN SUMA «ET presente.».
+       LA INTENCION DEL CASO SE CONSERVA ENTERA: lo que prueba es que 6 mmHg NO QUEDA EN SILENCIO, y
+       sigue sin quedarlo. Lo que ya no es cierto es que la palabra «significativa» y el número
+       salgan de ahí: ese veredicto ahora viene del grado.
+       ⚠️ LIMITE DECLARADO, medido y NO corregido: en este estado el gradiente de 6 mmHg NO se
+       publica. Lo cierra una línea —pegarle _etParen también al fragmento sin grado— y es
+       redacción de informe firmado, así que es decisión de Maicol. El caso lo FIJA para que, si
+       algún día vuelve, no vuelva en silencio. */
     ['6 mmHg con el grado en el centinela NO queda en silencio',
-      i6.inf.indexOf('con estenosis significativa') > -1 &&
-      i6.inf.indexOf('6 mmHg') > -1, i6.inf],
-    ['y sube al EN SUMA', i6.suma.indexOf('ET significativa.') > -1, i6.suma],
+      i6.inf.indexOf('con estenosis') > -1, i6.inf],
+    ['y sube al EN SUMA', i6.suma.indexOf('ET presente.') > -1, i6.suma],
+    ['LIMITE DECLARADO: sin grado el informe no dice «significativa» ni publica el gradiente',
+      i6.inf.indexOf('significativa') === -1 && i6.inf.indexOf('6 mmHg') === -1, i6.inf],
     /* v3: con el grado binario, el grado consignado MANDA y la palabra no se duplica —decision de
        Maicol del 2026-10-05, es un borrado del sufijo «, significativa» cuando el grado ya lo dice—.
-       Lo que se sigue afirmando es que el gradiente medido se publica al lado del grado. */
-    ['con grado manual contrario al calculo manda el grado, el gradiente se publica, y la palabra NO se duplica',
-      i8.inf.indexOf('estenosis no significativa') > -1 && i8.inf.indexOf('8 mmHg') > -1 &&
+       ⚠️ v4: y el GRADIENTE ya no se publica en este estado, A PROPOSITO. Con discrepancia el
+       parentesis es SOLO la nota del cajon (A3): publicar los numeros dentro del parentesis del
+       grado que el medico eligio los pondria a sostenerlo, y aca los numeros dicen lo contrario.
+       Sin nota cargada no hay parentesis. Se afirma por los dos lados —la palabra no se duplica Y
+       el numero no esta— para que el caso siga teniendo dientes. */
+    ['con grado manual contrario al calculo manda el grado y la palabra NO se duplica',
+      i8.inf.indexOf('estenosis no significativa') > -1 &&
       i8.inf.indexOf('significativa, significativa') === -1 &&
       i8.suma.indexOf('ET no significativa.') > -1, i8.inf + ' // ' + i8.suma],
+    ['y con discrepancia el gradiente NO entra al parentesis del grado del medico (A3)',
+      i8.inf.indexOf('8 mmHg') === -1, i8.inf],
 
     // FIX 2 — et_grado deja de estar cableado a null.
     ['la ultima columna del Lab es la estenosis tricuspidea',
@@ -6844,9 +6890,14 @@ caso('TC-141', 'ET completa: gradiente, THP y area por continuidad, los tres con
   const esc = function(o){ __t.limpiar(); set('vd_bas','38');
     const faltan = Object.keys(o).filter(function(k){ return set(k, o[k]) !== 1; });
     const r = __t.informe();
+    /* ⚠️ EL FILTRO PASO A SER LA VALVULA Y NO LA FRASE (2026-10-05). Buscaba cuatro frases
+       concretas —«ET signif», «stenosis tricusp», «stenosis signif», «criterios de ET»— y cuando A3
+       borro «Sin criterios de ET significativa…» las escenas SIN estenosis dejaron de matchear
+       cualquiera de las cuatro: li quedaba VACIO y la condicion del THP fuera de banda daba rojo
+       sin «encontrado», indistinguible de un informe vacio. Un filtro por el nombre de la valvula no
+       se rompe cuando cambia la redaccion, que es justo lo que este caso vigila. */
     const li = r.inf.split(String.fromCharCode(10))
-      .filter(function(l){ return l.indexOf('ET signif') > -1 || l.indexOf('stenosis tricusp') > -1 ||
-                                  l.indexOf('stenosis signif') > -1 || l.indexOf('criterios de ET') > -1; }).join(' // ');
+      .filter(function(l){ return /tric[úu]sp/i.test(l); }).join(' // ');
     return { li: li, suma: r.suma, avt: __t.val('et_avt'), faltan: faltan }; };
 
   /* AREA: TSVD 25 mm + VTI-TSVD 12 cm + VTI diast 60 cm -> pi*(25/20)^2 = 4.909 cm², x12/60 = 0.98 */
@@ -6891,19 +6942,47 @@ caso('TC-141', 'ET completa: gradiente, THP y area por continuidad, los tres con
       soloAvt.li.indexOf('con estenosis significativa (área valvular 0.98 cm²') > -1 &&
       soloAvt.suma.indexOf('ET significativa.') > -1, soloAvt.li],
 
-    // 2 · CON LOS TRES, LOS TRES ENTRE PARENTESIS y una sola cita.
+    // 2 · CON LOS TRES, LOS TRES ENTRE PARENTESIS.
+    /* ⚠️ v2 (2026-10-05, A3): LA CITA «— EAE/ASE 2009» SE FUE DE LA ORACION, por decision de
+       Maicol. El papel afirma y no cita —es la regla del repo para el informe firmado— y la fuente
+       sigue viva en el badge de pantalla y en el panel de Evidencia. Lo que este caso prueba —que
+       los TRES criterios entran al mismo parentesis, con el mismo peso— no cambia. */
     ['con los tres cargados salen los tres',
-      losTres.li.indexOf('(gradiente medio 6 mmHg, THP 200 ms, área valvular 0.98 cm² — EAE/ASE 2009)') > -1,
+      losTres.li.indexOf('(gradiente medio 6 mmHg, THP 200 ms, área valvular 0.98 cm²)') > -1,
       losTres.li],
+    ['y la cita ya NO viaja en el informe firmado',
+      losTres.li.indexOf('EAE/ASE') === -1, losTres.li],
     ['y no quedan dos parentesis seguidos', losTres.li.indexOf(') (') === -1, losTres.li],
 
-    // 3 · CON DATOS Y SIN CRITERIOS se DECLARA, pero NO sube al EN SUMA.
-    ['con datos y sin criterios se dice que no alcanzan',
-      sinCrit.li.indexOf('Sin criterios de ET significativa con los datos disponibles') > -1 &&
-      sinCrit.li.indexOf('gradiente medio 3 mmHg, THP 180 ms') > -1, sinCrit.li],
+    // 3 · CON DATOS Y SIN CRITERIOS: AHORA SE CALLA, y eso es lo que se afirma.
+    /* ⚠️ v2 (2026-10-05, A3): ACA LA AFIRMACION SE DIO VUELTA, por decision de Maicol. La frase
+       «Sin criterios de ET significativa con los datos disponibles (…)» SE ELIMINO: era una negacion
+       ACTIVA —un descarte— y la decision es que si no hay estenosis no se dice nada. El caso NO se
+       borra: pasa a fijar la conducta nueva por los dos lados, que es lo que lo mantiene con
+       dientes. Si la frase volviera, este caso se pone rojo.
+       ⚠️ Y SE DECLARA EL PRECIO, medido: con los tres parametros cargados y ninguno alcanzando el
+       umbral, el cuerpo calla Y el EN SUMA publica «Estudio sin alteraciones estructurales ni
+       funcionales significativas» —el fallback global, porque no quedo ningun hallazgo—. O sea que
+       el medico midio tres cosas y el papel afirma normalidad. Es consecuencia de A3, no un defecto
+       nuevo, y es decision de Maicol: queda reportado y fijado. */
+    ['con datos y sin criterios el cuerpo NO declara nada de la estenosis',
+      sinCrit.li.indexOf('Sin criterios de ET') === -1 &&
+      sinCrit.li.indexOf('estenosis significativa') === -1 &&
+      sinCrit.li.indexOf('gradiente medio 3 mmHg') === -1, sinCrit.li],
+    ['y la linea de la tricuspide es la de normalidad',
+      sinCrit.li.indexOf('sin estenosis ni insuficiencia') > -1, sinCrit.li],
     ['y NO sube al EN SUMA', sinCrit.suma.indexOf('ET signif') === -1, sinCrit.suma],
-    ['sin ningun dato, silencio',
-      nada.li === '' && nada.suma.indexOf('ET') === -1, nada.li + ' // ' + nada.suma],
+    ['LIMITE DECLARADO: el EN SUMA cae al fallback y afirma normalidad con tres parametros medidos',
+      sinCrit.suma.indexOf('Estudio sin alteraciones') > -1, sinCrit.suma],
+    /* v2: el filtro ahora es la VALVULA, asi que la linea de normalidad SI aparece —antes el filtro
+       buscaba frases de estenosis y «silencio» se medía como li vacio—. El silencio que este caso
+       defiende es sobre la ESTENOSIS, y se afirma asi: ninguna palabra de estenosis graduada,
+       ningun parametro, y nada en el EN SUMA. */
+    ['sin ningun dato, silencio sobre la estenosis',
+      nada.li.indexOf('estenosis significativa') === -1 &&
+      nada.li.indexOf('Sin criterios de ET') === -1 &&
+      nada.li.indexOf('mmHg') === -1 && nada.li.indexOf('cm²') === -1 &&
+      nada.suma.indexOf('ET') === -1, nada.li + ' // ' + nada.suma],
 
     // 4 · FUERA DE BANDA se declara y no vota.
     /* Se busca la forma AFIRMATIVA completa: «significativa» a secas esta dentro de «Sin
@@ -7304,8 +7383,13 @@ caso('TC-138', 'Etiologias valvulares: el importador las acepta, el informe las 
       vmNorm.li.indexOf('Válvula mitral de morfología normal, sin estenosis ni insuficiencia.') > -1, vmNorm.li],
     ['VA trivalva sigue igual',
       vaTri.li.indexOf('Válvula aórtica trivalva normal, sin estenosis ni insuficiencia.') > -1, vaTri.li],
-    ['y la tricuspide sin morfologia consignada tampoco cambia',
-      vtNorm.li.indexOf('Válvula tricúspide sin insuficiencia valorable. No es posible estimar PSAP.') > -1 &&
+    /* ⚠️ v2 (2026-10-05, A4): la tricuspide SIN morfologia SI cambio de redaccion, a proposito —es
+       la unica de las tres y es lo que A4 pedia—. Donde decia «Válvula tricúspide sin insuficiencia
+       valorable. No es posible estimar PSAP.» ahora dice «de morfología normal, sin estenosis ni
+       insuficiencia, por lo que no es posible estimar la PSAP.». Lo que el caso sigue vigilando es
+       que la mitral y la aortica (las dos condiciones de arriba) NO se movieran una palabra. */
+    ['la tricuspide sin morfologia usa la frase de normalidad nueva (A4)',
+      vtNorm.li.indexOf('Válvula tricúspide de morfología normal, sin estenosis ni insuficiencia, por lo que no es posible estimar la PSAP.') > -1 &&
       vtNorm.li.indexOf('Válvula tricúspide,') === -1, vtNorm.li],
 
     // 4 · vt_morf DEJA DE SER HUERFANO. Antes vivia solo en la tabla del PDF y el Excel.
@@ -7315,8 +7399,13 @@ caso('TC-138', 'Etiologias valvulares: el importador las acepta, el informe las 
     ['y tambien en la rama CON insuficiencia tricuspidea (la otra mitad de la linea)',
       vtCarcIT.indexOf('Válvula tricúspide con afectación carcinoide.') > -1 &&
       vtCarcIT.indexOf('PSAP') > -1, vtCarcIT],
+    /* v2 (A4): SIN NINGUNA LESION la morfologia sigue PLEGADA en una sola oracion —lo que sigue es
+       «, sin estenosis ni insuficiencia», que no empieza por «con» y no colisiona con el «con» de la
+       etiologia—. La forma de DOS oraciones aparece sólo cuando hay lesión, y eso lo mide el caso
+       nuevo de la redaccion. Lo que se conserva es la afirmacion original: «Válvula tricúspide» no
+       abre dos oraciones seguidas. */
     ['y la morfologia se pliega: «Válvula tricúspide» no abre dos oraciones seguidas',
-      vtCarc.li.indexOf('Válvula tricúspide con afectación carcinoide, sin insuficiencia valorable') > -1 &&
+      vtCarc.li.indexOf('Válvula tricúspide con afectación carcinoide, sin estenosis ni insuficiencia') > -1 &&
       vtCarc.li.split('Válvula tricúspide').length - 1 === 1, vtCarc.li],
 
     // 5 · LA CONTRADICCION QUE LA OPCION FUNCIONAL PODIA PRODUCIR.
@@ -7329,15 +7418,29 @@ caso('TC-138', 'Etiologias valvulares: el importador las acepta, el informe las 
     ['y declara que falta el grado',
       vtFunc.li.indexOf('sin grado de insuficiencia cargado') > -1, vtFunc.li],
 
-    // 6 · La morfologia NO sube al EN SUMA, por simetria con mitral y aortica.
+    // 6 · La morfologia NO sube al EN SUMA… SALVO la tricuspide, que desde A5 SI sube.
     /* NO se empuja una linea nueva al resumen: la morfologia no se repite ahi. Ojo con el
        substring — «funcional» esta dentro de «funcionales» del propio fallback, asi que la
        primera version de esta condicion daba rojo contra la frase que venia a verificar. */
-    ['la morfologia no se repite en el EN SUMA',
-      [vmEndo, vaCarc, vtCarc, vtFunc].every(function(r){
+    /* ⚠️ v2 (2026-10-05, A5): LA SIMETRIA SE ROMPE A PROPOSITO Y SOLO EN LA TRICUSPIDE. La decision
+       de Maicol es que vt_morf suba al EN SUMA en LINEA PROPIA («VT con afectación carcinoide.»,
+       «VT funcional.») y ANTES de las dos lesiones. La mitral y la aortica NO cambian, asi que la
+       condicion se PARTE EN DOS en vez de borrarse: una sigue vigilando que esas dos callen —que es
+       lo que el caso protegia— y la otra afirma que la tricuspide habla. Partirla es lo que evita
+       que «la asimetria es intencional» se convierta en «ya nadie mira ninguna de las tres». */
+    ['la morfologia de mitral y aortica sigue sin repetirse en el EN SUMA',
+      [vmEndo, vaCarc].every(function(r){
         return r.suma.indexOf('carcinoide') === -1 && r.suma.indexOf('endocarditis') === -1 &&
                r.suma.indexOf('isquémico') === -1 && r.suma.indexOf('insuficiencia funcional') === -1; }),
-      vmEndo.suma + ' // ' + vtCarc.suma],
+      vmEndo.suma + ' // ' + vaCarc.suma],
+    ['pero la de la TRICUSPIDE si sube, en linea propia y con la sigla VT (A5)',
+      vtCarc.suma.indexOf('VT con afectación carcinoide.') > -1 &&
+      vtFunc.suma.indexOf('VT funcional.') > -1,
+      vtCarc.suma + ' // ' + vtFunc.suma],
+    /* «VT funcional.» es la EXCEPCION literal: valvMorfAdj daria «con insuficiencia funcional por
+       dilatación del ventrículo derecho», que ocupa el renglon entero del resumen. */
+    ['y la linea larga de la funcional NO llega al EN SUMA',
+      vtFunc.suma.indexOf('dilatación del ventrículo derecho') === -1, vtFunc.suma],
     /* PERO TAMPOCO PUEDE QUEDAR NEGADA. El fallback decia «Estudio sin alteraciones» sobre una
        endocarditis descrita en el cuerpo. */
     ['y el EN SUMA ya no NIEGA la etiologia descrita en el cuerpo',
@@ -38118,8 +38221,20 @@ caso('TC-313', 'Protesis mitral SIN un solo parametro medido: el EN SUMA reutili
        MISMO defecto que la mitral y queda sin cerrar por el «SOLO» del pedido. Esta condicion
        existe para que arreglarla sea DELIBERADO: cerrarla es agregarle reusaSinEvidencia a su
        fila de VALVS y dar vuelta esta linea. Es el idioma de TC-310 con su limite mudo. */
-    ['LIMITE DECLARADO: la TRICUSPIDE sigue negando — mismo defecto, sin cerrar (ver CLAUDE.md)',
-      tricusp.niega, tricusp.suma]
+    /* ⚠️ v2 (2026-10-05, A5): LA TRICUSPIDE DEJO DE NEGAR, Y NO PORQUE SE ARREGLARA EL DEFECTO. Lo
+       que la saco del fallback es la linea de morfologia que A5 agrego —«VT con prótesis
+       mecánica.»—: suma ya no queda vacio, asi que «Estudio sin alteraciones estructurales» no se
+       emite. El defecto de fondo SIGUE ABIERTO: la tricuspide todavia no reusa la linea del cuerpo
+       como hace la mitral, y lo unico que el resumen dice de esa protesis es que esta. Por eso la
+       condicion no se borra ni se da vuelta a «arreglado»: se parte en dos —ya no niega, y TAMPOCO
+       reusa— para que el estado real quede escrito y cerrarlo siga siendo deliberado.
+       OJO CON EL DENOMINADOR al leer esto: medido en una escena con vt_morf en «Prótesis
+       mecánica» y SIN ningun parametro cargado, que es la del caso. */
+    ['la TRICUSPIDE ya no cae en «Estudio sin alteraciones» — pero por la linea de A5, no por el arreglo',
+      !tricusp.niega && tricusp.suma.indexOf('VT con prótesis mecánica.') > -1, tricusp.suma],
+    ['LIMITE DECLARADO: y sigue SIN reusar la linea del cuerpo como la mitral (defecto abierto)',
+      tricusp.suma.indexOf('No es posible estimar PSAP') === -1 &&
+      tricusp.suma.indexOf('no se gradúa') === -1, tricusp.suma]
   ] };
 `);
 
@@ -49123,7 +49238,7 @@ caso('TC-410', 'Tricuspide v2: los campos de cada lesion van debajo de su pastil
    «Valvula tricuspide de morfologia normal, con estenosis X e insuficiencia Y.», y la PSAP queda
    APARTE. «Mixta» no se escribe sola. Se cubre la matriz de 6 combinaciones de grado. ⚠️ SIN
    ACENTOS GRAVES EN EL CUERPO. */
-caso('TC-411', 'Tricuspide: narrativo de UNA oracion («Valvula tricuspide de morfologia normal, con estenosis X e insuficiencia Y.»), PSAP aparte, «Mixta» nunca sola — 6 combinaciones de grado', `
+caso('TC-411', 'Tricuspide: la insuficiencia abre la oracion y la estenosis va en una SEGUNDA («Se observa estenosis X.»), las presiones como subordinada, «Mixta» nunca sola — 6 combinaciones de grado + denominador de presion', `
   ${APAGA_HELPERS}
   const base = function(){
     __t.nuevoEstudio();
@@ -49146,9 +49261,16 @@ caso('TC-411', 'Tricuspide: narrativo de UNA oracion («Valvula tricuspide de mo
   base(); est('Significativa'); insf('4'); const c4 = linea();              // grados distintos
   base(); est('Significativa'); insPres(); const c5 = linea();              // est grado + insuf presente
   base(); estPres(); insPres();        const c6 = linea();                 // ambas presente
+  /* c7 — DENOMINADOR DE LA PRESION, que las seis escenas de arriba NO tienen: ninguna carga Vmax,
+     asi que la condicion de la PSAP se evaluaba sobre una linea SIN PSAP y pasaba sin medir nada.
+     Vmax 3,0 m/s + VCI 25 mm con colapso <50 % (PmAD 15) -> gradiente 36, PSAP 51. */
+  base(); insf('4');
+  __t.set('it_vmax_cw', (function(){ var e = document.getElementById('it_vmax_cw');
+    return (e && String(e.placeholder||'').trim() === 'cm/s') ? '300' : '3.0'; })());
+  __t.set('vci_diam','25'); __t.set('vci_col','<50');
+  const c7 = linea();
 
-  const sinMixta = [c1,c2,c3,c4,c5,c6].every(function(c){ return !/mixta/i.test(c.tri); });
-  const psapAparte = [c1,c2,c3,c4,c5,c6].every(function(c){ return c.tri.indexOf(' con gradiente VD-AD') === -1 && !/insuficiencia[^.|]*PSAP/i.test(c.tri); });
+  const sinMixta = [c1,c2,c3,c4,c5,c6,c7].every(function(c){ return !/mixta/i.test(c.tri); });
 
   return { extra: [
     ['DENOMINADOR: las 6 escenas escribieron linea de tricuspide', [c1,c2,c3,c4,c5,c6].every(function(c){ return c.tri.indexOf('Válvula tricúspide') > -1; }), c1.tri + ' /// ' + c2.tri],
@@ -49161,16 +49283,37 @@ caso('TC-411', 'Tricuspide: narrativo de UNA oracion («Valvula tricuspide de mo
       c1.tri.indexOf('significativa, significativa') === -1, c1.tri],
     ['2 solo insuficiencia → «con insuficiencia leve.» sin «estenosis»',
       c2.tri.indexOf('Válvula tricúspide de morfología normal, con insuficiencia leve.') > -1 && c2.tri.indexOf('estenosis') === -1, c2.tri],
-    ['3 ambas lesiones → «con estenosis significativa e insuficiencia leve.» (wording exacto)',
-      c3.tri.indexOf('Válvula tricúspide de morfología normal, con estenosis significativa e insuficiencia leve.') > -1, c3.tri],
-    ['4 grados distintos → «con estenosis significativa e insuficiencia severa.»',
-      c4.tri.indexOf('con estenosis significativa e insuficiencia severa.') > -1, c4.tri],
-    ['5 est grado + insuf PRESENTE → «con estenosis significativa e insuficiencia.» y EN SUMA «IT presente.»',
-      c5.tri.indexOf('con estenosis significativa e insuficiencia.') > -1 && c5.suma.indexOf('IT presente.') > -1, c5.tri + ' // ' + recorteJS(c5.suma)],
-    ['6 ambas PRESENTE → «con estenosis e insuficiencia.» y EN SUMA «ET presente.»/«IT presente.»',
-      c6.tri.indexOf('con estenosis e insuficiencia.') > -1 && c6.suma.indexOf('ET presente.') > -1 && c6.suma.indexOf('IT presente.') > -1, c6.tri + ' // ' + recorteJS(c6.suma)],
-    ['«Mixta» no aparece sola en ninguna de las 6', sinMixta === true, 'sinMixta='+sinMixta],
-    ['la PSAP es oracion APARTE (no fusionada con el grado de IT)', psapAparte === true, c3.tri],
+    /* ⚠️ v4 (2026-10-05, A2): CON LAS DOS LESIONES YA NO HAY UNA SOLA ORACION, Y ES LA DECISION DE
+       MAICOL. El ensamblado nuevo es: la INSUFICIENCIA abre la oracion y la ESTENOSIS va en una
+       SEGUNDA («Se observa estenosis …»). La union con «e insuficiencia» desaparecio.
+       LO QUE EL CASO DEFIENDE SIGUE SIENDO LO MISMO: que las dos lesiones se nombren CADA UNA por su
+       nombre y su grado, que ninguna arrastre a la otra cuando falta, y que «Mixta» no se escriba
+       sola. Las seis combinaciones de grado se conservan intactas: lo unico que cambia es la forma
+       de la union. Con UNA sola lesion (c1 y c2) la oracion sigue siendo una y no cambio una letra. */
+    ['3 ambas lesiones → insuficiencia primero y estenosis en SEGUNDA oracion',
+      c3.tri.indexOf('Válvula tricúspide de morfología normal, con insuficiencia leve. Se observa estenosis significativa.') > -1 &&
+      c3.tri.indexOf('e insuficiencia') === -1, c3.tri],
+    ['4 grados distintos → cada lesion con SU grado, sin mezclarse',
+      c4.tri.indexOf('con insuficiencia severa. Se observa estenosis significativa.') > -1, c4.tri],
+    ['5 est grado + insuf PRESENTE → la insuficiencia sin grado NO se come el grado de la estenosis',
+      c5.tri.indexOf('con insuficiencia. Se observa estenosis significativa.') > -1 &&
+      c5.suma.indexOf('IT presente.') > -1, c5.tri + ' // ' + recorteJS(c5.suma)],
+    ['6 ambas PRESENTE → las dos sin grado, las dos nombradas',
+      c6.tri.indexOf('con insuficiencia. Se observa estenosis.') > -1 &&
+      c6.suma.indexOf('ET presente.') > -1 && c6.suma.indexOf('IT presente.') > -1,
+      c6.tri + ' // ' + recorteJS(c6.suma)],
+    ['«Mixta» no aparece sola en ninguna de las 7', sinMixta === true, 'sinMixta='+sinMixta],
+    /* ⚠️ v4: LA AFIRMACION DE LA PSAP SE DIO VUELTA, Y ANTES NO PROBABA NADA. Decia «la PSAP es
+       oracion APARTE» y A2 la convirtio deliberadamente en una SUBORDINADA de la insuficiencia
+       («…con insuficiencia severa, que permite estimar un gradiente VD-AD de 36 mmHg y una PSAP de
+       51 mmHg.»). Pero ademas se evaluaba sobre las seis escenas, y NINGUNA cargaba Vmax: la
+       condicion daba verde sobre lineas sin una sola presion. Ahora se mide en c7, que si las tiene,
+       y se afirma la forma nueva — con el DENOMINADOR explicito de que la PSAP esta en la linea. */
+    ['DENOMINADOR de la presion: c7 publica gradiente y PSAP',
+      c7.tri.indexOf('36 mmHg') > -1 && c7.tri.indexOf('51 mmHg') > -1, c7.tri],
+    ['las presiones son una SUBORDINADA de la insuficiencia, no una oracion aparte (A2)',
+      c7.tri.indexOf('con insuficiencia severa, que permite estimar un gradiente VD-AD de 36 mmHg y una PSAP de 51 mmHg.') > -1 &&
+      c7.tri.indexOf('Gradiente VD-AD de') === -1 && c7.tri.indexOf('PSAP estimada de') === -1, c7.tri],
   ] };
 `);
 
@@ -49545,11 +49688,19 @@ caso('TC-415', 'Vmax IT: un dato con dos campos — unidad m/s, espejo en los do
     // 6 · ESCENA 3 — el cambio AUTORIZADO contra HEAD
     ['la Vmax cargada SOLO en Valvulas llega al Doppler por el espejo',
       e3.vmax === '3' && e3.grad === '36 mmHg', 'vmax=' + e3.vmax + ' grad=' + e3.grad],
+    /* ⚠️ v2 (2026-10-05, A2): el gradiente dejo de ser una ORACION propia («Gradiente VD-AD de 36
+       mmHg.») y pasa a ser una SUBORDINADA de la insuficiencia («…, que permite estimar un gradiente
+       VD-AD de 36 mmHg»). Lo que este caso prueba —que la velocidad cargada SOLO en Valvulas llega
+       al informe y que la app ya no niega tener velocidad— no cambia; cambia la forma de la frase.
+       ⚠️ Y SE DECLARA QUE SINREG PERDIO LOS DIENTES: esa frase («Sin registro de velocidad de
+       regurgitacion que permita estimar PSAP») la BORRO A2 de todo el archivo, asi que buscar su
+       ausencia ya no distingue escenas. Se conserva como centinela —si vuelve, el caso se pone
+       rojo— pero la afirmacion con dientes ahora es la presencia del gradiente. */
     ['y el informe PUBLICA el gradiente VD-AD en vez de negar que haya velocidad (cambio a proposito vs HEAD)',
-      l3.vt.indexOf('Gradiente VD-AD de 36 mmHg') > -1 && l3.vt.indexOf(SINREG) === -1,
+      l3.vt.indexOf('que permite estimar un gradiente VD-AD de 36 mmHg') > -1 && l3.vt.indexOf(SINREG) === -1,
       recorteJS(l3.vt)],
     ['DENOMINADOR del cambio: con los DOS campos cargados el informe dice lo MISMO',
-      l1.vt.indexOf('Gradiente VD-AD de 36 mmHg') > -1 && l1.vt.indexOf(SINREG) === -1,
+      l1.vt.indexOf('que permite estimar un gradiente VD-AD de 36 mmHg') > -1 && l1.vt.indexOf(SINREG) === -1,
       recorteJS(l1.vt)],
     /* ⚠️ EL EN SUMA SE ANCLA AL TEXTO LITERAL Y NO SE COMPARA UNA ESCENA CONTRA LA OTRA. La
        primera version de esta asercion hacia l3.suma === l1.suma y fallaba con razon: la escena
@@ -49762,6 +49913,242 @@ caso('TC-416', 'Estenosis tricuspidea BINARIA: se prende sola solo con criterio 
       iOtras.it === '4' && iOtras.im === '4' &&
       iOtras.itPill === false && iOtras.imPill === false,
       JSON.stringify(iOtras)],
+  ] };
+`);
+
+/* TC-417 — LA REDACCION DE LA TRICUSPIDE: LA TABLA DE TEXTOS COMPLETA (parte A, 2026-10-05).
+   Cubre las QUINCE escenas del ensamblado nuevo (A2 presiones como subordinada / A3 el parentesis
+   con solo los criterios que se cumplen / A4 la frase de normalidad / A5 la morfologia en el EN
+   SUMA) y, aparte, la MATRIZ DE MORFOLOGIAS: las cinco opciones etiologicas en las que la
+   redaccion ya empieza por «con» y la lesion tiene que abrir una oracion propia.
+   DENOMINADOR REAL, y se afirma: las 15 escenas dan 14 textos DISTINTOS. El unico empate es
+   S01 = S12 y es el resultado que se busca —apagar el boton saca la estenosis del informe—, asi que
+   se afirma el empate por separado en vez de bajar el umbral a 14 y dejar pasar cualquier otro.
+   ⚠️ SIN ACENTOS GRAVES EN EL CUERPO. */
+caso('TC-417', 'Tricuspide — la tabla de textos: 15 escenas del informe (presiones subordinadas, parentesis con solo los criterios cumplidos, frase de normalidad) y las 5 morfologias etiologicas en oracion aparte', `
+  ${APAGA_HELPERS}
+  /* Limpieza equivalente a la de la sonda _probe_tricred.mjs: formulario, marcas manuales y las
+     cuatro claves de pastilla de la tricuspide. Sin borrar esqSevManual, una escena con grado
+     elegido a mano contamina la siguiente y la mide con la guarda puesta. */
+  const lim = function(){
+    __t.nuevoEstudio();
+    if (window.esqSevManual) delete window.esqSevManual.et;
+    if (window.esqSevManual) delete window.esqSevManual.it;
+    if (window._sevCalcAlFijar) { delete window._sevCalcAlFijar.et; delete window._sevCalcAlFijar.it; }
+    ['esten','insuf'].forEach(function(t){
+      try { localStorage.removeItem('valv-pill-'+t+'-tricuspide'); } catch(e){}
+      if (aOn('tricuspide',t)) toggleValvPill('tricuspide',t); });
+    __t.set('nombre','TC417'); };
+  /* La Vmax del jet de IT declara su unidad en el placeholder: la escena describe un PACIENTE de
+     3,0 m/s y no un tecleo. El campo estuvo en cm/s hasta el 2026-10-05. */
+  const cw = function(ms){ const e = document.getElementById('it_vmax_cw');
+    return (e && String(e.placeholder||'').trim() === 'cm/s') ? String(ms*100) : String(ms); };
+  const linea = function(){ const r = __t.informe();
+    const tri = (r.inf||'').split(String.fromCharCode(10))
+      .filter(function(l){ return /tric[úu]sp/i.test(l); }).join(' | ');
+    return { tri: tri, suma: (r.suma||'') }; };
+  const esc = function(pasos){ lim(); pasos(); return linea(); };
+
+  const CAB = 'Válvula tricúspide de morfología normal';
+  const NORMAL = CAB + ', sin estenosis ni insuficiencia, por lo que no es posible estimar la PSAP.';
+
+  const S01 = esc(function(){});
+  const S02 = esc(function(){ if (!aOn('tricuspide','insuf')) toggleValvPill('tricuspide','insuf'); });
+  const S03 = esc(function(){ __t.set('it_grado','1'); });
+  const S04 = esc(function(){ __t.set('it_grado','4'); __t.set('it_vmax_cw', cw(3.0)); });
+  const S05 = esc(function(){ __t.set('it_grado','4'); __t.set('it_vmax_cw', cw(3.0));
+    __t.set('vci_diam','25'); __t.set('vci_col','<50'); });
+  const S06 = esc(function(){ __t.set('it_vmax_cw', cw(2.5));
+    __t.set('vci_diam','18'); __t.set('vci_col','>50'); });
+  const S07 = esc(function(){ __t.set('et_gmedio','8'); });
+  const S08 = esc(function(){ __t.set('et_thp','200'); });
+  /* AREA: pi*(26/20)^2 = 5,31 cm2 de TSVD, x VTI-TSVD 14 cm / VTI diast 90 cm = 0,83 cm2. Los TRES
+     insumos dentro de banda: uno fuera convierte este positivo en un negativo que parece pasar. */
+  const S09 = esc(function(){ __t.set('et_vti_diast','90');
+    __t.set('tsvd_diametro','26'); __t.set('vti_tsvd','14'); });
+  const S10 = esc(function(){ __t.set('et_gmedio','3');
+    valvSev.aplicar('esten','tricuspide','No significativa'); });
+  const S11 = esc(function(){ __t.set('et_gmedio','3');
+    valvSev.aplicar('esten','tricuspide','Significativa');
+    __t.set('et_fund_nota','valvula rigida por carcinoide'); });
+  let s12auto = null, s12clic = null;
+  const S12 = esc(function(){ __t.set('et_gmedio','8');
+    s12auto = String(__t.val('et_grado')||'');
+    toggleValvPill('tricuspide','esten');
+    s12clic = String(__t.val('et_grado')||''); });
+  const S13 = esc(function(){ __t.set('it_grado','4'); __t.set('it_vmax_cw', cw(3.0));
+    __t.set('vci_diam','25'); __t.set('vci_col','<50'); __t.set('et_gmedio','8'); });
+  const S14 = esc(function(){ __t.set('et_gmedio','60'); });   // banda 0-40
+  const S15 = esc(function(){ __t.set('tvia','90'); });
+
+  const TODAS = [S01,S02,S03,S04,S05,S06,S07,S08,S09,S10,S11,S12,S13,S14,S15];
+  const textos = TODAS.map(function(c){ return c.tri; });
+  const distintos = textos.filter(function(t,i){ return textos.indexOf(t) === i; }).length;
+
+  /* MATRIZ DE MORFOLOGIAS (A1.1). Las cinco cuya redaccion ya empieza por «con»: la lesion abre
+     oracion propia y «Válvula tricúspide» no se repite. Mixomatosa y Reumatica son el CONTROL
+     NEGATIVO: su redaccion empieza por «de morfología», no colisiona, y conservan la oracion unica. */
+  const mIT = function(m){ return esc(function(){ __t.set('vt_morf', m);
+    __t.set('it_grado','4'); __t.set('it_vmax_cw', cw(3.0));
+    __t.set('vci_diam','25'); __t.set('vci_col','<50'); }); };
+  const mET = function(m){ return esc(function(){ __t.set('vt_morf', m); __t.set('et_gmedio','8'); }); };
+  const carcIT = mIT('Carcinoide'),  carcET = mET('Carcinoide');
+  const endoIT = mIT('Endocarditis'), endoET = mET('Endocarditis');
+  const funcIT = mIT('Funcional / dilatación VD'), funcET = mET('Funcional / dilatación VD');
+  const pbioIT = mIT('Prótesis biológica'), pbioET = mET('Prótesis biológica');
+  const pmecIT = mIT('Prótesis mecánica');
+  const mixoIT = mIT('Mixomatosa'), reumIT = mIT('Reumática');
+
+  return { extra: [
+    // ── DENOMINADOR ───────────────────────────────────────────────────────────────────────────
+    ['DENOMINADOR: las 15 escenas escribieron linea de tricuspide',
+      TODAS.every(function(c){ return c.tri.indexOf('Válvula tricúspide') > -1; }),
+      'vacias=' + TODAS.filter(function(c){ return !c.tri; }).length],
+    ['DENOMINADOR: 14 textos DISTINTOS en 15 escenas', distintos === 14, 'distintos=' + distintos],
+    ['y el UNICO empate es el buscado: apagar el boton da el MISMO texto que el formulario vacio',
+      S01.tri === S12.tri, 'S01=«' + S01.tri + '» S12=«' + S12.tri + '»'],
+
+    // ── A4 · LA FRASE DE NORMALIDAD ───────────────────────────────────────────────────────────
+    ['S01 sin nada → la frase de normalidad de A4', S01.tri === NORMAL, S01.tri],
+    ['y ya NO dice «sin insuficiencia valorable» ni «No se obtiene valor de PSAP»',
+      S01.tri.indexOf('sin insuficiencia valorable') === -1 &&
+      S01.tri.indexOf('No se obtiene valor de PSAP') === -1, S01.tri],
+
+    // ── A2 · LA INSUFICIENCIA ABRE Y LAS PRESIONES SON SUBORDINADA ────────────────────────────
+    ['S02 pastilla sola → «con insuficiencia.» sin grado y sin presiones',
+      S02.tri === CAB + ', con insuficiencia.' && S02.suma.indexOf('IT presente.') > -1, S02.tri],
+    ['S03 grado leve sin Vmax → «con insuficiencia leve.» y nada de presiones',
+      S03.tri === CAB + ', con insuficiencia leve.', S03.tri],
+    ['S04 grado + Vmax SIN VCI → publica el gradiente y se detiene',
+      S04.tri === CAB + ', con insuficiencia severa, que permite estimar un gradiente VD-AD de 36 mmHg.',
+      S04.tri],
+    ['y NO sugiere medir la VCI (la frase negativa se elimino en A2)',
+      S04.tri.indexOf('PSAP no calculable') === -1 && S04.tri.indexOf('sin medición de VCI') === -1,
+      S04.tri],
+    ['S05 grado + Vmax + VCI → gradiente y PSAP en la misma subordinada',
+      S05.tri === CAB + ', con insuficiencia severa, que permite estimar un gradiente VD-AD de 36 mmHg y una PSAP de 51 mmHg.',
+      S05.tri],
+    /* LA COMA ANTES DE «que permite» DEPENDE DE QUE HAYA ALGO ENTRE MEDIO, y se prueba por los dos
+       lados: con grado lleva coma (S05) y sin grado NO (S06). Es la unica diferencia entre las dos. */
+    ['S06 Vmax SIN grado → la subordinada va SIN coma (los dos lados del mismo detalle)',
+      S06.tri === CAB + ', con insuficiencia que permite estimar un gradiente VD-AD de 25 mmHg y una PSAP de 28 mmHg.',
+      S06.tri],
+    ['CONTROL del mismo detalle: con grado la coma SI esta',
+      S05.tri.indexOf('severa, que permite') > -1 && S06.tri.indexOf('insuficiencia que permite') > -1,
+      'S05=«' + S05.tri + '» S06=«' + S06.tri + '»'],
+
+    // ── A3 · EL PARENTESIS NOMBRA SOLO LOS CRITERIOS QUE SE CUMPLEN ───────────────────────────
+    ['S07 gradiente 8 → «(gradiente medio 8 mmHg)», y solo eso',
+      S07.tri === CAB + ', con estenosis significativa (gradiente medio 8 mmHg).', S07.tri],
+    ['S08 THP 200 → «(THP 200 ms)»',
+      S08.tri === CAB + ', con estenosis significativa (THP 200 ms).', S08.tri],
+    ['S09 area 0,83 → «(área valvular 0.83 cm²)», con punto decimal como el resto del narrativo',
+      S09.tri === CAB + ', con estenosis significativa (área valvular 0.83 cm²).', S09.tri],
+    ['y la cita «— EAE/ASE 2009» NO viaja en ninguna de las tres',
+      [S07,S08,S09].every(function(c){ return c.tri.indexOf('EAE/ASE') === -1; }),
+      S07.tri + ' /// ' + S09.tri],
+    /* CONTROL NEGATIVO DEL PARENTESIS: con el grado en «No significativa» y ningun criterio
+       cumplido la lista queda VACIA y no hay parentesis. Antes esta lista llevaba todo parametro
+       cargado y en banda, asi que un THP que no alcanzaba viajaba como si sostuviera el veredicto. */
+    ['S10 «No significativa» sin ningun criterio → SIN parentesis (control negativo de A3)',
+      S10.tri === CAB + ', con estenosis no significativa.' && S10.tri.indexOf('(') === -1, S10.tri],
+    ['S11 con discrepancia el parentesis es SOLO la nota del cajon, sin parametros',
+      S11.tri === CAB + ', con estenosis significativa (valvula rigida por carcinoide).' &&
+      S11.tri.indexOf('3 mmHg') === -1, S11.tri],
+
+    // ── LA REGLA DE LA ESTENOSIS: MANDA EL GRADO ──────────────────────────────────────────────
+    ['S12 DENOMINADOR: a 8 mmHg el boton se prendio solo y escribio «Significativa»',
+      s12auto === 'Significativa', 'auto=' + s12auto],
+    ['S12 apagar a mano devuelve el grado al centinela y la estenosis sale del informe',
+      s12clic === 'sin' && S12.tri === NORMAL && S12.suma.indexOf('ET') === -1,
+      'clic=' + s12clic + ' // ' + S12.tri + ' // ' + recorteJS(S12.suma)],
+
+    // ── LAS DOS LESIONES ─────────────────────────────────────────────────────────────────────
+    ['S13 las dos lesiones → insuficiencia con presiones y estenosis en SEGUNDA oracion',
+      S13.tri === CAB + ', con insuficiencia severa, que permite estimar un gradiente VD-AD de 36 mmHg y una PSAP de 51 mmHg. Se observa estenosis significativa (gradiente medio 8 mmHg).',
+      S13.tri],
+    ['y el EN SUMA lleva las DOS siglas', S13.suma.indexOf('ET significativa.') > -1 &&
+      S13.suma.indexOf('IT severa.') > -1, recorteJS(S13.suma)],
+
+    // ── LO QUE SOBREVIVIO DE LA RAMA BORRADA ─────────────────────────────────────────────────
+    ['S14 el aviso de valor FUERA DE BANDA se conserva (no depende de los cortes)',
+      S14.tri.indexOf('Valor fuera de rango en gradiente medio tricuspídeo: revisar antes de concluir.') > -1,
+      S14.tri],
+    ['y NO reaparece la negacion activa que A3 elimino',
+      S14.tri.indexOf('Sin criterios de ET significativa') === -1, S14.tri],
+    ['S15 los elementos indirectos de HTP siguen saliendo, sin inventar PSAP',
+      S15.tri.indexOf('Presenta elementos indirectos de HTP (TAP < 105 ms).') > -1 &&
+      S15.tri.indexOf('PSAP estimada') === -1, S15.tri],
+
+    // ── A1.1 · LAS CINCO MORFOLOGIAS ETIOLOGICAS EN ORACION APARTE ────────────────────────────
+    /* El defecto que cierran: plegadas en la oracion unica salia «Válvula tricúspide con afectación
+       carcinoide, con insuficiencia severa, …» — DOS «con» seguidos. */
+    ['carcinoide + IT → morfologia en oracion aparte, sin doble «con»',
+      carcIT.tri === 'Válvula tricúspide con afectación carcinoide. Insuficiencia tricuspídea severa, que permite estimar un gradiente VD-AD de 36 mmHg y una PSAP de 51 mmHg.',
+      carcIT.tri],
+    ['carcinoide + ET → igual, con el sustantivo de la estenosis',
+      carcET.tri === 'Válvula tricúspide con afectación carcinoide. Estenosis tricuspídea significativa (gradiente medio 8 mmHg).',
+      carcET.tri],
+    ['endocarditis + IT y + ET, lo mismo',
+      endoIT.tri === 'Válvula tricúspide con endocarditis. Insuficiencia tricuspídea severa, que permite estimar un gradiente VD-AD de 36 mmHg y una PSAP de 51 mmHg.' &&
+      endoET.tri === 'Válvula tricúspide con endocarditis. Estenosis tricuspídea significativa (gradiente medio 8 mmHg).',
+      endoIT.tri + ' /// ' + endoET.tri],
+    ['funcional/dilatacion VD + IT → oracion aparte',
+      funcIT.tri === 'Válvula tricúspide con insuficiencia funcional por dilatación del ventrículo derecho. Insuficiencia tricuspídea severa, que permite estimar un gradiente VD-AD de 36 mmHg y una PSAP de 51 mmHg.',
+      funcIT.tri],
+    /* ⚠️ ESTA ES LA QUE SE HABIA CAIDO: funcional SIN IT y con ET significativa perdia la estenosis
+       del cuerpo mientras el EN SUMA seguia diciendo «ET significativa.». La rama de vtSinIT no se
+       toca —su redaccion esta decidida— y la estenosis se repone DESPUES, como oracion propia. */
+    ['funcional sin IT + ET → la estenosis NO se pierde del cuerpo y va tras la morfologia',
+      funcET.tri.indexOf('sin grado de insuficiencia cargado. Estenosis tricuspídea significativa (gradiente medio 8 mmHg). No es posible estimar PSAP.') > -1 &&
+      funcET.suma.indexOf('ET significativa.') > -1,
+      funcET.tri + ' // ' + recorteJS(funcET.suma)],
+    ['las dos protesis conservan SU redaccion (no se tocaron) y tampoco doblan el «con»',
+      pbioIT.tri === 'Válvula tricúspide con prótesis biológica. IT severa con gradiente VD-AD de 36 mmHg, PSAP estimada de 51 mmHg (PmAD 15 mmHg).' &&
+      pmecIT.tri === 'Válvula tricúspide con prótesis mecánica. IT severa con gradiente VD-AD de 36 mmHg, PSAP estimada de 51 mmHg (PmAD 15 mmHg).',
+      pbioIT.tri + ' /// ' + pmecIT.tri],
+    ['y con protesis la estenosis sigue SIN veredicto: los cortes nativos no aplican',
+      pbioET.tri.indexOf('estenosis') === -1 && pbioET.tri.indexOf('(gradiente medio 8 mmHg)') > -1,
+      pbioET.tri],
+    /* CONTROL NEGATIVO de la regla: las dos morfologias cuya redaccion NO empieza por «con»
+       conservan la oracion unica. Sin esto, «se parte en dos» podria haberse aplicado a las siete. */
+    ['CONTROL NEGATIVO: mixomatosa y reumatica conservan la ORACION UNICA',
+      mixoIT.tri === 'Válvula tricúspide de morfología mixomatosa, con insuficiencia severa, que permite estimar un gradiente VD-AD de 36 mmHg y una PSAP de 51 mmHg.' &&
+      reumIT.tri === 'Válvula tricúspide de morfología reumática, con insuficiencia severa, que permite estimar un gradiente VD-AD de 36 mmHg y una PSAP de 51 mmHg.',
+      mixoIT.tri + ' /// ' + reumIT.tri],
+    ['y «Válvula tricúspide» no abre dos oraciones en ninguna de las siete',
+      [carcIT,carcET,endoIT,endoET,funcIT,funcET,pbioIT,pbioET,pmecIT,mixoIT,reumIT]
+        .every(function(c){ return c.tri.split('Válvula tricúspide').length - 1 === 1; }),
+      'repiten=' + [carcIT,carcET,endoIT,endoET,funcIT,funcET,pbioIT,pbioET,pmecIT,mixoIT,reumIT]
+        .filter(function(c){ return c.tri.split('Válvula tricúspide').length - 1 !== 1; })
+        .map(function(c){ return c.tri; }).join(' /// ')],
+    ['y en ninguna quedan dos «con» de morfologia seguidos',
+      [carcIT,carcET,endoIT,endoET,funcIT,pbioIT,pmecIT].every(function(c){
+        return !/con [^.]*, con /.test(c.tri); }),
+      [carcIT,carcET,endoIT,endoET,funcIT,pbioIT,pmecIT]
+        .filter(function(c){ return /con [^.]*, con /.test(c.tri); })
+        .map(function(c){ return c.tri; }).join(' /// ')],
+
+    // ── A5 · LA MORFOLOGIA EN EL EN SUMA, EN LINEA PROPIA Y ANTES DE LAS LESIONES ─────────────
+    ['A5: «VT <morfologia>.» sube al EN SUMA',
+      carcIT.suma.indexOf('VT con afectación carcinoide.') > -1 &&
+      endoIT.suma.indexOf('VT con endocarditis.') > -1 &&
+      pbioIT.suma.indexOf('VT con prótesis biológica.') > -1, recorteJS(carcIT.suma)],
+    ['y la funcional usa la forma corta «VT funcional.», no la linea larga',
+      funcIT.suma.indexOf('VT funcional.') > -1 &&
+      funcIT.suma.indexOf('dilatación del ventrículo derecho') === -1, recorteJS(funcIT.suma)],
+    /* EL ORDEN ES PARTE DE LA DECISION: la morfologia ANTES de las dos lesiones. Se mide por el
+       indice de cada linea, no por su presencia: el defecto que esto caza es el que tenia el WIP,
+       donde «ET significativa.» salia ANTES de «VT con afectación carcinoide.». */
+    ['A5: la morfologia va ANTES de la estenosis en el EN SUMA',
+      carcET.suma.indexOf('VT con afectación carcinoide.') <
+      carcET.suma.indexOf('ET significativa.'), recorteJS(carcET.suma)],
+    ['A5: y ANTES de la insuficiencia',
+      carcIT.suma.indexOf('VT con afectación carcinoide.') <
+      carcIT.suma.indexOf('IT severa.'), recorteJS(carcIT.suma)],
+    ['CONTROL NEGATIVO: con morfologia Normal NO se agrega ninguna linea «VT »',
+      S05.suma.indexOf('VT ') === -1 && S13.suma.indexOf('VT ') === -1,
+      recorteJS(S05.suma) + ' /// ' + recorteJS(S13.suma)],
   ] };
 `);
 

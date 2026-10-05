@@ -31283,7 +31283,11 @@ function generarInforme(opts) {
        accidente. Hoy el efecto es el mismo —los dos tokens suprimen el sufijo, que es lo decidido—
        pero un predicado que acierta por casualidad es el que se rompe cuando aparezca un tercer
        valor. Las dos igualdades se escriben explícitas. Lo marcó `/sharp-edges`. */
-    const _etYaDice = (etDesc === 'significativa' || etDesc === 'no significativa');
+    /* ⚠️ `_etYaDice` SE BORRÓ EL 2026-10-05, Y NO ES LIMPIEZA COSMÉTICA: era el predicado que
+       suprimía el sufijo «, significativa» cuando el grado ya lo decía, y ese sufijo **ya no se
+       emite por ningún camino** desde que el armado de A3 nombra el grado una sola vez. Un
+       predicado vivo sin consumidores es el que la próxima lectura cree que gobierna algo. Lo
+       mismo `etSignif`, abajo. */
     const itTrv = v('vmax_it');          // VRT
     const pmadV = v('pmad');             // requiere VCI
     const tap   = v('tvia');             // TAP (ms)
@@ -31317,38 +31321,82 @@ function generarInforme(opts) {
        que evita que el próximo consumidor nazca ya roto. `_et` se conserva entero porque los
        VALORES MEDIDOS se siguen publicando — lo que se retira es el veredicto, no el dato. */
     const _vtProt = (typeof protNoGradua === 'function') && protNoGradua('vt_morf');
-    const etSignif = !!(_et && _et.signif) && !_vtProt;
-    /* SÓLO LOS PARÁMETROS QUE SOSTIENEN EL VEREDICTO, y sólo los cargados. Publicar un THP que
-       no alcanza el umbral al lado de «significativa» invita a leerlo como si lo sostuviera. */
-    const _etPar = [];
-    if (_et) {
-      if (_et.gmOk)        _etPar.push(`gradiente medio ${_et.gm} mmHg`);
-      if (_et.thpOk)       _etPar.push(`THP ${_et.thp} ms`);
-      if (_et.avt !== null) _etPar.push(`área valvular ${_et.avt.toFixed(2)} cm²`);
+    /* ⚠️ `etSignif` TAMBIÉN QUEDÓ SIN CONSUMIDORES. Era el booleano del que colgaban la línea del
+       cuerpo, la palabra «significativa» y los dos `suma.push`; desde A3 el informe y el EN SUMA
+       salen del GRADO (regla 10) y el veredicto crudo de `etEstado()` ya no se publica por su
+       cuenta. Se deja la llamada a `protNoGradua` arriba porque de `_vtProt` sí cuelgan la rama de
+       prótesis y el paréntesis. */
+    /* ⚠️ SÓLO LOS CRITERIOS QUE SE CUMPLEN (A3, decisión de Maicol del 2026-10-05). Antes esta
+       lista llevaba TODO parámetro cargado y en banda (`gmOk`/`thpOk`/`avt !== null`), así que un
+       THP de 150 ms viajaba dentro del paréntesis de «significativa» como si la sostuviera — el
+       propio comentario anterior decía que eso era lo que había que evitar y la condición hacía lo
+       contrario. Ahora se leen `cGm`/`cThp`/`cAvt`, que son los tres booleanos con los que
+       `etEstado` decide el veredicto: el paréntesis nombra exactamente lo que lo justifica.
+       Consecuencia buscada: con el grado en «No significativa» y ningún criterio cumplido la lista
+       queda VACÍA y no hay paréntesis.
+       ⚠️ SE ELIMINÓ «— EAE/ASE 2009» DE LA ORACIÓN (decisión de Maicol). La fuente sigue viva en el
+       badge de pantalla y en el panel de Evidencia; el papel afirma y no cita, que es la regla de
+       este repo para el informe firmado.
+       ⚠️ EL FORMATO DEL ÁREA NO SE TOCÓ: `toFixed(2)` con punto decimal, como el resto del
+       narrativo («Vmax 4.1 m/s»). El pedido la escribía con coma («0,8 cm²»); cambiarla acá dejaría
+       el MISMO informe con los dos separadores. Queda reportado. */
+    const _etParCumplen = [];
+    if (_et && !_vtProt) {
+      if (_et.cGm)  _etParCumplen.push(`gradiente medio ${_et.gm} mmHg`);
+      if (_et.cThp) _etParCumplen.push(`THP ${_et.thp} ms`);
+      if (_et.cAvt) _etParCumplen.push(`área valvular ${_et.avt.toFixed(2)} cm²`);
     }
-    /* La cita entra en el MISMO paréntesis que los parámetros: en dos seguidos salía
-       «significativa (gradiente medio 6 mmHg) (EAE/ASE 2009).», que se lee como dos apartes. */
-    const etParTxt = _etPar.length
-      ? ` (${_etPar.join(', ')}${etSignif ? ' — EAE/ASE 2009' : ''})` : '';
+    /* `etParTxt` SE CONSERVA y sigue sirviendo a UN solo consumidor: la oración de la PRÓTESIS
+       (`vtFrag` / `vtSinIT`), que publica los valores medidos sin veredicto porque los cortes
+       nativos no aplican. Sin la cita, que se fue de todas las salidas. */
+    const etParTxt = (function(){
+      const p = [];
+      if (_et) {
+        if (_et.gmOk)        p.push(`gradiente medio ${_et.gm} mmHg`);
+        if (_et.thpOk)       p.push(`THP ${_et.thp} ms`);
+        if (_et.avt !== null) p.push(`área valvular ${_et.avt.toFixed(2)} cm²`);
+      }
+      return p.length ? ` (${p.join(', ')})` : '';
+    })();
     const etFueraTxt = (_et && _et.fuera.length)
       ? ` Valor fuera de rango en ${_et.fuera.join(' y ')}: revisar antes de concluir.` : '';
-    if (etDesc) suma.push(`ET ${etDesc}${(etSignif && !_etYaDice) ? ', significativa' : ''}.`);
-    else if (etSignif) suma.push('ET significativa.');
-    else if (etPill) suma.push('ET presente.');  // v2: sigla en el EN SUMA (regla 6); «ET <grado>, significativa.» (con grado) NO se toca
+    /* ⚠️ CON AVISO ROJO EL PARÉNTESIS ES SÓLO LA NOTA, SIN PARÁMETROS (A3). El médico eligió el
+       grado contrario al que dan los números: publicar los números dentro del paréntesis de SU
+       grado los pondría a sostenerlo. La nota —que sólo existe cuando hay discrepancia— es su
+       motivo, y es lo único que viaja. Sin nota, sin paréntesis. */
+    const _etDiscrepa = (function(){ try {
+      return (typeof sevDiscrepa === 'function') && !!sevDiscrepa('et'); } catch (e) { return false; } })();
+    const _etNotaInf = (function(){ try {
+      return (typeof sevNotaInforme === 'function') ? sevNotaInforme('et') : null; } catch (e) { return null; } })();
+    const _etParen = _etDiscrepa
+      ? ((_etNotaInf && _etNotaInf.enGrado) ? _etNotaInf.enGrado : '')
+      : (_etParCumplen.length ? ` (${_etParCumplen.join(', ')})` : '');
+    /* ⚠️ MANDA EL GRADO; EL BOTÓN SÓLO DECIDE CUANDO NO HAY GRADO (decisión de Maicol, 2026-10-05,
+       tras medir A1 bis). La orden original era «botón apagado = no se menciona la estenosis», y la
+       medición la desautorizó: en las TRES rutas de restauración —reabrir un estudio guardado,
+       reabrir uno con «No significativa» (que la regla J no reprende nunca) e importar una planilla—
+       el botón vuelve APAGADO con el grado cargado, así que esa regla habría borrado del informe
+       REIMPRESO una estenosis que el estudio firmado afirmaba. Es la regla 10 del reglamento.
+       Y el gesto que la orden buscaba sigue funcionando: dentro de la app apagar el botón resetea el
+       grado al centinela (`valvApagarGrado`), así que apagar SÍ saca la estenosis del informe — por
+       el grado y no por el botón. Medido en los dos gestos. */
+    const _etHabla = !!etDesc || etPill;
+    /* ⚠️ LOS DOS `suma.push` DE LA ET SE MUDARON ABAJO, AL LADO DE LOS DE LA MORFOLOGÍA Y LA IT, Y
+       NO ES UN REORDENAMIENTO COSMÉTICO: A5 declara que «VT <morfología>.» va ANTES de las dos
+       lesiones y desde acá eso era imposible —`vtMorf` se lee ~20 líneas más abajo—, así que el
+       EN SUMA salía «ET significativa. / VT con afectación carcinoide. / IT severa.», con la
+       morfología metida ENTRE las dos lesiones. El comentario de A5 afirmaba el orden correcto y el
+       código hacía otro: medido con `_probe_tricred.mjs` en las ocho morfologías. */
     /* Con datos y sin ningún criterio cumplido se DECLARA que no alcanzan, en vez de callar: el
        médico midió tres cosas y el informe tiene que decir qué dieron. Al EN SUMA no sube — no
        es un hallazgo— pero en el cuerpo se dice. Sin ningún dato, silencio, como hasta hoy. */
-    const etFrag = etDesc
-      ? `Estenosis tricuspídea ${etDesc}${(etSignif && !_etYaDice) ? ', significativa' : ''}${etParTxt}.${etFueraTxt} `
-      : (etSignif ? `Estenosis tricuspídea significativa${etParTxt}.${etFueraTxt} `
-      : (etPill ? 'Estenosis tricuspídea. '
-      /* Con prótesis tampoco se emite la NEGACIÓN. «Sin criterios de ET significativa con los datos
-         disponibles» se lee como un descarte activo, y la app no descartó: se abstuvo de aplicar
-         cortes que no corresponden. Los valores medidos NO se pierden — bajan a la oración de la
-         válvula, que es donde ya está el tipo de prótesis, en vez de abrir una oración propia.
-         Lo que sí se conserva es el aviso de valor fuera de rango: ése no depende de los cortes. */
-      : (_vtProt ? (etFueraTxt ? etFueraTxt.trim() + ' ' : '')
-      : ((_et && _et.hayDatos) ? `Sin criterios de ET significativa con los datos disponibles${etParTxt}.${etFueraTxt} ` : ''))));
+    /* ⚠️ «Sin criterios de ET significativa con los datos disponibles (…)» SE ELIMINÓ (A3). Era la
+       negación activa que la app publicaba al cargar los tres parámetros sin que ninguno alcanzara
+       el umbral; la decisión de Maicol es que si no hay estenosis no se dice nada. El aviso de valor
+       FUERA DE RANGO se conserva —no depende de los cortes— y es lo único que sobrevive de esa rama.
+       `etFrag` queda sólo como PREFIJO de la rama de prótesis, que es el único consumidor que
+       necesitaba una oración propia de estenosis. */
+    const etFrag = (_vtProt && etFueraTxt) ? etFueraTxt.trim() + ' ' : '';
     /* `vt_morf` NO LLEGABA AL NARRATIVO. Vivía sólo en la tabla del PDF y en la columna del
        Excel, así que una afectación carcinoide o una endocarditis de la tricúspide se cargaban
        y NO aparecían en el informe firmado — y la carcinoide afecta característicamente a esta
@@ -31391,59 +31439,134 @@ function generarInforme(opts) {
        camino de siempre, byte por byte (el A/B no difiere fuera de las escenas con lesión y
        morfología normal). Los fragmentos reusan los grados y parámetros que ya existían: sólo cambia
        el ENSAMBLADO, no un corte ni un rótulo. */
-    const _estFragU = etDesc ? `estenosis ${etDesc}${(etSignif && !_etYaDice) ? ', significativa' : ''}${etParTxt}`
-                    : (etSignif ? `estenosis significativa${etParTxt}`
-                    : (etPill ? 'estenosis' : null));
-    const _insFragU = (itG > 0) ? `insuficiencia ${imTxt[itG]}` : (hayIT ? 'insuficiencia' : null);
-    const _unifTric = vtMorf === 'Normal' && !_vtProt && !!(_estFragU || _insFragU);
-    /* El EN SUMA de la IT no cambia y se empuja en los dos caminos. */
+    /* ══ EL ENSAMBLADO (A2/A3/A4, decisión de Maicol del 2026-10-05) ═══════════════════════════
+       Tres piezas y una sola regla de unión:
+         · la INSUFICIENCIA abre la oración y arrastra las presiones como una subordinada
+           («…, que permite estimar un gradiente VD-AD de X mmHg y una PSAP de Y mmHg.»);
+         · la ESTENOSIS va en la MISMA oración si no hay insuficiencia, y en una SEGUNDA
+           («Se observa estenosis …») si la hay;
+         · sin ninguna de las dos, la frase de normalidad de A4.
+       ⚠️ SE ELIMINARON LAS DOS FRASES NEGATIVAS: «PSAP no calculable sin medición de VCI» y «Sin
+       registro de velocidad de regurgitación que permita estimar PSAP». La app ya no sugiere medir
+       la VCI: con Vmax y sin VCI publica el gradiente y se detiene; sin Vmax no nombra las
+       presiones. Lo que se dice es lo que se midió.
+       ⚠️ LA COMA ANTES DE «que permite» DEPENDE DE QUE HAYA ALGO ENTRE MEDIO, y está en el pedido
+       textual: «con insuficiencia severa, que permite…» lleva coma y «con insuficiencia que
+       permite…» no. Se deriva del grado y de la nota, no se escribe dos veces. */
+    const _itGradoTxt = (itG > 0) ? ' ' + imTxt[itG] : '';
+    /* La nota del cajón de la IT ya viene con su formato ' (texto)' de `sevNotaInforme`, que es el
+       mismo emisor que usan la IM, la IAo y la EM. Sólo existe con discrepancia. */
+    const _itNotaTxt = (function(){ try {
+      const n = (typeof sevNotaInforme === 'function') ? sevNotaInforme('it') : null;
+      return (n && n.enGrado) ? n.enGrado : ''; } catch (e) { return ''; } })();
+    const _presCola = (function(){
+      if (gradVDAD === null) return '';
+      const coma = (_itGradoTxt || _itNotaTxt) ? ',' : '';
+      const psapTxt = (pmadV !== null && psap) ? ` y una PSAP de ${psap} mmHg` : '';
+      return `${coma} que permite estimar un gradiente VD-AD de ${gradVDAD} mmHg${psapTxt}`;
+    })();
+    const _etFragTxt = etDesc ? `estenosis ${etDesc}${_etParen}` : (etPill ? 'estenosis' : null);
+    /* LA MISMA estenosis como ORACIÓN propia, con el sustantivo completo. Es la frase que HEAD
+       emitía por `etFrag` —«Estenosis tricuspídea significativa (…).»— sin la cita que A3 retiró.
+       La usan la rama de morfología etiológica y la de «Funcional / dilatación VD» sin IT. */
+    const _etOracion = etDesc ? `Estenosis tricuspídea ${etDesc}${_etParen}.`
+                     : (etPill ? 'Estenosis tricuspídea.' : '');
+    /* La morfología usa la MISMA redacción que la app ya tenía (`valvMorfDe`), no una nueva. */
+    const _vtCab = `Válvula tricúspide ${vtDe || 'de morfología normal'}`;
+    /* ══ EL DOBLE «con» DE LAS MORFOLOGÍAS ETIOLÓGICAS (A1.1, decisión de Maicol del 2026-10-05) ══
+       Cinco opciones de `vt_morf` no describen una FORMA sino una CAUSA, y su redacción ya es un
+       predicado que empieza por «con»: «con afectación carcinoide», «con endocarditis», «con
+       prótesis biológica», «con prótesis mecánica», «con insuficiencia funcional por dilatación del
+       ventrículo derecho». Plegadas en la oración única de A2 producían DOS «con» seguidos —
+       «Válvula tricúspide con afectación carcinoide, con insuficiencia severa, que permite…»— que
+       es lo que Maicol rechazó. Con esas cinco se vuelve a la forma de HEAD: la morfología en una
+       ORACIÓN APARTE y la lesión en la siguiente, sin repetir «válvula tricúspide».
+       EL PREDICADO ES LA PROPIA REDACCIÓN, no una lista paralela de nombres de opción: se pregunta
+       si `vtDe` empieza por «con ». Una lista de cinco literales sería una sexta copia de
+       `VALV_MORF_ETIOL`/`VALV_MORF_FRASE` y nacería desincronizada el día que se agregue una
+       etiología — que es exactamente lo que el comentario de esas tablas pide evitar.
+       LAS OTRAS DOS NO SE TOCAN: «Mixomatosa» y «Reumática» dan «de morfología mixomatosa», que se
+       pliega sin colisión, así que conservan la oración única de A2.
+       Y LA RAMA SIN NINGUNA LESIÓN TAMPOCO: ahí lo que sigue es «, sin estenosis ni insuficiencia»,
+       que no empieza por «con» y no colisiona. El corte es la colisión, no la morfología. */
+    const _vtMorfAparte = /^con\s/.test(vtDe || '');
+    const _htpInd = (function(){ const i = (typeof htpIndirectosFrase === 'function') ? htpIndirectosFrase() : '';
+      return i ? ` Presenta elementos indirectos de HTP ${i}.` : ''; })();
+    /* ⚠️ A5 · LA MORFOLOGÍA SUBE AL EN SUMA EN LÍNEA PROPIA Y ANTES DE LAS VALVULOPATÍAS
+       (decisión de Maicol, 2026-10-05). Hasta hoy no subía —el comentario de `vtDe` lo declaraba
+       «por simetría con la mitral y la aórtica»— y esa simetría se rompe a propósito sólo en la
+       tricúspide. Se usa `valvMorfAdj`, que es la misma tabla de la que sale la redacción del
+       cuerpo: no hay un segundo vocabulario. Va ANTES de los `suma.push` de las dos lesiones, que
+       es lo que fija el orden pedido. */
+    /* ⚠️ «VT funcional.» ES LITERAL Y NO SALE DE `valvMorfAdj` (decisión de Maicol, 2026-10-05).
+       Esa tabla devuelve «con insuficiencia funcional por dilatación del ventrículo derecho», que
+       en el cuerpo es la redacción correcta pero en una línea de resumen ocupa el renglón entero y
+       repite la palabra «insuficiencia» que la línea de al lado («IT severa.») ya dice. Es la ÚNICA
+       de las siete que no sale de la tabla, y se escribe como excepción nombrada en vez de tocar
+       `VALV_MORF_ETIOL`, que gobierna la mitral y la aórtica además de ésta. */
+    if (vtMorf && vtMorf !== 'Normal') {
+      suma.push(vtMorf === 'Funcional / dilatación VD'
+        ? 'VT funcional.' : `VT ${valvMorfAdj(vtMorf)}.`);
+    }
+    /* Las dos lesiones, DESPUÉS de la morfología, que es el orden que A5 pide. */
+    if (etDesc) suma.push(`ET ${etDesc}.`);
+    else if (etPill) suma.push('ET presente.');
+    /* El EN SUMA de la IT no cambia. */
     if (hayIT) suma.push(itG > 0 ? `IT ${imTxt[itG]}.` : 'IT presente.');
     let tricLine;
-    if (_unifTric) {
-      const _unirEI = (fr) => fr.length === 2
-        ? fr[0] + (/^[aeiouáéíóúAEIOU]/.test(fr[1]) ? ' e ' : ' y ') + fr[1] : fr[0];
-      let _s = `Válvula tricúspide de morfología normal, con ${_unirEI([_estFragU, _insFragU].filter(Boolean))}.${etFueraTxt}`;
-      /* PSAP, SIEMPRE como oración aparte (decisión de Maicol). Mismas palabras que el camino de
-         siempre, sin el prefijo «IT …» que ahora vive en la oración de arriba. */
+    if (_vtProt || vtFuncSinIT) {
+      /* ⚠️ LAS DOS RAMAS QUE NO SE TOCAN, Y NO ES UN OLVIDO. La PRÓTESIS publica los valores
+         medidos sin veredicto (los cortes nativos no aplican) y «Funcional / dilatación VD» sin IT
+         declara la inconsistencia en vez de escribir «con insuficiencia funcional … sin
+         insuficiencia», que es la contradicción que su comentario documenta. Las dos tienen
+         redacción propia ya decidida y el pedido dice no inventar otra. */
       if (hayIT) {
+        /* Redacción ORIGINAL, palabra por palabra, salvo las dos frases negativas que A2 elimina:
+           con Vmax y sin VCI se publica el gradiente y se para; sin Vmax no se nombra la presión. */
+        const itGrad = itG > 0 ? ` ${imTxt[itG]}` : '';
         if (gradVDAD !== null && pmadV !== null && psap)
-          _s += ` Gradiente VD-AD de ${gradVDAD} mmHg, PSAP estimada de ${psap} mmHg (PmAD ${pmadV} mmHg).`;
+          tricLine = `${vtFrag}${etFrag}IT${itGrad} con gradiente VD-AD de ${gradVDAD} mmHg, PSAP estimada de ${psap} mmHg (PmAD ${pmadV} mmHg).`;
         else if (gradVDAD !== null)
-          _s += ` Gradiente VD-AD de ${gradVDAD} mmHg. PSAP no calculable sin medición de VCI.`;
+          tricLine = `${vtFrag}${etFrag}IT${itGrad} con gradiente VD-AD de ${gradVDAD} mmHg.`;
         else
-          _s += ` Sin registro de velocidad de regurgitación que permita estimar PSAP.`;
+          tricLine = `${vtFrag}${etFrag}Insuficiencia tricuspídea${itGrad}.`;
       } else {
-        _s += ` No es posible estimar PSAP.`;
+        /* ⚠️ LA ESTENOSIS SE HABÍA CAÍDO DE ESTA RAMA, Y ERA UN HALLAZGO PERDIDO DE UN INFORME
+           FIRMADO. Con «Funcional / dilatación VD», sin IT y con una ET significativa, HEAD
+           imprimía «Estenosis tricuspídea significativa (gradiente medio 8 mmHg — EAE/ASE 2009).»
+           como oración propia por el prefijo `etFrag`; al reescribir `etFrag` para que fuera sólo
+           el aviso de rango de la prótesis, esta rama se quedó SIN la estenosis mientras el EN SUMA
+           seguía diciendo «ET significativa.» — el cuerpo y el resumen del mismo papel en
+           contradicción. Se repone con `_etOracion`, que es la misma frase sin la cita que A3
+           retiró, y AHORA VA DESPUÉS de la oración de morfología, que es el orden de A1.1.
+           No se toca una palabra de `vtSinIT`: su redacción está decidida (A1.4).
+           Lo encontró la matriz de morfologías de `_probe_tricred.mjs`, no una lectura.
+           La PRÓTESIS no entra acá: para ella `etFrag` sigue siendo sólo el aviso de rango, porque
+           los cortes nativos no aplican y no se le pone veredicto. */
+        const _etAp = (vtFuncSinIT && _etOracion) ? _etOracion + ' ' : '';
+        tricLine = `${etFrag}${vtSinIT} ${_etAp}No es posible estimar PSAP.`;
       }
-      { const _ind = (typeof htpIndirectosFrase === 'function') ? htpIndirectosFrase() : '';
-        if (_ind) _s += ` Presenta elementos indirectos de HTP ${_ind}.`; }
-      tricLine = _s;
+      tricLine += _htpInd;
     } else if (hayIT) {
-      const itGrad = itG > 0 ? ` ${imTxt[itG]}` : '';
-      if (gradVDAD !== null && pmadV !== null && psap) {
-        tricLine = `${vtFrag}${etFrag}IT${itGrad} con gradiente VD-AD de ${gradVDAD} mmHg, PSAP estimada de ${psap} mmHg (PmAD ${pmadV} mmHg).`;
-      } else if (gradVDAD !== null) {
-        tricLine = `${vtFrag}${etFrag}IT${itGrad} con gradiente VD-AD de ${gradVDAD} mmHg. PSAP no calculable sin medición de VCI.`;
-      } else {
-        tricLine = `${vtFrag}${etFrag}Insuficiencia tricuspídea${itGrad}. Sin registro de velocidad de regurgitación que permita estimar PSAP.`;
-      }
-      /* UNA frase para los dos signos. Antes esto decía sólo el TAP, y el TRIV tricuspídeo no
-         aparecía aunque estuviera cargado. Ver `htpIndirectosFrase`. */
-      { const _ind = (typeof htpIndirectosFrase === 'function') ? htpIndirectosFrase() : '';
-        if (_ind) tricLine += ` Presenta elementos indirectos de HTP ${_ind}.`; }
+      /* Con morfología etiológica la lesión abre su propia oración con el SUSTANTIVO —«Insuficiencia
+         tricuspídea severa, que permite…»—, que es el mismo que ya usa la rama de prótesis dos
+         bloques más arriba. No hay vocabulario nuevo: cambia quién abre la oración. */
+      let _s = _vtMorfAparte
+        ? `${_vtCab}. Insuficiencia tricuspídea${_itGradoTxt}${_itNotaTxt}${_presCola}.${etFueraTxt}`
+        : `${_vtCab}, con insuficiencia${_itGradoTxt}${_itNotaTxt}${_presCola}.${etFueraTxt}`;
+      if (_etFragTxt) _s += ` Se observa ${_etFragTxt}.`;
+      tricLine = _s + _htpInd;
+    } else if (_etHabla) {
+      /* Misma regla para la estenosis sola: «Válvula tricúspide con endocarditis. Estenosis
+         tricuspídea significativa (THP 200 ms).» El sustantivo —«Estenosis tricuspídea»— es el que
+         HEAD ya usaba en esta misma rama; lo que cambia es que ahora va DESPUÉS de la morfología. */
+      tricLine = _vtMorfAparte
+        ? `${_vtCab}. ${_etOracion}${etFueraTxt}${_htpInd}`
+        : `${_vtCab}, con ${_etFragTxt}.${etFueraTxt}${_htpInd}`;
     } else {
-      /* La MISMA frase que la rama de arriba. Antes eran dos redacciones distintas del mismo
-         hecho —«Se suman…» y «Se evidencian…»— escritas a mano en cada rama. */
-      { const _ind = (typeof htpIndirectosFrase === 'function') ? htpIndirectosFrase() : '';
-        /* SIN morfología consignada la salida es la de siempre, palabra por palabra: este
-           cambio no reescribe el informe de ningún estudio que no la tenga. */
-        tricLine = _ind
-          ? (vtDe || vtFuncSinIT
-              ? `${etFrag}${vtSinIT} No se obtiene valor de PSAP. Presenta elementos indirectos de HTP ${_ind}.`
-              : `${etFrag}No se obtiene valor de PSAP por ausencia de insuficiencia tricuspídea valorable. Presenta elementos indirectos de HTP ${_ind}.`)
-          : (vtDe || vtFuncSinIT
-              ? `${etFrag}${vtSinIT} No es posible estimar PSAP.`
-              : `${etFrag}Válvula tricúspide sin insuficiencia valorable. No es posible estimar PSAP.`); }
+      /* A4: la frase de normalidad. Reemplaza a «Válvula tricúspide sin insuficiencia valorable.
+         No es posible estimar PSAP.» */
+      tricLine = `${_vtCab}, sin estenosis ni insuficiencia, por lo que no es posible estimar la PSAP.${etFueraTxt}${_htpInd}`;
     }
     // Al En Suma sólo cuando NO se pudo estimar la PSAP: ahí el TAP es el único indicio
     // de HTP y sin esta línea el resumen decía "sin alteraciones significativas" pese a
@@ -94403,8 +94526,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261005-0758';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791197922915;                 /* eco-build-ms */
+const ECO_BUILD    = '20261005-1014';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791206078966;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -94490,7 +94613,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261005-0758</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261005-1014</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
