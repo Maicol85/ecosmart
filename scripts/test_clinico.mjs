@@ -49316,6 +49316,189 @@ caso('TC-414', 'Pulmonar: UNA oracion en el estandar con las mediciones adentro 
   ] };
 `);
 
+/* ══ TC-415 — LA Vmax IT ES UN DATO CON DOS CAMPOS (2026-10-05) ════════════════════════════════
+   P2/P3/P4/P5 de la tanda de la Vmax IT no tenian NINGUNA cobertura automatica. Es el hueco que
+   este archivo documenta como «cerrados pero sin cobertura, que es como un arreglo se deshace sin
+   que nadie se entere»: lo unico que probaba esto era una sonda temporal.
+
+   LO QUE FIJA, y por que cada mitad importa:
+     1) UNIDAD. `it_vmax_cw` esta en m/s. Si alguien lo vuelve a cm/s sin tocar la cuenta, la EROA
+        se va 100x y la severidad baja de severa a leve en un informe firmado.
+     2) ESPEJO EN LOS DOS SENTIDOS, borrado incluido. Lo que se afirma es el DATO, no el gesto.
+     3) LA CUENTA CONVIERTE POR DENTRO. Se ancla el numero: 3,0 m/s con radio 9 y Valiasing 40 da
+        67,9 mm2. Ese numero es el de HEAD con 300 cm/s, medido, no reconstruido.
+     4) EL BOTON SE PRENDE DESDE LOS DOS LADOS.
+     5) EL AVISO DE INCONGRUENCIA, con sus dos controles negativos Y con la escena de «Nuevo
+        estudio», que es la que fallaba: el aviso del paciente anterior sobrevivia al formulario
+        vacio porque limpiarCampos no repintaba.
+     6) LA ESCENA 3, DOCUMENTADA: cargar la Vmax SOLO desde Valvulas ahora hace aparecer el
+        gradiente VD-AD en el informe. ANTES decia «Sin registro de velocidad de regurgitacion que
+        permita estimar PSAP» con el dato cargado en la otra pestania — una frase FALSA en un
+        informe firmado. Es el unico texto que cambia contra HEAD y cambia A PROPOSITO (decision de
+        Maicol, 2026-10-05); no se toco ninguna frase, cambio que el dato llegue. Las otras dos
+        formas de cargarlo —solo Doppler, o los dos campos— dan informe identico a HEAD.
+   ⚠️ NI UN ACENTO GRAVE EN EL CUERPO: es un template literal. */
+caso('TC-415', 'Vmax IT: un dato con dos campos — unidad m/s, espejo en los dos sentidos, la conversion por dentro de la cuenta, el boton desde los dos lados y el aviso de incongruencia', `
+  ${APAGA_HELPERS}
+  const base = function () {
+    aReset();
+    ['esten','insuf'].forEach(function (t) {
+      try { localStorage.removeItem('valv-pill-' + t + '-tricuspide'); } catch (e) {}
+      if (aOn('tricuspide', t)) toggleValvPill('tricuspide', t); });
+    __t.set('nombre','TC415');
+    return aDen(); };
+  const leer = function () {
+    return { vmax: __t.val('vmax_it'), cw: __t.val('it_vmax_cw'),
+             pill: aOn('tricuspide','insuf'),
+             eroa: aTxt('it-eroa'), sev: aTxt('it-sev'), grado: __t.val('it_grado'),
+             psap: __t.val('psap_calc'), grad: __t.val('grad_vdad_display'),
+             aviso: aTxt('it-incongruencia') }; };
+  const vtLinea = function () {
+    const r = __t.informe();
+    const ls = (r.inf || '').split(String.fromCharCode(10)).filter(function (l) {
+      return /tric/i.test(l); });
+    return { vt: ls.join(' | '), suma: r.suma }; };
+
+  /* (1) UNIDAD: el campo declara m/s, y el Valiasing de al lado sigue en cm/s. */
+  const den0 = base();
+  const uCW = (document.getElementById('it_vmax_cw') || {}).placeholder;
+  const uVal = (document.getElementById('it_pisa_val') || {}).placeholder;
+  const lCW = (function () { const e = document.getElementById('it_vmax_cw');
+    const l = e && e.parentNode ? e.parentNode.querySelector('label') : null;
+    return l ? l.textContent.trim() : 'NO LABEL'; })();
+
+  /* (2) ESPEJO Doppler -> Valvulas, y el boton que se prende. */
+  base();
+  __t.set('vmax_it','3.4');
+  const d1 = leer();
+  __t.set('vmax_it','');
+  const d2 = leer();
+
+  /* (3) ESPEJO Valvulas -> Doppler, con la pastilla CERRADA de entrada. */
+  base();
+  const antesV = aOn('tricuspide','insuf');
+  __t.set('it_vmax_cw','2.6');
+  const v1 = leer();
+  __t.set('it_vmax_cw','');
+  const v2 = leer();
+
+  /* (4) LA CUENTA. 3,0 m/s con radio 9 mm y Valiasing 40 cm/s: el numero de HEAD con 300 cm/s.
+     ⚠️ LA PmAD SE CARGA ANTES DE LA VELOCIDAD, Y EL ORDEN NO ES ARBITRARIO. Es el oninput de la
+     velocidad el que corre calcPSAP, y calcPSAP solo publica la PSAP si ya hay PmAD. Con la PmAD
+     cargada DESPUES, el gradiente VD-AD sale igual pero la PSAP queda VACIA: la primera version de
+     este caso lo hacia asi y fallaba por eso, no por la cuenta. */
+  base();
+  __t.set('pmad','5');
+  __t.set('it_pisa_r','9'); __t.set('it_pisa_val','40'); __t.set('it_vmax_cw','3');
+  __t.set('it_vti','90'); __t.set('it_densidad','denso');
+  const c1 = leer();
+  const l1 = vtLinea();
+
+  /* (5) AVISO: con Vmax cargada y el boton APAGADO A MANO. */
+  base();
+  __t.set('vmax_it','3.2');
+  const a0 = leer();
+  if (aOn('tricuspide','insuf')) toggleValvPill('tricuspide','insuf');
+  const a1 = leer();
+  /* control negativo 1: boton apagado y SIN Vmax (la escena que fallaba tras «Nuevo estudio») */
+  base();
+  if (aOn('tricuspide','insuf')) toggleValvPill('tricuspide','insuf');
+  const a2 = leer();
+  /* control negativo 2: boton PRENDIDO y con Vmax */
+  base();
+  __t.set('vmax_it','3.2');
+  if (!aOn('tricuspide','insuf')) toggleValvPill('tricuspide','insuf');
+  const a3 = leer();
+  /* se apaga al borrar la Vmax con el boton apagado */
+  if (aOn('tricuspide','insuf')) toggleValvPill('tricuspide','insuf');
+  const a4 = leer();
+  __t.set('vmax_it','');
+  const a5 = leer();
+
+  /* (6) ESCENA 3: la Vmax SOLO desde Valvulas hace aparecer el gradiente. */
+  base();
+  __t.set('it_pisa_r','9'); __t.set('it_pisa_val','40'); __t.set('it_vmax_cw','3');
+  __t.set('it_vti','90'); __t.set('it_densidad','denso');
+  const e3 = leer();
+  const l3 = vtLinea();
+
+  const SINREG = 'Sin registro de velocidad de regurgitaci';
+
+  return { extra: [
+    ['DENOMINADOR: la pestania Valvulas y los cuatro acordeones estan abiertos', den0 === true, 'den=' + den0],
+
+    // 1 · UNIDAD
+    ['el campo de Vmax IT CW declara m/s en el rotulo Y en el placeholder',
+      uCW === 'm/s' && lCW.indexOf('(m/s)') > -1, 'place=' + uCW + ' lbl=' + lCW],
+    ['y el Valiasing IT (Doppler COLOR) sigue en cm/s', uVal === 'cm/s', 'place=' + uVal],
+
+    // 2 · ESPEJO Doppler -> Valvulas
+    ['cargar la Vmax en Doppler la copia a Valvulas',
+      d1.vmax === '3.4' && d1.cw === '3.4', 'vmax=' + d1.vmax + ' cw=' + d1.cw],
+    ['y PRENDE el boton Insuficiencia', d1.pill === true, 'pill=' + d1.pill],
+    ['borrarla en Doppler la borra en Valvulas',
+      d2.vmax === '' && d2.cw === '', 'vmax=' + d2.vmax + ' cw=' + d2.cw],
+
+    // 3 · ESPEJO Valvulas -> Doppler
+    ['DENOMINADOR: la pastilla arranca APAGADA en esta escena', antesV === false, 'antes=' + antesV],
+    ['cargar la Vmax en Valvulas la copia al Doppler',
+      v1.vmax === '2.6' && v1.cw === '2.6', 'vmax=' + v1.vmax + ' cw=' + v1.cw],
+    ['y tambien PRENDE el boton, y calcula el gradiente VD-AD',
+      v1.pill === true && v1.grad === '27 mmHg', 'pill=' + v1.pill + ' grad=' + v1.grad],
+    ['borrarla en Valvulas la borra en el Doppler',
+      v2.vmax === '' && v2.cw === '', 'vmax=' + v2.vmax + ' cw=' + v2.cw],
+
+    // 4 · LA CUENTA CONVIERTE POR DENTRO
+    ['3,0 m/s + radio 9 + Valiasing 40 da EROA 67,9 mm2 (el numero de HEAD con 300 cm/s)',
+      c1.eroa.indexOf('67.9') > -1, 'eroa=' + c1.eroa],
+    ['y la severidad integrada es Severa con grado 4',
+      c1.sev.indexOf('Severa') > -1 && c1.grado === '4', 'sev=' + c1.sev + ' grado=' + c1.grado],
+    ['y la PSAP sale 41 mmHg con PmAD 5 — la Vmax del Doppler NO cambio de unidad',
+      c1.psap === '41', 'psap=' + c1.psap + ' grad=' + c1.grad],
+    ['el campo guarda m/s y NO el valor convertido',
+      c1.cw === '3' && c1.vmax === '3', 'cw=' + c1.cw + ' vmax=' + c1.vmax],
+
+    // 5 · EL AVISO
+    ['con la Vmax cargada el boton se prende solo y NO hay aviso',
+      a0.pill === true && a0.aviso === '', 'pill=' + a0.pill + ' aviso=' + recorteJS(a0.aviso)],
+    ['apagar el boton A MANO con Vmax cargada ENCIENDE el aviso rojo',
+      a1.pill === false && a1.aviso.indexOf('no es congruente') > -1,
+      'pill=' + a1.pill + ' aviso=' + recorteJS(a1.aviso)],
+    ['el aviso NO borra el dato ni prende el boton',
+      a1.vmax === '3.2' && a1.cw === '3.2' && a1.pill === false,
+      'vmax=' + a1.vmax + ' cw=' + a1.cw + ' pill=' + a1.pill],
+    ['CONTROL NEGATIVO: boton apagado y SIN Vmax -> ningun aviso (el que fallaba tras Nuevo estudio)',
+      a2.pill === false && a2.vmax === '' && a2.aviso === '',
+      'pill=' + a2.pill + ' vmax=' + a2.vmax + ' aviso=' + recorteJS(a2.aviso)],
+    ['CONTROL NEGATIVO: boton prendido y CON Vmax -> ningun aviso',
+      a3.pill === true && a3.aviso === '', 'pill=' + a3.pill + ' aviso=' + recorteJS(a3.aviso)],
+    ['borrar la Vmax con el boton apagado APAGA el aviso',
+      a4.aviso.indexOf('no es congruente') > -1 && a5.aviso === '',
+      'con=' + recorteJS(a4.aviso) + ' // sin=' + recorteJS(a5.aviso)],
+
+    // 6 · ESCENA 3 — el cambio AUTORIZADO contra HEAD
+    ['la Vmax cargada SOLO en Valvulas llega al Doppler por el espejo',
+      e3.vmax === '3' && e3.grad === '36 mmHg', 'vmax=' + e3.vmax + ' grad=' + e3.grad],
+    ['y el informe PUBLICA el gradiente VD-AD en vez de negar que haya velocidad (cambio a proposito vs HEAD)',
+      l3.vt.indexOf('Gradiente VD-AD de 36 mmHg') > -1 && l3.vt.indexOf(SINREG) === -1,
+      recorteJS(l3.vt)],
+    ['DENOMINADOR del cambio: con los DOS campos cargados el informe dice lo MISMO',
+      l1.vt.indexOf('Gradiente VD-AD de 36 mmHg') > -1 && l1.vt.indexOf(SINREG) === -1,
+      recorteJS(l1.vt)],
+    /* ⚠️ EL EN SUMA SE ANCLA AL TEXTO LITERAL Y NO SE COMPARA UNA ESCENA CONTRA LA OTRA. La
+       primera version de esta asercion hacia l3.suma === l1.suma y fallaba con razon: la escena
+       (4) carga PmAD y por eso su EN SUMA gana «PSAP estimada 41 mmHg.», mientras la (6) no la
+       tiene. Comparaba dos pacientes distintos y lo presentaba como una regresion.
+       El literal sale de la salida REAL de HEAD medida para esta misma escena, no de una redaccion
+       reconstruida: con la Vmax solo en Valvulas, HEAD y la version nueva dan los dos «IT severa.»
+       — o sea el EN SUMA NO cambia, que es lo que hay que fijar. */
+    ['el EN SUMA de la escena 3 es «IT severa.» pelado, IDENTICO a HEAD (lo que cambio es el informe, no el resumen)',
+      l3.suma.trim() === 'IT severa.', recorteJS(l3.suma)],
+    ['DENOMINADOR del resumen: la escena con PmAD SI agrega la frase de la PSAP, asi que el EN SUMA no es insensible',
+      l1.suma.indexOf('PSAP estimada 41 mmHg') > -1, recorteJS(l1.suma)],
+  ] };
+`);
+
 /* TC-412 — PULMONAR NARRATIVO DE UNA ORACION. Con morfologia normal y al menos una lesion, la EP y
    la IP se dicen en UNA oracion como la mitral. «Mixta» no se escribe sola.
    ⚠️ CONTRATO ACTUALIZADO (P5, decision de Maicol, 2026-10-04). Antes era «con estenosis X e

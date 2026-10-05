@@ -117,6 +117,13 @@ window.__P = {
   pill(valv, tipo) { try { return (typeof pillOn === 'function') ? pillOn(valv, tipo) : 'SIN pillOn' }
     catch(e) { return 'EXC' } },
 
+  /* UNIDAD DECLARADA POR EL PROPIO CAMPO de la Vmax del jet de IT. Permite que una escena describa
+     un PACIENTE (3,0 m/s) y no un tecleo: el campo estuvo en cm/s hasta el 2026-10-05 y pasó a m/s,
+     y un numero fijo habria hecho que el A/B comparara dos pacientes distintos. */
+  unidadCW() { var e = document.getElementById('it_vmax_cw');
+    return e ? String(e.placeholder || '').trim() : null },
+  cwIT(ms) { return window.__P.unidadCW() === 'cm/s' ? ms * 100 : ms },
+
   /* Denominador: pestania Valvulas + los cuatro acordeones. Lo que esta en display:none no tiene
      geometria, asi que una sonda sobre la app cerrada da cero y parece impecable. */
   denominador() {
@@ -382,14 +389,46 @@ async function main() {
   /* ── Las cinco escenas del prompt ──────────────────────────────────────────────────────────
      Los números son los mismos en los dos lados del A/B: la variable es el HTML, no el caso. */
 
-  // 1) IT sola. Vena contracta 8 mm vota severa por el corte `> 7` de calcIT_ESC.
+  /* 1) IT sola. Vena contracta 8 mm vota severa por el corte `> 7` de calcIT_ESC.
+     ⚠️ LA Vmax DEL JET SE TECLEA EN LA UNIDAD QUE DECLARA EL CAMPO, y no con el 300 fijo que
+     tenía esta escena (2026-10-05). `it_vmax_cw` pasó de cm/s a m/s, así que un 300 literal dejó de
+     significar el mismo PACIENTE en los dos lados del A/B: en el build nuevo son 300 m/s, el espejo
+     los lleva a `vmax_it` y el informe sale con «Gradiente VD-AD de 360000 mmHg».
+     Eso NO es una regresión y se midió por separado: teclear 300 en el campo del Doppler —que ya
+     era m/s en HEAD— produce exactamente la misma frase en HEAD. Es el agujero preexistente de que
+     el NARRATIVO no hereda la banda de plausibilidad del gradiente (el PDF sí: `vPlaus` +
+     MARCA_REVISAR). Queda declarado y sin corregir: tocar la frase del informe no es de esta tanda.
+     `unidadCW()` lee el placeholder del propio campo, así que la escena describe un paciente y no
+     un tecleo, y sigue valiendo si la unidad vuelve a cambiar. */
   await escena('IT-sola', `
     sets.push(window.__P.set('it_vc', 8));
     sets.push(window.__P.set('it_pisa_r', 9));
     sets.push(window.__P.set('it_pisa_val', 40));
-    sets.push(window.__P.set('it_vmax_cw', 300));
+    sets.push(window.__P.set('it_vmax_cw', window.__P.cwIT(3.0)));
     sets.push(window.__P.set('it_vti', 90));
     sets.push(window.__P.set('it_densidad', 'denso'));`);
+
+  /* 1b) LA Vmax DEL JET CARGADA SOLO DESDE «Valvulas» — ESCENA DOCUMENTADA (2026-10-05).
+     ⚠️ ES LA UNICA ESCENA DONDE EL INFORME CAMBIA CONTRA HEAD, Y CAMBIA A PROPOSITO. Autorizado
+     por Maicol tras medirlo. Por que cambia:
+       · ANTES los dos campos de Vmax IT eran datos SEPARADOS. Cargarla en «Valvulas» dejaba
+         `vmax_it` VACIO, asi que el informe firmado decia «Sin registro de velocidad de
+         regurgitacion que permita estimar PSAP» MIENTRAS el dato estaba cargado dos pestanias mas
+         alla. Esa frase era falsa y es el defecto que P3 vino a cerrar.
+       · AHORA son el mismo dato: el espejo llena `vmax_it` y el informe dice «Gradiente VD-AD de
+         36 mmHg. PSAP no calculable sin medicion de VCI.». El Excel gana el numero en la columna
+         «Grad VD-AD (mmHg)», que antes salia vacia.
+     NO se cambio ni una letra de ninguna frase del informe: lo que cambio es que el dato llega a
+     la otra mitad de la app. Las otras dos formas de cargarlo —solo por Doppler, o los dos campos
+     como queda un estudio COMPLETO en HEAD— dan un informe IDENTICO a HEAD, y estan medidas.
+     El EN SUMA no cambia en ninguna de las tres. */
+  await escena('IT-solo-desde-valvulas', `
+    sets.push(window.__P.set('it_pisa_r', 9));
+    sets.push(window.__P.set('it_pisa_val', 40));
+    sets.push(window.__P.set('it_vmax_cw', window.__P.cwIT(3.0)));
+    sets.push(window.__P.set('it_vti', 90));
+    sets.push(window.__P.set('it_densidad', 'denso'));
+    sets.push({ espejo: window.__P.val('vmax_it'), grad: window.__P.val('grad_vdad_display') });`);
 
   // 2) ET sola. Gradiente medio 6 mmHg pasa el corte de ET significativa (>= 5).
   await escena('ET-sola', `

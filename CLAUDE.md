@@ -207,11 +207,75 @@ impecable.
   ⚠️ **Este renglón se escribió mal una vez**: decía «doce commits sin pushear, `origin/main` en
   `2e017a1`», copiado del estado anterior sin mirar. `origin/main` había avanzado. Antes de
   escribirlo, `git rev-parse --short origin/main` y `git log --oneline origin/main..HEAD`.
-- **Línea base al 2026-10-05 (tanda tricúspide P2/P3): suite 425/429, Semgrep 127 / 0 ERROR, Excel
+- **Línea base al 2026-10-05 (tanda de la Vmax IT): suite 426/430, Semgrep 127 / 0 ERROR, Excel
   434 columnas.** Los cuatro rojos son los de entrada y NO son regresiones: **TC-223** (el
-  documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**. ⚠️ El renglón de abajo decía
-  «421/422, único rojo TC-223» y ya no es cierto: son **cuatro** rojos sobre **429** casos. Volver a
-  medir antes de leer una tanda de mutaciones sigue siendo obligatorio.
+  documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**. ⚠️ **El denominador subió a
+  430**: la tanda de la Vmax IT agregó **TC-415**. Los renglones viejos de este archivo —421/422,
+  425/429— quedaron atrás, así que volver a medir antes de leer una tanda de mutaciones sigue
+  siendo obligatorio.
+
+### ⏸️ PENDIENTE DE MAICOL — la banda de plausibilidad del gradiente VD-AD (2026-10-05)
+
+> «el narrativo no hereda la banda de plausibilidad del gradiente VD-AD; el PDF sí
+> (MARCA_REVISAR); medido en HEAD: 300 en el Doppler imprime 360000 mmHg sin marca»
+
+Lo decide Maicol en otro trabajo. **No se toca**: corregirlo es cambiar una frase del informe.
+Dónde está: el PDF arma el gradiente con `vPlaus('vmax_it')` y le pega `MARCA_REVISAR` cuando el
+valor cae fuera de `[0.5, 8]`; el narrativo lo arma con `v('vmax_it')` crudo, en el bloque 9 de
+`generarInforme`. La medición se hizo contra HEAD con la copia en `/tmp`, no sobre el árbol vivo:
+`vPlaus` devuelve `{crudo:300, fuera:true, b:[0.5,8]}` —o sea la banda SÍ lo detecta— y el
+narrativo igual publica «Gradiente VD-AD de 360000 mmHg» sin una sola marca. Desde que la Vmax IT
+es un dato con dos campos, ese agujero se alcanza también escribiendo en el campo de Válvulas.
+
+### Tricúspide — la Vmax IT es UN dato con DOS campos (2026-10-05)
+
+- **`vmax_it` (Doppler) e `it_vmax_cw` (Válvulas) son el MISMO dato y están los dos en m/s.** Eran
+  campos separados, en unidades distintas, para la misma medición: el médico la cargaba dos veces,
+  y si la cargaba una sola, la mitad de la app no se enteraba. `itVmaxSync` los espeja en los dos
+  sentidos, borrado incluido. **El `it_pisa_val` de al lado se queda en cm/s: es Doppler COLOR.**
+- **No hay bucle, y NO es por la guarda:** asignar `.value` por código no dispara `oninput`. La
+  guarda `_itVmaxSinc` está para el día en que alguien despache un `input` a mano (los arneses lo
+  hacen). La salida temprana por valor igual es lo que evita que salte el caret al tipear.
+- **La conversión de unidad va DENTRO de `calcIT_ESC`** (`vmaxCW * 100`), nunca en el campo: el
+  campo guarda lo que el médico ve. Verificado contra HEAD con tres casos (3,0 / 2,5 / 2,0 m/s
+  contra 300 / 250 / 200 cm/s): EROA 67,9 / 22,0 / 8,5 mm², volR, severidad, grado, PSAP y
+  gradiente VD-AD **idénticos**.
+- ⚠️ **EL NORMALIZADOR DE LEGADO CUBRE LAS TRES RUTAS, Y TIENE QUE CUBRIRLAS.** La orden decía
+  «sólo al editar», pero se midió que la REIMPRESIÓN (`_pdfDeInformeGuardadoArmar`) llama a
+  `calcIT_ESC()`: normalizar sólo en `editarInforme` habría dejado la reimpresión de un estudio
+  viejo divergiendo de HEAD, que es lo que la orden prohibía. Va en `_migrarCamposLegacy`, que es
+  **en memoria y no reescribe el disco** (mismo precedente que `ip_grado` y el `vp_morf` partido).
+  Corte: `> 8` es cm/s y se divide por 100; `8` o menos se deja. **Las dos bandas no se solapan**
+  —0,5 a 8 m/s = 50 a 800 cm/s—, así que no hay zona gris.
+- **El informe cambia en UNA escena, a propósito y autorizado:** cargar la Vmax SÓLO desde Válvulas
+  ahora publica «Gradiente VD-AD de 36 mmHg» donde antes decía «Sin registro de velocidad de
+  regurgitación que permita estimar PSAP» **con el dato cargado en la otra pestaña** — una frase
+  falsa en un informe firmado. El Excel gana el número en «Grad VD-AD (mmHg)». **No se cambió ni
+  una letra de ninguna frase**: cambió que el dato llegue. Las otras dos formas de cargarlo —sólo
+  por Doppler, o los dos campos— dan informe **idéntico** a HEAD. El EN SUMA no cambia en ninguna.
+- **El aviso de incongruencia (`it-incongruencia`) necesita las DOS columnas** —`limpiarCampos` y
+  `RECALC_MODULOS`—, al lado de `eteVmAvisoSync` y por la misma razón. Lo cazó el **control
+  negativo** de la sonda, no una lectura: el aviso rojo del paciente anterior sobrevivía a «Nuevo
+  estudio» sobre un formulario vacío. `calcIT_ESC` lo repinta pero `limpiarCampos` no lo llama, y
+  `toggleValvPill` sólo si la pastilla CAMBIA —y tras limpiar ya estaba apagada—: las dos puertas
+  cerradas a la vez. El estado que denuncia es estrecho porque `calcPSAP` prende la pastilla al
+  cargar la Vmax: sólo se alcanza si el médico la apagó a mano.
+- **Los otros tres parámetros de IT NO prenden el botón** (medido): `it_vc`, `it_pisa_r` e `it_vti`
+  dejan la pastilla apagada. El aviso NO se extendió a ellos.
+- **El panel de Evidencia estaba mal en tres cosas a la vez** y se corrigió (autorizado): imprimía
+  `300,00 m/s` sobre un valor en cm/s, decía «da la PSAP estimada» (la PSAP sale de `vmax_it`) y
+  decía «no gradúa la insuficiencia» justo sobre el divisor de la ecuación de PISA. **El panel es
+  sólo de pantalla** —`@media print` lo apaga y ningún generador de PDF/PPT ni el narrativo leen
+  `IND_SECS`; lo fija TC-272—, así que la corrección no toca ninguna superficie firmada.
+- **Cobertura: TC-415**, 23 condiciones, con los dos controles negativos del aviso y el denominador
+  del EN SUMA. Antes esto no tenía ninguna cobertura automática. Arnés: `scripts/_probe_itvmax.mjs`
+  (A/B con `--file`, solo lectura) y `scripts/_probe_tricusp.mjs` ahora **consciente de la unidad**
+  (`cwIT()` lee el placeholder del campo, así que una escena describe un paciente y no un tecleo).
+- 🔧 **`scripts/check_backticks.py`** — localiza el acento grave dentro del cuerpo de un caso o de
+  una sonda. `node --check` detecta el error pero apunta a la primera interpolación, decenas de
+  líneas antes del culpable; este script da la línea exacta. Verificado por mutación: con un acento
+  grave inyectado señala la 49425 mientras `node --check` dice 49342. **Me comí ese acento grave
+  cinco veces en dos tandas**, con el archivo que documenta la trampa abierto delante.
 
 ### Tricúspide — `it_grado` es un `<select>` y el grado 3 quedó inalcanzable (2026-10-05)
 

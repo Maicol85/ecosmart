@@ -3374,7 +3374,16 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div class="grid-4">
         <div class="fg">
           <label>Vmax IT (m/s)</label>
-          <input type="number" id="vmax_it" placeholder="m/s" step="0.1" oninput="calcPSAP()">
+          <!-- ⚠️ ES EL MISMO DATO QUE `it_vmax_cw` DEL BLOQUE DE INSUFICIENCIA EN «Valvulas»
+               (2026-10-05). Antes eran dos campos SEPARADOS y en unidades distintas —este en m/s,
+               aquel en cm/s— para la misma medicion: el medico cargaba la velocidad del jet dos
+               veces, y si cargaba una sola, la mitad de la app no se enteraba. `itVmaxSync` los
+               mantiene espejados en los dos sentidos; `calcIT_ESC` se agrega acá para que la EROA
+               de la otra pestania se recalcule cuando el dato entra por este lado.
+               El orden importa: `itVmaxSync` primero, porque los dos calculos de atras leen el
+               campo YA espejado. Este campo NO cambio de unidad ni de id: la PSAP, el PDF, el PPT,
+               el Excel y el export FHIR siguen leyendo exactamente lo que leian. -->
+          <input type="number" id="vmax_it" placeholder="m/s" step="0.1" oninput="itVmaxSync('vmax_it');calcPSAP();calcIT_ESC()">
         </div>
         <div class="fg">
           <label>Grad VD-AD — auto (mmHg)</label>
@@ -4432,6 +4441,21 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div class="valv-sev-menu" id="sevmenu-esten-tricuspide" role="menu"></div>
         </div>
       </div>
+      <!-- ═══ P5 · AVISO DE INCONGRUENCIA (2026-10-05) ════════════════════════════════════════
+           Va JUNTO AL BOTON, debajo de la fila, porque es el estado del boton lo que señala.
+           ⚠️ AVISA Y NO ARREGLA, por decision expresa de Maicol: no prende el boton solo y no
+           borra ningun dato. Para dejar «sin insuficiencia» el medico tiene que borrar la Vmax IT
+           y los calculos de insuficiencia — el gesto es suyo.
+           ⚠️ EL ESTADO QUE DENUNCIA ES ESTRECHO Y HAY QUE SABER POR QUE EXISTE: `calcPSAP` PRENDE
+           la pastilla de IT al cargar la Vmax (regla 9, 2026-10-03), asi que «boton apagado + Vmax
+           cargada» solo se alcanza si el medico la APAGO A MANO despues —la clave de localStorage
+           queda en '0' y `calcPSAP` ya no la reprende— o si borro la Vmax y la volvio a cargar con
+           la pastilla cerrada. Es poco frecuente y es justo el caso en que el informe firmado
+           afirma una cosa y la pantalla otra.
+           Vacio no tiene alto y no deja hueco. `textContent` y no `innerHTML`: no hay dato del
+           paciente adentro, pero un nodo de aviso que acepta marcado es el atajo que esta suite ya
+           pago once veces en CardioSalud. -->
+      <div id="it-incongruencia" style="font-size:11px;font-weight:700;color:var(--red);margin:-6px 0 10px;min-height:0;"></div>
       <div class="sev-pills" id="sevpills-tricuspide"></div>
       <!-- v2 (E5b-3, 2026-10-04): los campos de CADA lesión van DEBAJO de su propia pastilla y a
            ancho completo, como la mitral y la aórtica. Antes prótesis + estenosis + «Densidad jet CW»
@@ -4514,7 +4538,18 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="fg"><label>Valiasing IT (cm/s)</label><input type="number" id="it_pisa_val" placeholder="cm/s" oninput="calcIT_ESC()"></div>
       </div>
       <div class="grid-3" style="margin-bottom:8px;">
-        <div class="fg"><label>Vmax IT CW (cm/s)</label><input type="number" id="it_vmax_cw" placeholder="cm/s" oninput="calcIT_ESC()"></div>
+        <!-- ⚠️ ESTE CAMPO PASO DE cm/s A m/s (2026-10-05) Y ES EL MISMO DATO QUE `vmax_it` DEL
+             DOPPLER. La regla de unidades de la app es: todo lo medido con Doppler CONTINUO va en
+             m/s (Vmax IT, Vmax aortica, Vmax IP, Vmax pulmonar anterograda); lo pulsado va en cm/s
+             y los VTI en cm. Este es CW, asi que estaba en la unidad equivocada — y encima el
+             panel de Evidencia ya lo imprimia rotulado «m/s» sobre un numero en cm/s.
+             `step="0.1"` igual que `vmax_it`: con el step de a 1 el campo no podia expresar 2,8 —
+             el corte de HTP— con las flechas.
+             El `oninput` sincroniza PRIMERO y despues recalcula las dos mitades: `calcIT_ESC` para
+             la EROA de esta pestania y `calcPSAP` para el gradiente VD-AD y la PSAP de la otra,
+             que es tambien lo que PRENDE el boton Insuficiencia. Ver `itVmaxSync`.
+             ⚠️ El Valiasing IT de al lado se queda en cm/s: es Doppler COLOR, no continuo. -->
+        <div class="fg"><label>Vmax IT CW (m/s)</label><input type="number" id="it_vmax_cw" placeholder="m/s" step="0.1" oninput="itVmaxSync('it_vmax_cw');calcIT_ESC();calcPSAP()"></div>
         <div class="fg"><label>VTI IT (cm)</label><input type="number" id="it_vti" placeholder="cm" oninput="calcIT_ESC()"></div>
         <div class="fg"><label>Densidad jet CW</label>
           <select id="it_densidad" onchange="calcIT_ESC()">
@@ -27802,8 +27837,82 @@ window.ET_GMEDIO_SIGNIF = ET_GMEDIO_SIGNIF;
 window.ET_THP_SIGNIF = ET_THP_SIGNIF;
 window.ET_AVT_SIGNIF = ET_AVT_SIGNIF;
 
+/* ══ LA Vmax IT ES UN DATO CON DOS CAMPOS (P3, 2026-10-05) ════════════════════════════════════
+   `vmax_it` (pestaña Doppler, bloque PSAP) e `it_vmax_cw` (pestaña Válvulas, bloque de
+   insuficiencia) eran dos campos SEPARADOS, en unidades distintas, para la MISMA medición: la
+   velocidad pico del jet de regurgitación tricuspídea por Doppler continuo. El médico la cargaba
+   dos veces, y si la cargaba una sola, la mitad de la app no se enteraba — con la Vmax sólo en
+   Doppler no había EROA, y con la Vmax sólo en Válvulas no había PSAP ni gradiente VD-AD.
+   Desde esta tanda los dos están en m/s y se espejan en los dos sentidos.
+
+   ⚠️ NO HAY BUCLE, Y NO ES POR LA GUARDA: asignar `.value` por código NO dispara `oninput`, así
+   que el espejo nunca se re-dispara solo. La guarda `_itVmaxSinc` está para el día en que alguien
+   despache un `input` a mano —los arneses de prueba lo hacen— y es exactamente el mismo patrón que
+   el `_aplicando` de `valvSev`, que esta app ya necesitó por este motivo.
+
+   ⚠️ LA SALIDA TEMPRANA POR VALOR IGUAL ES LO QUE EVITA EL PARPADEO, y no es cosmética: escribir
+   `dst.value` con el mismo contenido mueve el caret al final del campo. Con los dos campos
+   visibles —pasa a 1200 px, Doppler y Válvulas son pestañas distintas pero el mismo DOM— eso se
+   ve como un salto mientras se tipea.
+
+   ⚠️ SE COMPARA EL TEXTO CRUDO Y NO EL NÚMERO. `'3'`, `'3.0'` y `'3.00'` son el mismo número y
+   tres textos distintos; copiar el texto deja los dos campos mostrando LO MISMO, que es lo que el
+   médico tiene que poder verificar de un vistazo. Comparar por número dejaría «3» en uno y «3.00»
+   en el otro y parecerían dos datos. */
+let _itVmaxSinc = false;
+function itVmaxSync(origenId) {
+  if (_itVmaxSinc) return null;
+  _itVmaxSinc = true;
+  try {
+    const a = document.getElementById('vmax_it'), b = document.getElementById('it_vmax_cw');
+    if (!a || !b) return null;
+    const src = (origenId === 'it_vmax_cw') ? b : a;
+    const dst = (origenId === 'it_vmax_cw') ? a : b;
+    if (dst.value === src.value) return { copio: false, valor: src.value };
+    dst.value = src.value;   /* borrar una borra la otra: '' se copia igual que un número */
+    return { copio: true, valor: src.value };
+  } finally { _itVmaxSinc = false; }
+}
+window.itVmaxSync = itVmaxSync;
+
+/* ══ P5 · «Vmax IT cargada con la insuficiencia apagada» ══════════════════════════════════════
+   AVISA Y NO ARREGLA (decisión de Maicol): no prende la pastilla y no borra nada. Un solo dueño
+   para que el aviso no pueda quedar desincronizado del estado, igual que `sevSincronizar` con el
+   aviso de discrepancia.
+   ⚠️ SE LEEN LOS DOS CAMPOS AUNQUE SEAN EL MISMO DATO. Después de `_migrarCamposLegacy` y del
+   espejo deberían coincidir siempre, pero un estudio guardado se repone con `.value =` sin
+   eventos: en ese instante pueden diferir, y el aviso tiene que salir si CUALQUIERA tiene valor.
+   Fallar del lado de avisar es lo correcto acá — el costo de un aviso de más es un renglón rojo;
+   el de uno de menos es un informe firmado que niega una valvulopatía que los datos afirman.
+   ⚠️ NO SE EXTIENDE A vena contracta, PISA ni VTI, y eso es deliberado: la orden de esta tanda es
+   la Vmax. Medido aparte y reportado: esos tres NO prenden la pastilla hoy. */
+function itIncongruenciaSync() {
+  const el = document.getElementById('it-incongruencia');
+  if (!el) return null;
+  let hayVmax = false;
+  ['vmax_it', 'it_vmax_cw'].forEach(function(id) {
+    const e = document.getElementById(id);
+    if (e && String(e.value).trim() !== '' && parseFloat(e.value) > 0) hayVmax = true;
+  });
+  let apagada = false;
+  try { apagada = (typeof pillOn === 'function') && !pillOn('tricuspide', 'insuf'); }
+  catch (e) { apagada = false; }
+  const mostrar = hayVmax && apagada;
+  el.textContent = mostrar
+    ? '⚠️ Con Vmax IT cargada la insuficiencia no puede estar ausente: no es congruente. Para dejarla sin insuficiencia, borrá la Vmax IT y los cálculos de insuficiencia.'
+    : '';
+  el.style.margin = mostrar ? '-6px 0 10px' : '0';
+  return { visible: mostrar, hayVmax: hayVmax, apagada: apagada };
+}
+window.itIncongruenciaSync = itIncongruenciaSync;
+
 function calcIT_ESC() {
   window._itGradoCalc = null;   // v2 (E2c): se repuebla con el grado calculado; null si no hay datos (como _imGradoCalc)
+  /* ⚠️ VA ANTES DE LA SALIDA TEMPRANA de `params.length === 0`, y es la única posición correcta:
+     con la Vmax IT como ÚNICO dato cargado no hay ningún voto —la EROA necesita radio PISA y
+     Valiasing— así que esta función sale por ese `return` y todo lo que estuviera abajo no
+     correría nunca. Que es exactamente la escena que P5 vino a denunciar. */
+  if (typeof itIncongruenciaSync === 'function') { try { itIncongruenciaSync(); } catch (e) {} }
   const vc = v('it_vc');
   const pisaR = v('it_pisa_r'), pisaVal = v('it_pisa_val'), vmaxCW = v('it_vmax_cw'), vtiIT = v('it_vti');
   const densidad = sv('it_densidad');
@@ -27824,7 +27933,18 @@ function calcIT_ESC() {
   }
 
   if (pisaR && pisaVal && vmaxCW) {
-    const eroa = (2*Math.PI*(pisaR/10)**2*pisaVal/vmaxCW*100).toFixed(1);
+    /* ⚠️ LA CONVERSION DE UNIDAD VA ACA DENTRO, NUNCA EN EL CAMPO (P4, 2026-10-05). `it_vmax_cw`
+       pasó a m/s —es Doppler continuo y la regla de la app es m/s— pero el cociente de la ecuación
+       de PISA exige las DOS velocidades en la misma unidad, y `it_pisa_val` es Doppler COLOR y se
+       queda en cm/s. Así que se convierte el divisor: m/s × 100 = cm/s.
+       Escribir la conversión en el campo —guardar cm/s y mostrar m/s— habría puesto el número
+       convertido en el estudio guardado, en el Excel y en el espejo con `vmax_it`, y la unidad
+       real del dato dejaría de ser la que dice el rótulo. El campo guarda lo que el médico ve.
+       ⚠️ LAS BANDAS DE LA EROA (20 y 40 mm²) NO SE TOCAN y no hay que tocarlas: el resultado en
+       mm² es idéntico al de HEAD con el mismo dato físico. Verificado con tres casos: 300 cm/s
+       daba 67,9 / 22,0 / 8,5 mm² y 3,0 m/s da los mismos tres números. */
+    const vmaxCWcms = vmaxCW * 100;
+    const eroa = (2*Math.PI*(pisaR/10)**2*pisaVal/vmaxCWcms*100).toFixed(1);
     document.getElementById('it-eroa').textContent = eroa + ' mm²';
     if (eroa < 20) { scores.leve++; params.push({p:'EROA',sev:'leve'}); }
     else if (eroa < 40) { scores.moderada++; params.push({p:'EROA',sev:'moderada'}); }
@@ -33678,7 +33798,7 @@ function RECALC_MODULOS() {
      `emAvmPdfVal` para la fila del PDF, `dataset` protege esa decision, y `disabled` no lo
      persiste ni lo lee nadie. Los dos primeros siguen intocados — que es exactamente la objecion
      que este archivo dejo escrita para IM: «pisaria la decision que la reimpresion respalda». */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','itIncongruenciaSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -33863,6 +33983,17 @@ function limpiarCampos(silencioso) {
   /* Las DOS columnas: `RECALC_MODULOS` es el embudo de las rutas de restauracion y `limpiarCampos`
      NO pasa por ahi. Sin esta linea, «Nuevo estudio» dejaba el aviso del paciente anterior. */
   { if (typeof eteVmAvisoSync === 'function') { try { eteVmAvisoSync(); } catch (e) {} } }
+  /* ⚠️ EL AVISO DE INCONGRUENCIA DE LA IT NECESITA LAS DOS COLUMNAS POR EL MISMO MOTIVO, y lo
+     cazó el CONTROL NEGATIVO de la sonda de esta tanda, no una lectura. Medido: con «Vmax IT
+     cargada + botón apagado» el aviso se pintaba bien, pero «Nuevo estudio» lo dejaba EN PANTALLA
+     sobre un formulario vacío —la escena «botón apagado, sin Vmax» daba aviso=SÍ—, o sea el aviso
+     rojo del paciente anterior acusando de incongruencia a un estudio en blanco.
+     Por qué no alcanzaba con los hooks que ya tenía: `calcIT_ESC` lo repinta, pero `limpiarCampos`
+     no lo llama; y `toggleValvPill` lo repinta, pero sólo si la pastilla CAMBIA de estado — y tras
+     limpiar ya estaba apagada, así que no había toggle. Las dos puertas quedaban cerradas a la vez.
+     `itIncongruenciaSync` entró además a `RECALC_MODULOS`, que es la otra columna (las rutas de
+     restauración), al lado de `eteVmAvisoSync` y por la misma razón. */
+  { if (typeof itIncongruenciaSync === 'function') { try { itIncongruenciaSync(); } catch (e) {} } }
   _PDF_METODO_IDS.forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.checked = false; el.disabled = true; delete el.dataset.tocado; delete el.dataset.desdeEstudio; }
@@ -49769,8 +49900,21 @@ function _indVT(){
       : (itEvaluada ? '' : 'el campo arranca en «Sin» y no hay ningún parámetro cargado: no se puede afirmar que no la haya')),
     _indFila('Vena contracta', _indNum(vc, 1, 'mm'), vc != null ? 'none' : 'ask',
       vc != null ? 'uno de los parámetros que la app integra para graduar' : 'sin medir'),
+    /* ⚠️ ESTE RENGLÓN ESTABA MAL EN TRES COSAS A LA VEZ, Y LAS TRES SE ARREGLAN ACÁ (2026-10-05,
+       autorizado por Maicol). Medido en HEAD con 300 cm/s cargados, imprimía literalmente
+       «300,00 m/s»:
+         1) la UNIDAD era falsa — `it_vmax_cw` estaba en cm/s y acá se rotulaba m/s. Desde esta
+            tanda el campo ES m/s, así que el rótulo quedó verdadero sin tocar esta línea;
+         2) «da la PSAP estimada» era falso: la PSAP sale de `vmax_it` + `pmad` en `calcPSAP`, y
+            este campo no entraba ahí. Desde P3 los dos campos son EL MISMO dato, así que ahora sí
+            alimenta la PSAP — pero se dice de la forma que sigue siendo cierta si mañana se
+            separan: se nombra de dónde sale la PSAP;
+         3) «no gradúa la insuficiencia» era lo contrario de la verdad: este campo es el DIVISOR de
+            la ecuación de PISA, o sea que entra en la EROA, y la EROA es uno de los cuatro votos
+            del grado integrado. Decía que no gradúa justo el parámetro que gradúa.
+       No se toca ni `_indFila` ni el formato: sólo el texto de la nota. */
     _indFila('Vmax del jet (CW)', _indNum(vmaxIt, 2, 'm/s'), vmaxIt != null ? 'none' : 'ask',
-      vmaxIt != null ? 'da la PSAP estimada; no gradúa la insuficiencia' : 'sin medir')
+      vmaxIt != null ? 'es el divisor de la ecuación de PISA, así que entra en la EROA y pesa en el grado integrado; es además la velocidad de la que la app deriva el gradiente VD-AD y la PSAP' : 'sin medir')
   ];
   /* Los tres criterios de estenosis se imprimen con el umbral que aplica el código, leído de la
      constante. Si falta la constante la fila lo dice en vez de publicar un número de memoria.
@@ -51533,6 +51677,42 @@ window.eteEpcRefrescar = eteEpcRefrescar;
    función paralela. */
 function _migrarCamposLegacy(c){
   if (!c) return c;
+  /* ══ `it_vmax_cw` PASÓ DE cm/s A m/s EL 2026-10-05 ═══════════════════════════════════════════
+     SE NORMALIZA EN MEMORIA Y NO SE REESCRIBE NADA DEL DISCO. Esta función recibe el objeto
+     `campos` y lo arregla ANTES de poblar el formulario; el blob guardado queda intacto, igual que
+     con `ip_grado` y el `vp_morf` partido en tres, que son el precedente exacto.
+
+     ⚠️ ESTO EXISTE PARA QUE EL RESULTADO NO CAMBIE, NO PARA CAMBIARLO. Un estudio guardado antes
+     del cambio tiene `it_vmax_cw` en cm/s (p. ej. 300). Sin esta línea, el código nuevo lo leería
+     como 300 m/s, la conversión de `calcIT_ESC` lo llevaría a 30.000 cm/s y la EROA saldría 100×
+     más chica: la severidad cae de «Severa» a «Leve» y eso entra a un informe FIRMADO. Medido en
+     los tres casos de la línea base.
+
+     ⚠️ CUBRE LAS TRES RUTAS DE RESTAURACIÓN Y TIENE QUE CUBRIRLAS, aunque la orden decía «sólo al
+     editar». Se midió: la REIMPRESIÓN (`_pdfDeInformeGuardadoArmar`) llama a `calcIT_ESC()`, así
+     que recalcula la EROA desde este campo. Normalizar sólo en `editarInforme` habría dejado la
+     reimpresión de un estudio viejo divergiendo de HEAD — que es precisamente lo que la orden
+     prohíbe («un estudio guardado abierto sin editar tiene que mostrar el mismo informe que en
+     HEAD»). Las dos mitades de esa orden se contradecían y la medición resolvió cuál manda.
+
+     ⚠️ EL CORTE ES `> 8` Y LAS DOS BANDAS NO SE SOLAPAN. La Vmax de un jet de IT fisiológicamente
+     posible va de 0,5 a 8 m/s —es la banda que `vmax_it` ya declara— o sea 50 a 800 cm/s. Un valor
+     de 8 o menos sólo puede ser m/s; uno mayor sólo puede ser cm/s. No hay ningún número que sea
+     plausible en las dos unidades, así que la decisión no es una heurística con zona gris.
+     `8` exactamente se deja como está, que es el borde superior legítimo en m/s.
+
+     ⚠️ SÓLO SE TOCA LA CLAVE SI EXISTE Y TIENE NÚMERO. Un estudio que nunca tuvo el campo se queda
+     sin él —«no hay dato» no es «hay un 0»— y una cadena vacía o ilegible se deja intacta para que
+     no se fabrique un valor. Misma regla que `ip_grado` dos bloques más abajo. */
+  if (Object.prototype.hasOwnProperty.call(c, 'it_vmax_cw')) {
+    const _raw = String(c['it_vmax_cw'] == null ? '' : c['it_vmax_cw']).trim().replace(',', '.');
+    const _n = parseFloat(_raw);
+    if (_raw !== '' && !isNaN(_n) && _n > 8) {
+      /* `String(...)` y no el número pelado: el resto del camino asigna a `.value`, que espera
+         texto, y así el campo muestra «3» y no «3.0000000000000004» por el float. */
+      c['it_vmax_cw'] = String(Math.round((_n / 100) * 1000) / 1000);
+    }
+  }
   if (!c['tsvd_diametro'] && c['ete_shunt_tsvd'])     c['tsvd_diametro'] = c['ete_shunt_tsvd'];
   if (!c['vti_tsvd']      && c['ete_shunt_vti_tsvd']) c['vti_tsvd']      = c['ete_shunt_vti_tsvd'];
   /* `coa_ao_asc` fue un duplicado de `ao_tub` que vivió del 2026-09-09 al 2026-09-10. Los
@@ -51985,6 +52165,13 @@ function toggleValvPill(valvula, tipo) {
      agregarla/quitarla ellos mismos cuando el gesto es suyo. Inerte salvo para la pulmonar: el Set
      sólo lo lee `valvAutoApagarEsten('pulmonar')`. */
   if (tipo === 'esten' && typeof VALV_ESTEN_AUTO !== 'undefined') VALV_ESTEN_AUTO.delete(valvula);
+  /* P5 (2026-10-05): el aviso de «Vmax IT cargada con la insuficiencia apagada» se repinta acá
+     porque ESTE es el gesto que lo enciende y lo apaga. Va al final y después del `setItem`, así
+     que `pillOn` ya devuelve el estado nuevo: leído antes, el aviso iría siempre un clic atrás.
+     Se gatea por válvula para no gastar un repintado en los otros cinco botones. */
+  if (valvula === 'tricuspide' && tipo === 'insuf' && typeof itIncongruenciaSync === 'function') {
+    try { itIncongruenciaSync(); } catch (e) {}
+  }
 }
 function cargarValvPills() {
   /* LAS SEIS PASTILLAS SE RESTAURAN. Había una exclusión explícita para tricúspide/estenosis
@@ -93857,8 +94044,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261005-0134';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791174845937;                 /* eco-build-ms */
+const ECO_BUILD    = '20261005-0250';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791179424635;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -93944,7 +94131,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261005-0134</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261005-0250</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
