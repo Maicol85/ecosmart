@@ -20161,15 +20161,19 @@ window.calcDopTric = calcDopTric;
 const DT_EA_RELAJ = 0.8, DT_EA_RESTR = 2.1, DT_EEP_ELEV = 6;
 /* `it_grado` es el campo de grado de la IT —desde el 2026-10-04 un `<select>` VISIBLE, antes el
    hidden de la pastilla—: 0 sin · 1 Leve · 2 Moderada · 3 Mod-severa · 4 Severa (`INSUF_TXT`).
-   «Significativa» arranca en mod-severa: con el corte en «moderada» la salvedad saldría en buena
-   parte de los estudios y dejaría de leerse.
-   ⚠️ EL UMBRAL NO SE TOCÓ Y SU ALCANCE EFECTIVO CAMBIÓ — REPORTADO, NO CORREGIDO (2026-10-04).
-   La decisión de Maicol de sacar «Moderada-severa» (código 3) de la IT dejó el 3 INALCANZABLE: las
-   opciones del select son 0/1/2/4 y la tarjeta de revisión previa al PDF ya no lo ofrece. Así que
-   `itG >= 3` hoy equivale a `itG === 4`, o sea que esta salvedad pasó a exigir IT SEVERA en vez de
-   mod-severa-o-más. La constante queda en 3 a propósito: mover un corte clínico es decisión de
-   Maicol, y además 3 sigue siendo el valor correcto si algún día la opción vuelve. */
-const DT_IT_SIGNIF = 3;
+   ⚠️ EL CORTE BAJÓ DE 3 A 2 — DECISIÓN DE MAICOL, 2026-10-05. La salvedad diastólica aparece
+   desde IT MODERADA (antes exigía mod-severa o más).
+   POR QUÉ, y es la historia que justifica el número: sacar «Moderada-severa» (código 3) de la IT
+   dejó el 3 INALCANZABLE —las opciones del select son 0/1/2/4 y la tarjeta previa al PDF ya no lo
+   ofrece—, así que `itG >= 3` había quedado equivaliendo a `itG === 4` y la salvedad pasó a exigir
+   IT SEVERA sin que nadie tocara una constante. Un corte clínico se había estrechado solo. Con el
+   corte en 2 el alcance vuelve a ser el intencional y además ya no depende de que exista una opción
+   que hoy no existe: `itG >= 2` se cumple con 2 y con 4, que son las dos opciones reales por
+   encima de leve.
+   Lo que NO cambia: la salvedad sigue saliendo SÓLO con patrón diastólico anormal (relajación,
+   pseudonormal o restrictivo), y la frase no se tocó. Normal e indeterminado siguen callados a
+   cualquier grado. */
+const DT_IT_SIGNIF = 2;
 
 function dtDiastEstado(src){
   const r = (typeof dopTricEstado === 'function') ? dopTricEstado(src) : null;
@@ -94526,8 +94530,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261005-1014';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791206078966;                 /* eco-build-ms */
+const ECO_BUILD    = '20261005-1027';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791206853798;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -94613,7 +94617,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261005-1014</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261005-1027</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

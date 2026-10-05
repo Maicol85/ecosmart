@@ -514,6 +514,39 @@ async function main() {
     return JSON.stringify(out);
   })()`));
 
+  /* ══ 3 ter) LA SALVEDAD DIASTOLICA DEL VD (parte B) ═════════════════════════════════════════
+     Matriz PATRON x GRADO DE IT: los cinco patrones que `dtDiastEstado` puede producir por los
+     cuatro grados alcanzables de it_grado (0, 1, 2, 4). Es lo que permite decir EXACTAMENTE en que
+     escenas aparece la salvedad y en cuales no, en vez de deducirlo del corte. */
+  const salvedad = JSON.parse(await ev(`(function(){
+    var PAT = {
+      relajacion:   { dt_onda_e:'30',  dt_onda_a:'50', dt_eprime_lat:'6' },
+      pseudonormal: { dt_onda_e:'60',  dt_onda_a:'50', dt_eprime_lat:'7.5' },
+      restrictivo:  { dt_onda_e:'100', dt_onda_a:'40', dt_eprime_lat:'11' },
+      normal:       { dt_onda_e:'50',  dt_onda_a:'50', dt_eprime_lat:'12.5' },
+      indeterminado:{ dt_onda_e:'60',  dt_onda_a:'50' }
+    };
+    var SALV = 'puede invalidar estos par';
+    var out = { celdas: {}, frase: null, corte: (typeof DT_IT_SIGNIF !== 'undefined') ? DT_IT_SIGNIF : null };
+    Object.keys(PAT).forEach(function(p){
+      ['0','1','2','4'].forEach(function(g){
+        window.__P.limpiar(); window.__P.denominador();
+        window.__P.set('vd_bas','38'); window.__P.set('tapse','20');
+        Object.keys(PAT[p]).forEach(function(k){ window.__P.set(k, PAT[p][k]); });
+        window.__P.set('it_grado', g);
+        var r = window.__P.informe('estandar');
+        var vd = (r.inf||'').split(/\\n/).filter(function(l){ return l.indexOf('culo derecho') > -1; })[0] || '';
+        var hay = vd.indexOf(SALV) > -1;
+        out.celdas[p + '|' + g] = { salvedad: hay, vd: vd };
+        if (hay && !out.frase) {
+          var m = vd.match(/La insuficiencia tricusp[^.]*\\./);
+          out.frase = m ? m[0] : null;
+        }
+      });
+    });
+    return JSON.stringify(out);
+  })()`));
+
   /* ══ 4) CONTROL NEGATIVO: mitral y aortica, CON denominador ══════════════════════════════════ */
   const otras = JSON.parse(await ev(`(function(){
     var out = {};
@@ -556,7 +589,7 @@ async function main() {
     sinErroresDeConsola: cdp.errores.length === 0,
     denominadorTabla: { escenasS: sFrases.length, textosDistintos, empateEsperado,
       ok: sFrases.length === 15 && textosDistintos === 14 && empateEsperado },
-    escenas, rutas, casos, otras,
+    escenas, rutas, casos, salvedad, otras,
   }, null, 2));
 
   cdp.close(); proc.kill(); srv.close();

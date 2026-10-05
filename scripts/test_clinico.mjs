@@ -4681,18 +4681,32 @@ caso('TC-136', 'Diastolica del VD: el patron sale del E/A, el E/e desempata solo
      como el unico grado alcanzable que lo cumple es el 4, la salvedad hoy se dispara SOLO CON IT
      SEVERA en vez de con mod-severa-o-mas. Por eso el escenario usa '4': es el unico valor que
      puede probar que la salvedad existe.
-     DECISION PENDIENTE DE MAICOL (declarada, no implementada): quiere que la salvedad aparezca
-     TAMBIEN con IT moderada (grado 2). Eso es bajar DT_IT_SIGNIF a 2 y va en un trabajo aparte.
-     Mientras no se haga, la banda 2 queda SIN cobertura de esta salvedad y el caso no lo disimula.
+     ✅ HECHO (2026-10-05, parte B): Maicol bajo DT_IT_SIGNIF de 3 a 2, asi que la salvedad aparece
+     desde IT MODERADA. La banda 2 ya NO esta sin cobertura: se prueba abajo (itMod), con el grado 1
+     como control negativo al lado. El caso vuelve a probar el corte por LOS DOS LADOS —1 no, 2 si—
+     en vez de probar solo que la salvedad existe con el unico grado que la cumplia.
      ⚠️ No colisiona con itNormal, que tambien usa '4': ese escenario tiene patron NORMAL y
      prueba la otra mitad —que sobre un patron normal la salvedad NO sale—. Lo que los distingue
      es el patron, no el grado. */
   __t.limpiar(); V(con({ dt_onda_e:'100', dt_onda_a:'40', dt_eprime_lat:'11' }));
   __t.set('it_grado','4'); const itSig = __t.informe();
+  /* GRADO 2 (moderada) sobre el MISMO patron restrictivo: el lado nuevo del corte. */
+  __t.limpiar(); V(con({ dt_onda_e:'100', dt_onda_a:'40', dt_eprime_lat:'11' }));
+  __t.set('it_grado','2'); const itMod = __t.informe();
   __t.limpiar(); V(con({ dt_onda_e:'100', dt_onda_a:'40', dt_eprime_lat:'11' }));
   __t.set('it_grado','1'); const itLeve = __t.informe();
   __t.limpiar(); V(con({ dt_onda_e:'50', dt_onda_a:'50', dt_eprime_lat:'12.5' }));
   __t.set('it_grado','4'); const itNormal = __t.informe();
+  /* Los otros dos patrones ANORMALES con grado 2, que es donde la baja del corte agrega escenas:
+     relajacion y pseudonormal. Y el INDETERMINADO con grado 4, que tiene que seguir callado. */
+  __t.limpiar(); V(con({ dt_onda_e:'30', dt_onda_a:'50', dt_eprime_lat:'6' }));
+  __t.set('it_grado','2'); const itModRelaj = __t.informe();
+  __t.limpiar(); V(con({ dt_onda_e:'60', dt_onda_a:'50', dt_eprime_lat:'7.5' }));
+  __t.set('it_grado','2'); const itModPseudo = __t.informe();
+  __t.limpiar(); V(con({ dt_onda_e:'60', dt_onda_a:'50' }));
+  __t.set('it_grado','4'); const itIndet = __t.informe();
+  __t.limpiar(); V(con({ dt_onda_e:'60', dt_onda_a:'50' }));
+  __t.set('it_grado','2'); const itIndetMod = __t.informe();
   const SALV = 'puede invalidar estos par';
 
   return { extra: [
@@ -4789,9 +4803,35 @@ caso('TC-136', 'Diastolica del VD: el patron sale del E/A, el E/e desempata solo
        el escenario ahora carga grado 4. Ver la nota larga del escenario itSig arriba. */
     ['con IT severa (4) y patron anormal se imprime la salvedad',
       itSig.inf.indexOf(SALV) > -1, itSig.inf.slice(0, 200)],
-    ['con IT leve NO se imprime', itLeve.inf.indexOf(SALV) === -1],
+    /* ✅ EL CORTE NUEVO, POR LOS DOS LADOS (parte B, 2026-10-05: DT_IT_SIGNIF 3 -> 2). Las dos
+       condiciones son el mismo patron restrictivo y cambia SOLO el grado, asi que lo que distingue
+       a una de la otra es el corte y nada mas. */
+    ['IT MODERADA (2) y patron anormal: la salvedad SI se imprime (corte nuevo en 2)',
+      itMod.inf.indexOf(SALV) > -1, itMod.inf.slice(0, 200)],
+    ['CONTROL NEGATIVO del corte: con IT leve (1) NO se imprime',
+      itLeve.inf.indexOf(SALV) === -1, itLeve.inf.slice(0, 200)],
+    ['DENOMINADOR del corte: las dos escenas son el MISMO patron y solo cambia el grado',
+      itMod.inf.indexOf('patrón restrictivo') > -1 && itLeve.inf.indexOf('patrón restrictivo') > -1,
+      'mod/leve con patron restrictivo'],
+    /* La baja del corte agrega escenas en los otros dos patrones anormales: relajacion y
+       pseudonormal. Se afirman las dos, que es donde el cambio se ve de verdad. */
+    ['con grado 2 la salvedad tambien sale en relajacion y en pseudonormal',
+      itModRelaj.inf.indexOf(SALV) > -1 && itModPseudo.inf.indexOf(SALV) > -1,
+      'relaj=' + (itModRelaj.inf.indexOf(SALV) > -1) + ' pseudo=' + (itModPseudo.inf.indexOf(SALV) > -1)],
     ['y sobre un patron NORMAL tampoco, aunque la IT sea severa',
-      itNormal.inf.indexOf(SALV) === -1]
+      itNormal.inf.indexOf(SALV) === -1],
+    /* INDETERMINADO sigue callado a CUALQUIER grado: no es un patron anormal afirmado, y mandarle
+       la salvedad afirmaria una disfuncion que no se establecio. Se prueba con 4 y con 2. */
+    ['el patron INDETERMINADO sigue callado con grado 4 y con grado 2',
+      itIndet.inf.indexOf(SALV) === -1 && itIndetMod.inf.indexOf(SALV) === -1,
+      'indet4=' + (itIndet.inf.indexOf(SALV) > -1) + ' indet2=' + (itIndetMod.inf.indexOf(SALV) > -1)],
+    /* El informe NO escribe la palabra «indeterminado»: ese es el token interno del patron. En el
+       cuerpo la banda del medio sin E/e se nombra «patrón sugestivo de llenado normal o
+       pseudonormal», que es lo que hay que buscar para tener denominador. */
+    ['DENOMINADOR del indeterminado: las dos escenas SI nombran la banda del medio',
+      itIndet.inf.indexOf('patrón sugestivo de llenado normal o pseudonormal') > -1 &&
+      itIndetMod.inf.indexOf('patrón sugestivo de llenado normal o pseudonormal') > -1,
+      itIndet.inf.slice(0, 300)]
   ] };
 `);
 

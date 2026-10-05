@@ -395,14 +395,22 @@ es un dato con dos campos, ese agujero se alcanza también escribiendo en el cam
   La guarda (`_aplicando`) descarta la llamada anidada. `valvSev.limpiar` despacha su `change`
   **con la guarda puesta**, porque si no se deshacía a sí misma (ponía marca y foto nuevas que las
   líneas siguientes borraban: el estado final coincidía sólo por el ORDEN de dos líneas).
-- ⚠️ **EL GRADO 3 («Moderada-severa») YA NO SE PUEDE ELEGIR EN LA IT, y eso estrechó un corte
-  clínico sin tocar ninguna constante.** `DT_IT_SIGNIF` sigue en **3**, pero como el único grado
-  alcanzable que lo cumple es el 4, **la salvedad diastólica («La insuficiencia tricuspídea
-  significativa puede invalidar estos parámetros de llenado (ASE).») pasó a exigir IT SEVERA.**
-  **DECISIÓN PENDIENTE DE MAICOL, declarada y NO implementada: quiere que también aparezca con IT
-  moderada (grado 2).** Eso es bajar `DT_IT_SIGNIF` a 2 y va en un trabajo aparte. Medido: con el
-  corte en 2 aparecería en exactamente tres escenas más —relajación, pseudonormal y restrictivo,
-  todas con grado 2—; los patrones normal e indeterminado siguen callados a cualquier grado.
+- ✅ **RESUELTO 2026-10-05: la salvedad diastólica aparece con IT moderada o severa
+  (`DT_IT_SIGNIF = 2`).** La frase es «La insuficiencia tricuspídea significativa puede invalidar
+  estos parámetros de llenado (ASE).», no se tocó una letra, y sigue saliendo **sólo con patrón
+  diastólico anormal** (relajación, pseudonormal o restrictivo).
+  Historia, porque el número no se entiende solo: quitar «Moderada-severa» (código 3) de la IT dejó
+  el 3 INALCANZABLE —las opciones son 0/1/2/4—, así que `itG >= 3` había quedado equivaliendo a
+  `itG === 4` y **la salvedad se había estrechado a IT SEVERA sin que nadie tocara una constante**.
+  Con el corte en 2 el alcance vuelve a ser el intencional y además deja de depender de una opción
+  que no existe.
+  **Medido, 3 de 20 celdas de la matriz patrón × grado:** aparece en relajación, pseudonormal y
+  restrictivo **con grado 2**; los patrones **normal e indeterminado siguen callados a cualquier
+  grado**, y los grados 0 y 1 también. Lo fija **TC-136**, que ahora prueba el corte por los dos
+  lados (1 no, 2 sí) sobre el MISMO patrón restrictivo.
+  **Consecuencia declarada en el Laboratorio:** la estadística «Con IT significativa (salvedad)»
+  usa el mismo predicado `itSignif`, así que su recuento sube. No se tocó código del Laboratorio —
+  es el mismo hecho clínico leído por dos lugares, y duplicar el corte sería el defecto.
 - **El 3 sigue vivo en el resto de la app y no se tocó**: la mitral y la aórtica lo ofrecen en su
   `<option value="3">`, la estenosis pulmonar tiene su «Moderada-severa», y la etiqueta y su mapeo
   existen en `INSUF_TXT`, `imTxt`, `GTX`, `GT`, `_ESC04`, las seis tablas `ITT` de los módulos
