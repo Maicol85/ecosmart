@@ -3014,7 +3014,7 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div class="grid-3" style="margin-top:8px;">
         <div class="fg">
           <label>VTI-TSVD (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">RVP (Abbas) · Qp/Qs</span></label>
-          <input type="number" id="vti_tsvd" placeholder="cm" step="0.1" oninput="calcHemo();eteShuntSyncSiExiste()">
+          <input type="number" id="vti_tsvd" placeholder="cm" step="0.1" oninput="calcHemo();eteShuntSyncSiExiste();calcET()">
         </div>
         <div class="fg">
           <!-- Diámetro del TSVD: vive ACÁ, con el resto de las medidas del ventrículo derecho,
@@ -3023,7 +3023,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                editable en los dos lados, un paciente podía terminar con un diámetro
                alimentando el Qp/Qs y otro distinto acá, los dos en el informe firmado. -->
           <label>Diámetro TSVD (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">Qp/Qs</span></label>
-          <input type="number" id="tsvd_diametro" placeholder="mm" step="0.1" oninput="eteShuntSyncSiExiste()">
+          <input type="number" id="tsvd_diametro" placeholder="mm" step="0.1" oninput="eteShuntSyncSiExiste();calcET()">
         </div>
         <div class="fg">
           <label>FEVD (%)</label>
@@ -4574,22 +4574,54 @@ window.cerrarSesionReal = cerrarSesionReal;
       </div>
       <div id="bloque-esten-tricuspide" style="display:none;">
           <!-- ── 1) GRADO PARA EL INFORME ──────────────────────────────────────────────────────
-               `et_grado` SÓLO SE REUBICÓ: salió del `grid-2` que compartía con el gradiente medio y
-               quedó solo, encabezando la columna. Ni el `id`, ni los cuatro `value`, ni el texto de
-               una sola `<option>` cambiaron — la versión binaria (significativa / no significativa)
-               es un trabajo siguiente, por orden expresa.
-               ⚠️ ACÁ NO HAY AVISO DE AJUSTE MANUAL NI CAJÓN DE NOTA, y no es un olvido: `et` NO
-               está registrada en `SEV_SINC` (las claves son ea, ia, im, em, it, ep) porque la
-               estenosis tricuspídea NO autogradúa —la guía la define binaria—, así que no hay un
-               grado calculado contra el que discrepar. No existen `et-manual-aviso`, `et-fund` ni
-               `et_fund_nota`: no había nada que reubicar. Crearlos sería lógica nueva. -->
-          <div class="fg" style="margin-bottom:8px;"><label>Estenosis tricusp&iacute;dea &mdash; grado final al informe</label>
-            <select id="et_grado">
-              <option value="Sin estenosis">&mdash; grado &mdash;</option>
-              <option>Leve</option>
-              <option>Moderada</option>
-              <option>Severa</option>
-            </select>
+               ⚠️ EL GRADO DE LA ET ES BINARIO (2026-10-05, decisión de Maicol). Desaparecen Leve,
+               Moderada y Severa **de esta válvula**: la EAE/ASE 2009 y la ESC/EACTS 2021 no graduan
+               la estenosis tricuspídea —es significativa o no lo es— y las tres bandas eran un
+               vocabulario inventado que bajaba al informe firmado y al EN SUMA. Las otras válvulas
+               las siguen ofreciendo; se sacan de a una, por orden expresa.
+               ⚠️ LOS TRES `value` CAMBIARON, Y EL DEL CENTINELA ES EL QUE IMPORTA. Pasó de
+               `"Sin estenosis"` a **`"sin"`**, que es el token que `SEV_TOKEN_SIN.esten` declara
+               para TODAS las estenosis (`ea_grado` y `em_grado` ya lo usan). No es cosmético: sin
+               eso `valvGradoVisSync` calcula `hayGrado = !sevEsSin('esten', 'Sin estenosis')` →
+               siempre `true`, y este bloque quedaría VISIBLE para siempre con el botón apagado —
+               que es, textualmente, el defecto que el comentario de `hayGrado` declara haber
+               tenido al revés. Cambiar `SEV_TOKEN_SIN` en su lugar habría tocado las otras cinco
+               válvulas. Además cierra la falla R7 que midió `docs/decisiones/valvulas-botones.md`
+               §5.4: «EL SELECT RECHAZO sin». Los estudios viejos los traduce
+               `_migrarCamposLegacy` (en memoria, sin reescribir el disco).
+               ⚠️ NO HAY OPCIÓN VISIBLE «Sin estenosis», y es la decisión: **botón apagado = sin
+               estenosis**. La primera opción es el centinela «— grado —» = «todavía no contesté».
+               ⚠️ EL `onchange` VA POR `valvSev.aplicar`, igual que `it_grado` y por el mismo motivo:
+               si sólo cambiara el `value`, el próximo `calcET` lo pisaría —la marca `esqSevManual.et`
+               es lo único que lo frena— y el grado elegido a mano se evaporaría sin aviso. `aplicar`
+               pone la marca, toma la foto del calculado para el aviso de discrepancia y enciende la
+               pastilla. La guarda de re-entrada `_aplicando` que pidió el `<select>` de la IT es la
+               que hace que este `onchange` no se repita indefinidamente. -->
+          <div class="valv-fund-row" style="margin-bottom:8px;">
+            <div class="fg valv-fund-sel"><label>Estenosis tricusp&iacute;dea &mdash; grado final al informe</label>
+              <select id="et_grado" onchange="valvSev.aplicar('esten','tricuspide',this.value)">
+                <option value="sin">&mdash; grado &mdash;</option>
+                <option value="Significativa">Significativa</option>
+                <option value="No significativa">No significativa</option>
+              </select>
+              <!-- Aviso de grado fijado a mano que discrepa del calculado. Lo pinta el MISMO
+                   `sevSincronizar` (clave `et`) que ya pintaba los de las otras cinco, y la
+                   condición de cuándo aparece es `sevDiscrepa('et')`, su único dueño: no se
+                   escribió ninguna condición nueva. Vacío no tiene alto y no deja hueco.
+                   `textContent` y no `innerHTML`, como los otros cinco. -->
+              <div id="et-manual-aviso" style="font-size:11px;font-weight:700;color:var(--red);margin-top:4px;"></div>
+            </div>
+            <!-- El cajón de la nota va A LA DERECHA del grado cuando hay discrepancia, y se apila
+                 solo en celular: `.valv-fund-row` es `flex-wrap` con base en px, sin media query —
+                 la misma primitiva ya medida que usan `ea-fund`, `ia-fund` e `it-fund`.
+                 ⚠️ NO se le pone `display` por clase: `sevFundamento` lo abre con
+                 `style.display = ''`, así que un `display:none` en el CSS lo dejaría cerrado para
+                 siempre y el síntoma sería «la apertura automática se rompió». -->
+            <div id="et-fund" class="valv-fund-box" style="display:none;background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;">
+              <div class="valv-fund-tit" style="font-weight:700;color:var(--accent2);">Fundamento del ajuste</div>
+              <label for="et_fund_nota" style="display:block;font-weight:400;color:var(--text2);margin:0 0 2px;">Motivo del ajuste (opcional)</label>
+              <input type="text" id="et_fund_nota" maxlength="100" placeholder="Ej.: gradiente sobreestimado por taquicardia" style="width:100%;">
+            </div>
           </div>
           <!-- ── 2) PARÁMETROS (4) ──────────────────────────────────────────────────────────── -->
           <div class="grid-2" style="margin-bottom:8px;">
@@ -25110,6 +25142,54 @@ const SEV_SINC = Object.freeze({
        son EL MISMO nodo, así que no hay nada que sincronizar — sólo marcar el sugerido. */
     trasEscribir: function(sel, calc){ try { sel.dataset.sugerido = calc; } catch (e) {} },
     etiqueta: function(g){ return ({ '0':'Sin insuficiencia','1':'Leve','2':'Moderada','3':'Moderada-severa','4':'Severa' })[String(g)] || String(g); } }),
+  /* ══ ESTENOSIS TRICUSPÍDEA — LA QUINTA ENTRADA (2026-10-05, decisión de Maicol) ════════════════
+     El comentario de arriba decía que la ET «NO autogradúa → no se registra (no hay contra qué
+     discrepar)», y esa premisa dejó de ser cierta en esta tanda: desde que el grado es BINARIO
+     —«Significativa» / «No significativa»— el veredicto de `etEstado()` es un grado del vocabulario
+     del `<select>`, así que el aviso §6 ya tiene sujeto. Es la corrección que
+     `docs/decisiones/valvulas-botones.md` §5.4 pedía, con un `calculables` honesto de verdad.
+     NO se tocó una línea de `sevSincronizar`, `sevDiscrepa`, `sevComparable`, `sevFundamento`,
+     `sevFundLimpiar`, `sevFundRestaurar` ni `valvSev`: los seis se derivan del registro, que es lo
+     que esos comentarios anticipaban («registrar la tricúspide el día que toque no deja una cuarta
+     copia sin enterarse»). Lo único que hizo falta afuera es que `calcET` llame a `sevSincronizar`,
+     el mismo cableado que la aórtica y la mitral ya tienen. */
+  et: Object.freeze({ tipo:'esten', valv:'tricuspide', select:'et_grado', aviso:'et-manual-aviso',
+    ayuda:null, nombre:'Estenosis tricuspídea', fundamento:'et-fund', nota:'et_fund_nota',
+    /* El proveedor emite los DOS, y acá no hay recorte que declarar: el vocabulario del `<select>`
+       son exactamente el centinela más estos dos.
+       ⚠️ LITERALES Y NO `ET_SIGNIF_TXT`, aunque esas constantes existan y valgan esto mismo. Se
+       declaran ~3.000 líneas MÁS ABAJO (junto a `etGradoCalculado`) y estas listas se evalúan al
+       CREAR el registro, así que nombrarlas acá revienta en la zona muerta de `const` con un
+       `ReferenceError` que se lleva el `<script>` entero — la app arrancaría sin `SEV_SINC`, o sea
+       sin aviso ni cajón en NINGUNA válvula. `calcular` sí las usa indirectamente porque es una
+       función y corre después. Probado: con la referencia directa, la consola tira
+       «Cannot access 'ET_SIGNIF_TXT' before initialization» en el primer renglón de la carga. */
+    calculables: Object.freeze(['Significativa', 'No significativa']),
+    /* `'sin'` entra en `comparables` por lo mismo que el `'0'` de la IAo/IM: un centinela fijado A
+       MANO no es discrepancia —el médico no contestó— pero tiene que poder compararse para que R6
+       lo suelte cuando el cálculo cambie. Lo que NO genera aviso lo decide `sevDiscrepa` con su
+       `calc !== sel.value`, y con el grado en «— grado —» y el cálculo en «No significativa» hay
+       que mirar esto de cerca: `'sin' !== 'No significativa'` daría discrepancia. Por eso el
+       centinela NO está acá. Decisión de Maicol, textual: «Con el cálculo en No significativa y el
+       grado en "— grado —" NO hay discrepancia». Y la marca manual tampoco se enciende por sí sola
+       en ese estado, así que son dos puertas y no una. */
+    comparables: Object.freeze(['Significativa', 'No significativa']),
+    /* Protésica ⇒ no se gradúa (`vt_morf`), igual que la EA y la EM y al revés que la IAo. `true`
+       ante excepción, porque «no sé» es abstenerse. El fuera de banda NO se bloquea acá: lo resuelve
+       el proveedor devolviendo `null` cuando no queda ni un insumo legible — ver su comentario. */
+    bloqueado: function(){ try { return !!(typeof valvEsProtesis === 'function' && valvEsProtesis(sv('vt_morf'))); } catch (e) { return true; } },
+    /* Proveedor PURO: lee los campos por `etEstado()` y se recalcula solo, como el de la EP y al
+       revés que los de la IM/IAo/IT, que leen una foto de proceso. Por eso esta entrada NO declara
+       `recalcular`: al reabrir un estudio el grado calculado vuelve a salir de los campos
+       repuestos, y declararlo sería recalcular dos veces lo mismo. */
+    calcular: function(){ return etGradoCalculado(); },
+    /* `et_grado` no tiene hidden espejo —las cinco superficies lo leen directo— así que acá sólo se
+       marca el sugerido, para que el retiro de `_etAutoGrado` siga alcanzando a lo que R6 escribió. */
+    trasEscribir: function(sel, calc){ try { sel.dataset.sugerido = calc; } catch (e) {} },
+    /* El `value` ES la etiqueta en las dos opciones reales, así que el mapa sólo traduce el
+       centinela. Se escribe igual y no se devuelve `g` pelado: el aviso nombra el grado CALCULADO,
+       que puede no estar seleccionado, y leer el `<option>` daría el manual dos veces. */
+    etiqueta: function(g){ return ({ sin:'— grado —' })[String(g)] || String(g); } }),
   ep: Object.freeze({ tipo:'esten', valv:'pulmonar', select:'ep_grado', aviso:'ep-manual-aviso',
     ayuda:null, nombre:'Estenosis pulmonar', fundamento:'ep-fund', nota:'ep_fund_nota',
     /* epGradoPorGmax emite Leve/Moderada/Severa; «Moderada-severa» es sólo manual (entra en
@@ -27733,13 +27813,18 @@ window.calcIP = calcIP;
    porque borrar la velocidad dejaba «Válvula pulmonar estenosis severa» colgada; `calcET` no la
    tenía, así que una vez escrito el grado quedaba para siempre. Acá va la misma.
 
-   POR QUÉ >= 5 NO ESCRIBE UN GRADO. El select tiene cuatro opciones y la guía no gradúa, así
-   que cualquier grado que pusiéramos sería inventado. Y agregar una opción «Significativa»
-   tampoco sirve: la pastilla de severidad deriva su nivel con `nivelDe()`, que sólo reconoce
-   leve/moderada/severa, así que esa opción dejaría la pastilla diciendo «Sin est.» sobre un
-   select que dice «Significativa» — dos respuestas a la misma pregunta en la misma tarjeta.
-   Por encima del umbral se DECLARA la significación (cápsula, leyenda y el informe, que la
-   emite desde el gradiente medido) y el grado se deja al médico. */
+   ⚠️ ESTE PÁRRAFO DECÍA LO CONTRARIO HASTA EL 2026-10-05 Y QUEDA COMO REGISTRO DE LA DECISIÓN
+   QUE LO REEMPLAZÓ. Decía «POR QUÉ >= 5 NO ESCRIBE UN GRADO: el select tiene cuatro opciones y la
+   guía no gradúa, así que cualquier grado que pusiéramos sería inventado. Y agregar una opción
+   «Significativa» tampoco sirve: la pastilla deriva su nivel con `nivelDe()`, que sólo reconoce
+   leve/moderada/severa». Las dos mitades caducaron: Maicol hizo el grado BINARIO, así que
+   «Significativa» NO es un grado inventado —es el veredicto de la guía— y el select tiene tres
+   opciones, no cuatro. Desde esa tanda `_etAutoGrado` SÍ escribe el grado por encima del umbral y
+   prende el botón. La objeción de `nivelDe()` se cumplió y es el precio aceptado: la pastilla
+   imprime «Significativa ▼» SIN clase de nivel (nivel 0, sin color), porque la ET no tiene una
+   escala de severidad de la cual derivar un color y no se inventó ninguna.
+   Lo que NO cambió: el informe sigue emitiendo la significación desde el GRADIENTE MEDIDO y no
+   desde el grado, así que las dos salidas pueden diferir cuando el médico ajusta a mano. */
 const ET_GMEDIO_SIGNIF = 5;    // mmHg — EAE/ASE 2009 · ESC/EACTS 2021
 const ET_THP_SIGNIF    = 190;  // ms   — EAE/ASE 2009
 const ET_AVT_SIGNIF    = 1;    // cm²  — EAE/ASE 2009
@@ -27792,32 +27877,175 @@ function etEstado(){
 }
 window.etEstado = etEstado;
 
+/* ══ EL GRADO CALCULADO DE LA ET — DOS VALORES Y UN `null` (2026-10-05) ════════════════════════
+   Desde que el grado es binario, el veredicto de `etEstado()` SÍ es un grado del vocabulario del
+   `<select>`, así que la ET puede entrar al registro `SEV_SINC` y tener aviso rojo y cajón como las
+   otras cinco. Antes no podía: «Significativa» no era una `<option>` y por eso `calculables` habría
+   tenido que ser vacío — es lo que `docs/decisiones/valvulas-botones.md` §5.4 proponía («su
+   `calcular` debería devolver `null` siempre»), y lo que esta tanda reemplaza.
+
+   ⚠️ `null` CUANDO NO HAY NI UN INSUMO DENTRO DE BANDA, Y NO «No significativa». `hayDatos` de
+   `etEstado` incluye a propósito los valores FUERA de banda —para que un THP de 4000 ms no
+   desaparezca del informe—, así que derivar el grado de `hayDatos` publicaría «No significativa»
+   calculado a partir de un número que la propia app acaba de declarar ilegible, y después el aviso
+   rojo lo nombraría. Es exactamente el defecto que la entrada `ea` cerró con `bloqueado()`: las dos
+   mitades del mismo cálculo contradiciéndose en pantalla. Acá se resuelve en el proveedor porque el
+   bloqueo tiene que ser por INSUMO y no por válvula: con gradiente medio 8 (en banda) y THP 4000
+   (fuera), el veredicto «Significativa» lo sostiene el gradiente y se publica — lo que se retira es
+   el grado que saldría SÓLO de lo ilegible.
+   ⚠️ EL VTI DIASTÓLICO CUENTA COMO DATO aunque no sea uno de los tres criterios: es el cuarto campo
+   del bloque y la definición de «hay cálculo» es «hay al menos un dato cargado» (decisión de
+   Maicol). Solo, nunca puede dar «Significativa» —no es criterio—, así que da «No significativa». */
+const ET_SIGNIF_TXT   = 'Significativa';
+const ET_NOSIGNIF_TXT = 'No significativa';
+function etGradoCalculado() {
+  try {
+    const r = etEstado();
+    if (!r.gmOk && !r.thpOk && !r.vtiOk && r.avt === null) return null;
+    return r.signif ? ET_SIGNIF_TXT : ET_NOSIGNIF_TXT;
+  } catch (e) { return null; }
+}
+window.etGradoCalculado = etGradoCalculado;
+/* Atajo de la ET, como `_emSincronizarPantalla` y por lo mismo: lo llama el CALCULADOR, así que un
+   throw acá se llevaría el badge y la cápsula que `calcET` estaba pintando y el síntoma sería «se
+   rompió el cálculo de la tricúspide». */
+function _etSincronizarPantalla() {
+  try { return (typeof sevSincronizar === 'function') ? sevSincronizar('et') : null; }
+  catch (e) { console.warn('[sevSincronizar] et', e); return null; }
+}
+window._etSincronizarPantalla = _etSincronizarPantalla;
+
+/* ══ EL APAGADO AUTOMÁTICO DE LA ET — GEMELO DE `valvAutoApagarEsten` CON UNA DIFERENCIA ═══════
+   Las dos condiciones son las mismas y no se relajan: se apaga SÓLO si (a) la prendió la app —está
+   en `VALV_ESTEN_AUTO`, no la afirmó el médico— y (b) el grado quedó en el centinela.
+   ⚠️ LA DIFERENCIA ES QUE ACÁ LA CLAVE DE `localStorage` SE BORRA, y sin eso el auto-prendido se
+   gasta en un solo uso. `toggleValvPill` escribe `'0'` al apagar y `valvAutoPrenderEsten` sale por
+   su `guardado !== null`, así que reusar `valvAutoApagarEsten` tal cual daba esta secuencia medible:
+   gradiente 8 → botón prendido · se corrige a 3 → botón apagado y clave en `'0'` · se corrige otra
+   vez a 8 → **el botón YA NO vuelve a prenderse nunca**, con el criterio cumplido y el informe
+   callado. La clave en `'0'` significa «el médico lo cerró a mano» y acá no lo cerró el médico: lo
+   cerró la app, así que borrarla devuelve el estado a «nadie lo tocó», que es la verdad.
+   No se tocó `valvAutoApagarEsten`: el mismo agujero en la PULMONAR queda REPORTADO y no corregido
+   —es su informe firmado y es otra tanda—. Por eso esto es una función aparte y no un parámetro. */
+function _etApagarAuto() {
+  try {
+    if (typeof pillOn !== 'function' || typeof toggleValvPill !== 'function') return null;
+    if (!pillOn('tricuspide', 'esten')) return { yaEstaba: true };
+    /* ⚠️ SE LEE POR `window` Y NO POR `typeof`, y la diferencia la marcó `/sharp-edges`: el
+       `typeof x === 'undefined'` NO protege contra la zona muerta de un `const` —`VALV_ESTEN_AUTO`
+       se declara ~24.800 líneas más abajo— sino que lanza `ReferenceError`. Envuelto en el `try` de
+       abajo, eso no habría sido un error visible: habría sido la pastilla quedándose prendida con
+       la consola muda. Hoy no es alcanzable (nada llama a `calcET` antes de esa línea), pero la
+       guarda estaba escrita como si protegiera. `window.VALV_ESTEN_AUTO` sí devuelve `undefined`. */
+    const _auto = window.VALV_ESTEN_AUTO;
+    if (!_auto || !_auto.has('tricuspide')) return { delMedico: true };          // la afirmó el médico: no se apaga
+    toggleValvPill('tricuspide', 'esten');
+    _auto.delete('tricuspide');
+    try { localStorage.removeItem('valv-pill-esten-tricuspide'); } catch (e) {}
+    /* ⚠️ Y LA MARCA MANUAL SE BORRA, QUE ES LA SEGUNDA MITAD DEL MISMO ARREGLO. Lo encontró la
+       escena `vaiven-auto` de la sonda, no la lectura: con la clave de `localStorage` ya borrada, el
+       gradiente 8 → 3 → 8 seguía dejando el botón APAGADO en el tercer paso. El culpable no es la
+       clave sino la cadena `toggleValvPill` → `valvApagarGrado` → `valvSev.aplicar(…, centinela)`,
+       que al cerrar el botón de una clave REGISTRADA pone `esqSevManual.et` — y desde que la ET está
+       en el registro, esa cadena corre también cuando el que apaga es la APP. Una marca manual
+       significa «el médico decidió» y acá no decidió nadie: el `_etAutoGrado` del próximo recálculo
+       salía por su guarda de manual y el auto-prendido quedaba muerto para el resto del estudio.
+       Se borra junto con la foto, igual que hace `valvSev.limpiar`, porque dejarla viva haría que el
+       próximo grado manual se comparara contra el calculado de hace dos gestos.
+       ⚠️ EL APAGADO DEL MÉDICO NO PASA POR ACÁ y por eso sigue siendo durable: su clic entra directo
+       a `toggleValvPill`, la marca queda puesta y `_etAutoGrado` la respeta. Es la escena
+       `g-apagado-manual`, medida: con el gradiente corregido a 9 el botón NO se reprende. */
+    if (window.esqSevManual) delete window.esqSevManual.et;
+    if (window._sevCalcAlFijar) delete window._sevCalcAlFijar.et;
+    if (typeof _sevManualSync === 'function') { try { _sevManualSync(); } catch (e) {} }
+    return { apagada: !pillOn('tricuspide', 'esten') };
+  } catch (e) { return null; }
+}
+window._etApagarAuto = _etApagarAuto;
+
+/* ══ ESCRITURA Y RETIRO AUTOMÁTICOS DEL GRADO DE LA ET ════════════════════════════════════════
+   ⚠️ EL SISTEMA ESCRIBE «Significativa» Y NUNCA «No significativa» (decisión de Maicol). El
+   cálculo SÍ produce los dos —los necesita el aviso de discrepancia en los dos sentidos— pero
+   «No significativa» es una afirmación clínica y la firma el médico: con datos cargados y ningún
+   criterio cumplido el botón NO se prende y el campo queda en «— grado —».
+   ⚠️ Y ESO OBLIGA A QUE ESTO CORRA DESPUÉS DE `sevSincronizar`, no antes. R6 —«si el calculado
+   cambia, volvé a automático»— escribe el calculado en el `<select>` con `sel.value = calc`, así
+   que en la secuencia «el médico eligió Significativa · después corrige el gradiente a 3» R6
+   suelta la marca y deja **«No significativa» escrito por el sistema**. Corriendo acá, el retiro de
+   abajo lo encuentra marcado como sugerido (`trasEscribir` puso `dataset.sugerido`), lo devuelve al
+   centinela y apaga el botón — que es lo que
+   `docs/decisiones/valvulas-botones.md` pide en las reglas 7 y 8: «Sin» apaga el botón, y apagar el
+   botón descarta el grado. El valor intermedio no sobrevive al turno.
+   ⚠️ CON MARCA MANUAL NO SE TOCA NADA, y es lo que protege la decisión del médico: sin esa guarda,
+   `_pisable` da verdadero cuando el médico eligió a mano el MISMO valor que la app había sugerido
+   —caso frecuente: el criterio se cumple, la app escribe «Significativa», el médico la confirma— y
+   el primer recálculo se lo borraría. */
+/* ══ ⏸️ DEFECTO MEDIDO Y NO CORREGIDO — EL CENTINELA A MANO CLAVA LA MARCA (2026-10-05) ════════
+   Lo encontró `/sharp-edges` sobre este diff y está MEDIDO en Chrome. `valvSev.aplicar` pone
+   `esqSevManual[clave]` para CUALQUIER valor, el centinela incluido, y `comparables` de `et`
+   excluye `'sin'` a propósito, así que R6 —gateado por `if (manual && comparable)`— nunca corre y
+   la marca no se suelta NUNCA. Secuencia medida: gradiente 8 → la app escribe «Significativa» · el
+   médico elige «— grado —» para deshacerlo → marca puesta, grado en el centinela, pastilla
+   PRENDIDA · subir el gradiente a 12 **no mueve nada**. El autograduado queda muerto para el resto
+   del estudio y, como la marca se persiste en `#sev_manual`, también al reabrirlo: el médico no
+   puede deshacer su propio deshacer. El informe NO queda mudo —sigue diciendo «con estenosis
+   significativa (gradiente medio 12 mmHg)», que sale de `etEstado` y no del grado, igual que en
+   HEAD—, así que no hay una afirmación falsa en el papel; lo que no hay es camino de vuelta.
+
+   ⚠️ SE INTENTÓ ARREGLAR CON UN `etGradoManual` LOCAL Y SE REVIRTIÓ, PORQUE EL ARREGLO ERA PEOR.
+   Desviar el `onchange` a una función propia que trate el centinela como «volver a automático»
+   rompe el apagado del botón: `toggleValvPill` → `valvApagarGrado` → `valvSev.aplicar(…, 'sin')`
+   despacha un `change` sobre el `<select>`, y esa función NO ve el `_aplicando` de `valvSev` —es
+   privado del módulo—, así que borraba la marca y `calcET` volvía a escribir «Significativa» con el
+   botón apagado. Lo cazó TC-416 (g) al minuto. Medido, no deducido.
+   Arreglarlo de verdad pide tocar código COMPARTIDO por las seis válvulas —que `aplicar` no marque
+   sobre un centinela, o exponer la guarda de re-entrada— y eso cambia también la IT, la IM, la IAo,
+   la EM y la EP. **Es decisión de Maicol y queda reportado.** */
+function _etAutoGrado(r) {
+  const sel = document.getElementById('et_grado');
+  if (!sel) return null;
+  if (window.esqSevManual && window.esqSevManual.et) return { manual: true };
+  const _sug = sel.dataset.sugerido;
+  const _pisable = sel.value === '' ||
+                   ((typeof sevEsSin === 'function') ? sevEsSin('esten', sel.value) : sel.value === 'sin') ||
+                   (_sug && sel.value === _sug);
+  if (!_pisable) return { pisable: false };
+  if (r.signif) {
+    if (sel.value !== ET_SIGNIF_TXT) sel.value = ET_SIGNIF_TXT;
+    sel.dataset.sugerido = ET_SIGNIF_TXT;
+    if (typeof valvAutoPrenderEsten === 'function') valvAutoPrenderEsten('tricuspide');
+    return { escribio: ET_SIGNIF_TXT };
+  }
+  if (sel.value !== 'sin') sel.value = 'sin';
+  delete sel.dataset.sugerido;
+  _etApagarAuto();
+  return { retiro: true };
+}
+window._etAutoGrado = _etAutoGrado;
+
 /* El PINTOR. Sólo pinta: el veredicto lo decide `etEstado`, que es lo que también lee el
    informe. Dos derivaciones del mismo hecho es como se desincronizan la pantalla y el PDF. */
 function calcET() {
   const r = etEstado();
-  const sel = document.getElementById('et_grado');
   const sevEl = document.getElementById('et-sev');
   const badgeEl = document.getElementById('et-gmedio-badge');
   const avtEl = document.getElementById('et_avt');
   const _sev = h => { if (sevEl) sevEl.innerHTML = h; };
   const _msg = t => { if (badgeEl) badgeEl.textContent = t; };
   if (avtEl) avtEl.value = r.avt !== null ? r.avt.toFixed(2) + ' cm²' : '';
-  /* `_pisable` como en `calcVP`: un grado elegido a mano no se pisa. `calcET` sigue sin inventar
-     grados —la guía no los tiene— y sólo devuelve el select al reposo. */
-  const _sug = sel && sel.dataset.sugerido;
-  const _pisable = !!sel && (sel.value === '' || sel.value === 'Sin estenosis' ||
-                             (_sug && sel.value === _sug));
   const fueraTxt = r.fuera.length ? ' Fuera de rango: ' + r.fuera.join(' y ') + '.' : '';
   /* Prótesis: los valores medidos siguen visibles —el área ya se escribió arriba— pero el grado no
-     se sugiere ni se escribe. */
-  if (protNoGraduaPintar('vt_morf', ['et-sev'])) { _msg(''); return; }
-  if (!r.hayDatos) {
-    if (sel && _sug) delete sel.dataset.sugerido;
-    _sev('—'); _msg('');
-    return;
-  }
-  if (r.signif) {
+     se sugiere ni se escribe. `_etSincronizarPantalla` SÍ corre antes de salir: con prótesis
+     `bloqueado()` devuelve `true`, el grado calculado es `null` y el aviso tiene que quedar VACÍO —
+     si se saliera sin sincronizar, el aviso del paciente nativo anterior quedaría pintado sobre una
+     prótesis. */
+  if (protNoGraduaPintar('vt_morf', ['et-sev'])) { _msg(''); _etSincronizarPantalla(); return; }
+  /* ⚠️ EL CUADRO MUESTRA «Significativa» O «—», Y NADA MÁS (P5, decisión de Maicol). El badge VERDE
+     «Sin criterios de significación» se retiró: la «Severidad sugerida» es el lugar donde se lee un
+     grado, y ahí «No significativa» la firma el médico, no la app. El motivo no se perdió — sigue
+     entero en el renglón de abajo, que es el que explica. */
+  if (!r.hayDatos) { _sev('—'); _msg(''); }
+  else if (r.signif) {
     const q = [];
     if (r.cGm)  q.push(`gradiente medio ${r.gm} mmHg`);
     if (r.cThp) q.push(`THP ${r.thp} ms`);
@@ -27825,12 +28053,18 @@ function calcET() {
     _sev(badge('red', 'Significativa'));
     _msg('Estenosis tricuspídea clínicamente significativa por ' + q.join(', ') +
          ' (EAE/ASE 2009 · ESC/EACTS 2021). La guía no la gradúa en leve/moderada/severa.' + fueraTxt);
-    return;
+  } else {
+    _sev('—');
+    _msg('Ninguno de los tres criterios alcanza el umbral con los datos disponibles: gradiente medio ≥ ' +
+         ET_GMEDIO_SIGNIF + ' mmHg, THP ≥ ' + ET_THP_SIGNIF + ' ms o área ≤ ' + ET_AVT_SIGNIF + ' cm².' + fueraTxt);
   }
-  if (_pisable) { sel.value = 'Sin estenosis'; sel.dataset.sugerido = 'Sin estenosis'; }
-  _sev(badge('green', 'Sin criterios de significación'));
-  _msg('Ninguno de los tres criterios alcanza el umbral con los datos disponibles: gradiente medio ≥ ' +
-       ET_GMEDIO_SIGNIF + ' mmHg, THP ≥ ' + ET_THP_SIGNIF + ' ms o área ≤ ' + ET_AVT_SIGNIF + ' cm².' + fueraTxt);
+  /* Los TRES pasos, en este orden y por los motivos de `_etAutoGrado`: R6 y el aviso con el valor
+     que hay ahora · la escritura o el retiro automático · y el repintado del aviso, del cajón y de
+     la visibilidad del bloque con el valor definitivo. El segundo `sevSincronizar` no puede volver
+     a disparar R6: si R6 corrió en el primero, la marca manual ya se soltó. */
+  _etSincronizarPantalla();
+  _etAutoGrado(r);
+  _etSincronizarPantalla();
 }
 window.calcET = calcET;
 window.ET_GMEDIO_SIGNIF = ET_GMEDIO_SIGNIF;
@@ -31035,6 +31269,21 @@ function generarInforme(opts) {
   {
     const etG = sv('et_grado') || '';
     const etDesc = etG && etG !== 'Sin estenosis' && etG !== 'sin' ? etG.toLowerCase() : null;
+    /* ⚠️ EL SUFIJO «, significativa» SE BORRA CUANDO EL GRADO YA LO DICE (2026-10-05, decisión de
+       Maicol: «es un borrado, no escribas ninguna frase nueva»). Desde que el grado de la ET es
+       binario, `${etDesc}${etSignif ? ', significativa' : ''}` producía la palabra DOS VECES —
+       «Estenosis tricuspídea significativa, significativa.» en el cuerpo y «ET significativa,
+       significativa.» en el EN SUMA— y, en la discrepancia, una contradicción dentro de la misma
+       oración: «no significativa, significativa». Con el grado consignado manda el grado, que es la
+       regla 10 del reglamento. Los paréntesis con los parámetros medidos y la cita NO se tocan, y
+       las frases de Leve/Moderada/Severa tampoco: el sufijo sigue saliendo para cualquier otro
+       grado, así que un estudio legado con «Leve» se imprime byte por byte como en HEAD. */
+    /* ⚠️ POR IGUALDAD Y NO POR SUBSTRING. Escrito como `/significativa/.test(...)` matcheaba
+       TAMBIÉN «no significativa», o sea que el predicado hacía dos cosas con una sola prueba y por
+       accidente. Hoy el efecto es el mismo —los dos tokens suprimen el sufijo, que es lo decidido—
+       pero un predicado que acierta por casualidad es el que se rompe cuando aparezca un tercer
+       valor. Las dos igualdades se escriben explícitas. Lo marcó `/sharp-edges`. */
+    const _etYaDice = (etDesc === 'significativa' || etDesc === 'no significativa');
     const itTrv = v('vmax_it');          // VRT
     const pmadV = v('pmad');             // requiere VCI
     const tap   = v('tvia');             // TAP (ms)
@@ -31044,8 +31293,12 @@ function generarInforme(opts) {
     /* LA SIGNIFICACIÓN SALE DEL GRADIENTE MEDIDO, no del grado. La guía define la ET por
        gradiente medio >= 5 mmHg y NO la gradúa, así que `calcET` deliberadamente no escribe
        ningún grado por encima del umbral. Sin esta rama, un gradiente de 8 mmHg con el select
-       en «Sin estenosis» —que es el estado que deja el propio `calcET`— salía en SILENCIO: el
-       número que define la enfermedad, medido y cargado, no aparecía en el informe firmado.
+       en el centinela salía en SILENCIO: el número que define la enfermedad, medido y cargado, no
+       aparecía en el informe firmado.
+       ⚠️ «el estado que deja el propio `calcET`» DEJÓ DE SER CIERTO el 2026-10-05: con el grado
+       binario, `calcET` escribe «Significativa» por encima del umbral. La rama sigue haciendo
+       falta —se alcanza con el grado en el centinela por un apagado manual, por una prótesis o por
+       un estudio legado— pero ya no es el estado por defecto.
        Es el mismo agujero que se acaba de cerrar en la diastólica del VD. */
     /* EL VEREDICTO LO DA `etEstado()`, el mismo que pinta la cápsula. Antes esta línea
        recalculaba la significación desde `et_gmedio` por su cuenta, y al sumar el THP y el área
@@ -31079,14 +31332,14 @@ function generarInforme(opts) {
       ? ` (${_etPar.join(', ')}${etSignif ? ' — EAE/ASE 2009' : ''})` : '';
     const etFueraTxt = (_et && _et.fuera.length)
       ? ` Valor fuera de rango en ${_et.fuera.join(' y ')}: revisar antes de concluir.` : '';
-    if (etDesc) suma.push(`ET ${etDesc}${etSignif ? ', significativa' : ''}.`);
+    if (etDesc) suma.push(`ET ${etDesc}${(etSignif && !_etYaDice) ? ', significativa' : ''}.`);
     else if (etSignif) suma.push('ET significativa.');
     else if (etPill) suma.push('ET presente.');  // v2: sigla en el EN SUMA (regla 6); «ET <grado>, significativa.» (con grado) NO se toca
     /* Con datos y sin ningún criterio cumplido se DECLARA que no alcanzan, en vez de callar: el
        médico midió tres cosas y el informe tiene que decir qué dieron. Al EN SUMA no sube — no
        es un hallazgo— pero en el cuerpo se dice. Sin ningún dato, silencio, como hasta hoy. */
     const etFrag = etDesc
-      ? `Estenosis tricuspídea ${etDesc}${etSignif ? ', significativa' : ''}${etParTxt}.${etFueraTxt} `
+      ? `Estenosis tricuspídea ${etDesc}${(etSignif && !_etYaDice) ? ', significativa' : ''}${etParTxt}.${etFueraTxt} `
       : (etSignif ? `Estenosis tricuspídea significativa${etParTxt}.${etFueraTxt} `
       : (etPill ? 'Estenosis tricuspídea. '
       /* Con prótesis tampoco se emite la NEGACIÓN. «Sin criterios de ET significativa con los datos
@@ -31138,7 +31391,7 @@ function generarInforme(opts) {
        camino de siempre, byte por byte (el A/B no difiere fuera de las escenas con lesión y
        morfología normal). Los fragmentos reusan los grados y parámetros que ya existían: sólo cambia
        el ENSAMBLADO, no un corte ni un rótulo. */
-    const _estFragU = etDesc ? `estenosis ${etDesc}${etSignif ? ', significativa' : ''}${etParTxt}`
+    const _estFragU = etDesc ? `estenosis ${etDesc}${(etSignif && !_etYaDice) ? ', significativa' : ''}${etParTxt}`
                     : (etSignif ? `estenosis significativa${etParTxt}`
                     : (etPill ? 'estenosis' : null));
     const _insFragU = (itG > 0) ? `insuficiencia ${imTxt[itG]}` : (hayIT ? 'insuficiencia' : null);
@@ -38621,7 +38874,12 @@ function generarPDFReal(_aj) {
     {titulo:'Válvula Tricúspide', items:[
       {lbl:'Morf.',         ref:'', val:sv('vt_morf')||null},
       {lbl:'IT',            ref:'', val:itG?GT[itG]:null},
-      {lbl:'ET grado',      ref:'', val:(sv('et_grado')&&sv('et_grado')!=='Sin estenosis')?sv('et_grado'):null},
+      /* El centinela de `et_grado` paso de 'Sin estenosis' a 'sin' (grado binario, 2026-10-05).
+         Se excluyen LOS DOS: un estudio legado reabierto antes de `_migrarCamposLegacy` —o leido
+         por una ruta que no pasa por el— imprimiria la fila «ET grado: Sin estenosis» en un PDF
+         firmado, que es afirmar una valoracion donde no hubo respuesta. */
+      {lbl:'ET grado',      ref:'', val:(function(){ const g=sv('et_grado');
+        return (g && g!=='Sin estenosis' && g!=='sin') ? g : null; })()},
       {lbl:'VC IT',         ref:'(<3 / 3–7 / >7) mm', val:vPdf('it_vc',' mm')},
       {lbl:'EROA IT',       ref:'(<20 / 20–40 / ≥40) mm²', val:vPdf('it_eroa',' mm2')},
       /* El gradiente se DERIVA de la Vmax IT, así que hereda su banda: sin esto, una Vmax de 280
@@ -51677,6 +51935,37 @@ window.eteEpcRefrescar = eteEpcRefrescar;
    función paralela. */
 function _migrarCamposLegacy(c){
   if (!c) return c;
+  /* ══ EL CENTINELA DE `et_grado` PASÓ DE 'Sin estenosis' A 'sin' (grado binario, 2026-10-05) ════
+     EN MEMORIA Y SIN REESCRIBIR EL DISCO, mismo precedente que `ip_grado` y el `vp_morf` partido.
+
+     ⚠️ ESTO NO ES OPCIONAL Y NO ES POR LOS ESTUDIOS CON ESTENOSIS: es por los que NO la tienen.
+     `'Sin estenosis'` era el valor DE FÁBRICA del campo, así que lo traen TODOS los estudios
+     guardados. Sin esta línea, reabrir cualquiera de ellos asigna al `<select>` un valor que ya no
+     es una `<option>`: el nodo queda en `selectedIndex -1` y `.value === ''`. Medido qué hace cada
+     superficie con la cadena vacía —el narrativo y el PDF la omiten igual, el Excel lee `campos` y
+     no el DOM— pero `valvSev.refrescar` y `valvGradoVisSync` leen el `.value`, y un `<select>` sin
+     selección es un campo que el médico no puede corregir sin abrirlo: no muestra ninguna de las
+     tres opciones. La orden de esta tanda es que un estudio sin estenosis tricuspídea abra IDÉNTICO
+     a HEAD, y esto es lo que lo cumple.
+
+     ⚠️ LOS TRES GRADOS VIEJOS NO SE TRADUCEN, A PROPÓSITO. 'Leve', 'Moderada' y 'Severa' quedan
+     como están: mapearlos a «Significativa» es decidir una equivalencia clínica que la guía
+     justamente NO hace —por eso el grado pasó a binario—, y migrar contenido clínico de un estudio
+     guardado está prohibido. Maicol declaró que no existen estudios con estenosis tricuspídea
+     consignada, así que por el disco el caso no se alcanza. El camino VIVO es el importador, que
+     los sigue aceptando por `LAB_XLS_LISTAS_LEGADO`.
+     ⚠️ MEDIDO, Y LA PRIMERA VERSIÓN DE ESTE COMENTARIO AFIRMABA DE MÁS. Decía «el informe degrada a
+     «Estenosis tricuspídea.» (botón) o al silencio, NUNCA a una negación», y eso vale sólo con la
+     pastilla PRENDIDA: con `et_grado='Leve'` y gradiente 1,5 el `<select>` queda en
+     `selectedIndex -1`, `etDesc` es `null`, y con el botón prendido sale «…con estenosis.» —medido—.
+     Con el botón APAGADO cae en la rama de `hayDatos` y publica «Sin criterios de ET significativa
+     con los datos disponibles (gradiente medio 1.5 mmHg).», que SÍ es una negación donde HEAD decía
+     «Estenosis tricuspídea leve». Lo marcó `/sharp-edges` y está REPORTADO Y NO CORREGIDO: taparlo
+     exige decidir una redacción o rechazar la celda del importador, y las dos son de Maicol.
+     Es el mismo criterio con el que no se migró el `it_grado='3'`. */
+  if (Object.prototype.hasOwnProperty.call(c, 'et_grado') && c['et_grado'] === 'Sin estenosis') {
+    c['et_grado'] = 'sin';
+  }
   /* ══ `it_vmax_cw` PASÓ DE cm/s A m/s EL 2026-10-05 ═══════════════════════════════════════════
      SE NORMALIZA EN MEMORIA Y NO SE REESCRIBE NADA DEL DISCO. Esta función recibe el objeto
      `campos` y lo arregla ANTES de poblar el formulario; el blob guardado queda intacto, igual que
@@ -52495,7 +52784,14 @@ const VALV_AUTO_GRADO = Object.freeze({
   /* Los vocabularios son distintos y por eso se listan, no se comparan con `>=`: la estenosis usa
      tokens ('leve'…) y la insuficiencia números en texto. «esclerosis» y «sin» quedan afuera a
      propósito — son hallazgos que no abren nada, que es lo que J pide. */
-  esten: Object.freeze(['leve', 'moderada', 'severa']),
+  /* ⚠️ `'significativa'` ENTRA POR LA ESTENOSIS TRICUSPÍDEA (2026-10-05), y es aditivo: ninguna
+     otra válvula tiene ese `value`, así que la aórtica, la mitral y la pulmonar no cambian en nada.
+     Sin él, `et` queda registrada en `SEV_SINC` pero fuera de la regla J y de
+     `valvAutoPrenderEsten`: reabrir un estudio con «Significativa» mostraría el grado con el botón
+     APAGADO, que es lo que la regla 1 declara imposible. `'no significativa'` queda AFUERA a
+     propósito y por el mismo criterio que «sin» y «esclerosis»: es la afirmación de que no hay
+     valvulopatía, así que no abre ningún cajón ni prende ningún botón. */
+  esten: Object.freeze(['leve', 'moderada', 'severa', 'significativa']),
   insuf: Object.freeze(['1', '2', '3', '4'])
 });
 /* ⚠️ EL PAR `[tipo, select]` SE DERIVA DE `SEV_SINC` Y YA NO ESTÁ ESCRITO A MANO (etapa 3,
@@ -52536,9 +52832,19 @@ const VALV_AUTO_GRADO = Object.freeze({
    y se borran entradas que nadie consulta, cero cambio de comportamiento, verificado en el A/B de 434
    columnas—. No se persiste: un estudio reabierto arranca sin dueño, igual que la marca manual. */
 const VALV_ESTEN_AUTO = new Set();
+/* ⚠️ SE EXPORTA, Y NO ES DECORATIVO: `_etApagarAuto` lo lee por `window` justamente para no
+   depender de un `typeof` que no protege de la zona muerta de un `const`. Sin esta línea esa
+   lectura daba `undefined`, la guarda «¿la prendió la app?» respondía siempre que no, y el
+   auto-apagado de la estenosis tricuspídea quedaba inerte SIN un solo error en consola. Lo cazó
+   TC-416 (e)(f)(g) al minuto de escribir el arreglo del `typeof`: arreglar un riesgo teórico
+   introdujo uno real, y el caso nuevo fue lo que marcó la diferencia. */
+window.VALV_ESTEN_AUTO = VALV_ESTEN_AUTO;
 function valvAutoPrenderEsten(valv) {
   try {
-    const selId = ({ aortica:'ea_grado', mitral:'em_grado', pulmonar:'ep_grado' })[valv];
+    /* `tricuspide` entra el 2026-10-05: su grado pasó a binario y «Significativa» es un grado
+       calculable, así que la ET se auto-prende con el mismo criterio y la misma compuerta de
+       apagado manual (`guardado !== null`) que las otras tres. El mapa es aditivo. */
+    const selId = ({ aortica:'ea_grado', mitral:'em_grado', pulmonar:'ep_grado', tricuspide:'et_grado' })[valv];
     const sel = selId && document.getElementById(selId);
     if (!sel) return;
     if (typeof pillOn !== 'function' || typeof toggleValvPill !== 'function') return;
@@ -80268,7 +80574,21 @@ function _sevManualDesdeCampos(campos) {
      falsa es peor que una omisión.
      La columna vacía no llega hasta acá: el importador no escribe la clave si no vino dato,
      así que «clave ausente» ya significa «no se cargó». */
-  ['im', 'ia', 'it', 'em', 'ea'].forEach(k => {
+  /* ⚠️ `'et'` ENTRÓ EL 2026-10-05 Y SIN ESO LA TANDA DE LA ET BINARIA ERA UNA REGRESIÓN GRAVE.
+     Lo encontró `/sharp-edges` sobre su propio diff y está MEDIDO: una planilla con
+     «ET grado = Sin estenosis» —el negativo DOCUMENTADO, que el importador sigue aceptando por
+     `LAB_XLS_LISTAS_LEGADO`— más un gradiente medio de 6 mmHg daba, al abrir el estudio:
+     `_migrarCamposLegacy` lo deja en el centinela 'sin' · sin marca manual, `_etAutoGrado` lo ve
+     pisable · escribe **«Significativa»** y PRENDE el botón · el informe firmado publica «con
+     estenosis significativa (gradiente medio 6 mmHg — EAE/ASE 2009)» y el EN SUMA «ET
+     significativa.» sobre un estudio que decía que no había estenosis.
+     Es exactamente el daño que el comentario de arriba describe para la IM —«el informe firmado
+     afirmaba una insuficiencia que el estudio original decía que no existía»— y en HEAD no era
+     alcanzable sólo porque `calcET` no escribía ningún grado. Con la marca puesta no hay aviso
+     falso: `'sin'` no está en `comparables` de `et`, así que `sevDiscrepa` calla.
+     ⚠️ `'ep'` e `'ip'` siguen afuera, y queda DECLARADO: es el mismo agujero en la pulmonar, pero
+     tocar su informe es otra tanda. */
+  ['im', 'ia', 'it', 'em', 'ea', 'et'].forEach(k => {
     const v = campos[k + '_grado'];
     if (v !== undefined && v !== null && String(v) !== '') m[k] = true;
   });
@@ -81573,6 +81893,32 @@ function _labXlsAssertVocab() {
 }
 window._labXlsAssertVocab = _labXlsAssertVocab;
 // Selects de texto libre acotado: se acepta cualquier opción de la lista, tal cual.
+/* ══ VALORES QUE EL IMPORTADOR ACEPTA PERO EL SELECT YA NO OFRECE ═════════════════════════════
+   «Lo que se puede RECIBIR» y «lo que se puede ELEGIR» son dos preguntas distintas, y hasta hoy
+   coincidían en los seis selects, así que alcanzaba una lista. Dejaron de coincidir el 2026-10-05,
+   cuando el grado de la estenosis tricuspídea pasó a binario: sus cuatro valores viejos
+   —'Sin estenosis', que era el de FÁBRICA, más los tres grados— no son `<option>` de nada, pero la
+   columna «ET grado» de TODA planilla exportada hasta ayer los trae.
+
+   ⚠️ TIENEN QUE SEGUIR ACEPTÁNDOSE, Y ESTÁ MEDIDO, NO SUPUESTO. Para una columna `opcion`, un valor
+   que no está en `LAB_XLS_LISTAS` hace `errs.push()` y el importador descarta la **FILA ENTERA**, no
+   la celda. Como 'Sin estenosis' era el valor de fábrica, lo trae CADA fila de CADA backup anterior:
+   sacarlos de la lista no habría perdido una columna, habría perdido todos los pacientes de una
+   reimportación, con un mensaje que habla de la tricúspide.
+
+   ⚠️ Y POR ESO NO VAN SIN DECLARAR. `_labXlsAssertListas` compara en las DOS direcciones, y la
+   segunda —«está en la lista y ya no es una opción del select»— es justamente la que estos valores
+   violan A PROPÓSITO. Metidos a pelo en `LAB_XLS_LISTAS`, el chequeo de arranque pasaba a gritar
+   cuatro divergencias esperadas en cada carga, y entonces la próxima divergencia REAL de cualquiera
+   de las seis válvulas quedaba enterrada en ese ruido. Declarándolos acá, el guardián sigue
+   sirviendo: la PRIMERA dirección —una `<option>` que falte en la lista, que es la que hace rechazar
+   filas— se vigila igual para todos, y la segunda saltea sólo lo que esta tabla nombra.
+   Es el mismo reparto que `SEV_SINC` ya usa con `comparables` contra `calculables`.
+   ⚠️ NO ENTRAN EN LA PLANTILLA que se le muestra al médico: ninguna `<option>` los ofrece, así que
+   el preview de importación no puede enseñar un valor que no se puede elegir. Son de ENTRADA. */
+const LAB_XLS_LISTAS_LEGADO = Object.freeze({
+  et_grado: Object.freeze(['Sin estenosis', 'Leve', 'Moderada', 'Severa'])
+});
 const LAB_XLS_LISTAS = {
   /* ESTA LISTA ES PARALELA A LAS OPCIONES DEL SELECT, y es la que decide qué acepta el
      importador. Un valor que esté en el select y no acá se EXPORTA bien y al reimportar cae en
@@ -81585,10 +81931,15 @@ const LAB_XLS_LISTAS = {
   vm_morf: ['Normal','Mixomatosa / Barlow','Calcificada','Reumática','Prolapso / EVMS','Prótesis biológica','Prótesis mecánica','Endocarditis','Isquémica (disfunción/rotura músculo papilar)'],
   va_morf: ['Trivalva normal','Bicúspide','Calcificada','Reumática','Prótesis biológica','Prótesis mecánica','TAVI','Endocarditis','Carcinoide'],
   vt_morf: ['Normal','Mixomatosa','Reumática','Prótesis biológica','Prótesis mecánica','Carcinoide','Endocarditis','Funcional / dilatación VD'],
-  /* `et_grado` es `opcion` y su `value` ES el texto de la etiqueta —el select no lleva
-     atributo `value`—. Sin esta lista `_labXlsLista` devuelve null y el importador descarta
-     la FILA ENTERA, no la celda. */
-  et_grado: ['Sin estenosis','Leve','Moderada','Severa'],
+  /* ⚠️ `et_grado` PASO A SER BINARIO (2026-10-05) y su opcion 0 ya NO vale su etiqueta: vale
+     `sin`, como `ea_grado`/`em_grado`/`ep_grado`. Las otras dos si valen su texto. Sin esta lista
+     al dia `_labXlsLista` devuelve null y el importador descarta la FILA ENTERA, no la celda —
+     y `_labXlsAssertListas()` compara esta lista contra las `<option>` al arrancar, asi que un
+     desajuste grita en consola en vez de perder filas en silencio.
+     Los tres valores VIEJOS se conservan al final para que una planilla exportada antes de hoy
+     siga importando: sin ellos, reimportar un backup de ayer descartaba la fila completa del
+     paciente. Entran como vocabulario de ENTRADA; ninguna `<option>` los ofrece. */
+  et_grado: ['sin','Significativa','No significativa'].concat(LAB_XLS_LISTAS_LEGADO.et_grado),
   vp_morf: ['Normal','Displásica (congénita)','Reumática','Carcinoide','Prótesis biológica','Prótesis mecánica','No especificada'],
   /* `ep_grado` guarda «sin» en la opción 0 —su `value` difiere de la etiqueta, único de los
      seis— así que es «sin» lo que va acá: `_labXlsLista` compara contra el VALOR. */
@@ -81642,8 +81993,16 @@ function _labXlsAssertListas() {
       if (o && enLista.indexOf(o) < 0)
         problemas.push(campo + ': la opción «' + sel.options[i].value + '» NO está en LAB_XLS_LISTAS — la reimportación rechazaría la fila entera');
     });
+    /* Los valores declarados como SÓLO-DE-ENTRADA no entran en esta segunda dirección: existen a
+       propósito sin `<option>` que los ofrezca, para que una planilla exportada antes de un cambio
+       de vocabulario siga importando (ver `LAB_XLS_LISTAS_LEGADO`). La PRIMERA dirección —la que
+       hace rechazar filas— no se toca y los sigue vigilando a todos. Sin este salteo, el chequeo
+       gritaba cuatro divergencias ESPERADAS en cada carga y la próxima divergencia real quedaba
+       enterrada en ese ruido, que es lo contrario de lo que un guardián sirve. */
+    const legado = ((typeof LAB_XLS_LISTAS_LEGADO !== 'undefined' && LAB_XLS_LISTAS_LEGADO[campo]) || [])
+      .map(function (o) { return _labXlsNorm(o); });
     enLista.forEach(function (o, i) {
-      if (o && enDom.indexOf(o) < 0)
+      if (o && enDom.indexOf(o) < 0 && legado.indexOf(o) < 0)
         problemas.push(campo + ': «' + LAB_XLS_LISTAS[campo][i] + '» está en LAB_XLS_LISTAS y ya no es una opción del select');
     });
   });
@@ -94044,8 +94403,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261005-0250';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791179424635;                 /* eco-build-ms */
+const ECO_BUILD    = '20261005-0758';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791197922915;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -94131,7 +94490,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261005-0250</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261005-0758</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -96683,7 +97042,9 @@ window.esqPills=(function(){
   const EST_TXT=['Sin est.','Leve','Moderada','Severa'];
   const INS_GRADO=[0,1,2,4];                                  // nivel pill 0-3 → *_grado (severa=4)
   const EST_LC=['sin','leve','moderada','severa'];            // em/ea_grado (value=)
-  const EST_ET=['Sin estenosis','Leve','Moderada','Severa']; // et_grado (texto de opción)
+  /* `et_grado` es binario desde el 2026-10-05: el indice 0 es el centinela y los niveles 1-3
+     colapsan en «Significativa» — el unico grado que la ET tiene por encima del centinela. */
+  const EST_ET=['sin','Significativa','Significativa','Significativa']; // et_grado
   function levelOf(field){
     const e=g(field); if(!e) return 0;
     if(/^(im|ia|it)_grado$/.test(field)){ const v=parseInt(e.value)||0; return v<=0?0:(v>=3?3:v); }

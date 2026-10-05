@@ -4783,7 +4783,16 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
     e.value = v; e.dispatchEvent(new Event('input', { bubbles:true })); return 1; };
   const gm = function(v){ set('et_gmedio', v); calcET(); return G(); };
   const limpio = function(){ const g = document.getElementById('et_grado');
-    g.value = 'Sin estenosis'; delete g.dataset.sugerido; set('et_gmedio',''); calcET(); };
+    /* v3 (2026-10-05): el centinela de et_grado es 'sin'. Se limpian tambien la marca manual y
+       la clave de la pastilla: desde que la ET esta en SEV_SINC, apagar el boton pone
+       esqSevManual.et y el gm() siguiente saldria por la guarda de manual midiendo otra cosa. */
+    g.value = 'sin'; delete g.dataset.sugerido;
+    if (window.esqSevManual) delete window.esqSevManual.et;
+    if (window._sevCalcAlFijar) delete window._sevCalcAlFijar.et;
+    try { localStorage.removeItem('valv-pill-esten-tricuspide'); } catch(e){}
+    if (typeof VALV_ESTEN_AUTO !== 'undefined') VALV_ESTEN_AUTO.delete('tricuspide');
+    if (window.pillOn('tricuspide','esten')) toggleValvPill('tricuspide','esten');
+    set('et_gmedio',''); calcET(); };
 
   // ── FIX 1 · calcET ──────────────────────────────────────────────────────────────────────
   limpio();
@@ -4798,19 +4807,25 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
   const sevDespues = (document.getElementById('et-sev').textContent || '').trim();
   const msgDespues = (document.getElementById('et-gmedio-badge').textContent || '').trim();
   limpio();
-  document.getElementById('et_grado').value = 'Moderada';
+  /* v3: «Moderada» ya no es una opcion de la ET —el grado es binario—. El gesto equivalente es
+     el medico eligiendo «No significativa» por el camino REAL (valvSev.aplicar, que es lo que corre
+     el menu), y la afirmacion sigue siendo la misma: el autocalculo no lo pisa. */
+  valvSev.aplicar('esten','tricuspide','No significativa');
   const gManual = gm('1');                       // eleccion manual: no se pisa
   limpio();
 
   // ── FIX 1 · el informe emite la significacion DESDE EL GRADIENTE ────────────────────────
-  const esc = function(gmed, grado){ __t.limpiar(); set('vd_bas','38'); set('et_gmedio', gmed);
-    document.getElementById('et_grado').value = grado;
+  const esc = function(gmed, grado, manual){ __t.limpiar(); set('vd_bas','38'); set('et_gmedio', gmed);
+    if (grado !== null && grado !== undefined) document.getElementById('et_grado').value = grado;
+    if (manual) valvSev.aplicar('esten','tricuspide', manual);
     const r = __t.informe();
     const li = r.inf.split(String.fromCharCode(10)).filter(function(l){ return /tric[úu]sp/i.test(l); }).join(' // ');
     return { inf: li, suma: r.suma }; };
-  const i3 = esc('3','Sin estenosis');
-  const i6 = esc('6','Sin estenosis');
-  const i8 = esc('8','Moderada');
+  const i3 = esc('3','sin');
+  const i6 = esc('6','sin');
+  /* v3: la discrepancia de la ET ya no es «Moderada sobre un gradiente alto» sino el grado binario
+     contrario al calculo. Se entra por valvSev.aplicar, que es el camino real del menu. */
+  const i8 = esc('8', null, 'No significativa');
 
   // ── FIX 2 · _labValvCounts ──────────────────────────────────────────────────────────────
   const mk = function(et){ return { campos:{ im_grado:'0', em_grado:'sin', ia_grado:'0',
@@ -4849,22 +4864,29 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
 
   return { extra: [
     // FIX 1 — la bomba: un gradiente normal no puede escribir un grado.
-    ['1 mmHg NO produce «Leve»', g1 === 'Sin estenosis', g1],
-    ['3 mmHg tampoco', g3 === 'Sin estenosis', g3],
+    ['1 mmHg NO produce «Leve» —ni ningun grado— y deja el centinela', g1 === 'sin', g1],
+    ['3 mmHg tampoco', g3 === 'sin', g3],
     ['el umbral es 5 y se prueba por los dos lados: 4.9 no es significativa',
-      g49 === 'Sin estenosis', g49],
-    ['5.0 ya lo es, y calcET NO inventa un grado por encima del umbral',
-      g50 === 'Sin estenosis' && ET_GMEDIO_SIGNIF === 5, g50 + ' / umbral ' + ET_GMEDIO_SIGNIF],
+      g49 === 'sin', g49],
+    /* v3 (2026-10-05): ACA CAMBIO LA AFIRMACION, Y ES EL PEDIDO DE LA TANDA. Antes se exigia que
+       calcET NO escribiera nada por encima del umbral, porque el unico vocabulario disponible era
+       leve/moderada/severa y cualquiera de los tres habria sido inventado. Desde que el grado es
+       BINARIO, «Significativa» ES el veredicto de la guia, asi que a 5,0 el grado SI se escribe y
+       el boton se prende. El umbral no se movio: sigue siendo 5 y se sigue probando por los dos
+       lados con el 4,9 de arriba. */
+    ['5.0 ya lo es: calcET escribe «Significativa» —el unico grado que la guia tiene— y prende el boton',
+      g50 === 'Significativa' && ET_GMEDIO_SIGNIF === 5 && window.pillOn('tricuspide','esten') === true,
+      g50 + ' / umbral ' + ET_GMEDIO_SIGNIF + ' / pill ' + window.pillOn('tricuspide','esten')],
     /* La capsula dice solo «Significativa» desde que integra los TRES criterios: el numero que
        la sostiene se movio al mensaje de abajo, porque ahora puede ser el gradiente, el THP o el
        area y ponerlos todos en la pastilla la volvia ilegible. */
     ['a 6 mmHg la capsula declara la significacion',
       sev6.indexOf('Significativa') > -1, sev6],
     ['borrar el gradiente deja el select en reposo y LIMPIA la capsula',
-      gBorrado === 'Sin estenosis' && sevAntes.indexOf('Significativa') > -1 &&
+      gBorrado === 'sin' && sevAntes.indexOf('Significativa') > -1 &&
       sevDespues.indexOf('Significativa') === -1 && msgDespues === '',
       'antes=' + sevAntes + ' | despues=' + sevDespues + ' | msg=' + JSON.stringify(msgDespues)],
-    ['y un grado elegido a mano NO se pisa', gManual === 'Moderada', gManual],
+    ['y un grado elegido a mano NO se pisa', gManual === 'No significativa', gManual],
 
     // FIX 1 — el informe: la significacion sale del gradiente, no del grado.
     ['3 mmHg no genera texto de estenosis tricuspidea',
@@ -4874,13 +4896,17 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
     /* v2 (E5b-4): el narrativo de la tricúspide es UNA oración; la ET significativa por gradiente,
        con morfología normal, dice «…con estenosis significativa (gradiente medio 6 mmHg…)». El EN
        SUMA «ET significativa.» no cambió (abajo). */
-    ['6 mmHg con el grado en «Sin estenosis» NO queda en silencio',
+    ['6 mmHg con el grado en el centinela NO queda en silencio',
       i6.inf.indexOf('con estenosis significativa') > -1 &&
       i6.inf.indexOf('6 mmHg') > -1, i6.inf],
     ['y sube al EN SUMA', i6.suma.indexOf('ET significativa.') > -1, i6.suma],
-    ['con grado manual Y gradiente alto salen los dos',
-      i8.inf.indexOf('moderada') > -1 && i8.inf.indexOf('significativa') > -1 &&
-      i8.suma.indexOf('ET moderada, significativa') > -1, i8.inf + ' // ' + i8.suma],
+    /* v3: con el grado binario, el grado consignado MANDA y la palabra no se duplica —decision de
+       Maicol del 2026-10-05, es un borrado del sufijo «, significativa» cuando el grado ya lo dice—.
+       Lo que se sigue afirmando es que el gradiente medido se publica al lado del grado. */
+    ['con grado manual contrario al calculo manda el grado, el gradiente se publica, y la palabra NO se duplica',
+      i8.inf.indexOf('estenosis no significativa') > -1 && i8.inf.indexOf('8 mmHg') > -1 &&
+      i8.inf.indexOf('significativa, significativa') === -1 &&
+      i8.suma.indexOf('ET no significativa.') > -1, i8.inf + ' // ' + i8.suma],
 
     // FIX 2 — et_grado deja de estar cableado a null.
     ['la ultima columna del Lab es la estenosis tricuspidea',
@@ -47402,8 +47428,11 @@ caso('TC-391', 'Guardar y reabrir conserva el grado, la marca y el cajon de la M
 
       ['DENOMINADOR del autosave: las dos notas estaban VACIAS antes de reponer',
         vaciasAntes === '/', 'notas=«' + vaciasAntes + '»'],
-      ['sevFundRestaurar atiende las SEIS claves registradas, no solo ea e ia (v2 E2c: +ep, +it)',
-        repuesto === '["ea","em","ep","ia","im","it"]', 'claves=' + repuesto],
+      /* v3 (2026-10-05): SIETE. Entro la clave et cuando el grado de la estenosis tricuspidea paso a
+         binario y su veredicto se volvio un grado del vocabulario del select. El numero se escribe
+         a mano a proposito: si manianha entra otra valvula, este caso lo dice en vez de pasar. */
+      ['sevFundRestaurar atiende las SIETE claves registradas, no solo ea e ia (v2 E2c: +ep, +it; v3: +et)',
+        repuesto === '["ea","em","ep","et","ia","im","it"]', 'claves=' + repuesto],
       ['y repone las notas de la MITRAL desde la forma del borrador (clave pelada)',
         borrador.im === 'desde el autosave IM' && borrador.em === 'desde el autosave EM' &&
         borrador.imFund === 'visible' && borrador.emFund === 'visible',
@@ -47692,15 +47721,20 @@ caso('TC-395', 'El menu de severidad no lo recorta la tarjeta: las opciones de l
   return { extra: [
     /* v2 (E5b-1): la pulmonar sumó sus DOS menús (esten/insuf), así que ahora hay OCHO menús y 26
        opciones (antes seis y 23). El comportamiento —nada fuera del viewport, todo clickeable— no
-       cambió; sólo los conteos. */
+       cambió; sólo los conteos.
+       v3 (2026-10-05): VEINTICINCO. La estenosis tricuspídea pasó a grado BINARIO, así que su menú
+       ofrece dos opciones (Significativa / No significativa) donde ofrecía tres (Leve / Moderada /
+       Severa): el total baja en uno. Los menús siguen siendo ocho y el comportamiento tampoco
+       cambió. El número va escrito a mano a propósito: así el día que una válvula gane o pierda una
+       opción, este caso lo dice en vez de contar lo que haya. */
     ['DENOMINADOR: hay OCHO menus y ninguna opcion quedo fuera del viewport ni sin medir',
-      MENUS.length === 8 && apagados.total === 26 && apagados.fueraVP === 0 &&
-      encendidos.total === 26 && encendidos.fueraVP === 0,
+      MENUS.length === 8 && apagados.total === 25 && apagados.fueraVP === 0 &&
+      encendidos.total === 25 && encendidos.fueraVP === 0,
       'menus=' + MENUS.length + ' total=' + apagados.total + ' fueraVP=' + apagados.fueraVP + ' · ' + dg],
     /* El numero que importa: con los dos botones apagados —la tarjeta baja, que es el sintoma—
        antes se perdian TRES opciones, las tres en la aortica. Ahora, cero. */
-    ['con los dos botones APAGADOS las 26 opciones de los ocho menus son clickeables',
-      apagados.alcanzables === 26 && apagados.perdidas.length === 0, dg],
+    ['con los dos botones APAGADOS las 25 opciones de los ocho menus son clickeables',
+      apagados.alcanzables === 25 && apagados.perdidas.length === 0, dg],
     ['mientras hay un menu abierto su tarjeta deja de recortar',
       abiertos(apagados).every(function (o) { return o === 'visible'; }), dg],
     /* Sin esta mitad, un overflow:visible pelado sobre .card pasaria igual — y seria un cambio
@@ -47710,8 +47744,8 @@ caso('TC-395', 'El menu de severidad no lo recorta la tarjeta: las opciones de l
     /* CONTROL NEGATIVO: con los dos botones ENCENDIDOS la tarjeta ya era alta y el menu entraba
        solo. Ahi el arreglo no tiene nada que arreglar. Si esta condicion y la de arriba dieran
        lo mismo siempre, la sonda estaria diciendo que si a todo y no probaria nada. */
-    ['CONTROL NEGATIVO: con los dos botones ENCENDIDOS tambien estan las 26, que ya era cierto antes',
-      encendidos.alcanzables === 26, dg],
+    ['CONTROL NEGATIVO: con los dos botones ENCENDIDOS tambien estan las 25, que ya era cierto antes',
+      encendidos.alcanzables === 25, dg],
   ] };
 `);
 
@@ -48244,7 +48278,7 @@ caso('TC-399', 'IAo abierta sin grado da «con insuficiencia» y «IAo.»; con l
 /* TC-400 — Las OCHO valvulopatias LEVES en el EN SUMA. Antes de esta tanda faltaban TRES: la EAo
    leve, la estenosis pulmonar leve y la insuficiencia pulmonar leve. Las tres estaban suprimidas
    con comentario explicito, asi que este caso defiende una decision que ya se revirtio una vez. */
-caso('TC-400', 'Las OCHO valvulopatias leves figuran en el EN SUMA: EAo, IAo, EM, IM, ET, IT, EP e IP', `
+caso('TC-400', 'Las OCHO valvulopatias consignadas figuran en el EN SUMA con su sigla: EAo, IAo, EM, IM, ET, IT, EP e IP (las siete leves, y la ET significativa porque su grado es binario)', `
   ${SINGRADO_HELPERS}
   /* ⚠ Los tokens de ep_grado / ip_grado / et_grado son «Leve» CON MAYUSCULA: un select rechaza en
      silencio 'leve' y deja el value vacio, asi que la escena mediria un formulario en blanco y el
@@ -48254,7 +48288,11 @@ caso('TC-400', 'Las OCHO valvulopatias leves figuran en el EN SUMA: EAo, IAo, EM
     ['IAo', { g:[['ia_grado','1']],    m:{ia:true}, p:[['aortica','insuf',true]] },   'IAo leve.'],
     ['EM',  { g:[['em_grado','leve']], m:{em:true}, p:[['mitral','esten',true]] },    'EM leve.'],
     ['IM',  { g:[['im_grado','1']],    m:{im:true}, p:[['mitral','insuf',true]] },    'IM leve.'],
-    ['ET',  { g:[['et_grado','Leve']], m:{},        p:[['tricuspide','esten',true]] },'ET leve.'],
+    /* v3 (2026-10-05): la ET NO TIENE «leve» —su grado es binario por la EAE/ASE 2009— asi que lo
+       que este caso defiende en ella es que su valvulopatia consignada figure en el EN SUMA con su
+       sigla, que es la regla 11. El token es «Significativa» y la frase «ET significativa.». Las
+       otras siete no cambian. */
+    ['ET',  { g:[['et_grado','Significativa']], m:{}, p:[['tricuspide','esten',true]] },'ET significativa.'],
     ['IT',  { g:[['it_grado','1']],    m:{it:true}, p:[['tricuspide','insuf',true]] },'IT leve.'],
     ['EP',  { g:[['ep_grado','Leve']], m:{} },                                        'EP leve.'],
     ['IP',  { g:[['ip_grado','Leve']], m:{} },                                        'IP leve.'],
@@ -48271,9 +48309,15 @@ caso('TC-400', 'Las OCHO valvulopatias leves figuran en el EN SUMA: EAo, IAo, EM
   const cero = _escena({ m:{} });
   return { extra: [
     ['denominador: los ocho grados quedaron escritos en su select (ninguno rechazado)', vacios.length === 0, 'rechazados: ' + vacios.join(', ') + ' // ' + diag.join(' ;; ')],
-    ['las ocho leves figuran en el EN SUMA', faltan.length === 0, faltan.join(' ;; ') + ' // ' + diag.join(' ;; ')],
-    ['control negativo: sin valvulopatia cargada no se lista ninguna leve',
-      !/leve/i.test(cero.suma) && cero.suma.indexOf('Estudio sin alteraciones') > -1, recorteJS(cero.suma)],
+    ['las ocho figuran en el EN SUMA con su sigla', faltan.length === 0, faltan.join(' ;; ') + ' // ' + diag.join(' ;; ')],
+    /* ⚠️ EL CONTROL NEGATIVO NO PUEDE PREGUNTAR POR «significativa» A SECAS: la propia frase de
+       normalidad del EN SUMA dice «ni funcionales significativas», asi que esa condicion daba falso
+       en TODOS los casos y el control no podia pasar nunca —un control negativo roto es peor que
+       ninguno, porque parece que mide y solo dice no—. Se pregunta por la SIGLA «ET », que es con lo
+       que la ET entra al resumen, y por «leve» para las otras siete. */
+    ['control negativo: sin valvulopatia cargada no se lista ninguna leve ni la sigla de la ET',
+      !/leve/i.test(cero.suma) && cero.suma.indexOf('ET ') === -1 &&
+      cero.suma.indexOf('Estudio sin alteraciones') > -1, recorteJS(cero.suma)],
   ] };
 `);
 
@@ -48671,7 +48715,14 @@ caso('TC-404', '(e) Guardar y reabrir conserva grado, marca, aviso y cajon de la
    las excluye explicitamente, y la costura se gatea por valvula en DOS lugares (el menu ▼ y la
    regla de apagado). Un caso que lo mida es lo que impide que un «borremos la condicion» futuro
    les cambie el comportamiento sin que nadie lo note. */
-caso('TC-405', '(g) Tricuspide sin el mecanismo §5 (no registrada): su menu no ofrece «Sin», su boton no se apaga por regla, su bloque cuelga del boton y cerrar le borra el grado; la pulmonar ya tiene pastillas (E5b-1) y su detalle lo gobierna el grado', `
+/* v3 (2026-10-05): LA TRICUSPIDE YA ESTA REGISTRADA, y este caso cambio de sujeto. Entro la
+   clave et a SEV_SINC cuando el grado de la estenosis tricuspidea paso a binario —«Significativa» /
+   «No significativa» ES el veredicto de la EAE/ASE 2009, asi que el aviso de discrepancia tiene
+   sujeto—. Lo que este caso sigue defendiendo es lo que NO cambio con eso: su menu no ofrece «Sin»
+   (ninguno lo ofrece desde v2) y la regla de apagado por «Sin» sigue ABSTENIENDOSE sobre la
+   tricuspide, porque SEV_SIN_APAGA_VALVS no la incluye y meterla habria cambiado tambien la
+   INSUFICIENCIA tricuspidea, que esta tanda no toca. El vocabulario de los tokens se actualizo. */
+caso('TC-405', '(g) Tricuspide YA registrada en §5 (v3): su menu sigue sin ofrecer «Sin», la regla de apagado por «Sin» sigue absteniendose sobre ella, su bloque cuelga del boton y cerrar le borra el grado; la pulmonar ya tiene pastillas (E5b-1) y su detalle lo gobierna el grado', `
   ${APAGA_HELPERS}
   const den = aReset();
   /* El menu se arma al abrirlo: valvSev.menu puebla el contenedor con un boton por opcion. */
@@ -48686,12 +48737,15 @@ caso('TC-405', '(g) Tricuspide sin el mecanismo §5 (no registrada): su menu no 
   const eaOpc = opcionesDe('esten','aortica');
   const emOpc = opcionesDe('esten','mitral');
 
-  /* El boton de la tricuspide: se abre, se pone el grado en «Sin estenosis» por su desplegable
-     —el camino que en la aortica y en la mitral apaga— y se mira si se apago. */
+  /* El boton de la tricuspide: se abre, se pone el grado en su CENTINELA por el desplegable
+     —el camino que en la aortica y en la mitral apaga— y se mira si se apago.
+     v3: el centinela es 'sin' (antes 'Sin estenosis'). Es el mismo token que SEV_TOKEN_SIN.esten
+     declara para las cuatro estenosis, y alinearlo es lo que permitio registrar la valvula sin
+     tocar ninguna funcion compartida. */
   aReset();
   toggleValvPill('tricuspide','esten');
   const etAbierto = aOn('tricuspide','esten');
-  __t.set('et_grado','Sin estenosis');
+  __t.set('et_grado','sin');
   const etTrasSin = { pill: aOn('tricuspide','esten'), grado: String(__t.val('et_grado') || ''),
     bloq: aVis('bloque-esten-tricuspide') };
   /* Y la regla de apagado, invocada A MANO sobre la tricuspide: tiene que devolver null, que es
@@ -48709,7 +48763,7 @@ caso('TC-405', '(g) Tricuspide sin el mecanismo §5 (no registrada): su menu no 
      aunque haya grado, porque no esta registrada y la mitad «hayGrado» no la alcanza. */
   aReset();
   toggleValvPill('tricuspide','esten');
-  __t.set('et_grado','Moderada');
+  __t.set('et_grado','Significativa');
   const etConGrado = { pill: aOn('tricuspide','esten'), bloq: aVis('bloque-esten-tricuspide') };
   toggleValvPill('tricuspide','esten');
   const etCerrado = { pill: aOn('tricuspide','esten'), bloq: aVis('bloque-esten-tricuspide'),
@@ -48734,8 +48788,8 @@ caso('TC-405', '(g) Tricuspide sin el mecanismo §5 (no registrada): su menu no 
       !eaOpc.some(function (t) { return /^Sin/i.test(t); }) && !emOpc.some(function (t) { return /^Sin/i.test(t); }),
       'ea=' + eaOpc.join('/') + ' em=' + emOpc.join('/')],
 
-    ['(g) «Sin estenosis» en el desplegable de la TRICUSPIDE no apaga su boton',
-      etAbierto === true && etTrasSin.pill === true && etTrasSin.grado === 'Sin estenosis',
+    ['(g) el CENTINELA en el desplegable de la TRICUSPIDE no apaga su boton',
+      etAbierto === true && etTrasSin.pill === true && etTrasSin.grado === 'sin',
       JSON.stringify(etTrasSin) + ' abierto=' + etAbierto],
     ['(g) y la regla de apagado se abstiene sobre la tricuspide: devuelve null en las dos mitades',
       etRegla === null && itRegla === null,
@@ -48755,9 +48809,15 @@ caso('TC-405', '(g) Tricuspide sin el mecanismo §5 (no registrada): su menu no 
        expectativa estaba mal, la app no.
        El sintoma clinico, para que no haya que re-derivarlo: una ET graduada «Moderada» que se
        cierra y se reabre pasa a figurar como «Estenosis tricuspidea.» sin grado en el informe. */
+    /* v3: el grado sigue borrandose al cerrar, pero ya NO por el camino de antes. Antes lo hacia
+       valvSev.limpiar llamado SOLO para la tricuspide por no estar registrada; ahora la clave et
+       esta en el registro, asi que el que corre es valvApagarGrado —el mismo que la aortica y la
+       mitral— y deja el select en su centinela 'sin'. El resultado observable es el mismo y la
+       condicion se conserva con el token nuevo: queda pineado igual, y si algun dia el grado
+       sobrevive al cierre este caso se pone en rojo y hay que actualizarlo a mano. */
     ['(g) y cerrar el cajon de la tricuspide SIGUE borrandole el grado —defecto reportado, no corregido—',
-      etCerrado.grado === 'Sin estenosis',
-      'quedo «' + etCerrado.grado + '» (si esto dice Moderada, el defecto se corrigio: actualizar el caso)'],
+      etCerrado.grado === 'sin',
+      'quedo «' + etCerrado.grado + '» (si esto dice Significativa, el defecto se corrigio: actualizar el caso)'],
     /* v2 (E5b-1): la pulmonar YA tiene pastillas; lo que NO cambió es que el detalle de nivel/
        etiología de la EP lo gobierna el GRADO vía vpSync (visible con grado, oculto sin grado). */
     ['(g) el detalle de nivel/etiologia de la EP lo gobierna el grado via vpSync',
@@ -49072,18 +49132,19 @@ caso('TC-411', 'Tricuspide: narrativo de UNA oracion («Valvula tricuspide de mo
       if (aOn('tricuspide',t)) toggleValvPill('tricuspide',t); });
     __t.set('nombre','TC411'); __t.set('vt_morf','Normal'); };
   const est = function(g){ __t.set('et_grado', g); if (!aOn('tricuspide','esten')) toggleValvPill('tricuspide','esten'); };
-  const estPres = function(){ __t.set('et_grado','Sin estenosis'); if (!aOn('tricuspide','esten')) toggleValvPill('tricuspide','esten'); };
+  /* v3 (2026-10-05): el centinela de et_grado es 'sin' —el grado de la ET es binario—. */
+  const estPres = function(){ __t.set('et_grado','sin'); if (!aOn('tricuspide','esten')) toggleValvPill('tricuspide','esten'); };
   const insf = function(v){ if (!aOn('tricuspide','insuf')) toggleValvPill('tricuspide','insuf'); __t.set('it_grado', v); };
   const insPres = function(){ if (!aOn('tricuspide','insuf')) toggleValvPill('tricuspide','insuf'); __t.set('it_grado','0'); };
   const linea = function(){ const r = __t.informe();
     const tri = (r.inf||'').split('\\n').filter(function(l){ return /tric[úu]sp|Gradiente VD-AD|PSAP/i.test(l); }).join(' | ');
     return { tri: tri, suma: r.suma }; };
 
-  base(); est('Leve');                 const c1 = linea();                 // solo estenosis
+  base(); est('Significativa');        const c1 = linea();                 // solo estenosis
   base(); insf('1');                   const c2 = linea();                 // solo insuficiencia
-  base(); est('Leve'); insf('1');      const c3 = linea();                 // ambas mismo grado
-  base(); est('Leve'); insf('4');      const c4 = linea();                 // grados distintos
-  base(); est('Leve'); insPres();      const c5 = linea();                 // est grado + insuf presente
+  base(); est('Significativa'); insf('1'); const c3 = linea();              // ambas lesiones
+  base(); est('Significativa'); insf('4'); const c4 = linea();              // grados distintos
+  base(); est('Significativa'); insPres(); const c5 = linea();              // est grado + insuf presente
   base(); estPres(); insPres();        const c6 = linea();                 // ambas presente
 
   const sinMixta = [c1,c2,c3,c4,c5,c6].every(function(c){ return !/mixta/i.test(c.tri); });
@@ -49091,16 +49152,21 @@ caso('TC-411', 'Tricuspide: narrativo de UNA oracion («Valvula tricuspide de mo
 
   return { extra: [
     ['DENOMINADOR: las 6 escenas escribieron linea de tricuspide', [c1,c2,c3,c4,c5,c6].every(function(c){ return c.tri.indexOf('Válvula tricúspide') > -1; }), c1.tri + ' /// ' + c2.tri],
-    ['1 solo estenosis → «de morfologia normal, con estenosis leve.» sin «e insuficiencia»',
-      c1.tri.indexOf('Válvula tricúspide de morfología normal, con estenosis leve.') > -1 && c1.tri.indexOf('e insuficiencia') === -1, c1.tri],
+    /* v3: el grado de la ET es «Significativa». El ENSAMBLADO de la oracion —que es lo que este
+       caso defiende— no cambio: sigue siendo «de morfologia normal, con estenosis X.» sin arrastrar
+       «e insuficiencia» cuando no hay. Y se exige que la palabra NO se duplique. */
+    ['1 solo estenosis → «de morfologia normal, con estenosis significativa.» sin «e insuficiencia»',
+      c1.tri.indexOf('Válvula tricúspide de morfología normal, con estenosis significativa.') > -1 &&
+      c1.tri.indexOf('e insuficiencia') === -1 &&
+      c1.tri.indexOf('significativa, significativa') === -1, c1.tri],
     ['2 solo insuficiencia → «con insuficiencia leve.» sin «estenosis»',
       c2.tri.indexOf('Válvula tricúspide de morfología normal, con insuficiencia leve.') > -1 && c2.tri.indexOf('estenosis') === -1, c2.tri],
-    ['3 ambas mismo grado → «con estenosis leve e insuficiencia leve.» (wording exacto)',
-      c3.tri.indexOf('Válvula tricúspide de morfología normal, con estenosis leve e insuficiencia leve.') > -1, c3.tri],
-    ['4 grados distintos → «con estenosis leve e insuficiencia severa.»',
-      c4.tri.indexOf('con estenosis leve e insuficiencia severa.') > -1, c4.tri],
-    ['5 est grado + insuf PRESENTE → «con estenosis leve e insuficiencia.» y EN SUMA «IT presente.»',
-      c5.tri.indexOf('con estenosis leve e insuficiencia.') > -1 && c5.suma.indexOf('IT presente.') > -1, c5.tri + ' // ' + recorteJS(c5.suma)],
+    ['3 ambas lesiones → «con estenosis significativa e insuficiencia leve.» (wording exacto)',
+      c3.tri.indexOf('Válvula tricúspide de morfología normal, con estenosis significativa e insuficiencia leve.') > -1, c3.tri],
+    ['4 grados distintos → «con estenosis significativa e insuficiencia severa.»',
+      c4.tri.indexOf('con estenosis significativa e insuficiencia severa.') > -1, c4.tri],
+    ['5 est grado + insuf PRESENTE → «con estenosis significativa e insuficiencia.» y EN SUMA «IT presente.»',
+      c5.tri.indexOf('con estenosis significativa e insuficiencia.') > -1 && c5.suma.indexOf('IT presente.') > -1, c5.tri + ' // ' + recorteJS(c5.suma)],
     ['6 ambas PRESENTE → «con estenosis e insuficiencia.» y EN SUMA «ET presente.»/«IT presente.»',
       c6.tri.indexOf('con estenosis e insuficiencia.') > -1 && c6.suma.indexOf('ET presente.') > -1 && c6.suma.indexOf('IT presente.') > -1, c6.tri + ' // ' + recorteJS(c6.suma)],
     ['«Mixta» no aparece sola en ninguna de las 6', sinMixta === true, 'sinMixta='+sinMixta],
@@ -49496,6 +49562,206 @@ caso('TC-415', 'Vmax IT: un dato con dos campos — unidad m/s, espejo en los do
       l3.suma.trim() === 'IT severa.', recorteJS(l3.suma)],
     ['DENOMINADOR del resumen: la escena con PmAD SI agrega la frase de la PSAP, asi que el EN SUMA no es insensible',
       l1.suma.indexOf('PSAP estimada 41 mmHg') > -1, recorteJS(l1.suma)],
+  ] };
+`);
+
+/* TC-416 — ESTENOSIS TRICUSPIDEA BINARIA (2026-10-05, decision de Maicol).
+   El grado de la ET dejo de tener leve/moderada/severa: la EAE/ASE 2009 y la ESC/EACTS 2021 no la
+   graduan, es significativa o no lo es. Este caso fija las cinco mitades del pedido:
+     (a) criterio cumplido -> el boton se prende SOLO y el grado queda en «Significativa»;
+     (b) datos cargados sin ningun criterio -> el boton NO se prende y no se escribe grado
+         («No significativa» la firma el medico, nunca el sistema);
+     (c) discrepancia en los DOS sentidos -> aviso rojo y cajon de la nota;
+     (d) sin discrepancia -> ni aviso ni cajon, incluido el centinela sobre un calculo negativo;
+     (e) «Nuevo estudio» -> no sobrevive nada del paciente anterior.
+   Los TRES criterios se prueban por separado —gradiente, THP y area por continuidad— porque los
+   tres tienen el mismo peso y el area entra desde OTRA pestania (el Ø y el VTI del TSVD son de VD).
+   DENOMINADOR: cada escena tiene que producir algo DISTINTO. Las condiciones no preguntan «esta
+   vacio» sino por el valor exacto, y hay dos controles negativos: la escena (b), donde el
+   comportamiento no debe aparecer con datos cargados, y la escena del centinela, donde el calculo
+   existe y el aviso igual tiene que callar.
+   ⚠️ NI UN ACENTO GRAVE EN EL CUERPO: es un template literal. */
+caso('TC-416', 'Estenosis tricuspidea BINARIA: se prende sola solo con criterio cumplido (gradiente / THP / area), nunca escribe «No significativa», aviso y cajon en las dos discrepancias, y «Nuevo estudio» no deja rastro', `
+  ${APAGA_HELPERS}
+  /* La base deja la tricuspide intacta: las dos pastillas apagadas, sus claves de localStorage
+     borradas, la marca manual limpia y la valvula fuera de VALV_ESTEN_AUTO. Sin esto, la marca que
+     deja el apagado de la escena anterior hace salir a _etAutoGrado por su guarda y la escena
+     siguiente mide «no se prende» creyendo medir el criterio. */
+  const base = function () {
+    aReset();
+    ['esten','insuf'].forEach(function (t) {
+      try { localStorage.removeItem('valv-pill-' + t + '-tricuspide'); } catch (e) {}
+      if (aOn('tricuspide', t)) toggleValvPill('tricuspide', t); });
+    if (window.esqSevManual) delete window.esqSevManual.et;
+    if (window._sevCalcAlFijar) delete window._sevCalcAlFijar.et;
+    if (typeof VALV_ESTEN_AUTO !== 'undefined') VALV_ESTEN_AUTO.delete('tricuspide');
+    __t.set('nombre','TC416');
+    return aDen(); };
+  const leer = function () {
+    return { grado: __t.val('et_grado'), pill: aOn('tricuspide','esten'),
+             sev: aTxt('et-sev'), avt: __t.val('et_avt'),
+             calc: (typeof etGradoCalculado === 'function') ? etGradoCalculado() : 'NO EXISTE',
+             disc: (typeof sevDiscrepa === 'function') ? sevDiscrepa('et') : 'NO EXISTE',
+             aviso: aTxt('et-manual-aviso'), fund: aVis('et-fund'), nota: __t.val('et_fund_nota'),
+             past: aTxt('sevbtn-esten-tricuspide'), bloq: aVis('bloque-esten-tricuspide') }; };
+  const suma = function () { return __t.informe().suma; };
+
+  /* (0) El vocabulario del select: el centinela mas DOS grados, y ningun leve/moderada/severa. */
+  const den0 = base();
+  const etOpts = (function () { const e = document.getElementById('et_grado');
+    return e && e.options ? Array.prototype.map.call(e.options, function (o) {
+      return o.value + '|' + o.textContent.trim(); }) : ['NO EXISTE']; })();
+
+  /* (a) Los TRES criterios, uno por escena. */
+  base(); __t.set('et_gmedio','8');                       const aGm = leer();
+  base(); __t.set('et_thp','200');                        const aThp = leer();
+  /* El area por continuidad: PI*(26/20)^2 = 5,31 cm2 de TSVD, por VTI-TSVD 14, sobre VTI
+     diastolico 90 = 0,83 cm2. Los TRES insumos dentro de banda —un VTI de 120 cae fuera de la
+     banda 5-100 y entonces el area no se calcula y la escena mide un negativo que parece pasar. */
+  base(); __t.set('et_vti_diast','90'); __t.set('tsvd_diametro','26'); __t.set('vti_tsvd','14');
+  const aArea = leer();
+
+  /* (b) CONTROL NEGATIVO: datos cargados y ningun criterio. Area = 5,31*18/64 = 1,49 cm2. */
+  const sinCrit = function () {
+    base(); __t.set('et_gmedio','3'); __t.set('et_thp','150');
+    __t.set('et_vti_diast','64'); __t.set('tsvd_diametro','26'); __t.set('vti_tsvd','18'); };
+  sinCrit(); const bNada = leer(); const bSuma = suma();
+
+  /* (c) Las dos discrepancias, por el camino REAL del menu (valvSev.aplicar). */
+  sinCrit(); valvSev.aplicar('esten','tricuspide','Significativa');
+  __t.set('et_fund_nota','valvula rigida por carcinoide');
+  const cArriba = leer();
+  base(); __t.set('et_gmedio','8'); valvSev.aplicar('esten','tricuspide','No significativa');
+  __t.set('et_fund_nota','gradiente sobreestimado por taquicardia');
+  const cAbajo = leer(); const cAbajoSuma = suma();
+
+  /* (d) SIN discrepancia: el grado que coincide con el calculo, y el CENTINELA sobre un calculo
+     negativo —que es el estado que Maicol declaro explicitamente que NO discrepa—. */
+  base(); __t.set('et_gmedio','8'); valvSev.aplicar('esten','tricuspide','Significativa');
+  const dCoincide = leer();
+  sinCrit(); const dCentinela = leer();
+
+  /* (e) El sistema NUNCA deja escrito «No significativa»: R6 suelta el manual y escribe el
+     calculado, y el retiro automatico lo devuelve al centinela y apaga el boton. */
+  base(); __t.set('et_gmedio','8'); valvSev.aplicar('esten','tricuspide','Significativa');
+  const r6Antes = leer();
+  __t.set('et_gmedio','3');
+  const r6Despues = leer();
+
+  /* (f) El auto-prendido no se gasta en un uso: 8 -> 3 -> 8 tiene que volver a prender. */
+  base(); __t.set('et_gmedio','8'); const v1 = leer().pill;
+  __t.set('et_gmedio','3');         const v2 = leer().pill;
+  __t.set('et_gmedio','8');         const v3 = leer().pill;
+
+  /* (g) El apagado MANUAL es durable: el clic del medico sale por otro camino que el de la app. */
+  base(); __t.set('et_gmedio','8');
+  toggleValvPill('tricuspide','esten');
+  __t.set('et_gmedio','9');
+  const gManual = leer();
+
+  /* (h) «Nuevo estudio» no deja rastro del aviso ni del cajon del paciente anterior. */
+  base(); __t.set('et_gmedio','8'); valvSev.aplicar('esten','tricuspide','No significativa');
+  __t.set('et_fund_nota','motivo del paciente anterior');
+  const hAntes = leer();
+  limpiarCampos(true); aDen();
+  const hDespues = leer();
+
+  /* (i) CONTROL NEGATIVO de valvula: la insuficiencia tricuspidea y la mitral no se tocaron. */
+  base(); __t.set('et_gmedio','8'); __t.set('it_vc','8'); __t.set('im_vc','8');
+  const iOtras = { it: __t.val('it_grado'), im: __t.val('im_grado'),
+                   itPill: aOn('tricuspide','insuf'), imPill: aOn('mitral','insuf') };
+
+  return { extra: [
+    ['DENOMINADOR: la pestania y las cuatro secciones estaban abiertas', den0 === true, String(den0)],
+    /* DENOMINADOR de verdad: las escenas producen valores DISTINTOS entre si. Sin esto, una base()
+       que dejara el formulario roto daria «sin» en las ocho y el caso pasaria sobre nada. */
+    ['DENOMINADOR: las escenas no dan todas lo mismo',
+      aGm.grado === 'Significativa' && bNada.grado === 'sin' &&
+      cAbajo.grado === 'No significativa' &&
+      new Set([aGm.grado, bNada.grado, cAbajo.grado]).size === 3,
+      'a=' + aGm.grado + ' b=' + bNada.grado + ' c=' + cAbajo.grado],
+
+    ['(0) el select ofrece el centinela y DOS grados: ni leve, ni moderada, ni severa',
+      etOpts.length === 3 && etOpts[0] === 'sin|— grado —' &&
+      etOpts[1] === 'Significativa|Significativa' && etOpts[2] === 'No significativa|No significativa',
+      JSON.stringify(etOpts)],
+
+    ['(a1) gradiente medio 8 mmHg prende el boton y escribe «Significativa»',
+      aGm.pill === true && aGm.grado === 'Significativa' && aGm.calc === 'Significativa',
+      JSON.stringify(aGm)],
+    ['(a2) THP 200 ms, lo mismo —el segundo criterio tiene el MISMO peso—',
+      aThp.pill === true && aThp.grado === 'Significativa', JSON.stringify(aThp)],
+    /* El area entra desde la pestania VD: hasta esta tanda sus dos insumos no disparaban calcET,
+       asi que el tercer criterio no podia prender nada. */
+    ['(a3) area 0,83 cm2 desde la pestania VD tambien, y el area se publica',
+      aArea.pill === true && aArea.grado === 'Significativa' && aArea.avt === '0.83 cm²',
+      JSON.stringify(aArea)],
+    ['(a4) la capsula dice «Significativa» en los tres',
+      [aGm, aThp, aArea].every(function (r) { return r.sev.indexOf('Significativa') > -1; }),
+      aGm.sev + ' / ' + aThp.sev + ' / ' + aArea.sev],
+    ['(a5) y la pastilla lo muestra, que es la regla 2',
+      aGm.past.indexOf('Significativa') > -1, aGm.past],
+
+    /* CONTROL NEGATIVO DEL AUTO-PRENDIDO. Con datos cargados y ningun criterio, el calculo EXISTE
+       («No significativa») y aun asi no se escribe ni se prende nada: es la mitad del pedido que
+       dice que esa afirmacion la firma el medico. */
+    ['(b) CONTROL NEGATIVO: con datos y ningun criterio el boton NO se prende y no hay grado',
+      bNada.pill === false && bNada.grado === 'sin' && bNada.calc === 'No significativa' &&
+      bNada.sev === '—', JSON.stringify(bNada)],
+    ['(b2) y al EN SUMA no sube ninguna estenosis tricuspidea',
+      bSuma.indexOf('ET ') === -1, recorteJS(bSuma)],
+
+    ['(c1) discrepancia HACIA ARRIBA: aviso rojo con los dos grados, cajon visible y la nota viva',
+      cArriba.disc === true && cArriba.grado === 'Significativa' &&
+      cArriba.aviso === '⚠️ Significativa (ajuste manual) · cálculo automático: No significativa' &&
+      cArriba.fund === true && cArriba.nota === 'valvula rigida por carcinoide',
+      JSON.stringify(cArriba)],
+    ['(c2) discrepancia HACIA ABAJO: el aviso nombra los dos grados al reves',
+      cAbajo.disc === true && cAbajo.grado === 'No significativa' &&
+      cAbajo.aviso === '⚠️ No significativa (ajuste manual) · cálculo automático: Significativa' &&
+      cAbajo.fund === true, JSON.stringify(cAbajo)],
+    ['(c3) y el grado consignado manda en el EN SUMA, sin duplicar la palabra',
+      cAbajoSuma.indexOf('ET no significativa.') > -1 &&
+      cAbajoSuma.indexOf('significativa, significativa') === -1, recorteJS(cAbajoSuma)],
+
+    ['(d1) SIN discrepancia —el grado coincide con el calculo— no hay aviso ni cajon',
+      dCoincide.disc === false && dCoincide.aviso === '' && dCoincide.fund === false,
+      JSON.stringify(dCoincide)],
+    /* El otro control negativo, y es el estado que Maicol declaro textualmente: «Con el calculo en
+       No significativa y el grado en "— grado —" NO hay discrepancia». El centinela no esta en
+       comparables y la marca manual no se enciende sola, o sea dos puertas y no una. */
+    ['(d2) CONTROL NEGATIVO: el centinela sobre un calculo «No significativa» NO discrepa',
+      dCentinela.disc === false && dCentinela.grado === 'sin' &&
+      dCentinela.calc === 'No significativa' && dCentinela.aviso === '' &&
+      dCentinela.fund === false, JSON.stringify(dCentinela)],
+
+    ['(e) EL SISTEMA NUNCA ESCRIBE «No significativa»: R6 suelta el manual y el retiro lo devuelve al centinela y apaga el boton',
+      r6Antes.grado === 'Significativa' && r6Antes.pill === true &&
+      r6Despues.grado === 'sin' && r6Despues.pill === false,
+      'antes=' + JSON.stringify(r6Antes) + ' despues=' + JSON.stringify(r6Despues)],
+
+    ['(f) el auto-prendido no se gasta en un uso: 8 prende, 3 apaga, 8 vuelve a prender',
+      v1 === true && v2 === false && v3 === true, 'v1=' + v1 + ' v2=' + v2 + ' v3=' + v3],
+
+    ['(g) el apagado MANUAL es durable: con el gradiente corregido a 9 el boton NO se reprende',
+      gManual.pill === false && gManual.grado === 'sin', JSON.stringify(gManual)],
+
+    ['(h) «Nuevo estudio» no deja aviso, ni cajon, ni nota, ni grado, ni boton',
+      hAntes.aviso !== '' && hAntes.fund === true &&
+      hDespues.aviso === '' && hDespues.fund === false && hDespues.nota === '' &&
+      hDespues.grado === 'sin' && hDespues.pill === false && hDespues.bloq === false,
+      'antes=' + JSON.stringify(hAntes) + ' despues=' + JSON.stringify(hDespues)],
+
+    /* ⚠️ NO SE EXIGE QUE LAS PASTILLAS SE PRENDAN, Y LA PRIMERA VERSION DE ESTA CONDICION LO HACIA.
+       Esta MEDIDO y documentado en el CLAUDE.md de la tanda anterior: it_vc, it_pisa_r e it_vti NO
+       prenden la pastilla de la IT —solo la Vmax del jet lo hace, via calcPSAP— y la mitral se
+       comporta igual con im_vc. La expectativa estaba mal, la app no. Lo que este control negativo
+       afirma es que las OTRAS dos lesiones siguen graduando por su cuenta con el auto-prendido de la
+       ET activo al lado: si el cableado nuevo se hubiera derramado, estos dos grados se moverian. */
+    ['(i) CONTROL NEGATIVO de valvula: la IT y la IM siguen graduando por su cuenta',
+      iOtras.it === '4' && iOtras.im === '4' &&
+      iOtras.itPill === false && iOtras.imPill === false,
+      JSON.stringify(iOtras)],
   ] };
 `);
 

@@ -207,12 +207,16 @@ impecable.
   ⚠️ **Este renglón se escribió mal una vez**: decía «doce commits sin pushear, `origin/main` en
   `2e017a1`», copiado del estado anterior sin mirar. `origin/main` había avanzado. Antes de
   escribirlo, `git rev-parse --short origin/main` y `git log --oneline origin/main..HEAD`.
-- **Línea base al 2026-10-05 (tanda de la Vmax IT): suite 426/430, Semgrep 127 / 0 ERROR, Excel
+- **Línea base al 2026-10-05 (tanda de la ET binaria): suite 427/431, Semgrep 127 / 0 ERROR, Excel
   434 columnas.** Los cuatro rojos son los de entrada y NO son regresiones: **TC-223** (el
   documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**. ⚠️ **El denominador subió a
-  430**: la tanda de la Vmax IT agregó **TC-415**. Los renglones viejos de este archivo —421/422,
-  425/429— quedaron atrás, así que volver a medir antes de leer una tanda de mutaciones sigue
-  siendo obligatorio.
+  431**: la tanda de la ET binaria agregó **TC-416** (la de la Vmax IT había agregado TC-415). Los
+  renglones viejos de este archivo —421/422, 425/429, 426/430— quedaron atrás, así que volver a
+  medir antes de leer una tanda de mutaciones sigue siendo obligatorio.
+  ⚠️ **Y medirla DE VERDAD, no leer este renglón:** esta tanda abrió con 409/430 y 17 rojos, de los
+  que 7 tenían una causa ÚNICA y compartida (el guardián del importador) y ninguno era de la mitral
+  aunque sus títulos lo dijeran. Correr los sospechosos con `--solo` **sobre HEAD** fue lo que
+  separó «lo rompí yo» de «ya estaba roto»: dieron 17/17 ✓.
 
 ### ⏸️ PENDIENTE DE MAICOL — la banda de plausibilidad del gradiente VD-AD (2026-10-05)
 
@@ -276,6 +280,108 @@ es un dato con dos campos, ese agujero se alcanza también escribiendo en el cam
   líneas antes del culpable; este script da la línea exacta. Verificado por mutación: con un acento
   grave inyectado señala la 49425 mientras `node --check` dice 49342. **Me comí ese acento grave
   cinco veces en dos tandas**, con el archivo que documenta la trampa abierto delante.
+
+### Tricúspide — la ESTENOSIS es binaria: Significativa / No significativa (2026-10-05)
+
+- **`et_grado` tiene TRES opciones y sus `value` cambiaron los tres.** El centinela pasó de
+  `"Sin estenosis"` a **`"sin"`**, y las dos reales son `"Significativa"` y `"No significativa"`.
+  Desaparecen Leve, Moderada y Severa **de esta válvula**: la EAE/ASE 2009 y la ESC/EACTS 2021 no
+  graduan la ET. Los cortes NO se tocaron (`ET_GMEDIO_SIGNIF 5`, `ET_THP_SIGNIF 190`,
+  `ET_AVT_SIGNIF 1`). **No hay opción visible «Sin estenosis»: botón apagado = sin estenosis.**
+- ⚠️ **EL CENTINELA TUVO QUE SER `'sin'` Y NO ES COSMÉTICO.** `SEV_TOKEN_SIN.esten` vale `'sin'` y lo
+  comparten las cuatro estenosis. Con `'Sin estenosis'`, `valvGradoVisSync` calcula
+  `hayGrado = !sevEsSin('esten','Sin estenosis')` → siempre `true`, y el bloque de la ET quedaba
+  **visible para siempre con el botón apagado**. La alternativa era tocar `SEV_TOKEN_SIN`, que
+  gobierna las otras cinco válvulas. De paso cierra la falla R7 de
+  `docs/decisiones/valvulas-botones.md` §5.4 («EL SELECT RECHAZO sin»).
+- **`et` ENTRÓ A `SEV_SINC`** (séptima clave), y con eso aparecieron `et-manual-aviso` y el cajón
+  `et-fund` / `et_fund_nota`. **Cero líneas de `sevSincronizar`, `sevDiscrepa`, `sevComparable`,
+  `sevFundamento`, `sevFundLimpiar`, `sevFundRestaurar` y `valvSev`**: los siete se derivan del
+  registro, que es lo que sus comentarios anticipaban. El proveedor es **PURO** (`etGradoCalculado`
+  lee los campos), así que la entrada **no declara `recalcular`** — a diferencia de `im`/`ia`/`it`,
+  que leen una foto de proceso.
+- ⚠️ **`calculables`/`comparables` VAN CON LITERALES Y NO CON `ET_SIGNIF_TXT`.** Esas constantes se
+  declaran ~3.000 líneas más abajo y las listas se evalúan al CREAR el registro: nombrarlas revienta
+  en la zona muerta de `const` y se lleva el `<script>` entero, o sea la app **sin aviso ni cajón en
+  ninguna válvula**.
+- **El centinela NO está en `comparables`**, y es lo que hace que «cálculo No significativa + grado
+  en — grado —» **no** discrepe (decisión de Maicol, textual). Son dos puertas: eso y que la marca
+  manual no se enciende sola en ese estado.
+- **El sistema escribe «Significativa» y NUNCA «No significativa».** El cálculo produce los dos
+  —los necesita el aviso en los dos sentidos— pero esa afirmación la firma el médico.
+  ⚠️ **Y POR ESO `_etAutoGrado` CORRE DESPUÉS DE `sevSincronizar`, NO ANTES.** R6 escribe el
+  calculado con `sel.value = calc`, así que «el médico fijó Significativa · después corrige el
+  gradiente a 3» dejaba **«No significativa» escrito por el sistema**. Corriendo después, el retiro
+  lo encuentra marcado como sugerido, lo devuelve al centinela y apaga el botón (reglas 7 y 8). Lo
+  fija TC-416 (e).
+- ⚠️ **`_etApagarAuto` NO ES `valvAutoApagarEsten`, y las dos diferencias las encontró la sonda, no
+  la lectura.** (1) Borra la clave de `localStorage` en vez de dejarla en `'0'`: si no, el
+  auto-prendido **se gasta en un solo uso** —8 prende, 3 apaga, 8 ya no vuelve a prender—.
+  (2) Borra `esqSevManual.et` y su foto: la cadena `toggleValvPill` → `valvApagarGrado` →
+  `valvSev.aplicar(…, centinela)` pone la marca manual, y desde que la ET está registrada eso corre
+  **también cuando el que apaga es la app** — con la marca puesta, `_etAutoGrado` salía por su
+  guarda y el auto-prendido quedaba muerto para el resto del estudio. **El apagado del MÉDICO no
+  pasa por acá** (su clic entra directo a `toggleValvPill`), así que sigue siendo durable: con el
+  gradiente corregido a 9 el botón no se reprende. El mismo agujero de la clave en la **PULMONAR**
+  queda **REPORTADO y no corregido** — es su informe firmado y es otra tanda.
+- **El área por continuidad no podía prender nada hasta hoy**: `tsvd_diametro` y `vti_tsvd` (pestaña
+  VD) no llamaban a `calcET`, así que el tercer criterio nunca votaba desde su origen. Se agregó
+  `calcET()` a esos dos `oninput`.
+- **`SEV_SIN_APAGA_VALVS` NO incluye la tricúspide y se dejó así**: agregarla habría cambiado también
+  la **insuficiencia** tricuspídea, que esta tanda no toca. Consecuencia declarada: elegir el
+  centinela a mano **no** apaga el botón de la ET (lo fija TC-405).
+- **Informe y EN SUMA: se BORRÓ el sufijo `, significativa` cuando el grado ya lo dice** (decisión de
+  Maicol; es un borrado, no una frase nueva). Sin eso salía «ET significativa, significativa.» y, en
+  la discrepancia, «no significativa, significativa» — una contradicción en la misma oración. Las
+  frases de Leve/Moderada/Severa **no** se tocaron, así que un legado con «Leve» imprime igual que en
+  HEAD. El grado consignado manda, que es la regla 10.
+- **Migración de legado: SÓLO `'Sin estenosis'` → `'sin'`**, en memoria (`_migrarCamposLegacy`), y no
+  es por los estudios con estenosis sino **por los que no la tienen**: era el valor de FÁBRICA, lo
+  traen todos. Sin eso el `<select>` queda en `selectedIndex -1`. **Los tres grados viejos NO se
+  traducen**: mapear «Severa» a «Significativa» es inventar una equivalencia que la guía no hace.
+- **Importador: `LAB_XLS_LISTAS_LEGADO`**, tabla nueva de valores **sólo-de-entrada**. Los cuatro
+  valores viejos de `et_grado` tienen que seguir aceptándose porque para una columna `opcion` un
+  valor desconocido descarta la **FILA ENTERA** — y `'Sin estenosis'` lo trae cada fila de cada
+  backup anterior. `_labXlsAssertListas` saltea esa tabla **sólo en la segunda dirección**; la
+  primera (una `<option>` que falte en la lista) sigue vigilada para las seis válvulas. Sin esto el
+  chequeo de arranque gritaba cuatro divergencias esperadas en cada carga y **enterraba la próxima
+  divergencia real** — eran los 7 rojos de mitral/prótesis de esta tanda, con causa única.
+- **PENDIENTE DEL LABORATORIO (decisión de Maicol, 2026-10-05):** la estenosis tricuspídea ahora es
+  binaria (Significativa / No significativa / botón apagado = sin estenosis). El Laboratorio todavía
+  no la cuenta: `_labEstenSev` devuelve `null` para los dos grados nuevos y esos estudios quedan
+  fuera de la fila. Cuando se ajuste el Laboratorio hay que contar tres categorías distintas, sin
+  equiparar Significativa con Severa ni No significativa con Sin.
+  Medido: con base 0 la fila sale «Esten. Tricusp. (sin datos)» con rayas en las cuatro columnas —
+  sin NaN y sin división por cero, en el gráfico y en el PDF de auditoría— y las otras siete filas
+  son **idénticas a HEAD**.
+- **Lo que NO se contó y queda declarado:** `VALVSIG` (CeiboAnalytics) no reconoce «Significativa»
+  —su regex es `/severa|moderada/`— así que una ET significativa no cuenta como valvulopatía
+  significativa ahí. Y la fila «ET grado» de «Ver detalle» lleva `grades:true`, que hace `parseInt`
+  sobre un texto: **ya no se imprimía en HEAD** con ningún valor, así que no es una regresión.
+- **Excel: 434 columnas, mismo juego de claves.** La única celda que cambia es «ET grado», que pasa de
+  `Sin estenosis` a `sin` en un formulario vacío — el mismo token crudo que `ep_grado` ya publica.
+- **El panel de Evidencia no cambia en nada**: `IND_SECS` **no lee `et_grado`**. Medido en los cuatro
+  estados: 1 sección / 6 filas con el gradiente cargado y 0/0 sin él, **idéntico a HEAD en los
+  cuatro**. No pierde ni inventa una fila.
+- **Cobertura: TC-416**, 20 condiciones, con los tres criterios por separado, las dos discrepancias,
+  **dos controles negativos** (datos sin criterio, y el centinela sobre un cálculo negativo), el
+  vaivén del auto-prendido, el apagado manual durable y «Nuevo estudio». Arnés:
+  `scripts/_probe_etbin.mjs` (A/B de solo lectura con `--file`).
+- **Casos adaptados** (los nueve estaban VERDES en HEAD): **TC-137** (el reposo es `'sin'`; y
+  **cambió una afirmación a propósito**: a 5,0 mmHg `calcET` ahora SÍ escribe el grado),
+  **TC-391** (seis claves → siete), **TC-395** (26 opciones → 25), **TC-400** (la ET entra con
+  «Significativa», no con «leve»), **TC-405** (la tricúspide YA está registrada), **TC-411** (las
+  seis combinaciones usan el grado binario) y los cuatro que caían por el guardián del importador.
+  ⚠️ **El control negativo de TC-400 estaba roto en mi primera versión**: preguntaba por
+  `/significativa/i` sobre un EN SUMA cuya frase de normalidad dice «ni funcionales
+  **significativas**», así que no podía pasar nunca. Ahora pregunta por la sigla «ET ».
+- **Línea base al cierre: suite 427/431, Semgrep 127 / 0 ERROR, Excel 434 columnas, móvil idéntico a
+  HEAD** (367 hallazgos a 360 px y 376 a 390 px, 1 ALTA cada uno, el `#caso_interes` preexistente y
+  ajeno). Los cuatro rojos son los de entrada: **TC-223**, **TC-376**, **TC-390**, **TC-406**.
+  ⚠️ **El denominador subió a 431**: esta tanda agregó **TC-416**.
+- ⚠️ **Me volví a comer el acento grave DOS veces**, las dos en comentarios míos dentro del cuerpo de
+  un caso. `node --check` apuntó 87 y 88 líneas antes del culpable; `scripts/check_backticks.py` dio
+  la línea exacta las dos veces. **Correrlo antes del suite, no después.**
 
 ### Tricúspide — `it_grado` es un `<select>` y el grado 3 quedó inalcanzable (2026-10-05)
 
