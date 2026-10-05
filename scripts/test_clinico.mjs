@@ -50192,6 +50192,121 @@ caso('TC-417', 'Tricuspide — la tabla de textos: 15 escenas del informe (presi
   ] };
 `);
 
+/* TC-418 — EL AUTO-PRENDIDO DE LA ESTENOSIS PULMONAR ES REPETIBLE (parte C, 2026-10-05).
+   El defecto: se gastaba en UN SOLO USO. Vmax 4 prendia el boton; corregir a 1,4 lo apagaba y
+   dejaba la clave de localStorage en '0' —que para valvAutoPrenderEsten significa «el medico lo
+   cerro a mano»— mas esqSevManual.ep puesta por la propia cadena de apagado de la app; volver a 4
+   ya NO lo prendia, con el grado «Moderada» escrito y el informe firmado diciendo «con estenosis
+   moderada (Vmax 4 m/s, Gmax 64 mmHg)»: la pastilla que el medico lee apagada sobre un informe que
+   afirma la estenosis.
+   Se cierra con _epApagarAuto, ruta PROPIA de la pulmonar: valvAutoApagarEsten es generica —su mapa
+   cubre aortica, mitral y pulmonar— y cambiarla le movia la conducta a las otras dos.
+   DENOMINADOR Y CONTROL NEGATIVO, los dos: el vaiven se recorre DOS veces (para que «repetible» no
+   sea «un uso mas») y el apagado DEL MEDICO con la velocidad alta tiene que seguir siendo durable.
+   ⚠️ SIN ACENTOS GRAVES EN EL CUERPO. */
+caso('TC-418', 'Estenosis pulmonar: el auto-prendido es REPETIBLE (4 -> 1,4 -> 4 prende otra vez) y el apagado del medico sigue siendo durable', `
+  ${APAGA_HELPERS}
+  const limpioP = function(){
+    __t.nuevoEstudio();
+    if (window.esqSevManual) delete window.esqSevManual.ep;
+    if (window._sevCalcAlFijar) delete window._sevCalcAlFijar.ep;
+    ['esten','insuf'].forEach(function(t){
+      try { localStorage.removeItem('valv-pill-'+t+'-pulmonar'); } catch(e){}
+      if (aOn('pulmonar',t)) toggleValvPill('pulmonar',t); });
+    try { if (typeof VALV_ESTEN_AUTO !== 'undefined') VALV_ESTEN_AUTO.delete('pulmonar'); } catch(e){}
+    __t.set('nombre','TC418'); };
+  const foto = function(){
+    const r = __t.informe();
+    return { pill: aOn('pulmonar','esten'),
+             grado: String(__t.val('ep_grado')||''),
+             ls: (function(){ try { return localStorage.getItem('valv-pill-esten-pulmonar'); }
+                    catch(e){ return 'EXC'; } })(),
+             auto: (function(){ try { return typeof VALV_ESTEN_AUTO !== 'undefined' &&
+                    VALV_ESTEN_AUTO.has('pulmonar'); } catch(e){ return 'EXC'; } })(),
+             man: !!(window.esqSevManual && window.esqSevManual.ep),
+             vp: (r.inf||'').split(String.fromCharCode(10))
+                   .filter(function(l){ return /pulmonar|\\bVP\\b/i.test(l); }).join(' | '),
+             suma: (r.suma||'') }; };
+
+  // ── EL VAIVEN, dos vueltas enteras ──────────────────────────────────────────────────────────
+  limpioP();
+  __t.set('vp_vmax','4');   const v1 = foto();
+  __t.set('vp_vmax','1.4'); const v2 = foto();
+  __t.set('vp_vmax','4');   const v3 = foto();
+  __t.set('vp_vmax','1.4'); const v4 = foto();
+  __t.set('vp_vmax','4');   const v5 = foto();
+
+  // ── CONTROL NEGATIVO: el apagado DEL MEDICO con la velocidad alta ───────────────────────────
+  limpioP();
+  __t.set('vp_vmax','4');   const m1 = foto();
+  toggleValvPill('pulmonar','esten');
+  const m2 = foto();
+  __t.set('vp_vmax','4.5'); const m3 = foto();
+  __t.set('vp_vmax','4');   const m4 = foto();
+
+  /* ── CONTROL NEGATIVO DE ALCANCE: la AORTICA no se toca. Su hueco declarado es el OPUESTO —no
+     tiene auto-apagado y queda PRENDIDA con el grado en «sin»— y tiene que seguir igual, porque
+     tocar su informe firmado es decision de Maicol (docs/PENDIENTES.md). */
+  __t.nuevoEstudio();
+  try { localStorage.removeItem('valv-pill-esten-aortica'); } catch(e){}
+  if (aOn('aortica','esten')) toggleValvPill('aortica','esten');
+  try { if (typeof VALV_ESTEN_AUTO !== 'undefined') VALV_ESTEN_AUTO.delete('aortica'); } catch(e){}
+  __t.set('vmax_ao','4.5');
+  const ao1 = { pill: aOn('aortica','esten'), grado: String(__t.val('ea_grado')||'') };
+  __t.set('vmax_ao','1.5');
+  const ao2 = { pill: aOn('aortica','esten'), grado: String(__t.val('ea_grado')||'') };
+  __t.set('vmax_ao','4.5');
+  const ao3 = { pill: aOn('aortica','esten'), grado: String(__t.val('ea_grado')||'') };
+
+  return { extra: [
+    // ── DENOMINADOR ───────────────────────────────────────────────────────────────────────────
+    ['DENOMINADOR: Vmax 4 prende el boton, escribe grado graduable y la app queda dueña',
+      v1.pill === true && v1.grado === 'Moderada' && v1.auto === true && v1.ls === '1',
+      JSON.stringify(v1).slice(0, 200)],
+    ['DENOMINADOR: y el informe afirma la estenosis con sus valores',
+      v1.vp.indexOf('con estenosis moderada (Vmax 4 m/s, Gmax 64 mmHg)') > -1, v1.vp],
+
+    // ── EL APAGADO AUTOMATICO LIMPIA LAS DOS COSAS ────────────────────────────────────────────
+    ['corregido a 1,4 el boton se apaga y el grado vuelve al centinela',
+      v2.pill === false && v2.grado === 'sin', JSON.stringify(v2).slice(0, 200)],
+    ['y la clave de localStorage se BORRA (no queda en 0, que significaria «lo cerro el medico»)',
+      v2.ls === null, 'ls=' + JSON.stringify(v2.ls)],
+    ['y la marca manual que la propia cadena de apagado puso tambien se borra',
+      v2.man === false, 'man=' + v2.man],
+    ['y el informe deja de afirmar la estenosis',
+      v2.vp.indexOf('con estenosis') === -1 && v2.suma.indexOf('EP ') === -1,
+      v2.vp + ' // ' + recorteJS(v2.suma)],
+
+    // ── EL ARREGLO: VUELVE A PRENDER, Y MAS DE UNA VEZ ────────────────────────────────────────
+    ['EL DEFECTO CERRADO: de vuelta en 4 el boton PRENDE otra vez',
+      v3.pill === true && v3.grado === 'Moderada' && v3.auto === true,
+      JSON.stringify(v3).slice(0, 200)],
+    ['y no es «un uso mas»: la segunda vuelta completa se comporta igual',
+      v4.pill === false && v4.grado === 'sin' && v4.ls === null &&
+      v5.pill === true && v5.grado === 'Moderada',
+      'v4=' + JSON.stringify(v4).slice(0, 120) + ' v5=' + JSON.stringify(v5).slice(0, 120)],
+    ['y en los tres pasos con Vmax 4 el boton y el informe dicen LO MISMO',
+      v1.pill === v3.pill && v3.pill === v5.pill &&
+      v1.vp === v3.vp && v3.vp === v5.vp, 'v1/v3/v5 coherentes'],
+
+    // ── CONTROL NEGATIVO: EL APAGADO DEL MEDICO ES DURABLE ────────────────────────────────────
+    ['CONTROL NEGATIVO · DENOMINADOR: antes del clic el boton estaba prendido por la app',
+      m1.pill === true && m1.auto === true, JSON.stringify(m1).slice(0, 160)],
+    ['el clic del medico apaga y deja la clave en 0 (ese rastro SI se conserva)',
+      m2.pill === false && m2.ls === '0', JSON.stringify(m2).slice(0, 160)],
+    ['y NO se reprende ni subiendo la velocidad ni volviendo al valor que lo habia prendido',
+      m3.pill === false && m4.pill === false,
+      'm3=' + JSON.stringify(m3).slice(0, 120) + ' m4=' + JSON.stringify(m4).slice(0, 120)],
+    ['DENOMINADOR del control: la velocidad SI se movio y el grado la siguio',
+      m3.grado === 'Severa' && m4.grado === 'Moderada', 'm3=' + m3.grado + ' m4=' + m4.grado],
+
+    // ── CONTROL NEGATIVO DE ALCANCE: la aortica no cambio ────────────────────────────────────
+    ['CONTROL NEGATIVO: la AORTICA conserva su conducta (su hueco declarado sigue abierto)',
+      ao1.pill === true && ao2.pill === true && ao2.grado.toLowerCase() === 'sin' && ao3.pill === true,
+      JSON.stringify([ao1, ao2, ao3])],
+  ] };
+`);
+
 /* TC-412 — PULMONAR NARRATIVO DE UNA ORACION. Con morfologia normal y al menos una lesion, la EP y
    la IP se dicen en UNA oracion como la mitral. «Mixta» no se escribe sola.
    ⚠️ CONTRATO ACTUALIZADO (P5, decision de Maicol, 2026-10-04). Antes era «con estenosis X e

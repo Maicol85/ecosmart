@@ -27579,8 +27579,12 @@ function calcVP() {
     /* Gemelo del auto-prendido: con el gradiente borrado/ilegible y el grado devuelto a «sin», se
        apaga la pastilla que la app había prendido —si no, quedaba prendida sin grado y el informe
        afirmaba «EP presente.» sin nada que lo sostenga (/sharp-edges). Respeta al médico: ver
-       `valvAutoApagarEsten`. */
-    if (typeof valvAutoApagarEsten === 'function') valvAutoApagarEsten('pulmonar');
+       `_epApagarAuto`.
+       ⚠️ PASÓ DE `valvAutoApagarEsten` A `_epApagarAuto` (parte C, 2026-10-05): las dos condiciones
+       son las mismas, pero la ruta propia además BORRA la clave de `localStorage` y la marca manual,
+       sin lo cual el auto-prendido se gastaba en un solo uso. La genérica no se tocó porque gobierna
+       también la aórtica y la mitral. */
+    if (typeof _epApagarAuto === 'function') _epApagarAuto();
     return;
   }
   const origen = (vmax !== null && vmax > 0) ? `Vmax ${vmax} m/s → Gmax ${gmax} mmHg` : `Gmax ${gmax} mmHg`;
@@ -27615,8 +27619,10 @@ function calcVP() {
   /* …y su gemelo para el gradiente NORMAL (opcion==='Normal' → grado «sin»): apaga la pastilla que la
      app prendió, para que un Vmax corregido a 1,4 m/s no deje «EP presente.» en el informe firmado.
      Los dos se auto-gatean por el grado, así que llamar a ambos es correcto: con grado graduable
-     prende y apaga sale; con grado «sin» apaga y prende sale (/sharp-edges, 2026-10-04). */
-  if (typeof valvAutoApagarEsten === 'function') valvAutoApagarEsten('pulmonar');
+     prende y apaga sale; con grado «sin» apaga y prende sale (/sharp-edges, 2026-10-04).
+     ⚠️ Es `_epApagarAuto` desde la parte C del 2026-10-05: ver el comentario del otro punto de
+     llamada, unas 30 líneas arriba. */
+  if (typeof _epApagarAuto === 'function') _epApagarAuto();
 }
 window.calcVP = calcVP;
 
@@ -53014,6 +53020,51 @@ function valvAutoApagarEsten(valv) {
   } catch (e) {}
 }
 window.valvAutoApagarEsten = valvAutoApagarEsten;
+
+/* ══ EL APAGADO AUTOMÁTICO DE LA EP — RUTA PROPIA DE LA PULMONAR (parte C, 2026-10-05) ═════════
+   Cierra en la PULMONAR el agujero que `_etApagarAuto` ya había cerrado en la tricúspide y que el
+   comentario de esa función dejó declarado: **el auto-prendido se gastaba en un solo uso.**
+   Medido con `scripts/_probe_pulmoauto.mjs`, la secuencia del pedido:
+     Vmax 4   → botón PRENDIDO, grado «Moderada», clave en '1'
+     Vmax 1,4 → botón apagado, grado «sin», clave en '0' y `esqSevManual.ep` PUESTA
+     Vmax 4   → **el botón NO vuelve a prenderse**, con el grado «Moderada» escrito y el informe
+                firmado diciendo «con estenosis moderada (Vmax 4 m/s, Gmax 64 mmHg)». O sea la
+                pastilla que el médico lee apagada sobre un informe que afirma la estenosis.
+   SON LAS MISMAS DOS CAUSAS QUE EN LA TRICÚSPIDE:
+     (1) la clave de `localStorage` queda en `'0'`, y para `valvAutoPrenderEsten` eso significa «el
+         médico lo cerró a mano» (sale por `guardado !== null`). Acá no lo cerró el médico: lo cerró
+         la app, así que BORRAR la clave devuelve el estado a «nadie lo tocó», que es la verdad.
+     (2) la cadena `toggleValvPill` → `valvApagarGrado` → `valvSev.aplicar(…, centinela)` pone
+         `esqSevManual.ep` —`ep` está registrada en `SEV_SINC`—, y eso corre TAMBIÉN cuando el que
+         apaga es la app. Medido arriba: `manual=True` después del paso de 1,4.
+   ⚠️ POR QUÉ ES UNA FUNCIÓN APARTE Y NO UN PARÁMETRO DE `valvAutoApagarEsten`: esa función es
+   GENÉRICA —su mapa cubre aórtica, mitral y pulmonar, y está exportada en `window`—, así que
+   cambiarla le cambiaría la conducta a las otras dos válvulas, cuyo informe firmado esta tanda no
+   toca. Es el mismo criterio con el que nació `_etApagarAuto`.
+   ⚠️ EL APAGADO DEL MÉDICO NO PASA POR ACÁ, y por eso sigue siendo durable: su clic entra directo a
+   `toggleValvPill`, la clave queda en `'0'` y la marca puesta. Medido: con la velocidad en 4,5 y
+   después de vuelta en 4, el botón NO se reprende. */
+function _epApagarAuto() {
+  try {
+    if (typeof pillOn !== 'function' || typeof toggleValvPill !== 'function') return null;
+    if (!pillOn('pulmonar', 'esten')) return { yaEstaba: true };
+    const _auto = window.VALV_ESTEN_AUTO;
+    if (!_auto || !_auto.has('pulmonar')) return { delMedico: true };   // la afirmó el médico: no se apaga
+    /* La MISMA segunda condición que `valvAutoApagarEsten`: un grado que sobrevivió es una
+       afirmación y no se apaga. Se lee el select por su id, sin el mapa de tres válvulas. */
+    const sel = document.getElementById('ep_grado');
+    const g = sel ? String(sel.value || '') : '';
+    if (g !== '' && g.toLowerCase() !== 'sin') return { hayGrado: g };
+    toggleValvPill('pulmonar', 'esten');
+    _auto.delete('pulmonar');
+    try { localStorage.removeItem('valv-pill-esten-pulmonar'); } catch (e) {}
+    if (window.esqSevManual) delete window.esqSevManual.ep;
+    if (window._sevCalcAlFijar) delete window._sevCalcAlFijar.ep;
+    if (typeof _sevManualSync === 'function') { try { _sevManualSync(); } catch (e) {} }
+    return { apagada: !pillOn('pulmonar', 'esten') };
+  } catch (e) { return null; }
+}
+window._epApagarAuto = _epApagarAuto;
 
 function valvAutoAbrirCajones() {
   Object.keys(SEV_SINC).forEach(function(k){
@@ -94530,8 +94581,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261005-1027';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791206853798;                 /* eco-build-ms */
+const ECO_BUILD    = '20261005-1041';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791207708176;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -94617,7 +94668,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261005-1027</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261005-1041</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
