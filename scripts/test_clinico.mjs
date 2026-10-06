@@ -34712,6 +34712,19 @@ caso('TC-300', 'Etiologia mitral Valvulas<->ETE: sincroniza solo los pares que c
          el medico, PARADO en esa pestaña, lo ve — o sea si alguna SECCION lo tapa. */
       try { showTab(_TAB_AVISO[id]); } catch (e) {}
       const el = g(id);
+      /* v2 (2026-10-06): entrar a Valvulas CIERRA las cuatro tarjetas de valvula (punto 4b), y
+         vm-ete-aviso vive dentro de la tarjeta mitral. Sin abrirla, offsetParent es null y el
+         helper devolvia '' — el aviso existia y el caso lo leia como ausente.
+         Se abre la SECCION que lo contiene, que es exactamente el gesto del medico y lo que el
+         comentario de arriba dice que se quiere medir («si alguna SECCION lo tapa»). Se deriva del
+         ancestro y no se nombra la mitral: asi vale igual si el aviso se muda de valvula. */
+      if (el) {
+        const sec = el.closest('[id^=ete-seccion-]');
+        if (sec && sec.style.display === 'none') {
+          const tok = sec.id.replace('ete-seccion-', '');
+          try { toggleEteSeccion(tok); } catch (e) {}
+        }
+      }
       return (el && el.offsetParent !== null) ? el.textContent : '';
     };
     const esEte = on => { const c = g('ete-es-ete'); if (!c) return false;
@@ -49310,8 +49323,13 @@ caso('TC-410', 'Tricuspide v2: los campos de cada lesion van debajo de su pastil
 
   // LAYOUT: pertenencia de it_densidad y hermandad de los bloques.
   const dens = document.getElementById('it_densidad');
-  const enInsuf = !!(dens && dens.closest('#bloque-insuf-tricuspide'));
-  const enEsten = !!(dens && dens.closest('#bloque-esten-tricuspide'));
+  /* v2 (2026-10-06): el contenedor de la LESION pasó a ser caja-<tipo>-tricuspide. El grado se
+     quedó en bloque-* y los campos se mudaron a campos-*, los dos dentro de la caja, para que
+     en la PC los campos se vean con el botón apagado sin arrastrar al grado. Lo que este caso
+     afirma —que «Densidad jet CW» pertenece a la INSUFICIENCIA y no a la estenosis— se sigue
+     midiendo igual, un nivel más arriba. */
+  const enInsuf = !!(dens && dens.closest('#caja-insuf-tricuspide'));
+  const enEsten = !!(dens && dens.closest('#caja-esten-tricuspide'));
   const be = document.getElementById('bloque-esten-tricuspide');
   const bi = document.getElementById('bloque-insuf-tricuspide');
   const hermanos = !!(be && bi) && !be.contains(bi) && !bi.contains(be);
@@ -49319,6 +49337,19 @@ caso('TC-410', 'Tricuspide v2: los campos de cada lesion van debajo de su pastil
   // NO DESPLAZAMIENTO: con la IT prendida el left de it_densidad no cambia al prender Estenosis.
   reset();
   if (!aOn('tricuspide','insuf')) toggleValvPill('tricuspide','insuf');
+  /* ⚠️ HAY QUE ABRIR EL CAJON «Datos», Y EL MOTIVO ES EL VIEWPORT DE ESTE ARNES. Chrome headless
+     sin --window-size da 756 px, o sea POR DEBAJO del corte de 768: toda la suite mide la app en
+     su maquetacion de CELULAR. Y desde el 2026-10-06 los campos de la tricuspide arrancan plegados
+     en el celular, asi que sin este clic aVis('it_densidad') da false y las dos condiciones de
+     abajo medirian una caja sin geometria. En la PC los campos ya estan visibles y esto es un
+     no-op idempotente. Se abren los DOS cajones porque la segunda condicion compara la columna
+     antes y despues de prender Estenosis. */
+  ['caja-insuf-tricuspide','caja-esten-tricuspide'].forEach(function (c) {
+    const caja = document.getElementById(c);
+    if (caja && !caja.classList.contains('valv-datos-abierto')) {
+      try { valvDatosTog(c); } catch (e) {}
+    }
+  });
   const visSolo = aVis('it_densidad');
   const leftSolo = Math.round(dens.getBoundingClientRect().left);
   if (!aOn('tricuspide','esten')) toggleValvPill('tricuspide','esten');
@@ -51377,6 +51408,296 @@ caso('TC-422', 'Aortica y mitral: la PASTILLA es la unica fuente del grado y el 
       JSON.stringify(otras)],
   ] };
   })();
+`);
+
+/* TC-423 — PANTALLA DE VALVULAS: campos fijos en la PC, aortica en tres columnas, tarjetas
+   cerradas al entrar (2026-10-06, decision de Maicol).
+
+   ⚠️ ESTE ARNES MIDE EN 756 px, O SEA EN LA MAQUETACION DE CELULAR, y hay que decirlo porque
+   cambia que se puede afirmar aca. `test_clinico.mjs` lanza Chrome sin `--window-size`, asi que el
+   headless da un viewport de 756 px — POR DEBAJO del corte de 768 que usa la app. Un cuerpo de caso
+   puede cambiar el ancho de un ELEMENTO (eso hace TC-379) pero no el del viewport: redimensionarlo
+   es `Emulation.setDeviceMetricsOverride`, que vive en el arnes y no en la pagina. Consecuencia:
+     · lo que pasa en el CELULAR (campos plegados, la flecha «Datos», la apertura por grado) se mide
+       aca, de verdad y con sus controles;
+     · lo que pasa en la PC (campos siempre visibles) se afirma sobre la REGLA DE CSS: que exista un
+       `@media (min-width: 769px)` que nombre los seis contenedores y los ponga en `display:block`.
+       Es falsable —si alguien borra la regla o renombra un id, esto se pone rojo— y es todo lo que
+       este arnes puede ver. La medicion en pixeles a 1200 px la hace `scripts/_probe_pantalla.mjs`.
+   ⚠️ SIN ACENTOS GRAVES EN EL CUERPO. */
+caso('TC-423', 'Valvulas, pantalla: en el celular los campos de cada lesion arrancan plegados y los abre su flecha «Datos» sin prender el boton azul; las cuatro tarjetas arrancan CERRADAS al entrar a la pestania y no se cierran al escribir; el Tab de la aortica baja por columna y saltea los calculados', `
+  ${APAGA_HELPERS}
+  const g = function (id) { return document.getElementById(id); };
+  const vw = window.innerWidth;
+  const esCelular = window.matchMedia('(max-width: 768px)').matches;
+
+  const tarjetas = function () {
+    const o = {};
+    ['mitral','aortica','tricuspide','pulmonar'].forEach(function (v) {
+      const s = g('ete-seccion-valv-' + v);
+      const a = g('ete-valv-' + v + '-arrow');
+      o[v] = { abierta: !!(s && s.style.display !== 'none'),
+               flecha: a ? (a.style.transform || '(sin rotar)') : null };
+    });
+    return o;
+  };
+  const abrirTodas = function () {
+    ['mitral','aortica','tricuspide','pulmonar'].forEach(function (v) {
+      const s = g('ete-seccion-valv-' + v);
+      if (s && s.style.display === 'none') { try { toggleEteSeccion('valv-' + v); } catch (e) {} } });
+    return tarjetas();
+  };
+  const cuantasAbiertas = function (t) {
+    return Object.keys(t).filter(function (k) { return t[k].abierta; }).length; };
+  /* Foto de lo que la flecha «Datos» NO debe tocar. */
+  const foto = function (valv, tipo, campo) {
+    return { pill: aOn(valv, tipo), grado: (g(campo) || {}).value,
+             pastilla: aTxt('sevbtn-' + tipo + '-' + valv),
+             manual: !!(window.esqSevManual || {})[
+               ({ aortica:{esten:'ea',insuf:'ia'}, tricuspide:{esten:'et',insuf:'it'} })[valv][tipo] ] };
+  };
+  /* El orden de tabulacion REAL: focusables en orden de documento, descartando lo que el navegador
+     no visita (tabindex negativo, disabled, sin caja). Es lo que hace Tab sin tabindex positivos. */
+  const tabDe = function (contId) {
+    const c = g(contId); if (!c) return 'falta ' + contId;
+    const out = [];
+    Array.prototype.forEach.call(c.querySelectorAll('input,select,textarea,button,a[href],[tabindex]'), function (e) {
+      if (e.disabled) return;
+      const ti = e.getAttribute('tabindex');
+      if (ti !== null && parseInt(ti, 10) < 0) return;
+      const cs = getComputedStyle(e);
+      if (cs.display === 'none' || cs.visibility === 'hidden') return;
+      out.push(e.id || ('(' + e.tagName.toLowerCase() + ')'));
+    });
+    return out;
+  };
+  /* La REGLA de la PC, leida de las hojas de estilo. Se busca el bloque @media con el corte 769 y
+     se comprueba que nombre los seis contenedores y los fuerce visibles. */
+  const reglaPC = function () {
+    const ids = ['#bloque-insuf-aortica','#bloque-ea-detalle','#campos-insuf-tricuspide',
+                 '#campos-esten-tricuspide','#campos-insuf-pulmonar','#campos-esten-pulmonar'];
+    let hallada = null;
+    for (let i = 0; i < document.styleSheets.length; i++) {
+      let reglas; try { reglas = document.styleSheets[i].cssRules; } catch (e) { continue; }
+      if (!reglas) continue;
+      for (let j = 0; j < reglas.length; j++) {
+        const r = reglas[j];
+        if (!r.media || String(r.media.mediaText).indexOf('769px') === -1) continue;
+        for (let k = 0; k < (r.cssRules || []).length; k++) {
+          const s = r.cssRules[k];
+          if (!s.selectorText || !s.style) continue;
+          if (String(s.style.display) !== 'block') continue;
+          const faltan = ids.filter(function (x) { return s.selectorText.indexOf(x) === -1; });
+          if (!faltan.length) hallada = { sel: s.selectorText, prio: s.style.getPropertyPriority('display') };
+        }
+      }
+    }
+    return hallada;
+  };
+
+  const CAJAS = ['caja-insuf-aortica','caja-esten-aortica','caja-insuf-tricuspide','caja-esten-tricuspide'];
+  const CAMPOS_MUESTRA = { 'caja-insuf-aortica':'ia_vc', 'caja-esten-aortica':'ea_vmax',
+                           'caja-insuf-tricuspide':'it_vc', 'caja-esten-tricuspide':'et_gmedio' };
+
+  /* ── (1) TARJETAS: denominador, entrada, dato y repintado ───────────────────────────────── */
+  __t.limpiar();
+  try { showTab('valvulas'); } catch (e) {}
+  const tDen = abrirTodas();                       /* las abro A MANO: sin esto, «cerradas» no prueba nada */
+  try { showTab('paciente'); } catch (e) {}
+  try { showTab('valvulas'); } catch (e) {}
+  const tEntrar = tarjetas();
+  abrirTodas();
+  __t.set('ia_vc', '7');                           /* escribir un dato NO las cierra */
+  const tTrasDato = tarjetas();
+  try { if (typeof valvSev !== 'undefined') valvSev.refrescarTodo(); } catch (e) {}
+  try { generarInforme(); } catch (e) {}
+  const tTrasRepintar = tarjetas();
+  /* Abrir y cerrar por el NOMBRE, en las cuatro. */
+  const porNombre = {};
+  ['mitral','aortica','tricuspide','pulmonar'].forEach(function (v) {
+    const s = g('ete-seccion-valv-' + v);
+    const ini = !!(s && s.style.display !== 'none');
+    try { toggleEteSeccion('valv-' + v); } catch (e) {}
+    const uno = !!(s && s.style.display !== 'none');
+    try { toggleEteSeccion('valv-' + v); } catch (e) {}
+    porNombre[v] = { ini: ini, uno: uno, dos: !!(s && s.style.display !== 'none') };
+  });
+
+  /* ── (2) CELULAR: los campos arrancan plegados y los abre la flecha, sin tocar la lesion ── */
+  __t.limpiar();
+  aDen();
+  const cajasExisten = CAJAS.filter(function (c) { return !!g(c); });
+  const flechasExisten = CAJAS.filter(function (c) {
+    const caja = g(c); return !!(caja && caja.querySelector('.valv-datos-tog')); });
+  const plegadoInicial = {};
+  CAJAS.forEach(function (c) { plegadoInicial[c] = aVis(CAMPOS_MUESTRA[c]); });
+
+  /* El gesto, en las CUATRO lesiones: abre los campos y no mueve boton, pastilla, grado ni marca. */
+  const gesto = {};
+  CAJAS.forEach(function (c) {
+    const tipo = c.indexOf('insuf') > -1 ? 'insuf' : 'esten';
+    const valv = c.indexOf('aortica') > -1 ? 'aortica' : 'tricuspide';
+    const campo = ({ 'insuf-aortica':'ia_grado', 'esten-aortica':'ea_grado',
+                     'insuf-tricuspide':'it_grado', 'esten-tricuspide':'et_grado' })[tipo + '-' + valv];
+    const antes = foto(valv, tipo, campo);
+    const btn = g('caja-' + tipo + '-' + valv) ? g('caja-' + tipo + '-' + valv).querySelector('.valv-datos-tog') : null;
+    if (btn) btn.click();
+    const abierto = { vis: aVis(CAMPOS_MUESTRA[c]), foto: foto(valv, tipo, campo),
+                      aria: btn ? btn.getAttribute('aria-expanded') : null };
+    if (btn) btn.click();
+    const cerrado = { vis: aVis(CAMPOS_MUESTRA[c]), foto: foto(valv, tipo, campo),
+                      aria: btn ? btn.getAttribute('aria-expanded') : null };
+    gesto[c] = { antes: antes, abierto: abierto, cerrado: cerrado };
+  });
+
+  /* ── (3) APERTURA AUTOMATICA: la regla de HOY, que es por GRADO ─────────────────────────── */
+  /* Con grado graduable el cajon se abre solo al entrar; con datos cargados y SIN grado, no. */
+  /* ⚠️ EL DATO TIENE QUE SER UNO QUE NO GRADUE, Y LA PRIMERA VERSION DE ESTE CASO SE EQUIVOCO.
+     Usaba una vena contracta de 3 mm creyendo que "cuantifica pero no gradua"; medido, calcIA_ESC
+     la vota y escribe ia_grado='2', asi que el control negativo no podia pasar nunca. El dato
+     correcto es ava_plan: el propio codigo declara que NO VOTA EL GRADO —no esta en
+     EA_GRADO_INSUMOS, no tiene columna en el Excel y su unico destino es el estudio guardado—, asi
+     que es exactamente "un dato cargado que no gradua". */
+  __t.limpiar(); aDen();
+  __t.set('ava_plan', '1.2');
+  const eaG0 = (g('ea_grado') || {}).value;
+  try { showTab('paciente'); } catch (e) {}
+  try { showTab('valvulas'); } catch (e) {}
+  abrirTodas();
+  const autoSinGrado = { grado: (g('ea_grado') || {}).value, dato: (g('ava_plan') || {}).value,
+                         pill: aOn('aortica','esten'), vis: aVis('ava_plan') };
+  __t.limpiar(); aDen();
+  const sel = g('ea_grado'); if (sel) sel.value = 'moderada';   /* grado graduable, sin evento */
+  try { showTab('paciente'); } catch (e) {}
+  try { showTab('valvulas'); } catch (e) {}
+  abrirTodas();
+  const autoConGrado = { grado: (g('ea_grado') || {}).value, pill: aOn('aortica','esten'),
+                         vis: aVis('ea_vmax') };
+
+  /* ── (4) TAB de los dos bloques aorticos ────────────────────────────────────────────────── */
+  /* Se abren los cajones para que los campos tengan caja: sin eso tabDe los descarta y la lista
+     sale vacia, que es el denominador de este bloque. */
+  __t.limpiar(); aDen();
+  ['caja-insuf-aortica','caja-esten-aortica'].forEach(function (c) {
+    const caja = g(c);
+    if (caja && !caja.classList.contains('valv-datos-abierto')) { try { valvDatosTog(c); } catch (e) {} } });
+  const tabInsufCrudo = tabDe('caja-insuf-aortica');
+  const tabEstenCrudo = tabDe('caja-esten-aortica');
+  /* ⚠️ SE FILTRA LA FLECHA Y EL CAMPO DE PROTESIS, Y LOS DOS SE AFIRMAN APARTE.
+     En el celular la flecha «Datos» es un <button> visible, asi que el navegador la visita y
+     aparece PRIMERA — es correcto, es un control. Y va_at es el tiempo de aceleracion, que la
+     orden deja donde esta: aparece al final del bloque de estenosis cuando valvProtSync lo muestra.
+     Mezclarlos con los campos de la lesion haria que este aserto cambiara de resultado segun el
+     ancho de la ventana y segun la morfologia, que no es lo que mide. */
+  const soloCampos = function (lista) { return lista.filter(function (x) {
+    return String(x).indexOf('datos-tog-') !== 0 && x !== 'va_at'; }); };
+  const tabInsuf = soloCampos(tabInsufCrudo);
+  const tabEsten = soloCampos(tabEstenCrudo);
+  const ESPERADO_INSUF = ['ia_vc','ia_jet_diam','ia_pht','ia_pisa_r','ia_pisa_val','ia_vmax_cw',
+                          'ia_vti','ia_vmax_td','ia_vti_desc'];
+  const ESPERADO_ESTEN = ['ea_vmax','ea_gmedio','ea_dtsvi','ea_vtitsvi','ea_vtiao','ava_plan'];
+  /* Orden entre bloques: insuficiencia ANTES de estenosis en el DOM. */
+  const ci = g('caja-insuf-aortica'), ce = g('caja-esten-aortica');
+  const insufPrimero = !!(ci && ce) &&
+    !!(ci.compareDocumentPosition(ce) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+  /* ── (5) ROTULOS: los tres autorizados cambiaron y el titulo de cuantificacion se fue ───── */
+  const rot = function (id) { const e = g(id); const fg = e ? e.closest('.fg') : null;
+    const l = fg ? fg.querySelector('label') : null; return l ? l.textContent.trim() : null; };
+  const rotulos = { vmtd: rot('ia_vmax_td'), vtidesc: rot('ia_vti_desc'), dtsvi: rot('ea_dtsvi'),
+                    jet: rot('ia_jet_diam'), vc: rot('ia_vc'), vmax: rot('ea_vmax') };
+  const tituloCuant = (function () { const c = g('bloque-insuf-aortica');
+    return c ? /Insuficiencia A.rtica .{1,3} Cuantificaci.n/.test(c.textContent || '') : 'falta'; })();
+  const notaHolo = (function () { const c = g('bloque-insuf-aortica');
+    if (!c) return 'falta'; const fg = g('ia_vmax_td') ? g('ia_vmax_td').closest('.fg') : null;
+    const dentro = !!(fg && /Reversi/.test(fg.textContent || ''));
+    return { enElBloque: /Reversi/.test(c.textContent || ''), dentroDelCampo: dentro }; })();
+
+  /* ── (6) CONTROL NEGATIVO: la mitral y la pulmonar NO reciben cajon de campos ───────────── */
+  const sinCaja = ['caja-insuf-mitral','caja-esten-mitral','caja-insuf-pulmonar','caja-esten-pulmonar']
+    .filter(function (c) { return !!g(c); });
+
+  const regla = reglaPC();
+  __t.limpiar();
+
+  const dgT = 'den=' + cuantasAbiertas(tDen) + ' entrar=' + cuantasAbiertas(tEntrar) +
+              ' dato=' + cuantasAbiertas(tTrasDato) + ' repintar=' + cuantasAbiertas(tTrasRepintar);
+
+  return { extra: [
+    ['DENOMINADOR: este arnes mide en la maquetacion de CELULAR (viewport < 769 px)',
+      esCelular === true, 'viewport=' + vw + ' px · esCelular=' + esCelular],
+    ['DENOMINADOR: las cuatro tarjetas estaban ABIERTAS antes de volver a entrar',
+      cuantasAbiertas(tDen) === 4, JSON.stringify(tDen)],
+    ['al ENTRAR a la pestania las CUATRO tarjetas quedan cerradas, con su flecha sin rotar',
+      cuantasAbiertas(tEntrar) === 0 &&
+      Object.keys(tEntrar).every(function (k) { return tEntrar[k].flecha === 'rotate(0deg)'; }), dgT + ' · ' + JSON.stringify(tEntrar)],
+    ['y escribir un dato NO las cierra —el cierre es de la ENTRADA, no de cada repintado',
+      cuantasAbiertas(tTrasDato) === 4 && cuantasAbiertas(tTrasRepintar) === 4, dgT],
+    ['tocar el nombre abre y cierra la tarjeta, en las cuatro',
+      ['mitral','aortica','tricuspide','pulmonar'].every(function (v) {
+        return porNombre[v].uno === !porNombre[v].ini && porNombre[v].dos === porNombre[v].ini; }),
+      JSON.stringify(porNombre)],
+
+    ['DENOMINADOR: existen los cuatro cajones de campos y sus cuatro flechas',
+      cajasExisten.length === 4 && flechasExisten.length === 4,
+      'cajas=' + cajasExisten.length + ' flechas=' + flechasExisten.length],
+    ['en el celular los campos de las cuatro lesiones arrancan PLEGADOS',
+      CAJAS.every(function (c) { return plegadoInicial[c] === false; }), JSON.stringify(plegadoInicial)],
+    ['la flecha «Datos» ABRE los campos de las cuatro, y el segundo clic los cierra',
+      CAJAS.every(function (c) { return gesto[c].abierto.vis === true && gesto[c].cerrado.vis === false; }),
+      CAJAS.map(function (c) { return c + ':' + gesto[c].abierto.vis + '/' + gesto[c].cerrado.vis; }).join(' ')],
+    ['⚠️ y NO declara la lesion: boton, pastilla, grado y marca manual quedan igual que antes',
+      CAJAS.every(function (c) {
+        return JSON.stringify(gesto[c].antes) === JSON.stringify(gesto[c].abierto.foto) &&
+               JSON.stringify(gesto[c].antes) === JSON.stringify(gesto[c].cerrado.foto); }),
+      CAJAS.map(function (c) { return c + ' antes=' + JSON.stringify(gesto[c].antes) +
+        ' abierto=' + JSON.stringify(gesto[c].abierto.foto); }).join(' · ')],
+    ['  y el aria-expanded del boton sigue al estado',
+      CAJAS.every(function (c) { return gesto[c].abierto.aria === 'true' && gesto[c].cerrado.aria === 'false'; }),
+      CAJAS.map(function (c) { return gesto[c].abierto.aria + '/' + gesto[c].cerrado.aria; }).join(' ')],
+
+    ['CONTROL NEGATIVO de la apertura automatica: un dato cargado que NO gradua no abre el cajon',
+      autoSinGrado.grado === 'sin' && autoSinGrado.dato === '1.2' &&
+      autoSinGrado.pill === false && autoSinGrado.vis === false,
+      'ava_plan=1.2 ea_grado=' + eaG0 + ' -> ' + JSON.stringify(autoSinGrado)],
+    ['y con grado graduable SI se abre solo —la regla de hoy, por grado',
+      autoConGrado.grado === 'moderada' && autoConGrado.pill === true && autoConGrado.vis === true,
+      JSON.stringify(autoConGrado)],
+
+    ['DENOMINADOR: los dos bloques aorticos tienen campos tabulables',
+      Array.isArray(tabInsuf) && tabInsuf.length > 0 && Array.isArray(tabEsten) && tabEsten.length > 0,
+      'insuf=' + JSON.stringify(tabInsufCrudo) + ' esten=' + JSON.stringify(tabEstenCrudo)],
+    ['  en el celular la flecha «Datos» es el PRIMER foco de cada bloque —es un control, y se visita',
+      tabInsufCrudo[0] === 'datos-tog-insuf-aortica' && tabEstenCrudo[0] === 'datos-tog-esten-aortica',
+      'insuf[0]=' + tabInsufCrudo[0] + ' esten[0]=' + tabEstenCrudo[0]],
+    ['TAB de la INSUFICIENCIA aortica: baja por columna 1, 2 y 3',
+      JSON.stringify(tabInsuf) === JSON.stringify(ESPERADO_INSUF), JSON.stringify(tabInsuf)],
+    ['TAB de la ESTENOSIS aortica: baja por columna y SALTEA los tres calculados',
+      JSON.stringify(tabEsten) === JSON.stringify(ESPERADO_ESTEN), JSON.stringify(tabEsten)],
+    ['  y los tres calculados siguen existiendo, solo que fuera del recorrido',
+      ['ea_gmax_display','ea_dvi_display','ea_ava_display'].every(function (i) {
+        const e = g(i); return !!e && e.getAttribute('tabindex') === '-1'; }),
+      ['ea_gmax_display','ea_dvi_display','ea_ava_display'].map(function (i) {
+        const e = g(i); return i + '=' + (e ? e.getAttribute('tabindex') : 'falta'); }).join(' ')],
+    ['la INSUFICIENCIA va antes que la estenosis en el DOM (el Tab y el apilado del celular)',
+      insufPrimero === true, 'insufPrimero=' + insufPrimero],
+
+    ['los TRES rotulos autorizados dicen lo nuevo',
+      rotulos.vmtd === 'Vmax telediast. Ao desc. (cm/s)' &&
+      rotulos.vtidesc === 'VTI IAo Ao desc. (cm)' &&
+      /^Di.m\\. TSVI \\(mm\\)/.test(String(rotulos.dtsvi)), JSON.stringify(rotulos)],
+    ['  y los demas NO se tocaron',
+      rotulos.jet === 'Diám jet IAo en TSVI (mm)' && rotulos.vc === 'Vena contracta (mm)' &&
+      /^Vmax ao \\(m\\/s\\)/.test(String(rotulos.vmax)), JSON.stringify(rotulos)],
+    ['el titulo «Insuficiencia Aortica — Cuantificacion» se fue', tituloCuant === false, 'presente=' + tituloCuant],
+    ['la frase de la reversion holodiastolica quedo en el bloque, FUERA del campo',
+      notaHolo.enElBloque === true && notaHolo.dentroDelCampo === false, JSON.stringify(notaHolo)],
+
+    ['la REGLA de la PC existe y nombra los seis contenedores con display:block !important',
+      !!regla && regla.prio === 'important', regla ? JSON.stringify(regla) : '(no se encontro la regla @media 769px)'],
+    ['CONTROL NEGATIVO: la mitral y la pulmonar NO reciben cajon de campos',
+      sinCaja.length === 0, 'cajas ajenas: [' + sinCaja.join(',') + ']'],
+  ] };
 `);
 
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);

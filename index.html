@@ -1192,12 +1192,14 @@
      mitad el celular mostraba dos columnas igual y la de la izquierda vacía.
      `align-items:start` para que el bloque corto no se estire al alto del largo. */
   #vp-lesiones { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
-  #vp-lesiones > #bloque-insuf-pulmonar { grid-column: 1; }
-  #vp-lesiones > #bloque-esten-pulmonar { grid-column: 2; }
+  /* ⚠️ `caja-*` reemplaza a `bloque-*` como ítem de grilla (2026-10-06), por el mismo motivo que en
+     la tricúspide: ver el comentario de `#vt-lesiones`. */
+  #vp-lesiones > #caja-insuf-pulmonar { grid-column: 1; }
+  #vp-lesiones > #caja-esten-pulmonar { grid-column: 2; }
   @media (max-width: 768px) {
     #vp-lesiones { grid-template-columns: 1fr; }
-    #vp-lesiones > #bloque-insuf-pulmonar,
-    #vp-lesiones > #bloque-esten-pulmonar { grid-column: 1; }
+    #vp-lesiones > #caja-insuf-pulmonar,
+    #vp-lesiones > #caja-esten-pulmonar { grid-column: 1; }
   }
   /* ══ TRICÚSPIDE: LAS DOS LESIONES LADO A LADO (2026-10-04) ════════════════════════════════════
      Mismo patrón que `#vp-lesiones`, por la MISMA razón y con los dos mismos cuidados: la columna
@@ -1207,8 +1209,15 @@
      Se copia el patrón de maquetación y NADA más: la pulmonar no comparte con la tricúspide ni un
      corte, ni un rótulo, ni un criterio clínico. */
   #vt-lesiones { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
-  #vt-lesiones > #bloque-insuf-tricuspide { grid-column: 1; }
-  #vt-lesiones > #bloque-esten-tricuspide { grid-column: 2; }
+  /* ⚠️ EL ÍTEM DE GRILLA PASÓ DE `bloque-*` A `caja-*` (2026-10-06), y ES LO QUE HACE SEGURO AL
+     PUNTO 2a. El grado de la tricúspide vive DENTRO del mismo bloque que los campos, así que para
+     que los campos se vean siempre y el grado siga colgando del botón hacía falta un envoltorio:
+     `caja-*` es el ítem de grilla (siempre presente), `bloque-*` queda adentro con el grado —y
+     `toggleValvPill` lo sigue escribiendo sin un cambio— y `campos-*` lleva los campos.
+     Y de paso desaparece el cuidado que el comentario de arriba describe: con el ítem SIEMPRE
+     presente, la colocación automática ya no podría correr la estenosis a la columna izquierda. */
+  #vt-lesiones > #caja-insuf-tricuspide { grid-column: 1; }
+  #vt-lesiones > #caja-esten-tricuspide { grid-column: 2; }
   /* Los parámetros van en filas de 3 (insuficiencia) y de 2 (estenosis) DENTRO de media columna,
      así que a partir de ~900 px de ventana el rótulo más largo deja de entrar. El `grid-3` baja a
      2 columnas por ancho mínimo y no por un breakpoint nuevo: la base en px apila sola en cuanto
@@ -1218,8 +1227,95 @@
   #vt-lesiones .grid-2 { grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); }
   @media (max-width: 768px) {
     #vt-lesiones { grid-template-columns: 1fr; }
-    #vt-lesiones > #bloque-insuf-tricuspide,
-    #vt-lesiones > #bloque-esten-tricuspide { grid-column: 1; }
+    #vt-lesiones > #caja-insuf-tricuspide,
+    #vt-lesiones > #caja-esten-tricuspide { grid-column: 1; }
+  }
+
+  /* ══ PANTALLA DE VÁLVULAS — LOS CAMPOS DEJAN DE COLGAR DEL BOTÓN AZUL (2026-10-06) ═══════════
+     Decisión de Maicol. En la PC los campos de insuficiencia y de estenosis de la AÓRTICA, la
+     TRICÚSPIDE y la PULMONAR se ven SIEMPRE; en el celular arrancan cerrados y los abre una flecha
+     «Datos ▾» propia de cada bloque. La MITRAL no entra: su única novedad es el cierre de tarjetas.
+
+     ⚠️ POR QUÉ `!important` Y NO UNA LÍNEA DE JS. `toggleValvPill` escribe `style.display` INLINE en
+     estos nodos, y un estilo inline le gana a cualquier regla de hoja. Las dos opciones eran
+     sacarle esa escritura al toggle —que gobierna las OCHO pastillas y es código compartido: la
+     mitral y el resto cambiarían con él— o anularla desde el CSS. Se eligió el CSS porque deja el
+     JS de la pastilla intacto y acota el cambio a los nodos nombrados, uno por uno.
+
+     ⚠️ Y HAY UNA CONSECUENCIA QUE SE ELIGIÓ A PROPÓSITO: la compuerta de `calcAo` mira
+     `bloque-ea-detalle.style.display`, o sea el estilo INLINE, no el calculado. Con `!important` el
+     inline sigue diciendo lo que el toggle escribió, así que esa compuerta se comporta EXACTAMENTE
+     como hoy y `sincronizarEADesdeGlobal` no empieza a correr sola en cada `calcAo`. El precio es
+     que los seis espejos «auto ← Doppler» quedarían vacíos con el botón apagado, y eso lo resuelve
+     una sincronía ÚNICA en la entrada a la pestaña (ver `showTab`), no esta hoja de estilos. */
+  @media (min-width: 769px) {
+    /* AÓRTICA: los dos bloques son enteramente campos —su grado vive aparte, en `gf-insuf-aortica`
+       y `bloque-esten-aortica`, que NO se tocan y siguen con `valvGradoVisSync`. */
+    #bloque-insuf-aortica,
+    #bloque-ea-detalle,
+    /* TRICÚSPIDE y PULMONAR: acá el grado vive DENTRO del mismo bloque que los campos, así que lo
+       que se fuerza visible es el envoltorio NUEVO que sólo tiene los campos. El grado, el aviso
+       rojo y el cajón del fundamento se quedan en `bloque-<tipo>-<valv>`, que `toggleValvPill`
+       sigue gobernando sin una línea de cambio. */
+    #campos-insuf-tricuspide, #campos-esten-tricuspide,
+    #campos-insuf-pulmonar,  #campos-esten-pulmonar { display: block !important; }
+    /* La flecha «Datos ▾» es SÓLO del celular: en la PC no hay nada que plegar. */
+    .valv-datos-tog { display: none !important; }
+  }
+  @media (max-width: 768px) {
+    /* El botón azul deja de abrir los campos en el celular (punto 5b): el `!important` anula su
+       escritura inline en los dos sentidos, y lo único que los abre es la clase que pone la flecha. */
+    #bloque-insuf-aortica, #bloque-ea-detalle,
+    #campos-insuf-tricuspide, #campos-esten-tricuspide,
+    #campos-insuf-pulmonar,  #campos-esten-pulmonar { display: none !important; }
+    .valv-datos-abierto > #bloque-insuf-aortica,
+    .valv-datos-abierto > #bloque-ea-detalle,
+    .valv-datos-abierto > #campos-insuf-tricuspide,
+    .valv-datos-abierto > #campos-esten-tricuspide,
+    .valv-datos-abierto > #campos-insuf-pulmonar,
+    .valv-datos-abierto > #campos-esten-pulmonar { display: block !important; }
+  }
+  /* ⚠️ 44 px DE ALTO MÍNIMO, QUE ES EL PUNTO 5c, Y `width:100%` PARA QUE EL BLANCO SEA LA FILA
+     ENTERA. Un `min-height` solo deja el texto centrado en una caja ancha pero el blanco táctil
+     real es el del bloque, así que se declara `display:block`. En la PC la regla de arriba lo
+     esconde entero, así que estos números no afectan al escritorio. */
+  .valv-datos-tog { display: block; width: 100%; min-height: 44px; box-sizing: border-box;
+    padding: 10px 12px; margin: 6px 0; text-align: left; font: inherit; font-size: 12px;
+    font-weight: 700; color: var(--accent2); background: var(--bg3);
+    border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
+  .valv-datos-tog .valv-datos-flecha { float: right; transition: transform .2s; }
+  .valv-datos-abierto > .valv-datos-tog .valv-datos-flecha { transform: rotate(180deg); }
+
+  /* ══ AÓRTICA: LAS DOS LESIONES LADO A LADO Y EN TRES COLUMNAS (2026-10-06) ════════════════════
+     Mismo patrón que `#vt-lesiones` y `#vp-lesiones`, con UNA diferencia que importa: acá los dos
+     ítems de grilla (`caja-insuf-aortica` / `caja-esten-aortica`) están SIEMPRE presentes, así que
+     no hace falta fijar `grid-column` a mano —el motivo por el que los otros dos lo fijan es que un
+     hijo en `display:none` no es ítem de grilla y la colocación automática corría la segunda a la
+     columna izquierda—. Se fija igual, por simetría y para que el día que uno se oculte no se mueva.
+     El orden del DOM es insuficiencia → estenosis (decisión de Maicol), así que en el celular se
+     apilan en ese mismo orden sin un solo `order` de CSS. */
+  #va-lesiones { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+  #va-lesiones > #caja-insuf-aortica { grid-column: 1; }
+  #va-lesiones > #caja-esten-aortica { grid-column: 2; }
+  @media (max-width: 768px) {
+    #va-lesiones { grid-template-columns: 1fr; }
+    #va-lesiones > #caja-insuf-aortica,
+    #va-lesiones > #caja-esten-aortica { grid-column: 1; }
+  }
+  /* Las TRES columnas de cada lesión aórtica. Cada una es un contenedor propio —no una fila de
+     `grid-3`— porque el punto 2d pide que el orden del DOM SEA el del Tab: con filas, el Tab va
+     de izquierda a derecha y después baja; con columnas, baja por la columna y pasa a la siguiente,
+     que es lo pedido. `minmax(0,1fr)` y no `1fr`: sin el mínimo en 0, un rótulo largo empuja la
+     columna y desborda la media pantalla. */
+  .valv-cols-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  /* A media pantalla las tres columnas de ~150 px no entran con los rótulos largos, así que bajan
+     a dos y después a una POR ANCHO MÍNIMO y no por un breakpoint nuevo — la misma regla que ya usa
+     `#vt-lesiones .grid-3` y que evita un número que mantener sincronizado con `check_mobile.js`. */
+  @media (max-width: 1100px) {
+    .valv-cols-3 { grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); }
+  }
+  @media (max-width: 768px) {
+    .valv-cols-3 { grid-template-columns: 1fr; }
   }
   /* ══ RESPONSIVE ══ */
   @media (max-width: 768px) {
@@ -4384,9 +4480,68 @@ window.cerrarSesionReal = cerrarSesionReal;
              grid de la aórtica» para el próximo que quisiera agregarle un campo. El comentario
              queda porque la historia de `va_dvi` y `va_at` sigue siendo cierta; el `<div>` no. -->
 
-      <!-- ═══ BLOQUE ESTENOSIS AÓRTICA EXPANDIDO ═══ -->
-      <div id="bloque-ea-detalle" style="display:none;">
-        <div class="divider"></div>
+      <!-- ══ LAS DOS LESIONES AÓRTICAS, LADO A LADO Y EN TRES COLUMNAS (2026-10-06) ═══════════
+           Decisión de Maicol. La INSUFICIENCIA va en la mitad izquierda y la ESTENOSIS en la
+           derecha, cada una con sus campos en tres columnas que se leen de arriba hacia abajo.
+           ⚠️ LA INSUFICIENCIA VA PRIMERA EN EL DOM, Y ES UNA DECISIÓN, NO EL ORDEN DE ANTES. Hasta
+           hoy el bloque de estenosis venía primero y el Tab recorría estenosis → insuficiencia. El
+           pedido es que el orden del DOM SEA el del Tab y que la insuficiencia quede a la izquierda,
+           así que se movió el NODO entero. Sin un `order` de CSS a propósito: con `order` la pantalla
+           y el teclado dirían cosas distintas, y en el celular las columnas se apilarían al revés.
+           ⚠️ CADA COLUMNA ES UN CONTENEDOR PROPIO, y eso es lo que hace que el Tab BAJE por la
+           columna en vez de cruzar la fila. Con un `grid-3` de nueve celdas el orden del DOM es
+           fila por fila, que es el recorrido contrario al pedido.
+           Se movieron WRAPPERS: ni un `id`, `oninput`, `step`, `placeholder` ni `readonly` cambió.
+           Los únicos textos tocados son los TRES rótulos autorizados: «Vmax telediast. Ao desc.»,
+           «VTI IAo Ao desc.» y «Diám. TSVI» (antes «Ø TSVI»), más el título de cuantificación de la
+           insuficiencia, que el pedido manda sacar. El título de la estenosis se queda. -->
+      <div class="divider"></div>
+      <div id="va-lesiones">
+      <div id="caja-insuf-aortica">
+        <!-- Flecha de celular: la esconde el CSS a mas de 768 px. Abrirla NO declara la lesion. -->
+        <button type="button" class="valv-datos-tog" id="datos-tog-insuf-aortica"
+                onclick="valvDatosTog('caja-insuf-aortica')" aria-expanded="false"
+                aria-controls="bloque-insuf-aortica">Datos <span class="valv-datos-flecha">&#9662;</span></button>
+        <div id="bloque-insuf-aortica" style="display:none;">
+          <div class="valv-cols-3">
+            <div>
+        <div class="fg"><label>Vena contracta (mm)</label><input type="number" id="ia_vc" placeholder="mm" oninput="calcIA_ESC()"></div>
+        <div class="fg"><label>Diám jet IAo en TSVI (mm)</label><input type="number" id="ia_jet_diam" placeholder="mm" oninput="calcIA_ESC()"></div>
+        <div class="fg"><label>PHT (ms)</label><input type="number" id="ia_pht" placeholder="ms" oninput="calcIA_ESC()"></div>
+            </div>
+            <div>
+        <div class="fg"><label>Radio PISA IAo (mm)</label><input type="number" id="ia_pisa_r" placeholder="mm" oninput="calcIA_ESC()"></div>
+        <div class="fg"><label>Valiasing IAo (cm/s)</label><input type="number" id="ia_pisa_val" placeholder="cm/s" oninput="calcIA_ESC()"></div>
+        <div class="fg"><label>Vmax IAo CW (cm/s)</label><input type="number" id="ia_vmax_cw" placeholder="cm/s" oninput="calcIA_ESC()"></div>
+            </div>
+            <div>
+        <div class="fg"><label>VTI IAo (cm)</label><input type="number" id="ia_vti" placeholder="cm" oninput="calcIA_ESC()"></div>
+        <div class="fg"><label>Vmax telediast. Ao desc. (cm/s)</label><input type="number" id="ia_vmax_td" placeholder="cm/s" oninput="calcIA_ESC()"></div>
+        <div class="fg"><label>VTI IAo Ao desc. (cm)</label><input type="number" id="ia_vti_desc" placeholder="cm" oninput="calcIA_ESC()"></div>
+            </div>
+          </div>
+          <!-- La frase de la reversión holodiastólica baja acá: explica un corte de la IAo, no el
+               campo que la tenía adentro, y en una columna de un tercio no entraba. Texto intacto. -->
+          <div style="font-size:10px;color:var(--text2);margin-top:3px;">Reversi&oacute;n holodiast&oacute;lica &ge;20 cm/s &rarr; severa. Es el &uacute;nico corte que publica la gu&iacute;a: por debajo, el par&aacute;metro no grad&uacute;a.</div>
+      <div class="calc-box" style="margin-top:10px;">
+        <div class="calc-row"><span class="calc-lbl">Ratio jet/TSVI (%)</span><span class="calc-val" id="ia-jet-ratio">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">EROA — PISA (mm²)</span><span class="calc-val" id="ia-eroa">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Vol regurgitante (ml)</span><span class="calc-val" id="ia-volr">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Fracción regurgitante (%)</span><span class="calc-val" id="ia-freg">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">PHT — interpretación</span><span id="ia-pht-interp">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Vmax telediastólica</span><span id="ia-vtd-interp">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">VTI Ao desc. — inversión diastólica</span><span id="ia-vti-desc-interp">—</span></div>
+        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad IAo integrada (ESC/EACTS 2025)</span><span id="ia-sev">—</span></div>
+        <div class="calc-row"><span id="ia-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
+      </div>
+        </div>
+      </div>
+      <div id="caja-esten-aortica">
+        <!-- Flecha de celular: la esconde el CSS a mas de 768 px. Abrirla NO declara la lesion. -->
+        <button type="button" class="valv-datos-tog" id="datos-tog-esten-aortica"
+                onclick="valvDatosTog('caja-esten-aortica')" aria-expanded="false"
+                aria-controls="bloque-ea-detalle">Datos <span class="valv-datos-flecha">&#9662;</span></button>
+        <div id="bloque-ea-detalle" style="display:none;">
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:8px 0 6px;">&#x1F4CA; Estenosis A&oacute;rtica &mdash; Datos del Doppler</div>
         <div style="font-size:10px;color:var(--text2);margin-bottom:8px;">Los valores se sincronizan autom&aacute;ticamente desde el m&oacute;dulo Doppler A&oacute;rtico. Si no fueron ingresados antes, ingresal&oacute;s ac&aacute; directamente.</div>
         <!-- ⚠️ ORDEN DE LAS TRES FILAS — DECISIÓN DE MAICOL (2026-10-02). Se movieron los `div.fg`
@@ -4397,23 +4552,24 @@ window.cerrarSesionReal = cerrarSesionReal;
              fila 1 lo que se mide directo con el Doppler, fila 2 los tres insumos del AVA con su
              DVI al lado, fila 3 las dos áreas —la calculada y la planimetrada— para poder
              compararlas de un vistazo. -->
-        <div class="grid-3" style="margin-bottom:6px;">
+          <div class="valv-cols-3">
+            <div>
           <div class="fg">
             <label>Vmax ao (m/s) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
             <input type="number" id="ea_vmax" placeholder="m/s" step="0.1" oninput="syncEADesdeValvulas()">
           </div>
           <div class="fg">
             <label>G. m&aacute;x (mmHg) &mdash; auto</label>
-            <input type="text" id="ea_gmax_display" readonly>
+            <input type="text" id="ea_gmax_display" tabindex="-1" readonly>
           </div>
           <div class="fg">
             <label>G. medio (mmHg) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
             <input type="number" id="ea_gmedio" placeholder="mmHg" oninput="syncEADesdeValvulas()">
           </div>
-        </div>
-        <div class="grid-4" style="margin-bottom:6px;">
+            </div>
+            <div>
           <div class="fg">
-            <label>&Oslash; TSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
+            <label>Di&aacute;m. TSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
             <input type="number" id="ea_dtsvi" placeholder="mm" oninput="syncEADesdeValvulas()">
           </div>
           <div class="fg">
@@ -4424,32 +4580,23 @@ window.cerrarSesionReal = cerrarSesionReal;
             <label>VTI Ao (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
             <input type="number" id="ea_vtiao" placeholder="cm" oninput="syncEADesdeValvulas()">
           </div>
+            </div>
+            <div>
           <div class="fg">
             <label>DVI (ratio TSVI/Ao) &mdash; auto</label>
-            <input type="text" id="ea_dvi_display" readonly>
+            <input type="text" id="ea_dvi_display" tabindex="-1" readonly>
           </div>
-        </div>
-        <div class="grid-2" style="margin-bottom:6px;">
           <div class="fg">
             <label>AVA continuidad (cm&sup2;) &mdash; auto</label>
-            <input type="text" id="ea_ava_display" readonly style="font-weight:700;">
+            <input type="text" id="ea_ava_display" tabindex="-1" readonly style="font-weight:700;">
           </div>
-          <!-- ⚠️ `ava_plan` NO VOTA EL GRADO Y NO ENTRA AL EXCEL — decisión de Maicol (2026-10-02).
-               Es una medición independiente del AVA por continuidad: se carga a mano por planimetría
-               y en 4a su único destino es el estudio guardado (lo toma el barrido de `input[id]` de
-               `guardarInforme`, sin una línea de código). No está en `EA_GRADO_INSUMOS`, así que un
-               valor fuera de banda acá NO retira el grado auto-sugerido —no participa de ninguna
-               derivación—, y no tiene columna en `_labExcelRow` ni entrada en `LAB_XLS_MAP`.
-               El id está libre: el de la mitral es `avm_plan` y es otro campo, que no se toca. -->
           <div class="fg">
             <label>AVA por planimetr&iacute;a (cm&sup2;)</label>
             <input type="number" id="ava_plan" placeholder="cm&sup2;" step="0.01" oninput="avaPlanPintar()">
             <div id="ava-plan-aviso" style="font-size:10px;color:var(--yellow);margin-top:4px;min-height:0;"></div>
           </div>
-        </div>
-        <!-- AT — sólo con prótesis, y por eso en su propia fila con su propio wrapper: el tiempo de
-             aceleración NO es un parámetro de la válvula aórtica nativa, así que mostrarlo siempre
-             invitaría a llenarlo donde no aplica. Lo muestra y lo esconde `valvProtSync`. -->
+            </div>
+          </div>
         <div class="grid-4" style="margin-bottom:6px;" id="bloque-prot-va">
           <div class="fg">
             <label>AT (ms) <span style="font-weight:400;color:var(--text2);font-size:10px;">&mdash; tiempo de aceleraci&oacute;n, s&oacute;lo pr&oacute;tesis</span></label>
@@ -4469,39 +4616,9 @@ window.cerrarSesionReal = cerrarSesionReal;
           <!-- Salvedades del veredicto PROTÉSICO. Con válvula nativa queda oculta. -->
           <div id="ea-det-sev-nota" style="font-size:10px;color:var(--text2);line-height:1.45;margin:-2px 0 4px;display:none;"></div>
         </div>
+        </div>
       </div>
-      <div style="display:none;"><!-- placeholder para mantener estructura --></div
-      </div>
-      <div id="bloque-insuf-aortica" style="display:none;">
-      <div class="divider"></div>
-      <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:6px 0 8px;">🔵 Insuficiencia Aórtica — Cuantificación</div>
-      <div class="grid-3">
-        <div class="fg"><label>Vena contracta (mm)</label><input type="number" id="ia_vc" placeholder="mm" oninput="calcIA_ESC()"></div>
-        <div class="fg"><label>Diám jet IAo en TSVI (mm)</label><input type="number" id="ia_jet_diam" placeholder="mm" oninput="calcIA_ESC()"></div>
-        <div class="fg"><label>PHT (ms)</label><input type="number" id="ia_pht" placeholder="ms" oninput="calcIA_ESC()"></div>
-      </div>
-      <div class="grid-2" style="margin-top:8px;">
-        <div class="fg"><label>Vmax telediastólica IAo en Ao desc. (cm/s)</label><input type="number" id="ia_vmax_td" placeholder="cm/s" oninput="calcIA_ESC()"><div style="font-size:10px;color:var(--text2);margin-top:3px;">Reversi&oacute;n holodiast&oacute;lica &ge;20 cm/s &rarr; severa. Es el &uacute;nico corte que publica la gu&iacute;a: por debajo, el par&aacute;metro no grad&uacute;a.</div></div>
-        <div class="fg"><label>VTI IAo en Ao torácica desc. (cm)</label><input type="number" id="ia_vti_desc" placeholder="cm" oninput="calcIA_ESC()"></div>
-      </div>
-      <div class="grid-4" style="margin-top:8px;">
-        <div class="fg"><label>Radio PISA IAo (mm)</label><input type="number" id="ia_pisa_r" placeholder="mm" oninput="calcIA_ESC()"></div>
-        <div class="fg"><label>Valiasing IAo (cm/s)</label><input type="number" id="ia_pisa_val" placeholder="cm/s" oninput="calcIA_ESC()"></div>
-        <div class="fg"><label>Vmax IAo CW (cm/s)</label><input type="number" id="ia_vmax_cw" placeholder="cm/s" oninput="calcIA_ESC()"></div>
-        <div class="fg"><label>VTI IAo (cm)</label><input type="number" id="ia_vti" placeholder="cm" oninput="calcIA_ESC()"></div>
-      </div>
-      <div class="calc-box" style="margin-top:10px;">
-        <div class="calc-row"><span class="calc-lbl">Ratio jet/TSVI (%)</span><span class="calc-val" id="ia-jet-ratio">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">EROA — PISA (mm²)</span><span class="calc-val" id="ia-eroa">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Vol regurgitante (ml)</span><span class="calc-val" id="ia-volr">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Fracción regurgitante (%)</span><span class="calc-val" id="ia-freg">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">PHT — interpretación</span><span id="ia-pht-interp">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Vmax telediastólica</span><span id="ia-vtd-interp">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">VTI Ao desc. — inversión diastólica</span><span id="ia-vti-desc-interp">—</span></div>
-        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad IAo integrada (ESC/EACTS 2025)</span><span id="ia-sev">—</span></div>
-        <div class="calc-row"><span id="ia-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
-      </div>
-      </div>
+      </div><!-- fin va-lesiones -->
       <div class="fg" style="margin-top:8px;"><label>Notas aórtica</label>
         <textarea id="va_notas" placeholder="Ej: bicúspide, mecanismo..."></textarea>
       </div>
@@ -4597,6 +4714,18 @@ window.cerrarSesionReal = cerrarSesionReal;
            que la pantalla. Se movieron WRAPPERS: ni un `id`, `name`, listener ni `<option>` de la
            estenosis cambió. -->
       <div id="vt-lesiones">
+      <!-- ══ ENVOLTORIO «caja-insuf-tricuspide» (2026-10-06, decisión de Maicol) ═════════════════
+           ⚠️ ESTE WRAPPER ES LO QUE PERMITE QUE LOS CAMPOS SE VEAN SIEMPRE EN LA PC **SIN** QUE EL
+           GRADO SE VEA CON ELLOS. En esta válvula el grado, el aviso rojo y el cajón del fundamento
+           viven DENTRO del mismo bloque que los parámetros, así que forzar el bloque visible habría
+           hecho visible también el grado — y la orden dice que el grado sigue colgando del botón.
+           El reparto es: `caja-insuf-tricuspide` es el ítem de grilla y está SIEMPRE presente;
+           `bloque-insuf-tricuspide` se queda con el grado y lo sigue escribiendo `toggleValvPill`
+           sin UNA línea de cambio; `campos-insuf-tricuspide` lleva los parámetros y el cuadro de
+           cálculo, y su visibilidad la decide la hoja de estilos (siempre en la PC, plegable en el
+           celular). Ni un `id`, `oninput`, `onchange`, `for` ni rótulo se movió: se insertaron dos
+           contenedores y se cambió el selector de `grid-column` del CSS, que apuntaba a `bloque-*`. -->
+      <div id="caja-insuf-tricuspide">
       <div id="bloque-insuf-tricuspide" style="display:none;">
       <!-- ── 1) GRADO PARA EL INFORME ──────────────────────────────────────────────────────────
            `it_grado` pasó de `<input type="hidden">` a `<select>` VISIBLE (2026-10-04, decisión de
@@ -4639,7 +4768,15 @@ window.cerrarSesionReal = cerrarSesionReal;
           <label for="it_fund_nota" style="display:block;font-weight:400;color:var(--text2);margin:0 0 2px;">Motivo del ajuste (opcional)</label>
           <input type="text" id="it_fund_nota" maxlength="100" placeholder="Ej.: jet exc&eacute;ntrico, vena contracta no medible" style="width:100%;">
         </div>
-      </div>
+        </div><!-- fin .valv-fund-row (grado + aviso + cajon) -->
+      </div><!-- fin bloque-insuf-tricuspide (el grado) -->
+      <!-- ⚠️ LA FLECHA ES SÓLO DEL CELULAR y la esconde el CSS a más de 768 px. Abrir los campos NO
+           declara la lesión: llama a `valvDatosTog`, que sólo alterna una clase en el envoltorio y
+           no toca la pastilla, el grado ni `esqSevManual`. -->
+      <button type="button" class="valv-datos-tog" id="datos-tog-insuf-tricuspide"
+              onclick="valvDatosTog('caja-insuf-tricuspide')" aria-expanded="false"
+              aria-controls="campos-insuf-tricuspide">Datos <span class="valv-datos-flecha">&#9662;</span></button>
+      <div id="campos-insuf-tricuspide">
       <!-- ── 2) PARÁMETROS — dos filas de tres ────────────────────────────────────────────────
            Era un `grid-4` con cinco campos (así que el quinto caía solo en una segunda fila) más
            «Densidad jet CW» en un `.fg` aparte. Ahora son 3 + 3, con la densidad cerrando la
@@ -4685,6 +4822,19 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="calc-row"><span id="it-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
       </div>
       </div>
+      </div><!-- fin caja-insuf-tricuspide -->
+      <!-- ══ ENVOLTORIO «caja-esten-tricuspide» (2026-10-06, decisión de Maicol) ═════════════════
+           ⚠️ ESTE WRAPPER ES LO QUE PERMITE QUE LOS CAMPOS SE VEAN SIEMPRE EN LA PC **SIN** QUE EL
+           GRADO SE VEA CON ELLOS. En esta válvula el grado, el aviso rojo y el cajón del fundamento
+           viven DENTRO del mismo bloque que los parámetros, así que forzar el bloque visible habría
+           hecho visible también el grado — y la orden dice que el grado sigue colgando del botón.
+           El reparto es: `caja-esten-tricuspide` es el ítem de grilla y está SIEMPRE presente;
+           `bloque-esten-tricuspide` se queda con el grado y lo sigue escribiendo `toggleValvPill`
+           sin UNA línea de cambio; `campos-esten-tricuspide` lleva los parámetros y el cuadro de
+           cálculo, y su visibilidad la decide la hoja de estilos (siempre en la PC, plegable en el
+           celular). Ni un `id`, `oninput`, `onchange`, `for` ni rótulo se movió: se insertaron dos
+           contenedores y se cambió el selector de `grid-column` del CSS, que apuntaba a `bloque-*`. -->
+      <div id="caja-esten-tricuspide">
       <div id="bloque-esten-tricuspide" style="display:none;">
           <!-- ── 1) GRADO PARA EL INFORME ──────────────────────────────────────────────────────
                ⚠️ EL GRADO DE LA ET ES BINARIO (2026-10-05, decisión de Maicol). Desaparecen Leve,
@@ -4735,7 +4885,15 @@ window.cerrarSesionReal = cerrarSesionReal;
               <label for="et_fund_nota" style="display:block;font-weight:400;color:var(--text2);margin:0 0 2px;">Motivo del ajuste (opcional)</label>
               <input type="text" id="et_fund_nota" maxlength="100" placeholder="Ej.: gradiente sobreestimado por taquicardia" style="width:100%;">
             </div>
-          </div>
+            </div><!-- fin .valv-fund-row (grado + aviso + cajon) -->
+      </div><!-- fin bloque-esten-tricuspide (el grado) -->
+      <!-- ⚠️ LA FLECHA ES SÓLO DEL CELULAR y la esconde el CSS a más de 768 px. Abrir los campos NO
+           declara la lesión: llama a `valvDatosTog`, que sólo alterna una clase en el envoltorio y
+           no toca la pastilla, el grado ni `esqSevManual`. -->
+      <button type="button" class="valv-datos-tog" id="datos-tog-esten-tricuspide"
+              onclick="valvDatosTog('caja-esten-tricuspide')" aria-expanded="false"
+              aria-controls="campos-esten-tricuspide">Datos <span class="valv-datos-flecha">&#9662;</span></button>
+      <div id="campos-esten-tricuspide">
           <!-- ── 2) PARÁMETROS (4) ──────────────────────────────────────────────────────────── -->
           <div class="grid-2" style="margin-bottom:8px;">
             <div class="fg"><label>Gradiente medio ET (mmHg)</label>
@@ -4771,6 +4929,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
           <div id="et-gmedio-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
         </div>
+      </div><!-- fin caja-esten-tricuspide -->
       </div><!-- fin #vt-lesiones -->
     </div>
   </div>
@@ -17489,8 +17648,56 @@ function showTab(id) {
      esta tanda— y con la cuota llena eso lanza. Antes hacía falta un clic del médico para llegar
      ahí; ahora corre al entrar a la pestaña, así que una excepción cortaría el RESTO de `showTab`
      (entre otras cosas el repintado del botón de Orthanc). Lo marcó /sharp-edges. */
+  /* Punto 4b (2026-10-06): las cuatro tarjetas de válvula arrancan CERRADAS cada vez que se entra.
+     Va PRIMERO, antes de cualquier apertura automática, para que el estado de partida sea el mismo
+     se venga de donde se venga. En `try` por el mismo motivo que la línea de abajo. */
+  if (id === 'valvulas' && typeof valvCerrarTarjetas === 'function') {
+    try { valvCerrarTarjetas(); } catch (e) { console.warn('[valvCerrarTarjetas]', e); }
+  }
+  /* Punto 5a: y los cajones «Datos» del celular también arrancan cerrados. Va ANTES de la apertura
+     automática de abajo, para que la regla por grado pueda volver a abrir lo que le toca. */
+  if (id === 'valvulas' && typeof valvCerrarDatos === 'function') {
+    try { valvCerrarDatos(); } catch (e) { console.warn('[valvCerrarDatos]', e); }
+  }
   if (id === 'valvulas' && typeof valvAutoAbrirAortica === 'function') {
+    /* La foto se toma ANTES para que `valvAbrirDatosPorRegla` sepa cuáles prendió la regla y no
+       tenga que reimplementar el criterio. Ver su comentario. */
+    let _pillsAntes = null;
+    try { if (typeof valvFotoPastillas === 'function') _pillsAntes = valvFotoPastillas(); } catch (e) {}
     try { valvAutoAbrirAortica(); } catch (e) { console.warn('[valvAutoAbrir]', e); }
+    /* Punto 5b: el cajón «Datos ▾» del celular se abre solo para las lesiones que la regla acaba
+       de prender. No agrega un criterio: observa el resultado del que ya existe. */
+    try { if (typeof valvAbrirDatosPorRegla === 'function') valvAbrirDatosPorRegla(_pillsAntes); }
+    catch (e) { console.warn('[valvAbrirDatosPorRegla]', e); }
+  }
+  /* ══ LOS ESPEJOS DE LA ESTENOSIS AÓRTICA, UNA VEZ AL ENTRAR (2026-10-06, decisión de Maicol) ═══
+     Desde que los campos de estenosis se ven con el botón apagado, los seis «auto ← Doppler»
+     quedaban VACÍOS con el Doppler cargado: la compuerta de `calcAo` mira el `style.display` INLINE
+     de `bloque-ea-detalle`, que el `!important` del CSS no cambia, así que esa sincronía sólo corría
+     al abrir el botón. Se corre UNA vez al entrar y no se toca la compuerta.
+
+     ⚠️ VA DESPUÉS DE `valvAutoAbrirAortica`, Y EL ORDEN ES LA GARANTÍA, NO UNA PREFERENCIA.
+     `sincronizarEADesdeGlobal` llama a `calcEADetalle`, que ESCRIBE `ea_grado` (salvo que haya
+     marca manual o un insumo dudoso). La regla J —`valvAutoAbrirCajones`— decide si prende la
+     pastilla LEYENDO `ea_grado`. Corriendo la sincronía ANTES, J leería un grado recién recalculado
+     y podría prender la estenosis donde HEAD no la prendía: exactamente lo que la orden prohíbe.
+     Corriendo DESPUÉS, J ve el mismo valor que ve en HEAD y la decisión de la pastilla queda
+     idéntica por construcción. Medido A/B en cuatro escenas (Doppler cargado y vacío × grado «sin»,
+     «esclerosis» y calculado): botón, pastilla y grado sin una diferencia.
+
+     ⚠️ SÓLO EN LA PC. En el celular los campos arrancan plegados, así que no hay ninguna casilla
+     vacía a la vista que justifique escribir cinco campos sin que el médico lo pida.
+
+     La dirección es la de siempre y no se agrega la vuelta: `sincronizarEADesdeGlobal` copia del
+     Doppler global hacia los espejos y nada más. Lo que el médico tipee en un espejo lo devuelve
+     `syncEADesdeValvulas` al Doppler en el mismo gesto, así que al volver a entrar se recopia el
+     MISMO valor —la sobrescritura es idempotente, que es lo que su propio comentario declara—. */
+  if (id === 'valvulas' && typeof sincronizarEADesdeGlobal === 'function') {
+    try {
+      if (window.matchMedia && window.matchMedia('(min-width: 769px)').matches) {
+        sincronizarEADesdeGlobal();
+      }
+    } catch (e) { console.warn('[sincronizarEA/entrada]', e); }
   }
   /* El botón de Orthanc depende de una preferencia que vive en localStorage y que se puede
      haber movido en OTRA pestaña del navegador, donde este documento no se entera. Se repinta
@@ -34982,6 +35189,13 @@ function limpiarCampos(silencioso) {
      Es la falla ABIERTA de una lista escrita a mano — el mismo motivo por el que `sevFundLimpiar`
      deriva su barrido de `SEV_SINC` en vez de literales. */
   document.querySelectorAll('[id^="bloque-insuf-"], [id^="bloque-esten-"], [id^="gf-insuf-"]').forEach(el => el.style.display = 'none');
+  /* ⚠️ Y LOS CAJONES «Datos» DEL CELULAR, QUE NO SON UN `display` SINO UNA CLASE (2026-10-06).
+     Este barrido va por prefijo de `id` y no veía `valv-datos-abierto`, así que un cajón abierto
+     para un paciente seguía abierto para el siguiente — la quinta vez que una lista escrita a mano
+     se queda corta en esta misma función. Lo cazó TC-423 dentro de la suite, no corriéndolo solo.
+     Se delega en `valvCerrarDatos`, que barre POR LA CLASE y es el mismo dueño que usa la entrada
+     a la pestaña: un solo lugar decide qué significa «cerrado». */
+  if (typeof valvCerrarDatos === 'function') { try { valvCerrarDatos(); } catch (e) {} }
   /* ⚠️ `'pulmonar'` FALTABA Y ERA LA CUARTA FALLA ABIERTA DE ESTA LISTA ESCRITA A MANO (2026-10-04).
      `cargarValvPills` restaura las OCHO pastillas desde `valv-pill-<tipo>-<valvula>` —la pulmonar
      entró en E5—, pero este barrido sólo borraba seis claves, así que las dos de la pulmonar
@@ -53447,6 +53661,129 @@ function pillOn(valvula, tipo) {
   return b ? b.classList.contains('btn-primary') : false;
 }
 window.pillOn = pillOn;
+
+/* ══ LA FLECHA «Datos ▾» DEL CELULAR (2026-10-06, decisión de Maicol) ══════════════════════════
+   Alterna UNA clase en el envoltorio de la lesión y nada más. Es deliberadamente lo más tonto
+   posible, y eso es el punto del pedido: «abrirla NO declara la lesión».
+
+   ⚠️ NO TOCA LA PASTILLA, NI EL GRADO, NI `esqSevManual`, NI `localStorage`. El botón azul y esta
+   flecha son dos gestos distintos sobre dos nodos distintos: el botón sigue gobernando el GRADO
+   (su bloque `bloque-<tipo>-<valv>`) y la flecha gobierna los CAMPOS. Si esta función llamara a
+   `toggleValvPill` —que es lo que haría una versión «obvia»— mirar los números equivaldría a
+   afirmar que la valvulopatía existe, y eso baja al informe firmado.
+
+   ⚠️ QUIÉN MUESTRA Y QUIÉN OCULTA: esta función NO escribe `style.display`. La visibilidad la
+   decide la hoja de estilos —siempre visible por encima de 768 px, plegable por debajo— y lo
+   único que esta clase hace es decirle al CSS del celular que este bloque está abierto. Escrito
+   con `style.display` habría dos dueños de lo mismo y el salto de escritorio a celular (o al revés)
+   dejaría el inline mandando sobre el media query, que es el defecto que este archivo ya pagó con
+   `toggleValvPill`.
+
+   `aria-expanded` se actualiza en el botón que la invoca, que es el único que la interfaz expone. */
+function valvDatosTog(cajaId) {
+  const caja = document.getElementById(cajaId);
+  if (!caja) return null;
+  const abierto = caja.classList.toggle('valv-datos-abierto');
+  const btn = caja.querySelector('.valv-datos-tog');
+  if (btn) btn.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+  return abierto;
+}
+window.valvDatosTog = valvDatosTog;
+
+/* ══ AL ENTRAR A VÁLVULAS: LAS CUATRO TARJETAS ARRANCAN CERRADAS (punto 4b) ════════════════════
+   Decisión de Maicol, y el criterio es el de los meses de Guardados: se cierra al ENTRAR a la
+   pestaña, no en cada repintado ni al cambiar un dato. Por eso vive acá y se llama desde una sola
+   línea de `showTab`, y no desde `valvSev.refrescarTodo`, `generarInforme` ni ningún `oninput`.
+
+   ⚠️ ESCRIBE EL MISMO PAR DE COSAS QUE `toggleEteSeccion`, Y TIENE QUE HACERLO. Esa función mueve
+   el `display` de la sección Y la rotación de la flecha; cerrar sólo el `display` dejaría las
+   cuatro flechas apuntando ▼ sobre tarjetas cerradas, que es el afford diciendo lo contrario de
+   lo que pasa — el defecto que el propio comentario de `toggleEteSeccion` declara haber arreglado.
+   No se la reusa llamándola en bucle porque `toggleEteSeccion` ALTERNA: sobre una tarjeta ya
+   cerrada la abriría, así que el resultado dependería del estado previo de cada una. Acá se
+   ESCRIBE el estado, que es idempotente. */
+/* ══ EL «Datos ▾» SE ABRE SOLO CON LA MISMA REGLA DE HOY (punto 5b, 2026-10-06) ════════════════
+   Decisión de Maicol: sin criterios nuevos. La regla de hoy es la de `valvAutoAbrirCajones` —grado
+   en `VALV_AUTO_GRADO` y `localStorage['valv-pill-<tipo>-<valv>']` en `null`—, y eso ya decide qué
+   pastillas se prenden al entrar. Acá se abre el cajón de campos de esas mismas lesiones.
+
+   ⚠️ LA REGLA NO SE REESCRIBE: SE OBSERVA. Esta función recibe la foto de las pastillas de ANTES y
+   mira cuáles están prendidas DESPUÉS, así que no hay una segunda copia del criterio que pueda
+   quedar vieja el día que `VALV_AUTO_GRADO` cambie. Es el mismo motivo por el que `sevClaveDe` se
+   deriva del registro en vez de ser un mapa literal.
+
+   ⚠️ SE LLAMA SIN MIRAR EL ANCHO, y es correcto: por encima de 768 px la hoja de estilos fuerza los
+   campos visibles igual, así que la clase no cambia nada en la PC. Preguntar por el ancho acá
+   agregaría un segundo lugar donde vive el corte de 768 px — y el día que cambie habría que
+   acordarse de los dos.
+
+   Sólo alcanza a las lesiones que TIENEN cajón de campos: la aórtica y la tricúspide. La mitral y
+   la pulmonar no tienen `caja-*`, así que para ellas esto es un `getElementById` que da `null`. */
+function valvAbrirDatosPorRegla(antes) {
+  ['aortica', 'tricuspide'].forEach(function (valv) {
+    ['insuf', 'esten'].forEach(function (tipo) {
+      const caja = document.getElementById('caja-' + tipo + '-' + valv);
+      if (!caja) return;
+      let ahora = false;
+      try { ahora = pillOn(valv, tipo); } catch (e) { return; }
+      /* Sólo las que la regla acaba de prender. Una que ya venía prendida no se toca: el médico
+         pudo haber cerrado el cajón de campos a mano en esta misma visita. */
+      if (ahora && antes && antes[tipo + '-' + valv] === false) {
+        caja.classList.add('valv-datos-abierto');
+        const btn = caja.querySelector('.valv-datos-tog');
+        if (btn) btn.setAttribute('aria-expanded', 'true');
+      }
+    });
+  });
+}
+window.valvAbrirDatosPorRegla = valvAbrirDatosPorRegla;
+
+/* ══ LOS CAJONES «Datos» VUELVEN A CERRARSE — Y SIN ESTO LA CLASE SOBREVIVÍA AL PACIENTE ═══════
+   ⚠️ LO ENCONTRÓ TC-423 CORRIENDO DENTRO DE LA SUITE, NO SOLO, y es el modo de falla más caro de
+   este mecanismo. `valv-datos-abierto` es una clase en el DOM: `limpiarCampos` barre campos,
+   pastillas y bloques por prefijo (`[id^="bloque-insuf-"]`…) pero no conoce esta clase, así que un
+   cajón abierto para un paciente seguía abierto para el siguiente. El caso lo cazó porque en la
+   suite llega con la clase puesta por un caso anterior: corriendo con `--solo` pasaba en verde.
+   Es el mismo defecto que este archivo ya pagó cuatro veces con listas escritas a mano —`gf-insuf-`,
+   la pulmonar en `limpiarCampos`, el `else` de `sevSincronizar`, el `vis` de la tarjeta del PDF—.
+   Acá no se escribe una lista: se barre por la clase, que es su propio registro.
+
+   Se llama desde DOS puertas, y las dos hacen falta: la entrada a la pestaña (para que el estado
+   de partida sea el mismo se venga de donde se venga, igual que el cierre de tarjetas del 4b) y
+   `limpiarCampos` (para «Nuevo estudio» y para reabrir un guardado sin salir de la pestaña).
+   En la entrada va ANTES de la apertura automática por grado, así que la regla puede volver a abrir
+   lo que le toca y el resultado no depende del orden en que se llamó a nadie. */
+function valvCerrarDatos() {
+  document.querySelectorAll('.valv-datos-abierto').forEach(function (caja) {
+    caja.classList.remove('valv-datos-abierto');
+    const btn = caja.querySelector('.valv-datos-tog');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  });
+}
+window.valvCerrarDatos = valvCerrarDatos;
+
+/* La foto de las ocho pastillas, para que `valvAbrirDatosPorRegla` pueda observar el ANTES/DESPUÉS
+   de la regla sin reimplementarla. */
+function valvFotoPastillas() {
+  const o = {};
+  ['mitral', 'aortica', 'tricuspide', 'pulmonar'].forEach(function (v) {
+    ['insuf', 'esten'].forEach(function (t) {
+      try { o[t + '-' + v] = pillOn(v, t); } catch (e) { o[t + '-' + v] = null; }
+    });
+  });
+  return o;
+}
+window.valvFotoPastillas = valvFotoPastillas;
+
+function valvCerrarTarjetas() {
+  ['mitral', 'aortica', 'tricuspide', 'pulmonar'].forEach(function (v) {
+    const sec = document.getElementById('ete-seccion-valv-' + v);
+    const arrow = document.getElementById('ete-valv-' + v + '-arrow');
+    if (sec) sec.style.display = 'none';
+    if (arrow) arrow.style.transform = 'rotate(0deg)';
+  });
+}
+window.valvCerrarTarjetas = valvCerrarTarjetas;
 
 /* ══ J — APERTURA AUTOMÁTICA DEL CAJÓN DE LA AÓRTICA (decisión de Maicol, 2026-10-02) ══════════
    Al entrar a Válvulas, si hay grado de estenosis leve o mayor queda marcado el botón «Estenosis»
@@ -95200,8 +95537,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261006-1537';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791311856126;                 /* eco-build-ms */
+const ECO_BUILD    = '20261006-1740';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791319222338;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -95287,7 +95624,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-1537</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-1740</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
