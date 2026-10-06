@@ -17391,6 +17391,16 @@ function showTab(id) {
      el período o el centro, y ahí cerrarle el bloque al médico que está leyendo sería un reseteo
      sin causa visible. Esto es navegación, aquello es refresco de datos. */
   if (id === 'lab' && typeof labAccCerrarTodos === 'function') labAccCerrarTodos();
+  /* Los grupos por mes de Guardados arrancan PLEGADOS cada vez que se entra a la pantalla, y el
+     estado no se recuerda entre aperturas (2026-10-06). Va acá por el MISMO argumento que la
+     línea de arriba: ésta es la puerta de NAVEGACIÓN. `igPintar` no sirve —corre una vez por
+     tecla del buscador— y `renderInformesGuardados` tampoco: la llaman el guardado, el borrado y
+     las tres importaciones, donde plegarle la lista al médico que está leyendo sería un reseteo
+     sin causa visible. La otra puerta es `volverAListaInformes`.
+     El orden con el repintado NO importa: `igMesesReset` vacía el Set —que es lo que `igPintar`
+     lee— y además sincroniza el markup que ya esté en pantalla, así que sirve antes y después.
+     `typeof` porque esta función vive ~39.000 líneas más arriba, en otro bloque <script>. */
+  if (id === 'guardados' && typeof igMesesReset === 'function') igMesesReset();
   /* ACA SE REPINTABA EL CAJON DOPPLER AL ENTRAR A LA TAB, y se saco (2026-09-24): el cajon vive
      dentro del overlay del visor, asi que ninguna pestana puede mostrarlo ni esconderlo. */
   /* El seguimiento de Cardio-Oncología está indexado por paciente, así que hay que
@@ -56356,7 +56366,11 @@ function igPintar(filtrados){
      y los botones de adentro dejan de responder. */
   lista.innerHTML = grupos.map(g => {
     const k = escHtml(g.k);
-    const cerrado = igMesesCerrados.has(g.k);
+    /* ⚠️ EL SET GUARDA LOS ABIERTOS, Y LA PREGUNTA VA NEGADA: el estado por defecto de un mes es
+       CERRADO, así que un mes que nadie abrió —y todos, al entrar a la pantalla— se pinta plegado.
+       Hasta el 2026-10-06 el Set guardaba los CERRADOS y la pregunta era directa, con lo que un
+       mes desconocido salía abierto y la pantalla arrancaba con los doce desplegados. */
+    const cerrado = !igMesesAbiertos.has(g.k);
     const n = g.items.length;
     return '<div class="ig-mes-grupo' + (cerrado ? ' cerrado' : '') + '" data-mes="' + k + '">' +
       '<button type="button" class="ig-mes" onclick="igMesToggle(this)" aria-expanded="' + (!cerrado) + '">' +
@@ -56369,16 +56383,47 @@ function igPintar(filtrados){
 }
 
 /* Fuera de igPintar a propósito: buscar, filtrar o borrar un estudio rehacen el innerHTML
-   completo, y si el estado viviera en el DOM se perdería con cada tecla del buscador. */
-const igMesesCerrados = new Set();
+   completo, y si el estado viviera en el DOM se perdería con cada tecla del buscador.
+
+   Guarda los meses ABIERTOS, no los cerrados (2026-10-06). El Set vacío significa «todos
+   plegados», que es como tiene que arrancar la pantalla; antes significaba «todos desplegados».
+   Es la única forma de que el defecto sea cerrado SIN recordar nada entre aperturas: con el Set
+   de cerrados había que enumerar las etiquetas de mes que existen para poder cerrarlas, y las
+   etiquetas las produce `igMesLbl` sobre los estudios guardados — o sea que había que conocer la
+   lista antes de pintarla. */
+const igMesesAbiertos = new Set();
 function igMesToggle(btn) {
   const grupo = btn.closest('.ig-mes-grupo'); if (!grupo) return;
   const mes = grupo.dataset.mes;
   const cerrado = grupo.classList.toggle('cerrado');
   btn.setAttribute('aria-expanded', String(!cerrado));
-  if (cerrado) igMesesCerrados.add(mes); else igMesesCerrados.delete(mes);
+  if (cerrado) igMesesAbiertos.delete(mes); else igMesesAbiertos.add(mes);
 }
 window.igMesToggle = igMesToggle;
+
+/* ⚠️ «TODOS CERRADOS AL ENTRAR» SE APLICA EN LAS PUERTAS DE ENTRADA, NO EN `igPintar`.
+   `igPintar` corre una vez por TECLA del buscador y en cada cambio de filtro o borrado, así que
+   vaciar el Set ahí adentro cerraría el mes que el médico acaba de abrir en cuanto escriba una
+   letra. Decisión de Maicol del 2026-10-06: buscar y filtrar NO tocan el plegado.
+
+   Las puertas son DOS y hay que cerrar las dos:
+     · `showTab('guardados')` — la pestaña, el botón flotante y `labStrainAbrir`. Mismo lugar y
+       mismo motivo que `labAccCerrarTodos`, que ya resuelve esto para los acordeones del
+       Laboratorio en esa misma función.
+     · `volverAListaInformes` — vuelve del detalle SIN repintar: sólo mueve dos `display`, así que
+       el markup con las clases viejas sigue en pantalla. Por eso acá no alcanza con vaciar el Set
+       y hay que sincronizar el DOM ya pintado.
+   No es un botón «cerrar todos» y no se expone en la interfaz: el pedido lo excluye
+   explícitamente. Es el reseteo de entrada, y se llama sólo desde esas dos puertas. */
+function igMesesReset() {
+  igMesesAbiertos.clear();
+  document.querySelectorAll('.ig-mes-grupo').forEach(g => {
+    g.classList.add('cerrado');
+    const b = g.querySelector('.ig-mes');
+    if (b) b.setAttribute('aria-expanded', 'false');
+  });
+}
+window.igMesesReset = igMesesReset;
 
 /* ⚠️ REPINTAR NO PUEDE TIRAR LOS FILTROS QUE EL MÉDICO TIENE PUESTOS.
    `igFiltrar(null)` NO es «sin filtros»: su argumento es el conjunto de PARTIDA, y adentro
@@ -60479,6 +60524,12 @@ function volverAListaInformes() {
      pintada sobre el detalle del nuevo. Es el mismo token que usan `_imgGen` y
      `_cineStripGen`, y `_igDetalleMedios` explica por qué. */
   _igDetGen++;
+  /* La SEGUNDA puerta de «los meses arrancan plegados» (2026-10-06): volver de un estudio a la
+     lista también los deja cerrados. Esta función no repinta —mueve dos `display` y nada más—,
+     así que `igMesesReset` tiene que tocar el markup que quedó pintado; vaciar sólo el Set
+     dejaría los grupos abiertos en pantalla hasta el próximo filtro. Ver la nota de esa función
+     para por qué el reseteo no vive en `igPintar`. */
+  if (typeof igMesesReset === 'function') igMesesReset();
 }
 
 /* Detalle del estudio guardado. Cada `id` es una clave de `inf.campos`, y `campos` se llena
@@ -94779,8 +94830,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261005-1243';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791214989155;                 /* eco-build-ms */
+const ECO_BUILD    = '20261006-0048';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791258485926;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -94866,7 +94917,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261005-1243</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-0048</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

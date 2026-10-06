@@ -50651,6 +50651,178 @@ caso('TC-419', 'EN SUMA: la morfologia sube en linea propia y la PROTESIS va en 
   ] };
 `);
 
+/* TC-420 — GUARDADOS: LOS MESES ARRANCAN CERRADOS (parte A, 2026-10-06, pedido de Maicol).
+   Hasta este commit el Set de modulo guardaba los meses CERRADOS, asi que un mes desconocido se
+   pintaba ABIERTO: la pantalla arrancaba con los doce desplegados y, peor, el plegado que el
+   medico hacia a mano se RECORDABA entre aperturas — salir a otra pestania y volver devolvia la
+   lista tal como la habia dejado. Ahora el Set guarda los ABIERTOS y se vacia en las dos puertas
+   de entrada (showTab('guardados') y volverAListaInformes).
+
+   DENOMINADOR REAL, y es la primera condicion del caso: se siembran TRES estudios en TRES meses
+   distintos, se afirma que la lista pinto los tres grupos y que cada escena da una foto DISTINTA
+   (3 cerrados / 1 abierto y 2 cerrados / 3 cerrados otra vez). Sin eso, «todos cerrados» lo
+   cumple tambien una lista vacia, que es como este caso pasaria sin probar nada.
+
+   CONTROL NEGATIVO, y es la decision de Maicol del mismo dia: buscar NO cierra lo que el medico
+   abrio. Es lo que separa «el reseteo esta en las puertas de entrada» de «el reseteo esta en
+   igPintar»; con el reseteo en el pintado esta condicion se pone roja y las otras siguen verdes.
+   ⚠️ NI UN ACENTO GRAVE EN EL CUERPO: es un template literal. */
+caso('TC-420', 'Guardados: los meses arrancan CERRADOS al entrar y al volver de un estudio, no se recuerda el plegado entre aperturas, y buscar no cierra el mes abierto a mano', `
+  return (async function(){
+  /* Foto de los grupos por mes. Se lee la CLASE, el display REAL de los items y el aria, que son
+     las tres caras del mismo estado: si alguna se desincroniza, el lector de pantalla anuncia lo
+     contrario de lo que se ve. */
+  const foto = function () {
+    const gs = Array.prototype.map.call(document.querySelectorAll('.ig-mes-grupo'), function (g) {
+      const items = g.querySelector('.ig-mes-items');
+      const btn = g.querySelector('.ig-mes');
+      return { mes: g.dataset.mes,
+               cerrado: g.classList.contains('cerrado'),
+               display: items ? getComputedStyle(items).display : null,
+               aria: btn ? btn.getAttribute('aria-expanded') : null }; });
+    return { n: gs.length,
+             grupos: gs,
+             cerrados: gs.filter(function (g) { return g.cerrado; }).length,
+             abiertos: gs.filter(function (g) { return !g.cerrado; }).map(function (g) { return g.mes; }),
+             /* Coherencia de las tres caras, por grupo. Una clase sin su display es un mes que
+                dice estar plegado y se ve desplegado. */
+             coherente: gs.every(function (g) {
+               return g.cerrado ? (g.display === 'none' && g.aria === 'false')
+                                : (g.display !== 'none' && g.aria === 'true'); }) }; };
+
+  /* Se entra por el GESTO REAL —el clic en el boton flotante «Guardados»— y no llamando a showTab
+     a mano. Dos motivos, y el segundo lo encontro este mismo caso al ponerse rojo: (1) ese onclick
+     es showTab + renderInformesGuardados + actualizarFloatBtns, o sea la secuencia completa que
+     ejecuta la app; (2) showTab lee la global event en su linea 17369 y sin un clic de verdad
+     event.target es undefined y la funcion TIRA a mitad de camino, antes de llegar a cualquier
+     cosa que venga despues. Es un defecto preexistente que el propio archivo ya documenta para
+     la carga por URL, no de esta tanda — pero convierte cualquier showTab() de consola en una
+     medicion de media app. */
+  const entrar = function () { document.getElementById('floatBtnGuardados').click(); };
+  const salirA = function (tab) {
+    const b = document.querySelector('.tab-btn[onclick*="' + tab + '"]');
+    if (b) { b.click(); return 'clic'; }
+    try { showTab(tab); return 'showTab'; } catch (e) { return 'EXC:' + e.message; } };
+
+  /* Se siembran por la puerta REAL —el campo de fecha mas guardarInforme— y no escribiendo el
+     store a mano: la etiqueta de mes la produce igMesLbl sobre fecha_estudio, y ese campo lo
+     llena el guardado. Tres meses distintos para que haya tres grupos que plegar. */
+  const ids = [];
+  const idsDetalle = [];
+  const sembrar = async function (fecha, nombre) {
+    __t.limpiar();
+    __t.set('nombre', nombre);
+    __t.set('ci', '420' + ids.length);
+    __t.set('fecha', fecha);
+    const g = await __t.guardar();
+    ids.push(g.estudioId);
+    /* ⚠️ SON DOS IDENTIFICADORES DISTINTOS Y NO SON INTERCAMBIABLES. __t.guardar devuelve el
+       estudioId —el que usan reabrir y borrar— pero verDetalleInforme y editarInforme buscan por
+       inf.id, que es el indice numerico interno que reescribe _sanearIds. Pasarle el estudioId
+       hace que verDetalleInforme no encuentre nada y vuelva sin abrir el detalle, y entonces la
+       condicion (e) mide «los meses quedaron cerrados» sobre una pantalla de la que nunca se
+       salio: habria pasado por el motivo equivocado si el detalle no se afirmara aparte. */
+    const inf = getInformes().find(function (i) { return i.estudioId === g.estudioId; });
+    idsDetalle.push(inf ? inf.id : null);
+    return g; };
+
+  const s1 = await sembrar('2026-10-01', 'TC420 Octubre');
+  const s2 = await sembrar('2026-09-15', 'TC420 Septiembre');
+  const s3 = await sembrar('2026-08-02', 'TC420 Agosto');
+  const sembrados = { s1: s1.ok, s2: s2.ok, s3: s3.ok, ids: ids.filter(Boolean).length };
+
+  /* (a) AL ENTRAR: los tres grupos, los tres cerrados. */
+  entrar();
+  const alEntrar = foto();
+
+  /* (b) APERTURA MANUAL DE UNO SOLO. Se abre por el gesto real —el onclick del encabezado— y se
+     exige que los OTROS DOS sigan cerrados: «se abren a mano, uno por uno». */
+  const primero = document.querySelectorAll('.ig-mes-grupo')[0];
+  const mesAbierto = primero ? primero.dataset.mes : null;
+  if (primero) igMesToggle(primero.querySelector('.ig-mes'));
+  const trasAbrirUno = foto();
+
+  /* (c) CONTROL NEGATIVO: con ese mes abierto, BUSCAR repinta la lista entera y NO lo cierra.
+     Decision de Maicol: el buscador y los filtros no tocan el plegado. Se entra por aplicarFiltros
+     y no por el oninput para no pelear con el debounce — es el mismo repintado. */
+  __t.set('ig-buscar', 'TC420 Octubre');
+  aplicarFiltros();
+  const trasBuscar = foto();
+  __t.set('ig-buscar', '');
+  aplicarFiltros();
+  const trasLimpiarBusqueda = foto();
+
+  /* (d) NO SE RECUERDA ENTRE APERTURAS: salir a otra pestania y volver deja los tres cerrados. */
+  const salida = salirA('datos');
+  entrar();
+  const alReentrar = foto();
+
+  /* (e) ABRIR UN ESTUDIO Y VOLVER tambien los deja cerrados. Se abre uno a mano primero para que
+     la vuelta tenga algo que cerrar: sin eso la condicion la cumple el estado anterior y no se
+     distingue «volver cierra» de «ya estaban cerrados». volverAListaInformes NO repinta —mueve
+     dos display— asi que esto es lo que exige que igMesesReset toque el markup ya pintado. */
+  const g2 = document.querySelectorAll('.ig-mes-grupo')[1];
+  if (g2) igMesToggle(g2.querySelector('.ig-mes'));
+  const antesDeVerDetalle = foto();
+  verDetalleInforme(idsDetalle[0]);
+  const detalleVisible = document.getElementById('ig-detalle-view').style.display !== 'none';
+  volverAListaInformes();
+  const trasVolver = foto();
+  const listaVisible = document.getElementById('ig-lista-view').style.display !== 'none';
+
+  /* (f) NO HAY BOTON «abrir todos / cerrar todos»: el pedido lo excluye explicitamente. Se busca
+     por texto en la cabecera de la pantalla de guardados, no en todo el documento. */
+  const tabG = document.getElementById('tab-guardados');
+  const botonMasivo = tabG ? Array.prototype.filter.call(tabG.querySelectorAll('button'), function (b) {
+    const t = (b.textContent || '').toLowerCase();
+    return /(abrir|cerrar|desplegar|plegar|expandir|colapsar)\\s+(todos|todo)/.test(t); }).length : -1;
+
+  for (const id of ids) { if (id) await __t.borrar(id); }
+  __t.limpiar();
+  entrar();
+
+  return { extra: [
+    ['DENOMINADOR: los tres estudios se guardaron y la lista pinto TRES grupos de mes',
+      sembrados.s1 === true && sembrados.s2 === true && sembrados.s3 === true &&
+      sembrados.ids === 3 && alEntrar.n === 3,
+      JSON.stringify(sembrados) + ' grupos=' + alEntrar.n],
+
+    ['(a) AL ENTRAR a Guardados los tres meses estan CERRADOS, y las tres caras coinciden',
+      alEntrar.cerrados === 3 && alEntrar.abiertos.length === 0 && alEntrar.coherente === true,
+      JSON.stringify(alEntrar)],
+
+    ['(b) apertura manual de UNO: ese queda abierto y los otros DOS siguen cerrados',
+      trasAbrirUno.n === 3 && trasAbrirUno.cerrados === 2 &&
+      trasAbrirUno.abiertos.length === 1 && trasAbrirUno.abiertos[0] === mesAbierto &&
+      trasAbrirUno.coherente === true,
+      'mes=' + mesAbierto + ' ' + JSON.stringify(trasAbrirUno)],
+
+    /* El control negativo. Con el reseteo puesto en igPintar esta condicion se pone roja. */
+    ['(c) CONTROL NEGATIVO: buscar repinta la lista y NO cierra el mes abierto a mano',
+      trasBuscar.n === 1 && trasBuscar.cerrados === 0 &&
+      trasBuscar.abiertos[0] === mesAbierto &&
+      trasLimpiarBusqueda.n === 3 && trasLimpiarBusqueda.abiertos.length === 1 &&
+      trasLimpiarBusqueda.abiertos[0] === mesAbierto,
+      'buscando=' + JSON.stringify(trasBuscar) + ' limpio=' + JSON.stringify(trasLimpiarBusqueda)],
+
+    ['(d) el plegado NO se recuerda entre aperturas: salir y volver a la pantalla deja los tres cerrados',
+      alReentrar.n === 3 && alReentrar.cerrados === 3 && alReentrar.abiertos.length === 0 &&
+      alReentrar.coherente === true && String(salida).indexOf('EXC') === -1,
+      'salida=' + salida + ' ' + JSON.stringify(alReentrar)],
+
+    ['(e) volver de un ESTUDIO a la lista tambien los deja cerrados',
+      antesDeVerDetalle.abiertos.length === 1 && detalleVisible === true &&
+      listaVisible === true && trasVolver.n === 3 && trasVolver.cerrados === 3 &&
+      trasVolver.abiertos.length === 0 && trasVolver.coherente === true,
+      'antes=' + JSON.stringify(antesDeVerDetalle) + ' detalle=' + detalleVisible +
+      ' despues=' + JSON.stringify(trasVolver)],
+
+    ['(f) no hay boton «abrir todos / cerrar todos» en la pantalla de Guardados',
+      botonMasivo === 0, 'coincidencias=' + botonMasivo],
+  ] };
+  })();
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────
