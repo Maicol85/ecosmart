@@ -199,6 +199,36 @@ window.__G = {
                    return /diast/i.test(k) }).sort().join(',') } catch(e){ return 'EXC' } })()
     } },
 
+  /* ⚠️ DENOMINADOR DE LA MAQUETACION, Y LA PRIMERA VERSION DE ESTA SONDA NO LO TENIA.
+     El selector vive en #tab-doppler, dentro del acordeon #dop-mitral. Lo que esta en
+     display:none NO TIENE GEOMETRIA, asi que midiendo sin abrir la pestania los doce numeros del
+     layout salian CERO —ancho 0, scrollW 0, cortado false, sin barra— y eso se lee como «entra
+     perfecto a 360 px». Es la misma trampa que documenta check_mobile.js: un barrido sobre la app
+     cerrada da cero y parece impecable. Devuelve ok:false si no logro abrirla, para que el reporte
+     no pueda confundir «no desborda» con «no se midio». */
+  abrirDoppler() {
+    try { showTab('doppler') } catch(e) {
+      /* showTab lee la global event para marcar el boton activo y sin un clic real tira a mitad de
+         camino — defecto preexistente que el propio archivo documenta para la carga por URL. El
+         respaldo hace lo unico que esta medicion necesita: poner la seccion en active. */
+      try {
+        document.querySelectorAll('.tab-section').forEach(function(s){ s.classList.remove('active') });
+        var t0 = document.getElementById('tab-doppler'); if (t0) t0.classList.add('active');
+      } catch(e2) {}
+    }
+    var sec = document.getElementById('dop-mitral');
+    if (sec && getComputedStyle(sec).display === 'none') {
+      var h = document.querySelector('[onclick*="dop-mitral"]');
+      if (h) h.click(); else sec.style.display = 'block';
+    }
+    var sel = document.getElementById('diast_algoritmo');
+    var w = sel ? Math.round(sel.getBoundingClientRect().width) : 0;
+    var tb = document.getElementById('tab-doppler');
+    return { tab: !!tb && tb.classList.contains('active'),
+             seccion: !!sec && getComputedStyle(sec).display !== 'none',
+             anchoSelector: w,
+             ok: w > 0 } },
+
   /* MAQUETACION del bloque del selector, para las condiciones 1 y 2 del pedido de Maicol: que el
      aviso no desplace la grilla de al lado ni el campo Ritmo, y que a 360 y 390 px el texto no se
      corte ni desborde. Se mide el rectangulo de los dos campos y el scroll del aviso. */
@@ -300,6 +330,66 @@ async function main() {
     return JSON.stringify(out);
   })()`));
 
+  /* ROUND-TRIP DE UN ESTUDIO GUARDADO CON OTRO PROTOCOLO. Es el punto 4 del protocolo de
+     verificacion: un estudio guardado antiguo tiene que abrir identico y su informe reimpreso
+     salir con el mismo texto y el mismo protocolo con que se firmo.
+     Se entra por `cargarEstudioPorId`, que es la ruta del QR Y la que usa el llenado de la
+     reimpresion (`_pdfDeInformeGuardadoArmar` llama a `calcDiastol()` en su linea 63848, medido).
+     No se dispara `pdfDeInformeGuardado`: genera y DESCARGA un PDF, y lo que hay que comparar es
+     el texto, no el archivo. */
+  const roundTrip = JSON.parse(await ev(`(function(){
+    var out = {};
+    var sel = document.getElementById('diast_algoritmo');
+    var ses = function(){ try { return sessionStorage.getItem('ett_diast_algo') } catch(e){ return 'EXC' } };
+    try { sessionStorage.removeItem('ett_diast_algo') } catch(e){}
+
+    /* Se arma el blob como lo escribe guardarInforme —el mismo barrido— y se repone por el MISMO
+       bucle, en vez de pasar por el store: lo que se compara es el viaje del dato. */
+    window.__G.paciente();
+    window.__G.set('diast_algoritmo','bse2024');
+    var campos = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(el){
+      try { if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(el.id)) return } catch(e){}
+      campos[el.id] = el.value });
+    out.guardado = { algo: campos.diast_algoritmo, n: Object.keys(campos).length };
+    out.alGuardar = { inf: window.__G.informe('estandar'), excel: window.__G.excel().n };
+
+    /* El medico sigue con OTRO protocolo elegido en la sesion. Reabrir no puede pisarlo, y el
+       informe reimpreso tiene que salir con el del ESTUDIO. */
+    limpiarCampos(true);
+    sel.value = 'ase2016';
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    out.sesionAntes = { algo: sel.value, ses: ses() };
+
+    limpiarCampos(true);
+    if (typeof _migrarCamposLegacy === 'function') _migrarCamposLegacy(campos);
+    Object.keys(campos).forEach(function(k){
+      var el = document.getElementById(k); if (el) el.value = campos[k] });
+    try { calcBSA(); calcVI(); calcAI(); calcVD(); calcPSAP(); calcDiastol() } catch(e){}
+    out.reabierto = { algo: sel.value, ses: ses(),
+                      aviso: window.__G.txt('diast-algo-aviso'),
+                      capsula: window.__G.txt('dd-interp') };
+    out.alReabrir = { inf: window.__G.informe('estandar'), excel: window.__G.excel().n };
+
+    /* Y un LEGADO sin la clave: tiene que abrir como hoy, o sea en el recomendado, sin heredar
+       el ase2016 de la sesion. */
+    var legado = JSON.parse(JSON.stringify(campos));
+    delete legado.diast_algoritmo;
+    limpiarCampos(true);
+    if (typeof _migrarCamposLegacy === 'function') _migrarCamposLegacy(legado);
+    Object.keys(legado).forEach(function(k){
+      var el = document.getElementById(k); if (el) el.value = legado[k] });
+    try { calcBSA(); calcVI(); calcAI(); calcVD(); calcPSAP(); calcDiastol() } catch(e){}
+    out.legado = { algo: sel.value, ses: ses(),
+                   aviso: window.__G.txt('diast-algo-aviso'),
+                   capsula: window.__G.txt('dd-interp') };
+    out.alAbrirLegado = { inf: window.__G.informe('estandar'), excel: window.__G.excel().n };
+
+    try { sessionStorage.removeItem('ett_diast_algo') } catch(e){}
+    limpiarCampos(true);
+    return JSON.stringify(out);
+  })()`));
+
   /* MAQUETACION a 1200, 390 y 360 px. El aviso de la parte B tiene que caber sin cortarse y sin
      mover el campo «Ritmo» de al lado, que son las condiciones 1 y 2 de Maicol. Se mide con el
      protocolo NO recomendado puesto, que es el unico estado en el que el aviso existe. */
@@ -310,6 +400,9 @@ async function main() {
     await new Promise((r) => setTimeout(r, 400));
     layout['w' + w] = JSON.parse(await ev(`(function(){
       var out = {};
+      /* Se abre la pestania ANTES de medir. Sin esto los doce numeros salen cero y el reporte
+         diria «no desborda» sobre una medicion que no ocurrio. */
+      out.denominador = window.__G.abrirDoppler();
       window.__G.set('diast_algoritmo','ase2025');
       out.conRecomendado = { diast: window.__G.diastolica(), layout: window.__G.layout() };
       window.__G.set('diast_algoritmo','ase2016');
@@ -325,7 +418,7 @@ async function main() {
   console.log(JSON.stringify({
     archivo: FARG, md5_index_antes: antes, md5_index_despues: despues,
     index_intacto: antes === despues,
-    listo, superficies, protocolos, layout,
+    listo, superficies, protocolos, roundTrip, layout,
   }, null, 2));
 
   /* ⚠️ Cerrar el servidor Y salir a mano: cdp.close() + proc.kill() no alcanzan —el servidor HTTP

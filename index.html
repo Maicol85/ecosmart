@@ -2038,6 +2038,14 @@ function cerrarSesionReal() {
      el médico siguiente de una máquina compartida. Es el mismo motivo por el que la línea de
      arriba cierra el panel en vez de sólo detener el bucle. */
   if (typeof lv3dNuevoPaciente === 'function') { try { lv3dNuevoPaciente(); } catch (e) {} }
+  /* Y EL PROTOCOLO DIASTÓLICO DE LA SESIÓN, que es el sexto de esta lista y por el MISMO motivo:
+     el botón «Cerrar» tiene que devolverlo al recomendado (pedido de Maicol, 2026-10-06). Son dos
+     mitades —borrar la clave de `sessionStorage` y devolver el `<select>` a ASE 2025— y las hace
+     `diastAlgoCerrarSesion`; ver su comentario para por qué la segunda no es redundante con el
+     `selectedIndex = 0` de `limpiarCampos`.
+     Acá arriba y no después del `removeItem('ett_auth')` de abajo, para que quede junto a las
+     otras cinco limpiezas de estado que comparten su argumento. */
+  if (typeof diastAlgoCerrarSesion === 'function') { try { diastAlgoCerrarSesion(); } catch (e) {} }
   sessionStorage.removeItem('ett_auth');
   document.getElementById('login-pwd').value = '';
   document.getElementById('login-err').textContent = '';
@@ -3140,11 +3148,34 @@ window.cerrarSesionReal = cerrarSesionReal;
     <div class="card-body">
       <div class="grid-2" style="margin-bottom:10px;">
         <div class="fg"><label>Algoritmo función diastólica</label>
-          <select id="diast_algoritmo" onchange="calcDiastol()">
+          <!-- `diastAlgoCambio` y no `calcDiastol` pelado: el manejador del SELECTOR tiene que
+               hacer tres cosas —recordar el protocolo en la sesión, repintar el aviso de abajo y
+               recalcular—, y `calcDiastol` la llaman además los seis campos del Doppler mitral y
+               `RECALC_MODULOS`, donde recordar nada sería mentir sobre lo que el médico eligió.
+               Adentro llama a `calcDiastol`, así que el recálculo es el de siempre. -->
+          <select id="diast_algoritmo" onchange="diastAlgoCambio()">
             <option value="ase2025" selected>ASE 2025 (recomendado)</option>
             <option value="bse2024">BSE 2024 (descriptivo)</option>
             <option value="ase2016">ASE/EACVI 2016 (Grados I–III)</option>
           </select>
+          <!-- ⚠️ SÓLO DE PANTALLA. Ningún generador de PDF, PPT ni Excel lo lee, y el narrativo
+               tampoco: el informe firmado no avisa con qué algoritmo se graduó —esa es la regla
+               «el panel explica, el papel afirma» de CLAUDE.md—. Nace oculto y lo prende y apaga
+               `diastAlgoAvisoSync`, que es su único dueño.
+               Va DEBAJO del selector y dentro de su propia celda del `.grid-2` (decisión de
+               Maicol, 2026-10-06): con el aviso al lado del rótulo, a 360 px competía por ancho
+               con una etiqueta que ya es larga. `--amber` y no `--red`: elegir otro protocolo es
+               una decisión válida del médico, no un error.
+
+               MEDIDO Y DECLARADO: a 1200 px no desplaza nada —«Ritmo» queda en x=686, y=274 con y
+               sin aviso—. A 390 y 360 px el `.grid-2` se apila, así que «Ritmo» deja de estar al
+               lado y pasa a estar debajo, y baja 21 px cuando el aviso aparece. Se deja así
+               (decisión de Maicol): es lo que ya hacen `it-manual-aviso` y `et-manual-aviso`, y la
+               alternativa —`visibility:hidden` para reservar el lugar— deja un hueco vacío de
+               18 px en todas las pantallas, también con el protocolo recomendado, que es el caso
+               normal. El texto SÍ entra: a 360 px ocupa 298 px en una línea de 14 px, sin corte
+               (`scrollWidth == clientWidth`), con el borde derecho en 329 y sin barra horizontal. -->
+          <div id="diast-algo-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--amber);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
         </div>
         <div class="fg"><label>Ritmo</label>
           <select id="diast_ritmo" onchange="calcDiastol();hfRitmoCambio()">
@@ -21522,9 +21553,135 @@ window.calcDiastol = function() {
        calculos y su `oninput` seguia llamando a uno. */
     try { if (typeof imOndaEPintar === 'function') imOndaEPintar(); }
     catch (e) { console.error('[imOndaE] tras calcDiastol', e); }
+    /* ⚠️ EL AVISO DE PROTOCOLO SE REPINTA ACÁ, y es la tercera instancia del mismo argumento.
+       Su dueño único es `diastAlgoAvisoSync`, y colgarlo sólo del `onchange` del selector lo
+       habría dejado rancio en la ruta que importa: reabrir un estudio guardado repone
+       `diast_algoritmo` con `el.value = val`, que NO dispara ningún evento. Un estudio firmado
+       con ASE 2016 volvía a pantalla graduado por ASE 2016 y sin una sola marca de que el
+       protocolo activo no es el recomendado. Esta puerta cubre las tres rutas de restauración
+       —«Editar», el QR y la reimpresión— porque las tres llaman a `calcDiastol`.
+       La OTRA columna es `limpiarCampos`, que no pasa por acá: ver su línea al final. */
+    try { if (typeof diastAlgoAvisoSync === 'function') diastAlgoAvisoSync(); }
+    catch (e) { console.error('[diastAlgo] aviso tras calcDiastol', e); }
     return r;
   };
 })();
+
+/* ══ EL PROTOCOLO DIASTÓLICO SE MANTIENE ENTRE ESTUDIOS DE LA SESIÓN ═══════════════════════════
+   Pedido de Maicol del 2026-10-06. El recomendado es ASE 2025 y es el valor de fábrica del
+   `<select>`; si el médico elige otro, ese otro se mantiene para los estudios SIGUIENTES de la
+   misma sesión, y se pierde al cerrar la app.
+
+   ⚠️ `sessionStorage` Y NO `localStorage`, y no es intercambiable: el pedido dice «que muera con
+   la sesión del navegador». Es el mismo almacenamiento que la app ya usa para `ett_auth`, así que
+   el protocolo vive y muere exactamente cuando vive y muere la sesión abierta — cerrar la pestaña
+   o el navegador lo borra sin que esta app tenga que enterarse. En `localStorage` sería una
+   preferencia permanente, que es otra cosa y nadie la pidió.
+   El precio, que queda declarado porque este archivo ya lo documentó para el aviso del umbral:
+   `sessionStorage` SOBREVIVE a F5 y se COPIA al duplicar la pestaña. Un F5 conserva el protocolo
+   elegido, igual que conserva la sesión abierta — es coherente, no un descuido.
+
+   Lo que NO cambia y queda dicho: ni el algoritmo, ni sus cortes, ni cuál es el recomendado, ni lo
+   que se guarda dentro del estudio. `diast_algoritmo` sigue siendo un campo del estudio (no está
+   en `_CAMPOS_FUERA_DEL_ESTUDIO`, verificado) y sigue viajando en `campos`. */
+const DIAST_ALGO_RECOMENDADO = 'ase2025';
+const DIAST_ALGO_SES_KEY = 'ett_diast_algo';
+
+/* Los tres accesos al almacenamiento, en try: en modo incógnito con cuota agotada `setItem`
+   lanza, y una excepción acá no puede impedir que el recálculo diastólico corra. Sin sesión
+   disponible el comportamiento degrada a lo de HEAD —cada estudio arranca en el recomendado—,
+   que es una degradación segura y no una pérdida de dato clínico. */
+function diastAlgoSesLeer() {
+  try { return sessionStorage.getItem(DIAST_ALGO_SES_KEY) || null; } catch (e) { return null; }
+}
+function diastAlgoSesBorrar() {
+  try { sessionStorage.removeItem(DIAST_ALGO_SES_KEY); } catch (e) {}
+}
+/* El recomendado NO se persiste, se BORRA la clave. Guardar 'ase2025' y no guardar nada producen
+   el mismo comportamiento, así que la ausencia es la representación honesta de «el médico no
+   eligió nada distinto» — y evita que un renombre futuro del recomendado deje una clave vieja
+   forzando el protocolo de ayer. */
+function diastAlgoSesGuardar(v) {
+  if (!v || v === DIAST_ALGO_RECOMENDADO) { diastAlgoSesBorrar(); return; }
+  try { sessionStorage.setItem(DIAST_ALGO_SES_KEY, v); } catch (e) {}
+}
+
+/* El aviso de pantalla. Dueño ÚNICO del nodo, y la condición se lee del DOM y no de la sesión: lo
+   que el aviso describe es el protocolo ACTIVO, que con un estudio guardado reabierto puede no ser
+   el de la sesión. Texto literal del pedido, sin agregados. */
+function diastAlgoAvisoSync() {
+  const av = document.getElementById('diast-algo-aviso');
+  if (!av) return null;
+  const sel = document.getElementById('diast_algoritmo');
+  const v = sel ? sel.value : DIAST_ALGO_RECOMENDADO;
+  const distinto = !!v && v !== DIAST_ALGO_RECOMENDADO;
+  av.textContent = distinto ? 'Protocolo distinto del recomendado (2025)' : '';
+  av.style.display = distinto ? 'block' : 'none';
+  return distinto;
+}
+window.diastAlgoAvisoSync = diastAlgoAvisoSync;
+
+/* EL MANEJADOR DEL SELECTOR. Único camino por el que el protocolo entra a la sesión: lo llama el
+   `onchange` del `<select>` y lo vuelve a llamar `diastAlgoReponerDeSesion` despachando un
+   `change`, así que las dos formas de que el protocolo cambie ejecutan exactamente las mismas tres
+   líneas. `calcDiastol` queda AL FINAL porque su envoltorio repinta el aviso otra vez: idempotente
+   y en el orden que deja la pantalla coherente si una de las dos se cae. */
+function diastAlgoCambio() {
+  const sel = document.getElementById('diast_algoritmo');
+  if (sel) diastAlgoSesGuardar(sel.value);
+  diastAlgoAvisoSync();
+  if (typeof calcDiastol === 'function') calcDiastol();
+}
+window.diastAlgoCambio = diastAlgoCambio;
+
+/* Repone el protocolo de la SESIÓN después de «Nuevo estudio». Lo llaman los dos caminos del modal,
+   al lado de `_indClinVaciar` y por el mismo motivo que aquélla NO vive en `limpiarCampos`: esa
+   función corre también al abrir un estudio con «Editar» y por el QR, y ahí el protocolo que tiene
+   que ganar es el DEL ESTUDIO, no el de la sesión (regla B3 del pedido).
+
+   ⚠️ DESPACHA UN `change` EN VEZ DE ASIGNAR Y LISTO. Es el requisito explícito del pedido —el
+   reaplicado tiene que pasar por el mismo manejador que un cambio manual— y además es necesario:
+   con `sel.value = v` a secas el protocolo quedaría elegido pero la cápsula de interpretación, el
+   título del algoritmo, el E/e' y el aviso seguirían siendo los del recomendado, que es el defecto
+   que este archivo documenta una docena de veces («asignar .value no dispara ningún evento»).
+   NO hay bucle: `diastAlgoCambio` no despacha nada, sólo lee el select. */
+function diastAlgoReponerDeSesion() {
+  const sel = document.getElementById('diast_algoritmo');
+  if (!sel) return null;
+  const v = diastAlgoSesLeer();
+  /* Sin nada guardado no se toca el select: `limpiarCampos` ya lo dejó en el recomendado por su
+     `selectedIndex = 0`, y pisarlo acá sería hacer dos veces el mismo trabajo. */
+  if (!v) { diastAlgoAvisoSync(); return null; }
+  /* Un valor que no corresponde a ninguna `<option>` dejaría el `<select>` en `selectedIndex -1`
+     —el mismo agujero que el `it_grado='3'` de la tanda anterior— y el protocolo quedaría en
+     blanco. Pasa si alguien escribe la clave a mano o si una versión futura renombra una opción
+     con la pestaña abierta. Se descarta la clave y se sigue con el recomendado. */
+  const existe = Array.prototype.some.call(sel.options, function (o) { return o.value === v; });
+  if (!existe) { diastAlgoSesBorrar(); diastAlgoAvisoSync(); return null; }
+  if (sel.value !== v) {
+    sel.value = v;
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+  } else {
+    diastAlgoAvisoSync();
+  }
+  return v;
+}
+window.diastAlgoReponerDeSesion = diastAlgoReponerDeSesion;
+
+/* El botón «Cerrar» de arriba. Va en `cerrarSesionReal` —la puerta por la que pasan los DOS
+   caminos del cierre, con modal y sin él— y hace las dos mitades: borra la clave de sesión y
+   DEVUELVE el select al recomendado. La segunda no es redundante: `cerrarSesion` sólo llama a
+   `limpiarCampos` cuando `_hayAlgoSinGuardar()` contesta `false`, así que por los otros dos
+   caminos el `selectedIndex = 0` no corre y el protocolo del médico anterior quedaría elegido
+   detrás de la pantalla de bloqueo, listo para el siguiente turno de una máquina compartida. Es el
+   mismo argumento que ya tienen ahí las cinco líneas del cajón Doppler, el 2D y el VI 3D. */
+function diastAlgoCerrarSesion() {
+  diastAlgoSesBorrar();
+  const sel = document.getElementById('diast_algoritmo');
+  if (sel && sel.value !== DIAST_ALGO_RECOMENDADO) sel.value = DIAST_ALGO_RECOMENDADO;
+  diastAlgoAvisoSync();
+}
+window.diastAlgoCerrarSesion = diastAlgoCerrarSesion;
 
 function calcularBSE2024(alterada, marcadores, totalEvaluables, ee, ea, lavi) {
   if (alterada === null) {
@@ -34954,6 +35111,17 @@ function limpiarCampos(silencioso) {
      Va acá y no arriba porque LEE los campos para decidir si esconde las dos filas: corriendo
      antes del vaciado vería los del paciente anterior y las dejaría publicadas. */
   if (typeof calcVenaPulm === 'function') { try { calcVenaPulm(); } catch (e) {} }
+  /* ⚠️ EL AVISO DE PROTOCOLO DIASTÓLICO, SEGUNDA COLUMNA Y AL FINAL, por el MISMO motivo que las
+     dos líneas de arriba: `limpiarCampos` NO pasa por el embudo de `RECALC_MODULOS` ni llama a
+     `calcDiastol`, que es la otra puerta donde este aviso se repinta. Sin esta línea, el barrido
+     genérico de `<select>` devuelve `diast_algoritmo` al recomendado con su `selectedIndex = 0`
+     pero el aviso ámbar del paciente ANTERIOR queda publicado sobre un formulario ya vacío,
+     diciendo que el protocolo activo no es el recomendado cuando sí lo es.
+     Va acá y no arriba porque LEE el select para decidir: corriendo antes del barrido vería el
+     valor del paciente anterior y dejaría el aviso puesto, que es el defecto que viene a cerrar.
+     Esto NO repone el protocolo de la sesión —eso lo hacen los dos caminos de «Nuevo estudio»,
+     ver `_diastAlgoTrasLimpiar`—: acá sólo se sincroniza lo que se ve con lo que hay. */
+  if (typeof diastAlgoAvisoSync === 'function') { try { diastAlgoAvisoSync(); } catch (e) {} }
   if (!silencioso) toast('🗑 Formulario limpiado');
 }
 
@@ -35066,14 +35234,29 @@ function neGuardarYContinuar() {
   // Vía callback: el guardado puede quedar esperando la card de severidades, y en ese caso
   // el valor de retorno todavía es false. Sólo se limpia cuando el guardado fue efectivo
   // (evita perder datos si falta el paciente o si se cancela la card).
-  guardarInforme(ok => { if (ok) { _indClinVaciar(); limpiarCampos(); imgVaciar(); _neSalir(); } });
+  guardarInforme(ok => { if (ok) { _indClinVaciar(); limpiarCampos(); _diastAlgoTrasLimpiar(); imgVaciar(); _neSalir(); } });
 }
 function neContinuarSinGuardar() {
   _neCerrar();
   _indClinVaciar();
   limpiarCampos();
+  _diastAlgoTrasLimpiar();
   imgVaciar();
   _neSalir();
+}
+/* El protocolo diastólico que el médico eligió VUELVE después de «Nuevo estudio» (2026-10-06).
+   Va en los DOS caminos del modal y NO dentro de `limpiarCampos`, que es exactamente el argumento
+   —y el lugar— de `_indClinVaciar` en la línea de arriba: `limpiarCampos` corre también al abrir
+   un estudio con «Editar» y por el QR, y ahí el protocolo que tiene que ganar es el del ESTUDIO.
+   Si viviera adentro, un estudio guardado SIN la clave reabriría con el protocolo de la sesión en
+   vez del recomendado, que es justo lo que el pedido prohíbe.
+   Va DESPUÉS de `limpiarCampos`, que deja el select en el recomendado por su `selectedIndex = 0`;
+   antes, el reaplicado se perdería en la misma llamada.
+   `typeof` porque esta función vive ~13.000 líneas más arriba, en otro bloque <script>. */
+function _diastAlgoTrasLimpiar() {
+  if (typeof diastAlgoReponerDeSesion === 'function') {
+    try { diastAlgoReponerDeSesion(); } catch (e) { console.warn('[diastAlgo/nuevoEstudio]', e); }
+  }
 }
 /* ══ LAS RESPUESTAS DEL PANEL DE EVIDENCIA SE BORRAN EN «NUEVO ESTUDIO» ════════════════════════
    Decisión de Maicol (2026-09-30). Mismo argumento —y mismo lugar— que `imgVaciar`, acá abajo:
@@ -37066,6 +37249,24 @@ function _autosaveRestore(){
 }
 function _autosaveInit(){
   _autosaveRestore();
+  /* ⚠️ EL PROTOCOLO DE LA SESIÓN SE REPONE AL ARRANCAR, Y VA DESPUÉS DE `_autosaveRestore`.
+     `sessionStorage` sobrevive a F5 —es lo que hace que la app no vuelva a pedir la contraseña— así
+     que la clave puede seguir viva cuando el documento se recarga. Sin esta línea quedaba un estado
+     incoherente: el desplegable en el recomendado y la clave viva, de modo que el siguiente «Nuevo
+     estudio» hacía aparecer un protocolo que la pantalla no mostraba.
+
+     EL ORDEN IMPORTA Y LA GUARDA ES LO QUE LO HACE NO IMPORTAR: `diastAlgoReponerDeSesion` sólo
+     despacha el `change` si el valor actual difiere del de la sesión, y el borrador restaurado se
+     repone ANTES. O sea que si el borrador traía un protocolo, ése es el del estudio en curso y es
+     el que queda — mismo principio que la regla del estudio guardado: el protocolo del estudio
+     gana al de la sesión.
+     QUEDA DECLARADO el borde que la guarda no distingue: un borrador cuyo protocolo sea exactamente
+     el recomendado, con una sesión que eligió otro, sale con el de la sesión. No supe construirlo
+     por las puertas reales —el borrador guarda el formulario completo del estudio en curso, así que
+     ese estado es «el médico volvió al recomendado y no lo tocó»— y no hay caso que lo cubra. */
+  if (typeof diastAlgoReponerDeSesion === 'function') {
+    try { diastAlgoReponerDeSesion(); } catch (e) { console.warn('[diastAlgo/arranque]', e); }
+  }
   document.addEventListener('input', _autoSaveDebounced, true);
   document.addEventListener('change', _autoSaveDebounced, true);
 }
@@ -94830,8 +95031,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261006-0048';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791258485926;                 /* eco-build-ms */
+const ECO_BUILD    = '20261006-0716';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791281792767;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -94917,7 +95118,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-0048</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-0716</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

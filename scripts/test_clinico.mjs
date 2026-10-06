@@ -50823,6 +50823,231 @@ caso('TC-420', 'Guardados: los meses arrancan CERRADOS al entrar y al volver de 
   })();
 `);
 
+/* TC-421 — EL PROTOCOLO DIASTOLICO SE MANTIENE ENTRE ESTUDIOS DE LA SESION (parte B, 2026-10-06,
+   pedido de Maicol). El recomendado es ASE 2025 y es el valor de fabrica del desplegable; si el
+   medico elige otro, ese otro se mantiene para los estudios SIGUIENTES de la misma sesion y se
+   pierde al cerrar la app.
+
+   Las siete escenas del pedido, por su letra:
+     (a) arranque con el recomendado y SIN aviso;
+     (b) elegir otro + «Nuevo estudio» -> se mantiene y aparece el aviso;
+     (c) volver al recomendado -> el aviso desaparece;
+     (d) reabrir un estudio guardado con otro protocolo -> abre con el SUYO, y el «Nuevo estudio»
+         siguiente vuelve al de la SESION (no al del estudio);
+     (e) boton «Cerrar» -> vuelve al recomendado;
+     (f) cierre de la pestania, simulado vaciando el almacenamiento de sesion -> recomendado;
+     (g) un estudio SIN protocolo guardado abre como hoy, o sea en el recomendado.
+
+   DENOMINADOR REAL, y es la primera condicion: cada escena tiene que producir algo DISTINTO. No se
+   pregunta «esta vacio» sino por el valor exacto del desplegable, por el texto literal del aviso y
+   por el TITULO del algoritmo, que lo escribe otra funcion (diastAlgoRender) — asi un reaplicado
+   que asignara .value sin disparar el manejador dejaria el titulo rancio y la condicion (b) roja,
+   que es el requisito B4 del pedido medido por su consecuencia y no por su implementacion.
+
+   CONTROL NEGATIVO: la escena (d2) exige que reabrir un estudio NO cambie el protocolo de la
+   sesion. Es lo que separa «el estudio gana en pantalla» de «el estudio pisa la preferencia», y
+   sin ella un reaplicado que leyera del DOM en vez de la sesion pasaria igual.
+   ⚠️ NI UN ACENTO GRAVE EN EL CUERPO: es un template literal. */
+caso('TC-421', 'Protocolo diastolico: se mantiene entre estudios de la sesion, un estudio guardado abre con el suyo sin pisar la sesion, y el boton «Cerrar» y el cierre de la pestania lo devuelven al recomendado', `
+  return (async function(){
+  const SES = 'ett_diast_algo';
+  const sel = document.getElementById('diast_algoritmo');
+  if (!sel) return { extra: [['existe el desplegable del protocolo', false, 'NO EXISTE diast_algoritmo']] };
+
+  /* Foto de lo que el medico ve. La CAPSULA es el testigo del requisito B4 —que el reaplicado pase
+     por el manejador del selector y no asigne el valor y listo—: la escribe calcDiastol, que es
+     una funcion DISTINTA del desplegable y que una asignacion de .value no dispara. Con
+     sel.value = v pelado el desplegable diria ASE 2016 y la capsula seguiria en ASE 2025.
+
+     ⚠️ NO SE USA #diast-algo-titulo, Y LA PRIMERA VERSION DE ESTE CASO LO USABA: ese span vive en
+     la card FLOTANTE del algoritmo y lo pinta diastAlgoRender, que corre solo cuando el overlay
+     esta ABIERTO (diastAlgoAbrir, o el listener de documento si ya estaba abierto). Este caso no
+     lo abre, asi que el span conserva su texto de fabrica «Algoritmo diastolico» en las siete
+     escenas: un nodo sin dueño no distingue nada y la condicion fallaba por el testigo, no por la
+     app. Medido en las dos escenas que caian. */
+  const foto = function () {
+    const av = document.getElementById('diast-algo-aviso');
+    return { algo: sel.value,
+             idx: sel.selectedIndex,
+             aviso: av ? (av.textContent || '').trim() : null,
+             avisoVis: av ? getComputedStyle(av).display !== 'none' : null,
+             capsula: (__t.txt('dd-interp') || '').trim(),
+             ses: (function(){ try { return sessionStorage.getItem(SES) } catch(e){ return 'EXC' } })() }; };
+
+  /* Paciente con diastolica cargada: sin datos las tres ramas dicen «datos insuficientes» y la
+     capsula no distingue protocolos, con lo que media sobre un denominador plano. */
+  const paciente = function (nom) {
+    __t.limpiar();
+    __t.set('nombre', nom); __t.set('ci', '4210001'); __t.set('fecha', '2026-10-06');
+    __t.set('edad','68'); __t.set('talla','170'); __t.set('peso','75');
+    __t.set('onda_e','95'); __t.set('onda_a','60'); __t.set('e_sep','5'); __t.set('e_lat','7');
+    __t.set('tde','180'); __t.set('ai_vol','72'); __t.set('vmax_it','3.0'); __t.set('fevi','55');
+    calcDiastol(); };
+
+  /* El GESTO del medico sobre el desplegable: se despacha change, que es lo que corre el onchange
+     del marcado. No se llama diastAlgoCambio a mano — probar el cableado es parte del caso. */
+  const elegir = function (v) {
+    sel.value = v;
+    sel.dispatchEvent(new Event('change', { bubbles: true })); };
+
+  try { sessionStorage.removeItem(SES); } catch (e) {}
+
+  /* ── (a) ARRANQUE con el recomendado y sin aviso ─────────────────────────────────────────── */
+  paciente('TC421 a');
+  const a = foto();
+
+  /* ── (b) ELEGIR OTRO y hacer «Nuevo estudio»: se mantiene y aparece el aviso ─────────────── */
+  elegir('ase2016');
+  const bElegido = foto();
+  /* Por el camino REAL de «Nuevo estudio»: el modal termina en neContinuarSinGuardar, que es
+     limpiarCampos + el reaplicado + imgVaciar + _neSalir. Llamar limpiarCampos pelado mediria
+     otra cosa — justamente la que NO tiene que reaplicar. */
+  neContinuarSinGuardar();
+  const bTrasNuevo = foto();
+  /* Y una segunda vez, porque «para los estudios SIGUIENTES» es plural: un reaplicado que se
+     gastara en un solo uso —como el auto-prendido de la ET antes de su arreglo— pasaria con una. */
+  neContinuarSinGuardar();
+  const bTrasNuevo2 = foto();
+
+  /* ── (c) VOLVER AL RECOMENDADO: el aviso desaparece y la sesion se limpia ─────────────────── */
+  elegir('ase2025');
+  const c = foto();
+  neContinuarSinGuardar();
+  const cTrasNuevo = foto();
+
+  /* ── (d) ESTUDIO GUARDADO CON OTRO PROTOCOLO ──────────────────────────────────────────────── */
+  /* Se guarda un estudio con BSE 2024 y, en la MISMA sesion, el medico deja elegido ASE 2016. Dos
+     protocolos distintos y distintos del recomendado: asi «abre con el suyo» y «la sesion no se
+     toca» no pueden coincidir por casualidad. */
+  paciente('TC421 d');
+  elegir('bse2024');
+  const g1 = await __t.guardar();
+  const dGuardado = foto();
+  neContinuarSinGuardar();
+  elegir('ase2016');
+  const dSesion = foto();
+  __t.reabrir(g1.estudioId);
+  const dReabierto = foto();
+  neContinuarSinGuardar();
+  const dTrasNuevo = foto();
+
+  /* ── (g) ESTUDIO SIN PROTOCOLO GUARDADO: abre como hoy ───────────────────────────────────── */
+  /* Se fabrica quitando la clave del blob guardado, que es como viene un estudio anterior a que
+     el campo existiera. Se repone por el MISMO bucle de editarInforme (el.value = val, sin
+     eventos) para no inventar un camino que la app no tenga. */
+  const infs = getInformes().slice();
+  const inf = infs.find(function (i) { return i.estudioId === g1.estudioId; });
+  const legado = inf ? JSON.parse(JSON.stringify(inf)) : null;
+  if (legado) { delete legado.campos.diast_algoritmo; }
+  elegir('ase2016');
+  const gSesionAntes = foto();
+  let gLegado = null;
+  if (legado) {
+    limpiarCampos(true);
+    if (typeof _migrarCamposLegacy === 'function') _migrarCamposLegacy(legado.campos);
+    Object.keys(legado.campos).forEach(function (k) {
+      const el = document.getElementById(k); if (el) el.value = legado.campos[k]; });
+    calcDiastol();
+    gLegado = foto();
+  }
+  const tieneClave = !!(inf && inf.campos && inf.campos.diast_algoritmo);
+
+  /* ── (e) BOTON «Cerrar»: vuelve al recomendado ───────────────────────────────────────────── */
+  paciente('TC421 e');
+  elegir('bse2024');
+  const eAntes = foto();
+  cerrarSesionReal();
+  const eDespues = foto();
+  /* Se vuelve a entrar para no dejar el login tapando a los casos siguientes: el overlay es
+     position:fixed con z-index altisimo y el proximo caso mediria debajo de el. */
+  try { sessionStorage.setItem('ett_auth', '1'); } catch (e) {}
+  const ov = document.getElementById('login-overlay'); if (ov) ov.style.display = 'none';
+
+  /* ── (f) CIERRE DE LA PESTANIA, simulado vaciando el almacenamiento de SESION ─────────────── */
+  /* Es la prueba de que el protocolo vive en sessionStorage y no en localStorage: vaciar la
+     sesion tiene que bastar. Se borra la clave y se re-arranca por el MISMO reponedor que corre
+     en el arranque de la pagina. */
+  paciente('TC421 f');
+  elegir('ase2016');
+  const fAntes = foto();
+  const fHuellaLocal = (function(){ try { return Object.keys(localStorage).filter(function(k){
+    return /diast/i.test(k) }).sort().join(',') } catch(e){ return 'EXC' } })();
+  try { sessionStorage.removeItem(SES); } catch (e) {}
+  neContinuarSinGuardar();
+  const fDespues = foto();
+
+  if (g1.estudioId) await __t.borrar(g1.estudioId);
+  try { sessionStorage.removeItem(SES); } catch (e) {}
+  __t.limpiar();
+
+  /* DENOMINADOR: las fotos que tienen que ser DISTINTAS entre si. Se cuentan los tripletes
+     protocolo+titulo+aviso unicos; con el reaplicado roto varias colapsan en la misma. */
+  const huella = function (f) { return f.algo + '|' + f.capsula + '|' + f.aviso; };
+  const distintas = new Set([a, bElegido, bTrasNuevo, c, dGuardado, dReabierto, dSesion]
+    .map(huella)).size;
+
+  return { extra: [
+    ['DENOMINADOR: las escenas producen fotos DISTINTAS (>=3 tripletes protocolo/titulo/aviso) y el estudio guardado trae la clave del protocolo',
+      distintas >= 3 && tieneClave === true && a.capsula !== '' ,
+      'tripletes=' + distintas + ' claveEnEstudio=' + tieneClave + ' capsula=' + a.capsula],
+
+    ['(a) ARRANQUE: el recomendado (ase2025), SIN aviso y sin clave de sesion',
+      a.algo === 'ase2025' && a.aviso === '' && a.avisoVis === false && a.ses === null,
+      JSON.stringify(a)],
+
+    ['(b) elegir otro protocolo levanta el aviso con el texto literal del pedido y lo recuerda en la SESION',
+      bElegido.algo === 'ase2016' && bElegido.avisoVis === true &&
+      bElegido.aviso === 'Protocolo distinto del recomendado (2025)' &&
+      bElegido.ses === 'ase2016', JSON.stringify(bElegido)],
+
+    /* El titulo y la capsula son lo que prueba el requisito B4: el reaplicado pasa por el
+       manejador del selector, no asigna el valor y listo. Con sel.value = v pelado el desplegable
+       diria ASE 2016 y estas dos seguirian en ASE 2025. */
+    ['(b) «Nuevo estudio» MANTIENE el protocolo, el aviso y ademas la CAPSULA del algoritmo — dos veces seguidas',
+      bTrasNuevo.algo === 'ase2016' && bTrasNuevo.avisoVis === true &&
+      bTrasNuevo.capsula.indexOf('ASE 2016') !== -1 &&
+      bTrasNuevo2.algo === 'ase2016' && bTrasNuevo2.avisoVis === true &&
+      bTrasNuevo2.capsula.indexOf('ASE 2016') !== -1,
+      'elegido=' + JSON.stringify(bElegido) + ' nuevo1=' + JSON.stringify(bTrasNuevo) +
+      ' nuevo2=' + JSON.stringify(bTrasNuevo2)],
+
+    ['(c) volver al recomendado APAGA el aviso, borra la clave de sesion, y el «Nuevo estudio» siguiente sigue en el recomendado',
+      c.algo === 'ase2025' && c.aviso === '' && c.avisoVis === false && c.ses === null &&
+      cTrasNuevo.algo === 'ase2025' && cTrasNuevo.avisoVis === false && cTrasNuevo.ses === null,
+      'c=' + JSON.stringify(c) + ' trasNuevo=' + JSON.stringify(cTrasNuevo)],
+
+    ['(d) un estudio guardado reabre con SU protocolo (bse2024) aunque la sesion tenga otro (ase2016), y el aviso sale igual',
+      dSesion.algo === 'ase2016' && dSesion.ses === 'ase2016' &&
+      dReabierto.algo === 'bse2024' && dReabierto.avisoVis === true &&
+      dReabierto.capsula.indexOf('BSE 2024') !== -1 &&
+      dSesion.capsula.indexOf('ASE 2016') !== -1,
+      'sesion=' + JSON.stringify(dSesion) + ' reabierto=' + JSON.stringify(dReabierto)],
+
+    /* EL CONTROL NEGATIVO. Reabrir no puede pisar la preferencia de la sesion. */
+    ['(d2) CONTROL NEGATIVO: reabrir el estudio NO cambia el protocolo de la SESION, y el «Nuevo estudio» siguiente vuelve al de la sesion y no al del estudio',
+      dReabierto.ses === 'ase2016' &&
+      dTrasNuevo.algo === 'ase2016' && dTrasNuevo.ses === 'ase2016' &&
+      dTrasNuevo.algo !== dReabierto.algo,
+      'reabierto.ses=' + dReabierto.ses + ' trasNuevo=' + JSON.stringify(dTrasNuevo)],
+
+    ['(g) un estudio SIN protocolo guardado abre en el RECOMENDADO —como hoy— y no con el de la sesion',
+      gSesionAntes.algo === 'ase2016' && gLegado !== null &&
+      gLegado.algo === 'ase2025' && gLegado.avisoVis === false,
+      'sesionAntes=' + JSON.stringify(gSesionAntes) + ' legado=' + JSON.stringify(gLegado)],
+
+    ['(e) el boton «Cerrar» devuelve el protocolo al recomendado y borra la clave de sesion',
+      eAntes.algo === 'bse2024' && eAntes.ses === 'bse2024' &&
+      eDespues.algo === 'ase2025' && eDespues.avisoVis === false && eDespues.ses === null,
+      'antes=' + JSON.stringify(eAntes) + ' despues=' + JSON.stringify(eDespues)],
+
+    ['(f) el protocolo vive SOLO en el almacenamiento de sesion: vaciarlo —como al cerrar la pestania— lo devuelve al recomendado, y localStorage no guarda nada del protocolo',
+      fAntes.algo === 'ase2016' && fAntes.ses === 'ase2016' && fHuellaLocal === '' &&
+      fDespues.algo === 'ase2025' && fDespues.avisoVis === false && fDespues.ses === null,
+      'antes=' + JSON.stringify(fAntes) + ' localStorage=[' + fHuellaLocal + '] despues=' + JSON.stringify(fDespues)],
+  ] };
+  })();
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────
