@@ -29140,9 +29140,9 @@ caso('TC-272', 'El descargo del panel de Evidencia declara su alcance en el TEXT
    de compuerta tiene que usar. */
 const EVID_DATOS = `{
   EA:   {ava_cont:'0.9', gmedio_ao:'46', vmax_ao:'4.3', fevi:'58', ea_grado:'severa'},
-  IM:   {im_sev_final:'4', dsfvi:'42', ai_vol:'70', peso:'80', talla:'175'},
+  IM:   {im_grado:'4', dsfvi:'42', ai_vol:'70', peso:'80', talla:'175'},
   EM:   {avm_plan:'1.2', em_grado:'severa'},
-  IA:   {ia_sev_final:'4', dsfvi:'52'},
+  IA:   {ia_grado:'4', dsfvi:'52'},
   VT:   {it_grado:'4', it_vc:'9'},
   EP:   {vp_gmax:'81', vp_vmax:'4.5', ep_grado:'Severa', ep_nivel:'Valvular'},
   CIA:  {ete_cia_tipo:'secundum', ete_cia_tam_max:'22', vd_bas:'46'},
@@ -29157,8 +29157,8 @@ const EVID_FNS = `{EA:'_indEA',IM:'_indIM',EM:'_indEM',IA:'_indIA',VT:'_indVT',E
   CIA:'_indCIA',CIV:'_indCIV',DAP:'_indDAP',CoAo:'_indCoAo',FOP:'_indFOP',MCH:'_indMCH',VAB:'_indVAB'}`;
 /* La lista de limpieza es EXPLICITA y no un querySelectorAll de inputs: el panel lee campos de
    seis pestanas distintas, y barrer todo el formulario rompe el aislamiento de los otros casos. */
-const EVID_LIMPIAR = `['ava_cont','gmedio_ao','vmax_ao','fevi','ea_grado','im_sev_final','dsfvi',
-  'ai_vol','avm_plan','avm_ete','avm_cont','avm_thp','em_grado','ia_sev_final','it_vc','it_vmax_cw',
+const EVID_LIMPIAR = `['ava_cont','gmedio_ao','vmax_ao','fevi','ea_grado','im_grado','dsfvi',
+  'ai_vol','avm_plan','avm_ete','avm_cont','avm_thp','em_grado','ia_grado','it_vc','it_vmax_cw',
   'it_pisa_r','it_vti','it_densidad','et_gmedio','et_thp','et_vti_diast','vp_gmax','vp_vmax',
   'ep_grado','ep_nivel','ep_etiologia','ete_cia_tipo','ete_cia_tam_max','vd_bas','ete_civ_tipo',
   'ete_civ_tam','ete_civ_vel','ete_civ_pas','dap_tipo','dap_diam','dap_vmax','dap_paps','dap_dir',
@@ -29738,7 +29738,7 @@ caso('TC-276', 'Lo que se marca en el panel de Evidencia no se guarda, no viaja 
    TC-279 lo deja cargado, y sin limpiarlo los escenarios de TC-277 que esperan «falta el
    volumen» pasarian a evaluarlo — un rojo intermitente segun el orden de los casos, que es peor
    que no tener el caso. */
-const IA_IDS = "['ia_sev_final','ia_grado','fevi','dsfvi','ddfvi','vsfvi','peso','talla'," +
+const IA_IDS = "['ia_grado','ia_grado','fevi','dsfvi','ddfvi','vsfvi','peso','talla'," +
   "'ao_sin','ao_st','ao_tub']";
 const IA_CLAVES = "['ia.sintomas','ia.cxconcom','ia.riesgo','ia.cxcandidato']";
 
@@ -29772,7 +29772,7 @@ caso('TC-277', 'Insuficiencia aortica: la recomendacion ESC 2025 se recalcula co
     /* Cada escenario arranca de cero: cerrar limpia las respuestas, y ese borrado lo fija TC-278.
        BSA = 2,00 exacta, asi que el indexado es el diametro sobre dos y el caso dice que corte
        prueba en vez de arrastrar una superficie corporal arbitraria. */
-    const B = { ia_sev_final:'4', peso:'80', talla:'180' };
+    const B = { ia_grado:'4', peso:'80', talla:'180' };
     const esc = (campos, marcas) => { indicCerrar(); limpiar(); set(Object.assign({}, B, campos));
       if (typeof sincronizarGradoIA === 'function') sincronizarGradoIA();
       indicAbrir(); Object.keys(marcas || {}).forEach(k => clic(k, marcas[k])); };
@@ -30060,7 +30060,7 @@ caso('TC-278', 'Lo que se contesta en Insuficiencia aortica no se guarda, no via
     const clic = (k, v) => { const b = document.querySelector('#indic-cuerpo [data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
       if (b) { b.click(); return true; } return false; };
     const estado = () => CLAVES.map(k => k + '=' + _indClinGet(k)).join(' ');
-    const ECO = { ia_sev_final:'4', peso:'80', talla:'180', fevi:'58', dsfvi:'52' };
+    const ECO = { ia_grado:'4', peso:'80', talla:'180', fevi:'58', dsfvi:'52' };
     const camposDe = gid => { const e = getInformes().find(i => i.estudioId === gid);
       return (e && e.campos) ? e.campos : null; };
     let gidA = null, gidB = null;
@@ -30181,7 +30181,7 @@ caso('TC-279', 'VSFVI: indexado por la misma BSA, cortes ASE por sexo, y el crit
        geometria— y un nombre de paciente ajeno. Hoy TC-279 es el ultimo del archivo y por eso
        seria inocuo, que es exactamente la clase de garantia que se rompe sola al agregar el
        caso siguiente. */
-    const IDS = ['vsfvi','vdfvi','peso','talla','sexo','fevi','dsfvi','ia_sev_final','ao_sin','ao_tub',
+    const IDS = ['vsfvi','vdfvi','peso','talla','sexo','fevi','dsfvi','ia_grado','ao_sin','ao_tub',
                  'siv','ddfvi','ppvi'];
     const limpiar = () => IDS.forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
     const noEntraron = [];
@@ -30200,7 +30200,7 @@ caso('TC-279', 'VSFVI: indexado por la misma BSA, cortes ASE por sexo, y el crit
       if (b) { b.click(); return true; } return false; };
     const RQ = { 'ia.sintomas':'no', 'ia.riesgo':'bajo', 'ia.cxconcom':'no' };
     const escIA = campos => { indicCerrar(); limpiar();
-      set(Object.assign({ ia_sev_final:'4' }, B, campos));
+      set(Object.assign({ ia_grado:'4' }, B, campos));
       if (typeof sincronizarGradoIA === 'function') sincronizarGradoIA();
       indicAbrir(); Object.keys(RQ).forEach(k => clic(k, RQ[k])); return window._indIA(); };
     const filaVol = s => ((s.filas || []).filter(f => f.lbl.indexOf('VTSVI') > -1)[0]) || null;
@@ -30678,7 +30678,7 @@ caso('TC-281', 'El PDF firmado no imprime una medicion ilegible, y borra la fila
    · el trombo sin contestar y la sospecha salian como nota gris bajo un titular verde. */
 const EM_IDS = "['em_grado','vm_morf','avm_plan','avm_ete','avm_cont','avm_thp','psap_calc'," +
   "'wilkins_movilidad','wilkins_engrosamiento','wilkins_calcificacion','wilkins_subvalvular'," +
-  "'oai_trombo','im_sev_final','peso','talla']";
+  "'oai_trombo','im_grado','peso','talla']";
 const EM_CLAVES = "['em.score','em.trombo','em.sintomas','em.clin','em.riesgo','em.embolico','em.decomp']";
 
 caso('TC-282', 'Estenosis mitral: el doble mecanismo lee del ETE o se contesta, y la lectura manda', `
@@ -30919,9 +30919,9 @@ caso('TC-282', 'Estenosis mitral: el doble mecanismo lee del ETE o se contesta, 
          lo que el estudio ya recoge y la cascada no la miraba. Los dos lados del corte: grado 1
          (leve) no contraindica, grado 2 (moderada) si. La guia dice «mas que leve», no «moderada o
          mas», asi que el corte es >= 2. */
-      esc(Object.assign({ im_sev_final:'1' }, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN_TROMBO));
+      esc(Object.assign({ im_grado:'1' }, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN_TROMBO));
       const imLeve = clase();
-      esc(Object.assign({ im_sev_final:'2' }, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN_TROMBO));
+      esc(Object.assign({ im_grado:'2' }, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN_TROMBO));
       const rImMod = rec(), fIm = fila('Insuficiencia mitral asociada');
       ex.push(['una insuficiencia mitral LEVE no contraindica y una MODERADA si (el corte es «mas que leve»)',
         imLeve === 'ind / Clase I · Nivel B' && !!rImMod && rImMod.tipo === 'no' &&
@@ -30934,9 +30934,9 @@ caso('TC-282', 'Estenosis mitral: el doble mecanismo lee del ETE o se contesta, 
          seguia visible en su fila, pero el titular afirmaba UNA razon sobre un paciente que tiene
          dos. Y con trombo confirmado ADEMAS, la rama de alarma no se alcanza: el trombo se nombra,
          porque pide anticoagulacion por su cuenta aunque el procedimiento ya este descartado. */
-      escGrado({ avm_plan:'2.0', im_sev_final:'3' }, {});
+      escGrado({ avm_plan:'2.0', im_grado:'3' }, {});
       const rDos = rec();
-      escGrado({ avm_plan:'2.0', im_sev_final:'3', oai_trombo:'si' }, {});
+      escGrado({ avm_plan:'2.0', im_grado:'3', oai_trombo:'si' }, {});
       const rDosTr = rec();
       ex.push(['con dos contraindicaciones el titular nombra las DOS, y un trombo que coexiste se nombra aparte',
         !!rDos && pl(rDos.txt).indexOf('dos contraindicaciones') > -1 &&
@@ -31120,7 +31120,7 @@ caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declara
       return { extra:[['existen indicAbrir y _indEM', false, '']] };
     const IDS = ['em_grado','vm_morf','avm_plan','avm_ete','avm_cont','avm_thp','psap_calc',
       'wilkins_movilidad','wilkins_engrosamiento','wilkins_calcificacion','wilkins_subvalvular',
-      'oai_trombo','im_sev_final','peso','talla'];
+      'oai_trombo','im_grado','peso','talla'];
     const limpiar = () => IDS.forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
     const noEntraron = [];
     const set = o => Object.keys(o).forEach(id => { const e = document.getElementById(id);
@@ -31379,7 +31379,7 @@ caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declara
         html.indexOf('referencia no registrada') === -1 && html.length > 200,
         'largo=' + html.length]);
       /* _indIM no se toco: su recomendacion sigue SIN ref, o sea sin corchete propio. */
-      esc({ im_sev_final:'4', dsfvi:'44', fevi:'55' }, {});
+      esc({ im_grado:'4', dsfvi:'44', fevi:'55' }, {});
       const sIM = window._indIM();
       ex.push(['_indIM sigue sin corchete propio en la recomendacion: no se toco',
         !!sIM && !!sIM.recom && sIM.recom.ref === undefined,
@@ -31427,7 +31427,7 @@ caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declara
    · las mediciones no pasaban por su banda de plausibilidad, y la superficie corporal FABRICA y
      BORRA el criterio indexado.
    · el texto final negaba los cuatro criterios teniendo uno presente. */
-const IM_IDS = "['im_sev_final','im_grado','teer_tipo_im','fevi','dsfvi','ai_vol','ai_diam'," +
+const IM_IDS = "['im_grado','im_grado','teer_tipo_im','fevi','dsfvi','ai_vol','ai_diam'," +
   "'psap_calc','it_grado','peso','talla']";
 const IM_CLAVES = "['im.mecanismo','im.sintomas','im.fa','im.riesgo','im.reparable']";
 
@@ -31459,7 +31459,7 @@ caso('TC-283', 'Insuficiencia mitral primaria: el tres-de-cuatro se cuenta, y el
       return (s.filas || []).concat(s.clinica || []).filter(f => !!f.ctrl).map(f => f.ctrl.clave); };
     /* BSA 2,20 exacta (sqrt(96.8*180/3600) = 2,2): el indexado es el diametro sobre 2,2 y el
        escenario dice que corte prueba en vez de arrastrar una superficie arbitraria. */
-    const B  = { im_sev_final:'4', peso:'96.8', talla:'180' };
+    const B  = { im_grado:'4', peso:'96.8', talla:'180' };
     /* BSA 1,90 exacta (sqrt(76.45*170/3600) = 1,9), para el criterio indexado en aislamiento. */
     const CH = { peso:'76.45', talla:'170' };
     const esc = (campos, marcas) => { indicCerrar(); limpiar(); set(Object.assign({}, B, campos));
@@ -33792,7 +33792,7 @@ caso('TC-293', 'Panel de Evidencia: el detalle largo nace COLAPSADO, hay un solo
     const S = { peso:'80', talla:'180', edad:'62', sexo:'M',
       vmax_ao:'4.5', gmedio_ao:'45', diam_tsvi:'20', itv_tsvi:'18', itv_ao:'40',
       fevi:'55', dsfvi:'52', ao_sin:'48', ao_tub:'52', va_morf:'Bicúspide',
-      im_sev_final:'4', ia_sev_final:'4', it_grado:'4', vmax_it:'3.2', vci_diam:'22',
+      im_grado:'4', ia_grado:'4', it_grado:'4', vmax_it:'3.2', vci_diam:'22',
       em_gmedio:'8', avm_cont:'1.2', et_gmedio:'7', vp_gmax:'70',
       mch_espesor:'18', mch_grad_reposo:'60', tapse:'14', s_prime:'8' };
     Object.keys(S).forEach(function(k){ __t.set(k, S[k]); });
@@ -35126,10 +35126,10 @@ caso('TC-305', 'FASE B: el AVm por continuidad se SIGUE MOSTRANDO pero deja de v
     const sinRegurg = correr(() => { EM(); });
     /* IM moderada: se pone por el selector confirmado, que es el camino del medico y ademas el
        embudo donde vive el disparador. */
-    const imMod    = correr(() => { EM(); __t.set('im_sev_final','2'); });
-    const imSev    = correr(() => { EM(); __t.set('im_sev_final','4'); });
-    const imLeve   = correr(() => { EM(); __t.set('im_sev_final','1'); });
-    const iaMod    = correr(() => { EM(); __t.set('ia_sev_final','2'); });
+    const imMod    = correr(() => { EM(); __t.set('im_grado','2'); });
+    const imSev    = correr(() => { EM(); __t.set('im_grado','4'); });
+    const imLeve   = correr(() => { EM(); __t.set('im_grado','1'); });
+    const iaMod    = correr(() => { EM(); __t.set('ia_grado','2'); });
     /* Fuera de banda: 130 cm es el VTI del CHORRO (el error de carga habitual) y 0,5 un dedazo.
        80.8 cm es el caso que obligo a cambiar el diseno: con VTI TSVI 18 da un AVm de 0,70 cm² —una
        EM critica REAL— y cae apenas por encima del techo de la banda [2,80]. Borrar ahi le sacaba
@@ -35150,7 +35150,7 @@ caso('TC-305', 'FASE B: el AVm por continuidad se SIGUE MOSTRANDO pero deja de v
     EM();
     const _cat = () => (typeof emCategoria === 'function' ? emCategoria().clave : 'NO EXISTE emCategoria');
     const antesIM = { em: _cat(), aviso: __t.txt('em-cont-aviso') };
-    __t.set('im_sev_final','2');            // SOLO esto: no se vuelve a tocar la EM
+    __t.set('im_grado','2');            // SOLO esto: no se vuelve a tocar la EM
     const despuesIM = { em: _cat(), aviso: __t.txt('em-cont-aviso') };
 
     /* Y LO MISMO POR LA AORTICA, que es el OTRO embudo. Sin este escenario la mutacion que le
@@ -35160,7 +35160,7 @@ caso('TC-305', 'FASE B: el AVm por continuidad se SIGUE MOSTRANDO pero deja de v
     __t.set('nombre','TC305c'); __t.set('edad','62'); __t.set('peso','75'); __t.set('talla','170');
     EM();
     const antesIA = { em: _cat(), aviso: __t.txt('em-cont-aviso') };
-    __t.set('ia_sev_final','2');
+    __t.set('ia_grado','2');
     const despuesIA = { em: _cat(), aviso: __t.txt('em-cont-aviso') };
 
     /* ⚠️ EL TERCER ESCRITOR: la tarjeta de revisión que sale ANTES de guardar y de emitir el PDF.
@@ -35205,7 +35205,7 @@ caso('TC-305', 'FASE B: el AVm por continuidad se SIGUE MOSTRANDO pero deja de v
        puede imprimir» pasarian por lo mismo. */
     __t.limpiar();
     __t.set('nombre','TC305g'); __t.set('edad','62'); __t.set('peso','75'); __t.set('talla','170');
-    EM(); __t.set('im_sev_final','2');
+    EM(); __t.set('im_grado','2');
     let manualChk = '(no se pudo)';
     { const cb = document.getElementById('em_pdf_cont');
       if (cb) { const antes = cb.checked ? 'marcada' : 'sin marcar';
@@ -35326,11 +35326,11 @@ caso('TC-306', 'EM NATIVA: cuatro salidas —severa / probablemente severa por d
 
     // ── (2) LA IM MODERADA SACA LA PALABRA «ESTENOSIS» ───────────────────────────────────────
     const imModGrad = correr(() => { __t.set('avm_plan','2.0'); __t.set('em_gmedio','8');
-                                     __t.set('im_sev_final','2'); });
+                                     __t.set('im_grado','2'); });
     const sinImGrad = correr(() => { __t.set('avm_plan','2.0'); __t.set('em_gmedio','8'); });
     /* Y UN AREA SEVERA NO SE DEGRADA POR LA IM: la rama del area corre antes que la del gradiente. */
     const imModArea = correr(() => { __t.set('avm_plan','1.3'); __t.set('em_gmedio','8');
-                                     __t.set('im_sev_final','2'); });
+                                     __t.set('im_grado','2'); });
 
     // ── (3) EL THP Y LA IAo ──────────────────────────────────────────────────────────────────
     /* THP 160 ms -> 220/160 = 1,38 cm², que alcanza el corte. Con IAo SEVERA ese voto se retira y
@@ -35338,15 +35338,15 @@ caso('TC-306', 'EM NATIVA: cuatro salidas —severa / probablemente severa por d
        —decision de Maicol; la ASE 2023 dice «moderada o severa», asi que esto DIVERGE de la guia a
        proposito y queda declarado en CLAUDE.md—. */
     const thpSolo = correr(() => { __t.set('thp','160'); });
-    const thpIaSev = correr(() => { __t.set('thp','160'); __t.set('ia_sev_final','4'); });
-    const thpIaMod = correr(() => { __t.set('thp','160'); __t.set('ia_sev_final','2'); });
+    const thpIaSev = correr(() => { __t.set('thp','160'); __t.set('ia_grado','4'); });
+    const thpIaMod = correr(() => { __t.set('thp','160'); __t.set('ia_grado','2'); });
     /* EL NUMERO SE SIGUE VIENDO: retirar el voto no es borrar la medicion. Se mide DESPUES de
        reproducir el escenario, porque correr() deja el formulario del ultimo caso. */
-    base(); __t.set('thp','160'); __t.set('ia_sev_final','4'); try{ calcEM(); }catch(e){}
+    base(); __t.set('thp','160'); __t.set('ia_grado','4'); try{ calcEM(); }catch(e){}
     const thpVisible = { campo: __t.val('avm_thp'), fila: __t.txt('em-thp-row'),
                          badge: __t.txt('em-thp-badge') };
     /* La planimetria no pasa por esa compuerta: con IAo severa y 1,3 cm² sigue severa. */
-    const planIaSev = correr(() => { __t.set('avm_plan','1.3'); __t.set('ia_sev_final','4'); });
+    const planIaSev = correr(() => { __t.set('avm_plan','1.3'); __t.set('ia_grado','4'); });
 
     // ── (4) LA DISCORDANCIA: LOS DOS VALORES, Y PREVALECE EL PEOR ────────────────────────────
     /* ⚠️ EL HALLAZGO QUE ESTE BLOQUE VIGILA. La primera version se quedaba con la fuente
@@ -35402,9 +35402,9 @@ caso('TC-306', 'EM NATIVA: cuatro salidas —severa / probablemente severa por d
     const CONT = () => { __t.set('vm_morf','Prótesis mecánica');
       __t.set('em_dtsvi','20'); __t.set('em_vtitsvi','18'); __t.set('em_vtimit','60.8'); };
     const protOk = correr(() => { CONT(); });
-    const protIM = correr(() => { CONT(); __t.set('im_sev_final','2'); });
+    const protIM = correr(() => { CONT(); __t.set('im_grado','2'); });
     const protVTI = correr(() => { CONT(); __t.set('em_vtimit','130'); });
-    base(); CONT(); __t.set('im_sev_final','2'); try{ calcEM(); }catch(e){}
+    base(); CONT(); __t.set('im_grado','2'); try{ calcEM(); }catch(e){}
     const pantallaIM = { campo: __t.val('avm_cont'), fila: __t.txt('em-cont-row'),
                          aviso: __t.txt('em-cont-aviso') };
     base(); CONT(); __t.set('em_vtimit','130'); try{ calcEM(); }catch(e){}
@@ -36275,7 +36275,7 @@ caso('TC-296', 'Insuficiencia mitral: las tres casillas «auto» espejan, SIGUEN
        esta sincronia: esa fila va en otro prompt. */
     sembrar();
     const faltan = ['diam_tsvi','itv_tsvi','ai_area','im_dtsvi','im_itv_tsvi','im_ai_area','im_espejos',
-                    'im_grado','im_sev_final'].filter(id => g(id) === null);
+                    'im_grado','im_grado'].filter(id => g(id) === null);
 
     cerrar();
     const cerradaTres = tres();
@@ -36293,7 +36293,7 @@ caso('TC-296', 'Insuficiencia mitral: las tres casillas «auto» espejan, SIGUEN
     abrir();
     const alAbrir = tres();
     const derivAbierto = deriv();
-    const gradoAbierto = __t.val('im_grado') + '/' + __t.val('im_sev_final');
+    const gradoAbierto = __t.val('im_grado') + '/' + __t.val('im_grado');
 
     /* CADA ORIGEN SE MUEVE SOLO Y SE MIDE ANTES DE TOCAR EL SIGUIENTE. Moviendo dos seguidos y
        leyendo al final, el oninput del area reparaba la falta del oninput del diametro —la
@@ -36335,7 +36335,7 @@ caso('TC-296', 'Insuficiencia mitral: las tres casillas «auto» espejan, SIGUEN
     const marcaRepuesta = marca('im_ai_area');
     __t.set('ai_area','18');                       // el medico RE-MIDE la AI
     const reRatio = __t.txt('im-jet-ratio');
-    const reGrado = __t.val('im_grado') + '/' + __t.val('im_sev_final');
+    const reGrado = __t.val('im_grado') + '/' + __t.val('im_grado');
     const reEspejo = __t.val('im_ai_area');
     await __t.borrar(idE);
 
@@ -36368,7 +36368,7 @@ caso('TC-296', 'Insuficiencia mitral: las tres casillas «auto» espejan, SIGUEN
          estado de antes de esta sincronia) contra las casillas espejando. */
       ['los derivados son IDENTICOS con las casillas vacias y espejando',
         derivCerrado === derivAbierto, derivCerrado + '  vs  ' + derivAbierto],
-      /* Lo que el badge de pantalla no cubre: im_grado / im_sev_final son los que lee el informe. */
+      /* Lo que el badge de pantalla no cubre: im_grado / im_grado son los que lee el informe. */
       ['y el grado que FIRMA el informe tampoco se mueve',
         gradoAbierto === '4/4', gradoAbierto],
       ['el espejo del DIAMETRO sigue a su origen, con su propio enganche', sigueD === '25', 'im_dtsvi=' + sigueD],
@@ -36432,7 +36432,7 @@ caso('TC-296', 'Insuficiencia mitral: las tres casillas «auto» espejan, SIGUEN
    ⚠️ Y EL PEDIDO NO SE CUMPLE CON _syncDerivado SOLO. La marca vive en dataset, que NO se persiste,
    asi que un espejo vuelve del estudio guardado sin ella y se lo respeta como manual. Eso no es
    cosmetico: calcIM_ESC PREFIERE el campo sobre el global (el «||» de la caida), y el ratio jet/AI
-   y la FR son votos que escriben im_grado e im_sev_final, que es lo que firma el informe. De ahi el
+   y la FR son votos que escriben im_grado e im_grado, que es lo que firma el informe. De ahi el
    oculto im_espejos, que es el patron de hfaicos_manual — y por eso hay tres condiciones sobre
    guardar y reabrir, que es donde el defecto vivia.
 
@@ -37189,7 +37189,7 @@ caso('TC-308', 'El escritor nuevo de em_grado no borra grados ajenos: la reimpre
     // ── (5) EL DISPARADOR DE LA FILA DE ONDA E ───────────────────────────────────────────────
     /* Onda E 135 con AVm sana deja la fila encendida; tipear un AVm de 1,2 la tiene que apagar SIN
        que corra nada del modulo de IM ni de la diastolica. */
-    base(); __t.set('onda_e','135'); __t.set('onda_a','50'); __t.set('im_sev_final','3'); __t.set('avm_plan','3.5');
+    base(); __t.set('onda_e','135'); __t.set('onda_a','50'); __t.set('im_grado','3'); __t.set('avm_plan','3.5');
     try{ calcEM(); }catch(e){}
     const ondaAntes = __t.txt('im-ondae-interp');
     __t.set('avm_plan','1.2');
@@ -37201,7 +37201,7 @@ caso('TC-308', 'El escritor nuevo de em_grado no borra grados ajenos: la reimpre
       return { vm: lineaVM(r.inf), suma: r.suma, cat: emCategoria().clave }; };
     const sinSevera = sinMano(() => { __t.set('avm_plan','1.3'); });
     const sinGradIm = sinMano(() => { __t.set('avm_plan','2.0'); __t.set('em_gmedio','8');
-                                      __t.set('im_sev_final','2'); });
+                                      __t.set('im_grado','2'); });
     const sinNums   = sinMano(() => { __t.set('avm_plan','2.0'); __t.set('em_gmedio','3'); });
     window.esqSevManual = {};
     __t.limpiar();
@@ -38767,7 +38767,7 @@ caso('TC-316', 'Protesis mitral: el grado rancio se retira al pasar de nativa a 
 
   /* ── 2 · El grado rancio se retira al pasar a protesis ── */
   __t.set('vm_morf','Prótesis mecánica');
-  R.protGrado = __t.val('im_grado'); R.protSevFinal = __t.val('im_sev_final'); R.protBadge = badge();
+  R.protGrado = __t.val('im_grado'); R.protSevFinal = __t.val('im_grado'); R.protBadge = badge();
   R.protInf = __t.informe().inf;
 
   /* ── 3 · CON parametro protesico RECALCULA, no queda en blanco ──
@@ -38806,12 +38806,12 @@ caso('TC-316', 'Protesis mitral: el grado rancio se retira al pasar de nativa a 
      la AI, y el grado volvia a «Sin insuficiencia». Lo caza sharp-edges, no la relectura. */
   base();
   __t.set('vm_morf','Prótesis mecánica');
-  __t.set('im_sev_final','4');                     // __t.set despacha change: entra por imGradoManual
+  __t.set('im_grado','4');                     // __t.set despacha change: entra por imGradoManual
   R.selGradoAntes = __t.val('im_grado');
   R.selMarca = !!(window.esqSevManual && window.esqSevManual.im);
   __t.set('im_ai_area','50');                      // tocar otro campo dispara calcIM_ESC
   R.selGradoDespues = __t.val('im_grado');
-  R.selVisible = __t.val('im_sev_final');
+  R.selVisible = __t.val('im_grado');
   /* Y la marca viaja con el estudio: sin el espejo persistido vive una sesion y al reabrir el
      estudio la limpieza pisaria el grado igual. */
   R.selEspejo = (__t.val('sev_manual') || '').indexOf('"im":true') > -1;
@@ -38917,7 +38917,7 @@ caso('TC-316', 'Protesis mitral: el grado rancio se retira al pasar de nativa a 
       'grado=' + R.nativaGrado + ' badge=' + JSON.stringify(R.nativaBadge)],
     ['al pasar a PROTESIS sin datos propios el grado vuelve a 0',
       R.protGrado === '0' && R.protSevFinal === '0',
-      'im_grado=' + R.protGrado + ' im_sev_final=' + R.protSevFinal],
+      'im_grado=' + R.protGrado + ' im_grado=' + R.protSevFinal],
     ['y el badge deja de decir «Severa»',
       R.protBadge.indexOf('Severa') < 0,
       'badge=' + JSON.stringify(R.protBadge)],
@@ -39296,7 +39296,7 @@ caso('TC-324', 'Evidencia: tres valvulopatias a la vez, cada seccion con su nume
     __t.limpiar();
     const CAMPOS = { peso:'80', talla:'180', edad:'72', sexo:'M', fevi:'55', dsfvi:'42',
       vm_morf:'Reum\u00e1tica', avm_plan:'1.2',
-      im_sev_final:'4',
+      im_grado:'4',
       ea_grado:'severa', vmax_ao:'4.5', gmedio_ao:'48', ava_cont:'0.80' };
     R.faltan = [];
     Object.keys(CAMPOS).forEach(function(k){
@@ -39540,7 +39540,7 @@ caso('TC-329', 'Evidencia IM secundaria: auricular y ventricular, cada una a su 
     const secDe = frag => Array.prototype.slice.call(cuerpo().querySelectorAll(':scope > details'))
       .filter(function(d){ return pl(d.querySelector('summary').textContent).indexOf(pl(frag)) > -1; })[0] || null;
     const BASE = { peso:'80', talla:'180', edad:'70', sexo:'M',
-      im_sev_final:'4', im_vc:'8', ai_vol:'80', ai_diam:'56', it_grado:'2' };
+      im_grado:'4', im_vc:'8', ai_vol:'80', ai_diam:'56', it_grado:'2' };
 
     const montar = async function(extra, tipo, contestar){
       __t.limpiar();
@@ -39870,7 +39870,7 @@ caso('TC-328', 'Evidencia: los cuatro textos corregidos contra el original ingle
     /* AVm 1,6 para que la fila caiga en la rama de «mayor que el corte», que es la que lleva la
        excepcion de la nota a. Y el score en 11 para que caiga en «desfavorable». */
     const CAMPOS = { peso:'80', talla:'180', edad:'68', sexo:'M', fevi:'55', dsfvi:'42', ddfvi:'58',
-      ai_vol:'70', ai_diam:'58', im_sev_final:'4', im_vc:'8', it_grado:'2',
+      ai_vol:'70', ai_diam:'58', im_grado:'4', im_vc:'8', it_grado:'2',
       vm_morf:'Reum\u00e1tica', avm_plan:'1.6', em_grado:'severa',
       wilkins_movilidad:'3', wilkins_engrosamiento:'3', wilkins_calcificacion:'2', wilkins_subvalvular:'3',
       oai_trombo:'si' };
@@ -40225,9 +40225,9 @@ caso('TC-335', 'IM: la EROA por continuidad se publica pero NO vota, y el reparo
       return m ? parseFloat(m[0].replace(',', '.')) : null; };
 
     __t.limpiar();
-    /* im_sev_final se siembra PRIMERO y en «Leve»: es lo que el caso afirma que no se mueve, y
+    /* im_grado se siembra PRIMERO y en «Leve»: es lo que el caso afirma que no se mueve, y
        dejarlo en el valor de fabrica no distingue «no se movio» de «nunca tuvo nada». */
-    __t.set('im_sev_final', '1');
+    __t.set('im_grado', '1');
     const CAMPOS = { diam_mit:'30', vtim:'13', diam_tsvi:'20', itv_tsvi:'18', im_itv:'50' };
     R.faltan = [];
     Object.keys(CAMPOS).forEach(function(k){
@@ -40244,7 +40244,7 @@ caso('TC-335', 'IM: la EROA por continuidad se publica pero NO vota, y el reparo
     R.badge = sEl ? sEl.textContent.trim() : null;
     R.gradoVolum = sEl ? (sEl.dataset.gradoVolum || null) : null;
     R.imGrado = (document.getElementById('im_grado') || {}).value;
-    R.imSevFinal = (document.getElementById('im_sev_final') || {}).value;
+    R.imSevFinal = (document.getElementById('im_grado') || {}).value;
 
     ex.push(['DENOMINADOR: los cinco insumos entraron y la EROA por continuidad se calculo',
       R.faltan.length === 0 && !R.err && R.eroa != null,
@@ -40276,7 +40276,7 @@ caso('TC-335', 'IM: la EROA por continuidad se publica pero NO vota, y el reparo
 
     ex.push(['el grado que firma el informe no se movio a severa',
       R.imGrado !== '4' && R.imSevFinal !== '4',
-      'im_grado=' + R.imGrado + ' im_sev_final=' + R.imSevFinal]);
+      'im_grado=' + R.imGrado + ' im_grado=' + R.imSevFinal]);
 
     /* ── El reparo, en las dos superficies ── */
     const lbls = Array.prototype.slice.call(document.querySelectorAll('label'))
@@ -40355,7 +40355,7 @@ caso('TC-326', 'Evidencia IM: la bibliografia cita CUATRO documentos verificados
 
     __t.limpiar();
     const CAMPOS = { peso:'80', talla:'180', edad:'68', sexo:'M', fevi:'55', dsfvi:'42', ddfvi:'58',
-      ai_vol:'70', ai_diam:'58', im_sev_final:'4', im_vc:'8', it_grado:'2' };
+      ai_vol:'70', ai_diam:'58', im_grado:'4', im_vc:'8', it_grado:'2' };
     R.faltan = [];
     Object.keys(CAMPOS).forEach(function(k){
       const e = document.getElementById(k);
@@ -40447,7 +40447,7 @@ caso('TC-326', 'Evidencia IM: la bibliografia cita CUATRO documentos verificados
       ' sinNumerar=' + R.sinNumerar + ' noRegistrada=' + R.noRegistrada]);
 
     /* ⚠️ LA CONDICION QUE SEPARA UNA CITA HONESTA DE UNA QUE ATRIBUYE DE MAS. Esta seccion se
-       gatea por im_sev_final === 4 y NO lee la morfologia, asi que Pandian —una guia de
+       gatea por im_grado === 4 y NO lee la morfologia, asi que Pandian —una guia de
        cardiopatia REUMATICA— se cita sobre pacientes de cualquier mecanismo. Lo que lo vuelve
        aceptable no es el corchete: es que la nota diga las dos cosas —que su alcance es la
        etiologia reumatica, y que lo que aporta es respaldo de los mismos cortes y no un criterio
@@ -40574,9 +40574,9 @@ caso('TC-325', 'Evidencia: las SEIS constantes X_REF ejercidas — ninguna recom
     const CAMPOS = { peso:'80', talla:'180', edad:'70', sexo:'M', fevi:'55', dsfvi:'42', ddfvi:'58',
       ea_grado:'severa', vmax_ao:'4.5', gmedio_ao:'48', ava_cont:'0.80',
       diam_tsvi:'20', itv_tsvi:'20', itv_ao:'53',
-      im_sev_final:'4', im_vc:'8',
+      im_grado:'4', im_vc:'8',
       vm_morf:'Reumática', avm_plan:'1.2', em_grado:'severa',
-      ia_sev_final:'4', ao_sin:'52',
+      ia_grado:'4', ao_sin:'52',
       it_grado:'4', it_vc:'8', et_gmedio:'7', et_thp:'220', et_vti_diast:'60',
       tsvd_diametro:'28', vti_tsvd:'22',
       ep_grado:'Severa', ep_nivel:'Valvular', vp_gmax:'70', vp_vmax:'4.2' };
@@ -40713,7 +40713,7 @@ caso('TC-325', 'Evidencia: las SEIS constantes X_REF ejercidas — ninguna recom
        modRep con clase vacia. */
     __t.limpiar();
     const SOLO_IM = { peso:'80', talla:'180', edad:'68', sexo:'M', fevi:'55', dsfvi:'42',
-      im_sev_final:'4', im_vc:'8' };
+      im_grado:'4', im_vc:'8' };
     R.faltan3 = [];
     Object.keys(SOLO_IM).forEach(function(k){
       const e = document.getElementById(k);
@@ -40814,10 +40814,10 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
        que el caso mida sobre cero secciones y pase en verde sin probar nada. */
     const SEED = [
       ['Estenosis aortica',                   { vmax_ao:'4.5' },                                    'esc2025vc'],
-      ['Insuficiencia mitral primaria',       { im_sev_final:'4' },                                 'esc2025vc'],
+      ['Insuficiencia mitral primaria',       { im_grado:'4' },                                 'esc2025vc'],
       /* La secundaria pide TAMBIEN el mecanismo: sin teer_tipo_im en «secundaria» la seccion no
          abre, que es su compuerta y esta cubierta aparte por TC-329. */
-      ['Insuficiencia mitral secundaria',     { im_sev_final:'4', teer_tipo_im:'secundaria' },      'esc2025vc'],
+      ['Insuficiencia mitral secundaria',     { im_grado:'4', teer_tipo_im:'secundaria' },      'esc2025vc'],
       ['Estenosis mitral',                    { avm_plan:'1.2' },                                   'esc2025vc'],
       /* ⚠️ SU COMPUERTA ES LA MORFOLOGIA Y NADA MAS: vmEsProtesis() alcanza y no hace falta ninguna
          medicion. Y su guia cita la ESC/EACTS 2025 —la linea de criterio afirma clases de la
@@ -40825,7 +40825,7 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
          cortes de las filas. Por eso es la unica seccion cuyo guia.ref NO sale [1], y por eso la
          condicion arrancanEn1 tuvo que reapuntarse al invariante de verdad. */
       ['Protesis mitral',                     { vm_morf:'Prótesis mecánica' },                      'esc2025vc'],
-      ['Insuficiencia aortica',               { ia_sev_final:'4' },                                 'esc2025vc'],
+      ['Insuficiencia aortica',               { ia_grado:'4' },                                 'esc2025vc'],
       ['Valvula tricuspide',                  { it_grado:'4' },                                     'esc2025vc'],
       ['Estenosis pulmonar',                  { vp_gmax:'70' },                                     'esc2020guch'],
       ['Comunicacion interauricular',         { ete_cia_tipo:'secundum', ete_cia_tam_max:'18' },    'esc2020guch'],
@@ -40952,7 +40952,7 @@ caso('TC-322', 'Evidencia: citas numeradas POR SECCION, con un solo dueno de la 
     R.disyIM = (function(){
       const SIM = secDe('Insuficiencia mitral primaria');
       if (!SIM) return 'sin seccion';
-      sembrar({ im_sev_final:'4' });
+      sembrar({ im_grado:'4' });
       let r2 = null; try { r2 = SIM.fn(); } catch (e) { return 'lanzo'; }
       const t = String(((r2 || {}).guia || {}).txt || '');
       const i2 = t.indexOf(':');
@@ -41751,7 +41751,7 @@ caso('TC-331', 'Protesis mitral: la seccion publica los cortes de la ASE 2024 y 
        Sin esta fila, los tres parametros de arriba se leen como obstruccion. */
     const oReg = escenario(Object.assign({}, PROT, {
       em_vmax: '2.6', em_gmedio: '8', thp: '110',
-      em_dtsvi: '20', em_vtitsvi: '16', em_vtimit: '45', im_vc: '8', im_sev_final: '4',
+      em_dtsvi: '20', em_vtitsvi: '16', em_vtimit: '45', im_vc: '8', im_grado: '4',
       peso: '80', talla: '180'
     }));
     R.regT12  = !!fila(oReg, 'gradiente alto con thp normal');
@@ -41764,7 +41764,7 @@ caso('TC-331', 'Protesis mitral: la seccion publica los cortes de la ASE 2024 y 
 
     // ── (4) FUGA PERIPROTESICA — las DOS filas, no la de mejor clase ──────────────────────────
     const oPeri = escenario(Object.assign({}, PROT, {
-      em_vmax: '2.1', em_gmedio: '6', thp: '115', im_vc: '9', im_sev_final: '4',
+      em_vmax: '2.1', em_gmedio: '6', thp: '115', im_vc: '9', im_grado: '4',
       peso: '80', talla: '180'
     }), [['protm.sintomas','si'], ['protm.peri','si'], ['protm.hemol','si']]);
     R.periClase = oPeri && oPeri.recom ? oPeri.recom.clase : null;
@@ -41894,7 +41894,7 @@ caso('TC-331', 'Protesis mitral: la seccion publica los cortes de la ASE 2024 y 
          La morfologia se cambia DESPUES del clic y sin reabrir: indicAbrir() llama a
          _indClinLimpiar() y borraria la respuesta. */
     try { __t.limpiar(); indicCerrar(); } catch (e) {}
-    __t.set('im_sev_final', '4'); __t.set('vm_morf', 'Reumática');
+    __t.set('im_grado', '4'); __t.set('vm_morf', 'Reumática');
     __t.set('avm_plan', '1.1'); __t.set('em_gmedio', '12');
     try { indicAbrir(); } catch (e) {}
     R.imNativa   = (function(){ try { return _indIM()    !== null; } catch (e) { return 'ERR'; } })();
@@ -41906,7 +41906,7 @@ caso('TC-331', 'Protesis mitral: la seccion publica los cortes de la ASE 2024 y 
     R.protHay = (function(){ try { return _indProtM() !== null; } catch (e) { return 'ERR'; } })();
 
     try { __t.limpiar(); indicCerrar(); } catch (e) {}
-    __t.set('im_sev_final', '4'); __t.set('vm_morf', 'Reumática');
+    __t.set('im_grado', '4'); __t.set('vm_morf', 'Reumática');
     __t.set('fevi', '38'); __t.set('ddfvi', '62'); __t.set('sexo', 'M');
     try { indicAbrir(); } catch (e) {}
     const bMec = document.querySelector('[data-ind-clin="im.mecanismo"][data-ind-val="secundaria"]');
@@ -42061,7 +42061,7 @@ caso('TC-332', 'Panel: el selector de mecanismo de IM vive FUERA de _indIM, sobr
     const im  = function(){ try { return _indIM();  } catch (e) { return 'LANZO'; } };
     const ims = function(){ try { return _indIMS(); } catch (e) { return 'LANZO'; } };
     const BASE = { nombre: 'Sel Mec', ci: '9', edad: '68', sexo: 'M', peso: '80', talla: '175',
-                   fevi: '55', vm_morf: 'Mixomatosa', im_sev_final: '4' };
+                   fevi: '55', vm_morf: 'Mixomatosa', im_grado: '4' };
 
     // -- (1) DENOMINADOR: sin elegir, el bloque esta y la tarjeta primaria se pinta ------------
     abrir(BASE);
@@ -42103,7 +42103,7 @@ caso('TC-332', 'Panel: el selector de mecanismo de IM vive FUERA de _indIM, sobr
     abrir(Object.assign({}, BASE, { vm_morf: 'Prótesis mecánica' }));
     R.fBot  = botones();
     R.fHtml = (function(){ try { return _indMecanismoHTML(); } catch (e) { return 'LANZO'; } })();
-    abrir(Object.assign({}, BASE, { im_sev_final: '2' }));
+    abrir(Object.assign({}, BASE, { im_grado: '2' }));
     R.gBot  = botones();
     R.gHtml = (function(){ try { return _indMecanismoHTML(); } catch (e) { return 'LANZO'; } })();
 
@@ -42443,7 +42443,7 @@ caso('TC-334', 'EM: em_vmax y thp tienen banda de plausibilidad LOCAL — fuera 
    en Modo Basico —ahi la pestaña ETE no existe—. Gatear solo por el campo dejaba muda la mitad de los
    casos, y medir solo el campo dejaba esa mitad sin cobertura.
    ⚠️ Y SE MIDE QUE EL AVISO NO MUEVE EL GRADO. Es la condicion que separa un aviso de un cambio de
-   cortes: im_grado e im_sev_final tienen que salir IDENTICOS con mecanismo primario y secundario. */
+   cortes: im_grado e im_grado tienen que salir IDENTICOS con mecanismo primario y secundario. */
 caso('TC-336', 'IM secundaria: el calc-box avisa que gradua con cortes de PRIMARIA, por los dos origenes del mecanismo, sin mover el grado ni llegar al papel', `
   return (async () => {
     const g  = id => document.getElementById(id);
@@ -42464,19 +42464,19 @@ caso('TC-336', 'IM secundaria: el calc-box avisa que gradua con cortes de PRIMAR
     // (1) sin mecanismo consignado -> mudo. Es el estado de fabrica y NO puede avisar nada.
     sembrar();
     R.sinMec = av();
-    R.gradoSinMec = __t.val('im_grado') + '/' + __t.val('im_sev_final');
+    R.gradoSinMec = __t.val('im_grado') + '/' + __t.val('im_grado');
 
     // (2) mecanismo PRIMARIO por el campo de ETE -> sigue mudo
     __t.set('teer_tipo_im','primaria');
     try { calcIM_ESC(); } catch (e) {}
     R.prim = av();
-    R.gradoPrim = __t.val('im_grado') + '/' + __t.val('im_sev_final');
+    R.gradoPrim = __t.val('im_grado') + '/' + __t.val('im_grado');
 
     // (3) mecanismo SECUNDARIO por el campo de ETE -> avisa
     __t.set('teer_tipo_im','secundaria');
     try { calcIM_ESC(); } catch (e) {}
     R.secCampo = av();
-    R.gradoSec = __t.val('im_grado') + '/' + __t.val('im_sev_final');
+    R.gradoSec = __t.val('im_grado') + '/' + __t.val('im_grado');
 
     /* ⚠️ EL DISPARADOR DEL CAMPO DE ETE SE MIDE APARTE. __t.set dispara el onchange, que es
        calcTEER: si el aviso solo colgara de calcIM_ESC, cargar el campo y NO tocar ningun campo de
@@ -42560,7 +42560,7 @@ caso('TC-336', 'IM secundaria: el calc-box avisa que gradua con cortes de PRIMAR
         R.secManual === R.secCampo && R.secManual !== '', '«' + R.secManual + '»'],
       /* ⚠️ LA CONDICION QUE SEPARA UN AVISO DE UN CAMBIO DE CORTES. Si alguien «mejora» esto
          bajando los umbrales de la secundaria, esta cae. */
-      ['⚠️ el aviso NO mueve el grado: im_grado e im_sev_final identicos con primario y con secundario',
+      ['⚠️ el aviso NO mueve el grado: im_grado e im_grado identicos con primario y con secundario',
         R.gradoPrim === R.gradoSec && R.gradoSinMec === R.gradoPrim,
         'sinMec=' + R.gradoSinMec + ' prim=' + R.gradoPrim + ' sec=' + R.gradoSec],
       ['DENOMINADOR del papel: el aviso estaba pintado cuando se genero el informe',
@@ -42990,7 +42990,7 @@ caso('TC-339', 'Evidencia IM secundaria: la fila del grado presenta la posicion 
     /* La seccion exige las tres cosas: mitral NATIVA, mecanismo secundario y IM severa. */
     const C = { nombre:'IMS cita', ci:'2-2', peso:'80', talla:'180', edad:'68', sexo:'M',
                 fevi:'35', ddfvi:'62', dsfvi:'48', ai_vol:'70', ai_diam:'52',
-                im_sev_final:'4', im_vc:'8', teer_tipo_im:'secundaria' };
+                im_grado:'4', im_vc:'8', teer_tipo_im:'secundaria' };
     R.faltan = [];
     Object.keys(C).forEach(function(k){
       const r = __t.set(k, C[k]); if (r !== 1) R.faltan.push(k + ':' + r);
@@ -43074,11 +43074,11 @@ caso('TC-340', 'Nuevo estudio: las respuestas del panel de Evidencia no pasan al
   return (async () => {
     const R = {};
     const A = { nombre:'PACIENTE A', ci:'1-1', peso:'80', talla:'180', edad:'68', sexo:'M',
-                fevi:'35', ddfvi:'62', dsfvi:'48', ai_vol:'70', im_sev_final:'4', im_vc:'8' };
+                fevi:'35', ddfvi:'62', dsfvi:'48', ai_vol:'70', im_grado:'4', im_vc:'8' };
     /* B tiene IM severa TAMBIEN —si no, la compuerta de grado apaga la seccion y la fuga queda
        invisible— pero NUNCA se le contesto el mecanismo. */
     const B = { nombre:'PACIENTE B', ci:'2-2', peso:'70', talla:'170', edad:'55', sexo:'F',
-                fevi:'60', ddfvi:'50', dsfvi:'32', ai_vol:'55', im_sev_final:'4', im_vc:'8' };
+                fevi:'60', ddfvi:'50', dsfvi:'32', ai_vol:'55', im_grado:'4', im_vc:'8' };
     try { __t.limpiar(); } catch (e) {}
     try { indicCerrar(); } catch (e) {}
     Object.keys(A).forEach(function(k){ __t.set(k, A[k]); });
@@ -43275,7 +43275,7 @@ caso('TC-342', 'IAo: UN voto severo con cero moderados gradua SEVERA (no «Moder
     try { calcIA_ESC(); } catch (e) {}
     const r = __t.informe();
     let apagado = null; try { apagado = (_indIA() === null); } catch (e) { apagado = 'ERR ' + e.message; }
-    return { grado: __t.val('ia_grado'), sevFinal: __t.val('ia_sev_final'),
+    return { grado: __t.val('ia_grado'), sevFinal: __t.val('ia_grado'),
              badge: __t.txt('ia-sev'), suma: r.suma, inf: r.inf, indIAApagado: apagado }; };
   /* El caso del censo: vena contracta de 8 mm como UNICO dato. La cascada la vota severa por
      ser mayor que 6, y moderada queda en cero. */
@@ -43294,14 +43294,19 @@ caso('TC-342', 'IAo: UN voto severo con cero moderados gradua SEVERA (no «Moder
       sev.grado === '4' && sev.badge.toLowerCase().indexOf('severa') > -1 &&
       sev.badge.toLowerCase().indexOf('evaluar integrado') === -1,
       'grado=' + sev.grado + ' badge=' + sev.badge],
-    ['  y la cascada de sincronia lo propaga a ia_sev_final',
-      sev.sevFinal === '4', 'ia_sev_final=' + sev.sevFinal],
+    /* ⚠️ EL TITULO DECIA «la cascada de sincronia lo propaga a ia_sev_final» Y ESA CASCADA YA NO
+       EXISTE (2026-10-06): el grado de la IAo vivia en DOS nodos —el desplegable visible y el
+       oculto— y sincronizarGradoIA los copiaba. Hoy hay UN nodo, asi que no hay nada que propagar y
+       el aserto viejo comparaba el campo contra si mismo. Lo que SI tiene sujeto es que el grado
+       llegue al unico campo que las cinco superficies leen, y eso es lo que queda afirmado. */
+    ['  y el grado queda en el unico campo que leen informe, EN SUMA, PDF, PPT y Excel',
+      sev.sevFinal === '4', 'ia_grado=' + sev.sevFinal],
     ['  EN SUMA dice IAo severa y NO IAo moderada',
       sev.suma.indexOf('IAo severa.') > -1 && sev.suma.indexOf('IAo moderada') === -1,
       'suma=' + sev.suma],
     ['  el informe narrativo dice insuficiencia severa',
       sev.inf.indexOf('insuficiencia severa') > -1, 'inf no la trae'],
-    ['⚠️ y el PANEL DE CONDUCTA no queda apagado: _indIA abre exigiendo ia_sev_final === 4',
+    ['⚠️ y el PANEL DE CONDUCTA no queda apagado: _indIA abre exigiendo ia_grado === 4',
       sev.indIAApagado === false, 'indIAApagado=' + sev.indIAApagado],
     ['CONTROL: un unico voto moderado SIGUE en grado 2 con su texto de evaluar integrado',
       mod.grado === '2' && mod.badge.indexOf('evaluar integrado') > -1,
@@ -43567,7 +43572,7 @@ caso('TC-348', 'IAo Vmax telediastolica en Ao desc.: vota SOLO severa desde 20 c
     if (vtd !== null) __t.set('ia_vmax_td', vtd);
     try { calcIA_ESC(); } catch (e) {}
     const r = __t.informe(); const p = pdfTxt(); const x = excelRow();
-    return { grado: __t.val('ia_grado'), sevFinal: __t.val('ia_sev_final'),
+    return { grado: __t.val('ia_grado'), sevFinal: __t.val('ia_grado'),
              interp: __t.txt('ia-vtd-interp'), badge: __t.txt('ia-sev'),
              inf: r.inf, suma: r.suma, pdf: String(p),
              xlsGrado: x['IAo grado'], xlsI: x['IAo_I (Leve)'], xlsIII: x['IAo_III (Severa)'] }; };
@@ -44573,8 +44578,8 @@ caso('TC-361', 'IAo: el grado auto-sugerido tambien se RETIRA cuando el unico in
       campos[e.id] = (e.type === 'checkbox' || e.type === 'radio') ? (e.checked ? '1' : '') : e.value; });
     try { return _labExcelRow({ campos: campos }); } catch (e) { return { ERROR: e.message }; } };
   const sup = function () { const r = __t.informe();
-    const sel = document.getElementById('ia_sev_final'); const x = excelRow();
-    return { grado: __t.val('ia_grado'), sevFinal: __t.val('ia_sev_final'),
+    const sel = document.getElementById('ia_grado'); const x = excelRow();
+    return { grado: __t.val('ia_grado'), sevFinal: __t.val('ia_grado'),
              marca: (sel && sel.dataset.sugerido !== undefined) ? String(sel.dataset.sugerido) : 'SIN MARCA',
              disc: String(__t.txt('ia-discordancia')),
              inf: r.inf, suma: r.suma,
@@ -44603,7 +44608,7 @@ caso('TC-361', 'IAo: el grado auto-sugerido tambien se RETIRA cuando el unico in
      sincronizarGradoIA no corre y el hidden ia_grado se queda con el valor anterior —medido:
      sev_final=2 con grado=4—. El medico que toca el select SI dispara el evento, asi que el
      escenario tiene que dispararlo tambien o esta midiendo otra cosa. */
-  __t.set('ia_sev_final','2');
+  __t.set('ia_grado','2');
   __t.set('ia_vc','0.8');
   try { calcIA_ESC(); } catch (e) {}
   const aMano = sup();
@@ -44675,17 +44680,17 @@ caso('TC-362', 'EA e IAo: volver A MANO al mismo grado que la app habia sugerido
   const eaFinal = __t.val('ea_grado');
   const eaBadge = String(__t.txt('ea-ava-badge'));
   const eaInf = __t.informe();
-  // ── IAo, el mismo gesto sobre ia_sev_final ──
+  // ── IAo, el mismo gesto sobre ia_grado ──
   __t.limpiar(); window.esqSevManual = {};
   __t.set('nombre','TC362b'); __t.set('ia_vc','8');
   try { calcIA_ESC(); } catch (e) {}
-  const iaSugerido = __t.val('ia_sev_final'), iaMarca1 = marcaDe('ia_sev_final');
-  __t.set('ia_sev_final','2');
-  __t.set('ia_sev_final','4');
-  const iaMarca3 = marcaDe('ia_sev_final');
+  const iaSugerido = __t.val('ia_grado'), iaMarca1 = marcaDe('ia_grado');
+  __t.set('ia_grado','2');
+  __t.set('ia_grado','4');
+  const iaMarca3 = marcaDe('ia_grado');
   __t.set('ia_vc','0.8');
   try { calcIA_ESC(); } catch (e) {}
-  const iaFinal = __t.val('ia_sev_final'), iaFinalHid = __t.val('ia_grado');
+  const iaFinal = __t.val('ia_grado'), iaFinalHid = __t.val('ia_grado');
   /* ── CONTROL NEGATIVO: sin tocar el select a mano, el MISMO escenario SI se retira. Es lo que
      prueba que esta sonda distingue los dos gestos y no esta diciendo «se conserva» a todo. ── */
   __t.limpiar(); window.esqSevManual = {};
@@ -45460,11 +45465,11 @@ caso('TC-371', 'EA e IAo: el aviso ROJO de grado manual aparece cuando discrepa 
                              avisoIA: String(__t.txt('ia-manual-aviso') || ''),
                              avisoPlan: String(__t.txt('ava-plan-aviso') || '') };
 
-  /* ── (12) IAo: el mismo mecanismo sobre ia_sev_final, con la vena contracta ── */
+  /* ── (12) IAo: el mismo mecanismo sobre ia_grado, con la vena contracta ── */
   const fotoIA = function () {
     let pub = null; try { pub = sevCalcPublicable('ia'); } catch (e) { pub = 'ERR'; }
     const ay = document.getElementById('ia-auto-ayuda');
-    return { select: String(__t.val('ia_sev_final') || ''), hid: String(__t.val('ia_grado') || ''),
+    return { select: String(__t.val('ia_grado') || ''), hid: String(__t.val('ia_grado') || ''),
              manual: !!(window.esqSevManual && window.esqSevManual.ia), pub: String(pub),
              aviso: String(__t.txt('ia-manual-aviso') || ''),
              ayudaVisible: ay ? (ay.style.display !== 'none') : null }; };
@@ -45612,13 +45617,13 @@ caso('TC-372', 'EA e IAo: cerrar el boton BORRA el grado conservando la marca (r
   const manualCerrado = { grado: String(__t.val('ea_grado')),
                           manual: !!(window.esqSevManual && window.esqSevManual.ea) };
 
-  /* ── (3) INSUFICIENCIA: lo mismo sobre ia_sev_final y su hidden ── */
+  /* ── (3) INSUFICIENCIA: lo mismo sobre ia_grado y su hidden ── */
   __t.limpiar(); window.esqSevManual = {}; window._sevCalcAlFijar = {}; window._iaGradoCalc = null;
   abrir('insuf'); __t.set('nombre','TC372ia'); __t.set('ia_vc','8');
   try { calcIA_ESC(); } catch (e) {}
-  const iaAntes = { sel: String(__t.val('ia_sev_final')), hid: String(__t.val('ia_grado')) };
+  const iaAntes = { sel: String(__t.val('ia_grado')), hid: String(__t.val('ia_grado')) };
   toggleValvPill('aortica','insuf');
-  const iaCerrado = { sel: String(__t.val('ia_sev_final')), hid: String(__t.val('ia_grado')),
+  const iaCerrado = { sel: String(__t.val('ia_grado')), hid: String(__t.val('ia_grado')),
                       pill: pillOnDe('insuf') };
 
   /* ── (4) LA MITRAL NO CAMBIO. Es una costura declarada: toggleValvPill gobierna las seis
@@ -45642,7 +45647,7 @@ caso('TC-372', 'EA e IAo: cerrar el boton BORRA el grado conservando la marca (r
       document.body.click(); return r; } catch (e) { return ['ERR:' + e.message]; } })();
   /* ⚠️ LOS DOS ROTULOS SE BUSCAN POR SU CONTENEDOR CON id, NO POR closest('.fg') NI POR
      parentElement, Y ESO SE PAGO. La version anterior hacia ea_grado.closest('.fg') y
-     ia_sev_final.parentElement, o sea que dependia de cuantos <div> hay entre el select y su
+     ia_grado.parentElement, o sea que dependia de cuantos <div> hay entre el select y su
      rotulo. La tanda de maquetacion del 2026-10-02 metio uno —el rotulo de la EA quedo FUERA de
      la mitad izquierda para no partirse en dos lineas, y el de la IA quedo arriba de la fila— y
      este caso se puso rojo con «NO EXISTE» en los dos, afirmando que faltaban rotulos que estaban
@@ -46071,7 +46076,7 @@ caso('TC-375', 'El informe usa SOLO el grado final: con «Sin estenosis» dice s
      El discriminador es esqSevManual.ia, que prep() limpia y que valvSev.aplicar enciende. */
   /* ⚠️ Escena 2 ABRE la pastilla y NO toca el select —así queda sin marca—: desde que el escalón de
      la aórtica está ENCENDIDO (EA_ESCALON_SIN_GRADO=true), ese es el estado 2 que AFIRMA «con
-     insuficiencia» / «IAo presente.». (Fijar ia_sev_final=0 por su onchange ahora MARCA, y eso
+     insuficiencia» / «IAo presente.». (Fijar ia_grado=0 por su onchange ahora MARCA, y eso
      es el estado 3, que se mide abajo.) */
   prep(); abrir('insuf');
   const insufAbierta = cuatro();
@@ -46207,7 +46212,7 @@ caso('TC-376', 'La pastilla de severidad pinta MODERADA en naranja —distinta d
 
   __t.limpiar(); __t.set('nombre','TC376J');
   __t.set('diam_tsvi','21'); __t.set('itv_tsvi','20'); __t.set('itv_ao','95');
-  __t.set('ia_sev_final','4');
+  __t.set('ia_grado','4');
   resetJ(); showTab('valvulas');
   const severo = foto();
 
@@ -46570,8 +46575,8 @@ caso('TC-378', 'La morfologia va ANTES de la fila de botones Insuficiencia/Esten
        grado final de insuficiencia va DESPUES de los botones, y asi debe seguir. Sin esto, un
        rel() que devolviera 'antes' siempre dejaria las cuatro condiciones de arriba en verde. */
     ['CONTROL NEGATIVO: la sonda sabe decir «despues»',
-      rel('im_sev_final', 'pill-insuf-mitral') === 'despues',
-      'rel(im_sev_final, pill) da ' + rel('im_sev_final', 'pill-insuf-mitral')],
+      rel('im_grado', 'pill-insuf-mitral') === 'despues',
+      'rel(im_grado, pill) da ' + rel('im_grado', 'pill-insuf-mitral')],
   ] };
 `);
 
@@ -46630,7 +46635,7 @@ caso('TC-379', 'Los dos selects de grado final quedan en la MISMA fila y arranca
   ['mitral','aortica'].forEach(function (v) { ['insuf','esten'].forEach(function (t) {
     if (abrir(v, t)) on.push(t + '-' + v); }); });
   ancho(1100);
-  const g = { em: geo('em_grado'), im: geo('im_sev_final'), ea: geo('ea_grado'), ia: geo('ia_sev_final') };
+  const g = { em: geo('gftxt-esten-mitral'), im: geo('gftxt-insuf-mitral'), ea: geo('gftxt-esten-aortica'), ia: geo('gftxt-insuf-aortica') };
   ancho(null);
   const devuelto = tab.style.width === '';
   const obj = function (x) { return x && typeof x === 'object'; };
@@ -46702,11 +46707,11 @@ caso('TC-380', 'A 300 px la fila de grado final se apila en una sola columna y n
     if (abrir(v, t)) on.push(t + '-' + v); }); });
 
   ancho(1100);
-  const ancha = { em: geo('em_grado'), im: geo('im_sev_final'), ea: geo('ea_grado'), ia: geo('ia_sev_final') };
+  const ancha = { em: geo('gftxt-esten-mitral'), im: geo('gftxt-insuf-mitral'), ea: geo('gftxt-esten-aortica'), ia: geo('gftxt-insuf-aortica') };
   ancho(300);
-  const flaca = { em: geo('em_grado'), im: geo('im_sev_final'), ea: geo('ea_grado'), ia: geo('ia_sev_final') };
-  const der = { em: filaDer('em_grado'), im: filaDer('im_sev_final'),
-                ea: filaDer('ea_grado'), ia: filaDer('ia_sev_final') };
+  const flaca = { em: geo('gftxt-esten-mitral'), im: geo('gftxt-insuf-mitral'), ea: geo('gftxt-esten-aortica'), ia: geo('gftxt-insuf-aortica') };
+  const der = { em: filaDer('gftxt-esten-mitral'), im: filaDer('gftxt-insuf-mitral'),
+                ea: filaDer('gftxt-esten-aortica'), ia: filaDer('gftxt-insuf-aortica') };
   ancho(null);
   const devuelto = tab.style.width === '';
 
@@ -46776,7 +46781,7 @@ caso('TC-381', 'El cajon «Fundamento del ajuste» va a la DERECHA del select y 
   const sentido  = (typeof sevSentido === 'function') ? sevSentido('ea') : null;
 
   ancho(1100);
-  const anchaSel = geo('ea_grado'), anchaCaj = geo('ea-fund');
+  const anchaSel = geo('gftxt-esten-aortica'), anchaCaj = geo('ea-fund');
   const anchaAviso = geo('ea-manual-aviso'), anchaBadge = geo('ea-ava-badge');
   const anchaCols = cols();
   /* ⚠️ SE MIDE CONTRA LA FILA, NO CONTRA LA COLUMNA. El getBoundingClientRect de .valv-gf-col es
@@ -46799,7 +46804,7 @@ caso('TC-381', 'El cajon «Fundamento del ajuste» va a la DERECHA del select y 
   ancho(756);
   const flacaCols = cols();
   ancho(300);
-  const flacaSel = geo('ea_grado'), flacaCaj = geo('ea-fund');
+  const flacaSel = geo('gftxt-esten-aortica'), flacaCaj = geo('ea-fund');
   ancho(null);
   const devuelto = tab.style.width === '';
 
@@ -46880,12 +46885,12 @@ const PAST_PRE = `
 caso('TC-382', 'La pastilla de IAo sigue SOLA a la vena contracta, sin marca manual, y el grado final y su hidden van con ella', `
   ${PAST_PRE}
   pastReset();
-  const inicial = { pill: pastilla('insuf'), sel: __t.val('ia_sev_final'), calc: String(window._iaGradoCalc) };
+  const inicial = { pill: pastilla('insuf'), sel: __t.val('ia_grado'), calc: String(window._iaGradoCalc) };
   pastSet('ia_vc','5');
-  const vc5 = { pill: pastilla('insuf'), sel: __t.val('ia_sev_final'), hid: __t.val('ia_grado'),
+  const vc5 = { pill: pastilla('insuf'), sel: __t.val('ia_grado'), hid: __t.val('ia_grado'),
     calc: String(window._iaGradoCalc), manual: !!(window.esqSevManual || {}).ia };
   pastSet('ia_vc','8');
-  const vc8 = { pill: pastilla('insuf'), sel: __t.val('ia_sev_final'), hid: __t.val('ia_grado'),
+  const vc8 = { pill: pastilla('insuf'), sel: __t.val('ia_grado'), hid: __t.val('ia_grado'),
     calc: String(window._iaGradoCalc), manual: !!(window.esqSevManual || {}).ia };
   const dg = 'inicial=' + JSON.stringify(inicial) + ' vc5=' + JSON.stringify(vc5) + ' vc8=' + JSON.stringify(vc8);
   return { extra: [
@@ -46906,15 +46911,15 @@ caso('TC-383', 'El grado manual de la IAo se mantiene mientras el calculado no c
   pastReset();
   pastSet('ia_vc','8');                                  // calculado severa (4)
   valvSev.aplicar('insuf','aortica','1');                // el medico fija Leve
-  const fijado = { sel: __t.val('ia_sev_final'), manual: !!(window.esqSevManual || {}).ia,
+  const fijado = { sel: __t.val('ia_grado'), manual: !!(window.esqSevManual || {}).ia,
     calc: String(window._iaGradoCalc), aviso: pastTxt('ia-manual-aviso'), cajon: pastVis('ia-fund') };
   /* Otro insumo que NO mueve el grado calculado: el manual tiene que sobrevivir. Es la diferencia
      entre «el calculado cambio» y «el calculado difiere del manual», que es todo R6. */
   pastSet('ia_pht','600');
-  const mismo = { sel: __t.val('ia_sev_final'), manual: !!(window.esqSevManual || {}).ia,
+  const mismo = { sel: __t.val('ia_grado'), manual: !!(window.esqSevManual || {}).ia,
     calc: String(window._iaGradoCalc) };
   pastSet('ia_vc','3');                                  // ahora el calculado SI cambia
-  const cambio = { sel: __t.val('ia_sev_final'), manual: !!(window.esqSevManual || {}).ia,
+  const cambio = { sel: __t.val('ia_grado'), manual: !!(window.esqSevManual || {}).ia,
     calc: String(window._iaGradoCalc), pill: pastilla('insuf'),
     aviso: pastTxt('ia-manual-aviso'), cajon: pastVis('ia-fund') };
   const dg = 'fijado=' + JSON.stringify(fijado) + ' mismo=' + JSON.stringify(mismo) + ' cambio=' + JSON.stringify(cambio);
@@ -46982,12 +46987,12 @@ caso('TC-385', '«Sin» con grado calculado es un ajuste a la baja con aviso roj
   /* (1) IAo: «Sin» sobre un calculado severo */
   pastReset(); pastSet('ia_vc','8');
   valvSev.aplicar('insuf','aortica','0');
-  const iaCon = { sel: __t.val('ia_sev_final'), hid: __t.val('ia_grado'), pill: pastilla('insuf'),
+  const iaCon = { sel: __t.val('ia_grado'), hid: __t.val('ia_grado'), pill: pastilla('insuf'),
     discrepa: sevDiscrepa('ia'), cajon: pastVis('ia-fund'), aviso: pastTxt('ia-manual-aviso') };
   /* (2) IAo: «Sin» sin ningun calculo */
   pastReset();
   valvSev.aplicar('insuf','aortica','0');
-  const iaSin = { sel: __t.val('ia_sev_final'), pill: pastilla('insuf'), discrepa: sevDiscrepa('ia'),
+  const iaSin = { sel: __t.val('ia_grado'), pill: pastilla('insuf'), discrepa: sevDiscrepa('ia'),
     cajon: pastVis('ia-fund'), aviso: pastTxt('ia-manual-aviso'), calc: String(sevCalcPublicable('ia')) };
   /* (3) EA: «Sin estenosis» sobre un calculado severo, por el menu */
   pastReset(); pastSet('ea_vmax','4.5');
@@ -47112,10 +47117,10 @@ caso('TC-387', 'La pastilla mitral sigue SOLA al calculo —IM por vena contract
 
   /* ── (1) IM: la vena contracta mueve la pastilla sin que nadie toque el desplegable ── */
   mSet('im_vc','8');
-  const vc8 = { past: mPast('insuf'), sel: __t.val('im_sev_final'), hid: __t.val('im_grado'),
+  const vc8 = { past: mPast('insuf'), sel: __t.val('im_grado'), hid: __t.val('im_grado'),
                 badge: mTxt('im-sev'), manual: !!(window.esqSevManual||{}).im };
   mSet('im_vc','2');
-  const vc2 = { past: mPast('insuf'), sel: __t.val('im_sev_final'), hid: __t.val('im_grado') };
+  const vc2 = { past: mPast('insuf'), sel: __t.val('im_grado'), hid: __t.val('im_grado') };
 
   /* ── (2) EM: idem por AVm, con CONTROL NEGATIVO ── AVm 2,5 no produce grado calculado (la app
      no autocompleta leve ni moderada desde el 28/09), asi que la pastilla tiene que VOLVER al
@@ -47132,9 +47137,9 @@ caso('TC-387', 'La pastilla mitral sigue SOLA al calculo —IM por vena contract
   mReset();
   mSet('im_vc','8');
   valvSev.aplicar('insuf','mitral','2');
-  const antesBorrar = { sel: __t.val('im_sev_final'), hid: __t.val('im_grado') };
+  const antesBorrar = { sel: __t.val('im_grado'), hid: __t.val('im_grado') };
   mSet('im_vc','');
-  const trasBorrar = { sel: __t.val('im_sev_final'), hid: __t.val('im_grado'),
+  const trasBorrar = { sel: __t.val('im_grado'), hid: __t.val('im_grado'),
                        manual: !!(window.esqSevManual||{}).im,
                        calc: String(window._imGradoCalc) };
 
@@ -47173,9 +47178,9 @@ caso('TC-388', 'Mitral: el grado manual se mantiene y vuelve solo a automatico c
   valvSev.aplicar('insuf','mitral','2');         // manual = Moderada
   const foto = String((window._sevCalcAlFijar||{}).im);
   mSet('im_ai_area','30');                       // ruido: no cambia el calculado
-  const ruido = { sel: __t.val('im_sev_final'), manual: !!(window.esqSevManual||{}).im };
+  const ruido = { sel: __t.val('im_grado'), manual: !!(window.esqSevManual||{}).im };
   mSet('im_vc','2');                             // el calculado CAMBIA a 1
-  const soltado = { sel: __t.val('im_sev_final'), hid: __t.val('im_grado'),
+  const soltado = { sel: __t.val('im_grado'), hid: __t.val('im_grado'),
                     past: mPast('insuf'), manual: !!(window.esqSevManual||{}).im };
 
   /* ── (2) PUNTO B en la EM, con la mitad que NO suelta: calculado que pasa a null ── */
@@ -47214,10 +47219,10 @@ caso('TC-388', 'Mitral: el grado manual se mantiene y vuelve solo a automatico c
   valvSev.aplicar('insuf','mitral','2');
   valvSev.aplicar('esten','mitral','moderada');
   toggleValvPill('mitral','insuf'); toggleValvPill('mitral','esten');
-  const cerrado = { im: __t.val('im_sev_final'), imHid: __t.val('im_grado'), em: __t.val('em_grado'),
+  const cerrado = { im: __t.val('im_grado'), imHid: __t.val('im_grado'), em: __t.val('em_grado'),
                     pIM: mPillOn('insuf'), pEM: mPillOn('esten') };
   toggleValvPill('mitral','insuf'); toggleValvPill('mitral','esten');
-  const reabierto = { im: __t.val('im_sev_final'), em: __t.val('em_grado') };
+  const reabierto = { im: __t.val('im_grado'), em: __t.val('em_grado') };
 
   /* ── (5) AISLAMIENTO VIVO: la tricuspide SIGUE borrando al cerrar ── es el control negativo de
      E y lo que prueba que la sonda distingue valvulas en vez de decir que si a todo. */
@@ -47308,7 +47313,7 @@ const MIT_FUND_PRE = MIT_PRE + `
              imFund: mVis('im-fund'), emFund: mVis('em-fund'),
              avIM: mTxt('im-manual-aviso'), avEM: mTxt('em-manual-aviso'),
              dIM: sevDiscrepa('im'), dEM: sevDiscrepa('em'),
-             imSel: __t.val('im_sev_final'), imHid: __t.val('im_grado'),
+             imSel: __t.val('im_grado'), imHid: __t.val('im_grado'),
              emSel: __t.val('em_grado'), xls: xls };
   };
 `;
@@ -47548,7 +47553,7 @@ caso('TC-391', 'Guardar y reabrir conserva el grado, la marca y el cajon de la M
     valvSev.aplicar('insuf','mitral','2');             // Moderada sobre un calculo Severa
     valvSev.aplicar('esten','mitral','moderada');      // idem en la estenosis
     mSet('im_fund_nota','jet excentrico'); mSet('em_fund_nota','AVm no planimetrable');
-    const antes = { imSel: __t.val('im_sev_final'), imHid: __t.val('im_grado'),
+    const antes = { imSel: __t.val('im_grado'), imHid: __t.val('im_grado'),
       emSel: __t.val('em_grado'), dIM: sevDiscrepa('im'), dEM: sevDiscrepa('em'),
       imFund: mVis('im-fund'), emFund: mVis('em-fund'),
       imNota: __t.val('im_fund_nota'), emNota: __t.val('em_fund_nota'),
@@ -47556,14 +47561,14 @@ caso('TC-391', 'Guardar y reabrir conserva el grado, la marca y el cajon de la M
     const g = await __t.guardar();
     if (!g.ok) return { extra: [['el estudio se guardo', false, 'guardar fallo: ' + g.error]] };
     mReset();
-    const limpio = { imSel: __t.val('im_sev_final'), emSel: __t.val('em_grado'),
+    const limpio = { imSel: __t.val('im_grado'), emSel: __t.val('em_grado'),
       imFund: mVis('im-fund'), emFund: mVis('em-fund'),
       imNota: __t.val('im_fund_nota'), emNota: __t.val('em_fund_nota'),
       vc: __t.val('im_vc'), avm: __t.val('avm_plan'),
       mIM: !!(window.esqSevManual || {}).im, mEM: !!(window.esqSevManual || {}).em,
       dIM: sevDiscrepa('im'), dEM: sevDiscrepa('em') };
     await __t.reabrir(g.estudioId);
-    const despues = { imSel: __t.val('im_sev_final'), imHid: __t.val('im_grado'),
+    const despues = { imSel: __t.val('im_grado'), imHid: __t.val('im_grado'),
       emSel: __t.val('em_grado'), dIM: sevDiscrepa('im'), dEM: sevDiscrepa('em'),
       imFund: mVis('im-fund'), emFund: mVis('em-fund'),
       imNota: __t.val('im_fund_nota'), emNota: __t.val('em_fund_nota'),
@@ -47662,14 +47667,14 @@ caso('TC-392', 'El cajon de fundamento de la MITRAL se maqueta como el de la aor
   const abiertos = mVis('im-fund') + '/' + mVis('em-fund');
 
   ancho(1200);
-  const a = { imSel: geo('im_sev_final'), imCaj: geo('im-fund'),
-              emSel: geo('em_grado'), emCaj: geo('em-fund') };
+  const a = { imSel: geo('gftxt-insuf-mitral'), imCaj: geo('im-fund'),
+              emSel: geo('gftxt-esten-mitral'), emCaj: geo('em-fund') };
   ancho(756);
-  const b = { imSel: geo('im_sev_final'), imCaj: geo('im-fund'),
-              emSel: geo('em_grado'), emCaj: geo('em-fund') };
+  const b = { imSel: geo('gftxt-insuf-mitral'), imCaj: geo('im-fund'),
+              emSel: geo('gftxt-esten-mitral'), emCaj: geo('em-fund') };
   ancho(300);
-  const c = { imSel: geo('im_sev_final'), imCaj: geo('im-fund'),
-              emSel: geo('em_grado'), emCaj: geo('em-fund') };
+  const c = { imSel: geo('gftxt-insuf-mitral'), imCaj: geo('im-fund'),
+              emSel: geo('gftxt-esten-mitral'), emCaj: geo('em-fund') };
   ancho(null);
   const devuelto = tab.style.width === '';
 
@@ -47713,10 +47718,10 @@ caso('TC-393', 'La tarjeta pre-PDF ya no publica un grado de IM distinto del gra
   /* ── (1) PUNTO d — EL TERCER ESCRITOR DE im_grado ──────────────────────────────────────────
      «mostrarCardSeveridadValvular» corre JUSTO ANTES de guardar y de emitir el PDF, asi que lo que
      escriba es lo que queda firmado. Escribia SOLO el oculto «im_grado» y dejaba el select visible
-     «im_sev_final» con el valor viejo — y desde que la mitral esta en SEV_SINC ese select es lo que
+     «im_grado» con el valor viejo — y desde que la mitral esta en SEV_SINC ese select es lo que
      leen sevDiscrepa, el aviso rojo, el cajon del fundamento y la pastilla. Medido contra HEAD:
      corregir la IM de Severa a Moderada en la tarjeta dejaba im_grado=2 (lo que firma el PDF) con
-     im_sev_final=4 (lo que ve el medico), y la marca manual que la tarjeta pone impide que
+     im_grado=4 (lo que ve el medico), y la marca manual que la tarjeta pone impide que
      calcIM_ESC vuelva a igualarlos: la divergencia era PERMANENTE. */
   const tarjeta = function (valorIM) {
     try { mostrarCardSeveridadValvular(function () {}); } catch (e) { return 'ERR:' + e.message; }
@@ -47730,10 +47735,10 @@ caso('TC-393', 'La tarjeta pre-PDF ya no publica un grado de IM distinto del gra
   };
 
   mReset(); mSet('im_vc','8');
-  const antesTarjeta = { sel: __t.val('im_sev_final'), hid: __t.val('im_grado'),
+  const antesTarjeta = { sel: __t.val('im_grado'), hid: __t.val('im_grado'),
                          manual: !!(window.esqSevManual || {}).im };
   const abrio = tarjeta('2');
-  const trasTarjeta = { sel: __t.val('im_sev_final'), hid: __t.val('im_grado'),
+  const trasTarjeta = { sel: __t.val('im_grado'), hid: __t.val('im_grado'),
                         manual: !!(window.esqSevManual || {}).im, dIM: sevDiscrepa('im'),
                         aviso: mTxt('im-manual-aviso'), fund: mVis('im-fund') };
 
@@ -47742,7 +47747,7 @@ caso('TC-393', 'La tarjeta pre-PDF ya no publica un grado de IM distinto del gra
      por mirar la tarjeta los dejaria rancios para siempre. */
   mReset(); mSet('im_vc','8');
   const abrio2 = tarjeta(null);
-  const sinTocar = { sel: __t.val('im_sev_final'), hid: __t.val('im_grado'),
+  const sinTocar = { sel: __t.val('im_grado'), hid: __t.val('im_grado'),
                      manual: !!(window.esqSevManual || {}).im, dIM: sevDiscrepa('im') };
 
   /* AISLAMIENTO: la TRICUSPIDE insuf SIGUE sin select de grado final visible (no hay it_sev_final):
@@ -47767,7 +47772,7 @@ caso('TC-393', 'La tarjeta pre-PDF ya no publica un grado de IM distinto del gra
       return t + '=' + x; }).join(' ');
   };
   const limpias = llaves();
-  __t.set('im_sev_final','4'); __t.set('em_grado','severa');
+  __t.set('im_grado','4'); __t.set('em_grado','severa');
   const antesAuto = { pIM: mPillOn('insuf'), pEM: mPillOn('esten') };
   try { valvAutoAbrirCajones(); } catch (e) {}
   const trasAuto = { pIM: mPillOn('insuf'), pEM: mPillOn('esten') };
@@ -47782,7 +47787,7 @@ caso('TC-393', 'La tarjeta pre-PDF ya no publica un grado de IM distinto del gra
      fuera de VALV_AUTO_GRADO a proposito—, NI la mitral NI la tricuspide (it_grado en '0'). */
   try { limpiarCampos(true); } catch (e) {}
   try { showTab('valvulas'); } catch (e) {}
-  __t.set('im_sev_final','0'); __t.set('em_grado','sin'); __t.set('it_grado','0');
+  __t.set('im_grado','0'); __t.set('em_grado','sin'); __t.set('it_grado','0');
   try { valvAutoAbrirCajones(); } catch (e) {}
   const sinGrado = { pIM: mPillOn('insuf'), pEM: mPillOn('esten'),
                      pIT: mPillOn('insuf','tricuspide') };
@@ -47949,7 +47954,7 @@ caso('TC-395', 'El menu de severidad no lo recorta la tarjeta: las opciones de l
 `);
 
 
-caso('TC-396', 'El cajon «Fundamento del ajuste» se lleva dos tercios del sobrante y sigue entrando «Moderada-severa»: a 1200, 756 y 300 px, abierto y cerrado, sin desborde', `
+caso('TC-396', 'El cajon «Fundamento del ajuste» se lleva dos tercios del sobrante y el GRADO FIJO entra sin cortarse —«Mod-severa» y «Esclerosis»—: a 1200, 756 y 300 px, abierto y cerrado, sin desborde', `
   __t.limpiar();
   try { document.getElementById('login-overlay').style.display = 'none'; } catch (e) {}
   try { showTab('valvulas'); } catch (e) {}
@@ -47981,21 +47986,42 @@ caso('TC-396', 'El cajon «Fundamento del ajuste» se lleva dos tercios del sobr
       const r = e.getBoundingClientRect(); if (!r.width && !r.height) return;
       if (r.right > fr.right + 1 || r.left < fr.left - 1) n++; });
     return n; };
-  /* ⚠️ EL CRITERIO ES «Moderada-severa», QUE MIDE 106 px Y EXISTE SOLO EN im_sev_final.
-     NO se mide la opcion mas larga del select: esa es «— Sin insuficiencia / no evaluada», mide
-     197 px y YA no entraba a 756 px antes de este cambio. Es un rotulo clinico y no se toca —
-     queda reportado. Medir por la mas larga confundiria ese defecto previo con una regresion. */
-  const entra = function (selId, texto) {
-    const s = document.getElementById(selId);
-    if (!s || !s.options) return 'no es select';
+  /* ⚠️ EL CRITERIO CAMBIO PORQUE EL CONTROL CAMBIO (2026-10-06), Y HAY QUE DECIR CUAL ERA.
+     Era «Moderada-severa», que medía 106 px y existia SOLO como <option> de im_sev_final; el
+     desplegable se fue y el grado final es un texto fijo. Lo que hoy ata el ancho es el rotulo mas
+     LARGO que ese texto puede mostrar, y son dos de diez caracteres: «Mod-severa» —el INSUF_TXT[3]
+     de un estudio GUARDADO con el grado 3, que sigue siendo alcanzable aunque ya no se pueda
+     elegir— y «Esclerosis» en la estenosis aortica. O sea que la restriccion se AFLOJO, no se
+     endurecio: el criterio viejo era 106 px y el nuevo mide menos.
+     NO se mide por la opcion mas larga que tenia el select («— Sin insuficiencia / no evaluada»,
+     197 px): ya no entraba a 756 px ANTES de este cambio, es un rotulo clinico, y medir por ella
+     confundiria ese defecto previo —hoy inexistente, porque el rotulo se fue con el select— con una
+     regresion.
+     El helper acepta las dos formas a proposito: sobre un <select> pregunta por sus <option> (es lo
+     que seguian usando la tricuspide y la pulmonar cuando este caso se escribio) y sobre el texto
+     fijo mide la cadena contra el ancho util. Sin el - 20 del select, que era el hueco de la
+     flecha ▼ y el texto fijo no tiene. */
+  const entra = function (id, texto) {
+    const s = document.getElementById(id);
+    if (!s) return 'no existe ' + id;
     if (getComputedStyle(s).display === 'none') return 'oculto';
-    const hay = Array.from(s.options).some(function (o) { return o.textContent.trim() === texto; });
-    if (!hay) return 'la opcion no existe en ' + selId;
     const cs = getComputedStyle(s);
     const cv = document.createElement('canvas').getContext('2d');
     cv.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
-    const util = s.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 20;
+    const flecha = s.options ? 20 : 0;
+    if (s.options) {
+      const hay = Array.from(s.options).some(function (o) { return o.textContent.trim() === texto; });
+      if (!hay) return 'la opcion no existe en ' + id;
+    }
+    const util = s.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - flecha;
     return util >= cv.measureText(texto).width; };
+  /* El texto fijo con el grado REALMENTE puesto: si se corta, scrollWidth supera a clientWidth.
+     Es la comprobacion que entra no puede hacer —mide una cadena hipotetica— y la que caza un
+     recorte por overflow o por un white-space heredado. */
+  const cortado = function (id) { const e = document.getElementById(id);
+    if (!e) return 'no existe ' + id;
+    if (getComputedStyle(e).display === 'none') return 'oculto';
+    return e.scrollWidth > e.clientWidth + 1; };
 
   /* Discrepancia por el camino de la app en las dos valvulas, con los dos botones encendidos:
      es el escenario de TC-379/TC-381, el que tiene las dos columnas de grado final presentes. */
@@ -48012,7 +48038,7 @@ caso('TC-396', 'El cajon «Fundamento del ajuste» se lleva dos tercios del sobr
   /* La IA tambien, para que su cajon se abra: vena contracta 7 mm calcula severa y el medico
      baja a leve. Sin esto ia-fund queda en display:none, W() devuelve el string «oculto» y las
      condiciones de abajo lo cazan por num() — no pasarian en silencio, pero tampoco medirian. */
-  set('ia_vc', '7'); set('ia_sev_final', '1'); window.esqSevManual.ia = true;
+  set('ia_vc', '7'); set('ia_grado', '1'); window.esqSevManual.ia = true;
   try { sevSincronizar('ia'); } catch (e) {}
   try { sevSincronizar('ea'); } catch (e) {}
   set('im_vc', '8');
@@ -48020,31 +48046,38 @@ caso('TC-396', 'El cajon «Fundamento del ajuste» se lleva dos tercios del sobr
 
   const foto = function (px) {
     ancho(px);
-    const ab = { eaSel: W('ea_grado'), eaCaj: W('ea-fund'), eaFila: fila('ea-fund'),
-                 imSel: W('im_sev_final'), imCaj: W('im-fund'), imFila: fila('im-fund'),
+    const ab = { eaSel: W('gftxt-esten-aortica'), eaCaj: W('ea-fund'), eaFila: fila('ea-fund'),
+                 imSel: W('gftxt-insuf-mitral'), imCaj: W('im-fund'), imFila: fila('im-fund'),
                  /* ⚠️ LA IA ENTRA PORQUE ES EL PEOR CASO DEL REPARTO, y no la medía nadie —
                     TC-396 medía ea+im, TC-392 im+em, TC-381 ea—. Su cajón es el único SIN lista
                     de opciones (sólo título, label y un input de texto), así que el grow:2 le
                     saca ancho al select para dárselo a un cajón que no lo necesita para columnas.
                     Si algún día el reparto se acota a los cajones con valv-fund-opc, es acá
                     donde se ve. Medido: se comporta igual que ea e im (231 / 312 a 1200 px). */
-                 iaSel: W('ia_sev_final'), iaCaj: W('ia-fund'), iaFila: fila('ia-fund'),
+                 iaSel: W('gftxt-insuf-aortica'), iaCaj: W('ia-fund'), iaFila: fila('ia-fund'),
                  desb: desborde('ea-fund') + desborde('im-fund') + desborde('ia-fund'),
-                 modSev: entra('im_sev_final', 'Moderada-severa'),
-                 /* ⚠️ EL ROTULO POR DEFECTO. v2: la opción seleccionada de fábrica de im_sev_final es
+                 /* El rotulo mas largo que el texto fijo puede mostrar: «Mod-severa», que es
+                    INSUF_TXT[3] y llega desde un estudio guardado con el grado 3. */
+                 modSev: entra('gftxt-insuf-mitral', 'Mod-severa'),
+                 /* Y el mismo peor caso en la ESTENOSIS aortica, que es «Esclerosis». */
+                 esclero: entra('gftxt-esten-aortica', 'Esclerosis'),
+                 /* Con el grado puesto de verdad: que no se corte. */
+                 cortIM: cortado('gftxt-insuf-mitral'), cortEA: cortado('gftxt-esten-aortica'),
+                 /* ⚠️ EL ROTULO POR DEFECTO. v2: la opción seleccionada de fábrica de im_grado es
                     ahora el placeholder «— grado —» (antes «— Sin insuficiencia / no evaluada», 197 px);
                     el value centinela «0» no cambió. Se pinea igual que antes: que el rótulo por
                     defecto entre al select a 1200 px con el reparto grow:2. */
-                 rotDef: entra('im_sev_final', '— grado —') };
+                 rotDef: entra('gftxt-insuf-mitral', '—') };
     /* CAJON CERRADO: se oculta SOLO para medir el reparto y se restaura enseguida. Es el caso que
        no hay que romper — el select tiene que tomar la columna ENTERA, no media. */
     const prev = {};
     ['ea-fund', 'im-fund'].forEach(function (id) {
       const e = document.getElementById(id); prev[id] = e.style.display; e.style.display = 'none'; });
-    const ce = { eaSel: W('ea_grado'), eaFila: fila('ea-fund'),
-                 imSel: W('im_sev_final'), imFila: fila('im-fund'),
+    const ce = { eaSel: W('gftxt-esten-aortica'), eaFila: fila('ea-fund'),
+                 imSel: W('gftxt-insuf-mitral'), imFila: fila('im-fund'),
                  desb: desborde('ea-fund') + desborde('im-fund'),
-                 modSev: entra('im_sev_final', 'Moderada-severa') };
+                 modSev: entra('gftxt-insuf-mitral', 'Mod-severa'),
+                 esclero: entra('gftxt-esten-aortica', 'Esclerosis') };
     ['ea-fund', 'im-fund'].forEach(function (id) {
       document.getElementById(id).style.display = prev[id]; });
     return { abierto: ab, cerrado: ce };
@@ -48079,7 +48112,7 @@ caso('TC-396', 'El cajon «Fundamento del ajuste» se lleva dos tercios del sobr
       a.abierto.eaCaj === 312 && a.abierto.imCaj === 312 && a.abierto.iaCaj === 312 &&
       a.abierto.eaSel === 231 && a.abierto.imSel === 231 && a.abierto.iaSel === 231, dg],
     /* El margen que este cambio redujo de ~43 px a 2. Ver la nota de rotDef arriba. */
-    ['el rotulo POR DEFECTO «— grado —» de im_sev_final entra a 1200 px',
+    ['el rotulo POR DEFECTO del texto fijo («—») entra a 1200 px',
       a.abierto.rotDef === true, dg],
     ['a 756 px siguen lado a lado y el cajon sigue siendo el mas ancho', reparto(b.abierto), dg],
     /* ⚠️ A 300 px NO HAY REPARTO QUE MEDIR: la fila envuelve y los dos toman la columna entera.
@@ -48091,9 +48124,18 @@ caso('TC-396', 'El cajon «Fundamento del ajuste» se lleva dos tercios del sobr
     ['CON EL CAJON CERRADO el select toma la columna ENTERA a los tres anchos, no media',
       c.cerrado.imSel === c.cerrado.imFila && b.cerrado.imSel === b.cerrado.imFila &&
       a.cerrado.imSel === a.cerrado.imFila, dg],
-    ['«Moderada-severa» entra en el select a los tres anchos, abierto y cerrado',
+    /* v2 (2026-10-06): el criterio pasó de la <option> «Moderada-severa» del desplegable al
+       rotulo mas largo que el TEXTO FIJO puede mostrar. Ver la nota de entra. */
+    ['«Mod-severa» entra en el texto fijo de la IM a los tres anchos, abierto y cerrado',
       a.abierto.modSev === true && b.abierto.modSev === true && c.abierto.modSev === true &&
       a.cerrado.modSev === true && b.cerrado.modSev === true && c.cerrado.modSev === true, dg],
+    ['«Esclerosis» entra en el texto fijo de la EAo a los tres anchos, abierto y cerrado',
+      a.abierto.esclero === true && b.abierto.esclero === true && c.abierto.esclero === true &&
+      a.cerrado.esclero === true && b.cerrado.esclero === true && c.cerrado.esclero === true, dg],
+    /* Y con el grado puesto de verdad: ninguno de los dos se corta a ningun ancho. */
+    ['el texto fijo NO se corta con el grado puesto, a los tres anchos',
+      a.abierto.cortIM === false && b.abierto.cortIM === false && c.abierto.cortIM === false &&
+      a.abierto.cortEA === false && b.abierto.cortEA === false && c.abierto.cortEA === false, dg],
     ['nada se sale de la fila a ningun ancho, con el cajon abierto ni cerrado',
       a.abierto.desb === 0 && b.abierto.desb === 0 && c.abierto.desb === 0 &&
       a.cerrado.desb === 0 && b.cerrado.desb === 0 && c.cerrado.desb === 0, dg],
@@ -48123,8 +48165,8 @@ caso('TC-394', 'Los CUATRO rotulos de grado final dicen lo mismo y prometen lo m
     const l = n.querySelector(':scope > label');
     return l ? l.textContent.trim().replace(/\\s+/g, ' ') : 'sin label';
   };
-  const R = { im: rotulo('im_sev_final'), em: rotulo('em_grado'),
-              ia: rotulo('ia_sev_final'), ea: rotulo('ea_grado') };
+  const R = { im: rotulo('gftxt-insuf-mitral'), em: rotulo('gftxt-esten-mitral'),
+              ia: rotulo('gftxt-insuf-aortica'), ea: rotulo('gftxt-esten-aortica') };
   /* Y que el CSS los siga tratando igual a los cuatro: 11 px, negrita, color de acento. El rotulo
      de la IM salio de «.valv-gf-caja > label» y el de la EM paso de «.fg > label» a «> label», asi
      que si alguno quedo fuera de las cuatro reglas escritas UNA POR UNA, se ve aca. */
@@ -48136,12 +48178,12 @@ caso('TC-394', 'Los CUATRO rotulos de grado final dicen lo mismo y prometen lo m
     const c = getComputedStyle(l);
     return c.fontSize + '/' + c.fontWeight + '/' + c.display;
   };
-  const E = { im: estilo('im_sev_final'), em: estilo('em_grado'),
-              ia: estilo('ia_sev_final'), ea: estilo('ea_grado') };
+  const E = { im: estilo('gftxt-insuf-mitral'), em: estilo('gftxt-esten-mitral'),
+              ia: estilo('gftxt-insuf-aortica'), ea: estilo('gftxt-esten-aortica') };
   /* Los dos select siguen arrancando en el MISMO pixel: sacarle el «✅» al rotulo de la IM cambia
      la altura de su caja de linea, que es justo lo que el «line-height:15px» del CSS fijaba. */
   const topes = (function () {
-    const a = document.getElementById('im_sev_final'), b = document.getElementById('em_grado');
+    const a = document.getElementById('im_grado'), b = document.getElementById('em_grado');
     if (!a || !b) return 'faltan selects';
     return { im: Math.round(a.getBoundingClientRect().top), em: Math.round(b.getBoundingClientRect().top) };
   })();
@@ -51044,6 +51086,295 @@ caso('TC-421', 'Protocolo diastolico: se mantiene entre estudios de la sesion, u
       fAntes.algo === 'ase2016' && fAntes.ses === 'ase2016' && fHuellaLocal === '' &&
       fDespues.algo === 'ase2025' && fDespues.avisoVis === false && fDespues.ses === null,
       'antes=' + JSON.stringify(fAntes) + ' localStorage=[' + fHuellaLocal + '] despues=' + JSON.stringify(fDespues)],
+  ] };
+  })();
+`);
+
+/* TC-422 — LA PASTILLA ES LA UNICA FUENTE DEL GRADO (2026-10-06, decision de Maicol).
+   Cubre las CUATRO lesiones de aortica y mitral —IM, EM, IAo, EAo— en las nueve escenas del
+   pedido. Lo que fija:
+     (a) con calculo automatico, el TEXTO FIJO dice lo mismo que la pastilla;
+     (b) un cambio manual por la pastilla lo sigue el texto fijo, y aparecen el aviso y el cajon;
+     (c) volver al grado calculado los apaga;
+     (d) elegir un grado con el boton apagado lo PRENDE;
+     (e) apagar el boton borra el GRADO (y deja el aviso: es la regla 8, que esta tanda no toca);
+     (f) «Nuevo estudio» devuelve el texto fijo a «—»;
+     (g) un guardado reabre con su grado, su aviso y su nota;
+     (h) un guardado con «Moderada-severa» (grado 3) reabre y se imprime, sin migrarse;
+     (i) NINGUN gesto deja la pastilla diciendo una cosa y el texto fijo otra.
+   ⚠️ EL DENOMINADOR VA PRIMERO Y ES EXPLICITO. Lo que esta en display:none no tiene geometria y un
+   textContent de un nodo ausente es null, que compara igual que «—»: sin confirmar que los cuatro
+   slots EXISTEN y que hubo un grado de verdad, las nueve escenas darian verde sobre la nada.
+   ⚠️ Y LOS DOS CONTROLES NEGATIVOS: (1) la sonda tiene que saber decir «discrepan» —se fuerza una
+   desincronizacion a mano y se comprueba que la detecta—, porque si no, la condicion (i) estaria
+   diciendo «si» a todo; (2) la tricuspide y la pulmonar NO tienen texto fijo y su grado sigue
+   siendo un <select> visible, que es lo que distingue «toque las dos valvulas pedidas» de «toque
+   la funcion compartida refrescar()». */
+caso('TC-422', 'Aortica y mitral: la PASTILLA es la unica fuente del grado y el «grado final al informe» es un texto fijo que la sigue — en las cuatro lesiones, sin ningun gesto que los desincronice', `
+  return (function(){
+  const LES = [
+    { k:'im', tipo:'insuf', valv:'mitral',  campo:'im_grado', slot:'gftxt-insuf-mitral',
+      aviso:'im-manual-aviso', fund:'im-fund', nota:'im_fund_nota',
+      insumo:['im_vc','8'], bajo:'2', alto:'4', verBajo:'Moderada', verAlto:'Severa', romper:['im_vc','2'] },
+    { k:'em', tipo:'esten', valv:'mitral',  campo:'em_grado', slot:'gftxt-esten-mitral',
+      aviso:'em-manual-aviso', fund:'em-fund', nota:'em_fund_nota',
+      insumo:['avm_plan','1.0'], bajo:'moderada', alto:'severa', verBajo:'Moderada', verAlto:'Severa', romper:['avm_plan','2.5'] },
+    { k:'ia', tipo:'insuf', valv:'aortica', campo:'ia_grado', slot:'gftxt-insuf-aortica',
+      aviso:'ia-manual-aviso', fund:'ia-fund', nota:'ia_fund_nota',
+      insumo:['ia_vc','7'], bajo:'2', alto:'4', verBajo:'Moderada', verAlto:'Severa', romper:['ia_vc','2'] },
+    { k:'ea', tipo:'esten', valv:'aortica', campo:'ea_grado', slot:'gftxt-esten-aortica',
+      aviso:'ea-manual-aviso', fund:'ea-fund', nota:'ea_fund_nota',
+      insumo:['vmax_ao','4.5'], bajo:'moderada', alto:'severa', verBajo:'Moderada', verAlto:'Severa', romper:['vmax_ao','1.8'] }
+  ];
+
+  const g = function (id) { return document.getElementById(id); };
+  const txt = function (id) { const e = g(id); return e ? (e.textContent || '').trim() : null; };
+  const val = function (id) { const e = g(id); return e ? e.value : null; };
+  const vis = function (id) { const e = g(id); if (!e) return null;
+    let n = e; while (n && n.nodeType === 1) {
+      if (getComputedStyle(n).display === 'none') return false; n = n.parentNode; }
+    return true; };
+  const on = function (v, t) { try { return pillOn(v, t); } catch (e) { return 'EXC'; } };
+  const abrir  = function (v, t) { if (on(v,t) !== true) { try { toggleValvPill(v,t); } catch(e){} } return on(v,t); };
+  const cerrar = function (v, t) { if (on(v,t) === true) { try { toggleValvPill(v,t); } catch(e){} } return on(v,t); };
+  /* Los INSUMOS se tipean (evento), que es el gesto del medico. */
+  const set = function (id, v) { const e = g(id); if (!e) return; e.value = v;
+    e.dispatchEvent(new Event('input', {bubbles:true})); e.dispatchEvent(new Event('change', {bubbles:true})); };
+  /* Los GRADOS se asignan SIN evento, que es lo que hacen editarInforme, calcIM_ESC y el setGrade
+     de la tarjeta previa al PDF. Con evento se alcanzaria un estado que la app no alcanza. */
+  const poner = function (id, v) { const e = g(id); if (e) e.value = v; };
+
+  /* La pastilla dice «Severa ▼» y el texto fijo «Severa»; neutra dice «🟡 Severidad ▼» y el texto
+     fijo «—». Normalizar es lo que hace comparables los DOS renders del mismo dato. */
+  const normPast = function (p) { const s = String(p == null ? '' : p).replace(/\\s*▼\\s*$/, '');
+    return /Severidad/.test(s) ? '—' : s; };
+  const foto = function (L) {
+    return { campo: val(L.campo), ver: txt(L.slot), past: txt('sevbtn-' + L.tipo + '-' + L.valv),
+             pill: on(L.valv, L.tipo), aviso: txt(L.aviso), cajon: vis(L.fund), nota: val(L.nota),
+             sinc: normPast(txt('sevbtn-' + L.tipo + '-' + L.valv)) === String(txt(L.slot)) }; };
+  const limpiar = function () {
+    try { limpiarCampos(true); } catch (e) {}
+    window.esqSevManual = {}; window._sevCalcAlFijar = {};
+    window._imGradoCalc = null; window._iaGradoCalc = null;
+    ['aortica','mitral','tricuspide','pulmonar'].forEach(function (v) {
+      ['esten','insuf'].forEach(function (t) {
+        try { localStorage.removeItem('valv-pill-' + t + '-' + v); } catch(e){}
+        cerrar(v, t); }); }); };
+  const denom = function () {
+    try { showTab('valvulas'); } catch (e) {}
+    ['valv-mitral','valv-aortica','valv-tricuspide','valv-pulmonar'].forEach(function (tok) {
+      const s = g('ete-seccion-' + tok);
+      if (s && s.style.display === 'none') { try { toggleEteSeccion(tok); } catch(e){} } }); };
+
+  denom();
+  /* ── DENOMINADOR ─────────────────────────────────────────────────────────────────────────── */
+  const slotsExisten = LES.filter(function (L) { return !!g(L.slot); }).map(function (L) { return L.k; });
+  const slotsSonTexto = LES.filter(function (L) { const e = g(L.slot);
+    return e && e.tagName !== 'SELECT' && e.tagName !== 'INPUT'; }).map(function (L) { return L.k; });
+  /* Los desplegables de grado final de la aortica y la mitral NO deben ser alcanzables: o no
+     existen (las dos insuficiencias) o estan en display:none (las dos estenosis). */
+  const selAlcanzable = ['im_sev_final','ia_sev_final'].filter(function (id) { return !!g(id); })
+    .concat(['em_grado','ea_grado'].filter(function (id) { return vis(id) === true; }));
+
+  const R = {};
+  LES.forEach(function (L) {
+    const r = {}; const gestos = [];
+    const anotar = function (nombre) { const f = foto(L);
+      gestos.push({ gesto: nombre, past: f.past, ver: f.ver, campo: f.campo, sinc: f.sinc }); };
+
+    /* (a) CALCULO AUTOMATICO */
+    limpiar(); denom(); abrir(L.valv, L.tipo);
+    anotar('abrir boton'); set(L.insumo[0], L.insumo[1]); anotar('insumo: calculo auto');
+    r.a = foto(L);
+
+    /* (b) CAMBIO MANUAL POR LA PASTILLA + la nota del fundamento */
+    try { valvSev.aplicar(L.tipo, L.valv, L.bajo); } catch (e) { r.bErr = e.message; }
+    anotar('pastilla a manual');
+    set(L.nota, 'motivo TC422');
+    r.b = foto(L);
+
+    /* (c) VOLVER AL GRADO CALCULADO */
+    try { valvSev.aplicar(L.tipo, L.valv, L.alto); } catch (e) {}
+    anotar('pastilla al calculado');
+    r.c = foto(L);
+
+    /* (d) ELEGIR GRADO CON EL BOTON APAGADO */
+    limpiar(); denom();
+    r.dAntes = on(L.valv, L.tipo);
+    try { valvSev.aplicar(L.tipo, L.valv, L.bajo); } catch (e) {}
+    r.d = foto(L);
+
+    /* (e) APAGAR EL BOTON: borra el GRADO */
+    limpiar(); denom(); abrir(L.valv, L.tipo);
+    set(L.insumo[0], L.insumo[1]);
+    try { valvSev.aplicar(L.tipo, L.valv, L.bajo); } catch (e) {}
+    set(L.nota, 'motivo que se va');
+    r.eAntes = foto(L);
+    cerrar(L.valv, L.tipo);
+    anotar('apagar boton');
+    r.e = foto(L);
+
+    /* (f) NUEVO ESTUDIO */
+    limpiar(); denom();
+    anotar('Nuevo estudio');
+    r.f = foto(L);
+
+    /* (i) el resto de los gestos, sobre el mismo recorrido */
+    limpiar(); denom(); abrir(L.valv, L.tipo);
+    set(L.insumo[0], L.insumo[1]);
+    try { valvSev.aplicar(L.tipo, L.valv, L.bajo); } catch (e) {}
+    poner(L.campo, L.alto); try { valvSev.refrescar(L.tipo, L.valv); } catch (e) {}
+    anotar('campo por reposicion + refrescar');
+    set(L.insumo[0], L.insumo[1]); anotar('recalculo');
+    try { valvSev.aplicar(L.tipo, L.valv, L.bajo); } catch (e) {}
+    set(L.romper[0], L.romper[1]); anotar('R6 suelta el manual');
+    try { valvSev.refrescarTodo(); } catch (e) {}  anotar('refrescarTodo');
+    r.gestos = gestos;
+    R[L.k] = r;
+  });
+
+  /* ── CONTROL NEGATIVO 1: la sonda sabe decir «discrepan» ──────────────────────────────────── */
+  /* Se desincronizan A MANO —escribiendo el texto fijo, que ningun camino de la app hace— para
+     probar que \`sinc\` no esta diciendo «si» a todo. Si esto no se pusiera en false, las 4x9
+     condiciones de sincronia de arriba no estarian midiendo nada. */
+  limpiar(); denom(); abrir('mitral','insuf'); set('im_vc','8');
+  const sincAntes = foto(LES[0]).sinc;
+  const nodoIM = g('gftxt-insuf-mitral'); if (nodoIM) nodoIM.textContent = 'Leve';
+  const sincRoto = foto(LES[0]).sinc;
+  try { valvSev.refrescar('insuf','mitral'); } catch (e) {}
+  const sincRepuesto = foto(LES[0]).sinc;
+
+  /* ── CONTROL NEGATIVO 2: tricuspide y pulmonar intactas ──────────────────────────────────── */
+  /* ⚠️ HAY QUE ABRIR SUS DOS PASTILLAS ANTES DE MEDIR, Y LA PRIMERA VERSION NO LO HACIA. Sus
+     grados viven dentro de bloque-insuf-* / bloque-esten-*, que limpiar() deja en display:none:
+     vis() subia por los ancestros y devolvia false en los cuatro, asi que el control negativo
+     fallaba por FALTA DE DENOMINADOR y no porque el cambio se les hubiera colado. Es la trampa que
+     CLAUDE.md documenta — lo que esta en display:none no tiene geometria ni visibilidad. */
+  limpiar(); denom();
+  ['tricuspide','pulmonar'].forEach(function (v) { ['insuf','esten'].forEach(function (t) { abrir(v,t); }); });
+  const otras = {};
+  [['it','insuf','tricuspide','it_grado'],['et','esten','tricuspide','et_grado'],
+   ['ip','insuf','pulmonar','ip_grado'],  ['ep','esten','pulmonar','ep_grado']].forEach(function (t) {
+    otras[t[0]] = { tag: (g(t[3]) || {}).tagName || null, vis: vis(t[3]),
+                    gftxt: txt('gftxt-' + t[1] + '-' + t[2]) }; });
+
+  /* ── (g) y (h) REABRIR UN GUARDADO, incluido uno con «Moderada-severa» ───────────────────── */
+  /* Se repone por el MISMO bucle de editarInforme (el.value = val, sin eventos) y con el mismo
+     reponedor de marcas, para no inventar un camino que la app no tenga. */
+  const reabrir = function (campos) {
+    limpiar(); denom();
+    let c = JSON.parse(JSON.stringify(campos));
+    try { if (typeof _migrarCamposLegacy === 'function') c = _migrarCamposLegacy(c) || c; } catch (e) {}
+    Object.keys(c).forEach(function (k) { const el = g(k); if (el) el.value = c[k]; });
+    try { if (typeof _sevManualDesdeCampos === 'function') {
+      window.esqSevManual = _sevManualDesdeCampos(c);
+      if (typeof _sevManualSync === 'function') _sevManualSync(); } } catch (e) {}
+    ['mitral','aortica'].forEach(function (v) { ['insuf','esten'].forEach(function (t) { abrir(v,t); }); });
+    try { calcIM_ESC(); } catch (e) {}
+    try { calcIA_ESC(); } catch (e) {}
+    try { calcEM(); } catch (e) {}
+    try { calcAo(); } catch (e) {}
+    try { if (typeof sevFundRestaurar === 'function') sevFundRestaurar(c); } catch (e) {}
+    const o = {};
+    LES.forEach(function (L) { o[L.k] = foto(L); });
+    try { generarInforme(); } catch (e) {}
+    o.inf = (g('informe_texto') || {}).value || '';
+    o.suma = (g('en_suma') || {}).value || '';
+    return o; };
+
+  const guardado = reabrir({ im_grado:'2', im_vc:'8', im_fund_nota:'jet excentrico',
+    ea_grado:'moderada', vmax_ao:'4.5', ea_fund_nota:'bajo flujo', sev_manual:'im,ea' });
+  const modsev = reabrir({ im_grado:'3', ia_grado:'3', sev_manual:'im,ia' });
+
+  limpiar(); denom();
+
+  /* ── Veredictos derivados ────────────────────────────────────────────────────────────────── */
+  const ks = ['im','em','ia','ea'];
+  const todos = function (fn) { return ks.filter(fn); };
+  const dg = JSON.stringify({ im:R.im, em:R.em }).slice(0, 900);
+  const dgGestos = JSON.stringify(ks.map(function (k) {
+    return k + ':' + R[k].gestos.filter(function (x) { return !x.sinc; })
+      .map(function (x) { return x.gesto + '(' + x.past + ' vs ' + x.ver + ')'; }).join(','); }));
+  const nGestos = R.im.gestos.length;
+
+  return { extra: [
+    ['DENOMINADOR: los CUATRO slots de grado final existen',
+      slotsExisten.length === 4, 'existen ' + slotsExisten.join(',')],
+    ['DENOMINADOR: los cuatro son TEXTO FIJO, no un control de formulario',
+      slotsSonTexto.length === 4, 'texto fijo en ' + slotsSonTexto.join(',')],
+    ['no queda NINGUN desplegable de grado final alcanzable en aortica ni mitral',
+      selAlcanzable.length === 0, 'alcanzables: [' + selAlcanzable.join(',') + ']'],
+    ['DENOMINADOR: el calculo automatico produjo grado en las cuatro —si no, no hay nada que seguir—',
+      todos(function (k) { return R[k].a.ver === 'Severa'; }).length === 4,
+      ks.map(function (k) { return k + '=' + R[k].a.ver; }).join(' ')],
+
+    ['(a) con calculo automatico el texto fijo dice lo que la pastilla, sin aviso ni cajon',
+      todos(function (k) { return R[k].a.sinc && !R[k].a.aviso && R[k].a.cajon === false; }).length === 4, dg],
+    ['(b) el cambio manual por la pastilla lo sigue el texto fijo, con aviso Y cajon',
+      todos(function (k) { return R[k].b.ver === 'Moderada' && R[k].b.sinc &&
+        /ajuste manual/.test(String(R[k].b.aviso)) && R[k].b.cajon === true; }).length === 4, dg],
+    ['(c) volver al grado calculado apaga el aviso y el cajon',
+      todos(function (k) { return R[k].c.ver === 'Severa' && R[k].c.sinc &&
+        !R[k].c.aviso && R[k].c.cajon === false; }).length === 4, dg],
+    ['(d) elegir un grado con el boton APAGADO lo prende',
+      todos(function (k) { return R[k].dAntes === false && R[k].d.pill === true &&
+        R[k].d.ver === 'Moderada' && R[k].d.sinc; }).length === 4,
+      ks.map(function (k) { return k + ': antes=' + R[k].dAntes + ' tras=' + R[k].d.pill + '/' + R[k].d.ver; }).join(' · ')],
+    ['  DENOMINADOR de (e): antes de apagar habia grado, aviso y cajon en las cuatro',
+      todos(function (k) { return R[k].eAntes.ver === 'Moderada' && !!R[k].eAntes.aviso &&
+        R[k].eAntes.cajon === true; }).length === 4,
+      ks.map(function (k) { return k + '=' + R[k].eAntes.ver; }).join(' ')],
+    /* ⚠️ APAGAR BORRA EL GRADO Y DEJA EL AVISO, Y ESO ES LA REGLA 8 —NO UN OLVIDO—. El pedido de
+       esta tanda dice «borra grado y aviso»; se midio que HEAD hace exactamente esto mismo
+       (decision de Maicol del 2026-10-03, E5b-0: «APAGAR borra el grado y el fundamento, PERO deja
+       la marca, asi que si el calculo indica otra cosa, aviso rojo y cajon — con el boton
+       apagado»). Cambiarlo seria tocar una conducta autorizada, asi que se FIJA como esta y queda
+       reportado. Lo que esta tanda garantiza es que el GRADO se borra y el texto fijo vuelve a «—». */
+    ['(e) apagar el boton borra el GRADO y el texto fijo vuelve a «—» (el aviso queda: regla 8)',
+      todos(function (k) { return R[k].e.pill === false && R[k].e.ver === '—' && R[k].e.sinc; }).length === 4,
+      ks.map(function (k) { return k + ': pill=' + R[k].e.pill + ' ver=' + R[k].e.ver + ' aviso=' + (R[k].e.aviso?'SI':'--'); }).join(' · ')],
+    ['(f) «Nuevo estudio» deja el texto fijo en «—», sin aviso ni cajon, con el boton apagado',
+      todos(function (k) { return R[k].f.ver === '—' && !R[k].f.aviso && R[k].f.cajon === false &&
+        R[k].f.pill === false && R[k].f.sinc; }).length === 4,
+      ks.map(function (k) { return k + '=' + R[k].f.ver + '/' + R[k].f.pill; }).join(' ')],
+
+    ['(i) NINGUN gesto desincroniza la pastilla del texto fijo — ' + nGestos + ' gestos x 4 lesiones',
+      ks.every(function (k) { return R[k].gestos.every(function (x) { return x.sinc; }); }), dgGestos],
+    ['  CONTROL NEGATIVO: la sonda SABE detectar una desincronizacion forzada a mano',
+      sincAntes === true && sincRoto === false && sincRepuesto === true,
+      'antes=' + sincAntes + ' roto=' + sincRoto + ' repuesto=' + sincRepuesto],
+
+    ['(g) un guardado reabre con su grado, su aviso y su nota',
+      guardado.im.campo === '2' && guardado.im.ver === 'Moderada' && guardado.im.sinc &&
+      /ajuste manual/.test(String(guardado.im.aviso)) && guardado.im.nota === 'jet excentrico' &&
+      guardado.ea.campo === 'moderada' && guardado.ea.ver === 'Moderada' && guardado.ea.sinc &&
+      guardado.ea.nota === 'bajo flujo',
+      JSON.stringify({ im: guardado.im, ea: guardado.ea })],
+    /* (h) «Moderada-severa» no se puede ELEGIR mas, pero un estudio que la tenga se respeta tal
+       cual: el grado sigue en 3, el texto fijo y la pastilla dicen «Mod-severa» y el informe
+       imprime «moderada-severa». NO se migra. */
+    ['(h) un guardado con «Moderada-severa» (grado 3) reabre con el grado INTACTO y lo imprime',
+      modsev.im.campo === '3' && modsev.ia.campo === '3' &&
+      modsev.im.ver === 'Mod-severa' && modsev.ia.ver === 'Mod-severa' &&
+      modsev.im.sinc && modsev.ia.sinc &&
+      /insuficiencia moderada-severa/.test(modsev.inf) && /IM moderada-severa/.test(modsev.suma),
+      'im=' + modsev.im.campo + '/' + modsev.im.ver + ' ia=' + modsev.ia.campo + '/' + modsev.ia.ver +
+      ' suma=«' + String(modsev.suma).split(String.fromCharCode(10)).join(' | ') + '»'],
+    ['  y «Moderada-severa» ya NO se puede elegir: el menu de la pastilla ofrece solo Leve/Moderada/Severa',
+      (function () { try { valvSev.menu('insuf','mitral', null);
+        const m = g('sevmenu-insuf-mitral');
+        const op = m ? Array.from(m.querySelectorAll('button')).map(function (b) { return b.textContent.trim(); }) : [];
+        try { document.body.click(); } catch (e) {}
+        return op.join('/') === 'Leve/Moderada/Severa'; } catch (e) { return false; } })(),
+      (function () { try { valvSev.menu('insuf','mitral', null);
+        const m = g('sevmenu-insuf-mitral');
+        return m ? Array.from(m.querySelectorAll('button')).map(function (b) { return b.textContent.trim(); }).join('/') : 'sin menu';
+      } catch (e) { return 'EXC'; } })()],
+
+    ['  CONTROL NEGATIVO: tricuspide y pulmonar NO tienen texto fijo y su grado sigue siendo un <select> visible',
+      ['it','et','ip','ep'].every(function (k) { return otras[k].tag === 'SELECT' &&
+        otras[k].vis === true && otras[k].gftxt === null; }),
+      JSON.stringify(otras)],
   ] };
   })();
 `);

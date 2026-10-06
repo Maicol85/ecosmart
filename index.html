@@ -1548,6 +1548,22 @@ html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
    Maicol—, así que se reporta y se espera. */
 #tab-valvulas .valv-fund-row > .valv-fund-sel{flex:1 1 150px;min-width:0;margin-bottom:0;}
 #tab-valvulas .valv-fund-row > .valv-fund-box{flex:2 1 150px;min-width:0;margin-top:0;}
+/* ══ EL GRADO FINAL ES TEXTO FIJO — AÓRTICA Y MITRAL (2026-10-06, decisión de Maicol) ══════════
+   La pastilla «Severidad ▼» pasó a ser la ÚNICA forma de definir el grado, así que el «grado final
+   al informe» dejó de ser un control: es un texto que MUESTRA lo que dice la pastilla.
+   ⚠️ LA CAJA ES LA MISMA QUE LA DEL `<select>` QUE REEMPLAZA, A PROPÓSITO Y MEDIDA. Mismo
+   `padding:5px 8px`, mismo `border:1px solid`, mismo `border-radius:6px`, mismo `font-size:12px` y
+   mismo `background` que la regla global de `input/select` (línea ~700).
+   ⚠️ EL `line-height:17px` ESTÁ MEDIDO, NO DEDUCIDO, Y LA PRIMERA VERSIÓN LO TUVO MAL. Puse 15 px
+   razonando que era lo que mide un `<select>` de 12 px, y la sonda `_probe_gradofijo.mjs` midió la
+   caja en **27 px contra los 29 de HEAD**: 2 px de menos por lesión, que además corrían el bloque
+   aórtico 2 px hacia arriba a 1200 y 756 px y 6 px a 300 px. Con 17 px la caja da 29 px exactos
+   —17 + 10 de padding + 2 de borde— y las doce medidas de `top`/`left`/`width` en los tres anchos
+   salen IDÉNTICAS a HEAD. El orden de los dos bloques de grado final NO cambia.
+   `font-weight:700` es lo único que lo distingue de la casilla editable: no hay flecha ▼ ni cursor
+   de texto, así que no se lee como algo que se pueda tocar. `cursor:default` lo confirma.
+   `user-select:text` queda para que el grado se pueda copiar, que es lo que el `<select>` no dejaba. */
+#tab-valvulas .valv-gf-fijo{box-sizing:border-box;width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);font-size:12px;font-weight:700;line-height:17px;cursor:default;user-select:text;}
 /* Opciones en dos columnas por multi-columna y no por grid: la lista cambia de largo con el
    sentido del ajuste (tres opciones con «sube», una con «baja») y `columns` reparte lo que haya. */
 /* ⚠️ `columns:95px 2` Y NO `columns:2`. Con el conteo pelado las dos columnas son
@@ -3613,13 +3629,25 @@ window.cerrarSesionReal = cerrarSesionReal;
              adentro, debajo del select, que es lo que explican. -->
         <div class="valv-fund-row">
         <div class="valv-fund-sel">
-        <select id="im_sev_final" onchange="imGradoManual()" style="width:100%;">
-          <option value="0">&mdash; grado &mdash;</option>
-          <option value="1">Leve</option>
-          <option value="2">Moderada</option>
-          <option value="3">Moderada-severa</option>
-          <option value="4">Severa</option>
-        </select>
+        <!-- ═══ TEXTO FIJO — EL `<select>` `im_sev_final` SE FUE (2026-10-06, decisión de Maicol) ══
+             La pastilla «Severidad ▼» es la ÚNICA forma de definir el grado, así que esto MUESTRA el
+             grado y no lo elige.
+             ⚠️ Y CON ÉL SE FUE EL SEGUNDO NODO, QUE ERA EL PUNTO. El grado de la IM vivía en DOS:
+             este `<select>` visible y el oculto `im_grado`, espejados por `sincronizarGradoIM`. El
+             informe, el EN SUMA, el PDF, el PPT y el Excel leían el OCULTO; el Panel de Evidencia
+             leía el VISIBLE. Eran dos fuentes de verdad, y este archivo ya documenta tres
+             divergencias medidas entre ellas (el `vis` de la tarjeta previa al PDF, el `else` de
+             `sevSincronizar` y el `sincronizarGradoIA` llamado por la mitral). Desde hoy el único
+             nodo es `im_grado`, que es el que las cinco superficies firmadas ya leían: nada de lo
+             que se publica cambió de origen, lo que desapareció es la copia.
+             ⚠️ «Moderada-severa» (value 3) SE FUE CON EL `<select>`, y era su único hogar: el ▼ ya
+             ofrecía sólo 1/2/4 (`INSUF_OPTS`) y ningún cálculo la emite. Un estudio GUARDADO con 3
+             reabre con su grado intacto —el oculto lo acepta, no hay `<option>` que pueda faltar— y
+             lo imprime igual; lo que ya no se puede es volver a elegirla. No se migró nada.
+             ⚠️ NO LLEVA `id="im_sev_final"`: el id se retiró a propósito para que nada lo lea por
+             costumbre. El nombre nuevo sigue la convención de `pill-<tipo>-<valv>` y
+             `sevbtn-<tipo>-<valv>`, así que `valvSev.refrescar` lo deriva sin una lista nueva. -->
+        <div id="gftxt-insuf-mitral" class="valv-gf-fijo" aria-readonly="true">&mdash;</div>
         <!-- Aviso de grado fijado a mano que discrepa del calculado, hermano de `ia-manual-aviso`
              y gobernado por el MISMO `sevSincronizar` (clave `im`). Va ARRIBA del texto de ayuda
              por el mismo motivo que en la aórtica: el aviso explica por qué el desplegable no dice
@@ -3674,7 +3702,24 @@ window.cerrarSesionReal = cerrarSesionReal;
                era una regla impresa que ninguna funcion aplica. Los `value` NO se tocan —sacar u
                nombrar distinto una opcion deja `selectedIndex = -1` y el hueco se persiste— y el
                PPT sale igual, porque `_pptSel` ya recorta el parentesis final. -->
-          <select id="em_grado" onchange="emGradoManual()"><option value="sin">&mdash; grado &mdash;</option><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option></select>
+          <!-- ═══ EL `<select>` QUEDA EN EL DOM Y SE OCULTA — NO SE BORRA (2026-10-06) ═══════════
+               La pastilla «Severidad ▼» es la única forma de definir el grado, así que el médico ya
+               no ve este desplegable. Pero el nodo NO se puede borrar, y las razones son tres,
+               todas verificadas en el código:
+                 1. `valvSev.opciones('esten','mitral')` ARMA EL MENÚ ▼ leyendo estas `<option>`
+                    (`Array.from(sel.options)`). Convertirlo en `<input hidden>` deja el menú VACÍO,
+                    o sea la pastilla —que ahora es el único gesto— sin ninguna opción que ofrecer.
+                 2. `sevSincronizar` valida el grado calculado contra `sel.options` antes de
+                    escribirlo, y es la guarda que evita un `selectedIndex -1` silencioso; sin
+                    `<select>` cae en su rama `else` y esa protección se pierde.
+                 3. Es un `select[id]`, así que el barrido de `guardarInforme` lo persiste y
+                    `limpiarCampos` lo repone. Sacarlo cambiaría qué viaja con el estudio.
+               `display:none` no es foco ni tabulación, así que no hay gesto que lo alcance. El
+               `onchange` SE CONSERVA: `valvSev.aplicar` despacha un `change` sobre este nodo y es
+               así como corre `emGradoManual()` (marca manual + `sevSinApagaDesdeSelect` + el
+               repintado de la fila de onda E de la IM). Quitarlo rompería la pastilla. -->
+          <select id="em_grado" onchange="emGradoManual()" style="display:none;" aria-hidden="true" tabindex="-1"><option value="sin">&mdash; grado &mdash;</option><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option></select>
+          <div id="gftxt-esten-mitral" class="valv-gf-fijo" aria-readonly="true">&mdash;</div>
           <!-- Aviso de grado fijado a mano que discrepa del calculado, hermano de
                `ea-manual-aviso` y gobernado por `sevSincronizar` (clave `em`). Va ARRIBA del badge
                del THP: el aviso habla del grado que está justo encima, el badge del método. -->
@@ -4100,7 +4145,19 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div class="fg" style="margin-top:8px;"><label>Notas mitral</label>
         <textarea id="vm_notas" placeholder="Ej: prolapso P2, mecanismo Carpentier..."></textarea>
       </div>
-      <input type="hidden" id="im_grado" value="0">
+      <!-- ⚠️ ESTE OCULTO ES AHORA EL ÚNICO NODO DEL GRADO DE LA IM, Y POR ESO HEREDÓ EL `onchange`
+           DE `im_sev_final` (2026-10-06). No es decoración: `valvSev.aplicar` escribe el campo y
+           despacha `change` sobre él, y mientras existía el `<select>` ese `change` corría sobre el
+           desplegable y de ahí salía `imGradoManual()`. Sin el handler acá, elegir un grado en la
+           pastilla dejaba de llamar a `sincronizarGradoIM` → `emContRefrescar` → `calcEM`, o sea que
+           el veto de regurgitación de la estenosis mitral —que lee `im_grado`— se quedaba con el
+           grado anterior hasta el próximo recálculo. Medido como riesgo antes de escribirlo: es la
+           única pieza de la cadena vieja que `aplicar` no repone por su cuenta (la marca, la foto, la
+           pastilla y `sevSincronizar` sí los hace).
+           Un `<input type="hidden">` no recibe gestos del usuario, así que este handler SÓLO corre
+           sobre un `change` despachado por código — es el mismo reparto que `em_grado` y `ep_grado`
+           ya tenían. -->
+      <input type="hidden" id="im_grado" value="0" onchange="imGradoManual()">
       <!-- Espejo persistente de window.esqSevManual. Es un input con id, así que lo guarda y
            lo restaura la misma maquinaria genérica que el resto del formulario. Sin esto, la
            marca de «grado fijado a mano» se perdía al guardar: al reabrir el estudio,
@@ -4176,13 +4233,20 @@ window.cerrarSesionReal = cerrarSesionReal;
              adentro, debajo del select, que es lo que explican. -->
         <div class="valv-fund-row">
         <div class="valv-fund-sel">
-        <select id="ia_sev_final" onchange="_gradoManoBorraMarca(this, event);sincronizarGradoIA()" style="width:100%;">
-          <option value="0">&mdash; grado &mdash;</option>
-          <option value="1">Leve</option>
-          <option value="2">Moderada</option>
-          <option value="3">Moderada-severa</option>
-          <option value="4">Severa</option>
-        </select>
+        <!-- ═══ TEXTO FIJO — EL `<select>` `ia_sev_final` SE FUE (2026-10-06, decisión de Maicol) ══
+             Hermano exacto de `gftxt-insuf-mitral`: ver su comentario, que explica por qué se fue el
+             SEGUNDO NODO y no sólo el control. El grado de la IAo ahora vive sólo en el oculto
+             `ia_grado`, que es el que el informe, el EN SUMA, el PDF, el PPT y el Excel ya leían.
+             ⚠️ Y ACÁ MUERE «Aórtica 3b» POR FALTA DE SUJETO, no por una regla que se haya tocado.
+             Esa regla decía que fijar el grado por el DESPLEGABLE no encendía `esqSevManual` —por eso
+             por ese camino no aparecían el aviso rojo ni el cajón del fundamento—. El desplegable ya
+             no existe, así que el único gesto que queda es la pastilla, y la pastilla marca manual
+             desde siempre (`valvSev.aplicar` lo hace en las cuatro claves). No se cambió ni una
+             línea de `_gradoManoBorraMarca`: sigue siendo el `onchange` de `ea_grado`.
+             ⚠️ «Moderada-severa» (value 3) se fue con el `<select>`, igual que en la mitral y con las
+             mismas consecuencias para un estudio guardado que la tenga: reabre y se imprime igual, no
+             se puede volver a elegir, no se migró nada. -->
+        <div id="gftxt-insuf-aortica" class="valv-gf-fijo" aria-readonly="true">&mdash;</div>
         <!-- Aviso de grado fijado a mano que discrepa del calculado (R5), hermano de
              `ea-manual-aviso`. Va ARRIBA del texto de ayuda a propósito: el aviso explica por qué
              el `<select>` no dice lo que dice el cuadro, y el de abajo explica de dónde sale el
@@ -4235,7 +4299,18 @@ window.cerrarSesionReal = cerrarSesionReal;
                paréntesis en su consumidor (la salida del PPT no cambia), el ▼ de la pastilla ahora
                muestra «Leve» en vez de «Leve (Vmax 2-3 m/s)», y la tarjeta previa al PDF clona este
                `innerHTML` y asigna por `value`. -->
-          <select id="ea_grado" onchange="_gradoManoBorraMarca(this, event)"><option value="sin">&mdash; grado &mdash;</option><option value="esclerosis">Esclerosis</option><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option></select>
+          <!-- ═══ EL `<select>` QUEDA EN EL DOM Y SE OCULTA — NO SE BORRA (2026-10-06) ═══════════
+               Mismo tratamiento y mismas tres razones que `em_grado`: ver su comentario. Acá hay una
+               cuarta propia de la aórtica: `eaGradoCalculado` NUNCA emite `'esclerosis'`, así que la
+               guarda de `sevSincronizar` contra las `<option>` es la que impide que un proveedor
+               nuevo deje el grado en blanco — y sólo existe sobre un `<select>`.
+               El `onchange` `_gradoManoBorraMarca` SE CONSERVA tal cual: `valvSev.aplicar` despacha
+               un `change` sobre este nodo, y de ahí salen el retiro de `dataset.sugerido` y
+               `sevSinApagaDesdeSelect`. La regla «no enciende `esqSevManual`» tampoco se tocó; lo
+               que cambió es que ya no hay un gesto humano que entre por acá, así que el único que
+               fija el grado es la pastilla, y la pastilla sí marca. -->
+          <select id="ea_grado" onchange="_gradoManoBorraMarca(this, event)" style="display:none;" aria-hidden="true" tabindex="-1"><option value="sin">&mdash; grado &mdash;</option><option value="esclerosis">Esclerosis</option><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option></select>
+          <div id="gftxt-esten-aortica" class="valv-gf-fijo" aria-readonly="true">&mdash;</div>
           <!-- Aviso de grado fijado a mano que discrepa del calculado (R5). Lo gobierna
                `_eaAvisoManual`; vacío queda sin alto y no deja hueco. SIN titileo ni animación:
                es un aviso permanente mientras la discrepancia exista, no una alarma. -->
@@ -4430,7 +4505,14 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div class="fg" style="margin-top:8px;"><label>Notas aórtica</label>
         <textarea id="va_notas" placeholder="Ej: bicúspide, mecanismo..."></textarea>
       </div>
-      <input type="hidden" id="ia_grado" value="0">
+      <!-- ⚠️ ÚNICO NODO DEL GRADO DE LA IAo, Y HEREDÓ EL `onchange` DE `ia_sev_final` (2026-10-06).
+           Hermano exacto del de `im_grado`: ver su comentario. Se copia el handler COMPLETO y en el
+           mismo orden —`_gradoManoBorraMarca` primero y `sincronizarGradoIA` después—, que es el que
+           tenía el desplegable: el primero retira `dataset.sugerido` y apaga el botón si el valor es
+           el centinela, el segundo arrastra `emContRefrescar`. Invertirlos cambiaría el estado que
+           ve `sevSincronizar`, que es lo que el propio comentario de `_gradoManoBorraMarca` declara
+           («va ANTES de `sevSincronizar`»). -->
+      <input type="hidden" id="ia_grado" value="0" onchange="_gradoManoBorraMarca(this, event);sincronizarGradoIA()">
     </div>
   </div>
   </div>
@@ -22873,45 +22955,61 @@ function imGradoManual() {
   /* «Sin insuficiencia» elegido acá apaga el botón (2026-10-03). Ver el gemelo en `emGradoManual`,
      con la asimetría declarada respecto de la aórtica. */
   if (typeof sevSinApagaDesdeSelect === 'function') {
-    try { sevSinApagaDesdeSelect('im_sev_final'); } catch (e) { console.warn('[sevSinApaga/im]', e); }
+    /* `'im_grado'` y no `'im_sev_final'` (2026-10-06): el desplegable se fue y el oculto es el único
+       nodo. La función deriva `tipo`/`valv` del registro por `C.select`, así que lo que hace esto
+       correcto es que `SEV_SINC.im.select` también apunte ahora al oculto. */
+    try { sevSinApagaDesdeSelect('im_grado'); } catch (e) { console.warn('[sevSinApaga/im]', e); }
   }
   _imSincronizarPantalla();
 }
 window.imGradoManual = imGradoManual;
 
-// IM: selector confirmado → im_grado (fuente de verdad para informe/PDF)
+/* ══ YA NO HAY ESPEJO QUE SINCRONIZAR — Y EL NOMBRE SE CONSERVA A PROPÓSITO (2026-10-06) ════════
+   Esta función copiaba `im_sev_final` → `im_grado`. El `<select>` se fue, el oculto es el único
+   nodo y no queda nada que copiar; lo que SÍ queda es el efecto secundario que sus ~8 llamadores
+   necesitan, y que estaba escondido en la última línea: `emContRefrescar`, o sea el veto de
+   regurgitación de la estenosis mitral, que lee `im_grado`.
+   ⚠️ NO SE RENOMBRA Y NO SE BORRA. La llaman `imGradoManual`, `autoCompletarSevIM`, el
+   `trasEscribir` de la entrada `im` del registro y el `onchange` del oculto, todos en el momento
+   exacto en que el grado acaba de cambiar. Borrarla obligaría a repetir `emContRefrescar` en cuatro
+   lugares, que es la lista escrita a mano que este módulo ya pagó tres veces.
+   El repintado del texto fijo NO se hace acá: lo hace `valvSev.refrescar`, que es el único dueño de
+   «mostrar el grado» y el que ya pintaba la pastilla. Dos renders del mismo nodo desde la misma
+   función es lo que hace IMPOSIBLE que la pastilla y el texto fijo discrepen. */
 function sincronizarGradoIM() {
-  const sel = document.getElementById('im_sev_final');
-  const hid = document.getElementById('im_grado');
-  if (sel && hid) hid.value = sel.value;
   emContRefrescar();
 }
 window.sincronizarGradoIM = sincronizarGradoIM;
 
-// IAo: selector confirmado → ia_grado
+/* Hermana exacta de `sincronizarGradoIM`: ver su comentario. El espejo `ia_sev_final` → `ia_grado`
+   desapareció con el desplegable; queda el `emContRefrescar`, que la EM necesita porque su veto
+   también mira la IAo. */
 function sincronizarGradoIA() {
-  const sel = document.getElementById('ia_sev_final');
-  const hid = document.getElementById('ia_grado');
-  if (sel && hid) hid.value = sel.value;
   emContRefrescar();
 }
 window.sincronizarGradoIA = sincronizarGradoIA;
 
-// Llamada desde calcIM_ESC para auto-completar im_sev_final
+/* Llamada desde `calcIM_ESC` para auto-completar el grado de la IM.
+   ⚠️ ESCRIBE EL OCULTO `im_grado` (2026-10-06) Y SIGUE ESCRIBIENDO AUNQUE EL LLAMADOR YA LO HAGA.
+   Los dos sitios de `calcIM_ESC` que la invocan asignan `im_grado` en la línea de arriba, así que
+   esta escritura es redundante HOY; se conserva porque la función es `window.`-pública y su
+   contrato es «dejá el grado automático en su lugar», no «avisá que ya lo puse». Con la escritura
+   afuera, un llamador nuevo que confiara en el contrato dejaría el grado sin escribir y el síntoma
+   —un informe sin insuficiencia mitral— no apuntaría acá. */
 function autoCompletarSevIM(gradoVal) {
   if (window.esqSevManual && window.esqSevManual.im) return;   // pill fijada por el médico → no pisar
-  const sel = document.getElementById('im_sev_final');
-  if (sel) { sel.value = gradoVal; sincronizarGradoIM(); }
+  const hid = document.getElementById('im_grado');
+  if (hid) { hid.value = gradoVal; sincronizarGradoIM(); }
 }
 window.autoCompletarSevIM = autoCompletarSevIM;
 
-// Llamada desde calcIA_ESC para auto-completar ia_sev_final
+/* Llamada desde `calcIA_ESC`. Mismo cambio de nodo que su hermana, y acá la marca de «lo puso el
+   autocálculo» importa de verdad: `_iaRetirarGradoSugerido` la lee para distinguir este grado de
+   uno elegido por el médico, y ahora vive en el `dataset` del OCULTO. */
 function autoCompletarSevIA(gradoVal) {
   if (window.esqSevManual && window.esqSevManual.ia) return;   // pill fijada por el médico → no pisar
-  const sel = document.getElementById('ia_sev_final');
-  /* Misma constancia que en la aortica: deja escrito que este grado lo puso el autocalculo,
-     para que `_iaRetirarGradoSugerido` pueda distinguirlo de uno elegido por el medico. */
-  if (sel) { sel.value = gradoVal; sel.dataset.sugerido = gradoVal; sincronizarGradoIA(); }
+  const hid = document.getElementById('ia_grado');
+  if (hid) { hid.value = gradoVal; hid.dataset.sugerido = gradoVal; sincronizarGradoIA(); }
 }
 window.autoCompletarSevIA = autoCompletarSevIA;
 
@@ -24479,8 +24577,11 @@ function _gradoManoBorraMarca(el, ev){
      marca esté puesta. Lo único que pasa es que el sub-botón dice lo que dice el selector.
      `aplicar()` despacha un `change` sintético que pasa por acá y después llama a `sevSincronizar`
      igual: la segunda llamada es idempotente. */
+  /* ⚠️ `ia_grado` Y NO `ia_sev_final` (2026-10-06): el desplegable de grado final de la IAo se fue y
+     esta función pasó a ser el `onchange` del OCULTO, que es el único nodo. El mapa se mantiene como
+     mapa —y no se colapsa a `'ea'`— porque sigue gobernando los dos `onchange` de la aórtica. */
   if (typeof sevSincronizar === 'function') {
-    const clave = { ea_grado:'ea', ia_sev_final:'ia' }[el.id];
+    const clave = { ea_grado:'ea', ia_grado:'ia' }[el.id];
     if (clave) sevSincronizar(clave);
   }
 }
@@ -24532,12 +24633,16 @@ function _eaRetirarGradoSugerido(){
   delete sel.dataset.sugerido;
   return true;
 }
-/* IAo: el grado vive en `ia_sev_final` y `sincronizarGradoIA` lo copia al hidden `ia_grado`. Se
-   marca en `autoCompletarSevIA`, que es el único escritor automático, y se retira a '0' —«Sin
-   insuficiencia / no evaluada», la primera opción del `<select>`—. No se escribe el hidden a mano:
-   se delega en `sincronizarGradoIA`, que es su dueño, para no tener dos caminos que lo pisen. */
+/* IAo: el grado vive en el oculto `ia_grado` y ya NO hay un `<select>` espejo (2026-10-06 — antes
+   eran dos nodos y `sincronizarGradoIA` los copiaba). Se marca en `autoCompletarSevIA`, que es el
+   único escritor automático, y se retira a '0' —«Sin insuficiencia / no evaluada»—.
+   ⚠️ EL `dataset.sugerido` SE MUDÓ CON EL GRADO. Esta función lo lee del MISMO nodo que ahora lo
+   escribe `autoCompletarSevIA`: si uno de los dos se hubiera quedado apuntando al desplegable que ya
+   no existe, `sug` saldría `undefined`, el retiro saldría por su guarda y un grado automático
+   quedaría publicado con su insumo fuera de banda — en silencio, porque la guarda devuelve `false`
+   como si no hubiera nada que retirar. */
 function _iaRetirarGradoSugerido(){
-  const sel = document.getElementById('ia_sev_final');
+  const sel = document.getElementById('ia_grado');
   if (!sel) return false;
   if (window.esqSevManual && window.esqSevManual.ia) return false;
   const sug = sel.dataset.sugerido;
@@ -25111,7 +25216,13 @@ const SEV_SINC = Object.freeze({
        cada `<select>` tiene su propia marca de «lo puso el autocálculo» y su propio espejo. */
     trasEscribir: function(sel, calc){ _eaMarcarSugerido(sel, calc); },
     etiqueta: function(g){ return EA_GRADO_LBL[g] || g; } }),
-  ia: Object.freeze({ tipo:'insuf', valv:'aortica', select:'ia_sev_final', aviso:'ia-manual-aviso',
+  /* ⚠️ `select:'ia_grado'` Y NO `'ia_sev_final'` (2026-10-06, decisión de Maicol): el desplegable de
+     grado final se fue y el grado vive en UN solo nodo, el oculto que el informe, el EN SUMA, el
+     PDF, el PPT y el Excel ya leían. La propiedad conserva el nombre `select` aunque el nodo ahora
+     sea un `<input type="hidden">`: `sevSincronizar` ya estaba escrito para los dos —su guarda de
+     `<option>` se gatea con `sel.tagName === 'SELECT'` y su rama `else` existe desde E2c justo para
+     esto—, así que renombrarla sería tocar las siete claves para no cambiar nada. */
+  ia: Object.freeze({ tipo:'insuf', valv:'aortica', select:'ia_grado', aviso:'ia-manual-aviso',
     ayuda:'ia-auto-ayuda', nombre:'Insuficiencia aórtica', fundamento:'ia-fund', nota:'ia_fund_nota',
     /* Mismo recorte que en la EA, y acá el grado que queda afuera tiene conducta propia:
        `calcIA_ESC` sólo produce '4', '2' y '1' —nunca '0' ni '3'—, así que una IAo fijada a mano en
@@ -25179,7 +25290,12 @@ const SEV_SINC = Object.freeze({
      pisa un grado manual, así que un «Moderada» fijado a mano sobrevive para siempre aunque el
      cálculo pase de Severa a Leve, y sin ningún aviso—. Desde esta tanda rige la regla del 4b: el
      manual se mantiene mientras el CALCULADO no cambie, y cuando cambia vuelve a automático. */
-  im: Object.freeze({ tipo:'insuf', valv:'mitral', select:'im_sev_final', aviso:'im-manual-aviso',
+  /* ⚠️ `select:'im_grado'` Y NO `'im_sev_final'` (2026-10-06): mismo cambio que la entrada `ia`, ver
+     su comentario. Y acá se cierra de raíz lo que el `vis` de la tarjeta previa al PDF arregló a
+     mano en `5602597`: desde que hay UN nodo, `sevDiscrepa`, el aviso rojo, el cajón del fundamento
+     y la pastilla leen EXACTAMENTE el mismo valor que se firma. La divergencia medida —`im_grado=2`
+     en el papel con `im_sev_final=4` en pantalla— dejó de ser posible, no de ser probable. */
+  im: Object.freeze({ tipo:'insuf', valv:'mitral', select:'im_grado', aviso:'im-manual-aviso',
     ayuda:'im-auto-ayuda', nombre:'Insuficiencia mitral',
     /* ⚠️ ESTAS DOS LÍNEAS SON TODO EL CAJÓN (etapa 3, 2026-10-03), y es lo que el comentario de
        `sevFundLimpiar` anticipaba: «el día que la mitral reciba su `fundamento:` —que es el plan—».
@@ -25235,9 +25351,14 @@ const SEV_SINC = Object.freeze({
        firmado, que es migrar un estudio guardado en silencio. Ver `sevFundRestaurar`. */
     recalcular: function(){ if (typeof calcIM_ESC === 'function') calcIM_ESC(); },
     /* ⚠️ `sincronizarGradoIM` Y NO `sincronizarGradoIA`, que es lo que la versión genérica anterior
-       habría llamado. `im_sev_final` es el `<select>` visible y `im_grado` el hidden, y **el hidden
-       es el que leen el narrativo, el EN SUMA, el PDF y el Excel**: sin este espejo, soltar el
-       grado manual dejaba la pantalla con el calculado y el informe firmado con el manual viejo. */
+       habría llamado. El motivo ORIGINAL era el espejo: `im_sev_final` era el `<select>` visible,
+       `im_grado` el hidden que leen el narrativo, el EN SUMA, el PDF y el Excel, y sin sincronizar,
+       soltar el grado manual dejaba la pantalla con el calculado y el papel con el manual viejo.
+       ⚠️ DESDE EL 2026-10-06 EL ESPEJO NO EXISTE —hay un solo nodo— PERO LA LLAMADA SIGUE SIENDO
+       OBLIGATORIA, y por otra razón: `sincronizarGradoIM` arrastra `emContRefrescar`, o sea el
+       recálculo de la estenosis mitral, cuyo veto de regurgitación lee `im_grado`. Cruzarla con la
+       de la aórtica seguiría siendo un defecto, sólo que ahora recalcularía la válvula equivocada en
+       vez de dejar el hidden viejo. */
     trasEscribir: function(sel, calc){ sel.dataset.sugerido = calc;
       if (typeof sincronizarGradoIM === 'function') sincronizarGradoIM(); },
     etiqueta: function(g){ return ({ '0':'Sin insuficiencia', '1':'Leve', '2':'Moderada',
@@ -27292,7 +27413,7 @@ function calcIA_ESC() {
      —vena contracta de 8 mm como único dato—: el informe firmado y el EN SUMA salían
      «IAo moderada.» sobre una VC que la cascada de arriba acaba de votar SEVERA.
      ⚠️ Y APAGABA EL PANEL DE CONDUCTA, que es lo que lo vuelve un defecto de seguridad y no de
-     rótulo: `_indIA` abre con `if (_indS('ia_sev_final') !== '4') return null;`, así que ese '2'
+     rótulo: `_indIA` abre con `if (_indS('ia_grado') !== '4') return null;`, así que ese '2'
      se llevaba puesta la indicación de cirugía entera, en silencio.
      ⚠️ LA SEGUNDA CLÁUSULA ERA CÓDIGO MUERTO, igual que en `calcIM_ESC`: `severa === 1 &&
      moderada >= 1` ya está contenida en `severa >= 1`. Se lee como si tratara un caso aparte y
@@ -37452,7 +37573,19 @@ function mostrarCardSeveridadValvular(onConfirm) {
        escribir los dos. En la tricúspide el desplegable y el campo son EL MISMO nodo, así que no
        hay segunda mitad que pueda divergir: el defecto que esta tanda arregló en la IM y la IAo no
        existe acá por construcción. */
-    setGrade('im_grado','rev-im','im_sev_final'); setGrade('ia_grado','rev-ia','ia_sev_final'); setGrade('it_grado','rev-it');
+    /* ⚠️ LA IM Y LA IAo PIERDEN SU TERCER ARGUMENTO, Y ESTA VEZ NO ES UNA REGRESIÓN SINO LO
+       CONTRARIO (2026-10-06). El `vis` existía porque el grado vivía en DOS nodos y había que
+       escribir los dos; desde que el desplegable se fue, `im_grado` e `ia_grado` son el único nodo y
+       pasarles un `vis` que ya no existe sería escribir `null`. Ahora las TRES llamadas tienen la
+       misma forma, y por la misma razón que la tricúspide la tenía: no hay segunda mitad que pueda
+       divergir. El comentario de arriba queda como historia de POR QUÉ el `vis` hizo falta.
+       ⚠️ LO QUE ESTA TARJETA SIGUE SIENDO —y queda REPORTADO, no corregido— es un SEGUNDO camino
+       para fijar el grado, al lado de la pastilla. Corre justo antes de guardar y de emitir el PDF,
+       no pasa por `valvSev.aplicar` ni por `sevSincronizar`, así que la pastilla y el texto fijo
+       quedan los DOS con el grado anterior hasta el próximo recálculo. No pueden contradecirse entre
+       sí —los pinta la misma lectura— pero pueden quedar los dos viejos respecto del campo. Tocar
+       esta tarjeta es tocar el camino del PDF firmado y está fuera de esta tanda. */
+    setGrade('im_grado','rev-im'); setGrade('ia_grado','rev-ia'); setGrade('it_grado','rev-it');
     /* ⚠️ ÉSTE ES EL TERCER ESCRITOR DE `im_grado`/`ia_grado`, y es el PEOR de los tres: corre
        justo ANTES de guardar y de emitir el PDF, o sea que lo que escriba acá es lo que queda
        firmado. No pasa por `sincronizarGradoIM`/`IA`, así que no arrastraba el recálculo de la EM.
@@ -45694,6 +45827,14 @@ function _indLeyendaHTML(){
    declaraciones de función son globales, pero se accede con guarda para que la caída de un
    bloque deje el panel mudo en vez de romper el que lo contiene. */
 function _indN(id){ const n = (typeof v === 'function') ? v(id) : null; return (n != null && isFinite(n)) ? n : null; }
+/* ⚠️ EL PANEL LEÍA EL NODO VISIBLE Y EL INFORME EL OCULTO — YA NO (2026-10-06). Las seis lecturas
+   del grado de IM/IAo de este módulo decían `_indS('im_sev_final')` / `_indS('ia_sev_final')`, o sea
+   el `<select>` de la pantalla, mientras el informe, el EN SUMA, el PDF, el PPT y el Excel leían el
+   oculto `im_grado` / `ia_grado`. Estaban espejados, así que la salida era la misma — pero eran dos
+   fuentes de verdad, y este archivo documenta tres divergencias medidas entre ellas. Desde que el
+   desplegable se fue, las seis apuntan al único nodo y el panel cita el MISMO valor que se firma.
+   Verificado que la salida no se mueve: `_indS` resuelve por `sv(id)`, que lee el `.value` del DOM,
+   y el espejo era una copia literal sin traducción ni redondeo. */
 function _indS(id){ return (typeof sv === 'function') ? String(sv(id) || '').trim() : ''; }
 function _indChk(id){ const e = document.getElementById(id); return !!(e && e.checked); }
 function _indFn(nombre){ const f = window[nombre]; return (typeof f === 'function') ? f : null; }
@@ -46034,7 +46175,7 @@ function _indCtrlHTML(ctrl){
    estático se vería igual y no respondería a un solo clic. */
 function _indMecanismoHTML(){
   if (_indFn('vmEsProtesis') && vmEsProtesis()) return '';
-  if (_indS('im_sev_final') !== '4') return '';
+  if (_indS('im_grado') !== '4') return '';
   const o = _indOrigen(_indS('teer_tipo_im'), 'im.mecanismo');
   const txt = o.val === 'primaria' ? 'Primaria (orgánica)'
             : (o.val === 'secundaria' ? 'Secundaria (funcional)' : '—');
@@ -46939,7 +47080,7 @@ function _indIM(){
      Es el espejo de la compuerta de `_indProtM` (`if (!vmEsProtesis()) return null`), con la
      misma función, que es lo que hace que la partición sea exacta por construcción. */
   if (_indFn('vmEsProtesis') && vmEsProtesis()) return null;
-  if (_indS('im_sev_final') !== '4') return null;
+  if (_indS('im_grado') !== '4') return null;
   const UF = _indUmb('UMBRAL_FEVI_NORMAL');
   /* ⚠️ LAS MEDICIONES PASAN POR SU BANDA DE PLAUSIBILIDAD, Y LA SUPERFICIE CORPORAL ES LA QUE MÁS
      DAÑO HACE. `fevi` y `dsfvi` fuera de rango sólo RETIENEN una conclusión; la BSA es el
@@ -47345,7 +47486,7 @@ function _indIMS(){
   /* Delega en el mismo dueño que la compuerta espejo de `_indIM` — ver `imEsSecundariaIM`. `oMec`
      se conserva porque las filas de abajo usan su texto, que es otra cosa que el predicado. */
   if (!imEsSecundariaIM()) return null;
-  if (_indS('im_sev_final') !== '4') return null;
+  if (_indS('im_grado') !== '4') return null;
 
   const fev = _indLeer('fevi', 'fevi'), ddL = _indLeer('ddfvi', 'ddfvi');
   const aiVolL = _indLeer('ai_vol', 'ai_vol'), aiDiamL = _indLeer('ai_diam', 'ai_diam');
@@ -48053,7 +48194,7 @@ function _indEM(){
     }));
 
   /* ── Insuficiencia mitral asociada: «más que leve» es contraindicación ── */
-  const imSevRaw = _indS('im_sev_final');
+  const imSevRaw = _indS('im_grado');
   const imSev = (imSevRaw === '' || imSevRaw == null) ? null : (parseInt(imSevRaw, 10) || 0);
   const IM_TXT = ['sin insuficiencia', 'leve', 'moderada', 'moderada-severa', 'severa'];
   const imSevTxt = (imSev != null && IM_TXT[imSev]) ? IM_TXT[imSev] : 'no consignada';
@@ -48688,7 +48829,7 @@ function _indProtM(){
   }
 
   /* ── Tabla 13: regurgitación protésica ── */
-  const imSev = _indS('im_sev_final');
+  const imSev = _indS('im_grado');
   filas.push(_indFila('Grado de insuficiencia mitral',
     imSev === '4' ? 'Severa' : (imSev === '3' ? 'Moderada-severa' : (imSev === '2' ? 'Moderada' : (imSev === '1' ? 'Leve' : (imSev === '0' ? 'Sin insuficiencia' : '—')))),
     /* ⚠️ LA CADENA VACÍA NO ES «SIN INSUFICIENCIA»: es un estudio importado sin esa columna, o sea
@@ -49370,7 +49511,7 @@ function _indIARecom(D){
 /* ── Insuficiencia aórtica ─────────────────────────────────────────────────────────────────
    Mismo criterio de compuerta que la mitral: `ia_sev_final === '4'`, no 3. */
 function _indIA(){
-  if (_indS('ia_sev_final') !== '4') return null;
+  if (_indS('ia_grado') !== '4') return null;
   const D = _indIADatos();
   const UF = D.UF;
   /* La recomendación se calcula ANTES de las filas porque una de ellas la necesita: el ✅ de la
@@ -53264,6 +53405,29 @@ window.valvSev = (function(){
     btn.classList.remove('nivel1','nivel2','nivel3');
     if (txt) { btn.textContent = txt + ' ▼'; btn.classList.add('nivel' + niv); }
     else { btn.textContent = '🟡 Severidad ▼'; }
+    /* ══ EL TEXTO FIJO DEL «GRADO FINAL AL INFORME» SE PINTA ACÁ (2026-10-06, aórtica y mitral) ═══
+       ⚠️ VA DENTRO DE ESTA FUNCIÓN Y NO EN UNA PROPIA, Y ES LA RAZÓN POR LA QUE EL PEDIDO
+       «QUE NO EXISTA NINGÚN GESTO QUE LOS DESINCRONICE» QUEDA CUMPLIDO POR CONSTRUCCIÓN Y NO POR
+       COBERTURA. La pastilla y el texto fijo son dos renders del MISMO `txt`, derivado de UNA sola
+       lectura de UN solo nodo, en UNA sola función. No hay dos caminos que puedan quedar en
+       desacuerdo: o los dos están frescos, o los dos están viejos. Escrito como una función aparte
+       —aunque leyera el mismo campo— habría que acordarse de llamarla en los seis sitios que hoy
+       llaman a `refrescar` (`sevSincronizar`, `aplicar`, `limpiar`, `refrescarTodo` desde la carga y
+       desde `limpiarCampos`, y el ▼), que es exactamente la lista escrita a mano que este módulo ya
+       pagó cuatro veces (`gf-insuf-`, la pulmonar en `limpiarCampos`, el `else` de `sevSincronizar` y
+       el `vis` de la tarjeta del PDF).
+       ⚠️ GATEADO POR EXISTENCIA DEL NODO, así que la TRICÚSPIDE y la PULMONAR no cambian en nada:
+       no tienen `gftxt-*` —su grado final sigue siendo un `<select>` visible y editable— y para
+       ellas estas dos líneas son un `getElementById` que devuelve `null`. Es la misma costura por
+       válvula que usan `SEV_SIN_APAGA_VALVS` y el companion `gf-insuf-` de `toggleValvPill`, y por
+       el mismo motivo: `refrescar` gobierna las ocho pastillas.
+       El id se DERIVA (`gftxt-<tipo>-<valv>`), igual que `sevbtn-` y `pill-` tres líneas arriba, así
+       que no hay una lista de válvulas nueva que se pueda quedar corta.
+       `textContent` y no `innerHTML`: `txt` sale de `corto()` sobre el `textContent` de una
+       `<option>`, o sea de datos de la propia app, pero un nodo que acepta marcado al lado del grado
+       que se firma es el atajo que esta suite ya pagó once veces en CardioSalud. */
+    const fijo = g('gftxt-' + tipo + '-' + valv);
+    if (fijo) fijo.textContent = txt || '—';
   }
 
   function refrescarTodo(){
@@ -63639,7 +63803,12 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
      marca con el grado del OTRO estudio, dejándola apuntando a nada al volver. Es textualmente
      el defecto que el comentario de arriba documenta para `teer_fevi`: ids nuevos en el
      mecanismo y no agregados al respaldo. Lo cazó `/sharp-edges` sobre el diff. */
-  const _MARCAS_DERIV = ['vp_gmax','ep_grado','ea_grado','ia_sev_final'].concat(_ESPEJOS_TODOS.map(function (p) { return p[1]; }));
+  /* ⚠️ `'ia_grado'` reemplaza a `'ia_sev_final'` (2026-10-06): el desplegable se fue y el
+     `dataset.sugerido` de la IAo se mudó al oculto junto con el grado. Si este respaldo se hubiera
+     quedado con el nombre viejo seguiría «funcionando» —respaldaría un nodo inexistente sin tirar—
+     y la marca de la IAo volvería a fugarse en las dos direcciones que el comentario de arriba
+     describe, sin un error que lo delate. Es el mismo modo de falla que `teer_fevi`. */
+  const _MARCAS_DERIV = ['vp_gmax','ep_grado','ea_grado','ia_grado'].concat(_ESPEJOS_TODOS.map(function (p) { return p[1]; }));
   /* Las dos filas de IM que la reimpresión pisa. Van aparte de `_MARCAS_DERIV` porque eso respalda
      `dataset` de INPUTS y esto es texto de `span`/`div` más dos atributos; meterlas ahí obligaría
      a que el respaldo supiera de dos formas distintas. */
@@ -95031,8 +95200,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261006-0716';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791281792767;                 /* eco-build-ms */
+const ECO_BUILD    = '20261006-1537';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791311856126;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -95118,7 +95287,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-0716</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-1537</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
