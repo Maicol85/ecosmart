@@ -5251,12 +5251,37 @@ window.cerrarSesionReal = cerrarSesionReal;
               <input type="number" id="et_vti_tsvd" placeholder="cm" step="0.1" oninput="etTsvdSync('et_vti_tsvd');calcHemo();eteShuntSyncSiExiste();calcET()">
             </div>
           </div>
-          <!-- ── 3) UN SOLO CUADRO de referencia, con la severidad sugerida ─────────────────── -->
+          <!-- ── 3) CUADRO DE REFERENCIAS — TRES FILAS FIJAS (2026-10-07, decisión de Maicol) ──
+               Formato del Doppler aórtico y del Doppler tricuspídeo: una fila por criterio, con el
+               valor y el comentario entre paréntesis, y la fuente UNA vez debajo.
+               ⚠️ LAS TRES FILAS SON FIJAS Y ESTÁN SIEMPRE, en «—» si falta el dato. Antes el cuadro
+               tenía una sola fila de «Referencia» con los tres cortes en una frase y el resultado
+               abajo: el médico leía el veredicto sin ver cuál de los tres criterios lo sostenía, y
+               los valores que había cargado no aparecían en ninguna parte del cuadro.
+               ⚠️ NINGUNA FILA ESCRIBE «no significativa», y es el punto (b) del pedido: esa
+               afirmación la firma el médico en el grado, no la insinúa una fila de referencia. Con
+               el dato cargado y el criterio sin cumplir dice «no alcanza el criterio», que habla
+               del criterio y no del paciente.
+               ⚠️ Y HAY UNA TERCERA LEYENDA, «fuera de rango (no gradúa)», para el valor que cae
+               fuera de la banda de plausibilidad que la app YA usa para ese campo. No es un cuarto
+               estado inventado: es el que evita afirmar «no alcanza el criterio» sobre un número
+               que la propia app acaba de declarar ilegible. Mismo patrón que la IAo con el PHT
+               («fuera de rango medible — no gradúa»). El informe, el EN SUMA y el PDF siguen
+               declarando el fuera de rango como en HEAD; esta leyenda es sólo de pantalla.
+               ⚠️ EL TEXTO CELESTE DE ABAJO SE BORRÓ, y con él las tres escrituras de `_msg` en
+               `calcET`. Era `<span id="et-gmedio-badge">` y lo leía SÓLO `calcET` —censo del
+               archivo entero—: ninguna superficie firmada lo tocaba. Se van juntos por el
+               precedente de la fila «HTP — clasificación ESC 2022» del 2026-10-07: un `if (el)`
+               sobre un nodo inexistente es una escritura muerta que la próxima lectura cree que
+               gobierna algo. Lo que ese texto decía ahora lo dicen las tres filas, criterio por
+               criterio, en vez de en una frase que había que leer entera. -->
           <div class="calc-box">
-            <div class="calc-row"><span class="calc-lbl">Referencia</span><span style="font-size:11px;color:var(--text2);">ET significativa con CUALQUIERA de: gradiente medio ≥5 mmHg · THP ≥190 ms · área ≤1 cm² (EAE/ASE 2009 · ESC/EACTS 2021). La guía no gradúa la ET: es binaria.</span></div>
-            <div class="calc-row"><span class="calc-lbl">Severidad sugerida</span><span id="et-sev">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">Gradiente medio</span><span id="et-ref-gmedio">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">THP</span><span id="et-ref-thp">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">Área valvular</span><span id="et-ref-avt">—</span></div>
+            <div style="font-size:10px;color:var(--text2);line-height:1.45;margin:2px 0 4px;" id="et-ref-fuente"></div>
+            <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Severidad sugerida</span><span id="et-sev">—</span></div>
           </div>
-          <div id="et-gmedio-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
         </div>
       </div><!-- fin caja-esten-tricuspide -->
       </div><!-- fin #vt-lesiones -->
@@ -29574,9 +29599,44 @@ window.calcIP = calcIP;
    escala de severidad de la cual derivar un color y no se inventó ninguna.
    Lo que NO cambió: el informe sigue emitiendo la significación desde el GRADIENTE MEDIDO y no
    desde el grado, así que las dos salidas pueden diferir cuando el médico ajusta a mano. */
-const ET_GMEDIO_SIGNIF = 5;    // mmHg — EAE/ASE 2009 · ESC/EACTS 2021
-const ET_THP_SIGNIF    = 190;  // ms   — EAE/ASE 2009
-const ET_AVT_SIGNIF    = 1;    // cm²  — EAE/ASE 2009
+/* ══ UNA SOLA TABLA DE CORTES Y BANDAS DE LA ET (2026-10-07) ══════════════════════════════════
+   NO SE MOVIÓ UN NÚMERO. Los tres cortes de significación ya eran constantes; lo que estaba en
+   LITERALES SUELTOS eran las cinco bandas de plausibilidad, escritas a mano dentro de `etEstado`
+   (`banda(gm,0,40)`, `banda(thp,50,400)`, …). Desde que el cuadro de referencias imprime la banda
+   que aplica —«fuera de rango (no gradúa)»— el número tiene DOS lectores, y dos copias de un
+   corte es como la pantalla y el informe se separan. Es el mismo criterio que `EM_BANDA_PLAUS`.
+
+   ⚠️ EL ÁREA NO TIENE BANDA PROPIA, Y `banda: null` LO DICE EN VOZ ALTA. Es un valor DERIVADO:
+   `etEstado` sólo la computa si sus TRES insumos están en banda y el denominador es > 0, así que
+   su plausibilidad es la de los insumos y no hay un rango que consultar. Poner uno inventado sería
+   un corte sin fuente; dejar el campo afuera de la tabla haría pensar que se olvidó.
+
+   ⚠️ LAS BANDAS NO SON CRITERIOS Y NO LLEVAN CITA. Atrapan el error de un orden de magnitud, no
+   lo clínicamente raro — por eso el VTI diastólico va a 100 cm y no a 60: en una ET severa el
+   flujo de entrada se alarga, y con el techo en 60 el criterio del área dejaría de votar justo en
+   el caso más grave. Los que SÍ tienen fuente son los tres `signif`, y es la que dice `fuente`.
+
+   Las tres constantes de abajo se DERIVAN de acá y no se vuelven a escribir: están en `window` y
+   las leen el informe, el PDF y seis casos de la suite, así que siguen existiendo — pero con un
+   solo dueño del número. */
+const ET_CRIT = Object.freeze({
+  gmedio: Object.freeze({ signif: 5,   op: '>=', uni: 'mmHg', banda: Object.freeze([0, 40]),
+                          nombre: 'gradiente medio tricuspídeo' }),
+  thp:    Object.freeze({ signif: 190, op: '>=', uni: 'ms',   banda: Object.freeze([50, 400]),
+                          nombre: 'THP tricuspídeo' }),
+  avt:    Object.freeze({ signif: 1,   op: '<=', uni: 'cm²',  banda: null,
+                          nombre: 'área valvular tricuspídea' })
+});
+/* Bandas de los insumos que NO son criterio pero alimentan el área por continuidad. */
+const ET_BANDA_INSUMO = Object.freeze({
+  et_vti_diast:  Object.freeze([5, 100]),
+  tsvd_diametro: Object.freeze([5, 60]),
+  vti_tsvd:      Object.freeze([2, 60])
+});
+const ET_CRIT_FUENTE = 'EAE/ASE 2009 · ESC/EACTS 2021. La estenosis tricuspídea no se gradúa: es binaria.';
+const ET_GMEDIO_SIGNIF = ET_CRIT.gmedio.signif;  // 5 mmHg   — EAE/ASE 2009 · ESC/EACTS 2021
+const ET_THP_SIGNIF    = ET_CRIT.thp.signif;     // 190 ms   — EAE/ASE 2009
+const ET_AVT_SIGNIF    = ET_CRIT.avt.signif;     // 1 cm²    — EAE/ASE 2009
 
 /* ══ ET: TRES CRITERIOS, UN SOLO VEREDICTO BINARIO ═══════════════════════════════════════════
    La guía NO gradúa la estenosis tricuspídea: no hay leve/moderada/severa validada. Es
@@ -29605,8 +29665,15 @@ function etEstado(){
   const banda = (v, lo, hi) => v != null && v >= lo && v <= hi;
   const gm = nv('et_gmedio'), thp = nv('et_thp'), vtiD = nv('et_vti_diast');
   const dTsvd = nv('tsvd_diametro'), vtiTsvd = nv('vti_tsvd');   // pestaña VD
-  const gmOk = banda(gm, 0, 40), thpOk = banda(thp, 50, 400), vtiOk = banda(vtiD, 5, 100);
-  const dOk = banda(dTsvd, 5, 60), vtOk = banda(vtiTsvd, 2, 60);
+  /* Las cinco bandas salen de `ET_CRIT` / `ET_BANDA_INSUMO` y NO de literales acá: el cuadro de
+     referencias imprime la misma banda que decide el voto, así que el número tiene un solo dueño.
+     Los valores son EXACTAMENTE los de antes — verificado con A/B de bordes. */
+  const _b = (v, par) => banda(v, par[0], par[1]);
+  const gmOk  = _b(gm,   ET_CRIT.gmedio.banda);
+  const thpOk = _b(thp,  ET_CRIT.thp.banda);
+  const vtiOk = _b(vtiD, ET_BANDA_INSUMO.et_vti_diast);
+  const dOk   = _b(dTsvd,   ET_BANDA_INSUMO.tsvd_diametro);
+  const vtOk  = _b(vtiTsvd, ET_BANDA_INSUMO.vti_tsvd);
   const fuera = [];
   if (gm   != null && !gmOk)  fuera.push('gradiente medio tricuspídeo');
   if (thp  != null && !thpOk) fuera.push('THP tricuspídeo');
@@ -29619,12 +29686,22 @@ function etEstado(){
   const cThp = thpOk && thp >= ET_THP_SIGNIF;
   const cAvt = avt != null && avt <= ET_AVT_SIGNIF;
   const signif = cGm || cThp || cAvt;
+  /* ⚠️ `dOk`/`vtOk` Y LOS DOS INSUMOS SE PUBLICAN DESDE EL 2026-10-07, y no deciden nada nuevo:
+     ya se calculaban acá y se usaban para el área. Los necesita la FILA del área del cuadro de
+     referencias, que tiene que distinguir «faltan datos» —va en «—»— de «un insumo está fuera de
+     banda» —va en «fuera de rango (no gradúa)»—. Recalcular las bandas en el pintor habría puesto
+     una segunda copia de los rangos, que es justo lo que `ET_BANDA_INSUMO` vino a cerrar.
+     El área sigue siendo `null` en los dos casos: esto no la hace aparecer, sólo permite decir
+     POR QUÉ no está. */
   /* `hayDatos` incluye `fuera`: sin eso, un THP de 4000 ms —error de tipeo— salía por el return
      temprano y desaparecía del informe sin que nadie lo nombrara. */
   const hayDatos = !!(gmOk || thpOk || vtiOk || avt !== null || fuera.length);
-  return { gm, thp, vtiD, avt, gmOk, thpOk, vtiOk, cGm, cThp, cAvt, signif, hayDatos, fuera };
+  return { gm, thp, vtiD, avt, gmOk, thpOk, vtiOk, cGm, cThp, cAvt, signif, hayDatos, fuera,
+           dTsvd, vtiTsvd, dOk, vtOk };
 }
 window.etEstado = etEstado;
+window.ET_CRIT = ET_CRIT; window.ET_BANDA_INSUMO = ET_BANDA_INSUMO;
+window.ET_CRIT_FUENTE = ET_CRIT_FUENTE;
 
 /* ══ EL GRADO CALCULADO DE LA ET — DOS VALORES Y UN `null` (2026-10-05) ════════════════════════
    Desde que el grado es binario, el veredicto de `etEstado()` SÍ es un grado del vocabulario del
@@ -29772,41 +29849,82 @@ function _etAutoGrado(r) {
 }
 window._etAutoGrado = _etAutoGrado;
 
+/* ══ LAS TRES FILAS DEL CUADRO DE REFERENCIAS (2026-10-07) ════════════════════════════════════
+   Son de PANTALLA y de pantalla nada más: ninguna entra en el informe, el EN SUMA, el PDF, el PPT
+   ni el Excel. Y NO deciden nada — `etEstado` ya decidió; esto sólo lo muestra criterio por
+   criterio. El pintor no decide, que es la convención de la casa.
+
+   TRES LEYENDAS Y NINGUNA CUARTA:
+     · cumple el criterio        → «significativa (≥5 mmHg)»
+     · cargado y no lo cumple    → «no alcanza el criterio (≥5 mmHg)»
+     · fuera de la banda         → «fuera de rango (no gradúa)»
+   ⚠️ NUNCA «no significativa» en una fila (decisión de Maicol): esa afirmación la firma el médico
+   en el grado. «No alcanza el criterio» habla del CRITERIO; «no significativa» hablaría del
+   paciente, y es justo lo que el sistema no escribe.
+   ⚠️ LA TERCERA LEYENDA NO AFIRMA NI NIEGA, y es su razón de ser: un valor fuera de banda no vota
+   —`etEstado` ya lo excluye— así que ponerlo en «no alcanza el criterio» sería sostener una
+   conclusión con un número que la app declaró ilegible. Mismo patrón que la IAo con el PHT.
+
+   ⚠️ EL ÁREA TIENE TRES CAMINOS AL «—» Y SÓLO UNO ES «fuera de rango». Es derivada: si falta
+   cualquiera de sus tres insumos no hay área y la fila va en «—» (no se contestó); si alguno está
+   FUERA DE BANDA tampoco hay área, pero ahí sí hay algo que declarar. Los `dOk`/`vtOk` que
+   `etEstado` publica son lo que permite distinguirlos sin volver a escribir los rangos acá. */
+function etRefPintar(r) {
+  const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+  /* `op` sale de la tabla, así que el símbolo y la comparación se mueven juntos. */
+  const crit = (c) => (c.op === '>=' ? '≥' : '≤') + c.signif + ' ' + c.uni;
+  const legend = (c, cumple) => cumple ? 'significativa (' + crit(c) + ')'
+                                       : 'no alcanza el criterio (' + crit(c) + ')';
+  const FUERA = 'fuera de rango (no gradúa)';
+  /* Fila de un criterio con campo propio: valor + leyenda. */
+  const fila = (val, ok, c, cumple, dec) => {
+    if (val == null) return '—';
+    const n = (dec != null) ? val.toFixed(dec) : String(val);
+    return n + ' ' + c.uni + ' (' + (ok ? legend(c, cumple) : FUERA) + ')';
+  };
+  set('et-ref-gmedio', fila(r.gm,  r.gmOk,  ET_CRIT.gmedio, r.cGm));
+  set('et-ref-thp',    fila(r.thp, r.thpOk, ET_CRIT.thp,    r.cThp));
+  /* El área: su «fuera de banda» es el de sus insumos, porque ella no tiene banda propia. */
+  if (r.avt != null) {
+    set('et-ref-avt', r.avt.toFixed(2) + ' ' + ET_CRIT.avt.uni + ' (' + legend(ET_CRIT.avt, r.cAvt) + ')');
+  } else {
+    const insumoFuera = (r.vtiD != null && !r.vtiOk) || (r.dTsvd != null && !r.dOk)
+                     || (r.vtiTsvd != null && !r.vtOk);
+    set('et-ref-avt', insumoFuera ? '— (' + FUERA + ')' : '—');
+  }
+  /* La fuente va UNA vez, debajo de las tres filas, y sale de su constante: el rótulo y los
+     cortes tienen que moverse juntos. Con la tarjeta vacía igual se muestra — es la referencia
+     del cuadro, no un comentario sobre el paciente. */
+  set('et-ref-fuente', ET_CRIT_FUENTE);
+}
+window.etRefPintar = etRefPintar;
+
 /* El PINTOR. Sólo pinta: el veredicto lo decide `etEstado`, que es lo que también lee el
    informe. Dos derivaciones del mismo hecho es como se desincronizan la pantalla y el PDF. */
 function calcET() {
   const r = etEstado();
   const sevEl = document.getElementById('et-sev');
-  const badgeEl = document.getElementById('et-gmedio-badge');
   const avtEl = document.getElementById('et_avt');
   const _sev = h => { if (sevEl) sevEl.innerHTML = h; };
-  const _msg = t => { if (badgeEl) badgeEl.textContent = t; };
   if (avtEl) avtEl.value = r.avt !== null ? r.avt.toFixed(2) + ' cm²' : '';
-  const fueraTxt = r.fuera.length ? ' Fuera de rango: ' + r.fuera.join(' y ') + '.' : '';
+  /* Las tres filas se pintan SIEMPRE y antes de cualquier salida temprana: son fijas, y una fila
+     que desaparece con prótesis dejaría el cuadro con un hueco en vez de con el dato medido. */
+  etRefPintar(r);
   /* Prótesis: los valores medidos siguen visibles —el área ya se escribió arriba— pero el grado no
      se sugiere ni se escribe. `_etSincronizarPantalla` SÍ corre antes de salir: con prótesis
      `bloqueado()` devuelve `true`, el grado calculado es `null` y el aviso tiene que quedar VACÍO —
      si se saliera sin sincronizar, el aviso del paciente nativo anterior quedaría pintado sobre una
      prótesis. */
-  if (protNoGraduaPintar('vt_morf', ['et-sev'])) { _msg(''); _etSincronizarPantalla(); return; }
+  if (protNoGraduaPintar('vt_morf', ['et-sev'])) { _etSincronizarPantalla(); return; }
   /* ⚠️ EL CUADRO MUESTRA «Significativa» O «—», Y NADA MÁS (P5, decisión de Maicol). El badge VERDE
      «Sin criterios de significación» se retiró: la «Severidad sugerida» es el lugar donde se lee un
-     grado, y ahí «No significativa» la firma el médico, no la app. El motivo no se perdió — sigue
-     entero en el renglón de abajo, que es el que explica. */
-  if (!r.hayDatos) { _sev('—'); _msg(''); }
-  else if (r.signif) {
-    const q = [];
-    if (r.cGm)  q.push(`gradiente medio ${r.gm} mmHg`);
-    if (r.cThp) q.push(`THP ${r.thp} ms`);
-    if (r.cAvt) q.push(`área ${r.avt.toFixed(2)} cm²`);
-    _sev(badge('red', 'Significativa'));
-    _msg('Estenosis tricuspídea clínicamente significativa por ' + q.join(', ') +
-         ' (EAE/ASE 2009 · ESC/EACTS 2021). La guía no la gradúa en leve/moderada/severa.' + fueraTxt);
-  } else {
-    _sev('—');
-    _msg('Ninguno de los tres criterios alcanza el umbral con los datos disponibles: gradiente medio ≥ ' +
-         ET_GMEDIO_SIGNIF + ' mmHg, THP ≥ ' + ET_THP_SIGNIF + ' ms o área ≤ ' + ET_AVT_SIGNIF + ' cm².' + fueraTxt);
-  }
+     grado, y ahí «No significativa» la firma el médico, no la app.
+     ⚠️ EL `_msg` SE FUE CON EL TEXTO CELESTE (2026-10-07). Las tres ramas de abajo escribían
+     `et-gmedio-badge`, que ya no existe; lo que decían —qué criterio sostiene el veredicto, y qué
+     valor quedó fuera de rango— ahora lo dicen las tres filas, cada una en la suya. Dejar los
+     `_msg` sobre un nodo borrado habría sido una escritura muerta, que es el precedente de la fila
+     «HTP — clasificación ESC 2022». El informe y el PDF declaran el fuera de rango como en HEAD. */
+  _sev(r.hayDatos && r.signif ? badge('red', 'Significativa') : '—');
   /* Los TRES pasos, en este orden y por los motivos de `_etAutoGrado`: R6 y el aviso con el valor
      que hay ahora · la escritura o el retiro automático · y el repintado del aviso, del cajón y de
      la visibilidad del bloque con el valor definitivo. El segundo `sevSincronizar` no puede volver
@@ -96897,8 +97015,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-0237';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791351459865;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-0308';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791353312703;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -96984,7 +97102,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-0237</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-0308</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

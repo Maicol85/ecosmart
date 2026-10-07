@@ -4892,7 +4892,14 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
   const sevAntes = (document.getElementById('et-sev').textContent || '').trim();
   const gBorrado = gm('');
   const sevDespues = (document.getElementById('et-sev').textContent || '').trim();
-  const msgDespues = (document.getElementById('et-gmedio-badge').textContent || '').trim();
+  /* ⚠️ El span et-gmedio-badge SE BORRO EL 2026-10-07 (el texto celeste de abajo). Lo que explicaba
+     —que criterio sostiene el veredicto y que valor quedo fuera de rango— ahora lo dicen las
+     TRES FILAS fijas del cuadro, una por criterio. Esta linea leia su textContent y habria
+     tirado «Cannot read properties of null»; se cambia por las tres filas, que es donde el
+     mismo hecho se publica hoy. Se mide lo mismo: al borrar el gradiente no queda rastro. */
+  const refTxt = function (id) { const e = document.getElementById(id);
+    return e ? (e.textContent || '').trim() : 'NO ' + id; };
+  const msgDespues = [refTxt('et-ref-gmedio'), refTxt('et-ref-thp'), refTxt('et-ref-avt')].join(' / ');
   limpio();
   /* v3: «Moderada» ya no es una opcion de la ET —el grado es binario—. El gesto equivalente es
      el medico eligiendo «No significativa» por el camino REAL (valvSev.aplicar, que es lo que corre
@@ -4969,10 +4976,10 @@ caso('TC-137', 'Tricuspide y pulmonar: calcET sin rama normal, et_grado en el La
        area y ponerlos todos en la pastilla la volvia ilegible. */
     ['a 6 mmHg la capsula declara la significacion',
       sev6.indexOf('Significativa') > -1, sev6],
-    ['borrar el gradiente deja el select en reposo y LIMPIA la capsula',
+    ['borrar el gradiente deja el select en reposo y LIMPIA la capsula y las tres filas',
       gBorrado === 'sin' && sevAntes.indexOf('Significativa') > -1 &&
-      sevDespues.indexOf('Significativa') === -1 && msgDespues === '',
-      'antes=' + sevAntes + ' | despues=' + sevDespues + ' | msg=' + JSON.stringify(msgDespues)],
+      sevDespues.indexOf('Significativa') === -1 && msgDespues === '— / — / —',
+      'antes=' + sevAntes + ' | despues=' + sevDespues + ' | filas=' + JSON.stringify(msgDespues)],
     ['y un grado elegido a mano NO se pisa', gManual === 'No significativa', gManual],
 
     // FIX 1 — el informe: la significacion sale del gradiente, no del grado.
@@ -52908,6 +52915,47 @@ caso('TC-429', 'Tricuspide: el Diam. y el VTI del TSVD son UN dato con DOS campo
                       dueno: V('tsvd_diametro'), duenoVti: V('vti_tsvd'),
                       vtiDiast: V('et_vti_diast'), area: V('et_avt'), sev: T('et-sev') };
 
+  /* ── LAS TRES FILAS DE REFERENCIA, BORDE POR BORDE (commit C) ─────────────────────────────
+     Tres filas FIJAS, siempre presentes, en «—» si falta el dato. Cada una con el valor y, entre
+     parentesis, una de TRES leyendas: «significativa», «no alcanza el criterio» o «fuera de rango
+     (no graduia)». NUNCA «no significativa» — esa la firma el medico en el grado.
+     Los bordes se prueban por los DOS lados de cada corte, que es lo unico que distingue un
+     umbral implementado de uno que nadie puede hacer fallar. */
+  const ref = function (o) {
+    __t.nuevoEstudio(); abrir();
+    if (o.gm != null) __t.set('et_gmedio', o.gm);
+    if (o.thp != null) __t.set('et_thp', o.thp);
+    if (o.area != null) {
+      /* area = PI*(D/20)^2*VTItsvd / VTIdiast  =>  VTIdiast = PI*(D/20)^2*VTItsvd / area */
+      const D = 26, VT = 14;
+      __t.set('et_vti_diast', (Math.PI * Math.pow(D / 20, 2) * VT / o.area).toFixed(6));
+      __t.set('et_tsvd_diam', D); __t.set('et_vti_tsvd', VT);
+    }
+    if (o.vtiSolo != null) __t.set('et_vti_diast', o.vtiSolo);
+    if (o.dFuera != null) { __t.set('et_vti_diast', 90);
+      __t.set('et_tsvd_diam', o.dFuera); __t.set('et_vti_tsvd', 14); }
+    const T = function (id) { const e = document.getElementById(id);
+      return e ? (e.textContent || '').trim() : 'NO ' + id; };
+    return { gm: T('et-ref-gmedio'), thp: T('et-ref-thp'), avt: T('et-ref-avt'),
+             fuente: T('et-ref-fuente'), sev: T('et-sev') };
+  };
+  const rVacia = ref({});
+  const rGm49 = ref({ gm: 4.9 }),  rGm50 = ref({ gm: 5 }),   rGm51 = ref({ gm: 5.1 });
+  const rThp189 = ref({ thp: 189 }), rThp190 = ref({ thp: 190 }), rThp191 = ref({ thp: 191 });
+  const rA099 = ref({ area: 0.99 }), rA100 = ref({ area: 1.0 }), rA101 = ref({ area: 1.01 });
+  /* Fuera de la banda de plausibilidad que la app YA usa: gradiente 0-40, THP 50-400,
+     Diam. TSVD 5-60 (el 2,6 es el diametro tipeado en centimetros). */
+  const rGmFuera = ref({ gm: 45 }), rThpFuera = ref({ thp: 500 });
+  const rAreaInsumoFuera = ref({ dFuera: 2.6 });
+  /* El area sin sus tres insumos: NO es fuera de rango, es que falta el dato. */
+  const rAreaFaltan = ref({ vtiSolo: 90 });
+  /* Las tres juntas, cada una en un estado distinto, y basta UNA para el veredicto. */
+  const rMixta = ref({ gm: 4.9, thp: 190, area: 1.01 });
+  /* La frase que se fue del cuadro, y el texto celeste que ya no existe. */
+  const cajaRef = document.getElementById('ete-seccion-valv-tricuspide');
+  const textoRef = cajaRef ? (cajaRef.textContent || '') : '';
+  const hayBadge = !!document.getElementById('et-gmedio-badge');
+
   /* ── EL EXCEL NO CAMBIA DE TAMANIO ───────────────────────────────────────────────────────── */
   const cols = Object.keys(_labExcelRow({ id:0, campos:{} }));
 
@@ -52985,6 +53033,78 @@ caso('TC-429', 'Tricuspide: el Diam. y el VTI del TSVD son UN dato con DOS campo
     ['y deja el area vacia y la severidad sugerida en raya',
       trasNuevo.area === '' && (trasNuevo.sev === '-' || trasNuevo.sev === '—'),
       JSON.stringify(trasNuevo)],
+
+    // --- Las tres filas de referencia, borde por borde ----------------------------------------
+    ['las TRES filas estan presentes y en raya con la tarjeta vacia',
+      rVacia.gm === '—' && rVacia.thp === '—' && rVacia.avt === '—',
+      JSON.stringify(rVacia)],
+    ['la fuente va UNA vez debajo de las filas, con su texto exacto',
+      rVacia.fuente === 'EAE/ASE 2009 · ESC/EACTS 2021. La estenosis tricuspídea no se gradúa: es binaria.',
+      rVacia.fuente],
+    ['gradiente: 4,9 no alcanza · 5 significativa · 5,1 significativa',
+      rGm49.gm === '4.9 mmHg (no alcanza el criterio (≥5 mmHg))'
+      && rGm50.gm === '5 mmHg (significativa (≥5 mmHg))'
+      && rGm51.gm === '5.1 mmHg (significativa (≥5 mmHg))',
+      [rGm49.gm, rGm50.gm, rGm51.gm].join(' || ')],
+    ['THP: 189 no alcanza · 190 significativa · 191 significativa',
+      rThp189.thp === '189 ms (no alcanza el criterio (≥190 ms))'
+      && rThp190.thp === '190 ms (significativa (≥190 ms))'
+      && rThp191.thp === '191 ms (significativa (≥190 ms))',
+      [rThp189.thp, rThp190.thp, rThp191.thp].join(' || ')],
+    ['area: 0,99 y 1,00 significativa · 1,01 no alcanza',
+      rA099.avt === '0.99 cm² (significativa (≤1 cm²))'
+      && rA100.avt === '1.00 cm² (significativa (≤1 cm²))'
+      && rA101.avt === '1.01 cm² (no alcanza el criterio (≤1 cm²))',
+      [rA099.avt, rA100.avt, rA101.avt].join(' || ')],
+    ['y la «Severidad sugerida» acompania los seis bordes',
+      rGm49.sev === '—' && rGm50.sev.indexOf('Significativa') > -1
+      && rThp189.sev === '—' && rThp190.sev.indexOf('Significativa') > -1
+      && rA101.sev === '—' && rA100.sev.indexOf('Significativa') > -1,
+      [rGm49.sev, rGm50.sev, rThp189.sev, rThp190.sev, rA101.sev, rA100.sev].join(' || ')],
+    /* La tercera leyenda. Un valor fuera de banda NO afirma ni niega: no vota, y la fila lo dice
+       en vez de ponerlo en «no alcanza el criterio», que seria sostener una conclusion con un
+       numero que la propia app declaro ilegible. */
+    ['un gradiente FUERA DE BANDA dice «fuera de rango (no gradúa)» y no gradua',
+      rGmFuera.gm === '45 mmHg (fuera de rango (no gradúa))' && rGmFuera.sev === '—',
+      rGmFuera.gm + ' | sev=' + rGmFuera.sev],
+    ['un THP FUERA DE BANDA, idem',
+      rThpFuera.thp === '500 ms (fuera de rango (no gradúa))' && rThpFuera.sev === '—',
+      rThpFuera.thp + ' | sev=' + rThpFuera.sev],
+    ['y el area con un INSUMO fuera de banda tambien lo declara',
+      rAreaInsumoFuera.avt === '— (fuera de rango (no gradúa))' && rAreaInsumoFuera.sev === '—',
+      rAreaInsumoFuera.avt + ' | sev=' + rAreaInsumoFuera.sev],
+    /* CONTROL NEGATIVO de la tercera leyenda: faltar un dato NO es estar fuera de rango. Sin
+       esta condicion, una fila que dijera «fuera de rango» siempre pasaria las tres de arriba. */
+    ['CONTROL: al area le faltan insumos y va en raya PELADA, sin «fuera de rango»',
+      rAreaFaltan.avt === '—', rAreaFaltan.avt],
+    ['las tres filas conviven en estados distintos y basta UNA para el veredicto',
+      rMixta.gm.indexOf('no alcanza') > -1 && rMixta.thp.indexOf('significativa') > -1
+      && rMixta.avt.indexOf('no alcanza') > -1 && rMixta.sev.indexOf('Significativa') > -1,
+      JSON.stringify(rMixta)],
+    /* NUNCA «no significativa» en una fila: es la regla que separa la referencia de la firma. */
+    ['NINGUNA fila escribe «no significativa» en ninguno de los diez estados',
+      [rVacia, rGm49, rGm50, rGm51, rThp189, rThp190, rA099, rA101, rGmFuera, rAreaInsumoFuera, rMixta]
+        .every(function (f) { return !/no significativa/i.test(f.gm + f.thp + f.avt); }),
+      JSON.stringify([rGm49.gm, rThp189.thp, rA101.avt])],
+    ['el texto celeste de abajo ya no existe, y su nodo tampoco',
+      hayBadge === false, 'et-gmedio-badge existe: ' + hayBadge],
+    ['y la frase «Referencia: ET significativa con CUALQUIERA de…» se fue',
+      textoRef.indexOf('CUALQUIERA de') === -1],
+    /* La tabla de cortes congelada: un solo dueno del numero, leido por el calculo Y por las filas. */
+    ['los cortes salen de UNA tabla congelada, con los mismos valores de siempre',
+      typeof ET_CRIT !== 'undefined' && Object.isFrozen(ET_CRIT)
+      && ET_CRIT.gmedio.signif === 5 && ET_CRIT.thp.signif === 190 && ET_CRIT.avt.signif === 1
+      && ET_CRIT.gmedio.signif === ET_GMEDIO_SIGNIF && ET_CRIT.thp.signif === ET_THP_SIGNIF
+      && ET_CRIT.avt.signif === ET_AVT_SIGNIF,
+      JSON.stringify(typeof ET_CRIT !== 'undefined' ? ET_CRIT : null)],
+    ['y las bandas de plausibilidad tambien, con el area SIN banda propia porque es derivada',
+      typeof ET_BANDA_INSUMO !== 'undefined'
+      && ET_CRIT.gmedio.banda[0] === 0 && ET_CRIT.gmedio.banda[1] === 40
+      && ET_CRIT.thp.banda[0] === 50 && ET_CRIT.thp.banda[1] === 400
+      && ET_CRIT.avt.banda === null
+      && ET_BANDA_INSUMO.et_vti_diast[1] === 100 && ET_BANDA_INSUMO.tsvd_diametro[1] === 60
+      && ET_BANDA_INSUMO.vti_tsvd[1] === 60,
+      JSON.stringify({ crit: ET_CRIT, insumo: typeof ET_BANDA_INSUMO !== 'undefined' ? ET_BANDA_INSUMO : null })],
 
     // --- El Excel no cambia de tamanio --------------------------------------------------------
     ['el Excel sigue en 434 columnas', cols.length === 434, 'columnas: ' + cols.length]

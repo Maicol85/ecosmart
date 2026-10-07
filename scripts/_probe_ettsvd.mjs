@@ -654,6 +654,68 @@ async function main() {
     return JSON.stringify(out);
   })()`);
 
+  /* ══ COMMIT C — LAS TRES FILAS DE REFERENCIA ════════════════════════════════════════════════
+     Bordes por los DOS lados de cada corte, el fuera de banda de cada fila, la tarjeta vacia y
+     «Nuevo estudio» (que es donde una fila podria quedar rancia: calcET NO esta en limpiarCampos). */
+  const filas = await J(`(function(){
+    var out = {};
+    var leer = function(){ return {
+      gmedio: window.__P.txt('et-ref-gmedio'), thp: window.__P.txt('et-ref-thp'),
+      avt: window.__P.txt('et-ref-avt'), fuente: window.__P.txt('et-ref-fuente'),
+      sev: window.__P.txt('et-sev'), area: window.__P.val('et_avt'),
+      /* El texto celeste ya no existe: null es lo correcto en el arbol nuevo. */
+      badge: window.__P.txt('et-gmedio-badge') } };
+    var esc = function(o){
+      window.__P.limpiar(); window.__P.denominador();
+      if (o.gm  != null) window.__P.set('et_gmedio', o.gm);
+      if (o.thp != null) window.__P.set('et_thp', o.thp);
+      if (o.area != null) {
+        /* area = PI*(D/20)^2*VTItsvd / VTIdiast  =>  VTIdiast = PI*(D/20)^2*VTItsvd / area */
+        var D = 26, VT = 14;
+        window.__P.set('et_vti_diast', (Math.PI*Math.pow(D/20,2)*VT/o.area).toFixed(6));
+        window.__P.set('et_tsvd_diam', D); window.__P.set('et_vti_tsvd', VT);
+      }
+      if (o.vtiDiastSolo != null) window.__P.set('et_vti_diast', o.vtiDiastSolo);
+      if (o.dFuera != null) { window.__P.set('et_vti_diast', 90);
+        window.__P.set('et_tsvd_diam', o.dFuera); window.__P.set('et_vti_tsvd', 14); }
+      return leer(); };
+
+    out.vacia       = esc({});
+    out.gm_49       = esc({ gm: 4.9 });
+    out.gm_50       = esc({ gm: 5 });
+    out.gm_51       = esc({ gm: 5.1 });
+    out.gm_fuera    = esc({ gm: 45 });     /* banda 0-40 */
+    out.thp_189     = esc({ thp: 189 });
+    out.thp_190     = esc({ thp: 190 });
+    out.thp_191     = esc({ thp: 191 });
+    out.thp_fuera   = esc({ thp: 500 });   /* banda 50-400 */
+    out.avt_099     = esc({ area: 0.99 });
+    out.avt_100     = esc({ area: 1.0 });
+    out.avt_101     = esc({ area: 1.01 });
+    /* El area sin insumos completos: solo el VTI diastolico cargado -> raya, no fuera de rango. */
+    out.avt_faltan  = esc({ vtiDiastSolo: 90 });
+    /* El area con un INSUMO fuera de banda: el Diam. TSVD en centimetros (2,6 por 26). */
+    out.avt_insumo_fuera = esc({ dFuera: 2.6 });   /* banda 5-60 */
+    /* Las tres juntas, cada una en un estado distinto. */
+    out.mixta = esc({ gm: 4.9, thp: 190, area: 1.01 });
+
+    /* NUEVO ESTUDIO: las filas no pueden quedar con el paciente anterior. */
+    window.__P.limpiar(); window.__P.denominador();
+    window.__P.set('et_gmedio', 8); window.__P.set('et_thp', 200);
+    out.antesNuevo = leer();
+    try { limpiarCampos(true); } catch(e) { out.errNuevo = e.message; }
+    window.__P.denominador();
+    out.trasNuevo = leer();
+
+    /* Y la frase que se fue del cuadro. */
+    var caja = document.getElementById('ete-seccion-valv-tricuspide');
+    var txt = caja ? (caja.textContent || '') : '';
+    out.fraseCualquiera = txt.indexOf('CUALQUIERA de') > -1;
+    out.diceNoSignificativaEnFila = [out.gm_49, out.thp_189, out.avt_101, out.mixta].some(function(f){
+      return /no significativa/i.test(String(f.gmedio) + f.thp + f.avt) });
+    return JSON.stringify(out);
+  })()`);
+
   /* ══ MAQUETACION a 360 / 390 / 1200 px ══════════════════════════════════════════════════════ */
   const layout = {};
   for (const w of [360, 390, 1200]) {
@@ -680,7 +742,7 @@ async function main() {
     archivo: FARG, md5_index_antes: antes, md5_index_despues: despues,
     index_intacto: antes === despues,
     listo, consola, porTarjeta, porVDAD, borrados, actualiza, restaura, nuevo, bucle, negativo,
-    gradoFijo, superficies, layout,
+    gradoFijo, superficies, filas, layout,
   }, null, 2));
 
   /* ⚠️ Cerrar el servidor Y salir a mano: `cdp.close()` + `proc.kill()` no alcanzan —el servidor
