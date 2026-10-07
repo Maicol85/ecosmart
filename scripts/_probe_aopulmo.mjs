@@ -237,7 +237,8 @@ window.__P = {
   /* P2 — la AVA indexada en sus lugares de pantalla. */
   fotoAvai() {
     return { ava_idx: window.__P.txt('ava-idx'), ea_det_avai: window.__P.txt('ea-det-avai'),
-             bsa: window.__P.txt('bsa-val'), peso: window.__P.val('peso'),
+             bsa: window.__P.txt('bsa-val'), imc: window.__P.txt('imc-val'),
+             peso: window.__P.val('peso'),
              talla: window.__P.val('talla'), ava_cont: window.__P.val('ava_cont'),
              ea_ava_display: window.__P.val('ea_ava_display'),
              tavi_avai: window.__P.val('ete_tavi_avai') } },

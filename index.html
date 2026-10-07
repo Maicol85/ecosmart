@@ -18654,6 +18654,35 @@ function toast(msg) {
 }
 
 // ══ BSA ══
+/* ══ SIN SUPERFICIE CORPORAL NO HAY AVA INDEXADA — UN SOLO DUEÑO DE ESE ESTADO ════════════════
+   El AVA indexado se pinta en DOS nodos —`ava-idx` (Doppler, dentro del `calc-box` oculto) y
+   `ea-det-avai` (el cuadro de referencias de Válvulas, que SÍ se ve)— y los dos se escribían
+   dentro de un `if (bsa)` SIN `else`: sin superficie corporal el cálculo no corría y el número de
+   la medición anterior se quedaba en pantalla.
+
+   Medido con teclas reales (AVA 1,13 cm², peso 80, talla 175 → AVAi 0,57): borrar el peso dígito
+   por dígito dejaba los dos nodos en **1,81 cm²/m²** —el AVAi del tecleo intermedio `peso=8`— y
+   borrar la talla los dejaba en **8,75**, sobre un estudio sin ASC. El corte de severidad de
+   `EA_CRIT.avai` vive en 0,6, así que el número rancio no es decorativo: cae del lado severo o del
+   normal según de qué paciente venga. El espejo del TAVI ya sabía negarse (`eaTaviEspejar` devuelve
+   vacío sin ASC); estos dos nunca tuvieron la rama.
+
+   ⚠️ ESTO NO ES UN SEGUNDO DUEÑO DE LA CUENTA, Y ES LA DIFERENCIA QUE IMPORTA. Acá no se divide
+   nada: se escribe el ÚNICO valor que el AVAi puede tener sin ASC, que es «no hay». Las dos
+   fórmulas siguen viviendo una en `calcAo` y otra en `_eaDetCuentaPura`, cada una con su propio
+   redondeo (y la segunda indexa el AVA REDONDEADO a propósito — ver su comentario). Lo que esta
+   función centraliza es el ESTADO vacío, que es lo que estaba escrito en cero lugares.
+   Los TRES puntos de llamada son los tres caminos por los que se alcanza: el `else` de cada
+   fórmula, y la salida temprana de `calcBSA` —que es la única que corre al BORRAR el peso o la
+   talla, porque desde ahí no se llama a `calcAo`—. */
+function _eaAvaiSinBSA() {
+  ['ava-idx', 'ea-det-avai'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '\u2014';
+  });
+}
+window._eaAvaiSinBSA = _eaAvaiSinBSA;
+
 function calcBSA() {
   const p = v('peso'), t = v('talla');
   /* El repintado del VLI va ANTES del `return` temprano y no sólo al final: esta rama sale
@@ -18661,8 +18690,32 @@ function calcBSA() {
      Con la llamada sólo abajo, borrar el peso dejaba en pantalla —y en la tabla del PDF— el
      VLI de la ASC anterior. Ya me pasó igual con la PASP del TEER en `calcPSAP`. */
   if (!p || !t) {
-    setv('bsa-val', '—'); setv('imc-val', '—');
+    /* ⚠️ `setv` SOBRE UN `<span>` NO HACE NADA, y estas dos líneas eran un no-op desde el primer
+       día. `bsa-val` e `imc-val` son `<span class="calc-val">`; `setv` escribe `.value`, que en un
+       span crea una propiedad JS y no toca el texto. Medido: con el peso borrado la pantalla seguía
+       diciendo «0.62 m²» —la ASC del tecleo intermedio `peso=8`— y el IMC del paciente anterior.
+       Las OTRAS dos escrituras de estos mismos nodos ya usaban `textContent` (la rama con datos, 25
+       líneas abajo, y `limpiarCampos`): la única que no, era ésta.
+       ⚠️ NINGUNA SUPERFICIE FIRMADA LOS LEE, verificado por censo del archivo entero: los únicos
+       accesos a `bsa-val`/`imc-val` son estas escrituras, la de la rama con datos y la de
+       `limpiarCampos` — cero lecturas. El informe, el EN SUMA, el PDF, el PPT, el Excel y el
+       Laboratorio derivan la ASC de `getBSA()` y el IMC de `getIMC()`, que leen `peso` y `talla`
+       directo (el PDF imprime `ascV = bsa.toFixed(2)`, no el texto del span). O sea que esto era
+       un defecto SÓLO de pantalla — pero de pantalla que contradice al papel del mismo botón. */
+    const _bsaEl = document.getElementById('bsa-val');
+    if (_bsaEl) _bsaEl.textContent = '\u2014 m\u00b2';
+    const _imcEl = document.getElementById('imc-val');
+    if (_imcEl) _imcEl.textContent = '\u2014 kg/m\u00b2';
     if (typeof _vliPintar === 'function') _vliPintar();
+    /* El AVA indexado se deriva de la ASC, así que esta salida es justo el caso en que deja de
+       poder calcularse — el MISMO argumento que las tres líneas de abajo (el VLI, el espejo del
+       TAVI y el PPM) y la misma lección que esta función ya escribe dos veces. Sin esto, borrar el
+       peso dejaba «AVA indexada 1,81 cm²/m²» en el cuadro de Válvulas sobre un estudio sin ASC.
+       ⚠️ NO SE LLAMA A `calcAo()` ACÁ, aunque la rama con datos sí lo haga. `calcAo` escribe el
+       GRADO —`sugerirSeveridadEA`, `clasificarEA_Vmax`, `valvAutoPrenderEsten`—, y borrar el peso
+       no puede mover una afirmación de severidad: es la regla de esta tanda («nada de la cola de
+       calcAo, del grado ni del aviso»). Se escribe el estado vacío y nada más. */
+    if (typeof _eaAvaiSinBSA === 'function') _eaAvaiSinBSA();
     /* El AVAi del espejo del TAVI se deriva de la superficie corporal, así que esta salida temprana
        también lo repinta: sin esto, borrar el peso dejaba un «AVA indexada 0,6 cm²/m²» en el informe
        firmado sobre un estudio sin ASC. El espejo ya sabe negarse; nunca se le daba la oportunidad. */
@@ -25036,6 +25089,10 @@ function _eaDetCuentaPura() {
          fijó para la FAC del VD y para la geometría del VI. */
       const avai = (PF(avaStr) / bsa).toFixed(2);
       document.getElementById('ea-det-avai').textContent = avai + ' cm²/m²';
+    } else {
+      /* Gemelo del `else` de `calcAo`. Éste es el nodo que SE VE —`ava-idx` vive en un `calc-box`
+         con `display:none`—, así que es el que le mentía al médico en la cara. */
+      if (typeof _eaAvaiSinBSA === 'function') _eaAvaiSinBSA();
     }
     const dvi = (itsvi/itvao).toFixed(2);
     /* El MISMO argumento que en `calcAo` para `dvi-val`, y acá pesa más: de este `input` sale el
@@ -26269,6 +26326,11 @@ function calcAo() {
          y dejarlo limpio al lado de un AVA marcado deja un criterio de severidad (`avai 0,6` de
          `EA_CRIT`) sostenido por el valor que acabamos de declarar ilegible. */
       document.getElementById('ava-idx').textContent = avai + ' cm²/m²' + (_avaDud ? MARCA_REVISAR : '');
+    } else {
+      /* Sin ASC no hay AVA indexado, y dejar el de la medición anterior es publicar un criterio de
+         severidad (`EA_CRIT.avai`, corte 0,6) sostenido por el peso de otro paciente. Es el mismo
+         `else` que la rama del G. máximo acaba de recibir, por la misma causa. */
+      if (typeof _eaAvaiSinBSA === 'function') _eaAvaiSinBSA();
     }
     /* El módulo TAVI espeja estos mismos números, y se repinta ACÁ porque `calcAo` es el que los
        acaba de escribir: sin esto el bloque de TAVI queda con los de la medición anterior hasta que
@@ -97497,8 +97559,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-1515';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791396913074;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-1525';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791397546023;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -97584,7 +97646,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1515</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1525</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
