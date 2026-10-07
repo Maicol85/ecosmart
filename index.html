@@ -3526,7 +3526,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                  veredicto protésico), así que corriendo después publicaría el valor viejo en este
                  mismo tecleo. Es UNA de las dos puertas por las que el médico tipea la Vmax; la
                  otra es `ea_vmax`, en Válvulas. Ver `aoTangoApagarPorVmax`. -->
-            <input type="number" id="vmax_ao" placeholder="m/s" step="0.1" oninput="aoTangoApagarPorVmax();calcAo();eteShuntSyncSiExiste();_eaDetCuentaPura()">
+            <input type="number" id="vmax_ao" placeholder="m/s" step="0.1" oninput="aoTangoApagarPorVmax();eaParEditado('vmax_ao')">
           </div>
           <div class="fg">
             <label>G. máx (mmHg) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto</span></label>
@@ -4822,7 +4822,7 @@ window.cerrarSesionReal = cerrarSesionReal;
             <!-- ⚠️ EL APAGADO DEL TANGO VA EN ESTE CAMPO Y NO EN `syncEADesdeValvulas`, que es la
                  que comparten los CINCO campos de este bloque: colgarlo de ella borraría el Tango
                  al editar el gradiente o un VTI. Ver `aoTangoApagarPorVmax`. -->
-            <input type="number" id="ea_vmax" placeholder="m/s" step="0.1" oninput="aoTangoApagarPorVmax();syncEADesdeValvulas()">
+            <input type="number" id="ea_vmax" placeholder="m/s" step="0.1" oninput="aoTangoApagarPorVmax();eaParEditado('ea_vmax');syncEADesdeValvulas()">
           </div>
           <div class="fg">
             <label>G. m&aacute;x (mmHg) &mdash; auto</label>
@@ -24982,6 +24982,15 @@ function _eaDetCuentaPura() {
     document.getElementById('ea-det-gmax').textContent = gmax + ' mmHg';
   } else {
     document.getElementById('ea-det-gmax').textContent = '—';
+    /* ⚠️ EL `input readonly` TAMBIÉN SE LIMPIA, y es el mismo defecto que la rama del AVA ya tenía
+       cerrado para `ea_ava_display` y `ea_dvi_display`: esta rama vaciaba el `<span>` y dejaba
+       `ea_gmax_display` con el G. máximo de la medición anterior. Es un `input[id]`, así que
+       `guardarInforme` lo barre y viaja dentro de `campos` al estudio guardado y al backup.
+       En HEAD el hueco existía pero no se alcanzaba desde el gesto: borrar la Vmax en Válvulas no
+       borraba la del Doppler, así que `vmax` seguía llegando por la cascada y la rama no se tocaba.
+       Coordinar las dos casillas lo hace alcanzable —medido: las dos en blanco y la casilla
+       diciendo «71 mmHg»—, así que se cierra en el mismo commit que lo destapa. */
+    const _gmEl = document.getElementById('ea_gmax_display'); if (_gmEl) _gmEl.value = '';
   }
   document.getElementById('ea-det-gmedio').textContent = gmedio ? gmedio + ' mmHg' : '—';
 
@@ -25401,6 +25410,86 @@ window.tsviDiamEditado = tsviDiamEditado;
 function syncTSVI() {
   tsviDiamEditado('diam_tsvi_ao');
 }
+
+/* ══ LOS CAMPOS DEL BLOQUE DE VÁLVULAS SON DATOS CON DOS PUERTAS, NO COPIAS ════════════════════
+   Mismo problema, mismo patrón y mismo motivo que el Ø TSVI de la tanda anterior (ver «EL DIÁM.
+   DEL TSVI ES UN DATO CON TRES CAMPOS», unas cien líneas arriba). `ea_vmax` y `vmax_ao` son la
+   MISMA medición, en la misma unidad, con dos casillas: una en Válvulas — Estenosis Aórtica y otra
+   en Doppler Aórtico. El portador es el del Doppler: es el que leen `calcAo`, `eaEscenario` —y de
+   ahí el informe narrativo, el EN SUMA y el PDF—, `_labExcelRow`, el PPT y el importador. El del
+   bloque de Válvulas es una puerta de entrada.
+
+   Lo que esto cierra, MEDIDO en HEAD con la pastilla de estenosis APAGADA a mano:
+     · tipear en el DOPPLER no movía el espejo de Válvulas, y como la cuenta lee la cascada
+       `ea_* || <Doppler>`, el espejo rancio GANABA: corregir el VTI aórtico de 50 a 60 dejaba
+       `ea_ava_display` en «1.01 cm²» con `ava_cont` ya en 0,84;
+     · BORRAR en Válvulas era imposible por la vuelta `syncEADesdeValvulas` → `calcAo` →
+       `sincronizarEADesdeGlobal`, que reponía el campo en el mismo tecleo;
+     · BORRAR en el Doppler dejaba el espejo cargado, y la cuenta del bloque seguía publicando un
+       número sobre una medición que ya no existía.
+
+   ⚠️ NO HAY BUCLE, Y NO ES POR LA GUARDA: asignar `.value` por código NO dispara `oninput`, así que
+   el espejo nunca se re-dispara solo. `_eaParSinc` está para el día en que alguien despache un
+   `input` a mano —los arneses de prueba lo hacen—, exactamente como documentan `tsviDiamSync` e
+   `itVmaxSync`.
+
+   ⚠️ LA SALIDA TEMPRANA POR VALOR IGUAL no es cosmética: escribir `.value` con el mismo contenido
+   mueve el caret al final del campo. Se compara el TEXTO crudo y no el número, por el mismo motivo
+   que las otras dos: «21» y «21.0» son el mismo número y dos textos distintos, y el médico tiene
+   que poder verificar de un vistazo que las dos casillas dicen LO MISMO.
+
+   ⚠️ EL VACÍO SE COPIA IGUAL QUE UN NÚMERO, y es la mitad de este arreglo: borrar en cualquiera de
+   las dos puertas borra en la otra. Por eso `eaParEditado` corre ANTES de `syncEADesdeValvulas` en
+   el `oninput` del lado Válvulas: cuando las dos sincronías compartidas corren, las dos casillas ya
+   están vacías, su guarda `if (el && val)` no escribe nada y el borrado NO se repone. Ninguna de
+   las dos funciones compartidas se tocó — las comparten los cinco campos del bloque.
+
+   ⚠️ EL CONJUNTO DE RECÁLCULOS ES UNO POR CAMPO Y LAS DOS PUERTAS LEEN LA MISMA FILA. No son dos
+   listas que haya que mantener iguales: es la misma. Cada fila lleva la UNIÓN de lo que las dos
+   puertas disparaban en HEAD, que es siempre el conjunto mayor:
+     · el lado Doppler traía `eteShuntSyncSiExiste` (y el VTI TSVI además los tres espejos
+       mitral/IAo), y no traía nada del bloque de Válvulas;
+     · el lado Válvulas traía `iaSyncSiExiste` por dentro de `syncEADesdeValvulas`.
+   `calcAo` y la cuenta pura van en el cuerpo, porque los lleva toda fila. La cuenta pura va
+   ÚLTIMA: lee la cascada y `calcAo` es la que puede haber refrescado el espejo un paso antes.
+
+   ⚠️ `aoTangoApagarPorVmax` NO ENTRA ACÁ Y SIGUE EN LOS DOS `oninput`. Esa función se cuelga del
+   GESTO y no del valor —es lo que distingue al médico del código— y es propia de la Vmax: meterla
+   en el cuerpo compartido la dispararía al editar el gradiente o un VTI, que es exactamente lo que
+   su propio comentario prohíbe. Va PRIMERA en las dos puertas, como en HEAD. */
+let _eaParSinc = false;
+const _EA_PARES = Object.freeze({
+  ea_vmax: { par:'vmax_ao', recalc:['eteShuntSyncSiExiste','iaSyncSiExiste'] },
+  vmax_ao: { par:'ea_vmax', recalc:['eteShuntSyncSiExiste','iaSyncSiExiste'] }
+});
+function eaParSync(origenId) {
+  if (_eaParSinc) return null;
+  const fila = _EA_PARES[origenId];
+  if (!fila) return null;
+  _eaParSinc = true;
+  try {
+    const src = document.getElementById(origenId);
+    const dst = document.getElementById(fila.par);
+    if (!src || !dst) return null;
+    const val = src.value;
+    if (dst.value === val) return { origen: origenId, destino: fila.par, valor: val, copio: false };
+    dst.value = val;
+    return { origen: origenId, destino: fila.par, valor: val, copio: true };
+  } finally { _eaParSinc = false; }
+}
+window.eaParSync = eaParSync;
+
+/* La puerta — una sola función para los dos lados de cada campo. */
+function eaParEditado(origenId) {
+  eaParSync(origenId);
+  calcAo();
+  const fila = _EA_PARES[origenId];
+  if (fila) fila.recalc.forEach((f) => {
+    if (typeof window[f] === 'function') window[f]();
+  });
+  if (typeof _eaDetCuentaPura === 'function') _eaDetCuentaPura();
+}
+window.eaParEditado = eaParEditado;
 
 // ══ AORTICO ══
 
@@ -97373,8 +97462,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-1238';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791387529059;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-1242';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791387738433;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -97460,7 +97549,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1238</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1242</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
