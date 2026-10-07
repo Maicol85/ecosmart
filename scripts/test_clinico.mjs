@@ -4458,7 +4458,27 @@ caso('TC-133', 'Doppler tricuspideo: E/A, E/e y los dos signos INDIRECTOS de HTP
     ['y se declara en vez de desaparecer', ilegible.f.indexOf('fuera de rango') > -1],
     ['con un solo insumo no hay cociente', soloE.r.ea === null && soloE.r.eep === null],
     // El modulo sigue sin duplicar campos ni frases.
-    ['el TAP se lee de tvia: no se creo un campo propio', !document.getElementById('dt_tap')],
+    /* ATENCION: ESTA CONDICION CAMBIO DE AFIRMACION EL 2026-10-07, A PROPOSITO Y AUTORIZADO.
+       Decia «el TAP se lee de tvia: no se creo un campo propio» y comprobaba que NO existiera
+       dt_tap. Hoy dt_tap SI existe —es el TAP del bloque Doppler tricuspideo, el insumo de la PAP
+       media cuando no hay PSAP— pero el invariante que esa condicion defendia sigue en pie, y es
+       el que se prueba ahora: el TAP es UN dato con DOS campos espejados, no dos datos. Las
+       catorce frases de arriba se siguen midiendo escribiendo en tvia, asi que si el espejo se
+       rompiera al reves —campo nuevo cargado, tvia vacio— el informe quedaria mudo y este caso lo
+       diria. El defecto a cazar es un valor que quede en uno solo de los dos campos.
+       Se mide al final, para no pisar las escenas de arriba, y deja el formulario limpio. */
+    ['el TAP sigue siendo UN dato: dt_tap existe y espeja a tvia en los dos sentidos', (function(){
+      if (!document.getElementById('dt_tap')) return false;
+      __t.limpiar();
+      __t.set('tvia', '95');
+      const ida = __t.val('dt_tap') === '95';
+      __t.set('dt_tap', '130');
+      const vuelta = __t.val('tvia') === '130';
+      __t.set('dt_tap', '');
+      const borra = __t.val('tvia') === '' && __t.val('dt_tap') === '';
+      __t.limpiar();
+      return ida && vuelta && borra;
+    })()],
     ['el TRIV del ventriculo izquierdo sigue existiendo aparte',
       !!document.getElementById('triv') && !!document.getElementById('dt_triv')],
     ['y el bloque de llenado no repite los signos indirectos',

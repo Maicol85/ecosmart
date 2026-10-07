@@ -3137,7 +3137,9 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div class="grid-3">
         <div class="fg">
           <label>TAP (ms)</label>
-          <input type="number" id="tvia" placeholder="ms" oninput="calcVD()">
+          <!-- `dtTapSync` PRIMERO, igual que `itVmaxSync` en la Vmax IT: el espejo del Doppler
+               tricuspídeo se actualiza antes de que corran los cálculos de atrás. -->
+          <input type="number" id="tvia" placeholder="ms" oninput="dtTapSync('tvia');calcVD()">
         </div>
         <div class="fg">
           <label>TAPSE (mm)</label>
@@ -3697,12 +3699,32 @@ window.cerrarSesionReal = cerrarSesionReal;
           <input type="text" id="pmad_display" readonly style="color:var(--accent2);">
         </div>
       </div>
-      <!-- Fila secundaria: PAP media -->
+      <!-- Fila 2: TAP → PAP media → TRIV por Doppler tisular → (vacía) -->
       <div class="grid-4" style="margin-top:6px;">
+        <div class="fg">
+          <label>TAP (ms)</label>
+          <!-- ⚠️ ES EL MISMO DATO QUE `tvia` DEL BLOQUE «Ventrículo derecho» DE LA PESTAÑA VD/AD
+               (2026-10-07), igual que `vmax_it`/`it_vmax_cw` acá arriba. El DUEÑO sigue siendo
+               `tvia`: de ahí leen la probabilidad de HTP ESC 2022 (categoría B, <105 ms),
+               `calcVD`, la frase de signos indirectos del informe, el PDF, el Excel y el
+               importador DICOM. Este campo es una segunda ENTRADA del mismo número, no un
+               segundo dato, y por eso NO tiene id `tap` ni aparece en ningún emisor.
+               `calcVD()` va detrás del espejo —y no es decorativo—: es el que repinta el badge
+               «<105 ms» de VD/AD y el que vuelve a correr `calcHTP2022`, así que cargar el TAP
+               acá tiene exactamente el mismo efecto que cargarlo allá.
+               SIN BANDA DE PLAUSIBILIDAD, a propósito: `tvia` nunca tuvo una y agregarla acá
+               haría aparecer MARCA_REVISAR en un informe firmado por un camino nuevo. Queda
+               pendiente aparte. -->
+          <input type="number" id="dt_tap" step="1" placeholder="ms" oninput="dtTapSync('dt_tap');calcVD()">
+        </div>
         <div class="fg">
           <label>PAP media estimada (mmHg)</label>
           <input type="text" id="pap_med" readonly placeholder="—">
         </div>
+        <div class="fg"><label>TRIV por Doppler tisular (ms)</label>
+          <input type="number" id="dt_triv" step="1" placeholder="ms" oninput="calcDopTric()">
+          <span style="font-size:10px;color:var(--text2);">No es el TRIV del ventrículo izquierdo, que se carga en <b>Diastólica</b>.</span></div>
+        <div class="fg"></div>
       </div>
       <div style="font-size:11.5px;font-weight:700;color:var(--accent2);margin:14px 0 4px;">Llenado y relajación del ventrículo derecho</div>
       <div class="grid-4">
@@ -3712,9 +3734,13 @@ window.cerrarSesionReal = cerrarSesionReal;
           <input type="number" id="dt_onda_a" step="1" placeholder="cm/s" oninput="calcDopTric()"></div>
         <div class="fg"><label>e' anular lateral tricuspídeo (cm/s)</label>
           <input type="number" id="dt_eprime_lat" step="0.1" placeholder="cm/s" oninput="calcDopTric()"></div>
-        <div class="fg"><label>TRIV tricuspídeo (ms)</label>
-          <input type="number" id="dt_triv" step="1" placeholder="ms" oninput="calcDopTric()">
-          <span style="font-size:10px;color:var(--text2);">No es el TRIV del ventrículo izquierdo, que se carga en <b>Diastólica</b>.</span></div>
+        <!-- TDE tricuspídeo: se CARGA y se GUARDA, y todavía no entra en ningún cálculo ni en
+             ninguna superficie firmada (informe, EN SUMA, PDF, PPT) ni en el Excel, que sigue en
+             434 columnas. Sin `oninput` porque no hay nada que recalcular: el día que entre en la
+             clasificación diastólica —la Tabla 6 de la ASE 2025 lo lista como criterio y la app
+             deliberadamente no lo usa, ver `dtDiastEstado`— habrá que colgarle `calcDopTric()`. -->
+        <div class="fg"><label>TDE tricuspídeo (ms)</label>
+          <input type="number" id="dt_tde" step="1" placeholder="ms"></div>
       </div>
       <div class="calc-box" style="margin-top:8px;">
         <div class="calc-row"><span class="calc-lbl">Gradiente VD-AD (4×VRT²)</span><span id="grad-vdad-interp">—</span></div>
@@ -20622,7 +20648,13 @@ window.dptCambio = dptCambio; window.cvrCambio = cvrCambio;
    TRES COSAS QUE SE VERIFICARON ANTES DE CREAR UN CAMPO, Y DOS CAMBIARON EL PLAN:
    · `vmax_it` YA EXISTE — es la Vmax de la insuficiencia tricuspídea, no se duplica.
    · **TAP ya existe y su id es `tvia`**, no `tap`. Está en el bloque del VD, rotulado «TAP (ms)»,
-     y va al Excel como tal. Crear un `dt_tap` habría sido la segunda entrada del mismo dato.
+     y va al Excel como tal.
+     ⚠️ ACTUALIZADO 2026-10-07: `dt_tap` SÍ EXISTE desde esa fecha, y el párrafo de arriba sigue
+     siendo cierto porque `dt_tap` **no es un segundo dato**: es un espejo de `tvia` en los dos
+     sentidos (`dtTapSync`), sin ningún emisor propio. El que leen la probabilidad de HTP, el
+     informe, el PDF, el Excel y el importador sigue siendo `tvia`. Lo que cambió es que el TAP se
+     puede cargar y mirar también desde acá, porque es el insumo de la PAP media cuando no hay
+     PSAP. Ver el comentario de `dtTapSync`.
    · **`triv` YA EXISTE pero es el del VENTRÍCULO IZQUIERDO** — vive junto a `tde` y `thp` en el
      bloque diastólico. El tricuspídeo es otra medición, así que `dt_triv` NO es un duplicado; el
      rótulo del campo lo dice, para que nadie cargue uno donde va el otro.
@@ -29425,6 +29457,50 @@ function itVmaxSync(origenId) {
 }
 window.itVmaxSync = itVmaxSync;
 
+/* ══ EL TAP ES UN DATO CON DOS CAMPOS (2026-10-07) ════════════════════════════════════════════
+   `tvia` (pestaña VD/AD, bloque «Ventrículo derecho», rotulado «TAP (ms)») y `dt_tap` (pestaña
+   Doppler, bloque tricuspídeo) son el MISMO tiempo de aceleración pulmonar, los dos en ms. El
+   médico lo mide una vez y lo necesita mirar desde los dos lados: desde el VD/AD porque es una
+   medida del ventrículo derecho, y desde el Doppler tricuspídeo porque es el insumo de la PAP
+   media cuando no hay insuficiencia que permita estimar la PSAP.
+
+   ⚠️ `tvia` SIGUE SIENDO EL DUEÑO Y NO ES UN DETALLE. De `tvia` leen la probabilidad de HTP
+   ESC 2022 (categoría B, `tap < 105`), `calcVD`, `dopTricEstado`, `htpIndirectosFrase`, la línea
+   A3 de la tricúspide del informe, el PDF, «Ver detalle», el Excel («TAP (ms)») y el importador
+   DICOM (`DCM_ETIQ.tvia`). NINGUNO de esos lectores se tocó: `dt_tap` no aparece en ningún
+   emisor. Es una segunda ENTRADA del mismo número, no un segundo dato.
+
+   NO HAY BUCLE, Y NO ES POR LA GUARDA: asignar `.value` por código no dispara `oninput`, así que
+   el espejo no se re-dispara solo. `_dtTapSinc` está para el día en que alguien despache un
+   `input` a mano —los arneses de prueba lo hacen—, exactamente como documenta `itVmaxSync`.
+   La salida temprana por TEXTO igual —no por número— evita el salto del caret al tipear y deja
+   los dos campos mostrando el mismo literal, que es lo que el médico tiene que poder verificar
+   de un vistazo.
+
+   ⚠️ LLAMADA SIN ARGUMENTO COPIA `tvia` → `dt_tap`, y ESO es lo que la pone en `RECALC_MODULOS`.
+   Las cinco rutas de restauración pueblan asignando `.value`, que no dispara ningún evento, y hay
+   tres orígenes que traen `tvia` SIN `dt_tap`: un estudio guardado antes de hoy, uno importado del
+   Excel (la columna «TAP (ms)» escribe `tvia`) y uno del SR DICOM, que escribe `tvia` dentro de
+   `campos` y nunca pasa por el formulario. Sin esto, el campo nuevo abría VACÍO sobre un TAP
+   cargado y el médico veía la PAP media en «—» con el dato puesto en la otra pestaña.
+   `limpiarCampos` NO la necesita: los dos campos son `input[type=number]` y los vacía el barrido
+   que ya existe, así que ahí el espejo sería un no-op de '' a ''. */
+let _dtTapSinc = false;
+function dtTapSync(origenId) {
+  if (_dtTapSinc) return null;
+  _dtTapSinc = true;
+  try {
+    const a = document.getElementById('tvia'), b = document.getElementById('dt_tap');
+    if (!a || !b) return null;
+    const src = (origenId === 'dt_tap') ? b : a;
+    const dst = (origenId === 'dt_tap') ? a : b;
+    if (dst.value === src.value) return { copio: false, valor: src.value };
+    dst.value = src.value;   /* borrar en uno borra en el otro: '' se copia igual que un número */
+    return { copio: true, valor: src.value };
+  } finally { _dtTapSinc = false; }
+}
+window.dtTapSync = dtTapSync;
+
 /* ══ P5 · «Vmax IT cargada con la insuficiencia apagada» ══════════════════════════════════════
    AVISA Y NO ARREGLA (decisión de Maicol): no prende la pastilla y no borra nada. Un solo dueño
    para que el aviso no pueda quedar desincronizado del estado, igual que `sevSincronizar` con el
@@ -35618,6 +35694,11 @@ function RECALC_MODULOS() {
      `vliCalc()` lo computa en vivo. El dato que sostiene «paradojal» vs «flujo normal» estaba
      en el informe firmado y no en la pantalla, que es exactamente lo que el campo vino a
      resolver. */
+  /* `dtTapSync` sin argumento copia `tvia` → `dt_tap`, el espejo del TAP en el Doppler
+     tricuspídeo. Entra acá porque los tres orígenes que traen `tvia` sin `dt_tap` —un estudio
+     guardado antes del 2026-10-07, uno del Excel y uno del SR DICOM— reponen asignando `.value`,
+     que no dispara `oninput`. Va ANTES de `calcDopTric` por el mismo motivo que `itVmaxSync` va
+     antes de los cálculos en el `oninput` de la Vmax IT. Ver su propio comentario. */
   /* `calcVD`, `calcTEER` y `calcOAI` entran acá aunque sean `calc*`. Los tres pasaron a pintar
      estado que NO es sólo un número derivado:
        · `calcVD` resume ahora los tres diámetros en la cápsula;
@@ -35637,7 +35718,7 @@ function RECALC_MODULOS() {
      `emAvmPdfVal` para la fila del PDF, `dataset` protege esa decision, y `disabled` no lo
      persiste ni lo lee nadie. Los dos primeros siguen intocados — que es exactamente la objecion
      que este archivo dejo escrita para IM: «pisaria la decision que la reimpresion respalda». */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -96334,8 +96415,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261006-2349';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791341371925;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-0028';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791343721472;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -96421,7 +96502,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-2349</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-0028</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
