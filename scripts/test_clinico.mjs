@@ -33126,17 +33126,29 @@ caso('TC-287', 'AVA, AVAi y DVI aorticos son UN solo calculo: identicos en Valvu
          caso muere con un SyntaxError que apunta a la linea del «caso(». Los helpers que si usan
          regex en este archivo llevan doble barra por eso mismo. Aca alcanza con buscar cadenas:
          la LLAMADA lleva parentesis y argumento, y el comentario que nombra la funcion no. */
-      const cAo = String(calcAo), cDet = String(calcEADetalle);
+      /* ⚠️ LA SEGUNDA FUNCION YA NO ES «calcEADetalle» SINO «_eaDetCuentaPura» (2026-10-07). La
+         cuenta y los cuatro nodos de solo lectura se extrajeron a esa funcion para poder refrescar
+         el AVA, el DVI y el G. max desde el conjunto de recalculos de un insumo sin arrastrar la
+         escritura del grado ni el aviso de retiro. La formula NO se movio de «_avaContinuidad»; lo
+         que se movio es el cuerpo que la llama, asi que mirar «String(calcEADetalle)» media una
+         costura que ya no existe y daba rojo sobre codigo correcto.
+         Se agrega la TERCERA condicion —que «calcEADetalle» delegue— porque sin ella la cadena se
+         puede cortar en silencio: una copia inline reintroducida alla arriba volveria a ser la via
+         primaria del grado mientras esta condicion sigue verde mirando la funcion de al lado. */
+      const cAo = String(calcAo), cDet = String(_eaDetCuentaPura);
+      const DELEGA = '_eaDetCuentaPura()';
       /* ⚠️ NO se prohibe la expresion «Math.PI * ((dtsvi/20)**2)»: en las DOS funciones es un
          FALLBACK declarado —«se cae a la expresion anterior por si alguna vez devuelve null»— y no
          una copia rival. Mi primera version la prohibia y daba rojo sobre el codigo correcto. Lo
          que se fija es que la via PRIMARIA sea la funcion unica, que es lo que la mutacion saca. */
       const LLAMADA = '_avaContinuidad(dtsvi';
       ex.push(['las dos funciones que calculan el AVA tienen su via PRIMARIA en _avaContinuidad y ninguna vuelve a calcular la formula por su cuenta',
-        typeof _avaContinuidad === 'function' &&
-        cAo.indexOf(LLAMADA) > -1 && cDet.indexOf(LLAMADA) > -1,
+        typeof _avaContinuidad === 'function' && typeof _eaDetCuentaPura === 'function' &&
+        cAo.indexOf(LLAMADA) > -1 && cDet.indexOf(LLAMADA) > -1 &&
+        String(calcEADetalle).indexOf(DELEGA) > -1,
         'calcAo llama=' + (cAo.indexOf(LLAMADA) > -1) +
-        ' · calcEADetalle llama=' + (cDet.indexOf(LLAMADA) > -1)]);
+        ' · _eaDetCuentaPura llama=' + (cDet.indexOf(LLAMADA) > -1) +
+        ' · calcEADetalle delega=' + (String(calcEADetalle).indexOf(DELEGA) > -1)]);
 
       /* ── EL GANCHO DE LA FASE 1 YA NO EXISTE: LA FASE 2 LO REEMPLAZO POR LA IMPLEMENTACION ──
          «eaCriterioSeveridad» devolvia «{protesis, tipo, cortes:null}» y su unico proposito era que

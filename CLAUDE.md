@@ -207,12 +207,19 @@ impecable.
   ⚠️ **Este renglón se escribió mal una vez**: decía «doce commits sin pushear, `origin/main` en
   `2e017a1`», copiado del estado anterior sin mirar. `origin/main` había avanzado. Antes de
   escribirlo, `git rev-parse --short origin/main` y `git log --oneline origin/main..HEAD`.
-- **Línea base al 2026-10-06 (tanda de la ET binaria): suite 436/440, Semgrep 127 / 0 ERROR, Excel
-  434 columnas.** Los cuatro rojos son los de entrada y NO son regresiones: **TC-223** (el
-  documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**. ⚠️ **El denominador subió a
-  440**: la tanda de la ET binaria agregó **TC-416** (la de la Vmax IT había agregado TC-415). Los
-  renglones viejos de este archivo —421/422, 425/429, 426/430— quedaron atrás, así que volver a
-  medir antes de leer una tanda de mutaciones sigue siendo obligatorio.
+- **Línea base al 2026-10-07 (tanda de los cálculos automáticos de la EA): suite 445/449 con el
+  pendrive puesto —428/449 con el pendrive afuera, que es la MISMA medición—, Semgrep 127 / 0
+  ERROR, Excel 434 columnas.** Los cuatro rojos son los de entrada y NO son regresiones: **TC-223**
+  (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**. Chequeo de celular:
+  `node scripts/check_mobile.js` → **43 hallazgos a 360 px y 52 a 390 px, 1 ALTA cada uno**;
+  con `--todo` → **367 a 360 px y 376 a 390 px, 1 ALTA cada uno**.
+  ⚠️ **El denominador es 449 y no 440**: el renglón anterior decía «suite 436/440» y estaba viejo
+  —las tandas de la ET binaria y las siguientes lo movieron—. Los renglones viejos de este archivo
+  —421/422, 425/429, 426/430, 436/440— quedaron atrás, así que volver a medir antes de leer una
+  tanda de mutaciones sigue siendo obligatorio.
+  ⚠️ **Y mirar si el pendrive está montado ANTES de comparar dos cifras.** Esta tanda abrió con el
+  pendrive afuera (428/449, 17 rojos de entorno) y lo tenía puesto al cerrar (445/449): las dos
+  describen el mismo árbol y restarlas da una «regresión» de 17 casos que no existe.
   ⚠️ **Y medirla DE VERDAD, no leer este renglón:** esta tanda abrió con 409/430 y 17 rojos, de los
   que 7 tenían una causa ÚNICA y compartida (el guardián del importador) y ninguno era de la mitral
   aunque sus títulos lo dijeran. Correr los sospechosos con `--solo` **sobre HEAD** fue lo que

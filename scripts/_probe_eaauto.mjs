@@ -362,7 +362,11 @@ async function main() {
      si el camino que midio es el que creia. */
   if (hacer('rancio2')) {
     const rancio2 = {};
-    const CAMBIOS2 = [['itv_ao','60'], ['itv_tsvi','22'], ['diam_tsvi_ao','24'], ['vmax_ao','4.2']];
+    /* Cada valor nuevo es DISTINTO del de la base: un cambio que no cambia nada no puede mostrar
+       si la salida se refresco (la primera version puso la Vmax en 4,2, que ya era la de la base,
+       y la fila salia «quieta» sin que eso probara nada). */
+    const CAMBIOS2 = [['itv_ao','60'], ['itv_tsvi','22'], ['diam_tsvi_ao','24'],
+                      ['vmax_ao','3.0'], ['gmedio_ao','28']];
     const ESCENAS = [
       ['1-AVA-sola', `
         window.__E.set('diam_tsvi_ao', 20);
@@ -660,29 +664,85 @@ async function main() {
     return JSON.stringify({ sinEntrarAValvulas: pru(false), entrandoAValvulas: pru(true) });
   })()`);
 
-  /* ── 5(b) · importador XML del ecografo: la Vmax IAo en cm/s y en m/s ───────────────────── */
+  /* ── 5(b) · IMPORTADOR XML DEL ECOGRAFO, con una muestra SINTETICA del GE ────────────────
+     Se arma el <measurements> como lo manda el Vivid, se parsea con el MISMO DOMParser y se
+     recorre con el MISMO bucle que `_chmLeerEstudio` (parameter -> measpar -> _chmMapearMedicion),
+     que es donde viven el factor de unidad y el control de rango. Despues el valor se mete en un
+     estudio por la misma puerta que usa `dcmImpEjecutar` —`campos[campo] = _dcmRed(valor)`— y se
+     reabre con `editarInforme`, asi que lo que se lee al final es el CAMPO del formulario. */
   if (hacer('importador')) OUT.importador = await J(`(function(){
-    var fns = ['chmImportarTexto','_chmParsear','chmParsear','chmAplicar','_chmAplicar']
-      .filter(function(f){ return typeof window[f] === 'function' });
-    var mapa = (function(){ try { return JSON.stringify(CHM_MAPA['AV Vmax P'] || null) }
-                            catch(e){ return 'EXC' } })();
-    var rango = (function(){ try { return JSON.stringify(CHM_RANGO['ia_vmax_cw'] || null) }
-                             catch(e){ return 'EXC' } })();
-    var tabla = (function(){ try {
-      var o = {};
-      Object.keys(CHM_MAPA).forEach(function(k){
-        var e = CHM_MAPA[k];
-        if (e && (e.campo === 'ia_vmax_cw' || e.campo === 'it_vmax_cw' || e.campo === 'vmax_ao')) {
-          o[k] = JSON.stringify(e); }
+    var XML = function(unidad, valor){
+      return '<?xml version="1.0" encoding="UTF-8"?>' +
+        '<measurements>' +
+          '<patient><last_name>Sintetico</last_name><first_name>GE</first_name>' +
+            '<patient_id>9999</patient_id><birthdate>1960-01-01</birthdate>' +
+            '<exam_date>2026-10-07</exam_date></patient>' +
+          '<parameter NAME="AR Vmax"><measpar>' +
+            '<name>AR Vmax</name><unit>' + unidad + '</unit><aver>' + valor + '</aver>' +
+          '</measpar></parameter>' +
+          '<parameter NAME="AV Vmax P"><measpar>' +
+            '<name>AV Vmax P</name><unit>m/s</unit><aver>4.2</aver>' +
+          '</measpar></parameter>' +
+        '</measurements>';
+    };
+    var leer = function(unidad, valor){
+      var doc = new DOMParser().parseFromString(XML(unidad, valor), 'text/xml');
+      var err = doc.getElementsByTagName('parsererror')[0];
+      if (err) return { err: String(err.textContent||'').slice(0,120) };
+      if (!doc.documentElement || doc.documentElement.nodeName !== 'measurements')
+        return { err: 'raiz ' + (doc.documentElement ? doc.documentElement.nodeName : '?') };
+      var ok = [], no = [];
+      var params = doc.getElementsByTagName('parameter');
+      for (var i = 0; i < params.length; i++) {
+        var nombre = String(params[i].getAttribute('NAME')||'').trim();
+        var mps = params[i].getElementsByTagName('measpar');
+        for (var k = 0; k < mps.length; k++) {
+          var mp = mps[k];
+          var r = _chmMapearMedicion(nombre, _chmTexto(mp,'name'), _chmTexto(mp,'unit'),
+                                     _chmTexto(mp,'aver') || _chmTexto(mp,'value'));
+          if (r.ok) ok.push({ campo:r.campo, unidadOrig:r.unidadOrig, valorOrig:r.valorOrig,
+                              valor:r.valor, red:_dcmRed(r.valor) });
+          else no.push({ param:nombre, motivo:r.motivo });
+        }
+      }
+      return { mapeadas: ok, descartes: no };
+    };
+    /* Y de la fila al CAMPO, por la puerta de dcmImpEjecutar: campos[campo] = _dcmRed(valor). */
+    var alCampo = function(res){
+      var cs = {};
+      (res.mapeadas||[]).forEach(function(r){ cs[r.campo] = _dcmRed(r.valor) });
+      cs.nombre = 'GE Sintetico'; cs.peso = '70'; cs.talla = '170';
+      window.__E.limpiar();
+      var inf = { id:'ge-sint', nombre:'GE Sintetico', ci:'9999',
+                  fecha_estudio:'2026-10-07', campos: cs, informe_texto:'', en_suma:'' };
+      var _orig = window.getInformes;
+      window.getInformes = function(){ return [inf] };
+      try {
+        try { editarInforme('ge-sint') } catch(e) { return { err: e.message } }
+        var okb = document.getElementById('edit-ok');
+        if (!okb) return { err:'sin overlay' };
+        okb.click();
+      } finally { window.getInformes = _orig; }
+      return { enCampos: cs.ia_vmax_cw, campo: window.__E.val('ia_vmax_cw'),
+               placeholder: window.__E.place('ia_vmax_cw'),
+               vmax_ao: window.__E.val('vmax_ao'), ea_vmax: window.__E.val('ea_vmax') };
+    };
+    var casos = {};
+    [['cm/s','450'], ['m/s','4.5'], ['cm/s','4.5'], ['m/s','450'], ['cm/s','45'], ['cm/s','800']]
+      .forEach(function(c){
+        var res = leer(c[0], c[1]);
+        casos[c[1] + ' ' + c[0]] = { leido: res, aplicado: res.mapeadas ? alCampo(res) : null };
       });
-      return o;
-    } catch(e){ return 'EXC ' + e.message } })();
-    return JSON.stringify({ funciones: fns, mapa_av_vmax: mapa, rango_ia: rango, tabla: tabla });
+    return JSON.stringify({ casos: casos,
+      tabla_AR_Vmax: (function(){ try { return JSON.stringify(CHM_MAPA['AR Vmax']) } catch(e){ return 'EXC' } })(),
+      rango: (function(){ try { return JSON.stringify(CHM_RANGO['ia_vmax_cw']) } catch(e){ return 'EXC' } })(),
+      cms_por_ms: (function(){ try { return CMS_POR_MS } catch(e){ return 'EXC' } })() });
   })()`);
 
   /* ── 4(b) · LA INSUFICIENCIA TRICUSPIDEA, 96 COMBINACIONES ──────────────────────────────── */
   if (hacer('it96')) {
-    const VC   = [2, 5, 8];
+    /* 4 x 3 x 2 x 4 = 96. La vena contracta cruza los dos cortes de la ASE (<3 / 3 a <7 / >=7). */
+    const VC   = [2, 4, 6, 8];
     const RAD  = [4, 6, 9];
     const VAL  = [30, 38];
     const CW   = [2.0, 3.0, 4.5, 5.5];

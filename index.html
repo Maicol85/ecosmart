@@ -4818,7 +4818,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div class="valv-cols-3">
             <div>
           <div class="fg">
-            <label>Vmax ao (m/s) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
+            <label>Vmax ao (m/s) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; Doppler</span></label>
             <!-- ⚠️ EL APAGADO DEL TANGO VA EN ESTE CAMPO Y NO EN `syncEADesdeValvulas`, que es la
                  que comparten los CINCO campos de este bloque: colgarlo de ella borraría el Tango
                  al editar el gradiente o un VTI. Ver `aoTangoApagarPorVmax`. -->
@@ -4829,13 +4829,13 @@ window.cerrarSesionReal = cerrarSesionReal;
             <input type="text" id="ea_gmax_display" tabindex="-1" readonly>
           </div>
           <div class="fg">
-            <label>G. medio (mmHg) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
+            <label>G. medio (mmHg) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; Doppler</span></label>
             <input type="number" id="ea_gmedio" placeholder="mmHg" oninput="eaParEditado('ea_gmedio');syncEADesdeValvulas()">
           </div>
             </div>
             <div>
           <div class="fg">
-            <label>Di&aacute;m. TSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
+            <label>Di&aacute;m. TSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; AI/VI</span></label>
             <!-- ⚠️ `tsviDiamEditado` VA PRIMERO Y `syncEADesdeValvulas` SE CONSERVA (2026-10-07).
                  Primero, porque deja los tres campos ya vacíos cuando el médico BORRA: la guarda
                  `if (el && val)` de la sincronía global no escribe nada y el borrado no se repone.
@@ -4846,11 +4846,11 @@ window.cerrarSesionReal = cerrarSesionReal;
             <input type="number" id="ea_dtsvi" placeholder="mm" oninput="tsviDiamEditado('ea_dtsvi');syncEADesdeValvulas()">
           </div>
           <div class="fg">
-            <label>VTI TSVI (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
+            <label>VTI TSVI (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; Doppler</span></label>
             <input type="number" id="ea_vtitsvi" placeholder="cm" oninput="eaParEditado('ea_vtitsvi');syncEADesdeValvulas()">
           </div>
           <div class="fg">
-            <label>VTI Ao (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
+            <label>VTI Ao (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; Doppler</span></label>
             <input type="number" id="ea_vtiao" placeholder="cm" oninput="eaParEditado('ea_vtiao');syncEADesdeValvulas()">
           </div>
             </div>
@@ -25070,7 +25070,10 @@ function calcEADetalle() {
      llama el conjunto de recálculos de cada insumo. Acá se reusan sus resultados: una segunda
      derivación de los mismos números sería un segundo dueño de la misma cuenta. */
   const _C = _eaDetCuentaPura();
-  const vmax = _C.vmax, gmedio = _C.gmedio, bsa = _C.bsa;
+  /* `bsa` NO se destructura aunque la cuenta la devuelva: la cascada de severidad de abajo no la
+     usa —la AVA indexada se escribe allá dentro— y una variable muerta acá se lee como si el
+     veredicto dependiera de la superficie corporal. La devuelve igual, para quien la necesite. */
+  const vmax = _C.vmax, gmedio = _C.gmedio;
   const ava = _C.ava, avaR = _C.avaR;
   const _eaDetDud = _C.dud, _eaDetFuera = _C.fuera;
 
@@ -30550,14 +30553,16 @@ function calcIT_ESC() {
     /* ⚠️ LA CONVERSION DE UNIDAD VA ACA DENTRO, NUNCA EN EL CAMPO (P4, 2026-10-05). `it_vmax_cw`
        pasó a m/s —es Doppler continuo y la regla de la app es m/s— pero el cociente de la ecuación
        de PISA exige las DOS velocidades en la misma unidad, y `it_pisa_val` es Doppler COLOR y se
-       queda en cm/s. Así que se convierte el divisor: m/s × 100 = cm/s.
+       queda en cm/s. Así que se convierte el divisor: m/s × `CMS_POR_MS` = cm/s. El factor sale de
+       la constante y no de un literal retipeado, igual que en `calcIA_ESC`: es la MISMA conversión
+       y un solo dueño del número.
        Escribir la conversión en el campo —guardar cm/s y mostrar m/s— habría puesto el número
        convertido en el estudio guardado, en el Excel y en el espejo con `vmax_it`, y la unidad
        real del dato dejaría de ser la que dice el rótulo. El campo guarda lo que el médico ve.
        ⚠️ LAS BANDAS DE LA EROA (20 y 40 mm²) NO SE TOCAN y no hay que tocarlas: el resultado en
        mm² es idéntico al de HEAD con el mismo dato físico. Verificado con tres casos: 300 cm/s
        daba 67,9 / 22,0 / 8,5 mm² y 3,0 m/s da los mismos tres números. */
-    const vmaxCWcms = vmaxCW * 100;
+    const vmaxCWcms = vmaxCW * CMS_POR_MS;
     eroa = (2*Math.PI*(pisaR/10)**2*pisaVal/vmaxCWcms*100).toFixed(1);
     /* La escritura del nodo se fue al pintor: acá sólo se calcula y se vota. Antes esta línea era
        la UNICA que escribia el nodo de la EROA, y por eso la fila quedaba rancia al borrar un
@@ -97473,8 +97478,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-1245';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791387947436;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-1400';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791392411489;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -97560,7 +97565,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1245</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1400</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
