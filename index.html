@@ -3526,7 +3526,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                  veredicto protésico), así que corriendo después publicaría el valor viejo en este
                  mismo tecleo. Es UNA de las dos puertas por las que el médico tipea la Vmax; la
                  otra es `ea_vmax`, en Válvulas. Ver `aoTangoApagarPorVmax`. -->
-            <input type="number" id="vmax_ao" placeholder="m/s" step="0.1" oninput="aoTangoApagarPorVmax();calcAo();eteShuntSyncSiExiste()">
+            <input type="number" id="vmax_ao" placeholder="m/s" step="0.1" oninput="aoTangoApagarPorVmax();calcAo();eteShuntSyncSiExiste();_eaDetCuentaPura()">
           </div>
           <div class="fg">
             <label>G. máx (mmHg) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto</span></label>
@@ -3534,18 +3534,18 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
           <div class="fg">
             <label>G. medio (mmHg)</label>
-            <input type="number" id="gmedio_ao" placeholder="mmHg" oninput="calcAo();eteShuntSyncSiExiste()">
+            <input type="number" id="gmedio_ao" placeholder="mmHg" oninput="calcAo();eteShuntSyncSiExiste();_eaDetCuentaPura()">
           </div>
         </div>
         <!-- Col 2 — los dos VTI y su cociente -->
         <div>
           <div class="fg">
             <label>VTI TSVI (cm)</label>
-            <input type="number" id="itv_tsvi" placeholder="cm" oninput="calcAo();eteShuntSyncSiExiste();imSyncSiExiste();emSyncSiExiste();iaSyncSiExiste()">
+            <input type="number" id="itv_tsvi" placeholder="cm" oninput="calcAo();eteShuntSyncSiExiste();imSyncSiExiste();emSyncSiExiste();iaSyncSiExiste();_eaDetCuentaPura()">
           </div>
           <div class="fg">
             <label>VTI Vao (cm)</label>
-            <input type="number" id="itv_ao" placeholder="cm" oninput="calcAo();eteShuntSyncSiExiste()">
+            <input type="number" id="itv_ao" placeholder="cm" oninput="calcAo();eteShuntSyncSiExiste();_eaDetCuentaPura()">
           </div>
           <!-- El `calc-box` anidado del DVI. El `span[id]` queda dentro de
                `.calc-box .calc-row`, que es lo que exige el barrido de `limpiarCampos`. -->
@@ -24917,8 +24917,33 @@ function syncEADesdeValvulas() {
 }
 window.syncEADesdeValvulas = syncEADesdeValvulas;
 
-// EA: calcular y mostrar en el bloque detalle de Válvulas
-function calcEADetalle() {
+/* ══ LA CUENTA PURA DE LA ESTENOSIS AÓRTICA — SÓLO LAS CUATRO SALIDAS DE SOLO LECTURA ═══════════
+   G. máximo, AVA por continuidad, AVA indexada y DVI. Es el cuerpo que `calcEADetalle` tenía
+   adentro, movido tal cual: las MISMAS fórmulas, las mismas constantes, los mismos redondeos y los
+   mismos nodos. Lo único que cambia es que ahora se puede llamar sin arrastrar el resto.
+
+   ⚠️ NO ESCRIBE EL GRADO, NI LA MARCA MANUAL, NI EL AVISO DE GRADO RETIRADO, y eso es el punto.
+   `calcEADetalle` hace TRES cosas a la vez —calcula, escribe `ea_grado` con su marca de sugerido, y
+   llama a `_eaRetirarGradoSugerido`— y por eso no se la puede agregar al conjunto de recálculos de
+   un insumo: lo midió TC-358 y está escrito en «LAS SEIS — UNA SOLA LISTA PARA LAS TRES PUERTAS»,
+   unas trescientas líneas más abajo. Puesta después de `calcAo` le pisa el badge al retiro; puesta
+   antes, el retiro no llega a actuar. Separando la CUENTA, el conjunto puede refrescar las cuatro
+   casillas sin tocar ninguno de los tres comportamientos que esa asimetría protege.
+
+   ⚠️ QUÉ CIERRA, MEDIDO EN HEAD. La compuerta de `calcAo` mira el `style.display` INLINE de
+   `bloque-ea-detalle`, que lo escribe `toggleValvPill`. Con la pastilla de estenosis APAGADA A MANO
+   —apagado durable— el inline queda en 'none' y `sincronizarEADesdeGlobal` no corre, así que
+   corregir el VTI aórtico de 50 a 60 movía `ava_cont` de 1,01 a 0,84 y `dvi-val` de 0,32 a 0,27 en
+   el Doppler mientras `ea_ava_display` seguía diciendo «1.01 cm²» y `ea_dvi_display` «0.32».
+   No es sólo pantalla: los tres son `input[id]`, así que `guardarInforme` los barre y viajan en
+   `campos` al estudio guardado y al backup; y `eaTaviEspejar` lee `ea_dvi_display` ANTES que
+   `dvi-val`, de modo que con prótesis el DVI rancio llegaba a `ete_tavi_dvi` y de ahí al PDF.
+
+   ⚠️ DEVUELVE LO QUE CALCULÓ Y NO SE RECALCULA DOS VECES. `calcEADetalle` necesita `vmax`,
+   `gmedio`, `ava`, `avaR` y los dos veredictos de banda para su cascada de severidad: si los
+   volviera a derivar acá al lado, habría dos dueños de la misma cuenta — que es exactamente el
+   defecto que la extracción de `_avaContinuidad` vino a cerrar. */
+function _eaDetCuentaPura() {
   const vmax   = PF(document.getElementById('ea_vmax')   ? document.getElementById('ea_vmax').value   : '') || PF(document.getElementById('vmax_ao')  ? document.getElementById('vmax_ao').value  : '') || null;
   const gmedio = PF(document.getElementById('ea_gmedio') ? document.getElementById('ea_gmedio').value : '') || PF(document.getElementById('gmedio_ao') ? document.getElementById('gmedio_ao').value: '') || null;
   const itsvi  = PF(document.getElementById('ea_vtitsvi')? document.getElementById('ea_vtitsvi').value: '') || PF(document.getElementById('itv_tsvi')  ? document.getElementById('itv_tsvi').value : '') || null;
@@ -25023,6 +25048,22 @@ function calcEADetalle() {
        Lo encontró /sharp-edges. */
     ['ea_ava_display','ea_dvi_display'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
   }
+
+  return { vmax: vmax, gmedio: gmedio, itsvi: itsvi, itvao: itvao, dtsvi: dtsvi, bsa: bsa,
+           ava: ava, avaR: avaR, dud: _eaDetDud, fuera: _eaDetFuera };
+}
+window._eaDetCuentaPura = _eaDetCuentaPura;
+
+
+// EA: calcular y mostrar en el bloque detalle de Válvulas
+function calcEADetalle() {
+  /* La cuenta y los cuatro nodos de solo lectura viven en `_eaDetCuentaPura`, que además es la que
+     llama el conjunto de recálculos de cada insumo. Acá se reusan sus resultados: una segunda
+     derivación de los mismos números sería un segundo dueño de la misma cuenta. */
+  const _C = _eaDetCuentaPura();
+  const vmax = _C.vmax, gmedio = _C.gmedio, bsa = _C.bsa;
+  const ava = _C.ava, avaR = _C.avaR;
+  const _eaDetDud = _C.dud, _eaDetFuera = _C.fuera;
 
   /* ⚠️ CON PRÓTESIS LA SEVERIDAD NO SALE DE LOS CORTES NATIVOS. Es el bug que el diagnóstico del
      2026-09-27 midió y el que la Fase 2 cierra: una prótesis de 21 mm normal —Vmax 3,2, gradiente
@@ -25341,6 +25382,17 @@ function tsviDiamEditado(origenId) {
   if (typeof imSyncSiExiste === 'function') imSyncSiExiste();
   if (typeof emSyncSiExiste === 'function') emSyncSiExiste();
   if (typeof iaSyncSiExiste === 'function') iaSyncSiExiste();
+  /* ⚠️ LA CUENTA PURA, Y VA DESPUÉS DE `calcAo` A PROPÓSITO. Las cuatro casillas de solo lectura
+     del bloque de Válvulas —G. máx, AVA, AVA indexada y DVI— quedaban RANCIAS cuando la compuerta
+     de `calcAo` no pasaba, o sea con la pastilla de estenosis apagada. Lo que entra acá es
+     `_eaDetCuentaPura`, que SÓLO calcula: ver el comentario de arriba, que explica por qué la
+     función grande —la que además escribe el grado y llama al retiro— no puede entrar a esta lista.
+     ⚠️ Y SU NOMBRE NO SE ESCRIBE EN ESTE CUERPO. TC-432 verifica la prohibición con
+     `String(tsviDiamEditado).indexOf(...) === -1`, y `String` de una función trae sus COMENTARIOS:
+     nombrarla acá, aunque sea para decir que no está, pone el caso en rojo.
+     Después de `calcAo` porque la cuenta lee la cascada `ea_* || <Doppler>` y `calcAo` es la que
+     puede haber refrescado el espejo un paso antes. */
+  if (typeof _eaDetCuentaPura === 'function') _eaDetCuentaPura();
 }
 window.tsviDiamEditado = tsviDiamEditado;
 
@@ -97321,8 +97373,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-1048';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791380909837;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-1238';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791387529059;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -97408,7 +97460,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1048</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1238</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
