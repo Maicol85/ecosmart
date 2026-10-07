@@ -18216,6 +18216,42 @@ const RVP_ABBAS_FACTOR = 10;
 window.HEMO_GC_DIV = HEMO_GC_DIV; window.WOOD_A_DYN = WOOD_A_DYN;
 window.RVP_ABBAS_FACTOR = RVP_ABBAS_FACTOR;
 
+/* ══ BANDA DE PLAUSIBILIDAD DE LA FC DEL GASTO CARDÍACO (2026-10-06) ════════════════════════════
+   El PDF ya tenía esta banda, escrita como DOS literales sueltos repetidos en dos líneas
+   consecutivas (`_fcReal > 20 && _fcReal < 250`, una vez para elegir el valor y otra para decidir
+   el asterisco). La PANTALLA no la tenía: `calcHemo` multiplicaba por cualquier FC tipeada. Medido
+   en HEAD con una escena de DTSVI 20 / VTI-TSVI 16: con FC 15 la pantalla publicaba «0.75 L/min»
+   y un IC de «0.41 L/min/m² bajo» con su badge, mientras el PDF del MISMO estudio suponía 70 y
+   salía «3.5 L/min*». Dos gastos cardíacos distintos para el mismo paciente, y el de pantalla
+   sostenido por una FC que no existe.
+
+   ⚠️ SE COMPARTE EL PREDICADO Y NO SÓLO LOS DOS NÚMEROS. Con un par `[20, 250]` leído desde los dos
+   lados, cada lado seguiría eligiendo su operador, y es justo el borde donde difieren: la banda del
+   PDF es ABIERTA, así que 20 y 250 exactos quedan AFUERA. Un `>=` de este lado habría hecho que la
+   pantalla calculara con FC 20 mientras el PDF del mismo estudio supone 70 — el defecto que esto
+   viene a cerrar, corrido dos valores.
+
+   ⚠️ ES ABIERTA A PROPÓSITO, Y ASÍ SE DEJA: el PDF no cambia. Consecuencia declarada y autorizada
+   (Maicol, 2026-10-06): con FC exactamente 20 o 250 la pantalla queda en «—», igual que con 19 y
+   251. Los primeros valores que calculan son 21 y 249.
+
+   ⚠️ NO BORRA NI CORRIGE LA FC QUE EL MÉDICO TIPEÓ. Lo que se apaga es el CÁLCULO que la usa; el
+   campo guarda lo que él escribió, igual que `it_vmax_cw` con su unidad. Y no hay aviso nuevo: el
+   «—» es el mismo que ya se ve con la FC vacía.
+
+   Las bandas de `DCM_RANGO` / `LAB_XLS_RANGO_PROPIO` NO se tocan —`hemo_fc:[20,250]` sigue siendo
+   la del importador de Excel, con su propio consumidor y su propio operador—: duplicar el número
+   acá sería la segunda definición, pero unificarlo con esa tabla cambiaría el importador, que esta
+   orden no mira. */
+const HEMO_FC_BANDA = Object.freeze([20, 250]);
+/* Devuelve si la FC puede sostener un gasto cardíaco. UN solo operador para la pantalla y el PDF.
+   `null` y `undefined` entran por el mismo lado que un valor fuera de banda: en los dos casos no
+   hay FC usable, y es lo que ya hacía `v('hemo_fc') !== null` en el PDF. */
+function hemoFCUsable(fc) {
+  return fc !== null && fc !== undefined && fc > HEMO_FC_BANDA[0] && fc < HEMO_FC_BANDA[1];
+}
+window.HEMO_FC_BANDA = HEMO_FC_BANDA; window.hemoFCUsable = hemoFCUsable;
+
 const PCP_COEF_A = 1.24, PCP_COEF_B = 1.9;
 /* Corte de CONGESTIÓN. Estaba escrito como literal en tres sitios —las dos ramas de `calcHemo` y
    `_labForrester`— y además DENTRO de la cadena que imprime la cápsula («con congestión (PCP
@@ -18891,7 +18927,13 @@ function _rvpTxt(uw) {
 }
 
 function calcHemo() {
-  const fc  = v('hemo_fc');
+  /* ⚠️ LA FC PASA POR LA BANDA, Y EL CAMPO NO SE TOCA. `hemoFCUsable` es el MISMO predicado que usa
+     el PDF (ver `HEMO_FC_BANDA`): fuera de banda esto queda en `null` y el gasto cardíaco cae por la
+     misma puerta que con la FC vacía, arrastrando el IC, la RVS, el perfil de Forrester, el perfil
+     hemodinámico y las tres filas del cuadro del Doppler aórtico. El PDF sigue suponiendo 70 con
+     asterisco, que es lo que ya hacía. Lo único que se apaga es el cálculo; `hemo_fc` conserva lo
+     que el médico escribió. */
+  const fc  = hemoFCUsable(v('hemo_fc')) ? v('hemo_fc') : null;
   const pam = v('hemo_pam');
   const asc = getBSA();
 
@@ -39456,9 +39498,12 @@ function generarPDFReal(_aj) {
      pantalla y otro —inventado— en el informe firmado, sin nota de que la FC era supuesta. Con
      FC 110 el impreso quedaba 36 % por debajo del real; con FC 50, un 40 % por encima.
      El respaldo se marca con «*» para que no se lea como medido. */
+  /* La banda pasó a `HEMO_FC_BANDA` / `hemoFCUsable` el 2026-10-06: estaba acá como dos literales
+     sueltos repetidos en estas dos líneas, y la PANTALLA no la tenía. Mismo predicado para los dos
+     ahora. El comportamiento de ESTE lado no cambia en ningún valor. */
   const _fcReal = v('hemo_fc');
-  const _fcUso  = (_fcReal !== null && _fcReal > 20 && _fcReal < 250) ? _fcReal : 70;
-  const _fcSup  = !(_fcReal !== null && _fcReal > 20 && _fcReal < 250);
+  const _fcUso  = hemoFCUsable(_fcReal) ? _fcReal : 70;
+  const _fcSup  = !hemoFCUsable(_fcReal);
   const coV    = (v('diam_tsvi')&&v('itv_tsvi'))?(Math.PI*((v('diam_tsvi')/20)**2)*v('itv_tsvi')*_fcUso/1000).toFixed(1)+' L/min'+(_fcSup?'*':''):null;
   const icV    = (coV&&bsa)?(PF(coV)/bsa).toFixed(2)+' L/min/m2':null;
 
@@ -96289,8 +96334,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261006-2333';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791340387150;                 /* eco-build-ms */
+const ECO_BUILD    = '20261006-2349';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791341371925;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -96376,7 +96421,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-2333</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-2349</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

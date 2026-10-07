@@ -283,10 +283,16 @@ window.__P = {
   escena(d) {
     window.__P.limpiar();
     try { showTab('doppler') } catch(e) {}
+    /* ⚠️ vci_col VA SI O SI PARA QUE LA RVS TENGA DENOMINADOR. calcHemo SOBREESCRIBE hemo_pvc
+       con v(pmad) en su primera linea, asi que sembrar hemo_pvc a mano no alcanza: sin diametro
+       de VCI Y colapso no hay PmAD, sin PmAD no hay PVC, y la RVS sale en raya con cualquier FC.
+       La primera version de esta sonda media RVS en raya en los nueve valores de FC, y en HEAD
+       tambien: una condicion que no podia distinguir nada. */
     var orden = ['peso','talla','fevi','onda_e','e_sep','e_lat','vmax_it','vti_tsvd','vci_diam',
-                 'vmax_ao','gmedio_ao','diam_tsvi','itv_tsvi','itv_ao','tvia',
-                 'tango_te','tango_tac','hemo_fc','hemo_pam','hemo_pvc'];
+                 'vci_col','vmax_ao','gmedio_ao','diam_tsvi','itv_tsvi','itv_ao','tvia',
+                 'tango_te','tango_tac','hemo_fc','hemo_pam'];
     orden.forEach(function(id){ if (d[id] !== undefined) window.__P.set(id, d[id]) });
+    try { calcPmAD() } catch(e) {}
     try { calcBSA() } catch(e) {}
     try { calcVD() } catch(e) {}
     try { calcAo() } catch(e) {}
@@ -470,7 +476,7 @@ async function main() {
   for (const valor of ['', 15, 19, 20, 21, 249, 250, 251, 70]) {
     fc[valor === '' ? 'vacia' : String(valor)] = JSON.parse(await ev(`(function(){
       window.__P.escena({ peso:70, talla:170, fevi:55, onda_e:90, e_sep:6, e_lat:8,
-        vmax_it:3.0, vti_tsvd:15, vci_diam:18, vmax_ao:4.5, gmedio_ao:45,
+        vmax_it:3.0, vti_tsvd:15, vci_diam:18, vci_col:'>50', vmax_ao:4.5, gmedio_ao:45,
         diam_tsvi:20, itv_tsvi:16, itv_ao:50, tvia:95, tango_te:300, tango_tac:90,
         hemo_pam:90, hemo_fc:${JSON.stringify(valor)} });
       var h = window.__P.hemo();
@@ -481,10 +487,37 @@ async function main() {
         pdfFc: window.__P.pdfCampo('FC') }); })()`));
   }
 
+  /* LAS OTRAS SUPERFICIES QUE LEEN EL GC/IC. El PPT y el texto de amiloidosis no recalculan: leen
+     los SPANS de pantalla, asi que cambian con esto. El bloque POP si recalcula aparte, con
+     _hemoGCEco(..., v(hemo_fc)), y por eso NO pasa por la banda: queda declarado. */
+  const otras = {};
+  for (const valor of ['', 15, 70]) {
+    otras[valor === '' ? 'vacia' : String(valor)] = JSON.parse(await ev(`(function(){
+      window.__P.escena({ peso:70, talla:170, fevi:55, onda_e:90, e_sep:6, e_lat:8,
+        vmax_it:3.0, vti_tsvd:15, vci_diam:18, vci_col:'>50', vmax_ao:4.5, gmedio_ao:45,
+        diam_tsvi:20, itv_tsvi:16, itv_ao:50, tvia:95, hemo_pam:90,
+        hemo_fc:${JSON.stringify(valor)} });
+      var ppt = {};
+      ['hemo-gc','hemo-ic','hemo-rvs','hemo-forrester','hemo-perfil'].forEach(function(id){
+        try { ppt[id] = (typeof _pptSpan === 'function') ? _pptSpan(id) : 'SIN _pptSpan' }
+        catch(e) { ppt[id] = 'EXC' } });
+      var amilo = 'SIN amiloTextoHemo';
+      try { if (typeof amiloTextoHemo === 'function') amilo = amiloTextoHemo() } catch(e) { amilo = 'EXC' }
+      /* El GC del bloque POP, que NO pasa por la banda: se mide para declararlo. */
+      var pop = null;
+      try { pop = (typeof _hemoGCEco === 'function')
+        ? _hemoGCEco(window.__P.val('diam_tsvi'), window.__P.val('itv_tsvi'), window.__P.val('hemo_fc'))
+        : 'SIN _hemoGCEco' } catch(e) { pop = 'EXC' }
+      return JSON.stringify({ ppt: ppt, amilo: String(amilo).slice(0, 400),
+        popGcEco: (pop === null ? null : String(pop)),
+        forrester: window.__P.txt('hemo-forrester'), perfil: window.__P.txt('hemo-perfil'),
+        fcGuardada: window.__P.val('hemo_fc') }); })()`));
+  }
+
   /* ══ 4 · PCP ════════════════════════════════════════════════════════════════════════════════ */
   const pcp = JSON.parse(await ev(`(function(){
     window.__P.escena({ peso:70, talla:170, onda_e:90, e_sep:6, e_lat:8, vmax_it:3.0,
-      vti_tsvd:15, diam_tsvi:20, itv_tsvi:16, hemo_fc:70, hemo_pam:90 });
+      vti_tsvd:15, vci_diam:18, vci_col:'>50', diam_tsvi:20, itv_tsvi:16, hemo_fc:70, hemo_pam:90 });
     var p = window.__P.pcp();
     p.pdfPcpFila = window.__P.pdfCampo('PCP (Nagueh ' + PCP_FORMULA_TXT + ')');
     var t = window.__P.pdfTxt();
@@ -495,10 +528,10 @@ async function main() {
   /* ══ 5 · A/B general: informe, EN SUMA, Excel, campos, PDF entero ═══════════════════════════ */
   const ESCENAS = {
     severa:   { peso:70, talla:170, fevi:55, onda_e:90, e_sep:6, e_lat:8, vmax_it:3.0, vti_tsvd:15,
-                vci_diam:18, vmax_ao:4.5, gmedio_ao:45, diam_tsvi:20, itv_tsvi:16, itv_ao:50,
+                vci_diam:18, vci_col:'>50', vmax_ao:4.5, gmedio_ao:45, diam_tsvi:20, itv_tsvi:16, itv_ao:50,
                 tvia:95, tango_te:300, tango_tac:90, hemo_fc:70, hemo_pam:90 },
     moderada: { peso:70, talla:170, fevi:55, onda_e:90, e_sep:6, e_lat:8, vmax_it:2.4, vti_tsvd:18,
-                vci_diam:16, vmax_ao:3.2, gmedio_ao:25, diam_tsvi:21, itv_tsvi:18, itv_ao:45,
+                vci_diam:16, vci_col:'>50', vmax_ao:3.2, gmedio_ao:25, diam_tsvi:21, itv_tsvi:18, itv_ao:45,
                 tvia:130, tango_te:320, tango_tac:100, hemo_fc:65, hemo_pam:85 },
     vacio:    {},
     /* CONTROL NEGATIVO: sin FC, sin Tango y sin TAP. Nada de esta tanda debe actuar. */
@@ -538,7 +571,7 @@ async function main() {
   console.log(JSON.stringify({
     archivo: FARG, md5_index_antes: antes, md5_index_despues: despues,
     index_intacto: antes === despues,
-    listo, mapeo, importa, mezcla, huecos, reabrir, fc, pcp, gtp, escenas,
+    listo, mapeo, importa, mezcla, huecos, reabrir, fc, otras, pcp, gtp, escenas,
     sweep: JSON.parse(sweep),
   }, null, 2));
 
