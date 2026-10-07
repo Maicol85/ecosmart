@@ -53984,6 +53984,155 @@ caso('TC-431', 'Tricuspide: el cuadro de la insuficiencia lleva vena contracta, 
   })();
 `);
 
+
+// ═══ GRUPO 31 — Aortica: los tres derivados que no se vaciaban con su insumo ══════════════════
+/* ⚠️ LOS TRES ESTABAN SIN NINGUNA COBERTURA AUTOMATICA, que es como un arreglo se deshace sin que
+   nadie se entere. Lo que fijan es el INVARIANTE —«un derivado sin su insumo no existe»— y no la
+   implementacion: ninguna asercion nombra la rama del if ni el nombre de la funcion que la escribe. */
+caso('TC-435', 'Aortica: el G. maximo se vacia en las TRES superficies cuando la Vmax queda vacia, por las DOS puertas, y se recalcula al volver a cargarla', `
+  const foto = () => ({
+    gmaxDop: (document.getElementById('gmax_calc')||{}).value,
+    gmaxValv: (document.getElementById('ea_gmax_display')||{}).value,
+    gmaxRef: (document.getElementById('ea-det-gmax')||{}).textContent,
+    vmaxDop: (document.getElementById('vmax_ao')||{}).value,
+    vmaxValv: (document.getElementById('ea_vmax')||{}).value,
+    grado: (document.getElementById('ea_grado')||{}).value
+  });
+  /* DENOMINADOR: la escena tiene que PRODUCIR un G. maximo antes de poder probar que se borra.
+     Una sonda sobre un cuadro vacio devuelve «—» en todo y parece sana. */
+  const puerta = (id, pill) => {
+    __t.limpiar();
+    try { ['esten'].forEach(t => { localStorage.removeItem('valv-pill-esten-aortica'); }); } catch (e) {}
+    __t.set(id, '4');
+    /* El apagado va DESPUES del tecleo: cargar la Vmax llama a valvAutoPrenderEsten y la reprende. */
+    if (!pill && pillOn('aortica','esten')) toggleValvPill('aortica','esten');
+    const con = foto();
+    __t.set(id, '');
+    const sin = foto();
+    __t.set(id, '3');
+    const re = foto();
+    return { con, sin, re };
+  };
+  const dopOn  = puerta('vmax_ao', true);
+  const valvOn = puerta('ea_vmax', true);
+  const dopOff = puerta('vmax_ao', false);
+  const valvOff= puerta('ea_vmax', false);
+  const todos = [dopOn, valvOn, dopOff, valvOff];
+  /* CONTROL NEGATIVO: el G. MEDIO es un campo que el medico tipea, no un derivado de la Vmax.
+     Borrar la Vmax no lo puede tocar — si lo tocara, la correccion seria un barrido y no una rama. */
+  __t.limpiar();
+  __t.set('vmax_ao','4'); __t.set('gmedio_ao','25');
+  const gmedAntes = (document.getElementById('gmedio_ao')||{}).value;
+  __t.set('vmax_ao','');
+  const gmedDespues = (document.getElementById('gmedio_ao')||{}).value;
+  __t.limpiar();
+  return { extra: [
+    ['DENOMINADOR: las cuatro escenas producen 64 mmHg en las tres superficies',
+      todos.every(e => e.con.gmaxDop === '64.0' && e.con.gmaxValv === '64 mmHg' && e.con.gmaxRef === '64 mmHg'),
+      JSON.stringify(todos.map(e => e.con))],
+    ['con la Vmax vacia, las DOS casillas de Vmax quedan vacias (estan coordinadas)',
+      todos.every(e => e.sin.vmaxDop === '' && e.sin.vmaxValv === ''),
+      JSON.stringify(todos.map(e => [e.sin.vmaxDop, e.sin.vmaxValv]))],
+    ['y el G. maximo del DOPPLER se vacia (en HEAD quedaba en 64.0)',
+      todos.every(e => e.sin.gmaxDop === ''), JSON.stringify(todos.map(e => e.sin.gmaxDop))],
+    ['el de VALVULAS tambien, y el cuadro de referencias queda en la raya',
+      todos.every(e => e.sin.gmaxValv === '' && e.sin.gmaxRef === '—'),
+      JSON.stringify(todos.map(e => [e.sin.gmaxValv, e.sin.gmaxRef]))],
+    ['al volver a cargar la Vmax en 3 m/s, las tres dicen 36',
+      todos.every(e => e.re.gmaxDop === '36.0' && e.re.gmaxValv === '36 mmHg' && e.re.gmaxRef === '36 mmHg'),
+      JSON.stringify(todos.map(e => e.re.gmaxDop))],
+    /* El grado NO se toca al borrar: con la pastilla prendida sigue «severa» y con la pastilla
+       apagada queda «sin». Es la regla 12 y es lo que se midio en HEAD — si esta asercion se cae,
+       la correccion se metio en la cola de calcAo, que es lo que la orden prohibia. */
+    ['el GRADO no cambia al borrar la Vmax: prendida conserva severa, apagada queda sin',
+      dopOn.sin.grado === 'severa' && valvOn.sin.grado === 'severa'
+      && dopOff.sin.grado === 'sin' && valvOff.sin.grado === 'sin',
+      [dopOn.sin.grado, valvOn.sin.grado, dopOff.sin.grado, valvOff.sin.grado].join('/')],
+    ['CONTROL: el G. medio, que el medico tipea, NO se borra con la Vmax',
+      gmedAntes === '25' && gmedDespues === '25', gmedAntes + '/' + gmedDespues]
+  ] };
+`);
+
+caso('TC-436', 'Aortica: sin superficie corporal la AVA indexada queda en la raya en sus DOS superficies —y la ASC y el IMC tambien— y las tres se recalculan al corregir el peso', `
+  const foto = () => ({
+    idx: (document.getElementById('ava-idx')||{}).textContent,
+    idxValv: (document.getElementById('ea-det-avai')||{}).textContent,
+    bsa: (document.getElementById('bsa-val')||{}).textContent,
+    imc: (document.getElementById('imc-val')||{}).textContent,
+    ava: (document.getElementById('ava_cont')||{}).value
+  });
+  __t.limpiar();
+  if (!pillOn('aortica','esten')) toggleValvPill('aortica','esten');
+  __t.set('peso','80'); __t.set('talla','175');
+  /* El Diam. TSVI se carga por la puerta de Valvulas: la del Doppler esta OCULTA. */
+  __t.set('ea_dtsvi','20'); __t.set('itv_tsvi','19'); __t.set('itv_ao','53'); __t.set('vmax_ao','4');
+  const con = foto();
+  __t.set('peso','');
+  const sinPeso = foto();
+  __t.set('peso','60');
+  const otroPeso = foto();
+  __t.set('talla','');
+  const sinTalla = foto();
+  __t.set('talla','160');
+  const otraTalla = foto();
+  __t.limpiar();
+  return { extra: [
+    ['DENOMINADOR: con peso y talla hay AVA y hay AVA indexada que pueda quedar rancia',
+      con.ava === '1.13' && con.idx === '0.57 cm²/m²' && con.idxValv === '0.57 cm²/m²',
+      JSON.stringify(con)],
+    ['borrar el peso deja la AVA indexada en la raya en las DOS superficies (en HEAD quedaba 1.81)',
+      sinPeso.idx === '—' && sinPeso.idxValv === '—', JSON.stringify(sinPeso)],
+    ['y la ASC y el IMC tambien (en HEAD el setv sobre el span no tenia efecto)',
+      sinPeso.bsa === '— m²' && sinPeso.imc === '— kg/m²', sinPeso.bsa + ' / ' + sinPeso.imc],
+    ['el AVA, que es el dato y no el indexado, NO se borra',
+      sinPeso.ava === '1.13', sinPeso.ava],
+    ['cambiar el peso por otro valor valido recalcula las tres',
+      otroPeso.idx === '0.66 cm²/m²' && otroPeso.idxValv === '0.66 cm²/m²'
+      && otroPeso.bsa === '1.71 m²' && otroPeso.imc === '19.6 kg/m²', JSON.stringify(otroPeso)],
+    ['borrar la TALLA hace lo mismo (en HEAD quedaba 8.75)',
+      sinTalla.idx === '—' && sinTalla.idxValv === '—'
+      && sinTalla.bsa === '— m²' && sinTalla.imc === '— kg/m²', JSON.stringify(sinTalla)],
+    ['y corregirla tambien recalcula',
+      otraTalla.idx === '0.69 cm²/m²' && otraTalla.idxValv === '0.69 cm²/m²'
+      && otraTalla.bsa === '1.63 m²', JSON.stringify(otraTalla)]
+  ] };
+`);
+
+caso('TC-437', 'Aortica: la celda del DVI muestra SOLO el numero —sin el rotulo repetido— y «Nuevo estudio» la sigue limpiando', `
+  __t.limpiar();
+  const fila = () => {
+    const el = document.getElementById('dvi-val');
+    return el && el.parentNode ? (el.parentNode.textContent || '').trim() : 'NO EXISTE';
+  };
+  const rotulo = () => {
+    let n = document.getElementById('dvi-val');
+    while (n && n.nodeType === 1 && String(n.className || '').indexOf('fg') === -1) n = n.parentNode;
+    const l = n && n.querySelector ? n.querySelector('label') : null;
+    return l ? l.textContent.trim().replace(/\s+/g,' ') : 'SIN LABEL';
+  };
+  const vacio = fila();
+  __t.set('itv_tsvi','19'); __t.set('itv_ao','53');
+  const conDatos = fila();
+  const rot = rotulo();
+  const valor = (document.getElementById('dvi-val')||{}).textContent;
+  /* El INVARIANTE de TC-317, repetido acá a proposito: la celda sigue dentro del calc-box, que es
+     lo unico que la borra entre pacientes. Si alguien «limpia» el marcado sacando el calc-box, este
+     caso se cae junto con TC-317. */
+  __t.limpiar();
+  const trasNuevo = fila();
+  return { extra: [
+    ['DENOMINADOR: con los dos VTI cargados la celda publica un DVI',
+      valor === '0.36', valor],
+    ['la fila dice SOLO el numero: el rotulo «DVI» ya no esta duplicado adentro',
+      conDatos === '0.36', conDatos],
+    ['el rotulo de arriba sigue nombrando el parametro una sola vez',
+      rot === 'DVI (ratio TSVI/Ao) auto', rot],
+    ['vacia dice la raya, no «DVI —»', vacio === '—', vacio],
+    ['y «Nuevo estudio» la devuelve a la raya (el barrido del calc-box sigue alcanzandola)',
+      trasNuevo === '—', trasNuevo]
+  ] };
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

@@ -3548,11 +3548,22 @@ window.cerrarSesionReal = cerrarSesionReal;
             <input type="number" id="itv_ao" placeholder="cm" oninput="eaParEditado('itv_ao')">
           </div>
           <!-- El `calc-box` anidado del DVI. El `span[id]` queda dentro de
-               `.calc-box .calc-row`, que es lo que exige el barrido de `limpiarCampos`. -->
+               `.calc-box .calc-row`, que es lo que exige el barrido de `limpiarCampos`.
+               ⚠️ SIN EL `calc-lbl` «DVI» (2026-10-07). La celda decía «DVI (ratio TSVI/Ao) auto»
+               arriba y «DVI 0.36» abajo: el mismo rótulo dos veces en cuatro centímetros, que es el
+               precio que la entrada del 2026-09-29 declaró al anidar el cuadro de resultados dentro
+               de la grilla («a costa de … duplicar el rótulo»). Ese precio se paga una vez; acá se
+               deja de pagar. Queda el número solo, que es lo que la celda tiene que decir.
+               ⚠️ EL `calc-box`, EL `calc-row` Y EL `id` NO SE TOCAN. Son exactamente lo que exige el
+               barrido `.calc-box .calc-row span[id]:not(.calc-lbl)` de `limpiarCampos` —lo ÚNICO que
+               borra el DVI entre pacientes— y lo que `eaTaviEspejar` y `eaProtVeredicto` leen. Borrar
+               el `calc-lbl` no los alcanza: el selector lo EXCLUÍA de todos modos (`:not(.calc-lbl)`),
+               así que su desaparición no cambia a quién barre. TC-317 fija el invariante (sembrar los
+               dos VTI, publicar el DVI, `limpiarCampos`, volver a «—») y no el rótulo. -->
           <div class="fg">
             <label>DVI (ratio TSVI/Ao) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto</span></label>
             <div class="calc-box" style="margin-top:0;">
-              <div class="calc-row"><span class="calc-lbl">DVI</span><span class="calc-val" id="dvi-val">—</span></div>
+              <div class="calc-row"><span class="calc-val" id="dvi-val">—</span></div>
             </div>
           </div>
           <!-- Ø TSVI: OCULTO, no borrado. Ver el comentario de arriba.
@@ -97559,8 +97570,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-1525';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791397546023;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-1536';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791398203734;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -97646,7 +97657,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1525</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1536</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
