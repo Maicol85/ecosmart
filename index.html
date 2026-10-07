@@ -5109,11 +5109,28 @@ window.cerrarSesionReal = cerrarSesionReal;
            EROA, volumen regurgitante, densidad y la severidad integrada ESC 2021 ya vivían en este
            mismo `calc-box`: no se partió ni se duplicó nada. El aviso rojo y el cajón de la nota se
            fueron de acá ARRIBA, junto al grado que explican. -->
+      <!-- ── FILAS DE REFERENCIA (2026-10-07, decisión de Maicol) ─────────────────────────────
+           Formato del Doppler aórtico: cada fila lleva el VALOR, su GRADO y el rango de ESE grado
+           entre paréntesis, y la fuente UNA vez debajo.
+           ⚠️ LA VENA CONTRACTA ES LA FILA NUEVA Y VA PRIMERA. Hasta hoy `it_vc` votaba en la
+           severidad integrada y no aparecía en ningún renglón del cuadro: el médico lo cargaba,
+           cambiaba el veredicto y no veía por qué. Es el votante con más peso de los cuatro —el
+           único con columna propia en el Excel y en «Ver detalle»—.
+           ⚠️ LOS INSUMOS NO LLEVAN FILA (radio PISA, valiasing, Vmax IT, VTI IT): no se graduan,
+           se multiplican. Un renglón con su grado al lado sugeriría que votan por separado.
+           ⚠️ EL RÓTULO PASÓ DE «(ESC 2021)» A «(ASE 2017)». `FUENTES.md` no registra NINGUNA guía
+           valvular ESC 2021 —cero entradas— y el sello ya se había retirado por eso mismo del
+           cuadro de la mitral y de la tarjeta de la aórtica (lo fijan dos casos de la suite). Los
+           CUATRO criterios que integra esta lógica están en la ASE 2017, Tabla 14, folio 350,
+           leída en texto completo en esta tanda: vena contracta, EROA, volumen regurgitante y
+           densidad del jet por CW. Es cambio de RÓTULO y no de corte — ni un número se movió. -->
       <div class="calc-box" style="margin-top:10px;">
-        <div class="calc-row"><span class="calc-lbl">EROA — PISA (mm²)</span><span class="calc-val" id="it-eroa">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Vol regurgitante (ml)</span><span class="calc-val" id="it-volr">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Vena contracta</span><span class="calc-val" id="it-ref-vc">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">EROA — PISA</span><span class="calc-val" id="it-eroa">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Vol. regurgitante</span><span class="calc-val" id="it-volr">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Densidad jet CW</span><span id="it-densidad-interp">—</span></div>
-        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad IT integrada (ESC 2021)</span><span id="it-sev">—</span></div>
+        <div style="font-size:10px;color:var(--text2);line-height:1.45;margin:2px 0 4px;" id="it-ref-fuente"></div>
+        <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Severidad IT integrada (ASE 2017)</span><span id="it-sev">—</span></div>
         <div class="calc-row"><span id="it-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
       </div>
       </div>
@@ -30113,6 +30130,102 @@ function itIncongruenciaSync() {
 }
 window.itIncongruenciaSync = itIncongruenciaSync;
 
+/* ══ UNA SOLA TABLA DE CORTES DE LA IT (2026-10-07) ═══════════════════════════════════════════
+   NO SE MOVIÓ UN NÚMERO. Los tres cortes cuantitativos estaban en LITERALES SUELTOS dentro de las
+   cascadas de `calcIT_ESC`, y desde que el cuadro de referencias imprime el rango de cada grado
+   el número tiene DOS lectores. Dos copias de un corte es como la pantalla y el informe se
+   separan — mismo criterio que `ET_CRIT` en la estenosis de al lado.
+
+   FUENTE: **ASE 2017 (Zoghbi WA, Adams D, Bonow RO, et al. J Am Soc Echocardiogr
+   2017;30(4):303-371), Tabla 14 «Grading the severity of chronic TR by echocardiography»,
+   folio 350** — leída en texto completo en esta tanda, con el pie impreso («350 Zoghbi et al»)
+   como control. Lo que publica, convertido a las unidades de la app (la tabla está en cm y cm²):
+     · VCW        <0,3 / 0,3-0,69 / ≥0,7 cm   →  <3 / 3-6,9 / ≥7 mm
+     · EROA       <0,20 / 0,20-0,39 / ≥0,40 cm² →  <20 / 20-39 / ≥40 mm²
+     · RVol       <30 / 30-44 / ≥45 mL
+     · CWD jet    Faint/partial/parabolic · Dense parabolic or triangular · Dense often triangular
+
+   ⚠️ `modInc` ES EL BORDE DE ARRIBA DE «MODERADA» Y NO ES COSMÉTICO. Con `true` el tope ENTRA en
+   moderada (`<=`) y severa empieza por encima (`>`); con `false` el tope queda FUERA (`<`) y
+   severa lo incluye (`>=`). La vena contracta nace en `true` porque es lo que `calcIT_ESC` venía
+   calculando, y eso la hace DIFERIR de la ASE 2017 justo en 7,0 exacto: la app dice moderada y la
+   tabla dice severa. **Queda como estaba y está reportado** — cambiar un corte es decisión de
+   Maicol. Los rangos que imprime el cuadro se DERIVAN de este campo, así que muestran lo que el
+   código calcula de verdad y no lo que la guía publica.
+   ⚠️ La IM usa `< 7` para ese mismo borde (`calcIM_ESC`) y la IAo `<= 6` (`calcIA_ESC`): los tres
+   son independientes y no se unificaron. */
+const IT_CRIT = Object.freeze({
+  vc:   Object.freeze({ lbl:'Vena contracta',    uni:'mm',  leveMax:3,  modMax:7,  modInc:true  }),
+  eroa: Object.freeze({ lbl:'EROA — PISA',       uni:'mm\u00b2', leveMax:20, modMax:40, modInc:false }),
+  volr: Object.freeze({ lbl:'Vol. regurgitante', uni:'ml',  leveMax:30, modMax:45, modInc:false })
+});
+const IT_CRIT_FUENTE = 'Graduaci\u00f3n: ASE 2017 (Zoghbi)';
+window.IT_CRIT = IT_CRIT; window.IT_CRIT_FUENTE = IT_CRIT_FUENTE;
+/* ⚠️ LA FUENTE SE PINTA TAMBIEN AL CARGAR, y hace falta: `calcIT_ESC` sólo corre cuando hay un
+   `oninput` de alguno de los seis parámetros, así que en un formulario VACÍO el renglón quedaba
+   en blanco —medido: la condición de TC-431 lo cazó— y la referencia del cuadro aparecía recién
+   después del primer tecleo. `limpiarCampos` no lo borra: su barrido devuelve a «—» los
+   `.calc-val`, y este div no lo es, así que pintarlo una vez alcanza.
+   Escrito acá y no como texto fijo en el HTML para que el literal siga teniendo UN solo dueño. */
+function itRefFuenteSync() {
+  const el = document.getElementById('it-ref-fuente');
+  if (el) el.textContent = IT_CRIT_FUENTE;
+  return !!el;
+}
+window.itRefFuenteSync = itRefFuenteSync;
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', itRefFuenteSync);
+else itRefFuenteSync();
+
+/* El clasificador, dueño único de las tres cascadas. Lo llaman el CÁLCULO y las FILAS.
+   ⚠️ EL VALOR SE PASA TAL CUAL LLEGA Y NO SE NORMALIZA, y es lo que mantiene el resultado
+   idéntico byte por byte: `eroa` y `volR` son CADENAS (salen de `.toFixed(1)`) y las comparaciones
+   de HEAD las coercían a número. Meter un `parseFloat` acá sería un cambio de semántica escondido
+   en un refactor — justo lo que el A/B de bordes vino a descartar. */
+function itGradoDe(clave, val) {
+  const c = IT_CRIT[clave];
+  if (!c) return null;
+  if (val < c.leveMax) return 'leve';
+  return (c.modInc ? (val <= c.modMax) : (val < c.modMax)) ? 'moderada' : 'severa';
+}
+window.itGradoDe = itGradoDe;
+
+/* El rango de UN grado, derivado de la tabla. Nunca retipeado: el corte y su rótulo se mueven
+   juntos, que es para lo que existe la tabla. */
+function itRangoDe(clave, grado) {
+  const c = IT_CRIT[clave];
+  if (!c) return '';
+  if (grado === 'leve')     return '<' + c.leveMax + ' ' + c.uni;
+  if (grado === 'moderada') return c.leveMax + (c.modInc ? '\u2013' + c.modMax : ' a <' + c.modMax) + ' ' + c.uni;
+  return (c.modInc ? '>' : '\u2265') + c.modMax + ' ' + c.uni;
+}
+window.itRangoDe = itRangoDe;
+
+/* ══ LAS TRES FILAS CUANTITATIVAS DEL CUADRO DE LA IT (2026-10-07) ════════════════════════════
+   De PANTALLA y nada más: ninguna entra en el informe, el EN SUMA, el PDF, el PPT ni el Excel.
+   Y NO deciden — `itGradoDe` ya decidió; esto lo muestra. El pintor no decide.
+   ⚠️ SE PINTAN SIEMPRE, Y ESO CORRIGE UN DEFECTO PREEXISTENTE QUE ESTÁ MEDIDO. En HEAD
+   `it-eroa` y `it-volr` se escribían SÓLO dentro del `if (pisaR && pisaVal && vmaxCW)`, sin rama
+   `else`: borrar el radio PISA dejaba la EROA y el volumen del cálculo anterior pegados en
+   pantalla, sobre insumos que ya no estaban. Con un pintor único la fila vuelve a «—».
+   Es sólo pantalla y va en la dirección de la corrección, pero es un cambio respecto de HEAD y
+   queda declarado. */
+function itRefPintar(d) {
+  const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+  const CAP = { leve:'Leve', moderada:'Moderada', severa:'Severa' };
+  const fila = (clave, val, texto) => {
+    if (val === null || val === undefined || val === '' || !isFinite(parseFloat(val))) return '\u2014';
+    const g = itGradoDe(clave, val);
+    return texto + ' ' + IT_CRIT[clave].uni + ' \u00b7 ' + CAP[g] + ' (' + itRangoDe(clave, g) + ')';
+  };
+  set('it-ref-vc', fila('vc',   d.vc,   String(d.vc)));
+  set('it-eroa',   fila('eroa', d.eroa, String(d.eroa)));
+  set('it-volr',   fila('volr', d.volr, String(d.volr)));
+  /* La fuente va UNA vez, debajo de las filas, y sale de su constante. Con el cuadro vacío igual
+     se muestra: es la referencia del cuadro, no un comentario sobre el paciente. */
+  set('it-ref-fuente', IT_CRIT_FUENTE);
+}
+window.itRefPintar = itRefPintar;
+
 function calcIT_ESC() {
   window._itGradoCalc = null;   // v2 (E2c): se repuebla con el grado calculado; null si no hay datos (como _imGradoCalc)
   /* ⚠️ VA ANTES DE LA SALIDA TEMPRANA de `params.length === 0`, y es la única posición correcta:
@@ -30126,11 +30239,16 @@ function calcIT_ESC() {
 
   let scores = { leve:0, moderada:0, severa:0 };
   let params = [];
+  /* ⚠️ FUERA DEL `if` DE PISA A PROPÓSITO: el pintor de las filas corre SIEMPRE, también cuando no
+     hay insumos, y para eso tiene que ver los dos valores desde el ámbito de la función. */
+  let eroa = null, volR = null;
 
+  /* Las tres cascadas cuantitativas pasaron a `itGradoDe` (2026-10-07). El corte NO se movió:
+     `modInc:true` en la tabla reproduce exactamente el borde superior inclusivo que estaba
+     escrito acá para la vena contracta. */
   if (vc) {
-    if (vc < 3) { scores.leve++; params.push({p:'VC',sev:'leve'}); }
-    else if (vc <= 7) { scores.moderada++; params.push({p:'VC',sev:'moderada'}); }
-    else { scores.severa++; params.push({p:'VC',sev:'severa'}); }
+    const g = itGradoDe('vc', vc);
+    scores[g]++; params.push({p:'VC',sev:g});
   }
 
   if (densidad) {
@@ -30151,20 +30269,24 @@ function calcIT_ESC() {
        mm² es idéntico al de HEAD con el mismo dato físico. Verificado con tres casos: 300 cm/s
        daba 67,9 / 22,0 / 8,5 mm² y 3,0 m/s da los mismos tres números. */
     const vmaxCWcms = vmaxCW * 100;
-    const eroa = (2*Math.PI*(pisaR/10)**2*pisaVal/vmaxCWcms*100).toFixed(1);
-    document.getElementById('it-eroa').textContent = eroa + ' mm²';
-    if (eroa < 20) { scores.leve++; params.push({p:'EROA',sev:'leve'}); }
-    else if (eroa < 40) { scores.moderada++; params.push({p:'EROA',sev:'moderada'}); }
-    else { scores.severa++; params.push({p:'EROA',sev:'severa'}); }
+    eroa = (2*Math.PI*(pisaR/10)**2*pisaVal/vmaxCWcms*100).toFixed(1);
+    /* La escritura del nodo se fue al pintor: acá sólo se calcula y se vota. Antes esta línea era
+       la UNICA que escribia el nodo de la EROA, y por eso la fila quedaba rancia al borrar un
+       insumo. */
+    const gE = itGradoDe('eroa', eroa);
+    scores[gE]++; params.push({p:'EROA',sev:gE});
     if (vtiIT) {
-      const volR = (PF(eroa)/100*vtiIT).toFixed(1);
-      document.getElementById('it-volr').textContent = volR + ' ml';
-      if (volR < 30) { scores.leve++; params.push({p:'Vol-R',sev:'leve'}); }
-      else if (volR < 45) { scores.moderada++; params.push({p:'Vol-R',sev:'moderada'}); }
-      else { scores.severa++; params.push({p:'Vol-R',sev:'severa'}); }
+      volR = (PF(eroa)/100*vtiIT).toFixed(1);
+      const gV = itGradoDe('volr', volR);
+      scores[gV]++; params.push({p:'Vol-R',sev:gV});
     }
   }
 
+  /* ⚠️ EL PINTOR VA ANTES DE LA SALIDA TEMPRANA, y es la única posición correcta: con el cuadro
+     vacío `params` está vacío y la función sale por el `return` de abajo, así que un pintor puesto
+     después no correría nunca y las filas se quedarían con el paciente anterior. Es la misma razón
+     por la que `itIncongruenciaSync` está arriba de todo. */
+  itRefPintar({ vc: vc, eroa: eroa, volr: volR });
   if (params.length === 0) return;
   let sevBadge, gradoVal;
   /* ⚠️ MISMO FAIL-OPEN QUE `calcIA_ESC` Y MISMO ARREGLO: la aritmética de votos de esta función
@@ -36304,7 +36426,7 @@ function RECALC_MODULOS() {
      `emAvmPdfVal` para la fila del PDF, `dataset` protege esa decision, y `disabled` no lo
      persiste ni lo lee nadie. Los dos primeros siguen intocados — que es exactamente la objecion
      que este archivo dejo escrita para IM: «pisaria la decision que la reimpresion respalda». */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -36489,6 +36611,13 @@ function limpiarCampos(silencioso) {
   /* Las DOS columnas: `RECALC_MODULOS` es el embudo de las rutas de restauracion y `limpiarCampos`
      NO pasa por ahi. Sin esta linea, «Nuevo estudio» dejaba el aviso del paciente anterior. */
   { if (typeof eteVmAvisoSync === 'function') { try { eteVmAvisoSync(); } catch (e) {} } }
+  /* ⚠️ LA LINEA DE FUENTE DEL CUADRO DE LA IT NECESITA LAS DOS COLUMNAS, Y POR UN MOTIVO DISTINTO
+     QUE SUS VECINAS: no es estado del paciente, es la REFERENCIA del cuadro, y `calcIT_ESC` —el
+     único que la pinta— sólo corre con el `oninput` de uno de los seis parámetros. En un
+     formulario vacío el renglón quedaba en blanco y la cita aparecía recién después del primer
+     tecleo. Se intentó con un `DOMContentLoaded` y NO alcanzó: medido en el arnés de la suite, el
+     cuerpo del caso lee el nodo vacío y recién se puebla tras el primer recálculo. Acá sí. */
+  { if (typeof itRefFuenteSync === 'function') { try { itRefFuenteSync(); } catch (e) {} } }
   /* ⚠️ EL AVISO DE INCONGRUENCIA DE LA IT NECESITA LAS DOS COLUMNAS POR EL MISMO MOTIVO, y lo
      cazó el CONTROL NEGATIVO de la sonda de esta tanda, no una lectura. Medido: con «Vmax IT
      cargada + botón apagado» el aviso se pintaba bien, pero «Nuevo estudio» lo dejaba EN PANTALLA
@@ -97015,8 +97144,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-0308';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791353312703;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-0714';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791368091814;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -97102,7 +97231,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-0308</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-0714</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

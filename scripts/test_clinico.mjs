@@ -53376,6 +53376,138 @@ caso('TC-430', 'Tricuspide: la PASTILLA es la unica fuente del grado y el «grad
   })();
 `);
 
+caso('TC-431', 'Tricuspide: el cuadro de la insuficiencia lleva vena contracta, EROA y volumen regurgitante con su grado y su rango, los cortes salen de UNA tabla congelada y el rotulo cita la guia registrada', `
+  ${APAGA_HELPERS}
+  const T = function (id) { const e = document.getElementById(id);
+    return e ? (e.textContent || '').trim().replace(/\\s+/g,' ') : 'NO ' + id; };
+  const abrir = function () {
+    try { showTab('valvulas'); } catch (e) {}
+    const sec = document.getElementById('ete-seccion-valv-tricuspide');
+    if (sec && sec.style.display === 'none') { try { toggleEteSeccion('valv-tricuspide'); } catch (e) {} }
+    const caja = document.getElementById('caja-insuf-tricuspide');
+    if (caja && !caja.classList.contains('valv-datos-abierto')) {
+      try { valvDatosTog('caja-insuf-tricuspide'); } catch (e) {} }
+  };
+  /* Los insumos del PISA que fabrican una EROA y un volumen exactos.
+     eroa(mm2) = 2*PI*(pisaR/10)^2 * pisaVal / vmaxCW. Con pisaR 10 y vmaxCW 3 -> 2,0944*pisaVal.
+     volR = eroa/100 * vtiIT. Los dos pasan por .toFixed(1), como en el codigo. */
+  const esc = function (o) {
+    __t.nuevoEstudio(); abrir();
+    if (o.vc != null) __t.set('it_vc', o.vc);
+    if (o.pisaVal != null) { __t.set('it_pisa_r', 10); __t.set('it_pisa_val', o.pisaVal);
+      __t.set('it_vmax_cw', 3); if (o.vti != null) __t.set('it_vti', o.vti); }
+    if (o.dens != null) __t.set('it_densidad', o.dens);
+    return { vc: T('it-ref-vc'), eroa: T('it-eroa'), volr: T('it-volr'),
+             dens: T('it-densidad-interp'), sev: T('it-sev'), fuente: T('it-ref-fuente') };
+  };
+  const vacio = esc({});
+  /* Vena contracta: los dos lados de cada corte, con el rango DEL GRADO entre parentesis. */
+  const vc29 = esc({ vc: 2.9 }), vc30 = esc({ vc: 3 });
+  const vc69 = esc({ vc: 6.9 }), vc70 = esc({ vc: 7 }), vc71 = esc({ vc: 7.1 });
+  /* EROA: 19.9 leve · 20.0 moderada · 40.0 severa. Volumen: 29.9 / 30.0 / 45.2. */
+  const er199 = esc({ pisaVal: 9.50, vti: 150 });
+  const er200 = esc({ pisaVal: 9.55, vti: 150 });
+  const er400 = esc({ pisaVal: 19.1, vti: 113 });
+  /* El orden REAL de las filas del cuadro, por el DOM. La vena contracta va primera. */
+  const box = document.querySelector('#campos-insuf-tricuspide .calc-box');
+  const rotulos = box ? Array.prototype.map.call(box.querySelectorAll('.calc-lbl'), function (l) {
+    return (l.textContent || '').trim().replace(/\\s+/g,' '); }) : [];
+  /* LA FILA RANCIA: en HEAD borrar el radio PISA dejaba la EROA y el volumen del calculo anterior
+     pegados en pantalla, sobre insumos que ya no estaban, mientras la severidad integrada YA
+     habia cambiado. Medido en los dos arboles. Es solo pantalla y queda declarado. */
+  __t.nuevoEstudio(); abrir();
+  __t.set('it_vc', 5); __t.set('it_pisa_r', 10); __t.set('it_pisa_val', 19.1);
+  __t.set('it_vmax_cw', 3); __t.set('it_vti', 113);
+  const ranciaAntes = { eroa: T('it-eroa'), volr: T('it-volr') };
+  __t.set('it_pisa_r', '');
+  const ranciaDespues = { vc: T('it-ref-vc'), eroa: T('it-eroa'), volr: T('it-volr') };
+  /* Los INSUMOS no llevan fila: el cuadro no tiene un renglon por radio PISA, valiasing,
+     Vmax IT ni VTI IT. Sin esta condicion, agregar filas de mas pasaria igual. */
+  const sinFilaDeInsumo = ['it-ref-pisa','it-ref-valiasing','it-ref-vmax','it-ref-vti']
+    .filter(function (id) { return !!document.getElementById(id); });
+
+  return { extra: [
+    // 0 - DENOMINADOR
+    ['denominador: el cuadro existe y tiene sus filas',
+      rotulos.length >= 5, JSON.stringify(rotulos)],
+    ['la VENA CONTRACTA es la PRIMERA fila, y el orden es VC - EROA - Vol-R - densidad',
+      rotulos[0] === 'Vena contracta' && rotulos[1] === 'EROA — PISA'
+      && rotulos[2] === 'Vol. regurgitante' && rotulos[3] === 'Densidad jet CW',
+      JSON.stringify(rotulos)],
+    ['con el cuadro vacio las tres filas cuantitativas estan en raya',
+      vacio.vc === '—' && vacio.eroa === '—' && vacio.volr === '—',
+      JSON.stringify(vacio)],
+
+    // --- Vena contracta: valor, grado y rango DEL GRADO ---------------------------------------
+    ['VC 2,9 -> Leve con su rango', vc29.vc === '2.9 mm · Leve (<3 mm)', vc29.vc],
+    ['VC 3,0 -> Moderada con su rango', vc30.vc === '3 mm · Moderada (3–7 mm)', vc30.vc],
+    ['VC 6,9 -> Moderada', vc69.vc === '6.9 mm · Moderada (3–7 mm)', vc69.vc],
+    /* ⚠️ EL 7,0 EXACTO ES MODERADA Y LA ASE 2017 DICE SEVERA (su VCW severa es >=0,7 cm).
+       Queda como estaba: cambiar un corte es decision de Maicol y esta REPORTADO. El rango que
+       imprime la fila sale de la tabla, asi que muestra lo que el codigo calcula de verdad. */
+    ['VC 7,0 exacto -> Moderada (divergencia con ASE 2017, declarada)',
+      vc70.vc === '7 mm · Moderada (3–7 mm)', vc70.vc],
+    ['VC 7,1 -> Severa con su rango', vc71.vc === '7.1 mm · Severa (>7 mm)', vc71.vc],
+
+    // --- EROA y volumen regurgitante ----------------------------------------------------------
+    ['EROA 19,9 -> Leve con su rango', er199.eroa === '19.9 mm² · Leve (<20 mm²)', er199.eroa],
+    ['EROA 20,0 -> Moderada, con el tope EXCLUSIVO en el rango',
+      er200.eroa === '20.0 mm² · Moderada (20 a <40 mm²)', er200.eroa],
+    ['EROA 40,0 -> Severa', er400.eroa === '40.0 mm² · Severa (≥40 mm²)', er400.eroa],
+    ['Vol-R 29,8 -> Leve (el .toFixed(1) de 29,85 da 29,8 en coma flotante)',
+      er199.volr === '29.8 ml · Leve (<30 ml)', er199.volr],
+    ['Vol-R 30,0 -> Moderada', er200.volr === '30.0 ml · Moderada (30 a <45 ml)', er200.volr],
+    ['Vol-R 45,2 -> Severa', er400.volr === '45.2 ml · Severa (≥45 ml)', er400.volr],
+
+    // --- La fuente, UNA vez, y el rotulo del cuadro -------------------------------------------
+    ['la fuente va UNA vez debajo de las filas y nombra la guia registrada',
+      vacio.fuente === 'Graduación: ASE 2017 (Zoghbi)',
+      'leido=' + JSON.stringify(vacio.fuente) + ' | existe=' +
+      !!document.getElementById('it-ref-fuente') + ' | ahora=' +
+      JSON.stringify((document.getElementById('it-ref-fuente')||{}).textContent) +
+      ' | const=' + JSON.stringify(typeof IT_CRIT_FUENTE !== 'undefined' ? IT_CRIT_FUENTE : null)],
+    /* El rotulo decia «(ESC 2021)» y FUENTES.md no registra NINGUNA guia valvular ESC 2021. Los
+       cuatro criterios que integra esta logica estan en ASE 2017, Tabla 14, folio 350. */
+    ['el rotulo de la severidad integrada cita ASE 2017 y ya no «ESC 2021»',
+      rotulos.some(function (r) { return r.indexOf('Severidad IT integrada') > -1
+        && r.indexOf('ASE 2017') > -1 && r.indexOf('ESC 2021') === -1; }),
+      JSON.stringify(rotulos)],
+
+    // --- La tabla congelada, leida por el calculo Y por las filas -----------------------------
+    ['los cortes salen de UNA tabla congelada, con los valores de siempre',
+      typeof IT_CRIT !== 'undefined' && Object.isFrozen(IT_CRIT)
+      && IT_CRIT.vc.leveMax === 3 && IT_CRIT.vc.modMax === 7
+      && IT_CRIT.eroa.leveMax === 20 && IT_CRIT.eroa.modMax === 40
+      && IT_CRIT.volr.leveMax === 30 && IT_CRIT.volr.modMax === 45,
+      JSON.stringify(typeof IT_CRIT !== 'undefined' ? IT_CRIT : null)],
+    /* El campo modInc es el borde de arriba de moderada, y el que hace visible la divergencia:
+       la VC lo tiene INCLUSIVO y los otros dos EXCLUSIVO. */
+    ['y el borde superior de moderada es inclusivo SOLO en la vena contracta',
+      IT_CRIT.vc.modInc === true && IT_CRIT.eroa.modInc === false && IT_CRIT.volr.modInc === false,
+      JSON.stringify([IT_CRIT.vc.modInc, IT_CRIT.eroa.modInc, IT_CRIT.volr.modInc])],
+    ['el clasificador es el MISMO que usa el calculo, y coincide con las filas',
+      itGradoDe('vc', 6.9) === 'moderada' && itGradoDe('vc', 7) === 'moderada'
+      && itGradoDe('vc', 7.1) === 'severa'
+      && itGradoDe('eroa', '20.0') === 'moderada' && itGradoDe('eroa', '40.0') === 'severa'
+      && itGradoDe('volr', '45.0') === 'severa',
+      [itGradoDe('vc',7), itGradoDe('vc',7.1), itGradoDe('eroa','40.0')].join('/')],
+
+    // --- La fila rancia, corregida ------------------------------------------------------------
+    ['DENOMINADOR de la fila rancia: con los insumos cargados hay EROA y volumen que borrar',
+      ranciaAntes.eroa.indexOf('40.0') > -1 && ranciaAntes.volr.indexOf('45.2') > -1,
+      JSON.stringify(ranciaAntes)],
+    ['borrar el radio PISA devuelve la EROA y el volumen a la raya (en HEAD quedaban pegados)',
+      ranciaDespues.eroa === '—' && ranciaDespues.volr === '—',
+      JSON.stringify(ranciaDespues)],
+    ['y la vena contracta, que sigue cargada, NO se borra con ellos',
+      ranciaDespues.vc === '5 mm · Moderada (3–7 mm)', ranciaDespues.vc],
+
+    // --- CONTROL NEGATIVO: los insumos no llevan fila -----------------------------------------
+    ['CONTROL: ni el radio PISA, ni el valiasing, ni la Vmax IT, ni el VTI IT tienen fila propia',
+      sinFilaDeInsumo.length === 0, 'aparecieron: ' + sinFilaDeInsumo.join(', ')]
+  ] };
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

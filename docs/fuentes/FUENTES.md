@@ -102,7 +102,8 @@ anticoagulación en el embarazo). **Ninguna toca un umbral.**
 ### `aseVr2017` — ASE 2017, regurgitación valvular nativa
 Zoghbi WA, Adams D, Bonow RO, et al. *J Am Soc Echocardiogr* 2017;30(4):303-371.
 doi:10.1016/j.echo.2017.01.007.
-**Ruta probable:** `.../04_Valvulopatias/Zoghbi_2017_Regurgitacion_Valvular.pdf`.
+**Ruta CONFIRMADA (2026-10-07):** `~/Desktop/EcoSmart_Biblioteca_Fuentes/04_Valvulopatias/Zoghbi_2017_Regurgitacion_Valvular.pdf`
+(69 páginas; decía «ruta probable» hasta que se abrió). **Folio = página del PDF + 302.**
 
 - **Tabla 8** «Grading the severity of chronic MR by echocardiography», **p. 332** — IM severa:
   vena contracta **≥ 0,7 cm** (> 0,8 cm en biplano), AEOR por PISA 2D **≥ 0,40 cm²**, volumen
@@ -126,6 +127,35 @@ sistólico del TSVI **ya contiene** el regurgitante. **Reportado, no corregido.*
 
 ⚠️ **Esta tabla tiene CUATRO columnas**, no tres: existe la banda intermedia que el `select`
 `ia_sev_final` llama «Moderada-severa» y que `calcIA_ESC` nunca emite.
+
+#### Tabla 14 — IT, «Grading the severity of chronic TR by echocardiography», folio 350
+
+Leída en texto completo el **2026-10-07** (PDF pág. 48; pie impreso «350 Zoghbi et al» como
+control). **La tabla está en cm y cm²** — transcribirla sin convertir mueve el umbral dos órdenes
+de magnitud, igual que advierte la Tabla 8.
+
+| Parámetro (fila de la tabla) | Leve | Moderada | Severa |
+|---|---|---|---|
+| **VCW (cm)** | `<0.3` | `0.3-0.69` | `$0.7` (≥0,7) |
+| **EROA (cm²)** | `<0.20` | `0.20-0.39` | `$0.40` (≥0,40) |
+| **RVol (2D PISA) (mL)** | `<30` | `30-44` | `$45` (≥45) |
+| **CWD jet** (cualitativo) | Faint/partial/parabolic | Dense, parabolic or triangular | Dense, often triangular |
+| PISA radius (cm) | `#0.5` (≤0,5) | `0.6-0.9` | `>0.9` |
+| Color flow jet area (cm²) | no definido | no definido | `>10` |
+
+En las unidades de la app: **VC `<3` / `3-6,9` / `≥7` mm · EROA `<20` / `20-39` / `≥40` mm² ·
+Vol-R `<30` / `30-44` / `≥45` ml.**
+
+- La nota `k` de la tabla dice *«There are little data to support further separation of these
+  values»* sobre las bandas intermedias de EROA y RVol.
+- *«a TR VCW >0.7 cm identifies severe TR and is a marker of worse prognosis»* (folio 350, texto).
+- **Los signos en negrita de la tabla son «specific for their TR grade»** — la tabla NO publica una
+  regla de recuento de votos. La aritmética de `calcIT_ESC` (`severa >= 1` basta, `moderada >= 2`)
+  es **criterio de la app**, no de esta guía. Queda declarado.
+
+⚠️ **De acá sale la divergencia de la vena contracta tricuspídea en 7,0 exacto**: la guía da
+`≥0,7 cm` severa y `calcIT_ESC` aplicaba `<= 7` moderada. La EROA y el volumen regurgitante
+**coinciden exactamente** con esta tabla.
 
 ### `ahaVc2020` — ACC/AHA 2020, valvulopatías (válvula nativa)
 Otto CM, Nishimura RA, Bonow RO, et al. *Circulation* 2021;143:e72-e227.
