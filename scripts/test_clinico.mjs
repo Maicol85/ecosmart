@@ -52492,6 +52492,251 @@ caso('TC-427', 'El tiempo de aceleracion PULMONAR del importador cae en el TAP y
   })();
 `);
 
+/* == TC-428 - DOPPLER TRICUSPIDEO: TAP, TDE, PAPm UNICA, REFERENCIAS Y VENTANA (2026-10-07) ====
+   Cubre la tanda entera. Antes de esto el bloque tenia cobertura de sus DOS signos indirectos
+   (TC-133) y de la clasificacion diastolica (TC-136), y CERO del cuadro de referencias, de la
+   PAP media y del encabezado.
+   DENOMINADOR: la pestania Doppler abierta y el acordeon desplegado. Lo que esta en display:none
+   no tiene geometria, asi que las condiciones de maquetacion sobre la app cerrada dan cero y
+   parecen impecables; y el cuadro de referencias se lee del DOM, no de una funcion.
+   DOS CONTROLES NEGATIVOS: (1) TAP cargado con PSAP y PCP presentes -> Hemodinamica tiene que
+   seguir usando la PAPm por PSAP y no la del TAP, con el GTP distinto de "-" para que la
+   condicion tenga denominador; (2) los dos cortes nuevos medidos por los DOS lados. */
+caso('TC-428', 'Doppler tricuspideo: TAP espejado, TDE, PAP media unica con su formula, cuadro de referencias sin la fila de HTP y ventana del Algoritmo', `
+  const T = function (id) { const e = document.getElementById(id);
+    return e ? e.textContent.trim().replace(/\\s+/g,' ') : 'NO ' + id; };
+  const V = function (id) { const e = document.getElementById(id); return e ? e.value : 'NO ' + id; };
+
+  /* DENOMINADOR. Sin esto la seccion esta colapsada y nada tiene geometria. */
+  try { showTab('doppler'); } catch (e) {}
+  const h2 = document.querySelector('h2[onclick*="dop-tricusp"]');
+  const sec = document.getElementById('dop-tricusp');
+  if (sec && sec.style.display === 'none') { try { toggleCard('dop-tricusp', h2); } catch (e) {} }
+  const conGeom = ['vmax_it','dt_tap','dt_triv','dt_tde','papm_est'].filter(function (id) {
+    const e = document.getElementById(id); if (!e) return false;
+    const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+
+  /* --- PAP media: las cinco escenas del prompt ------------------------------------------------
+     PmAD sale de la VCI; con 15 mm y colapso >50 % vale 3, asi que una VRT de 2,83 m/s da
+     4 x 2,83^2 = 32,04 de gradiente y PSAP 35. */
+  const papm = function (o) {
+    __t.nuevoEstudio();
+    if (o.vci) { __t.set('vci_diam','15'); __t.set('vci_col','>50'); }
+    if (o.vit) __t.set('vmax_it', o.vit);
+    if (o.tap) __t.set('tvia', o.tap);
+    return { vis: V('papm_est'), form: T('papm_est_form'), oculto: V('pap_med'),
+             psap: V('psap_calc') };
+  };
+  const chemla   = papm({ vci:1, vit:'2.83' });          // PSAP 35 -> 0,61x35+2 = 23,35 -> 23
+  const dab100   = papm({ tap:'100' });                  // 90 - 0,62x100 = 28
+  const dab120   = papm({ tap:'120' });                  // 90 - 0,62x120 = 15,6   (el 120 va aca)
+  const dab121   = papm({ tap:'121' });                  // 79 - 0,45x121 = 24,55 -> 24,6
+  const itSinVci = papm({ vit:'2.83', tap:'140' });       // sin PSAP -> 79 - 0,45x140 = 16
+  const ninguno  = papm({});
+
+  /* --- CONTROL NEGATIVO: Hemodinamica no puede usar la PAPm por TAP --------------------------
+     PSAP 35 (PAPm por Chemla 23) Y TAP 100 (PAPm por TAP 28) cargados a la vez, con PCP y GC
+     para que el GTP se calcule de verdad. Si el GTP saliera de 28, la condicion lo dice. */
+  __t.nuevoEstudio();
+  __t.set('vci_diam','15'); __t.set('vci_col','>50'); __t.set('vmax_it','2.83');
+  __t.set('tvia','100');
+  __t.set('onda_e','90'); __t.set('e_sep','5'); __t.set('e_lat','7'); __t.set('gc','5');
+  try { calcHemo(); } catch (e) {}
+  const gtpConTap = T('hemo-gtp');
+  /* Y el control del control: sin PSAP y sin IP, con el TAP cargado, Hemodinamica se abstiene. */
+  __t.nuevoEstudio();
+  __t.set('tvia','100'); __t.set('onda_e','90'); __t.set('e_sep','5'); __t.set('e_lat','7');
+  __t.set('gc','5');
+  try { calcHemo(); } catch (e) {}
+  const gtpSinPsap = T('hemo-gtp'); const htpSinPsap = T('hemo-htp-tipo');
+
+  /* --- Espejo del TAP en los dos sentidos, borrado incluido ---------------------------------- */
+  __t.nuevoEstudio();
+  __t.set('tvia','92');            const espIda = V('dt_tap');
+  __t.set('dt_tap','150');         const espVuelta = V('tvia');
+  __t.set('dt_tap','');            const espBorraVd = V('tvia');
+  __t.set('tvia','88'); __t.set('tvia','');  const espBorraDop = V('dt_tap');
+  /* Restauracion MUDA, que es como repueblan las cinco rutas de un estudio guardado y como
+     llega un TAP del importador: asignar .value no dispara oninput. */
+  __t.nuevoEstudio();
+  const elTvia = document.getElementById('tvia'); elTvia.value = '101';
+  const antesRecalc = V('dt_tap');
+  try { _recalcModulos('TC-428'); } catch (e) {}
+  const trasRecalc = V('dt_tap');
+
+  /* --- Cuadro de referencias: los dos lados de cada corte ------------------------------------ */
+  const ref = function (o) {
+    __t.nuevoEstudio();
+    if (o.triv) __t.set('dt_triv', o.triv);
+    if (o.tde)  __t.set('dt_tde', o.tde);
+    if (o.E)    __t.set('dt_onda_e', o.E);
+    if (o.A)    __t.set('dt_onda_a', o.A);
+    if (o.ep)   __t.set('dt_eprime_lat', o.ep);
+    return { triv: T('dt_triv_ref'), tde: T('dt_tde_ref'), diast: T('dt_diast_ref') };
+  };
+  const triv75 = ref({ triv:'75' }), triv76 = ref({ triv:'76' });
+  const tde119 = ref({ tde:'119' }), tde120 = ref({ tde:'120' });
+  const relaj  = ref({ E:'30', A:'50', ep:'6' });
+  const pseudo = ref({ E:'60', A:'50', ep:'8' });
+  const indet  = ref({ E:'60', A:'50' });
+  const vacio  = ref({});
+
+  /* La fila que se borro, y las que quedaron, EN SU ORDEN. */
+  const box = document.querySelector('#dop-tricusp .calc-box');
+  const rotulos = box ? Array.prototype.map.call(box.querySelectorAll('.calc-lbl'), function (l) {
+    return (l.textContent || '').trim(); }) : [];
+
+  /* --- Encabezado: orden de los hijos y el titulo en los cuatro estados ---------------------- */
+  const hijos = h2 ? Array.prototype.map.call(h2.children, function (c) {
+    return c.tagName + (c.id ? '#' + c.id : ''); }) : [];
+  const medirTit = function () {
+    const t = h2.querySelector('span'), r = t.getBoundingClientRect(), hr = h2.getBoundingClientRect();
+    return { w: Math.round(r.width), h: Math.round(r.height),
+             dentro: r.top >= hr.top - 1 && r.bottom <= hr.bottom + 1,
+             recorte: h2.scrollHeight > h2.clientHeight + 1 };
+  };
+  const tAbVenCerr = medirTit();
+  dtvdAlgoAbrir();   const tAbVenAb = medirTit(); const ovAbierto = document.getElementById('dtvd-algo-overlay').style.display;
+  dtvdAlgoCerrar();  const ovCerrado = document.getElementById('dtvd-algo-overlay').style.display;
+  toggleCard('dop-tricusp', h2); const tCerr = medirTit();
+  toggleCard('dop-tricusp', h2); const tReab = medirTit();
+
+  /* --- Ventana del Algoritmo: criterios, resultado y la salvedad de la IT -------------------- */
+  const vent = function (o) {
+    __t.nuevoEstudio();
+    if (o.E)  __t.set('dt_onda_e', o.E);
+    if (o.A)  __t.set('dt_onda_a', o.A);
+    if (o.ep) __t.set('dt_eprime_lat', o.ep);
+    if (o.it) __t.set('it_grado', o.it);
+    dtvdAlgoRender();
+    const c = document.getElementById('dtvd-algo-cuerpo');
+    return { filas: Array.prototype.map.call(c.querySelectorAll('.da-row'), function (r) {
+               return (r.className || '') + ' :: ' + (r.textContent || '').replace(/\\s+/g,' ').trim(); }),
+             res: (c.querySelector('.da-res') || {}).textContent || '',
+             notas: Array.prototype.map.call(c.querySelectorAll('.da-nota'), function (r) {
+               return (r.textContent || '').replace(/\\s+/g,' ').trim(); }).join(' ~~ ') };
+  };
+  const vRelaj  = vent({ E:'30', A:'50', ep:'6' });
+  const vRestr  = vent({ E:'120', A:'50', ep:'8', it:'4' });
+  const vNormal = vent({ E:'60', A:'50', ep:'15' });
+  const vIndet  = vent({ E:'60', A:'50' });
+  const vVacio  = vent({});
+  __t.nuevoEstudio();
+  const trasNuevo = { tap: V('dt_tap'), tvia: V('tvia'), tde: V('dt_tde'),
+                      vis: V('papm_est'), form: T('papm_est_form'),
+                      triv: T('dt_triv_ref'), tdeRef: T('dt_tde_ref'), diast: T('dt_diast_ref') };
+
+  return { extra: [
+    // 0 - DENOMINADOR. Sin esto las condiciones de abajo miden sobre una seccion sin geometria.
+    ['denominador: los cinco campos del bloque tienen geometria', conGeom.length === 5],
+
+    // --- PAP media: las cinco escenas, con la cuenta a mano al lado -------------------------
+    ['(a) PSAP 35 -> 0,61x35+2 = 23,35 -> 23 mmHg', chemla.psap === '35' && chemla.vis === '23 mmHg (est.)'],
+    ['(a) y el rotulo dice Chemla, con las constantes y no un texto suelto',
+      chemla.form === '(0,61 × PSAP + 2 · Chemla)'],
+    ['(b) sin IT, TAP 100 -> 90-62 = 28 mmHg', dab100.psap === '' && dab100.vis === '28 mmHg (est.)'],
+    ['(b) con rotulo Dabestani de la rama baja', dab100.form.indexOf('90') === 1 && dab100.form.indexOf('Dabestani') > -1],
+    ['(c) TAP 120 EXACTO usa la rama de abajo: 90-74,4 = 15,6', dab120.vis === '15,6 mmHg (est.)'],
+    ['(c) y TAP 121 pasa a la otra: 79-54,45 = 24,55 -> 24,6', dab121.vis === '24,6 mmHg (est.)'],
+    ['(c) los dos rotulos son distintos', dab120.form !== dab121.form && dab121.form.indexOf('79') === 1],
+    ['(d) IT sin VCI: no hay PSAP, manda el TAP 140 -> 79-63 = 16',
+      itSinVci.psap === '' && itSinVci.vis === '16 mmHg (est.)'],
+    ['(e) sin IT ni TAP: vacio y SIN texto de formula', ninguno.vis === '' && ninguno.form === ''],
+
+    /* EL DATO QUE VIAJA NO SE CONTAMINA. pap_med es lo que leen la hoja de valores del PDF y la
+       columna del Excel: en las cuatro escenas por TAP tiene que estar VACIO. */
+    ['el valor por TAP NO entra en pap_med, que es lo que leen el PDF y el Excel',
+      dab100.oculto === '' && dab120.oculto === '' && dab121.oculto === '' && itSinVci.oculto === ''],
+    ['y el valor por PSAP si, con el MISMO numero que la pantalla',
+      chemla.oculto === '23 mmHg (est.)' && chemla.oculto === chemla.vis],
+
+    /* CONTROL NEGATIVO con denominador: el GTP existe y sale de la PAPm por PSAP (23), no del
+       TAP (28). Sin la condicion del denominador, un GTP en "-" pasaria por bueno. */
+    ['CONTROL: con PSAP y TAP juntos el GTP existe',
+      gtpConTap !== '-' && gtpConTap !== '—' && gtpConTap !== ''],
+    ['CONTROL: y usa la PAPm por PSAP (23), no la del TAP (28)',
+      gtpConTap.indexOf('PAPm 23') > -1 && gtpConTap.indexOf('28') === -1],
+    ['CONTROL: sin PSAP y sin IP, Hemodinamica se abstiene aunque haya TAP',
+      (gtpSinPsap === '-' || gtpSinPsap === '—') && htpSinPsap.indexOf('Requiere PAPm (PSAP)') > -1],
+
+    // --- Espejo del TAP ----------------------------------------------------------------------
+    ['el TAP va de VD/AD al Doppler', espIda === '92'],
+    ['y del Doppler a VD/AD', espVuelta === '150'],
+    ['borrar en el Doppler borra en VD/AD', espBorraVd === ''],
+    ['y borrar en VD/AD borra en el Doppler', espBorraDop === ''],
+    ['una restauracion muda deja el campo nuevo vacio...', antesRecalc === ''],
+    ['...y RECALC_MODULOS lo repone: asi llega un TAP del importador', trasRecalc === '101'],
+
+    // --- Cuadro de referencias ---------------------------------------------------------------
+    ['la fila «HTP - clasificacion ESC 2022» ya no existe',
+      !document.getElementById('htp-interp') && rotulos.join('|').indexOf('clasificaci') === -1],
+    ['y el cuadro quedo con las siete filas en su orden, la diastolica al final',
+      rotulos.length === 7 && rotulos[6].indexOf('diast') > -1
+      && rotulos[4].indexOf('TRIV') > -1 && rotulos[5].indexOf('TDE') > -1],
+    ['TRIV 75 va sin comentario', triv75.triv === '75 ms'],
+    ['TRIV 76 lo lleva', triv76.triv.indexOf('75 ms: a favor de HTP') > -1],
+    ['TDE 119 sale acortado', tde119.tde.indexOf('acortado') > -1],
+    ['TDE 120 va sin comentario', tde120.tde === '120 ms'],
+    /* La fila de la diastolica muestra el resultado de la logica QUE YA EXISTE, con SUS frases:
+       no se agrego ningun criterio ni se movio ningun umbral. */
+    ['la fila de la diastolica usa las frases de dtDiastPatronLbl',
+      relaj.diast.indexOf('relajaci') > -1 && pseudo.diast.indexOf('pseudonormal') > -1
+      && indet.diast.indexOf('sugestivo de llenado normal o pseudonormal') > -1],
+    ['y sin E/A clasificable queda en raya', vacio.diast === '-' || vacio.diast === '—'],
+    ['el TRIV y el TDE NO cambian la clasificacion diastolica',
+      triv76.diast === vacio.diast && tde119.diast === vacio.diast],
+
+    // --- Encabezado --------------------------------------------------------------------------
+    ['el encabezado lleva titulo, boton y flecha, EN ESE ORDEN',
+      hijos.length === 3 && hijos[0] === 'SPAN' && hijos[1] === 'BUTTON'
+      && hijos[2] === 'SPAN#dop-tricusp-arrow'],
+    /* EL DEFECTO A CAZAR es el de la mitral: con la flecha antes del boton, toggleCard le aplica
+       el rotate al TITULO y el rotulo desaparece recortado por el overflow:hidden de la .card. */
+    ['el titulo se ve completo con la ventana cerrada',
+      tAbVenCerr.w > 100 && tAbVenCerr.dentro && !tAbVenCerr.recorte],
+    ['y con la ventana abierta', tAbVenAb.w > 100 && tAbVenAb.dentro && !tAbVenAb.recorte],
+    ['y con el acordeon cerrado', tCerr.w > 100 && tCerr.dentro && !tCerr.recorte],
+    ['y al reabrirlo', tReab.w > 100 && tReab.dentro && !tReab.recorte],
+    ['el titulo no se vuelve una barra vertical en ninguno de los cuatro',
+      [tAbVenCerr, tAbVenAb, tCerr, tReab].every(function (m) { return m.h < 80 && m.w > m.h; })],
+    ['la ventana abre y cierra', ovAbierto === 'block' && ovCerrado === 'none'],
+
+    // --- Ventana del Algoritmo ---------------------------------------------------------------
+    ['la ventana muestra las cuatro filas de criterios', vRelaj.filas.length === 4],
+    ['marca la banda del E/A que aplica, y solo esa',
+      vRelaj.filas[0].indexOf('da-bad') > -1 && vRelaj.filas[1].indexOf('da-na') > -1
+      && vRelaj.filas[2].indexOf('da-na') > -1],
+    ['la banda del medio se marca sin rojo: puede ser normal',
+      vNormal.filas[1].indexOf('da-ok') > -1 && vNormal.filas[0].indexOf('da-na') > -1],
+    ['el restrictivo marca su banda', vRestr.filas[2].indexOf('da-bad') > -1],
+    ['el resultado es el de dtDiastEstado, con su grado',
+      vRelaj.res.indexOf('relajaci') > -1 && vRelaj.res.indexOf('leve') > -1
+      && vRestr.res.indexOf('restrictivo') > -1 && vRestr.res.indexOf('severa') > -1],
+    ['sin E/e no gradua y lo dice', vIndet.res.indexOf('leve') === -1
+      && vIndet.res.indexOf('moderada') === -1 && vIndet.res.indexOf('severa') === -1
+      && vIndet.notas.indexOf('no se grad') > -1],
+    ['sin E/A no clasifica', vVacio.res.indexOf('Datos insuficientes') > -1],
+    /* La salvedad de la IT significativa es la MISMA frase del informe, palabra por palabra. */
+    ['la salvedad de la IT significativa aparece con patron anormal',
+      vRestr.notas.indexOf('La insuficiencia tricuspídea significativa puede invalidar estos parámetros de llenado (ASE).') > -1],
+    ['y NO aparece con patron normal',
+      vNormal.notas.indexOf('puede invalidar estos par') === -1],
+    /* La ventana declara lo que la logica NO usa: el TRIV y las cinco filas que la app no
+       recoge. Sin eso afirmaria ser la Tabla 6 completa. */
+    ['la ventana declara que el TRIV no entra en la clasificacion',
+      vRelaj.notas.indexOf('TRIV tricusp') > -1 && vRelaj.notas.indexOf('cinco filas m') > -1],
+
+    // --- Nuevo estudio -----------------------------------------------------------------------
+    ['«Nuevo estudio» limpia el TAP por los dos lados y el TDE',
+      trasNuevo.tap === '' && trasNuevo.tvia === '' && trasNuevo.tde === ''],
+    ['y borra el numero Y EL TEXTO DE LA FORMULA de la PAP media',
+      trasNuevo.vis === '' && trasNuevo.form === ''],
+    ['y deja las tres filas nuevas del cuadro en raya',
+      [trasNuevo.triv, trasNuevo.tdeRef, trasNuevo.diast].every(function (t) {
+        return t === '-' || t === '—'; })]
+  ] };
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

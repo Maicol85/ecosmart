@@ -217,6 +217,13 @@ window.__P = {
              filas: c ? Array.prototype.map.call(c.querySelectorAll('.da-row'), function(r){
                return (r.className||'') + ' :: ' + (r.textContent||'').replace(/\\s+/g,' ').trim() }) : null,
              res: c ? Array.prototype.map.call(c.querySelectorAll('.da-res'), function(r){
+               return (r.textContent||'').replace(/\\s+/g,' ').trim() }) : null,
+             /* Las notas entran al A/B: la salvedad de la IT significativa y la de «sin E/e no se
+                gradua» viven en un .da-nota, no en el .da-res, asi que sin esto la sonda diria
+                que la ventana esta bien sobre una ventana a la que le falta la salvedad. */
+             notas: c ? Array.prototype.map.call(c.querySelectorAll('.da-nota'), function(r){
+               return (r.textContent||'').replace(/\\s+/g,' ').trim() }) : null,
+             pasos: c ? Array.prototype.map.call(c.querySelectorAll('.da-paso'), function(r){
                return (r.textContent||'').replace(/\\s+/g,' ').trim() }) : null } },
 
   /* Encabezado de la seccion: orden de los hijos del h2 y geometria del titulo. El defecto que
@@ -228,10 +235,19 @@ window.__P = {
       return c.tagName + (c.id ? '#' + c.id : '') + (c.tagName === 'BUTTON' ? '[' + (c.textContent||'').trim() + ']' : '') });
     var tit = h.querySelector('span');
     var r = tit ? tit.getBoundingClientRect() : null;
+    var hr = h.getBoundingClientRect();
+    /* RECORTE VERTICAL. La .card lleva overflow:hidden, asi que un titulo que se pase del h2 se
+       ve cortado y no desbordado: medirlo por el borde derecho no lo caza. El defecto historico
+       de la mitral era exactamente este —el titulo quedaba como una barra recortada— asi que la
+       condicion es que el rectangulo del titulo entre COMPLETO dentro del h2. */
     return { hijos: hijos,
              tituloTxt: tit ? (tit.textContent||'').trim() : null,
              tituloW: r ? Math.round(r.width) : null, tituloH: r ? Math.round(r.height) : null,
-             tituloVisible: !!(r && r.width > 40 && r.height > 6 && r.height < 60) } },
+             h2W: Math.round(hr.width), h2H: Math.round(hr.height),
+             h2Scroll: h.scrollHeight, h2Client: h.clientHeight,
+             dentro: !!(r && r.top >= hr.top - 1 && r.bottom <= hr.bottom + 1
+                          && r.left >= hr.left - 1 && r.right <= hr.right + 1),
+             tituloVisible: !!(r && r.width > 40 && r.height > 6 && r.height < 80) } },
 
   /* Desborde horizontal de la seccion y de la pagina, y la letra de la formula. */
   maqueta() {
@@ -253,7 +269,26 @@ window.__P = {
              formulaW: fr ? Math.round(fr.width) : null,
              formulaH: fr ? Math.round(fr.height) : null,
              formulaScrollW: f ? f.scrollWidth : null,
-             formulaCortada: !!(f && f.scrollWidth > f.clientWidth + 1) } },
+             formulaCortada: !!(f && f.scrollWidth > f.clientWidth + 1),
+             /* TOQUE TACTIL. check_mobile.js no acepta un --file, asi que el A/B contra HEAD de
+                los blancos de toque se hace aca: se cuentan los del BLOQUE TRICUSPIDEO por
+                debajo de 44x44 y se mide el boton nuevo contra el de la mitral, que ya existe en
+                HEAD. Si el boton nuevo midiera distinto del suyo, el barrido de movil ganaria un
+                hallazgo que esta sonda nombra por su id en vez de dejarlo en un total. */
+             toqueChico: (function(){
+               var s = document.getElementById('dop-tricusp'); if (!s) return null;
+               var out = [];
+               Array.prototype.forEach.call(s.querySelectorAll('button,[onclick],input,select'), function(el){
+                 var r = el.getBoundingClientRect();
+                 if (r.width > 0 && (r.width < 44 || r.height < 44))
+                   out.push((el.id || el.tagName) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height)) });
+               return out.sort() })(),
+             botones: (function(){
+               var g = function(sel){ var b = document.querySelector(sel);
+                 if (!b) return null; var r = b.getBoundingClientRect();
+                 return Math.round(r.width) + 'x' + Math.round(r.height) };
+               return { mitral: g('h2[onclick*="dop-mitral"] button'),
+                        tricusp: g('h2[onclick*="dop-tricusp"] button') } })() } },
 
   /* Foto completa del bloque: lo que el A/B compara en cada escena. */
   foto() {

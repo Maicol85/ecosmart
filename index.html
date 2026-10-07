@@ -2305,6 +2305,24 @@ window.cerrarSesionReal = cerrarSesionReal;
   </div>
 </div>
 
+<!-- Card flotante de la función diastólica del VD (se llena desde dtvdAlgoRender).
+     MISMO ARMAZÓN que #diast-algo-overlay, línea por línea: overlay que cierra al clic afuera,
+     cabecera pegajosa con título y ✕, cuerpo scrolleable, y las mismas clases `.da-*` adentro.
+     Es una ventana aparte y no una pestaña de aquélla porque son dos algoritmos de dos
+     ventrículos distintos, con dos guías distintas, y el botón que la abre vive en otra sección.
+     El título es FIJO —a diferencia del de la mitral, que cambia con el selector de protocolo—
+     porque acá hay un solo juego de criterios: la Tabla 6 de la ASE 2025. -->
+<div id="dtvd-algo-overlay" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55);" onclick="if(event.target===this)dtvdAlgoCerrar();">
+  <div id="dtvd-algo-card" role="dialog" aria-label="Función diastólica del ventrículo derecho"
+       style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:560px;max-width:calc(100vw - 24px);max-height:calc(100vh - 48px);overflow:auto;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.6);">
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg2);z-index:1;">
+      <span id="dtvd-algo-titulo" style="flex:1;font-weight:700;font-size:13px;color:var(--accent2);">Función diastólica del VD — ASE 2025, Tabla 6</span>
+      <button type="button" class="btn btn-ghost" style="font-size:12px;padding:3px 10px;font-weight:700;" onclick="dtvdAlgoCerrar()">✕</button>
+    </div>
+    <div id="dtvd-algo-cuerpo" style="padding:12px 14px;"></div>
+  </div>
+</div>
+
 <!-- Panel de criterios de MCH y MCA. Mismo armazón que #diast-algo-overlay: overlay que cierra
      al clic afuera, cabecera pegajosa con título y ✕, cuerpo scrolleable. Más ancho porque acá
      entran dos diagramas lado a lado y una tabla de seis categorías.
@@ -3666,7 +3684,25 @@ window.cerrarSesionReal = cerrarSesionReal;
 
   <!-- Doppler Tricuspídeo / PSAP -->
   <div class="card" style="margin-bottom:6px;">
-    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('dop-tricusp',this)">〰️ DOPPLER TRICUSPÍDEO — PSAP / FUNCIÓN DIASTÓLICA VD<span id="dop-tricusp-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
+    <!-- Estructura CALCADA del encabezado de «Doppler Mitral», que es el único que ya tenía un
+         botón acá: `display:flex` en el h2, el título envuelto en un <span style="flex:1"> y la
+         FLECHA DESPUÉS DEL BOTÓN. El orden no es estético: con la flecha antes del botón,
+         `toggleCard` cae a su respaldo `headEl.querySelector('span')` —que devuelve el PRIMER
+         span— y le aplica el rotate al TÍTULO en vez de a la flecha. Medido en la mitral: el
+         título pasaba de 946×15 px a 15×946 con top −267, o sea una barra vertical recortada por
+         el `overflow:hidden` de la `.card`, y el rótulo DESAPARECÍA al desplegar, dejando
+         flotando el botón «Algoritmo» sin nada que dijera en qué sección estaba el médico.
+         Acá además el span lleva id, así que `toggleCard` lo encuentra por id y ni usa el
+         respaldo; el orden se respeta igual, para que las dos cabeceras se lean iguales.
+         `float:right` salió: dentro de un flex no hace nada y el `flex:none` es lo que fija la
+         flecha a la derecha. Esta sección arranca COLAPSADA (`display:none`), así que la flecha
+         no lleva rotate inicial — al revés que la mitral, que arranca abierta. -->
+    <h2 class="card-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;" onclick="toggleCard('dop-tricusp',this)">
+      <span style="flex:1;">〰️ DOPPLER TRICUSPÍDEO — PSAP / FUNCIÓN DIASTÓLICA VD</span>
+      <button type="button" class="btn btn-ghost" style="font-size:11px;padding:3px 9px;font-weight:600;flex:none;"
+              onclick="event.stopPropagation();dtvdAlgoAbrir();" title="Ver los criterios de la función diastólica del VD con los valores del paciente">🧭 Algoritmo</button>
+      <span id="dop-tricusp-arrow" style="transition:transform 0.2s;flex:none;">▶</span>
+    </h2>
   </div>
   <div id="dop-tricusp" style="display:none;">
   <div class="card">
@@ -3751,20 +3787,29 @@ window.cerrarSesionReal = cerrarSesionReal;
           <input type="number" id="dt_onda_a" step="1" placeholder="cm/s" oninput="calcDopTric()"></div>
         <div class="fg"><label>e' anular lateral tricuspídeo (cm/s)</label>
           <input type="number" id="dt_eprime_lat" step="0.1" placeholder="cm/s" oninput="calcDopTric()"></div>
-        <!-- TDE tricuspídeo: se CARGA y se GUARDA, y todavía no entra en ningún cálculo ni en
-             ninguna superficie firmada (informe, EN SUMA, PDF, PPT) ni en el Excel, que sigue en
-             434 columnas. Sin `oninput` porque no hay nada que recalcular: el día que entre en la
-             clasificación diastólica —la Tabla 6 de la ASE 2025 lo lista como criterio y la app
-             deliberadamente no lo usa, ver `dtDiastEstado`— habrá que colgarle `calcDopTric()`. -->
+        <!-- TDE tricuspídeo: se CARGA y se GUARDA, y NO entra en ningún cálculo ni en ninguna
+             superficie firmada (informe, EN SUMA, PDF, PPT) ni en el Excel, que sigue en 434
+             columnas. El `oninput` sólo repinta su fila del cuadro de referencias, que es de
+             pantalla. En particular NO entra en la clasificación diastólica: la Tabla 6 de la
+             ASE 2025 lo lista como criterio y la app deliberadamente no lo usa — ver la nota de
+             `dtDiastEstado`, donde está declarado desde antes de que el campo existiera. -->
         <div class="fg"><label>TDE tricuspídeo (ms)</label>
-          <input type="number" id="dt_tde" step="1" placeholder="ms"></div>
+          <input type="number" id="dt_tde" step="1" placeholder="ms" oninput="calcDopTric()"></div>
       </div>
+      <!-- ⚠️ LA FILA «HTP — clasificación ESC 2022» SE BORRÓ (2026-10-07, orden de Maicol). Decía
+           «ver módulo de probabilidad ecocardiográfica de HTP (ESC/ERS 2022)», o sea una fila de
+           un cuadro de referencias cuyo contenido era una remisión a otro módulo. Su `<span
+           id="htp-interp">` no lo leía nadie más —censo del archivo entero— y los tres sitios de
+           `calcPSAP` que lo escribían se borraron con él, para no dejar escrituras a un nodo
+           inexistente que la próxima lectura crea que gobiernan algo. -->
       <div class="calc-box" style="margin-top:8px;">
         <div class="calc-row"><span class="calc-lbl">Gradiente VD-AD (4×VRT²)</span><span id="grad-vdad-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl">PSAP estimada</span><span id="psap-interp">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">HTP — clasificación ESC 2022</span><span id="htp-interp">—</span></div>
         <div class="calc-row"><span class="calc-lbl">E/A tricuspídeo</span><span id="dt_ea">—</span></div>
         <div class="calc-row"><span class="calc-lbl">E/e' tricuspídeo</span><span id="dt_ee_prime">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">TRIV por Doppler tisular</span><span id="dt_triv_ref">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">TDE tricuspídeo</span><span id="dt_tde_ref">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Función diastólica VD (ASE 2025, Tabla 6)</span><span id="dt_diast_ref">—</span></div>
       </div>
     </div>
   </div>
@@ -20746,13 +20791,50 @@ function dopTricEstado(src){
 }
 window.dopTricEstado = dopTricEstado;
 
+/* ══ LAS DOS LECTURAS DEL CUADRO DE REFERENCIAS (2026-10-07) ══════════════════════════════════
+   Son de PANTALLA y de pantalla nada más: ninguna entra en la probabilidad de HTP, en el informe,
+   en el EN SUMA, en el PDF, en el PPT ni en el Excel.
+
+   ⚠️ `DT_TRIV_HTP_PANEL` (75) NO ES `DT_TRIV_HTP` (60) Y LOS DOS TIENEN QUE SEGUIR SEPARADOS.
+   El 60 gobierna la frase de signos indirectos de hipertensión pulmonar que publica el informe
+   FIRMADO (`htpIndirectosFrase`); el 75 es el comentario de pantalla que pidió Maicol para este
+   cuadro. Unificarlos cambiaría una frase del informe —que es decisión suya, no de esta tanda— y
+   es exactamente el mismo precedente que `VD_BAS_NORMAL_MAX` (41) contra `vdBasCat` (>45) y que
+   `DT_TRIV_HTP` contra el `RV IVRT > 73 ms` de la Tabla 6: la misma medición contestando
+   preguntas distintas con cortes distintos. Este archivo dice explícitamente que NO hay que
+   unificarlos. Queda declarado.
+
+   El comentario de cada fila sale de SU constante y no de un literal, por lo mismo que las siete
+   cifras de la PAP media: el rótulo y la comparación tienen que moverse juntos. */
+const DT_TRIV_HTP_PANEL = 75, DT_TDE_ACORT = 120;
+
 function calcDopTric(){
   const r = dopTricEstado();
   const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
   set('dt_ea', r.ea != null ? r.ea.toFixed(2) : '—');
   set('dt_ee_prime', r.eep != null ? r.eep.toFixed(1) : '—');
+  /* El TRIV se lee de `r.triv`, que es el número ya parseado por `dopTricEstado`. El comentario
+     sale SÓLO por encima del corte; con 75 o menos va el valor solo. */
+  set('dt_triv_ref', r.triv != null
+    ? r.triv + ' ms' + (r.triv > DT_TRIV_HTP_PANEL
+        ? ' (>' + DT_TRIV_HTP_PANEL + ' ms: a favor de HTP)' : '')
+    : '—');
+  /* El TDE no pasa por `dopTricEstado` —no vota en nada— así que se lee directo. */
+  const tde = v('dt_tde');
+  set('dt_tde_ref', tde != null
+    ? tde + ' ms' + (tde < DT_TDE_ACORT ? ' (<' + DT_TDE_ACORT + ' ms · acortado)' : '')
+    : '—');
+  /* La fila de la función diastólica NO reimplementa nada: muestra el resultado de
+     `dtDiastEstado`, la misma función que publica el informe narrativo y que puntúa el
+     Laboratorio, con la etiqueta de `dtDiastPatronLbl`, que son las frases que ya existen. Sin
+     E/A clasificable devuelve null y la fila queda en «—». */
+  const dd = (typeof dtDiastEstado === 'function') ? dtDiastEstado() : null;
+  set('dt_diast_ref', dd ? 'patrón ' + dtDiastPatronLbl(dd) : '—');
+  /* La ventana del algoritmo, si está abierta, sigue al estudio. */
+  if (typeof dtvdAlgoRefrescar === 'function') dtvdAlgoRefrescar();
 }
 window.calcDopTric = calcDopTric;
+window.DT_TRIV_HTP_PANEL = DT_TRIV_HTP_PANEL; window.DT_TDE_ACORT = DT_TDE_ACORT;
 
 /* ══ FUNCIÓN DIASTÓLICA DEL VD — ASE 2025, Tabla 6 ═══════════════════════════════════════════
    Guía aplicada: **Mukherjee et al., «Guidelines for the Echocardiographic Assessment of the
@@ -20878,6 +20960,124 @@ function dtDiastClausula(hayPrevia){
 }
 window.dtDiastClausula = dtDiastClausula;
 
+/* ══ VENTANA «🧭 ALGORITMO» DE LA FUNCIÓN DIASTÓLICA DEL VD (2026-10-07) ══════════════════════
+   MUESTRA, NO CALCULA. Los criterios, los cortes y el veredicto salen de `dtDiastEstado`,
+   `dtDiastPatronLbl` y las constantes que esa lógica ya usa (`DT_EA_RELAJ`, `DT_EA_RESTR`,
+   `DT_EEP_ELEV`, `DT_IT_SIGNIF`): acá no se reimplementa ni un umbral. Es la misma regla que el
+   panel de criterios de MCH tiene escrita —«el contenido lo genera `critRender` DESDE las mismas
+   constantes que puntúan: un panel que copiara los umbrales sería una segunda fuente que se
+   pudre sin que se vea desde la app»— y la razón por la que esta ventana se pudo hacer sin
+   tocar la lógica: ya exponía su estado completo.
+
+   LAS CLASES SON LAS `.da-*` DE LA VENTANA DE LA MITRAL, a propósito: las dos ventanas tienen
+   que leerse iguales.
+
+   ⚠️ NO SE USA `_daFila`, Y NO ES PEREZA. Allá `cumple === true` pinta ROJO con un ✗, porque
+   todos sus criterios son «hallazgo patológico presente». Acá las tres filas del E/A son BANDAS
+   de una clasificación, y una de ellas —la del medio— es la que puede ser normal: con `_daFila`,
+   un paciente con E/A 1,2 vería su propia banda en rojo con una cruz. El marcador de acá dice
+   qué banda APLICA, y el color sale de si esa banda es anormal o no. */
+function _dtvdFila(crit, valor, unidad, estado) {
+  /* estado: 'mal' (aplica y es anormal) · 'ok' (aplica y no lo es) · 'no' (no aplica) · 'nd' */
+  const cls = estado === 'nd' ? 'da-na' : estado === 'mal' ? 'da-bad' : estado === 'ok' ? 'da-ok' : 'da-na';
+  const ico = estado === 'nd' ? '–' : (estado === 'no' ? '–' : '●');
+  const txt = (valor === null || valor === undefined) ? 'sin dato'
+            : valor + (unidad ? ' ' + unidad : '');
+  return '<div class="da-row ' + cls + '"><span class="da-ico">' + ico + '</span>'
+       + '<span class="da-crit">' + escHtml(crit) + '</span>'
+       + '<span class="da-val">' + escHtml(txt) + '</span></div>';
+}
+
+function dtvdAlgoRender() {
+  const host = document.getElementById('dtvd-algo-cuerpo');
+  if (!host) return;
+  const r = dtDiastEstado();
+  const b = dopTricEstado();
+  const ea  = r ? r.ea  : (b ? b.ea  : null);
+  const eep = r ? r.eep : (b ? b.eep : null);
+  const eaT  = ea  != null ? ea.toFixed(2)  : null;
+  const eepT = eep != null ? eep.toFixed(1) : null;
+  const relaj = r && r.patron === 'relajacion';
+  const restr = r && r.patron === 'restrictivo';
+  const medio = r && (r.patron === 'normal' || r.patron === 'pseudonormal' || r.patron === 'indeterminado');
+  /* Coma decimal, que es como se escriben los cortes en castellano. No se reusa el helper de
+     la PAP media: son dos cosas distintas y atarlas haría que tocar una moviera la otra. */
+  const com = n => String(n).replace('.', ',');
+  const nEA = com(DT_EA_RELAJ), nRE = com(DT_EA_RESTR);
+  let h = '';
+
+  h += '<div class="da-paso">El patrón sale de la relación E/A</div>';
+  h += _dtvdFila('E/A < ' + nEA + ' → relajación anormal', eaT, '',
+                 ea == null ? 'nd' : (relaj ? 'mal' : 'no'));
+  h += _dtvdFila('E/A ' + nEA + ' a ' + nRE + " → lo desempata el E/e'", eaT, '',
+                 ea == null ? 'nd' : (medio ? 'ok' : 'no'));
+  h += _dtvdFila('E/A > ' + nRE + ' → restrictivo', eaT, '',
+                 ea == null ? 'nd' : (restr ? 'mal' : 'no'));
+
+  h += '<div class="da-paso">E/e&prime; — desempata SÓLO la banda del medio</div>';
+  h += _dtvdFila("E/e' > " + DT_EEP_ELEV + ' → pseudonormal; ' + DT_EEP_ELEV + ' o menos → normal', eepT, '',
+                 eep == null ? 'nd' : (!medio ? 'no' : (eep > DT_EEP_ELEV ? 'mal' : 'ok')));
+  h += '<p class="da-nota">La celda de <b>E/e&prime;</b> está en blanco en la Tabla 6 para relajación '
+     + 'anormal y para restrictivo: ahí el cociente no participa, así que ninguno de los dos lo exige.</p>';
+
+  h += '<div class="da-paso">Resultado</div>';
+  if (!r) {
+    h += '<div class="da-res">Datos insuficientes para clasificar.</div>';
+    h += '<p class="da-nota">Sin la relación E/A no se clasifica nada, con o sin E/e&prime;. Hacen '
+       + 'falta la onda E y la onda A tricuspídeas, las dos dentro de su banda de plausibilidad.</p>';
+  } else {
+    h += '<div class="da-res"><b>Patrón ' + escHtml(dtDiastPatronLbl(r)) + '</b>'
+       + (r.grado ? ' · disfunción diastólica ' + escHtml(r.grado) : '')
+       + ' (E/A ' + eaT + (eepT ? ", E/e' " + eepT : '') + ').</div>';
+    if (!r.completo)
+      h += '<p class="da-nota">Sin <b>E/e&prime;</b> se nombra el patrón como sugestivo y <b>no se '
+         + 'gradúa</b>: graduar leve / moderada / severa sobre un único cociente afirma más de lo '
+         + 'que se midió.</p>';
+    if (r.anormal && r.itSignif)
+      h += '<p class="da-nota">La insuficiencia tricuspídea significativa puede invalidar estos '
+         + 'parámetros de llenado (ASE).</p>';
+  }
+
+  /* Lo que la guía sostiene y la app NO recoge. Va en la ventana porque es lo que separa «esto es
+     la Tabla 6» de «esto es el subconjunto de la Tabla 6 que esta app puede medir», y sin decirlo
+     la ventana afirmaría más que la lógica que la alimenta. El texto es el del comentario de
+     `dtDiastEstado`, no una redacción nueva. */
+  h += '<p class="da-nota">La Tabla 6 sostiene el patrón con cinco filas más que la app no '
+     + 'recoge: tiempo de desaceleración tricuspídeo, flujo anterógrado diastólico en la arteria '
+     + 'pulmonar, relación S/D y predominio diastólico en venas suprahepáticas, y e&prime;/a&prime;. '
+     + 'El TRIV tricuspídeo tampoco entra: en esta app ese mismo número ya gobierna otra pregunta '
+     + '—signo indirecto de hipertensión pulmonar, corte ' + DT_TRIV_HTP + ' ms—, y son dos '
+     + 'umbrales sobre la misma medición para dos preguntas distintas.</p>';
+  h += '<p class="da-nota">Describe el llenado del ventrículo derecho; no diagnostica. '
+     + 'La guía limita la evaluación estandarizada a poblaciones con hipertensión pulmonar o en '
+     + 'riesgo de tenerla.</p>';
+  host.innerHTML = h;
+}
+window.dtvdAlgoRender = dtvdAlgoRender;
+
+function dtvdAlgoAbrir() {
+  dtvdAlgoRender();
+  const ov = document.getElementById('dtvd-algo-overlay');
+  if (ov) ov.style.display = 'block';
+}
+function dtvdAlgoCerrar() {
+  const ov = document.getElementById('dtvd-algo-overlay');
+  if (ov) ov.style.display = 'none';
+}
+/* Repinta SÓLO si está abierta. La llama `calcDopTric`, que es por donde pasan los cuatro campos
+   del bloque; así la ventana sigue al estudio sin colgar un listener de `document` más —el de la
+   mitral ya existe y es global, pero esta función se llama desde el punto exacto donde los datos
+   cambian, que es menos frágil que depender de que el evento burbujee. */
+function dtvdAlgoRefrescar() {
+  const ov = document.getElementById('dtvd-algo-overlay');
+  if (ov && ov.style.display !== 'none') dtvdAlgoRender();
+}
+window.dtvdAlgoAbrir = dtvdAlgoAbrir; window.dtvdAlgoCerrar = dtvdAlgoCerrar;
+window.dtvdAlgoRefrescar = dtvdAlgoRefrescar;
+/* Escape cierra, igual que la ventana de la mitral. Son dos listeners independientes y eso está
+   bien: cada uno cierra lo suyo y cerrar algo ya cerrado es un no-op. */
+document.addEventListener('keydown', e => { if (e.key === 'Escape') dtvdAlgoCerrar(); });
+
 /* La frase del informe, expuesta para que la hoja del PDF use LA MISMA y no una copia. */
 function dopTricFrase(){
   const r = dopTricEstado();
@@ -20989,7 +21189,6 @@ function calcPSAP() {
   const vit = v('vmax_it'), pmad = v('pmad');
   const gradEl = document.getElementById('grad-vdad-interp');
   const psapEl = document.getElementById('psap-interp');
-  const htpEl  = document.getElementById('htp-interp');
 
   // Sincronizar displays de la fila principal
   const gradDisp  = document.getElementById('grad_vdad_display');
@@ -21004,7 +21203,6 @@ function calcPSAP() {
     if (gradDisp) gradDisp.value = '';
     if (gradEl)  gradEl.textContent = '—';
     if (psapEl)  psapEl.textContent = '—';
-    if (htpEl)   htpEl.innerHTML = '—';
     /* ESTA RAMA ES LA QUE DESTAPA LA FÓRMULA POR TAP: sin PSAP, la PAP media pasa a Dabestani.
        Va DESPUÉS de vaciar `psap_calc`, porque `papmEstado` elige la rama leyendo ese campo; y
        va acá y no sólo al final porque esta rama sale por `return`, igual que el espejo del TEER
@@ -21050,14 +21248,18 @@ function calcPSAP() {
     const papMedia = (psap * PAPM_CHEMLA_K + PAPM_CHEMLA_B).toFixed(0);
     setv('pap_med', papMedia + ' mmHg (est.)');
     if (psapEl) psapEl.textContent = psap.toFixed(0) + ' mmHg (PmAD ' + pmad + ' mmHg)';
-    // FIX clínico: la HTP es un diagnóstico hemodinámico (requiere cateterismo derecho).
-    // No se clasifica en leve/moderada/severa por PSAP estimada: sólo se muestra el valor y
-    // se remite al módulo de probabilidad ecocardiográfica de HTP (ESC/ERS 2022).
-    if (htpEl) htpEl.innerHTML = badge('gray', `PSAP estimada: ${psap.toFixed(0)} mmHg — ver módulo de probabilidad ecocardiográfica de HTP (ESC/ERS 2022)`);
+    /* ⚠️ ACÁ HABÍA UNA TERCERA ESCRITURA, a `htp-interp`, y se fue con la fila (2026-10-07).
+       Decía «PSAP estimada: N mmHg — ver módulo de probabilidad ecocardiográfica de HTP (ESC/ERS
+       2022)»: repetía la PSAP de la fila de arriba y remitía a otro módulo. El comentario clínico
+       que la acompañaba —la HTP es un diagnóstico hemodinámico y no se gradúa en leve / moderada
+       / severa por PSAP estimada— sigue siendo cierto y sigue cumpliéndose: esta función no
+       gradúa nada. La clasificación la hace `calcHTP2022`, que no se tocó.
+       Las otras dos escrituras al mismo span —las de las ramas sin dato— también se borraron: un
+       `if (htpEl)` sobre un nodo que no existe es una escritura muerta que la próxima lectura
+       cree que gobierna algo. */
   } else {
     setv('psap_calc', ''); setv('pap_med', '');
     if (psapEl) psapEl.textContent = '— (requiere VCI)';
-    if (htpEl)  htpEl.innerHTML = '—';
   }
   if (typeof calcTEP    === 'function') calcTEP();
   if (typeof calcHTP2022=== 'function') calcHTP2022();
@@ -96539,8 +96741,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-0036';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791344174676;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-0058';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791345489616;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -96626,7 +96828,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-0036</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-0058</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
