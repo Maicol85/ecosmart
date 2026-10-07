@@ -277,9 +277,11 @@ const ESCENAS = [
   { k: 'E0-vacio', desc: 'Formulario vacio: sin IT y sin TAP',
     campos: {} },
 
-  /* PAPm (a) — IT + VCI: hay PSAP, manda Chemla. VCI 15 mm con colapso >50% da PmAD. */
-  { k: 'E1-chemla', desc: 'IT 2,4 m/s + VCI: PSAP presente, PAPm por Chemla',
-    campos: { vci_diam: 15, vci_col: '>50', vmax_it: 2.4 } },
+  /* PAPm (a) — IT + VCI: hay PSAP, manda Chemla. VCI 15 mm con colapso >50 % da PmAD 3, asi que
+     una VRT de 2,83 m/s da 4x2,83^2 = 32,04 de gradiente y PSAP 35, que es la cifra del prompt:
+     0,61 x 35 + 2 = 23,4 → 23 mmHg. */
+  { k: 'E1-chemla', desc: 'IT 2,83 m/s + VCI (PmAD 3): PSAP 35, PAPm por Chemla → 23',
+    campos: { vci_diam: 15, vci_col: '>50', vmax_it: 2.83 } },
 
   /* ⚠️ EL TAP DE LAS ESCENAS SE CARGA EN `tvia` Y NO EN `dt_tap`, Y NO ES UN DETALLE DE ESTILO.
      `dt_tap` no existe en HEAD, asi que una escena que escribiera ahi describiria un paciente CON
@@ -334,6 +336,15 @@ const ESCENAS = [
   { k: 'E16-ctrl-otras', desc: 'CONTROL NEGATIVO: aortica y mitral cargadas, nada tricuspideo',
     campos: { vmax_ao: 4.2, gmedio_ao: 45, itv_tsvi: 20, itv_ao: 110,
               onda_e: 80, onda_a: 60, e_sep: 6, e_lat: 8, ddfvi: 50, fevi: 60 } },
+
+  /* ⚠️ EL CONTROL MAS FUERTE DEL PUNTO 3: PSAP **Y** TAP cargados a la vez, con PCP y GC para que
+     Hemodinamica calcule de verdad el GTP y la RVP. Si la PAPm por TAP se colara a esos lectores,
+     aca se veria: el GTP tiene que salir del 0,61xPSAP+2 y nada mas. Las escenas E1 y E6 no
+     alcanzan —a las dos les falta el PCP, asi que Hemodinamica contesta «Requiere PAPm + PCP» y
+     el denominador del GTP es cero: la sonda diria «identico a HEAD» sobre una celda vacia. */
+  { k: 'E17-hemo-psap-y-tap', desc: 'PSAP 35 Y TAP 100 juntos, con PCP y GC: Hemodinamica usa la PSAP',
+    campos: { vci_diam: 15, vci_col: '>50', vmax_it: 2.83, tvia: 100,
+              onda_e: 90, e_sep: 5, e_lat: 7, gc: 5, ddfvi: 50, fevi: 60 } },
 ];
 
 async function medir(ev, sid) {
@@ -346,6 +357,26 @@ async function medir(ev, sid) {
   const out = { escenas: {}, estructura: {}, maqueta: {} };
 
   await E(SONDA);
+
+  /* ⚠️ EL <SCRIPT> ARRANCO COMPLETO. En este archivo un ReferenceError en una constante no da un
+     error visible: CORTA el bloque script entero y la app abre sin ningun estudio, con la mitad
+     de las funciones ausentes. Pasó tres veces (ver CLAUDE.md). Se comprueban funciones del
+     PRINCIPIO, del MEDIO y del FINAL del archivo, mas los asserts de arranque del Laboratorio,
+     que son los que avisan de una lista de opciones divergente. Sin esto, una app que arranca a
+     medias se mide igual que una sana y la sonda devuelve «identico a HEAD» sobre un cadaver. */
+  out.arranque = await E(`(function(){
+    var f = ['v','sv','setv','calcPSAP','calcDopTric','dtDiastEstado','papmEstado','papmEstSync',
+             'dtTapSync','RECALC_MODULOS','limpiarCampos','generarInforme','_labExcelRow',
+             'dcmImportarSR','dcmExportarSR','lv3dCaptura'];
+    var falta = f.filter(function(n){ return typeof window[n] !== 'function' });
+    var asserts = [];
+    ['_labXlsAssertListas','_labXlsAssertBloques','_labXlsAssertVocab','_indOrigenAssert',
+     '_eteVmAssertPares'].forEach(function(n){
+      if (typeof window[n] === 'function') {
+        try { window[n]() } catch(e) { asserts.push(n + ': ' + e.message) } }
+      else asserts.push(n + ': NO EXISTE') });
+    return { faltan: falta, asserts: asserts } })()`);
+
   out.denominador = await E('window.__P.denominador()');
 
   /* Estructura: los ids nuevos, su unicidad, y el encabezado. */

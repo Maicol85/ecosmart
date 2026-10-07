@@ -3139,7 +3139,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           <label>TAP (ms)</label>
           <!-- `dtTapSync` PRIMERO, igual que `itVmaxSync` en la Vmax IT: el espejo del Doppler
                tricuspídeo se actualiza antes de que corran los cálculos de atrás. -->
-          <input type="number" id="tvia" placeholder="ms" oninput="dtTapSync('tvia');calcVD()">
+          <input type="number" id="tvia" placeholder="ms" oninput="dtTapSync('tvia');calcVD();papmEstSync()">
         </div>
         <div class="fg">
           <label>TAPSE (mm)</label>
@@ -3715,11 +3715,28 @@ window.cerrarSesionReal = cerrarSesionReal;
                SIN BANDA DE PLAUSIBILIDAD, a propósito: `tvia` nunca tuvo una y agregarla acá
                haría aparecer MARCA_REVISAR en un informe firmado por un camino nuevo. Queda
                pendiente aparte. -->
-          <input type="number" id="dt_tap" step="1" placeholder="ms" oninput="dtTapSync('dt_tap');calcVD()">
+          <input type="number" id="dt_tap" step="1" placeholder="ms" oninput="dtTapSync('dt_tap');calcVD();papmEstSync()">
         </div>
         <div class="fg">
           <label>PAP media estimada (mmHg)</label>
-          <input type="text" id="pap_med" readonly placeholder="—">
+          <!-- ⚠️ DOS NODOS PARA UN SOLO CAMPO VISIBLE, Y LA SEPARACIÓN ES EL PUNTO (2026-10-07).
+               `papm_est` es lo que el médico VE y puede mostrar las dos fórmulas; `pap_med` es
+               el dato que VIAJA y sigue llevando SÓLO el valor por PSAP.
+               POR QUÉ: el valor por TAP es informativo y no puede entrar en ningún lector de la
+               PAPm. Hemodinámica y la clasificación ESC/ERS 2022 quedan intactas por
+               construcción —`calcHemo` y `cxTP` recalculan `0.61*psap+2` desde `psap_calc`, no
+               leen este campo—, pero `pap_med` SÍ lo leen la hoja de valores del PDF
+               (`sv('pap_med')`) y la columna «PAP media (mmHg)» del Excel. Si el valor por TAP
+               entrara acá, un estudio sin IT y con TAP pasaría de fila vacía a fila con número
+               en un informe FIRMADO, por un camino que nadie pidió.
+               `pap_med` se queda `input type="text"` y NO pasa a `hidden`: el barrido
+               `input[type=text], input[type=number]` de `limpiarCampos` es lo único que lo
+               vacía en «Nuevo estudio», y un `hidden` se le escapa. Lo único que cambia es que
+               no se dibuja. Mismos escritores (`calcPSAP`), mismo contenido, mismos lectores.
+               `papm_est` es readonly y lo pinta `papmEstSync`; no lo lee ningún emisor. -->
+          <div id="papm_est_form" style="font-size:10px;color:var(--text2);line-height:1.3;min-height:13px;"></div>
+          <input type="text" id="pap_med" readonly placeholder="—" style="display:none;">
+          <input type="text" id="papm_est" readonly placeholder="—" style="color:var(--accent2);">
         </div>
         <div class="fg"><label>TRIV por Doppler tisular (ms)</label>
           <input type="number" id="dt_triv" step="1" placeholder="ms" oninput="calcDopTric()">
@@ -20882,6 +20899,92 @@ function dopTricFrase(){
 }
 window.dopTricFrase = dopTricFrase;
 
+/* ══ PAP MEDIA ESTIMADA — UN CAMPO, DOS FÓRMULAS SEGÚN LOS DATOS (2026-10-07) ═════════════════
+   El campo «PAP media estimada» es UNO y la fórmula con la que se calculó se imprime arriba del
+   resultado, en letra chica y gris, entre paréntesis — mismo estilo que las fórmulas del cuadro
+   de Hemodinámica del Doppler aórtico. Las tres ramas:
+
+     · HAY PSAP (o sea: hay IT y hay VCI)  →  0,61 × PSAP + 2            · Chemla
+     · NO hay PSAP y hay TAP, TAP <= 120   →  90 − 0,62 × TAP            · Dabestani
+     · NO hay PSAP y hay TAP, TAP  > 120   →  79 − 0,45 × TAP            · Dabestani
+     · ninguno de los dos                  →  «—», y NINGÚN texto de fórmula
+
+   EL CORTE 120 EXACTO USA LA RAMA DE ABAJO (`<=`), que es lo que pidió la orden. No se usa la
+   frecuencia cardíaca en ninguna de las dos.
+
+   ⚠️ LAS SIETE CIFRAS SON CONSTANTES CON NOMBRE Y LAS LEEN LAS DOS COSAS: el cálculo Y el
+   rótulo. Retipear «0,61 × PSAP + 2» como texto suelto es la trampa de la fórmula duplicada que
+   este archivo ya pagó en el panel de Evidencia: el día que alguien corrija la constante, el
+   rótulo sigue anunciando la cuenta vieja sobre un número nuevo, y el que lo lee no tiene forma
+   de saber cuál de los dos miente. `_papmCom` pone la coma decimal, que es como se escribe acá.
+
+   ⚠️ EL VALOR POR TAP ES SÓLO INFORMATIVO Y NO LLEGA A NINGÚN LECTOR DE LA PAPm. Se escribe en
+   `papm_est`, que no lo lee ningún emisor. `pap_med` —el que leen la hoja de valores del PDF y
+   la columna del Excel— lo sigue escribiendo SÓLO `calcPSAP` y SÓLO con el valor por PSAP; esta
+   función no lo toca. Hemodinámica y la clasificación ESC/ERS 2022 quedan intactas por
+   construcción: `calcHemo` y `cxTP` recalculan `0.61*psap+2` desde `psap_calc` y nunca leyeron
+   este campo, así que con TAP cargado y sin PSAP ni IP siguen pidiendo «Requiere PAPm (PSAP) +
+   PCP (E/e')», que es lo correcto.
+
+   ⚠️ HAY DOS LLAMADORES OBLIGATORIOS Y NO UNO, por la misma razón que el aviso de incongruencia
+   de la IT: `limpiarCampos` NO pasa por el embudo de `RECALC_MODULOS`. Sin la entrada en las dos
+   columnas, «Nuevo estudio» dejaba la fórmula y el número del paciente anterior en pantalla —el
+   `<div>` de la fórmula no es un input, así que el barrido que vacía los campos no lo alcanza, y
+   es exactamente lo que le pasó al aviso `it-incongruencia`—. */
+const PAPM_CHEMLA_K = 0.61, PAPM_CHEMLA_B = 2;
+const PAPM_TAP_CORTE = 120;
+const PAPM_TAP_BAJO_A = 90, PAPM_TAP_BAJO_K = 0.62;   // TAP <= PAPM_TAP_CORTE
+const PAPM_TAP_ALTO_A = 79, PAPM_TAP_ALTO_K = 0.45;   // TAP  > PAPM_TAP_CORTE
+const _papmCom = n => String(n).replace('.', ',');
+/* UNA decimal, sin el «,0» cuando la cuenta da redonda —90 − 0,62×100 son 28, no «28,0»— y con
+   el medio redondeando PARA ARRIBA, que es la cuenta que hace una persona a mano.
+   ⚠️ EL REDONDEO VA EN DOS PASOS Y NO ES ADORNO. `79 − 0,45 × 121` vale 24,55 exactos en
+   decimal, pero el doble más cercano es 24,549999999999997, así que `Math.round(n*10)/10` da
+   **24,5** y `toFixed(1)` también: el medio se pierde por el error de representación justo en el
+   valor donde la decimal importa. Multiplicar por 1000, redondear, dividir por 100 y volver a
+   redondear limpia ese ruido y devuelve 24,6. Medido en las cuatro ramas: 28 → «28»,
+   15,600000000000009 → «15,6», 16 → «16», 24,549999999999997 → «24,6». */
+const _papm1 = n => _papmCom(String(Math.round(Math.round(n * 1000) / 100) / 10));
+
+function papmEstado() {
+  /* ⚠️ LA RAMA DE CHEMLA NO RECALCULA: COPIA el texto que `calcPSAP` ya escribió en `pap_med`.
+     Es el número que viaja al PDF y al Excel, así que la pantalla y el papel no pueden divergir
+     ni en un mmHg. Recalcularlo acá era la primera versión y la sonda lo delató: `calcPSAP` usa
+     la PSAP SIN redondear (`4·VRT² + PmAD`) y este campo sólo tiene `psap_calc`, que está
+     redondeado a entero, así que las dos cuentas podían caer 1 mmHg distintas con el MISMO
+     rótulo «(0,61 × PSAP + 2 · Chemla)» encima. Un campo que muestra un número y exporta otro es
+     peor que no mostrarlo.
+     Vacío = no hay PSAP, que es exactamente la condición «no hay IT, o hay IT pero no hay VCI»:
+     `calcPSAP` vacía `pap_med` en las dos. */
+  const pm = sv('pap_med');
+  if (pm) {
+    return { via: 'chemla', texto: pm,
+             formula: '(' + _papmCom(PAPM_CHEMLA_K) + ' × PSAP + ' + PAPM_CHEMLA_B + ' · Chemla)' };
+  }
+  /* `dt_tap` con respaldo en `tvia`: son el mismo dato espejado, pero en una restauración `tvia`
+     puede estar repuesto y el espejo todavía no haber corrido. */
+  const tap = v('dt_tap') !== null ? v('dt_tap') : v('tvia');
+  if (tap !== null) {
+    const bajo = tap <= PAPM_TAP_CORTE;          // el 120 EXACTO usa esta rama
+    const a = bajo ? PAPM_TAP_BAJO_A : PAPM_TAP_ALTO_A;
+    const k = bajo ? PAPM_TAP_BAJO_K : PAPM_TAP_ALTO_K;
+    return { via: bajo ? 'dabestani-bajo' : 'dabestani-alto',
+             texto: _papm1(a - k * tap) + ' mmHg (est.)',
+             formula: '(' + a + ' − ' + _papmCom(k) + ' × TAP · Dabestani)' };
+  }
+  return { via: null, texto: '', formula: '' };
+}
+window.papmEstado = papmEstado;
+
+function papmEstSync() {
+  const r = papmEstado();
+  const f = document.getElementById('papm_est_form');
+  const c = document.getElementById('papm_est');
+  if (f) f.textContent = r.formula;    /* '' en la rama sin datos: el campo queda en su placeholder «—» */
+  if (c) c.value = r.texto;
+}
+window.papmEstSync = papmEstSync;
+
 function calcPSAP() {
   const vit = v('vmax_it'), pmad = v('pmad');
   const gradEl = document.getElementById('grad-vdad-interp');
@@ -20902,6 +21005,12 @@ function calcPSAP() {
     if (gradEl)  gradEl.textContent = '—';
     if (psapEl)  psapEl.textContent = '—';
     if (htpEl)   htpEl.innerHTML = '—';
+    /* ESTA RAMA ES LA QUE DESTAPA LA FÓRMULA POR TAP: sin PSAP, la PAP media pasa a Dabestani.
+       Va DESPUÉS de vaciar `psap_calc`, porque `papmEstado` elige la rama leyendo ese campo; y
+       va acá y no sólo al final porque esta rama sale por `return`, igual que el espejo del TEER
+       de abajo. Borrar la velocidad de IT con un TAP cargado tiene que cambiar la fórmula en
+       pantalla, no dejar la de Chemla sobre un PSAP que ya no existe. */
+    papmEstSync();
     if (typeof calcTEP === 'function') calcTEP();
     if (typeof calcIP  === 'function') calcIP();
     /* También acá, y no sólo al final: esta rama sale por `return`, así que el espejo de la
@@ -20934,7 +21043,11 @@ function calcPSAP() {
   if (pmad !== null) {
     const psap = gradIT + pmad;
     setv('psap_calc', psap.toFixed(0));
-    const papMedia = (psap * 0.61 + 2).toFixed(0);
+    /* Las dos constantes y no `0.61`/`2` sueltos: es LA MISMA cuenta que anuncia el rótulo de
+       `papm_est_form`, y dos copias de una fórmula divergen en cuanto se toca una. El valor que
+       se escribe acá no cambió —`toFixed(0)` sobre el mismo producto—, así que el PDF y el Excel
+       siguen leyendo exactamente lo que leían. */
+    const papMedia = (psap * PAPM_CHEMLA_K + PAPM_CHEMLA_B).toFixed(0);
     setv('pap_med', papMedia + ' mmHg (est.)');
     if (psapEl) psapEl.textContent = psap.toFixed(0) + ' mmHg (PmAD ' + pmad + ' mmHg)';
     // FIX clínico: la HTP es un diagnóstico hemodinámico (requiere cateterismo derecho).
@@ -20959,6 +21072,9 @@ function calcPSAP() {
   if (typeof sincronizarTEERDesdeGlobal === 'function') {
     try { sincronizarTEERDesdeGlobal(); } catch (e) {}
   }
+  /* Cubre las DOS salidas que no son el `return` temprano: la que calculó PSAP (manda Chemla) y
+     la que tiene IT pero no VCI (no hay PSAP, así que manda el TAP si está cargado). */
+  papmEstSync();
 }
 
 // ══ DIASTOL ══
@@ -35718,7 +35834,7 @@ function RECALC_MODULOS() {
      `emAvmPdfVal` para la fila del PDF, `dataset` protege esa decision, y `disabled` no lo
      persiste ni lo lee nadie. Los dos primeros siguen intocados — que es exactamente la objecion
      que este archivo dejo escrita para IM: «pisaria la decision que la reimpresion respalda». */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -35914,6 +36030,14 @@ function limpiarCampos(silencioso) {
      `itIncongruenciaSync` entró además a `RECALC_MODULOS`, que es la otra columna (las rutas de
      restauración), al lado de `eteVmAvisoSync` y por la misma razón. */
   { if (typeof itIncongruenciaSync === 'function') { try { itIncongruenciaSync(); } catch (e) {} } }
+  /* ⚠️ LA FÓRMULA DE LA PAP MEDIA NECESITA LAS DOS COLUMNAS, Y POR UNA RAZÓN DISTINTA A LAS DE
+     ARRIBA: `papm_est` es un `input[type=text]` y lo vacía el barrido de campos, pero el texto de
+     la fórmula vive en un `<div id="papm_est_form">`, que no es ni un input ni un
+     `.calc-box .calc-row span[id]`, así que no lo alcanza NINGUNO de los dos barridos. Sin esta
+     línea, «Nuevo estudio» dejaba «(0,61 × PSAP + 2 · Chemla)» impreso en un formulario en blanco
+     —una fórmula anunciando con qué se calculó un número que ya no está—, que es el mismo defecto
+     que los span de `im-pdf-` unas líneas más arriba. La otra columna es `RECALC_MODULOS`. */
+  { if (typeof papmEstSync === 'function') { try { papmEstSync(); } catch (e) {} } }
   /* ⚠️ EL CUADRO DE REFERENCIAS DEL DOPPLER AÓRTICO NECESITA LAS DOS COLUMNAS, por el mismo motivo
      que los dos avisos de arriba. Las catorce filas son `span[id]` dentro de un `.calc-box`, así
      que el barrido de más arriba las deja en «—»; lo que NO alcanza ese barrido es el aviso «auto»
@@ -96415,8 +96539,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-0028';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791343721472;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-0036';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791344174676;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -96502,7 +96626,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-0028</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-0036</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
