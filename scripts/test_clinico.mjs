@@ -46455,14 +46455,37 @@ caso('TC-377', 'El O TSVI deja los mismos espejos por las dos puertas (Aorta y D
   __t.set('itv_tsvi','20'); __t.set('itv_ao','95');
   const sinDiametro = espejos();
 
-  /* El cableado leido del codigo vivo: las dos puertas tienen que llamar a las mismas seis. */
-  const seis = ['calcAo','mostrarTSVIEstimado','eteShuntSyncSiExiste','imSyncSiExiste',
-                'emSyncSiExiste','iaSyncSiExiste'];
-  const onInput = String((document.getElementById('diam_tsvi')||{}).getAttribute
-    ? (document.getElementById('diam_tsvi').getAttribute('oninput') || '') : '');
-  const cuerpo = (typeof syncTSVI === 'function') ? String(syncTSVI) : '';
+  /* El cableado leido del codigo vivo. Hasta el 2026-10-07 la lista estaba escrita DOS VECES
+     —seis llamadas dentro de syncTSVI y los mismos seis nombres en el atributo oninput del campo
+     oculto— y este caso comprobaba que las dos copias coincidieran. Ahora hay UNA lista, en
+     tsviDiamEditado, y TRES puertas que la invocan, asi que se comprueban las dos mitades:
+     (1) que la lista este completa —son SIETE: las seis de antes mas calcEADetalle, que solo
+         tenia el camino de Valvulas— y
+     (2) que las tres puertas lleguen ahi. La segunda mitad es la que hace falta: una puerta que
+     no entre por tsviDiamEditado vuelve a ser un camino con menos recalculos, que es el defecto
+     que esta tanda cerro. */
+  const seis = ['calcAo','mostrarTSVIEstimado','eteShuntSyncSiExiste',
+                'imSyncSiExiste','emSyncSiExiste','iaSyncSiExiste'];
+  const cuerpo = (typeof tsviDiamEditado === 'function') ? String(tsviDiamEditado) : '';
   const faltanEnSync = seis.filter(function (f) { return cuerpo.indexOf(f) === -1; });
-  const faltanEnInput = seis.filter(function (f) { return onInput.indexOf(f) === -1; });
+  /* ⚠️ calcEADetalle NO entra, y TC-358 es quien lo decide: puesta despues de calcAo le pisa el
+     badge a _eaRetirarGradoSugerido, y puesta antes le borra la marca y el retiro no actua. Esta
+     condicion exige que NO este, asi que si alguien la agrega el caso se pone rojo con el motivo. */
+  const sinDetalle = cuerpo.indexOf('calcEADetalle') === -1;
+  const puertas = {
+    aivi: String((document.getElementById('diam_tsvi_ao')||{}).getAttribute
+      ? (document.getElementById('diam_tsvi_ao').getAttribute('oninput') || '') : ''),
+    doppler: String((document.getElementById('diam_tsvi')||{}).getAttribute
+      ? (document.getElementById('diam_tsvi').getAttribute('oninput') || '') : ''),
+    valv: String((document.getElementById('ea_dtsvi')||{}).getAttribute
+      ? (document.getElementById('ea_dtsvi').getAttribute('oninput') || '') : '') };
+  /* AI/VI entra por syncTSVI, que conserva el nombre porque lo usa usarTSVIEstimado: se mira su
+     CUERPO, no el atributo. */
+  const cuerpoSyncTsvi = (typeof syncTSVI === 'function') ? String(syncTSVI) : '';
+  const faltanEnInput = []
+    .concat(/tsviDiamEditado/.test(cuerpoSyncTsvi) && /syncTSVI/.test(puertas.aivi) ? [] : ['aivi'])
+    .concat(/tsviDiamEditado/.test(puertas.doppler) ? [] : ['doppler'])
+    .concat(/tsviDiamEditado/.test(puertas.valv) ? [] : ['valvulas']);
 
   return (async () => {
     const dormir = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
@@ -46507,10 +46530,10 @@ caso('TC-377', 'El O TSVI deja los mismos espejos por las dos puertas (Aorta y D
       ['  DENOMINADOR: sin diametro los espejos estan vacios, asi que la igualdad de arriba cuenta algo',
         sinDiametro.ea === '' && sinDiametro.em === '' && sinDiametro.im === '',
         JSON.stringify(sinDiametro)],
-      ['syncTSVI llama a las MISMAS seis funciones que el oninput del campo',
-        faltanEnSync.length === 0 && faltanEnInput.length === 0,
-        'faltan en syncTSVI [' + faltanEnSync.join(',') + '] · faltan en oninput [' +
-        faltanEnInput.join(',') + ']'],
+      ['la UNICA lista de recalculos (tsviDiamEditado) tiene las SEIS, las TRES puertas entran ahi, y calcEADetalle NO esta (ver TC-358)',
+        faltanEnSync.length === 0 && faltanEnInput.length === 0 && sinDetalle,
+        'faltan en tsviDiamEditado [' + faltanEnSync.join(',') + '] · puertas sueltas [' +
+        faltanEnInput.join(',') + '] · sinDetalle=' + sinDetalle],
 
       ['⚠️ el informe firmado con fundamento vuelve IDENTICO al reabrir el estudio guardado',
         reabierta === firmada && firmada.indexOf('fracción de eyección conservada') > -1,
@@ -46595,6 +46618,170 @@ caso('TC-377', 'El O TSVI deja los mismos espejos por las dos puertas (Aorta y D
    ⚠️ Y EL ANCHO SE DEVUELVE. Un width:300px que sobreviva al caso deja a los ~100 casos
    siguientes midiendo sobre una pagina de 300 px, y el diagnostico apuntaria a cualquier parte
    menos aca. La devolucion es una condicion del caso, no un gesto de buena voluntad. */
+
+caso('TC-432', 'El Diam. del TSVI se coordina en los DOS sentidos entre AI/VI, Doppler y Valvulas: cargar llega a los tres, borrar borra en los tres y NO se repone, y las tres puertas disparan los MISMOS recalculos', `
+  /* Un dato con TRES campos: diam_tsvi_ao (AI/VI), diam_tsvi (Doppler, OCULTO: es el portador) y
+     ea_dtsvi (Valvulas aortica). Antes del 2026-10-07 cada puerta hacia algo distinto:
+       · por VALVULAS, diam_tsvi_ao quedaba VACIO y los dos espejos MITRALES tambien;
+       · BORRAR en Valvulas era imposible —sincronizarEADesdeGlobal repone el campo en el mismo
+         tecleo— y borrar en AI/VI dejaba ea_dtsvi rancio, con Valvulas publicando un AVA sobre un
+         diametro que ya no existia (calcEADetalle lee la cascada ea_dtsvi || diam_tsvi).
+     Medido en HEAD antes del arreglo, con O TSVI 22 mm, VTI TSVI 20 y VTI Ao 24. */
+  const abrir = function () {
+    try { showTab('valvulas'); } catch (e) {}
+    ['valv-mitral','valv-aortica'].forEach(function (tok) {
+      const sec = document.getElementById('ete-seccion-' + tok);
+      if (sec && sec.style.display === 'none') { try { toggleEteSeccion(tok); } catch (e) {} } });
+    ['mitral','aortica'].forEach(function (v) { ['esten','insuf'].forEach(function (t) {
+      const b = document.getElementById('pill-' + t + '-' + v);
+      if (b && !b.classList.contains('btn-primary')) toggleValvPill(v, t); }); });
+    ['caja-esten-aortica','caja-insuf-aortica'].forEach(function (c) {
+      const b = document.getElementById(c);
+      if (b && !b.classList.contains('valv-datos-abierto')) { try { valvDatosTog(c); } catch (e) {} } }); };
+
+  const T = function (id) { const e = document.getElementById(id);
+    return e ? (e.textContent || '').trim() : null; };
+  const foto = function () { return {
+    aivi: String(__t.val('diam_tsvi_ao') || ''), dop: String(__t.val('diam_tsvi') || ''),
+    valv: String(__t.val('ea_dtsvi') || ''),
+    vs: T('vs-val'), ava: String(__t.val('ava_cont') || ''), dvi: T('dvi-val'),
+    vli: String(__t.val('vli_calc') || ''), refVs: T('ao-ref-vs'), refAva: T('ao-ref-ava'),
+    eaAva: String(__t.val('ea_ava_display') || ''), eaDvi: String(__t.val('ea_dvi_display') || ''),
+    em: String(__t.val('em_dtsvi') || ''), im: String(__t.val('im_dtsvi') || ''),
+    gc: T('hemo-gc'), ic: T('hemo-ic') }; };
+  /* Los tres campos vacios Y los calculos en «—». El denominador de todo el caso. */
+  const vacio = function (f) { return f.aivi === '' && f.dop === '' && f.valv === '' &&
+    f.vs === '—' && f.ava === '' && f.eaAva === '' && f.em === '' && f.im === ''; };
+
+  const base = function () {
+    __t.limpiar(); abrir();
+    __t.set('nombre','TC432'); __t.set('peso','70'); __t.set('talla','170');
+    __t.set('itv_tsvi','20'); __t.set('itv_ao','24');
+    __t.set('hemo_fc','70'); __t.set('hemo_pam','90'); };
+
+  /* ── CARGAR por cada una de las TRES puertas ── */
+  const cargar = {};
+  ['ea_dtsvi','diam_tsvi_ao','diam_tsvi'].forEach(function (id) {
+    base(); __t.set(id, '22'); cargar[id] = foto(); });
+
+  /* ── BORRAR por cada una de las TRES puertas, cargando siempre por OTRA ── */
+  const borrar = {};
+  [['ea_dtsvi','diam_tsvi_ao'], ['diam_tsvi_ao','ea_dtsvi'], ['diam_tsvi','diam_tsvi_ao']]
+    .forEach(function (par) {
+      base(); __t.set(par[1], '22'); __t.set(par[0], '');
+      borrar['borra ' + par[0] + ' (cargado por ' + par[1] + ')'] = foto(); });
+
+  /* ── CONTROL NEGATIVO 1: sin diametro, los tres estan vacios y nada se calcula. Sin esto, una
+     sonda que compare dos fotos vacias dice «identicas» y no prueba nada. ── */
+  base();
+  const sinDiametro = foto();
+
+  /* ── CONTROL NEGATIVO 2: los otros CUATRO campos del bloque NO se coordinan (su defecto esta
+     REPORTADO y no corregido), asi que tocar el G. medio de Valvulas no mueve el O TSVI. Es lo que
+     prueba que se engancho el oninput del Diam. TSVI y no la funcion compartida. ── */
+  base(); __t.set('diam_tsvi_ao','22'); __t.set('ea_gmedio','45');
+  /* El G. medio se lee ACA, dentro de la escena: las escenas siguientes limpian el formulario y
+     leerlo al final daba '' — la primera version de este caso fallaba por eso, no por el codigo. */
+  const otroCampo = Object.assign(foto(), { gmedioValv: String(__t.val('ea_gmedio') || ''),
+                                            gmedioDop:  String(__t.val('gmedio_ao') || '') });
+
+  /* ── El cajón de estimacion del TSVI entra por la MISMA puerta que tipear en AI/VI ── */
+  base();
+  try { usarTSVIEstimado(20.6); } catch (e) {}
+  const porCajon = foto();
+
+  /* ── «Nuevo estudio» tiene que dejar los TRES vacios ── */
+  base(); __t.set('ea_dtsvi','22');
+  const antesDeNuevo = foto();
+  __t.nuevoEstudio();
+  const trasNuevo = foto();
+
+  /* ── El cableado leido del codigo vivo: UNA lista y TRES puertas que entran ahi ── */
+  const seis = ['calcAo','mostrarTSVIEstimado','eteShuntSyncSiExiste',
+                'imSyncSiExiste','emSyncSiExiste','iaSyncSiExiste'];
+  const lista = (typeof tsviDiamEditado === 'function') ? String(tsviDiamEditado) : '';
+  const faltan = seis.filter(function (f) { return lista.indexOf(f) === -1; });
+  /* calcEADetalle queda FUERA a proposito: ver TC-358 y el comentario de tsviDiamEditado. */
+  const sinDetalle = lista.indexOf('calcEADetalle') === -1;
+  const onin = function (id) { const e = document.getElementById(id);
+    return e ? (e.getAttribute('oninput') || '') : ''; };
+  const sync = (typeof syncTSVI === 'function') ? String(syncTSVI) : '';
+  const puerta = {
+    aivi:    /syncTSVI/.test(onin('diam_tsvi_ao')) && /tsviDiamEditado/.test(sync),
+    doppler: onin('diam_tsvi').indexOf("tsviDiamEditado('diam_tsvi')") > -1,
+    valv:    onin('ea_dtsvi').indexOf("tsviDiamEditado('ea_dtsvi')") > -1 };
+  const puertasOk = puerta.aivi && puerta.doppler && puerta.valv;
+  /* El orden importa y es lo que hace que el borrado no se reponga: en Valvulas,
+     tsviDiamEditado va ANTES de syncEADesdeValvulas. */
+  const ordenValv = (function () { const a = onin('ea_dtsvi');
+    const i = a.indexOf('tsviDiamEditado'), j = a.indexOf('syncEADesdeValvulas');
+    return i > -1 && j > -1 && i < j; })();
+  /* Y la funcion compartida NO se toco: sigue teniendo su guarda «solo si hay valor». */
+  const compartidaIntacta = (typeof syncEADesdeValvulas === 'function') &&
+    /el && val/.test(String(syncEADesdeValvulas)) &&
+    (typeof sincronizarEADesdeGlobal === 'function') &&
+    /el && val/.test(String(sincronizarEADesdeGlobal));
+
+  const T76 = function (f) { return f.vs === '76.0 ml' && f.ava === '3.17' && f.eaAva === '3.17 cm²'; };
+
+  return { extra: [
+    ['  DENOMINADOR: sin diametro los TRES campos estan vacios y los calculos dicen «—»',
+      vacio(sinDiametro), JSON.stringify(sinDiametro)],
+
+    ['cargar 22 por VALVULAS llega a los TRES campos y a los dos espejos mitrales',
+      cargar.ea_dtsvi.aivi === '22' && cargar.ea_dtsvi.dop === '22' && cargar.ea_dtsvi.valv === '22' &&
+      cargar.ea_dtsvi.em === '22' && cargar.ea_dtsvi.im === '22',
+      JSON.stringify(cargar.ea_dtsvi)],
+    ['  y el Doppler calcula el Vol. sistolico (pi x 1,1² x 20 = 76,0 ml) y el AVA (3,17 cm²)',
+      T76(cargar.ea_dtsvi), JSON.stringify(cargar.ea_dtsvi)],
+    ['cargar 22 por AI/VI deja EXACTAMENTE la misma foto',
+      JSON.stringify(cargar.diam_tsvi_ao) === JSON.stringify(cargar.ea_dtsvi),
+      'AIVI=' + JSON.stringify(cargar.diam_tsvi_ao)],
+    ['cargar 22 por el DOPPLER (la puerta del visor) deja EXACTAMENTE la misma foto',
+      JSON.stringify(cargar.diam_tsvi) === JSON.stringify(cargar.ea_dtsvi),
+      'DOP=' + JSON.stringify(cargar.diam_tsvi)],
+    ['  Hemodinamica se actualiza por las tres puertas (GC e IC poblados)',
+      ['ea_dtsvi','diam_tsvi_ao','diam_tsvi'].every(function (k) {
+        return cargar[k].gc === '5.32 L/min' && /2.93/.test(String(cargar[k].ic)); }),
+      JSON.stringify({ v: cargar.ea_dtsvi.gc, a: cargar.diam_tsvi_ao.gc, d: cargar.diam_tsvi.gc })],
+
+    ['⚠️ BORRAR en VALVULAS borra en los TRES y NO se repone (en HEAD volvia solo)',
+      vacio(borrar['borra ea_dtsvi (cargado por diam_tsvi_ao)']),
+      JSON.stringify(borrar['borra ea_dtsvi (cargado por diam_tsvi_ao)'])],
+    ['⚠️ BORRAR en AI/VI tambien vacia ea_dtsvi (en HEAD quedaba en 22 publicando AVA 3,17)',
+      vacio(borrar['borra diam_tsvi_ao (cargado por ea_dtsvi)']),
+      JSON.stringify(borrar['borra diam_tsvi_ao (cargado por ea_dtsvi)'])],
+    ['BORRAR en el DOPPLER borra en los tres',
+      vacio(borrar['borra diam_tsvi (cargado por diam_tsvi_ao)']),
+      JSON.stringify(borrar['borra diam_tsvi (cargado por diam_tsvi_ao)'])],
+
+    ['CONTROL NEGATIVO: tocar el G. medio de Valvulas —mismo bloque, funcion compartida— NO mueve el O TSVI',
+      otroCampo.aivi === '22' && otroCampo.dop === '22' && otroCampo.valv === '22' &&
+      T76(otroCampo) && otroCampo.gmedioValv === '45' && otroCampo.gmedioDop === '45',
+      JSON.stringify(otroCampo)],
+
+    ['el cajón «Usar estimado» entra por la misma puerta y llega a los tres',
+      porCajon.aivi === '20.6' && porCajon.dop === '20.6' && porCajon.valv === '20.6' &&
+      porCajon.em === '20.6' && porCajon.im === '20.6', JSON.stringify(porCajon)],
+
+    ['  DENOMINADOR de «Nuevo estudio»: antes estaba cargado en los tres',
+      antesDeNuevo.aivi === '22' && antesDeNuevo.dop === '22' && antesDeNuevo.valv === '22',
+      JSON.stringify(antesDeNuevo)],
+    ['«Nuevo estudio» deja los TRES campos vacios',
+      vacio(trasNuevo), JSON.stringify(trasNuevo)],
+
+    ['la UNICA lista de recalculos (tsviDiamEditado) tiene las SEIS, y calcEADetalle NO esta (TC-358)',
+      faltan.length === 0 && sinDetalle, 'faltan: ' + faltan.join(',') + ' sinDetalle=' + sinDetalle],
+    ['las TRES puertas del marcado entran por esa lista',
+      puertasOk, JSON.stringify({ ok: puerta, syncTSVI: sync.replace(/\s+/g,' '),
+                                  aivi: onin('diam_tsvi_ao'), dop: onin('diam_tsvi'),
+                                  valv: onin('ea_dtsvi') })],
+    ['⚠️ y en Valvulas va ANTES de syncEADesdeValvulas —es lo que evita que el borrado se reponga—',
+      ordenValv, onin('ea_dtsvi')],
+    ['las DOS funciones compartidas por los otros cuatro campos quedaron intactas (siguen con «if (el && val)»)',
+      compartidaIntacta, 'syncEADesdeValvulas/sincronizarEADesdeGlobal'],
+  ] };
+`);
 
 caso('TC-378', 'La morfologia va ANTES de la fila de botones Insuficiencia/Estenosis en las CUATRO valvulas —la pulmonar incluida, que ya tiene su fila (E5b-1)—', `
   const MORF = { mitral:'vm_morf', aortica:'va_morf', tricuspide:'vt_morf', pulmonar:'vp_morf' };

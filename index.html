@@ -3494,12 +3494,16 @@ window.cerrarSesionReal = cerrarSesionReal;
            conclusión es más fuerte: un contenedor por COLUMNA.
 
            ⚠️ EL Ø TSVI SIGUE ACÁ, OCULTO, Y NO SE BORRÓ EL NODO. Dejó de verse en esta sección
-           (se carga en AI/VI y en Válvulas) pero lo leen `calcAo`, `calcEADetalle`, `calcHemo`,
-           `cxGTP`, `eteShuntSync`, el PDF, el PPT y el Excel, y `syncTSVI` lo ESCRIBE con `setv`
-           desde AI/VI. `display:none` no toca el `.value`, y ni `guardarInforme` —que barre
-           `input[id]`— ni `limpiarCampos` miran visibilidad, así que los lectores, la sincronía y
-           el estudio guardado quedan exactamente como estaban. Borrar el nodo, en cambio, los
-           rompería todos.
+           (se carga en AI/VI y en Válvulas) pero es el PORTADOR del dato: lo leen `calcAo`,
+           `calcEADetalle`, `calcHemo`, `cxGTP`, `cxCont`, `eteQpQs`, el PDF, el PPT y el Excel, y
+           lo ESCRIBE `tsviDiamSync` desde cualquiera de las otras dos puertas (ver «EL DIÁM. DEL
+           TSVI ES UN DATO CON TRES CAMPOS»). `display:none` no toca el `.value`, y ni
+           `guardarInforme` —que barre `input[id]`— ni `limpiarCampos` miran visibilidad, así que
+           los lectores, la sincronía y el estudio guardado quedan exactamente como estaban.
+           Borrar el nodo, en cambio, los rompería todos.
+           Su `oninput` sigue vivo y NO es decorativo: el visor escribe acá con un `input` real
+           cuando el médico convierte una regla en diámetro (`medVtiDiametro`), así que esa ruta
+           también llega hoy a los tres campos sin que se tocara una línea del visor.
 
            ⚠️ EL DVI VUELVE A LA GRILLA, Y SÓLO DE ESTA FORMA. La entrada del 2026-09-29 de
            CLAUDE.md dejó la cuarta celda vacía a propósito: el DVI NO es un input, es el span
@@ -3558,7 +3562,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                pestaña— así que cargar el diámetro por este campo también lo vacía. -->
           <div class="fg" style="display:none;">
             <label>Diám. TSVI (mm)</label>
-            <input type="number" id="diam_tsvi" placeholder="mm" oninput="calcAo();mostrarTSVIEstimado();eteShuntSyncSiExiste();imSyncSiExiste();emSyncSiExiste();iaSyncSiExiste();">
+            <input type="number" id="diam_tsvi" placeholder="mm" oninput="tsviDiamEditado('diam_tsvi')">
           </div>
         </div>
         <!-- Col 3 — volumen y áreas -->
@@ -4828,7 +4832,14 @@ window.cerrarSesionReal = cerrarSesionReal;
             <div>
           <div class="fg">
             <label>Di&aacute;m. TSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
-            <input type="number" id="ea_dtsvi" placeholder="mm" oninput="syncEADesdeValvulas()">
+            <!-- ⚠️ `tsviDiamEditado` VA PRIMERO Y `syncEADesdeValvulas` SE CONSERVA (2026-10-07).
+                 Primero, porque deja los tres campos ya vacíos cuando el médico BORRA: la guarda
+                 `if (el && val)` de la sincronía global no escribe nada y el borrado no se repone.
+                 Conservada, porque esa función la comparten los CINCO campos de este bloque y su
+                 aporte propio en este gesto —devolver los otros cuatro espejos al Doppler— es
+                 comportamiento de HEAD que esta tanda no cambia. Enganchar el `oninput` y no la
+                 función es lo que deja a los otros cuatro campos exactamente como estaban. -->
+            <input type="number" id="ea_dtsvi" placeholder="mm" oninput="tsviDiamEditado('ea_dtsvi');syncEADesdeValvulas()">
           </div>
           <div class="fg">
             <label>VTI TSVI (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
@@ -25236,30 +25247,103 @@ function usarTSVIEstimado(val) {
 window.usarTSVIEstimado = usarTSVIEstimado;
 window.mostrarTSVIEstimado = mostrarTSVIEstimado;
 
-function syncTSVI() {
-  const val = v('diam_tsvi_ao');
-  setv('diam_tsvi', val || '');
-  /* ══ LAS SEIS, LAS MISMAS QUE EL `oninput` DE `diam_tsvi` (K — autorizado por Maicol 2026-10-02) ══
-     `setv` escribe `.value` sin disparar `input`, así que esta puerta tiene que llamar a mano a todo
-     lo que la otra dispara. Llamaba a DOS de las seis, y la divergencia se midió en Chrome con el
-     MISMO dato (Ø TSVI 21 mm) cargado por cada puerta:
-       · por la pestaña DOPPLER → ea_dtsvi 21 · em_dtsvi 21 · im_dtsvi 21 · AVA 0,73
-       · por la pestaña AORTA   → ea_dtsvi 21 · em_dtsvi VACÍO · im_dtsvi VACÍO · AVA 0,73
-     O sea: cargar el diámetro por Aorta actualizaba la aórtica y la IAo y dejaba los espejos de la
-     estenosis y de la insuficiencia MITRALES en blanco. El médico ve las casillas «auto» de la
-     mitral vacías con el dato cargado dos pestañas más allá, y no hay nada que lo avise.
-     ⚠️ ES EL ÚNICO CAMBIO DE ESTA TANDA QUE TOCA LA MITRAL, y es el que Maicol autorizó explícitamente
-     (punto 3 de PENDIENTES, reportado con medición en «Aórtica 4a» y aprobado para esta). El orden es
-     el del `oninput`, no uno nuevo: si alguna vez importara, que importe igual por las dos puertas.
-     ⚠️ Y LA LISTA SIGUE SIENDO DOS COPIAS. Esto no unifica nada: el `oninput` del campo tiene las seis
-     escritas en el atributo HTML y acá hay seis llamadas. Queda declarado — la séptima que se agregue
-     allá hay que agregarla acá, y nada lo va a avisar. */
+/* ══ EL DIÁM. DEL TSVI ES UN DATO CON TRES CAMPOS (2026-10-07) ═════════════════════
+   `diam_tsvi_ao` (AI/VI), `diam_tsvi` (Doppler aórtico, OCULTO) y `ea_dtsvi` (Válvulas — Estenosis
+   Aórtica) son la MISMA medición. `diam_tsvi` es el PORTADOR: es el que leen `calcAo`, `calcHemo`,
+   `cxGTP`, `cxCont`, `eteQpQs`, el PDF, el PPT y el Excel, y el que escribe el visor cuando el
+   médico convierte una regla en diámetro. Los otros dos son puertas de entrada.
+
+   Lo que esto cierra, MEDIDO en HEAD con Ø TSVI 22 mm, VTI TSVI 20 y VTI Ao 24:
+     · tipear 22 en VÁLVULAS dejaba `diam_tsvi_ao` VACÍO —el campo visible de AI/VI en blanco con el
+       dato cargado— y los dos espejos MITRALES (`em_dtsvi`, `im_dtsvi`) también vacíos, o sea el AVm
+       por continuidad y la FR de la IM evaluándose sin el diámetro que el médico acababa de cargar.
+     · BORRARLO en Válvulas era imposible: `syncEADesdeValvulas` → `calcAo` → `sincronizarEADesdeGlobal`
+       reponía el campo en el mismo tecleo.
+     · BORRARLO en AI/VI apagaba el Doppler (Vol. sist. «—», AVA vacía) pero dejaba `ea_dtsvi` en 22,
+       y Válvulas seguía publicando «AVA 3,17 cm²» sobre un diámetro que ya no existía — porque
+       `calcEADetalle` lee la cascada `ea_dtsvi || diam_tsvi`.
+
+   ⚠️ NO HAY BUCLE, Y NO ES POR LA GUARDA: asignar `.value` por código NO dispara `oninput`, así que
+   el espejo nunca se re-dispara solo. `_tsviDiamSinc` está para el día en que alguien despache un
+   `input` a mano —los arneses de prueba lo hacen—, exactamente como documenta `itVmaxSync`.
+
+   ⚠️ LA SALIDA TEMPRANA POR VALOR IGUAL no es cosmética: escribir `.value` con el mismo contenido
+   mueve el caret al final del campo. Se compara el TEXTO crudo y no el número, por el mismo motivo
+   que `itVmaxSync`: «21» y «21.0» son el mismo número y dos textos distintos, y el médico tiene que
+   poder verificar de un vistazo que los tres campos dicen LO MISMO.
+
+   ⚠️ EL VACÍO SE COPIA IGUAL QUE UN NÚMERO, y es la mitad de este arreglo: borrar en cualquiera de
+   las tres puertas borra en las otras dos. Y por eso `tsviDiamEditado` corre ANTES de
+   `syncEADesdeValvulas` en el `oninput` de `ea_dtsvi`: cuando la sincronía global corre, los tres
+   campos ya están vacíos, su guarda `if (el && val)` no escribe nada y el borrado NO se repone.
+   Ninguna de las dos funciones compartidas se tocó — las comparten otros cuatro campos. */
+let _tsviDiamSinc = false;
+const _TSVI_DIAM_TRIO = ['diam_tsvi_ao', 'diam_tsvi', 'ea_dtsvi'];
+function tsviDiamSync(origenId) {
+  if (_tsviDiamSinc) return null;
+  _tsviDiamSinc = true;
+  try {
+    const src = document.getElementById(origenId);
+    if (!src) return null;
+    const val = src.value;
+    const copiados = [];
+    _TSVI_DIAM_TRIO.forEach((id) => {
+      if (id === origenId) return;
+      const dst = document.getElementById(id);
+      if (!dst || dst.value === val) return;
+      dst.value = val;
+      copiados.push(id);
+    });
+    return { origen: origenId, valor: val, copiados: copiados };
+  } finally { _tsviDiamSinc = false; }
+}
+window.tsviDiamSync = tsviDiamSync;
+
+/* ══ LAS SEIS — UNA SOLA LISTA PARA LAS TRES PUERTAS ════════════════════════════════
+   `calcAo` es el que arrastra casi todo y por eso no figura acá uno por uno: Vol. sistólico, AVA
+   por continuidad, AVA indexada, DVI, VLI, el cuadro de referencias del Doppler aórtico
+   (`aoRefPintar`), Hemodinámica (`calcHemo` → GC, IC, RVS, RVP, PCP, GTP), `cxCont`, el espejo del
+   TAVI, la ecuación de continuidad y el AVA del bloque de Válvulas —vía `sincronizarEADesdeGlobal`
+   → `calcEADetalle`, con el cajón abierto— y, al final, `_eaRetirarGradoSugerido`.
+   Está MEDIDO, no deducido.
+
+   ⚠️ `calcEADetalle` NO ENTRA A ESTA LISTA, Y NO ES UN OLVIDO: LO MIDIÓ TC-358. El camino de
+   Válvulas la llama INCONDICIONAL (dentro de `syncEADesdeValvulas`) y los otros dos sólo a través
+   de la compuerta de `calcAo`, así que «igualar al conjunto mayor» pediría agregarla acá. No se
+   puede, por las dos puntas, y las dos están medidas con el Ø TSVI en centímetros (2 mm):
+     · PUESTA DESPUÉS de `calcAo` le PISA el badge al retiro. `_eaRetirarGradoSugerido` corre
+       ÚLTIMA en la cola de `calcAo` a propósito —es el único lugar que SABE que hubo retiro— y su
+       aviso «se RETIRÓ el grado … Ø TSVI 2 mm» quedaba reemplazado por el «no alcanza para
+       graduar» de `calcEADetalle`: el `<select>` vaciado al lado de un cartel que no dice por qué.
+     · PUESTA ANTES, el retiro NO LLEGA A ACTUAR. Su guarda es `sel.value !== sel.dataset.sugerido`,
+       y `calcEADetalle` ya reescribió `ea_grado` y su marca, así que sale por el `return false` y
+       el badge queda en el de `clasificarEA_Vmax` («Fuera de rango, no gradúa: AVA por continuidad
+       0.01 cm²»). El grado igual se retira, pero el aviso deja de explicarlo.
+   Arreglarlo exige mover `_eaRetirarGradoSugerido` o la compuerta de `calcAo`, que son código
+   compartido por las cinco secciones de la aórtica y no estaban en el pedido. Queda REPORTADO:
+   `calcEADetalle` sigue exactamente donde HEAD la tiene —dentro de la compuerta de `calcAo` y en
+   `syncEADesdeValvulas`—, así que la asimetría que queda es la de HEAD y no una nueva.
+
+   ⚠️ ESTO REEMPLAZA LAS DOS COPIAS QUE EL COMENTARIO ANTERIOR DECLARABA. Hasta hoy la lista estaba
+   escrita dos veces —seis llamadas acá y los mismos seis nombres en el atributo `oninput` del
+   campo— y nada avisaba si se desincronizaban. Ahora hay UNA lista y tres puertas que la invocan;
+   TC-377 y TC-432 verifican las dos mitades: que la lista esté completa y que las tres puertas
+   lleguen acá. */
+function tsviDiamEditado(origenId) {
+  tsviDiamSync(origenId);
   calcAo();
   if (typeof mostrarTSVIEstimado === 'function') mostrarTSVIEstimado();
   if (typeof eteShuntSyncSiExiste === 'function') eteShuntSyncSiExiste();
   if (typeof imSyncSiExiste === 'function') imSyncSiExiste();
   if (typeof emSyncSiExiste === 'function') emSyncSiExiste();
   if (typeof iaSyncSiExiste === 'function') iaSyncSiExiste();
+}
+window.tsviDiamEditado = tsviDiamEditado;
+
+/* La puerta de AI/VI. Conserva el nombre porque lo usan `usarTSVIEstimado` (los dos enlaces del
+   cajón de estimación) y el `oninput` del campo. */
+function syncTSVI() {
+  tsviDiamEditado('diam_tsvi_ao');
 }
 
 // ══ AORTICO ══
@@ -97150,8 +97234,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-0739';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791369546870;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-1103';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791381811979;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -97237,7 +97321,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-0739</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1103</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
