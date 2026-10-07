@@ -5406,6 +5406,18 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div class="valv-sev-menu" id="sevmenu-esten-pulmonar" role="menu"></div>
         </div>
       </div>
+      <!-- ══ «VELOCIDAD DE LA IP CARGADA CON LA INSUFICIENCIA APAGADA» (punto 8c, 2026-10-07) ═════
+           Hermano exacto de `it-incongruencia`, en el mismo lugar relativo (entre la fila de botones y
+           las sub-pastillas) y con el mismo estilo. AVISA Y NO ARREGLA, igual que el de la tricúspide:
+           no prende la pastilla y no borra nada — replicar su comportamiento era lo pedido.
+           El estado que denuncia es estrecho por la MISMA razón: `calcIP` prende la pastilla de la IP
+           al cargar cualquiera de las dos velocidades, así que «botón apagado + velocidad cargada»
+           sólo se alcanza si el médico la APAGÓ A MANO después (la clave de `localStorage` queda en
+           '0' y `_ipAutoPrender` ya no la reprende) o si borró la velocidad y la volvió a cargar con
+           la pastilla cerrada. Es poco frecuente y es justo el caso en que el informe firmado afirma
+           una cosa —«IP presente», porque `hayIP` mira las dos velocidades— y la pantalla otra.
+           Vacío no tiene alto y no deja hueco. `textContent` y no `innerHTML`. -->
+      <div id="ip-incongruencia" style="font-size:11px;font-weight:700;color:var(--red);margin:-6px 0 10px;min-height:0;"></div>
       <div class="sev-pills" id="sevpills-pulmonar"></div>
       <!-- ═══ P4 (2026-10-04) — LAS DOS LESIONES, UNA AL LADO DE LA OTRA ════════════════════════
            Decisión de Maicol: insuficiencia a la IZQUIERDA y estenosis a la DERECHA, cada bloque
@@ -30528,6 +30540,40 @@ function _ipAutoPrender() {
 }
 window._ipAutoPrender = _ipAutoPrender;
 
+/* ══ «VELOCIDAD DE LA IP CARGADA CON LA INSUFICIENCIA APAGADA» (punto 8c, 2026-10-07) ══════════
+   AVISA Y NO ARREGLA: no prende la pastilla y no borra nada. Es `itIncongruenciaSync` calcado —la
+   orden decía «replicá su comportamiento, no lo reinventes»— con dos cambios y ninguno de criterio:
+   los campos que mira (`ip_vmax` / `ip_vtd` en vez de `vmax_it` / `it_vmax_cw`) y la válvula.
+   Un solo dueño, para que el aviso no pueda quedar desincronizado del estado.
+   ⚠️ SE LEEN LAS DOS VELOCIDADES Y ALCANZA CON UNA, igual que allá: un estudio guardado se repone
+   con `.value =` sin eventos, así que en ese instante pueden diferir, y el aviso tiene que salir si
+   CUALQUIERA tiene valor. Fallar del lado de avisar es lo correcto: el costo de un aviso de más es
+   un renglón rojo; el de uno de menos es un informe firmado que niega una valvulopatía que los datos
+   afirman — y acá el informe LA AFIRMA, porque `hayIP` incluye `ipProto`/`ipTele`.
+   ⚠️ NO SE EXTIENDE A LOS CUATRO SIGNOS del punto 7, y es deliberado: la orden es la velocidad. Lo
+   que esos signos hacen cuando el botón está apagado es otra cosa —prenden el botón por el grado—,
+   así que el estado «signo cargado con la insuficiencia apagada» no se alcanza por su propio camino.
+   `el.style.margin` se escribe igual que en el gemelo, para que vacío no deje hueco. */
+function ipIncongruenciaSync() {
+  const el = document.getElementById('ip-incongruencia');
+  if (!el) return null;
+  let hayVel = false;
+  ['ip_vmax', 'ip_vtd'].forEach(function (id) {
+    const e = document.getElementById(id);
+    if (e && String(e.value).trim() !== '' && parseFloat(e.value) > 0) hayVel = true;
+  });
+  let apagada = false;
+  try { apagada = (typeof pillOn === 'function') && !pillOn('pulmonar', 'insuf'); }
+  catch (e) { apagada = false; }
+  const mostrar = hayVel && apagada;
+  el.textContent = mostrar
+    ? '⚠️ Con la velocidad de la IP cargada la insuficiencia no puede estar ausente: no es congruente. Para dejarla sin insuficiencia, borrá las velocidades de la IP.'
+    : '';
+  el.style.margin = mostrar ? '-6px 0 10px' : '0';
+  return { visible: mostrar, hayVel: hayVel, apagada: apagada };
+}
+window.ipIncongruenciaSync = ipIncongruenciaSync;
+
 // ══ INSUFICIENCIA PULMONAR — PAP media y diastólica ══
 function calcIP() {
   const vmax  = v('ip_vmax');   // Vmax proto-diastólica IP (m/s)
@@ -30543,9 +30589,18 @@ function calcIP() {
      ⚠️ v3 (2026-10-07): LA GUARDA SE MUDÓ A `_ipAutoPrender`, CON EL MISMO CUERPO. Misma condición,
      mismo `localStorage !== '0'`, misma idempotencia; lo que cambió es que ahora hay un SEGUNDO camino
      que la necesita —el grado automático por signos—, y tener la condición escrita dos veces es tener
-     dos lugares donde el apagado manual se puede dejar de respetar. La telediastólica NO entra en este
-     commit: es el punto 8 y va en el suyo. Ver el comentario de `_ipAutoPrender`. */
-  if (vmax !== null && vmax > 0) _ipAutoPrender();
+     dos lugares donde el apagado manual se puede dejar de respetar. Ver `_ipAutoPrender`.
+     ⚠️ v4 (punto 8, 2026-10-07): LA TELEDIASTÓLICA TAMBIÉN PRENDE EL BOTÓN. Era una asimetría medida
+     en HEAD, no una decisión: con `ip_vtd = 1.8` y nada más, el informe YA decía «IP presente.» y el
+     EN SUMA también —`hayIP` incluye `ipTele !== null` desde que el bloque 10b existe— mientras la
+     pastilla de Válvulas quedaba APAGADA. O sea el papel afirmaba la insuficiencia y la pantalla la
+     negaba, que es exactamente la incongruencia que el aviso de abajo denuncia. Las dos velocidades
+     son señal regurgitante: si una prende, la otra también.
+     Se respeta el apagado manual por el mismo camino (la clave en '0'), y borrarlas no apaga nada
+     (regla 12). */
+  if ((vmax !== null && vmax > 0) || (vtd !== null && vtd > 0)) _ipAutoPrender();
+  /* El aviso se repinta en el MISMO gesto que puede encenderlo o apagarlo. */
+  if (typeof ipIncongruenciaSync === 'function') { try { ipIncongruenciaSync(); } catch (e) {} }
 
   const papmRow  = document.getElementById('ip-papm-row');
   const papdRow  = document.getElementById('ip-papd-row');
@@ -37455,7 +37510,7 @@ function RECALC_MODULOS() {
      `emAvmPdfVal` para la fila del PDF, `dataset` protege esa decision, y `disabled` no lo
      persiste ni lo lee nadie. Los dos primeros siguen intocados — que es exactamente la objecion
      que este archivo dejo escrita para IM: «pisaria la decision que la reimpresion respalda». */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -37658,6 +37713,10 @@ function limpiarCampos(silencioso) {
      `itIncongruenciaSync` entró además a `RECALC_MODULOS`, que es la otra columna (las rutas de
      restauración), al lado de `eteVmAvisoSync` y por la misma razón. */
   { if (typeof itIncongruenciaSync === 'function') { try { itIncongruenciaSync(); } catch (e) {} } }
+  /* Punto 8c: el gemelo de la pulmonar. Las DOS columnas, igual que el de la tricúspide:
+     `RECALC_MODULOS` es el embudo de las rutas de restauración y `limpiarCampos` NO pasa por ahí, así
+     que sin esta línea «Nuevo estudio» dejaba el aviso del paciente anterior. */
+  { if (typeof ipIncongruenciaSync === 'function') { try { ipIncongruenciaSync(); } catch (e) {} } }
   /* ⚠️ LA FÓRMULA DE LA PAP MEDIA NECESITA LAS DOS COLUMNAS, Y POR UNA RAZÓN DISTINTA A LAS DE
      ARRIBA: `papm_est` es un `input[type=text]` y lo vacía el barrido de campos, pero el texto de
      la fórmula vive en un `<div id="papm_est_form">`, que no es ni un input ni un
@@ -56003,6 +56062,12 @@ function toggleValvPill(valvula, tipo) {
      Se gatea por válvula para no gastar un repintado en los otros cinco botones. */
   if (valvula === 'tricuspide' && tipo === 'insuf' && typeof itIncongruenciaSync === 'function') {
     try { itIncongruenciaSync(); } catch (e) {}
+  }
+  /* Punto 8c (2026-10-07): el gemelo de la pulmonar, por el mismo motivo y en el mismo punto — éste
+     es el gesto que lo enciende y lo apaga, y va DESPUÉS del `setItem` para que `pillOn` ya devuelva
+     el estado nuevo. Leído antes, el aviso iría siempre un clic atrás. */
+  if (valvula === 'pulmonar' && tipo === 'insuf' && typeof ipIncongruenciaSync === 'function') {
+    try { ipIncongruenciaSync(); } catch (e) {}
   }
 }
 function cargarValvPills() {
@@ -98244,8 +98309,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-1656';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791402966993;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-1710';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791403808425;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -98331,7 +98396,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1656</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1710</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

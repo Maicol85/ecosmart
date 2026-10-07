@@ -54743,6 +54743,151 @@ caso('TC-440', 'Insuficiencia pulmonar: los CUATRO signos nuevos graduan por el 
   })();
 `);
 
+
+caso('TC-441', 'IP presente desde el Doppler: las DOS velocidades de la IP prenden el boton de insuficiencia pulmonar, el informe y el EN SUMA dicen «IP presente», y apagarlo a mano deja el aviso de incongruencia sin arreglar nada', `
+  ${APAGA_HELPERS}
+  const abrir = function () {
+    try { showTab('valvulas'); } catch (e) {}
+    const sec = document.getElementById('ete-seccion-valv-pulmonar');
+    if (sec && sec.style.display === 'none') { try { toggleEteSeccion('valv-pulmonar'); } catch (e) {} }
+  };
+  const F = function () {
+    return { pill: aOn('pulmonar', 'insuf'),
+             sel: (document.getElementById('ip_grado') || {}).value,
+             fijo: aTxt('gftxt-insuf-pulmonar'),
+             incong: aTxt('ip-incongruencia'),
+             sev: aTxt('ip-sev') };
+  };
+  const esc = function (campos) {
+    __t.nuevoEstudio(); abrir();
+    Object.keys(campos).forEach(function (k) { __t.set(k, campos[k]); });
+    const r = __t.informe();
+    return { f: F(), inf: r.inf, suma: r.suma };
+  };
+
+  // ── DENOMINADOR: el nodo del aviso existe y el formulario limpio no afirma nada ────────────
+  __t.nuevoEstudio(); abrir();
+  const existe = !!document.getElementById('ip-incongruencia');
+  const vacio = esc({});
+
+  // ── (a) CADA VELOCIDAD, POR SEPARADO, PRENDE EL BOTON ─────────────────────────────────────
+  const proto = esc({ ip_vmax: '2.5' });
+  const tele  = esc({ ip_vtd: '1.8' });
+  const ambas = esc({ ip_vmax: '2.5', ip_vtd: '1.8' });
+
+  // ── (b) «IP presente» EN LOS TRES ESTILOS ─────────────────────────────────────────────────
+  const estilos = {};
+  ['estandar', 'conciso', 'narrativo'].forEach(function (e) {
+    __t.nuevoEstudio(); abrir();
+    __t.set('ip_vtd', '1.8');
+    setEstiloInforme(e);
+    const r = __t.informe();
+    estilos[e] = { inf: r.inf, suma: r.suma };
+  });
+  setEstiloInforme('estandar');
+
+  /* Con un SIGNO cargado ademas, la pastilla gana su grado y el informe deja de decir «presente». */
+  const conSigno = esc({ ip_vtd: '1.8', ip_senal: 'densa_emp' });
+
+  // ── (c) APAGAR A MANO CON LA VELOCIDAD CARGADA: aviso rojo, y NO arregla nada ──────────────
+  __t.nuevoEstudio(); abrir();
+  __t.set('ip_vtd', '1.8');
+  const antesApagar = F();
+  toggleValvPill('pulmonar', 'insuf');
+  const trasApagar = F();
+  const infApagado = __t.informe();
+  /* Y NO reprende: la clave de localStorage queda en '0'. */
+  __t.set('ip_vmax', '2.6');
+  const trasRecargar = F();
+  /* Borrar las dos velocidades apaga el aviso (ya no hay incongruencia que declarar). */
+  __t.set('ip_vmax', ''); __t.set('ip_vtd', '');
+  const sinVel = F();
+
+  // ── «Nuevo estudio» se lleva el aviso ─────────────────────────────────────────────────────
+  __t.nuevoEstudio(); abrir();
+  __t.set('ip_vtd', '1.8');
+  toggleValvPill('pulmonar', 'insuf');
+  const conAviso = F();
+  __t.nuevoEstudio(); abrir();
+  const trasNuevo = F();
+
+  // ── (d) NINGUNA PRESION PULMONAR SE MOVIO ─────────────────────────────────────────────────
+  __t.nuevoEstudio(); abrir();
+  __t.set('ip_vmax', '2.5'); __t.set('ip_vtd', '1.8');
+  __t.set('vci_diam', '18'); __t.set('vci_col', '>50');
+  const pres = { papm: aTxt('ip-papm-row'), papd: aTxt('ip-papd-row'),
+                 papdCampo: (document.getElementById('ip_papd') || {}).value,
+                 pmad: (document.getElementById('pmad') || {}).value };
+  const infPres = __t.informe();
+  __t.nuevoEstudio();
+
+  return { extra: [
+    /* ⚠️ EL DENOMINADOR SE ACOTA A LA PULMONAR. La primera version preguntaba por /insuficiencia/
+       sobre el informe entero y no podia pasar nunca: la frase de normalidad de otras valvulas ya
+       dice «insuficiencia». Es el mismo error que el control negativo de TC-400 tuvo con
+       «significativas». Lo que esta escena necesita es que la PULMONAR no este afirmada. */
+    ['denominador: el nodo del aviso existe y sin datos la pulmonar sale normal, sin IP',
+      existe === true && vacio.f.pill === false && vacio.f.incong === ''
+      && vacio.inf.indexOf('Válvula pulmonar normal.') > -1
+      && vacio.suma.indexOf('IP ') === -1, JSON.stringify(vacio.f) + ' // ' + recorteJS(vacio.inf)],
+
+    // (a)
+    ['la velocidad PROTO-diastolica prende el boton (ya lo hacia en HEAD)',
+      proto.f.pill === true, JSON.stringify(proto.f)],
+    ['la TELEDIASTOLICA tambien lo prende (en HEAD quedaba APAGADA)',
+      tele.f.pill === true, JSON.stringify(tele.f)],
+    ['y con las dos cargadas, igual', ambas.f.pill === true, JSON.stringify(ambas.f)],
+    ['la pastilla queda en «Severidad» SIN grado: la velocidad no gradua',
+      tele.f.sel === 'Sin insuficiencia' && tele.f.fijo === '\\u2014' && tele.f.sev === '\\u2014',
+      JSON.stringify(tele.f)],
+    ['con el boton prendido por la velocidad el aviso de incongruencia NO sale',
+      tele.f.incong === '', tele.f.incong],
+
+    // (b)
+    ['el informe y el EN SUMA dicen «IP presente» — estandar',
+      estilos.estandar.inf.indexOf('con insuficiencia.') > -1
+      && estilos.estandar.suma.indexOf('IP presente.') > -1,
+      recorteJS(estilos.estandar.inf) + ' // ' + recorteJS(estilos.estandar.suma)],
+    ['  conciso', estilos.conciso.inf.indexOf('IP presente') > -1
+      && estilos.conciso.suma.indexOf('IP presente.') > -1,
+      recorteJS(estilos.conciso.inf)],
+    ['  narrativo', estilos.narrativo.inf.indexOf('Se observa insuficiencia pulmonar') > -1
+      && estilos.narrativo.suma.indexOf('IP presente.') > -1,
+      recorteJS(estilos.narrativo.inf)],
+    ['con un SIGNO cargado ademas, aparece el grado y el informe deja de decir «presente»',
+      conSigno.f.sel === 'Severa' && conSigno.f.fijo === 'Severa'
+      && conSigno.suma.indexOf('IP severa.') > -1 && conSigno.suma.indexOf('IP presente.') === -1,
+      JSON.stringify(conSigno.f) + ' // ' + recorteJS(conSigno.suma)],
+
+    // (c)
+    ['DENOMINADOR: antes de apagar, el boton estaba prendido y sin aviso',
+      antesApagar.pill === true && antesApagar.incong === '', JSON.stringify(antesApagar)],
+    ['apagar el boton con la velocidad cargada levanta el aviso de incongruencia',
+      trasApagar.pill === false && trasApagar.incong.indexOf('no puede estar ausente') > -1,
+      JSON.stringify(trasApagar)],
+    ['el aviso AVISA Y NO ARREGLA: no reprende el boton ni borra la velocidad',
+      trasApagar.pill === false
+      && (document.getElementById('ip_vtd') || {}).value !== undefined, JSON.stringify(trasApagar)],
+    ['y cargar la OTRA velocidad despues NO lo reprende: el apagado manual es durable',
+      trasRecargar.pill === false && trasRecargar.incong.indexOf('no puede estar ausente') > -1,
+      JSON.stringify(trasRecargar)],
+    ['borrar las dos velocidades apaga el aviso: ya no hay incongruencia que declarar',
+      sinVel.incong === '', sinVel.incong],
+    ['DENOMINADOR: el aviso estaba puesto antes de «Nuevo estudio»',
+      conAviso.incong !== '', conAviso.incong],
+    ['«Nuevo estudio» se lleva el aviso del paciente anterior',
+      trasNuevo.incong === '' && trasNuevo.pill === false, JSON.stringify(trasNuevo)],
+
+    // (d)
+    ['CONTROL: las dos presiones pulmonares siguen saliendo de su formula, sin tocarse',
+      pres.pmad === '3' && pres.papm === '28 mmHg' && pres.papd === '16 mmHg'
+      && pres.papdCampo === '16 mmHg', JSON.stringify(pres)],
+    ['y el informe las publica como siempre',
+      infPres.inf.indexOf('PAPm de 28 mmHg') > -1 && infPres.inf.indexOf('PAPd de 16 mmHg') > -1,
+      recorteJS(infPres.inf)]
+  ] };
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────
