@@ -18227,7 +18227,17 @@ const PCP_COEF_A = 1.24, PCP_COEF_B = 1.9;
    debajo de la línea de «seco», o sea un diagrama que se contradice solo. */
 const UMBRAL_PCP_HUMEDO = 15;
 window.UMBRAL_PCP_HUMEDO = UMBRAL_PCP_HUMEDO;
-const PCP_FORMULA_TXT = "1.24 × (E/e') + 1.9";
+/* ⚠️ SE DERIVA DE LOS DOS COEFICIENTES, NO SE ESCRIBE A MANO (2026-10-06). El texto decía
+   «1.24 × (E/e') + 1.9» con los dos números tipeados, al lado de las constantes que hacen la
+   cuenta: mover un coeficiente dejaba el rótulo del PDF firmado afirmando la fórmula vieja sobre
+   un número calculado con la nueva. Es el mismo criterio que `aoRefFormulas` ya aplica a las
+   cuatro fórmulas en letra chica del cuadro aórtico, y que la nota de `HEMO_GC_DIV` enuncia: si el
+   número vive en un solo lugar, cambiarlo cambia las dos cosas a la vez.
+   ⚠️ EL PUNTO DECIMAL ES EL DE `String(Number)` Y ASÍ TIENE QUE QUEDAR. Acá NO se pasa por `coma()`
+   —a diferencia de `aoRefFormulas`—, porque este texto lo consume `generarPDFReal`, que es la
+   única ruta de PDF sin saneador: cambiarlo a coma sería cambiar un informe firmado. Verificado
+   byte por byte contra HEAD: 19 caracteres, mismos puntos de código. */
+const PCP_FORMULA_TXT = PCP_COEF_A + " × (E/e') + " + PCP_COEF_B;
 /* Guion CORTO a propósito: generarPDFReal es la única ruta de PDF sin saneador, y la
    helvetica WinAnsi de jsPDF descarta la raya em en silencio. Con «—» el informe firmado
    salía «PCP estimada valor orientativo», mientras la hoja de ETT Avanzado —que sí se
@@ -96279,8 +96289,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261006-2330';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791340250344;                 /* eco-build-ms */
+const ECO_BUILD    = '20261006-2333';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791340387150;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -96366,7 +96376,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-2330</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-2333</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

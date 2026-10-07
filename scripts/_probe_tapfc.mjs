@@ -240,6 +240,45 @@ window.__P = {
              spanPcpF: (function(){ var e = document.querySelector('.ao-ref-f[data-f="pcp"]');
                return e ? e.textContent : null })() } },
 
+  /* ══ EL PDF DE LA TARJETA GTP/RVP. Es el UNICO consumidor de PCP_FORMULA_TXT, y vive detras de
+     dos compuertas: la clave gtp_incluir_pdf y que los spans del modulo no esten vacios. Sin
+     llenar la calculadora, _grows queda vacio y el bloque no se dibuja: la sonda daria "(sin
+     fila)" en los dos lados y el A/B pasaria sobre un denominador de cero. */
+  gtpPdf() {
+    var prev = null;
+    try { prev = localStorage.getItem('gtp_incluir_pdf') } catch(e) {}
+    try { localStorage.setItem('gtp_incluir_pdf', '1') } catch(e) {}
+    window.__P.limpiar();
+    ['cx_gtp_psap','cx_gtp_ee','cx_gtp_fc','cx_gtp_vti','cx_gtp_dtsvi']
+      .forEach(function(id, i){ window.__P.set(id, [45, 12, 70, 18, 20][i]) });
+    try { cxGTP() } catch(e) {}
+    var spans = {};
+    ['cx-gtp-papm','cx-gtp-pcp','cx-gtp-vs','cx-gtp-gc','cx-gtp-gtp','cx-gtp-rvp']
+      .forEach(function(id){ spans[id] = window.__P.txt(id) });
+    var t = window.__P.pdfTxt();
+    /* Solo el bloque del GTP, para que el A/B no arrastre el resto del informe. */
+    var bloque = '(no salio)';
+    if (typeof t === 'string') {
+      var i = t.indexOf('GRADIENTE TRANSPULMONAR');
+      if (i >= 0) bloque = t.slice(i, i + 420);
+    }
+    var rotulo = '(sin rotulo)';
+    if (typeof t === 'string') {
+      var m = t.split(' | ').filter(function(s){ return s.trim().indexOf('PCP (Nagueh') === 0 });
+      if (m.length) rotulo = m[0].trim();
+    }
+    try { if (prev === null) localStorage.removeItem('gtp_incluir_pdf');
+          else localStorage.setItem('gtp_incluir_pdf', prev) } catch(e) {}
+    window.__P.limpiar();
+    return { spans: spans, rotulo: rotulo, bloque: bloque,
+             /* La etiqueta de PANTALLA de esa fila: hoy es una TERCERA copia escrita a mano en el
+                marcado. Se mide para dejar constancia, no se cambia. */
+             rotuloPantalla: (function(){
+               var e = document.getElementById('cx-gtp-pcp');
+               var row = e ? e.parentNode : null;
+               var lbl = row ? row.querySelector('.calc-lbl') : null;
+               return lbl ? lbl.textContent.replace(/\\s+/g, ' ').trim() : null })() } },
+
   /* ══ Escena hemodinamica completa. Solo ids que existen en los dos builds. */
   escena(d) {
     window.__P.limpiar();
@@ -451,6 +490,7 @@ async function main() {
     var t = window.__P.pdfTxt();
     p.pdfTienePcpRotulo = (typeof t === 'string') && t.indexOf('PCP (Nagueh 1.24 \\u00d7 (E/e\\') + 1.9)') >= 0;
     return JSON.stringify(p); })()`));
+  const gtp = JSON.parse(await ev(`JSON.stringify(window.__P.gtpPdf())`));
 
   /* ══ 5 · A/B general: informe, EN SUMA, Excel, campos, PDF entero ═══════════════════════════ */
   const ESCENAS = {
@@ -498,7 +538,7 @@ async function main() {
   console.log(JSON.stringify({
     archivo: FARG, md5_index_antes: antes, md5_index_despues: despues,
     index_intacto: antes === despues,
-    listo, mapeo, importa, mezcla, huecos, reabrir, fc, pcp, escenas,
+    listo, mapeo, importa, mezcla, huecos, reabrir, fc, pcp, gtp, escenas,
     sweep: JSON.parse(sweep),
   }, null, 2));
 
