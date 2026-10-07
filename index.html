@@ -3534,7 +3534,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
           <div class="fg">
             <label>G. medio (mmHg)</label>
-            <input type="number" id="gmedio_ao" placeholder="mmHg" oninput="calcAo();eteShuntSyncSiExiste();_eaDetCuentaPura()">
+            <input type="number" id="gmedio_ao" placeholder="mmHg" oninput="eaParEditado('gmedio_ao')">
           </div>
         </div>
         <!-- Col 2 — los dos VTI y su cociente -->
@@ -4830,7 +4830,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
           <div class="fg">
             <label>G. medio (mmHg) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
-            <input type="number" id="ea_gmedio" placeholder="mmHg" oninput="syncEADesdeValvulas()">
+            <input type="number" id="ea_gmedio" placeholder="mmHg" oninput="eaParEditado('ea_gmedio');syncEADesdeValvulas()">
           </div>
             </div>
             <div>
@@ -25459,8 +25459,10 @@ function syncTSVI() {
    su propio comentario prohíbe. Va PRIMERA en las dos puertas, como en HEAD. */
 let _eaParSinc = false;
 const _EA_PARES = Object.freeze({
-  ea_vmax: { par:'vmax_ao', recalc:['eteShuntSyncSiExiste','iaSyncSiExiste'] },
-  vmax_ao: { par:'ea_vmax', recalc:['eteShuntSyncSiExiste','iaSyncSiExiste'] }
+  ea_vmax:   { par:'vmax_ao',   recalc:['eteShuntSyncSiExiste','iaSyncSiExiste'] },
+  vmax_ao:   { par:'ea_vmax',   recalc:['eteShuntSyncSiExiste','iaSyncSiExiste'] },
+  ea_gmedio: { par:'gmedio_ao', recalc:['eteShuntSyncSiExiste','iaSyncSiExiste'] },
+  gmedio_ao: { par:'ea_gmedio', recalc:['eteShuntSyncSiExiste','iaSyncSiExiste'] }
 });
 function eaParSync(origenId) {
   if (_eaParSinc) return null;
@@ -97462,8 +97464,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-1242';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791387738433;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-1243';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791387780084;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -97549,7 +97551,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1242</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1243</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
