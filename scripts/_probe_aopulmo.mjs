@@ -551,6 +551,81 @@ async function main() {
     out.VP = vp;
   }
 
+  /* ══ LAS OTRAS VALVULAS, IDENTICAS ═══════════════════════════════════════════════════════
+     Registrar `ip` en SEV_SINC toca codigo COMPARTIDO (el alias del centinela y el token que
+     escribe valvApagarGrado), asi que lo que hay que demostrar no es que la IP funcione: es que las
+     otras SIETE lesiones no se movieron. Cada escena fija un grado A MANO por el camino real sobre
+     un calculo que DISCREPA, que es el estado donde el aviso, el cajon y la marca estan todos
+     encendidos a la vez — o sea el mas sensible a un cambio en el mecanismo comun. */
+  if (hacer('OTRAS')) {
+    const ESC = [
+      /* [nombre, tipo, valv, grado a mano, campos que producen el calculo discrepante] */
+      ['aortica/esten  EAo severa->leve',   'esten', 'aortica',    'leve',     { vmax_ao: '4.5' }],
+      ['aortica/insuf  IAo severa->leve',   'insuf', 'aortica',    '1',        { ia_vc: '7', ia_pht: '180' }],
+      ['mitral/esten   EM severa->leve',    'esten', 'mitral',     'leve',     { em_gmedio: '12', em_thp: '250' }],
+      ['mitral/insuf   IM severa->leve',    'insuf', 'mitral',     '1',        { im_vc: '8' }],
+      ['tricusp/insuf  IT severa->leve',    'insuf', 'tricuspide', '1',        { it_vc: '9' }],
+      ['tricusp/esten  ET signif->no',      'esten', 'tricuspide', 'No significativa', { et_gmedio: '8' }],
+      ['pulmonar/esten EP severa->leve',    'esten', 'pulmonar',   'Leve',     { vp_vmax: '4.5' }],
+    ];
+    const otras = {};
+    for (const [n, tipo, valv, grado, campos] of ESC) {
+      otras[n] = JSON.parse(await ev(`(function(){
+        window.__P.limpiar(); window.__P.abrirTodo();
+        try { showTab('valvulas') } catch(e) {}
+        var c = ${JSON.stringify(campos)};
+        Object.keys(c).forEach(function(k){ window.__P.set(k, c[k]) });
+        try { valvSev.aplicar(${JSON.stringify(tipo)}, ${JSON.stringify(valv)}, ${JSON.stringify(grado)}) } catch(e) {}
+        var clave = (typeof sevClaveDe === 'function') ? sevClaveDe(${JSON.stringify(tipo)}, ${JSON.stringify(valv)}) : null;
+        var C = clave && window.SEV_SINC ? window.SEV_SINC[clave] : null;
+        var sel = C ? document.getElementById(C.select) : null;
+        var past = document.getElementById('sevbtn-' + ${JSON.stringify(tipo)} + '-' + ${JSON.stringify(valv)});
+        var est = window.__P.informe('estandar');
+        var con = window.__P.informe('conciso');
+        var nar = window.__P.informe('narrativo');
+        window.__P.informe('estandar');
+        return JSON.stringify({
+          clave: clave,
+          sel: sel ? sel.value : null,
+          past: past ? (past.textContent || '').trim() : null,
+          pill: window.__P.pill(${JSON.stringify(valv)}, ${JSON.stringify(tipo)}),
+          manual: !!(window.esqSevManual || {})[clave],
+          calc: (typeof sevCalcPublicable === 'function') ? sevCalcPublicable(clave) : 'SIN',
+          discrepa: (typeof sevDiscrepa === 'function') ? !!sevDiscrepa(clave) : 'SIN',
+          aviso: C ? window.__P.txt(C.aviso) : null,
+          fundVis: C && C.fundamento ? window.__P.vis(C.fundamento) : null,
+          bloqueVis: window.__P.vis('bloque-' + ${JSON.stringify(tipo)} + '-' + ${JSON.stringify(valv)}),
+          estandar: est, conciso: con, narrativo: nar,
+          xls: (function(){ var x = window.__P.excel();
+            return (x && typeof x === 'object') ? { cols: Object.keys(x).length, row: x } : x })()
+        }) })()`));
+    }
+    /* Y el APAGADO de cada lesion, que es el camino que pasa por valvApagarGrado — el que escribe el
+       centinela y el unico sitio donde el token nuevo se usa. */
+    const apagados = {};
+    for (const [n, tipo, valv, grado, campos] of ESC) {
+      apagados[n] = JSON.parse(await ev(`(function(){
+        window.__P.limpiar(); window.__P.abrirTodo();
+        try { showTab('valvulas') } catch(e) {}
+        var c = ${JSON.stringify(campos)};
+        Object.keys(c).forEach(function(k){ window.__P.set(k, c[k]) });
+        try { valvSev.aplicar(${JSON.stringify(tipo)}, ${JSON.stringify(valv)}, ${JSON.stringify(grado)}) } catch(e) {}
+        if (window.__P.pill(${JSON.stringify(valv)}, ${JSON.stringify(tipo)}) === true)
+          toggleValvPill(${JSON.stringify(valv)}, ${JSON.stringify(tipo)});
+        var clave = (typeof sevClaveDe === 'function') ? sevClaveDe(${JSON.stringify(tipo)}, ${JSON.stringify(valv)}) : null;
+        var C = clave && window.SEV_SINC ? window.SEV_SINC[clave] : null;
+        var sel = C ? document.getElementById(C.select) : null;
+        var est = window.__P.informe('estandar');
+        return JSON.stringify({ sel: sel ? sel.value : null,
+          idx: sel ? sel.selectedIndex : null,
+          pill: window.__P.pill(${JSON.stringify(valv)}, ${JSON.stringify(tipo)}),
+          manual: !!(window.esqSevManual || {})[clave],
+          aviso: C ? window.__P.txt(C.aviso) : null,
+          inf: est.inf, suma: est.suma }) })()`));
+    }
+    out.OTRAS = { fijado: otras, apagado: apagados };
+  }
+
   /* ══ MAQUETACION — 1200 / 390 / 360 px ═══════════════════════════════════════════════════ */
   if (hacer('MOV')) {
     const mov = {};

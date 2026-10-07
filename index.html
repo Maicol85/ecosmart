@@ -5458,10 +5458,31 @@ window.cerrarSesionReal = cerrarSesionReal;
           <option>Displasia valvular</option>
         </select>
       </div>
-      <!-- El GRADO de la insuficiencia vive con las etiologías, no con las mediciones: es una
-           evaluación integral del médico, no un número derivado. -->
+      <!-- ══ AVISO ROJO Y CAJÓN DEL FUNDAMENTO (2026-10-07) ═══════════════════════════════════
+           Hermanos exactos de `ep-manual-aviso` / `ep-fund`, con el mismo orden que la P4 fijó para la
+           estenosis pulmonar: van ARRIBA del grado, porque lo que avisa que el grado fue ajustado a
+           mano se lee ANTES del grado que se está por corroborar.
+           Los dos los pinta el MISMO `sevSincronizar` (clave `ip`, nueva en `SEV_SINC`) y la condición
+           de cuándo aparecen es `sevDiscrepa('ip')`, su único dueño: no se escribió ninguna condición
+           nueva. Vacío no tiene alto y no deja hueco. `textContent` y no `innerHTML`, como los otros.
+           ⚠️ ESTA NOTA NO VA AL INFORME, y es una diferencia declarada con la EP: el bloque 10 llama a
+           `sevNotaInforme('ep')` y NADIE llama a `sevNotaInforme('ip')` — censo del archivo. El cajón
+           existe para que el médico deje escrito por qué ajustó el grado en PANTALLA; meterlo en el
+           informe firmado es cambiar lo que el papel dice, que no es de esta tanda. -->
+      <div id="ip-manual-aviso" style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:4px;"></div>
+      <div id="ip-fund" class="valv-fund-box" style="display:none;background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--orange);border-radius:6px;margin-bottom:8px;">
+        <div class="valv-fund-tit" style="font-weight:700;color:var(--accent2);">Fundamento del ajuste</div>
+        <label for="ip_fund_nota" style="display:block;font-weight:400;color:var(--text2);margin:0 0 2px;">Motivo del ajuste (opcional)</label>
+        <input type="text" id="ip_fund_nota" maxlength="100" placeholder="Ej.: jet excéntrico, ventana sub&oacute;ptima" style="width:100%;">
+      </div>
+      <!-- El GRADO de la insuficiencia vive con las etiologías, no con las mediciones.
+           ⚠️ EL RÓTULO DEJÓ DE DECIR «manual: evaluación integral (…)» (punto 7d, 2026-10-07): desde
+           que los cuatro signos lo calculan, el grado YA NO sale de una evaluación que la app no ve.
+           Los tres parámetros que esa frase nombraba —densidad del jet CW, tiempo de desaceleración y
+           vena contracta— no eran campos: eran una instrucción al médico. Hoy dos de los tres SON
+           campos (la señal CW y el PHT) y tienen su fila en el cuadro de abajo. -->
       <div class="calc-box" style="margin-top:8px;">
-        <div class="calc-row"><span class="calc-lbl">Grado IP <span style="font-weight:400;color:var(--text2);font-size:10px;">— manual: evaluación integral (densidad jet CW, tiempo de desaceleración, vena contracta)</span></span>
+        <div class="calc-row"><span class="calc-lbl">Grado IP <span style="font-weight:400;color:var(--text2);font-size:10px;">— calculado por el peor de los signos cargados</span></span>
           <!-- SIN EL PREFIJO «IP» Y SIN «(fisiológica)». El prefijo obligaba a cada consumidor a
                desarmarlo con `replace(/^IP\s*/i,'')` para no escribir «insuficiencia pulmonar IP
                moderada», y «fisiológica» era una ETIOLOGÍA metida dentro del grado — ahora vive
@@ -5502,9 +5523,84 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
       </div>
       </div><!-- fin bloque-insuf-pulmonar -->
-      <!-- `campos-insuf-pulmonar` y su «Datos ▾» NO entran en este commit: la insuficiencia pulmonar
-           todavía no tiene campos propios. El envoltorio se crea igual porque el ítem de GRILLA tiene
-           que estar siempre presente para que la estenosis no se corra de columna (ver arriba). -->
+      <!-- ⚠️ LA FLECHA ES SÓLO DEL CELULAR y la esconde el CSS a más de 768 px. Abrir los campos NO
+           declara la lesión: `valvDatosTog` sólo alterna una clase en el envoltorio y no toca la
+           pastilla, el grado ni `esqSevManual`. Calcada de la tricúspide y de la estenosis pulmonar. -->
+      <button type="button" class="valv-datos-tog" id="datos-tog-insuf-pulmonar"
+              onclick="valvDatosTog('caja-insuf-pulmonar')" aria-expanded="false"
+              aria-controls="campos-insuf-pulmonar">Datos <span class="valv-datos-flecha">&#9662;</span></button>
+      <div id="campos-insuf-pulmonar">
+          <!-- ── LOS CUATRO SIGNOS DE LA IP (2026-10-07, decisión de Maicol) ───────────────────
+               ⚠️ NO VAN AL EXCEL, NI AL INFORME, NI AL PDF, NI AL PPT — orden expresa. Se guardan con
+               el estudio porque `guardarInforme` barre `input[id]`/`select[id]` de TODO el documento, y
+               «Nuevo estudio» los limpia por los mismos barridos (`input[type=number]`, `select` →
+               `selectedIndex = 0`, `input[type=checkbox][id]` → `checked = false`). El Excel se queda
+               en 434 columnas porque sus columnas son una LISTA explícita (`LAB_XLS_COLS`) y ninguno
+               de los cuatro ids está en ella; y `_labXlsAssertListas` sólo compara los `<select>` cuyo
+               id es una CLAVE de `LAB_XLS_LISTAS`, así que los dos desplegables nuevos no la tocan.
+               ⚠️ LA OPCIÓN 0 DE LOS DOS DESPLEGABLES ES «—» CON `value=""`, y no es cosmético: es el
+               valor de fábrica y el que deja «Nuevo estudio» (`selectedIndex = 0`). Un desplegable
+               cuya opción 0 fuera un hallazgo publicaría una afirmación que nadie hizo — el defecto
+               de los tres selects del TEER que este archivo ya pagó. Y es lo que hace que el signo
+               «no cargado» no vote: `ipGradoCalculado` sólo mira los que tienen valor.
+               ⚠️ LOS `value` SON TOKENS Y NO LAS ETIQUETAS, igual que `it_densidad`: la etiqueta de
+               «Ancho» lleva un rango adentro («>50–65 % del TSVD») y atar la lógica a ese texto haría
+               que corregir una coma del rótulo cambiara el grado. -->
+          <div class="grid-2" style="margin-bottom:8px;">
+            <div class="fg"><label>PHT de la IP (ms)</label>
+              <input type="number" id="ip_pht" placeholder="ms" oninput="calcIP()">
+            </div>
+            <div class="fg"><label>Ancho del jet</label>
+              <select id="ip_ancho" onchange="calcIP()">
+                <option value="">&mdash;</option>
+                <option value="angosto">Angosto</option>
+                <option value="intermedio">Intermedio</option>
+                <option value="ancho">Ancho (&gt;50&ndash;65 % del TSVD)</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-2" style="margin-bottom:8px;">
+            <div class="fg"><label>Se&ntilde;al CW</label>
+              <select id="ip_senal" onchange="calcIP()">
+                <option value="">&mdash;</option>
+                <option value="tenue">Tenue, desaceleraci&oacute;n lenta</option>
+                <option value="densa_var">Densa, desaceleraci&oacute;n variable</option>
+                <option value="densa_emp">Densa, desaceleraci&oacute;n empinada</option>
+              </select>
+            </div>
+            <div class="fg"><label>Reversi&oacute;n del flujo diast&oacute;lico</label>
+              <!-- `min-height:44px` y el `<label>` envolviendo la casilla: el blanco táctil del
+                   celular es la fila entera, que es el criterio de `check_mobile.js`. -->
+              <label style="display:flex;align-items:center;gap:8px;min-height:44px;font-weight:400;">
+                <input type="checkbox" id="ip_reversion" onchange="calcIP()">
+                <span style="font-size:12px;">En las ramas de la arteria pulmonar</span>
+              </label>
+            </div>
+          </div>
+          <!-- ── CUADRO DE REFERENCIAS DE LA IP (2026-10-07) ───────────────────────────────────
+               Formato del Doppler aórtico y del cuadro de la IT: una fila por signo con lo cargado, la
+               fuente UNA vez debajo de las filas, el resultado al final y la discordancia abajo.
+               ⚠️ LAS CUATRO FILAS ESTÁN SIEMPRE, en «—» si el signo no se cargó, y las pinta
+               `ipRefPintar`. El barrido `.calc-box .calc-row span[id]:not(.calc-lbl)` de
+               `limpiarCampos` las devuelve a «—» entre pacientes.
+               ⚠️ NINGUNA FILA ESCRIBE «no hay insuficiencia», que es la misma regla que el cuadro de
+               la ET: el signo cargado que no alcanza el corte dice lo que vale y nada más. La única
+               leyenda que se agrega es «(<100 ms: severa)», que habla del CRITERIO y no del paciente,
+               y sólo cuando el criterio se cumple — es lo que el punto 7c pide textualmente.
+               ⚠️ LA FUENTE DICE «sin escala cuantitativa», y es la frase que el punto 7c fija: el
+               grado por el peor signo es una REGLA DE LA APP y no de una guía. ASE 2017 y EACVI 2013
+               describen los signos; ninguna de las dos publica una escala que los integre en un
+               número. La línea lo dice en voz alta para que el cuadro no se lea como si la tuviera. -->
+          <div class="calc-box">
+            <div class="calc-row"><span class="calc-lbl">PHT de la IP</span><span class="calc-val" id="ip-ref-pht">&mdash;</span></div>
+            <div class="calc-row"><span class="calc-lbl">Ancho del jet</span><span class="calc-val" id="ip-ref-ancho">&mdash;</span></div>
+            <div class="calc-row"><span class="calc-lbl">Se&ntilde;al CW</span><span class="calc-val" id="ip-ref-senal">&mdash;</span></div>
+            <div class="calc-row"><span class="calc-lbl">Reversi&oacute;n en ramas</span><span class="calc-val" id="ip-ref-rev">&mdash;</span></div>
+            <div style="font-size:10px;color:var(--text2);line-height:1.45;margin:2px 0 4px;">Integraci&oacute;n: ASE 2017 &middot; EACVI 2013 (sin escala cuantitativa: grado por el peor signo cargado)</div>
+            <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Insuficiencia pulmonar &mdash; severidad</span><span class="calc-val" id="ip-sev">&mdash;</span></div>
+            <div class="calc-row"><span id="ip-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
+          </div>
+        </div>
       </div><!-- fin caja-insuf-pulmonar -->
       <!-- `bloque-esten-pulmonar`: su visibilidad la gobierna `valvGradoVisSync('esten','pulmonar')`
            (vía `sevSincronizar('ep')`), igual que `bloque-esten-mitral`/`-aortica`: se ve con el
@@ -27167,7 +27263,52 @@ const SEV_SINC = Object.freeze({
     } catch (e) { return null; } },
     recalcular: function(){ if (typeof calcVP === 'function') calcVP(); },
     trasEscribir: function(sel, calc){ try { sel.dataset.sugerido = calc; } catch (e) {} },
-    etiqueta: function(g){ return ({ sin:'Sin estenosis', Leve:'Leve', Moderada:'Moderada', 'Moderada-severa':'Moderada-severa', Severa:'Severa' })[String(g)] || String(g); } })
+    etiqueta: function(g){ return ({ sin:'Sin estenosis', Leve:'Leve', Moderada:'Moderada', 'Moderada-severa':'Moderada-severa', Severa:'Severa' })[String(g)] || String(g); } }),
+  /* ══ INSUFICIENCIA PULMONAR — LA SÉPTIMA ENTRADA (2026-10-07, decisión de Maicol) ══════════════
+     El comentario de arriba decía que la IP «NO autogradúa (grado sólo manual) → no se registra (no
+     hay contra qué discrepar)», y esa premisa dejó de ser cierta en esta tanda: desde que los cuatro
+     signos —PHT, ancho del jet, señal CW y reversión en ramas— producen un grado por el PEOR de los
+     cargados, el veredicto es un grado del vocabulario del `<select>` y el aviso §5 ya tiene sujeto.
+     NO se tocó una línea de `sevSincronizar`, `sevDiscrepa`, `sevComparable`, `sevFundamento`,
+     `sevFundLimpiar`, `sevFundRestaurar` ni `valvSev`: los siete se derivan del registro. Lo único
+     que hizo falta afuera son las dos costuras del CENTINELA de este campo (ver `SEV_TOKEN_SIN_ALIAS`
+     y `valvApagarGrado`), porque `ip_grado` es el único de los siete grados cuyo «no hay» no es ni
+     `'sin'` ni `'0'`.
+     ⚠️ `calculables` Y `comparables` VAN CON LITERALES Y NO CON CONSTANTES, igual que en `et` y por
+     el mismo motivo medido: estas listas se evalúan al CREAR el registro y `IP_SIN_INSUF` se declara
+     ~2.800 líneas más abajo, así que nombrarla revienta en la zona muerta de `const` con un
+     `ReferenceError` que se lleva el `<script>` entero — la app arrancaría sin `SEV_SINC`, o sea sin
+     aviso ni cajón en NINGUNA válvula. `calcular` sí la usa indirectamente porque es una función.
+     ⚠️ EL CENTINELA SÍ ENTRA EN `comparables`, al revés que en `et` y como en `ep`/`ia`/`im`: un
+     «Sin insuficiencia» fijado a mano sobre un cálculo de «Severa» es un ajuste a la baja como
+     cualquier otro y le corresponden el aviso rojo y el cajón. Es el patrón de `ep`, que es lo que
+     pidió la orden. */
+  ip: Object.freeze({ tipo:'insuf', valv:'pulmonar', select:'ip_grado', aviso:'ip-manual-aviso',
+    ayuda:null, nombre:'Insuficiencia pulmonar', fundamento:'ip-fund', nota:'ip_fund_nota',
+    /* El token de «no hay» de ESTE campo. Lo leen `valvApagarGrado` (para escribirlo) y nada más:
+       la pregunta «¿este valor es el centinela?» la sigue contestando `sevEsSin` con su alias. */
+    sinToken: 'Sin insuficiencia',
+    calculables: Object.freeze(['Leve','Moderada','Severa']),
+    comparables: Object.freeze(['Sin insuficiencia','Leve','Moderada','Severa']),
+    /* ⚠️ DECLARADO EXPLÍCITAMENTE EN `false`, y no omitido — mismo criterio que la IAo. La
+       insuficiencia de una prótesis pulmonar SE GRADÚA con estos mismos signos: el PHT, el ancho del
+       jet y la densidad de la señal no dependen de que la válvula sea nativa, al revés que los cortes
+       de ESTENOSIS (por eso `ep.bloqueado` sí mira `vp_morf`). Queda escrito para que la ausencia no
+       se lea como un olvido. El «no hay con qué calcular» lo resuelve el proveedor devolviendo
+       `null`. */
+    bloqueado: function(){ return false; },
+    /* Proveedor PURO: lee los cuatro campos por `ipGradoCalculado()` y se recalcula solo, como el de
+       la ET y al revés que los de la IM/IAo/IT, que leen una foto de proceso. Por eso esta entrada
+       NO declara `recalcular`: al reabrir un estudio el grado calculado vuelve a salir de los campos
+       repuestos, y declararlo sería recalcular dos veces lo mismo. */
+    calcular: function(){ try { return (typeof ipGradoCalculado === 'function') ? ipGradoCalculado() : null; }
+      catch (e) { return null; } },
+    /* `ip_grado` no tiene hidden espejo —las superficies lo leen directo— así que acá sólo se marca
+       el sugerido, para que el retiro de `_ipAutoGrado` siga alcanzando a lo que R6 escribió. */
+    trasEscribir: function(sel, calc){ try { sel.dataset.sugerido = calc; } catch (e) {} },
+    /* El `value` ES la etiqueta en los tres grados reales, así que el mapa sólo traduce el centinela
+       —y lo traduce a «— grado —», que es lo que el médico ve en la pantalla, no al token crudo. */
+    etiqueta: function(g){ return ({ 'Sin insuficiencia':'— grado —' })[String(g)] || String(g); } })
 });
 /* El grado calculado que la app está dispuesta a NOMBRAR, que es el único con el que se puede
    comparar un grado manual. Un solo lugar lo decide, y lo usan los DOS que miran la foto:
@@ -27740,7 +27881,32 @@ const SEV_SIN_APAGA_VALVS = Object.freeze(['aortica', 'mitral', 'pulmonar']);  /
    con el token escrito cuatro veces alcanza con que uno cambie para que el botón deje de apagarse
    por un camino y nadie se entere. */
 const SEV_TOKEN_SIN = Object.freeze({ esten: 'sin', insuf: '0' });
-function sevEsSin(tipo, valor) { return String(valor) === SEV_TOKEN_SIN[tipo]; }
+/* ⚠️ LA INSUFICIENCIA PULMONAR TIENE OTRO CENTINELA, Y REGISTRARLA SIN DECLARARLO LA ROMPÍA EN DOS
+   LUGARES (2026-10-07). `im_grado`, `ia_grado` e `it_grado` son vocabularios NUMÉRICOS y su «no hay»
+   es `'0'`; `ip_grado` es un `<select>` de TEXTO y su primera `<option>` vale `'Sin insuficiencia'`
+   —desde el 2026-09-16, cuando se le sacó el `value=""` justamente porque «la etiqueta afirmaba y el
+   valor negaba»—. Con `sevEsSin('insuf','Sin insuficiencia')` dando `false`:
+     · `valvGradoVisSync` calculaba `hayGrado = !false = true` y `bloque-insuf-pulmonar` quedaba
+       VISIBLE PARA SIEMPRE con el botón apagado — textualmente el defecto que la ET pagó el
+       2026-10-05 con `'Sin estenosis'`, y que su comentario describe;
+     · `_aplicarInterno` y `sevSinApagaPastilla` no reconocían el apagado, así que apagar el botón
+       ENCENDÍA la otra mitad de la regla en vez de apagarla.
+   LA ALTERNATIVA ERA CAMBIAR EL `value` DE `ip_grado` A `'0'`, que es lo que hizo la ET. Acá cuesta
+   mucho más: ese valor está en disco en todo estudio guardado, es el que publica la columna «IP
+   grado» del Excel, lo valida `LAB_XLS_LISTAS.ip_grado`, lo normaliza `_migrarCamposLegacy` y lo
+   compara `ipHayInsuf`. Un alias de ENTRADA no toca ninguno de los cinco.
+   ⚠️ ES ADITIVO Y NO CAMBIA A NINGUNA OTRA VÁLVULA, y eso es comprobable por VOCABULARIO y no por
+   prueba: `'Sin insuficiencia'` no es un `value` posible de `im_grado`/`ia_grado`/`it_grado` (sus
+   opciones son '0'…'4'), así que para ellas este término es `false` y `sevEsSin` contesta lo mismo
+   que antes. `SEV_TOKEN_SIN` —el token que se ESCRIBE— no se tocó. Verificado en el A/B. */
+const SEV_TOKEN_SIN_ALIAS = Object.freeze({ esten: Object.freeze([]),
+                                            insuf: Object.freeze(['Sin insuficiencia']) });
+function sevEsSin(tipo, valor) {
+  const s = String(valor);
+  if (s === SEV_TOKEN_SIN[tipo]) return true;
+  const al = SEV_TOKEN_SIN_ALIAS[tipo];
+  return !!al && al.indexOf(s) >= 0;
+}
 window.sevEsSin = sevEsSin;
 /* Aplica la decisión: si el grado que se acaba de elegir es «Sin», el botón se apaga. Devuelve lo
    que hizo para que las pruebas afirmen sobre el gesto y no sobre un `className`.
@@ -30123,7 +30289,23 @@ function vpSync(){
      `vpSync` es el lugar porque está en `RECALC_MODULOS` Y al final de `limpiarCampos`, que son las
      dos columnas. Queda provisorio: cuando la IP entre al registro, `sevSincronizar('ip')` hace esto
      y además pinta el aviso y el cajón, y esta línea se reemplaza por aquélla. */
-  if (window.valvSev) { try { window.valvSev.refrescar('insuf', 'pulmonar'); } catch (e) {} }
+  /* ⚠️ LA LÍNEA PROVISORIA DE B SE REEMPLAZA POR LA DEFINITIVA (2026-10-07). B llamaba a
+     `valvSev.refrescar('insuf','pulmonar')` a mano porque la IP no estaba en el registro; su propio
+     comentario decía que esto era lo que iba a reemplazarla. `sevSincronizar('ip')` hace lo mismo
+     —llama a `refrescar` en su cola— y además pinta el aviso rojo, el cajón del fundamento y la
+     visibilidad del bloque, que son las otras tres caras del mismo estado.
+  /* ⚠️ LO MISMO PARA LA IP, Y SON LAS DOS COLUMNAS (2026-10-07). `vpSync` está en `RECALC_MODULOS`
+     —el embudo de las rutas de restauración, que reponen asignando `.value` sin disparar eventos— Y
+     al final de `limpiarCampos`, que no pasa por ese embudo. Sin estas dos líneas acá:
+       · reabrir un estudio dejaba el aviso rojo y el cuadro de la IP con lo del paciente anterior
+         (`ip-manual-aviso` es un `<div>`, así que el barrido de `.calc-box .calc-row span[id]` no lo
+         alcanza, y las cuatro filas se repintan pero con el grado sin sincronizar);
+       · «Nuevo estudio» dejaba el aviso del paciente anterior — exactamente lo que
+         `itIncongruenciaSync` ya documenta para su gemelo.
+     NO recursa: `ip.trasEscribir` sólo escribe el `dataset`, y `calcIP` llama a `vpSync` al final
+     pero `vpSync` no llama a `calcIP`. */
+  if (typeof sevSincronizar === 'function') { try { sevSincronizar('ip'); } catch (e) {} }
+  if (typeof ipRefPintar === 'function') { try { ipRefPintar(); } catch (e) {} }
 }
 window.vpSync = vpSync;
 /* v2 (E2c): elegir un grado de EP A MANO en el desplegable lo marca como manual —como `emGradoManual`
@@ -30202,6 +30384,150 @@ function ipHayInsuf(val){
 window.ipHayInsuf = ipHayInsuf;
 window.IP_SIN_INSUF = IP_SIN_INSUF;
 
+/* ══ LOS CUATRO SIGNOS DE LA IP Y EL GRADO POR EL PEOR (2026-10-07, decisión de Maicol) ════════
+   ⚠️ ESTO ES UNA REGLA DE LA APP Y NO DE UNA GUÍA, y está escrito en la línea de fuente del cuadro
+   para que nadie lo lea al revés: la ASE 2017 y la EACVI 2013 describen estos signos —PHT corto,
+   jet ancho, señal densa de desaceleración empinada, reversión diastólica en las ramas— pero
+   NINGUNA publica una escala cuantitativa que los integre en un grado. «El peor de los signos
+   cargados» es el criterio que eligió Maicol, declarado como tal.
+   ⚠️ SÓLO VOTAN LOS SIGNOS CARGADOS, y «cargado» no es lo mismo en los cuatro:
+     · el PHT cargado y ≥100 ms está CARGADO y NO VOTA (su fila lo muestra y no gradúa nada): el
+       corte es un criterio de severidad por abajo, no una escala;
+     · la casilla de reversión SIN MARCAR no es un signo cargado — una casilla vacía es «no lo
+       busqué», no «no estaba—, así que no vota ni cuenta para la discordancia;
+     · los dos desplegables votan con su opción elegida, y su opción 0 («—», `value=""`) es «todavía
+       no contesté».
+   Sin ningún signo que vote, NO hay grado automático: `null`, que es el contrato de `calcular()`
+   («abstenerse»), y no «Sin insuficiencia» — que sería afirmar que no hay. */
+const IP_PHT_SEVERA  = 100;   // ms — PHT < 100 ms vota «Severa»; 100 o más no vota
+const IP_ANCHO_GRADO = Object.freeze({ angosto:'Leve', intermedio:'Moderada', ancho:'Severa' });
+const IP_SENAL_GRADO = Object.freeze({ tenue:'Leve', densa_var:'Moderada', densa_emp:'Severa' });
+/* El orden de gravedad, para poder decir «el peor» sin escribir una cascada de ifs que después hay
+   que mantener en dos lugares (el grado y la discordancia). */
+const IP_GRADO_PESO  = Object.freeze({ Leve:1, Moderada:2, Severa:3 });
+
+/* Los signos cargados, con su grado (o `null` si está cargado y no vota). Un solo dueño: lo leen el
+   GRADO, las FILAS y la línea de DISCORDANCIA — si cada uno mirara los campos por su cuenta, el
+   cuadro podría mostrar un reparto de votos distinto del que produjo el grado. */
+function ipSignos() {
+  const txt = (id) => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
+  const out = [];
+  const pht = v('ip_pht');
+  if (pht !== null) out.push({ clave:'pht', rotulo:'PHT <' + IP_PHT_SEVERA + ' ms',
+    valor: pht, grado: (pht < IP_PHT_SEVERA) ? 'Severa' : null });
+  const an = txt('ip_ancho');
+  if (an) out.push({ clave:'ancho', rotulo:'ancho del jet', valor: an, grado: IP_ANCHO_GRADO[an] || null });
+  const se = txt('ip_senal');
+  if (se) out.push({ clave:'senal', rotulo:'señal CW', valor: se, grado: IP_SENAL_GRADO[se] || null });
+  const rv = document.getElementById('ip_reversion');
+  if (rv && rv.checked) out.push({ clave:'rev', rotulo:'reversión en ramas', valor:'1', grado:'Severa' });
+  return out;
+}
+window.ipSignos = ipSignos;
+
+function ipGradoCalculado() {
+  const votos = ipSignos().filter(function (x) { return !!x.grado; });
+  if (!votos.length) return null;
+  let peor = null;
+  votos.forEach(function (x) {
+    if (peor === null || IP_GRADO_PESO[x.grado] > IP_GRADO_PESO[peor]) peor = x.grado;
+  });
+  return peor;
+}
+window.ipGradoCalculado = ipGradoCalculado;
+
+/* ══ LAS CUATRO FILAS DEL CUADRO DE LA IP ═════════════════════════════════════════════════════
+   De PANTALLA y nada más: ninguna entra en el informe, el EN SUMA, el PDF, el PPT ni el Excel.
+   Y NO deciden — `ipGradoCalculado` ya decidió; esto lo muestra signo por signo. El pintor no decide.
+   ⚠️ LA DISCORDANCIA SE MIDE ENTRE LOS QUE VOTAN, no entre los cargados: un PHT de 120 ms no
+   «discrepa» de un jet ancho, porque no está diciendo nada. Mismo formato y mismo estilo que
+   `it-discordancia` (prefijo «⚠️ Discordancia:», amarillo, 11 px) con los separadores del ejemplo. */
+function ipRefPintar() {
+  const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+  const GUION = '\u2014';
+  const sig = ipSignos();
+  const de = (k) => sig.filter(function (x) { return x.clave === k; })[0] || null;
+  const opt = (id) => { const e = document.getElementById(id);
+    return (e && e.selectedIndex >= 0) ? String(e.options[e.selectedIndex].textContent || '').trim() : ''; };
+  const pht = de('pht');
+  /* El valor y, SÓLO si cumple el criterio, la leyenda del criterio. Con 120 ms la fila dice «120 ms»
+     y nada más: no se escribe «no alcanza el criterio» porque el PHT largo no niega la insuficiencia
+     —es la regla del cuadro de la ET, que nunca afirma el negativo. */
+  set('ip-ref-pht', pht === null ? GUION
+    : (pht.valor + ' ms' + (pht.grado ? ' (<' + IP_PHT_SEVERA + ' ms: severa)' : '')));
+  set('ip-ref-ancho', de('ancho') ? opt('ip_ancho') : GUION);
+  set('ip-ref-senal', de('senal') ? opt('ip_senal') : GUION);
+  set('ip-ref-rev',   de('rev')   ? 'presente'      : GUION);
+  /* La severidad es la del registro —el MISMO número contra el que se compara el grado manual— y no
+     una segunda derivación acá al lado. `null` con prótesis nunca: `ip.bloqueado` es `false` a
+     propósito (ver su comentario). */
+  let calc = null;
+  try { calc = (typeof sevCalcPublicable === 'function') ? sevCalcPublicable('ip') : null; }
+  catch (e) { calc = null; }
+  set('ip-sev', calc || GUION);
+  const votos = sig.filter(function (x) { return !!x.grado; });
+  const distintos = votos.map(function (x) { return x.grado; })
+    .filter(function (g, i, a) { return a.indexOf(g) === i; });
+  set('ip-discordancia', distintos.length > 1
+    ? '⚠️ Discordancia: ' + votos.map(function (x) { return x.rotulo + ': ' + x.grado.toLowerCase(); }).join(' · ')
+    : '');
+  return { calc: calc, signos: sig, votos: votos.length, discordancia: distintos.length > 1 };
+}
+window.ipRefPintar = ipRefPintar;
+
+/* ══ EL GRADO AUTOMÁTICO DE LA IP ═════════════════════════════════════════════════════════════
+   Gemelo de `_etAutoGrado` y de la escritura de `calcVP`, con las MISMAS tres guardas: no pisa un
+   grado marcado como manual, no pisa un grado que no sea el centinela ni el que sugerimos NOSOTROS
+   en esta carga, y retira lo que había puesto cuando los signos dejan de sostenerlo.
+   ⚠️ `!ipHayInsuf(sel.value)` Y NO UNA COMPARACIÓN CONTRA EL TOKEN: ése es el predicado único de
+   «¿hay IP?» de este archivo, y acepta la cadena vacía además del centinela — que es justo lo que
+   hace falta para un estudio legado sin migrar.
+   ⚠️ EL RETIRO NO APAGA LA PASTILLA, y es una diferencia DECLARADA con `_epApagarAuto`. En la
+   estenosis, el grado es lo único que la sostiene; en la IP la pastilla también la prende la
+   VELOCIDAD del Doppler (punto 8), y «IP presente» con la velocidad cargada y sin grado es un estado
+   legítimo y pedido. Apagar acá borraría esa afirmación cada vez que el médico corrige un signo.
+   Consecuencia declarada y NO corregida: si la pastilla la prendió un SIGNO y el signo se borra sin
+   que haya velocidad, el botón queda prendido y el informe dice «IP presente» sin nada que lo
+   sostenga. Es el mismo estado al que llega un clic manual en la pastilla (regla 9, ya alcanzable en
+   HEAD), así que no es nuevo; el auto-apagado simétrico sería `_ipApagarAuto` y no está en la orden. */
+function _ipAutoGrado(calc) {
+  const sel = document.getElementById('ip_grado');
+  if (!sel) return null;
+  if (window.esqSevManual && window.esqSevManual.ip) return { manual: true };
+  const _sug = sel.dataset.sugerido;
+  const _pisable = (typeof ipHayInsuf === 'function' ? !ipHayInsuf(sel.value) : sel.value === '')
+                   || (_sug && sel.value === _sug);
+  if (!_pisable) return { pisable: false };
+  if (calc) {
+    if (sel.value !== calc) sel.value = calc;
+    sel.dataset.sugerido = calc;
+    _ipAutoPrender();
+    return { escribio: calc };
+  }
+  if (sel.value !== IP_SIN_INSUF) sel.value = IP_SIN_INSUF;
+  delete sel.dataset.sugerido;
+  return { retiro: true };
+}
+window._ipAutoGrado = _ipAutoGrado;
+
+/* ══ PRENDER LA PASTILLA DE LA IP — UN SOLO DUEÑO DE LA GUARDA ═════════════════════════════════
+   Era el bloque inline del `calcIP` del 2026-10-03 (el trigger por la Vmax proto-diastólica), movido
+   tal cual: la MISMA condición, el MISMO `localStorage !== '0'` y la misma idempotencia. Se extrae
+   porque ahora lo llaman DOS caminos —la velocidad y el grado automático por signos— y dos copias de
+   «¿puedo prender esta pastilla?» son dos lugares donde el apagado manual se puede dejar de respetar.
+   ⚠️ RESPETA EL APAGADO MANUAL Y NO LO DISTINGUE DEL AUTO-PRENDIDO: la clave en `'0'` significa «el
+   médico la cerró», y entonces no se reprende por ningún camino. Es la regla 12 en su otra mitad. */
+function _ipAutoPrender() {
+  try {
+    if (typeof pillOn !== 'function' || typeof toggleValvPill !== 'function') return null;
+    if (pillOn('pulmonar', 'insuf')) return { yaEstaba: true };
+    if (localStorage.getItem('valv-pill-insuf-pulmonar') === '0') return { apagadaAMano: true };
+    toggleValvPill('pulmonar', 'insuf');
+    return { prendida: pillOn('pulmonar', 'insuf') };
+  } catch (e) { return null; }
+}
+window._ipAutoPrender = _ipAutoPrender;
+
 // ══ INSUFICIENCIA PULMONAR — PAP media y diastólica ══
 function calcIP() {
   const vmax  = v('ip_vmax');   // Vmax proto-diastólica IP (m/s)
@@ -30213,14 +30539,13 @@ function calcIP() {
      insuficiencia pulmonar — el mismo criterio que el trigger de la IT en `calcPSAP` (ab18ac7), que
      prende la IT al cargar la VRT. Se respeta el APAGADO MANUAL: si el médico cerró la pastilla a
      mano (clave de `localStorage` en '0') no se reprende. Idempotente: si ya está prendida no toca
-     nada. Borrar la Vmax NO la apaga (regla 12: borrar un dato no retira). */
-  try {
-    if (vmax !== null && vmax > 0 && typeof pillOn === 'function' && typeof toggleValvPill === 'function'
-        && !pillOn('pulmonar', 'insuf')
-        && localStorage.getItem('valv-pill-insuf-pulmonar') !== '0') {
-      toggleValvPill('pulmonar', 'insuf');
-    }
-  } catch (e) {}
+     nada. Borrar la Vmax NO la apaga (regla 12: borrar un dato no retira).
+     ⚠️ v3 (2026-10-07): LA GUARDA SE MUDÓ A `_ipAutoPrender`, CON EL MISMO CUERPO. Misma condición,
+     mismo `localStorage !== '0'`, misma idempotencia; lo que cambió es que ahora hay un SEGUNDO camino
+     que la necesita —el grado automático por signos—, y tener la condición escrita dos veces es tener
+     dos lugares donde el apagado manual se puede dejar de respetar. La telediastólica NO entra en este
+     commit: es el punto 8 y va en el suyo. Ver el comentario de `_ipAutoPrender`. */
+  if (vmax !== null && vmax > 0) _ipAutoPrender();
 
   const papmRow  = document.getElementById('ip-papm-row');
   const papdRow  = document.getElementById('ip-papd-row');
@@ -30255,9 +30580,30 @@ function calcIP() {
   }
 
 
-  // El grado de IP se elige manualmente en el select #ip_grado (evaluación integral:
-  // densidad del jet por CW, tiempo de desaceleración, vena contracta). La Vmax
-  // telediastólica/proto-diastólica sólo alimenta las presiones (PAPm/PAPd), no el grado.
+  /* ══ EL GRADO POR EL PEOR DE LOS SIGNOS (2026-10-07, decisión de Maicol) ═════════════════════
+     Hasta hoy este bloque era un comentario que decía «el grado de IP se elige manualmente … la Vmax
+     telediastólica/proto-diastólica sólo alimenta las presiones, no el grado». La primera mitad
+     cambió: el grado lo calculan los CUATRO SIGNOS nuevos. La segunda sigue en pie y es importante —
+     LAS DOS VELOCIDADES NO GRADÚAN NADA: alimentan la PAPm y la PAPd (arriba) y, desde el punto 8,
+     prenden el botón. Deducir un grado de una velocidad de regurgitación sería inventarlo.
+     ⚠️ LOS TRES PASOS, EN ESTE ORDEN, por los mismos motivos que `calcET` escribe en su cola: R6 y
+     el aviso con el valor que hay AHORA · la escritura o el retiro automático · y el repintado del
+     aviso, del cajón, de la pastilla y de la visibilidad del bloque con el valor DEFINITIVO. Con el
+     auto-grado ANTES del primer `sevSincronizar`, la escena «el médico fijó Severa · después corrige
+     la señal a tenue» dejaba el calculado escrito encima de su elección. El segundo `sevSincronizar`
+     no puede volver a disparar R6: si R6 corrió en el primero, la marca manual ya se soltó.
+     Las filas se pintan al final, cuando el grado ya es el definitivo. */
+  if (typeof sevSincronizar === 'function') { try { sevSincronizar('ip'); } catch (e) {} }
+  if (typeof _ipAutoGrado === 'function') {
+    try { _ipAutoGrado(typeof ipGradoCalculado === 'function' ? ipGradoCalculado() : null); }
+    catch (e) {}
+  }
+  if (typeof sevSincronizar === 'function') { try { sevSincronizar('ip'); } catch (e) {} }
+  if (typeof ipRefPintar === 'function') { try { ipRefPintar(); } catch (e) {} }
+  /* La etiología de la IP se muestra/oculta por el grado, y el grado puede acabar de cambiar: sin
+     esto, un signo cargado escribía «Moderada» y el cajón de la etiología seguía escondido hasta que
+     alguien tocara el desplegable. `vpSync` es idempotente y no recursa hacia acá. */
+  if (typeof vpSync === 'function') { try { vpSync(); } catch (e) {} }
 }
 window.calcIP = calcIP;
 
@@ -55515,7 +55861,18 @@ document.addEventListener('DOMContentLoaded', function(){
 function valvApagarGrado(tipo, valvula) {
   if (!window.valvSev) return;
   const clave = (typeof sevClaveDe === 'function') ? sevClaveDe(tipo, valvula) : null;
-  const sent = (typeof SEV_TOKEN_SIN !== 'undefined') ? SEV_TOKEN_SIN[tipo] : null;
+  /* ⚠️ EL CENTINELA QUE SE ESCRIBE SALE DEL REGISTRO CUANDO LA ENTRADA LO DECLARA (2026-10-07), y
+     sin esto registrar la IP borraba el grado en silencio: acá se hace `valvSev.aplicar(tipo, valv,
+     sent)` y `aplicar` asigna `el.value = valor` SIN validar contra las `<option>`. Con `sent = '0'`
+     —el token numérico de las otras tres insuficiencias— `ip_grado` quedaba en `selectedIndex -1` y
+     `.value === ''`: el grado DESAPARECÍA del informe, del EN SUMA, del PDF y del Excel sin evento y
+     sin error, que es el modo de falla más caro que este módulo tiene.
+     Las otras cinco entradas NO declaran `sinToken`, así que caen al `SEV_TOKEN_SIN[tipo]` de siempre
+     y no cambian en nada. Mismo patrón que `bloqueado`, `recalcular` y `trasEscribir`: lo específico
+     de una válvula vive en su entrada del registro, no en una rama acá. */
+  const _C = (clave && typeof SEV_SINC !== 'undefined') ? SEV_SINC[clave] : null;
+  const sent = (_C && typeof _C.sinToken === 'string') ? _C.sinToken
+             : ((typeof SEV_TOKEN_SIN !== 'undefined') ? SEV_TOKEN_SIN[tipo] : null);
   if (clave && typeof SEV_SINC !== 'undefined' && SEV_SINC[clave] && sent != null) {
     window.valvSev.aplicar(tipo, valvula, sent);
   } else {
@@ -84027,9 +84384,17 @@ function _sevManualDesdeCampos(campos) {
      afirmaba una insuficiencia que el estudio original decía que no existía»— y en HEAD no era
      alcanzable sólo porque `calcET` no escribía ningún grado. Con la marca puesta no hay aviso
      falso: `'sin'` no está en `comparables` de `et`, así que `sevDiscrepa` calla.
-     ⚠️ `'ep'` e `'ip'` siguen afuera, y queda DECLARADO: es el mismo agujero en la pulmonar, pero
-     tocar su informe es otra tanda. */
-  ['im', 'ia', 'it', 'em', 'ea', 'et'].forEach(k => {
+     ⚠️ `'ip'` ENTRÓ EL 2026-10-07, y sin eso la tanda del grado por signos abría el mismo agujero en
+     la pulmonar: una planilla con «IP grado = Sin insuficiencia» —el negativo DOCUMENTADO— más un
+     signo cargado a mano después daba, sin marca manual, `_ipAutoGrado` viéndolo pisable (el valor ES
+     el centinela) · escribiendo «Severa» · prendiendo el botón · y el informe firmado publicando «IP
+     severa.» sobre un estudio que decía que no había insuficiencia. Con la marca puesta, el
+     auto-grado no pisa y el aviso rojo declara la discrepancia, que es lo que el médico tiene que ver.
+     NO toca el informe: nadie llama a `sevNotaInforme('ip')` (censo del archivo), así que lo que esta
+     línea agrega vive en pantalla.
+     ⚠️ `'ep'` sigue afuera, y queda DECLARADO: es el mismo agujero en la estenosis pulmonar, pero su
+     grado sí baja al informe por `sevNotaInforme('ep')` y eso es otra tanda. */
+  ['im', 'ia', 'it', 'em', 'ea', 'et', 'ip'].forEach(k => {
     const v = campos[k + '_grado'];
     if (v !== undefined && v !== null && String(v) !== '') m[k] = true;
   });
@@ -97879,8 +98244,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-1628';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791401315349;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-1656';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791402966993;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -97966,7 +98331,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1628</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1656</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

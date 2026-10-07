@@ -48138,8 +48138,12 @@ caso('TC-391', 'Guardar y reabrir conserva el grado, la marca y el cajon de la M
       /* v3 (2026-10-05): SIETE. Entro la clave et cuando el grado de la estenosis tricuspidea paso a
          binario y su veredicto se volvio un grado del vocabulario del select. El numero se escribe
          a mano a proposito: si manianha entra otra valvula, este caso lo dice en vez de pasar. */
-      ['sevFundRestaurar atiende las SIETE claves registradas, no solo ea e ia (v2 E2c: +ep, +it; v3: +et)',
-        repuesto === '["ea","em","ep","et","ia","im","it"]', 'claves=' + repuesto],
+      /* v4 (2026-10-07): OCHO claves. La INSUFICIENCIA PULMONAR entro al registro cuando sus cuatro
+         signos pasaron a graduarla, asi que su cajon de fundamento tambien se repone. La lista va
+         escrita a mano a proposito: asi el dia que una lesion entre o salga del mecanismo, este caso
+         lo dice en vez de contar lo que haya — es lo que acaba de pasar, por tercera vez. */
+      ['sevFundRestaurar atiende las OCHO claves registradas, no solo ea e ia (v2 E2c: +ep, +it; v3: +et; v4: +ip)',
+        repuesto === '["ea","em","ep","et","ia","im","ip","it"]', 'claves=' + repuesto],
       ['y repone las notas de la MITRAL desde la forma del borrador (clave pelada)',
         borrador.im === 'desde el autosave IM' && borrador.em === 'desde el autosave EM' &&
         borrador.imFund === 'visible' && borrador.emFund === 'visible',
@@ -54529,6 +54533,212 @@ caso('TC-439', 'Pulmonar: la PASTILLA es la unica fuente del grado y el «grado 
       visSin.nivel === false && visSin.etio === false
       && visCon.nivel === true && visCon.etio === true,
       JSON.stringify({ sin: visSin, con: visCon })]
+  ] };
+  })();
+`);
+
+
+caso('TC-440', 'Insuficiencia pulmonar: los CUATRO signos nuevos graduan por el PEOR de los cargados, el PHT de 100 ms no vota, los discordantes declaran su discordancia, y nada de eso toca el informe, el PDF ni el Excel', `
+  ${APAGA_HELPERS}
+  return (async () => {
+  const abrir = function () {
+    try { showTab('valvulas'); } catch (e) {}
+    const sec = document.getElementById('ete-seccion-valv-pulmonar');
+    if (sec && sec.style.display === 'none') { try { toggleEteSeccion('valv-pulmonar'); } catch (e) {} }
+  };
+  const chk = function (v) { const e = document.getElementById('ip_reversion');
+    if (e) { e.checked = !!v; e.dispatchEvent(new Event('change', { bubbles: true })); } };
+  const F = function () {
+    return { calc: (typeof ipGradoCalculado === 'function') ? ipGradoCalculado() : 'SIN',
+             sel: (document.getElementById('ip_grado') || {}).value,
+             fijo: aTxt('gftxt-insuf-pulmonar'),
+             pill: aOn('pulmonar', 'insuf'),
+             sev: aTxt('ip-sev'),
+             pht: aTxt('ip-ref-pht'), ancho: aTxt('ip-ref-ancho'),
+             senal: aTxt('ip-ref-senal'), rev: aTxt('ip-ref-rev'),
+             disc: aTxt('ip-discordancia'),
+             aviso: aTxt('ip-manual-aviso'),
+             fund: aVis('ip-fund'),
+             manual: !!(window.esqSevManual || {}).ip };
+  };
+  const esc = function (campos, marcar) {
+    __t.nuevoEstudio(); abrir();
+    Object.keys(campos).forEach(function (k) { __t.set(k, campos[k]); });
+    if (marcar) chk(true);
+    try { calcIP(); } catch (e) {}
+    return F();
+  };
+
+  // ── DENOMINADOR: los cuatro campos, las cuatro filas, el aviso y el cajon existen ─────────
+  __t.nuevoEstudio(); abrir();
+  const faltan = ['ip_pht','ip_ancho','ip_senal','ip_reversion','ip-ref-pht','ip-ref-ancho',
+                  'ip-ref-senal','ip-ref-rev','ip-sev','ip-discordancia','ip-manual-aviso',
+                  'ip-fund','ip_fund_nota','campos-insuf-pulmonar','datos-tog-insuf-pulmonar']
+    .filter(function (id) { return !document.getElementById(id); });
+  const vacio = F();
+
+  // ── UN SIGNO A LA VEZ ─────────────────────────────────────────────────────────────────────
+  const pht99  = esc({ ip_pht: '99' });
+  const pht100 = esc({ ip_pht: '100' });
+  const angosto    = esc({ ip_ancho: 'angosto' });
+  const intermedio = esc({ ip_ancho: 'intermedio' });
+  const ancho      = esc({ ip_ancho: 'ancho' });
+  const tenue   = esc({ ip_senal: 'tenue' });
+  const varia   = esc({ ip_senal: 'densa_var' });
+  const empin   = esc({ ip_senal: 'densa_emp' });
+  const revSi   = esc({}, true);
+  const revNo   = esc({});
+
+  // ── EL PEOR DE LOS CARGADOS, y la DISCORDANCIA ────────────────────────────────────────────
+  /* leve + severa: el peor manda y los dos votos se declaran. */
+  const disc = esc({ ip_pht: '99', ip_ancho: 'intermedio' });
+  /* Tres votos concordantes: NO hay discordancia aunque haya tres signos. */
+  const conc = esc({ ip_ancho: 'ancho', ip_senal: 'densa_emp' }, true);
+  /* Un signo cargado que NO vota junto a uno que si: tampoco es discordancia. */
+  const noVota = esc({ ip_pht: '140', ip_ancho: 'angosto' });
+
+  // ── CAMBIO MANUAL sobre el calculado: aviso rojo y cajon ──────────────────────────────────
+  const base = esc({ ip_ancho: 'ancho' });          // calcula Severa
+  valvSev.aplicar('insuf', 'pulmonar', 'Leve');
+  const manual = F();
+  /* Y la vuelta al calculado apaga el aviso. */
+  valvSev.aplicar('insuf', 'pulmonar', 'Severa');
+  const vuelta = F();
+
+  // ── BORRAR EL SIGNO RETIRA EL GRADO que la app habia puesto ───────────────────────────────
+  const antesRetiro = esc({ ip_senal: 'densa_emp' });
+  __t.set('ip_senal', ''); try { calcIP(); } catch (e) {}
+  const trasRetiro = F();
+
+  // ── «Nuevo estudio» limpia los cuatro y un guardado los conserva ───────────────────────────
+  __t.nuevoEstudio(); abrir();
+  __t.set('nombre', 'Prueba TC-440');
+  __t.set('ip_pht', '85'); __t.set('ip_ancho', 'intermedio');
+  __t.set('ip_senal', 'densa_var'); chk(true);
+  try { calcIP(); } catch (e) {}
+  const guardadoAntes = { pht: (document.getElementById('ip_pht')||{}).value,
+    ancho: (document.getElementById('ip_ancho')||{}).value,
+    senal: (document.getElementById('ip_senal')||{}).value,
+    rev: (document.getElementById('ip_reversion')||{}).checked, f: F() };
+  const gg = await __t.guardar();
+  __t.nuevoEstudio(); abrir();
+  const trasNuevo = { pht: (document.getElementById('ip_pht')||{}).value,
+    ancho: (document.getElementById('ip_ancho')||{}).value,
+    senal: (document.getElementById('ip_senal')||{}).value,
+    rev: (document.getElementById('ip_reversion')||{}).checked, f: F() };
+  if (gg.estudioId) __t.reabrir(gg.estudioId);
+  await new Promise(function (r) { setTimeout(r, 600); });
+  abrir();
+  const reabierto = { pht: (document.getElementById('ip_pht')||{}).value,
+    ancho: (document.getElementById('ip_ancho')||{}).value,
+    senal: (document.getElementById('ip_senal')||{}).value,
+    rev: (document.getElementById('ip_reversion')||{}).checked, f: F() };
+  await __t.borrar(gg.estudioId);
+
+  // ── LOS CUATRO SIGNOS NO SALEN POR NINGUNA SUPERFICIE FIRMADA ──────────────────────────────
+  __t.nuevoEstudio(); abrir();
+  __t.set('ip_pht', '85'); __t.set('ip_ancho', 'intermedio');
+  __t.set('ip_senal', 'densa_var'); chk(true);
+  try { calcIP(); } catch (e) {}
+  const r = __t.informe();
+  const campos = {}; document.querySelectorAll('input[id], select[id], textarea[id]')
+    .forEach(function (el) { campos[el.id] = el.value; });
+  const row = _labExcelRow({ id: 0, campos: campos });
+  const cols = Object.keys(row);
+  /* Ninguna columna del Excel nombra los signos, y el informe y el EN SUMA no los mencionan. */
+  const colsSigno = cols.filter(function (c) { return /PHT de la IP|Ancho del jet|Se.al CW|Reversi/i.test(c); });
+  const enInforme = /PHT|ancho del jet|se.al CW|reversi.n del flujo/i.test(r.inf);
+  __t.nuevoEstudio();
+
+  return { extra: [
+    ['denominador: los quince nodos nuevos existen', faltan.length === 0, 'faltan: ' + faltan.join(',')],
+    ['sin ningun signo no hay grado automatico y las cuatro filas estan en la raya',
+      vacio.calc === null && vacio.sev === '\\u2014' && vacio.pht === '\\u2014'
+      && vacio.ancho === '\\u2014' && vacio.senal === '\\u2014' && vacio.rev === '\\u2014'
+      && vacio.disc === '', JSON.stringify(vacio)],
+
+    // --- un signo a la vez -------------------------------------------------------------------
+    ['PHT 99 ms vota SEVERA y la fila declara el criterio',
+      pht99.calc === 'Severa' && pht99.sel === 'Severa' && pht99.fijo === 'Severa'
+      && pht99.pht === '99 ms (<100 ms: severa)' && pht99.sev === 'Severa', JSON.stringify(pht99)],
+    ['PHT 100 ms NO vota: la fila lo muestra y no hay grado',
+      pht100.calc === null && pht100.pht === '100 ms' && pht100.sev === '\\u2014',
+      JSON.stringify(pht100)],
+    ['el ancho del jet vota leve / moderada / severa',
+      angosto.calc === 'Leve' && intermedio.calc === 'Moderada' && ancho.calc === 'Severa',
+      [angosto.calc, intermedio.calc, ancho.calc].join('/')],
+    ['y su fila imprime la opcion elegida, con su rango cuando lo trae',
+      angosto.ancho === 'Angosto' && intermedio.ancho === 'Intermedio'
+      && ancho.ancho.indexOf('Ancho') === 0 && ancho.ancho.indexOf('TSVD') > -1,
+      [angosto.ancho, intermedio.ancho, ancho.ancho].join(' // ')],
+    ['la senal CW vota tenue=leve / densa variable=moderada / densa empinada=severa',
+      tenue.calc === 'Leve' && varia.calc === 'Moderada' && empin.calc === 'Severa',
+      [tenue.calc, varia.calc, empin.calc].join('/')],
+    ['y su fila imprime la opcion elegida',
+      tenue.senal === 'Tenue, desaceleración lenta'
+      && empin.senal === 'Densa, desaceleración empinada', tenue.senal + ' // ' + empin.senal],
+    ['la reversion MARCADA vota severa; SIN marcar no vota y su fila queda en la raya',
+      revSi.calc === 'Severa' && revSi.rev === 'presente'
+      && revNo.calc === null && revNo.rev === '\\u2014',
+      JSON.stringify({ si: revSi.calc + '/' + revSi.rev, no: revNo.calc + '/' + revNo.rev })],
+
+    // --- el peor y la discordancia -----------------------------------------------------------
+    ['con PHT 99 (severa) y jet intermedio (moderada) manda el PEOR',
+      disc.calc === 'Severa' && disc.sel === 'Severa' && disc.sev === 'Severa', JSON.stringify(disc)],
+    ['y la linea de discordancia nombra los dos votos',
+      disc.disc === '\\u26a0\\ufe0f Discordancia: PHT <100 ms: severa \\u00b7 ancho del jet: moderada',
+      disc.disc],
+    ['CONTROL: con dos signos que votan LO MISMO no hay linea de discordancia',
+      conc.calc === 'Severa' && conc.disc === '', conc.calc + ' // ' + conc.disc],
+    ['CONTROL: un signo cargado que NO vota no cuenta como discordancia',
+      noVota.calc === 'Leve' && noVota.disc === '' && noVota.pht === '140 ms',
+      JSON.stringify({ calc: noVota.calc, disc: noVota.disc, pht: noVota.pht })],
+
+    // --- el grado llena la pastilla ----------------------------------------------------------
+    ['el grado automatico PRENDE el boton y llena la pastilla y el texto fijo',
+      ancho.pill === true && ancho.fijo === 'Severa', JSON.stringify(ancho)],
+
+    // --- cambio manual -----------------------------------------------------------------------
+    ['DENOMINADOR: el calculo automatico habia escrito Severa', base.sel === 'Severa', base.sel],
+    ['el cambio manual arrastra el texto fijo y aparecen el aviso rojo y el cajon',
+      manual.sel === 'Leve' && manual.fijo === 'Leve' && manual.manual === true
+      && manual.aviso.indexOf('Leve (ajuste manual)') > -1
+      && manual.aviso.indexOf('Severa') > -1 && manual.fund === true, JSON.stringify(manual)],
+    ['volver al calculado apaga el aviso y cierra el cajon',
+      vuelta.sel === 'Severa' && vuelta.aviso === '' && vuelta.fund === false,
+      JSON.stringify(vuelta)],
+
+    // --- retiro del grado automatico ---------------------------------------------------------
+    ['DENOMINADOR: con la senal cargada habia grado', antesRetiro.sel === 'Severa', antesRetiro.sel],
+    ['borrar el signo RETIRA el grado que la app habia puesto y devuelve el centinela',
+      trasRetiro.calc === null && trasRetiro.sel === 'Sin insuficiencia'
+      && trasRetiro.fijo === '\\u2014' && trasRetiro.sev === '\\u2014', JSON.stringify(trasRetiro)],
+
+    // --- guardado y «Nuevo estudio» ----------------------------------------------------------
+    ['DENOMINADOR: se guardo de verdad y los cuatro signos estaban cargados',
+      gg.ok === true && guardadoAntes.pht === '85' && guardadoAntes.ancho === 'intermedio'
+      && guardadoAntes.senal === 'densa_var' && guardadoAntes.rev === true,
+      JSON.stringify(guardadoAntes)],
+    ['«Nuevo estudio» limpia los cuatro signos y el grado',
+      trasNuevo.pht === '' && trasNuevo.ancho === '' && trasNuevo.senal === ''
+      && trasNuevo.rev === false && trasNuevo.f.sel === 'Sin insuficiencia'
+      && trasNuevo.f.fijo === '\\u2014' && trasNuevo.f.sev === '\\u2014', JSON.stringify(trasNuevo)],
+    ['y reabrir el guardado repone los cuatro, el grado y las cuatro filas',
+      reabierto.pht === '85' && reabierto.ancho === 'intermedio'
+      && reabierto.senal === 'densa_var' && reabierto.rev === true
+      && reabierto.f.sel === 'Severa' && reabierto.f.fijo === 'Severa'
+      && reabierto.f.sev === 'Severa' && reabierto.f.pht === '85 ms (<100 ms: severa)',
+      JSON.stringify(reabierto)],
+
+    // --- NO salen por ninguna superficie firmada ---------------------------------------------
+    ['el Excel sigue en 434 columnas y ninguna nombra los signos',
+      cols.length === 434 && colsSigno.length === 0,
+      'cols=' + cols.length + ' signos=[' + colsSigno.join(',') + ']'],
+    ['el informe narrativo no nombra ningun signo nuevo',
+      enInforme === false, recorteJS(r.inf)],
+    ['pero SI dice la insuficiencia con su grado, que es lo que el grado automatico produjo',
+      r.inf.indexOf('insuficiencia severa') > -1 && r.suma.indexOf('IP severa.') > -1,
+      recorteJS(r.inf) + ' // ' + recorteJS(r.suma)]
   ] };
   })();
 `);
