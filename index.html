@@ -41483,7 +41483,13 @@ function generarPDFReal(_aj) {
          firmado, que es afirmar una valoracion donde no hubo respuesta. */
       {lbl:'ET grado',      ref:'', val:(function(){ const g=sv('et_grado');
         return (g && g!=='Sin estenosis' && g!=='sin') ? g : null; })()},
-      {lbl:'VC IT',         ref:'(<3 / 3–7 / >7) mm', val:vPdf('it_vc',' mm')},
+      /* ⚠️ «3 a <7» y «≥7», no «3–7» y «>7» (2026-10-07). El texto anterior era FALSO justo en
+         7,0: `IT_CRIT.vc` es `leveMax:3 · modMax:7 · modInc:false`, así que una vena contracta de
+         7,0 mm graduóa SEVERA desde el 2026-10-07 — y la columna de referencia del PDF firmado
+         seguía diciendo que 7 era moderada. Es el mismo rango que `itRangoDe('vc', …)` imprime en
+         el cuadro de pantalla. Sigue siendo un literal y no se deriva de la tabla porque la
+         columna `ref` de `drawTablaCompacta` es texto fijo para las cinco secciones. */
+      {lbl:'VC IT',         ref:'(<3 / 3 a <7 / ≥7) mm', val:vPdf('it_vc',' mm')},
       {lbl:'EROA IT',       ref:'(<20 / 20–40 / ≥40) mm²', val:vPdf('it_eroa',' mm2')},
       /* El gradiente se DERIVA de la Vmax IT, así que hereda su banda: sin esto, una Vmax de 280
          —cm/s tipeados donde van m/s— imprimía un gradiente de 313.600 mmHg. */
@@ -97315,8 +97321,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-1002';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791378159113;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-1048';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791380909837;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -97402,7 +97408,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1002</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1048</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

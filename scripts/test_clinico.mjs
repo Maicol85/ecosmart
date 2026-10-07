@@ -46919,6 +46919,99 @@ caso('TC-433', 'La Vmax IAo CW se carga en m/s: el MISMO paciente da el MISMO ER
   ] };
 `);
 
+caso('TC-434', 'PDF: la referencia de la vena contracta tricuspidea dice «(<3 / 3 a <7 / >=7) mm», que es lo que la app calcula —7,0 mm es SEVERA—', `
+  return (async () => {
+    /* jsPDF llega por CDN: sin esta espera el caso da rojo intermitente por la red, que es peor
+       que no tenerlo. Mismo patron que TC-160. */
+    for (let i = 0; i < 80 && (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF); i++) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+    if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) {
+      return { extra: [['la libreria jsPDF llego por CDN', false, 'no cargo en 8 s']] };
+    }
+    /* El texto viejo —«(<3 / 3-7 / >7) mm»— era FALSO justo en 7,0: IT_CRIT.vc tiene modInc:false,
+       asi que 7,0 gradua SEVERA y la columna de referencia del PDF FIRMADO decia que era
+       moderada. El PDF se genera de verdad; save() se anula para no descargar nada.
+       ⚠️ doc.text es propiedad de la INSTANCIA y no del prototipo (jsPDF 2.x los crea como
+       clausuras en el constructor), asi que se envuelve el documento que devuelve. */
+    const Orig = window.jspdf.jsPDF;
+    const generar = function () {
+      const textos = [];
+      function Envuelto() {
+        const d = new Orig(...arguments);
+        const oText = d.text;
+        d.text = function (t) {
+          if (typeof t === 'string') textos.push(t);
+          else if (Array.isArray(t)) textos.push(t.join(' '));
+          return oText.apply(d, arguments); };
+        d.save = function () { return d; };
+        return d; }
+      Envuelto.prototype = Orig.prototype;
+      Envuelto.API = Orig.API; Envuelto.version = Orig.version;
+      window.jspdf.jsPDF = Envuelto;
+      try { generarPDFReal(); } catch (e) { return { err: String(e && e.message || e), textos: textos }; }
+      finally { window.jspdf.jsPDF = Orig; }
+      return { err: null, textos: textos }; };
+
+    const escena = function (vc) {
+      __t.limpiar();
+      try { showTab('valvulas'); } catch (e) {}
+      const sec = document.getElementById('ete-seccion-valv-tricuspide');
+      if (sec && sec.style.display === 'none') { try { toggleEteSeccion('valv-tricuspide'); } catch (e) {} }
+      const b = document.getElementById('pill-insuf-tricuspide');
+      if (b && !b.classList.contains('btn-primary')) toggleValvPill('tricuspide','insuf');
+      const cj = document.getElementById('caja-insuf-tricuspide');
+      if (cj && !cj.classList.contains('valv-datos-abierto')) { try { valvDatosTog('caja-insuf-tricuspide'); } catch (e) {} }
+      __t.set('nombre','TC434'); __t.set('ci','434');
+      if (vc !== null) __t.set('it_vc', String(vc));
+      const r = generar();
+      /* La fila se dibuja en DOS llamadas: el rotulo «VC IT» y, aparte, la referencia con el
+         valor. Se busca la que lleva la referencia. */
+      const fila = r.textos.filter(function (t) { return /\\(<3 \\//.test(t) && /mm/.test(t); });
+      return { err: r.err, n: r.textos.length, rotulo: r.textos.indexOf('VC IT') > -1, fila: fila }; };
+
+    const conVC   = escena(6.9);
+    const severa  = escena(7);
+    /* CONTROL NEGATIVO: sin vena contracta tricuspidea la fila NO se dibuja. Sin esto, un filtro
+       que no encontrara nada daria «no esta el texto viejo» y pasaria sin probar nada. */
+    const sinVC   = escena(null);
+
+    const tieneNuevo = function (e) { return e.fila.some(function (t) {
+      return t.indexOf('(<3 / 3 a <7 / >=7) mm') > -1; }); };
+    const tieneViejo = function (e) { return e.fila.some(function (t) {
+      return t.indexOf('(<3 / 3-7 / >7) mm') > -1; }); };
+
+    /* Y que el texto describa lo que el codigo hace, que es el punto del cambio. */
+    const g = { '2.9': itGradoDe('vc', 2.9), '3': itGradoDe('vc', 3),
+                '6.9': itGradoDe('vc', 6.9), '7': itGradoDe('vc', 7) };
+
+    return { extra: [
+      ['  DENOMINADOR: con la vena contracta cargada la fila «VC IT» SI se dibuja en el PDF',
+        !conVC.err && conVC.rotulo && conVC.fila.length === 1,
+        JSON.stringify(conVC)],
+      ['  CONTROL NEGATIVO: sin vena contracta tricuspidea esa fila NO se dibuja',
+        !sinVC.err && !sinVC.rotulo && !tieneNuevo(sinVC) && !tieneViejo(sinVC),
+        JSON.stringify(sinVC)],
+      ['la referencia dice «(<3 / 3 a <7 / >=7) mm»',
+        tieneNuevo(conVC), JSON.stringify(conVC.fila)],
+      ['⚠️ y ya NO dice «(<3 / 3-7 / >7) mm», que era falso en 7,0',
+        !tieneViejo(conVC) && !tieneViejo(severa),
+        JSON.stringify(conVC.fila) + ' | ' + JSON.stringify(severa.fila)],
+      ['el texto describe lo que la app calcula: <3 leve, 3 a <7 moderada, 7,0 SEVERA',
+        g['2.9'] === 'leve' && g['3'] === 'moderada' && g['6.9'] === 'moderada' &&
+        g['7'] === 'severa', JSON.stringify(g)],
+      ['la IM y la IAo del PDF NO se tocaron: siguen con su propio rango',
+        (function () { const t = conVC.err ? [] : escena(6.9).fila; return true; })() &&
+        (function () { __t.limpiar(); __t.set('nombre','TC434b'); __t.set('im_vc','7');
+          __t.set('ia_vc','6');
+          const r = generar();
+          const im = r.textos.some(function (x) { return x.indexOf('(<3 / 3-7 / >=7) mm') > -1; });
+          const ia = r.textos.some(function (x) { return x.indexOf('(<3 / 3-6 / >6) mm') > -1; });
+          return im && ia; })(),
+        'VC IM y VC IAo con su escala original'],
+    ] }; })();
+`);
+
 caso('TC-378', 'La morfologia va ANTES de la fila de botones Insuficiencia/Estenosis en las CUATRO valvulas —la pulmonar incluida, que ya tiene su fila (E5b-1)—', `
   const MORF = { mitral:'vm_morf', aortica:'va_morf', tricuspide:'vt_morf', pulmonar:'vp_morf' };
   /* 'antes' = b viene DESPUES de a en el DOM, o sea a esta primero. */
