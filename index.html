@@ -26162,6 +26162,25 @@ function calcAo() {
   if (vmax) {
     const gmax = (4 * vmax * vmax).toFixed(1);
     setv('gmax_calc', gmax);
+  } else {
+    /* ⚠️ LA RAMA SIN Vmax DEJABA EL G. MÁXIMO DE LA MEDICIÓN ANTERIOR, y es la MITAD DEL DOPPLER del
+       mismo defecto que `_eaDetCuentaPura` ya tenía cerrado para `ea_gmax_display` y `ea-det-gmax`.
+       Este `if` no tenía `else`: con la Vmax borrada, el cálculo simplemente no corría y el campo
+       se quedaba con lo último que escribió.
+       Medido con teclas reales (un Backspace sobre `vmax_ao` con Vmax 4): las DOS casillas de Vmax
+       en blanco, `ea_gmax_display` vacío, el cuadro de referencias en «—» y **`gmax_calc` diciendo
+       64.0** — igual por las dos puertas (Doppler y Válvulas) y con la pastilla de estenosis
+       prendida y apagada. Desde que las dos Vmax se coordinan (`eaParSync`), ya no hace falta
+       borrar en dos lados para alcanzarlo: un solo gesto lo produce.
+       ⚠️ Y NO ES SÓLO PANTALLA: `gmax_calc` es un `input[id]`, así que `guardarInforme` lo barre y
+       viaja dentro de `campos` al estudio guardado, al backup y al Excel, y el PDF lo imprime con
+       `vPdf('gmax_calc')`. El 64 rancio llegaba al papel FIRMADO al lado de una Vmax vacía. Vaciar
+       el campo lo cierra en las cuatro superficies sin tocar una línea del PDF ni del exportador.
+       ⚠️ SE TOCA SÓLO ESTA RAMA. El grado (`ea_grado`), el badge, `clasificarEA_Vmax`,
+       `sugerirSeveridadEA` y `_eaRetirarGradoSugerido` quedan donde están: borrar la Vmax conserva
+       el grado consignado, que es la regla 12 («borrar un dato no retira una afirmación») y lo que
+       el A/B midió en HEAD. Lo que se vacía es el DERIVADO, que sin su insumo no existe. */
+    setv('gmax_calc', '');
   }
 
   /* ⚠️ EL DVI NO NECESITA EL DIÁMETRO DEL TSVI, y estaba adentro del `if` que lo exige. Es un
@@ -97478,8 +97497,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-1400';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791392411489;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-1515';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791396913074;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -97565,7 +97584,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1400</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1515</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
