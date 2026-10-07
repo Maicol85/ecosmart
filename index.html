@@ -3856,8 +3856,16 @@ window.cerrarSesionReal = cerrarSesionReal;
       <!-- Fila 1: Estenosis pulmonar -->
       <div class="grid-2" style="margin-bottom:6px;">
         <div class="fg">
+          <!-- ⚠️ `vpVmaxSync` VA PRIMERO, igual que `itVmaxSync` en la Vmax IT, `dtTapSync` en el TAP
+               y `etTsvdSync` en los dos del TSVD: este campo es el DUEÑO y `ep_vmax` (tarjeta de
+               Válvulas) es su espejo en los dos sentidos. Con el sync DESPUÉS de `calcVP`, borrar acá
+               dejaba el espejo cargado durante todo el tecleo. Ver `vpVmaxSync`.
+               ⚠️ Y SIN ESTA LÍNEA EL ESPEJO ERA DE UNA SOLA DIRECCIÓN. La primera versión de esta
+               tanda agregó `ep_vmax` con su `oninput` y se olvidó de tocar éste: cargar en Válvulas
+               llegaba al Doppler y cargar en el Doppler no llegaba a Válvulas. Lo cazó la sonda, no
+               una lectura — la casilla de Válvulas salía vacía en las nueve escenas de bordes. -->
           <label>Vmax pulmonar (m/s) — Estenosis</label>
-          <input type="number" id="vp_vmax" placeholder="m/s" oninput="calcVP()">
+          <input type="number" id="vp_vmax" placeholder="m/s" oninput="vpVmaxSync('vp_vmax');calcVP()">
         </div>
         <div class="fg">
           <label>G. Máx pulmonar (mmHg) — auto</label>
@@ -5412,6 +5420,25 @@ window.cerrarSesionReal = cerrarSesionReal;
            apiladas). Es decisión expresa de Maicol, que las va a llevar a este formato de a una.
            Declarado acá para que no se lea como una divergencia que se colé sola. -->
       <div id="vp-lesiones">
+      <!-- ══ LOS DOS ENVOLTORIOS `caja-*-pulmonar` (2026-10-07) ══════════════════════════════════
+           ⚠️ EL CSS QUE LOS NOMBRA YA EXISTÍA Y ESTABA MUERTO. Las reglas de `#vp-lesiones` dicen
+           `> #caja-insuf-pulmonar { grid-column: 1 }` y `> #caja-esten-pulmonar { grid-column: 2 }`
+           desde el 2026-10-06, con un comentario que afirma que «`caja-*` reemplaza a `bloque-*`
+           como ítem de grilla… por el mismo motivo que en la tricúspide» — y los dos nodos NUNCA se
+           crearon. O sea que los ítems de grilla seguían siendo los `bloque-*`, que se muestran y se
+           ocultan por separado, y un hijo en `display:none` NO es ítem de grid: con la insuficiencia
+           cerrada, la estenosis se corría a la columna IZQUIERDA, debajo del botón de la OTRA lesión
+           — exactamente el defecto que ese comentario declara haber cerrado. Lo mismo pasaba con
+           `#campos-insuf-pulmonar` / `#campos-esten-pulmonar`, que las dos media queries de
+           «los campos dejan de colgar del botón azul» nombran y que tampoco existían.
+           Crear los contenedores ACTIVA ese CSS; no se escribió una regla nueva.
+           El reparto es el de la tricúspide, calcado: `caja-*` es el ítem de grilla y está SIEMPRE
+           presente; `bloque-*` se queda con el grado, el aviso y el cajón del fundamento, y lo sigue
+           escribiendo `toggleValvPill` / `valvGradoVisSync` sin UNA línea de cambio; `campos-*` lleva
+           los parámetros y el cuadro de referencias, y su visibilidad la decide la hoja de estilos
+           (siempre en la PC, plegable en el celular con su «Datos ▾»).
+           Ni un `id`, `onchange`, `oninput` ni rótulo de lo que ya existía se movió. -->
+      <div id="caja-insuf-pulmonar">
       <!-- `bloque-insuf-pulmonar`: lo muestra/oculta `toggleValvPill('pulmonar','insuf')` por el
            estado del botón (la IP no está en el registro, así que no hay `valvGradoVisSync` para
            ella). Envuelve la etiología (`bloque-ip-detalle`) y el grado (`ip_grado`). -->
@@ -5448,10 +5475,15 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
       </div>
       </div><!-- fin bloque-insuf-pulmonar -->
+      <!-- `campos-insuf-pulmonar` y su «Datos ▾» NO entran en este commit: la insuficiencia pulmonar
+           todavía no tiene campos propios. El envoltorio se crea igual porque el ítem de GRILLA tiene
+           que estar siempre presente para que la estenosis no se corra de columna (ver arriba). -->
+      </div><!-- fin caja-insuf-pulmonar -->
       <!-- `bloque-esten-pulmonar`: su visibilidad la gobierna `valvGradoVisSync('esten','pulmonar')`
            (vía `sevSincronizar('ep')`), igual que `bloque-esten-mitral`/`-aortica`: se ve con el
            botón abierto O con grado O con discrepancia. `bloque-ep-detalle` adentro (nivel/etiología)
            lo sigue mostrando `vpSync` sólo con estenosis consignada. -->
+      <div id="caja-esten-pulmonar">
       <div id="bloque-esten-pulmonar" style="display:none;">
       <!-- ═══ P4 (2026-10-04) — ORDEN DE LOS CAMPOS, DECISIÓN DE MAICOL ════════════════════════
            El aviso rojo y el cuadro «Fundamento del ajuste» van ARRIBA del grado, no debajo: lo que
@@ -5518,6 +5550,63 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
       </div>
       </div><!-- fin bloque-esten-pulmonar -->
+      <!-- ⚠️ LA FLECHA ES SÓLO DEL CELULAR y la esconde el CSS a más de 768 px. Abrir los campos NO
+           declara la lesión: llama a `valvDatosTog`, que sólo alterna una clase en el envoltorio y no
+           toca la pastilla, el grado ni `esqSevManual`. Calcada de la tricúspide. -->
+      <button type="button" class="valv-datos-tog" id="datos-tog-esten-pulmonar"
+              onclick="valvDatosTog('caja-esten-pulmonar')" aria-expanded="false"
+              aria-controls="campos-esten-pulmonar">Datos <span class="valv-datos-flecha">&#9662;</span></button>
+      <div id="campos-esten-pulmonar">
+          <!-- ── PARÁMETROS DE LA ESTENOSIS PULMONAR (2026-10-07, decisión de Maicol) ───────────
+               ⚠️ `ep_vmax` ES UN CAMPO NUEVO Y NO UN SEGUNDO DATO: es el espejo en los DOS sentidos
+               de `vp_vmax` del Doppler Pulmonar, borrado incluido (`vpVmaxSync`). El DUEÑO sigue
+               siendo el del Doppler —es el que leen `calcVP`, el informe, el EN SUMA, el PDF, el
+               Excel, el Laboratorio, Evidencia y el importador— y nadie cambió de lector. Es el
+               mismo patrón, por el mismo motivo, que `et_tsvd_diam`/`et_vti_tsvd` en la tricúspide
+               y que `ea_vmax`/`vmax_ao` en la aórtica.
+               ⚠️ EL `oninput` REPITE EL DEL DUEÑO (`calcVP`), y eso es lo que hace que tipear de
+               este lado dispare lo mismo que tipear del otro. Un espejo que copia el valor y no el
+               recálculo es el defecto de una sola dirección con otra cara. El sync va PRIMERO,
+               igual que en `itVmaxSync`, `dtTapSync` y `etTsvdSync`: cuando `calcVP` corre, las dos
+               casillas ya dicen lo mismo, así que el borrado no se repone en el mismo tecleo.
+               ⚠️ EL GRADIENTE VA SEGUNDO Y LLEVA `tabindex="-1"`, así que el Tab va de izquierda a
+               derecha y lo saltea: es un calculado de solo lectura, y un `readonly` sin esa marca
+               sigue recibiendo foco en Chrome. Mismo patrón que `gmax_calc`, `ava_cont`, `vs_calc`,
+               `tango_ava_val` y `et_avt`.
+               ⚠️ NO HAY UNA SEGUNDA CUENTA DEL GRADIENTE. `ep_gmax` no calcula nada: `calcVP` —el
+               único dueño de 4·V² y de la marca `dataset.derivadoDe`— le copia lo que acaba de
+               dejar en `vp_gmax`. Por eso también respeta el caso del informe que trae SÓLO el
+               gradiente tipeado a mano, y por eso se vacía cuando la velocidad se vacía: lo hace
+               porque `vp_gmax` se vació, no porque acá se repita la condición. -->
+          <div class="grid-2" style="margin-bottom:8px;">
+            <div class="fg"><label>Velocidad máxima pulmonar (m/s) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; Doppler pulmonar</span></label>
+              <input type="number" id="ep_vmax" placeholder="m/s" step="0.1" oninput="vpVmaxSync('ep_vmax');calcVP()">
+            </div>
+            <div class="fg"><label>Gradiente máximo (mmHg) <span style="font-weight:400;color:var(--text2);font-size:10px;">&mdash; auto</span></label>
+              <input type="number" id="ep_gmax" readonly tabindex="-1" style="color:var(--accent2);" placeholder="&mdash; completar la velocidad">
+            </div>
+          </div>
+          <!-- ── CUADRO DE REFERENCIAS (2026-10-07, decisión de Maicol) ─────────────────────────
+               Formato del Doppler aórtico y del cuadro de la IT: una fila por parámetro con el
+               VALOR, su GRADO y el rango de ESE grado entre paréntesis, la fuente UNA vez debajo de
+               las filas, y el resultado al final.
+               ⚠️ LAS DOS FILAS ESTÁN SIEMPRE, en «—» si falta el dato, y las pinta `epRefPintar`.
+               ⚠️ EL GRADIENTE VA SIN GRADO A PROPÓSITO (punto 5d): es el parámetro por el que la app
+               gradúa —`epGradoPorGmax(vp_gmax)`—, así que ponerle su propio grado al lado y otro a la
+               velocidad daría DOS veredictos para un solo cálculo. La velocidad lleva el grado porque
+               es el número que el médico mide; el gradiente, el número del que sale.
+               ⚠️ LA FUENTE ES TEXTO FIJO EN EL HTML y no un span pintado, al revés que
+               `it-ref-fuente`. Esa es una constante compartida con el cálculo (`IT_CRIT_FUENTE`);
+               ésta no la comparte nadie, así que un pintor sería un escritor más que puede quedarse
+               viejo sobre un texto que no cambia. -->
+          <div class="calc-box">
+            <div class="calc-row"><span class="calc-lbl">Velocidad máxima</span><span class="calc-val" id="ep-ref-vmax">&mdash;</span></div>
+            <div class="calc-row"><span class="calc-lbl">Gradiente máximo</span><span class="calc-val" id="ep-ref-gmax">&mdash;</span></div>
+            <div style="font-size:10px;color:var(--text2);line-height:1.45;margin:2px 0 4px;">Graduación: AHA/ACC 2018 &middot; ASE/EAE</div>
+            <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">Estenosis pulmonar &mdash; severidad</span><span class="calc-val" id="ep-sev">&mdash;</span></div>
+          </div>
+        </div>
+      </div><!-- fin caja-esten-pulmonar -->
       </div><!-- fin vp-lesiones (P4) -->
       </div>
 <!-- vp-pane-med eliminado en E5b-1 (las mediciones viven en «Doppler Pulmonar»). -->
@@ -29168,6 +29257,130 @@ window.epGradoPorGmax = epGradoPorGmax;
    escribirlo a mano sería otra copia del mismo umbral. */
 window.EP_GMAX_MOD_MAX = EP_GMAX_MOD_MAX;
 
+/* ══ LA VELOCIDAD MÁXIMA PULMONAR ES UN DATO CON DOS CASILLAS ═════════════════════════════════
+   Mismo problema, mismo patrón y mismo motivo que `etTsvdSync` en la tricúspide y que `eaParSync`
+   en la aórtica: `vp_vmax` (Doppler Pulmonar) y `ep_vmax` (tarjeta de Válvulas) son la MISMA
+   medición, en la misma unidad, con dos puertas de entrada. El PORTADOR es el del Doppler: es el
+   que leen `calcVP`, el informe narrativo, el EN SUMA, el PDF, el Excel, `_indEP` del panel de
+   Evidencia y el importador. El de Válvulas es una puerta, no una copia.
+
+   ⚠️ NO HAY BUCLE, Y NO ES POR LA GUARDA: asignar `.value` por código NO dispara `oninput`, así que
+   el espejo nunca se re-dispara solo. `_vpVmaxSinc` está para el día en que alguien despache un
+   `input` a mano —los arneses de prueba lo hacen—, exactamente como documentan `itVmaxSync`,
+   `dtTapSync` y `etTsvdSync`.
+
+   ⚠️ LA SALIDA TEMPRANA POR VALOR IGUAL no es cosmética: escribir `.value` con el mismo contenido
+   mueve el caret al final del campo. Se compara el TEXTO crudo y no el número, por el mismo motivo
+   que las otras tres: «3» y «3.0» son el mismo número y dos textos distintos, y el médico tiene que
+   poder verificar de un vistazo que las dos casillas dicen LO MISMO.
+
+   ⚠️ EL VACÍO SE COPIA IGUAL QUE UN NÚMERO, y es la mitad de este arreglo: borrar en cualquiera de
+   las dos puertas borra en la otra. Y POR ESO EL SYNC VA ANTES DE `calcVP` en los dos `oninput`:
+   cuando `calcVP` corre, las dos casillas ya están vacías, así que no hay ninguna vuelta que pueda
+   reponer lo borrado — que es justamente lo que `syncEADesdeValvulas` hacía en la aórtica antes de
+   que `eaParEditado` se le pusiera delante.
+
+   Sin argumento copia DUEÑO → ESPEJO y nada más: así la llama `RECALC_MODULOS`, que es el embudo de
+   las rutas de restauración. Un estudio guardado antes de hoy trae `vp_vmax` y no trae `ep_vmax`, y
+   esas rutas reponen asignando `.value` sin disparar eventos — sin esta entrada, reabrir un estudio
+   mostraba la casilla de Válvulas vacía al lado de una velocidad cargada en el Doppler. */
+let _vpVmaxSinc = false;
+const VP_VMAX_PARES = [['vp_vmax', 'ep_vmax']];
+function vpVmaxSync(origenId) {
+  if (_vpVmaxSinc) return null;
+  _vpVmaxSinc = true;
+  try {
+    const hechos = [];
+    VP_VMAX_PARES.forEach(function (par) {
+      if (origenId && origenId !== par[0] && origenId !== par[1]) return;
+      const a = document.getElementById(par[0]), b = document.getElementById(par[1]);
+      if (!a || !b) return;
+      const src = (origenId === par[1]) ? b : a;
+      const dst = (origenId === par[1]) ? a : b;
+      if (dst.value === src.value) { hechos.push({ par: par[0], copio: false, valor: src.value }); return; }
+      dst.value = src.value;   /* borrar en uno borra en el otro: '' se copia igual que un número */
+      hechos.push({ par: par[0], copio: true, valor: src.value });
+    });
+    return hechos;
+  } finally { _vpVmaxSinc = false; }
+}
+window.vpVmaxSync = vpVmaxSync;
+window.VP_VMAX_PARES = VP_VMAX_PARES;
+
+/* ══ LAS DOS FILAS DEL CUADRO DE LA ESTENOSIS PULMONAR (2026-10-07) ═══════════════════════════
+   De PANTALLA y nada más: ninguna entra en el informe, el EN SUMA, el PDF, el PPT ni el Excel.
+   Y NO deciden — `epGradoPorGmax` ya decidió; esto lo muestra. El pintor no decide.
+
+   ⚠️ NO SE EXTRAJO NINGUNA TABLA, Y ES A PROPÓSITO. El punto 5e pedía extraer los cortes «si son
+   literales sueltos»: no lo son. `EP_GMAX_NORMAL_MAX`, `EP_GMAX_LEVE_MAX` y `EP_GMAX_MOD_MAX` ya
+   son constantes nombradas, veinte líneas arriba, y `epGradoPorGmax` es su único consumidor. Una
+   tabla nueva sería una SEGUNDA declaración de los mismos tres números.
+
+   ⚠️ LOS RANGOS EN m/s SE DERIVAN DE ESOS MISMOS mmHg Y NO SE RETIPEAN. La app gradúa por el
+   GRADIENTE y el cuadro habla en VELOCIDAD, así que escribir «3» y «4» a mano sería una tercera
+   copia del corte, con la agravante de estar en otra unidad: el día que alguien mueva el 36 o el 64,
+   el texto seguiría diciendo lo de antes y nada correlacionaría lo uno con lo otro. `V = √(G/4)` es
+   la inversa exacta de la cuenta que la app usa, así que √(36/4)=3 y √(64/4)=4 salen de los cortes
+   vivos. Medido contra HEAD en los seis bordes que pidió el punto 5e.
+
+   ⚠️ HAY UNA CUARTA BANDA Y EL CUADRO NO LA NOMBRA (decisión de Maicol, 2026-10-07). Además de
+   leve/moderada/severa, `epGradoPorGmax` tiene «Normal» por debajo de `EP_GMAX_NORMAL_MAX`
+   (9 mmHg ≈ 1,5 m/s), así que una Vmax de 1,0 m/s NO es «leve <3 m/s»: la app dice que no hay
+   estenosis. La fila imprime el grado que la lógica YA produce y el rango de ESE grado; en la banda
+   del centinela imprime «Sin estenosis» SIN paréntesis de rango, porque el rango de «no hay» no es
+   un criterio de severidad y publicarlo lo volvería uno.
+
+   ⚠️ EL GRADO SALE DE `sevCalcPublicable('ep')` Y NO DE `epGradoPorGmax` DIRECTO, y eso cierra la
+   prótesis de una sola vez: esa función devuelve `null` cuando `SEV_SINC.ep.bloqueado()` es verdad,
+   o sea cuando la válvula es protésica y los cortes nativos no aplican. Con prótesis las dos filas
+   publican el VALOR sin grado y la fila de severidad la pisa `protNoGraduaPintar` con
+   `PROT_SIN_GRADO_TXT`. Escrito con `epGradoPorGmax` pelado, el cuadro habría graduado una prótesis
+   con cortes nativos justo al lado del badge que dice que la app se abstiene — que es el defecto
+   que `protNoGraduaPintar` existe para evitar.
+   La ETIQUETA del grado sale de `SEV_SINC.ep.etiqueta`, el mismo mapa que usa el aviso de
+   discrepancia: ni un segundo vocabulario para los mismos cinco tokens. */
+function epVmaxDeGmax(g) { return Math.sqrt(g / 4); }
+function _epNum(n) { return String(Math.round(n * 100) / 100).replace('.', ','); }
+/* El rango de UN grado, en m/s, derivado de los cortes en mmHg. Nunca retipeado. */
+function epRangoDe(grado) {
+  const leve = _epNum(epVmaxDeGmax(EP_GMAX_LEVE_MAX));   // 36 mmHg → 3 m/s
+  const mod  = _epNum(epVmaxDeGmax(EP_GMAX_MOD_MAX));    // 64 mmHg → 4 m/s
+  if (grado === 'Leve')     return '<' + leve + ' m/s';
+  /* `\u2013` es el guion corto (en dash) y NO la raya em: el En Suma se dibuja con jsPDF y la
+     helvetica WinAnsi descarta la raya en silencio. Acá es sólo pantalla, pero el criterio del
+     archivo es uno. */
+  if (grado === 'Moderada') return leve + '\u2013' + mod + ' m/s';
+  if (grado === 'Severa')   return '>' + mod + ' m/s';
+  return '';   // el centinela y «Moderada-severa» (que el cálculo no produce) no tienen rango propio
+}
+window.epRangoDe = epRangoDe;
+window.epVmaxDeGmax = epVmaxDeGmax;
+
+function epRefPintar() {
+  const set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+  const GUION = '\u2014';
+  const vmax = v('vp_vmax'), gmax = v('vp_gmax');
+  /* El grado CALCULADO tal como la app está dispuesta a nombrarlo: `null` con prótesis o sin
+     gradiente utilizable. */
+  let calc = null;
+  try { calc = (typeof sevCalcPublicable === 'function') ? sevCalcPublicable('ep') : null; }
+  catch (e) { calc = null; }
+  let etiq = '';
+  try { etiq = (calc !== null && SEV_SINC.ep && typeof SEV_SINC.ep.etiqueta === 'function')
+    ? SEV_SINC.ep.etiqueta(calc) : ''; } catch (e) { etiq = ''; }
+  const rango = epRangoDe(calc);
+  /* La velocidad: valor · grado (rango de ese grado). Sin grado nombrable, el valor solo — nunca
+     una afirmación de severidad que la app no está haciendo. */
+  set('ep-ref-vmax', vmax === null ? GUION
+    : (_epNum(vmax) + ' m/s' + (etiq ? ' \u00b7 ' + etiq + (rango ? ' (' + rango + ')' : '') : '')));
+  /* El gradiente: SÓLO el valor (punto 5d). `toFixed(1)` y no el crudo, que es como lo escribe
+     `calcVP`. */
+  set('ep-ref-gmax', gmax === null ? GUION : (_epNum(gmax) + ' mmHg'));
+  set('ep-sev', etiq || GUION);
+  return { vmax: vmax, gmax: gmax, calc: calc, etiqueta: etiq, rango: rango };
+}
+window.epRefPintar = epRefPintar;
+
 /* ══ VLI — volumen latido indexado ═══════════════════════════════════════════════════════
    VLI = volumen sistólico / superficie corporal. Es el parámetro que separa el BAJO FLUJO del
    flujo normal en la estenosis aórtica de bajo gradiente, y por lo tanto el que decide si el
@@ -29704,6 +29917,24 @@ function calcVP() {
     }
   }
 
+  /* ══ EL ESPEJO DE SOLO LECTURA DEL GRADIENTE (2026-10-07) ═══════════════════════════════════
+     `ep_gmax` —la casilla de la tarjeta de Válvulas— NO calcula: copia lo que esta función acaba de
+     dejar en `vp_gmax`. Un solo dueño de 4·V² y de la marca `dataset.derivadoDe`.
+     ⚠️ SE LEE `gEl.value` Y NO LA VARIABLE `gmax`, y es lo que hace que el espejo sea honesto en los
+     TRES caminos de arriba: con velocidad dice el derivado; sin velocidad y con un gradiente tipeado
+     a mano dice ESE (hay informes que traen sólo el gradiente, y el `if` de arriba lo respeta a
+     propósito); y cuando la rama de arriba borra el campo porque el número era nuestro, queda vacío.
+     Escribiendo `gmax` se perdía el tercer caso: ahí `gmax` pasa a `null` DESPUÉS de vaciar.
+     ⚠️ VA ANTES DE `protNoGraduaPintar` Y DE LA SALIDA POR `opcion === null`. Las dos cortan la
+     función, y un espejo que no se actualiza en las salidas tempranas es la misma clase de valor
+     rancio que esta tanda está cerrando en la aórtica. */
+  const _epGEl = document.getElementById('ep_gmax');
+  if (_epGEl) _epGEl.value = gEl ? gEl.value : '';
+  /* Las dos filas del cuadro, también ANTES de las dos salidas tempranas y por el mismo motivo.
+     Con prótesis, `epRefPintar` publica los valores sin grado y la línea de abajo le pisa la fila de
+     severidad con `PROT_SIN_GRADO_TXT`. */
+  if (typeof epRefPintar === 'function') { try { epRefPintar(); } catch (e) {} }
+
   const badgeEl = document.getElementById('vp-sev-badge');
   /* EL AUTO-GRADO ESCRIBE `ep_grado`, NO `vp_morf`. Hasta el 2026-09-16 `vp_morf` era un select
      único que mezclaba morfología, estenosis e insuficiencia, así que el cálculo tenía que
@@ -29723,7 +29954,11 @@ function calcVP() {
      función de clasificación es la única que decide qué es un gradiente, y acá no se repite el
      criterio. Antes se preguntaba por `vmax === null && gmax === null`, que dejaba pasar el
      cero y el texto no numérico. */
-  if (protNoGraduaPintar('vp_morf', ['vp-sev-badge'])) return;
+  /* ⚠️ `ep-sev` ENTRA A LA LISTA (2026-10-07): es la fila «Estenosis pulmonar — severidad» del cuadro
+     nuevo, y sin ella una prótesis quedaba con el badge diciendo `PROT_SIN_GRADO_TXT` y la fila de al
+     lado con el grado que `epRefPintar` acabó de poner. `protNoGraduaPintar` ya `console.error`-ea si
+     el id no existe, así que la lista no puede quedarse apuntando a un nodo borrado en silencio. */
+  if (protNoGraduaPintar('vp_morf', ['vp-sev-badge', 'ep-sev'])) return;
   const opcion = epGradoPorGmax(gmax);
   if (opcion === null) {
     /* Sin gradiente utilizable, un grado que quedó de una medición borrada es una estenosis
@@ -36812,7 +37047,7 @@ function RECALC_MODULOS() {
      `emAvmPdfVal` para la fila del PDF, `dataset` protege esa decision, y `disabled` no lo
      persiste ni lo lee nadie. Los dos primeros siguen intocados — que es exactamente la objecion
      que este archivo dejo escrita para IM: «pisaria la decision que la reimpresion respalda». */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -55715,10 +55950,15 @@ window.valvDatosTog = valvDatosTog;
    agregaría un segundo lugar donde vive el corte de 768 px — y el día que cambie habría que
    acordarse de los dos.
 
-   Sólo alcanza a las lesiones que TIENEN cajón de campos: la aórtica y la tricúspide. La mitral y
-   la pulmonar no tienen `caja-*`, así que para ellas esto es un `getElementById` que da `null`. */
+   Sólo alcanza a las lesiones que TIENEN cajón de campos. La MITRAL no tiene `caja-*`, así que para
+   ella esto es un `getElementById` que da `null`.
+   ⚠️ LA PULMONAR ENTRA EL 2026-10-07, cuando se crearon sus dos `caja-*`. Sin esto, la estenosis
+   pulmonar que la regla acaba de prender al entrar a Válvulas mostraba el grado con los campos que
+   lo sostienen plegados detrás del «Datos ▾» en el celular — que es textualmente el defecto que esta
+   función existe para cerrar en las otras dos. Es aditivo: la lista sigue gateada por la EXISTENCIA
+   del `caja-*` y por «sólo las que la regla acaba de prender». */
 function valvAbrirDatosPorRegla(antes) {
-  ['aortica', 'tricuspide'].forEach(function (valv) {
+  ['aortica', 'tricuspide', 'pulmonar'].forEach(function (valv) {
     ['insuf', 'esten'].forEach(function (tipo) {
       const caja = document.getElementById('caja-' + tipo + '-' + valv);
       if (!caja) return;
@@ -97570,8 +97810,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-1536';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791398203734;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-1559';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791399557358;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -97657,7 +97897,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1536</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1559</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

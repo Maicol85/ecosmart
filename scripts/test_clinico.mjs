@@ -52098,8 +52098,18 @@ caso('TC-423', 'Valvulas, pantalla: en el celular los campos de cada lesion arra
     return { enElBloque: /Reversi/.test(c.textContent || ''), dentroDelCampo: dentro }; })();
 
   /* ── (6) CONTROL NEGATIVO: la mitral y la pulmonar NO reciben cajon de campos ───────────── */
-  const sinCaja = ['caja-insuf-mitral','caja-esten-mitral','caja-insuf-pulmonar','caja-esten-pulmonar']
+  /* ⚠️ LA PULMONAR SALIO DE ESTE CONTROL NEGATIVO (2026-10-07, decision de Maicol). Sus dos
+     caja-*-pulmonar SI existen desde la tanda de la estenosis pulmonar: el CSS de #vp-lesiones los
+     nombraba desde el 2026-10-06 y los nodos no estaban, asi que las dos reglas de grid-column eran
+     selectores muertos y los bloque-* quedaban como items de grilla por auto-placement. Crearlos es
+     lo que activo ese CSS. La MITRAL sigue afuera —su unica novedad es el cierre de tarjetas— y es
+     la que este control sigue vigilando, que es lo que lo mantiene sirviendo para algo.
+     El caso PRUEBA MENOS que antes en esa linea; lo que la pulmonar hace ahora lo fija TC-438. */
+  const sinCaja = ['caja-insuf-mitral','caja-esten-mitral']
     .filter(function (c) { return !!g(c); });
+  /* Y el control se completa por el otro lado: los de la pulmonar TIENEN que existir. */
+  const conCaja = ['caja-insuf-pulmonar','caja-esten-pulmonar','campos-esten-pulmonar']
+    .filter(function (c) { return !g(c); });
 
   const regla = reglaPC();
   __t.limpiar();
@@ -52179,8 +52189,10 @@ caso('TC-423', 'Valvulas, pantalla: en el celular los campos de cada lesion arra
 
     ['la REGLA de la PC existe y nombra los seis contenedores con display:block !important',
       !!regla && regla.prio === 'important', regla ? JSON.stringify(regla) : '(no se encontro la regla @media 769px)'],
-    ['CONTROL NEGATIVO: la mitral y la pulmonar NO reciben cajon de campos',
+    ['CONTROL NEGATIVO: la MITRAL no recibe cajon de campos',
       sinCaja.length === 0, 'cajas ajenas: [' + sinCaja.join(',') + ']'],
+    ['y la PULMONAR si lo tiene, que es lo que activa su CSS de grid y de celular',
+      conCaja.length === 0, 'faltan: [' + conCaja.join(',') + ']'],
   ] };
 `);
 
@@ -54130,6 +54142,111 @@ caso('TC-437', 'Aortica: la celda del DVI muestra SOLO el numero —sin el rotul
     ['vacia dice la raya, no «DVI —»', vacio === '—', vacio],
     ['y «Nuevo estudio» la devuelve a la raya (el barrido del calc-box sigue alcanzandola)',
       trasNuevo === '—', trasNuevo]
+  ] };
+`);
+
+
+// ═══ GRUPO 32 — Pulmonar: la estenosis en su tarjeta ═════════════════════════════════════════
+caso('TC-438', 'Estenosis pulmonar: la velocidad es UN dato con DOS casillas espejadas en los dos sentidos, el gradiente se deriva solo y se vacia con ella, y el cuadro imprime el grado con el rango de ESE grado derivado de los cortes vivos', `
+  const foto = () => ({
+    vpV: (document.getElementById('vp_vmax')||{}).value,
+    epV: (document.getElementById('ep_vmax')||{}).value,
+    vpG: (document.getElementById('vp_gmax')||{}).value,
+    epG: (document.getElementById('ep_gmax')||{}).value,
+    grado: (document.getElementById('ep_grado')||{}).value,
+    refV: (document.getElementById('ep-ref-vmax')||{}).textContent,
+    refG: (document.getElementById('ep-ref-gmax')||{}).textContent,
+    sev: (document.getElementById('ep-sev')||{}).textContent
+  });
+  /* LOS CUATRO ENVOLTORIOS que el CSS de la pulmonar nombraba desde el 2026-10-06 y que no
+     existian. Sin ellos las dos reglas de grid-column eran selectores muertos. */
+  const nodos = ['caja-insuf-pulmonar','caja-esten-pulmonar','campos-esten-pulmonar',
+                 'datos-tog-esten-pulmonar','ep_vmax','ep_gmax','ep-ref-vmax','ep-ref-gmax','ep-sev']
+    .filter(id => !document.getElementById(id));
+  /* ESPEJO EN LOS DOS SENTIDOS, incluido el BORRADO. */
+  __t.limpiar();
+  __t.set('vp_vmax','3.5');  const desdeDoppler = foto();
+  __t.set('vp_vmax','');     const borradoDoppler = foto();
+  __t.limpiar();
+  __t.set('ep_vmax','3.5');  const desdeValvulas = foto();
+  __t.set('ep_vmax','');     const borradoValvulas = foto();
+  /* LA VUELTA NO REPONE LO BORRADO: despues de borrar, un recalculo mas no puede resucitarlo. */
+  calcVP();
+  const trasRecalcular = foto();
+  /* Un gradiente TIPEADO A MANO sin velocidad: el espejo lo refleja y el grado sale de el, que es
+     lo que calcVP ya hacia («hay informes que traen solo el gradiente»). */
+  __t.limpiar();
+  __t.set('vp_gmax','49');
+  const soloGradiente = foto();
+  /* LOS SEIS BORDES que pidio la orden, mas los dos de la banda Normal. */
+  const borde = (v) => { __t.limpiar(); __t.set('vp_vmax', v); return foto(); };
+  const B = {}; ['2.9','3','3.1','3.9','4','4.1','1.4','1.5'].forEach(v => { B[v] = borde(v); });
+  /* LOS RANGOS SE DERIVAN DE LOS CORTES EN mmHg, no se retipean: si alguien mueve el 36 o el 64,
+     el texto se mueve con el. Se comprueba la INVERSA de la cuenta de la app. */
+  const derivado = [Math.sqrt(EP_GMAX_LEVE_MAX/4), Math.sqrt(window.EP_GMAX_MOD_MAX/4)];
+  /* CONTROL NEGATIVO: con PROTESIS pulmonar el cuadro NO gradua —los cortes nativos no aplican— y
+     la fila de severidad lo dice con la leyenda unica de la app. */
+  __t.limpiar();
+  __t.set('vp_vmax','3.5'); __t.set('vp_morf','Prótesis biológica'); calcVP();
+  const protesis = foto();
+  __t.limpiar();
+  return { extra: [
+    ['los cuatro envoltorios y los cinco nodos nuevos existen', nodos.length === 0, 'faltan: ' + nodos.join(',')],
+    // --- Espejo ------------------------------------------------------------------------------
+    ['DENOMINADOR: cargar en el Doppler produce velocidad, gradiente y grado',
+      desdeDoppler.vpV === '3.5' && desdeDoppler.vpG === '49' && desdeDoppler.grado === 'Moderada',
+      JSON.stringify(desdeDoppler)],
+    ['cargar en el DOPPLER llega a la casilla de Valvulas, y el gradiente tambien',
+      desdeDoppler.epV === '3.5' && desdeDoppler.epG === '49', JSON.stringify(desdeDoppler)],
+    ['cargar en VALVULAS llega al Doppler, con el mismo gradiente y el mismo grado',
+      desdeValvulas.vpV === '3.5' && desdeValvulas.epV === '3.5'
+      && desdeValvulas.vpG === '49' && desdeValvulas.epG === '49'
+      && desdeValvulas.grado === 'Moderada', JSON.stringify(desdeValvulas)],
+    ['borrar en el Doppler borra en las DOS, y el gradiente se vacia con ellas',
+      borradoDoppler.vpV === '' && borradoDoppler.epV === ''
+      && borradoDoppler.vpG === '' && borradoDoppler.epG === '', JSON.stringify(borradoDoppler)],
+    ['borrar en Valvulas hace lo mismo',
+      borradoValvulas.vpV === '' && borradoValvulas.epV === ''
+      && borradoValvulas.vpG === '' && borradoValvulas.epG === '', JSON.stringify(borradoValvulas)],
+    ['y LA VUELTA NO REPONE: un calcVP mas sobre el borrado deja las cuatro casillas vacias',
+      trasRecalcular.vpV === '' && trasRecalcular.epV === ''
+      && trasRecalcular.vpG === '' && trasRecalcular.epG === '', JSON.stringify(trasRecalcular)],
+    ['un gradiente tipeado a mano SIN velocidad se respeta, se espeja y gradua',
+      soloGradiente.vpV === '' && soloGradiente.vpG === '49' && soloGradiente.epG === '49'
+      && soloGradiente.grado === 'Moderada', JSON.stringify(soloGradiente)],
+    // --- Cuadro de referencias y bordes -------------------------------------------------------
+    ['la fila de velocidad lleva valor, grado y el rango de ESE grado',
+      B['2.9'].refV === '2,9 m/s · Leve (<3 m/s)'
+      && B['3.1'].refV === '3,1 m/s · Moderada (3–4 m/s)'
+      && B['4.1'].refV === '4,1 m/s · Severa (>4 m/s)',
+      [B['2.9'].refV, B['3.1'].refV, B['4.1'].refV].join(' // ')],
+    ['el borde de 3,0 m/s (36 mmHg) es MODERADA, como en HEAD',
+      B['3'].grado === 'Moderada' && B['3'].refV === '3 m/s · Moderada (3–4 m/s)'
+      && B['3'].refG === '36 mmHg', B['3'].refV + ' // ' + B['3'].refG],
+    ['el borde de 4,0 m/s (64 mmHg) tambien es MODERADA, como en HEAD',
+      B['4'].grado === 'Moderada' && B['4'].refV === '4 m/s · Moderada (3–4 m/s)'
+      && B['4'].refG === '64 mmHg', B['4'].refV + ' // ' + B['4'].refG],
+    ['3,9 queda moderada y 4,1 pasa a severa: el corte esta probado por los DOS lados',
+      B['3.9'].grado === 'Moderada' && B['4.1'].grado === 'Severa',
+      B['3.9'].grado + '/' + B['4.1'].grado],
+    /* LA CUARTA BANDA. La app tiene «Normal» por debajo de 9 mmHg (1,5 m/s) y el cuadro NO le
+       inventa un rango: dice «Sin estenosis» pelado. */
+    ['por debajo de 1,5 m/s el cuadro dice «Sin estenosis» SIN rango, y a 1,5 ya gradua leve',
+      B['1.4'].refV === '1,4 m/s · Sin estenosis' && B['1.4'].grado === 'sin'
+      && B['1.5'].refV === '1,5 m/s · Leve (<3 m/s)' && B['1.5'].grado === 'Leve',
+      B['1.4'].refV + ' // ' + B['1.5'].refV],
+    ['la fila del gradiente lleva SOLO el valor, sin grado',
+      B['3.1'].refG === '38,4 mmHg' && B['3.1'].refG.indexOf('oderada') === -1, B['3.1'].refG],
+    ['sin dato, las dos filas y la severidad dicen la raya',
+      borradoDoppler.refV === '—' && borradoDoppler.refG === '—' && borradoDoppler.sev === '—',
+      JSON.stringify([borradoDoppler.refV, borradoDoppler.refG, borradoDoppler.sev])],
+    ['los rangos en m/s son la INVERSA de los cortes en mmHg, no numeros retipeados',
+      derivado[0] === 3 && derivado[1] === 4, derivado.join('/')],
+    // --- CONTROL NEGATIVO: protesis ------------------------------------------------------------
+    ['CONTROL: con protesis el cuadro publica el valor y NO gradua, y la severidad lo declara',
+      protesis.refV === '3,5 m/s' && protesis.refG === '49 mmHg'
+      && protesis.sev === PROT_SIN_GRADO_TXT,
+      JSON.stringify([protesis.refV, protesis.refG, protesis.sev])]
   ] };
 `);
 

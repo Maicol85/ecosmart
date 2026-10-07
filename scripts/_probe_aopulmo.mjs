@@ -561,6 +561,14 @@ async function main() {
       mov[w] = JSON.parse(await ev(`(function(){
         window.__P.limpiar(); window.__P.abrirTodo();
         window.__P.set('vp_vmax', '3.5'); window.__P.set('ip_vmax', '2.5');
+        /* ⚠️ VOLVER A LA PESTAÑA DE VALVULAS. abrirTodo termina en la de Doppler para dejar las dos
+           tarjetas del Doppler Pulmonar abiertas, y el #tab-valvulas oculto NO TIENE GEOMETRIA: la
+           primera corrida de esta escena midio ancho 0 y «sin desborde» en los tres anchos, que es el
+           error de denominador de siempre con otra cara. Tambien se reabre la tarjeta, porque
+           limpiarCampos la cierra. */
+        try { showTab('valvulas') } catch(e) {}
+        var _sec = document.getElementById('ete-seccion-valv-pulmonar');
+        if (_sec && _sec.style.display === 'none') { try { toggleEteSeccion('valv-pulmonar') } catch(e) {} }
         var o = { global: window.__P.desborde(),
           caja: window.__P.desbordeDe('vp-lesiones'),
           camposE: window.__P.vis('campos-esten-pulmonar'),
