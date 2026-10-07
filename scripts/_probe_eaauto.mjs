@@ -479,6 +479,37 @@ async function main() {
     return JSON.stringify(out);
   })()`);
 
+  /* ── 2bis · los espejos MITRALES y de la IAo que cuelgan del VTI TSVI, por las DOS puertas ── */
+  if (hacer('mitral')) OUT.mitral = await J(`(function(){
+    var pru = function(id){
+      window.__E.limpiar(); window.__E.valvConPastilla();
+      /* DENOMINADOR: los espejos de la mitral y de la IAo se gatean por la visibilidad de SU
+         bloque, asi que sin abrir esas pastillas quedan en blanco y la medicion no cuenta nada. */
+      var s = document.getElementById('ete-seccion-valv-mitral');
+      if (s && s.style.display === 'none') { try { toggleEteSeccion('valv-mitral') } catch(e){} }
+      ['pill-esten-mitral','pill-insuf-mitral','pill-insuf-aortica'].forEach(function(pid){
+        var p = document.getElementById(pid);
+        if (p && !p.classList.contains('btn-primary')) {
+          var m = pid.replace('pill-','').split('-');
+          try { toggleValvPill(m[1], m[0]) } catch(e){} } });
+      window.__E.set('nombre','M'); window.__E.set('peso',70); window.__E.set('talla',170);
+      window.__E.set('diam_tsvi_ao', 20); window.__E.set('itv_ao', 50);
+      window.__E.set('avm_thp', 1.2); window.__E.set('im_vti', 100);
+      window.__E.set('ia_vti', 120); window.__E.set('ia_jet', 10);
+      window.__E.set(id, 16);
+      var foto = function(){ return { em_vti: window.__E.val('em_vtitsvi'),
+        im_vti: window.__E.val('im_itv_tsvi'), em_dtsvi: window.__E.val('em_dtsvi'),
+        im_dtsvi: window.__E.val('im_dtsvi'), ia_fr: window.__E.txt('ia-fr'),
+        ia_sev: window.__E.txt('ia-sev'), vs: window.__E.val('vs_calc') } };
+      var a = foto();
+      window.__E.set(id, 22);
+      var b = foto();
+      return { cargado: a, corregido: b, par: { valv: window.__E.val('ea_vtitsvi'),
+               doppler: window.__E.val('itv_tsvi') } };
+    };
+    return JSON.stringify({ porDoppler: pru('itv_tsvi'), porValvulas: pru('ea_vtitsvi') });
+  })()`);
+
   /* ── 3 · A/B de la AORTICA: barrida de bordes del grado, pastilla, informe, EN SUMA, PDF,
      PPT y Excel. Cada escena se carga por el DOPPLER y con la pastilla prendida, que es el
      camino de HEAD donde todo corre. */

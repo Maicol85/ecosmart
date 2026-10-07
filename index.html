@@ -3541,7 +3541,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div>
           <div class="fg">
             <label>VTI TSVI (cm)</label>
-            <input type="number" id="itv_tsvi" placeholder="cm" oninput="calcAo();eteShuntSyncSiExiste();imSyncSiExiste();emSyncSiExiste();iaSyncSiExiste();_eaDetCuentaPura()">
+            <input type="number" id="itv_tsvi" placeholder="cm" oninput="eaParEditado('itv_tsvi')">
           </div>
           <div class="fg">
             <label>VTI Vao (cm)</label>
@@ -4847,7 +4847,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
           <div class="fg">
             <label>VTI TSVI (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
-            <input type="number" id="ea_vtitsvi" placeholder="cm" oninput="syncEADesdeValvulas()">
+            <input type="number" id="ea_vtitsvi" placeholder="cm" oninput="eaParEditado('ea_vtitsvi');syncEADesdeValvulas()">
           </div>
           <div class="fg">
             <label>VTI Ao (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
@@ -25462,7 +25462,14 @@ const _EA_PARES = Object.freeze({
   ea_vmax:   { par:'vmax_ao',   recalc:['eteShuntSyncSiExiste','iaSyncSiExiste'] },
   vmax_ao:   { par:'ea_vmax',   recalc:['eteShuntSyncSiExiste','iaSyncSiExiste'] },
   ea_gmedio: { par:'gmedio_ao', recalc:['eteShuntSyncSiExiste','iaSyncSiExiste'] },
-  gmedio_ao: { par:'ea_gmedio', recalc:['eteShuntSyncSiExiste','iaSyncSiExiste'] }
+  gmedio_ao: { par:'ea_gmedio', recalc:['eteShuntSyncSiExiste','iaSyncSiExiste'] },
+  /* ⚠️ EL VTI TSVI LLEVA TRES ESPEJOS MÁS, y es la fila que demuestra para qué sirve que la lista
+     sea UNA por campo: en HEAD el lado Doppler disparaba `imSyncSiExiste`, `emSyncSiExiste` e
+     `iaSyncSiExiste` —el AVm por continuidad, la FR de la IM y el ratio jet/TSVI de la IAo leen este
+     VTI— y el lado Válvulas sólo el tercero, por dentro de `syncEADesdeValvulas`. O sea que cargar
+     el VTI TSVI por Válvulas dejaba a la MITRAL evaluándose sin él. La unión los lleva a los dos. */
+  ea_vtitsvi: { par:'itv_tsvi',   recalc:['eteShuntSyncSiExiste','imSyncSiExiste','emSyncSiExiste','iaSyncSiExiste'] },
+  itv_tsvi:   { par:'ea_vtitsvi', recalc:['eteShuntSyncSiExiste','imSyncSiExiste','emSyncSiExiste','iaSyncSiExiste'] }
 });
 function eaParSync(origenId) {
   if (_eaParSinc) return null;
@@ -97464,8 +97471,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-1243';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791387780084;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-1245';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791387904976;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -97551,7 +97558,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1243</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1245</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
