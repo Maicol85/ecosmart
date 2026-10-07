@@ -375,10 +375,16 @@ es un dato con dos campos, ese agujero se alcanza también escribiendo en el cam
   ⚠️ **El control negativo de TC-400 estaba roto en mi primera versión**: preguntaba por
   `/significativa/i` sobre un EN SUMA cuya frase de normalidad dice «ni funcionales
   **significativas**», así que no podía pasar nunca. Ahora pregunta por la sigla «ET ».
-- **Línea base al cierre: suite 438/442, Semgrep 127 / 0 ERROR, Excel 434 columnas, móvil idéntico a
-  HEAD** (43 hallazgos a 360 px y 52 a 390 px, 1 ALTA cada uno, el `#caso_interes` preexistente y
-  ajeno). Los cuatro rojos son los de entrada: **TC-223**, **TC-376**, **TC-390**, **TC-406**.
-  ⚠️ **El denominador subió a 442**: esta tanda agregó **TC-427**.
+- **Línea base al cierre: suite 428/449, Semgrep 127 / 0 ERROR, Excel 434 columnas, móvil idéntico a
+  HEAD.** El chequeo de celular se mide de DOS formas y las dos dan lo mismo que en HEAD:
+  `node scripts/check_mobile.js` → **43 hallazgos a 360 px y 52 a 390 px, 1 ALTA cada uno**
+  (oculta la severidad BAJA); `node scripts/check_mobile.js --todo` → **367 a 360 px y 376 a
+  390 px, 1 ALTA cada uno**. La única ALTA es el `#caso_interes` preexistente y ajeno.
+  De los 21 rojos, **cuatro** son los de entrada —**TC-223**, **TC-376**, **TC-390**,
+  **TC-406**— y los **diecisiete** restantes son **TC-181…TC-197**, los del pendrive
+  `DISK_IMG`, que estaba AFUERA al medir: son entorno y no prueban nada (ver «Trampas
+  conocidas»). Con el pendrive puesto la cifra es **445/449**.
+  ⚠️ **El denominador subió a 449**: esta tanda agregó **TC-432**, **TC-433** y **TC-434**.
 - ⚠️ **Me volví a comer el acento grave DOS veces**, las dos en comentarios míos dentro del cuerpo de
   un caso. `node --check` apuntó 87 y 88 líneas antes del culpable; `scripts/check_backticks.py` dio
   la línea exacta las dos veces. **Correrlo antes del suite, no después.**
