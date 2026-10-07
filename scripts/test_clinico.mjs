@@ -13730,7 +13730,7 @@ caso('TC-176', 'CHM del GE: conversiones de unidad, valores invalidos y destinos
   const cmAmm   = v('2D/IVSd', 'cm', '0.6');            // 0,6 cm de septum = 6 mm
   const msAcms  = v('MV E Velocity', 'm/s', '0.70');    // 0,70 m/s = 70 cm/s
   const msDirec = v('TR Vmax', 'm/s', '2.43');          // vmax_it esta en m/s: no se toca
-  const arVmax  = v('AR Vmax', 'm/s', '3.18');          // ia_vmax_cw esta en cm/s: x100
+  const arVmax  = v('AR Vmax', 'm/s', '3.18');          // ia_vmax_cw esta en m/s: directo
   const areaDir = v('2D/LA Area', 'cm2', '16.0');       // cm2 a cm2
   const msDir   = v('IVRT', 'ms', '45');                // ms a ms
   const pctDir  = v('EF(Biplane)_03', '%', '61');       // % a %
@@ -13789,7 +13789,11 @@ caso('TC-176', 'CHM del GE: conversiones de unidad, valores invalidos y destinos
     ['cm a mm: 0,6 cm de septum entra como 6 mm',        cmAmm === 6, cmAmm],
     ['m/s a cm/s: 0,70 entra como 70',                   msAcms === 70, msAcms],
     ['m/s directo: Vmax IT 2,43 no se toca',             msDirec === 2.43, msDirec],
-    ['AR Vmax a cm/s: 3,18 m/s entra como 318',          arVmax === 318, arVmax],
+    /* Desde el 2026-10-07 ia_vmax_cw esta en m/s, igual que el GE: 3,18 entra tal cual. Antes de
+       ese dia este campo era la UNICA conversion m/s -> cm/s de esta tabla y el caso la probaba;
+       ahora prueba lo contrario, que es que NO se convierta. La conversion m/s -> cm/s sigue
+       cubierta por 'MV E Velocity' en la condicion de arriba. */
+    ['AR Vmax directo: 3,18 m/s entra como 3,18',        arVmax === 3.18, arVmax],
     ['cm2 directo',                                      areaDir === 16, areaDir],
     ['ms directo',                                       msDir === 45, msDir],
     ['% directo',                                        pctDir === 61, pctDir],
@@ -13891,7 +13895,9 @@ caso('TC-177', 'CHM real del Vivid IQ: LZX byte a byte, XML bien formado y mapeo
     const rTap  = rel('MM/TAPSE', 'tapse', 10);
     const rOndaE= rel('MV E Velocity', 'onda_e', 100);
     const rIT   = rel('TR Vmax', 'vmax_it', 1);
-    const rIA   = rel('AR Vmax', 'ia_vmax_cw', 100);
+    /* Desde el 2026-10-07 ia_vmax_cw esta en m/s, igual que el GE: el factor es 1. Antes de ese
+       dia era x100, y este caso probaba la conversion. Ahora prueba que NO se convierta. */
+    const rIA   = rel('AR Vmax', 'ia_vmax_cw', 1);
     const rFevi = rel('EF(Biplane)_03', 'fevi', 1);
     const rArea = rel('2D/LA Area', 'ai_area', 1);
     const rVti  = rel('Pulmonic VTI', 'vti_tsvd', 1);
@@ -13931,7 +13937,7 @@ caso('TC-177', 'CHM real del Vivid IQ: LZX byte a byte, XML bien formado y mapeo
       ['TAPSE: cm a mm',                                  rTap.ok, JSON.stringify(rTap)],
       ['Onda E: m/s a cm/s',                              rOndaE.ok, JSON.stringify(rOndaE)],
       ['Vmax IT: m/s directo',                            rIT.ok, JSON.stringify(rIT)],
-      ['Vmax IAo: m/s a cm/s (el campo esta en cm/s)',    rIA.ok, JSON.stringify(rIA)],
+      ['Vmax IAo: m/s directo (el campo esta en m/s)',     rIA.ok, JSON.stringify(rIA)],
       ['FEVI biplano: sin prefijo 2D/ y en % directo',    rFevi.ok, JSON.stringify(rFevi)],
       ['Area AI: cm2 directo',                            rArea.ok, JSON.stringify(rArea)],
       ['VTI pulmonar: cm directo',                        rVti.ok, JSON.stringify(rVti)],
@@ -14032,7 +14038,7 @@ caso('TC-178', 'UI de punta a punta: File real por dcmImportarSR, vista previa y
       ['y llega DESTILDADA, como en el SR (alimenta la PSAP)', _vit && _vit.usar === false, _vit ? _vit.usar : 'ausente'],
       ['con el aviso de que hay que confirmar el jet', html.indexOf('jet regurgitante') > -1, html.indexOf('jet regurgitante') > -1],
       ['por eso NO se guardo sin tildarla a mano', c.vmax_it === undefined, c.vmax_it],
-      ['trae la Vmax IAo en cm/s', parseFloat(c.ia_vmax_cw) > 50, c.ia_vmax_cw],
+      ['trae la Vmax IAo en m/s', parseFloat(c.ia_vmax_cw) > 0.5 && parseFloat(c.ia_vmax_cw) <= 8, c.ia_vmax_cw],
       ['trae la FEVI', parseFloat(c.fevi) > 5 && parseFloat(c.fevi) < 90, c.fevi],
       ['trae la edad calculada', parseFloat(c.edad) > 0 && parseFloat(c.edad) < 130, c.edad],
       ['NO trae el FAC (lo calcula la app)', c.vd_fac === undefined, c.vd_fac],
@@ -43795,7 +43801,7 @@ caso('TC-350', 'IAo: la fraccion regurgitante es RVol/SV TSVI (ASE 2017 folio 31
      Para EROA 15.0 mm2 se baja el aliasing a 11.9366. Es la calibracion que usa el pedido. */
   const esc = (val, vtiJet, dt, it) => { __t.limpiar(); window.esqSevManual = {};
     __t.set('nombre','TC350');
-    __t.set('ia_pisa_r','10'); __t.set('ia_pisa_val', val); __t.set('ia_vmax_cw','500');
+    __t.set('ia_pisa_r','10'); __t.set('ia_pisa_val', val); __t.set('ia_vmax_cw','5');
     if (vtiJet !== null) __t.set('ia_vti', vtiJet);
     if (dt !== null) __t.set('diam_tsvi', dt);
     if (it !== null) __t.set('itv_tsvi', it);
@@ -43914,7 +43920,7 @@ caso('TC-351', 'IAo: el O TSVI y el VTI TSVI fuera de banda retiran el voto de l
      un hallazgo y no un artefacto. Medido: antes del arreglo la linea traia FR:leve. */
   const esc = (dt, it) => { __t.limpiar(); window.esqSevManual = {};
     __t.set('nombre','TC351');
-    __t.set('ia_pisa_r','10'); __t.set('ia_pisa_val','15.9155'); __t.set('ia_vmax_cw','500');
+    __t.set('ia_pisa_r','10'); __t.set('ia_pisa_val','15.9155'); __t.set('ia_vmax_cw','5');
     __t.set('ia_vti','300');
     __t.set('diam_tsvi', dt); __t.set('itv_tsvi', it);
     try { calcIA_ESC(); } catch (e) {}
@@ -44115,9 +44121,9 @@ caso('TC-354', 'IAo: los ONCE campos con banda, dirigido por tabla — por debaj
        distinta de la de fuera de banda — es justo lo que el codigo dice que no hay que fundir. */
     ['ia_vmax_td','Vmax telediast.',2,150,{},{pisoNoVota:1,pisoDice:'No gradúa (< 20'}],
     ['ia_vti_desc','VTI Ao desc.',1,100,{},{}],
-    ['ia_pisa_r','radio PISA',1,30,{ia_pisa_val:'100',ia_vmax_cw:'500'},{}],
-    ['ia_pisa_val','Valiasing',5,150,{ia_pisa_r:'10',ia_vmax_cw:'500'},{}],
-    ['ia_vmax_cw','Vmax IAo CW',50,800,{ia_pisa_r:'10',ia_pisa_val:'100'},{}],
+    ['ia_pisa_r','radio PISA',1,30,{ia_pisa_val:'100',ia_vmax_cw:'5'},{}],
+    ['ia_pisa_val','Valiasing',5,150,{ia_pisa_r:'10',ia_vmax_cw:'5'},{}],
+    ['ia_vmax_cw','Vmax IAo CW',0.5,8,{ia_pisa_r:'10',ia_pisa_val:'100'},{}],
     /* ⚠️ EXCEPCION DECLARADA — ia_vti NO SE PUEDE AISLAR por el grado: para que el Vol-R exista
        hace falta un EROA, y el EROA vota solo. Asi que fuera de banda el grado NO vuelve a 0 y la
        condicion del voto no sirve. Se observa por su propia fila derivada: el Vol-R desaparece de
@@ -44129,7 +44135,7 @@ caso('TC-354', 'IAo: los ONCE campos con banda, dirigido por tabla — por debaj
        el techo, y el DENOMINADOR del caso no existia. Queda ANOTADO como acoplamiento del codigo,
        no corregido: que el voto del Vol-R dependa de dos campos ajenos es un defecto aparte. */
     ['ia_vti','VTI del jet',20,500,
-      {ia_pisa_r:'10',ia_pisa_val:'15.9155',ia_vmax_cw:'500',ia_vc:'8',
+      {ia_pisa_r:'10',ia_pisa_val:'15.9155',ia_vmax_cw:'5',ia_vc:'8',
        diam_tsvi:'20',itv_tsvi:'20'},
       {noAisla:1,param:'Vol-R'}],
     ['diam_tsvi','Ø TSVI',5,45,{ia_jet_diam:'8'},{}],
@@ -44144,7 +44150,7 @@ caso('TC-354', 'IAo: los ONCE campos con banda, dirigido por tabla — por debaj
        sevs.length > 1, asi que sin ese voto la linea sale vacia fuera de banda y «no figura FR:»
        se cumpliria por no figurar NADA. */
     ['itv_tsvi','VTI TSVI',2,60,
-      {ia_pisa_r:'10',ia_pisa_val:'15.9155',ia_vmax_cw:'500',ia_vti:'30',diam_tsvi:'20',ia_vc:'8'},
+      {ia_pisa_r:'10',ia_pisa_val:'15.9155',ia_vmax_cw:'5',ia_vti:'30',diam_tsvi:'20',ia_vc:'8'},
       {noAisla:1,param:'FR'}]
   ];
   const corrida = (campo, comps, valor) => { __t.limpiar(); window.esqSevManual = {};
@@ -44217,7 +44223,7 @@ caso('TC-355', 'IAo: con la IAo cargada por PISA, cambiar el VTI TSVI y el O TSV
      al recalcularse el grado baja de verdad: es lo que vuelve observable el enganche. */
   const base = () => { __t.limpiar(); window.esqSevManual = {};
     __t.set('nombre','TC355');
-    __t.set('ia_pisa_r','10'); __t.set('ia_pisa_val','15.9155'); __t.set('ia_vmax_cw','500');
+    __t.set('ia_pisa_r','10'); __t.set('ia_pisa_val','15.9155'); __t.set('ia_vmax_cw','5');
     __t.set('ia_vti','200'); __t.set('ia_jet_diam','8');
     __t.set('diam_tsvi','20'); __t.set('itv_tsvi','20');
     try { calcIA_ESC(); } catch (e) {}
@@ -44285,7 +44291,7 @@ caso('TC-356', 'IAo: una fraccion regurgitante calculada por encima del 100 % no
      jet 20 cm (su piso) el VolR es 4 ml y la FR 1018 %. Ningun insumo esta fuera de banda. */
   const esc = (dt, it, vti) => { __t.limpiar(); window.esqSevManual = {};
     __t.set('nombre','TC356');
-    __t.set('ia_pisa_r','10'); __t.set('ia_pisa_val','15.9155'); __t.set('ia_vmax_cw','500');
+    __t.set('ia_pisa_r','10'); __t.set('ia_pisa_val','15.9155'); __t.set('ia_vmax_cw','5');
     __t.set('ia_vti', vti); __t.set('diam_tsvi', dt); __t.set('itv_tsvi', it);
     try { calcIA_ESC(); } catch (e) {}
     return { freg: String(__t.txt('ia-freg')), grado: __t.val('ia_grado'),
@@ -44321,7 +44327,7 @@ caso('TC-357', 'IAo: borrar un insumo LIMPIA su calc-val — el ratio, el EROA, 
   __t.limpiar(); window.esqSevManual = {};
   __t.set('nombre','TC357');
   __t.set('ia_jet_diam','8'); __t.set('diam_tsvi','20');
-  __t.set('ia_pisa_r','10'); __t.set('ia_pisa_val','15.9155'); __t.set('ia_vmax_cw','500');
+  __t.set('ia_pisa_r','10'); __t.set('ia_pisa_val','15.9155'); __t.set('ia_vmax_cw','5');
   __t.set('ia_vti','300'); __t.set('itv_tsvi','20');
   try { calcIA_ESC(); } catch (e) {}
   const leer = () => ({ ratio: String(__t.txt('ia-jet-ratio')), eroa: String(__t.txt('ia-eroa')),
@@ -46780,6 +46786,136 @@ caso('TC-432', 'El Diam. del TSVI se coordina en los DOS sentidos entre AI/VI, D
       ordenValv, onin('ea_dtsvi')],
     ['las DOS funciones compartidas por los otros cuatro campos quedaron intactas (siguen con «if (el && val)»)',
       compartidaIntacta, 'syncEADesdeValvulas/sincronizarEADesdeGlobal'],
+  ] };
+`);
+
+caso('TC-433', 'La Vmax IAo CW se carga en m/s: el MISMO paciente da el MISMO EROA que en cm/s, la banda tiene los mismos extremos fisicos y un estudio viejo en cm/s se normaliza al abrirlo', `
+  /* ia_vmax_cw paso de cm/s a m/s el 2026-10-07, con el mismo patron que it_vmax_cw el 2026-10-05:
+     la conversion va DENTRO de calcIA_ESC (el divisor de la ecuacion de PISA, porque ia_pisa_val es
+     Doppler COLOR y se queda en cm/s) y el campo guarda lo que el medico ve. Medido en HEAD: con
+     450 / 300 / 550 cm/s la EROA daba 19,1 / 11,4 / 41,6 mm². */
+  const abrir = function () {
+    try { showTab('valvulas'); } catch (e) {}
+    const sec = document.getElementById('ete-seccion-valv-aortica');
+    if (sec && sec.style.display === 'none') { try { toggleEteSeccion('valv-aortica'); } catch (e) {} }
+    ['esten','insuf'].forEach(function (t) {
+      const b = document.getElementById('pill-' + t + '-aortica');
+      if (b && !b.classList.contains('btn-primary')) toggleValvPill('aortica', t); });
+    ['caja-insuf-aortica'].forEach(function (c) {
+      const b = document.getElementById(c);
+      if (b && !b.classList.contains('valv-datos-abierto')) { try { valvDatosTog(c); } catch (e) {} } }); };
+  const T = function (id) { const e = document.getElementById(id);
+    return e ? (e.textContent || '').trim() : null; };
+  const foto = function () { return { campo: String(__t.val('ia_vmax_cw') || ''),
+    eroa: T('ia-eroa'), volr: T('ia-volr'), sev: T('ia-sev'),
+    grado: String(__t.val('ia_grado') || '') }; };
+
+  /* ── Los tres pacientes de la linea base, ahora en m/s ── */
+  const CASOS = [[6, 38, 4.5, 120, '19.1 mm²', '22.9 ml'],
+                 [4, 34, 3.0,  80, '11.4 mm²',  '9.1 ml'],
+                 [9, 45, 5.5, 150, '41.6 mm²', '62.4 ml']];
+  const vistos = CASOS.map(function (C) {
+    __t.limpiar(); abrir();
+    __t.set('nombre','TC433'); __t.set('peso','70'); __t.set('talla','170');
+    __t.set('diam_tsvi_ao','22'); __t.set('itv_tsvi','20'); __t.set('itv_ao','24');
+    __t.set('ia_pisa_r', String(C[0])); __t.set('ia_pisa_val', String(C[1]));
+    __t.set('ia_vti', String(C[3])); __t.set('ia_vmax_cw', String(C[2]));
+    const f = foto();
+    return { esperado: { eroa: C[4], volr: C[5] }, visto: f,
+             ok: f.eroa === C[4] && f.volr === C[5], ms: C[2] }; });
+
+  /* ── CONTROL NEGATIVO: tres pacientes distintos dan tres EROA distintas. Sin esto, un EROA
+     que no dependiera del campo pasaria las tres condiciones de arriba. ── */
+  const eroasDistintas = (function () { const e = vistos.map(function (x) { return x.visto.eroa; });
+    return e[0] !== e[1] && e[1] !== e[2] && e[0] !== e[2]; })();
+
+  /* ── La banda: los MISMOS extremos fisicos que el [50,800] cm/s de antes ── */
+  const banda = (function () { try { return AO_BANDA_PLAUS.ia_vmax_cw.slice(); }
+    catch (e) { return ['EXC']; } })();
+  const bandaChm = (function () { try { return CHM_RANGO.ia_vmax_cw.slice(); }
+    catch (e) { return ['EXC']; } })();
+  const bordes = {};
+  [0.4, 0.5, 8, 8.1].forEach(function (ms) {
+    __t.limpiar(); abrir();
+    __t.set('ia_pisa_r','6'); __t.set('ia_pisa_val','38'); __t.set('ia_vti','120');
+    __t.set('ia_vmax_cw', String(ms));
+    bordes[String(ms)] = foto(); });
+
+  /* ── El rotulo y el step del campo; el Valiasing de al lado NO se movio ── */
+  const rot = function (id) { const e = document.getElementById(id);
+    const l = e && e.parentNode ? e.parentNode.querySelector('label') : null;
+    return l ? l.textContent.trim().replace(/\\s+/g,' ') : null; };
+  const marcado = { lbl: rot('ia_vmax_cw'),
+    place: (document.getElementById('ia_vmax_cw')||{}).placeholder,
+    step: (document.getElementById('ia_vmax_cw')||{}).getAttribute('step'),
+    valiasingLbl: rot('ia_pisa_val'),
+    valiasingPlace: (document.getElementById('ia_pisa_val')||{}).placeholder };
+
+  /* ── El normalizador de legado como FUNCION PURA ── */
+  const norm = function (val) { const o = { ia_vmax_cw: val };
+    try { _migrarCamposLegacy(o); } catch (e) { return 'EXC ' + e.message; }
+    return o.ia_vmax_cw; };
+  const migra = { '0.5': norm('0.5'), '4.5': norm('4.5'), '8': norm('8'),
+    '50': norm('50'), '300': norm('300'), '450': norm('450'), '800': norm('800'),
+    vacio: norm(''), basura: norm('abc'), coma: norm('450,5'),
+    sinClave: (function () { const o = {}; try { _migrarCamposLegacy(o); } catch (e) {}
+      return Object.prototype.hasOwnProperty.call(o, 'ia_vmax_cw') ? 'SE CREO' : 'no se creo'; })() };
+
+  /* ── Y el factor UNICO: la conversion no esta retipeada en cuatro sitios ── */
+  const factor = (typeof CMS_POR_MS === 'number') ? CMS_POR_MS : null;
+  const usaConstante = (typeof calcIA_ESC === 'function') &&
+    String(calcIA_ESC).indexOf('CMS_POR_MS') > -1 &&
+    (typeof _migrarCamposLegacy === 'function') &&
+    String(_migrarCamposLegacy).indexOf('IA_VMAX_CW_MS_MAX') > -1;
+
+  return { extra: [
+    ['el rotulo, el placeholder y el step dicen m/s',
+      marcado.lbl === 'Vmax IAo CW (m/s)' && marcado.place === 'm/s' && marcado.step === '0.1',
+      JSON.stringify(marcado)],
+    ['⚠️ el Valiasing de al lado SIGUE en cm/s: es Doppler COLOR, no CW',
+      marcado.valiasingLbl === 'Valiasing IAo (cm/s)' && marcado.valiasingPlace === 'cm/s',
+      JSON.stringify(marcado)],
+
+    ['4,5 m/s da la MISMA EROA (19,1 mm²) y el mismo Vol-R (22,9 ml) que 450 cm/s en HEAD',
+      vistos[0].ok, JSON.stringify(vistos[0])],
+    ['3,0 m/s da los mismos 11,4 mm² / 9,1 ml que 300 cm/s',
+      vistos[1].ok, JSON.stringify(vistos[1])],
+    ['5,5 m/s da los mismos 41,6 mm² / 62,4 ml que 550 cm/s, y gradua SEVERA',
+      vistos[2].ok && vistos[2].visto.grado === '4', JSON.stringify(vistos[2])],
+    ['  CONTROL NEGATIVO: los tres pacientes dan tres EROA DISTINTAS, asi que el campo se lee',
+      eroasDistintas, JSON.stringify(vistos.map(function (x) { return x.visto.eroa; }))],
+
+    ['la banda pasa a [0,5 ; 8] m/s —los mismos extremos fisicos que [50,800] cm/s—',
+      banda[0] === 0.5 && banda[1] === 8, JSON.stringify(banda)],
+    ['y la tabla del importador de XML dice EXACTAMENTE lo mismo',
+      JSON.stringify(banda) === JSON.stringify(bandaChm),
+      'AO=' + JSON.stringify(banda) + ' CHM=' + JSON.stringify(bandaChm)],
+    ['0,4 m/s (bajo el piso) NO vota: la EROA se marca y el grado vuelve a 0',
+      bordes['0.4'].eroa.indexOf('(revisar)') > -1 && bordes['0.4'].grado === '0',
+      JSON.stringify(bordes['0.4'])],
+    ['el piso exacto 0,5 m/s SI vota',
+      bordes['0.5'].eroa.indexOf('(revisar)') === -1 && bordes['0.5'].grado !== '0',
+      JSON.stringify(bordes['0.5'])],
+    ['el techo exacto 8 m/s SI vota',
+      bordes['8'].eroa.indexOf('(revisar)') === -1 && bordes['8'].grado !== '0',
+      JSON.stringify(bordes['8'])],
+    ['8,1 m/s (sobre el techo) NO vota',
+      bordes['8.1'].eroa.indexOf('(revisar)') > -1 && bordes['8.1'].grado === '0',
+      JSON.stringify(bordes['8.1'])],
+
+    ['⚠️ un estudio guardado en cm/s se normaliza al abrirlo: 450 -> 4,5 · 300 -> 3 · 50 -> 0,5 · 800 -> 8',
+      migra['450'] === '4.5' && migra['300'] === '3' && migra['50'] === '0.5' && migra['800'] === '8',
+      JSON.stringify(migra)],
+    ['  y lo que YA esta en m/s se deja intacto, el techo 8 incluido (las dos bandas no se solapan)',
+      migra['0.5'] === '0.5' && migra['4.5'] === '4.5' && migra['8'] === '8', JSON.stringify(migra)],
+    ['  una clave ausente NO se crea y una vacia o ilegible se deja como esta',
+      migra.sinClave === 'no se creo' && migra.vacio === '' && migra.basura === 'abc',
+      JSON.stringify(migra)],
+    ['  la coma decimal del guardado viejo tambien se convierte',
+      migra.coma === '4.505', JSON.stringify(migra)],
+
+    ['el factor vive en UNA constante con nombre y los cuatro consumidores la usan',
+      factor === 100 && usaConstante, 'CMS_POR_MS=' + factor + ' usaConstante=' + usaConstante],
   ] };
 `);
 

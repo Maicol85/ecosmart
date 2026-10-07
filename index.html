@@ -4771,7 +4771,11 @@ window.cerrarSesionReal = cerrarSesionReal;
             <div>
         <div class="fg"><label>Radio PISA IAo (mm)</label><input type="number" id="ia_pisa_r" placeholder="mm" oninput="calcIA_ESC()"></div>
         <div class="fg"><label>Valiasing IAo (cm/s)</label><input type="number" id="ia_pisa_val" placeholder="cm/s" oninput="calcIA_ESC()"></div>
-        <div class="fg"><label>Vmax IAo CW (cm/s)</label><input type="number" id="ia_vmax_cw" placeholder="cm/s" oninput="calcIA_ESC()"></div>
+        <!-- ⚠️ `step="0.1"` ENTRA CON LA UNIDAD, igual que en `it_vmax_cw` y `vmax_it`: con el
+             `step` por omisión (1) el navegador marca 4,5 m/s como valor inválido y las flechas
+             del spinner mueven de 1 en 1 m/s, que sobre una banda de 0,5 a 8 es inusable.
+             El Valiasing de al lado SIGUE en cm/s: es Doppler COLOR. -->
+        <div class="fg"><label>Vmax IAo CW (m/s)</label><input type="number" id="ia_vmax_cw" placeholder="m/s" step="0.1" oninput="calcIA_ESC()"></div>
             </div>
             <div>
         <div class="fg"><label>VTI IAo (cm)</label><input type="number" id="ia_vti" placeholder="cm" oninput="calcIA_ESC()"></div>
@@ -25379,6 +25383,33 @@ function syncTSVI() {
    quedan cubiertos por las bandas de sus dos insumos y una banda propia sería un segundo dueño
    del mismo número. Agregar una entrada para un id inexistente es peor que no tenerla: parece
    cobertura y no muerde nada. */
+/* ══ LA Vmax IAo CW PASÓ DE cm/s A m/s (2026-10-07) ═════════════════════════════
+   Mismo cambio, mismo patrón y mismos tres números que la Vmax IT del 2026-10-05: es Doppler
+   CONTINUO y la regla de la app para una velocidad por CW es m/s. El Valiasing de al lado
+   (`ia_pisa_val`) SIGUE en cm/s porque es Doppler COLOR.
+
+   ⚠️ LAS TRES CONSTANTES SON UNA SOLA FUENTE PARA CUATRO LUGARES: la banda de plausibilidad de
+   abajo, el divisor de la ecuación de PISA en `calcIA_ESC`, el normalizador de legado de
+   `_migrarCamposLegacy` y la tabla de factores del importador de XML del ecógrafo (`CHM_MAPA` /
+   `CHM_RANGO`). Con el factor retipeado en cada sitio, cambiar uno y olvidar otro da un EROA cien
+   veces corrido en UNA sola de las cuatro puertas — y el número sigue pareciendo plausible.
+
+   ⚠️ EL RANGO CLÍNICO DE LA IAo NO EXIGE OTRO LÍMITE QUE EL DE LA IT, y está verificado y no
+   supuesto: la banda que este archivo ya aplicaba a `ia_vmax_cw` era `[50,800]` cm/s — o sea
+   EXACTAMENTE los mismos `[0,5 ; 8]` m/s que `vmax_it` declara para la tricuspídea. Pasar la banda
+   a m/s con los mismos extremos físicos no la hace ni más ni menos laxa: es el MISMO par de
+   números en la otra unidad. Y como `0,5-8` m/s es `50-800` cm/s, las dos bandas NO SE SOLAPAN:
+   un valor de 8 o menos sólo puede ser m/s y uno mayor sólo puede ser cm/s, así que el
+   normalizador de legado no tiene zona gris.
+   Como toda banda de esta tabla, son límites de PLAUSIBILIDAD FISIOLÓGICA y no cortes clínicos:
+   atrapan el error de un orden de magnitud, no lo clínicamente raro. Criterio EcoSmart, sin cita. */
+const CMS_POR_MS = 100;
+const IA_VMAX_CW_MS_MIN = 0.5;
+const IA_VMAX_CW_MS_MAX = 8;
+window.CMS_POR_MS = CMS_POR_MS;
+window.IA_VMAX_CW_MS_MIN = IA_VMAX_CW_MS_MIN;
+window.IA_VMAX_CW_MS_MAX = IA_VMAX_CW_MS_MAX;
+
 const AO_BANDA_PLAUS = Object.freeze({
   /* VTI de la válvula aórtica, en cm. DENOMINADOR del AVA y del DVI, así que un error de unidad
      acá no degrada el resultado: lo fabrica, y en las DOS direcciones (medido: con el VTI aórtico
@@ -25459,11 +25490,13 @@ const AO_BANDA_PLAUS = Object.freeze({
   /* Velocidad de aliasing de la IAo, en cm/s. `[5,150]` es el par EXACTO de `pisa_val` en
      `DCM_RANGO`, por lo mismo: atrapa los m/s (0,4 por 40) y el equipo llega a ~80-100. */
   ia_pisa_val: Object.freeze([5, 150]),
-  /* Vmax de la IAo por CW, en cm/s. `[50,800]` es el par EXACTO que `CHM_RANGO` ya aplica a este
-     mismo campo por el XML. DIVISOR del EROA, y el cociente `pisaVal/vmaxCW` exige que los dos
-     estén en la MISMA unidad: con la Vmax tipeada en m/s (4 por 400) el EROA sale CIEN VECES
-     mayor. Es el mismo defecto que el comentario de `im_vmax` documenta. */
-  ia_vmax_cw: Object.freeze([50, 800]),
+  /* Vmax de la IAo por CW, en **m/s** desde el 2026-10-07 (antes cm/s). `[0,5 ; 8]` son los
+     MISMOS extremos físicos que el `[50,800]` cm/s anterior — ver «LA Vmax IAo CW PASÓ DE cm/s A
+     m/s» arriba. DIVISOR del EROA, y el cociente `pisaVal/vmaxCW` exige que los dos estén en la
+     MISMA unidad: por eso `calcIA_ESC` convierte el divisor a cm/s con `CMS_POR_MS` y el campo
+     guarda lo que el médico ve. Tipear la Vmax en cm/s (400 por 4) cae fuera de banda y la fila
+     se marca en vez de dar un EROA cien veces más chico. */
+  ia_vmax_cw: Object.freeze([IA_VMAX_CW_MS_MIN, IA_VMAX_CW_MS_MAX]),
   /* VTI del jet de IAo, en cm. MULTIPLICA al EROA para dar el Vol-R, y el Vol-R da la FR: un
      error acá se propaga a tres filas. Piso 20: atrapa el VTI tipeado en metros (2 por 200), que
      hunde el Vol-R y vota «leve». Es el mismo piso que `im_itv` en `DCM_RANGO`. Techo 500 y no
@@ -28440,7 +28473,7 @@ function calcIA_ESC() {
     _aoFuera(_pVtiD,'VTI Ao desc.',     'cm'),
     _aoFuera(_pPr,  'radio PISA',       'mm'),
     _aoFuera(_pPv,  'Valiasing',        'cm/s'),
-    _aoFuera(_pVcw, 'Vmax IAo CW',      'cm/s'),
+    _aoFuera(_pVcw, 'Vmax IAo CW',      'm/s'),
     _aoFuera(_pVti, 'VTI del jet',      'cm'),
     _aoFuera(_pDts, 'Ø TSVI',           'mm'),
     _aoFuera(_pIts, 'VTI TSVI',         'cm')
@@ -28519,7 +28552,21 @@ function calcIA_ESC() {
   } else { _iaSetH('ia-vti-desc-interp', '—'); }
 
   if (pisaR && pisaVal && vmaxCW) {
-    const eroa = (2*Math.PI*(pisaR/10)**2*pisaVal/vmaxCW*100).toFixed(1);
+    /* ⚠️ LA CONVERSIÓN DE UNIDAD VA ACÁ DENTRO, NUNCA EN EL CAMPO (2026-10-07). `ia_vmax_cw` pasó
+       a m/s —es Doppler continuo y la regla de la app es m/s— pero el cociente de la ecuación de
+       PISA exige las DOS velocidades en la misma unidad, y `ia_pisa_val` es Doppler COLOR y se
+       queda en cm/s. Así que se convierte el divisor: m/s × CMS_POR_MS = cm/s. Es exactamente lo
+       que `calcIT_ESC` hace con `it_vmax_cw`, por el mismo motivo y con el mismo factor.
+       Escribir la conversión en el campo —guardar cm/s y mostrar m/s— habría puesto el número
+       convertido en el estudio guardado y la unidad real del dato dejaría de ser la que dice el
+       rótulo. El campo guarda lo que el médico ve.
+       ⚠️ LOS CORTES DE LA EROA DE LA IAo (10 y 30 mm²) NO SE TOCAN y no hay que tocarlos: el
+       resultado en mm² es idéntico al de HEAD con el mismo dato físico. Verificado con tres casos:
+       450/300/550 cm/s daban 19,1 / 11,4 / 41,6 mm² y 4,5 / 3,0 / 5,5 m/s dan los mismos tres.
+       El `× 100` del final es otra cosa y se queda: es cm² → mm², el mismo que usan las EROA de
+       la IM y de la IT. */
+    const vmaxCWcms = vmaxCW * CMS_POR_MS;
+    const eroa = (2*Math.PI*(pisaR/10)**2*pisaVal/vmaxCWcms*100).toFixed(1);
     /* ⚠️ LAS TRES FILAS DEL PISA ESTÁN ENCADENADAS —el Vol-R sale del EROA y la FR sale del
        Vol-R—, así que un insumo ilegible arriba contamina los TRES números, no uno. Marcar sólo
        la fila del campo dudoso dejaría dos derivados limpios en pantalla sostenidos por el mismo
@@ -54564,6 +54611,29 @@ function _migrarCamposLegacy(c){
       /* `String(...)` y no el número pelado: el resto del camino asigna a `.value`, que espera
          texto, y así el campo muestra «3» y no «3.0000000000000004» por el float. */
       c['it_vmax_cw'] = String(Math.round((_n / 100) * 1000) / 1000);
+    }
+  }
+  /* ══ `ia_vmax_cw` PASÓ DE cm/s A m/s EL 2026-10-07 ═════════════════════════════
+     MISMO PATRÓN, MISMA FUNCIÓN Y MISMO CORTE que el bloque de `it_vmax_cw` de arriba — su
+     comentario vale palabra por palabra y no se repite acá. Lo único propio de este campo:
+
+     · EL CORTE ES EL MISMO `8` Y NO ES UNA COINCIDENCIA: la banda que este archivo ya aplicaba a
+       `ia_vmax_cw` era `[50,800]` cm/s, o sea los MISMOS `[0,5 ; 8]` m/s que la tricuspídea
+       (`IA_VMAX_CW_MS_MAX` — ver el comentario de las constantes). Las dos bandas no se solapan,
+       así que no hay zona gris: `8` o menos sólo puede ser m/s, más de `8` sólo puede ser cm/s.
+     · QUÉ PASA SIN ESTA LÍNEA, medido: un estudio guardado con 450 cm/s se leería como 450 m/s,
+       `calcIA_ESC` lo llevaría a 45.000 cm/s y la EROA caería de 19,1 a 0,2 mm² — la IAo pasa de
+       «Moderada» a «Leve» en un informe FIRMADO.
+     · CUBRE LAS MISMAS TRES RUTAS por estar acá y no en `editarInforme`: la REIMPRESIóN llama a
+       `calcIA_ESC()` igual que llama a `calcIT_ESC()`, así que recalcula la EROA desde este campo.
+     · SE TOCA SÓLO SI LA CLAVE EXISTE Y TIENE NÚMERO: un estudio que nunca tuvo el campo se queda
+       sin él, y una cadena vacía o ilegible se deja intacta para no fabricar un valor.
+     Y, como el de arriba: NO SE REESCRIBE NADA DEL DISCO. */
+  if (Object.prototype.hasOwnProperty.call(c, 'ia_vmax_cw')) {
+    const _rawIa = String(c['ia_vmax_cw'] == null ? '' : c['ia_vmax_cw']).trim().replace(',', '.');
+    const _nIa = parseFloat(_rawIa);
+    if (_rawIa !== '' && !isNaN(_nIa) && _nIa > IA_VMAX_CW_MS_MAX) {
+      c['ia_vmax_cw'] = String(Math.round((_nIa / CMS_POR_MS) * 1000) / 1000);
     }
   }
   if (!c['tsvd_diametro'] && c['ete_shunt_tsvd'])     c['tsvd_diametro'] = c['ete_shunt_tsvd'];
@@ -86489,8 +86559,10 @@ function _dcmRed(x) {
 
    · Las unidades del GE NO son las de EcoSmart, y no en una sola dirección. El archivo
      real trae `2D/IVSd` con unidad `cm` y valor 0.6: asignarlo directo guarda un septum
-     de 0,6 mm en vez de 6 mm. Y al revés, `AR Vmax` viene en `m/s` mientras que el campo
-     `ia_vmax_cw` de la app está en cm/s (mirá su etiqueta: «Vmax IAo CW (cm/s)»).
+     de 0,6 mm en vez de 6 mm. El caso inverso lo daba `AR Vmax`, que viene en `m/s`
+     mientras que el campo `ia_vmax_cw` de la app estaba en cm/s; desde el 2026-10-07 ese
+     campo está en m/s y la unidad del GE coincide, así que su factor es 1 y el que
+     convierte es el de cm/s. El mecanismo no cambió: sigue siendo la tabla `ucum`.
      La conversión NO se hardcodea: se lee la unidad que declara CADA medición y se busca
      el factor en la tabla `ucum` del campo, igual que hace el lector de SR. Un equipo
      configurado en otra unidad convierte igual, y una unidad que no esté en la tabla
@@ -86879,9 +86951,13 @@ const CHM_MAPA = {
   // ── Doppler aórtico ──
   'AV Vmax P':          { campo:'vmax_ao' },
   'AV meanPG':          { campo:'gmedio_ao' },
-  /* `ia_vmax_cw` está en cm/s —lo dice su etiqueta en el formulario— y el GE manda m/s.
-     El factor sale de acá, no de una constante suelta. */
-  'AR Vmax':            { campo:'ia_vmax_cw', etiq:'Vmax IAo (CW)', ucum:{ 'cm/s':1, 'm/s':100 } },
+  /* `ia_vmax_cw` está en **m/s** desde el 2026-10-07 —lo dice su etiqueta en el formulario— y
+     el GE manda m/s, así que ese factor es 1 y el que convierte ahora es el de cm/s. Mismo par
+     que `vp_vmax`, el otro campo de la tabla que vive en m/s. El `1/CMS_POR_MS` no es un 0.01
+     retipeado: es la MISMA constante que usan la banda de plausibilidad, el divisor del EROA y el
+     normalizador de legado, para que las cuatro puertas no puedan desincronizarse. */
+  'AR Vmax':            { campo:'ia_vmax_cw', etiq:'Vmax IAo (CW)',
+                          ucum:{ 'cm/s':1/CMS_POR_MS, 'm/s':1 } },
   'AR PHT':             { campo:'ia_pht',     etiq:'PHT de la IAo', ucum:{ 'ms':1 } },
   // ── Doppler tricuspídeo ──
   'TR Vmax':            { campo:'vmax_it' },
@@ -86905,7 +86981,12 @@ const CHM_MAPA = {
    cambiaría el comportamiento de una vía que este trabajo no mira. */
 const CHM_RANGO = {
   ai_area:[2,80], ad_area:[2,80], vd_area_d:[2,80], vd_area_s:[1,70], avm_plan:[0.2,15],
-  ia_vmax_cw:[50,800], ia_pht:[50,1500], dt_onda_e:[5,200], dt_onda_a:[5,200],
+  /* `ia_vmax_cw` en m/s desde el 2026-10-07: el par deja de ser `[50,800]` y pasa a los MISMOS
+     extremos físicos en la otra unidad, tomados de las constantes para que esta tabla y
+     `AO_BANDA_PLAUS` no puedan decir cosas distintas sobre el mismo número. El rango se compara
+     DESPUÉS de aplicar el factor `ucum`, o sea ya en la unidad del campo. */
+  ia_vmax_cw:[IA_VMAX_CW_MS_MIN, IA_VMAX_CW_MS_MAX],
+  ia_pht:[50,1500], dt_onda_e:[5,200], dt_onda_a:[5,200],
   vp_vmax:[0.2,8]
 };
 
@@ -97234,8 +97315,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-1103';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791381811979;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-1002';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791378159113;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -97321,7 +97402,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1103</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1002</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
