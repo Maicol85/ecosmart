@@ -514,6 +514,48 @@ async function main() {
         fcGuardada: window.__P.val('hemo_fc') }); })()`));
   }
 
+  /* ══ 3bis · LOS DOS LEGADOS QUE NO SE MIGRAN ════════════════════════════════════════════════
+     (1) Un estudio importado ANTES de esta tanda, con el tiempo pulmonar guardado dentro de
+         tango_tac. No se toca: se mide como REABRE.
+     (2) Un estudio guardado con la FC fuera de banda. Tampoco se toca: se mide pantalla y PDF. */
+  const legados = JSON.parse(await ev(`(function(){
+    var out = {};
+
+    /* (1) El pulmonar quedo en tango_tac, con la Vmax y el TE aorticos del estudio. Es lo que
+       dejaba el importador viejo: 95 ms de TAP ocupando el casillero del AT aortico. */
+    window.__P.limpiar(); try { showTab('doppler') } catch(e) {}
+    window.__P.set('peso', 70); window.__P.set('talla', 170);
+    window.__P.set('vmax_ao', 4.5); window.__P.set('tango_te', 300);
+    window.__P.set('tango_tac', 95);
+    var camposViejo = window.__P.campos();
+    out.guardadoViejo = { tac: camposViejo['tango_tac'], te: camposViejo['tango_te'],
+                          vmax: camposViejo['vmax_ao'], ava: camposViejo['tango_ava_val'],
+                          tvia: camposViejo['tvia'] };
+    window.__P.reabrir(camposViejo);
+    out.reabreViejo = window.__P.tango();
+    out.reabreViejo.tvia = window.__P.val('tvia');
+    out.reabreViejo.tapInterp = window.__P.txt('tap-interp');
+
+    /* (2) FC 15 guardada. Escena con denominador: VCI + colapso para que la RVS exista. */
+    window.__P.limpiar(); try { showTab('doppler') } catch(e) {}
+    window.__P.set('peso', 70); window.__P.set('talla', 170);
+    window.__P.set('onda_e', 90); window.__P.set('e_sep', 6); window.__P.set('e_lat', 8);
+    window.__P.set('vmax_it', 3.0); window.__P.set('vti_tsvd', 15);
+    window.__P.set('vci_diam', 18); window.__P.set('vci_col', '>50');
+    window.__P.set('diam_tsvi', 20); window.__P.set('itv_tsvi', 16);
+    window.__P.set('hemo_pam', 90); window.__P.set('hemo_fc', 15);
+    try { calcPmAD(); calcHemo() } catch(e) {}
+    var camposFC = window.__P.campos();
+    out.guardadoFC = camposFC['hemo_fc'];
+    window.__P.reabrir(camposFC);
+    var h = window.__P.hemo();
+    out.reabreFC = { fcEnElCampo: window.__P.val('hemo_fc'), fcAo: window.__P.val('ao_fc'),
+                     gc: h.gc, ic: h.ic, rvs: h.rvs, refGc: h.refGc, refIc: h.refIc,
+                     forrester: h.forrester, perfil: h.perfil,
+                     pdfGc: window.__P.pdfCampo('GC'), pdfFc: window.__P.pdfCampo('FC') };
+    window.__P.limpiar();
+    return JSON.stringify(out); })()`));
+
   /* ══ 4 · PCP ════════════════════════════════════════════════════════════════════════════════ */
   const pcp = JSON.parse(await ev(`(function(){
     window.__P.escena({ peso:70, talla:170, onda_e:90, e_sep:6, e_lat:8, vmax_it:3.0,
@@ -571,7 +613,7 @@ async function main() {
   console.log(JSON.stringify({
     archivo: FARG, md5_index_antes: antes, md5_index_despues: despues,
     index_intacto: antes === despues,
-    listo, mapeo, importa, mezcla, huecos, reabrir, fc, otras, pcp, gtp, escenas,
+    listo, mapeo, importa, mezcla, huecos, reabrir, legados, fc, otras, pcp, gtp, escenas,
     sweep: JSON.parse(sweep),
   }, null, 2));
 
