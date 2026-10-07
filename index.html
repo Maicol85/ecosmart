@@ -84988,7 +84988,21 @@ const DCM_MAPA = [
   { campo:'em_vtimit',     etiq:'VTI mitral',                ucum:{ 'cm':1 },              cods:[['CM-VTIMIT','privado CeiboMed']],esq:'99CEIBOMED' },
   { campo:'itv_mitral',    etiq:'VTI mitral de entrada',     ucum:{ 'cm':1 },              cods:[['CM-VTIMITENT','privado CeiboMed']],esq:'99CEIBOMED' },
   { campo:'vci_diam',      etiq:'Diámetro VCI',              ucum:{ 'cm':10, 'mm':1 },     cods:[['CM-VCID','privado CeiboMed']],  esq:'99CEIBOMED' },
-  { campo:'tango_tac',     etiq:'Tiempo de aceleración pulmonar', ucum:{ 'ms':1 },         cods:[['CM-TACPULM','privado CeiboMed']],esq:'99CEIBOMED' },
+  /* ⚠️ EL DESTINO ES `tvia` —EL TAP DEL BLOQUE VD— Y NO `tango_tac` (2026-10-06). `tango_tac` es el
+     tiempo de aceleración AÓRTICO del índice Tango: lo consume `calcTango` junto a `tango_te` y
+     `vmax_ao`, y de ahí sale el cociente TAC/TE con su badge de severidad de estenosis aórtica. O
+     sea que el tiempo PULMONAR de un ecógrafo entraba al denominador de un grado valvular de otra
+     válvula. La etiqueta de esta misma fila lo venía diciendo —«Tiempo de aceleración pulmonar»— y
+     la banda clínica de `tango_tac` en `DCM_RANGO_CLIN` ([null,185]) también: su comentario dice
+     «el AT pulmonar llega a 185 ms». El campo correcto es `tvia`, rotulado «TAP (ms)» en VD/AD,
+     que es el que alimenta el signo indirecto de HTP (TAP < 105 ms).
+     ⚠️ `tvia` NO TIENE BANDA y queda declarado: no se le agregó entrada a `DCM_RANGO` porque esa
+     tabla se fusiona en `_labRango`, que lee `vPlaus` — y el TAP se imprime en el PDF firmado por
+     `vPdf('tvia')`, así que una banda nueva haría aparecer MARCA_REVISAR en un informe firmado.
+     Decisión de Maicol (2026-10-06): se declara la pérdida y no se agrega la banda.
+     ⚠️ `DCM_RANGO.tango_tac [10,300]` NO SE TOCA: ya no la usa el importador por este camino, pero
+     `calcTango` la consulta vía `aoPlaus` → `_labRango` para su propia plausibilidad. */
+  { campo:'tvia',          etiq:'Tiempo de aceleración pulmonar', ucum:{ 'ms':1 },         cods:[['CM-TACPULM','privado CeiboMed']],esq:'99CEIBOMED' },
   { campo:'vti_tsvd',      etiq:'VTI TSVD',                  ucum:{ 'cm':1 },              cods:[['CM-VTITSVD','privado CeiboMed']],esq:'99CEIBOMED' },
   { campo:'tsvd_diametro', etiq:'Diámetro TSVD',             ucum:{ 'cm':10, 'mm':1 },     cods:[['CM-DTSVD','privado CeiboMed']], esq:'99CEIBOMED' },
   { campo:'s_prime',       etiq:"s' tricuspídeo",            ucum:{ 'cm/s':1, 'm/s':100 }, cods:[['CM-SPRIME','privado CeiboMed']],esq:'99CEIBOMED' },
@@ -85063,8 +85077,11 @@ const DCM_ETIQ = {
   ao_tub:        ["Ao Asc","Ao asc","AAo","Ascending Aorta","AoAsc"],
   // Sin «IVC» pelado: no distingue diámetro máximo de mínimo, y de ahí sale la PmAD → PSAP.
   vci_diam:      ["IVC D","IVC diam","IVC Diameter","IVC Dmax"],
-  // Sin «AT» ni «Acc Time» pelados: también son el tiempo de aceleración aórtico y el mitral.
-  tango_tac:     ["RVOT AT","Pulm AT","PA AT","PV AT"],
+  /* Sin «AT» ni «Acc Time» pelados: también son el tiempo de aceleración aórtico y el mitral.
+     Los cuatro rótulos de acá nombran el tracto PULMONAR (RVOT, PA, PV), así que el destino es
+     `tvia` —el TAP— y no `tango_tac`, que es el AT aórtico del índice Tango. Ver la nota de esa
+     fila en `DCM_MAPA`. */
+  tvia:          ["RVOT AT","Pulm AT","PA AT","PV AT"],
   vti_tsvd:      ["RVOT VTI","RVOT TVI"],
   tsvd_diametro: ["RVOT D","RVOT diam","RVOT Diameter"]
 };
@@ -85868,7 +85885,8 @@ const CHM_MAPA = {
   'IVRT':               { campo:'triv' },
   // ── Doppler pulmonar ──
   'PV Vmax P':          { campo:'vp_vmax',   etiq:'Vmax pulmonar', ucum:{ 'cm/s':0.01, 'm/s':1 } },
-  'PV Acc Time':        { campo:'tango_tac' },
+  // Al TAP (`tvia`), no al AT aórtico del Tango. Ver la nota de la fila en `DCM_MAPA`.
+  'PV Acc Time':        { campo:'tvia' },
   // ── Shunts ──
   'Pulmonic VTI':       { campo:'vti_tsvd' },
   'Systemic VTI':       { campo:'itv_tsvi' }
@@ -86559,7 +86577,13 @@ const DCM_EXPORT = [
      eso si es una superficie que el pedido dejo fuera, y `vtim` tampoco la tuvo nunca. */
   { campo:'itv_mitral',    cod:'CM-VTIMITENT', esq:'99CEIBOMED', u:'cm',   ut:'cm',   f:1 },
   { campo:'vci_diam',      cod:'CM-VCID',    esq:'99CEIBOMED', u:'cm',     ut:'cm',   f:0.1 },
-  { campo:'tango_tac',     cod:'CM-TACPULM', esq:'99CEIBOMED', u:'ms',     ut:'ms',   f:1 },
+  /* ⚠️ EL EXPORT SE MUDÓ CON EL IMPORT, Y NO ES COSMÉTICO. Si acá quedara `tango_tac` mientras
+     `DCM_MAPA` lee `CM-TACPULM` en `tvia`, el viaje propio de EcoSmart —exportar .dcm y
+     reimportarlo— MOVERÍA el AT aórtico al campo del TAP. Un código, un campo, en las dos
+     direcciones. Consecuencia declarada: el AT aórtico (`tango_tac`) deja de viajar en el .dcm, y
+     un .dcm emitido por una versión anterior reimporta su `CM-TACPULM` —que allá llevaba el AT
+     aórtico— dentro del TAP. Se honra la etiqueta del archivo, que siempre dijo «pulmonar». */
+  { campo:'tvia',          cod:'CM-TACPULM', esq:'99CEIBOMED', u:'ms',     ut:'ms',   f:1 },
   { campo:'vti_tsvd',      cod:'CM-VTITSVD', esq:'99CEIBOMED', u:'cm',     ut:'cm',   f:1 },
   { campo:'tsvd_diametro', cod:'CM-DTSVD',   esq:'99CEIBOMED', u:'cm',     ut:'cm',   f:0.1 },
   { campo:'s_prime',       cod:'CM-SPRIME',  esq:'99CEIBOMED', u:'cm/s',   ut:'cm/s', f:1 },
@@ -96204,8 +96228,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261006-2243';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791337386509;                 /* eco-build-ms */
+const ECO_BUILD    = '20261006-2317';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791339431458;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -96291,7 +96315,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-2243</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-2317</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
