@@ -7324,8 +7324,30 @@ caso('TC-139', 'Valvula pulmonar: morfologia, EP con nivel y etiologia, IP con e
     // 7 · AUTO-GRADO sobre ep_grado.
     ['el auto-grado escribe ep_grado, no vp_morf', a25 === 'Leve' && a45 === 'Severa', a25 + ' / ' + a45],
     ['no pisa una eleccion manual', manual === 'Moderada-severa', manual],
-    ['y la capsula declara que Moderada-severa es manual',
-      capsula.indexOf('«Moderada-severa» es elección manual') > -1, capsula.slice(-90)],
+    /* ⚠️ ADAPTADO EL 2026-10-07. Esta condicion preguntaba por la frase «El auto-grado solo alcanza
+       Leve, Moderada o Severa: "Moderada-severa" es eleccion manual», que la capsula imprimia al
+       final. La frase SE BORRO —no se reescribio— porque dejo de ser cierta: desde que la <option>
+       lleva el atributo hidden, «Moderada-severa» no se puede ELEGIR por ningun gesto (el menu ▼ la filtra y el
+       desplegable nativo no la ofrece), asi que la capsula afirmaba una posibilidad inexistente justo
+       al lado del grado que se firma. El VALOR sigue siendo legible: la <option> existe, un estudio
+       migrado la trae y las cinco superficies la publican — eso lo fija TC-439 (8).
+       Lo que se prueba acá ahora es lo que la capsula SI tiene que decir: que el grado quedo fijado a
+       mano y cual era el calculado. La condicion de arriba («no pisa una eleccion manual») es la que
+       mantiene viva la razon de ser de esta escena. */
+    /* La escena escribe el select POR CODIGO, que NO dispara onchange, asi que la marca esqSevManual.ep
+       no se pone, y la capsula sale por su rama automatica — es lo que decia en HEAD tambien, solo que
+       la asercion vieja pasaba por la frase APENDICE y no por la rama. Lo que importa de esta escena
+       es que calcVP NO PISA ese valor, que es la condicion de arriba. */
+    ['la capsula sigue informando el origen del calculo',
+      capsula.indexOf('Sugerido automáticamente por Vmax 4.5 m/s') > -1, capsula.slice(-120)],
+    ['y YA NO afirma que «Moderada-severa» se pueda elegir: la opcion esta oculta',
+      capsula.indexOf('Moderada-severa') === -1
+      /* ⚠️ POR PROPIEDAD Y NO POR SELECTOR CSS: la <option> no lleva atributo value —su valor sale
+         del texto— asi que un selector option[value=...] devuelve null, y la primera version de esta
+         linea murio con «Cannot read properties of null». Ruidoso, por suerte, y no en verde. */
+      && Array.prototype.filter.call(document.getElementById('ep_grado').options,
+           function (o) { return o.value === 'Moderada-severa'; })[0].hidden === true,
+      capsula.slice(-120)],
 
     // 8 · VISIBILIDAD condicional.
     ['nivel y etiologia ocultos sin grado', ocultoEP === 'none' && ocultoIP === 'none',
@@ -48411,15 +48433,21 @@ caso('TC-395', 'El menu de severidad no lo recorta la tarjeta: las opciones de l
        ofrece dos opciones (Significativa / No significativa) donde ofrecía tres (Leve / Moderada /
        Severa): el total baja en uno. Los menús siguen siendo ocho y el comportamiento tampoco
        cambió. El número va escrito a mano a propósito: así el día que una válvula gane o pierda una
-       opción, este caso lo dice en vez de contar lo que haya. */
+       opción, este caso lo dice en vez de contar lo que haya.
+       v4 (2026-10-07): VEINTICUATRO. «Moderada-severa» salió del menú de la estenosis PULMONAR —su
+       opcion lleva el atributo hidden para que un estudio migrado la siga teniendo como VALOR sin que
+       nadie pueda elegirla, y valvSev.opciones filtra las ocultas—, así que la EP ofrece tres
+       opciones donde ofrecía cuatro. Los menús siguen siendo ocho y el comportamiento tampoco
+       cambió. Es el mismo tipo de ajuste que la v3, y el número escrito a mano hizo su trabajo:
+       este caso se puso rojo y dijo qué había cambiado. */
     ['DENOMINADOR: hay OCHO menus y ninguna opcion quedo fuera del viewport ni sin medir',
-      MENUS.length === 8 && apagados.total === 25 && apagados.fueraVP === 0 &&
-      encendidos.total === 25 && encendidos.fueraVP === 0,
+      MENUS.length === 8 && apagados.total === 24 && apagados.fueraVP === 0 &&
+      encendidos.total === 24 && encendidos.fueraVP === 0,
       'menus=' + MENUS.length + ' total=' + apagados.total + ' fueraVP=' + apagados.fueraVP + ' · ' + dg],
     /* El numero que importa: con los dos botones apagados —la tarjeta baja, que es el sintoma—
        antes se perdian TRES opciones, las tres en la aortica. Ahora, cero. */
-    ['con los dos botones APAGADOS las 25 opciones de los ocho menus son clickeables',
-      apagados.alcanzables === 25 && apagados.perdidas.length === 0, dg],
+    ['con los dos botones APAGADOS las 24 opciones de los ocho menus son clickeables',
+      apagados.alcanzables === 24 && apagados.perdidas.length === 0, dg],
     ['mientras hay un menu abierto su tarjeta deja de recortar',
       abiertos(apagados).every(function (o) { return o === 'visible'; }), dg],
     /* Sin esta mitad, un overflow:visible pelado sobre .card pasaria igual — y seria un cambio
@@ -48429,8 +48457,8 @@ caso('TC-395', 'El menu de severidad no lo recorta la tarjeta: las opciones de l
     /* CONTROL NEGATIVO: con los dos botones ENCENDIDOS la tarjeta ya era alta y el menu entraba
        solo. Ahi el arreglo no tiene nada que arreglar. Si esta condicion y la de arriba dieran
        lo mismo siempre, la sonda estaria diciendo que si a todo y no probaria nada. */
-    ['CONTROL NEGATIVO: con los dos botones ENCENDIDOS tambien estan las 25, que ya era cierto antes',
-      encendidos.alcanzables === 25, dg],
+    ['CONTROL NEGATIVO: con los dos botones ENCENDIDOS tambien estan las 24, que ya era cierto antes',
+      encendidos.alcanzables === 24, dg],
   ] };
 `);
 
@@ -51879,15 +51907,16 @@ caso('TC-422', 'Aortica y mitral: la PASTILLA es la unica fuente del grado y el 
        control es lo que lo sostiene: es la costura por valvula de \`valvSev.refrescar\`, que gatea
        por EXISTENCIA del nodo. El dia que entre, este renglon vuelve a ponerse rojo y hay que
        mirarlo, que es justo para lo que esta. */
-    ['  CONTROL NEGATIVO: la PULMONAR sigue sin texto fijo y con su <select> visible',
-      ['ip','ep'].every(function (k) { return otras[k].tag === 'SELECT' &&
-        otras[k].vis === true && otras[k].gftxt === null; }),
-      JSON.stringify(otras)],
-    /* Y la contracara, que es la mitad nueva: la tricuspide YA entro, con el select oculto y el
-       texto fijo presente. Sin esta condicion, adaptar el control de arriba habria dejado de
-       medir la tricuspide en los dos sentidos. */
-    ['  y la TRICUSPIDE ya entro: sus dos <select> estan ocultos y tienen su texto fijo',
-      ['it','et'].every(function (k) { return otras[k].tag === 'SELECT' &&
+    /* ⚠️ Y LA PULMONAR ENTRO EL 2026-10-07, ASI QUE EL CONTROL NEGATIVO SE CONVIRTIO EN SU
+       CONTRACARA — que es exactamente lo que el comentario de arriba predijo («el dia que entre,
+       este renglon vuelve a ponerse rojo y hay que mirarlo, que es justo para lo que esta»).
+       Ya no queda ninguna valvula afuera: las OCHO lesiones tienen su texto fijo y su <select>
+       oculto. El control por VALVULA se agoto, y lo que queda en su lugar es el censo COMPLETO —si
+       alguna perdiera su nodo, la costura por existencia de valvSev.refrescar la dejaria sin pintar
+       en silencio, que es el modo de falla que este renglon vigila ahora.
+       Las nueve escenas de la pulmonar las mide TC-439; las de la tricuspide, TC-430. */
+    ['  las CUATRO valvulas ya entraron: los cuatro <select> ocultos y con su texto fijo',
+      ['it','et','ip','ep'].every(function (k) { return otras[k].tag === 'SELECT' &&
         otras[k].vis === false && otras[k].gftxt !== null; }),
       JSON.stringify(otras)],
   ] };
@@ -54248,6 +54277,260 @@ caso('TC-438', 'Estenosis pulmonar: la velocidad es UN dato con DOS casillas esp
       && protesis.sev === PROT_SIN_GRADO_TXT,
       JSON.stringify([protesis.refV, protesis.refG, protesis.sev])]
   ] };
+`);
+
+
+caso('TC-439', 'Pulmonar: la PASTILLA es la unica fuente del grado y el «grado final al informe» es un texto fijo que la sigue en las DOS lesiones; «Moderada-severa» sale del menu pero un guardado que la traiga la sigue publicando', `
+  /* Cuerpo ASYNC: la escena (7) reabre un estudio por el camino real, que es asincrono. Mismo
+     envoltorio que TC-430, de donde sale la estructura entera de este caso. */
+  ${APAGA_HELPERS}
+  return (async () => {
+  const abrir = function () {
+    try { showTab('valvulas'); } catch (e) {}
+    const sec = document.getElementById('ete-seccion-valv-pulmonar');
+    if (sec && sec.style.display === 'none') { try { toggleEteSeccion('valv-pulmonar'); } catch (e) {} }
+  };
+  const apagar = function (tipo) { if (aOn('pulmonar', tipo)) toggleValvPill('pulmonar', tipo); };
+  const prender = function (tipo) { if (!aOn('pulmonar', tipo)) toggleValvPill('pulmonar', tipo); };
+
+  /* Foto de una lesion. \`coincide\` es el invariante del pedido: el texto fijo es la pastilla sin
+     el triangulito. Se compara contra la PASTILLA y no contra el select a proposito — los dos son
+     renders del mismo txt en la MISMA funcion, que es lo que los hace imposibles de desincronizar. */
+  const gf = function (tipo) {
+    const selId = tipo === 'insuf' ? 'ip_grado' : 'ep_grado';
+    const clave = tipo === 'insuf' ? 'ip' : 'ep';
+    const sel = document.getElementById(selId);
+    const fijo = document.getElementById('gftxt-' + tipo + '-pulmonar');
+    const past = document.getElementById('sevbtn-' + tipo + '-pulmonar');
+    const cs = sel ? getComputedStyle(sel) : null;
+    const fTxt = fijo ? (fijo.textContent || '').trim() : null;
+    const pTxt = past ? (past.textContent || '').trim() : null;
+    const pPelado = pTxt === null ? null
+      : pTxt.replace(/\\s*\\u25bc$/, '').replace(/^\\ud83d\\udfe1\\s*/, '');
+    const esRaya = fTxt === '-' || fTxt === '\\u2014';
+    return { sel: sel ? sel.value : null,
+             oculto: cs ? cs.display === 'none' : null,
+             tab: sel ? sel.tabIndex : null,
+             aria: sel ? sel.getAttribute('aria-hidden') : null,
+             opts: sel && sel.options ? Array.prototype.map.call(sel.options, function (o) {
+               return o.value + (o.hidden ? '[h]' : ''); }).join('|') : null,
+             fijo: esRaya ? 'RAYA' : fTxt,
+             fijoVis: fijo ? getComputedStyle(fijo).display !== 'none' : null,
+             coincide: (fijo && past) ? (esRaya ? pPelado === 'Severidad' : fTxt === pPelado) : null,
+             pill: aOn('pulmonar', tipo),
+             manual: !!(window.esqSevManual || {})[clave],
+             aviso: (aTxt(clave + '-manual-aviso') || '').trim() };
+  };
+  const F = function () { return { insuf: gf('insuf'), esten: gf('esten') }; };
+  /* Lo que el menu ▼ OFRECE de verdad: se arma el menu por el camino real y se leen sus botones. */
+  const menuDe = function (tipo) {
+    try { valvSev.menu(tipo, 'pulmonar', null); } catch (e) { return 'EXC ' + e.message; }
+    const m = document.getElementById('sevmenu-' + tipo + '-pulmonar');
+    const t = m ? Array.prototype.map.call(m.querySelectorAll('button'), function (b) {
+      return (b.textContent || '').trim(); }) : null;
+    try { document.body.click(); } catch (e) {}
+    return t;
+  };
+  /* El nivel de obstruccion y la etiologia: lo que gobierna vpSync y que NO cambia en esta tanda. */
+  const vis = function () { return { nivel: aVis('bloque-ep-detalle'), etio: aVis('bloque-ip-detalle') }; };
+
+  // ── DENOMINADOR ───────────────────────────────────────────────────────────────────────────
+  __t.nuevoEstudio(); abrir(); prender('insuf'); prender('esten');
+  const d0 = F();
+  const menuE = menuDe('esten'), menuI = menuDe('insuf');
+
+  // ── (1) CALCULO AUTOMATICO: Vmax 3,5 m/s -> 49 mmHg -> Moderada ───────────────────────────
+  __t.nuevoEstudio(); abrir();
+  __t.set('vp_vmax', '3.5');
+  const e1 = F();
+
+  // ── (2) CAMBIO MANUAL por el camino REAL, en las dos lesiones ─────────────────────────────
+  valvSev.aplicar('esten', 'pulmonar', 'Severa');
+  const e2e = F();
+  valvSev.aplicar('insuf', 'pulmonar', 'Moderada');
+  const e2i = F();
+
+  // ── (3) VOLVER AL CALCULADO ───────────────────────────────────────────────────────────────
+  valvSev.aplicar('esten', 'pulmonar', 'Moderada');
+  const e3e = F();
+
+  // ── (4) ELEGIR GRADO CON EL BOTON APAGADO: tiene que PRENDERLO ────────────────────────────
+  __t.nuevoEstudio(); abrir();
+  const e4antes = F();
+  valvSev.aplicar('esten', 'pulmonar', 'Leve');
+  const e4e = F();
+  valvSev.aplicar('insuf', 'pulmonar', 'Leve');
+  const e4i = F();
+
+  // ── (5) APAGAR: el grado se va a la raya y el centinela de CADA campo queda escrito ───────
+  apagar('esten'); const e5e = F();
+  apagar('insuf'); const e5i = F();
+
+  // ── (6) NUEVO ESTUDIO ─────────────────────────────────────────────────────────────────────
+  __t.nuevoEstudio(); abrir();
+  const e6 = F();
+
+  // ── (7) REABRIR UN GUARDADO, por el camino del medico ─────────────────────────────────────
+  __t.nuevoEstudio(); abrir(); prender('esten');
+  __t.set('nombre', 'Prueba TC-439');
+  valvSev.aplicar('esten', 'pulmonar', 'Severa');
+  valvSev.aplicar('insuf', 'pulmonar', 'Moderada');
+  const e7antes = F();
+  const gg = await __t.guardar();
+  __t.nuevoEstudio(); abrir();
+  const e7vacio = F();
+  if (gg.estudioId) __t.reabrir(gg.estudioId);
+  await new Promise(function (r) { setTimeout(r, 600); });
+  abrir();
+  const e7despues = F();
+  await __t.borrar(gg.estudioId);
+
+  /* ── (8) UN GUARDADO VIEJO CON «Moderada-severa» ──────────────────────────────────────────
+     El valor sigue EXISTIENDO como <option> (oculta), asi que el estudio reabre con el grado
+     puesto y las superficies lo siguen publicando. Si la <option> se hubiera borrado, el select
+     quedaria en selectedIndex -1 y el grado DESAPARECERIA del informe firmado. */
+  __t.nuevoEstudio(); abrir(); prender('esten');
+  __t.set('nombre', 'Prueba TC-439 legado');
+  __t.set('ep_grado', 'Moderada-severa');
+  const e8antes = F();
+  const g8 = await __t.guardar();
+  __t.nuevoEstudio(); abrir();
+  if (g8.estudioId) __t.reabrir(g8.estudioId);
+  await new Promise(function (r) { setTimeout(r, 600); });
+  abrir();
+  const e8 = F();
+  const e8inf = __t.informe();
+  const e8celda = (function () { const c = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (el) { c[el.id] = el.value; });
+    const row = _labExcelRow({ id: 0, campos: c });
+    return { ep: row['EP grado'], cols: Object.keys(row).length }; })();
+  /* Y el panel de Evidencia, que lee el select VIVO: con la <option> borrada perderia el grado. */
+  const e8evid = (typeof _indS === 'function') ? _indS('ep_grado') : 'SIN _indS';
+  await __t.borrar(g8.estudioId);
+
+  // ── (9) NINGUN GESTO LOS DESINCRONIZA ─────────────────────────────────────────────────────
+  const gestos = []; 
+  const paso = function (nombre, fn) {
+    try { fn(); } catch (e) {}
+    const f = F();
+    gestos.push({ g: nombre, i: f.insuf.coincide, e: f.esten.coincide,
+                  det: f.insuf.sel + '/' + f.insuf.fijo + ' :: ' + f.esten.sel + '/' + f.esten.fijo });
+  };
+  __t.nuevoEstudio(); abrir();
+  paso('limpio', function () {});
+  paso('escribir los select POR CODIGO sin eventos', function () {
+    document.getElementById('ip_grado').value = 'Severa';
+    document.getElementById('ep_grado').value = 'Leve'; });
+  paso('y despachar change a mano', function () {
+    ['ip_grado', 'ep_grado'].forEach(function (id) {
+      document.getElementById(id).dispatchEvent(new Event('change', { bubbles: true })); }); });
+  paso('calculo automatico encima', function () { __t.set('vp_vmax', '4.5'); });
+  paso('apagar las dos pastillas', function () { apagar('insuf'); apagar('esten'); });
+  paso('prenderlas de nuevo', function () { prender('insuf'); prender('esten'); });
+  paso('valvSev.limpiar en las dos', function () {
+    valvSev.limpiar('insuf', 'pulmonar'); valvSev.limpiar('esten', 'pulmonar'); });
+  paso('refrescarTodo', function () { valvSev.refrescarTodo(); });
+  paso('_recalcModulos', function () { _recalcModulos('TC-439'); });
+  paso('nuevo estudio', function () { __t.nuevoEstudio(); });
+  const desinc = gestos.filter(function (x) { return x.i !== true || x.e !== true; });
+
+  // ── (10) EL NIVEL Y LA ETIOLOGIA siguen apareciendo por el mismo camino que en HEAD ────────
+  __t.nuevoEstudio(); abrir();
+  const visSin = vis();
+  __t.set('ep_grado', 'Moderada'); __t.set('ip_grado', 'Moderada'); vpSync();
+  const visCon = vis();
+  __t.nuevoEstudio();
+
+  return { extra: [
+    // 0 - DENOMINADOR
+    ['denominador: los DOS nodos de texto fijo existen y se ven',
+      d0.insuf.fijo !== null && d0.esten.fijo !== null
+      && d0.insuf.fijoVis === true && d0.esten.fijoVis === true, JSON.stringify(d0)],
+    ['los dos <select> estan OCULTOS, fuera del Tab y con aria-hidden',
+      d0.insuf.oculto === true && d0.esten.oculto === true
+      && d0.insuf.tab === -1 && d0.esten.tab === -1
+      && d0.insuf.aria === 'true' && d0.esten.aria === 'true',
+      JSON.stringify({ i: d0.insuf, e: d0.esten })],
+    ['pero NO se borraron, y «Moderada-severa» sigue siendo una <option> (oculta)',
+      d0.insuf.opts === 'Sin insuficiencia|Leve|Moderada|Severa'
+      && d0.esten.opts === 'sin|Leve|Moderada|Moderada-severa[h]|Severa',
+      d0.insuf.opts + ' // ' + d0.esten.opts],
+    ['el menu ▼ de la estenosis ofrece Leve/Moderada/Severa y NO «Moderada-severa»',
+      Array.isArray(menuE) && menuE.join('|') === 'Leve|Moderada|Severa', JSON.stringify(menuE)],
+    ['y el de la insuficiencia, Leve/Moderada/Severa',
+      Array.isArray(menuI) && menuI.join('|') === 'Leve|Moderada|Severa', JSON.stringify(menuI)],
+
+    // (1)
+    ['(1) el calculo automatico pinta pastilla y texto fijo iguales — EP moderada',
+      e1.esten.sel === 'Moderada' && e1.esten.fijo === 'Moderada' && e1.esten.coincide === true
+      && e1.esten.pill === true, JSON.stringify(e1.esten)],
+    // (2)
+    ['(2) el cambio manual arrastra el texto fijo y levanta el aviso de discrepancia — EP',
+      e2e.esten.sel === 'Severa' && e2e.esten.fijo === 'Severa' && e2e.esten.coincide === true
+      && e2e.esten.manual === true && e2e.esten.aviso !== '', JSON.stringify(e2e.esten)],
+    ['(2) y en la insuficiencia el texto fijo tambien lo sigue',
+      e2i.insuf.sel === 'Moderada' && e2i.insuf.fijo === 'Moderada' && e2i.insuf.coincide === true,
+      JSON.stringify(e2i.insuf)],
+    // (3)
+    ['(3) volver al calculado deja el texto fijo en el valor del calculo y sin aviso',
+      e3e.esten.fijo === 'Moderada' && e3e.esten.coincide === true && e3e.esten.aviso === '',
+      JSON.stringify(e3e.esten)],
+    // (4)
+    ['DENOMINADOR: con el formulario limpio las dos pastillas estan apagadas y el texto en raya',
+      e4antes.insuf.pill === false && e4antes.esten.pill === false
+      && e4antes.insuf.fijo === 'RAYA' && e4antes.esten.fijo === 'RAYA', JSON.stringify(e4antes)],
+    ['(4) elegir un grado con el boton apagado lo PRENDE, en las dos lesiones',
+      e4e.esten.pill === true && e4e.esten.fijo === 'Leve'
+      && e4i.insuf.pill === true && e4i.insuf.fijo === 'Leve',
+      JSON.stringify({ e: e4e.esten, i: e4i.insuf })],
+    // (5)
+    ['(5) apagar borra el grado y escribe el centinela de CADA campo (sin / Sin insuficiencia)',
+      e5e.esten.fijo === 'RAYA' && e5e.esten.sel === 'sin' && e5e.esten.pill === false
+      && e5i.insuf.fijo === 'RAYA' && e5i.insuf.sel === 'Sin insuficiencia' && e5i.insuf.pill === false,
+      JSON.stringify({ e: e5e.esten, i: e5i.insuf })],
+    // (6)
+    ['(6) «Nuevo estudio» devuelve los dos a la raya y borra las marcas',
+      e6.insuf.fijo === 'RAYA' && e6.esten.fijo === 'RAYA'
+      && e6.insuf.manual === false && e6.esten.manual === false
+      && e6.insuf.coincide === true && e6.esten.coincide === true, JSON.stringify(e6)],
+    // (7)
+    ['DENOMINADOR del guardado: se guardo de verdad y el formulario quedo vacio',
+      gg.ok === true && !!gg.estudioId
+      && e7vacio.insuf.fijo === 'RAYA' && e7vacio.esten.fijo === 'RAYA',
+      JSON.stringify({ gg: gg, vacio: e7vacio })],
+    ['(7) reabrir un guardado repone el grado Y el texto fijo en las dos lesiones',
+      e7despues.esten.sel === 'Severa' && e7despues.esten.fijo === 'Severa'
+      && e7despues.insuf.sel === 'Moderada' && e7despues.insuf.fijo === 'Moderada'
+      && e7despues.esten.coincide === true && e7despues.insuf.coincide === true,
+      'antes=' + JSON.stringify(e7antes) + ' despues=' + JSON.stringify(e7despues)],
+    // (8) el guardado viejo con Moderada-severa
+    ['DENOMINADOR: el grado «Moderada-severa» se pudo ESCRIBIR y guardar',
+      e8antes.esten.sel === 'Moderada-severa' && g8.ok === true,
+      JSON.stringify({ antes: e8antes.esten, g8: g8 })],
+    ['(8) un guardado con «Moderada-severa» reabre con el grado INTACTO',
+      e8.esten.sel === 'Moderada-severa', JSON.stringify(e8.esten)],
+    ['(8) el informe firmado y el EN SUMA lo siguen publicando',
+      e8inf.inf.indexOf('estenosis moderada-severa') > -1
+      && e8inf.suma.indexOf('EP moderada-severa.') > -1,
+      recorteJS(e8inf.inf) + ' // ' + recorteJS(e8inf.suma)],
+    ['(8) el Excel tambien, y sigue en 434 columnas',
+      e8celda.ep === 'Moderada-severa' && e8celda.cols === 434, JSON.stringify(e8celda)],
+    ['(8) y el panel de Evidencia, que lee el select VIVO, no lo pierde',
+      e8evid === 'Moderada-severa', String(e8evid)],
+    /* La pastilla y el texto fijo dicen «Moderada» porque \`corto()\` recorta al primer grado que
+       matchea — eso es lo que HEAD ya hacia con la pastilla, no cambio con esta tanda. */
+    ['(8) la pastilla y el texto fijo coinciden entre si incluso con ese grado',
+      e8.esten.coincide === true, JSON.stringify(e8.esten)],
+    // (9)
+    ['(9) NINGUNO de los diez gestos desincroniza la pastilla del texto fijo',
+      desinc.length === 0, JSON.stringify(gestos)],
+    // (10)
+    ['(10) el nivel y la etiologia siguen colgando del grado, igual que en HEAD',
+      visSin.nivel === false && visSin.etio === false
+      && visCon.nivel === true && visCon.etio === true,
+      JSON.stringify({ sin: visSin, con: visCon })]
+  ] };
+  })();
 `);
 
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);

@@ -5466,12 +5466,39 @@ window.cerrarSesionReal = cerrarSesionReal;
                desarmarlo con `replace(/^IP\s*/i,'')` para no escribir «insuficiencia pulmonar IP
                moderada», y «fisiológica» era una ETIOLOGÍA metida dentro del grado — ahora vive
                en `ip_etiologia`. Los valores viejos los traduce `_migrarCamposLegacy`. -->
-          <select id="ip_grado" style="min-width:180px;" onchange="ipGradoManual()">
+          <!-- ═══ TEXTO FIJO — EL `<select>` SE OCULTA PERO NO SE BORRA (2026-10-07, Maicol) ═════
+               La pastilla «Severidad ▼» es la ÚNICA forma de definir el grado, así que esto MUESTRA
+               el grado y no lo elige. Mismo criterio que la aórtica, la mitral y la tricúspide.
+               ⚠️ SE OCULTA Y **NO** SE BORRA, igual que `it_grado`/`et_grado` y por el mismo motivo:
+               `ip_grado` es el nodo ÚNICO —no hay un `ip_sev_final` aparte—, y es el mismo que leen
+               el informe narrativo, el EN SUMA, el PDF, el PPT, el Excel, el Laboratorio, el módulo
+               de Fallot (`_tdfSv('ip_grado')`) y `_ccS('ip_grado')`. Borrarlo sería borrar el dato.
+               ⚠️ Y SUS `<option>` SIGUEN SIENDO EL VOCABULARIO: `valvSev.opciones('insuf','pulmonar')`
+               los lee del propio `<select>` —es la ÚNICA insuficiencia que no usa `INSUF_OPTS`, por
+               ser de texto y no numérica— y la tarjeta de revisión previa al PDF lo clona por
+               `el.innerHTML` (`CLONADOS`). Un `<select>` vacío o ausente dejaría el menú ▼ de la IP
+               sin opciones y la tarjeta del PDF con una raya.
+               `display:none` + `aria-hidden` + `tabindex="-1"`, calcado de `em_grado`, `ea_grado`,
+               `it_grado` y `et_grado`. `cloneSel` reconstruye el `<select>` de la tarjeta del PDF con
+               su propio `style`, así que no hereda el `display:none`.
+               ⚠️ EL `onchange` SE QUEDA. `valvSev.aplicar` despacha `change` sobre este nodo, y de ahí
+               cuelga `ipGradoManual` —que prende la pastilla y repinta la etiología—; sacarlo cambiaría
+               ese camino. -->
+          <select id="ip_grado" style="min-width:180px;display:none;" onchange="ipGradoManual()"
+                  aria-hidden="true" tabindex="-1">
             <option value="Sin insuficiencia">&mdash; grado &mdash;</option>
             <option>Leve</option>
             <option>Moderada</option>
             <option>Severa</option>
           </select>
+          <!-- ⚠️ EL TEXTO FIJO LO PINTA `valvSev.refrescar` Y NO HAY UNA LÍNEA DE JS NUEVA: esa
+               función ya escribe `gftxt-<tipo>-<valv>` con el id DERIVADO y gateado por EXISTENCIA del
+               nodo, así que crear este div es todo lo que hace falta — es literalmente lo que su
+               comentario predijo («la PULMONAR sigue afuera: no tiene `gftxt-*`… se saca de a una»).
+               La pastilla y este texto son dos renders del MISMO `txt`, de UNA sola lectura de UN solo
+               nodo, en UNA sola función: el pedido «que no exista ningún gesto que los desincronice»
+               queda cumplido por construcción y no por cobertura. -->
+          <div id="gftxt-insuf-pulmonar" class="valv-gf-fijo" aria-readonly="true">&mdash;</div>
         </div>
       </div>
       </div><!-- fin bloque-insuf-pulmonar -->
@@ -5503,13 +5530,32 @@ window.cerrarSesionReal = cerrarSesionReal;
           <input type="text" id="ep_fund_nota" maxlength="100" placeholder="Ej.: gradiente dudoso, ventana sub&oacute;ptima" style="width:100%;">
         </div>
       <div class="fg"><label>Estenosis pulmonar <span style="font-weight:400;color:var(--text2);font-size:10px;">&mdash; grado final: es el que va al informe</span></label>
-        <select id="ep_grado" onchange="epGradoManual()">
+        <!-- ═══ TEXTO FIJO — EL `<select>` SE OCULTA PERO NO SE BORRA (2026-10-07, Maicol) ═══════
+             Hermano exacto de `gftxt-insuf-pulmonar`: ver su comentario. Acá el vocabulario del menú ▼
+             SALE de estos `<option>` (`valvSev.opciones('esten','pulmonar')` los lee y los filtra por
+             `esGrado`, que descarta el centinela `'sin'`), así que importa más que en la IP.
+             ⚠️ «Moderada-severa» LLEVA `hidden` Y NO SE BORRA, Y ESA ES LA DIFERENCIA CON LA
+             TRICÚSPIDE. Allá el `<option value="3">` se eliminó, y se pudo porque ningún estudio
+             guardado lo traía como valor de fábrica. Acá sí lo hay: `_migrarCamposLegacy` TRADUCE
+             «Estenosis moderada/severa» del `vp_morf` viejo a `ep_grado:'Moderada-severa'`, así que
+             todo estudio migrado con ese grado lo tiene en disco. Borrando la `<option>`, ese estudio
+             reabre con el `<select>` en `selectedIndex -1` —`.value` vacío—, el grado DESAPARECE del
+             informe firmado y del EN SUMA, y el panel de Evidencia (que lee el select VIVO) lo pierde
+             también. Con `hidden` el valor sigue existiendo, se selecciona al reabrir, las cinco
+             superficies lo siguen leyendo igual y `_labXlsAssertListas` —que compara contra TODAS las
+             `<option>`, visibles o no— sigue callado: `LAB_XLS_LISTAS.ep_grado` no se toca.
+             Lo que `hidden` SÍ quita es que se pueda ELEGIR: Chrome excluye la opción oculta del
+             desplegable nativo y de la tarjeta de revisión previa al PDF (que clona este `innerHTML`),
+             y `valvSev.opciones` la filtra. O sea: sale del menú ▼ y de lo ofrecible, y sigue siendo
+             legible. Medido en los dos lados. -->
+        <select id="ep_grado" onchange="epGradoManual()" style="display:none;" aria-hidden="true" tabindex="-1">
           <option value="sin">&mdash; grado &mdash;</option>
           <option>Leve</option>
           <option>Moderada</option>
-          <option>Moderada-severa</option>
+          <option hidden>Moderada-severa</option>
           <option>Severa</option>
         </select>
+        <div id="gftxt-esten-pulmonar" class="valv-gf-fijo" aria-readonly="true">&mdash;</div>
         <div id="vp-sev-badge" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
       </div>
       <!-- Nivel y etiología sólo con estenosis consignada: preguntarle al médico la etiología de
@@ -29991,11 +30037,16 @@ function calcVP() {
   const opcionSel = Object.prototype.hasOwnProperty.call(_EP_AUTO, opcion) ? _EP_AUTO[opcion] : null;
   if (_pisable && opcionSel !== null) { sel.value = opcionSel; sel.dataset.sugerido = opcionSel; }
   if (typeof vpSync === 'function') vpSync();
-  /* LA BANDA «Moderada-severa» NO LA PRODUCE EL AUTO-GRADO Y LA CÁPSULA LO DICE. `epGradoPorGmax`
-     tiene TRES bandas de estenosis (leve <36 · moderada 36-64 · severa >64 mmHg, ESC/ASE) y el
-     select tiene cuatro. Partir la banda 36-64 exigiría un corte que ninguna guía publica, y el
-     informe lo citaría al lado de «ESC/ASE». Queda para elección manual, declarado en pantalla
-     para que su ausencia no se lea como que el cálculo la descartó. */
+  /* ⚠️ LA CÁPSULA YA NO DECLARA «Moderada-severa», Y ES UN BORRADO, NO UNA FRASE NUEVA (2026-10-07).
+     Decía: «El auto-grado sólo alcanza Leve, Moderada o Severa: "Moderada-severa" es elección
+     manual.» Eso era cierto mientras la opción se podía elegir; desde que lleva `hidden` no hay
+     NINGÚN gesto que la produzca, así que la frase afirmaba una posibilidad inexistente justo al lado
+     del grado que se firma. El razonamiento original sigue valiendo y se conserva acá: `epGradoPorGmax`
+     tiene TRES bandas de estenosis (leve <36 · moderada 36-64 · severa >64 mmHg, ESC/ASE) y partir la
+     banda 36-64 exigiría un corte que ninguna guía publica. Lo que cambió es que ya no hace falta
+     advertir en pantalla que el cálculo no la produce: nada la produce.
+     El valor sigue siendo legible —la `<option>` existe— así que un estudio migrado que la traiga
+     imprime «EP moderada-severa.» igual que en HEAD. Lo fija TC-139. */
   /* ⚠️ v2 (E2c): el texto del badge se decide con la marca manual TAL COMO QUEDÓ tras `vpSync`
      —que llama a `sevSincronizar('ep')`, el cual puede SOLTAR la marca (R6) cuando el calculado
      cambió—. Antes se usaba `_pisable`, foto de ANTES del release: el badge decía «se respeta la
@@ -30005,8 +30056,7 @@ function calcVP() {
   const _epManualAun = !!(window.esqSevManual && window.esqSevManual.ep);
   if (badgeEl) badgeEl.textContent = (!_epManualAun
     ? `Sugerido automáticamente por ${origen}. Podés cambiarlo manualmente si lo creés necesario.`
-    : `Por ${origen} correspondería «${opcion}», pero se respeta la opción elegida a mano.`)
-    + ' El auto-grado sólo alcanza Leve, Moderada o Severa: «Moderada-severa» es elección manual.';
+    : `Por ${origen} correspondería «${opcion}», pero se respeta la opción elegida a mano.`);
   /* v2 (E5b-0 punto 2): grado de EP graduable → prende el botón de estenosis pulmonar en el momento
      del cálculo, igual que la aórtica y la mitral, respetando el apagado manual. */
   if (typeof valvAutoPrenderEsten === 'function') valvAutoPrenderEsten('pulmonar');
@@ -30062,6 +30112,18 @@ function vpSync(){
   /* v2 (E2c): repinta el aviso de discrepancia de la EP (registro `ep`). Inerte si no hay marca
      manual. NO recursa: `ep.trasEscribir` del registro no llama a vpSync. */
   if (typeof sevSincronizar === 'function') { try { sevSincronizar('ep'); } catch (e) {} }
+  /* ⚠️ Y LA PASTILLA DE LA IP A MANO, PORQUE TODAVÍA NO ESTÁ EN EL REGISTRO (2026-10-07). La
+     ESTENOSIS pulmonar se repinta sola: `sevSincronizar('ep')` llama a `valvSev.refrescar` en su
+     cola. La INSUFICIENCIA no está en `SEV_SINC`, así que nadie la repintaba desde las rutas de
+     restauración —que reponen el campo con `.value` y no disparan eventos— ni desde `limpiarCampos`.
+     Medido por TC-439 (7) al escribir el texto fijo: reabrir un estudio guardado con «IP moderada»
+     dejaba `ip_grado` en «Moderada» y el texto fijo en la RAYA, o sea el grado en el dato y una raya
+     en la pantalla. En HEAD el síntoma no existía porque no había texto fijo que pudiera quedar
+     viejo; crearlo lo destapó, así que se cierra en el mismo commit que lo destapa.
+     `vpSync` es el lugar porque está en `RECALC_MODULOS` Y al final de `limpiarCampos`, que son las
+     dos columnas. Queda provisorio: cuando la IP entre al registro, `sevSincronizar('ip')` hace esto
+     y además pinta el aviso y el cajón, y esta línea se reemplaza por aquélla. */
+  if (window.valvSev) { try { window.valvSev.refrescar('insuf', 'pulmonar'); } catch (e) {} }
 }
 window.vpSync = vpSync;
 /* v2 (E2c): elegir un grado de EP A MANO en el desplegable lo marca como manual —como `emGradoManual`
@@ -55668,19 +55730,26 @@ window.valvSev = (function(){
      del <select>, descartando el placeholder «— grado —» por su valor-centinela. «Esclerosis»
      (aórtica) y «Moderada-severa» (pulmonar EP) se conservan como antes. */
   const NO_GRADO = ['', 'sin', '0', 'Sin estenosis', 'Sin insuficiencia'];
-  const esGrado = o => NO_GRADO.indexOf(o.v) === -1;
+  /* ⚠️ UNA `<option>` OCULTA NO ES UNA OPCIÓN DEL MENÚ (2026-10-07). El menú ▼ de las estenosis y
+     el de la IP se arman leyendo las `<option>` del `<select>`, y desde que «Moderada-severa» de
+     `ep_grado` lleva `hidden` —para que un estudio migrado la siga teniendo como VALOR sin que nadie
+     pueda ELEGIRLA— hay que filtrarla acá también: si no, el desplegable nativo no la ofrecía y el ▼
+     sí, que son dos menús del mismo campo diciendo cosas distintas.
+     Es ADITIVO: hoy es la única `<option[hidden]>` del archivo (censo: cero antes de esta tanda), así
+     que para los otros cinco menús este término es `false` y no cambia nada. Verificado en el A/B. */
+  const esGrado = o => NO_GRADO.indexOf(o.v) === -1 && !o.h;
   function opciones(tipo, valv){
     if (tipo === 'insuf') {
       if (valv === 'pulmonar') {
         const sel = g('ip_grado');
         if (sel && sel.options && sel.options.length)
-          return Array.from(sel.options).map(o => ({ v:o.value, t:o.textContent.trim() })).filter(esGrado);
+          return Array.from(sel.options).map(o => ({ v:o.value, t:o.textContent.trim(), h:o.hidden })).filter(esGrado);
       }
       return INSUF_OPTS.slice();
     }
     const sel = g(CAMPO.esten[valv]);
     if (!sel || !sel.options) return [];
-    return Array.from(sel.options).map(o => ({ v:o.value, t:o.textContent.trim() })).filter(esGrado);
+    return Array.from(sel.options).map(o => ({ v:o.value, t:o.textContent.trim(), h:o.hidden })).filter(esGrado);
   }
 
   function cerrarMenus(){
@@ -97810,8 +97879,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-1559';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791399557358;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-1628';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791401315349;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -97897,7 +97966,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1559</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1628</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
