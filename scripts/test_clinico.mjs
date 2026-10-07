@@ -33039,10 +33039,23 @@ caso('TC-287', 'AVA, AVAi y DVI aorticos son UN solo calculo: identicos en Valvu
          «ava_cont», «ea_ava_display», «ea_dvi_display», «ava-idx» y los tres del TAVI siguen
          barridos, y un campo DERIVADO nuevo que sea tipeable sigue cayendo aca.
          Lo que ava_plan NO hace esta fijado aparte, por TC-369: no vota el grado, no esta en
-         «EA_GRADO_INSUMOS» y no tiene columna en el Excel. */
+         «EA_GRADO_INSUMOS» y no tiene columna en el Excel.
+
+         ⚠️ CONTRATO EXTENDIDO EL 2026-10-06 (Doppler aortico en cinco columnas): «ava_plan_dop»
+         entra a la misma excepcion, y NO es una excepcion nueva — es el MISMO dato. El AVA por
+         planimetria paso a tener dos campos espejados («ava_plan» en Valvulas y «ava_plan_dop» en
+         el Doppler aortico, ver «avaPlanSync»), igual que la Vmax IT tiene «vmax_it» e
+         «it_vmax_cw». Si se tipea cualquiera de los dos es porque el medico lo midio sobre la
+         imagen: no hay nada que lo derive.
+         Esta condicion lo cazo al correr la suite —la primera version de la tanda dejaba el campo
+         nuevo dentro del barrido y el caso se puso ROJO—, que es exactamente para lo que el barrido
+         existe. Lo que defiende sigue intacto: «ava_cont», «ea_ava_display», «ea_dvi_display»,
+         «ava-idx» y los tres del TAVI siguen barridos. Y «tango_ava_val» —campo NUEVO de esta
+         tanda, el indice AVA de Tango— entra readonly, asi que pasa la condicion SIN excepcion:
+         es un derivado y se comporta como tal. */
       const tipeables = [].slice.call(document.querySelectorAll('input'))
         .filter(function(e){ return /dvi|ava/i.test(e.id) &&
-          e.id !== 'ava_plan' &&
+          e.id !== 'ava_plan' && e.id !== 'ava_plan_dop' &&
           !/^(vm_|vt_|vp_|tep_|rwt|evol|cx_)|shunt/.test(e.id); })
         .filter(function(e){ return !e.readOnly; })
         .map(function(e){ return e.id; });
@@ -51697,6 +51710,210 @@ caso('TC-423', 'Valvulas, pantalla: en el celular los campos de cada lesion arra
       !!regla && regla.prio === 'important', regla ? JSON.stringify(regla) : '(no se encontro la regla @media 769px)'],
     ['CONTROL NEGATIVO: la mitral y la pulmonar NO reciben cajon de campos',
       sinCaja.length === 0, 'cajas ajenas: [' + sinCaja.join(',') + ']'],
+  ] };
+`);
+
+/* ══ DOPPLER AORTICO EN CINCO COLUMNAS, CUADRO EN DOS Y FC/PAS/PAD — TC-424 ══════════════════
+   Los cuatro titulos, el Tab por columna, la PAM calculada con su regla de precedencia, los dos
+   espejos, las tres filas de borde del cuadro (TAC/TE, VLI y FEVI) y «Nuevo estudio».
+
+   ⚠️ DENOMINADOR EN CADA BLOQUE, porque es la forma en que este archivo ya se mintio varias veces:
+   una fila de un cuadro que no se pinto, un campo dentro de un contenedor con display:none o un
+   calculo que salio temprano devuelven «vacio» y la asercion de «no dice nada» pasa sola. Antes de
+   preguntar si el comentario del TAC/TE NO esta, se comprueba que la fila tenga el VALOR.
+
+   ⚠️ EL BORDE DEL VLI SE FIJA POR EL VS Y NO POR EL VTI: 35,000 ml/m2 exactos no caen en ningun
+   VTI redondo. Se siembra vs_calc = k x ASC sin eventos —para que calcAo no lo reescriba— y se
+   llama al pintor. Con un barrido por VTI las escenas daban todas BAJO FLUJO y la rama de flujo
+   normal no se probaba: eso lo midio la sonda de la tanda antes de que este caso existiera. */
+caso('TC-424', 'Doppler aortico: los cuatro titulos, el Tab baja por columna salteando los calculados, la PAM sale de PAS/PAD sin pisar la tipeada a mano, la FC y la AVA por planimetria se espejan en los dos sentidos, y el cuadro marca TAC/TE >0,35 · VLI <=35 · FEVI <50', `
+  const g = function (id) { return document.getElementById(id); };
+  const T = function (id) { const e = g(id); return e ? e.textContent.trim().replace(/\\s+/g,' ') : 'NO ' + id; };
+  const H = function (id) { const e = g(id); return e ? e.innerHTML : 'NO ' + id; };
+  const seed = function (id, v) { const e = g(id); if (!e) return 'NO ' + id; e.value = String(v); return e.value; };
+  const reset = function () { __t.nuevoEstudio(); try { showTab('doppler'); } catch (e) {}
+    ['dop-mitral','dop-aortico','dop-tricusp','dop-pulmonar'].forEach(function (id) {
+      const s = g(id); if (s && s.style.display === 'none') { try { toggleCard(id, null); } catch (e) {} } });
+    return 1; };
+  reset();
+
+  /* ── 1 · Los cuatro titulos, exactos ───────────────────────────────────────────────────── */
+  const titulo = function (id) {
+    const h = document.querySelector('[onclick*="' + id + '"]');
+    if (!h) return 'SIN CABECERA ' + id;
+    return (h.textContent || '').replace(/[\\u25b6\\u25bc]/g, '').replace(/\\uD83E\\uDDED/g, '')
+      .replace(/Algoritmo/, '').replace(/\\s+/g, ' ').trim(); };
+  const tits = { m: titulo('dop-mitral'), a: titulo('dop-aortico'),
+                 t: titulo('dop-tricusp'), p: titulo('dop-pulmonar') };
+
+  /* ── 2 · Tab: baja por columna y saltea los calculados ─────────────────────────────────── */
+  const tabAo = (function () {
+    const c = document.querySelector('#dop-aortico .ao-cols-5');
+    if (!c) return { err: 'SIN .ao-cols-5' };
+    const vis = function (n) { while (n && n.nodeType === 1) {
+      if (getComputedStyle(n).display === 'none') return false; n = n.parentNode; } return true; };
+    const todos = [].slice.call(c.querySelectorAll('input,select,textarea,button,a[href]'));
+    return { visita: todos.filter(function (e) {
+               return vis(e) && !e.disabled && e.getAttribute('tabindex') !== '-1'; })
+                      .map(function (e) { return e.id; }),
+             saltea: todos.filter(function (e) { return e.getAttribute('tabindex') === '-1'; })
+                      .map(function (e) { return e.id; }),
+             cols: [].slice.call(c.children).length }; })();
+
+  /* ── 3 · PAM = PAD + (PAS-PAD)/3, y la precedencia de lo tipeado a mano ────────────────── */
+  const pam = function (pas, pad) { reset();
+    if (pas !== null) __t.set('ao_pas', pas);
+    if (pad !== null) __t.set('ao_pad', pad);
+    return { hemo: __t.val('hemo_pam'), fila: T('ao-ref-pam') }; };
+  const p11065 = pam(110, 65);
+  const pIgual = pam(90, 90);
+  const pMenor = pam(60, 90);
+  const pSolo  = pam(110, null);
+  /* El medico tipea la PAM y DESPUES carga PAS/PAD: no se pisa. */
+  const pManual = (function () { reset(); __t.set('hemo_pam', 105);
+    __t.set('ao_pas', 110); __t.set('ao_pad', 65);
+    return { hemo: __t.val('hemo_pam'), aviso: T('hemo-pam-auto') }; })();
+  /* La app llena, el medico corrige, y un cambio posterior de PAS tampoco lo pisa. */
+  const pCorrige = (function () { reset(); __t.set('ao_pas', 110); __t.set('ao_pad', 65);
+    const auto = __t.val('hemo_pam');
+    __t.set('hemo_pam', 95); __t.set('ao_pas', 140);
+    return { auto: auto, despues: __t.val('hemo_pam') }; })();
+
+  /* ── 4 · Espejos de la FC y de la AVA por planimetria, en los dos sentidos ─────────────── */
+  const esp = function (escribir, valor) { reset(); __t.set(escribir, valor);
+    return { fc: __t.val('ao_fc'), hemo_fc: __t.val('hemo_fc'),
+             dop: __t.val('ava_plan_dop'), valv: __t.val('ava_plan') }; };
+  const fcIda   = esp('ao_fc', 72);
+  const fcVuelta= esp('hemo_fc', 58);
+  const fcBorra = (function () { reset(); __t.set('hemo_fc', 80); __t.set('ao_fc', '');
+    return { fc: __t.val('ao_fc'), hemo_fc: __t.val('hemo_fc') }; })();
+  const avIda   = esp('ava_plan_dop', 0.75);
+  const avVuelta= esp('ava_plan', 1.2);
+
+  /* ── 5 · TAC/TE: el comentario sale SOLO por encima de 0,35 ────────────────────────────── */
+  const tacte = function (te, tac) { reset(); __t.set('vmax_ao', 4.2);
+    __t.set('tango_te', te); __t.set('tango_tac', tac);
+    return T('ao-ref-tacte'); };
+  const t038 = tacte(500, 190), t035 = tacte(500, 175), t030 = tacte(500, 150);
+
+  /* ── 6 · VLI: el 35 EXACTO es bajo flujo; 36 es flujo normal ───────────────────────────── */
+  const vli = (function () { reset(); __t.set('peso', 70); __t.set('talla', 170);
+    const bsa = (typeof getBSA === 'function') ? getBSA() : null;
+    if (!bsa) return { err: 'SIN getBSA' };
+    const lee = function (k) { seed('vs_calc', (k * bsa).toFixed(6));
+      try { aoRefPintar(); } catch (e) {}
+      const x = (typeof vliCalc === 'function') ? vliCalc() : null;
+      return { vli: x === null ? null : Number(x.toFixed(4)), fila: T('ao-ref-vli'), html: H('ao-ref-vli') }; };
+    return { v34: lee(34), v35: lee(35), v36: lee(36) }; })();
+
+  /* ── 7 · FEVI: 49 se pinta, 50 no, vacia es raya ───────────────────────────────────────── */
+  const fevi = function (f) { reset(); if (f !== null) __t.set('fevi', f);
+    try { aoRefPintar(); } catch (e) {}
+    return { txt: T('ao-ref-fevi'), html: H('ao-ref-fevi') }; };
+  const f49 = fevi(49), f50 = fevi(50), fVac = fevi(null);
+
+  /* ── 8 · «Nuevo estudio» y reapertura de un guardado ───────────────────────────────────── */
+  const limpia = (function () { reset();
+    __t.set('ao_pas', 130); __t.set('ao_pad', 70); __t.set('ao_fc', 75);
+    const antes = { pas: __t.val('ao_pas'), pad: __t.val('ao_pad'), fc: __t.val('ao_fc'),
+                    pam: __t.val('hemo_pam'), aviso: T('hemo-pam-auto') };
+    __t.nuevoEstudio();
+    return { antes: antes,
+             despues: { pas: __t.val('ao_pas'), pad: __t.val('ao_pad'), fc: __t.val('ao_fc'),
+                        hemo_fc: __t.val('hemo_fc'), pam: __t.val('hemo_pam'),
+                        aviso: T('hemo-pam-auto'), filaPam: T('ao-ref-pam'), dvi: T('dvi-val') } }; })();
+  /* Un guardado ANTIGUO no trae los campos nuevos: los rellena aoEspejosRestaurar, que esta en
+     RECALC_MODULOS. Se simula sembrando SOLO los campos viejos y pasando por ese embudo. */
+  const legado = (function () { __t.nuevoEstudio();
+    seed('hemo_fc', 68); seed('ava_plan', 1.1);
+    const pre = { fc: __t.val('ao_fc'), dop: __t.val('ava_plan_dop') };
+    try { if (typeof _recalcModulos === 'function') _recalcModulos('TC-424'); } catch (e) {}
+    return { pre: pre, post: { fc: __t.val('ao_fc'), dop: __t.val('ava_plan_dop'),
+             hemo_fc: __t.val('hemo_fc'), valv: __t.val('ava_plan'),
+             pas: __t.val('ao_pas'), pad: __t.val('ao_pad') } }; })();
+
+  return { extra: [
+    ['los cuatro titulos son los nuevos, exactos',
+      /DOPPLER MITRAL — FUNCIÓN DIASTÓLICA VI$/.test(tits.m) &&
+      /DOPPLER AÓRTICO — ESTENOSIS \\/ HEMODINÁMICA$/.test(tits.a) &&
+      /DOPPLER TRICUSPÍDEO — PSAP \\/ FUNCIÓN DIASTÓLICA VD$/.test(tits.t) &&
+      /DOPPLER PULMONAR — ESTENOSIS \\/ PRESIONES PULMONARES$/.test(tits.p), JSON.stringify(tits)],
+
+    ['la seccion tiene CINCO contenedores de columna', tabAo.cols === 5, 'cols=' + tabAo.cols],
+    ['el Tab baja por columna: Vmax y G.medio, los dos VTI, la planimetria, los dos tiempos, FC/PAS/PAD',
+      JSON.stringify(tabAo.visita) === JSON.stringify(['vmax_ao','gmedio_ao','itv_tsvi','itv_ao',
+        'ava_plan_dop','tango_te','tango_tac','ao_fc','ao_pas','ao_pad']), JSON.stringify(tabAo.visita)],
+    ['y saltea los cinco calculados con tabindex -1',
+      JSON.stringify(tabAo.saltea) === JSON.stringify(['gmax_calc','vs_calc','ava_cont','tango_ava_val']),
+      JSON.stringify(tabAo.saltea)],
+
+    ['PAM con PAS 110 y PAD 65 da 80, y la fila lo marca «auto»',
+      p11065.hemo === '80' && /^80 mmHg \\(auto\\)$/.test(p11065.fila), JSON.stringify(p11065)],
+    ['con PAS igual o menor que la PAD la PAM es raya y el campo queda vacio',
+      pIgual.hemo === '' && pIgual.fila === '—' && pMenor.hemo === '' && pMenor.fila === '—',
+      'igual=' + JSON.stringify(pIgual) + ' menor=' + JSON.stringify(pMenor)],
+    ['con una sola de las dos presiones tampoco gradua',
+      pSolo.hemo === '' && pSolo.fila === '—', JSON.stringify(pSolo)],
+    ['la PAM tipeada a mano en Hemodinamica NO se pisa, y no se marca «auto»',
+      pManual.hemo === '105' && pManual.aviso === '', JSON.stringify(pManual)],
+    ['  y una vez corregida por el medico, un cambio posterior de PAS tampoco la pisa',
+      pCorrige.auto === '80' && pCorrige.despues === '95', JSON.stringify(pCorrige)],
+
+    ['la FC se espeja en los dos sentidos',
+      fcIda.fc === '72' && fcIda.hemo_fc === '72' &&
+      fcVuelta.fc === '58' && fcVuelta.hemo_fc === '58',
+      'ida=' + JSON.stringify(fcIda) + ' vuelta=' + JSON.stringify(fcVuelta)],
+    ['  y borrar una borra la otra',
+      fcBorra.fc === '' && fcBorra.hemo_fc === '', JSON.stringify(fcBorra)],
+    ['la AVA por planimetria se espeja en los dos sentidos',
+      avIda.dop === '0.75' && avIda.valv === '0.75' &&
+      avVuelta.dop === '1.2' && avVuelta.valv === '1.2',
+      'ida=' + JSON.stringify(avIda) + ' vuelta=' + JSON.stringify(avVuelta)],
+
+    ['  DENOMINADOR del TAC/TE: las tres filas traen el VALOR',
+      /^0\\.38/.test(t038) && /^0\\.35/.test(t035) && /^0\\.30/.test(t030),
+      '038=' + t038 + ' · 035=' + t035 + ' · 030=' + t030],
+    ['TAC/TE 0,38 lleva el comentario de riesgo; 0,35 y 0,30 NO —el corte es ESTRICTO—',
+      /marcador de riesgo en EAo severa/.test(t038) &&
+      !/marcador de riesgo/.test(t035) && !/marcador de riesgo/.test(t030),
+      '038=' + t038 + ' · 035=' + t035 + ' · 030=' + t030],
+
+    ['  DENOMINADOR del VLI: el VS sembrado da los tres valores exactos',
+      !vli.err && vli.v34.vli === 34 && vli.v35.vli === 35 && vli.v36.vli === 36,
+      JSON.stringify(vli)],
+    ['VLI 36 es flujo normal; el 35 EXACTO y el 34 son BAJO FLUJO, con el color de aviso',
+      /flujo normal \\(>35 ml\\/m²\\)/.test(vli.v36.fila) &&
+      /BAJO FLUJO \\(≤35 ml\\/m²\\)/.test(vli.v35.fila) &&
+      /BAJO FLUJO \\(≤35 ml\\/m²\\)/.test(vli.v34.fila) &&
+      /badge-yellow/.test(vli.v35.html) && /badge-green/.test(vli.v36.html),
+      '36=' + vli.v36.fila + ' · 35=' + vli.v35.fila + ' · 34=' + vli.v34.fila],
+
+    ['FEVI 49 se pinta con el color de aviso, 50 no, y los dos llevan «(<50 %)»',
+      /var\\(--yellow\\)/.test(f49.html) && !/var\\(--yellow\\)/.test(f50.html) &&
+      /\\(&lt;50 %\\)/.test(f49.html) && /\\(&lt;50 %\\)/.test(f50.html) &&
+      /^49 %/.test(f49.txt) && /^50 %/.test(f50.txt), '49=' + f49.html + ' · 50=' + f50.html],
+    ['  y SIN la frase «criterio de intervencion» en ninguna de las dos',
+      !/criterio de intervenci/i.test(f49.html) && !/criterio de intervenci/i.test(f50.html),
+      f49.html],
+    ['sin FEVI la fila es una raya', fVac.txt === '—', 'fila=' + fVac.txt],
+
+    ['  DENOMINADOR de «Nuevo estudio»: antes habia PAS, PAD, FC y PAM auto',
+      limpia.antes.pas === '130' && limpia.antes.pad === '70' && limpia.antes.fc === '75' &&
+      limpia.antes.pam === '90' && /auto/.test(limpia.antes.aviso), JSON.stringify(limpia.antes)],
+    ['«Nuevo estudio» limpia PAS, PAD, la FC de las dos pestanias, la PAM auto y su aviso',
+      limpia.despues.pas === '' && limpia.despues.pad === '' && limpia.despues.fc === '' &&
+      limpia.despues.hemo_fc === '' && limpia.despues.pam === '' && limpia.despues.aviso === '',
+      JSON.stringify(limpia.despues)],
+    ['  y deja en raya la fila de la PAM y el DVI —el span sigue dentro de un calc-box (TC-317)—',
+      limpia.despues.filaPam === '—' && limpia.despues.dvi === '—',
+      'pam=' + limpia.despues.filaPam + ' dvi=' + limpia.despues.dvi],
+
+    ['  DENOMINADOR del legado: antes de restaurar, los dos campos nuevos estan VACIOS',
+      legado.pre.fc === '' && legado.pre.dop === '', JSON.stringify(legado.pre)],
+    ['un estudio guardado ANTIGUO abre con la FC y la planimetria espejadas, y sin PAS/PAD',
+      legado.post.fc === '68' && legado.post.hemo_fc === '68' &&
+      legado.post.dop === '1.1' && legado.post.valv === '1.1' &&
+      legado.post.pas === '' && legado.post.pad === '', JSON.stringify(legado.post)],
   ] };
 `);
 

@@ -1317,6 +1317,30 @@
   @media (max-width: 768px) {
     .valv-cols-3 { grid-template-columns: 1fr; }
   }
+  /* ══ LAS CINCO COLUMNAS DEL DOPPLER AÓRTICO (2026-10-06) ══════════════════════════════════
+     Mismo argumento que `.valv-cols-3`, que es el precedente de este archivo: cada columna es un
+     contenedor PROPIO y no una fila de grilla, porque el pedido es que el orden del DOM SEA el del
+     Tab. Con filas, el Tab cruza de izquierda a derecha y después baja; con columnas, baja por la
+     columna y pasa a la siguiente.
+     `minmax(0,1fr)` y no `1fr`: sin el mínimo en 0 un rótulo largo —«AVA sin TSVI, Tango (cm²,
+     auto)» es el peor— empuja su columna y desborda la tarjeta.
+     Las dos caídas van POR ANCHO MÍNIMO (`auto-fit`) y no por un breakpoint nuevo, para no dejar
+     un número que haya que mantener sincronizado con `check_mobile.js`. A 768 px se apilan a una
+     sola columna, y como el DOM ya está en orden col 1 → col 5, apilado queda en ese orden. */
+  .ao-cols-5 { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; align-items: start; }
+  .ao-cols-5 > div > .fg { margin-bottom: 8px; }
+  @media (max-width: 1100px) {
+    .ao-cols-5 { grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); }
+  }
+  @media (max-width: 768px) {
+    .ao-cols-5 { grid-template-columns: 1fr; }
+  }
+  /* Las DOS columnas del cuadro de referencias aórtico: estenosis a la izquierda, hemodinámica a
+     la derecha. `align-items:start` para que la columna corta no estire su `.calc-box`. */
+  .ao-ref-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: start; }
+  @media (max-width: 768px) {
+    .ao-ref-2 { grid-template-columns: 1fr; }
+  }
   /* ══ RESPONSIVE ══ */
   @media (max-width: 768px) {
     .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
@@ -2874,7 +2898,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div class="grid-3" style="margin-top:8px;">
           <div class="fg">
-            <label>Diám TSVI (mm)</label>
+            <label>Diám. TSVI (mm)</label>
             <input type="number" id="diam_tsvi_ao" placeholder="mm" oninput="syncTSVI();">
           </div>
           <!-- Los dos existían desde antes y estaban HUÉRFANOS: sin `oninput`, fuera de
@@ -2984,7 +3008,9 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div class="fg">
           <label>FEVI (Simpson, %)</label>
-          <input type="number" id="fevi" placeholder="%" oninput="calcVI()">
+          <!-- `aoRefPintar` se agrega para que la fila FEVI del cuadro de referencias del Doppler
+               aórtico se entere al tipear; NO cambia nada de AI/VI ni de `calcVI`. -->
+          <input type="number" id="fevi" placeholder="%" oninput="calcVI();if(typeof aoRefPintar==='function')aoRefPintar()">
         </div>
         <div class="fg">
           <label>FEVI método</label>
@@ -3243,7 +3269,7 @@ window.cerrarSesionReal = cerrarSesionReal;
   <!-- Doppler mitral -->
   <div class="card" style="margin-bottom:6px;">
     <h2 class="card-head" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;" onclick="toggleCard('dop-mitral',this)">
-      <span style="flex:1;">〰️ Doppler Mitral — Función Diastólica</span>
+      <span style="flex:1;">〰️ DOPPLER MITRAL — FUNCIÓN DIASTÓLICA VI</span>
       <button type="button" class="btn btn-ghost" style="font-size:11px;padding:3px 9px;font-weight:600;flex:none;"
               onclick="event.stopPropagation();diastAlgoAbrir();" title="Ver el algoritmo diastólico con los valores del paciente">🧭 Algoritmo</button>
       <!-- `▶` y no `▼`, y con el rotate ya puesto: la convención de `toggleCard` es «sin rotar =
@@ -3415,91 +3441,200 @@ window.cerrarSesionReal = cerrarSesionReal;
 
   <!-- Doppler Aórtico -->
   <div class="card" style="margin-bottom:6px;">
-    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('dop-aortico',this)">〰️ Doppler Aórtico — TSVI / Válvula Aórtica<span id="dop-aortico-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('dop-aortico',this)">〰️ DOPPLER AÓRTICO — ESTENOSIS / HEMODINÁMICA<span id="dop-aortico-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
   </div>
   <div id="dop-aortico" style="display:none;">
   <div class="card">
     <div class="card-body">
-      <!-- ⚠️ TRES `grid-4` SEPARADAS Y NO UNA SOLA GRILLA CON ONCE CELDAS (2026-09-29). La grilla
-           reparte por auto-flow, asi que once campos en un solo contenedor se acomodan 4/4/3 y la
-           tercera fila arrancaria con el TE en la columna que le toque, no en la primera. Con un
-           contenedor por fila cada renglon es independiente y las columnas siguen alineadas entre
-           los tres, que es lo que el reordenamiento busca: velocidad/gradiente arriba,
-           distancia/VTI y sus derivados en el medio, tiempos y volumenes abajo.
-           ⚠️ LA FILA 2 TIENE TRES CAMPOS Y LA CUARTA CELDA QUEDA VACIA A PROPOSITO. Ahi iria el
-           DVI (ratio TSVI/Ao), que NO es un input: es el span `dvi-val` del cuadro de
-           resultados de abajo. Sacarlo de ahi lo saca del barrido
-           `.calc-box .calc-row span[id]:not(.calc-lbl)` de `limpiarCampos`, que es lo UNICO que lo
-           borra entre pacientes — y ese span lo leen `eaTaviEspejar` y el veredicto de estenosis
-           aortica PROTESICA, donde el DVI es el unico eje flujo-independiente. O sea que moverlo
-           no es reordenar: es abrir una fuga entre pacientes sobre un veredicto clinico.
-           DECISION DE MAICOL (2026-09-29): SE QUEDA ASI. La celda NO se completa — no es un
-           pendiente, esta resuelto. Ver el detalle y la unica forma que no rompe el barrido en
-           la entrada del 2026-09-29 de CLAUDE.md. -->
-      <div class="grid-4">
-        <div class="fg">
-          <label>Vmax aórtica (m/s)</label>
-          <input type="number" id="vmax_ao" placeholder="m/s" step="0.1" oninput="calcAo();eteShuntSyncSiExiste()">
+      <!-- ⚠️ CINCO COLUMNAS Y NO TRES FILAS (2026-10-06). Cada columna es un contenedor PROPIO
+           —ver `.ao-cols-5` en el CSS— porque el pedido es que el orden del DOM SEA el del Tab:
+           con filas el Tab cruza de izquierda a derecha, con columnas baja por la columna.
+           Reemplaza las tres `grid-4` de 2026-09-29, cuyo comentario explicaba por qué eran tres
+           contenedores y no una grilla de once celdas; el argumento sigue siendo el mismo y la
+           conclusión es más fuerte: un contenedor por COLUMNA.
+
+           ⚠️ EL Ø TSVI SIGUE ACÁ, OCULTO, Y NO SE BORRÓ EL NODO. Dejó de verse en esta sección
+           (se carga en AI/VI y en Válvulas) pero lo leen `calcAo`, `calcEADetalle`, `calcHemo`,
+           `cxGTP`, `eteShuntSync`, el PDF, el PPT y el Excel, y `syncTSVI` lo ESCRIBE con `setv`
+           desde AI/VI. `display:none` no toca el `.value`, y ni `guardarInforme` —que barre
+           `input[id]`— ni `limpiarCampos` miran visibilidad, así que los lectores, la sincronía y
+           el estudio guardado quedan exactamente como estaban. Borrar el nodo, en cambio, los
+           rompería todos.
+
+           ⚠️ EL DVI VUELVE A LA GRILLA, Y SÓLO DE ESTA FORMA. La entrada del 2026-09-29 de
+           CLAUDE.md dejó la cuarta celda vacía a propósito: el DVI NO es un input, es el span
+           `dvi-val`, y sacarlo del `calc-box` lo saca del barrido
+           `.calc-box .calc-row span[id]:not(.calc-lbl)` de `limpiarCampos` —lo ÚNICO que lo borra
+           entre pacientes— mientras `eaTaviEspejar` y el veredicto de estenosis aórtica PROTÉSICA
+           lo leen como único eje flujo-independiente. Un DVI del paciente anterior sobreviviendo a
+           «Nuevo estudio» alimentaría el veredicto del siguiente.
+           Esa misma entrada escribió la única salida que NO rompe el barrido —«anidar un
+           `calc-box` de una sola fila dentro de la celda de la grilla, a costa de meter el idioma
+           del cuadro de resultados adentro de la grilla y de duplicar el rótulo»— y es literalmente
+           lo que está abajo. TC-317 fija el INVARIANTE (sembrar los dos VTI, publicar el DVI,
+           `limpiarCampos`, volver a «—») y no la implementación, así que sigue en verde. -->
+      <div class="ao-cols-5">
+        <!-- Col 1 — velocidad y gradientes -->
+        <div>
+          <div class="fg">
+            <label>Vmax aórtica (m/s)</label>
+            <input type="number" id="vmax_ao" placeholder="m/s" step="0.1" oninput="calcAo();eteShuntSyncSiExiste()">
+          </div>
+          <div class="fg">
+            <label>G. máx (mmHg) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto</span></label>
+            <input type="number" id="gmax_calc" tabindex="-1" readonly>
+          </div>
+          <div class="fg">
+            <label>G. medio (mmHg)</label>
+            <input type="number" id="gmedio_ao" placeholder="mmHg" oninput="calcAo();eteShuntSyncSiExiste()">
+          </div>
         </div>
-        <div class="fg">
-          <label>G.Máx — calculado (mmHg)</label>
-          <input type="number" id="gmax_calc" readonly>
+        <!-- Col 2 — los dos VTI y su cociente -->
+        <div>
+          <div class="fg">
+            <label>VTI TSVI (cm)</label>
+            <input type="number" id="itv_tsvi" placeholder="cm" oninput="calcAo();eteShuntSyncSiExiste();imSyncSiExiste();emSyncSiExiste();iaSyncSiExiste()">
+          </div>
+          <div class="fg">
+            <label>VTI Vao (cm)</label>
+            <input type="number" id="itv_ao" placeholder="cm" oninput="calcAo();eteShuntSyncSiExiste()">
+          </div>
+          <!-- El `calc-box` anidado del DVI. El `span[id]` queda dentro de
+               `.calc-box .calc-row`, que es lo que exige el barrido de `limpiarCampos`. -->
+          <div class="fg">
+            <label>DVI (ratio TSVI/Ao) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto</span></label>
+            <div class="calc-box" style="margin-top:0;">
+              <div class="calc-row"><span class="calc-lbl">DVI</span><span class="calc-val" id="dvi-val">—</span></div>
+            </div>
+          </div>
+          <!-- Ø TSVI: OCULTO, no borrado. Ver el comentario de arriba. -->
+          <div class="fg" style="display:none;">
+            <label>Diám. TSVI (mm)</label>
+            <input type="number" id="diam_tsvi" placeholder="mm" oninput="calcAo();mostrarTSVIEstimado();eteShuntSyncSiExiste();imSyncSiExiste();emSyncSiExiste();iaSyncSiExiste();">
+            <div id="tsvi-estimado-box" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
+          </div>
         </div>
-        <div class="fg">
-          <label>G.Medio (mmHg)</label>
-          <input type="number" id="gmedio_ao" placeholder="mmHg" oninput="calcAo();eteShuntSyncSiExiste()">
+        <!-- Col 3 — volumen y áreas -->
+        <div>
+          <div class="fg">
+            <label>Vol. sistólico (ml) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto</span></label>
+            <input type="number" id="vs_calc" tabindex="-1" readonly>
+          </div>
+          <div class="fg">
+            <label>AVA continuidad (cm²) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto</span></label>
+            <input type="number" id="ava_cont" tabindex="-1" readonly>
+          </div>
+          <!-- ⚠️ ES EL MISMO DATO QUE `ava_plan` DEL BLOQUE DE ESTENOSIS AÓRTICA EN «Válvulas»
+               (2026-10-06), espejado en los dos sentidos por `avaPlanSync` — mismo mecanismo y
+               mismo argumento que `itVmaxSync` con la Vmax IT. El dueño del cálculo sigue siendo
+               `avaPlanPintar`, que vive en Válvulas y se llama acá después del espejo para que su
+               aviso se repinte cuando el dato entra por esta puerta. -->
+          <div class="fg">
+            <label>AVA planimetría (cm²)</label>
+            <input type="number" id="ava_plan_dop" placeholder="cm²" step="0.01" oninput="avaPlanSync('ava_plan_dop');avaPlanPintar()">
+          </div>
+          <!-- ⚠️ VLI: OCULTO, NO BORRADO, y la primera versión de este bloque SÍ lo borró — lo
+               cazó la sonda A/B, no una lectura: `campos` perdía la clave `vli_calc` en las cinco
+               escenas, o sea el estudio guardado dejaba de llevar el volumen latido indexado.
+               El campo dejó de verse porque su valor pasó al cuadro de referencias, pero el nodo
+               se queda: `_vliPintar` lo escribe en cada cálculo y `guardarInforme` lo barre.
+               Que el informe, el EN SUMA y el PDF no se movieran con el nodo ausente es engañoso y
+               está medido: los tres recalculan con `vliCalc()` —y el Excel con `vs_calc` + peso y
+               talla—, así que ninguno lee ESTE campo. Lo único que se perdía era el dato guardado,
+               que no tiene superficie donde avisar. -->
+          <div class="fg" style="display:none;">
+            <label>VLI — volumen latido indexado (ml/m²) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← VS / ASC</span></label>
+            <input type="number" id="vli_calc" readonly placeholder="— requiere peso y talla">
+          </div>
         </div>
-        <div class="fg">
-          <label>Ø TSVI (mm)</label>
-          <input type="number" id="diam_tsvi" placeholder="mm" oninput="calcAo();mostrarTSVIEstimado();eteShuntSyncSiExiste();imSyncSiExiste();emSyncSiExiste();iaSyncSiExiste();">
-          <div id="tsvi-estimado-box" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
+        <!-- Col 4 — tiempos y el índice sin TSVI -->
+        <div>
+          <div class="fg">
+            <label>T. eyectivo (ms)</label>
+            <input type="number" id="tango_te" placeholder="ms" oninput="calcTango()">
+          </div>
+          <div class="fg">
+            <label>T. aceleración (ms)</label>
+            <input type="number" id="tango_tac" placeholder="ms" oninput="calcTango()">
+          </div>
+          <!-- ⚠️ `tango_ava_val` YA SE ESCRIBÍA Y EL NODO NO EXISTÍA: `calcTango` hace
+               `setv('tango_ava_val', indiceAVA)` desde antes de esta tanda y `setv` es
+               null-safe, así que la escritura caía al vacío. Crear el campo es lo que la
+               convierte en un dato visible; de paso el id pasa a viajar en `campos`. NO entra
+               al Excel: la tabla de columnas es una lista explícita. -->
+          <div class="fg">
+            <label>AVA sin TSVI, Tango (cm²) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto</span></label>
+            <input type="number" id="tango_ava_val" tabindex="-1" readonly>
+          </div>
+        </div>
+        <!-- Col 5 — FC y presiones. La FC es el MISMO dato que `hemo_fc` de Hemodinámica. -->
+        <div>
+          <div class="fg">
+            <label>FC (lpm)</label>
+            <input type="number" id="ao_fc" placeholder="lpm" oninput="aoFcSync('ao_fc');calcHemo();aoRefPintar()">
+          </div>
+          <div class="fg">
+            <label>PAS (mmHg)</label>
+            <input type="number" id="ao_pas" placeholder="mmHg" oninput="aoPresionSync()">
+          </div>
+          <div class="fg">
+            <label>PAD (mmHg)</label>
+            <input type="number" id="ao_pad" placeholder="mmHg" oninput="aoPresionSync()">
+          </div>
         </div>
       </div>
-      <div class="grid-4" style="margin-top:8px;">
-        <div class="fg">
-          <label>VTI TSVI (cm)</label>
-          <input type="number" id="itv_tsvi" placeholder="cm" oninput="calcAo();eteShuntSyncSiExiste();imSyncSiExiste();emSyncSiExiste();iaSyncSiExiste()">
+      <!-- ══ CUADRO DE REFERENCIAS, EN DOS COLUMNAS (2026-10-06) ══════════════════════════════
+           Izquierda la estenosis, derecha la hemodinámica. Las dos son `.calc-box`, así que el
+           barrido `.calc-box .calc-row span[id]:not(.calc-lbl)` de `limpiarCampos` sigue
+           alcanzando a las catorce filas: el selector es por descendencia, no por padre directo.
+
+           ⚠️ LA COLUMNA DERECHA NO CALCULA NADA. Los seis valores los computa `calcHemo` y se los
+           pasa a `aoRefHemo` al final de su propia cascada — misma función, mismos números, una
+           sola fórmula por magnitud. Duplicar acá la cuenta del GC o de la RVS sería la copia que
+           este archivo ya pagó cuatro veces con el AVA.
+
+           ⚠️ `ea-sev` (con su línea de discrepancia) VA AL FINAL de la columna izquierda y antes
+           era la PRIMERA fila. Es un cambio de ORDEN: `_eaPintarRecuadroDoppler` no se tocó.
+           La fila vieja `tango-ratio` salió del cuadro; `calcTango` la escribe tras un `if
+           (ratioEl)`, así que su código y sus constantes quedan intactos y la escritura es un
+           no-op. Las filas «AVA indexada», «DVI» e «Índice AVA Tango» salieron porque ahora son
+           campos de la grilla (el DVI, en el `calc-box` anidado de la columna 2). -->
+      <div class="ao-ref-2" style="margin-top:8px;">
+        <div class="calc-box" style="margin-top:0;">
+          <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:4px;">Estenosis aórtica</div>
+          <div class="calc-row"><span class="calc-lbl">V. máx</span><span id="ao-ref-vmax">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">G. medio</span><span id="ao-ref-gmed">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">AVA continuidad</span><span id="ao-ref-ava">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">Cociente TAC/TE</span><span id="ao-ref-tacte">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">AVA Tango</span><span class="calc-val" id="ao-ref-tango">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">Vol. sistólico</span><span class="calc-val" id="ao-ref-vs">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">VLI</span><span id="ao-ref-vli">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">FEVI</span><span id="ao-ref-fevi">—</span></div>
+          <div class="calc-row"><span style="font-size:10px;color:var(--text2);">Complementario al AVA por continuidad — no son valores intercambiables (Tango, Bs.As. 2018)</span></div>
+          <div class="calc-row"><span style="font-size:10px;color:var(--text2);">Graduación: ESC/EACTS 2025</span></div>
+          <div class="calc-row"><span class="calc-lbl">Estenosis aórtica — severidad</span><span id="ea-sev">—</span></div>
         </div>
-        <div class="fg">
-          <label>VTI Vao (cm)</label>
-          <input type="number" id="itv_ao" placeholder="cm" oninput="calcAo();eteShuntSyncSiExiste()">
-        </div>
-        <div class="fg">
-          <label>AVA ec. continuidad (cm²) — automático</label>
-          <input type="number" id="ava_cont" readonly>
+        <div class="calc-box" style="margin-top:0;">
+          <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:4px;">Hemodinámica</div>
+          <div class="calc-row"><span class="calc-lbl">PAM</span><span class="calc-val" id="ao-ref-pam">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">GC</span><span class="calc-val" id="ao-ref-gc">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">IC</span><span class="calc-val" id="ao-ref-ic">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">PCP</span><span class="calc-val" id="ao-ref-pcp">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">RVS</span><span class="calc-val" id="ao-ref-rvs">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">RVP</span><span class="calc-val" id="ao-ref-rvp">—</span></div>
         </div>
       </div>
-      <div class="grid-4" style="margin-top:8px;">
-        <div class="fg">
-          <label>Tiempo eyectivo total — TE (ms)</label>
-          <input type="number" id="tango_te" placeholder="ms" oninput="calcTango()">
-        </div>
-        <div class="fg">
-          <label>Tiempo de aceleración — TAC (ms)</label>
-          <input type="number" id="tango_tac" placeholder="ms" oninput="calcTango()">
-        </div>
-        <div class="fg">
-          <label>Volumen sistólico (ml) — automático</label>
-          <input type="number" id="vs_calc" readonly>
-        </div>
-        <!-- VLI: volumen latido indexado = VS / ASC. Es el parámetro que separa el bajo flujo
-             del flujo normal en la estenosis aórtica de bajo gradiente, y hasta ahora se
-             calculaba SÓLO dentro de generarInforme, en una variable local: el médico no podía
-             verlo ni auditarlo, y el informe decidía «paradójica» o «flujo normal» sobre un
-             número que no estaba en ninguna pantalla. -->
-        <div class="fg">
-          <label>VLI — volumen latido indexado (ml/m²) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← VS / ASC</span></label>
-          <input type="number" id="vli_calc" readonly placeholder="— requiere peso y talla">
-        </div>
-      </div>
-      <div class="calc-box">
-        <div class="calc-row"><span class="calc-lbl">Estenosis aórtica — severidad</span><span id="ea-sev">—</span></div>
+      <!-- Las filas que la grilla reemplazó siguen existiendo FUERA de vista: `ava-idx`,
+           `vli-interp` y `vs-val` los escriben `calcAo` y `_vliPintar` en cada cálculo, y
+           `tango-ava` lo escribe `calcTango`. Se conservan ocultas —dentro de un `calc-box`, para
+           no salirse del barrido de `limpiarCampos`— porque borrarlas obligaría a tocar esas tres
+           funciones, que son las que gradúan. `ava-idx` además es el AVA indexado, que quedó fuera
+           del cuadro por pedido y sigue computándose igual. -->
+      <div class="calc-box" style="display:none;">
         <div class="calc-row"><span class="calc-lbl">AVA indexada (cm²/m²)</span><span class="calc-val" id="ava-idx">—</span></div>
         <div class="calc-row"><span class="calc-lbl">VLI — volumen latido indexado</span><span id="vli-interp">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">DVI (ratio TSVI/Ao)</span><span class="calc-val" id="dvi-val">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Volumen sistólico (ml)</span><span class="calc-val" id="vs-val">—</span></div>
         <div class="calc-row"><span class="calc-lbl">Índice AVA — Fórmula TANGO (sin TSVI)</span><span class="calc-val" id="tango-ava">—</span></div>
-        <div class="calc-row"><span style="font-size:10px;color:var(--text2);">Complementario al AVA por continuidad — no son valores intercambiables (Tango, Bs.As. 2018)</span></div>
         <div class="calc-row"><span class="calc-lbl">Ratio TAC/TE — interpretación validada</span><span id="tango-ratio">—</span></div>
       </div>
     </div>
@@ -3508,7 +3643,7 @@ window.cerrarSesionReal = cerrarSesionReal;
 
   <!-- Doppler Tricuspídeo / PSAP -->
   <div class="card" style="margin-bottom:6px;">
-    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('dop-tricusp',this)">〰️ Doppler Tricuspídeo — PSAP<span id="dop-tricusp-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('dop-tricusp',this)">〰️ DOPPLER TRICUSPÍDEO — PSAP / FUNCIÓN DIASTÓLICA VD<span id="dop-tricusp-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
   </div>
   <div id="dop-tricusp" style="display:none;">
   <div class="card">
@@ -3578,7 +3713,7 @@ window.cerrarSesionReal = cerrarSesionReal;
        `calcVP`/`calcIP` leen por id, así que la mudanza es de PRESENTACIÓN: los estudios guardados
        abren igual y las 434 columnas quedan idénticas. Mismo estilo que el Doppler Tricuspídeo. -->
   <div class="card" style="margin-bottom:6px;">
-    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('dop-pulmonar',this)">〰️ Doppler Pulmonar<span id="dop-pulmonar-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
+    <h2 class="card-head" style="cursor:pointer;user-select:none;" onclick="toggleCard('dop-pulmonar',this)">〰️ DOPPLER PULMONAR — ESTENOSIS / PRESIONES PULMONARES<span id="dop-pulmonar-arrow" style="float:right;transition:transform 0.2s;">▶</span></h2>
   </div>
   <div id="dop-pulmonar" style="display:none;">
   <div class="card">
@@ -3944,7 +4079,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:8px 0 4px;">📐 Ecuación de Continuidad — AVm</div>
         <div class="grid-4" style="margin-bottom:6px;">
           <div class="fg">
-            <label>Ø TSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Doppler</span></label>
+            <label>Diám. TSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Doppler</span></label>
             <input type="number" id="em_dtsvi" placeholder="mm" oninput="calcEM()">
             <div id="em-tsvi-box" style="font-size:10px;color:var(--accent2);margin-top:3px;min-height:14px;"></div>
           </div>
@@ -4165,7 +4300,7 @@ window.cerrarSesionReal = cerrarSesionReal;
       <!-- Fila 1: entradas -->
       <div class="grid-4" style="margin-bottom:4px;">
         <div class="fg">
-          <label>Ø TSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Doppler</span></label>
+          <label>Diám. TSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Doppler</span></label>
           <input type="number" id="im_dtsvi" placeholder="mm" oninput="calcContIM();calcIM_ESC()">
           <div id="im-tsvi-estimado-box" style="font-size:10px;color:var(--accent2);margin-top:3px;min-height:14px;"></div>
         </div>
@@ -4592,7 +4727,10 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
           <div class="fg">
             <label>AVA por planimetr&iacute;a (cm&sup2;)</label>
-            <input type="number" id="ava_plan" placeholder="cm&sup2;" step="0.01" oninput="avaPlanPintar()">
+            <!-- ⚠️ MISMO DATO QUE `ava_plan_dop` DEL DOPPLER AÓRTICO (2026-10-06). El espejo va
+                    PRIMERO y `avaPlanPintar` —que es el dueño del aviso— despu&eacute;s, igual que el
+                    `oninput` de la otra puerta. Ver `avaPlanSync`. -->
+            <input type="number" id="ava_plan" placeholder="cm&sup2;" step="0.01" oninput="avaPlanSync('ava_plan');avaPlanPintar()">
             <div id="ava-plan-aviso" style="font-size:10px;color:var(--yellow);margin-top:4px;min-height:0;"></div>
           </div>
             </div>
@@ -5386,12 +5524,20 @@ window.cerrarSesionReal = cerrarSesionReal;
     <div class="card-body">
       <div class="grid-4">
         <div class="fg">
+          <!-- ⚠️ ES EL MISMO DATO QUE `ao_fc` DEL DOPPLER AÓRTICO (2026-10-06). `aoFcSync` va
+                  PRIMERO: `calcHemo` lee `hemo_fc`, así que el orden no importa por este lado,
+                  pero se escribe igual que el `oninput` de la otra puerta para que las dos se
+                  lean iguales. Ver `aoFcSync`. -->
           <label>FC (lpm)</label>
-          <input type="number" id="hemo_fc" placeholder="lpm" oninput="calcHemo()">
+          <input type="number" id="hemo_fc" placeholder="lpm" oninput="aoFcSync('hemo_fc');calcHemo()">
         </div>
         <div class="fg">
           <label>PAM (mmHg)</label>
-          <input type="number" id="hemo_pam" placeholder="mmHg" oninput="calcHemo()">
+          <!-- La app puede llenar este campo con PAD + (PAS − PAD)/3 desde el Doppler aórtico, y
+               sólo si está vacío o si el valor es el que ella misma escribió. Lo que el médico
+               tipea manda. El aviso de abajo lo dice; ver `aoPresionSync`. -->
+          <input type="number" id="hemo_pam" placeholder="mmHg" oninput="calcHemo();_aoPamAutoAviso();aoRefPintar()">
+          <div id="hemo-pam-auto" style="font-size:10px;color:var(--text2);margin-top:3px;min-height:0;"></div>
         </div>
         <div class="fg">
           <label>PVC (mmHg) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← VCI</span></label>
@@ -18822,6 +18968,16 @@ function calcHemo() {
       htpEl.innerHTML = badge('yellow', 'Patrón compatible con HTP poscapilar aislada — PCP >15 + RVP ≤2 UW') + htpNote;
     }
   }
+
+  /* ⚠️ LA COLUMNA DE HEMODINÁMICA DEL CUADRO AÓRTICO SE ALIMENTA DESDE ACÁ, con los números que
+     esta función acaba de calcular — no con una segunda cuenta allá. Es el mismo argumento que
+     `_avaContinuidad`: una fórmula, un dueño. Va al FINAL, después de las seis escrituras, para
+     que el cuadro no pueda mostrar un GC de la cascada anterior.
+     `rvp` ya trae la rama correcta: el override manual por cateterismo si el médico lo cargó, y
+     si no la estimación de Abbas. */
+  if (typeof aoRefHemo === 'function') {
+    try { aoRefHemo({ gc: gc, ic: ic, rvs: rvs, pcp: pcp, rvp: rvp }); } catch (e) {}
+  }
 }
 window.calcHemo = calcHemo;
 
@@ -24453,7 +24609,12 @@ function mostrarTSVIEstimado() {
   const box = document.getElementById('tsvi-estimado-box');
   if (!box) return;
   const medido = v('diam_tsvi');
-  if (medido) { box.innerHTML = 'O bien, considerá la <b>Fórmula TANGO</b> (más abajo) si preferís no depender del TSVI.'; return; }
+  /* La frase «O bien, considerá la Fórmula TANGO (más abajo) si preferís no depender del TSVI.» se
+     retiró el 2026-10-06 por pedido. Con el diámetro cargado el cajón queda vacío: no hay nada que
+     sugerir. El `return` se conserva —es lo que evita que se dibujen los enlaces de ESTIMACIÓN
+     sobre un diámetro ya medido— y el vaciado explícito es lo que borra la sugerencia anterior
+     cuando el médico pasa de «sin diámetro» a «con diámetro». */
+  if (medido) { box.innerHTML = ''; return; }
   const bsa = getBSA();
   const tallaM = v('talla') ? v('talla') / 100 : null;
   let html = '';
@@ -24882,7 +25043,11 @@ function calcTango() {
   const el = document.getElementById('tango-ava');
   const ratioEl = document.getElementById('tango-ratio');
   if (!el) return;
-  if (!te || !tac || !vmax) { el.textContent = '—'; if (ratioEl) ratioEl.innerHTML = '—'; return; }
+  if (!te || !tac || !vmax) {
+    el.textContent = '—'; if (ratioEl) ratioEl.innerHTML = '—';
+    _aoRefTangoPintar(null, null, false);
+    return;
+  }
   const _dud = _pTe.fuera || _pTac.fuera || _pVmaxT.fuera;
   const indiceAVA = (te / (vmax * tac)).toFixed(2);
   /* MARCAR SIN BORRAR: el índice se sigue publicando con el valor crudo —así el médico ve de qué
@@ -24907,8 +25072,42 @@ function calcTango() {
     interp = badge('green', `TAC/TE ${ratio} — sin signos de severidad por este índice`);
   }
   if (ratioEl) ratioEl.innerHTML = interp;
+  /* ⚠️ LAS DOS FILAS DEL CUADRO NUEVO SE ESCRIBEN DESDE ACÁ, con el `ratio` y el `indiceAVA` que
+     esta función ya tiene. El corte de 0,35 y el cociente viven en un solo lugar: recomputarlos en
+     el renderizador del cuadro sería la segunda copia. El badge de tres bandas de arriba NO se
+     tocó — sigue escribiéndose en `tango-ratio`, que ahora está oculto. */
+  _aoRefTangoPintar(ratio, indiceAVA, _dud);
 }
 window.calcTango = calcTango;
+
+/* ══ LAS DOS FILAS «Cociente TAC/TE» Y «AVA Tango» DEL CUADRO DE REFERENCIAS ═══════════════════
+   `ratio` e `indice` llegan como las CADENAS que `calcTango` ya formateó (`toFixed(2)`), para que
+   el cuadro imprima exactamente el mismo texto que la fila vieja imprimía.
+
+   ⚠️ EL COMENTARIO SALE SÓLO POR ENCIMA DE 0,35, y nada por debajo — es el pedido, y el `>` es el
+   mismo operador que usa la cascada de `calcTango` sobre la misma cadena. La banda intermedia de
+   0,32 («marca peor pronóstico en el seguimiento») NO se imprime acá: sigue viva en `calcTango`,
+   escrita en el nodo oculto.
+   ⚠️ CON UN INSUMO FUERA DE BANDA NO HAY COMENTARIO, sólo el valor con su marca. Mismo criterio
+   que el badge gris de `calcTango`: un comentario de riesgo sostenido por una unidad equivocada
+   afirma algo que nadie midió. */
+function _aoRefTangoPintar(ratio, indice, dudoso) {
+  const rEl = document.getElementById('ao-ref-tacte');
+  const iEl = document.getElementById('ao-ref-tango');
+  if (iEl) iEl.textContent = (indice === null) ? '—' : (indice + ' (índice)' + (dudoso ? MARCA_REVISAR : ''));
+  if (!rEl) return;
+  if (ratio === null) { rEl.innerHTML = '—'; return; }
+  const nota = (!dudoso && ratio > 0.35)
+    ? '<span style="color:var(--text2);font-size:10px;"> &gt;0,35: marcador de riesgo en EAo severa</span>'
+    : '';
+  /* Se arma y se asigna UNA vez. `innerHTML = a + b + c` es lo que matchea la regla sintáctica
+     `ceibo-xss-innerhtml-concat` del ruleset, y la casa no suma warnings aunque el hallazgo sea
+     falso positivo — mismo patrón que `popDosisDilucion`. Lo interpolado es `ratio`, que es la
+     cadena de un `toFixed(2)`, más dos literales: cero dato del paciente. */
+  const _h = '<b>' + ratio + '</b>' + (dudoso ? MARCA_REVISAR : '') + nota;
+  rEl.innerHTML = _h;
+}
+window._aoRefTangoPintar = _aoRefTangoPintar;
 
 /* ⚠️ AVA POR ECUACIÓN DE CONTINUIDAD — UNA SOLA DEFINICIÓN, y el diámetro va en MILÍMETROS.
    `dtsvi / 20` pasa a centímetros y saca el radio en un solo paso, así que `π·(d/20)²` es el
@@ -25149,6 +25348,10 @@ function calcAo() {
   /* v2 (E5b-0 punto 2): el grado ya está final y sincronizado; si es graduable, prende el botón de
      estenosis aórtica (respetando el apagado manual). Ver `valvAutoPrenderEsten`. */
   if (typeof valvAutoPrenderEsten === 'function') valvAutoPrenderEsten('aortica');
+  /* El cuadro de referencias se repinta AL FINAL de la cascada, por el mismo motivo que
+     `_eaSincronizarPantalla`: lee `ava_cont`, `vs_calc`, el VLI y el grado, y todos los acaba de
+     escribir esta función. Antes del retiro del grado sugerido mostraría uno que ya no está. */
+  if (typeof aoRefPintar === 'function') { try { aoRefPintar(); } catch (e) {} }
 }
 
 /* ══ GRADO CALCULADO DE LA ESTENOSIS AÓRTICA — UN SOLO DUEÑO (R1, DECISIÓN DE MAICOL 2026-10-02) ══
@@ -25200,6 +25403,60 @@ function calcAo() {
    guardas puestas. Mezclarlas acá volvería la función impura y haría que «el grado calculado» —que
    es lo que el aviso de discrepancia de R5 compara contra el manual— dependiera del modo. */
 const EA_GRADO_ORDEN = Object.freeze({ sin:0, esclerosis:1, leve:2, moderada:3, severa:4 });
+
+/* ══ LOS CORTES DE LA ESTENOSIS AÓRTICA — UNA SOLA TABLA (2026-10-06) ═══════════════════════════
+   Los cuatro cortes de Vmax (2,0 · 3,0 · 4,0), el mínimo de AVA normal (1,5) y el corte severo del
+   gradiente medio (40) estaban escritos como LITERALES dentro de `eaGradoCalculado`. El cuadro de
+   referencias de la pestaña Doppler necesita imprimir, por fila, el RANGO del grado que esa fila
+   tiene — y la regla de este archivo es que un corte no se tipea dos veces. Así que los números se
+   MUDARON acá y `eaGradoCalculado` los lee de esta tabla: no cambia ninguno, no se agrega ninguno,
+   y sigue habiendo un solo dueño.
+
+   ⚠️ `bajo` ES EL BORDE SUPERIOR EXCLUSIVO, en el mismo orden que la cascada que reemplaza:
+   `vmax < 2.0 → sin`, `< 3.0 → leve`, `< 4.0 → moderada`, resto severa. El último entra con
+   `Infinity` para que el `find` siempre acierte y la rama «resto» no quede implícita.
+
+   ⚠️ EL TEXTO DEL RANGO SE DERIVA, NO SE ESCRIBE. Se arma con los mismos `bajo` de al lado, en la
+   forma «2,0 a <3,0 m/s»: escribir «2,0–2,9» obligaría a inventar el 2,9, que es un número que
+   ningún corte de la app tiene. Por eso `_eaRango` y no una cadena por banda.
+
+   ⚠️ EL AVA NO SE PASA A CASCADA DE TABLA, y es deliberado: su graduación usa los predicados
+   compartidos `avaEsModerada`/`avaEsSevera` —que es la regla que el archivo ya pagó cuatro veces—
+   y deja `null` para un AVA ≤0, que NO es «sin estenosis» sino «no se puede graduar». Una cascada
+   por `bajo` perdería esa tercera salida. De acá sale sólo el `1.5`, que era el único literal.
+
+   ⚠️ EL GRADIENTE SÓLO SABE DECIR «SEVERA». No tiene cortes de leve ni de moderada, así que por
+   debajo de 40 se ABSTIENE en vez de votar: puede agravar el grado y nunca suavizarlo. Inventarle
+   cortes sería tocar contenido clínico. `EA_CRIT.gmed` tiene el mismo 40 escrito aparte y NO se
+   unificó en esta tanda — está declarado en el reporte. */
+const EA_BANDAS = Object.freeze({
+  vmax: Object.freeze([
+    Object.freeze({ bajo: 2.0,      grado: 'sin' }),
+    Object.freeze({ bajo: 3.0,      grado: 'leve' }),
+    Object.freeze({ bajo: 4.0,      grado: 'moderada' }),
+    Object.freeze({ bajo: Infinity, grado: 'severa' })
+  ]),
+  avaSinMin: 1.5,
+  gmedSevMin: 40
+});
+window.EA_BANDAS = EA_BANDAS;
+/* Coma decimal, que es la convención de este cuadro («≥4,0 m/s» ya estaba escrito así). */
+function _eaNum(n) { return n.toFixed(1).replace('.', ','); }
+/* La banda de Vmax que le toca a un valor. Misma cascada que reemplaza, leída de la tabla. */
+function _eaBandaVmax(vmax) {
+  for (let i = 0; i < EA_BANDAS.vmax.length; i++) {
+    if (vmax < EA_BANDAS.vmax[i].bajo) return { i: i, grado: EA_BANDAS.vmax[i].grado };
+  }
+  return null;   // inalcanzable: la última banda es Infinity
+}
+/* Texto del rango de la banda `i` de Vmax, derivado de los `bajo` vecinos. */
+function _eaRangoVmax(i) {
+  const B = EA_BANDAS.vmax;
+  if (i === 0) return '<' + _eaNum(B[0].bajo) + ' m/s';
+  if (i === B.length - 1) return '≥' + _eaNum(B[i - 1].bajo) + ' m/s';
+  return _eaNum(B[i - 1].bajo) + ' a <' + _eaNum(B[i].bajo) + ' m/s';
+}
+window._eaBandaVmax = _eaBandaVmax; window._eaRangoVmax = _eaRangoVmax;
 const EA_GRADO_TXT = Object.freeze({ sin:'sin estenosis', esclerosis:'esclerosis', leve:'leve',
                                      moderada:'moderada', severa:'severa' });
 /* Etiqueta y color de cada grado, UNA vez. Los cuatro colores son los que el recuadro de Válvulas
@@ -25229,17 +25486,18 @@ function eaGradoCalculado() {
   /* `avaEsValida` falla CERRADO ante vacío, NaN, 0 y negativos, que es el fail-open que la aórtica
      ya cerró tres veces: un AVA que redondea a 0 no es «severa», es «no se puede graduar». */
   const ava = avaEsValida(avaCrudo) ? _avaNum(avaCrudo) : null;
+  /* Los cortes salen de `EA_BANDAS` —y antes eran literales acá— para que el cuadro de
+     referencias imprima el rango de cada banda sin retipear un número. Misma cascada, mismos
+     cuatro cortes: ver el comentario de la tabla. */
   let gVel = null;
   if (vmax !== null) {
-    if (vmax < 2.0)      gVel = 'sin';
-    else if (vmax < 3.0) gVel = 'leve';
-    else if (vmax < 4.0) gVel = 'moderada';
-    else                 gVel = 'severa';
+    const _b = _eaBandaVmax(vmax);
+    gVel = _b ? _b.grado : null;
   }
-  const gGrad = (gmedio !== null && gmedio >= 40) ? 'severa' : null;
+  const gGrad = (gmedio !== null && gmedio >= EA_BANDAS.gmedSevMin) ? 'severa' : null;
   let gAva = null;
   if (ava !== null) {
-    if (ava >= 1.5)             gAva = 'sin';
+    if (ava >= EA_BANDAS.avaSinMin) gAva = 'sin';
     else if (avaEsModerada(ava)) gAva = 'moderada';
     else if (avaEsSevera(ava))   gAva = 'severa';
   }
@@ -27867,6 +28125,228 @@ function _vliPintar() {
   }
 }
 window._vliPintar = _vliPintar;
+
+/* ══ DOPPLER AÓRTICO — ESPEJOS, PRESIONES Y CUADRO DE REFERENCIAS (2026-10-06) ═════════════════
+   Dos campos nuevos de la sección son el MISMO dato que un campo que ya existía en otra pestaña:
+     · `ao_fc`       ↔ `hemo_fc`  (Hemodinámica)
+     · `ava_plan_dop` ↔ `ava_plan` (Válvulas, bloque de estenosis aórtica)
+   Se espejan en los dos sentidos, borrado incluido, con el MISMO mecanismo que `itVmaxSync` ya
+   usa para la Vmax IT — y por el mismo motivo: eran un dato que el médico tenía que cargar dos
+   veces, y si lo cargaba una sola, la mitad de la app no se enteraba.
+
+   ⚠️ NO HAY BUCLE, Y NO ES POR LA GUARDA: asignar `.value` por código NO dispara `oninput`. Las
+   guardas `_aoFcSinc` / `_avaPlanSinc` están para el día en que alguien despache un `input` a mano
+   —los arneses de prueba lo hacen—, exactamente como documenta `itVmaxSync`.
+
+   ⚠️ LA SALIDA TEMPRANA POR VALOR IGUAL NO ES COSMÉTICA: escribir `.value` con el mismo contenido
+   mueve el caret al final del campo, y a 1200 px los dos campos del par pueden estar visibles.
+   Se compara el TEXTO CRUDO y no el número, para que los dos muestren lo mismo carácter por
+   carácter ('3' y '3.00' son el mismo número y dos textos distintos). */
+let _aoFcSinc = false;
+function aoFcSync(origenId) {
+  if (_aoFcSinc) return null;
+  _aoFcSinc = true;
+  try {
+    const a = document.getElementById('ao_fc'), b = document.getElementById('hemo_fc');
+    if (!a || !b) return null;
+    const src = (origenId === 'hemo_fc') ? b : a;
+    const dst = (origenId === 'hemo_fc') ? a : b;
+    if (dst.value === src.value) return { copio: false, valor: src.value };
+    dst.value = src.value;   /* borrar uno borra el otro: '' se copia igual que un número */
+    return { copio: true, valor: src.value };
+  } finally { _aoFcSinc = false; }
+}
+window.aoFcSync = aoFcSync;
+
+let _avaPlanSinc = false;
+function avaPlanSync(origenId) {
+  if (_avaPlanSinc) return null;
+  _avaPlanSinc = true;
+  try {
+    const a = document.getElementById('ava_plan_dop'), b = document.getElementById('ava_plan');
+    if (!a || !b) return null;
+    const src = (origenId === 'ava_plan') ? b : a;
+    const dst = (origenId === 'ava_plan') ? a : b;
+    if (dst.value === src.value) return { copio: false, valor: src.value };
+    dst.value = src.value;
+    return { copio: true, valor: src.value };
+  } finally { _avaPlanSinc = false; }
+}
+window.avaPlanSync = avaPlanSync;
+
+/* ══ PAM = PAD + (PAS − PAD) / 3 ══════════════════════════════════════════════════════════════
+   Devuelve el número y nada más; quién lo muestra y quién lo escribe son los dos llamadores.
+   Las TRES condiciones son del pedido: hace falta PAS, hace falta PAD, y PAS > PAD. Sin la
+   tercera, una PAS tipeada por debajo de la PAD da una PAM por debajo de la diastólica —un
+   número imposible que después alimentaría la RVS—, así que acá se ABSTIENE. */
+function aoPamCalc() {
+  const pas = v('ao_pas'), pad = v('ao_pad');
+  if (pas === null || pad === null) return null;
+  if (!(pas > pad)) return null;
+  return pad + (pas - pad) / 3;
+}
+window.aoPamCalc = aoPamCalc;
+
+/* ⚠️ LO QUE EL MÉDICO TIPEÓ EN LA PAM DE HEMODINÁMICA MANDA Y NO SE PISA. La marca es
+   `dataset.derivadoDe`, el mismo mecanismo —y el mismo predicado `esNuestro`— que
+   `oai_area_ostium` y el gradiente pulmonar ya usan: se escribe sólo si el campo está VACÍO o si
+   su contenido es exactamente el que escribimos la última vez. En cuanto el médico lo cambia, el
+   valor deja de coincidir con la marca y el campo queda suyo para siempre.
+   `limpiarCampos` barre `dataset.derivadoDe`, así que la marca no sobrevive al cambio de paciente
+   (sin eso, el campo del paciente B arrancaría «marcado» con el número de A). */
+function aoPresionSync() {
+  const pam = aoPamCalc();
+  const el = document.getElementById('hemo_pam');
+  if (el) {
+    const esNuestro = el.dataset.derivadoDe !== undefined && el.dataset.derivadoDe === el.value;
+    if (el.value === '' || esNuestro) {
+      if (pam === null) { el.value = ''; delete el.dataset.derivadoDe; }
+      else { el.value = pam.toFixed(0); el.dataset.derivadoDe = el.value; }
+    }
+  }
+  _aoPamAutoAviso();
+  if (typeof calcHemo === 'function') calcHemo();   // la cascada de GC/IC/RVS repinta la columna derecha
+  aoRefPintar();
+}
+window.aoPresionSync = aoPresionSync;
+
+/* El aviso «auto» al lado de la PAM de Hemodinámica. Es la única línea que esta tanda agrega a esa
+   pestaña, y existe porque un número que la app escribió en un campo editable, sin decirlo, se lee
+   como una medición del médico. */
+function _aoPamAutoAviso() {
+  const box = document.getElementById('hemo-pam-auto');
+  if (!box) return;
+  const el = document.getElementById('hemo_pam');
+  const esNuestro = !!el && el.value !== '' &&
+    el.dataset.derivadoDe !== undefined && el.dataset.derivadoDe === el.value;
+  box.textContent = esNuestro ? 'auto ← PAS/PAD del Doppler aórtico' : '';
+}
+window._aoPamAutoAviso = _aoPamAutoAviso;
+
+/* ⚠️ RESTAURACIÓN: ENTRA EN `RECALC_MODULOS` Y COPIA EN UNA SOLA DIRECCIÓN. Las rutas que reponen
+   un estudio asignan `.value` sin despachar eventos, así que el espejo no corre solo. Un estudio
+   guardado ANTES de esta tanda trae `hemo_fc` y `ava_plan` y NO trae los dos campos nuevos: por
+   eso se copia del campo VIEJO al nuevo y no al revés — al revés, un estudio antiguo abriría
+   borrando la FC y la planimetría que sí tenía guardadas. En un estudio nuevo los dos ya
+   coinciden, así que esto es un no-op. Mismo patrón y mismo embudo que `imEspejosRestaurar`. */
+function aoEspejosRestaurar() {
+  [['hemo_fc', 'ao_fc'], ['ava_plan', 'ava_plan_dop']].forEach(function (par) {
+    const src = document.getElementById(par[0]), dst = document.getElementById(par[1]);
+    if (src && dst && dst.value !== src.value) dst.value = src.value;
+  });
+  _aoPamAutoAviso();
+  aoRefPintar();
+}
+window.aoEspejosRestaurar = aoEspejosRestaurar;
+
+/* ══ CUADRO DE REFERENCIAS — COLUMNA DE ESTENOSIS ══════════════════════════════════════════════
+   Ocho filas. Ninguna calcula nada propio: los grados salen de `eaGradoCalculado` y de los
+   predicados compartidos (`avaEsModerada`/`avaEsSevera`), los rangos de `EA_BANDAS`,
+   `AVA_SEVERA_MAX` y `UMBRAL_VLI_BAJO`, y el VLI de `vliCalc()` — la misma función que pinta la
+   cápsula y la que lee el PDF.
+
+   ⚠️ LAS FILAS DEL TAC/TE Y DEL ÍNDICE TANGO LAS ESCRIBE `calcTango`, NO ESTA FUNCIÓN. Ahí viven
+   el cociente y el corte de 0,35, y recomputarlos acá sería la copia que este archivo ya pagó.
+
+   ⚠️ ES SÓLO PANTALLA. Ningún generador de informe, EN SUMA, PDF, PPT ni Excel lee estos nodos: la
+   regla de la app es que el papel afirme y el panel explique. El VLI y la FEVI se pintan con el
+   color de aviso que la app ya usa —`badge('yellow')` y `var(--yellow)`—; es una MARCA y no mueve
+   la pastilla ni el grado.
+   ⚠️ `innerHTML` CON UN INVARIANTE ESCRITO, como `_eaPintarRecuadroDoppler`: lo único interpolado
+   son números que vienen de `v()` —que devuelve `Number` o `null`, nunca el texto crudo del
+   campo—, tablas congeladas (`EA_GRADO_LBL`, `EA_GRADO_COLOR`) y literales. Cero `.value` crudo.
+   El día que alguien agregue una fila con un dato de texto, va escapada. */
+function aoRefPintar() {
+  const set = function (id, html) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  };
+  const gris = function (t) { return '<span style="color:var(--text2);font-size:10px;"> ' + t + '</span>'; };
+  const grado = function (g) {
+    return '<span style="color:' + EA_GRADO_COLOR[g] + ';font-weight:700;">' + EA_GRADO_LBL[g] + '</span>';
+  };
+
+  // ── V. máx ──
+  const vmax = v('vmax_ao');
+  if (vmax === null) set('ao-ref-vmax', '—');
+  else {
+    const b = _eaBandaVmax(vmax);
+    set('ao-ref-vmax', '<b>' + vmax + ' m/s</b> ' +
+      (b ? grado(b.grado) + gris('(' + _eaRangoVmax(b.i) + ')') : ''));
+  }
+
+  // ── G. medio ── sólo sabe decir «severa»; por debajo del corte se abstiene (ver `EA_BANDAS`)
+  const gmed = v('gmedio_ao');
+  if (gmed === null) set('ao-ref-gmed', '—');
+  else if (gmed >= EA_BANDAS.gmedSevMin) {
+    set('ao-ref-gmed', '<b>' + gmed + ' mmHg</b> ' + grado('severa') +
+      gris('(≥' + EA_BANDAS.gmedSevMin + ' mmHg)'));
+  } else {
+    set('ao-ref-gmed', '<b>' + gmed + ' mmHg</b>' +
+      gris('no gradúa (<' + EA_BANDAS.gmedSevMin + ' mmHg)'));
+  }
+
+  // ── AVA por continuidad ── mismos predicados que gradúan, mismos cortes
+  const avaRaw = v('ava_cont');
+  if (!avaEsValida(avaRaw)) set('ao-ref-ava', '—');
+  else {
+    const ava = _avaNum(avaRaw);
+    const sinMin = EA_BANDAS.avaSinMin, sevMax = AVA_SEVERA_MAX;
+    let g = null, r = '';
+    if (ava >= sinMin)               { g = 'sin';      r = '≥' + _eaNum(sinMin) + ' cm²'; }
+    else if (avaEsModerada(ava))     { g = 'moderada'; r = '>' + _eaNum(sevMax) + ' a <' + _eaNum(sinMin) + ' cm²'; }
+    else if (avaEsSevera(ava))       { g = 'severa';   r = '≤' + _eaNum(sevMax) + ' cm²'; }
+    set('ao-ref-ava', '<b>' + ava.toFixed(2) + ' cm²</b> ' +
+      (g ? grado(g) + gris('(' + r + ')') : gris('no valuable')));
+  }
+
+  // ── Vol. sistólico ── sólo el valor
+  const vs = v('vs_calc');
+  set('ao-ref-vs', vs === null ? '—' : vs + ' ml');
+
+  // ── VLI ── el 35 exacto es BAJO FLUJO, igual que en `_vliPintar`
+  const vli = (typeof vliCalc === 'function') ? vliCalc() : null;
+  if (vli === null) set('ao-ref-vli', '—');
+  else set('ao-ref-vli', vli.toFixed(0) + ' ml/m² ' + (vli > UMBRAL_VLI_BAJO
+    ? badge('green',  'flujo normal (>' + UMBRAL_VLI_BAJO + ' ml/m²)')
+    : badge('yellow', 'BAJO FLUJO (≤' + UMBRAL_VLI_BAJO + ' ml/m²)')));
+
+  // ── FEVI ── de solo lectura, tomada de AI/VI. SIN «criterio de intervención»: es una marca.
+  const fevi = v('fevi');
+  if (fevi === null) set('ao-ref-fevi', '—');
+  else if (fevi < 50) {
+    set('ao-ref-fevi', '<span style="color:var(--yellow);font-weight:700;">' + fevi + ' %</span>' +
+      gris('(<50 %)'));
+  } else {
+    set('ao-ref-fevi', '<b>' + fevi + ' %</b>' + gris('(<50 %)'));
+  }
+}
+window.aoRefPintar = aoRefPintar;
+
+/* ══ CUADRO DE REFERENCIAS — COLUMNA DE HEMODINÁMICA ═══════════════════════════════════════════
+   NO CALCULA NADA. Recibe los seis números ya computados por `calcHemo`, que es su único
+   llamador, y los formatea. Las dos conversiones de unidad son las que el pedido fija y las únicas
+   aritméticas de acá: RVS en UW = dyn ÷ 80, RVP en dyn = UW × 80.
+   Sin banda de normal/elevado y sin clasificación de HTP: eso vive en Hemodinámica, que las sigue
+   mostrando con sus badges. Acá es el número. */
+function aoRefHemo(H) {
+  const set = function (id, txt) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = txt;
+  };
+  const el = document.getElementById('hemo_pam');
+  const pam = v('hemo_pam');
+  const pamAuto = !!el && el.dataset.derivadoDe !== undefined && el.dataset.derivadoDe === el.value;
+  set('ao-ref-pam', pam === null ? '—' : (pam + ' mmHg' + (pamAuto ? ' (auto)' : '')));
+  set('ao-ref-gc',  H.gc  === null || H.gc  === undefined ? '—' : H.gc.toFixed(2) + ' L/min');
+  set('ao-ref-ic',  H.ic  === null || H.ic  === undefined ? '—' : H.ic.toFixed(2) + ' L/min/m²');
+  set('ao-ref-pcp', H.pcp === null || H.pcp === undefined ? '—' : H.pcp.toFixed(1) + ' mmHg');
+  set('ao-ref-rvs', H.rvs === null || H.rvs === undefined ? '—'
+    : H.rvs.toFixed(0) + ' dyn·s·cm⁻⁵ · ' + (H.rvs / 80).toFixed(1) + ' UW');
+  set('ao-ref-rvp', H.rvp === null || H.rvp === undefined ? '—'
+    : H.rvp.toFixed(1) + ' UW · ' + (H.rvp * 80).toFixed(0) + ' dyn·s·cm⁻⁵');
+}
+window.aoRefHemo = aoRefHemo;
 
 /* ══ ESTENOSIS AÓRTICA — clasificación hemodinámica (ESC 2021 / ACC-AHA 2020) ═════════════
    Devuelve el ESCENARIO, no una conducta. La app describe hallazgos y los clasifica; quién se
@@ -34877,7 +35357,7 @@ function RECALC_MODULOS() {
      `emAvmPdfVal` para la fila del PDF, `dataset` protege esa decision, y `disabled` no lo
      persiste ni lo lee nadie. Los dos primeros siguen intocados — que es exactamente la objecion
      que este archivo dejo escrita para IM: «pisaria la decision que la reimpresion respalda». */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','itIncongruenciaSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','itIncongruenciaSync','aoEspejosRestaurar'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -35073,6 +35553,16 @@ function limpiarCampos(silencioso) {
      `itIncongruenciaSync` entró además a `RECALC_MODULOS`, que es la otra columna (las rutas de
      restauración), al lado de `eteVmAvisoSync` y por la misma razón. */
   { if (typeof itIncongruenciaSync === 'function') { try { itIncongruenciaSync(); } catch (e) {} } }
+  /* ⚠️ EL CUADRO DE REFERENCIAS DEL DOPPLER AÓRTICO NECESITA LAS DOS COLUMNAS, por el mismo motivo
+     que los dos avisos de arriba. Las catorce filas son `span[id]` dentro de un `.calc-box`, así
+     que el barrido de más arriba las deja en «—»; lo que NO alcanza ese barrido es el aviso «auto»
+     de la PAM —vive en un `<div>` suelto bajo el campo de Hemodinámica— ni el `dataset.derivadoDe`
+     del propio `hemo_pam`, que el barrido de marcas derivadas sí borra unas líneas antes. Sin esta
+     línea el renglón «auto ← PAS/PAD del Doppler aórtico» del paciente anterior sobrevivía a
+     «Nuevo estudio» sobre una PAM vacía. `aoRefPintar` va detrás para que las filas queden en «—»
+     y no con el valor de la cascada previa. */
+  { if (typeof _aoPamAutoAviso === 'function') { try { _aoPamAutoAviso(); } catch (e) {} }
+    if (typeof aoRefPintar === 'function') { try { aoRefPintar(); } catch (e) {} } }
   _PDF_METODO_IDS.forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.checked = false; el.disabled = true; delete el.dataset.tocado; delete el.dataset.desdeEstudio; }
@@ -95537,8 +96027,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261006-1740';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791319222338;                 /* eco-build-ms */
+const ECO_BUILD    = '20261006-2103';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791331416510;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -95624,7 +96114,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-1740</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-2103</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
