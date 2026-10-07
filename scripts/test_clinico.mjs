@@ -52305,6 +52305,173 @@ caso('TC-426', 'La RVP estimada suma el 0,16 de la ecuacion de Abbas, el valor e
   })();
 `);
 
+caso('TC-427', 'El tiempo de aceleracion PULMONAR del importador cae en el TAP y no en el Tango, el indice no queda rancio al borrar un insumo, y las dos filas se repintan al reabrir un guardado', `
+  return (async () => {
+  const T = function (id) { const e = document.getElementById(id);
+    return e ? e.textContent.trim().replace(/\\s+/g,' ') : 'NO ' + id; };
+
+  /* Escena aortica del Tango: los TRES insumos, que es la unica forma de que el indice exista.
+     300 / (4,5 x 90) = 0,74 y el cociente TAC/TE = 0,30. */
+  const cargar = function () {
+    __t.nuevoEstudio();
+    __t.set('vmax_ao', '4.5'); __t.set('tango_te', '300'); __t.set('tango_tac', '90');
+    return { te: __t.val('tango_te'), tac: __t.val('tango_tac'), vmax: __t.val('vmax_ao'),
+             ava: __t.val('tango_ava_val'),
+             filaIdx: T('ao-ref-tango'), filaRatio: T('ao-ref-tacte'), tap: __t.val('tvia') }; };
+
+  /* ── 1 · EL RESOLVEDOR REAL DEL IMPORTADOR ───────────────────────────────────────────────
+     Se interroga el resolvedor y NO la tabla: lo que importa es a que campo llega la etiqueta
+     despues de normalizar y de resolver ambiguedades. Si alguien devuelve el mapeo a
+     tango_tac, estas cuatro se ponen rojas. */
+  const destino = function (et) {
+    try { const h = _dcmPorEtiqueta.get(_dcmNormEtiq(et));
+      return (h === undefined) ? '(sin match)' : (h === null ? '(ambigua)' : h.def.campo); }
+    catch (e) { return 'EXC ' + e.message; } };
+  const dRvot = destino('RVOT AT'), dPulm = destino('Pulm AT');
+  const dPa   = destino('PA AT'),   dPv   = destino('PV AT');
+  /* CONTROL NEGATIVO del resolvedor: «AT» pelado es ambiguo y NO debe matchear nada, y una
+     etiqueta ajena tiene que seguir cayendo donde siempre. Sin esto, un resolvedor que
+     devolviera «tvia» para CUALQUIER texto pasaria las cuatro de arriba. */
+  const dAtPelado = destino('AT'), dAjena = destino('LVOT VTI');
+  let dCod = '?', dGe = '?', dExport = '?';
+  try { const h = _dcmPorCodigo.get('99CEIBOMED|CM-TACPULM'); dCod = h ? h.def.campo : '(sin match)'; } catch (e) { dCod = 'EXC'; }
+  try { dGe = (CHM_MAPA['PV Acc Time'] || {}).campo || '(sin match)'; } catch (e) { dGe = 'EXC'; }
+  try { dExport = (DCM_EXPORT.filter(function (d) { return d.cod === 'CM-TACPULM'; })
+                   .map(function (d) { return d.campo; })).join(',') || '(sin fila)'; } catch (e) { dExport = 'EXC'; }
+
+  /* ── 2 · EL VALOR LLEGA AL TAP, Y EL TANGO NO SE MUEVE ───────────────────────────────────
+     Con TE y TAC aorticos cargados A MANO se "importa" el pulmonar por el campo que el
+     resolvedor devolvio. 95 ms es un TAP patologico (<105) y a la vez un AT aortico
+     plausible, asi que la escena distingue de verdad adonde fue el numero. */
+  const antes = cargar();
+  if (dPulm && dPulm.indexOf('(') < 0 && dPulm.indexOf('EXC') < 0) {
+    const e = document.getElementById(dPulm);
+    if (e) { e.value = '95'; }
+    try { calcVD(); } catch (e2) {}
+    try { calcAo(); calcTango(); } catch (e2) {}
+  }
+  const despues = { te: __t.val('tango_te'), tac: __t.val('tango_tac'), vmax: __t.val('vmax_ao'),
+                    ava: __t.val('tango_ava_val'), filaIdx: T('ao-ref-tango'),
+                    filaRatio: T('ao-ref-tacte'), tap: __t.val('tvia'),
+                    tapInterp: T('tap-interp') };
+
+  /* ── 3 · BORRAR UN INSUMO A MANO NO DEJA EL INDICE RANCIO EN SU CAMPO ────────────────────── */
+  cargar(); __t.set('tango_tac', '');
+  const sinTac = { tac: __t.val('tango_tac'), ava: __t.val('tango_ava_val'),
+                   filaIdx: T('ao-ref-tango'), filaRatio: T('ao-ref-tacte') };
+  cargar(); __t.set('tango_te', '');
+  const sinTe = { te: __t.val('tango_te'), ava: __t.val('tango_ava_val'), filaIdx: T('ao-ref-tango') };
+  /* CONTROL NEGATIVO 1: con los tres insumos puestos el valor NO se borra — el borrado tiene
+     que distinguir «falta un insumo» de «cambio un insumo». */
+  cargar(); __t.set('tango_tac', '95');
+  const ctrlSigue = { ava: __t.val('tango_ava_val'), filaIdx: T('ao-ref-tango') };
+  /* CONTROL NEGATIVO 2: borrar un campo AJENO al Tango no lo apaga. */
+  cargar(); __t.set('gmedio_ao', '45'); __t.set('gmedio_ao', '');
+  const ctrlAjeno = { ava: __t.val('tango_ava_val'), filaIdx: T('ao-ref-tango') };
+
+  /* ── 4 · EDITAR LA Vmax A MANO SIGUE BORRANDO TE, TAC Y EL RESULTADO (tanda anterior) ─────
+     Por las DOS puertas del medico: el Doppler y Valvulas. */
+  cargar(); __t.set('vmax_ao', '3.8');
+  const porDoppler = { te: __t.val('tango_te'), tac: __t.val('tango_tac'), ava: __t.val('tango_ava_val') };
+  cargar(); __t.set('ea_vmax', '3.8');
+  const porValvulas = { te: __t.val('tango_te'), tac: __t.val('tango_tac'), ava: __t.val('tango_ava_val') };
+
+  /* ── 5 · GUARDAR Y REABRIR DE VERDAD: las dos filas muestran el valor guardado ─────────────
+     Entra por guardarInforme + cargarEstudioPorId, o sea el viaje completo por el store. */
+  const alGuardar = cargar();
+  __t.set('nombre', 'PACIENTE TANGO');
+  const g = await __t.guardar();
+  __t.nuevoEstudio();
+  const traLimpiar = { ava: __t.val('tango_ava_val'), filaIdx: T('ao-ref-tango') };
+  if (g.estudioId) __t.reabrir(g.estudioId);
+  const alReabrir = { te: __t.val('tango_te'), tac: __t.val('tango_tac'), vmax: __t.val('vmax_ao'),
+                      ava: __t.val('tango_ava_val'), filaIdx: T('ao-ref-tango'),
+                      filaRatio: T('ao-ref-tacte') };
+  /* CONTROL NEGATIVO: un guardado SIN Tango reabre con las dos filas en raya. Sin esto, un
+     repintador que escribiera cualquier cosa siempre pasaria la condicion de arriba. */
+  __t.nuevoEstudio(); __t.set('vmax_ao', '4.5'); __t.set('nombre', 'PACIENTE SIN TANGO');
+  const g2 = await __t.guardar();
+  __t.nuevoEstudio();
+  if (g2.estudioId) __t.reabrir(g2.estudioId);
+  const ctrlReabrir = { ava: __t.val('tango_ava_val'), filaIdx: T('ao-ref-tango'),
+                        filaRatio: T('ao-ref-tacte') };
+  await __t.borrar(g.estudioId); await __t.borrar(g2.estudioId);
+  __t.nuevoEstudio();
+
+  return { extra: [
+    /* ── DENOMINADOR: sin esto todo lo de abajo cuenta sobre un formulario que no cargo ──── */
+    ['DENOMINADOR: la escena publica el indice y el cociente, ninguno en raya',
+      antes.ava === '0.74' && antes.filaIdx === '0.74 (\\u00edndice)' &&
+      antes.filaRatio === '0.30',
+      'ava=' + antes.ava + ' fila=' + antes.filaIdx + ' ratio=' + antes.filaRatio],
+    ['  y el TAP arranca vacio, asi que el 95 que llegue despues es del importador',
+      antes.tap === '', 'tap=' + JSON.stringify(antes.tap)],
+
+    /* ── 1 · MAPEO ───────────────────────────────────────────────────────────────────────── */
+    ['los CUATRO rotulos del tiempo pulmonar resuelven a «tvia» (el TAP), no a «tango_tac»',
+      dRvot === 'tvia' && dPulm === 'tvia' && dPa === 'tvia' && dPv === 'tvia',
+      'RVOT AT=' + dRvot + ' Pulm AT=' + dPulm + ' PA AT=' + dPa + ' PV AT=' + dPv],
+    ['  CONTROL: «AT» pelado sigue sin matchear nada y «LVOT VTI» sigue en itv_tsvi',
+      dAtPelado === '(sin match)' && dAjena === 'itv_tsvi',
+      'AT=' + dAtPelado + ' LVOT VTI=' + dAjena],
+    ['el codigo CM-TACPULM y el «PV Acc Time» del XML del GE tambien van a «tvia»',
+      dCod === 'tvia' && dGe === 'tvia', 'cod=' + dCod + ' ge=' + dGe],
+    ['el EXPORT se mudo con el import —si no, exportar y reimportar movia el AT aortico al TAP—',
+      dExport === 'tvia', 'DCM_EXPORT[CM-TACPULM]=' + dExport],
+
+    /* ── 2 · EL VALOR ────────────────────────────────────────────────────────────────────── */
+    ['el 95 ms cae en el TAP y «tango_tac» NO lo recibe',
+      despues.tap === '95' && despues.tac === '90',
+      'tvia=' + despues.tap + ' tango_tac=' + despues.tac],
+    ['  y el TAP empieza a votar: la capsula lo lee como elemento indirecto de HTP',
+      /105/.test(despues.tapInterp) && /95/.test(despues.tapInterp),
+      'tap-interp=«' + despues.tapInterp + '»'],
+    ['el indice Tango NO se mueve por lo que entro del pulmonar',
+      despues.ava === antes.ava && despues.filaIdx === antes.filaIdx &&
+      despues.filaRatio === antes.filaRatio,
+      'antes=' + antes.ava + '/' + antes.filaRatio + ' despues=' + despues.ava + '/' + despues.filaRatio],
+
+    /* ── 3 · EL INDICE RANCIO ────────────────────────────────────────────────────────────── */
+    ['borrar el TAC a mano borra TAMBIEN el indice de su campo, no solo de las filas',
+      sinTac.ava === '' && sinTac.filaIdx === '\\u2014' && sinTac.filaRatio === '\\u2014',
+      'ava=' + JSON.stringify(sinTac.ava) + ' fila=' + sinTac.filaIdx],
+    ['  y borrar el TE tambien: el hueco estaba en los TRES insumos',
+      sinTe.ava === '' && sinTe.filaIdx === '\\u2014',
+      'ava=' + JSON.stringify(sinTe.ava) + ' fila=' + sinTe.filaIdx],
+    ['  CONTROL: CAMBIAR el TAC (no borrarlo) recalcula y NO borra',
+      ctrlSigue.ava === '0.70' && ctrlSigue.filaIdx !== '\\u2014',
+      'ava=' + ctrlSigue.ava + ' fila=' + ctrlSigue.filaIdx],
+    ['  CONTROL: borrar un campo AJENO al Tango no lo apaga',
+      ctrlAjeno.ava === '0.74' && ctrlAjeno.filaIdx !== '\\u2014',
+      'ava=' + ctrlAjeno.ava + ' fila=' + ctrlAjeno.filaIdx],
+
+    /* ── 4 · LA TANDA ANTERIOR SIGUE EN PIE ──────────────────────────────────────────────── */
+    ['editar la Vmax por DOPPLER sigue borrando TE, TAC y el resultado',
+      porDoppler.te === '' && porDoppler.tac === '' && porDoppler.ava === '',
+      JSON.stringify(porDoppler)],
+    ['editar la Vmax por VALVULAS tambien',
+      porValvulas.te === '' && porValvulas.tac === '' && porValvulas.ava === '',
+      JSON.stringify(porValvulas)],
+
+    /* ── 5 · REABRIR ─────────────────────────────────────────────────────────────────────── */
+    ['DENOMINADOR del guardado: el estudio se guardo y «Nuevo estudio» dejo las filas en raya',
+      g.ok === true && !!g.estudioId && traLimpiar.ava === '' && traLimpiar.filaIdx === '\\u2014',
+      'ok=' + g.ok + ' id=' + g.estudioId + ' traLimpiar=' + JSON.stringify(traLimpiar)],
+    ['al reabrir, las dos filas muestran el valor GUARDADO en vez de quedar en raya',
+      alReabrir.filaIdx === alGuardar.filaIdx && alReabrir.filaRatio === alGuardar.filaRatio,
+      'guardado=' + alGuardar.filaIdx + '/' + alGuardar.filaRatio +
+      ' reabierto=' + alReabrir.filaIdx + '/' + alReabrir.filaRatio],
+    ['  y el recalculo NO toca los tres insumos ni el valor guardado del indice',
+      alReabrir.te === alGuardar.te && alReabrir.tac === alGuardar.tac &&
+      alReabrir.vmax === alGuardar.vmax && alReabrir.ava === alGuardar.ava,
+      'guardado=' + JSON.stringify(alGuardar) + ' reabierto=' + JSON.stringify(alReabrir)],
+    ['  CONTROL: un guardado SIN Tango reabre con las dos filas en raya',
+      ctrlReabrir.ava === '' && ctrlReabrir.filaIdx === '\\u2014' &&
+      ctrlReabrir.filaRatio === '\\u2014', JSON.stringify(ctrlReabrir)],
+  ] };
+  })();
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

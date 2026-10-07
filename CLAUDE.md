@@ -207,7 +207,7 @@ impecable.
   ⚠️ **Este renglón se escribió mal una vez**: decía «doce commits sin pushear, `origin/main` en
   `2e017a1`», copiado del estado anterior sin mirar. `origin/main` había avanzado. Antes de
   escribirlo, `git rev-parse --short origin/main` y `git log --oneline origin/main..HEAD`.
-- **Línea base al 2026-10-05 (tanda de la ET binaria): suite 436/440, Semgrep 127 / 0 ERROR, Excel
+- **Línea base al 2026-10-06 (tanda de la ET binaria): suite 436/440, Semgrep 127 / 0 ERROR, Excel
   434 columnas.** Los cuatro rojos son los de entrada y NO son regresiones: **TC-223** (el
   documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**. ⚠️ **El denominador subió a
   440**: la tanda de la ET binaria agregó **TC-416** (la de la Vmax IT había agregado TC-415). Los
@@ -375,10 +375,10 @@ es un dato con dos campos, ese agujero se alcanza también escribiendo en el cam
   ⚠️ **El control negativo de TC-400 estaba roto en mi primera versión**: preguntaba por
   `/significativa/i` sobre un EN SUMA cuya frase de normalidad dice «ni funcionales
   **significativas**», así que no podía pasar nunca. Ahora pregunta por la sigla «ET ».
-- **Línea base al cierre: suite 436/440, Semgrep 127 / 0 ERROR, Excel 434 columnas, móvil idéntico a
+- **Línea base al cierre: suite 438/442, Semgrep 127 / 0 ERROR, Excel 434 columnas, móvil idéntico a
   HEAD** (43 hallazgos a 360 px y 52 a 390 px, 1 ALTA cada uno, el `#caso_interes` preexistente y
   ajeno). Los cuatro rojos son los de entrada: **TC-223**, **TC-376**, **TC-390**, **TC-406**.
-  ⚠️ **El denominador subió a 440**: esta tanda agregó **TC-416**.
+  ⚠️ **El denominador subió a 442**: esta tanda agregó **TC-427**.
 - ⚠️ **Me volví a comer el acento grave DOS veces**, las dos en comentarios míos dentro del cuerpo de
   un caso. `node --check` apuntó 87 y 88 líneas antes del culpable; `scripts/check_backticks.py` dio
   la línea exacta las dos veces. **Correrlo antes del suite, no después.**

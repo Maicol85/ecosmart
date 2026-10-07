@@ -25122,6 +25122,14 @@ function calcTango() {
   if (!te || !tac || !vmax) {
     el.textContent = '—'; if (ratioEl) ratioEl.innerHTML = '—';
     _aoRefTangoPintar(null, null, false);
+    /* ⚠️ Y SE BORRA EL INPUT, QUE ES EL QUE VIAJA EN `campos` (2026-10-06). Esta salida reponía los
+       cuatro nodos de PANTALLA a «—» y dejaba `tango_ava_val` con el índice anterior: borrar el TAC
+       a mano dejaba un resultado que ya no describía ninguna medición, invisible en el cuadro pero
+       vivo en el campo, y de ahí al estudio guardado. Medido en HEAD con TE 300 / TAC 90 / Vmax
+       4,5: borrando el TAC las dos filas van a «—» y el campo se queda en 0,74.
+       Esto cierra el hueco para los TRES insumos a la vez, que era lo que faltaba: el camino de
+       `aoTangoApagarPorVmax` ya lo cerraba sólo para su gesto. */
+    setv('tango_ava_val', '');
     return;
   }
   const _dud = _pTe.fuera || _pTac.fuera || _pVmaxT.fuera;
@@ -25185,6 +25193,48 @@ function _aoRefTangoPintar(ratio, indice, dudoso) {
 }
 window._aoRefTangoPintar = _aoRefTangoPintar;
 
+/* ══ AL REABRIR UN GUARDADO, LAS DOS FILAS DEL TANGO SE REPINTAN (2026-10-06) ═══════════════════
+   `calcTango` NO estaba en `RECALC_MODULOS` ni la llamaba ninguna ruta de restauración —medido:
+   `editarInforme` llama a nueve `calc*` y ninguna es ésta—, así que reabrir un estudio con Tango
+   reponía los tres insumos y el resultado en sus campos y dejaba «Cociente TAC/TE» y «AVA Tango»
+   en «—». El dato estaba guardado y la pantalla decía que no existía.
+
+   ⚠️ PINTA, NO ESCRIBE, Y POR ESO NO ES `calcTango` LO QUE ENTRA AL EMBUDO. Colgar `calcTango` de
+   `RECALC_MODULOS` habría sido más corto y tiene un modo de falla real: ante un guardado con el
+   índice cargado y la Vmax vacía, su salida temprana —que desde hoy borra `tango_ava_val`— BORRARÍA
+   al reabrir un valor que el estudio tenía en disco. Esa combinación no se alcanza tecleando (el
+   `oninput` de la Vmax apaga los tres), pero un legado anterior a esa tanda sí puede traerla, y la
+   orden es explícita: el recálculo no toca el valor guardado.
+
+   ⚠️ EL ÍNDICE SE TOMA DEL CAMPO GUARDADO Y NO SE RECALCULA. Es lo que el médico firmó. El cociente
+   TAC/TE sí se arma acá, pero no es un resultado: es el cociente de dos insumos guardados, con el
+   MISMO `toFixed(2)` y el mismo operador que usa `calcTango`, así que no hay una segunda definición
+   del corte de 0,35 — ése sigue viviendo en `_aoRefTangoPintar`, su único dueño.
+
+   ⚠️ LA BANDA SE CONSULTA CON `aoPlaus`, igual que `calcTango`, para que un insumo fuera de banda
+   llegue al cuadro con su marca al reabrir y no sólo al tipear.
+
+   Los dos nodos viejos y OCULTOS —`tango-ava` y `tango-ratio`— quedan en «—» al reabrir, igual que
+   en HEAD. Repintarlos exigiría recomputar la cascada de tres bandas acá, que es la segunda copia
+   que este archivo persigue; están en un contenedor con `display:none` y no los lee ningún
+   generador de informe, EN SUMA, PDF, PPT ni Excel. Queda declarado. */
+function tangoRestaurar() {
+  const iEl = document.getElementById('ao-ref-tango');
+  if (!iEl) return;
+  let pTe, pTac, pVmax;
+  try { pTe = aoPlaus('tango_te'); pTac = aoPlaus('tango_tac'); pVmax = aoPlaus('vmax_ao'); }
+  catch (e) { return; }
+  const te = pTe.crudo, tac = pTac.crudo, vmax = pVmax.crudo;
+  /* Sin los tres insumos no hay cuadro que pintar, y el campo NO se toca: acá no se borra nada.
+     Las filas ya vienen en «—» de `limpiarCampos`, que toda ruta de restauración corre antes. */
+  if (!te || !tac || !vmax) { _aoRefTangoPintar(null, null, false); return; }
+  const guardado = (document.getElementById('tango_ava_val') || {}).value;
+  if (guardado === undefined || String(guardado) === '') { _aoRefTangoPintar(null, null, false); return; }
+  const dudoso = pTe.fuera || pTac.fuera || pVmax.fuera;
+  _aoRefTangoPintar((tac / te).toFixed(2), String(guardado), dudoso);
+}
+window.tangoRestaurar = tangoRestaurar;
+
 /* ══ EL ÍNDICE TANGO SE APAGA CUANDO EL MÉDICO CAMBIA LA Vmax (2026-10-06) ═════════════════════
    El índice y el cociente TAC/TE se calculan CON la Vmax (`te / (vmax * tac)`), así que una Vmax
    nueva deja el resultado anterior describiendo una medición que ya no existe. Se borran los dos
@@ -25210,11 +25260,12 @@ window._aoRefTangoPintar = _aoRefTangoPintar;
    protésico y el resto de la cascada LEEN `tango_te`; corriendo después, la cascada de ese mismo
    tecleo publicaría todavía el valor viejo y el informe quedaría una pulsación atrasado.
 
-   ⚠️ `tango_ava_val` SE BORRA EXPLÍCITAMENTE. La salida temprana de `calcTango` repone los cuatro
-   nodos de pantalla a «—» pero NO toca ese input, que es el que viaja en `campos` al estudio
-   guardado. Eso es un hueco PREEXISTENTE de `calcTango` —borrar el TAC a mano deja ahí el índice
-   rancio— y está reportado aparte: acá se cierra sólo para este camino, porque arreglar la salida
-   temprana es tocar código compartido que esta orden no pide.
+   ⚠️ `tango_ava_val` SE BORRA EXPLÍCITAMENTE, y desde el 2026-10-06 la salida temprana de
+   `calcTango` lo borra TAMBIÉN, así que acá es redundante. Se deja igual: el contrato de esta
+   función es «los tres ids quedan vacíos», y leerlo no debe exigir ir a mirar qué hace la cascada
+   que llama después. El hueco que esto cerraba sólo para este gesto —borrar el TAC o el TE a mano
+   dejaba el índice rancio en el campo, y de ahí al estudio guardado— ya está cerrado para los tres
+   insumos en la salida temprana.
 
    ⚠️ CONSECUENCIA DECLARADA Y AUTORIZADA (Maicol, 2026-10-06): `tango_te` es además el denominador
    del AT/ET del veredicto de estenosis aórtica PROTÉSICA (`eaProtVeredicto`, Tabla 5 de la ASE
@@ -35534,7 +35585,7 @@ function RECALC_MODULOS() {
      `emAvmPdfVal` para la fila del PDF, `dataset` protege esa decision, y `disabled` no lo
      persiste ni lo lee nadie. Los dos primeros siguen intocados — que es exactamente la objecion
      que este archivo dejo escrita para IM: «pisaria la decision que la reimpresion respalda». */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','itIncongruenciaSync','aoEspejosRestaurar'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -96228,8 +96279,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261006-2317';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791339431458;                 /* eco-build-ms */
+const ECO_BUILD    = '20261006-2330';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791340250344;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -96315,7 +96366,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-2317</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-2330</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
