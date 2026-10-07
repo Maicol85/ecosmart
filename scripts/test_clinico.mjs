@@ -52093,6 +52093,218 @@ caso('TC-425', 'El indice Tango y el cociente TAC/TE se apagan cuando el MEDICO 
   })();
 `);
 
+/* ══ LA RVP DE ABBAS SUMA 0,16 — TC-426 ═════════════════════════════════════════════════════════
+   La ecuacion publicada es `RVP = (TRV / VTI_TSVD) x 10 + 0,16` (Wood) y la app tenia el producto
+   pelado, o sea subestimaba 0,16 UW —12,8 dyn·s·cm⁻⁵— en todos los casos.
+
+   ⚠️ SE PRUEBA EL VALOR CRUDO POR EL BADGE Y NO POR EL NUMERO IMPRESO. El texto sale con un
+   toFixed(1), asi que comparar eso contra 2 da el lado EQUIVOCADO: con cociente 0,186 la RVP pasa
+   de 1,86 a 2,02 —cruza el corte— y las dos se imprimen «1.9» y «2.0», las dos <= 2. El lado que
+   la app decide esta en la CLASE del badge, que sale del valor crudo. Lo midio la sonda de la
+   tanda: con el numero impreso la tabla de cruces daba 3 y la correcta da 4.
+
+   ⚠️ Y LA CLASIFICACION DE HTP NECESITA LA VCI SEMBRADA, o el denominador es falso. Sin PmAD no
+   hay PSAP, sin PSAP no hay PAPm, y la rama sale por «Requiere PAPm (PSAP) + PCP»: las escenas
+   daban todas la MISMA categoria y el «no se mueve» se leia como un hallazgo cuando en realidad
+   la clasificacion nunca habia mirado la RVP.
+
+   ⚠️ NINGUN UMBRAL SE TOCO: `RVP_ELEVADA_UW` sigue en 2 y las cinco ramas de la HTP son las
+   mismas. Lo que se mueve es el INSUMO. Este caso fija justamente eso: que los cortes sigan donde
+   estaban y que lo que cambie sea el valor que se compara contra ellos. */
+caso('TC-426', 'La RVP estimada suma el 0,16 de la ecuacion de Abbas, el valor en dyn y el rotulo la siguen, el valor por cateterismo NO lo suma y sigue mandando, y ningun umbral se movio', `
+  return (async () => {
+  const T = function (id) { const e = document.getElementById(id);
+    return e ? e.textContent.trim().replace(/\\s+/g,' ') : 'NO ' + id; };
+  const Hm = function (id) { const e = document.getElementById(id); return e ? e.innerHTML : ''; };
+  const bd = function (h) { const m = /badge-(green|yellow|red|gray)/.exec(h || ''); return m ? m[1] : '?'; };
+  /* Escena con TODOS los insumos: la VCI es la que habilita PmAD -> PSAP -> PAPm, sin la cual la
+     clasificacion de HTP no se pronuncia y el denominador seria falso. */
+  const esc = function (vm, vt) {
+    __t.nuevoEstudio();
+    __t.set('vmax_it', vm); __t.set('vti_tsvd', vt);
+    __t.set('onda_e', 90); __t.set('e_sep', 6); __t.set('e_lat', 8);
+    __t.set('peso', 70); __t.set('talla', 170);
+    __t.set('diam_tsvi', 21); __t.set('itv_tsvi', 18);
+    __t.set('hemo_fc', 70); __t.set('hemo_pam', 90);
+    __t.set('vci_diam', 24); __t.set('vci_col', '<50');
+    try { calcPmAD(); } catch (e) {}
+    try { calcPSAP(); } catch (e) {}
+    try { calcHemo(); } catch (e) {}
+    return { rvp: T('hemo-rvp'), badge: bd(Hm('hemo-rvp')), ref: T('ao-ref-rvp'),
+             htp: T('hemo-htp-tipo').split('·')[0].trim(), psap: __t.val('psap_calc') }; };
+
+  /* La constante existe y vale 0,16, y el umbral NO se movio. */
+  const consts = { off: window.RVP_ABBAS_OFFSET, lim: window.RVP_ELEVADA_UW };
+  /* Cociente 0,2 exacto: 3,0 / 15 → cruda 2,00 · con offset 2,16. */
+  const e02 = esc(3.0, 15);
+  /* Los dos lados del corte de 2 UW. 0,184 NO cruza (2,00 justo, y el corte es <=);
+     0,186 SI cruza (2,02). Es el borde fino que el numero impreso no distingue. */
+  const e0184 = esc(3.68, 20);
+  const e0186 = esc(3.72, 20);
+  /* Los dos lados del corte de 3 UW de la banda intermedia. */
+  const e0284 = esc(5.68, 20);
+  const e0286 = esc(5.72, 20);
+  /* El override por cateterismo: manda y NO suma el 0,16. */
+  const manual = (function () { esc(3.0, 15); __t.set('htp-rvp', 1.4);
+    try { calcHemo(); } catch (e) {}
+    return { rvp: T('hemo-rvp'), ref: T('ao-ref-rvp') }; })();
+  /* El rotulo de la formula en pantalla. */
+  const rot = (function () { const e = document.getElementById('hemo-rvp');
+    const l = e && e.parentNode ? e.parentNode.querySelector('.calc-lbl') : null;
+    return l ? l.textContent.replace(/\\s+/g, ' ').trim() : null; })();
+  /* ⚠️ UN ESTUDIO GUARDADO **RECALCULA** LA RVP AL REABRIRSE: no se guarda en ningun campo
+     —hemo-rvp es un span y lo unico persistido es el override htp-rvp—, asi que se recomputa
+     desde vmax_it + vti_tsvd con la formula que la app tenga en ese momento. Consecuencia
+     declarada: un estudio firmado antes de este commit reabre mostrando 0,16 UW mas.
+     NO se migro nada, porque no hay nada migrable: no existe el dato almacenado. */
+  const viaje = await (async function () {
+    esc(3.0, 15); __t.set('nombre', 'TC426RVP');
+    const antes = T('hemo-rvp');
+    const r = await __t.guardar();
+    if (!r.ok || !r.estudioId) return { err: 'no guardo: ' + JSON.stringify(r) };
+    __t.nuevoEstudio();
+    const traLimpiar = T('hemo-rvp');
+    __t.reabrir(r.estudioId);
+    const traReabrir = T('hemo-rvp');
+    const campoGuardado = __t.val('htp-rvp');
+    await __t.borrar(r.estudioId);
+    return { antes: antes, traLimpiar: traLimpiar, traReabrir: traReabrir,
+             campoGuardado: campoGuardado, vmaxIt: __t.val('vmax_it'), vti: __t.val('vti_tsvd') };
+  })();
+
+  /* ── Las cuatro formulas: publicado vs reconstruido desde las constantes ── */
+  const f = (function () {
+    const leer = function () { const o = {};
+      ['gc','pcp','rvs','rvp'].forEach(function (k) {
+        const e = document.querySelector('.ao-ref-f[data-f="' + k + '"]');
+        o[k] = e ? e.textContent : 'NO EXISTE ' + k; });
+      return o; };
+    const coma = function (n) { return String(n).replace('.', ','); };
+    const ap = String.fromCharCode(39);
+    esc(3.0, 15);                            // Abbas, con todo cargado
+    const pub = leer();
+    const esp = {
+      gc:  '(VS × FC ÷ ' + coma(window.HEMO_GC_DIV) + ')',
+      pcp: '(' + coma(window.PCP_COEF_A) + ' × E/e' + ap + ' + ' + coma(window.PCP_COEF_B) + ' · Nagueh)',
+      rvs: '((PAM − PVC) ÷ GC × ' + coma(window.WOOD_A_DYN) + ')',
+      rvp: '((Vmax IT ÷ VTI TSVD) × ' + coma(window.RVP_ABBAS_FACTOR) + ' + ' + coma(window.RVP_ABBAS_OFFSET) + ' · Abbas)'
+    };
+    const hayPam = !!document.querySelector('.ao-ref-f[data-f="pam"]');
+    const hayIc  = !!document.querySelector('.ao-ref-f[data-f="ic"]');
+    const conId = [].slice.call(document.querySelectorAll('.ao-ref-f'))
+      .filter(function (e) { return !!e.id; }).length;
+    __t.set('htp-rvp', 1.4); try { calcHemo(); } catch (e) {}
+    const cat = leer();
+    __t.set('htp-rvp', ''); try { calcHemo(); } catch (e) {}
+    const vuelta = leer();
+    __t.nuevoEstudio();
+    const traLimpiar = leer();
+    const ok = {}; ['gc','pcp','rvs','rvp'].forEach(function (k) { ok[k] = pub[k] === esp[k]; });
+    return { pub: pub, esp: esp, ok: ok, hayPam: hayPam, hayIc: hayIc, conId: conId,
+             cat: cat, vuelta: vuelta, traLimpiar: traLimpiar }; })();
+
+  /* ── La cuenta A MANO: se rehace cada formula con los insumos crudos del DOM ──
+     Los insumos se leen del formulario, no se asumen: si manana la escena cambia, la cuenta
+     a mano cambia con ella y la condicion sigue midiendo lo mismo. */
+  const cuenta = (function () {
+    esc(3.0, 15);
+    const n = function (id) { return __t.val(id) === '' ? null : Number(__t.val(id)); };
+    const pub = { gc: T('ao-ref-gc'), ic: T('ao-ref-ic'), pcp: T('ao-ref-pcp'),
+                  rvs: T('ao-ref-rvs'), rvp: T('ao-ref-rvp') };
+    const num = function (s) { const m = /^([0-9.]+)/.exec(s || ''); return m ? Number(m[1]) : null; };
+    const vs = Math.PI * Math.pow(n('diam_tsvi') / 20, 2) * n('itv_tsvi');
+    const gcMano = vs * n('hemo_fc') / window.HEMO_GC_DIV;
+    const ee = n('onda_e') / ((n('e_sep') + n('e_lat')) / 2);
+    const pcpMano = window.PCP_COEF_A * ee + window.PCP_COEF_B;
+    const rvsMano = (n('hemo_pam') - n('hemo_pvc')) / gcMano * window.WOOD_A_DYN;
+    const rvpMano = n('vmax_it') / n('vti_tsvd') * window.RVP_ABBAS_FACTOR + window.RVP_ABBAS_OFFSET;
+    const dynMano = rvpMano * window.WOOD_A_DYN;
+    const dynPub = (function () { const m = /· ([0-9]+) dyn/.exec(pub.rvp || ''); return m ? Number(m[1]) : null; })();
+    return { pub: pub,
+      gcMano: gcMano.toFixed(2),   gcOk:  num(pub.gc)  === Number(gcMano.toFixed(2)),
+      pcpMano: pcpMano.toFixed(1), pcpOk: num(pub.pcp) === Number(pcpMano.toFixed(1)),
+      rvsMano: rvsMano.toFixed(0), rvsOk: num(pub.rvs) === Number(rvsMano.toFixed(0)),
+      rvpMano: rvpMano.toFixed(1), rvpOk: num(pub.rvp) === Number(rvpMano.toFixed(1)),
+      dynMano: dynMano.toFixed(0), dynOk: dynPub === Number(dynMano.toFixed(0)) }; })();
+
+  return { extra: [
+    ['la constante de Abbas vale 0,16 y el umbral de la app sigue en 2 UW',
+      consts.off === 0.16 && consts.lim === 2, JSON.stringify(consts)],
+
+    ['  DENOMINADOR: la escena tiene PSAP, asi que la clasificacion de HTP SI se pronuncia',
+      e02.psap !== '' && e02.psap !== null && !/Requiere/.test(e02.htp),
+      'psap=' + e02.psap + ' htp=«' + e02.htp + '»'],
+
+    ['cociente 0,2 (3,0 / 15): la RVP estimada es 2,2 UW y no 2,0',
+      /^2\\.2 UW/.test(e02.rvp), 'rvp=«' + e02.rvp + '»'],
+    ['  y el valor en dyn la sigue: 173 dyn·s·cm⁻⁵ (2,16 x 80), no 160',
+      /2\\.2 UW · 173 dyn/.test(e02.ref), 'fila=«' + e02.ref + '»'],
+    ['  y el rotulo de la formula en pantalla dice «x 10 + 0,16»',
+      /×\\s*10\\s*\\+\\s*0,16/.test(rot || ''), 'rotulo=«' + rot + '»'],
+
+    ['  DENOMINADOR del borde: las dos escenas vecinas imprimen el MISMO 2.0',
+      /^2\\.0 UW/.test(e0184.rvp) && /^2\\.0 UW/.test(e0186.rvp),
+      '0184=«' + e0184.rvp + '» 0186=«' + e0186.rvp + '»'],
+    ['el corte de 2 UW se decide por el valor CRUDO: 0,184 (2,00) queda normal y 0,186 (2,02) no',
+      e0184.badge === 'green' && e0186.badge === 'yellow',
+      '0184=' + e0184.badge + ' 0186=' + e0186.badge],
+    ['el corte de 3 UW igual: 0,284 (3,00) sigue amarillo y 0,286 (3,02) pasa a rojo',
+      e0284.badge === 'yellow' && e0286.badge === 'red',
+      '0284=' + e0284.badge + ' 0286=' + e0286.badge],
+
+    ['el valor por CATETERISMO manda y NO suma el 0,16: 1,4 UW y 112 dyn',
+      /^1\\.4 UW \\(manual · cateterismo\\)/.test(manual.rvp) && /1\\.4 UW · 112 dyn/.test(manual.ref),
+      'rvp=«' + manual.rvp + '» fila=«' + manual.ref + '»'],
+
+    ['  DENOMINADOR del viaje: el estudio guardo y «Nuevo estudio» dejo la RVP en raya',
+      !viaje.err && viaje.traLimpiar === '—', JSON.stringify(viaje).slice(0, 260)],
+    ['un estudio guardado RECALCULA la RVP al reabrirse (no la lee guardada): vuelve 2,2 UW',
+      !viaje.err && /^2\\.2 UW/.test(viaje.traReabrir) && viaje.antes === viaje.traReabrir,
+      'antes=«' + (viaje.antes || '') + '» reabierto=«' + (viaje.traReabrir || '') + '»'],
+    ['  y lo que viajo son los INSUMOS, no la RVP: htp-rvp vacio, Vmax IT y VTI TSVD presentes',
+      !viaje.err && viaje.campoGuardado === '' && viaje.vmaxIt === '3' && viaje.vti === '15',
+      'htp-rvp=«' + (viaje.campoGuardado || '') + '» vmax_it=' + viaje.vmaxIt + ' vti=' + viaje.vti],
+
+    /* ── LAS CUATRO FORMULAS EN LETRA CHICA ───────────────────────────────────────────────────
+       ⚠️ NO SE COMPARA TEXTO CONTRA TEXTO LITERAL: se RECONSTRUYE la cadena leyendo las mismas
+       constantes de window que usa la cuenta y se compara contra lo que la fila publica. Un caso
+       con el texto escrito a mano pasaria igual despues de que alguien cambie un coeficiente y
+       olvide el rotulo — que es exactamente el defecto que el pedido viene a cerrar. */
+    ['las cuatro formulas salen de las CONSTANTES, no de una copia de texto',
+      f.ok.gc && f.ok.pcp && f.ok.rvs && f.ok.rvp,
+      'publicado=' + JSON.stringify(f.pub) + ' esperado=' + JSON.stringify(f.esp)],
+    ['  y dicen lo pedido: GC, PCP (Nagueh), RVS y RVP (Abbas) con sus numeros',
+      f.pub.gc === '(VS × FC ÷ 1000)' &&
+      f.pub.pcp === '(1,24 × E/e' + String.fromCharCode(39) + ' + 1,9 · Nagueh)' &&
+      f.pub.rvs === '((PAM − PVC) ÷ GC × 80)' &&
+      f.pub.rvp === '((Vmax IT ÷ VTI TSVD) × 10 + 0,16 · Abbas)', JSON.stringify(f.pub)],
+    ['PAM e IC quedan SIN formula',
+      f.hayPam === false && f.hayIc === false, 'pam=' + f.hayPam + ' ic=' + f.hayIc],
+    ['  y ningun span de formula lleva id —con id, limpiarCampos los pondria en «—»—',
+      f.conId === 0 && f.traLimpiar.gc === f.pub.gc && f.traLimpiar.rvp === f.pub.rvp,
+      'conId=' + f.conId + ' traLimpiar=' + JSON.stringify(f.traLimpiar)],
+    ['con la RVP por CATETERISMO el parentesis dice «(cateterismo)» y NO la ecuacion de Abbas',
+      f.cat.rvp === '(cateterismo)' && !/Abbas/.test(f.cat.rvp), 'cateterismo=«' + f.cat.rvp + '»'],
+    ['  y al borrar el override vuelve la formula de Abbas',
+      f.vuelta.rvp === f.pub.rvp, 'vuelta=«' + f.vuelta.rvp + '»'],
+
+    /* ── LA CUENTA A MANO: cada formula escrita reproduce el valor publicado ─────────────────── */
+    ['  DENOMINADOR de la cuenta: la escena publica los cinco valores, ninguno en raya',
+      cuenta.pub.gc !== '—' && cuenta.pub.pcp !== '—' && cuenta.pub.rvs !== '—' &&
+      cuenta.pub.rvp !== '—' && cuenta.pub.ic !== '—', JSON.stringify(cuenta.pub)],
+    ['GC: la formula «VS × FC ÷ 1000» reproduce el valor publicado',
+      cuenta.gcOk, 'a mano=' + cuenta.gcMano + ' publicado=' + cuenta.pub.gc],
+    ['PCP: «1,24 × E/e' + String.fromCharCode(39) + ' + 1,9» reproduce el valor publicado',
+      cuenta.pcpOk, 'a mano=' + cuenta.pcpMano + ' publicado=' + cuenta.pub.pcp],
+    ['RVS: «(PAM − PVC) ÷ GC × 80» reproduce el valor publicado',
+      cuenta.rvsOk, 'a mano=' + cuenta.rvsMano + ' publicado=' + cuenta.pub.rvs],
+    ['RVP: «(Vmax IT ÷ VTI TSVD) × 10 + 0,16» reproduce el valor publicado, y el dyn es UW × 80',
+      cuenta.rvpOk && cuenta.dynOk,
+      'a mano=' + cuenta.rvpMano + ' dyn=' + cuenta.dynMano + ' publicado=' + cuenta.pub.rvp],
+  ] };
+  })();
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

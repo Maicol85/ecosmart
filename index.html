@@ -3632,12 +3632,17 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div class="calc-box" style="margin-top:0;">
           <div style="font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:4px;">Hemodinámica</div>
+          <!-- ⚠️ LAS FÓRMULAS LAS ESCRIBE `aoRefFormulas` Y NO ESTÁN ACÁ COMO TEXTO: cada número
+               sale de la constante que usa la cuenta, así que escribirlas en el marcado sería la
+               copia que el pedido viene a evitar. Los `<span>` van con CLASE y sin `id` — con `id`
+               el barrido `.calc-box .calc-row span[id]:not(.calc-lbl)` de `limpiarCampos` los
+               reemplazaría por «—» en cada «Nuevo estudio». PAM e IC van sin fórmula. -->
           <div class="calc-row"><span class="calc-lbl">PAM</span><span class="calc-val" id="ao-ref-pam">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">GC</span><span class="calc-val" id="ao-ref-gc">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">GC <span class="ao-ref-f" data-f="gc" style="color:var(--text2);font-size:10px;"></span></span><span class="calc-val" id="ao-ref-gc">—</span></div>
           <div class="calc-row"><span class="calc-lbl">IC</span><span class="calc-val" id="ao-ref-ic">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">PCP</span><span class="calc-val" id="ao-ref-pcp">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">RVS</span><span class="calc-val" id="ao-ref-rvs">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">RVP</span><span class="calc-val" id="ao-ref-rvp">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">PCP <span class="ao-ref-f" data-f="pcp" style="color:var(--text2);font-size:10px;"></span></span><span class="calc-val" id="ao-ref-pcp">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">RVS <span class="ao-ref-f" data-f="rvs" style="color:var(--text2);font-size:10px;"></span></span><span class="calc-val" id="ao-ref-rvs">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">RVP <span class="ao-ref-f" data-f="rvp" style="color:var(--text2);font-size:10px;"></span></span><span class="calc-val" id="ao-ref-rvp">—</span></div>
         </div>
       </div>
       <!-- Las filas que la grilla reemplazó siguen existiendo FUERA de vista: `ava-idx`,
@@ -5590,7 +5595,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           <span class="calc-val" id="hemo-gtp">—</span>
         </div>
         <div class="calc-row">
-          <span class="calc-lbl">RVP <span style="color:var(--text2);font-size:10px;">= (Vmax IT / VTI-TSVD) × 10 · Abbas (Wood)</span></span>
+          <span class="calc-lbl">RVP <span style="color:var(--text2);font-size:10px;">= (Vmax IT / VTI-TSVD) × 10 + 0,16 · Abbas (Wood)</span></span>
           <span id="hemo-rvp">—</span>
         </div>
         <div class="calc-row">
@@ -18189,6 +18194,27 @@ window.UMBRAL_MASA_HVI_M = UMBRAL_MASA_HVI_M; window.UMBRAL_MASA_HVI_H = UMBRAL_
    el que sale al PDF es el de la tarjeta de Cálculos, el del umbral viejo—. */
 const RVP_ELEVADA_UW = 2;
 window.RVP_ELEVADA_UW = RVP_ELEVADA_UW;
+/* Término constante de la ecuación de Abbas: `RVP = (TRV / VTI_TSVD) × 10 + 0,16` (Wood).
+   Vive al lado del umbral y NO dentro de la cuenta para que se lea que es parte de LA ECUACIÓN y
+   no un ajuste: pertenece a la estimación Doppler, así que el valor por cateterismo no lo suma.
+   No es un umbral — `RVP_ELEVADA_UW` sigue siendo el único corte y no se tocó. */
+const RVP_ABBAS_OFFSET = 0.16;
+window.RVP_ABBAS_OFFSET = RVP_ABBAS_OFFSET;
+/* ══ LOS TRES FACTORES QUE ERAN LITERALES DENTRO DE `calcHemo` ══════════════════════════════════
+   Salieron de la cuenta el 2026-10-06 porque el cuadro de referencias del Doppler aórtico imprime
+   ahora la FÓRMULA de cada fila, y la regla es que el rótulo y el cálculo no se puedan separar: si
+   el número vive en un solo lugar, cambiarlo cambia las dos cosas a la vez. Ninguno cambió de
+   valor — es una mudanza, no un ajuste.
+     · `HEMO_GC_DIV`      ml × lpm → L/min, en el gasto cardíaco;
+     · `WOOD_A_DYN`       unidades Wood → dyn·s·cm⁻⁵, la misma conversión en la RVS y en la RVP;
+     · `RVP_ABBAS_FACTOR` el ×10 de la ecuación de Abbas, hermano de `RVP_ABBAS_OFFSET`.
+   ⚠️ QUEDA UN 80 SIN UNIFICAR, y está declarado: `_rvpTxt` —la banda que comparten esta tarjeta y
+   el bloque POP— convierte con su propio literal. No se tocó porque POP no entra en esta orden. */
+const HEMO_GC_DIV = 1000;
+const WOOD_A_DYN = 80;
+const RVP_ABBAS_FACTOR = 10;
+window.HEMO_GC_DIV = HEMO_GC_DIV; window.WOOD_A_DYN = WOOD_A_DYN;
+window.RVP_ABBAS_FACTOR = RVP_ABBAS_FACTOR;
 
 const PCP_COEF_A = 1.24, PCP_COEF_B = 1.9;
 /* Corte de CONGESTIÓN. Estaba escrito como literal en tres sitios —las dos ramas de `calcHemo` y
@@ -18216,6 +18242,11 @@ function pcpNagueh(ee) {
   const n = (typeof ee === 'number') ? ee : parseFloat(ee);
   return (!isFinite(n) || n <= 0) ? null : PCP_COEF_A * n + PCP_COEF_B;
 }
+/* Los dos coeficientes se exportan desde el 2026-10-06: el cuadro del Doppler aórtico imprime la
+   fórmula leyéndolos, y sin esto una sonda o un caso de prueba no puede verificar que el rótulo
+   salga de la MISMA constante que la cuenta — sólo podría comparar texto contra texto, que es
+   justo lo que el pedido viene a evitar. */
+window.PCP_COEF_A = PCP_COEF_A; window.PCP_COEF_B = PCP_COEF_B;
 window.PCP_FORMULA_TXT = PCP_FORMULA_TXT; window.PCP_DISCLAIMER = PCP_DISCLAIMER;
 window.pcpNagueh = pcpNagueh;
 window.UMBRAL_FEVI_NORMAL = UMBRAL_FEVI_NORMAL;
@@ -18878,7 +18909,7 @@ function calcHemo() {
 
   // ── Gasto cardíaco ──
   let gc = null;
-  if (vs !== null && fc !== null) { gc = vs * fc / 1000; set('hemo-gc', gc.toFixed(2) + ' L/min'); }
+  if (vs !== null && fc !== null) { gc = vs * fc / HEMO_GC_DIV; set('hemo-gc', gc.toFixed(2) + ' L/min'); }
   else set('hemo-gc', '—');
 
   // ── Índice cardíaco ──
@@ -18892,7 +18923,7 @@ function calcHemo() {
   // ── RVS ──
   let rvs = null;
   if (pam !== null && pvc !== null && gc !== null && gc > 0) {
-    rvs = (pam - pvc) / gc * 80;
+    rvs = (pam - pvc) / gc * WOOD_A_DYN;
     const _br = _rvsBanda(rvs); const cls = _br.cls, et = _br.txt;   // seam compartido con POP
     setH('hemo-rvs', rvs.toFixed(0) + ' dinas·s·cm⁻⁵ ' + badge(cls, et));
   } else setH('hemo-rvs', '—');
@@ -18907,7 +18938,16 @@ function calcHemo() {
   if (papm !== null && pcp !== null) { gtp = papm - pcp; set('hemo-gtp', gtp.toFixed(1) + ' mmHg (PAPm ' + papm.toFixed(0) + ')'); }
   else set('hemo-gtp', '—');
 
-  // ── RVP (Wood) — Abbas: (Vmax IT / VTI-TSVD) × 10 ──
+  // ── RVP (Wood) — Abbas: (Vmax IT / VTI-TSVD) × 10 + 0,16 ──
+  /* ⚠️ EL `+ 0,16` ENTRÓ EL 2026-10-06 Y FALTABA. La ecuación publicada de Abbas es
+     `RVP = (TRV / VTI_TSVD) × 10 + 0,16`; acá estaba el producto pelado, así que la app venía
+     subestimando la RVP estimada en 0,16 UW —exactamente 12,8 dyn·s·cm⁻⁵— en todos los casos.
+     NO se tocó ningún umbral: `RVP_ELEVADA_UW` sigue en 2 y las cinco ramas de la clasificación de
+     HTP son las mismas. Lo que se mueve es el INSUMO, así que un cociente entre 0,184 y 0,2 —RVP
+     cruda 1,84 a 2,00— cruza el corte de 2 UW que antes no cruzaba. Está medido y declarado en el
+     reporte de la tanda.
+     ⚠️ EL OVERRIDE POR CATETERISMO NO LLEVA EL 0,16: ese número es una medición invasiva, no una
+     estimación Doppler. La constante pertenece a la ecuación de Abbas, no a la magnitud. */
   const vmaxIT = v('vmax_it'), vtiTSVD = v('vti_tsvd');
   const rvpManual = v('htp-rvp');   // override por cateterismo derecho, si se ingresó
   let rvp = null;
@@ -18917,7 +18957,7 @@ function calcHemo() {
     let et  = rvp <= RVP_ELEVADA_UW ? ('<=' + RVP_ELEVADA_UW + ' UW - normal') : ('>' + RVP_ELEVADA_UW + ' UW - elevada (criterio ESC/ERS 2022 de componente precapilar)');
     setH('hemo-rvp', rvp.toFixed(1) + ' UW (manual · cateterismo) ' + badge(cls, et));
   } else if (vmaxIT !== null && vtiTSVD !== null && vtiTSVD > 0) {
-    rvp = (vmaxIT / vtiTSVD) * 10;
+    rvp = (vmaxIT / vtiTSVD) * RVP_ABBAS_FACTOR + RVP_ABBAS_OFFSET;
     /* Se conserva la banda intermedia SÓLO en la rama de Abbas: es una estimación Doppler,
        y una RVP de 2,1 por Abbas no merece el mismo rojo que una de 6,0 por cateterismo.
        El umbral de decisión sigue siendo el de ESC/ERS 2022. */
@@ -18995,7 +19035,11 @@ function calcHemo() {
      `rvp` ya trae la rama correcta: el override manual por cateterismo si el médico lo cargó, y
      si no la estimación de Abbas. */
   if (typeof aoRefHemo === 'function') {
-    try { aoRefHemo({ gc: gc, ic: ic, rvs: rvs, pcp: pcp, rvp: rvp }); } catch (e) {}
+    /* `rvpManual` viaja porque el paréntesis de la fórmula de la RVP tiene que decir
+       «(cateterismo)» cuando el número NO salió de Abbas. Se manda el booleano y no se vuelve a
+       leer `htp-rvp` allá: quien sabe de qué rama salió el valor es esta función. */
+    try { aoRefHemo({ gc: gc, ic: ic, rvs: rvs, pcp: pcp, rvp: rvp,
+                      rvpManual: rvpManual !== null }); } catch (e) {}
   }
 }
 window.calcHemo = calcHemo;
@@ -28426,11 +28470,60 @@ function aoRefHemo(H) {
   set('ao-ref-ic',  H.ic  === null || H.ic  === undefined ? '—' : H.ic.toFixed(2) + ' L/min/m²');
   set('ao-ref-pcp', H.pcp === null || H.pcp === undefined ? '—' : H.pcp.toFixed(1) + ' mmHg');
   set('ao-ref-rvs', H.rvs === null || H.rvs === undefined ? '—'
-    : H.rvs.toFixed(0) + ' dyn·s·cm⁻⁵ · ' + (H.rvs / 80).toFixed(1) + ' UW');
+    : H.rvs.toFixed(0) + ' dyn·s·cm⁻⁵ · ' + (H.rvs / WOOD_A_DYN).toFixed(1) + ' UW');
   set('ao-ref-rvp', H.rvp === null || H.rvp === undefined ? '—'
-    : H.rvp.toFixed(1) + ' UW · ' + (H.rvp * 80).toFixed(0) + ' dyn·s·cm⁻⁵');
+    : H.rvp.toFixed(1) + ' UW · ' + (H.rvp * WOOD_A_DYN).toFixed(0) + ' dyn·s·cm⁻⁵');
+  /* La fórmula de la RVP depende de la RAMA, así que se repinta en cada cálculo. Las otras tres
+     son fijas y las deja puestas `aoRefFormulas` al arrancar; se repintan igual porque la función
+     es idempotente y así no hay un orden del que depender. */
+  aoRefFormulas(!!H.rvpManual);
 }
 window.aoRefHemo = aoRefHemo;
+
+/* ══ LAS FÓRMULAS EN LETRA CHICA DE LA COLUMNA DE HEMODINÁMICA (2026-10-06) ════════════════════
+   Cuatro filas llevan su fórmula entre paréntesis, en gris y 10 px — el mismo estilo que las notas
+   que la tarjeta de Hemodinámica ya usa al lado de cada rótulo. PAM e IC quedan SIN fórmula.
+
+   ⚠️ CADA NÚMERO SE LEE DE LA CONSTANTE QUE USA LA CUENTA, ninguno se tipea acá: `PCP_COEF_A`,
+   `PCP_COEF_B`, `HEMO_GC_DIV`, `WOOD_A_DYN`, `RVP_ABBAS_FACTOR` y `RVP_ABBAS_OFFSET`. Es el punto
+   del pedido: si mañana alguien mueve un coeficiente, el rótulo se mueve con él y no pueden
+   separarse. Por eso el texto NO está en el marcado — ahí sería una copia.
+
+   ⚠️ LOS `<span>` NO LLEVAN `id`, LLEVAN CLASE, y no es un detalle de estilo: el barrido
+   `.calc-box .calc-row span[id]:not(.calc-lbl)` de `limpiarCampos` pone en «—» todo span con id
+   dentro de una fila de cuadro. Un `id` acá habría hecho que «Nuevo estudio» reemplazara las
+   cuatro fórmulas por una raya, y no habría vuelto hasta el próximo `calcHemo`.
+
+   ⚠️ SE ESCRIBE `textContent` Y NO `innerHTML`: el texto lleva un apóstrofe (E/e') y nada de
+   marcado. Así no hay nada que escapar ni que Semgrep tenga que mirar.
+
+   ⚠️ CON LA RVP POR CATETERISMO EL PARÉNTESIS DICE «(cateterismo)» Y NO LA ECUACIÓN DE ABBAS.
+   El número no salió de ahí: imprimir la fórmula de Abbas al lado de un valor invasivo es
+   exactamente la contradicción entre las dos mitades de una fila que este archivo ya pagó. */
+function aoRefFormulas(rvpManual) {
+  const coma = function (n) { return String(n).replace('.', ','); };
+  const F = {
+    pcp: '(' + coma(PCP_COEF_A) + ' × E/e\' + ' + coma(PCP_COEF_B) + ' · Nagueh)',
+    gc:  '(VS × FC ÷ ' + coma(HEMO_GC_DIV) + ')',
+    rvs: '((PAM − PVC) ÷ GC × ' + coma(WOOD_A_DYN) + ')',
+    rvp: rvpManual ? '(cateterismo)'
+       : '((Vmax IT ÷ VTI TSVD) × ' + coma(RVP_ABBAS_FACTOR) + ' + ' + coma(RVP_ABBAS_OFFSET) + ' · Abbas)'
+  };
+  Object.keys(F).forEach(function (k) {
+    const el = document.querySelector('.ao-ref-f[data-f="' + k + '"]');
+    if (el) el.textContent = F[k];
+  });
+  return F;
+}
+window.aoRefFormulas = aoRefFormulas;
+/* Quedan puestas al arrancar, sin esperar al primer `calcHemo`: en un formulario vacío la cascada
+   de Hemodinámica no corre, y sin esto el médico vería las cuatro filas sin su fórmula hasta
+   cargar algo. `readyState` para que funcione esté el script antes o después del parseo. */
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function () {
+    try { aoRefFormulas(false); } catch (e) {}
+  }, { once: true });
+} else { try { aoRefFormulas(false); } catch (e) {} }
 
 /* ══ ESTENOSIS AÓRTICA — clasificación hemodinámica (ESC 2021 / ACC-AHA 2020) ═════════════
    Devuelve el ESCENARIO, no una conducta. La app describe hallazgos y los clasifica; quién se
@@ -96111,8 +96204,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261006-2205';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791335116133;                 /* eco-build-ms */
+const ECO_BUILD    = '20261006-2243';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791337386509;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -96198,7 +96291,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-2205</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-2243</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

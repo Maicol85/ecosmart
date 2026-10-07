@@ -454,10 +454,20 @@ async function main() {
       window.__A.set('peso', 70); window.__A.set('talla', 170);
       window.__A.set('diam_tsvi', 21); window.__A.set('itv_tsvi', 18);
       window.__A.set('hemo_fc', 70); window.__A.set('hemo_pam', 90);
+      /* ⚠️ LA VCI VA, O LA CLASIFICACION DE HTP NO SE PRONUNCIA Y EL DENOMINADOR ES FALSO.
+         Sin PmAD no hay PSAP, sin PSAP no hay PAPm, y la rama de HTP sale por «Requiere PAPm
+         (PSAP) + PCP»: las 18 escenas daban la MISMA categoria y el 0/18 se leia como «la
+         clasificacion no se mueve» cuando en realidad nunca llego a mirar la RVP. El comentario
+         de dos lineas arriba AFIRMABA que los insumos alcanzaban, y era falso. Lo cazo imprimir
+         el texto de la categoria, no leer el conteo.
+         El value de la option es '<50', no '<50%'. */
+      window.__A.set('vci_diam', 24); window.__A.set('vci_col', '<50');
+      try { calcPmAD() } catch(e) {}
       try { calcPSAP() } catch(e) {}
       try { calcHemo() } catch(e) {}
       out.push({ vm: vm, vt: vt, cociente: (vm / vt).toFixed(4),
-                 rvp: window.__A.txt('hemo-rvp'), ref: window.__A.txt('ao-ref-rvp'),
+                 rvp: window.__A.txt('hemo-rvp'), html: window.__A.html('hemo-rvp'),
+                 ref: window.__A.txt('ao-ref-rvp'), psap: window.__A.val('psap_calc'),
                  htp: window.__A.txt('hemo-htp-tipo') });
     })});
     /* El override por cateterismo tiene que seguir mandando. */
@@ -473,6 +483,179 @@ async function main() {
       return l ? l.textContent.replace(/\\s+/g,' ').trim() : null })();
     return JSON.stringify({ barrida: out, override: manda, rotulo: rot });
   })()`);
+
+  /* ══ 4b · BARRIDA FINA SOBRE LOS DOS UMBRALES QUE USA LA APP ════════════════════════════════
+     La app aplica DOS cortes sobre la RVP de Abbas: `RVP_ELEVADA_UW` (2) y el 3 de la banda
+     intermedia, que existe solo en la rama de Abbas. El `+0,16` no mueve los cortes: mueve el
+     INSUMO, asi que lo que hay que contar es cuantas combinaciones cruzan cada uno.
+     Los cocientes se eligen a los dos lados de 0,184 (RVP cruda 1,84 → 2,00 con el offset) y de
+     0,284 (2,84 → 3,00), que son los puntos donde el offset hace cruzar. */
+  const rvpFino = await ev(`(function(){
+    var out = [];
+    /* Pares (Vmax IT, VTI TSVD) que dan el cociente exacto, los dos dentro de banda
+       (vmax_it [0,5-8] m/s · vti_tsvd [2-60] cm). */
+    var COC = [0.170, 0.180, 0.182, 0.184, 0.186, 0.190, 0.195, 0.200, 0.205, 0.210,
+               0.270, 0.280, 0.284, 0.286, 0.290, 0.295, 0.300, 0.310];
+    COC.forEach(function(c){
+      var vt = 20, vm = +(c * vt).toFixed(4);
+      window.__A.limpiar();
+      window.__A.set('vmax_it', vm); window.__A.set('vti_tsvd', vt);
+      window.__A.set('onda_e', 90); window.__A.set('e_sep', 6); window.__A.set('e_lat', 8);
+      window.__A.set('peso', 70); window.__A.set('talla', 170);
+      window.__A.set('diam_tsvi', 21); window.__A.set('itv_tsvi', 18);
+      window.__A.set('hemo_fc', 70); window.__A.set('hemo_pam', 90);
+      /* ⚠️ LA VCI VA, O LA CLASIFICACION DE HTP NO SE PRONUNCIA Y EL DENOMINADOR ES FALSO.
+         Sin PmAD no hay PSAP, sin PSAP no hay PAPm, y la rama de HTP sale por «Requiere PAPm
+         (PSAP) + PCP»: las 18 escenas daban la MISMA categoria y el 0/18 se leia como «la
+         clasificacion no se mueve» cuando en realidad nunca llego a mirar la RVP. El comentario
+         de dos lineas arriba AFIRMABA que los insumos alcanzaban, y era falso. Lo cazo imprimir
+         el texto de la categoria, no leer el conteo.
+         El value de la option es '<50', no '<50%'. */
+      window.__A.set('vci_diam', 24); window.__A.set('vci_col', '<50');
+      try { calcPmAD() } catch(e) {}
+      try { calcPSAP() } catch(e) {}
+      try { calcHemo() } catch(e) {}
+      /* ⚠️ SE CAPTURA EL BADGE Y NO EL NUMERO MOSTRADO. El texto trae un toFixed(1), asi que
+         comparar eso contra 2 da el lado EQUIVOCADO: con cociente 0,186 la RVP cruda pasa de
+         1,86 a 2,02 —cruza el corte— y las dos se imprimen 1.9 y 2.0, las dos <= 2. El lado
+         que la app decide esta en la CLASE del badge, que sale del valor crudo. */
+      out.push({ coc: c, vm: vm, vt: vt,
+                 rvp: window.__A.txt('hemo-rvp'), html: window.__A.html('hemo-rvp'),
+                 ref: window.__A.txt('ao-ref-rvp'),
+                 htp: window.__A.txt('hemo-htp-tipo') });
+    });
+    return JSON.stringify(out);
+  })()`);
+
+  /* ══ 4c · LAS FORMULAS EN LETRA CHICA DE LA COLUMNA DE HEMODINAMICA ═════════════════════════
+     Se comprueba (1) que el texto diga lo que el pedido fija, (2) que cada numero venga de la
+     CONSTANTE y no de una copia —se reconstruye el texto desde window.* y se compara—, (3) que con
+     RVP por cateterismo el parentesis cambie, y (4) la CUENTA A MANO contra el valor publicado. */
+  const formulas = await ev(`(function(){
+    var leer = function(){
+      var o = {};
+      ['gc','pcp','rvs','rvp'].forEach(function(k){
+        var e = document.querySelector('.ao-ref-f[data-f="' + k + '"]');
+        o[k] = e ? e.textContent : 'NO EXISTE ' + k });
+      /* PAM e IC NO deben tener fila de formula. */
+      o._pam = !!document.querySelector('.ao-ref-f[data-f="pam"]');
+      o._ic  = !!document.querySelector('.ao-ref-f[data-f="ic"]');
+      /* El id prohibido: si alguno tuviera id, limpiarCampos lo barreria. */
+      o._conId = Array.prototype.slice.call(document.querySelectorAll('.ao-ref-f'))
+        .filter(function(e){ return !!e.id }).length;
+      return o };
+    var coma = function(n){ return String(n).replace('.', ',') };
+    /* Reconstruccion independiente desde las constantes exportadas. */
+    var esperado = {
+      pcp: '(' + coma(window.PCP_COEF_A) + ' × E/e' + String.fromCharCode(39) + ' + ' + coma(window.PCP_COEF_B) + ' · Nagueh)',
+      gc:  '(VS × FC ÷ ' + coma(window.HEMO_GC_DIV) + ')',
+      rvs: '((PAM − PVC) ÷ GC × ' + coma(window.WOOD_A_DYN) + ')',
+      rvp: '((Vmax IT ÷ VTI TSVD) × ' + coma(window.RVP_ABBAS_FACTOR) + ' + ' + coma(window.RVP_ABBAS_OFFSET) + ' · Abbas)'
+    };
+    /* ESCENA CON TODO CARGADO, para hacer la cuenta a mano contra lo publicado. */
+    window.__A.limpiar();
+    window.__A.set('peso', 70); window.__A.set('talla', 170);
+    window.__A.set('diam_tsvi', 20); window.__A.set('itv_tsvi', 18);
+    window.__A.set('hemo_fc', 70); window.__A.set('hemo_pam', 90);
+    window.__A.set('vci_diam', 24); window.__A.set('vci_col', '<50');
+    window.__A.set('onda_e', 90); window.__A.set('e_sep', 6); window.__A.set('e_lat', 8);
+    window.__A.set('vmax_it', 3.0); window.__A.set('vti_tsvd', 15);
+    try { calcPmAD() } catch(e) {}
+    try { calcPSAP() } catch(e) {}
+    try { calcHemo() } catch(e) {}
+    var abbas = leer();
+    /* Insumos crudos para reproducir las cuentas afuera. */
+    var crudos = { dtsvi: window.__A.val('diam_tsvi'), itvtsvi: window.__A.val('itv_tsvi'),
+                   fc: window.__A.val('hemo_fc'), pam: window.__A.val('hemo_pam'),
+                   pvc: window.__A.val('hemo_pvc'), e: window.__A.val('onda_e'),
+                   esep: window.__A.val('e_sep'), elat: window.__A.val('e_lat'),
+                   vmaxit: window.__A.val('vmax_it'), vtitsvd: window.__A.val('vti_tsvd'),
+                   vs: window.__A.val('hemo_vs') };
+    var pub = { gc: window.__A.txt('ao-ref-gc'), ic: window.__A.txt('ao-ref-ic'),
+                pcp: window.__A.txt('ao-ref-pcp'), rvs: window.__A.txt('ao-ref-rvs'),
+                rvp: window.__A.txt('ao-ref-rvp'), pam: window.__A.txt('ao-ref-pam') };
+    /* AHORA con RVP por cateterismo. */
+    window.__A.set('htp-rvp', 1.4);
+    try { calcHemo() } catch(e) {}
+    var cateter = leer();
+    var pubCat = { rvp: window.__A.txt('ao-ref-rvp') };
+    /* Y de vuelta a Abbas al borrar el override. */
+    window.__A.set('htp-rvp', '');
+    try { calcHemo() } catch(e) {}
+    var vuelta = leer();
+    /* Y que «Nuevo estudio» NO se lleve las formulas (el barrido de los span con id). */
+    try { limpiarCampos(true) } catch(e) {}
+    var traLimpiar = leer();
+    return JSON.stringify({ abbas: abbas, cateter: cateter, vuelta: vuelta,
+      traLimpiar: traLimpiar, esperado: esperado, crudos: crudos, pub: pub, pubCat: pubCat,
+      consts: { a: window.PCP_COEF_A, b: window.PCP_COEF_B, div: window.HEMO_GC_DIV,
+                dyn: window.WOOD_A_DYN, fac: window.RVP_ABBAS_FACTOR, off: window.RVP_ABBAS_OFFSET } });
+  })()`);
+
+  /* ══ 4e · SOLO REPORTAR: el GC con la FC AUSENTE ════════════════════════════════════════════
+     El PDF calcula el GC con una FC supuesta de 70 cuando la del estudio falta o esta fuera de
+     [20,250], y lo marca con «*». La PANTALLA no: `calcHemo` exige `fc !== null`. Se mide que hace
+     cada superficie con el MISMO paciente sin FC. No se cambia nada. */
+  const gcSinFC = await ev(`(function(){
+    var esc = function(fc){
+      window.__A.limpiar();
+      window.__A.set('peso', 70); window.__A.set('talla', 170);
+      window.__A.set('diam_tsvi', 20); window.__A.set('itv_tsvi', 18);
+      window.__A.set('hemo_pam', 90);
+      window.__A.set('vci_diam', 24); window.__A.set('vci_col', '<50');
+      if (fc !== null) window.__A.set('hemo_fc', fc);
+      try { calcPmAD() } catch(e) {}
+      try { calcHemo() } catch(e) {}
+      /* El GC que el PDF imprimiria, con la MISMA expresion de generarPDFReal. */
+      var _fcReal = v('hemo_fc');
+      var _fcUso  = (_fcReal !== null && _fcReal > 20 && _fcReal < 250) ? _fcReal : 70;
+      var _fcSup  = !(_fcReal !== null && _fcReal > 20 && _fcReal < 250);
+      var pdfGC = (v('diam_tsvi') && v('itv_tsvi'))
+        ? (Math.PI * ((v('diam_tsvi')/20)**2) * v('itv_tsvi') * _fcUso/1000).toFixed(1) + ' L/min' + (_fcSup ? '*' : '')
+        : null;
+      return { fcCampo: window.__A.val('hemo_fc'),
+               pantallaHemo: window.__A.txt('hemo-gc'),
+               cuadroAortico: window.__A.txt('ao-ref-gc'),
+               cuadroIC: window.__A.txt('ao-ref-ic'),
+               pdf: pdfGC, fcSupuesta: _fcSup, fcUsada: _fcUso } };
+    return JSON.stringify({ conFC: esc(70), sinFC: esc(null), fcFueraDeBanda: esc(15) });
+  })()`);
+
+  /* ══ 4d · Maquetacion del cuadro de hemodinamica con la letra chica ══════════════════════════ */
+  const anchoRef = {};
+  for (const w of [1200, 390, 360]) {
+    await cdp.send('Emulation.setDeviceMetricsOverride',
+      { width: w, height: 900, deviceScaleFactor: 1, mobile: w <= 430 }, sessionId);
+    await new Promise((r) => setTimeout(r, 300));
+    anchoRef[w] = JSON.parse(await ev(`(function(){
+      try { showTab('doppler') } catch(e){}
+      var s = document.getElementById('dop-aortico');
+      if (s && s.style.display === 'none') { try { toggleCard('dop-aortico', null) } catch(e){} }
+      window.__A.set('hemo_fc', 70); window.__A.set('hemo_pam', 90);
+      window.__A.set('diam_tsvi', 20); window.__A.set('itv_tsvi', 18);
+      window.__A.set('peso', 70); window.__A.set('talla', 170);
+      window.__A.set('onda_e', 90); window.__A.set('e_sep', 6); window.__A.set('e_lat', 8);
+      window.__A.set('vmax_it', 3.0); window.__A.set('vti_tsvd', 15);
+      try { calcHemo() } catch(e) {}
+      var d = document.documentElement;
+      var filas = [];
+      Array.prototype.forEach.call(document.querySelectorAll('.ao-ref-f'), function(e){
+        var r = e.getBoundingClientRect();
+        var lbl = e.parentNode, lr = lbl.getBoundingClientRect();
+        var row = lbl.parentNode, rr = row.getBoundingClientRect();
+        filas.push({ f: e.dataset.f, txt: e.textContent.slice(0, 14),
+          w: Math.round(r.width), h: Math.round(r.height), der: Math.round(r.right),
+          /* CORTADO: el texto no entra en su caja (overflow horizontal del propio span). */
+          cortado: e.scrollWidth > e.clientWidth + 1,
+          /* DESBORDA: se sale de la fila del cuadro o del viewport. */
+          saleDeLaFila: r.right > rr.right + 1,
+          saleDelViewport: r.right > d.clientWidth + 1,
+          altoFila: Math.round(rr.height) }) });
+      return JSON.stringify({ scrollW: d.scrollWidth, clientW: d.clientWidth,
+        hayBarra: d.scrollWidth > d.clientWidth + 1, filas: filas });
+    })()`));
+  }
+  await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
 
   /* ══ 5 · A/B general: grado, cuadro, informe, EN SUMA, Excel, PDF, PPT ═══════════════════ */
   const sweep = await ev(`(function(){
@@ -554,7 +737,7 @@ async function main() {
     archivo: FARG, md5_index_antes: antes, md5_index_despues: despues,
     index_intacto: antes === despues, listo: JSON.parse(listo),
     tango: JSON.parse(tango), protesis: JSON.parse(protesis), prot2: JSON.parse(prot2), protReal: JSON.parse(protReal), estim: JSON.parse(estim),
-    rvp: JSON.parse(rvp), sweep: JSON.parse(sweep), escenas, movil,
+    rvp: JSON.parse(rvp), rvpFino: JSON.parse(rvpFino), formulas: JSON.parse(formulas), gcSinFC: JSON.parse(gcSinFC), anchoRef, sweep: JSON.parse(sweep), escenas, movil,
   }, null, 2));
 
   cdp.close(); proc.kill(); srv.close();
