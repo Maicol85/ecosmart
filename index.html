@@ -2900,6 +2900,15 @@ window.cerrarSesionReal = cerrarSesionReal;
           <div class="fg">
             <label>Diám. TSVI (mm)</label>
             <input type="number" id="diam_tsvi_ao" placeholder="mm" oninput="syncTSVI();">
+            <!-- ⚠️ EL CAJÓN DE ESTIMACIÓN SE MUDÓ ACÁ (2026-10-06), NO SE DUPLICÓ. Vivía dentro del
+                 `.fg` del Ø TSVI del Doppler aórtico, que desde la tanda anterior está oculto: los
+                 enlaces «Usar estimado por ASC / por talla» habían quedado sin forma de verse.
+                 Se mueve el MISMO nodo —mismo id, mismo escritor (`mostrarTSVIEstimado`), mismo
+                 cálculo— porque duplicarlo daría dos nodos con el mismo id, y `getElementById`
+                 devuelve el primero: el segundo no se pintaría nunca.
+                 `usarTSVIEstimado` ahora escribe por `diam_tsvi_ao` + `syncTSVI()`, o sea por el
+                 MISMO camino que tipear en este campo. En el Doppler el campo sigue oculto. -->
+            <div id="tsvi-estimado-box" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
           </div>
           <!-- Los dos existían desde antes y estaban HUÉRFANOS: sin `oninput`, fuera de
                AO_SEGS y sin ninguna cápsula. El médico cargaba el cayado y el número
@@ -3478,7 +3487,11 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div>
           <div class="fg">
             <label>Vmax aórtica (m/s)</label>
-            <input type="number" id="vmax_ao" placeholder="m/s" step="0.1" oninput="calcAo();eteShuntSyncSiExiste()">
+            <!-- `aoTangoApagarPorVmax` va PRIMERO: la cascada de atrás lee `tango_te` (el AT/ET del
+                 veredicto protésico), así que corriendo después publicaría el valor viejo en este
+                 mismo tecleo. Es UNA de las dos puertas por las que el médico tipea la Vmax; la
+                 otra es `ea_vmax`, en Válvulas. Ver `aoTangoApagarPorVmax`. -->
+            <input type="number" id="vmax_ao" placeholder="m/s" step="0.1" oninput="aoTangoApagarPorVmax();calcAo();eteShuntSyncSiExiste()">
           </div>
           <div class="fg">
             <label>G. máx (mmHg) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto</span></label>
@@ -3507,11 +3520,14 @@ window.cerrarSesionReal = cerrarSesionReal;
               <div class="calc-row"><span class="calc-lbl">DVI</span><span class="calc-val" id="dvi-val">—</span></div>
             </div>
           </div>
-          <!-- Ø TSVI: OCULTO, no borrado. Ver el comentario de arriba. -->
+          <!-- Ø TSVI: OCULTO, no borrado. Ver el comentario de arriba.
+               El cajón `tsvi-estimado-box` que vivía acá adentro se MUDÓ al campo Diám. TSVI de
+               AI/VI el 2026-10-06: acá no se veía, porque este `.fg` está oculto. El `oninput`
+               sigue llamando a `mostrarTSVIEstimado()` —el cajón es el mismo nodo, ahora en la otra
+               pestaña— así que cargar el diámetro por este campo también lo vacía. -->
           <div class="fg" style="display:none;">
             <label>Diám. TSVI (mm)</label>
             <input type="number" id="diam_tsvi" placeholder="mm" oninput="calcAo();mostrarTSVIEstimado();eteShuntSyncSiExiste();imSyncSiExiste();emSyncSiExiste();iaSyncSiExiste();">
-            <div id="tsvi-estimado-box" style="font-size:10px;color:var(--accent2);margin-top:4px;min-height:14px;"></div>
           </div>
         </div>
         <!-- Col 3 — volumen y áreas -->
@@ -4691,7 +4707,10 @@ window.cerrarSesionReal = cerrarSesionReal;
             <div>
           <div class="fg">
             <label>Vmax ao (m/s) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
-            <input type="number" id="ea_vmax" placeholder="m/s" step="0.1" oninput="syncEADesdeValvulas()">
+            <!-- ⚠️ EL APAGADO DEL TANGO VA EN ESTE CAMPO Y NO EN `syncEADesdeValvulas`, que es la
+                 que comparten los CINCO campos de este bloque: colgarlo de ella borraría el Tango
+                 al editar el gradiente o un VTI. Ver `aoTangoApagarPorVmax`. -->
+            <input type="number" id="ea_vmax" placeholder="m/s" step="0.1" oninput="aoTangoApagarPorVmax();syncEADesdeValvulas()">
           </div>
           <div class="fg">
             <label>G. m&aacute;x (mmHg) &mdash; auto</label>
@@ -24626,13 +24645,26 @@ function mostrarTSVIEstimado() {
     const estTalla = (5.78 * tallaM + 12.1).toFixed(1);
     html += `<a href="#" onclick="usarTSVIEstimado(${estTalla});return false;" style="color:var(--accent2);text-decoration:underline;">Usar estimado por talla: ${estTalla} mm</a><br>`;
   }
-  html += `<span style="color:var(--text2);">O dejalo vacío y usá la Fórmula TANGO (más abajo).</span>`;
+  /* La línea «O dejalo vacío y usá la Fórmula TANGO (más abajo).» se retiró el 2026-10-06 por
+     pedido, al mudar el cajón a AI/VI: el «(más abajo)» apuntaba al bloque del Tango, que está en
+     la pestaña Doppler. Es un BORRADO, no una redacción nueva — igual que el de «O bien, considerá
+     la Fórmula TANGO…» de la tanda anterior. Verificado por grep: ningún caso de prueba, clave de
+     búsqueda ni documento usaba esa línea como texto de referencia, y no existe en ningún otro
+     cajón de estimación del TSVI. */
   box.innerHTML = html;
 }
+/* ⚠️ ESCRIBE POR `diam_tsvi_ao` + `syncTSVI()`, QUE ES EL CAMINO DEL CAMPO DE AI/VI (2026-10-06).
+   Antes hacía `setv('diam_tsvi', val); calcAo();` —el camino del campo del Doppler, que hoy está
+   oculto—, y eso dejaba el campo VISIBLE de AI/VI en blanco con el diámetro ya cargado: dos mitades
+   del mismo dato discrepando en pantalla, que es el defecto que este archivo ya pagó varias veces.
+   `syncTSVI` hace estrictamente MÁS que las dos líneas que reemplaza: escribe `diam_tsvi`, corre
+   `calcAo`, repinta este cajón y dispara los cuatro espejos (`eteShuntSyncSiExiste`,
+   `imSyncSiExiste`, `emSyncSiExiste`, `iaSyncSiExiste`), así que el valor llega al Doppler y a
+   Válvulas exactamente igual que si el médico lo tipeara en AI/VI. Por eso tampoco hace falta
+   llamar a `mostrarTSVIEstimado()` acá: `syncTSVI` ya lo llama. */
 function usarTSVIEstimado(val) {
-  setv('diam_tsvi', val);
-  calcAo();
-  mostrarTSVIEstimado();
+  setv('diam_tsvi_ao', val);
+  syncTSVI();
 }
 window.usarTSVIEstimado = usarTSVIEstimado;
 window.mostrarTSVIEstimado = mostrarTSVIEstimado;
@@ -25108,6 +25140,58 @@ function _aoRefTangoPintar(ratio, indice, dudoso) {
   rEl.innerHTML = _h;
 }
 window._aoRefTangoPintar = _aoRefTangoPintar;
+
+/* ══ EL ÍNDICE TANGO SE APAGA CUANDO EL MÉDICO CAMBIA LA Vmax (2026-10-06) ═════════════════════
+   El índice y el cociente TAC/TE se calculan CON la Vmax (`te / (vmax * tac)`), así que una Vmax
+   nueva deja el resultado anterior describiendo una medición que ya no existe. Se borran los dos
+   insumos propios del Tango y su resultado, sin ningún aviso: el médico vuelve a trazar el TE y el
+   TAC sobre el registro nuevo.
+
+   ⚠️ SE ENGANCHA EL GESTO, NO EL VALOR, y es la única forma que distingue al médico del código.
+   Las puertas por las que el médico TIPEA la Vmax son exactamente DOS —el `oninput` de `vmax_ao`
+   en Doppler y el de `ea_vmax` en Válvulas— y esta función se llama SÓLO desde esas dos. Todo lo
+   demás escribe la Vmax con `.value =`, que no dispara `input`:
+     · los dos espejos (`sincronizarEADesdeGlobal`, `syncEADesdeValvulas`) — verificado: son los
+       únicos dos sitios del archivo que asignan `vmax_ao`/`ea_vmax`, y ninguno despacha eventos;
+     · la restauración de un estudio guardado (`.value =` + `RECALC_MODULOS`);
+     · `limpiarCampos` y el importador DICOM/Excel.
+   Mirar «cambió el número» en vez del gesto habría borrado el Tango en las cuatro.
+
+   ⚠️ NO SE ENGANCHA `syncEADesdeValvulas`, QUE ES LO QUE PARECÍA EL LUGAR. Esa función la comparten
+   los CINCO campos del bloque de Estenosis Aórtica de Válvulas (Vmax, G. medio, Ø TSVI y los dos
+   VTI): colgarse de ella habría borrado el Tango al editar el gradiente, que no es lo pedido. El
+   enganche va en el `oninput` de `ea_vmax` y nada más.
+
+   ⚠️ VA ANTES DE `calcAo` / `syncEADesdeValvulas` EN LOS DOS MANEJADORES, no después. El veredicto
+   protésico y el resto de la cascada LEEN `tango_te`; corriendo después, la cascada de ese mismo
+   tecleo publicaría todavía el valor viejo y el informe quedaría una pulsación atrasado.
+
+   ⚠️ `tango_ava_val` SE BORRA EXPLÍCITAMENTE. La salida temprana de `calcTango` repone los cuatro
+   nodos de pantalla a «—» pero NO toca ese input, que es el que viaja en `campos` al estudio
+   guardado. Eso es un hueco PREEXISTENTE de `calcTango` —borrar el TAC a mano deja ahí el índice
+   rancio— y está reportado aparte: acá se cierra sólo para este camino, porque arreglar la salida
+   temprana es tocar código compartido que esta orden no pide.
+
+   ⚠️ CONSECUENCIA DECLARADA Y AUTORIZADA (Maicol, 2026-10-06): `tango_te` es además el denominador
+   del AT/ET del veredicto de estenosis aórtica PROTÉSICA (`eaProtVeredicto`, Tabla 5 de la ASE
+   2024), y ese veredicto SÍ va al informe firmado. Medido en HEAD con prótesis mecánica (Vmax 3,4 ·
+   G. medio 22 · DVI 0,30 · AT 95 · TE 300): con el TE la frase dice «…, AT 95 ms, AT/TE 0.32)» y
+   sin el TE pierde «, AT/TE 0.32». El NIVEL del veredicto no cambió en las escenas medidas. Se
+   borra igual, también con prótesis, por decisión expresa. */
+function aoTangoApagarPorVmax() {
+  const ids = ['tango_te', 'tango_tac', 'tango_ava_val'];
+  const habia = ids.some(function (id) {
+    const e = document.getElementById(id);
+    return !!e && String(e.value) !== '';
+  });
+  ids.forEach(function (id) { const e = document.getElementById(id); if (e) e.value = ''; });
+  /* `calcTango` con los insumos vacíos cae en su salida temprana y repone los cuatro nodos de
+     resultado —`tango-ava`, `tango-ratio` y las dos filas del cuadro— a «—». Se llama a ella y no
+     se escriben los nodos a mano: el dueño del texto sigue siendo uno. */
+  if (typeof calcTango === 'function') { try { calcTango(); } catch (e) {} }
+  return habia;
+}
+window.aoTangoApagarPorVmax = aoTangoApagarPorVmax;
 
 /* ⚠️ AVA POR ECUACIÓN DE CONTINUIDAD — UNA SOLA DEFINICIÓN, y el diámetro va en MILÍMETROS.
    `dtsvi / 20` pasa a centímetros y saca el radio en un solo paso, así que `π·(d/20)²` es el
@@ -96027,8 +96111,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261006-2103';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791331416510;                 /* eco-build-ms */
+const ECO_BUILD    = '20261006-2205';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791335116133;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -96114,7 +96198,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-2103</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261006-2205</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

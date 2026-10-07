@@ -51917,6 +51917,182 @@ caso('TC-424', 'Doppler aortico: los cuatro titulos, el Tab baja por columna sal
   ] };
 `);
 
+/* ══ EL TANGO SE APAGA AL CAMBIAR LA Vmax · ESTIMADO DEL DIAM. TSVI EN AI/VI — TC-425 ═══════════
+   El apagado tiene que distinguir el GESTO DEL MEDICO de una escritura por codigo, asi que el caso
+   pesa tanto en los controles NEGATIVOS como en los positivos: cinco escrituras por codigo
+   —espejo al entrar a Valvulas, recalculo de la cascada, restauracion por RECALC_MODULOS,
+   importador con setv, y editar OTRO campo del mismo bloque de Valvulas— tienen que dejar el
+   Tango intacto. El cuarto es el que importa mas: los cinco campos del bloque de Estenosis
+   Aortica comparten `syncEADesdeValvulas`, asi que colgar el apagado de esa funcion habria
+   borrado el Tango al editar el gradiente.
+
+   ⚠️ DENOMINADOR ANTES DE CADA ASERCION DE «se borro»: una escena sin Tango cargado da vacio y la
+   asercion pasa sola. Cada bloque comprueba primero que los dos insumos Y los dos nodos de
+   resultado tengan VALOR.
+
+   ⚠️ LA ESCENA PROTESICA ES UNA CONSECUENCIA DECLARADA, NO UN EFECTO COLATERAL NO VISTO.
+   `tango_te` es el denominador del AT/ET de `eaProtVeredicto`, que va al informe FIRMADO: al
+   borrarlo, la frase protesica pierde «, AT/TE 0.32». Maicol lo autorizo el 2026-10-06 con la
+   medicion delante. El caso fija las dos mitades: que la frase PIERDA ese fragmento y que el
+   NIVEL del veredicto NO cambie. Si algun dia el nivel empieza a moverse, este caso se pone rojo. */
+caso('TC-425', 'El indice Tango y el cociente TAC/TE se apagan cuando el MEDICO cambia la Vmax aortica —por Doppler o por Valvulas— y NO se apagan por espejo, recalculo, restauracion ni importador; el estimado del Diam. TSVI vive en AI/VI y entra por el camino de ese campo', `
+  return (async () => {
+  const g = function (id) { return document.getElementById(id); };
+  const T = function (id) { const e = g(id); return e ? e.textContent.trim().replace(/\\s+/g,' ') : 'NO ' + id; };
+  const seed = function (id, v) { const e = g(id); if (!e) return 'NO ' + id; e.value = String(v); return e.value; };
+  /* Los cinco nodos del resultado mas los dos insumos. */
+  const F = function () { return {
+    te: __t.val('tango_te'), tac: __t.val('tango_tac'), val: __t.val('tango_ava_val'),
+    spanAva: T('tango-ava'), spanRatio: T('tango-ratio'),
+    refTango: T('ao-ref-tango'), refTacte: T('ao-ref-tacte') }; };
+  const rec = function (x) { return !x ? '(vacio)' : String(x).replace(/\\n/g, ' | ').slice(0, 160); };
+  const lleno = function (f) { return f.te !== '' && f.tac !== '' && f.val !== '' &&
+    f.refTango !== '—' && f.refTacte !== '—'; };
+  const vacio = function (f) { return f.te === '' && f.tac === '' && f.val === '' &&
+    f.spanAva === '—' && f.spanRatio === '—' && f.refTango === '—' && f.refTacte === '—'; };
+  const sembrar = function () {
+    __t.nuevoEstudio(); try { showTab('doppler'); } catch (e) {}
+    __t.set('vmax_ao', 4.2); __t.set('tango_te', 500); __t.set('tango_tac', 190);
+    return F(); };
+
+  const cargado = sembrar();
+  /* ── Las DOS puertas del medico ── */
+  const porDoppler = (function () { sembrar(); __t.set('vmax_ao', 4.5); return F(); })();
+  const porValvulas = (function () { sembrar(); try { showTab('valvulas'); } catch (e) {}
+    __t.set('ea_vmax', 4.5); return F(); })();
+  /* ── Los CINCO controles negativos ── */
+  const otroCampoValv = (function () { sembrar(); try { showTab('valvulas'); } catch (e) {}
+    __t.set('ea_gmedio', 48); return F(); })();
+  const otroCampoDop = (function () { sembrar(); __t.set('gmedio_ao', 48); return F(); })();
+  const espejo = (function () { sembrar(); try { showTab('valvulas'); } catch (e) {}
+    try { if (typeof sincronizarEADesdeGlobal === 'function') sincronizarEADesdeGlobal(); } catch (e) {}
+    try { showTab('doppler'); } catch (e) {} return F(); })();
+  const recalculo = (function () { sembrar();
+    try { calcAo(); } catch (e) {} try { calcTango(); } catch (e) {}
+    try { calcEADetalle(); } catch (e) {} return F(); })();
+  const importador = (function () { sembrar();
+    try { setv('vmax_ao', 4.9); } catch (e) {} return F(); })();
+  /* ── GUARDAR y REABRIR de verdad: el viaje completo por las funciones reales ── */
+  const guardado = await (async function () {
+    sembrar(); __t.set('nombre', 'TC425TANGO');
+    const r = await __t.guardar();
+    if (!r.ok || !r.estudioId) return { err: 'no guardo: ' + JSON.stringify(r) };
+    __t.nuevoEstudio();
+    const traLimpiar = F();
+    __t.reabrir(r.estudioId);
+    const traReabrir = F();
+    await __t.borrar(r.estudioId);
+    return { traLimpiar: traLimpiar, traReabrir: traReabrir };
+  })();
+  /* ── La escena PROTESICA: lo que pierde la frase firmada y lo que NO cambia ── */
+  const prot = (function () {
+    __t.nuevoEstudio(); try { showTab('valvulas'); } catch (e) {}
+    __t.set('va_morf', 'Prótesis mecánica');
+    try { if (typeof valvProtSync === 'function') valvProtSync(); } catch (e) {}
+    __t.set('va_at', 95);
+    try { showTab('doppler'); } catch (e) {}
+    __t.set('vmax_ao', 3.4); __t.set('gmedio_ao', 22);
+    __t.set('diam_tsvi', 21); __t.set('itv_tsvi', 18); __t.set('itv_ao', 60);
+    __t.set('tango_te', 300); __t.set('tango_tac', 95);
+    const leer = function () {
+      let P = null; try { P = eaProtVeredicto(); } catch (e) { P = null; }
+      const r = __t.informe();
+      /* ⚠️ SE PARTE POR LINEA Y NO POR ORACION. Partir en el punto corta en «G. medio»: la
+         primera version de este caso dejaba la frase en «… (Vmax 3.4 m/s, G.» y la condicion del
+         denominador no podia pasar nunca. El narrativo es un texto por renglones. */
+      const fr = String(r.inf).split(/\\n+/).filter(function (s) { return /V.lvula a.rtica/i.test(s); });
+      return { nivel: P ? P.nivel : null, atet: P ? P.atet : null,
+               frase: fr.join(' '), suma: r.suma, te: __t.val('tango_te') }; };
+    const antes = leer();
+    __t.set('vmax_ao', 3.5);          // el MEDICO retipea la Vmax
+    const despues = leer();
+    return { antes: antes, despues: despues }; })();
+  /* ── El cajon de estimacion del Diam. TSVI, ahora en AI/VI ── */
+  const est = (function () {
+    __t.nuevoEstudio(); try { showTab('ai-vi'); } catch (e) {}
+    __t.set('peso', 70); __t.set('talla', 170);
+    try { if (typeof calcBSA === 'function') calcBSA(); } catch (e) {}
+    try { if (typeof mostrarTSVIEstimado === 'function') mostrarTSVIEstimado(); } catch (e) {}
+    const caja = g('tsvi-estimado-box');
+    const dentroDeAiVi = !!(caja && g('tab-ai-vi') && g('tab-ai-vi').contains(caja));
+    const dentroDeDoppler = !!(caja && g('tab-doppler') && g('tab-doppler').contains(caja));
+    const vis = (function (n) { while (n && n.nodeType === 1) {
+      if (getComputedStyle(n).display === 'none') return false; n = n.parentNode; } return true; })(caja);
+    const html = caja ? caja.innerHTML : '';
+    /* Los dos estimados, calculados aparte con las MISMAS formulas que el cajon declara. */
+    const bsa = (typeof getBSA === 'function') ? getBSA() : null;
+    const espAsc = bsa ? (5.7 * bsa + 12.1).toFixed(1) : null;
+    const espTalla = (5.78 * (70 ? 170 / 100 : 0) + 12.1).toFixed(1);
+    /* Usar el estimado por ASC y ver por donde llega. */
+    const m = html.match(/usarTSVIEstimado\\(([0-9.]+)\\)/);
+    const primer = m ? m[1] : null;
+    if (primer) { try { usarTSVIEstimado(Number(primer)); } catch (e) {} }
+    return { dentroDeAiVi: dentroDeAiVi, dentroDeDoppler: dentroDeDoppler, vis: vis, html: html,
+             espAsc: espAsc, espTalla: espTalla, primer: primer,
+             tras: { aivi: __t.val('diam_tsvi_ao'), doppler: __t.val('diam_tsvi'),
+                     ea: __t.val('ea_dtsvi'), cajon: T('tsvi-estimado-box') },
+             dopplerOculto: (function (n) { while (n && n.nodeType === 1) {
+               if (getComputedStyle(n).display === 'none') return true; n = n.parentNode; } return false; })(g('diam_tsvi')) }; })();
+
+  return { extra: [
+    ['  DENOMINADOR: con TE, TAC y Vmax cargados hay indice Tango Y cociente TAC/TE',
+      lleno(cargado) && /0\\.63/.test(cargado.refTango) && /0\\.38/.test(cargado.refTacte),
+      JSON.stringify(cargado)],
+
+    ['el MEDICO cambia la Vmax en el DOPPLER: se borran TE, TAC y los cinco nodos del resultado',
+      vacio(porDoppler), JSON.stringify(porDoppler)],
+    ['el MEDICO cambia la Vmax en VALVULAS: lo mismo',
+      vacio(porValvulas), JSON.stringify(porValvulas)],
+
+    ['CONTROL NEGATIVO 1: editar el G. medio en VALVULAS —mismo handler compartido— NO borra nada',
+      lleno(otroCampoValv), JSON.stringify(otroCampoValv)],
+    ['CONTROL NEGATIVO 2: editar el G. medio en el DOPPLER tampoco',
+      lleno(otroCampoDop), JSON.stringify(otroCampoDop)],
+    ['CONTROL NEGATIVO 3: el ESPEJO al entrar a Valvulas (escritura por codigo) no borra nada',
+      lleno(espejo), JSON.stringify(espejo)],
+    ['CONTROL NEGATIVO 4: RECALCULAR la cascada entera no borra nada',
+      lleno(recalculo), JSON.stringify(recalculo)],
+    ['CONTROL NEGATIVO 5: el IMPORTADOR escribiendo la Vmax con setv no borra nada',
+      lleno(importador), JSON.stringify(importador)],
+
+    ['  DENOMINADOR del guardado: «Nuevo estudio» dejo el Tango vacio antes de reabrir',
+      !guardado.err && vacio(guardado.traLimpiar), JSON.stringify(guardado).slice(0, 300)],
+    ['REABRIR un estudio guardado con Tango lo devuelve y NO lo borra',
+      !guardado.err && guardado.traReabrir.te === '500' && guardado.traReabrir.tac === '190' &&
+      guardado.traReabrir.val === '0.63', JSON.stringify(guardado.traReabrir || {})],
+
+    ['  DENOMINADOR protesico: antes de retipear, la frase firmada lleva «AT/TE 0.32» y el TE esta cargado',
+      prot.antes.te === '300' && /AT\\/TE 0\\.32/.test(prot.antes.frase), JSON.stringify(prot.antes)],
+    ['CONSECUENCIA DECLARADA: al retipear la Vmax la frase protesica PIERDE «, AT/TE 0.32»…',
+      prot.despues.te === '' && !/AT\\/TE/.test(prot.despues.frase) &&
+      /posible estenosis prot/i.test(prot.despues.frase),
+      'antes=«' + prot.antes.frase + '» despues=«' + prot.despues.frase + '»'],
+    ['  …y el NIVEL del veredicto protesico NO cambia',
+      prot.antes.nivel === prot.despues.nivel && prot.antes.nivel !== null,
+      'antes=' + prot.antes.nivel + ' despues=' + prot.despues.nivel],
+    ['  …y el EN SUMA no cambia',
+      prot.antes.suma === prot.despues.suma, rec(prot.antes.suma) + ' || ' + rec(prot.despues.suma)],
+
+    ['el cajon de estimacion vive en AI/VI y ya NO en el Doppler, y se VE',
+      est.dentroDeAiVi === true && est.dentroDeDoppler === false && est.vis === true,
+      'aivi=' + est.dentroDeAiVi + ' doppler=' + est.dentroDeDoppler + ' vis=' + est.vis],
+    ['  y el campo del Diam. TSVI del Doppler sigue OCULTO',
+      est.dopplerOculto === true, 'oculto=' + est.dopplerOculto],
+    ['los dos enlaces estan, con el MISMO calculo que antes (5,7 x ASC + 12,1 y 5,78 x talla + 12,1)',
+      est.html.indexOf('Usar estimado por ASC: ' + est.espAsc + ' mm') > -1 &&
+      est.html.indexOf('Usar estimado por talla: ' + est.espTalla + ' mm') > -1,
+      'esperado ASC=' + est.espAsc + ' talla=' + est.espTalla + ' · html=' + est.html],
+    ['  y la linea «O dejalo vacio y usa la Formula TANGO (mas abajo)» se fue',
+      !/dejalo vac/i.test(est.html), est.html],
+    ['usar el estimado escribe por el camino de AI/VI y el valor llega al Doppler y a Valvulas',
+      est.tras.aivi === est.primer && est.tras.doppler === est.primer && est.tras.ea === est.primer,
+      'primer=' + est.primer + ' · ' + JSON.stringify(est.tras)],
+    ['  y con el diametro cargado el cajon queda VACIO (no sugiere sobre lo ya medido)',
+      est.tras.cajon === '', 'cajon=«' + est.tras.cajon + '»'],
+  ] };
+  })();
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────
