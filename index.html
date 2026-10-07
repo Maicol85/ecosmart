@@ -3188,8 +3188,15 @@ window.cerrarSesionReal = cerrarSesionReal;
       </div>
       <div class="grid-3" style="margin-top:8px;">
         <div class="fg">
-          <label>VTI-TSVD (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">RVP (Abbas) · Qp/Qs</span></label>
-          <input type="number" id="vti_tsvd" placeholder="cm" step="0.1" oninput="calcHemo();eteShuntSyncSiExiste();calcET()">
+          <!-- ⚠️ `etTsvdSync` PRIMERO, igual que `itVmaxSync` en la Vmax IT y `dtTapSync` en el TAP:
+               el espejo de la tarjeta de estenosis tricuspídea tiene que estar escrito ANTES de que
+               recalcule cualquiera de los lectores. Este campo sigue siendo el DUEÑO del dato.
+               ⚠️ EL RÓTULO PASÓ DE «VTI-TSVD (cm)» A «VTI TSVD (cm)» (2026-10-07, orden de Maicol):
+               es el mismo rótulo que el espejo de Válvulas, para que el médico vea un solo nombre
+               del mismo dato en los dos lados. Es SÓLO pantalla — el encabezado del Excel («VTI
+               TSVD (cm)»), el PDF, el PPT y los dos espejos read-only de Congénitas no se tocaron. -->
+          <label>VTI TSVD (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">RVP (Abbas) · Qp/Qs</span></label>
+          <input type="number" id="vti_tsvd" placeholder="cm" step="0.1" oninput="etTsvdSync('vti_tsvd');calcHemo();eteShuntSyncSiExiste();calcET()">
         </div>
         <div class="fg">
           <!-- Diámetro del TSVD: vive ACÁ, con el resto de las medidas del ventrículo derecho,
@@ -3197,8 +3204,12 @@ window.cerrarSesionReal = cerrarSesionReal;
                y el VTI-TSVI del lado izquierdo. Una sola fuente por medición: con el campo
                editable en los dos lados, un paciente podía terminar con un diámetro
                alimentando el Qp/Qs y otro distinto acá, los dos en el informe firmado. -->
-          <label>Diámetro TSVD (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">Qp/Qs</span></label>
-          <input type="number" id="tsvd_diametro" placeholder="mm" step="0.1" oninput="eteShuntSyncSiExiste();calcET()">
+          <!-- ⚠️ EL RÓTULO PASÓ DE «Diámetro TSVD (mm)» A «Diám. TSVD (mm)» (2026-10-07, orden de
+               Maicol), por lo mismo que el VTI de al lado: un solo nombre del mismo dato en los dos
+               lados. SÓLO pantalla; el Excel sigue diciendo «Ø TSVD (mm)» y no se tocó.
+               `etTsvdSync` primero — ver el comentario del VTI. -->
+          <label>Diám. TSVD (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">Qp/Qs</span></label>
+          <input type="number" id="tsvd_diametro" placeholder="mm" step="0.1" oninput="etTsvdSync('tsvd_diametro');eteShuntSyncSiExiste();calcET()">
         </div>
         <div class="fg">
           <label>FEVD (%)</label>
@@ -4902,11 +4913,15 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div class="valv-morf-row">
         <div class="fg"><label>Morfología VT</label>
           <select id="vt_morf" onchange="valvProtSync()"><option>Normal</option><option>Mixomatosa</option><option>Reumática</option><option value="Prótesis biológica">Prótesis biológica</option><option value="Prótesis mecánica">Prótesis mecánica</option><option>Carcinoide</option><option>Endocarditis</option><option>Funcional / dilatación VD</option></select>
-          <!-- La nota didáctica va ACÁ y no dentro de la etiqueta de la opción. El valor de la
-               opción es lo que se persiste, lo que imprime la tabla del PDF y lo que viaja al
-               Excel: «Funcional / dilatación VD (causa más frecuente de IT)» habría puesto una
-               frase de manual dentro de un documento firmado y dentro de una celda de datos. -->
-          <span style="font-size:10px;color:var(--text2);">Funcional / dilatación VD es la causa más frecuente de insuficiencia tricuspídea.</span>
+          <!-- ⚠️ ACÁ VIVÍA UNA NOTA DIDÁCTICA Y SE BORRÓ (2026-10-07, orden de Maicol): «Funcional
+               / dilatación VD es la causa más frecuente de insuficiencia tricuspídea.» Era un
+               `<span>` sin `id` y sin un solo lector —censo del archivo, de los tests y de las
+               sondas—, así que se fue sola.
+               LO QUE SIGUE VIGENTE, porque es lo que explicaba de paso: la nota iba acá y NO dentro
+               de la etiqueta de la opción. El valor de la opción es lo que se persiste, lo que
+               imprime la tabla del PDF y lo que viaja al Excel, así que «Funcional / dilatación VD
+               (causa más frecuente de IT)» habría puesto una frase de manual dentro de un documento
+               firmado y dentro de una celda de datos. -->
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:12px;">
@@ -5144,32 +5159,51 @@ window.cerrarSesionReal = cerrarSesionReal;
               onclick="valvDatosTog('caja-esten-tricuspide')" aria-expanded="false"
               aria-controls="campos-esten-tricuspide">Datos <span class="valv-datos-flecha">&#9662;</span></button>
       <div id="campos-esten-tricuspide">
-          <!-- ── 2) PARÁMETROS (4) ──────────────────────────────────────────────────────────── -->
-          <div class="grid-2" style="margin-bottom:8px;">
+          <!-- ── 2) PARÁMETROS — TRES COLUMNAS EN DOS FILAS (2026-10-07, decisión de Maicol) ───
+               Eran dos `grid-2` con cuatro campos. Ahora son 3 + 3, igual que la insuficiencia de
+               la columna de al lado, y los dos que cierran la segunda fila son los insumos del
+               numerador del área: hasta hoy había que irse a la pestaña VD/AD para cargarlos y el
+               área quedaba en «—» sin que nada en esta tarjeta dijera qué faltaba.
+               ⚠️ `et_tsvd_diam` Y `et_vti_tsvd` SON CAMPOS NUEVOS, NO SEGUNDOS DATOS: son espejos
+               de `tsvd_diametro` y `vti_tsvd` en los DOS sentidos (`etTsvdSync`), borrado incluido.
+               Los de VD/AD siguen siendo los DUEÑOS y nadie cambió de lector — ver el comentario de
+               `etTsvdSync`, que lista los nueve.
+               ⚠️ EL `oninput` DE CADA UNO REPITE EL DEL DUEÑO, y eso es lo que hace que tipear de
+               este lado dispare lo mismo que tipear del otro. Si sólo llamara a `calcET`, el área
+               de ESTA tarjeta se actualizaría y el Qp/Qs, el shunt del ETE y la RVP de Abbas se
+               quedarían con el dato viejo: un espejo que copia el valor y no el recálculo es el
+               defecto de una sola dirección con otra cara. El sync va PRIMERO, igual que en
+               `itVmaxSync` y `dtTapSync`.
+               ⚠️ EL ÁREA VA TERCERA EN LA FILA 1 Y LLEVA `tabindex="-1"`, así que el Tab va de
+               izquierda a derecha y la saltea: es un calculado de solo lectura, y un `readonly` sin
+               esa marca sigue recibiendo foco en Chrome. Mismo patrón que `gmax_calc`, `ava_cont`,
+               `vs_calc` y `tango_ava_val`. -->
+          <div class="grid-3" style="margin-bottom:8px;">
             <div class="fg"><label>Gradiente medio ET (mmHg)</label>
               <input type="number" id="et_gmedio" placeholder="mmHg" oninput="calcET()">
             </div>
             <div class="fg"><label>THP tricuspídeo (ms)</label>
               <input type="number" id="et_thp" placeholder="ms" oninput="calcET()">
-              <span style="font-size:10px;color:var(--text2);">THP ≥ 190 ms sugiere ET significativa (EAE/ASE 2009).</span>
-            </div>
-          </div>
-          <div class="grid-2" style="margin-bottom:8px;">
-            <div class="fg"><label>VTI diastólico tricuspídeo (cm)</label>
-              <input type="number" id="et_vti_diast" placeholder="cm" step="0.1" oninput="calcET()">
-              <!-- El aviso NO es decorativo: `it_vti` vive en el bloque de INSUFICIENCIA —ahora la
-                   columna de al lado— y es el VTI del jet de regurgitación: otra medición, mismas
-                   unidades y rango parecido. Cargar uno donde va el otro no da error: da un área
-                   por continuidad plausible y equivocada. Se NOMBRA el bloque y no su posición,
-                   que es lo que sobrevive a la próxima mudanza. -->
-              <span style="font-size:10px;color:var(--text2);">Flujo anterógrado de entrada. NO es el «VTI IT» del bloque de insuficiencia.</span>
             </div>
             <div class="fg"><label>Área valvular tricuspídea — auto (cm²)</label>
-              <input type="text" id="et_avt" readonly style="color:var(--accent2);" placeholder="— completar Ø y VTI del TSVD">
-              <!-- Los dos insumos del numerador viven en la pestaña VD. Se NOMBRA la fuente y no su
-                   posición: este archivo ya pagó tres cadenas que decían «el campo de arriba»
-                   cuando el bloque cambió de pestaña. -->
-              <span style="font-size:10px;color:var(--text2);">Continuidad: área del TSVD × VTI-TSVD ÷ VTI diastólico tricuspídeo. El Ø y el VTI del TSVD se cargan en la pestaña VD. Normal &gt;1 cm² · significativa ≤1 cm².</span>
+              <input type="text" id="et_avt" readonly tabindex="-1" style="color:var(--accent2);" placeholder="— completar Diám. y VTI del TSVD">
+            </div>
+          </div>
+          <div class="grid-3" style="margin-bottom:8px;">
+            <div class="fg"><label>VTI diastólico tricuspídeo (cm)</label>
+              <input type="number" id="et_vti_diast" placeholder="cm" step="0.1" oninput="calcET()">
+              <!-- El aviso NO es decorativo: `it_vti` vive en el bloque de INSUFICIENCIA —la
+                   columna de al lado— y es el VTI del jet de regurgitación: otra medición, mismas
+                   unidades y rango parecido. Cargar uno donde va el otro no da error: da un área
+                   por continuidad plausible y equivocada. Se acortó a lo que distingue los dos
+                   campos; el nombre del bloque sale de la propia pantalla. -->
+              <span style="font-size:10px;color:var(--text2);">No es el VTI IT.</span>
+            </div>
+            <div class="fg"><label>Diám. TSVD (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; VD / AD</span></label>
+              <input type="number" id="et_tsvd_diam" placeholder="mm" step="0.1" oninput="etTsvdSync('et_tsvd_diam');eteShuntSyncSiExiste();calcET()">
+            </div>
+            <div class="fg"><label>VTI TSVD (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; VD / AD</span></label>
+              <input type="number" id="et_vti_tsvd" placeholder="cm" step="0.1" oninput="etTsvdSync('et_vti_tsvd');calcHemo();eteShuntSyncSiExiste();calcET()">
             </div>
           </div>
           <!-- ── 3) UN SOLO CUADRO de referencia, con la severidad sugerida ─────────────────── -->
@@ -29819,6 +29853,68 @@ function dtTapSync(origenId) {
 }
 window.dtTapSync = dtTapSync;
 
+/* ══ LOS DOS INSUMOS DEL ÁREA TRICUSPÍDEA SON DATOS CON DOS CAMPOS (2026-10-07) ═══════════════
+   `tsvd_diametro` / `vti_tsvd` (pestaña VD/AD, bloque «Ventrículo derecho») y `et_tsvd_diam` /
+   `et_vti_tsvd` (pestaña Válvulas, tarjeta de la estenosis tricuspídea) son el MISMO diámetro y el
+   MISMO VTI del tracto de salida del VD, en mm y en cm. El médico los mide una vez; los necesita
+   desde VD/AD porque son medidas del ventrículo derecho, y desde la tarjeta de la estenosis porque
+   son el NUMERADOR del área valvular por continuidad, que hasta hoy se calculaba con dos campos
+   que no estaban a la vista: el área quedaba en «—» y la tarjeta no decía qué faltaba.
+
+   ⚠️ LOS DE VD/AD SIGUEN SIENDO LOS DUEÑOS Y NO ES UN DETALLE. De ellos leen `etEstado` (el área y
+   el tercer criterio de significación), la RVP de Abbas de Hemodinámica (`vti_tsvd`), el Qp/Qs y el
+   shunt del ETE, `_tdfNv` de la función diastólica, el MCA, el informe, el PDF, el PPT
+   (`pul.diamTsvd`, `pul.vtiPul`, `vd.tsvd`), las dos columnas del Excel más «ET área (cm²)», el
+   importador DICOM/GEMS (`DCM_ETIQ`, `2D/RVOT Diam`, `Pulmonic VTI`) y `DCM_RANGO`. NINGUNO de esos
+   lectores se tocó: los dos campos nuevos no aparecen en un solo emisor. Son segundas ENTRADAS del
+   mismo número, no segundos datos — exactamente el precedente de `dt_tap` contra `tvia`.
+
+   ⚠️ UNA TABLA DE DOS PARES Y NO DOS FUNCIONES, porque el par se resuelve por el id de origen y la
+   lógica es idéntica; dos copias de este cuerpo es la clase de duplicado que se arregla en una
+   sola mitad. `PARES` lista `[dueño, espejo]`, y el sentido lo decide si el origen es el espejo.
+
+   NO HAY BUCLE, Y NO ES POR LA GUARDA: asignar `.value` por código no dispara `oninput`, así que
+   el espejo no se re-dispara solo. `_etTsvdSinc` está para el día en que alguien despache un
+   `input` a mano —los arneses de prueba lo hacen—, igual que documentan `itVmaxSync` y `dtTapSync`.
+   La salida temprana por TEXTO igual —no por número— evita el salto del caret al tipear y deja los
+   dos campos mostrando el mismo literal: con la pestaña Válvulas y VD/AD en el mismo DOM, a 1200 px
+   el médico puede tener los dos a la vista.
+
+   ⚠️ LLAMADA SIN ARGUMENTO COPIA LOS DOS DUEÑOS → SUS ESPEJOS, y ESO es lo que la pone en
+   `RECALC_MODULOS`. Las rutas de restauración pueblan asignando `.value`, que no dispara ningún
+   evento, y hay tres orígenes que traen los dueños SIN los espejos: un estudio guardado antes de
+   hoy, uno importado del Excel (las columnas «Ø TSVD (mm)» y «VTI TSVD (cm)» escriben los dueños) y
+   uno del SR DICOM, que escribe dentro de `campos` sin pasar por el formulario. Sin esto la tarjeta
+   abría con los dos campos VACÍOS sobre un área ya calculada, que es peor que no tenerlos.
+   `limpiarCampos` NO la necesita: los cuatro son `input[type=number]` y los vacía el barrido que
+   ya existe, así que ahí el espejo sería un no-op de '' a ''. */
+const ET_TSVD_PARES = Object.freeze([
+  Object.freeze(['tsvd_diametro', 'et_tsvd_diam']),
+  Object.freeze(['vti_tsvd',      'et_vti_tsvd'])
+]);
+let _etTsvdSinc = false;
+function etTsvdSync(origenId) {
+  if (_etTsvdSinc) return null;
+  _etTsvdSinc = true;
+  try {
+    const hechos = [];
+    ET_TSVD_PARES.forEach(function(par) {
+      /* Sin argumento se copian los DOS pares (dueño → espejo); con un id, sólo su par. */
+      if (origenId && origenId !== par[0] && origenId !== par[1]) return;
+      const a = document.getElementById(par[0]), b = document.getElementById(par[1]);
+      if (!a || !b) return;
+      const src = (origenId === par[1]) ? b : a;
+      const dst = (origenId === par[1]) ? a : b;
+      if (dst.value === src.value) { hechos.push({ par: par[0], copio: false, valor: src.value }); return; }
+      dst.value = src.value;   /* borrar en uno borra en el otro: '' se copia igual que un número */
+      hechos.push({ par: par[0], copio: true, valor: src.value });
+    });
+    return hechos;
+  } finally { _etTsvdSinc = false; }
+}
+window.etTsvdSync = etTsvdSync;
+window.ET_TSVD_PARES = ET_TSVD_PARES;
+
 /* ══ P5 · «Vmax IT cargada con la insuficiencia apagada» ══════════════════════════════════════
    AVISA Y NO ARREGLA (decisión de Maicol): no prende la pastilla y no borra nada. Un solo dueño
    para que el aviso no pueda quedar desincronizado del estado, igual que `sevSincronizar` con el
@@ -36017,6 +36113,11 @@ function RECALC_MODULOS() {
      guardado antes del 2026-10-07, uno del Excel y uno del SR DICOM— reponen asignando `.value`,
      que no dispara `oninput`. Va ANTES de `calcDopTric` por el mismo motivo que `itVmaxSync` va
      antes de los cálculos en el `oninput` de la Vmax IT. Ver su propio comentario. */
+  /* `etTsvdSync` sin argumento copia `tsvd_diametro` → `et_tsvd_diam` y `vti_tsvd` →
+     `et_vti_tsvd`, los dos espejos del numerador del área tricuspídea en la tarjeta de Válvulas.
+     Entra acá por lo mismo que `dtTapSync` —estudio guardado antes del 2026-10-07, Excel y SR
+     DICOM traen los dueños sin los espejos— y va ANTES de `calcET`, que es el que pinta el área:
+     al revés, el primer repintado leería los espejos todavía vacíos. Ver su propio comentario. */
   /* `calcVD`, `calcTEER` y `calcOAI` entran acá aunque sean `calc*`. Los tres pasaron a pintar
      estado que NO es sólo un número derivado:
        · `calcVD` resume ahora los tres diámetros en la cápsula;
@@ -36036,7 +36137,7 @@ function RECALC_MODULOS() {
      `emAvmPdfVal` para la fila del PDF, `dataset` protege esa decision, y `disabled` no lo
      persiste ni lo lee nadie. Los dos primeros siguen intocados — que es exactamente la objecion
      que este archivo dejo escrita para IM: «pisaria la decision que la reimpresion respalda». */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -96741,8 +96842,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-0058';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791345489616;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-0202';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791349359834;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -96828,7 +96929,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-0058</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-0202</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

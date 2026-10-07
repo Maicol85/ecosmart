@@ -52737,6 +52737,244 @@ caso('TC-428', 'Doppler tricuspideo: TAP espejado, TDE, PAP media unica con su f
   ] };
 `);
 
+caso('TC-429', 'Tricuspide: el Diam. y el VTI del TSVD son UN dato con DOS campos espejados en los dos sentidos, el area se actualiza desde las dos puertas, y los cuatro textos sobrantes no estan', `
+  const V = function (id) { const e = document.getElementById(id); return e ? e.value : 'NO ' + id; };
+  const T = function (id) { const e = document.getElementById(id);
+    return e ? e.textContent.trim().replace(/\\s+/g,' ') : 'NO ' + id; };
+  const existe = function (id) { return !!document.getElementById(id); };
+
+  /* ── DENOMINADOR ──────────────────────────────────────────────────────────────────────────
+     Los campos de la lesion viven dentro de la caja de la estenosis y lo que esta en
+     display:none no tiene geometria: una sonda sobre la tarjeta cerrada da cero y parece
+     impecable. Se abre la pestania, el acordeon de la tricuspide y se exige que los SEIS
+     campos midan de verdad. */
+  const abrir = function () {
+    try { showTab('valvulas'); } catch (e) {}
+    const sec = document.getElementById('ete-seccion-valv-tricuspide');
+    if (sec && sec.style.display === 'none') { try { toggleEteSeccion('valv-tricuspide'); } catch (e) {} }
+    /* ⚠️ Y ADEMAS LA FLECHA «Datos», que es la mitad que faltaba: por debajo de 768 px los campos
+       de cada lesion arrancan PLEGADOS (ver TC-423) y abrir solo el acordeon los deja sin
+       geometria. La primera version de este caso media cero campos y el denominador lo dijo. */
+    const caja = document.getElementById('caja-esten-tricuspide');
+    if (caja && !caja.classList.contains('valv-datos-abierto')) {
+      try { valvDatosTog('caja-esten-tricuspide'); } catch (e) {} }
+  };
+  abrir();
+  const anchoMedido = window.innerWidth;
+  const SEIS = ['et_gmedio','et_thp','et_avt','et_vti_diast','et_tsvd_diam','et_vti_tsvd'];
+  const conGeom = SEIS.filter(function (id) {
+    const e = document.getElementById(id); if (!e) return false;
+    const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+  /* Y el denominador de la OTRA puerta: los dos duenos en VD/AD. */
+  try { showTab('vd'); } catch (e) {}
+  const geomVD = ['tsvd_diametro','vti_tsvd'].filter(function (id) {
+    const e = document.getElementById(id); if (!e) return false;
+    const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+  abrir();
+
+  /* ── EL ESPEJO EN LOS DOS SENTIDOS, BORRADO INCLUIDO ──────────────────────────────────────
+     Es el invariante de la tanda: un dato con dos campos, no dos datos. El defecto que esto
+     fija es el del Diam. TSVI de la aortica, que llegaba a Valvulas y no volvia. */
+  __t.nuevoEstudio(); abrir();
+  __t.set('et_tsvd_diam','26');   const idaDiam = V('tsvd_diametro');
+  __t.set('et_vti_tsvd','14');    const idaVti  = V('vti_tsvd');
+  __t.set('tsvd_diametro','30');  const vueltaDiam = V('et_tsvd_diam');
+  __t.set('vti_tsvd','16');       const vueltaVti  = V('et_vti_tsvd');
+  __t.set('et_tsvd_diam','');     const borraDiamDesdeTarjeta = V('tsvd_diametro');
+  __t.set('et_vti_tsvd','');      const borraVtiDesdeTarjeta  = V('vti_tsvd');
+  __t.set('tsvd_diametro','26'); __t.set('vti_tsvd','14');
+  __t.set('tsvd_diametro','');    const borraDiamDesdeVD = V('et_tsvd_diam');
+  __t.set('vti_tsvd','');         const borraVtiDesdeVD  = V('et_vti_tsvd');
+
+  /* ── EL AREA SE ACTUALIZA AL TIPEAR DESDE CADA PUERTA ─────────────────────────────────────
+     Area = PI x (D/20)^2 x VTI-TSVD / VTI diastolico. Con VTI-TSVD 14 y VTI diast 90:
+       D 26 -> PI x 1,3^2 x 14 / 90 = 0,83 cm2  (<= 1: significativa por el tercer criterio)
+       D 30 -> PI x 1,5^2 x 14 / 90 = 1,10 cm2  (> 1: ese criterio no vota)
+     Las dos puertas tienen que dar los MISMOS dos numeros: si una sola recalculara, el espejo
+     estaria copiando el valor sin disparar el calculo, que es la mitad del defecto. */
+  const porTarjeta = function (d) {
+    __t.nuevoEstudio(); abrir();
+    __t.set('et_vti_diast','90'); __t.set('et_vti_tsvd','14'); __t.set('et_tsvd_diam', d);
+    return { area: V('et_avt'), sev: T('et-sev'), dueno: V('tsvd_diametro') };
+  };
+  const porVD = function (d) {
+    __t.nuevoEstudio(); abrir();
+    __t.set('et_vti_diast','90'); __t.set('vti_tsvd','14'); __t.set('tsvd_diametro', d);
+    return { area: V('et_avt'), sev: T('et-sev'), espejo: V('et_tsvd_diam') };
+  };
+  const t26 = porTarjeta('26'), t30 = porTarjeta('30');
+  const v26 = porVD('26'),      v30 = porVD('30');
+
+  /* ── RESTAURACION MUDA ────────────────────────────────────────────────────────────────────
+     Las cinco rutas de restauracion pueblan asignando .value, que NO dispara oninput, y hay
+     tres origenes que traen los duenos SIN los espejos: un estudio guardado antes del
+     2026-10-07, uno del Excel (las columnas «Ø TSVD (mm)» y «VTI TSVD (cm)» escriben los
+     duenos) y uno del SR DICOM. Sin la entrada en RECALC_MODULOS la tarjeta abre con los dos
+     campos VACIOS sobre un area ya calculada.
+     ⚠️ EL INVOCADOR ES _recalcModulos Y NO RECALC_MODULOS: la segunda solo DEVUELVE la lista
+     de nombres, asi que llamarla no corre nada y la condicion pasaria midiendo un no-op. */
+  __t.nuevoEstudio(); abrir();
+  document.getElementById('et_vti_diast').value = '90';
+  document.getElementById('tsvd_diametro').value = '26';
+  document.getElementById('vti_tsvd').value = '14';
+  const mudoAntes = { diam: V('et_tsvd_diam'), vti: V('et_vti_tsvd'), area: V('et_avt') };
+  try { _recalcModulos('TC-429'); } catch (e) {}
+  const mudoDespues = { diam: V('et_tsvd_diam'), vti: V('et_vti_tsvd'), area: V('et_avt') };
+
+  /* ── SIN BUCLE ────────────────────────────────────────────────────────────────────────────
+     Asignar .value por codigo no dispara oninput, asi que el espejo no se re-dispara solo; la
+     guarda _etTsvdSinc esta para el dia en que alguien despache un input a mano, que es lo que
+     hacen los arneses. Si hubiera bucle, esto no termina. */
+  __t.nuevoEstudio(); abrir();
+  __t.set('et_tsvd_diam','26');
+  const dn = document.getElementById('tsvd_diametro');
+  for (let i = 0; i < 40; i++) { dn.dispatchEvent(new Event('input', { bubbles: true })); }
+  const trasRebote = { dueno: V('tsvd_diametro'), espejo: V('et_tsvd_diam') };
+
+  /* ── CONTROL NEGATIVO (1): un campo que NO es del par no espeja nada ──────────────────────
+     El VTI diastolico tricuspideo vive SOLO en esta tarjeta. Sin esta condicion, un espejo que
+     copiara todo a todas partes pasaria las condiciones de arriba igual. */
+  __t.nuevoEstudio(); abrir();
+  __t.set('et_vti_diast','77');
+  const negVtiDiast = { tsvd: V('tsvd_diametro'), vti: V('vti_tsvd'),
+                        espDiam: V('et_tsvd_diam'), espVti: V('et_vti_tsvd') };
+
+  /* ── CONTROL NEGATIVO (2): el gesto no se desborda de la tricuspide ───────────────────────
+     Tipear en los dos campos nuevos no mueve un campo de las otras tres valvulas. Los que SI
+     se mueven son los lectores que el DUENO ya movia en HEAD —los dos espejos read-only del
+     shunt del ETE y el VS de Hemodinamica— y por eso se nombran de a uno en vez de exigir
+     cero: exigir cero seria pedirle al campo nuevo que haga MENOS que el dueno. */
+  __t.nuevoEstudio(); abrir();
+  const foto = function () { const o = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (el) {
+      o[el.id] = el.value; }); return o; };
+  const base = foto();
+  __t.set('et_tsvd_diam','26'); __t.set('et_vti_tsvd','14');
+  const tras = foto();
+  const movidos = Object.keys(tras).filter(function (k) { return String(base[k]) !== String(tras[k]); }).sort();
+  const PERMITIDOS = ['et_tsvd_diam','et_vti_tsvd','tsvd_diametro','vti_tsvd',
+                      'ete_shunt_tsvd_ro','ete_shunt_vtitsvd_ro','hemo_vs','et_avt'];
+  const ajenos = movidos.filter(function (k) { return PERMITIDOS.indexOf(k) === -1; });
+
+  /* ── LOS CUATRO TEXTOS SOBRANTES ──────────────────────────────────────────────────────────
+     ⚠️ SE LEE textContent Y NO innerHTML: innerHTML incluye los COMENTARIOS del codigo, y el
+     commit que borra un texto lo cita en el comentario que explica su borrado. Medido: con
+     innerHTML la condicion del texto de Morfologia VT daba «sigue ahi» leyendo el comentario
+     que documenta que se fue. textContent ve lo que ve el medico. */
+  const cajaVT = document.getElementById('ete-seccion-valv-tricuspide');
+  const textoVT = cajaVT ? (cajaVT.textContent || '') : '';
+  const morf = document.getElementById('vt_morf');
+  const textoMorf = morf && morf.parentNode ? (morf.parentNode.textContent || '') : '';
+
+  /* ── EL TAB DE LA ESTENOSIS ───────────────────────────────────────────────────────────────
+     Izquierda a derecha, fila por fila, SALTEANDO el area automatica. En HEAD el area SI
+     recibia foco —es un readonly sin tabindex, y Chrome se lo da—, asi que esta condicion
+     es la que sostiene el tabindex="-1" que se le agrego. */
+  __t.nuevoEstudio(); abrir();
+  const cajaCampos = document.getElementById('campos-esten-tricuspide');
+  const tabIds = [];
+  if (cajaCampos) {
+    Array.prototype.forEach.call(
+      cajaCampos.querySelectorAll('input, select, textarea, button, [tabindex]'), function (el) {
+        if (el.disabled || el.tabIndex < 0 || el.type === 'hidden') return;
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 && r.height === 0) return;
+        tabIds.push(el.id || ('(' + el.tagName.toLowerCase() + ')'));
+      });
+  }
+
+  /* ── NUEVO ESTUDIO ───────────────────────────────────────────────────────────────────────── */
+  __t.nuevoEstudio(); abrir();
+  __t.set('et_vti_diast','90'); __t.set('et_tsvd_diam','26'); __t.set('et_vti_tsvd','14');
+  const antesNuevo = V('et_avt');
+  __t.nuevoEstudio(); abrir();
+  const trasNuevo = { diam: V('et_tsvd_diam'), vti: V('et_vti_tsvd'),
+                      dueno: V('tsvd_diametro'), duenoVti: V('vti_tsvd'),
+                      vtiDiast: V('et_vti_diast'), area: V('et_avt'), sev: T('et-sev') };
+
+  /* ── EL EXCEL NO CAMBIA DE TAMANIO ───────────────────────────────────────────────────────── */
+  const cols = Object.keys(_labExcelRow({ id:0, campos:{} }));
+
+  return { extra: [
+    // 0 - DENOMINADOR
+    ['denominador: los SEIS campos de la estenosis tienen geometria',
+      conGeom.length === 6, 'ancho=' + anchoMedido + ' con geometria: ' + conGeom.join(', ')],
+    ['denominador: los DOS duenos de VD/AD tambien', geomVD.length === 2, geomVD.join(', ')],
+    ['los dos campos nuevos existen', existe('et_tsvd_diam') && existe('et_vti_tsvd')],
+    ['y la funcion del espejo declara sus dos pares',
+      typeof etTsvdSync === 'function' && typeof ET_TSVD_PARES !== 'undefined'
+      && ET_TSVD_PARES.length === 2, JSON.stringify(typeof ET_TSVD_PARES !== 'undefined' ? ET_TSVD_PARES : null)],
+
+    // --- El espejo, los dos sentidos y los dos borrados ---------------------------------------
+    ['IDA: tipear el Diam. en la tarjeta llega a VD/AD', idaDiam === '26', 'dueno=' + idaDiam],
+    ['IDA: y el VTI tambien', idaVti === '14', 'dueno=' + idaVti],
+    ['VUELTA: tipear el Diam. en VD/AD llega a la tarjeta', vueltaDiam === '30', 'espejo=' + vueltaDiam],
+    ['VUELTA: y el VTI tambien', vueltaVti === '16', 'espejo=' + vueltaVti],
+    ['borrar el Diam. en la tarjeta lo borra en VD/AD', borraDiamDesdeTarjeta === '', JSON.stringify(borraDiamDesdeTarjeta)],
+    ['borrar el VTI en la tarjeta lo borra en VD/AD', borraVtiDesdeTarjeta === '', JSON.stringify(borraVtiDesdeTarjeta)],
+    ['borrar el Diam. en VD/AD lo borra en la tarjeta', borraDiamDesdeVD === '', JSON.stringify(borraDiamDesdeVD)],
+    ['borrar el VTI en VD/AD lo borra en la tarjeta', borraVtiDesdeVD === '', JSON.stringify(borraVtiDesdeVD)],
+
+    // --- El area, desde las DOS puertas, con el corte de 1 cm2 por los dos lados --------------
+    ['el area se calcula tipeando desde la TARJETA: D 26 -> 0,83 cm2',
+      t26.area === '0.83 cm²', t26.area],
+    ['y tipeando desde VD/AD da el MISMO numero', v26.area === '0.83 cm²', v26.area],
+    ['D 30 -> 1,10 cm2 por la tarjeta', t30.area === '1.10 cm²', t30.area],
+    ['y 1,10 cm2 por VD/AD', v30.area === '1.10 cm²', v30.area],
+    ['las dos puertas dan la MISMA severidad sugerida con el area <= 1',
+      t26.sev === v26.sev && t26.sev.indexOf('Significativa') > -1, t26.sev + ' / ' + v26.sev],
+    ['y la MISMA con el area > 1, donde ese criterio no vota',
+      t30.sev === v30.sev && t30.sev.indexOf('Significativa') === -1, t30.sev + ' / ' + v30.sev],
+
+    // --- Restauracion muda --------------------------------------------------------------------
+    ['DENOMINADOR del mudo: antes del recalculo los espejos estan VACIOS y no hay area',
+      mudoAntes.diam === '' && mudoAntes.vti === '' && mudoAntes.area === '', JSON.stringify(mudoAntes)],
+    ['y _recalcModulos los repuebla y pinta el area',
+      mudoDespues.diam === '26' && mudoDespues.vti === '14' && mudoDespues.area === '0.83 cm²',
+      JSON.stringify(mudoDespues)],
+
+    // --- Sin bucle ----------------------------------------------------------------------------
+    ['40 eventos input a mano no desincronizan los dos campos ni cuelgan',
+      trasRebote.dueno === '26' && trasRebote.espejo === '26', JSON.stringify(trasRebote)],
+
+    // --- Controles negativos ------------------------------------------------------------------
+    ['CONTROL: el VTI diastolico NO espeja nada (no es del par)',
+      negVtiDiast.tsvd === '' && negVtiDiast.vti === ''
+      && negVtiDiast.espDiam === '' && negVtiDiast.espVti === '', JSON.stringify(negVtiDiast)],
+    ['CONTROL: el gesto no mueve un campo ajeno a la tricuspide',
+      ajenos.length === 0, 'ajenos: ' + ajenos.join(', ') + ' | movidos: ' + movidos.join(', ')],
+
+    // --- Los cuatro textos sobrantes ----------------------------------------------------------
+    ['el THP ya no arrastra «190 ms sugiere ET significativa»',
+      textoVT.indexOf('190 ms sugiere') === -1],
+    ['el parrafo «Continuidad: area del TSVD…» no esta',
+      textoVT.indexOf('Continuidad: área del TSVD') === -1
+      && textoVT.indexOf('Continuidad: area del TSVD') === -1],
+    ['el aviso del VTI quedo en «No es el VTI IT.» y el largo se fue',
+      textoVT.indexOf('No es el VTI IT.') > -1 && textoVT.indexOf('Flujo anter') === -1],
+    ['la nota de Morfologia VT sobre la causa mas frecuente no esta',
+      textoMorf.indexOf('frecuente de insuficiencia') === -1],
+
+    // --- Tab ----------------------------------------------------------------------------------
+    ['el Tab va de izquierda a derecha, fila por fila, y SALTEA el area automatica',
+      tabIds.join(',') === 'et_gmedio,et_thp,et_vti_diast,et_tsvd_diam,et_vti_tsvd',
+      tabIds.join(',')],
+
+    // --- Nuevo estudio ------------------------------------------------------------------------
+    ['DENOMINADOR: antes de «Nuevo estudio» habia un area que borrar',
+      antesNuevo === '0.83 cm²', antesNuevo],
+    ['«Nuevo estudio» limpia los CUATRO campos del espejo y el VTI diastolico',
+      trasNuevo.diam === '' && trasNuevo.vti === '' && trasNuevo.dueno === ''
+      && trasNuevo.duenoVti === '' && trasNuevo.vtiDiast === '', JSON.stringify(trasNuevo)],
+    ['y deja el area vacia y la severidad sugerida en raya',
+      trasNuevo.area === '' && (trasNuevo.sev === '-' || trasNuevo.sev === '—'),
+      JSON.stringify(trasNuevo)],
+
+    // --- El Excel no cambia de tamanio --------------------------------------------------------
+    ['el Excel sigue en 434 columnas', cols.length === 434, 'columnas: ' + cols.length]
+  ] };
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────
