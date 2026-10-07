@@ -30147,15 +30147,21 @@ window.itIncongruenciaSync = itIncongruenciaSync;
 
    ⚠️ `modInc` ES EL BORDE DE ARRIBA DE «MODERADA» Y NO ES COSMÉTICO. Con `true` el tope ENTRA en
    moderada (`<=`) y severa empieza por encima (`>`); con `false` el tope queda FUERA (`<`) y
-   severa lo incluye (`>=`). La vena contracta nace en `true` porque es lo que `calcIT_ESC` venía
-   calculando, y eso la hace DIFERIR de la ASE 2017 justo en 7,0 exacto: la app dice moderada y la
-   tabla dice severa. **Queda como estaba y está reportado** — cambiar un corte es decisión de
-   Maicol. Los rangos que imprime el cuadro se DERIVAN de este campo, así que muestran lo que el
-   código calcula de verdad y no lo que la guía publica.
-   ⚠️ La IM usa `< 7` para ese mismo borde (`calcIM_ESC`) y la IAo `<= 6` (`calcIA_ESC`): los tres
-   son independientes y no se unificaron. */
+   severa lo incluye (`>=`). Los rangos que imprime el cuadro se DERIVAN de este campo, así que
+   muestran lo que el código calcula de verdad.
+   ⚠️ LA VENA CONTRACTA PASÓ DE `true` A `false` EL 2026-10-07, POR DECISIÓN DE MAICOL, Y ES EL
+   ÚNICO CORTE QUE SE MOVIÓ EN TODA LA TANDA. Venía con el tope INCLUSIVO —`vc <= 7` moderada— y
+   eso la hacía diferir de la ASE 2017 justo en 7,0 exacto, donde la tabla publica `≥0,7 cm` severa.
+   Ahora coincide: leve `<3` · moderada `3 a <7` · severa `≥7` mm. **Sólo el 7,0 exacto cambia de
+   grado** (y los valores entre 6,99 y 7, que no son representables en el campo con un decimal):
+   medido byte por byte contra HEAD en 96 combinaciones, una sola celda se movió.
+   La EROA y el volumen regurgitante NO se tocaron: ya coincidían exacto con la misma tabla.
+   ⚠️ LA IM YA USABA `< 7` para ese mismo borde (`calcIM_ESC`), así que la tricúspide era la
+   incoherente entre hermanas, no la que se sale de la fila. La IAo usa `<= 6` y TAMBIÉN coincide
+   con su propia tabla de la ASE 2017 (folio 340: VCW severa `>0.6` cm). Los tres siguen siendo
+   independientes y no se unificaron: son tres tablas distintas de la misma guía. */
 const IT_CRIT = Object.freeze({
-  vc:   Object.freeze({ lbl:'Vena contracta',    uni:'mm',  leveMax:3,  modMax:7,  modInc:true  }),
+  vc:   Object.freeze({ lbl:'Vena contracta',    uni:'mm',  leveMax:3,  modMax:7,  modInc:false }),
   eroa: Object.freeze({ lbl:'EROA — PISA',       uni:'mm\u00b2', leveMax:20, modMax:40, modInc:false }),
   volr: Object.freeze({ lbl:'Vol. regurgitante', uni:'ml',  leveMax:30, modMax:45, modInc:false })
 });
@@ -97144,8 +97150,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-0714';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791368091814;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-0739';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791369546870;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -97231,7 +97237,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-0714</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-0739</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

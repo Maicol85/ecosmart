@@ -53378,8 +53378,12 @@ caso('TC-430', 'Tricuspide: la PASTILLA es la unica fuente del grado y el «grad
 
 caso('TC-431', 'Tricuspide: el cuadro de la insuficiencia lleva vena contracta, EROA y volumen regurgitante con su grado y su rango, los cortes salen de UNA tabla congelada y el rotulo cita la guia registrada', `
   ${APAGA_HELPERS}
+  /* Cuerpo ASYNC: la ultima escena guarda y reabre un estudio por el camino real, que es
+     asincrono (IndexedDB). Mismo envoltorio que TC-214 y TC-430. */
+  return (async () => {
   const T = function (id) { const e = document.getElementById(id);
     return e ? (e.textContent || '').trim().replace(/\\s+/g,' ') : 'NO ' + id; };
+  const V = function (id) { const e = document.getElementById(id); return e ? e.value : 'NO ' + id; };
   const abrir = function () {
     try { showTab('valvulas'); } catch (e) {}
     const sec = document.getElementById('ete-seccion-valv-tricuspide');
@@ -53403,7 +53407,8 @@ caso('TC-431', 'Tricuspide: el cuadro de la insuficiencia lleva vena contracta, 
   const vacio = esc({});
   /* Vena contracta: los dos lados de cada corte, con el rango DEL GRADO entre parentesis. */
   const vc29 = esc({ vc: 2.9 }), vc30 = esc({ vc: 3 });
-  const vc69 = esc({ vc: 6.9 }), vc70 = esc({ vc: 7 }), vc71 = esc({ vc: 7.1 });
+  const vc69 = esc({ vc: 6.9 }), vc699 = esc({ vc: 6.99 });
+  const vc70 = esc({ vc: 7 }), vc71 = esc({ vc: 7.1 });
   /* EROA: 19.9 leve · 20.0 moderada · 40.0 severa. Volumen: 29.9 / 30.0 / 45.2. */
   const er199 = esc({ pisaVal: 9.50, vti: 150 });
   const er200 = esc({ pisaVal: 9.55, vti: 150 });
@@ -53426,6 +53431,28 @@ caso('TC-431', 'Tricuspide: el cuadro de la insuficiencia lleva vena contracta, 
   const sinFilaDeInsumo = ['it-ref-pisa','it-ref-valiasing','it-ref-vmax','it-ref-vti']
     .filter(function (id) { return !!document.getElementById(id); });
 
+  /* ── UN ESTUDIO GUARDADO ANTES DEL CAMBIO DE CORTE (2026-10-07) ───────────────────────────
+     Vena contracta 7,0 y grado MODERADA fijado por el medico. NO se migra ni se reescribe: el
+     informe firmado sigue diciendo moderada, y lo que declara la diferencia es el aviso rojo,
+     que nombra el calculado. Es la regla de la casa: un cambio de criterio no sale a reescribir
+     lo que ya esta en disco. Se guarda y se reabre por el camino REAL del medico. */
+  __t.nuevoEstudio(); abrir();
+  __t.set('nombre', 'TC-431 VC7');
+  __t.set('it_vc', 7);
+  valvSev.aplicar('insuf', 'tricuspide', '2');
+  const gg = await __t.guardar();
+  __t.nuevoEstudio(); abrir();
+  if (gg.estudioId) __t.reabrir(gg.estudioId);
+  await new Promise(function (r) { setTimeout(r, 900); });
+  abrir();
+  const _ri = __t.informe();
+  const reab = { vc: V('it_vc'), grado: V('it_grado'), fijo: T('gftxt-insuf-tricuspide'),
+                 past: T('sevbtn-insuf-tricuspide'), pill: aOn('tricuspide','insuf'),
+                 manual: !!(window.esqSevManual || {}).it, aviso: T('it-manual-aviso'),
+                 filaVC: T('it-ref-vc'), integrada: T('it-sev'),
+                 inf: _ri.inf, suma: _ri.suma };
+  await __t.borrar(gg.estudioId);
+
   return { extra: [
     // 0 - DENOMINADOR
     ['denominador: el cuadro existe y tiene sus filas',
@@ -53440,14 +53467,18 @@ caso('TC-431', 'Tricuspide: el cuadro de la insuficiencia lleva vena contracta, 
 
     // --- Vena contracta: valor, grado y rango DEL GRADO ---------------------------------------
     ['VC 2,9 -> Leve con su rango', vc29.vc === '2.9 mm · Leve (<3 mm)', vc29.vc],
-    ['VC 3,0 -> Moderada con su rango', vc30.vc === '3 mm · Moderada (3–7 mm)', vc30.vc],
-    ['VC 6,9 -> Moderada', vc69.vc === '6.9 mm · Moderada (3–7 mm)', vc69.vc],
-    /* ⚠️ EL 7,0 EXACTO ES MODERADA Y LA ASE 2017 DICE SEVERA (su VCW severa es >=0,7 cm).
-       Queda como estaba: cambiar un corte es decision de Maicol y esta REPORTADO. El rango que
-       imprime la fila sale de la tabla, asi que muestra lo que el codigo calcula de verdad. */
-    ['VC 7,0 exacto -> Moderada (divergencia con ASE 2017, declarada)',
-      vc70.vc === '7 mm · Moderada (3–7 mm)', vc70.vc],
-    ['VC 7,1 -> Severa con su rango', vc71.vc === '7.1 mm · Severa (>7 mm)', vc71.vc],
+    ['VC 3,0 -> Moderada con su rango', vc30.vc === '3 mm · Moderada (3 a <7 mm)', vc30.vc],
+    ['VC 6,9 -> Moderada', vc69.vc === '6.9 mm · Moderada (3 a <7 mm)', vc69.vc],
+    ['VC 6,99 -> Moderada, el ultimo valor por debajo del corte',
+      vc699.vc === '6.99 mm · Moderada (3 a <7 mm)', vc699.vc],
+    /* ⚠️ EL 7,0 EXACTO ES EL UNICO VALOR QUE CAMBIO DE GRADO EN TODA LA TANDA (2026-10-07,
+       decision de Maicol): paso de moderada a SEVERA para seguir la ASE 2017, cuya VCW severa es
+       >=0,7 cm. Medido byte por byte contra HEAD en 96 combinaciones: ningun otro valor se movio.
+       Esta condicion esta escrita por los DOS lados del corte —6,99 arriba y 7,0 aca— porque un
+       umbral probado de un solo lado no distingue «implementado» de «siempre severa». */
+    ['VC 7,0 exacto -> SEVERA, que es el corte de la ASE 2017',
+      vc70.vc === '7 mm · Severa (≥7 mm)', vc70.vc],
+    ['VC 7,1 -> Severa con su rango', vc71.vc === '7.1 mm · Severa (≥7 mm)', vc71.vc],
 
     // --- EROA y volumen regurgitante ----------------------------------------------------------
     ['EROA 19,9 -> Leve con su rango', er199.eroa === '19.9 mm² · Leve (<20 mm²)', er199.eroa],
@@ -53480,17 +53511,17 @@ caso('TC-431', 'Tricuspide: el cuadro de la insuficiencia lleva vena contracta, 
       && IT_CRIT.eroa.leveMax === 20 && IT_CRIT.eroa.modMax === 40
       && IT_CRIT.volr.leveMax === 30 && IT_CRIT.volr.modMax === 45,
       JSON.stringify(typeof IT_CRIT !== 'undefined' ? IT_CRIT : null)],
-    /* El campo modInc es el borde de arriba de moderada, y el que hace visible la divergencia:
-       la VC lo tiene INCLUSIVO y los otros dos EXCLUSIVO. */
-    ['y el borde superior de moderada es inclusivo SOLO en la vena contracta',
-      IT_CRIT.vc.modInc === true && IT_CRIT.eroa.modInc === false && IT_CRIT.volr.modInc === false,
+    /* El campo modInc es el borde de arriba de moderada. Desde el 2026-10-07 los TRES son
+       exclusivos: la vena contracta se alineo con la ASE 2017 y era la unica que no lo estaba. */
+    ['el borde superior de moderada es EXCLUSIVO en los tres parametros',
+      IT_CRIT.vc.modInc === false && IT_CRIT.eroa.modInc === false && IT_CRIT.volr.modInc === false,
       JSON.stringify([IT_CRIT.vc.modInc, IT_CRIT.eroa.modInc, IT_CRIT.volr.modInc])],
     ['el clasificador es el MISMO que usa el calculo, y coincide con las filas',
-      itGradoDe('vc', 6.9) === 'moderada' && itGradoDe('vc', 7) === 'moderada'
-      && itGradoDe('vc', 7.1) === 'severa'
+      itGradoDe('vc', 6.9) === 'moderada' && itGradoDe('vc', 6.99) === 'moderada'
+      && itGradoDe('vc', 7) === 'severa' && itGradoDe('vc', 7.1) === 'severa'
       && itGradoDe('eroa', '20.0') === 'moderada' && itGradoDe('eroa', '40.0') === 'severa'
       && itGradoDe('volr', '45.0') === 'severa',
-      [itGradoDe('vc',7), itGradoDe('vc',7.1), itGradoDe('eroa','40.0')].join('/')],
+      [itGradoDe('vc',6.99), itGradoDe('vc',7), itGradoDe('eroa','40.0')].join('/')],
 
     // --- La fila rancia, corregida ------------------------------------------------------------
     ['DENOMINADOR de la fila rancia: con los insumos cargados hay EROA y volumen que borrar',
@@ -53500,12 +53531,29 @@ caso('TC-431', 'Tricuspide: el cuadro de la insuficiencia lleva vena contracta, 
       ranciaDespues.eroa === '—' && ranciaDespues.volr === '—',
       JSON.stringify(ranciaDespues)],
     ['y la vena contracta, que sigue cargada, NO se borra con ellos',
-      ranciaDespues.vc === '5 mm · Moderada (3–7 mm)', ranciaDespues.vc],
+      ranciaDespues.vc === '5 mm · Moderada (3 a <7 mm)', ranciaDespues.vc],
 
     // --- CONTROL NEGATIVO: los insumos no llevan fila -----------------------------------------
     ['CONTROL: ni el radio PISA, ni el valiasing, ni la Vmax IT, ni el VTI IT tienen fila propia',
-      sinFilaDeInsumo.length === 0, 'aparecieron: ' + sinFilaDeInsumo.join(', ')]
+      sinFilaDeInsumo.length === 0, 'aparecieron: ' + sinFilaDeInsumo.join(', ')],
+
+    // --- Un guardado con VC 7,0 y grado moderada: NO se reescribe ------------------------------
+    ['DENOMINADOR: el estudio se guardo de verdad', gg.ok === true && !!gg.estudioId,
+      JSON.stringify(gg)],
+    ['un guardado con VC 7,0 y grado moderada reabre con el grado INTACTO',
+      reab.vc === '7' && reab.grado === '2' && reab.fijo === 'Moderada'
+      && reab.past === 'Moderada ▼' && reab.pill === true && reab.manual === true,
+      JSON.stringify(reab)],
+    ['el informe firmado y el EN SUMA siguen diciendo moderada',
+      reab.inf.indexOf('Válvula tricúspide de morfología normal, con insuficiencia moderada.') > -1
+      && reab.suma.indexOf('IT moderada.') > -1, recorteJS(reab.inf) + ' // ' + recorteJS(reab.suma)],
+    ['y lo que declara la diferencia es el AVISO ROJO, que nombra el calculado',
+      reab.aviso === '⚠️ Moderada (ajuste manual) · cálculo automático: Severa', reab.aviso],
+    ['con la fila y la severidad integrada mostrando el corte nuevo',
+      reab.filaVC === '7 mm · Severa (≥7 mm)' && reab.integrada === 'Severa',
+      reab.filaVC + ' // ' + reab.integrada]
   ] };
+  })();
 `);
 
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
