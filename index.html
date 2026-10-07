@@ -3545,7 +3545,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
           <div class="fg">
             <label>VTI Vao (cm)</label>
-            <input type="number" id="itv_ao" placeholder="cm" oninput="calcAo();eteShuntSyncSiExiste();_eaDetCuentaPura()">
+            <input type="number" id="itv_ao" placeholder="cm" oninput="eaParEditado('itv_ao')">
           </div>
           <!-- El `calc-box` anidado del DVI. El `span[id]` queda dentro de
                `.calc-box .calc-row`, que es lo que exige el barrido de `limpiarCampos`. -->
@@ -4851,7 +4851,7 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
           <div class="fg">
             <label>VTI Ao (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &larr; Doppler</span></label>
-            <input type="number" id="ea_vtiao" placeholder="cm" oninput="syncEADesdeValvulas()">
+            <input type="number" id="ea_vtiao" placeholder="cm" oninput="eaParEditado('ea_vtiao');syncEADesdeValvulas()">
           </div>
             </div>
             <div>
@@ -25469,7 +25469,9 @@ const _EA_PARES = Object.freeze({
      VTI— y el lado Válvulas sólo el tercero, por dentro de `syncEADesdeValvulas`. O sea que cargar
      el VTI TSVI por Válvulas dejaba a la MITRAL evaluándose sin él. La unión los lleva a los dos. */
   ea_vtitsvi: { par:'itv_tsvi',   recalc:['eteShuntSyncSiExiste','imSyncSiExiste','emSyncSiExiste','iaSyncSiExiste'] },
-  itv_tsvi:   { par:'ea_vtitsvi', recalc:['eteShuntSyncSiExiste','imSyncSiExiste','emSyncSiExiste','iaSyncSiExiste'] }
+  itv_tsvi:   { par:'ea_vtitsvi', recalc:['eteShuntSyncSiExiste','imSyncSiExiste','emSyncSiExiste','iaSyncSiExiste'] },
+  ea_vtiao:   { par:'itv_ao',     recalc:['eteShuntSyncSiExiste','iaSyncSiExiste'] },
+  itv_ao:     { par:'ea_vtiao',   recalc:['eteShuntSyncSiExiste','iaSyncSiExiste'] }
 });
 function eaParSync(origenId) {
   if (_eaParSinc) return null;
@@ -97472,7 +97474,7 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
 const ECO_BUILD    = '20261007-1245';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791387904976;                 /* eco-build-ms */
+const ECO_BUILD_MS = 1791387947436;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
