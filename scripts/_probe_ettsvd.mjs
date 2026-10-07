@@ -259,6 +259,43 @@ window.__P = {
         var l = e && e.parentNode ? e.parentNode.querySelector('label') : null;
         return l ? l.textContent.trim().replace(/\\s+/g,' ') : null })() } },
 
+  /* ══ EL GRADO COMO TEXTO FIJO (commit B) ════════════════════════════════════════════════════
+     Lo que se mide es la IMPOSIBILIDAD de desincronizar: la pastilla y el texto fijo salen del
+     mismo txt en la misma funcion, asi que se comparan en cada escena y en cada gesto.
+     La raya se normaliza a RAYA: el div nace con un &mdash; y la funcion escribe '-' o el grado. */
+  gf(tipo) {
+    var valv = 'tricuspide';
+    var selId = (tipo === 'insuf') ? 'it_grado' : 'et_grado';
+    var sel = document.getElementById(selId);
+    var fijo = document.getElementById('gftxt-' + tipo + '-' + valv);
+    var past = document.getElementById('sevbtn-' + tipo + '-' + valv);
+    var cs = sel ? getComputedStyle(sel) : null;
+    var raya = function(t){ return (t === '-' || t === '\\u2014') ? 'RAYA' : t };
+    return {
+      selValor:    sel ? sel.value : null,
+      selVisible:  cs ? (cs.display !== 'none') : null,
+      selTab:      sel ? sel.tabIndex : null,
+      selAria:     sel ? sel.getAttribute('aria-hidden') : null,
+      selOpts:     sel && sel.options ? Array.prototype.map.call(sel.options, function(o){
+                     return o.value }).join('|') : null,
+      fijoExiste:  !!fijo,
+      fijoTxt:     fijo ? raya((fijo.textContent || '').trim()) : null,
+      fijoVisible: fijo ? window.__P.vis('gftxt-' + tipo + '-' + valv) : null,
+      pastilla:    past ? (past.textContent || '').trim() : null,
+      /* El invariante: el texto fijo es la pastilla sin el triangulito. */
+      coinciden:   (function(){
+        if (!fijo || !past) return null;
+        var f = (fijo.textContent || '').trim();
+        var p = (past.textContent || '').trim().replace(/\\s*\\u25bc$/, '').replace(/^\\ud83d\\udfe1\\s*/, '');
+        if (f === '-' || f === '\\u2014') return p === 'Severidad';
+        return f === p })(),
+      pill:        window.__P.pill(valv, tipo),
+      manual:      !!(window.esqSevManual || {})[tipo === 'insuf' ? 'it' : 'et'],
+      aviso:       window.__P.txt((tipo === 'insuf' ? 'it' : 'et') + '-manual-aviso'),
+      fundVis:     window.__P.vis((tipo === 'insuf' ? 'it' : 'et') + '-fund'),
+      nota:        window.__P.val((tipo === 'insuf' ? 'it' : 'et') + '_fund_nota'),
+      incong:      window.__P.txt('it-incongruencia') } },
+
   /* EL TAB DE LA ESTENOSIS, en el orden REAL del documento y filtrando lo que no recibe foco.
      Un readonly con tabindex -1 no entra; un readonly sin esa marca SI entra en Chrome. */
   tabEsten() {
@@ -486,6 +523,137 @@ async function main() {
     return JSON.stringify(out);
   })()`);
 
+  /* ══ COMMIT B — EL GRADO COMO TEXTO FIJO: NUEVE ESCENAS POR LESION ══════════════════════════
+     Cada escena guarda la foto de la pastilla Y del texto fijo, y `coinciden` compara los dos en
+     el mismo instante. La escena «desincronizar» prueba por los gestos que podrian lograrlo. */
+  const gradoFijo = await J(`(function(){
+    var out = {};
+    var F = function(){ return { insuf: window.__P.gf('insuf'), esten: window.__P.gf('esten') } };
+    var prender = function(tipo){
+      if (window.__P.pill('tricuspide', tipo) !== true) toggleValvPill('tricuspide', tipo); };
+    var apagar = function(tipo){
+      if (window.__P.pill('tricuspide', tipo) === true) toggleValvPill('tricuspide', tipo); };
+
+    /* (1) CALCULO AUTOMATICO. IT: VC 9 mm vota severa (>7). ET: gradiente 8 (>=5). */
+    window.__P.limpiar(); window.__P.denominador();
+    prender('insuf');
+    window.__P.set('it_vc', 9);
+    window.__P.set('et_gmedio', 8);
+    out.e1_auto = F();
+
+    /* (2) CAMBIO MANUAL EN LA PASTILLA, por el camino REAL (valvSev.aplicar, que es lo que corre
+           el menu). El texto fijo tiene que seguirla, y aparecer el aviso y el cajon. */
+    valvSev.aplicar('insuf','tricuspide','2');
+    out.e2_manual_insuf = F();
+    valvSev.aplicar('esten','tricuspide','No significativa');
+    out.e2_manual_esten = F();
+
+    /* (3) LA NOTA DEL FUNDAMENTO se escribe y el texto fijo no se mueve. */
+    window.__P.set('it_fund_nota', 'jet excentrico');
+    window.__P.set('et_fund_nota', 'gradiente por taquicardia');
+    out.e3_nota = F();
+
+    /* (4) VOLVER AL CALCULADO: se elige a mano el MISMO valor que el calculo. */
+    valvSev.aplicar('insuf','tricuspide','4');
+    out.e4_vuelta_insuf = F();
+    valvSev.aplicar('esten','tricuspide','Significativa');
+    out.e4_vuelta_esten = F();
+
+    /* (5) ELEGIR GRADO CON EL BOTON APAGADO: tiene que PRENDERLO. */
+    window.__P.limpiar(); window.__P.denominador();
+    out.e5_antes = F();
+    valvSev.aplicar('insuf','tricuspide','1');
+    out.e5_insuf = F();
+    valvSev.aplicar('esten','tricuspide','Significativa');
+    out.e5_esten = F();
+
+    /* (6) APAGAR EL BOTON: el grado se va a la raya y queda la marca manual. */
+    apagar('insuf');
+    out.e6_apagado_insuf = F();
+    apagar('esten');
+    out.e6_apagado_esten = F();
+
+    /* (7) NUEVO ESTUDIO. */
+    window.__P.limpiar(); window.__P.denominador();
+    out.e7_nuevo = F();
+
+    /* (8) REABRIR UN GUARDADO. Se repone con .value —sin eventos, como las cinco rutas— y se
+           corre el invocador real; el texto fijo tiene que aparecer poblado. */
+    window.__P.limpiar(); window.__P.denominador();
+    window.__P.poner('it_grado', '2');
+    window.__P.poner('et_grado', 'Significativa');
+    window.__P.poner('et_gmedio', '8');
+    out.e8_mudo_antes = F();
+    try { _recalcModulos('probe-gf'); } catch(e) { out.e8_err = e.message; }
+    out.e8_mudo_despues = F();
+    /* Y por el camino de valvSev.refrescarTodo, que es el que corre al cargar. */
+    try { valvSev.refrescarTodo(); } catch(e) {}
+    out.e8_tras_refrescarTodo = F();
+
+    /* (9) INTENTAR DESINCRONIZARLOS POR TODOS LOS GESTOS. Cada paso guarda coinciden. */
+    var gestos = [];
+    var paso = function(nombre, fn){
+      try { fn() } catch(e) {}
+      var f = F();
+      gestos.push({ gesto: nombre,
+        insuf: { sel: f.insuf.selValor, fijo: f.insuf.fijoTxt, past: f.insuf.pastilla, ok: f.insuf.coinciden },
+        esten: { sel: f.esten.selValor, fijo: f.esten.fijoTxt, past: f.esten.pastilla, ok: f.esten.coinciden } });
+    };
+    window.__P.limpiar(); window.__P.denominador();
+    paso('limpio', function(){});
+    paso('escribir el select POR CODIGO sin eventos (lo peor que puede pasar)', function(){
+      window.__P.poner('it_grado','4'); window.__P.poner('et_grado','No significativa'); });
+    paso('y despachar change a mano sobre los dos', function(){
+      ['it_grado','et_grado'].forEach(function(id){
+        document.getElementById(id).dispatchEvent(new Event('change',{bubbles:true})); }); });
+    paso('calculo automatico encima', function(){
+      window.__P.set('it_vc', 9); window.__P.set('et_gmedio', 8); });
+    paso('apagar las dos pastillas', function(){ apagar('insuf'); apagar('esten'); });
+    paso('prenderlas de nuevo', function(){ prender('insuf'); prender('esten'); });
+    paso('valvSev.limpiar en las dos', function(){
+      valvSev.limpiar('insuf','tricuspide'); valvSev.limpiar('esten','tricuspide'); });
+    paso('refrescarTodo', function(){ valvSev.refrescarTodo(); });
+    paso('_recalcModulos', function(){ _recalcModulos('probe-desinc'); });
+    paso('nuevo estudio', function(){ limpiarCampos(true); });
+    out.e9_gestos = gestos;
+    out.e9_todos_coinciden = gestos.every(function(g){
+      return g.insuf.ok === true && g.esten.ok === true });
+
+    /* (10) EL MENU DESPLEGABLE sigue ofreciendo lo mismo: es lo que alimenta el vocabulario. */
+    out.opciones = {
+      insuf: (function(){ try { return JSON.stringify(valvSev.menu ? null : null) } catch(e){ return null } })(),
+      etOpts: window.__P.gf('esten').selOpts,
+      itOpts: window.__P.gf('insuf').selOpts };
+    return JSON.stringify(out);
+  })()`);
+
+  /* ══ LAS CINCO SUPERFICIES CON LOS MISMOS GRADOS ════════════════════════════════════════════
+     El A/B de verdad del commit B: para cada grado, informe + EN SUMA + Excel tienen que salir
+     IDENTICOS a HEAD. Se fija el grado por el camino real y se leen las cuatro superficies. */
+  const superficies = await J(`(function(){
+    var out = {};
+    var leer = function(){
+      var est = window.__P.informe('estandar');
+      var con = window.__P.informe('conciso');
+      var nar = window.__P.informe('narrativo');
+      window.__P.informe('estandar');
+      return { estandar: est.inf, suma: est.suma, conciso: con.inf, sumaC: con.suma,
+               narrativo: nar.inf, sumaN: nar.suma, xls: window.__P.excel(),
+               ppt: (typeof _pptSel === 'function')
+                 ? { it: _pptSel('it_grado'), et: _pptSel('et_grado') } : 'SIN _pptSel' };
+    };
+    [['insuf','1'],['insuf','2'],['insuf','4'],
+     ['esten','Significativa'],['esten','No significativa']].forEach(function(par){
+      window.__P.limpiar(); window.__P.denominador();
+      valvSev.aplicar(par[0],'tricuspide',par[1]);
+      out[par[0] + '_' + par[1]] = leer();
+    });
+    /* Y el formulario vacio, que es el estado de fabrica. */
+    window.__P.limpiar(); window.__P.denominador();
+    out.vacio = leer();
+    return JSON.stringify(out);
+  })()`);
+
   /* ══ MAQUETACION a 360 / 390 / 1200 px ══════════════════════════════════════════════════════ */
   const layout = {};
   for (const w of [360, 390, 1200]) {
@@ -511,7 +679,8 @@ async function main() {
   console.log(JSON.stringify({
     archivo: FARG, md5_index_antes: antes, md5_index_despues: despues,
     index_intacto: antes === despues,
-    listo, consola, porTarjeta, porVDAD, borrados, actualiza, restaura, nuevo, bucle, negativo, layout,
+    listo, consola, porTarjeta, porVDAD, borrados, actualiza, restaura, nuevo, bucle, negativo,
+    gradoFijo, superficies, layout,
   }, null, 2));
 
   /* ⚠️ Cerrar el servidor Y salir a mano: `cdp.close()` + `proc.kill()` no alcanzan —el servidor

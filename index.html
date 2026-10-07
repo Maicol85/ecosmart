@@ -4993,10 +4993,13 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div id="caja-insuf-tricuspide">
       <div id="bloque-insuf-tricuspide" style="display:none;">
       <!-- ── 1) GRADO PARA EL INFORME ──────────────────────────────────────────────────────────
-           `it_grado` pasó de `<input type="hidden">` a `<select>` VISIBLE (2026-10-04, decisión de
-           Maicol). Mismo `id`, mismos `value`: es el MISMO dato que ya leían el informe, el EN
-           SUMA, el PDF, el Excel y el PPT, y la pastilla «Severidad ▼» de arriba escribe en este
-           mismo nodo. No hay una segunda fuente de verdad — hay un dato con dos controles.
+           `it_grado` pasó de `<input type="hidden">` a `<select>` (2026-10-04) y ese `<select>`
+           pasó a OCULTO el 2026-10-07, las dos veces por decisión de Maicol. Mismo `id`, mismos
+           `value`: es el MISMO dato que ya leían el informe, el EN SUMA, el PDF, el Excel y el PPT,
+           y la pastilla «Severidad ▼» de arriba escribe en este mismo nodo.
+           ⚠️ YA NO HAY «UN DATO CON DOS CONTROLES» —así lo decía este párrafo hasta el 2026-10-07—:
+           hay un dato con UN control, la pastilla, y un texto fijo que lo muestra. El desplegable
+           dejó de ser un control y quedó como el campo donde vive el valor.
            ⚠️ EL `onchange` VA POR `valvSev.aplicar` Y NO ESCRIBE NADA POR SU CUENTA. Si sólo
            cambiara el `value`, `calcIT_ESC` lo pisaría en el próximo `oninput` de cualquiera de los
            seis parámetros —la marca `esqSevManual.it` es lo único que lo frena (ver su línea en
@@ -5009,12 +5012,39 @@ window.cerrarSesionReal = cerrarSesionReal;
            corrigió en el mismo commit. Las otras válvulas lo siguen ofreciendo — se sacan de a una. -->
       <div class="valv-fund-row" style="margin-bottom:8px;">
         <div class="fg valv-fund-sel"><label>Insuficiencia tricusp&iacute;dea &mdash; grado final al informe</label>
-          <select id="it_grado" onchange="valvSev.aplicar('insuf','tricuspide',this.value)">
+          <!-- ═══ TEXTO FIJO — EL `<select>` SE OCULTA PERO NO SE BORRA (2026-10-07, Maicol) ═════
+               La pastilla «Severidad ▼» es la ÚNICA forma de definir el grado, así que esto MUESTRA
+               el grado y no lo elige. Mismo criterio que la aórtica y la mitral del 2026-10-06.
+               ⚠️ ACÁ EL `<select>` SE OCULTA Y **NO** SE BORRA, Y LA DIFERENCIA CON LA IM/IAo ES
+               REAL. Allá había DOS nodos —el `<select>` visible `im_sev_final` y el oculto
+               `im_grado`— y lo que se fue fue la copia. Acá `it_grado` es el nodo ÚNICO: es el
+               mismo que leen el informe, el EN SUMA, el PDF, el PPT, el Excel y el panel de
+               Evidencia, y es donde escribe `valvSev`. Borrarlo sería borrar el dato.
+               ⚠️ Y SUS `<option>` SIGUEN SIENDO EL VOCABULARIO: `valvSev.opciones('esten', …)` lee
+               los `<option>` del propio `<select>` para armar el menú ▼, y la tarjeta de revisión
+               previa al PDF clona `et_grado` por `el.innerHTML`. Un `<select>` vacío —o ausente—
+               dejaría el menú de la estenosis sin opciones. Para la IT el menú sale de `INSUF_OPTS`,
+               pero el nodo igual tiene que estar: es el campo.
+               `display:none` + `aria-hidden` + `tabindex="-1"`, calcado de `em_grado` y `ea_grado`,
+               que ya estaban así. Medido: `cloneSel` reconstruye el `<select>` de la tarjeta del PDF
+               con su propio `style`, así que no hereda el `display:none`.
+               ⚠️ EL `onchange` SE QUEDA. `valvSev.aplicar` despacha `change` sobre este nodo, y de
+               ahí cuelga la guarda de re-entrada `_aplicando`; sacarlo cambiaría ese camino. -->
+          <select id="it_grado" onchange="valvSev.aplicar('insuf','tricuspide',this.value)"
+                  style="display:none;" aria-hidden="true" tabindex="-1">
             <option value="0">&mdash; grado &mdash;</option>
             <option value="1">Leve</option>
             <option value="2">Moderada</option>
             <option value="4">Severa</option>
           </select>
+          <!-- ⚠️ EL TEXTO FIJO LO PINTA `valvSev.refrescar` Y NO HAY UNA LÍNEA DE JS NUEVA. Esa
+               función ya escribe `gftxt-<tipo>-<valv>` gateado por EXISTENCIA del nodo —se escribió
+               así en la tanda de la aórtica y la mitral, derivando el id igual que `sevbtn-` y
+               `pill-`—, así que crear este div es todo lo que hacía falta. La pastilla y este texto
+               son dos renders del MISMO `txt`, de UNA sola lectura de UN solo nodo, en UNA sola
+               función: no hay dos caminos que puedan quedar en desacuerdo. El pedido «que no exista
+               ningún gesto que los desincronice» queda cumplido por construcción, no por cobertura. -->
+          <div id="gftxt-insuf-tricuspide" class="valv-gf-fijo" aria-readonly="true">&mdash;</div>
           <!-- Aviso de grado fijado a mano que discrepa del calculado. SE MOVIÓ de abajo del
                `calc-box` a acá, junto al grado que explica — es lo que ya hacen la mitral y la
                aórtica. Lo pinta el MISMO `sevSincronizar` (clave `it`) y la condición de cuándo
@@ -5127,11 +5157,26 @@ window.cerrarSesionReal = cerrarSesionReal;
                que hace que este `onchange` no se repita indefinidamente. -->
           <div class="valv-fund-row" style="margin-bottom:8px;">
             <div class="fg valv-fund-sel"><label>Estenosis tricusp&iacute;dea &mdash; grado final al informe</label>
-              <select id="et_grado" onchange="valvSev.aplicar('esten','tricuspide',this.value)">
+              <!-- ═══ TEXTO FIJO — EL `<select>` SE OCULTA PERO NO SE BORRA (2026-10-07, Maicol) ═
+                   Hermano exacto de `gftxt-insuf-tricuspide`: ver su comentario, que explica por qué
+                   acá el nodo se oculta en vez de borrarse y por qué sus `<option>` tienen que
+                   seguir existiendo.
+                   ⚠️ EN ESTA LESIÓN EL VOCABULARIO DEL MENÚ ▼ SALE DE ESTOS `<option>`, así que
+                   importa más que en la IT: `valvSev.opciones('esten','tricuspide')` los lee del
+                   propio `<select>` y los filtra por `esGrado`, que descarta el centinela `'sin'`.
+                   De ahí salen las dos únicas opciones que ofrece el menú — «Significativa» y «No
+                   significativa» —, que es lo que el punto (d) del pedido pide, sin tocar nada.
+                   ⚠️ «No significativa» LA ELIGE SÓLO EL MÉDICO y eso NO cambió con esta tanda:
+                   `_etAutoGrado` escribe «Significativa» o devuelve el campo al centinela, y nunca
+                   la negación — está en su comentario y lo fija TC-416. El menú la ofrece porque es
+                   una afirmación que el médico puede firmar; ninguna regla automática la escribe. -->
+              <select id="et_grado" onchange="valvSev.aplicar('esten','tricuspide',this.value)"
+                      style="display:none;" aria-hidden="true" tabindex="-1">
                 <option value="sin">&mdash; grado &mdash;</option>
                 <option value="Significativa">Significativa</option>
                 <option value="No significativa">No significativa</option>
               </select>
+              <div id="gftxt-esten-tricuspide" class="valv-gf-fijo" aria-readonly="true">&mdash;</div>
               <!-- Aviso de grado fijado a mano que discrepa del calculado. Lo pinta el MISMO
                    `sevSincronizar` (clave `et`) que ya pintaba los de las otras cinco, y la
                    condición de cuándo aparece es `sevDiscrepa('et')`, su único dueño: no se
@@ -26508,10 +26553,14 @@ const SEV_SINC = Object.freeze({
     /* Como la IM: calcIT_ESC deja la foto en window._itGradoCalc (memoria de proceso) y acá se lee. */
     calcular: function(){ const g = window._itGradoCalc; return (g === null || g === undefined || g === '') ? null : g; },
     recalcular: function(){ if (typeof calcIT_ESC === 'function') calcIT_ESC(); },
-    /* v3 (2026-10-04): `it_grado` YA NO ES UN `<input hidden>` — es el `<select>` VISIBLE del grado
-       final de la IT, con cuatro opciones (0/1/2/4). Sigue sin ESPEJO: a diferencia de la IM y la
-       IAo no hay un `it_sev_final` aparte, el desplegable y el campo que leen las cinco superficies
-       son EL MISMO nodo, así que no hay nada que sincronizar — sólo marcar el sugerido. */
+    /* v3 (2026-10-04): `it_grado` dejó de ser un `<input hidden>` y pasó a `<select>` con cuatro
+       opciones (0/1/2/4). Sigue sin ESPEJO: a diferencia de la IM y la IAo no hay un
+       `it_sev_final` aparte, el campo que leen las cinco superficies es EL MISMO nodo, así que no
+       hay nada que sincronizar — sólo marcar el sugerido.
+       ⚠️ v4 (2026-10-07): ese `<select>` YA NO ES VISIBLE. Pasó a `display:none` y el grado se
+       muestra en `gftxt-insuf-tricuspide`, un texto fijo que pinta `valvSev.refrescar`: desde hoy
+       la pastilla es la ÚNICA forma de fijarlo. El nodo, el `id`, los `value` y el `onchange` son
+       los mismos, así que esta entrada del registro no cambió en nada. */
     trasEscribir: function(sel, calc){ try { sel.dataset.sugerido = calc; } catch (e) {} },
     etiqueta: function(g){ return ({ '0':'Sin insuficiencia','1':'Leve','2':'Moderada','3':'Moderada-severa','4':'Severa' })[String(g)] || String(g); } }),
   /* ══ ESTENOSIS TRICUSPÍDEA — LA QUINTA ENTRADA (2026-10-05, decisión de Maicol) ════════════════
@@ -54911,11 +54960,17 @@ window.valvSev = (function(){
        desde `limpiarCampos`, y el ▼), que es exactamente la lista escrita a mano que este módulo ya
        pagó cuatro veces (`gf-insuf-`, la pulmonar en `limpiarCampos`, el `else` de `sevSincronizar` y
        el `vis` de la tarjeta del PDF).
-       ⚠️ GATEADO POR EXISTENCIA DEL NODO, así que la TRICÚSPIDE y la PULMONAR no cambian en nada:
-       no tienen `gftxt-*` —su grado final sigue siendo un `<select>` visible y editable— y para
-       ellas estas dos líneas son un `getElementById` que devuelve `null`. Es la misma costura por
-       válvula que usan `SEV_SIN_APAGA_VALVS` y el companion `gf-insuf-` de `toggleValvPill`, y por
-       el mismo motivo: `refrescar` gobierna las ocho pastillas.
+       ⚠️ GATEADO POR EXISTENCIA DEL NODO, que es la costura por válvula. Es la misma que usan
+       `SEV_SIN_APAGA_VALVS` y el companion `gf-insuf-` de `toggleValvPill`, y por el mismo motivo:
+       `refrescar` gobierna las ocho pastillas.
+       ⚠️ ACTUALIZADO 2026-10-07: la TRICÚSPIDE YA TIENE SUS DOS `gftxt-*` (insuficiencia y
+       estenosis) y entra por acá. El párrafo original decía «la TRICÚSPIDE y la PULMONAR no cambian
+       en nada: no tienen `gftxt-*`, su grado final sigue siendo un `<select>` visible y editable», y
+       la primera mitad caducó: sus dos `<select>` pasaron a `display:none` y el texto fijo los
+       muestra. NO HIZO FALTA UNA LÍNEA DE CÓDIGO — sólo crear los dos nodos —, que es exactamente
+       lo que este comentario predecía al derivar el id en vez de listar las válvulas.
+       La PULMONAR sigue afuera: no tiene `gftxt-*` y para ella estas dos líneas siguen siendo un
+       `getElementById` que devuelve `null`. Se saca de a una, por orden expresa.
        El id se DERIVA (`gftxt-<tipo>-<valv>`), igual que `sevbtn-` y `pill-` tres líneas arriba, así
        que no hay una lista de válvulas nueva que se pueda quedar corta.
        `textContent` y no `innerHTML`: `txt` sale de `corto()` sobre el `textContent` de una
@@ -96842,8 +96897,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-0202';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791349359834;                 /* eco-build-ms */
+const ECO_BUILD    = '20261007-0237';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791351459865;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -96929,7 +96984,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-0202</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-0237</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

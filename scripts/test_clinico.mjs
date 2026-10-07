@@ -51435,9 +51435,25 @@ caso('TC-422', 'Aortica y mitral: la PASTILLA es la unica fuente del grado y el 
         return m ? Array.from(m.querySelectorAll('button')).map(function (b) { return b.textContent.trim(); }).join('/') : 'sin menu';
       } catch (e) { return 'EXC'; } })()],
 
-    ['  CONTROL NEGATIVO: tricuspide y pulmonar NO tienen texto fijo y su grado sigue siendo un <select> visible',
-      ['it','et','ip','ep'].every(function (k) { return otras[k].tag === 'SELECT' &&
+    /* ⚠️ ESTE CONTROL NEGATIVO SE ADAPTO EL 2026-10-07 Y SE ENCOGIO A LA PULMONAR. Decia
+       «tricuspide y pulmonar NO tienen texto fijo y su grado sigue siendo un <select> visible», y
+       estaba VERDE hasta que la tanda de la tricuspide le dio sus dos \`gftxt-*\` y oculto
+       \`it_grado\`/\`et_grado\` — o sea que se puso rojo por el cambio AUTORIZADO, no por una
+       regresion. La tricuspide pasa a estar cubierta por TC-430, que mide sus nueve escenas.
+       La PULMONAR sigue afuera por orden expresa (se saca de a una), y mientras siga afuera este
+       control es lo que lo sostiene: es la costura por valvula de \`valvSev.refrescar\`, que gatea
+       por EXISTENCIA del nodo. El dia que entre, este renglon vuelve a ponerse rojo y hay que
+       mirarlo, que es justo para lo que esta. */
+    ['  CONTROL NEGATIVO: la PULMONAR sigue sin texto fijo y con su <select> visible',
+      ['ip','ep'].every(function (k) { return otras[k].tag === 'SELECT' &&
         otras[k].vis === true && otras[k].gftxt === null; }),
+      JSON.stringify(otras)],
+    /* Y la contracara, que es la mitad nueva: la tricuspide YA entro, con el select oculto y el
+       texto fijo presente. Sin esta condicion, adaptar el control de arriba habria dejado de
+       medir la tricuspide en los dos sentidos. */
+    ['  y la TRICUSPIDE ya entro: sus dos <select> estan ocultos y tienen su texto fijo',
+      ['it','et'].every(function (k) { return otras[k].tag === 'SELECT' &&
+        otras[k].vis === false && otras[k].gftxt !== null; }),
       JSON.stringify(otras)],
   ] };
   })();
@@ -52973,6 +52989,271 @@ caso('TC-429', 'Tricuspide: el Diam. y el VTI del TSVD son UN dato con DOS campo
     // --- El Excel no cambia de tamanio --------------------------------------------------------
     ['el Excel sigue en 434 columnas', cols.length === 434, 'columnas: ' + cols.length]
   ] };
+`);
+
+caso('TC-430', 'Tricuspide: la PASTILLA es la unica fuente del grado y el «grado final al informe» es un texto fijo que la sigue — en las dos lesiones, sin ningun gesto que los desincronice, y sobreviviendo a reabrir un guardado', `
+  /* Cuerpo ASYNC: la escena (7) reabre un estudio por el camino real, que es asincrono
+     (guardarInforme por IndexedDB + cargarEstudioPorId). Mismo envoltorio que TC-214. */
+  ${APAGA_HELPERS}
+  return (async () => {
+  const V = function (id) { const e = document.getElementById(id); return e ? e.value : 'NO ' + id; };
+  const abrir = function () {
+    try { showTab('valvulas'); } catch (e) {}
+    const sec = document.getElementById('ete-seccion-valv-tricuspide');
+    if (sec && sec.style.display === 'none') { try { toggleEteSeccion('valv-tricuspide'); } catch (e) {} }
+  };
+  const prender = function (tipo) {
+    if (!aOn('tricuspide', tipo)) toggleValvPill('tricuspide', tipo); };
+  const apagar = function (tipo) {
+    if (aOn('tricuspide', tipo)) toggleValvPill('tricuspide', tipo); };
+
+  /* Foto de una lesion: el select (que es el CAMPO), el texto fijo y la pastilla.
+     \`coincide\` es el invariante del pedido: el texto fijo es la pastilla sin el triangulito.
+     ⚠️ Se compara contra la PASTILLA y no contra el select a proposito: los dos son renders del
+     mismo txt en la MISMA funcion, asi que o los dos estan frescos o los dos estan viejos. Que
+     es exactamente la propiedad que hace imposible desincronizarlos. */
+  const gf = function (tipo) {
+    const selId = tipo === 'insuf' ? 'it_grado' : 'et_grado';
+    const sel = document.getElementById(selId);
+    const fijo = document.getElementById('gftxt-' + tipo + '-tricuspide');
+    const past = document.getElementById('sevbtn-' + tipo + '-tricuspide');
+    const cs = sel ? getComputedStyle(sel) : null;
+    const fTxt = fijo ? (fijo.textContent || '').trim() : null;
+    const pTxt = past ? (past.textContent || '').trim() : null;
+    const pPelado = pTxt === null ? null
+      : pTxt.replace(/\\s*\\u25bc$/, '').replace(/^\\ud83d\\udfe1\\s*/, '');
+    const esRaya = fTxt === '-' || fTxt === '\\u2014';
+    return { sel: sel ? sel.value : null,
+             oculto: cs ? cs.display === 'none' : null,
+             tab: sel ? sel.tabIndex : null,
+             aria: sel ? sel.getAttribute('aria-hidden') : null,
+             opts: sel && sel.options ? Array.prototype.map.call(sel.options, function (o) {
+               return o.value; }).join('|') : null,
+             fijo: esRaya ? 'RAYA' : fTxt,
+             fijoVis: fijo ? getComputedStyle(fijo).display !== 'none' : null,
+             past: pTxt,
+             coincide: (fijo && past) ? (esRaya ? pPelado === 'Severidad' : fTxt === pPelado) : null,
+             pill: aOn('tricuspide', tipo),
+             manual: !!(window.esqSevManual || {})[tipo === 'insuf' ? 'it' : 'et'],
+             aviso: (aTxt((tipo === 'insuf' ? 'it' : 'et') + '-manual-aviso') || '').trim(),
+             fundVis: (function () { const e = document.getElementById(
+               (tipo === 'insuf' ? 'it' : 'et') + '-fund');
+               return e ? getComputedStyle(e).display !== 'none' : null; })() };
+  };
+  const F = function () { return { insuf: gf('insuf'), esten: gf('esten') }; };
+
+  /* ── DENOMINADOR ──────────────────────────────────────────────────────────────────────────
+     Los dos nodos del texto fijo tienen que EXISTIR y los dos select tienen que estar OCULTOS.
+     Sin esta condicion, todo lo de abajo compararia null contra null y pasaria. */
+  __t.nuevoEstudio(); abrir(); prender('insuf'); prender('esten');
+  const d0 = F();
+
+  /* ── (1) CALCULO AUTOMATICO ───────────────────────────────────────────────────────────────
+     IT: vena contracta 9 mm vota severa (> 7). ET: gradiente medio 8 (>= 5) es significativa. */
+  __t.nuevoEstudio(); abrir(); prender('insuf');
+  __t.set('it_vc', '9'); __t.set('et_gmedio', '8');
+  const e1 = F();
+
+  /* ── (2) CAMBIO MANUAL EN LA PASTILLA, por el camino REAL (valvSev.aplicar, que es lo que
+     corre el menu ▼). El texto fijo la sigue y aparecen el aviso y el cajon. */
+  valvSev.aplicar('insuf', 'tricuspide', '2');
+  const e2i = F();
+  valvSev.aplicar('esten', 'tricuspide', 'No significativa');
+  const e2e = F();
+
+  /* ── (3) VOLVER AL CALCULADO ──────────────────────────────────────────────────────────────── */
+  valvSev.aplicar('insuf', 'tricuspide', '4');
+  const e3i = F();
+  valvSev.aplicar('esten', 'tricuspide', 'Significativa');
+  const e3e = F();
+
+  /* ── (4) ELEGIR GRADO CON EL BOTON APAGADO: tiene que PRENDERLO ───────────────────────────── */
+  __t.nuevoEstudio(); abrir();
+  const e4antes = F();
+  valvSev.aplicar('insuf', 'tricuspide', '1');
+  const e4i = F();
+  valvSev.aplicar('esten', 'tricuspide', 'Significativa');
+  const e4e = F();
+
+  /* ── (5) APAGAR: el grado se va a la raya y QUEDA la marca manual ─────────────────────────── */
+  apagar('insuf');  const e5i = F();
+  apagar('esten');  const e5e = F();
+
+  /* ── (6) NUEVO ESTUDIO ────────────────────────────────────────────────────────────────────── */
+  __t.nuevoEstudio(); abrir();
+  const e6 = F();
+
+  /* ── (7) REABRIR UN GUARDADO, POR EL CAMINO DEL MEDICO ────────────────────────────────────
+     Guardar de verdad (\`guardarInforme\` + la card de severidades) y reabrir con
+     \`cargarEstudioPorId\`. Es la escena que el texto fijo podria perder: las rutas de
+     restauracion reponen el campo con \`.value\`, que no dispara ningun evento, asi que el
+     grado puede estar en el select y el texto fijo en la raya. */
+  __t.nuevoEstudio(); abrir(); prender('insuf');
+  __t.set('nombre', 'Prueba TC-430');
+  valvSev.aplicar('insuf', 'tricuspide', '2');
+  valvSev.aplicar('esten', 'tricuspide', 'Significativa');
+  const e7antes = F();
+  const gg = await __t.guardar();
+  __t.nuevoEstudio(); abrir();
+  const e7vacio = F();
+  if (gg.estudioId) __t.reabrir(gg.estudioId);
+  await new Promise(function (r) { setTimeout(r, 600); });
+  abrir();
+  const e7despues = F();
+  await __t.borrar(gg.estudioId);
+
+  /* ── (8) TODOS LOS GESTOS QUE PODRIAN DESINCRONIZARLOS ───────────────────────────────────── */
+  const gestos = [];
+  const paso = function (nombre, fn) {
+    try { fn(); } catch (e) {}
+    const f = F();
+    gestos.push({ g: nombre, i: f.insuf.coincide, e: f.esten.coincide,
+                  det: f.insuf.sel + '/' + f.insuf.fijo + ' :: ' + f.esten.sel + '/' + f.esten.fijo });
+  };
+  __t.nuevoEstudio(); abrir();
+  paso('limpio', function () {});
+  paso('escribir el select POR CODIGO sin eventos', function () {
+    document.getElementById('it_grado').value = '4';
+    document.getElementById('et_grado').value = 'No significativa'; });
+  paso('y despachar change a mano', function () {
+    ['it_grado', 'et_grado'].forEach(function (id) {
+      document.getElementById(id).dispatchEvent(new Event('change', { bubbles: true })); }); });
+  paso('calculo automatico encima', function () {
+    __t.set('it_vc', '9'); __t.set('et_gmedio', '8'); });
+  paso('apagar las dos pastillas', function () { apagar('insuf'); apagar('esten'); });
+  paso('prenderlas de nuevo', function () { prender('insuf'); prender('esten'); });
+  paso('valvSev.limpiar en las dos', function () {
+    valvSev.limpiar('insuf', 'tricuspide'); valvSev.limpiar('esten', 'tricuspide'); });
+  paso('refrescarTodo', function () { valvSev.refrescarTodo(); });
+  paso('_recalcModulos', function () { _recalcModulos('TC-430'); });
+  paso('nuevo estudio', function () { __t.nuevoEstudio(); });
+  const desinc = gestos.filter(function (x) { return x.i !== true || x.e !== true; });
+
+  /* ── (9) LAS CINCO SUPERFICIES CON LOS MISMOS GRADOS ──────────────────────────────────────
+     El grado se fija por el camino real y se leen informe, EN SUMA, Excel y PPT. Lo que esto
+     fija es que el texto fijo NO cambio de origen: todo sigue saliendo del mismo nodo. */
+  const sup = function (tipo, val) {
+    __t.nuevoEstudio(); abrir();
+    valvSev.aplicar(tipo, 'tricuspide', val);
+    const r = __t.informe();
+    return { inf: r.inf, suma: r.suma,
+             xls: Object.keys(_labExcelRow({ id: 0, campos: (function () { const c = {};
+               document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (el) {
+                 c[el.id] = el.value; }); return c; })() })).length,
+             celda: (function () { const c = {};
+               document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function (el) {
+                 c[el.id] = el.value; });
+               const row = _labExcelRow({ id: 0, campos: c });
+               return { it: row['IT grado'], et: row['ET grado'] }; })(),
+             ppt: (typeof _pptSel === 'function')
+               ? { it: _pptSel('it_grado'), et: _pptSel('et_grado') } : 'SIN _pptSel' };
+  };
+  const sIT2 = sup('insuf', '2'), sIT4 = sup('insuf', '4');
+  const sETs = sup('esten', 'Significativa'), sETn = sup('esten', 'No significativa');
+
+  return { extra: [
+    // 0 - DENOMINADOR
+    ['denominador: los DOS nodos de texto fijo existen y se ven',
+      d0.insuf.fijo !== null && d0.esten.fijo !== null
+      && d0.insuf.fijoVis === true && d0.esten.fijoVis === true, JSON.stringify(d0)],
+    ['los dos <select> estan OCULTOS, fuera del Tab y con aria-hidden',
+      d0.insuf.oculto === true && d0.esten.oculto === true
+      && d0.insuf.tab === -1 && d0.esten.tab === -1
+      && d0.insuf.aria === 'true' && d0.esten.aria === 'true',
+      JSON.stringify({ i: d0.insuf, e: d0.esten })],
+    ['pero NO se borraron: sus <option> siguen siendo el vocabulario del menu ▼',
+      d0.insuf.opts === '0|1|2|4' && d0.esten.opts === 'sin|Significativa|No significativa',
+      d0.insuf.opts + ' // ' + d0.esten.opts],
+
+    // --- (1) calculo automatico -------------------------------------------------------------
+    ['(1) el calculo automatico pinta pastilla y texto fijo iguales — IT severa',
+      e1.insuf.sel === '4' && e1.insuf.fijo === 'Severa' && e1.insuf.coincide === true,
+      JSON.stringify(e1.insuf)],
+    ['(1) y la ET significativa', e1.esten.sel === 'Significativa'
+      && e1.esten.fijo === 'Significativa' && e1.esten.coincide === true, JSON.stringify(e1.esten)],
+
+    // --- (2) cambio manual ------------------------------------------------------------------
+    ['(2) el cambio manual en la pastilla arrastra el texto fijo — IT moderada',
+      e2i.insuf.sel === '2' && e2i.insuf.fijo === 'Moderada' && e2i.insuf.coincide === true,
+      JSON.stringify(e2i.insuf)],
+    ['(2) y aparecen el aviso de discrepancia y el cajon del fundamento',
+      e2i.insuf.manual === true && e2i.insuf.aviso !== '' && e2i.insuf.fundVis === true,
+      JSON.stringify(e2i.insuf)],
+    ['(2) la ET admite «No significativa», que SOLO elige el medico',
+      e2e.esten.sel === 'No significativa' && e2e.esten.fijo === 'No significativa'
+      && e2e.esten.coincide === true && e2e.esten.manual === true, JSON.stringify(e2e.esten)],
+
+    // --- (3) volver al calculado ------------------------------------------------------------
+    ['(3) volver al calculado deja los dos en el valor del calculo',
+      e3i.insuf.fijo === 'Severa' && e3i.insuf.coincide === true
+      && e3e.esten.fijo === 'Significativa' && e3e.esten.coincide === true,
+      JSON.stringify({ i: e3i.insuf, e: e3e.esten })],
+
+    // --- (4) elegir con el boton apagado ----------------------------------------------------
+    ['DENOMINADOR: con el formulario limpio las dos pastillas estan APAGADAS y el texto en raya',
+      e4antes.insuf.pill === false && e4antes.esten.pill === false
+      && e4antes.insuf.fijo === 'RAYA' && e4antes.esten.fijo === 'RAYA', JSON.stringify(e4antes)],
+    ['(4) elegir un grado con el boton apagado lo PRENDE — insuficiencia',
+      e4i.insuf.pill === true && e4i.insuf.fijo === 'Leve' && e4i.insuf.coincide === true,
+      JSON.stringify(e4i.insuf)],
+    ['(4) y tambien en la estenosis',
+      e4e.esten.pill === true && e4e.esten.fijo === 'Significativa' && e4e.esten.coincide === true,
+      JSON.stringify(e4e.esten)],
+
+    // --- (5) apagar -------------------------------------------------------------------------
+    ['(5) apagar el boton borra el grado y DEJA la marca manual — insuficiencia',
+      e5i.insuf.pill === false && e5i.insuf.fijo === 'RAYA' && e5i.insuf.sel === '0'
+      && e5i.insuf.manual === true && e5i.insuf.coincide === true, JSON.stringify(e5i.insuf)],
+    ['(5) y en la estenosis, con el centinela en el campo',
+      e5e.esten.pill === false && e5e.esten.fijo === 'RAYA' && e5e.esten.sel === 'sin'
+      && e5e.esten.manual === true && e5e.esten.coincide === true, JSON.stringify(e5e.esten)],
+
+    // --- (6) nuevo estudio ------------------------------------------------------------------
+    ['(6) «Nuevo estudio» devuelve los dos a la raya y borra las marcas',
+      e6.insuf.fijo === 'RAYA' && e6.esten.fijo === 'RAYA'
+      && e6.insuf.manual === false && e6.esten.manual === false
+      && e6.insuf.coincide === true && e6.esten.coincide === true, JSON.stringify(e6)],
+
+    // --- (7) reabrir un guardado ------------------------------------------------------------
+    ['DENOMINADOR del guardado: se guardo de verdad y el formulario quedo vacio',
+      gg.ok === true && !!gg.estudioId
+      && e7vacio.insuf.fijo === 'RAYA' && e7vacio.esten.fijo === 'RAYA',
+      JSON.stringify({ gg: gg, vacio: e7vacio })],
+    ['(7) reabrir un guardado repone el grado Y el texto fijo, en las dos lesiones',
+      e7despues.insuf.sel === '2' && e7despues.insuf.fijo === 'Moderada'
+      && e7despues.esten.sel === 'Significativa' && e7despues.esten.fijo === 'Significativa',
+      'antes=' + JSON.stringify(e7antes) + ' despues=' + JSON.stringify(e7despues)],
+    ['(7) y siguen coincidiendo con su pastilla',
+      e7despues.insuf.coincide === true && e7despues.esten.coincide === true,
+      JSON.stringify(e7despues)],
+
+    // --- (8) ningun gesto los desincroniza --------------------------------------------------
+    ['(8) NINGUNO de los diez gestos desincroniza la pastilla del texto fijo',
+      desinc.length === 0, JSON.stringify(gestos)],
+
+    // --- (9) las superficies no cambiaron de origen -----------------------------------------
+    ['(9) el Excel sigue en 434 columnas con el grado fijado por la pastilla',
+      sIT2.xls === 434 && sIT4.xls === 434 && sETs.xls === 434 && sETn.xls === 434,
+      [sIT2.xls, sIT4.xls, sETs.xls, sETn.xls].join('/')],
+    ['(9) y la celda del Excel lleva el grado elegido',
+      sIT2.celda.it === 'Moderada' && sIT4.celda.it === 'Severa'
+      && sETs.celda.et === 'Significativa' && sETn.celda.et === 'No significativa',
+      JSON.stringify([sIT2.celda, sIT4.celda, sETs.celda, sETn.celda])],
+    /* ⚠️ TEXTO LITERAL DE LA SALIDA REAL, medido en los dos arboles con la sonda, y NO una
+       redaccion reconstruida. La primera version de esta condicion preguntaba por
+       /insuficiencia tric[uú]sp/ y no podia pasar NUNCA: la frase real dice «Valvula
+       tricuspide … con insuficiencia moderada», asi que las dos palabras no van juntas.
+       Fallaba por la sonda, no por la app — el informe era identico a HEAD. */
+    ['(9) el informe narrativo publica el grado de la IT, con su frase exacta',
+      sIT2.inf.indexOf('Válvula tricúspide de morfología normal, con insuficiencia moderada.') > -1,
+      recorteJS(sIT2.inf)],
+    ['(9) y el EN SUMA lleva la sigla con el grado',
+      sIT2.suma.indexOf('IT moderada.') > -1, recorteJS(sIT2.suma)],
+    ['(9) y el PPT sigue leyendo el mismo nodo',
+      sIT4.ppt.it !== undefined && sETs.ppt.et !== undefined,
+      JSON.stringify({ it: sIT4.ppt, et: sETs.ppt })]
+  ] };
+  })();
 `);
 
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
