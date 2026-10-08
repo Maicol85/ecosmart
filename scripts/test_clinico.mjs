@@ -55265,6 +55265,82 @@ caso('TC-444', 'Las dos filas de presiones pulmonares (PAPm y PAPd) se repintan 
   })();
 `);
 
+
+caso('TC-445', 'Los nombres de las DOS listas de recalculos de la estenosis aortica existen y son funciones: _EA_PARES los resuelve como STRINGS por window, asi que un renombre dejaria de disparar en silencio', `
+  ${APAGA_HELPERS}
+  /* ⚠️ LO QUE ESTE CASO VIGILA ES UN RENOMBRE, NO UN CALCULO. _EA_PARES guarda su recalc como
+     CADENAS y eaParEditado las resuelve con window[f]: si manana alguien renombra iaSyncSiExiste, el
+     corchete devuelve undefined, el typeof lo saltea y NADIE se entera — el sintoma seria que la FR
+     de la IAo o el AVm por continuidad se quedan con el valor anterior al editar el VTI TSVI. */
+  /* OCHO entradas: cuatro campos por los dos sentidos. */
+  const pares = window._EA_PARES;
+  const faltaLista = !pares || typeof pares !== 'object';
+
+  /* (1) Los nombres declarados en las cinco filas, deduplicados. */
+  const nombres = [];
+  if (!faltaLista) Object.keys(pares).forEach(function (k) {
+    (pares[k].recalc || []).forEach(function (f) { if (nombres.indexOf(f) === -1) nombres.push(f); });
+  });
+  const rotos = nombres.filter(function (f) { return typeof window[f] !== 'function'; });
+
+  /* (2) Y que cada ENTRADA declare su par y su lista: una sin recalc no dispara nada, y una sin par
+     no espeja — las dos fallan calladas igual que un nombre roto.
+     Son OCHO entradas y no diez: CUATRO campos (Vmax, G. medio, VTI TSVI y VTI Ao) por los DOS
+     sentidos de cada uno. El quinto campo del bloque, el Diam. TSVI, va por tsviDiamEditado, que es
+     la otra lista que este caso vigila. */
+  const filasMal = faltaLista ? ['(no hay lista)'] : Object.keys(pares).filter(function (k) {
+    const f = pares[k];
+    return !f || typeof f.par !== 'string' || !document.getElementById(f.par)
+        || !Array.isArray(f.recalc) || f.recalc.length === 0;
+  });
+
+  /* (3) El OTRO lado del espejo: tsviDiamEditado NO usa strings —sus guardas son identificadores
+     inline— asi que los nombres se leen de su FUENTE. Un renombre ahi tambien se saltea en silencio,
+     pero al menos es grepeable; esta condicion lo vuelve medible.
+     ⚠️ SE LEEN POR REGEX SOBRE String(fn) Y NO SE ESCRIBEN A MANO ACA: una lista escrita a mano seria
+     una copia paralela que el dia del renombre seguiria nombrando lo viejo, que es justo el defecto
+     que este caso persigue.
+     ⚠️ Y ESTE CASO NO PUEDE NOMBRAR calcEADetalle: TC-432 afirma que String(tsviDiamEditado) no lo
+     contiene, y String de una funcion trae sus comentarios — pero eso vale para el cuerpo de ESA
+     funcion, no para este caso. Igual se deja dicho, porque la tentacion de pegar la lista aca es
+     exactamente como se rompe TC-432. */
+  const fuente = String(window.tsviDiamEditado || '');
+  const inline = [];
+  fuente.replace(/typeof\\s+([A-Za-z_$][\\w$]*)\\s*===\\s*'function'/g, function (m, n) {
+    if (inline.indexOf(n) === -1) inline.push(n); return m; });
+  const rotosInline = inline.filter(function (f) { return typeof window[f] !== 'function'; });
+
+  /* (4) CONTROL NEGATIVO: un nombre inventado TIENE que ser detectado. Sin esto, la condicion de
+     arriba pasaria igual con una lista vacia o con un detector que siempre dice que si. */
+  const inventado = 'iaSyncSiExisteZZ_noExiste';
+  const detecta = typeof window[inventado] !== 'function';
+  /* Y el control del detector REAL, no de una expresion equivalente: se corre la MISMA funcion de
+     filtrado sobre la lista con el nombre inventado agregado. */
+  const conInventado = nombres.concat([inventado])
+    .filter(function (f) { return typeof window[f] !== 'function'; });
+
+  return { extra: [
+    ['_EA_PARES esta expuesta y es la lista de los cinco campos coordinados',
+      !faltaLista && Object.keys(pares).length === 8,
+      faltaLista ? '(no esta en window)' : 'claves=' + Object.keys(pares).length],
+    ['las OCHO entradas declaran su par (un id que EXISTE) y una lista de recalculos no vacia',
+      filasMal.length === 0, 'mal: ' + filasMal.join(',')],
+    ['DENOMINADOR: la lista declara al menos los cuatro nombres conocidos',
+      nombres.length >= 4 && nombres.indexOf('eteShuntSyncSiExiste') > -1
+      && nombres.indexOf('iaSyncSiExiste') > -1 && nombres.indexOf('imSyncSiExiste') > -1
+      && nombres.indexOf('emSyncSiExiste') > -1, 'nombres=' + nombres.join(',')],
+    ['TODOS los nombres de _EA_PARES existen y son funciones',
+      rotos.length === 0, 'rotos: ' + rotos.join(',')],
+    ['DENOMINADOR: la fuente de tsviDiamEditado declara sus guardas por nombre',
+      inline.length >= 4, 'inline=' + inline.join(',')],
+    ['y TODOS esos nombres tambien existen y son funciones',
+      rotosInline.length === 0, 'rotos: ' + rotosInline.join(',')],
+    ['CONTROL NEGATIVO: un nombre inventado se detecta como roto',
+      detecta === true && conInventado.length === 1 && conInventado[0] === inventado,
+      'detecta=' + detecta + ' · conInventado=[' + conInventado.join(',') + ']']
+  ] };
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

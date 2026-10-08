@@ -25802,6 +25802,13 @@ function eaParSync(origenId) {
     return { origen: origenId, destino: fila.par, valor: val, copio: true };
   } finally { _eaParSinc = false; }
 }
+/* ⚠️ SE EXPONE SÓLO PARA QUE LA SUITE PUEDA VIGILAR LOS NOMBRES (2026-10-08). `recalc` es una lista
+   de STRINGS que `eaParEditado` resuelve con `window[f]`, así que un renombre de cualquiera de esas
+   cuatro funciones deja de disparar su recálculo EN SILENCIO: no hay error, no hay consola, y el
+   síntoma sería «la FR de la IAo o el AVm por continuidad se quedan con el valor anterior al editar
+   el VTI TSVI». TC-445 lee esta lista y comprueba que los cuatro nombres existen y son funciones.
+   Es UNA línea sin lógica: no cambia nada del comportamiento, y el objeto ya está congelado. */
+window._EA_PARES = _EA_PARES;
 window.eaParSync = eaParSync;
 
 /* La puerta — una sola función para los dos lados de cada campo. */
@@ -98440,8 +98447,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261008-0840';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791459608755;                 /* eco-build-ms */
+const ECO_BUILD    = '20261008-0848';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791460120745;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -98527,7 +98534,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-0840</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-0848</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
