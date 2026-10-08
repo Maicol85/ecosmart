@@ -37675,6 +37675,24 @@ function limpiarCampos(silencioso) {
      es como se olvida una. */
   window._sevCalcAlFijar = {};
   window._iaGradoCalc = null;
+  /* ⚠️ Y LOS DOS REGISTROS DE «QUIEN PRENDIO EL BOTON», por la misma razón que las tres líneas de
+     arriba: `VALV_INSUF_AUTO` y `VALV_ESTEN_AUTO` guardan qué pastillas prendió la APP, y
+     `limpiarCampos` apaga las pastillas manipulando clases —no pasa por `toggleValvPill`, que es
+     quien las suelta—, así que el nombre de la válvula del paciente ANTERIOR sobrevivía a «Nuevo
+     estudio» con la pastilla ya apagada y la clave de `localStorage` ya borrada.
+     ⚠️ ESTO NO ESTABA CAUSANDO UN ERROR, Y SE MIDIÓ ANTES DE TOCARLO. La escena temida —que la app
+     apague una pastilla que el médico prendió— NO es alcanzable: todo prendido pasa por
+     `toggleValvPill` (lo usan `cargarValvPills` y `valvSev`) y su cola borra la entrada, así que el
+     Set está limpio antes de que `_ipApagarAuto` o `valvAutoApagarEsten` lo lean. Verificado en las
+     dos familias, con la causa cargada y después borrada: la pastilla del médico queda PRENDIDA en
+     insuficiencia pulmonar y en estenosis tricuspídea. Esta línea cierra el estado inconsistente
+     —un registro que nombra una válvula de otro paciente— antes de que un camino futuro lo alcance,
+     que es lo mismo que hacen `esqSevManual` y `_sevCalcAlFijar` acá al lado.
+     Por `window[]` y no por el nombre pelado: los dos `const` se declaran ~19.000 líneas MÁS ABAJO,
+     y leerlos directo ataría esta función a que nadie la llame durante la carga —el `ReferenceError`
+     de la zona muerta de un `const` se lleva el `<script>` entero, que es el modo de falla que los
+     comentarios de `_ipApagarAuto` y `_etApagarAuto` ya documentan—. */
+  ['VALV_INSUF_AUTO','VALV_ESTEN_AUTO'].forEach(n => { const s = window[n]; if (s && s.clear) s.clear(); });
   if (typeof _sevManualSync === 'function') _sevManualSync();
   /* El dataset.banda de Wilkins tiene vida más larga que el texto del que salió:
      limpiarCampos resetea los spans a «—» pero no los atributos, así que la banda del
@@ -98474,8 +98492,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261008-1515';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791483301456;                 /* eco-build-ms */
+const ECO_BUILD    = '20261008-1539';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791484743875;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -98561,7 +98579,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-1515</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-1539</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
