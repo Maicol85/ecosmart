@@ -207,9 +207,10 @@ impecable.
   ⚠️ **Este renglón se escribió mal una vez**: decía «doce commits sin pushear, `origin/main` en
   `2e017a1`», copiado del estado anterior sin mirar. `origin/main` había avanzado. Antes de
   escribirlo, `git rev-parse --short origin/main` y `git log --oneline origin/main..HEAD`.
-- **Línea base al 2026-10-08 (tanda del auto-apagado de la IP, la marca de la EP importada y las
-  filas de PAP): suite 439/460 con el pendrive AFUERA —456/460 con el pendrive puesto, que es la
-  MISMA medición—, Semgrep 127 / 0 ERROR, Excel 434 columnas.** Los cuatro rojos que NO son del
+- **Línea base al 2026-10-08 al cierre de la tanda de las filas de PAP en la reimpresión, el árbol
+  de Chrome de los arneses y el registro de botones prendidos por la app: suite 439/460 con el
+  pendrive AFUERA, o sea con los 17 de TC-181…TC-197 en rojo por entorno, Semgrep 127 / 0 ERROR,
+  Excel 434 columnas.** Los cuatro rojos que NO son del
   pendrive son los de entrada y NO son regresiones: **TC-223** (el documentado, falla por la fecha),
   **TC-376**, **TC-390** y **TC-406**; los otros diecisiete son **TC-181…TC-197**, los del pendrive
   `DISK_IMG`, que son ENTORNO y no prueban nada. Chequeo de celular:
