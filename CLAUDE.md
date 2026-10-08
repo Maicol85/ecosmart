@@ -207,16 +207,22 @@ impecable.
   ⚠️ **Este renglón se escribió mal una vez**: decía «doce commits sin pushear, `origin/main` en
   `2e017a1`», copiado del estado anterior sin mirar. `origin/main` había avanzado. Antes de
   escribirlo, `git rev-parse --short origin/main` y `git log --oneline origin/main..HEAD`.
-- **Línea base al 2026-10-07 (tanda de los cálculos automáticos de la EA): suite 445/449 con el
-  pendrive puesto —428/449 con el pendrive afuera, que es la MISMA medición—, Semgrep 127 / 0
-  ERROR, Excel 434 columnas.** Los cuatro rojos son los de entrada y NO son regresiones: **TC-223**
-  (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**. Chequeo de celular:
+- **Línea base al 2026-10-08 (tanda del auto-apagado de la IP, la marca de la EP importada y las
+  filas de PAP): suite 439/460 con el pendrive AFUERA —456/460 con el pendrive puesto, que es la
+  MISMA medición—, Semgrep 127 / 0 ERROR, Excel 434 columnas.** Los cuatro rojos que NO son del
+  pendrive son los de entrada y NO son regresiones: **TC-223** (el documentado, falla por la fecha),
+  **TC-376**, **TC-390** y **TC-406**; los otros diecisiete son **TC-181…TC-197**, los del pendrive
+  `DISK_IMG`, que son ENTORNO y no prueban nada. Chequeo de celular:
   `node scripts/check_mobile.js` → **43 hallazgos a 360 px y 52 a 390 px, 1 ALTA cada uno**;
   con `--todo` → **367 a 360 px y 376 a 390 px, 1 ALTA cada uno**.
-  ⚠️ **El denominador es 449 y no 440**: el renglón anterior decía «suite 436/440» y estaba viejo
-  —las tandas de la ET binaria y las siguientes lo movieron—. Los renglones viejos de este archivo
-  —421/422, 425/429, 426/430, 436/440— quedaron atrás, así que volver a medir antes de leer una
-  tanda de mutaciones sigue siendo obligatorio.
+  ⚠️ **El denominador es 460 y no 449**: la tanda de la pulmonar sumó TC-435…TC-441 y ésta
+  TC-442…TC-445. Los renglones viejos de este archivo —421/422, 425/429, 426/430, 436/440,
+  445/449— quedaron atrás, así que volver a medir antes de leer una tanda de mutaciones sigue
+  siendo obligatorio.
+  ⚠️ **Y EL PENDRIVE SE DESMONTÓ A MITAD DE ESTA TANDA**: abrió montado (452/456, 4 rojos) y cerró
+  afuera (439/460, 21 rojos). Las dos describen el mismo árbol; restarlas da una «regresión» de 17
+  casos que no existe. Mirar `ls /Volumes/DISK_IMG` ANTES de comparar dos cifras, incluso dentro de
+  la misma sesión.
   ⚠️ **Y mirar si el pendrive está montado ANTES de comparar dos cifras.** Esta tanda abrió con el
   pendrive afuera (428/449, 17 rojos de entorno) y lo tenía puesto al cerrar (445/449): las dos
   describen el mismo árbol y restarlas da una «regresión» de 17 casos que no existe.
