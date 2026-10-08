@@ -54888,6 +54888,186 @@ caso('TC-441', 'IP presente desde el Doppler: las DOS velocidades de la IP prend
   ] };
 `);
 
+
+// ═══ GRUPO 33 — Pulmonar: el auto-apagado de la insuficiencia ════════════════════════════════
+caso('TC-442', 'La insuficiencia pulmonar se APAGA SOLA cuando desaparecen todas sus causas —y solo si la prendio la app—: con alguna causa viva sigue prendida, el gesto del medico es durable en los dos sentidos, y el auto-prendido no se gasta en un solo uso', `
+  ${APAGA_HELPERS}
+  const abrir = function () {
+    try { showTab('valvulas'); } catch (e) {}
+    const sec = document.getElementById('ete-seccion-valv-pulmonar');
+    if (sec && sec.style.display === 'none') { try { toggleEteSeccion('valv-pulmonar'); } catch (e) {} }
+  };
+  const chk = function (v) { const e = document.getElementById('ip_reversion');
+    if (e) { e.checked = !!v; e.dispatchEvent(new Event('change', { bubbles: true })); } };
+  const F = function () {
+    const r = __t.informe();
+    return { pill: aOn('pulmonar', 'insuf'),
+             sel: (document.getElementById('ip_grado') || {}).value,
+             fijo: aTxt('gftxt-insuf-pulmonar'),
+             dueno: (function () { try {
+               return !!(window.VALV_INSUF_AUTO && window.VALV_INSUF_AUTO.has('pulmonar')); }
+               catch (e) { return 'EXC'; } })(),
+             clave: (function () { try {
+               return localStorage.getItem('valv-pill-insuf-pulmonar'); } catch (e) { return 'EXC'; } })(),
+             manual: !!(window.esqSevManual || {}).ip,
+             ip: /insuficiencia/.test(r.inf) && /pulmonar/.test(r.inf),
+             suma: r.suma.indexOf('IP ') > -1,
+             inf: r.inf, sumaTxt: r.suma };
+  };
+
+  // ── DENOMINADOR: el Set y la ruta propia existen ──────────────────────────────────────────
+  const falta = [];
+  if (typeof window.VALV_INSUF_AUTO === 'undefined') falta.push('VALV_INSUF_AUTO');
+  if (typeof window._ipApagarAuto !== 'function') falta.push('_ipApagarAuto');
+  /* Y NO es la funcion compartida de la estenosis: si fueran la misma, tocarla habria cambiado la
+     aortica y la mitral. */
+  const esOtra = window._ipApagarAuto !== window.valvAutoApagarEsten
+              && window._ipApagarAuto !== window._epApagarAuto;
+
+  // ── (1) LA VELOCIDAD: prende · se borra · se apaga · vuelve a prender ─────────────────────
+  __t.nuevoEstudio(); abrir();
+  const e0 = F();
+  __t.set('ip_vmax', '1.8');  const e1 = F();
+  __t.set('ip_vmax', '');     const e2 = F();
+  /* ⚠️ EL TERCER PASO ES EL QUE PRUEBA QUE EL AUTO-PRENDIDO NO SE GASTA. Si el apagado dejara la
+     clave en '0' en vez de borrarla, _ipAutoPrender ya no volveria a prender nunca mas en este
+     estudio — el defecto que _etApagarAuto documenta para la tricuspide. */
+  __t.set('ip_vmax', '1.8');  const e3 = F();
+
+  // ── (2) UN SIGNO SOLO ─────────────────────────────────────────────────────────────────────
+  __t.nuevoEstudio(); abrir();
+  __t.set('ip_ancho', 'intermedio'); const e4 = F();
+  __t.set('ip_ancho', '');           const e5 = F();
+
+  // ── (3) DOS CAUSAS: borrar UNA no apaga ───────────────────────────────────────────────────
+  __t.nuevoEstudio(); abrir();
+  __t.set('ip_vtd', '1.6'); __t.set('ip_senal', 'densa_emp'); const e6 = F();
+  __t.set('ip_senal', '');   const e7 = F();
+  __t.set('ip_vtd', '');     const e8 = F();
+
+  /* Y la cuarta causa, la casilla: tambien sostiene el boton sola. */
+  __t.nuevoEstudio(); abrir();
+  chk(true);  const e9 = F();
+  chk(false); const e10 = F();
+  /* Y el PHT, la que queda. Con 90 ms vota severa; con 140 esta cargado y no vota — pero sigue
+     siendo una CAUSA cargada, asi que el boton no se apaga. */
+  __t.nuevoEstudio(); abrir();
+  __t.set('ip_pht', '90');  const e11 = F();
+  __t.set('ip_pht', '140'); const e12 = F();
+  __t.set('ip_pht', '');    const e13 = F();
+
+  // ── (4) EL MEDICO LO PRENDIO A MANO: no se apaga ──────────────────────────────────────────
+  __t.nuevoEstudio(); abrir();
+  toggleValvPill('pulmonar', 'insuf');
+  __t.set('ip_vmax', '1.8');
+  const e14 = F();
+  __t.set('ip_vmax', '');
+  const e15 = F();
+
+  // ── (5) EL MEDICO LO APAGO A MANO: no se reprende ─────────────────────────────────────────
+  __t.nuevoEstudio(); abrir();
+  __t.set('ip_vmax', '1.8');
+  toggleValvPill('pulmonar', 'insuf');
+  const e16 = F();
+  __t.set('ip_vtd', '1.6');
+  const e17 = F();
+
+  // ── (6) EL MEDICO ELIGIO UN GRADO: no se apaga aunque el signo desaparezca ────────────────
+  __t.nuevoEstudio(); abrir();
+  __t.set('ip_ancho', 'ancho');
+  valvSev.aplicar('insuf', 'pulmonar', 'Leve');
+  __t.set('ip_ancho', '');
+  const e18 = F();
+
+  // ── (7) «Nuevo estudio» ───────────────────────────────────────────────────────────────────
+  __t.nuevoEstudio(); abrir();
+  const e19 = F();
+
+  /* ── CONTROL NEGATIVO: las OTRAS TRES insuficiencias no tienen auto-apagado ────────────────
+     Se prende la IT con su velocidad y se borra: su boton NO se apaga, porque esta tanda no la
+     toca. Sin esta condicion, un auto-apagado escrito en el embudo compartido pasaria igual. */
+  __t.nuevoEstudio(); abrir();
+  __t.set('vmax_it', '3.2');
+  const itPrendida = aOn('tricuspide', 'insuf');
+  __t.set('vmax_it', '');
+  const itSigue = aOn('tricuspide', 'insuf');
+  __t.nuevoEstudio();
+
+  return { extra: [
+    ['denominador: el Set y la ruta propia de la pulmonar existen',
+      falta.length === 0, 'falta: ' + falta.join(',')],
+    ['y la ruta es PROPIA, no la compartida de la estenosis', esOtra === true, 'esOtra=' + esOtra],
+    ['con el formulario limpio el boton esta apagado y la pulmonar sale normal',
+      e0.pill === false && e0.suma === false, JSON.stringify({ pill: e0.pill, suma: e0.sumaTxt })],
+
+    // (1)
+    ['la velocidad proto prende el boton y el EN SUMA dice IP presente',
+      e1.pill === true && e1.dueno === true && e1.sumaTxt.indexOf('IP presente.') > -1,
+      JSON.stringify({ pill: e1.pill, dueno: e1.dueno, suma: e1.sumaTxt })],
+    ['borrarla APAGA el boton y la pulmonar vuelve a salir normal (en HEAD quedaba prendido)',
+      e2.pill === false && e2.dueno === false && e2.sel === 'Sin insuficiencia'
+      && e2.inf.indexOf('Válvula pulmonar normal.') > -1 && e2.suma === false,
+      JSON.stringify({ pill: e2.pill, dueno: e2.dueno, suma: e2.sumaTxt }) + ' // ' + recorteJS(e2.inf)],
+    ['y la CLAVE se borro, asi que el auto-prendido NO se gasta: volver a cargarla vuelve a prender',
+      e2.clave === null && e3.pill === true && e3.dueno === true,
+      'clave tras apagar=' + e2.clave + ' · pill al recargar=' + e3.pill],
+
+    // (2)
+    ['un SIGNO solo prende el boton y escribe su grado',
+      e4.pill === true && e4.sel === 'Moderada' && e4.fijo === 'Moderada', JSON.stringify(e4.sel)],
+    ['borrar el signo apaga el boton y retira el grado',
+      e5.pill === false && e5.sel === 'Sin insuficiencia' && e5.fijo === '\\u2014'
+      && e5.suma === false, JSON.stringify({ pill: e5.pill, sel: e5.sel, suma: e5.sumaTxt })],
+
+    // (3)
+    ['con DOS causas (velocidad tele + senal) el boton esta prendido con grado',
+      e6.pill === true && e6.sel === 'Severa', e6.sel],
+    ['borrar SOLO el signo deja el boton PRENDIDO: queda una causa viva',
+      e7.pill === true && e7.sel === 'Sin insuficiencia'
+      && e7.sumaTxt.indexOf('IP presente.') > -1,
+      JSON.stringify({ pill: e7.pill, suma: e7.sumaTxt })],
+    ['y al borrar la ultima causa recien ahi se apaga',
+      e8.pill === false && e8.suma === false, JSON.stringify({ pill: e8.pill, suma: e8.sumaTxt })],
+    ['la casilla de reversion sostiene el boton sola, y desmarcarla lo apaga',
+      e9.pill === true && e9.sel === 'Severa' && e10.pill === false,
+      JSON.stringify({ con: e9.pill + '/' + e9.sel, sin: e10.pill })],
+    ['el PHT tambien: 90 ms vota y prende; 140 NO vota pero SIGUE siendo una causa cargada',
+      e11.pill === true && e11.sel === 'Severa'
+      && e12.pill === true && e12.sel === 'Sin insuficiencia', 
+      JSON.stringify({ pht90: e11.pill + '/' + e11.sel, pht140: e12.pill + '/' + e12.sel })],
+    ['y borrar el PHT apaga el boton', e13.pill === false, String(e13.pill)],
+
+    // (4)
+    ['DENOMINADOR: prendido A MANO, la app NO es dueña de la pastilla',
+      e14.pill === true && e14.dueno === false, JSON.stringify({ pill: e14.pill, dueno: e14.dueno })],
+    ['prendido a mano, borrar los datos NO lo apaga: es una afirmacion del medico',
+      e15.pill === true && e15.dueno === false, JSON.stringify({ pill: e15.pill, dueno: e15.dueno })],
+
+    // (5)
+    ['apagado a mano con el dato cargado: la clave queda en 0',
+      e16.pill === false && e16.clave === '0', 'clave=' + e16.clave],
+    ['y cargar OTRA velocidad despues NO lo reprende: el apagado manual es durable',
+      e17.pill === false && e17.clave === '0', JSON.stringify({ pill: e17.pill, clave: e17.clave })],
+
+    // (6)
+    ['con un GRADO elegido a mano, borrar el signo NO apaga el boton: el grado es una afirmacion',
+      e18.pill === true && e18.sel === 'Leve' && e18.manual === true
+      && e18.sumaTxt.indexOf('IP leve.') > -1,
+      JSON.stringify({ pill: e18.pill, sel: e18.sel, man: e18.manual, suma: e18.sumaTxt })],
+
+    // (7)
+    ['«Nuevo estudio» deja el boton apagado y la clave borrada',
+      e19.pill === false && e19.clave === null && e19.suma === false,
+      JSON.stringify({ pill: e19.pill, clave: e19.clave })],
+
+    // CONTROL NEGATIVO
+    ['DENOMINADOR del control: la velocidad de IT prende la insuficiencia tricuspidea',
+      itPrendida === true, String(itPrendida)],
+    ['CONTROL: la TRICUSPIDE no tiene auto-apagado y su boton sigue prendido al borrar la velocidad',
+      itSigue === true, String(itSigue)]
+  ] };
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

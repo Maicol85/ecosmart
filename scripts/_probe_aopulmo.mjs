@@ -551,6 +551,157 @@ async function main() {
     out.VP = vp;
   }
 
+  /* ══ A · EL AUTO-APAGADO DE LA INSUFICIENCIA PULMONAR, CON TECLAS REALES ══════════════════
+     Las diez escenas del pedido. El boton se mira SIEMPRE junto con el informe y el EN SUMA: lo que
+     importa no es la clase CSS, es que el papel firmado deje de afirmar lo que nada sostiene. */
+  if (hacer('APAG')) {
+    const ap = {};
+    const foto = `(function(){ var r = window.__P.informe('estandar'); return JSON.stringify({
+      pill: window.__P.pill('pulmonar','insuf'),
+      sel: window.__P.val('ip_grado'), fijo: window.__P.txt('gftxt-insuf-pulmonar'),
+      sev: window.__P.txt('ip-sev'), incong: window.__P.txt('ip-incongruencia'),
+      dueno: (function(){ try { return !!(window.VALV_INSUF_AUTO && window.VALV_INSUF_AUTO.has('pulmonar')) }
+        catch(e) { return 'EXC' } })(),
+      clave: (function(){ try { return localStorage.getItem('valv-pill-insuf-pulmonar') } catch(e) { return 'EXC' } })(),
+      manual: !!(window.esqSevManual || {}).ip,
+      vp: window.__P.frasesVP(r.inf),
+      suma: r.suma.split('\\n').filter(function(x){ return /pulmonar|\\bIP\\b|\\bEP\\b|\\bVP\\b/i.test(x) })
+    }) })()`;
+    const limpio = async () => { await ev(`(function(){ window.__P.limpiar(); window.__P.abrirTodo();
+      try { showTab('doppler') } catch(e) {} return 1 })()`); };
+
+    /* (1) velocidad proto 1,8 -> prende · borrarla -> se apaga · volver a cargarla -> vuelve a prender */
+    await limpio();
+    ap['0 limpio'] = JSON.parse(await ev(foto));
+    await tipear('ip_vmax', '1.8');
+    ap['1 proto 1,8'] = JSON.parse(await ev(foto));
+    await borrarConBackspace('ip_vmax', null);
+    ap['2 proto borrada'] = JSON.parse(await ev(foto));
+    await tipear('ip_vmax', '1.8');
+    ap['3 proto recargada'] = JSON.parse(await ev(foto));
+
+    /* (2) un signo solo: el ancho del jet */
+    await limpio();
+    await ev(`(function(){ window.__P.set('ip_ancho','intermedio'); return 1 })()`);
+    ap['4 solo ancho del jet'] = JSON.parse(await ev(foto));
+    await ev(`(function(){ window.__P.set('ip_ancho',''); return 1 })()`);
+    ap['5 signo borrado'] = JSON.parse(await ev(foto));
+
+    /* (3) signo + velocidad, y se borra SOLO el signo: sigue prendido */
+    await limpio();
+    await tipear('ip_vtd', '1.6');
+    await ev(`(function(){ window.__P.set('ip_senal','densa_emp'); return 1 })()`);
+    ap['6 signo + velocidad tele'] = JSON.parse(await ev(foto));
+    await ev(`(function(){ window.__P.set('ip_senal',''); return 1 })()`);
+    ap['7 solo el signo borrado'] = JSON.parse(await ev(foto));
+    await borrarConBackspace('ip_vtd', null);
+    ap['8 todo borrado'] = JSON.parse(await ev(foto));
+
+    /* (4) el MEDICO prende el boton a mano, con datos, y despues se borran: NO se apaga */
+    await limpio();
+    await ev(`(function(){ if (window.__P.pill('pulmonar','insuf') !== true) toggleValvPill('pulmonar','insuf'); return 1 })()`);
+    await tipear('ip_vmax', '1.8');
+    ap['9 prendido a mano + dato'] = JSON.parse(await ev(foto));
+    await borrarConBackspace('ip_vmax', null);
+    ap['10 a mano, dato borrado'] = JSON.parse(await ev(foto));
+
+    /* (5) el MEDICO lo apaga con el dato cargado: NO se reprende */
+    await limpio();
+    await tipear('ip_vmax', '1.8');
+    await ev(`(function(){ if (window.__P.pill('pulmonar','insuf') === true) toggleValvPill('pulmonar','insuf'); return 1 })()`);
+    ap['11 apagado a mano'] = JSON.parse(await ev(foto));
+    await tipear('ip_vtd', '1.6');
+    ap['12 otra velocidad despues'] = JSON.parse(await ev(foto));
+
+    /* (6) el MEDICO elige un grado en la pastilla y despues se borra todo: NO se apaga */
+    await limpio();
+    await ev(`(function(){ window.__P.set('ip_ancho','ancho');
+      try { valvSev.aplicar('insuf','pulmonar','Leve') } catch(e) {}
+      window.__P.set('ip_ancho',''); try { calcIP() } catch(e) {} return 1 })()`);
+    ap['13 grado a mano, signo borrado'] = JSON.parse(await ev(foto));
+
+    /* (7) «Nuevo estudio» */
+    await limpio();
+    ap['14 nuevo estudio'] = JSON.parse(await ev(foto));
+    out.APAG = ap;
+  }
+
+  /* ══ C · LAS FILAS DE PAPm Y PAPd AL REABRIR ══════════════════════════════════════════════
+     Por el camino REAL del medico: cargar las dos velocidades y la VCI, guardar, y reabrir con
+     cargarEstudioPorId. Se mide ANTES de tocar nada: calcIP no esta en RECALC_MODULOS, pero calcPSAP
+     SI esta en las dos listas de restauracion y lo llama en su cola, asi que puede que ya se repinten. */
+  if (hacer('PAP')) {
+    const pap = {};
+    const foto = `(function(){ return JSON.stringify({
+      papm: window.__P.txt('ip-papm-row'), papd: window.__P.txt('ip-papd-row'),
+      ip_papd: window.__P.val('ip_papd'), pmadDisp: window.__P.val('ip_pmad_display'),
+      ip_vmax: window.__P.val('ip_vmax'), ip_vtd: window.__P.val('ip_vtd'),
+      pmad: window.__P.val('pmad') }) })()`;
+    await ev(`(function(){ window.__P.limpiar(); window.__P.abrirTodo(); return 1 })()`);
+    await tipear('ip_vmax', '2.5');
+    await tipear('ip_vtd', '1.8');
+    await tipear('vci_diam', '18');
+    await ev(`(function(){ window.__P.set('vci_col', '>50'); try { calcIP() } catch(e) {} return 1 })()`);
+    await tipear('nombre', 'Prueba PAP');
+    pap.antes = JSON.parse(await ev(foto));
+    /* ⚠️ `guardarInforme` TOMA UN CALLBACK, no devuelve una promesa, y el guardado real cuelga de la
+       tarjeta de revision de severidades: hay que clickear #rev-confirm. Es el mismo envoltorio que
+       `__t.guardar()` de la suite — copiado de ahi, que es el camino probado. La primera version de
+       esta escena hacia `await guardarInforme(true)` y no guardaba nada. */
+    pap.guardado = JSON.parse(await ev(`(function(){
+      window._ettEditandoId = null;
+      var antes = {}; (getInformes() || []).forEach(function(i){ antes[i.estudioId] = 1 });
+      return new Promise(function(resolve){
+        var fin = function(ok){
+          var nuevo = (getInformes() || []).filter(function(i){ return !antes[i.estudioId] })[0];
+          resolve(JSON.stringify({ ok: ok === true, estudioId: nuevo ? nuevo.estudioId : null }));
+        };
+        var antesId = {}; (getInformes() || []).forEach(function(i){ antesId[i.id] = 1 });
+        var fin2 = function(ok){
+          var n = (getInformes() || []).filter(function(i){ return !antes[i.estudioId] })[0];
+          var n2 = (getInformes() || []).filter(function(i){ return !antesId[i.id] })[0];
+          resolve(JSON.stringify({ ok: ok === true,
+            estudioId: n ? n.estudioId : null, id: n2 ? n2.id : (n ? n.id : null) }));
+        };
+        fin = fin2;
+        try { guardarInforme(fin) } catch(e) { resolve(JSON.stringify({ ok:false, err:String(e) })); return }
+        var cf = document.getElementById('rev-confirm'); if (cf) cf.click();
+      });
+    })()`));
+    await pausa(900);
+    await ev(`(function(){ window.__P.limpiar(); window.__P.abrirTodo(); return 1 })()`);
+    pap.trasLimpiar = JSON.parse(await ev(foto));
+    const id = pap.guardado && pap.guardado.estudioId;
+    const idInf = pap.guardado && pap.guardado.id;
+    pap.reabrioCon = { estudioId: id || null, id: idInf || null };
+    if (id) {
+      /* Ruta 1 — «Editar» (editarInforme + el boton «Cargar datos» del overlay), que es el gesto del
+         medico. ⚠️ `editarInforme` BUSCA POR `inf.id`, NO por `estudioId`: la primera corrida le paso
+         el estudioId, no encontro el informe, salio por su `toast` y la escena midio un formulario
+         VACIO — que yo habria reportado como «la ruta Editar no repone las filas». El denominador de
+         esta escena es que los CAMPOS vuelvan.
+         ⚠️ Y EL ID VA SIN COERCIONAR A STRING, que fue el SEGUNDO error de la misma escena: la busqueda
+         es `i.id === id` con igualdad ESTRICTA y `inf.id` es un NUMERO (un timestamp). Pasandolo como
+         "1791456461465" no matchea, `editarInforme` sale por su toast y el formulario queda vacio —
+         otra vez el mismo falso hallazgo, por otra causa. */
+      await ev(`(function(){ try { editarInforme(${JSON.stringify(idInf)}) } catch(e) { return 'EXC '+e.message }
+        var ok = document.getElementById('edit-ok'); if (ok) ok.click(); return 1 })()`);
+      await pausa(1200);
+      await ev(`(function(){ window.__P.abrirTodo(); return 1 })()`);
+      pap.despues = JSON.parse(await ev(foto));
+      /* Ruta 2 — `cargarEstudioPorId`, la del QR y la de «Cargar datos». */
+      await ev(`(function(){ window.__P.limpiar(); window.__P.abrirTodo(); return 1 })()`);
+      await ev(`(function(){ try { cargarEstudioPorId(${JSON.stringify(String(id))}) }
+        catch(e) { return 'EXC ' + e.message } return 1 })()`);
+      await pausa(1200);
+      await ev(`(function(){ window.__P.abrirTodo(); return 1 })()`);
+      pap.porId = JSON.parse(await ev(foto));
+      await ev(`(function(){ try { return CeiboStore.setLocal((getInformes()||[]).filter(
+        function(i){ return i.estudioId !== ${JSON.stringify(String(id))} })) } catch(e) {} return 1 })()`);
+    }
+    out.PAP = pap;
+  }
+
   /* ══ LAS OTRAS VALVULAS, IDENTICAS ═══════════════════════════════════════════════════════
      Registrar `ip` en SEV_SINC toca codigo COMPARTIDO (el alias del centinela y el token que
      escribe valvApagarGrado), asi que lo que hay que demostrar no es que la IP funcione: es que las

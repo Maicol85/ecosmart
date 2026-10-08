@@ -30535,10 +30535,78 @@ function _ipAutoPrender() {
     if (pillOn('pulmonar', 'insuf')) return { yaEstaba: true };
     if (localStorage.getItem('valv-pill-insuf-pulmonar') === '0') return { apagadaAMano: true };
     toggleValvPill('pulmonar', 'insuf');
+    /* ⚠️ Y SE REGISTRA QUE LA PRENDIÓ LA APP, DESPUÉS DEL TOGGLE Y NO ANTES (2026-10-08). La cola de
+       `toggleValvPill` BORRA la entrada en cada gesto —no puede saber quién la llamó—, así que
+       agregarla antes se perdería en el mismo paso. Es el mismo orden que `valvAutoPrenderEsten`.
+       Por `window` para no leer el `const` desde su zona muerta: ver su comentario. */
+    const _auto = window.VALV_INSUF_AUTO;
+    if (_auto) _auto.add('pulmonar');
     return { prendida: pillOn('pulmonar', 'insuf') };
   } catch (e) { return null; }
 }
 window._ipAutoPrender = _ipAutoPrender;
+
+/* ══ EL GEMELO DEL AUTO-PRENDIDO — RUTA PROPIA DE LA PULMONAR (2026-10-08) ════════════════════
+   Cierra el agujero que el comentario de `_ipAutoGrado` dejó DECLARADO el 2026-10-07: «si la
+   pastilla la prendió un SIGNO y el signo se borra sin que haya velocidad, el botón queda prendido y
+   el informe dice "IP presente" sin nada que lo sostenga». Restaura el invariante «botón prendido =
+   hay valvulopatía», que es el mismo que `valvAutoApagarEsten` y `_epApagarAuto` ya restauraron en la
+   estenosis.
+
+   ⚠️ ES UNA FUNCIÓN PROPIA Y NO UNA RAMA DE `valvAutoApagarEsten`: ésa gobierna la aórtica y la
+   mitral además de la pulmonar, y su segunda condición mira un `<select>` de ESTENOSIS por un mapa de
+   tres válvulas. Tocarla para que entienda de insuficiencia habría cambiado el comportamiento de dos
+   válvulas que esta tanda no toca.
+
+   LAS CUATRO GUARDAS, en orden, y ninguna es decorativa:
+     1. ya está apagada ⇒ idempotente, no hay nada que hacer;
+     2. **no la prendió la app** (`VALV_INSUF_AUTO` no la tiene) ⇒ es una afirmación del médico y no
+        se apaga. Es la única forma de distinguirlo: la clave de `localStorage` dice `'1'` en los dos
+        casos;
+     3. **queda alguna CAUSA viva** —cualquiera de las dos velocidades de la IP, o cualquiera de los
+        cuatro signos— ⇒ sigue prendida. «Causa» se lee del MISMO dueño que la produce: `ipSignos()`
+        para los signos, así que no hay una segunda lista de campos que pueda quedar corta el día que
+        entre un quinto signo;
+     4. **sobrevivió un GRADO** ⇒ no se apaga, porque un grado es una afirmación. En el flujo normal
+        no se alcanza —`_ipAutoGrado` corre antes en `calcIP` y ya devolvió el grado al centinela—,
+        pero sí con la marca manual puesta, que es justo el caso que hay que respetar.
+
+   ⚠️ Y BORRA LA CLAVE DE `localStorage` Y LA MARCA MANUAL, que es la segunda mitad del arreglo y la
+   lección que `_etApagarAuto` ya pagó:
+     · sin borrar la CLAVE, el auto-prendido se gasta en un solo uso —cargar 1,8 prende, borrarla
+       apaga y deja `'0'`, y volver a cargar 1,8 ya no prende—;
+     · sin borrar la MARCA, tampoco vuelve a prender: la cadena `toggleValvPill` → `valvApagarGrado`
+       → `valvSev.aplicar(…, centinela)` pone `esqSevManual.ip` —y desde que la IP está registrada en
+       `SEV_SINC` esa cadena corre TAMBIÉN cuando el que apaga es la app—, con lo que el
+       `_ipAutoGrado` del próximo recálculo saldría por su guarda de manual.
+   El apagado del MÉDICO no pasa por acá (su clic entra directo a `toggleValvPill`), así que sigue
+   siendo durable: la clave queda en `'0'` y nada la borra. */
+function _ipApagarAuto() {
+  try {
+    if (typeof pillOn !== 'function' || typeof toggleValvPill !== 'function') return null;
+    if (!pillOn('pulmonar', 'insuf')) return { yaEstaba: true };
+    const _auto = window.VALV_INSUF_AUTO;
+    if (!_auto || !_auto.has('pulmonar')) return { delMedico: true };
+    const hayVel = ['ip_vmax', 'ip_vtd'].some(function (id) {
+      const n = v(id); return n !== null && n > 0; });
+    if (hayVel) return { hayVelocidad: true };
+    let haySigno = false;
+    try { haySigno = (typeof ipSignos === 'function') && ipSignos().length > 0; }
+    catch (e) { haySigno = true; }   /* ante excepción, NO se apaga: «no sé» es abstenerse */
+    if (haySigno) return { haySigno: true };
+    const sel = document.getElementById('ip_grado');
+    const g = sel ? String(sel.value || '') : '';
+    if (g !== '' && typeof ipHayInsuf === 'function' && ipHayInsuf(g)) return { hayGrado: g };
+    toggleValvPill('pulmonar', 'insuf');
+    _auto.delete('pulmonar');
+    try { localStorage.removeItem('valv-pill-insuf-pulmonar'); } catch (e) {}
+    if (window.esqSevManual) delete window.esqSevManual.ip;
+    if (window._sevCalcAlFijar) delete window._sevCalcAlFijar.ip;
+    if (typeof _sevManualSync === 'function') { try { _sevManualSync(); } catch (e) {} }
+    return { apagada: !pillOn('pulmonar', 'insuf') };
+  } catch (e) { return null; }
+}
+window._ipApagarAuto = _ipApagarAuto;
 
 /* ══ «VELOCIDAD DE LA IP CARGADA CON LA INSUFICIENCIA APAGADA» (punto 8c, 2026-10-07) ══════════
    AVISA Y NO ARREGLA: no prende la pastilla y no borra nada. Es `itIncongruenciaSync` calcado —la
@@ -30655,6 +30723,14 @@ function calcIP() {
   }
   if (typeof sevSincronizar === 'function') { try { sevSincronizar('ip'); } catch (e) {} }
   if (typeof ipRefPintar === 'function') { try { ipRefPintar(); } catch (e) {} }
+  /* ⚠️ EL AUTO-APAGADO VA DESPUÉS DE `_ipAutoGrado` Y DEL SEGUNDO `sevSincronizar`, no antes
+     (2026-10-08). Su cuarta guarda mira el `<select>`, y es `_ipAutoGrado` el que devuelve el grado al
+     centinela cuando los signos desaparecen: corriendo primero vería el grado viejo todavía escrito y
+     saldría por `hayGrado` sin apagar nada. Es el mismo motivo por el que `calcVP` llama a
+     `_epApagarAuto` al final y por el que `_etAutoGrado` corre después de `sevSincronizar`.
+     Va ANTES de `vpSync` para que el repintado de la etiología y del aviso vea el estado definitivo
+     de la pastilla. */
+  if (typeof _ipApagarAuto === 'function') { try { _ipApagarAuto(); } catch (e) {} }
   /* La etiología de la IP se muestra/oculta por el grado, y el grado puede acabar de cambiar: sin
      esto, un signo cargado escribía «Moderada» y el cajón de la etiología seguía escondido hasta que
      alguien tocara el desplegable. `vpSync` es idempotente y no recursa hacia acá. */
@@ -56056,6 +56132,14 @@ function toggleValvPill(valvula, tipo) {
      agregarla/quitarla ellos mismos cuando el gesto es suyo. Inerte salvo para la pulmonar: el Set
      sólo lo lee `valvAutoApagarEsten('pulmonar')`. */
   if (tipo === 'esten' && typeof VALV_ESTEN_AUTO !== 'undefined') VALV_ESTEN_AUTO.delete(valvula);
+  /* (2026-10-08) El gemelo para la INSUFICIENCIA, gateado a la PULMONAR: un gesto del médico sobre
+     este botón —prenda o apague— le quita a la app la propiedad de esa pastilla, así que el
+     auto-apagado por recálculo (`calcIP` → `_ipApagarAuto`) ya no la toca. `_ipAutoPrender` vuelve a
+     agregarla cuando el gesto es suyo, inmediatamente después de llamar acá.
+     Se gatea por válvula y por tipo, igual que las dos líneas de abajo, para no gastar nada en los
+     otros siete botones: el Set sólo lo lee `_ipApagarAuto('pulmonar')`. */
+  if (valvula === 'pulmonar' && tipo === 'insuf' && typeof VALV_INSUF_AUTO !== 'undefined')
+    VALV_INSUF_AUTO.delete(valvula);
   /* P5 (2026-10-05): el aviso de «Vmax IT cargada con la insuficiencia apagada» se repinta acá
      porque ESTE es el gesto que lo enciende y lo apaga. Va al final y después del `setItem`, así
      que `pillOn` ya devuelve el estado nuevo: leído antes, el aviso iría siempre un clic atrás.
@@ -56604,6 +56688,25 @@ const VALV_AUTO_GRADO = Object.freeze({
    y se borran entradas que nadie consulta, cero cambio de comportamiento, verificado en el A/B de 434
    columnas—. No se persiste: un estudio reabierto arranca sin dueño, igual que la marca manual. */
 const VALV_ESTEN_AUTO = new Set();
+/* ⚠️ EL GEMELO PARA LA INSUFICIENCIA PULMONAR (2026-10-08), Y HACE FALTA POR LA MISMA RAZÓN EXACTA:
+   `localStorage` NO distingue el auto-prendido del clic manual —los dos dejan la clave en `'1'`,
+   porque la escribe `toggleValvPill` y esa función no sabe quién la llamó—. Sin un registro aparte,
+   «apagá la pastilla si desaparecieron sus causas» apagaría también la que el médico afirmó a mano.
+   ⚠️ ES UN SET PROPIO Y NO UNA ENTRADA EN `VALV_ESTEN_AUTO`, y es a propósito: ese Set lo vacía la
+   cola de `toggleValvPill` gateada por `tipo === 'esten'`, y lo leen `valvAutoApagarEsten` —que
+   gobierna la aórtica y la mitral— y `_etApagarAuto`. Meter la insuficiencia ahí obligaría a tocar
+   esa compuerta, que es código compartido por tres válvulas. Separados, el único que lee este Set es
+   `_ipApagarAuto`, que es la ruta propia de la pulmonar.
+   Lo LLENA `_ipAutoPrender` después de togglear (el toggle acaba de vaciarlo: ver su cola) y lo VACÍA
+   la cola de `toggleValvPill` ante cualquier gesto de insuficiencia pulmonar. No se persiste: un
+   estudio reabierto arranca sin dueño, igual que la marca manual. */
+const VALV_INSUF_AUTO = new Set();
+/* Se exporta por el mismo motivo que su hermano: `_ipAutoPrender` y `_ipApagarAuto` viven ~26.000
+   líneas más arriba y lo leen por `window`, que devuelve `undefined` en vez de lanzar
+   `ReferenceError` desde la zona muerta del `const`. Sin esta línea las dos lecturas darían
+   `undefined`, la guarda «¿la prendió la app?» contestaría siempre que no, y el auto-apagado quedaría
+   inerte SIN un solo error en consola — que es exactamente lo que le pasó a la tricúspide. */
+window.VALV_INSUF_AUTO = VALV_INSUF_AUTO;
 /* ⚠️ SE EXPORTA, Y NO ES DECORATIVO: `_etApagarAuto` lo lee por `window` justamente para no
    depender de un `typeof` que no protege de la zona muerta de un `const`. Sin esta línea esa
    lectura daba `undefined`, la guarda «¿la prendió la app?» respondía siempre que no, y el
@@ -98309,8 +98412,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261007-1710';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791403808425;                 /* eco-build-ms */
+const ECO_BUILD    = '20261008-0804';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791457453301;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -98396,7 +98499,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261007-1710</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-0804</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
