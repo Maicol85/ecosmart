@@ -67431,6 +67431,33 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
     if (typeof calcAo === 'function') calcAo();
     if (typeof calcSGL === 'function') calcSGL();
     if (typeof calcCardioOnco === 'function') calcCardioOnco();
+    /* ⚠️ `calcIP` TAMBIEN AL VOLVER, y por el mismo argumento que las tarjetas de Calculos de
+       arriba: las dos filas de presiones pulmonares —`ip-papm-row` e `ip-papd-row`— viven en
+       <span>, no en inputs, asi que el bucle que repone el formulario no las alcanza y quedaban
+       con lo ultimo que escribio la reimpresion.
+       NO va en `RECALC_MODULOS`: ese embudo lo comparten las cinco rutas de restauracion, y la
+       de CARGA ya corre `calcIP` por la cola de `calcPSAP` —medido: ahi el PDF sale identico al
+       camino directo—. Lo que faltaba es sólo esta mitad. Y no hay una segunda copia de la
+       formula de Masuyama: la unica dueña de esas dos filas sigue siendo `calcIP`.
+       Medido por el camino del medico (cargar las dos velocidades de la IP y la VCI, guardar,
+       «Nuevo estudio», reimprimir): sin esta linea el medico volvia a su paciente y encontraba
+       «PAP media 28 mmHg» y «PAP diastolica 16 mmHg» del paciente REIMPRESO sobre un formulario
+       vacio, con los campos de al lado en blanco.
+       ⚠️ Y ARREGLA DOS COSAS MAS, que es por lo que la decision fue de Maicol (2026-10-08):
+         · `calcIP` es tambien quien gobierna la pastilla de IP, y la reimpresion la dejaba
+           PRENDIDA en el paciente en pantalla —`_ipAutoPrender` corre en la fase de carga con
+           las velocidades del estudio ajeno y el cierre no la apagaba—, con lo que el informe
+           narrativo publicaba «Valvula pulmonar de morfologia normal, con insuficiencia.» y el
+           EN SUMA «IP presente.» sobre un paciente SIN un solo dato de IP. Dos superficies
+           FIRMADAS afirmando la valvulopatia de otro.
+         · y al reves: un paciente que SI tenia IP cargada PERDIA su pastilla al reimprimir un
+           estudio sin IP. Medido en las dos direcciones.
+       No se cambio ni una letra de ninguna frase: cambio CUANDO se afirma la insuficiencia.
+       Los tres controles de la orden quedan verificados: el estudio reimpreso que si tiene IP
+       sigue saliendo con «IP presente» y la pastilla prendida en la fase de carga; la pastilla y
+       el grado elegidos A MANO por el medico sobreviven a la reimpresion; y la pastilla que el
+       medico APAGO no se reprende (la clave queda en '0' y `_ipAutoPrender` sale por su guarda). */
+    if (typeof calcIP === 'function') calcIP();
     _recalcModulos('restaurarTrasReimpresion');
     if (typeof updateHdrExtra === 'function') updateHdrExtra();
    } catch (e) {
@@ -98447,8 +98474,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261008-0848';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791460120745;                 /* eco-build-ms */
+const ECO_BUILD    = '20261008-1515';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791483301456;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -98534,7 +98561,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-0848</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-1515</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
