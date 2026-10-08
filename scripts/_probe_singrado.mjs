@@ -17,9 +17,55 @@
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
 import { readFile, mkdtemp, rm } from 'node:fs/promises';
+import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+/* ⚠️ EL ARBOL DE CHROME NO SE CIERRA CON `proc.kill()`, Y ASI SE JUNTARON 70 PROCESOS (2026-10-08).
+   `proc.kill()` manda SIGTERM al proceso que lanzamos; Chrome arranca media docena de hijos
+   (zygote, gpu, renderers) que NO son hijos nuestros, asi que sobreviven al padre y quedan
+   HUERFANOS (ppid = 1) reteniendo su perfil. El camino de FALLO era peor: el
+   `main().catch(... process.exit(1))` de las sondas no mataba nada, y el timeout de 20 s de
+   `abrirChrome` tampoco. Medido antes de este arreglo: 10 Chrome huerfanos con 60 hijos y 1075
+   perfiles temporales sin borrar, 2,9 GB en $TMPDIR.
+   Tres piezas, ninguna decorativa:
+     1. `detached: true` en el spawn, que hace a Chrome LIDER DE SU PROPIO GRUPO de procesos. Sin
+        eso, matar un grupo se llevaria al script mismo;
+     2. un barrido que mata el GRUPO (`process.kill(-pid)`) y no solo al padre, asi que alcanza a
+        los hijos que Chrome creo por su cuenta;
+     3. el barrido colgado de `exit` ADEMAS de las senales, porque el `process.exit(1)` del camino
+        de fallo y el `process.exit(0)` del camino feliz NO disparan SIGINT ni SIGTERM — pero si
+        disparan `exit`. De ahi que el borrado del perfil use `rmSync`: en `exit` ya no corre nada
+        asincrono, y un `await rm(...)` ahi se descarta en silencio.
+   ⚠️ SOLO PIDs PROPIOS, NUNCA POR NOMBRE. El registro guarda unicamente lo que lanzo ESTE
+   proceso. Un `pkill`/`killall` por patron se lleva el Chrome del usuario y la corrida del de al
+   lado — en este repo ya hay una leccion escrita sobre un `pkill` que mato la corrida en curso. */
+const _ARNES_VIVOS = new Set();
+let _arnesLimpiezaArmada = false;
+function _arnesCerrarAlSalir(proc, perfil) {
+  if (!proc || !proc.pid) return;
+  _ARNES_VIVOS.add({ pid: proc.pid, perfil: perfil });
+  if (_arnesLimpiezaArmada) return;
+  _arnesLimpiezaArmada = true;
+  const barrer = () => {
+    for (const v of _ARNES_VIVOS) {
+      /* El grupo primero. Si ya no existe, `kill` tira ESRCH y se ignora — el barrido es
+         idempotente a proposito, porque los cierres del camino feliz ya llamaron a `proc.kill()`
+         antes de llegar aca. El fallback al pid pelado cubre que `detached` no haya podido crear
+         el grupo. */
+      try { process.kill(-v.pid, 'SIGKILL'); }
+      catch (e) { try { process.kill(v.pid, 'SIGKILL'); } catch (e2) {} }
+      if (v.perfil) { try { rmSync(v.perfil, { recursive: true, force: true }); } catch (e) {} }
+    }
+    _ARNES_VIVOS.clear();
+  };
+  process.on('exit', barrer);
+  for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+    process.on(sig, () => { barrer(); process.exit(130); });
+  }
+}
+
 
 const RAIZ = dirname(dirname(fileURLToPath(import.meta.url)));
 const VER  = process.argv.includes('--ver');
@@ -52,7 +98,8 @@ async function abrirChrome(url) {
   const args = ['--remote-debugging-port=0', `--user-data-dir=${perfil}`, '--no-first-run',
                 '--no-default-browser-check', '--disable-extensions', url];
   if (!VER) args.unshift('--headless=new');
-  const proc = spawn(bin, args, { stdio: ['ignore', 'ignore', 'pipe'] });
+  const proc = spawn(bin, args, { stdio: ['ignore', 'ignore', 'pipe'], detached: true });
+  _arnesCerrarAlSalir(proc, perfil);
   const wsUrl = await new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error('Chrome no respondio en 20 s')), 20000);
     let acc = '';
