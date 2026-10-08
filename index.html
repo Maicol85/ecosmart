@@ -84560,9 +84560,21 @@ function _sevManualDesdeCampos(campos) {
      auto-grado no pisa y el aviso rojo declara la discrepancia, que es lo que el médico tiene que ver.
      NO toca el informe: nadie llama a `sevNotaInforme('ip')` (censo del archivo), así que lo que esta
      línea agrega vive en pantalla.
-     ⚠️ `'ep'` sigue afuera, y queda DECLARADO: es el mismo agujero en la estenosis pulmonar, pero su
-     grado sí baja al informe por `sevNotaInforme('ep')` y eso es otra tanda. */
-  ['im', 'ia', 'it', 'em', 'ea', 'et', 'ip'].forEach(k => {
+     ⚠️ `'ep'` ENTRÓ EL 2026-10-08, y el agujero que cerró está MEDIDO en los dos sentidos con una
+     planilla que trae `ep_grado` y una Vmax de 4,5 m/s (Gmax 81 → el cálculo dice «Severa»):
+       · con `ep_grado = 'sin'` —EL NEGATIVO DOCUMENTADO, y además el valor de FÁBRICA, así que lo
+         trae cada fila de cada backup— el grado era PISABLE y `calcVP` lo sobreescribía: la pantalla
+         quedaba en «Severa» y el informe FIRMADO publicaba «con estenosis severa (Vmax 4.5 m/s,
+         Gmax 81 mmHg)» y «EP severa.» sobre un estudio cuya planilla decía que no había estenosis.
+         Es textualmente el daño que el párrafo de `'et'` describe, por el mismo camino;
+       · con `ep_grado = 'Leve'` el grado NO se pisaba —no es pisable sin `dataset.sugerido`— pero la
+         discrepancia era MUDA: sin marca manual, `sevDiscrepa('ep')` calla, así que el papel firmado
+         decía «estenosis leve» con «Vmax 4.5 m/s, Gmax 81 mmHg» al lado y ni aviso rojo ni cajón del
+         fundamento en ninguna parte. La app sabía que se contradicen y no lo decía.
+     Con la marca puesta, el grado importado no se pisa por ningún camino y el aviso declara la
+     discrepancia, que es lo que el médico tiene que ver. `'sin'` está en `ep.comparables`, así que el
+     negativo documentado también la levanta. Lo fija TC-443. */
+  ['im', 'ia', 'it', 'em', 'ea', 'et', 'ip', 'ep'].forEach(k => {
     const v = campos[k + '_grado'];
     if (v !== undefined && v !== null && String(v) !== '') m[k] = true;
   });
@@ -98412,8 +98424,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261008-0804';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791457453301;                 /* eco-build-ms */
+const ECO_BUILD    = '20261008-0830';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791459038581;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -98499,7 +98511,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-0804</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-0830</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

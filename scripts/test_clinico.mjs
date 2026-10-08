@@ -55068,6 +55068,117 @@ caso('TC-442', 'La insuficiencia pulmonar se APAGA SOLA cuando desaparecen todas
   ] };
 `);
 
+
+caso('TC-443', 'Una planilla que trae grado de ESTENOSIS PULMONAR queda con marca manual: el grado importado no se pisa —ni el negativo documentado— y la discrepancia con el calculo deja de ser muda', `
+  ${APAGA_HELPERS}
+  /* El blob se arma como lo escribe el importador y se abre por editarInforme, que es el gesto del
+     medico. Se STUBEA getInformes: el caso no escribe un byte en el store real. */
+  const abrir = function (gradoPlanilla, porElImportador) {
+    __t.nuevoEstudio();
+    try { showTab('valvulas'); } catch (e) {}
+    const campos = { nombre: 'TC-443', ep_grado: gradoPlanilla, vp_vmax: '4.5' };
+    if (porElImportador && typeof _sevManualEnCampos === 'function') _sevManualEnCampos(campos);
+    const inf = { id: 9443, estudioId: 'tc443', nombre: 'TC-443', ci: '1',
+                  fecha_estudio: '2026-10-08', campos: campos, informe_texto: '', en_suma: '' };
+    const marcaEnBlob = campos.sev_manual || null;
+    const orig = window.getInformes;
+    window.getInformes = function () { return [inf]; };
+    try {
+      editarInforme(9443);
+      const ok = document.getElementById('edit-ok');
+      if (!ok) return { err: 'no aparecio el overlay' };
+      ok.click();
+    } finally { window.getInformes = orig; }
+    /* ⚠️ LA TARJETA SE ABRE DESPUES DE RESTAURAR, Y SIN ESTO EL CAJON SE MEDIA OCULTO POR UN
+       ANCESTRO. aVis sube por los ancestros —un hijo con display propio dentro de un padre oculto no
+       tiene geometria— y la seccion de la pulmonar arranca cerrada, asi que la primera version de
+       este caso leyo fund=false sobre un cajon que la app habia abierto bien. El aviso se leia con
+       aTxt, que si funciona oculto: por eso una condicion pasaba y la otra no.
+       ⚠️ Y LA PESTAÑA TAMBIEN, que fue el ancestro que realmente lo escondia: el showTab de arriba
+       corre ANTES de editarInforme, y la restauracion deja el foco en otra pestaña. El diagnostico de
+       la sonda lo dijo con nombre y apellido: «oculto por: tab-valvulas», con el display inline del
+       cajon en vacio —o sea abierto— y sevDiscrepa('ep') en true. La app estaba bien. */
+    /* ⚠️ Y EL ESTADO VISUAL SE LEE ANTES DE GENERAR EL INFORME, que fue el tercer intento: el
+       segundo volvia a la pestaña de Valvulas y aun asi media «oculto por: tab-valvulas», porque
+       generarInforme CAMBIA DE PESTAÑA y el aVis corria despues. El cajon estaba abierto todo el
+       tiempo (inline «(abierto)», sevDiscrepa true): lo que medi mal fue el momento. */
+    try { showTab('valvulas'); } catch (e) {}
+    const sec = document.getElementById('ete-seccion-valv-pulmonar');
+    if (sec && sec.style.display === 'none') { try { toggleEteSeccion('valv-pulmonar'); } catch (e) {} }
+    const vis = { fund: aVis('ep-fund'), aviso: aTxt('ep-manual-aviso'),
+      fundInline: (function () { const e = document.getElementById('ep-fund');
+        return e ? (e.style.display === '' ? '(abierto)' : e.style.display) : 'NO EXISTE'; })(),
+      fundOculto: (function () { let n = document.getElementById('ep-fund'); const q = [];
+        while (n && n.nodeType === 1) {
+          if (getComputedStyle(n).display === 'none') q.push(n.id || ('.' + String(n.className || '?')));
+          n = n.parentNode; }
+        return q.join(' < ') || '(visible)'; })() };
+    const r = __t.informe();
+    return { marcaEnBlob: marcaEnBlob, vis: vis,
+             sel: (document.getElementById('ep_grado') || {}).value,
+             manual: !!(window.esqSevManual || {}).ep,
+             aviso: vis.aviso, fund: vis.fund,
+             fundInline: vis.fundInline, fundOculto: vis.fundOculto,
+             discrepa: (typeof sevDiscrepa === 'function') ? !!sevDiscrepa('ep') : 'SIN',
+             calc: (typeof sevCalcPublicable === 'function') ? sevCalcPublicable('ep') : 'SIN',
+             inf: r.inf, suma: r.suma,
+             otras: ['im','ia','it','em','ea','et','ip'].map(function (k) {
+               const sel = SEV_SINC[k] ? document.getElementById(SEV_SINC[k].select) : null;
+               return k + '=' + (sel ? sel.value : '?'); }).join('|'),
+             marcas: Object.keys(window.esqSevManual || {}).sort().join(',') };
+  };
+
+  /* Planilla con un grado REAL, y la misma sin pasar por el importador (el control). */
+  const leveImp   = abrir('Leve', true);
+  const leveCrudo = abrir('Leve', false);
+  /* Planilla con el NEGATIVO DOCUMENTADO, que es el valor de FABRICA y el que trae cada fila. */
+  const sinImp    = abrir('sin', true);
+  const sinCrudo  = abrir('sin', false);
+  __t.nuevoEstudio();
+
+  return { extra: [
+    ['la marca de la planilla VIAJA en campos.sev_manual y nombra ep',
+      typeof leveImp.marcaEnBlob === 'string' && leveImp.marcaEnBlob.indexOf('"ep"') > -1,
+      String(leveImp.marcaEnBlob)],
+
+    // --- EL NEGATIVO DOCUMENTADO: el caso grave --------------------------------------------
+    ['DENOMINADOR: con Vmax 4,5 m/s el calculo dice Severa',
+      sinImp.calc === 'Severa' && leveImp.calc === 'Severa',
+      sinImp.calc + '/' + leveImp.calc],
+    ['una planilla con «sin» NO se pisa: el grado queda en el centinela',
+      sinImp.sel === 'sin' && sinImp.manual === true, JSON.stringify({ sel: sinImp.sel, man: sinImp.manual })],
+    ['y el informe firmado deja de afirmar una estenosis que la planilla negaba',
+      sinImp.inf.indexOf('estenosis severa') === -1
+      && sinImp.inf.indexOf('Válvula pulmonar normal') > -1
+      && sinImp.suma.indexOf('EP severa.') === -1, recorteJS(sinImp.inf) + ' // ' + recorteJS(sinImp.suma)],
+    /* CONTROL: sin pasar por el importador la marca no se pone, y ahi SI se pisa — que es lo que
+       esta tanda arregla en el camino real y lo que prueba que el arreglo es la marca y no otra cosa. */
+    ['CONTROL: el MISMO blob sin pasar por el importador si se pisa y publica «EP severa.»',
+      sinCrudo.manual === false && sinCrudo.sel === 'Severa'
+      && sinCrudo.suma.indexOf('EP severa.') > -1,
+      JSON.stringify({ man: sinCrudo.manual, sel: sinCrudo.sel }) + ' // ' + recorteJS(sinCrudo.suma)],
+
+    // --- UN GRADO REAL: la discrepancia deja de ser muda -----------------------------------
+    ['una planilla con «Leve» conserva su grado (no era pisable) y ahora lleva marca manual',
+      leveImp.sel === 'Leve' && leveImp.manual === true, JSON.stringify({ sel: leveImp.sel, man: leveImp.manual })],
+    ['y la discrepancia con el calculo DEJA DE SER MUDA: aviso rojo y cajon del fundamento',
+      leveImp.aviso === '⚠️ Leve (ajuste manual) · cálculo automático: Severa' && leveImp.fund === true,
+      leveImp.aviso + ' · fund=' + leveImp.fund + ' · inline=' + leveImp.fundInline
+      + ' · oculto por=' + leveImp.fundOculto + ' · discrepa=' + leveImp.discrepa],
+    ['CONTROL: sin la marca, el mismo estudio no decia nada de la contradiccion',
+      leveCrudo.manual === false && leveCrudo.aviso === '' && leveCrudo.fund === false,
+      JSON.stringify({ man: leveCrudo.manual, aviso: leveCrudo.aviso, fund: leveCrudo.fund })],
+
+    // --- LAS OTRAS SIETE, IDENTICAS --------------------------------------------------------
+    ['las otras siete lesiones quedan en su centinela en los cuatro escenarios',
+      [leveImp, leveCrudo, sinImp, sinCrudo].every(function (e) { return e.otras === leveCrudo.otras; }),
+      leveImp.otras],
+    ['y la unica marca que la planilla agrega es ep: ninguna otra valvula se marca de mas',
+      leveImp.marcas === 'ep' && sinImp.marcas === 'ep',
+      leveImp.marcas + ' / ' + sinImp.marcas]
+  ] };
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

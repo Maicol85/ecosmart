@@ -551,6 +551,69 @@ async function main() {
     out.VP = vp;
   }
 
+  /* ══ B · LA MARCA MANUAL DE LA ESTENOSIS PULMONAR AL IMPORTAR ═════════════════════════════
+     Reproduce el caso del pedido: un estudio que TRAE `ep_grado` (planilla o guardado) y una
+     velocidad que calcula OTRO grado, sin marca manual. Se arma el blob como lo escribe el
+     importador —pasandolo por `_sevManualEnCampos`, que es el embudo real— y se abre por
+     `editarInforme`, que es el gesto del medico.
+     ⚠️ SE STUBEA `getInformes`, no se escribe en el store: la sonda no toca un byte de los datos
+     reales. Es el patron de `_probe_itvmax.mjs`. */
+  if (hacer('IMP')) {
+    const imp = {};
+    /* DOS planillas, y la segunda es la que importa: `sin` es el NEGATIVO DOCUMENTADO y ademas el
+       valor de FABRICA, asi que lo trae cada fila de cada backup. Con el grado pisable, calcVP lo
+       sobreescribe y el informe firmado afirma una estenosis que la planilla decia que no habia —
+       que es textualmente el dano que el comentario de `_sevManualDesdeCampos` describe para `et`. */
+    const PLAN = [['EP Leve + Vmax 4,5 (calcula Severa)', 'Leve'],
+                  ['EP sin + Vmax 4,5 (el negativo DOCUMENTADO)', 'sin']];
+    for (const [nPlan, gPlan] of PLAN)
+    for (const con of [false, true]) {
+      imp[nPlan + ' · ' + (con ? 'por el importador' : 'blob crudo')] =
+        JSON.parse(await ev(`(function(){
+        window.__P.limpiar(); window.__P.abrirTodo();
+        var campos = { nombre:'Import', ep_grado:${JSON.stringify(gPlan)}, vp_vmax:'4.5' };
+        if (${con} && typeof _sevManualEnCampos === 'function') _sevManualEnCampos(campos);
+        var inf = { id: 991, estudioId:'imp-test', nombre:'Import', ci:'1',
+                    fecha_estudio:'2026-10-08', campos: campos, informe_texto:'', en_suma:'' };
+        var marcaEnBlob = campos.sev_manual || null;
+        var _orig = window.getInformes;
+        window.getInformes = function(){ return [inf] };
+        try {
+          try { editarInforme(991) } catch(e) { return JSON.stringify({ err:'editarInforme '+e.message }) }
+          var ok = document.getElementById('edit-ok');
+          if (!ok) return JSON.stringify({ err:'no aparecio el overlay' });
+          ok.click();
+        } finally { window.getInformes = _orig; }
+        var est = window.__P.informe('estandar');
+        return JSON.stringify({
+          marcaEnBlob: marcaEnBlob,
+          enPantalla: window.__P.val('ep_grado'),
+          fijo: window.__P.txt('gftxt-esten-pulmonar'),
+          calc: (typeof sevCalcPublicable === 'function') ? sevCalcPublicable('ep') : 'SIN',
+          manual: !!(window.esqSevManual || {}).ep,
+          aviso: window.__P.txt('ep-manual-aviso'),
+          vp: window.__P.frasesVP(est.inf),
+          suma: est.suma.split('\\n').filter(function(x){ return /\\bEP\\b/i.test(x) }),
+          /* Las otras siete, para el control de que solo cambia la EP. */
+          otras: { im: window.__P.val('im_grado'), ia: window.__P.val('ia_grado'),
+                   it: window.__P.val('it_grado'), em: window.__P.val('em_grado'),
+                   ea: window.__P.val('ea_grado'), et: window.__P.val('et_grado'),
+                   ip: window.__P.val('ip_grado') },
+          marcas: JSON.stringify(window.esqSevManual || {}),
+          /* Diagnostico: QUE ancestro esconde el cajon del fundamento, si alguno. */
+          fundInline: (function(){ var e = document.getElementById('ep-fund');
+            return e ? (e.style.display === '' ? '(vacio)' : e.style.display) : 'NO EXISTE' })(),
+          fundOculto: (function(){ var n = document.getElementById('ep-fund'); var who = [];
+            while (n && n.nodeType === 1) {
+              if (getComputedStyle(n).display === 'none') who.push(n.id || ('.' + String(n.className||'?')));
+              n = n.parentNode; }
+            return who.join(' < ') || '(visible)' })(),
+          discrepa: (typeof sevDiscrepa === 'function') ? !!sevDiscrepa('ep') : 'SIN'
+        }) })()`));
+    }
+    out.IMP = imp;
+  }
+
   /* ══ A · EL AUTO-APAGADO DE LA INSUFICIENCIA PULMONAR, CON TECLAS REALES ══════════════════
      Las diez escenas del pedido. El boton se mira SIEMPRE junto con el informe y el EN SUMA: lo que
      importa no es la clase CSS, es que el papel firmado deje de afirmar lo que nada sostiene. */
