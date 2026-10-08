@@ -59091,6 +59091,22 @@ function editarInforme(id) {
        leyendo el número inventado — el placeholder sólo se ve con el campo vacío. La
        reimpresión ya estaba cubierta; faltaba la edición. */
     if (typeof calcContIM === 'function') calcContIM();
+    /* ⚠️ `calcIP`: las DOS filas de presiones pulmonares —`ip-papm-row` e `ip-papd-row`— las escribe
+       SÓLO esta función, y es la sexta instancia del defecto que TC-GR-13 documentó para
+       `psap-interp`, `sgl-interp`, `bsa-val`, `calcDiastol` e `imPdfMetodosUI`: un span que escribe
+       UNA sola función que no corría en esta ruta.
+       Medido por el camino del médico (cargar las dos velocidades de la IP y la VCI, guardar, Editar,
+       «Cargar datos»): los CAMPOS volvían bien —`ip_vmax` 2.5, `ip_vtd` 1.8, `pmad` 3, `ip_pmad_display`
+       «3 mmHg», `ip_papd` «16 mmHg», porque son `input[id]` que `guardarInforme` barre y la
+       restauración repone— y las dos FILAS quedaban en «—». O sea la pantalla negando dos presiones
+       que el campo de al lado publicaba.
+       ⚠️ LAS OTRAS RUTAS YA ESTABAN CUBIERTAS, Y POR ESO ESTO VA ACÁ Y NO EN `RECALC_MODULOS`:
+       `cargarEstudioPorId` y el autosave llevan `calcPSAP` en su lista de `calc*`, y `calcPSAP` llama
+       a `calcIP` en su cola — medido: por esa ruta las dos filas vuelven con 28 y 16 mmHg. Meterlo en
+       el embudo lo haría correr además en las dos rutas de la REIMPRESIÓN, que es el camino del PDF y
+       que esta tanda no toca. Acá alcanza a la única ruta que le faltaba.
+       No toca lo guardado ni ninguna cuenta: `calcIP` deriva de los campos ya repuestos. */
+    if (typeof calcIP === 'function') calcIP();
     /* CIA/CIV y TAVI: los espejos de solo lectura, el Qp/Qs, la severidad de RPV y el bitmap
        del canvas EPC se pintan por JS. Sin esto, un estudio reabierto mostraba los campos
        poblados pero el diagrama en blanco, «Sin jet marcado» y el Qp/Qs en «—».
@@ -98424,8 +98440,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261008-0830';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791459038581;                 /* eco-build-ms */
+const ECO_BUILD    = '20261008-0840';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791459608755;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -98511,7 +98527,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-0830</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-0840</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -699,7 +699,15 @@ async function main() {
       papm: window.__P.txt('ip-papm-row'), papd: window.__P.txt('ip-papd-row'),
       ip_papd: window.__P.val('ip_papd'), pmadDisp: window.__P.val('ip_pmad_display'),
       ip_vmax: window.__P.val('ip_vmax'), ip_vtd: window.__P.val('ip_vtd'),
-      pmad: window.__P.val('pmad') }) })()`;
+      pmad: window.__P.val('pmad'),
+      /* calcIP tambien prende la pastilla y escribe el grado, asi que se mira: lo que NO puede
+         cambiar es el papel. */
+      pill: window.__P.pill('pulmonar','insuf'), sel: window.__P.val('ip_grado'),
+      inf: (function(){ var r = window.__P.informe('estandar'); return {
+        vp: window.__P.frasesVP(r.inf),
+        suma: r.suma.split('\\n').filter(function(x){ return /pulmonar|\\bIP\\b|\\bEP\\b|\\bVP\\b/i.test(x) }) } })(),
+      xls: (function(){ var x = window.__P.excel();
+        return (x && typeof x === 'object') ? Object.keys(x).length : x })() }) })()`;
     await ev(`(function(){ window.__P.limpiar(); window.__P.abrirTodo(); return 1 })()`);
     await tipear('ip_vmax', '2.5');
     await tipear('ip_vtd', '1.8');

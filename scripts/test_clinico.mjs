@@ -55179,6 +55179,92 @@ caso('TC-443', 'Una planilla que trae grado de ESTENOSIS PULMONAR queda con marc
   ] };
 `);
 
+
+caso('TC-444', 'Las dos filas de presiones pulmonares (PAPm y PAPd) se repintan al reabrir un guardado por «Editar», que era la unica de las rutas de restauracion que no las alcanzaba — y el informe sale identico', `
+  ${APAGA_HELPERS}
+  return (async () => {
+  const abrirDop = function () {
+    try { showTab('doppler'); } catch (e) {}
+    const c = document.getElementById('dop-pulmonar');
+    if (c && c.style.display === 'none') { try { toggleCard('dop-pulmonar'); } catch (e) {} }
+  };
+  /* Las dos FILAS son spans y las escribe SOLO calcIP; los dos CAMPOS de al lado son input[id] que
+     guardarInforme barre, asi que vuelven por la restauracion. El contraste entre ambos es lo que
+     hace que este caso no pueda pasar por accidente: si todo volviera, no habria nada que probar. */
+  const F = function () {
+    abrirDop();
+    return { papm: aTxt('ip-papm-row'), papd: aTxt('ip-papd-row'),
+             papdCampo: (document.getElementById('ip_papd') || {}).value,
+             pmadDisp: (document.getElementById('ip_pmad_display') || {}).value,
+             vmax: (document.getElementById('ip_vmax') || {}).value,
+             vtd: (document.getElementById('ip_vtd') || {}).value,
+             pmad: (document.getElementById('pmad') || {}).value };
+  };
+
+  __t.nuevoEstudio(); abrirDop();
+  __t.set('nombre', 'Prueba TC-444');
+  __t.set('ip_vmax', '2.5'); __t.set('ip_vtd', '1.8');
+  __t.set('vci_diam', '18'); __t.set('vci_col', '>50');
+  const antes = F();
+  const infAntes = __t.informe();
+  const gg = await __t.guardar();
+  __t.nuevoEstudio();
+  const vacio = F();
+
+  /* RUTA «Editar»: editarInforme + el boton «Cargar datos». ⚠️ Busca por inf.id —un NUMERO— y con
+     igualdad ESTRICTA: pasarle el estudioId no encuentra nada y el formulario queda vacio. */
+  const inf = getInformes().find(function (i) { return i.estudioId === gg.estudioId; });
+  const idNum = inf ? inf.id : null;
+  if (idNum !== null) {
+    editarInforme(idNum);
+    const ok = document.getElementById('edit-ok');
+    if (ok) ok.click();
+  }
+  await new Promise(function (r) { setTimeout(r, 700); });
+  const porEditar = F();
+  const infEditar = __t.informe();
+
+  /* RUTA del QR / «Cargar datos» por id, que YA las repintaba (su lista lleva calcPSAP, que llama a
+     calcIP en su cola). Es el control de que el arreglo no era necesario alla. */
+  __t.nuevoEstudio();
+  __t.reabrir(gg.estudioId);
+  await new Promise(function (r) { setTimeout(r, 700); });
+  const porId = F();
+  const infPorId = __t.informe();
+  await __t.borrar(gg.estudioId);
+  __t.nuevoEstudio();
+
+  return { extra: [
+    ['DENOMINADOR: antes de guardar las dos filas publican las dos presiones',
+      antes.papm === '28 mmHg' && antes.papd === '16 mmHg' && antes.papdCampo === '16 mmHg'
+      && antes.pmadDisp === '3 mmHg', JSON.stringify(antes)],
+    ['DENOMINADOR: se guardo de verdad y «Nuevo estudio» dejo las filas en la raya',
+      gg.ok === true && !!gg.estudioId && idNum !== null
+      && vacio.papm === '—' && vacio.papd === '—',
+      JSON.stringify({ gg: gg, idNum: idNum, vacio: vacio })],
+    ['DENOMINADOR de la ruta «Editar»: los CAMPOS volvieron (sin esto no hay nada que medir)',
+      porEditar.vmax === '2.5' && porEditar.vtd === '1.8' && porEditar.pmad === '3',
+      JSON.stringify(porEditar)],
+    ['y el campo PAPd tambien volvio, porque es un input que el estudio guarda',
+      porEditar.papdCampo === '16 mmHg' && porEditar.pmadDisp === '3 mmHg',
+      porEditar.papdCampo + ' / ' + porEditar.pmadDisp],
+    ['reabrir por «Editar» REPINTA las dos filas (en HEAD quedaban en la raya al lado del campo)',
+      porEditar.papm === '28 mmHg' && porEditar.papd === '16 mmHg',
+      JSON.stringify({ papm: porEditar.papm, papd: porEditar.papd })],
+    ['CONTROL: la ruta del QR ya las repintaba y sigue igual',
+      porId.papm === '28 mmHg' && porId.papd === '16 mmHg',
+      JSON.stringify({ papm: porId.papm, papd: porId.papd })],
+    ['el informe y el EN SUMA salen IDENTICOS por las dos rutas y al de antes de guardar',
+      infEditar.inf === infAntes.inf && infEditar.suma === infAntes.suma
+      && infPorId.inf === infAntes.inf && infPorId.suma === infAntes.suma,
+      recorteJS(infAntes.inf) + ' // ' + recorteJS(infEditar.inf)],
+    ['y las dos presiones siguen saliendo de su formula, sin tocarse',
+      infAntes.inf.indexOf('PAPm de 28 mmHg') > -1 && infAntes.inf.indexOf('PAPd de 16 mmHg') > -1,
+      recorteJS(infAntes.inf)]
+  ] };
+  })();
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────
