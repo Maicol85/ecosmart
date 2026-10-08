@@ -55388,6 +55388,204 @@ caso('TC-445', 'Los nombres de las DOS listas de recalculos de la estenosis aort
   ] };
 `);
 
+caso('TC-446', 'Las dos filas de presiones pulmonares, la pastilla de IP y lo que el informe AFIRMA vuelven al paciente en pantalla al cerrar la REIMPRESION: el estudio reimpreso no le deja su insuficiencia ni le quita la propia, y el gesto manual del medico sobrevive en los dos sentidos', `
+  ${APAGA_HELPERS}
+  return (async () => {
+  /* HERMANO DE TC-444, EN LA OTRA MITAD. Ese caso cubre la ruta «Editar»; esta es la REIMPRESION,
+     que tiene DOS FASES y una sola funcion (pdfDeInformeGuardado): la de CARGA ya corria calcIP por
+     la cola de calcPSAP —y por eso el PDF sale bien, que es el control (a) de aca abajo—, y la de
+     RESTAURACION no lo corria. Las dos FILAS son spans que escribe SOLO calcIP, asi que el bucle
+     que repone el formulario no las alcanza; los dos CAMPOS de al lado son input[id] y si vuelven.
+     ⚠️ Y NO ES SOLO PANTALLA, que es por lo que este caso mira tambien el informe y el EN SUMA:
+     calcIP es tambien quien gobierna la pastilla de IP, asi que sin la linea del cierre la
+     reimpresion dejaba la pastilla PRENDIDA y el informe FIRMADO del paciente en pantalla decia
+     «con insuficiencia» y el EN SUMA «IP presente.» sin un solo dato de IP cargado. Y al reves: un
+     paciente que SI tenia IP perdia su pastilla al reimprimir un estudio sin ella. Las dos
+     direcciones estan abajo (escena 1 y escena 2). */
+  const abrirDop = function () {
+    try { showTab('doppler'); } catch (e) {}
+    const c = document.getElementById('dop-pulmonar');
+    if (c && c.style.display === 'none') { try { toggleCard('dop-pulmonar'); } catch (e) {} }
+  };
+  const F = function () {
+    abrirDop();
+    return { papm: aTxt('ip-papm-row'), papd: aTxt('ip-papd-row'),
+             papdCampo: (document.getElementById('ip_papd') || {}).value,
+             pmadDisp: (document.getElementById('ip_pmad_display') || {}).value,
+             vmax: (document.getElementById('ip_vmax') || {}).value,
+             vtd: (document.getElementById('ip_vtd') || {}).value,
+             pmad: (document.getElementById('pmad') || {}).value,
+             pill: aOn('pulmonar', 'insuf'),
+             grado: (document.getElementById('ip_grado') || {}).value,
+             /* ⚠️ LA CLAVE SE LEE ACA Y NO EN LA ASERCION, y esto costo un rojo: las aserciones
+                corren al final del caso, DESPUES del __t.nuevoEstudio() de limpieza — y ese
+                limpiarCampos borra las seis claves valv-pill-*. Leida alla, la clave daba null
+                siempre y el denominador del control (c) no podia pasar nunca. */
+             ls: (function () { try { return localStorage.getItem('valv-pill-insuf-pulmonar'); }
+                                catch (e) { return 'EXC'; } })() };
+  };
+  const cargarIP = function () {
+    /* La PmAD necesita DIAMETRO Y COLAPSO: con solo el diametro, calcPmAD sale por su guarda y las
+       dos filas salen con el sufijo «(sin PmAD)», que es otra rama de calcIP. 18 mm con colapso
+       mayor al 50 % da 3 mmHg, que es el escenario de TC-444. */
+    __t.set('ip_vmax', '2.5'); __t.set('ip_vtd', '1.8');
+    __t.set('vci_diam', '18'); __t.set('vci_col', '>50');
+  };
+  const idDe = function (estudioId) {
+    /* pdfDeInformeGuardado busca por inf.id —un NUMERO— y NO por estudioId: pasarle el estudioId lo
+       hace salir por su guarda «no se encontro ese estudio guardado» SIN llamar al callback, con lo
+       que la reimpresion nunca ocurre y las condiciones de abajo se cumplirian solas. */
+    const inf = (typeof getInformes === 'function' ? getInformes() : [])
+      .find(function (i) { return i.estudioId === estudioId; });
+    return inf ? inf.id : null;
+  };
+  /* El guard de reentrada de pdfDeInformeGuardado baja RECIEN cuando termina su restauracion
+     diferida (un setTimeout de 600 ms en la app). Con un plazo fijo, la segunda reimpresion de este
+     caso saldria por ese guard y la escena se leeria igual que una que no cambio nada. */
+  const esperarPdfLibre = async function () {
+    for (let k = 0; k < 150 && window._pdfGuardadoEnCurso; k++) {
+      await new Promise(function (r) { setTimeout(r, 100); });
+    }
+    return !window._pdfGuardadoEnCurso;
+  };
+  /* El callback recibe el informe y corre DENTRO de la ventana de reimpresion, o sea en la fase de
+     CARGA: es donde se mide lo que el PDF lee. Pasarlo tambien evita generar el PDF de verdad, que
+     es el mismo contrato que usa el boton de PPT en la app.
+     Va con carrera contra un plazo: una promesa sin timeout no pone el caso en rojo, CUELGA la
+     suite entera — y entonces no hay nada que leer. */
+  const reimprimir = async function (id, enCarga) {
+    let llamado = false;
+    if (id === null) return { llamado: false, libre: false };
+    await Promise.race([
+      new Promise(function (res) {
+        try { pdfDeInformeGuardado(id, function () {
+          llamado = true;
+          if (enCarga) { try { enCarga(); } catch (e) {} }
+          setTimeout(res, 300);
+        }, 'PDF'); } catch (e) { res(); }
+      }),
+      new Promise(function (res) { setTimeout(res, 9000); })
+    ]);
+    const libre = await esperarPdfLibre();
+    await new Promise(function (r) { setTimeout(r, 400); });
+    return { llamado: llamado, libre: libre };
+  };
+
+  /* ── Los dos estudios guardados: uno SIN nada de pulmonar y uno CON las dos velocidades ──── */
+  __t.nuevoEstudio(); abrirDop();
+  __t.set('nombre', 'TC446 sin IP'); __t.set('vi_dd', '48');
+  const gSin = await __t.guardar();
+  __t.nuevoEstudio(); abrirDop();
+  __t.set('nombre', 'TC446 con IP'); cargarIP();
+  const gCon = await __t.guardar();
+  const idSin = idDe(gSin.estudioId), idCon = idDe(gCon.estudioId);
+
+  /* ── ESCENA 1 · el paciente en pantalla TIENE IP y se reimprime un estudio SIN IP ────────── */
+  __t.nuevoEstudio(); abrirDop();
+  __t.set('nombre', 'TC446 E1 en pantalla'); cargarIP();
+  const e1Antes = F(), e1InfAntes = __t.informe();
+  const r1 = await reimprimir(idSin);
+  const e1Despues = F(), e1InfDespues = __t.informe();
+
+  /* ── ESCENA 2 · el paciente en pantalla esta VACIO y se reimprime el estudio CON IP ──────── */
+  __t.nuevoEstudio(); abrirDop();
+  __t.set('nombre', 'TC446 E2 vacio');
+  const e2Antes = F(), e2InfAntes = __t.informe();
+  let carga = null;
+  const r2 = await reimprimir(idCon, function () { carga = F(); carga.inf = __t.informe(); });
+  const e2Despues = F(), e2InfDespues = __t.informe();
+
+  /* ── CONTROL (b) · pastilla prendida A MANO con un grado elegido: no se pierde ───────────── */
+  __t.nuevoEstudio(); abrirDop();
+  __t.set('nombre', 'TC446 E3 manual');
+  try { toggleValvPill('pulmonar', 'insuf'); } catch (e) {}
+  __t.set('ip_grado', 'Moderada');
+  const e3Antes = F(), e3InfAntes = __t.informe();
+  const r3 = await reimprimir(idCon);
+  const e3Despues = F(), e3InfDespues = __t.informe();
+
+  /* ── CONTROL (c) · pastilla APAGADA a mano: no se reprende. El apagado del medico deja la clave
+     en '0' y _ipAutoPrender sale por su guarda, que es la regla 12. ────────────────────────── */
+  __t.nuevoEstudio(); abrirDop();
+  __t.set('nombre', 'TC446 E4 apagada');
+  try { toggleValvPill('pulmonar', 'insuf'); } catch (e) {}
+  try { toggleValvPill('pulmonar', 'insuf'); } catch (e) {}
+  const e4Antes = F();
+  const r4 = await reimprimir(idCon);
+  const e4Despues = F();
+
+  await __t.borrar(gSin.estudioId);
+  await __t.borrar(gCon.estudioId);
+  __t.nuevoEstudio();
+
+  const NORMAL = 'Válvula pulmonar normal.';
+  const CONINS = 'Válvula pulmonar de morfología normal, con insuficiencia';
+  const SINALT = 'Estudio sin alteraciones estructurales ni funcionales significativas.';
+
+  return { extra: [
+    ['DENOMINADOR: los dos estudios se guardaron y sus id NUMERICOS se resolvieron',
+      gSin.ok === true && gCon.ok === true && idSin !== null && idCon !== null,
+      JSON.stringify({ gSin: gSin, gCon: gCon, idSin: idSin, idCon: idCon })],
+    ['DENOMINADOR: las cuatro reimpresiones llamaron al callback y el guard de reentrada bajo',
+      r1.llamado && r1.libre && r2.llamado && r2.libre && r3.llamado && r3.libre
+      && r4.llamado && r4.libre,
+      JSON.stringify({ r1: r1, r2: r2, r3: r3, r4: r4 })],
+
+    ['DENOMINADOR de la escena 1: el paciente en pantalla tiene IP DE VERDAD antes de contar',
+      e1Antes.papm === '28 mmHg' && e1Antes.papd === '16 mmHg' && e1Antes.papdCampo === '16 mmHg'
+      && e1Antes.pmadDisp === '3 mmHg' && e1Antes.pill === true
+      && e1InfAntes.inf.indexOf(CONINS) > -1 && e1InfAntes.suma.indexOf('IP presente.') > -1,
+      JSON.stringify(e1Antes) + ' // ' + recorteJS(e1InfAntes.suma)],
+    ['ESCENA 1: reimprimir un estudio SIN IP no le quita al paciente en pantalla sus dos filas',
+      e1Despues.papm === '28 mmHg' && e1Despues.papd === '16 mmHg',
+      JSON.stringify({ papm: e1Despues.papm, papd: e1Despues.papd })],
+    ['ESCENA 1: tampoco le apaga la pastilla ni le mueve el grado',
+      e1Despues.pill === true && e1Despues.grado === e1Antes.grado,
+      JSON.stringify({ pill: e1Despues.pill, grado: e1Despues.grado })],
+    ['ESCENA 1: el informe y el EN SUMA salen IDENTICOS a los de antes de reimprimir',
+      e1InfDespues.inf === e1InfAntes.inf && e1InfDespues.suma === e1InfAntes.suma,
+      recorteJS(e1InfAntes.inf) + ' // ' + recorteJS(e1InfDespues.inf)],
+
+    ['DENOMINADOR de la escena 2: el paciente en pantalla NO tiene nada de pulmonar',
+      e2Antes.papm === '—' && e2Antes.papd === '—' && e2Antes.pill === false
+      && e2InfAntes.inf.indexOf(NORMAL) > -1 && e2InfAntes.suma.indexOf(SINALT) > -1,
+      JSON.stringify(e2Antes) + ' // ' + recorteJS(e2InfAntes.suma)],
+    ['CONTROL (a): la fase de CARGA del estudio CON IP sigue diciendo «IP presente» con la pastilla prendida y las dos filas pobladas — es lo que lee el PDF',
+      !!carga && carga.pill === true && carga.papm === '28 mmHg' && carga.papd === '16 mmHg'
+      && carga.inf.suma.indexOf('IP presente.') > -1 && carga.inf.inf.indexOf(CONINS) > -1,
+      JSON.stringify(carga ? { pill: carga.pill, papm: carga.papm, papd: carga.papd,
+                               suma: carga.inf.suma } : null)],
+    ['ESCENA 2: al VOLVER, las dos filas quedan en la raya (en HEAD quedaban con 28 y 16 del otro paciente)',
+      e2Despues.papm === '—' && e2Despues.papd === '—',
+      JSON.stringify({ papm: e2Despues.papm, papd: e2Despues.papd })],
+    ['ESCENA 2: y la pastilla queda APAGADA, que es lo que impide que el informe firmado afirme la IP del otro',
+      e2Despues.pill === false, String(e2Despues.pill)],
+    ['ESCENA 2: el informe dice «Válvula pulmonar normal.» y el EN SUMA «Estudio sin alteraciones…», identicos a los de antes',
+      e2InfDespues.inf.indexOf(NORMAL) > -1 && e2InfDespues.inf.indexOf(CONINS) === -1
+      && e2InfDespues.suma.indexOf(SINALT) > -1 && e2InfDespues.suma.indexOf('IP presente.') === -1
+      && e2InfDespues.inf === e2InfAntes.inf && e2InfDespues.suma === e2InfAntes.suma,
+      recorteJS(e2InfDespues.inf) + ' // ' + recorteJS(e2InfDespues.suma)],
+
+    ['DENOMINADOR del control (b): la pastilla y el grado estan puestos A MANO antes de reimprimir',
+      e3Antes.pill === true && e3Antes.grado === 'Moderada'
+      && e3InfAntes.suma.indexOf('IP moderada.') > -1,
+      JSON.stringify({ pill: e3Antes.pill, grado: e3Antes.grado }) + ' // ' + recorteJS(e3InfAntes.suma)],
+    ['CONTROL (b): reimprimir NO se lleva la pastilla ni el grado que eligio el medico, y el informe no se mueve',
+      e3Despues.pill === true && e3Despues.grado === 'Moderada'
+      && e3InfDespues.inf === e3InfAntes.inf && e3InfDespues.suma === e3InfAntes.suma,
+      JSON.stringify({ pill: e3Despues.pill, grado: e3Despues.grado }) + ' // ' + recorteJS(e3InfDespues.suma)],
+
+    ['DENOMINADOR del control (c): el medico la prendio y la APAGO, asi que la clave quedo en 0',
+      e4Antes.pill === false && e4Antes.ls === '0',
+      JSON.stringify({ pill: e4Antes.pill, ls: e4Antes.ls })],
+    ['CONTROL (c): reimprimir un estudio CON IP no reprende la pastilla que el medico apago, y la clave sigue en 0 — que es lo que hace durable el gesto',
+      e4Despues.pill === false && e4Despues.ls === '0'
+      && e4Despues.papm === '—' && e4Despues.papd === '—',
+      JSON.stringify({ pill: e4Despues.pill, ls: e4Despues.ls,
+                       papm: e4Despues.papm, papd: e4Despues.papd })]
+  ] };
+  })();
+`);
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────
