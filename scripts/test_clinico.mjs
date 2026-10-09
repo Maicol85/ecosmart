@@ -36226,13 +36226,12 @@ caso('TC-301', 'Marca de espejo para los NUEVE destinos: la marca sobrevive al g
     g('im_espejos').value = '';
     __t.set('nombre','TC301f'); __t.set('edad','60');
     __t.set('diam_tsvi','21'); __t.set('itv_tsvi','18');   // sin abrir Estenosis Mitral
-    /* ⚠️ ERA '/' HASTA EL 2026-10-08 —los DOS vacios— y hoy el O TSVI llega igual con la pastilla
-       apagada: es una de las cinco puertas de un dato coordinado, y la regla es que editar en un
-       lugar escribe el dato en TODOS, este el bloque visible o plegado. El VTI TSVI sigue vacio en
-       este commit porque su coordinacion es la del commit siguiente; cuando entre, el valor
-       esperado pasa a '21/18'. Lo que la condicion conserva es que el gate de _syncDerivado NO
-       crea espejos por su cuenta en una seccion apagada: lo que llena em_dtsvi es la
-       coordinacion, no la sincronia. */
+    /* ⚠️ ERA '/' —los DOS vacios— HASTA EL 2026-10-08, y hoy es '21/18': el O TSVI y el VTI TSVI
+       son los dos datos COORDINADOS de esta tanda, con cinco y cuatro puertas, y la regla es que
+       editar en un lugar escribe el dato en TODOS, este el bloque visible o plegado. Ninguno de
+       los dos llega por el espejo: llegan por su puerta. Lo que este caso sigue fijando sobre el
+       gate de _syncDerivado lo prueban las OTRAS condiciones —el registro de las nueve marcas, el
+       fallback con centinela y el id fuera del censo—, que no se tocaron. */
     const emApagado = gv('em_dtsvi') + '/' + gv('em_vtitsvi');
 
     // ── 10c. El registro no acepta un id fuera del censo ──────────────────────────────
@@ -36323,8 +36322,8 @@ caso('TC-301', 'Marca de espejo para los NUEVE destinos: la marca sobrevive al g
         selloInferido.indexOf('teer_fevi~45') > -1, selloInferido],
       ['⚠️ EL FALLBACK NO CORRE SOBRE EL FORMULARIO VIVO: sin datos de estudio no infiere nada',
         vivoNoInfiere === '(sin marca)', vivoNoInfiere],
-      ['con la pastilla de EM apagada el VTI TSVI no se CREA —la sincronia no llena una seccion apagada— y el O TSVI SI llega, por la coordinacion de sus cinco puertas',
-        emApagado === '21/', '«' + emApagado + '»'],
+      ['con la pastilla de EM apagada llegan los DOS datos coordinados —el O TSVI por sus cinco puertas y el VTI TSVI por sus cuatro—, no por el espejo',
+        emApagado === '21/18', '«' + emApagado + '»'],
       ['y el registro no marca un id fuera del censo', idAjeno === '(sin marca)', idAjeno],
       ['⚠️ NINGUNA de las tres marcas de dataset sobrevive a «Nuevo estudio»',
         sucios.length === 0, sucios.join(' | ') || '(las tres barridas)'],
@@ -36516,18 +36515,18 @@ caso('TC-296', 'Insuficiencia mitral: las tres casillas «auto» espejan, SIGUEN
 
     return { extra: [
       ['los ids del escenario existen', faltan.length === 0, faltan.join(',') || 'todos'],
-      /* ⚠️ ERAN '//' —los TRES vacios— HASTA EL 2026-10-08. El O TSVI pasó a ser un dato con CINCO
-         puertas coordinadas, y la regla nueva es que editar en un lugar escribe el dato en TODOS,
-         este el bloque visible o plegado: con la pastilla cerrada im_dtsvi recibe 21 igual. Los
-         otros dos siguen vacios en este commit porque su coordinacion es la de los commits
-         siguientes; cuando entren, el valor esperado pasa a '21/18/26'.
+      /* ⚠️ ERAN '//' —los TRES vacios— HASTA EL 2026-10-08. El O TSVI y el VTI TSVI pasaron a ser
+         datos COORDINADOS, con cinco y cuatro puertas, y la regla nueva es que editar en un lugar
+         escribe el dato en TODOS, este el bloque visible o plegado: con la pastilla cerrada los
+         dos llegan igual. El AREA DE LA AI sigue vacia en este commit porque su coordinacion es
+         la del commit siguiente; cuando entre, el valor esperado pasa a '21/18/26'.
          Lo que estas dos condiciones CONSERVAN es que la sincronia por espejo (_syncDerivado +
-         su gate) no CREA nada en una seccion apagada: los dos campos que no tienen puerta propia
-         siguen en blanco, que es lo que el gate existe para garantizar. */
-      ['con la pastilla CERRADA solo llega el O TSVI, que es una puerta coordinada: los otros dos no se CREAN',
-        cerradaTres === '21//', cerradaTres],
-      ['y con la pastilla cerrada la sincronia no CREA espejo aunque cambie el origen —el O TSVI llega por su puerta, no por el espejo—',
-        noCrea === '21//', noCrea],
+         su gate) no CREA nada en una seccion apagada: el campo que no tiene puerta propia sigue
+         en blanco, que es lo que el gate existe para garantizar. */
+      ['con la pastilla CERRADA llegan los DOS datos coordinados; el que no tiene puerta propia no se CREA',
+        cerradaTres === '21/18/', cerradaTres],
+      ['y con la pastilla cerrada la sincronia no CREA espejo aunque cambie el origen —los dos coordinados llegan por su puerta—',
+        noCrea === '21/18/', noCrea],
       ['al ABRIR, las tres muestran el valor del origen', alAbrir === '21/18/26', alAbrir],
       /* La condicion anti-regresion de verdad: el mismo escenario con las casillas vacias (o sea el
          estado de antes de esta sincronia) contra las casillas espejando. */
@@ -49809,18 +49808,21 @@ caso('TC-407', 'El gate de los espejos de EM pregunta por el BOTON y no por un d
     ['el bloque de GRADO esta visible —el punto de esta tanda— y el de CUANTIFICACION oculto',
       cerrado.bloq === true && cerrado.alto > 0 && detalle === false,
       'grado=' + cerrado.bloq + ' alto=' + cerrado.alto + ' detalle=' + detalle],
-    /* ⚠️ EL O TSVI YA NO ES UN ESPEJO, Y POR ESO ESTA CONDICION SE PARTIO EN DOS (2026-10-08).
-       Pedia los dos campos vacios; desde que diam_tsvi / em_dtsvi / im_dtsvi / ea_dtsvi /
-       diam_tsvi_ao son CINCO PUERTAS de un mismo dato, editar en cualquiera escribe en todas,
-       este el bloque visible o plegado — es la regla de esa tanda y no pasa por este gate.
-       Lo que el gate SIGUE gobernando, y es el punto de ESTE caso, es el espejo que no tiene
-       puerta propia: em_vtitsvi queda vacio con el boton cerrado. Cuando su coordinacion entre en
-       el commit siguiente, esta condicion queda cubierta solo por el control positivo de abajo y
-       hay que decirlo ahi. */
-    ['el O TSVI llega con el boton CERRADO: es una puerta coordinada, no un espejo',
-      esp.dtsvi === '20', JSON.stringify(esp)],
-    ['y el espejo que NO tiene puerta propia sigue sin llenarse con el boton cerrado, que es lo que este gate gobierna',
-      esp.vtitsvi === '', JSON.stringify(esp)],
+    /* ⚠️ NINGUNO DE LOS DOS CAMPOS DE ESTA ESCENA ES YA UN ESPEJO (2026-10-08). La condicion pedia
+       los dos vacios con el boton cerrado; desde que el O TSVI es un dato con CINCO puertas y el
+       VTI TSVI uno con CUATRO, editar en cualquiera escribe en todas, este el bloque visible o
+       plegado — es la regla de esa tanda y no pasa por este gate.
+       ⚠️ Y ESO DEJA A ESTE CASO SIN SU CONDICION PRINCIPAL, QUE HAY QUE DECIRLO: el gate de
+       sincronizarEMDesdeGlobal —que es lo que el caso nombra en su titulo— ya no tiene ningun
+       campo propio que gobernar, porque _EM_ESPEJOS son exactamente estos dos. Lo que el caso
+       SIGUE probando es sus tres DENOMINADORES, que no son poco y son los que fijaron la tanda del
+       2026-10-03: que la discrepancia quede viva con el boton cerrado, que el nodo que el gate leia
+       quede en «block» —o sea que el gate NO puede preguntar por el display— y que el bloque de
+       GRADO se vea mientras el de CUANTIFICACION sigue oculto. El gate en si sigue cubierto por
+       TC-301 y TC-296 a traves de im_ai_area, que es el unico destino de _syncDerivado que
+       conserva su gate despues de esta tanda. */
+    ['los dos campos llegan con el boton CERRADO: son puertas coordinadas, no espejos',
+      esp.dtsvi === '20' && esp.vtitsvi === '25', JSON.stringify(esp)],
     ['CONTROL POSITIVO: con el boton ABIERTO los dos espejos SI se llenan',
       espAbierto.dtsvi === '20' && espAbierto.vtitsvi === '25', JSON.stringify(espAbierto)],
   ] };

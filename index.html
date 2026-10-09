@@ -4252,8 +4252,14 @@ window.cerrarSesionReal = cerrarSesionReal;
             <div id="em-tsvi-box" style="font-size:10px;color:var(--accent2);margin-top:3px;min-height:14px;"></div>
           </div>
           <div class="fg">
+            <!-- ⚠️ EL RÓTULO «auto ← Doppler» QUEDÓ FALSO Y NO SE TOCA (2026-10-08), igual que en
+                 el Ø TSVI de arriba: el pedido prohíbe cambiar rótulos, así que queda REPORTADO.
+                 El campo es una PUERTA del VTI del TSVI, no un espejo: lo que se tipea acá llega al
+                 Doppler aórtico, a Válvulas — Estenosis Aórtica y a Insuficiencia Mitral.
+                 `calcEM()` no se perdió: `vtiTsviCoordinar` lo lleva, y sin el gate de la pastilla
+                 que lo retenía con el bloque plegado. -->
             <label>VTI TSVI (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Doppler</span></label>
-            <input type="number" id="em_vtitsvi" placeholder="cm" oninput="calcEM()">
+            <input type="number" id="em_vtitsvi" placeholder="cm" oninput="vtiTsviEditado('em_vtitsvi')">
           </div>
           <div class="fg">
             <label>VTI mitral CW (cm)</label>
@@ -4478,7 +4484,10 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div class="fg">
           <label>VTI TSVI (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Doppler</span></label>
-          <input type="number" id="im_itv_tsvi" placeholder="cm" oninput="calcContIM();calcIM_ESC()">
+          <!-- ⚠️ Mismo caso: el rótulo quedó falso el 2026-10-08 y NO se toca — REPORTADO. Es una
+               PUERTA del VTI del TSVI. `calcContIM()` y `calcIM_ESC()` los lleva
+               `vtiTsviCoordinar`, sin el gate de la pastilla. -->
+          <input type="number" id="im_itv_tsvi" placeholder="cm" oninput="vtiTsviEditado('im_itv_tsvi')">
         </div>
         <div class="fg">
           <label>VTI mitral de entrada — pulsado (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &#8592; Doppler Mitral</span></label>
@@ -25991,8 +26000,14 @@ const _EA_PARES = Object.freeze({
      `iaSyncSiExiste` —el AVm por continuidad, la FR de la IM y el ratio jet/TSVI de la IAo leen este
      VTI— y el lado Válvulas sólo el tercero, por dentro de `syncEADesdeValvulas`. O sea que cargar
      el VTI TSVI por Válvulas dejaba a la MITRAL evaluándose sin él. La unión los lleva a los dos. */
-  ea_vtitsvi: { par:'itv_tsvi',   recalc:['eteShuntSyncSiExiste','imSyncSiExiste','emSyncSiExiste','iaSyncSiExiste'] },
-  itv_tsvi:   { par:'ea_vtitsvi', recalc:['eteShuntSyncSiExiste','imSyncSiExiste','emSyncSiExiste','iaSyncSiExiste'] },
+  /* ⚠️ `vtiTsviCoordinar` SE SUMÓ A ESTAS DOS EL 2026-10-08, y es lo único que `_EA_PARES` necesitó
+     para que el VTI TSVI sea UN dato con CUATRO campos: copia el valor a `em_vtitsvi` e
+     `im_itv_tsvi` y corre los tres recálculos de la mitral SIN el gate de la pastilla. Ver
+     «EL VTI DEL TSVI ES UN DATO CON CUATRO CAMPOS», abajo. Es un destino sumado a la lista: no se
+     agregó ninguna entrada —TC-445 exige ocho claves EXACTAS— ni se tocó `eaParSync`, ni
+     `eaParEditado`, ni el `oninput` de estos dos campos. */
+  ea_vtitsvi: { par:'itv_tsvi',   recalc:['eteShuntSyncSiExiste','imSyncSiExiste','emSyncSiExiste','iaSyncSiExiste','vtiTsviCoordinar'] },
+  itv_tsvi:   { par:'ea_vtitsvi', recalc:['eteShuntSyncSiExiste','imSyncSiExiste','emSyncSiExiste','iaSyncSiExiste','vtiTsviCoordinar'] },
   ea_vtiao:   { par:'itv_ao',     recalc:['eteShuntSyncSiExiste','iaSyncSiExiste'] },
   itv_ao:     { par:'ea_vtiao',   recalc:['eteShuntSyncSiExiste','iaSyncSiExiste'] }
 });
@@ -26021,6 +26036,95 @@ window._EA_PARES = _EA_PARES;
 window.eaParSync = eaParSync;
 
 /* La puerta — una sola función para los dos lados de cada campo. */
+/* ══ EL VTI DEL TSVI ES UN DATO CON CUATRO CAMPOS (2026-10-08) ═══════════════════════════════
+   `itv_tsvi` (Doppler aórtico, el PORTADOR: lo leen `calcAo`, el PDF, el PPT y el Excel),
+   `ea_vtitsvi` (Válvulas — Estenosis Aórtica), `em_vtitsvi` (Válvulas — Estenosis Mitral) e
+   `im_itv_tsvi` (Válvulas — Insuficiencia Mitral) son la MISMA medición. Los dos primeros ya eran
+   un PAR coordinado (`_EA_PARES`); los dos de la mitral eran ESPEJOS por `_syncDerivado`.
+   DECISIÓN DE MAICOL: un dato = un valor, editable desde los cuatro lugares y coordinado en los
+   DOS sentidos, y **desaparece «lo tipeado a mano gana»** — manda el último lugar editado.
+
+   Lo que esto cierra, MEDIDO en HEAD con teclas reales y VTI TSVI 20 cm:
+     · tipear en `em_vtitsvi` o en `im_itv_tsvi` dejaba los otros TRES campos VACÍOS, y las dos
+       cuentas PREFIEREN el campo sobre el global (`v('em_vtitsvi') || v('itv_tsvi')`): el AVm por
+       continuidad y la fracción regurgitante de la IM se computaban con un VTI que no existía en
+       ningún otro lado. La FR es un voto de `im_grado`, o sea del informe FIRMADO.
+     · BORRAR en cualquiera de los dos borraba sólo ahí, y un valor cargado ahí sobrevivía a que se
+       borrara en el Doppler o en Válvulas-aórtica.
+     · con el bloque de la mitral PLEGADO, tipear en el Doppler o en Válvulas-aórtica no llegaba a
+       los dos campos mitrales — el gate de las sincronías.
+
+   ⚠️ `_EA_PARES` NO SE TOCA, Y HAY UN CASO QUE LO EXIGE: TC-445 comprueba
+   `Object.keys(_EA_PARES).length === 8` EXACTO, así que agregar entradas lo pone en rojo. Lo que
+   el pedido permite —y lo único que hace falta— es SUMAR un nombre a la lista `recalc` de las dos
+   filas del VTI TSVI: `eaParEditado` las resuelve con `window[f]`, así que las dos puertas
+   aórticas entran a la coordinación sin que su `oninput` cambie una letra y sin tocar ni
+   `eaParSync` ni `eaParEditado`.
+   ⚠️ Y POR ESO `vtiTsviCoordinar` NO RECIBE EL ORIGEN: cuando la llama `eaParEditado`, `eaParSync`
+   ya igualó `itv_tsvi` y `ea_vtitsvi`, así que copiar DESDE EL PORTADOR da el mismo resultado por
+   los dos lados aórticos. Y desde las dos puertas mitrales, `vtiTsviEditado` copia primero y
+   después entra por `eaParEditado('itv_tsvi')`, donde el portador ya tiene el valor nuevo.
+   No hay recursión: `vtiTsviCoordinar` copia y recalcula, no vuelve a llamar a `eaParEditado`; la
+   segunda copia es idempotente —salida temprana por texto igual— y la guarda `_vtiTsviSinc` cubre
+   el caso de un `input` despachado a mano, que es lo que hacen los arneses.
+
+   Mismas tres propiedades que `tsviDiamSync`, por las mismas razones y medidas igual: guarda de
+   reentrada, salida temprana comparando el TEXTO crudo —«21» y «21.0» son el mismo número y dos
+   textos distintos, y el médico tiene que poder ver de un vistazo que los cuatro dicen LO MISMO— y
+   **el vacío se copia igual que un número**, que es la mitad del arreglo.
+   `_coordMarcarEspejo` deja la marca en los dos destinos registrados (`em_vtitsvi`,
+   `im_itv_tsvi`), para que `im_espejos` siga sellando los nueve. */
+let _vtiTsviSinc = false;
+const _VTI_TSVI_CAMPOS = ['itv_tsvi', 'ea_vtitsvi', 'em_vtitsvi', 'im_itv_tsvi'];
+function vtiTsviSync(origenId) {
+  if (_vtiTsviSinc) return null;
+  _vtiTsviSinc = true;
+  try {
+    const src = document.getElementById(origenId);
+    if (!src) return null;
+    const val = src.value;
+    const copiados = [];
+    _VTI_TSVI_CAMPOS.forEach((id) => {
+      if (id === origenId) return;
+      const dst = document.getElementById(id);
+      if (!dst || dst.value === val) return;
+      dst.value = val;
+      _coordMarcarEspejo(dst, val);
+      copiados.push(id);
+    });
+    return { origen: origenId, valor: val, copiados: copiados };
+  } finally { _vtiTsviSinc = false; }
+}
+window.vtiTsviSync = vtiTsviSync;
+window._VTI_TSVI_CAMPOS = _VTI_TSVI_CAMPOS;
+
+/* ══ LOS TRES RECÁLCULOS DE LA MITRAL, Y VAN SIN CONDICIÓN ═══════════════════════════════════
+   `imSyncSiExiste` y `emSyncSiExiste` —que `_EA_PARES` ya traía en la `recalc` de estas dos
+   filas— llaman a `calcEM`, `calcContIM` y `calcIM_ESC` POR DENTRO, pero gateados por la
+   pastilla: `emSyncSiExiste` sale por `if (pares.length)` y `imSyncSiExiste` filtra sus pares. Con
+   el bloque de la mitral plegado —el estado en que queda después de `limpiarCampos`, incluso al
+   reabrir un estudio— editar el VTI TSVI dejaba el AVm por continuidad y la FR computados con el
+   valor ANTERIOR. Los `oninput` de `em_vtitsvi` e `im_itv_tsvi` los disparaban SIN condición, así
+   que el conjunto mayor los lleva sin condición desde las cuatro puertas.
+   Van DESPUÉS de la copia, porque las tres leen la cascada `em_vtitsvi || itv_tsvi`. */
+function vtiTsviCoordinar() {
+  vtiTsviSync('itv_tsvi');
+  if (typeof calcEM === 'function') calcEM();
+  if (typeof calcContIM === 'function') calcContIM();
+  if (typeof calcIM_ESC === 'function') calcIM_ESC();
+}
+window.vtiTsviCoordinar = vtiTsviCoordinar;
+
+/* La puerta de los DOS campos de la mitral. Copia desde el campo editado —que es el único que
+   `vtiTsviCoordinar` no puede deducir— y después entra por la puerta de la aórtica, que trae
+   `calcAo`, los cuatro espejos, `_eaDetCuentaPura` y, en su `recalc`, los tres de arriba. */
+function vtiTsviEditado(origenId) {
+  vtiTsviSync(origenId);
+  if (typeof eaParEditado === 'function') eaParEditado('itv_tsvi');
+  else vtiTsviCoordinar();
+}
+window.vtiTsviEditado = vtiTsviEditado;
+
 function eaParEditado(origenId) {
   eaParSync(origenId);
   calcAo();
@@ -98801,8 +98905,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261008-2352';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791514349064;                 /* eco-build-ms */
+const ECO_BUILD    = '20261009-0004';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791515074612;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -98888,7 +98992,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-2352</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-0004</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
