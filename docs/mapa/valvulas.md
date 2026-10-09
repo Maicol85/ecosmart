@@ -14,8 +14,18 @@ Convenciones transversales: **el pintor no decide** (`etEstado`/`easvEstado`/`te
 ## Mitral
 
 `calcEM` — severidad integrada: Gmax `4V²` + categoría de `emCategoria`; el THP entra por `avm_thp_val`,
-no como criterio aparte — lee: `em_vmax`, `em_gmedio`, `avm_plan`, `avm_ete`; escribe: `em_gmax`,
+no como criterio aparte — lee: `em_vmax`, `em_gmedio`, `avm_plan`; escribe: `em_gmax`,
 `em-gmax-row`, `em_grado` — llamada por: `calcTHP`, `emContRefrescar`.
+
+**El área de Wilkins por ETE (`avm_ete`) NO es una fuente** (2026-10-08, decisión de Maicol). Las
+fuentes de área son **tres**: planimetría (`avm_plan`), THP y continuidad. La regla de combinación no
+cambió — sigue «prevalece el peor». El nodo **existe y está oculto** (`display:none` + `aria-hidden`
++ `tabindex="-1"`, el patrón de `em_grado` y `ea_grado`): lo persiste `guardarInforme`, lo repone
+`limpiarCampos`, y un estudio guardado lo reabre con su valor **intacto y sin votar**. No lo lee ni
+`emCategoria`, ni el informe (nativo ni protésico), ni el EN SUMA, ni el PDF, ni `VALVS.mide`, ni el
+panel de Evidencia, ni el espejo del TEER. Nunca tuvo columna en el Excel ni mapeo en ningún
+importador, ni entrada en ninguna tabla de rangos — y esto último es por qué un `150` tipeado ahí
+subía al PDF firmado sin marca «(revisar)».
 
 `emCategoria` — junta **todas** las fuentes de AVm válidas, no sólo la preferida de la ASE 2023 →
 `{clave, gm, fuentes, sev, noSev, revisar}`, `clave:'protesis'` si lo es; su `_tomar(id, fuente, vota,

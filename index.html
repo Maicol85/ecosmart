@@ -23721,10 +23721,11 @@ function emImSignificativa(src){
   const im = _emRegurgGrado('im_grado', src);
   return im === null || im >= EM_CONT_REGURG_MIN;
 }
-/* ⚠️ LA BANDA DE PLAUSIBILIDAD, QUE `emCategoria` NO TENÍA. Leía `avm_plan`, `avm_ete`, `avm_thp` y
-   `em_gmedio` CRUDOS: sólo la continuidad se gateaba, así que la asimetría vivía dentro de la misma
-   función. Un AVm de 150 —mm² tipeados donde van cm²— degradaba una estenosis severa real a
-   «probablemente», y un gradiente de 600 publicaba «estenosis con gradiente medio elevado». Y el
+/* ⚠️ LA BANDA DE PLAUSIBILIDAD, QUE `emCategoria` NO TENÍA. Leía `avm_plan`, `avm_thp` y
+   `em_gmedio` CRUDOS —y, hasta el 2026-10-08, también `avm_ete`, que ya no es una fuente—: sólo la
+   continuidad se gateaba, así que la asimetría vivía dentro de la misma función. Un AVm de 150
+   —mm² tipeados donde van cm²— degradaba una estenosis severa real a «probablemente», y un
+   gradiente de 600 publicaba «estenosis con gradiente medio elevado». Y el
    panel de Evidencia SÍ bandea y declara «revisar la unidad», o sea que la app se negaba a clasificar
    en la pantalla de consulta y clasificaba en el documento que se firma. Lo cazó `/sharp-edges`.
    Un valor fuera de banda NO se clasifica —ni afirma ni degrada—, se muestra con su marca y no vota:
@@ -34159,10 +34160,13 @@ function generarInforme(opts) {
        UNA SOLA LÍNEA PARA LAS DOS RAMAS —la nativa y la de prótesis—: la pregunta es la misma y
        dos líneas separadas se desincronizan, que es lo que este archivo ya pagó con el predicado
        del mecanismo de IM escrito dos veces.
-       ⚠️ Y CUBRE DOS CAMPOS DE CINCO, QUE NO ES LO MISMO QUE CUBRIR LA PREGUNTA. `emCategoria`
-       ya recoge en `cat.revisar` cinco cosas fuera de banda: `avm_plan`, `avm_ete`, `avm_cont`,
-       el THP y `em_gmedio`. Esta línea mira sólo el THP y `em_vmax` —que ni siquiera está en esa
-       lista, porque no es fuente de área— porque es lo único que esta decisión autoriza. Medido:
+       ⚠️ Y CUBRE DOS CAMPOS DE CUATRO, QUE NO ES LO MISMO QUE CUBRIR LA PREGUNTA. `emCategoria`
+       ya recoge en `cat.revisar` cuatro cosas fuera de banda: `avm_plan`, `avm_cont`, el THP y
+       `em_gmedio`. Eran CINCO hasta el 2026-10-08: `avm_ete` salió de las fuentes, y de paso dejó
+       de ser el único de la lista SIN banda en ninguna tabla —el hueco por el que un 150 tipeado
+       ahí no entraba a `revisar` ni siquiera cuando era la única medición—. Esta línea mira sólo
+       el THP y `em_vmax` —que ni siquiera está en esa lista, porque no es fuente de área— porque
+       es lo único que esta decisión autoriza. Medido:
        con `avm_plan = 150` (mm² donde van cm²) y nada más, el informe firmado SIGUE diciendo «sin
        estenosis ni insuficiencia», que es palabra por palabra el defecto que esta línea cierra
        para el THP. Queda REPORTADO y no tocado; derivar la lista de `cat.revisar` lo cerraría de
@@ -95955,8 +95959,11 @@ const _labTeerAplica = (c, tipoIM) => !c.tipo
      además no tiene ningún otro campo TEER —un ETE de IM funcional sin nada más medido—
      `ingresados` llega a 2 y el estudio cae en uno de los cuatro veredictos decidido por dos
      valores que nadie tipeó, en vez de en «Sin criterios anatómicos cargados». Es estrecho
-     (exige `psap_calc`, `ete_lva` y `avm_plan`/`avm_ete` los tres vacíos) y no sale del
-     dashboard, pero está reportado. */
+     (exige `psap_calc`, `ete_lva` y `avm_plan` los tres vacíos) y no sale del
+     dashboard, pero está reportado.
+     ⚠️ Decía `avm_plan`/`avm_ete` hasta el 2026-10-08: el espejo `avm_ete → teer_area_mitral` se
+     retiró con la fuente, así que el área de Wilkins por ETE ya no puede poblar el criterio de
+     área del TEER y el escenario estrecho de arriba depende de un campo menos. */
 const _labUsaTeer = i => _labCampoRaw(i,'teer_tipo_im') !== ''
     || _LAB_TEER_CRIT.some(c => c.tipo !== 'coapt' && _labNum(i, c.campo) !== null);
 
@@ -98670,8 +98677,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261008-2336';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791513378324;                 /* eco-build-ms */
+const ECO_BUILD    = '20261008-2338';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791513487859;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -98757,7 +98764,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-2336</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-2338</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

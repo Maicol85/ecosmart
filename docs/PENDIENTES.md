@@ -184,8 +184,9 @@ comportamiento «en espera» a propósito—; **TC-402 … TC-407** nuevos. Muta
 - El selector «Incluir en el informe» deja imprimir una continuidad inválida.
 - `index.html` ~22263 afirma que `calcEM` vacía `avm_cont` con `emContValido()` falso; no lo hace
   (el gate es la casilla): corregir comentario.
-- Negación tranquilizadora del informe con valores fuera de banda en `avm_plan`, `avm_ete`,
-  `avm_cont` y `em_gmedio`.
+- Negación tranquilizadora del informe con valores fuera de banda en `avm_plan`, `avm_cont` y
+  `em_gmedio`. Eran cuatro: `avm_ete` salió el 2026-10-08 al dejar de ser una fuente, y era el único
+  de los cuatro **sin banda en ninguna tabla**, o sea el que ni llegaba a `cat.revisar`.
 - AVm indexada (`avm_idx`): marca de pantalla cuando viene de la continuidad; el Excel exporta el
   valor crudo.
 - Piso de 20 ms del THP: un THP real por debajo se retiraría del informe.

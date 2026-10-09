@@ -105,8 +105,15 @@ publiquen el mismo texto carácter por carácter.
 
 `emAvmPdfVal()` — arma la celda «AVm» uniendo con ` · ` los métodos marcados: THP (texto de
 `emAvmThpPdfTxt`, con prefijo `'THP: '` salvo cuando es el literal de «no evaluable»),
-`Cont:` desde `avm_cont` y `Plan:` desde `avm_plan`/`avm_ete` — lee los checkbox `em_pdf_cont` y
+`Cont:` desde `avm_cont` y `Plan:` desde `avm_plan` — lee los checkbox `em_pdf_cont` y
 `em_pdf_plan`; no recalcula fórmulas, lee los campos ya calculados.
+
+> `Plan:` leía `avm_plan`/`avm_ete` hasta el **2026-10-08**: el área de Wilkins por ETE dejó de ser
+> una fuente (ver `docs/mapa/valvulas.md` → Mitral). Medido en HEAD antes del cambio: con el área por
+> ETE como única medición el PDF **firmado** publicaba `Plan: 1.20 cm2`, y con un `150` tipeado donde
+> van cm², `Plan: 150.00 cm2` **sin marca** — `avm_ete` no estaba en ninguna tabla de rangos. La
+> misma precedencia la compartían `em-plan-row`, `emPdfMetodosUI`, `emPdfValsSync` y
+> `_PDF_METODOS.em_pdf_plan`; las cinco leen hoy un solo campo.
 
 `emPdfValsSync()`, `emPdfMetodosUI(thpVal, contVal, planVal, contAuto)`, `_emPdfThpSpanSync`,
 `_emPdfChk` — mantienen el panel «🖨️ Incluir en el informe» diciendo lo mismo que el papel. El
