@@ -36831,13 +36831,27 @@ caso('TC-297', 'El VTI mitral DE ENTRADA vive en Doppler, vtim es su espejo, la 
       ['el campo nuevo de Doppler crea el espejo en vtim', espejoCreado === '13/13', espejoCreado],
       ['y el espejo SIGUE al origen', espejoSigue === '16', espejoSigue],
       ['el oculto declara que vtim es espejo', hiddenDeclara.indexOf('vtim=16') > -1, hiddenDeclara],
-      ['un vtim tipeado a mano NO se pisa', manualGana === '22', manualGana],
+      /* ⚠️ «NO SE PISA» SE INVIRTIO EL 2026-10-08, Y ES LA DECISION DE ESA TANDA: itv_mitral y vtim
+         son UN dato con DOS puertas, asi que manda el ULTIMO LUGAR EDITADO. El escenario tipea 22
+         en vtim a mano y despues 19 en el Doppler: hoy vtim queda en 19. No es una regresion — un
+         dato con un solo valor no puede tener una copia que discrepe, y esa copia huerfana
+         alimentaba el Vol-R, el EROA y la FR por la cascada. */
+      ['el ULTIMO LUGAR EDITADO manda: tras tipear 22 a mano, cargar 19 en el Doppler SI lo pisa',
+        manualGana === '19', manualGana],
       ['al guardar, el oculto anota vtim como espejo', antesGuardar === '15/true', antesGuardar],
       ['la marca vuelve del estudio guardado', trasReabrir === '15/15', trasReabrir],
       ['asi que re-medir el origen en un estudio reabierto SI mueve el volumen mitral',
         trasRemedir === '20/141.4', trasRemedir],
       ['un estudio SIN registro de marcas ni campo nuevo reabre igual', viejoIntacto === '15/106.0/', viejoIntacto],
-      ['y cargar el campo nuevo NO le pisa el vtim manual', viejoNoSePisa === '15', viejoNoSePisa],
+      /* ⚠️ MISMA INVERSION, Y ES EL ESCENARIO QUE EL COMMIT G NOMBRA: un estudio VIEJO —con
+         im_espejos e itv_mitral borrados del registro, que es el legado de cuando vtim era el
+         unico lugar donde se cargaba el VTI de entrada— ABRE COMO ESTA, y eso lo fija la condicion
+         de arriba (viejoIntacto), que no se toco y sigue verde. Lo que cambia es de ahi en
+         adelante: el primer gesto del medico en cualquiera de las dos puertas los iguala. La
+         coordinacion actua al EDITAR, no al ABRIR, y las dos condiciones juntas son lo que fija
+         esa distincion sobre un estudio legado de verdad. */
+      ['y en ese estudio viejo, cargar el campo nuevo DESPUES iguala los dos: la coordinacion actua al editar',
+        viejoNoSePisa === '25', viejoNoSePisa],
       ['el VTI del CHORRO en la casilla del de ENTRADA no produce NINGUN numero',
         fuera130 === '||' + '|VTI de entrada fuera de rango — verificar', fuera130],
       ['y lo dice nombrando el valor ilegible', /Fuera de rango/.test(fuera130Dice) && /130/.test(fuera130Dice), fuera130Dice],

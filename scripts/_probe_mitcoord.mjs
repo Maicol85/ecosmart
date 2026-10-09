@@ -1035,6 +1035,65 @@ async function main() {
     out.GUARD = G;
   }
 
+  /* ══ AB — LAS SUPERFICIES FIRMADAS, CON UN ESCENARIO COMPLETO ════════════════════════════
+     El escenario se siembra por los campos CANONICOS —los que en HEAD ya llegaban a todas partes:
+     diam_tsvi_ao, itv_tsvi, ai_area, thp, itv_mitral— asi que en HEAD los espejos mitrales se
+     llenan por _syncDerivado con las pastillas abiertas y en el arbol nuevo por la coordinacion.
+     Si las dos superficies coinciden, la propagacion nueva no movio una sola salida firmada.
+     Se comparan UNA POR UNA: informe narrativo (tres estilos), EN SUMA, Excel entero (434
+     columnas, celda por celda), PPT, Laboratorio, panel de Evidencia, los espejos del TEER y el de
+     morfologia/etiologia, mas las lineas de las OTRAS TRES valvulas como control negativo. */
+  if (hacer('AB')) {
+    const A = {};
+    const ESC = [['nombre','AB Completo'], ['ci','9990009'], ['edad','70'],
+                 ['talla','170'], ['peso','70'], ['hemo_fc','70'], ['pmad','5'], ['hemo_pam','90'],
+                 /* los CINCO datos, por su campo canonico */
+                 ['diam_tsvi_ao','22'], ['itv_tsvi','20'], ['ai_area','26'], ['thp','150'],
+                 ['itv_mitral','12'],
+                 /* el resto de la mitral, para que el informe hable */
+                 ['em_vtimit','60'], ['avm_plan','1.2'], ['em_gmedio','9'], ['em_vmax','1.5'],
+                 ['diam_mit','30'], ['im_itv','130'], ['im_jet_area','8'],
+                 ['pisa_r','7'], ['pisa_val','40'], ['im_vmax','500'],
+                 ['vdfvi','120'], ['vsfvi','50'],
+                 /* CONTROL NEGATIVO: las otras tres valvulas y la aortica cargadas */
+                 ['itv_ao','24'], ['vmax_ao','3'], ['gmedio_ao','20'],
+                 ['vmax_it','3'], ['et_gmedio','4'], ['vp_vmax','2'], ['ip_vmax','1.5'],
+                 /* el espejo de morfologia/etiologia y los del TEER */
+                 ['vm_morf','Reumática'], ['fevi','45'], ['dsfvi','52']];
+    await base();
+    for (const [id, val] of ESC) await ev(`window.__P.set(${JSON.stringify(id)}, ${JSON.stringify(val)})`);
+    await pausa(300);
+    A.escena = ESC;
+    A.campos = JSON.parse(await ev(`(function(){ var c = window.__P.campos(); var o = {};
+      ['diam_tsvi_ao','diam_tsvi','ea_dtsvi','em_dtsvi','im_dtsvi','itv_tsvi','ea_vtitsvi',
+       'em_vtitsvi','im_itv_tsvi','ai_area','im_ai_area','thp','em_thp_display','itv_mitral',
+       'vtim','em_vtimit','avm_ete','avm_plan','avm_cont','avm_thp','avm_idx',
+       'em_grado','im_grado','ea_grado','ia_grado','it_grado','et_grado','ep_grado','ip_grado',
+       'vm_morf','ete_etiologia','va_morf','vt_morf','vp_morf',
+       'teer_fevi','teer_dtsvi','teer_pasp','teer_area_mitral','teer_lva','teer_lvp'
+      ].forEach(function(k){ o[k] = c[k] === undefined ? '(NO EXISTE)' : c[k] });
+      return JSON.stringify(o) })()`));
+    /* LAS CUATRO SUPERFICIES, UNA POR UNA. */
+    A.informe = {};
+    for (const est of ['conciso', 'estandar', 'narrativo']) {
+      const r = JSON.parse(await ev(`JSON.stringify(window.__P.informe(${JSON.stringify(est)}))`));
+      A.informe[est] = { inf: r.inf, suma: r.suma };
+    }
+    A.excel = JSON.parse(await ev(`JSON.stringify(window.__P.excel())`));
+    A.excelCols = await ev(`window.__P.excelCols()`);
+    A.ppt = await fotoDe('ppt');
+    A.lab = await fotoDe('labEM');
+    A.evidencia = await fotoDe('evidencia');
+    A.pdfEm = await ev(`(function(){ try { return emAvmPdfVal() } catch(e) { return 'EXC: ' + e.message } })()`);
+    A.pdfIm = JSON.parse(await ev(`(function(){ try { return JSON.stringify({
+      eroa: imEroaPdfVal(), volr: imVolrPdfVal() }) } catch(e) { return JSON.stringify({err:e.message}) } })()`));
+    A.teer = await fotoDe('abrirTeer');
+    await ev(`try { showTab('valvulas') } catch(e) {}`);
+    A.calc = { tsvi: await fotoDe('fotoTsvi'), vti: await fotoDe('fotoVti'),
+               ai: await fotoDe('fotoAi'), thp: await fotoDe('fotoThp'), vtim: await fotoDe('fotoVtim') };
+    out.AB = A;
+  }
+
   /* ══ MOV — 1200, 390 y 360 px: sin desborde ni barra horizontal ═══════════════════════════ */
   if (hacer('MOV')) {
     const mov = {};

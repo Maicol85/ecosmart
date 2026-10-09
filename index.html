@@ -3464,7 +3464,10 @@ window.cerrarSesionReal = cerrarSesionReal;
              pero contestan otra pregunta. -->
         <div class="fg">
           <label>VTI mitral de entrada — Doppler pulsado (cm)</label>
-          <input type="number" id="itv_mitral" placeholder="cm" oninput="imSyncSiExiste()">
+          <!-- `imSyncSiExiste()` hasta el 2026-10-08. Sigue corriendo, dentro de
+               `vtiMitralEditado`, que además copia el valor a `vtim` y corre `calcContIM` y
+               `calcIM_ESC` sin el gate de la pastilla. -->
+          <input type="number" id="itv_mitral" placeholder="cm" oninput="vtiMitralEditado('itv_mitral')">
         </div>
       </div>
 
@@ -4493,8 +4496,13 @@ window.cerrarSesionReal = cerrarSesionReal;
           <input type="number" id="im_itv_tsvi" placeholder="cm" oninput="vtiTsviEditado('im_itv_tsvi')">
         </div>
         <div class="fg">
+          <!-- ⚠️ EL RÓTULO «auto ← Doppler Mitral» QUEDÓ FALSO Y NO SE TOCA (2026-10-08): el
+               pedido prohíbe cambiar rótulos, así que queda REPORTADO. Es una PUERTA del VTI
+               mitral de entrada, no un espejo — lo que se tipea acá llega al Doppler Mitral, que
+               es la casilla que exportan DICOM y FHIR. Las dos cuentas no se perdieron: las lleva
+               `vtiMitralEditado`, sin el gate de la pastilla. -->
           <label>VTI mitral de entrada — pulsado (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &#8592; Doppler Mitral</span></label>
-          <input type="number" id="vtim" placeholder="cm" oninput="calcContIM();calcIM_ESC()">
+          <input type="number" id="vtim" placeholder="cm" oninput="vtiMitralEditado('vtim')">
         </div>
         <div class="fg">
           <label>Ø anillo mitral (mm)</label>
@@ -26039,6 +26047,73 @@ window._EA_PARES = _EA_PARES;
 window.eaParSync = eaParSync;
 
 /* La puerta — una sola función para los dos lados de cada campo. */
+/* ══ EL VTI MITRAL DE ENTRADA ES UN DATO CON DOS CAMPOS (2026-10-08) ═════════════════════════
+   `itv_mitral` (Doppler Mitral, donde se MIDE: es el que exportan DICOM y FHIR con el código
+   privado `CM-VTIMITENT`) y `vtim` (Válvulas — Insuficiencia Mitral, el que leen `calcContIM` y el
+   informe) son la MISMA medición: la envolvente del flujo de entrada por Doppler PULSADO. El
+   segundo era un ESPEJO por `_syncDerivado`. DECISIÓN DE MAICOL: un dato = un valor, y
+   **desaparece «lo tipeado a mano gana»** — manda el último lugar editado.
+
+   ⚠️ EL VTI MITRAL **CW** DE LA ESTENOSIS (`em_vtimit`) ES OTRA MEDICIÓN Y NO SE COORDINA. Es
+   Doppler CONTINUO sobre el chorro de la estenosis y es el DENOMINADOR de la ecuación de
+   continuidad del AVm; éste es el PULSADO de la entrada. Dos nombres a un carácter de distancia
+   para dos cosas distintas —el archivo ya pagó eso con `vp_` y `venp_`—, así que queda dicho acá:
+   `em_vtimit` NO entra a `_VTI_MITRAL_CAMPOS` y su `oninput` sigue siendo `calcEM()`.
+
+   ⚠️ ESTE PAR MUDÓ EL ORIGEN, y es la diferencia que importa con los otros tres datos: `vtim` fue
+   durante mucho tiempo el ÚNICO lugar donde se cargaba el VTI de entrada, así que **hay estudios
+   guardados con `vtim` poblado e `itv_mitral` inexistente**. No se migra nada —lo prohíbe el
+   pedido y además sería reescribir mediciones—: al reabrir uno de esos, `itv_mitral` queda vacío,
+   `vtim` conserva su valor y el informe sale igual. Lo que cambia es de ahí en adelante: el primer
+   gesto en cualquiera de los dos los iguala, y ESE gesto es una edición del médico.
+
+   Lo que esto cierra, MEDIDO en HEAD con teclas reales y VTI 12 cm:
+     · tipear en `vtim` dejaba `itv_mitral` VACÍO, o sea el dato cargado en Válvulas y la casilla
+       del Doppler —donde se mide, y la que exporta DICOM— en blanco;
+     · BORRAR en `vtim` borraba sólo ahí, y un valor cargado ahí sobrevivía a que se borrara en el
+       Doppler;
+     · con el bloque de IM PLEGADO, tipear en el Doppler no llegaba a `vtim`.
+
+   Mismas tres propiedades que los otros grupos: guarda de reentrada, salida temprana por TEXTO
+   igual y el vacío se copia igual que un número. `_coordMarcarEspejo` deja la marca en `vtim`, que
+   es destino registrado, para que `im_espejos` siga sellando los nueve. */
+let _vtiMitralSinc = false;
+const _VTI_MITRAL_CAMPOS = ['itv_mitral', 'vtim'];
+function vtiMitralSync(origenId) {
+  if (_vtiMitralSinc) return null;
+  _vtiMitralSinc = true;
+  try {
+    const src = document.getElementById(origenId);
+    if (!src) return null;
+    const val = src.value;
+    const copiados = [];
+    _VTI_MITRAL_CAMPOS.forEach((id) => {
+      if (id === origenId) return;
+      const dst = document.getElementById(id);
+      if (!dst || dst.value === val) return;
+      dst.value = val;
+      _coordMarcarEspejo(dst, val);
+      copiados.push(id);
+    });
+    return { origen: origenId, valor: val, copiados: copiados };
+  } finally { _vtiMitralSinc = false; }
+}
+window.vtiMitralSync = vtiMitralSync;
+window._VTI_MITRAL_CAMPOS = _VTI_MITRAL_CAMPOS;
+
+/* La puerta. La unión de lo que las dos disparaban: el lado Doppler traía `imSyncSiExiste` —que
+   mantiene al día los otros pares de `_IM_ESPEJOS`— y el de Válvulas `calcContIM` + `calcIM_ESC`
+   SIN condición. Los dos últimos van sin condición desde las dos puertas, porque con el bloque
+   plegado el gate de `imSyncSiExiste` los retenía y el Vol-R, el EROA y la FR quedaban con el
+   valor anterior. */
+function vtiMitralEditado(origenId) {
+  vtiMitralSync(origenId);
+  if (typeof imSyncSiExiste === 'function') imSyncSiExiste();
+  if (typeof calcContIM === 'function') calcContIM();
+  if (typeof calcIM_ESC === 'function') calcIM_ESC();
+}
+window.vtiMitralEditado = vtiMitralEditado;
+
 /* ══ EL ÁREA DE LA AI ES UN DATO CON DOS CAMPOS (2026-10-08) ═════════════════════════════════
    `ai_area` (AI/VI, el PORTADOR: lo leen `calcAI`, el PDF, el Excel —columna «Área AI (cm²)»—, el
    importador XML del ecógrafo por `2D/LA Area` y el panel de referencias) e `im_ai_area`
@@ -98977,8 +99052,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261009-0012';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791515574795;                 /* eco-build-ms */
+const ECO_BUILD    = '20261009-0018';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791515881179;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -99064,7 +99139,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-0012</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-0018</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
