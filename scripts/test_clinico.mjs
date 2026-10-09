@@ -36515,18 +36515,21 @@ caso('TC-296', 'Insuficiencia mitral: las tres casillas «auto» espejan, SIGUEN
 
     return { extra: [
       ['los ids del escenario existen', faltan.length === 0, faltan.join(',') || 'todos'],
-      /* ⚠️ ERAN '//' —los TRES vacios— HASTA EL 2026-10-08. El O TSVI y el VTI TSVI pasaron a ser
-         datos COORDINADOS, con cinco y cuatro puertas, y la regla nueva es que editar en un lugar
-         escribe el dato en TODOS, este el bloque visible o plegado: con la pastilla cerrada los
-         dos llegan igual. El AREA DE LA AI sigue vacia en este commit porque su coordinacion es
-         la del commit siguiente; cuando entre, el valor esperado pasa a '21/18/26'.
-         Lo que estas dos condiciones CONSERVAN es que la sincronia por espejo (_syncDerivado +
-         su gate) no CREA nada en una seccion apagada: el campo que no tiene puerta propia sigue
-         en blanco, que es lo que el gate existe para garantizar. */
-      ['con la pastilla CERRADA llegan los DOS datos coordinados; el que no tiene puerta propia no se CREA',
-        cerradaTres === '21/18/', cerradaTres],
-      ['y con la pastilla cerrada la sincronia no CREA espejo aunque cambie el origen —los dos coordinados llegan por su puerta—',
-        noCrea === '21/18/', noCrea],
+      /* ⚠️ ERAN '//' —los TRES vacios— HASTA EL 2026-10-08, Y HOY LLEGAN LOS TRES. El O TSVI, el
+         VTI TSVI y el area de la AI son los tres datos COORDINADOS de esta tanda —cinco, cuatro y
+         dos puertas— y la regla es que editar en un lugar escribe el dato en TODOS, este el bloque
+         visible o plegado. Ninguno llega por el espejo: llegan por su puerta.
+         ⚠️ Y CON ESTO EL CASO SE QUEDA SIN SU CONDICION SOBRE EL GATE, que hay que decirlo: los
+         tres campos que mide son exactamente los tres primeros pares de _IM_ESPEJOS, asi que
+         despues de esta tanda ninguno depende del gate de sincronizarIMDesdeGlobal para llegar. El
+         CUARTO par (itv_mitral -> vtim) entra en el commit que viene y deja al gate sin ningun
+         destino propio en la mitral. Lo que el caso sigue probando, y es la mitad que importa, es
+         que los derivados y el grado FIRMADO no se mueven entre las dos configuraciones, y el
+         round-trip del guardado. */
+      ['con la pastilla CERRADA llegan los TRES datos coordinados, cada uno por su puerta',
+        cerradaTres === '21/18/26', cerradaTres],
+      ['y mover el origen con la pastilla cerrada los sigue moviendo: no hay espejo congelado',
+        noCrea === '21/18/44', noCrea],
       ['al ABRIR, las tres muestran el valor del origen', alAbrir === '21/18/26', alAbrir],
       /* La condicion anti-regresion de verdad: el mismo escenario con las casillas vacias (o sea el
          estado de antes de esta sincronia) contra las casillas espejando. */
@@ -36575,8 +36578,17 @@ caso('TC-296', 'Insuficiencia mitral: las tres casillas «auto» espejan, SIGUEN
       ['asi que RE-MEDIR el area en un estudio reabierto SI mueve el grado',
         reEspejo === '18' && reRatio === '50.0%' && reGrado === '4/4',
         'espejo=' + reEspejo + ' ratio=' + reRatio + ' grado=' + reGrado],
-      ['pero lo MANUAL guardado sigue intacto al reabrir y al mover el origen',
-        manAlReabrir === '33' && manTrasMover === '33', manAlReabrir + ' -> ' + manTrasMover],
+      /* ⚠️ ESTA CONDICION SE PARTIO EN DOS EL 2026-10-08, y la primera mitad es la que el pedido
+         EXIGE: un estudio guardado abre COMO SE GUARDO —nada se migra, nada se reescribe al
+         abrir—, asi que el 33 que el medico tipeo a mano vuelve en 33. Lo que cambio es la segunda
+         mitad: desde que el area de la AI es UN dato con DOS puertas, mover el origen DESPUES
+         —que es una EDICION— lo iguala, porque «lo tipeado a mano gana» desaparecio para los
+         datos coordinados y manda el ultimo lugar editado. La coordinacion actua al EDITAR, no al
+         ABRIR, y las dos condiciones juntas son justamente lo que fija esa distincion. */
+      ['lo MANUAL guardado abre intacto: el estudio no se migra ni se reescribe al abrirlo',
+        manAlReabrir === '33', 'al reabrir=' + manAlReabrir],
+      ['y mover el origen DESPUES lo iguala: la coordinacion actua al EDITAR, no al abrir',
+        manTrasMover === '18', manAlReabrir + ' -> ' + manTrasMover],
       /* El oculto es input[type=hidden]: el barrido de limpiarCampos toma text y number, asi que
          hay que vaciarlo A MANO. Sin eso la declaracion del paciente anterior sobrevive. */
       ['el oculto se vacia en «Nuevo estudio»', ocultoTrasLimpiar === '', '«' + ocultoTrasLimpiar + '»'],

@@ -273,6 +273,41 @@ window.__P = {
     e.dispatchEvent(new Event('change', { bubbles: true }));
     return { id: id, leido: e.value } },
 
+  /* ⚠️ SIN EVENTOS, Y HACE FALTA PARA ARMAR UN GUARDADO CON VALORES DIVERGENTES. Con set() cada
+     asignacion despacha input, y desde esta tanda eso dispara la coordinacion: sembrar 19, 21,
+     23, 25 y 27 en los cinco campos del O TSVI deja los CINCO en 27, porque cada uno pisa al
+     anterior. Medido — la primera corrida informo «27 en los cinco» y eso no es el estudio que la
+     escena dice armar. Un estudio guardado ANTES de esta tanda trae sus valores por el barrido de
+     restauracion, que escribe .value y no despacha nada: esto es exactamente eso. */
+  setRaw(id, valor) {
+    var e = document.getElementById(id);
+    if (!e) return { err: 'NO EXISTE ' + id };
+    e.value = String(valor);
+    return { id: id, leido: e.value } },
+
+  /* GUARDAR de verdad: guardarInforme toma un callback, el guardado es ASINCRONO (IndexedDB con
+     respaldo en localStorage) y puede aparecer la card de severidades, que hay que CONFIRMAR con
+     su propio boton. Calcado del arnes de la suite, incluido el _ettEditandoId = null que evita
+     el modal de «sobreescribir / guardar como nuevo». La clave del estudio es estudioId y no
+     id: mi primera version leyo .id y el reabrir tiraba «Cannot read properties of undefined». */
+  guardar() {
+    window._ettEditandoId = null;
+    var antes = new Set(getInformes().map(function(i){ return i.estudioId }));
+    return new Promise(function(resolve){
+      var alTerminar = function(ok){
+        var nuevo = getInformes().find(function(i){ return !antes.has(i.estudioId) });
+        resolve({ ok: ok === true, estudioId: nuevo ? nuevo.estudioId : null });
+      };
+      try { guardarInforme(alTerminar) } catch(e) { resolve({ ok:false, error:String(e) }); return }
+      var cf = document.getElementById('rev-confirm');
+      if (cf) cf.click();
+    }) },
+  reabrir(estudioId) { try { cargarEstudioPorId(estudioId); return 'ok' }
+    catch(e) { return 'EXC: ' + e.message } },
+  borrarEstudio(estudioId) {
+    if (!estudioId) return Promise.resolve(false);
+    return CeiboStore.setLocal(getInformes().filter(function(i){ return i.estudioId !== estudioId })) },
+
   campos() {
     var c = {};
     document.querySelectorAll('input[id], select[id], textarea[id]').forEach(function(el){
@@ -913,26 +948,37 @@ async function main() {
     out.RECALC = R;
   }
 
-  /* ══ GUARDADOS — la escena de control de la verificacion 4 ════════════════════════════════ */
+  /* ══ GUARDADOS — la escena de control de la verificacion 4 ════════════════════════════════
+     ⚠️ DOS COSAS QUE LA PRIMERA CORRIDA HIZO MAL Y LAS DOS DABAN UN RESULTADO PLAUSIBLE:
+       1. guardaba con `guardarInforme()` pelado y leia `getInformes()[0].id`. El guardado es
+          ASINCRONO y puede pedir confirmar la card de severidades, asi que nunca persistio
+          —`reabrir` informo «SIN ESTUDIOS»— y la escena midio el FORMULARIO VIVO creyendo medir un
+          estudio reabierto. Ahora usa `__P.guardar()`, calcado del arnes de la suite, y la clave
+          correcta, que es `estudioId`.
+       2. sembraba los valores divergentes con `set`, que despacha `input` y por lo tanto dispara
+          la coordinacion: 19, 21, 23, 25 y 27 dejaban los CINCO campos en 27. Un guardado con
+          valores distintos entre lugares SOLO existe como legado —de antes de esta tanda— y se
+          arma con `setRaw`, que escribe sin eventos, que es lo que hace el barrido de
+          restauracion. */
   if (hacer('GUARD')) {
     const G = {};
-    /* (a) Guardar con el area de la AI en 26, reabrir, RE-MEDIR a 18 y leer im_grado. */
+    /* (a) Guardar con el area de la AI en 26, reabrir, RE-MEDIR a 18 y leer im_grado. Es la escena
+       que CLAUDE.md documenta como fallada: el ratio se quedaba en 34,6 % y im_grado en 2. */
     await base();
-    for (const [id, val] of [['nombre','Ctrl AI'], ['ci','111'], ['ai_area','26'],
-                             ['im_jet_area','8'], ['itv_mitral','12'], ['em_vtimit','60'],
-                             ['diam_tsvi_ao','22'], ['itv_tsvi','20']]) {
+    for (const [id, val] of [['nombre','Ctrl AI'], ['ci','1110001'], ['edad','70'],
+                             ['ai_area','26'], ['im_jet_area','8'], ['itv_mitral','12'],
+                             ['em_vtimit','60'], ['diam_tsvi_ao','22'], ['itv_tsvi','20']]) {
       await ev(`window.__P.set(${JSON.stringify(id)}, ${JSON.stringify(val)})`);
     }
-    await ev(`window.__P.set('im_ai_area', '26')`);
     G.antesDeGuardar = await fotoDe('fotoAi');
     G.espejosAlGuardar = await ev(`window.__P.espejosHidden()`);
-    G.guardo = await ev(`(function(){ try { guardarInforme(); return 'ok' }
-      catch(e) { return 'EXC: ' + e.message } })()`);
-    await pausa(600);
-    G.lista = await fotoDe('guardados');
-    G.reabrir = await ev(`(function(){ try { var l = getInformes();
-      if (!l.length) return 'SIN ESTUDIOS'; editarInforme(l[0].id); return 'ok' }
-      catch(e) { return 'EXC: ' + e.message } })()`);
+    G.guardo = JSON.parse(await ev(`(async () => JSON.stringify(await window.__P.guardar()))()`));
+    /* DENOMINADOR DURO: sin estudio guardado, «reabrir» mide el formulario vivo y la escena
+       informa un exito que no ocurrio. */
+    if (!G.guardo.estudioId) throw new Error('NO SE GUARDO EL ESTUDIO (a): ' + JSON.stringify(G.guardo));
+    await ev(`window.__P.limpiar()`);
+    G.trasLimpiar = await fotoDe('fotoAi');
+    G.reabrir = await ev(`window.__P.reabrir(${JSON.stringify(G.guardo.estudioId)})`);
     await pausa(1200);
     await ev(`window.__P.abrirTodo()`);
     G.alReabrir = await fotoDe('fotoAi');
@@ -941,23 +987,24 @@ async function main() {
     /* RE-MEDIR de 26 a 18 EN AI/VI, con teclas reales. */
     G.reMedir = await tipear('ai_area', '18');
     G.trasReMedir = await fotoDe('fotoAi');
+    await ev(`window.__P.borrarEstudio(${JSON.stringify(G.guardo.estudioId)})`);
 
-    /* (b) Un guardado con valores DISTINTOS entre lugares (19, 21 y 23) abre como se guardo. */
+    /* (b) Un guardado con valores DISTINTOS entre lugares (19, 21, 23, 25, 27) abre como se
+       guardo. Se siembra con `setRaw` —sin eventos— porque es un LEGADO: hoy ningun gesto puede
+       producir cinco valores distintos del mismo dato. */
     await base();
-    for (const [id, val] of [['nombre','Ctrl 192123'], ['ci','222'],
-                             ['diam_tsvi_ao','19'], ['diam_tsvi','21'], ['ea_dtsvi','23']]) {
+    for (const [id, val] of [['nombre','Ctrl 192123'], ['ci','2220002'], ['edad','70']]) {
       await ev(`window.__P.set(${JSON.stringify(id)}, ${JSON.stringify(val)})`);
     }
-    /* Los dos espejos mitrales se dejan a mano, cada uno con su propio numero. */
-    await ev(`window.__P.set('em_dtsvi', '25')`);
-    await ev(`window.__P.set('im_dtsvi', '27')`);
+    for (const [id, val] of [['diam_tsvi_ao','19'], ['diam_tsvi','21'], ['ea_dtsvi','23'],
+                             ['em_dtsvi','25'], ['im_dtsvi','27']]) {
+      await ev(`window.__P.setRaw(${JSON.stringify(id)}, ${JSON.stringify(val)})`);
+    }
     G.distintos_antes = await fotoDe('fotoTsvi');
-    G.distintos_guardo = await ev(`(function(){ try { guardarInforme(); return 'ok' }
-      catch(e) { return 'EXC: ' + e.message } })()`);
-    await pausa(600);
-    G.distintos_reabrir = await ev(`(function(){ try { var l = getInformes();
-      var i = l.find(function(x){ return /192123/.test(x.nombre) }) || l[0];
-      editarInforme(i.id); return 'ok' } catch(e) { return 'EXC: ' + e.message } })()`);
+    G.distintos_guardo = JSON.parse(await ev(`(async () => JSON.stringify(await window.__P.guardar()))()`));
+    if (!G.distintos_guardo.estudioId) throw new Error('NO SE GUARDO EL ESTUDIO (b): ' + JSON.stringify(G.distintos_guardo));
+    await ev(`window.__P.limpiar()`);
+    G.distintos_reabrir = await ev(`window.__P.reabrir(${JSON.stringify(G.distintos_guardo.estudioId)})`);
     await pausa(1200);
     await ev(`window.__P.abrirTodo()`);
     G.distintos_alReabrir = await fotoDe('fotoTsvi');
@@ -965,23 +1012,25 @@ async function main() {
     /* Y la coordinacion actua al EDITAR, no al abrir: la primera tecla iguala los cinco. */
     G.distintos_trasEditar = { tecleo: await tipear('diam_tsvi_ao', '20'),
                                foto: await fotoDe('fotoTsvi') };
+    await ev(`window.__P.borrarEstudio(${JSON.stringify(G.distintos_guardo.estudioId)})`);
 
     /* (c) Un guardado con avm_ete = 150 abre como se guardo y el nodo no vota. */
     await base();
-    for (const [id, val] of [['nombre','Ctrl ete150'], ['ci','333'], ['avm_ete','150'],
+    for (const [id, val] of [['nombre','Ctrl ete150'], ['ci','3330003'], ['edad','70'],
                              ['em_gmedio','9']]) {
       await ev(`window.__P.set(${JSON.stringify(id)}, ${JSON.stringify(val)})`);
     }
-    G.ete150_guardo = await ev(`(function(){ try { guardarInforme(); return 'ok' }
-      catch(e) { return 'EXC: ' + e.message } })()`);
-    await pausa(600);
-    G.ete150_reabrir = await ev(`(function(){ try { var l = getInformes();
-      var i = l.find(function(x){ return /ete150/.test(x.nombre) }) || l[0];
-      editarInforme(i.id); return 'ok' } catch(e) { return 'EXC: ' + e.message } })()`);
+    await ev(`window.__P.setRaw('avm_ete','150')`);
+    G.ete150_antes = await fotoDe('fotoEte');
+    G.ete150_guardo = JSON.parse(await ev(`(async () => JSON.stringify(await window.__P.guardar()))()`));
+    if (!G.ete150_guardo.estudioId) throw new Error('NO SE GUARDO EL ESTUDIO (c): ' + JSON.stringify(G.ete150_guardo));
+    await ev(`window.__P.limpiar()`);
+    G.ete150_reabrir = await ev(`window.__P.reabrir(${JSON.stringify(G.ete150_guardo.estudioId)})`);
     await pausa(1200);
     await ev(`window.__P.abrirTodo()`);
     G.ete150_alReabrir = await fotoDe('fotoEte');
     G.ete150_txt = await textos('estandar');
+    await ev(`window.__P.borrarEstudio(${JSON.stringify(G.ete150_guardo.estudioId)})`);
 
     out.GUARD = G;
   }

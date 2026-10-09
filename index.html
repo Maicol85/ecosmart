@@ -2981,7 +2981,10 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
           <div class="fg">
             <label>Área AI (cm²)</label>
-            <input type="number" id="ai_area" placeholder="cm²" oninput="calcAI();imSyncSiExiste()">
+            <!-- `calcAI();imSyncSiExiste()` hasta el 2026-10-08. Las dos siguen corriendo, dentro
+                 de `aiAreaEditado`, que además copia el valor al campo de Insuficiencia Mitral y
+                 corre `calcContIM` y `calcIM_ESC` sin el gate de la pastilla. -->
+            <input type="number" id="ai_area" placeholder="cm²" oninput="aiAreaEditado('ai_area')">
           </div>
           <div class="fg">
             <label>Volumen AI (ml)</label>
@@ -4325,7 +4328,7 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div class="grid-4">
         <div class="fg"><label>Vena contracta (mm)</label><input type="number" id="im_vc" placeholder="mm" oninput="calcIM_ESC()"></div>
         <div class="fg"><label>Área jet IM (cm²)</label><input type="number" id="im_jet_area" placeholder="cm²" oninput="calcIM_ESC()"></div>
-        <div class="fg"><label>Área AI (cm²) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← AI/VI</span></label><input type="number" id="im_ai_area" placeholder="cm²" oninput="calcIM_ESC()"></div>
+        <div class="fg"><label>Área AI (cm²) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← AI/VI</span></label><!-- ⚠️ EL RÓTULO «auto ← AI/VI» QUEDÓ FALSO Y NO SE TOCA (2026-10-08): el pedido prohíbe cambiar rótulos, así que queda REPORTADO. Es una PUERTA del área de la AI, no un espejo — lo que se tipea acá llega a AI/VI. `calcIM_ESC()` no se perdió: lo lleva `aiAreaEditado`, que además repinta la interpretación de la AI, que antes no se refrescaba al tipear acá. --><input type="number" id="im_ai_area" placeholder="cm²" oninput="aiAreaEditado('im_ai_area')"></div>
         <div class="fg"><label>Radio PISA (mm)</label><input type="number" id="pisa_r" placeholder="mm" oninput="calcIM_ESC()"></div>
         <!-- ⚠️ CUÁLES DE LAS TRES CASILLAS SON ESPEJO, PERSISTIDO. `dataset` no sobrevive al
              guardado, así que sin esto un espejo vuelve del estudio SIN marca, `_syncDerivado` no
@@ -26036,6 +26039,75 @@ window._EA_PARES = _EA_PARES;
 window.eaParSync = eaParSync;
 
 /* La puerta — una sola función para los dos lados de cada campo. */
+/* ══ EL ÁREA DE LA AI ES UN DATO CON DOS CAMPOS (2026-10-08) ═════════════════════════════════
+   `ai_area` (AI/VI, el PORTADOR: lo leen `calcAI`, el PDF, el Excel —columna «Área AI (cm²)»—, el
+   importador XML del ecógrafo por `2D/LA Area` y el panel de referencias) e `im_ai_area`
+   (Válvulas — Insuficiencia Mitral) son la MISMA medición. El segundo era un ESPEJO por
+   `_syncDerivado`. DECISIÓN DE MAICOL: un dato = un valor, y **desaparece «lo tipeado a mano
+   gana»** — manda el último lugar editado.
+
+   ⚠️ ESTE ES EL DATO DEL ESCENARIO QUE YA FALLÓ UNA VEZ, y está en CLAUDE.md con su medición:
+   «guardado con el espejo del área en 26 cm², reabierto y RE-MEDIDA la AI a 18, el ratio jet/AI se
+   quedaba en 34,6 % y `im_grado` en 2 (Moderada) cuando con el área nueva da 50,0 % y 4 (SEVERA).
+   Dos bandas, hacia el lado tranquilizador, sobre un grado que firma el informe.» Eso se había
+   cerrado con el registro `im_espejos`, que repone la marca al reabrir. La coordinación lo cierra
+   por una vía que no depende de ninguna marca: el campo se escribe SIEMPRE.
+
+   Lo que esto cierra además, MEDIDO en HEAD con teclas reales y área 26 cm²:
+     · tipear en `im_ai_area` dejaba `ai_area` VACÍO, y `calcIM_ESC` PREFIERE el campo
+       (`v('im_ai_area') || v('ai_area')`): el ratio jet/AI —un voto de `im_grado`— se computaba
+       con un área que no existía en la pestaña donde se mide, y que no sale al PDF ni al Excel.
+     · BORRAR en `im_ai_area` borraba sólo ahí; borrar en `ai_area` dejaba el otro en 26.
+     · con el bloque de IM PLEGADO, tipear en AI/VI no llegaba al campo de la mitral.
+
+   ⚠️ EL CONJUNTO DE RECÁLCULOS DE AI/VI SE DISPARA TAMBIÉN AL TIPEAR EN LA MITRAL, que es la mitad
+   que faltaba: el `oninput` de `im_ai_area` llamaba SÓLO a `calcIM_ESC`, así que el área tipeada
+   ahí no repintaba la interpretación de la AI (`ai-area-interp`) ni su banda. La unión es
+   `calcAI` + `calcContIM` + `calcIM_ESC`, que es lo que las dos puertas disparaban juntas, sin el
+   gate de la pastilla que retenía a `imSyncSiExiste` con el bloque plegado.
+   ⚠️ `imSyncSiExiste` SE CONSERVA en el `oninput` de `ai_area` y no se quitó: `_IM_ESPEJOS` sigue
+   teniendo sus cuatro pares y es el que mantiene al día los OTROS destinos. Lo que cambia es que
+   el área ya no depende de él para llegar.
+
+   Mismas tres propiedades que los otros dos grupos: guarda de reentrada, salida temprana por TEXTO
+   igual y el vacío se copia igual que un número. `_coordMarcarEspejo` deja la marca en
+   `im_ai_area`, que es destino registrado, para que `im_espejos` siga sellando los nueve. */
+let _aiAreaSinc = false;
+const _AI_AREA_CAMPOS = ['ai_area', 'im_ai_area'];
+function aiAreaSync(origenId) {
+  if (_aiAreaSinc) return null;
+  _aiAreaSinc = true;
+  try {
+    const src = document.getElementById(origenId);
+    if (!src) return null;
+    const val = src.value;
+    const copiados = [];
+    _AI_AREA_CAMPOS.forEach((id) => {
+      if (id === origenId) return;
+      const dst = document.getElementById(id);
+      if (!dst || dst.value === val) return;
+      dst.value = val;
+      _coordMarcarEspejo(dst, val);
+      copiados.push(id);
+    });
+    return { origen: origenId, valor: val, copiados: copiados };
+  } finally { _aiAreaSinc = false; }
+}
+window.aiAreaSync = aiAreaSync;
+window._AI_AREA_CAMPOS = _AI_AREA_CAMPOS;
+
+/* La puerta — una sola para los dos lados. `imSyncSiExiste` se conserva porque mantiene al día los
+   otros tres pares de `_IM_ESPEJOS`, y va DESPUÉS de la copia: su `_syncDerivado` encuentra los
+   dos campos ya iguales y no escribe nada. */
+function aiAreaEditado(origenId) {
+  aiAreaSync(origenId);
+  if (typeof calcAI === 'function') calcAI();
+  if (typeof imSyncSiExiste === 'function') imSyncSiExiste();
+  if (typeof calcContIM === 'function') calcContIM();
+  if (typeof calcIM_ESC === 'function') calcIM_ESC();
+}
+window.aiAreaEditado = aiAreaEditado;
+
 /* ══ EL VTI DEL TSVI ES UN DATO CON CUATRO CAMPOS (2026-10-08) ═══════════════════════════════
    `itv_tsvi` (Doppler aórtico, el PORTADOR: lo leen `calcAo`, el PDF, el PPT y el Excel),
    `ea_vtitsvi` (Válvulas — Estenosis Aórtica), `em_vtitsvi` (Válvulas — Estenosis Mitral) e
@@ -98905,8 +98977,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261009-0004';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791515074612;                 /* eco-build-ms */
+const ECO_BUILD    = '20261009-0012';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791515574795;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -98992,7 +99064,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-0004</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-0012</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
