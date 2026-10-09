@@ -453,6 +453,88 @@ window.__P = {
     try { _migrarCamposLegacy(c) } catch(e) { return 'EXC ' + e.message }
     return c },
 
+  /* Abre la pestania Calculadoras y la tarjeta plegable del PISA de cirugia, y CONFIRMA que los
+     cuatro campos tienen geometria: sin eso un tecleo con teclas reales entra en la nada. */
+  abrirCx() {
+    try { showTab('calculadoras') } catch(e) {}
+    var caja = document.getElementById('cx-pisa');
+    if (caja && getComputedStyle(caja).display === 'none') {
+      var h = Array.from(document.querySelectorAll('[onclick]')).find(function(b){
+        return (b.getAttribute('onclick')||'').indexOf("'cx-pisa'") >= 0 });
+      if (h) { try { toggleCard('cx-pisa', h) } catch(e) {} }
+    }
+    var CAMPOS = ['cx_pisa_r','cx_pisa_va','cx_pisa_vmax','cx_pisa_vti'];
+    var sinGeo = CAMPOS.filter(function(id){ return window.__P.vis(id) !== true });
+    return { tab: window.__P.vis('tab-calculadoras'), sinGeo: sinGeo, ok: sinGeo.length === 0 } },
+
+  cxFoto() {
+    return { ero: window.__P.txt('cx-pisa-ero'), vr: window.__P.txt('cx-pisa-vr'),
+             r: window.__P.val('cx_pisa_r'), va: window.__P.val('cx_pisa_va'),
+             vmax: window.__P.val('cx_pisa_vmax'), vti: window.__P.val('cx_pisa_vti'),
+             uni: (function(){ var e=document.getElementById('cx_pisa_vmax');
+               return e ? (e.getAttribute('placeholder')||'') : '?' })() } },
+
+  /* ⚠️ EL DISCO DE VERDAD, NO LA CACHE. CeiboStore.getLocal() devuelve un slice() del array
+     interno, asi que los OBJETOS son la misma referencia: _migrarCamposLegacy muta la copia en
+     memoria del estudio y getInformes() ya informa el valor normalizado. Para saber si el
+     ALMACENAMIENTO cambio hay que leerlo crudo, sin pasar por el store. */
+  /* EL ALMACENAMIENTO PRIMARIO ES INDEXEDDB (db «ceibomed», store «informes», indice «app» =
+     «eco»); localStorage es solo el respaldo. Se lee la base DIRECTO, sin pasar por CeiboStore,
+     que es la unica forma de distinguir «el migrador muto la cache» de «el migrador reescribio
+     el disco». */
+  discoIdb(estudioId, clave) {
+    return new Promise(function(resolve){
+      var req;
+      try { req = indexedDB.open('ceibomed', 1) } catch (e) { resolve({ err: 'open ' + e.message }); return }
+      req.onerror = function(){ resolve({ err: 'onerror' }) };
+      req.onsuccess = function(){
+        var db = req.result;
+        try {
+          var tx = db.transaction('informes', 'readonly');
+          var g = tx.objectStore('informes').getAll();
+          g.onsuccess = function(){
+            var filas = g.result || [];
+            var hit = null, total = 0;
+            filas.forEach(function(f){
+              /* La fila del store tiene la forma _pk+app+bucket+data: los estudios viven en
+                 data, y el bucket dice si es el lote local o el importado. */
+              var d = (f && f.data !== undefined) ? f.data : f;
+              if (typeof d === 'string') { try { d = JSON.parse(d) } catch (e) { d = null } }
+              var lista = Array.isArray(d) ? d
+                        : (d && Array.isArray(d.local)) ? d.local
+                        : (d && Array.isArray(d.chunk)) ? d.chunk : null;
+              if (!lista) return;
+              total += lista.length;
+              var j = lista.find(function(x){ return x && x.estudioId === estudioId });
+              if (j && j.campos) hit = j.campos[clave];
+            });
+            resolve({ valor: hit, filasEnStore: filas.length, estudiosVistos: total,
+                      formas: filas.map(function(f){ return Object.keys(f || {}).join('+') }) });
+          };
+          g.onerror = function(){ resolve({ err: 'getAll' }) };
+        } catch (e) { resolve({ err: 'tx ' + e.message }) }
+      };
+    }) },
+
+  discoRaw(estudioId, clave) {
+    var out = { ls: '(sin clave)', idb: '(no leido)' };
+    try {
+      var ks = Object.keys(localStorage).filter(function(k){ return /inform|ceibo|ett/i.test(k) });
+      out.claves = ks;
+      for (var i = 0; i < ks.length; i++) {
+        var raw = localStorage.getItem(ks[i]);
+        if (!raw || raw.indexOf(estudioId) === -1) continue;
+        try {
+          var arr = JSON.parse(raw);
+          var lista = Array.isArray(arr) ? arr : (arr && Array.isArray(arr.local) ? arr.local : null);
+          if (!lista) continue;
+          var j = lista.find(function(x){ return x && x.estudioId === estudioId });
+          if (j && j.campos) { out.ls = j.campos[clave]; out.en = ks[i]; }
+        } catch (e) { out.ls = 'EXC ' + e.message }
+      }
+    } catch (e) { out.ls = 'EXC ' + e.message }
+    return out },
+
   listo() {
     var faltan = ['generarInforme','pillOn','toggleValvPill','showTab','limpiarCampos','calcEM',
                   'emCategoria','setEstiloInforme','calcContIM','calcIM_ESC','calcTHP',
@@ -862,7 +944,7 @@ async function main() {
   }
   /* ══ THP4 — el normalizador de legado y un estudio guardado de VERDAD ═════════════════════
      ⚠️ LAS ESCENAS DE THP3 NO PRUEBAN EL MIGRADOR: usan `setRaw`, que escribe `.value` sin pasar
-     por `_migrarCamposLegacy`. Lo que un estudio guardado hace de verdad es pasar su objeto
+     por _migrarCamposLegacy. Lo que un estudio guardado hace de verdad es pasar su objeto
      `campos` por el migrador ANTES de poblar el formulario, asi que aca se llama al migrador
      DIRECTO con la forma exacta que tenian los guardados viejos, y despues se hace un
      guardar -> reabrir real. */
@@ -1078,6 +1160,101 @@ async function main() {
       escenaValida: nativa.__esProt === false && protesis.__esProt === true,
       opcionesMorf: await J(`(function(){ var e=document.getElementById('vm_morf');
         return e ? Array.from(e.options).map(function(o){ return o.value }) : null })()`) };
+  }
+
+  /* ══ CXP — la cuenta de PISA del bloque de cirugia, con el MISMO dato fisico ══════════════
+     ⚠️ LA UNIDAD SE LEE DEL PLACEHOLDER DEL PROPIO ARCHIVO, no se asume: sin eso el A/B compararia
+     5 cm/s contra 5 m/s, o sea dos pacientes distintos. Misma leccion que la escena PISA.
+     El radio de ESTE bloque va en cm (0,8) y no en mm como `pisa_r`: son dos calculadoras
+     distintas y la de cirugia nunca compartio una linea con `calcIM_ESC`. */
+  if (hacer('CXP')) {
+    await base();
+    const ab = await J(`window.__P.abrirCx()`);
+    if (!ab.ok) throw new Error('DENOMINADOR: campos de cirugia sin geometria: ' + JSON.stringify(ab));
+    const uni = await ev(`(function(){ var e = document.getElementById('cx_pisa_vmax');
+      return e ? (e.getAttribute('placeholder') || '') : '?' })()`);
+    const esMS = /m\/s/.test(uni) && !/cm\/s/.test(uni);
+    const VM = esMS ? 5 : 500;
+    const cxp = { abrir: ab, unidadLeida: uni, vmaxUsada: VM, escenas: {} };
+    /* Tres escenas con el mismo dato fisico: una ERO leve, una moderada y una severa. */
+    for (const [etq, r, va, vti] of [['leve','0.4','40','90'], ['moderada','0.6','40','120'],
+                                     ['severa','0.9','40','150']]) {
+      await ev(`(function(){ window.__P.sembrar({ cx_pisa_r:${JSON.stringify(r)},
+        cx_pisa_va:${JSON.stringify(va)}, cx_pisa_vmax:${JSON.stringify(String(VM))},
+        cx_pisa_vti:${JSON.stringify(vti)} }); try { cxPisa() } catch(e){} return 1 })()`);
+      await pausa(120);
+      cxp.escenas[etq] = await J(`window.__P.cxFoto()`);
+    }
+    /* TECLAS REALES en el campo de la Vmax, para probar que se puede cargar de verdad. */
+    await ev(`(function(){ window.__P.sembrar({ cx_pisa_r:'0.6', cx_pisa_va:'40', cx_pisa_vti:'120' }); return 1 })()`);
+    cxp.tecleo = await tipear('cx_pisa_vmax', String(VM));
+    await ev(`(function(){ try { cxPisa() } catch(e){} return 1 })()`);
+    await pausa(120);
+    cxp.trasTecleo = await J(`window.__P.cxFoto()`);
+    /* El normalizador de legado, por la ruta real (el migrador), con los bordes y un control. */
+    cxp.migrador = {
+      cms500:   await J(`window.__P.migrar({ cx_pisa_vmax: '500' })`),
+      cms900:   await J(`window.__P.migrar({ cx_pisa_vmax: '900' })`),
+      ms5:      await J(`window.__P.migrar({ cx_pisa_vmax: '5' })`),
+      ms9:      await J(`window.__P.migrar({ cx_pisa_vmax: '9' })`),
+      vacio:    await J(`window.__P.migrar({ cx_pisa_vmax: '' })`),
+      sinClave: await J(`window.__P.migrar({ cx_pisa_va: '40' })`),
+      otro:     await J(`window.__P.migrar({ cx_pisa_va: '40', cx_pisa_r: '0.6' })`)
+    };
+    /* ⚠️ Y UN ESTUDIO GUARDADO DE VERDAD, con la Vmax en cm/s EN DISCO. Las escenas de arriba
+       llaman al migrador directo; esto prueba la ruta real: guardar, reescribir la clave en disco
+       como la traia un estudio anterior al cambio, y reabrir. */
+    await base();
+    await ev(`(function(){ window.__P.sembrar({ nombre:'Legado Cx', ci:'5-5', edad:'60', sexo:'M',
+      peso:'80', talla:'175', vm_morf:'Reumática' }); return 1 })()`);
+    await J(`window.__P.abrirCx()`);
+    await ev(`(function(){ window.__P.sembrar({ cx_pisa_r:'0.6', cx_pisa_va:'40',
+      cx_pisa_vmax:${JSON.stringify(String(VM))}, cx_pisa_vti:'120' }); return 1 })()`);
+    await pausa(150);
+    const g = await JP(`window.__P.guardar()`);
+    cxp.guardado = g;
+    if (!g || !g.estudioId) cxp.ABORTADA = 'sin estudio guardado: la escena no mide nada';
+    if (g && g.estudioId) {
+      cxp.legadoEscrito = await JP(`(function(){
+        var ins = getInformes();
+        var i = ins.find(function(x){ return x.estudioId === ${JSON.stringify(g.estudioId)} });
+        if (!i) return Promise.resolve({ err: 'SIN ESTUDIO' });
+        i.campos['cx_pisa_vmax'] = '500';
+        return CeiboStore.setLocal(ins).then(function(){
+          var j = getInformes().find(function(x){ return x.estudioId === ${JSON.stringify(g.estudioId)} });
+          return { enDisco: j.campos['cx_pisa_vmax'] } });
+      })()`);
+      await ev(`(function(){ window.__P.limpiar(); return 1 })()`);
+      await pausa(200);
+      cxp.reabrir = await J(`({ r: window.__P.reabrir(${JSON.stringify(g.estudioId)}) })`);
+      await pausa(400);
+      await J(`window.__P.abrirCx()`);
+      /* El medico toca un campo y la cuenta corre: `cxPisa` NO esta en RECALC_MODULOS, asi que al
+         reabrir los dos spans arrancan en «—» igual que en HEAD. Lo que importa es el VALOR del
+         campo y que la cuenta de el mismo numero que con el dato tipeado. */
+      cxp.trasReabrir = await J(`window.__P.cxFoto()`);
+      await ev(`(function(){ try { cxPisa() } catch(e){} return 1 })()`);
+      await pausa(150);
+      cxp.trasReabrirYCalcular = await J(`window.__P.cxFoto()`);
+      /* ⚠️ LA PRUEBA DECISIVA ES RECARGAR, no leer IndexedDB por dentro. Dos intentos de abrir el
+         store y recorrer su forma (`_pk+app+bucket+data`) no dieron con la lista; recargar la
+         pagina repuebla la cache de CeiboStore DESDE el almacenamiento, asi que lo que
+         getInformes() diga despues es lo que hay EN DISCO. Si dice 500, el migrador no reescribio
+         nada; si dice 5, si. */
+      await ev(`try{sessionStorage.setItem('ett_auth','1')}catch(e){}; location.reload(); 1`);
+      await pausa(2800);
+      await ev(SONDA);
+      cxp.trasRecargar = await J(`(function(){
+        var j = getInformes().find(function(x){ return x.estudioId === ${JSON.stringify(g.estudioId)} });
+        return { cx_pisa_vmax: j ? j.campos['cx_pisa_vmax'] : '(sin estudio)' } })()`);
+      cxp.discoIdb = await JP(`window.__P.discoIdb(${JSON.stringify(g.estudioId)}, 'cx_pisa_vmax')`);
+      cxp.discoRaw = await J(`window.__P.discoRaw(${JSON.stringify(g.estudioId)}, 'cx_pisa_vmax')`);
+      cxp.enDiscoFinal = await JP(`Promise.resolve((function(){
+        var j = getInformes().find(function(x){ return x.estudioId === ${JSON.stringify(g.estudioId)} });
+        return { cx_pisa_vmax: j ? j.campos['cx_pisa_vmax'] : '(sin estudio)' } })())`);
+      await ev(`window.__P.borrarEstudio(${JSON.stringify(g.estudioId)}).then(function(){ return 1 })`);
+    }
+    out.CXP = cxp;
   }
 
   /* ══ SUP — las CUATRO superficies, UNA POR UNA ═════════════════════════════════════════════

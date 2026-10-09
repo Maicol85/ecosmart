@@ -13995,7 +13995,19 @@ setTimeout(()=>{ eeBullInited.basal=true; eeRenderBull('basal'); eeImgRender(); 
     <div class="grid-2">
       <div class="fg"><label>Radio PISA (cm)</label><input type="number" id="cx_pisa_r" placeholder="cm" step="0.01" oninput="cxPisa()"></div>
       <div class="fg"><label>Velocidad aliasing Va (cm/s)</label><input type="number" id="cx_pisa_va" placeholder="cm/s" oninput="cxPisa()"></div>
-      <div class="fg"><label>Vmax IM (cm/s)</label><input type="number" id="cx_pisa_vmax" placeholder="cm/s" oninput="cxPisa()"></div>
+      <!-- ⚠️ LA Vmax IM DE ESTA CALCULADORA PASÓ DE cm/s A m/s (2026-10-09) — DECISIÓN DE MAICOL.
+           Es el último lugar de la app que tenía esta magnitud en cm/s: `im_vmax` (Válvulas —
+           Insuficiencia Mitral) pasó a m/s el 2026-10-09 y quedó REPORTADO que acá seguía en la
+           otra unidad, o sea la misma medición con dos unidades en dos pantallas.
+           ⚠️ NO COMPARTE UNA LÍNEA DE CÓDIGO CON `im_vmax`, y eso está medido, no supuesto: el
+           censo del campo da DOS menciones en todo el archivo —este `<input>` y `cxPisa()`—, la
+           fórmula es propia, el radio de esta calculadora va en cm (y el de `calcIM_ESC` en mm),
+           y no pasa por `vPlaus`. Por eso el cambio se queda acá y no toca la IM de Válvulas.
+           ⚠️ `step="0.1"` ENTRA CON LA UNIDAD, igual que en `im_vmax`, `ia_vmax_cw` y `it_vmax_cw`:
+           con el `step` por omisión (1) el navegador marca 5,2 m/s como valor inválido y las
+           flechas del spinner mueven de 1 en 1 m/s.
+           ⚠️ EL `Velocidad aliasing Va` DE ARRIBA SIGUE EN cm/s: es Doppler COLOR, otra medición. -->
+      <div class="fg"><label>Vmax IM (m/s)</label><input type="number" id="cx_pisa_vmax" placeholder="m/s" step="0.1" oninput="cxPisa()"></div>
       <div class="fg"><label>VTI-IM (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">para Vol. reg.</span></label><input type="number" id="cx_pisa_vti" placeholder="cm" oninput="cxPisa()"></div>
     </div>
     <div class="calc-box" style="margin-top:8px;">
@@ -19903,7 +19915,19 @@ function cxPisa() {
   const vrEl = document.getElementById('cx-pisa-vr');
   if (!eroEl) return;
   if (r === null || va === null || vmax === null || vmax <= 0) { eroEl.textContent = '—'; if (vrEl) vrEl.textContent = '—'; return; }
-  const eroCm2 = (2 * Math.PI * r * r * va) / vmax;   // cm²
+  /* ⚠️ LA Vmax VIENE EN m/s DESDE EL 2026-10-09 Y EL Va SIGUE EN cm/s. El cociente `va / vmax` es
+     adimensional, así que los dos tienen que estar en la MISMA unidad: se convierte el DIVISOR,
+     m/s × CMS_POR_MS = cm/s, y el campo guarda lo que el médico ve. Es exactamente lo que ya
+     hacen `calcIM_ESC`, `calcIA_ESC` y `calcIT_ESC` con sus Vmax.
+     ⚠️ Y ACÁ LA CONVERSIÓN ES EL ÚNICO LECTOR QUE HAY QUE TOCAR, a diferencia de `im_vmax`, que
+     tenía dos (la pantalla y el exportador de Excel): el censo de `cx_pisa_vmax` da DOS menciones
+     en todo el archivo y esta función es la única que lo divide. No tiene columna de Excel ni lo
+     lee el informe, el EN SUMA, el PDF, el PPT, el Laboratorio ni el panel de Evidencia.
+     `CMS_POR_MS` se declara ~6.500 líneas más abajo y NO hay zona muerta: `cxPisa` sólo la corre
+     cuando el médico tipea (sus cuatro `oninput`), nunca durante la evaluación del script — no
+     está en `RECALC_MODULOS` ni la llama ninguna ruta de arranque. */
+  const vmaxCms = vmax * CMS_POR_MS;
+  const eroCm2 = (2 * Math.PI * r * r * va) / vmaxCms;   // cm²
   const eroMm2 = eroCm2 * 100;
   const cls = eroMm2 < 20 ? 'green' : eroMm2 < 40 ? 'yellow' : 'red';
   const sev = eroMm2 < 20 ? 'leve (<20)' : eroMm2 < 40 ? 'moderada (20–39)' : 'severa (≥40)';
@@ -56674,6 +56698,31 @@ function _migrarCamposLegacy(c){
     const _nVm = parseFloat(_rawVm);
     if (_rawVm !== '' && !isNaN(_nVm) && _nVm > IM_VMAX_MS_MAX) {
       c['im_vmax'] = String(Math.round((_nVm / CMS_POR_MS) * 1000) / 1000);
+    }
+  }
+
+  /* ⚠️ `cx_pisa_vmax` PASÓ DE cm/s A m/s (2026-10-09). MISMO PATRÓN Y MISMO ARGUMENTO que los
+     bloques de `it_vmax_cw`, `ia_vmax_cw` e `im_vmax` de arriba — sus comentarios valen palabra
+     por palabra. Lo propio de este campo:
+     · EL CORTE ES `IM_VMAX_MS_MAX` (9) Y SE REUSA A PROPÓSITO, no se inventa un número: es la
+       MISMA magnitud física que `im_vmax` —la Vmax del chorro de regurgitación mitral por CW— y
+       un segundo literal acá sería la segunda fuente de verdad de siempre.
+     · ⚠️ ESTE CAMPO NO TIENE BANDA DE PLAUSIBILIDAD, y nunca la tuvo: cero entradas en
+       `DCM_RANGO`, `LAB_XLS_RANGO_PROPIO` y `CHM_RANGO`, y `cxPisa` no pasa por `vPlaus`. Así que
+       acá no hay ninguna banda que mover de unidad, a diferencia de `im_vmax`. Queda REPORTADO:
+       agregarle una sería CREAR una marca «(revisar)» que hoy no existe, que es otra decisión.
+       Las dos bandas del corte igual no se solapan —1 a 9 m/s son 100 a 900 cm/s—, así que el
+       normalizador no tiene zona gris.
+     · QUÉ PASA SIN ESTA LÍNEA: un estudio guardado con 500 cm/s se leería como 500 m/s, el
+       divisor iría a 50.000 cm/s y la ERO saldría CIEN VECES más chica. Esta calculadora NO
+       llega a ninguna superficie firmada —ni Excel, ni PDF, ni informe— así que el daño es un
+       número equivocado EN PANTALLA, no en el papel; se arregla igual, porque el médico lo lee.
+     · SE TOCA SÓLO SI LA CLAVE EXISTE Y TIENE NÚMERO, y NO se reescribe nada del disco. */
+  if (Object.prototype.hasOwnProperty.call(c, 'cx_pisa_vmax')) {
+    const _rawCx = String(c['cx_pisa_vmax'] == null ? '' : c['cx_pisa_vmax']).trim().replace(',', '.');
+    const _nCx = parseFloat(_rawCx);
+    if (_rawCx !== '' && !isNaN(_nCx) && _nCx > IM_VMAX_MS_MAX) {
+      c['cx_pisa_vmax'] = String(Math.round((_nCx / CMS_POR_MS) * 1000) / 1000);
     }
   }
 
@@ -99495,8 +99544,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261009-0903';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791547397598;                 /* eco-build-ms */
+const ECO_BUILD    = '20261009-0910';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791547857760;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -99582,7 +99631,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-0903</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-0910</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
