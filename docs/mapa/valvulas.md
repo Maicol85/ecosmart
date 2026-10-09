@@ -77,10 +77,14 @@ los cuatro en `1` → «sin puntuar» — escribe: `cx-wilkins-total`.
 secundaria, `c2`/`c4` con primaria, `c7`/`c8` del COAPT fuera de secundaria) — lee: `teer_tipo_im`;
 tercer disparador de `imSecAvisoSiExiste` — ⚠️ no verificado: no leí `teerEstado`.
 
-`sincronizarGradoIM()` / `sincronizarGradoIA()` — embudo de los dos escritores:
-`im_sev_final→im_grado`, `ia_sev_final→ia_grado`; llaman `emContRefrescar`.
+`sincronizarGradoIM()` / `sincronizarGradoIA()` — **ya no hay espejo que sincronizar** (2026-10-06):
+los `<select>` visibles `im_sev_final` / `ia_sev_final` se fueron y los ocultos `im_grado` /
+`ia_grado` son el único nodo del grado. El nombre se conserva a propósito porque sus ~8 llamadores
+necesitan el efecto secundario: `emContRefrescar`, o sea el veto de regurgitación de la estenosis
+mitral, que lee `im_grado`.
 
-`autoCompletarSevIM(gradoVal)` — escribe `im_sev_final` salvo con `esqSevManual.im` puesto.
+`autoCompletarSevIM(gradoVal)` — escribe el oculto `im_grado` (era `im_sev_final` hasta el
+2026-10-06) salvo con `esqSevManual.im` puesto, y llama `sincronizarGradoIM`.
 
 `emContRefrescar()` — llama `calcEM` dentro de un `try`.
 
@@ -227,8 +231,44 @@ abierto», que es estado de interfaz, y por eso podía contradecir al grado.
 `SEV_TOKEN_SIN` — `{esten:'sin', insuf:'0'}`, dueño único del token de «no hay». `sevEsSin(tipo,
 valor)` lo consulta; lo usan el menú ▼, los tres `onchange` y la regla de visibilidad.
 
-`SEV_SIN_APAGA_VALVS` — `['aortica','mitral']`. La costura por válvula: la tricúspide y la pulmonar
-quedan fuera por orden expresa. Tiene que coincidir con `SIN_EN_MENU` dentro de `valvSev`.
+`SEV_SIN_APAGA_VALVS` — `['aortica','mitral','pulmonar']`. La costura por válvula: **la pulmonar SÍ
+está** (entró en E5b-1: elegir «— grado —» con el botón prendido lo apaga, igual que la mitral) y la
+que queda fuera por orden expresa es **sólo la tricúspide**. Tiene que coincidir con `SIN_EN_MENU`
+dentro de `valvSev`.
+
+### Quién prendió la pastilla de estenosis: la app o el médico
+
+`VALV_ESTEN_AUTO` — `Set` vivo, NO persistido, exportado en `window`. `localStorage` no distingue el
+auto-prendido del clic manual (los dos dejan la clave `valv-pill-esten-<valv>` en `'1'`), así que el
+Set es lo único que dice **de quién es** la pastilla. Lo LLENA `valvAutoPrenderEsten` y lo VACÍA la
+cola de `toggleValvPill` ante cualquier gesto de estenosis, prenda o apague. Un estudio reabierto
+arranca sin dueño. (El gemelo para la insuficiencia pulmonar es `VALV_INSUF_AUTO`, aparte a
+propósito.)
+
+`valvAutoPrenderEsten(valv)` — prende el botón cuando el grado del `<select>` es graduable y la
+clave de `localStorage` está **ausente** (así respeta el apagado y el prendido manuales).
+Idempotente. Mapa: `aortica`→`ea_grado`, `mitral`→`em_grado`, `pulmonar`→`ep_grado`,
+`tricuspide`→`et_grado`.
+
+Los gemelos de APAGADO: apagan **sólo si** (a) la pastilla está en `VALV_ESTEN_AUTO` y (b) el grado
+quedó en el centinela. Son **cuatro funciones y no una**, y la duplicación es deliberada: la
+genérica está exportada y su mapa cubre tres válvulas, así que tocarla le cambia el informe firmado
+a las otras.
+
+| función | válvula | llamada desde | borra la clave de `localStorage` | borra `esqSevManual` + foto |
+|---|---|---|---|---|
+| `valvAutoApagarEsten(valv)` | genérica (ea/em/ep) | **nadie hoy** | no | no |
+| `_etApagarAuto()` | tricúspide | `_etAutoGrado` | sí | sí |
+| `_epApagarAuto()` | pulmonar | `calcVP` (dos puntos) | sí | sí |
+| `_emApagarAuto()` | mitral | `calcEM`, al lado del auto-prendido | sí | sí |
+
+Las dos últimas columnas no son adornos. Sin borrar la clave, `toggleValvPill` la deja en `'0'`,
+`valvAutoPrenderEsten` lo lee como «el médico lo cerró» y **el auto-prendido se gasta en un solo
+uso**. Sin borrar la marca manual, la cadena `toggleValvPill` → `valvApagarGrado` →
+`valvSev.aplicar(…, centinela)` —que corre también cuando el que apaga es la APP, porque la clave
+está en `SEV_SINC`— deja el autocálculo mudo para el resto del estudio. `valvAutoApagarEsten` no
+hace ninguna de las dos: por eso **la aórtica sigue con el defecto abierto**, reportado y no
+corregido (es su informe firmado).
 
 `sevSinApagaPastilla(tipo, valv, valor)` — apaga la pastilla si el valor es «Sin». **Idempotente**:
 «apagá si está prendida», porque `valvSev.aplicar` despacha un `change` que ya corrió el `onchange`

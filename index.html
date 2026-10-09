@@ -1660,12 +1660,18 @@ html.light-mode #tab-valvulas .sev-lvl3{color:#7f1d1d;}
    Los dos números que hay que leer juntos ahora son la BASE (150, que gobierna el apilado y el
    caso cerrado) y el GROW (2:1, que gobierna sólo el reparto con el cajón abierto).
    ⚠️ `grow:3` se probó y se descartó POR MEDICIÓN, no por gusto: deja el select en 211 px y la
-   opción más larga de `im_sev_final` («— Sin insuficiencia / no evaluada», 197 px) deja de entrar
-   a 1200 px. El criterio que ata es «Moderada-severa», que mide 106 px y existe sólo en ese
-   select: entra con margen en los tres anchos (útil 199 a 1200, 125 a 756 y 212 a 300).
+   opción más larga de la severidad de IM («— Sin insuficiencia / no evaluada», 197 px) deja de
+   entrar a 1200 px. El criterio que ata es «Moderada-severa», que mide 106 px y existía sólo en
+   ese desplegable: entra con margen en los tres anchos (útil 199 a 1200, 125 a 756 y 212 a 300).
+   ⚠️ ESTA MEDICIÓN ES HISTÓRICA DESDE EL 2026-10-06, y se conserva porque es el motivo por el que
+   la base es 150 y el grow 2:1: el `<select>` que medía era `im_sev_final`, que YA NO EXISTE — el
+   grado final de la aórtica y de la mitral pasó a ser TEXTO FIJO (ver el bloque de abajo) y el
+   único control de la fila es el desplegable del FUNDAMENTO. O sea que el criterio de 197 px ya no
+   tiene un nodo que lo cumpla o lo viole; antes de volver a tocar estos dos números hay que
+   medirlos de nuevo contra lo que hay hoy, no contra este párrafo.
    ⚠️ Defecto PREVIO que destapó esta medición y NO se tocó: esa opción más larga de 197 px ya no
-   entraba a 756 px antes de este cambio, y sigue sin entrar. Es un rótulo clínico — decisión de
-   Maicol—, así que se reporta y se espera. */
+   entraba a 756 px antes de este cambio. Es un rótulo clínico — decisión de Maicol—, así que se
+   reporta y se espera; hoy, además, el rótulo ya no vive en un `<select>`. */
 #tab-valvulas .valv-fund-row > .valv-fund-sel{flex:1 1 150px;min-width:0;margin-bottom:0;}
 #tab-valvulas .valv-fund-row > .valv-fund-box{flex:2 1 150px;min-width:0;margin-top:0;}
 /* ══ EL GRADO FINAL ES TEXTO FIJO — AÓRTICA Y MITRAL (2026-10-06, decisión de Maicol) ══════════
@@ -24511,8 +24517,9 @@ window.emSyncSiExiste = emSyncSiExiste;
    ⚠️ Y EL VALOR NO ES INERTE, que es lo que decía acá y la medición desmintió. Es cierto que los
    tres no salen al PDF ni al Excel ni al importador, pero la cláusula que sostenía «inerte» era
    «ya caen al global» — y la caída es un `||`, que PREFIERE EL CAMPO. `calcIM_ESC` no es un
-   cálculo de pantalla: el ratio jet/AI y la FR son votos que escriben `im_grado` e `im_sev_final`,
-   que es lo que firma el informe. De ahí el oculto `im_espejos`.
+   cálculo de pantalla: el ratio jet/AI y la FR son votos que escriben `im_grado`, que es lo que
+   firma el informe. De ahí el oculto `im_espejos`. (Decía «`im_grado` e `im_sev_final`»: ese
+   `<select>` se fue el 2026-10-06 y hoy el oculto es el único nodo del grado.)
 
    Las DOS funciones de recálculo, porque son independientes —ninguna llama a la otra, medido—.
    ⚠️ Y NO PORQUE «SE REPARTAN LOS CAMPOS», que es lo que decía acá y es FALSO: `calcIM_ESC` lee
@@ -27190,7 +27197,8 @@ const SEV_SINC = Object.freeze({
        La EM no lo sufre porque su proveedor lee `emCategoria()`, que se recalcula sola de los
        campos; el daño es de los proveedores que leen una FOTO.
        ⚠️ SÓLO SE LLAMA CON GRADO MANUAL PUESTO, y eso es lo que hace que sea seguro: con
-       `esqSevManual.im` la compuerta de `calcIM_ESC` no escribe `im_grado` ni `im_sev_final` —sólo
+       `esqSevManual.im` la compuerta de `calcIM_ESC` no escribe `im_grado` —el único nodo del
+       grado desde que el `<select>` se fue el 2026-10-06—, sólo
        repuebla `window._imGradoCalc`, que se guarda FUERA de esa compuerta a propósito—. Sin la
        condición, reabrir un estudio viejo SIN marca manual re-derivaría el grado del informe
        firmado, que es migrar un estudio guardado en silencio. Ver `sevFundRestaurar`. */
@@ -28316,7 +28324,7 @@ function _imVmProt() {
    —«no queda ningun parametro cargado» y «esta valvula no se gradua» no son lo mismo— y esta
    tomada: NO se toca. Lo que se corrige aca es la afirmacion. */
 /* ══ AVISO DE MECANISMO SECUNDARIO EN EL CALC-BOX ════════════════════════════════════════════════
-   SÓLO PANTALLA. No toca cortes, ni votos, ni `im_grado`, ni `im_sev_final`, y no llega al informe,
+   SÓLO PANTALLA. No toca cortes, ni votos, ni `im_grado` —el único nodo del grado—, y no llega al informe,
    al EN SUMA, al PDF ni al Excel. Lo que cierra es que la calculadora gradúa una IM secundaria con
    los cortes de la primaria SIN decirlo en el lugar donde el médico lee el grado: el panel de
    Evidencia ya lo declaraba, pero el panel es otra pantalla y hay que ir a buscarlo.
@@ -28800,7 +28808,7 @@ function calcIM_ESC() {
 
   /* ⚠️ LÍMITE DECLARADO, NO ES EL COMPORTAMIENTO DESEADO — y el corte protésico del jet lo volvió
      alcanzable por una puerta NUEVA. Este `return` está ANTES del badge `im-sev` y de la escritura
-     de `im_grado`/`im_sev_final`, así que un grado YA ESCRITO no se borra cuando todos los
+     de `im_grado`, así que un grado YA ESCRITO no se borra cuando todos los
      parámetros dejan de votar. Es PREEXISTENTE —borrar la única vena contracta de una nativa deja
      el grado igual, medido— pero hasta este commit `params` nunca podía ENCOGER: la morfología no
      era insumo de esta cascada. Hoy sí, y el camino es exactamente el gesto que el `onchange` de
@@ -28825,7 +28833,7 @@ function calcIM_ESC() {
      si la pill está fijada. El `if` de la marca envuelve sólo la ESCRITURA —el badge `im-sev` se
      repinta igual—: `im-sev` es el veredicto AUTOMÁTICO y dejarlo en «Severa» sobre cero
      parámetros es falso aunque el médico haya fijado el grado a mano. Lo que la marca protege es
-     su elección, que vive en `im_grado`/`im_sev_final`.
+     su elección, que vive en `im_grado` (era `im_grado`/`im_sev_final` hasta el 2026-10-06).
 
      ⚠️ Y LA PRECISIÓN SOBRE DÓNDE VIVE, porque el pedido decía otra cosa: el `onchange` de
      `vm_morf` NO limpia `em_grado` — llama a `calcEM()`, y es `emGradoAuto` (el CALCULADOR) el
@@ -49265,7 +49273,7 @@ function _indCtrlHTML(ctrl){
    mismo dato, que es exactamente la segunda fuente que `_indOrigen` existe para evitar.
 
    ⚠️ LAS COMPUERTAS SON LAS DE LAS SECCIONES QUE GOBIERNA, no unas nuevas. Con prótesis no se
-   muestra —ninguna de las dos tarjetas nativas aplica— y sin `im_sev_final === '4'` tampoco, que es
+   muestra —ninguna de las dos tarjetas nativas aplica— y sin `im_grado === '4'` tampoco, que es
    la condición que `_indIM` y `_indIMS` exigen LAS DOS. Pintarlo siempre ponía una pregunta sobre la
    insuficiencia mitral en el panel de un paciente que no tiene insuficiencia mitral y, peor,
    contestarla no habría tenido ningún efecto visible: el modo de falla mudo de este panel.
@@ -50160,7 +50168,7 @@ function _indIMRecom(D){
 }
 
 /* ── Insuficiencia mitral primaria ─────────────────────────────────────────────────────────
-   Gatea por `im_sev_final === '4'` y NO por 3: el valor 3 es «Moderada-severa» y el 4 es
+   Gatea por `im_grado === '4'` y NO por 3: el valor 3 es «Moderada-severa» y el 4 es
    «Severa». El pedido original decía «severa (im_sev_final=3)» — se verificó contra las opciones
    reales del desplegable y contra `_labRegurgSev`, que mapea el 3 a «Moderada».
 
@@ -50174,9 +50182,9 @@ function _indIM(){
      PRIMARIA de válvula NATIVA, y la app entera se niega a graduar una prótesis con ellos desde
      la Fase 1 (`PROT_SIN_GRADO_TXT`). Medido antes de ponerla: con `vm_morf = 'Prótesis
      mecánica'` el panel publicaba esta tarjeta llena de ✅ e idéntica al control nativo.
-     VA PRIMERA, no después del `im_sev_final`: `calcIM_ESC` SÍ gradúa la regurgitación protésica
+     VA PRIMERA, no después del `im_grado`: `calcIM_ESC` SÍ gradúa la regurgitación protésica
      —usa los cortes de prótesis para el jet/AI y la relación VTI desde el 2026-09-29— así que un
-     `im_sev_final` de 4 es perfectamente alcanzable acá y no puede ser la compuerta.
+     `im_grado` de 4 es perfectamente alcanzable acá y no puede ser la compuerta.
      Es el espejo de la compuerta de `_indProtM` (`if (!vmEsProtesis()) return null`), con la
      misma función, que es lo que hace que la partición sea exacta por construcción. */
   if (_indFn('vmEsProtesis') && vmEsProtesis()) return null;
@@ -50415,7 +50423,7 @@ function _indIM(){
       { txt:'Los tres criterios cuantitativos de insuficiencia mitral severa coinciden en las tres guías: AEOR ≥ 40 mm², volumen regurgitante ≥ 60 ml y fracción regurgitante ≥ 50 %; la vena contracta severa es ≥ 7 mm.',
         refs:['aseVr2017','ahaVc2020','esc2025vc'] },
       /* ⚠️ CUARTA CONCORDANCIA, Y SE DECLARA SU ALCANCE. Pandian es una guía de cardiopatía
-         REUMÁTICA, y esta sección NO mira la etiología —se gatea por `im_sev_final === '4'`—, así
+         REUMÁTICA, y esta sección NO mira la etiología —se gatea por `im_grado === '4'`—, así
          que la nota no puede insinuar que este paciente lo sea. Lo que aporta es que los mismos
          cuatro cortes vuelven a publicarse en un cuarto documento, más un parámetro que esta
          aplicación no recoge. No es un criterio nuevo: es respaldo del que ya está. */
@@ -50437,7 +50445,7 @@ function _indIM(){
          la aplicación, y va en el mismo marcador. La guía no contempla el caso de un grado
          ilegible, que es el que llega desde un import de Excel o un backup editado.
          ⚠️ LA NOTA NO HABLA DE LA PRÓTESIS, y es deliberado: el cociente protésico conserva el
-         régimen viejo (se retira desde la moderada) y esta sección se gatea por `im_sev_final`, no
+         régimen viejo (se retira desde la moderada) y esta sección se gatea por `im_grado`, no
          por la morfología. Nombrar acá los dos regímenes sin poder decir cuál le toca a ESTE
          paciente sería ruido; el `title` de la fila, que sí sabe la morfología, lo dice.
          ⚠️ Y VA EN `_indIM` AUNQUE PANDIAN SEA REUMÁTICA: esta sección no mira la etiología, así
@@ -50482,7 +50490,7 @@ function _indIM(){
    muestra los criterios y los datos que ya tiene cargados.
 
    ⚠️ LOS UMBRALES DE SEVERIDAD DE LA SECUNDARIA SON MÁS BAJOS Y LA APP NO LOS APLICA. La sección
-   los PUBLICA con su cita y no toca la graduación: `im_sev_final` se vota con los cortes de la
+   los PUBLICA con su cita y no toca la graduación: `im_grado` se vota con los cortes de la
    primaria y no consulta `teer_tipo_im` en ninguna rama —verificado—. Corregirlo es contenido
    clínico y toca el informe firmado.
    ══════════════════════════════════════════════════════════════════════════════════════════ */
@@ -52045,7 +52053,7 @@ function _indProtM(){
      CERO mediciones cargadas. Un paciente disneico por EPOC con una prótesis sana recibía una
      indicación quirúrgica de Clase I.
      A diferencia de las otras secciones mitrales, la compuerta de SECCIÓN no la aporta: `_indIM`
-     gatea en `im_sev_final === '4'` y `_indEM` en el grado; ésta gatea en «es una prótesis», que
+     gatea en `im_grado === '4'` y `_indEM` en el grado; ésta gatea en «es una prótesis», que
      no es un criterio de severidad. La cascada no heredaba nada.
      Se arma con lo que la sección YA LEYÓ —`P.obstr` es el veredicto de `vmProtEOA`, no un
      recálculo— y con `_ge`/`_gt`, nunca con comparaciones crudas: `null >= 0` es `true` y la
@@ -53487,7 +53495,8 @@ document.addEventListener('DOMContentLoaded', function(){ try { _epAssertUmbrale
    · La INSUFICIENCIA se lee de `it_grado`, el campo que escribe `calcIT_ESC` con el algoritmo
      multiparamétrico de la app. `calcIT_ESC` es un PINTOR —escribe en el DOM y no devuelve
      nada—, así que no hay función que consumir: se lee su resultado, que es el mismo camino que
-     ya usan la mitral y la aórtica con `im_sev_final` / `ia_sev_final`.
+     ya usan la mitral y la aórtica con `im_grado` / `ia_grado` (eran `im_sev_final` /
+     `ia_sev_final`, los dos `<select>` que se fueron el 2026-10-06).
      ⚠️ `it_grado` es un input oculto que NACE en «0», no vacío, así que un formulario en blanco
      dice «Sin» y no «sin evaluar». Por eso la ausencia de dato no se puede afirmar acá.
    · La ESTENOSIS sale de `etEstado()`, que sí devuelve el veredicto y sus tres criterios.
@@ -56362,9 +56371,11 @@ window.valvSev = (function(){
      «cuando Maicol las pida, lo que se borra es la condición». Maicol pidió la MITRAL y dejó
      explícito que la tricúspide y la pulmonar no se tocan, así que la condición sigue existiendo
      con una válvula más. Borrarla entera le daría «Sin» a la tricúspide en el mismo gesto.
-     En la mitral los dos `value` ya existen y no se inventa ningún grado: `im_sev_final` tiene
-     `value="0"` («— Sin insuficiencia / no evaluada») y `em_grado` tiene `value="sin"` («Sin
-     estenosis»), que es la primera `<option>` que el `.slice(1)` venía tirando. */
+     En la mitral los dos `value` ya existen y no se inventa ningún grado: el grado de IM usa `'0'`
+     («— Sin insuficiencia / no evaluada») y `em_grado` tiene `value="sin"` («Sin estenosis»), que es
+     la primera `<option>` que el `.slice(1)` venía tirando. (Aquel día el `'0'` vivía en el
+     `<select>` visible `im_sev_final`; ese nodo se fue el 2026-10-06 y hoy el valor está en el
+     oculto `im_grado`, que es el único del grado.) */
   /* v2 (2026-10-03, regla 2): el menú ▼ YA NO ofrece «Sin», en NINGUNA válvula. «Sin»/«0» sigue
      siendo el CENTINELA INTERNO de «no hay» que escriben los cálculos y leen el informe/EN SUMA/PDF/
      Excel (decisión de Maicol: no reescribir esa plomería); lo que se quita es ofrecerlo como una
@@ -98606,8 +98617,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261008-2211';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791508313558;                 /* eco-build-ms */
+const ECO_BUILD    = '20261008-2215';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791508546471;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -98693,7 +98704,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-2211</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-2215</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
