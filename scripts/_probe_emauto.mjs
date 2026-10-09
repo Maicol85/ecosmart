@@ -768,6 +768,10 @@ async function main() {
          (2) el desplegable nativo `em_grado` en «Sin estenosis». El ▼ de la pastilla ya NO ofrece
              «Sin» en ninguna valvula (regla 2 del 2026-10-03), asi que esta es la otra puerta; se
              escribe por script y se DECLARA, porque un <select> no se tipea. */
+      /* ⚠️ `generarInforme` DEJA LA PESTANA DEL INFORME AL FRENTE, y la pastilla oculta no tiene
+         geometria: la primera corrida informo `NO SE PUDO — nodo sin geometria` para este clic
+         justo despues de `antesTextos`. Se vuelve a Valvulas antes del gesto. */
+      e.reabreAntesDelClic = JSON.parse(await ev(`JSON.stringify(window.__P.abrirTodo())`));
       e.clicApagaBoton = await clicEn('pill-esten-mitral');
       await pausa(250);
       e.conSinPorBoton = await foto();

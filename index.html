@@ -33904,7 +33904,27 @@ function generarInforme(opts) {
        regurgitación protésica son los de la válvula nativa— que es la misma asimetría que `_pE`
        aplica en el cuerpo dejando pasar `insE`. */
     const _vmProt = (typeof protNoGradua === 'function') && protNoGradua('vm_morf');
-    const _emSinVeredicto = !estEGrado && emCat.clave === 'nada' &&
+    /* ⚠️ `!_emCatAct` Y NO `emCat.clave === 'nada'` (2026-10-08) — UN «SIN ESTENOSIS» DEL MÉDICO
+       BORRABA DEL PAPEL LOS DOS NÚMEROS QUE LA PANTALLA MUESTRA. Medido en HEAD con AVm 1,20 por
+       planimetría y gradiente medio 9: la categoría es `severa`, `emSinExplicito` la SILENCIA —que
+       es correcto y no se toca: la elección del médico gana— pero con la clave en `severa` esta rama
+       no entraba, el cuerpo caía en la de abajo y el informe FIRMADO decía «Válvula mitral de
+       morfología normal, sin estenosis ni insuficiencia.» —en Conciso, «VM normal.»— sobre una
+       válvula con 1,20 cm² y 9 mmHg medidos. Es la MISMA negación tranquilizadora sobre una válvula
+       medida que esta rama vino a cerrar el 2026-09-28, sólo que habilitada por la respuesta del
+       médico en vez de por el valor de fábrica — el mismo paso que ya hizo caer el `!_emManual` de
+       esta misma condición. Su comentario lo decía ya: «publicar los valores SIN veredicto es
+       compatible con su "sin": no lo contradice, lo respalda con lo que se midió».
+       `!_emCatAct` es la pregunta correcta —«¿quedó alguna categoría que hable?»— y la contesta el
+       MISMO predicado que decide si el cuerpo publica un veredicto, que es lo que las ata: con un
+       `_emCatAct` verdadero `estEGrado` no es nulo y la primera condición ya cierra la rama, así que
+       sólo entran los estados SIN veredicto. Alcance medido: la clave `nada` entra como antes, y se
+       le suman `severa` y `probable` cuando el médico eligió «Sin». `gradiente` y `gradiente_im` NO
+       cambian —`emSinExplicito` no las silencia, por la decisión de 2026-09-28— y la PRÓTESIS no
+       puede entrar por construcción: `emCategoria` devuelve `fuentes:[]` y `gm:null` con la clave
+       `protesis`, así que el tercer término es falso. Verificado: el control AVm 2,0 + gradiente 3
+       y el caso sin un solo dato mitral quedan byte a byte como en HEAD. */
+    const _emSinVeredicto = !estEGrado && !_emCatAct &&
                             (emCat.fuentes.length || emCat.gm != null);
     if (emDesc) suma.push(`EM ${emDesc}.`);
     else if (_emCatAct) suma.push(EM_CAT_SUMA[emCat.clave]());
@@ -98586,8 +98606,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261008-2207';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791508067884;                 /* eco-build-ms */
+const ECO_BUILD    = '20261008-2210';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791508256232;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -98673,7 +98693,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-2207</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-2210</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
