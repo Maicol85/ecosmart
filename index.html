@@ -4190,92 +4190,122 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="divider"></div>
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:8px 0 6px;">🩺 Estenosis Mitral — Cuantificación</div>
 
-        <!-- Fila 1: mediciones básicas -->
-        <div class="grid-4" style="margin-bottom:6px;">
-          <div class="fg">
-            <label>Vmax mitral CW (m/s)</label>
-            <input type="number" id="em_vmax" placeholder="m/s" step="0.1" oninput="calcEM()">
+        <!-- ══ LAS TRES COLUMNAS DE LA ESTENOSIS MITRAL (2026-10-09) ══════════════════════════
+             Distribución aprobada por Maicol. Cada columna es un contenedor PROPIO —reusa
+             `.valv-cols-3`, el precedente de las dos lesiones aórticas— y no una fila de
+             `grid-4`: con filas, el Tab cruza de izquierda a derecha y después baja; con
+             columnas, baja por la columna y pasa a la siguiente, que es lo pedido.
+             NO hay un solo `tabindex` en el bloque, así que el orden del DOM ES el orden de
+             tabulación y mover los contenedores es todo el cambio. Medido con la tecla Tab de
+             verdad, no deducido: los readonly SÍ tabulan (no son `disabled`), así que entran en
+             el recorrido de su columna.
+               col 1 — lo que se mide con el Doppler continuo sobre el chorro;
+               col 2 — los tres datos que viven en DOS lugares, juntos y rotulados con «↔»;
+               col 3 — las cuatro áreas, para compararlas de un vistazo.
+             ⚠️ NINGÚN CAMPO CAMBIA DE id, DE TIPO NI DE CUENTA. Lo único que cambia del rótulo es
+             el MARCADOR: los tres coordinados dicen «↔ …» en lugar de «auto ← …» —que era falso
+             desde que el campo dejó de ser un espejo y pasó a ser una puerta, y quedaba
+             REPORTADO en las tandas del 2026-10-07 y del 2026-10-08— y los calculados dicen
+             «(auto)». El sustantivo de cada rótulo no se toca.
+             ⚠️ «(auto)» Y NO «— auto» ES PEDIDO EXPLÍCITO (punto 2b) y diverge de las dos lesiones
+             aórticas, que usan «— auto». Queda REPORTADO, no unificado: unificarlo tocaría los
+             rótulos de la aórtica, que esta tanda no toca. -->
+        <div class="valv-cols-3" style="margin-bottom:6px;">
+          <div>
+            <div class="fg">
+              <label>Vmax mitral CW (m/s)</label>
+              <input type="number" id="em_vmax" placeholder="m/s" step="0.1" oninput="calcEM()">
+            </div>
+            <div class="fg">
+              <label>G. máx (mmHg) (auto)</label>
+              <input type="text" id="em_gmax" readonly>
+            </div>
+            <div class="fg">
+              <label>G. medio (mmHg)</label>
+              <input type="number" id="em_gmedio" placeholder="mmHg" oninput="calcEM()">
+            </div>
+            <div class="fg">
+              <label>VTI mitral CW (cm)</label>
+              <input type="number" id="em_vtimit" placeholder="cm" oninput="calcEM()">
+            </div>
           </div>
-          <div class="fg">
-            <label>G. máx — auto (mmHg)</label>
-            <input type="text" id="em_gmax" readonly>
+          <div>
+            <div class="fg">
+              <!-- El rótulo decía «auto ← Doppler» y era FALSO desde el 2026-10-08: el campo no
+                   sigue al Doppler, es una PUERTA del mismo dato y lo que se tipea acá llega a los
+                   otros cuatro lugares. Apunta a AI/VI porque es donde vive el PORTADOR
+                   (`diam_tsvi`), igual que el rótulo de la aórtica. Ver «EL DIÁM. DEL TSVI ES UN
+                   DATO CON CINCO CAMPOS». -->
+              <label>Diám. TSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; AI/VI</span></label>
+              <input type="number" id="em_dtsvi" placeholder="mm" oninput="tsviDiamEditado('em_dtsvi')">
+              <div id="em-tsvi-box" style="font-size:10px;color:var(--accent2);margin-top:3px;min-height:14px;"></div>
+            </div>
+            <div class="fg">
+              <!-- Mismo caso: era «auto ← Doppler» y el campo es una PUERTA del VTI del TSVI.
+                   `calcEM()` no se perdió: lo lleva `vtiTsviCoordinar`, sin el gate de la
+                   pastilla que lo retenía con el bloque plegado. -->
+              <label>VTI TSVI (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; Doppler</span></label>
+              <input type="number" id="em_vtitsvi" placeholder="cm" oninput="vtiTsviEditado('em_vtitsvi')">
+            </div>
+            <div class="fg">
+              <!-- ⚠️ EL MARCADOR PASA A «↔ Doppler mitral» EN EL COMMIT A, PERO EL CAMPO SIGUE
+                   SIENDO DE SOLO LECTURA HASTA EL COMMIT B. O sea que en ESTE commit el «↔» ya
+                   dice la verdad sobre DÓNDE vive el dato —en el THP del Doppler Mitral— y
+                   todavía no sobre que se pueda editar desde acá. Se hace en dos pasos a pedido:
+                   el commit A es sólo maquetación y rótulos, y el commit B lo vuelve editable.
+                   Mientras tanto el campo queda en la columna que le corresponde al lado de los
+                   otros dos datos que viven en dos lugares, que es lo que la distribución pide. -->
+              <label>THP (ms) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; Doppler mitral</span></label>
+              <input type="text" id="em_thp_display" readonly style="color:var(--accent2);" placeholder="completar en Doppler Mitral">
+            </div>
           </div>
-          <div class="fg">
-            <label>G. medio (mmHg)</label>
-            <input type="number" id="em_gmedio" placeholder="mmHg" oninput="calcEM()">
-          </div>
-          <div class="fg">
-            <label>THP (ms) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Doppler Mitral</span></label>
-            <input type="text" id="em_thp_display" readonly style="color:var(--accent2);" placeholder="completar en Doppler Mitral">
+          <div>
+            <div class="fg">
+              <label>AVm por THP (cm²) (auto)</label>
+              <input type="text" id="em_avm_thp_display" readonly style="font-weight:700;">
+            </div>
+            <div class="fg">
+              <label>AVm continuidad (cm²) (auto)</label>
+              <input type="text" id="avm_cont" readonly style="font-weight:700;">
+            </div>
+            <div class="fg">
+              <label>AVm planimetría (cm²)</label>
+              <input type="number" id="avm_plan" placeholder="cm²" step="0.1" oninput="calcEM()">
+            </div>
+            <div class="fg">
+              <label>AVm indexada (cm²/m²) (auto)</label>
+              <input type="text" id="avm_idx" readonly>
+            </div>
+            <!-- ⚠️ EL ÁREA POR ETE SALIÓ DE LA PANTALLA Y DE LA LÓGICA (2026-10-08) — DECISIÓN DE
+                 MAICOL. El `avm_ete` que vivía acá dejó de ser una fuente que vota: las que quedan
+                 son planimetría (`avm_plan`), THP y continuidad. La regla de combinación NO cambió
+                 —sigue «prevalece el peor»—, sólo hay una fuente menos.
+                 EL NODO SE OCULTA Y NO SE BORRA, con el mismo patrón que `em_grado` y `ea_grado`
+                 —`display:none` + `aria-hidden` + `tabindex="-1"`, o sea sin foco, sin tabulación y
+                 sin lector de pantalla—, y por las mismas tres razones:
+                   1. es un `input[id]`, así que el barrido de `guardarInforme` lo persiste y
+                      `limpiarCampos` lo repone: borrarlo cambiaría qué viaja con el estudio;
+                   2. un estudio ya guardado que trae `avm_ete` lo REABRE con su valor intacto —no se
+                      migra nada, no se reescribe nada— y el valor simplemente no vota;
+                   3. el `oninput` se conserva porque el nodo sigue siendo alcanzable por código
+                      (un importador, un JSON editado a mano), y `calcEM` sin insumo es inocuo.
+                 Vive al final de la columna de las áreas, que es su grupo: sin geometría no ocupa
+                 lugar ni deja un hueco donde estaba. -->
+            <input type="number" id="avm_ete" placeholder="cm²" step="0.1" oninput="calcEM()"
+                   style="display:none;" aria-hidden="true" tabindex="-1">
           </div>
         </div>
 
-        <!-- Fila 2: AVm THP + planimetría. `grid-3` desde que el área por ETE salió de la
-             distribución (2026-10-08): quedan AVm por THP, planimetría y AVm indexada. -->
-        <div class="grid-3" style="margin-bottom:6px;">
-          <div class="fg">
-            <label>AVm por THP (cm²) — auto</label>
-            <input type="text" id="em_avm_thp_display" readonly style="font-weight:700;">
-          </div>
-          <div class="fg">
-            <label>AVm planimetría (cm²)</label>
-            <input type="number" id="avm_plan" placeholder="cm²" step="0.1" oninput="calcEM()">
-          </div>
-          <div class="fg">
-            <label>AVm indexada (cm²/m²) — auto</label>
-            <input type="text" id="avm_idx" readonly>
-          </div>
-          <!-- ⚠️ EL ÁREA POR ETE SALIÓ DE LA PANTALLA Y DE LA LÓGICA (2026-10-08) — DECISIÓN DE
-               MAICOL. El `avm_ete` que vivía acá dejó de ser una fuente que vota: las que quedan
-               son planimetría (`avm_plan`), THP y continuidad. La regla de combinación NO cambió
-               —sigue «prevalece el peor»—, sólo hay una fuente menos.
-               EL NODO SE OCULTA Y NO SE BORRA, con el mismo patrón que `em_grado` y `ea_grado`
-               —`display:none` + `aria-hidden` + `tabindex="-1"`, o sea sin foco, sin tabulación y
-               sin lector de pantalla—, y por las mismas tres razones:
-                 1. es un `input[id]`, así que el barrido de `guardarInforme` lo persiste y
-                    `limpiarCampos` lo repone: borrarlo cambiaría qué viaja con el estudio;
-                 2. un estudio ya guardado que trae `avm_ete` lo REABRE con su valor intacto —no se
-                    migra nada, no se reescribe nada— y el valor simplemente no vota;
-                 3. el `oninput` se conserva porque el nodo sigue siendo alcanzable por código
-                    (un importador, un JSON editado a mano), y `calcEM` sin insumo es inocuo.
-               El campo se quita de la distribución: la fila pasa de `grid-4` a `grid-3`, así que
-               las tres casillas que quedan se reparten el ancho sin un hueco donde estaba ésta. -->
-          <input type="number" id="avm_ete" placeholder="cm²" step="0.1" oninput="calcEM()"
-                 style="display:none;" aria-hidden="true" tabindex="-1">
-        </div>
-
-        <!-- Fila 3: Ecuación de continuidad EM -->
+        <!-- ⚠️ ESTE ENCABEZADO QUEDÓ SIN GRUPO QUE ENCABEZAR, Y NO SE BORRA (2026-10-09).
+             Decía «📐 Ecuación de Continuidad — AVm» sobre la fila de sus tres insumos. Con la
+             distribución aprobada esos insumos quedaron repartidos en las TRES columnas —el VTI
+             mitral CW en la 1, el Ø TSVI y el VTI TSVI en la 2, el área resultante en la 3—, así
+             que ya no hay una fila que agrupe la ecuación. Ponerlo ARRIBA de las tres columnas
+             rotularía como «ecuación de continuidad» a los doce campos, que es falso; borrarlo
+             está prohibido por el pedido («NO borres ni ocultes nada: yo decido qué sale»).
+             Queda acá, entre los campos y el cuadro de resultados, con su texto SIN TOCAR, y
+             REPORTADO en la lista de sobrantes del punto 6 para que lo decida Maicol. -->
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:8px 0 4px;">📐 Ecuación de Continuidad — AVm</div>
-        <div class="grid-4" style="margin-bottom:6px;">
-          <div class="fg">
-            <!-- ⚠️ EL RÓTULO «auto ← Doppler» QUEDÓ FALSO Y NO SE TOCA (2026-10-08): el pedido
-                 prohíbe cambiar rótulos, así que queda REPORTADO. Desde esta tanda el campo no es
-                 un espejo que sigue al Doppler: es una PUERTA del mismo dato, y lo que se tipea
-                 acá llega a los otros cuatro lugares (AI/VI, Doppler y Válvulas — Estenosis
-                 Aórtica). Ver «EL DIÁM. DEL TSVI ES UN DATO CON CINCO CAMPOS». -->
-            <label>Diám. TSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Doppler</span></label>
-            <input type="number" id="em_dtsvi" placeholder="mm" oninput="tsviDiamEditado('em_dtsvi')">
-            <div id="em-tsvi-box" style="font-size:10px;color:var(--accent2);margin-top:3px;min-height:14px;"></div>
-          </div>
-          <div class="fg">
-            <!-- ⚠️ EL RÓTULO «auto ← Doppler» QUEDÓ FALSO Y NO SE TOCA (2026-10-08), igual que en
-                 el Ø TSVI de arriba: el pedido prohíbe cambiar rótulos, así que queda REPORTADO.
-                 El campo es una PUERTA del VTI del TSVI, no un espejo: lo que se tipea acá llega al
-                 Doppler aórtico, a Válvulas — Estenosis Aórtica y a Insuficiencia Mitral.
-                 `calcEM()` no se perdió: `vtiTsviCoordinar` lo lleva, y sin el gate de la pastilla
-                 que lo retenía con el bloque plegado. -->
-            <label>VTI TSVI (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Doppler</span></label>
-            <input type="number" id="em_vtitsvi" placeholder="cm" oninput="vtiTsviEditado('em_vtitsvi')">
-          </div>
-          <div class="fg">
-            <label>VTI mitral CW (cm)</label>
-            <input type="number" id="em_vtimit" placeholder="cm" oninput="calcEM()">
-          </div>
-          <div class="fg">
-            <label>AVm continuidad (cm²) — auto</label>
-            <input type="text" id="avm_cont" readonly style="font-weight:700;">
-          </div>
-        </div>
 
         <!-- Resultados integrados -->
         <div class="calc-box" style="margin-top:6px;">
@@ -99052,8 +99082,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261009-0018';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791515881179;                 /* eco-build-ms */
+const ECO_BUILD    = '20261009-0635';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791538545654;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -99139,7 +99169,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-0018</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-0635</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
