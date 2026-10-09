@@ -55795,6 +55795,190 @@ caso('TC-446', 'Las dos filas de presiones pulmonares, la pastilla de IP y lo qu
   ] };
   })();
 `);
+/* TC-447 — LA FILA DE VENA CONTRACTA MUESTRA EL VALOR MEDIDO (2026-10-09, decision de Maicol).
+   La fila existe desde d356b13 —rotulo, el circulo de ayuda y los cortes desde IM_CORTES.vc— pero
+   NADIE le escribia el valor: se quedaba en «—» para siempre, asi que el unico votante del grado
+   integrado de IM que no tenia fila propia seguia sin ser consultable en pantalla.
+   Este caso fija las cinco cosas que ese cambio tiene que cumplir y NINGUNA de las que no:
+     · el valor sale con su unidad y la fila se vacia cuando el campo se vacia;
+     · un valor fuera de la banda de plausibilidad se MARCA, no se borra (la regla «marcar sin
+       borrar», que es decision de Maicol del 2026-09-27);
+     · los dos cortes se prueban POR LOS DOS LADOS (2,9 contra 3,0 y 6,9 contra 7,0): un umbral
+       medido de un solo lado no distingue «el corte esta donde dice» de «siempre devuelve lo
+       mismo». Los cortes NO se tocaron en esa tanda, asi que esto es ademas su control;
+     · CONTROL NEGATIVO: con PISA cargado y sin vena contracta la fila dice «—» mientras las filas
+       vecinas SI publican — sin esto, «dice —» pasaria tambien si la fila estuviera muerta;
+     · CONTROL NEGATIVO: la fila es SOLO DE PANTALLA y no se filtra al informe firmado;
+     · y la REIMPRESION no le deja al paciente en pantalla la vena contracta del otro estudio, que
+       es el unico modo de falla real que el cambio introduce: durante esa ventana calcIM_ESC corre
+       con los datos del estudio reimpreso y el cierre no lo recalcula. Es el mismo argumento por el
+       que eroa-val, volr-val e im-jet-ratio ya estaban en ese respaldo.
+   ⚠️ ESTE ARNES MIDE EN 756 px, o sea con el bloque de cuantificacion PLEGADO tras el cajon
+   «Datos» de la maquetacion de celular. No se pregunta por visibilidad a proposito: textContent se
+   lee igual y __t.set dispara el oninput igual, asi que lo que este caso mide es el VALOR, que es
+   lo que el cambio produce. La visibilidad la mide scripts/_probe_mitvis.mjs a 1200, 390 y 360 px.
+   ⚠️ SIN ACENTOS GRAVES EN EL CUERPO (template literal). */
+caso('TC-447', 'La fila de vena contracta de IM imprime el valor medido con su unidad, lo MARCA si cae fuera de banda, vuelve a «—» al borrarlo, no se filtra al informe firmado y la reimpresion no le deja al paciente en pantalla la del otro estudio', `
+  ${APAGA_HELPERS}
+  return (async () => {
+  const g = function (id) { return document.getElementById(id); };
+  const abrirMitral = function () {
+    try { showTab('valvulas'); } catch (e) {}
+    const s = g('ete-seccion-valv-mitral');
+    if (s && s.style.display === 'none') { try { toggleEteSeccion('valv-mitral'); } catch (e) {} }
+  };
+  /* Recorte LOCAL y no el recorteJS del archivo: ese vive en SINGRADO_HELPERS y este caso inyecta
+     APAGA_HELPERS, asi que llamarlo daba un ReferenceError que tumbaba el caso entero. */
+  const rec = function (t) { return !t ? '(vacio)' : String(t).replace(/\\n/g, ' | ').slice(0, 200); };
+  /* La fila, el campo y los tres vecinos del mismo calc-box. Los vecinos son el denominador: si
+     NINGUNO publica, «la fila dice —» no prueba nada sobre la fila. */
+  const F = function () {
+    return { fila: aTxt('im-vc-ref'), campo: (g('im_vc') || {}).value,
+             eroa: aTxt('eroa-val'), volr: aTxt('volr-val'), fr: aTxt('freg-val'),
+             grado: (g('im_grado') || {}).value };
+  };
+  /* PISA completo y SIN vena contracta: es el escenario del control negativo y el que hace que el
+     informe tenga algo que decir de la IM sin que la VC participe.
+     ⚠️ LA Vmax IM VA EN m/s DESDE EL 2026-10-09 y la unidad se lee del placeholder, no se supone:
+     escrita a mano, el dia que el campo cambie de unidad el caso mediria otro paciente. */
+  const cargarPisa = function () {
+    const ph = (g('im_vmax') || {}).placeholder || '';
+    __t.set('pisa_r', '7'); __t.set('pisa_val', '40');
+    __t.set('im_vmax', /cm\\/s/.test(ph) ? '500' : '5');
+    __t.set('im_itv', '130');
+  };
+  const idDe = function (estudioId) {
+    const inf = (typeof getInformes === 'function' ? getInformes() : [])
+      .find(function (i) { return i.estudioId === estudioId; });
+    return inf ? inf.id : null;
+  };
+  /* Calcado de TC-446, por los mismos dos motivos que su comentario explica: el guard de reentrada
+     de pdfDeInformeGuardado baja recien al terminar su restauracion diferida, y una promesa sin
+     plazo no pone el caso en rojo — CUELGA la suite entera. */
+  const esperarPdfLibre = async function () {
+    for (let k = 0; k < 150 && window._pdfGuardadoEnCurso; k++) {
+      await new Promise(function (r) { setTimeout(r, 100); });
+    }
+    return !window._pdfGuardadoEnCurso;
+  };
+  const reimprimir = async function (id, enCarga) {
+    let llamado = false;
+    if (id === null) return { llamado: false, libre: false };
+    await Promise.race([
+      new Promise(function (res) {
+        try { pdfDeInformeGuardado(id, function () {
+          llamado = true;
+          if (enCarga) { try { enCarga(); } catch (e) {} }
+          setTimeout(res, 300);
+        }, 'PDF'); } catch (e) { res(); }
+      }),
+      new Promise(function (res) { setTimeout(res, 9000); })
+    ]);
+    const libre = await esperarPdfLibre();
+    await new Promise(function (r) { setTimeout(r, 400); });
+    return { llamado: llamado, libre: libre };
+  };
+
+  /* ── (1) DENOMINADOR: la fila existe y arranca en «—» ───────────────────────────────────── */
+  __t.nuevoEstudio(); abrirMitral();
+  const existe = !!g('im-vc-ref');
+  const inicial = F();
+
+  /* ── (2) LOS DOS CORTES, POR LOS DOS LADOS ──────────────────────────────────────────────── */
+  const bandas = {};
+  ['2.9', '3.0', '6.9', '7.0'].forEach(function (v) {
+    __t.nuevoEstudio(); abrirMitral();
+    __t.set('im_vc', v);
+    bandas[v] = F();
+  });
+
+  /* ── (3) BORRAR vacia la fila ───────────────────────────────────────────────────────────── */
+  __t.nuevoEstudio(); abrirMitral();
+  __t.set('im_vc', '7.0');
+  const conDato = F();
+  __t.set('im_vc', '');
+  const trasBorrar = F();
+
+  /* ── (4) FUERA DE BANDA: se marca, no se borra ───────────────────────────────────────────── */
+  __t.nuevoEstudio(); abrirMitral();
+  __t.set('im_vc', '300');
+  const fuera = F();
+  const banda = (function () { try { return vPlaus('im_vc'); } catch (e) { return { err: e.message }; } })();
+  /* Y el informe firmado de ESA escena, que es donde se ve si la fila se filtra. */
+  /* ⚠️ __t.informe() DEVUELVE UN OBJETO {inf, suma}, NO UNA CADENA, y la primera version de
+     este caso le hizo .indexOf encima: el caso reventaba con un TypeError en vez de medir. Se
+     miran las DOS superficies por separado, que es la regla de este repo — nunca «el informe y el
+     EN SUMA» en bloque. */
+  const rFuera = __t.informe();
+  const infFuera = rFuera.inf, sumaFuera = rFuera.suma;
+
+  /* ── (5) CONTROL NEGATIVO: PISA cargado y SIN vena contracta ─────────────────────────────── */
+  __t.nuevoEstudio(); abrirMitral();
+  cargarPisa();
+  const sinVC = F();
+  const rSinVC = __t.informe();
+  const infSinVC = rSinVC.inf, sumaSinVC = rSinVC.suma;
+
+  /* ── (6) REIMPRESION: el paciente en pantalla no se queda con la VC del otro ─────────────── */
+  __t.nuevoEstudio(); abrirMitral();
+  __t.set('nombre', 'TC447 con VC'); __t.set('im_vc', '7.0');
+  const gCon = await __t.guardar();
+  const idCon = idDe(gCon.estudioId);
+  /* El paciente en pantalla tiene IM por PISA y NINGUNA vena contracta. */
+  __t.nuevoEstudio(); abrirMitral();
+  __t.set('nombre', 'TC447 en pantalla'); cargarPisa();
+  const rAntes = F();
+  let rDentro = null;
+  const r = await reimprimir(idCon, function () { rDentro = F(); });
+  const rDespues = F();
+
+  __t.nuevoEstudio();
+  return { extra: [
+    ['DENOMINADOR: la fila existe y con el formulario vacio dice «—»',
+      existe === true && inicial.fila === '—', 'existe=' + existe + ' · ' + JSON.stringify(inicial)],
+
+    ['2,9 mm imprime el valor con su unidad y vota LEVE',
+      bandas['2.9'].fila === '2.9 mm' && bandas['2.9'].grado === '1', JSON.stringify(bandas['2.9'])],
+    ['3,0 mm —el otro lado del MISMO corte— imprime y vota MODERADA',
+      bandas['3.0'].fila === '3 mm' && bandas['3.0'].grado === '2', JSON.stringify(bandas['3.0'])],
+    ['6,9 mm sigue en MODERADA',
+      bandas['6.9'].fila === '6.9 mm' && bandas['6.9'].grado === '2', JSON.stringify(bandas['6.9'])],
+    ['7,0 mm —el otro lado del segundo corte— imprime y vota SEVERA',
+      bandas['7.0'].fila === '7 mm' && bandas['7.0'].grado === '4', JSON.stringify(bandas['7.0'])],
+    /* El «3 mm» y el «7 mm» de arriba NO son un descuido: la fila imprime el numero como lo parsea
+       v(), que es la convencion de vPdf y de las otras treinta y tres filas del PDF. Se afirma el
+       texto EXACTO para que un cambio de formato tenga que pasar por aca. */
+
+    ['borrar el campo devuelve la fila a «—», y el numero no queda pegado',
+      conDato.fila === '7 mm' && trasBorrar.campo === '' && trasBorrar.fila === '—',
+      'con=' + JSON.stringify(conDato) + ' · tras=' + JSON.stringify(trasBorrar)],
+
+    ['DENOMINADOR: 300 mm cae FUERA de la banda de plausibilidad de im_vc',
+      banda && banda.fuera === true, JSON.stringify(banda)],
+    ['un valor fuera de banda se MARCA y no se borra: «300 mm (revisar)»',
+      fuera.fila === '300 mm (revisar)', JSON.stringify(fuera)],
+
+    ['CONTROL NEGATIVO: sin vena contracta la fila dice «—» MIENTRAS las vecinas SI publican',
+      sinVC.fila === '—' && sinVC.eroa !== '—' && sinVC.volr !== '—',
+      JSON.stringify(sinVC)],
+    ['CONTROL NEGATIVO: la fila es de PANTALLA y no se filtra al informe narrativo',
+      infFuera.indexOf('(revisar)') === -1 && infFuera.indexOf('Vena contracta') === -1 &&
+      infSinVC.indexOf('Vena contracta') === -1,
+      'fuera=' + rec(infFuera) + ' // sinVC=' + rec(infSinVC)],
+    ['CONTROL NEGATIVO: ni al EN SUMA, que es su propio emisor y se mira aparte',
+      sumaFuera.indexOf('(revisar)') === -1 && sumaFuera.indexOf('Vena contracta') === -1 &&
+      sumaSinVC.indexOf('Vena contracta') === -1,
+      'fuera=' + rec(sumaFuera) + ' // sinVC=' + rec(sumaSinVC)],
+
+    ['DENOMINADOR de la reimpresion: ocurrio, el guard bajo, y DENTRO de la ventana la fila decia la del estudio reimpreso',
+      r.llamado === true && r.libre === true && !!rDentro && rDentro.fila === '7 mm',
+      JSON.stringify({ r: r, dentro: rDentro })],
+    ['al CERRAR la reimpresion el paciente en pantalla vuelve a su propia fila —«—»— y no se queda con los 7 mm del otro',
+      rAntes.fila === '—' && rDespues.fila === '—' && rDespues.eroa === rAntes.eroa,
+      'antes=' + JSON.stringify(rAntes) + ' · despues=' + JSON.stringify(rDespues)],
+  ] };
+  })();
+`);
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

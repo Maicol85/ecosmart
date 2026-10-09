@@ -4670,8 +4670,13 @@ window.cerrarSesionReal = cerrarSesionReal;
              Los cortes NO son nuevos ni están tecleados acá: salen de `IM_CORTES.vc`, la MISMA
              tabla que usa la cuenta, y los escribe `imCortesPintar`. La fuente se cita UNA vez,
              igual que las demás filas.
-             ⚠️ SIN DATO MUESTRA «—», como las otras: el `<span>` arranca en «—» y `calcIM_ESC` no
-             lo toca, así que una VC vacía no publica un número.
+             ⚠️ SIN DATO MUESTRA «—», como las otras. Hasta el 2026-10-09 eso era porque el
+             `<span>` arrancaba en «—» y `calcIM_ESC` no lo tocaba NUNCA —o sea que la fila tampoco
+             publicaba un número CON dato cargado: el rótulo y los cortes estaban y el valor no—.
+             Desde esta tanda (decisión de Maicol) `calcIM_ESC` SÍ la escribe, con la unidad y con
+             `(revisar)` si la vena contracta cae fuera de su banda de plausibilidad, igual que
+             `eroa-val`, `volr-val` y `freg-val`; y la devuelve a «—» en su `else` cuando el campo
+             se borra, que es lo que evita que quede un número sin dato detrás.
              ⚠️ Y CON PRÓTESIS ESTA FILA SIGUE PUBLICANDO LOS CORTES DE VÁLVULA NATIVA, igual que
              hoy: `calcIM_ESC` no tiene rama protésica para la vena contracta —sólo el jet/AI y el
              cociente VTI la tienen—. Queda REPORTADO y NO corregido: inventarle un corte protésico
@@ -29325,9 +29330,27 @@ function calcIM_ESC() {
   let scores = { leve:0, moderada:0, severa:0 };
   let params = [];
 
-  /* La VC es el UNICO votante sin fila de resultado propia —su valor se ve en su input y nada
-     mas—, asi que su marca no puede ir pegada a un span: va al aviso de `_imFueraVot`, que es la
-     superficie que este bloque agrega para exactamente eso. */
+  /* ⚠️ LA VC YA TIENE FILA PROPIA (2026-10-09, decisión de Maicol), y hasta ese día este párrafo
+     decía: «La VC es el UNICO votante sin fila de resultado propia —su valor se ve en su input y
+     nada mas—, asi que su marca no puede ir pegada a un span». La fila existe desde `d356b13`
+     —rótulo, ⓘ y cortes desde `IM_CORTES.vc`— pero nadie le escribía el valor: se quedaba en «—»
+     para siempre, así que el único votante que no era consultable en pantalla seguía sin serlo.
+     LA MARCA AHORA VA EN LOS DOS LADOS, y es a propósito: el aviso de `_imFueraVot` SIGUE
+     listando la VC fuera de banda —no se le quitó una línea— y la fila además lo dice en su
+     propio renglón. Un número imposible publicado sin marca al lado del aviso que lo denuncia es
+     el defecto que el badge del THP ya cerró del otro lado.
+     ⚠️ SALE DEL MISMO `_pVc` QUE VOTA, NO DE UNA SEGUNDA LECTURA. Un `vPlaus('im_vc')` nuevo acá
+     daría hoy lo mismo, pero dejaría la fila y el voto apoyados en dos lecturas distintas del
+     mismo campo: el día que algo escriba entre las dos, la pantalla afirma un valor y el grado se
+     calcula con otro. La fórmula es la de `vPdf` —`crudo + unidad + (fuera ? MARCA_REVISAR : '')`,
+     que es el dueño de esta convención en el archivo— y el `!crudo` también: un 0 no dibuja, que
+     es lo que ya hacen sus treinta y tres filas. `'—'` en el `else`, porque sin el `else` un
+     borrado dejaría el número pegado hasta «Nuevo estudio» — es el defecto que los cuatro span de
+     PISA pagaron tres líneas más abajo. */
+  { const _elVc = document.getElementById('im-vc-ref');
+    if (_elVc) _elVc.textContent = _pVc.crudo
+      ? (_pVc.crudo + ' mm' + (_pVc.fuera ? MARCA_REVISAR : ''))
+      : '—'; }
   if (vc && !_pVc.fuera) {
     if (vc < IM_CORTES.vc.leve_max) { scores.leve++; params.push({p:'VC',sev:'leve'}); }
     else if (vc < IM_CORTES.vc.sev_min) { scores.moderada++; params.push({p:'VC',sev:'moderada'}); }
@@ -68232,10 +68255,20 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
        ahora ese texto puede decir «(Variable — no gradúa en prótesis)», o sea una afirmación sobre
        la MORFOLOGÍA de un estudio ajeno sobre una mitral que puede ser nativa. */
     const jr = document.getElementById('im-jet-ratio');
+    /* ⚠️ `im-vc-ref` ENTRA EL 2026-10-09, EL DÍA QUE EMPEZÓ A TENER TEXTO. Mientras la fila decía
+       «—» para siempre no había nada que respaldar; desde que `calcIM_ESC` le escribe el valor
+       medido entra por el MISMO argumento que `im-jet-ratio`: durante la ventana de reimpresión
+       `calcIM_ESC` corre con los datos del estudio REIMPRESO y el cierre no lo recalcula, así que
+       sin esta línea el paciente en pantalla volvía con la vena contracta del otro — un número en
+       mm, con su unidad, atribuido a una medición que su estudio no tiene. Es un `span` y no un
+       `input`, así que el respaldo genérico de unas líneas más abajo no lo alcanza: ésa es
+       exactamente la razón de ser de este respaldo aparte. */
+    const vcr = document.getElementById('im-vc-ref');
     return { ondaE: oe ? oe.textContent : '',
              eroa:  er ? er.textContent : '',
              volr:  vr ? vr.textContent : '',
              jetRatio: jr ? jr.textContent : '',
+             vcRef: vcr ? vcr.textContent : '',
              disc:  dd ? dd.textContent : '',
              paramsDisc: dd ? dd.dataset.paramsDisc : undefined,
              /* Entra por el mismo argumento que `paramsDisc` y se olvido en la primera version:
@@ -68540,7 +68573,8 @@ function _pdfDeInformeGuardadoArmar(id, accion) {
       if (_oe) _oe.textContent = _imFilasBackup.ondaE;
       { const _er = document.getElementById('eroa-val'); if (_er) _er.textContent = _imFilasBackup.eroa;
         const _vr = document.getElementById('volr-val'); if (_vr) _vr.textContent = _imFilasBackup.volr;
-        const _jr = document.getElementById('im-jet-ratio'); if (_jr) _jr.textContent = _imFilasBackup.jetRatio; }
+        const _jr = document.getElementById('im-jet-ratio'); if (_jr) _jr.textContent = _imFilasBackup.jetRatio;
+        const _vcr = document.getElementById('im-vc-ref'); if (_vcr) _vcr.textContent = _imFilasBackup.vcRef; }
       const _dd = document.getElementById('im-discordancia');
       if (_dd) { _dd.textContent = _imFilasBackup.disc;
         if (_imFilasBackup.paramsDisc === undefined) delete _dd.dataset.paramsDisc;
@@ -99688,8 +99722,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261009-1132';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791556368227;                 /* eco-build-ms */
+const ECO_BUILD    = '20261009-1143';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791556985639;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -99775,7 +99809,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-1132</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-1143</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
