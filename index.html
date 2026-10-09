@@ -33678,6 +33678,17 @@ function generarInforme(opts) {
   {
     const vmMorf = sv('vm_morf') || 'normal';
     const _vmDe = valvMorfDe(vmMorf), _vmPres = valvMorfPresenta(vmMorf);
+    /* ⚠️ «NORMAL» ES EL ÚNICO ESTADO QUE EL CONCISO SIGUE RESUMIENDO EN UNA PALABRA (decisión de
+       Maicol, 2026-10-08). El token NO es un literal nuevo: es EL MISMO de la línea de arriba, el
+       valor de fábrica al que cae `sv('vm_morf') || 'normal'`, así que esto cubre los dos estados
+       que hoy producen «VM normal.» con la morfología sana — la `<option>Normal</option>` elegida y
+       el estudio SIN morfología consignada, que llega acá por ese `||`—. Se compara en minúsculas
+       porque la opción es «Normal» y el fallback es «normal»: las dos tienen que dar lo mismo o el
+       estudio sin consignar imprimiría distinto que el consignado como normal, que es la asimetría
+       que este archivo ya pagó en el campo de al lado.
+       Las prótesis NO llegan a esta rama —`_vmProt` las toma 40 líneas más abajo— así que esto no
+       es una compuerta de prótesis disfrazada. */
+    const _vmMorfNormal = String(vmMorf).trim().toLowerCase() === 'normal';
     /* UNA ETIOLOGÍA ACTIVA NO PUEDE QUEDAR NEGADA POR EL FALLBACK. Medido: con
        `vm_morf = 'Endocarditis'` el cuerpo decía «Válvula mitral con endocarditis» y el EN SUMA
        —que es la superficie que se lee y se copia— decía «Estudio sin alteraciones estructurales
@@ -34018,8 +34029,27 @@ function generarInforme(opts) {
         `Válvula mitral ${_vmDe}${_emIns}${_emMedTxt}.`,
         `La válvula mitral presenta ${_vmPres}${_emIns}${_emMedTxt}.`);
     } else if (!estE && !insE) {
+      /* ⚠️ EL CONCISO DECÍA «VM normal.» SOBRE UNA MITRAL REUMÁTICA, CALCIFICADA O CON
+         ENDOCARDITIS. El literal era uno para las SIETE morfologías nativas, así que el estilo que
+         el médico copia al resumen de alta o a la interconsulta negaba la etiología que el estándar
+         y el narrativo de las dos líneas de abajo SÍ nombran —«Válvula mitral con endocarditis, sin
+         estenosis ni insuficiencia.»—: la misma válvula, dos afirmaciones distintas, las dos
+         firmadas, y la que se copia es la que pierde el hallazgo.
+         ⚠️ NO SE INVENTA REDACCIÓN: sale de `valvMorfDe`, la MISMA ayuda que usa el estándar de la
+         línea siguiente, con «Válvula mitral» cambiado por «VM» — exactamente lo que ya hace la
+         rama de prótesis (`VM ${_vmDe}${_fC}${_vmValsTxt}.`). Una redacción propia acá serían dos
+         vocabularios para la misma morfología en el mismo documento.
+         ⚠️ Y «NORMAL» SE QUEDA EN «VM normal.» (decisión de Maicol): la ayuda daría «VM de
+         morfología normal, sin estenosis ni insuficiencia.», que no es falso pero reescribe el caso
+         más común de un informe firmado para no decir nada nuevo. El ternario es la forma que la
+         AÓRTICA ya usa en su slot conciso (`_eaFundCola ? ... : 'VAo normal.'`), no un mecanismo
+         nuevo. Verificado byte por byte contra HEAD: con la morfología normal —consignada o
+         ausente— los tres estilos y el EN SUMA quedan idénticos.
+         `cC` y no `cE`: en esta rama `estE` e `insE` son los dos nulos, así que `fraseEI` devuelve
+         la MISMA cadena por los dos lados (medido); se usa el corto por simetría con el slot
+         conciso de la rama de abajo. */
       vmSent = estiloPick(
-        `VM normal.`,
+        _vmMorfNormal ? `VM normal.` : `VM ${_vmDe}, ${cC}.`,
         `Válvula mitral ${_vmDe}, ${cE}.`,
         `La válvula mitral presenta ${_vmPres}, ${cE} significativas.`);
     } else {
@@ -98556,8 +98586,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261008-2205';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791507914330;                 /* eco-build-ms */
+const ECO_BUILD    = '20261008-2207';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791508067884;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -98643,7 +98673,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-2205</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-2207</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
