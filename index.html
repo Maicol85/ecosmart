@@ -19142,6 +19142,35 @@ function _eaAvaiSinBSA() {
 }
 window._eaAvaiSinBSA = _eaAvaiSinBSA;
 
+/* ══ EL AVm INDEXADO SIN SUPERFICIE CORPORAL — GEMELO MITRAL DEL DE ARRIBA (2026-10-09) ══════
+   Decisión de Maicol. `avm_idx` era el ÚNICO de los dieciocho campos calculados de los dos
+   bloques mitrales que se quedaba con el valor viejo de verdad, y el único cuya rancidez llegaba
+   a una superficie firmada: tiene columna de Excel («AVm indexada (cm²/m²)»,
+   `rnd(num('avm_idx'),2)`), así que el libro que cruza a CeiboAnalytics exportaba el indexado de
+   un paciente del que ya no se sabía la superficie corporal.
+
+   ⚠️ VA ACÁ Y NO EN `calcEM`, Y NO ES UNA ELECCIÓN DE ESTILO: `peso` y `talla` sólo llaman a
+   `calcBSA()`, y `calcEM` NO CORRE al cargarlos ni al borrarlos — este archivo ya lo dice, con
+   esas palabras, en el comentario del PPM de `calcBSA`. Se agregó además el `else` que le faltaba
+   a la condición de `calcEM` (ahí se cubre el caso de que desaparezcan las TRES fuentes de área
+   con la BSA puesta), pero ese `else` no se alcanza borrando el peso porque nadie vuelve a
+   ejecutar la función. Medido con teclas reales: con el `else` solo, borrar el peso seguía
+   dejando «0.66 cm²/m²».
+
+   ⚠️ Y SE LIMITA A VACIAR, igual que `_eaAvaiSinBSA`: NO se llama a `calcEM()` desde la rama
+   vacía de `calcBSA`. `calcEM` escribe la CATEGORÍA de la estenosis, prende la pastilla
+   (`valvAutoPrenderEsten`) y repinta el badge; borrar el peso no puede mover una afirmación de
+   severidad. Es la misma regla que esa función ya escribe para no llamar a `calcAo()`.
+
+   ⚠️ `.value` Y NO `.textContent`: `avm_idx` es un `<input type="text" readonly>`, no un `<span>`
+   como `ava-idx` y `ea-det-avai`. Escribirle `textContent` sería el no-op que el comentario de
+   `calcBSA` documenta haber pagado con `bsa-val` e `imc-val`. */
+function _emAvmiSinBSA() {
+  const el = document.getElementById('avm_idx');
+  if (el) el.value = '';
+}
+window._emAvmiSinBSA = _emAvmiSinBSA;
+
 function calcBSA() {
   const p = v('peso'), t = v('talla');
   /* El repintado del VLI va ANTES del `return` temprano y no sólo al final: esta rama sale
@@ -19175,6 +19204,8 @@ function calcBSA() {
        no puede mover una afirmación de severidad: es la regla de esta tanda («nada de la cola de
        calcAo, del grado ni del aviso»). Se escribe el estado vacío y nada más. */
     if (typeof _eaAvaiSinBSA === 'function') _eaAvaiSinBSA();
+    /* El gemelo mitral, por el MISMO argumento y en la misma rama. Ver `_emAvmiSinBSA`. */
+    if (typeof _emAvmiSinBSA === 'function') _emAvmiSinBSA();
     /* El AVAi del espejo del TAVI se deriva de la superficie corporal, así que esta salida temprana
        también lo repinta: sin esto, borrar el peso dejaba un «AVA indexada 0,6 cm²/m²» en el informe
        firmado sobre un estudio sin ASC. El espejo ya sabe negarse; nunca se le daba la oportunidad. */
@@ -23563,6 +23594,40 @@ window.EM_BANDA_PLAUS = EM_BANDA_PLAUS;
 window.emBandaPlaus = emBandaPlaus;
 window.emFueraBandaLocal = emFueraBandaLocal;
 
+/* ══ CUANDO EL THP NO DA UN ÁREA, SUS DOS SALIDAS SE VACÍAN (2026-10-09) ═════════════════════
+   Decisión de Maicol. `em_avm_thp_display` y `em-thp-row` los escribía SOLO `calcEM`, dentro de
+   `if (thpRaw)`, y el `else` tocaba la fila pero NO el input. Y `calcTHP` sale temprano con el
+   THP vacío —`if (!thp) { setv('avm_thp',''); return; }`— ANTES de llamar a `calcEM`, así que al
+   borrar el THP no corría ninguno de los dos limpiadores.
+
+   ⚠️ LO QUE QUEDABA NO ERA EL VALOR VIEJO: ERA UN ÁREA IMPOSIBLE. Medido con teclas reales,
+   borrando «150» dígito por dígito: en el paso en que el campo vale «1» la cuenta publica
+   220/1 = «220.00 cm²» con marca «(revisar)», y el borrado final ya no repinta nada. O sea que
+   la pantalla se quedaba afirmando un área mitral de 220 cm² —una válvula sana mide 4-6— sobre
+   un THP que el médico acababa de borrar. Es peor que un número rancio: es un número que nunca
+   describió a nadie.
+
+   ⚠️ NINGUNA SUPERFICIE FIRMADA SE MUEVE, y está medido por censo de lectores: el Excel exporta
+   `avm_thp` (columna «AVm (cm²)»), que `calcTHP` ya vaciaba; estos dos no los lee el informe, ni
+   el EN SUMA, ni el PDF, ni el PPT, ni el Laboratorio, ni el panel de Evidencia. `em_avm_thp_display`
+   SÍ se persiste —es `input[id]` y no matchea `_noEsDelEstudio`— pero nadie lo lee de vuelta, así
+   que lo único que cambia de lo guardado es que viaja vacío en vez de con un texto muerto.
+
+   ⚠️ LA FILA SE VACÍA A «—» Y NO A LA CADENA VACÍA, a propósito: «—» es el estado «sin dato» de
+   TODAS las filas de ese cuadro —`em-cont-row`, `em-plan-row`, `em-gmax-row`— y es exactamente
+   lo que el `else` de `calcEM` ya escribía. Dejarla en blanco la haría la única fila que
+   desaparece en vez de declararse vacía.
+
+   Con un THP cargado NO CAMBIA NADA: el texto sigue siendo el de hoy, marca «(revisar)»
+   incluida. Esta función sólo se llama en el camino en que no hay área. */
+function emThpSalidasLimpiar() {
+  const d = document.getElementById('em_avm_thp_display');
+  if (d) d.value = '';
+  const r = document.getElementById('em-thp-row');
+  if (r) r.textContent = '\u2014';
+}
+window.emThpSalidasLimpiar = emThpSalidasLimpiar;
+
 function calcTHP() {
   const thp = v('thp');
   /* ⚠️ YA NO SE ESCRIBE «150 ms (revisar)» EN EL OTRO CAMPO: los dos campos son el MISMO dato y
@@ -23571,7 +23636,9 @@ function calcTHP() {
      la línea que reemplazan: si `calcEM` lanza, el campo y la marca ya quedaron al día. */
   thpEspejar();
   thpMarcaPintar();
-  if (!thp) { setv('avm_thp',''); return; }
+  /* Las dos salidas del área por THP se vacían ACÁ y no sólo en `calcEM`: esta salida temprana
+     es la que toma el borrado del THP, y hasta hoy dejaba el área del paso anterior en pantalla. */
+  if (!thp) { setv('avm_thp',''); emThpSalidasLimpiar(); return; }
   /* Extracción pura: el `toFixed(2)` se conserva y se cae a la expresión anterior si el helper
      devolviera `null`, para que sacar la fórmula de acá no pueda cambiar lo que se publica. */
   const _a = (typeof _avmPorPHT === 'function') ? _avmPorPHT(thp) : null;
@@ -24207,7 +24274,11 @@ function calcEM() {
     if (avmDisp) avmDisp.value = avmStr + ' cm²' + _mt;
     document.getElementById('em-thp-row').textContent = avmStr + ' cm²' + _mt;
   } else {
-    document.getElementById('em-thp-row').textContent = '—';
+    /* ⚠️ LA DUEÑA Y NO UNA COPIA. Esta rama ponía la fila en «—» y NO tocaba
+       `em_avm_thp_display`, que es la mitad del defecto que se cierra hoy: el input se quedaba
+       con el área del THP anterior. Las dos salidas las vacía `emThpSalidasLimpiar`, la misma que
+       usa la salida temprana de `calcTHP` — dos copias acá y allá es cómo una se queda vieja. */
+    emThpSalidasLimpiar();
     /* La rama SIN THP también repinta: si no, borrar el THP dejaba la marca del paciente anterior
        colgada en los dos avisos. Es el mismo defecto que el aviso de incongruencia de la
        tricúspide pagó por no tener su columna de limpieza. */
@@ -24344,6 +24415,20 @@ function calcEM() {
     const _idxDeThp = !avm_plan && !avm_cont_val && avm_thp_val;
     const _idxMarca = (_idxDeThp && emThpFueraBanda()) ? ' (revisar)' : '';
     if (elIdx) elIdx.value = idx + ' cm²/m²' + _idxMarca;
+  } else {
+    /* ⚠️ ESTE `else` NO EXISTÍA, Y ES EL ÚNICO CALCULADO DE LA MITRAL QUE SE QUEDABA VIEJO DE
+       VERDAD (2026-10-09). Medido con teclas reales: con el AVm indexado ya publicado, borrar el
+       PESO o la TALLA hace desaparecer la BSA, la condición de arriba deja de cumplirse y el
+       campo se quedaba con «0.66 cm²/m²» — el indexado de un paciente del que ya no se sabe la
+       superficie corporal.
+       ⚠️ Y ESTE SÍ VIAJA AL PAPEL: `avm_idx` tiene columna de Excel («AVm indexada (cm²/m²)»,
+       `rnd(num('avm_idx'),2)`), así que el libro que cruza a CeiboAnalytics exportaba ese 0,66
+       sobre un estudio sin peso ni talla. Es el único de los dieciocho campos calculados de los
+       dos bloques cuya rancidez alcanzaba una superficie firmada.
+       Se VACÍA y nada más: no se cambia ni la fórmula, ni la elección de `avmMejor`, ni la marca
+       «(revisar)» que hereda del THP fuera de banda. */
+    const elIdx = document.getElementById('avm_idx');
+    if (elIdx) elIdx.value = '';
   }
 
   /* ══ CATEGORÍA DE LA ESTENOSIS MITRAL NATIVA ═══════════════════════════════════════════════
@@ -99544,8 +99629,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261009-0910';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791547857760;                 /* eco-build-ms */
+const ECO_BUILD    = '20261009-0930';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791549058760;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -99631,7 +99716,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-0910</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-0930</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

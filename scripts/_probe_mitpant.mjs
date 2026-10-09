@@ -535,6 +535,26 @@ window.__P = {
     } catch (e) { out.ls = 'EXC ' + e.message }
     return out },
 
+  /* ══ FOTO DE TODOS LOS CAMPOS CALCULADOS DE LA MITRAL ═════════════════════════════════════
+     Los nueve de la estenosis y los nueve de la insuficiencia, en una sola lectura. Un campo
+     calculado que se queda con el valor del paciente anterior es un numero que el medico lee como
+     si fuera de este estudio. */
+  autosFoto() {
+    var val = function(id){ var e = document.getElementById(id); return e ? e.value : '(NO EXISTE)' };
+    var txt = function(id){ var e = document.getElementById(id); return e ? (e.textContent||'').trim().replace(/\s+/g,' ') : '(NO EXISTE)' };
+    return {
+      em_gmax: val('em_gmax'), em_avm_thp_display: val('em_avm_thp_display'),
+      avm_cont: val('avm_cont'), avm_idx: val('avm_idx'), avm_thp: val('avm_thp'),
+      f_gmax: txt('em-gmax-row'), f_gmedio: txt('em-gmedio-row'), f_thp: txt('em-thp-row'),
+      f_cont: txt('em-cont-row'), f_plan: txt('em-plan-row'), f_sev: txt('em-sev-integrada'),
+      im_eroa_cont: val('im_eroa_cont'), vr_cont: val('vr_cont'),
+      im_fr_cont: val('im_fr_cont'), vm_lat: val('vm_lat'),
+      f_jet: txt('im-jet-ratio'), f_eroa: txt('eroa-val'), f_volr: txt('volr-val'),
+      f_vsv: txt('vsvtsvi-val'), f_fr: txt('freg-val'), f_vc: txt('im-vc-ref'),
+      f_ondas: txt('im-onda-s-interp'), f_ondae: txt('im-ondae-interp'),
+      f_vtiratio: txt('im-vti-ratio'), f_imsev: txt('im-sev')
+    } },
+
   listo() {
     var faltan = ['generarInforme','pillOn','toggleValvPill','showTab','limpiarCampos','calcEM',
                   'emCategoria','setEstiloInforme','calcContIM','calcIM_ESC','calcTHP',
@@ -1255,6 +1275,48 @@ async function main() {
       await ev(`window.__P.borrarEstudio(${JSON.stringify(g.estudioId)}).then(function(){ return 1 })`);
     }
     out.CXP = cxp;
+  }
+
+  /* ══ BARR — el barrido del punto 4b: borrar CADA insumo y ver que campo calculado queda viejo
+     Se siembra un escenario mitral COMPLETO —estenosis e insuficiencia a la vez, asi que los
+     dieciocho calculados tienen valor— y despues, escena por escena, se borra UN insumo con
+     TECLAS REALES y se fotografian los dieciocho. Un campo que sigue mostrando su numero despues
+     de que su insumo se fue es un valor del paciente anterior en pantalla.
+     ⚠️ NUNCA UN BACKSPACE A UN CAMPO DE SOLO LECTURA: dispara el ATRAS del navegador y cuelga la
+     sonda 75 s (medido en la tanda del THP). `borrarConBackspace` tiene la guarda y lo informa. */
+  if (hacer('BARR')) {
+    const ESC = {
+      nombre: 'Barrido', ci: '3-3', edad: '64', sexo: 'M', peso: '80', talla: '175',
+      vm_morf: 'Reumática',
+      em_vmax: '1.8', em_gmedio: '7', thp: '150', avm_plan: '1.3',
+      em_dtsvi: '21', em_vtitsvi: '22', em_vtimit: '55',
+      im_vc: '5', im_jet_area: '9', ai_area: '28', pisa_r: '7', pisa_val: '40',
+      im_vmax: '5', im_itv: '130', im_onda_s: 'embotada',
+      diam_mit: '30', vtim: '18', im_dtsvi: '21', im_itv_tsvi: '22', onda_e: '130',
+    };
+    const INSUMOS = ['em_vmax', 'em_gmedio', 'thp', 'avm_plan', 'em_dtsvi', 'em_vtitsvi',
+                     'em_vtimit', 'peso', 'talla', 'vtim', 'diam_mit', 'im_dtsvi',
+                     'im_itv_tsvi', 'im_itv', 'pisa_r', 'pisa_val', 'im_vmax'];
+    const barr = { insumos: INSUMOS, escenas: {} };
+    /* DENOMINADOR: con el escenario completo, los dieciocho tienen que tener valor. Si alguno
+       arranca vacio, su fila del barrido no prueba nada. */
+    await base();
+    await ev(`(function(){ window.__P.sembrar(${JSON.stringify(ESC)}); return 1 })()`);
+    await pausa(250);
+    barr.base = await J(`window.__P.autosFoto()`);
+    for (const campo of INSUMOS) {
+      paso('BARR ' + campo);
+      await base();
+      await ev(`(function(){ window.__P.sembrar(${JSON.stringify(ESC)}); return 1 })()`);
+      await pausa(200);
+      const b = await borrarConBackspace(campo, null);
+      await pausa(200);
+      barr.escenas[campo] = { borrado: { via: b.via, readonly: b.readonly, sinFoco: b.sinFoco,
+                                         pasos: (b.pasos || []).length,
+                                         quedo: await ev(`window.__P.val(${JSON.stringify(campo)})`) },
+                              foto: await J(`window.__P.autosFoto()`) };
+    }
+    out.BARR = barr;
   }
 
   /* ══ SUP — las CUATRO superficies, UNA POR UNA ═════════════════════════════════════════════
