@@ -49889,6 +49889,10 @@ caso('TC-407', 'El gate de los espejos de EM pregunta por el BOTON y no por un d
   const cerrado = aFoto('em');
   const dispCrudo = (document.getElementById('bloque-esten-mitral') || { style:{} }).style.display;
   const detalle = aVis('bloque-em-detalle');
+  /* El ancho del viewport, que desde el 2026-10-09 es lo que decide si el bloque de CUANTIFICACION
+     se ve. Se lee y se afirma en vez de darlo por sentado: si alguien le pone --window-size al
+     arnes, la condicion de abajo se pone roja y DICE por que, en vez de fallar por el detalle. */
+  const esCelular756 = window.matchMedia('(max-width: 768px)').matches;
   __t.set('diam_tsvi','20'); __t.set('itv_tsvi','25');
   const esp = espejos();
 
@@ -49908,9 +49912,20 @@ caso('TC-407', 'El gate de los espejos de EM pregunta por el BOTON y no por un d
     ['DENOMINADOR: y el nodo que el gate leia quedo en «block» con la pastilla apagada',
       dispCrudo === 'block', 'display=' + dispCrudo],
 
-    ['el bloque de GRADO esta visible —el punto de esta tanda— y el de CUANTIFICACION oculto',
-      cerrado.bloq === true && cerrado.alto > 0 && detalle === false,
-      'grado=' + cerrado.bloq + ' alto=' + cerrado.alto + ' detalle=' + detalle],
+    /* ⚠️ «OCULTO» CAMBIO DE DUEÑO EL 2026-10-09 Y HAY QUE DECIRLO, PORQUE LA LINEA SIGUE VERDE
+       POR OTRO MOTIVO. Hasta ese dia bloque-em-detalle estaba oculto porque la PASTILLA estaba
+       cerrada. Desde la tanda de «los bloques de la mitral se ven siempre» (decision de Maicol) lo
+       que decide es el ANCHO: por encima de 768 px una regla de CSS lo fuerza visible con la
+       pastilla apagada, y por debajo lo pliega el cajon «Datos». Este arnes mide en 756 px, asi
+       que aca sigue oculto —y la asercion pasa— pero por el plegado del celular, no por el boton.
+       Se deja medido y se NOMBRA la condicion, en vez de dejar una linea que afirma sobre el
+       escritorio algo que ya no es cierto ahi. Lo que SI es invariante en los dos anchos, y es lo
+       que este caso existe para fijar, son las dos lineas de abajo: el gate NO llena los espejos
+       con la pastilla cerrada. La maquetacion de PC la mide _probe_mitvis.mjs a 1200 px. */
+    ['el bloque de GRADO esta visible —el punto de esa tanda— y a 756 px el de CUANTIFICACION sigue plegado',
+      cerrado.bloq === true && cerrado.alto > 0 && detalle === false && esCelular756 === true,
+      'grado=' + cerrado.bloq + ' alto=' + cerrado.alto + ' detalle=' + detalle +
+      ' vw=' + window.innerWidth + ' celular=' + esCelular756],
     /* ⚠️ NINGUNO DE LOS DOS CAMPOS DE ESTA ESCENA ES YA UN ESPEJO (2026-10-08). La condicion pedia
        los dos vacios con el boton cerrado; desde que el O TSVI es un dato con CINCO puertas y el
        VTI TSVI uno con CUATRO, editar en cualquiera escribe en todas, este el bloque visible o
@@ -52154,7 +52169,8 @@ caso('TC-422', 'Aortica y mitral: la PASTILLA es la unica fuente del grado y el 
      · lo que pasa en el CELULAR (campos plegados, la flecha «Datos», la apertura por grado) se mide
        aca, de verdad y con sus controles;
      · lo que pasa en la PC (campos siempre visibles) se afirma sobre la REGLA DE CSS: que exista un
-       `@media (min-width: 769px)` que nombre los seis contenedores y los ponga en `display:block`.
+       `@media (min-width: 769px)` que nombre los OCHO contenedores y los ponga en `display:block`
+       (eran seis hasta el 2026-10-09; entraron los dos de la MITRAL).
        Es falsable —si alguien borra la regla o renombra un id, esto se pone rojo— y es todo lo que
        este arnes puede ver. La medicion en pixeles a 1200 px la hace `scripts/_probe_pantalla.mjs`.
    ⚠️ SIN ACENTOS GRAVES EN EL CUERPO. */
@@ -52205,9 +52221,15 @@ caso('TC-423', 'Valvulas, pantalla: en el celular los campos de cada lesion arra
     return out;
   };
   /* La REGLA de la PC, leida de las hojas de estilo. Se busca el bloque @media con el corte 769 y
-     se comprueba que nombre los seis contenedores y los fuerce visibles. */
+     se comprueba que nombre los OCHO contenedores y los fuerce visibles.
+     ⚠️ ERAN SEIS HASTA EL 2026-10-09 y ahora son OCHO: entraron #bloque-insuf-mitral y
+     #bloque-em-detalle (decision de Maicol). Agregarlos aca no es cosmetico — es lo unico que este
+     arnes puede ver de la maquetacion de PC, porque mide en 756 px: dejando la lista en seis, la
+     linea habria seguido verde el dia que alguien saque la mitral de la regla, y el sintoma
+     —campos que vuelven a colgar del boton azul— no habria aparecido en ningun caso. */
   const reglaPC = function () {
-    const ids = ['#bloque-insuf-aortica','#bloque-ea-detalle','#campos-insuf-tricuspide',
+    const ids = ['#bloque-insuf-aortica','#bloque-ea-detalle',
+                 '#bloque-insuf-mitral','#bloque-em-detalle','#campos-insuf-tricuspide',
                  '#campos-esten-tricuspide','#campos-insuf-pulmonar','#campos-esten-pulmonar'];
     let hallada = null;
     for (let i = 0; i < document.styleSheets.length; i++) {
@@ -52346,18 +52368,35 @@ caso('TC-423', 'Valvulas, pantalla: en el celular los campos de cada lesion arra
     const dentro = !!(fg && /Reversi/.test(fg.textContent || ''));
     return { enElBloque: /Reversi/.test(c.textContent || ''), dentroDelCampo: dentro }; })();
 
-  /* ── (6) CONTROL NEGATIVO: la mitral y la pulmonar NO reciben cajon de campos ───────────── */
-  /* ⚠️ LA PULMONAR SALIO DE ESTE CONTROL NEGATIVO (2026-10-07, decision de Maicol). Sus dos
-     caja-*-pulmonar SI existen desde la tanda de la estenosis pulmonar: el CSS de #vp-lesiones los
-     nombraba desde el 2026-10-06 y los nodos no estaban, asi que las dos reglas de grid-column eran
-     selectores muertos y los bloque-* quedaban como items de grilla por auto-placement. Crearlos es
-     lo que activo ese CSS. La MITRAL sigue afuera —su unica novedad es el cierre de tarjetas— y es
-     la que este control sigue vigilando, que es lo que lo mantiene sirviendo para algo.
-     El caso PRUEBA MENOS que antes en esa linea; lo que la pulmonar hace ahora lo fija TC-438. */
-  const sinCaja = ['caja-insuf-mitral','caja-esten-mitral']
-    .filter(function (c) { return !!g(c); });
-  /* Y el control se completa por el otro lado: los de la pulmonar TIENEN que existir. */
-  const conCaja = ['caja-insuf-pulmonar','caja-esten-pulmonar','campos-esten-pulmonar']
+  /* ── (6) LOS OCHO CAJONES DE CAMPOS EXISTEN, Y NINGUNO MAS ──────────────────────────────── */
+  /* ⚠️ LA MITRAL SALIO DEL CONTROL NEGATIVO (2026-10-09, decision de Maicol), Y CON ELLA SE
+     QUEDO SIN HABITANTES. Historia, porque la linea cambio dos veces:
+       · 2026-10-07 salio la PULMONAR, cuando se crearon sus dos caja-*;
+       · 2026-10-09 sale la MITRAL, cuando se crearon caja-insuf-mitral y caja-esten-mitral para
+         que sus campos se vean con la pastilla apagada igual que en las otras tres. Hasta ese dia
+         este bloque decia «La MITRAL sigue afuera —su unica novedad es el cierre de tarjetas— y es
+         la que este control sigue vigilando».
+     Con las cuatro valvulas adentro, una lista de «los que NO deben existir» queda VACIA, y una
+     asercion sobre una lista vacia pasa siempre: seria una linea verde que no puede ponerse roja.
+     Asi que el control negativo se REEMPLAZA, no se borra: ahora vigila que no haya NINGUN
+     envoltorio caja-* de mas —se censa el DOM por el patron, no por una lista escrita a mano— y
+     que los OCHO esperados esten. Lo que esta linea protege dejo de ser «la mitral no entro» y
+     paso a ser «no se cuela un noveno cajon ni falta uno de los ocho», que es falsable por los
+     dos lados. Lo que la mitral HACE con su cajon lo fija la sonda _probe_mitvis.mjs, que mide en
+     1200, 390 y 360 px; este arnes mide en 756 px. */
+  const CAJAS_ESPERADAS = ['caja-insuf-mitral','caja-esten-mitral',
+                           'caja-insuf-aortica','caja-esten-aortica',
+                           'caja-insuf-tricuspide','caja-esten-tricuspide',
+                           'caja-insuf-pulmonar','caja-esten-pulmonar'];
+  const cajasEnDom = Array.prototype.map.call(
+    document.querySelectorAll('[id^="caja-insuf-"],[id^="caja-esten-"]'),
+    function (e) { return e.id; });
+  const sinCaja = cajasEnDom.filter(function (c) { return CAJAS_ESPERADAS.indexOf(c) === -1; });
+  /* Y el control se completa por el otro lado: los ocho TIENEN que existir, mas los dos
+     envoltorios #campos-* que la tricuspide y la pulmonar necesitan por tener el grado adentro
+     del mismo bloque. La mitral y la aortica NO los tienen y no los necesitan: su grado ya vive
+     en gf-insuf-* y bloque-esten-*. */
+  const conCaja = CAJAS_ESPERADAS.concat(['campos-esten-pulmonar','campos-esten-tricuspide'])
     .filter(function (c) { return !g(c); });
 
   const regla = reglaPC();
@@ -52436,11 +52475,12 @@ caso('TC-423', 'Valvulas, pantalla: en el celular los campos de cada lesion arra
     ['la frase de la reversion holodiastolica quedo en el bloque, FUERA del campo',
       notaHolo.enElBloque === true && notaHolo.dentroDelCampo === false, JSON.stringify(notaHolo)],
 
-    ['la REGLA de la PC existe y nombra los seis contenedores con display:block !important',
+    ['la REGLA de la PC existe y nombra los OCHO contenedores con display:block !important',
       !!regla && regla.prio === 'important', regla ? JSON.stringify(regla) : '(no se encontro la regla @media 769px)'],
-    ['CONTROL NEGATIVO: la MITRAL no recibe cajon de campos',
-      sinCaja.length === 0, 'cajas ajenas: [' + sinCaja.join(',') + ']'],
-    ['y la PULMONAR si lo tiene, que es lo que activa su CSS de grid y de celular',
+    ['CONTROL NEGATIVO: no hay NINGUN cajon de campos de mas —se censa el DOM, no una lista',
+      sinCaja.length === 0 && cajasEnDom.length === 8,
+      'ajenos: [' + sinCaja.join(',') + '] · en el DOM: ' + cajasEnDom.length],
+    ['y los OCHO cajones existen, mas los dos #campos-* de tricuspide y pulmonar',
       conCaja.length === 0, 'faltan: [' + conCaja.join(',') + ']'],
   ] };
 `);

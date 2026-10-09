@@ -1234,7 +1234,13 @@
   /* ══ PANTALLA DE VÁLVULAS — LOS CAMPOS DEJAN DE COLGAR DEL BOTÓN AZUL (2026-10-06) ═══════════
      Decisión de Maicol. En la PC los campos de insuficiencia y de estenosis de la AÓRTICA, la
      TRICÚSPIDE y la PULMONAR se ven SIEMPRE; en el celular arrancan cerrados y los abre una flecha
-     «Datos ▾» propia de cada bloque. La MITRAL no entra: su única novedad es el cierre de tarjetas.
+     «Datos ▾» propia de cada bloque.
+     ⚠️ LA MITRAL ENTRA EL 2026-10-09 (decisión de Maicol) y hasta ese día esta línea decía «La
+     MITRAL no entra». Entra por la vía de la AÓRTICA y no por la de la tricúspide: su grado ya vive
+     aparte —`gf-insuf-mitral` y `bloque-esten-mitral`, los dos de `valvGradoVisSync`— y dentro de
+     `bloque-insuf-mitral` y `bloque-em-detalle` no hay ni un nodo de grado, aviso o fundamento
+     (verificado en el marcado, no supuesto), así que NO necesita el envoltorio `#campos-*` que la
+     tricúspide y la pulmonar tuvieron que inventarse.
 
      ⚠️ POR QUÉ `!important` Y NO UNA LÍNEA DE JS. `toggleValvPill` escribe `style.display` INLINE en
      estos nodos, y un estilo inline le gana a cualquier regla de hoja. Las dos opciones eran
@@ -1247,12 +1253,26 @@
      inline sigue diciendo lo que el toggle escribió, así que esa compuerta se comporta EXACTAMENTE
      como hoy y `sincronizarEADesdeGlobal` no empieza a correr sola en cada `calcAo`. El precio es
      que los seis espejos «auto ← Doppler» quedarían vacíos con el botón apagado, y eso lo resuelve
-     una sincronía ÚNICA en la entrada a la pestaña (ver `showTab`), no esta hoja de estilos. */
+     una sincronía ÚNICA en la entrada a la pestaña (ver `showTab`), no esta hoja de estilos.
+
+     ⚠️ Y LA MITRAL PAGA ESE MISMO PRECIO, A PROPÓSITO Y SIN LA SINCRONÍA DE ENTRADA (decisión de
+     Maicol, 2026-10-09: «opción (i), dejarlo así, igual que la aórtica»). Sus dos compuertas son
+     las que gobiernan cálculo acá: `sincronizarIMDesdeGlobal` lee el `style.display` INLINE de
+     `bloque-insuf-mitral` y `sincronizarEMDesdeGlobal` pregunta por `pillOn('mitral','esten')`. El
+     `!important` no mueve ni el inline ni la pastilla, así que las DOS se comportan exactamente
+     como hoy y ni `im_grado` ni las columnas del Excel cambian por esta hoja de estilos. Lo visible
+     del precio: con el botón apagado los seis espejos de la mitral —`im_dtsvi`, `im_itv_tsvi`,
+     `im_ai_area`, `vtim`, `em_dtsvi`, `em_vtitsvi`— se ven VACÍOS aunque el Doppler esté cargado.
+     Está declarado: lo que esas compuertas existen para evitar es CREAR un espejo en una sección
+     que el médico no abrió, y eso sigue en pie. */
   @media (min-width: 769px) {
-    /* AÓRTICA: los dos bloques son enteramente campos —su grado vive aparte, en `gf-insuf-aortica`
-       y `bloque-esten-aortica`, que NO se tocan y siguen con `valvGradoVisSync`. */
+    /* AÓRTICA y MITRAL: los cuatro bloques son enteramente campos —su grado vive aparte, en
+       `gf-insuf-aortica`/`bloque-esten-aortica` y `gf-insuf-mitral`/`bloque-esten-mitral`, que NO
+       se tocan y siguen con `valvGradoVisSync`. */
     #bloque-insuf-aortica,
     #bloque-ea-detalle,
+    #bloque-insuf-mitral,
+    #bloque-em-detalle,
     /* TRICÚSPIDE y PULMONAR: acá el grado vive DENTRO del mismo bloque que los campos, así que lo
        que se fuerza visible es el envoltorio NUEVO que sólo tiene los campos. El grado, el aviso
        rojo y el cajón del fundamento se quedan en `bloque-<tipo>-<valv>`, que `toggleValvPill`
@@ -1266,10 +1286,13 @@
     /* El botón azul deja de abrir los campos en el celular (punto 5b): el `!important` anula su
        escritura inline en los dos sentidos, y lo único que los abre es la clase que pone la flecha. */
     #bloque-insuf-aortica, #bloque-ea-detalle,
+    #bloque-insuf-mitral,  #bloque-em-detalle,
     #campos-insuf-tricuspide, #campos-esten-tricuspide,
     #campos-insuf-pulmonar,  #campos-esten-pulmonar { display: none !important; }
     .valv-datos-abierto > #bloque-insuf-aortica,
     .valv-datos-abierto > #bloque-ea-detalle,
+    .valv-datos-abierto > #bloque-insuf-mitral,
+    .valv-datos-abierto > #bloque-em-detalle,
     .valv-datos-abierto > #campos-insuf-tricuspide,
     .valv-datos-abierto > #campos-esten-tricuspide,
     .valv-datos-abierto > #campos-insuf-pulmonar,
@@ -4215,6 +4238,24 @@ window.cerrarSesionReal = cerrarSesionReal;
       </div>
 
       <!-- ═══ BLOQUE ESTENOSIS MITRAL EXPANDIDO ═══ -->
+      <!-- ══ ENVOLTORIO «caja-esten-mitral» (2026-10-09, decisión de Maicol) ════════════════════
+           Los campos de la ESTENOSIS mitral dejan de colgar del botón azul: en la PC se ven SIEMPRE
+           y en el celular los abre el «Datos ▾» de abajo. El mecanismo es el de la AÓRTICA, copiado
+           tal cual —tres reglas de CSS con `!important` y una clase que alterna `valvDatosTog`—, y
+           no el de la tricúspide: acá el grado, el aviso rojo y el cajón del fundamento ya viven
+           APARTE, en `bloque-esten-mitral`, así que no hace falta inventarle un `#campos-*` que
+           separe los campos del grado. `bloque-em-detalle` no cambia ni un `id`, `oninput`,
+           `readonly` ni rótulo, y sigue siendo HIJO DIRECTO de este envoltorio porque el selector
+           del celular es `.valv-datos-abierto > #bloque-em-detalle`.
+           ⚠️ LO QUE ESTE ENVOLTORIO **NO** HACE: no toca la pastilla. `toggleValvPill` sigue
+           escribiendo el `style.display` inline de `bloque-em-detalle` exactamente como antes, y
+           ése es el estilo que leen las dos compuertas de sincronía — por eso el cambio es de CSS
+           y no de JS. Ver el comentario de la hoja de estilos. -->
+      <div id="caja-esten-mitral">
+        <!-- Flecha de celular: la esconde el CSS a mas de 768 px. Abrirla NO declara la lesion. -->
+        <button type="button" class="valv-datos-tog" id="datos-tog-esten-mitral"
+                onclick="valvDatosTog('caja-esten-mitral')" aria-expanded="false"
+                aria-controls="bloque-em-detalle">Datos <span class="valv-datos-flecha">&#9662;</span></button>
       <div id="bloque-em-detalle" style="display:none;">
         <div class="divider"></div>
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:8px 0 6px;">🩺 Estenosis Mitral — Cuantificación</div>
@@ -4393,6 +4434,17 @@ window.cerrarSesionReal = cerrarSesionReal;
           </label>
         </div>
       </div>
+      </div><!-- fin caja-esten-mitral -->
+      <!-- ══ ENVOLTORIO «caja-insuf-mitral» (2026-10-09, decisión de Maicol) ════════════════════
+           El gemelo del de la estenosis, por el mismo motivo y con el mismo reparto: el grado de la
+           IM vive en `gf-insuf-mitral`, arriba, en la fila de grado final, así que `bloque-insuf-mitral`
+           es enteramente campos y se lo puede forzar visible sin publicar un grado. Hijo DIRECTO
+           del envoltorio, por el selector del celular. -->
+      <div id="caja-insuf-mitral">
+        <!-- Flecha de celular: la esconde el CSS a mas de 768 px. Abrirla NO declara la lesion. -->
+        <button type="button" class="valv-datos-tog" id="datos-tog-insuf-mitral"
+                onclick="valvDatosTog('caja-insuf-mitral')" aria-expanded="false"
+                aria-controls="bloque-insuf-mitral">Datos <span class="valv-datos-flecha">&#9662;</span></button>
       <div id="bloque-insuf-mitral" style="display:none;">
       <div class="divider"></div>
       <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:6px 0 8px;">🔴 Insuficiencia Mitral — Cuantificación</div>
@@ -4708,6 +4760,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         </label>
       </div>
       </div><!-- fin bloque-insuf-mitral -->
+      </div><!-- fin caja-insuf-mitral -->
 
       <div class="fg" style="margin-top:8px;"><label>Notas mitral</label>
         <textarea id="vm_notas" placeholder="Ej: prolapso P2, mecanismo Carpentier..."></textarea>
@@ -57674,15 +57727,21 @@ window.valvDatosTog = valvDatosTog;
    agregaría un segundo lugar donde vive el corte de 768 px — y el día que cambie habría que
    acordarse de los dos.
 
-   Sólo alcanza a las lesiones que TIENEN cajón de campos. La MITRAL no tiene `caja-*`, así que para
-   ella esto es un `getElementById` que da `null`.
+   Sólo alcanza a las lesiones que TIENEN cajón de campos.
+   ⚠️ LA MITRAL ENTRA EL 2026-10-09, cuando se crearon `caja-insuf-mitral` y `caja-esten-mitral`.
+   Hasta ese día esta nota decía «La MITRAL no tiene `caja-*`, así que para ella esto es un
+   `getElementById` que da `null`». Sin agregarla, la estenosis o la insuficiencia mitral que la
+   regla J acaba de prender al entrar a Válvulas mostraría el grado con los campos que lo sostienen
+   plegados detrás del «Datos ▾» en el celular — el mismo defecto que esta función existe para
+   cerrar en las otras tres. Es aditivo: la lista sigue gateada por la EXISTENCIA del `caja-*` y por
+   «sólo las que la regla acaba de prender».
    ⚠️ LA PULMONAR ENTRA EL 2026-10-07, cuando se crearon sus dos `caja-*`. Sin esto, la estenosis
    pulmonar que la regla acaba de prender al entrar a Válvulas mostraba el grado con los campos que
    lo sostienen plegados detrás del «Datos ▾» en el celular — que es textualmente el defecto que esta
    función existe para cerrar en las otras dos. Es aditivo: la lista sigue gateada por la EXISTENCIA
    del `caja-*` y por «sólo las que la regla acaba de prender». */
 function valvAbrirDatosPorRegla(antes) {
-  ['aortica', 'tricuspide', 'pulmonar'].forEach(function (valv) {
+  ['mitral', 'aortica', 'tricuspide', 'pulmonar'].forEach(function (valv) {
     ['insuf', 'esten'].forEach(function (tipo) {
       const caja = document.getElementById('caja-' + tipo + '-' + valv);
       if (!caja) return;
@@ -99629,8 +99688,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261009-0930';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791549058760;                 /* eco-build-ms */
+const ECO_BUILD    = '20261009-1132';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791556368227;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -99716,7 +99775,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-0930</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-1132</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
