@@ -37323,7 +37323,13 @@ caso('TC-308', 'El escritor nuevo de em_grado no borra grados ajenos: la reimpre
                vm: lineaVM(__t.informe().inf) }; };
     const c0solo = cero(() => { __t.set('avm_plan','0'); });
     const c0thp  = cero(() => { __t.set('avm_plan','0'); __t.set('thp','183.33'); });
-    const c0ete  = cero(() => { __t.set('avm_plan','0'); __t.set('avm_ete','1.3'); });
+    /* ⚠️ EL set() DE avm_ete ACOMPANABA A ESTA ESCENA Y SE FUE EL 2026-10-08: el area de
+       Wilkins por ETE ya no es una fuente que vota (decision de Maicol), asi que no hay respaldo
+       que el cero pueda suprimir. La escena se CONSERVA con el THP como segunda fuente, que es lo
+       que hoy ocupa ese lugar: el cero en planimetria no puede descartar una fuente valida ajena.
+       EL CASO PRUEBA MENOS QUE ANTES y esta dicho: ya no cubre «el cero no se come el respaldo por
+       ETE», porque ese respaldo no existe. */
+    const c0ete  = cero(() => { __t.set('avm_plan','0'); __t.set('thp','183.33'); });
     const cDen   = cero(() => { __t.set('avm_plan','1.8'); __t.set('thp','183.33'); });
 
     // ── (5) EL DISPARADOR DE LA FILA DE ONDA E ───────────────────────────────────────────────
@@ -37390,7 +37396,7 @@ caso('TC-308', 'El escritor nuevo de em_grado no borra grados ajenos: la reimpre
       ['  ni deja la pantalla clasificando un cero por si solo',
         c0solo.cat === 'nada' && c0solo.fuentes === '', c0solo.cat + ' · «' + c0solo.fuentes + '»'],
       ['  y ya no descarta la planimetria por ETE, que vive en la rama else de ese mismo if',
-        c0ete.cat === 'severa' && c0ete.fuentes.indexOf('ETE') > -1,
+        c0ete.cat === 'severa' && c0ete.fuentes.indexOf('THP') > -1,
         c0ete.cat + ' · ' + c0ete.fuentes],
       // (5)
       ['DENOMINADOR: con onda E 135, IM severa y un area sana la fila de onda E dice algo',
@@ -37454,7 +37460,10 @@ caso('TC-309', 'emCategoria bandea como el panel de Evidencia: un valor fuera de
     const alto = corre(() => { __t.set('avm_plan', String(ALTO)); __t.set('thp','183.33'); });
     const altoSolo = corre(() => { __t.set('avm_plan', String(ALTO)); });
     /* Y NO SUPRIME AL ETE: un valor basura en planimetria no se come el respaldo. */
-    const altoEte = corre(() => { __t.set('avm_plan', String(ALTO)); __t.set('avm_ete','1.3'); });
+    /* Misma adaptacion que c0ete: el ETE salio de las fuentes el 2026-10-08 y su lugar lo ocupa
+       el THP, que es una medicion independiente y legitima igual. Lo que el caso sigue fijando es
+       que un valor ILEGIBLE en planimetria no se come a otra fuente valida. */
+    const altoEte = corre(() => { __t.set('avm_plan', String(ALTO)); __t.set('thp','183.33'); });
 
     // ── EL GRADIENTE FUERA DE BANDA ─────────────────────────────────────────────────────────
     const GMALTO = bGm ? (bGm[1] * 10) : 600;
@@ -37493,8 +37502,8 @@ caso('TC-309', 'emCategoria bandea como el panel de Evidencia: un valor fuera de
       ['⚠️ y NO llega al papel: el informe no publica el valor implausible, ni como valor medido',
         altoSolo.vm.indexOf(String(ALTO)) === -1 && pl(altoSolo.vm).indexOf('revisar') === -1,
         '«' + altoSolo.vm + '»'],
-      ['  y no suprime a la planimetria por ETE, que es una medicion independiente y legitima',
-        altoEte.cat === 'severa' && altoEte.fuentes.indexOf('ETE') > -1,
+      ['  y no suprime al AVm por THP, que es una medicion independiente y legitima',
+        altoEte.cat === 'severa' && altoEte.fuentes.indexOf('THP') > -1,
         altoEte.cat + ' · ' + altoEte.fuentes],
       ['DENOMINADOR: un gradiente medio plausible de 8 mmHg con area 2,0 publica «EM con gradiente elevado»',
         denGm.cat === 'gradiente', denGm.cat],
@@ -38381,7 +38390,9 @@ caso('TC-313', 'Protesis mitral SIN un solo parametro medido: el EN SUMA reutili
     return { inf: r.inf, suma: r.suma, lineaVM: lineaVM,
              niega: r.suma.indexOf('Estudio sin alteraciones estructurales') > -1 };
   }
-  const MIDE = ['em_gmedio','avm_plan','avm_cont','avm_thp','avm_ete','vm_dvi'];
+  /* CINCO desde el 2026-10-08: avm_ete salio de VALVS.mide con la fuente. Esa lista contesta
+     «¿hay alguna medicion de esta valvula?» y un campo que ya no vota ni se imprime no puede. */
+  const MIDE = ['em_gmedio','avm_plan','avm_cont','avm_thp','vm_dvi'];
 
   const sinNada  = esc({ id:'vm_morf', v:'Prótesis mecánica' }, {});
   const conVC    = esc({ id:'vm_morf', v:'Prótesis mecánica' }, { im_vc: 8 });
@@ -38397,7 +38408,8 @@ caso('TC-313', 'Protesis mitral SIN un solo parametro medido: el EN SUMA reutili
 
   return { extra: [
     // ── DENOMINADOR: el escenario es el que se dice que es ──
-    ['DENOMINADOR: con la protesis elegida, los SEIS parametros de evidencia estan vacios',
+    /* CINCO desde el 2026-10-08, con avm_ete. Ver la nota de MIDE. */
+    ['DENOMINADOR: con la protesis elegida, los CINCO parametros de evidencia estan vacios',
       (function(){ __t.limpiar(); __t.set('vm_morf','Prótesis mecánica');
         return MIDE.every(id => { const v = g(id); return v === '' || v === null; }); })()],
     ['DENOMINADOR: el cuerpo SI imprime la linea de la protesis',

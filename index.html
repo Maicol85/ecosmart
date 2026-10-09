@@ -4204,8 +4204,9 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
         </div>
 
-        <!-- Fila 2: AVm THP + planimetría -->
-        <div class="grid-4" style="margin-bottom:6px;">
+        <!-- Fila 2: AVm THP + planimetría. `grid-3` desde que el área por ETE salió de la
+             distribución (2026-10-08): quedan AVm por THP, planimetría y AVm indexada. -->
+        <div class="grid-3" style="margin-bottom:6px;">
           <div class="fg">
             <label>AVm por THP (cm²) — auto</label>
             <input type="text" id="em_avm_thp_display" readonly style="font-weight:700;">
@@ -4218,10 +4219,23 @@ window.cerrarSesionReal = cerrarSesionReal;
             <label>AVm indexada (cm²/m²) — auto</label>
             <input type="text" id="avm_idx" readonly>
           </div>
-          <div class="fg">
-            <label>Área Wilkins (ETE, cm²)</label>
-            <input type="number" id="avm_ete" placeholder="cm²" step="0.1" oninput="calcEM()">
-          </div>
+          <!-- ⚠️ EL ÁREA POR ETE SALIÓ DE LA PANTALLA Y DE LA LÓGICA (2026-10-08) — DECISIÓN DE
+               MAICOL. El `avm_ete` que vivía acá dejó de ser una fuente que vota: las que quedan
+               son planimetría (`avm_plan`), THP y continuidad. La regla de combinación NO cambió
+               —sigue «prevalece el peor»—, sólo hay una fuente menos.
+               EL NODO SE OCULTA Y NO SE BORRA, con el mismo patrón que `em_grado` y `ea_grado`
+               —`display:none` + `aria-hidden` + `tabindex="-1"`, o sea sin foco, sin tabulación y
+               sin lector de pantalla—, y por las mismas tres razones:
+                 1. es un `input[id]`, así que el barrido de `guardarInforme` lo persiste y
+                    `limpiarCampos` lo repone: borrarlo cambiaría qué viaja con el estudio;
+                 2. un estudio ya guardado que trae `avm_ete` lo REABRE con su valor intacto —no se
+                    migra nada, no se reescribe nada— y el valor simplemente no vota;
+                 3. el `oninput` se conserva porque el nodo sigue siendo alcanzable por código
+                    (un importador, un JSON editado a mano), y `calcEM` sin insumo es inocuo.
+               El campo se quita de la distribución: la fila pasa de `grid-4` a `grid-3`, así que
+               las tres casillas que quedan se reparten el ancho sin un hueco donde estaba ésta. -->
+          <input type="number" id="avm_ete" placeholder="cm²" step="0.1" oninput="calcEM()"
+                 style="display:none;" aria-hidden="true" tabindex="-1">
         </div>
 
         <!-- Fila 3: Ecuación de continuidad EM -->
@@ -23771,12 +23785,19 @@ function emCategoria(){
     fuentes.push({ avm:x, fuente:fuente });
     return true;
   };
-  /* ⚠️ UN VALOR IMPLAUSIBLE EN PLANIMETRÍA NO SUPRIME AL ETE. La rama `else` original hacía que
-     cualquier cosa en `avm_plan` se comiera el respaldo; un 150 es basura y el área por ETE es una
-     medición independiente y legítima. Se consulta el ETE si la planimetría no dejó una fuente que
-     VOTE — y el 150 sigue visible con su marca. */
-  const _hayPlan = _tomar('avm_plan', 'planimetría');
-  if (!fuentes.length) _tomar('avm_ete', 'planimetría por ETE');
+  /* ⚠️ EL ÁREA POR ETE YA NO ES UNA FUENTE (2026-10-08) — DECISIÓN DE MAICOL. Acá vivían dos
+     líneas: `const _hayPlan = _tomar('avm_plan', 'planimetría')` y, debajo,
+     `if (!fuentes.length) _tomar('avm_ete', 'planimetría por ETE')`, que consultaba el área de
+     Wilkins por ETE cuando la planimetría transtorácica no había dejado una fuente que VOTE.
+     Las fuentes que quedan son las TRES de abajo: planimetría, THP y continuidad.
+     ⚠️ LA REGLA DE COMBINACIÓN NO SE TOCÓ: sigue siendo «prevalece el peor» —`sev` sin `noSev` es
+     severa, las dos juntas son `probable`— y el filtro del cero (`_pos`) y la banda siguen donde
+     estaban. Lo único que cambió es que hay una fuente menos entrando a `fuentes`.
+     ⚠️ `_hayPlan` SE FUE CON LA SEGUNDA LÍNEA Y NO ES UN DESCUIDO: era el valor de retorno de la
+     planimetría, y su ÚNICO consumidor era esa condición —medido por grep, una sola aparición en
+     todo el archivo—. Dejarlo asignado y sin leer sería un cabo suelto que la próxima lectura
+     interpreta como que alguien se olvidó de usarlo. */
+  _tomar('avm_plan', 'planimetría');
   _tomar('avm_thp',  'THP',          emThpValido,
     function(){ return emThpFueraBanda() ? { avm:v('thp'), fuente:'THP', id:'thp' } : null; });
   _tomar('avm_cont', 'continuidad',  emContValido);
@@ -23925,7 +23946,6 @@ function calcEM() {
   const vmax    = v('em_vmax');
   const gmedio  = v('em_gmedio');
   const avm_plan= v('avm_plan');
-  const avm_ete = v('avm_ete');
 
   // G. máximo
   if (vmax) {
@@ -24070,12 +24090,15 @@ function calcEM() {
   }
 
   // AVm planimetría
-  document.getElementById('em-plan-row').textContent = avm_plan ? avm_plan + ' cm²' : (avm_ete ? avm_ete + ' cm² (ETE)' : '—');
+  /* El `: (avm_ete ? avm_ete + ' cm² (ETE)' : …)` que caía acá al área de Wilkins por ETE se fue
+     el 2026-10-08 con la fuente: sin planimetría transtorácica la fila dice «—», que es lo que
+     la app sabe. */
+  document.getElementById('em-plan-row').textContent = avm_plan ? avm_plan + ' cm²' : '—';
 
   // Selector de métodos para el PDF: refleja qué se puede imprimir con los datos de ahora.
-  // La planimetría cae al área de Wilkins por ETE cuando no hay planimetría transtorácica,
-  // que es la misma precedencia que usan em-plan-row y la clasificación integrada de abajo.
-  emPdfMetodosUI(avm_thp_val, avm_cont_val, avm_plan ? PF(avm_plan) : (avm_ete ? PF(avm_ete) : null),
+  /* La misma precedencia que `em-plan-row` y que `emAvmPdfVal`, y hoy las tres son UNA sola
+     fuente: `avm_plan`. El respaldo por ETE se retiró el 2026-10-08. */
+  emPdfMetodosUI(avm_thp_val, avm_cont_val, avm_plan ? PF(avm_plan) : null,
                  !_contNoVota);
 
   // AVm indexada — mejor estimada (planimetría > continuidad > THP)
@@ -24781,7 +24804,12 @@ window.iaSyncSiExiste = iaSyncSiExiste;
    habia nada que incluir». */
 const _PDF_METODOS = {
   em_pdf_cont: ['avm_cont'],
-  em_pdf_plan: ['avm_plan', 'avm_ete'],
+  /* `['avm_plan', 'avm_ete']` hasta el 2026-10-08: el área por ETE salió de las fuentes, así que
+     esta casilla depende de un solo campo. Lo que la lista gobierna es `_restaurarChkInclusion`,
+     que necesita distinguir «el médico dijo que no» de «no había nada que incluir»: con el ETE
+     dentro, un estudio con el área por ETE y sin planimetría dejaba la casilla habilitada sobre un
+     método que ya no imprime nada. */
+  em_pdf_plan: ['avm_plan'],
   /* ⚠️ LOS DOS CAMPOS, y la casilla gobierna DOS filas del PDF. `im_eroa_cont` sale de
      Vol-R ÷ VTI del chorro por CW, y `vr_cont` de la diferencia de volumenes: son insumos
      DISTINTOS. Con solo el primero, un volumetrico completo sin el VTI del chorro —medicion
@@ -24932,10 +24960,10 @@ function emPdfValsSync() {
   const hab = (idChk, hay) => { const cb = document.getElementById(idChk); if (cb) cb.disabled = !hay; };
   _emPdfThpSpanSync(v('avm_thp'));   // el THP no se puede desmarcar: no lleva guarda
   hab('em_pdf_cont', _pdfMetodoSpan('em-pdf-cont-val', v('avm_cont')));
-  /* Misma precedencia que `em-plan-row` y que `emAvmPdfVal`: planimetria transtoracica y, si no
-     hay, el area por ETE. Derivar otra aca dejaria el panel ofreciendo un metodo distinto del
-     que imprime el PDF. */
-  hab('em_pdf_plan', _pdfMetodoSpan('em-pdf-plan-val', v('avm_plan') || v('avm_ete')));
+  /* Misma precedencia que `em-plan-row` y que `emAvmPdfVal`, y desde el 2026-10-08 las tres leen
+     UN solo campo: el `|| v('avm_ete')` se fue con la fuente. Derivar otra aca dejaria el panel
+     ofreciendo un metodo distinto del que imprime el PDF. */
+  hab('em_pdf_plan', _pdfMetodoSpan('em-pdf-plan-val', v('avm_plan')));
 }
 window.emPdfValsSync = emPdfValsSync;
 
@@ -25076,7 +25104,11 @@ function emAvmPdfVal() {
   const _thpTxt = emAvmThpPdfTxt();
   if (_thpTxt) partes.push(_thpTxt === EM_AVM_THP_NOEVAL_PDF ? _thpTxt : 'THP: ' + _thpTxt);
   if (marcado('em_pdf_cont')) { const x = v('avm_cont'); if (x) partes.push('Cont: ' + x.toFixed(2) + ' cm2'); }
-  if (marcado('em_pdf_plan')) { const x = v('avm_plan') || v('avm_ete'); if (x) partes.push('Plan: ' + x.toFixed(2) + ' cm2'); }
+  /* `v('avm_plan') || v('avm_ete')` hasta el 2026-10-08. Medido en HEAD antes del cambio: con el
+     área por ETE como única medición, el PDF FIRMADO publicaba «Plan: 1.20 cm2» —y con 150 tipeado
+     donde van cm², «Plan: 150.00 cm2», sin marca, porque `avm_ete` no tenía banda en ninguna
+     tabla—. Hoy el papel sólo publica planimetría transtorácica. */
+  if (marcado('em_pdf_plan')) { const x = v('avm_plan'); if (x) partes.push('Plan: ' + x.toFixed(2) + ' cm2'); }
   return partes.length ? partes.join(' · ') : null;
 }
 window.emAvmPdfVal = emAvmPdfVal;
@@ -25262,11 +25294,17 @@ function sincronizarTEERDesdeGlobal() {
      suele quedar abierto mientras se corrige la velocidad de IT: con el espejo de una sola vez,
      la primera PSAP se quedaba fija y el criterio se evaluaba contra un número viejo. */
   _syncDerivado(_TEER_ESPEJOS.slice(2));
-  /* El área mitral cae a «Área Wilkins (ETE)» cuando no hay planimetría transtorácica: TEER
-     es un contexto transesofágico, así que ése es justamente el campo que suele estar
-     cargado. Es la misma precedencia que usan emAvmPdfVal y em-plan-row; sin esto calcTEER
-     contaba el criterio de área como «no ingresado» sobre un dato que la app ya tenía. */
-  _syncSiVacio([['avm_ete','teer_area_mitral']]);
+  /* ⚠️ ACÁ VIVÍA EL SEGUNDO ESPEJO DEL ÁREA MITRAL: `_syncSiVacio([['avm_ete','teer_area_mitral']])`,
+     que caía al «Área Wilkins (ETE)» cuando no había planimetría transtorácica. Se retiró el
+     2026-10-08 con la fuente (DECISIÓN DE MAICOL).
+     ⚠️ EL OTRO PAR NO SE TOCÓ: `['avm_plan','teer_area_mitral']` sigue en el primer `_syncSiVacio`
+     de arriba, así que un estudio con planimetría transtorácica puebla el campo del TEER igual que
+     siempre.
+     CONSECUENCIA DECLARADA Y MEDIDA: en un ETE con el área de Wilkins cargada y SIN planimetría
+     transtorácica, `teer_area_mitral` queda VACÍO y `calcTEER` cuenta el criterio de área del
+     COAPT como «no ingresado» — antes lo recibía solo. El campo sigue siendo tipeable en su propia
+     pestaña y los valores que un estudio guardado ya traiga en él NO se tocan: `_syncSiVacio` sólo
+     escribe sobre un destino vacío, así que la retirada no borra nada de lo guardado. */
   if (typeof calcTEER === 'function') calcTEER();
 }
 window.sincronizarTEERDesdeGlobal = sincronizarTEERDesdeGlobal;
@@ -33963,12 +34001,18 @@ function generarInforme(opts) {
          de la captura del CONTEXTO (AVm y después el gradiente). La planimetría y el ETE comparten
          renglón con la misma precedencia que usa `em-plan-row` y la clasificación integrada. */
       const _vmVals = [];
-      const _aPlan = v('avm_plan'), _aEte = v('avm_ete'), _aCont = v('avm_cont'), _aThp = v('avm_thp');
+      const _aPlan = v('avm_plan'), _aCont = v('avm_cont'), _aThp = v('avm_thp');
       /* «por planimetría» y no «(planimetría)»: el bloque entero ya va entre paréntesis y anidarlos
          daba «(AVm 4.2 cm² (planimetría))». Es el mismo criterio que la etiología pulmonar, que
          usa «de etiología X» porque varias etiquetas ya traen su propio paréntesis. */
+      /* ⚠️ ACÁ ABAJO VIVÍA `else if (_aEte !== null) _vmVals.push(…cm² por ETE)`, la rama del área
+         de Wilkins por ETE. Se retiró el 2026-10-08 con la fuente (DECISIÓN DE MAICOL). Medido en
+         HEAD antes del cambio: con una prótesis mitral y el área por ETE en 1,8 como única
+         medición, el informe FIRMADO decía «Válvula mitral con prótesis biológica, con
+         insuficiencia (AVm 1.8 cm² por ETE)» en los tres estilos. Hoy ese valor no sube al papel.
+         ⚠️ `_aEte` se fue de la declaración con su única lectura: dejarlo leído y sin usar es el
+         cabo suelto que una lectura futura interpreta como un olvido. */
       if (_aPlan !== null)      _vmVals.push(`AVm ${_aPlan} cm² por planimetría`);
-      else if (_aEte !== null)  _vmVals.push(`AVm ${_aEte} cm² por ETE`);
       /* ⚠️ LA MARCA «(revisar)» SE PIERDE ACÁ, Y POR ESO EL NÚMERO NO SE IMPRIME. `v('avm_cont')`
          parsea «0.63 cm² (revisar)» como 0.63, así que esta línea publicaba en el informe FIRMADO
          un área que la pantalla acababa de declarar no válida —fuera de banda, o con regurgitación
@@ -36800,7 +36844,9 @@ function generarInforme(opts) {
          `V.morf === 'vm_morf'` suelto dentro del bucle: el alcance queda declarado al lado de la
          válvula a la que pertenece, y sumar la tricúspide el día que se decida es una palabra y no
          un cambio de código. Es el idioma de `soloHoja` y de `PROT_SIN_GRADO_VALVS`. */
-      { adj:'mitral',      morf:'vm_morf', mide:['em_gmedio','avm_plan','avm_cont','avm_thp','avm_ete','vm_dvi'],
+      /* `avm_ete` salió de esta lista el 2026-10-08 con la fuente: `mide` es «¿hay alguna medición
+         de esta válvula?» y un campo que ya no vota ni se imprime no puede contestar que sí. */
+      { adj:'mitral',      morf:'vm_morf', mide:['em_gmedio','avm_plan','avm_cont','avm_thp','vm_dvi'],
         yaDicho:['EM ','IM ','Estenosis mitral','Insuficiencia mitral','mitral'],
         enCuerpo:['VM','Válvula mitral','La válvula mitral'], reusaSinEvidencia:true },
       { adj:'aórtica',     morf:'va_morf', mide:['gmedio_ao','vmax_ao','ava_cont','ea_dvi_display','va_at','ete_tavi_gmedio','ete_tavi_vmax'],
@@ -51080,18 +51126,25 @@ function _indEM(){
   /* Dueño único de «¿es una prótesis?» en todo el archivo. Con guarda porque vive en otro bloque. */
   const _vep = _indFn('valvEsProtesis');
   const esProt = !!(_vep && morf && _vep(morf));
-  /* ⚠️ DOS DE LAS CUATRO FUENTES TIENEN BANDA DE PLAUSIBILIDAD Y DOS NO, y eso se declara en vez
+  /* ⚠️ DOS DE LAS TRES FUENTES TIENEN BANDA DE PLAUSIBILIDAD Y UNA NO, y eso se declara en vez
      de prestarle a una la banda de otra: el archivo ya fijó que un número de banda lo elige una
      persona (fue la decisión del `vdfvi` [3,500]). `avm_plan` y `avm_cont` están en la tabla de
-     rangos; `avm_ete` y `avm_thp` no.
+     rangos; `avm_thp` no.
      El área decide la PRIMERA contraindicación de la tabla, así que un valor ilegible no puede
-     producirla: sale de `medidas` y se declara. */
-  const FUENTES = [['avm_plan','planimetría','avm_plan'], ['avm_ete','planimetría por ETE',null],
+     producirla: sale de `medidas` y se declara.
+     ⚠️ ERAN CUATRO HASTA EL 2026-10-08: la entrada `['avm_ete','planimetría por ETE',null]` salió
+     con la fuente (DECISIÓN DE MAICOL). Medido en HEAD antes del cambio: con el área por ETE en
+     1,2 como única medición, este panel publicaba la fila «AVm — planimetría por ETE · 1,20 cm² ·
+     ✅ ≤ 1,5 cm² — estenosis clínicamente significativa», o sea un ✅ sobre un criterio de guía
+     alcanzado por una fuente que el informe ya no usa. El panel explica lo que la app gradúa: una
+     fila que gradúa de más es peor que su ausencia.
+     ⚠️ LA BIBLIOGRAFÍA DE LA SECCIÓN NO SE TOCA Y NO SE QUEDA CORTA: el corchete `[1]` que esa fila
+     llevaba lo invocan las otras filas del área —son la misma recomendación de la misma fuente—
+     así que la entrada numerada sigue teniendo quién la llame. */
+  const FUENTES = [['avm_plan','planimetría','avm_plan'],
                    ['avm_cont','ecuación de continuidad','avm_cont'], ['avm_thp','THP (Hatle)',null]];
-  /* ⚠️ `avm_ete` NO vive en la pestaña ETE: está en Válvulas, como `avm_plan`. El «ETE» del
-     nombre es la TÉCNICA de medición, no dónde se carga. Por eso ninguna de las cuatro fuentes
-     del área lleva control manual: las cuatro son alcanzables en Modo Básico, y duplicarlas
-     crearía la segunda fuente que `_indOrigen` existe para evitar. */
+  /* ⚠️ NINGUNA DE LAS TRES FUENTES DEL ÁREA LLEVA CONTROL MANUAL: las tres son alcanzables en Modo
+     Básico, y duplicarlas crearía la segunda fuente que `_indOrigen` existe para evitar. */
   const leidas = FUENTES.map(function(f){
     const L = f[2] ? _indLeer(f[0], f[2]) : { val:_indN(f[0]), fuera:false, sinBanda:true, crudo:_indN(f[0]) };
     /* `id` VIAJA: la compuerta de la continuidad de abajo tiene que saber CUÁL de las cuatro
@@ -98617,8 +98670,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261008-2215';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791508546471;                 /* eco-build-ms */
+const ECO_BUILD    = '20261008-2336';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791513378324;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -98704,7 +98757,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-2215</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-2336</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
