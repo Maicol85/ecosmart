@@ -23820,6 +23820,63 @@ function emGradoAuto(cat){
   sel.value = (cat.clave !== 'protesis' && (cat.clave === 'severa' || cat.clave === 'probable'))
     ? 'severa' : 'sin';
 }
+
+/* ══ EL APAGADO AUTOMÁTICO DE LA EM — RUTA PROPIA DE LA MITRAL (2026-10-08) ════════════════════
+   Cierra en la MITRAL el mismo agujero que `_etApagarAuto` cerró en la tricúspide y `_epApagarAuto`
+   en la pulmonar, y que el comentario de `valvAutoApagarEsten` dejó declarado y sin corregir desde
+   E5b-0: **el auto-prendido no tenía gemelo**. Medido en HEAD, la secuencia del pedido:
+     AVm 1,2  → `emGradoAuto` escribe «severa», `valvAutoPrenderEsten` PRENDE el botón, clave en '1'
+     AVm 3,0  → `emGradoAuto` devuelve el grado a «sin» escribiendo `sel.value` A MANO, sin
+                despachar `change`, así que ni `emGradoManual` ni `sevSinApagaDesdeSelect` corren:
+                **el botón queda PRENDIDO sin grado**, `_emSinGrado` da verdadero y el informe
+                FIRMADO dice «con estenosis» con el EN SUMA «EM presente.» sobre una mitral cuya
+                única área medida es de 3,0 cm². Vaciar el AVm da lo mismo.
+   Restaura el invariante «botón prendido = hay valvulopatía»: apaga SÓLO si (a) la prendió la app
+   —está en `VALV_ESTEN_AUTO`, no la afirmó el médico— y (b) el grado quedó en el centinela.
+   ⚠️ POR QUÉ ES UNA FUNCIÓN PROPIA Y NO `valvAutoApagarEsten` NI UN PARÁMETRO SUYO: esa función es
+   GENÉRICA —su mapa cubre aórtica, mitral y pulmonar, y está exportada en `window`—, así que
+   tocarla le cambiaría la conducta a la AÓRTICA, cuyo informe firmado esta tanda no toca. Y además
+   le faltan las dos mitades de abajo. Es el mismo criterio con el que nacieron las otras dos rutas.
+   ⚠️ LAS DOS MITADES QUE EL GENÉRICO NO TIENE, las dos ya pagadas por la tricúspide y la pulmonar:
+     (1) LA CLAVE DE `localStorage` SE BORRA. `toggleValvPill` escribe '0' al apagar y para
+         `valvAutoPrenderEsten` eso significa «el médico lo cerró a mano» (sale por su
+         `guardado !== null`), así que sin esto el auto-prendido se gasta en UN SOLO USO: 1,2 prende,
+         3,0 apaga, 1,2 ya no vuelve a prender, con el grado «severa» escrito y el botón apagado.
+         Acá no lo cerró el médico, lo cerró la app: borrar la clave devuelve el estado a «nadie lo
+         tocó», que es la verdad.
+     (2) LA MARCA MANUAL Y SU FOTO SE BORRAN. `em` está en `SEV_SINC`, así que la cadena
+         `toggleValvPill` → `valvApagarGrado` → `valvSev.aplicar(…, centinela)` pone `esqSevManual.em`
+         TAMBIÉN cuando el que apaga es la app — y con la marca puesta `emGradoAuto` sale por su
+         compuerta de manual y no vuelve a escribir nada en todo el estudio. Se borra junto con la
+         foto, igual que hace `valvSev.limpiar`, porque dejarla viva haría que el próximo grado
+         manual se comparara contra el calculado de hace dos gestos.
+   ⚠️ EL APAGADO DEL MÉDICO NO PASA POR ACÁ, y por eso sigue siendo durable: su clic entra directo a
+   `toggleValvPill`, la clave queda en '0' y la marca puesta. Y un grado que SOBREVIVIÓ al recálculo
+   es una afirmación y no se apaga: con «Moderada» fijado a mano, `emGradoAuto` sale temprano, el
+   grado no es el centinela y esta función sale por su tercera guarda.
+   ⚠️ SE LEE `window.VALV_ESTEN_AUTO` Y NO POR `typeof`: ese Set se declara ~32.900 líneas más abajo
+   y `typeof x === 'undefined'` NO protege contra la zona muerta de un `const` —lanza
+   `ReferenceError`—. Envuelto en este `try`, eso no sería un error visible: sería la pastilla
+   quedándose prendida con la consola muda, que es exactamente lo que le pasó a la tricúspide. */
+function _emApagarAuto() {
+  try {
+    if (typeof pillOn !== 'function' || typeof toggleValvPill !== 'function') return null;
+    if (!pillOn('mitral', 'esten')) return { yaEstaba: true };
+    const _auto = window.VALV_ESTEN_AUTO;
+    if (!_auto || !_auto.has('mitral')) return { delMedico: true };   // la afirmó el médico: no se apaga
+    const sel = document.getElementById('em_grado');
+    const g = sel ? String(sel.value || '') : '';
+    if (g !== '' && g.toLowerCase() !== 'sin') return { hayGrado: g };
+    toggleValvPill('mitral', 'esten');
+    _auto.delete('mitral');
+    try { localStorage.removeItem('valv-pill-esten-mitral'); } catch (e) {}
+    if (window.esqSevManual) delete window.esqSevManual.em;
+    if (window._sevCalcAlFijar) delete window._sevCalcAlFijar.em;
+    if (typeof _sevManualSync === 'function') { try { _sevManualSync(); } catch (e) {} }
+    return { apagada: !pillOn('mitral', 'esten') };
+  } catch (e) { return null; }
+}
+window._emApagarAuto = _emApagarAuto;
 /* La marca que protege la elección del médico. La ponen `esqPills` y `valvSevMenu`; el desplegable
    suelto de «grado final» NO la ponía, así que elegir el grado ahí y tocar después un campo del
    bloque lo devolvía al autocálculo sin avisar — el mismo defecto que `autoCompletarSevIM` cerró de
@@ -24185,6 +24242,13 @@ function calcEM() {
   /* v2 (E5b-0 punto 2): si el autocálculo dejó un grado graduable (p.ej. «severa» por AVm), prende
      el botón de estenosis mitral en el momento del cálculo, respetando el apagado manual. */
   if (typeof valvAutoPrenderEsten === 'function') valvAutoPrenderEsten('mitral');
+  /* …y su gemelo (2026-10-08): apaga la pastilla que la APP prendió cuando desapareció lo que la
+     prendió —el AVm corregido a 3,0 o vaciado deja `em_grado` en el centinela—, para que el informe
+     firmado no siga diciendo «con estenosis» y el EN SUMA «EM presente.» sobre una mitral sin
+     criterio. Los dos se auto-gatean por el grado, así que llamar a ambos es correcto: con grado
+     graduable prende y apaga sale por su tercera guarda; con el centinela apaga y prende sale por
+     `VALV_AUTO_GRADO`. Es el mismo par que `calcVP` ya tiene para la pulmonar. */
+  if (typeof _emApagarAuto === 'function') _emApagarAuto();
 }
 function usarTSVIenEM(val) {
   setv('em_dtsvi', val);
@@ -98492,8 +98556,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261008-1539';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791484743875;                 /* eco-build-ms */
+const ECO_BUILD    = '20261008-2205';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791507914330;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -98579,7 +98643,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-1539</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-2205</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
