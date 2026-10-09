@@ -4242,8 +4242,13 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:8px 0 4px;">📐 Ecuación de Continuidad — AVm</div>
         <div class="grid-4" style="margin-bottom:6px;">
           <div class="fg">
+            <!-- ⚠️ EL RÓTULO «auto ← Doppler» QUEDÓ FALSO Y NO SE TOCA (2026-10-08): el pedido
+                 prohíbe cambiar rótulos, así que queda REPORTADO. Desde esta tanda el campo no es
+                 un espejo que sigue al Doppler: es una PUERTA del mismo dato, y lo que se tipea
+                 acá llega a los otros cuatro lugares (AI/VI, Doppler y Válvulas — Estenosis
+                 Aórtica). Ver «EL DIÁM. DEL TSVI ES UN DATO CON CINCO CAMPOS». -->
             <label>Diám. TSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Doppler</span></label>
-            <input type="number" id="em_dtsvi" placeholder="mm" oninput="calcEM()">
+            <input type="number" id="em_dtsvi" placeholder="mm" oninput="tsviDiamEditado('em_dtsvi')">
             <div id="em-tsvi-box" style="font-size:10px;color:var(--accent2);margin-top:3px;min-height:14px;"></div>
           </div>
           <div class="fg">
@@ -4463,8 +4468,12 @@ window.cerrarSesionReal = cerrarSesionReal;
       <!-- Fila 1: entradas -->
       <div class="grid-4" style="margin-bottom:4px;">
         <div class="fg">
+          <!-- ⚠️ MISMO CASO QUE `em_dtsvi`: el rótulo «auto ← Doppler» quedó falso el 2026-10-08
+               y NO se toca por pedido — queda REPORTADO. Es una PUERTA del Ø TSVI, no un espejo.
+               `calcContIM()` y `calcIM_ESC()` no se perdieron: `tsviDiamEditado` los lleva en su
+               lista única, igualada al conjunto mayor de las cinco puertas. -->
           <label>Diám. TSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Doppler</span></label>
-          <input type="number" id="im_dtsvi" placeholder="mm" oninput="calcContIM();calcIM_ESC()">
+          <input type="number" id="im_dtsvi" placeholder="mm" oninput="tsviDiamEditado('im_dtsvi')">
           <div id="im-tsvi-estimado-box" style="font-size:10px;color:var(--accent2);margin-top:3px;min-height:14px;"></div>
         </div>
         <div class="fg">
@@ -25751,12 +25760,78 @@ window.mostrarTSVIEstimado = mostrarTSVIEstimado;
    poder verificar de un vistazo que los tres campos dicen LO MISMO.
 
    ⚠️ EL VACÍO SE COPIA IGUAL QUE UN NÚMERO, y es la mitad de este arreglo: borrar en cualquiera de
-   las tres puertas borra en las otras dos. Y por eso `tsviDiamEditado` corre ANTES de
-   `syncEADesdeValvulas` en el `oninput` de `ea_dtsvi`: cuando la sincronía global corre, los tres
+   las puertas borra en todas las demás. Y por eso `tsviDiamEditado` corre ANTES de
+   `syncEADesdeValvulas` en el `oninput` de `ea_dtsvi`: cuando la sincronía global corre, los
    campos ya están vacíos, su guarda `if (el && val)` no escribe nada y el borrado NO se repone.
-   Ninguna de las dos funciones compartidas se tocó — las comparten otros cuatro campos. */
+   Ninguna de las dos funciones compartidas se tocó — las comparten otros cuatro campos.
+
+   ══ Y DESDE EL 2026-10-08 SON CINCO CAMPOS, NO TRES ═══════════════════════════════════════════
+   Entran `em_dtsvi` (Válvulas — Estenosis Mitral) e `im_dtsvi` (Válvulas — Insuficiencia Mitral),
+   que eran ESPEJOS de `diam_tsvi` por `_syncDerivado` y no puertas. DECISIÓN DE MAICOL: un dato =
+   un valor, editable desde cualquier lugar y coordinado en los DOS sentidos, y para estos cinco
+   campos **desaparece «lo tipeado a mano gana»**: manda el último lugar editado.
+
+   Lo que esto cierra, MEDIDO EN HEAD con teclas reales del navegador y Ø TSVI 22 mm:
+     · tipear 22 en `em_dtsvi` dejaba los otros CUATRO campos VACÍOS —el valor quedaba aislado en
+       la casilla de la mitral— y, peor, `calcEM` lo PREFIERE sobre el global
+       (`v('em_dtsvi') || v('diam_tsvi')`), así que el AVm por continuidad se calculaba con un
+       diámetro que no existía en ningún otro lado. Lo mismo `im_dtsvi` con `calcIM_ESC`, que es un
+       voto de `im_grado`, o sea del informe FIRMADO.
+     · BORRAR en `em_dtsvi` o en `im_dtsvi` borraba SÓLO ahí: los otros cuatro se quedaban en 22.
+     · y al revés, cargado por `em_dtsvi` y borrado en cualquiera de los otros tres, el 22 de
+       `em_dtsvi` SOBREVIVÍA — un valor huérfano que seguía ganando el `||`.
+     · con el BLOQUE DE LA MITRAL PLEGADO, tipear en AI/VI o en Válvulas-aórtica no llegaba a los
+       dos campos mitrales: el gate de `sincronizarIMDesdeGlobal`/`sincronizarEMDesdeGlobal` evita
+       CREAR un espejo en una sección apagada, así que quedaban vacíos. La coordinación nueva no
+       pasa por ese gate y actúa SIEMPRE: la regla es que editar en un lugar escribe el dato en
+       todos, esté el bloque visible o plegado.
+
+   ⚠️ LOS DOS CAMPOS NUEVOS NO SON TIPEABLES CON EL BLOQUE PLEGADO, y es un HECHO de la app, no un
+   hueco de esta tanda: sin geometría no hay foco, así que no hay tecla que entre. Medido. Lo que
+   la regla pide ahí es que la coordinación LLEGUE a ellos cuando el médico edita en un lugar que
+   sí puede editar, y eso es lo que ahora hace.
+   ⚠️ `diam_tsvi` TAMPOCO ES TIPEABLE y nunca lo fue: vive en un `.fg` con `display:none`. Es el
+   PORTADOR —lo leen `calcAo`, `calcHemo`, `cxGTP`, `eteQpQs`, el PDF, el PPT y el Excel— y lo
+   escriben las otras cuatro puertas y el visor. Entra a la lista como destino, no como gesto.
+   ⚠️ LOS ESPEJOS NO SE DESARMARON: `_IM_ESPEJOS` y `_EM_ESPEJOS` siguen con sus pares y
+   `im_espejos` sigue guardando y restaurando las nueve marcas con su centinela `v1`, sin
+   renombrar nada. La coordinación es una capa POR ENCIMA que copia SIEMPRE, y cuando
+   `_syncDerivado` corre detrás encuentra los valores ya iguales y no escribe nada —medido—. Lo
+   que la coordinación NO hace es actuar al ABRIR un estudio: ahí sigue mandando el registro, y un
+   guardado con valores distintos entre lugares reabre tal como se guardó. */
+/* ══ LA COORDINACIÓN DEJA LA MARCA DE ESPEJO DONDE EL REGISTRO LA ESPERA ══════════════════════
+   Dos de los cinco campos del Ø TSVI —`em_dtsvi` e `im_dtsvi`— son destinos registrados en
+   `_ESPEJOS_TODOS`, y su marca (`dataset.espejoDe`) es lo que `_imEspejosGuardar` sella en el
+   oculto `im_espejos` y lo que `imEspejosRestaurar` repone. Escribirlos con un `.value` pelado
+   los dejaba SIN marca, y eso se midió: el registro sellaba **7 de 9** destinos en vez de nueve,
+   y `_syncDerivado` pasaba a tratarlos como manuales.
+   El pedido es explícito —«`im_espejos`, su clave y su centinela `v1` siguen guardándose y
+   restaurándose IGUAL»—, así que la coordinación pone la marca igual que `_syncDerivado`: el
+   valor copiado, `espejoVivo` (copiada en esta sesión, o sea que puede vaciarse con su origen) y
+   fuera `espejoInferido`, porque esto es la app copiando y no una coincidencia del fallback.
+   ⚠️ SE CONSULTA EL CENSO Y NO SE MARCA TODO: `diam_tsvi_ao`, `diam_tsvi` y `ea_dtsvi` no son
+   destinos de ningún par, así que marcarlos metería en el registro tres ids que
+   `imEspejosRestaurar` rechaza por su propia guarda —valida cada id contra `_ESPEJOS_TODOS`— y
+   dejaría el oculto diciendo algo que nadie puede reponer.
+   ⚠️ Y LA MARCA NO DEVUELVE EL «lo tipeado a mano gana» QUE ESTA TANDA RETIRA: la coordinación
+   copia SIEMPRE, mire o no la marca. Lo que la marca habilita es que `_syncDerivado`, cuando
+   corre detrás por otra puerta, los siga reconociendo como suyos en vez de congelarlos. */
+function _coordMarcarEspejo(dst, val) {
+  if (!dst || !dst.id) return false;
+  let esDestino = false;
+  try {
+    esDestino = (window._ESPEJOS_TODOS || []).some(function (p) { return p[1] === dst.id; });
+  } catch (e) { return false; }
+  if (!esDestino) return false;
+  dst.dataset.espejoDe = val;
+  dst.dataset.espejoVivo = '1';
+  delete dst.dataset.espejoInferido;
+  return true;
+}
+window._coordMarcarEspejo = _coordMarcarEspejo;
+
 let _tsviDiamSinc = false;
-const _TSVI_DIAM_TRIO = ['diam_tsvi_ao', 'diam_tsvi', 'ea_dtsvi'];
+const _TSVI_DIAM_CAMPOS = ['diam_tsvi_ao', 'diam_tsvi', 'ea_dtsvi', 'em_dtsvi', 'im_dtsvi'];
 function tsviDiamSync(origenId) {
   if (_tsviDiamSinc) return null;
   _tsviDiamSinc = true;
@@ -25765,11 +25840,12 @@ function tsviDiamSync(origenId) {
     if (!src) return null;
     const val = src.value;
     const copiados = [];
-    _TSVI_DIAM_TRIO.forEach((id) => {
+    _TSVI_DIAM_CAMPOS.forEach((id) => {
       if (id === origenId) return;
       const dst = document.getElementById(id);
       if (!dst || dst.value === val) return;
       dst.value = val;
+      _coordMarcarEspejo(dst, val);
       copiados.push(id);
     });
     return { origen: origenId, valor: val, copiados: copiados };
@@ -25826,6 +25902,29 @@ function tsviDiamEditado(origenId) {
      Después de `calcAo` porque la cuenta lee la cascada `ea_* || <Doppler>` y `calcAo` es la que
      puede haber refrescado el espejo un paso antes. */
   if (typeof _eaDetCuentaPura === 'function') _eaDetCuentaPura();
+  /* ══ LOS TRES DE LA MITRAL, SUMADOS EL 2026-10-08 CON LAS DOS PUERTAS NUEVAS ════════════════
+     `imSyncSiExiste` y `emSyncSiExiste` de arriba YA llamaban a `calcContIM`, `calcIM_ESC` y
+     `calcEM` por dentro, así que esto parece redundante y NO LO ES — y la diferencia está medida:
+     las dos sincronías gatean por la pastilla. `emSyncSiExiste` sale por `if (pares.length)` y
+     con el botón de estenosis apagado y sin espejo propio NO corre `calcEM`; `imSyncSiExiste`
+     filtra sus pares igual. O sea que con el bloque de la mitral PLEGADO —que es como queda
+     después de `limpiarCampos`, incluso al reabrir un estudio— editar el Ø TSVI dejaba el AVm por
+     continuidad y la fracción regurgitante computados con el valor ANTERIOR.
+     La regla es «mismo conjunto de recálculos desde todos los lugares, igualado al conjunto
+     MAYOR»: los `oninput` de `em_dtsvi` e `im_dtsvi` disparaban `calcEM` y `calcContIM`+`calcIM_ESC`
+     SIN condición, así que el conjunto mayor los lleva sin condición desde las cinco puertas.
+     Van DESPUÉS de las dos sincronías: ellas copian el espejo y éstos leen la cascada
+     `em_dtsvi || diam_tsvi`, que la copia puede haber refrescado un paso antes.
+     ⚠️ `syncEADesdeValvulas` NO ENTRA ACÁ, Y ESO ES UNA DECISIÓN, NO UN OLVIDO (decisión de
+     Maicol, 2026-10-08). En HEAD la dispara sólo el `oninput` de `ea_dtsvi`, así que una lectura
+     literal de «igualá al conjunto mayor» pediría sumarla. No es un recálculo del Ø TSVI: es la
+     sincronía de los OTROS CUATRO campos aórticos —Vmax, G. medio, VTI TSVI y VTI Ao— hacia el
+     Doppler, y meterla acá haría que tipear el diámetro en AI/VI o en la mitral arrastrara esos
+     cuatro. La asimetría que queda es la de HEAD, TC-432 la fija, y con la coordinación puesta el
+     diámetro llega igual a los cinco campos sin ella. */
+  if (typeof calcEM === 'function') calcEM();
+  if (typeof calcContIM === 'function') calcContIM();
+  if (typeof calcIM_ESC === 'function') calcIM_ESC();
 }
 window.tsviDiamEditado = tsviDiamEditado;
 
@@ -39506,11 +39605,34 @@ function vmProtEOA(src) {
      y nada más; el Ø TSVI entra AL CUADRADO, así que un 2 tipeado por 20 divide el área por cien y
      publica un EOA de 0,016 cm² — «obstrucción significativa» fabricada por un dedazo, y con un
      número que se ve perfectamente plausible como resultado. Es el mismo escenario que la Fase 1 de
-     la IM midió para el volumen sistólico. Fuera de banda NO se clasifica y se declara. */
-  [(nv('em_dtsvi') != null ? 'em_dtsvi' : 'diam_tsvi'),
-   (nv('em_vtitsvi') != null ? 'em_vtitsvi' : 'itv_tsvi'), 'em_vtimit'].forEach(function (id) {
-    try { if (pl(id).fuera) R.fuera = true; } catch (e) {}
-  });
+     la IM midió para el volumen sistólico. Fuera de banda NO se clasifica y se declara.
+
+     ⚠️ LA BANDA VA SOBRE LA MAGNITUD Y NO SOBRE EL CAMPO QUE GANÓ LA CASCADA (2026-10-08), y esto
+     era un DEFECTO VIVO que la coordinación del Ø TSVI destapó. Acá se bandeaba
+     `nv('em_dtsvi') != null ? 'em_dtsvi' : 'diam_tsvi'`, o sea el ID del campo que aportó el valor
+     — y de los dos **sólo `diam_tsvi` tiene entrada en la tabla de rangos**; `em_dtsvi`,
+     `em_vtitsvi`, `im_dtsvi` e `im_itv_tsvi` no tienen ninguna, así que `_plausDe` falla ABIERTO
+     sobre ellos. Mientras los espejos quedaban VACÍOS en la mayoría de los escenarios —el gate de
+     la pastilla—, el `else` agarraba el portador y la banda muerde. Desde que el dato está
+     coordinado los cinco campos están siempre poblados, así que el ternario elige SIEMPRE el
+     espejo sin banda.
+     Medido con Ø TSVI = 2 (cm tipeados donde van mm) y VTI mitral 40 sobre una prótesis: pasaba de
+     `fuera=true` y «— (revisar la unidad de los insumos)» a `fuera=false` con un EOA de 0,02 cm²
+     CLASIFICADO como obstrucción significativa en el informe FIRMADO. Exactamente el daño que el
+     párrafo de arriba existe para evitar, por la puerta de la tabla de rangos.
+     El arreglo es el patrón que este archivo YA declara para el área de la AI —«`im_ai_area` NO
+     lleva entrada propia: llega por CASCADA y se valida con `_imFueraBanda('ai_area', …)`, o sea
+     contra la banda de la MAGNITUD»—: el VALOR es el de la cascada y el id de banda es el del
+     PORTADOR, que es el único que tiene tabla. `_plausDe` ya recibe el valor aparte, así que no
+     hace falta nada nuevo.
+     ⚠️ NO SE AGREGÓ BANDA A LOS ESPEJOS, y es a propósito: un número de banda lo elige una persona
+     —la regla del `vdfvi [3,500]`— y, además, cuatro entradas nuevas para la misma magnitud serían
+     cuatro dueños del mismo límite. */
+  const _plMag = (id, portador) => _plausDe(portador, nv(id) != null ? nv(id) : nv(portador));
+  [_plMag('em_dtsvi', 'diam_tsvi'), _plMag('em_vtitsvi', 'itv_tsvi'), pl('em_vtimit')]
+    .forEach(function (b) {
+      try { if (b && b.fuera) R.fuera = true; } catch (e) {}
+    });
 
   /* El motivo sale de `emContMotivoNoVota`, el mismo que pinta el aviso de la continuidad: con un
      texto propio acá, la pantalla diría dos cosas distintas sobre el mismo número. */
@@ -39523,7 +39645,9 @@ function vmProtEOA(src) {
      la colisión de las Tablas 11 y 13. Lo que sí lo alcanza siempre es la banda de los dos VTI. */
   if (tsvi != null && prmv != null && tsvi > 0) {
     const bandaDvi = (function () {
-      try { return pl(nv('em_vtitsvi') != null ? 'em_vtitsvi' : 'itv_tsvi').fuera || pl('em_vtimit').fuera; }
+      /* Misma corrección que arriba: la banda es la de la MAGNITUD (`itv_tsvi`), porque
+         `em_vtitsvi` no tiene entrada en la tabla y ahora está siempre poblado. */
+      try { return _plMag('em_vtitsvi', 'itv_tsvi').fuera || pl('em_vtimit').fuera; }
       catch (e) { return false; }
     })();
     if (!bandaDvi) { R.dvi = PF((prmv / tsvi).toFixed(2)); R.dviFuente = 'calculado'; }
@@ -98677,8 +98801,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261008-2338';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791513487859;                 /* eco-build-ms */
+const ECO_BUILD    = '20261008-2352';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791514349064;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -98764,7 +98888,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-2338</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-2352</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

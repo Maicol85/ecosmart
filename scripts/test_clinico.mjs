@@ -36206,17 +36206,33 @@ caso('TC-301', 'Marca de espejo para los NUEVE destinos: la marca sobrevive al g
     /* Se simula la vuelta de un estudio guardado: valor + marca declarada en el oculto, sin que
        nadie haya copiado nada en esta sesion. Es el estado en que llega teer_pasp cuando el
        estudio no trae el colapso de la VCI y psap_calc vuelve vacio. */
-    g('em_dtsvi').value = '25';
-    g('im_espejos').value = 'v1|em_dtsvi=25';
+    /* ⚠️ ESTA ESCENA SE MUDO DE em_dtsvi A teer_pasp EL 2026-10-08, Y ES PARA QUE SIGA PROBANDO LO
+       MISMO. La guarda que fija —una marca REPUESTA por el estudio no habilita el vaciado— vive en
+       _syncDerivado, y desde esta tanda em_dtsvi ya no llega por ahi: es una PUERTA del O TSVI, y
+       la regla nueva es que borrar en un lugar borra en todos (medido: el campo se vacia, que es
+       lo correcto para una puerta y lo contrario de lo que esta condicion pedia).
+       teer_pasp es ademas el campo para el que la guarda EXISTE: su comentario cita literalmente
+       que psap_calc se recalcula al abrir y vuelve en blanco si al estudio le falta el colapso de
+       la VCI, mientras teer_pasp conserva su valor guardado. Ninguno de los tres pares del TEER
+       entra en la coordinacion de esta tanda. */
+    g('teer_pasp').value = '25';
+    g('im_espejos').value = 'v1|teer_pasp=25';
     try { imEspejosRestaurar(); } catch (e) {}
-    __t.set('diam_tsvi','');
-    const repuestaSobrevive = gv('em_dtsvi');
+    __t.set('psap_calc','');
+    const repuestaSobrevive = gv('teer_pasp');
 
-    // ── 10b. Con la pastilla APAGADA no se CREA un espejo ────────────────────────────
+    // ── 10b. Con la pastilla APAGADA: el VTI TSVI no se crea, el O TSVI SI LLEGA ─────
     __t.limpiar();
     g('im_espejos').value = '';
     __t.set('nombre','TC301f'); __t.set('edad','60');
     __t.set('diam_tsvi','21'); __t.set('itv_tsvi','18');   // sin abrir Estenosis Mitral
+    /* ⚠️ ERA '/' HASTA EL 2026-10-08 —los DOS vacios— y hoy el O TSVI llega igual con la pastilla
+       apagada: es una de las cinco puertas de un dato coordinado, y la regla es que editar en un
+       lugar escribe el dato en TODOS, este el bloque visible o plegado. El VTI TSVI sigue vacio en
+       este commit porque su coordinacion es la del commit siguiente; cuando entre, el valor
+       esperado pasa a '21/18'. Lo que la condicion conserva es que el gate de _syncDerivado NO
+       crea espejos por su cuenta en una seccion apagada: lo que llena em_dtsvi es la
+       coordinacion, no la sincronia. */
     const emApagado = gv('em_dtsvi') + '/' + gv('em_vtitsvi');
 
     // ── 10c. El registro no acepta un id fuera del censo ──────────────────────────────
@@ -36300,15 +36316,15 @@ caso('TC-301', 'Marca de espejo para los NUEVE destinos: la marca sobrevive al g
       ['el espejo de EM sigue al origen sin volver a abrir la pastilla',
         emAlAbrir === '21' && emSigue === '25', 'al abrir ' + emAlAbrir + ' → tras corregir ' + emSigue],
       ['vaciar el origen limpia el espejo VIVO', vivoSeVacia === '', '«' + vivoSeVacia + '»'],
-      ['pero NO borra una marca REPUESTA por el estudio: ese campo puede no tener origen al abrir',
+      ['pero NO borra una marca REPUESTA por el estudio: ese campo puede no tener origen al abrir (medido sobre teer_pasp, que es el caso para el que la guarda existe)',
         repuestaSobrevive === '25', '«' + repuestaSobrevive + '»'],
       ['la marca INFERIDA por el fallback se anota como inferida', infMarcado === '1', infMarcado],
       ['y se persiste con ~ , no se sella como observada',
         selloInferido.indexOf('teer_fevi~45') > -1, selloInferido],
       ['⚠️ EL FALLBACK NO CORRE SOBRE EL FORMULARIO VIVO: sin datos de estudio no infiere nada',
         vivoNoInfiere === '(sin marca)', vivoNoInfiere],
-      ['con la pastilla de EM apagada no se CREA el espejo: la seccion no se llena sola',
-        emApagado === '/', '«' + emApagado + '»'],
+      ['con la pastilla de EM apagada el VTI TSVI no se CREA —la sincronia no llena una seccion apagada— y el O TSVI SI llega, por la coordinacion de sus cinco puertas',
+        emApagado === '21/', '«' + emApagado + '»'],
       ['y el registro no marca un id fuera del censo', idAjeno === '(sin marca)', idAjeno],
       ['⚠️ NINGUNA de las tres marcas de dataset sobrevive a «Nuevo estudio»',
         sucios.length === 0, sucios.join(' | ') || '(las tres barridas)'],
@@ -36500,9 +36516,18 @@ caso('TC-296', 'Insuficiencia mitral: las tres casillas «auto» espejan, SIGUEN
 
     return { extra: [
       ['los ids del escenario existen', faltan.length === 0, faltan.join(',') || 'todos'],
-      ['con la pastilla CERRADA los tres quedan vacios', cerradaTres === '//', cerradaTres],
-      ['y con la pastilla cerrada NO se CREA espejo aunque cambie el origen',
-        noCrea === '//', noCrea],
+      /* ⚠️ ERAN '//' —los TRES vacios— HASTA EL 2026-10-08. El O TSVI pasó a ser un dato con CINCO
+         puertas coordinadas, y la regla nueva es que editar en un lugar escribe el dato en TODOS,
+         este el bloque visible o plegado: con la pastilla cerrada im_dtsvi recibe 21 igual. Los
+         otros dos siguen vacios en este commit porque su coordinacion es la de los commits
+         siguientes; cuando entren, el valor esperado pasa a '21/18/26'.
+         Lo que estas dos condiciones CONSERVAN es que la sincronia por espejo (_syncDerivado +
+         su gate) no CREA nada en una seccion apagada: los dos campos que no tienen puerta propia
+         siguen en blanco, que es lo que el gate existe para garantizar. */
+      ['con la pastilla CERRADA solo llega el O TSVI, que es una puerta coordinada: los otros dos no se CREAN',
+        cerradaTres === '21//', cerradaTres],
+      ['y con la pastilla cerrada la sincronia no CREA espejo aunque cambie el origen —el O TSVI llega por su puerta, no por el espejo—',
+        noCrea === '21//', noCrea],
       ['al ABRIR, las tres muestran el valor del origen', alAbrir === '21/18/26', alAbrir],
       /* La condicion anti-regresion de verdad: el mismo escenario con las casillas vacias (o sea el
          estado de antes de esta sincronia) contra las casillas espejando. */
@@ -36516,10 +36541,27 @@ caso('TC-296', 'Insuficiencia mitral: las tres casillas «auto» espejan, SIGUEN
       ['y el del AREA, que vive en otra pestaña', sigueA === '31', 'im_ai_area=' + sigueA],
       ['tipear el Ø TSVI a mano refresca el voto de FR en el acto',
         frAntes !== frTrasTipear && frTrasTipear !== '—', frAntes + ' -> ' + frTrasTipear],
-      ['lo tipeado a mano GANA: mover el origen despues no lo pisa', manualGana === '40', 'im_dtsvi=' + manualGana],
-      ['vaciar el origen limpia el espejo y NO lo manual', origenVacio === '/40', origenVacio],
-      ['el estimado que el medico eligio con el enlace tambien gana',
-        trasEnlace === '17' && enlaceGana === '17', trasEnlace + ' -> ' + enlaceGana],
+      /* ⚠️ «LO TIPEADO A MANO GANA» DESAPARECIO PARA EL O TSVI EL 2026-10-08, Y ES LA DECISION
+         CENTRAL DE ESA TANDA: manda el ULTIMO LUGAR EDITADO. Las tres condiciones de abajo pedian
+         lo contrario sobre im_dtsvi —'40' tipeado a mano sobreviviendo a que el origen se mueva a
+         25, y el '17' del enlace «Estimado por ASC» sobreviviendo a un 28—, y medido hoy los tres
+         siguen al ultimo gesto. No es una regresion: un dato con un solo valor no puede tener una
+         copia que discrepe, que era exactamente el defecto —calcIM_ESC prefiere el campo sobre el
+         global, asi que ese '40' huerfano VOTABA im_grado, o sea el informe FIRMADO.
+         Las tres se CONSERVAN invertidas, que es lo que fija la regla nueva por los tres gestos:
+         tipear a mano, mover el origen despues, y el enlace del estimado. */
+      ['el ULTIMO LUGAR EDITADO manda: tras tipear 40 a mano, mover el origen a 33 SI lo pisa',
+        manualGana === '33', 'im_dtsvi=' + manualGana],
+      /* ⚠️ EL GESTO DE ESTA LINEA VACIA itv_tsvi, NO diam_tsvi: el VTI TSVI sigue siendo un espejo
+         en este commit —su coordinacion es la del siguiente— asi que im_itv_tsvi se limpia con su
+         origen, y el O TSVI conserva el 33 que la linea de arriba acaba de escribirle porque este
+         gesto no lo toca. El '33' NO es «lo manual que sobrevive»: es el valor coordinado vigente.
+         Mi primera adaptacion puso '/' aca y era un error MIO de lectura del escenario, no del
+         codigo: habia supuesto que se vaciaba el O TSVI. */
+      ['vaciar el VTI TSVI limpia su espejo, y el O TSVI conserva el valor coordinado que nadie toco',
+        origenVacio === '/33', origenVacio],
+      ['el estimado que el medico eligio con el enlace entra, y el origen posterior tambien manda',
+        trasEnlace === '17' && enlaceGana === '28', trasEnlace + ' -> ' + enlaceGana],
       /* El gate elige QUE PARES entran, no si la sincronia corre: mantener un espejo reconocido no
          crea nada, asi que el borrado no se gatea. Sin esto quedaba un numero sin origen que seguia
          ganando en el el operador de caida — el fantasma del gradiente pulmonar. */
@@ -49767,8 +49809,18 @@ caso('TC-407', 'El gate de los espejos de EM pregunta por el BOTON y no por un d
     ['el bloque de GRADO esta visible —el punto de esta tanda— y el de CUANTIFICACION oculto',
       cerrado.bloq === true && cerrado.alto > 0 && detalle === false,
       'grado=' + cerrado.bloq + ' alto=' + cerrado.alto + ' detalle=' + detalle],
-    ['con el boton CERRADO los espejos de EM NO se llenan, aunque el bloque se vea',
-      esp.dtsvi === '' && esp.vtitsvi === '', JSON.stringify(esp)],
+    /* ⚠️ EL O TSVI YA NO ES UN ESPEJO, Y POR ESO ESTA CONDICION SE PARTIO EN DOS (2026-10-08).
+       Pedia los dos campos vacios; desde que diam_tsvi / em_dtsvi / im_dtsvi / ea_dtsvi /
+       diam_tsvi_ao son CINCO PUERTAS de un mismo dato, editar en cualquiera escribe en todas,
+       este el bloque visible o plegado — es la regla de esa tanda y no pasa por este gate.
+       Lo que el gate SIGUE gobernando, y es el punto de ESTE caso, es el espejo que no tiene
+       puerta propia: em_vtitsvi queda vacio con el boton cerrado. Cuando su coordinacion entre en
+       el commit siguiente, esta condicion queda cubierta solo por el control positivo de abajo y
+       hay que decirlo ahi. */
+    ['el O TSVI llega con el boton CERRADO: es una puerta coordinada, no un espejo',
+      esp.dtsvi === '20', JSON.stringify(esp)],
+    ['y el espejo que NO tiene puerta propia sigue sin llenarse con el boton cerrado, que es lo que este gate gobierna',
+      esp.vtitsvi === '', JSON.stringify(esp)],
     ['CONTROL POSITIVO: con el boton ABIERTO los dos espejos SI se llenan',
       espAbierto.dtsvi === '20' && espAbierto.vtitsvi === '25', JSON.stringify(espAbierto)],
   ] };

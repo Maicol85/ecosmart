@@ -841,9 +841,21 @@ async function main() {
     const R = {};
     /* Escenario completo: O TSVI 22, VTI TSVI 20, VTI Ao 24, Area AI 26, THP 150, VTI mitral 12,
        mas los insumos de IM que hacen hablar a la FR y al ratio. */
-    const ESC = [['diam_tsvi_ao','22'], ['itv_tsvi','20'], ['itv_ao','24'], ['ai_area','26'],
+    /* ⚠️ EL DENOMINADOR DEL ESCENARIO, Y LA PRIMERA VERSION NO LO TENIA. Con solo el O TSVI, el
+       VTI TSVI y el area de la AI, media de los calculos que este bloque dice comparar salian
+       «—»: Hemodinamica sin FC, el Vol-R y el EROA por continuidad sin el anillo mitral ni el VTI
+       del chorro, la FR sin volumenes. Comparar «—» contra «—» desde cinco puertas da IGUAL y no
+       prueba nada — es exactamente el denominador vacio que este repo documenta. Se agregan los
+       insumos que hacen HABLAR a cada cuenta, y el bloque ABORTA si alguna sigue muda. */
+    const ESC = [['talla','170'], ['peso','70'], ['hemo_fc','70'], ['pmad','5'], ['hemo_pam','90'],
+                 ['diam_tsvi_ao','22'], ['itv_tsvi','20'], ['itv_ao','24'], ['ai_area','26'],
                  ['thp','150'], ['itv_mitral','12'], ['em_vtimit','60'],
-                 ['im_jet_area','8'], ['vmax_ao','3']];
+                 ['diam_mit','30'], ['im_itv','130'], ['im_jet_area','8'],
+                 /* PISA de la IM: el radio, el Valiasing y la Vmax son los TRES que hacen hablar
+                    al EROA, al Vol-R y a la FR (`eroa-val`, `volr-val`, `freg-val`). Con uno solo
+                    de los tres las tres celdas quedan en «—». */
+                 ['pisa_r','7'], ['pisa_val','40'], ['im_vmax','500'],
+                 ['vdfvi','120'], ['vsfvi','50'], ['vmax_ao','3']];
     /* Por cada uno de los cinco datos, se carga el escenario entero cambiando SOLO por donde
        entra ese dato, y se compara la foto completa de calculos. */
     const PUERTAS = {
@@ -859,6 +871,29 @@ async function main() {
       tsvi: await fotoDe('fotoTsvi'), vti: await fotoDe('fotoVti'), ai: await fotoDe('fotoAi'),
       thp: await fotoDe('fotoThp'), vtim: await fotoDe('fotoVtim'),
       excelCols: await ev(`window.__P.excelCols()`) });
+
+    /* DENOMINADOR DURO: se carga el escenario COMPLETO una vez y se exige que las cuentas que el
+       bloque compara esten POBLADAS. Si una sigue en «—» o vacia, se aborta: una tabla de
+       «iguales» sobre celdas mudas es el resultado mas enganoso que esta sonda puede dar. */
+    await base();
+    for (const [id, val] of ESC) await ev(`window.__P.set(${JSON.stringify(id)}, ${JSON.stringify(val)})`);
+    const _den = await todos();
+    const _mudas = [];
+    const _ex = (v) => v === null || v === undefined || v === '' || v === '—';
+    if (_ex(_den.tsvi.avmCont)) _mudas.push('AVm continuidad');
+    if (_ex(_den.tsvi.ava))     _mudas.push('AVA aortica');
+    if (_ex(_den.tsvi.dvi))     _mudas.push('DVI');
+    if (_ex(_den.tsvi.vs))      _mudas.push('Vol. sistolico');
+    if (_ex(_den.tsvi.gc))      _mudas.push('Hemodinamica (GC)');
+    if (_ex(_den.tsvi.eaAva))   _mudas.push('AVA del bloque de Valvulas');
+    if (_ex(_den.vtim.volR))    _mudas.push('Vol-R');
+    if (_ex(_den.vtim.eroa))    _mudas.push('EROA');
+    if (_ex(_den.vti.imFr))     _mudas.push('FR de IM');
+    if (_ex(_den.vti.imRatio))  _mudas.push('ratio VTI mitral/TSVI');
+    if (_ex(_den.ai.imRatioAi)) _mudas.push('ratio jet/AI');
+    R.__denominador = { escenario: ESC, mudas: _mudas, foto: _den };
+    if (_mudas.length) throw new Error('DENOMINADOR VACIO — estas cuentas no hablan con el ' +
+      'escenario, asi que comparar las puertas no probaria nada: ' + _mudas.join(', '));
 
     for (const dato of Object.keys(PUERTAS)) {
       R[dato] = {};
