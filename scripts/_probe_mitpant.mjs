@@ -1050,6 +1050,36 @@ async function main() {
     out.CORT = cort;
   }
 
+  /* ══ PROT — que hacen las filas de cortes NATIVOS con una protesis mitral ═════════════════
+     Lo pidio Maicol como REPORTE: si alguna publica cortes de valvula nativa sobre una protesis,
+     no se corrige, se marca. Se leen los seis rotulos con la valvula nativa y con protesis, y de
+     paso el grado, para que el reporte diga si ademas de publicar el corte lo APLICA. */
+  if (hacer('PROT')) {
+    const leer = async () => await J(`(function(){
+      var out = {};
+      document.querySelectorAll('[data-corte]').forEach(function(e){
+        out[e.getAttribute('data-corte')] = (e.textContent||'').trim(); });
+      out.__vtiRatio = window.__P.txt('im-vti-ratio');
+      out.__esProt = (function(){ try { return !!_imVmProt() } catch(e){ return 'EXC' } })();
+      out.__grado = window.__P.val('im_grado');
+      out.__sev = window.__P.txt('im-sev');
+      return out })()`);
+    const esc = { im_vc:'8', ai_area:'50', im_jet_area:'22', pisa_r:'10', pisa_val:'32',
+                  im_vmax:'5', im_itv:'130', im_onda_s:'embotada', peso:'80', talla:'175' };
+    await base();
+    await ev(`(function(){ window.__P.sembrar(${JSON.stringify(Object.assign({vm_morf:'Normal'}, esc))}); return 1 })()`);
+    const nativa = await leer();
+    await base();
+    await ev(`(function(){ window.__P.sembrar(${JSON.stringify(Object.assign({vm_morf:'Prótesis mecánica'}, esc))}); return 1 })()`);
+    const protesis = await leer();
+    /* CONTROL NEGATIVO del propio escenario: si `_imVmProt()` no cambia entre los dos, la escena
+       esta comparando la misma cosa dos veces y el reporte no significa nada. */
+    out.PROT = { nativa, protesis,
+      escenaValida: nativa.__esProt === false && protesis.__esProt === true,
+      opcionesMorf: await J(`(function(){ var e=document.getElementById('vm_morf');
+        return e ? Array.from(e.options).map(function(o){ return o.value }) : null })()`) };
+  }
+
   /* ══ SUP — las CUATRO superficies, UNA POR UNA ═════════════════════════════════════════════
      informe narrativo (3 estilos), EN SUMA, Excel y los campos del formulario. El PPT y el PDF
      no se emiten desde aca: el commit que los toque los mide aparte. */

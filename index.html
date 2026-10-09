@@ -4552,16 +4552,18 @@ window.cerrarSesionReal = cerrarSesionReal;
           </div>
         </div>
       <div class="calc-box" style="margin-top:10px;">
-        <!-- El ⓘ y el `title` publican los DOS regímenes, igual que la fila del cociente VTI: hasta
-             hoy esta fila no declaraba su corte en NINGUNA superficie —ni acá, ni en la tarjeta de
-             Referencias, ni en el manual—, así que ni el 20/40 nativo ni el 20/50 protésico eran
-             consultables desde la app. -->
-        <div class="calc-row"><span class="calc-lbl" title="DOS CORTES SEGÚN LA MORFOLOGÍA. En válvula NATIVA: &lt;20 % leve · ≤40 % moderada · &gt;40 % severa. En PRÓTESIS mitral: &lt;20 % leve · &gt;50 % severa, y entre 20 y 50 la ASE 2024 (Tabla 13, pág. 30 — Zoghbi, JASE 2024;37(1):2-63) dice «Variable», así que el parámetro NO vota y la fila lo declara. Los cortes absolutos de esa tabla (&lt;4 cm² / &gt;8 cm²) no se implementan: la guía los da como alternativa al porcentaje. La tabla exige además un Nyquist de 50-60 cm/s que la app no registra. Ver «Referencia clínica» en la ayuda.">Ratio jet/AI (%) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-jet-ratio">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">EROA — PISA (mm²)</span><span class="calc-val" id="eroa-val">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Vol regurgitante (ml)</span><span class="calc-val" id="volr-val">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Vol eyectado TSVI (ml)</span><span class="calc-val" id="vsvtsvi-val">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Fracción regurgitante (%)</span><span class="calc-val" id="freg-val">—</span></div>
-        <div class="calc-row"><span class="calc-lbl">Onda S pulmonar</span><span id="im-onda-s-interp">—</span></div>
+        <!-- ══ EL ORDEN DE LAS FILAS LO FIJÓ MAICOL (2026-10-09) ════════════════════════════
+             Primero las dos que APOYAN y NO votan —onda E y cociente VTI mitral/TSVI—, después
+             las seis que VOTAN, y al final la severidad integrada y la discordancia. Antes las
+             dos de apoyo estaban SEXTA y SÉPTIMA, metidas entre las que votan, así que la lista
+             no distinguía «esto gradúa» de «esto respalda».
+             ⚠️ «Vol eyectado TSVI» SE QUEDA ENTRE Vol regurgitante y FR, y es decisión expresa:
+             es el DENOMINADOR de la fracción regurgitante, así que la cascada EROA → Vol-R → Vol
+             eyectado → FR se lee en orden. Conserva su texto y su cuenta, NO cita fuente propia
+             —no la tenía— y no cuenta ni como fila que vota ni como fila que apoya.
+             ⚠️ LOS CORTES DE CADA FILA LOS ESCRIBE `imCortesPintar` desde `IM_CORTES`, en el
+             `<span data-corte="…">` de su rótulo. No hay un número tecleado en este marcado: la
+             tabla es la única fuente, y la misma que aplica la cuenta. -->
         <!-- La salvedad va en el `title` y NO al lado del dato: es el mecanismo que la app ya usa
              (hay `title` en labels y spans de Config, del Laboratorio y del encabezado del PDF) y
              la regla es que el texto visible sea de una línea.
@@ -4609,6 +4611,30 @@ window.cerrarSesionReal = cerrarSesionReal;
              RENDERIZANDO la página y mirándola, que es lo único que no se puede discutir. Quien
              vuelva a verificar esto: no le crea a la coordenada. -->
         <div class="calc-row"><span class="calc-lbl" title="La ASE 2023 lo da en ausencia de insuficiencia aórtica moderada o severa: la IAo aumenta el VTI aórtico, que es el denominador, y el cociente deja de medir lo que dice medir. En válvula NATIVA esta aplicación lo usa IGUAL con IAo moderada y moderada-severa —y lo declara en la propia fila— y lo retira sólo con IAo severa: es criterio EcoSmart (2026-09-30), no lo que dice la guía. En PRÓTESIS se retira desde la IAo moderada. Con un grado de IAo que no se puede interpretar se retira en los dos casos. DOS CORTES SEGÚN LA MORFOLOGÍA: en válvula NATIVA, &gt;1,4 apoya IM severa — ASE 2023, cardiopatía reumática (Pandian, JASE 36:3-28), y también ESC/EACTS 2025 (Figura 10, pág. 4672), entre los criterios semicuantitativos de IM severa; no figura en ASE 2017 ni en ESC/EACTS 2021, y el estudio original (Tribouilloy, Eur Heart J 1994) da 1,3. En PRÓTESIS mitral el corte es ≥2,5 — ASE 2024, Tabla 12, pág. 28 (Zoghbi, JASE 2024;37(1):2-63), «hallazgos de ETT que sugieren IM protésica significativa en válvulas mecánicas con THP normal»: sensibilidad 89 %, especificidad 91 %. Esa tabla lo define para válvulas MECÁNICAS con THP normal, y la app NO verifica ninguna de las dos condiciones: el ≥2,5 se aplica a toda prótesis mitral, biológica incluida, y el THP no se cruza. Ver «Referencia clínica» en la ayuda.">Ratio VTI mitral / VTI TSVI (nativa &gt;1.4 · prótesis ≥2.5) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-vti-ratio">—</span></div>
+        <!-- ⚠️ FILA NUEVA (2026-10-09) — DECISIÓN DE MAICOL, Y CIERRA UN AGUJERO QUE EL PROPIO
+             CÓDIGO DECLARABA. El comentario de `calcIM_ESC` dice, textual, que «la VC es el ÚNICO
+             votante sin fila de resultado propia — su valor se ve en su input y nada más»: votaba
+             el grado integrado y su corte no era consultable en NINGUNA superficie de la app.
+             Los cortes NO son nuevos ni están tecleados acá: salen de `IM_CORTES.vc`, la MISMA
+             tabla que usa la cuenta, y los escribe `imCortesPintar`. La fuente se cita UNA vez,
+             igual que las demás filas.
+             ⚠️ SIN DATO MUESTRA «—», como las otras: el `<span>` arranca en «—» y `calcIM_ESC` no
+             lo toca, así que una VC vacía no publica un número.
+             ⚠️ Y CON PRÓTESIS ESTA FILA SIGUE PUBLICANDO LOS CORTES DE VÁLVULA NATIVA, igual que
+             hoy: `calcIM_ESC` no tiene rama protésica para la vena contracta —sólo el jet/AI y el
+             cociente VTI la tienen—. Queda REPORTADO y NO corregido: inventarle un corte protésico
+             sería contenido clínico que ninguna guía leída da. -->
+        <div class="calc-row"><span class="calc-lbl" title="Vena contracta del chorro de IM, en el eje donde se ve más angosta. ASE 2017 (Zoghbi, JASE 2017;30:303-371), Tabla 8. Los cortes salen de la misma tabla que aplica el cálculo. En PRÓTESIS mitral esta aplicación usa IGUAL los cortes de válvula nativa: ninguna de las guías leídas publica un corte de vena contracta para prótesis, así que no se inventa uno. Ver «Referencia clínica» en la ayuda.">Vena contracta (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="vc"></span> <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-vc-ref">—</span></div>
+        <!-- El ⓘ y el `title` publican los DOS regímenes, igual que la fila del cociente VTI: hasta
+             hoy esta fila no declaraba su corte en NINGUNA superficie —ni acá, ni en la tarjeta de
+             Referencias, ni en el manual—, así que ni el 20/40 nativo ni el 20/50 protésico eran
+             consultables desde la app. -->
+        <div class="calc-row"><span class="calc-lbl" title="DOS CORTES SEGÚN LA MORFOLOGÍA. En válvula NATIVA: &lt;20 % leve · ≤40 % moderada · &gt;40 % severa. En PRÓTESIS mitral: &lt;20 % leve · &gt;50 % severa, y entre 20 y 50 la ASE 2024 (Tabla 13, pág. 30 — Zoghbi, JASE 2024;37(1):2-63) dice «Variable», así que el parámetro NO vota y la fila lo declara. Los cortes absolutos de esa tabla (&lt;4 cm² / &gt;8 cm²) no se implementan: la guía los da como alternativa al porcentaje. La tabla exige además un Nyquist de 50-60 cm/s que la app no registra. Ver «Referencia clínica» en la ayuda.">Ratio jet/AI (%) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="jet"></span> <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="im-jet-ratio">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Onda S pulmonar <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="onda_s"></span></span><span id="im-onda-s-interp">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">EROA — PISA (mm²) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="eroa"></span></span><span class="calc-val" id="eroa-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Vol regurgitante (ml) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="volr"></span></span><span class="calc-val" id="volr-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Vol eyectado TSVI (ml)</span><span class="calc-val" id="vsvtsvi-val">—</span></div>
+        <div class="calc-row"><span class="calc-lbl">Fracción regurgitante (%) <span style="font-weight:400;color:var(--text2);font-size:10px;" data-corte="fr"></span></span><span class="calc-val" id="freg-val">—</span></div>
         <!-- ⚠️ EL RÓTULO DICE «ASE 2017» Y NO «ESC/EACTS 2025» — DECISIÓN 2 DE MAICOL, RAMA «NO
              COINCIDEN» (etapa 4, 2026-10-03). Era «(ESC 2021)», que NO tenía respaldo: `FUENTES.md`
              no registra ninguna guía valvular ESC 2021. Se leyó la ESC/EACTS 2025 inglesa
@@ -29009,6 +29035,93 @@ window.IM_SEC_AVISO_TXT   = IM_SEC_AVISO_TXT;
 window.imSecAvisoPintar   = imSecAvisoPintar;
 window.imSecAvisoSiExiste = imSecAvisoSiExiste;
 
+/* ══ LOS CORTES DE LA IM, EN UNA SOLA TABLA (2026-10-09) ══════════════════════════════════════
+   Hasta hoy los seis juegos de cortes de `calcIM_ESC` eran LITERALES SUELTOS dentro de la
+   función, y el cuadro de referencias de la pantalla no los publicaba: la vena contracta —que
+   VOTA— no tenía fila, y los demás decían su corte en un `title` escrito a mano. O sea dos
+   fuentes de verdad para el mismo número, y una de ellas invisible.
+   Ahora hay UNA tabla y la leen los DOS: la cuenta (`calcIM_ESC`) y el cuadro (`imCortesPintar`,
+   que escribe el texto de cada fila). Decisión de Maicol, 2026-10-09.
+
+   ⚠️ NO SE CAMBIÓ NI UN CORTE. Son exactamente los números que la app ya aplicaba, verificados
+   contra los literales que reemplazan, y la tabla de bordes del commit lo mide por los dos lados.
+
+   ⚠️ LOS OPERADORES SE CONSERVAN EN EL SITIO DE LA CUENTA, y esto es lo único delicado del
+   cambio: el jet/AI nativo usa `<= 40` para la moderada y los otros cuatro usan `< X`. Si la
+   tabla guardara «el corte» sin decir de qué lado cae el borde, mover la comparación a un helper
+   común habría cambiado el grado de un jet de exactamente 40 % —de moderada a severa— sin que
+   ningún número se moviera. De ahí los dos nombres distintos: `sev_min` cuando el borde pertenece
+   a la banda de arriba (`< sev_min` es moderada) y `mod_max_incl` cuando pertenece a la de abajo
+   (`<= mod_max_incl` es moderada).
+
+   ⚠️ `onda_s` NO LLEVA NÚMEROS porque no los tiene: positiva / embotada / invertida son las tres
+   respuestas de un `<select>`, no una banda. Está en la tabla igual para que el cuadro pueda
+   publicar su fila desde el mismo lugar que las otras.
+
+   ⚠️ LA ONDA E Y EL COCIENTE VTI NO ENTRAN ACÁ. La onda E ya tiene su propia constante
+   (`UMBRAL_ONDA_E_APOYO_IM`, declarada ~10.000 líneas antes y leída por el informe) y los cortes
+   del cociente viven dentro de `calcIM_ESC` con su propia nota sobre los dos regímenes. Las dos
+   filas APOYAN y no votan, así que su número no entra en ningún `scores`: duplicarlo acá sería
+   crear la segunda fuente de verdad que esta tabla viene a cerrar. */
+const IM_CORTES = Object.freeze({
+  /* ASE 2017, Tabla 8 (Zoghbi, JASE 2017;30:303-371), folio 332. `<3` leve · `3` a `<7` moderada
+     · `>=7` severa, en mm. Los mismos cortes que la ESC/EACTS 2025 da para el borde de severa. */
+  vc:       Object.freeze({ leve_max: 3,  sev_min: 7,  uni: 'mm',  forma: 'sev_min' }),
+  /* ASE 2017: `<20` leve · `20`-`40` moderada · `>40` severa, en % del área de la AI. El `40` cae
+     en la MODERADA (`<=`), que es el borde que la cuenta ya aplicaba. */
+  jet_nat:  Object.freeze({ leve_max: 20, mod_max_incl: 40, uni: '%', forma: 'mod_incl' }),
+  /* ASE 2024, Tabla 13, pág. 30: en prótesis mitral `<20` leve y `>50` severa, y entre 20 y 50 la
+     guía dice «Variable», así que el parámetro NO vota. No se toca (orden del punto 5c). */
+  jet_prot: Object.freeze({ leve_max: 20, sev_min_excl: 50, uni: '%', forma: 'variable' }),
+  /* ASE 2017: `<20` leve · `20`-`39` moderada · `>=40` severa, en mm². Es el EROA por PISA. */
+  eroa:     Object.freeze({ leve_max: 20, sev_min: 40, uni: 'mm²', forma: 'sev_min' }),
+  /* ASE 2017: `<30` leve · `30`-`59` moderada · `>=60` severa, en ml. */
+  volr:     Object.freeze({ leve_max: 30, sev_min: 60, uni: 'ml',  forma: 'sev_min' }),
+  /* ASE 2017: `<30` leve · `30`-`49` moderada · `>=50` severa, en %. */
+  fr:       Object.freeze({ leve_max: 30, sev_min: 50, uni: '%',   forma: 'sev_min' }),
+  /* ASE 2017: el flujo venoso pulmonar sistólico. Tres respuestas, sin banda numérica. */
+  onda_s:   Object.freeze({ forma: 'texto', txt: 'positiva · embotada · invertida' })
+});
+window.IM_CORTES = IM_CORTES;
+
+/* El texto de un corte se DERIVA de sus números y no se escribe a mano: un rótulo tecleado al
+   lado de una constante es la segunda fuente de verdad otra vez, con la diferencia de que esa
+   nadie la prueba. */
+function imCorteTxt(clave) {
+  const c = IM_CORTES[clave];
+  if (!c) return '';
+  if (c.forma === 'texto')    return c.txt;
+  if (c.forma === 'variable') return '<' + c.leve_max + ' · Variable · >' + c.sev_min_excl + ' ' + c.uni;
+  if (c.forma === 'mod_incl') return '<' + c.leve_max + ' · ' + c.leve_max + '–' + c.mod_max_incl +
+                                     ' · >' + c.mod_max_incl + ' ' + c.uni;
+  return '<' + c.leve_max + ' · ' + c.leve_max + '–<' + c.sev_min + ' · ≥' + c.sev_min + ' ' + c.uni;
+}
+window.imCorteTxt = imCorteTxt;
+
+/* Escribe el corte de cada fila del cuadro desde la tabla. Los nodos llevan `data-corte` con la
+   clave, así que agregar una fila es agregar un `<span>` y nada más — no hay una lista paralela
+   acá que haya que mantener al día, que es el defecto que este archivo ya documenta en
+   `RECALC_MODULOS` y en los `*Sync`.
+   ⚠️ EL JET/AI PUBLICA EL RÉGIMEN QUE LE TOCA, porque los cortes son distintos en prótesis y una
+   tarjeta de referencia que contradice a la fila que el médico está mirando es peor que no tener
+   tarjeta. `_imVmProt()` es el dueño de esa pregunta y falla CERRADO (sin `#vm_morf` devuelve
+   `true`), así que acá se consulta en un `try`: si no se puede decidir, se publican los DOS. */
+function imCortesPintar() {
+  let prot = null;
+  try { prot = (typeof _imVmProt === 'function') ? !!_imVmProt() : null; } catch (e) { prot = null; }
+  document.querySelectorAll('[data-corte]').forEach(function (el) {
+    const k = el.getAttribute('data-corte');
+    if (k === 'jet') {
+      el.textContent = prot === true  ? imCorteTxt('jet_prot') + ' (prótesis)'
+                     : prot === false ? imCorteTxt('jet_nat')
+                     : imCorteTxt('jet_nat') + ' · prótesis ' + imCorteTxt('jet_prot');
+      return;
+    }
+    el.textContent = imCorteTxt(k);
+  });
+}
+window.imCortesPintar = imCortesPintar;
+
 function calcIM_ESC() {
   /* El aviso de mecanismo secundario, ARRIBA de todo: no depende de un solo parámetro medido y el
      `return` temprano de más abajo saldría antes de pintarlo. Ver `imSecAvisoPintar`. */
@@ -29043,8 +29156,8 @@ function calcIM_ESC() {
      mas—, asi que su marca no puede ir pegada a un span: va al aviso de `_imFueraVot`, que es la
      superficie que este bloque agrega para exactamente eso. */
   if (vc && !_pVc.fuera) {
-    if (vc < 3) { scores.leve++; params.push({p:'VC',sev:'leve'}); }
-    else if (vc < 7) { scores.moderada++; params.push({p:'VC',sev:'moderada'}); }
+    if (vc < IM_CORTES.vc.leve_max) { scores.leve++; params.push({p:'VC',sev:'leve'}); }
+    else if (vc < IM_CORTES.vc.sev_min) { scores.moderada++; params.push({p:'VC',sev:'moderada'}); }
     else { scores.severa++; params.push({p:'VC',sev:'severa'}); }
   }
 
@@ -29091,13 +29204,13 @@ function calcIM_ESC() {
        regímenes se publican igual, en el `title` y el ⓘ de la fila, en la tarjeta de Referencias y
        en el manual: hasta hoy no estaban en ninguna de las tres. */
     if (_imVmProt()) {
-      if (_jetPct < 20) { scores.leve++; params.push({p:'Jet/AI',sev:'leve'}); _jetEl.textContent = ratio + '%  (prótesis: <20 % leve · >50 % severa)'; }
-      else if (_jetPct > 50) { scores.severa++; params.push({p:'Jet/AI',sev:'severa'}); _jetEl.textContent = ratio + '%  (prótesis: <20 % leve · >50 % severa)'; }
+      if (_jetPct < IM_CORTES.jet_prot.leve_max) { scores.leve++; params.push({p:'Jet/AI',sev:'leve'}); _jetEl.textContent = ratio + '%  (prótesis: <20 % leve · >50 % severa)'; }
+      else if (_jetPct > IM_CORTES.jet_prot.sev_min_excl) { scores.severa++; params.push({p:'Jet/AI',sev:'severa'}); _jetEl.textContent = ratio + '%  (prótesis: <20 % leve · >50 % severa)'; }
       else _jetEl.textContent = ratio + '%  (Variable — no gradúa en prótesis)';
     } else {
       _jetEl.textContent = ratio + '%';
-      if (_jetPct < 20) { scores.leve++; params.push({p:'Jet/AI',sev:'leve'}); }
-      else if (_jetPct <= 40) { scores.moderada++; params.push({p:'Jet/AI',sev:'moderada'}); }
+      if (_jetPct < IM_CORTES.jet_nat.leve_max) { scores.leve++; params.push({p:'Jet/AI',sev:'leve'}); }
+      else if (_jetPct <= IM_CORTES.jet_nat.mod_max_incl) { scores.moderada++; params.push({p:'Jet/AI',sev:'moderada'}); }
       else { scores.severa++; params.push({p:'Jet/AI',sev:'severa'}); }
     }
     }
@@ -29151,8 +29264,8 @@ function calcIM_ESC() {
     const _eroaDud = _pPr.fuera || _pPv.fuera || _pVm.fuera;
     document.getElementById('eroa-val').textContent = eroa + ' mm²' + (_eroaDud ? MARCA_REVISAR : '');
     if (!_eroaDud) {
-      if (eroa < 20) { scores.leve++; params.push({p:'EROA',sev:'leve'}); }
-      else if (eroa < 40) { scores.moderada++; params.push({p:'EROA',sev:'moderada'}); }
+      if (eroa < IM_CORTES.eroa.leve_max) { scores.leve++; params.push({p:'EROA',sev:'leve'}); }
+      else if (eroa < IM_CORTES.eroa.sev_min) { scores.moderada++; params.push({p:'EROA',sev:'moderada'}); }
       else { scores.severa++; params.push({p:'EROA',sev:'severa'}); }
     }
     if (itvIM) {
@@ -29160,8 +29273,8 @@ function calcIM_ESC() {
       const _volRDud = _eroaDud || _pIt.fuera;
       document.getElementById('volr-val').textContent = volR + ' ml' + (_volRDud ? MARCA_REVISAR : '');
       if (!_volRDud) {
-        if (volR < 30) { scores.leve++; params.push({p:'Vol-R',sev:'leve'}); }
-        else if (volR < 60) { scores.moderada++; params.push({p:'Vol-R',sev:'moderada'}); }
+        if (volR < IM_CORTES.volr.leve_max) { scores.leve++; params.push({p:'Vol-R',sev:'leve'}); }
+        else if (volR < IM_CORTES.volr.sev_min) { scores.moderada++; params.push({p:'Vol-R',sev:'moderada'}); }
         else { scores.severa++; params.push({p:'Vol-R',sev:'severa'}); }
       }
       if (itsvi && dtsvi) {
@@ -29176,8 +29289,8 @@ function calcIM_ESC() {
         const _frDud = _volRDud || _vsvDud;
         document.getElementById('freg-val').textContent = fr + '%' + (_frDud ? MARCA_REVISAR : '');
         if (!_frDud) {
-          if (fr < 30) { scores.leve++; params.push({p:'FR',sev:'leve'}); }
-          else if (fr < 50) { scores.moderada++; params.push({p:'FR',sev:'moderada'}); }
+          if (fr < IM_CORTES.fr.leve_max) { scores.leve++; params.push({p:'FR',sev:'leve'}); }
+          else if (fr < IM_CORTES.fr.sev_min) { scores.moderada++; params.push({p:'FR',sev:'moderada'}); }
           else { scores.severa++; params.push({p:'FR',sev:'severa'}); }
         }
       } else _pisaLimpiar(2);
@@ -29554,6 +29667,9 @@ function calcIM_ESC() {
      con el grado que acaba de calcularse Y corre la regla del grado manual, que necesita enterarse
      del cambio del CALCULADO aunque el campo no se haya tocado. */
   _imSincronizarPantalla();
+  /* El corte que publica cada fila se repinta acá y no una sola vez al arrancar: el del jet/AI
+     depende de si la válvula es protésica, y eso cambia con `vm_morf` en medio del estudio. */
+  if (typeof imCortesPintar === 'function') { try { imCortesPintar(); } catch (e) {} }
 }
 
 /* ⚠️ ESTA FILA ESTUVO MUERTA. `im-ondae-interp` se declaraba UNA vez en el marcado y nadie lo
@@ -33305,9 +33421,14 @@ function calcContIM() {
       return;
     }
     let sev = '', color = '';
-    if (volR < 30 && fr < 30) {
+    /* MISMA TABLA QUE EL VOTO (2026-10-09). La cápsula de continuidad usaba los mismos cuatro
+       números como literales sueltos: son el MISMO corte clínico leído por dos lugares, y
+       duplicarlo es el defecto —afinar uno dejaría esta cápsula contradiciendo al grado de al
+       lado sobre el mismo paciente—. La cápsula sigue sin votar; lo único que cambia es de dónde
+       saca los números. */
+    if (volR < IM_CORTES.volr.leve_max && fr < IM_CORTES.fr.leve_max) {
       sev = 'Leve'; color = '#3ecf8e';
-    } else if (volR >= 60 || fr >= 50) {
+    } else if (volR >= IM_CORTES.volr.sev_min || fr >= IM_CORTES.fr.sev_min) {
       sev = 'Severa'; color = 'var(--red)';
     } else {
       sev = 'Moderada'; color = '#f59e0b';
@@ -38356,7 +38477,7 @@ function RECALC_MODULOS() {
      `emAvmPdfVal` para la fila del PDF, `dataset` protege esa decision, y `disabled` no lo
      persiste ni lo lee nadie. Los dos primeros siguen intocados — que es exactamente la objecion
      que este archivo dejo escrita para IM: «pisaria la decision que la reimpresion respalda». */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','imCortesPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -38566,6 +38687,16 @@ function limpiarCampos(silencioso) {
      tecleo. Se intentó con un `DOMContentLoaded` y NO alcanzó: medido en el arnés de la suite, el
      cuerpo del caso lee el nodo vacío y recién se puebla tras el primer recálculo. Acá sí. */
   { if (typeof itRefFuenteSync === 'function') { try { itRefFuenteSync(); } catch (e) {} } }
+  /* ⚠️ LOS CORTES DEL CUADRO DE LA IM NECESITAN LAS DOS COLUMNAS, Y POR EL MISMO MOTIVO QUE LA
+     LÍNEA DE FUENTE DE LA IT DE ARRIBA: no son estado del paciente, son la REFERENCIA del cuadro,
+     y su único pintor —`imCortesPintar`, desde el final de `calcIM_ESC`— sólo corre con el
+     `oninput` de un campo de la IM. En un formulario vacío los seis rótulos quedarían SIN su
+     corte y el número aparecería recién después del primer tecleo, que es justo cuando el médico
+     ya no lo necesita. `imCortesPintar` entró además a `RECALC_MODULOS`, que es la otra columna.
+     Y hay un segundo motivo, propio de esta fila: el corte del jet/AI depende de si la válvula es
+     protésica, así que «Nuevo estudio» tiene que devolverlo al régimen que corresponde y no
+     dejar el de la prótesis del paciente anterior. */
+  { if (typeof imCortesPintar === 'function') { try { imCortesPintar(); } catch (e) {} } }
   /* ⚠️ EL AVISO DE INCONGRUENCIA DE LA IT NECESITA LAS DOS COLUMNAS POR EL MISMO MOTIVO, y lo
      cazó el CONTROL NEGATIVO de la sonda de esta tanda, no una lectura. Medido: con «Vmax IT
      cargada + botón apagado» el aviso se pintaba bien, pero «Nuevo estudio» lo dejaba EN PANTALLA
@@ -99353,8 +99484,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261009-0747';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791542825412;                 /* eco-build-ms */
+const ECO_BUILD    = '20261009-0808';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791544133301;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -99440,7 +99571,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-0747</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-0808</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

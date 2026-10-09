@@ -33872,26 +33872,58 @@ caso('TC-292', 'El empate de la Tabla 8 en 50 por ciento de fraccion regurgitant
                 ia: (typeof calcIA_ESC === 'function') ? String(calcIA_ESC) : '',
                 pil:(typeof calcContIM === 'function') ? String(calcContIM) : '' };
 
+    /* ⚠️ ADAPTADO 2026-10-09 — EL MOTIVO, Y LO QUE EL CASO SIGUE FIJANDO. Los cortes de la IM
+       pasaron de LITERALES SUELTOS dentro de calcIM_ESC y calcContIM a una sola tabla,
+       IM_CORTES, que leen la cuenta y el cuadro de referencias de la pantalla. O sea que el
+       fuente de esas dos funciones ya NO contiene «fr < 50» ni «fr >= 50»: contiene el OPERADOR
+       y el nombre de la constante. El 50 vive ahora en la tabla.
+       Lo que el caso garantiza no cambia, y se parte en dos mitades que juntas dicen lo mismo:
+         · el VALOR: IM_CORTES.fr.sev_min tiene que ser 50;
+         · el OPERADOR: estricto en la cascada («< sev_min», nunca «<= sev_min») y no estricto en
+           la pildora («>= sev_min», nunca «> sev_min»).
+       Aflojar cualquiera de las dos mitades sigue poniendo el caso en rojo, que es para lo que
+       existe. calcIA_ESC NO se toco en esa tanda, asi que su mitad sigue leyendose como antes.
+       ⚠️ Y SE AGREGA UNA CONDICION DE COMPORTAMIENTO, que es mas fuerte que leer el fuente: con la
+       fraccion regurgitante en el 50 EXACTO, el grado integrado de IM tiene que ser 4. */
     ex.push(['DENOMINADOR: las tres funciones existen y las tres clasifican la fraccion regurgitante',
-      F.im.indexOf('if (fr < 30)') > -1 && F.ia.indexOf('if (fr < 30)') > -1 &&
-      F.pil.indexOf('fr >= 50') > -1,
-      'im=' + (F.im.indexOf('if (fr < 30)') > -1) + ' ia=' + (F.ia.indexOf('if (fr < 30)') > -1) +
-      ' pildora=' + (F.pil.indexOf('fr >= 50') > -1)]);
+      F.im.indexOf('if (fr < IM_CORTES.fr.leve_max)') > -1 && F.ia.indexOf('if (fr < 30)') > -1 &&
+      F.pil.indexOf('fr >= IM_CORTES.fr.sev_min') > -1,
+      'im=' + (F.im.indexOf('if (fr < IM_CORTES.fr.leve_max)') > -1) + ' ia=' + (F.ia.indexOf('if (fr < 30)') > -1) +
+      ' pildora=' + (F.pil.indexOf('fr >= IM_CORTES.fr.sev_min') > -1)]);
 
-    const banda = f => { const i = f.indexOf('if (fr < 30)'); return i === -1 ? '' : f.slice(i, i + 300); };
-    const bIm = banda(F.im), bIa = banda(F.ia);
-    ex.push(['las dos cascadas mandan el 50 exacto a SEVERA: la banda moderada corta en «fr < 50», nunca en «fr <= 50»',
-      bIm.indexOf('fr < 50') > -1 && bIm.indexOf('fr <= 50') === -1 &&
+    ex.push(['DENOMINADOR: la tabla unica de cortes dice que el borde de severa de la FR es 50',
+      typeof IM_CORTES === 'object' && IM_CORTES.fr && IM_CORTES.fr.sev_min === 50 &&
+      IM_CORTES.fr.leve_max === 30,
+      'sev_min=' + (IM_CORTES && IM_CORTES.fr ? IM_CORTES.fr.sev_min : '(sin tabla)') +
+      ' leve_max=' + (IM_CORTES && IM_CORTES.fr ? IM_CORTES.fr.leve_max : '?')]);
+
+    const banda = (f, marca) => { const i = f.indexOf(marca); return i === -1 ? '' : f.slice(i, i + 360); };
+    const bIm = banda(F.im, 'if (fr < IM_CORTES.fr.leve_max)'), bIa = banda(F.ia, 'if (fr < 30)');
+    ex.push(['las dos cascadas mandan el 50 exacto a SEVERA: la banda moderada corta ESTRICTO, nunca en «<=»',
+      bIm.indexOf('fr < IM_CORTES.fr.sev_min') > -1 && bIm.indexOf('fr <= IM_CORTES.fr.sev_min') === -1 &&
       bIa.indexOf('fr < 50') > -1 && bIa.indexOf('fr <= 50') === -1,
-      'im=' + (bIm.indexOf('fr < 50') > -1 ? 'estricto' : 'NO') +
+      'im=' + (bIm.indexOf('fr < IM_CORTES.fr.sev_min') > -1 ? 'estricto' : 'NO') +
       ' ia=' + (bIa.indexOf('fr < 50') > -1 ? 'estricto' : 'NO')]);
 
     /* La pildora de severidad integrada es OTRA funcion y OTRO operador: alli la severa se afirma
-       con «fr >= 50». Un «> 50» la mandaria a moderada mientras las dos cascadas de arriba seguirian
-       diciendo severa sobre el mismo numero, en la misma pantalla. */
-    ex.push(['la pildora integrada tambien afirma severa en el 50 exacto, con «fr >= 50» y no con «fr > 50»',
-      F.pil.indexOf('fr >= 50') > -1 && F.pil.indexOf('fr > 50') === -1,
-      'tiene fr>=50=' + (F.pil.indexOf('fr >= 50') > -1) + ' tiene fr>50=' + (F.pil.indexOf('fr > 50') > -1)]);
+       con «>= sev_min». Un «> sev_min» la mandaria a moderada mientras las dos cascadas de arriba
+       seguirian diciendo severa sobre el mismo numero, en la misma pantalla. */
+    ex.push(['la pildora integrada tambien afirma severa en el 50 exacto, con «>=» y no con «>»',
+      F.pil.indexOf('fr >= IM_CORTES.fr.sev_min') > -1 && F.pil.indexOf('fr > IM_CORTES.fr.sev_min') === -1,
+      'tiene >==' + (F.pil.indexOf('fr >= IM_CORTES.fr.sev_min') > -1) +
+      ' tiene >=' + (F.pil.indexOf('fr > IM_CORTES.fr.sev_min') > -1)]);
+
+    /* COMPORTAMIENTO, no fuente: la FR en el 50 exacto vota SEVERA. Se arma con la EROA clavada en
+       40 mm2 (r 10 mm, Valiasing 31.831, Vmax 5 m/s), VTI del jet 150 cm -que da Vol-R 60 ml- y un
+       volumen sistolico del TSVI de 60 ml, que es lo que pone la FR en 60/(60+60) = 50 %. */
+    __t.limpiar();
+    [['vm_morf','Reumática'],['pisa_r','10'],['pisa_val','31.831'],['im_vmax','5'],
+     ['im_itv','150'],['im_dtsvi','18.63'],['im_itv_tsvi','22']].forEach(function(kv){ __t.set(kv[0], kv[1]); });
+    try { calcIM_ESC(); } catch (e) {}
+    const _fr50 = __t.txt('freg-val');
+    ex.push(['COMPORTAMIENTO: con la FR en el 50 exacto el grado integrado es 4 (severa)',
+      _fr50.indexOf('50%') > -1 && String(__t.val('im_grado')) === '4',
+      'fr=«' + _fr50 + '» grado=' + __t.val('im_grado')]);
 
     /* ── LA TABLA 6 QUEDA DECLARADA Y SIN IMPLEMENTAR ──
        Decision de Maicol (2026-09-27). Se fija por AUSENCIA: si alguien la implementa a medias —solo
