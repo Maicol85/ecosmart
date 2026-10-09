@@ -42546,7 +42546,18 @@ caso('TC-334', 'EM: em_vmax y thp tienen banda de plausibilidad LOCAL — fuera 
        la marca de los displays al setv(), esta condicion cae. */
     R.c2AvmGuardado = vdom('avm_thp');
     R.c2AvmDisplay  = vdom('em_avm_thp_display');
+    /* ADAPTADO 2026-10-09 — EL MOTIVO: em_thp_display dejo de ser un display de solo lectura que
+       recibia el texto «0.12 ms (revisar)» y paso a ser una PUERTA editable del THP, con el NUMERO
+       CRUDO adentro y la unidad en el rotulo. La marca no puede viajar pegada al numero porque el
+       campo es numerico, asi que va a un aviso propio al lado de CADA campo —el de Valvulas y el
+       del Doppler Mitral—, los dos escritos por thpMarcaPintar.
+       Lo que la condicion de abajo prueba ahora es MAS, no menos: que el numero crudo queda LIMPIO
+       en los dos campos, que los dos campos son iguales, y que la marca sale en LOS DOS avisos.
+       En HEAD el aviso del Doppler no existia: el medico que tipeaba 0,12 ahi no veia una palabra. */
     R.c2ThpDisplay  = vdom('em_thp_display');
+    R.c2ThpPortador = vdom('thp');
+    R.c2MarcaValv   = (function(){ const e = document.getElementById('em-thp-marca'); return e ? String(e.textContent) : 'NO EXISTE'; })();
+    R.c2MarcaDop    = (function(){ const e = document.getElementById('thp-marca');    return e ? String(e.textContent) : 'NO EXISTE'; })();
 
     // -- (6) el gradiente maximo se MARCA, no se borra -----------------------------------------
     cargar(Object.assign({}, NAT, { em_vmax: '250' }));
@@ -42636,11 +42647,19 @@ caso('TC-334', 'EM: em_vmax y thp tienen banda de plausibilidad LOCAL — fuera 
         R.badgeNoverif.indexOf('no se pudo verificar') >= 0, 'badge=«' + R.badgeNoverif.slice(0, 80) + '»'],
       ['y la IAo SEVERA manda sobre la banda: es un hallazgo clinico, no un dedazo',
         R.badgeIa.indexOf('insuficiencia aórtica severa') >= 0, 'badge=«' + R.badgeIa.slice(0, 80) + '»'],
-      ['la marca va en los DISPLAYS y no en avm_thp, que se exporta al Excel y se imprime por vPdf',
+      ['la marca va en el DISPLAY del area y no en avm_thp, que se exporta al Excel y se imprime por vPdf',
         String(R.c2AvmGuardado).indexOf('revisar') < 0 &&
-        String(R.c2AvmDisplay).indexOf('(revisar)') >= 0 &&
-        String(R.c2ThpDisplay).indexOf('(revisar)') >= 0,
-        'guardado=«' + R.c2AvmGuardado + '» display=«' + R.c2AvmDisplay + '» thp=«' + R.c2ThpDisplay + '»'],
+        String(R.c2AvmDisplay).indexOf('(revisar)') >= 0,
+        'guardado=«' + R.c2AvmGuardado + '» display=«' + R.c2AvmDisplay + '»'],
+      /* ADAPTADO 2026-10-09 — ver el motivo arriba. Tres cosas en una: el numero crudo sin marca,
+         los dos campos del THP iguales, y la marca en LOS DOS avisos. */
+      ['el THP lleva el NUMERO CRUDO en los dos campos, sin marca pegada, y los dos campos coinciden',
+        String(R.c2ThpDisplay).indexOf('revisar') < 0 && String(R.c2ThpDisplay).indexOf('ms') < 0 &&
+        String(R.c2ThpDisplay) === String(R.c2ThpPortador) && String(R.c2ThpDisplay).trim() !== '',
+        'valvulas=«' + R.c2ThpDisplay + '» doppler=«' + R.c2ThpPortador + '»'],
+      ['y la marca «(revisar)» sale al lado de LOS DOS campos, no solo en Valvulas',
+        R.c2MarcaValv.indexOf('(revisar)') >= 0 && R.c2MarcaDop.indexOf('(revisar)') >= 0,
+        'avisoValvulas=«' + R.c2MarcaValv + '» avisoDoppler=«' + R.c2MarcaDop + '»'],
       ['el gradiente maximo se marca sin borrarse, y dentro de banda sale limpio',
         String(R.gFuera).indexOf('250000') >= 0 && String(R.gFuera).indexOf('(revisar)') >= 0 &&
         String(R.gDentro).indexOf('(revisar)') < 0,

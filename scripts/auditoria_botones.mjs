@@ -1113,7 +1113,13 @@ try {
              Preguntar por ids adivinados daría null y parecería que no existen. */
           var ids = ['ea-det-sev','ea-sev-box','ea-sev','ea_sev_box','em-sev','em-sev-box',
                      'em-severidad','ea-severidad','ea-crit-box','em-crit-box',
-                     'ea-det-gmax','ea-det-gmedio','em-gmax-row','em_thp_display'];
+                     'ea-det-gmax','ea-det-gmedio','em-gmax-row'];
+          /* ADAPTADO 2026-10-09: em_thp_display SALIO de esta lista. Era un display de solo
+             lectura y hoy es una PUERTA editable del THP, asi que no es un «recuadro de severidad
+             de solo lectura» y no pinta nada que este barrido tenga que vigilar. Nota aparte: el
+             barrido lee textContent, que en un un <input> es SIEMPRE la cadena vacia, asi que la
+             entrada nunca aporto un dato — lo que se saca es la AFIRMACION de que el campo es de
+             solo lectura, que es lo que dejo de ser cierto. */
           ids.forEach(function(i){ var e=document.getElementById(i);
             if (e) out.cajas[i] = (e.textContent||'').replace(/\\s+/g,' ').trim(); });
           /* Y el barrido abierto: cualquier nodo cuyo texto tenga un grado Y un umbral con ≥. */

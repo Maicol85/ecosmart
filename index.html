@@ -3403,8 +3403,20 @@ window.cerrarSesionReal = cerrarSesionReal;
           <input type="number" id="triv" placeholder="ms">
         </div>
         <div class="fg">
+          <!-- ⚠️ EL THP ES UN DATO CON DOS CAMPOS DESDE EL 2026-10-09. Este es el PORTADOR: lo
+               imprime el PDF firmado por vPdf('thp',' ms'), lo exporta el Excel y lo lee el panel
+               de Evidencia. El otro campo vive en Válvulas — Estenosis Mitral y era un display de
+               solo lectura. Ver «EL THP ES UN DATO CON DOS CAMPOS» en el JS.
+               `calcTHP()` no se perdió: lo lleva `thpEditado`, que además copia el valor al otro
+               campo y repinta la marca en los DOS avisos. -->
           <label>THP mitral (ms) — EM</label>
-          <input type="number" id="thp" placeholder="ms" oninput="calcTHP()">
+          <input type="number" id="thp" placeholder="ms" oninput="thpEditado('thp')">
+          <!-- ⚠️ ESTE AVISO ES NUEVO Y CIERRA UN AGUJERO MEDIDO: hasta hoy la marca «(revisar)»
+               del THP fuera de banda salía SÓLO en los displays del bloque de Estenosis Mitral, o
+               sea en otra pestaña. El médico que tipeaba 12 ms acá no veía una palabra. La escribe
+               `thpMarcaPintar`, la única dueña, con la misma constante `MARCA_REVISAR` y la misma
+               banda `EM_BANDA_PLAUS.thp` que decide el resto. -->
+          <div id="thp-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
         </div>
         <div class="fg">
           <label>AVm por THP (cm²)</label>
@@ -4248,15 +4260,24 @@ window.cerrarSesionReal = cerrarSesionReal;
               <input type="number" id="em_vtitsvi" placeholder="cm" oninput="vtiTsviEditado('em_vtitsvi')">
             </div>
             <div class="fg">
-              <!-- ⚠️ EL MARCADOR PASA A «↔ Doppler mitral» EN EL COMMIT A, PERO EL CAMPO SIGUE
-                   SIENDO DE SOLO LECTURA HASTA EL COMMIT B. O sea que en ESTE commit el «↔» ya
-                   dice la verdad sobre DÓNDE vive el dato —en el THP del Doppler Mitral— y
-                   todavía no sobre que se pueda editar desde acá. Se hace en dos pasos a pedido:
-                   el commit A es sólo maquetación y rótulos, y el commit B lo vuelve editable.
-                   Mientras tanto el campo queda en la columna que le corresponde al lado de los
-                   otros dos datos que viven en dos lugares, que es lo que la distribución pide. -->
+              <!-- ⚠️ ERA UN DISPLAY DE SOLO LECTURA Y HOY ES UNA PUERTA DEL MISMO DATO
+                   (2026-10-09). El `id` se conserva —lo persiste `guardarInforme`, lo repone
+                   `limpiarCampos` y lo nombran dos arneses— aunque el nombre ya no describa lo
+                   que el nodo hace: renombrarlo cambiaría qué viaja con el estudio y rompería los
+                   estudios guardados. Queda REPORTADO.
+                   TRES COSAS CAMBIAN Y LAS TRES ERAN FALSAS EN CUANTO EL CAMPO SE PUDO EDITAR:
+                     · `readonly` se va, que es el pedido;
+                     · el `color:var(--accent2)` se va: ese color es el de los valores derivados
+                       de este archivo, y un campo editable pintado como un derivado invita a no
+                       tocarlo. Ahora se ve como sus dos vecinos de columna;
+                     · el placeholder decía «completar en Doppler Mitral», que es exactamente lo
+                       que dejó de ser cierto. Dice «ms», igual que el campo del Doppler.
+                   El valor que lleva es el NÚMERO CRUDO y no «150 ms»: la unidad está en el
+                   rótulo. La marca «(revisar)» ya no viaja pegada al número —iría dentro de un
+                   `input[type=number]`, que no la aceptaría— sino al aviso de abajo. -->
               <label>THP (ms) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; Doppler mitral</span></label>
-              <input type="text" id="em_thp_display" readonly style="color:var(--accent2);" placeholder="completar en Doppler Mitral">
+              <input type="number" id="em_thp_display" placeholder="ms" oninput="thpEditado('em_thp_display')">
+              <div id="em-thp-marca" style="font-size:10px;color:var(--yellow);margin-top:3px;min-height:14px;"></div>
             </div>
           </div>
           <div>
@@ -23427,12 +23448,12 @@ window.emFueraBandaLocal = emFueraBandaLocal;
 
 function calcTHP() {
   const thp = v('thp');
-  // Sincronizar display en bloque EM
-  const disp = document.getElementById('em_thp_display');
-  /* La misma marca que pone `calcEM` unas líneas más abajo. Es redundante en el camino feliz
-     —`calcEM()` se llama al final de esta función y reescribe el display— y no lo es si `calcEM`
-     lanza: sin esto, ahí quedaría el THP ilegible sin una palabra. */
-  if (disp) disp.value = thp ? (thp + ' ms' + (emThpFueraBanda() ? ' (revisar)' : '')) : '';
+  /* ⚠️ YA NO SE ESCRIBE «150 ms (revisar)» EN EL OTRO CAMPO: los dos campos son el MISMO dato y
+     llevan el número crudo. `thpEspejar` los iguala y `thpMarcaPintar` pone la marca en los dos
+     avisos. Van ANTES del `return` temprano del THP vacío a propósito, que es lo mismo que hacía
+     la línea que reemplazan: si `calcEM` lanza, el campo y la marca ya quedaron al día. */
+  thpEspejar();
+  thpMarcaPintar();
   if (!thp) { setv('avm_thp',''); return; }
   /* Extracción pura: el `toFixed(2)` se conserva y se cae a la expresión anterior si el helper
      devolviera `null`, para que sacar la fórmula de acá no pueda cambiar lo que se publica. */
@@ -24059,14 +24080,22 @@ function calcEM() {
        Se marcan los TRES lugares donde el médico lo lee, el THP incluido: el número ilegible es
        ÉSE, y el área es sólo su consecuencia. */
     const _mt = emThpFueraBanda() ? ' (revisar)' : '';
-    // Sincronizar display en bloque EM
-    const thpDisp = document.getElementById('em_thp_display');
-    if (thpDisp) thpDisp.value = thpRaw + ' ms' + _mt;
+    /* ⚠️ `_mt` SIGUE SIENDO EL MISMO Y LAS DOS SUPERFICIES DE ABAJO NO CAMBIAN UNA LETRA: el
+       pedido (punto 3c) es que `em_avm_thp_display` y `em-thp-row` conserven EXACTAMENTE su texto
+       de hoy, marca incluida. Lo que se fue de acá es la escritura del THP como TEXTO en el otro
+       campo: hoy ese campo es una puerta del dato y lleva el número crudo. */
+    thpEspejar();
+    thpMarcaPintar();
     const avmDisp = document.getElementById('em_avm_thp_display');
     if (avmDisp) avmDisp.value = avmStr + ' cm²' + _mt;
     document.getElementById('em-thp-row').textContent = avmStr + ' cm²' + _mt;
   } else {
     document.getElementById('em-thp-row').textContent = '—';
+    /* La rama SIN THP también repinta: si no, borrar el THP dejaba la marca del paciente anterior
+       colgada en los dos avisos. Es el mismo defecto que el aviso de incongruencia de la
+       tricúspide pagó por no tener su columna de limpieza. */
+    thpEspejar();
+    thpMarcaPintar();
   }
 
   // AVm por continuidad
@@ -26143,6 +26172,115 @@ function vtiMitralEditado(origenId) {
   if (typeof calcIM_ESC === 'function') calcIM_ESC();
 }
 window.vtiMitralEditado = vtiMitralEditado;
+
+/* ══ EL THP ES UN DATO CON DOS CAMPOS (2026-10-09) ═══════════════════════════════════════════
+   `thp` (Doppler Mitral, el PORTADOR: lo imprime el PDF firmado por `vPdf('thp',' ms')`, lo
+   exporta el Excel y lo lee el panel de Evidencia) y `em_thp_display` (Válvulas — Estenosis
+   Mitral) son la MISMA medición. El segundo **no era ni un espejo**: era un display de SOLO
+   LECTURA que recibía el texto «150 ms» o «150 ms (revisar)» desde `calcTHP` y desde `calcEM`.
+   DECISIÓN DE MAICOL: un dato = un valor, y manda el último lugar editado — la misma regla que
+   los otros cinco datos coordinados de esta mitral.
+
+   ⚠️ ESTE PAR NO TIENE MARCA DE ESPEJO, Y NO ES UN OLVIDO. `_coordMarcarEspejo` sólo marca
+   destinos registrados en `_ESPEJOS_TODOS`, y `em_thp_display` nunca estuvo ahí: no era un espejo
+   de `_syncDerivado` sino un display, así que `im_espejos` no lo sella y no hay nada que sellar.
+   Se llama igual, por uniformidad con los otros cuatro grupos, y devuelve `false`.
+
+   ⚠️ EL CAMPO SE SIGUE LLAMANDO `em_thp_display` AUNQUE YA NO SEA UN DISPLAY. El `id` lo persiste
+   `guardarInforme`, lo repone `limpiarCampos` y lo nombran `test_clinico.mjs` y
+   `auditoria_botones.mjs`: renombrarlo cambiaría qué viaja con el estudio y dejaría a los
+   estudios guardados con una clave que nadie lee. Queda REPORTADO.
+
+   ⚠️ LA UNIÓN DE RECÁLCULOS ES `calcTHP()` Y NADA MÁS, y eso está MEDIDO, no supuesto. El lado
+   Doppler traía `calcTHP()`; el lado Válvulas no traía NADA porque era de solo lectura. Y
+   `calcTHP` ya llama a `calcEM()` al final, así que agregar un `calcEM()` suelto acá lo correría
+   DOS veces por tecla. Lo que importa de verdad: `calcTHP` sale temprano con el THP vacío
+   (`if (!thp) { setv('avm_thp',''); return; }`) y por eso NO llama a `calcEM` al borrar — ése es
+   comportamiento de HEAD y esta tanda no lo cambia, así que la puerta reproduce exactamente lo
+   que hace hoy el campo del Doppler, desde los dos lados.
+
+   Mismas tres propiedades que los otros grupos: guarda de reentrada, salida temprana por TEXTO
+   igual —que es lo que evita que salte el caret al tipear— y el vacío se copia igual que un
+   número, así que borrar en un lugar borra en el otro y no se repone. */
+let _thpSinc = false;
+const _THP_CAMPOS = ['thp', 'em_thp_display'];
+function thpSync(origenId) {
+  if (_thpSinc) return null;
+  _thpSinc = true;
+  try {
+    const src = document.getElementById(origenId);
+    if (!src) return null;
+    const val = src.value;
+    const copiados = [];
+    _THP_CAMPOS.forEach((id) => {
+      if (id === origenId) return;
+      const dst = document.getElementById(id);
+      if (!dst || dst.value === val) return;
+      dst.value = val;
+      _coordMarcarEspejo(dst, val);
+      copiados.push(id);
+    });
+    return { origen: origenId, valor: val, copiados: copiados };
+  } finally { _thpSinc = false; }
+}
+window.thpSync = thpSync;
+window._THP_CAMPOS = _THP_CAMPOS;
+
+/* ⚠️ EL ESPEJADO QUE CORRE DESDE LOS RECÁLCULOS TOMA SIEMPRE EL PORTADOR COMO ORIGEN, y no el
+   último editado. Es la diferencia con `thpSync`: ésta la llaman `calcTHP` y `calcEM`, que pueden
+   correr desde CUALQUIER campo del formulario —incluida la restauración de un estudio— y en esos
+   caminos el único valor confiable es `thp`, que es el que viaja con el estudio y el que imprime
+   el PDF. Si tomara «el último editado» un recálculo disparado por otro campo copiaría en la
+   dirección equivocada.
+   ⚠️ Y SE COMPARA EL TEXTO ANTES DE ASIGNAR. Sin eso, cada tecla en `em_thp_display` dispara
+   `calcTHP` → `calcEM` → una asignación a `.value` del campo que el médico está tipeando, y el
+   caret salta al final. Es la misma salida temprana que los otros cuatro grupos documentan.
+   ⚠️ SE LEE `.value` Y NO `v('thp')`: `v()` devuelve un NÚMERO parseado, así que un campo vacío
+   volvería como `0` y la cadena «150» podría volver como `150` — el campo guarda lo que el médico
+   escribió, incluido el vacío. */
+function thpEspejar() {
+  const src = document.getElementById('thp');
+  const dst = document.getElementById('em_thp_display');
+  if (!src || !dst) return false;
+  if (dst.value === src.value) return false;
+  dst.value = src.value;
+  return true;
+}
+window.thpEspejar = thpEspejar;
+
+/* ══ LA MARCA «(revisar)» DEL THP — UNA SOLA FUNCIÓN DUEÑA Y DOS AVISOS ══════════════════════
+   Hasta hoy la marca salía SÓLO en los displays del bloque de Estenosis Mitral, o sea en otra
+   pestaña que la del campo donde se tipea: el médico que cargaba 12 ms en el Doppler Mitral no
+   veía una palabra. Medido en HEAD. Ahora hay un aviso al lado de CADA campo y los escribe esta
+   función, con la MISMA constante (`MARCA_REVISAR`) y la MISMA banda (`EM_BANDA_PLAUS.thp`, vía
+   `emThpFueraBanda`) que ya deciden la marca de `em_avm_thp_display`, la de `em-thp-row` y la del
+   PDF. Un segundo lector de la banda es cómo se llega a que la pantalla marque «(revisar)» sobre
+   un número que sigue votando, o al revés — este archivo ya lo pagó con `emContFueraBanda`.
+   Se usa `MARCA_REVISAR.trim()` y no un literal: la constante trae un espacio adelante porque
+   nació para ir PEGADA a un número, y acá el aviso es un renglón propio. */
+const _THP_MARCA_NODOS = ['thp-marca', 'em-thp-marca'];
+function thpMarcaPintar() {
+  let fuera = false;
+  try { fuera = (typeof emThpFueraBanda === 'function') ? emThpFueraBanda() : false; } catch (e) { fuera = false; }
+  const nodo = document.getElementById('thp');
+  /* Sin dato no hay nada que revisar: la marca de un paciente anterior no se queda colgada. */
+  const hay = !!(nodo && String(nodo.value).trim() !== '');
+  const txt = (hay && fuera) ? MARCA_REVISAR.trim() : '';
+  _THP_MARCA_NODOS.forEach((id) => {
+    const e = document.getElementById(id);
+    if (e) e.textContent = txt;
+  });
+  return txt;
+}
+window.thpMarcaPintar = thpMarcaPintar;
+window._THP_MARCA_NODOS = _THP_MARCA_NODOS;
+
+/* La puerta — una sola función para los dos lados, igual que los otros cuatro grupos. */
+function thpEditado(origenId) {
+  thpSync(origenId);
+  if (typeof calcTHP === 'function') calcTHP();
+}
+window.thpEditado = thpEditado;
 
 /* ══ EL ÁREA DE LA AI ES UN DATO CON DOS CAMPOS (2026-10-08) ═════════════════════════════════
    `ai_area` (AI/VI, el PORTADOR: lo leen `calcAI`, el PDF, el Excel —columna «Área AI (cm²)»—, el
@@ -56278,6 +56416,36 @@ function _migrarCamposLegacy(c){
     if (_rawIa !== '' && !isNaN(_nIa) && _nIa > IA_VMAX_CW_MS_MAX) {
       c['ia_vmax_cw'] = String(Math.round((_nIa / CMS_POR_MS) * 1000) / 1000);
     }
+  }
+
+  /* ⚠️ `em_thp_display` GUARDABA UN TEXTO Y HOY ES UN CAMPO NUMÉRICO (2026-10-09). En memoria y
+     sin reescribir el disco, mismo precedente que `ip_grado`, `it_vmax_cw` y `ia_vmax_cw`.
+
+     ⚠️ ESTO NO ES OPCIONAL, Y ESTÁ MEDIDO POR QUÉ. Hasta hoy el campo era un display de solo
+     lectura que recibía el TEXTO «150 ms» —o «150 ms (revisar)» fuera de banda— y, como es un
+     `input[id]`, el barrido de `guardarInforme` lo persistía tal cual: TODOS los estudios
+     guardados con THP traen esa cadena. Asignar «150 ms» a un `input[type=number]` deja
+     `.value === ''`, así que sin esta línea el bloque de Estenosis Mitral reabriría con el THP
+     EN BLANCO mientras el dato está ahí, en `thp`, y el PDF lo imprime.
+     Y NO se cura solo: se midió que `calcTHP`, `calcEM`, `calcIM_ESC` y `calcContIM` **no están
+     en `RECALC_MODULOS`**, que es el embudo de las tres rutas de restauración, así que en un
+     reabrir a secas no corre nadie que pueda repoblarlo desde `thp`.
+
+     ⚠️ NO ES UNA HEURÍSTICA: NO HAY ZONA GRIS. El valor guardado sólo puede ser la cadena vacía,
+     «N ms» o «N ms (revisar)», porque esas son las DOS únicas formas que `calcTHP` y `calcEM`
+     escribían. Tomar el número de adelante es una lectura exacta de ese formato, no una
+     adivinanza. Un estudio nuevo ya trae el número crudo y la expresión lo deja igual.
+
+     ⚠️ Y LO QUE VIAJA CON EL ESTUDIO ES `thp`, NO ESTE CAMPO: el PDF lo imprime por
+     `vPdf('thp',' ms')`, el Excel exporta `thp` y el panel de Evidencia lee `thp`. Este campo
+     siempre fue una copia en pantalla, así que normalizarlo no puede mover ninguna superficie
+     firmada — el informe, el EN SUMA, el PDF y el Excel salen idénticos. Lo que arregla es que
+     la pantalla muestre el dato que el estudio trae.
+     Sin clave no se fabrica nada, igual que los dos bloques de arriba. */
+  if (Object.prototype.hasOwnProperty.call(c, 'em_thp_display')) {
+    const _rawThp = String(c['em_thp_display'] == null ? '' : c['em_thp_display']).trim();
+    const _mThp = _rawThp.match(/^[0-9]+(?:[.,][0-9]+)?/);
+    c['em_thp_display'] = _mThp ? _mThp[0].replace(',', '.') : '';
   }
   if (!c['tsvd_diametro'] && c['ete_shunt_tsvd'])     c['tsvd_diametro'] = c['ete_shunt_tsvd'];
   if (!c['vti_tsvd']      && c['ete_shunt_vti_tsvd']) c['vti_tsvd']      = c['ete_shunt_vti_tsvd'];
@@ -99082,8 +99250,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261009-0635';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791538545654;                 /* eco-build-ms */
+const ECO_BUILD    = '20261009-0732';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791541926947;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -99169,7 +99337,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-0635</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-0732</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

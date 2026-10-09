@@ -405,6 +405,54 @@ window.__P = {
     });
     return c },
 
+  /* GUARDAR de verdad: guardarInforme toma un callback, el guardado es ASINCRONO (IndexedDB con
+     respaldo en localStorage) y puede aparecer la card de severidades, que hay que CONFIRMAR con
+     su propio boton. Calcado del arnes de la suite, incluido el _ettEditandoId = null que evita
+     el modal de «sobreescribir / guardar como nuevo». La clave del estudio es estudioId. */
+  guardar() {
+    window._ettEditandoId = null;
+    var antes = new Set(getInformes().map(function(i){ return i.estudioId }));
+    return new Promise(function(resolve){
+      var alTerminar = function(ok){
+        var nuevo = getInformes().find(function(i){ return !antes.has(i.estudioId) });
+        resolve({ ok: ok === true, estudioId: nuevo ? nuevo.estudioId : null });
+      };
+      try { guardarInforme(alTerminar) } catch(e) { resolve({ ok:false, error:String(e) }); return }
+      /* ⚠️ LA CARD DE SEVERIDADES SE PINTA Y EL BOTON NO EXISTE TODAVIA EN ESE TICK. guardarInforme
+         sale con return false y el guardado REAL ocurre al confirmar la card, asi que un
+         un getElementById de rev-confirm con .click() sincrono no encuentra nada y el callback no se
+         llama NUNCA: medido, la escena informo ok=null y estudioId=null dos veces. Se espera el
+         boton con reintentos y, si no aparece, se resuelve con el motivo en vez de colgarse. */
+      var intentos = 0;
+      var buscar = function(){
+        var cf = document.getElementById('rev-confirm');
+        if (cf) { cf.click(); return }
+        if (++intentos > 40) { resolve({ ok:false, error:'nunca aparecio #rev-confirm' }); return }
+        setTimeout(buscar, 50);
+      };
+      setTimeout(buscar, 50);
+    }) },
+  reabrir(estudioId) { try { cargarEstudioPorId(estudioId); return 'ok' }
+    catch(e) { return 'EXC: ' + e.message } },
+  editar(estudioId) { try { editarInforme(estudioId); return 'ok' }
+    catch(e) { return 'EXC: ' + e.message } },
+  borrarEstudio(estudioId) {
+    if (!estudioId) return Promise.resolve(false);
+    return CeiboStore.setLocal(getInformes().filter(function(i){ return i.estudioId !== estudioId })) },
+  /* Lo que el estudio tiene EN DISCO para esas dos claves. Es la unica forma de probar que no se
+     reescribio nada: el migrador corre en memoria. */
+  enDisco(estudioId) {
+    var i = getInformes().find(function(x){ return x.estudioId === estudioId });
+    if (!i) return { err: 'SIN ESTUDIO' };
+    var c = i.campos || {};
+    return { thp: c['thp'], em_thp_display: c['em_thp_display'] } },
+  /* El migrador, llamado DIRECTO sobre un objeto con la forma de un guardado viejo. */
+  migrar(obj) {
+    if (typeof _migrarCamposLegacy !== 'function') return 'SIN _migrarCamposLegacy';
+    var c = JSON.parse(JSON.stringify(obj));
+    try { _migrarCamposLegacy(c) } catch(e) { return 'EXC ' + e.message }
+    return c },
+
   listo() {
     var faltan = ['generarInforme','pillOn','toggleValvPill','showTab','limpiarCampos','calcEM',
                   'emCategoria','setEstiloInforme','calcContIM','calcIM_ESC','calcTHP',
@@ -580,19 +628,38 @@ async function main() {
        se leeria como «el valor no se repone». */
     const _foco = await ev(`(document.activeElement && document.activeElement.id) || '<sin id>'`);
     if (_foco !== id) return { via, sinFoco: true, focoEn: _foco, pasos: [] };
+    /* ⚠️ NUNCA UN BACKSPACE SOBRE UN CAMPO `readonly`: NAVEGA, Y CUELGA LA SONDA 75 s. Un campo de
+       solo lectura no es editable, asi que Blink NO consume la tecla y cae en la accion por
+       omision de la ventana, que es el ATRAS del historial. La pagina navega, el contexto de
+       ejecucion muere y la promesa de `Runtime.evaluate` no se resuelve NUNCA — es la trampa de
+       los `cdp.mjs` que no salen, con la cara de un reloj de 75 s.
+       Medido: la escena «borrar en Valvulas con el valor cargado desde el Doppler» colgo las dos
+       veces que corrio contra HEAD, donde `em_thp_display` todavia es `readonly`. Y la PRIMERA
+       corrida fue una sola escena de catorce sub-escenas sin traza: 19 minutos sin escribir una
+       linea y sin poder decir en cual se habia clavado.
+       Un campo readonly no se puede borrar, y eso es un HECHO sobre la app —es justo el agujero
+       que esta tanda cierra— no un fallo de la sonda: se informa y no se inventa un borrado. */
+    const _ro = await ev(`(function(){ var e=document.getElementById(${JSON.stringify(id)});
+      return e ? !!e.readOnly : null })()`);
+    if (_ro) return { via, readonly: true, pasos: [],
+                      valor: await ev(`window.__P.val(${JSON.stringify(id)})`) };
     /* ⚠️ `setSelectionRange` LANZA en un `input[type=number]` —no soporta seleccion— y el `try`
        la tragaba, asi que el caret quedaba donde estuviera. Al enfocar por clic el caret cae donde
        se clickeo; para que el Backspace muerda desde el final se enfoca y se manda `End`. */
     await ev(`(function(){ var e=document.getElementById(${JSON.stringify(id)}); if(e) e.focus(); return 1 })()`);
     await tecla('End', null);
     const pasos = [];
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 8; i++) {
       const v0 = await ev(`window.__P.val(${JSON.stringify(id)})`);
       if (v0 === '' || v0 === null) break;
       await tecla('Backspace', null);
       await pausa(70);
-      pasos.push({ tras: i + 1, campo: await ev(`window.__P.val(${JSON.stringify(id)})`),
+      const v1 = await ev(`window.__P.val(${JSON.stringify(id)})`);
+      pasos.push({ tras: i + 1, campo: v1,
                    ...(foto ? JSON.parse(await ev(`JSON.stringify(window.__P.${foto}())`)) : {}) });
+      /* Una tecla que no mueve el campo no va a mover la siguiente: se corta y se DICE, en vez de
+         gastar siete round-trips mas y devolver una lista de pasos identicos. */
+      if (v1 === v0) { pasos[pasos.length - 1].sinEfecto = true; break; }
     }
     await ev(`(function(){ var e=document.getElementById(${JSON.stringify(id)});
       if(e){ e.dispatchEvent(new Event('change',{bubbles:true})); e.blur() } return 1 })()`);
@@ -629,6 +696,13 @@ async function main() {
     aviso: { boton: avisoBtn, clic: avisoClic, display: avisoCerrado } };
   const hacer = (k) => !SOLO || SOLO === k;
   const J = async (expr) => JSON.parse(await ev(`JSON.stringify(${expr})`));
+  /* ⚠️ PARA LO QUE DEVUELVE UNA PROMESA HAY QUE ESPERARLA DENTRO DE LA PAGINA. `J()` hace
+     `JSON.stringify` del valor que la expresion devuelve, y si eso es una Promise el resultado es
+     literalmente «{}»: `awaitPromise` espera la promesa de la EXPRESION, y aca la expresion ya
+     resolvio a una cadena. Medido: la escena del guardado informo `g = {}` y se leyo como «el
+     guardado fallo» cuando lo que fallaba era la sonda — el defecto correcto por la razon
+     equivocada. `JP` encadena el `then` ANTES de serializar. */
+  const JP = async (expr) => JSON.parse(await ev(`(${expr}).then(function(r){ return JSON.stringify(r) })`));
 
   /* DENOMINADOR DURO: el estado de partida ABORTA si los campos de la tanda no tienen geometria.
      Sin esto, una sonda sobre un arbol cerrado tipea en la nada y todo sale «sin cambios». */
@@ -723,19 +797,30 @@ async function main() {
   }
 
   /* ══ THP — gestos con teclas reales en los DOS lugares, dentro y fuera de banda ════════════
-     La banda es EM_BANDA_PLAUS.thp = [20,600] ms: 150 esta dentro, 12 esta fuera. */
-  if (hacer('THP')) {
-    const thp = {};
-    /* Tipear en Valvulas. */
+     La banda es EM_BANDA_PLAUS.thp = [20,600] ms: 150 esta dentro, 12 esta fuera.
+     ⚠️ PARTIDA EN TRES (THP1 tipear · THP2 borrar · THP3 nuevo estudio y legados) Y CON TRAZA POR
+     PASO. La primera version era UNA escena de 14 sub-escenas: corrio 19 minutos sin escribir una
+     linea —la sonda imprime una sola vez, al final— y hubo que matarla sin saber en cual se habia
+     clavado. Con `paso()` cada sub-escena se anuncia por stderr, asi que un cuelgue DICE donde
+     ocurrio; y partida en tres, ninguna corrida pasa de unos minutos. Es la trampa de los
+     `cdp.mjs` que no salen con otra cara: el reloj de 75 s de `ev()` acota cada llamada, no la
+     corrida entera. */
+  if (hacer('THP') || hacer('THP1')) {
+    const thp = out.THP || {};
     for (const [etq, lugar, valor] of [
       ['valv_dentro', 'em_thp_display', '150'], ['valv_fuera', 'em_thp_display', '12'],
       ['dop_dentro',  'thp',            '150'], ['dop_fuera',  'thp',            '12'],
     ]) {
+      paso('THP1 ' + etq);
       await base();
       const t = await tipear(lugar, valor);
       await pausa(140);
       thp[etq] = { tipeo: t, foto: await J(`window.__P.thpFoto()`) };
     }
+    out.THP = thp;
+  }
+  if (hacer('THP') || hacer('THP2')) {
+    const thp = out.THP || {};
     /* Borrar en cada lugar, con el valor cargado desde el OTRO. */
     for (const [etq, cargar, borrar] of [
       ['borrar_valv_tras_dop',  'thp',            'em_thp_display'],
@@ -743,13 +828,19 @@ async function main() {
       ['borrar_valv_tras_valv', 'em_thp_display', 'em_thp_display'],
       ['borrar_dop_tras_dop',   'thp',            'thp'],
     ]) {
+      paso('THP2 ' + etq);
       await base();
       const t = await tipear(cargar, '150');
       const b = await borrarConBackspace(borrar, 'thpFoto');
       await pausa(140);
       thp[etq] = { tipeo: t, borrado: b, foto: await J(`window.__P.thpFoto()`) };
     }
+    out.THP = thp;
+  }
+  if (hacer('THP') || hacer('THP3')) {
+    const thp = out.THP || {};
     /* Nuevo estudio: los dos vacios, y no se reponen. */
+    paso('THP3 nuevoEstudio');
     await base();
     await tipear('thp', '150');
     await ev(`(function(){ window.__P.limpiar(); return 1 })()`);
@@ -758,6 +849,7 @@ async function main() {
     /* Un estudio GUARDADO como lo trae el disco: el barrido escribe .value y no despacha nada.
        Dos legados: el que trae el display con el TEXTO viejo y el que lo trae con el numero. */
     for (const [etq, dispVal] of [['legado_texto', '150 ms'], ['legado_numero', '150']]) {
+      paso('THP3 ' + etq);
       await base();
       await ev(`(function(){ window.__P.setRaw('thp','150');
         window.__P.setRaw('em_thp_display', ${JSON.stringify(dispVal)}); return 1 })()`);
@@ -767,6 +859,82 @@ async function main() {
       thp[etq].trasCalcTHP = await J(`window.__P.thpFoto()`);
     }
     out.THP = thp;
+  }
+  /* ══ THP4 — el normalizador de legado y un estudio guardado de VERDAD ═════════════════════
+     ⚠️ LAS ESCENAS DE THP3 NO PRUEBAN EL MIGRADOR: usan `setRaw`, que escribe `.value` sin pasar
+     por `_migrarCamposLegacy`. Lo que un estudio guardado hace de verdad es pasar su objeto
+     `campos` por el migrador ANTES de poblar el formulario, asi que aca se llama al migrador
+     DIRECTO con la forma exacta que tenian los guardados viejos, y despues se hace un
+     guardar -> reabrir real. */
+  if (hacer('THP') || hacer('THP4')) {
+    const t4 = {};
+    paso('THP4 migrador');
+    await base();
+    t4.migrador = await J(`window.__P.migrar({ thp: '150', em_thp_display: '150 ms' })`);
+    t4.migradorFuera = await J(`window.__P.migrar({ thp: '12', em_thp_display: '12 ms (revisar)' })`);
+    t4.migradorVacio = await J(`window.__P.migrar({ thp: '', em_thp_display: '' })`);
+    t4.migradorSinClave = await J(`window.__P.migrar({ thp: '150' })`);
+    t4.migradorYaNumero = await J(`window.__P.migrar({ thp: '150', em_thp_display: '150' })`);
+    /* CONTROL NEGATIVO: el migrador no toca lo que no es suyo. */
+    t4.migradorOtro = await J(`window.__P.migrar({ thp: '150', em_gmedio: '7 mmHg' })`);
+
+    paso('THP4 guardar y reabrir');
+    await base();
+    /* ⚠️ EL GUARDADO NECESITA PACIENTE, y sin esto guardarInforme no llamo nunca al callback:
+       la primera corrida informo ok=null y estudioId=null y la escena habria medido el
+       formulario VIVO creyendo medir un estudio reabierto — el defecto correcto por la razon
+       equivocada. El THP se tipea con TECLAS REALES despues de sembrar lo demas. */
+    await ev(`(function(){ window.__P.sembrar({ nombre:'Legado THP', ci:'7-7', edad:'64',
+      sexo:'M', peso:'80', talla:'175', vm_morf:'Reumática' }); return 1 })()`);
+    /* ⚠️ SE TIPEA EN `thp` Y NO EN VALVULAS, PARA QUE LA ESCENA SEA COMPARABLE CONTRA HEAD: en
+       HEAD el campo de Valvulas es readonly y el estudio se guardaria SIN THP, o sea otro
+       paciente. El tecleo en Valvulas lo cubre THP1. */
+    const tecleo = await tipear('thp', '150');
+    await pausa(160);
+    const g = await JP(`window.__P.guardar()`);
+    t4.guardado = { tecleo, g };
+    if (!g || !g.estudioId) t4.ABORTADA = 'sin estudio guardado: la escena no mide nada';
+    if (g && g.estudioId) {
+      t4.enDisco = await J(`window.__P.enDisco(${JSON.stringify(g.estudioId)})`);
+      await ev(`(function(){ window.__P.limpiar(); return 1 })()`);
+      await pausa(200);
+      t4.reabrir = await J(`({ r: window.__P.reabrir(${JSON.stringify(g.estudioId)}) })`);
+      await pausa(400);
+      await J(`window.__P.abrirTodo()`);
+      t4.trasReabrir = await J(`window.__P.thpFoto()`);
+      await ev(`(function(){ window.__P.limpiar(); return 1 })()`);
+      await pausa(200);
+      t4.editar = await J(`({ r: window.__P.editar(${JSON.stringify(g.estudioId)}) })`);
+      await pausa(700);
+      await J(`window.__P.abrirTodo()`);
+      t4.trasEditar = await J(`window.__P.thpFoto()`);
+      /* ⚠️ EL LEGADO DE VERDAD: se reescribe EN DISCO la clave del display con el TEXTO que
+         escribian `calcTHP` y `calcEM` hasta hoy («150 ms»), que es lo que trae CUALQUIER estudio
+         guardado antes de este commit, y se reabre por las dos rutas. Es la unica forma de probar
+         el normalizador en la ruta real: las escenas de THP3 usan setRaw y no pasan por el. */
+      t4.legadoEscrito = await JP(`(function(){
+        var ins = getInformes();
+        var i = ins.find(function(x){ return x.estudioId === ${JSON.stringify(g.estudioId)} });
+        if (!i) return Promise.resolve({ err: 'SIN ESTUDIO' });
+        i.campos['em_thp_display'] = '150 ms';
+        return CeiboStore.setLocal(ins).then(function(){ return window.__P.enDisco(${JSON.stringify(g.estudioId)}) });
+      })()`);
+      await ev(`(function(){ window.__P.limpiar(); return 1 })()`);
+      await pausa(200);
+      t4.legadoReabrir = await J(`({ r: window.__P.reabrir(${JSON.stringify(g.estudioId)}) })`);
+      await pausa(400);
+      await J(`window.__P.abrirTodo()`);
+      t4.legadoTrasReabrir = await J(`window.__P.thpFoto()`);
+      await ev(`(function(){ window.__P.limpiar(); return 1 })()`);
+      await pausa(200);
+      t4.legadoEditar = await J(`({ r: window.__P.editar(${JSON.stringify(g.estudioId)}) })`);
+      await pausa(700);
+      await J(`window.__P.abrirTodo()`);
+      t4.legadoTrasEditar = await J(`window.__P.thpFoto()`);
+      t4.legadoEnDiscoFinal = await J(`window.__P.enDisco(${JSON.stringify(g.estudioId)})`);
+      await ev(`window.__P.borrarEstudio(${JSON.stringify(g.estudioId)}).then(function(){ return 1 })`);
+    }
+    out.THP4 = t4;
   }
 
   /* ══ PISA — el MISMO dato fisico con la unidad que el archivo medido declara ═══════════════
