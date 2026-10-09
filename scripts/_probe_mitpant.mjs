@@ -951,61 +951,101 @@ async function main() {
     out.PISA = { unidadLeida: uni, vmaxUsada: vmax,
       foto: await J(`window.__P.pisaFoto()`),
       plaus: await J(`(function(){ var p = vPlaus('im_vmax');
-        return { crudo: p.crudo, fuera: p.fuera, b: p.b } })()`) };
+        return { crudo: p.crudo, fuera: p.fuera, b: p.b } })()`),
+      /* El normalizador de legado de la Vmax IM: un estudio guardado la trae en cm/s. Se llama al
+         migrador DIRECTO, que es la ruta real de las tres restauraciones, con los bordes de la
+         banda y un control negativo. */
+      migrador: {
+        cms500:  await J(`window.__P.migrar({ im_vmax: '500' })`),
+        cms900:  await J(`window.__P.migrar({ im_vmax: '900' })`),
+        cms100:  await J(`window.__P.migrar({ im_vmax: '100' })`),
+        ms5:     await J(`window.__P.migrar({ im_vmax: '5' })`),
+        ms9:     await J(`window.__P.migrar({ im_vmax: '9' })`),
+        ms1:     await J(`window.__P.migrar({ im_vmax: '1' })`),
+        vacio:   await J(`window.__P.migrar({ im_vmax: '' })`),
+        sinClave:await J(`window.__P.migrar({ pisa_val: '40' })`),
+        otro:    await J(`window.__P.migrar({ pisa_val: '40', im_itv: '130' })`)
+      },
+      /* Y la EROA con el legado YA normalizado tiene que dar lo mismo que con el dato tipeado. */
+      legadoEroa: await (async () => {
+        await base();
+        await ev(`(function(){ window.__P.sembrar(${JSON.stringify(ESCENA(5))}); return 1 })()`);
+        const tipeado = await J(`window.__P.pisaFoto()`);
+        await base();
+        const mig = await J(`window.__P.migrar({ im_vmax: '500' })`);
+        const esc = Object.assign({}, ESCENA(5), { im_vmax: mig.im_vmax });
+        await ev(`(function(){ window.__P.sembrar(${JSON.stringify(esc)}); return 1 })()`);
+        const desdeLegado = await J(`window.__P.pisaFoto()`);
+        return { migrado: mig.im_vmax, tipeado, desdeLegado };
+      })() };
   }
 
   /* ══ CORT — los bordes de los cortes de IM, uno por uno ════════════════════════════════════
      VC y jet/AI se aislan (son los dos unicos votantes que no derivan de otro), asi que el grado
      integrado ES su voto. EROA, Vol-R y FR van encadenados por la formula —el Vol-R sale de la
-     EROA— asi que de esos se leen los NUMEROS publicados y la discordancia, que es la superficie
-     donde cada voto aparece por separado. */
+     EROA y la FR del Vol-R— asi que de esos se leen los NUMEROS publicados, que es lo que el
+     medico ve, y el grado; aislar el voto de la FR es imposible sin aislar el de la EROA.
+     ⚠️ TRES COSAS QUE LA PRIMERA VERSION DE ESTA ESCENA HIZO MAL, y las tres daban «(revisar)» y
+     grado 0 en TODAS las filas, o sea una tabla de bordes que no probaba ningun borde:
+       · el factor de unidad estaba INVERTIDO (multiplicaba por 100 el que ya estaba en cm/s), asi
+         que el Valiasing pedido salia 1510 y caia fuera de su banda [5,150];
+       · el area de la AI se sembraba en 100 cm2, y su banda es [2,80]: el cociente jet/AI se
+         marcaba y no votaba;
+       · y por lo mismo la EROA daba 1900-4000 mm2, que arrastraba Vol-R y FR.
+     Ahora los insumos se calculan PARA CAER DENTRO DE BANDA y la escena lo comprueba leyendo la
+     marca: una fila con «(revisar)» es una fila que no mide el borde que dice medir. */
   if (hacer('CORT')) {
     const uni = await ev(`(function(){ var e = document.getElementById('im_vmax');
       return e ? (e.getAttribute('placeholder') || '') : '?' })()`);
-    const VM = /m\/s/.test(uni) && !/cm\/s/.test(uni) ? 5 : 500;
-    const K = /m\/s/.test(uni) && !/cm\/s/.test(uni) ? 1 : 100;   /* cm/s por unidad del campo */
-    const cort = { unidadLeida: uni, vc: {}, jet: {}, eroa: {}, volr: {}, fr: {} };
+    const esMS = /m\/s/.test(uni) && !/cm\/s/.test(uni);
+    /* El MISMO dato fisico en los dos lados del A/B: 5 m/s = 500 cm/s. */
+    const VM = esMS ? 5 : 500;
+    const VMCMS = esMS ? VM * 100 : VM;
+    const cort = { unidadLeida: uni, vmaxCampo: VM, vmaxEnCms: VMCMS, vc: {}, jet: {}, eroa: {}, volr: {}, fr: {} };
     for (const v of ['2.9', '3.0', '6.9', '7.0']) {
       await base();
       await ev(`(function(){ window.__P.sembrar({ vm_morf:'Reumática', im_vc:${JSON.stringify(v)} }); return 1 })()`);
       cort.vc[v] = await J(`window.__P.pisaFoto()`);
     }
-    /* Area AI 100 cm2, asi que el area del jet ES el porcentaje. */
-    for (const v of ['19.9', '20', '40', '40.1']) {
+    /* Area AI 50 cm2 (dentro de [2,80]): el area del jet que da el porcentaje buscado es pct/2. */
+    for (const pct of ['19.9', '20', '40', '40.1']) {
+      const jet = (parseFloat(pct) * 50 / 100).toFixed(3);
       await base();
-      await ev(`(function(){ window.__P.sembrar({ vm_morf:'Reumática', ai_area:'100', im_jet_area:${JSON.stringify(v)} }); return 1 })()`);
-      cort.jet[v] = await J(`window.__P.pisaFoto()`);
+      await ev(`(function(){ window.__P.sembrar({ vm_morf:'Reumática', ai_area:'50',
+        im_jet_area:${JSON.stringify(jet)} }); return 1 })()`);
+      cort.jet[pct] = { areaJet: jet, foto: await J(`window.__P.pisaFoto()`) };
     }
     /* EROA = 2*pi*(r/10)^2 * Valiasing / VmaxIM(cm/s) * 100. Con r = 10 mm el factor es
        628.3185 / Vmax(cm/s), asi que el Valiasing que aterriza en una EROA exacta es
-       EROA * Vmax(cm/s) / 628.3185. */
+       EROA * Vmax(cm/s) / 628.3185 — y con Vmax 500 cm/s cae en [5,150] para las cuatro. */
+    const valiasingPara = (e) => (e * VMCMS / 628.3185).toFixed(4);
     for (const e of [19, 20, 39, 40]) {
-      const val = (e * (VM * K) / 628.3185).toFixed(4);
       await base();
       await ev(`(function(){ window.__P.sembrar({ vm_morf:'Reumática', pisa_r:'10',
-        pisa_val:${JSON.stringify(val)}, im_vmax:${JSON.stringify(String(VM))} }); return 1 })()`);
-      cort.eroa[e] = { valiasing: val, foto: await J(`window.__P.pisaFoto()`) };
+        pisa_val:${JSON.stringify(valiasingPara(e))}, im_vmax:${JSON.stringify(String(VM))} }); return 1 })()`);
+      cort.eroa[e] = { valiasing: valiasingPara(e), foto: await J(`window.__P.pisaFoto()`) };
     }
-    /* Vol-R = EROA/100 * VTI del chorro. Con la EROA clavada en 40 mm2, el VTI que aterriza en un
-       Vol-R exacto es VolR / 0.40. */
+    /* Vol-R = EROA/100 * VTI del chorro. Con la EROA clavada en 40 mm2 el VTI que aterriza en un
+       Vol-R exacto es VolR / 0.40, y los cuatro caen en la banda [20,400] de `im_itv`. */
     for (const vr of [29, 30, 59, 60]) {
-      const val = (40 * (VM * K) / 628.3185).toFixed(4);
       const itv = (vr / 0.40).toFixed(2);
       await base();
       await ev(`(function(){ window.__P.sembrar({ vm_morf:'Reumática', pisa_r:'10',
-        pisa_val:${JSON.stringify(val)}, im_vmax:${JSON.stringify(String(VM))},
+        pisa_val:${JSON.stringify(valiasingPara(40))}, im_vmax:${JSON.stringify(String(VM))},
         im_itv:${JSON.stringify(itv)} }); return 1 })()`);
       cort.volr[vr] = { itv: itv, foto: await J(`window.__P.pisaFoto()`) };
     }
-    /* FR = Vol-R / Vol sistolico del TSVI. Se barre el O TSVI para mover el denominador y se
-       leen los numeros publicados: la FR no se puede aislar de la EROA por la formula. */
-    for (const d of [20, 22, 24, 26]) {
-      const val = (40 * (VM * K) / 628.3185).toFixed(4);
+    /* FR = Vol-R / (Vol-R + Vol sistolico del TSVI) * 100, asi que con el Vol-R clavado en 60 ml
+       el volumen sistolico que aterriza en una FR exacta es 60*(100-FR)/FR, y el O del TSVI que
+       lo da —con VTI TSVI 22 cm— es 20*raiz(vsv/(22*pi)), dentro de la banda [5,45]. */
+    for (const fr of [29, 30, 49, 50]) {
+      const vsv = 60 * (100 - fr) / fr;
+      const d = (20 * Math.sqrt(vsv / (22 * Math.PI))).toFixed(2);
       await base();
       await ev(`(function(){ window.__P.sembrar({ vm_morf:'Reumática', pisa_r:'10',
-        pisa_val:${JSON.stringify(val)}, im_vmax:${JSON.stringify(String(VM))},
-        im_itv:'150', im_dtsvi:${JSON.stringify(String(d))}, im_itv_tsvi:'22' }); return 1 })()`);
-      cort.fr[d] = await J(`window.__P.pisaFoto()`);
+        pisa_val:${JSON.stringify(valiasingPara(40))}, im_vmax:${JSON.stringify(String(VM))},
+        im_itv:'150', im_dtsvi:${JSON.stringify(d)}, im_itv_tsvi:'22' }); return 1 })()`);
+      cort.fr[fr] = { dtsvi: d, vsvPedido: vsv.toFixed(1), foto: await J(`window.__P.pisaFoto()`) };
     }
     out.CORT = cort;
   }

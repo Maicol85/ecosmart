@@ -34626,7 +34626,9 @@ caso('TC-299', 'Selector de EROA/Vol-R: PISA es el default y siempre sale, la co
          caso ejercita el cableado. Llamando calcContIM y calcIM_ESC a mano, un selector sin
          disparador pasa en verde — que es como el hueco de la mitad PISA se colo. */
       [['diam_tsvi','21'],['itv_tsvi','18'],['diam_mit','30'],['itv_mitral','15'],
-       ['pisa_r','10'],['pisa_val','40'],['im_vmax','500'],['im_itv','130'],['im_vc','7']]
+       /* ADAPTADO 2026-10-09: la Vmax IM paso de cm/s a m/s. 5 m/s son los 500 cm/s de antes:
+          mismo paciente, otra unidad. Ninguna asercion cambia. */
+       ['pisa_r','10'],['pisa_val','40'],['im_vmax','5'],['im_itv','130'],['im_vc','7']]
         .forEach(function (kv) { __t.set(kv[0], kv[1]); });
     };
     const guardar = () => new Promise(r => { window._ettEditandoId = null;
@@ -34725,7 +34727,8 @@ caso('TC-299', 'Selector de EROA/Vol-R: PISA es el default y siempre sale, la co
     // ── 10. La mitad PISA del selector tiene su propio disparador ──────────────────────
     __t.limpiar();
     try { toggleValvPill('mitral','insuf'); } catch (e) {}
-    ['pisa_r','pisa_val','im_vmax'].forEach(function (k, i) { __t.set(k, ['10','40','500'][i]); });
+    /* ADAPTADO 2026-10-09: 5 m/s = los 500 cm/s de antes (la Vmax IM cambio de unidad). */
+    ['pisa_r','pisa_val','im_vmax'].forEach(function (k, i) { __t.set(k, ['10','40','5'][i]); });
     const spanPisaSoloPisa = gv('im-pdf-pisa-val');
 
     // ── 11. Borrar el radio PISA limpia la fila: no queda un numero pegado que el PDF firme ─
@@ -36592,9 +36595,14 @@ caso('TC-296', 'Insuficiencia mitral: las tres casillas «auto» espejan, SIGUEN
       /* El oculto es input[type=hidden]: el barrido de limpiarCampos toma text y number, asi que
          hay que vaciarlo A MANO. Sin eso la declaracion del paciente anterior sobrevive. */
       ['el oculto se vacia en «Nuevo estudio»', ocultoTrasLimpiar === '', '«' + ocultoTrasLimpiar + '»'],
-      ['el area declara su origen REAL y no «Doppler»',
+      /* ADAPTADO 2026-10-09: el marcador del rotulo paso de «auto ← AI/VI» a «↔ AI/VI». El
+         «auto ←» era FALSO desde el 2026-10-08 —el campo dejo de ser un espejo y paso a ser una
+         PUERTA del mismo dato, asi que lo que se tipea aca LLEGA a AI/VI— y quedaba reportado
+         porque esa tanda prohibia cambiar rotulos. Lo que el caso prueba no cambia: que el rotulo
+         nombra AI/VI, que es el origen REAL, y NO «Doppler». */
+      ['el area declara su origen REAL (AI/VI) y no «Doppler»',
         (function(){ const l = g('im_ai_area') && g('im_ai_area').closest('.fg');
-          const t = l ? l.textContent : ''; return t.indexOf('auto ← AI/VI') > -1 && t.indexOf('Doppler') === -1; })(),
+          const t = l ? l.textContent : ''; return t.indexOf('AI/VI') > -1 && t.indexOf('Doppler') === -1; })(),
         (function(){ const l = g('im_ai_area') && g('im_ai_area').closest('.fg'); return l ? l.textContent.trim() : '(sin .fg)'; })()],
       /* ⚠️ Esta condicion media los tres ids LITERALES dentro de _pdfDeInformeGuardadoArmar, y eso
          era medir la implementacion: la lista a mano _MARCAS_DERIV se quedo corta en cuanto los
@@ -36663,7 +36671,8 @@ caso('TC-297', 'El VTI mitral DE ENTRADA vive en Doppler, vtim es su espejo, la 
        origen puede romper sin que se note. */
     const sembrar = o => { __t.limpiar(); abrir();
       const base = { peso:80, talla:180, diam_tsvi:21, itv_tsvi:18, diam_mit:30, vtim:15,
-                     pisa_r:10, pisa_val:40, im_vmax:500, im_itv:130 };
+                     /* ADAPTADO 2026-10-09: la Vmax IM paso de cm/s a m/s; 5 = los 500 de antes. */
+                     pisa_r:10, pisa_val:40, im_vmax:5, im_itv:130 };
       Object.keys(base).forEach(k => __t.set(k, String(base[k])));
       Object.keys(o || {}).forEach(k => __t.set(k, String(o[k]))); };
 
@@ -36891,9 +36900,14 @@ caso('TC-297', 'El VTI mitral DE ENTRADA vive en Doppler, vtim es su espejo, la 
         /Sin regurgitaci/.test(ceroExacto) && ceroExacto.indexOf('-0.0') < 0, ceroExacto],
       ['un Vol-R positivo por debajo de la tolerancia no publica una EROA de 0.0',
         /Sin regurgitaci/.test(ceroPositivo) && ceroPositivo.indexOf('eroa=') === ceroPositivo.length - 5, ceroPositivo],
+      /* ADAPTADO 2026-10-09: el marcador paso de «auto ← Doppler Mitral» a «↔ Doppler mitral»,
+         con la M minuscula. La asercion de «Doppler Mitral» con M mayuscula era la unica que caia;
+         se pregunta sin distinguir mayusculas para que el caso siga probando lo que le importa —que
+         el rotulo nombra el Doppler mitral, dice «de entrada» y «pulsado», y NO dice «CW» ni
+         «compartido con PISA»— sin quedar amarrado a la capitalizacion del marcador. */
       ['el rotulo de vtim ya no dice CW ni «compartido con PISA»',
         /de entrada/.test(lblVtim) && /pulsado/.test(lblVtim) && !/CW/.test(lblVtim) &&
-        !/compartido con PISA/.test(lblVtim) && /Doppler Mitral/.test(lblVtim), lblVtim],
+        !/compartido con PISA/.test(lblVtim) && /Doppler mitral/i.test(lblVtim), lblVtim],
       ['el rotulo de la ecuacion anuncia las tres formulas que el codigo implementa',
         /EROA = Vol-R/.test(lblEc) && /VTI del chorro/.test(lblEc) && /VTI de entrada/.test(lblEc) &&
         !/VTI\\s*TSVI\\s*×\\s*Área\\s*TSVI/.test(lblEc), lblEc],
@@ -36955,7 +36969,8 @@ caso('TC-298', 'La fila de Onda E revive con el corte VERIFICADO, publica el sig
        Vacio por no sembrarlo: im_jet_area, ai_area, im_onda_s. */
     const sembrar = o => { __t.limpiar(); abrir();
       const base = { peso:80, talla:180, diam_tsvi:21, itv_tsvi:18, diam_mit:30, vtim:15,
-                     pisa_r:10, pisa_val:40, im_vmax:500, im_itv:130 };
+                     /* ADAPTADO 2026-10-09: la Vmax IM paso de cm/s a m/s; 5 = los 500 de antes. */
+                     pisa_r:10, pisa_val:40, im_vmax:5, im_itv:130 };
       Object.keys(base).forEach(k => __t.set(k, String(base[k])));
       Object.keys(o || {}).forEach(k => __t.set(k, String(o[k]))); };
 
@@ -37913,7 +37928,8 @@ caso('TC-311', 'IM nativa: las TRES rutas de restauracion del PDF imprimen la MI
       try { toggleValvPill('mitral','insuf'); } catch (e) {}
       const base = [['diam_tsvi','21'],['itv_tsvi','18'],['diam_mit','30'],['itv_mitral','15'],
                     ['im_itv','130'],['im_vc','7']];
-      const pisa = [['pisa_r','10'],['pisa_val','40'],['im_vmax','500']];
+      /* ADAPTADO 2026-10-09: 5 m/s = los 500 cm/s de antes (cambio de unidad de la Vmax IM). */
+      const pisa = [['pisa_r','10'],['pisa_val','40'],['im_vmax','5']];
       (conPisa ? base.concat(pisa) : base).forEach(kv => __t.set(kv[0], kv[1]));
       /* La casilla de continuidad NO se auto-marca (auto:false): la tilda el medico. Sin este
          paso la fila sale solo con PISA y el escenario del pedido no se reproduce. */
@@ -38324,7 +38340,8 @@ caso('TC-312', 'El panel «Incluir en el informe» de IM no arrastra el PISA de 
       try { toggleValvPill('mitral','insuf'); } catch (e) {}
       const base = [['diam_tsvi','21'],['itv_tsvi','18'],['diam_mit','30'],['itv_mitral','15'],
                     ['im_itv','130'],['im_vc','7']];
-      const pisa = [['pisa_r','10'],['pisa_val','40'],['im_vmax','500']];
+      /* ADAPTADO 2026-10-09: 5 m/s = los 500 cm/s de antes (cambio de unidad de la Vmax IM). */
+      const pisa = [['pisa_r','10'],['pisa_val','40'],['im_vmax','5']];
       (conPisa ? base.concat(pisa) : base).forEach(kv => __t.set(kv[0], kv[1]));
     };
     const guardar = async () => { __t.informe(); const gd = await __t.guardar();
@@ -41631,13 +41648,19 @@ caso('TC-320', 'IM: un votante fuera de banda no gradua, se muestra marcado y se
     try { calcIM_ESC(); } catch (e) {}
     R.aiGrado = grado(); R.aiSpan = sp('im-jet-ratio'); R.aiAviso = aviso();
 
-    // 3 - DENOMINADOR del PISA + Vmax IM tipeada en m/s (5 en vez de 500).
+    /* 3 - DENOMINADOR del PISA + Vmax IM tipeada en cm/s (500 en vez de 5).
+       ⚠️ ADAPTADO 2026-10-09, Y ESTE CASO SE DA VUELTA. La Vmax IM paso de cm/s a m/s, asi que el
+       error de unidad cambio de lado: antes el dedazo era tipear 5 (m/s) en una casilla de cm/s,
+       y ahora es tipear 500 (cm/s) en una casilla de m/s. La banda se movio con el campo
+       —[100,900] cm/s son los MISMOS [1,9] m/s— asi que el caso sigue probando exactamente lo
+       mismo: que el valor plausible gradua y el de la otra unidad no. Lo que se intercambia son
+       los dos numeros y los dos rotulos. */
     base();
-    __t.set('pisa_r','10'); __t.set('pisa_val','40'); __t.set('im_vmax','500');
+    __t.set('pisa_r','10'); __t.set('pisa_val','40'); __t.set('im_vmax','5');
     try { calcIM_ESC(); } catch (e) {}
     R.okEroaGrado = grado(); R.okEroaSpan = sp('eroa-val');
     base();
-    __t.set('pisa_r','10'); __t.set('pisa_val','40'); __t.set('im_vmax','5');
+    __t.set('pisa_r','10'); __t.set('pisa_val','40'); __t.set('im_vmax','500');
     try { calcIM_ESC(); } catch (e) {}
     R.vmaxGrado = grado(); R.vmaxSpan = sp('eroa-val'); R.vmaxAviso = aviso();
 
@@ -41646,7 +41669,7 @@ caso('TC-320', 'IM: un votante fuera de banda no gradua, se muestra marcado y se
        que es la asimetria que este cambio cierra. No se define un rango nuevo: se consulta el
        mismo _labRango. */
     base();
-    __t.set('pisa_r','10'); __t.set('pisa_val','40'); __t.set('im_vmax','500'); __t.set('im_itv','100');
+    __t.set('pisa_r','10'); __t.set('pisa_val','40'); __t.set('im_vmax','5'); __t.set('im_itv','100');
     /* calcContIM lee vtim -el ESPEJO-, no itv_mitral: sin el, sale por su guarda de insumos
        incompletos y el placeholder es el generico, o sea el caso mide otra rama. */
     __t.set('itv_mitral','20'); __t.set('vtim','20'); __t.set('diam_mit','30');
@@ -41654,7 +41677,7 @@ caso('TC-320', 'IM: un votante fuera de banda no gradua, se muestra marcado y se
     try { calcIM_ESC(); } catch (e) {} try { calcContIM(); } catch (e) {}
     R.okItvGrado = grado(); R.okItvVolR = sp('volr-val');
     base();
-    __t.set('pisa_r','10'); __t.set('pisa_val','40'); __t.set('im_vmax','500'); __t.set('im_itv','5');
+    __t.set('pisa_r','10'); __t.set('pisa_val','40'); __t.set('im_vmax','5'); __t.set('im_itv','5');
     __t.set('itv_mitral','20'); __t.set('vtim','20'); __t.set('diam_mit','30');
     __t.set('diam_tsvi','20'); __t.set('itv_tsvi','20');
     try { calcIM_ESC(); } catch (e) {} try { calcContIM(); } catch (e) {}
@@ -41671,7 +41694,7 @@ caso('TC-320', 'IM: un votante fuera de banda no gradua, se muestra marcado y se
     /* 5 - El diametro del TSVI tipeado en cm. NO estaba en la lista de siete del pedido y entra
        igual: es insumo del VS TSVI, o sea del denominador de la FR, que VOTA. */
     base();
-    __t.set('pisa_r','10'); __t.set('pisa_val','40'); __t.set('im_vmax','500'); __t.set('im_itv','100');
+    __t.set('pisa_r','10'); __t.set('pisa_val','40'); __t.set('im_vmax','5'); __t.set('im_itv','100');
     __t.set('diam_tsvi','2'); __t.set('itv_tsvi','20');
     try { calcIM_ESC(); } catch (e) {}
     R.tsviVsv = sp('vsvtsvi-val'); R.tsviFr = sp('freg-val'); R.tsviAviso = aviso();
@@ -41681,7 +41704,9 @@ caso('TC-320', 'IM: un votante fuera de banda no gradua, se muestra marcado y se
     /* im_vc se saca de banda por ARRIBA (70 mm): el piso es 0 a proposito -ver 8b- asi que ya no
        hay forma de dejarlo fuera por abajo, y un 0,1 vota leve. */
     __t.set('im_vc','70'); __t.set('im_jet_area','600'); __t.set('im_ai_area','100');
-    __t.set('pisa_r','0.5'); __t.set('pisa_val','1'); __t.set('im_vmax','5'); __t.set('im_itv','5');
+    /* ADAPTADO 2026-10-09: el valor fuera de banda de la Vmax IM es ahora 500 (cm/s en una
+       casilla de m/s) y no 5, que paso a ser el valor CORRECTO. */
+    __t.set('pisa_r','0.5'); __t.set('pisa_val','1'); __t.set('im_vmax','500'); __t.set('im_itv','5');
     __t.set('diam_tsvi','2'); __t.set('itv_tsvi','0.5');
     try { calcIM_ESC(); } catch (e) {}
     R.todosGrado = grado(); R.todosAviso = aviso();
@@ -41689,7 +41714,7 @@ caso('TC-320', 'IM: un votante fuera de banda no gradua, se muestra marcado y se
     // 7 - Y con TODO plausible no aparece ninguna marca ni ningun aviso.
     base();
     __t.set('im_vc','8'); __t.set('im_jet_area','12'); __t.set('im_ai_area','20');
-    __t.set('pisa_r','10'); __t.set('pisa_val','40'); __t.set('im_vmax','500'); __t.set('im_itv','100');
+    __t.set('pisa_r','10'); __t.set('pisa_val','40'); __t.set('im_vmax','5'); __t.set('im_itv','100');
     __t.set('diam_tsvi','20'); __t.set('itv_tsvi','20');
     try { calcIM_ESC(); } catch (e) {}
     R.limpioGrado = grado();
@@ -41752,9 +41777,9 @@ caso('TC-320', 'IM: un votante fuera de banda no gradua, se muestra marcado y se
         R.aiGrado !== '1' && R.aiSpan.indexOf(M) > 0, 'grado=' + R.aiGrado + ' span=' + R.aiSpan],
       ['y el aviso nombra el area de AI, no el jet',
         R.aiAviso.indexOf('AI 200') > 0 && R.aiAviso.indexOf('jet') < 0, R.aiAviso],
-      ['DENOMINADOR: con Vmax 500 cm/s la EROA vota severa',
+      ['DENOMINADOR: con Vmax 5 m/s la EROA vota severa',
         R.okEroaGrado === '4' && R.okEroaSpan.indexOf(M) < 0, 'grado=' + R.okEroaGrado + ' eroa=' + R.okEroaSpan],
-      ['la Vmax tipeada en m/s no gradua y la EROA queda marcada',
+      ['la Vmax tipeada en cm/s no gradua y la EROA queda marcada',
         R.vmaxGrado !== '4' && R.vmaxSpan.indexOf(M) > 0, 'grado=' + R.vmaxGrado + ' eroa=' + R.vmaxSpan],
       ['DENOMINADOR: con VTI del jet 100 cm el Vol-R vota',
         R.okItvGrado !== '0' && R.okItvVolR.indexOf(M) < 0, 'grado=' + R.okItvGrado + ' volR=' + R.okItvVolR],
@@ -42695,7 +42720,8 @@ caso('TC-336', 'IM secundaria: el calc-box avisa que gradua con cortes de PRIMAR
       try { toggleValvPill('mitral','insuf'); } catch (e) {}
       __t.set('vm_morf','Normal');
       [['diam_tsvi','21'],['itv_tsvi','18'],['im_vc','8'],['pisa_r','10'],['pisa_val','40'],
-       ['im_vmax','500'],['im_itv','130']].forEach(kv => __t.set(kv[0], kv[1]));
+       /* ADAPTADO 2026-10-09: 5 m/s = los 500 cm/s de antes (la Vmax IM cambio de unidad). */
+       ['im_vmax','5'],['im_itv','130']].forEach(kv => __t.set(kv[0], kv[1]));
       try { calcIM_ESC(); } catch (e) {}
     };
 

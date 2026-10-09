@@ -1317,6 +1317,23 @@
   @media (max-width: 768px) {
     .valv-cols-3 { grid-template-columns: 1fr; }
   }
+  /* ══ LAS CUATRO COLUMNAS DE LA INSUFICIENCIA MITRAL (2026-10-09) ═════════════════════════
+     Hermana de `.valv-cols-3` y de `.ao-cols-5`, con el mismo argumento: cada columna es un
+     contenedor propio para que el orden del DOM SEA el del Tab.
+     `minmax(0,1fr)` y no `1fr`: sin el mínimo en 0 un rótulo largo —«FR — Fracción regurg. (%)
+     (auto)» y «VTI mitral de entrada — pulsado (cm)» son los peores— empuja su columna y
+     desborda la tarjeta.
+     Las dos caídas van POR ANCHO MÍNIMO (`auto-fit`) y no por un breakpoint nuevo, para no dejar
+     un número que haya que mantener sincronizado con `check_mobile.js`. El mínimo es 118 px y no
+     los 104 de `.valv-cols-3` porque acá son CUATRO pistas y no tres. A 768 px se apila a una
+     sola, y como el DOM ya está en orden col 1 → col 4, apilado queda en ese orden. */
+  .valv-cols-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-items: start; }
+  @media (max-width: 1100px) {
+    .valv-cols-4 { grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); }
+  }
+  @media (max-width: 768px) {
+    .valv-cols-4 { grid-template-columns: 1fr; }
+  }
   /* ══ LAS CINCO COLUMNAS DEL DOPPLER AÓRTICO (2026-10-06) ══════════════════════════════════
      Mismo argumento que `.valv-cols-3`, que es el precedente de este archivo: cada columna es un
      contenedor PROPIO y no una fila de grilla, porque el pedido es que el orden del DOM SEA el del
@@ -4379,11 +4396,25 @@ window.cerrarSesionReal = cerrarSesionReal;
       <div id="bloque-insuf-mitral" style="display:none;">
       <div class="divider"></div>
       <div style="font-size:11px;font-weight:700;color:var(--accent2);margin:6px 0 8px;">🔴 Insuficiencia Mitral — Cuantificación</div>
-      <div class="grid-4">
-        <div class="fg"><label>Vena contracta (mm)</label><input type="number" id="im_vc" placeholder="mm" oninput="calcIM_ESC()"></div>
-        <div class="fg"><label>Área jet IM (cm²)</label><input type="number" id="im_jet_area" placeholder="cm²" oninput="calcIM_ESC()"></div>
-        <div class="fg"><label>Área AI (cm²) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← AI/VI</span></label><!-- ⚠️ EL RÓTULO «auto ← AI/VI» QUEDÓ FALSO Y NO SE TOCA (2026-10-08): el pedido prohíbe cambiar rótulos, así que queda REPORTADO. Es una PUERTA del área de la AI, no un espejo — lo que se tipea acá llega a AI/VI. `calcIM_ESC()` no se perdió: lo lleva `aiAreaEditado`, que además repinta la interpretación de la AI, que antes no se refrescaba al tipear acá. --><input type="number" id="im_ai_area" placeholder="cm²" oninput="aiAreaEditado('im_ai_area')"></div>
-        <div class="fg"><label>Radio PISA (mm)</label><input type="number" id="pisa_r" placeholder="mm" oninput="calcIM_ESC()"></div>
+        <!-- ══ LAS CUATRO COLUMNAS DE LA INSUFICIENCIA MITRAL (2026-10-09) ══════════════════
+             Distribución aprobada por Maicol. Mismo criterio que el commit A y que las dos
+             lesiones aórticas: cada columna es un contenedor PROPIO —`.valv-cols-4`, hermana de
+             `.valv-cols-3` y de `.ao-cols-5`— y no una fila de `grid-4`, porque con filas el Tab
+             cruza de izquierda a derecha y después baja, y con columnas baja por la columna y
+             pasa a la siguiente. No hay un solo `tabindex` en el bloque, así que el orden del DOM
+             ES el orden de tabulación.
+               col 1 — los que se miden sobre el chorro y la aurícula;
+               col 2 — los cuatro insumos de PISA, juntos;
+               col 3 — los cuatro insumos de la continuidad, con los tres que viven en DOS
+                       lugares rotulados con «↔»;
+               col 4 — los cuatro resultados automáticos.
+             ⚠️ ESTO UNE DOS GRILLAS QUE ESTABAN SEPARADAS por el cuadro de referencias y por el
+             encabezado de la ecuación de continuidad: los insumos de PISA vivían arriba y los de
+             la continuidad abajo. Ningún campo cambia de id, de tipo ni de cuenta, y los
+             comentarios de cada uno se mudaron CON su campo.
+             ⚠️ LOS DOS `input[type=hidden]` SALEN DE LAS COLUMNAS y van arriba: no tienen
+             geometría, así que dentro de una columna no se ven pero sí ocupan un nodo en el
+             orden. Sus dos comentarios se conservan enteros. -->
         <!-- ⚠️ CUÁLES DE LAS TRES CASILLAS SON ESPEJO, PERSISTIDO. `dataset` no sobrevive al
              guardado, así que sin esto un espejo vuelve del estudio SIN marca, `_syncDerivado` no
              puede probar que es suyo y lo respeta como manual: el valor queda CONGELADO y —esto es
@@ -4415,24 +4446,111 @@ window.cerrarSesionReal = cerrarSesionReal;
              cuente como dato de sección, y vaciado A MANO en `limpiarCampos` porque el barrido
              toma text y number y no lo alcanza. -->
         <input type="hidden" id="im_pisa" data-espejo>
-        <div class="fg"><label>Valiasing PISA (cm/s)</label><input type="number" id="pisa_val" placeholder="cm/s" oninput="calcIM_ESC()"></div>
-        <div class="fg"><label>Vmax IM (cm/s)</label><input type="number" id="im_vmax" placeholder="cm/s" oninput="calcIM_ESC()"></div>
-        <!-- ⚠️ LLAMA A LAS DOS, y el `calcContIM` es de esta ronda. `im_itv` era insumo de un solo
-             calculo —el Vol-R de PISA— y desde que la EROA por continuidad lo lee tambien es insumo
-             de dos. Medido sin esto: en el escenario base la EROA por continuidad quedaba con el
-             placeholder «requiere VTI del jet» CON los 130 cargados, y aparecia recien al tocar
-             cualquier otro campo del bloque. Es el mismo defecto que ya pago la fila de FR con
-             `im_dtsvi`/`im_itv_tsvi`: un consumidor nuevo sin su disparador. -->
-        <div class="fg"><label>VTI IM (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">del chorro, CW</span></label><input type="number" id="im_itv" placeholder="cm" oninput="calcContIM();calcIM_ESC()"></div>
-        <div class="fg"><label>Onda S pulmonar</label>
-          <select id="im_onda_s" onchange="calcIM_ESC()">
-            <option value="">—</option>
-            <option value="positiva">Positiva (normal)</option>
-            <option value="embotada">Embotada</option>
-            <option value="invertida">Invertida (severa)</option>
-          </select>
+
+        <div class="valv-cols-4">
+          <div>
+            <div class="fg"><label>Vena contracta (mm)</label><input type="number" id="im_vc" placeholder="mm" oninput="calcIM_ESC()"></div>
+            <div class="fg"><label>Área jet IM (cm²)</label><input type="number" id="im_jet_area" placeholder="cm²" oninput="calcIM_ESC()"></div>
+            <div class="fg"><label>Área AI (cm²) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; AI/VI</span></label><!-- El rótulo decía «auto ← AI/VI» y era FALSO desde el 2026-10-08: el campo no sigue a AI/VI, es una PUERTA del área de la AI y lo que se tipea acá LLEGA a AI/VI. Aquella tanda lo dejó REPORTADO porque prohibía cambiar rótulos; esta lo corrige a «↔ AI/VI». `calcIM_ESC()` no se perdió: lo lleva `aiAreaEditado`, que además repinta la interpretación de la AI. --><input type="number" id="im_ai_area" placeholder="cm²" oninput="aiAreaEditado('im_ai_area')"></div>
+            <div class="fg"><label>Onda S pulmonar</label>
+              <select id="im_onda_s" onchange="calcIM_ESC()">
+                <option value="">—</option>
+                <option value="positiva">Positiva (normal)</option>
+                <option value="embotada">Embotada</option>
+                <option value="invertida">Invertida (severa)</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <div class="fg"><label>Radio PISA (mm)</label><input type="number" id="pisa_r" placeholder="mm" oninput="calcIM_ESC()"></div>
+            <div class="fg"><label>Valiasing PISA (cm/s)</label><input type="number" id="pisa_val" placeholder="cm/s" oninput="calcIM_ESC()"></div>
+            <div class="fg">
+              <!-- ⚠️ LA Vmax IM PASÓ DE cm/s A m/s (2026-10-09) — DECISIÓN DE MAICOL. Mismo cambio y
+                   mismo patrón que `ia_vmax_cw` el 2026-10-07 y que `it_vmax_cw` el 2026-10-05.
+                   Es DIVISOR del EROA por PISA, y el cociente `pisaVal / vmaxIM` exige que los dos
+                   estén en la MISMA unidad, así que la conversión va DENTRO de la cuenta
+                   (`vmaxIM * CMS_POR_MS`) y NUNCA en el campo: el campo guarda lo que el médico ve.
+                   Están convertidos los DOS lugares que hacen esa división —`calcIM_ESC` para la
+                   pantalla y el exportador de Excel para las columnas «EROA IM (mm²)» y
+                   «Vol R IM (ml)»—, así que con el MISMO dato físico los números no se mueven.
+                   ⚠️ `step="0.1"` ENTRA CON LA UNIDAD, igual que en `ia_vmax_cw`, `it_vmax_cw` y
+                   `vmax_it`: con el `step` por omisión (1) el navegador marca 5,2 m/s como valor
+                   inválido y las flechas del spinner mueven de 1 en 1 m/s, que sobre una banda de
+                   1 a 9 es inusable.
+                   ⚠️ EL `Valiasing PISA` DE AL LADO SIGUE EN cm/s: es Doppler COLOR, no es esta
+                   medición, y su banda [5,150] no se toca. -->
+              <label>Vmax IM (m/s)</label>
+              <input type="number" id="im_vmax" placeholder="m/s" step="0.1" oninput="calcIM_ESC()">
+            </div>
+            <!-- ⚠️ LLAMA A LAS DOS, y el `calcContIM` es de esta ronda. `im_itv` era insumo de un solo
+                 calculo —el Vol-R de PISA— y desde que la EROA por continuidad lo lee tambien es insumo
+                 de dos. Medido sin esto: en el escenario base la EROA por continuidad quedaba con el
+                 placeholder «requiere VTI del jet» CON los 130 cargados, y aparecia recien al tocar
+                 cualquier otro campo del bloque. Es el mismo defecto que ya pago la fila de FR con
+                 `im_dtsvi`/`im_itv_tsvi`: un consumidor nuevo sin su disparador. -->
+            <div class="fg"><label>VTI IM (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">del chorro, CW</span></label><input type="number" id="im_itv" placeholder="cm" oninput="calcContIM();calcIM_ESC()"></div>
+          </div>
+          <div>
+            <div class="fg">
+              <label>Ø anillo mitral (mm)</label>
+              <input type="number" id="diam_mit" placeholder="mm" oninput="calcContIM()">
+            </div>
+            <div class="fg">
+              <!-- El rótulo decía «auto ← Doppler Mitral» y era FALSO desde el 2026-10-08. Hoy dice
+                   «↔ Doppler mitral». Es una PUERTA del VTI mitral de entrada, no un espejo: lo que
+                   se tipea acá llega al Doppler Mitral, que es la casilla que exportan DICOM y FHIR.
+                   Las dos cuentas no se perdieron: las lleva `vtiMitralEditado`, sin el gate de la
+                   pastilla. -->
+              <label>VTI mitral de entrada — pulsado (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; Doppler mitral</span></label>
+              <input type="number" id="vtim" placeholder="cm" oninput="vtiMitralEditado('vtim')">
+            </div>
+            <div class="fg">
+              <!-- MISMO CASO QUE `em_dtsvi`: el rótulo decía «auto ← Doppler» y era falso desde el
+                   2026-10-08. El campo es una PUERTA del Ø TSVI, no un espejo. Hoy dice «↔ AI/VI», que es
+                   donde vive el portador (`diam_tsvi`), igual que el rótulo de la aórtica y el del bloque
+                   de estenosis. `calcContIM()` y `calcIM_ESC()` los lleva `tsviDiamEditado`. -->
+              <label>Diám. TSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; AI/VI</span></label>
+              <input type="number" id="im_dtsvi" placeholder="mm" oninput="tsviDiamEditado('im_dtsvi')">
+              <div id="im-tsvi-estimado-box" style="font-size:10px;color:var(--accent2);margin-top:3px;min-height:14px;"></div>
+            </div>
+            <div class="fg">
+              <label>VTI TSVI (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">&harr; Doppler</span></label>
+              <!-- Mismo caso: el rótulo quedó falso el 2026-10-08 y hoy dice «↔ Doppler». Es una
+                   PUERTA del VTI del TSVI. `calcContIM()` y `calcIM_ESC()` los lleva
+                   `vtiTsviCoordinar`, sin el gate de la pastilla. -->
+              <input type="number" id="im_itv_tsvi" placeholder="cm" oninput="vtiTsviEditado('im_itv_tsvi')">
+            </div>
+          </div>
+          <div>
+            <div class="fg">
+              <!-- ⚠️ LA RELACIÓN ENTRE LOS DOS CORTES ES ARITMÉTICA, NO UNA CITA, y por eso el texto no
+                   lleva corchete ni guía: `EROA = Vol-R ÷ VTI del chorro`, así que los dos umbrales de
+                   severidad —EROA ≥ 40 mm² y Vol-R ≥ 60 ml— describen al MISMO paciente sólo cuando el
+                   VTI del chorro vale 150 cm (60 ÷ 0,40). Con 100 cm un Vol-R justo en el corte da una
+                   EROA de 60 mm², o sea severa con holgura; con 200 cm da 30 mm², o sea por debajo del
+                   corte con el Vol-R ya severo. Publicar los dos números sin ese reparo invita a leer
+                   una discordancia donde lo que hay es la fórmula.
+                   ⚠️ Y LA SEGUNDA MITAD DE LA FRASE ESTÁ VERIFICADA, no supuesta: esta EROA NO vota el
+                   grado. El único EROA que entra a `scores`/`params` en `calcIM_ESC` es el de PISA
+                   (`eroa-val`, 2πr²·Vali/Vmax); `im_eroa_cont` tiene tres lectores y los tres son del
+                   PDF —el mapa `_PDF_METODOS`, `_imMetodoPdfVal` y el gate de la casilla—. -->
+              <label title="EROA = Vol-R ÷ VTI del chorro de IM por CW. Los dos cortes de severidad de la guía —EROA ≥ 40 mm² y Vol-R ≥ 60 ml— sólo coinciden con un VTI de chorro de 150 cm, porque 60 ÷ 0,40 = 150. Con un VTI menor la EROA sale inflada respecto del Vol-R y con uno mayor sale reducida: es aritmética de la fórmula, no una discrepancia entre guías. Esta EROA NO vota. El grado integrado de IM sale de la vena contracta, el jet sobre área auricular, el EROA por PISA con sus derivados y la onda S pulmonar; el Vol-R y la fracción regurgitante por continuidad gradúan sólo la cápsula «Severidad (continuidad)» de este mismo cuadro, que tampoco vota. Ver «Referencia clínica» en la ayuda.">EROA continuidad (mm²) (auto) <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></label>
+              <input type="text" id="im_eroa_cont" readonly style="font-weight:700;">
+            </div>
+            <div class="fg">
+              <label>Vol-R (ml) (auto)</label>
+              <input type="text" id="vr_cont" readonly>
+            </div>
+            <div class="fg">
+              <label>FR — Fracción regurg. (%) (auto)</label>
+              <input type="text" id="im_fr_cont" readonly>
+            </div>
+            <div class="fg">
+              <label>Vol mitral / latido (ml) (auto)</label>
+              <input type="text" id="vm_lat" readonly>
+            </div>
+          </div>
         </div>
-      </div>
       <div class="calc-box" style="margin-top:10px;">
         <!-- El ⓘ y el `title` publican los DOS regímenes, igual que la fila del cociente VTI: hasta
              hoy esta fila no declaraba su corte en NINGUNA superficie —ni acá, ni en la tarjeta de
@@ -4528,68 +4646,6 @@ window.cerrarSesionReal = cerrarSesionReal;
            quitado a proposito (ver el comentario de calcContIM) y el rotulo se quedo pidiendo un
            numero que la app decidio no dar. Hoy dice las tres formulas que se implementan. -->
       <div style="font-size:10px;color:var(--text2);margin-bottom:6px;">EROA = Vol-R ÷ VTI del chorro (CW) &nbsp;·&nbsp; Vol-R = SV mitral (Área<sub>anillo</sub> × VTI de entrada) − SV<sub>TSVI</sub> &nbsp;·&nbsp; FR = Vol-R ÷ SV mitral</div>
-      <!-- Fila 1: entradas -->
-      <div class="grid-4" style="margin-bottom:4px;">
-        <div class="fg">
-          <!-- ⚠️ MISMO CASO QUE `em_dtsvi`: el rótulo «auto ← Doppler» quedó falso el 2026-10-08
-               y NO se toca por pedido — queda REPORTADO. Es una PUERTA del Ø TSVI, no un espejo.
-               `calcContIM()` y `calcIM_ESC()` no se perdieron: `tsviDiamEditado` los lleva en su
-               lista única, igualada al conjunto mayor de las cinco puertas. -->
-          <label>Diám. TSVI (mm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Doppler</span></label>
-          <input type="number" id="im_dtsvi" placeholder="mm" oninput="tsviDiamEditado('im_dtsvi')">
-          <div id="im-tsvi-estimado-box" style="font-size:10px;color:var(--accent2);margin-top:3px;min-height:14px;"></div>
-        </div>
-        <div class="fg">
-          <label>VTI TSVI (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto ← Doppler</span></label>
-          <!-- ⚠️ Mismo caso: el rótulo quedó falso el 2026-10-08 y NO se toca — REPORTADO. Es una
-               PUERTA del VTI del TSVI. `calcContIM()` y `calcIM_ESC()` los lleva
-               `vtiTsviCoordinar`, sin el gate de la pastilla. -->
-          <input type="number" id="im_itv_tsvi" placeholder="cm" oninput="vtiTsviEditado('im_itv_tsvi')">
-        </div>
-        <div class="fg">
-          <!-- ⚠️ EL RÓTULO «auto ← Doppler Mitral» QUEDÓ FALSO Y NO SE TOCA (2026-10-08): el
-               pedido prohíbe cambiar rótulos, así que queda REPORTADO. Es una PUERTA del VTI
-               mitral de entrada, no un espejo — lo que se tipea acá llega al Doppler Mitral, que
-               es la casilla que exportan DICOM y FHIR. Las dos cuentas no se perdieron: las lleva
-               `vtiMitralEditado`, sin el gate de la pastilla. -->
-          <label>VTI mitral de entrada — pulsado (cm) <span style="font-weight:400;color:var(--text2);font-size:10px;">auto &#8592; Doppler Mitral</span></label>
-          <input type="number" id="vtim" placeholder="cm" oninput="vtiMitralEditado('vtim')">
-        </div>
-        <div class="fg">
-          <label>Ø anillo mitral (mm)</label>
-          <input type="number" id="diam_mit" placeholder="mm" oninput="calcContIM()">
-        </div>
-      </div>
-      <!-- Fila 2: resultados -->
-      <div class="grid-4">
-        <div class="fg">
-          <!-- ⚠️ LA RELACIÓN ENTRE LOS DOS CORTES ES ARITMÉTICA, NO UNA CITA, y por eso el texto no
-               lleva corchete ni guía: `EROA = Vol-R ÷ VTI del chorro`, así que los dos umbrales de
-               severidad —EROA ≥ 40 mm² y Vol-R ≥ 60 ml— describen al MISMO paciente sólo cuando el
-               VTI del chorro vale 150 cm (60 ÷ 0,40). Con 100 cm un Vol-R justo en el corte da una
-               EROA de 60 mm², o sea severa con holgura; con 200 cm da 30 mm², o sea por debajo del
-               corte con el Vol-R ya severo. Publicar los dos números sin ese reparo invita a leer
-               una discordancia donde lo que hay es la fórmula.
-               ⚠️ Y LA SEGUNDA MITAD DE LA FRASE ESTÁ VERIFICADA, no supuesta: esta EROA NO vota el
-               grado. El único EROA que entra a `scores`/`params` en `calcIM_ESC` es el de PISA
-               (`eroa-val`, 2πr²·Vali/Vmax); `im_eroa_cont` tiene tres lectores y los tres son del
-               PDF —el mapa `_PDF_METODOS`, `_imMetodoPdfVal` y el gate de la casilla—. -->
-          <label title="EROA = Vol-R ÷ VTI del chorro de IM por CW. Los dos cortes de severidad de la guía —EROA ≥ 40 mm² y Vol-R ≥ 60 ml— sólo coinciden con un VTI de chorro de 150 cm, porque 60 ÷ 0,40 = 150. Con un VTI menor la EROA sale inflada respecto del Vol-R y con uno mayor sale reducida: es aritmética de la fórmula, no una discrepancia entre guías. Esta EROA NO vota. El grado integrado de IM sale de la vena contracta, el jet sobre área auricular, el EROA por PISA con sus derivados y la onda S pulmonar; el Vol-R y la fracción regurgitante por continuidad gradúan sólo la cápsula «Severidad (continuidad)» de este mismo cuadro, que tampoco vota. Ver «Referencia clínica» en la ayuda.">EROA continuidad (mm²) — auto <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></label>
-          <input type="text" id="im_eroa_cont" readonly style="font-weight:700;">
-        </div>
-        <div class="fg">
-          <label>Vol-R (ml) — auto</label>
-          <input type="text" id="vr_cont" readonly>
-        </div>
-        <div class="fg">
-          <label>FR — Fracción regurg. (%) — auto</label>
-          <input type="text" id="im_fr_cont" readonly>
-        </div>
-        <div class="fg">
-          <label>Vol mitral / latido (ml) — auto</label>
-          <input type="text" id="vm_lat" readonly>
-        </div>
-      </div>
       <div id="im-cont-severidad" style="font-size:11px;font-weight:700;margin:6px 2px 0;min-height:16px;"></div>
       <!-- Selector de metodo para el informe. Mismo patron que em_pdf_thp/cont/plan.
            ⚠️ LO QUE PROTEGE A LOS INFORMES VIEJOS NO ES EL `onchange` DE LA CASILLA DE PISA: es que
@@ -26507,9 +26563,18 @@ window.eaParEditado = eaParEditado;
 const CMS_POR_MS = 100;
 const IA_VMAX_CW_MS_MIN = 0.5;
 const IA_VMAX_CW_MS_MAX = 8;
+/* Techo de la Vmax de la IM por CW, en m/s. NO es el 8 de la IAo y de la IT: el jet de IM nace de
+   un gradiente VI-AI sistólico que es más alto que el aórtico diastólico, y la banda que este
+   archivo ya aplicaba a `im_vmax` era `[100,900]` cm/s. `9` son los MISMOS 900 cm/s en la otra
+   unidad. Lo lee la banda de `DCM_RANGO` y el corte del normalizador de legado, que es lo que hace
+   que los dos no puedan desincronizarse. */
+const IM_VMAX_MS_MIN = 1;
+const IM_VMAX_MS_MAX = 9;
 window.CMS_POR_MS = CMS_POR_MS;
 window.IA_VMAX_CW_MS_MIN = IA_VMAX_CW_MS_MIN;
 window.IA_VMAX_CW_MS_MAX = IA_VMAX_CW_MS_MAX;
+window.IM_VMAX_MS_MIN = IM_VMAX_MS_MIN;
+window.IM_VMAX_MS_MAX = IM_VMAX_MS_MAX;
 
 const AO_BANDA_PLAUS = Object.freeze({
   /* VTI de la válvula aórtica, en cm. DENOMINADOR del AVA y del DVI, así que un error de unidad
@@ -29074,7 +29139,15 @@ function calcIM_ESC() {
      votarían. Es el mismo encadenamiento que el PDF ya resuelve así en el E/e'
      (`_pE.fuera || _pESep.fuera || _pELat.fuera`). */
   if (pisaR && pisaVal && vmaxIM) {
-    const eroa = (2*Math.PI*(pisaR/10)**2*pisaVal/vmaxIM*100).toFixed(1);
+    /* ⚠️ LA Vmax IM VIENE EN m/s DESDE EL 2026-10-09 Y EL VALIASING SIGUE EN cm/s. El cociente
+       `pisaVal / vmaxIM` es adimensional, así que los dos tienen que estar en la MISMA unidad: se
+       convierte el DIVISOR, m/s × CMS_POR_MS = cm/s, y el campo guarda lo que el médico ve. Es
+       exactamente lo que ya hacen `calcIA_ESC` y `calcIT_ESC` con sus Vmax.
+       ⚠️ Y LA MISMA CONVERSIÓN ESTÁ EN EL EXPORTADOR DE EXCEL, que hace esta división por su
+       cuenta para las columnas «EROA IM (mm²)» y «Vol R IM (ml)». Son DOS lectores de la misma
+       fórmula: tocar uno solo deja la pantalla y el libro discrepando sobre el mismo paciente. */
+    const vmaxIMcms = vmaxIM * CMS_POR_MS;
+    const eroa = (2*Math.PI*(pisaR/10)**2*pisaVal/vmaxIMcms*100).toFixed(1);
     const _eroaDud = _pPr.fuera || _pPv.fuera || _pVm.fuera;
     document.getElementById('eroa-val').textContent = eroa + ' mm²' + (_eroaDud ? MARCA_REVISAR : '');
     if (!_eroaDud) {
@@ -29204,7 +29277,7 @@ function calcIM_ESC() {
     _aiFuera     ? 'área AI ' + aiArea + ' cm²'              : null,
     _pPr.fuera   ? 'radio PISA ' + _pPr.crudo + ' mm'        : null,
     _pPv.fuera   ? 'Valiasing ' + _pPv.crudo + ' cm/s'       : null,
-    _pVm.fuera   ? 'Vmax IM ' + _pVm.crudo + ' cm/s'         : null,
+    _pVm.fuera   ? 'Vmax IM ' + _pVm.crudo + ' m/s'          : null,
     _pIt.fuera   ? 'VTI del jet ' + _pIt.crudo + ' cm'       : null,
     _dtsviFuera  ? 'Ø TSVI ' + dtsvi + ' mm'                 : null,
     _itsviFuera  ? 'VTI TSVI ' + itsvi + ' cm'               : null
@@ -56442,6 +56515,26 @@ function _migrarCamposLegacy(c){
      firmada — el informe, el EN SUMA, el PDF y el Excel salen idénticos. Lo que arregla es que
      la pantalla muestre el dato que el estudio trae.
      Sin clave no se fabrica nada, igual que los dos bloques de arriba. */
+  /* ⚠️ `im_vmax` PASO DE cm/s A m/s (2026-10-09). MISMO PATRÓN, MISMA FUNCIÓN Y MISMO ARGUMENTO
+     que los bloques de `it_vmax_cw` y `ia_vmax_cw` de arriba — sus comentarios valen palabra por
+     palabra y no se repiten. Lo propio de este campo:
+     · EL CORTE ES `> 9` Y NO EL `8` DE LOS OTROS DOS, porque la banda de este campo es `[1,9]`
+       m/s —los MISMOS extremos físicos que el `[100,900]` cm/s anterior— y no `[0,5 ; 8]`. Las
+       dos bandas no se solapan: 1 a 9 m/s son 100 a 900 cm/s, así que 9 o menos sólo puede ser
+       m/s y más de 9 sólo puede ser cm/s. No hay zona gris, no es una heurística.
+     · QUÉ PASA SIN ESTA LÍNEA, y es lo que la hace obligatoria: un estudio guardado con 500 cm/s
+       se leería como 500 m/s, `calcIM_ESC` convertiría el divisor a 50.000 cm/s y la EROA por
+       PISA saldría CIEN VECES más chica — la IM cae de severa a leve en un informe FIRMADO.
+     · CUBRE LAS MISMAS TRES RUTAS por estar acá y no en `editarInforme`.
+     · SE TOCA SÓLO SI LA CLAVE EXISTE Y TIENE NÚMERO, y NO se reescribe nada del disco. */
+  if (Object.prototype.hasOwnProperty.call(c, 'im_vmax')) {
+    const _rawVm = String(c['im_vmax'] == null ? '' : c['im_vmax']).trim().replace(',', '.');
+    const _nVm = parseFloat(_rawVm);
+    if (_rawVm !== '' && !isNaN(_nVm) && _nVm > IM_VMAX_MS_MAX) {
+      c['im_vmax'] = String(Math.round((_nVm / CMS_POR_MS) * 1000) / 1000);
+    }
+  }
+
   if (Object.prototype.hasOwnProperty.call(c, 'em_thp_display')) {
     const _rawThp = String(c['em_thp_display'] == null ? '' : c['em_thp_display']).trim();
     const _mThp = _rawThp.match(/^[0-9]+(?:[.,][0-9]+)?/);
@@ -83923,7 +84016,11 @@ function _labExcelRow(inf) {
      65,3, que no es el producto de ninguna de las dos cifras que el Excel imprime. Se alinea en la
      direccion de la pantalla y no al reves porque 65,4 es el numero que el medico tenia delante
      cuando firmo el informe. Cambia UNA columna, `Vol R IM (ml)`; `EROA IM (mm²)` no se mueve. */
-  if (pr && pv && ivmax) { eroa = 2*Math.PI*Math.pow(pr/10,2)*pv/ivmax*100;
+  /* ⚠️ `im_vmax` ESTA EN m/s DESDE EL 2026-10-09 y el Valiasing sigue en cm/s: se convierte el
+     DIVISOR con `CMS_POR_MS`, igual que `calcIM_ESC`. Sin esta conversion las columnas «EROA IM
+     (mm²)» y «Vol R IM (ml)» saldrian CIEN VECES mas grandes que el numero que el medico vio en
+     pantalla cuando firmo el informe. Son dos lectores de la misma formula. */
+  if (pr && pv && ivmax) { eroa = 2*Math.PI*Math.pow(pr/10,2)*pv/(ivmax*CMS_POR_MS)*100;
                            if (iitv) volr = Number(eroa.toFixed(1))/100*iitv; }
   const dts = num('diam_tsvi'), itvT = num('itv_tsvi'), itvA = num('itv_ao');
   const ava = (dts && itvT && itvA) ? (Math.PI*Math.pow(dts/20,2))*itvT/itvA : null;
@@ -88258,7 +88355,13 @@ const DCM_RANGO = {
      morderia solo cuando el medico no toco la del bloque, que es al reves de lo que hace falta.
      `im_itv` YA estaba en [20,400] y NO se duplica: lo unico que faltaba era que `calcIM_ESC` la
      consultara, porque `calcContIM` ya la aplica al mismo campo — un dueño del rango, dos lectores. */
-  im_vc:[0,20], im_jet_area:[0.5,50], pisa_r:[1,30], pisa_val:[5,150], im_vmax:[100,900],
+  im_vc:[0,20], im_jet_area:[0.5,50], pisa_r:[1,30], pisa_val:[5,150],
+  /* ⚠️ VA CON LAS CONSTANTES Y NO CON LITERALES, y es lo que impide que la banda y el corte del
+     normalizador de legado se desincronicen: el corte de `_migrarCamposLegacy` ES el techo de esta
+     banda, y con dos literales sueltos mover uno dejaria al otro viejo —el dia que el techo baje a
+     8, un 8,5 guardado en m/s se dividiria por 100 y se volveria 0,085—. Las dos declaraciones
+     viven ~61.000 lineas mas arriba, asi que no hay zona muerta de `const` que las alcance. */
+  im_vmax:[IM_VMAX_MS_MIN, IM_VMAX_MS_MAX],
   tango_tac:[10,300], vti_tsvd:[2,60], tsvd_diametro:[5,50], s_prime:[1,35],
   /* Agregado 2026-09-26 con el campo `vsfvi`. NO es opcional: el panel de Evidencia lo lee por
      `_labRango` para decidir un criterio QUIRÚRGICO (volumen telesistólico indexado > 45 ml/m²,
@@ -99250,8 +99353,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261009-0732';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791541926947;                 /* eco-build-ms */
+const ECO_BUILD    = '20261009-0747';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791542825412;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -99337,7 +99440,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-0732</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261009-0747</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
