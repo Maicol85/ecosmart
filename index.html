@@ -4138,7 +4138,7 @@ window.cerrarSesionReal = cerrarSesionReal;
              falta en vez de ofrecer dónde tipearlo de nuevo. -->
         <div id="bloque-prot-vm-res" class="calc-box" style="display:none;margin-top:8px;">
           <div class="calc-row"><span class="calc-lbl" title="Área efectiva del orificio protésico. ASE 2024 (Zoghbi, JASE 2024;37(1):2-63), Sección III.B: EOA = volumen sistólico del TSVI / VTI a través de la prótesis por CW. Es la ecuación de continuidad, la misma que publica «AVm por continuidad». Tabla 11, pág. 27: &lt;1,0 cm² sugiere obstrucción significativa. El volumen sistólico del TSVI exige ausencia de regurgitación significativa: con IAo o IM moderada o mayor no se calcula. Insumos: Ø TSVI y VTI TSVI (Doppler aórtico) y VTI mitral CW (bloque Estenosis Mitral).">EOA por continuidad <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="vm-prot-eoa">—</span></div>
-          <div class="calc-row"><span class="calc-lbl" title="DVI = VTI de la prótesis mitral (CW) / VTI del TSVI. ASE 2024, Tabla 11, pág. 27: &lt;2,2 normal · 2,2-2,5 posible obstrucción · &gt;2,5 sugiere obstrucción significativa. Es un COCIENTE de dos VTI y no usa el volumen sistólico, así que la salvedad de regurgitación que retira el EOA no lo alcanza. Se calcula desde los dos VTI; el campo DVI de arriba se usa sólo como respaldo cuando no alcanzan, y la fila dice «consignado» cuando es así.">DVI — VTI prótesis / VTI TSVI <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="vm-prot-dvi">—</span></div>
+          <div class="calc-row"><span class="calc-lbl" title="DVI = VTI de la prótesis mitral (CW) / VTI del TSVI. ASE 2024, Tabla 11, pág. 27: &lt;2,2 normal · 2,2-2,5 posible obstrucción · &gt;2,5 sugiere obstrucción significativa. Es un COCIENTE de dos VTI y no usa el volumen sistólico, así que se CALCULA aunque la salvedad de regurgitación retire el EOA, pero con IAo o IM moderada o mayor —o sin poder verificarla— se muestra y NO concluye obstrucción: el cociente sube igual con la regurgitación (Tabla 13, pág. 30). Se calcula desde los dos VTI; el campo DVI de arriba se usa sólo como respaldo cuando no alcanzan, y la fila dice «consignado» cuando es así.">DVI — VTI prótesis / VTI TSVI <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="vm-prot-dvi">—</span></div>
           <div class="calc-row"><span class="calc-lbl" title="Desajuste protésico-paciente (PPM): EOA indexada a la superficie corporal. ASE 2024, Tabla 7, pág. 20, TODA indexada — esa tabla no publica valores absolutos en cm². IMC &lt;30: normal &gt;1,2 · moderado 1,2-0,91 · severo ≤0,90 cm²/m². IMC ≥30: normal &gt;1,0 · moderado 1,0-0,76 · severo ≤0,75 cm²/m². La rama de IMC ≥30 está SÓLO en la tabla; el texto narrativo de la pág. 10 la omite. Contesta «¿la prótesis es chica para este paciente?», que es otra pregunta que «¿está obstruida?» — por eso el corte es indexado y el de arriba absoluto.">PPM — EOA indexada <span onclick="abrirAyudaEco()" style="cursor:pointer;" title="Ver «Referencia clínica» en la ayuda">&#9432;</span></span><span class="calc-val" id="vm-prot-ppm">—</span></div>
         </div>
         <div id="bloque-prolapso-vm" class="fg" style="display:none;">
@@ -98606,8 +98606,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261008-2210';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791508256232;                 /* eco-build-ms */
+const ECO_BUILD    = '20261008-2211';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791508313558;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -98693,7 +98693,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-2210</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261008-2211</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
