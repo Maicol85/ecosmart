@@ -207,19 +207,19 @@ impecable.
   ⚠️ **Este renglón se escribió mal una vez**: decía «doce commits sin pushear, `origin/main` en
   `2e017a1`», copiado del estado anterior sin mirar. `origin/main` había avanzado. Antes de
   escribirlo, `git rev-parse --short origin/main` y `git log --oneline origin/main..HEAD`.
-- **Línea base al 2026-10-08 al cierre de la tanda de las filas de PAP en la reimpresión, el árbol
-  de Chrome de los arneses y el registro de botones prendidos por la app: suite 440/461 con el
-  pendrive AFUERA, o sea con los 17 de TC-181…TC-197 en rojo por entorno, Semgrep 127 / 0 ERROR,
-  Excel 434 columnas.** Los cuatro rojos que NO son del
-  pendrive son los de entrada y NO son regresiones: **TC-223** (el documentado, falla por la fecha),
-  **TC-376**, **TC-390** y **TC-406**; los otros diecisiete son **TC-181…TC-197**, los del pendrive
+- **Línea base al 2026-10-11 al cierre de la tanda del reparto de las dos lesiones mitrales y del
+  AVm por THP con IAo severa: suite 460/464 con el pendrive MONTADO, Semgrep 127 / 0 ERROR,
+  Excel 434 columnas.** Los cuatro rojos son los de entrada y NO son regresiones: **TC-223** (el
+  documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**. Con el pendrive AFUERA no
+  se midió en esta tanda; ahí caen además los diecisiete de **TC-181…TC-197**, los del pendrive
   `DISK_IMG`, que son ENTORNO y no prueban nada. Chequeo de celular:
   `node scripts/check_mobile.js` → **43 hallazgos a 360 px y 52 a 390 px, 1 ALTA cada uno**;
   con `--todo` → **367 a 360 px y 376 a 390 px, 1 ALTA cada uno**.
-  ⚠️ **El denominador es 461 y no 449**: la tanda de la pulmonar sumó TC-435…TC-441, ésta
-  TC-442…TC-445 y **TC-446**, la cobertura de `calcIP` al cerrar la reimpresión. Los renglones
-  viejos de este archivo —421/422, 425/429, 426/430, 436/440, 445/449, 439/460— quedaron atrás, así que volver a medir antes de leer una tanda de mutaciones sigue
-  siendo obligatorio.
+  ⚠️ **El denominador es 464 y no 461**: esta tanda sumó **TC-448** —el reparto de las dos lesiones,
+  las tres columnas de la insuficiencia y el aviso del TSVI— y **TC-449**, el AVm por THP con IAo
+  severa. Los renglones viejos de este archivo —421/422, 425/429, 426/430, 436/440, 445/449,
+  439/460, 440/461— quedaron atrás, así que volver a medir antes de leer una tanda de mutaciones
+  sigue siendo obligatorio.
   ⚠️ **Y EL PENDRIVE SE DESMONTÓ A MITAD DE ESTA TANDA**: abrió montado (452/456, 4 rojos) y cerró
   afuera (439/460, 21 rojos). Las dos describen el mismo árbol; restarlas da una «regresión» de 17
   casos que no existe. Mirar `ls /Volumes/DISK_IMG` ANTES de comparar dos cifras, incluso dentro de
