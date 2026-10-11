@@ -40406,9 +40406,23 @@ caso('TC-329', 'Evidencia IM secundaria: auricular y ventricular, cada una a su 
        SIN coronariopatia —la de Clase I · Nivel A, que es la mas fuerte de la tabla— no se ejercia,
        ni la de tratamiento medico sin contestar. Y las citas de las notas no se miraban una por una:
        alcanzaba con que la clave siguiera en la bibliografia por otra nota. */
+    /* ⚠️ ADAPTADO 2026-10-11, Y ES EL MISMO DEFECTO QUE LA BIBLIOGRAFIA YA HABIA PAGADO ACA. Este
+       helper llama «hoja» a cualquier <div> SIN DIVS ADENTRO, o sea que su definicion de nota es
+       estructural y no semantica. Desde que cada seccion envuelve sus dos mitades —las filas del
+       eco y las preguntas clinicas— en un contenedor de grilla, el <div data-ind-col="eco"> de una
+       seccion cuyo lado del eco NO tiene ningun control (y por lo tanto ningun div adentro) pasa a
+       ser una «hoja»: su textContent es la TABLA ENTERA, asi que matchea cualquier fragmento que
+       aparezca en una fila y trae los corchetes de esas filas de regalo. Medido en TC-329: la
+       condicion de los umbrales de la secundaria daba n=2 conCita=2 donde hay UNA nota.
+       Se excluyen por ATRIBUTO —igual que la bibliografia por el suyo, y no por posicion ni por
+       clase—: lo que este helper quiere son los parrafos del detalle, no los envoltorios de
+       maquetado. Se arregla en LAS DOS COPIAS (TC-329 y TC-328) aunque la segunda estuviera verde:
+       ahi pasaba porque sus fragmentos no colisionan, o sea por suerte y no por el filtro. */
     const hojas = function(sec){
       return sec ? Array.prototype.slice.call(sec.querySelectorAll('details div div'))
-        .filter(function(d){ return d.querySelectorAll('div').length === 0 && !d.closest('[data-ind-biblio]'); }) : [];
+        .filter(function(d){ return d.querySelectorAll('div').length === 0 &&
+          !d.closest('[data-ind-biblio]') &&
+          !d.hasAttribute('data-ind-grid') && !d.hasAttribute('data-ind-col'); }) : [];
     };
     const notaCon = function(sec, frag, clave){
       const ns = hojas(sec).filter(function(d){ return pl(d.textContent).indexOf(pl(frag)) > -1; });
@@ -40604,9 +40618,23 @@ caso('TC-328', 'Evidencia: los cuatro textos corregidos contra el original ingle
           .map(function(x){ return x.getAttribute('data-ind-ref'); }) };
     };
     /* Las notas hoja, sin la bibliografia: sus entradas tambien son div hoja. */
+    /* ⚠️ ADAPTADO 2026-10-11, Y ES EL MISMO DEFECTO QUE LA BIBLIOGRAFIA YA HABIA PAGADO ACA. Este
+       helper llama «hoja» a cualquier <div> SIN DIVS ADENTRO, o sea que su definicion de nota es
+       estructural y no semantica. Desde que cada seccion envuelve sus dos mitades —las filas del
+       eco y las preguntas clinicas— en un contenedor de grilla, el <div data-ind-col="eco"> de una
+       seccion cuyo lado del eco NO tiene ningun control (y por lo tanto ningun div adentro) pasa a
+       ser una «hoja»: su textContent es la TABLA ENTERA, asi que matchea cualquier fragmento que
+       aparezca en una fila y trae los corchetes de esas filas de regalo. Medido en TC-329: la
+       condicion de los umbrales de la secundaria daba n=2 conCita=2 donde hay UNA nota.
+       Se excluyen por ATRIBUTO —igual que la bibliografia por el suyo, y no por posicion ni por
+       clase—: lo que este helper quiere son los parrafos del detalle, no los envoltorios de
+       maquetado. Se arregla en LAS DOS COPIAS (TC-329 y TC-328) aunque la segunda estuviera verde:
+       ahi pasaba porque sus fragmentos no colisionan, o sea por suerte y no por el filtro. */
     const hojas = function(sec){
       return sec ? Array.prototype.slice.call(sec.querySelectorAll('details div div'))
-        .filter(function(d){ return d.querySelectorAll('div').length === 0 && !d.closest('[data-ind-biblio]'); }) : [];
+        .filter(function(d){ return d.querySelectorAll('div').length === 0 &&
+          !d.closest('[data-ind-biblio]') &&
+          !d.hasAttribute('data-ind-grid') && !d.hasAttribute('data-ind-col'); }) : [];
     };
     const notasCon = function(sec, frag){
       return hojas(sec).filter(function(d){ return pl(d.textContent).indexOf(pl(frag)) > -1; })

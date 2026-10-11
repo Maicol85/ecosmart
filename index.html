@@ -1952,6 +1952,51 @@ html.light-mode .amilo-root{
      una columna cuyo resto de filas están alineadas a la derecha. */
   #indic-cuerpo td.ind-ctrl{grid-column:1/-1;text-align:left;padding-top:2px!important}
 }
+
+/* ══ EL PANEL MAXIMIZADO ════════════════════════════════════════════════════════════════════
+   ⚠️ VA POR ATRIBUTO Y CON `!important`, Y LAS DOS COSAS HACEN FALTA. El tamaño normal de
+   `#indic-card` vive en su `style` EN LÍNEA —`top:50%`, el `transform`, `width:820px` y los dos
+   `max-*`—, así que una regla de hoja SIN `!important` pierde contra él y el panel no se mueve.
+   Y el estado va en un ATRIBUTO (`data-ind-max`) y no en una clase: `indicAbrir` e `indicCerrar`
+   lo borran con un `removeAttribute`, que no puede dejar media clase puesta. El estado maximizado
+   NO se guarda — es de la apertura en curso.
+   ⚠️ SIN TRANSICIÓN, A PROPÓSITO Y NO POR OLVIDO. El par que cambia es `width:820px` →
+   `width:auto`, que NO es un par animable: una transición animaría la posición y haría SALTAR el
+   ancho en el mismo gesto, que se ve peor que no animar nada. Al no haber movimiento,
+   `prefers-reduced-motion` queda satisfecho por construcción, y una media query que apagara algo
+   que no existe sería una promesa decorativa. Si alguna vez esto se animara, ahí sí hace falta. */
+#indic-card[data-ind-max="1"]{
+  top:10px!important;left:10px!important;right:10px!important;bottom:10px!important;
+  width:auto!important;max-width:none!important;max-height:none!important;
+  transform:none!important;
+}
+/* ══ DOS COLUMNAS — sólo maximizado y en pantalla ancha ══════════════════════════════════════
+   El contenedor lo emite SIEMPRE `_indSecHTMLCuerpo` (`data-ind-grid`); la grilla la enciende
+   esta regla. `data-ind-dos` lo pone sólo la sección que tiene LAS DOS cosas —filas del eco y
+   preguntas clínicas—, así que una sección sin preguntas (la estenosis mitral, que las tiene
+   dentro de sus `bloques`, más el foramen y la bicúspide) o sin filas ocupa todo el ancho sin que
+   esta regla tenga que saber de ella.
+   ⚠️ LA COMPUERTA ES EL ANCHO DEL VIEWPORT Y NO EL DEL PANEL. Una `@container` sobre la tarjeta
+   sería más fiel, pero declarar `container-type` le cambia la contención de layout a un nodo del
+   que cuelga todo el panel. Medido: a 1200 px maximizado la tarjeta mide 1180 y la consulta entra;
+   a 390 y a 360 px maximizado mide 370 y 340 y NO entra, que es exactamente el comportamiento
+   pedido —una columna en el celular—. */
+@media (min-width:1000px){
+  #indic-card[data-ind-max="1"] [data-ind-grid][data-ind-dos="1"]{
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    column-gap:18px;align-items:start;
+  }
+  /* El rótulo de las preguntas ENCABEZA su columna. Su margen superior de 12 px lo separaba de la
+     tabla del eco cuando iban uno debajo del otro; en dos columnas lo dejaría 12 px más abajo que
+     la primera fila del eco, o sea las dos columnas desalineadas. No se toca el `style` en línea
+     del rótulo: el ajuste vale sólo dentro de la grilla. */
+  #indic-card[data-ind-max="1"] [data-ind-grid][data-ind-dos="1"] [data-ind-col="clin"] > div:first-child{margin-top:0}
+}
+/* El botón de maximizar NO SE MUESTRA EN EL CELULAR, y la decisión es medida: a 390 px el panel ya
+   ocupa 366 de 390 px, así que maximizar gana CERO px de ancho y 24 px de alto. Un control que no
+   cambia nada es un control que miente. El corte es el mismo 560 px que la tabla del panel ya usa,
+   no uno nuevo. */
+@media (max-width:560px){ #indic-max{display:none!important} }
 </style>
 <style>
 /* ── Strain Patrones ── */
@@ -2468,10 +2513,19 @@ window.cerrarSesionReal = cerrarSesionReal;
      El PDF lo dibuja jsPDF y no la impresión, pero el requisito es «no sale del informe» y
      cubrir sólo el camino que hoy existe deja el otro abierto. -->
 <div id="indic-overlay" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.55);" onclick="if(event.target===this)indicCerrar();">
-  <div id="indic-card" role="dialog" aria-modal="true" aria-labelledby="indic-titulo"
+  <div id="indic-card" role="dialog" aria-modal="true" aria-labelledby="indic-titulo" tabindex="-1"
        style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:820px;max-width:calc(100vw - 24px);max-height:calc(100vh - 48px);display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.6);">
     <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);background:var(--bg2);border-radius:12px 12px 0 0;flex-shrink:0;">
       <span id="indic-titulo" style="flex:1;font-weight:700;font-size:13px;color:var(--accent2);">📋 Evidencia según guías</span>
+      <!-- ⚠️ EL ESTADO VA EN `aria-pressed` Y EN LA ETIQUETA, NO EN EL GLIFO. Un lector de
+           pantalla no lee «⤢», así que sin `aria-label` el botón se anuncia vacío; y sin
+           `aria-pressed` se anuncia igual estando el panel normal o maximizado. Las dos cosas las
+           mantiene `indicMaxPoner`, que es el único dueño del estado. El `title` repite la
+           etiqueta para el mouse, pero NO es la etiqueta: un `title` no existe en táctil, que es
+           la lección que el pie de este mismo panel ya dejó escrita (TC-272). -->
+      <button type="button" class="btn btn-ghost" id="indic-max" aria-pressed="false"
+              aria-label="Maximizar el panel" title="Maximizar el panel"
+              style="font-size:12px;padding:3px 10px;font-weight:700;" onclick="indicMaxTog()">⤢</button>
       <button type="button" class="btn btn-ghost" style="font-size:12px;padding:3px 10px;font-weight:700;" onclick="indicCerrar()">✕</button>
     </div>
     <div id="indic-cuerpo" style="padding:12px 14px;overflow:auto;flex:1;"></div>
@@ -49889,7 +49943,45 @@ function critCerrar(){ const ov = document.getElementById('crit-overlay'); if (o
 window.critAbrir = critAbrir; window.critCerrar = critCerrar;
 document.addEventListener('keydown', function(e){
   if (e.key !== 'Escape') return;
+  /* `critCerrar` va PRIMERO Y SIEMPRE, y no después de la compuerta de abajo: los dos overlays son
+     independientes y pueden estar abiertos a la vez. Con el `return` del maximizado puesto antes,
+     un Escape sobre un panel de Evidencia maximizado dejaba el panel de criterios abierto. */
   critCerrar();
+  /* ⚠️ MAXIMIZADO, EL PRIMER ESCAPE RESTAURA Y NO CIERRA — y la compuerta exige que el panel esté
+     ABIERTO. Sin esa segunda mitad, un atributo que hubiera quedado puesto por un camino nuevo
+     haría que un Escape con el panel CERRADO se gastara en «restaurar» algo invisible y no
+     cerrara el panel de criterios ni nada: un Escape que no hace nada visible. El estado se
+     apaga en las dos puertas (ver `indicMaxPoner`), así que hoy ese atributo no sobrevive a un
+     cierre; la compuerta está para que siga siendo cierto si mañana aparece otro camino.
+     Con el panel NORMAL no cambia nada: Escape cierra, como hasta hoy. Y el segundo Escape, ya
+     restaurado, cierra — que es la secuencia pedida. */
+  const ov = document.getElementById('indic-overlay');
+  const abierto = !!(ov && ov.style.display === 'block');
+  if (abierto && typeof indicMaxEstado === 'function' && indicMaxEstado()) {
+    indicMaxPoner(false);
+    /* ⚠️ `stopImmediatePropagation` NO ES DEFENSIVO: SIN ÉL ESTA RAMA NO PUEDE FUNCIONAR, Y LO
+       ENCONTRÓ LA SONDA. Hay un oyente GENÉRICO de Escape en el bloque de accesibilidad (busca el
+       `[role="dialog"][aria-modal="true"]` visible más alto y CLICKEA el primer botón cuyo texto o
+       cuyo `onclick` matchee /cerrar|✕|close|…/). `#indic-card` es uno de esos diálogos y su «✕»
+       llama a `indicCerrar()`, así que en el MISMO Escape este oyente restauraba y aquél cerraba:
+       medido con un espía, la traza era «poner(false) · cerrar() · poner(false)», o sea el panel
+       se iba igual. En HEAD eso era invisible porque `indicCerrar` es idempotente — el defecto
+       estaba y no se veía.
+       Funciona porque los dos oyentes están sobre `document` y éste se registró ANTES: la
+       propagación inmediata sí alcanza a los posteriores del mismo nodo.
+       PRECIO DECLARADO: ese Escape tampoco llega a los otros oyentes posteriores (las ventanas de
+       imágenes, el encabezado y la ayuda). Con el panel maximizado encima, esas ventanas están
+       detrás de un overlay modal; se cierran con el Escape siguiente. Sólo ocurre en la rama del
+       maximizado: con el panel normal no se para nada y Escape cierra como hasta hoy. */
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    /* El foco se queda DENTRO del panel, igual que al tocar el botón: si se cayera al `body`, el
+       Escape siguiente llegaría igual (el oyente es del documento) pero el Tab se iría a la
+       página que está detrás del overlay. */
+    const b = document.getElementById('indic-max');
+    if (b) { try { b.focus({ preventScroll:true }); } catch (x) { b.focus(); } }
+    return;
+  }
   if (typeof indicCerrar === 'function') indicCerrar();
 });
 window.mcaScore = mcaScore; window.mcaCatI = mcaCatI; window.mcaVI = mcaVI;
@@ -51148,11 +51240,33 @@ function _indSecHTMLCuerpo(tit, r){
   h += '<summary style="cursor:pointer;padding:9px 12px;font-size:12px;font-weight:700;color:var(--accent2);list-style:revert;">' + _critEsc(tit) + '</summary>';
   h += '<div style="padding:2px 12px 12px;">';
   if (r.aviso) h += '<div style="font-size:11px;line-height:1.5;color:#D97706;margin:2px 0 8px;">' + _critEsc(r.aviso) + '</div>';
-  h += '<table style="width:100%;border-collapse:collapse;">' + r.filas.map(_indFilaHTML).join('') + '</table>';
-  if (r.clinica && r.clinica.length) {
+  /* ══ LAS DOS COLUMNAS SON UN ENVOLTORIO, NO UN ORDEN NUEVO ═════════════════════════════════
+     El DOM sigue siendo eco → preguntas → resultado, en ese orden, así que el orden de LECTURA y
+     el de TABULACIÓN son los de siempre y no hace falta ni un `tabindex` ni un `order` de CSS
+     —las dos cosas separan el foco de lo que se ve, que es el defecto clásico de una grilla—.
+     Ni un texto, ni un id, ni un atributo de las filas cambia: lo único nuevo son los tres
+     `<div>` de envoltura, y la grilla la enciende la hoja de estilos sólo con el panel maximizado
+     y en pantalla ancha (ver su regla). Sin maximizar y en el celular esto son tres `<div>` de
+     `display:block`, o sea el apilado de antes.
+
+     ⚠️ `data-ind-dos` SÓLO SI LA SECCIÓN TIENE LAS DOS COSAS, y la compuerta va acá y no en el
+     CSS porque es una propiedad de la sección y no del ancho. Tres de las quince no traen
+     `clinica`: la estenosis mitral —sus preguntas viven en los `grupos` de `bloques`—, el foramen
+     y la bicúspide. Sin esta compuerta ésas pintarían media pantalla de tabla y media de nada.
+     Y las siete que traen `clinica` con filas de SOLO LECTURA (la auricular, la interventricular,
+     el ductus, la coartación y la hipertrófica) entran igual: lo que define la columna derecha es
+     «no evaluable por ecocardiograma», no que haya botones. */
+  const hayClin = !!(r.clinica && r.clinica.length);
+  h += '<div data-ind-grid="1"' + (hayClin ? ' data-ind-dos="1"' : '') + '>';
+  h += '<div data-ind-col="eco"><table style="width:100%;border-collapse:collapse;">' +
+       r.filas.map(_indFilaHTML).join('') + '</table></div>';
+  if (hayClin) {
+    h += '<div data-ind-col="clin">';
     h += '<div style="font-size:11px;font-weight:700;color:var(--text2);margin:12px 0 2px;">Requiere datos clínicos — no evaluable por ecocardiograma</div>';
     h += '<table style="width:100%;border-collapse:collapse;">' + r.clinica.map(_indFilaHTML).join('') + '</table>';
+    h += '</div>';
   }
+  h += '</div>';
   /* La recomendación va DEBAJO de los datos que la sostienen y no arriba: es la conclusión de
      lo que se acaba de leer, y arriba se leería como el titular de la sección. */
   /* El detalle se junta ANTES de pintarlo: `_indRecomHTML` empuja sus dos notas acá, así que el
@@ -56113,16 +56227,76 @@ function indicRender(){
   const c = document.getElementById('indic-cuerpo'); if (c) c.innerHTML = h;
 }
 
+/* ══ MAXIMIZAR EL PANEL ══════════════════════════════════════════════════════════════════════
+   Tres funciones y UN SOLO DUEÑO del estado: el atributo `data-ind-max` de `#indic-card`. La
+   geometría la pone la hoja de estilos (ver su regla, que explica por qué va con `!important`);
+   acá no se escribe ni un px, así que no hay dos lugares que puedan discrepar sobre el tamaño.
+
+   ⚠️ EL ESTADO **NO SE GUARDA**, Y SE LIMPIA EN LAS DOS PUERTAS. `indicAbrir` e `indicCerrar` lo
+   apagan, igual que `_indClinLimpiar`, y por el mismo motivo que ese comentario ya declara: con
+   el apagado sólo en el cierre, un camino de cierre nuevo —o un cierre que no pase por
+   `indicCerrar`— dejaría el panel reabriendo maximizado sin que nada lo haya pedido.
+
+   ⚠️ `indicMaxPoner` ES LO QUE MANTIENE LA ETIQUETA Y EL `aria-pressed` JUNTOS. Si el atributo se
+   escribiera desde dos lados, el panel podría quedar maximizado con el botón diciendo
+   «Maximizar»: un lector de pantalla anunciaría lo contrario de lo que pasó, que es peor que no
+   anunciar nada. Por eso el `onclick` llama a `indicMaxTog` y nadie toca el atributo a mano. */
+function indicMaxEstado(){
+  const c = document.getElementById('indic-card');
+  return !!(c && c.getAttribute('data-ind-max') === '1');
+}
+function indicMaxPoner(on){
+  const c = document.getElementById('indic-card'); if (!c) return;
+  if (on) c.setAttribute('data-ind-max', '1'); else c.removeAttribute('data-ind-max');
+  const b = document.getElementById('indic-max'); if (!b) return;
+  const et = on ? 'Restaurar el tamaño del panel' : 'Maximizar el panel';
+  b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  b.setAttribute('aria-label', et);
+  b.title = et;
+  /* El glifo cambia con el estado; la etiqueta accesible es la de arriba y no este carácter.
+     ⚠️ Es la ÚNICA letra del panel que esta tanda agrega o cambia, y está en el ENCABEZADO: el
+     `textContent` de cada sección queda idéntico. */
+  b.textContent = on ? '⤡' : '⤢';
+}
+function indicMaxTog(){
+  const on = !indicMaxEstado();
+  indicMaxPoner(on);
+  /* ⚠️ EL FOCO SE QUEDA DENTRO DEL PANEL, y sobre el nodo que acaba de cambiar de estado. Sin
+     esto, el botón se repinta bajo el cursor y el foco del teclado queda donde estaba —en el
+     mismo botón, por suerte, porque no lo reemplazamos—; se pone explícito para que el día en que
+     el encabezado se repinte el foco no se caiga al `body`, que es donde estaba antes de abrir. */
+  const b = document.getElementById('indic-max');
+  if (b) { try { b.focus({ preventScroll:true }); } catch (e) { b.focus(); } }
+}
+window.indicMaxTog = indicMaxTog; window.indicMaxPoner = indicMaxPoner;
+window.indicMaxEstado = indicMaxEstado;
+
 function indicAbrir(){
   /* Se limpia ANTES de pintar, no sólo al cerrar: ver el comentario de `_indClin`. Abrir es la
      única puerta por la que el panel se ve, así que acá la garantía es por construcción. */
   _indClinLimpiar();
+  indicMaxPoner(false);
   indicRender();
   _indClinCablear();
   const ov = document.getElementById('indic-overlay'); if (ov) ov.style.display = 'block';
+  /* ⚠️ EL FOCO ENTRA AL PANEL, Y HASTA ESTA TANDA NO ENTRABA. Medido en HEAD: al abrir el foco
+     quedaba en `body` y el primer Tab se iba a `#hdr-med-btn` —un botón de la página, DETRÁS del
+     overlay—, así que el panel se anunciaba `aria-modal="true"` y con el teclado no se podía
+     alcanzar ni su propia «✕». Se enfoca la TARJETA (que para eso lleva `tabindex="-1"`) y no un
+     botón: así el primer Tab cae en el primer control del encabezado y el orden de lectura
+     arranca donde arranca el panel.
+     ⚠️ Y CON ESTO LA TRAMPA DE TAB QUE YA EXISTÍA EMPIEZA A FUNCIONAR. El bloque de
+     accesibilidad tiene un oyente de Tab que cicla el foco dentro del
+     `[role="dialog"][aria-modal="true"]` visible más alto, pero sólo actúa cuando el foco YA está
+     en el primero o en el último control del diálogo: con el foco en `body` no matcheaba ninguno
+     de los dos y el Tab se escapaba a la página. O sea que la trampa estaba escrita y no servía
+     para este panel, y lo que faltaba era esta línea. */
+  const card = document.getElementById('indic-card');
+  if (card) { try { card.focus({ preventScroll:true }); } catch (e) { card.focus(); } }
 }
 function indicCerrar(){
   _indClinLimpiar();
+  indicMaxPoner(false);
   const ov = document.getElementById('indic-overlay'); if (ov) ov.style.display = 'none';
 }
 
@@ -100619,8 +100793,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261011-1204';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791731063590;                 /* eco-build-ms */
+const ECO_BUILD    = '20261011-1351';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791737489595;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -100706,7 +100880,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-1204</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-1351</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
