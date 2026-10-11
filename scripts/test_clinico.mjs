@@ -29424,7 +29424,27 @@ caso('TC-273', 'Panel de Evidencia: las trece secciones aparecen con su criterio
   })();
 `);
 
-caso('TC-274', 'El boton de Evidencia corre las MISMAS secciones que el panel, y falla hacia visible', `
+/* ⚠️ ADAPTADO 2026-10-11, Y EL CAMBIO ES DE CONDUCTA, NO DE SELECTOR. El boton de Evidencia ya
+   NO se esconde: esta SIEMPRE y lo que sigue a la compuerta es su COLOR —`btn-ghost` (gris) sin
+   criterios, `btn-primary` (azul, el mismo par que las pastillas de valvula) con al menos una
+   seccion—. El motivo esta en el comentario de `indicHayCriterios` en index.html: un boton
+   ausente es indistinguible de «este paciente no tiene nada» Y de «el panel no existe».
+   Las dos condiciones de visibilidad pasan a medir el color; el resto del caso —que la compuerta
+   recorra las MISMAS IND_SECS, el fail-open con su denominador y la brecha del ductus silente—
+   no se toca, porque ese mecanismo no cambio.
+
+   ⚠️ Y AL ADAPTARLO SE DESTAPO QUE LA CONDICION VIEJA ESTABA VERDE SOBRE UN DEFECTO. Medido en
+   HEAD con `getComputedStyle`: con `hidden === true` el boton tenia `display:flex` y **104 x 44
+   px reales en pantalla**, porque la regla de autor `.btn, .tab-btn, .nav-tab, .chip
+   { display:inline-flex }` (index.html, la regla de los controles agrandados) le GANA al
+   `[hidden]{display:none}` de la hoja del NAVEGADOR. O sea que el esconder nunca funciono a la
+   vista: `hidden` solo lo sacaba del arbol de accesibilidad. Es el MISMO defecto que index.html
+   ya documenta tres veces —`.fg`, `.frases-panel` y el banner de version, los tres arreglados con
+   su propio `X[hidden]{display:none}`— y `#indic-btn` nunca recibio esa regla.
+   Este caso pasaba por medir la PROPIEDAD `hidden` y no el ESTILO COMPUTADO, que es textualmente
+   la leccion que el comentario de `.fg[hidden]` dejo escrita. Las condiciones nuevas miran la
+   CLASE **y** el fondo computado, para que no vuelva a pasar por el mismo agujero. */
+caso('TC-274', 'El boton de Evidencia esta SIEMPRE y su COLOR corre las MISMAS secciones que el panel, fallando hacia azul', `
   return (async () => {
     const DATOS = ${EVID_DATOS};
     const LIMPIAR = ${EVID_LIMPIAR};
@@ -29435,16 +29455,55 @@ caso('TC-274', 'El boton de Evidencia corre las MISMAS secciones que el panel, y
     const btn = document.getElementById('indic-btn');
     if (!btn || typeof indicHayCriterios !== 'function')
       return { extra:[['existen el boton y la compuerta', false, '']] };
+    /* ⚠️ HAY QUE IR A LA PESTANA DEL BOTON, Y SIN ESTO EL CASO MIDE 0 x 0. El boton vive en
+       #tab-informe, que nace en display:none, y el COLOR se lee igual del estilo computado de un
+       nodo sin geometria: la primera version de este bloque informaba «gris» y «azul» correctos
+       con el boton midiendo cero. Es la trampa que CLAUDE.md documenta para check_mobile.js —lo
+       que esta en display:none no tiene geometria— y aca ademas invalida el piso tactil.
+       Es el GESTO del medico: el boton de Evidencia se toca desde la pestana Informe. */
+    if (typeof showTab === 'function') showTab('informe');
+    await new Promise(r => setTimeout(r, 180));
+    const tabDisplay = (function(){ const t = document.getElementById('tab-informe');
+      return t ? getComputedStyle(t).display : 'NO EXISTE'; })();
     const dapReal = window.dapConclusion;
     try {
+      /* ⚠️ EL ESTADO SE LEE DE LA CLASE **Y** DEL FONDO COMPUTADO. Con la clase sola, una regla
+         que le ganara dejaria el caso verde sobre un boton que se ve gris; con el fondo solo, no
+         se distingue «azul» de «azul por otra regla». La variable --accent es lo que .btn-primary usa, y
+         se lee de la hoja en vez de cablear un hex: asi el caso vale en los dos temas. */
+      const rgb = (v) => { const h = String(v || '').trim().replace('#','');
+        if (h.length !== 6) return null;
+        return 'rgb(' + parseInt(h.slice(0,2),16) + ', ' + parseInt(h.slice(2,4),16) + ', ' + parseInt(h.slice(4,6),16) + ')'; };
+      const varDe = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+      const estado = () => { const cs = getComputedStyle(btn);
+        return { primary: btn.classList.contains('btn-primary'),
+                 ghost:   btn.classList.contains('btn-ghost'),
+                 hidden:  btn.hasAttribute('hidden'),
+                 display: cs.display, bg: cs.backgroundColor,
+                 w: Math.round(btn.getBoundingClientRect().width),
+                 h: Math.round(btn.getBoundingClientRect().height),
+                 label: btn.getAttribute('aria-label') || '' }; };
+
       limpiar();
       if (typeof indicSyncBoton === 'function') indicSyncBoton();
-      const vacioOculto = btn.hidden === true, vacioHay = indicHayCriterios();
+      const eVacio = estado(), vacioHay = indicHayCriterios();
+      /* GRIS = btn-ghost con el fondo de --bg3, visible, sin hidden y con la etiqueta que
+         dice el estado en palabras (es lo que vuelve al boton independiente del color). */
+      const vacioGris = eVacio.ghost === true && eVacio.primary === false &&
+        eVacio.hidden === false && eVacio.bg === rgb(varDe('--bg3')) &&
+        /sin hallazgos que activen evidencia/i.test(eVacio.label);
 
       /* Una sola seccion con criterio real alcanza para encenderlo. */
       Object.keys(DATOS.EA).forEach(id => { const e = document.getElementById(id); if (e) e.value = DATOS.EA[id]; });
       if (typeof indicSyncBoton === 'function') indicSyncBoton();
-      const conEaVisible = btn.hidden === false, conEaHay = indicHayCriterios();
+      const eEa = estado(), conEaHay = indicHayCriterios();
+      /* AZUL = btn-primary con el fondo de --accent, y la etiqueta que dice que hay GUIA para
+         consultar y NO indicacion de tratamiento: el azul tambien lo enciende una seccion cuya
+         recomendacion es «no» o «falta» (el ductus silente de mas abajo). */
+      const conEaAzul = eEa.primary === true && eEa.ghost === false &&
+        eEa.hidden === false && eEa.bg === rgb(varDe('--accent')) &&
+        /hay informaci.n para este caso/i.test(eEa.label) &&
+        /no que haya indicaci.n de tratamiento/i.test(eEa.label);
 
       /* ── LA COMPUERTA NO ES UNA LISTA APARTE ── indicHayCriterios tiene que recorrer las mismas
          IND_SECS que indicRender. Una segunda condicion escrita a mano --«EA severa o IM severa
@@ -29479,10 +29538,23 @@ caso('TC-274', 'El boton de Evidencia corre las MISMAS secciones que el panel, y
       const silenteClave = (typeof dapConclusion === 'function' && dapConclusion()) ? dapConclusion().clave : null;
 
       return { extra: [
-        ['con el formulario vacio el boton esta oculto', vacioOculto && vacioHay === false,
-          'hidden=' + btn.hidden + ' hay=' + vacioHay],
-        ['con una sola seccion con criterio, se enciende', conEaVisible && conEaHay === true,
-          'hidden=' + btn.hidden + ' hay=' + conEaHay],
+        ['con el formulario vacio el boton esta VISIBLE y GRIS, y lo dice en la etiqueta',
+          vacioGris && vacioHay === false, JSON.stringify(eVacio) + ' hay=' + vacioHay],
+        ['con una sola seccion con criterio pasa a AZUL, con el fondo de --accent',
+          conEaAzul && conEaHay === true, JSON.stringify(eEa) + ' hay=' + conEaHay],
+        /* ⚠️ EL DENOMINADOR DE GEOMETRIA, Y SIN ESTO LAS DOS DE ARRIBA NO VALEN. Un boton en una
+           pestana cerrada mide 0 x 0 y «es gris» se cumple por vacuidad: el color se lee igual
+           del estilo computado, asi que un cero aca no se nota. Se exige que el boton tenga
+           geometria en las dos escenas y que llegue al piso tactil de 44 px. */
+        ['DENOMINADOR: el boton tuvo geometria real en las DOS escenas, y llega al piso tactil de 44 px',
+          tabDisplay === 'block' && eVacio.w > 0 && eVacio.h >= 44 && eEa.w > 0 && eEa.h >= 44,
+          'tab-informe=' + tabDisplay + ' vacio=' + eVacio.w + 'x' + eVacio.h +
+          ' conEA=' + eEa.w + 'x' + eEa.h],
+        /* CONTROL NEGATIVO DEL PAR DE CLASES: las dos juntas es el estado en que el fondo lo
+           decide el orden de la hoja, o sea el estado en que este caso deja de medir nada. */
+        ['CONTROL NEGATIVO: nunca lleva las dos clases a la vez',
+          !(eVacio.primary && eVacio.ghost) && !(eEa.primary && eEa.ghost),
+          'vacio=' + eVacio.primary + '/' + eVacio.ghost + ' conEA=' + eEa.primary + '/' + eEa.ghost],
         ['la compuerta y el panel coinciden sobre el mismo formulario', coherente,
           'secciones=' + nSecs + ' hay=' + indicHayCriterios()],
         ['DENOMINADOR: antes de romper la seccion no habia ninguna encendida',

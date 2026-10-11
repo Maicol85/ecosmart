@@ -16217,13 +16217,26 @@ window.fcgOnShow = function(){ if (currentValve && animFrame === null) drawStrip
                   title="Abre un cuadro aparte con el análisis segmentario (situs y conexiones). Tocarlo de nuevo lo cierra y descarta su contenido">🫀 CC</button>
           <span style="display:inline-flex;gap:8px;flex-wrap:wrap;margin-left:auto;">
             <button type="button" class="btn btn-ghost" id="frases-btn" onclick="frasesToggle()" aria-expanded="false" aria-controls="frases-panel">💬 Frases</button>
-            <!-- Arranca oculto y lo enciende `indicSyncBoton()` sólo si el estudio tiene alguna
-                 sección con criterios. `hidden` y no `display:none` inline: la hoja de estilos
-                 trae `min-height:44px` para todo `[onclick]`, y un `display` inline ganándole a
-                 `[hidden]` es la clase de conflicto que deja un hueco de 44 px sin botón. -->
-            <button type="button" class="btn btn-ghost" id="indic-btn" hidden
+            <!-- ⚠️ YA NO NACE OCULTO, Y EL CAMBIO ES DE CONDUCTA (2026-10-11). Hasta esta tanda
+                 el botón llevaba `hidden` y `indicSyncBoton()` lo mostraba sólo si el estudio
+                 tenía alguna sección con criterios; el problema es el que el comentario de
+                 `indicHayCriterios` ya declaraba para el fail-open, un escalón más arriba:
+                 **ausente e «inexistente» se ven igual**, así que el médico que nunca vio el
+                 botón no tiene forma de saber que el panel existe. Ahora está SIEMPRE y lo que
+                 cambia es su estado: `btn-ghost` (gris) sin criterios y `btn-primary` (azul, el
+                 mismo par que las pastillas de válvula) con al menos una sección. Lo decide
+                 `indicSyncBoton()` con `indicHayCriterios()`, que es la MISMA función que corre
+                 el panel.
+                 El estado NO vive sólo en el color: el `aria-label` y el `title` lo dicen con
+                 palabras en los dos estados, y los mantiene `indicSyncBoton` —acá va el estado
+                 gris, que es el del formulario vacío, para que el primer pintado no mienta—.
+                 Se fue el `hidden` y NO lo reemplaza ningún `display` inline: la hoja trae
+                 `min-height:44px` para todo `[onclick]` y un `display` en línea ganándole a la
+                 hoja es la clase de conflicto que dejaba un hueco de 44 px sin botón. -->
+            <button type="button" class="btn btn-ghost" id="indic-btn"
                     onclick="indicAbrir()" aria-haspopup="dialog" aria-controls="indic-overlay"
-                    title="Evidencia según guías — sólo pantalla, no va al informe">📋 Evidencia</button>
+                    aria-label="Evidencia según guías: sin hallazgos que activen evidencia. Sólo pantalla, no va al informe"
+                    title="Evidencia según guías: sin hallazgos que activen evidencia. Sólo pantalla, no va al informe">📋 Evidencia</button>
           </span>
         </div>
       </div>
@@ -56424,16 +56437,25 @@ function indicCerrar(){
   const ov = document.getElementById('indic-overlay'); if (ov) ov.style.display = 'none';
 }
 
-/* ── Visibilidad del botón ────────────────────────────────────────────────────────────────
-   El botón sólo aparece si el estudio tiene alguna sección con criterios. Corre las MISMAS
-   `IND_SECS` que el panel: preguntar «¿hay algo?» con una condición escrita aparte —«EA severa
-   o IM severa o…»— sería una segunda copia de las nueve compuertas, que divergiría del panel
-   sin que nada lo delate. El costo de recorrerlas es el mismo que abrir el panel.
+/* ── Estado del botón ─────────────────────────────────────────────────────────────────────
+   ⚠️ DESDE EL 2026-10-11 ESTA COMPUERTA DECIDE EL COLOR, NO LA VISIBILIDAD. El botón está
+   SIEMPRE: gris (`btn-ghost`) sin criterios y azul (`btn-primary`) con al menos una sección.
+   El motivo es el mismo que el párrafo del fail-open de más abajo ya daba para una sección
+   caída, aplicado un escalón más arriba: con el botón ESCONDIDO, su ausencia es la única señal
+   y es indistinguible de «este paciente no tiene nada» — y de «el panel no existe». Gris
+   cuesta un clic que termina en el mensaje «Sin criterios de intervención detectados»;
+   ausente borra la función en silencio.
 
-   FALLA HACIA VISIBLE, y es deliberado. Si una sección lanza, cuenta como «puede haber algo» y
-   el botón se muestra: escondido, la única señal sería su ausencia, indistinguible de «este
-   paciente no tiene nada» — el médico no tiene forma de saber que el panel existe y está roto.
-   Mostrarlo de más cuesta un clic; esconderlo de menos borra la función en silencio. */
+   Corre las MISMAS `IND_SECS` que el panel: preguntar «¿hay algo?» con una condición escrita
+   aparte —«EA severa o IM severa o…»— sería una segunda copia de las quince compuertas, que
+   divergiría del panel sin que nada lo delate. El costo de recorrerlas es el mismo que abrir
+   el panel. Lo fija TC-274 comparando las dos superficies sobre el mismo formulario.
+
+   FALLA HACIA AZUL, y es deliberado. Si una sección lanza, cuenta como «puede haber algo» y el
+   botón se enciende: el médico abre y ve el aviso de la sección caída al pie. Con la compuerta
+   fallando al revés, un panel roto se vería idéntico a un paciente sin hallazgos.
+   ⚠️ Y POR ESO LA ETIQUETA DICE «hay guía aplicable para consultar» Y NO «hay indicación»:
+   el azul también lo enciende una sección cuya recomendación es `no` o `falta`. */
 function indicHayCriterios(){
   for (let i = 0; i < IND_SECS.length; i++) {
     let r = null;
@@ -56443,11 +56465,43 @@ function indicHayCriterios(){
   return false;
 }
 
+/* Las DOS etiquetas, en un solo lugar y congeladas. Dicen tres cosas y las tres hacen falta:
+   el nombre del panel (para quien llega por el lector de pantalla y no ve el 📋), el ESTADO en
+   palabras —que es lo que vuelve al botón independiente del color— y qué significa el azul.
+   ⚠️ «HAY GUÍA PARA CONSULTAR» Y NO «HAY INDICACIÓN», y está escrito a propósito. El azul lo
+   enciende `indicHayCriterios`, que es verdadero en cuanto UNA sección devuelve algo, y una
+   sección puede abrir con una recomendación `no` o `falta` —el ductus silente del denominador de
+   TC-274 es exactamente eso: enciende y por definición no tiene indicación de cierre—. Un médico
+   que lea el azul como «esta paciente tiene indicación» leería al revés la mitad de los casos.
+   La frase del alcance («sólo pantalla, no va al informe») se conserva de la etiqueta anterior:
+   el pie del panel la dice pintada (TC-272), y acá es lo único que la anticipa antes de abrir. */
+const IND_BTN_ET = Object.freeze({
+  si: 'Evidencia según guías: hay información para este caso. ' +
+      'Indica que hay guía aplicable para consultar, no que haya indicación de tratamiento. ' +
+      'Sólo pantalla, no va al informe',
+  no: 'Evidencia según guías: sin hallazgos que activen evidencia. Sólo pantalla, no va al informe'
+});
+
 function indicSyncBoton(){
   const b = document.getElementById('indic-btn'); if (!b) return;
   let hay = true;
   try { hay = indicHayCriterios(); } catch (e) { hay = true; }
-  b.hidden = !hay;
+  /* ⚠️ EL PAR ES `btn-primary` / `btn-ghost`, Y NO UN COLOR PROPIO. Es el MISMO par que
+     `valvApagarGrado` y `cargarValvPills` se pasan en las ocho pastillas de válvula (ver la
+     línea que hace `remove('btn-primary'); add('btn-ghost')`), así que «encendido» se ve igual
+     en toda la app y los dos temas salen gratis: `.btn-primary` es `var(--accent)`, que vale
+     `#4f8ef7` de noche y `#2f6fe0` de día. Un hex propio acá habría sido un cuarto azul que
+     ninguna variable sigue.
+     `toggle(cls, force)` y no cuatro líneas de add/remove: así es imposible que el botón quede
+     con las dos clases puestas, que es el estado en que el fondo lo decide el orden de la hoja. */
+  b.classList.toggle('btn-primary', hay);
+  b.classList.toggle('btn-ghost', !hay);
+  /* El estado en PALABRAS, en las dos superficies. El `title` es para el mouse y NO es la
+     etiqueta: en táctil no existe —la lección que el pie de este panel ya dejó escrita—, y por
+     eso el `aria-label` lleva el texto completo y no un resumen. */
+  const et = hay ? IND_BTN_ET.si : IND_BTN_ET.no;
+  b.setAttribute('aria-label', et);
+  b.title = et;
   /* Si el panel está abierto y la cohorte de criterios se vació —el médico borró el dato que lo
      sostenía— se repinta en vez de dejar en pantalla una sección que ya no corresponde. No se
      CIERRA solo: cerrarle un panel abierto en la cara es peor que mostrarle el mensaje de que
@@ -100917,8 +100971,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261011-1419';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791739162454;                 /* eco-build-ms */
+const ECO_BUILD    = '20261011-1956';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791759404154;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -101004,7 +101058,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-1419</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-1956</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
@@ -101333,7 +101387,10 @@ document.addEventListener('DOMContentLoaded', function(){
        · Y no puede llevar `hidden`: la rama Avanzado escribe `display:''` incondicionalmente,
          que le GANA al `[hidden]{display:none}` del navegador y deja el fantasma de 44 px que
          este archivo ya pagó tres veces (`.fg[hidden]`, `.frases-panel[hidden]`, el banner).
-         El botón de al lado, `#indic-btn`, usa `hidden` justamente por eso. */
+         Ese renglón citaba a `#indic-btn` como el ejemplo que SÍ puede usar `hidden` por no
+         ser `[data-mod]`; desde el 2026-10-11 ese botón no usa `hidden` (está siempre visible
+         y lo que cambia es su estado), así que el ejemplo se retira y el invariante queda
+         igual: lo sostiene el barrido de abajo, no un ejemplo. */
     var noBtn = [], conHidden = [];
     document.querySelectorAll('[data-mod]').forEach(function(b){
       if (b.tagName !== 'BUTTON') noBtn.push(b.getAttribute('data-mod') + '/' + b.tagName);
