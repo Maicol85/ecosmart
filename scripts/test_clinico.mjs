@@ -34325,8 +34325,15 @@ caso('TC-293', 'Panel de Evidencia: el detalle largo nace COLAPSADO, hay un solo
        catorce donde hay siete —un detalle + una bibliografia por seccion— y tiraba el denominador
        y el conteo de rotulos a la vez. Misma marca, misma exclusion: el comentario de arriba
        decia «al pie hoy, pero eso no es un invariante», y efectivamente dejo de estarlo. */
+    /* ⚠️ Y DESDE EL 2026-10-11 TAMPOCO ES UN CONTROL DE DETALLE **UN BLOQUE PLEGADO DE SECCION**.
+       La estenosis mitral esta organizada en bloques por etiologia y, cuando la morfologia no esta
+       consignada, el bloque de comisurotomia nace PLEGADO bajo «Si fuera reumatica» — pedido
+       explicito de Maicol—. Ese <details> no es el control de detalle de la seccion: es contenido
+       condicional. Sin excluirlo, este contador daba NUEVE donde hay ocho y el conteo de rotulos
+       daba DOS, y las dos cosas eran la misma pieza contada de mas. Se excluye por su marca
+       «data-ind-bloque», igual que la bibliografia por la suya, y no por posicion ni por rotulo. */
     const det = [].slice.call(cu.querySelectorAll('details details'))
-      .filter(function(d){ return !d.hasAttribute('data-ind-biblio'); });
+      .filter(function(d){ return !d.hasAttribute('data-ind-biblio') && !d.hasAttribute('data-ind-bloque'); });
 
     ex.push(['DENOMINADOR: el escenario enciende varias secciones y cada una trae su control de detalle',
       secs.length >= 5 && det.length === secs.length,
@@ -34375,14 +34382,48 @@ caso('TC-293', 'Panel de Evidencia: el detalle largo nace COLAPSADO, hay un solo
       fuera.every(function(f){ return f.filas > 0 && f.cita; }),
       fuera.map(function(f,i){ return i + ':' + f.filas + 'filas' + (f.cita ? '+cita' : '-CITA'); }).join(' ')]);
 
-    ex.push(['los controles clinicos NO quedan detras del control: el medico los puede contestar sin abrir nada',
-      (function(){
-        const dentro = cu.querySelectorAll('details details [data-ind-clin]').length;
-        const total  = cu.querySelectorAll('[data-ind-clin]').length;
-        return dentro === 0;
-      })(),
-      'dentro del detalle=' + cu.querySelectorAll('details details [data-ind-clin]').length +
-      ' de ' + cu.querySelectorAll('[data-ind-clin]').length]);
+    /* ⚠️ ADAPTADO 2026-10-11, Y ES UNA EXCEPCION DECLARADA AL INVARIANTE, NO UN AFLOJE. La regla
+       sigue siendo la misma y por el mismo motivo: un control clinico escondido detras del «Ver
+       detalle» deja una seccion diciendo «Falta contestar: Sintomas» con el boton invisible, y eso
+       es una regresion funcional. Lo que cambio es que la estenosis mitral tiene un BLOQUE
+       CONDICIONAL: cuando la morfologia no esta consignada, sus controles viven detras de «Si
+       fuera reumatica», plegado — pedido explicito de Maicol, porque sin etiologia esas preguntas
+       no corresponden todavia y el aviso de la seccion dice que hay que consignarla primero.
+       Por eso la condicion pregunta DOS cosas en vez de aflojar el cero:
+         · ningun control queda detras de un «Ver detalle» («data-ind-detalle»), que es el
+           invariante original, intacto;
+         · los que quedan detras de un BLOQUE son todos de la estenosis mitral, y ese bloque esta
+           plegado SOLO porque la etiologia no esta consignada. El control negativo esta abajo: con
+           morfologia reumatica los mismos controles quedan a la vista. Sin esa segunda mitad,
+           «estan detras de un bloque» taparia un control que se escondio de verdad. */
+    const clinEnDetalle = cu.querySelectorAll('details[data-ind-detalle] [data-ind-clin]').length;
+    const clinEnBloque  = [].slice.call(cu.querySelectorAll('details[data-ind-bloque] [data-ind-clin]'));
+    const bloquesPlegados = [].slice.call(cu.querySelectorAll('details[data-ind-bloque]'));
+    const secDeNodo = n => { let x = n; while (x && x !== cu) {
+        if (x.parentNode === cu && x.tagName === 'DETAILS') { const su = x.querySelector('summary');
+          return su ? su.textContent.trim() : '?'; }
+        x = x.parentNode; } return '?'; };
+    const seccionesConClinEnBloque = Array.from(new Set(clinEnBloque.map(secDeNodo)));
+    ex.push(['ningun control clinico queda detras del «Ver detalle», y los que estan detras de un bloque son solo los del bloque condicional de la estenosis mitral',
+      clinEnDetalle === 0 &&
+      seccionesConClinEnBloque.every(t => pl(t).indexOf('estenosis mitral') > -1) &&
+      bloquesPlegados.every(d => pl((d.querySelector('summary') || {}).textContent || '').indexOf('si fuera reumatica') > -1),
+      'en el Ver detalle=' + clinEnDetalle + ' · en bloques=' + clinEnBloque.length +
+      ' de ' + cu.querySelectorAll('[data-ind-clin]').length +
+      ' · secciones=' + JSON.stringify(seccionesConClinEnBloque) +
+      ' · bloques=' + JSON.stringify(bloquesPlegados.map(d => (d.querySelector('summary')||{}).textContent))]);
+
+    /* CONTROL NEGATIVO del parrafo de arriba: con morfologia REUMATICA el bloque NO esta plegado y
+       sus controles quedan a la vista. Sin esto, el invariante se cumpliria tambien con un bloque
+       que esconde los controles SIEMPRE. */
+    __t.set('vm_morf', 'Reum\u00e1tica');
+    indicRender();
+    const clinOcultosReum = cu.querySelectorAll('details[data-ind-bloque] [data-ind-clin]').length;
+    const clinTotalReum   = cu.querySelectorAll('[data-ind-clin]').length;
+    const bloquesReum     = cu.querySelectorAll('details[data-ind-bloque]').length;
+    ex.push(['CONTROL NEGATIVO: con morfologia reumatica el bloque NO esta plegado y sus controles quedan A LA VISTA',
+      clinTotalReum > 0 && clinOcultosReum === 0 && bloquesReum === 0,
+      'ocultos=' + clinOcultosReum + ' de ' + clinTotalReum + ' · bloques plegados=' + bloquesReum]);
 
     /* ⚠️ LA CONDICION DE LA FILA QUE NO SE VERIFICO QUEDA VISIBLE, NO DETRAS DEL CONTROL.
        La primera version de esta ronda mando «r.recom.nota» al detalle, y eso revirtio tres arreglos

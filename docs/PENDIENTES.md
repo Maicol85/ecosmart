@@ -70,6 +70,83 @@ La tabla con lo que habría que hacer en cada uno está en `docs/fuentes/FUENTES
 
 ---
 
+## Evidencia de la estenosis mitral (2026-10-11) — REPORTADO y NO tocado
+
+De la tanda «estructura por etiología + textos y fuentes de la guía 2025» (`af0eb13`, `90a7630`).
+La sección del panel ahora usa la MISMA función y las MISMAS constantes que el informe, así que las
+dos divergencias que ese panel tenía quedaron cerradas. Lo que sigue abierto:
+
+### ⚠️ La app aplica a TODA etiología dos cortes que su única fuente escribió para la reumática
+
+`EM_GMEDIO_ELEVADO_MIN = 5` y `EM_GMEDIO_SIGNIF_MIN = 10` salen de la **Tabla 1 de la ASE 2023,
+folio 8**, que es un documento de **cardiopatía reumática**, y `emCategoria()` los aplica sin mirar
+`vm_morf`. La ESC/EACTS 2025 **no publica cortes de severidad de estenosis mitral** (verificado:
+sólo un enunciado en prosa del área en el folio 4680, y el gradiente mencionado como consecuencia
+con valor pronóstico, más la «low-gradient severe MS» con gradiente < 10 mmHg como grupo difícil —
+ninguna de las dos cosas es un corte).
+
+**Qué hace el panel mientras tanto:** cita a la ASE 2023 **sólo con etiología reumática** —lo fija
+TC-327— y con otra etiología publica una nota que declara la discrepancia **sin nombrar el
+documento y sin corchete**, porque nombrarlo sin bracket rompe la otra regla del registro. Se
+pierde saber cuál es el documento; no se pierde que el corte se está aplicando fuera del alcance de
+su fuente.
+
+**Decisión de Maicol:** o se acota el criterio del gradiente a la etiología reumática en
+`emCategoria` —que cambia el informe firmado de las degenerativas—, o se verifica una fuente que
+escriba esos cortes para cualquier etiología, o se deja como está con la declaración.
+
+### ⚠️ Cuatro contraindicaciones sin contestar NO cortan las filas de la tabla
+
+De las siete de la Tabla 8, la app **mide** dos (área e insuficiencia mitral) y **pregunta** cinco.
+El trombo sin contestar **sí** corta —la guía dice que el ETE se hace sistemáticamente en el
+candidato para excluir trombo auricular, folio 4680— y el área sin medición también. Las otras
+cuatro —calcificación severa o bicomisural, ausencia de fusión comisural, valvulopatía aórtica
+severa o enfermedad tricuspídea combinada severa con indicación quirúrgica, y coronariopatía que
+requiera revascularización— **no cortan**: exigirlas dejaría las cinco filas en «falta contestar»
+para TODO paciente y la sección sería muda de fábrica. El aviso del bloque 2 lo declara con el
+conteo («Quedan N contraindicaciones sin contestar, y no cortan las filas de abajo»).
+
+### ⚠️ «No apto para comisurotomía» es una derivación de la aplicación
+
+La fila 3 de la Recommendation Table 8 dice *«MV surgery is recommended in symptomatic patients who
+are **not suitable for PMC**»* y la guía **no define** «not suitable»: es un juicio del Heart Team.
+El panel lo deriva de «características clínicas desfavorables» —no de la anatomía, porque la fila 4
+rutea la anatomía subóptima con clínica favorable a comisurotomía— y **lo declara en la propia
+fila**. La alternativa sería preguntarlo como un control más.
+
+### ⚠️ La definición del «score ecocardiográfico > 8» no se pudo leer
+
+La nota ^c del folio 4682 escribe el corte y remite a su *Supplementary data online, Table S3*,
+que **no está en el archivo de la biblioteca**. El panel publica el corte **«según la guía»** y
+**no lo atribuye a Wilkins ni a ninguna escala concreta** — el artículo de Wilkins 1988 no menciona
+ningún 8, y atribuírselo (como hacía la versión anterior, con su corchete en la fila) era afirmar
+algo que ese documento no dice. Si alguna vez se consigue la Table S3, se verifica qué escala es y
+entonces la fila puede nombrarla.
+
+### ⚠️ Las dos contradicciones internas de la ESC/EACTS 2025, declaradas y no corregidas
+
+- **El operador del área**: `≤ 1,5 cm²` en el enunciado del folio 4680 y en el título de la Figura
+  14 (folio 4681), y `< 1,5 cm²` en el §10.2.3 del folio 4680. La app usa `≤`.
+- **«Varias»**: la nota ^c de la Recommendation Table 8 (folio 4682) dice «several of the
+  following» sin número, y la nota ^c de la Figura 14 (folio 4681) dice «Favourable = absence of
+  unfavourable characteristics», o sea cero. El panel no elige: con «Una» publica las dos lecturas.
+
+### Los dos lugares que siguen enunciando la regla vieja — RE-CENSADOS y NO tocados
+
+Los dos ya estaban abiertos de la tanda anterior y esta tanda **no los modificó**; se re-verificó
+que siguen igual (el diff de los dos commits toca sólo la zona del panel y el sello de versión):
+
+1. **La tabla «Referencia clínica» de la ayuda** (`abrirAyudaEco`): su fila de severidad dice «AVm —
+   **estenosis mitral severa** — ≤ 1,5 cm²», cita «**ESC/EACTS 2021**» —que tiene **cero** entradas
+   en `FUENTES.md`— y su resumen sigue hablando de «**probablemente severa por …**», categoría
+   eliminada el 2026-10-11. Ver «La pestaña Referencias enuncia la regla VIEJA» arriba.
+2. **`_labEstenSev` del Laboratorio**: hace regex sobre el valor guardado y devuelve «Severa» donde
+   el informe del mismo estudio imprime «significativa»; su comentario sigue describiendo el select
+   viejo (`sin/esclerosis/leve/moderada/severa`). Ver «El Laboratorio cuenta la EM con la escalera
+   de cuatro grados» arriba, y conviene resolverlo junto con el pendiente de la **tricúspide**.
+
+---
+
 ## EN SUMA · morfología y prótesis (2026-10-05, parte D) — declarado y NO arreglado
 
 De la tanda «EN SUMA: morfología y prótesis en una línea (pulmonar y tricúspide)». Nada de esto es

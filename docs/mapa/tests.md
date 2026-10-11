@@ -246,6 +246,31 @@ prefijo `_` porque son temporales y no infraestructura:
   contra HEAD**: se guarda el `index.html` nuevo, se hace `git show <ref>:index.html > index.html`,
   se corre, se restaura y **se verifica el md5**.
 
+- **`scripts/_probe_emevid.mjs`** (2026-10-11) — sonda de la **sección de estenosis mitral del
+  panel de Evidencia**, A/B de solo lectura con `--file`. Cinco escenas y dos cosas que vale copiar:
+  · **mide el OBJETO y el HTML pintado**. El objeto de `_indEM()` dice qué decidió la función; el
+    HTML dice qué ve el médico. Sólo el objeto deja pasar un bloque que la sección arma y el
+    renderizador no pinta; sólo el HTML no distingue «no aplica» de «no se evaluó»;
+  · **hashea las OTRAS catorce secciones** del panel (longitud + hash por sección) con un paciente
+    sembrado a propósito, que es el control negativo de «el cambio no se fue de la mitral».
+    ⚠️ La primera versión de ese control sembraba sólo dos áreas y comparaba **UNA** sección ajena:
+    decía «idénticas» sobre un conjunto de uno. Ahora informa `cuantasAjenas` al lado del veredicto.
+  Escenas: `--solo etio` (las cinco morfologías), `categoria` (la categoría del bloque 1 contra
+  `emCategoria()` y contra el informe narrativo, en las seis escenas pedidas), `clin`
+  (Ninguna / Una / Varias y su control negativo), `contra` (una contraindicación presente corta las
+  cinco filas, con control negativo), `alcance` y `movil` (1200 / 390 / 360 px).
+
+  ⚠️ **DOS FALSOS QUE DIO ESTA SONDA Y QUE SE ARREGLARON, porque los dos se repiten:**
+  1. **`abrirTodo` solo no alcanza después de `limpiarCampos`**, que cierra el cajón de la estenosis
+     mitral: el `display:block` en línea de `bloque-em-detalle` no gana al CSS del cajón cerrado. Hay
+     que abrir con **`valvDatosTog`** —el gesto del médico— y verificar la geometría justo antes de
+     medir. Es la misma trampa que `CLAUDE.md` documenta para la pasada de celular.
+  2. **La LECTURA del resultado puede ser el defecto.** Tres corridas informaron «SECCIÓN AUSENTE»
+     en las cinco morfologías y la sección estaba perfecta: el script de lectura preguntaba
+     `sec.get('seccion') is None`, y en Python eso da `None` **también cuando la clave no existe**,
+     que es justo el caso de éxito. El denominador roto estaba en el lector, no en la app ni en la
+     sonda — mirar el HTML al lado del objeto fue lo que lo delató.
+
 El procedimiento manual sigue valiendo para lo que esos dos no cubren.
 
 Lo que sí existe son los **artefactos de corridas pasadas en `/tmp`** (`mut*.py`, `mut*.sh`,

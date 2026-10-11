@@ -23,7 +23,7 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 |---|---|
 | Qué falta hacer / próximo paso | `docs/PENDIENTES.md` |
 | **Ubicar un cálculo de severidad, un corte o una banda** | `docs/mapa/valvulas.md` |
-| **Tocar el panel de Evidencia: agregar una cita o una sección** | `docs/mapa/panel-evidencia.md` |
+| **Tocar el panel de Evidencia: agregar una cita, una sección o un sub-bloque** | `docs/mapa/panel-evidencia.md` |
 | **Ver por dónde sale un dato** (informe narrativo, EN SUMA, PDF, Excel) | `docs/mapa/informe-pdf-excel.md` |
 | **Agregar o correr un caso de prueba; A/B; mutación** | `docs/mapa/tests.md` |
 | **Visor de cineloop, medición, calibración, IndexedDB** | `docs/mapa/imagenes-visor.md` |
@@ -200,6 +200,93 @@ impecable.
 ---
 
 ## Estado vigente
+
+- Al **empezar** la tanda del panel de Evidencia de la estenosis mitral (2026-10-11), `main` local y
+  `origin/main` estaban los dos en **`1e1e569`**, sin nada sin pushear —confirmado con un
+  `git fetch` de verdad—. Los **tres** commits de esa tanda (`af0eb13`, `90a7630` y este) quedan
+  locales; el push lo corre Maicol.
+  ⚠️ **El commit C de esa tanda NO es sólo documentación**, y conviene saberlo antes de revertir:
+  lleva además dos atributos en `index.html` (`data-ind-bloque` y `data-ind-detalle`) y la
+  adaptación de **TC-293**, que la SUITE COMPLETA destapó al cierre y la corrida de zona no podía
+  ver. **Revertir C solo deja TC-293 en rojo**, porque el atributo que ese caso necesita entró con
+  su adaptación mientras el bloque plegado que lo rompe entró en A. El orden de revertido seguro es
+  C → B → A.
+
+### Panel de Evidencia · estenosis mitral por etiología (2026-10-11)
+
+- **Línea base al cierre: suite 461/465 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel 434 columnas.** Los cuatro rojos son los de entrada y NO son regresiones: **TC-223**
+  (el documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**. El denominador sigue
+  siendo **465**: esta tanda no agregó casos, adaptó cuatro (TC-282, TC-293, TC-323, TC-327,
+  TC-328 — cinco).
+- **El panel usaba su propia graduación y contradecía al informe.** Graduaba por ÁREA SOLA con un
+  `_le(avm, US)` propio, no leía `em_gmedio` y tenía una nota que afirmaba que «el gradiente medio
+  NO es criterio de severidad»: desde la regla binaria eso era lo contrario de lo que la app hace.
+  Hoy la categoría sale de **`emCategoria()`**, la misma función que firma el informe, y se imprime
+  con **`EM_CAT_TXT`**. La compuerta de apertura tuvo que sumar la categoría: un gradiente de 12 con
+  área normal publicaba «Estenosis mitral significativa» en el papel y **no pintaba tarjeta**.
+- ⚠️ **TRES COMPUERTAS DE VOTO, Y DOS FALTABAN.** Un método **destildado** en «Incluir en el
+  informe» publicaba «✅ ≤ 1,5 — estenosis clínicamente significativa» tres renglones arriba de una
+  categoría que decía «Sin categoría»; y el **THP con IAo severa** publicaba ✅ sobre una fuente
+  cuyo voto la app retira —y el THP se acorta con IAo, así que el área por Hatle sale FALSAMENTE
+  BAJA: el ✅ estaba del lado que inventa la estenosis—. Se le pregunta al dueño
+  (`emMetodoIncluido`, `emThpValido`/`emThpMotivoNoVota`, `emContValido`/`emContMotivoNoVota`) y no
+  se reescribe la regla. **Lo encontró la SONDA, no la lectura.**
+- ⚠️ **PASAR DE «UNA FILA ELEGIDA» A «CADA FILA CON SU ESTADO» REABRE LA CASCADA FAIL-OPEN, Y EN
+  TRES LUGARES.** La cascada vieja hacía `return` sobre las contraindicaciones; el evaluador por
+  fila no las miraba, así que una IM moderada publicaba «Clase I · Nivel B · Aplica» al lado de
+  «Insuficiencia mitral asociada: contraindicación». Lo mismo con el **trombo sin contestar** —que
+  es el estado HABITUAL, porque `oai_trombo` vive en la pestaña ETE y en Modo Básico no existe— y
+  con el **área sin medición**. Y la contraindicación por área se calculaba **DESPUÉS** del conteo
+  que corta, así que la primera de la Tabla 8 quedaba fuera. **Al cambiar la forma de una cascada,
+  censar qué cortaba antes.**
+- **El «2 o más» de la app se eliminó con su constante y su centinela.** `clin_desfav_min` era el
+  único número de la sección que no salía de ninguna guía. El control pasó a «Ninguna / Una /
+  Varias» y con «Una» se publican LAS DOS lecturas. Su fila de `_emAssertUmbrales` salió en el mismo
+  movimiento: dejarla habría dejado un centinela comparando 2 contra 2 para siempre y afirmando —por
+  su propio mensaje de error— que hay textos que dicen «dos o más».
+- ⚠️ **DOS REGLAS DE LA CASA CHOCARON, Y LA SALIDA FUE NO NOMBRAR.** La ASE 2023 es un documento de
+  cardiopatía REUMÁTICA y no se cita con otra etiología (TC-327); pero un documento NOMBRADO en
+  prosa sin su corchete se lee como «hay una cita que no encontrás». Con etiología no reumática la
+  nota dice «un documento de cardiopatía REUMÁTICA» **sin nombre y sin bracket**, y declara que la
+  app aplica esos cortes igual. Se pierde saber cuál es; no se pierde que el corte está fuera del
+  alcance de su fuente.
+- **El «> 8» del score NO se atribuye a Wilkins, y atribuírselo era falso.** La guía escribe
+  «echocardiographic score >8» y remite a su **Supplementary Table S3, que no está en la
+  biblioteca**: la fila dice «según la guía» y cita sólo a la ESC. Lo verificado del artículo de
+  Wilkins —0 a 4 por ítem, 0 a 16 el total, y **ningún 8**— vive en la nota de guías previas.
+- **La ESC/EACTS 2025 se contradice consigo misma DOS veces, y las dos quedan declaradas:** el
+  operador del área (`≤` en el folio 4680 y en la Figura 14; `<` en el §10.2.3 del mismo folio) y
+  «varias» (nota ^c de la Recommendation Table 8, folio 4682: «several of the following»; nota ^c de
+  la Figura 14, folio 4681: «Favourable = absence of unfavourable characteristics», o sea cero).
+- **`r.bloques` es ADITIVO** y lo usa una sola sección: las otras catorce no lo devuelven. Verificado
+  por longitud y hash sobre las **cuatro** que un paciente sembrado pinta — ⚠️ la primera versión de
+  ese control negativo corría sobre **UNA** sección ajena y decía «idénticas» sobre un conjunto de
+  uno. **Informar el denominador al lado del veredicto.**
+- ⚠️ **LA SUITE COMPLETA DESTAPÓ TC-293 Y LA ZONA NO PODÍA.** El bloque plegado se contaba como un
+  control de detalle (nueve donde hay ocho, dos rótulos donde va uno) y metía 26 controles clínicos
+  detrás de un `<details>`. Se marcaron los nodos por ATRIBUTO (`data-ind-bloque`,
+  `data-ind-detalle`) y no por rótulo, y el caso pasó a preguntar DOS cosas con su control negativo:
+  ninguno detrás del «Ver detalle», y los de un bloque son sólo los de la mitral sin etiología.
+- ⚠️ **DOS FALSOS DE LA SONDA NUEVA, Y EL SEGUNDO ESTABA EN MI LECTOR.** (1) `abrirTodo` solo no
+  alcanza después de `limpiarCampos`, que cierra el cajón de la estenosis mitral: hay que abrir con
+  `valvDatosTog` y verificar la geometría JUSTO ANTES de medir —la trampa que este archivo ya
+  documenta para la pasada de celular—. (2) Tres corridas informaron «SECCIÓN AUSENTE» en las cinco
+  morfologías con la sección perfecta: mi script de lectura preguntaba `sec.get('seccion') is None`,
+  y en Python eso da `None` **también cuando la clave no existe**, que es el caso de éxito. **El
+  denominador roto puede estar en el lector, no en la app ni en la sonda.**
+- ⚠️ **ME COMÍ EL ACENTO GRAVE SEIS VECES**, todas en comentarios míos dentro del cuerpo de un caso
+  o de la sonda, con el archivo que documenta la trampa abierto delante.
+  `scripts/check_backticks.py` dio la línea exacta las seis veces. **Correrlo antes de cada commit.**
+- **Arnés: `scripts/_probe_emevid.mjs`** (A/B de solo lectura con `--file`). Mide el OBJETO y el
+  HTML pintado: sólo el objeto deja pasar un bloque que la sección arma y el renderizador no pinta;
+  sólo el HTML no distingue «no aplica» de «no se evaluó».
+- **Dónde está todo:** `docs/mapa/panel-evidencia.md` (los bloques y la sección por etiología),
+  `docs/fuentes/FUENTES.md` (los folios 4680-4682, la tabla de clases y niveles, y las rutas reales
+  en disco), `docs/PENDIENTES.md` (lo declarado y no corregido).
+
+
+### Tanda anterior — estenosis mitral binaria (2026-10-11)
 
 - Al **empezar** la tanda de la estenosis mitral binaria (2026-10-11), `main` local y `origin/main`
   estaban los dos en **`8a1d411`**, sin nada sin pushear —confirmado con un `git fetch` de verdad y
@@ -603,6 +690,7 @@ Cada bloque de arriba sale de una sección del historial. Títulos exactos para 
 |---|---|
 | Arquitectura, tamaño, Semgrep y sus tres formas de leer de menos | `## Arquitectura` |
 | Panel de Evidencia · numeración y clase/nivel | `### Tres reglas del mecanismo` |
+| Panel de Evidencia · sub-bloques de una sección | `docs/mapa/panel-evidencia.md` → `### Sub-bloques de una sección` |
 | Panel de Evidencia · bibliografía por sección | `### Bibliografía POR SECCIÓN — DECISIÓN DE MAICOL, 2026-09-29 (revierte las reglas 1 y 2)` |
 | «Verificada» = texto completo | `### Bibliografía de IM primaria y EM nativa — lo verificado y lo que NO (2026-09-30)` |
 | Reportar y no corregir contenido clínico | `### ⚠️ TRES COSAS QUE LA FUENTE PRIMARIA DESMIENTE — REPORTADAS, NO CORREGIDAS` |

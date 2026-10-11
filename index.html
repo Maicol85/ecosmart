@@ -50937,7 +50937,10 @@ function _indDetalleHTML(items){
   });
   const xs = norm.filter(function(x){ return x && String(x.txt || '').trim(); });
   if (!xs.length) return '';
-  let h = '<details style="margin-top:7px;">';
+  /* `data-ind-detalle` marca EL control de detalle, para que un caso pueda preguntar por él sin
+     contar los otros `<details>` del panel (la bibliografía y, desde el 2026-10-11, los bloques
+     plegados de una sección). Mismo motivo que `data-ind-biblio` y `data-ind-bloque`. */
+  let h = '<details data-ind-detalle="1" style="margin-top:7px;">';
   h += '<summary style="cursor:pointer;font-size:10.5px;font-weight:700;color:var(--accent2);' +
        'list-style:revert;">&#9432; Ver detalle</summary>';
   h += '<div style="font-size:11px;line-height:1.55;color:var(--text2);margin-top:6px;">';
@@ -51100,8 +51103,15 @@ function _indBloqueHTML(b){
     'font-style:italic;">' + _critEsc(b.nota) + '</div>';
   if (!c) return '';
   const marco = 'margin:12px 0 0;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);';
+  /* ⚠️ `data-ind-bloque` NO ES DECORACIÓN: es lo que distingue este `<details>` del control de
+     detalle de la sección. `_indRepintarConservando` ya los separa por su clave, pero TC-293
+     cuenta «un control de detalle por sección» y «ningún control clínico detrás del Ver detalle»,
+     y sin una marca propia este bloque se contaba como un control de detalle más — nueve donde hay
+     ocho, y dos rótulos distintos donde tiene que haber uno. Es la misma solución que
+     `data-ind-biblio` ya tiene por el mismo motivo, y se marca por ATRIBUTO y no por rótulo: el
+     rótulo es prosa y renombrarlo apagaría la distinción en silencio. */
   if (b.plegado)
-    return '<details style="' + marco + '"><summary style="cursor:pointer;font-size:11px;' +
+    return '<details data-ind-bloque="1" style="' + marco + '"><summary style="cursor:pointer;font-size:11px;' +
       'font-weight:700;color:var(--accent2);list-style:revert;">' + _critEsc(b.tit || '') +
       '</summary><div style="margin-top:4px;">' + c + '</div></details>';
   return '<div style="' + marco + '">' +
@@ -100609,8 +100619,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261011-1137';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791729475842;                 /* eco-build-ms */
+const ECO_BUILD    = '20261011-1204';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791731063590;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -100696,7 +100706,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-1137</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-1204</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -61,9 +61,14 @@ de la ESC/EACTS 2025 son de **la traducción española**. Los folios de revista 
 
 ### `esc2025vc` — ESC/EACTS 2025, valvulopatías
 Praz F, et al. *Eur Heart J* 2025;46(44):4635-4736. doi:10.1093/eurheartj/ehaf194.
-**Ruta:** `~/Desktop/EcoSmart_Biblioteca_Fuentes/04_Valvulopatias/ehaf194.pdf` (original inglés —
-**el que se cita**). La traducción SEC está en el mismo directorio como `Praz_2025_Valvulopatias.pdf`
-(ruta probable, 125 páginas, numeración propia) y **no se usa para citar**.
+**Ruta en disco, verificada el 2026-10-11:**
+`~/Desktop/EcoSmart_Biblioteca_Fuentes/04_Valvulopatias/2025 ESC:EACTS Guidelines for the management of valvular heart Disease. .pdf`
+— 102 páginas, original inglés, **el que se cita**. ⚠️ **El nombre `ehaf194.pdf` que decía este
+registro NO existe en disco**: `ehaf194` es el identificador del artículo (el DOI acaba en
+`eurheartj/ehaf194`) y se seguía usando como si fuera el archivo. El nombre real lleva dos puntos
+y un espacio antes de `.pdf`; en `bash` hay que entrecomillarlo. La traducción SEC está en el mismo
+directorio como `Praz_2025_Valvulopatias.pdf` y **no se usa para citar**.
+**Offset re-verificado contra el pie impreso** (no por aritmética): PDF 41 → 4675, PDF 48 → 4682.
 **Folio = PDF 1-based + 4634.** Esta entrada la comparten seis secciones del panel, así que no lleva
 páginas de lesión en el `full`: cada sección cita su propia tabla en su texto.
 
@@ -79,16 +84,43 @@ páginas de lesión en el `full`: cada sección cita su propia tabla en su texto
 | Tabla 7 | 4678 | — |
 | Recommendation Table 7 | 4679 | — |
 | Figura 14 | 4681 | — |
-| Tabla 8 de Recomendaciones **y** Tabla 8 de contraindicaciones de la comisurotomía, con sus notas ^a y ^b | **4682** | las contraindicaciones de la CMP; la nota ^b es la que la traducción mutiló |
+| **§10.2.1, enunciado de severidad de la EM** (PDF 46) | **4680** | *«An MVA of ≤1.5 cm2 in conjunction with clinical factors (symptoms, high risk of thromboembolism, or haemodynamic decompensation) is indicative of clinically severe MS»* — **la palabra de la guía es «clinically severe»**. En la misma columna, §10.2.3 escribe *«MVA <1.5 cm2»* con `<` y nombra la *«low-gradient severe MS»* (gradiente medio < 10 mmHg) |
+| **§10.2.1**, el ETE en el candidato (PDF 46) | **4680** | *«Transoesophageal echocardiography should be systematically performed in PMC candidates to exclude LA thrombus»* |
+| **Figura 14** y su **nota ^c** (PDF 47) | **4681** | título *«Management of clinically severe rheumatic mitral stenosis (mitral valve area ≤1.5 cm2)»*; la nota ^c lista las anatómicas [*«echocardiographic score >8, Cormier score 3 (calcification of MV of any extent as assessed by fluoroscopy), severe TR»*] y las clínicas (*«old age, history of commissurotomy, NYHA class IV, permanent AF, severe PH»*), y define *«Favourable = absence of unfavourable characteristics»* |
+| **Recommendation Table 8** (PDF 48) | **4682** | las **seis** filas de intervención en la EM reumática y degenerativa, con su clase y su nivel — ver la tabla de abajo. Su nota ^c repite las características desfavorables como *«the presence of several of the following»* y remite a la Table S3 suplementaria |
+| **§10.3.2**, la degenerativa (PDF 48) | **4682** | *«Degenerative MS is not amenable to PMC because commissural fusion is absent»*; y en el folio 4681-4682, que en el anciano con MAC *«surgery is technically challenging and high risk»*, con descalcificación extensa y parche *«in selected patients at experienced centres»* y mortalidad reportada *«<5%»* |
+| Tabla 8 de contraindicaciones de la comisurotomía, con sus notas ^a y ^b | **4682** | las **siete** contraindicaciones; la nota ^b es la que la traducción mutiló |
 | §14.4.2.1, PPM | 4698 | *«established definitions are lacking»* para el PPM mitral y tricuspídeo |
 | **Recommendation Table 17**, disfunción de prótesis | **4700** | **no publica cortes ecocardiográficos** de severidad protésica: dice «significant valve dysfunction» y deja la cuantificación a la ASE |
 
-⚠️ **NO HAY PÁGINA VERIFICADA DE SEVERIDAD DE ESTENOSIS MITRAL EN ESTA ENTRADA** (2026-10-11).
-Se buscó para poder citarla en el cuadro «Categoría EM» de Válvulas y **no está**: lo que esta
-entrada tiene de la mitral es de la **insuficiencia** (Figuras 10 y 12, §9.2.2, Tabla 6) y de la
-**comisurotomía** (Tabla 8, folio 4682, sus contraindicaciones). Por eso ese cuadro cita **sólo
-ASE 2023**. Si alguna vez se verifica la tabla de severidad de EM de este documento, se agrega
-acá con su folio y entonces el encabezado del cuadro puede nombrar a las dos.
+⚠️ **SIGUE SIN HABER UNA TABLA DE SEVERIDAD DE ESTENOSIS MITRAL EN ESTE DOCUMENTO** (re-leído el
+2026-10-11 para el panel de Evidencia). Lo que hay es un **enunciado** en prosa —folio 4680— y no
+una tabla con bandas: *«An MVA of ≤1.5 cm2 in conjunction with clinical factors (symptoms, high
+risk of thromboembolism, or haemodynamic decompensation) is indicative of clinically severe MS»*.
+Del gradiente medio sólo dice que *«reflect its consequences and have prognostic value»* y, más
+abajo en la misma columna, nombra la *«low-gradient severe MS (MVA <1.5 cm2, mean gradient
+<10 mmHg)»* como un grupo difícil de tratar — **ninguna de las dos cosas es un corte**. Por eso el
+cuadro «Categoría EM» de Válvulas cita **sólo ASE 2023** y el panel cita a la ESC para el ÁREA y a
+la ASE 2023 para las dos bandas del gradiente.
+
+⚠️ **Y EL DOCUMENTO SE CONTRADICE CONSIGO MISMO EN EL OPERADOR DEL ÁREA.** El enunciado del folio
+4680 y el título de la Figura 14 (folio 4681) dicen **`≤ 1,5 cm²`**; el §10.2.3, en la MISMA
+columna del folio 4680, escribe *«clinically severe rheumatic MS (MVA <1.5 cm2)»* con `<` estricto.
+La app usa `<=`, que coincide con dos de los tres lugares y con la Tabla 1 de la ASE 2023. **Queda
+declarado y NO corregido**: mover un operador es cambiar un corte.
+
+⚠️ **Y OTRA VEZ EN «VARIAS», A UNA PÁGINA DE DISTANCIA.** La nota ^c de la **Recommendation
+Table 8** (folio 4682) define las características desfavorables como *«the presence of **several**
+of the following»*, sin número; la nota ^c de la **Figura 14** (folio 4681) dice *«**Favourable** =
+absence of unfavourable characteristics for PMC»*, o sea CERO. Son dos definiciones distintas del
+mismo concepto en el mismo documento. El panel no elige entre ellas: con «Una» publica las filas
+que aplican en cada lectura.
+
+⚠️ **EL «echocardiographic score >8» REMITE A MATERIAL QUE NO ESTÁ.** La nota ^c del folio 4682
+escribe el corte y manda a *«Supplementary data online, Table S3»* para la definición de la escala,
+y ese material **no está en el archivo de la biblioteca**. Consecuencia para el panel: el corte se
+publica **«según la guía»** y **NO se atribuye a Wilkins ni a ninguna escala concreta**. Lo que sí
+se verificó del artículo de Wilkins 1988 está en su propia entrada.
 
 ⚠️ **El «may apply» de §9.2.2 NO es un corte nuevo.** En la Figura 10 el corte sigue siendo
 ≥ 40 mm²; el ≥ 30 mm² **cuelga de que el orificio sea elíptico** (y/o bajo flujo). Dar el ≥ 30 mm²
@@ -102,8 +134,43 @@ la misma clase y nivel (IIa · B) y sólo una es mitral: «transfemoral in the a
 alto cumple reoperación **I · C** y ViV mitral **IIa · B**: la primera tiene mejor clase, la segunda
 mejor nivel. La guía no dice cuál prevalece — **se publican las dos**.
 
-**Fe de erratas leída** (`ehag625`, EHJ, 2026-08-06): «NYHA class II–V» → «II–IV» en §9.2.4.2 (IM
-secundaria). Una segunda en *Eur J Cardiothorac Surg* 2026;68(7):ezag193 (párrafo duplicado sobre
+#### Recommendation Table 8, folio 4682 — las seis filas con su clase y su nivel
+
+Transcripción literal del original inglés, verificada el 2026-10-11. Las cinco primeras son de la
+estenosis **reumática**; la sexta es la única de la **degenerativa**.
+
+| # | Literal en inglés | Clase | Nivel |
+|---|---|---|---|
+| 1 | *«PMC is recommended in symptomatic patients in the absence of unfavourable characteristics for PMC.»* | **I** | **B** |
+| 2 | *«PMC is recommended in any symptomatic patients with a contraindication or at high risk for surgery.»* | **I** | **C** |
+| 3 | *«MV surgery is recommended in symptomatic patients who are not suitable for PMC.»* | **I** | **C** |
+| 4 | *«PMC should be considered as initial treatment in symptomatic patients with suboptimal anatomy but no unfavourable clinical characteristics for PMC.»* | **IIa** | **C** |
+| 5 | *«PMC should be considered in asymptomatic patients without unfavourable clinical and anatomical characteristics for PMC, and: • High thromboembolic risk (history of systemic embolism, dense spontaneous contrast in the LA, new-onset or paroxysmal AF), and/or • High risk of haemodynamic decompensation (SPAP >50 mmHg at rest, need for major NCS, pregnant or desire for pregnancy).»* | **IIa** | **C** |
+| 6 | *«TMVI may be considered in symptomatic patients with extensive MAC and severe MV dysfunction at experienced Heart Valve Centres with expertise in complex MV surgery and transcatheter interventions.»* | **IIb** | **C** |
+
+⚠️ **LA FILA 3 NO DEFINE «not suitable for PMC»** — es un juicio del Heart Team. El panel la deriva
+de «características clínicas desfavorables» y **lo declara en la propia fila**: sin eso, una
+derivación de la aplicación se leería como texto de la guía. No se deriva de la anatomía, porque la
+fila 4 rutea la anatomía subóptima con clínica favorable a comisurotomía y no a cirugía.
+
+#### Tabla 8, folio 4682 — las siete contraindicaciones, literales
+
+*«MVA >1.5 cm2»* ^a · *«LA thrombus»* ^b · *«More than mild MR»* · *«Severe or bi-commissural
+calcification»* · *«Absence of commissural fusion»* · *«Severe concomitant AV disease, or severe
+combined tricuspid stenosis and regurgitation requiring surgery»* · *«Concomitant CAD requiring
+bypass surgery»*.
+
+Nota ^a: *«PMC may be considered in patients with MVA of >1.5 cm2 with symptoms that cannot be
+explained by another cause and if the anatomy is favourable»*. Nota ^b: *«When the thrombus is
+located in the LA appendage, PMC may be considered in patients with contraindications to surgery or
+those without urgent need for intervention, in whom OAC can be safely given for 1–3 months,
+provided repeat TOE confirms resolution of thrombus»*.
+
+**Fe de erratas leída y CONFIRMADA** (`ehag625`, EHJ, 2026-08-06): **un solo cambio**, «NYHA class
+II–V» → «II–IV» en la §9.2.4.2 (IM secundaria ventricular). **No toca la estenosis mitral ni
+ninguna cifra que use el panel.** El PDF de la biblioteca **ya incluye la corrección**: medido el
+2026-10-11, el folio 4677 dice «NYHA class II–IV» y la cadena «II–V» no aparece en el documento.
+Una segunda errata en *Eur J Cardiothorac Surg* 2026;68(7):ezag193 (párrafo duplicado sobre
 anticoagulación en el embarazo). **Ninguna toca un umbral.**
 
 ### `aseVr2017` — ASE 2017, regurgitación valvular nativa
@@ -192,9 +259,20 @@ sus hermanas nativas a propósito, y los cortes protésicos **no son los de vál
 
 ### `eaeAseEst2009` — EAE/ASE 2009, estenosis valvular (Baumgartner)
 Baumgartner H, Hung J, Bermejo J, et al. *J Am Soc Echocardiogr* 2009;22(1):1-23.
-**⚠️ NO está en `~/Desktop/EcoSmart_Biblioteca_Fuentes/` al 2026-10-01** — ruta en disco **no
-registrada**. Se leyó, pero de dónde no quedó asentado.
+**Ruta en disco, ENCONTRADA el 2026-10-11:**
+`~/Desktop/EcoSmart_Biblioteca_Fuentes/04_Valvulopatias/2009_Echo-Assessment-of-Valve-Stenosis_note_added.pdf`
+— 23 páginas. **Folio = página del PDF, sin offset**, verificado contra el pie impreso: la p. 12
+dice «12 Baumgartner et al» y la p. 17 dice «Baumgartner et al 17». Este registro decía «NO está en
+la biblioteca — ruta no registrada» y era falso: estaba, con otro nombre.
 
+- **p. 13** — *«Hence, the use of T1/2 in degenerative calcific MS may be unreliable and should be
+  avoided»*. ⚠️ **Es más fuerte que «puede no ser confiable»: dice que DEBE EVITARSE**, y así va en
+  el bloque 3 del panel (orden de Maicol: sin suavizar).
+- **p. 12** — *«In the particular case of degenerative MS, planimetry is difficult and mostly not
+  reliable because of the orifice geometry and calcification present»*. O sea que en la
+  degenerativa calcificada las DOS fuentes de área habituales están limitadas, cada una por su
+  motivo. El THP se acorta por la disfunción diastólica del anciano (misma p. 13); la planimetría,
+  por la geometría del orificio.
 - **Tabla 9** «Recommendations for classification of mitral stenosis severity», **p. 17** — área
   valvular **> 1,5 cm² leve · 1,0-1,5 cm² moderada · < 1,0 cm² SEVERA**; gradiente medio
   < 5 / 5-10 / > 10 mmHg y presión pulmonar < 30 / 30-50 / > 50 mmHg, los dos como **signos de
@@ -229,7 +307,7 @@ Es un **escaneo de 1988**: las tablas son imágenes, hay que renderizar.
 ### `asePandian2023` — ASE 2023, cardiopatía reumática
 Pandian NG, Kim JK, Arias-Godinez JA, et al. *J Am Soc Echocardiogr* 2023;36(1):3-28.
 doi:10.1016/j.echo.2022.10.009.
-**Ruta probable:** `.../04_Valvulopatias/Reumatic Disease.pdf` (nombre del archivo tal cual, con la
+**Ruta:** `.../04_Valvulopatias/Reumatic Disease.pdf` (nombre del archivo tal cual, con la
 errata «Reumatic»). **Folio = PDF + 2.**
 
 - **Tabla 1** «Classification of Mitral Stenosis Severity», **p. 8** — área valvular
