@@ -30826,6 +30826,82 @@ caso('TC-281', 'El PDF firmado no imprime una medicion ilegible, y borra la fila
 const EM_IDS = "['em_grado','vm_morf','avm_plan','avm_ete','avm_cont','avm_thp','psap_calc'," +
   "'wilkins_movilidad','wilkins_engrosamiento','wilkins_calcificacion','wilkins_subvalvular'," +
   "'oai_trombo','im_grado','peso','talla']";
+/* ══ HELPERS COMPARTIDOS DE LA SECCION DE ESTENOSIS MITRAL DEL PANEL ════════════════════════
+   UN SOLO DUENO, y por eso son una constante y no una copia en cada caso: TC-282 y TC-323
+   preguntan los dos por las filas de la Recommendation Table 8, y dos copias de este helper es
+   como los dos casos empiezan a medir estructuras distintas de la misma seccion. Se interpolan
+   con ${EM_REC_HELPERS} dentro del cuerpo del caso, que necesita tener definidos «sec» y «pl». */
+const EM_REC_HELPERS = `
+    /* ⚠️ ADAPTADO EL 2026-10-11 — LA SECCION YA NO PUBLICA UN VEREDICTO UNICO. Hasta esa tanda
+       «_indEM().recom» era «la fila elegida de la tabla» con su clase, y este caso preguntaba por
+       esa clase. Hoy la seccion muestra LAS CINCO filas de la Recommendation Table 8, cada una con
+       su estado —aplica / no aplica / contraindicada / falta contestar— y «recom» quedo SOLO para
+       la alarma de trombo y para el umbral que no carga. El motivo del cambio: elegir una fila
+       exigia decidir cuantas caracteristicas desfavorables son «varias», y la nota ^c del folio
+       4682 dice «several of the following» sin dar numero — o sea que el veredicto se apoyaba en
+       un numero de la aplicacion.
+       QUE SE CONSERVA Y QUE CAMBIA. Las afirmaciones de este caso siguen siendo las mismas —«un
+       score de 8 exacto es favorable», «el riesgo alto mantiene la via percutanea y el no alto
+       manda a cirugia», «un score desfavorable NO contraindica»— y se leen de la fila que aplica
+       en vez de del veredicto. «rec()» AGREGA aqui lo que la seccion ya no agrega: es un helper
+       del CASO y no una regla de la app, y por eso lleva este comentario. «faltan» sale de las
+       filas en «ask», que es donde el panel pide hoy cada dato: una pregunta sin contestar se ve
+       donde esta la pregunta. */
+    const grupos = () => { const s = sec(); if (!s) return [];
+      let g = [];
+      (s.bloques || []).forEach(b => { (b.grupos || []).forEach(x => { g.push(x) }) });
+      return g; };
+    const grupo = re => { const g = grupos().filter(x => re.test(x.tit || ''))[0];
+      return g ? (g.filas || []) : []; };
+    /* Las cinco filas de la tabla, EN EL ORDEN DE «EM_REC_ORDEN» (r1..r5), que es el de la tabla
+       impresa. Se indexan por posicion y no por rotulo: el rotulo es prosa y renombrarlo no puede
+       apagar un caso en silencio. La condicion de denominador de abajo exige que sean cinco. */
+    const filasRec = () => grupo(/Filas de la tabla/);
+    const bloq = () => { const sx = sec(); return (sx && (sx.bloques || [])[0]) || null; };
+    const recTxt = i => { try { return EM_REC_2025[EM_REC_ORDEN[i]].t } catch (e) { return 'SIN TEXTO' } };
+    const fRec = i => filasRec()[i] || null;
+    const aplicaN = i => { const f = fRec(i); return !!(f && f.marca === 'ok'); };
+    const claseN = i => { const f = fRec(i); return f ? f.val : 'NO HAY FILA'; };
+    const todasFilas = () => { const s = sec(); if (!s) return [];
+      let fs = (s.filas || []).slice();
+      grupos().forEach(g => { fs = fs.concat(g.filas || []) });
+      return fs; };
+    const rec = () => { const s = sec(); if (!s) return null;
+      if (s.recom) return s.recom;
+      const fs = filasRec();
+      const con = fs.filter(f => f.marca === 'alarm');
+      if (con.length) return { tipo:'no', tit:'Contraindicada', clase: con[0].val, lbl: con[0].lbl,
+                               txt: 'Contraindicada: ' + ((bloq() || {}).aviso || 'sin aviso de bloque') };
+      const ok = fs.filter(f => f.marca === 'ok');
+      /* El TEXTO COMPLETO de la fila sale de EM_REC_2025 por su posicion en EM_REC_ORDEN, que es
+         el orden de la tabla impresa. Asi las condiciones de abajo siguen midiendo la
+         TRANSCRIPCION de la guia —«comisurotomia mitral percutanea RECOMENDADA» contra «cirugia de
+         la valvula mitral RECOMENDADA»— y no el rotulo corto de una linea, que es prosa de
+         interfaz y podria renombrarse sin que nada se enterara. */
+      if (ok.length) return { tipo:'ind', clase: ok[0].val, lbl: ok[0].lbl,
+                              txt: recTxt(fs.indexOf(ok[0])),
+                              todas: ok.map(f => f.val), cuantas: ok.length };
+      /* ⚠️ EL «tipo» SALE DE LAS CINCO FILAS DE LA TABLA Y NO DE TODAS LAS FILAS DE LA SECCION, y
+         la primera version de este helper lo saco de todas: como la estructura nueva PREGUNTA
+         cinco cosas que antes no preguntaba —Cormier y las cuatro contraindicaciones que la app no
+         mide—, siempre hay alguna fila en «ask», asi que «falta contestar» ganaba sobre «ninguna
+         fila aplica» en TODO escenario. El caso media «falta» donde la seccion dice, con razon,
+         que ninguna fila de la tabla se cumple. Las filas de la tabla ya traen su propio «ask»
+         cuando les falta una condicion, que es lo que hay que leer. */
+      const faltaFila = fs.filter(f => f.marca === 'ask');
+      const falt = todasFilas().filter(f => f.marca === 'ask');
+      if (!faltaFila.length) return { tipo:'no', tit:'ninguna fila aplica',
+        txt: fs.map(f => f.lbl + ' = ' + (f.nota || '?')).join(' | ') };
+      /* «txt» EN LAS CUATRO RAMAS: varias condiciones de abajo leen «.txt» y la primera version de
+         este helper no lo ponia en las ramas sin fila que aplique — el caso moria con un TypeError
+         antes de evaluar una sola condicion, o sea 0/1 sin decir por que. */
+      if (falt.length) return { tipo:'falta',
+        faltan: falt.map(f => f.lbl + ' :: ' + (f.nota || '')),
+        txt: 'falta contestar: ' + falt.map(f => f.lbl).join('; ') };
+      return { tipo:'no', tit:'ninguna fila aplica',
+        txt: fs.map(f => f.lbl + ' = ' + (f.nota || '?')).join(' | ') }; };
+`;
+
 const EM_CLAVES = "['em.score','em.trombo','em.sintomas','em.clin','em.riesgo','em.embolico','em.decomp']";
 
 caso('TC-282', 'Estenosis mitral: el doble mecanismo lee del ETE o se contesta, y la lectura manda', `
@@ -30845,7 +30921,7 @@ caso('TC-282', 'Estenosis mitral: el doble mecanismo lee del ETE o se contesta, 
     const clic = (k, v) => { const b = document.querySelector('#indic-cuerpo [data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
       if (!b) { sinClic.push(k + '=' + v); return false; } b.click(); return true; };
     const sec = () => window._indEM();
-    const rec = () => { const s = sec(); return (s && s.recom) ? s.recom : null; };
+    ${EM_REC_HELPERS}
     const clase = () => { const r = rec(); return r ? (r.tipo + ' / ' + (r.clase || r.tit)) : 'sin recomendacion'; };
     /* Los textos del panel llevan acentos y los del caso no: se normalizan LOS DOS LADOS.
        Escrito crudo, pide('clinicas') no matchea «clinicas» con tilde y el caso acusa a la
@@ -30853,12 +30929,13 @@ caso('TC-282', 'Estenosis mitral: el doble mecanismo lee del ETE o se contesta, 
     const pl = s => String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
     const pide = txt => { const r = rec(); return !!r && Array.isArray(r.faltan) &&
       r.faltan.some(f => pl(f).indexOf(pl(txt)) > -1); };
-    const fila = lbl => { const s = sec();
-      return (s && s.filas || []).filter(f => f.lbl.indexOf(lbl) > -1)[0] || null; };
-    /* Los controles del Grupo 1 salen en filas y los del Grupo 2 en clinica: para contar cuantos
-       hay que contestar hacen falta las dos listas. */
-    const ctrls = () => { const s = sec(); if (!s) return [];
-      return (s.filas || []).concat(s.clinica || []).filter(f => !!f.ctrl).map(f => f.ctrl.clave); };
+    /* ⚠️ «fila» Y «ctrls» BARREN LOS BLOQUES, no solo «s.filas». Desde la estructura por etiologia
+       el bloque 1 vive en «s.filas» y el resto en «s.bloques[*].grupos[*].filas»: la version
+       anterior de estos dos helpers miraba «s.filas» y «s.clinica», y con la estructura nueva
+       devolvia null para el score, el trombo y los siete controles clinicos — o sea que el caso
+       habria medido «no hay fila» sobre filas que estan ahi. */
+    const fila = lbl => todasFilas().filter(f => f.lbl.indexOf(lbl) > -1)[0] || null;
+    const ctrls = () => todasFilas().filter(f => !!f.ctrl).map(f => f.ctrl.clave);
     const wilk = (m, e, c, s) => ({ wilkins_movilidad:String(m), wilkins_engrosamiento:String(e),
       wilkins_calcificacion:String(c), wilkins_subvalvular:String(s) });
     const W8  = wilk(2, 2, 2, 2);   // total 8  -> favorable, el borde exacto
@@ -30885,8 +30962,18 @@ caso('TC-282', 'Estenosis mitral: el doble mecanismo lee del ETE o se contesta, 
       // ── DENOMINADOR: sin nada del ETE la seccion trae los SIETE controles ──
       esc({}, {});
       const c0 = ctrls();
-      ex.push(['DENOMINADOR: sin datos del ETE hay SIETE controles contestables, los siete esperados',
-        c0.length === 7 && ${EM_CLAVES}.every(k => c0.indexOf(k) > -1),
+      /* ADAPTADO 2026-10-11: SON DOCE Y NO SIETE. La estructura por etiologia convirtio en
+         PREGUNTAS cinco cosas que antes solo se nombraban en una nota gris al pie de una
+         recomendacion de Clase I: la calcificacion de Cormier 3 —que la guia define por
+         fluoroscopia y la app no mide— y las cuatro contraindicaciones de la Tabla 8 que el
+         estudio no recoge (calcificacion severa o bicomisural, ausencia de fusion comisural,
+         valvulopatia aortica severa o enfermedad tricuspidea combinada severa con indicacion
+         quirurgica, y coronariopatia que requiera revascularizacion). Las siete viejas siguen
+         estando, y por eso se exigen las dos cosas: las doce y que las siete originales no se
+         hayan perdido en el camino. */
+      ex.push(['DENOMINADOR: sin datos del ETE hay DOCE controles contestables — los siete de antes mas los cinco que antes solo se nombraban en una nota',
+        c0.length === 12 && ${EM_CLAVES}.every(k => c0.indexOf(k) > -1) &&
+        ['em.cormier','em.calcsev','em.fusion','em.aovt','em.cad'].every(k => c0.indexOf(k) > -1),
         'controles=' + c0.join(',')]);
 
       /* ── CAMINO (a) DEL SCORE: con los cuatro criterios puntuados en ETE se LEE, y el control
@@ -31021,9 +31108,21 @@ caso('TC-282', 'Estenosis mitral: el doble mecanismo lee del ETE o se contesta, 
          ordenar la cascada por lo que se reporto y no por lo que decide. */
       escGrado({ avm_plan:'2.0', oai_trombo:'si' }, {});
       const rArea = rec();
-      ex.push(['con el area por encima del corte la contraindicacion del area gana sobre el trombo',
-        !!rArea && rArea.tipo === 'no' && pl(rArea.tit).indexOf('fuera del alcance') > -1,
-        rArea ? rArea.tipo + ' / ' + rArea.tit : 'sin recomendacion']);
+      /* ADAPTADO 2026-10-11: YA NO HAY UNA QUE «GANE», Y ES UN INVARIANTE MAS FUERTE. La cascada
+         vieja tenia que elegir un titular, asi que el area tapaba al trombo; hoy las dos se ven a
+         la vez y en el lugar que a cada una le toca: el area como contraindicacion PRESENTE en la
+         lista de la Tabla 8, el trombo en la alarma —que pide anticoagulacion por su cuenta— y las
+         cinco filas de la tabla en «Contraindicada». La afirmacion vieja empujaba a ordenar una
+         cascada que ya no existe; la nueva exige que NINGUNA de las dos desaparezca. */
+      const fArea = fila('Área valvular mitral >');
+      const filasArea = filasRec();
+      ex.push(['con el area por encima del corte Y trombo confirmado se ven LAS DOS: el area como contraindicacion presente, el trombo en la alarma, y las cinco filas contraindicadas',
+        !!rArea && rArea.tipo === 'alarma' && pl(rArea.tit).indexOf('trombo confirmado') > -1 &&
+        !!fArea && fArea.marca === 'alarm' &&
+        filasArea.length === 5 && filasArea.every(f => f.marca === 'alarm'),
+        (rArea ? rArea.tipo + ' / ' + rArea.tit : 'sin recomendacion') +
+        ' · fila area=' + (fArea ? fArea.marca + ' ' + fArea.val : 'NO HAY') +
+        ' · filas=' + filasArea.map(f => f.marca).join(',')]);
 
       /* ── ⚠️ SIN AREA MEDIDA NO SE PUBLICA UNA CLASE I ──
          Con medidas vacio, avmMax queda en null y la comprobacion de la PRIMERA
@@ -31070,10 +31169,17 @@ caso('TC-282', 'Estenosis mitral: el doble mecanismo lee del ETE o se contesta, 
       const imLeve = clase();
       esc(Object.assign({ im_grado:'2' }, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN_TROMBO));
       const rImMod = rec(), fIm = fila('Insuficiencia mitral asociada');
+      /* ADAPTADO 2026-10-11: el titular «Fuera del alcance de la tabla» ya no existe. Con una
+         contraindicacion presente las cinco filas pasan a «Contraindicada» (marca alarm) y el
+         bloque publica un aviso que la nombra. La afirmacion clinica no cambio: grado 1 no
+         contraindica y grado 2 si, porque el corte es «mas que leve» y no «moderada o mas». */
       ex.push(['una insuficiencia mitral LEVE no contraindica y una MODERADA si (el corte es «mas que leve»)',
         imLeve === 'ind / Clase I · Nivel B' && !!rImMod && rImMod.tipo === 'no' &&
-        pl(rImMod.tit).indexOf('fuera del alcance') > -1 && !!fIm && fIm.marca === 'alarm',
-        'leve: ' + imLeve + ' · moderada: ' + clase() + ' · fila=' + (fIm ? fIm.marca : '?')]);
+        pl(rImMod.tit).indexOf('contraindicada') > -1 &&
+        pl((bloq() || {}).aviso || '').indexOf('insuficiencia mitral') > -1 &&
+        !!fIm && fIm.marca === 'alarm',
+        'leve: ' + imLeve + ' · moderada: ' + clase() + ' · fila=' + (fIm ? fIm.marca : '?') +
+        ' · aviso=' + String((bloq() || {}).aviso || 'SIN AVISO').slice(0, 70)]);
 
       /* ── ⚠️ DOS CONTRAINDICACIONES SE REPORTAN JUNTAS, NO LA PRIMERA DE LA CASCADA ──
          Con un area por encima del corte Y una insuficiencia mitral moderada, la version anterior
@@ -31083,29 +31189,50 @@ caso('TC-282', 'Estenosis mitral: el doble mecanismo lee del ETE o se contesta, 
          porque pide anticoagulacion por su cuenta aunque el procedimiento ya este descartado. */
       escGrado({ avm_plan:'2.0', im_grado:'3' }, {});
       const rDos = rec();
+      /* ⚠️ EL AVISO SE CAPTURA **ACA**, no en la condicion: la escena siguiente cambia el estado
+         vivo y bloq() releeria el del paciente con trombo. Es la misma trampa que el comentario de
+         pide() ya documenta en este caso. */
+      const avDos = pl((function(){ const b = bloq(); return b ? b.aviso : '' })());
       escGrado({ avm_plan:'2.0', im_grado:'3', oai_trombo:'si' }, {});
       const rDosTr = rec();
-      ex.push(['con dos contraindicaciones el titular nombra las DOS, y un trombo que coexiste se nombra aparte',
-        !!rDos && pl(rDos.txt).indexOf('dos contraindicaciones') > -1 &&
-        pl(rDos.txt).indexOf('areas medidas supera') > -1 && pl(rDos.txt).indexOf('mas que leve') > -1 &&
-        !!rDosTr && pl(rDosTr.nota || '').indexOf('trombo confirmado') > -1 &&
-        pl(rDosTr.nota).indexOf('anticoagulacion') > -1,
-        (rDos ? rDos.txt.slice(0, 120) : 'null') + ' || nota con trombo: ' + (rDosTr ? (rDosTr.nota || 'SIN NOTA').slice(0, 70) : 'null')]);
+      /* ADAPTADO 2026-10-11: las dos se nombran en el AVISO DEL BLOQUE y no en un titular, y la
+         afirmacion de fondo es la misma —un paciente con dos contraindicaciones no puede recibir
+         un motivo que nombre una sola—. El conteo va en el texto («2 contraindicaciones») y las
+         dos aparecen por su rotulo. Con trombo confirmado ADEMAS, la alarma lo nombra con su
+         conducta propia: anticoagular, aunque el procedimiento ya este descartado. */
+      ex.push(['con dos contraindicaciones el aviso del bloque nombra las DOS, y un trombo que coexiste va en la alarma con su conducta propia',
+        avDos.indexOf('2 contraindicaciones') > -1 &&
+        avDos.indexOf('area valvular mitral') > -1 && avDos.indexOf('insuficiencia mitral') > -1 &&
+        !!rDosTr && pl(rDosTr.tit || '').indexOf('trombo confirmado') > -1 &&
+        pl((rDosTr.nota || '') + ' ' + (rDosTr.txt || '')).indexOf('anticoagula') > -1,
+        'aviso=' + avDos.slice(0, 120) + ' || con trombo: ' + (rDosTr ? rDosTr.tit : 'null')]);
 
       /* ── EL DISPARADOR DEL ASINTOMATICO: PAPs > 50 mmHg, POR LOS DOS LADOS ──
          50 exactos NO disparan (el operador es >, no >=) y 51 si. Es el unico valor que separa el
          umbral correcto del error plausible. */
       const ASINT = { 'em.sintomas':'no', 'em.clin':'fav', 'em.score':'fav', 'em.trombo':'no', 'em.embolico':'no', 'em.decomp':'no' };
+      /* ADAPTADO 2026-10-11: SE PREGUNTA POR **LA FILA DEL ASINTOMATICO** (r5, la quinta de la
+         tabla) Y NO POR EL VEREDICTO AGREGADO. Con la estructura nueva cada fila tiene su propio
+         estado, y en este escenario la segunda fila —«cualquier sintomatico con contraindicacion o
+         riesgo alto»— queda en «falta contestar» porque nadie contesto el riesgo quirurgico: eso
+         es correcto y no dice nada sobre el disparador de la PAPs. Preguntarle al agregado medía
+         esa otra fila. El corte sigue probandose por los DOS lados, que es lo que separa el > del
+         >=. */
       esc({ psap_calc:'50' }, ASINT);
-      const ps50 = clase();
+      const r5_50 = fRec(4), ps50 = r5_50 ? r5_50.marca + ' ' + r5_50.nota.slice(0, 20) : 'NO HAY';
       esc({ psap_calc:'51' }, ASINT);
-      const ps51 = rec();
-      ex.push(['PAPs de 50 mmHg exactos NO alcanzan el disparador y 51 si',
-        ps50.indexOf('no /') === 0 && !!ps51 && ps51.tipo === 'ind' && ps51.clase === 'Clase IIa · Nivel C',
-        'con 50: ' + ps50 + ' · con 51: ' + clase()]);
-      ex.push(['y la nota dice cual de los disparadores esta presente',
-        !!ps51 && pl(ps51.nota || '').indexOf('paps') > -1,
-        (ps51 ? (ps51.nota || 'SIN NOTA') : 'null').slice(0, 110)]);
+      const r5_51 = fRec(4), fPs51 = fila('PSAP estimada');
+      ex.push(['PAPs de 50 mmHg exactos NO alcanzan el disparador de la fila del asintomatico y 51 si',
+        !!r5_50 && r5_50.marca === 'none' &&
+        !!r5_51 && r5_51.marca === 'ok' && r5_51.val === 'Clase IIa · Nivel C',
+        'con 50: ' + ps50 + ' · con 51: ' + (r5_51 ? r5_51.marca + ' ' + r5_51.val : 'NO HAY')]);
+      /* ADAPTADO: el disparador presente lo dice SU PROPIA FILA y no una nota al pie de la
+         recomendacion. Es donde el medico lo busca —al lado del valor medido— y es la unica
+         superficie que puede nombrar el umbral sin repetirlo en prosa. */
+      ex.push(['y la fila de la PAPs dice que ES el disparador, con su umbral',
+        !!fPs51 && fPs51.marca === 'ok' && pl(fPs51.nota).indexOf('disparador de descompensacion') > -1 &&
+        fPs51.nota.indexOf('50') > -1,
+        (fPs51 ? fPs51.marca + ' ' + fPs51.val + ' · ' + fPs51.nota : 'NO HAY FILA').slice(0, 130)]);
 
       /* ── ⚠️ EL DISPARADOR DE DESCOMPENSACION SON TRES COSAS UNIDAS POR «y/o», NO UNA ──
          La fila dice «PAPs en reposo > 50 mmHg, necesidad de cirugia mayor no cardiaca, embarazo o
@@ -31114,38 +31241,70 @@ caso('TC-282', 'Estenosis mitral: el doble mecanismo lee del ETE o se contesta, 
          Con la PAPs NORMAL, el disparador tiene que salir del control. */
       esc({ psap_calc:'30' }, Object.assign({}, ASINT, { 'em.decomp':'si' }));
       const rDec = rec();
+      /* ADAPTADO 2026-10-11: la fila r5 y el control que la dispara, en vez del veredicto y su
+         nota. La afirmacion no cambio: con la PAPs normal el disparador tiene que salir del
+         control, y el control nombra las tres cosas que la guia une con «o». */
+      const r5Dec = fRec(4), fDec = fila('Otro disparador de descompensacion') || fila('Otro disparador');
       ex.push(['con la PAPs normal, el otro disparador de descompensacion alcanza para la fila del asintomatico',
-        !!rDec && rDec.tipo === 'ind' && rDec.clase === 'Clase IIa · Nivel C' &&
-        pl(rDec.nota || '').indexOf('embarazo') > -1,
-        clase() + ' · ' + (rDec ? (rDec.nota || 'SIN NOTA').slice(0, 95) : 'null')]);
+        !!r5Dec && r5Dec.marca === 'ok' && r5Dec.val === 'Clase IIa · Nivel C' &&
+        !!fDec && fDec.marca === 'ok' && pl(fDec.nota).indexOf('embarazo') > -1,
+        (r5Dec ? r5Dec.marca + ' ' + r5Dec.val : 'NO HAY r5') + ' · control=' +
+        (fDec ? fDec.marca + ' ' + fDec.nota.slice(0, 70) : 'NO HAY CONTROL')]);
       /* El escenario sin contestar SE CONSTRUYE sin la clave, no pasandola en null: clic(k, null)
          busca un boton con data-ind-val="null" y lo unico que prueba es que no existe. */
       esc({ psap_calc:'30' }, { 'em.sintomas':'no', 'em.clin':'fav', 'em.score':'fav',
                                 'em.trombo':'no', 'em.embolico':'no' });
       const rSinDec = rec();
-      ex.push(['y sin contestarlo NO se niega la fila: se pide el disparador que falta',
+      /* ADAPTADO: la fila r5 queda en «falta contestar» —no en «no aplica»— y el control del
+         disparador sigue sin contestar en su propio renglon. Confundir los dos estados es publicar
+         una negacion sobre una pregunta que nadie contesto. */
+      const r5SinDec = fRec(4), fSinDec = fila('Otro disparador');
+      ex.push(['y sin contestarlo NO se niega la fila: queda en falta contestar y el control lo pide',
+        !!r5SinDec && r5SinDec.marca === 'ask' && !!fSinDec && fSinDec.marca === 'ask' &&
         !!rSinDec && rSinDec.tipo === 'falta' && pide('descompensacion'),
-        clase() + ' · faltan=' + JSON.stringify(rSinDec ? rSinDec.faltan : null)]);
+        (r5SinDec ? r5SinDec.marca : 'NO HAY r5') + ' · control=' + (fSinDec ? fSinDec.marca : '?') +
+        ' · faltan=' + JSON.stringify(rSinDec ? rSinDec.faltan : null).slice(0, 90)]);
 
       /* ── Y LA NEGACION NO AFIRMA UNA PAPs QUE NO SE MIDIO ──
          El texto decia «con la PAPs por debajo de 50 mmHg» aunque no estuviera estimada, y lo
          desmentia una nota en gris en la linea siguiente. */
       esc({}, ASINT);
       const rNeg = rec();
-      ex.push(['sin PAPs estimada, la negacion lo dice en vez de afirmar que esta por debajo del corte',
-        !!rNeg && rNeg.tipo === 'no' && pl(rNeg.txt).indexOf('sin paps estimada') > -1 &&
-        pl(rNeg.txt).indexOf('por debajo de') === -1,
-        (rNeg ? rNeg.txt : 'null').slice(0, 140)]);
+      /* ADAPTADO 2026-10-11: la afirmacion que no se puede hacer es la MISMA, y ahora vive en la
+         fila de la PAPs: sin estimar dice «sin estimar» con marca «ask», y NO «no elevada» ni
+         «por debajo de 50». La fila r5 queda en «no aplica» porque los otros dos disparadores se
+         contestaron con «no» —eso lo sostienen ellos, no la PAPs—. */
+      const fNeg = fila('PSAP estimada'), r5Neg = fRec(4);
+      ex.push(['sin PAPs estimada, su fila lo dice en vez de afirmar que esta por debajo del corte',
+        !!fNeg && fNeg.marca === 'ask' && pl(fNeg.nota).indexOf('sin estimar') > -1 &&
+        pl(fNeg.nota).indexOf('no elevada') === -1 && pl(fNeg.nota).indexOf('por debajo') === -1 &&
+        !!r5Neg && r5Neg.marca === 'none',
+        (fNeg ? fNeg.marca + ' ' + fNeg.val + ' · ' + fNeg.nota : 'NO HAY FILA').slice(0, 120) +
+        ' · r5=' + (r5Neg ? r5Neg.marca : '?')]);
 
       /* ── LO QUE LA APP NO PUEDE EVALUAR SE NOMBRA EN LA RECOMENDACION ──
          Cuatro de las siete contraindicaciones no tienen campo. Dejarlas solo en el pie de seccion
          hace que la indicacion se lea como si estuvieran descartadas. */
       esc(W8, Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN_TROMBO));
       const rNom = rec();
-      ex.push(['la recomendacion nombra las cuatro contraindicaciones que la app no registra',
-        !!rNom && pl(rNom.nota || '').indexOf('no las registra esta aplicacion') > -1 &&
-        pl(rNom.nota).indexOf('fusion comisural') > -1,
-        (rNom ? (rNom.nota || 'SIN NOTA') : 'null').slice(0, 130)]);
+      /* ADAPTADO 2026-10-11, Y ES UN INVARIANTE MAS FUERTE: las cuatro ya no se NOMBRAN en una
+         nota gris al pie de una recomendacion de Clase I — son cuatro PREGUNTAS con su propio
+         renglon y su propio estado. Nombrarlas en una nota dejaba la indicacion leyendose como si
+         estuvieran descartadas, que es lo que la version anterior declaraba y no resolvia. Ahora
+         se exige que existan como control y que, sin contestar, se vean en «ask». */
+      const gContra = grupo(/Contraindicaciones/);
+      const clavesContra = gContra.filter(f => !!f.ctrl).map(f => f.ctrl.clave);
+      ex.push(['las cuatro contraindicaciones que la app no registra son PREGUNTAS con su estado, no una nota al pie',
+        /* Las CUATRO, no todos los controles del grupo: el trombo tambien es un control de esta
+           lista y en este escenario esta contestado con «no», asi que exigirle «ask» media otra
+           cosa — era el unico motivo por el que esta condicion no pasaba. */
+        ['em.calcsev','em.fusion','em.aovt','em.cad'].every(k => clavesContra.indexOf(k) > -1) &&
+        gContra.filter(f => f.ctrl && ['em.calcsev','em.fusion','em.aovt','em.cad'].indexOf(f.ctrl.clave) > -1)
+               .every(f => f.marca === 'ask') &&
+        gContra.some(f => pl(f.lbl).indexOf('fusion comisural') > -1),
+        'claves=' + clavesContra.join(',') +
+        ' · marcas=' + gContra.filter(f => !!f.ctrl).map(f => f.marca).join(',') +
+        ' · fusion=' + gContra.some(f => pl(f.lbl).indexOf('fusion comisural') > -1)]);
 
       // ── AISLAMIENTO: cerrar borra las siete respuestas, y reabrir no las trae ──
       esc({}, { 'em.sintomas':'si', 'em.clin':'fav', 'em.riesgo':'alto', 'em.score':'desfav',
@@ -31279,8 +31438,17 @@ caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declara
     const sinClic = [];
     const clic = (k, v) => { const b = document.querySelector('#indic-cuerpo [data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
       if (!b) { sinClic.push(k + '=' + v); return false; } b.click(); return true; };
-    const rec = () => { const s = window._indEM(); return (s && s.recom) ? s.recom : null; };
+    const sec = () => window._indEM();
     const pl = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    ${EM_REC_HELPERS}
+    const clase = () => { const r = rec(); return r ? (r.tipo + ' / ' + (r.clase || r.tit)) : 'sin recomendacion'; };
+    /* Las cinco filas de la tabla de UNA SECCION CAPTURADA, para condiciones que comparan dos
+       escenas: filasRec() relee el estado vivo y daria el de la ultima. */
+    const filasRecDe = sx => { if (!sx) return [];
+      const g = [];
+      (sx.bloques || []).forEach(b => { (b.grupos || []).forEach(x => { g.push(x) }) });
+      const f = g.filter(x => /Filas de la tabla/.test(x.tit || ''))[0];
+      return f ? (f.filas || []) : []; };
     const B = { avm_plan:'1.2', peso:'80', talla:'180' };
     const esc = (campos, marcas) => { indicCerrar(); limpiar(); set(Object.assign({}, B, campos));
       indicAbrir(); Object.keys(marcas || {}).forEach(k => clic(k, marcas[k])); };
@@ -31302,24 +31470,48 @@ caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declara
       ex.push(['DENOMINADOR: con etiologia REUMATICA y el mismo AVm la cascada SI publica conducta',
         !!rReu && rReu.tipo === 'ind' && rReu.clase === 'Clase I \u00b7 Nivel B',
         rReu ? (rReu.tipo + ' / ' + rReu.clase) : 'null']);
-      ex.push(['con CALCIFICADA la cascada de comisurotomia NO se ofrece, y el motivo es la fusion comisural',
-        !!rCal && rCal.tipo === 'no' && pl(rCal.txt).indexOf('no es reumatica') > -1 &&
-        pl(rCal.txt).indexOf('fusion comisural') > -1,
-        rCal ? (rCal.tipo + ' / ' + String(rCal.txt).slice(0, 110)) : 'null']);
+      /* ADAPTADO 2026-10-11: la calcificada ya no recibe un titular que la EXCLUYA — recibe su
+         propio BLOQUE 3, que es lo que la guia escribe para ella: no hay comisurotomia porque no
+         hay fusion comisural, y la unica fila de la tabla para esta etiologia es el implante
+         transcateter (Clase IIb · Nivel C). El bloque 2 no se pinta, que es el invariante que la
+         condicion vieja perseguia por la via del texto. */
+      const bCal = (secCal && (secCal.bloques || [])[0]) || null;
+      ex.push(['con CALCIFICADA no se ofrece el bloque de comisurotomia: se pinta el de la degenerativa, con la fusion comisural como motivo',
+        !!bCal && pl(bCal.tit).indexOf('degenerativa') > -1 &&
+        (bCal.lineas || []).some(l => pl(typeof l === 'string' ? l : l.txt).indexOf('fusion comisural') > -1) &&
+        (secCal.bloques || []).every(b => pl(b.tit).indexOf('comisurotomia percutanea o cirugia') === -1),
+        bCal ? (bCal.tit + ' / ' + (bCal.lineas || []).map(l => typeof l === 'string' ? l : l.txt).join(' ').slice(0, 110)) : 'SIN BLOQUE']);
+      /* ADAPTADO: el bloque 1 son ahora CUATRO filas fijas —etiologia, el area de cada fuente que
+         tenga valor, el gradiente medio y la categoria del informe— asi que el >= 5 de la version
+         vieja (que contaba score, trombo, IM y PAPs en la misma tabla) ya no corresponde: esas
+         cuatro se mudaron al bloque 2, que con la calcificada NO se pinta. Lo que la condicion
+         afirma sigue siendo lo mismo: las MEDICIONES no desaparecen. */
       ex.push(['y la seccion sigue mostrando sus mediciones: lo que no aplica es la tabla, no el estudio',
-        !!secCal && (secCal.filas || []).length >= 5 &&
-        (secCal.filas || []).some(f => f.lbl.indexOf('AVm') > -1),
-        'filas=' + ((secCal && secCal.filas) ? secCal.filas.length : -1)]);
+        !!secCal && (secCal.filas || []).length >= 4 &&
+        (secCal.filas || []).some(f => f.lbl.indexOf('AVm') > -1) &&
+        (secCal.filas || []).some(f => /^Gradiente medio/.test(f.lbl)) &&
+        (secCal.filas || []).some(f => /^Categoría/.test(f.lbl)),
+        'filas=' + ((secCal && secCal.filas) ? (secCal.filas || []).map(f => f.lbl.slice(0, 22)).join(' | ') : -1)]);
 
       /* ⚠️ «Normal» es el valor de fabrica y NO es una etiologia: corta igual, con otro motivo. */
       esc(Object.assign({ vm_morf:'Normal' }, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN));
       const rNor = rec();
-      ex.push(['sin morfologia consignada se PIDE en vez de concluir, y el motivo DIFIERE del de la degenerativa',
-        !!rNor && rNor.tipo === 'falta' &&
-        (rNor.faltan || []).some(f => pl(f).indexOf('morfologia de la valvula mitral') > -1) &&
-        pl(rNor.txt).indexOf('valor de fabrica') > -1 &&
-        (!rCal || pl(rNor.txt) !== pl(rCal.txt)),
-        rNor ? (rNor.tipo + ' / ' + (rNor.faltan || []).join(' | ')) : 'null']);
+      /* ADAPTADO 2026-10-11: sin morfologia consignada el pedido YA NO ES UN TITULAR GRIS que
+         tapaba la seccion — es el aviso destacado de la seccion, mas el bloque 2 PLEGADO bajo «Si
+         fuera reumatica». Lo que la condicion vieja perseguia sigue en pie y se exige igual: que
+         se PIDA la etiologia, y que el motivo DIFIERA del de la degenerativa (confundirlos manda
+         al medico a revisar lo que esta sano). La prueba de que difieren es estructural y no de
+         texto: con Normal el bloque de comisurotomia ESTA y esta plegado, y con Calcificada no
+         esta. */
+      const secNor = window._indEM();
+      const bNor = (secNor && (secNor.bloques || [])[0]) || null;
+      ex.push(['sin morfologia consignada se PIDE la etiologia, y el camino DIFIERE del de la degenerativa: el bloque reumatico esta, pero PLEGADO',
+        !!secNor && pl(secNor.aviso).indexOf('etiologia no consignada') > -1 &&
+        pl(secNor.aviso).indexOf('consignala') > -1 &&
+        !!bNor && bNor.plegado === true && pl(bNor.tit).indexOf('si fuera reumatica') > -1 &&
+        (!bCal || pl(bCal.tit).indexOf('si fuera reumatica') === -1),
+        (secNor ? secNor.aviso.slice(0, 90) : 'null') +
+        ' · bloque=' + (bNor ? bNor.tit + ' plegado=' + bNor.plegado : 'SIN BLOQUE')]);
 
       /* \u26a0\ufe0f REAPUNTADA (2026-09-30): antes esta condicion exigia que la cascada devolviera
          tipo \u00abno\u00bb sobre una protesis. Desde que _indEM lleva compuerta de protesis, la SECCION
@@ -31337,18 +31529,33 @@ caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declara
       // ══ 2 · «VARIAS» NO ES UNA ══════════════════════════════════════════════════════════
       esc(Object.assign({}, REU, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'una' }, SIN));
       const rUna = rec();
+      /* La seccion se CAPTURA, no se relee en la condicion: la escena siguiente cambia el estado
+         vivo. Misma trampa que el comentario de pide() documenta. */
+      const secUna = window._indEM();
       esc(Object.assign({}, REU, W8), Object.assign({ 'em.sintomas':'si', 'em.clin':'desfav', 'em.riesgo':'no_alto' }, SIN));
       const rDos = rec();
       ex.push(['UN solo factor clinico ya NO rutea a desfavorable: sigue siendo la fila que afirma la ausencia',
         !!rUna && rUna.tipo === 'ind' && rUna.clase === 'Clase I \u00b7 Nivel B',
         rUna ? (rUna.tipo + ' / ' + rUna.clase) : 'null']);
-      ex.push(['y el factor NO desaparece: la recomendacion lo declara y dice que el umbral es de la app',
-        !!rUna && pl(rUna.nota || '').indexOf('un factor clinico desfavorable') > -1 &&
-        pl(rUna.nota).indexOf('criterio de la aplicacion') > -1,
-        rUna ? String(rUna.nota || 'SIN NOTA').slice(0, 130) : 'null']);
-      ex.push(['DOS o mas rutean como antes: sin riesgo quirurgico alto, la fila es la de CIRUGIA',
+      /* ADAPTADO 2026-10-11, Y LA AFIRMACION CAMBIO A PROPOSITO: el «umbral de la app» YA NO
+         EXISTE. La version anterior declaraba en la nota que esta aplicacion exigia 2 o mas
+         factores para dar las caracteristicas por presentes —un numero que la guia no da— y el
+         control decia «Dos o mas». Hoy el control dice «Una» y con esa respuesta se publican LAS
+         DOS LECTURAS de la tabla: cada fila que aplica en alguna de ellas se muestra, y la que
+         aplica en una sola lo dice en su renglon. Lo que se exige acá es eso: que con «Una» haya
+         filas marcadas como validas en una sola lectura, y que ninguna prosa reclame un numero. */
+      const filasUna = filasRecDe(secUna);
+      ex.push(['con UNA sola caracteristica clinica se publican LAS DOS lecturas, y ninguna prosa inventa un numero',
+        filasUna.length === 5 &&
+        filasUna.some(f => pl(f.nota).indexOf('una de las dos lecturas') > -1) &&
+        filasUna.every(f => pl(f.nota).indexOf('2 o mas') === -1 && pl(f.nota).indexOf('dos o mas') === -1),
+        filasUna.map(f => f.marca + ' ' + f.nota.slice(0, 44)).join(' | ').slice(0, 220)]);
+      /* ADAPTADO: el rotulo de la fila de cirugia dice «no apto para comisurotomia», que es la
+         traduccion de «not suitable for PMC» del folio 4682; el «no es candidato» de la version
+         anterior era una redaccion propia. El texto completo sigue saliendo de EM_REC_2025. */
+      ex.push(['VARIAS rutean como antes: sin riesgo quirurgico alto, la fila que aplica es la de CIRUGIA',
         !!rDos && rDos.tipo === 'ind' && pl(rDos.txt).indexOf('cirug') > -1 &&
-        pl(rDos.txt).indexOf('no es candidato') > -1,
+        pl(rDos.txt).indexOf('no es apto para comisurotomia') > -1,
         rDos ? String(rDos.txt).slice(0, 110) : 'null']);
       ex.push(['DENOMINADOR: las dos respuestas dan recomendaciones DISTINTAS',
         !!rUna && !!rDos && rUna.txt !== rDos.txt, 'una=' + (rUna ? rUna.clase : '?') + ' dos=' + (rDos ? rDos.clase : '?')]);
@@ -31357,24 +31564,39 @@ caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declara
       esc(Object.assign({}, REU, W10), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav', 'em.riesgo':'alto' }, SIN));
       const rDob = rec();
       const secDob = window._indEM();
-      ex.push(['con anatomia subobtima y riesgo alto se publican LAS DOS filas, cada una con su clase',
-        !!rDob && rDob.clase === 'Clase IIa \u00b7 Nivel C' && !!rDob.mod &&
-        rDob.mod.clase === 'Clase I \u00b7 Nivel C' && pl(rDob.mod.txt).indexOf('cualquier paciente sintomatico') > -1,
-        rDob ? (rDob.clase + ' + ' + (rDob.mod ? rDob.mod.clase : 'SIN SEGUNDA')) : 'null']);
-      ex.push(['la segunda NO se rotula como modalidad y explica por que aplican las dos',
-        !!rDob && !!rDob.mod && rDob.mod.tit === 'Tambi\u00e9n aplica' &&
-        pl(rDob.mod.nota || '').indexOf('dos filas') > -1 &&
-        pl(rDob.mod.nota).indexOf('no dice cual prevalece') > -1,
-        rDob && rDob.mod ? (rDob.mod.tit + ' / ' + String(rDob.mod.nota || '').slice(0, 90)) : 'null']);
+      /* ADAPTADO 2026-10-11, Y ES EL CASO QUE EL CAMBIO DE ESTRUCTURA RESUELVE DE RAIZ. El
+         «desdoble» existia porque la version anterior elegia UNA fila y necesitaba un segundo slot
+         («Tambien aplica») para el paciente que cumple dos: con mas de dos no habia donde
+         ponerlas. Hoy las cinco filas estan siempre y cada una dice su estado, asi que el paciente
+         con anatomia subobtima y riesgo quirurgico alto cumple la IIa·C (r4) y la I·C (r2) y las
+         dos se ven con su clase, sin slot ni rotulo especial. Se exige que sean EXACTAMENTE esas
+         dos las que aplican: «dos marcadas» sin decir cuales pasaria con cualquier par. */
+      const fDob = filasRecDe(secDob);
+      ex.push(['con anatomia subobtima y riesgo alto aplican DOS filas —la IIa·C de la anatomia y la I·C del riesgo— cada una con su clase',
+        fDob.length === 5 && fDob.filter(f => f.marca === 'ok').length === 2 &&
+        fDob[1].marca === 'ok' && fDob[1].val === 'Clase I \u00b7 Nivel C' &&
+        fDob[3].marca === 'ok' && fDob[3].val === 'Clase IIa \u00b7 Nivel C' &&
+        fDob[0].marca !== 'ok' && fDob[2].marca !== 'ok' && fDob[4].marca !== 'ok',
+        fDob.map(f => f.marca + ' ' + f.val).join(' | ')]);
+      /* ADAPTADO: ya no hay una «segunda» fila que haya que explicar — las cinco son pares y el
+         bloque no afirma cual prevalece porque no elige ninguna. Lo que se exige es que la guia
+         siga sin ser interpretada: ninguna fila dice que una mande sobre la otra. */
+      ex.push(['ninguna de las dos se presenta como la que manda: el bloque no elige entre clases',
+        fDob.filter(f => f.marca === 'ok').every(f => pl(f.nota).indexOf('prevalece') === -1 &&
+          pl(f.nota).indexOf('manda') === -1 && pl(f.nota).indexOf('modalidad') === -1),
+        fDob.filter(f => f.marca === 'ok').map(f => f.nota.slice(0, 60)).join(' || ')]);
       /* _indRefValida Y NO _indRefNum: con la numeracion POR SECCION el contexto se abre y se
          cierra dentro de _indSecHTML, asi que aca afuera _indRefNum da null por diseno y la
          condicion se caia sin que nada estuviera roto. Lo que este caso quiere saber es si la
          clave esta en el registro; que el corchete se DIBUJE se mide abajo, sobre el HTML. */
-      ex.push(['las dos citan por CLAVE del registro, y la clave esta registrada',
-        !!rDob && rDob.ref === 'esc2025vc' && !!rDob.mod && rDob.mod.ref === 'esc2025vc' &&
+      /* ADAPTADO: la cita viaja en los refs de CADA FILA y no en un «ref» del bloque de
+         recomendacion. Las cinco citan el mismo documento, que es lo correcto: el numero
+         identifica la GUIA y no la fila — lo que las distingue es su clase, su nivel y su texto. */
+      ex.push(['las cinco filas citan por CLAVE del registro, y la clave esta registrada',
+        fDob.length === 5 && fDob.every(f => (f.refs || []).indexOf('esc2025vc') > -1) &&
         _indRefValida('esc2025vc'),
-        rDob ? ('ref=' + rDob.ref + ' modRef=' + (rDob.mod ? rDob.mod.ref : '-') +
-                ' valida=' + _indRefValida('esc2025vc')) : 'null']);
+        'refs=' + fDob.map(f => (f.refs || []).join('+')).join(' | ') +
+        ' valida=' + _indRefValida('esc2025vc')]);
 
       /* El corchete tiene que estar DIBUJADO, no solo en el objeto. Se cuenta dentro de la seccion
          de estenosis mitral para no sumar los de las otras. */
@@ -31403,21 +31625,47 @@ caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declara
          verdad es que la segunda fila APORTE su corchete, o sea exactamente uno mas — y eso no
          cambia porque las notas citen mas. El denominador va al lado: si las dos dieran cero, la
          resta tambien daria cero y el caso pasaria sobre una seccion sin pintar. */
-      ex.push(['los dos corchetes se DIBUJAN: con dos filas hay uno mas que con una',
-        nUno > 0 && nDob === nUno + 1, 'dos filas=' + nDob + ' una fila=' + nUno]);
+      /* ADAPTADO 2026-10-11: las cinco filas estan siempre, asi que el conteo ya no DIFIERE entre
+         «dos filas» y «una fila» — esa resta medía el slot «Tambien aplica», que se elimino. Lo
+         que sigue valiendo, y es la mitad que importaba, es que los corchetes se DIBUJEN: las
+         filas de recomendacion viven en una tabla, asi que se cuentan DENTRO de las filas y se
+         exige que sean cinco o mas y que las dos escenas den lo mismo. El denominador va al lado:
+         si fueran cero, la igualdad se cumpliria sobre una seccion sin pintar. */
+      const enFila = d => { if (!d) return -1;
+        let n = 0;
+        Array.prototype.forEach.call(d.querySelectorAll('tr'), function(tr){
+          n += tr.querySelectorAll('[data-ind-ref]').length; });
+        return n; };
+      const kDob = enFila(dDob), kUno = enFila(dUno);
+      /* ⚠️ LAS DOS ESCENAS DIFIEREN EN UNO DENTRO DE LA TABLA, Y NO ES EL DESDOBLE: es la fila
+         del SCORE, que cita un segundo documento solo cuando sale «desfavorable» (score 10 contra
+         score 8). Fijar la igualdad exacta ponia el caso en rojo por ese corchete. Lo que se
+         exige es el DENOMINADOR —que los corchetes se dibujen de verdad, cinco o mas— y que fuera
+         de las filas NO cambie nada: ahi vivia el slot «Tambien aplica» que se elimino. */
+      ex.push(['los corchetes de las filas se DIBUJAN en las dos escenas, y fuera de las filas no cambia nada',
+        kDob >= 5 && kUno >= 5 && nDob === nUno,
+        'en fila: dos=' + kDob + ' una=' + kUno + ' · fuera de fila: dos=' + nDob + ' una=' + nUno]);
 
       /* Sin contestar el riesgo quirurgico no se inventa la segunda fila: se dice que quedo sin
          evaluar. Es la mitad que impide que el desdoble se lea como automatico. */
       esc(Object.assign({}, REU, W10), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN));
       const rSinRq = rec();
+      const secSinRq = window._indEM();
       esc(Object.assign({}, REU, W10), Object.assign({ 'em.sintomas':'si', 'em.clin':'fav', 'em.riesgo':'no_alto' }, SIN));
       const rNoAlto = rec();
-      ex.push(['sin contestar el riesgo quirurgico NO aparece la segunda fila, y se declara que no se evaluo',
-        !!rSinRq && !rSinRq.mod && pl(rSinRq.nota || '').indexOf('sin contestar') > -1,
-        rSinRq ? String(rSinRq.nota || 'SIN NOTA').slice(0, 110) : 'null']);
-      ex.push(['con riesgo NO alto tampoco: la fila general no aplica',
-        !!rNoAlto && !rNoAlto.mod && rNoAlto.clase === 'Clase IIa \u00b7 Nivel C',
-        rNoAlto ? (rNoAlto.clase + ' mod=' + (rNoAlto.mod ? 'SI' : 'no')) : 'null']);
+      const secNoAlto = window._indEM();
+      /* ADAPTADO: sin contestar el riesgo quirurgico la fila general (r2) queda en «falta
+         contestar» —no en «no aplica» y tampoco afirmada—, que es exactamente lo que la version
+         anterior resolvia con una nota. Ahora lo dice su propio renglon, que es donde el medico
+         ve la pregunta. */
+      const fSinRq = filasRecDe(secSinRq), fNoAlto = filasRecDe(secNoAlto);
+      ex.push(['sin contestar el riesgo quirurgico la fila general queda en FALTA CONTESTAR, no afirmada ni negada',
+        fSinRq.length === 5 && fSinRq[1].marca === 'ask' && fSinRq[3].marca === 'ok',
+        fSinRq.map(f => f.marca).join(',')]);
+      ex.push(['con riesgo NO alto la fila general NO aplica, y la de la anatomia subobtima sigue aplicando',
+        fNoAlto.length === 5 && fNoAlto[1].marca === 'none' && fNoAlto[3].marca === 'ok' &&
+        fNoAlto[3].val === 'Clase IIa \u00b7 Nivel C',
+        fNoAlto.map(f => f.marca + ' ' + f.val).join(' | ')]);
 
       /* ══ LO QUE LA COMPUERTA NO PUEDE TAPAR (hallazgos de /sharp-edges sobre este mismo diff) ══
          ⚠️ LA PRIMERA VERSION PUSO LA COMPUERTA ARRIBA DE TODO Y DEGRADABA LA ALARMA DE TROMBO A
@@ -31455,9 +31703,20 @@ caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declara
          antes que la morfologia sin consignar. */
       esc({ vm_morf:'Normal', em_grado:'severa', avm_plan:'1.8' }, { 'em.sintomas':'si', 'em.clin':'fav', 'em.trombo':'no' });
       const rAreaNor = rec();
-      ex.push(['sin morfologia consignada, la contraindicacion por area sigue siendo el titular',
-        !!rAreaNor && rAreaNor.tipo === 'no' && pl(rAreaNor.txt).indexOf('contraindicacion') > -1,
-        rAreaNor ? (rAreaNor.tipo + ' / ' + String(rAreaNor.txt).slice(0, 100)) : 'null']);
+      /* ADAPTADO: ya no hay titular, pero la contraindicacion por area sigue CORTANDO las cinco
+         filas y nombrandose en el aviso del bloque — incluso con la morfologia sin consignar, o
+         sea dentro del bloque plegado. Es el mismo invariante: un area por encima del corte no
+         puede convivir con una fila que diga «Aplica». */
+      const secAreaNor = window._indEM();
+      const bAreaNor = (secAreaNor && (secAreaNor.bloques || [])[0]) || null;
+      const fAreaNor = filasRecDe(secAreaNor);
+      ex.push(['sin morfologia consignada, la contraindicacion por area sigue cortando las cinco filas y se nombra en el aviso del bloque',
+        !!rAreaNor && rAreaNor.tipo === 'no' && pl(rAreaNor.tit).indexOf('contraindicada') > -1 &&
+        fAreaNor.length === 5 && fAreaNor.every(f => f.marca === 'alarm') &&
+        !!bAreaNor && pl(bAreaNor.aviso).indexOf('area valvular mitral') > -1,
+        (rAreaNor ? rAreaNor.tipo + ' / ' + rAreaNor.tit : 'null') +
+        ' · filas=' + fAreaNor.map(f => f.marca).join(',') +
+        ' · aviso=' + (bAreaNor ? bAreaNor.aviso.slice(0, 70) : 'SIN BLOQUE')]);
 
       /* ⚠️ EL MOTIVO SE NOMBRA POR MORFOLOGIA. Ocho opciones caen en «otra» y solo una es
          degenerativa: con un texto unico, una protesis obstruida recibia un razonamiento sobre
@@ -31471,12 +31730,29 @@ caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declara
          transcateter de la calcificacion anular porque no hay tarjeta. Lo que se comprueba es que
          la calcificada SI lo reciba: sin esa mitad, \u00abla protesis no lo recibe\u00bb se cumpliria
          tambien con la rama borrada para todos. */
-      ex.push(['y a la calcificada SI, que es la etiologia para la que la guia la escribe',
-        !!rCalc && pl(rCalc.txt).indexOf('calcificacion anular extensa') > -1,
-        rCalc ? String(rCalc.txt).slice(60, 200) : 'null']);
-      ex.push(['el bloque que transcribe una clase en prosa CITA su documento con corchete',
-        !!rCalc && rCalc.ref === 'esc2025vc' && !rCalc.clase,
-        rCalc ? ('ref=' + rCalc.ref + ' clase=' + rCalc.clase) : 'null']);
+      /* ADAPTADO 2026-10-11: el implante transcateter ya no se nombra DENTRO de un texto en prosa
+         que explicaba por que la tabla no aplica — es una FILA del bloque 3, con su clase y su
+         nivel leidos del folio 4682 (Clase IIb · Nivel C) y con su corchete. Y la condicion
+         conserva su otra mitad, que es la que la hace valer: la PROTESIS no recibe este bloque,
+         porque _indEM no se pinta con una protesis. */
+      const secCalc = window._indEM();
+      const bCalc = (secCalc && (secCalc.bloques || [])[0]) || null;
+      const fTmvi = bCalc ? ((bCalc.grupos || [])[0] || { filas: [] }).filas[0] : null;
+      ex.push(['y a la calcificada SI: el implante transcateter es una FILA del bloque, con su clase y su nivel',
+        !!fTmvi && pl(fTmvi.lbl).indexOf('transcateter') > -1 &&
+        fTmvi.val === 'Clase IIb \u00b7 Nivel C' &&
+        pl(fTmvi.nota).indexOf('calcificacion anular extensa') > -1,
+        fTmvi ? (fTmvi.lbl + ' = ' + fTmvi.val + ' · ' + fTmvi.nota.slice(0, 70)) : 'SIN FILA']);
+      /* ADAPTADO: la cita viaja en los refs de la fila y de las lineas del bloque, no en un «ref»
+         del bloque de recomendacion — que en esta etiologia ya no existe. Y la fila lleva clase:
+         la version anterior exigia que NO la llevara porque el texto era prosa explicativa. */
+      ex.push(['la fila del bloque de la degenerativa CITA su documento, y sus lineas tambien',
+        !!fTmvi && (fTmvi.refs || []).indexOf('esc2025vc') > -1 &&
+        !!bCalc && (bCalc.lineas || []).every(l => typeof l === 'string' ||
+          (l.refs || []).indexOf('esc2025vc') > -1) &&
+        _indRefValida('esc2025vc'),
+        (fTmvi ? 'filaRefs=' + (fTmvi.refs || []).join('+') : 'SIN FILA') +
+        ' · lineas=' + (bCalc ? (bCalc.lineas || []).map(l => (typeof l === 'string' ? 'SIN REFS' : (l.refs || []).join('+'))).join(' | ') : '-')]);
 
       /* ⚠️ LOS AVISOS SE CONCATENAN. Como etio == null es el estado de fabrica, un ternario
          encadenado dejaba el aviso de unidades sin pintarse en la mayoria de los estudios. */
@@ -31485,8 +31761,12 @@ caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declara
          discordancia — y la condicion mediria otro aviso. */
       esc({ vm_morf:'Normal', avm_cont:'150' }, Object.assign({ 'em.sintomas':'si', 'em.clin':'fav' }, SIN));
       const avNor = (window._indEM() || {}).aviso || '';
+      /* ADAPTADO: el texto del aviso de etiologia cambio al pedido de esta tanda —«Etiologia no
+         consignada: consignala para ver las indicaciones; la reumatica es la que hay que descartar
+         primero»— y la afirmacion de la condicion es la misma: los dos avisos se CONCATENAN y
+         ninguno se come al otro. */
       ex.push(['el aviso de etiologia NO se come el de unidades: se ven los dos',
-        pl(avNor).indexOf('no esta consignada') > -1 && pl(avNor).indexOf('fuera de rango medible') > -1,
+        pl(avNor).indexOf('etiologia no consignada') > -1 && pl(avNor).indexOf('fuera de rango medible') > -1,
         avNor.slice(0, 170)]);
 
       /* El assert de la compuerta, EJERCIDO EN AISLAMIENTO por los dos lados: no hay forma de
@@ -31537,9 +31817,18 @@ caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declara
       catch (e) { malAssert = ['LANZO: ' + e.message]; }
       ex.push(['el assert de arranque de estenosis mitral no tiene nada que decir',
         Array.isArray(malAssert) && malAssert.length === 0, JSON.stringify(malAssert).slice(0, 200)]);
-      ex.push(['DENOMINADOR: todos los campos del escenario entraron y todos los clics encontraron su boton',
-        noEntraron.length === 0 && sinClic.length === 0,
-        'noEntraron=' + noEntraron.join(',') + ' sinClic=' + sinClic.join(',')]);
+      /* ⚠️ ADAPTADO 2026-10-11, Y ES UN INVARIANTE NUEVO DE LA ESTRUCTURA POR ETIOLOGIA: los
+         controles clinicos viven en el BLOQUE 2, que solo se pinta con morfologia reumatica o sin
+         consignar. Asi que en los escenarios de este caso con «Calcificada» y con «Protesis
+         mecanica» esos botones NO EXISTEN y el clic no los encuentra — esperado, no un defecto:
+         ofrecerle el score y los sintomas de la comisurotomia a una valvula que el procedimiento
+         no puede abrir es justo lo que esta tanda vino a cerrar. Lo que se exige es la PARTICION:
+         los clics que fallaron son todos de escenas no reumaticas, y ninguno de una reumatica.
+         Sin esta mitad, «hubo clics sin boton» taparia un control que desaparecio de verdad. */
+      ex.push(['DENOMINADOR: todos los campos entraron, y los clics que no encontraron boton son SOLO de las etiologias sin bloque de comisurotomia',
+        noEntraron.length === 0 && sinClic.length > 0 &&
+        sinClic.every(x => /^em\.(sintomas|clin|riesgo|trombo|score|embolico|decomp)=/.test(x)),
+        'noEntraron=' + noEntraron.join(',') + ' · sinClic(' + sinClic.length + ')=' + sinClic.join(',').slice(0, 150)]);
 
       return { extra: ex };
     } finally { indicCerrar(); limpiar(); }
@@ -40488,16 +40777,24 @@ caso('TC-327', 'Evidencia EM: CINCO documentos verificados, las discrepancias co
        fuente legitima. No se aflojo —eso lo volveria una condicion que pasa con cualquier cosa—:
        se actualizo el inventario Y se agrego abajo el invariante que la fuente nueva trae, que es
        que Pandian solo se cita con etiologia REUMATICA. */
-    ex.push(['su bibliografia lista los CINCO documentos mas el marcador de criterio propio',
-      R.items.length === 6 &&
+    /* ⚠️ ADAPTADO 2026-10-11: SON CINCO Y YA NO HAY MARCADOR DE CRITERIO PROPIO. El «ecosmart» de
+       esta seccion lo citaba UNA sola nota: la que declaraba que la aplicacion exigia «2 o mas»
+       caracteristicas clinicas desfavorables para darlas por presentes, porque la guia dice
+       «several of the following» sin dar numero. Esa constante y esa nota se eliminaron en esta
+       tanda —el panel ya no decide si una sola alcanza: publica las dos lecturas— asi que la
+       seccion dejo de tener un criterio propio que citar. El marcador NO quedo huerfano en el
+       registro: lo siguen citando _indIM (el cociente VTI con IAo moderada) y _indIA (los cortes
+       del VTI del flujo reverso), verificado por grep. */
+    ex.push(['su bibliografia lista los CINCO documentos, y ya NO el marcador de criterio propio: la seccion dejo de tener un numero suyo',
+      R.items.length === 5 && R.items.indexOf('ecosmart') === -1 &&
       /* ⚠️ ESTE ORDEN ES EL DE **ESTE** ESCENARIO, y me equivoque una vez copiando el de TC-328.
          Aca NO se siembran los wilkins_*, asi que el score queda sin puntuar, el bucle contesta la
          primera opcion —«≤ 8»— y la fila del score cita SOLO a la ESC: Wilkins recien aparece en la
-         nota del final y por eso es [5]. En TC-328, que si siembra 3/3/2/3, la fila sale
+         nota del final y por eso es el ULTIMO. En TC-328, que si siembra 3/3/2/3, la fila sale
          «desfavorable», cita a Wilkins y lo sube a [2]. Las dos cosas son correctas porque la
          numeracion es por PRIMERA APARICION — y que dependa del paciente es la consecuencia, no un
          defecto. Verificar contra el escenario propio, no contra el del caso de al lado. */
-      JSON.stringify(R.items) === JSON.stringify(['esc2025vc','asePandian2023','ahaVc2020','eaeAseEst2009','ecosmart','wilkins1988']) &&
+      JSON.stringify(R.items) === JSON.stringify(['esc2025vc','asePandian2023','ahaVc2020','eaeAseEst2009','wilkins1988']) &&
       R.sinNumerar === 0 && R.noRegistrada === 0,
       'items=' + JSON.stringify(R.items) + ' sinNumerar=' + R.sinNumerar +
       ' noRegistrada=' + R.noRegistrada]);
