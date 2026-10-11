@@ -52609,83 +52609,86 @@ function _indEMAlarma(D){
    `_indEM`, y con los bloques nuevos el `return` dejaba de poder leerse de un vistazo. Misma
    salida, mismo orden, mismas claves de cita. */
 function EM_NOTAS(US, etio, D){
-  const avmDiscordantes = D.avmDiscordantes;
+  const u = (US != null) ? _indNum(US, 1) : '1,5';
+  /* ⚠️ EL ORDEN ES: LA GUÍA VIGENTE PRIMERO, LAS PREVIAS AL FINAL Y EN UNA SOLA NOTA. Hasta esta
+     tanda las tres guías convivían en el cuerpo de la sección y en seis notas distintas, con el
+     relato de cómo había cambiado cada edición: once notas de párrafo para explicar un corte. La
+     ESC/EACTS 2025 es la fuente principal y lo que las previas aportan se reduce a lo que CAMBIA
+     LA CONDUCTA, en la penúltima entrada. Nada de esto está en el cuerpo: el cuerpo son filas de
+     una línea. */
   return [
-      /* ⚠️ LA DISCREPANCIA DEL CORTE CENTRAL VA CON LAS DOS CITAS, que es la regla de esta casa.
-         La EAE/ASE 2009 gradúa por área y llama SEVERA a < 1,0 cm²; la ESC/EACTS 2025 y la ACC/AHA
-         2020 usan ≤ 1,5 cm². No es que una esté mal: son dos preguntas distintas —graduar la lesión
-         y decidir cuándo intervenir— y el panel tiene que decir cuál está aplicando. */
-      { txt:'AVm ≤ ' + (US != null ? _indNum(US,1) : '1,5') + ' cm² es el corte ÚNICO de significación clínica de la guía vigente, que NO gradúa la estenosis mitral por área en leve, moderada y severa; la ACC/AHA 2020 usa el mismo corte. Las bandas de la pantalla del estudio son la graduación de la EAE/ASE 2009, que llama SEVERA a < 1,0 cm² y moderada a 1,0-1,5: por esa escala un área de 1,2 cm² es moderada y por la guía vigente ya es clínicamente significativa.',
-        refs:['esc2025vc','ahaVc2020','eaeAseEst2009'] },
-      /* ⚠️ LA TERCERA ESCALA DE ÁREA, Y ES LA QUE DESEMPATA. La nota de arriba dejaba al médico con
-         dos: la de 2009 (severa < 1,0) y el corte único de la guía vigente (≤ 1,5). La ASE 2023
-         de cardiopatía reumática SÍ gradúa por área —> 2,5 leve, 2,5-1,6 moderada, ≤ 1,5 severa—
-         y su corte de severa coincide con el de significación clínica de la ESC/EACTS 2025, o sea
-         que dos de las tres ponen la severidad en 1,5 y la de 2009 es la que queda sola.
-         Sólo se publica con etiología reumática: es de dónde salió la escala. */
-      etio === 'reumatica' ? { txt:'La ASE 2023 de cardiopatía REUMÁTICA sí gradúa por área y pone la severa en el mismo ≤ ' + (US != null ? _indNum(US,1) : '1,5') + ' cm²: > 2,5 leve, 2,5-1,6 moderada. O sea que de las tres escalas que conviven, dos ponen la severidad en ese corte y la de 2009 es la que difiere. En esa guía la estenosis mitral reumática se DEFINE por un gradiente medio > 4 mmHg más cambios morfológicos típicos —velos engrosados, fusión comisural, movilidad restringida, domo diastólico del velo anterior o engrosamiento y calcificación de las cuerdas—, y la SEVERA por área ≤ ' + (US != null ? _indNum(US,1) : '1,5') + ' cm², tiempo de hemipresión ≥ 150 ms y gradiente medio ≥ 10 mmHg. ⚠️ Esos dos últimos son criterios DE ESA GUÍA que esta aplicación no evalúa: acá la severidad se gradúa por ÁREA sola, y por eso la nota de abajo sigue diciendo que el gradiente medio no es criterio de severidad para las otras dos fuentes. Y ojo con el tiempo de hemipresión: el área por Hatle es 220 ÷ THP, así que el corte de área de esta aplicación equivale a un THP de 146,7 ms y no a los 150 ms que publica la ASE — un THP de 148 produce un área ya marcada como significativa.',
-        refs:['asePandian2023','esc2025vc','eaeAseEst2009'] } : '',
-      /* ⚠️ ESTA NOTA YA NO DESCRIBE UNA DIVERGENCIA: LA SECCIÓN APLICA LA COMPUERTA (2026-10-01).
-         Las dos versiones anteriores de este texto fueron falsas en direcciones OPUESTAS, y por eso
-         conviene saber la historia antes de volver a redactarlo:
-           · la primera afirmaba que «esta aplicación ya retira el voto de esa fuente», y era falso
-             —el panel publicaba el ✅ igual—. Una reaseguración falsa es peor que el silencio;
-           · la segunda lo corrigió a «ESTA SECCIÓN todavía no lo hace», que era cierto ese día y
-             quedó viejo en cuanto la fila pasó a consultar `emContValido()`.
-         ⚠️ Y LA TERCERA TAMBIÉN EMPEZÓ FALSA, en la dirección de la primera. Decía «Esta aplicación
-         retira ese valor en esa situación: el informe, el Excel y la fila de arriba». Lo cazó
-         `/sharp-edges` sobre el MISMO diff que la escribió. Dos superficies NO lo retiran: la
-         columna «AVm indexada (cm²/m²)» del Excel —sale de `avmMejor`, que toma la continuidad— y
-         el PDF cuando la casilla del selector está tildada (`dataset.tocado` la protege). Y lo
-         peor: el bloque de recomendación de ESTA tarjeta publica Clase I apoyado en ese mismo
-         número, así que reasegurar era PEOR que la versión 2 — aquélla era incompleta pero mandaba
-         a VERIFICAR.
-         Hoy la fila de arriba cae en «no evaluable» cuando el predicado es falso, y esta nota
-         nombra lo que sí se retira, advierte lo que no, y sigue mandando a mirar los grados.
-         SI HAY UNA CUARTA VERSIÓN: enumerar las superficies UNA POR UNA antes de escribirla. «El
-         informe y el Excel» en bloque es lo que falló las dos veces — son varias columnas y varias
-         rutas, y no se comportan igual. Y mirar la compuerta de `leidas.forEach` ANTES de redactar. */
-      etio === 'reumatica' ? { txt:'El área por ecuación de continuidad es la más débil de las cuatro fuentes: la ASE 2023 dice que «no está bien validada y se usa poco», y que NO debe usarse con insuficiencia aórtica o mitral significativa. En esa situación la fila de arriba la marca como no evaluable, y el informe narrativo y la columna «AVm continuidad» del Excel ya la retiran. ⚠️ Pero el bloque de recomendación de esta tarjeta todavía la usa para la contraindicación por área, y el PDF la imprime si la casilla del selector está tildada: conviene mirar los grados de insuficiencia antes de apoyarse en ella. La misma guía prefiere la planimetría al nivel de las puntas de los velos, y advierte que el tiempo de hemipresión no es fiable con insuficiencia mitral significativa, tras valvuloplastia o con alteración de la distensibilidad auricular o ventricular.',
-        refs:['asePandian2023'] } : '',
-      { txt:'El área sola no alcanza: la guía dice «en combinación con ciertos factores clínicos» —síntomas, riesgo tromboembólico o de descompensación— para hablar de estenosis clínicamente grave.',
-        refs:['esc2025vc'] },
-      { txt:'El gradiente medio y la presión pulmonar NO son criterios de severidad. La EAE/ASE 2009 los publica como signos de APOYO que «no pueden considerarse marcadores indirectos de la severidad», y la ACC/AHA 2020 excluyó el gradiente medio de sus criterios de forma explícita, por su variabilidad con la frecuencia y el flujo.',
-        refs:['eaeAseEst2009','ahaVc2020'] },
-      { txt:'Ninguna de las tres guías define «estenosis mitral MUY severa»: no existe esa categoría por gradiente, por presión pulmonar ni por tiempo de hemipresión. La única «muy grave» de la ESC/EACTS 2025 es aórtica.',
-        refs:['esc2025vc','ahaVc2020','eaeAseEst2009'] },
-      'Las filas de comisurotomía de esta tabla son las de la estenosis mitral REUMÁTICA: viven en el capítulo de esa etiología, la figura de manejo y la tabla de contraindicaciones lo dicen en su título, y el texto agrega que la estenosis degenerativa no es susceptible del procedimiento porque no hay fusión comisural que abrir. Para la degenerativa con calcificación anular extensa la guía tiene una fila propia —implante transcatéter, Clase IIb · Nivel C— que esta aplicación no implementa.',
-      /* ⚠️ LA VERSIÓN ANTERIOR DE ESTA NOTA PUBLICABA EL «2 O MÁS» DE LA APLICACIÓN. Era el único
-         número de la sección que no salía de ninguna guía, y se eliminó con la constante que lo
-         sostenía (2026-10-11): el panel ya no decide si una sola característica alcanza. Lo que
-         queda es lo que los dos lugares del documento dicen, que no es lo mismo. */
-      { txt:'Las características clínicas desfavorables son «varias de las siguientes» y la guía NO dice cuántas (nota ^c de la Recommendation Table 8, folio 4682). La nota ^c de la Figura 14, folio 4681, dice otra cosa: «favorable = AUSENCIA de características desfavorables», o sea ninguna. Con UNA sola característica esta aplicación no elige entre las dos lecturas: muestra las filas que aplican en cada una.',
-        refs:['esc2025vc'] },
-      /* ⚠️ EL «> 8» ES DE LA GUÍA, NO DE WILKINS, y ahora se puede demostrar. El artículo original
-         da DOS cortes con una zona gris en el medio y no menciona el 8 en ninguna parte. La app usa
-         las bandas del original —≤ 8, 9-11 y > 11— así que sus umbrales coinciden; lo que no
-         coincide es el rótulo de la banda del medio, y eso se declara abajo. */
-      { txt:'El score ecocardiográfico > ' + EM_CRIT_2025.score_desfav + ' es UNA de varias características desfavorables —clínicas y anatómicas— agrupadas con un «varias de las siguientes» que la guía NO cuantifica. Un score aislado no descalifica a nadie, y la propia guía señala que esos pacientes pueden beneficiarse igual, sobre todo con riesgo quirúrgico aumentado.',
-        refs:['esc2025vc'] },
-      { txt:'Ese > 8 es el corte de la guía y NO el del artículo original del score, que no menciona ningún 8: Wilkins separa en < 9 resultado óptimo y > 11 subóptimo, y dice que entre 9 y 11 el score NO predijo el resultado. Sus cuatro componentes van de 0 a 4 y el total de 0 a 16.',
-        refs:['esc2025vc','wilkins1988'] },
-      'Contraindicaciones: AVm > ' + (US != null ? _indNum(US,1) : '1,5') + ' cm²; trombo en aurícula izquierda; insuficiencia mitral MÁS QUE LEVE —no «moderada o más»—; calcificación severa o bicomisural; ausencia de fusión comisural; valvulopatía aórtica severa o enfermedad tricuspídea combinada severa con indicación quirúrgica; coronariopatía que requiera revascularización quirúrgica. Esta sección evalúa las tres primeras; las otras cuatro no tienen campo y la recomendación las nombra.',
-      { txt:'Que la insuficiencia mitral MÁS QUE LEVE contraindica el procedimiento lo dicen las dos guías: la ACC/AHA 2020 lo escribe con esas palabras —«MR that is more than mild is a contraindication to PMBC»— aunque sus propias filas operen con «menos que moderada».',
-        refs:['ahaVc2020','esc2025vc'] },
-      /* ⚠️ ESTA NOTA ESTABA MAL Y SE COMMITEÓ MAL, y conviene saber cómo. Decía que con trombo «en
-         la aurícula izquierda» la contraindicación es CONDICIONAL, y no es así: lo que la guía
-         lista como contraindicación es el trombo auricular a secas, y la condicionalidad de la nota
-         ^b se acota a la OREJUELA. La afirmación ensanchaba la excepción a toda la aurícula, que es
-         el error más peligroso de los dos posibles. Verificado sobre el original inglés, p. 4682:
-         «When the thrombus is located in the LA APPENDAGE, PMC may be considered in patients with
-         contraindications to surgery or those without urgent need for intervention, in whom OAC can
-         be safely given for 1-3 months, provided repeat TOE confirms resolution of thrombus». */
-      { txt:'La contraindicación de la lista es el trombo auricular. La excepción es SÓLO para la orejuela: ahí puede considerarse el procedimiento con contraindicación quirúrgica o sin urgencia, anticoagulando 1-3 meses y con un ETE de control que confirme la resolución.',
-        refs:['esc2025vc'] },
-      /* ⚠️ LA DISCREPANCIA SE REPORTA Y NO SE CORRIGE, que es la regla de esta casa para todo lo
-         que la fuente no sostiene. Se publica SOLO con etiología no reumática, que es donde el
-         alcance no alcanza; con la reumática no hay nada que declarar. */
-      (etio && etio !== 'reumatica') ? 'Los dos cortes del gradiente medio —5 y 10 mmHg— salen de un documento de cardiopatía REUMÁTICA, y esta aplicación los aplica a TODA etiología para decidir la categoría. En esta válvula, que no es reumática, el gradiente se ubica en su banda y la banda no se cita: no hay fuente verificada que escriba esos cortes para esta etiología. Queda declarado, no corregido.' : '',
-      'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
+    /* ── LA GUÍA VIGENTE ─────────────────────────────────────────────────────────────────── */
+    { txt:'La palabra de la guía es «clínicamente grave» («clinically severe MS», folio 4680) y lo que la define es el área JUNTO CON factores clínicos: síntomas, riesgo tromboembólico alto o descompensación hemodinámica. El informe de esta aplicación dice «significativa» para el mismo hecho.',
+      refs:['esc2025vc'] },
+    /* ⚠️ LA GUÍA SE CONTRADICE CONSIGO MISMA EN EL OPERADOR, Y SE REPORTA SIN CORREGIR. El
+       enunciado de severidad del folio 4680 y el título de la Figura 14 del folio 4681 usan
+       `<=`; el §10.2.3, en la misma columna del folio 4680, escribe «MVA <1.5 cm2» con `<`
+       estricto. La app usa `<=`, que es lo que coinciden dos de los tres lugares y la Tabla 1 de
+       la ASE 2023. Mover el operador es cambiar un corte, o sea decisión de Maicol. */
+    { txt:'El operador del área no es el mismo en los tres lugares del documento: el enunciado de severidad (folio 4680) y el título de la Figura 14 (folio 4681) dicen ≤ ' + u + ' cm², y el §10.2.3 del folio 4680 escribe «MVA <1.5 cm2» con menor estricto. Esta aplicación usa ≤, que es lo que dicen dos de los tres. Queda declarado, no corregido.',
+      refs:['esc2025vc'] },
+    /* ⚠️ Y SE CONTRADICE OTRA VEZ EN «VARIAS», A UNA PÁGINA DE DISTANCIA. Es el motivo por el que
+       esta sección dejó de publicar un veredicto: elegir una fila exigía un número que ninguno de
+       los dos lugares da, y el que la app tenía (2) era suyo. */
+    { txt:'Las características desfavorables tampoco se definen igual en los dos lugares: la nota ^c de la Recommendation Table 8 (folio 4682) dice «the presence of several of the following» sin dar número, y la nota ^c de la Figura 14 (folio 4681) dice «Favourable = absence of unfavourable characteristics», o sea ninguna. Con «Una» esta aplicación no elige entre las dos lecturas: publica las filas que aplican en cada una.',
+      refs:['esc2025vc'] },
+    /* ⚠️ EL «> 8» NO SE ATRIBUYE A NINGUNA ESCALA CONCRETA. La guía lo escribe como
+       «echocardiographic score >8» y remite a su Supplementary data online, Table S3, que NO está
+       en la biblioteca: la definición de la escala no se pudo leer, así que no se nombra. La
+       entrada siguiente dice lo que SÍ se verificó del artículo de Wilkins, y por qué no es él. */
+    { txt:'El corte del score es «score ecocardiográfico > ' + EM_CRIT_2025.score_desfav + '», según la guía. La definición de esa escala vive en su material suplementario (Table S3), que no está en el documento consultado: la aplicación usa el corte tal como la guía lo escribe y no lo atribuye a ninguna escala concreta.',
+      refs:['esc2025vc'] },
+    { txt:'Contraindicaciones de la comisurotomía (Tabla 8, folio 4682): AVm > ' + u + ' cm²; trombo en aurícula izquierda; insuficiencia mitral MÁS QUE LEVE —no «moderada o más»—; calcificación severa o bicomisural; ausencia de fusión comisural; valvulopatía aórtica severa, o estenosis e insuficiencia tricuspídeas severas con indicación quirúrgica; coronariopatía que requiera revascularización quirúrgica.',
+      refs:['esc2025vc'] },
+    /* Las dos notas ^a y ^b de esa tabla, que son las que abren una puerta donde la lista parece
+       cerrarla. La ^b se verificó sobre el original inglés: la traducción de la SEC se comió
+       «appendage» y eso dio vuelta un hallazgo entero. */
+    { txt:'Las dos excepciones de esa tabla: con AVm > ' + u + ' cm² puede considerarse si los síntomas no se explican por otra causa y la anatomía es favorable (nota ^a); y con el trombo en la OREJUELA —no en toda la aurícula— puede considerarse en quien tiene contraindicación quirúrgica o no tiene necesidad urgente, anticoagulando 1-3 meses y con un ETE de control que confirme la resolución (nota ^b).',
+      refs:['esc2025vc'] },
+    /* ── LA FUENTE DE LOS CORTES DEL BLOQUE 1 ─────────────────────────────────────────────── */
+    /* ⚠️ VA SEPARADA Y CON SU PROPIO FOLIO PORQUE LA ESC/EACTS 2025 NO PUBLICA ESTOS CORTES.
+       `FUENTES.md` lo declara: de la mitral, esa guía tiene verificada la INSUFICIENCIA y la
+       COMISUROTOMÍA, no la severidad de la estenosis. Lo único que dice del gradiente es
+       descriptivo —folio 4680, «low-gradient severe MS (MVA <1.5 cm2, mean gradient <10 mmHg)»— y
+       no es un corte. */
+    /* ⚠️ ESTAS DOS NOTAS SE GATEAN POR ETIOLOGÍA, Y ES PARA NO ROMPER NINGUNA DE LAS DOS REGLAS
+       QUE CHOCAN ACÁ. La ASE 2023 es un documento de cardiopatía REUMÁTICA, y la regla de esta
+       sección —que fija TC-327— es que no se cite con otra etiología, para no prestarle un alcance
+       que no tiene. Pero la otra regla dice que un documento NOMBRADO en prosa sin su corchete se
+       lee como «hay una cita que no encontrás». Citarla siempre rompe la primera; nombrarla sin
+       corchete rompe la segunda. La salida es no nombrarla cuando no corresponde: con etiología no
+       reumática va la nota de discrepancia de abajo, que dice «un documento de cardiopatía
+       REUMÁTICA» SIN nombrarlo y SIN corchete. Se pierde saber cuál es; lo que no se pierde es que
+       el corte se está aplicando fuera del alcance de su fuente, que es lo que cambia la lectura. */
+    (etio === 'reumatica') ? { txt:'Los dos cortes del gradiente medio que esta aplicación aplica —5 y 10 mmHg— salen de la Tabla 1 de la ASE 2023, folio 8, que publica < 5 / 5-9 / ≥ 10 mmHg a una frecuencia cardíaca de 60-80 lpm. La ESC/EACTS 2025 no publica cortes de severidad de estenosis mitral: lo único que dice del gradiente es descriptivo. La frecuencia de la medición esta aplicación no la verifica.',
+      refs:['asePandian2023','esc2025vc'] } : '',
+    /* Las dos limitaciones de método que SÍ cambian la conducta, porque deciden si una fuente
+       vota. La fila de arriba ya las aplica; acá va su fuente. */
+    (etio === 'reumatica') ? { txt:'Del mismo documento salen las dos limitaciones que retiran una fuente: el área por ecuación de continuidad «no está bien validada y se usa poco» y no debe usarse con insuficiencia aórtica o mitral significativa, y el tiempo de hemipresión no es fiable con insuficiencia mitral significativa, tras valvuloplastia, o con alteración de la distensibilidad auricular o ventricular. La planimetría al nivel de las puntas de los velos es la preferida.',
+      refs:['asePandian2023'] } : '',
+    /* ⚠️ LA DISCREPANCIA SE REPORTA Y NO SE CORRIGE, que es la regla de esta casa para todo lo
+       que la fuente no sostiene. Se publica SOLO con etiología no reumática, que es donde el
+       alcance no alcanza; con la reumática no hay nada que declarar. */
+    /* SIN CORCHETE Y SIN NOMBRAR EL DOCUMENTO, a propósito: ver el comentario de arriba. */
+    (etio && etio !== 'reumatica') ? 'Los dos cortes del gradiente medio que esta aplicación aplica —5 y 10 mmHg— salen de un documento de cardiopatía REUMÁTICA, y la aplicación los usa en TODA etiología para decidir la categoría. En esta válvula, que no es reumática, el gradiente se ubica en su banda y la banda no se cita: no hay fuente verificada que escriba esos cortes para esta etiología. Queda declarado, no corregido.' : '',
+    /* ── LAS GUÍAS PREVIAS: UNA SOLA NOTA, Y SÓLO LO QUE CAMBIA LA CONDUCTA ───────────────── */
+    /* ⚠️ ACÁ ENTRÓ TODO LO QUE ESTABA SUELTO EN EL CUERPO: la graduación de 2009 por área, la
+       exclusión del gradiente por la ACC/AHA, el «more than mild» con sus palabras, la ausencia de
+       una categoría «muy severa», y el origen del > 8. Lo que NO entró es el relato de cómo cambió
+       cada edición: el panel explica el criterio vigente, no la historia de las guías. */
+    { txt:'GUÍAS PREVIAS — sólo lo que cambia la conducta. (1) La EAE/ASE 2009 es la única que gradúa la estenosis mitral por área en leve, moderada y severa, y pone la SEVERA en < 1,0 cm² (Tabla 9, p. 17): por esa escala un área de 1,2 cm² es moderada y por la guía vigente ya es clínicamente grave. (2) Esa misma guía publica el gradiente medio y la presión pulmonar como signos de APOYO que «no pueden considerarse marcadores indirectos de la severidad» (p. 16), y la ACC/AHA 2020 excluyó el gradiente medio de sus criterios de forma explícita (Tabla 16, p. e113), por su variabilidad con la frecuencia y el flujo: esta aplicación SÍ gradúa por gradiente, con los cortes de la ASE 2023. (3) La ACC/AHA 2020 usa el mismo corte de área de ' + u + ' cm² y escribe la contraindicación con sus palabras: «MR that is more than mild is a contraindication to PMBC» (p. e114). (4) Ninguna de las tres define «estenosis mitral MUY severa»: esa categoría no existe por área, gradiente, presión pulmonar ni tiempo de hemipresión. (5) El «> ' + EM_CRIT_2025.score_desfav + '» del score NO es del artículo de Wilkins 1988, que no menciona ningún 8: separa en < 9 resultado óptimo y > 11 subóptimo, declara que entre 9 y 11 el score no predijo el resultado (p. 307), y sus cuatro componentes van de 0 a 4 con un total de 0 a 16 (Tabla 2, p. 300). «Wilkins» no aparece en la guía de 2025.',
+      /* ⚠️ `wilkins1988` VA EN LOS REFS AUNQUE LA GUÍA NO LO NOMBRE, porque esta nota SÍ lo nombra:
+         un documento citado en prosa sin su corchete se lee como «hay una cita que no encontrás»,
+         que es el modo de falla que el registro declara. Lo que se afirma de él —0 a 4 por ítem,
+         0 a 16 el total, sin ningún 8— se leyó en el artículo original. */
+      /* ⚠️ `esc2025vc` VA ACÁ AUNQUE SEA LA NOTA DE LAS GUÍAS PREVIAS, Y NO ES DECORACIÓN. Esta
+         nota compara: dice que la de 2009 pone la severa en < 1,0 «y por la guía vigente ya es
+         clínicamente grave», y dice que el «> 8» es de la guía vigente y no de Wilkins. Las dos
+         son DISCREPANCIAS, y la regla de esta casa es que una discrepancia va con LAS DOS citas en
+         la misma nota: con una sola, la mitad que se afirma queda sin respaldo. Lo fija TC-327 por
+         los dos lados. */
+      refs:['esc2025vc','eaeAseEst2009','ahaVc2020','wilkins1988'] },
+    'Lo que se marca en este panel no se guarda con el estudio ni sale del informe: se borra al cerrarlo.'
   ];
 }
 
@@ -52809,9 +52812,11 @@ function _indEM(){
        PRECONDICIÓN de que la tabla aplique. Con `ok` además entraba a la regla de apertura
        automática de `_indSecHTML`, que se reserva para criterios cumplidos y alarmas. */
     etio === 'reumatica' ? 'none' : (etio === 'otra' ? 'warn' : 'ask'),
-    etio === 'reumatica' ? 'reumática — es la etiología para la que la guía escribe las filas de comisurotomía percutánea'
-    : etio === 'otra' ? 'NO reumática: la comisurotomía abre la fusión comisural, que es un mecanismo reumático, y la guía dice que la estenosis degenerativa no es susceptible del procedimiento porque esa fusión no existe'
-    : 'sin consignar: «Normal» es el valor de fábrica del desplegable, no una etiología. Las filas de esta tabla son las de la estenosis mitral REUMÁTICA, así que sin la morfología no se puede afirmar que le correspondan. Se elige en la pestaña Válvulas'));
+    /* UNA LÍNEA cada una. El por qué —que la comisurotomía abre la fusión comisural y que «Normal»
+       es el valor de fábrica y no una etiología— vive en el detalle plegado y en el aviso. */
+    etio === 'reumatica' ? 'es la etiología de las filas de comisurotomía'
+    : etio === 'otra' ? 'no reumática: la guía no escribe filas de comisurotomía para esta etiología'
+    : 'sin consignar — se elige en la pestaña Válvulas'));
   if (US == null || UM == null) filas.push(_indSinUmbral('Área valvular mitral'));
   else if (!medidas.length && !avmIleg.length) filas.push(_indFila('Área valvular mitral', '—', 'ask', 'ninguna de las cuatro fuentes tiene valor'));
   else {
@@ -52955,16 +52960,15 @@ function _indEM(){
            guía deja una puerta abierta. Nota ^a de la Tabla 8 de contraindicaciones, p. 4682: «PMC
            may be considered in patients with MVA of >1.5 cm2 with symptoms that cannot be explained
            by another cause and if the anatomy is favourable». */
-        (_le(x.L.val, US) ? '≤ ' + _indNum(US, 1) + ' cm² — estenosis clínicamente significativa'
+        (_le(x.L.val, US) ? '≤ ' + _indNum(US, 1) + ' cm² — alcanza el corte de significación clínica'
            /* ⚠️ LA CITA DE PANDIAN VA SÓLO CON ETIOLOGÍA REUMÁTICA, y no es prolijidad: esa guía es
               de cardiopatía REUMÁTICA y su Tabla 1 gradúa la estenosis mitral de esa etiología.
               La sección se pinta igual sobre una calcificada —la compuerta de etiología corta la
               CASCADA de conducta, no las filas— así que colgarle el corchete ahí le atribuiría a
               la fuente un alcance que no tiene. El corte ≤ 1,5 de la guía vigente sí aplica a
               cualquier etiología, y por eso `esc2025vc` va en las dos ramas. */
-           + (etio === 'reumatica' ? ' · la ASE 2023 de cardiopatía REUMÁTICA llama SEVERA a este mismo corte de área. Esa guía lo publica JUNTO CON un tiempo de hemipresión ≥ 150 ms y un gradiente medio ≥ 10 mmHg a 60-80 lpm, que esta sección NO evalúa: acá se gradúa por ÁREA sola' : '')
-         : 'mayor que ' + _indNum(US, 1) + ' cm² — por encima del corte de significación clínica, y contraindicación del procedimiento; puede considerarse si hay síntomas sin otra causa y anatomía favorable')
-        + (x.conBanda ? '' : ' · esta fuente no tiene banda de plausibilidad declarada en la app, así que el valor se toma como viene'),
+         : '> ' + _indNum(US, 1) + ' cm² — contraindicación del procedimiento')
+        + (x.conBanda ? '' : ' · sin banda de plausibilidad declarada'),
         _le(x.L.val, US) ? (etio === 'reumatica' ? ['esc2025vc','asePandian2023'] : ['esc2025vc']) : ['esc2025vc']));
     });
   }
@@ -53018,10 +53022,15 @@ function _indEM(){
   filas.push(_indFila('Categoría (la que publica el informe)',
     catTxt || (cat ? 'Sin categoría' : '—'),
     catTxt ? (cat.clave === 'severa' ? 'ok' : 'warn') : (cat ? 'none' : 'ask'),
-    !cat ? 'no evaluable: la aplicación no pudo leer la función que gradúa la estenosis mitral'
-    : cat.clave === 'severa' ? 'significativa si el peor área de los métodos marcados alcanza el corte O si el gradiente medio lo alcanza. El área sola no alcanza: se combina con factores clínicos'
-    : cat.clave === 'gradiente' ? 'el gradiente está elevado pero no alcanza el corte de significación, y ningún área marcada lo alcanza'
-    : cat.clave === 'gradiente_im' ? 'con insuficiencia mitral significativa el gradiente sube por VOLUMEN y no por obstrucción, así que el criterio del gradiente se retira completo y el texto no lleva la palabra estenosis. El área sigue votando'
+    /* ⚠️ LA PALABRA DE LA GUÍA, CON LA DEL INFORME ENTRE PARÉNTESIS. El documento escribe
+       «clinically severe MS» (folio 4680) y el informe de esta aplicación imprime
+       «significativa»: son la misma afirmación con dos palabras, y el panel tiene que decir cuál
+       es de quién. Lo que define la categoría —el área JUNTO CON factores clínicos— está en el
+       criterio visible y en el detalle; acá va UNA línea. */
+    !cat ? 'no evaluable — la aplicación no pudo leer la función que gradúa la estenosis mitral'
+    : cat.clave === 'severa' ? 'la guía la llama «clínicamente grave» y el informe, «significativa»: el peor área de los métodos marcados alcanza el corte, o el gradiente medio lo alcanza'
+    : cat.clave === 'gradiente' ? 'gradiente elevado sin alcanzar el corte de significación, y ningún área marcada lo alcanza'
+    : cat.clave === 'gradiente_im' ? 'con insuficiencia mitral significativa el gradiente sube por volumen y no por obstrucción: el criterio del gradiente se retira y el área sigue votando'
     : 'ningún método marcado alcanza el corte de área y el gradiente no alcanza el de significación',
     /* `esc2025vc` EN LAS DOS RAMAS y Pandian sólo con la reumática, igual que las filas del área:
        el corte ≤ 1,5 de la guía vigente aplica a cualquier etiología —así lo decidió esta sección
@@ -53064,11 +53073,18 @@ function _indEM(){
            en < 9 óptimo y > 11 subóptimo, y declara que entre 9 y 11 el score NO predijo el
            resultado (p. 307)—. Decir sólo el > 8 deja creer que la franja 9-11 tiene un pronóstico
            conocido, que es justo lo que el trabajo que inventó el score se cuidó de no afirmar. */
+        /* ⚠️ «SEGÚN LA GUÍA» Y NADA MÁS: NO SE ATRIBUYE A NINGUNA ESCALA CONCRETA. El documento
+           escribe «echocardiographic score >8» y remite a su Supplementary data online, Table S3,
+           que no está en el material consultado — o sea que la definición de la escala no se pudo
+           leer. La versión anterior citaba a Wilkins 1988 en esta misma fila y le ponía su
+           corchete: eso le atribuye el corte a un artículo que NO lo menciona. Lo que se verificó
+           de ese artículo —0 a 4 por ítem, 0 a 16 el total y ningún 8— vive en la nota de guías
+           previas del detalle, con su cita. */
         nota: val === 'desfav'
-          ? 'desfavorable según la guía: UNA de las características anatómicas, junto con la calcificación de Cormier 3 y la insuficiencia tricuspídea severa. No descalifica por sí sola: rutea a la fila de Clase IIa, no fuera del procedimiento. En el trabajo original, entre 9 y 11 el score no predijo el resultado.'
-          : val === 'fav' ? 'no figura entre las características anatómicas desfavorables'
-          : 'la guía lo llama «score ecocardiográfico», no «Wilkins»; se puntúa en la pestaña ETE',
-        refs: val === 'desfav' ? ['esc2025vc','wilkins1988'] : (val === 'fav' ? ['esc2025vc'] : null) };
+          ? '> ' + EM_CRIT_2025.score_desfav + ' según la guía — una de las tres características anatómicas desfavorables, y no descalifica por sí sola'
+          : val === 'fav' ? '≤ ' + EM_CRIT_2025.score_desfav + ' — no figura entre las características anatómicas desfavorables'
+          : 'la guía lo llama «score ecocardiográfico»; se puntúa en la pestaña ETE',
+        refs: val == null ? null : ['esc2025vc'] };
     }));
   if (W && W.puntuados && W.puntuados < 4)
     fAnat.push(_indFila('Score — puntuación parcial', W.puntuados + ' de 4 criterios', 'ask',
@@ -53092,10 +53108,12 @@ function _indEM(){
            ⚠️ Y LA TRADUCCIÓN ESPAÑOLA SE COMIÓ «appendage»: dice sólo «cuando el trombo se localiza
            en la AI». Sobre ella este texto parecía atribuirle a la guía una restricción que no
            tenía, y así se reportó el 2026-09-29. El original la tiene. */
-        nota: val === 'si' ? 'contraindicación — si está en la OREJUELA puede considerarse con contraindicación quirúrgica o sin urgencia, anticoagulando 1-3 meses y con un ETE que confirme la resolución'
-        : val === 'sospecha' ? 'resolver antes de indicar el procedimiento'
-        : val === 'no' ? 'la contraindicación de la guía es el trombo en la aurícula, no sólo en la orejuela'
-        : 'la indicación exige haber descartado trombo auricular, y el ETE es el estudio que lo hace',
+        /* UNA LÍNEA. La excepción de la orejuela y sus condiciones están en el detalle plegado,
+           con su nota ^b y su folio: es la explicación larga que el pedido manda plegar. */
+        nota: val === 'si' ? 'contraindicación de la comisurotomía'
+        : val === 'sospecha' ? 'resolver antes de indicar: la indicación exige haberlo descartado'
+        : val === 'no' ? 'la contraindicación es el trombo en la aurícula, no sólo en la orejuela'
+        : 'sin contestar — el ETE es el estudio que lo descarta',
         refs: ['esc2025vc'] };
     }));
   /* ── Insuficiencia mitral asociada: «más que leve» es contraindicación ── */
@@ -53105,9 +53123,9 @@ function _indEM(){
   const imSevTxt = (imSev != null && IM_TXT[imSev]) ? IM_TXT[imSev] : 'no consignada';
   fContra.push(_indFila('Insuficiencia mitral asociada', imSev == null ? 'No consignada' : (imSevTxt.charAt(0).toUpperCase() + imSevTxt.slice(1)),
     (imSev != null && imSev >= 2) ? 'alarm' : (imSev != null ? 'none' : 'ask'),
-    (imSev != null && imSev >= 2) ? 'MÁS QUE LEVE — contraindicación de la comisurotomía percutánea. La guía dice «más que leve», no «moderada o más»'
-    : imSev != null ? 'no alcanza el «más que leve» que contraindica el procedimiento'
-    : 'sin consignar: es una de las contraindicaciones de la tabla'));
+    (imSev != null && imSev >= 2) ? 'MÁS QUE LEVE — contraindicación de la comisurotomía'
+    : imSev != null ? 'no alcanza el «más que leve» que contraindica'
+    : 'sin consignar — es una de las contraindicaciones de la tabla'));
   const UP = _indUmb('UMBRAL_PSAP_ELEVADA'), psap = _indN('psap_calc');
   /* ⚠️ DOS UMBRALES DE PAPs QUE NO SON EL MISMO. `UMBRAL_PSAP_ELEVADA` (35) es el de «elevada»
      que usa toda la app; los 50 de acá son el disparador de descompensación hemodinámica de la
@@ -53116,8 +53134,8 @@ function _indEM(){
   fDisp.push(UP == null ? _indSinUmbral('PSAP estimada')
     : _indFila('PSAP estimada', _indNum(psap, 0, 'mmHg'),
         _gt(psap, EM_CRIT_2025.spap_decomp) ? 'ok' : (_gt(psap, UP) ? 'warn' : (psap != null ? 'none' : 'ask')),
-        _gt(psap, EM_CRIT_2025.spap_decomp) ? '> ' + EM_CRIT_2025.spap_decomp + ' mmHg en reposo — disparador de descompensación hemodinámica de la fila del asintomático. Es OTRA pregunta que la hipertensión pulmonar severa del control de características clínicas'
-        : _gt(psap, UP) ? 'mayor que ' + UP + ' mmHg, pero no alcanza los ' + EM_CRIT_2025.spap_decomp + ' del disparador'
+        _gt(psap, EM_CRIT_2025.spap_decomp) ? '> ' + EM_CRIT_2025.spap_decomp + ' mmHg en reposo — disparador de descompensación hemodinámica'
+        : _gt(psap, UP) ? '> ' + UP + ' mmHg, pero no alcanza los ' + EM_CRIT_2025.spap_decomp + ' del disparador'
         : (psap != null ? 'no elevada' : 'sin estimar')));
 
   /* ── La mitad CLÍNICA de las características desfavorables: una sola pregunta, tres estados ──
@@ -53133,8 +53151,8 @@ function _indEM(){
   fClin.push(_indFilaCtrl('Características clínicas desfavorables', 'em.clin',
     [{v:'fav',t:'Ninguna'},{v:'una',t:'Una'},{v:'desfav',t:'Varias'}],
     _clin === 'desfav' ? 'warn' : (_clin === 'una' ? 'warn' : (_clin === 'fav' ? 'none' : 'ask')),
-    'edad avanzada, comisurotomía previa, clase funcional NYHA IV, fibrilación auricular permanente o hipertensión pulmonar severa — es la mitad CLÍNICA; la otra es la anatómica de arriba'
-    + (_clin === 'una' ? ' · con UNA sola la guía no dice si alcanza, así que abajo se publican las dos lecturas' : ''),
+    'edad avanzada, comisurotomía previa, NYHA IV, fibrilación auricular permanente o hipertensión pulmonar severa'
+    + (_clin === 'una' ? ' · la guía no define si una sola alcanza, así que abajo se publican las dos lecturas' : ''),
     ['esc2025vc']));
   fClin.push(_indFilaCtrl('Síntomas', 'em.sintomas', [{v:'si',t:'Sí'},{v:'no',t:'No'}],
     _sx === 'si' ? 'ok' : (_sx === 'no' ? 'none' : 'ask'),
@@ -53221,8 +53239,8 @@ function _indEM(){
       (f.val == null ? (_bloqueantes.length ? 'falta contestar: ' + _bloqueantes.join('; ')
                                             : 'falta contestar alguna de sus condiciones')
                      : EM_EST_TXT[f.val])
-      + (f.soloUna ? ' — sólo en una de las dos lecturas de «Una sola característica clínica»' : '')
-      + (f.k === 'r3' ? ' · «no es apto para comisurotomía» lo deriva esta aplicación de la clínica desfavorable: la guía no lo define, lo decide el Heart Team' : ''),
+      + (f.soloUna ? ' — sólo en una de las dos lecturas: la guía no define si una sola característica clínica alcanza' : '')
+      + (f.k === 'r3' ? ' · «no apto para comisurotomía» lo deriva esta aplicación: la guía no lo define' : ''),
       ['esc2025vc']));
   });
 
@@ -53245,13 +53263,14 @@ function _indEM(){
       _contraPresentes.length ? 'Hay ' + (_contraPresentes.length > 1 ? _contraPresentes.length + ' contraindicaciones' : 'una contraindicación') + ' de la comisurotomía: ' + _contraPresentes.join('; ') + '.' : '',
       _contraSinContestar.length ? (_contraSinContestar.length === 1 ? 'Queda 1 contraindicación sin contestar' : 'Quedan ' + _contraSinContestar.length + ' contraindicaciones sin contestar') + ', y no cortan las filas de abajo: un «Aplica» no significa que estén descartadas.' : ''
     ].filter(Boolean).join(' · '),
-    lineas:[ { txt:'La comisurotomía abre la FUSIÓN COMISURAL, que es un mecanismo reumático.', refs:['esc2025vc'] } ],
+    lineas:[ { txt:'La comisurotomía abre la FUSIÓN COMISURAL, que es un mecanismo reumático.', refs:['esc2025vc'] },
+             { txt:'El ETE se hace sistemáticamente en el candidato, para excluir trombo auricular.', refs:['esc2025vc'] } ],
     grupos:[ { tit:'Características desfavorables — anatómicas', filas:fAnat },
              { tit:'Características desfavorables — clínicas, y los síntomas', filas:fClin },
              { tit:'Contraindicaciones de la comisurotomía (Tabla 8)', filas:fContra },
              { tit:'Disparadores de la fila del asintomático', filas:fDisp },
              { tit:'Filas de la tabla de recomendaciones, con su estado', filas:fRec } ],
-    nota:'La guía define las características desfavorables como «varias de las siguientes» y no dice cuántas, así que esta aplicación no publica un veredicto: muestra qué filas se cumplen.' };
+    nota:'La guía no dice cuántas características desfavorables son «varias», así que esta aplicación no publica un veredicto: muestra qué filas de la tabla se cumplen.' };
   if (etio == null) bloque2.tit = 'Si fuera reumática — comisurotomía percutánea o cirugía';
 
   /* ⚠️ EL BLOQUE 3 NO OFRECE COMISUROTOMÍA, Y ESO ES EL PUNTO. §10.3.2, folio 4682: «Degenerative
@@ -53259,16 +53278,25 @@ function _indEM(){
      escribe para esta etiología es el TMVI (IIb · C), que esta aplicación NO evalúa: se publica
      con su clase y su nivel y se dice que no se evalúa, en vez de callarla o de darla por
      cumplida. */
+  /* ⚠️ LAS DOS FRASES DE LA EAE/ASE 2009 VAN CON SU REDACCIÓN ORIGINAL Y SIN SUAVIZAR (orden de
+     Maicol, 2026-10-11). La del THP es más fuerte que «puede no ser confiable»: el documento dice
+     que **debe evitarse**. Literal verificado en la p. 13: «Hence, the use of T1/2 in degenerative
+     calcific MS may be unreliable and should be avoided». Y la de la planimetría, p. 12: «In the
+     particular case of degenerative MS, planimetry is difficult and mostly not reliable because of
+     the orifice geometry and calcification present». Las dos van como LÍNEAS del bloque y no como
+     nota suelta, porque las líneas llevan su corchete y la nota del bloque no. */
   const bloque3 = { tit:'Estenosis mitral degenerativa con calcificación anular',
     lineas:[
       { txt:'No hay comisurotomía: la estenosis degenerativa no es susceptible del procedimiento porque no hay fusión comisural.', refs:['esc2025vc'] },
-      { txt:'La cirugía es técnicamente difícil y de alto riesgo en el paciente anciano con calcificación anular.', refs:['esc2025vc'] }
+      { txt:'La cirugía es técnicamente difícil y de alto riesgo en el paciente anciano con calcificación anular; la reparación o el reemplazo con descalcificación extensa y reconstrucción del anillo con parche se hacen en pacientes seleccionados, en centros con experiencia.', refs:['esc2025vc'] },
+      { txt:'El tiempo de hemipresión en la estenosis mitral degenerativa calcificada puede no ser fiable y DEBE EVITARSE.', refs:['eaeAseEst2009'] },
+      { txt:'Y la planimetría del área en la degenerativa es difícil y en general no fiable, por la geometría del orificio y la calcificación.', refs:['eaeAseEst2009'] }
     ],
     grupos:[ { tit:'La única fila de la tabla para esta etiología', filas:[
       _indFila(EM_REC_2025.tmvi.lbl, EM_REC_2025.tmvi.c, 'none',
         'en el paciente sintomático con calcificación anular extensa y disfunción valvular severa, en un centro con experiencia. Esta aplicación no evalúa sus condiciones',
         ['esc2025vc']) ] } ],
-    nota:'El tiempo de hemipresión no se usa en esta etiología, y la planimetría es menos fiable que en la reumática: está en el detalle de la sección, con su fuente.' };
+    nota:'Esta aplicación no evalúa las condiciones de la fila del implante transcatéter: se publica con su clase y su nivel para que se vea que existe.' };
 
   const bloques = [];
   if (etio === 'reumatica' || etio == null) bloques.push(bloque2);
@@ -53282,14 +53310,17 @@ function _indEM(){
        /sharp-edges. La etiología va primera porque decide si el resto de la sección significa algo. */
     aviso: [
       etio == null ? 'Etiología no consignada: consignala para ver las indicaciones; la reumática es la que hay que descartar primero.' : '',
-      (etio === 'otra' && morf !== EM_ETIO_DEG) ? 'La morfología consignada es «' + morf + '», que no es reumática: la guía no escribe filas de comisurotomía ni de intervención específicas para esta etiología.' : '',
+      (etio === 'otra' && morf !== EM_ETIO_DEG) ? 'Morfología «' + morf + '»: sin recomendaciones específicas en la guía. Las mediciones de arriba siguen describiendo la válvula.' : '',
       avmIleg.length ? 'Hay áreas fuera de rango medible (' + avmIleg.join(', ') + '): no sostienen ni descartan ningún criterio. Revisar la unidad.' : '',
       avmDiscordantes ? 'Las fuentes del área discordan alrededor del corte de ' + _indNum(US, 1) + ' cm²: una contraindica el procedimiento y otra no. Conviene resolverlo antes de decidir.' : ''
     ].filter(Boolean).join(' · '),
     bloques: bloques,
     recom: _indEMAlarma(D),
+    /* El criterio visible: la frase de la guía con su palabra, y la del informe aclarada entre
+       paréntesis. Clase y nivel NO van acá —el criterio no es una recomendación—: cada fila de la
+       tabla lleva los suyos. */
     guia: { ref:'esc2025vc',
-      txt:'Un área valvular mitral ≤ 1,5 cm² junto con factores clínicos —síntomas, riesgo tromboembólico alto o descompensación hemodinámica— indica estenosis mitral CLÍNICAMENTE GRAVE.' },
+      txt:'Un área valvular mitral ≤ ' + (US != null ? _indNum(US, 1) : '1,5') + ' cm² JUNTO CON factores clínicos —síntomas, riesgo tromboembólico alto o descompensación hemodinámica— indica estenosis mitral «clínicamente grave» (el informe de esta aplicación la llama «significativa»).' },
     notas: EM_NOTAS(US, etio, D) };
 }
 
@@ -100578,8 +100609,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261011-1121';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791728461391;                 /* eco-build-ms */
+const ECO_BUILD    = '20261011-1137';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791729475842;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -100665,7 +100696,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-1121</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-1137</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

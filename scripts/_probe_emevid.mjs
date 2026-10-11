@@ -1016,14 +1016,33 @@ async function main() {
      Las otras catorce secciones del panel con un paciente que las dispara, hash por hash. */
   const E4 = {};
   if (hacer('alcance')) {
+    /* ⚠️ EL DENOMINADOR ERA DE **UNA** SECCIÓN Y NO PROBABA NADA. La primera versión sembraba
+       sólo el área mitral y la aórtica, así que de las quince secciones se pintaban dos —la de la
+       mitral, que es la que cambia, y una ajena— y la comparación de hashes decía «idénticas»
+       sobre un conjunto de uno. Se siembra un paciente que dispara todo lo que se puede disparar
+       por campo, y se CUENTA cuántas secciones ajenas quedaron: si son pocas, la conclusión vale
+       poco y hay que verlo. */
     await base();
     await morf('Reumática');
-    for (const [id, val] of [['avm_plan','1.2'], ['ava_cont','0.8'], ['vmax_ao','4.5']]) {
-      const r = await tipear(id, val); E4['tecleo_' + id] = r;
+    for (const [id, val] of [['avm_plan','1.2'], ['ava_cont','0.8'], ['vmax_ao','4.5'],
+                             ['peso','80'], ['talla','175'], ['edad','68'],
+                             ['fevi','55'], ['dsfvi','44'], ['ddfvi','58'],
+                             ['ai_vol','70'], ['ai_diam','58'],
+                             ['ia_vc','7'], ['ia_eroa','35'], ['ia_volr','65'],
+                             ['psap_calc','60'], ['vmax_it','3.2'],
+                             ['it_vc','8'], ['it_eroa','45'],
+                             ['vmax_p','4.2'], ['grad_p','70'],
+                             ['ao_asc','46'], ['ao_raiz','44'],
+                             ['grad_medio_mch','55'], ['siv','18']]) {
+      const r = await tipear(id, val); if (!r.ok) E4['NO ENTRO ' + id] = r;
     }
-    await ev(`(function(){ try{ calcEM(); calcAo && calcAo() }catch(e){} return 1 })()`);
-    await pausa(200);
+    for (const [id, g] of [['im_grado','4'], ['ia_grado','4'], ['it_grado','4'], ['ep_grado','severa']])
+      E4['grado_' + id] = await ev(`window.__P.setGrado(${JSON.stringify(id)}, ${JSON.stringify(g)})`);
+    await ev(`(function(){ ['calcEM','calcAo','calcIM_ESC','calcIA_ESC','calcIT_ESC','calcPSAP','calcEP']
+      .forEach(function(f){ try { if (typeof window[f] === 'function') window[f]() } catch(e){} }); return 1 })()`);
+    await pausa(300);
     E4.otras = await otrasSecs();
+    E4.cuantasAjenas = Object.keys(E4.otras).length;
     E4.asserts = JSON.parse(await ev(`JSON.stringify({
       em: (function(){ try { return _emAssertUmbrales() } catch(e) { return ['EXC: '+e.message] } })(),
       origen: (function(){ try { return _indOrigenAssert() } catch(e) { return ['EXC: '+e.message] } })()

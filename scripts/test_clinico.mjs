@@ -31748,8 +31748,14 @@ caso('TC-323', 'Estenosis mitral: compuerta de etiologia, umbral clinico declara
          la version anterior exigia que NO la llevara porque el texto era prosa explicativa. */
       ex.push(['la fila del bloque de la degenerativa CITA su documento, y sus lineas tambien',
         !!fTmvi && (fTmvi.refs || []).indexOf('esc2025vc') > -1 &&
+        /* CADA LINEA CITA **ALGUN** DOCUMENTO REGISTRADO, no necesariamente la ESC: desde los
+           textos del 2026-10-11 dos de las cuatro lineas de este bloque son de la EAE/ASE 2009 —el
+           THP que «debe evitarse» en la degenerativa calcificada y la planimetria poco fiable— con
+           la redaccion original del documento. Exigir esc2025vc en todas ponia el caso en rojo por
+           una cita correcta. */
         !!bCalc && (bCalc.lineas || []).every(l => typeof l === 'string' ||
-          (l.refs || []).indexOf('esc2025vc') > -1) &&
+          ((l.refs || []).length > 0 && (l.refs || []).every(k => _indRefValida(k)))) &&
+        (bCalc.lineas || []).some(l => typeof l !== 'string' && (l.refs || []).indexOf('eaeAseEst2009') > -1) &&
         _indRefValida('esc2025vc'),
         (fTmvi ? 'filaRefs=' + (fTmvi.refs || []).join('+') : 'SIN FILA') +
         ' · lineas=' + (bCalc ? (bCalc.lineas || []).map(l => (typeof l === 'string' ? 'SIN REFS' : (l.refs || []).join('+'))).join(' | ') : '-')]);
@@ -40586,8 +40592,24 @@ caso('TC-328', 'Evidencia: los cuatro textos corregidos contra el original ingle
     // ── 3 · AVm > 1,5: la excepcion de la nota a, con su cita ──
     R.avm = fila(secEM, 'avm');
 
-    // ── 4 · Score: las dos citas y la franja 9-11 ──
+    // ── 4 · Score: su cita, y la franja 9-11 en la nota de guias previas ──
     R.score = fila(secEM, 'score ecocardiografico');
+
+    /* ⚠️ LAS NOTAS SE LEEN DEL OBJETO Y NO DEL HTML, Y CON SUS REFS. El detalle plegado las pinta
+       con _critEsc, asi que buscarlas en el texto del DOM obliga a des-escapar y pierde los refs,
+       que es la mitad que estas condiciones verifican. Se normalizan los dos lados con pl(). */
+    const notasEM = (function(){
+      try { const sx = window._indEM(); if (!sx) return [];
+        return (sx.notas || []).filter(Boolean).map(function(n){
+          return (typeof n === 'string') ? { txt: pl(n), refs: [] }
+                                         : { txt: pl(n.txt), refs: n.refs || [] }; });
+      } catch (e) { return []; }
+    })();
+    const notaCon = frag => notasEM.filter(n => n.txt.indexOf(pl(frag)) > -1)[0] || null;
+    R.notaOrejuela = notaCon('el trombo en la OREJUELA');
+    R.notaExcA     = notaCon('Las dos excepciones de esa tabla');
+    R.notaPrevias  = notaCon('GUIAS PREVIAS');
+    R.notasN = notasEM.length;
 
     ex.push(['DENOMINADOR: las dos secciones pintadas con sus filas y sus controles contestados',
       R.hayIM && R.hayEM && R.faltan.length === 0 && !!R.trombo && !!R.avm && !!R.score,
@@ -40599,27 +40621,58 @@ caso('TC-328', 'Evidencia: los cuatro textos corregidos contra el original ingle
       'falsas=' + R.teerFalso + ' notas=' + R.teer.length + ' conCita=' + R.teerConCita +
       ' conDisyuncion=' + R.teerDisy]);
 
-    ex.push(['2 · Trombo: rotulo «auricula izquierda», excepcion de la orejuela, cita, y el id SIN tocar',
+    /* ⚠️ ADAPTADO 2026-10-11: LA EXCEPCION DE LA OREJUELA SE MUDO AL DETALLE PLEGADO. El pedido
+       de esta tanda es «cada criterio o fila, UNA linea; las explicaciones largas, plegadas detras
+       del Ver detalle»: la fila del trombo dice ahora «contraindicacion de la comisurotomia» y las
+       condiciones de la nota ^b —orejuela, 1-3 meses, ETE de control— viven en una nota del
+       detalle, con su folio. Lo que se verifica es lo MISMO y en los dos lugares: que el rotulo
+       diga «auricula izquierda» y NO «orejuela» (la contraindicacion es la auricula entera y la
+       condicionalidad se acota a la orejuela), que la fila cite, y que la excepcion COMPLETA siga
+       estando en alguna nota con su cita. Sin la segunda mitad, acortar la fila habria borrado la
+       excepcion sin que nada se enterara. */
+    ex.push(['2 · Trombo: rotulo «auricula izquierda», fila de una linea con su cita, y la excepcion de la orejuela COMPLETA en el detalle',
       !!R.trombo && pl(R.trombo.lbl).indexOf('auricula izquierda') > -1 &&
       pl(R.trombo.lbl).indexOf('orejuela') === -1 &&
-      R.trombo.nota.indexOf('orejuela') > -1 && R.trombo.nota.indexOf('1-3 meses') > -1 &&
-      R.trombo.nota.indexOf('ete') > -1 && R.trombo.refs.indexOf('esc2025vc') > -1 &&
-      R.tromboIdIntacto === true,
+      R.trombo.refs.indexOf('esc2025vc') > -1 && R.tromboIdIntacto === true &&
+      !!R.notaOrejuela && R.notaOrejuela.txt.indexOf('1-3 meses') > -1 &&
+      R.notaOrejuela.txt.indexOf('ete de control') > -1 &&
+      R.notaOrejuela.refs.indexOf('esc2025vc') > -1,
       'lbl=«' + (R.trombo ? R.trombo.lbl : '-') + '» refs=' + JSON.stringify(R.trombo ? R.trombo.refs : []) +
-      ' idIntacto=' + R.tromboIdIntacto]);
+      ' idIntacto=' + R.tromboIdIntacto +
+      ' · nota=«' + (R.notaOrejuela ? R.notaOrejuela.txt.slice(0, 110) : 'NO HAY') + '»']);
 
-    ex.push(['3 · AVm > 1,5: dice la excepcion —sintomas sin otra causa y anatomia favorable— y cita',
+    /* ⚠️ ADAPTADO: la excepcion de la nota ^a tambien se mudo al detalle, por la misma regla de
+       una linea por fila. Y se verifica en los dos lugares: la fila dice que es contraindicacion y
+       cita, y la nota del detalle conserva las DOS condiciones de la excepcion. La primera version
+       de esta condicion solo miraba la fila, asi que acortarla la habria dejado pasar con la
+       excepcion borrada. */
+    ex.push(['3 · AVm > 1,5: la fila dice contraindicacion y cita, y la excepcion de la nota ^a sigue COMPLETA en el detalle',
       !!R.avm && R.avm.nota.indexOf('contraindicacion del procedimiento') > -1 &&
-      R.avm.nota.indexOf('sintomas sin otra causa') > -1 &&
-      R.avm.nota.indexOf('anatomia favorable') > -1 &&
-      R.avm.refs.indexOf('esc2025vc') > -1,
-      'nota=«' + (R.avm ? R.avm.nota.slice(0, 120) : '-') + '» refs=' + JSON.stringify(R.avm ? R.avm.refs : [])]);
+      R.avm.refs.indexOf('esc2025vc') > -1 &&
+      !!R.notaExcA && R.notaExcA.txt.indexOf('no se explican por otra causa') > -1 &&
+      R.notaExcA.txt.indexOf('anatomia es favorable') > -1 &&
+      R.notaExcA.refs.indexOf('esc2025vc') > -1,
+      'nota fila=«' + (R.avm ? R.avm.nota.slice(0, 80) : '-') + '» refs=' + JSON.stringify(R.avm ? R.avm.refs : []) +
+      ' · detalle=«' + (R.notaExcA ? R.notaExcA.txt.slice(0, 110) : 'NO HAY') + '»']);
 
-    ex.push(['4 · Score: desfavorable por la guia MAS la franja 9-11 de Wilkins, con las DOS citas',
-      !!R.score && R.score.nota.indexOf('desfavorable segun la guia') > -1 &&
-      R.score.nota.indexOf('entre 9 y 11 el score no predijo') > -1 &&
-      R.score.refs.indexOf('esc2025vc') > -1 && R.score.refs.indexOf('wilkins1988') > -1,
-      'nota=«' + (R.score ? R.score.nota.slice(0, 130) : '-') + '» refs=' + JSON.stringify(R.score ? R.score.refs : [])]);
+    /* ⚠️ ADAPTADO 2026-10-11, Y ES UN CAMBIO DE FONDO PEDIDO: LA FILA DEL SCORE YA NO CITA A
+       WILKINS. La guia escribe «echocardiographic score >8» y remite a su Supplementary data
+       online, Table S3, que NO esta en el material consultado: la definicion de la escala no se
+       pudo leer, asi que el corte se publica «segun la guia» y no se atribuye a ninguna escala
+       concreta. La version anterior le colgaba el corchete de Wilkins 1988 a esta fila, y ese
+       articulo NO menciona ningun 8 — o sea que la fila le atribuia el corte a un documento que no
+       lo tiene. Lo que SI se verifico de Wilkins —0 a 4 por item, 0 a 16 el total, < 9 optimo,
+       > 11 subobtimo y la franja 9-11 no predictiva— se conserva en la nota de guias previas del
+       detalle, con sus citas, y eso es lo que la segunda mitad de esta condicion exige: sin ella,
+       quitar el corchete de la fila habria borrado la aclaracion entera. */
+    ex.push(['4 · Score: la fila dice «> 8 segun la guia» y NO cita a Wilkins; la franja 9-11 y la escala 0-16 viven en la nota de guias previas, con sus citas',
+      !!R.score && R.score.nota.indexOf('segun la guia') > -1 &&
+      R.score.refs.indexOf('esc2025vc') > -1 && R.score.refs.indexOf('wilkins1988') === -1 &&
+      !!R.notaPrevias && R.notaPrevias.txt.indexOf('entre 9 y 11 el score no predijo') > -1 &&
+      R.notaPrevias.txt.indexOf('0 a 4') > -1 && R.notaPrevias.txt.indexOf('0 a 16') > -1 &&
+      R.notaPrevias.refs.indexOf('wilkins1988') > -1 && R.notaPrevias.refs.indexOf('esc2025vc') > -1,
+      'nota=«' + (R.score ? R.score.nota.slice(0, 90) : '-') + '» refs=' + JSON.stringify(R.score ? R.score.refs : []) +
+      ' · previas=' + (R.notaPrevias ? JSON.stringify(R.notaPrevias.refs) : 'NO HAY')]);
 
     /* ── SEGUNDA PASADA: EL ROTULO DEL TROMBO SIN CONTESTAR ──
        ⚠️ ESTA CONDICION EXISTE PORQUE LA MUTACION LO PIDIO: duplicar el rotulo en la lista de
@@ -40794,7 +40847,12 @@ caso('TC-327', 'Evidencia EM: CINCO documentos verificados, las discrepancias co
          «desfavorable», cita a Wilkins y lo sube a [2]. Las dos cosas son correctas porque la
          numeracion es por PRIMERA APARICION — y que dependa del paciente es la consecuencia, no un
          defecto. Verificar contra el escenario propio, no contra el del caso de al lado. */
-      JSON.stringify(R.items) === JSON.stringify(['esc2025vc','asePandian2023','ahaVc2020','eaeAseEst2009','wilkins1988']) &&
+      /* ⚠️ EL ORDEN ES EL DE PRIMERA APARICION Y CAMBIO CON LOS TEXTOS DEL 2026-10-11: la nota de
+         GUIAS PREVIAS quedo al final y cita las tres previas juntas, asi que la EAE/ASE 2009
+         aparece ANTES que la ACC/AHA 2020 —es la que su texto nombra primero— y Wilkins, ultimo.
+         No se afloja el orden a «las cinco en cualquier orden»: ese orden ES la bibliografia que
+         el medico lee, y una entrada que se mueve sin motivo es una señal. */
+      JSON.stringify(R.items) === JSON.stringify(['esc2025vc','asePandian2023','eaeAseEst2009','ahaVc2020','wilkins1988']) &&
       R.sinNumerar === 0 && R.noRegistrada === 0,
       'items=' + JSON.stringify(R.items) + ' sinNumerar=' + R.sinNumerar +
       ' noRegistrada=' + R.noRegistrada]);
@@ -40810,12 +40868,29 @@ caso('TC-327', 'Evidencia EM: CINCO documentos verificados, las discrepancias co
     R.nEAE = porNombre('EAE/ASE', 'eaeAseEst2009');
     R.nWil = porNombre('Wilkins', 'wilkins1988');
 
-    ex.push(['cada nota que nombra a la ACC/AHA, a la EAE/ASE o a Wilkins lleva SU corchete',
-      R.nAHA.n >= 2 && R.nAHA.conCita === R.nAHA.n &&
-      R.nEAE.n >= 2 && R.nEAE.conCita === R.nEAE.n &&
-      R.nWil.n >= 1 && R.nWil.conCita === R.nWil.n,
+    /* ⚠️ ADAPTADO 2026-10-11: LAS TRES PREVIAS VIVEN EN **UNA SOLA** NOTA, Y ESO ES EL PEDIDO. La
+       version anterior exigia «n >= 2» para la ACC/AHA y la EAE/ASE porque ese era el inventario
+       del dia: cada una se nombraba en dos o tres notas sueltas del cuerpo y del detalle. El
+       pedido de esta tanda es que las guias previas salgan del cuerpo y queden en UNA nota plegada
+       al final, solo con lo que cambia la conducta — asi que «n >= 2» ahora falla por cumplir el
+       pedido. Lo que se conserva es el invariante, que no cambio: toda nota que NOMBRA un documento
+       lleva SU corchete. Y se agrega la mitad que el pedido trae: que sea la MISMA nota, verificado
+       porque el nodo que nombra a la ACC/AHA nombra tambien a la EAE/ASE y a Wilkins. Sin esa
+       mitad, «cada una en una nota» pasaria tambien con tres notas separadas. */
+    R.previasJuntas = (function(){
+      const nom = hojas.filter(function(d){ return d.textContent.indexOf('ACC/AHA') > -1; });
+      if (nom.length !== 1) return { mismaNota:false, cuantas:nom.length };
+      const t = nom[0].textContent;
+      return { mismaNota: t.indexOf('EAE/ASE') > -1 && t.indexOf('Wilkins') > -1,
+               cuantas: 1, arranca: t.slice(0, 22) };
+    })();
+    ex.push(['las tres guias previas estan en UNA sola nota, y esa nota lleva LOS TRES corchetes',
+      R.nAHA.n === 1 && R.nAHA.conCita === 1 &&
+      R.nEAE.n === 1 && R.nEAE.conCita === 1 &&
+      R.nWil.n === 1 && R.nWil.conCita === 1 &&
+      R.previasJuntas.mismaNota === true,
       'AHA=' + JSON.stringify(R.nAHA) + ' EAE=' + JSON.stringify(R.nEAE) +
-      ' Wilkins=' + JSON.stringify(R.nWil)]);
+      ' Wilkins=' + JSON.stringify(R.nWil) + ' juntas=' + JSON.stringify(R.previasJuntas)]);
 
     ex.push(['la discrepancia del corte de area lleva las TRES citas en la MISMA nota',
       R.corte.n === 1 && R.corte.esc === 1 && R.corte.aha === 1 && R.corte.eae === 1,
@@ -40842,6 +40917,15 @@ caso('TC-327', 'Evidencia EM: CINCO documentos verificados, las discrepancias co
       .map(function(e){ return e.getAttribute('data-ind-refitem'); }) : [];
     R.pandianTxtNoReum = secNR ? (secNR.textContent.indexOf('Pandian') > -1) : null;
 
+    /* ⚠️ ESTA CONDICION SE CONSERVA TAL CUAL Y FUE LA QUE DECIDIO UN CHOQUE DE REGLAS. Al escribir
+       los textos nuevos, la nota que declara DE DONDE salen los dos cortes del gradiente nombraba
+       a la ASE 2023 con su corchete en TODA etiologia: eso la citaba sobre una valvula calcificada,
+       que es justo lo que esta condicion prohibe. La otra regla de la casa dice que un documento
+       nombrado en prosa sin su corchete se lee como una cita que no se encuentra. La salida fue no
+       nombrarla cuando no corresponde: con etiologia no reumatica la nota dice «un documento de
+       cardiopatia REUMATICA» sin nombrarlo y sin corchete, y declara que la aplicacion aplica esos
+       cortes igual. Se pierde saber cual es el documento; no se pierde que el corte esta fuera del
+       alcance de su fuente. */
     ex.push(['con etiologia NO reumatica, Pandian NO se cita ni aparece en la bibliografia',
       !!secNR && R.itemsNoReum.length > 0 &&
       R.itemsNoReum.indexOf('asePandian2023') === -1 && R.pandianTxtNoReum === false &&
