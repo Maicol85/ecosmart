@@ -55979,6 +55979,266 @@ caso('TC-447', 'La fila de vena contracta de IM imprime el valor medido con su u
   ] };
   })();
 `);
+/* ⚠️ COBERTURA DEL COMMIT A DE LA TANDA DEL 2026-10-10. Antes de este caso, lo que la tanda
+   cambio no tenia NINGUNA prueba automatica: la unica era la sonda _probe_mitlado.mjs, que es un
+   arnes temporal. Es el patron que este archivo ya documenta dos veces —un arreglo sin cobertura
+   se deshace sin que nadie se entere— aplicado a lo que mas facil se pierde de vista: una
+   maquetacion y un texto de ayuda.
+   ⚠️ NI UN ACENTO GRAVE EN ESTE CUERPO, comentarios incluidos: es un template literal y un
+   backtick lo cierra, con un SyntaxError que apunta decenas de lineas ANTES del culpable. */
+caso('TC-448', 'Mitral: una grilla reparte las dos lesiones y las APILA en el celular con la insuficiencia arriba —el reparto de PC lo mide la sonda—, la insuficiencia queda en TRES columnas con el Tab bajando por columna, y los dos insumos del TSVI estan OCULTOS pero siguen coordinados por las dos puertas, con el aviso nombrando SOLO el que falta y sin sobrevivir al cambio de paciente', `
+  ${APAGA_HELPERS}
+  return (async () => {
+  const g = function (id) { return document.getElementById(id); };
+  const abrirMitral = function () {
+    try { showTab('valvulas'); } catch (e) {}
+    const s = g('ete-seccion-valv-mitral');
+    if (s && s.style.display === 'none') { try { toggleEteSeccion('valv-mitral'); } catch (e) {} }
+  };
+  const rec = function (t) { return !t ? '(vacio)' : String(t).replace(/\\n/g, ' | ').slice(0, 200); };
+  /* El rect de cada caja y las pistas de la grilla. El numero de pistas sale del estilo
+     COMPUTADO y no del ancho: es la unica forma de distinguir «apilado» de «dos columnas
+     apretadas». */
+  const caja = function (id) { const e = g(id); if (!e) return null;
+    const r = e.getBoundingClientRect();
+    return { izq: Math.round(r.left), arr: Math.round(r.top), w: Math.round(r.width) }; };
+  const pistas = function (id) { const e = g(id); if (!e) return null;
+    const t = getComputedStyle(e).gridTemplateColumns || '';
+    return t === 'none' ? 0 : t.split(/\\s+/).filter(Boolean).length; };
+  /* El orden de TABULACION real: los focusables en orden de DOM —que es el que el Tab recorre
+     cuando no hay un tabindex positivo— con la columna de cada uno. Lo que no tiene geometria y
+     lo que lleva tabindex -1 NO entra, porque el Tab no lo alcanza. */
+  /* ⚠️ SE FILTRA POR tabindex Y NO POR GEOMETRIA, Y ESA ES LA DIFERENCIA ENTRE UN CASO QUE
+     PRUEBA ALGO Y UNA LISTA VACIA. Este arnes mide con el viewport en 756 px, o sea maquetacion de
+     CELULAR: ahi los dos bloques de campos arrancan PLEGADOS, no tienen geometria, y un filtro por
+     ancho devolvia cero focusables — el denominador en cero, que pasa por «sin diferencias».
+     Y el filtro por DOM no es un parche: el orden de tabulacion ES el orden del DOM cuando no hay
+     un tabindex positivo, y los dos campos del TSVI quedan afuera por su propio tabindex=-1, que
+     es lo que el caso quiere probar. Asi la asercion vale a cualquier ancho. */
+  const ordenTab = function (cont) {
+    const c = g(cont); if (!c) return [];
+    const grid = c.querySelector('.valv-cols-3, .valv-cols-4');
+    const out = [];
+    Array.prototype.forEach.call(c.querySelectorAll('input,select,textarea'), function (e) {
+      if (e.getAttribute('tabindex') === '-1' || e.disabled) return;
+      if (e.type === 'hidden') return;
+      let col = null;
+      if (grid) { let n = e;
+        while (n && n.parentNode !== grid && n !== c) { n = n.parentNode; }
+        if (n && n.parentNode === grid) { col = Array.prototype.indexOf.call(grid.children, n) + 1; } }
+      out.push(e.id + '/' + col);
+    });
+    return out; };
+  /* Las tres casillas de la continuidad: valor y PLACEHOLDER, que es donde vive el aviso. */
+  const cont = function () {
+    const p = function (id) { const e = g(id); return e ? { v: e.value, ph: e.getAttribute('placeholder') || '' } : null; };
+    const oc = function (id) { const e = g(id); if (!e) return null;
+      return { v: e.value, disp: getComputedStyle(e).display,
+               aria: e.getAttribute('aria-hidden'), tab: e.getAttribute('tabindex') }; };
+    return { eroa: p('im_eroa_cont'), volr: p('vr_cont'), fr: p('im_fr_cont'),
+             dtsvi: oc('im_dtsvi'), itsvi: oc('im_itv_tsvi'),
+             puerta_d: (g('em_dtsvi') || {}).value, puerta_i: (g('em_vtitsvi') || {}).value,
+             global_d: (g('diam_tsvi') || {}).value, global_i: (g('itv_tsvi') || {}).value }; };
+  /* __t.set y no un set local: ese ayudante no existe en el contexto que inyecta
+     APAGA_HELPERS, y llamarlo tumbaba el caso entero con un ReferenceError. */
+  const sembrar = function (o) { Object.keys(o).forEach(function (k) { __t.set(k, o[k]); }); };
+
+  /* ── (1) EL REPARTO, a 1200 px ───────────────────────────────────────────────────────────── */
+  __t.limpiar(); abrirMitral();
+  await new Promise(function (r) { setTimeout(r, 120); });
+  const padreIM = (g('caja-insuf-mitral') || {}).parentNode;
+  const padreEM = (g('caja-esten-mitral') || {}).parentNode;
+  const hijosVM = g('vm-lesiones')
+    ? Array.prototype.map.call(g('vm-lesiones').children, function (x) { return x.id; }) : null;
+  const cIM = caja('caja-insuf-mitral'), cEM = caja('caja-esten-mitral');
+  const pVM = pistas('vm-lesiones');
+  /* La COLUMNA de grilla de cada caja, computada: a <769 px la media query pone las dos en la 1,
+     y sin esa regla la estenosis quedaria en la 2 — o sea que la asercion se puede poner roja. */
+  const colDe = function (id) { const e = g(id);
+    return e ? String(getComputedStyle(e).gridColumnStart || '') : null; };
+  const colIM = colDe('caja-insuf-mitral'), colEM = colDe('caja-esten-mitral');
+  /* CONTROL POSITIVO: la aortica, repartida desde el 2026-10-06 por el MISMO mecanismo. Si aca
+     sale apilada, el caso esta midiendo un arbol que no se pinto y su «si» no vale nada. */
+  const pVA = pistas('va-lesiones');
+  const cIA = caja('caja-insuf-aortica'), cEA = caja('caja-esten-aortica');
+  const barra = document.documentElement.scrollWidth > document.documentElement.clientWidth + 1;
+  const desbordaIM = (function () { const e = g('bloque-insuf-mitral');
+    return e ? e.scrollWidth > e.clientWidth + 1 : null; })();
+
+  /* ── (2) LAS TRES COLUMNAS Y EL TAB ──────────────────────────────────────────────────────── */
+  const tabIM = ordenTab('bloque-insuf-mitral');
+  /* Las columnas se cuentan por los HIJOS de la grilla y la clase, no por las pistas PINTADAS:
+     a 756 px el CSS apila a una sola pista, asi que contar pistas mediria el breakpoint y no la
+     distribucion. Las pistas de PC las fija la sonda _probe_mitlado.mjs a 1200 px. */
+  const pistasIM = (function () { const e = g('bloque-insuf-mitral');
+    const gr = e ? e.querySelector('.valv-cols-3, .valv-cols-4') : null;
+    if (!gr) return null;
+    return { hijos: gr.children.length, clase: gr.className,
+             porCol: Array.prototype.map.call(gr.children, function (c) {
+               return Array.prototype.map.call(c.querySelectorAll('input[id],select[id]'),
+                 function (x) { return x.id; }).join('+'); }) }; })();
+  /* El censo PRUEBA que los dos campos siguen existiendo: desaparecieron del Tab, no del DOM. */
+  const censoIM = Array.prototype.map.call(
+    g('bloque-insuf-mitral').querySelectorAll('input[id],select[id],textarea[id]'),
+    function (e) { return e.id; });
+
+  /* ── (3) LA COORDINACION Y EL AVISO, por las dos puertas ─────────────────────────────────── */
+  __t.limpiar(); abrirMitral();
+  sembrar({ diam_mit: '30', vtim: '18', im_itv: '130' });
+  try { calcContIM(); } catch (e) {}
+  const sinNinguno = cont();
+  /* Por la ESTENOSIS: solo el diametro. */
+  __t.set('em_dtsvi', '21');
+  const soloD = cont();
+  /* Y el VTI TSVI: las tres casillas publican. */
+  __t.set('em_vtitsvi', '22');
+  const losDos = cont();
+  /* CONTROL NEGATIVO: solo el VTI, sin el diametro. Sin esto, «el aviso nombra lo que falta» se
+     probaria con UN solo escenario y no distinguiria nombrar-el-que-falta de decir-siempre-lo-mismo. */
+  __t.limpiar(); abrirMitral();
+  sembrar({ diam_mit: '30', vtim: '18', im_itv: '130' });
+  __t.set('em_vtitsvi', '22');
+  const soloI = cont();
+  /* Por AI/VI: el diametro entra por su propio campo y tiene que llegar al oculto. */
+  __t.limpiar(); abrirMitral();
+  sembrar({ diam_mit: '30', vtim: '18', im_itv: '130' });
+  try { showTab('ai-vi'); } catch (e) {}
+  __t.set('diam_tsvi_ao', '21');
+  try { showTab('valvulas'); } catch (e) {}
+  abrirMitral();
+  __t.set('em_vtitsvi', '22');
+  const porAiVi = cont();
+
+  /* ── (4) EL AVISO NO SOBREVIVE AL CAMBIO DE PACIENTE ─────────────────────────────────────── */
+  /* Se deja el aviso del VTI puesto y se limpia: el formulario vacio le falta LOS DOS, asi que un
+     texto que nombre uno solo es el del paciente anterior. */
+  __t.limpiar(); abrirMitral();
+  sembrar({ diam_mit: '30', vtim: '18', im_itv: '130' });
+  __t.set('em_dtsvi', '21');
+  const antesDeLimpiar = cont();
+  __t.limpiar(); abrirMitral();
+  const trasLimpiar = cont();
+  /* Y por la ruta de restauracion: se ensucia con el caso INVERSO y se repone el embudo. */
+  sembrar({ diam_mit: '30', vtim: '18', im_itv: '130' });
+  __t.set('em_vtitsvi', '22');
+  const sucio = cont();
+  __t.set('em_vtitsvi', '');
+  __t.set('em_dtsvi', '21');
+  /* RECALC_MODULOS es el embudo de las TRES rutas de restauracion. Se lo corre a mano, que es lo
+     que hacen editarInforme y cargarEstudioPorId, sin llamar a calcContIM. */
+  try { RECALC_MODULOS(); } catch (e) {}
+  const trasEmbudo = cont();
+
+  /* ── (5) EL CAJON DE ESTIMACION SALIO DE LA MITRAL Y SIGUE EN AI/VI ─────────────────────── */
+  const cajones = { mitral_em: !!g('em-tsvi-box'), mitral_im: !!g('im-tsvi-estimado-box'),
+                    aivi: !!g('tsvi-estimado-box') };
+
+  const COL1 = ['im_vc/1', 'im_jet_area/1', 'im_onda_s/1', 'diam_mit/1', 'vtim/1'];
+  const COL2 = ['pisa_r/2', 'pisa_val/2', 'im_vmax/2', 'im_itv/2', 'im_ai_area/2'];
+  const COL3 = ['im_eroa_cont/3', 'vr_cont/3', 'im_fr_cont/3', 'vm_lat/3'];
+  const TAB_ESPERADO = COL1.concat(COL2).concat(COL3);
+  const tabSoloGrid = tabIM.filter(function (x) { return x.indexOf('/null') === -1; });
+
+  return { extra: [
+    /* ATENCION: ESTE ARNES MIDE EN 756 px, O SEA MAQUETACION DE CELULAR, y por eso el caso afirma
+       la CAIDA a una pista y no el reparto de PC. Las dos lesiones lado a lado a 1200 px las fija
+       la sonda scripts/_probe_mitlado.mjs, que emula tres anchos; aca se fija lo que este viewport
+       puede ver, que es la otra mitad del pedido. Escribir «izquierda y derecha» sobre 756 px
+       habria dado un caso imposible de poner en verde. */
+    ['DENOMINADOR: la tarjeta mitral tiene geometria, y el viewport es el de CELULAR (<769 px)',
+      !!cIM && cIM.w > 0 && !!cEM && cEM.w > 0 && window.innerWidth < 769,
+      'vw=' + window.innerWidth + ' im=' + JSON.stringify(cIM) + ' em=' + JSON.stringify(cEM)],
+    /* CONTROL POSITIVO estructural y no de pixeles: las dos cajas aorticas no tienen geometria
+       porque su tarjeta esta cerrada —solo se abrio la mitral—, asi que lo que se compara es el
+       MECANISMO: misma grilla y misma caida al mismo ancho. */
+    ['CONTROL POSITIVO: la AORTICA usa el MISMO mecanismo —su grilla cae a UNA pista a este ancho—',
+      pVA === 1 && pVA === pVM,
+      'va=' + pVA + ' vm=' + pVM],
+
+    ['las dos lesiones mitrales las reparte #vm-lesiones, que es el padre de las dos',
+      (padreIM || {}).id === 'vm-lesiones' && (padreEM || {}).id === 'vm-lesiones',
+      'padres=' + JSON.stringify([(padreIM || {}).id, (padreEM || {}).id])],
+    ['la INSUFICIENCIA va primera en el DOM —o sea primera en el Tab y arriba en el celular—',
+      JSON.stringify(hijosVM) === JSON.stringify(['caja-insuf-mitral', 'caja-esten-mitral']),
+      JSON.stringify(hijosVM)],
+    ['a este ancho se APILAN en ese orden: mismo izq, mismo ancho, la insuficiencia ARRIBA',
+      cIM.izq === cEM.izq && Math.abs(cIM.w - cEM.w) <= 2 && cIM.arr < cEM.arr,
+      'im=' + JSON.stringify(cIM) + ' em=' + JSON.stringify(cEM)],
+    ['y las dos ocupan la MISMA columna de la grilla, que es lo que hace la media query',
+      colIM === colEM && colIM === '1',
+      'colIM=' + colIM + ' colEM=' + colEM],
+    ['sin barra horizontal en la pagina',
+      barra === false, 'barra=' + barra + ' desbordaIM=' + desbordaIM],
+
+    ['la insuficiencia reusa .valv-cols-3 —no una clase propia— con TRES columnas de verdad',
+      !!pistasIM && pistasIM.hijos === 3 && pistasIM.clase.indexOf('valv-cols-3') > -1 &&
+      pistasIM.clase.indexOf('valv-cols-4') === -1,
+      JSON.stringify(pistasIM)],
+    ['y el reparto de los catorce campos es el aprobado, columna por columna',
+      JSON.stringify(pistasIM.porCol) === JSON.stringify([
+        'im_vc+im_jet_area+im_onda_s+diam_mit+vtim',
+        'pisa_r+pisa_val+im_vmax+im_itv+im_ai_area',
+        'im_eroa_cont+vr_cont+im_fr_cont+vm_lat']),
+      JSON.stringify(pistasIM.porCol)],
+    ['el Tab BAJA por la columna: 1,1,1,1,1 luego 2,2,2,2,2 luego 3,3,3,3, en ese orden',
+      JSON.stringify(tabSoloGrid) === JSON.stringify(TAB_ESPERADO),
+      'esperado=' + JSON.stringify(TAB_ESPERADO) + ' obtenido=' + JSON.stringify(tabSoloGrid)],
+
+    ['los dos insumos del TSVI estan OCULTOS, sin foco y sin lector de pantalla',
+      losDos.dtsvi.disp === 'none' && losDos.dtsvi.aria === 'true' && losDos.dtsvi.tab === '-1' &&
+      losDos.itsvi.disp === 'none' && losDos.itsvi.aria === 'true' && losDos.itsvi.tab === '-1',
+      JSON.stringify({ d: losDos.dtsvi, i: losDos.itsvi })],
+    ['pero NO borrados: los dos siguen en el censo del bloque, asi que siguen viajando con el estudio',
+      censoIM.indexOf('im_dtsvi') > -1 && censoIM.indexOf('im_itv_tsvi') > -1,
+      JSON.stringify(censoIM)],
+    ['y FUERA del Tab, que es lo que distingue «oculto» de «sigue estorbando»',
+      tabIM.join(',').indexOf('im_dtsvi') === -1 && tabIM.join(',').indexOf('im_itv_tsvi') === -1,
+      JSON.stringify(tabIM)],
+
+    ['tipear en la ESTENOSIS llega a los dos campos ocultos de la insuficiencia',
+      losDos.dtsvi.v === '21' && losDos.itsvi.v === '22' &&
+      losDos.puerta_d === '21' && losDos.puerta_i === '22',
+      JSON.stringify(losDos)],
+    ['y con los dos cargados las TRES casillas publican, sin aviso',
+      losDos.eroa.v !== '' && losDos.volr.v !== '' && losDos.fr.v !== '' &&
+      losDos.volr.ph === '' && losDos.fr.ph === '',
+      JSON.stringify({ eroa: losDos.eroa, volr: losDos.volr, fr: losDos.fr })],
+    ['tipear el diametro en AI/VI da el MISMO resultado que tipearlo en la Estenosis',
+      porAiVi.dtsvi.v === '21' && porAiVi.eroa.v === losDos.eroa.v &&
+      porAiVi.volr.v === losDos.volr.v && porAiVi.fr.v === losDos.fr.v,
+      'aivi=' + JSON.stringify(porAiVi) + ' esten=' + JSON.stringify(losDos)],
+
+    ['sin ninguno de los dos, el aviso nombra LOS DOS en las tres casillas',
+      /Di.?.?m\\. TSVI y VTI TSVI/.test(sinNinguno.eroa.ph) &&
+      sinNinguno.volr.ph === sinNinguno.eroa.ph && sinNinguno.fr.ph === sinNinguno.eroa.ph,
+      JSON.stringify(sinNinguno)],
+    ['con el diametro cargado, nombra SOLO el VTI TSVI',
+      /VTI TSVI/.test(soloD.volr.ph) && soloD.volr.ph.indexOf('TSVI y') === -1 &&
+      soloD.fr.ph === soloD.volr.ph && soloD.eroa.ph === soloD.volr.ph,
+      JSON.stringify(soloD)],
+    ['CONTROL NEGATIVO: con el VTI cargado nombra SOLO el diametro, o sea que distingue escenarios',
+      /Di.?.?m\\. TSVI/.test(soloI.volr.ph) && soloI.volr.ph.indexOf('VTI TSVI') === -1,
+      JSON.stringify(soloI)],
+    ['y el aviso dice DONDE se carga, que es lo que reemplaza al campo que ya no se ve',
+      soloD.volr.ph.indexOf('(en Estenosis)') > -1 && soloI.volr.ph.indexOf('(en Estenosis)') > -1,
+      soloD.volr.ph + ' // ' + soloI.volr.ph],
+
+    ['«Nuevo estudio» NO deja el aviso del paciente anterior: con el formulario vacio nombra los dos',
+      /Di.?.?m\\. TSVI y VTI TSVI/.test(trasLimpiar.volr.ph) &&
+      antesDeLimpiar.volr.ph.indexOf('TSVI y') === -1,
+      'antes=' + antesDeLimpiar.volr.ph + ' // tras limpiar=' + trasLimpiar.volr.ph],
+    ['y el embudo de restauracion tampoco: tras RECALC_MODULOS nombra el que FALTA y no el que esta',
+      /VTI TSVI/.test(trasEmbudo.volr.ph) && trasEmbudo.volr.ph.indexOf('TSVI y') === -1 &&
+      trasEmbudo.dtsvi.v === '21' && trasEmbudo.itsvi.v === '',
+      'sucio=' + sucio.volr.ph + ' // tras embudo=' + trasEmbudo.volr.ph +
+      ' // d=' + trasEmbudo.dtsvi.v + ' i=' + trasEmbudo.itsvi.v],
+
+    ['el cajon del O TSVI estimado salio de las DOS lesiones mitrales y sigue vivo en AI/VI',
+      cajones.mitral_em === false && cajones.mitral_im === false && cajones.aivi === true,
+      JSON.stringify(cajones)],
+  ] };
+  })();
+`);
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────
