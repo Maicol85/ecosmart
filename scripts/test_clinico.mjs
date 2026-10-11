@@ -42885,7 +42885,7 @@ caso('TC-336', 'IM secundaria: el calc-box avisa que gradua con cortes de PRIMAR
 
    ⚠️ DENOMINADOR EN TODO: cada condicion de «no sale» tiene su gemela de «dentro de banda SI
    sale». Sin eso, borrar la fila entera del PDF tambien pasaria en verde. */
-caso('TC-337', 'EM: con thp o em_vmax fuera de banda las DOS filas del PDF dicen «no evaluable», el informe lo NOMBRA en vez de negar, y el Excel no se mueve', `
+caso('TC-337', 'EM: con thp o em_vmax fuera de banda las DOS filas del PDF dicen «no evaluable», el informe lo NOMBRA en vez de negar, y el Excel RETIRA la celda del area sin perder una columna', `
   return (async () => {
     const R = {};
     const cargar = function(campos){
@@ -43096,8 +43096,17 @@ caso('TC-337', 'EM: con thp o em_vmax fuera de banda las DOS filas del PDF dicen
       ['⚠️ y el area de 1833 cm² NO aparece en NINGUNA parte del documento firmado',
         !!R.pdf && !R.pdf.SIN_CDN && R.pdf.fuera && R.pdf.fuera.area1833 === 0,
         JSON.stringify(R.pdf && R.pdf.fuera)],
-      ['⚠️ y el Excel sigue exportando el valor CRUDO, en sus 434 columnas',
-        R.xls.n === 434 && R.xls.avm === 1833.33 && R.xls.hayThp === false && R.xls.hayVmax === false,
+      /* ⚠️ ADAPTADA EL 2026-10-10, Y EL MOTIVO ES UN CAMBIO POR DISENO: la condicion decia «el
+         Excel sigue exportando el valor CRUDO» y afirmaba 1833.33. Desde el commit B de esa tanda
+         —decision de Maicol— la columna «AVm (cm²)» pregunta a emThpValido(c), la MISMA funcion
+         que decide el voto en emCategoria y que gatea las dos filas del papel, asi que con el
+         THP fuera de banda sale VACIA. El argumento: ese libro cruza a CeiboAnalytics, donde nadie
+         tiene la pantalla al lado para ver el «(revisar)», y 1833 cm² se lee como una medicion —
+         una valvula sana mide 4-6—. Es exactamente lo que «AVm continuidad (cm²)» ya hacia.
+         Lo que la condicion sigue protegiendo NO cambio: los 434 encabezados y que la marca de
+         texto no se cuele en una columna numerica. Lo que cambia es el valor esperado. */
+      ['⚠️ y el Excel RETIRA el area —celda vacia, no el crudo 1833.33— conservando sus 434 columnas',
+        R.xls.n === 434 && R.xls.avm === '' && R.xls.hayThp === false && R.xls.hayVmax === false,
         JSON.stringify(R.xls)]
     ] };
   })();
@@ -43466,7 +43475,7 @@ caso('TC-340', 'Nuevo estudio: las respuestas del panel de Evidencia no pasan al
    ⚠️ LOS BORDES EXACTOS (20 y 600 ms) SIGUEN ADENTRO: sin esa condicion, correr la banda un milimetro
    pasaria en verde. Y el CERO no es una medicion: ahi el papel no retira nada, asi que el panel
    tampoco debe anunciar una supresion que no ocurrio. */
-caso('TC-341', 'EM: con el THP fuera de banda el panel dice lo MISMO que el PDF y la AVm indexada queda marcada — y el Excel, el informe y el papel no se mueven', `
+caso('TC-341', 'EM: con el THP fuera de banda el panel dice lo MISMO que el PDF y la AVm indexada queda marcada — el informe y el papel no se mueven, y la celda del AVm por THP se retira sin tocar el input que viaja con el estudio', `
   return (async () => {
     const R = {};
     const BASE = { nombre:'Display THP', ci:'9-9', peso:'80', talla:'175', fevi:'60',
@@ -43547,9 +43556,16 @@ caso('TC-341', 'EM: con el THP fuera de banda el panel dice lo MISMO que el PDF 
         R.bajo.xls.avmIdx === '929.67' && R.alto.xls.avmIdx === '0.05' &&
         R.dentro.xls.avmIdx === '0.47' && R.bajo.xls.cols === 434,
         'bajo=' + JSON.stringify(R.bajo.xls) + ' dentro=' + JSON.stringify(R.dentro.xls)],
-      ['⚠️ y la columna «AVm (cm²)» sigue exportando el valor CRUDO del THP',
-        R.bajo.xls.avm === '1833.33' && !tiene(R.bajo.avmThp, 'evaluable') && !tiene(R.bajo.avmThp, 'revisar'),
-        'avm=' + R.bajo.xls.avm + ' input=«' + R.bajo.avmThp + '»'],
+      /* ⚠️ ADAPTADA EL 2026-10-10 POR EL MISMO CAMBIO DE DISENO QUE LA DE TC-337: la columna del
+         THP dejo de exportar el crudo y ahora se vacia cuando emThpValido(c) dice que el area no
+         vale. Lo que esta condicion sigue probando es lo de SIEMPRE y es lo que importaba: que al
+         input avm_thp —que es lo que viaja con el estudio— NO se le pegue la marca de texto,
+         porque un «1833.33 (revisar)» guardado volveria del Excel como 1833,33 por parseFloat.
+         El input conserva su numero crudo; la CELDA es la que se retira. */
+      ['⚠️ la columna «AVm (cm²)» se RETIRA, y el input avm_thp conserva su crudo sin marca pegada',
+        R.bajo.xls.avm === '' && !tiene(R.bajo.avmThp, 'evaluable') && !tiene(R.bajo.avmThp, 'revisar') &&
+        R.bajo.avmThp.indexOf('1833.33') === 0,
+        'avm=«' + R.bajo.xls.avm + '» input=«' + R.bajo.avmThp + '»'],
       ['DENOMINADOR: el papel sigue sin publicar el area ilegible — estos dos cambios son de PANTALLA y no tocaron el PDF',
         R.bajo.pdfAvm === NOEVAL && !R.bajo.infTiene1833 && R.dentro.pdfAvm.indexOf('THP: 0.92 cm2') >= 0,
         'pdfAvm=«' + R.bajo.pdfAvm + '» inf1833=' + R.bajo.infTiene1833]
@@ -56236,6 +56252,129 @@ caso('TC-448', 'Mitral: una grilla reparte las dos lesiones y las APILA en el ce
     ['el cajon del O TSVI estimado salio de las DOS lesiones mitrales y sigue vivo en AI/VI',
       cajones.mitral_em === false && cajones.mitral_im === false && cajones.aivi === true,
       JSON.stringify(cajones)],
+  ] };
+  })();
+`);
+
+/* ATENCION: COBERTURA DEL COMMIT B DE LA TANDA DEL 2026-10-10. La mitad de la BANDA ya estaba
+   cubierta por TC-337 y TC-341 —los dos adaptados en esa tanda—; la mitad de la IAo SEVERA no
+   tenia NINGUNA prueba, y era justamente la que estaba rota: el informe, el EN SUMA y la frase de
+   categoria del PDF ya retiraban el area por THP y las dos FILAS del papel la publicaban igual.
+   ATENCION: NI UN ACENTO GRAVE EN ESTE CUERPO, comentarios incluidos. */
+caso('TC-449', 'EM: con IAo SEVERA el area por THP se retira del Excel y de las DOS filas del papel con el literal que la app ya tenia, el motivo de la BANDA conserva su texto de siempre y manda cuando se dan los dos, y sin IAo ni banda no se mueve ni una celda', `
+  return (async () => {
+  const g = function (id) { return document.getElementById(id); };
+  const rec = function (t) { return !t ? '(vacio)' : String(t).replace(/\\n/g, ' | ').slice(0, 160); };
+  /* Los TRES literales que la app ya tenia. No se redacto ninguno en esta tanda: los dos de la
+     IAo los publica el badge de pantalla desde antes, y el de la banda es el del papel. */
+  const L_BANDA = 'no evaluable (THP fuera de rango)';
+  const L_IA    = 'AVm por THP no valido con insuficiencia aortica severa'
+                    .replace('valido', 'v\\u00e1lido').replace('aortica', 'a\\u00f3rtica');
+  const foto = function () {
+    const xls = (typeof _labExcelRow === 'function')
+      ? _labExcelRow({ campos: (function () { const c = {};
+          Array.prototype.forEach.call(document.querySelectorAll('input[id],select[id],textarea[id]'),
+            function (e) { if (e.type === 'checkbox' || e.type === 'radio') { c[e.id] = e.checked ? '1' : ''; return; }
+              c[e.id] = e.value; });
+          return c; })() })
+      : null;
+    return {
+      /* La fila «AVm THP» de Flujo transmitral y la fila «AVm» de Estenosis mitral salen de la
+         MISMA funcion: se piden las DOS porque lo que importa es que no se contradigan. */
+      filaThp: (typeof emAvmThpPdfTxt === 'function') ? emAvmThpPdfTxt() : 'SIN FUNCION',
+      filaAvm: (typeof emAvmPdfVal === 'function') ? emAvmPdfVal() : 'SIN FUNCION',
+      panel: (g('em-pdf-thp-val') || {}).textContent || '',
+      xlsAvm: xls ? xls['AVm (cm\\u00b2)'] : 'SIN FILA',
+      xlsCont: xls ? xls['AVm continuidad (cm\\u00b2)'] : 'SIN FILA',
+      xlsPlan: xls ? xls['AVm planimetr\\u00eda (cm\\u00b2)'] : 'SIN FILA',
+      cols: xls ? Object.keys(xls).length : 0,
+      /* El INPUT no se toca: es lo que viaja con el estudio. */
+      input: (g('avm_thp') || {}).value,
+      valido: (typeof emThpValido === 'function') ? emThpValido() : 'SIN FUNCION',
+      /* Las fuentes de la categoria, que es de donde salen el informe y el EN SUMA: el THP ya NO
+         votaba con IAo severa ANTES de esta tanda, asi que tiene que seguir igual. */
+      fuentes: (function () { try { return (emCategoria().fuentes || []).map(function (f) { return f.fuente; }).join('+'); }
+                catch (e) { return 'EXC'; } })(),
+      inf: (function () { try { generarInforme(); return (g('informe_texto') || {}).value || ''; } catch (e) { return 'EXC'; } })(),
+      suma: (g('en_suma') || {}).value || ''
+    };
+  };
+  const escena = function (ia, thp) {
+    __t.limpiar();
+    ['nombre','ci','edad','peso','talla'].forEach(function (k, i) {
+      __t.set(k, ['Prueba EM','123','60','80','180'][i]); });
+    ['em_vmax','em_gmedio','avm_plan','em_dtsvi','em_vtitsvi','em_vtimit'].forEach(function (k, i) {
+      __t.set(k, ['1.8','7','1.3','21','22','55'][i]); });
+    __t.set('thp', thp);
+    if (ia) __t.set('ia_grado', ia);
+    try { calcTHP(); } catch (e) {}
+    try { calcEM(); } catch (e) {}
+    return foto();
+  };
+
+  const base      = escena('',  '150');
+  const iaSevera  = escena('4', '150');
+  const thpFuera  = escena('',  '0.12');
+  const ambas     = escena('4', '0.12');
+  /* CONTROL NEGATIVO del grado: con IAo MODERADA el area SI vale, asi que nada se retira. Sin
+     esta escena, «se retira con severa» se cumpliria tambien con un corte puesto en moderada. */
+  const iaModerada = escena('2', '150');
+
+  return { extra: [
+    ['DENOMINADOR: con THP legible y sin IAo el area existe y el THP VOTA la categoria',
+      base.input === '1.47' && base.valido === true && base.fuentes.indexOf('THP') > -1,
+      JSON.stringify({ input: base.input, valido: base.valido, fuentes: base.fuentes })],
+    ['y en ese caso NADA se mueve: las dos filas, el panel y las tres celdas del Excel publican el area',
+      base.filaThp === '1.47 cm2' && base.filaAvm.indexOf('THP: 1.47 cm2') === 0 &&
+      base.panel.indexOf('1.47') > -1 && base.xlsAvm === 1.47 && base.cols === 434,
+      JSON.stringify(base)],
+
+    ['con IAo SEVERA la celda del Excel sale VACIA, sin perder una sola columna',
+      iaSevera.xlsAvm === '' && iaSevera.cols === 434, JSON.stringify({ avm: iaSevera.xlsAvm, cols: iaSevera.cols })],
+    ['y las DOS filas del papel dicen lo mismo, con el literal que la app YA tenia —no hay texto nuevo—',
+      iaSevera.filaThp === L_IA && iaSevera.filaAvm.indexOf(L_IA) === 0,
+      'thp=' + iaSevera.filaThp + ' // avm=' + iaSevera.filaAvm],
+    ['sin el prefijo «THP: » pegado al motivo, que lo diria dos veces',
+      iaSevera.filaAvm.indexOf('THP: AVm por THP') === -1, iaSevera.filaAvm],
+    ['y el panel «Incluir en el informe» dice lo MISMO que el papel, que es para lo que existe',
+      iaSevera.panel.indexOf(L_IA) > -1, iaSevera.panel],
+    ['el INPUT avm_thp NO se toca: su crudo sigue viajando con el estudio',
+      iaSevera.input === '1.47', iaSevera.input],
+    ['la columna de la CONTINUIDAD no se toca por esto: ya se vaciaba por su propia regla',
+      iaSevera.xlsCont === base.xlsCont || iaSevera.xlsCont === '',
+      'base=' + JSON.stringify(base.xlsCont) + ' ia=' + JSON.stringify(iaSevera.xlsCont)],
+    ['y la planimetria sigue intacta, que es la fuente que SI vota',
+      iaSevera.xlsPlan === base.xlsPlan && iaSevera.fuentes.indexOf('planimetr') > -1,
+      'plan=' + JSON.stringify(iaSevera.xlsPlan) + ' fuentes=' + iaSevera.fuentes],
+    /* El === iaSevera.inf de la primera version de esta condicion era una TAUTOLOGIA: comparaba
+       un valor consigo mismo, asi que no podia ponerse roja. Lo que hay que afirmar es que el
+       informe NO cita el THP ni publica su area, y que la categoria no lo cuenta entre sus
+       fuentes — que es lo que ya pasaba ANTES de esta tanda y lo que esta tanda no toco. */
+    ['el informe no cita el THP ni publica su area, y la categoria no lo cuenta entre sus fuentes',
+      iaSevera.fuentes.indexOf('THP') === -1 && iaSevera.inf.indexOf('por THP') === -1 &&
+      iaSevera.inf.indexOf('1.47') === -1 && iaSevera.suma.indexOf('por THP') === -1,
+      'fuentes=' + iaSevera.fuentes + ' // inf=' + rec(iaSevera.inf) + ' // suma=' + rec(iaSevera.suma)],
+
+    ['CONTROL NEGATIVO: con IAo MODERADA no se retira NADA —el corte es severa y no cualquier grado—',
+      iaModerada.xlsAvm === 1.47 && iaModerada.filaThp === '1.47 cm2' && iaModerada.valido === true,
+      JSON.stringify({ avm: iaModerada.xlsAvm, fila: iaModerada.filaThp, valido: iaModerada.valido })],
+
+    ['con el THP fuera de banda el papel conserva EXACTAMENTE el literal de siempre',
+      thpFuera.filaThp === L_BANDA && thpFuera.filaAvm.indexOf(L_BANDA) === 0, thpFuera.filaThp],
+    ['y su celda del Excel tambien se retira —antes exportaba 1833.33 como si fuera una medicion—',
+      thpFuera.xlsAvm === '' && thpFuera.input.indexOf('1833.33') === 0,
+      'celda=' + JSON.stringify(thpFuera.xlsAvm) + ' input=' + thpFuera.input],
+
+    ['con los DOS motivos a la vez MANDA LA BANDA, asi que el papel sale byte a byte como antes de la tanda',
+      ambas.filaThp === L_BANDA && ambas.filaAvm.indexOf(L_BANDA) === 0 && ambas.panel.indexOf(L_BANDA) > -1,
+      'thp=' + ambas.filaThp + ' // avm=' + ambas.filaAvm + ' // panel=' + ambas.panel],
+    ['y la celda sigue vacia en esa escena, por el otro motivo',
+      ambas.xlsAvm === '' && ambas.cols === 434, JSON.stringify({ avm: ambas.xlsAvm, cols: ambas.cols })],
+
+    ['los 434 encabezados y su ORDEN no cambian en ninguna de las cinco escenas',
+      base.cols === 434 && iaSevera.cols === 434 && thpFuera.cols === 434 &&
+      ambas.cols === 434 && iaModerada.cols === 434,
+      JSON.stringify([base.cols, iaSevera.cols, thpFuera.cols, ambas.cols, iaModerada.cols])],
   ] };
   })();
 `);

@@ -25423,8 +25423,51 @@ window.emPdfValsSync = emPdfValsSync;
    prefijo lo habría dicho dos veces. Las dos filas publican el MISMO literal, carácter por
    carácter, que es lo único que garantiza que el papel no se contradiga. */
 const EM_AVM_THP_NOEVAL_PDF = 'no evaluable (THP fuera de rango)';
+/* ══ EL MOTIVO POR EL QUE EL PAPEL NO PUBLICA EL ÁREA POR THP (2026-10-10) ════════════════════
+   Decisión de Maicol. Hasta hoy las dos filas del PDF retiraban el área SÓLO por la banda, y con
+   **IAo severa publicaban el número igual** — mientras el informe narrativo, el EN SUMA y la frase
+   de categoría del PDF ya la retiraban, porque `emCategoria` llama `_tomar('avm_thp','THP',
+   emThpValido)` y ahí el THP deja de VOTAR. O sea que el mismo documento firmado decía dos cosas:
+   la frase no citaba el THP y la tabla imprimía su área.
+   Medido en HEAD con el escenario base (THP 150 → AVm 1,47) y `ia_grado = 4`:
+     `emThpValido()` → false · `cat.fuentes` → ['planimetría'] (sin THP)
+     y las dos filas igual → «1.47 cm2»
+
+   ⚠️ NO SE REIMPLEMENTA LA REGLA: se pregunta a los MISMOS tres dueños que ya existen —
+   `emThpFueraBanda()` para la banda y `emThpMotivoNoVota()` para la IAo—, que son los que usan
+   `emCategoria` y el badge de pantalla. Un `ia_grado >= 4` escrito acá sería la segunda definición
+   de «IAo severa» en el archivo, que es el defecto que `EM_IA_SEVERA_MIN` existe para evitar.
+
+   ⚠️ LA BANDA MANDA SOBRE LA IAo, Y DIVERGE A PROPÓSITO DEL BADGE DE PANTALLA. El badge
+   (`em-thp-badge`) pone el hallazgo clínico primero; acá va la banda, y el motivo es que la orden
+   de esta tanda pide que con el THP fuera de banda el papel conserve EXACTAMENTE el literal de
+   hoy — así que la escena «IAo severa + THP de 0,12 ms» sale byte a byte como en HEAD. Y además
+   se lee mejor en el papel: la fila de al lado imprime «THP | 0.12 ms», así que nombrar la banda
+   señala el número que el lector tiene delante y puede corregir, mientras nombrar la IAo lo
+   dejaría creyendo que el THP estaba bien. Queda DECLARADO que las dos precedencias no coinciden.
+
+   ⚠️ EL TEXTO DE LOS DOS MOTIVOS NUEVOS NO ES NUEVO: son `EM_THP_IA_TXT` y `EM_THP_NOVERIF_TXT`,
+   los MISMOS literales que el badge de pantalla ya publica para estos dos estados. No se redactó
+   ni una frase clínica.
+
+   ⚠️ LA GUARDA `v('avm_thp')` SE CONSERVA Y AHORA CUBRE A LOS TRES. Es la regla de «sólo se
+   anuncia lo que de verdad se retiró»: con `thp = 0` el área no existe, así que no hay nada que
+   suprimir y anunciarlo pondría dos filas «no evaluable» donde antes no había ninguna. */
+const EM_AVM_THP_MOTIVOS_PDF = [EM_AVM_THP_NOEVAL_PDF, EM_THP_IA_TXT, EM_THP_NOVERIF_TXT];
+function emAvmThpPdfMotivo() {
+  if (!v('avm_thp')) return '';
+  if (emThpFueraBanda()) return EM_AVM_THP_NOEVAL_PDF;
+  return emThpMotivoNoVota() || '';
+}
+/* `indexOf` sobre la lista y NO una comparación contra una constante: sus dos consumidores —el
+   prefijo «THP: » de la fila «AVm» y el span del panel— tienen que reconocer los TRES motivos, y
+   con una comparación contra uno solo los otros dos se habrían ido al papel con el prefijo puesto
+   («THP: AVm por THP no válido con insuficiencia aórtica severa»). */
+function emAvmThpPdfEsMotivo(txt) { return EM_AVM_THP_MOTIVOS_PDF.indexOf(txt) > -1; }
+window.emAvmThpPdfMotivo = emAvmThpPdfMotivo; window.emAvmThpPdfEsMotivo = emAvmThpPdfEsMotivo;
 function emAvmThpPdfTxt() {
-  if (emThpFueraBanda() && v('avm_thp')) return EM_AVM_THP_NOEVAL_PDF;
+  const _m = emAvmThpPdfMotivo();
+  if (_m) return _m;
   /* Se delega en `vPdf` y no se arma el texto a mano: es lo que la fila «AVm THP» ya llamaba, así
      que dentro de banda las dos filas salen byte a byte como antes, y el día que `avm_thp` tenga
      entrada en la tabla de rangos su «(revisar)» sigue llegando a las dos. */
@@ -25465,9 +25508,14 @@ function _emPdfThpSpanSync(thpVal) {
        que la guarda sería código muerto — y su propia nota, sesenta líneas arriba, declara ese
        `typeof` como el antipatrón a evitar. La primera versión lo llevaba igual. Lo cazó
        /sharp-edges. El `try` queda, que es lo que sí cubre algo (ver abajo). */
-    if (emAvmThpPdfTxt() === EM_AVM_THP_NOEVAL_PDF) {
+    /* ⚠️ SE PREGUNTA POR EL MOTIVO Y NO POR UN LITERAL. Con la comparación contra
+       `EM_AVM_THP_NOEVAL_PDF` sola, el panel habría seguido anunciando «1.47 cm²» mientras las dos
+       filas del papel decían «no válido con insuficiencia aórtica severa» — y ese panel existe
+       justamente para declarar QUÉ SALE en el papel. */
+    const _mot = emAvmThpPdfMotivo();
+    if (_mot) {
       const sp = document.getElementById('em-pdf-thp-val');
-      if (sp) sp.textContent = '— ' + EM_AVM_THP_NOEVAL_PDF;
+      if (sp) sp.textContent = '— ' + _mot;
       /* `false` = «no hay valor publicable», que es lo que el nombre de la variable del llamador
          significa. Hoy los dos llamadores ignoran el retorno del THP —su casilla no se puede
          desmarcar— pero devolver `true` acá sería mentirle al próximo que lo use. */
@@ -25509,7 +25557,7 @@ function emAvmPdfVal() {
      prefijo salía «THP: no evaluable (THP fuera de rango)». Se compara contra la constante y no
      contra un `indexOf`, para que renombrar el literal no deje el prefijo colgado. */
   const _thpTxt = emAvmThpPdfTxt();
-  if (_thpTxt) partes.push(_thpTxt === EM_AVM_THP_NOEVAL_PDF ? _thpTxt : 'THP: ' + _thpTxt);
+  if (_thpTxt) partes.push(emAvmThpPdfEsMotivo(_thpTxt) ? _thpTxt : 'THP: ' + _thpTxt);
   if (marcado('em_pdf_cont')) { const x = v('avm_cont'); if (x) partes.push('Cont: ' + x.toFixed(2) + ' cm2'); }
   /* `v('avm_plan') || v('avm_ete')` hasta el 2026-10-08. Medido en HEAD antes del cambio: con el
      área por ETE como única medición, el PDF FIRMADO publicaba «Plan: 1.20 cm2» —y con 150 tipeado
@@ -84683,7 +84731,19 @@ function _labExcelRow(inf) {
     'VC IM (mm)': rnd(num('im_vc','vc_mitral'),1),
     'EROA IM (mm²)': rnd(eroa,1), 'Vol R IM (ml)': rnd(volr,1), 'EM grado': gEM,
     'EM_I (Leve)': bin(gEM,'leve'), 'EM_II (Moderada)': bin(gEM,'moderada'), 'EM_III (Severa)': bin(gEM,'severa'),
-    'AVm (cm²)': rnd(num('avm_thp'),2),
+    /* ⚠️ LA COLUMNA DEL THP SE VACÍA CUANDO EL ÁREA NO VALE (2026-10-10) — DECISIÓN DE MAICOL, y
+       es el gemelo exacto de «AVm continuidad (cm²)» de más abajo, que ya lo hacía. Hasta hoy
+       exportaba `rnd(num('avm_thp'),2)` CRUDO, sin preguntarle a nadie: la pantalla, el informe y
+       la categoría del PDF consultaban `emThpValido` y el libro que cruza a CeiboAnalytics no.
+       Medido en HEAD: con `ia_grado = 4` la celda publicaba 1,47 como medición mientras el informe
+       ya no citaba el THP; y con `thp = 0,12 ms` publicaba **1833,33**.
+       `emThpValido(c)` es la MISMA función que decide el voto en `emCategoria` y la que gatea las
+       dos filas del papel; se le pasa `c` porque acá no hay formulario que leer — y ésa es la
+       rama `src` que su propio comentario declaraba código muerto «de una línea el día que se
+       decida». Hoy se decidió.
+       Vaciar y no marcar, igual que la continuidad: es una columna numérica y un texto la volvería
+       inimportable. Los 434 encabezados no cambian. */
+    'AVm (cm²)': (typeof emThpValido === 'function' && !emThpValido(c)) ? '' : rnd(num('avm_thp'),2),
     'AT aórtico (ms)': rnd(valvProtDato('va_morf','va_at',c),0),
     'Morfología aórtica': c.va_morf || '', 'EA grado': gEA,
     'EAo_I (Leve)': bin(gEA,'leve'), 'EAo_II (Moderada)': bin(gEA,'moderada'), 'EAo_III (Severa)': bin(gEA,'severa'),
@@ -99880,8 +99940,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261011-0016';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791688589974;                 /* eco-build-ms */
+const ECO_BUILD    = '20261011-0047';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791690443305;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -99967,7 +100027,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-0016</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-0047</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

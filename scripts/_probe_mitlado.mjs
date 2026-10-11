@@ -1361,6 +1361,40 @@ async function main() {
     out.REST = r;
   }
 
+  /* == REIMP — la reimpresion de un guardado, que es lo que TC-318 ejercita y donde el commit B
+     colgo la suite 11 minutos. Esta sonda SI contesta los dialogos nativos y los CUENTA, asi que
+     distingue «revento» de «se quedo esperando una ventana». */
+  if (hacer('REIMP')) {
+    const r = {};
+    await cero();
+    await J(`window.__P.sembrar({ nombre:'Reimp', ci:'999', edad:'60', peso:'80', talla:'180',
+      em_vmax:'1.8', em_gmedio:'7', thp:'150', avm_plan:'1.3',
+      em_dtsvi:'21', em_vtitsvi:'22', em_vtimit:'55', im_vc:'5' })`);
+    await pausa(300);
+    r.antes = await J(`window.__P.thpFotoB()`);
+    paso('REIMP guardar');
+    const g = await JP(`window.__P.guardar()`);
+    r.guardado = g;
+    const id = g && (g.estudioId || g.id);
+    if (id) {
+      paso('REIMP llamar a pdfDeInformeGuardado');
+      r.llamada = await ev(`(function(){ try {
+        if (typeof pdfDeInformeGuardado !== 'function') return 'NO EXISTE pdfDeInformeGuardado';
+        pdfDeInformeGuardado(${JSON.stringify(String(id))}); return 'llamada hecha';
+      } catch(e) { return 'EXC ' + e.message } })()`);
+      await pausa(9000);
+      paso('REIMP leer');
+      r.filaAvm = await ev(`(function(){ try { return emAvmPdfVal() } catch(e) { return 'EXC ' + e.message } })()`);
+      r.txtPdf = await ev(`(function(){ try { return emAvmThpPdfTxt() } catch(e) { return 'EXC ' + e.message } })()`);
+      r.motivo = await ev(`(function(){ try { return emAvmThpPdfMotivo() } catch(e) { return 'EXC ' + e.message } })()`);
+      r.esMotivo = await ev(`(function(){ try { return typeof emAvmThpPdfEsMotivo } catch(e) { return 'EXC ' + e.message } })()`);
+      r.lista = await ev(`(function(){ try { return JSON.stringify(EM_AVM_THP_MOTIVOS_PDF) } catch(e) { return 'EXC ' + e.message } })()`);
+      r.panel = await ev(`window.__P.txt('em-pdf-thp-val')`);
+      await ev(`window.__P.borrarEstudio(${JSON.stringify(String(id))})`);
+    }
+    out.REIMP = r;
+  }
+
   /* == THP — commit B: el AVm por THP con IAo severa y con el THP fuera de banda ===============
      Cuatro escenas, que son la tabla pedida: sin IAo y THP en banda (el 99 % de los estudios, que
      no se puede mover), IAo severa, THP fuera de banda, y las dos juntas. En cada una se leen las
