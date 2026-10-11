@@ -4166,7 +4166,12 @@ window.cerrarSesionReal = cerrarSesionReal;
                `onchange` SE CONSERVA: `valvSev.aplicar` despacha un `change` sobre este nodo y es
                así como corre `emGradoManual()` (marca manual + `sevSinApagaDesdeSelect` + el
                repintado de la fila de onda E de la IM). Quitarlo rompería la pastilla. -->
-          <select id="em_grado" onchange="emGradoManual()" style="display:none;" aria-hidden="true" tabindex="-1"><option value="sin">&mdash; grado &mdash;</option><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Severa</option></select>
+          <!-- ⚠️ EL TEXTO DE «severa» DICE «Significativa» Y SU `value` NO CAMBIA (2026-10-11). El valor
+               guardado sigue siendo `severa`: lo leen el Excel, `_labEstenSev` del Laboratorio y
+               Evidencia, y cambiarlo sería migrar los estudios archivados. Tiene que decir lo mismo
+               que `EM_GRADO_VIS`, que es el dueño de las otras tres superficies. `leve` y `moderada`
+               no se tocan. De este texto cuelga además la franja del PPT, vía `_pptSel`. -->
+          <select id="em_grado" onchange="emGradoManual()" style="display:none;" aria-hidden="true" tabindex="-1"><option value="sin">&mdash; grado &mdash;</option><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="severa">Significativa</option></select>
           <div id="gftxt-esten-mitral" class="valv-gf-fijo" aria-readonly="true">&mdash;</div>
           <!-- Aviso de grado fijado a mano que discrepa del calculado, hermano de
                `ea-manual-aviso` y gobernado por `sevSincronizar` (clave `em`). Va ARRIBA del badge
@@ -24098,6 +24103,24 @@ const EM_GMEDIO_SIGNIF_MIN  = 10;   // mmHg — borde >= · ASE 2023 Tabla 1, p.
    para `severa`. Los cuatro que la leían la equiparaban a `severa` —`SEV_SINC.em.calcular`,
    `imOndaEPintar`, `emGradoAuto` y `_emAppSevera`/`_emCatAct` de `generarInforme`—, así que al
    desaparecer la clave esos caminos siguen dando lo mismo por la rama de `severa`. */
+/* ══ UN SOLO DUEÑO DE «¿CÓMO SE ESCRIBE EL GRADO DE LA EM?» (2026-10-11) ════════════════
+   Decisión de Maicol: el valor GUARDADO `em_grado='severa'` no cambia —lo leen el Excel, el
+   Laboratorio (`_labEstenSev`, por regex sobre el valor guardado) y el panel de Evidencia— y lo
+   que cambia es cómo se MUESTRA: «Significativa». `leve` y `moderada` no se tocan.
+   Tres superficies lo escriben y por eso hay una sola función: el texto de la `<option>` del
+   selector, la fila «EM grado» del PDF y la etiqueta de la pastilla (`SEV_SINC.em.etiqueta`).
+   Con tres copias, renombrar una dejaba la pastilla diciendo una palabra y el papel otra sobre el
+   MISMO dato, que es la divergencia pantalla/papel que este archivo ya pagó varias veces.
+   ⚠️ LA `<option>` ES LA CUARTA SUPERFICIE Y NO PASA POR ACÁ —es HTML estático—, así que su
+   texto se cambió a mano y tiene que decir lo MISMO que este mapa. De ella depende además el PPT:
+   `_pptSel` devuelve el TEXTO de la opción cuando el nodo es un `<select>`, así que la franja de
+   hallazgos pasa de «EM: severa» a «EM: significativa». Es el «empate frágil» que el comentario
+   del PPT ya declaraba; ahora se rompió a propósito y queda medido. */
+const EM_GRADO_VIS = { severa: 'Significativa', moderada: 'Moderada', leve: 'Leve',
+                       sin: 'Sin estenosis' };
+function emGradoVis(g){ const k = String(g == null ? '' : g);
+  return Object.prototype.hasOwnProperty.call(EM_GRADO_VIS, k) ? EM_GRADO_VIS[k] : k; }
+window.EM_GRADO_VIS = EM_GRADO_VIS; window.emGradoVis = emGradoVis;
 const EM_CAT_TXT = {
   severa:        'Estenosis mitral significativa',
   gradiente:     'EM no significativa, con gradiente elevado',
@@ -24319,7 +24342,9 @@ function emGradoAuto(cat){
      de la compuerta de prótesis. Lo cazó `/sharp-edges`.
      Limpiar no borra la elección del médico: el `return` de arriba ya salió si la marca está puesta,
      así que acá sólo se borra lo que escribió la app. */
-  sel.value = (cat.clave !== 'protesis' && (cat.clave === 'severa' || cat.clave === 'probable'))
+  /* `probable` salió de esta condición con la clave (2026-10-11): la discrepancia de áreas hoy
+     devuelve `severa`, que ya estaba, así que el valor que se escribe es el MISMO de siempre. */
+  sel.value = (cat.clave !== 'protesis' && cat.clave === 'severa')
     ? 'severa' : 'sin';
 }
 
@@ -28294,7 +28319,9 @@ const SEV_SINC = Object.freeze({
       try {
         if (typeof emCategoria !== 'function') return null;
         const c = emCategoria();
-        return (c && (c.clave === 'severa' || c.clave === 'probable')) ? 'severa' : null;
+        /* `probable` salió con la clave (2026-10-11). Las dos se traducían al MISMO `'severa'`,
+           así que el grado calculado que este proveedor publica no cambia. */
+        return (c && c.clave === 'severa') ? 'severa' : null;
       } catch (e) { return null; }
     },
     /* `em_grado` NO tiene hidden espejo —el narrativo, el PDF y el Excel lo leen directo— así que
@@ -28303,8 +28330,10 @@ const SEV_SINC = Object.freeze({
        desplegable, y escribir el `<select>` por código no dispara ese evento. */
     trasEscribir: function(sel, calc){ sel.dataset.sugerido = calc;
       if (typeof imOndaESiExiste === 'function') imOndaESiExiste(); },
-    etiqueta: function(g){ return ({ sin:'Sin estenosis', leve:'Leve', moderada:'Moderada',
-      severa:'Severa' })[String(g)] || String(g); } }),
+    /* Delega en `emGradoVis`, el dueño único: acá vivía el cuarto mapa con las mismas cuatro
+       claves, y de él salen la pastilla y el aviso de ajuste manual («⚠️ Moderada (ajuste manual)
+       · cálculo automático: Significativa»). */
+    etiqueta: function(g){ return emGradoVis(g); } }),
   /* ══ TRICÚSPIDE Y PULMONAR — E2c (2026-10-03) ══════════════════════════════════════════════════
      Entran al registro SÓLO las dos lesiones que AUTOGRADÚAN (it por calcIT_ESC, ep por
      epGradoPorGmax), que son las únicas donde el aviso de discrepancia §5 tiene sujeto. La estenosis
@@ -34981,8 +35010,7 @@ function generarInforme(opts) {
        reescribe con su área. Ninguno pierde el veredicto que tenía. */
     const _emManualPrev = !!(window.esqSevManual && window.esqSevManual.em);
     const _emCatPrev = (typeof emCategoria === 'function') ? emCategoria().clave : 'nada';
-    const _emAppSevera = !_emManualPrev && emG === 'severa' &&
-                         (_emCatPrev === 'severa' || _emCatPrev === 'probable');
+    const _emAppSevera = !_emManualPrev && emG === 'severa' && _emCatPrev === 'severa';
     const emDesc = (emG && emG !== 'sin' && !_emAppSevera) ? emG.toLowerCase() : null;
     /* ══ LA CATEGORÍA ENTRA ACÁ, Y NO ES UN GRADO ══════════════════════════════════════════════
        Precedencia: el grado que el MÉDICO eligió gana siempre —«si el médico elige un grado a mano,
@@ -35018,44 +35046,93 @@ function generarInforme(opts) {
        así que un médico que marca «Sin estenosis» está siendo CONSISTENTE con esa frase y con ese
        gesto la borraba del informe. Un hallazgo independiente perdido por una respuesta correcta.
        Lo cazó `/sharp-edges`. Sólo `severa` y `probable` afirman la estenosis que él niega. */
-    const _emCatAct = ['severa','probable','gradiente','gradiente_im'].indexOf(emCat.clave) > -1 &&
-                      !(emSinExplicito && (emCat.clave === 'severa' || emCat.clave === 'probable'));
+    /* `probable` salió de las dos listas con la clave (2026-10-11). La discrepancia de áreas hoy
+       devuelve `severa`, que ya estaba en las dos, así que el comportamiento no cambia; dejar el
+       literal sería un cabo suelto que la próxima lectura toma por una categoría viva. */
+    const _emCatAct = ['severa','gradiente','gradiente_im'].indexOf(emCat.clave) > -1 &&
+                      !(emSinExplicito && emCat.clave === 'severa');
     /* Un solo formateador para las cuatro superficies —cuerpo, EN SUMA y los dos rótulos cortos—:
        con uno por superficie, el número y su método se escriben distinto en el mismo documento. */
     const _emAvm = f => 'AVm ' + f.avm.toFixed(2) + ' cm² por ' + f.fuente;
-    const _emUnir = a => a.length > 1
-      ? a.slice(0, -1).join(', ') + ' y ' + a[a.length - 1] : (a[0] || '');
-    /* DISCORDANCIA: los DOS valores con su método, y prevalece el PEOR. «probablemente» se usa
-       SÓLO acá, con el método que da ≤1,5 — es el matiz que separa «una fuente lo dice» de «todas
-       lo dicen», y sin él el informe afirmaría con la misma seguridad en los dos casos. */
-    const _emDisc = () => _emUnir(emCat.noSev.map(_emAvm)) + ', probablemente severa por ' +
-      _emUnir(emCat.sev.map(f => f.fuente + ' (AVm ' + f.avm.toFixed(2) + ' cm²)'));
-    /* ⚠️ ANDAMIO DEL COMMIT A, REEMPLAZADO POR LAS PLANTILLAS DEL COMMIT B. Desde que el
-       gradiente `>= 10` da `severa` SIN NINGUNA FUENTE DE ÁREA, `emCat.sev` puede venir vacío y
-       `_emUnir([])` devuelve `''`: las tres tablas de abajo imprimían «estenosis severa ()» —con
-       los paréntesis vacíos— en el informe FIRMADO. Se cubre en el MISMO commit que crea la rama
-       para que ningún commit de esta tanda deje una frase malformada en el papel. */
-    const _emDetSev = () => emCat.sev.length ? _emUnir(emCat.sev.map(_emAvm))
-                    : (emCat.gm != null ? 'gradiente medio ' + emCat.gm + ' mmHg' : '');
-    const _emParen = t => t ? ' (' + t + ')' : '';
+    /* ⚠️ `_emUnir` SE FUE CON `_emDisc` (2026-10-11), y no es un descuido. Unía con «y» las listas
+       de fuentes de las frases viejas; las plantillas nuevas separan los otros métodos con «;»
+       dentro de un paréntesis, así que no queda ningún llamador —medido por grep: una sola
+       aparición, su propia declaración—. Dejarlo declarado y sin leer es el cabo suelto que la
+       próxima lectura interpreta como que alguien se olvidó de usarlo. */
+    /* ══ LAS PLANTILLAS DE LA REGLA NUEVA — DECIDIDAS POR MAICOL (2026-10-11) ═════════════
+       Dos frases donde antes había cuatro, con la nomenclatura de la ASE 2023:
+         «{prefijo}, con estenosis significativa (por {criterio}: {detalle}).»
+         «{prefijo}, con estenosis no significativa, con gradiente elevado ({detalle}).»
+       «Gradiente con IM», la prótesis y el «Sin estenosis» a mano conservan su texto de HOY.
+
+       ⚠️ EL PEOR VA PRIMERO, Y «PEOR» ES EL AVm MENOR DE LAS MARCADAS —no el del método preferido
+       por la guía—. Los OTROS métodos marcados con valor van entre paréntesis detrás, con su
+       nombre y su número: cuál discrepa es la información que el médico necesita para resolverlo,
+       y con la categoría binaria el veredicto ya no lo dice. Se ordena sobre una COPIA (`slice`):
+       `sort` muta el array, y `emCat.fuentes` lo leen también la rama de los valores sin veredicto
+       y la cápsula de pantalla —reordenarles el array por debajo les cambiaría la salida.
+
+       ⚠️ `{criterio}` SALE DE LO QUE REALMENTE LO CUMPLIÓ, no de lo que haya cargado: con área bajo
+       el corte es «AVm», con gradiente `>= 10` es «gradiente», y con los dos «gradiente y AVm».
+       Derivarlo de «hay gradiente cargado» habría puesto «gradiente y AVm» sobre un gradiente de 3,
+       o sea atribuyendo el veredicto a un dato que no votó. */
+    const _emOrden = emCat.fuentes.slice().sort(function(a, b){ return a.avm - b.avm; });
+    const _emPeor  = _emOrden[0] || null;
+    const _emOtros = _emOrden.slice(1);
+    /* ⚠️ LOS OTROS MÉTODOS VAN CON «;» Y SIN PARÉNTESIS PROPIO —decisión de Maicol, P1(a)—. La
+       primera versión los metía entre paréntesis y el bloque entero ya va entre paréntesis, así que
+       salía «(por AVm: AVm 1.10 cm² por THP (planimetría 1.80 cm²))», con los paréntesis anidados y
+       terminando en «))». Es el MISMO defecto que la rama de prótesis ya documenta haber evitado
+       —«por planimetría» y no «(planimetría)»— y lo encontró la tabla de frases, no la lectura.
+       El PEOR lleva su «por {método}» completo; los otros, nombre y número. */
+    const _emAreaItems = () => _emPeor
+      ? [_emAvm(_emPeor)].concat(_emOtros.map(f => f.fuente + ' ' + f.avm.toFixed(2) + ' cm²'))
+      : [];
+    const _emGmItems = () => emCat.gm != null ? ['gradiente medio ' + emCat.gm + ' mmHg'] : [];
+    const _emCriterio = () => {
+      const porArea = emCat.sev.length > 0;
+      const porGrad = emCat.gm != null && emCat.gm >= EM_GMEDIO_SIGNIF_MIN;
+      return (porArea && porGrad) ? 'gradiente y AVm' : porArea ? 'AVm' : 'gradiente';
+    };
+    /* ⚠️ EL ORDEN LO MANDA EL CRITERIO —decisión de Maicol, P2(a)—. Con el área siempre primero,
+       un gradiente ≥ 10 sobre una válvula de 4,00 cm² publicaba «estenosis significativa (por
+       gradiente: AVm 4.00 cm² por planimetría; …)»: el rótulo decía «por gradiente» y el primer
+       número era un área SANA, o sea el informe firmado afirmaba la estenosis y arrancaba con el
+       dato que la niega. Cuando el criterio es SÓLO el gradiente, va el gradiente primero. */
+    const _emDatos = () => (_emCriterio() === 'gradiente')
+      ? _emGmItems().concat(_emAreaItems())
+      : _emAreaItems().concat(_emGmItems());
+    /* ⚠️ EL RÓTULO «por {criterio}: » SE OMITE CON UN SOLO DATO —decisión de Maicol, P2(a)—. Con
+       un único dato no hay nada que atribuir y salían frases que se repiten a sí mismas:
+       «(por gradiente: gradiente medio 10 mmHg)». Con dos o más el rótulo sí dice algo —cuál de
+       los datos cumplió el criterio— y se conserva. */
+    const _emSignifTxt = () => { const d = _emDatos();
+      return 'significativa (' + (d.length > 1 ? 'por ' + _emCriterio() + ': ' : '')
+             + d.join('; ') + ')'; };
+    /* La banda media lleva el gradiente primero SIEMPRE —es su criterio— y no lleva rótulo: la
+       frase ya dice «con gradiente elevado». */
+    const _emElevTxt = () => { const d = _emGmItems().concat(_emAreaItems());
+      return 'no significativa, con gradiente elevado' + (d.length ? ' (' + d.join('; ') + ')' : ''); };
     const EM_CAT_EST = {
-      severa:       () => 'estenosis severa' + _emParen(_emDetSev()),
-      probable:     _emDisc,
-      gradiente:    () => 'estenosis con gradiente medio elevado',
+      severa:       () => 'estenosis ' + _emSignifTxt(),
+      gradiente:    () => 'estenosis ' + _emElevTxt(),
       gradiente_im: () => 'gradiente transmitral elevado'
     };
     const EM_CAT_CORTO = {
-      severa:       () => 'EM severa' + _emParen(_emDetSev()),
-      probable:     _emDisc,
-      gradiente:    () => 'EM con gradiente elevado',
+      severa:       () => 'EM ' + _emSignifTxt(),
+      gradiente:    () => 'EM ' + _emElevTxt(),
       gradiente_im: () => 'gradiente transmitral elevado'
     };
+    /* ⚠️ EL EN SUMA PIERDE LOS CRITERIOS, Y ES PEDIDO EXPLÍCITO (punto 3c). Antes publicaba el
+       área con su método —«Estenosis mitral severa (AVm 1.20 cm² por planimetría).»— y ahora dice
+       «EM significativa.» a secas. El número sigue en el cuerpo del informe, en la tabla del PDF
+       y en el Excel; lo que se acorta es el resumen. Queda dicho porque es la superficie que se
+       copia a una interconsulta o a un resumen de alta.
+       La banda media dice «EM no significativa.»: el resumen deja de nombrar el gradiente elevado,
+       que sí sale en el cuerpo. También es del pedido. */
     const EM_CAT_SUMA = {
-      severa:       () => 'Estenosis mitral severa' + _emParen(_emDetSev()) + '.',
-      probable:     () => 'Estenosis mitral probablemente severa por ' +
-                          _emUnir(emCat.sev.map(f => f.fuente + ' (AVm ' + f.avm.toFixed(2) + ' cm²)')) +
-                          ', con ' + _emUnir(emCat.noSev.map(_emAvm)) + '.',
-      gradiente:    () => 'EM con gradiente elevado.',
+      severa:       () => 'EM significativa.',
+      gradiente:    () => 'EM no significativa.',
       gradiente_im: () => 'Gradiente transmitral elevado.'
     };
     /* ══ EL INFORME USA SOLO EL GRADO FINAL — DECISIÓN DE MAICOL (2026-10-03) ═══════════════════
@@ -35197,8 +35274,16 @@ function generarInforme(opts) {
        puede entrar por construcción: `emCategoria` devuelve `fuentes:[]` y `gm:null` con la clave
        `protesis`, así que el tercer término es falso. Verificado: el control AVm 2,0 + gradiente 3
        y el caso sin un solo dato mitral quedan byte a byte como en HEAD. */
+    /* ⚠️ `noIncl` ENTRA A ESTA CONDICIÓN —decisión de Maicol, P3—. Con el ÚNICO método cargado
+       DESTILDADO no quedan fuentes ni gradiente, así que esta rama no entraba y el informe caía en
+       la negación: «Válvula mitral de morfología normal, sin estenosis ni insuficiencia.» sobre una
+       válvula con un AVm de 1,2 cm² medido. No publicar el número es lo que el médico pidió al
+       destildar; AFIRMAR que no hay estenosis es más de lo que la app puede sostener.
+       Entrando acá con `fuentes` y `gm` vacíos, la estenosis se CALLA: ni afirmación ni número,
+       que es la forma que ya usa la rama de prótesis. La insuficiencia sigue su camino. */
     const _emSinVeredicto = !estEGrado && !_emCatAct &&
-                            (emCat.fuentes.length || emCat.gm != null);
+                            (emCat.fuentes.length || emCat.gm != null ||
+                             (emCat.noIncl && emCat.noIncl.length));
     if (emDesc) suma.push(`EM ${emDesc}.`);
     else if (_emCatAct) suma.push(EM_CAT_SUMA[emCat.clave]());
     else if (estE && !_vmProt && !_emSinVeredicto) suma.push('EM presente.');  // v2: regla 6 (EM_CAT_SUMA calculada NO se toca)
@@ -35320,7 +35405,11 @@ function generarInforme(opts) {
          La pantalla lo sigue mostrando con su motivo, que es donde se corrige. */
       const _emMed = emCat.fuentes.map(_emAvm);
       if (emCat.gm != null) _emMed.push('gradiente medio ' + emCat.gm + ' mmHg');
-      const _emMedTxt = ' (' + _emMed.join(', ') + ')';
+      /* ⚠️ SIN DATOS NO HAY PARÉNTESIS. Desde que un método destildado trae a esta rama con
+         `fuentes` y `gm` vacíos, el ` (' + ... + ')` pelado publicaba «Válvula mitral de
+         morfología normal ().» en el papel FIRMADO. Es el mismo descuido que el paréntesis vacío
+         de «estenosis severa ()» del commit A, en la rama de al lado. */
+      const _emMedTxt = _emMed.length ? ' (' + _emMed.join(', ') + ')' : '';
       const _emIns  = insE ? `, con ${insE}` : '';
       const _emInsC = insC ? `, con ${insC}` : '';
       vmSent = estiloPick(
@@ -43894,7 +43983,11 @@ function generarPDFReal(_aj) {
       {lbl:'VC IM',         ref:'(<3 / 3–7 / ≥7) mm', val:vPdf('im_vc',' mm')},
       {lbl:'EROA',          ref:'(<20 / 20–40 / ≥40) mm²', val:imEroaPdfVal()},
       {lbl:'Vol.R',         ref:'(<30 / 30–60 / ≥60) ml', val:imVolrPdfVal()},
-      {lbl:'EM grado',      ref:'', val:(sv('em_grado')&&sv('em_grado')!=='sin')?_cap(sv('em_grado')):null},
+      /* ⚠️ `emGradoVis` Y NO `_cap`: el valor guardado sigue siendo «severa» y lo que se imprime
+         es «Significativa». Con `_cap` esta fila decía «Severa» al lado de una frase del cuerpo que
+         dice «significativa» —dos palabras para el mismo dato en el MISMO papel firmado—. `_cap`
+         sigue en uso para los otros grados de la tabla, que no cambian de vocabulario. */
+      {lbl:'EM grado',      ref:'', val:(sv('em_grado')&&sv('em_grado')!=='sin')?emGradoVis(sv('em_grado')):null},
       /* ⚠️ LA COLUMNA `ref` PUBLICABA LA ESCALERA DEROGADA EN EL PAPEL FIRMADO: «(>2.5 / 1.5–2.5
          / ≤1.5) cm²», o sea leve/moderada/severa por área. Desde el 28/09 la app no gradúa la EM
          por área y la banda «leve» no la publica ninguna guía. Queda el ÚNICO corte vivo. Es la
@@ -100061,8 +100154,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261011-0356';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791701806318;                 /* eco-build-ms */
+const ECO_BUILD    = '20261011-0811';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791717081890;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -100148,7 +100241,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-0356</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-0811</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

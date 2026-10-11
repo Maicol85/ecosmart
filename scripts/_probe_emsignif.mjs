@@ -432,6 +432,22 @@ window.__P = {
         delete cb.dataset.desdeEstudio });
       return 'ok' }
     catch(e) { return 'EXC: ' + e.message } },
+  /* Lo que el PPT y el PDF escriben del grado. El PPT lee el TEXTO de la opcion via _pptSel, asi
+     que cambiar la etiqueta de la opcion le cambia la franja de hallazgos; se MIDE, no se deduce. */
+  grado3() {
+    var sel = document.getElementById('em_grado');
+    return {
+      valorGuardado: sel ? sel.value : 'NO EXISTE',
+      textoOpcion: (sel && sel.selectedIndex >= 0) ? sel.options[sel.selectedIndex].text : '(selectedIndex -1)',
+      pptSel: (function(){ try { return (typeof _pptSel === 'function') ? _pptSel('em_grado') : 'SIN _pptSel' }
+                 catch(e){ return 'EXC' } })(),
+      pdfFila: (function(){ try { var g = (typeof sv === 'function') ? sv('em_grado') : null;
+                 if (!g || g === 'sin') return null;
+                 return (typeof emGradoVis === 'function') ? emGradoVis(g)
+                      : (g.charAt(0).toUpperCase() + g.slice(1)) } catch(e){ return 'EXC' } })(),
+      pastilla: window.__P.txt('pill-esten-mitral'),
+      avisoManual: window.__P.txt('em-manual-aviso')
+    } },
   listo() {
     var faltan = ['generarInforme','pillOn','toggleValvPill','showTab','limpiarCampos','calcEM',
                   'emCategoria','emGradoAuto','setEstiloInforme','valvMorfDe','valvAutoPrenderEsten',
@@ -716,7 +732,10 @@ async function main() {
       gr[id] = await ev(`window.__P.setGrado(${JSON.stringify(id)}, ${JSON.stringify(g)})`);
     await ev(`(function(){ try{ calcEM() }catch(e){} return 1 })()`);
     await pausa(120);
-    return { tecleo, grados: gr, chks: await chks(), cat: await cat(), foto: await foto() };
+    /* Los TRES estilos y el EN SUMA en cada escena: es la tabla del punto 3e, y sin ella el A/B
+       compara claves de categoria y no el papel, que es lo que se firma. */
+    return { tecleo, grados: gr, chks: await chks(), cat: await cat(), foto: await foto(),
+             textos: await textos() };
   };
 
   /* ══ 1 — LA TABLA DE BORDES ═══════════════════════════════════════════════════════════════
@@ -759,7 +778,8 @@ async function main() {
       const dC = await destildar('em_pdf_cont');
       await ev(`(function(){ try{ calcEM() }catch(e){} return 1 })()`);
       C.soloTHP = { destildar: { plan: dP, cont: dC }, chks: await chks(),
-                    cat: await cat(), foto: await foto(), partida: r.cat };
+                    cat: await cat(), foto: await foto(), partida: r.cat,
+                    textos: await textos() };
     }
     paso('2d sinPlan');
     /* d · NINGUNA de las destildables, y el THP no se puede destildar: queda votando él solo.
@@ -769,7 +789,7 @@ async function main() {
       const dP = await destildar('em_pdf_plan');
       await ev(`(function(){ try{ calcEM() }catch(e){} return 1 })()`);
       C.sinPlan = { destildar: dP, chks: await chks(), cat: await cat(), foto: await foto(),
-                    partida: r.cat };
+                    partida: r.cat, textos: await textos() };
     }
     paso('2e unicoDestildado');
     /* e · un método CON valor y DESTILDADO, siendo el único: la categoría tiene que caerse */
@@ -796,11 +816,18 @@ async function main() {
     /* j · gradiente 10 con área NORMAL (4,0 cm²): significativa por gradiente, sin fuente «sev» */
     paso('2j g10AreaNormal');
     C.g10AreaNormal = await escena({ avm_plan: '4.0', em_gmedio: '10' });
-    /* ⚠️ LA FRASE DE ESTA ESCENA ES LA QUE EL ANDAMIO DEL COMMIT A CUBRE: `severa` sin ninguna
-       fuente de área dejaba «estenosis severa ()» con los paréntesis vacíos en el papel FIRMADO.
-       Se mide el texto, no se deduce. */
-    C.g10AreaNormal.textos = await textos();
-    C.tresMarcadas.textos  = await (async () => { await tres(); return textos(); })();
+    /* k, l, m · EL DATO ÚNICO Y LA BANDA MEDIA CON ÁREA. Las tres escenas que prueban el rótulo
+       «por {criterio}: » por sus dos lados: con un solo dato se omite, con dos se conserva. */
+    paso('2k g12SinArea');
+    C.g12SinArea = await escena({ em_gmedio: '12' });
+    paso('2l g7SinArea');
+    C.g7SinArea  = await escena({ em_gmedio: '7' });
+    paso('2m g7ConArea');
+    C.g7ConArea  = await escena({ avm_plan: '2.0', em_gmedio: '7' });
+    /* n · DOS ÁREAS MARCADAS BAJO EL CORTE, sin gradiente: el rótulo «por AVm» con dos datos. */
+    paso('2n dosAreasBajas');
+    C.dosAreasBajas = await escena({ avm_plan: '1.4', thp: '160' });
+
     out.COMB = C;
   }
 
@@ -880,6 +907,24 @@ async function main() {
     await pausa(150);
     S.protesisMecanica.trasProtesis = { cat: await cat(), textos: await textos() };
     out.SUP = S;
+  }
+
+  /* ══ 5 — LA PALABRA DEL GRADO EN SUS CUATRO SUPERFICIES ═══════════════════════════════════ */
+  if (hacer('5')) {
+    const T = {};
+    for (const [nombre, campos] of [['significativa', { avm_plan: '1.2' }],
+                                    ['moderadaAMano', { avm_plan: '1.2' }]]) {
+      await escena(campos);
+      if (nombre === 'moderadaAMano') {
+        /* El grado a mano, por el desplegable, que es lo que pone la marca `esqSevManual.em`. */
+        await ev(`(function(){ var e=document.getElementById('em_grado');
+          if(!e) return 0; e.value='moderada';
+          e.dispatchEvent(new Event('change',{bubbles:true})); return 1 })()`);
+        await pausa(200);
+      }
+      T[nombre] = JSON.parse(await ev(`JSON.stringify(window.__P.grado3())`));
+    }
+    out.GRADO = T;
   }
 
   out.consola = cdp.errores ? cdp.errores.slice(0, 20) : 'sin listener';

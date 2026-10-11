@@ -888,8 +888,12 @@ caso('TC-41', 'Aorta sin medir: silencio. Aorta medida y normal: se publica.', `
    grado. El invariante que sobrevive es mas fuerte y es el que importa clinicamente — la formula
    de Hatle intacta y el CORTE DE SIGNIFICACION en 1,5 cm², probado por los dos lados. */
 caso('TC-42', 'EM por THP: 220/THP, y el corte de significacion clinica en AVm 1,5 por los dos lados', `
+  /* «inf» se agrego el 2026-10-11: desde que el EN SUMA no lleva el area, el area con su metodo
+     se exige en el CUERPO del informe, asi que la escena tiene que traerlo. Sin esto la condicion
+     tiraba «Cannot read properties of undefined» y el caso daba rojo por el arnes, no por la app. */
   function thp(ms) { __t.limpiar(); __t.set('thp', String(ms));
-    return { avm: __t.val('avm_thp'), suma: __t.informe().suma,
+    const _r = __t.informe();
+    return { avm: __t.val('avm_thp'), suma: _r.suma, inf: _r.inf,
              cat: (typeof emCategoria === 'function' ? emCategoria().clave : 'NO EXISTE emCategoria') }; }
   const a = thp(140), b = thp(150), c = thp(146.67), d = thp(145.7);
   return { extra: [
@@ -898,8 +902,14 @@ caso('TC-42', 'EM por THP: 220/THP, y el corte de significacion clinica en AVm 1
       a.cat === 'nada' && a.suma.indexOf('stenosis mitral') === -1 && a.suma.indexOf('EM ') === -1,
       'cat=' + a.cat + ' · suma=«' + a.suma + '»'],
     ['THP 150 -> AVm 1.47', b.avm === '1.47', b.avm],
-    ['1,47 es estenosis mitral SEVERA, y el EN SUMA lo dice CON el area y su metodo',
-      b.cat === 'severa' && b.suma.indexOf('Estenosis mitral severa (AVm 1.47 cm² por THP).') > -1,
+    /* ADAPTADO el 2026-10-11 — EL EN SUMA PERDIÓ LOS CRITERIOS (pedido de Maicol, punto 3c).
+       Antes decía «Estenosis mitral severa (AVm 1.47 cm² por THP).» y ahora dice «EM
+       significativa.» a secas. El área con su método sigue en el CUERPO del informe, así que lo
+       que este caso cuidaba —que el veredicto no vaya sin respaldo visible— se exige ahora en el
+       cuerpo y no en el resumen. */
+    ['1,47 es estenosis mitral SIGNIFICATIVA; el EN SUMA la nombra y el CUERPO lleva el area con su metodo',
+      b.cat === 'severa' && b.suma.indexOf('EM significativa.') > -1 &&
+      b.inf.indexOf('AVm 1.47 cm\u00b2 por THP') > -1,
       'cat=' + b.cat + ' · suma=«' + b.suma + '»'],
     ['⚠️ EL BORDE: 1,50 EXACTO cuenta como severa —el operador es <=, no <. La ASE lo publica asi en su Tabla 1, aunque el cuerpo del mismo articulo escriba «less than»—',
       c.avm === '1.50' && c.cat === 'severa', c.avm + ' -> ' + c.cat],
@@ -908,20 +918,28 @@ caso('TC-42', 'EM por THP: 220/THP, y el corte de significacion clinica en AVm 1
   ] };
 `);
 
-/* REAPUNTADO el 2026-09-28: el grado ya no sale de una escalera de area. La categoria dice «severa»
-   —ASE 2023 Tabla 1 y AHA/ACC 2020— y ADEMAS publica el area con su metodo, que es lo que la version
-   anterior de este caso no pedia: sin el numero, «estenosis severa» es una afirmacion sin respaldo
-   visible en el mismo renglon. */
-caso('TC-43', 'EM por planimetria 1.2 cm²: severa con el area y su metodo, con AVm indexada, y el grado se completa en «severa» y en nada mas', `
+/* REAPUNTADO el 2026-09-28: el grado ya no sale de una escalera de area. La categoria publica el
+   area con su metodo, que es lo que la version anterior de este caso no pedia: sin el numero, el
+   veredicto es una afirmacion sin respaldo visible en el mismo renglon.
+   ADAPTADO el 2026-10-11: la palabra pasa de «severa» a «significativa» (ASE 2023, Tabla 1, folio
+   8) y el EN SUMA pierde el criterio. El VALOR GUARDADO sigue siendo «severa», y por eso la ultima
+   condicion lo exige por su valor y no por su texto: es lo que separa «cambio de palabra» de
+   «cambio de dato», y de ese valor dependen el Excel, el Laboratorio y Evidencia.
+   ⚠️ «significativa» SALIO DE `noDebe` Y ERA LO QUE BLOQUEABA LA PALABRA NUEVA. Se reemplaza por
+   «severa», que es la que ahora no debe volver al papel. */
+caso('TC-43', 'EM por planimetria 1.2 cm²: SIGNIFICATIVA con el area y su metodo, con AVm indexada, el EN SUMA sin criterios y el valor guardado todavia «severa»', `
   __t.limpiar(); ${BSA2} __t.set('avm_plan','1.2');
   const r = __t.informe();
   return { inf: r.inf, suma: r.suma,
-    debe: ['con estenosis severa (AVm 1.20 cm² por planimetría)'],
-    debeSuma: ['Estenosis mitral severa (AVm 1.20 cm² por planimetría).'],
-    noDebe: ['estenosis moderada', 'estenosis leve', 'significativa'],
+    debe: ['con estenosis significativa (AVm 1.20 cm² por planimetría)'],
+    debeSuma: ['EM significativa.'],
+    noDebe: ['estenosis moderada', 'estenosis leve', 'estenosis severa'],
     extra: [['AVm indexada = 1.2 / 2.00', (__t.val('avm_idx') || '').indexOf('0.60') > -1],
-            ['el grado se completa en «severa», que es el UNICO que la app escribe',
-             __t.val('em_grado') === 'severa', 'em_grado=«' + __t.val('em_grado') + '»']] };
+            ['⚠️ el VALOR GUARDADO sigue siendo «severa» —lo leen el Excel, _labEstenSev y Evidencia— aunque el papel diga «significativa»',
+             __t.val('em_grado') === 'severa', 'em_grado=«' + __t.val('em_grado') + '»'],
+            ['  y lo que se MUESTRA de ese valor es «Significativa», por el dueno unico',
+             (typeof emGradoVis === 'function') && emGradoVis('severa') === 'Significativa',
+             'emGradoVis(severa)=«' + ((typeof emGradoVis === 'function') ? emGradoVis('severa') : 'NO EXISTE') + '»']] };
 `);
 
 /* Wilkins: <=8 favorable, 9-11 suboptimo, >=12 no favorable. El total se pinta sobre 16. */
@@ -35632,20 +35650,31 @@ caso('TC-306', 'EM NATIVA: las salidas de la regla de 2026-10-11 —significativ
 
     return { extra: [
       // (1)
-      ['AVm 1,50 EXACTO es estenosis mitral severa, con el area y su metodo en el EN SUMA —el operador es <=, como en la Tabla 1 de la ASE 2023—',
-        a150.cat === 'severa' && a150.suma.indexOf('Estenosis mitral severa (AVm 1.50 cm² por planimetría).') > -1,
-        a150.cat + ' · suma=«' + a150.suma + '»'],
-      ['1,51 con gradiente 5 mmHg cae en «EM con gradiente elevado», no en severa',
-        a151g5.cat === 'gradiente' && a151g5.suma.indexOf('EM con gradiente elevado.') > -1 &&
-        pl(a151g5.suma).indexOf('severa') === -1,
-        a151g5.cat + ' · suma=«' + a151g5.suma + '»'],
+      /* ADAPTADO el 2026-10-11: la palabra y el EN SUMA sin criterios. El borde «<=» NO cambia. */
+      ['AVm 1,50 EXACTO es estenosis mitral SIGNIFICATIVA —el operador es <=, como en la Tabla 1 de la ASE 2023—, con el area y su metodo en el CUERPO',
+        a150.cat === 'severa' && a150.suma.indexOf('EM significativa.') > -1 &&
+        a150.vm.indexOf('AVm 1.50 cm\u00b2 por planimetr\u00eda') > -1,
+        a150.cat + ' · suma=«' + a150.suma + '» · «' + a150.vm + '»'],
+      ['1,51 con gradiente 5 mmHg cae en la banda MEDIA —«no significativa, con gradiente elevado»— y no en significativa',
+        a151g5.cat === 'gradiente' && a151g5.suma.indexOf('EM no significativa.') > -1 &&
+        a151g5.vm.indexOf('no significativa, con gradiente elevado') > -1,
+        a151g5.cat + ' · suma=«' + a151g5.suma + '» · «' + a151g5.vm + '»'],
       ['⚠️ 1,51 con gradiente 4 EXACTO no publica nada: el corte es >4, no >=4',
         a151g4.cat === 'nada' && pl(a151g4.suma).indexOf('gradiente') === -1 &&
         pl(a151g4.suma).indexOf('estenosis mitral') === -1,
         a151g4.cat + ' · suma=«' + a151g4.suma + '»'],
-      ['⚠️ la palabra «significativa» NO vuelve por ninguna de las cuatro salidas: la terminologia es «severa»',
-        [a150, a151g5, imModGrad, disc].every(r => pl(r.suma).indexOf('estenosis mitral significativa') === -1 &&
-                                                   pl(r.vm).indexOf('estenosis significativa') === -1),
+      /* ⚠️ ESTA CONDICION SE DIO VUELTA EL 2026-10-11, Y ERA LA QUE BLOQUEABA LA REGLA NUEVA.
+         Decia «la palabra "significativa" NO vuelve por ninguna de las cuatro salidas: la
+         terminologia es "severa"». Hoy la terminologia ES la de la ASE 2023 —«significativa» /
+         «no significativa»— asi que lo que no debe volver al papel es «severa». Se exige por los
+         DOS lados sobre las mismas cuatro escenas: que la palabra nueva este donde corresponde y
+         que la vieja no aparezca en ninguna. Sin la segunda mitad, un retroceso parcial a «severa»
+         en una sola de las cuatro salidas pasaria inadvertido. */
+      ['⚠️ «severa» NO vuelve al papel por ninguna salida, y «significativa» esta en las que afirman o niegan el corte',
+        [a150, a151g5, imModGrad, disc].every(r => pl(r.suma).indexOf('severa') === -1 &&
+                                                   pl(r.vm).indexOf('severa') === -1) &&
+        pl(a150.vm).indexOf('estenosis significativa') > -1 &&
+        pl(a151g5.vm).indexOf('no significativa') > -1,
         [a150, a151g5, imModGrad, disc].map(r => '«' + r.suma + '»').join(' | ')],
       // (2)
       ['⚠️ IM moderada + gradiente 8 + AVm 2,0 publica «gradiente transmitral elevado» SIN la palabra estenosis',
@@ -35657,14 +35686,15 @@ caso('TC-306', 'EM NATIVA: las salidas de la regla de 2026-10-11 —significativ
       ['  y el MISMO escenario sin IM significativa si dice estenosis: es lo unico que separa las dos frases',
         sinImGrad.cat === 'gradiente' && pl(sinImGrad.vm).indexOf('estenosis') > -1,
         sinImGrad.cat + ' · «' + sinImGrad.vm + '»'],
-      ['un AVm <=1,5 por planimetria con IM moderada SIGUE siendo severa: la rama del area corre antes',
-        imModArea.cat === 'severa' &&
-        imModArea.suma.indexOf('Estenosis mitral severa (AVm 1.30 cm² por planimetría).') > -1,
-        imModArea.cat + ' · suma=«' + imModArea.suma + '»'],
+      ['un AVm <=1,5 por planimetria con IM moderada SIGUE siendo significativa: la rama del area corre antes',
+        imModArea.cat === 'severa' && imModArea.suma.indexOf('EM significativa.') > -1 &&
+        imModArea.vm.indexOf('AVm 1.30 cm\u00b2 por planimetr\u00eda') > -1,
+        imModArea.cat + ' · suma=«' + imModArea.suma + '» · «' + imModArea.vm + '»'],
       // (3)
-      ['DENOMINADOR: el THP de 160 ms da 1,38 cm² y por si solo es severa',
-        thpSolo.cat === 'severa' && thpSolo.suma.indexOf('(AVm 1.38 cm² por THP).') > -1,
-        thpSolo.cat + ' · suma=«' + thpSolo.suma + '»'],
+      ['DENOMINADOR: el THP de 160 ms da 1,38 cm² y por si solo es significativa, con el numero en el CUERPO',
+        thpSolo.cat === 'severa' && thpSolo.suma.indexOf('EM significativa.') > -1 &&
+        thpSolo.vm.indexOf('AVm 1.38 cm\u00b2 por THP') > -1,
+        thpSolo.cat + ' · suma=«' + thpSolo.suma + '» · «' + thpSolo.vm + '»'],
       ['⚠️ con IAo SEVERA el THP deja de votar y no queda categoria',
         thpIaSev.cat === 'nada', thpIaSev.cat],
       ['  pero el NUMERO se sigue viendo, y el badge dice POR QUE no vota',
@@ -35691,8 +35721,10 @@ caso('TC-306', 'EM NATIVA: las salidas de la regla de 2026-10-11 —significativ
       ['  y «probablemente» no aparece en NINGUNA de las dos superficies: la categoria ya no existe',
         pl(disc.vm).indexOf('probablemente') === -1 && pl(disc.suma).indexOf('probablemente') === -1,
         '«' + disc.vm + '» · suma=«' + disc.suma + '»'],
-      ['  y el EN SUMA reusa la MISMA linea: no queda mudo ni cae en «sin otras alteraciones»',
-        disc.suma.indexOf('AVm 1.38 cm² por THP') > -1 &&
+      /* El EN SUMA ya no lleva el numero (punto 3c), asi que lo que se exige es que NOMBRE la
+         estenosis y no caiga en la negacion global. El numero se exige arriba, en el cuerpo. */
+      ['  y el EN SUMA la nombra: no queda mudo ni cae en «sin otras alteraciones»',
+        disc.suma.indexOf('EM significativa.') > -1 &&
         pl(disc.suma).indexOf('sin alteraciones') === -1,
         'suma=«' + disc.suma + '»'],
       ['  el grado se completa igual en «severa»: prevalece el peor tambien en el campo',
@@ -35703,9 +35735,13 @@ caso('TC-306', 'EM NATIVA: las salidas de la regla de 2026-10-11 —significativ
       ['⚠️ EL SENTIDO INVERSO es simetrico —planimetria 1,3 y THP 1,57—: la regla pondera el peor VALOR, NO el metodo preferido',
         discInv.cat === 'severa' && discInv.vm.indexOf('AVm 1.30 cm² por planimetría') > -1,
         discInv.cat + ' · «' + discInv.vm + '»'],
-      ['  CONTROL: con las DOS fuentes por debajo del corte el veredicto es el mismo y las dos se publican',
+      /* ⚠️ CON DOS DATOS EL ROTULO «por {criterio}: » SE CONSERVA, y el PEOR va primero con su
+         «por {metodo}» completo mientras el otro va con nombre y numero, separado por «;» y SIN
+         parentesis propio (decision de Maicol, P1a): el bloque entero ya va entre parentesis y
+         anidarlos daba «(por AVm: AVm 1.38 cm² por THP (planimetria 1.40 cm²))». */
+      ['  CONTROL: con las DOS fuentes por debajo del corte el veredicto es el mismo, el PEOR va primero y el otro detras con «;»',
         concord.cat === 'severa' && pl(concord.vm).indexOf('probablemente') === -1 &&
-        concord.vm.indexOf('AVm 1.40 cm² por planimetría') > -1 && concord.vm.indexOf('AVm 1.38 cm² por THP') > -1,
+        concord.vm.indexOf('(por AVm: AVm 1.38 cm\u00b2 por THP; planimetr\u00eda 1.40 cm\u00b2)') > -1,
         concord.cat + ' · «' + concord.vm + '»'],
       // (5)
       ['el grado SI se autocompleta, y solo en «severa»',
@@ -35739,10 +35775,14 @@ caso('TC-306', 'EM NATIVA: las salidas de la regla de 2026-10-11 —significativ
           pl(sinVer[e]).indexOf('transmitral') === -1),
         'E=«' + sinVer.estandar + '»'],
       // (7)
-      ['los TRES estilos publican la categoria con su area y su metodo, cada uno con su redaccion y sin frases de mas',
-        pl(estilos.conciso).indexOf('em severa (avm 1.20 cm² por planimetria)') > -1 &&
-        pl(estilos.estandar).indexOf('estenosis severa (avm 1.20 cm² por planimetria)') > -1 &&
-        pl(estilos.narrativo).indexOf('estenosis severa (avm 1.20 cm² por planimetria)') > -1 &&
+      /* ⚠️ CON UN SOLO DATO EL ROTULO «por {criterio}: » SE OMITE (decision de Maicol, P2a): con
+         un unico dato no hay nada que atribuir, y salia «(por AVm: AVm 1.20 cm² por planimetria)»,
+         una frase que se repite a si misma. Los tres estilos conservan su redaccion propia. */
+      ['los TRES estilos publican la categoria con su area y su metodo, SIN el rotulo del criterio porque hay un solo dato, cada uno con su redaccion',
+        pl(estilos.conciso).indexOf('em significativa (avm 1.20 cm² por planimetria)') > -1 &&
+        pl(estilos.estandar).indexOf('estenosis significativa (avm 1.20 cm² por planimetria)') > -1 &&
+        pl(estilos.narrativo).indexOf('estenosis significativa (avm 1.20 cm² por planimetria)') > -1 &&
+        [estilos.conciso, estilos.estandar, estilos.narrativo].every(x => pl(x).indexOf('por avm:') === -1) &&
         estilos.conciso !== estilos.estandar && estilos.estandar !== estilos.narrativo,
         'C=«' + estilos.conciso + '» E=«' + estilos.estandar + '» N=«' + estilos.narrativo + '»'],
       // (8)
@@ -35965,7 +36005,11 @@ caso('TC-304', 'FASE A: la protesis mitral, tricuspide y pulmonar dejan de gradu
 
     return { extra: [
       ['DENOMINADOR: la misma medicion con morfologia NATIVA si publica categoria, asi que la regla no se rompio — lo que cambio es que ahora se lee Morfologia',
-        nativa.inf.indexOf('estenosis con gradiente medio elevado') > -1,
+        /* ADAPTADO el 2026-10-11: la frase de la banda media pasa de «estenosis con gradiente
+           medio elevado» a «estenosis no significativa, con gradiente elevado (…)». Lo que este
+           DENOMINADOR cuida es que la NATIVA si publique categoria con la misma medicion, para
+           que la condicion de la protesis de abajo no pase por falta de dato. */
+        nativa.inf.indexOf('estenosis no significativa, con gradiente elevado') > -1,
         'nativa(Reumatica, AVm 2.0 + Gm 8) -> «' + (nativa.inf.split(NL).map(l=>l.trim()).filter(l=>l.indexOf('álvula mitral')>-1)[0]||'') + '»'],
       ['⚠️ y la PROTESIS con la MISMA medicion no publica ninguna categoria: la regla es de la mitral NATIVA',
         prot.inf.indexOf('gradiente medio elevado') === -1 && prot.inf.indexOf('estenosis significativa') === -1,
@@ -47743,7 +47787,10 @@ caso('TC-384', 'El menu ▼ NO ofrece «Sin» en NINGUNA valvula (regla 2): aort
     ['mitral insuficiencia: solo grados, sin «Sin»',
       miI.join('|') === 'Leve|Moderada|Severa', dg],
     ['mitral estenosis: solo grados, sin «Sin» (y sin «Esclerosis», que no es mitral)',
-      miE.join('|') === 'Leve|Moderada|Severa', dg],
+      /* ADAPTADO el 2026-10-11: la opcion «severa» de em_grado se MUESTRA «Significativa»
+         (ASE 2023). Su «value» sigue siendo «severa» y la lista sigue teniendo tres grados y
+         NINGUN «Sin», que es lo que este caso cuida. */
+      miE.join('|') === 'Leve|Moderada|Significativa', dg],
     ['la tricuspide tampoco ofrece «Sin», igual que las demas',
       !tieneSin(trI) && !tieneSin(trE), dg],
     /* EL INVARIANTE DE LA REGLA 2: ninguno de los SEIS menús ofrece «Sin». Va como control de
@@ -48028,8 +48075,10 @@ caso('TC-388', 'Mitral: el grado manual se mantiene y vuelve solo a automatico c
       'IM=' + menuIM.join('/') + ' EM=' + menuEM.join('/')],
     /* v2 (regla 2): el menú ▼ de la mitral tampoco ofrece «Sin» — sólo grados. Antes «Sin PRIMERO». */
     ['D: los dos menus de la mitral muestran SOLO grados, sin «Sin»',
+      /* ADAPTADO el 2026-10-11: el menu de la ESTENOSIS mitral muestra «Significativa» donde
+         decia «Severa». El de la INSUFICIENCIA no cambia: la nomenclatura nueva es de la EM. */
       menuIM.join('|') === 'Leve|Moderada|Severa' &&
-      menuEM.join('|') === 'Leve|Moderada|Severa',
+      menuEM.join('|') === 'Leve|Moderada|Significativa',
       'IM=' + menuIM.join('/') + ' EM=' + menuEM.join('/')],
     ['D: «Sin» con grado calculado es un ajuste a la baja, con aviso rojo',
       sinCon.discrepa === true && /Sin insuficiencia/.test(sinCon.aviso) &&
@@ -48142,7 +48191,9 @@ caso('TC-389', 'El aviso rojo y el cajon «Fundamento del ajuste» de la mitral 
 
     ['EM: con «Moderada» a mano sobre un calculo Severa hay discrepancia, aviso ROJO y cajon',
       emDisc.dEM === true && emDisc.emFund === 'visible' &&
-      emDisc.avEM === '⚠️ Moderada (ajuste manual) · cálculo automático: Severa', dg],
+      /* ADAPTADO el 2026-10-11: el aviso nombra el grado CALCULADO con la palabra visible, que
+         ahora es «Significativa». Lo que no cambia es el valor guardado ni la mecanica. */
+      emDisc.avEM === '⚠️ Moderada (ajuste manual) · cálculo automático: Significativa', dg],
     ['  y el cajon de la INSUFICIENCIA sigue cerrado y sin aviso',
       emDisc.imFund === 'oculto' && emDisc.avIM === '' && emDisc.dIM === false, dg],
 
@@ -48591,6 +48642,10 @@ caso('TC-393', 'La tarjeta pre-PDF ya no publica un grado de IM distinto del gra
       trasTarjeta.hid === '2' && trasTarjeta.sel === '2' && trasTarjeta.manual === true, dg],
     ['  y por eso el aviso rojo compara el grado BUENO y el cajon se abre',
       trasTarjeta.dIM === true && trasTarjeta.fund === 'visible' &&
+      /* ⚠️ ESTE AVISO ES DE LA **IM**, NO DE LA EM, y por eso sigue diciendo «Severa». Lo cambie
+         a «Significativa» por error en la primera pasada del commit B —busque el literal con
+         grep y lo asumi de la estenosis— y la suite completa lo puso en rojo. La nomenclatura
+         nueva es SOLO de la estenosis mitral; la insuficiencia conserva Leve/Moderada/Severa. */
       trasTarjeta.aviso === '⚠️ Moderada (ajuste manual) · cálculo automático: Severa', dg],
 
     ['CONTROL NEGATIVO: confirmar la tarjeta SIN tocar nada no fija el grado a mano ni discrepa',
@@ -49529,6 +49584,12 @@ caso('TC-402', 'El boton v2: elegir grado por el menu ▼ lo prende; un grado di
   const MED = { ea:[['vmax_ao','4.2'],['gmedio_ao','45']], ia:[['ia_vc','7']],
                 em:[['avm_plan','1.2']], im:[['im_vc','8']] };
   const SENT = { ea:'sin', ia:'0', em:'sin', im:'0' };
+  /* ⚠️ LA ETIQUETA DEL MENU NO ES LA MISMA EN LAS CUATRO CLAVES (2026-10-11). «clickMenu» busca
+     la opcion POR SU TEXTO, y la estenosis mitral ya no ofrece «Severa» sino «Significativa»
+     (ASE 2023; su «value» sigue siendo «severa»). Con el literal unico, el arnes informaba
+     «NO item "Severa" en [Leve,Moderada,Significativa]» y las cuatro escenas de la mitral median
+     un gesto que NO ocurrio — el denominador de este caso fue lo que lo delato. */
+  const TOPE = { ea:'Severa', ia:'Severa', em:'Significativa', im:'Severa' };
   const todas = ['ea','ia','em','im'];
   const den = [], prende = {}, disc = {}, apagado = {}, coincide = {}, gestos = [];
   todas.forEach(function (k) {
@@ -49536,7 +49597,7 @@ caso('TC-402', 'El boton v2: elegir grado por el menu ▼ lo prende; un grado di
     /* (1) ELEGIR GRADO PRENDE: boton apagado, se elige «Severa» en el menu ▼, el boton queda ON. */
     den.push(aReset());
     MED[k].forEach(function (p) { __t.set(p[0], p[1]); });
-    gestos.push(clickMenu(C.valv, C.tipo, 'Severa'));
+    gestos.push(clickMenu(C.valv, C.tipo, TOPE[k]));
     prende[k] = aFoto(k);
     /* (2) DISCREPANCIA: con el boton ya prendido y los espejos sincronizados, se baja a «Leve» en
        el menu — discrepa del calculo severo, asi que aviso rojo + cajon, con el boton PRENDIDO. */
@@ -49553,7 +49614,7 @@ caso('TC-402', 'El boton v2: elegir grado por el menu ▼ lo prende; un grado di
     den.push(aReset());
     MED[k].forEach(function (p) { __t.set(p[0], p[1]); });
     gestos.push(clickPill(C.valv, C.tipo));
-    gestos.push(clickMenu(C.valv, C.tipo, 'Severa'));
+    gestos.push(clickMenu(C.valv, C.tipo, TOPE[k]));
     coincide[k] = aFoto(k);
   });
   const dg = function (o) { return todas.map(function (k) {
@@ -49578,7 +49639,7 @@ caso('TC-402', 'El boton v2: elegir grado por el menu ▼ lo prende; un grado di
       todas.every(function (k) { return disc[k].pill === true && disc[k].man === true; }), dg(disc)],
     ['(2) y pinta el aviso rojo §5 y el cajon, con el formato que fijo Maicol',
       todas.every(function (k) { return disc[k].disc === true &&
-        disc[k].aviso.indexOf('ajuste manual') > -1 && disc[k].aviso.indexOf('Severa') > -1 &&
+        disc[k].aviso.indexOf('ajuste manual') > -1 && disc[k].aviso.indexOf(TOPE[k]) > -1 &&
         disc[k].fund === true && disc[k].bloque === true; }), dg(disc)],
 
     // (3) APAGAR borra grado y fundamento SIN AVISO PREVIO, pero conserva la marca; si discrepa, aviso+cajon
@@ -49591,7 +49652,7 @@ caso('TC-402', 'El boton v2: elegir grado por el menu ▼ lo prende; un grado di
        el botón apagado. Medido: aviso «… (ajuste manual) · cálculo automático: Severa». */
     ['(3) apagar borra grado y fundamento SIN aviso previo, pero la marca QUEDA y —como el calculo discrepa— el aviso rojo y el cajon quedan VISIBLES con el boton apagado',
       todas.every(function (k) { return apagado[k].man === true && apagado[k].disc === true &&
-        apagado[k].aviso.indexOf('ajuste manual') > -1 && apagado[k].aviso.indexOf('Severa') > -1 &&
+        apagado[k].aviso.indexOf('ajuste manual') > -1 && apagado[k].aviso.indexOf(TOPE[k]) > -1 &&
         apagado[k].fund === true && apagado[k].bloque === true &&
         /Severidad/.test(apagado[k].past); }), dg(apagado)],
 
@@ -56485,6 +56546,17 @@ caso('TC-450', 'EM: los dos cortes del gradiente (5 y 10, borde >= y sin solape)
     const imAreaG12 = correr(() => { __t.set('avm_plan','1.2'); __t.set('em_gmedio','12');
                                      __t.set('im_grado','2'); });
 
+    // ── (2b) LAS REGLAS DE REDACCION DEL PAPEL (commit B) ───────────────────────────────────
+    /* Gradiente >=10 SOBRE UN AREA NORMAL: el criterio es solo el gradiente, asi que va PRIMERO.
+       Con el area primero el informe firmado arrancaba con «AVm 4.00 cm² por planimetria» dentro
+       de una frase que afirma estenosis significativa, o sea con el dato que la niega. */
+    const g10Sana = correr(() => { __t.set('avm_plan','4.0'); __t.set('em_gmedio','10'); });
+    /* Gradiente >=10 SIN area: un solo dato, asi que el rotulo «por {criterio}: » se omite. */
+    const g12Solo = correr(() => { __t.set('em_gmedio','12'); });
+    /* Banda media sin area: el gradiente primero y sin rotulo —la frase ya dice «con gradiente
+       elevado»—. */
+    const g7Solo  = correr(() => { __t.set('em_gmedio','7'); });
+
     // ── (3) LA CASILLA DE «INCLUIR EN EL INFORME» ───────────────────────────────────────────
     /* SIN RESOLVER: el area vota, como antes de esta regla. */
     const sinResolver = correr(() => { __t.set('avm_plan','1.2'); });
@@ -56497,10 +56569,11 @@ caso('TC-450', 'EM: los dos cortes del gradiente (5 y 10, borde >= y sin solape)
     { const c = document.getElementById('em_pdf_plan');
       c.checked = false; c.dataset.tocado = '1'; }
     try{ calcEM(); }catch(e){}
+    const _rDest = __t.informe();
     const destildada = { cat: emCategoria().clave, chk: chk('em_pdf_plan'),
                          avm_plan: __t.val('avm_plan'),
                          noIncl: (emCategoria().noIncl || []).map(f => f.fuente + ' ' + f.avm).join(','),
-                         vm: lineaVM(__t.informe().inf) };
+                         vm: lineaVM(_rDest.inf), suma: _rDest.suma };
 
     // ── (4) EL ESTUDIO ANTERIOR AL SELECTOR ─────────────────────────────────────────────────
     /* Se arma el blob con el MISMO barrido que usa guardarInforme y se repone con la MISMA funcion
@@ -56589,6 +56662,24 @@ caso('TC-450', 'EM: los dos cortes del gradiente (5 y 10, borde >= y sin solape)
       ['⚠️ el AREA sigue votando con IM significativa: 1,2 cm² con gradiente 12 es significativa, no «gradiente con IM»',
         imAreaG12.cat === 'severa' && imAreaG12.grado === 'severa',
         imAreaG12.cat + ' grado=' + imAreaG12.grado + ' · «' + imAreaG12.vm + '»'],
+      // (2b)
+      ['⚠️ con el criterio SOLO del gradiente, el gradiente va PRIMERO y el area despues —con el area primero la frase arrancaba con un AVm de 4,00 cm² que niega lo que afirma—',
+        g10Sana.vm.indexOf('(por gradiente: gradiente medio 10 mmHg; AVm 4.00 cm\u00b2 por planimetr\u00eda)') > -1,
+        '«' + g10Sana.vm + '»'],
+      ['⚠️ y con UN SOLO dato el rotulo «por {criterio}: » se omite: no hay nada que atribuir',
+        g12Solo.vm.indexOf('estenosis significativa (gradiente medio 12 mmHg)') > -1 &&
+        pl(g12Solo.vm).indexOf('por gradiente:') === -1,
+        '«' + g12Solo.vm + '»'],
+      ['  la banda media tampoco lo lleva —la frase ya dice «con gradiente elevado»—',
+        g7Solo.vm.indexOf('no significativa, con gradiente elevado (gradiente medio 7 mmHg)') > -1 &&
+        pl(g7Solo.vm).indexOf('por gradiente:') === -1,
+        '«' + g7Solo.vm + '»'],
+      ['CONTROL NEGATIVO del rotulo: con DOS datos SI se conserva',
+        imAreaG12.vm.indexOf('(por gradiente y AVm: AVm 1.20 cm\u00b2 por planimetr\u00eda; gradiente medio 12 mmHg)') > -1,
+        '«' + imAreaG12.vm + '»'],
+      ['⚠️ y NINGUNA de las cuatro frases anida parentesis: ninguna termina en «))»',
+        [g10Sana, g12Solo, g7Solo, imAreaG12].every(r => r.vm.indexOf('))') === -1),
+        [g10Sana, g12Solo, g7Solo, imAreaG12].map(r => '«' + r.vm + '»').join(' | ')],
       // (3)
       ['una fuente SIN RESOLVER vota por su valor, como antes de esta regla',
         sinResolver.cat === 'severa' && sinResolver.chkPlan.indexOf('T') === -1,
@@ -56601,6 +56692,19 @@ caso('TC-450', 'EM: los dos cortes del gradiente (5 y 10, borde >= y sin solape)
         destildada.avm_plan === '1.2' && destildada.noIncl.indexOf('planimetr') > -1,
         destildada.cat + ' chk=' + destildada.chk + ' avm=' + destildada.avm_plan +
         ' noIncl=«' + destildada.noIncl + '» · «' + destildada.vm + '»'],
+      /* ⚠️ P3 — LA ESTENOSIS SE CALLA, NI AFIRMACION NI NUMERO (decision de Maicol). Antes de
+         esta mitad el informe publicaba «sin estenosis ni insuficiencia» sobre una valvula con un
+         AVm de 1,2 cm² MEDIDO: no publicar el numero es lo que el medico pidio al destildar, pero
+         AFIRMAR que no hay estenosis es mas de lo que la app puede sostener. Se exigen las TRES
+         cosas: que no niegue, que no publique el numero, y que no quede un parentesis vacio. */
+      ['⚠️ P3: con el UNICO metodo destildado la estenosis se CALLA —ni «sin estenosis» ni el numero— y el EN SUMA no la nombra',
+        pl(destildada.vm).indexOf('sin estenosis') === -1 &&
+        destildada.vm.indexOf('1.20') === -1 && destildada.vm.indexOf('1.2 cm') === -1 &&
+        destildada.vm.indexOf('()') === -1 &&
+        pl(destildada.suma).indexOf('em ') === -1 && pl(destildada.suma).indexOf('estenosis mitral') === -1,
+        '«' + destildada.vm + '» · suma=«' + destildada.suma + '»'],
+      ['  y la morfologia SI se sigue publicando: callar la estenosis no es callar la valvula',
+        pl(destildada.vm).indexOf('morfolog') > -1, '«' + destildada.vm + '»'],
       // (4)
       ['DENOMINADOR: el estudio que se «firma» afirma la estenosis',
         firmado.cat === 'severa', firmado.cat + ' · «' + firmado.vm + '»'],
