@@ -1,5 +1,65 @@
 # EcoSmart — pendientes vivos
 
+## Frases largas visibles en el panel de Evidencia (2026-10-11) — REPORTADO y NO tocado
+
+Censo pedido al cerrar la tanda del marco del panel: las frases de **más de 25 palabras que
+quedan visibles en el cuerpo** de cada sección, con el detalle y los ⓘ CERRADOS, para decidir
+cuáles acortar en un trabajo aparte. **No se tocó ninguna.**
+
+⚠️ **El denominador son las QUINCE secciones y con un paciente no se encienden.** La prótesis
+mitral apaga las tres mitrales nativas (`vmEsProtesis`) y la insuficiencia mitral secundaria
+apaga la primaria, así que el censo se armó con **tres pacientes** —13 + 13 + 12 secciones, 15
+distintas— y se consolidó por sección. Un reporte armado sobre nueve y presentado como «todas»
+es la forma en que una frase larga queda sin listar.
+
+⚠️ **Y hay que ABRIR las secciones colapsadas antes de medir.** Una sección nace colapsada
+cuando ninguna de sus filas trae `ok` ni `alarm` y su recomendación no es `ind` ni `alarma`;
+medido sobre el árbol cerrado, la sección entera desaparece del censo y el reporte sale sin una
+sola frase de ella. Las aperturas se hacen con un **clic real en el rótulo**, que es el gesto
+del médico, y la sonda informa cuántas quedaron cerradas (cero en las tres escenas).
+
+**Total: 22 frases distintas.** Lo que ya NO está en esta lista son las notas de las 34
+preguntas, que la tanda del 2026-10-11 movió detrás del ⓘ: ocho de ellas pasaban de 25
+palabras y por eso bajaron solas.
+
+⚠️ **Casi todas son `guia.txt`, o sea el CRITERIO VISIBLE de la sección con su clase y su
+nivel** —salen en `<b>`—. Eso las pone del lado del contenido clínico: acortar una es reescribir
+la frase de una guía, que es decisión de Maicol y no se toca sin orden expresa. Las tres que
+salen en `<td>` son notas de fila con marca ⚠️ o ❓, que la compuerta del ⓘ deja visibles a
+propósito; las que salen en `<div>` son avisos de sección o notas de recomendación.
+
+| Sección | Palabras | Nodo | Primeras diez palabras |
+|---|---|---|---|
+| Estenosis aórtica | 35 | `<b>` | Intervención Clase I · Nivel B en el paciente sintomático… |
+| Insuficiencia mitral primaria | 33 | `<b>` | Cirugía Clase I · Nivel B en el paciente sintomático… |
+| Insuficiencia mitral secundaria | 35 | `<div>` | Las dos tablas de esta sección son distintas: la auricular… |
+| Insuficiencia mitral secundaria | 27 | `<b>` | Dos tablas distintas según el tipo: la AURICULAR indica cirugía… |
+| Estenosis mitral | 31 | `<b>` | Un área valvular mitral ≤ 1,5 cm² JUNTO CON factores… |
+| Estenosis mitral | 29 | `<div>` | Hay una contraindicación de la comisurotomía: Insuficiencia mitral asociada. ·… |
+| Prótesis mitral | 42 | `<b>` | En la disfunción protésica significativa la reoperación es Clase I… |
+| Insuficiencia aórtica | 38 | `<b>` | Cirugía Clase I · Nivel B en el paciente sintomático… |
+| Insuficiencia aórtica | 35 | `<td>` | ⚠️ ≥ 45 mm, pero esa fila exige que la… |
+| Insuficiencia aórtica | 32 | `<div>` | Los síntomas son lo que separa la Clase I —que… |
+| Válvula tricúspide | 63 | `<b>` | La cirugía tricuspídea concomitante es Clase I · Nivel B… |
+| Válvula tricúspide | 36 | `<td>` | ❓ condición no verificable acá: las filas piden HTP severa,… |
+| Estenosis pulmonar | 72 | `<b>` | Con un gradiente máximo por Doppler mayor de 64 mmHg,… |
+| Estenosis pulmonar | 63 | `<div>` | La estenosis es severa. La tabla se parte en tres… |
+| Estenosis pulmonar | 44 | `<td>` | ❓ la fila del asintomático pide PSVD mayor de 80… |
+| Comunicación interauricular | 43 | `<b>` | Cierre Clase I · Nivel B con sobrecarga de volumen… |
+| Comunicación interventricular | 32 | `<b>` | El cierre de la comunicación interventricular es Clase I en… |
+| Ductus arterioso permeable | 37 | `<b>` | El cierre del ductus es Clase I · Nivel C… |
+| Coartación de aorta | 32 | `<b>` | Reparación Clase I · Nivel C en pacientes HIPERTENSOS con… |
+| Foramen oval permeable | 31 | `<b>` | Recomendación FUERTE a favor del cierre percutáneo en pacientes seleccionados… |
+| Miocardiopatía hipertrófica obstructiva | 38 | `<b>` | La terapia de reducción septal para mejorar los síntomas es… |
+| Válvula aórtica bicúspide — aorta ascendente | 32 | `<b>` | Cirugía Clase I · Nivel B con diámetro máximo ≥… |
+
+Cómo se vuelve a medir, sin leer este archivo:
+
+```bash
+node scripts/_probe_evidmarco.mjs --solo frases
+```
+
+---
 ## Estenosis mitral binaria (2026-10-11) — REPORTADO y NO tocado
 
 De la tanda «significativa / no significativa, con gradiente elevado de 5 a menos de 10»

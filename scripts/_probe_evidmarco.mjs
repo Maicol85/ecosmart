@@ -1067,15 +1067,57 @@ async function main() {
     out.MAQUETA = M;
   }
 
-  /* ══ 5 — FRASES LARGAS VISIBLES (reporte, sin cambios) ════════════════════════════════════ */
+  /* ══ 5 — FRASES LARGAS VISIBLES (reporte del commit C, SIN CAMBIOS) ═══════════════════════
+     ⚠️ EL DENOMINADOR DE ESTE REPORTE SON LAS QUINCE SECCIONES, Y CON UN SOLO PACIENTE NO SE
+     ENCIENDEN. La semilla de las escenas de arriba prende NUEVE; la prótesis mitral APAGA las tres
+     mitrales nativas (`vmEsProtesis`) y la IM secundaria apaga la primaria, así que hacen falta
+     tres pacientes y hay que decir cuál aportó cada sección. Un reporte armado sobre nueve y
+     presentado como «todas» es la forma en que una frase larga queda sin listar.
+     Los datos mínimos de cada sección son los de `EVID_DATOS` de la suite, que ya están medidos
+     uno por uno en el navegador. */
   if (hacer('frases')) {
     paso('frases largas visibles');
+    const MINIMOS = {
+      EA:   { ava_cont:'0.9', gmedio_ao:'46', vmax_ao:'4.3', fevi:'58', ea_grado:'severa' },
+      IM:   { im_grado:'4', dsfvi:'42', ai_vol:'70', peso:'80', talla:'175' },
+      EM:   { avm_plan:'1.2', em_grado:'severa' },
+      IA:   { ia_grado:'4', dsfvi:'52' },
+      VT:   { it_grado:'4', it_vc:'9' },
+      EP:   { vp_gmax:'81', vp_vmax:'4.5', ep_grado:'Severa', ep_nivel:'Valvular' },
+      CIA:  { ete_cia_tipo:'secundum', ete_cia_tam_max:'22', vd_bas:'46' },
+      CIV:  { ete_civ_tipo:'perimembranosa', ete_civ_tam:'8' },
+      DAP:  { dap_tipo:'no_restrictivo', dap_diam:'5', dap_vmax:'4.2' },
+      CoAo: { coa_istmo:'6', coa_vmax:'3.2', coa_gmedio:'22', coa_hta:'si' },
+      FOP:  { fop_shunt_valsalva:'si', fop_acv:'si', edad:'45', fop_burbujas:'abundante' },
+      MCH:  { mch_grad_reposo:'62', mch_grad_valsalva:'80', mch_sam:'si', mch_cf:'iii_iv' },
+      VAB:  { ao_tub:'48', ao_sin:'42', va_morf:'Bicúspide' },
+    };
+    const TODOS = Object.assign({}, ...Object.values(MINIMOS));
+    /* Tres pacientes, y el motivo de cada uno escrito al lado. */
+    const ESCENAS = [
+      ['todas las nativas + congénitas (mitral REUMÁTICA)',
+        Object.assign({}, TODOS, { vm_morf:'Reumática' })],
+      ['IM SECUNDARIA (apaga la primaria)',
+        Object.assign({}, TODOS, { vm_morf:'Reumática', teer_tipo_im:'secundaria' })],
+      ['PRÓTESIS mitral (apaga las tres mitrales nativas)',
+        Object.assign({}, TODOS, { vm_morf:'Prótesis mecánica' })],
+    ];
     const F = {};
-    for (const morf of ['Reumática', 'Normal', 'Calcificada']) {
-      await sembrar(morf);
+    for (const [etq, campos] of ESCENAS) {
+      paso('frases / ' + etq);
+      await ev('window.__M.limpiar()');
+      for (const [k, v] of Object.entries(campos)) await ev(`window.__M.set(${JSON.stringify(k)}, ${JSON.stringify(v)})`);
+      await ev('window.__M.recalc()');
+      await pausa(260);
       await abrir();
-      F[morf] = { secciones: await ev('window.__M.secs().length'),
-                  largas: await J('window.__M.frasesLargas(26)') };
+      /* ⚠️ SE ABREN LAS SECCIONES COLAPSADAS, Y SIN ESO EL REPORTE SE COME LAS DE LAS SECCIONES
+         CERRADAS: `frasesLargas` quita del clon los <details> CERRADOS, y una sección entera que
+         nace colapsada desaparece completa. Con las nueve de la semilla anterior había UNA cerrada
+         y el reporte habría salido sin una sola frase de la estenosis mitral. */
+      const ap = await abrirSecciones();
+      F[etq] = { secciones: await J('window.__M.secs().map(window.__M.tituloDe)'),
+                 aperturas: ap,
+                 largas: await J('window.__M.frasesLargas(26)') };
       await cerrar();
     }
     out.FRASES = F;

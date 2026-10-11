@@ -35,6 +35,89 @@ cada apertura, así que no necesita columna en `limpiarCampos` / `cargarEstudioP
 
 ---
 
+## El marco — maximizar, dos columnas, el foco (2026-10-11)
+
+`#indic-card` es `role="dialog" aria-modal="true" tabindex="-1"`, 820 px, `max-height:calc(100vh-48px)`,
+flex column, con tres hijos: encabezado (`#indic-titulo` · `#indic-max` · «✕»), `#indic-cuerpo` y el
+pie del descargo. ⚠️ **El pie es `card.lastElementChild` y TC-272 lo toma así**: un hijo nuevo al
+final de la tarjeta rompe ese caso.
+
+| Identificador | Rol |
+|---|---|
+| `#indic-max` | El botón «⤢ / ⤡». Etiqueta, `aria-pressed` y glifo los mantiene **sólo** `indicMaxPoner`. |
+| `data-ind-max="1"` en `#indic-card` | **Único dueño del estado.** La geometría la pone la hoja de estilos, con `!important` porque el tamaño normal está en el `style` en línea. |
+| `indicMaxEstado` / `indicMaxPoner` / `indicMaxTog` | Leer · escribir+sincronizar · el `onclick`. |
+| `data-ind-grid` / `data-ind-dos` | El envoltorio de columnas y la compuerta «hay filas del eco Y preguntas». |
+| `data-ind-col="eco"` / `="clin"` | Las dos mitades. El orden del DOM no cambia, así que lectura y tabulación tampoco: sin `tabindex` ni `order`. |
+| `_indClaveSummary(su)` | La clave de un `<summary>`: `aria-label` si lo tiene, si no el texto. |
+
+- **El estado NO se guarda y se apaga en las DOS puertas** (`indicAbrir` e `indicCerrar`), igual que
+  `_indClinLimpiar`: con el apagado sólo en el cierre, un camino de cierre nuevo deja el panel
+  reabriendo maximizado.
+- **Sin transición, a propósito**: `width:820px → auto` no es un par animable, así que una
+  transición animaría la posición y haría saltar el ancho. Sin movimiento,
+  `prefers-reduced-motion` queda satisfecho por construcción.
+- **Dos columnas sólo maximizado y con viewport ≥ 1000 px.** Media query y no `@container`:
+  declarar `container-type` cambia la contención de layout del nodo del que cuelga todo el panel.
+  Tres secciones no traen `clinica` (estenosis mitral —las tiene en sus `bloques`—, foramen,
+  bicúspide) y ocupan todo el ancho por `data-ind-dos`, no por una excepción en el CSS.
+- **El botón se oculta por debajo de 560 px** (el corte que la tabla del panel ya usa): medido, a
+  390 px el panel ocupa 366 de 390 y maximizar gana 0 px de ancho y 24 de alto.
+
+### ⚠️ Tres cosas que encontró la sonda y no la lectura
+
+1. **Un oyente GENÉRICO de Escape** (bloque de accesibilidad, ≈ L101105) busca el
+   `[role="dialog"][aria-modal="true"]` visible más alto y **clickea** su botón de cerrar.
+   `#indic-card` es uno, así que en el mismo Escape el panel restauraba y aquél cerraba (traza con
+   espía: `poner(false) · cerrar() · poner(false)`); en HEAD era invisible porque `indicCerrar` es
+   idempotente. Lo cierra `stopImmediatePropagation()` **sólo** en la rama del maximizado — los dos
+   oyentes están sobre `document` y el del panel se registró antes. Precio declarado: ese Escape no
+   llega a los posteriores, que se cierran con el siguiente.
+2. **El foco no entraba al panel**: medido en HEAD quedaba en `body` y el primer Tab se iba a
+   `#hdr-med-btn`, detrás del overlay. `indicAbrir` enfoca la tarjeta, y con eso **la trampa de Tab
+   que el bloque de accesibilidad ya tenía escrita empieza a funcionar** (sólo actúa si el foco ya
+   está en el primero o el último control del diálogo).
+3. **`_indRepintarConservando` volvió a compartir una clave**, ahora con los ⓘ: su `summary` es el
+   mismo glifo, así que los seis de una sección compartían «Estenosis aórtica ▸ ⓘ» y abrir uno los
+   abría o cerraba todos — el mismo defecto que ya pagó con los trece «Ver detalle». Lo arregla
+   `_indClaveSummary`, **usado en las dos puntas**: arreglar una sola deja la mitad.
+
+## Las preguntas — botones discretos y el ⓘ (2026-10-11)
+
+- **La botonera va al borde derecho por `justify-content`, no por `text-align`** (esta misma regla
+  de 560 px ya documenta que `text-align` no alinea hijos de un flex). Va en la hoja y no en línea
+  porque a ≤ 560 px la celda baja a su renglón y los botones vuelven a la izquierda.
+- **El piso táctil de 44 px NO se baja: se acota a `pointer:fine`.** Honra la decisión de Maicol del
+  2026-09-25 («se conserva el piso y lo que baja es el peso visual»). Medido: **22 px con puntero
+  fino, 44 px con grueso.** Es `pointer` y no `any-pointer`: con `any-pointer`, una tablet con mouse
+  perdería el piso para el dedo.
+- ⚠️ **El redondeo y el relleno viven en el `style` en línea de `_indCtrlHTML`.** La primera versión
+  del CSS traía `padding`, `border-radius` y `line-height` y las tres **perdían** contra el estilo en
+  línea: el radio seguía en 7 px. Una regla que no gana se lee como un arreglo aplicado.
+- **`_indInfoHTML(lbl, html)`** emite el ⓘ: `<details data-ind-info="1">` en línea en la celda de la
+  marca, con `aria-label` = «Ver la explicación de: `<rótulo>`». Ese `aria-label` no es decoración:
+  un lector no lee «ⓘ», y es el discriminante de `_indClaveSummary`.
+
+**Qué nota se pliega — la compuerta es la MARCA.** Sólo la nota de una PREGUNTA (fila con `ctrl`).
+Decisión de Maicol (2026-10-11) con el censo delante: **34 notas de pregunta, 57 de fila de dato**;
+las de dato NO se tocan, porque la nota de una fila medida es la lectura de su valor al lado del
+valor y TC-293 la protege nombrándola «la evidencia que sostiene la recomendación».
+⚠️ **Las marcas 🔴 y ⚠️ no se pliegan nunca**, aunque la fila sea pregunta: ahí están las
+contraindicaciones de la Tabla 8. La compuerta mira la **marca** y no una lista de claves, así que
+una fila nueva que devuelva `alarm` queda cubierta sin que nadie se acuerde. Medido en las tres
+lecturas: ❓ → plegada · 🔴 → **visible** · — → vuelve a plegarse (la tercera prueba que sigue la
+marca y no «ya fue contestada»). El icono de estado queda siempre visible. Y el bloque del mecanismo
+de IM **no se pliega**: su pie declara «no se guarda con el estudio», la misma clase de frase que
+TC-272 existe para mantener pintada.
+
+**Las CUATRO marcas de `<details>`, y por qué son cuatro:** `data-ind-detalle` (el «Ver detalle» de
+la sección) · `data-ind-biblio` · `data-ind-bloque` · `data-ind-info`. Todas por **atributo** y
+ninguna por rótulo: el rótulo es prosa —o un glifo— y renombrarlo apagaría la distinción en
+silencio. TC-293 cuenta «un control de detalle por sección» sobre `details details` y excluye las
+otras tres; sin la de los ⓘ daba **37 donde hay 8**, y dos rótulos donde va uno.
+
+---
+
 ## Registro de referencias — `IND_REFS`
 
 `const IND_REFS = Object.freeze([ … ])`. Cada entrada tiene **exactamente dos campos**:

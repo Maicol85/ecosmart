@@ -36,9 +36,14 @@ grep -nE '^#{1,4} ' docs/historial/CLAUDE_historial_2026-10-01.md > /tmp/idx.txt
 | Seguridad de la suite (XSS, Semgrep, claves) | `~/Desktop/APLICACIONES/CLAUDE.md` |
 | Reglas de trabajo de EcoSmart | este archivo |
 
-Los mapas y el registro de fuentes **no se cargan solos** — se abren a demanda, uno a la vez. Cada
-uno pesa menos de 20 KB (≈ 5k tokens). Están armados sobre un commit y **no guardan números de
-línea** a propósito: la línea cambia en cada edición, el nombre de la función no.
+Los mapas y el registro de fuentes **no se cargan solos** — se abren a demanda, uno a la vez. Están
+armados sobre un commit y **no guardan números de línea** a propósito: la línea cambia en cada
+edición, el nombre de la función no.
+
+⚠️ **Este renglón decía «cada uno pesa menos de 20 KB (≈ 5k tokens)» y ERA FALSO para dos de ellos,
+medido el 2026-10-11:** `panel-evidencia.md` 33 KB y `valvulas.md` 33 KB; los otros cuatro van de 18
+a 25 KB. Los mapas crecen con cada tanda. **Medí el que vas a abrir antes de presupuestar contexto**
+(`wc -c docs/mapa/*.md`), y si uno pasa de ~35 KB conviene partirlo en vez de seguir estirándolo.
 
 Sin importaciones automáticas (`@archivo`): un `@` acá vuelve a desbordar la ventana.
 
@@ -200,6 +205,101 @@ impecable.
 ---
 
 ## Estado vigente
+
+- Al **empezar** la tanda del MARCO del panel de Evidencia (2026-10-11), `main` local y `origin/main`
+  estaban los dos en **`84d9f1e`**, sin nada sin pushear. Los **tres** commits de esa tanda
+  (`89812d0`, `fc84a3a` y este) quedan locales; el push lo corre Maicol.
+  **Los tres se revierten solos y en cualquier orden**: A toca el marco (modal, CSS, `indicAbrir`,
+  el Escape), B toca la fila y la botonera, C es sólo documentación. La única dependencia es de
+  TESTS y es blanda: `hojas()` de TC-329/TC-328 excluye `data-ind-col` (entró en A) y el filtro de
+  TC-293 excluye `data-ind-info` (entró en B); revertir sólo A deja un filtro de más, que es inerte.
+
+### Panel de Evidencia · el marco: maximizar, dos columnas y texto plegado (2026-10-11)
+
+- **Línea base al cierre: suite 461/465 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel 434 columnas, celular 43 a 360 px y 52 a 390 px con 1 ALTA cada uno.** Los cuatro rojos son
+  los de entrada y NO son regresiones: **TC-223** (el documentado, falla por la fecha), **TC-376**,
+  **TC-390** y **TC-406**. **El denominador sigue siendo 465**: esta tanda no agregó ningún `caso()`
+  —adaptó tres (TC-293, TC-328, TC-329) y le sumó cinco condiciones a TC-293—. Medido con el
+  pendrive montado al abrir Y al cerrar: este archivo ya documenta una «regresión» de 17 casos que
+  no existía, producto de restar una cifra con el pendrive puesto contra otra sin él.
+  ⚠️ **Y escribí «465/469» en este mismo renglón antes de medirlo**, por asumir que las condiciones
+  nuevas de TC-293 subían el denominador. No lo suben: el denominador cuenta CASOS, no condiciones.
+- **Dónde está todo:** `docs/mapa/panel-evidencia.md` (el marco, las preguntas y las cuatro marcas
+  de `<details>`), `docs/PENDIENTES.md` (las 22 frases largas que quedan visibles, sin tocar).
+- **Qué cambió, en una línea:** `#indic-max` maximiza el panel a `inset:10px`; con el viewport
+  ≥ 1000 px y maximizado, cada sección que tiene filas del eco **y** preguntas se parte en dos
+  columnas; y la nota de cada pregunta se **movió** detrás de un ⓘ. **El texto completo de las 15
+  secciones es idéntico a HEAD**, descontando el glifo ⓘ: 27 de 27 comparaciones.
+- ⚠️ **HAY UN OYENTE GENÉRICO DE ESCAPE QUE CIERRA CUALQUIER `[role=dialog][aria-modal]` CLICKEÁNDOLE
+  EL BOTÓN DE CERRAR** (bloque de accesibilidad, ≈ L101105). Con él, la rama «maximizado → Escape
+  restaura» no puede funcionar: en el mismo Escape el panel restauraba y aquél cerraba. En HEAD era
+  invisible porque `indicCerrar` es idempotente. **Lo cazó un espía sobre las dos funciones**, no la
+  lectura: la traza fue `poner(false) · cerrar() · poner(false)`. Se cierra con
+  `stopImmediatePropagation()` sólo en esa rama. **Cualquier diálogo nuevo de esta app hereda ese
+  oyente**, así que un botón con «cerrar» en su `onclick` se va a disparar con Escape quiera o no.
+- ⚠️ **EL FOCO NO ENTRABA AL PANEL, Y LA TRAMPA DE TAB ESTABA ESCRITA Y NO SERVÍA.** Medido en HEAD:
+  al abrir el foco quedaba en `body` y el primer Tab se iba a `#hdr-med-btn`, un botón de la página
+  **detrás** del overlay, con el panel anunciándose `aria-modal="true"`. La trampa de Tab del bloque
+  de accesibilidad sólo actúa cuando el foco ya está en el primero o el último control del diálogo,
+  así que con el foco en `body` no matcheaba ninguno. Lo que faltaba era UNA línea en `indicAbrir`.
+- ⚠️ **`_indRepintarConservando` VOLVIÓ A COMPARTIR UNA CLAVE, Y ES LA TERCERA VEZ.** El `summary` de
+  todos los ⓘ es el mismo glifo, así que los seis de una sección compartían «Estenosis aórtica ▸ ⓘ»
+  y abrir uno los abría o cerraba todos — idéntico al defecto de los trece «Ver detalle». Lo arregla
+  `_indClaveSummary` (prefiere el `aria-label`) **en las dos puntas**. **Lo destapó TC-293**, no la
+  lectura. Si algún día un `<summary>` nuevo repite texto, ahí está el patrón.
+- ⚠️ **EL PISO TÁCTIL DE 44 px NO SE BAJÓ: SE ACOTÓ A `pointer:fine`.** Honra la decisión de Maicol
+  del 2026-09-25 («se conserva el piso y lo que baja es el peso visual»). Medido con la emulación
+  correcta: **22 px con puntero fino y 44 px con grueso**. Y es `pointer` y no `any-pointer`: con
+  `any-pointer`, una tablet con un mouse conectado perdería el piso para el dedo.
+- **Qué nota se pliega: SÓLO la de una pregunta, y la compuerta es la MARCA.** Decisión de Maicol con
+  el censo medido delante (34 notas de pregunta, 57 de fila de dato). Las 🔴 y ⚠️ **no se pliegan
+  nunca** —ahí están las contraindicaciones de la Tabla 8— y el icono de estado queda siempre
+  visible. El bloque del mecanismo de IM no se pliega: su pie declara «no se guarda con el estudio».
+- **Cobertura:** TC-293 gana **cinco condiciones** del ⓘ con sus dos denominadores y el control
+  negativo de la marca 🔴. Verificado que sabe fallar **contra HEAD en un worktree aparte**: cuatro
+  en rojo. **Casos nuevos: ninguno**, así que el denominador de la suite no se mueve.
+- **Adaptados, con el motivo escrito en cada caso:** **TC-329** y **TC-328** (su helper `hojas()`
+  llama «hoja» a cualquier `<div>` sin divs adentro, así que el envoltorio de columna pasaba a
+  contar como nota: daba n=2 donde hay una. Se arreglaron **los dos** aunque TC-328 estuviera verde,
+  porque ahí pasaba porque sus fragmentos no colisionan, o sea por suerte) y **TC-293** (se excluye
+  `data-ind-info` del conteo de controles de detalle —daba 37 donde hay 8— y sus dos selectores de
+  conservación pasan a nombrar `data-ind-detalle` para que sigan midiendo lo que dicen).
+- ⚠️ **TRES FALSOS DE LA SONDA, Y LOS TRES PARECÍAN MEDICIONES BUENAS.** (1) `centroSel` medía la
+  geometría DESPUÉS de `scrollIntoView`, y Chrome devuelve una **posición plausible** para un nodo
+  dentro de un `<details>` cerrado —top 0 antes, 2235 después, con el contenedor sin scrollear—: la
+  sonda clicaba fuera del viewport, el respaldo por tecla mandaba Enter al documento y la corrida se
+  **colgaba 75 s**. El denominador roto no daba cero, daba un número creíble. (2) **Ni `mobile:true`
+  ni `Emulation.setEmulatedMedia` cambian el media feature `pointer`** —esa lista sólo soporta los
+  `prefers-*`, `color-gamut` y `forced-colors`—: el lever es `Emulation.setTouchEmulationEnabled`
+  con `maxTouchPoints`. Con los dos primeros la escena del dedo medía 26 px e informaba
+  `punteroGrueso:false` al lado, o sea un «cumple en táctil» sobre una escena de mouse.
+  (3) **`Input.dispatchMouseEvent` NO RESUELVE con la emulación táctil puesta**: lo nombró el reloj
+  que ahora llevan los despachos; sin él el fallo aparece en el `ev()` siguiente, en la línea
+  equivocada. En esas escenas se activa por tecla, exigiendo que el foco haya llegado al blanco.
+- ⚠️ **`rawKeyDown` SIN `text` NO ACTIVA UN `<button>`.** Blink activa el botón desde el KEYPRESS, y
+  un `rawKeyDown` pelado no lo genera: la sonda informó «no maximiza» sobre un Enter que nunca
+  ocurrió. Enter y Espacio van con `type:'keyDown'` + `text`; las teclas de EDICIÓN (Backspace, Tab,
+  Escape) al revés, por keycode y con `rawKeyDown`. **Las dos cosas son ciertas a la vez.**
+- ⚠️ **TRES DECLARACIONES DEL CSS NUEVO PERDÍAN CONTRA EL `style` EN LÍNEA** (`padding`,
+  `border-radius`, `line-height` del botón): el radio seguía en 7 px. Una regla que no gana se lee
+  como un arreglo aplicado. El redondeo y el relleno viven en `_indCtrlHTML`, que es su único dueño.
+- ⚠️ **ME COMÍ EL ACENTO GRAVE CUATRO VECES**, todas en comentarios míos dentro del cuerpo de la
+  sonda o de un caso. `scripts/check_backticks.py` dio la línea exacta las cuatro veces.
+- ⚠️ **UNA ESCENA MÍA MEDÍA LO CONTRARIO DE LO QUE DECÍA MEDIR, POR NO EXIGIR EL ESTADO DE PARTIDA.**
+  El bloque nuevo de TC-293 clicaba «Presente» sobre una pregunta que el bucle de más arriba del
+  propio caso ya había contestado, y un segundo toque sobre la opción activa la **desmarca**. Lo
+  arregla `ponerEn(k, v)`, que deja la pregunta en el estado pedido y **devuelve el que quedó**. Es
+  la misma lección que este archivo ya tiene escrita para el checkbox y el Espacio.
+- **Arnés: `scripts/_probe_evidmarco.mjs`** (A/B de solo lectura con `--file`), con seis grupos
+  (`--solo texto|clics|botones|teclado|maqueta|superficies|frases|notas`). El grupo `superficies`
+  enumera las seis **una por una** —informe en tres estilos, EN SUMA, Excel con su cuenta de
+  columnas, franja del PPT, Laboratorio y los 1087 campos guardados— y da **0 diferencias** contra
+  HEAD, con el panel cerrado y con el panel abierto y doce preguntas contestadas con clics reales.
+- **Al medir: ABRIR las secciones colapsadas con un clic real en el rótulo ANTES de medir.** Una
+  sección nace colapsada cuando ninguna fila trae `ok` ni `alarm` y su recomendación no es `ind` ni
+  `alarma`; sus botones existen en el DOM y no tienen geometría. La sonda informa cuántas quedaron
+  cerradas, y el censo de frases largas sin eso sale sin una sola frase de esa sección.
 
 - Al **empezar** la tanda del panel de Evidencia de la estenosis mitral (2026-10-11), `main` local y
   `origin/main` estaban los dos en **`1e1e569`**, sin nada sin pushear —confirmado con un
