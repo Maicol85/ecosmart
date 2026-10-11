@@ -56622,6 +56622,34 @@ caso('TC-450', 'EM: los dos cortes del gradiente (5 y 10, borde >= y sin solape)
       return { cat: emCategoria().clave, chk: chk('em_pdf_plan'),
                avm_plan: __t.val('avm_plan'), vm: lineaVM(__t.informe().inf) }; };
 
+    // ── (5) EL CUADRO DE REFERENCIAS DE VALVULAS (commit C) ────────────────────────────────
+    /* Es SOLO pantalla —ningun generador de informe, PDF, PPT o Excel lee estos span—, pero sin
+       cobertura un pintor que cuelga de calcEM se desincroniza sin que nada lo señale: es la
+       misma fuga entre pacientes que emPdfValsSync tuvo que entrar a RECALC_MODULOS para cerrar. */
+    const cuadro = () => ({
+      gm:   __t.txt('em-clase-gm'),   thp:  __t.txt('em-clase-thp'),
+      cont: __t.txt('em-clase-cont'), plan: __t.txt('em-clase-plan'),
+      enc: (function(){ const sp = document.getElementById('em-sev-integrada');
+        const f = sp ? sp.closest('.calc-row') : null;
+        const l = f ? f.querySelector('.calc-lbl') : null;
+        return l ? (l.textContent || '').trim() : 'SIN label'; })() });
+    base(); __t.set('avm_plan','1.8'); __t.set('thp','200'); __t.set('em_gmedio','7');
+    try{ calcEM(); }catch(e){}
+    const cRica = cuadro();
+    /* DESTILDADA: la planimetria tiene que decir «no incluido» y el «peor» quedarse en el THP. */
+    { const c = document.getElementById('em_pdf_plan'); c.checked = false; c.dataset.tocado = '1'; }
+    try{ calcEM(); }catch(e){}
+    const cDest = cuadro();
+    /* Banda ALTA del gradiente. */
+    base(); __t.set('avm_plan','2.4'); __t.set('em_gmedio','12'); try{ calcEM(); }catch(e){}
+    const cAlto = cuadro();
+    /* «Nuevo estudio»: los cuatro span tienen que quedar VACIOS y sin la clase de «peor», que
+       sobrevive al cambio de paciente si nadie la saca. */
+    __t.limpiar();
+    const cVacio = cuadro();
+    const cVacioCls = ['em-clase-gm','em-clase-thp','em-clase-cont','em-clase-plan']
+      .map(id => (document.getElementById(id) || {}).className || 'NO EXISTE').join(' | ');
+
     const legAbr = reponerAbriendo(legado);
     const legRei = reponerReimprimiendo(legado);
     const noAbr  = reponerAbriendo(dijoQueNo);
@@ -56722,7 +56750,33 @@ caso('TC-450', 'EM: los dos cortes del gradiente (5 y 10, borde >= y sin solape)
         noAbr.cat + ' chk=' + noAbr.chk + ' avm=' + noAbr.avm_plan],
       ['CONTROL NEGATIVO: y tampoco al reimprimir, porque «__tocado» viaja con el estudio',
         noRei.cat === 'nada' && noRei.avm_plan === '1.2',
-        noRei.cat + ' chk=' + noRei.chk + ' avm=' + noRei.avm_plan]
+        noRei.cat + ' chk=' + noRei.chk + ' avm=' + noRei.avm_plan],
+      // (5)
+      ['⚠️ el cuadro cita SOLO la ASE 2023: «ESC/EACTS 2021» no existe como entrada en docs/fuentes/FUENTES.md, asi que era una cita a un documento no verificado',
+        cRica.enc === '⚖️ Categoría EM (ASE 2023, Tabla 1)', '«' + cRica.enc + '»'],
+      ['una fila por metodo, con su clasificacion y el corte sacado de AVM_SEVERA_MAX',
+        cRica.thp  === '· significativa (≤1,5 cm²) · peor' &&
+        cRica.plan === '· no significativa (>1,5 cm²)' &&
+        cRica.cont === '',
+        'thp=«' + cRica.thp + '» plan=«' + cRica.plan + '» cont=«' + cRica.cont + '»'],
+      ['  y el gradiente dice su banda, con los DOS cortes de la ASE 2023',
+        cRica.gm === '· elevado (5 a <10 mmHg; moderada, ASE 2023)' &&
+        cAlto.gm === '· significativo (≥10 mmHg)',
+        'medio=«' + cRica.gm + '» alto=«' + cAlto.gm + '»'],
+      ['⚠️ un metodo con valor y la casilla DESTILDADA dice «no incluido», y el «peor» se mueve al que si vota',
+        cDest.plan === '· no incluido' && cDest.thp === '· significativa (≤1,5 cm²) · peor',
+        'plan=«' + cDest.plan + '» thp=«' + cDest.thp + '»'],
+      ['  el «peor» se marca sobre las que VOTAN: con la planimetria como unica votante, es ella',
+        cAlto.plan === '· no significativa (>1,5 cm²) · peor', 'plan=«' + cAlto.plan + '»'],
+      /* ⚠️ EL TEXTO QUEDA EN «—» Y NO EN LA CADENA VACIA, y lo averiguo la medicion: el barrido
+         generico de limpiarCampos —'.calc-box .calc-row span[id]:not(.calc-lbl)'— alcanza a estos
+         cuatro span, y «—» es ademas el estado que el pedido define para el dato borrado. Lo que
+         ese barrido NO toca es className, asi que la clase de «peor» hay que reponerla aparte: sin
+         eso quedaba el color y la negrita de «peor» sobre una fila que ya decia «—». */
+      ['⚠️ «Nuevo estudio» deja los cuatro span en «—» Y les saca la clase de «peor» —el pintor cuelga de calcEM, que ahi corre CERO veces—',
+        [cVacio.gm, cVacio.thp, cVacio.cont, cVacio.plan].every(x => x === '—') &&
+        cVacioCls.indexOf('em-clase-peor') === -1,
+        JSON.stringify(cVacio) + ' · cls=' + cVacioCls]
     ] };
   })();
 `);

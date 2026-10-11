@@ -448,6 +448,65 @@ window.__P = {
       pastilla: window.__P.txt('pill-esten-mitral'),
       avisoManual: window.__P.txt('em-manual-aviso')
     } },
+  /* El cuadro de referencias: las cuatro clasificaciones, su clase CSS, y el desborde de cada
+     fila contra el ancho del viewport. El desborde se MIDE y no se deduce: «significativa
+     (<=1,5 cm2) . peor» es largo y la fila es un flex con space-between. */
+  /* ⚠️ EN EL CELULAR EL BLOQUE NO SE ABRE CON UN display INLINE. A menos de 768 px el CSS usa
+     '.valv-datos-abierto > #bloque-em-detalle' con !important, y un estilo en linea pierde contra
+     el !important de la hoja: 'abrirTodo' dejaba 'avm_plan' y 'em_gmedio' SIN geometria, el
+     denominador abortaba, y antes de tener ese denominador la pasada de maquetacion habria medido
+     desborde CERO sobre un cajon cerrado y parecido impecable. Se abre con 'valvDatosTog', que es
+     el mismo gesto que el boton 'Datos ▾' del medico. */
+  /* Rect crudo de una cadena de nodos, para no especular sobre quien no tiene geometria. */
+  rects(ids) {
+    var o = {};
+    ids.forEach(function(id){
+      var e = document.getElementById(id);
+      if (!e) { o[id] = 'NO EXISTE'; return }
+      var r = e.getBoundingClientRect(), cs = getComputedStyle(e);
+      o[id] = { w: Math.round(r.width), h: Math.round(r.height), top: Math.round(r.top),
+                disp: cs.display, vis: cs.visibility, ov: cs.overflow,
+                inline: e.style.display || '' };
+    });
+    var cb = document.querySelector('#bloque-em-detalle .calc-box');
+    if (cb) { var r2 = cb.getBoundingClientRect();
+      o['.calc-box'] = { w: Math.round(r2.width), h: Math.round(r2.height),
+                         disp: getComputedStyle(cb).display } }
+    return o },
+  abrirMovil() {
+    try { showTab('valvulas') } catch(e) {}
+    var sec = document.getElementById('ete-seccion-valv-mitral');
+    if (sec && sec.style.display === 'none') { try { toggleEteSeccion('valv-mitral') } catch(e){} }
+    for (var i = 0; i < 2; i++) {
+      if (window.__P.vis('avm_plan') === true && window.__P.vis('em_gmedio') === true) break;
+      try { valvDatosTog('caja-esten-mitral') } catch(e) {}
+      var det = document.getElementById('bloque-em-detalle');
+      if (det) det.style.display = 'block';
+    }
+    return { avm_plan: window.__P.vis('avm_plan'), em_gmedio: window.__P.vis('em_gmedio'),
+             caja: (document.getElementById('caja-esten-mitral')||{}).className || '',
+             ok: window.__P.vis('avm_plan') === true && window.__P.vis('em_gmedio') === true } },
+  cuadro() {
+    var ids = ['em-clase-gm','em-clase-thp','em-clase-cont','em-clase-plan'];
+    var o = { filas: {}, valores: {}, desborde: {} };
+    ids.forEach(function(id){
+      var e = document.getElementById(id);
+      o.filas[id] = e ? { txt: (e.textContent||'').trim(), cls: e.className } : 'NO EXISTE';
+      if (e) { var r = e.getBoundingClientRect(), d = document.documentElement;
+        o.desborde[id] = { der: Math.round(r.right), clientW: d.clientWidth,
+                           desborda: r.right > d.clientWidth + 1, w: Math.round(r.width) }; }
+    });
+    ['em-gmedio-row','em-thp-row','em-cont-row','em-plan-row'].forEach(function(id){
+      o.valores[id] = window.__P.txt(id) });
+    o.encabezado = (function(){
+      var sp = document.getElementById('em-sev-integrada');
+      if (!sp) return 'NO EXISTE';
+      var fila = sp.closest('.calc-row');
+      var lbl = fila ? fila.querySelector('.calc-lbl') : null;
+      return lbl ? (lbl.textContent||'').trim() : 'SIN label' })();
+    o.categoria = window.__P.txt('em-sev-integrada');
+    o.cajaDesborda = window.__P.desbordeDe('bloque-em-detalle');
+    return o },
   listo() {
     var faltan = ['generarInforme','pillOn','toggleValvPill','showTab','limpiarCampos','calcEM',
                   'emCategoria','emGradoAuto','setEstiloInforme','valvMorfDe','valvAutoPrenderEsten',
@@ -925,6 +984,90 @@ async function main() {
       T[nombre] = JSON.parse(await ev(`JSON.stringify(window.__P.grado3())`));
     }
     out.GRADO = T;
+  }
+
+  /* ══ 6 — EL CUADRO DE REFERENCIAS, EN LOS TRES ANCHOS ═════════════════════════════════════ */
+  if (hacer('6')) {
+    const C6 = {};
+    /* Escena rica: las TRES fuentes con valor, una destildada, el gradiente en la banda media.
+       THP 200 -> 1,10 (el peor) · planimetría 1,8 · gradiente 7. */
+    const montar = async () => {
+      await base();
+      for (const [id, val] of [['avm_plan', '1.8'], ['thp', '200'], ['em_gmedio', '7']])
+        await tipear(id, val);
+      await ev(`(function(){ try{ calcEM() }catch(e){} return 1 })()`);
+      await pausa(150);
+    };
+    paso('6a rica');
+    await montar();
+    C6.rica = JSON.parse(await ev(`JSON.stringify(window.__P.cuadro())`));
+    /* Con la planimetría DESTILDADA: tiene que decir «no incluido» y el «peor» moverse al THP. */
+    paso('6b destildada');
+    const d6 = await destildar('em_pdf_plan');
+    await ev(`(function(){ try{ calcEM() }catch(e){} return 1 })()`);
+    await pausa(150);
+    C6.destildada = { destildar: d6.ok, cuadro: JSON.parse(await ev(`JSON.stringify(window.__P.cuadro())`)) };
+    /* Gradiente en la banda ALTA, y el AVm por encima del corte. */
+    paso('6c gm alto');
+    await base();
+    for (const [id, val] of [['avm_plan', '2.4'], ['em_gmedio', '12']]) await tipear(id, val);
+    await ev(`(function(){ try{ calcEM() }catch(e){} return 1 })()`);
+    await pausa(150);
+    C6.gmAlto = JSON.parse(await ev(`JSON.stringify(window.__P.cuadro())`));
+    /* VACÍO: los cuatro span tienen que quedar en cadena vacía y sin la clase de «peor». */
+    paso('6d vacio');
+    await ev(`(function(){ window.__P.limpiar(); window.__P.abrirTodo(); return 1 })()`);
+    await pausa(200);
+    C6.vacio = JSON.parse(await ev(`JSON.stringify(window.__P.cuadro())`));
+    /* Y el borrado con TECLAS REALES, que es el gesto del punto 4e. */
+    paso('6e borrado con backspace');
+    await montar();
+    const br = await borrarConBackspace('em_gmedio', null);
+    await ev(`(function(){ try{ calcEM() }catch(e){} return 1 })()`);
+    await pausa(150);
+    C6.trasBorrarGm = { pasos: br.pasos.length,
+                        cuadro: JSON.parse(await ev(`JSON.stringify(window.__P.cuadro())`)) };
+    /* ── LOS TRES ANCHOS ── */
+    paso('6f maquetacion');
+    C6.anchos = {};
+    for (const w of [1200, 390, 360]) {
+      await cdp.send('Emulation.setDeviceMetricsOverride',
+        { width: w, height: 900, deviceScaleFactor: 1, mobile: w <= 430 }, sessionId);
+      await pausa(350);
+      /* ⚠️ NO SE USA `base()` ACÁ: su `abrirTodo` aborta a 390 y 360 px porque el cajón de la
+         estenosis lo gobierna el CSS del celular. Se limpia, se abre con el gesto del médico
+         (`valvDatosTog`) y SÓLO entonces se tipea; si la geometría no aparece, se informa y no se
+         mide, porque un desborde medido sobre un cajón cerrado da cero y parece impecable. */
+      await ev(`(function(){ window.__P.limpiar(); return 1 })()`);
+      let ab = JSON.parse(await ev(`JSON.stringify(window.__P.abrirMovil())`));
+      if (!ab.ok) { C6.anchos[w] = { ABORTA: 'sin geometria al abrir', abrir: ab }; continue; }
+      /* ⚠️ `thp` NO SE TIPEA ACÁ, Y ESO ERA LO QUE ROMPÍA LA PASADA DE CELULAR. Vive en la pestaña
+         DOPPLER, así que `enfocar('thp')` dispara `showTab('doppler')` y al volver a Válvulas el
+         `display:block` en línea de `bloque-em-detalle` y el estado del cajón se pierden: a 360 px
+         el bloque quedaba en `display:none` computado, `em_gmedio` nunca recibía el tecleo y las
+         cuatro filas medían `w=0`. O sea «ninguna fila desborda» sobre un cuadro que no estaba
+         dibujado — el denominador vacío que este repo documenta. El AVm por THP se consigue
+         escribiendo en la pestaña Doppler ANTES de emular el ancho; acá alcanza con los dos campos
+         que viven en el propio bloque, que son los que llenan tres de las cuatro filas. */
+      for (const [id, val] of [['avm_plan', '1.8'], ['em_gmedio', '7']]) await tipear(id, val);
+      /* Se REABRE y se verifica la geometría JUSTO ANTES de medir, no al abrir: entre una cosa y
+         la otra hubo tecleo, y el tecleo mueve pestañas. */
+      ab = JSON.parse(await ev(`JSON.stringify(window.__P.abrirMovil())`));
+      await ev(`(function(){ try{ calcEM() }catch(e){} return 1 })()`);
+      await pausa(250);
+      const cajaW = await ev(`(function(){ var c = document.querySelector('#bloque-em-detalle .calc-box');
+        return c ? Math.round(c.getBoundingClientRect().width) : -1 })()`);
+      if (!(cajaW > 0)) {
+        C6.anchos[w] = { ABORTA: 'el cuadro no tiene ancho al medir', abrir: ab, cajaW,
+          rects: JSON.parse(await ev(`JSON.stringify(window.__P.rects(['bloque-em-detalle','caja-esten-mitral','em_gmedio']))`)) };
+        continue;
+      }
+      C6.anchos[w] = Object.assign({ abrir: ab, cajaW,
+        rects: JSON.parse(await ev(`JSON.stringify(window.__P.rects(['bloque-em-detalle','caja-esten-mitral','vm-lesiones','em_gmedio','avm_plan','em-clase-gm','em-gmedio-row']))`)) },
+        JSON.parse(await ev(`JSON.stringify(window.__P.cuadro())`)));
+    }
+    await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
+    out.CUADRO = C6;
   }
 
   out.consola = cdp.errores ? cdp.errores.slice(0, 20) : 'sin listener';

@@ -873,6 +873,18 @@
   }
   .calc-lbl { color: var(--text2); }
   .calc-val { font-weight: 700; color: var(--accent2); }
+  /* ══ CLASIFICACIÓN POR MÉTODO DEL CUADRO DE LA EM (2026-10-11) ══════════════════════
+     Va en un envoltorio junto al valor y NO como tercer hijo del `.calc-row`: la fila es
+     `display:flex; justify-content:space-between`, así que con tres hijos el del medio queda
+     separado de su propio número y la clasificación parece de otra fila.
+     `font-weight:400` a propósito: hereda el 700 de `.calc-val` si no se pisa, y entonces la
+     clasificación compite visualmente con el dato medido, que es lo que manda.
+     ⚠️ ENVUELVE EN EL CELULAR. Sin `white-space:normal` y sin dejar que el envoltorio se encoja,
+     «significativa (≤1,5 cm²) · peor» desbordaba la tarjeta a 360 px. Medido en los tres anchos. */
+  .em-clase-wrap { text-align: right; min-width: 0; }
+  .em-clase { font-weight: 400; font-size: 10px; color: var(--text2);
+              margin-left: 6px; white-space: normal; }
+  .em-clase-peor { color: var(--accent2); font-weight: 700; }
   /* ══ DIVIDER ══ */
   .divider {
     height: 1px; background: var(--border); margin: 10px 0;
@@ -4772,21 +4784,33 @@ window.cerrarSesionReal = cerrarSesionReal;
         <!-- Resultados integrados -->
         <div class="calc-box" style="margin-top:6px;">
           <div class="calc-row"><span class="calc-lbl">G. máximo (4×Vmax²)</span><span class="calc-val" id="em-gmax-row">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">G. medio</span><span class="calc-val" id="em-gmedio-row">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">AVm por THP</span><span class="calc-val" id="em-thp-row">—</span></div>
-          <div class="calc-row"><span class="calc-lbl">AVm por continuidad</span><span class="calc-val" id="em-cont-row">—</span></div>
+          <!-- ⚠️ LAS FILAS DE VALOR NO SE TOCAN. `em-gmedio-row`, `em-thp-row`, `em-cont-row` y
+               `em-plan-row` conservan su id, su clase y su textContent EXACTO: la suite los compara
+               contra literales como «1.50 cm²» (TC-289, TC-306, TC-305), así que meter la
+               clasificación dentro de esos span habría puesto en rojo cuatro casos por un cambio de
+               pantalla. La clasificación vive en un span HERMANO, dentro del mismo envoltorio. -->
+          <div class="calc-row"><span class="calc-lbl">G. medio</span><span class="em-clase-wrap"><span class="calc-val" id="em-gmedio-row">&mdash;</span><span class="em-clase" id="em-clase-gm"></span></span></div>
+          <div class="calc-row"><span class="calc-lbl">AVm por THP</span><span class="em-clase-wrap"><span class="calc-val" id="em-thp-row">&mdash;</span><span class="em-clase" id="em-clase-thp"></span></span></div>
+          <div class="calc-row"><span class="calc-lbl">AVm por continuidad</span><span class="em-clase-wrap"><span class="calc-val" id="em-cont-row">&mdash;</span><span class="em-clase" id="em-clase-cont"></span></span></div>
           <!-- Renglón propio y NO dentro de `em-cont-row`: el valor se sigue mostrando —el médico
                lo midió y tiene derecho a verlo— y lo que se declara es que NO vota. Mezclarlos en
                la misma celda haría elegir entre publicar el número o publicar la salvedad. -->
           <div class="calc-row"><span id="em-cont-aviso" style="color:var(--yellow);font-size:11px;"></span></div>
-          <div class="calc-row"><span class="calc-lbl">AVm por planimetría</span><span class="calc-val" id="em-plan-row">—</span></div>
+          <div class="calc-row"><span class="calc-lbl">AVm por planimetría</span><span class="em-clase-wrap"><span class="calc-val" id="em-plan-row">&mdash;</span><span class="em-clase" id="em-clase-plan"></span></span></div>
           <!-- ⚠️ YA NO ES UNA SEVERIDAD GRADUADA. Publica la CATEGORIA que devuelve `emCategoria()`
                —la unica funcion duena, la misma que alimenta el informe, el EN SUMA y el PDF—. El
                rotulo decia «Severidad EM integrada (ESC 2021)» y graduaba leve/moderada/severa por
                area con una banda de «leve» de 2,5-4,0 cm² que no publica ninguna guia: una valvula
                sana mide 4-6 cm². Cambiar el rotulo es parte del arreglo, no un detalle: dejarlo
                diciendo «severidad» al lado de una categoria es la cita falsa de siempre. -->
-          <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Categoría EM (ESC/EACTS 2021 · ASE 2023)</span><span id="em-sev-integrada">—</span></div>
+          <!-- ⚠️ CITA SÓLO LA ASE 2023, Y EL CAMBIO NO ES COSMÉTICO (2026-10-11). Decía
+               «ESC/EACTS 2021 · ASE 2023», y **`docs/fuentes/FUENTES.md` no tiene ninguna entrada
+               de ESC/EACTS 2021**: era una cita a un documento que este repo nunca verificó, o sea
+               exactamente lo que la regla de citación de EcoSmart prohíbe. La ASE 2023 (Pandian,
+               Tabla 1, folio 8) SÍ está verificada en texto completo y es de donde salen los tres
+               cortes que este cuadro publica. La ESC/EACTS 2025 está registrada pero **sin página
+               verificada para la severidad de la estenosis mitral**, así que tampoco se cita. -->
+          <div class="calc-row"><span class="calc-lbl" style="font-weight:700;">⚖️ Categoría EM (ASE 2023, Tabla 1)</span><span id="em-sev-integrada">&mdash;</span></div>
           <div class="calc-row"><span id="em-discordancia" style="color:var(--yellow);font-size:11px;"></span></div>
         </div>
 
@@ -24306,6 +24330,104 @@ function emCategoria(){
   if (_gmElev)                          return Object.assign({ clave:'gradiente' }, _r);
   return Object.assign({ clave:'nada' }, _r);
 }
+/* ══ EL CUADRO DE REFERENCIAS DE VÁLVULAS — UNA FILA POR MÉTODO, CON SU CLASIFICACIÓN ═══════
+   Pedido de Maicol (2026-10-11). Cada una de las tres fuentes de área dice al lado de su valor si
+   alcanza el corte, el más bajo de las que VOTAN lleva la marca «peor», y el gradiente dice en qué
+   banda cae. Es SÓLO PANTALLA: ningún generador de informe, PDF, PPT o Excel lee estos span.
+
+   ⚠️ LOS CORTES SALEN DE LAS CONSTANTES, NO DE LITERALES. `AVM_SEVERA_MAX`,
+   `EM_GMEDIO_ELEVADO_MIN` y `EM_GMEDIO_SIGNIF_MIN` son las MISMAS que usa `emCategoria`, así que
+   el cuadro no puede quedar diciendo un corte distinto del que la app aplica —que es el defecto
+   que este archivo ya pagó con la banda «leve» de 2,5-4,0 impresa en las etiquetas del selector
+   mientras ninguna función la aplicaba—.
+
+   ⚠️ RECIBE `cat` Y NO LLAMA A `emCategoria()`. El único llamador es `calcEM`, que ya la tiene:
+   una segunda lectura podría caer en otro instante del formulario y pintar el cuadro con una
+   categoría distinta de la que la cápsula de dos filas más abajo acaba de publicar.
+
+   ⚠️ «PEOR» SE MARCA SOBRE `cat.fuentes` Y NO SOBRE «las marcadas» A SECAS. Las dos listas no son
+   la misma: una fuente marcada puede estar fuera de banda o tener su voto retirado (IAo severa en
+   el THP, regurgitación significativa en la continuidad), y en esos casos NO decide nada. Poner
+   «peor» sobre un número que no vota señalaría como responsable del veredicto a un dato que la
+   regla descartó.
+
+   Los estados de cada fila, en orden de precedencia:
+     · sin valor                 → vacío (la fila de al lado ya dice «—»);
+     · casilla resuelta y sin tildar → «no incluido», y NADA más: el médico lo sacó del informe,
+       así que clasificarlo igual sería opinar sobre algo que no participa;
+     · fuera de banda            → «revisar unidad», nunca una clasificación: un 150 cm² no se
+       compara contra 1,5;
+     · con voto retirado         → la clasificación del número MÁS «no vota». El número contra el
+       corte es un hecho; que no decida es otro, y el motivo ya lo dicen el badge del THP y
+       `em-cont-aviso`. Mostrar sólo la clasificación lo haría pasar por votante;
+     · vota                      → la clasificación, más «· peor» si es el menor. */
+const _emComa = n => String(n).replace('.', ',');
+const EM_CLASE_SIG   = () => 'significativa (\u2264' + _emComa(AVM_SEVERA_MAX) + ' cm\u00b2)';
+const EM_CLASE_NOSIG = () => 'no significativa (>' + _emComa(AVM_SEVERA_MAX) + ' cm\u00b2)';
+function _emCuadroFila(idSpan, idCampo, idChk, valida, cat) {
+  const el = document.getElementById(idSpan);
+  if (!el) return;
+  el.className = 'em-clase';
+  const x = v(idCampo);
+  if (x == null || !(x > 0)) { el.textContent = ''; return; }
+  if (typeof emMetodoIncluido === 'function' && idChk && !emMetodoIncluido(idChk)) {
+    el.textContent = '\u00b7 no incluido'; return; }
+  if (emFueraBanda(idCampo)) { el.textContent = '\u00b7 revisar unidad'; return; }
+  const clase = emAvmSevera(x) ? EM_CLASE_SIG() : EM_CLASE_NOSIG();
+  /* `valida` es la MISMA compuerta que usa `emCategoria` (`emThpValido`/`emContValido`), no una
+     copia del predicado: una segunda lectura es cómo el cuadro y el veredicto empiezan a
+     discrepar sobre el mismo paciente. La planimetría no tiene compuerta y pasa `null`. */
+  let vota = true;
+  if (valida) { try { vota = !!valida(); } catch (e) { vota = true; } }
+  if (!vota) { el.textContent = '\u00b7 ' + clase + ' \u00b7 no vota'; return; }
+  /* El PEOR de las que votan. `cat.fuentes` ya trae sólo ésas. */
+  const peor = (cat && cat.fuentes && cat.fuentes.length)
+    ? cat.fuentes.reduce((a, b) => (b.avm < a.avm ? b : a)) : null;
+  const esPeor = !!(peor && Math.abs(peor.avm - x) < 1e-9);
+  el.textContent = '\u00b7 ' + clase + (esPeor ? ' \u00b7 peor' : '');
+  if (esPeor) el.className = 'em-clase em-clase-peor';
+}
+/* La banda del gradiente. ⚠️ LOS DOS RÓTULOS SON LOS QUE PIDIÓ MAICOL y el tercero NO EXISTE: por
+   debajo de 5 se publica la BANDA («<5 mmHg») y ninguna palabra de veredicto. Inventar un
+   «no elevado» sería redacción clínica nueva en un cuadro de referencias, y queda REPORTADO. */
+function _emCuadroGm(cat) {
+  const el = document.getElementById('em-clase-gm');
+  if (!el) return;
+  el.className = 'em-clase';
+  const g = v('em_gmedio');
+  if (g == null) { el.textContent = ''; return; }
+  if (emFueraBanda('em_gmedio')) { el.textContent = '\u00b7 revisar unidad'; return; }
+  if (g >= EM_GMEDIO_SIGNIF_MIN) {
+    el.textContent = '\u00b7 significativo (\u2265' + EM_GMEDIO_SIGNIF_MIN + ' mmHg)';
+    el.className = 'em-clase em-clase-peor'; return; }
+  if (g >= EM_GMEDIO_ELEVADO_MIN) {
+    el.textContent = '\u00b7 elevado (' + EM_GMEDIO_ELEVADO_MIN + ' a <' + EM_GMEDIO_SIGNIF_MIN +
+                     ' mmHg; moderada, ASE 2023)'; return; }
+  el.textContent = '\u00b7 <' + EM_GMEDIO_ELEVADO_MIN + ' mmHg';
+}
+function emCuadroRefSync(cat) {
+  _emCuadroGm(cat);
+  _emCuadroFila('em-clase-thp',  'avm_thp',  'em_pdf_thp',
+    (typeof emThpValido  === 'function') ? emThpValido  : null, cat);
+  _emCuadroFila('em-clase-cont', 'avm_cont', 'em_pdf_cont',
+    (typeof emContValido === 'function') ? emContValido : null, cat);
+  _emCuadroFila('em-clase-plan', 'avm_plan', 'em_pdf_plan', null, cat);
+}
+window.emCuadroRefSync = emCuadroRefSync;
+/* ⚠️ LA SEGUNDA COLUMNA. `emCuadroRefSync` cuelga de `calcEM`, que **no está en
+   `RECALC_MODULOS`**: las rutas de restauración —`editarInforme`, `cargarEstudioPorId`, el QR—
+   pueblan asignando `.value`, que no dispara `oninput`, así que sin esto los cuatro span
+   quedaban con la clasificación del PACIENTE ANTERIOR mientras los valores de al lado ya eran
+   del nuevo. Es la MISMA fuga que `emPdfValsSync` entró a esa lista para cerrar, y la que
+   `itIncongruenciaSync` y `eteVmAvisoSync` documentan como «las dos columnas».
+   Se envuelve en vez de poner el pintor directo porque la lista llama `fn()` SIN argumentos, y
+   `emCuadroRefSync` recibe la `cat` ya calculada a propósito —para que dentro de una corrida de
+   `calcEM` el cuadro y la cápsula no puedan describir estados distintos—. Acá no hay corrida
+   que compartir, así que la calcula. */
+function emCuadroRefRepintar() {
+  try { emCuadroRefSync(emCategoria()); } catch (e) { console.warn('[emCuadroRefRepintar]', e); }
+}
+window.emCuadroRefRepintar = emCuadroRefRepintar;
 window.emCategoria = emCategoria; window.EM_CAT_TXT = EM_CAT_TXT;
 /* ⚠️ ESTA LÍNEA SEGUÍA EXPORTANDO `EM_GMEDIO_SIGNIF`, LA CONSTANTE QUE EL COMMIT A BORRÓ, Y ESO
    MATÓ LA APP ENTERA. No es una metáfora: un `ReferenceError` en la evaluación de un `<script>`
@@ -24694,6 +24816,12 @@ function calcEM() {
   const discEl  = document.getElementById('em-discordancia');
   const badgeEl = document.getElementById('em-thp-badge');
   const cat = emCategoria();
+
+  /* El cuadro de referencias, con la MISMA `cat` —no una segunda llamada—. Va antes de pintar la
+     cápsula por el mismo motivo que `emGradoAuto`: dentro de una corrida, las dos superficies de
+     pantalla tienen que describir el mismo estado. Es sólo pantalla y no toca ninguna fila de
+     valor, así que no puede mover un literal que la suite compare. */
+  try { emCuadroRefSync(cat); } catch (e) { console.warn('[emCuadroRef]', e); }
 
   /* ESCRIBE `em_grado`, y es el ÚNICO que lo hace. Va ANTES de pintar para que la pantalla y el
      campo no puedan quedar desfasados dentro de la misma corrida. */
@@ -39080,7 +39208,7 @@ function RECALC_MODULOS() {
      `emAvmPdfVal` para la fila del PDF, `dataset` protege esa decision, y `disabled` no lo
      persiste ni lo lee nadie. Los dos primeros siguen intocados — que es exactamente la objecion
      que este archivo dejo escrita para IM: «pisaria la decision que la reimpresion respalda». */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -39377,6 +39505,16 @@ function limpiarCampos(silencioso) {
      vacia. El prefijo `em-pdf-` con guion MEDIO lo usan solo estos tres —verificado—: las
      casillas van con guion BAJO (`em_pdf_cont`) y no las toca este selector. */
   document.querySelectorAll('[id^="em-pdf-"]').forEach(el => { el.textContent = ''; });
+  /* ⚠️ LOS CUATRO SPAN DEL CUADRO DE REFERENCIAS: ACÁ SE REPONE LA **CLASE**, NO EL TEXTO
+     (2026-10-11). El texto ya lo pone en «—» el barrido genérico de unas líneas más abajo
+     —`.calc-box .calc-row span[id]:not(.calc-lbl)` los alcanza, verificado midiendo—, que es
+     además el estado que el pedido define para el dato borrado. Lo que ese barrido NO toca es
+     `className`, y `em-clase-peor` sobrevive al cambio de paciente: dejaba el color y la negrita
+     de «peor» sobre una fila que ya decía «—». Su pintor cuelga de `calcEM`, que en «Nuevo
+     estudio» corre CERO veces, así que nadie más lo repone.
+     El prefijo `em-clase-` con guión MEDIO lo usan sólo estos cuatro —verificado—; la clase CSS
+     `em-clase` no es un id y no la alcanza este selector. */
+  document.querySelectorAll('[id^="em-clase-"]').forEach(el => { el.className = 'em-clase'; });
   /* Paciente nuevo: no hay texto previo nuestro contra el cual comparar. Sin esto, la base del
      paciente ANTERIOR clasificaba como «automático» texto del nuevo y lo dejaba pisar. */
   _infBase = null; _sumaBase = null;
@@ -100154,8 +100292,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261011-0811';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791717081890;                 /* eco-build-ms */
+const ECO_BUILD    = '20261011-0830';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791718224557;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -100241,7 +100379,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-0811</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-0830</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
