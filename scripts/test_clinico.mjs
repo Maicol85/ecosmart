@@ -12112,15 +12112,31 @@ caso('TC-261', 'Severidad valvular: la AVA de 1,00 es SEVERA, y la EM dejo de gr
       /* EL UNICO CORTE VIVO ES 1,5 — el de significacion clinica, no un grado— por los dos lados. */
       const c150 = porArea(1.5), c151 = porArea(1.51);
 
-      /* EL GRADIENTE MEDIO TAMPOCO GRADUA: su unico corte es >4 y no escribe grado. Antes 3 votaba
-         «leve», 7 «moderada» y 12 «severa», y la escalera los volcaba al selector. */
+      /* ADAPTADO el 2026-10-11 — LA REGLA NUEVA DE LA EM. El gradiente medio volvio a tener DOS
+         cortes, los de la Tabla 1 de la ASE 2023 (folio 8): >=5 es «gradiente elevado» y >=10 es
+         SIGNIFICATIVA. Antes el unico corte era >4 y ninguna banda escribia grado.
+         Lo que CAMBIA de este caso: el 4 sigue sin clasificar pero ahora porque no llega a 5 —no
+         porque no pase de 4—, y el 12 SI escribe grado («severa», el mismo valor guardado de
+         siempre) porque hoy afirma estenosis significativa.
+         Lo que NO cambia y este caso sigue cuidando: ninguna banda escribe «leve» ni «moderada».
+         Se agregan los DOS bordes por sus dos lados —4,9/5,0 y 9,9/10,0—, que es lo que prueba
+         donde estan los cortes: con solo 3/4/5/12 un corte movido a 6 pasaria inadvertido. */
       const porGm = g => { limpiarEM(); set('em_gmedio', g);
         if (typeof calcEM === 'function') calcEM();
         return { grado: document.getElementById('em_grado').value, cat: emCategoria().clave }; };
       const g3 = porGm(3), g4 = porGm(4), g5 = porGm(5), g12 = porGm(12);
+      const g49 = porGm(4.9), g99 = porGm(9.9), g10 = porGm(10);
 
-      /* UN AREA SANA CON UN GRADIENTE ALTO. El area no tapa el gradiente y el gradiente no
-         convierte el area en estenosis: lo que se publica es exactamente lo que se puede afirmar. */
+      /* UN AREA SANA CON UN GRADIENTE ALTO.
+         ⚠️ ADAPTADO el 2026-10-11, Y ES EL CAMBIO MAS FUERTE DE ESTA TANDA. Este caso afirmaba que
+         «el gradiente no convierte el area en estenosis»: con 4,15 cm² y 12 mmHg la app publicaba
+         «EM con gradiente elevado» y NO escribia grado. Con la regla nueva el gradiente >=10 ES un
+         criterio de estenosis significativa por si solo (decision de Maicol, punto 2b: «AVm <=1,5
+         O gradiente >=10»), asi que el mismo escenario publica «estenosis severa (gradiente medio
+         12 mmHg)» y completa el grado.
+         La compuerta que SI sigue viva es la de la IM: con insuficiencia mitral significativa el
+         criterio del gradiente se retira COMPLETO —las dos bandas— y la categoria vuelve a ser
+         «gradiente transmitral elevado», sin la palabra estenosis. Esa mitad la fija TC-450. */
       limpiarEM(); set('avm_plan', 4.15); set('em_gmedio', 12);
       if (typeof calcEM === 'function') calcEM();
       const sanaConGrad = { grado: document.getElementById('em_grado').value, cat: emCategoria().clave,
@@ -12163,13 +12179,24 @@ caso('TC-261', 'Severidad valvular: la AVA de 1,00 es SEVERA, y la EM dejo de gr
         ['el UNICO corte vivo es 1,5, y separa «severa» de «nada»',
           c150.cat === 'severa' && c151.cat === 'nada',
           '1.50 -> ' + c150.cat + ' · 1.51 -> ' + c151.cat],
-        ['el gradiente medio tampoco gradua: su unico corte es >4 y ninguno escribe grado',
-          g3.cat === 'nada' && g4.cat === 'nada' && g5.cat === 'gradiente' && g12.cat === 'gradiente' &&
-          [g3, g4, g5, g12].every(r => r.grado === 'sin'),
+        ['⚠️ el gradiente medio tiene DOS cortes (ASE 2023 Tabla 1): <5 no clasifica, 5-9 es «gradiente elevado» y >=10 es SIGNIFICATIVA',
+          g3.cat === 'nada' && g4.cat === 'nada' && g5.cat === 'gradiente' && g12.cat === 'severa',
           '3->' + g3.cat + ' 4->' + g4.cat + ' 5->' + g5.cat + ' 12->' + g12.cat],
-        ['un area SANA con gradiente alto publica el gradiente y NO lo llama estenosis severa',
-          sanaConGrad.cat === 'gradiente' && sanaConGrad.grado === 'sin',
+        ['  y los DOS bordes por sus dos lados: 4,9 no clasifica y 5,0 si; 9,9 es elevado y 10,0 es significativa',
+          g49.cat === 'nada' && g5.cat === 'gradiente' && g99.cat === 'gradiente' && g10.cat === 'severa',
+          '4.9->' + g49.cat + ' 5.0->' + g5.cat + ' 9.9->' + g99.cat + ' 10.0->' + g10.cat],
+        ['  el grado se completa SOLO en la banda significativa, y nunca con «leve» ni «moderada»',
+          [g3, g4, g49, g5, g99].every(r => r.grado === 'sin') &&
+          [g10, g12].every(r => r.grado === 'severa') &&
+          [g3, g4, g49, g5, g99, g10, g12].every(r => r.grado !== 'leve' && r.grado !== 'moderada'),
+          [3, 4, 4.9, 5, 9.9, 10, 12].map((v, i) => v + '->' + [g3, g4, g49, g5, g99, g10, g12][i].grado).join(' ')],
+        ['⚠️ un area SANA con gradiente >=10 AHORA SI es estenosis significativa — el gradiente es criterio por si solo (regla nueva 2026-10-11)',
+          sanaConGrad.cat === 'severa' && sanaConGrad.grado === 'severa',
           'cat=' + sanaConGrad.cat + ' grado=' + sanaConGrad.grado + ' «' + sanaConGrad.txt + '»'],
+        ['  y la pantalla lo dice con la palabra de la guia, «significativa», sin inventar un grado',
+          pl2(sanaConGrad.txt).indexOf('significativa') > -1 &&
+          pl2(sanaConGrad.txt).indexOf('leve') === -1 && pl2(sanaConGrad.txt).indexOf('moderada') === -1,
+          '«' + sanaConGrad.txt + '»'],
         ['la banda «leve» de 2,5-4,0 no vuelve por ninguna puerta',
           banda30.grado === 'sin' && pl2(banda30.pantalla).indexOf('leve') === -1,
           'grado=' + banda30.grado + ' pantalla=«' + banda30.pantalla + '»'],
@@ -34237,7 +34264,12 @@ caso('TC-289', 'Cierre de la Fase 1: el area mitral se clasifica como se imprime
       ex.push(['con un area mitral por THP de 1,50119 —que redondea a 1,50 y cae en el corte— las tres superficies imprimen 1,50, el veredicto dice SEVERA y el grado se completa con ese valor',
         Math.abs(220 / 146.55 - 1.50119) < 0.0001 &&
         thpCaso.avm === '1.50' && thpCaso.disp === '1.50 cm²' && thpCaso.fila === '1.50 cm²' &&
-        thpCaso.grado === 'severa' && pl(thpCaso.badge).indexOf('estenosis mitral severa') > -1 &&
+        /* ADAPTADO el 2026-10-11: la CAPSULA de pantalla pasa a decir «Estenosis mitral
+           significativa» —la nomenclatura de la ASE 2023— mientras el VALOR GUARDADO sigue siendo
+           «severa», que es lo que leen el Excel, el Laboratorio y Evidencia. El caso sigue
+           exigiendo las dos cosas a la vez, que es justo lo que separa «cambio de palabra» de
+           «cambio de dato»: el grado por su valor y el badge por su texto. */
+        thpCaso.grado === 'severa' && pl(thpCaso.badge).indexOf('estenosis mitral significativa') > -1 &&
         thpCaso.badge.indexOf('1.50 cm² por THP') > -1,
         'crudo=' + (220 / 146.55).toFixed(5) + ' · avm_thp=' + thpCaso.avm + ' disp=' + thpCaso.disp +
         ' fila=' + thpCaso.fila + ' · grado=' + thpCaso.grado + ' badge=«' + thpCaso.badge + '»']);
@@ -35477,7 +35509,7 @@ caso('TC-305', 'FASE B: el AVm por continuidad se SIGUE MOSTRANDO pero deja de v
    eleccion del medico (`esqSevManual.em`) la pone el manejador del desplegable, asi que asignar
    `.value` a mano —como hacen los CLONADOS de la tarjeta de severidades— NO la pone. Si el harness
    dejara de despachar, «el grado a mano manda» pasaria a medir otra cosa. */
-caso('TC-306', 'EM NATIVA: cuatro salidas —severa / probablemente severa por discordancia / con gradiente elevado / gradiente transmitral elevado—, el grado se autocompleta SOLO en «severa», la eleccion del medico manda, los valores medidos salen sin veredicto, y un AVm por continuidad invalido no sale al papel ni al Excel', `
+caso('TC-306', 'EM NATIVA: las salidas de la regla de 2026-10-11 —significativa (por area o por gradiente >=10) / no significativa con gradiente elevado (5 a <10) / gradiente transmitral elevado—, con la discordancia resuelta por el PEOR y sin la categoria «probable», el grado se autocompleta SOLO en «severa», la eleccion del medico manda, los valores medidos salen sin veredicto, y un AVm por continuidad invalido no sale al papel ni al Excel', `
   return (async () => {
     if (typeof emCategoria !== 'function' || typeof emContValido !== 'function' || typeof emAvmSevera !== 'function')
       return { extra:[['existen las funciones duenas', false, 'faltan emCategoria, emContValido o emAvmSevera']] };
@@ -35644,14 +35676,23 @@ caso('TC-306', 'EM NATIVA: cuatro salidas —severa / probablemente severa por d
       ['y la planimetria no pasa por esa compuerta: con IAo severa y 1,3 cm² sigue severa',
         planIaSev.cat === 'severa', planIaSev.cat],
       // (4)
-      ['⚠️ DISCORDANCIA: planimetria 1,8 y THP 1,38 NO devuelven «nada» —eso hacia que el informe firmado negara una estenosis que una fuente valida marcaba como severa—',
-        disc.cat === 'probable', disc.cat + ' · «' + disc.vm + '»'],
-      ['  prevalece el PEOR: los DOS valores con su metodo, y «probablemente» con el que alcanza el corte',
-        disc.vm.indexOf('AVm 1.80 cm² por planimetría') > -1 &&
-        disc.vm.indexOf('probablemente severa por THP (AVm 1.38 cm²)') > -1,
+      /* ⚠️ ADAPTADO el 2026-10-11: LA CATEGORIA «probable» SE ELIMINO. Con fuentes marcadas a los
+         dos lados del corte prevalece el PEOR y el veredicto es «significativa» a secas —ya no hay
+         matiz «probablemente severa»—. Lo que este caso sigue cuidando es lo que motivo escribirlo:
+         que la discordancia NO devuelva «nada», o sea que el informe firmado no niegue una
+         estenosis que una fuente valida marca. El literal del detalle lo fija el commit B, que es
+         el que escribe las plantillas; aca se exige el veredicto, el valor del PEOR y que la
+         palabra «probablemente» ya no aparezca en ninguna superficie. */
+      ['⚠️ DISCORDANCIA: planimetria 1,8 y THP 1,38 NO devuelven «nada», y hoy el veredicto es «severa» —prevalece el peor, sin matiz—',
+        disc.cat === 'severa', disc.cat + ' · «' + disc.vm + '»'],
+      ['  el PEOR es el que se publica, con su metodo',
+        disc.vm.indexOf('AVm 1.38 cm² por THP') > -1,
         '«' + disc.vm + '»'],
+      ['  y «probablemente» no aparece en NINGUNA de las dos superficies: la categoria ya no existe',
+        pl(disc.vm).indexOf('probablemente') === -1 && pl(disc.suma).indexOf('probablemente') === -1,
+        '«' + disc.vm + '» · suma=«' + disc.suma + '»'],
       ['  y el EN SUMA reusa la MISMA linea: no queda mudo ni cae en «sin otras alteraciones»',
-        disc.suma.indexOf('Estenosis mitral probablemente severa por THP (AVm 1.38 cm²), con AVm 1.80 cm² por planimetría.') > -1 &&
+        disc.suma.indexOf('AVm 1.38 cm² por THP') > -1 &&
         pl(disc.suma).indexOf('sin alteraciones') === -1,
         'suma=«' + disc.suma + '»'],
       ['  el grado se completa igual en «severa»: prevalece el peor tambien en el campo',
@@ -35659,11 +35700,10 @@ caso('TC-306', 'EM NATIVA: cuatro salidas —severa / probablemente severa por d
       ['  y la pantalla declara la discordancia, que es lo que el medico necesita para resolverla',
         pl(disc.disc).indexOf('discordantes') > -1 && disc.disc.indexOf('1.80') > -1 && disc.disc.indexOf('1.38') > -1,
         '«' + disc.disc + '»'],
-      ['⚠️ EL SENTIDO INVERSO es simetrico —planimetria 1,3 y THP 1,57— y tambien dice «probablemente»: la regla pondera el peor valor, NO el metodo preferido',
-        discInv.cat === 'probable' && discInv.vm.indexOf('AVm 1.57 cm² por THP') > -1 &&
-        discInv.vm.indexOf('probablemente severa por planimetría (AVm 1.30 cm²)') > -1,
+      ['⚠️ EL SENTIDO INVERSO es simetrico —planimetria 1,3 y THP 1,57—: la regla pondera el peor VALOR, NO el metodo preferido',
+        discInv.cat === 'severa' && discInv.vm.indexOf('AVm 1.30 cm² por planimetría') > -1,
         discInv.cat + ' · «' + discInv.vm + '»'],
-      ['  y «probablemente» se usa SOLO en discordancia: con las dos fuentes por debajo del corte no hay matiz',
+      ['  CONTROL: con las DOS fuentes por debajo del corte el veredicto es el mismo y las dos se publican',
         concord.cat === 'severa' && pl(concord.vm).indexOf('probablemente') === -1 &&
         concord.vm.indexOf('AVm 1.40 cm² por planimetría') > -1 && concord.vm.indexOf('AVm 1.38 cm² por THP') > -1,
         concord.cat + ' · «' + concord.vm + '»'],
@@ -35671,7 +35711,10 @@ caso('TC-306', 'EM NATIVA: cuatro salidas —severa / probablemente severa por d
       ['el grado SI se autocompleta, y solo en «severa»',
         autoSev.grado === 'severa' && autoSev.cat === 'severa',
         'grado=' + autoSev.grado + ' cat=' + autoSev.cat],
-      ['⚠️ y la categoria del GRADIENTE no escribe grado: leve y moderada no se autocompletan nunca',
+      /* 2,0 cm² con 8 mmHg cae en la banda MEDIA (5 a <10), que es «no significativa con gradiente
+         elevado»: no afirma estenosis, asi que no escribe grado. Es el mismo comportamiento que la
+         categoria «gradiente» tenia antes, y por eso este caso no se adapto. */
+      ['⚠️ y la banda MEDIA del gradiente no escribe grado: leve y moderada no se autocompletan nunca',
         autoGrad.grado === 'sin' && autoGrad.cat === 'gradiente',
         'grado=' + autoGrad.grado + ' cat=' + autoGrad.cat],
       ['un grado elegido A MANO manda, aun con la regla diciendo severa',
@@ -37500,10 +37543,16 @@ caso('TC-308', 'El escritor nuevo de em_grado no borra grados ajenos: la reimpre
         protManual.grado === 'severa' && pl(protManual.vm).indexOf('estenosis severa') > -1,
         'grado=' + protManual.grado + ' · «' + protManual.vm + '»'],
       // (4)
-      ['DENOMINADOR: planimetria 1,8 con THP 1,20 da discordancia, o sea que las dos fuentes entran',
-        cDen.cat === 'probable' && cDen.fuentes.indexOf('planimetría 1.8') > -1 &&
+      /* ADAPTADO el 2026-10-11: la categoria «probable» se elimino. Lo que este DENOMINADOR mide
+         es que las DOS fuentes entren —que es de lo que depende la condicion del cero de abajo—,
+         asi que se exige eso por la lista de fuentes, mas el veredicto que la regla nueva da.
+         Antes se exigia «cat === probable», que era la forma INDIRECTA de decir «entraron las
+         dos»: con una sola fuente nunca habia discordancia. Hoy esa forma indirecta ya no existe,
+         y pedirla directamente es ademas mas claro sobre lo que el denominador cuida. */
+      ['DENOMINADOR: planimetria 1,8 con THP 1,20 entran las DOS como fuentes, y el peor manda',
+        cDen.cat === 'severa' && cDen.fuentes.indexOf('planimetría 1.8') > -1 &&
         cDen.fuentes.indexOf('THP 1.2') > -1, cDen.cat + ' · ' + cDen.fuentes],
-      ['⚠️ un AVm en CERO no entra como fuente: no publica «AVm 0.00 cm²» ni degrada una severa a probable',
+      ['⚠️ un AVm en CERO no entra como fuente: no publica «AVm 0.00 cm²» ni se cuenta entre las que votan',
         c0thp.cat === 'severa' && c0thp.fuentes.indexOf('0') === -1 &&
         c0thp.vm.indexOf('0.00') === -1,
         c0thp.cat + ' · ' + c0thp.fuentes + ' · «' + c0thp.vm + '»'],
@@ -56378,6 +56427,202 @@ caso('TC-449', 'EM: con IAo SEVERA el area por THP se retira del Excel y de las 
   ] };
   })();
 `);
+
+/* ══ TC-450 — LA REGLA NUEVA DE LA ESTENOSIS MITRAL: SIGNIFICATIVA / NO SIGNIFICATIVA ══════════
+   Cobertura del commit A de la tanda del 2026-10-11. Antes de este caso, lo que esta tanda cambio
+   NO tenia cobertura automatica propia: TC-261 y TC-306 fijaban la regla VIEJA y se adaptaron, que
+   es exactamente como un arreglo se deshace sin que nadie se entere.
+
+   Cuatro cosas que ninguno de los otros casos prueba:
+     1. los DOS cortes del gradiente por sus dos lados, Y que no se solapan;
+     2. que con IM significativa el criterio del gradiente se retira COMPLETO —las dos bandas, 5 a
+        <10 y tambien >=10—, con su CONTROL NEGATIVO: con IM leve el mismo gradiente SI clasifica;
+     3. que una fuente DESTILDADA en «Incluir en el informe» deja de votar, y que una SIN RESOLVER
+        sigue votando;
+     4. que un estudio guardado ANTERIOR al selector reabre y reimprime con la MISMA categoria,
+        porque la compuerta solo se aplica a la casilla RESUELTA. Sin esta condicion, la regla
+        nueva le cambia el veredicto a toda la base archivada y en silencio.
+
+   ⚠️ EL DENOMINADOR DE LA (3) Y LA (4) ES LA CASILLA, NO EL CAMPO. Una escena que deja el area sin
+   cargar da «nada» por falta de dato y pasa por las razones equivocadas, asi que cada condicion
+   lleva al lado el AVm leido y el estado de la casilla. */
+caso('TC-450', 'EM: los dos cortes del gradiente (5 y 10, borde >= y sin solape), la IM significativa que retira el criterio del gradiente COMPLETO con su control negativo, la fuente destildada que deja de votar y el estudio anterior al selector que reabre y reimprime con la MISMA categoria', `
+  return (async () => {
+    for (const f of ['emCategoria','emMetodoIncluido','_restaurarChkInclusion','calcEM'])
+      if (typeof window[f] !== 'function')
+        return { extra:[['existen las funciones duenas', false, 'falta ' + f]] };
+    if (typeof EM_GMEDIO_ELEVADO_MIN === 'undefined' || typeof EM_GMEDIO_SIGNIF_MIN === 'undefined')
+      return { extra:[['existen las dos constantes nuevas', false, 'faltan EM_GMEDIO_ELEVADO_MIN / EM_GMEDIO_SIGNIF_MIN']] };
+    const NL = String.fromCharCode(10);
+    const pl = x => String(x || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+    const lineaVM = t => (String(t).split(NL).map(l => l.trim())
+      .filter(l => pl(l).indexOf('alvula mitral') > -1 || l.indexOf('VM ') === 0)[0] || '');
+    const base = () => { __t.limpiar();
+      __t.set('nombre','TC450'); __t.set('edad','64'); __t.set('peso','80'); __t.set('talla','180'); };
+    const chk = id => { const c = document.getElementById(id);
+      return c ? (c.checked ? '1' : '0') + (c.dataset.tocado ? 'T' : '') + (c.dataset.desdeEstudio ? 'E' : '') : 'NO EXISTE'; };
+    const correr = sem => { base(); sem(); try{ calcEM(); }catch(e){}
+      const r = __t.informe();
+      return { cat: emCategoria().clave, vm: lineaVM(r.inf), suma: r.suma,
+               grado: __t.val('em_grado'), avm_plan: __t.val('avm_plan'),
+               gm: __t.val('em_gmedio'), chkPlan: chk('em_pdf_plan'),
+               pantalla: __t.txt('em-sev-integrada') }; };
+
+    // ── (1) LOS DOS CORTES DEL GRADIENTE, POR SUS DOS LADOS ──────────────────────────────────
+    /* Sin fuente de area, que es la unica forma de ver el corte del gradiente aislado. */
+    const G = {};
+    [4.9, 5, 9.9, 10].forEach(g => { G[g] = correr(() => { __t.set('em_gmedio', String(g)); }); });
+
+    // ── (2) LA IM SIGNIFICATIVA RETIRA EL CRITERIO DEL GRADIENTE, COMPLETO ───────────────────
+    const imG7  = correr(() => { __t.set('em_gmedio','7');  __t.set('im_grado','2'); });
+    const imG12 = correr(() => { __t.set('em_gmedio','12'); __t.set('im_grado','2'); });
+    /* CONTROL NEGATIVO: con IM LEVE (1) el MISMO gradiente si clasifica. Sin esto, las dos de
+       arriba pasarian tambien si la app hubiera dejado de clasificar por gradiente del todo. */
+    const imLeveG7  = correr(() => { __t.set('em_gmedio','7');  __t.set('im_grado','1'); });
+    const imLeveG12 = correr(() => { __t.set('em_gmedio','12'); __t.set('im_grado','1'); });
+    /* Y EL AREA SIGUE VOTANDO con IM significativa: es una obstruccion medida, no una inferencia
+       de flujo. La rama del area corre ANTES que la del gradiente, y esto es lo que lo fija. */
+    const imAreaG12 = correr(() => { __t.set('avm_plan','1.2'); __t.set('em_gmedio','12');
+                                     __t.set('im_grado','2'); });
+
+    // ── (3) LA CASILLA DE «INCLUIR EN EL INFORME» ───────────────────────────────────────────
+    /* SIN RESOLVER: el area vota, como antes de esta regla. */
+    const sinResolver = correr(() => { __t.set('avm_plan','1.2'); });
+    /* DESTILDADA A MANO: se desmarca y se marca \`dataset.tocado\`, que es lo que el \`onchange\` de
+       la casilla hace cuando el medico la clickea. Se escribe la bandera a mano a proposito: lo que
+       este caso prueba es la COMPUERTA, y el gesto del clic ya lo mide scripts/_probe_emsignif.mjs
+       con un clic real de mouse. */
+    base(); __t.set('avm_plan','1.2'); try{ calcEM(); }catch(e){}
+    const antesDeDestildar = { cat: emCategoria().clave, chk: chk('em_pdf_plan') };
+    { const c = document.getElementById('em_pdf_plan');
+      c.checked = false; c.dataset.tocado = '1'; }
+    try{ calcEM(); }catch(e){}
+    const destildada = { cat: emCategoria().clave, chk: chk('em_pdf_plan'),
+                         avm_plan: __t.val('avm_plan'),
+                         noIncl: (emCategoria().noIncl || []).map(f => f.fuente + ' ' + f.avm).join(','),
+                         vm: lineaVM(__t.informe().inf) };
+
+    // ── (4) EL ESTUDIO ANTERIOR AL SELECTOR ─────────────────────────────────────────────────
+    /* Se arma el blob con el MISMO barrido que usa guardarInforme y se repone con la MISMA funcion
+       que usa el camino de abrir (\`_restaurarChkInclusion\`), en vez de pasar por el store: lo que
+       se compara es el viaje del dato. Es el metodo de scripts/_probe_guardados.mjs. */
+    base(); __t.set('avm_plan','1.2'); try{ calcEM(); }catch(e){}
+    const firmado = { cat: emCategoria().clave, vm: lineaVM(__t.informe().inf) };
+    const campos = {};
+    document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
+      try { if (typeof _noEsDelEstudio === 'function' && _noEsDelEstudio(el.id)) return; } catch(e){}
+      if (el.type === 'checkbox' || el.type === 'radio') return;
+      campos[el.id] = el.value; });
+    document.querySelectorAll('input[type=checkbox][id]').forEach(el => {
+      campos[el.id + '__chk'] = el.checked ? '1' : '0'; });
+    const legado = JSON.parse(JSON.stringify(campos));
+    ['em_pdf_thp','em_pdf_cont','em_pdf_plan'].forEach(k => {
+      delete legado[k + '__chk']; delete legado[k + '__tocado']; });
+    /* El «no» del medico, persistido: el control negativo de la (4). */
+    const dijoQueNo = JSON.parse(JSON.stringify(campos));
+    dijoQueNo['em_pdf_plan__chk'] = '0'; dijoQueNo['em_pdf_plan__tocado'] = '1';
+
+    const reponerAbriendo = c => { __t.limpiar();
+      if (typeof _migrarCamposLegacy === 'function') _migrarCamposLegacy(c);
+      Object.keys(c).forEach(k => { if (/__chk$|__tocado$/.test(k)) return;
+        const el = document.getElementById(k); if (el) el.value = c[k]; });
+      _restaurarChkInclusion(c);
+      try{ calcEM(); }catch(e){}
+      return { cat: emCategoria().clave, chk: chk('em_pdf_plan'),
+               avm_plan: __t.val('avm_plan'), vm: lineaVM(__t.informe().inf) }; };
+    /* Y el camino de REIMPRIMIR, con las DOS cosas que esa ventana le hace a estas casillas
+       —\`el.checked = (c[id+'__chk'] === '1')\` y el borrado de las dos banderas— y SIN llamar a
+       calcEM, que es lo que esa ventana tampoco hace. Es el camino donde un \`.checked\` pelado
+       habria cambiado el PDF de toda la base archivada. */
+    const reponerReimprimiendo = c => { __t.limpiar();
+      const m = (typeof _migrarCamposLegacy === 'function') ? _migrarCamposLegacy(c) : c;
+      document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
+        if (el.type === 'checkbox' || el.type === 'radio') {
+          el.checked = (m[el.id + '__chk'] === '1'); return; }
+        if (el.tagName === 'SELECT') { if (m[el.id] !== undefined) el.value = m[el.id];
+          else el.selectedIndex = 0; return; }
+        el.value = (m[el.id] !== undefined ? m[el.id] : ''); });
+      ['em_pdf_thp','em_pdf_cont','em_pdf_plan'].forEach(k => {
+        const cb = document.getElementById(k); if (!cb) return;
+        if (m[k + '__tocado'] === '1') cb.dataset.tocado = '1'; else delete cb.dataset.tocado;
+        delete cb.dataset.desdeEstudio; });
+      return { cat: emCategoria().clave, chk: chk('em_pdf_plan'),
+               avm_plan: __t.val('avm_plan'), vm: lineaVM(__t.informe().inf) }; };
+
+    const legAbr = reponerAbriendo(legado);
+    const legRei = reponerReimprimiendo(legado);
+    const noAbr  = reponerAbriendo(dijoQueNo);
+    const noRei  = reponerReimprimiendo(dijoQueNo);
+    __t.limpiar();
+
+    const ver = (x, g) => x.cat + ' (gm=' + x.gm + ' grado=' + x.grado + ')';
+    return { extra: [
+      // (1)
+      ['DENOMINADOR: las dos constantes valen 5 y 10',
+        EM_GMEDIO_ELEVADO_MIN === 5 && EM_GMEDIO_SIGNIF_MIN === 10,
+        'elevado=' + EM_GMEDIO_ELEVADO_MIN + ' signif=' + EM_GMEDIO_SIGNIF_MIN],
+      ['⚠️ el corte de la banda MEDIA es >=5: 4,9 no clasifica y 5,0 si',
+        G[4.9].cat === 'nada' && G[5].cat === 'gradiente',
+        '4.9->' + ver(G[4.9]) + ' · 5.0->' + ver(G[5])],
+      ['⚠️ el corte de SIGNIFICATIVA es >=10: 9,9 es elevado y 10,0 es significativa',
+        G[9.9].cat === 'gradiente' && G[10].cat === 'severa',
+        '9.9->' + ver(G[9.9]) + ' · 10.0->' + ver(G[10])],
+      ['  las dos bandas NO se solapan: ningun gradiente cae en las dos',
+        G[5].cat !== G[10].cat && G[9.9].cat !== G[10].cat && G[4.9].cat !== G[5].cat,
+        [4.9, 5, 9.9, 10].map(g => g + '->' + G[g].cat).join(' ')],
+      ['  y el grado se completa SOLO en la banda significativa',
+        G[4.9].grado === 'sin' && G[5].grado === 'sin' && G[9.9].grado === 'sin' &&
+        G[10].grado === 'severa',
+        [4.9, 5, 9.9, 10].map(g => g + '->' + G[g].grado).join(' ')],
+      // (2)
+      ['⚠️ con IM significativa el gradiente de la banda MEDIA no afirma estenosis: «gradiente transmitral elevado», sin la palabra',
+        imG7.cat === 'gradiente_im' && pl(imG7.vm).indexOf('estenosis') === -1,
+        imG7.cat + ' · «' + imG7.vm + '»'],
+      ['⚠️ Y TAMPOCO EL DE >=10 —el criterio del gradiente se retira COMPLETO (decision de Maicol, 2026-10-11)—',
+        imG12.cat === 'gradiente_im' && pl(imG12.vm).indexOf('estenosis') === -1,
+        imG12.cat + ' · «' + imG12.vm + '»'],
+      ['CONTROL NEGATIVO: con IM LEVE el mismo gradiente de 7 SI clasifica como elevado',
+        imLeveG7.cat === 'gradiente', imLeveG7.cat + ' · «' + imLeveG7.vm + '»'],
+      ['CONTROL NEGATIVO: y el mismo gradiente de 12 SI es significativa',
+        imLeveG12.cat === 'severa' && imLeveG12.grado === 'severa',
+        imLeveG12.cat + ' grado=' + imLeveG12.grado + ' · «' + imLeveG12.vm + '»'],
+      ['⚠️ el AREA sigue votando con IM significativa: 1,2 cm² con gradiente 12 es significativa, no «gradiente con IM»',
+        imAreaG12.cat === 'severa' && imAreaG12.grado === 'severa',
+        imAreaG12.cat + ' grado=' + imAreaG12.grado + ' · «' + imAreaG12.vm + '»'],
+      // (3)
+      ['una fuente SIN RESOLVER vota por su valor, como antes de esta regla',
+        sinResolver.cat === 'severa' && sinResolver.chkPlan.indexOf('T') === -1,
+        sinResolver.cat + ' chk=' + sinResolver.chkPlan + ' avm=' + sinResolver.avm_plan],
+      ['DENOMINADOR: antes de destildar la escena SI afirmaba la estenosis',
+        antesDeDestildar.cat === 'severa',
+        antesDeDestildar.cat + ' chk=' + antesDeDestildar.chk],
+      ['⚠️ y DESTILDADA deja de votar: la categoria se cae y el area pasa a «no incluido», con el valor INTACTO en el campo',
+        destildada.cat === 'nada' && destildada.chk === '0T' &&
+        destildada.avm_plan === '1.2' && destildada.noIncl.indexOf('planimetr') > -1,
+        destildada.cat + ' chk=' + destildada.chk + ' avm=' + destildada.avm_plan +
+        ' noIncl=«' + destildada.noIncl + '» · «' + destildada.vm + '»'],
+      // (4)
+      ['DENOMINADOR: el estudio que se «firma» afirma la estenosis',
+        firmado.cat === 'severa', firmado.cat + ' · «' + firmado.vm + '»'],
+      ['DENOMINADOR: el blob legado quedo SIN la clave del selector y CON el area',
+        !('em_pdf_plan__chk' in legado) && legado.avm_plan === '1.2',
+        'sinClave=' + !('em_pdf_plan__chk' in legado) + ' avm=' + legado.avm_plan],
+      ['⚠️ UN ESTUDIO ANTERIOR AL SELECTOR REABRE con la MISMA categoria y la MISMA frase: la compuerta no se aplica a una casilla sin resolver',
+        legAbr.cat === firmado.cat && legAbr.vm === firmado.vm,
+        legAbr.cat + ' chk=' + legAbr.chk + ' · «' + legAbr.vm + '»'],
+      ['⚠️ Y REIMPRIME igual —ahi calcEM NO corre y el restaurador lee la clave ausente como desmarcada—, asi que el PDF reimpreso no pierde la estenosis que el firmado afirma',
+        legRei.cat === firmado.cat && legRei.vm === firmado.vm,
+        legRei.cat + ' chk=' + legRei.chk + ' · «' + legRei.vm + '»'],
+      ['CONTROL NEGATIVO: con el «no» del medico PERSISTIDO la fuente deja de votar al abrir —si no, las dos de arriba pasarian porque la compuerta no hace nada—',
+        noAbr.cat === 'nada' && noAbr.avm_plan === '1.2',
+        noAbr.cat + ' chk=' + noAbr.chk + ' avm=' + noAbr.avm_plan],
+      ['CONTROL NEGATIVO: y tampoco al reimprimir, porque «__tocado» viaja con el estudio',
+        noRei.cat === 'nada' && noRei.avm_plan === '1.2',
+        noRei.cat + ' chk=' + noRei.chk + ' avm=' + noRei.avm_plan]
+    ] };
+  })();
+`);
+
 const recorte = (s) => !s ? '(vacio)' : String(s).replace(/\n/g, ' | ').slice(0, 150);
 
 // ── Main ────────────────────────────────────────────────────────────────────────────────────

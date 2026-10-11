@@ -18838,9 +18838,14 @@ const AVM_MODERADA_MAX  = 2.5;   // cm² — referencia del panel de Evidencia; 
      · `AVM_NORMAL_MIN = 4.0` y `avmEsNormal()` — el piso de normalidad del 25/09. Existían para
        que un área sana no cayera en la banda «leve» de 2,5-4,0; al eliminarse esa banda —y con
        ella toda la graduación automática— el piso se quedó sin ninguna cascada que proteger.
-     · `GMED_MITRAL_SEVERO_MIN = 10` — el corte de «gradiente medio ≥10 → severa». La app ya no
-       gradúa la EM por gradiente: el único corte vivo es `EM_GMEDIO_SIGNIF = 4` (ASE 2023), que
-       no gradúa nada, decide si hay CATEGORÍA.
+     · `GMED_MITRAL_SEVERO_MIN = 10` — el corte de «gradiente medio ≥10 → severa».
+       ⚠️ ESTE PÁRRAFO QUEDÓ VIEJO EL 2026-10-11 y se corrige acá en vez de borrarse, porque el
+       número volvió: decía que «la app ya no gradúa la EM por gradiente» y que «el único corte
+       vivo es `EM_GMEDIO_SIGNIF = 4`». Hoy los cortes del gradiente son DOS —
+       `EM_GMEDIO_ELEVADO_MIN = 5` y `EM_GMEDIO_SIGNIF_MIN = 10`, los dos con borde `>=`, de la
+       Tabla 1 de la ASE 2023 (folio 8)— y el de 10 SÍ clasifica: da «estenosis significativa» sin
+       área. El 10 de aquella constante era el mismo número de la misma tabla; lo que cambió no es
+       el corte sino que la categoría es binaria y la banda media tiene su propio nombre.
    Se borran en vez de dejarse huérfanas: un `GMED_MITRAL_SEVERO_MIN` vivo al lado de un corte de
    4 mmHg es la invitación a reintroducir la escalera, y este archivo ya documenta que «una
    constante que no gobierna nada es peor que el literal». `AVM_SEVERA_MAX` (1,5) y
@@ -24065,11 +24070,37 @@ window.emContValido = emContValido; window.emContFueraBanda = emContFueraBanda;
    respaldo, con la misma precedencia que ya usan `em-plan-row` y la fila del PDF.
 
    Devuelve datos, no HTML: lo consumen la pantalla, el informe narrativo, el EN SUMA y el PDF. */
-const EM_GMEDIO_SIGNIF = 4;     // mmHg — definición de EM reumática (WHF, citada por ASE 2023 p.7)
+/* ══ LOS DOS CORTES DEL GRADIENTE MEDIO — ASE 2023, Tabla 1, p. 8 ════════════════════
+   Reemplazan a `EM_GMEDIO_SIGNIF = 4` (borde `>`), que era la definición de EM REUMÁTICA de la
+   WHF —no un corte de severidad— y decidía si había CATEGORÍA con un solo escalón.
+   La Tabla 1 de la ASE 2023 «Classification of Mitral Stenosis Severity» (folio 8) publica el
+   gradiente medio en TRES bandas —`< 5` / `5-9` / `>= 10` mmHg— con su nota «a una frecuencia
+   cardíaca de 60-80 lpm». De ahí salen estos dos números y sus bordes:
+     · `>= EM_GMEDIO_ELEVADO_MIN` (5)  → gradiente ELEVADO, la banda media;
+     · `>= EM_GMEDIO_SIGNIF_MIN`  (10) → gradiente SIGNIFICATIVO, la banda alta.
+   ⚠️ EL BORDE ES `>=` EN LOS DOS Y NO `>`, y ese cambio mueve un caso real: con el `>` anterior
+   un gradiente de 5,0 —el borde exacto que publica la guía— no entraba a la banda media.
+   ⚠️ LAS DOS BANDAS NO SE SOLAPAN Y NO HAY ZONA GRIS: `< 5` no clasifica, de `5` a `9,99` es
+   elevado y `>= 10` es significativo. La guía escribe la banda media «5-9» porque su tabla
+   publica enteros; acá manda el corte de arriba, así que un 9,9 cae en elevado por ser `< 10`. */
+const EM_GMEDIO_ELEVADO_MIN = 5;    // mmHg — borde >= · ASE 2023 Tabla 1, p. 8 (banda 5-9)
+const EM_GMEDIO_SIGNIF_MIN  = 10;   // mmHg — borde >= · ASE 2023 Tabla 1, p. 8 (banda >=10)
+/* ⚠️ `severa` ES LA CLAVE INTERNA DE «SIGNIFICATIVA», Y NO SE RENOMBRA. La nomenclatura de la
+   ASE 2023 —que coincide con la ESC/EACTS— es «significativa / no significativa», así que lo que
+   cambia es el TEXTO y no la clave. La clave la leen cuatro consumidores —`SEV_SINC.em.calcular`,
+   `imOndaEPintar`, `emGradoAuto` y las tablas de frases de `generarInforme`— y `emGradoAuto`
+   escribe con ella el valor guardado `em_grado='severa'`, que es lo que leen el Excel, el
+   Laboratorio (`_labEstenSev`, por regex sobre el valor guardado) y el panel de Evidencia.
+   Renombrarla sería migrar los estudios guardados y mover columnas de la planilla para cambiar
+   una palabra de pantalla.
+   ⚠️ `probable` SE ELIMINÓ (decisión de Maicol, 2026-10-11). Con fuentes que discrepan prevalece
+   el PEOR de las MARCADAS, así que una sola fuente marcada y válida por debajo del corte alcanza
+   para `severa`. Los cuatro que la leían la equiparaban a `severa` —`SEV_SINC.em.calcular`,
+   `imOndaEPintar`, `emGradoAuto` y `_emAppSevera`/`_emCatAct` de `generarInforme`—, así que al
+   desaparecer la clave esos caminos siguen dando lo mismo por la rama de `severa`. */
 const EM_CAT_TXT = {
-  severa:        'Estenosis mitral severa',
-  probable:      'Probablemente estenosis mitral severa',
-  gradiente:     'EM con gradiente elevado',
+  severa:        'Estenosis mitral significativa',
+  gradiente:     'EM no significativa, con gradiente elevado',
   gradiente_im:  'Gradiente transmitral elevado'
 };
 /* ⚠️ UN SOLO DUEÑO DE «¿ESTE ÁREA ALCANZA EL CORTE?». Lo consumen `emCategoria` y la calculadora
@@ -24109,12 +24140,41 @@ function emFueraBanda(id){
   try { return !!vPlaus(id).fuera; } catch (e) { return false; }
 }
 window.emFueraBanda = emFueraBanda;
+/* ══ «¿ESTE MÉTODO ESTÁ MARCADO EN «INCLUIR EN EL INFORME»?» ══════════════════════════
+   Decisión de Maicol (2026-10-11): de las tres fuentes de área votan SÓLO las que el médico
+   MARCÓ. Hasta hoy `emCategoria` no consultaba ninguna casilla —las tres votaban por tener
+   valor— y la casilla gobernaba únicamente las filas del PDF (`emAvmPdfVal`).
+   ⚠️ LA COMPUERTA SE APLICA SÓLO SI LA CASILLA ESTÁ RESUELTA, Y DE ESO DEPENDE QUE LOS ESTUDIOS
+   GUARDADOS SIGAN REIMPRIMIENDO LO QUE SE FIRMÓ. Un `.checked` pelado habría cambiado la
+   categoría de toda la base anterior a este selector: esos estudios no traen `em_pdf_plan__chk`,
+   y las DOS rutas de restauración lo leen como DESMARCADO —`_restaurarChkInclusion` hace
+   `cb.checked = false` cuando la clave falta, y la ventana de reimpresión hace
+   `el.checked = (c[el.id+'__chk'] === '1')`— mientras que `calcEM`, la única que vuelve a subir el
+   tilde, NO corre en esa ventana. O sea: reimprimir un guardado con AVm 1,2 cm² por planimetría
+   habría pasado de «estenosis significativa» a «sin veredicto», borrando del PDF reimpreso la
+   estenosis que el PDF firmado afirma, y en silencio. Es el MISMO defecto que `emAvmPdfVal` ya
+   documenta haber evitado para la fila «AVm» del papel —ver su nota sobre `em_pdf_thp__chk`—.
+   «Resuelta» es `dataset.tocado` (el médico la tocó) o `dataset.desdeEstudio` (esta carga trae una
+   respuesta del estudio): las MISMAS dos banderas que `_pdfMetodoChk` usa para no pisar la
+   decisión del médico, así que no hay una tercera lectura de «¿ya decidió?».
+   Sin ninguna de las dos el método vota por su VALOR, como hasta hoy.
+   ⚠️ FALLA ABIERTO sin la casilla en el DOM: devuelve `true`. La dirección segura acá es seguir
+   votando, porque la contraria pierde un hallazgo del informe firmado por un hueco de interfaz.
+   El THP no puede quedar resuelto-desmarcado —su casilla no se puede destildar (`onchange` la
+   repone) y nadie le escribe `tocado`—, así que pasa por acá y siempre vota, idéntico a hoy. */
+function emMetodoIncluido(idChk){
+  const cb = document.getElementById(idChk);
+  if (!cb) return true;
+  if (cb.dataset.tocado || cb.dataset.desdeEstudio) return !!cb.checked;
+  return true;
+}
+window.emMetodoIncluido = emMetodoIncluido;
 function emCategoria(){
   /* Sobre una prótesis NO se aplica ningún corte de válvula nativa — es la Fase A, y esta regla
      es de la mitral NATIVA. Se devuelve una clave propia para que el llamador la distinga de
      «no hay categoría»: la pantalla dice que no se gradúa y el informe no escribe nada. */
   if (typeof protNoGradua === 'function' && protNoGradua('vm_morf'))
-    return { clave:'protesis', gm:null, fuentes:[], sev:[], noSev:[], revisar:[] };
+    return { clave:'protesis', gm:null, fuentes:[], sev:[], noSev:[], revisar:[], noIncl:[] };
 
   /* Todas las fuentes VÁLIDAS, en el orden de preferencia de la ASE 2023. Se juntan TODAS y no
      sólo la primera: con la preferencia decidiendo sola, una fuente válida que alcanza el corte
@@ -24129,6 +24189,10 @@ function emCategoria(){
      alimenta la rama de valores medidos y el detalle de la pantalla. */
   const fuentes = [];
   const revisar = [];
+  /* Los métodos CON valor que el médico sacó del informe. No votan y no se clasifican, pero se
+     devuelven porque el cuadro de referencias de Válvulas los muestra como «no incluido»: sin la
+     lista, un área cargada desaparecería de la pantalla sin que nada dijera por qué. */
+  const noIncl  = [];
   const _pos = x => x != null && x > 0;
   /* Devuelve `true` si el campo TENÍA un valor —plausible o no—, para que el llamador distinga
      «no se midió» de «se midió y no se puede usar». */
@@ -24147,9 +24211,15 @@ function emCategoria(){
      ⚠️ Y SE ANOTA EL INSUMO, NO EL DERIVADO: lo que el médico tiene que corregir es el THP de 0,12,
      no el área de 1833 cm² que sale de él. La cápsula imprime `fuente` y `avm`, así que publicar
      el área mandaría a revisar la unidad de un número que el médico no tipeó. */
-  const _tomar = (id, fuente, vota, insumo) => {
+  const _tomar = (id, fuente, vota, insumo, chk) => {
     const x = v(id);
     if (!_pos(x)) return false;
+    /* ⚠️ LA CASILLA SE PREGUNTA ANTES DE LA BANDA, Y NO AL REVÉS. Un método que el médico sacó
+       del informe no es una fuente, así que tampoco es un dato a corregir: con el orden invertido,
+       destildar una planimetría de 150 cm² dejaba la cápsula diciendo «Sin clasificar — revisar
+       unidad» sobre un método ya excluido, o sea un reclamo sobre algo que no participa. Va a
+       `noIncl` y a nada más; el número se sigue viendo en su fila, que es donde se corrige. */
+    if (chk && !emMetodoIncluido(chk)) { noIncl.push({ avm:x, fuente:fuente, id:id }); return true; }
     if (emFueraBanda(id)) { revisar.push({ avm:x, fuente:fuente, id:id }); return true; }
     if (insumo) { const _r = insumo(); if (_r) { revisar.push(_r); return true; } }
     if (vota && !vota()) return true;
@@ -24168,10 +24238,11 @@ function emCategoria(){
      planimetría, y su ÚNICO consumidor era esa condición —medido por grep, una sola aparición en
      todo el archivo—. Dejarlo asignado y sin leer sería un cabo suelto que la próxima lectura
      interpreta como que alguien se olvidó de usarlo. */
-  _tomar('avm_plan', 'planimetría');
+  _tomar('avm_plan', 'planimetría', null, null, 'em_pdf_plan');
   _tomar('avm_thp',  'THP',          emThpValido,
-    function(){ return emThpFueraBanda() ? { avm:v('thp'), fuente:'THP', id:'thp' } : null; });
-  _tomar('avm_cont', 'continuidad',  emContValido);
+    function(){ return emThpFueraBanda() ? { avm:v('thp'), fuente:'THP', id:'thp' } : null; },
+    'em_pdf_thp');
+  _tomar('avm_cont', 'continuidad',  emContValido, null, 'em_pdf_cont');
 
   const sev   = fuentes.filter(function(f){ return emAvmSevera(f.avm); });
   const noSev = fuentes.filter(function(f){ return !emAvmSevera(f.avm); });
@@ -24180,19 +24251,52 @@ function emCategoria(){
   const _gmFuera = _gmCrudo != null && emFueraBanda('em_gmedio');
   const gm = _gmFuera ? null : _gmCrudo;
   if (_gmFuera) revisar.push({ avm:_gmCrudo, fuente:'gradiente medio', id:'em_gmedio' });
-  const _r = { gm:gm, fuentes:fuentes, sev:sev, noSev:noSev, revisar:revisar };
+  const _r = { gm:gm, fuentes:fuentes, sev:sev, noSev:noSev, revisar:revisar, noIncl:noIncl };
 
-  /* PREVALECE EL PEOR. Con todas las fuentes válidas por debajo del corte no hay nada que
-     matizar; con una sola por debajo, el matiz es «probablemente» y los DOS valores se publican
-     con su método, porque cuál discrepa es la información que el médico necesita para resolverlo. */
-  if (sev.length && !noSev.length) return Object.assign({ clave:'severa' }, _r);
-  if (sev.length && noSev.length)  return Object.assign({ clave:'probable' }, _r);
-  if (gm != null && gm > EM_GMEDIO_SIGNIF)
-    return Object.assign({ clave: emImSignificativa() ? 'gradiente_im' : 'gradiente' }, _r);
+  /* ══ LA REGLA, EN CUATRO ESCALONES — ASE 2023 (coincide con ESC/EACTS) ══════════════════
+     SIGNIFICATIVA si el peor AVm de las MARCADAS alcanza el corte (`<= AVM_SEVERA_MAX`, 1,5 cm²)
+     O si el gradiente medio es `>= EM_GMEDIO_SIGNIF_MIN` (10 mmHg).
+     NO SIGNIFICATIVA CON GRADIENTE ELEVADO cuando no es significativa y el gradiente cae en la
+     banda media (`>= 5` y `< 10`).
+
+     ⚠️ PREVALECE EL PEOR, Y YA NO HAY MATIZ. Basta UNA fuente marcada y válida por debajo del
+     corte: con `sev.length` alcanza, sin preguntar por `noSev`. Antes esa combinación daba
+     `probable` («probablemente severa») y los dos valores viajaban al papel con su método; hoy la
+     discrepancia no cambia el VEREDICTO —lo decide el peor— y los otros métodos marcados se
+     siguen publicando al lado, que es lo que el médico necesita para resolverla. `sev` y `noSev`
+     se devuelven igual porque de ellos salen el detalle del informe y la marca «peor» del cuadro.
+
+     ⚠️ CON IM SIGNIFICATIVA EL CRITERIO DEL GRADIENTE SE RETIRA COMPLETO —LAS DOS BANDAS, `5` a
+     `<10` Y TAMBIÉN `>= 10`— (decisión de Maicol, 2026-10-11). Con una insuficiencia mitral
+     moderada o mayor el gradiente transmitral sube por VOLUMEN y no por obstrucción, así que no
+     afirma estenosis por mucho que supere los 10 mmHg: la categoría es `gradiente_im` y su texto
+     no lleva la palabra «estenosis». El ÁREA de las fuentes marcadas SIGUE VOTANDO —un AVm de
+     1,2 cm² es una obstrucción medida, no una inferencia de flujo—, y por eso el escalón del
+     área va PRIMERO: así una EM significativa por área con IM severa se sigue llamando
+     significativa. `emImSignificativa()` falla CERRADO —un `im_grado` ilegible cuenta como
+     significativa— hacia NO afirmar la estenosis, que es la frase que no afirma de más. */
+  const _gmElev   = gm != null && gm >= EM_GMEDIO_ELEVADO_MIN;
+  const _gmSignif = gm != null && gm >= EM_GMEDIO_SIGNIF_MIN;
+  if (sev.length)                      return Object.assign({ clave:'severa' }, _r);
+  if (_gmElev && emImSignificativa())   return Object.assign({ clave:'gradiente_im' }, _r);
+  if (_gmSignif)                        return Object.assign({ clave:'severa' }, _r);
+  if (_gmElev)                          return Object.assign({ clave:'gradiente' }, _r);
   return Object.assign({ clave:'nada' }, _r);
 }
 window.emCategoria = emCategoria; window.EM_CAT_TXT = EM_CAT_TXT;
-window.EM_GMEDIO_SIGNIF = EM_GMEDIO_SIGNIF; window.emImSignificativa = emImSignificativa;
+/* ⚠️ ESTA LÍNEA SEGUÍA EXPORTANDO `EM_GMEDIO_SIGNIF`, LA CONSTANTE QUE EL COMMIT A BORRÓ, Y ESO
+   MATÓ LA APP ENTERA. No es una metáfora: un `ReferenceError` en la evaluación de un `<script>`
+   aborta el bloque COMPLETO, así que no se definían `showTab`, `calcEM` ni nada de lo que viene
+   después —la página cargaba «entera» y ninguna pestaña tenía geometría—. Lo cazó la sonda y no
+   la lectura: `grep` de la constante mostraba las tres apariciones, y las dos que quedaban eran
+   comentarios, así que la tercera —la única ejecutable— se perdía en el ruido.
+   Nadie fuera de `emCategoria` la leía (medido: cero apariciones en `scripts/`, `tests/` y el
+   resto de `index.html`), así que se exportan las DOS nuevas en su lugar, con el mismo criterio de
+   siempre —los cortes vivos se publican en `window` para que los arneses los lean de la app y no
+   los copien—. */
+window.EM_GMEDIO_ELEVADO_MIN = EM_GMEDIO_ELEVADO_MIN;
+window.EM_GMEDIO_SIGNIF_MIN  = EM_GMEDIO_SIGNIF_MIN;
+window.emImSignificativa = emImSignificativa;
 /* ⚠️ `em_grado` VUELVE A TENER UN ESCRITOR, Y ES ÉSTE — el único. Escribe SÓLO «severa» (cuando la
    regla da severa o probablemente severa) o «sin»; leve y moderada NO se autocompletan nunca.
    Que escriba también «sin» no es un adorno: sin esa mitad el campo se queda RANCIO en cuanto el
@@ -24602,7 +24706,7 @@ function calcEM() {
         sevEl.appendChild(_rs);
       } else {
         sevEl.textContent = (cat.fuentes.length || cat.gm != null)
-          ? 'Sin criterios de EM severa' : '\u2014';
+          ? 'Sin criterios de EM significativa' : '\u2014';
       }
     } else {
       const _col = (cat.clave === 'severa') ? 'var(--red)' : '#f59e0b';
@@ -24630,7 +24734,12 @@ function calcEM() {
      score, que ya no existe. Hoy la decide `emCategoria` —clave `probable`— y acá sólo se pinta:
      derivarla otra vez sería la segunda lectura de la misma regla. */
   if (discEl) {
-    discEl.textContent = (cat.clave === 'probable')
+    /* ⚠️ COLGABA DE `cat.clave === 'probable'`, Y ESA CLAVE YA NO EXISTE. Sin este cambio el
+       aviso quedaba MUDO para siempre: la discrepancia sigue ocurriendo —fuentes marcadas a los
+       dos lados del corte— pero ya no produce una clave propia, porque el veredicto lo decide el
+       peor. Se pregunta por el HECHO (`sev` y `noSev` las dos con contenido) y no por el nombre de
+       una categoría, que es lo que lo dejó colgando. Es pantalla: el papel no lleva este aviso. */
+    discEl.textContent = (cat.sev.length && cat.noSev.length)
       ? '⚠️ Áreas discordantes — prevalece el peor: ' +
         cat.fuentes.map(function(f){ return f.fuente + ' ' + f.avm.toFixed(2); }).join(', ')
       : '';
@@ -30023,7 +30132,11 @@ function imOndaEPintar() {
      apagan la fila: ahí el gradiente transmitral alto sube la onda E por el mismo mecanismo. */
   if (typeof emCategoria === 'function') {
     try { const _c = emCategoria().clave;
-      if (_c === 'severa' || _c === 'probable' || _c === 'gradiente' || _c === 'gradiente_im') { raya(); return; }
+      /* `probable` salió de la lista con la clave (2026-10-11): la discrepancia de áreas hoy
+         devuelve `severa`, que ya está acá. Dejar el literal sería un cabo suelto que la próxima
+         lectura interpreta como una categoría viva. Las tres que quedan apagan la fila por el
+         mismo mecanismo: con obstrucción o gradiente alto, la onda E sube por el llenado. */
+      if (_c === 'severa' || _c === 'gradiente' || _c === 'gradiente_im') { raya(); return; }
     } catch (e) { console.warn('[imOndaE] emCategoria', e); }
   }
   /* `_imVmProt()` y no una copia: es el dueño de «¿esta mitral es protésica?» para todo el árbol
@@ -34917,20 +35030,28 @@ function generarInforme(opts) {
        lo dicen», y sin él el informe afirmaría con la misma seguridad en los dos casos. */
     const _emDisc = () => _emUnir(emCat.noSev.map(_emAvm)) + ', probablemente severa por ' +
       _emUnir(emCat.sev.map(f => f.fuente + ' (AVm ' + f.avm.toFixed(2) + ' cm²)'));
+    /* ⚠️ ANDAMIO DEL COMMIT A, REEMPLAZADO POR LAS PLANTILLAS DEL COMMIT B. Desde que el
+       gradiente `>= 10` da `severa` SIN NINGUNA FUENTE DE ÁREA, `emCat.sev` puede venir vacío y
+       `_emUnir([])` devuelve `''`: las tres tablas de abajo imprimían «estenosis severa ()» —con
+       los paréntesis vacíos— en el informe FIRMADO. Se cubre en el MISMO commit que crea la rama
+       para que ningún commit de esta tanda deje una frase malformada en el papel. */
+    const _emDetSev = () => emCat.sev.length ? _emUnir(emCat.sev.map(_emAvm))
+                    : (emCat.gm != null ? 'gradiente medio ' + emCat.gm + ' mmHg' : '');
+    const _emParen = t => t ? ' (' + t + ')' : '';
     const EM_CAT_EST = {
-      severa:       () => 'estenosis severa (' + _emUnir(emCat.sev.map(_emAvm)) + ')',
+      severa:       () => 'estenosis severa' + _emParen(_emDetSev()),
       probable:     _emDisc,
       gradiente:    () => 'estenosis con gradiente medio elevado',
       gradiente_im: () => 'gradiente transmitral elevado'
     };
     const EM_CAT_CORTO = {
-      severa:       () => 'EM severa (' + _emUnir(emCat.sev.map(_emAvm)) + ')',
+      severa:       () => 'EM severa' + _emParen(_emDetSev()),
       probable:     _emDisc,
       gradiente:    () => 'EM con gradiente elevado',
       gradiente_im: () => 'gradiente transmitral elevado'
     };
     const EM_CAT_SUMA = {
-      severa:       () => 'Estenosis mitral severa (' + _emUnir(emCat.sev.map(_emAvm)) + ').',
+      severa:       () => 'Estenosis mitral severa' + _emParen(_emDetSev()) + '.',
       probable:     () => 'Estenosis mitral probablemente severa por ' +
                           _emUnir(emCat.sev.map(f => f.fuente + ' (AVm ' + f.avm.toFixed(2) + ' cm²)')) +
                           ', con ' + _emUnir(emCat.noSev.map(_emAvm)) + '.',
@@ -99940,8 +100061,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261011-0047';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791690443305;                 /* eco-build-ms */
+const ECO_BUILD    = '20261011-0356';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791701806318;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -100027,7 +100148,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-0047</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-0356</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
