@@ -201,25 +201,33 @@ impecable.
 
 ## Estado vigente
 
-- Al **empezar** la tanda 3D E2 (2026-10-04), `main` local y `origin/main` estaban los dos en
-  **`27b5d0f`**, sin nada sin pushear. El commit de esta tanda queda local; el push lo corre
-  Maicol.
+- Al **empezar** la tanda de la estenosis mitral binaria (2026-10-11), `main` local y `origin/main`
+  estaban los dos en **`8a1d411`**, sin nada sin pushear —confirmado con un `git fetch` de verdad y
+  no con el ref en caché—. Los **cuatro** commits de esa tanda (`dae0064`, `128dc4f`, `0142b24` y
+  este) quedan locales; el push lo corre Maicol.
+  ⚠️ **Esa tanda arrancó PARANDO en el punto 0**, porque había un commit de documentación sin
+  pushear (`8a1d411`, la línea base remedida). Era sólo `CLAUDE.md`, pero la orden decía parar y
+  avisar: mezclarlo con la tanda rompe «revertir cada commit solo».
   ⚠️ **Este renglón se escribió mal una vez**: decía «doce commits sin pushear, `origin/main` en
   `2e017a1`», copiado del estado anterior sin mirar. `origin/main` había avanzado. Antes de
   escribirlo, `git rev-parse --short origin/main` y `git log --oneline origin/main..HEAD`.
-- **Línea base al 2026-10-11 al cierre de la tanda del reparto de las dos lesiones mitrales y del
-  AVm por THP con IAo severa: suite 460/464 con el pendrive MONTADO, Semgrep 127 / 0 ERROR,
-  Excel 434 columnas.** Los cuatro rojos son los de entrada y NO son regresiones: **TC-223** (el
-  documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**. Con el pendrive AFUERA no
-  se midió en esta tanda; ahí caen además los diecisiete de **TC-181…TC-197**, los del pendrive
-  `DISK_IMG`, que son ENTORNO y no prueban nada. Chequeo de celular:
+- **Línea base al 2026-10-11 al cierre de la tanda de la estenosis mitral binaria: suite 461/465
+  con el pendrive MONTADO, Semgrep 127 / 0 ERROR, Excel 434 columnas.** Los cuatro rojos son los de
+  entrada y NO son regresiones: **TC-223** (el documentado, falla por la fecha), **TC-376**,
+  **TC-390** y **TC-406**. Con el pendrive AFUERA no se midió en esta tanda; ahí caen además los
+  diecisiete de **TC-181…TC-197**, los del pendrive `DISK_IMG`, que son ENTORNO y no prueban nada.
+  Chequeo de celular, idéntico a antes de la tanda:
   `node scripts/check_mobile.js` → **43 hallazgos a 360 px y 52 a 390 px, 1 ALTA cada uno**;
-  con `--todo` → **367 a 360 px y 376 a 390 px, 1 ALTA cada uno**.
-  ⚠️ **El denominador es 464 y no 461**: esta tanda sumó **TC-448** —el reparto de las dos lesiones,
-  las tres columnas de la insuficiencia y el aviso del TSVI— y **TC-449**, el AVm por THP con IAo
-  severa. Los renglones viejos de este archivo —421/422, 425/429, 426/430, 436/440, 445/449,
-  439/460, 440/461— quedaron atrás, así que volver a medir antes de leer una tanda de mutaciones
-  sigue siendo obligatorio.
+  con `--todo` → **367 a 360 px y 376 a 390 px, 1 ALTA cada uno**. La única ALTA es el
+  `#caso_interes` preexistente y ajeno.
+  ⚠️ **El denominador es 465 y no 464**: esta tanda sumó **TC-450**, la cobertura de la regla nueva
+  (32 condiciones). Los renglones viejos de este archivo —421/422, 425/429, 426/430, 436/440,
+  445/449, 439/460, 440/461, 460/464— quedaron atrás, así que volver a medir antes de leer una
+  tanda de mutaciones sigue siendo obligatorio.
+  ⚠️ **El «2 hallazgo/s de severidad ALTA» del resumen de `check_mobile.js` ES EL TOTAL DE LOS DOS
+  ANCHOS**, no una regresión: 1 a 360 px + 1 a 390 px, el mismo `#caso_interes` las dos veces. Leí
+  ese renglón como «subió de 1 a 2» y fui a buscar un defecto que no existía. Mirar los `▸ NNN px`
+  de arriba, que son los que la línea base compara.
   ⚠️ **Y EL PENDRIVE SE DESMONTÓ A MITAD DE ESTA TANDA**: abrió montado (452/456, 4 rojos) y cerró
   afuera (439/460, 21 rojos). Las dos describen el mismo árbol; restarlas da una «regresión» de 17
   casos que no existe. Mirar `ls /Volumes/DISK_IMG` ANTES de comparar dos cifras, incluso dentro de
@@ -231,6 +239,87 @@ impecable.
   que 7 tenían una causa ÚNICA y compartida (el guardián del importador) y ninguno era de la mitral
   aunque sus títulos lo dijeran. Correr los sospechosos con `--solo` **sobre HEAD** fue lo que
   separó «lo rompí yo» de «ya estaba roto»: dieron 17/17 ✓.
+
+### Estenosis mitral — la regla es BINARIA: significativa / no significativa (2026-10-11)
+
+- **Dos cortes de gradiente donde había uno.** `EM_GMEDIO_SIGNIF = 4` (borde `>`) se reemplazó por
+  **`EM_GMEDIO_ELEVADO_MIN = 5`** y **`EM_GMEDIO_SIGNIF_MIN = 10`**, los dos con borde **`>=`**, de
+  la **ASE 2023, Tabla 1, folio 8** (`< 5` / `5-9` / `>= 10`, a FC de 60-80 lpm). `AVM_SEVERA_MAX`
+  (1,5, borde `<=`) **no se tocó**. Significativa = peor AVm `<= 1,5` **O** gradiente `>= 10`.
+- ⚠️ **SACAR UNA CONSTANTE Y DEJAR VIVO SU `window.*` MATA LA APP ENTERA.** La línea
+  `window.EM_GMEDIO_SIGNIF = EM_GMEDIO_SIGNIF` sobrevivió al borrado de la constante: un
+  `ReferenceError` en la evaluación de un `<script>` **aborta el bloque COMPLETO**, así que no se
+  definían `showTab` ni `calcEM` y la página cargaba «entera» con cero pestañas con geometría. Lo
+  cazó la SONDA, no la lectura: `grep` de la constante mostraba tres apariciones y dos eran
+  comentarios, así que la única ejecutable se perdía en el ruido. **Contar los `window.X = X`, no
+  los `grep` de X.**
+- ⚠️ **GATEAR EL VOTO POR LA CASILLA LE CAMBIA LA CATEGORÍA A TODA LA BASE ARCHIVADA, Y HAY UNA
+  SOLA FORMA DE EVITARLO.** De las tres fuentes de área votan sólo las marcadas en «Incluir en el
+  informe», pero la compuerta se aplica **sólo si la casilla está RESUELTA** (`dataset.tocado` o
+  `dataset.desdeEstudio`); sin resolver vota por su valor. Con un `.checked` pelado, los estudios
+  anteriores al selector —que no traen `em_pdf_plan__chk`— reimprimían sin la estenosis que su PDF
+  firmado afirma: `_restaurarChkInclusion` hace `cb.checked = false` cuando la clave falta, la
+  ventana de reimpresión hace `el.checked = (c[id+'__chk'] === '1')`, y **`calcEM` —la única que
+  vuelve a subir el tilde— NO corre en esa ventana**. `emAvmPdfVal` ya documentaba esta trampa
+  para la fila «AVm» del papel; ahora está medida también para el veredicto.
+- **Con IM significativa el criterio del gradiente se retira COMPLETO**, las dos bandas (5 a <10 y
+  también `>= 10`): la categoría es `gradiente_im` y su texto no lleva la palabra «estenosis». El
+  **área sigue votando**, y por eso su escalón va PRIMERO en la cascada.
+- **`probable` se eliminó.** La discrepancia de áreas la decide el peor. El aviso
+  `em-discordancia` tuvo que pasar a colgar del HECHO (`sev` y `noSev` las dos con contenido): con
+  `cat.clave === 'probable'` quedaba **mudo para siempre** sobre una discrepancia que sigue
+  existiendo.
+- **La palabra visible y el valor guardado son dos cosas.** `em_grado='severa'` **no cambia** —lo
+  leen el Excel, `_labEstenSev` y Evidencia— y se muestra «Significativa». Un solo dueño,
+  `EM_GRADO_VIS`/`emGradoVis`, donde había **cuatro** mapas de la misma palabra.
+  ⚠️ **Y DE LA `<option>` CUELGA EL PPT:** `_pptSel` devuelve el TEXTO de la opción cuando el nodo
+  es un `<select>`, así que la franja de hallazgos pasó de «EM: severa» a «EM: significativa». Es
+  el «empate frágil» que el comentario del PPT declaraba, roto a propósito y medido.
+- ⚠️ **TRES FRASES DEL PAPEL SALIERON MAL DE LA PRIMERA PLANTILLA, Y LAS ENCONTRÓ LA TABLA DE
+  FRASES —no la lectura—.** (1) paréntesis anidados terminando en «))», el mismo defecto que la
+  rama de prótesis ya documenta; (2) con el criterio sólo del gradiente, el área iba primero y la
+  frase arrancaba con «AVm 4.00 cm²» dentro de una oración que afirma estenosis significativa
+  —el dato que la niega—; (3) «(por gradiente: gradiente medio 10 mmHg)», que se repite a sí
+  misma. **Medir la tabla completa de combinación × estilo antes de commitear el papel.**
+- **Con el ÚNICO método destildado la estenosis se CALLA** —ni afirmación ni número, como la rama
+  de prótesis—. Antes publicaba «sin estenosis ni insuficiencia» sobre una válvula con AVm 1,2
+  medido; y la rama de «valores sin veredicto» publicaba «morfología normal ().» con la lista
+  vacía, el mismo paréntesis vacío del «estenosis severa ()» de al lado.
+- **El cuadro de Válvulas cita SOLO ASE 2023**, y no es cosmético: decía «ESC/EACTS 2021 · ASE
+  2023» y **`FUENTES.md` no tiene NINGUNA entrada de ESC/EACTS 2021** —cero—. La ESC/EACTS 2025
+  está registrada pero **sin página verificada de severidad de EM**. El censo de lo que sigue
+  citándola en otros módulos está en `FUENTES.md` y en `docs/PENDIENTES.md`.
+- **El cuadro necesitó LAS DOS COLUMNAS**, como `itIncongruenciaSync` y `eteVmAvisoSync`:
+  `emCuadroRefRepintar` en `RECALC_MODULOS` —`calcEM` no está en esa lista— y `limpiarCampos`
+  reponiendo la **clase** (el texto lo pone en «—» el barrido genérico de
+  `.calc-box .calc-row span[id]`, que es además el estado pedido).
+- ⚠️ **LA PRIMERA PASADA DE CELULAR DEL CUADRO FUE UN FALSO, Y POR UNA CAUSA NUEVA:** la sonda
+  tipeaba `thp`, que vive en la pestaña **Doppler**, y `showTab` se llevaba el cajón de la
+  estenosis. A 360 px `bloque-em-detalle` quedaba en `display:none` **computado** pese al
+  `display:block` en línea —el CSS del celular usa `.valv-datos-abierto > #bloque-em-detalle` con
+  `!important`—, el gradiente nunca reciía el tecleo y las cuatro filas medían `w=0`: «ninguna fila
+  desborda» sobre un cuadro que no estaba dibujado. **Abrir con `valvDatosTog` —el gesto del
+  médico— y verificar el ancho JUSTO ANTES de medir, no al abrir.**
+- ⚠️ **ENTER NO ACTIVA UN CHECKBOX; LA TECLA ES ESPACIO.** El respaldo por tecla de `clicEn` manda
+  Enter, que en un `<button>` es una activación nativa y en un `<input type=checkbox>` **no hace
+  nada**: la sonda informaba «clic: tecla Enter» y medía «sigue votando» sobre un gesto que nunca
+  ocurrió. Y **exigir el estado de partida**: si la casilla ya estaba destildada, el clic la TILDA
+  y la escena mide lo contrario de lo que dice medir.
+- **Cobertura: TC-450**, 32 condiciones —los dos cortes por sus dos lados y sin solape, los dos
+  controles negativos de la IM, el destildado, el estudio anterior al selector por los DOS caminos
+  con su control negativo, las tres reglas de redacción y el cuadro entero—. Verificado que sabe
+  fallar corriendo el caso **contra HEAD en un worktree aparte**: 8 condiciones en rojo.
+  Arnés: `scripts/_probe_emsignif.mjs` (A/B de solo lectura con `--file`).
+- **Adaptados con el motivo escrito en cada caso:** TC-42, TC-43, TC-261, TC-289, TC-304, TC-306,
+  TC-308, TC-384, TC-388 y TC-402.
+  ⚠️ **TC-308 y TC-393 no estaban en mi lista de zona y los destapó la SUITE COMPLETA.** Y en
+  TC-393 cambié a «Significativa» un aviso que es de la **IM**: busqué el literal con `grep` y lo
+  asumí de la estenosis. La nomenclatura nueva es **sólo** de la EM.
+- ⚠️ **Me comí el acento grave CINCO veces en esta tanda** —una en el cuerpo de la SONDA y cuatro
+  en comentarios dentro de un caso— con el archivo que documenta la trampa abierto delante. En una,
+  `node --check` apuntó la línea 37385 y el culpable estaba en la **37549**: 164 líneas después.
+  `scripts/check_backticks.py` dio la línea exacta las cinco veces. **Correrlo antes de cada
+  commit, no después del suite.**
 
 ### ⏸️ PENDIENTE DE MAICOL — la banda de plausibilidad del gradiente VD-AD (2026-10-05)
 

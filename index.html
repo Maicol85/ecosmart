@@ -18835,11 +18835,16 @@ window.AVA_SEVERA_MAX = AVA_SEVERA_MAX; window.avaEsSevera = avaEsSevera;
    daba «severa» por la vía del área y «moderada» por la vía del THP, y las dos votaban en el
    mismo score: una sola medición contada dos veces y en contra de sí misma.
 
-   Verificado contra las guías (septiembre 2026): ESC/EACTS 2021 y 2025 definen estenosis
-   mitral clínicamente significativa / severa como **AVm ≤1.5 cm²**, sin cambios entre las dos
-   ediciones; las recomendaciones ASE 2023 dan severa con **AVm ≤1.5 cm², THP ≥150 ms,
-   gradiente medio ≥10 mmHg y PSAP ≥50 mmHg**. O sea que el THP vigente es ≥150, no ≥220, y
-   ≥150 es coherente con AVm ≤1.5 (220/150 = 1,47).
+   ⚠️ ESTE PÁRRAFO DECÍA «ESC/EACTS 2021 y 2025» Y SE CORRIGIÓ (2026-10-11). La única fuente
+   verificada en `docs/fuentes/FUENTES.md` para los cortes de la estenosis mitral es la
+   **ASE 2023** (Pandian, Tabla 1, folio 8): **AVm > 2,5 / 2,5-1,6 / ≤ 1,5 cm²**, THP
+   **< 100 / 100-149 / ≥ 150 ms**, gradiente medio **< 5 / 5-9 / ≥ 10 mmHg** «a una frecuencia
+   cardíaca de 60-80 lpm», y PSAP **< 30 / 30-49 / ≥ 50 mmHg**. De **ESC/EACTS 2021 no hay
+   NINGUNA entrada** en el registro, y la **ESC/EACTS 2025 está registrada pero sin página
+   verificada de severidad de EM** —lo que tiene de la mitral es de la insuficiencia y de la
+   comisurotomía—. Lo que el párrafo afirmaba de las dos ediciones de la ESC no se puede
+   sostener con lo leído, así que se retira la cita y se deja el dato que SÍ está verificado.
+   El THP vigente es ≥150 y no ≥220, y ≥150 es coherente con AVm ≤1,5 (220/150 = 1,47).
 
    CAMBIO CLÍNICO DECLARADO — el gradiente medio se movió. El archivo tenía
    `else if (gm <= 10) moderada`, o sea severa sólo con gm ESTRICTAMENTE mayor a 10; la guía
@@ -18854,7 +18859,13 @@ window.AVA_SEVERA_MAX = AVA_SEVERA_MAX; window.avaEsSevera = avaEsSevera;
    de número suelto que este bloque existe para eliminar — y además desfasaba, porque el corte
    efectivo del motor es 220/1,5 = 146,7, o sea ≥147 ms, no ≥150. La tabla de referencia
    publica los valores derivados y lo dice. */
-const AVM_SEVERA_MAX    = 1.5;   // cm² — AVm ≤1.5 → severa (ESC/EACTS 2021 y 2025, ASE 2023)
+/* ⚠️ LA CITA DECÍA «ESC/EACTS 2021 y 2025, ASE 2023» Y SE CORRIGIÓ (2026-10-11). De las tres,
+   `docs/fuentes/FUENTES.md` verifica **una sola** para este corte: la ASE 2023 (Pandian, Tabla 1,
+   folio 8, `≤ 1,5 cm²`). De **ESC/EACTS 2021 no hay ninguna entrada** en el registro —cero— y la
+   ESC/EACTS 2025 está registrada pero **sin página verificada de severidad de estenosis mitral**.
+   Nombrar las tres daba por leído lo que nadie leyó, que es lo que la regla de citación de
+   EcoSmart prohíbe. El NÚMERO y el BORDE no se tocaron. */
+const AVM_SEVERA_MAX    = 1.5;   // cm² — AVm ≤1,5 → significativa (ASE 2023, Tabla 1, folio 8)
 /* ⚠️ `AVM_MODERADA_MAX` YA NO GOBIERNA NINGUNA GRADUACIÓN de esta app. Su comentario decía
    «1.5 < AVm ≤2.5 → moderada; >2.5 → sin estenosis / leve», que es la escalera derogada el 28/09.
    Sobrevive porque el panel de Evidencia lo publica como referencia (fuera de alcance) y porque
@@ -100292,8 +100303,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261011-0830';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791718224557;                 /* eco-build-ms */
+const ECO_BUILD    = '20261011-0844';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791719085192;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -100379,7 +100390,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-0830</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-0844</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

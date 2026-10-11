@@ -83,6 +83,13 @@ páginas de lesión en el `full`: cada sección cita su propia tabla en su texto
 | §14.4.2.1, PPM | 4698 | *«established definitions are lacking»* para el PPM mitral y tricuspídeo |
 | **Recommendation Table 17**, disfunción de prótesis | **4700** | **no publica cortes ecocardiográficos** de severidad protésica: dice «significant valve dysfunction» y deja la cuantificación a la ASE |
 
+⚠️ **NO HAY PÁGINA VERIFICADA DE SEVERIDAD DE ESTENOSIS MITRAL EN ESTA ENTRADA** (2026-10-11).
+Se buscó para poder citarla en el cuadro «Categoría EM» de Válvulas y **no está**: lo que esta
+entrada tiene de la mitral es de la **insuficiencia** (Figuras 10 y 12, §9.2.2, Tabla 6) y de la
+**comisurotomía** (Tabla 8, folio 4682, sus contraindicaciones). Por eso ese cuadro cita **sólo
+ASE 2023**. Si alguna vez se verifica la tabla de severidad de EM de este documento, se agrega
+acá con su folio y entonces el encabezado del cuadro puede nombrar a las dos.
+
 ⚠️ **El «may apply» de §9.2.2 NO es un corte nuevo.** En la Figura 10 el corte sigue siendo
 ≥ 40 mm²; el ≥ 30 mm² **cuelga de que el orificio sea elíptico** (y/o bajo flujo). Dar el ≥ 30 mm²
 pelado publicaría un corte incondicional que la guía no da.
@@ -232,6 +239,29 @@ errata «Reumatic»). **Folio = PDF + 2.**
 - **Puntos clave, p. 10** — *«Severe rheumatic MS is indicated by MVA ≤ 1.5 cm², PHT ≥ 150 msec, and
   transmitral mean gradient ≥ 10 mmHg»*. Define la EM **reumática** como gradiente medio > 4 mmHg
   más cambios morfológicos típicos.
+- ✅ **DE ACÁ SALEN LOS TRES CORTES DE LA REGLA DE ESTENOSIS MITRAL DE ECOSMART** (2026-10-11).
+  La Tabla 1 del folio 8 es la **única fuente** que la app cita para esta regla, y cada constante
+  tiene su número y su borde:
+
+  | Constante | Valor | Borde | De dónde sale |
+  |---|---|---|---|
+  | `AVM_SEVERA_MAX` | 1,5 cm² | `<=` | Tabla 1, columna «severe»: `≤ 1,5 cm²` |
+  | `EM_GMEDIO_ELEVADO_MIN` | 5 mmHg | `>=` | Tabla 1, banda media del gradiente: `5-9 mmHg` |
+  | `EM_GMEDIO_SIGNIF_MIN` | 10 mmHg | `>=` | Tabla 1, banda alta del gradiente: `≥ 10 mmHg` |
+
+  La nota de la tabla —**«a una frecuencia cardíaca de 60-80 lpm»**— es una condición de la
+  medición que la app **no verifica**: no recoge la FC del Doppler transmitral. Queda dicho.
+  ⚠️ **El operador del área ya estaba discutido en esta misma entrada** (el cuerpo de la p. 7
+  dice `<` y la Tabla 1 publica `≤`): **manda la Tabla 1**, y por eso el borde de
+  `AVM_SEVERA_MAX` es `<=`. No se movió en esta tanda.
+  ⚠️ **El «> 4 mmHg» de la p. 10 NO es un corte de severidad y dejó de gobernar nada.** Es la
+  definición de EM **reumática** de la WHF que esa página cita, y hasta el 2026-10-11 era el
+  único corte vivo del gradiente en la app (`EM_GMEDIO_SIGNIF = 4`, borde `>`). Se reemplazó por
+  las dos bandas de la Tabla 1, que es la normativa. La **banda `< 5`** no clasifica.
+  ⚠️ **La nomenclatura «significativa / no significativa»** que publica el informe sale de este
+  documento; los rótulos «Leve / Moderada / Severa» de la Tabla 1 **no se usan para la EM**
+  porque la app dejó de graduarla en escalera (28/09). El valor guardado interno sigue siendo
+  `em_grado='severa'`, que es otra cosa que la palabra impresa.
 - **p. 8** — la ecuación de continuidad para el área mitral *«is not well validated and is
   infrequently used»* y *«should not be used when significant aortic or mitral regurgitation is
   present»*.
@@ -288,6 +318,28 @@ Están en `IND_REFS`, pero su `full` **no tiene tabla ni página**. Sirven como 
 | `esc2023mioc` | ESC 2023, miocardiopatías | `.../11_Miocardiopatias/Arbelo_2023_Miocardiopatias.pdf` (probable) | sin folio |
 | `esc2024ao` | ESC 2024, enfermedades aórticas y arteriales periféricas | `.../06_Aorta/Mazzolai_2024_Aorta.pdf` (probable) | incluye la tabla de recomendaciones modificadas, **donde los umbrales de 2014 quedan degradados a Clase IIa**; sin folio |
 | `fop2019` | Pristipino C, et al. Documento de posición europeo sobre foramen oval permeable. *Eur Heart J* 2019;40:3182 | **no está en la biblioteca** al 2026-10-01 | ⚠️ **metodología GRADE: no usa las clases I/IIa/IIb de la ESC** — el nivel va en el `txt` con vocabulario GRADE, sin traducir a clases |
+
+### ⚠️ «ESC/EACTS 2021» NO EXISTE EN ESTE REGISTRO — CERO ENTRADAS (censado 2026-10-11)
+
+No está en `IND_REFS`, no tiene ruta en disco y nadie la leyó en texto completo. **No se le puede
+colgar ningún corte ni nombrarla en un encabezado**, igual que las de arriba.
+La guía valvular de la ESC que este repo SÍ verificó es la **ESC/EACTS 2025** (`esc2025vc`).
+
+Este archivo ya había retirado ese sello dos veces —el rótulo de la severidad integrada de IM
+pasó de «(ESC 2021)» a «(ASE 2017)», y el de la EM dejó de decir «Severidad EM integrada
+(ESC 2021)»— y el 2026-10-11 se retiró una tercera: el encabezado del cuadro de Válvulas decía
+**«Categoría EM (ESC/EACTS 2021 · ASE 2023)»** y hoy dice **«Categoría EM (ASE 2023, Tabla 1)»**.
+El comentario de `AVM_SEVERA_MAX` también la nombraba y se corrigió.
+
+**Lo que QUEDA citando ESC/EACTS 2021 y NO se tocó** (fuera del alcance de esa tanda, cada uno es
+contenido clínico de otro módulo y decisión de Maicol):
+
+| Dónde | Qué dice | Qué habría que hacer |
+|---|---|---|
+| Pestaña Referencias, tarjeta de IT | encabezado visible «🟡 IT — Insuficiencia Tricuspídea (ESC 2021)» | decidir si pasa a ASE 2017 (`aseVr2017`, Tabla 14, folio 350, verificada) o a ESC/EACTS 2025 |
+| Tarjeta del score de Wilkins / CMP | encabezado visible «CRITERIOS ANATÓMICOS ESC 2021» | la ESC/EACTS 2025 tiene la **Tabla 8 del folio 4682** verificada para contraindicaciones de la CMP; hay que leer si cubre estos criterios antes de reetiquetar |
+| Pestaña Referencias, tarjeta de EM | prosa: «ESC/EACTS 2021 usa el mismo corte y lo llama…» | ver el reporte sin cambios de la tanda del 2026-10-11 |
+| Comentario de la estenosis tricuspídea | «la EAE/ASE 2009 y la ESC/EACTS 2021 no gradúan la ET» | es un comentario, no una cita publicada |
 
 ### `ecosmart` — criterio propio de la aplicación
 **NO es bibliografía** y no se usa para otra cosa. Texto fijo, sin firma ni fecha por decisión de

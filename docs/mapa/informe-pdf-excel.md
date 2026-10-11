@@ -34,6 +34,25 @@ vía `v()` / `sv()` (`fevi`, `ddfvi`, `dsfvi`, `siv`, `ppvi`, `tapse`, `s_prime`
 — llamada por: `generarInformeConEvolucion` (los dos botones «Generar Informe» / «Regenerar
 Informe») y en modo silencioso por el refresco de los módulos.
 
+**Las frases de la ESTENOSIS MITRAL viven dentro de `generarInforme`**, en tres tablas por clave de
+`emCategoria()`: `EM_CAT_EST` (estándar y narrativo, que comparten la cadena), `EM_CAT_CORTO`
+(conciso) y `EM_CAT_SUMA` (EN SUMA). Desde el 2026-10-11 son **dos** frases y no cuatro:
+
+| clave | estándar / narrativo | conciso | EN SUMA |
+|---|---|---|---|
+| `severa` | `estenosis significativa (…)` | `EM significativa (…)` | `EM significativa.` |
+| `gradiente` | `estenosis no significativa, con gradiente elevado (…)` | `EM no significativa, …` | `EM no significativa.` |
+| `gradiente_im` | `gradiente transmitral elevado` | idem | `Gradiente transmitral elevado.` |
+
+El detalle entre paréntesis lo arman `_emDatos` / `_emSignifTxt` / `_emElevTxt`: el **peor** AVm
+primero con su «por {método}» y los otros marcados detrás con «;» y **sin paréntesis propio**; el
+gradiente va primero cuando el criterio es sólo él; y el rótulo «por {criterio}: » **se omite con un
+solo dato**. El EN SUMA **no lleva criterios** (pedido de Maicol): el número sale en el cuerpo, en
+la tabla del PDF y en el Excel. El slot entra a `estiloPick(conciso, estándar, narrativo)`.
+
+La fila **«EM grado» del PDF** usa `emGradoVis(sv('em_grado'))` y **no** `_cap`: el valor guardado
+sigue siendo `severa` y lo impreso es «Significativa».
+
 `_infEscribir(id, lineasNuevas, silencioso, base)` — escribe un array de líneas en un textarea y
 devuelve la nueva base de procedencia; en silencioso delega en `_infMerge` para conservar lo manual
 — escribe: el textarea `id` (`informe_texto` o `en_suma`) — llamada por: `generarInforme`, 2 veces.

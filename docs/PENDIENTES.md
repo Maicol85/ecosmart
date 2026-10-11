@@ -1,5 +1,75 @@
 # EcoSmart — pendientes vivos
 
+## Estenosis mitral binaria (2026-10-11) — REPORTADO y NO tocado
+
+De la tanda «significativa / no significativa, con gradiente elevado de 5 a menos de 10»
+(`dae0064`, `128dc4f`, `0142b24`). Nada de esto es un defecto que la tanda haya introducido.
+
+### ⚠️ La pestaña Referencias enuncia la regla VIEJA, en prosa y en una tabla
+
+La tarjeta «🟠 EM — Estenosis Mitral» de Referencias es TEXTO FIJO y hoy dice tres cosas que la
+app ya no hace:
+
+| Lo que dice la tarjeta | Lo que hace la app desde el 2026-10-11 |
+|---|---|
+| «Con AVm > 1,5 y **gradiente medio > 4 mmHg** publica «EM con gradiente elevado»» | el corte es `>= 5`, y de `>= 10` publica «estenosis significativa» |
+| «Si dos áreas válidas caen a los dos lados del corte, se publican **las dos** con su método y **prevalece el peor**, con «probablemente severa por …»» | prevalece el peor igual, pero la categoría «probable» **se eliminó**: el veredicto es «significativa» a secas |
+| la fila de la tabla: «AVm — **estenosis mitral severa** — ≤ 1,5 cm²» | el corte y su fuente (ASE 2023, Tabla 1) son los MISMOS; lo que cambió es la palabra |
+
+**Por qué no se tocó:** es contenido clínico de cara al médico en otra pestaña, y la orden de la
+tanda acotaba el papel al informe, al EN SUMA y al cuadro de Válvulas. **Decisión de Maicol.**
+Nota a favor de dejarla: esa misma fila ya dice que **«la ESC/EACTS 2021 usa el mismo corte y lo
+llama *clínicamente significativa (moderada o severa)*»** — o sea que la nomenclatura nueva
+coincide con lo que la tarjeta atribuye a la ESC. Lo que hay que corregir es el «> 4», el
+«probablemente severa» y la palabra «severa» de la fila.
+
+### ⚠️ El Laboratorio cuenta la EM con la escalera de cuatro grados
+
+`_labEstenSev(inf, 'em_grado')` hace regex sobre el **valor guardado** y devuelve
+`Severa / Moderada / Leve / Sin`. Como `emGradoAuto` sigue escribiendo `'severa'`, **la fila
+«Esten. Mitral» del Laboratorio no cambió ni una celda** y por eso la tanda no lo tocó.
+Lo que queda dicho: la etiqueta que el Laboratorio imprime es **«Severa»**, mientras el informe
+firmado del mismo estudio dice **«significativa»**. Son dos vocabularios para el mismo dato en dos
+superficies de la misma app. Es el mismo pendiente que la **estenosis tricuspídea** ya tiene
+abierto desde el 2026-10-05 (su `_labEstenSev` devuelve `null` para los dos grados nuevos), así
+que conviene resolver los dos juntos y decidir cuántas categorías cuenta esa fila.
+
+### ⚠️ `VALVSIG` de CeiboAnalytics no reconocería «significativa» — hoy no importa, pero importará
+
+Su regex es `/severa|moderada/` sobre el valor guardado. Como el valor sigue siendo `severa`, **una
+EM significativa SÍ cuenta** hoy como valvulopatía significativa. Queda anotado porque el día que
+alguien renombre el valor guardado —no la palabra visible— esa cuenta se cae en silencio, en otra
+app. Es el mismo agujero que la ET ya tiene (ella SÍ escribe «Significativa» como valor).
+
+### ⚠️ La banda `< 5 mmHg` del cuadro no tiene rótulo de veredicto
+
+El pedido definió dos rótulos —«elevado (5 a <10 mmHg; moderada, ASE 2023)» y «significativo
+(≥10 mmHg)»— y ninguno para el gradiente por debajo de 5. El cuadro publica la **banda**
+(«< 5 mmHg») y ninguna palabra de veredicto, para no inventar redacción clínica. Si Maicol quiere
+una, es una línea.
+
+### ⚠️ El EN SUMA de la banda media ya no nombra el gradiente elevado
+
+Es **pedido explícito** (punto 3c): el resumen dice «EM no significativa.» y el gradiente elevado
+sale sólo en el cuerpo del informe. Queda anotado porque el EN SUMA es la superficie que se copia
+a una interconsulta o a un resumen de alta, y ahí el hallazgo desaparece.
+
+### ⚠️ La nota «a FC de 60-80 lpm» de la Tabla 1 no se verifica
+
+Los dos cortes del gradiente de la ASE 2023 valen **a una frecuencia cardíaca de 60-80 lpm**. La
+app no recoge la FC del Doppler transmitral, así que aplica los cortes sin comprobar la condición.
+Está dicho en `FUENTES.md` y en el comentario de las constantes.
+
+### Lo que queda citando «ESC/EACTS 2021» fuera de esta tanda
+
+Censado el 2026-10-11 y **no tocado**, porque cada uno es contenido clínico de otro módulo: el
+encabezado visible de la tarjeta de **IT** de Referencias, el de **CRITERIOS ANATÓMICOS ESC 2021**
+del score de Wilkins / CMP, el subtítulo de la tarjeta de **TEER**, y la prosa de la tarjeta de EM.
+La tabla con lo que habría que hacer en cada uno está en `docs/fuentes/FUENTES.md`, en la sección
+««ESC/EACTS 2021» NO EXISTE EN ESTE REGISTRO».
+
+---
+
 ## EN SUMA · morfología y prótesis (2026-10-05, parte D) — declarado y NO arreglado
 
 De la tanda «EN SUMA: morfología y prótesis en una línea (pulmonar y tricúspide)». Nada de esto es

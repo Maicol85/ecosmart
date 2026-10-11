@@ -27,9 +27,41 @@ panel de Evidencia, ni el espejo del TEER. Nunca tuvo columna en el Excel ni map
 importador, ni entrada en ninguna tabla de rangos — y esto último es por qué un `150` tipeado ahí
 subía al PDF firmado sin marca «(revisar)».
 
-`emCategoria` — junta **todas** las fuentes de AVm válidas, no sólo la preferida de la ASE 2023 →
-`{clave, gm, fuentes, sev, noSev, revisar}`, `clave:'protesis'` si lo es; su `_tomar(id, fuente, vota,
-insumo)` exige `>0` y manda a `revisar[]` lo fuera de banda, incluido el **insumo**.
+`emCategoria` — junta las fuentes de AVm **marcadas y válidas** →
+`{clave, gm, fuentes, sev, noSev, revisar, noIncl}`, `clave:'protesis'` si lo es; su
+`_tomar(id, fuente, vota, insumo, chk)` exige `>0`, consulta la casilla ANTES de la banda y manda a
+`revisar[]` lo fuera de banda, incluido el **insumo**.
+
+**LA REGLA ES BINARIA DESDE EL 2026-10-11 (decisión de Maicol):** «significativa» / «no
+significativa, con gradiente elevado», nomenclatura de la ASE 2023 (Tabla 1, folio 8). Cuatro
+escalones, en este orden:
+1. `sev.length` → `severa` — **basta UNA** fuente marcada y válida con AVm `<= 1,5`: prevalece el
+   peor, sin matiz. La clave se llama `severa` y la palabra impresa es «significativa»;
+2. gradiente `>= 5` **y** `emImSignificativa()` → `gradiente_im`. Con IM moderada o mayor el
+   criterio del gradiente se retira **COMPLETO**, las dos bandas, porque ahí el gradiente sube por
+   volumen. El área sigue votando, y por eso su escalón va primero;
+3. gradiente `>= 10` → `severa`;
+4. gradiente `>= 5` → `gradiente`.
+
+**`probable` SE ELIMINÓ.** La discrepancia de áreas ya no produce clave propia; el aviso
+`em-discordancia` cuelga ahora del HECHO (`sev` y `noSev` las dos con contenido) y no del nombre de
+una categoría.
+
+`emMetodoIncluido(idChk)` — compuerta de «¿el médico lo marcó en *Incluir en el informe*?». **Sólo
+se aplica si la casilla está RESUELTA** (`dataset.tocado` o `dataset.desdeEstudio`); sin resolver
+vota por su valor. Es lo que hace que un estudio anterior al selector reabra y **reimprima** con la
+misma categoría: esos estudios no traen `em_pdf_plan__chk`, las dos rutas de restauración lo leen
+como desmarcado y `calcEM` no corre en la ventana de reimpresión. Falla ABIERTO sin la casilla.
+
+`emGradoVis(g)` / `EM_GRADO_VIS` — dueño único de «¿cómo se escribe el grado?». El valor guardado
+`em_grado='severa'` **no cambia** y se muestra «Significativa». Lo consumen la fila «EM grado» del
+PDF y `SEV_SINC.em.etiqueta`; la `<option>` del selector tiene el texto a mano y **de ella cuelga el
+PPT** (`_pptSel` devuelve el texto de la opción).
+
+`emCuadroRefSync(cat)` — pinta el cuadro de referencias: una clasificación por método
+(`em-clase-thp`, `-cont`, `-plan`) y la banda del gradiente (`em-clase-gm`). Recibe la `cat` y no la
+vuelve a pedir. Sólo pantalla. `emCuadroRefRepintar()` es su entrada en `RECALC_MODULOS`, y
+`limpiarCampos` repone la **clase** (el texto lo pone en «—» el barrido genérico).
 
 `calcTHP` — AVm por tiempo de hemipresión, 220/THP vía `_avmPorPHT` — lee: `thp`; escribe: `avm_thp`,
 `em_thp_display`; llama `calcEM`.
@@ -360,9 +392,14 @@ gradúa?» (una SAVR es prótesis y la aórtica sí se gradúa); cuerpo no leíd
   app gradúa obstrucción, no deterioro.
 
 ### Mitral
-- `AVM_SEVERA_MAX = 1.5` cm² — `<=1.5` severa (ESC/EACTS 2021 y 2025, ASE 2023).
+- `AVM_SEVERA_MAX = 1.5` cm² — `<=1,5` **significativa**. Fuente: **ASE 2023, Tabla 1, folio 8**, y
+  **sólo** ésa —de ESC/EACTS 2021 no hay entrada en `FUENTES.md` y la 2025 no tiene página
+  verificada de severidad de EM—.
 - `AVM_MODERADA_MAX = 2.5` cm² — referencia del panel de Evidencia; **no gradúa**.
-- `EM_GMEDIO_SIGNIF = 4` mmHg — definición de EM reumática (WHF, citada por ASE 2023).
+- `EM_GMEDIO_ELEVADO_MIN = 5` mmHg (borde `>=`) y `EM_GMEDIO_SIGNIF_MIN = 10` mmHg (borde `>=`) —
+  las bandas del gradiente medio de la **ASE 2023, Tabla 1, folio 8** (`< 5` / `5-9` / `>= 10`, a FC
+  de 60-80 lpm). **Reemplazan a `EM_GMEDIO_SIGNIF = 4`** (borde `>`), que era la definición de EM
+  reumática de la WHF y no un corte de severidad. La banda `< 5` no clasifica.
 - `EM_CONT_REGURG_MIN = 2` — grado de IM/IAo que retira el voto del AVm por continuidad.
 - `EM_IA_SEVERA_MIN = 4` — sólo la IAo **severa** retira el voto del AVm/THP.
 - `EM_BANDA_PLAUS = {em_vmax:[0.2,8] m/s, thp:[20,600] ms}` — banda local, **fuera** de `DCM_RANGO` a
