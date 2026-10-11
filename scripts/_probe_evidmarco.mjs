@@ -183,7 +183,14 @@ window.__M = {
             var keep = su ? su.textContent : ''; n.textContent = keep } });
       }
       var t = window.__M.norm(c.textContent);
-      out[window.__M.tituloDe(d)] = { hash: window.__M.hash(t), pal: window.__M.palabras(t), len: t.length };
+      /* ⚠️ EL HASH **SIN LAS ETIQUETAS NUEVAS** ES EL QUE RESPONDE «identico a HEAD». El pliegue
+         agrega un glifo ⓘ por pregunta plegada; el hash crudo difiere por eso y no dice nada. Se
+         saca el ⓘ y se re-normaliza: si ESE hash coincide con el de HEAD, no se movio una letra.
+         Se declaran los dos y cuantos ⓘ se quitaron, que es el denominador del descuento. */
+      var sinEt = window.__M.norm(t.replace(/\u24d8/g, ' '));
+      out[window.__M.tituloDe(d)] = { hash: window.__M.hash(t), pal: window.__M.palabras(t),
+        len: t.length, hashSinEtiquetas: window.__M.hash(sinEt), lenSinEtiquetas: sinEt.length,
+        infos: (t.match(/\u24d8/g) || []).length };
     });
     return out },
 
@@ -441,6 +448,122 @@ window.__M = {
       return { n: Object.keys(c).length, hash: window.__M.hash(JSON.stringify(c)) } })();
     return o },
 
+  /* ══ CENSO DEL PLIEGUE ══════════════════════════════════════════════════════════════════════
+     Cuantas notas de PREGUNTA quedaron detras del ⓘ y cuantas visibles, y por que marca. Es el
+     par que hace falsificable «se plegaron las preguntas y no las advertencias»: sin el reparto
+     por marca, «todas plegadas» y «ninguna plegada» se informan igual de bien. */
+  censoPliegue() {
+    if (typeof IND_SECS === 'undefined') return { err: 'sin IND_SECS' };
+    var c = window.__M.cuerpo();
+    var out = { pregConNota: 0, pregPlegadas: 0, pregVisibles: 0, porMarca: {},
+                datoConNota: 0, datoPlegadas: 0, infosEnDOM: c ? c.querySelectorAll('details[data-ind-info]').length : -1,
+                detalle: [] };
+    IND_SECS.forEach(function(s){
+      var r = null; try { r = s.fn() } catch (e) { return }
+      if (!r) return;
+      var filas = (r.filas || []).concat(r.clinica || []);
+      (r.bloques || []).forEach(function(b){ (b.grupos || []).forEach(function(g){
+        filas = filas.concat(g.filas || []) }) });
+      filas.forEach(function(f){
+        if (!f.nota) return;
+        var plegada = !!f.ctrl && f.marca !== 'alarm' && f.marca !== 'warn';
+        if (f.ctrl) {
+          out.pregConNota++;
+          if (plegada) out.pregPlegadas++; else out.pregVisibles++;
+          out.porMarca[f.marca] = out.porMarca[f.marca] || { plegadas: 0, visibles: 0 };
+          out.porMarca[f.marca][plegada ? 'plegadas' : 'visibles']++;
+          if (!plegada) out.detalle.push({ sec: s.tit, lbl: f.lbl, marca: f.marca,
+            pal: window.__M.palabras(f.nota) });
+        } else {
+          out.datoConNota++;
+          if (plegada) out.datoPlegadas++;
+        }
+      });
+    });
+    return out },
+
+  /* ⚠️ NINGUN ⓘ NACE ABIERTO, y es la condicion central del pliegue: agregar el <details> y
+     dejarlo con open se ve casi igual en el diff y no cambia nada para el medico. */
+  infosAbiertos() {
+    var c = window.__M.cuerpo(); if (!c) return null;
+    var xs = Array.prototype.slice.call(c.querySelectorAll('details[data-ind-info]'));
+    return { total: xs.length, abiertos: xs.filter(function(d){ return d.open }).length,
+      conEtiqueta: xs.filter(function(d){ var su = d.querySelector('summary');
+        return su && (su.getAttribute('aria-label') || '').length > 6 }).length,
+      sinEtiqueta: xs.filter(function(d){ var su = d.querySelector('summary');
+        return !su || !(su.getAttribute('aria-label') || '').length }).map(function(d){
+          return window.__M.norm(d.textContent).slice(0, 30) }) } },
+
+  /* Geometria de la botonera: alto real, redondeo, y si la botonera esta alineada al borde
+     DERECHO de su celda. El alto es lo que responde «40 px en tactil, chico en escritorio». */
+  geoBotones() {
+    var c = window.__M.cuerpo(); if (!c) return null;
+    var bs = Array.prototype.slice.call(c.querySelectorAll('[data-ind-clin]'))
+      .filter(function(b){ var r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0 });
+    if (!bs.length) return { err: 'cero botones con geometria — la medicion no vale' };
+    var alt = bs.map(function(b){ return Math.round(b.getBoundingClientRect().height) });
+    var anc = bs.map(function(b){ return Math.round(b.getBoundingClientRect().width) });
+    /* DESBORDE DE LA BOTONERA dentro de su celda: lo que responde «envuelven sin desbordar». */
+    var peor = 0, quien = null;
+    Array.prototype.slice.call(c.querySelectorAll('td.ind-ctrl')).forEach(function(td){
+      var tr = td.getBoundingClientRect(); if (tr.width === 0) return;
+      Array.prototype.slice.call(td.querySelectorAll('[data-ind-clin]')).forEach(function(b){
+        var r = b.getBoundingClientRect(); if (r.width === 0) return;
+        var ex = Math.round(r.right - tr.right);
+        if (ex > peor) { peor = ex; quien = window.__M.norm(b.textContent) }
+      });
+    });
+    /* ALINEACION: el ultimo boton de la botonera contra el borde derecho de la celda. */
+    var alineados = [];
+    Array.prototype.slice.call(c.querySelectorAll('td.ind-ctrl > div')).forEach(function(dv){
+      var td = dv.parentElement.getBoundingClientRect();
+      var bb = Array.prototype.slice.call(dv.querySelectorAll('[data-ind-clin]'));
+      if (!bb.length) return;
+      var ult = bb[bb.length - 1].getBoundingClientRect();
+      if (td.width === 0 || ult.width === 0) return;
+      alineados.push(Math.round(td.right - ult.right));
+    });
+    return { n: bs.length, altoMin: Math.min.apply(null, alt), altoMax: Math.max.apply(null, alt),
+      anchoMin: Math.min.apply(null, anc), anchoMax: Math.max.apply(null, anc),
+      radio: getComputedStyle(bs[0]).borderRadius,
+      justify: (function(){ var dv = c.querySelector('td.ind-ctrl > div');
+        return dv ? getComputedStyle(dv).justifyContent : null })(),
+      punteroFino: matchMedia('(pointer:fine)').matches,
+      punteroGrueso: matchMedia('(pointer:coarse)').matches,
+      peorDesbordeEnCelda: peor, quienDesborda: quien,
+      holguraDerechaMin: alineados.length ? Math.min.apply(null, alineados) : null,
+      holguraDerechaMax: alineados.length ? Math.max.apply(null, alineados) : null } },
+
+  /* ⚠️ CONTROL NEGATIVO DEL PLIEGUE: UNA PREGUNTA CON MARCA 🔴 NO SE PLIEGA. Sin esto, «se
+     plegaron las preguntas y no las advertencias» se cumple por vacuidad — con el formulario
+     sembrado TODAS las preguntas estan en ask, asi que la compuerta por marca no se ejerce y un
+     mutante que pliegue tambien las alarmas sobrevive. Se le pregunta por la clave: donde esta su
+     nota en el DOM, dentro o fuera de un [data-ind-info]. */
+  notaDe(clave) {
+    var c = window.__M.cuerpo(); if (!c) return { err: 'sin cuerpo' };
+    var b = c.querySelector('[data-ind-clin="' + clave + '"]');
+    if (!b) return { err: 'no existe la pregunta ' + clave };
+    var tr = b.closest('tr'); if (!tr) return { err: 'la pregunta no esta en una fila' };
+    var tds = tr.querySelectorAll('td');
+    if (tds.length < 3) return { err: 'la fila no tiene tres celdas' };
+    var celda = tds[2];
+    var info = celda.querySelector('details[data-ind-info]');
+    var txt = window.__M.norm(celda.textContent);
+    return { rotulo: window.__M.norm(tds[0].textContent),
+      plegada: !!info, abierta: info ? info.open : null,
+      /* El texto que se ve SIN abrir nada: si la nota esta plegada queda el icono y el ⓘ. */
+      visible: window.__M.norm((function(){ var cl = celda.cloneNode(true);
+        Array.prototype.slice.call(cl.querySelectorAll('details')).forEach(function(d){
+          if (!d.open) d.remove() });
+        return cl.textContent })()),
+      completo: txt,
+      /* El estado que la fila declara, leido del OBJETO y no del icono: es lo que gobierna la
+         compuerta, asi que es lo que hay que informar al lado del veredicto. */
+      marcaEnDOM: (function(){
+        var m = { '\u2705':'ok', '\uD83D\uDD34':'alarm', '\u26A0':'warn', '\u2753':'ask', '\u2014':'none' };
+        for (var k in m) if (txt.indexOf(k) === 0) return m[k];
+        return '?' + txt.slice(0, 3) })() } },
+
   /* Estado de partida. Sin esto cada escena arrastra las respuestas de la anterior. */
   limpiar() { try { limpiarCampos(true) } catch(e) {} return 1 },
   set(id, valor) {
@@ -594,6 +717,23 @@ async function main() {
     return { via: 'tecla Enter', tapadoPor: c.quien, foco };
   }
 
+  /* ⚠️ CON LA EMULACION TACTIL PUESTA, `Input.dispatchMouseEvent` NO RESUELVE NUNCA. Medido: con
+     `Emulation.setEmitTouchEventsForMouse` habilitado, el despacho del mousePressed se queda sin
+     respuesta y la sonda se cuelga — lo cazo el reloj de `cdpEnv`, que nombro la llamada exacta;
+     sin ese reloj el fallo habria aparecido en el `ev()` siguiente, o sea en la linea equivocada.
+     En esas escenas se activa por TECLA, que en un <button> es una activacion nativa y es ademas
+     el gesto que hay que poder garantizar. Se EXIGE que el foco haya llegado al blanco: un
+     `.focus()` sobre un nodo no enfocable no hace nada y el Enter se iria al documento. */
+  async function activarPorTecla(sel) {
+    const ok = await ev(`(function(){ var e = document.querySelector(${JSON.stringify(sel)});
+      if (!e) return 'no existe'; e.scrollIntoView({ block:'center' }); e.focus();
+      return document.activeElement === e ? 'foco ok' : 'el foco no llego' })()`);
+    if (ok !== 'foco ok') return { via: 'NO SE PUDO', por: ok };
+    await tecla('Enter', null);
+    await pausa(150);
+    return { via: 'tecla Enter' };
+  }
+
   await ev(`try{sessionStorage.setItem('ett_auth','1')}catch(e){}; location.reload(); 1`);
   await pausa(2600);
   await ev(SONDA);
@@ -646,12 +786,15 @@ async function main() {
      ni `alarm` y su recomendacion no es `ind` ni `alarma`: sus botones existen en el DOM, no
      tienen geometria, y una sonda que los cuenta mide 78 preguntas y puede tocar 52. El gesto es
      un CLIC REAL en el rotulo, que es como las abre el medico. */
+  /* Bandera de escena: con la emulacion tactil puesta no se despachan eventos de mouse (ver el
+     comentario de `activarPorTecla`). La ponen y la quitan las escenas que emulan el dedo. */
+  let TACTIL = false;
   async function abrirSecciones() {
     const abiertos = [];
     for (let i = 0; i < 12; i++) {
       const cerradas = await J('window.__M.seccionesCerradas()');
       if (!cerradas.length) break;
-      const r = await clicSel(cerradas[0]);
+      const r = TACTIL ? await activarPorTecla(cerradas[0]) : await clicSel(cerradas[0]);
       abiertos.push({ sel: cerradas[0], via: r.via, por: r.por || null });
       await pausa(120);
       /* Si el clic no movio nada se corta: sin esto el bucle reintenta la misma seccion doce
@@ -679,6 +822,8 @@ async function main() {
         preguntas: await J('window.__M.preguntas()'),
         tarjetas: await J('window.__M.tarjetas()'),
         columnas: await J('window.__M.columnas()'),
+        pliegue:  await J('window.__M.censoPliegue()'),
+        infos:    await J('window.__M.infosAbiertos()'),
         max:      await J('window.__M.maximizado()') };
       await cerrar();
     }
@@ -726,8 +871,95 @@ async function main() {
       await pausa(120);
     }
     res.contraste = await J('window.__M.contrasteBotones()');
+
+    /* ══ CONTROL NEGATIVO: LA ADVERTENCIA NO SE PLIEGA ═══════════════════════════════════════
+       `em.calcsev` es una de las cuatro contraindicaciones de la Tabla 8: contestada «Presente»
+       su marca pasa a 🔴 y su nota es «contraindicacion de la comisurotomia percutanea». Se mide
+       ANTES (sin contestar, 🔴 ausente → plegada) y DESPUES (🔴 → VISIBLE). Las dos mitades hacen
+       falta: sola la segunda no distingue «no se pliega nunca» de «no se pliega cuando alarma». */
+    const NEG = {};
+    NEG.antesDeContestar = await J(`window.__M.notaDe('em.calcsev')`);
+    const rNeg = await clicSel('#indic-cuerpo [data-ind-clin="em.calcsev"][data-ind-val="si"]');
+    await pausa(200);
+    NEG.via = rNeg.via;
+    NEG.trasContestarPresente = await J(`window.__M.notaDe('em.calcsev')`);
+    /* Y la tercera lectura: contestada «Ausente» la marca cae a — y la nota vuelve a plegarse.
+       Es lo que prueba que la compuerta sigue la MARCA y no «la pregunta ya fue contestada». */
+    await clicSel('#indic-cuerpo [data-ind-clin="em.calcsev"][data-ind-val="no"]');
+    await pausa(200);
+    NEG.trasContestarAusente = await J(`window.__M.notaDe('em.calcsev')`);
+    res.controlNegativoAlarma = NEG;
+
     await cerrar();
     out.CLICS = res;
+  }
+
+  /* ══ 2b — LA BOTONERA: tamanio, redondeo, alineacion y CONTRASTE ══════════════════════════
+     Los dos temas y los dos punteros, porque el pedido pide las cuatro cosas a la vez: chico en
+     escritorio, >= 40 px con el dedo, y contraste suficiente marcado y sin marcar en claro y en
+     oscuro. El puntero grueso se emula con `mobile:true` en las metricas del dispositivo. */
+  if (hacer('botones')) {
+    paso('botonera');
+    const Bt = {};
+    for (const claro of [false, true]) {
+      for (const [etqP, ancho, movil] of [['puntero fino', 1200, false], ['puntero grueso', 1200, true]]) {
+        const etq = (claro ? 'claro' : 'oscuro') + ' / ' + etqP;
+        await cerrar();
+        await cdpEnv('Emulation.setDeviceMetricsOverride',
+          { width: ancho, height: 900, deviceScaleFactor: 1, mobile: movil });
+        TACTIL = movil;
+        /* ⚠️ DOS LEVERS NO SIRVEN Y EL TERCERO SI, Y LOS DOS PRIMEROS DIERON UN FALSO QUE PARECIA
+           UN PASE. Medido uno por uno sobre un Chrome limpio:
+             · `Emulation.setDeviceMetricsOverride` con `mobile:true` → pointer:coarse FALSE;
+             · `Emulation.setEmulatedMedia` con el feature `pointer` → aceptado y FALSE (esa lista
+               sólo soporta los `prefers-*`, `color-gamut` y `forced-colors`);
+             · `Emulation.setTouchEmulationEnabled` con `maxTouchPoints` → pointer:coarse TRUE,
+               any-pointer:coarse TRUE, pointer:fine FALSE, maxTouchPoints 5.
+           Con los dos primeros la escena del dedo medía 26 px de alto e informaba
+           `punteroGrueso:false` al lado: un «cumple en táctil» sobre una escena que seguía siendo
+           de mouse. Por eso `punteroGrueso` se informa en CADA escena — es el denominador de la
+           medición del piso táctil, y sin él el falso pasa. */
+        if (movil) {
+          await cdpEnv('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+          await cdpEnv('Emulation.setEmitTouchEventsForMouse', { enabled: true, configuration: 'mobile' });
+        } else {
+          await cdpEnv('Emulation.setTouchEmulationEnabled', { enabled: false });
+          await cdpEnv('Emulation.setEmitTouchEventsForMouse', { enabled: false });
+        }
+        await ev(`window.__M.tema(${claro})`);
+        await sembrar('Reumática');
+        await abrir();
+        await abrirSecciones();
+        const sinMarcar = await J('window.__M.contrasteBotones()');
+        const geo = await J('window.__M.geoBotones()');
+        /* Con UNA opcion marcada: el estado marcado cambia de fondo y de color, asi que su
+           contraste es OTRO numero y hay que medirlo con la opcion puesta. */
+        const lista = await J('window.__M.preguntas()');
+        let marcado = null;
+        let viaMarca = null;
+        if (lista.length) {
+          const q = lista[0];
+          const sel = `#indic-cuerpo [data-ind-clin="${q.k}"][data-ind-val="${q.v}"]`;
+          const r = movil ? await activarPorTecla(sel) : await clicSel(sel);
+          viaMarca = r.via + (r.por ? ' (' + r.por + ')' : '');
+          await pausa(160);
+          /* DENOMINADOR DEL CONTRASTE MARCADO: si el gesto no ocurrio, lo que se mide es el
+             estado sin marcar otra vez y el numero parece bueno por el motivo equivocado. */
+          const quedo = await ev(`(function(){ var b=document.querySelector(${JSON.stringify(sel)});
+            return b ? b.getAttribute('aria-pressed') : 'NO EXISTE' })()`);
+          marcado = { via: viaMarca, pressed: quedo, medida: await J('window.__M.contrasteBotones()') };
+        }
+        Bt[etq] = { geo, contrasteSinMarcar: sinMarcar, contrasteConUnaMarcada: marcado,
+          infos: await J('window.__M.infosAbiertos()') };
+        await cerrar();
+      }
+    }
+    TACTIL = false;
+    await ev('window.__M.tema(false)');
+    await cdpEnv('Emulation.setTouchEmulationEnabled', { enabled: false });
+    await cdpEnv('Emulation.setEmitTouchEventsForMouse', { enabled: false });
+    await cdpEnv('Emulation.clearDeviceMetricsOverride', {});
+    out.BOTONES = Bt;
   }
 
   /* ══ 3 — TECLADO: Tab hasta maximizar, Enter, Esc, Esc ════════════════════════════════════ */

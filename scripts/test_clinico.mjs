@@ -34333,7 +34333,18 @@ caso('TC-293', 'Panel de Evidencia: el detalle largo nace COLAPSADO, hay un solo
        daba DOS, y las dos cosas eran la misma pieza contada de mas. Se excluye por su marca
        «data-ind-bloque», igual que la bibliografia por la suya, y no por posicion ni por rotulo. */
     const det = [].slice.call(cu.querySelectorAll('details details'))
-      .filter(function(d){ return !d.hasAttribute('data-ind-biblio') && !d.hasAttribute('data-ind-bloque'); });
+      /* ⚠️ ADAPTADO 2026-10-11: TAMPOCO ES UN CONTROL DE DETALLE **EL ⓘ DE UNA PREGUNTA**. Cada
+         fila con botonera lleva ahora su propio <details data-ind-info> con la explicacion de esa
+         pregunta — el texto no cambio, se MOVIO—. Son 34 en este escenario, asi que sin excluirlos
+         este contador daba 37 donde hay 8 y el conteo de rotulos daba DOS («ⓘ» y «ⓘ Ver detalle»):
+         las dos cosas eran la misma pieza contada de mas. Se excluye por su marca, igual que la
+         bibliografia por la suya y el bloque plegado por la suya, y NO por rotulo —el rotulo es un
+         glifo, y los dos empiezan con el mismo—.
+         Lo que el invariante original dice sigue intacto y se mide igual: UN control de detalle por
+         seccion, ninguno abierto, un solo rotulo, y ningun control clinico detras de el. La
+         cobertura del ⓘ se agrega abajo, en su propio bloque de condiciones. */
+      .filter(function(d){ return !d.hasAttribute('data-ind-biblio') && !d.hasAttribute('data-ind-bloque') &&
+                                  !d.hasAttribute('data-ind-info'); });
 
     ex.push(['DENOMINADOR: el escenario enciende varias secciones y cada una trae su control de detalle',
       secs.length >= 5 && det.length === secs.length,
@@ -34490,7 +34501,13 @@ caso('TC-293', 'Panel de Evidencia: el detalle largo nace COLAPSADO, hay un solo
     const btn = cu.querySelector('details [data-ind-clin]');
     if (btn && typeof _indRepintarConservando === 'function') {
       const secTit = btn.closest('details').querySelector('summary').textContent;
-      const dPri = btn.closest('details').querySelector('details');
+      /* ⚠️ ADAPTADO 2026-10-11: EL SELECTOR DICE AHORA [data-ind-detalle]. Antes decia
+         «querySelector('details')» y tomaba el PRIMER <details> anidado de la seccion, que hasta
+         esta tanda era el control de detalle. Desde que cada pregunta lleva su ⓘ, el primero es un
+         ⓘ: la condicion seguiria pasando, pero mediria la conservacion del ⓘ y no la del «Ver
+         detalle», que es lo que este bloque dice medir. Las DOS se miden — la del ⓘ en su propio
+         bloque, abajo, porque ahi hay un defecto propio que esta tanda tuvo que arreglar. */
+      const dPri = btn.closest('details').querySelector('details[data-ind-detalle]');
       if (dPri) dPri.open = true;
       const otrosAntes = [].slice.call(cu.querySelectorAll('details details'))
         .filter(function(x){ return x !== dPri && x.open; }).length;
@@ -34498,7 +34515,7 @@ caso('TC-293', 'Panel de Evidencia: el detalle largo nace COLAPSADO, hay un solo
       const cu2 = document.getElementById('indic-cuerpo');
       const sec2 = [].slice.call(cu2.querySelectorAll(':scope > details')).filter(function(x){
         return x.querySelector('summary').textContent === secTit; })[0];
-      const dPos = sec2 && sec2.querySelector('details');
+      const dPos = sec2 && sec2.querySelector('details[data-ind-detalle]');
       const otrosDesp = [].slice.call(cu2.querySelectorAll('details details'))
         .filter(function(x){ return x !== dPos && x.open; }).length;
       ex.push(['al contestar un control, el detalle que estaba abierto SIGUE abierto y los de las otras secciones no se abren solos',
@@ -34509,6 +34526,134 @@ caso('TC-293', 'Panel de Evidencia: el detalle largo nace COLAPSADO, hay un solo
       ex.push(['DENOMINADOR: el escenario trae un control clinico para ejercer el repintado',
         false, 'sin [data-ind-clin] en el panel']);
     }
+
+    /* ══ EL ⓘ DE CADA PREGUNTA — AGREGADO 2026-10-11 ══════════════════════════════════════════
+       El texto explicativo de una PREGUNTA (una fila con botonera) se MOVIO detras de un ⓘ que usa
+       el mismo mecanismo que el «Ver detalle»: un <details>, marcado con «data-ind-info». Lo que
+       hay que fijar son cuatro cosas, y la cuarta es un defecto que esta tanda encontro y arreglo.
+       ⚠️ LA CUARTA: todos los ⓘ de una seccion tienen el MISMO texto de summary (el glifo), asi que
+       «_indRepintarConservando» —que indexa cada detalle por «summary del padre ▸ summary»— les
+       daba a los seis de una seccion UNA SOLA entrada del mapa y ganaba la ultima escritura: abrir
+       uno y contestar un control los abria o cerraba TODOS. Es EXACTAMENTE el defecto que esa
+       funcion ya habia pagado con los trece «Ver detalle», otra vez y por el mismo motivo. El
+       discriminante es el «aria-label», que ya lleva el rotulo de la fila porque un lector de
+       pantalla no puede anunciar cuarenta y dos controles identicos. */
+    (function(){
+      const infos = [].slice.call(cu.querySelectorAll('details[data-ind-info]'));
+      ex.push(['DENOMINADOR: el escenario pinta varios ⓘ de pregunta',
+        infos.length >= 10, 'ⓘ=' + infos.length]);
+      ex.push(['ningun ⓘ nace abierto: la explicacion de la pregunta es la capa de abajo',
+        infos.length > 0 && infos.filter(function(d){ return d.open; }).length === 0,
+        'abiertos=' + infos.filter(function(d){ return d.open; }).length + ' de ' + infos.length]);
+      /* La ETIQUETA ACCESIBLE no es decoracion: sin ella un lector anuncia el glifo pelado, y
+         ademas es lo que vuelve UNICA la clave del repintado. Se exige en TODOS. */
+      const sinEt = infos.filter(function(d){ const su = d.querySelector('summary');
+        return !su || !(su.getAttribute('aria-label') || '').trim(); });
+      ex.push(['todos los ⓘ llevan etiqueta accesible con el rotulo de su fila, y son UNICAS dentro de la seccion',
+        sinEt.length === 0 && (function(){
+          const porSec = {};
+          let choque = 0;
+          infos.forEach(function(d){
+            let x = d, tit = '?';
+            while (x && x !== cu) { if (x.parentNode === cu && x.tagName === 'DETAILS') {
+              const su = x.querySelector('summary'); tit = su ? su.textContent.trim() : '?'; break; } x = x.parentNode; }
+            const et = d.querySelector('summary').getAttribute('aria-label');
+            porSec[tit] = porSec[tit] || {};
+            if (porSec[tit][et]) choque++; else porSec[tit][et] = 1;
+          });
+          return choque === 0;
+        })(),
+        'sin etiqueta=' + sinEt.length + ' de ' + infos.length]);
+      /* ⚠️ LA CONSERVACION, QUE ES EL DEFECTO. Se abre UNO, se contesta un control de OTRA fila y
+         se mira que ese siga abierto y que los demas NO se hayan abierto solos. Las dos mitades:
+         sin la segunda, un mutante que abra todos los ⓘ al repintar pasa la primera. */
+      if (infos.length >= 2 && typeof _indRepintarConservando === 'function') {
+        const uno = infos[0];
+        const etq = uno.querySelector('summary').getAttribute('aria-label');
+        uno.open = true;
+        const otrosAntes = cu.querySelectorAll('details[data-ind-info][open]').length - 1;
+        const b2 = cu.querySelector('details [data-ind-clin]');
+        if (b2) b2.click();
+        const cu3 = document.getElementById('indic-cuerpo');
+        const mismo = [].slice.call(cu3.querySelectorAll('details[data-ind-info]')).filter(function(d){
+          const su = d.querySelector('summary');
+          return su && su.getAttribute('aria-label') === etq; })[0];
+        const otrosDesp = cu3.querySelectorAll('details[data-ind-info][open]').length - (mismo && mismo.open ? 1 : 0);
+        ex.push(['el ⓘ que estaba abierto SIGUE abierto al contestar, y los otros ⓘ no se abren solos',
+          !!(mismo && mismo.open) && otrosDesp === otrosAntes,
+          'etiqueta=' + JSON.stringify(etq) + ' sigue abierto=' + (mismo ? mismo.open : 'no se encontro') +
+          ' · otros abiertos antes=' + otrosAntes + ' despues=' + otrosDesp]);
+        if (mismo) mismo.open = false;
+      } else {
+        ex.push(['DENOMINADOR: el escenario trae al menos dos ⓘ para ejercer la conservacion',
+          false, 'ⓘ=' + infos.length]);
+      }
+      /* ⚠️ Y LAS ADVERTENCIAS **NO** SE PLIEGAN. Es la mitad que vuelve falsificable al pliegue:
+         una fila de pregunta con marca 🔴 o ⚠️ tiene que tener su nota VISIBLE, fuera del ⓘ. Se
+         ejerce de verdad contestando «Presente» una de las cuatro contraindicaciones de la Tabla 8
+         de la estenosis mitral, que es lo que lleva esa fila a 🔴, y se mide ANTES y DESPUES: sin
+         el antes, «no se pliega» no distingue «nunca se pliega» de «no se pliega cuando alarma». */
+      const celdaDe = function(clave){
+        const c3 = document.getElementById('indic-cuerpo');
+        const b = c3 && c3.querySelector('[data-ind-clin="' + clave + '"]');
+        const tr = b && b.closest('tr');
+        const tds = tr && tr.querySelectorAll('td');
+        if (!tds || tds.length < 3) return null;
+        const cl = tds[2].cloneNode(true);
+        [].slice.call(cl.querySelectorAll('details')).forEach(function(d){ if (!d.open) d.remove(); });
+        return { plegada: !!tds[2].querySelector('details[data-ind-info]'),
+                 visible: (cl.textContent || '').replace(/\s+/g, ' ').trim(),
+                 completo: (tds[2].textContent || '').replace(/\s+/g, ' ').trim() };
+      };
+      /* ⚠️ SE EXIGE EL ESTADO DE PARTIDA, Y LA PRIMERA VERSION DE ESTE BLOQUE NO LO HACIA. Un
+         segundo toque sobre la opcion ACTIVA la desmarca —es la semantica de «_indClinCablear»—,
+         asi que un clic a ciegas sobre «si» cuando «si» ya estaba puesto hace lo CONTRARIO de lo
+         que la escena dice hacer. Y aca pasaba de verdad: el bloque de mas arriba de este mismo
+         caso contesta UNA opcion de CADA clave para que la recomendacion resuelva, asi que
+         «em.calcsev» llega contestado. Medido: la escena informaba «Presente: plegada=true
+         visible=❓», o sea el estado sin contestar, con el veredicto del lado del falso.
+         «ponerEn(k, v)» deja la pregunta exactamente en «v» —o sin contestar con v = null— y
+         devuelve el estado que efectivamente quedo, que es lo que se informa al lado. */
+      const pres = function(k, v){ const c3 = document.getElementById('indic-cuerpo');
+        const b = c3 && c3.querySelector('[data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
+        return b ? b.getAttribute('aria-pressed') : null; };
+      const toque = function(k, v){ const c3 = document.getElementById('indic-cuerpo');
+        const b = c3 && c3.querySelector('[data-ind-clin="' + k + '"][data-ind-val="' + v + '"]');
+        if (b) b.click(); return !!b; };
+      const opsDe = function(k){ const c3 = document.getElementById('indic-cuerpo');
+        return [].slice.call(c3 ? c3.querySelectorAll('[data-ind-clin="' + k + '"]') : [])
+          .map(function(b){ return b.getAttribute('data-ind-val'); }); };
+      const ponerEn = function(k, v){
+        const ops = opsDe(k);
+        if (!ops.length) return { ok:false, por:'no existe la pregunta' };
+        /* Primero se DESMARCA lo que estuviera puesto, sea lo que sea. */
+        ops.forEach(function(o){ if (pres(k, o) === 'true') toque(k, o); });
+        if (v != null) toque(k, v);
+        const quedo = ops.filter(function(o){ return pres(k, o) === 'true'; });
+        return { ok: v == null ? quedo.length === 0 : (quedo.length === 1 && quedo[0] === v),
+                 quedo: quedo };
+      };
+      const p0 = ponerEn('em.calcsev', null);
+      const antes = celdaDe('em.calcsev');
+      const p1 = ponerEn('em.calcsev', 'si');
+      const hubo = p1.ok;
+      const dsp   = celdaDe('em.calcsev');
+      const p2 = ponerEn('em.calcsev', 'no');
+      const hubo2 = p2.ok;
+      const dsp2  = celdaDe('em.calcsev');
+      ex.push(['DENOMINADOR: la contraindicacion de la Tabla 8 existe, arranca SIN CONTESTAR y los tres estados quedaron puestos',
+        !!antes && p0.ok && hubo && hubo2 && !!dsp && !!dsp2,
+        'fila=' + (antes ? 'si' : 'NO') + ' · sin contestar=' + JSON.stringify(p0) +
+        ' · Presente=' + JSON.stringify(p1) + ' · Ausente=' + JSON.stringify(p2)]);
+      ex.push(['la nota de una pregunta con marca 🔴 queda VISIBLE —no detras del ⓘ—, y vuelve a plegarse cuando la marca baja',
+        !!antes && antes.plegada === true &&
+        !!dsp && dsp.plegada === false && pl(dsp.visible).indexOf('contraindicacion') > -1 &&
+        !!dsp2 && dsp2.plegada === true,
+        'sin contestar: plegada=' + (antes ? antes.plegada : '?') +
+        ' · «Presente»: plegada=' + (dsp ? dsp.plegada : '?') + ' visible=' + JSON.stringify(dsp ? dsp.visible.slice(0, 60) : null) +
+        ' · «Ausente»: plegada=' + (dsp2 ? dsp2.plegada : '?')]);
+      indicRender();
+    })();
 
     /* ── UNA SECCION QUE FALLA AL PINTAR NO SE LLEVA EL PANEL ENTERO ──
        «indicRender» envolvia solo «s.fn()» y dejaba «_indSecHTML» afuera del try. Por «indicAbrir» eso

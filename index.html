@@ -1997,6 +1997,48 @@ html.light-mode .amilo-root{
    cambia nada es un control que miente. El corte es el mismo 560 px que la tabla del panel ya usa,
    no uno nuevo. */
 @media (max-width:560px){ #indic-max{display:none!important} }
+
+/* ══ LAS PREGUNTAS, EN UNA LÍNEA Y CON BOTONES DISCRETOS ════════════════════════════════════
+   La fila ya era UNA línea —rótulo · botonera · marca—; lo que cambia es que la botonera se va
+   al borde DERECHO de su columna y que los botones bajan de peso.
+
+   ⚠️ `justify-content` Y NO `text-align`, Y ESTÁ MEDIDO EN ESTE ARCHIVO: el comentario de la
+   regla de 560 px de más arriba ya dice que «text-align:right no alinea los hijos de un
+   contenedor flex». Por eso la alineación va acá y no en el `style` en línea de la botonera: en
+   el celular la celda baja a su propio renglón a lo ancho y ahí los botones vuelven a la
+   IZQUIERDA, que es la decisión que esa regla ya tomó y midió a 375 px. Escrito en línea, el
+   `flex-end` habría pisado esa decisión sin que nada lo contradijera. */
+#indic-cuerpo td.ind-ctrl > div{justify-content:flex-end}
+@media (max-width:560px){ #indic-cuerpo td.ind-ctrl > div{justify-content:flex-start} }
+
+/* ══ EL PISO TÁCTIL DE 44 px NO SE BAJA — SE ACOTA AL PUNTERO GRUESO ════════════════════════
+   ⚠️ ESTE ARCHIVO YA TIENE UNA DECISIÓN DE MAICOL SOBRE ESTO (2026-09-25, los botones del visor):
+   «se conserva el piso y lo que baja es el PESO VISUAL», porque bajar el mínimo global de 44 px
+   abre la puerta a bajarlo en todos lados. Acá el piso NO se baja: se deja de aplicar SÓLO cuando
+   el puntero primario es FINO, o sea un mouse. En cualquier dispositivo con dedo —celular,
+   tablet, y también un portátil con pantalla táctil, donde `pointer` es `coarse`— los botones
+   siguen midiendo 44, que es MÁS que los 40 px pedidos y el mismo número que el resto de la app.
+   Es la distinción que aquella decisión no tenía disponible: entonces no había forma de separar
+   «escritorio» de «dedo» sin bajar el mínimo para los dos.
+   ⚠️ `pointer:fine` Y NO `any-pointer:fine`. `any-pointer` matchea si ALGUNO de los punteros es
+   fino, así que una tablet con un mouse conectado perdería el piso táctil para el dedo también.
+   `pointer` describe el puntero PRIMARIO, que es el que decide con qué se toca.
+   El alcance es la botonera del panel y nada más: `#indic-cuerpo [data-ind-clin]`. */
+/* ⚠️ ACÁ VA **SÓLO** LO QUE NO ESTÁ EN EL `style` EN LÍNEA DEL BOTÓN, Y LA PRIMERA VERSIÓN DE
+   ESTA REGLA TENÍA TRES DECLARACIONES MUERTAS. Traía `padding`, `border-radius` y `line-height`,
+   y las tres PIERDEN contra el estilo en línea que escribe `_indCtrlHTML`: medido, el radio seguía
+   en 7 px y el alto en 26 px por el relleno de la línea. Una regla que no gana se lee como un
+   arreglo aplicado, que es peor que no tenerla. El redondeo y el relleno viven en el único dueño
+   —el `style` en línea— y acá queda el mínimo táctil, que SÍ es de hoja de estilos. */
+@media (pointer:fine){
+  #indic-cuerpo [data-ind-clin]{ min-height:0;min-width:0 }
+}
+/* ⚠️ MÁS DE TRES OPCIONES: ENVUELVEN Y NO DESBORDAN. El `flex-wrap:wrap` lo pone la botonera en
+   línea; lo que hace falta acá es que un rótulo largo no fuerce el ancho de la fila — la prueba de
+   esfuerzo de la aórtica tiene CUATRO opciones y una dice «Caída de TA > 20 mmHg». `min-width:0`
+   permite que la celda se encoja por debajo del contenido, que es lo que una celda de tabla no
+   hace por omisión. */
+#indic-cuerpo td.ind-ctrl{min-width:0}
 </style>
 <style>
 /* ── Strain Patrones ── */
@@ -50704,6 +50746,24 @@ function _indClinCablear(){
    cada respuesta. Sobre un panel de trece secciones eso se lee como que el panel «saltó».
    Se conserva acá y NO dentro de `indicRender`: esa función la comparten las trece secciones y
    el sync del botón, y cambiarle el comportamiento sería tocar el mecanismo de las otras doce. */
+/* ══ LA CLAVE DE UN `<summary>` — EL `aria-label` MANDA SOBRE EL TEXTO ═══════════════════════
+   ⚠️ ES EL MISMO DEFECTO QUE LOS TRECE «VER DETALLE», OTRA VEZ, Y LO ENCONTRÓ TC-293. Desde que
+   cada pregunta lleva su ⓘ, el texto del `summary` de TODOS los ⓘ de una sección es el mismo
+   carácter, así que la clave «Estenosis aórtica ▸ ⓘ» la comparten los seis de esa sección y
+   gana la última escritura: abrir UNO y contestar un control los abría o cerraba TODOS, que es
+   exactamente el salto que esta función existe para evitar. Medido: la condición de TC-293 «el
+   detalle que estaba abierto SIGUE abierto» se puso en rojo.
+   El `aria-label` del ⓘ ya lleva el rótulo de su fila —lo necesita para que un lector de pantalla
+   no anuncie cuarenta y dos controles idénticos—, así que ahí está el discriminante y no hace
+   falta inventar otro atributo. Los demás `<summary>` del panel no tienen `aria-label`, así que
+   para ellos la clave no cambia ni una letra.
+   ⚠️ SE USA EN LAS DOS PUNTAS. Arreglar sólo la captura o sólo la restauración deja la mitad del
+   defecto, que es la advertencia que esta misma función ya tiene escrita. */
+function _indClaveSummary(su){
+  if (!su) return '';
+  return su.getAttribute('aria-label') || su.textContent;
+}
+
 function _indRepintarConservando(claveFoco, valFoco){
   const c = document.getElementById('indic-cuerpo'); if (!c) return;
   const abiertas = Object.create(null);
@@ -50717,7 +50777,7 @@ function _indRepintarConservando(claveFoco, valFoco){
     const s = d.querySelector('summary');
     const pa = d.parentElement && d.parentElement.closest('details');
     const ps = pa && pa.querySelector('summary');
-    if (s) abiertas[(ps ? ps.textContent + ' ▸ ' : '') + s.textContent] = d.open;
+    if (s) abiertas[(ps ? ps.textContent + ' ▸ ' : '') + _indClaveSummary(s)] = d.open;
   });
   /* ⚠️ LA MARCA DEL CORCHETE TAMBIÉN SE CONSERVA, y hasta esta ronda NO. El `open` sobrevivía al
      repintado y la marca no, así que con VARIAS entradas por bibliografía el médico terminaba con
@@ -50746,7 +50806,8 @@ function _indRepintarConservando(claveFoco, valFoco){
        distinguiría los trece detalles y la restauración seguiría leyendo una entrada compartida. */
     const pa = d.parentElement && d.parentElement.closest('details');
     const ps = pa && pa.querySelector('summary');
-    const k = s ? (ps ? ps.textContent + ' ▸ ' : '') + s.textContent : null;
+    /* La MISMA clave que la captura, por `_indClaveSummary`. */
+    const k = s ? (ps ? ps.textContent + ' ▸ ' : '') + _indClaveSummary(s) : null;
     if (k && Object.prototype.hasOwnProperty.call(abiertas, k)) d.open = abiertas[k];
   });
   if (marcada && marcada.k) {
@@ -50905,7 +50966,11 @@ function _indCtrlHTML(ctrl){
        se toca con el dedo en una tablet al lado del ecógrafo. */
     return '<button type="button" data-ind-clin="' + _critEsc(ctrl.clave) + '"' +
       ' data-ind-val="' + _critEsc(o.v) + '" aria-pressed="' + (on ? 'true' : 'false') + '"' +
-      ' style="padding:4px 11px;font-size:11.5px;font-weight:700;border-radius:7px;cursor:pointer;' +
+      /* ⚠️ EL REDONDEO Y EL RELLENO VIVEN **ACÁ**, que es su único dueño: una regla de hoja de
+         estilos pierde contra este `style` en línea sin un `!important`, y la primera versión del
+         CSS de esta tanda tenía tres declaraciones que no ganaban. Lo que sí es de hoja de estilos
+         es el mínimo táctil, porque la regla global que lo pone también lo es. */
+      ' style="padding:4px 11px;font-size:11.5px;font-weight:700;border-radius:999px;cursor:pointer;' +
       'border:1px solid ' + (on ? 'var(--accent2)' : 'var(--border)') + ';' +
       'background:' + (on ? 'var(--accent2)' : 'var(--bg2)') + ';' +
       'color:' + (on ? 'var(--bg2)' : 'var(--text2)') + ';">' + _critEsc(o.t) + '</button>';
@@ -50960,8 +51025,57 @@ function _indMecanismoHTML(){
     '</div>';
 }
 
+/* ══ EL ⓘ DE UNA FILA — EL MISMO MECANISMO QUE EL «VER DETALLE», EN LÍNEA ════════════════════
+   Un `<details>` como el de `_indDetalleHTML`, no un mecanismo nuevo: mismo elemento, mismo
+   `aria-expanded` que el navegador mantiene solo, mismo comportamiento con el teclado. Lo único
+   distinto es que va EN LÍNEA dentro de la celda de la marca, al lado del icono, porque lo que
+   despliega es la explicación de ESA fila y no un apéndice de la sección.
+
+   ⚠️ `data-ind-info` NO ES DECORACIÓN, y es el mismo argumento que `data-ind-biblio` y
+   `data-ind-bloque` ya pagaron: TC-293 cuenta «un control de detalle por sección» sobre
+   `details details`, así que sin una marca propia cada ⓘ se contaría como un control de detalle
+   más y el denominador saltaría de ocho a cuarenta y dos. Se marca por ATRIBUTO y no por rótulo
+   —el rótulo es un glifo y renombrarlo apagaría la distinción en silencio—.
+
+   ⚠️ LA ETIQUETA ACCESIBLE LLEVA EL RÓTULO DE LA FILA. Un lector de pantalla no lee «ⓘ», y
+   cuarenta y dos controles anunciados igual son cuarenta y dos controles indistinguibles: el
+   `aria-label` dice de QUÉ fila es la explicación. Va por `_critEsc`, que escapa la comilla doble
+   —el rótulo es dato y acá entra en un atributo—.
+
+   ⚠️ EL MARCADOR DEL `<summary>` SE APAGA (`list-style:none`) y el `<details>` de la sección lo
+   DEJA PUESTO (`list-style:revert`). No es una inconsistencia: ahí el triángulo es la única
+   afordancia junto a «Ver detalle»; acá la afordancia es el ⓘ, y un triángulo al lado del ❓ y del
+   ⓘ en una celda de 11 px son tres glifos peleándose el mismo renglón. */
+function _indInfoHTML(lbl, htmlInterno){
+  if (!htmlInterno) return '';
+  return ' <details data-ind-info="1" style="display:inline-block;vertical-align:top;">' +
+    '<summary aria-label="Ver la explicación de: ' + _critEsc(lbl) + '" ' +
+    'style="cursor:pointer;list-style:none;display:inline;font-weight:700;color:var(--accent2);">' +
+    '&#9432;</summary>' +
+    '<div style="margin-top:4px;">' + htmlInterno + '</div></details>';
+}
+
 function _indFilaHTML(f){
   const M = IND_MARCA[f.marca] || IND_MARCA.none;
+  /* ══ QUÉ NOTA SE PLIEGA, Y LA COMPUERTA ES LA MARCA ════════════════════════════════════════
+     Se pliega la nota de una PREGUNTA —una fila con botonera— y nada más. Decisión de Maicol
+     (2026-10-11) sobre las dos lecturas posibles del pedido, con el censo medido delante: 34
+     notas de pregunta y 57 de fila de dato. Las de fila de dato NO se tocan, y el motivo no es
+     comodidad: la nota de una fila medida es la LECTURA de su valor, al lado del valor —«no supera
+     1,5», «tercera característica anatómica desfavorable»—, y TC-293 la protege nombrándola «la
+     evidencia que sostiene la recomendación». Esconderla deja una «Clase I · Nivel B» sin nada
+     visible que la respalde, que es el defecto que este archivo persigue desde la nota del
+     NT-proBNP.
+
+     ⚠️ Y LAS MARCAS 🔴 Y ⚠️ NO SE PLIEGAN NUNCA, aunque la fila sea una pregunta. Ahí están las
+     CONTRAINDICACIONES de la Tabla 8 —las cuatro que la app no mide se vuelven `alarm` en cuanto
+     el operador contesta «Presente», y su nota es «contraindicación de la comisurotomía
+     percutánea»— y la salvedad limítrofe. Una advertencia de seguridad detrás de un clic es una
+     advertencia que no se dio. La compuerta mira la MARCA y no una lista de claves: una fila
+     nueva que algún día devuelva `alarm` queda cubierta sin que nadie se acuerde de agregarla.
+
+     El ❓ / ✅ / 🔴 / ⚠️ / — SIEMPRE queda visible: lo que se pliega es la prosa, no el estado. */
+  const plegar = !!f.ctrl && !!f.nota && f.marca !== 'alarm' && f.marca !== 'warn';
   return '<tr style="border-top:1px solid var(--border);">' +
     '<td style="padding:5px 8px;font-size:11.5px;vertical-align:top;">' + _critEsc(f.lbl) + '</td>' +
     '<td' + (f.ctrl ? ' class="ind-ctrl"' : '') +
@@ -50973,10 +51087,20 @@ function _indFilaHTML(f){
        como marcado LITERAL y la única alternativa sería no escapar, o sea un XSS por comodidad.
        `refs` es opcional: las ~90 filas que no lo traen se pintan exactamente igual. */
     '<td style="padding:5px 8px;font-size:11px;vertical-align:top;line-height:1.45;color:' + M.col + ';">' +
-      M.ico + (f.nota ? ' ' + _critEsc(f.nota) : '') +
+      M.ico +
       /* SIN NOTA NO HAY CITA: un corchete pelado pegado al icono de marca se lee como si citara el
-         VALOR o la marca, que es la misma forma en que el `txt` vacío del criterio se coló antes. */
-      (f.nota ? (f.refs || []).map(function(k){ return _indRefMarca(k); }).join('') : '') + '</td></tr>';
+         VALOR o la marca, que es la misma forma en que el `txt` vacío del criterio se coló antes.
+         ⚠️ LOS CORCHETES VIAJAN CON SU NOTA, plegada o no — si se quedaran afuera, el corchete
+         quedaría pelado al lado del icono, que es exactamente lo que la línea de arriba evita.
+         Y siguen DENTRO del `<tr>`, que es lo que TC-323 cuenta al restar «los corchetes que están
+         en una fila»: moverlos fuera de la celda le daría otro número sin que nada se rompiera. */
+      (f.nota
+        ? (plegar
+            ? _indInfoHTML(f.lbl, _critEsc(f.nota) +
+                (f.refs || []).map(function(k){ return _indRefMarca(k); }).join(''))
+            : ' ' + _critEsc(f.nota) +
+                (f.refs || []).map(function(k){ return _indRefMarca(k); }).join(''))
+        : '') + '</td></tr>';
 }
 
 /* ── Bloque de recomendación ───────────────────────────────────────────────────────────────
@@ -100793,8 +100917,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261011-1351';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791737489595;                 /* eco-build-ms */
+const ECO_BUILD    = '20261011-1419';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791739162454;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -100880,7 +101004,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-1351</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261011-1419</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del
