@@ -2954,11 +2954,16 @@ window.cerrarSesionReal = cerrarSesionReal;
         </div>
         <div class="fg">
           <label>Edad (años)</label>
-          <input type="number" id="edad" placeholder="años" oninput="calcBSA()">
+          <input type="number" id="edad" placeholder="años" oninput="calcBSA(); if (typeof calcDiastol==='function') calcDiastol();">
         </div>
         <div class="fg">
           <label>Sexo</label>
-          <select id="sexo">
+          <!-- ⚠️ `calcDiastol` acá y en `edad` NO es decorativo: desde que la BSE 2024 decide el
+               paso del e' con la Tabla 2 (pág. 13), la edad y el sexo son INSUMOS del veredicto.
+               Sin esto el cuadro gris se queda con el del paciente anterior hasta que se toque
+               un campo del Doppler mitral —el desfase que esta app ya pagó en la tanda del
+               2026-10-12—. La ventana no se atrasa: tiene su oyente de documento. -->
+          <select id="sexo" onchange="if (typeof calcDiastol==='function') calcDiastol();">
             <option value="">—</option>
             <option value="M">Masculino</option>
             <option value="F">Femenino</option>
@@ -3588,6 +3593,10 @@ window.cerrarSesionReal = cerrarSesionReal;
                no es un error del médico ni de la app, es el alcance de la guía.
                Su único dueño es `diastFcAvisoSync`. -->
           <div id="diast-fc-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--amber);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
+          <!-- Aviso ambar del paso del e' de la BSE 2024: la Tabla 2 (pag. 13) necesita EDAD y,
+               en 18-40 anios, SEXO. Si faltan, el e' no se valora y se dice; la presion de
+               llenado se muestra igual. Su unico dueno es `diastBseEprimaAvisoSync`. -->
+          <div id="diast-bse-eprima-aviso" style="display:none;font-size:11px;font-weight:700;color:var(--amber);margin-top:4px;line-height:1.3;overflow-wrap:break-word;"></div>
         </div>
         <div class="fg"><label>Ritmo</label>
           <select id="diast_ritmo" onchange="calcDiastol();hfRitmoCambio()">
@@ -22348,6 +22357,54 @@ const BSE_EE_SEPTAL    = 15;    // E/e' septal, SÓLO con un anillo, borde `>` (
 const BSE_EE_LATERAL   = 13;    // E/e' lateral, SÓLO con un anillo, borde `>` (pág. 14)
 window.BSE_IT_SIGNIF = BSE_IT_SIGNIF;
 
+/* ══ TABLA 2 (pág. 13) — e' SEPTAL Y LATERAL POR EDAD Y SEXO ═════════════════════════
+   La tabla es de TEXTO en el PDF, no una imagen, y su pie dice: «Any value below that stated
+   within the table is suggestive of impaired LV relaxation». De ahí salen las dos reglas:
+     · el operador es «<» en los ocho valores —un e' septal de 5,0 exacto a los 50 años es
+       NORMAL—;
+     · la combinación es un OR: alcanza con que UNO de los dos anillos caiga bajo su corte.
+   ⚠️ EL SEXO SÓLO MUEVE EL CORTE EN 18-40 AÑOS. En 41-65 y en > 65 la tabla da una sola
+   columna («All»), así que ahí la falta de sexo NO impide valorar el e'.
+   ⚠️ LA TABLA ARRANCA EN LOS 18 AÑOS y no tiene fila pedíiatrica: por debajo de esa edad el paso
+   del e' queda NO EVALUABLE y la app no extrapola el corte del adulto joven hacia abajo.
+   ⚠️ Y ESTOS CORTES NO SON LOS DE LA ASE 2025, que es con lo que la app venía graduando esta
+   guía: la Tabla 6 del folio 553 de la ASE corta en 40 y 65 años y no mira el sexo. El «5,0»
+   coincide por casualidad —es el septal de 41-65 de la BSE— y nada más. */
+const BSE_T2_MIN_EDAD = 18;
+const BSE_TABLA2 = [
+  { hasta: 40,       porSexo: true,  M: { sep: 7.0, lat:  9.0 }, F: { sep: 8.0, lat: 11.0 }, et: '18-40 años' },
+  { hasta: 65,       porSexo: false,     sep: 5.0, lat:  6.0,                                 et: '41-65 años' },
+  { hasta: Infinity, porSexo: false,     sep: 4.0, lat:  5.0,                                 et: 'más de 65 años' }
+];
+
+/* Devuelve los dos cortes de la franja, o `null` cuando la franja los pide por sexo y el sexo no
+   está. NO inventa un valor: la guía no da una columna neutra para 18-40. */
+function bseEprimaCortes(edad, sexo) {
+  if (edad === null || !isFinite(edad) || edad < BSE_T2_MIN_EDAD) return null;
+  const f = BSE_TABLA2.find(function (x) { return edad <= x.hasta; });
+  if (!f) return null;
+  if (!f.porSexo) return { sep: f.sep, lat: f.lat, franja: f.et, porSexo: false };
+  const c = (sexo === 'M' || sexo === 'F') ? f[sexo] : null;
+  if (!c) return null;
+  return { sep: c.sep, lat: c.lat, franja: f.et, porSexo: true };
+}
+window.bseEprimaCortes = bseEprimaCortes;
+
+/* El PASO DEL e' de la Figura 17, con su motivo cuando no se puede resolver. Los cuatro motivos
+   son distintos y se informan por separado: sin este detalle, un «no evaluable» no dice qué
+   completar y el médico no tiene cómo salir del estado. */
+function bseEprimaEstado(esep, elat, edad, sexo) {
+  if (!esep && !elat) return { evaluable: false, motivo: 'falta', que: "el e' septal y/o lateral" };
+  if (edad === null || !isFinite(edad)) return { evaluable: false, motivo: 'edad', que: 'la edad' };
+  if (edad < BSE_T2_MIN_EDAD) return { evaluable: false, motivo: 'rango', que: 'la edad está fuera del rango de la Tabla 2' };
+  const c = bseEprimaCortes(edad, sexo);
+  if (!c) return { evaluable: false, motivo: 'sexo', que: 'el sexo' };
+  const bajoSep = !!esep && esep < c.sep;
+  const bajoLat = !!elat && elat < c.lat;
+  return { evaluable: true, alterada: bajoSep || bajoLat, cortes: c, bajoSep: bajoSep, bajoLat: bajoLat };
+}
+window.bseEprimaEstado = bseEprimaEstado;
+
 function diastBSE2024Evaluar() {
   const e = v('onda_e'), a = v('onda_a'), esep = v('e_sep'), elat = v('e_lat');
   const aiVol = v('ai_vol'), bsa = getBSA();
@@ -22363,13 +22420,17 @@ function diastBSE2024Evaluar() {
   const fevi  = v('fevi'), sgl = v('sgl');
   const feviReducida = (fevi !== null && fevi < UMBRAL_FEVI_NORMAL) || (sgl !== null && Math.abs(sgl) < 16);
 
-  let alterada = null;
-  if (esep && elat) alterada = eprom <= 6.5;
-  else if (esep && !elat) alterada = esep <= 6;
-  else if (elat && !esep) alterada = elat <= 7;
+  /* ⚠️ LOS CORTES DEL e' ERAN LOS DE LA ASE 2025 (promedio ≤ 6,5 · septal ≤ 6 · lateral ≤ 7) Y
+     ESTA GUÍA LOS DA POR EDAD Y SEXO. Esos tres números son de la Figura 3 del folio 554 de la
+     ASE y la BSE no los nombra en ninguna parte: su Tabla 2 (pág. 13) corta en 40 y 65 años y en
+     18-40 separa por sexo. Medido: un e' septal de 6,5 con lateral 8,5 era «alterado» para la
+     app a cualquier edad, y para la BSE es ALTERADO a los 30 años y NORMAL a los 50.
+     Tampoco hay corte de promedio: la tabla da septal y lateral, y se combinan con un OR. */
+  const eprimaE = bseEprimaEstado(esep, elat, v('edad'), sv('sexo'));
+  const alterada = eprimaE.evaluable ? eprimaE.alterada : null;
 
   const R = { e, a, esep, elat, eprom, ee, ea, lavi, trv, fevi, sgl,
-              feviReducida, alterada, filas: [], pos: 0, total: 0, via: null };
+              feviReducida, alterada, eprima: eprimaE, filas: [], pos: 0, total: 0, via: null };
 
   if (feviReducida) {
     const cEe   = ee   !== null && ee   > 14;
@@ -22431,17 +22492,28 @@ function diastBSE2024Evaluar() {
     else               presion = 'insuficiente';
     R.presion = presion;
 
-    R.filas.push({ g: 'Paso 1 — Relajación (e\')',
-                   crit: (esep && elat) ? "e' promedio ≤ 6,5 cm/s"
-                       : (esep ? "e' septal ≤ 6 cm/s" : (elat ? "e' lateral ≤ 7 cm/s" : "e' septal y/o lateral")),
-                   val: (esep && elat) ? eprom : (esep || elat || null), u: 'cm/s', ok: alterada === true });
-    R.filas.push({ g: 'Paso 2 — Presión de llenado (Figura 17)',
+    R.filas.push({ g: 'Paso 1 — Presión de llenado (Figura 17)',
                    crit: "E/e' " + (eeSitio || 'promedio') + ' > ' + (eeCorte === null ? BSE_EE_PROM : eeCorte),
                    val: eeVal, u: '', ok: cEe });
     R.filas.push({ crit: 'Velocidad de la IT > ' + String(BSE_IT_SIGNIF).replace('.', ',') + ' m/s', val: trv, u: 'm/s', ok: cIt });
     R.filas.push({ crit: 'LAVi > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
 
-    R.res = window.calcularBSE2024(alterada, presion, { eeVal: eeVal, eeSitio: eeSitio, trv: trv, lavi: lavi });
+    /* ⚠️ EL PASO DEL e' VA AL FINAL, Y ESE ES EL ORDEN DE LA GUÍA. Folio 35: «the assessment of
+       LVDF in those with normal systolic function must start with the assessment of LVFP». La app
+       arrancaba por la relajación y sin e' devolvía «Datos insuficientes» aunque la IT y el Vol AI
+       alcanzaran para decidir la presión —que es el dato que la guía pone primero—. */
+    if (eprimaE.evaluable) {
+      const c = eprimaE.cortes;
+      R.filas.push({ g: "Paso 2 — Relajación por e' según edad (Tabla 2, " + c.franja + ')',
+                     crit: "e' septal < " + String(c.sep).replace('.', ',') + ' cm/s', val: esep || null, u: 'cm/s', ok: eprimaE.bajoSep });
+      R.filas.push({ crit: "e' lateral < " + String(c.lat).replace('.', ',') + ' cm/s', val: elat || null, u: 'cm/s', ok: eprimaE.bajoLat });
+    } else {
+      R.filas.push({ g: "Paso 2 — Relajación por e' según edad (Tabla 2)",
+                     crit: 'no evaluable: ' + (eprimaE.motivo === 'rango' ? eprimaE.que : 'falta ' + eprimaE.que),
+                     val: null, u: '', ok: false });
+    }
+
+    R.res = window.calcularBSE2024(eprimaE, presion, { eeVal: eeVal, eeSitio: eeSitio, trv: trv, lavi: lavi });
   }
 
   R.clave     = R.res.categoria;
@@ -22471,6 +22543,7 @@ function calcDiastolBSE2024() {
   if (e && eprom) document.getElementById('ee-val').textContent = (e / eprom).toFixed(1);
 
   const R = diastBSE2024Evaluar();
+  if (typeof diastBseEprimaAvisoSync === 'function') diastBseEprimaAvisoSync();
   const dd = document.getElementById('dd-interp');
   if (dd) dd.innerHTML = R.badgeHtml;
 
@@ -23282,6 +23355,9 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') diastAlgoCer
   /* El aviso de FC lee `ao_fc`, que vive en la pestaña de la Aorta y tiene su propio manejador:
      va en el MISMO oyente de documento que el de exclusiones, por el mismo argumento. */
   if (typeof diastFcAvisoSync === 'function') diastFcAvisoSync();
+  /* El aviso del paso del e' lee `edad` y `sexo`, que viven en la pestaña Paciente: mismo
+     oyente y mismo argumento que los dos de arriba. */
+  if (typeof diastBseEprimaAvisoSync === 'function') diastBseEprimaAvisoSync();
   // La línea HFA-PEFF de la tabla del Doppler y la calculadora siguen al estudio.
   if (typeof hfapeffLineaEco === 'function') hfapeffLineaEco();
   const hs = document.getElementById('hfapeff-seccion');
@@ -24251,6 +24327,40 @@ function diastFcAvisoSync() {
 }
 window.diastFcAvisoSync = diastFcAvisoSync;
 
+/* ══ AVISO ÁMBAR DEL PASO DEL e' DE LA BSE 2024 ══════════════════════════════════
+   La Tabla 2 (pág. 13) necesita la EDAD y, sólo en 18-40 años, el SEXO. Los dos viven en la
+   pestaña Paciente, o sea lejos del Doppler: sin un cartel, el paso del e' se queda en silencio
+   y el médico no tiene cómo saber que falta completar dos campos de otra pantalla.
+   NO cambia ningún veredicto: lo que decide es `bseEprimaEstado`, y este cartel sólo lo cuenta.
+   ⚠️ DOS TEXTOS Y NO UNO. Con la edad por debajo de 18 años, «completar edad y sexo» sería
+   falso —el dato está cargado y es la tabla la que no llega—, así que esa rama dice lo que pasa
+   de verdad. Es la misma regla que esta app aplica a las bandas de plausibilidad: un aviso que
+   nombra mal el motivo manda a corregir lo que no está mal.
+   Su ÚNICO dueño es esta función, y lleva las TRES columnas: el oyente de documento,
+   `RECALC_MODULOS` y `limpiarCampos`. */
+function diastBseEprimaAvisoSync() {
+  const av = document.getElementById('diast-bse-eprima-aviso');
+  if (!av) return null;
+  const algo  = sv('diast_algoritmo') || DIAST_ALGO_RECOMENDADO;
+  const ritmo = sv('diast_ritmo') || 'sinusal';
+  let txt = '';
+  if (algo === 'bse2024' && ritmo === 'sinusal' && typeof bseEprimaEstado === 'function') {
+    const st = bseEprimaEstado(v('e_sep'), v('e_lat'), v('edad'), sv('sexo'));
+    /* El motivo `falta` —no hay e' cargado— NO saca cartel: eso no es un dato de la pestaña
+       Paciente, y el cuadro gris ya lo dice en su propio rótulo. */
+    if (!st.evaluable && st.motivo === 'rango') {
+      txt = 'BSE 2024: la edad queda fuera del rango de la Tabla 2, que arranca en los '
+          + BSE_T2_MIN_EDAD + ' años; el e′ no se valora (pág. 13).';
+    } else if (!st.evaluable && (st.motivo === 'edad' || st.motivo === 'sexo')) {
+      txt = 'BSE 2024: completar edad y sexo en Paciente para valorar el e′ (Tabla 2, pág. 13).';
+    }
+  }
+  av.textContent = txt;
+  av.style.display = txt ? 'block' : 'none';
+  return txt || null;
+}
+window.diastBseEprimaAvisoSync = diastBseEprimaAvisoSync;
+
 /* EL MANEJADOR DEL SELECTOR. Único camino por el que el protocolo entra a la sesión: lo llama el
    `onchange` del `<select>` y lo vuelve a llamar `diastAlgoReponerDeSesion` despachando un
    `change`, así que las dos formas de que el protocolo cambie ejecutan exactamente las mismas tres
@@ -24313,62 +24423,64 @@ function diastAlgoCerrarSesion() {
 }
 window.diastAlgoCerrarSesion = diastAlgoCerrarSesion;
 
-function calcularBSE2024(alterada, presion, d) {
-  /* La presión ya viene resuelta por `diastBSE2024Evaluar` con la regla de la Figura 17; acá
-     sólo se arma la palabra y el texto. Los cuatro estados de `presion` son
-     `elevada` / `normal` / `discordancia` / `insuficiente`. */
-  /* ⚠️ ESTA GUARDA VA PRIMERO, COMO EN HEAD, Y ES A PROPÓSITO. Sin e' el formulario vacío
-     publicaba «Datos insuficientes — falta e' septal y/o lateral», que dice QUÉ completar;
-     ponerla después de la de presión lo degradaba a un «Datos insuficientes» pelado. El orden
-     correcto de la guía —la presión PRIMERO y el e' al final (pág. 35)— lo arma el commit del
-     paso del e'; este commit sólo cambia qué variables cuentan y cómo se cuentan. */
-  if (alterada === null) {
-    return {
-      categoria: 'insuficiente',
-      badge: badge('gray', "Datos insuficientes — falta e' septal y/o lateral"),
-      badgeTxt: "Datos insuficientes — falta e' septal y/o lateral",
-      texto: null, textoSuma: null
-    };
-  }
+function calcularBSE2024(eprima, presion, d) {
+  /* La presión ya viene resuelta por `diastBSE2024Evaluar` con la regla de la Figura 17 y el
+     paso del e' viene resuelto con la Tabla 2; acá sólo se arma la palabra y el texto. */
   if (presion === 'insuficiente') {
-    /* ⚠️ ESTADO NUEVO Y `texto: null` A PROPÓSITO. Con menos de dos variables principales
-       evaluadas la Figura 17 no tiene rama, así que la app NO afirma presión normal ni elevada.
-       Con `texto` en null el informe firmado cae en su respaldo de datos insuficientes, que es
-       exactamente lo que hacía HEAD con el estado `insuficiente` de al lado. */
-    return {
-      categoria: 'presion_insuficiente',
-      badge: badge('gray', 'Datos insuficientes — BSE 2024'),
-      badgeTxt: 'Datos insuficientes — BSE 2024',
-      texto: null, textoSuma: null
-    };
+    /* ⚠️ `texto: null` A PROPÓSITO. Con menos de dos variables principales evaluadas la Figura
+       17 no tiene rama, así que la app NO afirma presión normal ni elevada. Con `texto` en null
+       el informe firmado cae en su respaldo de datos insuficientes, que es exactamente lo que
+       hacía HEAD. El rótulo nombra QUÉ falta, porque un «datos insuficientes» pelado no deja
+       salir del estado. */
+    const t = "Datos insuficientes — faltan variables de presión (E/e', IT o Vol AI)";
+    return { categoria: 'presion_insuficiente', badge: badge('gray', t), badgeTxt: t,
+             texto: null, textoSuma: null };
   }
-  let categoria;
-  if (presion === 'elevada') categoria = 'elevada';
-  else if (presion === 'normal') categoria = alterada ? 'alterada_normal' : 'normal';
-  else categoria = 'indeterminado';
 
-  /* DETALLES: las variables que VOTARON, con su valor. La E/A salió de la lista porque salió del
-     conteo, y entró la velocidad de la IT, que es la tercera variable principal de la figura. */
+  /* DETALLES: las variables que VOTARON, con su valor. */
   const detalles = [];
   if (d.eeVal !== null) detalles.push("E/e' " + d.eeSitio + ' ' + d.eeVal.toFixed(1));
   if (d.trv  !== null) detalles.push('velocidad de la IT ' + d.trv.toFixed(1) + ' m/s');
   if (d.lavi !== null) detalles.push('Vol AI ' + d.lavi.toFixed(1) + ' ml/m²');
+  const det = detalles.join(', ');
+
+  /* ⚠️ CON PRESIÓN ELEVADA LA FIGURA 17 NO CONSULTA EL e', Y ESO CONTESTA LA PREGUNTA DE QUÉ
+     HACER CON «presión elevada y e' normal para la edad»: la guía no tiene esa combinación. Sus
+     dos ramas rojas —«2 or 3 criteria positive» y las dos salidas de la rama del strain— van
+     DIRECTO a la casilla «Impaired diastolic function with elevated filling pressures» sin pasar
+     por «Assess relaxation by age-specific e'». El e' sólo decide del lado de la presión normal.
+     Lo respalda además la prosa de la pág. 13: «a value greater than the age-specific cut-off
+     does not confirm normal LV relaxation». */
+  let categoria;
+  if (presion === 'elevada') categoria = 'elevada';
+  else if (presion === 'discordancia') categoria = 'indeterminado';
+  else if (!eprima.evaluable) categoria = 'normal_sin_eprima';
+  else if (eprima.alterada) categoria = 'alterada_normal';
+  else categoria = 'normal';
 
   let texto, textoSuma, badgeC, badgeTxtC;
   if (categoria === 'normal') {
-    texto = `Función diastólica normal, con presión de llenado del VI dentro de límites normales (${detalles.join(', ') || 'parámetros disponibles dentro de rango'}).`;
+    texto = `Función diastólica normal, con presión de llenado del VI dentro de límites normales (${det || 'parámetros disponibles dentro de rango'}).`;
     textoSuma = 'Función diastólica normal.';
     badgeTxtC = 'Normal — BSE 2024'; badgeC = badge('green', badgeTxtC);
   } else if (categoria === 'alterada_normal') {
-    texto = `Patrón de relajación alterada, con presión de llenado del VI normal (${detalles.join(', ') || 'sin marcadores de presión elevada'}).`;
+    texto = `Patrón de relajación alterada, con presión de llenado del VI normal (${det || 'sin marcadores de presión elevada'}).`;
     textoSuma = 'Relajación alterada, presión de llenado normal.';
     badgeTxtC = 'Relajación alterada — BSE 2024'; badgeC = badge('yellow', badgeTxtC);
+  } else if (categoria === 'normal_sin_eprima') {
+    /* ESTADO NUEVO. La presión SÍ está establecida y se publica; lo que no se puede es decidir la
+       relajación, porque la Tabla 2 necesita la edad (y el sexo en 18-40). No se extrapola
+       ningún corte: el aviso ámbar de al lado dice qué completar. */
+    texto = `Presión de llenado del VI normal (${det || 'parámetros disponibles dentro de rango'}). No se valoró la relajación: ${eprima.motivo === 'rango' ? eprima.que : 'falta ' + eprima.que}.`;
+    textoSuma = 'Presión de llenado del VI normal.';
+    badgeTxtC = 'Presión de llenado normal, relajación no valorada — BSE 2024';
+    badgeC = badge('gray', badgeTxtC);
   } else if (categoria === 'elevada') {
-    texto = `Presión de llenado del VI elevada (${detalles.join(', ') || 'múltiples marcadores positivos'}), compatible con disfunción diastólica significativa.`;
+    texto = `Presión de llenado del VI elevada (${det || 'múltiples marcadores positivos'}), compatible con disfunción diastólica significativa.`;
     textoSuma = 'Presión de llenado del VI elevada.';
     badgeTxtC = 'Presión de llenado elevada — BSE 2024'; badgeC = badge('red', badgeTxtC);
   } else {
-    texto = `Evaluación de la presión de llenado del VI indeterminada por discordancia entre parámetros (${detalles.join(', ') || 'hallazgos discordantes'}). Sugerido correlacionar con clínica o considerar parámetros adicionales (strain de AI).`;
+    texto = `Evaluación de la presión de llenado del VI indeterminada por discordancia entre parámetros (${det || 'hallazgos discordantes'}). Sugerido correlacionar con clínica o considerar parámetros adicionales (strain de AI).`;
     textoSuma = 'Función diastólica indeterminada.';
     badgeTxtC = 'Indeterminado — BSE 2024'; badgeC = badge('orange', badgeTxtC);
   }
@@ -40205,7 +40317,7 @@ function RECALC_MODULOS() {
      `emAvmPdfVal` para la fila del PDF, `dataset` protege esa decision, y `disabled` no lo
      persiste ni lo lee nadie. Los dos primeros siguen intocados — que es exactamente la objecion
      que este archivo dejo escrita para IM: «pisaria la decision que la reimpresion respalda». */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -40853,6 +40965,8 @@ function limpiarCampos(silencioso) {
      «Nuevo estudio» sobre un formulario vacío. Es la lección que este archivo ya tiene escrita
      para `it-incongruencia` y para el aviso de exclusiones de al lado. */
   if (typeof diastFcAvisoSync === 'function') { try { diastFcAvisoSync(); } catch (e) {} }
+  /* LA TERCERA COLUMNA del aviso del paso del e', por el mismo motivo que el de FC. */
+  if (typeof diastBseEprimaAvisoSync === 'function') { try { diastBseEprimaAvisoSync(); } catch (e) {} }
   /* ⚠️ VENA PULMONAR, POR EL MISMO MOTIVO QUE `ccSegSync` Y AL FINAL COMO ÉL. El barrido de
      arriba vacía los cuatro `value`, pero las dos filas del cuadro gris se esconden por `display`
      y el color va en `style` en línea: sin esto el paciente siguiente arrancaba con los renglones

@@ -482,6 +482,25 @@ const FRANJAS = [
 ];
 const FRANJA_C = { onda_e: '70', onda_a: '60', e_sep: '6.5', e_lat: '8.5', vmax_it: '2.0', ai_vol: '50' };
 
+/* ⚠️ LAS DIEZ DE ARRIBA NO SEPARAN NI EL SEXO NI EL BORDE 65/66, Y LA PRIMERA CORRIDA LO MOSTRO:
+   con septal 6,5 / lateral 8,5 los dos sexos de 18-40 dan ALTERADA (6,5 < 7,0 y 6,5 < 8,0) y las
+   dos franjas de arriba dan NORMAL (6,5 > 5,0 y 6,5 > 4,0). Sirven como control negativo de que
+   el sexo NO mueve el corte en 41-65, pero no prueban que SI lo mueva en 18-40.
+   Estas cuatro usan valores que caen ENTRE los dos cortes de cada par:
+     septal 7,5 -> 18-40 M normal (> 7,0) y 18-40 F alterada (< 8,0), con lateral 10 que tambien
+       cae entre 9,0 y 11,0, asi que el OR no tapa el resultado;
+     septal 4,5 -> 41-65 alterada (< 5,0) y > 65 normal (> 4,0). */
+const FRANJAS_SEPARAN = [
+  { id: 'E11-30M-sexo', edad: '30', sexo: 'M', c: { onda_e: '70', onda_a: '60', e_sep: '7.5', e_lat: '10', vmax_it: '2.0', ai_vol: '50' },
+    que: '18-40 MASCULINO con sep 7,5 / lat 10: los dos POR ENCIMA de sus cortes -> normal' },
+  { id: 'E12-30F-sexo', edad: '30', sexo: 'F', c: { onda_e: '70', onda_a: '60', e_sep: '7.5', e_lat: '10', vmax_it: '2.0', ai_vol: '50' },
+    que: '18-40 FEMENINO con el MISMO e-prima: los dos POR DEBAJO -> alterada' },
+  { id: 'E13-65M-sep45', edad: '65', sexo: 'M', c: { onda_e: '30', onda_a: '60', e_sep: '4.5', e_lat: '12', vmax_it: '2.0', ai_vol: '50' },
+    que: '41-65 con septal 4,5 (< 5,0) -> alterada' },
+  { id: 'E14-66M-sep45', edad: '66', sexo: 'M', c: { onda_e: '30', onda_a: '60', e_sep: '4.5', e_lat: '12', vmax_it: '2.0', ai_vol: '50' },
+    que: '> 65 con el MISMO septal 4,5 (> 4,0) -> normal' }
+];
+
 /* ══ BORDES POR CORTE ════════════════════════════════════════════════════════════════════════
    Tripletes: apenas abajo, JUSTO en el corte, apenas arriba. El valor de abajo es el control
    negativo implicito de cada triplete. Los operadores salen de la Figura 17 (pag. 36) y de la
@@ -754,8 +773,8 @@ async function main() {
     /* El MISMO e' (septal 6,5 / lateral 8,5) por las diez franjas y bordes de la Tabla 2. Las
        tres principales quedan NEGATIVAS en las diez, asi que lo unico que se mueve es el e'. */
     out.franjas = [];
-    for (const f of FRANJAS) {
-      const c = Object.assign({}, FRANJA_C, { edad: f.edad });
+    for (const f of FRANJAS.concat(FRANJAS_SEPARAN)) {
+      const c = Object.assign({}, f.c || FRANJA_C, { edad: f.edad });
       const carga = await cargar(c, esc('bse2024', { sexo: f.sexo }));
       const m = await medir(true);
       out.franjas.push(Object.assign({ id: f.id, que: f.que, edad: f.edad, sexo: f.sexo,
