@@ -565,6 +565,149 @@ campo `venp_sd` es un `<select>` de «<1 / >1», así que en ritmo sinusal queda
 evaluable; el corte de la Figura 8 es **< 1**, que es exactamente lo que esa opción dice. Es el
 mismo campo con dos cortes distintos, y uno cae justo en el borde de la opción.
 
+### `bseDiast2024` — BSE 2024, RITMO SINUSAL · Tabla 2 y Figuras 17 y 18 (verificadas 2026-10-12)
+
+**Documento.** Robinson S y cols., *Echo Research & Practice* 2024;11:16. Ruta en disco:
+`~/Desktop/EcoSmart_Biblioteca_Fuentes/02_Diastolica/Robinson_2024_Diastolica_BSE.pdf`
+(55 páginas; **se pagina por «Page N of 55», no por folio de revista**: el folio es la página
+1-based del PDF, sin offset).
+
+**Fuente secundaria consultada y CRUZADA:** `COMPARATIVA_funcion_diastolica_2016_2024_2025.md`
+del Escritorio. Cada corte se verificó en el original; la comparativa coincide en todos los que
+esta tanda usa (su fila 5 ya escribe el strain con `≥` y con «o», igual que las figuras).
+
+---
+
+#### Tabla 2 (pág. 13) — e′ septal y lateral por EDAD y SEXO
+
+Es una tabla de **TEXTO** en el PDF, no una imagen. Pie literal: «Any value below that stated
+within the table is suggestive of impaired LV relaxation».
+
+| Edad | 18-40 M | 18-40 F | 41-65 (ambos) | > 65 (ambos) |
+|---|---|---|---|---|
+| **e′ septal** | < 7,0 | < 8,0 | < 5,0 | < 4,0 |
+| **e′ lateral** | < 9,0 | < 11,0 | < 6,0 | < 5,0 |
+
+- **El operador es `<` en los ocho valores**: un e′ septal de 5,0 exacto a los 50 años es NORMAL.
+- **La combinación es un OR**: alcanza con que UNO de los dos anillos caiga bajo su corte. No hay
+  corte de promedio — la tabla no lo da.
+- **El sexo sólo mueve el corte en 18-40 años.** En 41-65 y en > 65 la tabla tiene una sola
+  columna («All»), así que ahí la falta de sexo no impide valorar el e′.
+- **La tabla arranca en los 18 años** y no tiene fila pediátrica: por debajo de esa edad no hay
+  corte y la app no extrapola el del adulto joven.
+- ⚠️ **ESTOS CORTES NO SON LOS DE LA ASE 2025.** La Tabla 6 del folio 553 de la ASE corta en 40 y
+  65 años y no mira el sexo (≤6 / ≤7 / ≤6,5, y < 6 septal para > 65). El «5,0» coincide por
+  casualidad. Medido con el mismo e′ (septal 6,5 / lateral 8,5): ALTERADO a los 30 años y NORMAL
+  a los 50.
+
+**Prosa de la pág. 13, verificada y relevante:** «an e′ below the age-specific cut-off is
+therefore considered an indicator of impaired LV relaxation. However, due to the wide range of
+normal e′ […] a value greater than the age-specific cut-off does not confirm normal LV
+relaxation.» Es lo que respalda que el e′ **no** se consulte del lado de la presión elevada.
+
+---
+
+#### E/e′ — pág. 14 (texto, no figura)
+
+«an average of septal and lateral E/e′ > 14 is highly specific for a PCWP of > 15 mmHg»; y,
+aparte, «Where only a single site measure is possible or valid, a lateral ratio > 13 or septal
+ratio > 15 may be used».
+
+⚠️ **NO SON TRES ALTERNATIVAS EN OR**, a diferencia de la Figura 3 de la ASE 2025: los cortes por
+sitio **reemplazan** al promedio cuando falta un anillo. Con los dos anillos manda el promedio y
+nada más.
+
+---
+
+#### Figura 17 (pág. 36) — FEVI normal · **LEÍDA DE LA IMAGEN**
+
+⚠️ **ES UNA IMAGEN DENTRO DEL PDF**: el texto extraído sólo trae el pie. Se leyó renderizando la
+página 36 a 200 dpi y mirando las cajas, y cada corte se cruzó contra la prosa de las págs. 35-36.
+
+Banda de variables principales, **literal de la figura**:
+`Avg E/e' >14  —  LA volume >34 mL/m²  —  TR velocity >2.8 m/s`
+
+| Rama | Condición | Resultado |
+|---|---|---|
+| izquierda | **2 o 3 criterios negativos** | → paso del e′ por edad |
+| derecha | **2 o 3 criterios positivos** | → **Impaired diastolic function with elevated filling pressures** |
+| centro | **sólo 2 disponibles, 1 positivo y 1 negativo** | → strain de la AI |
+
+**Strain de la AI (rama del centro), cajas de la figura en orden:**
+1. `Assess LA strain: pump strain ≥14% OR reservoir strain ≥30%` → **Sí** → paso del e′.
+2. `LARs <18%` → **Sí** → presión elevada.
+3. `Assess supplementary parameters: Ar-A duration >30 ms · L-wave >20 cm/s` → **≥1 positive** →
+   presión elevada; **No** → paso del e′.
+
+**Paso del e′:** `Assess relaxation by age-specific e'` → `Normal e'` → **Normal diastolic
+function**; `e' <LLN` → **Impaired diastolic function with normal filling pressures** (y de ahí
+una caja que sugiere eco de esfuerzo si está clínicamente indicado).
+
+⚠️ **LA FIGURA Y LA PROSA NO DICEN LO MISMO EN EL STRAIN, Y LOS DOS TEXTOS ESTÁN IMPRESOS.** La
+caja dice `pump strain ≥14% OR reservoir strain ≥30%`; la prosa de la pág. 35 dice «high-normal
+values of LARs (> 30%) and LAPs (> 14%)» — con `>` y con «and». **Gana la figura**, que es el
+algoritmo que la app ejecuta.
+
+⚠️ **Y LA BANDA GRIS DE LA PROSA TIENE UN HUECO QUE LA FIGURA CIERRA.** La prosa manda a los
+suplementarios «when LARs falls within a range of 19–29%», o sea que deja sin rama el tramo
+18,0-19,0. La figura no tiene bandas: pregunta `LARs <18%` y si la respuesta es no va a los
+suplementarios.
+
+⚠️ **LA FIGURA 17 NO DIBUJA NINGUNA CAJA DE «INDETERMINADA».** Ese estado sale de la **prosa del
+folio 36**: «in those with one positive and one negative key variable and where LA strain
+analysis is not possible, the assessment of LVFP is indeterminate».
+
+**El orden es PRESIÓN primero y e′ al final** (folio 35): «the assessment of LVDF in those with
+normal systolic function must start with the assessment of LVFP».
+
+**Exclusiones (pie de la Figura 17):** «severe MR/MS or MAC or MV replacement or repair».
+
+---
+
+#### Figura 18 (pág. 38) — FEVI reducida o cardiopatía conocida · **LEÍDA DE LA IMAGEN**
+
+Entrada, literal de la caja: `LVEF <50% OR GLS <16% OR known myocardial disease` →
+`Diastolic function is impaired, assess filling pressure`.
+
+Las **mismas tres variables principales** y la misma regla de 2 o 3. El e′ **no se consulta**:
+pág. 37, «As impaired relaxation has been established, age-specific e′ are not considered».
+
+**Strain de la AI de ESTA figura (cortes distintos de los de la 17):**
+1. `LARs <18% OR LAPs <8%` → **Sí** → presión elevada.
+2. `LARs ≥24% OR LAPs ≥14%` → **Sí** → presión normal.
+3. `Assess supplementary parameters: Ar-A duration >30 ms · L-wave >20 cm/s · PV S/D ratio <1 ·
+   DT_E <150 ms` → **≥1 positive** → elevada; **No** → normal.
+
+⚠️ **EL 24 Y EL 8 NO EXISTEN EN LA FIGURA 17**, y el 18 coincide por casualidad: las dos ramas no
+comparten constantes. ⚠️ **Y EL TDE DE ESTA FIGURA ES `< 150`**, no el `≤ 160` de la Figura 19 de
+la FA de esta misma guía.
+
+⚠️ **EL S/D VENOSO PULMONAR SÍ VOTA ACÁ.** El corte es `< 1`, que es exactamente lo que dice la
+opción del `<select>` de la app — al revés que en la Figura 3 de la ASE 2025, cuyo `≤ 0,67` ese
+control no puede expresar.
+
+**Dos cajas finales y ninguna indeterminada dibujada**; la indeterminada sale de la prosa de la
+pág. 37: «LV relaxation is therefore impaired but with indeterminate LVFP».
+
+**Exclusiones (pie de la Figura 18):** «LBBB, RV apical pacing or resynchronisation pacing (CRT);
+LV assist devices».
+
+---
+
+#### Zona gris de FEVI y GLS — pág. 35 (texto)
+
+«Systolic function is considered impaired when either LVEF is < 50% or absolute GLS < 16%,
+whereas LVEF ≥ 55% and GLS ≥ 18% are consistent with normal systolic function. There exists,
+therefore, a grey-zone of LVEF (50–54%) and GLS (16.0–17.9%)», y la guía **no la resuelve con un
+número**: «LVEF and GLS cannot provide binary normal/abnormal cut-offs for systolic function».
+
+---
+
+#### Sin grados
+
+La BSE **abandonó los grados I-III** (pág. 48, recogido también por la comparativa). Ninguna de
+sus cuatro categorías lleva número.
+
 ### `bseDiast2024` — BSE 2024, FIBRILACIÓN AURICULAR · Figura 19, pág. 39 (verificada 2026-10-12)
 
 **Documento.** Robinson S y cols., *Echo Research & Practice* 2024;11:16. Ruta en disco:

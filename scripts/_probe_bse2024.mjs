@@ -887,6 +887,24 @@ async function main() {
     }
   }
 
+  if (hacer('excelab')) {
+    /* ⚠️ EL HASH DE «campos guardados» DEL GRUPO `superficies` INCLUYE `informe_texto` Y
+       `en_suma`, que son <textarea> con id: cambia en toda escena cuya frase cambia, y eso NO
+       dice nada sobre los campos DEL ESTUDIO. Este grupo compara la FILA ENTERA del Excel clave
+       por clave y los campos SIN los dos textos, que es lo que de verdad hay que mirar para
+       saber si se agrego o se movio un campo. */
+    out.excelab = [];
+    const SUB2 = ESCENAS.filter((e) => ['S01-3neg','S03-3pos','S16-sin-edad','S19-fevi40','S08-dos-1y1-LARSbajo'].indexOf(e.id) > -1);
+    for (const e of SUB2) {
+      const carga = await cargar(e.c, esc('bse2024', e.sel), e.teclas);
+      await ev(`window.__P.informe('narrativo')`);
+      out.excelab.push({ id: e.id, carga: carga.todosOk ? 'OK' : carga.tecleos,
+        fila: await ev(`window.__P.excel()`),
+        camposSinInforme: await ev(`(function(){ var c = window.__P.campos();
+          delete c.informe_texto; delete c.en_suma; return c })()`) });
+    }
+  }
+
   if (hacer('lab')) {
     /* Solo-lectura y sin tocar el formulario: se le pasa a `_labDiastGrado` el texto literal de
        cada frase, que es exactamente lo que ese clasificador recibe desde un estudio guardado. */

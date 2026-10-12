@@ -1,5 +1,106 @@
 # EcoSmart — pendientes vivos
 
+## Función diastólica BSE 2024 en ritmo sinusal (2026-10-12) — DECLARADO y NO arreglado
+
+Lo que la tanda de la BSE 2024 **midió y dejó como está**, con el motivo de cada uno. La zona
+está mapeada en `docs/mapa/diastolica.md` → «`diastBSE2024Evaluar`» y las fuentes en
+`docs/fuentes/FUENTES.md` → `### bseDiast2024 — RITMO SINUSAL`.
+
+### B1 · El LAPs (strain de bomba de la AI) y la onda L no tienen campo
+
+Las Figuras 17 y 18 los usan en la rama del strain: el LAPs como alternativa del LARS en los dos
+sentidos (`≥14 %` normal en la 17, `<8 %` elevado y `≥14 %` normal en la 18) y la onda L como
+parámetro suplementario (`>20 cm/s`). **La app no los mide y la orden pidió no agregar campos**
+(el Excel sigue en 434 columnas), así que los dos quedan declarados **no evaluables**: se dibujan
+en la ventana con el motivo en su propio rótulo y no cuentan.
+
+**Consecuencia medida:** un paciente con discordancia 1 y 1 y **sin LARS** queda
+**indeterminado** aunque tuviera el LAPs medido en otro lado. Es lo que la guía manda hacer
+cuando el strain no se puede analizar (folio 36), pero la app llega ahí por no tener el campo,
+no por no poder medirlo.
+
+### B2 · «Known myocardial disease» no abre la vía reducida
+
+La entrada de la Figura 18 es `LVEF <50% OR GLS <16% OR known myocardial disease`, y el folio 35
+la define: cardiopatía isquémica con alteraciones sectoriales, miocardiopatía, HVI patológica.
+**No hay un campo que lo declare**, así que la vía se abre sólo por FEVI o GLS. Un paciente con
+FEVI 60 %, GLS −20 % y una miocardiopatía conocida corre la Figura 17 y se le valora la
+relajación por el e′, cuando la guía la daría por alterada.
+
+Se podría derivar de campos existentes (trastornos sectoriales, masa del VI), pero eso es
+inventar un criterio de entrada que la guía escribe en prosa y no en una fórmula. **Decisión de
+Maicol.**
+
+### B3 · La zona gris de FEVI/GLS corre la vía de FEVI normal
+
+Pedido por la orden y conservado. La guía no la resuelve con un número —«LVEF and GLS cannot
+provide binary normal/abnormal cut-offs»— y pide interpretar volúmenes, TDI, informes previos,
+historia clínica y síntomas. La app lo **declara** con un aviso ámbar y no cambia ningún
+veredicto; está medido (FEVI 52 y GLS −17 dan el mismo badge y la misma vía que FEVI 60 con
+GLS −20).
+
+### B4 · El Ar−A tiene DOS constantes en la app, con dos operadores
+
+`VENP_AR_A_MS` vale 30 con borde **`>=`** y es el criterio de la ASE/EACVI 2016 que pinta la fila
+de la vena pulmonar y la celda del PDF. La BSE escribe **`> 30`** y por eso esta tanda agregó
+`BSE_ARA_SUPL`. **No se unificaron**: son dos guías con el mismo número y distinto borde, y
+tocar `VENP_AR_A_MS` movería la alerta de la vena pulmonar, que es otro módulo y otro informe.
+Un Ar−A de 30,0 exacto es **positivo** para la fila de la vena pulmonar y **negativo** para el
+paso suplementario de la BSE, en la misma pantalla.
+
+### B5 · Los cuatro tokens nuevos del Laboratorio salen del denominador
+
+`_labDiastGrado` devuelve ahora `bse_det_normal`, `bse_det_elevada`, `fa_elevada` y
+`pres_normal_sin_grado`. Ganan la **columna de texto** del Excel y **no activan ningún `DD_*`**,
+que es lo pedido: la BSE abandonó los grados I-III. Pero además:
+
+- **salen de la distribución diastólica del panel y del PPT estadístico**, porque `_labDiastDist`
+  sólo cuenta las claves `I`, `II`, `III` y `sin` (guarda de `hasOwnProperty`). No rompe ningún
+  gráfico —el denominador `tot` simplemente no los incluye—, pero un laboratorio que informe con
+  la BSE va a ver una torta diastólica construida sobre menos estudios de los que tiene;
+- **quedan fuera del filtro de cohorte por grado**, porque `#coh-diast` tiene cuatro opciones
+  fijas. Es lo que su propio texto de ayuda ya advierte («Un estudio cuyo informe no los nombre
+  queda fuera del filtro»);
+- **dejan de aparecer en dos indicadores de auditoría** —«E/e' >14 sin clasificación de
+  disfunción diastólica» y «Vol AI elevado sin función diastólica documentada»—, que preguntan
+  por `_labDiastGrado(i) === null`. Eso es lo correcto: ahora sí tienen clasificación.
+
+Agregar una quinta categoría a la torta o una quinta opción al filtro **cambia un gráfico y una
+pantalla del Laboratorio, y es decisión de Maicol.**
+
+### B6 · Dos frases de estudios GUARDADOS siguen sin clasificar
+
+«Presión de llenado del VI elevada (…), compatible con disfunción diastólica significativa.» y
+«Disfunción diastólica con presión de llenado del VI elevada, en contexto de función sistólica
+deprimida/cardiopatía conocida.» son las que esta app publicó **hasta hoy** con la BSE, viajan en
+los estudios ya archivados y `_labDiastGrado` las devuelve en `null` — como antes de esta tanda.
+**No se tocaron a propósito:** la orden pide que lo que no tiene las frases nuevas quede idéntico
+a HEAD, y reclasificarlas movería la estadística de estudios ya firmados. Verificado con las seis
+frases viejas.
+
+### B7 · La indeterminada de la vía reducida no dice que la relajación está deteriorada
+
+La prosa del folio 37 la llama «LV relaxation is therefore impaired but with indeterminate LVFP».
+La app publica la plantilla de presión indeterminada, que es una de las cuatro aprobadas, y **no
+afirma la relajación deteriorada**: no hay una quinta plantilla y escribir una sería inventar una
+frase de informe firmado. **Decisión de Maicol.**
+
+### B8 · La coletilla de contexto de la vía reducida se fue
+
+HEAD escribía «… en contexto de función sistólica deprimida/cardiopatía conocida». Las dos vías
+llegan a LA MISMA casilla de la guía, así que comparten la plantilla y esa coletilla desapareció.
+El dato que repetía (la FEVI) sigue en su propia línea del informe. **Si Maicol la quiere de
+vuelta, es una línea.**
+
+### B9 · El nombre de la categoría 1: la guía dice «Normal diastolic function»
+
+La casilla verde de la Figura 17 se llama, literal, **«Normal diastolic function»** — sin «para
+la edad». La plantilla que la app publica es la que escribió Maicol en la orden: **«Función
+diastólica normal para la edad»**. Se conservó la suya porque es texto de informe firmado y la
+orden la enuncia en su sección de decisiones del médico; el calificativo además es cierto (el
+paso del e′ ES específico por edad) y es el lado conservador. **Queda reportado: si prefiere el
+nombre literal de la guía, es una línea en `BSE_FRASE`.**
+
 ## Función diastólica ASE 2025 (2026-10-12) — DECLARADO y NO arreglado
 
 Lo que la tanda del 2026-10-12 **midió y dejó como está**, con el motivo de cada uno. La zona

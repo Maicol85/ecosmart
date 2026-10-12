@@ -115,6 +115,114 @@ la guía: un E/A ≥2 con e' conservada es el patrón del corazón joven y sano.
 
 ---
 
+## `diastBSE2024Evaluar` — la BSE 2024 en RITMO SINUSAL (2026-10-12)
+
+**Dueño único de la BSE en ritmo sinusal.** Lo leen el cuadro gris (`calcDiastolBSE2024`) y la
+ventana 🧭 (rama `bse2024` de `diastAlgoRender`). Es **puro**: no escribe ni una celda. Las tres
+celdas compartidas (`ea-val`, `eprom-val`, `ee-val`) las escribe el cuadro, con la condición de
+HEAD — el e′ promedio y el E/e′ **sólo con los DOS anillos**, que NO es lo que hace
+`diastCeldasBasicas`.
+
+> Antes de esta tanda el cuadro y la ventana contaban **variables distintas** y acordaban en
+> **3 de 28** escenas. Hoy acuerdan en 28 de 28.
+
+### Entradas
+
+| Dato | id | Pestaña |
+|---|---|---|
+| Onda E, onda A | `onda_e`, `onda_a` | Doppler |
+| e′ septal, e′ lateral | `e_sep`, `e_lat` | Doppler |
+| Vmax IT (m/s) | `vmax_it` (espejado con `it_vmax_cw`) | Doppler / Válvulas |
+| Vol AI | `ai_vol` (÷ `getBSA()` → LAVi) | 2D |
+| LARS | `lars` | Doppler |
+| Ar−A | `venpArA()`, de `venp_dur_ar` y `venp_dur_a` | Doppler (vena pulmonar) |
+| S/D venoso pulmonar | `venp_sd` (`<select>`: `menor1` / `mayor1`) | Doppler |
+| TDE | `tde` | Doppler |
+| FEVI, GLS | `fevi`, `sgl` | 2D / Strain |
+| **Edad, sexo** | `edad`, `sexo` | **Paciente** |
+
+**Sin campo en esta app, declarados no evaluables:** LAPs (strain de bomba de la AI) y onda L.
+No se agregó ninguno — el Excel sigue en 434 columnas.
+
+### Las constantes, y por qué no se comparten
+
+| Constante | Valor | Borde | De dónde |
+|---|---|---|---|
+| `BSE_EE_PROM` | 14 | `>` | pág. 14 y banda de la Figura 17 |
+| `BSE_EE_SEPTAL` | 15 | `>` | pág. 14, **sólo con un anillo** |
+| `BSE_EE_LATERAL` | 13 | `>` | pág. 14, **sólo con un anillo** |
+| `BSE_IT_SIGNIF` | 2,8 | `>` | Figura 17 |
+| `UMBRAL_LAVI_DILATADO` | 34 | `>` | compartido con toda la app |
+| `BSE_TABLA2` | 7/9 · 8/11 · 5/6 · 4/5 | `<` | Tabla 2, pág. 13 |
+| `BSE_LARS_NORMAL` / `BSE_LAPS_NORMAL` | 30 / 14 | `>=` | Figura 17 |
+| `BSE_LARS_ELEVADA` | 18 | `<` | Figura 17 |
+| `BSE_ARA_SUPL` / `BSE_ONDAL_SUPL` | 30 / 20 | `>` | Figuras 17 y 18 |
+| `BSE_FR_LARS_ELEV` / `BSE_FR_LAPS_ELEV` | 18 / 8 | `<` | **Figura 18** |
+| `BSE_FR_LARS_NORM` / `BSE_FR_LAPS_NORM` | 24 / 14 | `>=` | **Figura 18** |
+| `BSE_FR_TDE_SUPL` | 150 | `<` | **Figura 18** |
+| `BSE_GRIS_*` | 50-55 / 16-18 | `[a, b)` | pág. 35 |
+
+⚠️ **NINGUNA se comparte con la FA de esta misma guía** (Figura 19: E/e′ **septal** > 11, TDE
+**≤ 160**, LARS < 16). Tres figuras, tres juegos de constantes. Y el `VENP_AR_A_MS` (`>= 30`) de
+la ASE/EACVI 2016 que vive al lado **no se tocó**: la BSE usa `> 30` y lleva su propia constante.
+
+### El orden: presión primero, e′ al final
+
+1. **Vía.** `fevi < 50 || |sgl| < 16` → vía B (Figura 18); si no, vía A (Figura 17). El tercer
+   motivo de entrada de la Figura 18 —«known myocardial disease»— **la app no lo mide**.
+2. **Tres variables principales** (las mismas en las dos vías): E/e′ (promedio, o el corte del
+   único anillo medido), Vmax IT, LAVi.
+3. **Conteo**: `≥2 positivas` → elevada · `≥2 negativas` → normal · `exactamente 2 evaluadas,
+   1 y 1` → rama del strain · **cualquier otra cosa (0 ó 1 evaluada) → datos insuficientes**.
+4. **Rama del strain** — su estado por defecto es **indeterminada**, y el strain es lo que lo
+   resuelve. Vía A: `LARS ≥30` → normal · `LARS <18` → elevada · en medio, suplementarios
+   (Ar−A, onda L). Vía B: `LARS <18` → elevada · `LARS ≥24` → normal · en medio, **cuatro**
+   suplementarios (Ar−A, onda L, S/D `<1`, TDE `<150`). Sin ningún suplementario evaluable →
+   indeterminada.
+5. **Paso del e′ (SÓLO vía A y SÓLO del lado de la presión normal)**: `bseEprimaEstado` resuelve
+   la Tabla 2 por edad y sexo. Con presión **elevada** el e′ **no se consulta** — la figura va
+   directo a la casilla roja.
+
+### Las categorías y sus frases
+
+| Clave | Badge | Informe | EN SUMA |
+|---|---|---|---|
+| `normal` | Normal para la edad | «Función diastólica normal para la edad, con presión de llenado del VI normal (…).» | «Función diastólica normal para la edad.» |
+| `alterada_normal` / `fr_normal` | Deteriorada, presión normal | «Función diastólica deteriorada con presión de llenado del VI normal (…).» | «Función diastólica deteriorada, presión de llenado normal.» |
+| `elevada` / `fr_elevada` | Deteriorada, presión elevada | «Función diastólica deteriorada con presión de llenado del VI elevada (…).» | «Función diastólica deteriorada, presión de llenado elevada.» |
+| `indeterminado` | Presión indeterminada | «Presión de llenado del VI indeterminada por discordancia entre los parámetros (…); considerar el strain de la AI u otros parámetros.» | «Presión de llenado del VI indeterminada.» |
+| `normal_sin_eprima` | Presión normal, relajación no valorada | «Presión de llenado del VI normal (…). No se valoró la relajación: …» | «Presión de llenado del VI normal.» |
+| `presion_insuficiente` | Datos insuficientes — faltan variables de presión | **`texto: null`** (el informe cae en su respaldo) | — |
+
+**Las dos vías comparten las casillas 2 y 3**, así que comparten frase. **Ningún texto escribe un
+grado**: la BSE abandonó los I-III (pág. 48). `DETALLES` lo arma `_bseDetalles` **desde el dueño**,
+porque es el único que sabe si la rama del strain llegó a correr.
+
+### Los dos avisos ámbar, y sus tres columnas
+
+- `#diast-bse-eprima-aviso` — dueño `diastBseEprimaAvisoSync`. Dos textos: falta edad/sexo, o la
+  edad cae fuera del rango de la Tabla 2. **No cambia ningún veredicto.**
+- `#diast-bse-gris-aviso` — dueño `diastBseGrisAvisoSync`. Zona gris de FEVI/GLS. **No cambia
+  ningún veredicto, y está medido.**
+
+Los dos van en el **oyente de documento**, en **`RECALC_MODULOS`** y en **`limpiarCampos`**, al
+lado de `diastExclSync` y `diastFcAvisoSync`.
+
+### Trampas propias de esta zona
+
+- ⚠️ **`edad` y `sexo` viven en otra pestaña y hoy son INSUMOS del veredicto.** Los dos llaman a
+  `calcDiastol` desde su `oninput`/`onchange`; sin eso el cuadro gris se queda con el paciente
+  anterior. La ventana no se atrasa (tiene su oyente de documento).
+- ⚠️ **Los cortes por sitio del E/e′ NO son un OR**, a diferencia de la ASE 2025: reemplazan al
+  promedio sólo cuando falta un anillo.
+- ⚠️ **El e′ se combina con un OR entre septal y lateral**, y no hay corte de promedio.
+- ⚠️ **Con una sola variable principal evaluada no se afirma nada**, ni en la vía A ni en la B.
+  HEAD afirmaba en las dos.
+- ⚠️ **El badge alimenta la franja del PPT** (`#dd-interp`): renombrarlo cambia el PPT.
+- ⚠️ **El EN SUMA alimenta al Laboratorio** por `_labDiastGrado`: cambiar una palabra mueve la
+  columna de texto del Excel. Los cuatro tokens sin grado NO activan `DD_*` ni entran en la
+  distribución.
+
 ## La FIBRILACIÓN AURICULAR — un algoritmo por guía (2026-10-12)
 
 `diast_ritmo = fa` manda **antes** que la guía. El despachador llama a `diastFAEvaluar(algo)`, que

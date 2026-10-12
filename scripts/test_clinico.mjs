@@ -1148,6 +1148,307 @@ caso('TC-454', 'Diastolica en FIBRILACION AURICULAR: cada guia con SU protocolo 
   ] };
 `);
 
+/* ═══ TC-455 — FUNCION DIASTOLICA BSE 2024 EN RITMO SINUSAL ═══════════════════════════════════
+   La cobertura de la tanda del 2026-10-12: la Tabla 2 por edad y sexo (pag. 13), las tres
+   variables de la Figura 17 (pag. 36) con su regla de 2 o 3, la rama del strain de la AI, la
+   via de FEVI reducida de la Figura 18 (pag. 38), la zona gris, el dato que falta y lo que de
+   cada frase hace el Laboratorio.
+
+   ⚠️ `calcDiastol()` SE LLAMA A MANO en cada escena, y no es un adorno: esa funcion no esta en
+   el oninput del Vol AI, de la velocidad de la IT ni del TDE, asi que una escena que termine de
+   cargar por uno de esos deja el cuadro gris con el veredicto ANTERIOR. La edad y el sexo SI
+   estan cableados desde esta tanda, porque son insumos del veredicto.
+
+   Por que `__t.set` y no teclas reales: es la convencion de los casos de esta suite. La
+   verificacion con teclas reales vive en scripts/_probe_bse2024.mjs, que es la sonda A/B. */
+caso('TC-455', 'Diastolica BSE 2024 en RITMO SINUSAL: la Tabla 2 por edad y sexo, las tres variables de la Figura 17 con su regla de 2 o 3, la rama del strain de la AI, la via de FEVI reducida de la Figura 18, la zona gris, el dato faltante, los bordes de cada corte por los dos lados y la clasificacion del Laboratorio, con siete controles negativos', `
+  const faltan = [];
+  const S = (k, v) => { const r = __t.set(k, v); if (r !== 1) faltan.push(k + '=' + r) };
+
+  const V = () => {
+    diastAlgoAbrir();
+    const cu = document.getElementById('diast-algo-cuerpo');
+    if (!cu) { diastAlgoCerrar(); return { filas: [], res: 'NO EXISTE EL CUERPO', n: 0, tit: '' } }
+    const filas = Array.prototype.slice.call(cu.querySelectorAll('.da-row')).map(f => ({
+      crit: ((f.querySelector('.da-crit') || {}).textContent || '').replace(/\\s+/g, ' ').trim(),
+      est: /da-bad/.test(f.className) ? 'POS' : (/da-ok/.test(f.className) ? 'neg' : 'na') }));
+    const res = ((cu.querySelector('.da-res') || {}).textContent || '').replace(/\\s+/g, ' ').trim();
+    const tit = (__t.txt('diast-algo-titulo') || '').replace(/\\s+/g, ' ').trim();
+    diastAlgoCerrar();
+    return { filas: filas, res: res, n: filas.length, tit: tit };
+  };
+  const fila = (v, sub) => { const f = v.filas.filter(x => x.crit.indexOf(sub) > -1)[0];
+                             return f ? f.est : 'NO EXISTE' };
+
+  /* Peso 70 / talla 170 dan ASC 1,81: un Vol AI de 70 ml da LAVi 38,7 (POSITIVO, > 34) y uno de
+     50 da 27,6 (negativo). Edad 50 y sexo M salvo que la escena los pise: en 41-65 los cortes
+     del e-prima son septal < 5,0 y lateral < 6,0, y NO dependen del sexo. */
+  const esc = (m) => {
+    __t.limpiar();
+    S('diast_algoritmo', 'bse2024');
+    S('diast_ritmo', 'sinusal');
+    if (m.peso === undefined) S('peso', '70');
+    if (m.talla === undefined) S('talla', '170');
+    if (m.edad === undefined) S('edad', '50');
+    if (m.sexo === undefined) S('sexo', 'M');
+    const orden = ['peso','talla','edad','sexo','fevi','sgl','venp_sd','tde','venp_dur_ar',
+                   'venp_dur_a','ai_vol','vmax_it','lars','e_sep','e_lat','onda_e','onda_a'];
+    orden.forEach(k => { if (m[k] !== undefined) S(k, m[k]) });
+    Object.keys(m).forEach(k => { if (orden.indexOf(k) < 0) S(k, m[k]) });
+    calcDiastol();
+    const r = __t.informe();
+    const d = window._diastResult || {};
+    const ep = document.getElementById('diast-bse-eprima-aviso');
+    const gr = document.getElementById('diast-bse-gris-aviso');
+    return { inf: r.inf, suma: r.suma, badge: (__t.txt('dd-interp') || '').replace(/\\s+/g, ' ').trim(),
+             texto: d.texto || '', tsuma: d.textoSuma || '', ven: V(),
+             epTxt: ep ? (ep.textContent || '').replace(/\\s+/g, ' ').trim() : 'NO EXISTE',
+             epDisp: ep ? getComputedStyle(ep).display : 'NO EXISTE',
+             grDisp: gr ? getComputedStyle(gr).display : 'NO EXISTE',
+             grTxt: gr ? (gr.textContent || '').replace(/\\s+/g, ' ').trim() : 'NO EXISTE',
+             lab: (typeof _labDiastGrado === 'function')
+                  ? _labDiastGrado({ campos: { en_suma: r.suma, informe_texto: r.inf } }) : 'SIN FUNCION' };
+  };
+  const lineaD = (txt) => String(txt || '').split('\\n').filter(l =>
+    /diast[oó]lic|presi[oó]n de llenado|relajaci[oó]n/i.test(l)).join(' | ').replace(/\\s+/g, ' ').trim();
+
+  /* La escena base: las tres principales NEGATIVAS y el e-prima normal para 50 anios. */
+  const BASE = { onda_e: '70', onda_a: '60', e_sep: '10', e_lat: '12', vmax_it: '2.0', ai_vol: '50' };
+  const con = (o) => Object.assign({}, BASE, o);
+
+  // ── A · EL CONTEO DE LA FIGURA 17: 0, 1, 2 y 3 positivas, y una sola variable.
+  const p0 = esc(BASE);
+  const p1 = esc(con({ ai_vol: '70' }));
+  const p2 = esc(con({ ai_vol: '70', vmax_it: '3.2' }));
+  const p3 = esc(con({ ai_vol: '70', vmax_it: '3.2', e_sep: '6', e_lat: '7', onda_e: '120' }));
+  const una = esc({ edad: '50', e_sep: '6', e_lat: '7', ai_vol: '70' });
+  const unaNeg = esc({ edad: '50', e_sep: '10', e_lat: '12', ai_vol: '50' });
+
+  // ── B · BORDES de las tres principales, por los dos lados. e-prima promedio 7,0 -> E/e 14,00.
+  const ee14  = esc({ edad: '50', onda_e: '98',  onda_a: '60', e_sep: '6', e_lat: '8', vmax_it: '2.0', ai_vol: '50' });
+  const ee141 = esc({ edad: '50', onda_e: '99',  onda_a: '60', e_sep: '6', e_lat: '8', vmax_it: '2.0', ai_vol: '50' });
+  const it28  = esc(con({ vmax_it: '2.8' }));
+  const it281 = esc(con({ vmax_it: '2.81' }));
+  const lavi34  = esc(con({ ai_vol: '61.5' }));
+  const lavi343 = esc(con({ ai_vol: '62' }));
+  /* Con UN SOLO anillo el corte es el de ESE sitio (pag. 14), no el del promedio. */
+  const sep15  = esc({ edad: '50', onda_e: '105', onda_a: '60', e_sep: '7', vmax_it: '2.0', ai_vol: '50' });
+  const sep151 = esc({ edad: '50', onda_e: '106', onda_a: '60', e_sep: '7', vmax_it: '2.0', ai_vol: '50' });
+  const lat13  = esc({ edad: '50', onda_e: '104', onda_a: '60', e_lat: '8', vmax_it: '2.0', ai_vol: '50' });
+  const lat131 = esc({ edad: '50', onda_e: '105', onda_a: '60', e_lat: '8', vmax_it: '2.0', ai_vol: '50' });
+
+  // ── C · LA TABLA 2: el MISMO e-prima por franja y por sexo, y los bordes de cada corte.
+  const EP = { onda_e: '30', onda_a: '60', vmax_it: '2.0', ai_vol: '50' };
+  const t30M = esc(Object.assign({}, EP, { edad: '30', sexo: 'M', e_sep: '6.5', e_lat: '8.5' }));
+  const t50M = esc(Object.assign({}, EP, { edad: '50', sexo: 'M', e_sep: '6.5', e_lat: '8.5' }));
+  const t70M = esc(Object.assign({}, EP, { edad: '70', sexo: 'M', e_sep: '6.5', e_lat: '8.5' }));
+  /* El sexo SOLO mueve el corte en 18-40: septal 7,5 con lateral 10 cae ENTRE los dos pares. */
+  const x30M = esc(Object.assign({}, EP, { edad: '30', sexo: 'M', e_sep: '7.5', e_lat: '10' }));
+  const x30F = esc(Object.assign({}, EP, { edad: '30', sexo: 'F', e_sep: '7.5', e_lat: '10' }));
+  const x50M = esc(Object.assign({}, EP, { edad: '50', sexo: 'M', e_sep: '4.5', e_lat: '12' }));
+  const x50F = esc(Object.assign({}, EP, { edad: '50', sexo: 'F', e_sep: '4.5', e_lat: '12' }));
+  const x66M = esc(Object.assign({}, EP, { edad: '66', sexo: 'M', e_sep: '4.5', e_lat: '12' }));
+  /* Bordes del e-prima: el valor EXACTO es NORMAL, porque el operador es «<». */
+  const s49 = esc(Object.assign({}, EP, { edad: '50', e_sep: '4.9', e_lat: '12' }));
+  const s50 = esc(Object.assign({}, EP, { edad: '50', e_sep: '5',   e_lat: '12' }));
+  const j69 = esc(Object.assign({}, EP, { edad: '30', sexo: 'M', e_sep: '6.9', e_lat: '12' }));
+  const j70 = esc(Object.assign({}, EP, { edad: '30', sexo: 'M', e_sep: '7',   e_lat: '12' }));
+  const f79 = esc(Object.assign({}, EP, { edad: '30', sexo: 'F', e_sep: '7.9', e_lat: '12' }));
+  const f80 = esc(Object.assign({}, EP, { edad: '30', sexo: 'F', e_sep: '8',   e_lat: '12' }));
+  /* El OR: el septal normal y el lateral bajo alcanzan para alterada. */
+  const lat49 = esc(Object.assign({}, EP, { edad: '70', e_sep: '10', e_lat: '4.9' }));
+  const lat50 = esc(Object.assign({}, EP, { edad: '70', e_sep: '10', e_lat: '5' }));
+
+  // ── D · EL DATO QUE FALTA. Sin edad, sin sexo en 18-40, y por debajo de la tabla.
+  const sinEdad = esc({ edad: '', onda_e: '70', onda_a: '60', e_sep: '10', e_lat: '12', vmax_it: '2.0', ai_vol: '50' });
+  const sinSexo = esc({ edad: '30', sexo: '', onda_e: '70', onda_a: '60', e_sep: '7.5', e_lat: '10', vmax_it: '2.0', ai_vol: '50' });
+  const menor18 = esc({ edad: '12', onda_e: '70', onda_a: '60', e_sep: '10', e_lat: '12', vmax_it: '2.0', ai_vol: '50' });
+
+  // ── E · LA RAMA DEL STRAIN. Dos criterios, uno positivo y uno negativo (sin IT).
+  const D2 = { edad: '50', onda_e: '120', onda_a: '60', e_sep: '6', e_lat: '7', ai_vol: '50' };
+  const dSin   = esc(D2);
+  const dL30   = esc(Object.assign({}, D2, { lars: '30' }));
+  const dL299  = esc(Object.assign({}, D2, { lars: '29.9' }));
+  const dL179  = esc(Object.assign({}, D2, { lars: '17.9' }));
+  const dL180  = esc(Object.assign({}, D2, { lars: '18' }));
+  const dAr30  = esc(Object.assign({}, D2, { lars: '25', venp_dur_ar: '150', venp_dur_a: '120' }));
+  const dAr31  = esc(Object.assign({}, D2, { lars: '25', venp_dur_ar: '151', venp_dur_a: '120' }));
+
+  // ── F · LA VIA DE FEVI REDUCIDA Y LA ZONA GRIS.
+  const fr49 = esc(con({ fevi: '49' }));
+  const fr50 = esc(con({ fevi: '50' }));
+  const frPos = esc(con({ fevi: '40', ai_vol: '70', vmax_it: '3.2', e_sep: '6', e_lat: '7', onda_e: '120' }));
+  const frUna = esc({ edad: '50', fevi: '40', e_sep: '6', e_lat: '7', ai_vol: '70' });
+  const frL26 = esc(Object.assign({}, D2, { fevi: '40', lars: '26' }));
+  const frSd  = esc(Object.assign({}, D2, { fevi: '40', lars: '20', venp_sd: 'menor1' }));
+  const gris52 = esc(con({ fevi: '52' }));
+  const gris17 = esc(con({ fevi: '60', sgl: '-17' }));
+  const sinGris = esc(con({ fevi: '60', sgl: '-20' }));
+
+  // ── G · CONTROLES NEGATIVOS. La E/A no vota, y las otras dos guias no se tocan.
+  const eaBaja = esc(con({ onda_a: '100' }));
+  const eaAlta = esc(con({ onda_a: '30' }));
+  __t.limpiar(); S('diast_algoritmo', 'ase2025'); S('diast_ritmo', 'sinusal');
+  S('peso','70'); S('talla','170'); S('edad','50'); S('sexo','M');
+  ['e_sep','e_lat','onda_e','onda_a','vmax_it','ai_vol'].forEach(k => S(k, BASE[k]));
+  calcDiastol();
+  const otra = (__t.txt('dd-interp') || '').replace(/\\s+/g, ' ').trim();
+
+  /* El aviso del e-prima tiene que APAGARSE con «Nuevo estudio»: es su tercera columna. */
+  /* La lectura va defensiva porque este caso TIENE que poder correr entero contra HEAD, donde
+     el nodo no existe: con un getComputedStyle a secas la corrida muere por excepcion en la
+     linea 136 y no se ve cual condicion caza cual defecto. */
+  const dispDe = (id) => { const e = document.getElementById(id);
+                           return e ? getComputedStyle(e).display : 'NO EXISTE' };
+  esc({ edad: '', onda_e: '70', onda_a: '60', e_sep: '10', e_lat: '12', vmax_it: '2.0', ai_vol: '50' });
+  const epAntes = dispDe('diast-bse-eprima-aviso');
+  __t.limpiar();
+  const epDespues = dispDe('diast-bse-eprima-aviso');
+
+  const NOR = 'Normal para la edad', DET_N = 'Deteriorada, presión normal',
+        DET_E = 'Deteriorada, presión elevada', IND = 'Presión indeterminada',
+        SIN_EP = 'relajación no valorada', INSUF = 'Datos insuficientes';
+
+  return { extra: [
+    // ── DENOMINADORES. Sin esto, un cero cuenta como acuerdo y una fila ausente como negativa.
+    ['todos los campos de todas las escenas existen', faltan.length === 0, faltan.join(' | ')],
+    ['existe el dueno unico de la BSE', typeof diastBSE2024Evaluar === 'function', typeof diastBSE2024Evaluar],
+    ['la ventana dibuja las 3 principales MAS las 2 del e-prima', p0.ven.n === 5,
+      'n=' + p0.ven.n + ' | ' + JSON.stringify(p0.ven.filas.map(f => f.crit))],
+    ['la rama del strain agrega sus filas', dL30.ven.n > p0.ven.n,
+      'n=' + dL30.ven.n + ' | ' + JSON.stringify(dL30.ven.filas.map(f => f.crit))],
+    ['el cuadro y la ventana dan el MISMO veredicto en las cuatro escenas del conteo',
+      p0.ven.res.indexOf(p0.badge.replace(' — BSE 2024','')) === 0
+      && p1.ven.res.indexOf(p1.badge.replace(' — BSE 2024','')) === 0
+      && p2.ven.res.indexOf(p2.badge.replace(' — BSE 2024','')) === 0
+      && p3.ven.res.indexOf(p3.badge.replace(' — BSE 2024','')) === 0,
+      p0.badge + ' / ' + p0.ven.res + ' || ' + p3.badge + ' / ' + p3.ven.res],
+
+    // ── A · el conteo de la Figura 17
+    ['0 de 3 positivas -> presion normal y e-prima normal', p0.badge.indexOf(NOR) > -1, p0.badge],
+    ['1 de 3 positivas -> sigue siendo presion normal (2 negativas deciden)', p1.badge.indexOf(NOR) > -1, p1.badge],
+    ['2 de 3 positivas -> presion ELEVADA', p2.badge.indexOf(DET_E) > -1, p2.badge],
+    ['3 de 3 positivas -> presion ELEVADA', p3.badge.indexOf(DET_E) > -1, p3.badge],
+    ['con UNA sola variable POSITIVA no se afirma nada', una.badge.indexOf(INSUF) > -1, una.badge],
+    ['con UNA sola variable negativa tampoco', unaNeg.badge.indexOf(INSUF) > -1, unaNeg.badge],
+    ['y en esos dos el informe no publica frase de la BSE',
+      una.texto === '' && unaNeg.texto === '', una.texto + ' || ' + unaNeg.texto],
+
+    // ── B · bordes de las tres principales, por los dos lados
+    ["E/e promedio 14,00 exacto es NEGATIVO (el corte es >)", fila(ee14.ven, "E/e' promedio") === 'neg', fila(ee14.ven, "E/e' promedio")],
+    ["E/e promedio 14,14 POSITIVO", fila(ee141.ven, "E/e' promedio") === 'POS', fila(ee141.ven, "E/e' promedio")],
+    ['IT 2,80 exacta es NEGATIVA (el corte es >)', fila(it28.ven, 'Velocidad de la IT') === 'neg', fila(it28.ven, 'Velocidad de la IT')],
+    ['IT 2,81 POSITIVA', fila(it281.ven, 'Velocidad de la IT') === 'POS', fila(it281.ven, 'Velocidad de la IT')],
+    ['LAVi 34,0 exacto es NEGATIVO (el corte es >)', fila(lavi34.ven, 'LAVi') === 'neg', fila(lavi34.ven, 'LAVi')],
+    ['LAVi 34,3 POSITIVO', fila(lavi343.ven, 'LAVi') === 'POS', fila(lavi343.ven, 'LAVi')],
+    ["con UN solo anillo septal el corte es 15 y no 14: 15,00 NEGATIVO", fila(sep15.ven, "E/e' septal") === 'neg', fila(sep15.ven, "E/e' septal")],
+    ["E/e septal 15,14 POSITIVO", fila(sep151.ven, "E/e' septal") === 'POS', fila(sep151.ven, "E/e' septal")],
+    ["con UN solo anillo lateral el corte es 13: 13,00 NEGATIVO", fila(lat13.ven, "E/e' lateral") === 'neg', fila(lat13.ven, "E/e' lateral")],
+    ["E/e lateral 13,13 POSITIVO", fila(lat131.ven, "E/e' lateral") === 'POS', fila(lat131.ven, "E/e' lateral")],
+
+    // ── C · la Tabla 2 por edad y sexo
+    ['el MISMO e-prima (6,5 / 8,5) es ALTERADO a los 30 anios', t30M.badge.indexOf(DET_N) > -1, t30M.badge],
+    ['y NORMAL a los 50', t50M.badge.indexOf(NOR) > -1, t50M.badge],
+    ['y NORMAL a los 70', t70M.badge.indexOf(NOR) > -1, t70M.badge],
+    ['el sexo mueve el corte en 18-40: septal 7,5 es NORMAL en el hombre', x30M.badge.indexOf(NOR) > -1, x30M.badge],
+    ['y ALTERADO en la mujer, con el mismo valor', x30F.badge.indexOf(DET_N) > -1, x30F.badge],
+    ['CN1 en 41-65 el sexo NO mueve el corte', x50M.badge === x50F.badge, x50M.badge + ' | ' + x50F.badge],
+    ['borde 65/66: septal 4,5 es ALTERADO a los 65 y NORMAL a los 66',
+      x50M.badge.indexOf(DET_N) > -1 && x66M.badge.indexOf(NOR) > -1, x50M.badge + ' | ' + x66M.badge],
+    ['e-prima septal 4,9 a los 50 es ALTERADO', fila(s49.ven, "e' septal") === 'POS', fila(s49.ven, "e' septal")],
+    ['e-prima septal 5,0 EXACTO es NORMAL (el operador es <)', fila(s50.ven, "e' septal") === 'neg', fila(s50.ven, "e' septal")],
+    ['e-prima septal 6,9 a los 30 (M) es ALTERADO', fila(j69.ven, "e' septal") === 'POS', fila(j69.ven, "e' septal")],
+    ['e-prima septal 7,0 EXACTO es NORMAL', fila(j70.ven, "e' septal") === 'neg', fila(j70.ven, "e' septal")],
+    ['e-prima septal 7,9 a los 30 (F) es ALTERADO', fila(f79.ven, "e' septal") === 'POS', fila(f79.ven, "e' septal")],
+    ['e-prima septal 8,0 EXACTO es NORMAL', fila(f80.ven, "e' septal") === 'neg', fila(f80.ven, "e' septal")],
+    ['el OR: lateral 4,9 a los 70 con septal normal basta para ALTERADA',
+      fila(lat49.ven, "e' septal") === 'neg' && fila(lat49.ven, "e' lateral") === 'POS' && lat49.badge.indexOf(DET_N) > -1,
+      lat49.badge + ' | sep=' + fila(lat49.ven, "e' septal") + ' lat=' + fila(lat49.ven, "e' lateral")],
+    ['lateral 5,0 EXACTO es NORMAL', lat50.badge.indexOf(NOR) > -1, lat50.badge],
+
+    // ── D · el dato que falta: no se inventa, y la presion igual se muestra
+    ['sin edad el paso del e-prima queda no evaluable', sinEdad.badge.indexOf(SIN_EP) > -1, sinEdad.badge],
+    ['y la presion de llenado se publica igual', sinEdad.texto.indexOf('Presión de llenado del VI normal') === 0, sinEdad.texto],
+    ['con el aviso ambar que pide completar edad y sexo',
+      sinEdad.epDisp === 'block' && sinEdad.epTxt.indexOf('completar edad y sexo en Paciente') > -1, sinEdad.epTxt],
+    ['sin SEXO en 18-40 pasa lo mismo', sinSexo.badge.indexOf(SIN_EP) > -1 && sinSexo.epDisp === 'block', sinSexo.badge],
+    ['por debajo de los 18 el aviso dice lo que pasa de verdad, no «completar»',
+      menor18.epDisp === 'block' && menor18.epTxt.indexOf('fuera del rango de la Tabla 2') > -1, menor18.epTxt],
+    ['CN2 con edad y sexo cargados el aviso NO aparece', p0.epDisp === 'none', p0.epDisp + ' | ' + p0.epTxt],
+    ['CN3 «Nuevo estudio» apaga el aviso del e-prima',
+      epAntes === 'block' && epDespues === 'none', epAntes + ' -> ' + epDespues],
+
+    // ── E · la rama del strain de la AI
+    ['sin LARS, la discordancia 1 y 1 queda INDETERMINADA', dSin.badge.indexOf(IND) > -1, dSin.badge],
+    ['LARS 30,0 EXACTO resuelve a presion normal (el corte es >=)', dL30.badge.indexOf(NOR) > -1, dL30.badge],
+    ['LARS 29,9 NO alcanza', dL299.badge.indexOf(NOR) < 0, dL299.badge],
+    ['LARS 17,9 resuelve a presion ELEVADA', dL179.badge.indexOf(DET_E) > -1, dL179.badge],
+    ['LARS 18,0 EXACTO NO es elevada (el corte es <) y cae en la zona intermedia',
+      dL180.badge.indexOf(DET_E) < 0, dL180.badge],
+    ['Ar-A 30 ms EXACTO es NEGATIVO (el corte es >) y la zona intermedia resuelve a normal',
+      fila(dAr30.ven, 'Ar') === 'neg' && dAr30.badge.indexOf(NOR) > -1, fila(dAr30.ven, 'Ar') + ' | ' + dAr30.badge],
+    ['Ar-A 31 ms POSITIVO y resuelve a elevada',
+      fila(dAr31.ven, 'Ar') === 'POS' && dAr31.badge.indexOf(DET_E) > -1, fila(dAr31.ven, 'Ar') + ' | ' + dAr31.badge],
+
+    // ── F · la via de FEVI reducida y la zona gris
+    ['FEVI 49 abre la via reducida', fr49.ven.res.indexOf('vía B') > -1, fr49.ven.res],
+    ['FEVI 50 EXACTO sigue en la via normal (el corte es <)', fr50.ven.res.indexOf('vía A') > -1, fr50.ven.res],
+    ['en la via reducida el e-prima NO se consulta', frPos.ven.filas.filter(f => f.crit.indexOf("e' septal <") > -1).length === 0,
+      JSON.stringify(frPos.ven.filas.map(f => f.crit))],
+    ['via reducida con 3 de 3 positivas -> deteriorada con presion elevada', frPos.badge.indexOf(DET_E) > -1, frPos.badge],
+    ['via reducida con UNA sola variable no afirma nada', frUna.badge.indexOf(INSUF) > -1, frUna.badge],
+    ['via reducida: LARS 26 (>= 24) resuelve a presion normal', frL26.badge.indexOf(DET_N) > -1, frL26.badge],
+    ['via reducida: LARS 20 con S/D < 1 resuelve a presion elevada',
+      fila(frSd.ven, 'S/D') === 'POS' && frSd.badge.indexOf(DET_E) > -1, fila(frSd.ven, 'S/D') + ' | ' + frSd.badge],
+    ['zona gris por FEVI 52: avisa', gris52.grDisp === 'block' && gris52.grTxt.indexOf('juicio clínico') > -1, gris52.grTxt],
+    ['zona gris por GLS -17: avisa', gris17.grDisp === 'block', gris17.grTxt],
+    ['CN4 fuera de la zona gris no avisa', sinGris.grDisp === 'none', sinGris.grDisp],
+    ['CN5 el aviso de zona gris NO cambia el veredicto ni la via',
+      gris52.badge === sinGris.badge && gris52.ven.res === sinGris.ven.res, gris52.badge + ' | ' + sinGris.badge],
+
+    // ── G · la E/A NO vota en ritmo sinusal, y las otras guias no se tocan
+    ['CN6 la E/A baja no cambia el veredicto', eaBaja.badge === p0.badge, eaBaja.badge + ' | ' + p0.badge],
+    ['CN6 la E/A alta tampoco', eaAlta.badge === p0.badge, eaAlta.badge + ' | ' + p0.badge],
+    ['y la E/A no aparece como criterio en la ventana',
+      p0.ven.filas.filter(f => f.crit.indexOf('E/A') > -1).length === 0,
+      JSON.stringify(p0.ven.filas.map(f => f.crit))],
+    ['CN7 la misma escena con ASE 2025 NO publica un badge de la BSE', otra.indexOf('BSE') < 0, otra],
+
+    // ── LAS FRASES, y lo que el Laboratorio hace con cada una
+    ['normal para la edad: la frase del informe',
+      lineaD(p0.inf).indexOf('Función diastólica normal para la edad, con presión de llenado del VI normal') > -1, lineaD(p0.inf)],
+    ['normal para la edad: el EN SUMA', p0.tsuma === 'Función diastólica normal para la edad.', p0.tsuma],
+    ['deteriorada con presion normal: la frase',
+      t30M.texto.indexOf('Función diastólica deteriorada con presión de llenado del VI normal') === 0, t30M.texto],
+    ['deteriorada con presion elevada: la frase',
+      p3.texto.indexOf('Función diastólica deteriorada con presión de llenado del VI elevada') === 0, p3.texto],
+    ['indeterminada: la frase', dSin.texto.indexOf('Presión de llenado del VI indeterminada por discordancia entre los parámetros') === 0, dSin.texto],
+    ['ninguna frase de la BSE escribe un grado', !/grado\\s*(I|II|III|1|2|3)\\b/i.test(
+      p0.texto + ' ' + t30M.texto + ' ' + p3.texto + ' ' + dSin.texto),
+      p0.texto + ' || ' + p3.texto],
+    ['el Laboratorio cuenta «normal para la edad» como Sin disfuncion', p0.lab === 'sin', String(p0.lab)],
+    ['«deteriorada, presion normal» YA NO cuenta como Sin disfuncion', t30M.lab === 'bse_det_normal', String(t30M.lab)],
+    ['«deteriorada, presion elevada» YA NO queda sin clasificar', p3.lab === 'bse_det_elevada', String(p3.lab)],
+    ['«presion normal sin graduar» tiene su propio token', sinEdad.lab === 'pres_normal_sin_grado', String(sinEdad.lab)],
+    ['la indeterminada sigue sin clasificar, como hasta hoy', dSin.lab === null, String(dSin.lab)],
+    ['la frase de FA se reconoce',
+      (typeof _labDiastGrado === 'function')
+      && _labDiastGrado({ campos: { en_suma: 'Disfunción diastólica con presión de llenado elevada (con FA).', informe_texto: '' } }) === 'fa_elevada',
+      String((typeof _labDiastGrado === 'function') ? _labDiastGrado({ campos: { en_suma: 'Disfunción diastólica con presión de llenado elevada (con FA).', informe_texto: '' } }) : 'SIN FUNCION')],
+    ['el estado de presion normal de la ASE 2025 deja de contar como Sin disfuncion',
+      (typeof _labDiastGrado === 'function')
+      && _labDiastGrado({ campos: { en_suma: 'Presión de llenado del VI normal.', informe_texto: 'Presión de llenado del VI normal (2 parámetros). No se puede graduar la disfunción diastólica con los datos disponibles.' } }) === 'pres_normal_sin_grado',
+      String((typeof _labDiastGrado === 'function') ? _labDiastGrado({ campos: { en_suma: 'Presión de llenado del VI normal.', informe_texto: '' } }) : 'SIN FUNCION')],
+    ['CN8 un estudio GUARDADO con la frase vieja de la via reducida clasifica como hasta hoy',
+      (typeof _labDiastGrado === 'function')
+      && _labDiastGrado({ campos: { en_suma: 'Disfunción diastólica, presión de llenado normal.', informe_texto: 'Disfunción diastólica con presión de llenado del VI normal, en contexto de función sistólica deprimida/cardiopatía conocida (E/e promedio 6.0).' } }) === 'sin',
+      String((typeof _labDiastGrado === 'function') ? _labDiastGrado({ campos: { en_suma: 'Disfunción diastólica, presión de llenado normal.', informe_texto: 'Disfunción diastólica con presión de llenado del VI normal, en contexto de función sistólica deprimida/cardiopatía conocida.' } }) : 'SIN FUNCION')],
+    ['CN9 la negacion sigue sin contar',
+      (typeof _labDiastGrado === 'function')
+      && _labDiastGrado({ campos: { en_suma: '', informe_texto: 'Se descarta patrón restrictivo.' } }) === null, 'ok']
+  ] };
+`);
+
 // ═══ GRUPO 12 — Auriculas ═══════════════════════════════════════════════════════════════════
 /* UMBRAL_LAVI_DILATADO = 34, y despues 41 y 48. Con BSA 2,00 el volumen en ml es el doble del
    indexado, asi que 68 ml es exactamente 34,0 ml/m². */

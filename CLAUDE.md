@@ -224,6 +224,147 @@ impecable.
   documentación más **TC-453**, que afirma el comportamiento del 3: revertir el 3 sin el 5 deja
   TC-453 en rojo.
 
+### BSE 2024 en ritmo sinusal — la Tabla 2 por edad y sexo y las Figuras 17 y 18 (2026-10-12)
+
+- Al **empezar** esta tanda, `main` local y `origin/main` estaban los dos en **`7bb613e`**, sin
+  nada sin pushear —confirmado con un `git fetch` de verdad—, con los **siete** commits de la
+  fibrilación auricular ya incluidos. Los **ocho** commits quedan locales; el push lo corre Maicol.
+  **El orden de revertido seguro es el inverso del de aplicación: 8 → 7 → 6 → 5 → 4 → 3 → 2 → 1.**
+  El 1 crea `diastBSE2024Evaluar`, que es el dueño único; del 2 al 6 **cuelgan de él** —cada uno
+  reescribe una parte de esa función o de las dos fábricas de texto que llama—, así que revertir
+  el 1 sin revertir antes los otros cinco deja el archivo sin la función que el cuadro y la
+  ventana consumen, o sea la app sin pestañas. **El 7 (el Laboratorio) se revierte solo**: toca
+  `_labDiastGrado` y el mapa de rótulos del Excel, y nada de la diastólica lo llama. El 8 es
+  documentación más **TC-455**, que afirma el comportamiento de los siete: revertir cualquiera sin
+  el 8 deja TC-455 en rojo.
+
+- **Línea base al cierre: suite 466/470 con el pendrive `DISK_IMG` MONTADO, Semgrep 127 / 0 ERROR,
+  Excel 434 columnas.** Los cuatro rojos son los de entrada y NO son regresiones: **TC-223** (el
+  documentado, falla por la fecha), **TC-376**, **TC-390** y **TC-406**. **El denominador subió a
+  470**: esta tanda agregó **TC-455**. La de ENTRADA, medida en HEAD limpio el 2026-10-12, fue
+  **465/469** con el pendrive montado y los mismos cuatro rojos.
+- **Dónde está todo:** `docs/mapa/diastolica.md` → «`diastBSE2024Evaluar`» (el dueño, las
+  entradas, la tabla de constantes, el orden de los pasos, las categorías y las trampas),
+  `docs/fuentes/FUENTES.md` → `### bseDiast2024 — RITMO SINUSAL` (la Tabla 2, el E/e′ de la
+  pág. 14, las Figuras 17 y 18 leídas de la imagen, la zona gris y las exclusiones),
+  `docs/PENDIENTES.md` → «Función diastólica BSE 2024 en ritmo sinusal», con **nueve** cosas
+  declaradas y no tocadas.
+
+- ⚠️ **EL CUADRO GRIS Y LA VENTANA 🧭 CONTABAN VARIABLES DISTINTAS, Y ACORDABAN EN 3 DE 28
+  ESCENAS.** El cuadro votaba E/e′ promedio, **E/A** y LAVi con umbral 1 ó 2 según el e′; la
+  ventana votaba E/e′ promedio, LAVi y **velocidad de la IT** —la que el cuadro no miraba— y
+  pedía **3 de 3** para decir «LAP elevada». Hoy las dos leen `diastBSE2024Evaluar` y acuerdan en
+  **28 de 28**.
+- ⚠️ **LA APP VOTABA LA E/A, QUE NO ESTÁ EN NINGÚN ALGORITMO DE RITMO SINUSAL DE ESTA GUÍA.** La
+  banda de la Figura 17 dice, literal, `Avg E/e' >14 — LA volume >34 mL/m² — TR velocity >2.8 m/s`.
+  Medido: un paciente con las tres principales negativas y E/A 0,70 publicaba «Indeterminado», y
+  uno con e′ bajo y E/A 0,50 publicaba «Presión de llenado elevada». La E/A **se sigue mostrando**
+  en su celda; lo que se fue es su voto.
+- ⚠️ **CON UNA SOLA VARIABLE EVALUADA LA APP AFIRMABA, EN LAS DOS VÍAS.** En la normal, con
+  relajación alterada bastaba **un** marcador positivo: un paciente con sólo el Vol AI cargado
+  salía «Presión de llenado elevada» en un informe firmado. En la reducida la regla era una
+  mayoría (`marcadores > totalEvaluables / 2`), así que 1 sobre 1 daba elevada y 0 sobre 1 daba
+  normal. Ninguna de las dos figuras tiene rama para una variable sola.
+- ⚠️ **Y CON CERO VARIABLES EVALUADAS DECÍA «FUNCIÓN DIASTÓLICA NORMAL».** Con el e′ como único
+  dato cargado, `!alterada && marcadores === 0` daba la categoría `normal`.
+- ⚠️ **LOS CORTES DEL e′ ERAN LOS DE LA ASE 2025 Y ESTA GUÍA LOS DA POR EDAD Y SEXO.** La app
+  usaba promedio ≤6,5 · septal ≤6 · lateral ≤7, que son de la Figura 3 del folio 554 de la ASE; la
+  **Tabla 2 (pág. 13)** de la BSE corta en 40 y 65 años y en 18-40 separa por sexo (M: septal <7,0
+  / lateral <9,0 · F: <8,0 / <11,0; 41-65: <5,0 / <6,0; >65: <4,0 / <5,0). Medido con el **mismo**
+  e′ (septal 6,5 / lateral 8,5): ALTERADO a los 30 años y NORMAL a los 50. El operador es `<` en
+  los ocho valores y la combinación es un **OR** entre los dos anillos; **no hay corte de
+  promedio**, y el «5,0» que coincide con la ASE es casualidad.
+- ⚠️ **LA PRESIÓN VA PRIMERO Y EL e′ AL FINAL** (folio 35: «must start with the assessment of
+  LVFP»). La app arrancaba por la relajación y sin e′ devolvía «Datos insuficientes» aunque la IT
+  y el Vol AI alcanzaran para decidir la presión.
+- ⚠️ **CON PRESIÓN ELEVADA LA FIGURA 17 NO CONSULTA EL e′, Y ESO CONTESTA LA PREGUNTA DE LA ORDEN
+  sobre «presión elevada con e′ normal para la edad»:** la guía no tiene esa combinación. Sus dos
+  ramas rojas van directo a la casilla roja sin pasar por «Assess relaxation by age-specific e′», y
+  la prosa de la pág. 13 lo respalda: «a value greater than the age-specific cut-off does not
+  confirm normal LV relaxation».
+- ⚠️ **EL E/e′ POR SITIO NO ES UN OR, A DIFERENCIA DE LA ASE 2025.** El folio 14 usa los cortes
+  por sitio (lateral >13 · septal >15) **sólo cuando falta un anillo**; con los dos manda el
+  promedio (>14) y nada más. En HEAD, con un anillo solo el E/e′ **no se calculaba** y el criterio
+  quedaba sin evaluar: un E/e′ septal de 15,0 no contaba.
+- ⚠️ **LA FIGURA Y LA PROSA SE CONTRADICEN EN EL STRAIN, Y LOS DOS TEXTOS ESTÁN IMPRESOS.** La
+  caja dice `pump strain ≥14% OR reservoir strain ≥30%` y la prosa de la pág. 35 dice «LARs
+  (> 30%) **and** LAPs (> 14%)». **Gana la figura**, que es el algoritmo que la app ejecuta, y el
+  signo descartado queda escrito al lado de cada constante. Y la banda gris de la prosa
+  («19–29%») deja sin rama el tramo 18,0-19,0, que la figura cierra preguntando `LARs <18%`.
+- **LAS TRES FIGURAS DE ESTA GUÍA NO COMPARTEN CONSTANTES, Y ES A PROPÓSITO.** Figura 17: LARS
+  ≥30 normal · <18 elevada. Figura 18: LARS <18 elevada · **≥24** normal, LAPs <8 / ≥14, y
+  **cuatro** suplementarios (Ar−A, onda L, **S/D <1** y **TDE <150**). Figura 19 (FA): E/e′
+  **septal** >11, TDE **≤160**, LARS **<16**. El 18 coincide por casualidad.
+- **EL S/D VENOSO PULMONAR VOTA EN LA FIGURA 18 Y NO EN EL RITMO SINUSAL DE LA ASE 2025**, por el
+  mismo motivo que ya está escrito para la FA: el corte de la Figura 18 es **< 1**, que es
+  exactamente lo que dice la opción del `<select>`; el ≤0,67 de la ASE no se puede expresar ahí.
+- **EL LAPs Y LA ONDA L NO TIENEN CAMPO**: declarados no evaluables, no cuentan, y **no se agregó
+  ninguno** — el Excel sigue en **434 columnas**, con el mismo juego de claves y **1085 campos del
+  estudio sin un solo valor distinto** respecto de HEAD. El Ar−A sí existe (`venpArA()`), y lleva
+  **su propia constante**: la BSE usa `> 30` y el `VENP_AR_A_MS` de la ASE/EACVI 2016 que vive al
+  lado usa `>= 30`. No se tocó.
+- **`edad` y `sexo` PASAN A LLAMAR A `calcDiastol`.** Desde hoy son insumos del veredicto y viven
+  en **otra pestaña**; sin eso el cuadro gris se quedaba con el del paciente anterior. La ventana
+  no se atrasa: tiene su oyente de documento.
+- **DOS AVISOS ÁMBAR NUEVOS, Y NINGUNO MUEVE UN VEREDICTO** (medido): `#diast-bse-eprima-aviso`
+  —con **dos textos**, porque con la edad por debajo de 18 «completar edad y sexo» sería falso— y
+  `#diast-bse-gris-aviso` para la zona gris de FEVI/GLS, que la guía deja a juicio clínico y la
+  app **conserva** corriendo la vía normal. Los dos llevan las **tres columnas**: oyente de
+  documento, `RECALC_MODULOS` y `limpiarCampos`.
+- **LAS FRASES SON LAS CUATRO CATEGORÍAS DE LA GUÍA Y NINGUNA ESCRIBE UN GRADO** (la BSE abandonó
+  los I-III, pág. 48). **Las dos vías comparten las casillas 2 y 3**, así que comparten frase; lo
+  que se perdió es la coletilla «en contexto de función sistólica deprimida/cardiopatía conocida»,
+  que repetía la FEVI. **El nombre de la categoría 1 es el de Maicol** («Función diastólica normal
+  para la edad») y no el literal de la figura («Normal diastolic function») — reportado en
+  `docs/PENDIENTES.md` → B9.
+- ⚠️ **EL LABORATORIO CONTABA DOS FAMILIAS DE INFORMES COMO «SIN DISFUNCIÓN» Y UNA TERCERA NO LA
+  CONTABA.** «deteriorada con presión de llenado del VI normal» caía en la regla de «llenado
+  normal»; «Presión de llenado del VI normal.» (el estado sin grado de la ASE 2025) también; y las
+  dos frases de presión ELEVADA sin grado —la de la BSE y la de la FA— quedaban en `null`. Cuatro
+  tokens nuevos, con rótulo en la **columna de texto** del Excel y **sin ningún `DD_*`** ni entrada
+  en la distribución. **El anclaje a principio de oración no es cosmético**: sin él, el
+  «Disfunción diastólica con presión de llenado del VI normal, en contexto de…» que viaja en los
+  estudios ya guardados cambiaría de clasificación.
+- **CONTROL NEGATIVO, 0 DIFERENCIAS EN 30 ESCENAS:** ASE 2025 y ASE/EACVI 2016 en ritmo sinusal, y
+  **las tres guías en fibrilación auricular**, idénticas a HEAD en badge, frase del informe, frase
+  del EN SUMA, las tres celdas compartidas, la PSAP y el resultado y el número de filas de la
+  ventana.
+- **Las seis superficies, enumeradas una por una** (informe en tres estilos, EN SUMA en tres,
+  Excel con sus 434 columnas, franja del PPT, Laboratorio y los campos guardados) sobre 30 escenas
+  de BSE sinusal: cambian las que tenían que cambiar, y la comparación **columna por columna** da
+  **4 columnas distintas de 434** —los dos textos, «Grado disfunción diastólica» y `DD_Sin`— con
+  **cero** columnas agregadas o quitadas.
+- **Arnés: `scripts/_probe_bse2024.mjs`** (A/B de solo lectura con `--file`), siete grupos
+  (`cuadro`, `ventana`, `bordes`, `edad`, `lab`, `excelab`, `superficies`, `otras`), 30 escenas,
+  14 escenas de franja de edad y 14 tripletes de borde cargados con **teclas reales**.
+  **Cobertura: TC-455**, 81 condiciones con cinco denominadores y nueve controles negativos.
+  **Verificado que sabe fallar contra HEAD en un worktree aparte: 65 de las 81 en rojo.**
+- ⚠️ **LAS DIEZ PRIMERAS ESCENAS DE FRANJA DE EDAD NO SEPARABAN NI EL SEXO NI EL BORDE 65/66**, y
+  parecían una medición buena: con septal 6,5 / lateral 8,5 los dos sexos de 18-40 dan ALTERADA y
+  las dos franjas de arriba dan NORMAL. Sirven de control negativo, no de prueba. Las cuatro que
+  **sí** separan usan valores que caen ENTRE los dos cortes de cada par (septal 7,5 para el sexo,
+  septal 4,5 para el 65/66). **Un borde se prueba con el valor que cae entre los dos lados, no con
+  uno que está fuera de los dos.**
+- ⚠️ **EL HASH DE «campos guardados» DE LA SONDA INCLUYE `informe_texto` Y `en_suma`**, que son
+  `<textarea>` con id: cambia en toda escena cuya frase cambia y **no dice nada** sobre los campos
+  del estudio. Las 29 de 30 «diferencias» que informó eran eso. Lo que hay que mirar es la fila del
+  Excel clave por clave y los campos **sin** los dos textos — el grupo `excelab` existe por esto.
+- ⚠️ **LA PRIMERA VERSIÓN DEL COMMIT 1 TENÍA UN MAPA PARALELO DE RÓTULOS** (`BSE_VENT_TIT`, una
+  entrada por categoría) y la sonda lo delató: la clave `normal` se llama «Normal» en la vía A y
+  «Presión de llenado normal» en la vía B, así que la ventana contradecía al cuadro en 2 de 28.
+  El rótulo se **deriva** del mismo `badgeTxt`. Es la tercera vez que este archivo paga escribir
+  la misma palabra en dos lugares.
+- ⚠️ **TC-455 FALLABA CONTRA HEAD POR EXCEPCIÓN Y NO POR SUS CONDICIONES.** `getComputedStyle`
+  sobre un nodo que en HEAD no existe mata la corrida entera y no se ve qué condición caza qué
+  defecto. La lectura va por un ayudante que devuelve `'NO EXISTE'`. **Un caso que muere por
+  excepción prueba que el árbol es distinto, no que el caso sabe medir.**
+- ⚠️ **LA SONDA SE COLGÓ UNA VEZ 20 MINUTOS** con Chrome vivo y node esperando un despacho que no
+  volvía — la trampa de `cdp.mjs` que este archivo ya documenta. No era un defecto del commit: la
+  página cargaba entera (verificado con un grupo vacío, que igual hace el arranque y devuelve el
+  denominador). Se cerró **por PID propio**, nunca por nombre. **Y nunca mandar el stderr de una
+  sonda a `/dev/null`:** una corrida fallida deja un JSON de 0 bytes y el lector revienta donde no
+  es.
+
 ### Fibrilación auricular — un algoritmo por guía, sin mezclar (2026-10-12)
 
 - Al **empezar** esta tanda, `main` local y `origin/main` estaban los dos en **`55422ae`**, sin
