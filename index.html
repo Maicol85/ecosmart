@@ -22315,60 +22315,117 @@ function calcPSAP() {
 }
 
 // ══ DIASTOL ══
-function calcDiastolBSE2024() {
+/* ══ BSE 2024 — RITMO SINUSAL: UN SOLO DUEÑO DEL VEREDICTO ═══════════════════════════
+   ⚠️ EL CUADRO GRIS Y LA VENTANA 🧭 CALCULABAN POR SEPARADO, Y NO CONTABAN LAS MISMAS VARIABLES.
+   El cuadro (`calcDiastolBSE2024`) vota E/e' promedio, E/A y LAVi, y exige 1 marcador con
+   relajación alterada o 2 sin ella. La ventana (rama `bse2024` de `diastAlgoRender`) votaba
+   E/e' promedio, LAVi y velocidad de IT —la IT que el cuadro NO mira— y pedía 3 de 3 para
+   decir «LAP elevada». Dos conteos distintos sobre el MISMO paciente, cada uno con su rótulo.
+   Es el mismo defecto que `diastASE2025Evaluar` cerró para la ASE 2025 el 2026-10-12.
+
+   Esta función es el DUEÑO ÚNICO: devuelve el veredicto, las filas de la ventana y las dos
+   frases del informe, y la pintan `calcDiastolBSE2024` (cuadro) y `diastAlgoRender` (ventana).
+   Es PURA —no escribe ni una celda—, igual que `diastASE2025Evaluar`: las tres celdas
+   compartidas las sigue escribiendo el cuadro, con la condición de HEAD.
+
+   EN ESTE COMMIT EL VEREDICTO DEL CUADRO NO CAMBIA: la cuenta es la de HEAD letra por letra y
+   el texto sale de las MISMAS `calcularBSE2024` / `calcularBSE2024_FEVIreducida`. Lo único que
+   cambia es la VENTANA, que pasa a mostrar lo que de verdad decidió. */
+
+function diastBSE2024Evaluar() {
   const e = v('onda_e'), a = v('onda_a'), esep = v('e_sep'), elat = v('e_lat');
   const aiVol = v('ai_vol'), bsa = getBSA();
 
-  if (e && a) document.getElementById('ea-val').textContent = (e/a).toFixed(2);
+  /* `(esep && elat)` y no `!== null`: es la condición de HEAD y se conserva a propósito. Un e'
+     de 0 queda leído como «no medido», que es lo conservador —con `!== null`, un 0 tipeado por
+     error daría un E/e' infinito y un criterio POSITIVO sobre un dato que no existe—. */
+  const eprom = (esep && elat) ? ((esep + elat) / 2) : null;
+  const ee    = (e && eprom) ? (e / eprom) : null;
+  const ea    = (e && a) ? (e / a) : null;
+  const lavi  = (aiVol && bsa) ? (aiVol / bsa) : null;
+  const trv   = v('vmax_it');
+  const fevi  = v('fevi'), sgl = v('sgl');
+  const feviReducida = (fevi !== null && fevi < UMBRAL_FEVI_NORMAL) || (sgl !== null && Math.abs(sgl) < 16);
 
-  let eprom = null;
-  if (esep && elat) {
-    eprom = (esep + elat) / 2;
-    document.getElementById('eprom-val').textContent = eprom.toFixed(1) + ' cm/s';
-  }
-
-  let ee = null;
-  if (e && eprom) {
-    ee = e / eprom;
-    document.getElementById('ee-val').textContent = ee.toFixed(1);
-  }
-
-  // PASO 1: relajación alterada
   let alterada = null;
   if (esep && elat) alterada = eprom <= 6.5;
   else if (esep && !elat) alterada = esep <= 6;
   else if (elat && !esep) alterada = elat <= 7;
 
-  // PASO 2: marcadores
-  let marcadores = 0, totalEvaluables = 0;
-  const ea = (e && a) ? e / a : null;
-  let lavi = null;
+  const R = { e, a, esep, elat, eprom, ee, ea, lavi, trv, fevi, sgl,
+              feviReducida, alterada, filas: [], pos: 0, total: 0, via: null };
 
-  if (ee !== null) { totalEvaluables++; if (ee > 14) marcadores++; }
-  if (ea !== null) { totalEvaluables++; if (ea <= 0.8 || ea >= 2.0) marcadores++; }
-  if (aiVol && bsa) { lavi = aiVol / bsa; totalEvaluables++; if (lavi > UMBRAL_LAVI_DILATADO) marcadores++; }
-
-  const fevi = v('fevi');
-  const sgl = v('sgl');
-  const feviReducida = (fevi !== null && fevi < UMBRAL_FEVI_NORMAL) || (sgl !== null && Math.abs(sgl) < 16);
-
-  let resultado;
   if (feviReducida) {
-    const trv = v('vmax_it');
-    let marcadoresFR = 0, totalFR = 0;
-    if (ee !== null) { totalFR++; if (ee > 14) marcadoresFR++; }
-    if (trv !== null) { totalFR++; if (trv > 2.8) marcadoresFR++; }
-    if (aiVol && bsa) { totalFR++; if ((aiVol/bsa) > UMBRAL_LAVI_DILATADO) marcadoresFR++; }
-    resultado = window.calcularBSE2024_FEVIreducida(marcadoresFR, totalFR, ee, trv, (aiVol && bsa) ? aiVol/bsa : null);
+    const cEe   = ee   !== null && ee   > 14;
+    const cIt   = trv  !== null && trv  > 2.8;
+    const cLavi = lavi !== null && lavi > UMBRAL_LAVI_DILATADO;
+    let m = 0, t = 0;
+    if (ee   !== null) { t++; if (cEe)   m++; }
+    if (trv  !== null) { t++; if (cIt)   m++; }
+    if (lavi !== null) { t++; if (cLavi) m++; }
+    R.pos = m; R.total = t;
+    R.via = 'B — FEVI reducida o miocardiopatía';
+    R.filas.push({ g: 'Criterios de presión de llenado', crit: "E/e' promedio > 14", val: ee, u: '', ok: cEe });
+    R.filas.push({ crit: 'Velocidad IT > 2.8 m/s', val: trv, u: 'm/s', ok: cIt });
+    R.filas.push({ crit: 'LAVI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
+    R.res = window.calcularBSE2024_FEVIreducida(m, t, ee, trv, lavi);
   } else {
-    resultado = window.calcularBSE2024(alterada, marcadores, totalEvaluables, ee, ea, lavi);
+    const cEe   = ee   !== null && ee   > 14;
+    const cEa   = ea   !== null && (ea <= 0.8 || ea >= 2.0);
+    const cLavi = lavi !== null && lavi > UMBRAL_LAVI_DILATADO;
+    let m = 0, t = 0;
+    if (ee   !== null) { t++; if (cEe)   m++; }
+    if (ea   !== null) { t++; if (cEa)   m++; }
+    if (lavi !== null) { t++; if (cLavi) m++; }
+    R.pos = m; R.total = t;
+    R.via = 'A — FEVI normal';
+    /* El Paso 1 se dibuja con la condición que DECIDIÓ, que es la cascada de `alterada`: con los
+       dos anillos manda el promedio y con uno solo manda ese anillo. Dibujar las tres filas
+       siempre daría a entender un OR que esta versíon no hace. */
+    R.filas.push({ g: 'Paso 1 — Relajación (e\')',
+                   crit: (esep && elat) ? "e' promedio ≤ 6,5 cm/s"
+                       : (esep ? "e' septal ≤ 6 cm/s" : (elat ? "e' lateral ≤ 7 cm/s" : "e' septal y/o lateral")),
+                   val: (esep && elat) ? eprom : (esep || elat || null), u: 'cm/s', ok: alterada === true });
+    R.filas.push({ g: 'Paso 2 — Marcadores de presión', crit: "E/e' promedio > 14", val: ee, u: '', ok: cEe });
+    R.filas.push({ crit: 'E/A ≤ 0,8 o ≥ 2,0', val: ea, u: '', ok: cEa });
+    R.filas.push({ crit: 'LAVI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
+    R.res = window.calcularBSE2024(alterada, m, t, ee, ea, lavi);
   }
 
-  const dd = document.getElementById('dd-interp');
-  if (dd) dd.innerHTML = resultado.badge;
+  R.clave     = R.res.categoria;
+  R.badgeHtml = R.res.badge;
+  R.texto     = R.res.texto;
+  R.textoSuma = R.res.textoSuma;
+  /* ⚠️ EL RÓTULO DE LA VENTANA SALE DEL MISMO TEXTO DE BADGE QUE EL CUADRO, no de un mapa
+     paralelo. La primera versión de este commit sí tenía ese mapa (`BSE_VENT_TIT`) y la sonda
+     lo delató: la categoría `normal` se llama «Normal» en la vía A y «Presión de llenado
+     normal» en la vía B, así que con una sola entrada por clave la ventana contradecía al
+     cuadro en 2 de 28 escenas. Derivarlo es lo que garantiza que no puedan volver a divergir. */
+  R.ventanaTit = String(R.res.badgeTxt || '').replace(' — BSE 2024', '');
+  R.ventanaDet = R.pos + ' de ' + R.total + ' criterios positivos · vía ' + R.via;
+  return R;
+}
+window.diastBSE2024Evaluar = diastBSE2024Evaluar;
 
-  window._bse2024 = resultado;
-  window._diastResult = resultado;
+function calcDiastolBSE2024() {
+  /* Las tres celdas compartidas se escriben con la condición EXACTA de HEAD, que NO es la de
+     `diastCeldasBasicas`: acá el e' promedio y el E/e' sólo salen con los DOS anillos. Usar el
+     ayudante común habría cambiado lo que se ve con un anillo solo, y este commit no mueve nada
+     visible del cuadro. */
+  const e = v('onda_e'), a = v('onda_a'), esep = v('e_sep'), elat = v('e_lat');
+  if (e && a) document.getElementById('ea-val').textContent = (e/a).toFixed(2);
+  const eprom = (esep && elat) ? ((esep + elat) / 2) : null;
+  if (eprom !== null) document.getElementById('eprom-val').textContent = eprom.toFixed(1) + ' cm/s';
+  if (e && eprom) document.getElementById('ee-val').textContent = (e / eprom).toFixed(1);
+
+  const R = diastBSE2024Evaluar();
+  const dd = document.getElementById('dd-interp');
+  if (dd) dd.innerHTML = R.badgeHtml;
+
+  /* `_bse2024` se conserva: lo mira la sonda de esta zona y no cuesta nada. */
+  window._bse2024 = R.res;
+  window._diastResult = { texto: R.texto, textoSuma: R.textoSuma,
+                          badge: R.badgeHtml, algoritmo: 'bse2024' };
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -23094,29 +23151,22 @@ function diastAlgoRender() {
     if (R.texto) h += '<p class="da-nota">' + escHtml(R.texto) + '</p>';
 
   } else if (algo === 'bse2024') {
-    h += '<div class="da-paso">Criterios principales</div>';
-    h += _daFila('E/e\' promedio > 14', L.ee.val, '', L.ee.cumple);
-    h += _daFila('LAVI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', L.lavi.val, 'ml/m²', L.lavi.cumple);
-    h += _daFila('Velocidad IT > 2.8 m/s', L.it.val, 'm/s', L.it.cumple);
-    const c = _daContar([L.ee, L.lavi, L.it]);
-
-    let lap, detalle = '';
-    if (c.eval === 0) lap = 'Indeterminado (sin datos)';
-    else if (c.pos === 0) lap = 'LAP normal';
-    else if (c.pos === c.eval && c.eval === 3) lap = 'LAP elevada';
-    else {
-      lap = 'Indeterminado';
-      h += '<div class="da-paso">Desempate por LARS</div>';
-      h += _daFila('LARS < 18 % (LAP elevada)', lars, '%', lars !== null && lars < 18);
-      if (lars !== null) detalle = lars < 18 ? ' → LARS < 18 %: LAP elevada.'
-                        : lars < 30 ? ' → LARS 18–29 %: zona gris.' : ' → LARS ≥ 30 %: LAP normal.';
-    }
-    const ritmo = (document.getElementById('diast_ritmo') || {}).value;
-    const fevi = _daNum('fevi');
-    const via = ritmo === 'fa' ? 'C — fibrilación auricular'
-              : (fevi !== null && fevi < UMBRAL_FEVI_NORMAL) ? 'B — FEVI reducida o miocardiopatía' : 'A — FEVI normal';
-    h += '<p class="da-nota">Vía aplicada: <b>' + via + '</b>.</p>';
-    h += '<div class="da-res"><b>' + lap + '</b> · ' + c.pos + ' de ' + c.eval + ' criterios positivos.' + detalle + '</div>';
+    /* ⚠️ LA VENTANA YA NO CALCULA: PREGUNTA. Tenía su propia cuenta —E/e', LAVi y velocidad de
+       IT, con 3 de 3 para «LAP elevada»— y el cuadro gris votaba otras variables con otro
+       umbral, así que los dos rótulos podían contradecirse sobre el mismo paciente. Hoy las
+       filas, el conteo y el rótulo salen de `diastBSE2024Evaluar`, que es el único dueño. */
+    const R = diastBSE2024Evaluar();
+    let gB = null;
+    R.filas.forEach(f => {
+      if (f.g && f.g !== gB) { h += '<div class="da-paso">' + escHtml(f.g) + '</div>'; gB = f.g; }
+      h += _daFila(f.crit, f.val, f.u, f.ok, f.dec);
+    });
+    h += '<p class="da-nota">Vía aplicada: <b>' + escHtml(R.via) + '</b>.</p>';
+    h += '<div class="da-res"><b>' + escHtml(R.ventanaTit) + '</b>'
+       + (R.ventanaDet ? ' · ' + escHtml(R.ventanaDet) + '.' : '') + '</div>';
+    /* La frase es LA DEL INFORME, leída del mismo objeto. Si alguna vez volvieran a divergir, se
+       vería acá al lado del conteo en vez de aparecer en un papel firmado. */
+    if (R.texto) h += '<p class="da-nota">' + escHtml(R.texto) + '</p>';
 
   } else {
     // ASE/EACVI 2016 — atajos por E/A primero
@@ -24216,6 +24266,7 @@ function calcularBSE2024(alterada, marcadores, totalEvaluables, ee, ea, lavi) {
     return {
       categoria: 'insuficiente',
       badge: badge('gray', "Datos insuficientes — falta e' septal y/o lateral"),
+      badgeTxt: "Datos insuficientes — falta e' septal y/o lateral",
       texto: null, textoSuma: null
     };
   }
@@ -24230,25 +24281,25 @@ function calcularBSE2024(alterada, marcadores, totalEvaluables, ee, ea, lavi) {
   if (ee !== null) detalles.push(`E/e' promedio ${ee.toFixed(1)}`);
   if (lavi !== null) detalles.push(`AI ${lavi > UMBRAL_LAVI_DILATADO ? 'dilatada' : 'de dimensiones normales'} (Vol AI ${lavi.toFixed(1)} ml/m²)`);
 
-  let texto, textoSuma, badgeC;
+  let texto, textoSuma, badgeC, badgeTxtC;
   if (categoria === 'normal') {
     texto = `Función diastólica normal, con presión de llenado del VI dentro de límites normales (${detalles.join(', ') || 'parámetros disponibles dentro de rango'}).`;
     textoSuma = 'Función diastólica normal.';
-    badgeC = badge('green', 'Normal — BSE 2024');
+    badgeTxtC = 'Normal — BSE 2024'; badgeC = badge('green', badgeTxtC);
   } else if (categoria === 'alterada_normal') {
     texto = `Patrón de relajación alterada, con presión de llenado del VI normal (${detalles.join(', ') || 'sin marcadores de presión elevada'}).`;
     textoSuma = 'Relajación alterada, presión de llenado normal.';
-    badgeC = badge('yellow', 'Relajación alterada — BSE 2024');
+    badgeTxtC = 'Relajación alterada — BSE 2024'; badgeC = badge('yellow', badgeTxtC);
   } else if (categoria === 'elevada') {
     texto = `Presión de llenado del VI elevada (${detalles.join(', ') || 'múltiples marcadores positivos'}), compatible con disfunción diastólica significativa.`;
     textoSuma = 'Presión de llenado del VI elevada.';
-    badgeC = badge('red', 'Presión de llenado elevada — BSE 2024');
+    badgeTxtC = 'Presión de llenado elevada — BSE 2024'; badgeC = badge('red', badgeTxtC);
   } else {
     texto = `Evaluación de la presión de llenado del VI indeterminada por discordancia entre parámetros (${detalles.join(', ') || 'hallazgos discordantes'}). Sugerido correlacionar con clínica o considerar parámetros adicionales (strain de AI).`;
     textoSuma = 'Función diastólica indeterminada.';
-    badgeC = badge('orange', 'Indeterminado — BSE 2024');
+    badgeTxtC = 'Indeterminado — BSE 2024'; badgeC = badge('orange', badgeTxtC);
   }
-  return { categoria, badge: badgeC, texto, textoSuma };
+  return { categoria, badge: badgeC, badgeTxt: badgeTxtC, texto, textoSuma };
 }
 window.calcularBSE2024 = calcularBSE2024;
 
@@ -24257,6 +24308,7 @@ function calcularBSE2024_FEVIreducida(marcadores, totalEvaluables, ee, trv, lavi
     return {
       categoria: 'insuficiente',
       badge: badge('gray', 'Datos insuficientes para estimar presión de llenado'),
+      badgeTxt: 'Datos insuficientes para estimar presión de llenado',
       texto: null, textoSuma: null
     };
   }
@@ -24270,21 +24322,21 @@ function calcularBSE2024_FEVIreducida(marcadores, totalEvaluables, ee, trv, lavi
   if (trv !== null) detalles.push(`Vmax IT ${trv.toFixed(1)} m/s`);
   if (lavi !== null) detalles.push(`Vol AI ${lavi.toFixed(1)} ml/m²`);
 
-  let texto, textoSuma, badgeC;
+  let texto, textoSuma, badgeC, badgeTxtC;
   if (categoria === 'normal') {
     texto = `Disfunción diastólica con presión de llenado del VI normal, en contexto de función sistólica deprimida/cardiopatía conocida (${detalles.join(', ') || 'marcadores disponibles dentro de rango'}).`;
     textoSuma = 'Disfunción diastólica, presión de llenado normal.';
-    badgeC = badge('yellow', 'Presión de llenado normal — BSE 2024');
+    badgeTxtC = 'Presión de llenado normal — BSE 2024'; badgeC = badge('yellow', badgeTxtC);
   } else if (categoria === 'elevada') {
     texto = `Disfunción diastólica con presión de llenado del VI elevada, en contexto de función sistólica deprimida/cardiopatía conocida (${detalles.join(', ') || 'mayoría de marcadores positivos'}).`;
     textoSuma = 'Disfunción diastólica, presión de llenado elevada.';
-    badgeC = badge('red', 'Presión de llenado elevada — BSE 2024');
+    badgeTxtC = 'Presión de llenado elevada — BSE 2024'; badgeC = badge('red', badgeTxtC);
   } else {
     texto = `Estimación de la presión de llenado del VI indeterminada por discordancia entre marcadores (${detalles.join(', ') || 'hallazgos discordantes'}). Sugerido correlacionar con clínica o considerar parámetros adicionales (strain de AI).`;
     textoSuma = 'Presión de llenado indeterminada.';
-    badgeC = badge('orange', 'Indeterminado — BSE 2024');
+    badgeTxtC = 'Indeterminado — BSE 2024'; badgeC = badge('orange', badgeTxtC);
   }
-  return { categoria, badge: badgeC, texto, textoSuma };
+  return { categoria, badge: badgeC, badgeTxt: badgeTxtC, texto, textoSuma };
 }
 window.calcularBSE2024_FEVIreducida = calcularBSE2024_FEVIreducida;
 
