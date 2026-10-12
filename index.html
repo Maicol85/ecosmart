@@ -23778,12 +23778,9 @@ function diastAlgoRender() {
   const tEl = document.getElementById('diast-algo-titulo'); if (tEl) tEl.textContent = tit;
   const host = document.getElementById('diast-algo-cuerpo'); if (!host) return;
 
-  const L = _daCriteriosLAP();
-  const lars = _daNum('lars');
-  const esep = _daNum('e_sep'), elat = _daNum('e_lat');
-  const e = _daNum('onda_e'), a = _daNum('onda_a');
-  const ea = (e && a) ? e / a : null;
-  const tda = _daNum('tde');
+  /* Los ocho locales que vivian aca se fueron con la rama de la ASE 2016: las TRES guias leen
+     hoy su propia funcion duena, asi que ninguna de las tres necesita que esta funcion lea el
+     DOM por su cuenta. `_daCriteriosLAP` y `_daContar` quedan definidos y sin consumidores. */
   let h = '';
 
   /* ⚠️ LA FA VA PRIMERO Y LEE EL MISMO DUEÑO QUE EL CUADRO GRIS. Las tres ramas de abajo son
@@ -23847,35 +23844,20 @@ function diastAlgoRender() {
     if (R.texto) h += '<p class="da-nota">' + escHtml(R.texto) + '</p>';
 
   } else {
-    // ASE/EACVI 2016 — atajos por E/A primero
-    h += '<div class="da-paso">Paso 1 — Atajos por relación E/A</div>';
-    h += _daFila('E/A < 0.8 con E < 50 cm/s → Grado 1 directo', ea, '', ea !== null && ea < 0.8 && e !== null && e < 50, 2);
-    h += _daFila('E/A ≥ 2 → Grado 3 directo', ea, '', ea !== null && ea >= 2, 2);
-
-    h += '<div class="da-paso">Paso 2 — Parámetros de presión de llenado</div>';
-    const eprimaBaja = (esep !== null && esep < 7) || (elat !== null && elat < 10);
-    const eprimaVal = (esep !== null || elat !== null)
-      ? ('sep ' + (esep !== null ? esep : '—') + ' / lat ' + (elat !== null ? elat : '—')) : null;
-    h += _daFila('E/e\' promedio > 14', L.ee.val, '', L.ee.cumple);
-    h += _daFila('e\' septal < 7 o lateral < 10 cm/s', eprimaVal, 'cm/s', eprimaBaja);
-    h += _daFila('Velocidad IT > 2.8 m/s', L.it.val, 'm/s', L.it.cumple);
-    h += _daFila('LAVI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', L.lavi.val, 'ml/m²', L.lavi.cumple);
-
-    const eprimaCrit = { val: eprimaVal, cumple: eprimaBaja };
-    const c = _daContar([L.ee, eprimaCrit, L.it, L.lavi]);
-    let res;
-    if (ea !== null && ea < 0.8 && e !== null && e < 50) res = '<b>Grado 1</b> por atajo (E/A < 0.8 con E < 50 cm/s): LAP normal.';
-    else if (ea !== null && ea >= 2) res = '<b>Grado 3</b> por atajo (E/A ≥ 2)' + (tda !== null && tda < 160 ? ', TDA < 160 ms' : '') + ': LAP muy elevada.';
-    else if (c.eval === 0) res = 'Datos insuficientes para clasificar.';
-    else {
-      const frac = c.pos / c.eval;
-      const lap = frac < 0.5 ? 'LAP normal' : frac === 0.5 ? 'Indeterminado' : 'LAP elevada';
-      const grado = frac < 0.5 ? (eprimaBaja ? 'Grado 1 — e\' reducida, LAP normal' : 'Normal')
-                  : frac === 0.5 ? 'Indeterminado'
-                  : 'Grado 2 — LAP elevada' + (ea !== null && ea >= 0.8 && ea < 2 ? ' (E/A pseudonormal)' : '');
-      res = '<b>' + grado + '</b> · ' + c.pos + ' de ' + c.eval + ' positivos (' + Math.round(frac * 100) + ' %) → ' + lap + '.';
-    }
-    h += '<div class="da-res">' + res + '</div>';
+    /* ⚠️ LA VENTANA YA NO CALCULA: PREGUNTA. Tenía su propia cuenta —cuatro variables con la regla
+       de la mitad, que es la FIGURA 8A— mientras el cuadro gris corría los tres criterios de la
+       FIGURA 8B: dos algoritmos distintos de la misma guía sobre el mismo paciente. Hoy las filas,
+       el conteo y el rótulo salen de `diastASE2016Evaluar`, que es el único dueño. */
+    const R = diastASE2016Evaluar();
+    let g16 = null;
+    R.filas.forEach(f => {
+      if (f.g && f.g !== g16) { h += '<div class="da-paso">' + escHtml(f.g) + '</div>'; g16 = f.g; }
+      h += _daFila(f.crit, f.val, f.u, f.ok, f.dec);
+    });
+    h += '<div class="da-res"><b>' + escHtml(R.ventanaTit) + '</b>'
+       + (R.ventanaDet ? ' · ' + escHtml(R.ventanaDet) + '.' : '') + '</div>';
+    /* La frase es LA DEL INFORME, leída del mismo objeto. */
+    if (R.texto) h += '<p class="da-nota">' + escHtml(R.texto) + '</p>';
   }
 
   h += '<p class="da-nota">Resultado parcial calculado con los datos disponibles. Los criterios en gris no se ingresaron y no se cuentan.</p>';
@@ -24682,67 +24664,142 @@ function calcDiastolASE2025() {
 }
 window.calcDiastolASE2025 = calcDiastolASE2025;
 
-// ══ Algoritmo ASE/EACVI 2016 (grados I–III) ══
-function calcDiastolASE2016() {
+
+/* ══ EL DUEÑO ÚNICO DEL VEREDICTO ASE/EACVI 2016 ═════════════════════════════════════════════
+   ⚠️ HABÍA DOS CUENTAS PARA EL MISMO PACIENTE Y NO ERAN LA MISMA GUÍA. El cuadro gris calculaba
+   en `calcDiastolASE2016` —tres criterios de presión de llenado, que es la FIGURA 8B (folio
+   290)— y la ventana del botón 🧭 calculaba por su cuenta en `diastAlgoRender` con CUATRO
+   variables y la regla de la mitad, que es la FIGURA 8A. O sea: dos algoritmos distintos de la
+   misma guía, cada uno en una superficie, a un clic de distancia. Es el tercer caso idéntico de
+   este archivo, después de `diastASE2025Evaluar` y `diastBSE2024Evaluar`.
+   Esta función LEE EL DOM Y NO ESCRIBE NADA —cada consumidor escribe lo suyo— y devuelve el
+   veredicto (`clave`, `cls`, `badgeTxt`, `texto`, `textoSuma`), el conteo (`pos`/`total`) y las
+   FILAS que dibuja la ventana. Misma forma que las otras dos dueñas, a propósito.
+   ⚠️ ESTE COMMIT NO MUEVE NI UN VEREDICTO DEL CUADRO: la cascada de abajo es la de HEAD, línea
+   por línea, incluido el `e' promedio < 8` que la guía 2016 no tiene. Lo que cambia es que la
+   VENTANA pasa a dar el veredicto del cuadro. Las correcciones de contenido entran después. */
+function diastASE2016Evaluar() {
   const e = v('onda_e'), a = v('onda_a'), esep = v('e_sep'), elat = v('e_lat');
   const aiVol = v('ai_vol'), bsa = getBSA(), trv = v('vmax_it');
+  /* `(esep && elat)` y la cadena de `||` son las de HEAD y se conservan a propósito: un e' de 0
+     queda leído como «no medido», que es lo conservador. Con `!== null`, un 0 tipeado por error
+     daría un E/e' infinito y un criterio POSITIVO sobre un dato que no existe. */
+  const eprom = (esep && elat) ? ((esep + elat) / 2) : (esep || elat || null);
+  const ee = (e && eprom) ? (e / eprom) : null;
+  const lavi = (aiVol && bsa) ? (aiVol / bsa) : null;
+  const ea = (e && a) ? (e / a) : null;
 
+  const cEe   = ee   !== null && ee   > 14;
+  const cLavi = lavi !== null && lavi > UMBRAL_LAVI_DILATADO;
+  const cTr   = trv  !== null && trv  > 2.8;
+
+  const R = { e: e, a: a, ea: ea, esep: esep, elat: elat, eprom: eprom, ee: ee,
+              lavi: lavi, trv: trv, filas: [], pos: 0, total: 0, via: '' };
+
+  [ { ev: ee   !== null, ok: cEe },
+    { ev: lavi !== null, ok: cLavi },
+    { ev: trv  !== null, ok: cTr }
+  ].forEach(function (c) { if (c.ev) { R.total++; if (c.ok) R.pos++; } });
+
+  /* ⚠️ LOS DOS ATAJOS VAN CON `<=` Y CON `>=`, QUE ES LO QUE ESCRIBE LA FIGURA 8B (folio 290):
+     «E/A ≤ 0.8 + E ≤ 50 cm/s» y «E/A ≥ 2». La ventana los dibujaba con `<` estricto en los dos
+     —E/A < 0,8 con E < 50—, así que un E/A de 0,80 exacto (E 40 / A 50, enteros los dos) y una
+     E de 50,0 clavada caían del lado equivocado en la ventana y del correcto en el cuadro. */
+  const atajoG1 = ea !== null && ea <= 0.8 && e !== null && e <= 50;
+  const atajoG3 = ea !== null && ea >= 2.0;
+
+  R.filas.push({ g: 'Paso 1 — Flujo mitral (Figura 8B, folio 290)',
+                 crit: 'E/A ≤ 0,8 con E ≤ 50 cm/s → grado I directo', val: ea, u: '', ok: atajoG1, dec: 2 });
+  R.filas.push({ crit: 'E/A ≥ 2 → grado III directo', val: ea, u: '', ok: atajoG3, dec: 2 });
+  R.filas.push({ crit: 'Onda E (insumo del primer atajo)', val: e, u: 'cm/s', ok: e !== null && e <= 50 });
+
+  R.filas.push({ g: 'Paso 2 — Los tres criterios de presión de llenado',
+                 crit: 'E/e\' > 14', val: ee, u: '', ok: cEe, dec: 1 });
+  R.filas.push({ crit: 'Velocidad IT > 2,8 m/s', val: trv, u: 'm/s', ok: cTr });
+  R.filas.push({ crit: 'Vol AI > ' + UMBRAL_LAVI_DILATADO + ' ml/m²', val: lavi, u: 'ml/m²', ok: cLavi });
+
+  /* El e' y el `eprom < 8` NO son de la Figura 8B — la 8B no mira el e' por ninguna puerta—,
+     pero HEAD los usa de desempate con 0 criterios positivos y este commit no mueve veredictos.
+     Quedan dibujados con el rótulo diciendo para qué sirven HOY. */
+  const ePrimeBajo = (esep !== null && esep < 7) || (elat !== null && elat < 10) || (eprom !== null && eprom < 8);
+  const ePrimVal = (esep !== null || elat !== null)
+    ? ('sep ' + (esep !== null ? esep : '—') + ' / lat ' + (elat !== null ? elat : '—')) : null;
+  R.filas.push({ g: 'Desempate con 0 criterios positivos (no es de la Figura 8B)',
+                 crit: 'e\' septal < 7, lateral < 10 o promedio < 8 cm/s', val: ePrimVal, u: 'cm/s', ok: ePrimeBajo });
+
+  const poner = function (clave, cls, badgeTxt, texto, textoSuma, via) {
+    R.clave = clave; R.cls = cls; R.badgeTxt = badgeTxt;
+    R.texto = texto; R.textoSuma = textoSuma; R.via = via;
+  };
+
+  if (ea === null || R.total < 1) {
+    poner('insuf', 'gray', 'Datos insuficientes — ASE 2016', null, null,
+          'sin relación E/A o sin ningún criterio de presión de llenado');
+  } else if (atajoG1) {
+    poner('g1prol', 'yellow', 'Grado I — ASE 2016',
+          'Llenado diastólico con patrón de relajación prolongada (Disfunción diastólica Grado I).',
+          'Disfunción diastólica Grado I (relajación prolongada).',
+          'atajo E/A ≤ 0,8 con E ≤ 50 cm/s');
+  } else if (atajoG3) {
+    poner('g3', 'red', 'Grado III — ASE 2016',
+          'Llenado diastólico restrictivo (Disfunción diastólica Grado III).',
+          'Disfunción diastólica Grado III (restrictivo).',
+          'atajo E/A ≥ 2');
+  } else if (R.pos >= 2) {
+    poner('g2', 'orange', 'Grado II — ASE 2016',
+          'Llenado diastólico pseudonormal con presiones de llenado elevadas (Disfunción diastólica Grado II).',
+          'Disfunción diastólica Grado II (pseudonormal, presiones elevadas).',
+          R.pos + ' de ' + R.total + ' criterios positivos');
+  } else if (R.pos === 1) {
+    poner('indet1', 'gray', 'Indeterminado — ASE 2016',
+          'Función diastólica indeterminada (1/3 criterios de presión de llenado positivos).',
+          'Función diastólica indeterminada.',
+          '1 de ' + R.total + ' criterios positivos');
+  } else if (ePrimeBajo || (ea !== null && ea <= 0.8)) {
+    poner('g1alt', 'yellow', 'Grado I — ASE 2016',
+          'Patrón de relajación alterada con presiones de llenado normales (Disfunción diastólica Grado I).',
+          'Disfunción diastólica Grado I (relajación alterada).',
+          '0 de ' + R.total + ' criterios positivos, con e\' reducida o E/A ≤ 0,8');
+  } else if (R.total >= 2) {
+    poner('normal', 'green', 'Normal — ASE 2016',
+          'Función diastólica normal.', 'Función diastólica normal.',
+          '0 de ' + R.total + ' criterios positivos');
+  } else {
+    poner('indet', 'gray', 'Indeterminado — ASE 2016',
+          'Función diastólica indeterminada.', 'Función diastólica indeterminada.',
+          'un solo criterio evaluable');
+  }
+
+  /* El rótulo de la ventana sale del MISMO badge que el cuadro, sin el sufijo del protocolo —que
+     la ventana ya lleva en su título—. Derivarlo en vez de escribirlo dos veces es lo que
+     garantiza que no puedan decir cosas distintas; es la lección que este archivo ya pagó con el
+     `BSE_VENT_TIT` de la tanda de la BSE. */
+  R.ventanaTit = R.badgeTxt.replace(' — ASE 2016', '');
+  R.ventanaDet = R.pos + ' de ' + R.total + ' criterios de presión de llenado positivos'
+               + (R.via ? ' · ' + R.via : '');
+  return R;
+}
+window.diastASE2016Evaluar = diastASE2016Evaluar;
+
+// ══ Algoritmo ASE/EACVI 2016 — el cuadro gris ══
+/* Las tres celdas compartidas se escriben ACÁ y con la cuenta de HEAD, que NO es la de
+   `diastCeldasBasicas`: aquélla escribe `eprom-val` también con un solo anillo y esta rama sólo
+   con los dos. Unificarlas cambiaría una celda que esta tanda no toca. */
+function calcDiastolASE2016() {
+  const e = v('onda_e'), a = v('onda_a'), esep = v('e_sep'), elat = v('e_lat');
   if (e && a) document.getElementById('ea-val').textContent = (e/a).toFixed(2);
   let eprom = null;
   if (esep && elat) { eprom = (esep + elat)/2; document.getElementById('eprom-val').textContent = eprom.toFixed(1) + ' cm/s'; }
   else if (esep) eprom = esep; else if (elat) eprom = elat;
-  let ee = null;
-  if (e && eprom) { ee = e/eprom; document.getElementById('ee-val').textContent = ee.toFixed(1); }
-  const lavi = (aiVol && bsa) ? aiVol/bsa : null;
-  const ea = (e && a) ? e/a : null;
+  if (e && eprom) document.getElementById('ee-val').textContent = (e/eprom).toFixed(1);
 
-  // criterios positivos entre los disponibles: E/e'>14, Vol AI>34, TR Vmax>2.8
-  let pos = 0, disp = 0;
-  if (ee !== null)   { disp++; if (ee > 14) pos++; }
-  if (lavi !== null) { disp++; if (lavi > UMBRAL_LAVI_DILATADO) pos++; }
-  if (trv !== null)  { disp++; if (trv > 2.8) pos++; }
-
-  let texto = null, textoSuma = null, cls = 'gray', badgeTxt = 'Indeterminado — ASE 2016';
-  if (ea === null || disp < 1) {
-    texto = null; textoSuma = null; cls = 'gray'; badgeTxt = "Datos insuficientes — ASE 2016";
-  /* ASE/EACVI 2016 define el patrón de relajación prolongada como E/A **≤0,8 con E ≤50 cm/s**.
-     Con `<` estricto, un E/A de exactamente 0,80 —alcanzable con enteros, E 40 / A 50— caía en la
-     rama de 0,8-2,0, y de ahí con 0/3 criterios salía «Normal» sobre una relajación prolongada.
-     Lo mismo del otro lado: el Grado III pide E/A ≥2,0, no >2,0. `calcDiastolASE2025` y
-     `diastAlgoRender` ya usaban `>= 2`; el 2016 era el único disidente. */
-  } else if (ea <= 0.8 && e !== null && e <= 50) {
-    texto = 'Llenado diastólico con patrón de relajación prolongada (Disfunción diastólica Grado I).'; textoSuma = 'Disfunción diastólica Grado I (relajación prolongada).'; cls = 'yellow'; badgeTxt = 'Grado I — ASE 2016';
-  } else if (ea >= 2.0) {
-    texto = 'Llenado diastólico restrictivo (Disfunción diastólica Grado III).'; textoSuma = 'Disfunción diastólica Grado III (restrictivo).'; cls = 'red'; badgeTxt = 'Grado III — ASE 2016';
-  } else {
-    /* Rama de criterios, sin predicado propio A PROPÓSITO: es el complemento exacto de las dos
-       de arriba, así que no puede quedar ningún E/A sin clasificar. Con `ea > 0.8 && ea < 2.0`
-       explícito quedaba un hueco nuevo —E/A ≤0,8 con E >50, que por ASE es indeterminado y va
-       justamente acá— y ese caso se caía al `else` mudo del final. Una cascada de bandas sobre
-       un dato clínico tiene que ser exhaustiva: lo no clasificable no puede desaparecer. */
-    // FIX clínico ASE/EACVI 2016: el Grado III (restrictivo) requiere E/A ≥2.0.
-    // Con E/A 0.8–2.0 NUNCA se asigna Grado III. Según los 3 criterios (E/e'>14, Vol AI>34, TR>2.8):
-    //   2/3 o 3/3 positivos → Grado II (pseudonormal, presiones de llenado elevadas)
-    //   1/3               → indeterminado
-    //   0/3               → Grado I (relajación alterada) si e' baja, si no normal
-    if (pos >= 2)       { texto = 'Llenado diastólico pseudonormal con presiones de llenado elevadas (Disfunción diastólica Grado II).'; textoSuma = 'Disfunción diastólica Grado II (pseudonormal, presiones elevadas).'; cls = 'orange'; badgeTxt = 'Grado II — ASE 2016'; }
-    else if (pos === 1) { texto = 'Función diastólica indeterminada (1/3 criterios de presión de llenado positivos).'; textoSuma = 'Función diastólica indeterminada.'; cls = 'gray'; badgeTxt = 'Indeterminado — ASE 2016'; }
-    else {              // pos === 0: presiones de llenado normales
-      const ePrimeBajo = (esep !== null && esep < 7) || (elat !== null && elat < 10) || (eprom !== null && eprom < 8);
-      /* Un E/A ≤0,8 NO puede salir «normal» por esta rama. Antes de mover el borde a `<=0,8`, el
-         caso «E/A ≤0,8 con E >50» caía en un `else` final que decía «Indeterminada»; al hacer
-         esta rama el catch-all, ese paciente pasó a poder terminar en verde con 0/3 criterios.
-         Un cociente ≤0,8 es relajación prolongada por definición, así que se fuerza Grado I:
-         omitir es aceptable, afirmar normalidad no. */
-      const eaBajo = (ea !== null && ea <= 0.8);
-      if (ePrimeBajo || eaBajo)       { texto = 'Patrón de relajación alterada con presiones de llenado normales (Disfunción diastólica Grado I).'; textoSuma = 'Disfunción diastólica Grado I (relajación alterada).'; cls = 'yellow'; badgeTxt = 'Grado I — ASE 2016'; }
-      else if (disp >= 2)   { texto = 'Función diastólica normal.'; textoSuma = 'Función diastólica normal.'; cls = 'green'; badgeTxt = 'Normal — ASE 2016'; }
-      else                  { texto = 'Función diastólica indeterminada.'; textoSuma = 'Función diastólica indeterminada.'; cls = 'gray'; badgeTxt = 'Indeterminado — ASE 2016'; }
-    }
-  }
+  /* EL VEREDICTO YA NO SE CALCULA ACÁ: lo da `diastASE2016Evaluar`, que es el único dueño y el
+     mismo que lee la ventana del botón 🧭. */
+  const R = diastASE2016Evaluar();
+  const b = badge(R.cls, R.badgeTxt);
   const dd = document.getElementById('dd-interp');
-  if (dd) dd.innerHTML = badge(cls, badgeTxt);
-  window._diastResult = { texto, textoSuma, badge: badge(cls, badgeTxt), algoritmo: 'ase2016' };
+  if (dd) dd.innerHTML = b;
+  window._diastResult = { texto: R.texto, textoSuma: R.textoSuma, badge: b, algoritmo: 'ase2016' };
 }
 window.calcDiastolASE2016 = calcDiastolASE2016;
 
