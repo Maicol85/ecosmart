@@ -11,7 +11,7 @@
  *   node scripts/_probe_strainai.mjs --file /tmp/index.HEAD.html > /tmp/st.HEAD.json
  *   node scripts/_probe_strainai.mjs                             > /tmp/st.NEW.json
  *
- * Grupos (--solo sinc|marca|vacio|bse17|bse18|ase|bordes|signo|excel|ancho):
+ * Grupos (--solo sinc|marca|vacio|bse17|bse18|ase|bordes|signo|excel|ancho|guardado):
  *   sinc    — escribir y BORRAR el LARS y el strain de contraccion desde cada pestaña, con lo que
  *             queda en los dos campos antes y despues. Incluye el control negativo: el strain de
  *             conducto y la onda L viven en UN solo lugar y no se espejan con nada.
@@ -394,7 +394,16 @@ window.__P = {
              lars: r['LARS (%)'], contr: r['Strain contracción AI (%)'],
              iLars: iL, iContr: iC, pegadas: (iL >= 0 && iC === iL + 1),
              bloqueContr: (typeof _labXlsBloqueDe === 'function' && iC >= 0) ? _labXlsBloqueDe('Strain contracción AI (%)') : null,
-             hash: window.__P.hash(JSON.stringify(r)) } },
+             /* ⚠️ DOS HASHES, Y EL SEGUNDO ES EL QUE SIRVE PARA EL A/B. El primero cambia en TODA
+                escena por el solo hecho de que la fila gano una columna, asi que no distingue
+                «se agrego una columna» de «cambio el valor de otra» —que es exactamente lo que el
+                control negativo tiene que separar—. El segundo saca la columna nueva y vuelve a
+                hashear: si da igual que en HEAD, ninguna columna preexistente se movio. */
+             hash: window.__P.hash(JSON.stringify(r)),
+             hashSinNueva: (function(){ var q = {};
+               Object.keys(r).forEach(function(k){ if (k !== 'Strain contracción AI (%)') q[k] = r[k] });
+               return window.__P.hash(JSON.stringify(q)) })(),
+             nSinNueva: ks.filter(function(k){ return k !== 'Strain contracción AI (%)' }).length } },
 
   /* La maqueta de un campo: ancho, alto y si desborda su grilla. */
   caja(id) {
@@ -943,6 +952,96 @@ async function main() {
     await ev(`(function(){ try { document.documentElement.removeAttribute('data-theme') } catch(e){} return 1 })()`);
     await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
     OUT.ancho = r;
+  }
+
+  /* ══ guardado ══ que los seis campos viajan con el estudio, vuelven al reabrirlo, se limpian con
+     «Nuevo estudio», y que un estudio guardado SIN ellos los deja VACIOS (no se migra nada).
+     ⚠️ EL GUARDADO ES ASINCRONO Y TIENE DOS COMPUERTAS, y la primera version de esta sonda se
+     colgo 10 minutos por ignorarlas: `guardarInforme` exige nombre o documento, y la PRIMERA vez
+     saca la card de severidades valvulares y devuelve false —el guardado real cuelga del clic en
+     `#rev-confirm`—. Se replica lo que hace el harness de la suite, con `confirm` neutralizado:
+     un dialogo nativo abierto deja a CDP esperando para siempre. */
+  if (hacer('guardado')) {
+    const r = {};
+    const leer = () => ev(`window.__P.cuatro()`);
+    await evCrudo(`window.__confirmReal = window.confirm; window.confirm = function(){ return true };
+                   window.__alertReal = window.alert; window.alert = function(){ return undefined }; 1`);
+    const guardar = () => ev(`(function(){
+      window._ettEditandoId = null;
+      var antes = new Set(getInformes().map(function(i){ return i.estudioId }));
+      return new Promise(function(resolve){
+        var fin = function(ok){
+          var nuevo = getInformes().find(function(i){ return !antes.has(i.estudioId) });
+          resolve({ ok: ok === true, estudioId: nuevo ? nuevo.estudioId : null }) };
+        try { guardarInforme(fin) } catch(e) { resolve({ ok:false, error:String(e) }); return }
+        var cf = document.getElementById('rev-confirm'); if (cf) cf.click();
+      }) })()`, 25000);
+
+    /* (1) un estudio CON los seis cargados: guardar, limpiar, reabrir. */
+    await cargar({ lars: '27', ai_strain_ct: '-13.5', ai_strain_cd: '21', onda_l: '34' }, null,
+                 esc('bse2024', 'sinusal', { sexo: 'M' }));
+    await tipear('nombre', 'StrainAI');
+    r.antesDeGuardar = await leer();
+    r.guardado = await guardar();
+    const gid = r.guardado && r.guardado.estudioId;
+    /* ⚠️ DENOMINADOR: sin id guardado todo lo de abajo mide el formulario en pantalla y no un
+       estudio reabierto —y saldria «todo bien»—. Se declara. */
+    r.hayId = !!gid;
+    /* Las SEIS claves, leidas del registro en disco: es la unica forma de ver que viajaron. */
+    r.enElRegistro = gid ? await ev(`(function(){
+      var i = getInformes().find(function(x){ return x.estudioId === ${JSON.stringify(gid)} });
+      if (!i) return 'NO ESTA';
+      var c = i.campos || {};
+      var o = {};
+      ['lars','lars_dop','ai_strain_ct','ai_strain_ct_dop','ai_strain_cd','onda_l'].forEach(function(k){
+        o[k] = (k in c) ? c[k] : '<<AUSENTE>>' });
+      return o })()`) : 'SIN ID';
+
+    await ev(`window.__P.limpiar()`); await pausa(250);
+    r.trasLimpiar = await leer();
+    r.camposLimpios = Object.keys(r.trasLimpiar).every((k) => String(r.trasLimpiar[k].v || '') === '');
+    r.marcaLimpia = Object.keys(r.trasLimpiar).every((k) => !r.trasLimpiar[k].marca);
+
+    r.reabrio = gid ? await ev(`(function(){ try { cargarEstudioPorId(${JSON.stringify(gid)}); return 'ok' }
+      catch(e) { return 'EXC ' + e.message } })()`) : 'SIN ID';
+    await pausa(600);
+    r.trasReabrir = await leer();
+    r.volvieronLosSeis = ['lars','lars_dop','ai_strain_ct','ai_strain_ct_dop','ai_strain_cd','onda_l']
+      .every((k) => String(r.trasReabrir[k].v || '') !== '');
+
+    /* (2) EL ESTUDIO VIEJO. Se le quitan al registro las seis claves —que es exactamente lo que
+       trae un estudio guardado antes de esta tanda— y se reabre: los seis tienen que quedar
+       VACIOS, incluido el `lars_dop`, aunque `lars` venga poblado. Nada se migra. */
+    r.viejoPreparado = gid ? await ev(`(function(){
+      var ls = getInformes();
+      var i = ls.find(function(x){ return x.estudioId === ${JSON.stringify(gid)} });
+      if (!i) return 'NO ESTA';
+      ['lars_dop','ai_strain_ct','ai_strain_ct_dop','ai_strain_cd','onda_l'].forEach(function(k){
+        delete i.campos[k] });
+      i.campos.lars = '27';
+      return CeiboStore.setLocal(ls).then(function(){ return 'ok' }) })()`, 20000) : 'SIN ID';
+    await ev(`window.__P.limpiar()`); await pausa(250);
+    r.reabrioViejo = gid ? await ev(`(function(){ try { cargarEstudioPorId(${JSON.stringify(gid)}); return 'ok' }
+      catch(e) { return 'EXC ' + e.message } })()`) : 'SIN ID';
+    await pausa(600);
+    r.trasReabrirViejo = await leer();
+    r.viejoLarsVuelve = String(r.trasReabrirViejo.lars.v || '') === '27';
+    r.viejoLosNuevosVacios = ['lars_dop','ai_strain_ct','ai_strain_ct_dop','ai_strain_cd','onda_l']
+      .every((k) => String(r.trasReabrirViejo[k].v || '') === '');
+
+    /* (3) «Nuevo estudio» con la marca PUESTA: el renglon no puede sobrevivir. */
+    await cargar({ lars: '-32' }, null, esc('bse2024', 'sinusal', { sexo: 'M' }));
+    r.conMarca = await leer();
+    r.marcaEstaba = !!(r.conMarca.lars.marca && r.conMarca.lars_dop.marca);
+    await ev(`window.__P.limpiar()`); await pausa(250);
+    r.trasNuevoEstudio = await leer();
+    r.marcaSeFue = Object.keys(r.trasNuevoEstudio).every((k) => !r.trasNuevoEstudio[k].marca);
+
+    if (gid) await ev(`(function(){ return CeiboStore.setLocal(getInformes().filter(function(i){
+      return i.estudioId !== ${JSON.stringify(gid)} })).then(function(){ return 'borrado' }) })()`, 20000);
+    await evCrudo(`if (window.__confirmReal) window.confirm = window.__confirmReal;
+                   if (window.__alertReal) window.alert = window.__alertReal; 1`);
+    OUT.guardado = r;
   }
 
   OUT.md5Fin = await md5(EXTERNO ? FARG : join(RAIZ, FILE));

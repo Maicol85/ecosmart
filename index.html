@@ -4158,7 +4158,7 @@ window.cerrarSesionReal = cerrarSesionReal;
         <div class="fg"><label>e' anular lateral tricuspídeo (cm/s)</label>
           <input type="number" id="dt_eprime_lat" step="0.1" placeholder="cm/s" oninput="calcDopTric()"></div>
         <!-- TDE tricuspídeo: se CARGA y se GUARDA, y NO entra en ningún cálculo ni en ninguna
-             superficie firmada (informe, EN SUMA, PDF, PPT) ni en el Excel, que sigue en 434
+             superficie firmada (informe, EN SUMA, PDF, PPT) ni en el Excel, que entonces estaba en 434
              columnas. El `oninput` sólo repinta su fila del cuadro de referencias, que es de
              pantalla. En particular NO entra en la clasificación diastólica: la Tabla 6 de la
              ASE 2025 lo lista como criterio y la app deliberadamente no lo usa — ver la nota de
@@ -6133,7 +6133,7 @@ window.cerrarSesionReal = cerrarSesionReal;
                el estudio porque `guardarInforme` barre `input[id]`/`select[id]` de TODO el documento, y
                «Nuevo estudio» los limpia por los mismos barridos (`input[type=number]`, `select` →
                `selectedIndex = 0`, `input[type=checkbox][id]` → `checked = false`). El Excel se queda
-               en 434 columnas porque sus columnas son una LISTA explícita (`LAB_XLS_COLS`) y ninguno
+               en 435 columnas porque sus columnas son una LISTA explícita (`LAB_XLS_COLS`) y ninguno
                de los cuatro ids está en ella; y `_labXlsAssertListas` sólo compara los `<select>` cuyo
                id es una CLAVE de `LAB_XLS_LISTAS`, así que los dos desplegables nuevos no la tocan.
                ⚠️ LA OPCIÓN 0 DE LOS DOS DESPLEGABLES ES «—» CON `value=""`, y no es cosmético: es el
@@ -40783,6 +40783,17 @@ function RECALC_MODULOS() {
          veredicto sí contaba esos criterios;
        · `calcOAI` reconstruye la marca de «área derivada» (ver ahí), sin la cual corregir el
          diámetro en un estudio reabierto dejaba el área vieja. */
+  /* `diastStrainMarcaSync` PINTA la marca «(revisar)» de los seis campos de strain de la AI y de
+     la onda L. Entra acá porque las cinco rutas de restauración pueblan asignando `.value`, que
+     no dispara `input`: sin esto, reabrir un estudio con un LARS negativo dejaba el número en
+     pantalla sin una palabra, y uno GUARDADO con la marca puesta la mostraba sobre el paciente
+     siguiente.
+     ⚠️ Y `larsSync` / `laContrSync` **NO entran**, a diferencia de `dtTapSync` y `etTsvdSync`.
+     Es una decisión, no un olvido: la orden dice que un estudio guardado abre COMO SE GUARDÓ y
+     que los campos nuevos nacen vacíos. Un estudio anterior a esta tanda trae `lars` y no
+     `lars_dop`; copiarlo al abrir sería migrar el registro en silencio. El primer gesto del
+     médico en cualquiera de los dos los iguala, y ESE gesto es una edición —mismo precedente
+     que `vtim`/`itv_mitral`, que este archivo ya documenta—. */
   /* `emPdfValsSync` repinta los tres <span> del panel de metodos de EM y cubre de una los DOS
      escenarios que pasan por este embudo: `editarInforme` y el QR. Entra aca —y no como llamada
      suelta en cada uno— por el mismo argumento que `_vliPintar`.
@@ -40793,7 +40804,7 @@ function RECALC_MODULOS() {
      `emAvmPdfVal` para la fila del PDF, `dataset` protege esa decision, y `disabled` no lo
      persiste ni lo lee nadie. Los dos primeros siguen intocados — que es exactamente la objecion
      que este archivo dejo escrita para IM: «pisaria la decision que la reimpresion respalda». */
-  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync'];
+  return ['tvSync','eteShuntSync','eteTaviSync','eteEpcRefrescar','eteInclSync','dapSync','coaSync','vapSync','fopSync','vabSync','mchSync','ebsSync','tdfSync','tgaSync','mcaSync','marfanSync','eisenSync','fontanSync','esubSync','easvSync','dsavSync','cvpaSync','dtTapSync','papmEstSync','calcDopTric','etTsvdSync','calcET','vpVmaxSync','ipIncongruenciaSync','itRefFuenteSync','dptSync','cvrSync','hcSync','eteSegSync','pulAvUI','_vliPintar','calcVD','calcTEER','calcOAI','calcCardioOnco','calcHFAICOS','indicSyncBoton','ccSegSync','vpSync','popSync','sglOrigenSync','calcVenaPulm','valvProtSync','eaTaviEspejar','imEspejosRestaurar','eteVmAvisoSync','emPdfValsSync','emCuadroRefRepintar','imCortesPintar','imContAvisoPintar','itIncongruenciaSync','aoEspejosRestaurar','tangoRestaurar','diastExclSync','diastFcAvisoSync','diastBseEprimaAvisoSync','diastBseGrisAvisoSync','diastStrainMarcaSync'];
 }
 function _recalcModulos(etiqueta) {
   RECALC_MODULOS().forEach(function(fn){
@@ -41444,6 +41455,13 @@ function limpiarCampos(silencioso) {
   /* LA TERCERA COLUMNA del aviso del paso del e', por el mismo motivo que el de FC. */
   if (typeof diastBseEprimaAvisoSync === 'function') { try { diastBseEprimaAvisoSync(); } catch (e) {} }
   if (typeof diastBseGrisAvisoSync === 'function') { try { diastBseGrisAvisoSync(); } catch (e) {} }
+  /* LA SEGUNDA COLUMNA de la marca «(revisar)» del strain de la AI y de la onda L, por el mismo
+     motivo que los cuatro avisos de arriba: el barrido vacía los `value` de los seis campos, pero
+     los seis renglones de marca son `<div>` con `textContent` —no son campos— y sobreviven a
+     «Nuevo estudio». Sin esta línea el paciente siguiente arranca con un «(revisar)» colgado al
+     lado de un campo ya vacío. La función ya se protege sola —sin dato no marca—, así que con
+     los campos vaciados lo que hace es borrar los seis. */
+  if (typeof diastStrainMarcaSync === 'function') { try { diastStrainMarcaSync(); } catch (e) {} }
   /* ⚠️ VENA PULMONAR, POR EL MISMO MOTIVO QUE `ccSegSync` Y AL FINAL COMO ÉL. El barrido de
      arriba vacía los cuatro `value`, pero las dos filas del cuadro gris se esconden por `display`
      y el color va en `style` en línea: sin esto el paciente siguiente arrancaba con los renglones
@@ -43771,7 +43789,7 @@ function mostrarCardSeveridadValvular(onConfirm) {
        `SEV_SINC` el `<select>` visible `im_sev_final` es lo que leen `sevDiscrepa`, el aviso rojo,
        el cajón del fundamento y la pastilla. Medido: con IM calculada «Severa» (vena contracta
        8 mm), apretar «Generar PDF» y corregir la IM a «Moderada» en la tarjeta dejaba
-       `im_grado = 2` —que es lo que firma el PDF y lo que va a las 434 columnas— y
+       `im_grado = 2` —que es lo que firma el PDF y lo que va a las 435 columnas— y
        `im_sev_final = 4`; o sea el aviso rojo comparaba el grado EQUIVOCADO (no había discrepancia
        que mostrar entre 4 y 4), el cajón del fundamento no se abría, la pastilla seguía diciendo
        «Severa» y el narrativo decía «insuficiencia moderada». La marca manual que la línea de abajo
@@ -43803,7 +43821,7 @@ function mostrarCardSeveridadValvular(onConfirm) {
        `ia_sev_final` acá». Es exactamente eso.
        Medido antes de tocar (sonda `_probe_sinapaga.mjs`, escena CARD-ia): con una IAo calculada
        severa (vena contracta 7 mm), apretar «Generar PDF» y corregir la IAo a «Moderada» en la
-       tarjeta dejaba `ia_grado = 2` —que es lo que firma el PDF y lo que va a las 434 columnas— y
+       tarjeta dejaba `ia_grado = 2` —que es lo que firma el PDF y lo que va a las 435 columnas— y
        `ia_sev_final = 4`. O sea el aviso rojo comparaba el grado EQUIVOCADO (no veía discrepancia
        entre 4 y 4), el cajón del fundamento no se abría, la pastilla seguía diciendo «Severa ▼» y
        el narrativo decía «insuficiencia moderada». Y la marca que pone la línea de abajo deja la
@@ -87804,7 +87822,7 @@ function _labExcelRow(inf) {
        rama `src` que su propio comentario declaraba código muerto «de una línea el día que se
        decida». Hoy se decidió.
        Vaciar y no marcar, igual que la continuidad: es una columna numérica y un texto la volvería
-       inimportable. Los 434 encabezados no cambian. */
+       inimportable. Los 435 encabezados no cambian. */
     'AVm (cm²)': (typeof emThpValido === 'function' && !emThpValido(c)) ? '' : rnd(num('avm_thp'),2),
     'AT aórtico (ms)': rnd(valvProtDato('va_morf','va_at',c),0),
     'Morfología aórtica': c.va_morf || '', 'EA grado': gEA,
@@ -87861,6 +87879,14 @@ function _labExcelRow(inf) {
        una AI de 34 ml. */
     'Volumen AI (ml)': rnd(num('ai_vol'),1),
     'LARS (%)': rnd(num('lars'),1),
+    /* ⚠️ VA EL VALOR CRUDO, NO EL ABSOLUTO, y es la misma regla que el campo: lo que el médico
+       tipea. Las cuentas de la BSE 2024 usan |x| por `diastStrainAbs`; la planilla tiene que
+       poder volver a entrar por el importador y dar el MISMO campo, y un signo corregido en la
+       exportación rompe ese ida y vuelta sin que nada lo delate.
+       El strain de CONDUCTO y la ONDA L **no llevan columna**, por orden expresa: el primero no
+       entra en ningún algoritmo de ninguna guía y la segunda es un suplementario que sí vota
+       pero que la orden dejó fuera de la planilla. Quedan en el estudio guardado. */
+    'Strain contracción AI (%)': rnd(num('ai_strain_ct'),1),
     'Área AD (cm²)': rnd(num('ad_area'),1),
     'Pericardio': c.pericardio || '',
     /* CIA/CIV y TAVI. Las etiquetas legibles y no los value crudos del <select>: el nombre de
@@ -88000,7 +88026,7 @@ function _labExcelRow(inf) {
     /* ⚠️ `vab_tipo` SALE EN DOS COLUMNAS, ésta y «VAB tipo de fusión» treinta líneas más abajo.
        Las dos llevan hoy el MISMO texto porque son el mismo dato: la de abajo quedó con el mapa
        Sievers y exportaba la celda vacía para los siete valores del Consenso. No se unifican ni se
-       borra una porque cambiaría el número de columnas (434) y un Excel ya exportado perdería la
+       borra una porque cambiaría el número de columnas (435) y un Excel ya exportado perdería la
        que falte en silencio. Sólo ÉSTA se reimporta —es la única de las dos que está en
        `LAB_XLS_MAP`—. Queda declarado para Maicol, no corregido. */
     'VAB tipo (Consenso 2021)': _ccLbl(VAB_TIPO_LBL_LEGACY, c.vab_tipo),
@@ -88676,6 +88702,7 @@ const LAB_XLS_BLOQUES = [
       'Centro / Institución','Médico solicitante','Motivo / Indicación','Antecedentes','Caso de interés (S/N)'] },
   { n:'2 · AORTA', pre:['Ao '] },
   { n:'3 · AURÍCULA IZQUIERDA', cols:['Diám. AP AI (mm)','Área AI (cm²)','Volumen AI (ml)','LARS (%)',
+      'Strain contracción AI (%)',
       'Vol AI (LAVI) (ml/m²)'] },
   { n:'4 · VENTRÍCULO IZQUIERDO', cols:['SIV (mm)','DDVI (mm)','DSVI (mm)','PP (mm)','FEVI Simpson (%)','GLS (%)',
       'Masa VI (g/m²)','RWT','VDFVI idx (ml/m²)','FA (%)'], pre:['Geometría VI','Geom_','Trastornos sectoriales','TS_'] },
@@ -89214,6 +89241,11 @@ const LAB_XLS_MAP = [
   ['Área AI (cm²)',          'ai_area',        'num'],
   ['Volumen AI (ml)',        'ai_vol',         'num'],
   ['LARS (%)',               'lars',           'num'],
+  /* Entra al lado del LARS y NO al final: el export arma la fila por NOMBRE de encabezado
+     (`_labExcelRow` devuelve un objeto y `_labOrdenarCols` ordena por este mapa) y el importador
+     también lee por nombre, así que ningún consumidor depende de la posición. Verificado además
+     que CeiboAnalytics no lee este Excel: no tiene un solo `XLSX.read` ni `sheet_to_json`. */
+  ['Strain contracción AI (%)', 'ai_strain_ct', 'num'],
 
   // 6 · Aurícula derecha y presiones de llenado
   ['Área AD (cm²)',          'ad_area',        'num'],
@@ -89727,6 +89759,13 @@ const LAB_XLS_RANGO_PROPIO = {
      por eso el panel exige las DOS áreas en banda antes de usar la FAC. */
   vd_fac:[5,80],
   ai_diam:[10,90], ai_area:[3,60], ai_vol:[5,400], lars:[0,60], ad_area:[3,60],
+  /* ⚠️ POR REFERENCIA Y NO POR UN LITERAL REPETIDO. El dueño de esta banda es
+     `DIAST_STRAIN_BANDA` (≈ 60.000 líneas más arriba), que es la misma que decide la marca
+     «(revisar)» en pantalla. Escribir el `[-60,60]` otra vez acá es cómo se llega a que el
+     importador rechace un número que la pantalla acepta —o al revés—, que es el defecto que este
+     archivo ya pagó tres veces. Es SIMÉTRICA porque los ecógrafos dan este strain negativo: la
+     banda es la del valor absoluto, escrita sobre el valor crudo, que es lo que viaja. */
+  ai_strain_ct: DIAST_STRAIN_BANDA.ai_strain_ct,
   /* Bandas de los numéricos agregados el 2026-09-11. Sin entrada acá, `_labXlsNum` sólo
      verifica que el valor PARSEE: una FEVI basal de 580 o un NT-proBNP de 900000 entraban sin
      chistar. Las bandas son anchas a propósito —atrapan el error de un orden de magnitud, no
@@ -103002,8 +103041,8 @@ window.actualizarGraficaEvol = actualizarGraficaEvol;
    —o parsear la cadena local como si fuera UTC— es un error de tres horas que aparece y
    desaparece con el huso. Las escribe `scripts/sellar_version.py` desde la MISMA fecha.
    NO EDITAR A MANO. */
-const ECO_BUILD    = '20261012-1343';   /* eco-build-stamp */
-const ECO_BUILD_MS = 1791823422198;                 /* eco-build-ms */
+const ECO_BUILD    = '20261012-1405';   /* eco-build-stamp */
+const ECO_BUILD_MS = 1791824752489;                 /* eco-build-ms */
 
 /* LA DECISIÓN, SEPARADA DE LA RED Y DEL PINTADO. Es el mismo corte que `teerEstado`/`calcTEER`:
    así se puede probar por los DOS lados del umbral sin levantar un servidor ni fingir un fetch,
@@ -103089,7 +103128,7 @@ window.ecoChequearVersion = ecoChequearVersion;
 <!-- Footer global -->
 <footer style="text-align:center;padding:18px 12px;margin-top:20px;border-top:1px solid var(--border);color:var(--text2);font-size:11px;line-height:1.5;">
   © 2026 Dr. M. D. S. y col. · EcoSmart · Todos los derechos reservados · Uso clínico exclusivo
-  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-1343</span><!-- eco-build-pie --></div>
+  <div style="margin-top:5px;font-size:10px;opacity:.75;">EcoSmart · <span id="eco-build-sello">v20261012-1405</span><!-- eco-build-pie --></div>
 </footer>
 
 <!-- El aviso "🔒 Aviso de uso de datos" (#dataconsent-overlay) se eliminó: aparecía ANTES del

@@ -362,7 +362,7 @@ window.__P = {
     try { return (typeof _pptSpan === 'function') ? _pptSpan('dd-interp') : window.__P.txt('dd-interp') }
     catch(e) { return 'EXC: ' + e.message } },
 
-  /* Columnas del Excel: el NUMERO es lo que fija la verificacion (434) y las claves el detalle. */
+  /* Columnas del Excel: el NUMERO es lo que fija la verificacion (434 al escribir esta sonda; 435 desde el 2026-10-12) y las claves el detalle. */
   excelCols() {
     var r = window.__P.excel();
     if (typeof r === 'string') return r;

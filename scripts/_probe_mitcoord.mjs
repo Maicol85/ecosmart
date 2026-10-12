@@ -1040,7 +1040,7 @@ async function main() {
      diam_tsvi_ao, itv_tsvi, ai_area, thp, itv_mitral— asi que en HEAD los espejos mitrales se
      llenan por _syncDerivado con las pastillas abiertas y en el arbol nuevo por la coordinacion.
      Si las dos superficies coinciden, la propagacion nueva no movio una sola salida firmada.
-     Se comparan UNA POR UNA: informe narrativo (tres estilos), EN SUMA, Excel entero (434
+     Se comparan UNA POR UNA: informe narrativo (tres estilos), EN SUMA, Excel entero (434 al escribir esta sonda, 435 desde el 2026-10-12;
      columnas, celda por celda), PPT, Laboratorio, panel de Evidencia, los espejos del TEER y el de
      morfologia/etiologia, mas las lineas de las OTRAS TRES valvulas como control negativo. */
   if (hacer('AB')) {

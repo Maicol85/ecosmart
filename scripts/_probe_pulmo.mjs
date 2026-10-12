@@ -201,7 +201,7 @@ window.__P = {
 
   /* La fila del Excel del Laboratorio, por el MISMO emisor que usa la exportacion real
      (_labExcelRow). No genera el .xlsx —eso abre una descarga y «Excel y reimportacion solo con
-     orden expresa»—: lo que se compara son las 434 columnas que el emisor produce. Copiado de
+     orden expresa»—: lo que se compara son las columnas que el emisor produce (434 al escribir esta sonda; 435 desde el 2026-10-12). Copiado de
      scripts/_ab_e5.mjs para que el A/B de esta tanda mida la misma superficie que el de E5. */
   excel() {
     if (typeof _labExcelRow !== 'function') return 'SIN _labExcelRow';

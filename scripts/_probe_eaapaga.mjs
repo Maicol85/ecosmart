@@ -1051,7 +1051,7 @@ async function main() {
      1,4), que es la unica escena donde los dos arboles difieren:
        · los 1087 campos guardados, VALOR POR VALOR y no por recuento —un recuento igual con
          dos valores cambiados dice «identico» y no prueba nada—;
-       · la fila del Excel con sus 434 columnas, tambien valor por valor;
+       · la fila del Excel con sus columnas (434 al escribirla; 435 desde el 2026-10-12), tambien valor por valor;
        · la franja del PPT;
        · la fila del Laboratorio de la estenosis aortica.
      ⚠️ POR QUE NO SE CAPTURA EL PDF: lo arma jsPDF por CDN y en esta red no se alcanza —es lo

@@ -7,7 +7,7 @@
  * (2) las COMBINACIONES de fuentes marcadas y destildadas; (3) la IM significativa que retira el
  * criterio del gradiente completo; (4) el round-trip de un estudio guardado SIN las claves del
  * selector, que es la escena que protege el papel firmado; y (5) las cuatro superficies
- * —informe en los tres estilos, EN SUMA, Excel 434 y campos guardados— con el control negativo
+ * —informe en los tres estilos, EN SUMA, Excel (434 al escribir esta sonda; 435 desde el 2026-10-12) y campos guardados— con el control negativo
  * de las otras tres válvulas.
  *
  * No muta index.html: comprueba su md5 al principio y al final.

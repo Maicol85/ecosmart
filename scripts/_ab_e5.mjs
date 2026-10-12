@@ -2,7 +2,7 @@
 /**
  * _ab_e5.mjs — sonda TEMPORAL de la etapa E5 (botones/pastillas de la pulmonar).
  *
- * A/B de las 434 columnas de exportación (`_labExcelRow`) + los tres estilos del informe + EN SUMA,
+ * A/B de las columnas de exportación (434 al escribirla; 435 desde el 2026-10-12) (`_labExcelRow`) + los tres estilos del informe + EN SUMA,
  * para un conjunto de escenas, sobre el ARCHIVO que se le pase con `--file`. Así se corre contra el
  * index actual y contra el snapshot de HEAD (E4) sin swapear `index.html` — se sirve el archivo
  * pedido para `/` y `/index.html`, el resto (CDN) sale a la red como en test_clinico.

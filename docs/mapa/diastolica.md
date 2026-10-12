@@ -142,7 +142,10 @@ HEAD — el e′ promedio y el E/e′ **sólo con los DOS anillos**, que NO es l
 | **Edad, sexo** | `edad`, `sexo` | **Paciente** |
 
 **Sin campo en esta app, declarados no evaluables:** LAPs (strain de bomba de la AI) y onda L.
-No se agregó ninguno — el Excel sigue en 434 columnas.
+⚠️ **ESTO DEJÓ DE SER CIERTO EL 2026-10-12.** La tanda del strain de la AI agregó los dos
+campos que faltaban —el LAPs es `ai_strain_ct` y la onda L es `onda_l`— y el Excel pasó a
+**435 columnas** (una sola nueva: «Strain contracción AI (%)»). Ver «Los campos de strain de la
+AI y la onda L» más abajo.
 
 ### Las constantes, y por qué no se comparten
 
@@ -242,7 +245,7 @@ devuelven `cls`, `badgeTxt`, `ventanaTit`, `ventanaDet`, `texto`, `textoSuma` y 
 ### Entradas
 `_diastFADatos()` las lee una vez: `onda_e`, `e_sep`, `e_lat`, `vmax_it`, `psap_calc`, `tde`,
 `triv`, `lars`, `venp_sd`, `fevi`, `ao_fc` y el **IMC por `getIMC()`** (de `peso` y `talla`).
-**Ningún campo nuevo**: el Excel sigue en 434 columnas.
+**Ningún campo nuevo en esa tanda**; desde el 2026-10-12 el Excel está en **435 columnas**.
 
 ### Los cortes, por guía
 
@@ -326,7 +329,7 @@ la ventana (con `RECALC_MODULOS`) y `limpiarCampos`.
 | **EN SUMA** | el mismo bloque, `suma.push(_diastResult.textoSuma)`. Un `textoSuma` vacío **no manda nada** |
 | **PDF** | el narrativo y el EN SUMA, por el mismo texto |
 | **PPT** | la franja de hallazgos lee `_pptSpan('dd-interp')`, o sea el **badge** del cuadro |
-| **Excel** | ⚠️ **cinco columnas salen del TEXTO del resumen, no del cálculo**: «Grado disfunción diastólica», `DD_I`, `DD_II`, `DD_III` y `DD_Sin`, todas vía `_labDiastGrado`. Las columnas de datos crudos (onda E, onda A, e' septal, e' lateral, E/A, e' promedio, E/e') son del bloque «7 · DOPPLER Y DIASTÓLICA». El total es **434** |
+| **Excel** | ⚠️ **cinco columnas salen del TEXTO del resumen, no del cálculo**: «Grado disfunción diastólica», `DD_I`, `DD_II`, `DD_III` y `DD_Sin`, todas vía `_labDiastGrado`. Las columnas de datos crudos (onda E, onda A, e' septal, e' lateral, E/A, e' promedio, E/e') son del bloque «7 · DOPPLER Y DIASTÓLICA»; el LARS y el strain de contracción están en el bloque «3 · AURÍCULA IZQUIERDA». El total es **435** |
 | **Laboratorio** | `_labDiastGrado` otra vez: la distribución del panel, el PPT estadístico y los filtros de cohorte. **Cambiar una palabra del EN SUMA mueve esas cinco columnas y los gráficos** |
 | **Panel de Evidencia** | **no lee nada de la diastólica**: `IND_SECS` no toca `_diastResult` |
 

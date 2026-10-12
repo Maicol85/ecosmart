@@ -11,7 +11,7 @@ está mapeada en `docs/mapa/diastolica.md` → «`diastBSE2024Evaluar`» y las f
 Las Figuras 17 y 18 los usan en la rama del strain: el LAPs como alternativa del LARS en los dos
 sentidos (`≥14 %` normal en la 17, `<8 %` elevado y `≥14 %` normal en la 18) y la onda L como
 parámetro suplementario (`>20 cm/s`). **La app no los mide y la orden pidió no agregar campos**
-(el Excel sigue en 434 columnas), así que los dos quedan declarados **no evaluables**: se dibujan
+(el Excel estaba entonces en 434 columnas), así que los dos quedaron declarados **no evaluables**: se dibujaban
 en la ventana con el motivo en su propio rótulo y no cuentan.
 
 **Consecuencia medida:** un paciente con discordancia 1 y 1 y **sin LARS** queda
@@ -144,7 +144,8 @@ El corte de la Figura 3 es **≤0,67** (equivale a una fracción de llenado sist
 campo `venp_sd` es un `<select>` de **«<1 / >1»**: un S/D de 0,9 es «<1» y **no** cumple el
 criterio. El criterio quedó dibujado en **gris** con el motivo en su rótulo. Para habilitarlo hace
 falta **un campo numérico nuevo** —el S/D, o la fracción de llenado sistólico— y esta tanda tenía
-orden expresa de no agregar ninguno (el Excel sigue en **434 columnas**).
+orden expresa de no agregar ninguno (el Excel estaba entonces en **434 columnas**; desde el
+2026-10-12 está en **435**).
 
 ⚠️ **EN FIBRILACIÓN AURICULAR EL MISMO CAMPO SÍ ES EVALUABLE** (2026-10-12): el corte de la
 Figura 8 de la ASE 2025 y el de la Figura 19 de la BSE es **< 1**, que es exactamente lo que dice

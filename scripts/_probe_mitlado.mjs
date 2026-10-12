@@ -406,7 +406,7 @@ window.__P = {
      CALCO LE PASABA EL MAPA PELADO (2026-10-10). Su firma es _labExcelRow(inf) y adentro hace
      inf.campos || {} y _labNum(inf, ...), que lee inf.campos?.[k]: con el mapa plano, inf.campos
      es undefined y TODAS las columnas derivadas de campos salen vacias. Medido: la fila daba
-     n=434 —el numero correcto— con AVm (cm2), AVm continuidad, AVm planimetria y AVm indexada en
+     n=434 —el numero correcto al escribir esta sonda; 435 desde el 2026-10-12— con AVm (cm2), AVm continuidad, AVm planimetria y AVm indexada en
      cadena vacia AUNQUE avm_thp valiera 1.47 y avm_plan 1.30. Es el defecto del DENOMINADOR en su
      forma mas cara: un A/B del Excel sobre esa fila habria dado «identico» en los dos lados
      porque los dos estaban vacios, y habria firmado como verificada una columna que nadie midio.

@@ -22,7 +22,7 @@ for (const id of ids) {
   for (const k of ['conciso','estandar','narrativo','suma','pills_pulmonar']) {
     if (String(ea[k]) !== String(eb[k])) diffs.push({ campo:k, orig:ea[k], cur:eb[k] });
   }
-  // Excel (434 columnas)
+  // Excel (434 columnas al escribir esta sonda; 435 desde el 2026-10-12)
   const xa = ea.excel, xb = eb.excel;
   const ka = excelKeys(xa), kb = excelKeys(xb);
   if (ka.length !== kb.length) diffs.push({ campo:'__excel_len__', orig:ka.length, cur:kb.length });

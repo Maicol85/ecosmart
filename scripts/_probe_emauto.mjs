@@ -870,7 +870,7 @@ async function main() {
     E.foto = await foto();
     E.textos = await textos();
     /* ⚠️ `_labExcelRow` DEVUELVE UN OBJETO, NO UN ARREGLO, y la primera corrida informo «NO ES
-       ARRAY» en vez de un recuento. El 434 que vigila TC de la suite se cuenta igual que ahi:
+       ARRAY» en vez de un recuento. El numero de columnas que vigila TC de la suite (434 al escribir esta sonda; 435 desde el 2026-10-12) se cuenta igual que ahi:
        `Object.keys(_labExcelRow({id:0,campos:{}}))` pasado por `_labOrdenarCols`. */
     E.excelColumnas = await ev(`(function(){ try {
       var k = Object.keys(_labExcelRow({ id:0, campos:{} }));

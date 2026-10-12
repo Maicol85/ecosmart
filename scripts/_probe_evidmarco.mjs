@@ -406,7 +406,7 @@ window.__M = {
       o['informe_' + est] = { hash: window.__M.hash(inf), len: inf.length };
       o['suma_' + est]    = { hash: window.__M.hash(suma), len: suma.length };
     });
-    /* EXCEL: la fila completa, con su CANTIDAD DE COLUMNAS al lado — 434 es la linea base. */
+    /* EXCEL: la fila completa, con su CANTIDAD DE COLUMNAS al lado — 434 era la linea base al escribir esta sonda; 435 desde el 2026-10-12. */
     o.excel = (function(){
       if (typeof _labExcelRow !== 'function') return 'SIN _labExcelRow';
       var campos = {};

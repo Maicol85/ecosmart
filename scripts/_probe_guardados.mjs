@@ -189,7 +189,7 @@ window.__G = {
     return c },
 
   /* La fila del Excel por el emisor REAL. No genera el .xlsx —«Excel y reimportacion solo con
-     orden expresa»—: se comparan las columnas que produce y su CANTIDAD, que es el 434 del
+     orden expresa»—: se comparan las columnas que produce y su CANTIDAD, que era el 434 del
      protocolo de verificacion. */
   excel() {
     if (typeof _labExcelRow !== 'function') return 'SIN _labExcelRow';
